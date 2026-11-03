@@ -15,8 +15,9 @@
  *     gold stars 30 split evenly over mazes 1–3's stars; holes cost no points; any input scores at least 1, none 0;
  *     the total is the parts' sum, never above 200; stars never cost core.
  *  5. Rooms identical: the same seed deals the same four mazes whatever is played (idle, random, bots), and rooms deal
- *     tiltRev 10 from the bank.
- *  6. The words: LIVE_BANDS, the help, the intro, the reveal and the intro demo name the new stamp and its parts.
+ *     from the bank (tiltRev 11 since 3 Nov 2026: tilt-rev11-check).
+ *  6. The words: tiltRev 10's reveal names its parts. Since 3 Nov 2026 LIVE_BANDS, the help, the intro and the intro
+ *     demo name the dealt tiltRev 11 (tilt-rev11-check proves their words); here only that they moved on.
  *
  *   bun scripts/tilt-standard-check.ts
  */
@@ -30,6 +31,7 @@ import {
   tiltStdParts,
   tiltWorldHFor,
   TILT_REV_LIFT,
+  TILT_REV_PAR,
   TILT_REV_STD,
   TILT_RUN_TICKS,
   TILT_S4_CELL,
@@ -41,6 +43,7 @@ import {
   TILT_S_SPEED_POINTS,
   TILT_S_STAR_POINTS,
   TILT_V10_BAND_CURVE,
+  TILT_V11_BAND_CURVE,
   TILT_X_CELL,
   TILT_X_H,
   TILT_X_W,
@@ -57,17 +60,26 @@ import { roundMaxFor } from "../src/lib/duel/roundMax";
 import { tiltStateDigest } from "./tilt-expand-record";
 import { botLog, randomLog, scheduleOf } from "./room-identity/tilt";
 import { entry } from "./arcade-standard/tilt";
-import type { StdRun } from "./arcade-standard/entry";
 
-/** The game's arcade-standard-check entry, read as this check always has (the first perfect run, split into parts). */
+/**
+ * tiltRev 10's arcade-standard entry, as scripts/arcade-standard/tilt.ts held it until 3 Nov 2026 (it names the dealt
+ * tiltRev 11 since): its parts, and its perfect run (the stored oracle run on the first bank seed, server replay).
+ */
 const STANDARD = {
-  id: entry.type,
-  stampKey: entry.field,
-  stamp: entry.rev,
-  parts: entry.parts,
+  id: "tilt",
+  stampKey: "tiltRev",
+  stamp: TILT_REV_STD,
+  parts: [
+    { key: "core", max: TILT_S_CORE_MAX },
+    { key: "finish", max: TILT_S_FINISH_POINTS },
+    { key: "speed", max: TILT_S_SPEED_POINTS },
+    { key: "stars", max: TILT_S_STAR_POINTS },
+  ],
   perfect: () => {
-    const r = (entry.perfect() as StdRun[])[0]!;
-    return { score: r.score, parts: r.parts! };
+    const run = load("scripts/fixtures/tilt-standard-runs.json.gz").find((r) => r.kind === "oracle")!;
+    const r = replayTiltRun(run.seed, run.raw, TILT_REV_STD);
+    const p = tiltStdParts(r.state);
+    return { score: r.flagged ? -1 : r.score, parts: { core: p.core, finish: p.finish, speed: p.speed, stars: p.stars } as Record<string, number> };
   },
 };
 
@@ -125,6 +137,7 @@ section("tiltRev 10 runs; the oracle's are 200");
   const perfect = STANDARD.perfect();
   ok(perfect.score === 200 && STANDARD.parts.every((p) => perfect.parts[p.key] === p.max), `STANDARD.perfect(): 200 with every part at its maximum (${JSON.stringify(perfect)})`);
   ok(STANDARD.parts.reduce((t, p) => t + p.max, 0) === 200 && STANDARD.stamp === TILT_REV_STD && STANDARD.stampKey === "tiltRev", "STANDARD: parts sum to 200 on tiltRev 10");
+  ok(entry.rev === TILT_REV_PAR && entry.field === "tiltRev", "the arcade-standard entry names the dealt tiltRev 11 since 3 Nov 2026 (tilt-rev11-check)");
   console.log(`  ${runs.length} runs; perfect() in ${Date.now() - t0} ms`);
 }
 
@@ -201,10 +214,10 @@ section("the parts: straight lines, 200 in all");
 }
 
 /* 5. Rooms identical. */
-section("rooms identical: the same mazes whatever is played; rooms deal tiltRev 10");
+section("rooms identical: the same mazes whatever is played; rooms deal tiltRev 11 (since 3 Nov 2026) from the bank");
 {
   for (const seed of [TILT_BANK[5]!, TILT_BANK[50]!, TILT_BANK[200]!]) {
-    const logs = [[], randomLog(seed), botLog(seed, "weak"), botLog(seed, "elite")];
+    const logs = [[], randomLog(seed, TILT_REV_STD), botLog(seed, "weak", TILT_REV_STD), botLog(seed, "elite", TILT_REV_STD)];
     const schedules = logs.map((l) => scheduleOf(seed, TILT_REV_STD, l));
     const reached = schedules.map((s) => new Set(s.map((e) => Math.floor(e.t / 100_000))));
     for (let i = 1; i < schedules.length; i++) {
@@ -215,21 +228,21 @@ section("rooms identical: the same mazes whatever is played; rooms deal tiltRev 
   }
   for (let k = 0; k < 20; k++) {
     const p = generatePuzzle("tilt") as unknown as { tiltRev: number; seed: number };
-    ok(p.tiltRev === TILT_REV_STD && TILT_BANK.includes(p.seed), `rooms deal tiltRev 10 from the bank (got ${p.tiltRev}, ${p.seed})`);
+    ok(p.tiltRev === TILT_REV_PAR && TILT_BANK.includes(p.seed), `rooms deal tiltRev 11 from the bank (got ${p.tiltRev}, ${p.seed})`);
   }
 }
 
 /* 6. The words. */
 section("the help, intro, reveal and demo");
 {
+  // Since 3 Nov 2026 the help, intro, LIVE_BANDS and demo name the dealt tiltRev 11 (tilt-rev11-check proves their words).
   const live = LIVE_BANDS.tilt as { field: string; rev: number; curve: unknown };
-  ok(live.field === "tiltRev" && live.rev === TILT_REV_STD && live.curve === TILT_V10_BAND_CURVE, "LIVE_BANDS: tiltRev 10 on the core's line");
+  ok(live.field === "tiltRev" && live.rev === TILT_REV_PAR && live.curve === TILT_V11_BAND_CURVE, "LIVE_BANDS: the dealt tiltRev 11 on its core's line (tiltRev 10 before 3 Nov 2026)");
   ok(roundMaxFor("tilt") === 200, "Tilt's round maximum stays 200");
   const help = PUZZLE_INSTRUCTIONS.tilt.score;
-  for (const words of ["counts 35", "up to 5 more", "up to 140", "adds 10", "up to 20 for speed", "by 75 s", "up to 30", "140 + 10 + 20 + 30 = 200", "at least 1", "Up to 200."]) ok(help.includes(words), `the help says "${words}": ${help}`);
-  ok(!/quick star|\bpars?\b|skill/i.test(help), "the help names no quick stars, pars or skill pay");
+  ok(!/quick star|skill/i.test(help) && !/gold star/i.test(help), "the help names no quick stars, skill pay or (tiltRev 11) gold stars");
   ok(PUZZLE_INSTRUCTIONS.tilt.how.some((h) => /maze 4/.test(`${h.action} ${h.detail}`)) && PUZZLE_INSTRUCTIONS.tilt.how.every((h) => !/quick star/i.test(h.detail)), "the HOW lines name maze 4 and no quick stars");
-  ok(INTRO_SCORE.tilt.includes("35 a maze") && INTRO_SCORE.tilt.includes("All 4 quickly"), `the intro: ${INTRO_SCORE.tilt}`);
+  ok(INTRO_SCORE.tilt.includes("All 4 quickly"), `the intro: ${INTRO_SCORE.tilt}`);
   const runs = load("scripts/fixtures/tilt-standard-runs.json.gz");
   const weak = runs.find((r) => r.kind === "weak")!;
   const r = replayTiltRun(weak.seed, weak.raw, TILT_REV_STD);
@@ -240,7 +253,7 @@ section("the help, intro, reveal and demo");
   const rv = buildArcadeReveal("tilt", { ...ro, tiltRev: TILT_REV_STD }, ro.score)!;
   ok(rv.outcome === "finish" && rv.lines.join(" ").includes("all 4 mazes +10 · speed +20") && rv.lines.join(" ").includes("Gold stars 3 / 3 +30"), `the perfect reveal: ${rv.lines.join(" | ")}`);
   const demos = readFileSync("src/lib/duel/introDemo.functions.ts", "utf8");
-  ok(/tiltRev !== TILT_REV_STD\) return null/.test(demos), "the intro demo stays stopped until one is recorded on tiltRev 10");
+  ok(/tiltRev !== TILT_REV_PAR\) return null/.test(demos), "the intro demo stays stopped until one is recorded on the dealt stamp (tiltRev 11 since 3 Nov 2026)");
   ok(TILT_REV_STD === TILT_REV_LIFT + 1, "tiltRev 10 is one above the live stamp it replaces");
 }
 

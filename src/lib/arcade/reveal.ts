@@ -822,6 +822,19 @@ const BUILDERS: Record<string, Builder> = {
     const all = n(r, "tiltRev") === 8 || n(r, "tiltRev") === 9 ? 3 : 4;
     const done = n(r, "mazes") >= all;
     const quick = n(r, "totalQuick") > 0;
+    // tiltRev 11: no gold stars; mazes within par and a clean run instead.
+    if (n(r, "tiltRev") >= 11)
+      return {
+        axis: { value: n(r, "mazes"), max: all, label: "Mazes" },
+        lines: [`${n(r, "mazes")} / ${all} mazes · ${n(r, "parsMet")} under par · ${n(r, "falls") > 0 ? `clean for ${n(r, "cleanMazes")}` : "clean run"} → ${s}`],
+        tiles: [
+          { label: "Mazes", value: `${n(r, "mazes")} / ${all}` },
+          { label: "Under par", value: `${n(r, "parsMet")} / ${all}` },
+          { label: "Falls", value: String(n(r, "falls")) },
+          { label: "Time", value: sec(n(r, "survivedSeconds")) },
+        ],
+        outcome: done ? "finish" : ended(r, false),
+      };
     return {
       axis: { value: n(r, "mazes"), max: all, label: "Mazes" },
       lines: [n(r, "tiltRev") > 0 ? `${n(r, "mazes")} / ${all} mazes · ${n(r, "stars")} / ${n(r, "totalStars")} stars${quick ? ` · ${n(r, "quickStars")} / ${n(r, "totalQuick")} quick stars` : ""} → ${s}` : head(`${n(r, "mazes")} / 4 mazes`, s, done)],

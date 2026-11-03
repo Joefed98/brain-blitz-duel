@@ -5,18 +5,22 @@
  * reaches each one by a beam search over held tilts turned at a finger's speed (`ORACLE_FINGER` px a tick,
  * re-gripping at the screen's edges as a hand does). It never lets the marble it is steering fall in.
  *
- *   bun scripts/tilt-oracle.ts [--from=0] [--seeds=260] [--rev=8|10] [--write=<file>]   # per seed: the oracle's score
+ *   bun scripts/tilt-oracle.ts [--from=0] [--seeds=260] [--rev=8|10|11] [--write=<file>]   # per seed: the oracle's score
  *
  * tilt-expand-check replays stored oracle runs; this script proves every seed can be played to 200.
  */
 import { appendFileSync, writeFileSync } from "node:fs";
 import { gzipSync } from "node:zlib";
 import type { ArcadeInputEvent } from "../src/lib/arcade/engine";
-import { tiltCellCentre, tiltCheckpoint, tiltExpandGame, tiltFieldX, tiltParWalksX, tiltStdGame, tiltWalkTurnsX, TILT_CHECKPOINT_INTERVAL, TILT_INPUT_DRAG, TILT_REV_EXPAND, TILT_REV_STD, type Maze, type TiltState } from "../src/lib/arcade/tilt";
+import { tiltCellCentre, tiltCheckpoint, tiltExpandGame, tiltFieldX, tiltParGame, tiltParWalksX, tiltStdGame, tiltWalkTurnsX, TILT_CHECKPOINT_INTERVAL, TILT_INPUT_DRAG, TILT_REV_EXPAND, TILT_REV_PAR, TILT_REV_STD, type Maze, type TiltState } from "../src/lib/arcade/tilt";
 import { decodeTiltRun, encodeTiltRun, replayTiltRun } from "../src/lib/duel/tilt";
 import { GAME_BY_TYPE } from "./arcade-skill-bands/games";
 
-/** The game the oracle plays: tiltRev 8's (the bank's proofs), or tiltRev 10's (`oracleRun(seed, TILT_REV_STD)`: four mazes, no quick stars). */
+/**
+ * The game the oracle plays: tiltRev 8's (the bank's proofs), tiltRev 10's (`oracleRun(seed, TILT_REV_STD)`: four
+ * mazes, no quick stars) or tiltRev 11's (`oracleRun(seed, TILT_REV_PAR)`: tiltRev 10's mazes with no gold stars, so
+ * its waypoints are the keys and cups; a perfect run is every maze within par and no fall).
+ */
 let game = tiltExpandGame;
 const TURN = 65536;
 const ANG_PER_PX = 91;
@@ -96,7 +100,8 @@ function macro(n: Node, target: number, hold: number, g: Goal): { node: Node; do
       log.push(ev);
     }
     const next = game.step(s, ev);
-    const fell = g.which === 0 ? (next.holdA ?? 0) !== (s.holdA ?? 0) : (next.holdB ?? 0) !== (s.holdB ?? 0);
+    // tiltRev 11 (a clean run pays): a fall of either marble is a dead branch; older stamps watch the steered one only.
+    const fell = s.parClean ? (next.falls ?? 0) > (s.falls ?? 0) : g.which === 0 ? (next.holdA ?? 0) !== (s.holdA ?? 0) : (next.holdB ?? 0) !== (s.holdB ?? 0);
     s = next;
     if (fell && s.level === s0.level) return { node: { s, log }, done: false, fell: true };
     if (reached(s, s0, g)) return { node: { s, log }, done: true, fell: false };
@@ -180,7 +185,7 @@ function playGoals(node: Node, m: Maze, level: number, goals: Goal[]): Node | nu
 
 /** Plays a seed; returns the log and the server's score for it. */
 export function oracleRun(seed: number, rev: number = TILT_REV_EXPAND): { raw: string; score: number; state: TiltState } {
-  game = rev === TILT_REV_STD ? tiltStdGame : tiltExpandGame;
+  game = rev === TILT_REV_PAR ? tiltParGame : rev === TILT_REV_STD ? tiltStdGame : tiltExpandGame;
   let node: Node = { s: game.init(seed), log: [] };
   for (let level = 0; level < node.s.list.length && !game.isOver(node.s); level++) {
     const m = node.s.list[level]!;
@@ -256,7 +261,7 @@ if (import.meta.main) {
     const t0 = performance.now();
     const r = oracleRun(seed, Number(opt("rev") ?? TILT_REV_EXPAND));
     const s = r.state;
-    const line: Record<string, unknown> = { n, seed, score: r.score, mazes: s.mazes, stars: s.stars, quick: s.quickTaken, quickPts: s.quickPts, pace: s.pace, end: s.endedTick, ms: Math.round(performance.now() - t0) };
+    const line: Record<string, unknown> = { n, seed, score: r.score, mazes: s.mazes, stars: s.stars, ...(s.parClean ? { pars: s.parsMet, falls: s.falls, mazeTicks: s.mazeTicks, par: s.list.map((m) => m.par) } : {}), quick: s.quickTaken, quickPts: s.quickPts, pace: s.pace, end: s.endedTick, ms: Math.round(performance.now() - t0) };
     if (opt("stats")) line.mazeStats = mazeStats(seed, r.raw);
     console.log(JSON.stringify(line));
     if (out) appendFileSync(out, JSON.stringify(line) + "\n");

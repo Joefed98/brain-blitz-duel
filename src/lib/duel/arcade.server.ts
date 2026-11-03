@@ -12,7 +12,7 @@ import { minesBoard, minesSolve, MINES_REV_STD } from "@/lib/arcade/minesweeper"
 import { mahjongBuildClears, MAHJONG_REV_DEALT } from "@/lib/arcade/mahjong";
 import { SNIP_REV_TARGET, SNIP_REV_EXPAND } from "@/lib/arcade/snip";
 import { SKYLINE_REV_TARGET, SKYLINE_REV_STRICT, SKYLINE_REV_STD } from "@/lib/arcade/skyline";
-import { TILT_REV_STD } from "@/lib/arcade/tilt";
+import { TILT_REV_PAR } from "@/lib/arcade/tilt";
 import { TILT_BANK } from "./tiltBank.server";
 import { JUNC_REV_BAND } from "@/lib/arcade/junction";
 import { BINTOSS_REV_TARGET, BINTOSS_REV_STRICT, BINTOSS_REV_STD } from "@/lib/arcade/binToss";
@@ -417,9 +417,10 @@ export function generateTilt(): TiltPuzzleData {
   // through the server's replay (tilt-expand-check replays each).
   // tiltRev 10 (the arcade scoring standard, 29 Oct 2026): the same bank; mazes 1–3 are tiltRev 9's less the quick stars,
   // and the fourth maze is carved from the seed in the sim (a spanning tree, so always passable; tilt-standard-check).
+  // tiltRev 11 (3 Nov 2026): the same bank and mazes, no gold stars, scored on par times and a clean run.
   const pick = arcadeSeed();
   const seed = TILT_BANK[((pick % TILT_BANK.length) + TILT_BANK.length) % TILT_BANK.length]!;
-  return { type: "tilt", seed, tiltRev: TILT_REV_STD };
+  return { type: "tilt", seed, tiltRev: TILT_REV_PAR };
 }
 
 export function generateHotFloor(): HotFloorPuzzleData {

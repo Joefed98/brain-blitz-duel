@@ -303,6 +303,16 @@ export interface TiltState extends BandFields {
   lift?: number;
   /** tiltRev 10 only (the arcade scoring standard): 1. Four mazes, scored by tiltStdParts; in the checkpoint checksum. */
   std?: number;
+  /**
+   * tiltRev 11 only (3 Nov 2026): 1. tiltRev 10's mazes with no gold stars, scored on par times and a clean run
+   * (tiltParParts); with the counters below, in the checkpoint checksum.
+   */
+  parClean?: number;
+  /** tiltRev 11: mazes finished within their par, and the mazes finished before the run's first fall (absent until a fall). */
+  parsMet?: number;
+  cleanTo?: number;
+  /** tiltRev 11: each finished maze's time (ticks from its start to both marbles home); the reveal and tools read it. */
+  mazeTicks?: number[];
   keysGot?: number;
   quickGot?: number[];
   mazeAt?: number;
@@ -523,6 +533,8 @@ export function tiltExtra(s: TiltState) {
     totalQuick: tiltTotalQuick(s),
     falls: s.falls ?? 0,
     skillPoints: s.xp && !s.std ? tiltSkillPaid(s) : 0,
+    // tiltRev 11 only (absent on every older round): mazes finished within par, and finished before the first fall.
+    ...(s.parClean ? { parsMet: clampInt(s.parsMet ?? 0, 0, s.mazes), cleanMazes: clampInt(s.cleanTo ?? s.mazes, 0, s.mazes) } : {}),
   };
 }
 
@@ -586,6 +598,8 @@ export function tiltCheckpoint(state: TiltState): TiltCheckpoint {
   if (state.xp) values.push(state.xp, state.keysGot ?? 0, state.quickPts ?? 0, state.quickTaken ?? 0, state.mazeAt ?? 0, state.keysTaken ?? 0, state.falls ?? 0, state.pace ?? 0, state.holdA ?? 0, state.holdB ?? 0);
   // tiltRev 10 adds its marker last.
   if (state.std) values.push(state.std);
+  // tiltRev 11 adds its marker and counters after that, so every tiltRev 10 checksum is unchanged.
+  if (state.parClean) values.push(state.parClean, state.parsMet ?? 0, state.cleanTo ?? -1);
   for (const value of values) {
     checksum ^= value | 0;
     checksum = Math.imul(checksum, 0x01000193) >>> 0;
@@ -1049,6 +1063,7 @@ export function tiltCellCentre(m: Maze, c: number): { x: number; y: number } {
 
 export const tiltRev2Game: ArcadeGame<TiltState, ArcadeInputEvent | null> = { ...tiltGame, init: initRev2, step: bandStep(stepRev2, tiltTrack), score: bandScoreOf(scoreRev2, scoreBand) };
 export function tiltGameFor(rev?: number | null): ArcadeGame<TiltState, ArcadeInputEvent | null> {
+  if (rev === TILT_REV_PAR) return tiltParGame;
   if (rev === TILT_REV_STD) return tiltStdGame;
   if (rev === TILT_REV_LIFT) return tiltLiftGame;
   if (rev === TILT_REV_EXPAND) return tiltExpandGame;
@@ -2277,7 +2292,7 @@ export const tiltLiftGame: ArcadeGame<TiltState, ArcadeInputEvent | null> = {
 
 /** True for the revisions that play the expansion's mazes (tiltRev 8, and tiltRev 9 on its lifted curves). */
 export function tiltIsExpand(rev?: number | null): boolean {
-  return rev === TILT_REV_EXPAND || rev === TILT_REV_LIFT || rev === TILT_REV_STD;
+  return rev === TILT_REV_EXPAND || rev === TILT_REV_LIFT || rev === TILT_REV_STD || rev === TILT_REV_PAR;
 }
 
 /* ================= tiltRev 10 (29 Oct 2026): the arcade scoring standard ================= */
@@ -2467,6 +2482,7 @@ export function tiltStdParts(state: TiltState): { core: number; finish: number; 
 }
 
 export function tiltStdBandParts(state: TiltState): BandParts {
+  if (state.parClean) return tiltParBandParts(state);
   const p = tiltStdParts(state);
   const finished = p.mazes >= TILT_S_MAZES;
   const offer = tiltStarsOnOfferS(state);
@@ -2493,4 +2509,157 @@ export const tiltStdGame: ArcadeGame<TiltState, ArcadeInputEvent | null> = {
   init: initS,
   step: bandStep(stepX, tiltTrackS),
   score: scoreS,
+};
+
+/* ================= tiltRev 11 (3 Nov 2026): par times and a clean run, no gold stars ================= */
+
+/**
+ * tiltRev 11 (docs/arcade-standard/tilt.md "tiltRev 11"; Joe: the stars go, par times and a clean run come in).
+ * Play is tiltRev 10's exactly (the same four mazes from the same seed streams, the same carve, holes, keys and gates,
+ * ice, cups and amber marble, the same physics and falls) less the gold stars of mazes 1–3: none is dealt, drawn or
+ * scored. Each maze carries a par (`Maze.par`, ticks), fixed from the maze alone (tiltParT: the shortest walk over its
+ * key to the blue cup, its turns and the amber marble's route, cell times scaled by the maze's cell size), so it is the
+ * same for every player. Score (straight lines and fixed amounts), 200 in all:
+ *  - core up to TILT_P_CORE_MAX: TILT_P_MAZE_POINTS + TILT_P_PROGRESS_POINTS a finished maze, and in the maze being
+ *    played up to TILT_P_PROGRESS_POINTS for how close the marbles got to its exit (tiltRev 10's progress);
+ *  - par: TILT_P_PAR_POINTS for each maze finished within its par (from the maze's start to both marbles home);
+ *  - clean run: TILT_P_CLEAN_POINTS ÷ 4 for each maze finished before the run's first fall into a black hole (all
+ *    four with no fall: the whole part); a fall never costs core, only the clean credit still to come;
+ *  - speed up to TILT_P_SPEED_POINTS, only once all four mazes are done (full by TILT_P_SPEED_FULL, falling evenly to 0
+ *    at the buzzer). tiltRev 10's flat "all four mazes" part is folded into it (the tuning measured no gain from it).
+ * Any input scores at least 1, none 0 (stdFinal). States add `parClean: 1` (with `std: 1`, tiltRev 10's marker) and
+ * the counters `parsMet` and `cleanTo`, folded into the checkpoint checksum after tiltRev 10's marker.
+ */
+export const TILT_REV_PAR = 11;
+/**
+ * Core: a finished maze, and the most the maze being played's progress pays (a finished maze counts both, 35). The
+ * progress share is larger than tiltRev 10's (5): the core is mostly a straight line on the way covered through the
+ * four mazes, so a run deep into its next maze is told apart from one that has just begun it.
+ */
+export const TILT_P_MAZE_POINTS = 15;
+export const TILT_P_PROGRESS_POINTS = 20;
+export const TILT_P_CORE_MAX = TILT_S_MAZES * (TILT_P_MAZE_POINTS + TILT_P_PROGRESS_POINTS);
+/** Par: a fixed amount for each maze finished within its par. */
+export const TILT_P_PAR_POINTS = 6;
+export const TILT_P_PAR_MAX = TILT_S_MAZES * TILT_P_PAR_POINTS;
+/** Clean run: the whole part for all four mazes with no fall, an even share for each maze finished before the first. */
+export const TILT_P_CLEAN_POINTS = 12;
+/** Speed, once all four mazes are done: full by TILT_P_SPEED_FULL ticks, falling evenly to 0 at the buzzer. */
+export const TILT_P_SPEED_POINTS = 24;
+export const TILT_P_SPEED_FULL = 60 * TICKS_PER_SECOND;
+/**
+ * Par's walk times (ticks): a start allowance (reading the maze), each cell of the walk (TILT_P_PAR_CELL_T for a
+ * 30 px cell, in proportion for other sizes), each turn of the walk, each cell of the amber marble's route, then
+ * scaled by TILT_P_PAR_SCALE / 100. Integer only.
+ */
+export const TILT_P_PAR_T0 = 90;
+export const TILT_P_PAR_CELL_T = 8;
+export const TILT_P_PAR_TURN_T = 6;
+export const TILT_P_PAR_AMBER_T = 14;
+export const TILT_P_PAR_SCALE = 150;
+/** The core's straight line (points = core points; the "?" help and LIVE_BANDS read it). */
+export const TILT_V11_BAND_CURVE = bandCurve([0, TILT_P_CORE_MAX], [0, TILT_P_CORE_MAX]);
+
+/** A tiltRev 11 maze's par (ticks), from the maze alone: its shortest walk over its key(s) to the blue cup and the amber route. */
+export function tiltParT(m: Maze): number {
+  const w = tiltParWalksX({ ...m, stars: [], quick: [] });
+  const cells = Math.max(0, w.tour.length - 1);
+  const amberCells = Math.max(0, w.amber.length - 1);
+  const px = Math.trunc(m.cs / FP);
+  const t = TILT_P_PAR_T0 + Math.trunc((TILT_P_PAR_CELL_T * cells * px) / 30) + TILT_P_PAR_TURN_T * tiltWalkTurnsX(m, w.tour) + Math.trunc((TILT_P_PAR_AMBER_T * amberCells * px) / 30);
+  return Math.trunc((t * TILT_P_PAR_SCALE) / 100);
+}
+
+const cacheP = new Map<number, Maze[]>();
+
+/** The four tiltRev 11 mazes of a seed (cached): tiltRev 10's with no gold stars, each with its tiltRev 11 par. */
+function mazesP(seed: number): Maze[] {
+  let list = cacheP.get(seed | 0);
+  if (!list) {
+    list = mazesS(seed).map((m) => {
+      const bare: Maze = { ...m, stars: [], starXY: [] };
+      return { ...bare, par: tiltParT(bare) };
+    });
+    if (cacheP.size > 16) cacheP.clear();
+    cacheP.set(seed | 0, list);
+  }
+  return list;
+}
+
+/** The four tiltRev 11 mazes a seed deals (the same for every player; checks and tools read them). */
+export function tiltMazesP(seed: number): readonly Maze[] {
+  return mazesP(seed);
+}
+
+function initP(seed: number): TiltState {
+  const base = init(seed);
+  const list = mazesP(seed);
+  return bandInit(enterMazeX({ ...base, rev: TILT_REV, list, stars: 0, cupped: 0, starTick: -1000, xp: 1, std: 1, parClean: 1, parsMet: 0, mazeTicks: [], quickPts: 0, quickTaken: 0, keysTaken: 0, keyTick: -1000, quickTick: -1000, falls: 0, fallTick: -1000, pace: 0 }, 0));
+}
+
+/** One tiltRev 11 tick: tiltRev 10's, then the par of a maze just finished and the run's first fall. */
+function stepP(state: TiltState, input: ArcadeInputEvent | null): TiltState {
+  const next = stepX(state, input);
+  if (next === state) return next;
+  let out = next;
+  if (next.mazes > state.mazes) {
+    const took = next.tick - (state.mazeAt ?? 0);
+    const par = state.list[state.level]?.par ?? 0;
+    out = { ...out, mazeTicks: [...(state.mazeTicks ?? []), took], parsMet: (state.parsMet ?? 0) + (took <= par ? 1 : 0) };
+  }
+  if ((state.falls ?? 0) === 0 && (next.falls ?? 0) > 0 && state.cleanTo === undefined) out = { ...out, cleanTo: state.mazes };
+  return out;
+}
+
+/** Ticks left to the maze being played's par on tiltRev 11 (0 once past it; the HUD reads it). */
+export function tiltParLeftP(s: TiltState): number {
+  return tiltParLeftX(s);
+}
+
+/** tiltRev 11's parts: core (mazes and progress), par, clean run, finish and speed (integer only). */
+export function tiltParParts(state: TiltState): { core: number; par: number; clean: number; speed: number; mazes: number; progress: number; parsMet: number; cleanMazes: number } {
+  const mazes = clampInt(state.mazes, 0, TILT_S_MAZES);
+  const finished = mazes >= TILT_S_MAZES;
+  const prog = !finished && state.progMaze === mazes ? clampInt(state.prog ?? 0, 0, TILT_S_PROGRESS_SCALE) : 0;
+  const progress = Math.trunc((TILT_P_PROGRESS_POINTS * prog) / TILT_S_PROGRESS_SCALE);
+  const core = (TILT_P_MAZE_POINTS + TILT_P_PROGRESS_POINTS) * mazes + progress;
+  const parsMet = clampInt(state.parsMet ?? 0, 0, mazes);
+  const par = TILT_P_PAR_POINTS * parsMet;
+  const cleanMazes = clampInt(state.cleanTo ?? mazes, 0, mazes);
+  const clean = stdLine(TILT_P_CLEAN_POINTS, cleanMazes, TILT_S_MAZES);
+  const end = clampInt(state.endedTick, 0, TILT_RUN_TICKS);
+  const speed = finished ? (end <= TILT_P_SPEED_FULL ? TILT_P_SPEED_POINTS : Math.trunc((TILT_P_SPEED_POINTS * (TILT_RUN_TICKS - end)) / (TILT_RUN_TICKS - TILT_P_SPEED_FULL))) : 0;
+  return { core, par, clean, speed, mazes, progress, parsMet, cleanMazes };
+}
+
+export function tiltParBandParts(state: TiltState): BandParts {
+  const p = tiltParParts(state);
+  const finished = p.mazes >= TILT_S_MAZES;
+  const words = [
+    `Par ${p.parsMet} / ${p.mazes} mazes +${p.par}`,
+    `clean ${p.cleanMazes} / ${TILT_S_MAZES} +${p.clean}`,
+    finished ? `all ${TILT_S_MAZES} mazes · speed +${p.speed}` : "",
+  ].filter(Boolean);
+  return {
+    units: p.core,
+    points: p.core,
+    bonus: p.par + p.clean + p.speed,
+    penalty: 0,
+    finished,
+    text: `${p.mazes} / ${TILT_S_MAZES} mazes × ${TILT_P_MAZE_POINTS + TILT_P_PROGRESS_POINTS}${finished ? "" : ` + ${p.progress} for progress in maze ${p.mazes + 1}`}`,
+    bonusText: words.join(" · "),
+  };
+}
+
+/** tiltRev 11's score: core + par + clean + speed, 0–200; any input scores at least 1, none scores 0. */
+export function tiltParScore(state: TiltState): number {
+  const p = tiltParParts(state);
+  return stdFinal(p.core + p.par + p.clean + p.speed, Boolean(state.acted));
+}
+
+export const tiltParGame: ArcadeGame<TiltState, ArcadeInputEvent | null> = {
+  ...tiltStdGame,
+  init: initP,
+  step: bandStep(stepP, tiltTrackS),
+  score: tiltParScore,
 };
