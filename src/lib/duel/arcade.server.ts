@@ -4,7 +4,7 @@ import { TEN_DROP_DEPTH_REV } from "@/lib/arcade/tenDrop";
 import { SLICE_REV_TARGET, SLICE_REV_STRICT, SLICE_REV_STANDARD } from "@/lib/arcade/slice";
 import { FLIP_REV_TARGET, FLIP_REV_STRICT, FLIP_REV_STD } from "@/lib/arcade/flip";
 import { CROSS_REV_STD } from "@/lib/arcade/cross";
-import { INK_REV_STD } from "@/lib/arcade/inkBridge";
+import { INK_REV_CLOVER, INK_REV_STD } from "@/lib/arcade/inkBridge";
 import { SNAKE_REV_TARGET, SNAKE_REV_12 } from "@/lib/arcade/snake";
 import { BUB_REV_STD } from "@/lib/arcade/bubble";
 import { MATCHUP_REV_SIX } from "@/lib/arcade/matchup";
@@ -299,10 +299,22 @@ export function generateJunction(): JunctionPuzzleData {
   return { type: "junction", seed: arcadeSeed(), junctionRev: JUNC_REV_BAND };
 }
 
+let inkPreClover = false;
+/**
+ * Checks written for inkRev 12 (the arcade scoring standard) and earlier: deal inkRev 12 as rooms did before inkRev 13
+ * (returns the previous setting), so they keep proving what they were written for.
+ */
+export function pinInkPreClover(on: boolean): boolean {
+  const prev = inkPreClover;
+  inkPreClover = on;
+  return prev;
+}
+
 export function generateInkBridge(): InkBridgePuzzleData {
   // inkRev 11 (phone notes, 27 Oct 2026): no wind zones, fewer silver coins, the pickups spread out.
   // inkRev 12 (the arcade scoring standard, 29 Oct 2026): inkRev 11's play scored on straight lines and fixed shares.
-  return { type: "inkbridge", seed: arcadeSeed(), inkRev: INK_REV_STD };
+  // inkRev 13 (Nov 2026, docs/arcade-standard/inkbridge.md): clovers, ink par and more birds; no stars or silver coins.
+  return { type: "inkbridge", seed: arcadeSeed(), inkRev: inkPreClover ? INK_REV_STD : INK_REV_CLOVER };
 }
 
 export function generateBurst(): BurstPuzzleData {

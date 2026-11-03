@@ -133,9 +133,12 @@ import {
 } from "@/lib/arcade/wavefront";
 import {
   INK_CLOUD_LEVELS,
-  INK_STD,
-  INK_V11_SILVER_PER_LEVEL,
-  INK_V12_CORE_MAX,
+  INK_V13_CLOVERS,
+  INK_V13_CORE_MAX,
+  INK_V13_PAR_MAX,
+  INK_V13_SPEED_FULL,
+  INK_V13_SPEED_MAX,
+  INK_V13_STD,
   INK_LEVELS,
   INK_FEATURE_MAX,
   INK_RAW_SHAMROCK,
@@ -1498,17 +1501,25 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       how: [
         { action: "Draw a line,", detail: "then tap RELEASE to drop." },
         { action: "Levels 9-10:", detail: "keep drawing as the coin falls." },
-        { action: "Bonus routes:", detail: "stars, silver, shamrock, clouds." },
+        { action: "Ink par:", detail: "pot each level using little ink." },
         { action: "Levels 1-4", detail: "Draw lines around the white birds, then tap RELEASE to drop the coin into a still pot.", helpOnly: true },
         { action: "Levels 5-8", detail: "The pot moves! Time your release so the coin rolls into it.", helpOnly: true },
         { action: "Levels 9-10: LIVE", detail: "Draw one line, RELEASE, then keep drawing as the coin falls. Faded strokes commit when you lift your finger; you can't draw through birds or near the coin.", helpOnly: true },
-        { action: "Bonus routes:", detail: `every one of levels 1-8 has an ink star and ${INK_V11_SILVER_PER_LEVEL} silver coins spread out along a harder route, well away from the easy one; one level in the run also has the shamrock. Roll the coin through them and into the pot: they count only once the coin is potted. You never need them to finish a level.`, helpOnly: true },
-        { action: "Bounce clouds:", detail: `${INK_CLOUD_LEVELS} levels have a springy cloud that throws the coin back up. On them the bonus route bounces off it: pot the coin after a bounce for a trick shot.`, helpOnly: true },
+        { action: "Ink par:", detail: "every level shows its ink par beside the ink meter (\"Ink 84 / par 90\"). Pot the coin using no more ink than the par for the level's full ink-par points; a little over still pays some, twice the par nothing. Undo gives the ink back.", helpOnly: true },
+        { action: "Clovers:", detail: `${INK_V13_CLOVERS} levels in the run have a clover on a harder route, well away from the easy one. Roll the coin through it and into the pot: it counts only once the coin is potted. You never need it to finish a level.`, helpOnly: true },
+        { action: "Bounce clouds:", detail: `${INK_CLOUD_LEVELS} levels have a springy cloud that throws the coin back up: pot the coin after a bounce for a trick shot.`, helpOnly: true },
         { action: "Ink is limited", detail: "Each level has a budget, with a larger shared supply for live levels.", helpOnly: true },
-        { action: "Three failed drops", detail: "and you're out.", helpOnly: true },
+        { action: "A failed drop", detail: "clears your lines: try again until the clock runs out.", helpOnly: true },
       ],
-      // inkRev 12 (the arcade scoring standard, 29 Oct 2026): levels on a straight line, fixed shares for the rest.
-      score: liveBandHelp("inkbridge", `Each level potted counts ${INK_V12_CORE_MAX / INK_LEVELS}.`, { more: "More levels", good: (u) => `pots ${u} levels`, finish: stdFeaturesHelp(INK_STD, { speed: "only with all ten levels: the full 10 with at least 45 s left, falling evenly to 0 at the buzzer" }) }),
+      // inkRev 13 (Nov 2026): levels on a straight line; ink par, trick shots, clovers and speed fixed amounts on top.
+      score: liveBandHelp("inkbridge", `Each level potted counts ${INK_V13_CORE_MAX / INK_LEVELS}.`, {
+        more: "More levels",
+        good: (u) => `pots ${u} levels`,
+        finish: stdFeaturesHelp(INK_V13_STD, {
+          par: `${INK_V13_PAR_MAX / INK_LEVELS} a level potted within its ink par, less above it, none at twice the par`,
+          speed: `only with all ten levels: the full ${INK_V13_SPEED_MAX} with at least ${INK_V13_SPEED_FULL / 60} s left, falling evenly to 0 at the buzzer`,
+        }),
+      }),
     },
 
     burst: {

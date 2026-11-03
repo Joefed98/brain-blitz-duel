@@ -1,5 +1,6 @@
 /**
- * Rainbow Bridge inkRev 10 (x200) and inkRev 11 (phone notes; `bun scripts/ink-x200-oracle.ts [from] [count] 11`):
+ * Rainbow Bridge inkRev 10 (x200), inkRev 11 (phone notes; `bun scripts/ink-x200-oracle.ts [from] [count] 11`) and
+ * inkRev 13 (clovers and ink par: `… 13`, the bonus line only on a cloud or clover level, every level within its par):
  * the perfect-play ceiling of a seed, played for real.
  *
  * A flawless player who knows every level's proved lines: on levels 1–8 the bonus line (starRef: the ink star,
@@ -22,6 +23,7 @@ import {
   INK_INPUT_RELEASE,
   INK_INPUT_STROKE,
   INK_LEVELS,
+  INK_REV_CLOVER,
   INK_REV_EXPAND,
   type InkState,
 } from "../src/lib/arcade/inkBridge";
@@ -89,11 +91,16 @@ export function inkOracleRun(seed: number, rev: number = INK_REV_EXPAND): Oracle
   const events: ArcadeInputEvent[] = [];
   while (!game.isOver(s) && s.tick < game.runTicks) {
     const lvl = s.list[s.level]!;
-    const bonus = s.level < 8 && lvl.starRef;
+    // inkRev 13: the bonus line only where it takes something (a cloud's trick shot or a clover), else the easy line;
+    // every level within its ink par.
+    const v13 = s.rev === INK_REV_CLOVER;
+    const bonus = s.level < 8 && lvl.starRef && (!v13 || Boolean(lvl.clouds?.length || lvl.shamrock));
     const lines = bonus ? lvl.starRef! : lvl.ref;
     const live = lvl.liveHand ?? [];
     const before = inkFeatureRaw(s);
-    const want = (e: InkState) => e.levels > s.levels && (!bonus || inkFeatureRaw(e) - before >= featureOf(lvl));
+    const want = v13
+      ? (e: InkState) => e.levels > s.levels && (e.parLevels ?? 0) > (s.parLevels ?? 0) && (e.tricks ?? 0) - (s.tricks ?? 0) === (lvl.clouds?.length ? 1 : 0) && (e.shamrocks ?? 0) - (s.shamrocks ?? 0) === (lvl.shamrock ? 1 : 0)
+      : (e: InkState) => e.levels > s.levels && (!bonus || inkFeatureRaw(e) - before >= featureOf(lvl));
     // The earliest release that pots with everything taken (a still pot: straight away).
     let rel = s.tick + 1;
     if (lvl.slideAmp) {

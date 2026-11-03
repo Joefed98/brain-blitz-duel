@@ -654,6 +654,14 @@ const BUILDERS: Record<string, Builder> = {
         ...(starLevels > 0 ? [{ label: n(r, "silverTotal") > 0 ? "Ink stars" : "Gold stars", value: `${n(r, "stars")} / ${starLevels}` }] : []),
         // inkRev 10 (x200): silver coins and the shamrock.
         ...(n(r, "silverTotal") > 0 ? [{ label: "Silver", value: `${n(r, "silver")} / ${n(r, "silverTotal")}` }, { label: "Shamrock", value: n(r, "shamrock") ? "Yes" : "No" }] : []),
+        // inkRev 13: levels potted within their ink par, trick shots and clovers (no stars or silver coins).
+        ...(n(r, "cloverTotal") > 0
+          ? [
+              { label: "Within ink par", value: `${n(r, "parLevels")} / ${levels}` },
+              { label: "Trick shots", value: `${n(r, "tricks")} / ${n(r, "cloudLevels")}` },
+              { label: "Clovers", value: `${n(r, "shamrock")} / ${n(r, "cloverTotal")}` },
+            ]
+          : []),
         { label: "Fails", value: String(n(r, "fails")) },
       ],
       outcome: done ? "finish" : "time",

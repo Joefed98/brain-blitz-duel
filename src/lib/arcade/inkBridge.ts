@@ -27,7 +27,7 @@ import {
 } from "./engine";
 import { BAND_STRICT_MARK, bandStrictGame, bandStrict, bandRetarget, bandTargetGame, bandCurveOf, bandCurve, bandInit, bandPoints, bandScoreOf, bandStep, bandTotal, BAND_FINISH_BONUS, type BandFields, type BandParts } from "./scoreBands";
 import { isin, TRIG_ONE } from "./trig";
-import { stdBandParts, stdCore, stdPartLine, stdSpecPart, stdSpeed, stdTotal, type StdBreakdown, type StdSpec } from "./arcadeStandard";
+import { stdBandParts, stdCore, stdLine, stdPartLine, stdSpecPart, stdSpeed, stdTotal, type StdBreakdown, type StdSpec } from "./arcadeStandard";
 
 /* ============================== Constants ============================== */
 
@@ -123,9 +123,17 @@ export const INK_REV_SPREAD = 11;
  * scored on the standard's straight lines and fixed feature shares (INK_STD).
  */
 export const INK_REV_STD = 12;
-/** inkRev 10, 11 and 12: the taller world and its features (x200). */
+/**
+ * inkRev 13 (Nov 2026; docs/arcade-standard/inkbridge.md "inkRev 13"): the ink stars and silver coins are gone; two
+ * clovers a run (the shamrock art), each on its level's proved bonus line off the easy route; more birds on every
+ * level (INK_V13_EXTRA_BIRDS); an ink par on every level (InkLevel.inkPar: the proved line's ink plus
+ * INK_V13_PAR_MARGIN_PCT %), paid for potting a level within it; a failed drop costs a try but never ends the run
+ * (the clock does). Scored on the arcade standard (INK_V13_STD).
+ */
+export const INK_REV_CLOVER = 13;
+/** inkRev 10, 11, 12 and 13: the taller world and its features (x200). */
 export function inkX(rev?: number | null): boolean {
-  return rev === INK_REV_EXPAND || rev === INK_REV_SPREAD || rev === INK_REV_STD;
+  return rev === INK_REV_EXPAND || rev === INK_REV_SPREAD || rev === INK_REV_STD || rev === INK_REV_CLOVER;
 }
 export const INK_TALL_H = 674;
 /** How much lower every inkRev 10 pot sits (the extra sky): INK_TALL_H − INK_WORLD_H. */
@@ -211,7 +219,10 @@ export function inkIsLive(level: number, rev?: number | null): boolean {
 /** Ink for a level, rev-aware: live levels share a budget 1.5× the usual. */
 export function inkBudgetFor(level: number, rev?: number | null): number {
   // inkRev 10: 9 % more ink for the taller levels.
-  const base = inkX(rev) ? Math.trunc((inkBudget(level) * 279) / 256) : inkBudget(level);
+  const tall = inkX(rev) ? Math.trunc((inkBudget(level) * 279) / 256) : inkBudget(level);
+  // inkRev 13: a quarter more again, so every level's ink par (its proved line's ink plus a margin) sits inside the ink
+  // and a wasteful line can go over it (levels are still proved within inkRev 10's ink).
+  const base = rev === INK_REV_CLOVER ? Math.trunc((tall * 5) / 4) : tall;
   return inkIsLive(level, rev) ? Math.trunc((base * INK_LIVE_BUDGET_256) / 256) : base;
 }
 
@@ -278,6 +289,8 @@ export interface InkLevel {
   /** inkRev 10 live levels only: the hand-drawn live stroke that, after the pre-release line `ref`, pots the coin
    * (drawn from `start` ticks after RELEASE, a phone point a tick; handLive). */
   liveHand?: { start: number; pts: number[] }[];
+  /** inkRev 13 only: the level's ink par, px (potting the level with at most this much ink pays the ink-par part in full). */
+  inkPar?: number;
   spoutX: number;
   bucketX: number;
   /** Bucket rim, px. */
@@ -1296,6 +1309,8 @@ function buildLevelsRev3(
   rev = INK_REV3,
   /** inkRev 10 only: decorates a made level with its features, or null to try the next layout. */
   accept?: (lvl: InkLevel, level: number) => InkLevel | null,
+  /** inkRev 13 only: birds added to each level's count (by level), never thinned below that many more than before (at most one more). */
+  moreBirds?: readonly number[],
 ): { list: InkLevel[]; rng: number } {
   let rng = seed | 0;
   const draw: Draw = (bound) => {
@@ -1321,11 +1336,13 @@ function buildLevelsRev3(
     const counts: readonly number[] = BIRD_COUNTS;
     const h = INK_BIRD_H_FP;
     const gravity = live ? INK_LIVE_GRAVITY : GRAVITY;
-    const count = counts[sourceLevel]!;
+    const extra = moreBirds?.[i] ?? 0;
+    const count = counts[sourceLevel]! + extra;
+    const fewest = moreBirds ? counts[sourceLevel]! + Math.min(1, extra) : 1;
     const ink = inkBudgetFor(i, rev);
     let made: InkLevel | null = null;
     for (let attempt = 0; attempt < (accept ? INK_ATTEMPTS_10 : live ? 48 : 120) && !made; attempt++) {
-      const c = Math.max(1, count - Math.trunc(attempt / 20));
+      const c = Math.max(fewest, count - Math.trunc(attempt / 20));
       let lvl = layout(sourceLevel, c, draw, h, forceSlide, drop);
       if (drop) lvl.gravity = live ? INK_TALL_LIVE_GRAVITY : INK_TALL_GRAVITY;
       if (live) {
@@ -1792,14 +1809,22 @@ interface InkFeatureSpec {
   windLevels: number;
   silverPerLevel: number;
   spread: boolean;
+  /** inkRev 13 only: clovers a run (on their levels' bonus lines; no ink stars), extra birds a level, and a bonus line
+   * proved only where a feature needs one (a cloud or a clover level). */
+  clovers?: number;
 }
 const INK_SPEC_10: InkFeatureSpec = { rev: INK_REV_EXPAND, windLevels: INK_WIND_LEVELS, silverPerLevel: INK_SILVER_PER_LEVEL, spread: false };
 const INK_SPEC_11: InkFeatureSpec = { rev: INK_REV_SPREAD, windLevels: INK_V11_WIND_LEVELS, silverPerLevel: INK_V11_SILVER_PER_LEVEL, spread: true };
-/** Silver coins a level and wind levels a run on this revision (inkRev 10 or 11). */
+/** inkRev 13: two clovers a run, no silver coins, no wind, more birds. */
+export const INK_V13_CLOVERS = 2;
+const INK_SPEC_13: InkFeatureSpec = { rev: INK_REV_CLOVER, windLevels: 0, silverPerLevel: 0, spread: true, clovers: INK_V13_CLOVERS };
+/** Silver coins a level and wind levels a run on this revision (inkRev 10 or 11; inkRev 13 has neither). */
 export function inkSilverPerLevel(rev?: number | null): number {
+  if (rev === INK_REV_CLOVER) return 0;
   return rev === INK_REV_SPREAD || rev === INK_REV_STD ? INK_V11_SILVER_PER_LEVEL : INK_SILVER_PER_LEVEL;
 }
 export function inkWindLevels(rev?: number | null): number {
+  if (rev === INK_REV_CLOVER) return 0;
   return rev === INK_REV_SPREAD || rev === INK_REV_STD ? INK_V11_WIND_LEVELS : INK_WIND_LEVELS;
 }
 /** Pickup radii (px): the coin takes one when its centre comes within this plus its own radius. */
@@ -2393,6 +2418,7 @@ function decorateLevel(lvl: InkLevel, level: number, kind: InkKind, shamrock: bo
 /** decorateLevel's one try: the level, null (its reference or bonus line will not hold), or "swap" (the cloud or wind will not fit). */
 function decorateAs(lvl: InkLevel, level: number, kind: InkKind, shamrock: boolean, draw: Draw, spec: InkFeatureSpec = INK_SPEC_10): InkLevel | null | "swap" {
   const ink = inkBudgetFor(level, INK_REV_EXPAND);
+  if (spec.clovers) return decorate13(lvl, level, kind, shamrock, draw, ink);
   const finish = (L: InkLevel, b: Bonus): InkLevel | null => {
     const spots = pickupSpots(L, b.path, b.star, routeOf(L, ink), shamrock, spec);
     if (!spots) return null;
@@ -2437,6 +2463,39 @@ function decorateAs(lvl: InkLevel, level: number, kind: InkKind, shamrock: boole
 }
 
 /**
+ * inkRev 13's decorateAs: no ink star and no silver coins. A plain level without a clover keeps its easy line alone
+ * (held for a hand, the coin never potting unaided). A cloud level keeps its trick line, and a clover level its bonus
+ * line, with the clover where inkRev 11 put the star (the point of the bonus line farthest from the easy route, or the
+ * top of the trick line's bounce): proved as inkRev 11 proves a star (staticProof), the clover's pickup circle being
+ * the star's (INK_SHAMROCK_R = INK_STAR_R). The proved line is kept as `starRef` / `starT0` (the level's witness).
+ */
+function decorate13(lvl: InkLevel, level: number, kind: InkKind, clover: boolean, draw: Draw, ink: number): InkLevel | null | "swap" {
+  const r = steadyReference(lvl, ink, false, level < INK_WARMUP_LEVELS);
+  if (!r) return null;
+  const L: InkLevel = { ...lvl, ref: r.ref, refT0: r.t0 };
+  if (kind === "plain" && !clover) return plainHolds(L, level) ? L : null;
+  const finish = (W: InkLevel, b: Bonus): InkLevel | null => {
+    const proof = staticProof({ ...W, star: b.star, starRef: b.ref, starT0: b.t0, silver: [], ...(clover ? { shamrock: b.star } : {}) }, level);
+    if (!staticDrawable(proof)) return null;
+    return { ...W, starRef: b.ref, starT0: b.t0, ...(clover ? { shamrock: b.star } : {}) };
+  };
+  if (kind === "cloud") {
+    const c = cloudBonus(L, level, ink, draw);
+    return c ? finish(c.level, c.bonus) ?? "swap" : "swap";
+  }
+  const b = plainBonus(L, ink, draw, routeOf(L, ink), INK_V11_STAR_OFF_ROUTE);
+  return b ? finish(L, b) : null;
+}
+
+/** inkRev 13: a plain level's easy line pots as a phone draws it and holds for a hand, and the coin never pots unaided. */
+function plainHolds(lvl: InkLevel, level: number): boolean {
+  const ink = inkBudgetFor(level, INK_REV_EXPAND);
+  const pen = phoneSegs(lvl.ref, ink);
+  const d = dropWithHit(lvl, pen.segs, lvl.refT0);
+  return pen.penDown === 1 && d.result === 1 && d.hitAt < 0 && !landsUnaided(lvl) && lineHolds(lvl, lvl.ref, lvl.refT0, ink, (_, hitAt) => hitAt < 0);
+}
+
+/**
  * inkRev 10: a seeded wind zone over part of a bonus line's flight, never over the pot's mouth; or null.
  */
 function windOn(lvl: InkLevel, path: readonly Pt[], draw: Draw): InkWind | null {
@@ -2473,21 +2532,55 @@ function buildLevelsRev10(seed: number, spec: InkFeatureSpec = INK_SPEC_10): { l
   const kinds: InkKind[] = order.map(() => "plain");
   for (const [k, level] of order.entries()) kinds[level] = k < INK_CLOUD_LEVELS ? "cloud" : k < INK_CLOUD_LEVELS + spec.windLevels ? "wind" : "plain";
   const shamrockLevel = draw(INK_BONUS_LEVELS);
-  return buildLevelsRev3(seed, INK_TALL_DROP, spec.rev, (lvl, level) => {
-    if (level < INK_BONUS_LEVELS) {
-      // A cloud or wind that will not fit this layout passes to the next level still plain (the counts never change).
-      const later = kinds.findIndex((k, j) => j > level && k === "plain");
-      const r = decorateLevel(lvl, level, kinds[level]!, level === shamrockLevel, draw, later >= 0, spec);
-      if (r?.swapped) {
-        kinds[later] = kinds[level]!;
-        kinds[level] = "plain";
+  // inkRev 13: a second clover level, drawn after inkRev 11's draws (so the kinds and the first clover level match it).
+  const cloverLevel2 = spec.clovers && spec.clovers > 1 ? (shamrockLevel + 1 + draw(INK_BONUS_LEVELS - 1)) % INK_BONUS_LEVELS : -1;
+  const v13 = Boolean(spec.clovers);
+  const built = buildLevelsRev3(
+    seed,
+    INK_TALL_DROP,
+    spec.rev,
+    (lvl, level) => {
+      if (level < INK_BONUS_LEVELS) {
+        // A cloud or wind that will not fit this layout passes to the next level still plain (the counts never change).
+        const later = kinds.findIndex((k, j) => j > level && k === "plain");
+        const r = decorateLevel(lvl, level, kinds[level]!, level === shamrockLevel || level === cloverLevel2, draw, later >= 0, spec);
+        if (r?.swapped) {
+          kinds[later] = kinds[level]!;
+          kinds[level] = "plain";
+        }
+        return r?.level ? (v13 ? withInkPar(r.level, level) : r.level) : null;
       }
-      return r?.level ?? null;
-    }
-    // Live levels: a layout is kept only with a hand-drawn solution (a stroke a finger can draw in time).
-    const hand = handLive(lvl, level);
-    return hand ? { ...lvl, liveHand: [hand] } : null;
-  });
+      // Live levels: a layout is kept only with a hand-drawn solution (a stroke a finger can draw in time).
+      const hand = handLive(lvl, level);
+      if (!hand) return null;
+      return v13 ? withInkPar({ ...lvl, liveHand: [hand] }, level) : { ...lvl, liveHand: [hand] };
+    },
+    v13 ? INK_V13_EXTRA_BIRDS : undefined,
+  );
+  // inkRev 13: a level kept from the open fallback layout (no layout passed) still carries its ink par.
+  return v13 ? { ...built, list: built.list.map((l, i) => (l.inkPar === undefined ? withInkPar(l, i) : l)) } : built;
+}
+
+/** inkRev 13: birds added to each level (1–10; the warm-up level keeps its count, the live levels one more). */
+export const INK_V13_EXTRA_BIRDS: readonly number[] = [0, 1, 1, 2, 2, 2, 2, 2, 1, 1];
+/** inkRev 13: a level's ink par is its proved line's ink plus this share (%), at most the level's ink. */
+export const INK_V13_PAR_MARGIN_PCT = 10;
+
+/** The ink (px) a set of lines takes drawn as a phone sends them (inkPhoneLine), within `ink`. */
+function phoneInk(lines: readonly number[][], ink: number): number {
+  return phoneSegs(lines, ink).segs.reduce((a, g) => a + g.len, 0);
+}
+
+/**
+ * inkRev 13: the level with its ink par (px): the ink of the line its proof plays (the bonus line on a cloud or clover
+ * level, else the easy line, whichever is longer; on a live level the pre-release line plus the hand-drawn live stroke)
+ * plus INK_V13_PAR_MARGIN_PCT %, never more than the level's ink.
+ */
+function withInkPar(lvl: InkLevel, level: number): InkLevel {
+  const budget = inkBudgetFor(level, INK_REV_CLOVER);
+  const ref = phoneInk(lvl.ref, budget);
+  const used = lvl.liveHand ? ref + lvl.liveHand.reduce((a, h) => a + phoneInk([h.pts], budget), 0) : Math.max(ref, lvl.starRef ? phoneInk(lvl.starRef, budget) : 0);
+  return { ...lvl, inkPar: Math.min(budget, Math.trunc((used * (100 + INK_V13_PAR_MARGIN_PCT)) / 100)) };
 }
 
 /** inkRev 10: the bonus line, on its own release (the pot moving), takes the star (after a bounce on a cloud level) and pots the coin. */
@@ -2530,6 +2623,51 @@ export function inkX200Proof(seed: number, rev = INK_REV_EXPAND): InkX200LevelPr
       return { level: i, ref: ok, unaided, bonus: null, silverOnLine: 0, silver: 0, shamrock: null, windTicks: null, hand: ok, kind: "live" as const };
     }
     return staticProof(lvl, i);
+  });
+}
+
+/** inkRev 13 proof of one level (ink-v13-check): every line as a phone draws it, within the level's ink, on its own release. */
+export interface InkV13LevelProof {
+  level: number;
+  kind: "plain" | "cloud" | "clover" | "cloud+clover" | "live";
+  /** The easy line pots and holds for a hand (static levels, never touching a cloud); live: the hand-drawn live stroke pots (and 5 ticks late). */
+  ref: boolean;
+  /** The coin never pots with no line. */
+  unaided: boolean;
+  /** A cloud or clover level: its proved bonus line pots, bounces off the cloud (a cloud level) and takes the clover (a clover level). */
+  bonus: boolean | null;
+  /** The level's ink par (px) and the ink its proof's line takes (the line the oracle draws), as a phone draws it. */
+  par: number;
+  witness: number;
+  birds: number;
+}
+
+export function inkV13Proof(seed: number): InkV13LevelProof[] {
+  const { list } = buildLevels(seed, INK_REV_CLOVER);
+  return list.map((lvl, i) => {
+    const ink = inkBudgetFor(i, INK_REV_CLOVER);
+    const unaided = landsUnaided(lvl);
+    const birds = lvl.blocks.length;
+    const par = lvl.inkPar ?? 0;
+    if (inkIsLive(i, INK_REV_CLOVER)) {
+      const hand = lvl.liveHand?.[0];
+      const ok = Boolean(hand && handDrop(lvl, i, lvl.ref, [hand]).potted && handDrop(lvl, i, lvl.ref, [hand], 0, 0, 5).potted);
+      const witness = phoneInk(lvl.ref, ink) + (hand ? phoneInk([hand.pts], ink) : 0);
+      return { level: i, kind: "live" as const, ref: ok, unaided, bonus: null, par, witness, birds };
+    }
+    const cloud = Boolean(lvl.clouds?.length);
+    const clover = lvl.shamrock;
+    const p = staticProof({ ...lvl, silver: [], ...(clover ? { star: clover } : {}) }, i);
+    let bonus: boolean | null = null;
+    if (cloud || clover) {
+      const pen = phoneSegs(lvl.starRef ?? [], ink);
+      const path: Pt[] = [];
+      const d = dropWithHit(lvl, pen.segs, lvl.starT0 ?? 0, path);
+      bonus = pen.penDown === 1 && d.result === 1 && (!cloud || d.hitAt >= 0) && (!clover || passes(path, clover, INK_SHAMROCK_R));
+    }
+    const witness = cloud || clover ? phoneInk(lvl.starRef ?? [], ink) : phoneInk(lvl.ref, ink);
+    const kind = cloud && clover ? ("cloud+clover" as const) : cloud ? ("cloud" as const) : clover ? ("clover" as const) : ("plain" as const);
+    return { level: i, kind, ref: p.ref, unaided, bonus, par, witness, birds };
   });
 }
 
@@ -2611,6 +2749,7 @@ export function inkStarCheck(seed: number): { stars: number; proved: number; off
 function buildLevels(seed: number, rev?: number): { list: InkLevel[]; rng: number } {
   if (rev === INK_REV_EXPAND) return buildLevelsRev10(seed);
   if (rev === INK_REV_SPREAD || rev === INK_REV_STD) return buildLevelsRev10(seed, INK_SPEC_11);
+  if (rev === INK_REV_CLOVER) return buildLevelsRev10(seed, INK_SPEC_13);
   if (rev === INK_REV4) return buildLevelsRev4(seed);
   if (rev === INK_REV3) return buildLevelsRev3(seed);
   const birds = rev === INK_REV;
@@ -2820,6 +2959,11 @@ export interface InkState extends BandFields {
   shamrockGot?: number;
   /** inkRev 12 only: 1 = inkRev 11's play scored on the arcade standard (INK_STD); not in the checkpoint checksum. */
   std?: number;
+  /** inkRev 13 only: ink-par credit earned (per mille a level potted: 1000 within the level's par, falling evenly to 0 at
+   * twice it), levels potted within par, and the ink the last potted level took (px, for the HUD and reveal). */
+  inkPar?: number;
+  parLevels?: number;
+  lastInk?: number;
 }
 
 const cache = new Map<string, ReturnType<typeof buildLevels>>();
@@ -2868,7 +3012,19 @@ function initWith(seed: number, rev?: number): InkState {
     preInkUsed: 0,
     ...(rev === INK_REV4 ? { stars: 0, starGot: 0 } : {}),
     ...(inkX(rev) ? { stars: 0, starGot: 0, worldH: INK_TALL_H, tricks: 0, cloudHit: 0, cloudTick: -100, cloudIdx: -1, silver: 0, silverGot: 0, shamrocks: 0, shamrockGot: 0 } : {}),
+    ...(rev === INK_REV_CLOVER ? { inkPar: 0, parLevels: 0, lastInk: -1 } : {}),
   };
+}
+
+/**
+ * Builds (and caches) a round's levels ahead of its start: RoundIntro calls it while the intro is up, so the round's own
+ * init is a cache hit (inkRev 13's levels take about a second to build and prove here, more on a phone).
+ */
+export function prepareInkLevels(seed: number, rev?: number | null): void {
+  const key = `${rev ?? 0}:${seed | 0}`;
+  if (cache.has(key)) return;
+  if (cache.size > 16) cache.clear();
+  cache.set(key, buildLevels(seed, rev ?? undefined));
 }
 
 function isOver(state: InkState): boolean {
@@ -3048,6 +3204,14 @@ function step(state: InkState, input: ArcadeInputEvent | null): InkState {
     )
       result = 2;
     if (result === 1) {
+      // inkRev 13: the ink this level took (its line and any live strokes), against the level's par.
+      if (s.rev === INK_REV_CLOVER) {
+        const used = Math.max(0, inkBudgetFor(s.level, s.rev) * FP - s.ink);
+        const par = Math.max(1, s.list[s.level]!.inkPar ?? 1) * FP;
+        s.inkPar = (s.inkPar ?? 0) + inkParCredit(used, par);
+        if (used <= par) s.parLevels = (s.parLevels ?? 0) + 1;
+        s.lastInk = Math.trunc((used + FP - 1) / FP);
+      }
       s.levels += 1;
       if (starRev(s.rev) && s.starGot) s.stars = (s.stars ?? 0) + 1;
       if (inkX(s.rev) && s.cloudHit) s.tricks = (s.tricks ?? 0) + 1;
@@ -3075,7 +3239,8 @@ function step(state: InkState, input: ArcadeInputEvent | null): InkState {
       s.flashKind = 2;
       s.flashTick = tick;
       s.failedBall = { x: s.ball.x, y: s.ball.y };
-      if (s.fails >= INK_FAILS) {
+      // inkRev 13: failed drops never end the run (only the clock does).
+      if (s.fails >= INK_FAILS && s.rev !== INK_REV_CLOVER) {
         s.ended = 2;
         s.endedTick = tick;
         return s;
@@ -3089,6 +3254,18 @@ function step(state: InkState, input: ArcadeInputEvent | null): InkState {
     s.endedTick = tick;
   }
   return s;
+}
+
+/** inkRev 13: a potted level's ink-par credit, per mille: 1000 with at most `par` ink used, falling evenly to 0 at twice par (both 1/256 px). */
+export function inkParCredit(used: number, par: number): number {
+  if (used <= par) return 1000;
+  return clampInt(Math.trunc(((2 * par - used) * 1000) / par), 0, 1000);
+}
+
+/** inkRev 13's HUD readout of the ink a level has taken against its par ("Ink 84 / par 90"; closer when the numbers are long). */
+export function inkParText(used: number, par: number): string {
+  const text = `Ink ${used} / par ${par}`;
+  return text.length > 15 ? `Ink ${used}/par ${par}` : text;
 }
 
 export const INK_LEVEL_POINTS = 11;
@@ -3175,6 +3352,8 @@ export function inkCheckpoint(state: InkState): InkCheckpoint {
   if (state.rev === INK_REV4) values.push(state.stars ?? 0, state.starGot ?? 0);
   // inkRev 10 folds its own fields in the same place; no older state has rev 10, so their sums are unchanged.
   if (inkX(state.rev)) values.push(state.stars ?? 0, state.starGot ?? 0, state.tricks ?? 0, state.cloudHit ?? 0, state.cloudTick ?? 0, state.cloudIdx ?? 0, state.worldH ?? 0, state.silver ?? 0, state.silverGot ?? 0, state.shamrocks ?? 0, state.shamrockGot ?? 0);
+  // inkRev 13 folds its ink-par counters in after them; no older state has rev 13, so their sums are unchanged.
+  if (state.rev === INK_REV_CLOVER) values.push(state.inkPar ?? 0, state.parLevels ?? 0, state.lastInk ?? 0);
   // inkRev 6 (Tuning C) adds its marker before the segments only when present, so older sums are unchanged.
   if (state.tunec) values.push(state.tunec);
   for (const seg of state.segs) values.push(seg.x0, seg.y0, seg.x1, seg.y1);
@@ -3357,6 +3536,7 @@ export const inkBridgeBirdsGame: ArcadeGame<InkState, ArcadeInputEvent | null> =
 export const inkBridgeInkRev3Game: ArcadeGame<InkState, ArcadeInputEvent | null> = { ...inkBridgeGame, init: (seed) => initWith(seed, INK_REV3) };
 export const inkBridgeInkRev4Game: ArcadeGame<InkState, ArcadeInputEvent | null> = { ...inkBridgeGame, init: (seed) => initWith(seed, INK_REV4) };
 export function inkBridgeGameFor(rev?: number | null): ArcadeGame<InkState, ArcadeInputEvent | null> {
+  if (rev === INK_REV_CLOVER) return inkBridgeCloverGame;
   if (rev === INK_REV_STD) return inkBridgeStdGame;
   if (rev === INK_REV_SPREAD) return inkBridgeSpreadGame;
   if (rev === INK_REV_EXPAND) return inkBridgeExpandGame;
@@ -3382,6 +3562,7 @@ export function inkBridgeBandParts(state: InkState): BandParts {
 }
 
 function scoreBand(state: InkState): number {
+  if (state.std && state.rev === INK_REV_CLOVER) return stdTotal(inkV13Score(state), Boolean(state.acted));
   if (state.std) return stdTotal(inkStdScore(state), Boolean(state.acted));
   if (inkX(state.rev)) return bandTotal(inkBridgeBandParts(state), Boolean(state.acted), INK_EXPAND_MAX);
   return bandTotal(inkBridgeBandParts(state), Boolean(state.acted));
@@ -3565,6 +3746,7 @@ export function inkStdScore(state: InkState): StdBreakdown {
 
 function inkStdBandParts(state: InkState): BandParts {
   const levels = clampInt(state.levels, 0, INK_LEVELS);
+  if (state.rev === INK_REV_CLOVER) return stdBandParts(INK_V13_STD, inkV13Score(state), levels, `${levels} / ${INK_LEVELS} levels`, levels >= INK_LEVELS);
   return stdBandParts(INK_STD, inkStdScore(state), levels, `${levels} / ${INK_LEVELS} levels`, levels >= INK_LEVELS);
 }
 
@@ -3572,4 +3754,58 @@ function inkStdBandParts(state: InkState): BandParts {
 export const inkBridgeStdGame: ArcadeGame<InkState, ArcadeInputEvent | null> = {
   ...inkBridgeSpreadGame,
   init: (seed) => ({ ...inkBridgeSpreadGame.init(seed), std: 1 }),
+};
+
+/* ================= inkRev 13 (Nov 2026): clovers, ink par, more birds ================= */
+
+/** inkRev 13's parts: levels (core, a level potted each), ink par, trick shots, clovers and speed. */
+export const INK_V13_CORE_MAX = 120;
+export const INK_V13_PAR_MAX = 30;
+export const INK_V13_TRICK_MAX = 20;
+export const INK_V13_CLOVER_MAX = 10;
+export const INK_V13_SPEED_MAX = 20;
+/** inkRev 13's speed part: only with all ten levels potted, full with INK_V13_SPEED_FULL ticks left, 0 at the buzzer. */
+export const INK_V13_SPEED_FULL = 50 * TICKS_PER_SECOND;
+
+/**
+ * inkRev 13's standard: levels potted on a straight line (12 each, 120 at all ten); ink par up to 30 (3 a level potted
+ * within its par, less above it, nothing at twice par); trick shots 20 (5 each of 4); clovers 10 (5 each of 2); speed
+ * 20 on a finished run (full with 50 s left). No mistake costs points (a failed drop costs time). Total 200.
+ */
+export const INK_V13_STD: StdSpec = {
+  field: "inkRev",
+  rev: INK_REV_CLOVER,
+  parts: [
+    { key: "core", label: "Levels", max: INK_V13_CORE_MAX, of: INK_LEVELS, item: "level" },
+    { key: "par", label: "Ink par", max: INK_V13_PAR_MAX, of: INK_LEVELS, item: "level within its ink par", items: "levels within their ink par" },
+    { key: "tricks", label: "Trick shots", max: INK_V13_TRICK_MAX, of: INK_CLOUD_LEVELS, item: "trick shot" },
+    { key: "clovers", label: "Clovers", max: INK_V13_CLOVER_MAX, of: INK_V13_CLOVERS, item: "clover" },
+    { key: "speed", label: "Speed", max: INK_V13_SPEED_MAX, of: 1 },
+  ],
+};
+
+/** inkRev 13's core curve for the bands and help: one unit a level potted, a straight line to 120 at all ten. */
+export const INK_V13_BAND_CURVE = bandCurve([0, INK_LEVELS], [0, INK_V13_CORE_MAX]);
+
+/** inkRev 13: a run's standard breakdown (the core and each feature; nothing is taken off). */
+export function inkV13Score(state: InkState): StdBreakdown {
+  const levels = clampInt(state.levels, 0, INK_LEVELS);
+  const left = INK_RUN_TICKS - clampInt(state.endedTick || state.tick, 0, INK_RUN_TICKS);
+  const part = (key: string) => stdSpecPart(INK_V13_STD, key);
+  return {
+    core: stdPartLine(stdCore(INK_V13_STD), levels),
+    features: {
+      par: stdLine(INK_V13_PAR_MAX, clampInt(state.inkPar ?? 0, 0, 1000 * INK_LEVELS), 1000 * INK_LEVELS),
+      tricks: stdPartLine(part("tricks"), state.tricks ?? 0),
+      clovers: stdPartLine(part("clovers"), state.shamrocks ?? 0),
+      speed: levels >= INK_LEVELS ? stdSpeed(INK_V13_SPEED_MAX, left, INK_V13_SPEED_FULL, 0) : 0,
+    },
+    penalty: 0,
+  };
+}
+
+/** inkRev 13: clovers, ink par and more birds on inkRev 11's world, scored on the standard (INK_V13_STD). */
+export const inkBridgeCloverGame: ArcadeGame<InkState, ArcadeInputEvent | null> = {
+  ...inkBridgeExpandGame,
+  init: (seed) => ({ ...initWith(seed, INK_REV_CLOVER), band: BAND_STRICT_MARK, acted: 0, std: 1 }),
 };

@@ -76,7 +76,7 @@ replay exactly as before; standard-live-check grades every stored arcade run thr
 | Jaywalk | `cross` | `crossRev` 10 | C | [cross.md](cross.md) |
 | Wavefront | `wavefront` | `wavRev` 12 | C | [wavefront.md](wavefront.md) |
 | Roofbound | `flip` | `flipRev` 10 | C | [flip.md](flip.md) |
-| Rainbow Bridge | `inkbridge` | `inkRev` 12 | C | [inkbridge.md](inkbridge.md) |
+| Rainbow Bridge | `inkbridge` | `inkRev` 13 (12 before, Nov 2026) | C | [inkbridge.md](inkbridge.md) |
 | Orbit | `orbit` | `orbitRev` 13 | C | [orbit.md](orbit.md) |
 | Ball Tracker | `balltrack` | `btRev` 8 | C | [balltrack.md](balltrack.md) |
 | Grappler | `swing` | `swingRev` 16 (15 before 1 Nov 2026) | D | [swing.md](swing.md) |

@@ -7,7 +7,7 @@ import { NINJA_CORE_FULL_M } from "@/lib/arcade/ricochetNinja";
 import { MG_CORE_FULL } from "@/lib/arcade/cards/muggins";
 import { BULLSEYE_INNER_BULL_POINTS, BULLSEYE_RING_VALUES } from "@/lib/arcade/bullseye";
 import { BINTOSS_THROWS, BINTOSS_V9_BUCKET, BINTOSS_V9_FAR, BINTOSS_V9_FINISH, BINTOSS_V9_HOOP } from "@/lib/arcade/binToss";
-import { INK_LEVELS, INK_V12_CORE_MAX } from "@/lib/arcade/inkBridge";
+import { INK_V13_CLOVER_MAX, INK_V13_CORE_MAX, INK_V13_PAR_MAX, INK_V13_TRICK_MAX } from "@/lib/arcade/inkBridge";
 import { TILT_S_MAZES } from "@/lib/arcade/tilt";
 import { bandsIntro } from "./puzzleBandsText";
 import { logicStandardIntro } from "./standard/logicText";
@@ -147,7 +147,7 @@ function introScoreTemplates(): Record<PuzzleType, string> {
     wavefront: "Ships, hits, waves, a fast boss kill, saucers, cannons, cores; a lost life −5. Total {max}.",
     flip: "Time survived 150; gold stars, trails, sweet spots, double flips 50: they total {max}.",
     junction: "Points for each car and bus through, ± for ambulances. Last the minute for 10 more.",
-    inkbridge: `Levels ${INK_V12_CORE_MAX}; stars, tricks, shamrock, silver, speed ${200 - INK_V12_CORE_MAX}. All ${INK_LEVELS} levels quickly: up to {max}.`,
+    inkbridge: `Levels ${INK_V13_CORE_MAX}; little ink ${INK_V13_PAR_MAX}, tricks ${INK_V13_TRICK_MAX}, clovers ${INK_V13_CLOVER_MAX}. All 10 levels quickly: up to {max}.`,
     burst: "Atoms up to 140, fast waves 35, golden atoms 25; a lost life costs 5. Up to {max}.",
     orbit: "Planets 130 + sun speed, stardust, slings, fields, perfect orbits. Mind fuel: up to {max}.",
     snip: "Points for fruit fed and leaves; golden apples, few cuts and speed add more. Up to {max}.",
