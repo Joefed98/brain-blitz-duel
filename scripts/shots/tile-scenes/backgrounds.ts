@@ -292,8 +292,8 @@ const ARCADE_BACKGROUNDS: Partial<Record<PuzzleType, TileBackground>> = {
   }, { fade: 0.15, spot: 0.25 }),
   // Alley Roll (Sports, 1 Nov 2026): the alley's warm dark room, a glow behind the board.
   alleyroll: bg((c) => {
-    vgrad(c, [[0, "#22130A"], [1, "#2C180B"]]);
-    cloud(c, T / 2, T / 2, 56, "#FFAA50", 0.18);
+    vgrad(c, [[0, "#22090E"], [1, "#3A121A"]]);
+    cloud(c, T / 2, T / 2, 56, "#FFBE6E", 0.18);
   }, { fade: 0.25, spot: 0.35 }),
   // Hover: its deep space lifting to a synthwave violet at the horizon, a faint magenta grid floor below.
   hover: bg((c) => {
