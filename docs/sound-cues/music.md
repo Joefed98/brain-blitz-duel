@@ -52,8 +52,8 @@ carry; a file in their slot plays under the voice line (voice lines duck music).
 | `music.swerve` | Swerve (retired, practice) | none | `music_swerve` | 60 s loop |
 | `music.steady` | Steady (retired, practice) | none | `music_steady` | 60 s loop |
 | `music.dual` | Dual (retired, practice) | none | `music_dual` | 60 s loop |
-| `music.ricochet` | Moon Climb (Ricochet's id) | `music_ricochet` (Grappler's bed, `music_swing.mp3`, until Joe's file) | `music_ricochet` | loop |
-| `music.bastion` | Iron Wall (arcade, Action) | `music_wavefront` (borrowed from Wavefront until its own recording is set) | `music_bastion` | 60 s loop |
+| `music.ricochet` | Moon Climb (Ricochet's id) | `music_ricochet` (`music_ricochet.mp3`, Joe's recording, 3 Nov 2026) | `music_ricochet` | 60 s loop |
+| `music.bastion` | Iron Wall (arcade, Action) | `music_bastion` (`music_bastion.mp3`, Joe's recording, 3 Nov 2026) | `music_bastion` | 60 s loop |
 | `music.rooftop` | Rooftop Run (retired, practice) | none | `music_rooftop` | 60 s loop |
 | `music.hotfloor` | Hot Floor (retired, practice) | none | `music_hotfloor` | 60 s loop |
 | `music.balltrack` | Ball Tracker | `music_balltrack` | `music_balltrack` | loop |
@@ -61,7 +61,7 @@ carry; a file in their slot plays under the voice line (voice lines duck music).
 | `music.bubble` | Coral Pop | `music_bubble` | `music_bubble` | loop |
 | `music.burst` | Fission | `music_burst` | `music_burst` | loop |
 | `music.bullseye` | Flightpath | `music_bullseye` | `music_bullseye` | loop |
-| `music.matchup` | Gemstone | `music_matchup` (`music_matchup2.mp3`, an energetic 150 BPM chiptune loop since 28 Oct 2026) | `music_matchup` | 51.2 s loop |
+| `music.matchup` | Gemstone | `music_matchup` (`music_matchup.mp3`, Joe's recorded bed since 3 Nov 2026; the 28 Oct chiptune `music_matchup2.mp3` retired) | `music_matchup` | 60 s loop |
 | `music.swing` | Grappler | `music_swing` | `music_swing` | loop |
 | `music.skyline` | High Rise | `music_skyline` | `music_skyline` | loop |
 | `music.hover` | Hover | `music_hover` | `music_hover` | loop |
@@ -92,8 +92,8 @@ carry; a file in their slot plays under the voice line (voice lines duck music).
 | `music.pyramid` | Pyramid | `music_pyramid` (Free Cell's bed, `music_freecell.mp3`) | `music_pyramid` | 47.4 s loop |
 | `music.golfsol` | Golf Solitaire | `music_golfsol` (Summit's bed, `music_tripeaks.mp3`) | `music_golfsol` | 55.7 s loop |
 | `music.muggins` | Muggins | `music_muggins` (Mahjong's bed, `music_mahjong.mp3`) | `music_muggins` | 48.0 s loop |
-| `music.blockfall` | Blockzone | `music_blockfall` (Fission's Retro bed, `music_burst.mp3`) | `music_blockfall` | loop |
-| `music.alleyroll` | Ringer | `music_alleyroll` (Swish's fairground bed, `music_bintoss.mp3`) | `music_alleyroll` | loop |
+| `music.blockfall` | Blockzone | `music_blockfall` (`music_blockfall.mp3`, Joe's recording, 3 Nov 2026) | `music_blockfall` | 60 s loop |
+| `music.alleyroll` | Ringer | `music_alleyroll` (`music_alleyroll.mp3`, Joe's recording, 3 Nov 2026) | `music_alleyroll` | 60 s loop |
 
 Every puzzle (Word, Number, Speed, Attention, Pattern, Logic, and the engine games Letterfall,
 Tenfall, Bonk, Pull! and Mixed Signals) plays one of its category's three shared beds

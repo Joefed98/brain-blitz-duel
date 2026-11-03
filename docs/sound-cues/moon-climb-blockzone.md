@@ -1,5 +1,7 @@
 # Moon Climb and Blockzone sound slots (3 Nov 2026)
 
+**Files set (3 Nov 2026):** Joe's recordings from the `sounds-nov-2026` branch are wired for every Moon Climb (`ricochet.*`), Iron Wall (`bastion.*`), Blockzone (`blockfall.*`) and Ringer (`alleyroll.*`) slot listed in `mapping-nov-2026.csv`, plus `music_ricochet`, `music_bastion`, `music_blockfall`, `music_alleyroll` and Gemstone's `music_matchup`; those slots no longer play a library stand-in. Effects were trimmed of leading and trailing silence and encoded 44.1 kHz mono 96k; loops and beds are as uploaded. Slots not in the mapping (`bastion.dry`, `blockfall.speedUp`, `ricochet.heightStreak`, `ricochet.fullHeight`, the replay moments) keep their library sound.
+
 Joe will generate the files for these slots. Until a slot's `url` is set in `src/lib/fx/manifest.ts`, the moment plays
 the library sound named in `arcade.md` (the `sfx(slot, fallback)` rule in `gameSounds.ts`): with a file, the slot's own
 recording plays instead and the fallback is muted. Set a file the usual way (`docs/sound-cues/README.md`). The

@@ -1,5 +1,7 @@
 # Blockfall and Ringer (Alley Roll; 1 Nov 2026, Ringer 3 Nov 2026; Blockfall is shown as Blockzone since 3 Nov 2026, its slots in `moon-climb-blockzone.md`)
 
+**Files set (3 Nov 2026):** Joe's recordings from the `sounds-nov-2026` branch are wired for every Moon Climb (`ricochet.*`), Iron Wall (`bastion.*`), Blockzone (`blockfall.*`) and Ringer (`alleyroll.*`) slot listed in `mapping-nov-2026.csv`, plus `music_ricochet`, `music_bastion`, `music_blockfall`, `music_alleyroll` and Gemstone's `music_matchup`; those slots no longer play a library stand-in. Effects were trimmed of leading and trailing silence and encoded 44.1 kHz mono 96k; loops and beds are as uploaded. Slots not in the mapping (`bastion.dry`, `blockfall.speedUp`, `ricochet.heightStreak`, `ricochet.fullHeight`, the replay moments) keep their library sound.
+
 Both games play the existing library only: every moment in `gameSounds.ts` (`blockfallSounds`, `alleyRollSounds`) is a
 slot with no file of its own yet (`url: null`), so it plays the shared sound named in `arcade.md`; replay moments use
 `replay.moment.mp3`; the beds borrow Fission's Retro track and Swish's fairground track (`music.md`). Haptics fire only

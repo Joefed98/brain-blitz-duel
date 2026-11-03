@@ -5,6 +5,7 @@ import { soundCue } from "@/lib/fx/soundCues";
 import { prefersReducedMotion } from "@/lib/motion";
 import { celebrationSound, showBanner } from "@/lib/fx/celebrations";
 import { useCelebrationScope, useCelebrationsOn } from "@/components/fx/useCelebration";
+import { queueVoice } from "@/lib/sound";
 
 /** After the stored score's own cue (AnswerReveal's REVEAL_SCORE_DELAY_MS) has played. */
 const DELAY_MS = 600;
@@ -21,6 +22,11 @@ const DELAY_MS = 600;
  * no sparks; the chime still plays).
  */
 export function NewBestMoment() {
+  // The "New best" voice line (3 Nov 2026, roomVoices.ts): once, after the moment's own sound,
+  // never over another voice line (a Perfect on the same reveal goes first). Reduced motion too.
+  useEffect(() => {
+    queueVoice("voice.newBest", DELAY_MS + 400);
+  }, []);
   return useCelebrationsOn() ? <NewBestCelebration /> : <NewBestPill />;
 }
 

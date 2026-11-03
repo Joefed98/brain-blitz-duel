@@ -13,7 +13,8 @@ import type { Standing } from "@/lib/duel/scoring";
 import { roundPlaces, tieMarks } from "@/lib/duel/tieDisplay";
 import { ChevronDown } from "lucide-react";
 import { soundCue } from "@/lib/fx/soundCues";
-import { cueDurationMs, playRoundWon, playVoice } from "@/lib/sound";
+import { cueDurationMs, playRoundWon, playVoice, queueVoice } from "@/lib/sound";
+import { isPhotoFinish } from "@/lib/fx/roomVoices";
 
 import { AnimatedScore } from "./AnimatedScore";
 import { ContinueFooter, type ContinueState } from "./ContinueFooter";
@@ -64,6 +65,8 @@ export function RoundResultsTable({
   useEffect(() => {
     if (cued.current) return;
     cued.current = true;
+    // A photo finish (the top two 1–5 points apart): after this screen's own voice line, for everyone.
+    if (isPhotoFinish(ordered.map((row) => row.roundScore))) queueVoice("voice.photoFinish", cueDurationMs("round_won"));
     const mine = ordered.find((row) => row.slot === mySlot);
     if (mine && mine.roundScore > 0 && mine.roundScore === topScore) {
       playRoundWon();

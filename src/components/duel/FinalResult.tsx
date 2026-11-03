@@ -7,7 +7,7 @@ import type { Outcome } from "@/lib/duel/scoring";
 import { PLAYER_COLOURS, type PlayerLook, type PlayerLooks } from "@/lib/duel/playerLook";
 import type { PodiumAward } from "@/lib/duel/podiumAwards";
 import { haptic } from "@/lib/haptics";
-import { playVoice } from "@/lib/sound";
+import { playVoice, queueVoice } from "@/lib/sound";
 import { fx } from "@/lib/fx";
 import { COUNT_UP_MS } from "@/lib/fx/celebrations";
 import { useCelebrationsOn, useTapToSkip } from "@/components/fx/useCelebration";
@@ -91,10 +91,12 @@ export function FinalResult({
     cued.current = true;
     // No music on the final screen — just the one cue.
     fx.onPodium();
-    playVoice(outcome === "win" ? "voice.youWin" : outcome === "draw" ? "voice.tie" : "gg");
+    playVoice(outcome === "win" ? "voice.youWin" : outcome === "draw" ? "voice.draw" : "gg");
+    // A clean sweep (3 Nov 2026, roomVoices.ts): one player took every round outright.
+    if (breakdown.length >= 2 && (breakdown.every((r) => r.mine > r.theirs) || breakdown.every((r) => r.theirs > r.mine))) queueVoice("voice.cleanSweep");
     // Haptics (lib/haptics.ts): the winner's phone celebrates (the two-player final is this room's podium).
     if (outcome === "win") haptic("celebrate");
-  }, [outcome]);
+  }, [outcome]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const side = (name: string, look: PlayerLook | undefined, colour: string, total: number, from: number | undefined, you: boolean) => (
     <div className="flex min-w-0 flex-1 flex-col items-center text-center">

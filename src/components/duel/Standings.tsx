@@ -1,4 +1,4 @@
-import type { CSSProperties } from "react";
+import { useEffect, useRef, type CSSProperties } from "react";
 
 import { GameIcon } from "@/components/app/GameIcon";
 import { PLAYER_COLOURS, type PlayerLook, type PlayerLooks } from "@/lib/duel/playerLook";
@@ -8,6 +8,8 @@ import type { PuzzleType } from "@/lib/duel/types";
 import type { Standing } from "@/lib/duel/scoring";
 import { TOTAL_ROUNDS } from "@/lib/duel/types";
 import { positionChange, previousStandingOrder } from "@/lib/duel/resultPresentation";
+import { isNewLeader } from "@/lib/fx/roomVoices";
+import { queueVoice } from "@/lib/sound";
 import { COUNT_UP_MS, COUNT_UP_SLIDE_MS, countUpFrom } from "@/lib/fx/celebrations";
 import {
   useCelebrationScope,
@@ -125,6 +127,13 @@ export function Standings({ round, totalRounds = TOTAL_ROUNDS, rows, looks, mySl
     skip: skipped,
   });
   useCountUpClimbs(celebrate, scope, rows, nodes);
+  // "New leader" (3 Nov 2026, roomVoices.ts): once, when first place changed hands this round.
+  const leaderCued = useRef(false);
+  useEffect(() => {
+    if (leaderCued.current) return;
+    leaderCued.current = true;
+    if (isNewLeader(rows)) queueVoice("voice.newLeader", 600);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const marks = tieMarks(rows.map((row) => ({ slot: row.slot, points: row.total, position: row.position })));
   const listRef = useScrollMore<HTMLUListElement>();

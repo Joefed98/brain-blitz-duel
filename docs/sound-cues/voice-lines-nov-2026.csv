@@ -1,0 +1,10 @@
+file,plays
+round_8.mp3,Round 8 announcement (rename to match the existing round lines)
+round_9.mp3,Round 9 announcement (rename to match the existing round lines)
+round_10.mp3,Round 10 announcement (rename to match the existing round lines)
+round_11.mp3,Round 11 announcement (rename to match the existing round lines)
+new_best.mp3,Results screen: player beats their personal best in that game
+photo_finish.mp3,Room results: top two finish within 5 points
+new_leader.mp3,Room standings: first place changes after a round
+clean_sweep.mp3,Room end: one player won every round
+draw.mp3,Room end: first place is tied
