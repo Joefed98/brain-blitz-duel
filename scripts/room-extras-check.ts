@@ -28,7 +28,7 @@ import { DEVICE_INIT, IPHONE11_APP, emulateDevice, type DeviceConfig } from "./d
 import { generatePuzzle } from "../src/lib/duel/generate.server";
 import { withSeededRandom } from "../src/lib/duel/random";
 import { splitPuzzle } from "../src/lib/duel/secrets";
-import { CHART_MARGIN, chartPoint, chartRow, chartRows } from "../src/lib/duel/arcadeChart";
+import { CHART_MARGIN, chartLabels, chartPoint, chartRow, chartRows } from "../src/lib/duel/arcadeChart";
 import { roundMaxFor } from "../src/lib/duel/roundMax";
 import type { PuzzleData } from "../src/lib/duel/types";
 
@@ -321,7 +321,9 @@ try {
           for (let j = i + 1; j < blocks.length; j++)
             if (overlap({ ...blocks[i]!, what: "" }, { ...blocks[j]!, what: "" })) fails.push(`"${blocks[i]!.text}" and "${blocks[j]!.text}" overlap`);
         if (g.pageScrolls) fails.push("the reveal page scrolls");
-        const wantLabels = ["0", String(r0.hi), String(r1.hi), String(r2.hi)];
+        // Four bands to 200 (3 Nov 2026): the axis reads 0, 50, 100, 150, 200 for every game.
+        const wantLabels = chartLabels(CHART_MAX).map((l) => l.text);
+        if (wantLabels.join() !== "0,50,100,150,200") fails.push(`the axis should read 0/50/100/150/200 (${wantLabels.join("/")})`);
         if (JSON.stringify(g.labels) !== JSON.stringify(wantLabels)) fails.push(`labels ${g.labels}`);
         const bottom = g.chart.y + g.chart.h;
         if (bottom > IPHONE11_APP.screenH - IPHONE11_APP.bottom) fails.push(`chart ends at ${bottom}, under the home bar`);
