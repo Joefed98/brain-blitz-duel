@@ -1111,5 +1111,33 @@
   "revealAtS": 41,
   "score": "6",
   "seconds": 69
+ },
+ "matchup": {
+  "input": "driver partial + scripted",
+  "intro": true,
+  "clockS": 89,
+  "midAtS": 47,
+  "reveal": "played to the end",
+  "revealText": [
+   "Gemstone",
+   "Practice",
+   "41",
+   "points",
+   "108 gems cleared → 32",
+   "▾",
+   "Who's ahead",
+   "0",
+   "50",
+   "100",
+   "150",
+   "200",
+   "Y",
+   "You",
+   "Back",
+   "Play again"
+  ],
+  "revealAtS": 93,
+  "score": "41",
+  "seconds": 128
  }
 }

@@ -638,7 +638,7 @@ const ENTRIES = {
   "music_pattern_gravity": { channel: "music", frequency: 0, ms: 0, url: null },
   "music_pattern_rings": { channel: "music", frequency: 0, ms: 0, url: null },
   "music_logic_lightsout": { channel: "music", frequency: 0, ms: 0, url: null },
-  "music_logic_bomb": { channel: "music", frequency: 0, ms: 0, url: null },
+  "music_attention_bomb": { channel: "music", frequency: 0, ms: 0, url: null },
   "music_logic_sudoku": { channel: "music", frequency: 0, ms: 0, url: null },
   "music_logic_flood": { channel: "music", frequency: 0, ms: 0, url: null },
   "music_logic_dig": { channel: "music", frequency: 0, ms: 0, url: null },
