@@ -80,7 +80,7 @@ export function AsyncResults({
   const shown = revealing !== null ? reveals[revealing - 1] : null;
   if (revealing !== null && shown) {
     return (
-      <PhoneShell constrained gameScreen gameType={shown.puzzle.type}>
+      <PhoneShell constrained gameScreen reveal gameType={shown.puzzle.type}>
         <AnswerReveal
           round={revealing}
           totalRounds={view.roundCount}

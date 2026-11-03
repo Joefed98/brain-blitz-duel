@@ -925,7 +925,7 @@ function PracticeScreen() {
 
   if (stage === "reveal" && graded) {
     return (
-      <PhoneShell constrained gameScreen gameType={type}>
+      <PhoneShell constrained gameScreen reveal gameType={type}>
         <AnswerReveal
           round={1}
           practice

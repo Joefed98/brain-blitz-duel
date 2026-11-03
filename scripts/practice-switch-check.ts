@@ -25,6 +25,7 @@ import { chromium, type Page } from "playwright";
 
 import { ARCADE_GROUPS, arcadeGroupOf, arcadeGroupTypes, isRegisteredType } from "../src/lib/duel/arcadeGroups";
 import { gameDisplayName } from "../src/lib/duel/gameNames";
+import { alsoInOf, typesAlsoIn } from "../src/lib/duel/alsoIn";
 import { ACTIVE_PUZZLE_TYPES, PUZZLE_REGISTRY, gameCounts, typesInCategory } from "../src/lib/duel/registry";
 import { PRACTICE_SIDE_KEY, practiceSideCounts } from "../src/lib/duel/practiceSide";
 import { startSafeAreaServer } from "./safe-area-server";
@@ -47,11 +48,15 @@ check(counts.arcade === arcadeActive.length && counts.arcade === gameCounts().ar
 check(counts.puzzles === puzzleActive.length, `the Puzzles count is the registry's other active games (${counts.puzzles})`);
 check(counts.puzzles + counts.arcade === ACTIVE_PUZZLE_TYPES.length, "the two sides hold every active game once");
 
-const grouped = ARCADE_GROUPS.flatMap((g) => arcadeGroupTypes(g.id));
+// Each group's own games, then the games listed also in it (alsoIn.ts, 3 Nov 2026: Pull! in Sports).
+const groupRows = (id: (typeof ARCADE_GROUPS)[number]["id"]) => [...arcadeGroupTypes(id), ...typesAlsoIn(id)];
+const grouped = ARCADE_GROUPS.flatMap((g) => groupRows(g.id));
 check(new Set(grouped).size === grouped.length, "no game is in two groups");
 const ungrouped = arcadeActive.filter((t) => arcadeGroupOf(t) === null);
 check(ungrouped.length === 0, `every active arcade game has a group${ungrouped.length ? `: missing ${ungrouped.join(", ")}` : ""}`);
-check(grouped.length === arcadeActive.length, `the groups list ${grouped.length} games, the registry ${arcadeActive.length} active arcade games`);
+// The groups list every active arcade game once, plus the games listed also in a group (alsoIn.ts; their own count stays on Puzzles).
+const alsoListed = ARCADE_GROUPS.flatMap((g) => typesAlsoIn(g.id));
+check(grouped.length === arcadeActive.length + alsoListed.length, `the groups list ${grouped.length} games, the registry ${arcadeActive.length} active arcade games and ${alsoListed.length} also listed`);
 const wrongCategory = ARCADE_GROUPS.flatMap((g) => g.games).filter((t) => isRegisteredType(t) && PUZZLE_REGISTRY[t].category !== "arcade");
 check(wrongCategory.length === 0, `every registered id in a group is an arcade game${wrongCategory.length ? `: ${wrongCategory.join(", ")}` : ""}`);
 const unregistered = ARCADE_GROUPS.flatMap((g) => g.games).filter((t) => !isRegisteredType(t));
@@ -77,8 +82,9 @@ const BRIEF: Record<string, string[]> = {
   // Strategy split from Action on 1 Nov 2026 (Coral Pop, Gemstone, Ball Tracker, Tilt, Rainbow Bridge, High Rise moved).
   // Ricochet back from retirement as the ninja wall-climb (ricoRev 2, 1 Nov 2026), and Bastion back in rooms (bastionRev 2), in Action.
   // Ricochet is shown as Moon Climb since 3 Nov 2026 (ricoRev 3), and Bastion as Iron Wall.
-  action: ["Slice", "Roofbound", "Grappler", "Moon Climb", "Iron Wall"],
-  strategy: ["Tilt", "Gemstone", "High Rise", "Coral Pop", "Rainbow Bridge", "Ball Tracker"],
+  // High Rise back from Strategy to Action on 3 Nov 2026 (Joe's decision).
+  action: ["Slice", "Roofbound", "Grappler", "Moon Climb", "Iron Wall", "High Rise"],
+  strategy: ["Tilt", "Gemstone", "Coral Pop", "Rainbow Bridge", "Ball Tracker"],
 };
 check(ARCADE_GROUPS.map((g) => g.id).join() === "retro,sports,cards,action,strategy", "five groups: Retro, Sports, Cards & Board, Action, Strategy");
 for (const g of ARCADE_GROUPS) {
@@ -154,7 +160,9 @@ try {
       check(stored === "arcade", `${at}: the side is stored on the device (${stored})`);
       const arcadeRows = await listed(page);
       const activeArcadeRows = arcadeRows.filter((t) => !PUZZLE_REGISTRY[t as keyof typeof PUZZLE_REGISTRY]?.retired);
-      check(arcadeRows.every(isArcade), `${at}: Arcade lists only arcade games`);
+      // ...and the games listed also in an arcade group (Pull!, a Speed game, in Sports since 3 Nov 2026).
+      check(arcadeRows.every((t) => isArcade(t) || alsoInOf(t) !== null), `${at}: Arcade lists only arcade games and those also in a group`);
+      check(arcadeRows.includes("clayshoot"), `${at}: Pull! is listed on the Arcade side (Sports)`);
       check(JSON.stringify(activeArcadeRows) === JSON.stringify(grouped), `${at}: Arcade's sections list exactly the mapped games in order`);
       const sections = await page.locator("[data-practice-group]").evaluateAll((els) =>
         els.map((el) => ({
@@ -172,10 +180,10 @@ try {
       );
       for (const g of expected) {
         const s = sections.find((x) => x.id === g.id);
-        const n = arcadeGroupTypes(g.id).length;
+        const n = groupRows(g.id).length;
         check(
-          !!s && s.title === g.label && s.meta === `${n} ${n === 1 ? "game" : "games"}` && s.dot === g.id && JSON.stringify(s.games) === JSON.stringify(arcadeGroupTypes(g.id)),
-          `${at}: "${g.label} · ${n} games" lists exactly ${arcadeGroupTypes(g.id).join(", ")}`,
+          !!s && s.title === g.label && s.meta === `${n} ${n === 1 ? "game" : "games"}` && s.dot === g.id && JSON.stringify(s.games) === JSON.stringify(groupRows(g.id)),
+          `${at}: "${g.label} · ${n} games" lists exactly ${groupRows(g.id).join(", ")}`,
         );
       }
       // Group-coloured tile borders.
@@ -183,7 +191,9 @@ try {
         els.map((el) => [el.getAttribute("data-game-icon"), el.getAttribute("data-group"), getComputedStyle(el).borderTopColor]),
       );
       const rgb = (hex: string) => `rgb(${parseInt(hex.slice(1, 3), 16)}, ${parseInt(hex.slice(3, 5), 16)}, ${parseInt(hex.slice(5, 7), 16)})`;
+      // A game listed also in a group keeps its main category's border (Pull!: Speed's, no data-group).
       const badBorder = borders.filter(([t, g, colour]) => {
+        if (alsoInOf(t!) !== null && !isArcade(t!)) return g !== null;
         const info = ARCADE_GROUPS.find((x) => x.id === g);
         return !info || info.id !== arcadeGroupOf(t!) || colour !== rgb(info.colour);
       });
@@ -219,7 +229,7 @@ try {
       await arcadeSearch.fill("r");
       await settle(page);
       const arSearch = await listed(page);
-      check(arSearch.length > 0 && arSearch.every(isArcade), `${at}: searching "r" on Arcade finds only arcade games (${arSearch.length})`);
+      check(arSearch.length > 0 && arSearch.every((t) => isArcade(t) || alsoInOf(t) !== null), `${at}: searching "r" on Arcade finds only arcade games and those also in a group (${arSearch.length})`);
       check((await recent(page)).length === 0, `${at}: Recently played hides while searching`);
       await arcadeSearch.fill("Gridlock");
       await settle(page);
@@ -244,7 +254,7 @@ try {
       await page.reload();
       await page.locator("[data-practice-game]").first().waitFor({ timeout: 60_000 });
       await settle(page);
-      check((await side(page)) === "arcade" && (await listed(page)).every(isArcade), `${at}: after a reload the device opens on Arcade again`);
+      check((await side(page)) === "arcade" && (await listed(page)).every((t) => isArcade(t) || alsoInOf(t) !== null), `${at}: after a reload the device opens on Arcade again`);
       await page.locator("[data-practice-side='puzzles']").click();
       await settle(page);
       check((await side(page)) === "puzzles" && (await listed(page)).every((t) => !isArcade(t)), `${at}: the switch flips back to Puzzles`);

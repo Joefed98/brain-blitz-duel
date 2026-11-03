@@ -1,0 +1,28 @@
+/*
+ * The answer reveal as its own screen (3 Nov 2026, display only; PhoneShell `reveal`, every game, practice, rooms,
+ * the daily and challenges). It is no longer drawn over the game: no frozen world behind the arcade reveal and no
+ * game screen background (category glow, dot pattern) behind any reveal. The screen is a gradient in the game's own
+ * colours, from its tile (revealPalette.ts: --reveal-top / --reveal-mid / --reveal-bottom, each dark enough for white
+ * text at 7:1), inside the same top and bottom edge strips as every game screen (bottom.css), so the notch and
+ * home-bar strips stay --screen-edge with no seam.
+ */
+[data-reveal-screen] > .screen-background {
+  background:
+    radial-gradient(120% 45% at 50% 0%, color-mix(in srgb, var(--reveal-top) 70%, white 6%), transparent 70%),
+    linear-gradient(180deg, var(--reveal-top) 0%, var(--reveal-mid) 55%, var(--reveal-bottom) 100%);
+}
+[data-reveal-screen] > .screen-background::before,
+[data-reveal-screen] > .screen-background > .screen-drift {
+  display: none;
+}
+[data-reveal-screen] > .screen-background::after {
+  background:
+    linear-gradient(to bottom, var(--screen-edge) env(safe-area-inset-top, 0px), transparent) top / 100% calc(env(safe-area-inset-top, 0px) + 24px) no-repeat,
+    linear-gradient(to top, var(--screen-edge), transparent) bottom / 100% calc(env(safe-area-inset-bottom, 0px) + 16px) no-repeat,
+    radial-gradient(140% 90% at 50% 45%, transparent 60%, rgba(0, 0, 0, 0.35) 100%);
+}
+/* The reveal's panels sit on the game's colours as dark glass, so the gradient reads through their edges. */
+[data-reveal-screen] [data-chart-panel] {
+  background: rgba(10, 10, 14, 0.72);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+}

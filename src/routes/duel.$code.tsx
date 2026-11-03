@@ -1084,7 +1084,7 @@ function DuelScreen() {
 
   if (phase === "reveal" && puzzle) {
     return withPanel(
-      <PhoneShell constrained gameScreen gameType={puzzle?.type}>
+      <PhoneShell constrained gameScreen reveal gameType={puzzle?.type}>
         <AnswerReveal
           round={round}
           totalRounds={duel.round_count ?? TOTAL_ROUNDS}

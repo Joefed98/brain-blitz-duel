@@ -6,6 +6,7 @@ import { AppHeader } from "@/components/app/AppHeader";
 import { AppWordmark } from "@/components/brand/AppWordmark";
 import { FxLayer } from "./FxLayer";
 import type { PuzzleType } from "@/lib/duel/types";
+import { revealPaletteStyle } from "@/lib/duel/revealPalette";
 import { puzzleDef } from "@/lib/duel/registry";
 import { usePuzzleSurfaces } from "@/components/puzzles/usePuzzleSurfaces";
 import { GameLayoutDevOverlay } from "./GameLayoutDevOverlay";
@@ -24,6 +25,11 @@ import { DesktopPresentation, type DesktopPresentationValue } from "@/lib/deskto
 
 interface PhoneShellProps {
   children: ReactNode;
+  /**
+   * The answer reveal (3 Nov 2026): its own screen, not an overlay on the game. The game's screen background
+   * gives way to a gradient in the game's own colours (revealPalette.ts, from its tile; polish-layout/reveal-screen.css).
+   */
+  reveal?: boolean;
   /** Hide the slim top bar (the home screen carries its own big wordmark). */
   bare?: boolean;
   /** Lock active puzzle and reveal layouts to the device viewport. */
@@ -401,7 +407,7 @@ function useGeometryHold(ref: { current: HTMLElement | null }, active: boolean) 
 }
 
 /** Mobile-first column, centred on larger screens, with a little depth behind. */
-export function PhoneShell({ children, bare = false, constrained = false, gameScreen = false, gameType, gameHeader, topAction, play = false, tabs, skin, aside }: PhoneShellProps) {
+export function PhoneShell({ children, reveal = false, bare = false, constrained = false, gameScreen = false, gameType, gameHeader, topAction, play = false, tabs, skin, aside }: PhoneShellProps) {
   useRootSelectionLock(gameScreen);
   // The computer layout (31 Oct 2026, presentation only): every slot below is null on a phone, so a
   // phone's markup is exactly as before; children keep their place in the tree on every layout, so
@@ -446,6 +452,7 @@ export function PhoneShell({ children, bare = false, constrained = false, gameSc
       data-arcade-screen={arcadeScreen ? "" : undefined}
       data-arcade-play={arcadePlay ? "" : undefined}
       data-puzzle-screen={puzzleScreen ? "" : undefined}
+      data-reveal-screen={reveal && gameScreen ? "" : undefined}
       data-puzzle-play={framePlay && puzzleScreen ? "" : undefined}
       data-board-fill={framePlay && puzzleScreen && gameType && BOARD_FILL.has(gameType) ? "" : undefined}
       data-particle-shape={theme?.particleShape ?? "disc"}
@@ -455,7 +462,15 @@ export function PhoneShell({ children, bare = false, constrained = false, gameSc
       data-desktop-mode={presentation.mode ?? undefined}
       data-room-panel={panel ? "" : undefined}
       data-desktop-cap={desktop && gameScreen && modeInfo?.maxWorldWidth ? "" : undefined}
-      style={gameScreen ? (desktop && modeInfo?.maxWorldWidth ? { ...NO_SELECT_STYLE, ["--dk-world-max" as string]: `${modeInfo.maxWorldWidth}px` } : NO_SELECT_STYLE) : undefined}
+      style={
+        gameScreen
+          ? {
+              ...NO_SELECT_STYLE,
+              ...(desktop && modeInfo?.maxWorldWidth ? { ["--dk-world-max" as string]: `${modeInfo.maxWorldWidth}px` } : null),
+              ...(reveal ? revealPaletteStyle(gameType) : null),
+            }
+          : undefined
+      }
     >
       {desktop ? <AppRail current={tabPage ? tabs : undefined} compact={!tabPage} /> : null}
       <div aria-hidden="true" className="screen-background"><div className="screen-drift" /></div>
@@ -470,7 +485,8 @@ export function PhoneShell({ children, bare = false, constrained = false, gameSc
         }`}
       >
         {/* The four tab screens: their own header (Prompt R; none on the computer layout, where the rail has the logo and sound); every other screen keeps the top bar. */}
-        {tabs && !gameScreen ? <AppHeader /> : !bare && !framePlay && (
+        {/* The reveal's own screen (3 Nov 2026) has no top bar: its header row carries the game and the sound button. */}
+        {tabs && !gameScreen ? <AppHeader /> : !bare && !framePlay && !(reveal && gameScreen) && (
           <div data-game-topbar={gameScreen ? "" : undefined} className="mb-2 grid h-9 shrink-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-2" style={gameScreen ? NO_SELECT_STYLE : undefined}>
             <div className="min-w-0">{gameHeader ?? <AppWordmark />}</div>
             <div className="flex shrink-0 items-center">{topAction}<MuteToggle /></div>

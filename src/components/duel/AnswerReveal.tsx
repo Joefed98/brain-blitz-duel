@@ -19,6 +19,7 @@ import { useSolveFlourish } from "@/components/puzzles/useSolveFlourish";
 import { nearMiss } from "@/lib/duel/nearMiss";
 import { usePerfectBurst } from "@/lib/fx/useSignature";
 import { NewBestMoment } from "@/components/duel/NewBestMoment";
+import { MuteToggle } from "@/components/duel/MuteToggle";
 import {
   HERO_DANCE_MS,
   HERO_GRAND_MS,
@@ -626,10 +627,14 @@ function LiveAnswerReveal({
     <div data-skin="room" data-answer-reveal className="relative flex min-h-0 flex-1 flex-col gap-2.5 px-3 text-left animate-phase-in">
       {/* Practice's new best (arcade too); rooms keep ArcadeReveal's room-best record. */}
       {practice && personalBest && myScore !== null ? <NewBestMoment /> : null}
-      <div className="rs-head shrink-0">
+      {/* Its own screen (3 Nov 2026): this row is the screen's header (no app top bar), so the sound button sits here. */}
+      <div data-reveal-head className="rs-head shrink-0 items-center">
         <span className="min-w-0 truncate text-[15px] font-bold text-foreground">{def.name}</span>
-        <span className="rs-meta">
-          {practice ? (practiceActions ? "Practice" : `Practice · ${secondsLeft}s`) : `Round ${round} of ${totalRounds} · ${secondsLeft}s`}
+        <span className="flex shrink-0 items-center gap-1">
+          <span className="rs-meta">
+            {practice ? (practiceActions ? "Practice" : `Practice · ${secondsLeft}s`) : `Round ${round} of ${totalRounds} · ${secondsLeft}s`}
+          </span>
+          <MuteToggle />
         </span>
       </div>
 

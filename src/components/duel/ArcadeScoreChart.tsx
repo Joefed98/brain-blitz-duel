@@ -1,6 +1,6 @@
 import { useLayoutEffect, useRef, useState } from "react";
 
-import { CHART_BADGE, CHART_LANE, CHART_MARGIN, CHART_NAME_MAX, CHART_TOP, chartLabels, chartShown, chartPoint, layoutMarkers, rowLanes } from "@/lib/duel/arcadeChart";
+import { CHART_BADGE, CHART_LANE, CHART_MARGIN, CHART_NAME_MAX, CHART_ROW_COUNT, CHART_TOP, CHART_TOP_SCORE, chartLabels, chartShown, chartPoint, layoutMarkers, rowLanes } from "@/lib/duel/arcadeChart";
 import { PLAYER_COLOURS, type PlayerLook } from "@/lib/duel/playerLook";
 import { roundMaxFor } from "@/lib/duel/roundMax";
 import type { PuzzleType } from "@/lib/duel/types";
@@ -23,8 +23,10 @@ const LINE_DROP = 9;
 const ROW_GAP = 14;
 const TOP = 6;
 const BOTTOM = 14;
-/** Spare height the chart may take on a tall screen, spread over its three rows, CSS px. */
-const MAX_EXTRA = 150;
+/** Spare height the chart may take on a tall screen, spread over its four rows, CSS px (the reveal's own screen, 3 Nov 2026). */
+const MAX_EXTRA = 360;
+/** The band edges' thin lines (50, 100, 150). */
+const BAND_LINE = "rgba(243, 241, 236, 0.16)";
 /** The neutral track, every player's line and this player's (drawn on top), CSS px. */
 const TRACK_W = 6;
 const LINE_W = 6;
@@ -39,13 +41,14 @@ const YOU_RING = "0 0 0 2px var(--background), 0 0 0 4px var(--foreground)";
 
 /**
  * The arcade reveal's chart (arcadeChart.ts): each player's badge (their colour and icon) and name
- * placed by their stored score on one snaking line, 0–50, 51–100 (right to left) and 101–150 (thirds of the game's maximum), so
+ * placed by their stored score on one snaking line in four bands, 0–50, 51–100 (right to left), 101–150 and 151–200 (right to
+ * left), with thin lines at the band edges and the axis 0 / 50 / 100 / 150 / 200 down the left (3 Nov 2026), so
  * everyone sees roughly who is ahead. Each player's own line runs along the snake from 0 to their
  * place in their colour (round caps and joins), this player's drawn last and thicker. No points
  * figure is drawn or carried in the page for anyone: exact scores are for the results screen.
  * Markers that would touch stack into lanes above the line, each with a thin leader to its dot.
- * The chart takes the reveal's spare height (rows spread apart, up to MAX_EXTRA). The scale is the
- * round's game's maximum (roundMax.ts; 150 today, its top label). Display only.
+ * The chart takes the reveal's spare height (rows spread apart, up to MAX_EXTRA), so a room's markers sit well apart.
+ * The axis is fixed at 0–200 (a game whose maximum is 150 never reaches the last band). Display only.
  */
 export function ArcadeScoreChart({ players, type }: { players: ChartPlayer[]; type: PuzzleType }) {
   const max = roundMaxFor(type);
@@ -74,27 +77,38 @@ export function ArcadeScoreChart({ players, type }: { players: ChartPlayer[]; ty
   );
   const lanes = rowLanes(markers);
   // The height the rows need; any spare height the reveal gives the chart spreads evenly over the rows.
-  const needed = TOP + lanes.reduce((sum, n) => sum + n * CHART_LANE + LINE_DROP, 0) + 2 * ROW_GAP + BOTTOM;
-  const extra = Math.max(0, Math.min(MAX_EXTRA, size.h - needed)) / 3;
+  const needed = TOP + lanes.reduce((sum, n) => sum + n * CHART_LANE + LINE_DROP, 0) + (CHART_ROW_COUNT - 1) * ROW_GAP + BOTTOM;
+  const extra = Math.max(0, Math.min(MAX_EXTRA, size.h - needed)) / CHART_ROW_COUNT;
   const lineY: number[] = [];
   let y = TOP;
-  for (const row of [0, 1, 2]) {
+  for (let row = 0; row < CHART_ROW_COUNT; row++) {
     const line = y + extra + lanes[row]! * CHART_LANE + LINE_DROP;
     lineY.push(line);
     y = line + ROW_GAP;
   }
-  const height = lineY[2]! + BOTTOM;
+  const height = lineY[CHART_ROW_COUNT - 1]! + BOTTOM;
   const L = CHART_MARGIN;
   const R = CHART_MARGIN + trackW;
-  const path = `M ${L} ${lineY[0]} H ${R} a ${BEND} ${BEND} 0 0 1 ${BEND} ${BEND} V ${lineY[1]! - BEND} a ${BEND} ${BEND} 0 0 1 ${-BEND} ${BEND} H ${L} a ${BEND} ${BEND} 0 0 0 ${-BEND} ${BEND} V ${lineY[2]! - BEND} a ${BEND} ${BEND} 0 0 0 ${BEND} ${BEND} H ${R}`;
+  // The snake: the first row left to right, then a bend down at whichever end the row finished, and back.
+  let path = `M ${L} ${lineY[0]} H ${R}`;
+  for (let row = 1; row < CHART_ROW_COUNT; row++) {
+    const right = row % 2 === 1;
+    const v = lineY[row]! - BEND;
+    path += right
+      ? ` a ${BEND} ${BEND} 0 0 1 ${BEND} ${BEND} V ${v} a ${BEND} ${BEND} 0 0 1 ${-BEND} ${BEND} H ${L}`
+      : ` a ${BEND} ${BEND} 0 0 0 ${-BEND} ${BEND} V ${v} a ${BEND} ${BEND} 0 0 0 ${BEND} ${BEND} H ${R}`;
+  }
   // Length along the snake to a score's place: whole rows and bends before its row, then its share of the row.
-  const bendLen = (row: 0 | 1) => Math.PI * BEND + Math.max(0, lineY[row + 1]! - lineY[row]! - 2 * BEND);
+  const bendLen = (row: number) => Math.PI * BEND + Math.max(0, lineY[row + 1]! - lineY[row]! - 2 * BEND);
   const lengthTo = (score: number) => {
     const p = chartPoint(score, max);
-    const before = p.row === 0 ? 0 : p.row === 1 ? trackW + bendLen(0) : 2 * trackW + bendLen(0) + bendLen(1);
+    let before = p.row * trackW;
+    for (let r = 0; r < p.row; r++) before += bendLen(r);
     return before + p.along * trackW;
   };
-  const total = lengthTo(max) + 1;
+  const total = lengthTo(CHART_TOP_SCORE) + 1;
+  // The band edges (50, 100, 150): half-way down each bend, where the line passes that score.
+  const edgeY = (edge: number) => (edge === 0 ? lineY[0]! : edge >= CHART_ROW_COUNT ? lineY[CHART_ROW_COUNT - 1]! : (lineY[edge - 1]! + lineY[edge]!) / 2);
   const byKey = new Map(scored.map((p) => [p.slot, p]));
   const colourOf = (p: ChartPlayer) => PLAYER_COLOURS[p.look?.colour ?? 0]?.hex ?? PLAYER_COLOURS[0].hex;
   // Longest lines first, so a shorter line stays visible on top of a longer one; this player's always last.
@@ -110,6 +124,9 @@ export function ArcadeScoreChart({ players, type }: { players: ChartPlayer[]; ty
         {width > 0 ? (
           <div className="absolute inset-x-0 top-0" style={{ height }} data-chart-body="">
             <svg className="absolute inset-0 h-full w-full overflow-visible" viewBox={`0 0 ${width} ${height}`} aria-hidden="true">
+              {Array.from({ length: CHART_ROW_COUNT - 1 }, (_, i) => (
+                <line key={i} data-chart-band={i + 1} x1={L - BEND - 2} x2={width} y1={edgeY(i + 1)} y2={edgeY(i + 1)} stroke={BAND_LINE} strokeWidth={1} />
+              ))}
               <path d={path} fill="none" stroke="var(--muted-foreground)" strokeOpacity={0.35} strokeWidth={TRACK_W} strokeLinecap="round" strokeLinejoin="round" />
               {lineOrder.map((p) => (
                 <path
@@ -139,14 +156,14 @@ export function ArcadeScoreChart({ players, type }: { players: ChartPlayer[]; ty
               })}
             </svg>
             {chartLabels(max).map((label) => {
-              const top = label.bend ? (lineY[label.row]! + lineY[label.row + 1]!) / 2 : lineY[label.row]!;
-              const edge = label.bend ? BEND + 6 : 8;
+              // The axis down the left, clear of the left bends: 0 and 200 at the line's two left ends, 50 / 100 / 150 on the band edges.
+              const top = edgeY(label.edge);
               return (
                 <span
-                  key={`${label.text}-${label.row}-${label.side}`}
+                  key={label.text}
                   data-chart-label={label.text}
                   className="absolute -translate-y-1/2 rounded px-1 py-0.5 font-mono text-[13px] font-semibold leading-none tabular-nums"
-                  style={{ ...textStyle, ...(label.side === "left" ? { right: width - L + edge, top } : { left: R + edge, top }) }}
+                  style={{ ...textStyle, right: width - (L - BEND - 3), top }}
                 >
                   {label.text}
                 </span>
