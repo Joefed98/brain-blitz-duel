@@ -1,17 +1,19 @@
 /**
- * Grappler's room proof (the arcade rule; swingRev 16 since 1 Nov 2026, the swinging course's dark ledge runs over 90 s, and swingRev 15 since 29 Oct 2026, the swinging course,
+ * Grappler's room proof (the arcade rule; swingRev 17 since 3 Nov 2026, the sliding hooks and the clean-swing streak (no gems or stars),
+ * swingRev 16 since 1 Nov 2026, the swinging course's dark ledge runs over 90 s, and swingRev 15 since 29 Oct 2026, the swinging course,
  * docs/arcade-standard/swing.md; swingRev 14's (the assault course) and 13's modules before it). A room deal is the
  * server's own generator (generateSwing: any seed, the course built from it) under a fixed seed; every seeded item a
  * state shows is listed by `schedule`: the stretches (kind, hooks, squeeze, par, ledges, span), the hooks, the ledges,
- * the squeezes, the gates, gems and stars, the dragon's stretch, the cave's roof and lava. None of it depends on play
+ * the squeezes, the gates (and on older courses the gems and stars), the sliding hooks' rails (each hook at its home: a
+ * grabbed one stops where it was grabbed, which is play, not the schedule), the dragon's stretch, the cave's roof and lava. None of it depends on play
  * (the dragon itself is not scheduled: it appears behind the hero at the stretch `chaseFrom`, the same rule for everyone).
  */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { generateSwing } from "../../src/lib/duel/arcade.server";
 import { withSeededRandom } from "../../src/lib/duel/random";
-import { swingGameFor, SWING_REV_DARK, SWING_V16_BLOCKS, SWING_V15_GATES, SWING_V15_GEMS, SWING_V16_RUNS, SWING_V16_SQUEEZES, SWING_V15_STARS, type SwingState } from "../../src/lib/arcade/swing";
+import { swingGameFor, SWING_REV_SLIDE, SWING_V16_BLOCKS, SWING_V16_RUNS, SWING_V16_SQUEEZES, SWING_V17_GATES, SWING_V17_SLIDER_TOTAL, type SwingState } from "../../src/lib/arcade/swing";
 
-/** Stretches a swingRev 16 course holds: a swinging stretch a block, the ledge runs' sections. */
+/** Stretches a swingRev 16 or 17 course holds: a swinging stretch a block, the ledge runs' sections. */
 const STRETCHES = SWING_V16_BLOCKS - SWING_V16_RUNS.length + SWING_V16_RUNS.reduce((a, b) => a + b, 0);
 import { bot, randomBot } from "../arcade-skill-bands/bots/swing";
 import { Human } from "../arcade-skill-bands/human";
@@ -33,12 +35,14 @@ function group<T>(arr: readonly T[] | undefined, name: string, read: (x: T) => u
   return out;
 }
 /** One item for a whole array: its length and an FNV-style hash of every number each element is read as. */
-function whole<T>(arr: readonly T[] | undefined, name: string, read: (x: T) => number[]): Record<string, unknown> {
+function whole<T>(arr: readonly T[] | undefined, name: string, read: (x: T, i: number) => number[]): Record<string, unknown> {
   if (!arr) return {};
   let out = CACHE.get(arr);
   if (!out) {
     let h = 0x811c9dc5;
-    for (const x of arr) for (const v of read(x)) h = Math.imul(h ^ (v | 0), 16777619);
+    arr.forEach((x, i) => {
+      for (const v of read(x, i)) h = Math.imul(h ^ (v | 0), 16777619);
+    });
     CACHE.set(arr, (out = { [name]: `${arr.length}:${(h >>> 0).toString(16)}` }));
   }
   return out;
@@ -46,17 +50,17 @@ function whole<T>(arr: readonly T[] | undefined, name: string, read: (x: T) => n
 
 export const x200Room: X200Room = {
   type: "swing",
-  rev: SWING_REV_DARK,
+  rev: SWING_REV_SLIDE,
   deals: 6,
   deal(n: number): RoomDeal {
     const puzzle = withSeededRandom(0x5917 + n * 7919, () => generateSwing());
-    if (puzzle.swingRev !== SWING_REV_DARK) throw new Error(`room deal ${n}: swingRev ${puzzle.swingRev}, not ${SWING_REV_DARK}`);
+    if (puzzle.swingRev !== SWING_REV_SLIDE) throw new Error(`room deal ${n}: swingRev ${puzzle.swingRev}, not ${SWING_REV_SLIDE}`);
     return { seed: puzzle.seed, game: swingGameFor(puzzle.swingRev) };
   },
   play(deal: RoomDeal, style: RoomStyle) {
     if (style === "idle") return { events: [] };
     const human = new Human("swing", deal.seed, style === "random" ? "weak" : style);
-    const ctx = { game: deal.game, seed: deal.seed, rev: SWING_REV_DARK, human };
+    const ctx = { game: deal.game, seed: deal.seed, rev: SWING_REV_SLIDE, human };
     return style === "random" ? randomBot(ctx) : bot(ctx);
   },
   schedule(state: SwingState) {
@@ -69,8 +73,10 @@ export const x200Room: X200Room = {
       ...group(state.starSpots, "star", (p) => p),
       ...group(state.gems, "gem", (p) => p),
       ...group(state.gates, "gate", (g) => [g.x, g.y0, g.y1]),
-      // The hooks and the cave, one fingerprint each.
-      ...whole(state.anchors, "hooks", (a) => [a.x, a.y]),
+      // swingRev 17: the sliding hooks' rails (hook, home, half-length, period, phase).
+      ...group(state.sliders, "slider", (sl) => [sl.i, sl.x, sl.amp, sl.period, sl.off]),
+      // The hooks (each sliding one at its home) and the cave, one fingerprint each.
+      ...whole(state.anchors, "hooks", (a, i) => [state.sliders?.find((sl) => sl.i === i)?.x ?? a.x, a.y]),
       ...whole(state.ceil, "ceiling", (v) => [v]),
       ...whole(state.floor, "lava", (v) => [v]),
     };
@@ -81,12 +87,15 @@ export const x200Room: X200Room = {
       sectionTotal: STRETCHES,
       squeezes: (state.squeezes ?? []).length,
       squeezeTotal: SWING_V16_SQUEEZES,
+      // swingRev 17: no gems or stars; five gates; the sliding hooks.
       stars: (state.starSpots ?? []).length,
-      starTotal: SWING_V15_STARS,
+      starTotal: 0,
       gems: (state.gems ?? []).length,
-      gemTotal: SWING_V15_GEMS,
+      gemTotal: 0,
       gates: (state.gates ?? []).length,
-      gateTotal: SWING_V15_GATES,
+      gateTotal: SWING_V17_GATES,
+      sliders: (state.sliders ?? []).length,
+      sliderTotal: SWING_V17_SLIDER_TOTAL,
       pars: (state.sections ?? []).filter((k) => k.par > 0).length,
     };
   },

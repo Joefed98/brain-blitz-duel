@@ -13,7 +13,7 @@ import {
   SWING_REV_TUNED,
   SWING_REV_TUNEC,
   SWING_REV_SPREAD,
-  SWING_REV_TALL, SWING_REV_TARGET, SWING_REV_STRICT, SWING_REV_EXPAND, SWING_REV_ASSAULT, SWING_REV_REWORK, SWING_REV_DARK,
+  SWING_REV_TALL, SWING_REV_TARGET, SWING_REV_STRICT, SWING_REV_EXPAND, SWING_REV_ASSAULT, SWING_REV_REWORK, SWING_REV_DARK, SWING_REV_SLIDE,
   swingWorldHFor,
   swingWorldWFor,
   SWING_BG,
@@ -72,7 +72,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       seed={data?.seed ?? 1}
       enabled={data !== null}
       locked={locked}
-      // swingRev 13, 14, 15 and 16: the wider view (450 × 844); 390 wide on every earlier revision.
+      // swingRev 13, 14, 15, 16 and 17: the wider view (450 × 844); 390 wide on every earlier revision.
       worldW={swingWorldWFor(data?.swingRev)}
       // swingRev 9: the taller cavern; every phone draws the stored revision's world.
       worldH={swingWorldHFor(data?.swingRev)}
@@ -124,7 +124,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
 }
 
 export function swingLine(r: { metres: number; survived: boolean; survivedSeconds: number; cause?: number; sections?: number; sectionTotal?: number; restarts?: number }): string {
-  // swingRev 14 and 15 (the assault and swinging courses): sections cleared and restarts.
+  // swingRev 14 to 17 (the assault and swinging courses): sections cleared and restarts.
   if (r.sectionTotal !== undefined && r.restarts !== undefined) return `Section ${r.sections ?? 0} / ${r.sectionTotal} · ${r.restarts} restart${r.restarts === 1 ? "" : "s"}`;
   if (r.survived) return `${r.metres} m · survived`;
   return r.cause === 1 ? `${r.metres} m · caught by the dragon at ${r.survivedSeconds.toFixed(1)}s` : `${r.metres} m · fell at ${r.survivedSeconds.toFixed(1)}s`;
@@ -143,6 +143,11 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
           {result.stars ?? 0} / {result.starTotal ?? 0} stars
         </p>
       )}
+      {puzzle.swingRev === SWING_REV_SLIDE && "streakPaid" in result && (
+        <p className="shrink-0 whitespace-normal break-words text-center font-mono text-sm text-muted-foreground">
+          {result.parsBeaten} under par · {result.gates} / {result.gateTotal} gates · streak +{result.streakPoints}
+        </p>
+      )}
       {(puzzle.swingRev === SWING_REV_ASSAULT || puzzle.swingRev === SWING_REV_REWORK || puzzle.swingRev === SWING_REV_DARK) && "starsBanked" in result && (
         <p className="shrink-0 whitespace-normal break-words text-center font-mono text-sm text-muted-foreground">
           {result.parsBeaten} under par · {result.gates} / {result.gateTotal} gates · {result.gems} / {result.gemTotal} gems · {result.starsBanked} / {result.starTotal} stars
@@ -153,7 +158,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
           {result.gems} / {result.gemTotal} gems · {result.gates} / {result.gateTotal} gates · {result.ledges} / {result.ledgeTotal} ledges · best chain {result.bestChain}
         </p>
       )}
-      <p className="shrink-0 text-center font-mono text-base text-muted-foreground">{puzzle.swingRev === SWING_REV_ASSAULT || puzzle.swingRev === SWING_REV_REWORK || puzzle.swingRev === SWING_REV_DARK ? "Same course for everyone" : "Same cavern for everyone"}</p>
+      <p className="shrink-0 text-center font-mono text-base text-muted-foreground">{puzzle.swingRev === SWING_REV_ASSAULT || puzzle.swingRev === SWING_REV_REWORK || puzzle.swingRev === SWING_REV_DARK || puzzle.swingRev === SWING_REV_SLIDE ? "Same course for everyone" : "Same cavern for everyone"}</p>
     </div>
   );
 }

@@ -183,7 +183,8 @@ section("New rounds carry the Tuning C stamps; Junction is practice only");
     // Grappler's 200 expansion (26 Oct 2026) moved Grappler on to swingRev 13 (after swingRev 9's taller cavern); swing-x200-check covers it.
     // The assault course (27 Oct 2026) moved it on to swingRev 14 (swing-assault-check), the swinging course (29 Oct 2026)
     // to swingRev 15 (swing-rework-check).
-    ["swing", playRevOf("swing", generateSwing().swingRev), SWING_REV_TUNEC + 9],
+    // The sliding hooks and the streak (3 Nov 2026) moved it on to swingRev 17; swing-slide-check covers it.
+    ["swing", playRevOf("swing", generateSwing().swingRev), SWING_REV_TUNEC + 10],
     // Tuning E (Oct 2026) moved Hover on to its taller world (hoverRev 5); arcade-tuning-e-check covers it.
     // The 200 expansion (26 Oct 2026) then moved Hover on to hoverRev 9; hover-x200-check covers it.
     ["hover", playRevOf("hover", generateHover().hoverRev), HOVER_REV_TALL + 4],
@@ -264,7 +265,7 @@ section("Grappler, Hover, Rainbow Bridge and Tempo: same play, new curves");
   // Grappler's 200 expansion (swingRev 13) stated a good run on its own base curve (swing-x200-check); the assault course
   // (swingRev 14) on its sections' curve (swing-assault-check); the swinging course (swingRev 15) as a share of the course. Tempo's beatRev 11 (the arcade scoring
   // standard) states its standard parts instead (arcade-help-bands-check, beat-standard-check).
-  ok(PUZZLE_INSTRUCTIONS.swing.score.includes("A good run (100 points) counts 715") && PUZZLE_INSTRUCTIONS.inkbridge.score.includes("A good run (100 points) pots 9 levels") /* inkRev 13 (12 a level; inkRev 12 potted 8 at 14 a level, inkRev 10 counted 73) */ && PUZZLE_INSTRUCTIONS.beat.score.includes(stdHelp(BEAT_STD_SPEC)), "the \"?\" help states a good run on the curves rooms deal");
+  ok(PUZZLE_INSTRUCTIONS.swing.score.includes("A good run (100 points) counts 637") /* swingRev 17 (110, full at 700 per mille; swingRev 16 counted 715) */ && PUZZLE_INSTRUCTIONS.inkbridge.score.includes("A good run (100 points) pots 9 levels") /* inkRev 13 (12 a level; inkRev 12 potted 8 at 14 a level, inkRev 10 counted 73) */ && PUZZLE_INSTRUCTIONS.beat.score.includes(stdHelp(BEAT_STD_SPEC)), "the \"?\" help states a good run on the curves rooms deal");
 }
 
 /* ================================ 4a. Gemstone ================================ */

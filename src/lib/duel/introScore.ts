@@ -1,3 +1,4 @@
+import { SWING_V17_CORE, SWING_V17_GATES, SWING_V17_GATE_POINTS, SWING_V17_PAR_POINTS, SWING_V17_STREAK_MAX } from "@/lib/arcade/swing";
 import { PS_CORE_FULL_V2 } from "@/lib/arcade/cards/pokerSquares";
 import { FH_CORE_FULL_V2 } from "@/lib/arcade/cards/fiveHands";
 import { FC_CORE_UNITS_V3 } from "@/lib/arcade/cards/freecell";
@@ -151,7 +152,7 @@ function introScoreTemplates(): Record<PuzzleType, string> {
     burst: "Atoms up to 140, fast waves 35, golden atoms 25; a lost life costs 5. Up to {max}.",
     orbit: "Planets 130 + sun speed, stardust, slings, fields, perfect orbits. Mind fuel: up to {max}.",
     snip: "Points for fruit fed and leaves; golden apples, few cuts and speed add more. Up to {max}.",
-    swing: `90 s. Distance along the course (140), pars (30), gates, gems and stars (30): up to {max}.`,
+    swing: `90 s. Course (${SWING_V17_CORE}), pars (${SWING_V17_PAR_POINTS}), gates (${SWING_V17_GATES * SWING_V17_GATE_POINTS}), clean-swing streak (${SWING_V17_STREAK_MAX}): up to {max}.`,
     tilt: `35 a maze (up to 5 for nearing its exit), gold stars 30. All ${TILT_S_MAZES} quickly: up to {max}.`,
     balltrack: `Marbles home 140; gold, boosted and in-a-row marbles add 60: they total up to {max}.`,
     swerve: arcadeOpen("each coin you collect"),
