@@ -1,7 +1,7 @@
 /**
  * Contact sheets for the audit screenshots (scripts/audit/audit-capture.ts): one sheet per puzzle category and per
  * arcade group, each game a row of intro / mid-round / reveal with its display name as the row label, split into
- * parts of at most --per games. The approach of scripts/shots/sheets.ts (@napi-rs/canvas). Not a check.
+ * balanced parts of at most --per games. The approach of scripts/shots/sheets.ts (@napi-rs/canvas). Not a check.
  *
  *   bun scripts/audit/contact-sheets.ts [--in=screenshots/audit-nov-2026] [--out=<same>] [--per=8] [--scale=0.5]
  *
@@ -54,7 +54,8 @@ const colHead = 24;
 for (const g of groups) {
   const parts = Math.max(1, Math.ceil(g.games.length / PER));
   for (let p = 0; p < parts; p++) {
-    const games = g.games.slice(p * PER, (p + 1) * PER);
+    const size = Math.ceil(g.games.length / parts); // balanced parts (9 games: 5 + 4)
+    const games = g.games.slice(p * size, (p + 1) * size);
     const canvas = createCanvas(pad + label + PHASES.length * (W + pad), head + colHead + games.length * (H + pad));
     const c = canvas.getContext("2d");
     c.fillStyle = "#16161c";

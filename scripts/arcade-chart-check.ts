@@ -31,6 +31,7 @@ import {
   CHART_ROW_COUNT,
   CHART_ROWS,
   chartLabels,
+  chartOnBend,
   chartPoint,
   chartRow,
   chartScore,
@@ -80,14 +81,24 @@ for (let s = 0; s <= 150; s++) {
 }
 for (const [end, start] of [[50, 51], [100, 101]])
   check(near(Math.abs(chartPoint(end).x - chartPoint(start).x), 1 / 50), `${start} continues from ${end} round the bend`);
-// Four bands (3 Nov 2026, the reveal's own screen): the axis is 0–200 for every game, its labels 0, 50, 100, 150 and 200
-// down the left at the line's start, the three band edges and the line's end (the brief changed the rule: the labels were
-// 0, 50, 100, 150 at the ends and bends of three rows on the game's own maximum).
+// Four bands (3 Nov 2026, the reveal's own screen; Joe's correction the same day): one 0–200 axis for every game, each
+// row a band and each bend a boundary. The labels: 0 at the snake's start and 200 at its end (both left), 50 and 150
+// beside the right-hand bends, 100 beside the left-hand one; no lines across the chart; exactly 50, 100 and 150 on their
+// bends. (The brief changed the rule: three rows on the game's own maximum, labelled 0, 50, 100, 150.)
 check(
-  JSON.stringify(chartLabels().map((l) => [l.text, l.edge])) === JSON.stringify([["0", 0], ["50", 1], ["100", 2], ["150", 3], ["200", 4]]) &&
+  JSON.stringify(chartLabels().map((l) => [l.text, l.edge, l.side])) ===
+    JSON.stringify([["0", 0, "left"], ["50", 1, "right"], ["100", 2, "left"], ["150", 3, "right"], ["200", 4, "left"]]) &&
     JSON.stringify(chartLabels(200)) === JSON.stringify(chartLabels()),
-  "labels: 0, 50, 100, 150, 200 on the axis, the same for every game's maximum",
+  "labels: 0 and 200 at the snake's left ends, 50 and 150 by the right bends, 100 by the left bend, the same for every game",
 );
+check(chartOnBend(50) === 1 && chartOnBend(100, 200) === 2 && chartOnBend(150, 200) === 3 && chartOnBend(150) === 3, "50, 100 and 150 sit on the bends");
+check([0, 1, 49, 51, 99, 101, 149, 151, 199, 200].every((v) => chartOnBend(v, 200) === null) && chartOnBend(50.4) === 1, "no other score sits on a bend (scores round first)");
+{
+  const chart = readFileSync("src/components/duel/ArcadeScoreChart.tsx", "utf8");
+  check(!/data-chart-band|<line[^>]*x2=\{width\}/.test(chart), "no lines across the chart");
+  check(/data-chart-bend=\{chartOnBend\(p\.score, max\)/.test(chart) && /bend % 2 === 1 \? R \+ BEND : L - BEND, y: edgeY\(bend\)/.test(chart), "a dot at 50, 100 or 150 is drawn at its bend's middle");
+  check(/chartOnBend\(score, max\) \? bendLen\(p\.row\) \/ 2/.test(chart), "the player's line runs on to the bend for those scores");
+}
 check(CHART_ROW_COUNT === 4 && CHART_ROWS.map((r) => `${r.lo}-${r.hi}`).join() === "0-50,51-100,101-150,151-200", "four bands of 50: 0–50, 51–100, 101–150, 151–200");
 for (const [score, row, x] of [[151, 3, 1 - 1 / 50], [175, 3, 0.5], [200, 3, 0], [150, 2, 1]] as const) {
   const p = chartPoint(score, 200);

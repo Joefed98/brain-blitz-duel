@@ -6,10 +6,12 @@
  *
  * Four bands (3 Nov 2026, the reveal as its own screen): the line runs in four rows of 50 points on one
  * 0–200 axis whatever the game's maximum (roundMax.ts; SCORE_CEILING): 0–50 left to right, 51–100 right to
- * left, 101–150 left to right, 151–200 right to left, so 0 and 200 both sit at the left. Thin horizontal
- * lines mark the band edges at 50, 100 and 150, and the axis down the left reads 0, 50, 100, 150 and 200.
- * A game whose maximum is 150 simply never reaches the last band. (Before: three rows on the game's
- * maximum, in thirds.) `max` only clamps a score to its game's scale.
+ * left, 101–150 left to right, 151–200 right to left, so 0 and 200 both sit at the left. Each row is one
+ * band and the bend between two rows is the boundary (Joe's correction, same day: no lines across the
+ * chart): "0" at the snake's start (top left), "200" at its end (bottom left), "50" and "150" beside the
+ * middle of the two right-hand bends, "100" beside the middle of the left-hand bend. A score of exactly 50,
+ * 100 or 150 puts its dot on that bend's middle (`chartOnBend`). A game whose maximum is 150 simply never
+ * reaches the last band. (Before: three rows on the game's maximum, in thirds.) `max` only clamps a score.
  *
  * Pure geometry (scripts/arcade-chart-check.ts proves every score's row and place, and that
  * markers never overlap); ArcadeScoreChart draws it. Places come from the server's stored scores.
@@ -71,15 +73,29 @@ export function chartPoint(score: number, max = DEFAULT_ROUND_MAX): ChartPoint {
 export interface ChartLabel {
   text: string;
   /**
-   * Where on the axis: 0 at the first row's line, CHART_ROW_COUNT at the last row's line, k between rows k − 1 and k
-   * (the band edge, drawn as a thin line across the chart).
+   * Where: 0 the first row's line (the snake's start), CHART_ROW_COUNT the last row's line (its end), k the middle of the
+   * bend between rows k − 1 and k.
    */
   edge: number;
+  /** Which side of the chart: the start and end and the left-hand bend on the left, the right-hand bends on the right. */
+  side: "left" | "right";
 }
 
-/** The axis' labels, top to bottom: 0, 50, 100, 150, 200. `max` is kept for callers; the axis is fixed. */
+/** The scale's labels in order: 0, 50, 100, 150, 200. `max` is kept for callers; the axis is fixed. */
 export function chartLabels(_max = DEFAULT_ROUND_MAX): ChartLabel[] {
-  return Array.from({ length: CHART_ROW_COUNT + 1 }, (_, edge) => ({ text: String(edge * CHART_BAND), edge }));
+  return Array.from({ length: CHART_ROW_COUNT + 1 }, (_, edge) => ({
+    text: String(edge * CHART_BAND),
+    edge,
+    // Bends after a left-to-right row are on the right (50, 150); the snake's two ends and the bend at 100 on the left.
+    side: edge > 0 && edge < CHART_ROW_COUNT && edge % 2 === 1 ? "right" : "left",
+  }));
+}
+
+/** The bend a score sits on: 1, 2 or 3 for exactly 50, 100 or 150 (its dot is drawn at that bend's middle), else null. */
+export function chartOnBend(score: number, max = DEFAULT_ROUND_MAX): 1 | 2 | 3 | null {
+  const s = chartScore(score, max);
+  const edge = s / CHART_BAND;
+  return Number.isInteger(edge) && edge > 0 && edge < CHART_ROW_COUNT ? (edge as 1 | 2 | 3) : null;
 }
 
 /* ---------------------------------------------------------------- markers */

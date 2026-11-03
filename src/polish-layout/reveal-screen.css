@@ -6,10 +6,17 @@
  * text at 7:1), inside the same top and bottom edge strips as every game screen (bottom.css), so the notch and
  * home-bar strips stay --screen-edge with no seam.
  */
+/* From the screen edge's black under the notch, easing into the game's colour over the first 160 px (a hard top edge
+   showed as a one-step seam at the notch strip's end; bottom-clearance-check). */
 [data-reveal-screen] > .screen-background {
-  background:
-    radial-gradient(120% 45% at 50% 0%, color-mix(in srgb, var(--reveal-top) 70%, white 6%), transparent 70%),
-    linear-gradient(180deg, var(--reveal-top) 0%, var(--reveal-mid) 55%, var(--reveal-bottom) 100%);
+  background: linear-gradient(
+    180deg,
+    var(--screen-edge) 0,
+    var(--screen-edge) env(safe-area-inset-top, 0px),
+    var(--reveal-top) calc(env(safe-area-inset-top, 0px) + 160px),
+    var(--reveal-mid) 58%,
+    var(--reveal-bottom) 100%
+  );
 }
 [data-reveal-screen] > .screen-background::before,
 [data-reveal-screen] > .screen-background > .screen-drift {
