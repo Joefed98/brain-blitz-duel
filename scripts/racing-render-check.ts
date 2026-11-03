@@ -5,8 +5,38 @@
  * view beyond the world) with the saving on and off through @napi-rs/canvas and fails on any pixel that differs.
  *
  *   bun scripts/racing-render-check.ts
+ *
+ * Each revision draws in its own child process (`--rev=N`, 3 Nov 2026): @napi-rs/canvas's native memory grows by about
+ * 4 GB a revision here and is only returned when the process exits, so with racingRev 3 added one process peaked at
+ * ~12 GB and the CI runner was shut down mid-check. The frames, pixels and pass rule are unchanged.
  */
 import { createCanvas, Path2D as NapiPath2D } from "@napi-rs/canvas";
+
+const REVS = [1, 2, 3];
+const revArg = process.argv.find((a) => a.startsWith("--rev="));
+if (!revArg) {
+  let frames = 0;
+  let differ = 0;
+  for (const rev of REVS) {
+    const child = Bun.spawnSync(["bun", import.meta.path, `--rev=${rev}`], { stdout: "pipe", stderr: "inherit" });
+    const out = child.stdout.toString();
+    for (const line of out.split("\n")) if (line.startsWith("  ")) console.log(line);
+    const m = /^RESULT (\d+) (\d+)$/m.exec(out);
+    if (child.exitCode !== 0 || !m) {
+      console.log(`FAIL racing-render-check: racingRev ${rev} did not finish (exit ${child.exitCode})`);
+      process.exit(1);
+    }
+    frames += Number(m[1]);
+    differ += Number(m[2]);
+  }
+  if (differ) {
+    console.log(`FAIL racing-render-check: ${differ} of ${frames} frames differ with the grass saving`);
+    process.exit(1);
+  }
+  console.log(`PASS racing-render-check: ${frames} frames (world and beyond, 3 sizes, 6 seeds, racingRev 1, 2 and 3) identical with and without the grass saving`);
+  process.exit(0);
+}
+const ONLY_REV = Number(revArg.slice(6));
 
 (globalThis as unknown as { Path2D: unknown }).Path2D = NapiPath2D;
 const R = await import("../src/lib/arcade/racing.renderer");
@@ -22,7 +52,7 @@ const pair = (w: number, h: number) => {
 let frames = 0;
 let differ = 0;
 const failures: string[] = [];
-for (const rev of [1, 2]) {
+for (const rev of [ONLY_REV]) {
   for (const seed of [1, 7, 42, 256, 1234, 9001]) {
     const game = racingGameFor(rev);
     let s = game.init(seed) as Parameters<typeof R.drawRacingPlay>[1];
@@ -67,8 +97,4 @@ for (const rev of [1, 2]) {
 }
 R.setRacingGrassSkip(true);
 for (const f of failures) console.log(`  ${f}`);
-if (differ) {
-  console.log(`FAIL racing-render-check: ${differ} of ${frames} frames differ with the grass saving`);
-  process.exit(1);
-}
-console.log(`PASS racing-render-check: ${frames} frames (world and beyond, 3 sizes, 6 seeds, racingRev 1 and 2) identical with and without the grass saving`);
+console.log(`RESULT ${frames} ${differ}`);

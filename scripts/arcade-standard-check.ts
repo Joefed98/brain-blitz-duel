@@ -68,8 +68,8 @@ const STANDARD_ROSTER: readonly { type: string; field: string; rev: number; batc
   // Home Run deals homerunRev 3 since 1 Nov 2026 (the swing choice and the pitcher's tell; the same three parts).
   { type: "homerun", field: "homerunRev", rev: 3, batch: "Sports" },
   { type: "freekick", field: "freekickRev", rev: 3, batch: "Sports" },
-  // Apex (racing) deals racingRev 2 since 31 Oct 2026 (the lights start, the softer joystick; the same four parts).
-  { type: "racing", field: "racingRev", rev: 2, batch: "Sports" },
+  // Apex (racing) deals racingRev 3 since 3 Nov 2026 (pace and clean sectors; racingRev 2 from 31 Oct 2026).
+  { type: "racing", field: "racingRev", rev: 3, batch: "Sports" },
   // Cards & Board (30 Oct 2026): born on the standard at revision 1.
   // Free Cell's rev 2 (Undo and Reset) and Full House's rev 2 (full at the elite median), 31 Oct 2026: still on the standard.
   { type: "freecell", field: "freecellRev", rev: 3, batch: "Cards" },
