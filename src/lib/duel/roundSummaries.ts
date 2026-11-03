@@ -1088,6 +1088,18 @@ const dualSummary: SummaryBuilder = (result) => {
 };
 
 const ricoSummary: SummaryBuilder = (result) => {
+  // ricoRev 3, Moon Climb: the height, the lantern rides, the best Flow and the scrolls.
+  if (result.extra?.["metres"] !== undefined && result.extra?.["rides"] !== undefined) {
+    const m = Number(result.extra["metres"] ?? 0);
+    const hits = Number(result.extra["hits"] ?? 0);
+    return {
+      summary: `${m.toLocaleString("en-GB")} m climbed · ${result.score} points`,
+      detail: [
+        `${Number(result.extra["rides"] ?? 0)} lantern rides · best Flow ×${Number(result.extra["bestFlow"] ?? 0)} · ${Number(result.extra["scrolls"] ?? 0)} scrolls`,
+        `${hits === 1 ? "1 hit" : `${hits} hits`} · ${Number(result.extra["djs"] ?? 0)} double jumps`,
+      ],
+    };
+  }
   // ricoRev 2, the ninja wall-climb: the height and the items, no survival (no game over).
   if (result.extra?.["metres"] !== undefined) {
     const m = Number(result.extra["metres"] ?? 0);
@@ -1197,8 +1209,9 @@ const mugginsSummary: SummaryBuilder = (result) => {
 const blockfallSummary: SummaryBuilder = (result) => {
   const n = (key: string) => Number(result.extra?.[key] ?? 0);
   const multi = n("doubles") + n("triples") + n("quads");
+  const pieces = n("blockfallRev") >= 2 ? ` · ${n("pieces")} pieces` : "";
   return {
-    summary: `${n("lines")} lines · ${multi} multi-line clear${multi === 1 ? "" : "s"}`,
+    summary: `${n("lines")} lines${pieces} · ${multi} multi-line clear${multi === 1 ? "" : "s"}`,
     detail: [result.extra?.["toppedOut"] ? "Topped out" : `Stack ${n("height")} high at the buzzer`],
   };
 };

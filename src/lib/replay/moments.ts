@@ -135,9 +135,9 @@ export const MOMENT_TABLE: readonly MomentRow[] = [
   fx("alleyroll", 0, "pop", "ring-points", 10, "A ball in a ring"),
   fx("alleyroll", 1, "streak", "pocket-hit", 50, "A 100 pocket"),
   fx("alleyroll", 2, "final", "full-points", 80, "The core's ring points reached"),
-  // Ricochet (ricoRev 2, the ninja wall-climb, 1 Nov 2026)
-  fx("ricochet", 0, "pop", "coin-taken", 5, "Coin taken"),
-  fx("ricochet", 1, "combo", "lantern-taken", 30, "Gold lantern taken"),
+  // Ricochet (ricoRev 2, the ninja wall-climb, 1 Nov 2026; Moon Climb, ricoRev 3: a Flow step and a sky lantern ridden)
+  fx("ricochet", 0, "pop", "coin-taken", 5, "Coin taken or Flow step"),
+  fx("ricochet", 1, "combo", "lantern-taken", 30, "Lantern taken or ridden"),
   fx("ricochet", 2, "perfect", "scroll-taken", 50, "Scroll taken"),
   fx("ricochet", 3, "streak", "height", 25, "Another 50 m climbed"),
   fx("ricochet", 4, "final", "full-height", 80, "The core's full height reached"),

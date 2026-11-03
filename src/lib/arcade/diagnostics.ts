@@ -27,7 +27,7 @@ import { hoverCheckpoint } from "./hover";
 import { matchupCheckpoint } from "./matchup";
 import { rallyCheckpoint } from "./rally";
 import { ricoCheckpoint } from "./ricochet";
-import { ninjaCheckpoint, NINJA_REV } from "./ricochetNinja";
+import { moonCheckpoint, MOON_REV, ninjaCheckpoint, NINJA_REV } from "./ricochetNinja";
 import { skylineCheckpoint } from "./skyline";
 import { sliceCheckpoint } from "./slice";
 import { snakeCheckpoint } from "./snake";
@@ -94,8 +94,8 @@ const SNAPSHOTS: Record<string, (state: any) => object> = {
   hover: hoverCheckpoint,
   matchup: matchupCheckpoint,
   rally: rallyCheckpoint,
-  // Ricochet: the ninja wall-climb (ricoRev 2) or the original shaft.
-  ricochet: (s: any) => (s && s.rev === NINJA_REV ? ninjaCheckpoint(s) : ricoCheckpoint(s)),
+  // Ricochet: Moon Climb (ricoRev 3), the ninja wall-climb (ricoRev 2) or the original shaft.
+  ricochet: (s: any) => (s && s.rev === MOON_REV ? moonCheckpoint(s) : s && s.rev === NINJA_REV ? ninjaCheckpoint(s) : ricoCheckpoint(s)),
   skyline: skylineCheckpoint,
   slice: sliceCheckpoint,
   snake: snakeCheckpoint,

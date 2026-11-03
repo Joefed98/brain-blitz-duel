@@ -23,7 +23,10 @@ import { stdEach, stdLine, stdPart, stdScore, stdSum, type StdPart, type StdSpec
 import { bandCurve, type BandParts } from "./scoreBands";
 import { hashInts } from "./cards/cards";
 
+/** blockfallRev 1, the first rules (60 s, hold, pads). */
 export const BLOCKFALL_REV = 1;
+/** blockfallRev 2, Blockzone (3 Nov 2026): 90 s, no hold, gestures only, a soft drop; the stamp rooms deal. */
+export const BLOCKFALL_REV_ZONE = 2;
 export const BF_W = 10;
 /** Visible rows. */
 export const BF_H = 20;
@@ -147,6 +150,8 @@ export interface BfState {
   clearTick: number;
   lockTick: number;
   std: number;
+  /** blockfallRev 2 only: the soft drop held (0/1). */
+  soft?: number;
 }
 
 function fill(rng: number, queue: number[]): number {
@@ -268,6 +273,7 @@ function lockPiece(s: BfState): BfState {
 
 /** After a move or turn that succeeded: the lock wait starts again (a limited number of times). */
 function moved(s: BfState): BfState {
+  if (s.rev === BLOCKFALL_REV_ZONE) return movedZone(s);
   if (s.resets >= BF_LOCK_RESETS) return s;
   return { ...s, lock: 0, resets: s.resets + 1 };
 }
@@ -301,7 +307,8 @@ export function bfApply(s: BfState, ev: Pick<ArcadeInputEvent, "k" | "a">): BfSt
       return { ...s, piece: { ...p, y: p.y + 1 }, fall: 0 };
     }
     case BF_INPUT_HOLD: {
-      if (s.held) return { ...s, rejects: s.rejects + 1 };
+      // Blockzone (blockfallRev 2) has no hold.
+      if (s.held || s.rev === BLOCKFALL_REV_ZONE) return { ...s, rejects: s.rejects + 1 };
       if (s.hold < 0) {
         const t = takeNext(s);
         return { ...spawn({ ...s, queue: t.queue, rng: t.rng, hold: p.shape }, t.shape), held: 1 };
@@ -314,6 +321,7 @@ export function bfApply(s: BfState, ev: Pick<ArcadeInputEvent, "k" | "a">): BfSt
 }
 
 function step(state: BfState, input: ArcadeInputEvent | null): BfState {
+  if (state.rev === BLOCKFALL_REV_ZONE) return stepZone(state, input);
   if (state.ended) return state;
   let s: BfState = { ...state, tick: state.tick + 1 };
   if (input && input.k >= BF_INPUT_MOVE && input.k <= BF_INPUT_DOWN) {
@@ -341,6 +349,7 @@ function step(state: BfState, input: ArcadeInputEvent | null): BfState {
 
 export function blockfallStdParts(state: BfState): StdPart[] | null {
   if (!state || !state.std) return null;
+  if (state.rev === BLOCKFALL_REV_ZONE) return zoneStdParts(state);
   const multi = bfMultiPoints(state);
   const clears = state.doubles + state.triples + state.quads;
   // A topped-out stack has reached the hidden rows: no low-stack points.
@@ -376,6 +385,7 @@ export interface BfCheckpoint {
 export function bfCheckpoint(state: BfState): BfCheckpoint {
   const p = state.piece;
   const flat = [state.tick, state.lines, state.ended, p.shape, p.turn, p.x, p.y, state.hold, state.rng, ...state.board];
+  if (state.rev === BLOCKFALL_REV_ZONE) flat.push(state.soft ?? 0, state.lock, state.resets, state.fall);
   return { tick: state.tick, lines: state.lines, ended: state.ended, checksum: hashInts(flat) };
 }
 
@@ -396,6 +406,131 @@ export const blockfallGame: ArcadeGame<BfState, ArcadeInputEvent | null> = {
   ],
 };
 
-export function blockfallGameFor(_rev?: number | null): ArcadeGame<BfState, ArcadeInputEvent | null> {
-  return blockfallGame;
+export function blockfallGameFor(rev?: number | null): ArcadeGame<BfState, ArcadeInputEvent | null> {
+  return (rev ?? 1) >= BLOCKFALL_REV_ZONE ? blockzoneGame : blockfallGame;
 }
+
+/* ======================= blockfallRev 2: Blockzone (3 Nov 2026) ======================= */
+/*
+ * Blockzone (docs/arcade-standard/blockfall.md "blockfallRev 2"): the same well, pieces and bags, with:
+ * - a 90 s run (BF_ZONE_RUN_TICKS), gravity a step faster every 15 s over six steps (BF_ZONE_GRAVITY);
+ * - no hold (the input is outside the stamp's ranges and does nothing);
+ * - a soft drop (k6, a 1 while the finger drags down, 0 when it stops): the piece falls a row every
+ *   BF_ZONE_SOFT_TICKS while it is held;
+ * - the lock wait BF_LOCK_TICKS (0.5 s) once a piece touches down; a move or turn that succeeds while it rests
+ *   starts the wait again, at most BF_ZONE_LOCK_RESETS times a piece (a hard drop still locks at once).
+ * Scoring (the arcade standard, 200): lines 95 on a straight line, full at BF_ZONE_CORE_FULL; 1 for every piece
+ * placed, up to 65; multi-line clears 4 / 8 / 12 up to 24; a low stack at the buzzer up to 16 (BF_ZONE_STD_SPEC).
+ * Fitted to the skill-band targets on fresh seeds (docs/arcade-standard/blockfall.md "blockfallRev 2").
+ */
+export const BF_ZONE_RUN_TICKS = 90 * 60;
+export const BF_ZONE_GRAVITY = [48, 42, 36, 31, 27, 24] as const;
+export const BF_ZONE_LOCK_RESETS = 10;
+export const BF_ZONE_SOFT_TICKS = 2;
+export const BF_INPUT_SOFT = 6;
+export const BF_ZONE_CORE_MAX = 95;
+export const BF_ZONE_PIECES_MAX = 65;
+export const BF_ZONE_MULTI_MAX = 24;
+export const BF_ZONE_LOW_MAX = 16;
+/** The core is full at this many lines (fitted to the skill-band targets, `bun scripts/new-arcade-bands.ts blockfall`). */
+export const BF_ZONE_CORE_FULL = 51;
+export const BF_V2_BAND_CURVE = bandCurve([0, BF_ZONE_CORE_FULL], [0, BF_ZONE_CORE_MAX]);
+
+export const BF_ZONE_STD_SPEC: StdSpec = {
+  field: "blockfallRev",
+  rev: BLOCKFALL_REV_ZONE,
+  parts: [
+    { key: "core", label: "Lines", max: BF_ZONE_CORE_MAX, of: BF_ZONE_CORE_FULL, item: "line", how: `a straight line, full at ${BF_ZONE_CORE_FULL} lines` },
+    { key: "pieces", label: "Pieces placed", max: BF_ZONE_PIECES_MAX, of: BF_ZONE_PIECES_MAX, item: "piece", how: `1 for every piece placed, up to ${BF_ZONE_PIECES_MAX}` },
+    { key: "multi", label: "Multi-line clears", max: BF_ZONE_MULTI_MAX, of: 6, item: "clear", how: `4 for two lines at once, 8 for three, 12 for four, up to ${BF_ZONE_MULTI_MAX}` },
+    { key: "low", label: "Low stack", max: BF_ZONE_LOW_MAX, of: BF_LOW_ZERO - BF_LOW_FULL, item: "row", how: `full with the highest block in the bottom ${BF_LOW_FULL} rows at the buzzer, 0 from row ${BF_LOW_ZERO} up` },
+  ],
+};
+
+/** The gravity step on a tick, by stamp. */
+export function bfLevelFor(tick: number, rev: number | null | undefined): number {
+  if (rev === BLOCKFALL_REV_ZONE) return clampInt(Math.floor(tick / BF_LEVEL_TICKS), 0, BF_ZONE_GRAVITY.length - 1);
+  return bfLevel(tick);
+}
+export function bfGravityFor(rev: number | null | undefined): readonly number[] {
+  return rev === BLOCKFALL_REV_ZONE ? BF_ZONE_GRAVITY : BF_GRAVITY;
+}
+export function bfRunTicksFor(rev: number | null | undefined): number {
+  return rev === BLOCKFALL_REV_ZONE ? BF_ZONE_RUN_TICKS : BF_RUN_TICKS;
+}
+export function bfCoreFullFor(rev: number | null | undefined): number {
+  return rev === BLOCKFALL_REV_ZONE ? BF_ZONE_CORE_FULL : BF_CORE_FULL;
+}
+
+function isResting(s: BfState): boolean {
+  const p = s.piece;
+  return !bfFits(s.board, p.shape, p.turn, p.x, p.y + 1);
+}
+
+/** Rev 2: a move or turn while the piece rests starts the lock wait again, at most BF_ZONE_LOCK_RESETS times. */
+function movedZone(s: BfState): BfState {
+  if (s.lock === 0) return s;
+  if (s.resets >= BF_ZONE_LOCK_RESETS) return s;
+  return { ...s, lock: 0, resets: s.resets + 1 };
+}
+
+export function bzInit(seed: number): BfState {
+  return { ...bfInit(seed), rev: BLOCKFALL_REV_ZONE, soft: 0 };
+}
+
+function stepZone(state: BfState, input: ArcadeInputEvent | null): BfState {
+  if (state.ended) return state;
+  let s: BfState = { ...state, tick: state.tick + 1 };
+  if (input && input.k >= BF_INPUT_MOVE && input.k <= BF_INPUT_SOFT && input.k !== BF_INPUT_HOLD) {
+    s.acted = 1;
+    if (input.k === BF_INPUT_SOFT) s = { ...s, soft: input.a > 0 ? 1 : 0 };
+    else {
+      // A move or turn on a resting piece keeps its lock wait counting from where it was, then movedZone resets it.
+      s = bfApply(s, input);
+      if (s.ended) return s;
+    }
+  }
+  const p = s.piece;
+  if (isResting(s)) {
+    const lock = s.lock + 1;
+    if (lock >= BF_LOCK_TICKS) s = lockPiece({ ...s, lock });
+    else s = { ...s, lock, fall: 0 };
+  } else {
+    const fall = s.fall + 1;
+    const g = BF_ZONE_GRAVITY[bfLevelFor(s.tick, BLOCKFALL_REV_ZONE)]!;
+    const every = s.soft ? Math.min(g, BF_ZONE_SOFT_TICKS) : g;
+    if (fall >= every) s = { ...s, piece: { ...p, y: p.y + 1 }, fall: 0, lock: 0 };
+    else s = { ...s, fall, lock: 0 };
+  }
+  if (!s.ended && s.tick >= BF_ZONE_RUN_TICKS) s = { ...s, ended: 1, endTick: s.tick };
+  return s;
+}
+
+function zoneStdParts(state: BfState): StdPart[] {
+  const multi = bfMultiPoints(state);
+  const clears = state.doubles + state.triples + state.quads;
+  const height = state.ended === 2 ? BF_ROWS : bfStackHeight(state.board);
+  return [
+    stdPart(BF_ZONE_STD_SPEC, "core", stdLine(BF_ZONE_CORE_MAX, state.lines, BF_ZONE_CORE_FULL), `${state.lines} lines`),
+    stdPart(BF_ZONE_STD_SPEC, "pieces", stdEach(state.pieces, 1, BF_ZONE_PIECES_MAX), `${state.pieces} pieces`),
+    stdPart(BF_ZONE_STD_SPEC, "multi", stdEach(multi, 1, BF_ZONE_MULTI_MAX), `${clears} multi-line clear${clears === 1 ? "" : "s"}`),
+    stdPart(BF_ZONE_STD_SPEC, "low", stdLine(BF_ZONE_LOW_MAX, BF_LOW_ZERO - height, BF_LOW_ZERO - BF_LOW_FULL), state.ended === 2 ? "topped out" : `stack ${height} high`),
+  ];
+}
+
+export const blockzoneGame: ArcadeGame<BfState, ArcadeInputEvent | null> = {
+  key: "blockfall",
+  runTicks: BF_ZONE_RUN_TICKS,
+  init: bzInit,
+  step,
+  isOver: (state) => state.ended !== 0,
+  score: blockfallScore,
+  draw: () => {},
+  inputRanges: [
+    inputRange(BF_INPUT_MOVE, [-(BF_W - 1), BF_W - 1]),
+    inputRange(BF_INPUT_TURN, [-1, 1]),
+    inputRange(BF_INPUT_DROP),
+    inputRange(BF_INPUT_DOWN),
+    inputRange(BF_INPUT_SOFT, [0, 1]),
+  ],
+};

@@ -1,9 +1,9 @@
 import { PS_CORE_FULL_V2 } from "@/lib/arcade/cards/pokerSquares";
 import { FH_CORE_FULL_V2 } from "@/lib/arcade/cards/fiveHands";
 import { FC_CORE_UNITS_V3 } from "@/lib/arcade/cards/freecell";
-import { BF_CORE_FULL } from "@/lib/arcade/blockfall";
+import { BF_ZONE_CORE_FULL } from "@/lib/arcade/blockfall";
 import { AR_CORE_FULL } from "@/lib/arcade/alleyroll";
-import { NINJA_CORE_FULL_M } from "@/lib/arcade/ricochetNinja";
+import { MOON_CORE_FULL_M } from "@/lib/arcade/ricochetNinja";
 import { MG_CORE_FULL } from "@/lib/arcade/cards/muggins";
 import { BULLSEYE_INNER_BULL_POINTS, BULLSEYE_RING_VALUES } from "@/lib/arcade/bullseye";
 import { BINTOSS_THROWS, BINTOSS_V9_BUCKET, BINTOSS_V9_FAR, BINTOSS_V9_FINISH, BINTOSS_V9_HOOP } from "@/lib/arcade/binToss";
@@ -136,7 +136,7 @@ function introScoreTemplates(): Record<PuzzleType, string> {
     tripeaks: "Cards 120, peak tops 30, longest run 20; all cleared: 10 and speed 20. Together {max}.",
     pokersquares: `Hand points 160 (full at ${PS_CORE_FULL_V2}); made hands 40 (4 a line). Together {max}.`,
     fivehands: `Hand points to {max}, full at ${FH_CORE_FULL_V2}. Pair 5, two pair 10 … straight flush 75.`,
-    blockfall: `Lines 140 (full at ${BF_CORE_FULL}); multi-line clears 40; a low stack at the buzzer 20. Together {max}.`,
+    blockfall: `Lines 95 (full at ${BF_ZONE_CORE_FULL}); pieces 65; multi-line clears 24; low stack 16: {max}.`,
     alleyroll: `Ring points 150 (full at ${AR_CORE_FULL}); 100 pockets 30; hot streak 20. Together {max}.`,
     pyramid: "Cards 120; cleared 10 and speed 50; pyramid pairs 20 (2 each). Together {max}.",
     golfsol: "Cards 140; all cleared 20 and speed 20; runs of four 20 (4 each). Together {max}.",
@@ -157,7 +157,7 @@ function introScoreTemplates(): Record<PuzzleType, string> {
     swerve: arcadeOpen("each coin you collect"),
     dual: "The longer both runners survive, the more you score. The full minute is {max}.",
     steady: "Start on {max}. Touching the edge: lose 5.",
-    ricochet: `Height 130 (full at ${NINJA_CORE_FULL_M} m); coins 30, lanterns 20, scrolls 20. Together {max}.`,
+    ricochet: `Height 125 (full at ${MOON_CORE_FULL_M} m); flow 30, lantern rides 30, scrolls 15: {max}.`,
     rooftop: "The longer you last, the more you score. The full minute is {max}.",
     bastion: "Armour 140, weak spots 30, fast reloads 20, base intact 10: up to {max}.",
     hotfloor: arcadeOpen("each stage you survive"),

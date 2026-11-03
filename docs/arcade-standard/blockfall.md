@@ -1,3 +1,84 @@
+# Blockzone: blockfallRev 2 (3 Nov 2026)
+
+Blockfall is shown as **Blockzone** since 3 Nov 2026 (`gameNames.ts`; the id stays `blockfall`). Rooms and practice
+deal `blockfallRev` 2; a blockfallRev 1 round (below) replays and scores exactly as before (moon-blockzone-check replays
+12 runs recorded on main; blockfall-check keeps proving rev 1's rules and deal).
+
+## What changed (Joe's brief)
+
+- **90 s** (`BF_ZONE_RUN_TICKS`; the definition's clock 93 s, `BLOCKFALL_TIME_MS`, Gemstone's precedent: older 60 s
+  rounds still end at 60 s). Gravity a step faster every 15 s over six steps, a row every 48, 42, 36, 31, 27, then 24
+  ticks (`BF_ZONE_GRAVITY`: gentler than rev 1's 48 → 16, so slower players don't top out half way).
+- **No hold** and **no pads**: the hold input is outside the stamp's input ranges (the server flags and drops it) and
+  does nothing in the sim; the HOLD, TURN and DROP pads are gone.
+- **Gestures only on a phone:** drag sideways to move (a column per 34 world px), tap to turn, drag down for the soft
+  drop (input k6, a 1 while the finger drags down, 0 when it lifts or turns back: the piece falls a row every 2 ticks),
+  flick down to hard-drop. **Computer:** ← → move, ↑ turns (Z the other way), ↓ soft-drops while held, Space drops.
+- **Lock delay:** a piece that touches down locks after 30 ticks (0.5 s); a move or turn that succeeds while it rests
+  starts the wait again, at most 10 times a piece (`BF_ZONE_LOCK_RESETS`; rev 1 counted resets in the air too, up to 15).
+  A hard drop still locks at once.
+- **A bigger board:** the freed space under the well goes to the well: 34 px squares (340 × 680, was 29 px), the next
+  three and the speed in a column on its right, the HUD chips LINES, PIECES and MULTI across the top (`bfLayout`).
+- **The look (both revisions, display only):** bevelled blocks (a lit top-left edge, a shaded bottom-right edge, a
+  neon rim and an inner highlight), a softly glowing well edge over a faint grid, a clearer ghost (a faint tint inside
+  the piece's solid rim, hidden once the piece is on it) and a short white-cyan line-clear flash (12 ticks). Our own
+  colours in Retro's cyan family; no borrowed name, word or music.
+
+## Parts (200 in all)
+
+| Part | Max | How it pays |
+| --- | ---: | --- |
+| Lines (core) | 95 | `stdLine(95, lines, 51)`: a straight line, full at **51** lines |
+| Pieces placed | 65 | 1 for every piece placed, up to 65 |
+| Multi-line clears | 24 | 4 for two lines at once, 8 for three, 12 for four, up to 24 |
+| Low stack | 16 | at the buzzer: 16 with the highest block in the bottom 4 rows, 0 at row 10 or above, a straight line between; 0 after a top-out |
+
+Any played run scores at least 1; no input 0. **Why a pieces part:** on 90 s the lines alone spread the levels far
+wider than the targets (weak 6 lines, average 14, elite 50: a straight line on lines can't give weak 30–60 and elite
+185–195 at once), and slower players top out; pieces placed (a fixed 1 each, capped) is what a steady player earns
+whether or not rows clear, so the bottom of the scale lifts without touching the top. The core's full mark (51 lines)
+sits just above the elite median (50) so elite stays under 200 and flawless alone reaches it.
+
+## The deal and the proof of 200
+
+`bun scripts/blockfall-deal.ts --rev=2` builds `src/lib/duel/blockfallDealV2.server.ts`: 300 seeds from the same seed
+list, each one the oracle (`scripts/blockfall-oracle.ts`, `rev` 2: no hold, a look one piece ahead, a well for fours
+until the multi part is full, then flat play and the last 20 s kept low) takes to exactly 200 through the server
+replay (18 dropped). Rooms deal `BLOCKFALL_DEAL_V2[room seed % 300]`. moon-blockzone-check re-proves 24 seeds (all 300
+and the file byte for byte with `CHECKS_FULL=1`); arcade-standard-check's entry plays four.
+
+## Medians, weak → flawless, before → after (fresh seeds 10000–10059, the server replay)
+
+| Level | blockfallRev 1 (60 s) | blockfallRev 2 (Blockzone, 90 s) | Target | Lines | Lines part | Pieces | Multi | Low |
+| --- | ---: | ---: | --- | ---: | ---: | ---: | ---: | ---: |
+| Weak | 24 | **58** (42–73) | 30–60 | 6 | 11 | 43 | 0 | 0 |
+| Average | 48 | **91** (68–108) | ~90 | 14 | 26 | 58 | 4 | 0 |
+| Good | 92 | **123** (102–143) | 120–140 | 24 | 44 | 65 | 12 | 2 |
+| Great | 137 | **148** (125–170) | ~160 | 30 | 55 | 65 | 24 | 5 |
+| Near-perfect | 174 | **175** (154–188) | ~175 | 42 | 78 | 65 | 24 | 8 |
+| Elite | 195 | **195** (172–200) | 185–195 | 50 | 93 | 65 | 24 | 13 |
+| Flawless | 200 | **200** | 200 | 83 | 95 | 65 | 24 | 16 |
+
+Room seeds 0–59: 59 / 88 / 117 / 147 / 171 / 190 / 200. Great sits a little under "about 160" (148): the parts that
+would lift it (the multi part) are already full at great, and raising the core's line would push near-perfect and
+elite past their targets; left for Joe's call with beta data.
+
+The bots are the skill-band bots (`scripts/arcade-skill-bands/bots/blockfall.ts`), unchanged but for no hold on
+blockfallRev 2; flawless is the oracle. `bun scripts/new-arcade-bands.ts blockfall --from=10000` measures it.
+
+## Sounds
+
+Slots `blockfall.move` (new), `.turn`, `.lock`, `.clear`, `.bigClear`, `.topOut` and `music_blockfall`; `blockfall.hold`
+removed. Each plays a library sound until Joe's file is set (`docs/sound-cues/moon-climb-blockzone.md`).
+
+## Checks
+
+moon-blockzone-check (~25 s: the legacy runs, the rules, the deal, the bands, names and help), blockfall-check (rev 1),
+arcade-standard-check's entry (`scripts/arcade-standard/blockfall.ts`, rev 2), arcade-self-replay-check's entry
+`blockfall/zone` (appended), the replay fixture (one blockfallRev 2 run appended to `scripts/fixtures/replay-runs.json`).
+
+---
+
 # Blockfall on the arcade scoring standard (blockfallRev 1, 1 Nov 2026)
 
 A new Arcade game in the **Retro** group (`src/lib/duel/arcadeGroups.ts`), born on the standard: `blockfall` (working

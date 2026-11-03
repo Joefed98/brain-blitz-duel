@@ -27,7 +27,7 @@ import { freecellArt } from "@/lib/arcade/cards/freecell.renderer";
 import { tripeaksArt } from "@/lib/arcade/cards/tripeaks.renderer";
 import { pokerSquaresArt } from "@/lib/arcade/cards/pokerSquares.renderer";
 import { fiveHandsArt } from "@/lib/arcade/cards/fiveHands.renderer";
-import { ninjaArtGame } from "@/lib/arcade/ricochetNinja.renderer";
+import { ninjaArtGameFor } from "@/lib/arcade/ricochetNinja.renderer";
 import { ricoGame } from "@/lib/arcade/ricochet";
 import { isNinjaRev } from "@/lib/duel/ricochet";
 import { pyramidArt } from "@/lib/arcade/cards/pyramid.renderer";
@@ -101,7 +101,7 @@ const SIMPLE: Record<string, (p: PuzzleData) => Draw> = {
   tripeaks: () => tripeaksArt.draw as Draw,
   pokersquares: () => pokerSquaresArt.draw as Draw,
   fivehands: () => fiveHandsArt.draw as Draw,
-  ricochet: (p) => (isNinjaRev(rev(p, "ricoRev")) ? ninjaArtGame.draw : ricoGame.draw) as Draw,
+  ricochet: (p) => (isNinjaRev(rev(p, "ricoRev")) ? ninjaArtGameFor(rev(p, "ricoRev")).draw : ricoGame.draw) as Draw,
   pyramid: () => pyramidArt.draw as Draw,
   golfsol: () => golfSolArt.draw as Draw,
   muggins: () => mugginsArt.draw as Draw,

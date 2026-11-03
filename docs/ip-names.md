@@ -3,6 +3,16 @@
 A running list for task 23 of the master plan (the solicitor's freedom-to-operate review). It records each game name
 the app shows, the puzzle or genre it is, and what to check. Not legal advice; nothing here has been cleared.
 
+## Renamed 3 Nov 2026: Moon Climb and Blockzone (arcade)
+
+Display names only (`src/lib/duel/gameNames.ts`; ids never change). They replace the two rows below: Ricochet is now
+shown as Moon Climb and Blockfall as Blockzone.
+
+| Shown as | Id | Genre (generic description) | Name chosen to avoid | To check |
+| --- | --- | --- | --- | --- |
+| Moon Climb | `ricochet` | two-wall leaping climb on a moonlit temple, with paper sky lanterns to ride, hanging mid-ledges and a flow streak (Action group, `ricoRev` 3) | "Ricochet" (a common word, harder to own) | "Moon Climb" as a game name in classes 9 / 28 / 41; the two-wall leaping mechanic and riding a floating object are common to wall-jump games (check none is a close copy of a specific game); the ninja is the Joulz hero in ninja gear, drawn in code. All art is drawn in code; no third-party assets |
+| Blockzone | `blockfall` | falling-block line-clear game (Retro group, `blockfallRev` 2: no hold, gestures only) | "Tetris" and "tetromino" (The Tetris Company's marks), and Tetris's look and music | "Blockzone" as a game name in classes 9 / 28 / 41 (check for other "Block Zone" titles); the trade dress: our own bevelled blocks with a neon rim and inner highlight, a softly glowing well, our own colours in Retro's cyan family (not the classic per-shape colours); no Tetris music (its bed is our own Retro track until Joe's file). The 10 × 20 well, seven shapes, ghost, soft and hard drop and lock delay are common to the genre |
+
 ## Added 1 Nov 2026: the new grid puzzles
 
 | Shown as | Id | Genre (generic description) | Name chosen to avoid | To check |
@@ -14,7 +24,7 @@ the app shows, the puzzle or genre it is, and what to check. Not legal advice; n
 
 The boards, art and rules text are original (generated in the app; no puzzle collection, font or artwork copied).
 
-## Added 1 Nov 2026: Blockfall and Alley Roll (arcade)
+## Added 1 Nov 2026: Blockfall and Alley Roll (arcade; Blockfall shown as Blockzone since 3 Nov 2026, above)
 
 | Shown as | Id | Genre (generic description) | Name chosen to avoid | To check |
 | --- | --- | --- | --- | --- |
@@ -23,7 +33,7 @@ The boards, art and rules text are original (generated in the app; no puzzle col
 
 Both are working names; Joe may rename either (`src/lib/duel/gameNames.ts`; ids never change).
 
-## Added 1 Nov 2026: Ricochet back as the ninja wall-climb (arcade)
+## Added 1 Nov 2026: Ricochet back as the ninja wall-climb (arcade; shown as Moon Climb since 3 Nov 2026, above)
 
 | Shown as | Id | Genre (generic description) | Name chosen to avoid | To check |
 | --- | --- | --- | --- | --- |

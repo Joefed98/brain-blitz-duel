@@ -17,8 +17,8 @@ import { wavCheckpoint, wavefrontGameFor, WAV_REV, WAV_REV_BAND, WAV_REV_SHAPES,
 import { encodeWavefrontRun, replayWavefrontRun } from "../../src/lib/duel/wavefront";
 import { flipCheckpoint, flipGameFor, FLIP_REV, FLIP_REV_BAND, FLIP_REV_TUNEC } from "../../src/lib/arcade/flip";
 import { encodeFlipRun, replayFlipRun } from "../../src/lib/duel/flip";
-import { ninjaCheckpoint, ninjaGame, NINJA_REV } from "../../src/lib/arcade/ricochetNinja";
-import { encodeNinjaRun, replayNinjaRun } from "../../src/lib/duel/ricochet";
+import { moonCheckpoint, MOON_REV, ninjaCheckpoint, ninjaGameFor, NINJA_REV, type NinjaState } from "../../src/lib/arcade/ricochetNinja";
+import { encodeMoonRun, encodeNinjaRun, replayMoonRun, replayNinjaRun } from "../../src/lib/duel/ricochet";
 import { inkBridgeGameFor, inkCheckpoint, INK_REV4, INK_REV_BAND, INK_REV_TUNEC } from "../../src/lib/arcade/inkBridge";
 import { encodeInkBridgeRun, replayInkBridgeRun } from "../../src/lib/duel/inkBridge";
 import { matchupCheckpoint, matchupGameFor, MATCHUP_REV, MATCHUP_REV_BAND, MATCHUP_REV_PAR, MATCHUP_REV_WAIT } from "../../src/lib/arcade/matchup";
@@ -92,9 +92,9 @@ import { pyCheckpoint, pyramidGameFor, PY_REV } from "../../src/lib/arcade/cards
 import { gsCheckpoint, golfSolGameFor, GS_REV } from "../../src/lib/arcade/cards/golfSol";
 import { GS_DEALS } from "../../src/lib/arcade/cards/golfSolDeals.data";
 import { mgCheckpoint, mugginsGameFor, MG_REV } from "../../src/lib/arcade/cards/muggins";
-import { bfCheckpoint, blockfallGameFor, BLOCKFALL_REV } from "../../src/lib/arcade/blockfall";
+import { bfCheckpoint, blockfallGameFor, BLOCKFALL_REV_ZONE } from "../../src/lib/arcade/blockfall";
 import { encodeBlockfallRun, replayBlockfallRun } from "../../src/lib/duel/blockfall";
-import { blockfallDealSeed } from "../../src/lib/duel/blockfallDeal.server";
+import { blockfallDealSeedV2 } from "../../src/lib/duel/blockfallDealV2.server";
 import { alleyRollGameFor, arCheckpoint, ALLEYROLL_REV } from "../../src/lib/arcade/alleyroll";
 import { encodeAlleyRollRun, replayAlleyRollRun } from "../../src/lib/duel/alleyroll";
 import { bastionTankCheckpoint, bastionTankGame, BASTION_REV_TANK } from "../../src/lib/arcade/bastionTank";
@@ -325,12 +325,25 @@ export const GAMES: GameSpec[] = [
   simple("pyramid", PY_REV, PY_REV, pyramidGameFor, pyCheckpoint, encodePyramidRun, replayPyramidRun),
   { ...simple("golfsol", GS_REV, GS_REV, golfSolGameFor, gsCheckpoint, encodeGolfSolRun, replayGolfSolRun), seedFor: (n) => roomSeed(n) % GS_DEALS.length },
   simple("muggins", MG_REV, MG_REV, mugginsGameFor, mgCheckpoint, encodeMugginsRun, replayMugginsRun),
-  // Blockfall (Retro, 1 Nov 2026): born on the arcade standard; rooms deal a seed from its proved deal.
-  { ...simple("blockfall", BLOCKFALL_REV, BLOCKFALL_REV, blockfallGameFor, bfCheckpoint, encodeBlockfallRun, replayBlockfallRun), seedFor: (n) => blockfallDealSeed(roomSeed(n)) },
+  // Blockfall (Retro, 1 Nov 2026): born on the arcade standard; rooms deal a seed from its proved deal. Blockzone
+  // (blockfallRev 2, 3 Nov 2026) deals from its own proved deal.
+  { ...simple("blockfall", BLOCKFALL_REV_ZONE, BLOCKFALL_REV_ZONE, blockfallGameFor, bfCheckpoint, encodeBlockfallRun, replayBlockfallRun), seedFor: (n) => blockfallDealSeedV2(roomSeed(n)) },
   // Alley Roll (Sports, 1 Nov 2026): born on the arcade standard; one lane for every seed (rooms deal any seed).
   simple("alleyroll", ALLEYROLL_REV, ALLEYROLL_REV, alleyRollGameFor, arCheckpoint, encodeAlleyRollRun, replayAlleyRollRun),
   // Ricochet (1 Nov 2026): the ninja wall-climb, born on the arcade standard at ricoRev 2; any seed (the sim deals the tower and proves its witness).
-  simple("ricochet", NINJA_REV, NINJA_REV, () => ninjaGame, ninjaCheckpoint, encodeNinjaRun, (seed, raw) => replayNinjaRun(seed, raw)),
+  // Moon Climb (ricoRev 3, 3 Nov 2026) is the live stamp; `next` stays 2 for the band-era tools that measure older stamps.
+  {
+    ...simple(
+      "ricochet",
+      MOON_REV,
+      NINJA_REV,
+      ninjaGameFor,
+      (s: NinjaState) => (s.rev === MOON_REV ? moonCheckpoint(s as never) : ninjaCheckpoint(s)),
+      encodeMoonRun,
+      (seed, raw, rev) => ((rev ?? 2) >= MOON_REV ? replayMoonRun(seed, raw) : replayNinjaRun(seed, raw)),
+    ),
+    encode: (run, rev) => ((rev ?? 2) >= MOON_REV ? encodeMoonRun(run) : encodeNinjaRun(run)),
+  },
   // Bastion bastionRev 2 (1 Nov 2026): the tank-defence shooter, born on the arcade scoring standard; any seed.
   simple("bastion", BASTION_REV_TANK, BASTION_REV_TANK, () => bastionTankGame, bastionTankCheckpoint, encodeBastionTankRun, (seed, raw) => replayBastionTankRun(seed, raw)),
   // The Sports group (30 Oct 2026): Minigolf deals a bank course (seed and pars); golfRev 2 (crazy golf, 31 Oct 2026)

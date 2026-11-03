@@ -27,7 +27,7 @@ export const GAME_DISPLAY_NAMES: Record<PuzzleType, string> = {
   pool: "Cue Ball",
   curling: "Curl Champ",
   // Working names (1 Nov 2026); Joe may rename.
-  blockfall: "Blockfall",
+  blockfall: "Blockzone",
   alleyroll: "Alley Roll",
   bubble: "Coral Pop",
   checkout: "Checkout",
@@ -70,7 +70,7 @@ export const GAME_DISPLAY_NAMES: Record<PuzzleType, string> = {
   push: "Heave",
   rally: "Rally",
   reaction: "Flash",
-  ricochet: "Ricochet",
+  ricochet: "Moon Climb",
   rooftop: "Rooftop Run",
   rings: "Turntable",
   safe: "Safe Cracker",

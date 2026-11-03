@@ -139,8 +139,8 @@ const WORLD_MUSIC: Partial<Record<PuzzleType, SoundId>> = {
   snip: "music_snip",
   flip: "music_flip",
   swing: "music_swing",
-  // Ricochet (ricoRev 2, the ninja wall-climb) has no track of its own yet: it borrows Grappler's.
-  ricochet: "music_swing",
+  // Moon Climb (Ricochet) has its own bed slot, music_ricochet (Grappler's track until Joe's file is set).
+  ricochet: "music_ricochet",
   slice: "music_slice",
   skyline: "music_skyline",
   junction: "music_junction",

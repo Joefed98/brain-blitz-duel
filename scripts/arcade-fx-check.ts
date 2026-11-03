@@ -16,8 +16,8 @@
  *
  *   bun scripts/arcade-fx-check.ts
  */
-import { ninjaArtGame } from "../src/lib/arcade/ricochetNinja.renderer";
-import { NINJA_CORE_FULL_M, NINJA_START } from "../src/lib/arcade/ricochetNinja";
+import { moonArtGame } from "../src/lib/arcade/ricochetNinja.renderer";
+import { MOON_CORE_FULL_M, NINJA_START } from "../src/lib/arcade/ricochetNinja";
 import { minesweeperArtGameFor } from "../src/lib/arcade/minesweeper.renderer";
 import { mahjongArtGameFor } from "../src/lib/arcade/mahjong.renderer";
 import { MINES_REV_STD, MINES_SAFE } from "../src/lib/arcade/minesweeper";
@@ -119,9 +119,9 @@ const { fiveHandsArt } = await import("../src/lib/arcade/cards/fiveHands.rendere
 const { pyramidArt } = await import("../src/lib/arcade/cards/pyramid.renderer");
 const { golfSolArt } = await import("../src/lib/arcade/cards/golfSol.renderer");
 const { mugginsArt } = await import("../src/lib/arcade/cards/muggins.renderer");
-const { blockfallArt } = await import("../src/lib/arcade/blockfall.renderer");
+const { blockfallArtGame } = await import("../src/lib/arcade/blockfall.renderer");
 const { alleyRollArt } = await import("../src/lib/arcade/alleyroll.renderer");
-const { BF_CORE_FULL } = await import("../src/lib/arcade/blockfall");
+const { BF_ZONE_CORE_FULL } = await import("../src/lib/arcade/blockfall");
 const { AR_CORE_FULL, AR_SHOW } = await import("../src/lib/arcade/alleyroll");
 
 type AnyGame = {
@@ -193,10 +193,11 @@ const GAMES: Record<string, AnyGame> = {
   golfsol: golfSolArt as AnyGame,
   muggins: mugginsArt as AnyGame,
   // Blockfall (Retro) and Alley Roll (Sports), 1 Nov 2026.
-  blockfall: blockfallArt as AnyGame,
+  // Blockzone (blockfallRev 2, 3 Nov 2026), the stamp rooms deal.
+  blockfall: blockfallArtGame(undefined, 2) as AnyGame,
   alleyroll: alleyRollArt as AnyGame,
-  // Ricochet (ricoRev 2, the ninja wall-climb, 1 Nov 2026).
-  ricochet: ninjaArtGame as AnyGame,
+  // Ricochet: Moon Climb (ricoRev 3, 3 Nov 2026), the stamp rooms deal.
+  ricochet: moonArtGame as AnyGame,
   // Bastion bastionRev 2 (1 Nov 2026): the tank game's own art through its success layer.
   bastion: bastionTankArtGame as AnyGame,
   // The Sports group (30 Oct 2026): each sim with its own art drawn through its success layer, on a bank deal.
@@ -601,7 +602,7 @@ const BUMPS: Record<string, ((s: any) => any)[]> = {
   blockfall: [
     (s) => ({ ...s, lines: s.lines + 2, doubles: s.doubles + 1, cleared: [20, 21], clearTick: s.tick }),
     (s) => ({ ...s, lines: s.lines + 4, quads: s.quads + 1, cleared: [18, 19, 20, 21], clearTick: s.tick }),
-    (s) => ({ ...s, lines: BF_CORE_FULL }),
+    (s) => ({ ...s, lines: BF_ZONE_CORE_FULL }),
   ],
   // Alley Roll: a ball in the 50, a pocket, then nine pockets (the core's full ring points).
   alleyroll: [
@@ -609,14 +610,15 @@ const BUMPS: Record<string, ((s: any) => any)[]> = {
     (s) => ({ ...s, phase: AR_SHOW, phaseTick: s.tick, balls: [...s.balls, { release: 0, points: 100, x: 112, y: 280 }] }),
     (s) => ({ ...s, phase: AR_SHOW, phaseTick: s.tick, balls: Array.from({ length: Math.ceil(AR_CORE_FULL / 100) }, () => ({ release: 0, points: 100, x: 112, y: 280 })) }),
   ],
+  // Moon Climb: a Flow step, a sky lantern ridden, a scroll, 50 m, the core's full height.
   ricochet: [
-    (s) => ({ ...s, coins: s.coins + 1, pickTick: s.tick + 1 }),
-    (s) => ({ ...s, lanterns: s.lanterns + 1, pickTick: s.tick + 1 }),
+    (s) => ({ ...s, flow: s.flow + 1, streak: s.streak + 7, flowTick: s.tick + 1 }),
+    (s) => ({ ...s, rides: s.rides + 1, grabTick: s.tick + 1 }),
     (s) => ({ ...s, scrolls: s.scrolls + 1, pickTick: s.tick + 1 }),
     // 50 m climbed.
     (s) => ({ ...s, best: NINJA_START + 50 * 40 * 256 }),
     // The core's full height.
-    (s) => ({ ...s, best: NINJA_START + NINJA_CORE_FULL_M * 40 * 256 }),
+    (s) => ({ ...s, best: NINJA_START + MOON_CORE_FULL_M * 40 * 256 }),
   ],
 };
 for (const [name, game] of Object.entries(GAMES)) {

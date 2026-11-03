@@ -52,7 +52,7 @@ carry; a file in their slot plays under the voice line (voice lines duck music).
 | `music.swerve` | Swerve (retired, practice) | none | `music_swerve` | 60 s loop |
 | `music.steady` | Steady (retired, practice) | none | `music_steady` | 60 s loop |
 | `music.dual` | Dual (retired, practice) | none | `music_dual` | 60 s loop |
-| `music.ricochet` | Ricochet (retired, practice) | none | `music_ricochet` | 60 s loop |
+| `music.ricochet` | Moon Climb (Ricochet's id) | `music_ricochet` (Grappler's bed, `music_swing.mp3`, until Joe's file) | `music_ricochet` | loop |
 | `music.bastion` | Bastion (retired, practice) | none | `music_bastion` | 60 s loop |
 | `music.rooftop` | Rooftop Run (retired, practice) | none | `music_rooftop` | 60 s loop |
 | `music.hotfloor` | Hot Floor (retired, practice) | none | `music_hotfloor` | 60 s loop |
@@ -92,7 +92,7 @@ carry; a file in their slot plays under the voice line (voice lines duck music).
 | `music.pyramid` | Pyramid | `music_pyramid` (Free Cell's bed, `music_freecell.mp3`) | `music_pyramid` | 47.4 s loop |
 | `music.golfsol` | Golf Solitaire | `music_golfsol` (Summit's bed, `music_tripeaks.mp3`) | `music_golfsol` | 55.7 s loop |
 | `music.muggins` | Muggins | `music_muggins` (Mahjong's bed, `music_mahjong.mp3`) | `music_muggins` | 48.0 s loop |
-| `music.blockfall` | Blockfall | `music_blockfall` (Fission's Retro bed, `music_burst.mp3`) | `music_blockfall` | loop |
+| `music.blockfall` | Blockzone | `music_blockfall` (Fission's Retro bed, `music_burst.mp3`) | `music_blockfall` | loop |
 | `music.alleyroll` | Alley Roll | `music_alleyroll` (Swish's fairground bed, `music_bintoss.mp3`) | `music_alleyroll` | loop |
 
 Every puzzle (Word, Number, Speed, Attention, Pattern, Logic, and the engine games Letterfall,
