@@ -400,8 +400,8 @@ export const ARCADE2_SCENES: SceneSet = {
     c.restore();
   }),
 
-  // Bastion (bastionRev 2): tanks rolling down the three lanes at dusk, the crosshair on a heavy's glowing weak spot as a
-  // shell lands, drawn by the game's own art (paintBastionTile).
+  // Iron Wall (id bastion, 3 Nov 2026): a heavy tank with its glowing weak spot seen through the crosshair at dusk,
+  // drawn by the game's own art (paintBastionTile).
   bastion: canvasScene((c) => {
     noText(c, () => paintBastionTile(c, 104));
   }),

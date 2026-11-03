@@ -76,14 +76,16 @@ function shade(hex: string, amount: number): string {
 }
 
 /*
- * Phone notes (27 Oct 2026, display only, every revision): the three enemy kinds restyled as sleek craft in
- * silver, black and grey: no neon trim and no red eyes. The same outlines at the same places and sizes (every
- * hull still fills its 28 px hit cell, x, y, s × s, nose down at the player); a ship's old colour now picks its
- * finish (WAV_COLOURS[0] polished silver, [1] steel grey, [2] black chrome), and the eyes are dark glass canopies
- * with a silver glint.
- *   kind 0 → a pincer fighter: bat-wing hull, two forward claws, twin canopies;
- *   kind 1 → a delta-wing interceptor: wing struts, a long canopy;
- *   kind 2 → an armoured gunship: plated hull, side cannons, a round glass core.
+ * Enemy ships (3 Nov 2026, display only, every revision; Joe's mockups "Wavefront ships: A + B combined"): gunmetal
+ * steel hulls, magenta neon edge lights, orange furnace seams, side cannons and fire exhaust with a blue-hot core,
+ * the sleek darts and fighters of direction A with the heavier, blockier warships of direction B. Every hull stays in
+ * its 28 px hit cell (x, y, s × s, nose down at the player): the exhaust burns in the cell's top fifth, the hull below
+ * it, so what is drawn is what collides; the hit boxes are unchanged, so no stamp.
+ *   kind 0 → Dart: a sleek arrowhead scout, swept wings, magenta edges, a cyan cockpit;
+ *   kind 1 → Raptor: a fighter, a narrow body on broad wings with magenta wingtip cannons, orange seams;
+ *   kind 2 → Bulwark: a blocky heavy, a furnace grid of orange seams, side cannons and a glowing furnace core.
+ * A ship's colour picks its steel (WAV_COLOURS[0] light gunmetal, [1] mid, [2] dark); a few ships in each wave are
+ * tinted maroon, navy or dark red (wavHullTint, fixed by cell and wave).
  */
 interface HullFinish {
   hi: string;
@@ -92,25 +94,25 @@ interface HullFinish {
   edge: string;
 }
 const FINISHES: readonly HullFinish[] = [
-  { hi: "#F4F6F9", mid: "#B9BFC8", lo: "#6A717C", edge: "#FFFFFF" },
-  { hi: "#C9CDD3", mid: "#7D838D", lo: "#3A3F47", edge: "#E6E9EE" },
-  { hi: "#6B717B", mid: "#2A2E35", lo: "#0B0C0F", edge: "#C9CED6" },
+  { hi: "#8A93A3", mid: "#4C5361", lo: "#1C2027", edge: "#C9D0DC" },
+  { hi: "#6D7584", mid: "#3A404C", lo: "#15181E", edge: "#AEB6C3" },
+  { hi: "#555C69", mid: "#2A2F38", lo: "#0C0E12", edge: "#9AA2AF" },
 ];
-const GLASS = "#06070A";
-const STEEL_DARK = "#1B1E23";
+const STEEL_DARK = "#14171C";
+/** The neon edge lights, the furnace seams and the exhaust. */
+export const WAV_NEON = "#FF3FD0";
+export const WAV_FURNACE = "#FF8A2A";
+const FURNACE_HOT = "#FFC46B";
+const COCKPIT = "#5FF2FF";
 
-/**
- * Phone notes (28 Oct 2026, display only, every revision): a few ships in dark coloured metal, dark maroon, navy
- * and dark red; most stay black and silver. Which ships is fixed by the ship's cell and the wave
- * (`wavHullTint`), so every player sees the same fleet; bosses and the armoured ship are unchanged.
- */
+/** Phone notes (28 Oct 2026, display only): a few ships tinted dark maroon, navy or dark red (now on gunmetal). */
 const TINT_FINISHES: Readonly<Record<string, HullFinish>> = {
-  maroon: { hi: "#A24A5C", mid: "#5E1F2C", lo: "#26090F", edge: "#E6BCC5" },
-  navy: { hi: "#5470AC", mid: "#1E2F5E", lo: "#09112C", edge: "#BCCAEE" },
-  darkred: { hi: "#C24A40", mid: "#761A16", lo: "#320706", edge: "#F0BCB4" },
+  maroon: { hi: "#8E5662", mid: "#4E2530", lo: "#1E0B10", edge: "#D9AEB8" },
+  navy: { hi: "#5B6C93", mid: "#28345A", lo: "#0B1028", edge: "#B4C2E6" },
+  darkred: { hi: "#9E554D", mid: "#5E211C", lo: "#260907", edge: "#E6B2AA" },
 };
 const TINTS = ["maroon", "navy", "darkred"] as const;
-/** The coloured finish for the ship in this cell on this wave, or null (its silver, grey or black finish): 3 in 16. */
+/** The coloured finish for the ship in this cell on this wave, or null (its gunmetal finish): 3 in 16. */
 export function wavHullTint(cell: number, wave: number): (typeof TINTS)[number] | null {
   let h = Math.imul(cell + 1, 0x9e3779b1) ^ Math.imul(wave + 7, 0x85ebca6b);
   h = Math.imul(h ^ (h >>> 15), 0x2c1b3c6d);
@@ -126,183 +128,221 @@ function finishFor(colour: string): HullFinish {
   return FINISHES[k < 0 ? 0 : k]!;
 }
 
-/** The hull's outline for each kind, filling the cell box (x, y, s x s); nose points down at the player. */
+/** The exhaust's top, as a share of the cell: the hull starts below it. */
+const EXHAUST_V = 0.2;
+
+/** The hull's outline for each kind inside the cell box (x, y, s × s) below the exhaust band; nose points down. */
 function hullPath(ctx: CanvasRenderingContext2D, kind: number, x: number, y: number, s: number): void {
   const P = (u: number, v: number) => ctx.lineTo(x + u * s, y + v * s);
   ctx.beginPath();
   if (kind === 0) {
-    // Pincer fighter: scalloped bat wings across the top, a narrow body between the claws.
-    ctx.moveTo(x, y + s * 0.2);
-    P(0.16, 0.04); P(0.27, 0.2); P(0.38, 0.1); P(0.5, 0.18); P(0.62, 0.1); P(0.73, 0.2); P(0.84, 0.04);
-    P(1, 0.2); P(0.95, 0.5); P(0.84, 0.44); P(0.74, 0.56); P(0.62, 0.52); P(0.58, 0.72); P(0.5, 0.78);
-    P(0.42, 0.72); P(0.38, 0.52); P(0.26, 0.56); P(0.16, 0.44); P(0.05, 0.5);
+    // Dart: an arrowhead, the nose at the bottom, wings swept back to the corners.
+    ctx.moveTo(x + s * 0.5, y + s);
+    P(0.6, 0.62); P(0.98, 0.4); P(0.92, 0.32); P(0.64, 0.38); P(0.6, 0.2); P(0.4, 0.2); P(0.36, 0.38); P(0.08, 0.32); P(0.02, 0.4); P(0.4, 0.62);
     ctx.closePath();
   } else if (kind === 1) {
-    // Delta-wing interceptor: a long nose, swept wings to the corners, two engine pods at the rear.
-    ctx.moveTo(x + s * 0.5, y + s);
-    P(1, 0.24); P(0.88, 0.13); P(0.64, 0.24); P(0.6, 0); P(0.4, 0); P(0.36, 0.24); P(0.12, 0.13); P(0, 0.24);
+    // Raptor: a narrow body on broad straight wings, cannons at the tips (painted separately), a short nose.
+    ctx.moveTo(x + s * 0.5, y + s * 0.96);
+    P(0.62, 0.74); P(0.62, 0.62); P(0.92, 0.56); P(0.92, 0.4); P(0.62, 0.36); P(0.6, 0.2); P(0.4, 0.2); P(0.38, 0.36); P(0.08, 0.4); P(0.08, 0.56); P(0.38, 0.62); P(0.38, 0.74);
     ctx.closePath();
   } else {
-    // Armoured gunship: a heavy octagon set in from the sides (the cannons take the edges).
-    ctx.moveTo(x + s * 0.32, y + s * 0.02);
-    P(0.68, 0.02); P(0.88, 0.2); P(0.88, 0.76); P(0.68, 0.98); P(0.32, 0.98); P(0.12, 0.76); P(0.12, 0.2);
+    // Bulwark: a heavy, blocky warship, set in from the sides (its cannons take the edges).
+    ctx.moveTo(x + s * 0.24, y + s * 0.2);
+    P(0.76, 0.2); P(0.88, 0.32); P(0.88, 0.78); P(0.74, 0.96); P(0.26, 0.96); P(0.12, 0.78); P(0.12, 0.32);
     ctx.closePath();
   }
 }
 
-/** A dark glass canopy (ellipse) with a thin silver rim and a soft glint: no colour. */
-function paintCanopy(ctx: CanvasRenderingContext2D, x: number, y: number, rx: number, ry: number, rim: string): void {
-  const g = ctx.createLinearGradient(x - rx, y - ry, x + rx, y + ry);
-  g.addColorStop(0, "#2C323C");
-  g.addColorStop(0.55, GLASS);
-  g.addColorStop(1, "#000000");
+/** A neon edge: a soft magenta glow, then a bright line. */
+function neonLine(ctx: CanvasRenderingContext2D, width: number, alpha = 1): void {
+  ctx.save();
+  ctx.globalAlpha = 0.35 * alpha;
+  ctx.strokeStyle = WAV_NEON;
+  ctx.lineWidth = width * 3;
+  ctx.stroke();
+  ctx.globalAlpha = alpha;
+  ctx.lineWidth = width;
+  ctx.stroke();
+  ctx.restore();
+}
+
+/** An orange furnace seam: a hot core line in a darker glow. */
+function seam(ctx: CanvasRenderingContext2D, pts: readonly (readonly [number, number])[], width: number): void {
+  ctx.beginPath();
+  pts.forEach(([px, py], k) => (k === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py)));
+  ctx.strokeStyle = "rgba(255,110,30,0.45)";
+  ctx.lineWidth = width * 2.4;
+  ctx.stroke();
+  ctx.strokeStyle = WAV_FURNACE;
+  ctx.lineWidth = width;
+  ctx.stroke();
+}
+
+/** A glowing core (cockpit or furnace): a halo, a bright disc and a white-hot centre. */
+function glowCore(ctx: CanvasRenderingContext2D, cx: number, cy: number, rx: number, ry: number, colour: string): void {
+  const halo = ctx.createRadialGradient(cx, cy, 0, cx, cy, Math.max(rx, ry) * 1.8);
+  halo.addColorStop(0, `${colour}AA`);
+  halo.addColorStop(1, `${colour}00`);
+  ctx.fillStyle = halo;
+  ctx.beginPath();
+  ctx.ellipse(cx, cy, rx * 1.8, ry * 1.8, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = colour;
+  ctx.beginPath();
+  ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = "rgba(255,255,255,0.85)";
+  ctx.beginPath();
+  ctx.ellipse(cx, cy - ry * 0.15, rx * 0.45, ry * 0.45, 0, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+/** A dark steel cannon barrel pointing down (the muzzle at `y1`), with a lit band and a neon tip. */
+function cannon(ctx: CanvasRenderingContext2D, f: HullFinish, cx: number, y0: number, y1: number, w: number): void {
+  const g = ctx.createLinearGradient(cx - w / 2, 0, cx + w / 2, 0);
+  g.addColorStop(0, f.hi);
+  g.addColorStop(0.5, f.mid);
+  g.addColorStop(1, STEEL_DARK);
   ctx.fillStyle = g;
-  ctx.beginPath();
-  ctx.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.strokeStyle = rim;
-  ctx.globalAlpha = 0.8;
-  ctx.lineWidth = Math.max(0.5, rx * 0.25);
-  ctx.stroke();
-  ctx.globalAlpha = 1;
-  ctx.fillStyle = "rgba(255,255,255,0.75)";
-  ctx.beginPath();
-  ctx.ellipse(x - rx * 0.35, y - ry * 0.35, rx * 0.32, ry * 0.2, -0.5, 0, Math.PI * 2);
-  ctx.fill();
+  ctx.fillRect(cx - w / 2, y0, w, y1 - y0);
+  ctx.fillStyle = STEEL_DARK;
+  ctx.fillRect(cx - w * 0.3, y1 - w * 0.6, w * 0.6, w * 0.6);
+  ctx.fillStyle = WAV_NEON;
+  ctx.fillRect(cx - w / 2, y1 - w * 1.1, w, Math.max(0.6, w * 0.22));
 }
 
-/** A crisp edge: a thin dark keyline, then the lit edge just inside it. */
-function edgeLine(ctx: CanvasRenderingContext2D, f: HullFinish, width: number): void {
-  ctx.strokeStyle = "rgba(0,0,0,0.85)";
-  ctx.lineWidth = width * 1.8;
-  ctx.stroke();
-  ctx.strokeStyle = f.edge;
-  ctx.globalAlpha = 0.7;
-  ctx.lineWidth = width * 0.7;
-  ctx.stroke();
-  ctx.globalAlpha = 1;
-}
-
-/** The static hull (cached): a metal body in its finish, dark seams, a lit edge and glass canopies. */
+/** The static hull (cached): gunmetal plating, furnace seams, neon edges, cannons and a glowing core. */
 function paintHull(ctx: CanvasRenderingContext2D, kind: number, colour: string, x: number, y: number, s: number): void {
   const f = finishFor(colour);
   const P = (u: number, v: number) => [x + u * s, y + v * s] as const;
-  const line = (pts: (readonly [number, number])[]) => {
-    ctx.beginPath();
-    pts.forEach(([px, py], k) => (k === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py)));
-  };
   ctx.save();
   ctx.beginPath();
   ctx.rect(x, y, s, s);
   ctx.clip();
   ctx.lineJoin = "round";
   ctx.lineCap = "round";
-  if (kind === 2) {
-    // Side cannons first, under the hull: dark steel barrels pointing down, a silver band at each muzzle.
-    for (const side of [0, 1]) {
-      const cx = x + (side ? 0.94 : 0.06) * s;
-      const g = ctx.createLinearGradient(cx - s * 0.06, 0, cx + s * 0.06, 0);
-      g.addColorStop(0, f.hi);
-      g.addColorStop(1, STEEL_DARK);
-      ctx.fillStyle = g;
-      ctx.fillRect(cx - s * 0.06, y + s * 0.3, s * 0.12, s * 0.58);
-      ctx.fillStyle = STEEL_DARK;
-      ctx.fillRect(cx - s * 0.035, y + s * 0.84, s * 0.07, s * 0.1);
-      ctx.fillStyle = f.edge;
-      ctx.fillRect(cx - s * 0.06, y + s * 0.8, s * 0.12, s * 0.03);
-    }
-  }
-  if (kind === 0) {
-    // Two forward claws curling in towards the nose, under the hull: black steel with a silver edge.
-    for (const side of [-1, 1]) {
-      const cx = x + s / 2;
-      ctx.beginPath();
-      ctx.moveTo(cx + side * s * 0.12, y + s * 0.5);
-      ctx.quadraticCurveTo(cx + side * s * 0.36, y + s * 0.62, cx + side * s * 0.24, y + s * 0.98);
-      ctx.quadraticCurveTo(cx + side * s * 0.2, y + s * 0.8, cx + side * s * 0.06, y + s * 0.8);
-      ctx.quadraticCurveTo(cx + side * s * 0.18, y + s * 0.72, cx + side * s * 0.12, y + s * 0.5);
-      ctx.closePath();
-      const g = ctx.createLinearGradient(0, y + s * 0.5, 0, y + s);
-      g.addColorStop(0, f.mid);
-      g.addColorStop(1, STEEL_DARK);
-      ctx.fillStyle = g;
-      ctx.fill();
-      edgeLine(ctx, f, 0.6);
-    }
-  }
-  // The metal body: a brushed gradient lit from the upper left, with a bright specular band.
-  const body = ctx.createLinearGradient(x, y, x + s * 0.7, y + s);
+  // Under the hull: the engine nozzles at the rear (the flames are live, drawHull) and the cannons.
+  const nozzles = kind === 2 ? [0.32, 0.5, 0.68] : [0.42, 0.58];
+  ctx.fillStyle = STEEL_DARK;
+  for (const u of nozzles) ctx.fillRect(x + (u - 0.06) * s, y + s * (EXHAUST_V - 0.02), s * 0.12, s * 0.08);
+  if (kind === 1) for (const u of [0.08, 0.92]) cannon(ctx, f, x + u * s, y + s * 0.34, y + s * 0.8, s * 0.1);
+  if (kind === 2) for (const u of [0.07, 0.93]) cannon(ctx, f, x + u * s, y + s * 0.36, y + s * 0.92, s * 0.12);
+  // Gunmetal plating lit from the upper left.
+  const body = ctx.createLinearGradient(x, y + s * EXHAUST_V, x + s * 0.8, y + s);
   body.addColorStop(0, f.hi);
-  body.addColorStop(0.35, f.mid);
-  body.addColorStop(0.5, f.hi);
-  body.addColorStop(0.62, f.mid);
+  body.addColorStop(0.4, f.mid);
+  body.addColorStop(0.55, f.hi);
+  body.addColorStop(0.7, f.mid);
   body.addColorStop(1, f.lo);
   hullPath(ctx, kind, x, y, s);
   ctx.fillStyle = body;
   ctx.fill();
   ctx.save();
   ctx.clip();
-  // Panel seams, dark and fine.
-  ctx.strokeStyle = "rgba(0,0,0,0.45)";
-  ctx.lineWidth = 0.6;
+  // Dark panel lines, then the furnace seams.
+  ctx.strokeStyle = "rgba(0,0,0,0.5)";
+  ctx.lineWidth = 0.5;
+  ctx.beginPath();
   if (kind === 0) {
-    line([P(0.5, 0.18), P(0.5, 0.74)]); ctx.stroke();
-    line([P(0.16, 0.06), P(0.3, 0.42)]); ctx.stroke();
-    line([P(0.84, 0.06), P(0.7, 0.42)]); ctx.stroke();
-    // Black wing tips.
-    ctx.fillStyle = STEEL_DARK;
-    for (const [u0, u1] of [[0, 0.12], [0.88, 1]] as const) ctx.fillRect(x + u0 * s, y, (u1 - u0) * s, s * 0.55);
+    ctx.moveTo(...P(0.5, 0.22)); ctx.lineTo(...P(0.5, 0.94));
   } else if (kind === 1) {
-    const struts: [readonly [number, number], readonly [number, number]][] = [[P(0.42, 0.3), P(0.12, 0.2)], [P(0.58, 0.3), P(0.88, 0.2)], [P(0.44, 0.44), P(0.24, 0.36)], [P(0.56, 0.44), P(0.76, 0.36)]];
-    ctx.lineWidth = 1;
-    for (const st of struts) { line(st); ctx.stroke(); }
-    // A black spine down the fuselage.
-    ctx.strokeStyle = STEEL_DARK;
-    ctx.lineWidth = s * 0.08;
-    line([P(0.5, 0.02), P(0.5, 0.42)]); ctx.stroke();
+    ctx.moveTo(...P(0.38, 0.48)); ctx.lineTo(...P(0.1, 0.48));
+    ctx.moveTo(...P(0.62, 0.48)); ctx.lineTo(...P(0.9, 0.48));
   } else {
-    for (const v of [0.34, 0.66]) { line([P(0.12, v), P(0.88, v)]); ctx.stroke(); }
-    for (const u of [0.34, 0.66]) { line([P(u, 0.02), P(u, 0.34)]); ctx.stroke(); line([P(u, 0.66), P(u, 0.98)]); ctx.stroke(); }
-    ctx.fillStyle = "rgba(0,0,0,0.35)";
-    for (const [u, v] of [[0.24, 0.26], [0.76, 0.26], [0.24, 0.74], [0.76, 0.74], [0.5, 0.1], [0.5, 0.9]] as const) ctx.fillRect(x + u * s - 0.5, y + v * s - 0.5, 1, 1);
+    for (const v of [0.44, 0.7]) { ctx.moveTo(...P(0.12, v)); ctx.lineTo(...P(0.88, v)); }
   }
-  // A lit upper-left rim and a shadowed lower-right one.
+  ctx.stroke();
+  const sw = Math.max(0.5, s * 0.03);
+  if (kind === 0) {
+    seam(ctx, [P(0.12, 0.36), P(0.36, 0.44)], sw);
+    seam(ctx, [P(0.88, 0.36), P(0.64, 0.44)], sw);
+  } else if (kind === 1) {
+    seam(ctx, [P(0.14, 0.44), P(0.38, 0.44)], sw);
+    seam(ctx, [P(0.86, 0.44), P(0.62, 0.44)], sw);
+    seam(ctx, [P(0.44, 0.26), P(0.44, 0.34)], sw);
+    seam(ctx, [P(0.56, 0.26), P(0.56, 0.34)], sw);
+  } else {
+    // The furnace grid: two decks and three bays.
+    seam(ctx, [P(0.16, 0.38), P(0.84, 0.38)], sw);
+    seam(ctx, [P(0.16, 0.62), P(0.84, 0.62)], sw);
+    seam(ctx, [P(0.36, 0.24), P(0.36, 0.9)], sw);
+    seam(ctx, [P(0.64, 0.24), P(0.64, 0.9)], sw);
+  }
+  // A lit rim at the upper left, shadow at the lower right.
   const rim = ctx.createLinearGradient(x, y, x + s, y + s);
-  rim.addColorStop(0, "rgba(255,255,255,0.55)");
+  rim.addColorStop(0, "rgba(255,255,255,0.45)");
   rim.addColorStop(0.5, "rgba(255,255,255,0)");
-  rim.addColorStop(1, "rgba(0,0,0,0.5)");
+  rim.addColorStop(1, "rgba(0,0,0,0.55)");
   ctx.strokeStyle = rim;
-  ctx.lineWidth = 1.6;
+  ctx.lineWidth = 1.4;
   hullPath(ctx, kind, x, y, s);
   ctx.stroke();
   ctx.restore();
+  // A dark keyline, then the magenta neon on the leading edges.
   hullPath(ctx, kind, x, y, s);
-  edgeLine(ctx, f, 0.8);
-  if (kind === 2) {
-    // A black collar round the glass core.
-    ctx.beginPath();
-    ctx.arc(x + s / 2, y + s * 0.5, s * 0.21, 0, Math.PI * 2);
-    ctx.fillStyle = STEEL_DARK;
-    ctx.fill();
-  }
-  // Canopies: dark glass, never a coloured eye.
+  ctx.strokeStyle = "rgba(0,0,0,0.85)";
+  ctx.lineWidth = 1.2;
+  ctx.stroke();
+  ctx.strokeStyle = WAV_NEON;
+  ctx.beginPath();
   if (kind === 0) {
-    paintCanopy(ctx, x + s * 0.4, y + s * 0.36, s * 0.07, s * 0.055, f.edge);
-    paintCanopy(ctx, x + s * 0.6, y + s * 0.36, s * 0.07, s * 0.055, f.edge);
+    ctx.moveTo(...P(0.03, 0.39)); ctx.lineTo(...P(0.4, 0.61)); ctx.lineTo(...P(0.5, 0.97)); ctx.lineTo(...P(0.6, 0.61)); ctx.lineTo(...P(0.97, 0.39));
   } else if (kind === 1) {
-    paintCanopy(ctx, x + s * 0.5, y + s * 0.6, s * 0.07, s * 0.14, f.edge);
+    ctx.moveTo(...P(0.09, 0.55)); ctx.lineTo(...P(0.38, 0.61)); ctx.lineTo(...P(0.38, 0.74)); ctx.lineTo(...P(0.5, 0.94)); ctx.lineTo(...P(0.62, 0.74)); ctx.lineTo(...P(0.62, 0.61)); ctx.lineTo(...P(0.91, 0.55));
   } else {
-    paintCanopy(ctx, x + s * 0.5, y + s * 0.5, s * 0.14, s * 0.14, f.edge);
+    ctx.moveTo(...P(0.13, 0.78)); ctx.lineTo(...P(0.26, 0.95)); ctx.lineTo(...P(0.74, 0.95)); ctx.lineTo(...P(0.87, 0.78));
+  }
+  neonLine(ctx, Math.max(0.6, s * 0.035));
+  // The core: a cyan cockpit on the light ships, the orange furnace on the heavy.
+  if (kind === 0) glowCore(ctx, x + s * 0.5, y + s * 0.62, s * 0.055, s * 0.11, COCKPIT);
+  else if (kind === 1) glowCore(ctx, x + s * 0.5, y + s * 0.56, s * 0.06, s * 0.1, COCKPIT);
+  else {
+    ctx.fillStyle = STEEL_DARK;
+    ctx.beginPath();
+    ctx.arc(x + s * 0.5, y + s * 0.78, s * 0.13, 0, Math.PI * 2);
+    ctx.fill();
+    glowCore(ctx, x + s * 0.5, y + s * 0.78, s * 0.08, s * 0.08, FURNACE_HOT);
   }
   ctx.restore();
+}
+
+/**
+ * Fire exhaust with a blue-hot core: an orange-red flame licking up from (cx, top) with a pale blue core, flickering
+ * (still under reduced motion). `len` is the flame's length upward; nothing is drawn above `top - len`.
+ */
+export function drawExhaust(ctx: CanvasRenderingContext2D, cx: number, top: number, w: number, len: number, t: number, still: boolean, seed = 0): void {
+  const flick = still ? 0.9 : 0.78 + 0.22 * Math.sin(t * 23 + seed * 1.7) * Math.sin(t * 11 + seed);
+  const l = len * flick;
+  const outer = ctx.createLinearGradient(0, top, 0, top - l);
+  outer.addColorStop(0, "rgba(255,150,50,0.95)");
+  outer.addColorStop(0.55, "rgba(255,80,30,0.75)");
+  outer.addColorStop(1, "rgba(255,40,20,0)");
+  ctx.fillStyle = outer;
+  ctx.beginPath();
+  ctx.moveTo(cx - w / 2, top);
+  ctx.quadraticCurveTo(cx - w * 0.45, top - l * 0.5, cx, top - l);
+  ctx.quadraticCurveTo(cx + w * 0.45, top - l * 0.5, cx + w / 2, top);
+  ctx.closePath();
+  ctx.fill();
+  const core = ctx.createLinearGradient(0, top, 0, top - l * 0.6);
+  core.addColorStop(0, "rgba(235,250,255,1)");
+  core.addColorStop(0.4, "rgba(120,200,255,0.9)");
+  core.addColorStop(1, "rgba(80,150,255,0)");
+  ctx.fillStyle = core;
+  ctx.beginPath();
+  ctx.moveTo(cx - w * 0.22, top);
+  ctx.quadraticCurveTo(cx - w * 0.18, top - l * 0.3, cx, top - l * 0.6);
+  ctx.quadraticCurveTo(cx + w * 0.18, top - l * 0.3, cx + w * 0.22, top);
+  ctx.closePath();
+  ctx.fill();
 }
 
 const HULL_SCALE = 3;
 const hullSprites = new Map<string, ArtCanvas | null>();
 
-/** One enemy hull filling the cell box (x, y, s x s): a cached sprite plus the live engine glints. */
+/** One enemy hull filling the cell box (x, y, s × s): a cached sprite plus the live exhaust in the cell's top fifth. */
 export function drawHull(ctx: CanvasRenderingContext2D, kind: number, colour: string, x: number, y: number, s: number, t: number): void {
-  const key = `s5:${kind}:${colour}:${s}`;
+  const key = `s6:${kind}:${colour}:${s}`;
   let sprite = hullSprites.get(key);
   if (sprite === undefined) {
     const canvas = artCanvas(Math.ceil(s * HULL_SCALE), Math.ceil(s * HULL_SCALE));
@@ -314,16 +354,12 @@ export function drawHull(ctx: CanvasRenderingContext2D, kind: number, colour: st
     sprite = canvas && c ? canvas : null;
     hullSprites.set(key, sprite);
   }
+  // The exhaust first, behind the nozzles: inside the cell (its top fifth).
+  const still = reducedMotion();
+  const nozzles = kind === 2 ? [0.32, 0.5, 0.68] : [0.42, 0.58];
+  nozzles.forEach((u, k) => drawExhaust(ctx, x + s * u, y + s * (EXHAUST_V + 0.02), s * (kind === 2 ? 0.13 : 0.12), s * (EXHAUST_V + 0.01), t, still, x * 0.07 + k));
   if (sprite) ctx.drawImage(sprite as CanvasImageSource, x, y, s, s);
   else paintHull(ctx, kind, colour, x, y, s);
-  // Engine glints at the rear (top), inside the box: a cool white, twin for the interceptor.
-  const pulse = 0.6 + 0.4 * Math.sin(t * 9 + x * 0.1);
-  ctx.fillStyle = `rgba(225,235,250,${0.6 * pulse})`;
-  for (const u of kind === 1 ? [0.44, 0.56] : [0.5]) {
-    ctx.beginPath();
-    ctx.ellipse(x + s * u, y + s * (kind === 1 ? 0.06 : 0.12), s * (kind === 1 ? 0.05 : 0.1), s * 0.05, 0, 0, Math.PI * 2);
-    ctx.fill();
-  }
 }
 
 /**
@@ -428,27 +464,35 @@ function drawArmourHull(ctx: CanvasRenderingContext2D, state: WavState, a: WavAr
   ctx.beginPath();
   ctx.rect(box.x, box.y, w, h);
   ctx.clip();
-  // Silver spaceship silhouette; the dark frame shows through missing plates.
+  // 3 Nov 2026 (display only): a gunmetal warship with fire exhaust at the rear (inside the box's top), magenta neon
+  // on its edges; missing plates show the furnace glowing through the frame.
   const cx = box.x + w / 2;
-  ctx.beginPath();
-  ctx.moveTo(cx, box.y + h);
-  ctx.lineTo(cx + w * 0.18, box.y + h * 0.72);
-  ctx.lineTo(box.x + w, box.y + h * 0.85);
-  ctx.lineTo(box.x + w, box.y + h * 0.24);
-  ctx.lineTo(cx + w * 0.2, box.y + h * 0.38);
-  ctx.lineTo(cx + w * 0.12, box.y);
-  ctx.lineTo(cx - w * 0.12, box.y);
-  ctx.lineTo(cx - w * 0.2, box.y + h * 0.38);
-  ctx.lineTo(box.x, box.y + h * 0.24);
-  ctx.lineTo(box.x, box.y + h * 0.85);
-  ctx.lineTo(cx - w * 0.18, box.y + h * 0.72);
-  ctx.closePath();
+  const still = reducedMotion();
+  const tt = state.tick / 60;
+  for (const u of [-0.07, 0.07]) drawExhaust(ctx, cx + u * w, box.y + h * 0.16, Math.min(8, w * 0.08), h * 0.16, tt, still, u * 10);
+  const silhouette = () => {
+    ctx.beginPath();
+    ctx.moveTo(cx, box.y + h);
+    ctx.lineTo(cx + w * 0.18, box.y + h * 0.72);
+    ctx.lineTo(box.x + w, box.y + h * 0.85);
+    ctx.lineTo(box.x + w, box.y + h * 0.3);
+    ctx.lineTo(cx + w * 0.2, box.y + h * 0.4);
+    ctx.lineTo(cx + w * 0.13, box.y + h * 0.14);
+    ctx.lineTo(cx - w * 0.13, box.y + h * 0.14);
+    ctx.lineTo(cx - w * 0.2, box.y + h * 0.4);
+    ctx.lineTo(box.x, box.y + h * 0.3);
+    ctx.lineTo(box.x, box.y + h * 0.85);
+    ctx.lineTo(cx - w * 0.18, box.y + h * 0.72);
+    ctx.closePath();
+  };
+  silhouette();
+  ctx.save();
   ctx.clip();
-  ctx.fillStyle = "#454B54";
-  ctx.fill();
-  ctx.strokeStyle = "#D8DDE5";
-  ctx.lineWidth = 1.5;
-  ctx.stroke();
+  const frame = ctx.createLinearGradient(box.x, box.y, box.x + w * 0.6, box.y + h);
+  frame.addColorStop(0, "#3A404C");
+  frame.addColorStop(1, "#14171C");
+  ctx.fillStyle = frame;
+  ctx.fillRect(box.x, box.y, w, h);
   // One plate per hit point; each hit removes the next plate in a fixed order.
   const cols = Math.ceil(a.maxHp / 2);
   const pw = (w - 6) / cols;
@@ -459,9 +503,11 @@ function drawArmourHull(ctx: CanvasRenderingContext2D, state: WavState, a: WavAr
     const px = box.x + 3 + (k % cols) * pw;
     const py = box.y + 3 + Math.trunc(k / cols) * ph;
     if (gone.has(k)) {
-      // Exposed frame with a crack.
-      ctx.strokeStyle = "#242830";
-      ctx.lineWidth = 1.2;
+      // The furnace glowing through the exposed frame, with a crack.
+      ctx.fillStyle = "rgba(255,120,40,0.28)";
+      ctx.fillRect(px + 1, py + 1, pw - 2, ph - 2);
+      ctx.strokeStyle = WAV_FURNACE;
+      ctx.lineWidth = 1.1;
       ctx.beginPath();
       ctx.moveTo(px + pw * 0.2, py + ph * 0.2);
       ctx.lineTo(px + pw * 0.5, py + ph * 0.55);
@@ -471,19 +517,27 @@ function drawArmourHull(ctx: CanvasRenderingContext2D, state: WavState, a: WavAr
       ctx.stroke();
       continue;
     }
-    const g = ctx.createLinearGradient(px, py, px, py + ph);
-    g.addColorStop(0, "#D2D5DA");
-    g.addColorStop(0.5, "#AEB3BC");
-    g.addColorStop(1, "#777E89");
+    // A gunmetal plate, its seams glowing orange.
+    const g = ctx.createLinearGradient(px, py, px + pw * 0.4, py + ph);
+    g.addColorStop(0, "#8A93A3");
+    g.addColorStop(0.5, "#545B69");
+    g.addColorStop(1, "#262A33");
     ctx.fillStyle = g;
     ctx.fillRect(px + 1, py + 1, pw - 2, ph - 2);
-    ctx.strokeStyle = "#353B45";
-    ctx.lineWidth = 1;
-    ctx.strokeRect(px + 1.5, py + 1.5, pw - 3, ph - 3);
-    ctx.fillStyle = "rgba(0,0,0,0.35)";
-    ctx.fillRect(px + 2, py + 2, 1.5, 1.5);
-    ctx.fillRect(px + pw - 3.5, py + 2, 1.5, 1.5);
+    ctx.strokeStyle = "rgba(255,138,42,0.85)";
+    ctx.lineWidth = 0.8;
+    ctx.strokeRect(px + 1, py + 1, pw - 2, ph - 2);
+    ctx.fillStyle = "rgba(0,0,0,0.4)";
+    ctx.fillRect(px + 2.5, py + 2.5, 1.5, 1.5);
+    ctx.fillRect(px + pw - 4, py + 2.5, 1.5, 1.5);
   }
+  ctx.restore();
+  silhouette();
+  ctx.strokeStyle = "rgba(0,0,0,0.85)";
+  ctx.lineWidth = 1.6;
+  ctx.stroke();
+  ctx.strokeStyle = WAV_NEON;
+  neonLine(ctx, 1);
   ctx.restore();
 }
 
@@ -501,52 +555,80 @@ function drawBoss(ctx: CanvasRenderingContext2D, state: WavState, t: number, las
   ctx.beginPath();
   ctx.rect(x, y, w, h);
   ctx.clip();
-  // Phone notes (27 Oct 2026, display only): both bosses in black and silver (the gunship a lighter graphite).
-  const hull = ctx.createLinearGradient(x, y, x + w * 0.4, y + h);
+  // 3 Nov 2026 (display only, Joe's mockups' Leviathan): a broad gunmetal warship, a row of fire exhausts along its
+  // rear (inside the box's top), an orange furnace grid, magenta neon on its lower edges, dark gun pods and a glowing
+  // weak core; the gunship (wavRev 10) a lighter steel.
+  const still = reducedMotion();
   const gunship = Boolean(boss.mid);
-  hull.addColorStop(0, gunship ? "#4A5059" : "#2A2E35");
-  hull.addColorStop(0.45, gunship ? "#22262C" : "#0E1013");
-  hull.addColorStop(0.55, gunship ? "#3A3F47" : "#1E2228");
-  hull.addColorStop(1, "#050608");
+  const top = y + h * 0.2;
+  const flames = Math.max(3, Math.round(w / 26));
+  for (let k = 0; k < flames; k++) drawExhaust(ctx, x + (w * (k + 0.5)) / flames, top + 1, Math.min(9, w / flames / 2.2), h * 0.2, t, still, k * 3.1);
+  const outline = () => {
+    ctx.beginPath();
+    ctx.moveTo(x, top + h * 0.16);
+    ctx.lineTo(x + w * 0.12, top);
+    ctx.lineTo(x + w * 0.88, top);
+    ctx.lineTo(x + w, top + h * 0.16);
+    ctx.lineTo(x + w, y + h * 0.62);
+    ctx.lineTo(cx + w * 0.22, y + h * 0.8);
+    ctx.lineTo(cx + w * 0.1, y + h);
+    ctx.lineTo(cx - w * 0.1, y + h);
+    ctx.lineTo(cx - w * 0.22, y + h * 0.8);
+    ctx.lineTo(x, y + h * 0.62);
+    ctx.closePath();
+  };
+  const hull = ctx.createLinearGradient(x, y, x + w * 0.4, y + h);
+  hull.addColorStop(0, gunship ? "#7E8797" : "#646C7A");
+  hull.addColorStop(0.45, gunship ? "#454C59" : "#363C47");
+  hull.addColorStop(0.6, gunship ? "#5A6270" : "#4A515E");
+  hull.addColorStop(1, "#14171C");
+  outline();
   ctx.fillStyle = hull;
-  ctx.strokeStyle = "#D8DDE5";
-  ctx.lineWidth = 1.5;
-  ctx.beginPath();
-  // Swept wings to the full width, a heavy centre hull, the nose at the bottom edge.
-  ctx.moveTo(x, y + h * 0.3);
-  ctx.lineTo(cx - w * 0.22, y);
-  ctx.lineTo(cx + w * 0.22, y);
-  ctx.lineTo(x + w, y + h * 0.3);
-  ctx.lineTo(x + w, y + h * 0.62);
-  ctx.lineTo(cx + w * 0.16, y + h * 0.78);
-  ctx.lineTo(cx, y + h);
-  ctx.lineTo(cx - w * 0.16, y + h * 0.78);
-  ctx.lineTo(x, y + h * 0.62);
-  ctx.closePath();
   ctx.fill();
+  ctx.save();
+  ctx.clip();
+  // The furnace grid: two decks, bays across the wings.
+  const seamW = 1.1;
+  seam(ctx, [[x + 4, top + h * 0.22], [x + w - 4, top + h * 0.22]], seamW);
+  seam(ctx, [[x + 2, y + h * 0.56], [x + w - 2, y + h * 0.56]], seamW);
+  for (const u of [0.24, 0.38, 0.62, 0.76]) seam(ctx, [[x + w * u, top + 2], [x + w * u, y + h * 0.56]], seamW);
+  ctx.restore();
+  outline();
+  ctx.strokeStyle = "rgba(0,0,0,0.85)";
+  ctx.lineWidth = 1.6;
   ctx.stroke();
-  // Silver panel lines along the wings.
-  ctx.strokeStyle = "rgba(216,221,229,0.45)";
-  ctx.lineWidth = 1;
+  // Neon on the lower edges.
+  ctx.strokeStyle = WAV_NEON;
   ctx.beginPath();
-  ctx.moveTo(x + w * 0.06, y + h * 0.42);
-  ctx.lineTo(cx - w * 0.18, y + h * 0.14);
-  ctx.moveTo(x + w * 0.94, y + h * 0.42);
-  ctx.lineTo(cx + w * 0.18, y + h * 0.14);
-  ctx.stroke();
-  // Gun pods (where the pattern's bolts leave) and a pulsing core.
-  ctx.fillStyle = "#050608";
+  ctx.moveTo(x + 1, y + h * 0.62);
+  ctx.lineTo(cx - w * 0.22, y + h * 0.8);
+  ctx.lineTo(cx - w * 0.1, y + h - 1);
+  ctx.lineTo(cx + w * 0.1, y + h - 1);
+  ctx.lineTo(cx + w * 0.22, y + h * 0.8);
+  ctx.lineTo(x + w - 1, y + h * 0.62);
+  neonLine(ctx, 1.2);
+  // Gun pods (where the pattern's bolts leave) and the weak core.
+  ctx.fillStyle = STEEL_DARK;
   for (const gx of [8, w / 2, w - 8]) ctx.fillRect(x + gx - 4, y + h * 0.62 - 2, 8, 8);
   if (state.x10) drawWeakPoints(ctx, state, boss, x, y, w, h, t);
   else {
-    const pulse = 0.6 + 0.4 * Math.sin(t * 6);
-    const core = ctx.createRadialGradient(cx, y + h * 0.45, 1, cx, y + h * 0.45, 12);
-    core.addColorStop(0, `rgba(230,236,245,${pulse})`);
-    core.addColorStop(1, "rgba(200,210,225,0)");
-    ctx.fillStyle = core;
+    // The weak core: a magenta-white heart in an orange halo, pulsing.
+    const pulse = still ? 0.9 : 0.6 + 0.4 * Math.sin(t * 6);
+    const cy = y + h * 0.45;
+    const halo = ctx.createRadialGradient(cx, cy, 1, cx, cy, 14);
+    halo.addColorStop(0, `rgba(255,236,250,${pulse})`);
+    halo.addColorStop(0.35, `rgba(255,63,208,${0.85 * pulse})`);
+    halo.addColorStop(0.7, `rgba(255,138,42,${0.45 * pulse})`);
+    halo.addColorStop(1, "rgba(255,138,42,0)");
+    ctx.fillStyle = halo;
     ctx.beginPath();
-    ctx.arc(cx, y + h * 0.45, 12, 0, Math.PI * 2);
+    ctx.arc(cx, cy, 14, 0, Math.PI * 2);
     ctx.fill();
+    ctx.strokeStyle = STEEL_DARK;
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.arc(cx, cy, 9, 0, Math.PI * 2);
+    ctx.stroke();
   }
   // A white flash on the frame a hit lands.
   const hitAge = state.tick - lastHit;
@@ -614,8 +696,8 @@ function drawWeakPoints(ctx: CanvasRenderingContext2D, state: WavState, boss: No
     if (light) {
       const bloom = ctx.createRadialGradient(cx, cy, 2, cx, cy, r + 4);
       bloom.addColorStop(0, `rgba(255,255,255,${0.95 * pulse})`);
-      bloom.addColorStop(0.5, `rgba(190,215,255,${0.8 * pulse})`);
-      bloom.addColorStop(1, "rgba(160,190,255,0)");
+      bloom.addColorStop(0.5, `rgba(255,63,208,${0.8 * pulse})`);
+      bloom.addColorStop(1, "rgba(255,138,42,0)");
       ctx.fillStyle = bloom;
       ctx.fillRect(cx - r - 4, cy - r - 4, 2 * r + 8, 2 * r + 8);
     }
@@ -623,13 +705,13 @@ function drawWeakPoints(ctx: CanvasRenderingContext2D, state: WavState, boss: No
     ctx.beginPath();
     ctx.arc(cx, cy, r * 0.45, 0, Math.PI * 2);
     ctx.fill();
-    ctx.strokeStyle = "#C9D6FF";
+    ctx.strokeStyle = "#FF9BE8";
     ctx.lineWidth = 2;
     ctx.beginPath();
     ctx.arc(cx, cy, r - 1, 0, Math.PI * 2);
     ctx.stroke();
   } else {
-    ctx.fillStyle = "#2B2F38";
+    ctx.fillStyle = "#2E333D";
     ctx.beginPath();
     ctx.arc(cx, cy, r - 1, 0, Math.PI * 2);
     ctx.fill();
@@ -900,32 +982,55 @@ function drawHitSparkles(ctx: CanvasRenderingContext2D, state: WavState, still: 
   }
 }
 
+/**
+ * The UFO (3 Nov 2026, display only): a gunmetal disc with an orange furnace band underneath, a blue-hot glass dome and
+ * magenta rim lights chasing round; inside its hit box (12 px either side, 16 up and down).
+ */
 function drawSaucer(ctx: CanvasRenderingContext2D, x: number, t: number): void {
   const y = SAUCER_Y;
   const rx = WAV_SAUCER_R + 2;
-  // Dome.
+  // The furnace glow underneath.
+  const under = ctx.createRadialGradient(x, y + 4, 1, x, y + 4, rx);
+  under.addColorStop(0, "rgba(255,170,80,0.85)");
+  under.addColorStop(1, "rgba(255,90,30,0)");
+  ctx.fillStyle = under;
+  ctx.beginPath();
+  ctx.ellipse(x, y + 4, rx - 1, 5, 0, 0, Math.PI * 2);
+  ctx.fill();
+  // The dome: blue-hot glass.
   const dome = ctx.createRadialGradient(x - 2, y - 7, 1, x, y - 4, 7);
-  dome.addColorStop(0, "rgba(255,255,255,0.95)");
-  dome.addColorStop(1, "rgba(167,139,250,0.35)");
+  dome.addColorStop(0, "rgba(240,252,255,0.98)");
+  dome.addColorStop(0.5, "rgba(120,200,255,0.75)");
+  dome.addColorStop(1, "rgba(60,120,255,0.35)");
   ctx.fillStyle = dome;
   ctx.beginPath();
   ctx.ellipse(x, y - 3, 6, 7, 0, Math.PI, Math.PI * 2);
   ctx.fill();
-  // Disc.
+  // The disc: gunmetal, lit from above, with a keyline.
   const disc = ctx.createLinearGradient(0, y - 4, 0, y + 5);
-  disc.addColorStop(0, "#D9CCFF");
-  disc.addColorStop(1, "#5B3FB8");
+  disc.addColorStop(0, "#9AA3B2");
+  disc.addColorStop(0.5, "#4C5361");
+  disc.addColorStop(1, "#1A1D23");
   ctx.fillStyle = disc;
   ctx.beginPath();
   ctx.ellipse(x, y, rx, 5, 0, 0, Math.PI * 2);
   ctx.fill();
-  // Rotating light ring.
+  ctx.strokeStyle = "rgba(0,0,0,0.8)";
+  ctx.lineWidth = 0.8;
+  ctx.stroke();
+  // The furnace band on its underside.
+  ctx.strokeStyle = WAV_FURNACE;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.ellipse(x, y + 1.5, rx - 3, 2.2, 0, 0.15 * Math.PI, 0.85 * Math.PI);
+  ctx.stroke();
+  // Magenta rim lights chasing round.
   for (let k = 0; k < 8; k++) {
     const a = (k / 8) * Math.PI * 2 + t * 3;
     const lit = Math.sin(a) > 0;
-    ctx.fillStyle = lit ? (k % 2 ? "#FFE600" : "#FF6BD6") : "rgba(255,255,255,0.25)";
+    ctx.fillStyle = lit ? WAV_NEON : "rgba(255,63,208,0.25)";
     ctx.beginPath();
-    ctx.arc(x + Math.cos(a) * (rx - 2), y + Math.sin(a) * 2 + 1, 1.4, 0, Math.PI * 2);
+    ctx.arc(x + Math.cos(a) * (rx - 2), y + Math.sin(a) * 2 + 1, 1.3, 0, Math.PI * 2);
     ctx.fill();
   }
 }
@@ -1186,3 +1291,6 @@ export function wavefrontArtGameFor(rev?: number | null): typeof wavefrontArtGam
   if (rev === WAV_REV_BAND) return wavefrontArtGameBand;
   return rev === WAV_REV ? wavefrontArtGameV2 : wavefrontArtGame;
 }
+
+/** The UFO's painter, for wavefront-ships-check (its art inside the saucer's hit box). */
+export { drawSaucer as drawWavefrontSaucer };

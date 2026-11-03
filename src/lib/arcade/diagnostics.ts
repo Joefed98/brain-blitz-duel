@@ -107,7 +107,7 @@ const SNAPSHOTS: Record<string, (state: any) => object> = {
   clayshoot: clayCheckpoint,
   wavefront: wavCheckpoint,
   // bastionRev 2's state carries `rev`; the original Bastion's has none.
-  bastion: (state: { rev?: number }) => (state.rev === BASTION_REV_TANK ? bastionTankCheckpoint(state as never) : basCheckpoint(state as never)),
+  bastion: (state: { rev?: number }) => ((state.rev ?? 0) >= BASTION_REV_TANK ? bastionTankCheckpoint(state as never) : basCheckpoint(state as never)),
   rooftop: roofCheckpoint,
   flip: flipCheckpoint,
   junction: juncCheckpoint,

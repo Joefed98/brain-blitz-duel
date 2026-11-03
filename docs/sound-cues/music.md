@@ -53,7 +53,7 @@ carry; a file in their slot plays under the voice line (voice lines duck music).
 | `music.steady` | Steady (retired, practice) | none | `music_steady` | 60 s loop |
 | `music.dual` | Dual (retired, practice) | none | `music_dual` | 60 s loop |
 | `music.ricochet` | Ricochet (retired, practice) | none | `music_ricochet` | 60 s loop |
-| `music.bastion` | Bastion (retired, practice) | none | `music_bastion` | 60 s loop |
+| `music.bastion` | Iron Wall (arcade, Action) | `music_wavefront` (borrowed from Wavefront until its own recording is set) | `music_bastion` | 60 s loop |
 | `music.rooftop` | Rooftop Run (retired, practice) | none | `music_rooftop` | 60 s loop |
 | `music.hotfloor` | Hot Floor (retired, practice) | none | `music_hotfloor` | 60 s loop |
 | `music.balltrack` | Ball Tracker | `music_balltrack` | `music_balltrack` | loop |

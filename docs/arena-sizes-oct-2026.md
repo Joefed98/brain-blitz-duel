@@ -57,7 +57,7 @@ revisions keep their own world in reveals and replays.
 | Full House | 414x772 | 375x591 → 317x591 | 390x624 → 335x624 | 390x768 → 390x727 | 414x772 → 414x772 | 430x856 → 430x802 | 1280x724 → 388x724 | 0.942x | 60px | 0px | 41px | 0px | - |
 | Five Hands | 414x772 | 375x591 → 317x591 | 390x624 → 335x624 | 390x768 → 390x727 | 414x772 → 414x772 | 430x856 → 430x802 | 1280x724 → 388x724 | 0.942x | 60px | 0px | 41px | 0px | - |
 | Ricochet | 390x730 | 375x591 → 316x591 | 390x624 → 333x624 | 390x768 → 390x730 | 414x772 → 412x772 | 430x856 → 430x805 | 1280x724 → 387x724 | 1.000x | 60px | 0px | 38px | 0px | - |
-| Bastion | 390x720 | 375x591 → 320x591 | 390x624 → 338x624 | 390x768 → 390x720 | 414x772 → 414x764 | 430x856 → 430x794 | 1280x724 → 392x724 | 1.000x | 60px | 0px | 48px | 0px | - |
+| Iron Wall | 390x720 | 375x591 → 320x591 | 390x624 → 338x624 | 390x768 → 390x720 | 414x772 → 414x764 | 430x856 → 430x794 | 1280x724 → 392x724 | 1.000x | 60px | 0px | 48px | 0px | - |
 | Pyramid | 414x772 | 375x591 → 317x591 | 390x624 → 335x624 | 390x768 → 390x727 | 414x772 → 414x772 | 430x856 → 430x802 | 1280x724 → 388x724 | 0.942x | 60px | 0px | 41px | 0px | - |
 | Golf Solitaire | 414x772 | 375x591 → 317x591 | 390x624 → 335x624 | 390x768 → 390x727 | 414x772 → 414x772 | 430x856 → 430x802 | 1280x724 → 388x724 | 0.942x | 60px | 0px | 41px | 0px | - |
 | Muggins | 414x772 | 375x591 → 317x591 | 390x624 → 335x624 | 390x768 → 390x727 | 414x772 → 414x772 | 430x856 → 430x802 | 1280x724 → 388x724 | 0.942x | 60px | 0px | 41px | 0px | - |
@@ -128,7 +128,7 @@ stars, walkers, lava, reactions) that holds still under reduced motion or reduce
 | Blockfall | 375x591 → 329x591 | 390x624 → 347x624 | 390x768 → 390x701 | 414x772 → 414x744 | 430x856 → 430x773 | 1280x724 → 403x724 | the cabinet's dark navy glow runs on above, beside and below the well, settling to black |
 | Alley Roll | 375x591 → 306x591 | 390x624 → 323x624 | 390x768 → 390x754 | 414x772 → 400x772 | 430x856 → 430x831 | 1280x724 → 375x724 | the alley's warm dark room runs on beside the lane and the scoreboard's wood above, settling darker below |
 | Ricochet | 375x591 → 316x591 | 390x624 → 333x624 | 390x768 → 390x730 | 414x772 → 412x772 | 430x856 → 430x805 | 1280x724 → 387x724 | the temple wall's stone runs on beside the world and a dusk band below it, settling darker towards the screen's bottom |
-| Bastion | 375x591 → 320x591 | 390x624 → 338x624 | 390x768 → 390x720 | 414x772 → 414x764 | 430x856 → 430x794 | 1280x724 → 392x724 | the dusk sky, the field and the stone wall carried out to the sides, the wall settling darker below |
+| Iron Wall | 375x591 → 320x591 | 390x624 → 338x624 | 390x768 → 390x720 | 414x772 → 414x764 | 430x856 → 430x794 | 1280x724 → 392x724 | the dusk sky, the field and the stone wall carried out to the sides, the wall settling darker below |
 
 ## iPhone 11 home-screen app, before and after the 15 Oct 2026 fix
 
@@ -175,7 +175,7 @@ than half hidden; Hover's world is cut the same way, its disc at the top).
 | Full House | 414x724 → 388x724, 64px | 414x772 → 414x772, 16px | world 32px |
 | Five Hands | 414x724 → 388x724, 64px | 414x772 → 414x772, 16px | world 32px |
 | Ricochet | 414x724 → 387x724, 64px | 414x772 → 412x772, 16px | world 32px |
-| Bastion | 414x724 → 392x724, 64px | 414x772 → 414x764, 16px | world 24px |
+| Iron Wall | 414x724 → 392x724, 64px | 414x772 → 414x764, 16px | world 24px |
 | Pyramid | 414x724 → 388x724, 64px | 414x772 → 414x772, 16px | world 32px |
 | Golf Solitaire | 414x724 → 388x724, 64px | 414x772 → 414x772, 16px | world 32px |
 | Muggins | 414x724 → 388x724, 64px | 414x772 → 414x772, 16px | world 32px |
@@ -230,7 +230,7 @@ bottom; the spare space was the game's arena fill or the page colour. Same arith
 | Full House | 367x543 → 291x543 | 382x576 → 309x576 | 382x720 → 382x712 | 422x808 → 422x787 | 1272x676 → 363x676 |
 | Five Hands | 367x543 → 291x543 | 382x576 → 309x576 | 382x720 → 382x712 | 422x808 → 422x787 | 1272x676 → 363x676 |
 | Ricochet | 367x543 → 290x543 | 382x576 → 308x576 | 382x720 → 382x715 | 422x808 → 422x790 | 1272x676 → 361x676 |
-| Bastion | 367x543 → 294x543 | 382x576 → 312x576 | 382x720 → 382x705 | 422x808 → 422x779 | 1272x676 → 366x676 |
+| Iron Wall | 367x543 → 294x543 | 382x576 → 312x576 | 382x720 → 382x705 | 422x808 → 422x779 | 1272x676 → 366x676 |
 | Pyramid | 367x543 → 291x543 | 382x576 → 309x576 | 382x720 → 382x712 | 422x808 → 422x787 | 1272x676 → 363x676 |
 | Golf Solitaire | 367x543 → 291x543 | 382x576 → 309x576 | 382x720 → 382x712 | 422x808 → 422x787 | 1272x676 → 363x676 |
 | Muggins | 367x543 → 291x543 | 382x576 → 309x576 | 382x720 → 382x712 | 422x808 → 422x787 | 1272x676 → 363x676 |
