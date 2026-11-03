@@ -19,6 +19,14 @@
  * Every case also proves the submission left at the solve moment with the time
  * the screen measures there (phase start + prep + limit − solve time).
  *
+ * Timing (3 Nov 2026): every deadline is measured on the page's fake clock (Playwright's
+ * page.clock: Date, timers and animation frames), paused at the solve and stepped 20 ms at a
+ * time, with the page left to render in real time between steps. Until then the windows were
+ * wall-clock milliseconds, and four PRs (#241, #247, #243, #253) failed on a 2-core runner's
+ * timing alone (submissions 156–177 ms against 150, a reveal 332 ms after the verdict against
+ * 250). The ordering assertions are unchanged; the only wall-clock limit left is one generous
+ * ceiling (REAL_SUBMIT_CEILING_MS) that catches a grossly slow submission.
+ *
  *   bun scripts/beat-hold-browser-check.tsx
  */
 import { existsSync, readFileSync } from "node:fs";
@@ -166,19 +174,27 @@ const NO_FINISH = pub("numline", 42);
 /** A no-finish run above the beat's threshold: 130 of 150, scaled to Ballpark's own maximum (173 at 200; roundMax.ts). */
 const NO_FINISH_SCORE = Math.round((130 * roundMaxFor("numline")) / 150);
 const BEAT_END = SIGNATURE_DELAY_MS + SIGNATURE_MS;
-/** Rendering and the 100 ms screen ticker: how far a sample may sit from the exact moment. */
+/**
+ * The 100 ms screen ticker and the 20 ms fake-clock step: how far a sample may sit from the exact
+ * moment, in fake-clock ms (not affected by how fast the runner renders).
+ */
 const SLACK = 250;
+/** One fake-clock step between samples. */
+const STEP_MS = 20;
 /**
  * How far the submission may land from the solve moment (and its msRemaining from the time
- * measured there). Both stamps already come from the page's own Date.now(), so the gap is
- * only the main thread getting from the Stage's onSubmit to the (stubbed) server call:
- * React's state update and render, with the dev server's modules and the beat starting.
- * That is 0-2 ms in practice and 17-25 ms in a room on a dev machine, but a 2-core GitHub runner has measured 53 ms
- * (#54, #56). CI therefore gets 150 ms; locally the tight 50 ms stays. A real regression
- * (the submission held for the beat, or queued behind a timer) shows up as
- * SIGNATURE_DELAY_MS (1,000 ms) or more, which both windows still catch.
+ * measured there), in fake-clock ms. Both stamps come from the page's own Date.now(), which is
+ * paused at the solve, so a submission sent straight from onSubmit lands at 0 however slowly the
+ * runner renders. A real regression (the submission held for the beat, or queued behind a timer)
+ * shows up as a step or more, up to SIGNATURE_DELAY_MS (1,000 ms); 50 ms catches any of them.
  */
-const SUBMIT_WINDOW_MS = process.env.CI === "true" ? 150 : 50;
+const SUBMIT_WINDOW_MS = 50;
+/**
+ * The one wall-clock limit: the stubbed server must see the submission within this long, in real
+ * time, after onSubmit is called (fake clock paused). Only a grossly slow page trips it: twice the
+ * 150 ms CI window the wall-clock version used.
+ */
+const REAL_SUBMIT_CEILING_MS = 300;
 
 const { chromium } = await import("playwright");
 const browser = await chromium.launch({ executablePath: CHROMIUM });
@@ -209,8 +225,10 @@ interface Sample {
   beat: boolean;
 }
 interface Run {
-  /** The solve moment (the Stage's own onSubmit call, or the buzzer). */
+  /** The solve moment (the Stage's own onSubmit call, or the buzzer), fake clock. */
   solveAt: number;
+  /** Real (wall-clock) ms from the onSubmit call until the stubbed server held the submission; null on the buzzer path. */
+  realSubmitMs: number | null;
   /** What the screen should have sent: phase start + prep + limit − solve time. */
   expectedMs: number;
   submissions: { at: number; msRemaining: number }[];
@@ -243,6 +261,8 @@ async function play(opts: {
     deviceScaleFactor: 2,
   });
   const page = await context.newPage();
+  // The fake clock: flowing like the real one until the solve, then paused and stepped.
+  await page.clock.install();
   const errors: string[] = [];
   page.on("pageerror", (e) => errors.push(e.message));
   const type = opts.puzzle.type;
@@ -313,6 +333,34 @@ async function play(opts: {
   }
   await page.waitForSelector("[data-game-stage]", { timeout: 30_000 });
   await page.waitForTimeout(700);
+  // Pause the page's clock: from here on, page time moves only by the steps below.
+  // A little ahead, so the page clock (still flowing) has not passed it; pauseAt jumps there and stops.
+  // On a very slow runner the round trip can outrun the margin: read the clock again with a bigger one.
+  for (let margin = 250; ; margin *= 4) {
+    const pageNow = await page.evaluate(() => Date.now());
+    try {
+      await page.clock.pauseAt(pageNow + margin);
+      break;
+    } catch (e) {
+      if (margin > 60_000 || !String(e).includes("to the past")) throw e;
+    }
+  }
+  /** Let React, the stubbed server's promises and effects run in real time, with page time still. */
+  const settle = () =>
+    page.evaluate(
+      () =>
+        new Promise<void>((done) => {
+          // Two MessageChannel hops: React's scheduler queues its work the same way, so its renders run first.
+          const c = new MessageChannel();
+          let hops = 0;
+          c.port1.onmessage = () => (++hops < 2 ? c.port2.postMessage(0) : done());
+          c.port2.postMessage(0);
+        }),
+    );
+  const step = async () => {
+    await page.clock.runFor(STEP_MS);
+    await settle();
+  };
   // In-page stamps for the tap case: the tap's handling and the board leaving.
   await page.evaluate(() => {
     const w = window as unknown as { __tapAt: number | null; __boardGoneAt: number | null };
@@ -333,6 +381,7 @@ async function play(opts: {
   // exactly as the game calls it when the board is solved.
   let solveAt = 0;
   let stageStart = 0;
+  let realSubmitMs: number | null = null;
   if (!opts.buzzer) {
     const fired = await page.evaluate(() => {
       const host = document.querySelector("[data-game-stage]")!;
@@ -355,9 +404,19 @@ async function play(opts: {
     if (!fired) throw new Error(`${opts.mode} ${type}: no Stage onSubmit under the board`);
     solveAt = fired.at;
     stageStart = fired.start;
+    // The one wall-clock ceiling: with page time paused, how long in real time until the stub holds the submission.
+    const realStart = performance.now();
+    while (performance.now() - realStart < REAL_SUBMIT_CEILING_MS * 4) {
+      await settle();
+      const count = await page.evaluate(
+        () => (window as unknown as { __harness: { submissions: unknown[] } }).__harness.submissions.length,
+      );
+      if (count > 0) break;
+    }
+    realSubmitMs = performance.now() - realStart;
   }
 
-  // Sample the screen every ~40 ms for 2.6 s from the solve (or the buzzer).
+  // Sample the screen every fake-clock step for 2.6 s from the solve (or the buzzer).
   const samples: Sample[] = [];
   const read = () =>
     page.evaluate(() => {
@@ -373,16 +432,16 @@ async function play(opts: {
       };
     });
   if (opts.buzzer) {
-    // Wait for the buzzer's own submission (the timeout path).
-    for (let i = 0; i < 100; i++) {
+    // Step page time to the buzzer's own submission (the timeout path).
+    for (let i = 0; i < 400; i++) {
       if ((await read()).submissions > 0) break;
-      await page.waitForTimeout(40);
+      await step();
     }
   }
   let tapped = false;
-  const until = Date.now() + 2600;
-  while (Date.now() < until) {
+  for (;;) {
     const s = await read();
+    if (solveAt && s.now - solveAt > 2600) break;
     if (opts.buzzer && !solveAt) {
       solveAt = await page.evaluate(
         () => (window as unknown as { __harness: { submissions: { at: number }[] } }).__harness.submissions[0]!.at,
@@ -392,8 +451,9 @@ async function play(opts: {
     if (opts.tapAfter !== undefined && !tapped && s.now - solveAt >= opts.tapAfter) {
       tapped = true;
       await page.touchscreen.tap(195, 400);
+      await settle();
     }
-    await page.waitForTimeout(40);
+    await step();
   }
   const state = await page.evaluate(() => {
     const h = (window as unknown as {
@@ -409,6 +469,7 @@ async function play(opts: {
   const released = samples.find((s) => (opts.mode === "practice" ? !s.board : s.dim));
   return {
     solveAt,
+    realSubmitMs,
     expectedMs: opts.buzzer ? 0 : startMs + prep + limit - solveAt,
     submissions: state.submissions,
     verdictAt: state.verdictAt,
@@ -421,7 +482,10 @@ async function play(opts: {
 
 function submittedAtSolve(tag: string, run: Run) {
   const sub = run.submissions[0];
-  if (sub) console.log(`     ${tag}: submission ${sub.at - run.solveAt} ms after the solve (window ${SUBMIT_WINDOW_MS} ms)`);
+  if (sub)
+    console.log(
+      `     ${tag}: submission ${sub.at - run.solveAt} ms after the solve on the page clock (window ${SUBMIT_WINDOW_MS} ms)${run.realSubmitMs === null ? "" : `, ${Math.round(run.realSubmitMs)} ms real (ceiling ${REAL_SUBMIT_CEILING_MS} ms)`}`,
+    );
   ok(run.submissions.length === 1, `${tag}: one submission (${run.submissions.length})`);
   if (!sub) return;
   ok(
@@ -432,6 +496,11 @@ function submittedAtSolve(tag: string, run: Run) {
     Math.abs(sub.msRemaining - run.expectedMs) <= SUBMIT_WINDOW_MS,
     `${tag}: submitted time unchanged (${sub.msRemaining} ms vs ${run.expectedMs} ms measured at the solve)`,
   );
+  if (run.realSubmitMs !== null)
+    ok(
+      run.realSubmitMs <= REAL_SUBMIT_CEILING_MS,
+      `${tag}: the submission reached the server within ${REAL_SUBMIT_CEILING_MS} ms of real time (${Math.round(run.realSubmitMs)} ms)`,
+    );
 }
 
 function held(tag: string, mode: "practice" | "room", run: Run) {
