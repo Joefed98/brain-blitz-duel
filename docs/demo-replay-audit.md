@@ -173,7 +173,68 @@ demo; a stopped demo's intro shows its still (also proved there, as the no-demo 
 - **Quiz-style picks**: Operator, Tally, Eagle Eye, Double Take (a per-pick view with times).
 - **Word games**: Nucleus and Forage (a timed word log; Forage's traced paths).
 
-## Demos still needed
+## Re-record list (3 Nov 2026)
+
+One list of every game whose intro demo is stopped, never recorded, or out of date after the October and November
+batches, with the stamp a new demo must be recorded on (what rooms deal today). Nothing here was recorded; this is the
+list for later. "Stopped" means `introDemo.functions.ts` refuses any older demo, so the intro shows the game's still until
+one is recorded on that stamp. "Out of date" means no rule stops an older demo, so a demo recorded before the change
+would still play and show the old rules: record a new one and add a stop rule for the stamp at the same time. "None
+yet" means the game has never had a demo (its intro shows the still).
+
+| Game (id) | Record on | Why |
+|---|---|---|
+| Labyrinth (`maze`) | `mazeRev 4` | Out of date: the par-moves batch (3 Nov) took the stars and gems away; no stop rule for `mazeRev` |
+| Topsy-Turvy (`gravity`) | `gravityRev 6` | Out of date: the rule lets `gravityRev 4`/`5` demos play, which still collect stars |
+| Skid (`iceslide`) | `slideRev 3` | Out of date: the depth-4 rule lets a `slideRev 2` demo play, which still shows gems |
+| Apex (`racing`) | `racingRev 3` | None yet (start lights since rev 2, corner signs and gravel since rev 3) |
+| Home Run (`homerun`) | `homerunRev 4` | None yet ("pick your spot" since 3 Nov) |
+| Cue Ball (`pool`) | `poolRev 4` | None yet (spots or stripes, 90 s since 3 Nov) |
+| Ringer (`alleyroll`) | `alleyRollRev 2` | None yet (the funfair alley since 3 Nov) |
+| Iron Wall (`bastion`) | `bastionRev 3` | Stopped (`BASTION_REV_DEALT`); none yet |
+| Wavefront (`wavefront`) | `wavRev 12` | Stopped (`WAV_REV_STD`); the 3 Nov ships are display only, so a `wavRev 12` demo draws them |
+| Moon Climb (`ricochet`) | `ricoRev 3` | None yet (`MOON_REV`; no demo was ever recorded on `ricoRev 2` either) |
+| Blockzone (`blockfall`) | `blockfallRev 2` | None yet (gestures only, 90 s since 3 Nov) |
+| Jaywalk (`cross`) | `crossRev 11` | Stopped (`CROSS_REV_FLOW`) |
+| Tilt (`tilt`) | `tiltRev 11` | Stopped (`TILT_REV_PAR`) |
+| Roofbound (`flip`) | `flipRev 11` | Stopped (`FLIP_REV_FLOW`) |
+| Curl Champ (`curling`) | `curlRev 4` | None yet (the power bar since 3 Nov) |
+| Top Bins (`freekick`) | `freekickRev 4` | None yet (the drawn shot since 3 Nov) |
+| Grappler (`swing`) | `swingRev 17` | Stopped (`SWING_REV_SLIDE`) |
+| Rainbow Bridge (`inkbridge`) | `inkRev 13` | Stopped (`INK_REV_CLOVER`) |
+| Orbit (`orbit`) | `orbitRev 14` | Stopped (`ORBIT_REV_FUEL`) |
+| Meteor (`snake`) | `snakeRev 12` | Stopped (`SNAKE_REV_12`) |
+| Gemstone (`matchup`) | `matchupRev 12` | Stopped (`MATCHUP_REV_SIX`) |
+| Fission (`burst`) | `burstRev 10` | Stopped (`BURST_REV_STD`) |
+| Breaker (`breaker`) | `brkRev 11` | Stopped (`BRK_REV_STD`) |
+| Slice (`slice`) | `sliceRev 11` | Stopped (`SLICE_REV_STANDARD`) |
+| Hover (`hover`) | `hoverRev 10` | Stopped (`HOVER_REV_STANDARD`) |
+| Rally (`rally`) | `rallyRev 12` | Stopped (`RALLY_REV_STD`) |
+| Flightpath (`bullseye`) | `bullRev 9` | Stopped (`BULLSEYE_REV_STD`) |
+| Tempo (`beat`) | `beatRev 11` | Stopped (`BEAT_REV_STD`) |
+| Coral Pop (`bubble`) | `bubbleRev 11` | Stopped (`BUB_REV_STD`) |
+| High Rise (`skyline`) | `skylineRev 9` | Stopped (`SKYLINE_REV_STD`) |
+| Swish (`bintoss`) | `binRev 9` | Stopped (`BINTOSS_REV_STD`) |
+| Pinball (`pinball`) | `pinRev 6` | Stopped (`PIN_REV_STD`) |
+| Ball Tracker (`balltrack`) | `btRev 8` (7 also plays) | Stopped unless on `btRev` 7 or 8 |
+| Pull! (`clayshoot`) | `clayRev 9` | Stopped (`CLAY_REV_DEPTH`) |
+| Bonk (`whack`) | `whackRev 4` | Stopped (`WHACK_REV_NOTES`) |
+| Mixed Signals (`stroop`) | `clashRev 10` | Stopped, and the rule needs updating: it plays only `clashRev 8` (`CLASH_REV_DEPTH`), but rooms deal the standard's `clashRev 10`, so a demo recorded today would never play |
+| Strikeout (`strikeout`) | `strikeoutRev 7` | Stopped, and the rule needs updating: it plays only `strikeoutRev 4` (`STRIKEOUT_REV4`), but rooms deal the standard's `strikeoutRev 7` |
+| Gradient (`tiles`) | `tilesRev 6` | Out of date: the rule lets `tilesRev 4`/`5` demos play (`tilesRev 6` changed only the speed part, so a 4/5 demo plays the same board; re-record only if its score line matters) |
+| Loopline, Regions, Island Link, Kakuro (`fences`, `fillomino`, `bridges`, `kakuro`) | `fencesRev` / `fillominoRev` / `bridgesRev` / `kakuroRev` 1 | None yet |
+| Five Hands (`fivehands`) | `fiveHandsRev 3` | None yet |
+| Free Cell (`freecell`) | `freecellRev 4` | None yet |
+| Summit (`tripeaks`) | `tripeaksRev 2` | None yet |
+| Thirteen (`pyramid`) | `pyramidRev 1` | None yet |
+| Crazy Golf (`minigolf`) | `golfRev 2` | None yet |
+| Minefield, Mahjong Solitaire (`minesweeper`, `mahjong`) | `minesRev 1`, `mahjongRev 2` | None yet |
+
+Each "stopped" row's stamp is the rule's constant, read from the code on 3 Nov 2026 (every one equals the stamp rooms deal
+today except Mixed Signals and Strikeout). Whether a matching demo is already saved is in the database, not the repo: the
+query in "Recorded demos" above answers it for any row.
+
+## Demos still needed (23 Oct 2026; superseded by the re-record list above)
 
 Games whose intro shows only the still until a demo is recorded on today's revision. Puzzle games
 first; within them, "stopped" ones are certain, the rest depend on the query above.

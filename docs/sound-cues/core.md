@@ -41,10 +41,10 @@ replacement would need to be locked to the chart's ticks, which is more than a f
 | `round5` | round title | Voice "Round five" | 1 per round | 1569 ms |
 | `round6` | round title | Voice "Round six" | 1 per round | 1553 ms |
 | `round7` | round title | Voice "Round seven" (seven-round rooms) | 1 per round | 1716 ms |
-| `round8` | round title | Voice "Round eight" (rooms of 9–12 rounds; Joe's recording, 3 Nov 2026) | 1 per round | 1933 ms |
-| `round9` | round title | Voice "Round nine" | 1 per round | 2116 ms |
-| `round10` | round title | Voice "Round ten" | 1 per round | 2038 ms |
-| `round11` | round title | Voice "Round eleven" (round 12 is always the last: `finalRound`) | 1 per round | 2220 ms |
+| `round8` | round title | Voice "Round eight" (rooms of 9–12 rounds; Joe's recording, 3 Nov 2026) | 1 per round | 2788 ms |
+| `round9` | round title | Voice "Round nine" | 1 per round | 2988 ms |
+| `round10` | round title | Voice "Round ten" | 1 per round | 2847 ms |
+| `round11` | round title | Voice "Round eleven" (round 12 is always the last: `finalRound`) | 1 per round | 3101 ms |
 | `finalRound` | round title | Voice "Final round" | 1 per room | 2110 ms |
 | `roundTaken` | round result, results table | Voice: you took the round | 0–1 | 1801 ms |
 | `roundLost` | round result | Voice: you lost the round | 0–1 | 1801 ms |
@@ -57,11 +57,11 @@ replacement would need to be locked to the chart's ticks, which is more than a f
 | `voice.tie` | round result, results table, podium, final result | Voice "Tie": a tied round for the players sharing the top score, a shared first place, a draw | 0–1 | 2886 ms |
 | `voice.youWin` | podium, final result | Voice "You win" for the winner, in place of `gg` | 0–1 per room | 2823 ms |
 | `voice.rematch` | room (duel.$code) | Voice "Rematch" when Play again reopens a finished room, for every player in it | 0–1 per room | 2594 ms |
-| `voice.newBest` | reveal (NewBestMoment, ArcadeReveal) | Voice "New best": practice's reveal when the run beat an earlier best, or a room's arcade reveal beating this device's best for the game (3 Nov 2026; `queueVoice`, never over another line) | 0–1 | 2482 ms |
-| `voice.photoFinish` | podium, final result | Voice "Photo finish": the room's top two totals 1–5 points apart at the end (`isPhotoFinish`; only there, Joe's decision), after the end line | 0–1 per room | 2194 ms |
-| `voice.newLeader` | standings | Voice "New leader": first place changed hands after this round (`isNewLeader`) | 0–1 per round | 1881 ms |
-| `voice.cleanSweep` | podium, final result | Voice "Clean sweep": one player had the sole top score in every round (`cleanSweepSlot`), after the room's end line | 0–1 per room | 2220 ms |
-| `voice.draw` | podium, final result | Voice "Draw": first place shared at the room's end (in place of `voice.tie` there; queued after "GG" for everyone else) | 0–1 per room | 2090 ms |
+| `voice.newBest` | reveal (NewBestMoment, ArcadeReveal) | Voice "New best": practice's reveal when the run beat an earlier best, or a room's arcade reveal beating this device's best for the game (3 Nov 2026; `queueVoice`, never over another line) | 0–1 | 3275 ms |
+| `voice.photoFinish` | podium, final result | Voice "Photo finish": the room's top two totals 1–5 points apart at the end (`isPhotoFinish`; only there, Joe's decision), after the end line | 0–1 per room | 3155 ms |
+| `voice.newLeader` | standings | Voice "New leader": first place changed hands after this round (`isNewLeader`) | 0–1 per round | 2838 ms |
+| `voice.cleanSweep` | podium, final result | Voice "Clean sweep": one player had the sole top score in every round (`cleanSweepSlot`), after the room's end line | 0–1 per room | 3110 ms |
+| `voice.draw` | podium, final result | Voice "Draw": first place shared at the room's end (in place of `voice.tie` there; queued after "GG" for everyone else) | 0–1 per room | 2802 ms |
 | `arc_blaster` | Wavefront | The shared shot sound `wavefront.fire` falls back to if its own file fails to load | 0 (stand-in) | 140 ms |
 | `arc_leaf_collect` | Scrumper, Tilt | The shared sound `snip.star` and `tilt.starTaken` fall back to if their own files fail to load | 0 (stand-in) | 840 ms |
 | `arc_ketchup` | Slice | The shared sound `slice.frenzyStart` falls back to if its own file fails to load | 0 (stand-in) | 230 ms |
