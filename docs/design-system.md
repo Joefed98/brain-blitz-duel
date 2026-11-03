@@ -482,7 +482,9 @@ Presentation only; review shots `bun scripts/shots/tab-refresh-shots.ts --tag=af
   home-bar strips. Panels on it (the chart's) are dark glass (`rgba(10, 10, 14, 0.72)`).
 - No app top bar: the reveal's header row (`data-reveal-head`) carries the game's name, Practice / Round n of N
   and the sound button. Everything else is as before (the one-line breakdown with tap to open, the parts card).
-- The arcade chart ("Who's ahead") is a snake in four bands of 50 on one 0–200 axis for every game: thin band
-  lines at 50, 100 and 150, labels 0 / 50 / 100 / 150 / 200 down the left (`arcadeChart.ts`), taking the freed
-  height (up to 360 px spread over the bands). reveal-palette-check, arcade-chart-check and room-extras-check
+- The arcade chart ("Who's ahead") is a snake in four rows on one 0–200 axis for every game, each row a band of 50
+  and each bend the boundary (`arcadeChart.ts`): no lines across the chart; small, quiet labels (13 px, 62 %
+  opacity, no backing): 0 at the snake's start and 200 at its end (both left), 50 and 150 beside the middle of the
+  right-hand bends, 100 beside the left-hand bend; a score of exactly 50, 100 or 150 puts its dot on that bend. It
+  takes the freed height (up to 360 px spread over the rows). reveal-palette-check, arcade-chart-check and room-extras-check
   prove it.

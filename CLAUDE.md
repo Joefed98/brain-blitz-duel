@@ -1325,8 +1325,9 @@ outside the repo.
   backdrop and scrim are gone), no app top bar (the reveal's header row has the sound button), a gradient in the
   game's own colours from its tile (`revealPalette.ts`, `revealPalette.data.ts` by `bun scripts/reveal-palette.ts`,
   every stop at least 7:1 under white text; **re-run it after re-exporting a tile**). The arcade chart is a snake in
-  four 50-point bands on one 0–200 axis (thin lines at 50/100/150, labels 0–200 down the left; `arcadeChart.ts`
-  `CHART_ROW_COUNT`), taller (up to 360 px spare). *Categories*: High Rise back in Action, Bomb Defusal an Attention
+  four rows on one 0–200 axis, each row a band of 50 and each bend the boundary (`arcadeChart.ts` `CHART_ROW_COUNT`,
+  `chartOnBend`): no lines across, quiet labels, 0 and 200 at the snake's left ends, 50 and 150 by the right bends,
+  100 by the left one, exactly 50/100/150 on the bend; taller (up to 360 px spare). *Categories*: High Rise back in Action, Bomb Defusal an Attention
   puzzle, and games in two categories (`src/lib/duel/alsoIn.ts`: a main category for counts, colours and the border;
   "also in" lists the game in one more Practice section and room pool, only when its main pick isn't also chosen,
   so Mixed counts Pull! once under Speed; `dealRoomRounds` never deals a game twice). Pull! (Speed) is also in
