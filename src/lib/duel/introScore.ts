@@ -154,7 +154,7 @@ function introScoreTemplates(): Record<PuzzleType, string> {
     snip: "Points for fruit fed and leaves; golden apples, few cuts and speed add more. Up to {max}.",
     swing: `90 s. Distance along the course (140), pars (30), gates, gems and stars (30): up to {max}.`,
     // tiltRev 11 (3 Nov 2026): no gold stars; par times and a clean run.
-    tilt: `${TILT_P_MAZE_POINTS + TILT_P_PROGRESS_POINTS} a maze, +${TILT_P_PAR_POINTS} each under par, clean run ${TILT_P_CLEAN_POINTS}. All ${TILT_S_MAZES} quickly: up to {max}.`,
+    tilt: `${TILT_P_MAZE_POINTS + TILT_P_PROGRESS_POINTS} a maze, +${TILT_P_PAR_POINTS} a maze beaten in time, clean run ${TILT_P_CLEAN_POINTS}. All ${TILT_S_MAZES} quickly: up to {max}.`,
     balltrack: `Marbles home 140; gold, boosted and in-a-row marbles add 60: they total up to {max}.`,
     swerve: arcadeOpen("each coin you collect"),
     dual: "The longer both runners survive, the more you score. The full minute is {max}.",
