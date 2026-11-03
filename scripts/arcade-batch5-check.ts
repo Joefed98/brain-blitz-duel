@@ -80,7 +80,7 @@ import {
 } from "../src/lib/arcade/binToss";
 import { encodeBinTossRun, replayBinTossRun } from "../src/lib/duel/binToss";
 import { BINTOSS_REV_EXPAND } from "../src/lib/arcade/binToss";
-import { generateBeat, generateBinToss, generateBullseye, generateInkBridge, generateOrbit, generateRally, pinOrbitPreFuel } from "../src/lib/duel/arcade.server";
+import { generateBeat, generateBinToss, generateBullseye, generateInkBridge, generateOrbit, generateRally, pinInkPreClover, pinOrbitPreFuel } from "../src/lib/duel/arcade.server";
 import { orbitCheckpoint, ORBIT_INPUT_CHECKPOINT, ORBIT_INPUT_TAP, ORBIT_REV4, ORBIT_REV_SWEPT, ORBIT_REV_TUNED, ORBIT_REV_STD, ORBIT_TOTAL } from "../src/lib/arcade/orbit";
 import { decodeOrbitHoles, decodeRev3Planets, initRev4From, orbitRev3Game, ORBIT_REV3_WORLD_W, type OrbitRev3State } from "../src/lib/arcade/orbitRev3";
 import { ORBIT_HOLE_BANK } from "../src/lib/duel/orbitHoleBank.server";
@@ -317,7 +317,10 @@ if (want("inkbridge")) {
   section("Rainbow Bridge inkRev 4 (optional gold stars)");
   const game = inkBridgeGameFor(INK_REV4);
   // Rooms dealt rev 4 play (inkRev 6 to 8) until x200 moved them on to inkRev 10 (ink-x200-check).
+  // inkRev 13 (Nov 2026: clovers, ink par, more birds; ink-v13-check) moved rooms on: pinned, the deal before it.
+  const wasInk = pinInkPreClover(true);
   ok(playRevOf("inkbridge", generateInkBridge().inkRev) === INK_REV_SPREAD && playRevOf("inkbridge", INK_REV_STRICT) === INK_REV_TUNEC, "rooms deal inkRev 11's play (phone notes, on x200's inkRev 10 world; inkRev 12 re-scores it on the arcade standard); inkRev 8 kept rev 4 play on the score bands (Tuning C curve)");
+  pinInkPreClover(wasInk);
   ok(inkBridgeGameFor(INK_REV3).init(5).stars === undefined, "rev-3 rounds have no stars");
   const seeds = SEEDS(Number(process.env.BATCH5_INK_SEEDS ?? 12), 7919);
   for (const seed of seeds) {

@@ -2388,6 +2388,8 @@ function gradeUnderRev(
         starLevels: run.starLevels,
         // inkRev 10 (x200): trick shots, silver coins and the shamrock (older rounds store none of these).
         ...(run.cloudLevels ? { tricks: run.tricks, cloudLevels: run.cloudLevels, silver: run.silver, silverTotal: run.silverTotal, shamrock: run.shamrock } : {}),
+        // inkRev 13: the clovers on offer (the potted ones are `shamrock`) and the levels potted within their ink par.
+        ...(run.cloverTotal ? { cloverTotal: run.cloverTotal, parLevels: run.parLevels } : {}),
         endedSeconds: run.endedSeconds,
         flagged: run.flagged,
         clientLag: run.clientLag,

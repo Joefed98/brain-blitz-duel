@@ -1,6 +1,6 @@
 /**
- * Room identity, Rainbow Bridge inkRev 12 (what rooms deal since the arcade scoring standard, 29 Oct 2026: inkRev 11's
- * play, the phone notes of 27 Oct 2026; inkRev 11 and inkRev 10, x200, by
+ * Room identity, Rainbow Bridge inkRev 13 (what rooms deal since Nov 2026: clovers, ink par, more birds; inkRev 12, the
+ * arcade scoring standard of 29 Oct 2026, inkRev 11 and inkRev 10, x200, by
  * passing its rev): what the seed deals, as a given input log sees it.
  *
  * Every level of a Rainbow Bridge run, with its birds, pot, clouds, wind zone, ink star, silver coins and the
@@ -11,7 +11,7 @@
  * Two different logs on the same seed must therefore give the same list.
  */
 import type { ArcadeInputEvent } from "../../src/lib/arcade/engine";
-import { inkBridgeGameFor, INK_REV_STD, type InkLevel, type InkState } from "../../src/lib/arcade/inkBridge";
+import { inkBridgeGameFor, INK_REV_CLOVER, type InkLevel, type InkState } from "../../src/lib/arcade/inkBridge";
 import { inkOracleRun } from "../ink-x200-oracle";
 import { bot } from "../arcade-skill-bands/bots/inkbridge";
 import { Human } from "../arcade-skill-bands/human";
@@ -28,6 +28,8 @@ function featuresOf(lvl: InkLevel, i: number): { t: number; what: string }[] {
   if (lvl.star) out.push({ t: 0, what: `${L} ink star ${lvl.star.x},${lvl.star.y}` });
   for (const s of lvl.silver ?? []) out.push({ t: 0, what: `${L} silver ${s.x},${s.y}` });
   if (lvl.shamrock) out.push({ t: 0, what: `${L} shamrock ${lvl.shamrock.x},${lvl.shamrock.y}` });
+  // inkRev 13: the level's ink par (its clovers are the shamrock art, listed above).
+  if (lvl.inkPar !== undefined) out.push({ t: 0, what: `${L} ink par ${lvl.inkPar}` });
   return out;
 }
 
@@ -49,10 +51,10 @@ export function scheduleOf(seed: number, rev: number, events: unknown): { t: num
 }
 
 /** A few very different logs for a seed: idle, random inputs, a weak bot, an elite bot and the perfect run. */
-function logs(seed: number, rev: number = INK_REV_STD): ArcadeInputEvent[][] {
+function logs(seed: number, rev: number = INK_REV_CLOVER): ArcadeInputEvent[][] {
   const game = inkBridgeGameFor(rev);
   const play = (level: "weak" | "elite") => bot({ game, seed, rev, human: new Human("inkbridge", seed, level) }).events ?? [];
   return [[], randomInkLog(rev, seed), play("weak"), play("elite"), inkOracleRun(seed, rev).events];
 }
 
-export const roomIdentity = { type: "inkbridge", rev: INK_REV_STD, scheduleOf, logs };
+export const roomIdentity = { type: "inkbridge", rev: INK_REV_CLOVER, scheduleOf, logs };

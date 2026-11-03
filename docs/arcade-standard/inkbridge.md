@@ -1,6 +1,6 @@
-# Rainbow Bridge on the arcade scoring standard (inkRev 12, 29 Oct 2026)
+# Rainbow Bridge on the arcade scoring standard (inkRev 12, 29 Oct 2026; inkRev 13, Nov 2026)
 
-Rooms deal **`inkRev 12`**. Play is inkRev 11's exactly (Joe's phone notes, 27 Oct 2026: no wind, two silver coins a
+Rooms deal **`inkRev 13`** since Nov 2026 (its section is at the end). Until then rooms dealt **`inkRev 12`**. Play is inkRev 11's exactly (Joe's phone notes, 27 Oct 2026: no wind, two silver coins a
 level, the pickups spread out): an inkRev 12 state is inkRev 11's plus `std: 1`, which is outside the checkpoint
 checksum, so an inkRev 11 input log replays tick for tick on inkRev 12. Only the score changed. inkRev 11 and every
 older stamp replay and score exactly as before (ink-v11-check, ink-x200-check and the legacy checks).
@@ -83,3 +83,105 @@ The medians rise at every level, with clear gaps at the top (178 → 190 → 200
 
 `scripts/fixtures/replay-runs.json` needs a stored inkRev 12 run (replay-check reports "no stored run on the revision
 rooms stamp today" until then) and `practiceStamps.data.ts` needs `inkRev=12`.
+
+# inkRev 13 (Nov 2026): clovers, ink par, more birds
+
+Joe's brief: remove the ink stars and silver coins; keep an occasional clover (the shamrock art), placed off the easiest
+line and worth a small fixed amount; a new feature, ink par, paid for potting a level within the level's par; more birds
+now the screen is clearer; rebalance to 200 and the skill-band targets. Rooms deal **`inkRev 13`** (`INK_REV_CLOVER`,
+one above inkRev 12). inkRev 12 and every older stamp build, replay and score exactly as before (ink-v13-check replays
+inkRev 12 runs and inkRev 10–12 level digests recorded on main; ink-v11-check and ink-x200-check pass unchanged in what
+they prove). Code: the end of `src/lib/arcade/inkBridge.ts` (`INK_V13_STD`, `inkV13Score`, `inkBridgeCloverGame`) and
+`buildLevelsRev10` with `INK_SPEC_13`.
+
+## What changed in play (inkRev 13 only)
+
+- **No ink stars, no silver coins, no wind.** The levels are inkRev 11's world (674 tall, the same gravity, clouds,
+  moving pots and live levels).
+- **Two clovers a run** (`INK_V13_CLOVERS`), on two seeded levels of 1–8 (the first is inkRev 11's shamrock level, the
+  second drawn after it). A clover sits where inkRev 11 put the level's ink star: the point of the level's proved bonus
+  line farthest from the easy route (at least 52 px off it on a plain level, `INK_V11_STAR_OFF_ROUTE`; the top of the
+  bounce, at least 40 px off, on a cloud level), so it is proved exactly as a star was (`staticProof`, the same pickup
+  circle). It counts once the coin is potted, as before.
+- **More birds** (`INK_V13_EXTRA_BIRDS` = 0, 1, 1, 2, 2, 2, 2, 2, 1, 1 by level): the warm-up level keeps its count, the
+  others gain one or two (live levels one), and a level is never thinned to fewer than one more than its base count while
+  layouts are tried. Measured on 20 seeds: 37.2 birds a run on inkRev 12, 55.8 on inkRev 13 (per level 3.0, 4.0, 5.0,
+  5.4, 5.3, 6.3, 6.2, 7.0, 6.8, 6.9). All from the seed, the same for everyone.
+- **Ink par** on every level (`InkLevel.inkPar`, px): the ink of the line the level's proof plays (the bonus line on a
+  cloud or clover level, else the easy line, whichever is longer; on a live level the pre-release line plus the
+  hand-drawn live stroke), drawn as a phone draws it, plus `INK_V13_PAR_MARGIN_PCT` (10 %), never more than the level's
+  ink (it never comes to that: the par is at most 1.1 × inkRev 10's ink, the budget 1.25 ×). The HUD shows it beside the ink meter as **"Ink 84 / par 90"** (red once over par; it takes the fail dots' place).
+  A potted level earns ink-par credit per mille (`inkParCredit`): 1000 within par, a straight line down to 0 at twice
+  par. Undo gives ink back, so only the potted attempt's ink counts.
+- **A quarter more ink** on every level (`inkBudgetFor`: inkRev 10's ink × 5 / 4; live levels' shared supply likewise),
+  so every ink par sits inside the level's ink and a wasteful line can go over it (with inkRev 12's ink, a bonus line's
+  par plus its margin often reached the whole budget). Levels are still proved within inkRev 10's ink.
+- **A failed drop never ends the run** (it clears the lines and costs time; the clock ends the run). inkRev 12 ended
+  the run at three failed drops; with more birds the weaker players would have stopped after two levels.
+- **The 0-undrawable guarantee holds**: generation keeps a layout only when its proofs pass (every level's easy line
+  holds for a hand and the coin never pots unaided; a cloud or clover level's bonus line pots, bounces, takes the
+  clover; a live level's hand-drawn stroke pots, also 5 ticks late). ink-v13-check proves it on five tuning and fresh
+  seeds; a sweep of 160 seeds (0–119, 10000–10039) found no level failing and every run with exactly 2 clovers and 4
+  cloud levels.
+- Trick shots are kept as they were (the brief did not mention them): a pot after bouncing off one of the run's four
+  clouds.
+
+## The parts (sum 200)
+
+| Part | Max | How it counts |
+| --- | ---: | --- |
+| Levels (core) | 120 | 12 a level potted, 10 levels (a fixed maximum): `stdLine(120, levels, 10)`. |
+| Ink par | 30 | 3 a level potted within its par: `stdLine(30, credit, 10 000)` over the per-mille credit. |
+| Trick shots | 20 | 5 each of 4. |
+| Clovers | 10 | 5 each of 2 (a small fixed amount). |
+| Speed | 20 | Only with all ten levels potted: full with 50 s left, 0 at the buzzer, a straight line between. |
+
+Core 120 + features 80 = 200. Nothing costs points. No input scores 0; any input at least 1. Earning a feature never
+costs core (features count only on a potted level). LIVE_BANDS lists inkRev 13 with `INK_V13_BAND_CURVE` (12 a
+level), as inkRev 12 was listed (the help reads the band curve and `stdFeaturesHelp`); the help says "A good run (100 points) pots 9 levels". Intro line: "Levels 120; little ink 30,
+tricks 20, clovers 10. All 10 levels quickly: up to 200." (83 characters; intro lines avoid the word "par",
+intro-score-text-check).
+
+The maximums were fitted on the bots' runs (`bun scripts/ink-v13-bands.ts`, which re-scores saved rows with `--fit`):
+moving points from the core to speed and trick shots lowers the near-perfect median but lowers the elite one as much
+(the near-perfect and elite bots differ mainly in one clover and ten seconds), so 120 / 30 / 20 / 10 / 20 with speed
+full at 50 s is the closest to the targets that keeps elite in 185–195.
+
+## Perfect run
+
+The oracle (`scripts/ink-x200-oracle.ts`, rev 13 branch) draws each level's proved line (the bonus line on a cloud or
+clover level, else the easy line) and the live levels' hand-drawn strokes, all within par: 200 through the server replay
+on every seed tried (12 tuning seeds in the tool, five in ink-v13-check, three in arcade-standard-check). The skill-band
+tool's flawless bot plays the same proved lines on inkRev 13 (a flawless player's knowledge): median 200 on both seed sets, lowest 197 (a moving-pot release moment it misjudges by a tick or two).
+
+## Bots
+
+`scripts/arcade-skill-bands/bots/inkbridge.ts`, on inkRev 13 only: a level's bonus line is tried where it takes
+something (a cloud's trick shot or a clover), whatever the fails so far (they no longer end the run); a pot line within
+the HUD's ink par (planned length at most 95 % of par) counts for `PAR_CARE` more when the player picks a line (weak 0,
+average 0.5, good 1, great 1.5, near 2, elite 2.5 wobbles); the flawless player draws the level's proved lines.
+
+## Skill bands, before → after
+
+`bun scripts/arcade-skill-bands.ts inkbridge --rev=now --levels=all --seeds=30` (paired seeds, every run through the
+server replay; before = inkRev 12 on main, after = inkRev 13):
+
+| Level | Target | Tuning seeds 0–29 | Fresh seeds 10000–10029 | Levels potted (after) |
+| --- | --- | --- | --- | --- |
+| Weak | 30–60 | 28 → 58 (28–75) | 28 → 56 (28–74) | 4 |
+| Average | about 90 | 31 → 89 (58–122) | 43 → 88 (71–105) | 6 |
+| Good | 120–140 | 52 → 121 (89–157) | 56 → 119 (72–150) | 8 |
+| Great | about 160 | 110 → 163 (136–175) | 118 → 162 (143–171) | 10 |
+| Near-perfect | about 175 | 179 → 180 (172–193) | 178 → 181 (169–195) | 10 |
+| Elite | 185–195 | 190 → 188 (179–200) | 193 → 195 (187–200) | 10 |
+| Flawless | 200 | 200 → 200 | 200 → 200 | 10 |
+
+Every target is met but two, narrowly: near-perfect sits about 5–6 above "about 175" (180–181), and good on the fresh
+seeds is 119 (one under 120). The gap from near-perfect to elite is 8 on the tuning seeds and 14 on the fresh ones.
+Finished runs (all ten levels): good 8 / 30 and 5 / 30, great 24 / 30 and 26 / 30, near-perfect 29 / 30 on both.
+
+## Left for the coordinator
+
+`scripts/fixtures/pending-replay-run-inkbridge.json` is one inkRev 13 run for `scripts/fixtures/replay-runs.json`
+(replay-check reports "no stored run on the revision rooms stamp today" until it is appended), and
+`practiceStamps.data.ts` needs `inkRev=13`. The intro demo stays stopped until one is recorded on inkRev 13.

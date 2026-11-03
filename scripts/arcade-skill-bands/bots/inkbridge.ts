@@ -42,6 +42,7 @@ import {
   INK_WORLD_H,
   INK_WORLD_W,
   inkX,
+  INK_REV_CLOVER,
   inkIsLive,
   inkPhoneLine,
   inkFeatureRaw,
@@ -69,6 +70,13 @@ const STAR_GO: Record<SkillLevel, number> = { weak: 0, average: 0.1, good: 0.35,
 const BONUS_GO: Record<SkillLevel, number> = { weak: 0.05, average: 0.1, good: 0.3, great: 0.6, near: 0.85, elite: 1, perfect: 1 };
 const BONUS_MIN_REL: Record<SkillLevel, number> = { weak: 8, average: 8, good: 8, great: 8, near: 7, elite: 7, perfect: 0 };
 const BONUS_MIN_REL_V1: Record<SkillLevel, number> = { weak: 6, average: 6, good: 5, great: 5, near: 4, elite: 4, perfect: 0 };
+/**
+ * inkRev 13: how much a pot line within the level's ink par (its planned length at most PAR_ROOM × par, a margin for the
+ * hand's wobble) counts for when the player picks a line (added to its steadiness, of PROBES2 wobbles): a weak player
+ * doesn't look at the par, the best weigh it like a wobble or two.
+ */
+const PAR_CARE: Record<SkillLevel, number> = { weak: 0, average: 0.5, good: 1, great: 1.5, near: 2, elite: 2.5, perfect: 3 };
+const PAR_ROOM = 0.95;
 /** INK_BOT_FEATURES=0: nobody goes for the bonuses. */
 const FEATURES = process.env.INK_BOT_FEATURES !== "0";
 /** The ideal live ramp is worked out for a hand that starts this many ticks after RELEASE. */
@@ -347,7 +355,9 @@ export function simulate(game: Game, from: InkState, strokes: number[][], rel: n
     s = game.step(s, inputAt(log, s.tick + 1));
     if (wantTrace && s.dropping) trace.push({ x: s.ball.x / 256, y: s.ball.y / 256, on: s.ball.on });
   }
-  return { potted: s.levels > from.levels, star: (s.stars ?? 0) > (from.stars ?? 0), trick: (s.tricks ?? 0) > (from.tricks ?? 0), raw: inkFeatureRaw(s) - inkFeatureRaw(from), flight: released >= 0 ? s.tick - released : 0, trace };
+  // inkRev 13: no stars; a bonus line's "star" is the level's clover where it has one (else any pot).
+  const star = from.rev === INK_REV_CLOVER ? (from.list[lvl]!.shamrock ? (s.shamrocks ?? 0) > (from.shamrocks ?? 0) : true) : (s.stars ?? 0) > (from.stars ?? 0);
+  return { potted: s.levels > from.levels, star, trick: (s.tricks ?? 0) > (from.tricks ?? 0), raw: inkFeatureRaw(s) - inkFeatureRaw(from), flight: released >= 0 ? s.tick - released : 0, trace };
 }
 
 /** The line (and release phase / live ramp) an experienced player would use on this level. */
@@ -951,6 +961,41 @@ function levelRaw(lvl: InkLevel): number {
   return (lvl.star ? 5 : 0) + (lvl.clouds?.length ? 5 : 0) + 2 * (lvl.silver?.length ?? 0) + (lvl.shamrock ? 20 : 0);
 }
 
+/**
+ * inkRev 13, the flawless player on a live level: the release moment over the pot's slide (the first that pots within
+ * the ink par) for the pre-release line drawn a point a tick and the level's hand-drawn live stroke from its proved
+ * start, as the level's proof plays them; null if none (or no slide).
+ */
+function handMoment(game: Game, s: InkState, pre: readonly number[][], hand: { start: number; pts: number[] }): PlanLine | null {
+  const lvl = s.list[s.level]!;
+  if (!lvl.slideAmp) return null;
+  const P = lvl.slidePeriod;
+  const base = s.tick + 400 - ((s.tick + 400) % P);
+  for (let k = 0; k < P; k++) {
+    const rel = base + k;
+    const log: ArcadeInputEvent[] = [];
+    let t = s.tick + 1;
+    const put = (ev: Ev) => {
+      recordInput(log, { ...ev, t }, game.inputRanges);
+      t++;
+    };
+    for (const st of pre) {
+      const pts = inkPhoneLine(st);
+      for (let j = 0; j < pts.length; j += 2) put({ k: INK_INPUT_STROKE, a: pts[j]!, b: pts[j + 1]!, c: j === 0 ? 1 : 0, d: 0 });
+    }
+    t = Math.max(t, rel);
+    put({ k: INK_INPUT_RELEASE, a: 1, b: 0, c: 0, d: 0 });
+    t = rel + hand.start;
+    const hp = inkPhoneLine(hand.pts);
+    for (let j = 0; j < hp.length; j += 2) put({ k: INK_INPUT_STROKE, a: hp[j]!, b: hp[j + 1]!, c: j === 0 ? 1 : 0, d: 0 });
+    put({ k: INK_INPUT_LIFT, a: 2, b: 0, c: 0, d: 0 });
+    let e = s;
+    while (!game.isOver(e) && e.level === s.level && e.fails === s.fails && e.tick < s.tick + 2000) e = game.step(e, inputAt(log, e.tick + 1));
+    if (e.levels > s.levels && (e.parLevels ?? 0) > (s.parLevels ?? 0)) return { strokes: pre.map((p) => [...p]), live: [], rel: PROBES2, phase: rel % P, period: P, window: 1, flight: 150, ink: inkLen([...pre]) };
+  }
+  return null;
+}
+
 /** inkRev 10: the same line released at the first of 96 moments over the pot's slide that takes `full` points, or null. */
 function fullMoment(game: Game, s: InkState, l: PlanLine, full: number): PlanLine | null {
   const base = s.tick + 400 - ((s.tick + 400) % l.period);
@@ -968,6 +1013,7 @@ export const bot: SkillBot = ({ game, seed, human, fixes }) => {
   const init = game.init(seed) as InkState;
   worldH = inkWorldH(init);
   const expand = inkX(init.rev);
+  const v13 = init.rev === INK_REV_CLOVER;
   phoneExact = expand;
 
   const plan = new Plan();
@@ -998,9 +1044,21 @@ export const bot: SkillBot = ({ game, seed, human, fixes }) => {
     curLine = "";
     // The star only on a line that holds up, and never with one failure left: a failed drop
     // costs a third of the run.
-    if (expand) {
+    if (v13 && level === "perfect") {
+      // inkRev 13, the flawless player (the seed's ceiling): the level's proved line, which takes everything it offers
+      // within the ink par (the bonus line on a cloud or clover level, else the easy line), at a moment that takes it all.
+      const offers = s.level < 8 && Boolean(lvl.starRef && (lvl.clouds?.length || lvl.shamrock));
+      const strokes = (offers ? lvl.starRef! : lvl.ref).map((p) => [...p]);
+      line = { strokes, live: [], rel: PROBES2, phase: 0, period: 0, window: 1, flight: 150, ink: inkLen(strokes) };
+      const hand = lvl.liveHand?.[0];
+      if (live && hand) line = handMoment(game, s, strokes, hand) ?? line;
+      else if (lvl.slideAmp) line = fullMoment(game, s, { ...line, period: lvl.slidePeriod }, offers ? levelRaw(lvl) : 0) ?? line;
+    } else if (expand) {
       // inkRev 10: every one of levels 1–8 has a bonus line; level 1's misses cost no fail.
-      if (FEATURES && first && (s.fails < INK_FAILS - 1 || s.level === 0) && lvl.star && lvl.starRef && !starTried.has(s.level) && human.chance(BONUS_GO[level])) {
+      // inkRev 13: a bonus line only where it takes something (a cloud's trick shot or a clover; there are no stars),
+      // and a failed drop never ends the run, so the fails left don't matter.
+      const offers = v13 ? Boolean(lvl.starRef && (lvl.clouds?.length || lvl.shamrock)) : Boolean(lvl.star && lvl.starRef);
+      if (FEATURES && first && (v13 || s.fails < INK_FAILS - 1 || s.level === 0) && offers && !starTried.has(s.level) && human.chance(BONUS_GO[level])) {
         starTried.add(s.level);
         // Of the bonus lines steady enough, the one that takes the most (the stars, silver coins and shamrock it passes).
         let best = -1;
@@ -1031,7 +1089,9 @@ export const bot: SkillBot = ({ game, seed, human, fixes }) => {
       let bi = -1;
       let bv = -Infinity;
       lines.forEach((l, i) => {
-        const v = l.rel + (l.period ? Math.min(l.window, 8) / 2 : 0) - 2.5 * (failsOn.get(`${s.level}:${i}`) ?? 0);
+        // inkRev 13: the HUD shows the level's ink par; a better player favours a steady line within it.
+        const par = v13 && lvl.inkPar && l.ink <= lvl.inkPar * PAR_ROOM ? PAR_CARE[level] : 0;
+        const v = l.rel + (l.period ? Math.min(l.window, 8) / 2 : 0) - 2.5 * (failsOn.get(`${s.level}:${i}`) ?? 0) + par;
         if (v > bv) {
           bv = v;
           bi = i;
@@ -1128,6 +1188,15 @@ export const bot: SkillBot = ({ game, seed, human, fixes }) => {
         key = k;
         if (fixes) planAttemptFixed(s, t);
         else planAttempt(s, t);
+      }
+      const hand = s.list[s.level]!.liveHand?.[0];
+      if (fixes && s.dropping && !liveQueued && v13 && level === "perfect" && hand) {
+        // inkRev 13, the flawless player: the level's hand-drawn live stroke at its proved pace (a phone point a tick).
+        liveQueued = true;
+        const pts = inkPhoneLine(hand.pts);
+        let at = t - 1 + hand.start;
+        for (let j = 0; j < pts.length; j += 2) at = plan.at(at, { k: INK_INPUT_STROKE, a: pts[j]!, b: pts[j + 1]!, c: j === 0 ? 1 : 0, d: 0 }) + 1;
+        plan.at(at, press(INK_INPUT_LIFT));
       }
       if (fixes && s.dropping && !liveQueued) {
         // Live level: one reaction after RELEASE the finger is on the screen and flicks the catch

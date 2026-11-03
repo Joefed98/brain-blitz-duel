@@ -5,7 +5,7 @@ import { inkBridgeFxFor } from "./arcadeFxGames.renderer";
 import { reducedMotion } from "./art.renderer";
 /** Rainbow Ink Bridge. Presentation only; all geometry comes from the unchanged sim. */
 import type { CanvasSize } from './engine';
-import { inkBridgeGame, inkBridgeGameFor, inkBlockH, inkBucketX, inkBudget, inkBudgetFor, inkIsLive, inkWorldH, INK_BLOCK_H, INK_BUCKET_H, INK_BUCKET_W, INK_CLOUD_HW, INK_CLOUD_R, INK_FAILS, INK_LEVELS, INK_NO_DRAW_ZONE_PX, INK_LIVE_PRE_CAP, INK_SHAMROCK_R, INK_SILVER_R, INK_STAR_R, INK_WORLD_H, INK_WORLD_W, type InkCloud, type InkState, type InkWind } from './inkBridge';
+import { inkBridgeGame, inkBridgeGameFor, inkBlockH, inkBucketX, inkBudget, inkBudgetFor, inkIsLive, inkWorldH, INK_BLOCK_H, INK_BUCKET_H, INK_BUCKET_W, INK_CLOUD_HW, INK_CLOUD_R, INK_FAILS, INK_LEVELS, INK_REV_CLOVER, inkParText, INK_NO_DRAW_ZONE_PX, INK_LIVE_PRE_CAP, INK_SHAMROCK_R, INK_SILVER_R, INK_STAR_R, INK_WORLD_H, INK_WORLD_W, type InkCloud, type InkState, type InkWind } from './inkBridge';
 import { artCanvas, artContext, type ArtCanvas } from './cache.renderer';
 import { sceneBelow, sceneBlades, sceneFill, sceneSides, type ArenaSceneView } from './arenaScene.renderer';
 import { artHash } from './art.renderer';
@@ -512,28 +512,37 @@ function drawInkBridgeArtWorld(c:CanvasRenderingContext2D,state:InkState,size:Ca
   c.font="bold 16px 'JetBrains Mono', ui-monospace, monospace";
   const levelText=`Level ${Math.min(state.level+1,INK_LEVELS)} / ${INK_LEVELS}`;
   hudPill(c,4,4,Math.ceil(c.measureText(levelText).width)+16,26);
-  hudPill(c,216,4,168,28);
-  c.fillStyle=EMPTY;c.fillRect(272,12,104,12);
-  c.save();c.beginPath();c.rect(274+100*(1-remaining),14,100*remaining,8);c.clip();
+  // inkRev 13: the ink-par readout ("Ink 84 / par 90", red over par) takes the fail dots' place (a miss never ends the run).
+  const parLvl=state.rev===INK_REV_CLOVER?lvl.inkPar:undefined;
+  if(parLvl!==undefined){
+    hudPill(c,182,4,202,28);
+    const used=Math.max(0,Math.ceil((inkBudgetFor(state.level,state.rev)*FP-state.ink)/FP));
+    c.save();c.fillStyle=used>parLvl?RED:TEXT;c.font="bold 11px 'JetBrains Mono', ui-monospace, monospace";c.textAlign='left';c.textBaseline='middle';
+    c.fillText(inkParText(used,parLvl),190,18.5);c.restore();
+  } else hudPill(c,216,4,168,28);
+  // The ink meter: x 274, 100 wide (inkRev 13: x 304, 72 wide, beside the readout).
+  const MX=parLvl!==undefined?304:274, MW=parLvl!==undefined?72:100;
+  c.fillStyle=EMPTY;c.fillRect(MX-2,12,MW+4,12);
+  c.save();c.beginPath();c.rect(MX+MW*(1-remaining),14,MW*remaining,8);c.clip();
   const meter=sprite('meter',100,8,m=>{m.fillStyle=rainbow(m,0,0,100,0,0,100);m.fillRect(0,0,100,8);});
-  if(meter)c.drawImage(meter,274,14,100,8);c.restore();
+  if(meter)c.drawImage(meter,MX,14,MW,8);c.restore();
   // Live levels before release: mark how far the capped first line can drain the meter,
   // and flash the meter plus the pen end once that cap is reached (render only).
   if(inkIsLive(state.level,state.rev)&&!state.dropping) {
     const budget=inkBudgetFor(state.level,state.rev);
-    const mx=274+100*Math.min(1,INK_LIVE_PRE_CAP/budget);
+    const mx=MX+MW*Math.min(1,INK_LIVE_PRE_CAP/budget);
     c.fillStyle=TEXT;c.fillRect(mx-1,10,2,16);
     const atCap=state.preInkUsed>=(INK_LIVE_PRE_CAP-2)*FP;
     if(atCap) {
       const pulse=0.55+0.45*Math.sin(state.tick/3);
-      c.save();c.globalAlpha=pulse;c.strokeStyle=RED;c.lineWidth=2;c.strokeRect(271,11,106,14);
+      c.save();c.globalAlpha=pulse;c.strokeStyle=RED;c.lineWidth=2;c.strokeRect(MX-3,11,MW+6,14);
       const last=state.segs[state.segs.length-1];
       if(last){c.beginPath();c.arc(last.x1,last.y1,7,0,Math.PI*2);c.stroke();}
       c.fillStyle=RED;c.font="bold 11px 'JetBrains Mono', ui-monospace, monospace";c.textAlign='right';c.textBaseline='top';c.fillText('LINE LIMIT',376,28);
       c.restore();
     }
   }
-  for(let i=0;i<INK_FAILS;i++){c.fillStyle=i<state.fails?RED:EMPTY;c.beginPath();c.arc(228+i*14,18,5,0,Math.PI*2);c.fill();c.strokeStyle=i<state.fails?RED_EDGE:'rgba(36,51,60,0.35)';c.lineWidth=1;c.stroke();}
+  if(parLvl===undefined)for(let i=0;i<INK_FAILS;i++){c.fillStyle=i<state.fails?RED:EMPTY;c.beginPath();c.arc(228+i*14,18,5,0,Math.PI*2);c.fill();c.strokeStyle=i<state.fails?RED_EDGE:'rgba(36,51,60,0.35)';c.lineWidth=1;c.stroke();}
   c.fillStyle=TEXT;c.font="bold 16px 'JetBrains Mono', ui-monospace, monospace";c.textAlign='left';c.textBaseline='alphabetic';successHud(c,'inkbridge',state.tick,12,22,()=>c.fillText(levelText,12,22));
   c.restore();
 }
@@ -553,9 +562,9 @@ export function drawInkRainbowExample(c:CanvasRenderingContext2D):void {
   drawBirds(c,{x0:30,x1:70,y:56},5,0);
   c.strokeStyle=rainbow(c,36,34,132,94,0,113);c.lineCap='round';c.lineWidth=3;c.beginPath();c.moveTo(36,34);c.lineTo(132,94);c.stroke();
   c.save();c.translate(134,104);c.scale(0.5,0.5);drawPot(c,0,0,false);c.restore();
-  // x200 (inkRev 10): a bounce cloud and an ink star, two of the optional bonuses.
+  // A bounce cloud and a clover (inkRev 13: the ink stars are gone), two of the optional bonuses.
   c.save();c.translate(18,96);c.scale(0.6,0.6);stamp(c,'bcloud',BCLOUD_W,BCLOUD_H,-BCLOUD_W/2,-BCLOUD_H/2,bounceCloud);c.restore();
-  c.save();c.translate(96,40);c.scale(0.8,0.8);stamp(c,'star',INK_STAR_R*2,INK_STAR_R*2,-INK_STAR_R,-INK_STAR_R,goldStar);c.restore();
+  c.save();c.translate(96,40);c.scale(0.8,0.8);stamp(c,'shamrock',INK_SHAMROCK_R*2,INK_SHAMROCK_R*2,-INK_SHAMROCK_R,-INK_SHAMROCK_R,shamrock);c.restore();
 }
 export const inkBridgeArtGame={...inkBridgeGame,draw:drawInkBridgeArt};
 export const inkBridgeArtGameFor=(rev?:number|null)=>({...inkBridgeGameFor(rev),draw:drawInkBridgeArt});

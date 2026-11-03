@@ -85,7 +85,7 @@ import {
   type TiltState,
 } from "../src/lib/arcade/tilt";
 import { SLICE_REV_BIG, SLICE_REV_EXPAND, sliceGameFor, SLICE_BLADE_V4, SLICE_INPUT_BEGIN, SLICE_INPUT_SWIPE, SLICE_R, SLICE_REV_BAND, SLICE_REV_LONG, SLICE_REV_TUNEC, sliceObjectAt, type SliceState } from "../src/lib/arcade/slice";
-import { generateBeat, generateFlip, generateInkBridge, generateMatchup, generateSlice, generateSwing, generateTilt, generateWavefront } from "../src/lib/duel/arcade.server";
+import { generateBeat, generateFlip, generateInkBridge, pinInkPreClover, generateMatchup, generateSlice, generateSwing, generateTilt, generateWavefront } from "../src/lib/duel/arcade.server";
 import { generateHover } from "../src/lib/duel/hover.server";
 import { isRetired, puzzleDef, PUZZLE_TYPES, typesInCategory } from "../src/lib/duel/registry";
 import { PUZZLE_INSTRUCTIONS } from "../src/lib/duel/instructions";
@@ -157,6 +157,16 @@ section("Old rounds replay and score exactly as before");
   for (const [type] of TUNING_C_GAMES) if (want(type)) ok((per.get(type) ?? 0) >= 8, `${type}: ${per.get(type) ?? 0} recorded runs`);
 }
 
+/** inkRev 13 (Nov 2026) moved rooms on from inkRev 12; this check pins the deal before it (pinInkPreClover). */
+function pinnedInk<T>(f: () => T): T {
+  const was = pinInkPreClover(true);
+  try {
+    return f();
+  } finally {
+    pinInkPreClover(was);
+  }
+}
+
 /* ======================== 2. Stamps, bands and Junction ======================== */
 section("New rounds carry the Tuning C stamps; Junction is practice only");
 {
@@ -178,8 +188,9 @@ section("New rounds carry the Tuning C stamps; Junction is practice only");
     // The 200 expansion (26 Oct 2026) then moved Hover on to hoverRev 9; hover-x200-check covers it.
     ["hover", playRevOf("hover", generateHover().hoverRev), HOVER_REV_TALL + 4],
     // x200 (26 Oct 2026) moved Rainbow Bridge on to inkRev 10 (ink-x200-check); inkRev 8, dealt before it, kept Tuning C's play.
-    // The phone notes (27 Oct 2026) then moved it on to inkRev 11 (ink-v11-check).
-    ["inkbridge", playRevOf("inkbridge", generateInkBridge().inkRev) === INK_REV_SPREAD ? playRevOf("inkbridge", INK_REV_STRICT) : -1, INK_REV_TUNEC],
+    // The phone notes (27 Oct 2026) then moved it on to inkRev 11 (ink-v11-check). inkRev 13 (Nov 2026: clovers, ink par,
+    // more birds; ink-v13-check) moved it on again: pinned, the deal before it (inkRev 12, inkRev 11's play).
+    ["inkbridge", pinnedInk(() => playRevOf("inkbridge", generateInkBridge().inkRev)) === INK_REV_SPREAD ? playRevOf("inkbridge", INK_REV_STRICT) : -1, INK_REV_TUNEC],
     // Expansion E7 (docs/expansions/x200-flip.md) then moved Roofbound on to flipRev 8; flip-x200-check covers it.
     ["flip", playRevOf("flip", generateFlip().flipRev), FLIP_REV_TUNEC + 4],
     // Tuning F (Oct 2026) moved Tempo on to a thinner chart on the same curve (beatRev 5); arcade-tuning-f-check covers it.
@@ -253,7 +264,7 @@ section("Grappler, Hover, Rainbow Bridge and Tempo: same play, new curves");
   // Grappler's 200 expansion (swingRev 13) stated a good run on its own base curve (swing-x200-check); the assault course
   // (swingRev 14) on its sections' curve (swing-assault-check); the swinging course (swingRev 15) as a share of the course. Tempo's beatRev 11 (the arcade scoring
   // standard) states its standard parts instead (arcade-help-bands-check, beat-standard-check).
-  ok(PUZZLE_INSTRUCTIONS.swing.score.includes("A good run (100 points) counts 715") && PUZZLE_INSTRUCTIONS.inkbridge.score.includes("A good run (100 points) pots 8 levels") /* inkRev 12 (the arcade scoring standard; inkRev 10 counted 73) */ && PUZZLE_INSTRUCTIONS.beat.score.includes(stdHelp(BEAT_STD_SPEC)), "the \"?\" help states a good run on the curves rooms deal");
+  ok(PUZZLE_INSTRUCTIONS.swing.score.includes("A good run (100 points) counts 715") && PUZZLE_INSTRUCTIONS.inkbridge.score.includes("A good run (100 points) pots 9 levels") /* inkRev 13 (12 a level; inkRev 12 potted 8 at 14 a level, inkRev 10 counted 73) */ && PUZZLE_INSTRUCTIONS.beat.score.includes(stdHelp(BEAT_STD_SPEC)), "the \"?\" help states a good run on the curves rooms deal");
 }
 
 /* ================================ 4a. Gemstone ================================ */
