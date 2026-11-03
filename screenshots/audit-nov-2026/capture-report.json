@@ -499,8 +499,24 @@
   "seconds": 88
  },
  "unblock": {
-  "error": "waitFor: Timeout 90000ms exceeded.",
-  "seconds": 113
+  "input": "scripted",
+  "intro": true,
+  "clockS": 59,
+  "midAtS": 31,
+  "reveal": "played to the end",
+  "revealText": [
+   "Gridlock",
+   "Practice",
+   "Not solved",
+   "The shortest solution",
+   "0 points",
+   "✗ YOUR MOVES: 12 · PAR 15",
+   "Back",
+   "Play again"
+  ],
+  "revealAtS": 61,
+  "score": "0",
+  "seconds": 77
  },
  "wordhunt": {
   "input": "driver",
