@@ -55,7 +55,8 @@ const STANDARD_ROSTER: readonly { type: string; field: string; rev: number; batc
   { type: "rally", field: "rallyRev", rev: 12, batch: "B" },
   { type: "bubble", field: "bubbleRev", rev: 11, batch: "B" },
   { type: "beat", field: "beatRev", rev: 11, batch: "B" },
-  { type: "cross", field: "crossRev", rev: 10, batch: "C" },
+  // crossRev 11 (3 Nov 2026): no coins, the no-stop streak, a hit costs 15 (cross-rev11-check).
+  { type: "cross", field: "crossRev", rev: 11, batch: "C" },
   { type: "wavefront", field: "wavRev", rev: 12, batch: "C" },
   { type: "flip", field: "flipRev", rev: 10, batch: "C" },
   { type: "inkbridge", field: "inkRev", rev: 12, batch: "C" },

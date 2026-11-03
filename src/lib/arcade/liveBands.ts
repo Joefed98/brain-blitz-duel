@@ -16,7 +16,7 @@ import { FLIP_REV_STD, FLIP_REV_STRICT, FLIP_V10_BAND_CURVE } from "./flip";
 import { INK_REV_STD, INK_REV_STRICT, INK_V12_BAND_CURVE } from "./inkBridge";
 import { MATCHUP_REV_SIX, MATCHUP_REV_STRICT, MATCHUP_V12_BAND_CURVE } from "./matchup";
 import { BUB_REV_STD, BUB_REV_STRICT, BUB_V11_BAND_CURVE, BUB_V11_STD_SPEC } from "./bubble";
-import { CROSS_REV_STD, CROSS_REV_STRICT, CROSS_V10_BAND_CURVE } from "./cross";
+import { CROSS_REV_FLOW, CROSS_REV_STRICT, CROSS_V11_BAND_CURVE } from "./cross";
 import { MINES_REV_STD, MINES_STD_SPEC, MINES_V1_BAND_CURVE } from "./minesweeper";
 import { MAHJONG_REV_DEALT, MAHJONG_STD_SPEC, MAHJONG_V1_BAND_CURVE } from "./mahjong";
 import { RALLY_REV_STD, RALLY_REV_STRICT, RALLY_STD_SPEC, RALLY_V12_BAND_CURVE } from "./rally";
@@ -98,7 +98,9 @@ export const LIVE_BANDS = {
   matchup: { field: "matchupRev", rev: MATCHUP_REV_SIX, curve: MATCHUP_V12_BAND_CURVE, strictRev: MATCHUP_REV_STRICT },
   // bubbleRev 11 (the arcade scoring standard): the core's straight line; the spec lists every part.
   bubble: { field: "bubbleRev", rev: BUB_REV_STD, curve: BUB_V11_BAND_CURVE, strictRev: BUB_REV_STRICT, std: BUB_V11_STD_SPEC },
-  cross: { field: "crossRev", rev: CROSS_REV_STD, curve: CROSS_V10_BAND_CURVE, strictRev: CROSS_REV_STRICT },
+  // crossRev 11 (3 Nov 2026): no coins; the core 150 on a straight line, full at 76 units; the no-stop streak 40 and close
+  // calls 10 (the help says so); a hit costs 15. crossRev 10: 150 at 92 units (CROSS_V10_BAND_CURVE), coins and a clean streak.
+  cross: { field: "crossRev", rev: CROSS_REV_FLOW, curve: CROSS_V11_BAND_CURVE, strictRev: CROSS_REV_STRICT },
   // rallyRev 12 (the arcade scoring standard): gold-ball hits on a straight line, pads and gold targets fixed.
   rally: { field: "rallyRev", rev: RALLY_REV_STD, curve: RALLY_V12_BAND_CURVE, strictRev: RALLY_REV_STRICT, std: RALLY_STD_SPEC },
   // snakeRev 12 (1 Nov 2026): the core's straight line to 120 at 20 core stars (a gold star counts 2); gold stars, combos, lane rides

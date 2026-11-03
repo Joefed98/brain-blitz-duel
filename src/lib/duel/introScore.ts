@@ -118,7 +118,8 @@ function introScoreTemplates(): Record<PuzzleType, string> {
     // and big lines, each part's maximum.
     matchup: "Gems 108; treasure, goals, ice and lines of 4 or 5 add 92. Up to {max}.",
     snake: "Stars to 120 at 28 (gold stars count 2); gold, combos, lanes, warps add 80. Up to {max}.",
-    cross: "150 for rows and crossings, coins 30, a clean streak 10, close calls 10. Up to {max}.",
+    // crossRev 11 (3 Nov 2026): no coins; the no-stop streak; a hit costs 15.
+    cross: "150 for rows and crossings, a no-stop streak 40, close calls 10; hits cost 15. Up to {max}.",
     breaker: "Every brick scores; gold bricks add 30. Clear all 105 quickly for up to {max}.",
     rally: "Gold-ball hits, pink targets and gold targets. Up to {max}.",
     // Cards & Board (30 Oct 2026), on the arcade scoring standard.

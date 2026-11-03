@@ -7,7 +7,7 @@ import { WHACK_REV_NOTES } from "@/lib/arcade/whack";
 import { WORDFALL_REV } from "@/lib/arcade/wordfall";
 import { BRK_REV_STD } from "@/lib/arcade/breaker";
 import { TILT_REV_PAR } from "@/lib/arcade/tilt";
-import { CROSS_REV_STD } from "@/lib/arcade/cross";
+import { CROSS_REV_FLOW } from "@/lib/arcade/cross";
 import { FLIP_REV_STD } from "@/lib/arcade/flip";
 import { SNIP_REV_EXPAND } from "@/lib/arcade/snip";
 import { HOVER_REV_STANDARD } from "@/lib/arcade/hover";
@@ -172,7 +172,8 @@ export const getIntroDemoFn = createServerFn({ method: "GET" })
     // coins, buses and motorbikes; an older demo would show the 9-lane road, so it stays stopped until one is recorded there.
     // The arcade scoring standard (29 Oct 2026, docs/arcade-standard/cross.md): crossRev 10 thins the first crossings'
     // traffic and thickens the later ones, so a crossRev 9 demo stays stopped until one is recorded on crossRev 10.
-    if (data.type === "cross" && demo?.puzzle.type === "cross" && demo.puzzle.crossRev !== CROSS_REV_STD) return null;
+    // crossRev 11 (3 Nov 2026): no coins and a no-stop streak in the HUD, so only a demo recorded on crossRev 11 plays.
+    if (data.type === "cross" && demo?.puzzle.type === "cross" && demo.puzzle.crossRev !== CROSS_REV_FLOW) return null;
     // Taller worlds batch 2 (16 Oct 2026): the same for Tempo, Slice, Coral Pop and Mixed Signals (Pull! above), each stopped
     // until a demo is recorded on its tall revision.
     // Phone notes (27 Oct 2026): Tempo's beatRev 10 plays a lighter chart with wider windows; stopped until one is recorded on it.

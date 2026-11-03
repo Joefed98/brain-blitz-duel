@@ -28,6 +28,8 @@ import {
   CROSS_PAUSE_TICKS,
   CROSS_REV_EXPAND,
   CROSS_RUN_TICKS,
+  CROSS_V11_STOP_TICKS,
+  CROSS_X_ISLAND,
   type CrossCourse,
   type CrossState,
 } from "../src/lib/arcade/cross";
@@ -46,6 +48,11 @@ interface Step {
  * finished by `deadlineRel`, the deepest lane reachable by then. Mirrors step(): an input lands only while
  * standing; a hop lands 5 ticks after the tick it was sent on; a standing walker in a lane is hit when
  * blocked; a coin is taken standing on its cell. `gap` is the least number of ticks between inputs.
+ *
+ * `stop` (crossRev 11, the no-stop streak; 0 = off): the longest the walker may stand on the start kerb or the island
+ * (`island`, a row number) in a row, side-steps included, as step() counts it. The search then carries that count in
+ * place of the coin mask (crossRev 11 has no coins) and never lets it pass `stop`, so the path found is the quickest
+ * no-stop crossing.
  */
 export function crossingPath(
   course: CrossCourse,
@@ -54,11 +61,14 @@ export function crossingPath(
   deadlineRel: number,
   want: number,
   gap = 1,
+  stop = 0,
+  island = -1,
+  survive = stop > 0,
 ): { steps: Step[]; finished: boolean; endRel: number; mask: number; lane: number } {
   const rows = course.lanes.length;
-  const coins = course.coins ?? [];
+  const coins = stop ? [] : (course.coins ?? []);
   const nc = coins.length;
-  const masks = 1 << nc;
+  const masks = stop ? stop + 1 : 1 << nc;
   const coinAt = new Int8Array(16 * 16).fill(-1);
   coins.forEach((cell, i) => (coinAt[cell] = i));
   const cools = Math.max(1, gap);
@@ -150,6 +160,13 @@ export function crossingPath(
           const ci = coinAt[lane * 16 + col]!;
           if (ci >= 0) mask |= 1 << ci;
         }
+        if (stop) {
+          // crossRev 11: standing on the kerb or the island counts on; past `stop` the crossing would not be no-stop.
+          if (hop === 0 && (lane === 0 || lane === island)) {
+            mask += 1;
+            if (mask > stop) continue;
+          } else mask = 0;
+        }
         const nid = enc(lane, col, hop === 0 ? 0 : dir > 0 ? hop : hop + 6, cool, mask);
         if (stamp[nid] === rel) continue;
         stamp[nid] = rel;
@@ -161,6 +178,26 @@ export function crossingPath(
       }
     }
     layers.push({ ids, parent, input, n });
+  }
+  // crossRev 11 (`survive`, set with `stop`; a life lost costs points there): when the crossing can't be finished, the deepest lane among
+  // the walkers still standing at the deadline, so the run's last seconds take no hit (`best` may be hit afterwards).
+  if (!done && survive) {
+    for (let li = layers.length - 1; li > 0; li--) {
+      const layer = layers[li]!;
+      if (!layer.n) continue;
+      const per = masks * cools * 13 * CROSS_COLS;
+      let pick = -1;
+      let lane = -1;
+      for (let i = 0; i < layer.n; i++) {
+        const l = Math.floor(layer.ids[i]! / per);
+        if (l > lane) {
+          lane = l;
+          pick = i;
+        }
+      }
+      best = { layer: li, idx: pick, lane };
+      break;
+    }
   }
   const end = done ?? best;
   const steps: Step[] = [];
@@ -189,7 +226,7 @@ export interface CeilingResult {
   raw: string;
 }
 
-/** The oracle's run on a seed (crossRev 9, or crossRev 10's busier-each-crossing courses), replayed through the server. */
+/** The oracle's run on a seed (crossRev 9, crossRev 10's busier-each-crossing courses, or crossRev 11's no-stop crossings), replayed through the server. */
 export function crossCeilingRun(seed: number, gap = 1, rev: number = CROSS_REV_EXPAND): CeilingResult & { closeCalls: number } {
   const game = crossGameFor(rev);
   const init = game.init(seed) as CrossState;
@@ -205,9 +242,11 @@ export function crossCeilingRun(seed: number, gap = 1, rev: number = CROSS_REV_E
     offered += nc;
     const rel0 = first - crossStart;
     const deadlineRel = CROSS_RUN_TICKS - crossStart;
-    let path = crossingPath(course, half, rel0, deadlineRel, (1 << nc) - 1, gap);
-    // Not every coin can be taken in time on the last crossing: then the deepest lane.
-    if (!path.finished) path = crossingPath(course, half, rel0, deadlineRel, 0, gap);
+    // crossRev 11: the quickest no-stop crossing (never more than CROSS_V11_STOP_TICKS on the kerb or the island).
+    const stop = init.flow ? CROSS_V11_STOP_TICKS : 0;
+    let path = crossingPath(course, half, rel0, deadlineRel, (1 << nc) - 1, gap, stop, CROSS_X_ISLAND);
+    // Not every coin can be taken (or no no-stop way found) in time on the last crossing: then the deepest lane.
+    if (!path.finished) path = crossingPath(course, half, rel0, deadlineRel, 0, gap, 0, -1, stop > 0);
     for (const s of path.steps) events.push({ t: crossStart + s.rel, k: CROSS_INPUT_MOVE, a: s.a, b: 0, c: 0, d: 0 });
     if (!path.finished) break;
     const endTick = crossStart + path.endRel;

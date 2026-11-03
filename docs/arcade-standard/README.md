@@ -73,7 +73,7 @@ replay exactly as before; standard-live-check grades every stored arcade run thr
 | Rally | `rally` | `rallyRev` 12 | B | [rally.md](rally.md) |
 | Coral Pop | `bubble` | `bubbleRev` 11 | B | [bubble.md](bubble.md) |
 | Tempo | `beat` | `beatRev` 11 | B | [beat.md](beat.md) |
-| Jaywalk | `cross` | `crossRev` 10 | C | [cross.md](cross.md) |
+| Jaywalk | `cross` | `crossRev` 11 (10 before, Nov 2026: no coins, the no-stop streak) | C | [cross.md](cross.md) |
 | Wavefront | `wavefront` | `wavRev` 12 | C | [wavefront.md](wavefront.md) |
 | Roofbound | `flip` | `flipRev` 10 | C | [flip.md](flip.md) |
 | Rainbow Bridge | `inkbridge` | `inkRev` 12 | C | [inkbridge.md](inkbridge.md) |

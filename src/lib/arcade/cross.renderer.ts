@@ -23,6 +23,7 @@ import {
   CROSS_KIND_BUS,
   CROSS_KIND_MOTO,
   crossGeomOf,
+  crossFlowNext,
   crossNextMultiplier,
   crossStartTop,
   type CrossGeom,
@@ -751,8 +752,30 @@ function drawIslandFlag(ctx: CanvasRenderingContext2D, top: number, h: number, b
   }
 }
 
+/**
+ * crossRev 11 HUD, after the crossings pill (no coins): the no-stop streak. "NO-STOP ×n" is the no-stop crossings in a
+ * row the crossing under way makes if it carries on as it is going (gold from ×2, when it pays); grey "NO-STOP –" once
+ * this crossing has stopped on the kerb or the island, or been hit.
+ */
+function drawFlowHud(ctx: CanvasRenderingContext2D, state: CrossState, x: number): void {
+  ctx.font = "600 16px 'JetBrains Mono', ui-monospace, monospace";
+  const next = crossFlowNext(state);
+  const label = next > 0 ? `NO-STOP ×${next}` : "NO-STOP –";
+  const w = Math.ceil(ctx.measureText(label).width) + 18;
+  hudPill(ctx, x, 4, w, 28);
+  ctx.textBaseline = "top";
+  ctx.textAlign = "left";
+  ctx.lineJoin = "round";
+  ctx.strokeStyle = REAL_INK;
+  ctx.lineWidth = 3.5;
+  ctx.strokeText(label, x + 9, 10);
+  ctx.fillStyle = next >= 2 ? CROSS_PLAYER : next === 1 ? "#FFFFFF" : "rgba(255,255,255,0.45)";
+  ctx.fillText(label, x + 9, 10);
+}
+
 /** crossRev 9 HUD, after the crossings pill: the coins taken of the run's twenty, then the streak multiplier the crossing under way pays (from ×2). */
 function drawExpandHud(ctx: CanvasRenderingContext2D, state: CrossState, x: number, lite: boolean): void {
+  if (state.flow) return drawFlowHud(ctx, state, x);
   ctx.font = "600 16px 'JetBrains Mono', ui-monospace, monospace";
   // x200: out of the run's fixed twenty.
   const count = `${state.coinTotal ?? 0}/${CROSS_X_COINS_PER_RUN}`;

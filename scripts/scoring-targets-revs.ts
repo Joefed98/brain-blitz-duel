@@ -65,7 +65,9 @@ export const LIFT_REVS: Partial<Record<LiveBandGame, readonly [lift: number, pla
  */
 // Tilt tiltRev 11 (3 Nov 2026) is not listed: it deals no gold stars, so its world is not tiltRev 10's (the marbles move
 // the same for the same log, but there is nothing to collect); its own check is tilt-rev11-check.
-export const STD_REVS: Partial<Record<LiveBandGame, readonly [std: number, play: number]>> = { flip: [10, 8], snake: [12, 10] };
+// Jaywalk crossRev 11 (3 Nov 2026, docs/arcade-standard/cross.md "crossRev 11") keeps crossRev 10's courses and walker exactly
+// (its coins taken out, which never moved the walker), scored on the no-stop streak (cross-rev11-check proves it).
+export const STD_REVS: Partial<Record<LiveBandGame, readonly [std: number, play: number]>> = { flip: [10, 8], snake: [12, 10], cross: [11, 10] };
 
 /**
  * The revision whose play a dealt revision keeps: the target and score-bands revisions map to the target's

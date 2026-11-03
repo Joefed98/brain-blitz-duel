@@ -1298,7 +1298,8 @@ function gradeUnderRev(
         inputs: decodeCrossRun(answer).events.length,
         claimedScore: decodeCrossRun(answer).claimedScore,
         // crossRev 9 (x200): coins and streak points (older rounds keep exactly their old fields).
-        ...(run.state.wide ? { coins: run.state.coinTotal ?? 0, streakPts: run.state.streakPts ?? 0, closeCalls: run.state.closeCalls ?? 0 } : {}),
+        // crossRev 11: no coins; the no-stop streak's points (noStop: the streak's no-stop crossings in a row at the end).
+        ...(run.state.flow ? { noStop: run.state.streak ?? 0, streakPts: run.state.streakPts ?? 0, closeCalls: run.state.closeCalls ?? 0 } : run.state.wide ? { coins: run.state.coinTotal ?? 0, streakPts: run.state.streakPts ?? 0, closeCalls: run.state.closeCalls ?? 0 } : {}),
         ...(run.reason ? { reason: run.reason } : {}),
       };
       break;
