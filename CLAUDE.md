@@ -1182,11 +1182,13 @@ outside the repo.
 - **The Cards & Board batch** (3 Nov 2026; `docs/arcade-standard/fivehands.md`, `freecell.md`, `tripeaks.md`, README's
   last section; older stamps replay and score as before on `scripts/fixtures/cards-nov3-legacy.json`, recorded on main by
   `scripts/cards-nov3-legacy-record.ts`). **Five Hands** `fiveHandsRev 3`: flat hand values (`FH_HANDS_V3`: pair 15, two
-  pair 20, three of a kind 25, straight 30, flush 35, full house 40, four of a kind 45, straight flush 50), the score the
-  five rows' points summed and capped at 200 (at least 1 for a played run), the seed's first shuffle dealt as it is: the
-  standard's **one named exception** to 200 on every deal (`NOT_200_ON_EVERY_DEAL` in arcade-standard-check; its perfect
-  runs are each deck's exact best, `scripts/cards/fiveHandsBest.ts`, scoring min(200, points); no deck measured reaches
-  200). **Free Cell** `freecellRev 4`: 40 cards (Ace to 10, eight columns of five) from its own solved bank
+  pair 20, three of a kind 25, straight 30, flush 35, full house 40, four of a kind 45, straight flush 50) and a bonus
+  column: once the rows are complete the player taps one column (`FH_INPUT_PICK`, kind 2; the run ends on the pick; the
+  buzzer first counts none; columns are fixed by the deck since rows fill evenly), and the score is the rows' points plus
+  the column's, capped at 200 (at least 1 for a played run), the seed's first shuffle dealt as it is: the standard's
+  **one named exception** to 200 on every deal (`NOT_200_ON_EVERY_DEAL` in arcade-standard-check; its perfect runs are
+  each deck's exact best rows plus best column, `scripts/cards/fiveHandsBest.ts`, scoring min(200, points); 2 of 400 decks
+  measured reach 200). **Free Cell** `freecellRev 4`: 40 cards (Ace to 10, eight columns of five) from its own solved bank
   (`freecellDealsV4.data.ts`, `bun scripts/freecell-bank.ts --rev=4 [--check]`), cards 60 (full at 50 units), par 50 (0
   at 1.5 × par), speed 90 (full by 32 s). **Summit** `tripeaksRev 2`: a stock par per bank deal (the fewest stock turns on
   a clear with a run of ten; `tripeaksStockPar.data.ts`, `bun scripts/tripeaks-stock-par.ts`, ~25 min on one core, in

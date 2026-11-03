@@ -2,7 +2,8 @@
  * arcade-standard-check's entry for `fivehands` (Five Hands fiveHandsRev 3, Cards & Board;
  * docs/arcade-standard/fivehands.md): born on the standard at rev 1 (hand points 160 + made hands 40); rev 2 (1 Nov
  * 2026) one part, hand points on the steep table to 200, full at FH_CORE_FULL_V2; rev 3 (3 Nov 2026) one part, the
- * flat table's hand points (pair 15 … straight flush 50) summed, capped at 200, at least 1 for a played run.
+ * flat table's hand points (pair 15 … straight flush 50) of the five rows plus a bonus column picked once they are
+ * complete, summed, capped at 200, at least 1 for a played run.
  *
  * Five Hands is the standard's one named exception to "a perfect run scores 200 on every deal"
  * (NOT_200_ON_EVERY_DEAL in arcade-standard-check): the deck is the seed's first shuffle and some decks can't reach 200

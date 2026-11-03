@@ -13,7 +13,7 @@ import {
   psCheckpoint, psTotals, pokerSquaresGameFor, PS_CHECKPOINT_INTERVAL, PS_CHECKPOINT_KEYS, type PsCheckpoint, type PsState,
 } from "@/lib/arcade/cards/pokerSquares";
 import {
-  fhCheckpoint, fhTotals, fiveHandsGameFor, FH_CHECKPOINT_INTERVAL, FH_CHECKPOINT_KEYS, type FhCheckpoint, type FhState,
+  fhCheckpoint, fhPickedHand, fhTotals, fiveHandsGameFor, FH_CHECKPOINT_INTERVAL, FH_CHECKPOINT_KEYS, type FhCheckpoint, type FhState,
 } from "@/lib/arcade/cards/fiveHands";
 import {
   pyCheckpoint, pyramidGameFor, PY_CHECKPOINT_INTERVAL, PY_CHECKPOINT_KEYS, type PyCheckpoint, type PyState,
@@ -127,9 +127,13 @@ export function replayPokerSquaresRun(seed: number, raw: string, rev?: number | 
 export interface FiveHandsResult extends FlatReplay<FhState, FhCheckpoint> {
   total: number;
   made: number;
-  /** Cards placed (0–20) and whether all 20 were. */
+  /** Cards placed (0–20) and whether the run finished (rev 1–2: all 20 placed; rev 3: the bonus column picked). */
   placed: number;
   finished: boolean;
+  /** fiveHandsRev 3: the bonus column picked (−1 none) and its hand; `total` includes its points. */
+  column: number;
+  columnPoints: number;
+  columnHand: string;
 }
 
 /** The single place a Five Hands score is worked out (no stamp: fiveHandsRev 1). */
@@ -137,7 +141,8 @@ export function replayFiveHandsRun(seed: number, raw: string, rev?: number | nul
   const r = ((rev ?? 1) >= 3 ? fhRun3 : (rev ?? 1) >= 2 ? fhRun2 : fhRun).replay(seed, raw);
   const s = r.state;
   const t = fhTotals(s.rows, s.rev);
-  return { ...r, total: t.total, made: t.made, placed: s.turn, finished: s.ended === 1 };
+  const col = fhPickedHand(s);
+  return { ...r, total: t.total + col.points, made: t.made, placed: s.turn, finished: s.ended === 1, column: col.column, columnPoints: col.points, columnHand: col.name };
 }
 
 export interface PyramidResult extends FlatReplay<PyState, PyCheckpoint> {

@@ -44,10 +44,12 @@ const pokersquares: Driver = {
 /** Five Hands: nine cards, each tapped onto the first open row (rows 86 apart from y 44; a tap mid-row). */
 const fivehands: Driver = {
   board: "[data-play-area]",
-  partial: (ctx) => taps(ctx, [0, 1, 2, 3, 4, 2, 0, 4, 1].map((r) => [160, 44 + r * 86 + 40] as const), 450),
-  // A whole run (3 Nov 2026, for the reveal): all 20 cards, each round's five onto rows 0–4 in turn.
+  // All 20 cards, each round's five onto rows 0–4 in turn: on fiveHandsRev 3 the mid-play frame is the column pick.
+  partial: (ctx) => taps(ctx, Array.from({ length: 20 }, (_, k) => [160, 44 + (k % 5) * 86 + 40] as const), 300),
+  // A whole run (3 Nov 2026, for the reveal): the same 20 cards, then column 3 picked (slots 64 apart from x 8).
   solveFromStart: true,
-  solve: (ctx) => taps(ctx, Array.from({ length: 20 }, (_, k) => [160, 44 + (k % 5) * 86 + 40] as const), 350),
+  solve: (ctx) => taps(ctx, [...Array.from({ length: 20 }, (_, k) => [160, 44 + (k % 5) * 86 + 40] as const), [8 + 2 * 64 + 29, 44 + 2 * 86 + 40]], 300),
+  solveShotsMs: [400, 1200],
 };
 
 /** Pyramid: across the bottom row (cards 54 × 78, 57 apart, centred, at y 346), then the stock (84 × 120 at 64, 520). */

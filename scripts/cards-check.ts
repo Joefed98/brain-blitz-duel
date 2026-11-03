@@ -63,7 +63,7 @@ import { tpSolve } from "./cards/tripeaksSolver";
 import { shuffledDeck } from "../src/lib/arcade/cards/cards";
 import { TP_STOCK_PARS } from "../src/lib/arcade/cards/tripeaksStockPar.data";
 import { TP_V2_PAR_MAX, tpCheckpoint, tripeaksGameFor, tripeaksStdParts } from "../src/lib/arcade/cards/tripeaks";
-import { FH_STD_SPEC } from "../src/lib/arcade/cards/fiveHands";
+import { FH_INPUT_PICK, FH_STD_SPEC, fhColumn, fhPicking } from "../src/lib/arcade/cards/fiveHands";
 import { stdSpeed as stdSpeedOf } from "../src/lib/arcade/arcadeStandard";
 import type { ArcadeInputEvent } from "../src/lib/arcade/engine";
 
@@ -586,6 +586,32 @@ ok(new Set(FC_DEALS.map((d) => d[0])).size === FC_DEALS.length && new Set(TP_DEA
   for (let t = 0; t < 12; t++) m3 = g3f.step(m3, { t: m3.tick + 1, k: FH_INPUT_PLACE, a: fhOpenRows(m3.rows)[0]!, b: 0, c: 0, d: 0 });
   const t3 = fhTotals(m3.rows, 3).total;
   ok(g3f.score(m3) === Math.max(1, Math.min(200, t3)) && fiveHandsStdParts(m3)![0]!.points === Math.min(200, t3), `fivehands rev 3: ${t3} hand points score ${g3f.score(m3)} (the sum, at least 1)`);
+  {
+    // The bonus column: refused until every row is complete; once picked the run ends and the column's hand adds; the
+    // buzzer before a pick counts no column; columns are slot k of every row, so their cards are fixed by the deck.
+    const g = fiveHandsGameFor(3);
+    let st: FhState = g.init(44);
+    const early = g.step(st, { t: 1, k: FH_INPUT_PICK, a: 2, b: 0, c: 0, d: 0 });
+    ok(early.rejects === 1 && early.pick === -1 && early.ended === 0, "fivehands rev 3: a column pick before the rows are complete is refused");
+    for (let t = 0; t < FH_TURNS; t++) st = g.step(st, { t: st.tick + 1, k: FH_INPUT_PLACE, a: fhOpenRows(st.rows)[t % fhOpenRows(st.rows).length]!, b: 0, c: 0, d: 0 });
+    ok(st.turn === FH_TURNS && st.ended === 0 && fhPicking(st), "fivehands rev 3: with all 20 placed the run waits for the column pick (the clock running)");
+    const rowsTotal = fhTotals(st.rows, 3).total;
+    const colPts = [0, 1, 2, 3, 4].map((k) => fhRowHand(fhColumn(st.rows, k), 3).points);
+    const k = colPts.indexOf(Math.max(...colPts));
+    const done = g.step(st, { t: st.tick + 1, k: FH_INPUT_PICK, a: k, b: 0, c: 0, d: 0 });
+    ok(done.pick === k && done.ended === 1 && g.score(done) === Math.max(1, Math.min(200, rowsTotal + colPts[k]!)), `fivehands rev 3: picking column ${k + 1} ends the run and scores rows ${rowsTotal} + column ${colPts[k]} = ${g.score(done)}`);
+    const again = g.step({ ...done, ended: 0 }, { t: done.tick + 1, k: FH_INPUT_PICK, a: (k + 1) % 5, b: 0, c: 0, d: 0 });
+    ok(again.pick === k && again.rejects === done.rejects + 1, "fivehands rev 3: a second pick is refused");
+    let late = st;
+    while (!g.isOver(late)) late = g.step(late, null);
+    ok(late.ended === 2 && late.pick === -1 && g.score(late) === Math.max(1, Math.min(200, rowsTotal)), "fivehands rev 3: the buzzer before a pick counts no column");
+    const fixed = [0, 1, 2, 3, 4].every((c) => JSON.stringify([...fhColumn(st.rows, c)].sort((x, y) => x - y)) === JSON.stringify((c === 0 ? st.deck.slice(0, 5) : [0, 1, 2, 3, 4].map((j) => fhYours(st.deck, (c - 1) * 5 + j))).sort((x, y) => x - y)));
+    ok(fixed, "fivehands rev 3: column 0 is the five dealt cards and column k round k's five cards, whatever the placement");
+    ok(fhCheckpoint({ ...st, pick: undefined }).checksum !== fhCheckpoint(done).checksum && fiveHandsGameFor(2).init(44).pick === undefined, "fivehands rev 3: the pick is in the checksum; rev 1–2 states carry none");
+    const v2 = fiveHandsGameFor(2);
+    const p2 = v2.step(v2.init(44), { t: 1, k: FH_INPUT_PICK, a: 1, b: 0, c: 0, d: 0 });
+    ok(p2.rejects === 0 && p2.acted === 0 && p2.pick === undefined, "fivehands rev 2: a pick is not an input");
+  }
   ok(JSON.stringify(fiveHandsStdParts({ ...m3, rev: 2 })!.map((p) => p.max)) === "[200]" && fiveHandsStdParts({ ...m3, rev: 2 })![0]!.points === Math.floor((200 * Math.min(fhTotals(m3.rows, 2).total, FH_CORE_FULL_V2)) / FH_CORE_FULL_V2), "fivehands: a rev-2 state keeps its steep table full at 49");
 }
 

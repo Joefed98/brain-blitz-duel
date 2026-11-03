@@ -1735,6 +1735,8 @@ function gradeUnderRev(
         total: run.total,
         made: run.made,
         placed: run.placed,
+        // fiveHandsRev 3: the bonus column picked (−1 none) and its hand; total includes its points.
+        ...((puzzle.fiveHandsRev ?? 1) >= 3 ? { column: run.column, columnPoints: run.columnPoints, columnHand: run.columnHand } : {}),
         finished: run.finished,
         endedSeconds: run.endedSeconds,
         flagged: run.flagged,

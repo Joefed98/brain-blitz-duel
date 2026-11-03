@@ -1178,18 +1178,19 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       score: liveStdHelp("pokersquares", "Two parts, which total 200:"),
     },
     fivehands: {
-      goal: "Build five poker hands, one row each.",
+      goal: "Build five poker hands, one row each, then pick a column to add.",
       how: [
         { action: "Tap a row", detail: "to place your card in its next slot. Placed cards stay." },
         { action: "Rows fill evenly:", detail: "every row takes a card before any row takes the next. Rows already filled for the round are greyed out." },
         { action: "Each turn", detail: "also turns up a card taken by an opponent: it goes face up on the discard row at the bottom." },
+        { action: "Then pick a column:", detail: "once every row is full, tap one column; its hand adds to your score (pick before the buzzer or it counts nothing)." },
         { action: "Hands:", detail: "high card 0, pair 15, two pair 20, three of a kind 25, straight 30, flush 35, full house 40, four of a kind 45, straight flush 50.", helpOnly: true },
         { action: "20 turns", detail: "after five cards dealt one to each row: 45 of the 52 cards are seen by the end.", helpOnly: true },
         { action: "Rows at the buzzer", detail: "score as they stand.", helpOnly: true },
         { action: "Some decks", detail: "can't reach 200 even placed perfectly: everyone in a room has the same deck, so it's fair.", helpOnly: true },
         { action: "Same deck, same order,", detail: "for everyone.", helpOnly: true },
       ],
-      score: liveStdHelp("fivehands", "One part: your five hands' points added up, which total 200 at most:"),
+      score: liveStdHelp("fivehands", "One part: your five rows' and your picked column's points added up, which total 200 at most:"),
     },
     blockfall: {
       goal: "Clear as many lines as you can in 60 seconds.",

@@ -4,11 +4,20 @@
  * arrangement is four permutations of five. A branch-and-bound search over them, started from the sim's witness (its
  * hill climb) and bounded per row by its best hand with any one card from each round still to come, returns the most
  * hand points perfect play can make on a deck and the taps that make them. Scripts only, never shipped.
+ *
+ * fiveHandsRev 3's bonus column: rows fill evenly, so column 0 holds the five dealt cards and column k round k's five
+ * cards whatever the placement; the best column is fixed by the deck and adds to the best rows independently
+ * (`column`, `columnPoints`; `total` includes it).
  */
-import { FH_ROWS, fhDeal, fhRowHand, fhStartCard, fhYours } from "../../src/lib/arcade/cards/fiveHands";
+import { FH_ROWS, fhColumn, fhDeal, fhRowHand, fhStartCard, fhYours } from "../../src/lib/arcade/cards/fiveHands";
 
 export interface FhBest {
+  /** The rows' best hand points plus the best column's. */
   total: number;
+  rowsTotal: number;
+  /** The best column (its five cards are fixed by the deck) and its points. */
+  column: number;
+  columnPoints: number;
   /** Each turn's row (what perfect play taps). */
   taps: number[];
   rows: number[][];
@@ -74,5 +83,14 @@ export function fhBest(seed: number, rev = 3): FhBest {
   const taps: number[] = [];
   for (let g = 0; g < 4; g++) for (let k = 0; k < 5; k++) taps.push(bestPerm[g]!.indexOf(k));
   const out = Array.from({ length: FH_ROWS }, (_, r) => [fhStartCard(deck, r), ...[0, 1, 2, 3].map((g) => R[g]![bestPerm[g]![r]!]!)]);
-  return { total: best, taps, rows: out };
+  let column = 0;
+  let columnPoints = -1;
+  for (let k = 0; k < 5; k++) {
+    const p = pts(fhColumn(out, k));
+    if (p > columnPoints) {
+      columnPoints = p;
+      column = k;
+    }
+  }
+  return { total: best + columnPoints, rowsTotal: best, column, columnPoints, taps, rows: out };
 }

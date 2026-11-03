@@ -6,43 +6,52 @@
 
 - **Flat hand values** (`FH_HANDS_V3`, `fhRowHand(row, 3)`): high card 0, pair 15, two pair 20, three of a kind 25,
   straight 30, flush 35, full house 40, four of a kind 45, straight flush 50.
-- **Score = the five rows' hand points added up, capped at 200**; anyone who plays scores at least 1, no input 0. No
-  scaling, no full figure, no other parts (`FH_STD_SPEC`: one part, Hand points, max 200).
+- **The bonus column (Joe's choice, same day):** once all five rows are complete, the five columns light up as tappable
+  over "PICK A COLUMN TO ADD" (no column's points shown); one tap picks a column (slot k of every row, a five-card hand;
+  input kind 2, `FH_INPUT_PICK`, `fhPicking`) and the run ends on the pick. The clock runs on until then; if the buzzer
+  comes first no column counts. A pick before the rows are complete, or a second pick, is refused. After the pick the
+  chosen column stays lit and its hand and points show in the card's place ("COLUMN 3 · PAIR +15"); the reveal names it
+  as the sixth hand (tile "Sixth hand (column)", the breakdown line "rows + column").
+- **Score = the five rows' hand points + the chosen column's, capped at 200**; anyone who plays scores at least 1, no
+  input 0. No scaling, no full figure, no other parts (`FH_STD_SPEC`: one part, Hand points, max 200; `fhTotalV3`).
+- **The columns are complete hands, and fixed by the deck.** Rows fill evenly (every row takes one card before any takes
+  the next), so slot k of every row is filled in the same round: column 1 always holds the five dealt cards and column
+  k + 1 round k's five cards, whatever the placement. Placement never changes a column's hand; the pick's skill is reading
+  the five columns (cards-check proves it on a run).
 - **The deal:** the seed's first shuffle, dealt as it is (rev 1's first-attempt deck; no reshuffle, no 200 witness). The
-  sim still climbs a witness (`fhBuildDeal`), but nothing has to reach anything; the checks and the flawless bot use
-  the deck's **exact** best arrangement (`scripts/cards/fiveHandsBest.ts`: branch and bound over the four rounds'
-  orders, about 1 s a deck).
-- Same play, deck order and 60 s run. Rev 1 and rev 2 runs replay unchanged: 25 rev-2 runs recorded on main
+  checks and the flawless bot use the deck's **exact** best (`scripts/cards/fiveHandsBest.ts`: branch and bound over the
+  four rounds' orders for the rows, about 1 s a deck, plus the best column).
+- Bots: every level but flawless reads the columns for about twice a card's thinking time (so a slow player can run out
+  of clock) and picks through its judgement on the columns' points (a slip picks any column); flawless picks the best at
+  once.
+- Same deck order and 60 s run. Rev 1 and rev 2 runs replay unchanged: 25 rev-2 runs recorded on main
   (`scripts/fixtures/cards-nov3-legacy.json`, `scripts/cards-nov3-legacy-record.ts`) replay to the same score and final
-  state (cards-check).
+  state (cards-check). A rev-2 log's kind-2 input is not an input.
 
-**Can perfect play reach 200?** Almost never with these values: 200 needs five hands averaging 40 (five full houses,
-or straights, flushes and better). The exact best arrangement of each deck (`fhBest`):
+**Can perfect play reach 200?** Hardly ever: the deck's exact best (rows + best column) reaches 200 on **1 of 200** decks
+for raw seeds 0–199 and **1 of 200** for 10000–10199 (median 155 and 160, p10–p90 135–180, max 200); on the skill-band
+tool's fresh room seeds the flawless run reaches 200 on 0 of 200 (median 155).
 
-| Seeds | Decks reaching 200 | Best hand points: min · p10 · median · p90 · max |
-| --- | ---: | --- |
-| 0–199 | **0 of 200** | 100 · 115 · 140 · 160 · 180 |
-| 10000–10199 | **0 of 200** | 100 · 120 · 140 · 160 · 180 |
-
-So the flawless level scores its deck's best, a median of 140, and 200 is out of reach on every deck measured.
-
-Measured (`bun scripts/cards-bands.ts fivehands --seeds=200`, room seeds 0–199; fresh seeds 10000–10199 in brackets;
-the bots weigh the flat table's draws flush × 3.2, straight × 3, ranks × 5 against rev 1's; flawless plays `fhBest`):
+Measured (`bun scripts/cards-bands.ts fivehands --seeds=200 --from=10000`, fresh seeds; room seeds 0–199 in brackets):
 
 | Level | Weak | Average | Good | Great | Near-perfect | Elite | Flawless |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| rev 2 median (before) | 61 | 122 | 142 | 142 | 163 | 183 | 200 |
-| **rev 3 median** | **45** (50) | **70** (70) | **80** (80) | **80** (80) | **85** (85) | **90** (90) | **140** (140) |
-| rev 3 p10–p90 | 30–80 | 45–100 | 50–105 | 60–110 | 55–110 | 65–110 | 120–155 |
-| rev 3 mean | 48.8 | 70.1 | 77.7 | 82.2 | 83.0 | 89.5 | 137.7 |
+| rev 2 median (before, room seeds) | 61 | 122 | 142 | 142 | 163 | 183 | 200 |
+| rows only (the first rev-3 push, fresh) | 50 | 70 | 80 | 80 | 85 | 90 | 140 |
+| **rev 3 median, with the column** | **50** (45) | **80** (85) | **95** (95) | **95** (100) | **100** (100) | **105** (105) | **155** (155) |
+| rev 3 p10–p90 | 30–75 | 55–115 | 70–120 | 75–125 | 70–125 | 80–130 | 140–175 |
+| rev 3 mean | 50.9 | 83.5 | 94.0 | 96.7 | 98.4 | 107.2 | 156.1 |
+| runs with a column picked | 1/200 | 170/200 | 200/200 | 200/200 | 200/200 | 200/200 | 200/200 |
 | targets | 30–60 | ~90 | 120–140 | ~160 | ~175 | 185–195 | 200 |
 
-**Against the targets:** weak lands in range; every other level is well under (average 70 against ~90–100, elite 90
-against 185–195, flawless 140 against 200), and good, great and near-perfect sit within 5 points of each other. With the
-values fixed and no scaling, nothing else in the rules moves this: the hand points a deck allows are the ceiling.
-A decision for Joe (not made here): scale the sum (×1.4 puts the flawless median near 196 and average near 98), raise
-the values, or accept the lower range.
+**Against the targets:** weak and average are close (50 and 80 against 30–60 and ~90); good to elite are 25–85 under,
+and good, great and near-perfect sit within 5 points of each other (the 5-point hand steps). Not applied, for Joe:
+multiplying the total (fresh seeds, the same runs):
 
+| Total × | Weak | Average | Good | Great | Near-perfect | Elite | Flawless | Flawless at 200 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 1.2 | 60 (36–90) | 96 (66–138) | 114 (84–144) | 114 (90–150) | 120 (84–150) | 126 (96–156) | 186 (168–200) | 45 of 200 |
+| 1.4 | 70 (42–105) | 112 (77–161) | 133 (98–168) | 133 (105–175) | 140 (98–175) | 147 (112–182) | 200 (196–200) | 165 of 200 |
 
 ## fiveHandsRev 2 (1 Nov 2026, Joe's tuning: what rooms deal)
 

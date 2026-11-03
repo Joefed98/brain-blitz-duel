@@ -199,10 +199,16 @@ const BUILDERS: Record<string, Builder> = {
     const full = fhCoreFullFor(rev);
     return {
     axis: { value: n(r, "total"), max: full, label: "Hand points" },
-    lines: [rev >= 3 ? `${n(r, "total")} hand points (capped at 200) → ${s}` : `${n(r, "total")} hand points (full at ${full}) → ${s}`],
+    lines: rev >= 3
+      ? [
+          `${n(r, "total") - n(r, "columnPoints")} from the five rows + ${n(r, "column") >= 0 ? `${n(r, "columnPoints")} from column ${n(r, "column") + 1}` : "no column picked"} = ${n(r, "total")} hand points (capped at 200) → ${s}`,
+        ]
+      : [`${n(r, "total")} hand points (full at ${full}) → ${s}`],
     tiles: [
       { label: (n(r, "fiveHandsRev") || 1) >= 2 ? "Rows with a hand" : "Made hands", value: `${n(r, "made")} / 5` },
-      rev >= 3 ? { label: "Cap", value: "200" } : { label: "Full at", value: String(full) },
+      rev >= 3
+        ? { label: "Sixth hand (column)", value: n(r, "column") >= 0 ? `${String((r as Record<string, unknown>)["columnHand"] || "No hand")} +${n(r, "columnPoints")}` : "Not picked" }
+        : { label: "Full at", value: String(full) },
       { label: "Placed", value: `${n(r, "placed")} / 20` },
     ],
     outcome: n(r, "placed") === 20 ? "finish" : "time",

@@ -7,7 +7,7 @@ import { recordInput, inputAt, type ArcadeInputEvent } from "../../src/lib/arcad
 import { FC_CHECKPOINT_INTERVAL, FC_INPUT_MOVE, fcCheckpoint, freecellGameFor, type FcState } from "../../src/lib/arcade/cards/freecell";
 import { TP_CHECKPOINT_INTERVAL, TP_INPUT_TAP, tpCheckpoint, tripeaksGameFor, type TpState } from "../../src/lib/arcade/cards/tripeaks";
 import { PS_CHECKPOINT_INTERVAL, PS_INPUT_PLACE, psCheckpoint, psTargetGrid, pokerSquaresGameFor, type PsState } from "../../src/lib/arcade/cards/pokerSquares";
-import { FH_CHECKPOINT_INTERVAL, FH_INPUT_PLACE, fhCheckpoint, fhDeal, fiveHandsGameFor, type FhState } from "../../src/lib/arcade/cards/fiveHands";
+import { FH_CHECKPOINT_INTERVAL, FH_INPUT_PICK, FH_INPUT_PLACE, fhCheckpoint, fhDeal, fiveHandsGameFor, type FhState } from "../../src/lib/arcade/cards/fiveHands";
 import { encodeFiveHandsRun, encodeFreecellRun, encodePokerSquaresRun, encodeTripeaksRun } from "../../src/lib/duel/cards";
 import { freecellSolution, tripeaksParSolution, tripeaksSolution } from "./solutions";
 import { fhBest } from "./fiveHandsBest";
@@ -64,10 +64,14 @@ export function pokerSquaresFlawless(seed: number, gap = 20, rev = 1): { raw: st
 
 /**
  * Five Hands seed: each turn's card tapped onto its witness row, one every `gap` ticks. fiveHandsRev 3: the deck's exact
- * best arrangement (scripts/cards/fiveHandsBest.ts; a rev-3 deck need not reach 200, so the climb's witness is not it).
+ * best arrangement (scripts/cards/fiveHandsBest.ts; a rev-3 deck need not reach 200, so the climb's witness is not it),
+ * then the best bonus column.
  */
 export function fiveHandsFlawless(seed: number, gap = 20, rev = 1): { raw: string; state: FhState } {
-  const taps = (rev >= 3 ? fhBest(seed, rev).taps : fhDeal(seed, rev).witnessTaps).map((row) => ({ k: FH_INPUT_PLACE, a: row, b: 0, c: 0, d: 0 }));
+  const best = rev >= 3 ? fhBest(seed, rev) : null;
+  const taps: Ev[] = (best ? best.taps : fhDeal(seed, rev).witnessTaps).map((row) => ({ k: FH_INPUT_PLACE, a: row, b: 0, c: 0, d: 0 }));
+  // Rev 3: then the best bonus column.
+  if (best) taps.push({ k: FH_INPUT_PICK, a: best.column, b: 0, c: 0, d: 0 });
   return play(fiveHandsGameFor(rev), seed, taps, gap, fhCheckpoint, FH_CHECKPOINT_INTERVAL, encodeFiveHandsRun);
 }
 

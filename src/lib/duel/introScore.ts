@@ -136,7 +136,7 @@ function introScoreTemplates(): Record<PuzzleType, string> {
     freecell: `Cards 60 (full at ${FC_CORE_UNITS_V4} units); finished: few moves 50, speed 90 (by ${FC_SPEED_FULL_S_V4} s). Together {max}.`,
     tripeaks: "Cards 80, peak tops 30, run 10; cleared: 10, few stock cards 20, speed 50. Together {max}.",
     pokersquares: `Hand points 160 (full at ${PS_CORE_FULL_V2}); made hands 40 (4 a line). Together {max}.`,
-    fivehands: "Your five hands' points added up, to {max}. Pair 15, two pair 20 … straight flush 50.",
+    fivehands: "Five rows plus the column you pick, added up to {max}. Pair 15 … straight flush 50.",
     blockfall: `Lines 140 (full at ${BF_CORE_FULL}); multi-line clears 40; a low stack at the buzzer 20. Together {max}.`,
     alleyroll: `Ring points 150 (full at ${AR_CORE_FULL}); 100 pockets 30; hot streak 20. Together {max}.`,
     pyramid: "Cards 120; cleared 10 and speed 50; pyramid pairs 20 (2 each). Together {max}.",
