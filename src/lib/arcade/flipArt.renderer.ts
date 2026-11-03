@@ -908,6 +908,8 @@ function drawFlipArtWorld(ctx: CanvasRenderingContext2D, state: FlipState, size:
     // (hazards stand on the surfaces, so the middle of the tunnel is always clear there).
     drawSaveBadge(ctx, state, 8, (ceilAt(15) + floorAt(15)) / 2 - 8);
   }
+  // flipRev 11: the flow streak in the rock above the cave (no star counts on this revision).
+  if (state.flow) drawFlowHud(ctx, state);
   ctx.save();
   // Pool deaths sink behind the opening; no new player or hazard geometry.
   if (sink !== null) { bandPath(ctx, ceilAt, floorAt); ctx.clip(); }
@@ -965,7 +967,7 @@ function drawSweetSpots(ctx: CanvasRenderingContext2D, state: FlipState, toScree
       ctx.stroke();
     }
     ctx.globalAlpha = alpha;
-    ctx.strokeStyle = glint ? "#FFF6D8" : "rgba(255,242,204,0.95)";
+    ctx.strokeStyle = glint ? "#FFE2A0" : "rgba(255,242,204,0.95)";
     ctx.lineWidth = 2.4;
     strip();
     ctx.stroke();
@@ -978,23 +980,14 @@ function drawSweetSpots(ctx: CanvasRenderingContext2D, state: FlipState, toScree
     }
     ctx.stroke();
     if (glint && !arcadeReducedEffects()) {
-      // A small star of light running along the strip once.
+      // A perfect landing (3 Nov 2026, display only, every revision with sweet spots): the strip glows molten orange
+      // for a moment and cools (no star of light; the shared layer's small molten PERFECT shows at the runner).
       const p = still ? 0.5 : since / SWEET_GLINT_TICKS;
-      const gx = a + (b - a) * p;
-      const gy = at(gx) - inward * 2;
-      ctx.globalAlpha = still ? 0.8 : 1 - p * 0.7;
-      ctx.fillStyle = "#FFFFFF";
-      ctx.beginPath();
-      ctx.moveTo(gx, gy - 5);
-      ctx.lineTo(gx + 1.2, gy - 1.2);
-      ctx.lineTo(gx + 5, gy);
-      ctx.lineTo(gx + 1.2, gy + 1.2);
-      ctx.lineTo(gx, gy + 5);
-      ctx.lineTo(gx - 1.2, gy + 1.2);
-      ctx.lineTo(gx - 5, gy);
-      ctx.lineTo(gx - 1.2, gy - 1.2);
-      ctx.closePath();
-      ctx.fill();
+      ctx.globalAlpha = still ? 0.6 : 0.85 * (1 - p);
+      ctx.strokeStyle = "#FF7A12";
+      ctx.lineWidth = 4;
+      strip();
+      ctx.stroke();
     }
   });
   ctx.restore();
@@ -1140,6 +1133,8 @@ function drawTrails(ctx: CanvasRenderingContext2D, state: FlipState, toScreen: (
     const high = ceilAt(x) + lift;
     return low + ((high - low) * f) / 1000;
   };
+  // flipRev 11 (3 Nov 2026): the trails are a faint guide only (never taken, no score): drawn at 40 %, the stars unlit.
+  const faint = state.flow ? 0.4 : 1;
   v8.trails.forEach((trail, i) => {
     const bits = state.trailGot?.[i] ?? 0;
     if (bits === (1 << FLIP_V8_TRAIL_STARS) - 1) return;
@@ -1149,7 +1144,7 @@ function drawTrails(ctx: CanvasRenderingContext2D, state: FlipState, toScreen: (
     const missed = state.tick > trail.t1;
     ctx.save();
     // Dotted guide through the stars (from the launch point).
-    ctx.globalAlpha = missed ? 0.12 : 0.3;
+    ctx.globalAlpha = (missed ? 0.12 : 0.3) * faint;
     ctx.strokeStyle = MATERIAL.lamp;
     ctx.lineWidth = 1.2;
     ctx.setLineDash([2, 5]);
@@ -1159,7 +1154,7 @@ function drawTrails(ctx: CanvasRenderingContext2D, state: FlipState, toScreen: (
     ctx.stroke();
     ctx.setLineDash([]);
     // Launch chevron on the surface the trail rises from.
-    ctx.globalAlpha = missed ? 0.25 : 0.9;
+    ctx.globalAlpha = (missed ? 0.25 : 0.9) * faint;
     ctx.fillStyle = MATERIAL.hot;
     const sy = trail.from === 0 ? floorAt(lx) : ceilAt(lx);
     const dir = trail.from === 0 ? -1 : 1;
@@ -1171,21 +1166,21 @@ function drawTrails(ctx: CanvasRenderingContext2D, state: FlipState, toScreen: (
     ctx.closePath();
     ctx.fill();
     // The stars not yet taken.
-    ctx.globalAlpha = missed ? 0.3 : 1;
+    ctx.globalAlpha = (missed ? 0.3 : 1) * faint;
     trail.x.forEach((wx, k) => {
       if (bits & (1 << k)) return;
       const x = toScreen(wx);
       if (x < -10 || x > FLIP_WORLD_W + 10) return;
-      drawTrailStar(ctx, x, yAt(x, trail.f[k]!), state.tick + k * 9, still);
+      drawTrailStar(ctx, x, yAt(x, trail.f[k]!), state.tick + k * 9, still, faint < 1);
     });
     ctx.restore();
   });
 }
 
-function drawTrailStar(ctx: CanvasRenderingContext2D, x: number, y: number, tick: number, still: boolean): void {
+function drawTrailStar(ctx: CanvasRenderingContext2D, x: number, y: number, tick: number, still: boolean, unlit = false): void {
   const r = 6;
   const pulse = still ? 0.5 : 0.5 + 0.5 * Math.sin(tick / 7);
-  if (!arcadeReducedEffects()) {
+  if (!unlit && !arcadeReducedEffects()) {
     const glow = ctx.createRadialGradient(x, y, 0.5, x, y, r * 2);
     glow.addColorStop(0, `rgba(255,244,190,${0.35 + pulse * 0.25})`);
     glow.addColorStop(1, "rgba(255,244,190,0)");
@@ -1217,6 +1212,34 @@ function drawShield(ctx: CanvasRenderingContext2D, state: FlipState, y: number, 
   ctx.beginPath();
   ctx.roundRect(RUNNER_X - box.half + 1, y - box.h / 2 + 1, box.half * 2 - 2, box.h - 2, 8);
   ctx.stroke();
+  ctx.restore();
+}
+
+/**
+ * flipRev 11 HUD (3 Nov 2026): the flow streak, "FLOW 12", in the rock above the cave's top-left (the cave's roof never
+ * rises above y 190 there, so it never covers play), and the run's best streak beside it once it is ahead of the
+ * current one. A streak broken by a saved crash dims the count for a moment.
+ */
+function drawFlowHud(ctx: CanvasRenderingContext2D, state: FlipState): void {
+  const streak = state.streak ?? 0;
+  const best = state.bestStreak ?? 0;
+  ctx.save();
+  ctx.textBaseline = "top";
+  ctx.textAlign = "left";
+  ctx.font = "700 13px 'JetBrains Mono', ui-monospace, monospace";
+  ctx.fillStyle = "rgba(10,6,6,0.55)";
+  const text = `FLOW ${streak}`;
+  const w = ctx.measureText(text).width;
+  ctx.beginPath();
+  ctx.roundRect(10, 38, w + 14, 20, 6);
+  ctx.fill();
+  ctx.fillStyle = streak > 0 ? "#FFB347" : "rgba(255,179,71,0.55)";
+  ctx.fillText(text, 17, 42);
+  if (best > streak) {
+    ctx.font = "600 11px 'JetBrains Mono', ui-monospace, monospace";
+    ctx.fillStyle = "rgba(247,247,248,0.7)";
+    ctx.fillText(`BEST ${best}`, 10 + w + 22, 44);
+  }
   ctx.restore();
 }
 

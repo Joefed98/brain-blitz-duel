@@ -15,7 +15,7 @@
  *     the planets jumped past counting for core; behind, the furthest reached kept); older starts carry no fuel.
  *  4. The zigzag: the bank's courses never step straight up (every step 40+ px sideways; orbitRev 13's do), turn more
  *     often than orbitRev 13's, and fewer misses (any release on a full tank) are caught three or more planets on.
- *  5. The flight camera: on witness runs the planet each flight lands on is in view before it arrives; the camera
+ *  5. The flight camera (the still camera since Nov 2026): on witness runs the planet each flight lands on is in view before it arrives; the camera
  *     never jumps in flight.
  *  6. Dealing and text: generateOrbit deals orbitRev 14 on a fuel-bank course (pinOrbitPreFuel deals orbitRev 13 as
  *     before), LIVE_BANDS and ORBIT_STD carry 14, the help describes the fuel, and the intro demo waits for one recorded
@@ -270,7 +270,8 @@ const step = (s: OrbitRev3State, input: ArcadeInputEvent | null = null) => orbit
       const before = s;
       s = orbitRev3ArtGame.step(s, taps.has(s.tick + 1) ? ev(s.tick + 1, ORBIT_INPUT_TAP) : null) as OrbitRev3State;
       const cam = orbitCamera(s);
-      // Flight ticks only (the lead is orbitRev 14's change; a black hole's cut to its target is every revision's).
+      // Flight ticks only (orbitRev 14's still camera: a catch's pan running on into a flight, the edge-follow; a black
+      // hole's cut to its target is every revision's).
       if (before.flying > 0 && s.flying > 0) maxStep = Math.max(maxStep, Math.hypot(cam.x - prev.x, cam.y - prev.y));
       prev = cam;
       if (before.flying === 0 && s.flying > 0) {

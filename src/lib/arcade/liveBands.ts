@@ -12,11 +12,11 @@ import { bandCurve, bandHelp, type BandCurve, type BandHelpWords } from "./score
 import { roundMaxFor } from "../duel/roundMax";
 import { BT_REV_STD, BT_REV_STRICT, BT_V8_BAND_CURVE } from "./ballTrack";
 import { WAV_REV_STD, WAV_REV_STRICT, WAV_V12_BAND_CURVE } from "./wavefront";
-import { FLIP_REV_STD, FLIP_REV_STRICT, FLIP_V10_BAND_CURVE } from "./flip";
+import { FLIP_REV_FLOW, FLIP_REV_STRICT, FLIP_V11_BAND_CURVE } from "./flip";
 import { INK_REV_STD, INK_REV_STRICT, INK_V12_BAND_CURVE } from "./inkBridge";
 import { MATCHUP_REV_SIX, MATCHUP_REV_STRICT, MATCHUP_V12_BAND_CURVE } from "./matchup";
 import { BUB_REV_STD, BUB_REV_STRICT, BUB_V11_BAND_CURVE, BUB_V11_STD_SPEC } from "./bubble";
-import { CROSS_REV_STD, CROSS_REV_STRICT, CROSS_V10_BAND_CURVE } from "./cross";
+import { CROSS_REV_FLOW, CROSS_REV_STRICT, CROSS_V11_BAND_CURVE } from "./cross";
 import { MINES_REV_STD, MINES_STD_SPEC, MINES_V1_BAND_CURVE } from "./minesweeper";
 import { MAHJONG_REV_DEALT, MAHJONG_STD_SPEC, MAHJONG_V1_BAND_CURVE } from "./mahjong";
 import { RALLY_REV_STD, RALLY_REV_STRICT, RALLY_STD_SPEC, RALLY_V12_BAND_CURVE } from "./rally";
@@ -28,7 +28,7 @@ import { HOVER_REV_STANDARD, HOVER_REV_STRICT, HOVER_V10_BAND_CURVE } from "./ho
 import { SKYLINE_REV_STD, SKYLINE_REV_STRICT, SKYLINE_STD_SPEC, SKYLINE_V9_BAND_CURVE } from "./skyline";
 import { JUNC_REV_BAND, JUNC_BAND_CURVE } from "./junction";
 import { BRK_REV_STD, BRK_REV_STRICT, BRK_V11_BAND_CURVE } from "./breaker";
-import { TILT_REV_STD, TILT_REV_STRICT, TILT_V10_BAND_CURVE } from "./tilt";
+import { TILT_REV_PAR, TILT_REV_STRICT, TILT_V11_BAND_CURVE } from "./tilt";
 import { ORBIT_REV_STRICT, ORBIT_REV_FUEL } from "./orbit";
 import { ORBIT_V14_BAND_CURVE } from "./orbitRev3";
 import { BEAT_REV_STD, BEAT_REV_STRICT, BEAT_STD_SPEC, BEAT_V11_BAND_CURVE } from "./beat";
@@ -89,8 +89,9 @@ function stdCoreCurve(spec: StdSpec): BandCurve {
 export const LIVE_BANDS = {
   balltrack: { field: "btRev", rev: BT_REV_STD, curve: BT_V8_BAND_CURVE, strictRev: BT_REV_STRICT },
   wavefront: { field: "wavRev", rev: WAV_REV_STD, curve: WAV_V12_BAND_CURVE, strictRev: WAV_REV_STRICT },
-  // flipRev 10 (the arcade scoring standard): the core's straight line (half seconds survived → 150); features up to 50 more.
-  flip: { field: "flipRev", rev: FLIP_REV_STD, curve: FLIP_V10_BAND_CURVE, strictRev: FLIP_REV_STRICT },
+  // flipRev 11 (3 Nov 2026): the core's straight line (clean half seconds → 100; a saved crash costs 20 s); perfect landings,
+  // double flips and the flow streak up to 100 more. flipRev 10: half seconds survived → 150 (FLIP_V10_BAND_CURVE).
+  flip: { field: "flipRev", rev: FLIP_REV_FLOW, curve: FLIP_V11_BAND_CURVE, strictRev: FLIP_REV_STRICT },
   // inkRev 12 (the arcade scoring standard): levels on a straight line to 140; speed and the features add up to 60 more.
   inkbridge: { field: "inkRev", rev: INK_REV_STD, curve: INK_V12_BAND_CURVE, strictRev: INK_REV_STRICT },
   // matchupRev 12 (the arcade scoring standard, six goals and six treasures): the core's straight line (gems cleared, to
@@ -98,7 +99,9 @@ export const LIVE_BANDS = {
   matchup: { field: "matchupRev", rev: MATCHUP_REV_SIX, curve: MATCHUP_V12_BAND_CURVE, strictRev: MATCHUP_REV_STRICT },
   // bubbleRev 11 (the arcade scoring standard): the core's straight line; the spec lists every part.
   bubble: { field: "bubbleRev", rev: BUB_REV_STD, curve: BUB_V11_BAND_CURVE, strictRev: BUB_REV_STRICT, std: BUB_V11_STD_SPEC },
-  cross: { field: "crossRev", rev: CROSS_REV_STD, curve: CROSS_V10_BAND_CURVE, strictRev: CROSS_REV_STRICT },
+  // crossRev 11 (3 Nov 2026): no coins; the core 150 on a straight line, full at 76 units; the no-stop streak 40 and close
+  // calls 10 (the help says so); a hit costs 15. crossRev 10: 150 at 92 units (CROSS_V10_BAND_CURVE), coins and a clean streak.
+  cross: { field: "crossRev", rev: CROSS_REV_FLOW, curve: CROSS_V11_BAND_CURVE, strictRev: CROSS_REV_STRICT },
   // rallyRev 12 (the arcade scoring standard): gold-ball hits on a straight line, pads and gold targets fixed.
   rally: { field: "rallyRev", rev: RALLY_REV_STD, curve: RALLY_V12_BAND_CURVE, strictRev: RALLY_REV_STRICT, std: RALLY_STD_SPEC },
   // snakeRev 12 (1 Nov 2026): the core's straight line to 120 at 20 core stars (a gold star counts 2); gold stars, combos, lane rides
@@ -114,7 +117,9 @@ export const LIVE_BANDS = {
   // brkRev 11 (the arcade scoring standard): the bricks' straight line to 140; clear 10, speed 20 and gold 30 on top (the help says so).
   breaker: { field: "brkRev", rev: BRK_REV_STD, curve: BRK_V11_BAND_CURVE, strictRev: BRK_REV_STRICT },
   // tiltRev 10 (the arcade scoring standard): the core's straight line (35 a maze, to 140); finish, speed and gold stars add up to 60 (the help says so).
-  tilt: { field: "tiltRev", rev: TILT_REV_STD, curve: TILT_V10_BAND_CURVE, strictRev: TILT_REV_STRICT },
+  // tiltRev 11 (3 Nov 2026): no gold stars; the core's straight line (25 a maze, to 100); par, a clean run, finish and
+  // speed add up to 100 (the help says so). tiltRev 10: 35 a maze, to 140 (TILT_V10_BAND_CURVE).
+  tilt: { field: "tiltRev", rev: TILT_REV_PAR, curve: TILT_V11_BAND_CURVE, strictRev: TILT_REV_STRICT },
   // orbitRev 13 (the arcade scoring standard): planets on a straight line to 130; speed and features pay up to 70 more.
   // orbitRev 14 (the fuel meter): the same parts and straight line on the fuel bank's zigzag courses.
   orbit: { field: "orbitRev", rev: ORBIT_REV_FUEL, curve: ORBIT_V14_BAND_CURVE, strictRev: ORBIT_REV_STRICT },

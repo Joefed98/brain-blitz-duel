@@ -32,11 +32,16 @@
  * bot used to re-plan only for hazards, so a flip already lined up could cost a star that was read in
  * time to keep it; even the flawless bot lost a gold star that way on some seeds). flipRev 8's sweet
  * spots and trails are read the same way.
+ *
+ * flipRev 11 (3 Nov 2026, docs/arcade-standard/flip.md "flipRev 11"): no gold stars are dealt and the trails are never
+ * taken, so no star or trail is planned for; double flips are tried until FLIP_V11_DOUBLES of them (the part's full
+ * count) instead of flipRev 8's combo-point cap. Everything else plays as before.
  */
 import {
   FLIP_INPUT_TAP,
   FLIP_RUNNER_HALF_PX_V2,
   FLIP_V8_COMBO_CAP,
+  FLIP_V11_DOUBLES,
   FLIP_V8_READ_AHEAD,
   FLIP_RUN_TICKS,
   FLIP_WORLD_W,
@@ -62,12 +67,15 @@ const TAP = { k: FLIP_INPUT_TAP, a: 0, b: 0, c: 0, d: 0 };
 export const bot: SkillBot = ({ game, seed, human, fixes }) => {
   const level = human.level as SkillLevel;
   const starTry = STAR_TRY[level] ?? 0.5;
-  const trailTry = TRAIL_TRY[level] ?? 0.35;
   const comboTry = COMBO_TRY[level] ?? 0.1;
   const sweetTry = SWEET_TRY[level] ?? 0.25;
   const lag = human.lagTicks();
   const commitLead = Math.round(human.p.reactionMs[0] / (1000 / 60));
   const init = game.init(seed) as FlipState;
+  // flipRev 11: no star pickups (the state deals no gold stars and trails are never taken), so no trail is ever chased;
+  // double flips count up to FLIP_V11_DOUBLES (not flipRev 8's combo points).
+  const flow = Boolean(init.flow);
+  const trailTry = flow ? 0 : (TRAIL_TRY[level] ?? 0.35);
   /** Per segment / star: the tick its reaction completes (known to the player from then). */
   const segReady: number[] = [];
   const starReady: number[] = [];
@@ -324,7 +332,7 @@ export const bot: SkillBot = ({ game, seed, human, fixes }) => {
 
       // Rev 8 double flip: a quick flip after landing, if one here counts and keeps a route alive.
       // Combo points count up to FLIP_V8_COMBO_CAP: past it a double flip is only a risk.
-      if (v8 && comboAt !== null && (s.comboPts ?? 0) >= FLIP_V8_COMBO_CAP) comboAt = null;
+      if (v8 && comboAt !== null && (flow ? (s.combos ?? 0) >= FLIP_V11_DOUBLES : (s.comboPts ?? 0) >= FLIP_V8_COMBO_CAP)) comboAt = null;
       // ...and a flawless or elite player never starts one with an announced gold star still to take.
       if (keepTrying && comboAt !== null && stars.some((st, i) => starWant[i] && (starReady[i] ?? Infinity) <= t && !((s.got ?? 0) & (1 << i)) && st.x + HALF >= s.x)) comboAt = null;
       if (v8 && comboAt !== null && t >= comboAt) {

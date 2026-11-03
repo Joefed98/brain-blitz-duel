@@ -525,6 +525,17 @@ export interface FlipState extends BandFields {
   /** flipRev 8 sweet spots: taken bits (course.sweets order) and the tick of the latest sweet landing (art's glint). */
   sweetGot?: number;
   sweetT?: number;
+  /**
+   * flipRev 11 only (3 Nov 2026, absent on every earlier round): 1 = flipRev 8's play with no star pickups (no gold stars
+   * dealt into the state, trails drawn but never taken) and the flow streak counted, scored on FLIP_V11 (states carry
+   * `std: 1` too). Folded into the checkpoint checksum last, with the streak counters.
+   */
+  flow?: number;
+  /** flipRev 11: clean jumps in a row now (a saved crash sets it to 0), and the run's longest such streak. */
+  streak?: number;
+  bestStreak?: number;
+  /** flipRev 11: 1 once a crash is saved, until the next take-off (the flip in the air then is not a clean jump). */
+  slip?: number;
 }
 
 export function flipWarpAmp(tick: number, rev?: number | null, early?: number): number {
@@ -730,6 +741,8 @@ export function flipCheckpoint(state: FlipState): FlipCheckpoint {
   // flipRev 8 folds in its own counters after that.
   if (state.exp) extra.push(state.exp, state.arcN ?? 0, state.land ?? 0, state.chain ?? 0, state.comboPts ?? 0, state.save ?? 0,
     state.saves ?? 0, state.inv ?? 0, state.cpPassed ?? 0, state.cleanCps ?? 0, state.zonesOk ?? 0, state.pause ?? 0, state.lost ?? 0, ...(state.trailGot ?? []), state.sweetGot ?? 0);
+  // flipRev 11: its marker and the flow counters after that, so every flipRev 8–10 checksum is unchanged.
+  if (state.flow) extra.push(state.flow, state.streak ?? 0, state.bestStreak ?? 0, state.slip ?? 0);
   for (const value of [...Object.values(snap), ...extra]) {
     checksum ^= value | 0;
     checksum = Math.imul(checksum, 0x01000193) >>> 0;
@@ -827,6 +840,7 @@ const flipRev2Game: ArcadeGame<FlipState, ArcadeInputEvent | null> = { ...flipGa
 
 /** Takes puzzle.flipRev; anything else is the original corridor. */
 export function flipGameFor(rev?: number | null): ArcadeGame<FlipState, ArcadeInputEvent | null> {
+  if (rev === FLIP_REV_FLOW) return flipFlowGame;
   if (rev === FLIP_REV_STD) return flipStdGame;
   if (rev === FLIP_REV_LIFT) return flipLiftGame;
   if (rev === FLIP_REV_EXPAND) return flipExpandGame;
@@ -1025,7 +1039,7 @@ export interface FlipV8Course {
 }
 
 export function flipWorldHFor(rev?: number | null): number {
-  return rev === FLIP_REV_EXPAND || rev === FLIP_REV_LIFT || rev === FLIP_REV_STD ? FLIP_V8_WORLD_H : FLIP_WORLD_H;
+  return rev === FLIP_REV_EXPAND || rev === FLIP_REV_LIFT || rev === FLIP_REV_STD || rev === FLIP_REV_FLOW ? FLIP_V8_WORLD_H : FLIP_WORLD_H;
 }
 export function flipWorldH(state: Pick<FlipState, "exp">): number {
   return state.exp ? FLIP_V8_WORLD_H : FLIP_WORLD_H;
@@ -1604,6 +1618,8 @@ function stepV8(state: FlipState, input: ArcadeInputEvent | null): FlipState {
     s.side ^= 1;
     s.arcN = flipV8Arc(flipV8HeightAt(course, x));
     s.flipT = s.arcN;
+    // flipRev 11: a take-off starts a fresh jump (a crash saved before it no longer counts against it).
+    if (s.flow) s.slip = 0;
   } else s.land = Math.min(99, (s.land ?? 99) + 1);
   s.x = x;
   let cursor = s.cursor;
@@ -1647,7 +1663,8 @@ function stepV8(state: FlipState, input: ArcadeInputEvent | null): FlipState {
       }
     });
   }
-  course.trails.forEach((trail, i) => {
+  // flipRev 11: the star trails are drawn only (never taken).
+  if (!s.flow) course.trails.forEach((trail, i) => {
     if (tick < trail.t0 || tick > trail.t1) return;
     const was = s.trailGot![i]!;
     const now = trailTake(trail, s.x, flipV8Frac(s.side, s.flipT, s.arcN ?? 0), half, was);
@@ -1661,11 +1678,22 @@ function stepV8(state: FlipState, input: ArcadeInputEvent | null): FlipState {
       s.inv = FLIP_V8_SHIELD_TICKS;
       s.pause = FLIP_V8_SAVE_PAUSE;
       s.chain = 0;
+      // flipRev 11: a saved crash (a stumble) breaks the flow streak, and the flip in the air (if any) is not clean.
+      if (s.flow) {
+        s.streak = 0;
+        s.slip = 1;
+      }
     } else {
       s.ended = 2;
       s.endedTick = tick;
       return s;
     }
+  }
+  // flipRev 11: a clean jump is a flip that lands (its arc ends with the run going on) with no crash saved from its
+  // take-off to its landing; each one adds 1 to the flow streak.
+  if (s.flow && wasFlipT === 1 && s.flipT === 0 && !s.slip) {
+    s.streak = (s.streak ?? 0) + 1;
+    if (s.streak > (s.bestStreak ?? 0)) s.bestStreak = s.streak;
   }
   if (FLIP_V8_CHECKPOINTS.includes(tick)) {
     s.cpPassed = (s.cpPassed ?? 0) + 1;
@@ -1736,6 +1764,7 @@ export function flipV8Units(state: FlipState): number {
 }
 
 function flipV8Parts(state: FlipState): BandParts {
+  if (state.flow) return flipFlowParts(state);
   if (state.std) return flipStdParts(state);
   const units = flipV8Units(state);
   const finished = state.ended === 1;
@@ -1759,6 +1788,7 @@ function flipV8Parts(state: FlipState): BandParts {
 const FLIP_V8_MAX = 200;
 
 function flipV8Score(state: FlipState): number {
+  if (state.flow) return stdTotal(flipFlowScore(state), Boolean(state.acted));
   if (state.std) return stdTotal(flipStdScore(state), Boolean(state.acted));
   return bandTotal(flipV8Parts(state), Boolean(state.acted), FLIP_V8_MAX);
 }
@@ -1889,4 +1919,79 @@ function flipStdParts(state: FlipState): BandParts {
 export const flipStdGame: ArcadeGame<FlipState, ArcadeInputEvent | null> = {
   ...flipExpandGame,
   init: (seed) => ({ ...initV8(seed), std: 1 }),
+};
+
+/* ================= flipRev 11 (3 Nov 2026): no star pickups, the flow streak ================= */
+
+/**
+ * flipRev 11 (3 Nov 2026, docs/arcade-standard/flip.md "flipRev 11"; Joe's arcade batch): flipRev 8's course, hazards,
+ * checkpoints, speed zones, sweet spots and moves exactly, with three changes:
+ *  - no star pickups: the gold stars are not dealt into the state (the course and its seeded stream are unchanged, so
+ *    every hazard, sweet spot and speed zone sits where flipRev 10 has it) and the star trails are drawn as a faint
+ *    guide only, never taken;
+ *  - the flow streak: a clean jump is a flip that lands with no crash saved from its take-off to its landing; clean
+ *    jumps in a row make the streak, and a saved crash (a stumble) sets it back to 0 (a crash that ends the run ends it);
+ *  - the score (the arcade scoring standard, 200 in all): the core is clean time, the half seconds survived less
+ *    FLIP_V11_SAVE_COST for each crash a checkpoint saved, on a straight line; perfect landings (the sweet spots),
+ *    double flips and the longest flow streak pay fixed amounts.
+ * Anyone who plays scores at least 1, a run with no input 0 (stdTotal). States add `flow: 1` (with `std: 1`), folded
+ * into the checkpoint checksum last with the streak counters; flipRev 1–10 play and score exactly as before.
+ */
+export const FLIP_REV_FLOW = 11;
+/** Half seconds of the core a saved crash costs (20 s): the run goes on, the clean time does not. */
+export const FLIP_V11_SAVE_COST = 40;
+/** The core is full at the whole minute of clean time (120 half seconds). */
+export const FLIP_V11_CORE_FULL = FLIP_STD_HALF_SECONDS;
+/** Double flips: full at this many (2.5 points each). */
+export const FLIP_V11_DOUBLES = 8;
+/** Flow streak: full at this many clean jumps in a row. */
+export const FLIP_V11_STREAK_FULL = 50;
+export const FLIP_V11: StdSpec = {
+  field: "flipRev",
+  rev: FLIP_REV_FLOW,
+  parts: [
+    { key: "core", label: "Clean time", max: 100, of: FLIP_V11_CORE_FULL, item: "half second" },
+    { key: "sweets", label: "Perfect landings", max: 60, of: FLIP_V8_SWEETS, item: "perfect landing" },
+    { key: "doubles", label: "Double flips", max: 20, of: FLIP_V11_DOUBLES, item: "double flip" },
+    { key: "flow", label: "Flow streak", max: 20, of: FLIP_V11_STREAK_FULL, item: "clean jump in a row", items: "clean jumps in a row" },
+  ],
+};
+/** The core's straight line: clean half seconds → 0…its maximum. */
+export const FLIP_V11_BAND_CURVE = bandCurve([0, FLIP_V11_CORE_FULL], [0, stdCore(FLIP_V11).max]);
+
+/** Clean time on flipRev 11: half seconds lived less FLIP_V11_SAVE_COST for each saved crash (never below 0). */
+export function flipFlowUnits(state: Pick<FlipState, "ended" | "tick" | "saves">): number {
+  const alive = state.ended === 1 ? FLIP_RUN_TICKS : clampInt(state.tick, 0, FLIP_RUN_TICKS);
+  return Math.max(0, Math.floor(alive / 30) - FLIP_V11_SAVE_COST * (state.saves ?? 0));
+}
+
+/** A flipRev 11 run's parts: the core and each feature's points (no penalty beyond the core's saved-crash cost). */
+export function flipFlowScore(state: FlipState): StdBreakdown {
+  const [sweets, doubles, flow] = stdFeatures(FLIP_V11);
+  return {
+    core: stdPartLine(stdCore(FLIP_V11), flipFlowUnits(state)),
+    features: {
+      sweets: stdPartLine(sweets!, flipSweetsTaken(state)),
+      doubles: stdPartLine(doubles!, state.combos ?? 0),
+      flow: stdPartLine(flow!, state.bestStreak ?? 0),
+    },
+    penalty: 0,
+  };
+}
+
+/** The features' points on a flipRev 11 run (the reveal's "Features" tile). */
+export function flipFlowFeatures(state: FlipState): number {
+  return Object.values(flipFlowScore(state).features).reduce((a, p) => a + p, 0);
+}
+
+function flipFlowParts(state: FlipState): BandParts {
+  const finished = state.ended === 1;
+  const secs = ((finished ? FLIP_RUN_TICKS : state.tick) / 60).toFixed(1);
+  const saves = state.saves ? ` · ${state.saves} saved (−${(FLIP_V11_SAVE_COST / 2) * state.saves} s)` : "";
+  return stdBandParts(FLIP_V11, flipFlowScore(state), flipFlowUnits(state), `${secs} s survived${saves} · best streak ${state.bestStreak ?? 0}`, finished);
+}
+
+export const flipFlowGame: ArcadeGame<FlipState, ArcadeInputEvent | null> = {
+  ...flipExpandGame,
+  init: (seed) => ({ ...initV8(seed), std: 1, flow: 1, stars: [], streak: 0, bestStreak: 0, slip: 0 }),
 };

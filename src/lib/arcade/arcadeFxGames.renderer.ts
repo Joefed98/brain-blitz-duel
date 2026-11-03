@@ -935,7 +935,8 @@ export const CROSS_FX: ArcadeFxSpec<CrossState> = {
       kind: "streak",
       count: (s) => s.streakPts ?? 0,
       at: () => ({ x: CROSS_WORLD_W / 2, y: CROSS_HUD_H + 60 }),
-      label: (s) => `STREAK ×${crossMultiplierFor(s.streak ?? 0)}`,
+      // crossRev 11: the no-stop streak paying (its crossings in a row).
+      label: (s) => (s.flow ? `NO-STOP ×${s.streak ?? 0}` : `STREAK ×${crossMultiplierFor(s.streak ?? 0)}`),
     },
     // crossRev 9 (x200 addendum): a close call, a hop landed just behind a passing vehicle.
     {
@@ -1219,6 +1220,12 @@ export const BUBBLE_FX: ArcadeFxSpec<BubState> = {
 
 /* ============================== Cave & Lava ============================== */
 
+/** Where a perfect landing's PERFECT shows: just off the runner's head, into the cave (below it on the roof above). */
+function flipPerfectAt(s: FlipState): { x: number; y: number } {
+  const p = flipRunnerPoint(s);
+  return { x: p.x + 16, y: s.side === 0 ? p.y - 24 : p.y + 38 };
+}
+
 export const FLIP_FX: ArcadeFxSpec<FlipState> = {
   game: "flip",
   world: "cavelava",
@@ -1251,8 +1258,10 @@ export const FLIP_FX: ArcadeFxSpec<FlipState> = {
     { kind: "streak", count: (s) => s.cpPassed ?? 0, label: () => "CHECKPOINT" },
     { kind: "pop", count: (s) => s.saves ?? 0, at: (s) => flipRunnerPoint(s), label: () => "SAVED!" },
     { kind: "streak", count: flipZonesEntered, label: () => "SPEED ZONE!" },
-    // flipRev 8's sweet spots: a small pop at the runner's feet on a sweet landing.
-    { kind: "pop", count: flipSweetsTaken, at: (s) => flipRunnerPoint(s), label: () => "SWEET!" },
+    // flipRev 8's sweet spots: a perfect landing. Since 3 Nov 2026 (display only, every revision with sweet spots: flipRev
+    // 8–11) a small molten "PERFECT" at the runner's feet, neon orange and dripping, gone in about 0.6 s; no burst
+    // (until then a "SWEET!" pop with a small burst).
+    { kind: "pop", count: flipSweetsTaken, at: flipPerfectAt, label: () => "PERFECT", textOnly: true, molten: true, textScale: 1.2 },
   ],
   misses: [{ count: (s) => (s.ended === 2 ? 1 : 0) }],
 };

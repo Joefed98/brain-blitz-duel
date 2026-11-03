@@ -219,7 +219,7 @@ export function crossRowsOf(state: { wide?: number }): number {
 }
 /** The world height for a stored crossRev (reveals, intros and the arena slot). */
 export function crossWorldHFor(rev?: number | null): number {
-  return rev === CROSS_REV_EXPAND || rev === CROSS_REV_STD ? CROSS_X_WORLD_H : CROSS_WORLD_H;
+  return rev === CROSS_REV_EXPAND || rev === CROSS_REV_STD || rev === CROSS_REV_FLOW ? CROSS_X_WORLD_H : CROSS_WORLD_H;
 }
 /** The streak multiplier a crossing completed as the `streak`-th in a row without a hit pays. */
 export function crossMultiplierFor(streak: number): number {
@@ -783,6 +783,15 @@ export interface CrossState extends BandFields {
    * `streakPts` then holds the standard's streak points (2 a back-to-back clean crossing after the first, at most 10).
    */
   std?: number;
+  /**
+   * crossRev 11 only (3 Nov 2026, docs/arcade-standard/cross.md "crossRev 11"): no coins, and the no-stop streak in
+   * place of the clean streak (`streak` the no-stop crossings in a row, `streakPts` its points). `still` counts the
+   * ticks the walker has stood on the start kerb or the island in a row (outside the kerb pause), `stopped` is 1 once
+   * this crossing has stood there for more than CROSS_V11_STOP_TICKS.
+   */
+  flow?: number;
+  still?: number;
+  stopped?: number;
 }
 
 function init(seed: number): CrossState {
@@ -865,6 +874,9 @@ function step(state: CrossState, input: ArcadeInputEvent | null): CrossState {
   let banked = state.banked ?? 0;
   let closeCalls = state.closeCalls ?? 0;
   let closeLanes = state.closeLanes ?? 0;
+  /** crossRev 11: ticks standing on the start kerb or the island in a row, and whether this crossing has stopped. */
+  let still = state.still ?? 0;
+  let stopped = state.stopped ?? 0;
   /** crossRev 9: a forward hop landed in a lane this tick (a close call is judged on it). */
   let landed = false;
   // Everything sent while the disc waits on the kerb is dropped, so a swipe at
@@ -904,13 +916,23 @@ function step(state: CrossState, input: ArcadeInputEvent | null): CrossState {
         if (wide) {
           // crossRev 9: a crossing without a hit raises the streak; its multiplier (×1…×4) pays
           // the streak pool. A new crossing has fresh coins and no island banked.
-          if (!hitThisCrossing) {
+          if (state.flow) {
+            // crossRev 11: the no-stop streak. A crossing made without a hit and without standing on the start kerb
+            // or the island for more than CROSS_V11_STOP_TICKS in a row extends it, anything else ends it; each
+            // no-stop crossing straight after a no-stop crossing pays CROSS_V11_FLOW_EACH, at most CROSS_V11_FLOW_MAX.
+            if (!hitThisCrossing && !stopped) {
+              streak += 1;
+              if (streak >= 2) streakPts = Math.min(CROSS_V11_FLOW_MAX, streakPts + CROSS_V11_FLOW_EACH);
+            } else streak = 0;
+          } else if (!hitThisCrossing) {
             streak += 1;
             // crossRev 10: 2 for each clean crossing straight after a clean one, at most CROSS_STD_STREAK_MAX.
             if (state.std) {
               if (streak >= 2) streakPts = Math.min(CROSS_STD_STREAK_MAX, streakPts + CROSS_STD_STREAK_EACH);
             } else streakPts += CROSS_X_STREAK_POINTS * (crossMultiplierFor(streak) - 1);
           }
+          still = 0;
+          stopped = 0;
           coins = 0;
           banked = 0;
           closeLanes = 0;
@@ -939,7 +961,7 @@ function step(state: CrossState, input: ArcadeInputEvent | null): CrossState {
       const lives = state.lives - 1;
       const base = { ...state, tick, lane, hop: 0, hopDir: 1, reached, crossings, crossStart, clean, lives, hitTick: tick };
       // crossRev 9: a hit ends the streak; with the island banked the walker restarts there.
-      const extra = wide ? { coins, coinTotal, streak: 0, streakPts, banked, closeCalls, closeLanes } : {};
+      const extra = wide ? { coins, coinTotal, streak: 0, streakPts, banked, closeCalls, closeLanes, ...(state.flow ? { still: 0, stopped } : {}) } : {};
       if (lives <= 0) return { ...base, ...extra, col, pauseUntil, hitThisCrossing: true, ghost, dead: true, endedTick: tick };
       // Respawn on the start lane of this crossing; keep its progress and traffic clock.
       return { ...base, ...extra, lane: wide && banked ? CROSS_X_ISLAND : 0, col: CROSS_COLS >> 1, pauseUntil: tick + CROSS_PAUSE_TICKS, hitThisCrossing: true, ghost: false };
@@ -983,6 +1005,16 @@ function step(state: CrossState, input: ArcadeInputEvent | null): CrossState {
     ghost,
     ...(wide ? { coins, coinTotal, streak, streakPts, banked, closeCalls, closeLanes } : {}),
   };
+  if (state.flow) {
+    // crossRev 11: standing (side-steps included) on the start kerb or the island, outside the kerb pause, counts
+    // towards a stop; leaving the row (a hop under way, or another row) starts the count again.
+    if (tick >= pauseUntil && hop === 0 && (lane === 0 || lane === CROSS_X_ISLAND)) {
+      still += 1;
+      if (still > CROSS_V11_STOP_TICKS) stopped = 1;
+    } else still = 0;
+    next.still = still;
+    next.stopped = stopped;
+  }
   if (tick >= CROSS_RUN_TICKS) return { ...next, endedTick: tick };
   return next;
 }
@@ -1068,6 +1100,13 @@ export function crossCheckpoint(state: CrossState): CrossCheckpoint {
   if (state.std) {
     checksum ^= state.std | 0;
     checksum = Math.imul(checksum, 0x01000193) >>> 0;
+  }
+  // crossRev 11 folds its flag and counters in last, so every crossRev 10 checksum is unchanged.
+  if (state.flow) {
+    for (const value of [state.flow, state.still ?? 0, state.stopped ?? 0]) {
+      checksum ^= value | 0;
+      checksum = Math.imul(checksum, 0x01000193) >>> 0;
+    }
   }
   return { ...snapshot, checksum };
 }
@@ -1280,6 +1319,7 @@ const crossRev3Game: ArcadeGame<CrossState, ArcadeInputEvent | null> = {
 
 /** Takes puzzle.crossRev (2 or 3); anything else is the original traffic. */
 export function crossGameFor(rev?: number | null): ArcadeGame<CrossState, ArcadeInputEvent | null> {
+  if (rev === CROSS_REV_FLOW) return crossFlowGame;
   if (rev === CROSS_REV_STD) return crossStdGame;
   if (rev === CROSS_REV_EXPAND) return crossExpandGame;
   if (rev === CROSS_REV_STRICT) return crossStrictGame;
@@ -1312,6 +1352,7 @@ export const CROSS_REV_BAND = 4;
 export const CROSS_BAND_CURVE = bandCurve([0, 41, 50, 59, 66, 77], [0, 70, 100, 125, 145, 150]);
 
 export function crossBandParts(state: CrossState): BandParts {
+  if (state.flow) return crossFlowParts(state);
   if (state.std) return crossStdParts(state);
   if (state.wide) return crossExpandParts(state);
   const lanes = crossTotalLanes(state);
@@ -1321,6 +1362,8 @@ export function crossBandParts(state: CrossState): BandParts {
 
 function scoreBand(state: CrossState): number {
   // crossRev 10: the arcade scoring standard (core + coins + streak + close calls = 200).
+  // crossRev 11: core + no-stop streak + close calls (less the hits) = 200.
+  if (state.flow) return stdTotal(crossFlowScore(state), Boolean(state.acted));
   if (state.std) return stdTotal(crossStdScore(state), Boolean(state.acted));
   // crossRev 9 scores to the game's maximum (200, roundMax.ts); every earlier revision to 150.
   return bandTotal(crossBandParts(state), Boolean(state.acted), state.wide ? roundMaxFor("cross") : undefined);
@@ -1559,5 +1602,111 @@ export const crossStdGame: ArcadeGame<CrossState, ArcadeInputEvent | null> = {
     closeCalls: 0,
     closeLanes: 0,
     std: 1,
+  }),
+};
+
+
+/* ============ No coins, the no-stop streak (crossRev 11, 3 Nov 2026) ============ */
+
+/**
+ * crossRev 11 (docs/arcade-standard/cross.md "crossRev 11"; Joe's brief, Nov 2026): crossRev 10's courses exactly (the
+ * same lanes, traffic, densities, roadworks and island from the seed, proved the same way), with the coins taken out
+ * (the courses carry none, so nothing is drawn or collected) and the clean streak replaced by the no-stop streak:
+ *
+ *  - A crossing is **no-stop** when it is made without a hit and the walker never stands on the start kerb or the
+ *    island for more than CROSS_V11_STOP_TICKS ticks (0.5 s) in a row. Standing counts every tick the walker is on
+ *    one of those two safe rows and not in a hop, side-steps along it included; the second's pause on the kerb at a
+ *    crossing's start (or after a hit) does not count. Waiting in a traffic lane is not a stop (only the kerbs).
+ *  - Each no-stop crossing straight after a no-stop crossing (the 2nd, 3rd, … in a row) pays CROSS_V11_FLOW_EACH (10),
+ *    at most CROSS_V11_FLOW_MAX (40, four of them); a crossing that stops or is hit ends the run of them (points earned
+ *    stay). The clean streak is gone: a hit already breaks a no-stop crossing.
+ *  - Close calls exactly as crossRev 10 (1 each, up to 10).
+ *  - The core is crossRev 10's units (rows crossed + 2 a full crossing) on a straight line to 150, full at
+ *    CROSS_V11_CORE_FULL (76: four crossings and a few rows).
+ *  - Each life lost costs CROSS_V11_HIT_COST (15; the third ends the run as before).
+ *
+ * 150 + 40 + 10 = 200. States add `flow: 1` (with `still` and `stopped`), folded into the checkpoint checksum last.
+ */
+export const CROSS_REV_FLOW = 11;
+/** The longest stand (ticks) on the start kerb or the island a no-stop crossing allows: 0.5 s. */
+export const CROSS_V11_STOP_TICKS = 30;
+export const CROSS_V11_CORE_MAX = 150;
+export const CROSS_V11_CORE_FULL = 76;
+export const CROSS_V11_FLOW_EACH = 10;
+export const CROSS_V11_FLOW_MAX = 40;
+export const CROSS_V11_CLOSE_MAX = 10;
+export const CROSS_V11_HIT_COST = 15;
+
+export const CROSS_FLOW_STD: StdSpec = {
+  field: "crossRev",
+  rev: CROSS_REV_FLOW,
+  parts: [
+    { key: "core", label: "Rows and crossings", max: CROSS_V11_CORE_MAX, of: CROSS_V11_CORE_FULL, item: "unit" },
+    { key: "streak", label: "No-stop streak", max: CROSS_V11_FLOW_MAX, of: CROSS_V11_FLOW_MAX / CROSS_V11_FLOW_EACH, items: "no-stop crossings in a row after the first" },
+    { key: "close", label: "Close calls", max: CROSS_V11_CLOSE_MAX, of: CROSS_V11_CLOSE_MAX, item: "close call" },
+  ],
+};
+/** crossRev 11's core curve: a straight line, CROSS_V11_CORE_MAX at CROSS_V11_CORE_FULL units. */
+export const CROSS_V11_BAND_CURVE = bandCurve([0, CROSS_V11_CORE_FULL], [0, CROSS_V11_CORE_MAX]);
+
+/** crossRev 11's breakdown on the standard. */
+export function crossFlowScore(state: Pick<CrossState, "crossings" | "reached" | "wide" | "streakPts" | "closeCalls" | "lives">): StdBreakdown {
+  const units = crossTotalLanes(state) + 2 * state.crossings;
+  return {
+    core: stdLine(CROSS_V11_CORE_MAX, units, CROSS_V11_CORE_FULL),
+    features: {
+      streak: stdLine(CROSS_V11_FLOW_MAX, Math.trunc((state.streakPts ?? 0) / CROSS_V11_FLOW_EACH), CROSS_V11_FLOW_MAX / CROSS_V11_FLOW_EACH),
+      close: stdLine(CROSS_V11_CLOSE_MAX, state.closeCalls ?? 0, CROSS_V11_CLOSE_MAX),
+    },
+    penalty: CROSS_V11_HIT_COST * clampInt(CROSS_LIVES - state.lives, 0, CROSS_LIVES),
+  };
+}
+
+function crossFlowParts(state: CrossState): BandParts {
+  const lanes = crossTotalLanes(state);
+  const units = lanes + 2 * state.crossings;
+  const close = state.closeCalls ?? 0;
+  const lost = clampInt(CROSS_LIVES - state.lives, 0, CROSS_LIVES);
+  const score = crossFlowScore(state);
+  const parts = stdBandParts(CROSS_FLOW_STD, score, units, `${lanes} rows · ${state.crossings} crossings`, false, lost ? `${lost} hit${lost === 1 ? "" : "s"}` : undefined);
+  const named: string[] = [];
+  const pStreak = score.features["streak"] ?? 0;
+  const pClose = score.features["close"] ?? 0;
+  if (pStreak) named.push(`no-stop streak ${pStreak}`);
+  if (pClose) named.push(`${close} close call${close === 1 ? "" : "s"} ${pClose}`);
+  return named.length ? { ...parts, bonusText: named.join(" · ") } : parts;
+}
+
+/** The no-stop crossings in a row the crossing under way makes if it reaches the far kerb as it is going (HUD; 0 = broken). */
+export function crossFlowNext(state: Pick<CrossState, "streak" | "hitThisCrossing" | "stopped">): number {
+  return state.hitThisCrossing || state.stopped ? 0 : (state.streak ?? 0) + 1;
+}
+
+/** crossRev 11's crossing: crossRev 10's course for the seed without its coins (the same lanes, traffic, rng and proofs). */
+function rollCourseV11(rng: number, index: number): { rng: number; course: CrossCourse } {
+  const rolled = rollCourseV10(rng, index);
+  return { rng: rolled.rng, course: { lanes: rolled.course.lanes } };
+}
+
+export const crossFlowGame: ArcadeGame<CrossState, ArcadeInputEvent | null> = {
+  ...crossExpandGame,
+  init: (seed: number) => ({
+    ...initFor(seed, rollCourseV11, "11"),
+    rev: CROSS_REV_FLOW,
+    band: BAND_STRICT_MARK,
+    acted: 0,
+    tunef: 1,
+    wide: 1,
+    coins: 0,
+    coinTotal: 0,
+    streak: 0,
+    streakPts: 0,
+    banked: 0,
+    closeCalls: 0,
+    closeLanes: 0,
+    std: 1,
+    flow: 1,
+    still: 0,
+    stopped: 0,
   }),
 };

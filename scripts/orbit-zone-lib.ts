@@ -6,7 +6,7 @@
  * 371 bank courses, room seed mod 371) with its witness taps and with seeded random taps, both camera modes (normal
  * and reduced motion), and reports any frame whose rocket (its drawn reach, ROCKET_REACH) meets the zone.
  * `zoneProofFuel` does the same for orbitRev 14 (the fuel meter): every fuel-bank course on its own rules, with the
- * flight camera that leads the rocket.
+ * still camera (Nov 2026: still in orbit and flight, a pan after each catch, following only a rocket near the edge).
  */
 import { ORBIT_INPUT_CHECKPOINT, ORBIT_INPUT_TAP } from "../src/lib/arcade/orbit";
 import { decodeOrbitExtras, decodeOrbitHoles, decodeRev3Planets, initFuelFrom, initXpFrom, orbitRev3Game, ORBIT_REV3_WORLD_W, type OrbitRev3State } from "../src/lib/arcade/orbitRev3";

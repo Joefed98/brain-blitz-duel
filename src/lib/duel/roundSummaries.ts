@@ -1092,6 +1092,8 @@ const crossSummary: SummaryBuilder = (result) => {
     detail: [
       `${lanes} lane${lanes === 1 ? "" : "s"} crossed in total`,
       // crossRev 9 (x200): coins and the streak.
+      // crossRev 11: no coins; the no-stop streak's points.
+      ...(result.extra?.["noStop"] !== undefined ? [`no-stop streak ${Number(result.extra?.["streakPts"] ?? 0)}${Number(result.extra?.["closeCalls"] ?? 0) ? ` · ${Number(result.extra?.["closeCalls"])} close calls` : ""}`] : []),
       ...(result.extra?.["coins"] !== undefined ? [`${Number(result.extra["coins"])} coin${Number(result.extra["coins"]) === 1 ? "" : "s"} · streak ${Number(result.extra?.["streakPts"] ?? 0)}${Number(result.extra?.["closeCalls"] ?? 0) ? ` · ${Number(result.extra?.["closeCalls"])} close calls` : ""}`] : []),
     ],
   };
