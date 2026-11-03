@@ -224,3 +224,107 @@ at 136 and great at 160 and lifts near-perfect most (a near miss past the house 
 mistake). Elite sits at 182.5, just under the 185 aimed for: what an elite run loses is mostly a takeout or holding shot
 on the last stones, which the core's line does not reach. Random play rises to 58.5 (its stones now score past the
 house), still well under weak.
+
+
+## curlRev 4 (3 Nov 2026, Joe's sports batch; dealt since then)
+
+Set the power, then throw; three reds in every end; and curling's own count. curlRev 1, 2 and 3 rounds replay and score
+exactly as before (curling-check replays 24 curlRev 3 runs recorded on main 6326101 before the change,
+`scripts/fixtures/curling-v3-legacy.json` from `scripts/curling-v3-legacy-record.ts`, both brush sides and off-centre
+starts included, plus every curlRev 1, 2 and 3 witness).
+
+**The shot, in order** (`src/puzzles/curling.tsx`, art `curling.renderer.ts`):
+
+1. *Slide the stone* along the near hog line (as curlRev 2).
+2. *Drag the gold target* (the house or the inset).
+3. *Tap In or Out*; the faint aim line shows the first third of the path (as curlRev 3).
+4. *Set the power*: tap or drag on the power bar on the right (`CURL_METER_V4`, 22 × 300 world px, its touch strip
+   `CURL_METER_HIT_V4` 64 world px wide from 30 px left of the bar to the world's edge and 16 px past either end). A white
+   marker stays where it was set, from stone to stone; the gold HOUSE zone and its tee mark still show where an unswept
+   stone stops in the house for this start, target and turn. Until the first set the bar reads TAP ME.
+5. *Tap Throw*. Throw is gold once a weight is set (grey before). It sends the same kind-1 throw as before (the weight
+   from the bar); a white tick on the bar keeps the last throw's weight.
+6. *Brush* while it travels, left or right (as curlRev 2).
+
+There is no swipe on curlRev 4: a drag below the far house that moves sideways slides the stone, any other drag there
+does nothing. In, Out and Throw are drawn over the sheet's bottom (below the near hog line), inside the arena so the
+world reaches the screen's bottom, lifted by the home bar: the row ends at least 12 px above
+`env(safe-area-inset-bottom)` (bottom-clearance-check: no notes). Desktop: − / + set the bar's weight (from the zone's
+mark the first time, 10 a press, Shift 50), Enter throws; the rest as curlRev 3.
+
+**Three reds** (`curlingOpponentsV4`, from the seed in the sim, the same for everyone): exactly three red stones, their
+centres 35–110 cm from the button (`OPP_V4_MIN` … `OPP_V4_MAX`), one within 70 cm and one beyond it, at least 40 cm
+apart. curlRev 1–3 keep their 2 or 3 stones (`curlingOpponents`).
+
+**Curling's count in the core** (`curlCounts`): a stone, judged where it comes to rest when thrown (as before), scores
+its closeness points only when it is nearer the button than every red stone in the house at that moment (touching the
+house counts as in; a tie does not count). A red knocked out of the house or out of play no longer blocks, so the
+player chooses between taking reds out (the takeouts feature) and drawing in closer than them.
+
+**Input encoding:** unchanged (`CURLING_INPUT_RANGES_V2`). The bar and the button are presentation.
+
+**Parts** (`CURLING_STD_SPEC`, stamp 4; curlRev 3 keeps `CURLING_STD_SPEC_V3`):
+
+| Part | Max | How |
+| --- | --- | --- |
+| Stones (core) | 150 | each stone's closeness points (15 touching the button, a straight line to 0 at **1.2 m** from it, `CORE_EDGE_V4`), only for a stone that counts; the part is a straight line on their sum, **full at 95** (`CURL_V4_CORE_FULL`) |
+| Takeouts | 20 | the red stones out of the house at the end, shared evenly (6.67 each) |
+| Red ring | 20 | 2.5 a stone in the 4-foot when it comes to rest |
+| Holding shot | 10 | your stone nearest the button at the end |
+
+A perfect run (all eight on the button and counting, every red out, all eight in the 4-foot, shot stone) scores 200;
+earning a feature never costs core (a takeout only removes a red that could block). No speed part. Any throw scores at
+least 1; no input 0.
+
+**Bank and proof:** `src/lib/duel/curlingBankV4.server.ts`, built by `bun scripts/curling-bank.ts --rev=4 --jobs=4
+[--cache=<file>]` (default 140 candidates). The oracle (`perfectPlan(seed, 3, 14, 4)`: curlRev 3's search with a
+smaller budget of 14 throw searches, and a plan's button throws must count) proved 66 of 140 candidates (74 dropped:
+no eight-on-the-button plan within the budget; three reds are much harder to clear with every stone staying on the
+button than curlRev 3's two or three) and keeps all 66. Each witness (`scripts/fixtures/curling-witness-v4.json`)
+scores exactly 200 through `replayCurlingRun(seed, raw, 4)`; `--check` replays all four banks.
+
+### The bot's error model (curlRev 4)
+
+`scripts/arcade-skill-bands/bots/curling.ts`, gated on the revision (curlRev 1–3 keep theirs). The ideal throw knows the
+count: the throw search's cost adds a stone's worth for a stone that ends behind a red in the house. The weight is a tap
+on the bar: the level's pointing error × `BAR_W_PER_PX` 3.1 weights a phone px (1000 weights over the bar's 300 world
+px), plus reading the weight the shot needs, the level's judgement × `WEIGHT_READ` 280 weights (a draw, whose mark the
+zone shows, a third of that): weak about 140 / 47, average 98 / 33, good 56 / 19, great 28 / 9, near-perfect 11 / 4,
+elite 7 / 2.3 weights sd for a takeout / a draw, on top of 40 / 28 / 19 / 12 / 8 / 6 for the tap. Line reading, slips and
+brushing as curlRev 3.
+
+### Measured (curlRev 4; `bun scripts/arcade-skill-bands.ts curling --rev=now --levels=all --seeds=30 --from=10000`)
+
+Fresh seeds (the bank's 31st sheet on), paired. *Before* is curlRev 3 as dealt on main with its own bot on its own
+bank's fresh seeds (the same command on main).
+
+BANDS_TABLE
+
+Fitting (the same 180 runs re-scored, `CORE_EDGE_V4` and the core's full figure; parts 150 / 20 / 20 / 10): the first
+cut, the old parts (120 / 30 / 30 / 20, full at eight stones, 0 at 3.2 m), measured weak 66, average 109, good 129,
+great 150, near-perfect 185, elite 193: the features gave a weak player 28 of 50 (the reds get knocked about and the
+house is often left to him), so the levels sat too close. With the core 150 and features 50: edge 260 cm and full at
+105 gave weak 66, average 109; edge 120 cm brought weak and average down most (a weak stone's points were mostly from
+far out) and full at 95 put the upper levels back (weak 53, average 88.5, good 125, great 147, near 180.5, elite 190).
+
+### Decisions and assumptions for Joe (curlRev 4)
+
+- **Who counts**: a stone counts when it comes to rest nearer than every red *in the house* (curling's rule counts only
+  stones in the house); a red outside it never blocks. Judged at rest when thrown, as every revision does, not at the end
+  of the end (a stone knocked away later keeps its points, as before).
+- **Three reds 35–110 cm from the button** ("in or around the house"): further out (to 150 cm) proved too few sheets
+  (about one in four) for a bank of 60.
+- **The parts moved** (Stones 150, Takeouts 20, Red ring 20, Holding shot 10; was 120 / 30 / 30 / 20): the fit needed the
+  core to carry more of the spread; the features keep their meaning.
+- **Great sits a little low** (about 147–150 against about 160) and near-perfect a little high (about 180 against about
+  175): the jump between the two is the bot's (great still misjudges takeout weight by ~28 weights); every other level is
+  in its band.
+- **Throw stays enabled while a stone travels** (it does nothing then), so it never flickers between stones.
+- **The intro demo needs recording** on curlRev 4 (the intro shows its still, captioned for the bar and Throw).
+
+### Screenshots
+
+`screenshots/sports-batch-nov-2026/curling-{414x896,375x667,1440x900}-*.png` (practice, played with the mouse by
+`bun scripts/shots/curling-power-shots.ts --url=<origin>`): 1 the three reds in the house at the end's start, 2 a drag
+on the power bar mid-way, 3 the weight set and Throw lit, 4 the stone sliding after Throw, 5 the reveal. The script
+throws all eight stones at one weight and aim, so its score is not good play.

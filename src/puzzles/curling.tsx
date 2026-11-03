@@ -339,7 +339,14 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
                   pickTurn(t);
                 }}
                 className={`pointer-events-auto h-12 rounded-xl border text-base font-bold tracking-wide transition-colors ${
-                  turn === t ? "border-[#E8B53A] bg-[#E8B53A]/20 text-[#FFE29A]" : "border-white/15 bg-black/40 text-white/70"
+                  // curlRev 4 draws the row over the ice: solid dark buttons so the labels read on white.
+                  turn === t
+                    ? v4
+                      ? "border-[#E8B53A] bg-[#0B1222]/90 text-[#FFE29A]"
+                      : "border-[#E8B53A] bg-[#E8B53A]/20 text-[#FFE29A]"
+                    : v4
+                      ? "border-white/20 bg-[#0B1222]/80 text-white/80"
+                      : "border-white/15 bg-black/40 text-white/70"
                 }`}
               >
                 {label === "In" ? "↻ In" : "↺ Out"}
@@ -357,7 +364,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
                   if (s && s.phase === CURL_AIM && w != null) send(throwPayload(w));
                 }}
                 className={`pointer-events-auto h-12 rounded-xl border text-base font-bold tracking-wide transition-colors ${
-                  setWeight === null ? "border-white/15 bg-black/40 text-white/40" : "border-[#E8B53A] bg-[#E8B53A] text-[#1A1205]"
+                  setWeight === null ? "border-white/20 bg-[#0B1222]/80 text-white/45" : "border-[#E8B53A] bg-[#E8B53A] text-[#1A1205]"
                 }`}
               >
                 Throw

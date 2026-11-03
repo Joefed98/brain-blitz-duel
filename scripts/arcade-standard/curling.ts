@@ -2,7 +2,7 @@
  * arcade-standard-check's entry for `curling` (see ./entry.ts): Curling curlRev 4 (the Sports group, 30 Oct 2026;
  * curlRev 2 since 31 Oct 2026, curlRev 3 since 1 Nov 2026, curlRev 4 since 3 Nov 2026 (only stones nearer than every red in the house count); docs/arcade-standard/curling.md). Stones up to 120 (up to 15 a stone by closeness to the button where it comes to
  * rest when thrown), Takeouts 30 (shared across the opponent's stones), Red ring 30 (3.75 a stone in the 4-foot),
- * Holding shot 20 (curlRev 4: Stones 150 full at seven stones' worth, Takeouts 20, Red ring 20, Holding shot 10). Perfect runs are the curlRev 4 bank's witnesses through the server's replay on curlRev 4.
+ * Holding shot 20 (curlRev 4: Stones 150 full at 95 closeness points, Takeouts 20, Red ring 20, Holding shot 10). Perfect runs are the curlRev 4 bank's witnesses through the server's replay on curlRev 4.
  */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { readFileSync } from "node:fs";
@@ -44,7 +44,7 @@ export const entry: StdEntry = {
     while (!game.isOver(s)) s = game.step(s, null);
     return game.score(s);
   })() }],
-  // curlRev 4: the core's measure is the stones' closeness points (15 a stone on the button), full at seven stones' worth.
+  // curlRev 4: the core's measure is the stones' closeness points (15 a stone on the button), full at 95.
   core: {
     fullAt: CURL_V4_CORE_FULL,
     at: (v: number) => final(Array.from({ length: CURLING_STONES }, (_, i) => Math.max(0, Math.min(CURL_STONE_PTS, v - i * CURL_STONE_PTS)))),

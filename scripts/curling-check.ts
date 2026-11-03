@@ -511,14 +511,14 @@ for (let i = 0; i < 50; i++) {
   ok(curlCounts({ ...sheet(20, 40), live: [0, 1] }, 1), "curlRev 4: a red out of play never blocks");
   // Through the sim: the same throw scores nothing behind a red, and its closeness with no red.
   const emptied = (s: CurlingState): CurlingState => ({ ...s, x: [], y: [], vx: [], vy: [], team: [], live: [], curl: [], theirs: 0 });
-  const free = settle(throwAt(emptied(s0), 0, 0, 280, 0, 0));
+  const free = settle(throwAt(emptied(s0), -60, 0, 300, 0, 0));
   const at = { x: free.x[0]!, y: free.y[0]! };
   const dFree = Math.hypot(at.x, at.y) / CU;
-  ok(free.live[0] === 1 && free.pts[0]! > 0 && dFree > 40 && dFree < 180, `curlRev 4: a throw on an empty sheet comes to rest ${Math.round(dFree)} cm out and scores ${free.pts[0]}`);
+  ok(free.live[0] === 1 && free.pts[0]! > 0 && dFree > 40 && dFree < 110, `curlRev 4: a throw on an empty sheet comes to rest ${Math.round(dFree)} cm out and scores ${free.pts[0]}`);
   // A red nearer the button on the button's far side: the stone's path never meets it.
   const k = (dFree - 25) / dFree;
   const red = { x: Math.round(-at.x * k), y: Math.round(-at.y * k) };
-  const blocked = settle(throwAt({ ...emptied(s0), x: [red.x], y: [red.y], vx: [0], vy: [0], team: [TEAM_THEIRS], live: [1], curl: [0], theirs: 1 }, 0, 0, 280, 0, 0));
+  const blocked = settle(throwAt({ ...emptied(s0), x: [red.x], y: [red.y], vx: [0], vy: [0], team: [TEAM_THEIRS], live: [1], curl: [0], theirs: 1 }, -60, 0, 300, 0, 0));
   ok(blocked.x[1] === at.x && blocked.y[1] === at.y && blocked.pts[0] === 0, `curlRev 4: the same throw behind a red in the house scores no closeness (${blocked.pts[0]})`);
   ok(curlStonePointsFor(CURLING_REV, 0, 0) === CURL_STONE_PTS && curlStonePointsFor(CURLING_REV, cm(CORE_FULL_V3), 0) === CURL_STONE_PTS && curlStonePointsFor(CURLING_REV, cm(CORE_EDGE_V4), 0) === 0, "curlRev 4: the stone line's ends");
   ok(free.pts[0] === curlStonePointsFor(CURLING_REV, at.x, at.y), "curlRev 4: a counting stone is scored on curlRev 4's line");

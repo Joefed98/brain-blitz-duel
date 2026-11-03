@@ -200,12 +200,12 @@ export const CURLING_STD_SPEC_V3: StdSpec = {
 
 /**
  * curlRev 4's parts (re-fitted on the skill bands, docs/arcade-standard/curling.md "curlRev 4"): the core is the larger
- * share (the measure the count makes harder), on a straight line of closeness points full at CURL_V4_CORE_FULL (seven
- * stones' worth on the button), and the three features are smaller (a weak player knocked the reds about and held
- * shot often enough that 30 / 30 / 20 left too little between the levels).
+ * share (the measure the count makes harder), on a straight line of closeness points full at CURL_V4_CORE_FULL (about
+ * six and a third stones' worth on the button), and the three features are smaller (a weak player knocked the reds
+ * about and held shot often enough that 30 / 30 / 20 left too little between the levels).
  */
 export const CURL_V4_CORE_MAX = 150;
-export const CURL_V4_CORE_FULL = 7 * CURL_STONE_PTS;
+export const CURL_V4_CORE_FULL = 95;
 export const CURL_V4_TAKEOUT_PTS = 20;
 export const CURL_V4_RED_PTS = 20;
 export const CURL_V4_HOLD_PTS = 10;
@@ -215,7 +215,7 @@ export const CURLING_STD_SPEC: StdSpec = {
   field: "curlRev",
   rev: CURLING_REV,
   parts: [
-    { key: "core", label: "Stones", max: CURL_V4_CORE_MAX, of: CURLING_STONES, item: "stone", how: `up to ${CURL_STONE_PTS} closeness a stone, only when it stops nearer the button than every red in the house; full at ${CURL_V4_CORE_FULL}` },
+    { key: "core", label: "Stones", max: CURL_V4_CORE_MAX, of: CURLING_STONES, item: "stone", how: `up to ${CURL_STONE_PTS} a stone by closeness (full on the button, none from 1.2 m), only when it stops nearer the button than every red in the house; the part is full at ${CURL_V4_CORE_FULL}` },
     { key: "takeouts", label: "Takeouts", max: CURL_V4_TAKEOUT_PTS, of: 1, item: "takeout", how: "the red stones knocked out of the house, shared evenly" },
     { key: "redring", label: "Red ring", max: CURL_V4_RED_PTS, of: CURLING_STONES, item: "stone", how: "2.5 a stone finishing in the 4-foot" },
     { key: "hold", label: "Holding shot", max: CURL_V4_HOLD_PTS, of: 1, item: "shot", how: "your stone nearest the button at the end" },
@@ -392,8 +392,8 @@ export function curlStonePointsFor(rev: number, x: number, y: number): number {
   return stdLine(CURL_STONE_PTS, Math.max(0, cm(edge) - d), cm(edge - CORE_FULL_V3));
 }
 
-/** curlRev 4's core line: full on the button, 0 at CORE_EDGE_V4 cm from it (2.6 m: fitted on the skill bands). */
-export const CORE_EDGE_V4 = 260;
+/** curlRev 4's core line: full on the button, 0 at CORE_EDGE_V4 cm from it (1.2 m, about the 8-foot's edge: fitted on the skill bands). */
+export const CORE_EDGE_V4 = 120;
 
 /**
  * curlRev 4's count (curling's rule): stone i, at rest, counts when it is nearer the button than every opponent stone
