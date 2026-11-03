@@ -129,7 +129,7 @@ function introScoreTemplates(): Record<PuzzleType, string> {
     curling: "Stones near the button 120, takeouts 30, the 4-foot 30, holding shot 20: {max}.",
     pinball: "Table points, plus J-O-U-L-Z sets, multiball, jackpots and ramp combos. Up to {max}.",
     homerun: "Distance on every pitch, home runs and signs beyond the fence (Power only). Up to {max}.",
-    freekick: "Goals away from the keeper, targets, curls round the wall and five in a row. Up to {max}.",
+    freekick: "Goals, targets, curls round the wall, a bonus for bent goals, five in a row. Up to {max}.",
     racing: "Distance, clean sectors, the finish and your time from lights out. Up to {max}.",
     // Cards & Board (the arcade scoring standard from their first revision).
     freecell: `Cards 140 (full at ${FC_CORE_UNITS_V3} units); finished: few moves 30, speed 30. Together {max}.`,

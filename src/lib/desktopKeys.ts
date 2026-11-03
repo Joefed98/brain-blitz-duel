@@ -36,7 +36,7 @@ export const DESKTOP_KEYS: Partial<Record<PuzzleType, readonly (readonly [string
   blockfall: [["← →", "move"], ["↑", "turn"], ["Space", "drop"], ["C", "hold"]],
   alleyroll: [["← →", "line up"], ["↑ ↓", "aim"], ["Hold Space", "power, let go to roll"]],
   // Sports
-  freekick: [["Click / ← → ↑ ↓", "aim"], ["Drag / A D", "curl"], ["Space (hold)", "power, release to strike"]],
+  freekick: [["Drag", "draw the shot (bend it to curl)"], ["← → ↑ ↓ / A D", "nudge the aim / curl"], ["Space (hold)", "power, release to strike"]],
   rally: [["← →", "paddle"]],
   ricochet: [["Click / Space", "leap · again in the air to double jump"]],
   racing: [["← → / A D", "steer"], ["↑ / W", "accelerate"], ["↓ / S", "brake"]],

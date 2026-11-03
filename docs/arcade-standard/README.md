@@ -83,7 +83,7 @@ replay exactly as before; standard-live-check grades every stored arcade run thr
 | Minesweeper | `minesweeper` | `minesRev` 1 | Cards & Board | [minesweeper.md](minesweeper.md) |
 | Mahjong Solitaire | `mahjong` | `mahjongRev` 1 | Cards & Board | [mahjong.md](mahjong.md) |
 | Home Run Derby | `homerun` | `homerunRev` 1 | Sports | [homerun.md](homerun.md) |
-| Top Bins | `freekick` | `freekickRev` 3 (1 Nov 2026; 1 and 2 replay) | Sports | [freekick.md](freekick.md) |
+| Top Bins | `freekick` | `freekickRev` 4 (3 Nov 2026; 1 to 3 replay) | Sports | [freekick.md](freekick.md) |
 | Racing | `racing` | `racingRev` 1 | Sports | [racing.md](racing.md) |
 | Free Cell | `freecell` | `freecellRev` 3 (2 and 1 for stored rounds) | Cards & Board | [freecell.md](freecell.md) |
 | Summit | `tripeaks` | `tripeaksRev` 1 | Cards & Board | [tripeaks.md](tripeaks.md) |
@@ -338,7 +338,7 @@ proved deal (`src/lib/duel/<game>Deal.server.ts`: 300 seeds, each taken to exact
 | Game | Stamp | Core | Features | Sum |
 | --- | --- | --- | --- | --- |
 | Home Run Derby | `homerunRev` 1 | 130, distance (13 a pitch, full at 450 ft) | home runs 50 (5 each), sign hits 20 (5 each of 4) | 200 |
-| Top Bins | `freekickRev` 3 | 130, 10 a goal + up to 3 placement, full at 1,100 units (rev 1–2: 1,300) | targets 40 (10 each of 4), curled round the wall 20 (2 a goal), five in a row 10 | 200 |
+| Top Bins | `freekickRev` 4 | 120, 10 a goal + up to 3 placement, full at 750 units (rev 3: 130 at 1,100; rev 1–2: 1,300) | targets 40 (10 each of 4, the corner hoops shrinking to 70 %), curled round the wall 10 (1 a goal), Curl bonus 20 (2 a goal bent at least 70), five in a row 10 | 200 |
 | Racing | `racingRev` 1 | 140, distance (full at two laps) | clean sectors 30 (8 passes), finish 10, speed 20 (full by par 80.8 s) | 200 |
 
 Medians, weak → flawless (each game's `bun scripts/<game>-bands.ts`, room seeds 0–59 on the dealt seeds):
