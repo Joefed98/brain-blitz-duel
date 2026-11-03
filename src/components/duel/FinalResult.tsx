@@ -8,6 +8,7 @@ import { PLAYER_COLOURS, type PlayerLook, type PlayerLooks } from "@/lib/duel/pl
 import type { PodiumAward } from "@/lib/duel/podiumAwards";
 import { haptic } from "@/lib/haptics";
 import { playVoice, queueVoice } from "@/lib/sound";
+import { isPhotoFinish } from "@/lib/fx/roomVoices";
 import { fx } from "@/lib/fx";
 import { COUNT_UP_MS } from "@/lib/fx/celebrations";
 import { useCelebrationsOn, useTapToSkip } from "@/components/fx/useCelebration";
@@ -92,8 +93,10 @@ export function FinalResult({
     // No music on the final screen — just the one cue.
     fx.onPodium();
     playVoice(outcome === "win" ? "voice.youWin" : outcome === "draw" ? "voice.draw" : "gg");
-    // A clean sweep (3 Nov 2026, roomVoices.ts): one player took every round outright.
-    if (breakdown.length >= 2 && (breakdown.every((r) => r.mine > r.theirs) || breakdown.every((r) => r.theirs > r.mine))) queueVoice("voice.cleanSweep");
+    // The room's end (3 Nov 2026, roomVoices.ts): totals 1–5 apart are a photo finish; else one player taking every
+    // round outright is a clean sweep.
+    if (outcome !== "draw" && isPhotoFinish([myTotal, opponentTotal])) queueVoice("voice.photoFinish");
+    else if (breakdown.length >= 2 && (breakdown.every((r) => r.mine > r.theirs) || breakdown.every((r) => r.theirs > r.mine))) queueVoice("voice.cleanSweep");
     // Haptics (lib/haptics.ts): the winner's phone celebrates (the two-player final is this room's podium).
     if (outcome === "win") haptic("celebrate");
   }, [outcome]); // eslint-disable-line react-hooks/exhaustive-deps

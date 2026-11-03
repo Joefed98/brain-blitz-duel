@@ -97,7 +97,7 @@ async function newRun(
     const request = route.request();
     const name = serverFnName(request.url());
     const body = request.postData() ?? "";
-    if (/practiceGenerate/.test(name)) {
+    if (/practiceGenerate/.test(name) && !NO_EXAMPLE.has(game)) {
       return route.continue({
         postData: body.replace(
           /("k":\["type","example"\],"v":\[\{"t":1,"s":"\w+"\},)\{"t":2,"s":3\}/,
@@ -126,7 +126,17 @@ async function newRun(
     }, opts.seed);
   }
   await button.click();
-  await page.getByRole("button", { name: /^Ready/ }).first().waitFor({ timeout: 90_000 });
+  try {
+    await page.getByRole("button", { name: /^Ready/ }).first().waitFor({ timeout: 90_000 });
+  } catch (error) {
+    const errDir = opt("errors");
+    if (errDir) {
+      mkdirSync(errDir, { recursive: true });
+      await page.screenshot({ path: join(errDir, `${game}-newrun-error.png`) }).catch(() => {});
+    }
+    await run.close();
+    throw error;
+  }
   return run;
 }
 
@@ -219,6 +229,13 @@ function realtime(game: PuzzleType, driver: Driver | undefined) {
   );
 }
 
+/**
+ * Games dealt fresh instead of the intro example, and so played with scripted input (no driver): Gridlock's example
+ * reads the first row of the Supabase bank, which this container cannot reach; a normal practice deal falls back to
+ * the built-in bank.
+ */
+const NO_EXAMPLE = new Set<string>(["unblock"]);
+
 /** Games whose scripted input is taps alone (a flap, a jump, a leap): random swipes and holds end them at once. */
 const TAP_ONLY = new Set<string>(["hover", "flip", "ricochet", "skyline", "reaction", "chain", "stopwatch", "swing"]);
 
@@ -253,7 +270,7 @@ async function secondsLeft(page: Page): Promise<number | null> {
 }
 
 async function captureGame(browser: Browser, game: PuzzleType) {
-  const driver = DRIVERS[game];
+  const driver = NO_EXAMPLE.has(game) ? undefined : DRIVERS[game];
   const full = exampleFor(game);
   const dir = join(OUT, folderFor(game));
   mkdirSync(dir, { recursive: true });
@@ -320,14 +337,31 @@ async function captureGame(browser: Browser, game: PuzzleType) {
     entry.midAtS = midAt == null ? null : Math.round(midAt / 1000);
     // The reveal: the driver's solve, or play on (scripted) / wait (driven) to the end of the round.
     if (solveNext && driver?.solve) {
+      let fresh: Run | null = null;
       if (driver.seedNearSolved || driver.solveFromStart) {
-        errors.push(...run.errors);
-        await run.close();
-        run = await newRun(browser, game, { clock: false, seed: driver.seedNearSolved?.(full) });
-        await ready(run);
+        // The solve's fresh run opens before the mid run closes; if it cannot open, the mid run waits out its clock.
+        fresh = await newRun(browser, game, { clock: false, seed: driver.seedNearSolved?.(full) }).catch((error) => {
+          entry.solveError = `fresh run: ${String((error as Error).message ?? error).split("\n")[0]}`;
+          return null;
+        });
+        if (fresh) {
+          errors.push(...run.errors);
+          await run.close();
+          run = fresh;
+          await ready(run);
+        }
       }
-      await driver.solve(ctx(run.page));
-      entry.reveal = "solved by the driver";
+      try {
+        if ((driver.seedNearSolved || driver.solveFromStart) && !fresh) throw new Error(String(entry.solveError));
+        await driver.solve(ctx(run.page));
+        entry.reveal = "solved by the driver";
+      } catch (error) {
+        // A driver whose solve no longer matches the stage: the run waits out its clock instead.
+        entry.solveError ??= String((error as Error).message ?? error).split("\n")[0];
+        const until = Date.now() + limit + 30_000;
+        while (Date.now() < until && !(await revealUp(run.page))) await run.page.waitForTimeout(1000);
+        entry.reveal = "timed out (the driver's solve failed part-way)";
+      }
     } else {
       while (Date.now() < deadline && !(await revealUp(run.page))) {
         if (scripted && CUSTOM_INPUT[game]) await CUSTOM_INPUT[game]!(run.page, rnd).catch(() => {});

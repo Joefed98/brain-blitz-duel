@@ -7,7 +7,8 @@
  *
  * - `voice.newBest`: practice's reveal, when this run beat an earlier best (the "New best!" moment), or a room's
  *   arcade reveal beating this device's best for the game (ArcadeReveal, arcadeBest.ts).
- * - `voice.photoFinish`: a room's round results, when the round's top two scores are 1–5 apart.
+ * - `voice.photoFinish`: the room's final results (podium or two-player final), when the top two totals are 1–5
+ *   apart (only there, so it stays special; Joe's decision).
  * - `voice.newLeader`: a room's standings, when first place is held by someone new after a round.
  * - `voice.cleanSweep`: the room's end, when one player had the round's sole top score every round.
  * - `voice.draw`: the room's end, when first place is shared (in place of `voice.tie` there).

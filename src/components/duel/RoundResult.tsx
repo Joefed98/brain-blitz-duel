@@ -3,8 +3,7 @@ import { useEffect, useRef, type ReactNode } from "react";
 import { PLAYER_COLOURS, type PlayerLook } from "@/lib/duel/playerLook";
 import { roundMaxFor } from "@/lib/duel/roundMax";
 import { soundCue } from "@/lib/fx/soundCues";
-import { cueDurationMs, playRoundWon, playVoice, queueVoice } from "@/lib/sound";
-import { isPhotoFinish } from "@/lib/fx/roomVoices";
+import { cueDurationMs, playRoundWon, playVoice } from "@/lib/sound";
 import {
   VERDICT_LABEL,
   VERDICT_TONE,
@@ -87,12 +86,10 @@ export function RoundResult({
   useEffect(() => {
     if (cued.current) return;
     cued.current = true;
-    // A photo finish (1–5 points apart): after the round's own voice line.
-    if (isPhotoFinish([myRoundScore, opponentRoundScore])) queueVoice("voice.photoFinish", cueDurationMs("round_won"));
     if (iWon) { playRoundWon(); playVoice("roundTaken", cueDurationMs("round_won")); return; }
     soundCue("shared.roundResults");
     playVoice(theyWon ? "roundLost" : "voice.tie", cueDurationMs("shared.roundResults"));
-  }, [iWon, theyWon]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [iWon, theyWon]);
 
   const bar = (score: number) => `${Math.round((score / roundMaxFor(gameType)) * 100)}%`;
 

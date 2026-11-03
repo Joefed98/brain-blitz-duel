@@ -1341,7 +1341,7 @@ outside the repo.
   Wall, Blockzone and Ringer slot in `docs/sound-cues/mapping-nov-2026.csv`, their four beds and Gemstone's
   `music_matchup.mp3` (the chiptune `music_matchup2.mp3` removed); voice lines `round8`–`round11` and five moment
   lines through `queueVoice` (never over another line; `src/lib/fx/roomVoices.ts`): `voice.newBest` (practice's New
-  best, or a room run beating the device's best for the game), `voice.photoFinish` (a round's top two 1–5 apart), `voice.newLeader` (standings, first place changed hands),
+  best, or a room run beating the device's best for the game), `voice.photoFinish` (the room's final top two 1–5 apart, only at the end), `voice.newLeader` (standings, first place changed hands),
   `voice.cleanSweep` (one player took every round), `voice.draw` (first place shared at the end, in place of
   `voice.tie` there). *Audit*: `screenshots/audit-nov-2026/` and `docs/audit/intro-reveal-text.md` (no text
   changed). New checks: reveal-palette-check, blockzone-soft-check, offline-media-refresh-check; arcade-chart,

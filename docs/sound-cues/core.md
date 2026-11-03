@@ -58,7 +58,7 @@ replacement would need to be locked to the chart's ticks, which is more than a f
 | `voice.youWin` | podium, final result | Voice "You win" for the winner, in place of `gg` | 0–1 per room | 2823 ms |
 | `voice.rematch` | room (duel.$code) | Voice "Rematch" when Play again reopens a finished room, for every player in it | 0–1 per room | 2594 ms |
 | `voice.newBest` | reveal (NewBestMoment, ArcadeReveal) | Voice "New best": practice's reveal when the run beat an earlier best, or a room's arcade reveal beating this device's best for the game (3 Nov 2026; `queueVoice`, never over another line) | 0–1 | 2482 ms |
-| `voice.photoFinish` | round result, results table | Voice "Photo finish": the round's top two scores 1–5 points apart (`isPhotoFinish`), after the screen's own line | 0–1 per round | 2194 ms |
+| `voice.photoFinish` | podium, final result | Voice "Photo finish": the room's top two totals 1–5 points apart at the end (`isPhotoFinish`; only there, Joe's decision), after the end line | 0–1 per room | 2194 ms |
 | `voice.newLeader` | standings | Voice "New leader": first place changed hands after this round (`isNewLeader`) | 0–1 per round | 1881 ms |
 | `voice.cleanSweep` | podium, final result | Voice "Clean sweep": one player had the sole top score in every round (`cleanSweepSlot`), after the room's end line | 0–1 per room | 2220 ms |
 | `voice.draw` | podium, final result | Voice "Draw": first place shared at the room's end (in place of `voice.tie` there; queued after "GG" for everyone else) | 0–1 per room | 2090 ms |
