@@ -111,7 +111,9 @@ export function mainPickOf(type: PuzzleType): RoomPick | null {
  * (alsoIn.ts, 3 Nov 2026) whose main pick is not among `picks` (a room with both counts such a game once, under
  * its main category). `picks` defaults to this pick alone.
  */
-export function pickTypes(pick: RoomPick, picks: readonly RoomPick[] = [pick]): PuzzleType[] {
+export function pickTypes(pick: RoomPick, picksIn?: readonly RoomPick[]): PuzzleType[] {
+  // Callers may pass pickTypes straight to map / flatMap (an index arrives here): anything but a list is "this pick alone".
+  const picks: readonly RoomPick[] = Array.isArray(picksIn) ? picksIn : [pick];
   const main = isArcadePick(pick) ? arcadeGroupTypes(pick) : typesInCategory(pick);
   const also = typesAlsoIn(pick).filter((t) => {
     const home = mainPickOf(t);
