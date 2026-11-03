@@ -298,7 +298,18 @@ brushing as curlRev 3.
 Fresh seeds (the bank's 31st sheet on), paired. *Before* is curlRev 3 as dealt on main with its own bot on its own
 bank's fresh seeds (the same command on main).
 
-BANDS_TABLE
+| Level | Target | curlRev 3 (before) | **curlRev 4 median (p10–p90)** |
+| --- | --- | --- | --- |
+| Weak | 30–60 | 84 (50–124) | **53 (22–90)** |
+| Average | about 90 | 108 (84–139) | **89 (54–124)** |
+| Good | 120–140 | 136.5 (98–164) | **125 (78–146)** |
+| Great | about 160 | 154 (123–184) | **147 (106–175)** |
+| Near-perfect | about 175 | 177.5 (150–192) | **181 (160–200)** |
+| Elite | 185–195 | 183 (162–197) | **190 (162–200)** |
+| Flawless | 200 | 200 | **200 (200–200)** |
+| Random | | not measured on fresh seeds (58.5 on the tuning seeds) | **23 (1–79)** |
+
+Every run replayed unflagged and agreed with the server replay (the tool prints a warning otherwise; none).
 
 Fitting (the same 180 runs re-scored, `CORE_EDGE_V4` and the core's full figure; parts 150 / 20 / 20 / 10): the first
 cut, the old parts (120 / 30 / 30 / 20, full at eight stones, 0 at 3.2 m), measured weak 66, average 109, good 129,
