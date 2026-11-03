@@ -760,6 +760,7 @@ homerun.homer,Home Run,Home Run: A home run [arcade.md],,0–10,recorded sound,h
 homerun.sign,Home Run,Home Run: A sign beyond the fence is struck [arcade.md],,0–4,recorded sound,homerun.sign,480,game event,homerun.sign,
 homerun.foul,Home Run,"Home Run: A foul ball, or weak contact (a fair ball under 400 per mille, once the slot has its file) [arcade.md]",,0–5,recorded sound,homerun.foul,150,game event,homerun.foul,
 homerun.strike,Home Run,"Home Run: The ball in the catcher's mitt: a swing and a miss, or a pitch taken [arcade.md]",,0–10,recorded sound,homerun.strike,150,game event,homerun.strike,
+homerun.catch,Home Run,"Home Run: homerunRev 4: a fielder catches the ball as it comes down (with homerun.groan, the crowd); the library's glove pop, homerun_mitt.mp3 [arcade.md]",,0–10,recorded sound,homerun.catch,400,game event,homerun.catch,
 homerun.crowd,Home Run,Home Run: While the run is live (0.26) [batch6-sports-cards.md],,loop,recorded sound,homerun.crowd,loop,ambience,homerun.crowd,
 homerun.pitch,Home Run,Home Run: The pitcher releases the ball [batch6-sports-cards.md],,10,recorded sound,homerun.pitch,259,game event,homerun.pitch,
 homerun.whiff,Home Run,"Home Run: A swing and a miss (with homerun.strike, the mitt) [batch6-sports-cards.md]",,0–10,recorded sound,homerun.whiff,400,game event,homerun.whiff,

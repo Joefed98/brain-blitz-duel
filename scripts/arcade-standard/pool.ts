@@ -1,26 +1,28 @@
 /**
- * arcade-standard-check's entry for `pool` (see ./entry.ts): Cue Ball poolRev 3 (1 Nov 2026: more power and spin, a
- * shot touching no ball a foul; poolRev 2 31 Oct 2026; the Sports group, born on the standard at poolRev 1 on 30 Oct
+ * arcade-standard-check's entry for `pool` (see ./entry.ts): Cue Ball poolRev 4 (3 Nov 2026: a seeded set, spots or
+ * stripes, and 90 s; poolRev 3 1 Nov 2026: more power and spin, a shot touching no ball a foul; poolRev 2 31 Oct 2026; the Sports group, born on the standard at poolRev 1 on 30 Oct
  * 2026; docs/arcade-standard/pool.md). Spots up to 140 (20 each of 7), Black 10,
  * Pots in a row up to 30 (5 for each pot straight after another), Speed up to 20 (the black potted, full by the
- * revision's own time); fouls −10 each. Perfect runs are the poolRev 3 bank's witnesses through the server's replay,
- * and a built state; poolRev 2 and 1 (stored rounds) keep their parts and their banks' witnesses still score 200.
+ * revision's own time); fouls −10 each. Perfect runs are the poolRev 4 bank's witnesses through the server's replay,
+ * and a built state; poolRev 3, 2 and 1 (stored rounds) keep their parts and their banks' witnesses still score 200.
  */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { readFileSync } from "node:fs";
-import { poolFullByS, poolGameFor, poolStdParts, POOL_FULL_BY_S, POOL_REV, POOL_REV_V1, POOL_SPOTS, POOL_STD_SPEC, type PoolState } from "../../src/lib/arcade/pool";
+import { poolFullByS, poolGameFor, poolRunTicksFor, poolSetFor, poolStdParts, POOL_FULL_BY_S, POOL_REV, POOL_REV_V1, POOL_CORE_FULL_V4, POOL_SPOTS, POOL_STD_SPEC, type PoolState } from "../../src/lib/arcade/pool";
 import { ARCADE_STANDARD } from "../../src/lib/arcade/standard";
 import { replayPoolRun } from "../../src/lib/duel/pool";
 import { POOL_BANK } from "../../src/lib/duel/poolBank.server";
 import { POOL_BANK_V2 } from "../../src/lib/duel/poolBankV2.server";
 import { POOL_BANK_V3 } from "../../src/lib/duel/poolBankV3.server";
+import { POOL_BANK_V4 } from "../../src/lib/duel/poolBankV4.server";
 import { caseEntry, type StdCase, type StdEntry } from "./entry";
 
 const game = poolGameFor(POOL_REV);
-const SEED = POOL_BANK_V3[0]!;
+const SEED = POOL_BANK_V4[0]!;
 const witness = JSON.parse(readFileSync(new URL("../fixtures/pool-witness.json", import.meta.url), "utf8")) as Record<string, string>;
 const witnessV2 = JSON.parse(readFileSync(new URL("../fixtures/pool-witness-v2.json", import.meta.url), "utf8")) as Record<string, string>;
 const witnessV3 = JSON.parse(readFileSync(new URL("../fixtures/pool-witness-v3.json", import.meta.url), "utf8")) as Record<string, string>;
+const witnessV4 = JSON.parse(readFileSync(new URL("../fixtures/pool-witness-v4.json", import.meta.url), "utf8")) as Record<string, string>;
 
 function final(over: Partial<PoolState>, g = game, seed = SEED): PoolState {
   return { ...g.init(seed), acted: 1, over: 1, spotsDown: 0, black: 0, follows: 0, fouls: 0, finishAt: 0, ...over };
@@ -32,23 +34,35 @@ const stdCase: StdCase = {
   perfect: () => final({ spotsDown: POOL_SPOTS, black: 1, follows: 7, finishAt: 60 * 30 }),
   idle: () => final({}),
   core: (v: number) => final({ spotsDown: v }),
-  fullAt: POOL_SPOTS,
+  fullAt: POOL_CORE_FULL_V4,
   older: () => ({ ...game.init(SEED), rev: 0 }),
   extra(ok) {
     for (let f = 0; f <= 8; f++) ok(part(final({ follows: f }), "streak") === Math.min(30, 5 * f), `pool: ${f} follow-up pots → ${Math.min(30, 5 * f)}`);
     const fullBy = poolFullByS(POOL_REV);
-    ok(part(final({ spotsDown: 7, black: 1, finishAt: fullBy * 60 }), "speed") === 20, `pool: the black by poolRev 3's full-by time (${fullBy} s) → speed 20`);
+    ok(part(final({ spotsDown: 7, black: 1, finishAt: fullBy * 60 }), "speed") === 20, `pool: the black by poolRev 4's full-by time (${fullBy} s) → speed 20`);
     ok(fullBy === 67 || part(final({ spotsDown: 7, black: 1, finishAt: fullBy * 60 + 60 }), "speed") < 20, "pool: a second past the full-by time is under 20");
-    ok(part(final({ spotsDown: 7, black: 1, finishAt: 7200 }), "speed") === 0, "pool: the black at the buzzer → speed 0");
+    ok(part(final({ spotsDown: 7, black: 1, finishAt: poolRunTicksFor(POOL_REV) }), "speed") === 0, "pool: the black at the buzzer (90 s on poolRev 4) → speed 0");
+    ok(poolRunTicksFor(POOL_REV) === 5400 && game.runTicks === 5400 && poolRunTicksFor(3) === 7200, "pool: poolRev 4 runs 90 s, poolRev 3 120 s");
+    let v4 = 0;
+    const sets = [0, 0];
+    for (const seed of POOL_BANK_V4) {
+      const run = replayPoolRun(seed, witnessV4[String(seed)] ?? "", POOL_REV);
+      sets[poolSetFor(seed, POOL_REV)]! += 1;
+      if (run.score === 200 && !run.flagged && run.fouls === 0 && run.state.set === poolSetFor(seed, POOL_REV)) v4++;
+    }
+    ok(v4 === POOL_BANK_V4.length, `pool: every poolRev 4 bank layout's witness clears it to 200 with no foul, through the server replay (${v4} of ${POOL_BANK_V4.length})`);
+    ok(sets[0]! > 0 && sets[1]! > 0, `pool: the poolRev 4 bank deals both sets (${sets[0]} spots, ${sets[1]} stripes)`);
     ok(part(final({ spotsDown: 3, black: 2, finishAt: 600 }), "speed") === 0 && part(final({ spotsDown: 3, black: 2 }), "black") === 0, "pool: the black early pays neither black nor speed");
-    ok(game.score(final({ spotsDown: 2, fouls: 1 })) === 30, "pool: two spots and a foul score 40 − 10 = 30");
+    ok(game.score(final({ spotsDown: 2, fouls: 1 })) === 46, "pool: two of your balls and a foul score 56 − 10 = 46 on poolRev 4");
+    ok(part(final({ spotsDown: 5 }), "core") === 140 && part(final({ spotsDown: 7 }), "core") === 140 && part(final({ spotsDown: 4 }), "core") === 112, "pool: poolRev 4's core is 28 a ball, full at five of your seven");
+    ok(part(final({ spotsDown: 7 }, poolGameFor(3), POOL_BANK_V3[0]!), "core") === 140 && part(final({ spotsDown: 5 }, poolGameFor(3), POOL_BANK_V3[0]!), "core") === 100, "pool: poolRev 3 keeps 20 a spot, full at seven");
     ok(game.score(final({ fouls: 3 })) === 1, "pool: a played run never scores under 1");
     let twoHundred = 0;
     for (const seed of POOL_BANK_V3) {
-      const run = replayPoolRun(seed, witnessV3[String(seed)] ?? "", POOL_REV);
+      const run = replayPoolRun(seed, witnessV3[String(seed)] ?? "", 3);
       if (run.score === 200 && !run.flagged && run.fouls === 0) twoHundred++;
     }
-    ok(twoHundred === POOL_BANK_V3.length, `pool: every poolRev 3 bank layout's witness clears it to 200 with no foul, through the server replay (${twoHundred} of ${POOL_BANK_V3.length})`);
+    ok(twoHundred === POOL_BANK_V3.length, `pool: every poolRev 3 bank layout's witness still clears it to 200 on poolRev 3 (${twoHundred} of ${POOL_BANK_V3.length})`);
     // poolRev 2 (stored rounds): its bank's witnesses, unchanged.
     let v2 = 0;
     for (const seed of POOL_BANK_V2) {
@@ -85,9 +99,9 @@ export const entry: StdEntry = {
   ...base,
   perfect: async () => [
     ...(await base.perfect()),
-    ...POOL_BANK_V3.slice(0, 10).map((seed) => {
-      const run = replayPoolRun(seed, witnessV3[String(seed)] ?? "", POOL_REV);
-      return { label: `poolRev 3 bank layout ${seed}'s witness (server replay)`, score: run.flagged ? -1 : run.score, parts: Object.fromEntries((poolStdParts(run.state) ?? []).map((p) => [p.key, p.points])) };
+    ...POOL_BANK_V4.slice(0, 10).map((seed) => {
+      const run = replayPoolRun(seed, witnessV4[String(seed)] ?? "", POOL_REV);
+      return { label: `poolRev 4 bank layout ${seed}'s witness (server replay)`, score: run.flagged ? -1 : run.score, parts: Object.fromEntries((poolStdParts(run.state) ?? []).map((p) => [p.key, p.points])) };
     }),
   ],
 };

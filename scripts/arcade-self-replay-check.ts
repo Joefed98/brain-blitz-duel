@@ -18,11 +18,12 @@
 
 import { bastionTankCheckpoint, bastionTankGame, BT2_CHECKPOINT_INTERVAL } from "../src/lib/arcade/bastionTank";
 import { encodeBastionTankRun, replayBastionTankRun } from "../src/lib/duel/bastion";
-import { homerunCheckpoint, homerunGameFor, HOMERUN_CHECKPOINT_INTERVAL, HOMERUN_REV_2, HOMERUN_REV_3, HOMERUN_REV_STD } from "../src/lib/arcade/homerun";
+import { homerunCheckpoint, homerunGameFor, HOMERUN_CHECKPOINT_INTERVAL, HOMERUN_REV_2, HOMERUN_REV_3, HOMERUN_REV_4, HOMERUN_REV_STD } from "../src/lib/arcade/homerun";
 import { encodeHomerunRun, replayHomerunRun } from "../src/lib/duel/homerun";
 import { HOMERUN_DEAL } from "../src/lib/duel/homerunDeal.server";
 import { HOMERUN_DEAL_V2 } from "../src/lib/duel/homerunDealV2.server";
 import { HOMERUN_DEAL_V3 } from "../src/lib/duel/homerunDealV3.server";
+import { HOMERUN_DEAL_V4 } from "../src/lib/duel/homerunDealV4.server";
 import { freekickCheckpoint, freekickGameFor, FREEKICK_CHECKPOINT_INTERVAL, FREEKICK_REV_2, FREEKICK_REV_3, FREEKICK_REV_STD } from "../src/lib/arcade/freekick";
 import { encodeFreekickRun, replayFreekickRun } from "../src/lib/duel/freekick";
 import { FREEKICK_DEAL } from "../src/lib/duel/freekickDeal.server";
@@ -181,6 +182,7 @@ import { encodePoolRun, replayPoolRun } from "@/lib/duel/pool";
 import { POOL_BANK } from "@/lib/duel/poolBank.server";
 import { POOL_BANK_V2 } from "@/lib/duel/poolBankV2.server";
 import { POOL_BANK_V3 } from "@/lib/duel/poolBankV3.server";
+import { POOL_BANK_V4 } from "@/lib/duel/poolBankV4.server";
 import { curlingCheckpoint, curlingGameFor, CURLING_REV } from "@/lib/arcade/curling";
 import { encodeCurlingRun, replayCurlingRun } from "@/lib/duel/curling";
 import { CURLING_BANK } from "@/lib/duel/curlingBank.server";
@@ -936,6 +938,10 @@ const GAMES: Game[] = [
   { key: "pyramid", game: pyramidGame, checkpoint: pyCheckpoint, mode: "events", rate: 80, encode: encodePyramidRun, replay: (seed: number, raw: string) => replayPyramidRun(seed, raw, 1) },
   { key: "golfsol", game: golfSolGame, checkpoint: gsCheckpoint, mode: "events", rate: 80, encode: encodeGolfSolRun, replay: (seed: number, raw: string) => replayGolfSolRun(seed, raw, 1), seedFor: (n: number) => n % 300 },
   { key: "muggins", game: mugginsGame, checkpoint: mgCheckpoint, mode: "events", rate: 60, encode: encodeMugginsRun, replay: (seed: number, raw: string) => replayMugginsRun(seed, raw, 1) },
+  // Home Run homerunRev 4 (3 Nov 2026: a spot and a tap) and Cue Ball poolRev 4 (3 Nov 2026: a seeded set, 90 s), appended
+  // so every earlier entry keeps its index: random spots and taps; random shots on the poolRev 4 bank's layouts.
+  { key: "homerun/v4", interval: HOMERUN_CHECKPOINT_INTERVAL, game: homerunGameFor(HOMERUN_REV_4), checkpoint: homerunCheckpoint, mode: "events", rate: 20, encode: encodeHomerunRun, replay: (seed: number, raw: string) => replayHomerunRun(seed, raw, HOMERUN_REV_4), seedFor: (n: number) => HOMERUN_DEAL_V4[n % HOMERUN_DEAL_V4.length]! },
+  { key: "pool/v4", game: poolGameFor(4), seedFor: (n: number) => POOL_BANK_V4[n % POOL_BANK_V4.length]!, checkpoint: poolCheckpoint, mode: "events", rate: 40, encode: encodePoolRun, replay: (seed: number, raw: string) => replayPoolRun(seed, raw, 4) },
 ];
 
 /** A random candidate event, often outside the declared range (a finger off the edge). */
@@ -975,6 +981,8 @@ const ENTRY_COST: Record<number, number> = {
   144: 3.9,
   // The 1 Nov 2026 tuning's Cue Ball poolRev 3 (pool/v3: 29.2 s at 40 runs locally).
   184: 29.2,
+  // Cue Ball poolRev 4 (3 Nov 2026, pool/v4: 17.0 s at 40 runs locally).
+  202: 17.0,
 };
 
 /** Entry indexes of group k of n (1-based): costliest first onto the lightest group, ties by index. */
