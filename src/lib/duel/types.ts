@@ -1995,7 +1995,7 @@ export interface MahjongPuzzleData {
 
 /** Home Run Derby's 60-second, ten-pitch run; the round clock adds three of slack (63 s). */
 export const HOMERUN_TIME_MS = 63_000;
-/** Top Bins' 90-second, ten-kick run (freekickRev 3; rev 1 and 2 runs end at 75 s), plus three of slack. */
+/** Top Bins' 90-second, ten-kick run (freekickRev 3 and 4; rev 1 and 2 runs end at 75 s), plus three of slack. */
 export const FREEKICK_TIME_MS = 93_000;
 /**
  * Apex's 90-second, two-lap race, plus three of slack; since 31 Oct 2026 (racingRev 2) also its 5.5-second start
@@ -2770,7 +2770,9 @@ export interface CurlingPuzzleData {
    * curlRev 1: the arcade scoring standard (docs/arcade-standard/curling.md). curlRev 2 (31 Oct 2026, dealt from
    * curlingBankV2.server.ts): the start along the hog line and side brushing, the same parts. curlRev 3 (1 Nov 2026,
    * dealt from curlingBankV3.server.ts): the weight meter's draw zone, the aim line, a gentler weight line and the
-   * re-fitted closeness core, the same parts.
+   * re-fitted closeness core, the same parts. curlRev 4 (3 Nov 2026, dealt from curlingBankV4.server.ts): the power
+   * bar and Throw button, three red stones a sheet and curling's count (only stones nearer the button than every red
+   * in the house score their closeness), the same parts.
    */
   curlRev?: number;
 }

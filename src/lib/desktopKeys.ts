@@ -36,11 +36,11 @@ export const DESKTOP_KEYS: Partial<Record<PuzzleType, readonly (readonly [string
   blockfall: [["← →", "move"], ["↑", "turn"], ["↓", "soft drop"], ["Space", "drop"]],
   alleyroll: [["Mouse drag", "swipe up the lane to roll"], ["← →", "line up"], ["Hold Space", "roll straight"]],
   // Sports
-  freekick: [["Click / ← → ↑ ↓", "aim"], ["Drag / A D", "curl"], ["Space (hold)", "power, release to strike"]],
+  freekick: [["Drag", "draw the shot (bend it to curl)"], ["← → ↑ ↓ / A D", "nudge the aim / curl"], ["Space (hold)", "power, release to strike"]],
   rally: [["← →", "paddle"]],
   ricochet: [["Click / Space", "leap · again in the air to double jump"], ["← →", "leap off a lantern that way"]],
   racing: [["← → / A D", "steer"], ["↑ / W", "accelerate"], ["↓ / S", "brake"]],
-  curling: [["Arrows", "target"], ["A D", "slide the stone"], ["I / O", "turn"], ["− / + then Enter", "weight, throw"], ["← → (moving)", "brush"]],
+  curling: [["Arrows", "target"], ["A D", "slide the stone"], ["I / O", "turn"], ["− / +", "set the power"], ["Enter", "throw"], ["← → (moving)", "brush"]],
   skyline: [["Space", "drop"]],
   snake: [["← → ↑ ↓", "turn"]],
   swing: [["Space (hold)", "grapple"], ["↑ ↓", "reel"]],

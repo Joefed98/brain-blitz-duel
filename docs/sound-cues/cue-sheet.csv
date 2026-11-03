@@ -992,7 +992,7 @@ freekick.target,Top Bins,Top Bins: A target hit [arcade.md],,0–4,recorded soun
 freekick.net,Top Bins,Top Bins: The ball hits the net [arcade.md],,0–10,recorded sound,arc_bounce (shared),200,game event,freekick.net,
 freekick.wall,Top Bins,Top Bins: The wall blocks the kick [arcade.md],,0–10,recorded sound,freekick.wall,300,game event,freekick.wall,
 freekick.crowd,Top Bins,Top Bins: While the run is live (0.26) [batch6-sports-cards.md],,loop,recorded sound,freekick.crowd,loop,ambience,freekick.crowd,
-freekick.whistle,Top Bins,Top Bins: The referee's whistle before each kick [batch6-sports-cards.md],,10,recorded sound,freekick.whistle,683,game event,freekick.whistle,
+freekick.whistle,Top Bins,"Top Bins: The referee's whistle before the first kick (once a run, since 3 Nov 2026) [batch6-sports-cards.md]",,10,recorded sound,freekick.whistle,683,game event,freekick.whistle,
 freekick.roar,Top Bins,Top Bins: A goal [batch6-sports-cards.md],,0–10,recorded sound,freekick.roar,3477,game event,freekick.roar,
 freekick.groan,Top Bins,"Top Bins: A save, or a kick off the woodwork and wide [batch6-sports-cards.md]",,0–8,recorded sound,freekick.groan,1995,game event,freekick.groan,
 music.freekick,Top Bins,Top Bins: music_freekick,,loop,recorded sound,music_freekick,53700,music,music_freekick,

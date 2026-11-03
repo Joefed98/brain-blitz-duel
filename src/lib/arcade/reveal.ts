@@ -436,7 +436,8 @@ const BUILDERS: Record<string, Builder> = {
   }),
   curling: (r, s) => ({
     axis: { value: n(r, "onButton"), max: 8, label: "Stones on the button" },
-    lines: [`${n(r, "onButton")} of 8 on the button → ${s}`],
+    // curlRev 4: the stones that counted (nearer than every red in the house) too.
+    lines: [((r["state"] as { rev?: number } | undefined)?.rev ?? 1) >= 4 ? `${n(r, "onButton")} of 8 on the button · ${n(r, "counted")} counted → ${s}` : `${n(r, "onButton")} of 8 on the button → ${s}`],
     tiles: [
       { label: "In the 4-foot", value: `${n(r, "inFourFoot")} / 8` },
       { label: "Takeouts", value: `${n(r, "takeouts")} / ${n(r, "opponents")}` },

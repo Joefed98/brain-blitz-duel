@@ -66,6 +66,26 @@ for (const [key, definition] of active) {
       assert.ok(` ${buttons[0]!.getAttribute("class") ?? ""} `.includes(" h-11 "), `${key}: the corner button is 44px tall`);
       assert.deepEqual(inSlot, [row, buttons[0]], `${key}: nothing else in the slot but the corner row and its button`);
       assert.equal(host.querySelectorAll("[data-game-controls]").length, 1, `${key}: no row below the world on orbitRev 12`);
+    } else if (key === "curling" && ((puzzle as { curlRev?: number }).curlRev ?? 1) >= 4) {
+      // Curl Champ curlRev 4 (Joe's approval, 3 Nov 2026): In, Out and Throw sit over the bottom of the sheet, below the near
+      // hog line, so the world reaches the screen's bottom; they clear the start point, the aim line and every stone at rest
+      // (the review shots at 414x896 and 375x667: stones rest in the far house, the near end behind the thrower is never in
+      // play). Exactly that wrapper in the arena, absolutely placed across its bottom and lifted by the home bar, holding the
+      // one turn row of exactly the In, Out and Throw buttons (48px, over the 44px minimum). Every other control, and every
+      // older revision's, still sits below the slot.
+      const row = slot.querySelector('[data-game-arena] > div > [data-game-controls="turn"]');
+      assert.ok(row, `${key}: the turn row sits in the arena`);
+      const wrap = row!.parentElement!;
+      const wcls = ` ${wrap.getAttribute("class") ?? ""} `;
+      for (const c of ["absolute", "inset-x-1", "pointer-events-none"]) assert.ok(wcls.includes(` ${c} `), `${key}: turn wrapper class ${c}`);
+      assert.equal((wrap.getAttribute("style") ?? "").replace(/\s/g, ""), "bottom:max(0px,calc(env(safe-area-inset-bottom,0px)-4px))", `${key}: the turn row sits on the sheet's bottom, lifted by the home bar`);
+      const cls = ` ${row!.getAttribute("class") ?? ""} `;
+      for (const c of ["grid", "h-12", "grid-cols-3"]) assert.ok(cls.includes(` ${c} `), `${key}: turn row class ${c}`);
+      const buttons = [...row!.querySelectorAll("button")];
+      assert.deepEqual(buttons.map((b) => b.getAttribute("aria-label")), ["In-turn", "Out-turn", "Throw"], `${key}: exactly the In, Out and Throw buttons`);
+      for (const b of buttons) assert.ok(` ${b.getAttribute("class") ?? ""} `.includes(" h-12 "), `${key}: each turn button is 48px tall`);
+      assert.deepEqual(inSlot, [row, ...buttons], `${key}: nothing else in the slot but the turn row and its three buttons`);
+      assert.equal(host.querySelectorAll("[data-game-controls]").length, 1, `${key}: no row below the world on curlRev 4`);
     } else {
       // Every other game's controls sit below the slot. Home Run follows this rule again (homerunRev 4, 3 Nov 2026: no
       // buttons over the field; its homerunRev 3 exception for the Contact / Power row was removed with that row).

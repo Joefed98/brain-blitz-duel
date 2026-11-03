@@ -47,7 +47,25 @@
  * 12. the rev-3 deal: 300 distinct seeds, the oracle takes each to exactly 200 with every part full through the server
  *     replay (24 at quick depth, all 300 with CHECKS_FULL=1, plus the file's rebuild);
  * 13. rev 3's parts: rev 2's (130 / 40 / 20 / 10) on their own stamp, the core a straight line full at
- *     FREEKICK_V3_CORE_FULL; no input 0, a kick that did nothing 1; rooms deal freekickRev 3.
+ *     FREEKICK_V3_CORE_FULL; no input 0, a kick that did nothing 1 (rooms dealt freekickRev 3 until 3 Nov 2026).
+ *
+ * freekickRev 4 (the drawn shot, 3 Nov 2026; sections 1–13 above prove revs 1–3 and are unchanged but for which stamp
+ * rooms deal):
+ *
+ * 14. legacy identity: 112 rev-3 runs recorded on main 6326101 before rev 4 (scripts/fixtures/freekick-rev3-legacy.json,
+ *     by `bun scripts/freekick-legacy-record.ts --rev=3`: the oracle, random prepared shots and the skill-band bot at
+ *     weak, good, great and elite) replay to the same score, final state and checkpoints through the sim and the server
+ *     (stamped 3), and no rev-3 state carries rev 4's Curl bonus count;
+ * 15. rev 4's inputs and rules: SHOT (kind 6) with POWER and STRIKE (no AIM or CURL range on rev 4; no SHOT range
+ *     before it); a SHOT sets the target and the curl together, redrawn freely until POWER and ignored after it; POWER
+ *     needs a shot; the meter, the solver and the strike are rev 3's; the corner hoop shrinks evenly from FK_HOOP_R on
+ *     the first kick to 70 % on the last, tucked in its corner, judged on the kick's own radius (rev 1–3 keep the full
+ *     hoop); a goal from a shot bent at least FK_V4_BENT counts for the Curl bonus, a gentler one or a miss does not;
+ *     deterministic, the server agrees (stamped 4), a tampered claim is flagged, the checksum carries the Curl bonus;
+ * 16. the rev-4 deal: 300 distinct seeds, the oracle takes each to exactly 200 with every part full through the server
+ *     replay (24 at quick depth, all 300 with CHECKS_FULL=1, plus the file's rebuild), every oracle goal bent;
+ * 17. rev 4's parts: Goals 120 (full at FREEKICK_V4_CORE_FULL), Targets 40, Round the wall 10, Curl bonus 20, Five in a
+ *     row 10 = 200; the features never cost core; no input 0, a kick that did nothing 1; rooms deal freekickRev 4.
  *
  *   bun scripts/freekick-check.ts
  */
@@ -127,6 +145,22 @@ import {
   freekickGameV3,
 } from "../src/lib/arcade/freekick";
 import { FREEKICK_DEAL_V3 } from "../src/lib/duel/freekickDealV3.server";
+import { FREEKICK_DEAL_V4 } from "../src/lib/duel/freekickDealV4.server";
+import { generateFreekick } from "../src/lib/duel/sports.server";
+import { oracleShotsV4, playShotsV4 } from "./freekick-oracle";
+import {
+  FK_GOAL_H,
+  FK_HOOP_R,
+  FK_V4_BENT,
+  FK_V4_HOOP_LAST_PERMILLE,
+  FREEKICK_INPUT_RANGES_V4,
+  FREEKICK_INPUT_SHOT,
+  FREEKICK_REV_4,
+  FREEKICK_V4_CORE_FULL,
+  FREEKICK_V4_STD_SPEC,
+  fkHoopRFor,
+  freekickGameV4,
+} from "../src/lib/arcade/freekick";
 import { FREEKICK_TIME_MS } from "../src/lib/duel/types";
 
 const cmOf = (u: number) => Math.round((u * 100) / FK_M);
@@ -432,7 +466,7 @@ function serve2(seed: number, events: ArcadeInputEvent[], rev: number | null = F
 /* 9. The rev-2 deal and parts. */
 {
   // Rooms dealt freekickRev 2 until 1 Nov 2026; rev 3 is dealt now (section 13), rev 2 still replays on its own.
-  ok(FREEKICK_REV_DEALT === FREEKICK_REV_2 + 1 && freekickGameFor(FREEKICK_REV_2) === freekickGameV2, "rooms deal the stamp after freekickRev 2, which still replays as rev 2");
+  ok(FREEKICK_REV_DEALT > FREEKICK_REV_2 && freekickGameFor(FREEKICK_REV_2) === freekickGameV2, "rooms deal a stamp after freekickRev 2, which still replays as rev 2");
   ok(FREEKICK_DEAL_V2.length === 300 && new Set(FREEKICK_DEAL_V2).size === 300, `v2 deal: 300 distinct seeds (${FREEKICK_DEAL_V2.length})`);
   const idx = FULL ? FREEKICK_DEAL_V2.map((_, i) => i) : Array.from({ length: 24 }, (_, i) => Math.floor((i * FREEKICK_DEAL_V2.length) / 24));
   let full = 0;
@@ -648,7 +682,7 @@ function stepInputs(seed: number, inputs: { k: number; a?: number; b?: number }[
 
 /* 13. Rev 3's parts. */
 {
-  ok(FREEKICK_REV_DEALT === FREEKICK_REV_3 && freekickGameFor(3) === freekickGameV3 && freekickGameFor(4) === freekickGameV3 && freekickGameFor(2) === freekickGameV2, "rooms deal freekickRev 3; 2 still plays rev 2");
+  ok(FREEKICK_REV_DEALT > FREEKICK_REV_3 && freekickGameFor(3) === freekickGameV3 && freekickGameFor(2) === freekickGameV2, "rooms deal a stamp after freekickRev 3; 3 still plays rev 3, 2 rev 2");
   ok(stdSpecMax(FREEKICK_V3_STD_SPEC) === 200 && FREEKICK_V3_STD_SPEC.rev === FREEKICK_REV_3, "v3 spec: 200 on freekickRev 3");
   ok(FREEKICK_V3_STD_SPEC.parts.map((p) => `${p.key}:${p.label}:${p.max}`).join() === FREEKICK_STD_SPEC.parts.map((p) => `${p.key}:${p.label}:${p.max}`).join(), "v3 spec: rev 2's parts, keys and labels");
   const s0 = { ...freekickGameV3.init(FREEKICK_DEAL_V3[0]!), acted: 1 };
@@ -661,6 +695,156 @@ function stepInputs(seed: number, inputs: { k: number; a?: number; b?: number }[
   ok(freekickStdParts({ ...v2, goals: 3, units: 345 })![0]!.points === 34, "v3 parts: rev 2's core keeps its 1,300");
   const feeble = playShotsV3(FREEKICK_DEAL_V3[0]!, [{ x: 0, y: 11, b: 0 }], [{ strike: 1 }]).events;
   ok(serve3(FREEKICK_DEAL_V3[0]!, feeble).result.score === 1, "v3 waste: one kick that did nothing scores 1");
+}
+
+/* 14. Legacy identity (rev 3 runs recorded before rev 4). */
+{
+  const runs = JSON.parse(readFileSync("scripts/fixtures/freekick-rev3-legacy.json", "utf8")) as FkLegacyRun[];
+  ok(runs.length === 112, `legacy v3: 112 recorded rev-3 runs (${runs.length})`);
+  ok(new Set(runs.map((r) => r.score)).size > 10, "legacy v3: the runs cover a spread of scores");
+  let same = 0;
+  for (const r of runs) {
+    const now = playRev1(r.seed, r.events, FREEKICK_REV_3);
+    const sim = now.score === r.score && now.digest === r.digest && now.checksums.join() === r.checksums.join();
+    const { state, result } = serve3(r.seed, r.events, r.score);
+    const server = !result.flagged && result.score === r.score && JSON.stringify(result.state) === JSON.stringify(state) && !("bent" in result.state);
+    if (sim && server) same++;
+    else failures.push(`legacy v3: seed ${r.seed} ${r.label} replays to ${now.score} (recorded ${r.score})${sim ? "" : " sim differs"}${server ? "" : " server differs"}`);
+  }
+  checks++;
+  console.log(`  legacy v3: ${same}/${runs.length} rev-3 runs identical (sim and server, stamped 3)`);
+}
+
+/* 15. Rev 4's inputs and rules. */
+function play4(seed: number, events: ArcadeInputEvent[]) {
+  const at = new Map(events.map((e) => [e.t, e]));
+  let s = freekickGameV4.init(seed);
+  const cps: FreekickCheckpoint[] = [];
+  while (!freekickGameV4.isOver(s)) {
+    s = freekickGameV4.step(s, at.get(s.tick + 1) ?? null);
+    if (s.tick % 60 === 0) cps.push(freekickCheckpoint(s));
+  }
+  return { state: s, cps };
+}
+function serve4(seed: number, events: ArcadeInputEvent[], claim?: number) {
+  const { state, cps } = play4(seed, events);
+  const raw = encodeFreekickRun({ seed, claimedScore: claim ?? freekickGameV4.score(state), events, endTick: state.tick, checkpoints: cps });
+  const quiet = console.error;
+  console.error = () => {};
+  const result = replayFreekickRun(seed, raw, FREEKICK_REV_4);
+  console.error = quiet;
+  return { state, result };
+}
+function stepInputs4(seed: number, inputs: { k: number; a?: number; b?: number; c?: number }[]): FreekickState {
+  let s = freekickGameV4.init(seed);
+  while (s.phase !== FK_AIM) s = freekickGameV4.step(s, null);
+  for (const inp of inputs) s = freekickGameV4.step(s, { t: s.tick + 1, k: inp.k, a: inp.a ?? 0, b: inp.b ?? 0, c: inp.c ?? 0, d: 0 });
+  return s;
+}
+{
+  ok(FREEKICK_INPUT_RANGES_V4.map((r) => r.k).join() === [FREEKICK_INPUT_POWER, FREEKICK_INPUT_STRIKE, FREEKICK_INPUT_SHOT].join() && freekickGameV4.inputRanges === FREEKICK_INPUT_RANGES_V4 && freekickGameV3.inputRanges === FREEKICK_INPUT_RANGES_V3, "v4 ranges: SHOT, POWER, STRIKE; rev 3 keeps its own");
+  const log: ArcadeInputEvent[] = [];
+  ok(recordInput(log, { t: 40, k: FREEKICK_INPUT_SHOT, a: 0, b: 100, c: 50, d: 0 }, FREEKICK_INPUT_RANGES_V3) === null && recordInput(log, { t: 40, k: FREEKICK_INPUT_AIM, a: 0, b: 100, c: 0, d: 0 }, FREEKICK_INPUT_RANGES_V4) === null && recordInput(log, { t: 40, k: FREEKICK_INPUT_CURL, a: 0, b: 50, c: 0, d: 0 }, FREEKICK_INPUT_RANGES_V4) === null && log.length === 0, "v4 ranges: no SHOT on rev 3, no AIM or CURL on rev 4");
+  const rec = recordInput(log, { t: 41, k: FREEKICK_INPUT_SHOT, a: 9999, b: -50, c: 400, d: 7 }, FREEKICK_INPUT_RANGES_V4);
+  ok(rec !== null && rec.a === FK_V3_AIM_X_MAX && rec.b === FK_V3_AIM_Y_MIN && rec.c === 100 && rec.d === 0, "v4 ranges: a SHOT is clamped onto the frame and the curl's reach");
+  // A SHOT does nothing on rev 3's sim.
+  let s3 = freekickGameV3.init(FREEKICK_DEAL_V3[0]!);
+  while (s3.phase !== FK_AIM) s3 = freekickGameV3.step(s3, null);
+  const s3b = freekickGameV3.step(s3, { t: s3.tick + 1, k: FREEKICK_INPUT_SHOT, a: 100, b: 100, c: 50, d: 0 });
+  ok(s3b.aimed === 0 && s3b.curl === 0, "v4 kinds: a SHOT does nothing on rev 3");
+
+  const seed = FREEKICK_DEAL_V4[3]!;
+  const r1 = stepInputs4(seed, [{ k: FREEKICK_INPUT_SHOT, a: 100, b: 100, c: 40 }, { k: FREEKICK_INPUT_SHOT, a: -200, b: 180, c: -80 }]);
+  ok(r1.aimX === -200 && r1.aimY === 180 && r1.curl === -80 && r1.aimed === 1 && r1.meterAt === -1, "v4 steps: the shot redrawn, the last one kept (target and curl together)");
+  const r2 = stepInputs4(seed, [{ k: FREEKICK_INPUT_AIM, a: 100, b: 100 }, { k: FREEKICK_INPUT_CURL, b: 40 }, { k: FREEKICK_INPUT_POWER }, { k: FREEKICK_INPUT_STRIKE }]);
+  ok(r2.aimed === 0 && r2.curl === 0 && r2.meterAt === -1 && r2.acted === 0, "v4 steps: AIM and CURL do nothing on rev 4; POWER needs a shot; STRIKE needs POWER");
+  const r3 = stepInputs4(seed, [{ k: FREEKICK_INPUT_SHOT, a: 150, b: 120, c: 75 }, { k: FREEKICK_INPUT_POWER }, { k: FREEKICK_INPUT_SHOT, a: -300, b: 50, c: -90 }]);
+  ok(r3.aimX === 150 && r3.aimY === 120 && r3.curl === 75 && (r3.meterAt ?? -1) > 0, "v4 steps: a shot drawn once the meter runs is ignored");
+  // The shot's flight is rev 3's prepared shot exactly (the same solver and meter).
+  let r4 = r3;
+  for (let i = 0; i < FK_V3_CLEAN_TICKS - 1; i++) r4 = freekickGameV4.step(r4, null);
+  r4 = freekickGameV4.step(r4, { t: r4.tick + 1, k: FREEKICK_INPUT_STRIKE, a: 0, b: 0, c: 0, d: 0 });
+  ok(r4.phase === FK_FLIGHT && JSON.stringify(r4.fl) === JSON.stringify(fkV3Launch(fkSeedPlan(seed, 4).kicks[0]!, 150, 120, 75, r4.strikeM!)), "v4 strike: the drawn shot flies as rev 3's prepared shot");
+
+  // The shrinking hoop: full on the first kick, 70 % on the last, an even line between; rev 1–3 the full hoop.
+  const radii = Array.from({ length: FREEKICK_KICKS }, (_, i) => fkHoopRFor(FREEKICK_REV_4, i));
+  let even = true;
+  for (let i = 1; i < radii.length; i++) if (!(radii[i]! < radii[i - 1]!) || Math.abs(radii[i - 1]! - radii[i]! - (radii[0]! - radii[9]!) / 9) > FK_HOOP_R / 1000 + 1) even = false; // steps within a per-mille of the radius
+  ok(radii[0] === FK_HOOP_R && radii[9] === Math.trunc((FK_HOOP_R * FK_V4_HOOP_LAST_PERMILLE) / 1000) && FK_V4_HOOP_LAST_PERMILLE === 700 && even, `v4 hoop: ${cmOf(radii[0]!)} cm → ${cmOf(radii[9]!)} cm, shrinking evenly`);
+  ok([1, 2, 3].every((rev) => Array.from({ length: 10 }, (_, i) => fkHoopRFor(rev, i)).every((r) => r === FK_HOOP_R)), "v4 hoop: rev 1–3 keep the full hoop on every kick");
+  // Judged on the kick's own radius, tucked in the corner: a crossing inside the full hoop's edge but outside the
+  // shrunk one counts on rev 3's radius only; the shrunk hoop's own centre counts on both.
+  const kL = { ...fkSeedPlan(FREEKICK_DEAL_V4[0]!, 4).kicks[0]!, target: FK_TARGET_RIGHT };
+  const goalFlight = (x: number, y: number) => ({ ...fkLaunch(kL, 0, 0, 500), out: FK_OUT_GOAL, crossX: x, crossY: y, passX: 0, passY: 0, passK: 0 });
+  const small = radii[9]!;
+  const cx = FK_GOAL_HALF_W - small;
+  const cy = FK_GOAL_H - small;
+  ok(fkJudge(kL, goalFlight(cx, cy), small).target && fkJudge(kL, goalFlight(cx, cy)).target, "v4 hoop: the shrunk hoop sits in the corner, inside the full one");
+  const outside = goalFlight(FK_GOAL_HALF_W - FK_HOOP_R, FK_GOAL_H - FK_HOOP_R - Math.trunc(FK_HOOP_R * 0.6));
+  ok(fkJudge(kL, outside).target && !fkJudge(kL, outside, small).target, "v4 hoop: judged on the kick's own radius");
+
+  // The Curl bonus: a goal from a shot bent at least FK_V4_BENT; not a gentler goal.
+  const s4 = FREEKICK_DEAL_V4[5]!;
+  const shots = oracleShotsV4(s4);
+  ok(shots.every((x) => Math.abs(x.b) >= FK_V4_BENT), `v4 bent: every oracle shot is bent at least ${FK_V4_BENT}`);
+  const bentRun = playShotsV4(s4, shots).state;
+  ok(bentRun.bent === 10 && bentRun.flags.every((f) => (f & 4) === 4), "v4 bent: ten bent goals, flagged");
+  const gentle = playShotsV4(s4, shots.map((x) => ({ ...x, b: Math.sign(x.b) * (FK_V4_BENT - 1) }))).state;
+  const gentleBent = gentle.flags.filter((f) => (f & 4) === 4).length;
+  ok(gentle.bent === 0 && gentleBent === 0, `v4 bent: a goal from a shot bent ${FK_V4_BENT - 1} earns no Curl bonus (${gentle.goals} goals)`);
+
+  const events = oracleRun(s4, FREEKICK_REV_4);
+  const a = play4(s4, events);
+  const b = play4(s4, events);
+  ok(a.state.freekickRev === FREEKICK_REV_4 && JSON.stringify(a.state) === JSON.stringify(b.state) && a.cps.map((c) => c.checksum).join() === b.cps.map((c) => c.checksum).join(), "v4 replay: deterministic");
+  const served = serve4(s4, events);
+  ok(!served.result.flagged && served.result.score === 200 && served.result.score === freekickGameV4.score(a.state), `v4 server: agrees with the sim (${served.result.score})`);
+  ok(serve4(s4, events, 150).result.flagged, "v4 server: a tampered claimed score is flagged");
+  const cpA = freekickCheckpoint({ ...a.state, bent: 3 }).checksum;
+  const cpB = freekickCheckpoint({ ...a.state, bent: 4 }).checksum;
+  ok(cpA !== cpB && freekickCheckpoint({ ...freekickGameV3.init(1), bent: 3 } as FreekickState).checksum === freekickCheckpoint({ ...freekickGameV3.init(1), bent: 4 } as FreekickState).checksum, "v4 checkpoints: carry the Curl bonus (rev 3's do not)");
+  ok(freekickGameV4.runTicks === FREEKICK_V3_RUN_TICKS && fkRunTicksFor(4) === FREEKICK_V3_RUN_TICKS && fkDeadlineFor(4, 9) === fkDeadlineFor(3, 9), "v4 run: rev 3's 90 s and slots");
+}
+
+/* 16. The rev-4 deal. */
+{
+  ok(FREEKICK_DEAL_V4.length === 300 && new Set(FREEKICK_DEAL_V4).size === 300 && FREEKICK_DEAL_V4.every((s) => Number.isInteger(s) && s > 0 && s < 0x7fffffff), `v4 deal: 300 distinct valid seeds (${FREEKICK_DEAL_V4.length})`);
+  const idx = FULL ? FREEKICK_DEAL_V4.map((_, i) => i) : Array.from({ length: 24 }, (_, i) => Math.floor((i * FREEKICK_DEAL_V4.length) / 24));
+  let full = 0;
+  for (const i of idx) {
+    const seed = FREEKICK_DEAL_V4[i]!;
+    const { result } = serve4(seed, oracleRun(seed, FREEKICK_REV_4));
+    if (result.score === 200 && !result.flagged && result.parts.every((p) => p.points === p.max)) full++;
+    else failures.push(`v4 deal: seed ${seed} (#${i}) oracle scored ${result.score}${result.flagged ? " flagged" : ""}`);
+  }
+  checks++;
+  console.log(`  v4 deal: ${full}/${idx.length} oracle runs at 200 with every part full`);
+  if (FULL) {
+    try {
+      execFileSync("bun", ["scripts/freekick-deal.ts", "--rev=4", "--check"], { stdio: "pipe" });
+      ok(true, "v4 deal file");
+    } catch {
+      ok(false, "v4 deal: the file is not what freekick-deal.ts --rev=4 builds");
+    }
+  }
+}
+
+/* 17. Rev 4's parts. */
+{
+  ok(FREEKICK_REV_DEALT === FREEKICK_REV_4 && freekickGameFor(4) === freekickGameV4 && freekickGameFor(5) === freekickGameV4 && freekickGameFor(3) === freekickGameV3, "rooms deal freekickRev 4; 3 still plays rev 3");
+  ok(stdSpecMax(FREEKICK_V4_STD_SPEC) === 200 && FREEKICK_V4_STD_SPEC.rev === FREEKICK_REV_4, "v4 spec: 200 on freekickRev 4");
+  ok(FREEKICK_V4_STD_SPEC.parts.map((p) => `${p.key}:${p.label}:${p.max}`).join() === "core:Goals:120,targets:Targets:40,curl:Round the wall:10,bent:Curl bonus:20,streak:Five in a row:10", "v4 spec: Goals 120, Targets 40, Round the wall 10, Curl bonus 20, Five in a row 10");
+  const s0 = { ...freekickGameV4.init(FREEKICK_DEAL_V4[0]!), acted: 1 };
+  const pts = (o: Partial<FreekickState>) => freekickStdParts({ ...s0, ...o })!.map((x) => x.points);
+  ok(pts({ goals: 3, units: 345, targets: 2, curled: 3, bent: 2, best: 5 }).join() === `${Math.floor((120 * 345) / FREEKICK_V4_CORE_FULL)},20,3,4,10`, `v4 parts: the core on a straight line to ${FREEKICK_V4_CORE_FULL} (${pts({ goals: 3, units: 345, targets: 2, curled: 3, bent: 2, best: 5 }).join()})`);
+  ok(pts({ goals: 7, units: FREEKICK_V4_CORE_FULL })[0] === 120 && pts({ goals: 10, units: 1300 })[0] === 120, "v4 parts: full at the figure, held there");
+  ok(pts({ goals: 5, units: 560, bent: 5, curled: 5, targets: 2, best: 5 })[0] === pts({ goals: 5, units: 560 })[0], "v4 parts: the features never cost core");
+  ok(serve4(FREEKICK_DEAL_V4[0]!, []).result.score === 0, "v4 idle: no input scores 0");
+  const feeble = playShotsV4(FREEKICK_DEAL_V4[0]!, [{ x: 0, y: 11, b: 0 }], [{ strike: 1 }]).events;
+  ok(serve4(FREEKICK_DEAL_V4[0]!, feeble).result.score === 1, "v4 waste: one kick that did nothing scores 1");
+  // Rooms deal it: generateFreekick stamps 4 on a proved rev-4 seed.
+  const dealt = generateFreekick();
+  ok(dealt.freekickRev === FREEKICK_REV_4 && FREEKICK_DEAL_V4.includes(dealt.seed), "v4 rooms: generateFreekick deals a proved freekickRev 4 seed");
 }
 
 if (failures.length) {

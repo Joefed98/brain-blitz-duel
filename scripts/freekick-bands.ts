@@ -4,8 +4,8 @@
  * the median (p10–p90) score and each part's median, and the placement distances of the goals (to set
  * FREEKICK_PLACE_FULL_CM from the near-perfect level).
  *
- *   bun scripts/freekick-bands.ts [--seeds=60] [--from=0] [--rev=3] [--raw]
- *   (--rev: 1, 2 or 3, the dealt revision by default; --from=10000 for fresh seeds; --raw: plain room seeds, no deal)
+ *   bun scripts/freekick-bands.ts [--seeds=60] [--from=0] [--rev=4] [--raw]
+ *   (--rev: 1, 2, 3 or 4, the dealt revision by default; --from=10000 for fresh seeds; --raw: plain room seeds, no deal)
  */
 import { inputAt } from "../src/lib/arcade/engine";
 import { FK_OUT_GOAL, fkJudge, fkKickOf, freekickCheckpoint, freekickGameFor, FREEKICK_PLACE_FULL_CM, FREEKICK_REV_DEALT, type FreekickCheckpoint } from "../src/lib/arcade/freekick";
@@ -13,6 +13,7 @@ import { encodeFreekickRun, replayFreekickRun } from "../src/lib/duel/freekick";
 import { freekickDealSeed } from "../src/lib/duel/freekickDeal.server";
 import { freekickDealSeedV2 } from "../src/lib/duel/freekickDealV2.server";
 import { freekickDealSeedV3 } from "../src/lib/duel/freekickDealV3.server";
+import { freekickDealSeedV4 } from "../src/lib/duel/freekickDealV4.server";
 import { ALL_LEVELS, Human, LEVEL_LABEL } from "./arcade-skill-bands/human";
 import { bot, randomBot } from "./arcade-skill-bands/bots/freekick";
 import { hashSeed } from "./freekick-deal";
@@ -48,16 +49,16 @@ const pct = (xs: number[], p: number) => {
 };
 
 if (import.meta.main) {
-  const rows: string[] = ["| Level | Score median (p10–p90) | Goals | Core | Targets | Round the wall | Five in a row | Goal distance cm (p25 / median) | Zeros |", "| --- | --- | --- | --- | --- | --- | --- | --- | --- |"];
+  const rows: string[] = ["| Level | Score median (p10–p90) | Goals | Core | Targets | Round the wall | Curl bonus | Five in a row | Goal distance cm (p25 / median) | Zeros |", "| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |"];
   const levels = [...ALL_LEVELS, "random"] as const;
   for (const level of levels) {
     const scores: number[] = [];
     const goals: number[] = [];
-    const parts: Record<string, number[]> = { core: [], targets: [], curl: [], streak: [] };
+    const parts: Record<string, number[]> = { core: [], targets: [], curl: [], bent: [], streak: [] };
     const dists: number[] = [];
     let zeros = 0;
     for (let n = FROM; n < FROM + N; n++) {
-      const seed = RAW ? hashSeed(n) : REV >= 3 ? freekickDealSeedV3(hashSeed(n)) : REV >= 2 ? freekickDealSeedV2(hashSeed(n)) : freekickDealSeed(hashSeed(n));
+      const seed = RAW ? hashSeed(n) : REV >= 4 ? freekickDealSeedV4(hashSeed(n)) : REV >= 3 ? freekickDealSeedV3(hashSeed(n)) : REV >= 2 ? freekickDealSeedV2(hashSeed(n)) : freekickDealSeed(hashSeed(n));
       const human = new Human("freekick", seed, level === "random" ? "average" : level);
       const out = (level === "random" ? randomBot : bot)({ game: freekickGameFor(REV), seed, rev: REV, human });
       const { result, dists: d } = serverReplay(seed, out.events ?? []);
@@ -69,7 +70,7 @@ if (import.meta.main) {
       if (result.score === 0) zeros++;
     }
     const label = level === "random" ? "Random strokes" : LEVEL_LABEL[level];
-    rows.push(`| ${label} | ${pct(scores, 0.5)} (${pct(scores, 0.1)}–${pct(scores, 0.9)}) | ${pct(goals, 0.5)} | ${pct(parts.core!, 0.5)} | ${pct(parts.targets!, 0.5)} | ${pct(parts.curl!, 0.5)} | ${pct(parts.streak!, 0.5)} | ${pct(dists, 0.25)} / ${pct(dists, 0.5)} | ${zeros} |`);
+    rows.push(`| ${label} | ${pct(scores, 0.5)} (${pct(scores, 0.1)}–${pct(scores, 0.9)}) | ${pct(goals, 0.5)} | ${pct(parts.core!, 0.5)} | ${pct(parts.targets!, 0.5)} | ${pct(parts.curl!, 0.5)} | ${parts.bent!.length ? pct(parts.bent!, 0.5) : "–"} | ${pct(parts.streak!, 0.5)} | ${pct(dists, 0.25)} / ${pct(dists, 0.5)} | ${zeros} |`);
     console.error(`${label} done`);
   }
   console.log(`Top Bins bands (freekickRev ${REV}), ${N} ${RAW ? "plain room" : "dealt"} seeds from n = ${FROM}, placement full at ${FREEKICK_PLACE_FULL_CM} cm`);

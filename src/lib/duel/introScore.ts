@@ -130,10 +130,10 @@ function introScoreTemplates(): Record<PuzzleType, string> {
     mahjong: "Pairs 150, no shuffles 20, a fast clear 30; a Shuffle costs 5. Up to {max}.",
     minigolf: "Holes 120, few putts 40, birdies 20, speed 20: up to {max}.",
     pool: "Your set 140 (full at 5), black 10, pots in a row 30, speed 20; fouls −10. Up to {max}.",
-    curling: "Stones near the button 120, takeouts 30, the 4-foot 30, holding shot 20: {max}.",
+    curling: "Stones nearer than the reds 150, takeouts 20, the 4-foot 20, shot stone 10: {max}.",
     pinball: "Table points, plus J-O-U-L-Z sets, multiball, jackpots and ramp combos. Up to {max}.",
     homerun: "Distance not caught, home runs, lit signs and your perfect streak. Up to {max}.",
-    freekick: "Goals away from the keeper, targets, curls round the wall and five in a row. Up to {max}.",
+    freekick: "Goals, targets, curls round the wall, a bonus for bent goals, five in a row. Up to {max}.",
     racing: "Pace (your average speed) 160, clean sectors 40 (5 each). Together {max}.",
     // Cards & Board (the arcade scoring standard from their first revision).
     freecell: `Cards 140 (full at ${FC_CORE_UNITS_V3} units); finished: few moves 30, speed 30. Together {max}.`,

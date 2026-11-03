@@ -15,10 +15,15 @@
  * curlRev 3 (1 Nov 2026): the same search on curlRev 3's gentler weight line (`rev` on simThrow and searchThrows; the
  * weight band and steps are scaled so the speeds searched match curlRev 2's, WEIGHTS_FOR).
  *
+ * curlRev 4 (3 Nov 2026): three red stones a sheet, and a throw only counts when it comes to rest nearer the button
+ * than every red in the house (curlCounts): the search's cost adds a stone's worth for one that does not count, and a
+ * plan's button throws must count.
+ *
  * Used by scripts/curling-bank.ts, the skill-band bot and the checks.
  */
 import type { ArcadeInputEvent } from "../src/lib/arcade/engine";
 import {
+  curlCounts,
   curlDist,
   curlingGameFor,
   curlInHouse,
@@ -107,6 +112,8 @@ export interface Candidate {
   /** The thrown stone's distance from the button (cm; Infinity when out of play). */
   d: number;
   theirs: number;
+  /** curlRev 4: whether the stone counts (nearer the button than every red in the house); always true before. */
+  counts: boolean;
   after: Sheet;
 }
 
@@ -114,10 +121,12 @@ function judge(sheet: Sheet, t: Throw, rev = 1): Candidate {
   const r = simThrow(sheet, t, undefined, rev);
   const i = r.active;
   const d = r.live[i] ? curlDist(r.x[i]!, r.y[i]!) / CU : Infinity;
-  return { t, d, theirs: theirsIn(r), after: { x: r.x, y: r.y, team: r.team, live: r.live } };
+  const counts = rev < 4 || (r.live[i] === 1 && curlCounts(r, i));
+  return { t, d, theirs: theirsIn(r), counts, after: { x: r.x, y: r.y, team: r.team, live: r.live } };
 }
 
-const cost = (c: Candidate) => (Number.isFinite(c.d) ? c.d : 400) + 60 * c.theirs;
+/** A throw's cost (lower is better); curlRev 4 adds a stone's worth for one that does not count. */
+const cost = (c: Candidate) => (Number.isFinite(c.d) ? c.d : 400) + 60 * c.theirs + (c.counts ? 0 : 150);
 
 /**
  * Throws from a sheet, best first: a coarse sweep (broom x every 3 cm, both turns, weight every 8), then the best
@@ -151,7 +160,7 @@ export function searchThrows(sheet: Sheet, opts: { refine?: number; weights?: [n
   return out;
 }
 
-const onButton = (c: Candidate) => c.d <= ON_BUTTON - 0.5;
+const onButton = (c: Candidate) => c.d <= ON_BUTTON - 0.5 && c.counts;
 
 /**
  * Eight throws that each come to rest on the button, every opponent stone out of the house at the end and shot stone

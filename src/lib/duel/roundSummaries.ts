@@ -1281,7 +1281,11 @@ const poolSummary: SummaryBuilder = (result) => {
 const curlingSummary: SummaryBuilder = (result) => {
   const n = (key: string) => Number(result.extra?.[key] ?? 0);
   return {
-    summary: `${n("onButton")} on the button · ${n("inFourFoot")} in the 4-foot · ${n("takeouts")} of ${n("opponents")} taken out`,
+    // curlRev 4 stores how many stones counted (nearer than every red in the house).
+    summary:
+      result.extra?.["counted"] != null
+        ? `${n("onButton")} on the button · ${n("counted")} counted · ${n("takeouts")} of ${n("opponents")} taken out`
+        : `${n("onButton")} on the button · ${n("inFourFoot")} in the 4-foot · ${n("takeouts")} of ${n("opponents")} taken out`,
     detail: [
       partsLine(result, [["corePts", "Stones"], ["takeoutPts", "Takeouts"], ["ringPts", "Red ring"], ["holdPts", "Holding shot"]]),
     ],

@@ -48,7 +48,7 @@ freekick_net,freekick_net.mp3,freekick,goal,0.8,no,freekick.goal
 freekick_post,freekick_post.mp3,freekick,hits post or bar,0.6,no,freekick.post
 freekick_wall,freekick_wall.mp3,freekick,blocked by wall,0.3,no,freekick.wall
 freekick_save,freekick_save.mp3,freekick,keeper save,0.4,no,freekick.save
-freekick_whistle,freekick_whistle.mp3,freekick,before each kick,0.7,no,freekick.whistle
+freekick_whistle,freekick_whistle.mp3,freekick,before the first kick,0.7,no,freekick.whistle
 freekick_target,freekick_target.mp3,freekick,target hit,0.6,no,freekick.target
 music_racing,music_racing.mp3,racing,music bed,90,yes,music_racing
 racing_light,racing_light.mp3,racing,each start light,0.25,no,racing.light
