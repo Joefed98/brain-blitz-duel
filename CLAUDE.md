@@ -1354,7 +1354,7 @@ outside the repo.
   (measured by `measure.py`): the first wiring had cut the attack off several effects and left them 10–35 dB under the
   library, and four beds 4–7 dB over the library's. Effects now trim only digital silence (10 ms kept before the
   attack), levelled to the library median for their length (peaks ≤ -1 dBFS, a transparent fast limiter on the opening
-  spike; seven click-heavy ones stay 2–8 dB short rather than be squashed), loops to the library loops' median, beds to
+  spike; 14 click-heavy ones stay 1.5–8 dB short rather than be squashed), loops to the library loops' median, beds to
   -18.45 LUFS (the three that end on a fade cut to loop on a matching bar), voices to -23.8 LUFS; manifest `ms` updated.
   sound-nov-2026-check (~17 s) proves the formats and lengths, plays each game's skill-band bots through its real sound
   observer (every new slot fires, counted moments match the sim's counters), the beds loop and the voices play.
