@@ -117,7 +117,7 @@ section("New rounds are swingRev 8 on rev 7's curve");
 {
   // Taller worlds batch 3 (16 Oct 2026) moved rooms on to swingRev 9 (rev 8 in a taller cavern); arcade-tuning-g3-check covers it.
   // Grappler's 200 expansion (26 Oct 2026) moved rooms on to swingRev 13 (swing-x200-check).
-  ok(playRevOf("swing", generateSwing().swingRev) === SWING_REV_SPREAD + 8 && SWING_REV_SPREAD === 8, "new Grappler rounds are stamped swingRev 16 (the dark ledge runs, after rev 8, the taller cavern, the 200 expansion, the assault course and the swinging course)");
+  ok(playRevOf("swing", generateSwing().swingRev) === SWING_REV_SPREAD + 9 && SWING_REV_SPREAD === 8, "new Grappler rounds are stamped swingRev 17 (the sliding hooks, after rev 8, the taller cavern, the 200 expansion, the assault course, the swinging course and its dark ledge runs)");
   ok(puzzleUsesBands({ type: "swing", swingRev: SWING_REV_SPREAD }), "swingRev 8 scores on the bands");
   ok(v8 === swingSpreadGame && swingGameFor(SWING_REV_TUNEC) !== v8, "swingGameFor(8) is the spread game; rev 7 keeps its own");
   const seed = SWING_V4_BANK[0]!.seed;
@@ -283,7 +283,8 @@ section("Dragon label size; help text");
   const art = readFileSync("src/lib/arcade/swing.renderer.ts", "utf8");
   ok(/swingDragonLabelScale\(behind\)[\s\S]{0,700}strokeText\(`DRAGON \$\{behind\} m`/.test(art), "the label is sized by distance and outlined for contrast");
   const help = PUZZLE_INSTRUCTIONS.swing!;
-  ok(help.how.some((h) => /spread evenly/.test(`${h.action} ${h.detail}`)), "the help says the stars are spread evenly");
+  // Since swingRev 17 (3 Nov 2026, swing-slide-check) the live help has no stars to describe (rev 8's spread is proved above on its stamp).
+  ok(!help.how.some((h) => /stars/i.test(`${h.action} ${h.detail}`)), "the live help has no stars to spread (swingRev 17 has none)");
 }
 
 if (failures.length) {

@@ -153,7 +153,7 @@ section("New rounds carry the Tuning F stamps; runs on them replay unchanged");
   // bubbleRev 9 (26 Oct 2026) keeps bubbleRev 8's play with burst credit in the base units.
   // Grappler's 200 expansion (26 Oct 2026) moved Grappler on again (swingRev 13); swing-x200-check covers it. The assault
   // course (27 Oct 2026) moved it on to swingRev 14; swing-assault-check covers it. The swinging course (29 Oct 2026) to
-  // swingRev 15; swing-rework-check covers it. Its dark ledge runs (1 Nov 2026) to swingRev 16; swing-dark-check covers it.
+  // swingRev 15; swing-rework-check covers it. Its dark ledge runs (1 Nov 2026) to swingRev 16; swing-dark-check covers it. Its sliding hooks (3 Nov 2026) to swingRev 17; swing-slide-check.
   // The 200-point expansion (26 Oct 2026) moved Scrumper on to snipRev 11; snip-x200-check covers it.
   // x200 (26 Oct 2026) moved Jaywalk on to crossRev 9 (the expansion); cross-x200-check covers it. The arcade scoring
   // standard (29 Oct 2026) moved it on to crossRev 10; arcade-standard-check covers it.
@@ -161,7 +161,7 @@ section("New rounds carry the Tuning F stamps; runs on them replay unchanged");
   // sliceRev 10 (27 Oct 2026, Joe's phone notes) is sliceRev 9 with bigger onions and golden fruit; expansion-e5-check covers it.
   // The arcade scoring standard (29 Oct 2026) moved Coral Pop on to bubbleRev 11; bubble-standard-check covers it.
   // Six goals and six treasures (Nov 2026) moved Gemstone on from matchupRev 11 to 12; gemstone-rev12-check covers it.
-  const movedOn: Record<string, number> = { slice: SLICE_REV_BIG, bubble: BUB_REV_TORPEDO + 7, swing: SWING_REV_SPREAD + 8, matchup: 12, snip: SNIP_REV_EXPAND, cross: CROSS_REV_STD };
+  const movedOn: Record<string, number> = { slice: SLICE_REV_BIG, bubble: BUB_REV_TORPEDO + 7, swing: SWING_REV_SPREAD + 9, matchup: 12, snip: SNIP_REV_EXPAND, cross: CROSS_REV_STD };
   for (const [type, field, got, rev] of stamps) {
     if (!want(type)) continue;
     ok(got === (movedOn[type] ?? rev), `${type}: new rounds stamped ${movedOn[type] ?? rev} (got ${got})`);

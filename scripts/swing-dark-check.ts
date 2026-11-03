@@ -27,6 +27,10 @@
  *     demo held to rev 16, the renderer's dark from the sim's own rule.
  *  9. Building a course stays quick (RoundIntro builds it while the intro is up).
  *
+ * Since swingRev 17 (3 Nov 2026, the sliding hooks and the clean-swing streak; swing-slide-check) this check deals
+ * swingRev 16 through pinSwingPreSlide, and its live-revision assertions (LIVE_BANDS, the help's and intro's parts, the
+ * intro demo's gate) read rev 17's (the dark's help lines are kept and still asserted).
+ *
  *   bun scripts/swing-dark-check.ts          (CHECKS_FULL=1: more seeds in 3–5)
  *   bun scripts/swing-dark-check.ts --record (re-records the skill-band runs, about 10 minutes)
  */
@@ -68,11 +72,13 @@ import {
   SWING_V16_RUNS,
   SWING_V16_RUN_TICKS,
   SWING_V16_SQUEEZES,
+  SWING_REV_SLIDE,
+  SWING_V17_BAND_CURVE,
   type SwingState,
 } from "../src/lib/arcade/swing";
 import { bandPoints } from "../src/lib/arcade/scoreBands";
 import { LIVE_BANDS } from "../src/lib/arcade/liveBands";
-import { generateSwing } from "../src/lib/duel/arcade.server";
+import { generateSwing, pinSwingPreSlide } from "../src/lib/duel/arcade.server";
 import { INTRO_SCORE } from "../src/lib/duel/introScore";
 import { PUZZLE_INSTRUCTIONS } from "../src/lib/duel/instructions";
 import { roundMaxFor } from "../src/lib/duel/roundMax";
@@ -98,6 +104,8 @@ const hold = (a: number): Ev => ({ k: SWING_INPUT_HOLD, a, b: 0, c: 0, d: 0 });
 const reel: Ev = { k: SWING_INPUT_REEL, a: SWING_REEL_UP, b: 0, c: 0, d: 0 };
 const step = (s: SwingState, ev: Ev | null) => game.step(s, ev ? { ...ev, t: s.tick + 1 } : null) as SwingState;
 const seedsOf = (n: number) => Array.from({ length: n }, (_, i) => roomSeed(i));
+// Rooms deal swingRev 17 since 3 Nov 2026 (swing-slide-check); this check proves swingRev 16 as dealt before it.
+pinSwingPreSlide(true);
 
 /* 1. Old rounds replay exactly. */
 const LEGACY = "scripts/fixtures/swing-dark-legacy.json";
@@ -548,17 +556,19 @@ console.log(`witness: ${playSeeds.length} courses cleared through the dark by th
 /* 8. Display and text. */
 {
   ok(swingWorldWFor(SWING_REV_DARK) === 450 && swingWorldHFor(SWING_REV_DARK) === 844, "rev 16 plays in rev 13's 450 × 844 view");
-  ok(LIVE_BANDS.swing.rev === SWING_REV_DARK && LIVE_BANDS.swing.curve === SWING_V16_BAND_CURVE, "the help's numbers come from the revision rooms deal (swingRev 16)");
+  // LIVE_BANDS follows the revision rooms deal: swingRev 17 since 3 Nov 2026 (swing-slide-check), on its own line.
+  ok(LIVE_BANDS.swing.rev === SWING_REV_SLIDE && LIVE_BANDS.swing.curve === SWING_V17_BAND_CURVE && SWING_V16_BAND_CURVE.points[1] === 140, "the help's numbers come from the revision rooms deal (swingRev 17, after 16)");
   const help = PUZZLE_INSTRUCTIONS.swing!;
   const text = help.how.map((h) => `${h.action} ${h.detail}`).join(" ");
   ok(/Ledge runs are dark/.test(text) && /goes dark, hooks and all/.test(text) && /Land on a ledge to light the next part/.test(text) && /Hooks in the dark can't be grabbed/.test(text), "the help explains the dark ledge runs");
   ok(/The run lasts 90 seconds/.test(text) && /6 short ledge runs/.test(text) && /3 of them with a squeeze/.test(text), "the help says 90 seconds, six ledge runs and three squeezes");
   const intro = help.how.filter((h) => !h.helpOnly);
   ok(intro.length === 3 && intro.every((h) => `${h.action} ${h.detail}`.length <= 46) && help.goal.length <= 34, "the intro's goal and three lines fit");
-  ok(/^90 seconds\./.test(help.score) && /course 140 \+ par 30 \+ gates, gems and stars 30 = 200/.test(help.score) && /Up to 200/.test(help.score), `the help's SCORE text says 90 seconds and the parts totalling 200: "${help.score}"`);
-  ok(/^90 s\./.test(INTRO_SCORE.swing) && /\(140\)/.test(INTRO_SCORE.swing) && /pars \(30\)/.test(INTRO_SCORE.swing) && /up to 200/.test(INTRO_SCORE.swing), `the intro score line: "${INTRO_SCORE.swing}"`);
+  // (swingRev 17's parts since 3 Nov 2026: course 110 + par 40 + gates 10 + streak 40.)
+  ok(/^90 seconds\./.test(help.score) && /course 110 \+ par 40 \+ gates 10 \+ streak 40 = 200/.test(help.score) && /Up to 200/.test(help.score), `the help's SCORE text says 90 seconds and the parts totalling 200: "${help.score}"`);
+  ok(/^90 s\./.test(INTRO_SCORE.swing) && /\(110\)/.test(INTRO_SCORE.swing) && /pars \(40\)/.test(INTRO_SCORE.swing) && /up to 200/.test(INTRO_SCORE.swing), `the intro score line: "${INTRO_SCORE.swing}"`);
   const demo = readFileSync("src/lib/duel/introDemo.functions.ts", "utf8");
-  ok(/data\.type === "swing" && demo\?\.puzzle\.type === "swing" && demo\.puzzle\.swingRev !== SWING_REV_DARK\) return null/.test(demo), "Grappler's intro demo stays stopped until one is recorded on swingRev 16");
+  ok(/data\.type === "swing" && demo\?\.puzzle\.type === "swing" && demo\.puzzle\.swingRev !== SWING_REV_SLIDE\) return null/.test(demo), "Grappler's intro demo stays stopped until one is recorded on swingRev 17 (after 16)");
   const introSrc = readFileSync("src/components/duel/RoundIntro.tsx", "utf8");
   ok(/setTimeout\(\(\) => prepareSwingCourse\(seed, swingRev\)/.test(introSrc), "the round's intro builds the course ahead");
   const art = readFileSync("src/lib/arcade/swing.renderer.ts", "utf8");
