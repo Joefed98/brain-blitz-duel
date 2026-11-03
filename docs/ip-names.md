@@ -26,6 +26,12 @@ The boards, art and rules text are original (generated in the app; no puzzle col
 
 Both are working names; Joe may rename either (`src/lib/duel/gameNames.ts`; ids never change).
 
+## Changed 3 Nov 2026: Alley Roll is shown as Ringer (arcade)
+
+| Shown as | Id | Genre (generic description) | Name chosen to avoid | To check |
+| --- | --- | --- | --- | --- |
+| Ringer | `alleyroll` (unchanged) | funfair roll-ball alley game (Sports group; `alleyRollRev` 2) | "Skee-Ball" (a registered trade mark) and its cabinet look | "Ringer" (a common word; also a sports and fairground term) as a game name in classes 9 / 28 / 41. The art is our own, drawn in code: a funfair stall with a striped awning and bulbs, a polished lane, a stepped tower of raised cream cups, corner pockets and a gold cup that slides along a track (our own feature). Joe's reference photo of a commercial roll-ball app was used for mood only; nothing in it (layout, art, items, the ×3 ring, the HUD) was copied. Library sounds until Joe's recordings. |
+
 ## Added 1 Nov 2026: Ricochet back as the ninja wall-climb (arcade)
 
 | Shown as | Id | Genre (generic description) | Name chosen to avoid | To check |

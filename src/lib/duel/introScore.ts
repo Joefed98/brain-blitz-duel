@@ -1,7 +1,7 @@
 import { PS_CORE_FULL_V2 } from "@/lib/arcade/cards/pokerSquares";
 import { FC_CORE_UNITS_V4, FC_SPEED_FULL_S_V4 } from "@/lib/arcade/cards/freecell";
 import { BF_CORE_FULL } from "@/lib/arcade/blockfall";
-import { AR_CORE_FULL } from "@/lib/arcade/alleyroll";
+import { AR2_CORE_FULL } from "@/lib/arcade/alleyroll";
 import { NINJA_CORE_FULL_M } from "@/lib/arcade/ricochetNinja";
 import { MG_CORE_FULL } from "@/lib/arcade/cards/muggins";
 import { BULLSEYE_INNER_BULL_POINTS, BULLSEYE_RING_VALUES } from "@/lib/arcade/bullseye";
@@ -138,7 +138,7 @@ function introScoreTemplates(): Record<PuzzleType, string> {
     pokersquares: `Hand points 160 (full at ${PS_CORE_FULL_V2}); made hands 40 (4 a line). Together {max}.`,
     fivehands: "Five rows plus the column you pick, added up to {max}. Pair 15 … straight flush 50.",
     blockfall: `Lines 140 (full at ${BF_CORE_FULL}); multi-line clears 40; a low stack at the buzzer 20. Together {max}.`,
-    alleyroll: `Ring points 150 (full at ${AR_CORE_FULL}); 100 pockets 30; hot streak 20. Together {max}.`,
+    alleyroll: `Ring points 140 (full at ${AR2_CORE_FULL}); gold cup 30; roll streak 20; pockets 10. Total {max}.`,
     pyramid: "Cards 120; cleared 10 and speed 50; pyramid pairs 20 (2 each). Together {max}.",
     golfsol: "Cards 140; all cleared 20 and speed 20; runs of four 20 (4 each). Together {max}.",
     muggins: `Points 150 (full at ${MG_CORE_FULL}); hand cleared 20 and speed 20; big plays 10. Together {max}.`,

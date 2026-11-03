@@ -68,7 +68,7 @@ const ARENA_SCENE_NOTES: Record<(typeof ARENA_SCENE_GAMES)[number], string> = {
   pool: "the room round the table: a dark floor under the lamps' spill",
   curling: "the arena's dark above, the sheet's floor below and to the sides",
   blockfall: "the cabinet's dark navy glow runs on above, beside and below the well, settling to black",
-  alleyroll: "the alley's warm dark room runs on beside the lane and the scoreboard's wood above, settling darker below",
+  alleyroll: "the funfair alley's maroon walls run on beside the lane and the awning's fascia above, settling darker below",
   bastion: "the dusk sky, the field and the stone wall carried out to the sides, the wall settling darker below",
 };
 

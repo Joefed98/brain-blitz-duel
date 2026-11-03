@@ -102,7 +102,7 @@ replay exactly as before; standard-live-check grades every stored arcade run thr
 | Cue Ball (was Speed Pool) | `pool` | `poolRev` 3 (2 and 1 for stored rounds) | Sports | [pool.md](pool.md) |
 | Curl Champ (was Curling) | `curling` | `curlRev` 3 (1 and 2 for stored rounds) | Sports | [curling.md](curling.md) |
 | Blockfall | `blockfall` | `blockfallRev` 1 | Retro | [blockfall.md](blockfall.md) |
-| Alley Roll | `alleyroll` | `alleyRollRev` 1 | Sports | [alleyroll.md](alleyroll.md) |
+| Ringer (Alley Roll) | `alleyroll` | `alleyRollRev` 2 (rev 1 before 3 Nov 2026) | Sports | [alleyroll.md](alleyroll.md) |
 | Ricochet (the ninja wall-climb) | `ricochet` | `ricoRev` 2 (unstamped: the old shaft, never on the standard) | Action | [ricochet.md](ricochet.md) |
 
 The batches land one at a time on top of this; each adds its games' entries, pages and its summary section below.
@@ -384,6 +384,14 @@ Two new Arcade games, born on the standard at revision 1 (LIVE_BANDS marks them 
 Medians weak → flawless: Blockfall 21 / 40 / 91 / 137 / 174 / 200 / 200, Alley Roll 41 / 52 / 66 / 119 / 177 / 200 /
 200 (room seeds 0–59). Each page says why the core is full at the elite median (the near-perfect one left the top three
 levels level at 200).
+
+## Ringer (3 Nov 2026): Alley Roll redesigned, `alleyRollRev` 2
+
+Shown as Ringer (id `alleyroll`). A new board (a stepped tower of raised cups, corner pockets, a gold cup sliding on a
+seeded path), one swipe to roll, four parts: Ring points 140 (full at 550, the near-perfect median), Gold cup 30 (10 a
+hit, up to 3), Roll streak 20 (4 for each ball of 30+ after another, up to 5), Pocket hits 10 (5 each, up to 2) = 200.
+Medians weak → flawless (room seeds 0–59): 60 / 91 / 119 / 139 / 180 / 190 / 200 (rev 1: 41 / 52 / 66 / 119 / 177 / 200 /
+200). Rev 1's rounds replay and score as before. [alleyroll.md](alleyroll.md) has the rules and the bands.
 
 ## The 1 Nov 2026 tuning: Cue Ball, Free Cell, Five Hands
 
