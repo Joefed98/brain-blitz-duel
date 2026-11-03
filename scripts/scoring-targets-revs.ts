@@ -61,9 +61,11 @@ export const LIFT_REVS: Partial<Record<LiveBandGame, readonly [lift: number, pla
  * The arcade scoring standard's score-only revisions (29 Oct 2026, src/lib/arcade/arcadeStandard.ts): type → [the
  * revision, the revision whose play it keeps]. Roofbound flipRev 10 keeps flipRev 9's play, which is flipRev 8's. Meteor
  * snakeRev 12 (1 Nov 2026, gold stars count 2 towards the core, full at 20) keeps snakeRev 11's play, which is snakeRev 10's
- * (snake-rev12-check proves it).
+ * (snake-rev12-check proves it). Roofbound flipRev 11 (3 Nov 2026, no star pickups, the flow streak) keeps flipRev 8's course,
+ * hazards and moves (the runner's path, crashes and saves tick for tick); only the pickups and the scoring differ
+ * (flip-rev11-check proves it).
  */
-export const STD_REVS: Partial<Record<LiveBandGame, readonly [std: number, play: number]>> = { flip: [10, 8], snake: [12, 10] };
+export const STD_REVS: Partial<Record<LiveBandGame, readonly [std: number, play: number]>> = { flip: [11, 8], snake: [12, 10] };
 
 /**
  * The revision whose play a dealt revision keeps: the target and score-bands revisions map to the target's

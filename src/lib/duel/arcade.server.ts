@@ -2,7 +2,7 @@ import { NINJA_REV } from "@/lib/arcade/ricochetNinja";
 import { BASTION_REV_DEALT } from "@/lib/arcade/bastionTank";
 import { TEN_DROP_DEPTH_REV } from "@/lib/arcade/tenDrop";
 import { SLICE_REV_TARGET, SLICE_REV_STRICT, SLICE_REV_STANDARD } from "@/lib/arcade/slice";
-import { FLIP_REV_TARGET, FLIP_REV_STRICT, FLIP_REV_STD } from "@/lib/arcade/flip";
+import { FLIP_REV_TARGET, FLIP_REV_STRICT, FLIP_REV_FLOW } from "@/lib/arcade/flip";
 import { CROSS_REV_STD } from "@/lib/arcade/cross";
 import { INK_REV_STD } from "@/lib/arcade/inkBridge";
 import { SNAKE_REV_TARGET, SNAKE_REV_12 } from "@/lib/arcade/snake";
@@ -292,7 +292,9 @@ export function generateFlip(): FlipPuzzleData {
   // flipRev 9: flipRev 8's taller cave, features and sweet spots (expansion E7, docs/expansions/x200-flip.md), scored to 200
   // on the lifted curves (Joe's phone notes, 27 Oct 2026). flipRev 10 (29 Oct 2026): the same play on the arcade scoring
   // standard (time survived 150, gold stars 15, star trails 15, sweet landings 10, double flips 10; docs/arcade-standard/flip.md).
-  return { type: "flip", seed: arcadeSeed(), flipRev: FLIP_REV_STD };
+  // flipRev 11 (3 Nov 2026): no star pickups and the flow streak; clean time 100, perfect landings 60, double flips 20,
+  // flow streak 20 (docs/arcade-standard/flip.md "flipRev 11").
+  return { type: "flip", seed: arcadeSeed(), flipRev: FLIP_REV_FLOW };
 }
 
 export function generateJunction(): JunctionPuzzleData {

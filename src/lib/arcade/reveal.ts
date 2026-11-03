@@ -597,7 +597,18 @@ const BUILDERS: Record<string, Builder> = {
       outcome: done ? "finish" : ended(r, false),
     };
   },
-  flip: (r, s) => ({
+  flip: (r, s) => b(r, "flow") ? {
+    // flipRev 11 (3 Nov 2026): no stars; clean time, perfect landings, double flips and the longest flow streak.
+    axis: { value: Math.round(n(r, "survivedSeconds") * 10) / 10, max: 60, label: "Seconds survived" },
+    lines: [`${sec(n(r, "survivedSeconds"))} survived${n(r, "saves") > 0 ? ` · ${n(r, "saves")} saved` : ""} · best streak ${n(r, "streak")} → ${s}`],
+    tiles: [
+      { label: b(r, "survived") ? "Survived" : "Crashed at", value: b(r, "survived") ? "60 s" : sec(n(r, "survivedSeconds")) },
+      { label: "Perfect landings", value: `${n(r, "sweets")} / ${n(r, "sweetsTotal")}` },
+      { label: "Best streak", value: String(n(r, "streak")) },
+      { label: "Features", value: `+${n(r, "skill")}` },
+    ],
+    outcome: b(r, "survived") ? "finish" : "crash",
+  } : ({
     axis: { value: Math.round(n(r, "survivedSeconds") * 10) / 10, max: 60, label: "Seconds survived" },
     lines: n(r, "starsTotal") > 0
       ? [`${sec(n(r, "survivedSeconds"))} survived + ${n(r, "stars")} stars × 2 → ${s}`]

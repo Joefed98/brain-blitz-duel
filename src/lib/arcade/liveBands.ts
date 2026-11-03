@@ -12,7 +12,7 @@ import { bandCurve, bandHelp, type BandCurve, type BandHelpWords } from "./score
 import { roundMaxFor } from "../duel/roundMax";
 import { BT_REV_STD, BT_REV_STRICT, BT_V8_BAND_CURVE } from "./ballTrack";
 import { WAV_REV_STD, WAV_REV_STRICT, WAV_V12_BAND_CURVE } from "./wavefront";
-import { FLIP_REV_STD, FLIP_REV_STRICT, FLIP_V10_BAND_CURVE } from "./flip";
+import { FLIP_REV_FLOW, FLIP_REV_STRICT, FLIP_V11_BAND_CURVE } from "./flip";
 import { INK_REV_STD, INK_REV_STRICT, INK_V12_BAND_CURVE } from "./inkBridge";
 import { MATCHUP_REV_SIX, MATCHUP_REV_STRICT, MATCHUP_V12_BAND_CURVE } from "./matchup";
 import { BUB_REV_STD, BUB_REV_STRICT, BUB_V11_BAND_CURVE, BUB_V11_STD_SPEC } from "./bubble";
@@ -89,8 +89,9 @@ function stdCoreCurve(spec: StdSpec): BandCurve {
 export const LIVE_BANDS = {
   balltrack: { field: "btRev", rev: BT_REV_STD, curve: BT_V8_BAND_CURVE, strictRev: BT_REV_STRICT },
   wavefront: { field: "wavRev", rev: WAV_REV_STD, curve: WAV_V12_BAND_CURVE, strictRev: WAV_REV_STRICT },
-  // flipRev 10 (the arcade scoring standard): the core's straight line (half seconds survived → 150); features up to 50 more.
-  flip: { field: "flipRev", rev: FLIP_REV_STD, curve: FLIP_V10_BAND_CURVE, strictRev: FLIP_REV_STRICT },
+  // flipRev 11 (3 Nov 2026): the core's straight line (clean half seconds → 100; a saved crash costs 20 s); perfect landings,
+  // double flips and the flow streak up to 100 more. flipRev 10: half seconds survived → 150 (FLIP_V10_BAND_CURVE).
+  flip: { field: "flipRev", rev: FLIP_REV_FLOW, curve: FLIP_V11_BAND_CURVE, strictRev: FLIP_REV_STRICT },
   // inkRev 12 (the arcade scoring standard): levels on a straight line to 140; speed and the features add up to 60 more.
   inkbridge: { field: "inkRev", rev: INK_REV_STD, curve: INK_V12_BAND_CURVE, strictRev: INK_REV_STRICT },
   // matchupRev 12 (the arcade scoring standard, six goals and six treasures): the core's straight line (gems cleared, to

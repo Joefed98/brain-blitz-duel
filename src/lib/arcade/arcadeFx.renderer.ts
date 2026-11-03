@@ -338,6 +338,12 @@ export interface ArcadeFxEvent<S> {
   /** Scale the pop/banner text (1 = the kind's default size). */
   textScale?: number;
   /**
+   * A molten pop (Roofbound's PERFECT landing, 3 Nov 2026): bold neon orange text with a white-hot top, a soft
+   * orange glow and a few short drips running off its foot, gone in ARCADE_FX_MOLTEN_MS. Pops only; pair it with
+   * `textOnly` for no burst. Under reduced motion it neither rises nor drips; reduced effects drop the glow.
+   */
+  molten?: boolean;
+  /**
    * While this event's text is up, give the arena a slight pulsing glow round
    * its edges, alternating these colours. Edge only, never over the play area.
    */
@@ -417,6 +423,8 @@ export interface ArcadeFxSpec<S> {
 
 export const ARCADE_FX_MAX_PARTICLES = 40;
 export const ARCADE_FX_MAX_POPS = 4;
+/** A molten pop's life (ms): about 0.6 s. */
+export const ARCADE_FX_MOLTEN_MS = 600;
 export const ARCADE_FX_SHAKE_PX = 2;
 /** Light-burst budget per canvas and how long one burst lasts. */
 export const ARCADE_FX_MAX_LIGHTS = 14;
@@ -538,6 +546,9 @@ interface Pop {
   colour: string;
   banner: boolean;
   outline: string;
+  /** A molten pop (ArcadeFxEvent.molten) and its seed for the drips. */
+  molten?: boolean;
+  seed?: number;
 }
 
 interface Light {
@@ -743,11 +754,12 @@ function spawn<S>(
       x: banner ? spec.width / 2 : point.x,
       y: banner ? spec.height * (big ? 0.4 : 0.24) : point.y - 10,
       born: now,
-      life: t.popLife,
+      life: event.molten && !banner ? ARCADE_FX_MOLTEN_MS : t.popLife,
       size: t.popSize * (event.textScale ?? 1),
       colour: event.colour?.(state) ?? textColours?.fill ?? (big ? theme.highlight : colour),
       banner,
       outline: textColours?.outline ?? theme.outline,
+      ...(event.molten && !banner ? { molten: true, seed } : {}),
     });
     if (event.arenaGlow?.length) {
       m.arenaAt = now;
@@ -1459,6 +1471,13 @@ function paint<S>(
   ctx.textBaseline = "middle";
   ctx.lineJoin = "round";
   for (const pop of m.pops) {
+    if (pop.molten) {
+      drawMoltenPop(ctx, pop, now, still, clip, theme.font);
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.lineJoin = "round";
+      continue;
+    }
     const p = (now - pop.born) / pop.life;
     const rise = still ? 0 : pop.banner ? 0 : p * 18;
     const scale =
@@ -1494,6 +1513,61 @@ function paint<S>(
       ctx.fillStyle = pop.colour;
       ctx.fillText(pop.text, x, y);
     }
+  }
+  ctx.restore();
+}
+
+/** Molten text's colours: a white-hot top, neon orange, a deep ember foot; the outline and drips. */
+const MOLTEN = { hot: "#FFF2C2", neon: "#FF7A12", ember: "#E0360A", outline: "#2A0800", glow: "rgba(255,110,20,0.9)", drip: "#FF6A10" };
+
+/**
+ * A molten pop: bold neon orange text that looks hot enough to run (a white-hot top fading to an ember foot, a soft
+ * orange glow) with three short drips sliding off its foot, all gone within the pop's life (about 0.6 s). It rises a
+ * few pixels as it cools. Reduced motion: no rise and the drips held short and still; reduced effects: no glow.
+ */
+function drawMoltenPop(ctx: CanvasRenderingContext2D, pop: Pop, now: number, still: boolean, clip: { x: number; y: number; w: number; h: number }, font: string): void {
+  const p = Math.max(0, Math.min(1, (now - pop.born) / pop.life));
+  const size = Math.round(pop.size);
+  ctx.save();
+  ctx.font = `800 ${size}px ${font}`;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.lineJoin = "round";
+  const lw = Math.max(2, size / 6);
+  const half = ctx.measureText(pop.text).width / 2 + lw;
+  const halfH = size / 2 + lw + 6;
+  const rise = still ? 0 : p * 6;
+  const x = Math.min(Math.max(pop.x, clip.x + half), clip.x + clip.w - half);
+  const y = Math.min(Math.max(pop.y - rise, clip.y + halfH), clip.y + clip.h - halfH);
+  // Bright at once, cooling over the last 45 %.
+  ctx.globalAlpha = p < 0.55 ? 1 : Math.max(0, 1 - (p - 0.55) / 0.45);
+  const fill = ctx.createLinearGradient(0, y - size / 2, 0, y + size / 2);
+  fill.addColorStop(0, MOLTEN.hot);
+  fill.addColorStop(0.42, MOLTEN.neon);
+  fill.addColorStop(1, MOLTEN.ember);
+  ctx.lineWidth = lw;
+  ctx.strokeStyle = MOLTEN.outline;
+  ctx.strokeText(pop.text, x, y);
+  if (!arcadeReducedEffects()) {
+    ctx.shadowColor = MOLTEN.glow;
+    ctx.shadowBlur = size * (0.9 - 0.5 * p);
+  }
+  ctx.fillStyle = fill;
+  ctx.fillText(pop.text, x, y);
+  ctx.shadowBlur = 0;
+  // Drips: three thin runs off the text's foot at seeded places, each a stem and a bead, growing then fading.
+  const seed = pop.seed ?? 1;
+  const grow = still ? 0.35 : Math.min(1, p / 0.7);
+  ctx.fillStyle = MOLTEN.drip;
+  for (let i = 0; i < 3; i++) {
+    const dx = (hash(seed, i + 401) * 2 - 1) * (half - lw * 2);
+    const len = (3 + hash(seed, i + 503) * 5) * grow;
+    const w = Math.max(1.2, size / 10);
+    const top = y + size * 0.36;
+    ctx.fillRect(x + dx - w / 2, top, w, len);
+    ctx.beginPath();
+    ctx.arc(x + dx, top + len, w * 0.85, 0, Math.PI * 2);
+    ctx.fill();
   }
   ctx.restore();
 }

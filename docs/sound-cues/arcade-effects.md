@@ -231,7 +231,7 @@ Already sounded: crossing and its banner (`cross.crossed`), hops (`cross.hop`), 
 | `flip.checkpointPassed` | A checkpoint gate passed at 15, 30 or 45 s (flipRev 8) | CHECKPOINT banner; the gate's pennant and curtain turn gold | `done.goldPulse.mp3` (volume 0.85) | 0–3 | 600 ms |
 | `flip.crashSaved` | A crash saved by a checkpoint (flipRev 8) | SAVED! pop; the runner box flickers gold for a second | `done.glowSweep.mp3` | 0–3 | 600 ms |
 | `flip.speedZone` | Into a speed zone (flipRev 8) | SPEED ZONE! banner; warm air and streaks between the zone's gates | `hover.zone.mp3` (volume 0.8) | 0–2 | 528 ms |
-| `flip.sweetLanding` | A flip landed with the runner's centre on a roof's sweet spot (flipRev 8) | SWEET! pop at the runner; a glint runs along the strip | `sfx_spark_chime.mp3` (shared recording, volume 0.6) | 0–8 | 600 ms |
+| `flip.sweetLanding` | A flip landed with the runner's centre on a roof's sweet spot (flipRev 8) | a small molten PERFECT at the runner (neon orange, dripping, ~0.6 s; no burst; since 3 Nov 2026, every flipRev 8+ round); the strip glows orange and cools | `sfx_spark_chime.mp3` (shared recording, volume 0.6) | 0–8 | 600 ms |
 | `flip.speedUp` | Every third speed step (9, 18, 27, 36 and 45 s; the tunnel still speeds up every 3 s, sound batch 4) | The scroll speeds up | `speed.up.mp3` · own file `flip.tunnelRush.mp3` (sound batch 4, volume 0.6) | 5 | 390 ms |
 
 Already sounded: gravity flip (`flip.flip`), crash into the pool (`flip.crash`).
