@@ -68,8 +68,9 @@ export function PuzzleInstructions({ type, overlay = false, beforeScore }: Puzzl
  * The intro's SCORE as a short list (3 Nov 2026): the same text, one sentence a row. Splits after a full stop
  * followed by a space and a capital or digit, so decimals ("2.5 s") and abbreviations stay whole.
  */
-export function scoreParts(text: string): string[] {
-  return text
+export function scoreParts(text: string | undefined): string[] {
+  // A deleted game (removedGames.ts) has no INTRO_SCORE entry: no Score lines, as main drew none.
+  return (text ?? "")
     .split(/(?<=[.!])\s+(?=[A-Z0-9])/)
     .map((part) => part.trim())
     .filter(Boolean);
