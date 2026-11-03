@@ -38,17 +38,17 @@ import { SWING_REV_SLIDE, SWING_REV_STRICT, SWING_V17_BAND_CURVE } from "./swing
 import { BULLSEYE_REV_STD, BULLSEYE_REV_STRICT, BULLSEYE_STD_SPEC, BULLSEYE_V9_BAND_CURVE } from "./bullseye";
 import { PIN_REV_STD, PIN_STD_SPEC, PIN_V6_BAND_CURVE } from "./pinball4";
 import { PIN_REV_STRICT } from "./pinball";
-import { BASTION_REV_DEALT, BASTION_STD_SPEC, BASTION_V2_BAND_CURVE } from "./bastionTank";
-import { HOMERUN_REV_DEALT, HOMERUN_STD_SPEC_DEALT, HOMERUN_V3_BAND_CURVE } from "./homerun";
+import { BASTION_REV_DEALT, BASTION_STD_SPEC_V3, BASTION_V3_BAND_CURVE } from "./bastionTank";
+import { HOMERUN_REV_DEALT, HOMERUN_STD_SPEC_DEALT, HOMERUN_V4_BAND_CURVE } from "./homerun";
 import { FREEKICK_REV_DEALT, FREEKICK_V3_STD_SPEC, FREEKICK_V3_BAND_CURVE } from "./freekick";
-import { RACING_REV_DEALT, RACING_V2_BAND_CURVE, RACING_V2_STD_SPEC } from "./racing";
+import { RACING_REV_DEALT, RACING_V3_BAND_CURVE, RACING_V3_STD_SPEC } from "./racing";
 import { FC_REV, FC_STD_SPEC, FC_V3_BAND_CURVE } from "./cards/freecell";
 import { TP_REV, TP_STD_SPEC, TP_V1_BAND_CURVE } from "./cards/tripeaks";
 import { PS_REV, PS_STD_SPEC, PS_V2_BAND_CURVE } from "./cards/pokerSquares";
 import { FH_REV, FH_STD_SPEC, FH_V2_BAND_CURVE } from "./cards/fiveHands";
-import { BLOCKFALL_REV, BF_STD_SPEC, BF_V1_BAND_CURVE } from "./blockfall";
+import { BLOCKFALL_REV_ZONE, BF_ZONE_STD_SPEC, BF_V2_BAND_CURVE } from "./blockfall";
 import { ALLEYROLL_REV_DEALT, AR2_STD_SPEC, AR_V2_BAND_CURVE } from "./alleyroll";
-import { NINJA_REV, NINJA_STD_SPEC, NINJA_V2_BAND_CURVE } from "./ricochetNinja";
+import { MOON_REV, MOON_STD_SPEC, MOON_V3_BAND_CURVE } from "./ricochetNinja";
 import { PY_REV, PY_STD_SPEC, PY_V1_BAND_CURVE } from "./cards/pyramid";
 import { GS_REV, GS_STD_SPEC, GS_V1_BAND_CURVE } from "./cards/golfSol";
 import { MG_REV, MG_STD_SPEC, MG_V1_BAND_CURVE } from "./cards/muggins";
@@ -139,9 +139,9 @@ export const LIVE_BANDS = {
   mahjong: { field: "mahjongRev", rev: MAHJONG_REV_DEALT, curve: MAHJONG_V1_BAND_CURVE, std: MAHJONG_STD_SPEC, born: true },
   // The Sports group (30 Oct 2026), born on the arcade scoring standard (rev 1; no earlier band revision).
   // Home Run deals homerunRev 3 since 1 Nov 2026 (the swing choice and the pitcher's tell; core full at 460 ft a pitch).
-  homerun: { field: "homerunRev", rev: HOMERUN_REV_DEALT, curve: HOMERUN_V3_BAND_CURVE, std: HOMERUN_STD_SPEC_DEALT, born: true },
+  homerun: { field: "homerunRev", rev: HOMERUN_REV_DEALT, curve: HOMERUN_V4_BAND_CURVE, std: HOMERUN_STD_SPEC_DEALT, born: true },
   freekick: { field: "freekickRev", rev: FREEKICK_REV_DEALT, curve: FREEKICK_V3_BAND_CURVE, std: FREEKICK_V3_STD_SPEC, born: true },
-  racing: { field: "racingRev", rev: RACING_REV_DEALT, curve: RACING_V2_BAND_CURVE, std: RACING_V2_STD_SPEC, born: true },
+  racing: { field: "racingRev", rev: RACING_REV_DEALT, curve: RACING_V3_BAND_CURVE, std: RACING_V3_STD_SPEC, born: true },
   // Cards & Board (30 Oct 2026): born on the arcade scoring standard at revision 1.
   // freecellRev 3 (1 Nov 2026): the core full at FC_CORE_UNITS_V3 units instead of all 52 home.
   freecell: { field: "freecellRev", rev: FC_REV, curve: FC_V3_BAND_CURVE, std: FC_STD_SPEC, born: true },
@@ -152,7 +152,8 @@ export const LIVE_BANDS = {
   // fiveHandsRev 2 (1 Nov 2026): the steep hand table, hand points alone to 200.
   fivehands: { field: "fiveHandsRev", rev: FH_REV, curve: FH_V2_BAND_CURVE, std: FH_STD_SPEC, born: true },
   // Ricochet (1 Nov 2026): the ninja wall-climb, born on the arcade scoring standard at ricoRev 2 (the old shaft never had a band revision).
-  ricochet: { field: "ricoRev", rev: NINJA_REV, curve: NINJA_V2_BAND_CURVE, std: NINJA_STD_SPEC, born: true },
+  // Moon Climb (ricoRev 3, 3 Nov 2026): the live stamp, its own parts (height, flow, lantern rides, scrolls).
+  ricochet: { field: "ricoRev", rev: MOON_REV, curve: MOON_V3_BAND_CURVE, std: MOON_STD_SPEC, born: true },
   // Pyramid, Golf Solitaire and Muggins (1 Nov 2026): born on the arcade scoring standard.
   pyramid: { field: "pyramidRev", rev: PY_REV, curve: PY_V1_BAND_CURVE, std: PY_STD_SPEC, born: true },
   golfsol: { field: "golfSolRev", rev: GS_REV, curve: GS_V1_BAND_CURVE, std: GS_STD_SPEC, born: true },
@@ -162,12 +163,13 @@ export const LIVE_BANDS = {
   pool: { field: "poolRev", rev: POOL_REV, curve: stdCoreCurve(POOL_STD_SPEC), std: POOL_STD_SPEC, born: true },
   curling: { field: "curlRev", rev: CURLING_REV, curve: stdCoreCurve(CURLING_STD_SPEC), std: CURLING_STD_SPEC, born: true },
   // Blockfall (Retro) and Alley Roll (Sports), 1 Nov 2026: born on the arcade scoring standard at revision 1.
-  blockfall: { field: "blockfallRev", rev: BLOCKFALL_REV, curve: BF_V1_BAND_CURVE, std: BF_STD_SPEC, born: true },
+  // Blockzone (blockfallRev 2, 3 Nov 2026): 90 s, no hold, its own parts (lines, pieces, multi-line clears, low stack).
+  blockfall: { field: "blockfallRev", rev: BLOCKFALL_REV_ZONE, curve: BF_V2_BAND_CURVE, std: BF_ZONE_STD_SPEC, born: true },
   // Ringer (alleyRollRev 2, 3 Nov 2026): the cup stack and the gold cup, four parts.
   alleyroll: { field: "alleyRollRev", rev: ALLEYROLL_REV_DEALT, curve: AR_V2_BAND_CURVE, std: AR2_STD_SPEC, born: true },
-  // Bastion bastionRev 2 (1 Nov 2026): the tank-defence shooter, born on the arcade scoring standard (the original
-  // Bastion, unstamped, never had a score band).
-  bastion: { field: "bastionRev", rev: BASTION_REV_DEALT, curve: BASTION_V2_BAND_CURVE, std: BASTION_STD_SPEC, born: true },
+  // Iron Wall (id bastion) bastionRev 3 (3 Nov 2026: eased waves 4–5, a 90 ms green zone, the drones); the tank-defence
+  // shooter was born on the arcade scoring standard at bastionRev 2 (the original Bastion, unstamped, never had a score band).
+  bastion: { field: "bastionRev", rev: BASTION_REV_DEALT, curve: BASTION_V3_BAND_CURVE, std: BASTION_STD_SPEC_V3, born: true },
 } as const satisfies Record<string, LiveBand>;
 
 export type LiveBandGame = keyof typeof LIVE_BANDS;

@@ -8,7 +8,7 @@ import { isBastionTank, replayBastionRun, replayBastionTankRun } from "../src/li
 import type { PuzzleData } from "../src/lib/duel/types";
 import { clashVariantOf } from "../src/lib/arcade/colourClash";
 import { replayHoverRun } from "../src/lib/duel/hover";
-import { isNinjaRev, replayNinjaRun, replayRicoRun } from "../src/lib/duel/ricochet";
+import { isMoonRev, isNinjaRev, replayMoonRun, replayNinjaRun, replayRicoRun } from "../src/lib/duel/ricochet";
 import { replaySkylineRun } from "../src/lib/duel/skyline";
 import { replayBinTossRun } from "../src/lib/duel/binToss";
 import { replayBullseyeRun } from "../src/lib/duel/bullseye";
@@ -72,9 +72,9 @@ const TABLE: Record<string, (p: any, a: string) => ServerReplay> = {
   pokersquares: (p, a) => replayPokerSquaresRun(p.seed, a, p.pokerSquaresRev),
   fivehands: (p, a) => replayFiveHandsRun(p.seed, a, p.fiveHandsRev),
   // Ricochet: the ninja wall-climb on ricoRev 2, else the original shaft.
-  ricochet: (p, a) => (isNinjaRev(p.ricoRev) ? replayNinjaRun(p.seed, a) : replayRicoRun(p.seed, a)),
+  ricochet: (p, a) => (isMoonRev(p.ricoRev) ? replayMoonRun(p.seed, a) : isNinjaRev(p.ricoRev) ? replayNinjaRun(p.seed, a) : replayRicoRun(p.seed, a)),
   // Bastion: bastionRev 2's tank game; the original turret for unstamped rounds.
-  bastion: (p, a) => (isBastionTank(p.bastionRev) ? replayBastionTankRun(p.seed, a) : replayBastionRun(p.seed, a)),
+  bastion: (p, a) => (isBastionTank(p.bastionRev) ? replayBastionTankRun(p.seed, a, p.bastionRev) : replayBastionRun(p.seed, a)),
   pyramid: (p, a) => replayPyramidRun(p.seed, a, p.pyramidRev),
   golfsol: (p, a) => replayGolfSolRun(p.seed, a, p.golfSolRev),
   muggins: (p, a) => replayMugginsRun(p.seed, a, p.mugginsRev),

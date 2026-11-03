@@ -96,9 +96,9 @@ import { freecellArt, FC_WORLD_H, FC_WORLD_W } from "./cards/freecell.renderer";
 import { tripeaksArt, TP_WORLD_H, TP_WORLD_W } from "./cards/tripeaks.renderer";
 import { pokerSquaresArt, PS_WORLD_H, PS_WORLD_W } from "./cards/pokerSquares.renderer";
 import { fiveHandsArt, FH_WORLD_H, FH_WORLD_W } from "./cards/fiveHands.renderer";
-import { isNinjaRev, replayNinjaRun, replayRicoRun } from "@/lib/duel/ricochet";
+import { isMoonRev, isNinjaRev, replayMoonRun, replayNinjaRun, replayRicoRun } from "@/lib/duel/ricochet";
 import { NINJA_WORLD_H, NINJA_WORLD_W } from "./ricochetNinja";
-import { ninjaArtGame, ninjaDrawPoint, NINJA_RED } from "./ricochetNinja.renderer";
+import { moonArtGame, ninjaArtGame, ninjaDrawPoint, NINJA_RED } from "./ricochetNinja.renderer";
 import { ricoGame, RICO_WORLD_H, RICO_WORLD_W } from "./ricochet";
 import { pyramidArt, PY_WORLD_H, PY_WORLD_W } from "./cards/pyramid.renderer";
 import { golfSolArt, GS_WORLD_H, GS_WORLD_W } from "./cards/golfSol.renderer";
@@ -211,7 +211,7 @@ const BASTION_REVEAL: ArcadeRevealRenderer = {
   worldH: BT2_WORLD_H,
   heightFor: (p) => (bastionTankRound(p) ? BT2_WORLD_H : BAS_WORLD_H),
   drawFinal: (ctx, puzzle, answer) => {
-    if (bastionTankRound(puzzle)) bastionTankArtGame.draw(ctx, replayBastionTankRun(seedOf(puzzle), answer).state, { width: BT2_WORLD_W, height: BT2_WORLD_H });
+    if (bastionTankRound(puzzle)) bastionTankArtGame.draw(ctx, replayBastionTankRun(seedOf(puzzle), answer, puzzle.type === "bastion" ? puzzle.bastionRev : undefined).state, { width: BT2_WORLD_W, height: BT2_WORLD_H });
     else bastionGame.draw(ctx, replayBastionRun(seedOf(puzzle), answer).state, { width: BAS_WORLD_W, height: BAS_WORLD_H });
     return null;
   },
@@ -227,13 +227,18 @@ export const ARCADE_REVEAL_RENDERERS: Record<string, ArcadeRevealRenderer> = {
   freecell: simple(GOLD, FC_WORLD_W, FC_WORLD_H, freecellArt, (p, a) => replayFreecellRun(seedOf(p), a, p.type === "freecell" ? p.freecellRev : undefined)),
   tripeaks: simple(GOLD, TP_WORLD_W, TP_WORLD_H, tripeaksArt, (p, a) => replayTripeaksRun(seedOf(p), a)),
   pokersquares: simple(GOLD, PS_WORLD_W, PS_WORLD_H, pokerSquaresArt, (p, a) => replayPokerSquaresRun(seedOf(p), a, p.type === "pokersquares" ? p.pokerSquaresRev : undefined)),
-  // Ricochet: the ninja wall-climb's final frame (ricoRev 2); an unstamped round draws the original shaft.
+  // Ricochet: Moon Climb's (ricoRev 3) or the ninja wall-climb's (ricoRev 2) final frame; an unstamped round draws the original shaft.
   ricochet: {
     accent: NINJA_RED,
     worldW: NINJA_WORLD_W,
     worldH: NINJA_WORLD_H,
     heightFor: (p) => (p.type === "ricochet" && isNinjaRev(p.ricoRev) ? NINJA_WORLD_H : RICO_WORLD_H),
     drawFinal: (ctx, puzzle, answer) => {
+      if (puzzle.type === "ricochet" && isMoonRev(puzzle.ricoRev)) {
+        const { state } = replayMoonRun(seedOf(puzzle), answer);
+        moonArtGame.draw(ctx, state, { width: NINJA_WORLD_W, height: NINJA_WORLD_H });
+        return ninjaDrawPoint(state);
+      }
       if (puzzle.type === "ricochet" && isNinjaRev(puzzle.ricoRev)) {
         const { state } = replayNinjaRun(seedOf(puzzle), answer);
         ninjaArtGame.draw(ctx, state, { width: NINJA_WORLD_W, height: NINJA_WORLD_H });

@@ -25,7 +25,9 @@ import {
   POOL_H,
   POOL_INPUT_SHOT,
   POOL_REV,
-  POOL_RUN_TICKS,
+  POOL_RUN_TICKS_V4,
+  poolSetName,
+  POOL_SET_SPOTS,
   POOL_SPIN_SAFE,
   POOL_W,
   type PoolState,
@@ -437,7 +439,8 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   return (
     <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-start gap-2 overflow-y-auto">
       <p className="whitespace-normal break-words text-center font-mono text-base font-bold text-foreground">
-        {result.spots} of 7 spots{result.black ? " · black down" : result.blackEarly ? " · black too soon" : ""}
+        {result.spots} of 7 {result.state.rev >= 4 ? poolSetName(result.state.set ?? POOL_SET_SPOTS) : "spots"}
+        {result.black ? " · black down" : result.blackEarly ? " · black too soon" : ""}
       </p>
       {lines.map((line) => (
         <p key={line} className="shrink-0 text-center font-mono text-sm text-muted-foreground">
@@ -454,7 +457,8 @@ export const poolPuzzle: PuzzleDefinition = {
   key: "pool",
   name: gameDisplayName("pool"),
   category: "arcade",
-  timeLimitMs: (POOL_RUN_TICKS / 60) * 1000 + 3000,
+  // poolRev 4 runs 90 s (rooms deal it); older stored rounds replay on the server from their logs at their own 120 s.
+  timeLimitMs: (POOL_RUN_TICKS_V4 / 60) * 1000 + 3000,
   revealMs: 6_000,
   generate: () => ({ type: "pool", seed: 1, poolRev: POOL_REV }) satisfies PoolPuzzleData,
   check: () => false,

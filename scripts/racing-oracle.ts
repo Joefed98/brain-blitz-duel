@@ -1,6 +1,7 @@
 /**
- * Apex's oracle (a perfect driver, racingRev 1 and 2): plays a seed to exactly 200 through the real sim when the seed
- * allows it (both laps, every sector clean, home before RACING_PAR_TICKS). scripts/racing-deal.ts keeps only the
+ * Apex's oracle (a perfect driver, racingRev 1, 2 and 3): plays a seed to exactly 200 through the real sim when the seed
+ * allows it (both laps, every sector clean, home before RACING_PAR_TICKS; on racingRev 3 at an average speed at or above
+ * RACING_V3_PACE_FULL). racingRev 3 drives exactly as racingRev 2 (the oracle never leaves the tarmac). scripts/racing-deal.ts keeps only the
  * seeds it proves through the server replay.
  *
  * The driver is a speed profile and a lateral controller: each segment's highest speed (`share` of the speed at which

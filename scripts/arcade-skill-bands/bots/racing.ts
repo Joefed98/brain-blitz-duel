@@ -9,6 +9,9 @@
  * racingRev 2 (31 Oct 2026): the controller's steer is the front wheels' steer; the thumb goes where the dead zone and
  * expo give it (racingStickFor), off by the aim error and held at the level's resolution, and the wheels follow at the
  * smoothing rate. The throttle goes down a reaction time after lights out (the oracle holds it through the lights).
+ *
+ * racingRev 3 (3 Nov 2026): driven exactly as racingRev 2. The bots do not read the corner speed signs (each level's
+ * corner judgement is its share of the limit, as before), so the bands measure the gravel and the pace score alone.
  */
 import { inputAt, recordInput, type ArcadeInputEvent } from "../../../src/lib/arcade/engine";
 import {

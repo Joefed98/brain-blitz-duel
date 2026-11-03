@@ -5,7 +5,7 @@
  * Each moment plays its own slot (`<gameId>.<event>`, docs/sound-cues/arcade.md)
  * once that slot has a file, else the shared sound it always played, unchanged.
  */
-import { bastionWave, BT2_WAVE_START, type BastionTankState } from "@/lib/arcade/bastionTank";
+import { bastionDronePos, bastionDrones, bastionWave, BASTION_REV_IRON, BT2_WAVE_START, type BastionTankState } from "@/lib/arcade/bastionTank";
 import { cueHasFile, ensureCueLoop, ensureSlotLoop, playCueSlot, playSlotOr, setCueLoopRate, stopCueLoop, stopSlotLoop } from "@/lib/sound";
 import { liveCue, momentFrame } from "@/lib/fx/momentCues";
 import { haptic, type HapticPattern } from "@/lib/haptics";
@@ -26,7 +26,7 @@ import { BURST_RADIUS, burstCeiling, burstFloorY, type BurstState } from "@/lib/
 import { BEAT_COMBO_TIERS, BEAT_FALL_TICKS, BEAT_JUDGE_PENDING, type BeatState } from "@/lib/arcade/beat";
 import { BINTOSS_AIM, BINTOSS_FLY, BINTOSS_NARROW_FROM, BINTOSS_THROWS, BINTOSS_WAIT, type BinTossState } from "@/lib/arcade/binToss";
 import type { TiltState } from "@/lib/arcade/tilt";
-import { homerunFence, homerunPlan, OUT_FAIR, OUT_FOUL, OUT_HOMER, OUT_TAKEN, OUT_WHIFF, type HomerunState } from "@/lib/arcade/homerun";
+import { homerunFence, homerunPlan, OUT_CAUGHT, OUT_FAIR, OUT_FOUL, OUT_HOMER, OUT_TAKEN, OUT_WHIFF, type HomerunState } from "@/lib/arcade/homerun";
 import { FK_AIM, FK_FLIGHT, FK_NET_Z, FK_OUT_GOAL, FK_OUT_SAVED, FK_OUT_WALL, FK_OUT_WIDE, type FreekickState } from "@/lib/arcade/freekick";
 import { RACING_CAR_HALF, RACING_LAP, RACING_ROAD_X, RACING_VMAX, racingBalanceSpeed, racingGoTick, racingLightsOn, racingSegAt, racingTrack, type RacingState } from "@/lib/arcade/racing";
 import { btEventCountdown, type BtCourse, type BtState } from "@/lib/arcade/ballTrack";
@@ -49,11 +49,11 @@ import { fcHomeCount, type FcState } from "@/lib/arcade/cards/freecell";
 import type { TpState } from "@/lib/arcade/cards/tripeaks";
 import { PS_LINES, psHand, psLineHand, psTotals, type PsState } from "@/lib/arcade/cards/pokerSquares";
 import { fhTotals, type FhState } from "@/lib/arcade/cards/fiveHands";
-import { MODE_CLING, MODE_FLIGHT, ninjaSurface, SURF_STONE, type NinjaState } from "@/lib/arcade/ricochetNinja";
+import { MODE_CLING, MODE_FLIGHT, MODE_RIDE, MOON_REV, ninjaSurface, SURF_STONE, type MoonState, type NinjaState } from "@/lib/arcade/ricochetNinja";
 import type { PyState } from "@/lib/arcade/cards/pyramid";
 import type { GsState } from "@/lib/arcade/cards/golfSol";
 import { MG_BIG_AT, type MgState } from "@/lib/arcade/cards/muggins";
-import { bfLevel, type BfState } from "@/lib/arcade/blockfall";
+import { bfLevelFor, type BfState } from "@/lib/arcade/blockfall";
 import { ALLEYROLL_REV_RINGER, AR2_GOLD_POINTS, AR2_STREAK_AT, AR_FLY, AR_POCKET_POINTS, AR_ROLL, AR_SHOW, AR_STREAK_AT, type ArState } from "@/lib/arcade/alleyroll";
 
 /** Sounds a success-effect cue with a file stands in for on this frame (momentCues.ts). */
@@ -1146,11 +1146,18 @@ export function curlingSounds(): GameSounds<CurlingState> {
 /* ============================ The Sports group (30 Oct 2026) ============================ */
 
 /** Home Run Derby: the crowd, each pitch, the swing, the crack of the bat, home runs (the organ and a roar), signs, fouls, whiffs and the mitt. */
+/** Iron Wall (bastionRev 3): is a drone in the sky (not yet downed)? */
+function bastionDroneUp(s: BastionTankState): boolean {
+  if (s.rev < BASTION_REV_IRON) return false;
+  return bastionDrones(s.seed).some((d, n) => !(s.droneMask & (1 << n)) && bastionDronePos(d, s.tick) !== null);
+}
+
 /**
- * Bastion (bastionRev 2): the cannon, a shell landing (a hull hit, a weak-spot hit, a tank destroyed, a miss), the
+ * Iron Wall (id bastion; bastionRev 2 and 3): the cannon, a shell landing (a hull hit, a weak-spot hit, a tank destroyed, a miss), the
  * reload (its start, a fast reload, a jam), a dry click, each wave rolling in and a base hit. Each slot falls back to
  * the shared sound until its own recording is set (docs/sound-cues/arcade.md "Bastion"). Haptics: a base hit only
- * (the buzzer's is the shared arcade one).
+ * (the buzzer's is the shared arcade one). bastionRev 3 adds the drone's quiet loop while one is in the sky
+ * (`bastion.drone`, silent until it has a file) and its fall (`bastion.droneDown`).
  */
 export function bastionTankSounds(): GameSounds<BastionTankState> {
   let prev: BastionTankState | null = null;
@@ -1167,7 +1174,8 @@ export function bastionTankSounds(): GameSounds<BastionTankState> {
         if (prev.reloadAt >= 0 && state.reloadAt < 0) sfx("bastion.loaded", "arc_latch", 0.5, 1.3);
         const fresh = state.impacts.filter((m) => m.t > prev!.tick);
         for (const m of fresh) {
-          if (m.r >= 3) sfx("bastion.kill", "arc_big_explode", 0.9);
+          if (m.r === 5) sfx("bastion.droneDown", "arc_retro_explode", 0.85);
+          else if (m.r >= 3) sfx("bastion.kill", "arc_big_explode", 0.9);
           else if (m.r === 2) sfx("bastion.weak", "arc_pickup", 0.8);
           else if (m.r === 1) sfx("bastion.hit", "arc_retro_hit", 0.8);
           else sfx("bastion.miss", "arc_fair_thud", 0.5);
@@ -1178,9 +1186,11 @@ export function bastionTankSounds(): GameSounds<BastionTankState> {
         }
         if (bastionWave(state) !== bastionWave(prev) || (prev.tick < BT2_WAVE_START[0] && state.tick >= BT2_WAVE_START[0])) sfx("bastion.wave", "arc_horn", 0.6);
       }
+      loopCue("bastion.drone", running && state.ended === 0 && bastionDroneUp(state));
       prev = state;
     },
     stop() {
+      loopCue("bastion.drone", false);
       prev = null;
     },
   };
@@ -1188,18 +1198,29 @@ export function bastionTankSounds(): GameSounds<BastionTankState> {
 
 export function homerunSounds(): GameSounds<HomerunState> {
   let prev: HomerunState | null = null;
+  /** homerunRev 4: the tick a caught ball reaches the glove (the art's flight), when the catch sounds. */
+  let catchAt = -1;
   return {
     frame(state, running) {
       beginFrame("homerun", state);
       loopCue("homerun.crowd", running, CROWD_VOLUME);
       if (prev && state.tick > prev.tick) {
-        const pitch = homerunPlan(state.seed).pitches[state.pitch];
+        const pitch = homerunPlan(state.seed, state.rev).pitches[state.pitch];
         if (pitch && prev.tick < pitch.release && state.tick >= pitch.release) effectCue("homerun.pitch");
         if (state.swingTick >= 0 && prev.swingTick < 0) sfx("homerun.swing", "arc_hover_tap", 0.5, 1.4);
+        if (catchAt > 0 && prev.tick < catchAt && state.tick >= catchAt) {
+          catchAt = -1;
+          sfx("homerun.catch", "arc_fair_thud", 0.8);
+        }
         if (state.hits.length > prev.hits.length) {
           const hit = state.hits[state.hits.length - 1]!;
           const weak = hit.out === OUT_FAIR && hit.q < HOMERUN_WEAK_Q && cueHasFile("homerun.foul");
-          if ((hit.out === OUT_HOMER || hit.out === OUT_FAIR) && !weak) sfx("homerun.crack", "arc_wood_knock", 1, hit.q >= 900 ? 1.15 : 1);
+          if ((hit.out === OUT_HOMER || hit.out === OUT_FAIR || hit.out === OUT_CAUGHT) && !weak) sfx("homerun.crack", "arc_wood_knock", 1, hit.q >= 900 ? 1.15 : 1);
+          // homerunRev 4: a fielder catches it (the glove's pop as it comes down) and the crowd groans.
+          if (hit.out === OUT_CAUGHT) {
+            catchAt = state.tick + Math.max(30, 60 + Math.round(hit.feet / 10) - 4);
+            effectCue("homerun.groan");
+          }
           if (hit.out === OUT_HOMER) {
             sfx("homerun.homer", "arc_fair_sting", 0.9);
             feel("success");
@@ -1218,6 +1239,7 @@ export function homerunSounds(): GameSounds<HomerunState> {
     stop() {
       loopCue("homerun.crowd", false);
       prev = null;
+      catchAt = -1;
     },
   };
 }
@@ -1496,38 +1518,46 @@ export function fiveHandsSounds(): GameSounds<FhState> {
 }
 
 /**
- * Ricochet (ricoRev 2, the ninja wall-climb): a leap, the double jump, a landing (on moss or ice, a slip), a coin,
- * a lantern, a scroll and a hit (with the impact haptic). New moments without a file of their own stay silent.
+ * Ricochet (ricoRev 2, the ninja wall-climb) and Moon Climb (ricoRev 3): a leap, the double jump, a landing (on moss
+ * or ice, a slip; on a mid-ledge, the ledge), a scroll and a hit (with the impact haptic). Rev 2: a coin and a gold
+ * lantern (library sounds; their slots were retired with Moon Climb). Rev 3: a sky lantern grabbed, its ride (a quiet
+ * loop) and each Flow step. Every slot plays a library sound until Joe's file is set.
  */
 export function ninjaSounds(): GameSounds<NinjaState> {
   let prev: NinjaState | null = null;
   return {
     frame(state, running) {
       beginFrame("ricochet", state);
-      void running;
+      const moon = state.rev === MOON_REV ? (state as MoonState) : null;
+      loopCue("ricochet.lanternRide", running && moon !== null && moon.mode === MODE_RIDE && moon.ended === 0);
       if (prev && state.tick > prev.tick) {
+        const was = prev as MoonState;
         if (state.hits > prev.hits) { sfx("ricochet.hit", "arc_crash"); feel("impact"); }
         else {
           if (state.leaps > prev.leaps) sfx("ricochet.leap", "arc_gravity_flip", 0.5);
           if (state.djs > prev.djs) sfx("ricochet.doubleJump", "arc_gravity_flip", 0.6, 1.25);
           if (prev.mode === MODE_FLIGHT && state.mode === MODE_CLING) {
-            if (ninjaSurface(state.tower.patches, state.wall, state.y >> 8) !== SURF_STONE) effectCue("ricochet.slip");
-            else effectCue("ricochet.land");
+            if (moon && moon.ledge >= 0) sfx("ricochet.ledge", "arc_retro_hit", 0.4);
+            else if (ninjaSurface(state.tower.patches, state.wall, state.y >> 8) !== SURF_STONE) sfx("ricochet.slip", "arc_retro_blip", 0.35, 0.8);
+            else sfx("ricochet.land", "arc_retro_hit", 0.3);
           }
+          if (moon && moon.rides > (was.rides ?? 0)) sfx("ricochet.lanternGrab", "arc_pickup", 0.8);
+          if (moon && moon.flow > (was.flow ?? 0)) sfx("ricochet.flow", "combo", 0.75);
         }
         if (state.scrolls > prev.scrolls) sfx("ricochet.scroll", "correct", 0.9);
-        else if (state.lanterns > prev.lanterns) sfx("ricochet.lantern", "combo", 0.85);
-        else if (state.coins > prev.coins) sfx("ricochet.coin", "arc_pickup", 0.8);
+        else if (state.lanterns > prev.lanterns) sfx("combo", "combo", 0.85);
+        else if (state.coins > prev.coins) sfx("arc_pickup", "arc_pickup", 0.8);
       }
       prev = state;
     },
-    stop: () => {},
+    stop: () => loopCue("ricochet.lanternRide", false),
   };
 }
 
 /**
- * Blockfall (1 Nov 2026; library sounds only, docs/sound-cues/arcade.md): a turn, a hold, a piece landing, a clear
- * (three or four rows at once the big one, with a haptic), the speed-up every 15 s and a top-out.
+ * Blockfall / Blockzone (1 Nov 2026; library sounds until Joe's files, docs/sound-cues/arcade.md): a move, a turn, a
+ * piece landing, a clear (three or four rows at once the big one, with a haptic), the speed-up every 15 s and a
+ * top-out (a hold on blockfallRev 1 plays the library note; Blockzone has none).
  */
 export function blockfallSounds(): GameSounds<BfState> {
   let prev: BfState | null = null;
@@ -1538,14 +1568,16 @@ export function blockfallSounds(): GameSounds<BfState> {
         const p = state.piece;
         const q = prev.piece;
         if (state.pieces === prev.pieces && state.held === prev.held && p.turn !== q.turn) sfx("blockfall.turn", "arc_retro_blip", 0.45);
-        if (state.held > prev.held) sfx("blockfall.hold", "arc_retro_note", 0.5);
+        else if (state.pieces === prev.pieces && state.held === prev.held && p.x !== q.x) sfx("blockfall.move", "arc_retro_blip", 0.3, 0.8);
+        // A held piece (blockfallRev 1 only; Blockzone has no hold): the library note.
+        if (state.held > prev.held) sfx("arc_retro_note", "arc_retro_note", 0.5);
         const cleared = state.lines - prev.lines;
         if (cleared >= 3) {
           sfx("blockfall.bigClear", "arc_retro_pickup", 0.9);
           feel("success");
         } else if (cleared > 0) sfx("blockfall.clear", "arc_retro_coin", 0.8);
         else if (state.pieces > prev.pieces) sfx("blockfall.lock", "arc_retro_hit", 0.45);
-        if (bfLevel(state.tick) > bfLevel(prev.tick)) sfx("blockfall.speedUp", "arc_retro_note", 0.6, 1.25);
+        if (bfLevelFor(state.tick, state.rev) > bfLevelFor(prev.tick, prev.rev)) sfx("blockfall.speedUp", "arc_retro_note", 0.6, 1.25);
         if (state.ended === 2 && prev.ended === 0) sfx("blockfall.topOut", "arc_retro_explode", 0.8);
       }
       prev = state;

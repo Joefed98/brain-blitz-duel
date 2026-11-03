@@ -16,22 +16,24 @@
  *   bun scripts/arcade-self-replay-check.ts [runsPerGame] [keys,…] [--part=k/n]
  */
 
-import { bastionTankCheckpoint, bastionTankGame, BT2_CHECKPOINT_INTERVAL } from "../src/lib/arcade/bastionTank";
+import { bastionIronGame, bastionTankCheckpoint, bastionTankGame, BT2_CHECKPOINT_INTERVAL } from "../src/lib/arcade/bastionTank";
 import { encodeBastionTankRun, replayBastionTankRun } from "../src/lib/duel/bastion";
-import { homerunCheckpoint, homerunGameFor, HOMERUN_CHECKPOINT_INTERVAL, HOMERUN_REV_2, HOMERUN_REV_3, HOMERUN_REV_STD } from "../src/lib/arcade/homerun";
+import { homerunCheckpoint, homerunGameFor, HOMERUN_CHECKPOINT_INTERVAL, HOMERUN_REV_2, HOMERUN_REV_3, HOMERUN_REV_4, HOMERUN_REV_STD } from "../src/lib/arcade/homerun";
 import { encodeHomerunRun, replayHomerunRun } from "../src/lib/duel/homerun";
 import { HOMERUN_DEAL } from "../src/lib/duel/homerunDeal.server";
 import { HOMERUN_DEAL_V2 } from "../src/lib/duel/homerunDealV2.server";
 import { HOMERUN_DEAL_V3 } from "../src/lib/duel/homerunDealV3.server";
+import { HOMERUN_DEAL_V4 } from "../src/lib/duel/homerunDealV4.server";
 import { freekickCheckpoint, freekickGameFor, FREEKICK_CHECKPOINT_INTERVAL, FREEKICK_REV_2, FREEKICK_REV_3, FREEKICK_REV_STD } from "../src/lib/arcade/freekick";
 import { encodeFreekickRun, replayFreekickRun } from "../src/lib/duel/freekick";
 import { FREEKICK_DEAL } from "../src/lib/duel/freekickDeal.server";
 import { FREEKICK_DEAL_V2 } from "../src/lib/duel/freekickDealV2.server";
 import { FREEKICK_DEAL_V3 } from "../src/lib/duel/freekickDealV3.server";
-import { racingCheckpoint, racingGameFor, RACING_CHECKPOINT_INTERVAL, RACING_REV_2, RACING_REV_STD } from "../src/lib/arcade/racing";
+import { racingCheckpoint, racingGameFor, RACING_CHECKPOINT_INTERVAL, RACING_REV_2, RACING_REV_3, RACING_REV_STD } from "../src/lib/arcade/racing";
 import { encodeRacingRun, replayRacingRun } from "../src/lib/duel/racing";
 import { RACING_DEAL } from "../src/lib/duel/racingDeal.server";
 import { RACING_DEAL_V2 } from "../src/lib/duel/racingDealV2.server";
+import { RACING_DEAL_V3 } from "../src/lib/duel/racingDealV3.server";
 import {
   inputAt,
   recordInput,
@@ -75,8 +77,8 @@ import { encodeDualRun, replayDualRun } from "@/lib/duel/dual";
 import { encodeHoverRun, replayHoverRun } from "@/lib/duel/hover";
 import { encodeMatchupRun, replayMatchupRun } from "@/lib/duel/matchup";
 import { encodeRallyRun, replayRallyRun } from "@/lib/duel/rally";
-import { encodeNinjaRun, encodeRicoRun, replayNinjaRun, replayRicoRun } from "@/lib/duel/ricochet";
-import { ninjaCheckpoint, ninjaGame, NINJA_CHECKPOINT_INTERVAL } from "@/lib/arcade/ricochetNinja";
+import { encodeMoonRun, encodeNinjaRun, encodeRicoRun, replayMoonRun, replayNinjaRun, replayRicoRun } from "@/lib/duel/ricochet";
+import { moonCheckpoint, moonGame, ninjaCheckpoint, ninjaGame, NINJA_CHECKPOINT_INTERVAL } from "@/lib/arcade/ricochetNinja";
 import { encodeSkylineRun, replaySkylineRun } from "@/lib/duel/skyline";
 import { encodeSliceRun, replaySliceRun } from "@/lib/duel/slice";
 import { encodeSnakeRun, replaySnakeRun } from "@/lib/duel/snake";
@@ -167,11 +169,12 @@ import { pyCheckpoint, pyramidGame } from "@/lib/arcade/cards/pyramid";
 import { gsCheckpoint, golfSolGame } from "@/lib/arcade/cards/golfSol";
 import { mgCheckpoint, mugginsGame } from "@/lib/arcade/cards/muggins";
 import { encodeGolfSolRun, encodeMugginsRun, encodePyramidRun, replayGolfSolRun, replayMugginsRun, replayPyramidRun } from "@/lib/duel/cards";
-import { bfCheckpoint, blockfallGame } from "@/lib/arcade/blockfall";
+import { bfCheckpoint, blockfallGame, blockzoneGame } from "@/lib/arcade/blockfall";
 import { arCheckpoint, alleyRollGame, ringerGame } from "@/lib/arcade/alleyroll";
 import { encodeBlockfallRun, replayBlockfallRun } from "@/lib/duel/blockfall";
 import { encodeAlleyRollRun, replayAlleyRollRun } from "@/lib/duel/alleyroll";
 import { BLOCKFALL_DEAL } from "@/lib/duel/blockfallDeal.server";
+import { BLOCKFALL_DEAL_V2 } from "@/lib/duel/blockfallDealV2.server";
 import { encodeFiveHandsRun, encodeFreecellRun, encodePokerSquaresRun, encodeTripeaksRun, replayFiveHandsRun, replayFreecellRun, replayPokerSquaresRun, replayTripeaksRun } from "@/lib/duel/cards";
 import { minigolfCheckpoint, minigolfGameFor } from "@/lib/arcade/minigolf";
 import { encodeMinigolfRun, replayMinigolfRun } from "@/lib/duel/minigolf";
@@ -181,6 +184,7 @@ import { encodePoolRun, replayPoolRun } from "@/lib/duel/pool";
 import { POOL_BANK } from "@/lib/duel/poolBank.server";
 import { POOL_BANK_V2 } from "@/lib/duel/poolBankV2.server";
 import { POOL_BANK_V3 } from "@/lib/duel/poolBankV3.server";
+import { POOL_BANK_V4 } from "@/lib/duel/poolBankV4.server";
 import { curlingCheckpoint, curlingGameFor, CURLING_REV } from "@/lib/arcade/curling";
 import { encodeCurlingRun, replayCurlingRun } from "@/lib/duel/curling";
 import { CURLING_BANK } from "@/lib/duel/curlingBank.server";
@@ -939,6 +943,19 @@ const GAMES: Game[] = [
   // Ringer (Alley Roll alleyRollRev 2, 3 Nov 2026: the cup stack and the seeded gold cup), appended so every earlier
   // entry keeps its index; the rev-1 entry above stays pinned to rev 1.
   { key: "alleyroll/ringer", game: ringerGame, checkpoint: arCheckpoint, mode: "events", rate: 40, encode: encodeAlleyRollRun, replay: (seed: number, raw: string) => replayAlleyRollRun(seed, raw, 2) },
+  // Apex racingRev 3 (3 Nov 2026: the softer gravel, corner speed signs, the pace score), appended at the end.
+  { key: "racing/v3", interval: RACING_CHECKPOINT_INTERVAL, game: racingGameFor(RACING_REV_3), checkpoint: racingCheckpoint, mode: "events", rate: 120, encode: encodeRacingRun, replay: (seed: number, raw: string) => replayRacingRun(seed, raw, RACING_REV_3), seedFor: (n: number) => RACING_DEAL_V3[n % RACING_DEAL_V3.length]! },
+  // Home Run homerunRev 4 (3 Nov 2026: a spot and a tap) and Cue Ball poolRev 4 (3 Nov 2026: a seeded set, 90 s), appended
+  // so every earlier entry keeps its index: random spots and taps; random shots on the poolRev 4 bank's layouts.
+  { key: "homerun/v4", interval: HOMERUN_CHECKPOINT_INTERVAL, game: homerunGameFor(HOMERUN_REV_4), checkpoint: homerunCheckpoint, mode: "events", rate: 20, encode: encodeHomerunRun, replay: (seed: number, raw: string) => replayHomerunRun(seed, raw, HOMERUN_REV_4), seedFor: (n: number) => HOMERUN_DEAL_V4[n % HOMERUN_DEAL_V4.length]! },
+  { key: "pool/v4", game: poolGameFor(4), seedFor: (n: number) => POOL_BANK_V4[n % POOL_BANK_V4.length]!, checkpoint: poolCheckpoint, mode: "events", rate: 40, encode: encodePoolRun, replay: (seed: number, raw: string) => replayPoolRun(seed, raw, 4) },
+  // Iron Wall bastionRev 3 (3 Nov 2026: eased waves 4–5, the 90 ms zone, the drones), appended at the end so every
+  // earlier entry keeps its index and stream.
+  { key: "bastion/v3", interval: BT2_CHECKPOINT_INTERVAL, game: bastionIronGame, checkpoint: bastionTankCheckpoint, mode: "events", rate: 30, encode: encodeBastionTankRun, replay: (seed: number, raw: string) => replayBastionTankRun(seed, raw, 3) },
+  // Moon Climb ricoRev 3 and Blockzone blockfallRev 2 (3 Nov 2026), appended so every earlier entry keeps its index:
+  // random taps (with leap-off directions) and random moves, turns, drops and soft drops.
+  { key: "ricochet/moon", interval: NINJA_CHECKPOINT_INTERVAL, game: moonGame, checkpoint: moonCheckpoint, mode: "events", rate: 30, encode: encodeMoonRun, replay: (seed: number, raw: string) => replayMoonRun(seed, raw) },
+  { key: "blockfall/zone", game: blockzoneGame, checkpoint: bfCheckpoint, mode: "events", rate: 120, encode: encodeBlockfallRun, replay: (seed: number, raw: string) => replayBlockfallRun(seed, raw, 2), seedFor: (n: number) => BLOCKFALL_DEAL_V2[n % BLOCKFALL_DEAL_V2.length]! },
   // Rainbow Bridge inkRev 13 (Nov 2026: clovers, ink par, more birds; failed drops never end the run), appended so every
   // earlier entry keeps its index. Eight seeds in turn, as ink/std.
   {
@@ -992,6 +1009,8 @@ const ENTRY_COST: Record<number, number> = {
   144: 3.9,
   // The 1 Nov 2026 tuning's Cue Ball poolRev 3 (pool/v3: 29.2 s at 40 runs locally).
   184: 29.2,
+  // Cue Ball poolRev 4 (3 Nov 2026, pool/v4: 17.0 s at 40 runs locally).
+  202: 17.0,
 };
 
 /** Entry indexes of group k of n (1-based): costliest first onto the lightest group, ties by index. */

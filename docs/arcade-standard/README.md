@@ -89,7 +89,7 @@ replay exactly as before; standard-live-check grades every stored arcade run thr
 | Summit | `tripeaks` | `tripeaksRev` 1 | Cards & Board | [tripeaks.md](tripeaks.md) |
 | Full House | `pokersquares` | `pokerSquaresRev` 2 | Cards & Board | [pokersquares.md](pokersquares.md) |
 | Five Hands | `fivehands` | `fiveHandsRev` 2 (1 for stored rounds) | Cards & Board | [fivehands.md](fivehands.md) |
-| Bastion | `bastion` | `bastionRev` 2 | Action | [bastion.md](bastion.md) |
+| Iron Wall (was Bastion) | `bastion` | `bastionRev` 3 (born on 2) | Action | [bastion.md](bastion.md) |
 | Pyramid | `pyramid` | `pyramidRev` 1 | Cards & Board | [pyramid.md](pyramid.md) |
 | Golf Solitaire | `golfsol` | `golfSolRev` 1 | Cards & Board | [golfsol.md](golfsol.md) |
 | Muggins | `muggins` | `mugginsRev` 1 | Cards & Board | [muggins.md](muggins.md) |

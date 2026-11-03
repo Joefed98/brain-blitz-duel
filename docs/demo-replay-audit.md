@@ -152,7 +152,7 @@ Replay columns describe the room's results-screen highlight and the podium's pla
 | Tempo (`beat`) | Arcade | No (stopped) | n/a: still | Arcade highlight | Yes: the stored run | Demo stopped until recorded on `beatRev 6`+ (tall). |
 | Tilt (`tilt`) | Arcade | Not confirmed | Yes | Arcade highlight | Yes: the stored run | |
 | Wavefront (`wavefront`) | Arcade | No (stopped) | n/a: still | Arcade highlight | Yes: the stored run | Demo stopped until recorded on `wavRev 6`+ (tall). |
-| Blockfall (`blockfall`) | Arcade | No (none yet) | n/a: still | Arcade highlight | Yes: the stored run | New 1 Nov 2026: on the later list for a demo recorded on `blockfallRev 1`; the intro shows its still. |
+| Blockzone (`blockfall`) | Arcade | No (none yet) | n/a: still | Arcade highlight | Yes: the stored run | New 1 Nov 2026; Blockzone (`blockfallRev 2`) since 3 Nov 2026: on the later list for a demo recorded on `blockfallRev 2`; the intro shows its still. |
 | Ringer (`alleyroll`; Alley Roll until 3 Nov 2026) | Arcade | No (none yet) | n/a: still | Arcade highlight | Yes: the stored run | New 1 Nov 2026: on the later list for a demo recorded on `alleyRollRev 1`; the intro shows its still. |
 
 "Yes" under *Demo at 414×896* means the player, box and layout pass `demo-intro-check` with a stand-in
@@ -190,10 +190,11 @@ first; within them, "stopped" ones are certain, the rest depend on the query abo
 8. Fences, Fillomino, Bridges and Kakuro (new 1 Nov 2026; no demo recorded yet: their intros show the fixed still
    until one is recorded on `fencesRev` / `fillominoRev` / `bridgesRev` / `kakuroRev` 1). Their replays show the
    winner's final board ("Final state only, needs an action log" above).
-9. Ricochet (1 Nov 2026: the ninja wall-climb, `ricoRev` 2; no demo recorded yet, the intro shows its still, a frame
+9. Moon Climb (Ricochet's id; 1 Nov 2026 the ninja wall-climb, `ricoRev` 2, and since 3 Nov 2026 Moon Climb, `ricoRev` 3, a demo to be recorded on 3; no demo recorded yet, the intro shows its still, a frame
    of seed 0's witness climb drawn by the game's own renderer). Record one on `ricoRev` 2 later.
-10. Bastion (1 Nov 2026: the tank-defence shooter, `bastionRev 2`; no demo yet, the intro shows its still; record one on
-   `bastionRev 2`, an original-turret demo stays stopped, `introDemo.functions.ts`)
+10. Iron Wall, was Bastion (1 Nov 2026: the tank-defence shooter, `bastionRev 2`; 3 Nov 2026 `bastionRev 3` with the
+   drones; no demo yet, the intro shows its still; record one on `bastionRev 3`, older demos stay stopped,
+   `introDemo.functions.ts`)
 
 ## Arcade reveal line
 

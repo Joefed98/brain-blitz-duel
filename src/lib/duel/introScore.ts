@@ -2,9 +2,9 @@ import { SWING_V17_CORE, SWING_V17_GATES, SWING_V17_GATE_POINTS, SWING_V17_PAR_P
 import { PS_CORE_FULL_V2 } from "@/lib/arcade/cards/pokerSquares";
 import { FH_CORE_FULL_V2 } from "@/lib/arcade/cards/fiveHands";
 import { FC_CORE_UNITS_V3 } from "@/lib/arcade/cards/freecell";
-import { BF_CORE_FULL } from "@/lib/arcade/blockfall";
+import { BF_ZONE_CORE_FULL } from "@/lib/arcade/blockfall";
 import { AR2_CORE_FULL } from "@/lib/arcade/alleyroll";
-import { NINJA_CORE_FULL_M } from "@/lib/arcade/ricochetNinja";
+import { MOON_CORE_FULL_M } from "@/lib/arcade/ricochetNinja";
 import { MG_CORE_FULL } from "@/lib/arcade/cards/muggins";
 import { BULLSEYE_INNER_BULL_POINTS, BULLSEYE_RING_VALUES } from "@/lib/arcade/bullseye";
 import { BINTOSS_THROWS, BINTOSS_V9_BUCKET, BINTOSS_V9_FAR, BINTOSS_V9_FINISH, BINTOSS_V9_HOOP } from "@/lib/arcade/binToss";
@@ -128,18 +128,18 @@ function introScoreTemplates(): Record<PuzzleType, string> {
     minesweeper: "Safe squares 150, no mines hit 20, a fast clear 30; a mine costs 5. Up to {max}.",
     mahjong: "Pairs 150, no shuffles 20, a fast clear 30; a Shuffle costs 5. Up to {max}.",
     minigolf: "Holes 120, few putts 40, birdies 20, speed 20: up to {max}.",
-    pool: "Spots 140, the black 10, pots in a row 30, speed 20; each foul costs 10. Up to {max}.",
+    pool: "Your set 140 (full at 5), black 10, pots in a row 30, speed 20; fouls −10. Up to {max}.",
     curling: "Stones near the button 120, takeouts 30, the 4-foot 30, holding shot 20: {max}.",
     pinball: "Table points, plus J-O-U-L-Z sets, multiball, jackpots and ramp combos. Up to {max}.",
-    homerun: "Distance on every pitch, home runs and signs beyond the fence (Power only). Up to {max}.",
+    homerun: "Distance not caught, home runs, lit signs and your perfect streak. Up to {max}.",
     freekick: "Goals away from the keeper, targets, curls round the wall and five in a row. Up to {max}.",
-    racing: "Distance, clean sectors, the finish and your time from lights out. Up to {max}.",
+    racing: "Pace (your average speed) 160, clean sectors 40 (5 each). Together {max}.",
     // Cards & Board (the arcade scoring standard from their first revision).
     freecell: `Cards 140 (full at ${FC_CORE_UNITS_V3} units); finished: few moves 30, speed 30. Together {max}.`,
     tripeaks: "Cards 120, peak tops 30, longest run 20; all cleared: 10 and speed 20. Together {max}.",
     pokersquares: `Hand points 160 (full at ${PS_CORE_FULL_V2}); made hands 40 (4 a line). Together {max}.`,
     fivehands: `Hand points to {max}, full at ${FH_CORE_FULL_V2}. Pair 5, two pair 10 … straight flush 75.`,
-    blockfall: `Lines 140 (full at ${BF_CORE_FULL}); multi-line clears 40; a low stack at the buzzer 20. Together {max}.`,
+    blockfall: `Lines 95 (full at ${BF_ZONE_CORE_FULL}); pieces 65; multi-line clears 24; low stack 16: {max}.`,
     alleyroll: `Ring points 140 (full at ${AR2_CORE_FULL}); gold cup 30; roll streak 20; pockets 10. Total {max}.`,
     pyramid: "Cards 120; cleared 10 and speed 50; pyramid pairs 20 (2 each). Together {max}.",
     golfsol: "Cards 140; all cleared 20 and speed 20; runs of four 20 (4 each). Together {max}.",
@@ -160,9 +160,9 @@ function introScoreTemplates(): Record<PuzzleType, string> {
     swerve: arcadeOpen("each coin you collect"),
     dual: "The longer both runners survive, the more you score. The full minute is {max}.",
     steady: "Start on {max}. Touching the edge: lose 5.",
-    ricochet: `Height 130 (full at ${NINJA_CORE_FULL_M} m); coins 30, lanterns 20, scrolls 20. Together {max}.`,
+    ricochet: `Height 125 (full at ${MOON_CORE_FULL_M} m); flow 30, lantern rides 30, scrolls 15: {max}.`,
     rooftop: "The longer you last, the more you score. The full minute is {max}.",
-    bastion: "Armour 140, weak spots 30, fast reloads 20, base intact 10: up to {max}.",
+    bastion: "Armour 110, weak spots 30, fast reloads 20, drones 30, base intact 10: up to {max}.",
     hotfloor: arcadeOpen("each stage you survive"),
   };
 }
