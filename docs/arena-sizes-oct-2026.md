@@ -49,22 +49,22 @@ revisions keep their own world in reveals and replays.
 | Pinball | 390x820 | 375x591 → 281x591 | 390x624 → 297x624 | 390x768 → 365x768 | 414x772 → 367x772 | 430x856 → 407x856 | 1280x724 → 344x724 | 0.937x | 60px | 0px | 0px | 25px | - |
 | Minefield | 390x662 | 375x591 → 348x591 | 390x624 → 368x624 | 390x768 → 390x662 | 414x772 → 414x703 | 430x856 → 430x730 | 1280x724 → 427x724 | 1.000x | 60px | 0px | 106px | 0px | - |
 | Mahjong Solitaire | 390x608 | 375x591 → 375x585 | 390x624 → 390x608 | 390x768 → 390x608 | 414x772 → 414x645 | 430x856 → 430x670 | 1280x724 → 464x724 | 1.000x | 60px | 0px | 160px | 0px | - |
-| Home Run | 390x780 | 375x591 → 296x591 | 390x624 → 312x624 | 390x768 → 384x768 | 414x772 → 386x772 | 430x856 → 428x856 | 1280x724 → 362x724 | 0.985x | 60px | 0px | 0px | 6px | - |
+| Home Run | 390x720 | 375x591 → 320x591 | 390x624 → 338x624 | 390x768 → 390x720 | 414x772 → 414x764 | 430x856 → 430x794 | 1280x724 → 392x724 | 1.000x | 60px | 0px | 48px | 0px | - |
 | Top Bins | 390x720 | 375x591 → 320x591 | 390x624 → 338x624 | 390x768 → 390x720 | 414x772 → 414x764 | 430x856 → 430x794 | 1280x724 → 392x724 | 1.000x | 60px | 0px | 48px | 0px | - |
 | Apex | 390x727 | 375x591 → 317x591 | 390x624 → 335x624 | 390x768 → 390x727 | 414x772 → 414x772 | 430x856 → 430x802 | 1280x724 → 388x724 | 1.000x | 60px | 0px | 41px | 0px | - |
 | Free Cell | 414x772 | 375x591 → 317x591 | 390x624 → 335x624 | 390x768 → 390x727 | 414x772 → 414x772 | 430x856 → 430x802 | 1280x724 → 388x724 | 0.942x | 60px | 0px | 41px | 0px | - |
 | Summit | 414x772 | 375x591 → 317x591 | 390x624 → 335x624 | 390x768 → 390x727 | 414x772 → 414x772 | 430x856 → 430x802 | 1280x724 → 388x724 | 0.942x | 60px | 0px | 41px | 0px | - |
 | Full House | 414x772 | 375x591 → 317x591 | 390x624 → 335x624 | 390x768 → 390x727 | 414x772 → 414x772 | 430x856 → 430x802 | 1280x724 → 388x724 | 0.942x | 60px | 0px | 41px | 0px | - |
 | Five Hands | 414x772 | 375x591 → 317x591 | 390x624 → 335x624 | 390x768 → 390x727 | 414x772 → 414x772 | 430x856 → 430x802 | 1280x724 → 388x724 | 0.942x | 60px | 0px | 41px | 0px | - |
-| Ricochet | 390x730 | 375x591 → 316x591 | 390x624 → 333x624 | 390x768 → 390x730 | 414x772 → 412x772 | 430x856 → 430x805 | 1280x724 → 387x724 | 1.000x | 60px | 0px | 38px | 0px | - |
+| Moon Climb | 390x730 | 375x591 → 316x591 | 390x624 → 333x624 | 390x768 → 390x730 | 414x772 → 412x772 | 430x856 → 430x805 | 1280x724 → 387x724 | 1.000x | 60px | 0px | 38px | 0px | - |
 | Iron Wall | 390x720 | 375x591 → 320x591 | 390x624 → 338x624 | 390x768 → 390x720 | 414x772 → 414x764 | 430x856 → 430x794 | 1280x724 → 392x724 | 1.000x | 60px | 0px | 48px | 0px | - |
-| Pyramid | 414x772 | 375x591 → 317x591 | 390x624 → 335x624 | 390x768 → 390x727 | 414x772 → 414x772 | 430x856 → 430x802 | 1280x724 → 388x724 | 0.942x | 60px | 0px | 41px | 0px | - |
+| Thirteen | 414x772 | 375x591 → 317x591 | 390x624 → 335x624 | 390x768 → 390x727 | 414x772 → 414x772 | 430x856 → 430x802 | 1280x724 → 388x724 | 0.942x | 60px | 0px | 41px | 0px | - |
 | Golf Solitaire | 414x772 | 375x591 → 317x591 | 390x624 → 335x624 | 390x768 → 390x727 | 414x772 → 414x772 | 430x856 → 430x802 | 1280x724 → 388x724 | 0.942x | 60px | 0px | 41px | 0px | - |
 | Muggins | 414x772 | 375x591 → 317x591 | 390x624 → 335x624 | 390x768 → 390x727 | 414x772 → 414x772 | 430x856 → 430x802 | 1280x724 → 388x724 | 0.942x | 60px | 0px | 41px | 0px | - |
 | Crazy Golf | 390x690 | 375x591 → 334x591 | 390x624 → 353x624 | 390x768 → 390x690 | 414x772 → 414x732 | 430x856 → 430x761 | 1280x724 → 409x724 | 1.000x | 60px | 0px | 78px | 0px | - |
 | Cue Ball | 390x740 | 375x591 → 311x591 | 390x624 → 329x624 | 390x768 → 390x740 | 414x772 → 407x772 | 430x856 → 430x816 | 1280x724 → 382x724 | 1.000x | 60px | 0px | 28px | 0px | - |
 | Curl Champ | 390x540 | 375x591 → 375x519 | 390x624 → 390x540 | 390x768 → 390x540 | 414x772 → 414x573 | 430x856 → 430x595 | 1280x724 → 523x724 | 1.000x | 60px | 0px | 228px | 0px | - |
-| Blockfall | 414x744 | 375x591 → 329x591 | 390x624 → 347x624 | 390x768 → 390x701 | 414x772 → 414x744 | 430x856 → 430x773 | 1280x724 → 403x724 | 0.942x | 60px | 0px | 67px | 0px | - |
+| Blockzone | 414x744 | 375x591 → 329x591 | 390x624 → 347x624 | 390x768 → 390x701 | 414x772 → 414x744 | 430x856 → 430x773 | 1280x724 → 403x724 | 0.942x | 60px | 0px | 67px | 0px | - |
 | Ringer | 414x800 | 375x591 → 306x591 | 390x624 → 323x624 | 390x768 → 390x754 | 414x772 → 400x772 | 430x856 → 430x831 | 1280x724 → 375x724 | 0.942x | 60px | 0px | 14px | 0px | - |
 | Letterfall | 390x700 | 375x591 → 329x591 | 390x624 → 348x624 | 390x768 → 390x700 | 414x772 → 414x743 | 430x856 → 430x772 | 1280x724 → 403x724 | 1.000x | 60px | 0px | 68px | 0px | - |
 | Tenfall | 360x520 | 375x535 → 370x535 | 390x568 → 390x563 | 390x712 → 390x563 | 414x716 → 414x598 | 430x800 → 430x621 | 1280x668 → 462x668 | 1.083x | 116px | 0px | 149px | 0px | - |
@@ -109,7 +109,7 @@ stars, walkers, lava, reactions) that holds still under reduced motion or reduce
 | Ball Tracker | 375x555 → 278x555 | 390x588 → 294x588 | 390x732 → 366x732 | 414x736 → 368x736 | 430x820 → 410x820 | 1280x688 → 344x688 | the wooden board runs on across the sides and to the bottom |
 | Gemstone | 375x591 → 320x591 | 390x624 → 338x624 | 390x768 → 390x720 | 414x772 → 414x764 | 430x856 → 430x794 | 1280x724 → 392x724 | the sparkly purple velvet over the whole screen, behind the header too (world centred) |
 | Pinball | 375x591 → 281x591 | 390x624 → 297x624 | 390x768 → 365x768 | 414x772 → 367x772 | 430x856 → 407x856 | 1280x724 → 344x724 | the dark table, five retro lamps lit by the table's good moments (world centred) |
-| Home Run | 375x591 → 296x591 | 390x624 → 312x624 | 390x768 → 384x768 | 414x772 → 386x772 | 430x856 → 428x856 | 1280x724 → 362x724 | the park's bands carried out to the sides (sky, stands, wall, grass, dirt), each a shade darker, the plate's dirt settling darker below |
+| Home Run | 375x591 → 320x591 | 390x624 → 338x624 | 390x768 → 390x720 | 414x772 → 414x764 | 430x856 → 430x794 | 1280x724 → 392x724 | the park's bands carried out to the sides (sky, stands, wall, grass, dirt), each a shade darker, the plate's dirt settling darker below |
 | Top Bins | 375x591 → 320x591 | 390x624 → 338x624 | 390x768 → 390x720 | 414x772 → 414x764 | 430x856 → 430x794 | 1280x724 → 392x724 | the stands' dark carried out above the horizon, the grass below, settling darker under the world |
 | Apex | 375x591 → 317x591 | 390x624 → 335x624 | 390x768 → 390x727 | 414x772 → 414x772 | 430x856 → 430x802 | 1280x724 → 388x724 | the sky above, grass at the sides, dark tarmac below |
 | Crazy Golf | 375x591 → 334x591 | 390x624 → 353x624 | 390x768 → 390x690 | 414x772 → 414x732 | 430x856 → 430x761 | 1280x724 → 409x724 | more of the night terrace, darker towards the edges |
@@ -122,12 +122,12 @@ stars, walkers, lava, reactions) that holds still under reduced motion or reduce
 | Summit | 375x591 → 317x591 | 390x624 → 335x624 | 390x768 → 390x727 | 414x772 → 414x772 | 430x856 → 430x802 | 1280x724 → 388x724 | the felt's darker edge runs on beside and below the world, settling darker towards the screen's bottom |
 | Full House | 375x591 → 317x591 | 390x624 → 335x624 | 390x768 → 390x727 | 414x772 → 414x772 | 430x856 → 430x802 | 1280x724 → 388x724 | the felt's darker edge runs on beside and below the world, settling darker towards the screen's bottom |
 | Five Hands | 375x591 → 317x591 | 390x624 → 335x624 | 390x768 → 390x727 | 414x772 → 414x772 | 430x856 → 430x802 | 1280x724 → 388x724 | the felt's darker edge runs on beside and below the world, settling darker towards the screen's bottom |
-| Pyramid | 375x591 → 317x591 | 390x624 → 335x624 | 390x768 → 390x727 | 414x772 → 414x772 | 430x856 → 430x802 | 1280x724 → 388x724 | the felt's darker edge runs on beside and below the world, settling darker towards the screen's bottom |
+| Thirteen | 375x591 → 317x591 | 390x624 → 335x624 | 390x768 → 390x727 | 414x772 → 414x772 | 430x856 → 430x802 | 1280x724 → 388x724 | the felt's darker edge runs on beside and below the world, settling darker towards the screen's bottom |
 | Golf Solitaire | 375x591 → 317x591 | 390x624 → 335x624 | 390x768 → 390x727 | 414x772 → 414x772 | 430x856 → 430x802 | 1280x724 → 388x724 | the felt's darker edge runs on beside and below the world, settling darker towards the screen's bottom |
 | Muggins | 375x591 → 317x591 | 390x624 → 335x624 | 390x768 → 390x727 | 414x772 → 414x772 | 430x856 → 430x802 | 1280x724 → 388x724 | the baize's darker green runs on beside and below the world, settling darker towards the screen's bottom |
-| Blockfall | 375x591 → 329x591 | 390x624 → 347x624 | 390x768 → 390x701 | 414x772 → 414x744 | 430x856 → 430x773 | 1280x724 → 403x724 | the cabinet's dark navy glow runs on above, beside and below the well, settling to black |
+| Blockzone | 375x591 → 329x591 | 390x624 → 347x624 | 390x768 → 390x701 | 414x772 → 414x744 | 430x856 → 430x773 | 1280x724 → 403x724 | the cabinet's dark navy glow runs on above, beside and below the well, settling to black |
 | Ringer | 375x591 → 306x591 | 390x624 → 323x624 | 390x768 → 390x754 | 414x772 → 400x772 | 430x856 → 430x831 | 1280x724 → 375x724 | the funfair alley's maroon walls run on beside the lane and the awning's fascia above, settling darker below |
-| Ricochet | 375x591 → 316x591 | 390x624 → 333x624 | 390x768 → 390x730 | 414x772 → 412x772 | 430x856 → 430x805 | 1280x724 → 387x724 | the temple wall's stone runs on beside the world and a dusk band below it, settling darker towards the screen's bottom |
+| Moon Climb | 375x591 → 316x591 | 390x624 → 333x624 | 390x768 → 390x730 | 414x772 → 412x772 | 430x856 → 430x805 | 1280x724 → 387x724 | the temple wall's stone runs on beside the world and a dusk band below it, settling darker towards the screen's bottom |
 | Iron Wall | 375x591 → 320x591 | 390x624 → 338x624 | 390x768 → 390x720 | 414x772 → 414x764 | 430x856 → 430x794 | 1280x724 → 392x724 | the dusk sky, the field and the stone wall carried out to the sides, the wall settling darker below |
 
 ## iPhone 11 home-screen app, before and after the 15 Oct 2026 fix
@@ -167,22 +167,22 @@ than half hidden; Hover's world is cut the same way, its disc at the top).
 | Pinball | 414x724 → 344x724, 64px | 414x772 → 367x772, 16px | world 32px |
 | Minefield | 414x724 → 414x703, 64px | 414x772 → 414x703, 16px | world none |
 | Mahjong Solitaire | 414x724 → 414x645, 64px | 414x772 → 414x645, 16px | world none |
-| Home Run | 414x724 → 362x724, 64px | 414x772 → 386x772, 16px | world 32px |
+| Home Run | 414x724 → 392x724, 64px | 414x772 → 414x764, 16px | world 24px |
 | Top Bins | 414x724 → 392x724, 64px | 414x772 → 414x764, 16px | world 24px |
 | Apex | 414x724 → 388x724, 64px | 414x772 → 414x772, 16px | world 32px |
 | Free Cell | 414x724 → 388x724, 64px | 414x772 → 414x772, 16px | world 32px |
 | Summit | 414x724 → 388x724, 64px | 414x772 → 414x772, 16px | world 32px |
 | Full House | 414x724 → 388x724, 64px | 414x772 → 414x772, 16px | world 32px |
 | Five Hands | 414x724 → 388x724, 64px | 414x772 → 414x772, 16px | world 32px |
-| Ricochet | 414x724 → 387x724, 64px | 414x772 → 412x772, 16px | world 32px |
+| Moon Climb | 414x724 → 387x724, 64px | 414x772 → 412x772, 16px | world 32px |
 | Iron Wall | 414x724 → 392x724, 64px | 414x772 → 414x764, 16px | world 24px |
-| Pyramid | 414x724 → 388x724, 64px | 414x772 → 414x772, 16px | world 32px |
+| Thirteen | 414x724 → 388x724, 64px | 414x772 → 414x772, 16px | world 32px |
 | Golf Solitaire | 414x724 → 388x724, 64px | 414x772 → 414x772, 16px | world 32px |
 | Muggins | 414x724 → 388x724, 64px | 414x772 → 414x772, 16px | world 32px |
 | Crazy Golf | 414x724 → 409x724, 64px | 414x772 → 414x732, 16px | world none |
 | Cue Ball | 414x724 → 382x724, 64px | 414x772 → 407x772, 16px | world 32px |
 | Curl Champ | 414x724 → 414x573, 64px | 414x772 → 414x573, 16px | world none |
-| Blockfall | 414x724 → 403x724, 64px | 414x772 → 414x744, 16px | world 4px |
+| Blockzone | 414x724 → 403x724, 64px | 414x772 → 414x744, 16px | world 4px |
 | Ringer | 414x724 → 375x724, 64px | 414x772 → 400x772, 16px | world 32px |
 | Letterfall | 414x724 → 403x724, 64px | 414x772 → 414x743, 16px | world 3px |
 | Tenfall | 414x668 → 414x598, 64px | 414x716 → 414x598, 16px | world none |
@@ -222,20 +222,20 @@ bottom; the spare space was the game's arena fill or the page colour. Same arith
 | Pinball | 367x543 → 258x543 | 382x576 → 274x576 | 382x720 → 342x720 | 422x808 → 384x808 | 1272x676 → 322x676 |
 | Minefield | 367x543 → 320x543 | 382x576 → 339x576 | 382x720 → 382x648 | 422x808 → 422x716 | 1272x676 → 398x676 |
 | Mahjong Solitaire | 367x543 → 348x543 | 382x576 → 369x576 | 382x720 → 382x596 | 422x808 → 422x658 | 1272x676 → 434x676 |
-| Home Run | 367x543 → 272x543 | 382x576 → 288x576 | 382x720 → 360x720 | 422x808 → 404x808 | 1272x676 → 338x676 |
+| Home Run | 367x543 → 294x543 | 382x576 → 312x576 | 382x720 → 382x705 | 422x808 → 422x779 | 1272x676 → 366x676 |
 | Top Bins | 367x543 → 294x543 | 382x576 → 312x576 | 382x720 → 382x705 | 422x808 → 422x779 | 1272x676 → 366x676 |
 | Apex | 367x543 → 291x543 | 382x576 → 309x576 | 382x720 → 382x712 | 422x808 → 422x787 | 1272x676 → 363x676 |
 | Free Cell | 367x543 → 291x543 | 382x576 → 309x576 | 382x720 → 382x712 | 422x808 → 422x787 | 1272x676 → 363x676 |
 | Summit | 367x543 → 291x543 | 382x576 → 309x576 | 382x720 → 382x712 | 422x808 → 422x787 | 1272x676 → 363x676 |
 | Full House | 367x543 → 291x543 | 382x576 → 309x576 | 382x720 → 382x712 | 422x808 → 422x787 | 1272x676 → 363x676 |
 | Five Hands | 367x543 → 291x543 | 382x576 → 309x576 | 382x720 → 382x712 | 422x808 → 422x787 | 1272x676 → 363x676 |
-| Ricochet | 367x543 → 290x543 | 382x576 → 308x576 | 382x720 → 382x715 | 422x808 → 422x790 | 1272x676 → 361x676 |
+| Moon Climb | 367x543 → 290x543 | 382x576 → 308x576 | 382x720 → 382x715 | 422x808 → 422x790 | 1272x676 → 361x676 |
 | Iron Wall | 367x543 → 294x543 | 382x576 → 312x576 | 382x720 → 382x705 | 422x808 → 422x779 | 1272x676 → 366x676 |
-| Pyramid | 367x543 → 291x543 | 382x576 → 309x576 | 382x720 → 382x712 | 422x808 → 422x787 | 1272x676 → 363x676 |
+| Thirteen | 367x543 → 291x543 | 382x576 → 309x576 | 382x720 → 382x712 | 422x808 → 422x787 | 1272x676 → 363x676 |
 | Golf Solitaire | 367x543 → 291x543 | 382x576 → 309x576 | 382x720 → 382x712 | 422x808 → 422x787 | 1272x676 → 363x676 |
 | Muggins | 367x543 → 291x543 | 382x576 → 309x576 | 382x720 → 382x712 | 422x808 → 422x787 | 1272x676 → 363x676 |
 | Crazy Golf | 367x543 → 307x543 | 382x576 → 326x576 | 382x720 → 382x676 | 422x808 → 422x747 | 1272x676 → 382x676 |
 | Cue Ball | 367x543 → 286x543 | 382x576 → 304x576 | 382x720 → 379x720 | 422x808 → 422x801 | 1272x676 → 356x676 |
 | Curl Champ | 367x543 → 367x508 | 382x576 → 382x529 | 382x720 → 382x529 | 422x808 → 422x584 | 1272x676 → 488x676 |
-| Blockfall | 367x543 → 302x543 | 382x576 → 321x576 | 382x720 → 382x686 | 422x808 → 422x758 | 1272x676 → 376x676 |
+| Blockzone | 367x543 → 302x543 | 382x576 → 321x576 | 382x720 → 382x686 | 422x808 → 422x758 | 1272x676 → 376x676 |
 | Ringer | 367x543 → 281x543 | 382x576 → 298x576 | 382x720 → 373x720 | 422x808 → 418x808 | 1272x676 → 350x676 |
