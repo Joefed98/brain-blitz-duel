@@ -1242,7 +1242,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Tap two uncovered cards", detail: "that add to 13 to remove them: Q+A, J+2, 10+3, 9+4, 8+5, 7+6." },
         { action: "A King", detail: "is 13 on its own: one tap removes it." },
         { action: "Tap the stock", detail: "to turn a card onto the waste; the waste's top card pairs too." },
-        { action: "One pass:", detail: "the stock is turned once; a waste card is buried by the next draw, so free its partner in time.", helpOnly: true },
+        { action: "One pass:", detail: "the stock is turned once; a waste card is buried by the next draw, so free its partner in time." },
         { action: "Undo and Reset", detail: "at the bottom take back the last action or go back to the deal; the clock runs on." },
         { action: "Pairs of two pyramid cards", detail: "score extra, 2 each, up to ten.", helpOnly: true },
         { action: "Every deal", detail: "can be cleared with ten pyramid pairs, but only in the right order: look before you pair.", helpOnly: true },

@@ -1,8 +1,8 @@
 /**
  * Pyramid's art and layout (display only; the sim is pyramid.ts). The world is 414 × 772 on Free Cell's blue felt:
  * HUD chips across the top, the seven-row pyramid of large cards (the bottom row of seven side by side, each row
- * overlapping the one above so every index shows), the pass and selection line, then a dark panel within thumb reach
- * holding the stock and waste piles and the Undo / Reset buttons. The selected card glows gold; its partners (cards
+ * overlapping the one above so every index shows), then a dark panel within thumb reach
+ * holding the stock and waste piles (between them, "Need 4" while a card is selected) and the Undo / Reset buttons. The selected card glows gold; its partners (cards
  * adding to 13) and free Kings glow softly. pyHit reads the same layout.
  */
 import type { ArcadeGame, ArcadeInputEvent, CanvasSize } from "../engine";
@@ -121,12 +121,7 @@ function drawPyramidWorld(ctx: CanvasRenderingContext2D, state: PyState, size: C
     drawCard(ctx, card, b.x, b.y, PY_CARD_W, PY_CARD_H, { glow, dim: free ? 0 : 0.32 });
   }
 
-  // The pass and the rule.
-  ctx.fillStyle = "rgba(246,235,208,0.82)";
-  ctx.font = `700 13px ${CARD_FONT}`;
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-  ctx.fillText(`ONE PASS  ·  PAIRS ADD TO 13  ·  K ALONE`, W / 2, PY_INFO_Y + 8);
+  // (The rules line "ONE PASS · PAIRS ADD TO 13 · K ALONE" lived here until 3 Nov 2026; it is in How to play.)
 
   // The panel: stock and waste, then Undo and Reset.
   roundRect(ctx, 14, PY_PANEL_Y, W - 28, H - PY_PANEL_Y - 14, 22);
@@ -150,13 +145,15 @@ function drawPyramidWorld(ctx: CanvasRenderingContext2D, state: PyState, size: C
     drawCard(ctx, top, PY_WASTE_X, PY_PILE_Y, PY_PILE_W, PY_PILE_H, { glow });
   } else drawSlot(ctx, PY_WASTE_X, PY_PILE_Y, PY_PILE_W, PY_PILE_H, -1, "WASTE");
 
-  // The target between the piles.
-  ctx.fillStyle = "rgba(233,196,106,0.85)";
-  ctx.font = `900 34px ${CARD_FONT}`;
-  ctx.fillText("13", W / 2, PY_PILE_Y + PY_PILE_H / 2 - 6);
-  ctx.font = `700 11px ${CARD_FONT}`;
-  ctx.fillStyle = "rgba(246,235,208,0.6)";
-  ctx.fillText(selCard >= 0 ? `NEED ${13 - rankOf(selCard)}` : "TAP TWO", W / 2, PY_PILE_Y + PY_PILE_H / 2 + 22);
+  // Between the piles, only while a card is selected: the rank its partner needs (3 Nov 2026; until then a large "13"
+  // over "TAP TWO" whenever nothing was selected).
+  if (selCard >= 0 && live && rankOf(selCard) < 13) {
+    ctx.font = `800 15px ${CARD_FONT}`;
+    ctx.fillStyle = "rgba(246,235,208,0.85)";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(`Need ${PY_RANK_NAMES[13 - rankOf(selCard)]}`, W / 2, PY_PILE_Y + PY_PILE_H / 2);
+  }
 
   for (const b of PY_BUTTONS) {
     const isUndo = b.kind === PY_INPUT_UNDO;
@@ -165,6 +162,9 @@ function drawPyramidWorld(ctx: CanvasRenderingContext2D, state: PyState, size: C
   }
   ctx.restore();
 }
+
+/** The partner rank as the cards show it (1 is an Ace, 11–12 Jack and Queen). */
+const PY_RANK_NAMES = ["", "A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"] as const;
 
 export function pyramidArtGame(view?: PyView): ArcadeGame<PyState, ArcadeInputEvent | null> {
   return { ...pyramidGame, draw: (ctx, state, size) => drawPyramid(ctx, state, size, view) };

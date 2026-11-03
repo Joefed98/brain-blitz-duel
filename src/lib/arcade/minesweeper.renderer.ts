@@ -5,6 +5,7 @@
  * revealed (a wide one when the board is cleared). The board is painted into a device layer keyed on the squares'
  * states, so a frame is one blit plus the moving effects.
  */
+import { drawHudPillRow } from "./hudPill.renderer";
 import { deviceLayer } from "./cache.renderer";
 import { arcadeFx } from "./arcadeFx.renderer";
 import { MINESWEEPER_FX } from "./arcadeFxGames.renderer";
@@ -61,7 +62,6 @@ export const MINES_ART = {
 export const MINES_NUMBER_COLOURS = ["", "#5AB4FF", "#5CE08A", "#FF6B6B", "#C49BFF", "#FFB347", "#4FE3E0", "#F5F5F5", "#B7C0CA"];
 
 const FONT = "800 22px Archivo, 'Duelz Mono', system-ui, sans-serif";
-const HUD_FONT = "700 13px 'Duelz Mono', 'JetBrains Mono', ui-monospace, monospace";
 
 function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number): void {
   ctx.beginPath();
@@ -271,33 +271,16 @@ function paintBoard(ctx: CanvasRenderingContext2D, s: MinesState, over: boolean)
   }
 }
 
-function chip(ctx: CanvasRenderingContext2D, x: number, w: number, label: string, value: string, tint?: string): void {
-  const y = 8;
-  const h = 28;
-  ctx.fillStyle = MINES_ART.chip;
-  roundRect(ctx, x, y, w, h, 14);
-  ctx.fill();
-  ctx.strokeStyle = tint ?? MINES_ART.chipEdge;
-  ctx.lineWidth = 1;
-  roundRect(ctx, x + 0.5, y + 0.5, w - 1, h - 1, 13.5);
-  ctx.stroke();
-  ctx.font = HUD_FONT;
-  ctx.textBaseline = "middle";
-  ctx.textAlign = "left";
-  ctx.fillStyle = MINES_ART.muted;
-  ctx.fillText(label, x + 12, y + h / 2 + 1);
-  ctx.textAlign = "right";
-  ctx.fillStyle = tint ?? MINES_ART.text;
-  ctx.fillText(value, x + w - 12, y + h / 2 + 1);
-}
-
 /** The HUD chips across the top: mines left (25 less flags and mines hit), safe squares and mines hit. */
 function paintHud(ctx: CanvasRenderingContext2D, s: MinesState): void {
   let marked = 0;
   for (let i = 0; i < MINES_CELLS; i++) if (s.open[i] === MINES_FLAG || s.open[i] === MINES_BOOM) marked += 1;
-  chip(ctx, 15, 112, "MINES", String(MINES_COUNT - marked));
-  chip(ctx, 135, 140, "SAFE", `${s.revealed}/${MINES_SAFE}`);
-  chip(ctx, 283, 92, "HITS", String(s.hits), s.hits > 0 ? "#FF6B6B" : undefined);
+  // Pill chips (3 Nov 2026), the main count (safe squares) top left.
+  drawHudPillRow(ctx, 10, 8, [
+    { label: "Safe", value: `${s.revealed}/${MINES_SAFE}`, opts: { gold: s.revealed >= MINES_SAFE } },
+    { label: "Mines", value: String(MINES_COUNT - marked) },
+    { label: "Hits", value: String(s.hits), opts: { alert: s.hits > 0 } },
+  ]);
 }
 
 /** The board, the HUD and the moving effects, under the shared success layer (MINESWEEPER_FX). */

@@ -38,17 +38,22 @@ export const MINES_REV_STD = 1;
 
 /* ================================ World ================================ */
 
-/** World units: a 36 px square, the board in a metal frame under a 44 px HUD row. */
-export const MINES_WORLD_W = 390;
+/**
+ * World units: a 36 px square, the board in a metal frame under a 44 px HUD row. 380 wide with an 8 px frame and 8 px
+ * under it since 3 Nov 2026 (390, 12 and 18 until then; display only: the sim never reads the world's size, taps reach
+ * it as squares), so the board, at the largest scale that fits the play screen's width, grows into the gap above the
+ * Reveal / Flag buttons.
+ */
+export const MINES_WORLD_W = 380;
 export const MINES_CELL = 36;
 export const MINES_BOARD_W = MINES_COLS * MINES_CELL;
 export const MINES_BOARD_H = MINES_ROWS * MINES_CELL;
 export const MINES_BOARD_X = Math.round((MINES_WORLD_W - MINES_BOARD_W) / 2);
 export const MINES_HUD_H = 44;
-export const MINES_FRAME = 12;
+export const MINES_FRAME = 8;
 export const MINES_BOARD_Y = MINES_HUD_H + MINES_FRAME;
-/** The world ends 18 px below the frame (the hex background runs on), so the frame never lines the world's edge. */
-export const MINES_WORLD_H = MINES_BOARD_Y + MINES_BOARD_H + MINES_FRAME + 18;
+/** The world ends 8 px below the frame (the hex background runs on), so the frame never lines the world's edge. */
+export const MINES_WORLD_H = MINES_BOARD_Y + MINES_BOARD_H + MINES_FRAME + 8;
 
 /** The square under a world point, or −1 off the board. */
 export function minesCellAt(x: number, y: number): number {
