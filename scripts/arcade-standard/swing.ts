@@ -2,18 +2,22 @@
  * Grappler on the arcade scoring standard (swingRev 17, the sliding hooks and the clean-swing streak, 3 Nov 2026;
  * swingRev 16, the dark ledge runs over 90 s, and swingRev 15, the swinging course, before it; docs/arcade-standard/swing.md):
  * course 110 (a straight line on the share of the course's length behind the hero, full at 700 per mille), pars 40
- * (over 50 stretches, each full at 30 ticks under par), gates 10 (2 each for the 5), the clean-swing streak 40 (2 for
+ * (over 45 stretches, each full at 30 ticks under par), gates 10 (2 each for the 5), the clean-swing streak 40 (2 for
  * every 8 clean grabs in a row). Total 200.
  *
- * perfect(): a built final state on real swingRev 17 courses (room seeds 0, 5 and 9): every stretch cleared 30 ticks
- * under its par, every gate banked, the streak's twenty blocks, scored by the sim's own score (swingScoreV17) and split
- * into parts by swingSlideParts, the function the reveal and grading read. swing-slide-check proves each course's own
+ * perfect(): the first three dealt courses' oracle logs replayed through the server path (each dealt course is kept only
+ * when its oracle scores exactly 200 there, scripts/swing-slide-deal.ts), plus a built final state on the first dealt
+ * course (every stretch 30 ticks under par, every gate, the streak's twenty blocks) scored by the sim's own score. swing-slide-check proves each course's own
  * planned route clears it with every gate and every sliding hook grabbed at home, and that stored skill-band runs reach
  * exactly 200 through the server's replay.
  */
 import { swingGameFor, swingSlideParts, SWING_REV_DARK, SWING_REV_SLIDE, SWING_V15_PAR_FULL, SWING_V17_CORE, SWING_V17_GATES, SWING_V17_GATE_POINTS, SWING_V17_PAR_POINTS, SWING_V17_STREAK_EACH, SWING_V17_STREAK_MAX, type SwingState } from "../../src/lib/arcade/swing";
 import { roomSeed } from "../arcade-skill-bands/games";
 import type { StdEntry, StdRun } from "./entry";
+import { readFileSync } from "node:fs";
+import { gunzipSync } from "node:zlib";
+import { SWING_SLIDE_DEAL } from "../../src/lib/duel/swingSlideDeal.server";
+import { SWING_SLIDE_WITNESS, swingSlideVerdict, type SwingWitness } from "../swing-slide-deal";
 
 const game = swingGameFor(SWING_REV_SLIDE);
 
@@ -43,11 +47,16 @@ export const entry: StdEntry = {
     { key: "streak", label: "Clean-swing streak", max: SWING_V17_STREAK_MAX },
   ],
   perfect(): StdRun[] {
-    return [0, 5, 9].map((n) => {
-      const s = full(roomSeed(n));
-      const p = swingSlideParts(s);
-      return { label: `a full run's state on room seed ${n}, the sim's score`, score: game.score(s), parts: { core: p.core, par: p.par, gates: p.gates, streak: p.streak } };
+    // Real runs: the first three dealt courses' oracle logs (scripts/swing-slide-deal.ts), through the server's replay.
+    const witnesses = (JSON.parse(gunzipSync(readFileSync(SWING_SLIDE_WITNESS)).toString()) as { witnesses: SwingWitness[] }).witnesses;
+    const runs: StdRun[] = witnesses.slice(0, 3).map((w) => {
+      const v = swingSlideVerdict(w.seed, w.events);
+      return { label: `dealt course ${w.seed}: its oracle log through the server replay`, score: v.flagged ? 0 : v.score, parts: { core: v.parts.core, par: v.parts.par, gates: v.parts.gates, streak: v.parts.streak } };
     });
+    // And a full run's built state (every part at its maximum) on room seed 0's dealt course, the sim's own score.
+    const s = full(SWING_SLIDE_DEAL[0]!);
+    const p = swingSlideParts(s);
+    return [...runs, { label: "a full run's state on the first dealt course, the sim's score", score: game.score(s), parts: { core: p.core, par: p.par, gates: p.gates, streak: p.streak } }];
   },
   played(): StdRun[] {
     const init = game.init(roomSeed(2)) as SwingState;

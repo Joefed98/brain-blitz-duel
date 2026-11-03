@@ -2,7 +2,7 @@
  * Grappler's room proof (the arcade rule; swingRev 17 since 3 Nov 2026, the sliding hooks and the clean-swing streak (no gems or stars),
  * swingRev 16 since 1 Nov 2026, the swinging course's dark ledge runs over 90 s, and swingRev 15 since 29 Oct 2026, the swinging course,
  * docs/arcade-standard/swing.md; swingRev 14's (the assault course) and 13's modules before it). A room deal is the
- * server's own generator (generateSwing: any seed, the course built from it) under a fixed seed; every seeded item a
+ * server's own generator (generateSwing: since swingRev 17 a course from its proved deal, swingSlideDeal.server.ts; built in the sim from that seed) under a fixed seed; every seeded item a
  * state shows is listed by `schedule`: the stretches (kind, hooks, squeeze, par, ledges, span), the hooks, the ledges,
  * the squeezes, the gates (and on older courses the gems and stars), the sliding hooks' rails (each hook at its home: a
  * grabbed one stops where it was grabbed, which is play, not the schedule), the dragon's stretch, the cave's roof and lava. None of it depends on play

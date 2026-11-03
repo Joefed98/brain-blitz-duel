@@ -64,6 +64,7 @@ import { encodeSwingRun, replaySwingRun } from "../../src/lib/duel/swing";
 import { SWING_V4_BANK } from "../../src/lib/duel/swingBankV4.server";
 import { SWING_V9_BANK } from "../../src/lib/duel/swingBankV9.server";
 import { SWING_V13_BANK } from "../../src/lib/duel/swingBankV13.server";
+import { swingSlideDealSeed } from "../../src/lib/duel/swingSlideDeal.server";
 import { bullseyeCheckpoint, bullseyeGameFor, bullseyeInitFor, bullseyeWinds, BULLSEYE_REV, BULLSEYE_REV_BAND, BULLSEYE_REV_TUNED } from "../../src/lib/arcade/bullseye";
 import { encodeBullseyeRun, replayBullseyeRun } from "../../src/lib/duel/bullseye";
 import { PIN_REV } from "../../src/lib/arcade/pinball";
@@ -284,7 +285,7 @@ export const GAMES: GameSpec[] = [
     // swingRev 13 (the 200 expansion) rooms deal from SWING_V13_BANK; --rev=x plays swingRev 11 on the same courses
     // (all of them in SWING_V9_BANK, which swingRev 11 rooms dealt), so the two revisions are paired.
     // swingRev 14 (the assault course), 15 (the swinging course), 16 (its dark ledge runs) and 17 (its sliding hooks) rooms deal any seed (generateSwing): the room seed itself.
-    seedForRev: (n, rev) => (rev === SWING_REV_ASSAULT || rev === SWING_REV_REWORK || rev === SWING_REV_DARK || rev === SWING_REV_SLIDE ? roomSeed(n) : rev === SWING_REV_EXPAND || rev === SWING_REV_STRICT ? SWING_V13_BANK[roomSeed(n) % SWING_V13_BANK.length]!.seed : undefined),
+    seedForRev: (n, rev) => (rev === SWING_REV_SLIDE ? swingSlideDealSeed(roomSeed(n)) : rev === SWING_REV_ASSAULT || rev === SWING_REV_REWORK || rev === SWING_REV_DARK ? roomSeed(n) : rev === SWING_REV_EXPAND || rev === SWING_REV_STRICT ? SWING_V13_BANK[roomSeed(n) % SWING_V13_BANK.length]!.seed : undefined),
     gameFor: (rev) => swingGameFor(rev ?? undefined),
     checkpoint: swingCheckpoint,
     encode: (run) => encodeSwingRun(run),

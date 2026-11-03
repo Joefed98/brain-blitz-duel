@@ -7,7 +7,9 @@
  *  1. Old rounds: swingRev 15 and 16 runs recorded on unmodified main by scripts/swing-slide-legacy.ts
  *     (scripts/fixtures/swing-slide-legacy.json) replay through today's server path unflagged, to the same score, final
  *     state and result; their states carry no slide field.
- *  2. Dealing: rooms deal swingRev 17 (one above swingRev 16) on any seed; a course is its seed's alone.
+ *  2. Dealing: rooms deal swingRev 17 (one above swingRev 16) from its deal (src/lib/duel/swingSlideDeal.server.ts, built
+ *     by scripts/swing-slide-deal.ts as Apex's): every dealt course's stored oracle log scores exactly 200 through the
+ *     server replay (a sample; CHECKS_FULL=1 all); a course is its seed's alone.
  *  3. The course: on sampled seeds, rev 16's shape (42 blocks, six ledge runs, three squeezes), five gates in the first
  *     part of the course, no gems or stars, and the sliding hooks: SWING_V17_SLIDERS a quarter (none in the first), each
  *     a swinging stretch's own hook (not its first), never two in a row, rails clear of the roof, periods dividing 1800.
@@ -82,6 +84,8 @@ import {
 import { bandPoints } from "../src/lib/arcade/scoreBands";
 import { LIVE_BANDS } from "../src/lib/arcade/liveBands";
 import { generateSwing } from "../src/lib/duel/arcade.server";
+import { SWING_SLIDE_DEAL } from "../src/lib/duel/swingSlideDeal.server";
+import { SWING_SLIDE_DEAL_SIZE, SWING_SLIDE_WITNESS, swingSlideVerdict, type SwingWitness } from "./swing-slide-deal";
 import { INTRO_SCORE } from "../src/lib/duel/introScore";
 import { PUZZLE_INSTRUCTIONS } from "../src/lib/duel/instructions";
 import { roundMaxFor } from "../src/lib/duel/roundMax";
@@ -131,7 +135,22 @@ if (existsSync(LEGACY)) {
   for (let k = 0; k < 12; k++) {
     const p = generateSwing();
     ok(p.type === "swing" && p.swingRev === SWING_REV_SLIDE && Number.isInteger(p.seed), `rooms deal swingRev 17 (got ${p.swingRev})`);
+    ok(SWING_SLIDE_DEAL.includes(p.seed), `rooms deal a course from the proved deal (seed ${p.seed})`);
   }
+  // The deal (scripts/swing-slide-deal.ts, as Apex's): every dealt course has a stored oracle log that the server's
+  // replay scores exactly 200 (quick: every eighth; CHECKS_FULL=1: all of them), and the deal is exactly those seeds.
+  const witnesses = (JSON.parse(gunzipSync(readFileSync(SWING_SLIDE_WITNESS)).toString()) as { witnesses: SwingWitness[] }).witnesses;
+  ok(SWING_SLIDE_DEAL.length === SWING_SLIDE_DEAL_SIZE && witnesses.length === SWING_SLIDE_DEAL.length && witnesses.every((w, i) => w.seed === SWING_SLIDE_DEAL[i]), `the deal holds ${SWING_SLIDE_DEAL.length} courses, each with its oracle's witness`);
+  ok(new Set(SWING_SLIDE_DEAL).size === SWING_SLIDE_DEAL.length, "no course is dealt twice");
+  let proved = 0;
+  const sample = witnesses.filter((_, i) => FULL || i % 8 === 0);
+  for (const w of sample) {
+    const v = swingSlideVerdict(w.seed, w.events);
+    const full = v.parts.core === SWING_V17_CORE && v.parts.par === SWING_V17_PAR_POINTS && v.parts.gates === SWING_V17_GATE_POINTS * SWING_V17_GATES && v.parts.streak === SWING_V17_STREAK_MAX;
+    ok(v.score === 200 && !v.flagged && full, `dealt course ${w.seed}: its oracle log scores ${v.score} through the server replay, every part at its maximum`);
+    if (v.score === 200 && full) proved++;
+  }
+  console.log(`deal: ${proved} / ${sample.length} sampled dealt courses proved at exactly 200 through the server replay (of ${SWING_SLIDE_DEAL.length})`);
   ok(SWING_REV_SLIDE === SWING_REV_DARK + 1, "the sliding hooks' stamp is one above swingRev 16");
   const seed = roomSeed(4);
   const a = JSON.stringify(game.init(seed));

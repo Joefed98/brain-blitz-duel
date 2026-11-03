@@ -252,6 +252,46 @@ Finally the route is played again on the finished course and must make exactly t
 `swingSlidePlan(seed)` returns the witness: the planned route as input (`witness`) and the tick it grabs each sliding
 hook (`slideTicks`).
 
+## The deal: 200 proved on every dealt course (3 Nov 2026 follow-up)
+
+Joe's follow-up: a perfect run reached 200 on only 10 of 24 courses, so 200 is now proved on every course a room deals,
+as Apex's deal does. `scripts/swing-slide-deal.ts` builds each candidate course (the sim's own builder above, sliding
+hooks phased to its planned route), lets the **oracle** play it (the flawless-level skill-band bot, no timing error) and
+keeps the seed only when the oracle's log scores **exactly 200 through the server's replay** (`encodeSwingRun` →
+`replaySwingRun`, unflagged); the rest are dropped. Rooms, practice, the daily and challenges deal through
+`generateSwing` from `SWING_SLIDE_DEAL` (`src/lib/duel/swingSlideDeal.server.ts`, `swingSlideDealSeed(roomSeed)`), and
+each kept course's oracle log is its witness (`scripts/fixtures/swing-slide-deal-witness.json.gz`).
+
+- **120 courses kept of the first 234 candidates (114 dropped, 51 % kept).** Every course still builds from its seed
+  in the sim (any seed plays, as before; only the deal is narrowed), and nothing about the game changed: the stamp,
+  parts and rules are as above.
+- Why not the planned route: the builder's planned route is a deliberately steady line (each stretch 30+ ticks under
+  par); through the server replay its 90 s scores 165–181 (about 36 of 51 stretches, a streak of ~113 grabs), so it
+  cannot carry 200. The oracle is the flawless bot, which flies the faster lines. A second or third look-ahead stream
+  never rescued a course the first missed, so the oracle has one try. The misses are near-misses (197–198: one stalled
+  grab breaking a streak block, or a stretch a few ticks short of full par).
+- `bun scripts/swing-slide-deal.ts --check` replays all 120 witnesses (each exactly 200, the deal exactly those
+  seeds); swing-slide-check replays every eighth (all with `CHECKS_FULL=1`), each at 200 with every part at its maximum,
+  and asserts rooms deal only from the list; the arcade-standard entry's perfect runs are three dealt courses' witnesses
+  through the server replay.
+
+Medians before (swingRev 17 on any course, fresh room seeds 10000–10011, the table below) → after (the dealt courses
+for fresh room seeds 10000–10023, 24 runs, 19 distinct courses), every run through the server's replay:
+
+| Level | Before | After (range) |
+|---|---|---|
+| Weak | 59 | 69 (21–94) |
+| Average | 90 | 95 (71–108) |
+| Good | 121 | 122 (73–158) |
+| Great | 161 | 165 (152–174) |
+| Near-perfect | 189 | 190 (186–195) |
+| Elite | 195 | 198 (193–200) |
+| Flawless | 199 | **200 (200–200, 24 of 24)** |
+| Random | 8 | 5 (2–15) |
+
+Flawless > great > good on 24 of 24. The top four barely move; weak rises most (59 → 69, now above its 30–60 target):
+the dealt courses are ones a flawless line clears cleanly, a little kinder on average to a weak player too.
+
 ## Scoring (`swingSlideParts`, `swingScoreV17`, `swingBandPartsV17`)
 
 | Part | Points | How |
@@ -290,7 +330,7 @@ table used. Targets (Joe): weak 30–60, average about 90, good 120–140, great
 | Random | 7 (2–12) | 8 (2–12) | 8 | 8 | | 44 |
 
 Met: weak, average, good, great, elite (195 fresh, 198 on room seeds 0–11, a little over), flawless (199/198; 200
-on 10 of 24 courses, every one 195 or more). **Not met: near-perfect** (189 against about 175): the near-perfect bot
+on 10 of 24 courses, every one 195 or more; since the deal above, 200 on every dealt course). **Not met: near-perfect** (189 against about 175): the near-perfect bot
 clears about 90 % of the course with no miss and every gate, so it earns nearly the whole par, gate and streak parts;
 any shape that held it to 175 left the great level well under 160 (the great bot reaches 71 % with two misses). The top
 three levels are close (189 · 196 · 198 over 24 courses), as they were on rev 16 (169 · 183 · 184); every level's

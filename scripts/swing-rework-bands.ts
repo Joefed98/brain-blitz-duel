@@ -7,9 +7,10 @@
  *   bun scripts/swing-rework-bands.ts --report=<a.jsonl,b.jsonl,…>   (medians and ranges from saved runs)
  */
 import { appendFileSync, readFileSync } from "node:fs";
-import { swingGameFor, swingReworkParts, swingSlideParts, swingAssaultCounts, SWING_REV_REWORK } from "../src/lib/arcade/swing";
+import { swingGameFor, swingReworkParts, swingSlideParts, swingAssaultCounts, SWING_REV_REWORK, SWING_REV_SLIDE } from "../src/lib/arcade/swing";
 import { encodeSwingRun, replaySwingRun } from "../src/lib/duel/swing";
 import { roomSeed } from "./arcade-skill-bands/games";
+import { swingSlideDealSeed } from "../src/lib/duel/swingSlideDeal.server";
 import { Human, ALL_LEVELS, LEVEL_LABEL } from "./arcade-skill-bands/human";
 import { bot, randomBot } from "./arcade-skill-bands/bots/swing";
 
@@ -42,7 +43,8 @@ const out = arg("json");
 const rev = Number(arg("rev") ?? SWING_REV_REWORK);
 const game = swingGameFor(rev);
 for (let n = from; n < to; n++) {
-  const seed = roomSeed(n);
+  // swingRev 17 rooms deal from its proved deal (scripts/swing-slide-deal.ts): the room seed's dealt course.
+  const seed = rev === SWING_REV_SLIDE ? swingSlideDealSeed(roomSeed(n)) : roomSeed(n);
   for (const level of levels) {
     const human = new Human("swing", seed, (level === "random" ? "weak" : level) as never);
     const ctx = { game, seed, rev, human };

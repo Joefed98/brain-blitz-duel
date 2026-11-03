@@ -1174,7 +1174,7 @@ outside the repo.
   grab tick and proved in the build (restart hangs at 8 phases, the route replayed identically); a clean-swing streak
   (a new hook within 150 ticks of the last grab or landing; a miss, catch or stall resets it; HUD "STREAK ×n"); parts
   course 110 (straight line, full at 700 ‰) + pars 40 (over 45 stretches) + gates 10 + streak 40 (2 per 8 in a row);
-  `pinSwingPreSlide(true)` deals rev 16; swing-slide-check. **Rainbow Bridge** `inkRev 13` (`INK_REV_CLOVER`): no ink
+  rooms deal from a proved deal as Apex's (`SWING_SLIDE_DEAL`, `swingSlideDeal.server.ts`, `bun scripts/swing-slide-deal.ts [--check]`: 120 courses whose oracle, the flawless-level bot, replays to exactly 200, 114 of the first 234 candidates dropped; witnesses `scripts/fixtures/swing-slide-deal-witness.json.gz`); `pinSwingPreSlide(true)` deals rev 16; swing-slide-check. **Rainbow Bridge** `inkRev 13` (`INK_REV_CLOVER`): no ink
   stars, silver coins or wind; 2 clovers a run on the proved bonus line farthest off the easy route; more birds (seeded,
   every level still proved drawable); ink par a level (the proved line's ink + 10 %, HUD "Ink n / par p"); failed drops
   no longer end the run; 25 % more ink a level; parts levels 120 + ink par 30 + trick shots 20 + clovers 10 + speed 20;

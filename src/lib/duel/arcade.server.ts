@@ -30,6 +30,7 @@ import { orbitFuelCourseForSeed, orbitXpCourseForSeed, orbitHolesForBankSeed, or
 import { proveSwingSeed } from "./swingProof.server";
 import { SWING_V9_BANK } from "./swingBankV9.server";
 import { SWING_V13_BANK } from "./swingBankV13.server";
+import { swingSlideDealSeed } from "./swingSlideDeal.server";
 import { CLAY_REV_DEPTH } from "@/lib/arcade/clayShoot";
 import { WORDFALL_REV_BANDS } from "@/lib/arcade/wordfall";
 import { dealtTopupRev } from "./depthTopup";
@@ -413,8 +414,10 @@ export function pinSwingPreSlide(on: boolean): boolean {
 
 export function generateSwing(): SwingPuzzleData {
   const roomSeed = arcadeSeed();
-  // swingRev 17 (the sliding hooks and the streak), 16 (the dark ledge runs, 90 s), 15 (the swinging course) and 14 (the assault course): any seed; the course is built and proved from it in the sim.
-  if (!swingPreAssault && !swingPreRework && !swingPreDark && !swingPreSlide) return { type: "swing", seed: roomSeed, swingRev: SWING_REV_SLIDE };
+  // swingRev 17 (the sliding hooks and the streak): from its deal, courses whose oracle run replays to exactly 200
+  // (scripts/swing-slide-deal.ts, as Apex's). 16 (the dark ledge runs, 90 s), 15 (the swinging course) and 14 (the
+  // assault course): any seed; the course is built and proved from it in the sim.
+  if (!swingPreAssault && !swingPreRework && !swingPreDark && !swingPreSlide) return { type: "swing", seed: swingSlideDealSeed(roomSeed), swingRev: SWING_REV_SLIDE };
   if (!swingPreAssault && !swingPreRework && !swingPreDark) return { type: "swing", seed: roomSeed, swingRev: SWING_REV_DARK };
   if (!swingPreAssault && !swingPreRework) return { type: "swing", seed: roomSeed, swingRev: SWING_REV_REWORK };
   if (!swingPreAssault) return { type: "swing", seed: roomSeed, swingRev: SWING_REV_ASSAULT };
