@@ -92,7 +92,7 @@ reason given. "Practice" marks games retired to practice.
 | Grappler (`swing`) | Hold to grapple, release to let go; drag up or down while holding to reel | Hold Space to grapple, let go to release; ↑ ↓ / W S reel while held |
 | High Rise (`skyline`) | Click to drop | Space, ↓ or S drops |
 | Hover (`hover`) | Click to flap | Space, ↑ or W flaps |
-| Home Run (`homerun`) | Drag through the ball to swing (its start height meets the pitch, its angle aims); click Contact or Power at the bottom of the field before the pitch (homerunRev 3) | C or 1 = Contact, P or 2 = Power (homerunRev 3); the swing stays a mouse drag (its height and angle are the aim) |
+| Home Run (`homerun`) | homerunRev 4 (3 Nov 2026): click a spot on the field before the pitch, then click anywhere to swing as the ring closes on the ball (rev 1–3: drag through the ball; rev 3 also Contact or Power) | Space = swing (homerunRev 4; the spot stays a click); rev 3: C or 1 = Contact, P or 2 = Power, the swing a mouse drag |
 | Jaywalk (`cross`) | Drag-flick up, down, left or right | ← → ↑ ↓ / WASD step |
 | Meteor (`snake`) | Drag-flick to turn | ← → ↑ ↓ / WASD turn |
 | Orbit (`orbit`) | Click to release; SET CHECKPOINT button | Space releases; C sets a checkpoint (when the button shows) |

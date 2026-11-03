@@ -76,6 +76,7 @@ import { encodeMahjongRun, replayMahjongRun } from "../../src/lib/duel/mahjong";
 import { homerunCheckpoint, homerunGameFor, HOMERUN_REV_DEALT } from "../../src/lib/arcade/homerun";
 import { encodeHomerunRun, replayHomerunRun } from "../../src/lib/duel/homerun";
 import { homerunDealSeedV3 } from "../../src/lib/duel/homerunDealV3.server";
+import { homerunDealSeedV4 } from "../../src/lib/duel/homerunDealV4.server";
 import { freekickCheckpoint, freekickGameFor, FREEKICK_REV_DEALT } from "../../src/lib/arcade/freekick";
 import { encodeFreekickRun, replayFreekickRun } from "../../src/lib/duel/freekick";
 import { freekickDealSeedV2 } from "../../src/lib/duel/freekickDealV2.server";
@@ -109,6 +110,7 @@ import { poolCheckpoint, poolGameFor, POOL_REV } from "../../src/lib/arcade/pool
 import { encodePoolRun, replayPoolRun } from "../../src/lib/duel/pool";
 import { poolBankV2SeedFor } from "../../src/lib/duel/poolBankV2.server";
 import { poolBankV3SeedFor } from "../../src/lib/duel/poolBankV3.server";
+import { poolBankV4SeedFor } from "../../src/lib/duel/poolBankV4.server";
 import { curlingCheckpoint, curlingGameFor, CURLING_REV } from "../../src/lib/arcade/curling";
 import { encodeCurlingRun, replayCurlingRun } from "../../src/lib/duel/curling";
 import { curlingBankSeedFor } from "../../src/lib/duel/curlingBank.server";
@@ -310,7 +312,7 @@ export const GAMES: GameSpec[] = [
   // The Sports group (30 Oct 2026): born on the arcade scoring standard (rev 1 is live and next); rooms deal a seed from
   // each game's proved deal (the oracle took it to 200 through the server replay), picked by the room seed.
   // homerunRev 3 (1 Nov 2026): the swing choice and the pitcher's tell, on rev 3's own proved deal.
-  { ...simple("homerun", HOMERUN_REV_DEALT, HOMERUN_REV_DEALT, homerunGameFor, homerunCheckpoint, encodeHomerunRun, replayHomerunRun), seedFor: (n) => homerunDealSeedV3(roomSeed(n)) },
+  { ...simple("homerun", HOMERUN_REV_DEALT, HOMERUN_REV_DEALT, homerunGameFor, homerunCheckpoint, encodeHomerunRun, replayHomerunRun), seedFor: (n) => homerunDealSeedV4(roomSeed(n)), seedForRev: (n, rev) => (rev === 3 ? homerunDealSeedV3(roomSeed(n)) : undefined) },
   { ...simple("freekick", FREEKICK_REV_DEALT, FREEKICK_REV_DEALT, freekickGameFor, freekickCheckpoint, encodeFreekickRun, replayFreekickRun), seedFor: (n) => freekickDealSeedV2(roomSeed(n)) },
   // Apex (racing) deals racingRev 3 from its own proved deal since 3 Nov 2026 (racingRev 2 from 31 Oct 2026).
   { ...simple("racing", RACING_REV_DEALT, RACING_REV_DEALT, racingGameFor, racingCheckpoint, encodeRacingRun, replayRacingRun), seedFor: (n) => racingDealSeedV3(roomSeed(n)) },
@@ -346,13 +348,13 @@ export const GAMES: GameSpec[] = [
     encode: (run) => encodeMinigolfRun(run),
     replay: (seed, raw, rev) => replayMinigolfRun(seed, raw, minigolfParsOf(seed), minigolfRevOf(rev ?? null, seed)),
   },
-  // Cue Ball deals a bank layout (proved clearable without a miss), poolRev 3 from its own bank (1 Nov 2026).
+  // Cue Ball deals a bank layout (proved clearable without a miss), poolRev 4 from its own bank (3 Nov 2026).
   {
     type: "pool",
     live: POOL_REV,
-    seedFor: poolBankV3SeedFor,
-    // poolRev 2 measures on its own bank's layouts.
-    seedForRev: (n, rev) => (rev === 2 ? poolBankV2SeedFor(n) : undefined),
+    seedFor: poolBankV4SeedFor,
+    // poolRev 2 and 3 measure on their own banks' layouts.
+    seedForRev: (n, rev) => (rev === 2 ? poolBankV2SeedFor(n) : rev === 3 ? poolBankV3SeedFor(n) : undefined),
     gameFor: (rev) => poolGameFor(rev),
     checkpoint: poolCheckpoint,
     encode: (run) => encodePoolRun(run),

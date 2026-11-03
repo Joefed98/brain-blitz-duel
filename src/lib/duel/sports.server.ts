@@ -10,7 +10,7 @@ import { HOMERUN_REV_DEALT } from "@/lib/arcade/homerun";
 import { FREEKICK_REV_DEALT } from "@/lib/arcade/freekick";
 import { RACING_REV_DEALT } from "@/lib/arcade/racing";
 import { arcadeSeed } from "./arcade.server";
-import { homerunDealSeedV3 } from "./homerunDealV3.server";
+import { homerunDealSeedV4 } from "./homerunDealV4.server";
 import { freekickDealSeedV3 } from "./freekickDealV3.server";
 import { racingDealSeedV3 } from "./racingDealV3.server";
 import { MINIGOLF_REV } from "@/lib/arcade/minigolf";
@@ -23,9 +23,9 @@ import { ALLEYROLL_REV_DEALT } from "@/lib/arcade/alleyroll";
 import type { AlleyRollPuzzleData, CurlingPuzzleData, FreekickPuzzleData, HomerunPuzzleData, MinigolfPuzzleData, PoolPuzzleData, RacingPuzzleData } from "./types";
 
 export function generateHomerun(): HomerunPuzzleData {
-  // homerunRev 3 (1 Nov 2026, the swing choice and the pitcher's tell): rev 3's own proved deal (homerunDealV3.server.ts);
-  // rev-2 rounds replay on rev 2 (homerunDealV2.server.ts stays as it was).
-  return { type: "homerun", seed: homerunDealSeedV3(arcadeSeed()), homerunRev: HOMERUN_REV_DEALT };
+  // homerunRev 4 (3 Nov 2026, pick your spot): rev 4's own proved deal (homerunDealV4.server.ts); rev-3, rev-2 and rev-1
+  // rounds replay on their own revisions (their deal files stay as they were).
+  return { type: "homerun", seed: homerunDealSeedV4(arcadeSeed()), homerunRev: HOMERUN_REV_DEALT };
 }
 
 export function generateFreekick(): FreekickPuzzleData {

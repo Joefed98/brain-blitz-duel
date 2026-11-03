@@ -48,7 +48,7 @@ than 2 dB over the library's median loudest 100 ms (-13.8 dBFS), music to -18 LU
 | `homerun.pitch` | Home Run | The pitcher releases the ball | `homerun_pitch.mp3` | 10 | 259 ms |
 | `homerun.whiff` | Home Run | A swing and a miss (with `homerun.strike`, the mitt) | `homerun_whiff.mp3` | 0–10 | 400 ms |
 | `homerun.roar` | Home Run | A home run | `sports_crowd_roar.mp3` | 0–10 | 3477 ms |
-| `homerun.groan` | Home Run | A fair ball within 30 ft of the fence | `sports_crowd_groan.mp3` | 0–5 | 1995 ms |
+| `homerun.groan` | Home Run | A fair ball within 30 ft of the fence; homerunRev 4: a fielder's catch (with `homerun.catch`) | `sports_crowd_groan.mp3` | 0–5 | 1995 ms |
 | `freekick.crowd` | Top Bins | While the run is live (0.26) | `sports_crowd_loop.mp3` | loop | loop |
 | `freekick.whistle` | Top Bins | The referee's whistle before each kick | `freekick_whistle.mp3` | 10 | 683 ms |
 | `freekick.roar` | Top Bins | A goal | `sports_crowd_roar.mp3` | 0–10 | 3477 ms |

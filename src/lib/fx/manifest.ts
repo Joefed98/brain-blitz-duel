@@ -1050,6 +1050,7 @@ const ENTRIES = {
   "homerun.whiff": { channel: "effects", frequency: 0, ms: 400, url: "/sounds/homerun_whiff.mp3" },
   "homerun.roar": { channel: "effects", frequency: 0, ms: 3477, url: "/sounds/sports_crowd_roar.mp3" },
   "homerun.groan": { channel: "effects", frequency: 0, ms: 1995, url: "/sounds/sports_crowd_groan.mp3" },
+  "homerun.catch": { channel: "effects", frequency: 0, ms: 400, url: "/sounds/homerun_mitt.mp3" },
   "freekick.crowd": { channel: "effects", frequency: 0, ms: 9271, url: "/sounds/sports_crowd_loop.mp3", loop: true },
   "freekick.whistle": { channel: "effects", frequency: 0, ms: 683, url: "/sounds/freekick_whistle.mp3" },
   "freekick.roar": { channel: "effects", frequency: 0, ms: 3477, url: "/sounds/sports_crowd_roar.mp3" },

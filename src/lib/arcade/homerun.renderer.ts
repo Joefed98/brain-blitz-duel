@@ -12,6 +12,12 @@
  * (CONTACT / POWER, the choice standing, locked at the release) and Early / Perfect / Late against the pitch kind's own
  * perfect tick (homerunPerfectOffset). Earlier revisions draw as before.
  *
+ * homerunRev 4 (3 Nov 2026, pick your spot): no tell and no swing chip; the five fixed signs (HOMERUN_V4_SIGNS) on the
+ * fence, the scoreboard and the upper deck, the pitch's lit one glowing with a BONUS tag; the six fielders standing in
+ * their catch areas (shifting between pitches); the batter's spot marker; a faint ring closing on the pitch as the tap's
+ * moment comes; the pitch's name beside it in flight; CAUGHT calls; the perfect-streak chip. The batted ball lands where
+ * the sim put it (homerunV4Landing), on the same field mapping a spot is tapped on.
+ *
  * The near field (plate, batter, mound) is a pinhole projection (`proj`, feet); the outfield wall and the stands use a
  * panoramic angle mapping (spray angle → screen x) so both foul poles stay in view. The strike zone and the pitch's
  * plate point are the sim's own world px (homerunBallAt, the plan); the batter is a jointed 3-D figure projected
@@ -34,7 +40,16 @@ import {
   homerunPlan,
   HOMERUN_MODE_POWER,
   HOMERUN_REV_3,
+  HOMERUN_REV_4,
   HOMERUN_TELL_TICKS,
+  HOMERUN_V4_SIGNS,
+  homerunGroundY,
+  homerunStandY,
+  homerunV4Target,
+  homerunV4XOf,
+  OUT_CAUGHT,
+  type HomerunFielder,
+  type HomerunV4Sign,
   PITCH_CHANGEUP,
   PITCH_CURVE,
   PITCH_DROP,
@@ -251,6 +266,171 @@ function paintSign(ctx: CanvasRenderingContext2D, s: HomerunSign, i: number, lit
     ctx.fillStyle = "rgba(242,199,92,0.08)";
     ctx.fillRect(b.x - 4, b.y - 4, b.w + 8, b.h + 8);
   }
+  ctx.restore();
+}
+
+/**
+ * homerunRev 4's sign (a fixed box of the sim's own): a fence board, the scoreboard panel or an upper-deck banner. Lit,
+ * it glows gold with a pulse `k` (0…1) and a BONUS tag under it.
+ */
+function paintV4Sign(ctx: CanvasRenderingContext2D, s: HomerunV4Sign, lit: boolean, k: number): void {
+  ctx.save();
+  ctx.fillStyle = "#05070D";
+  ctx.fillRect(s.x - 1.5, s.y - 1.5, s.w + 3, s.h + 3);
+  if (s.tier === "board") {
+    // The scoreboard: a framed panel on two legs.
+    ctx.fillStyle = "#0C0F18";
+    ctx.fillRect(s.x + 6, s.y + s.h, 3, 6);
+    ctx.fillRect(s.x + s.w - 9, s.y + s.h, 3, 6);
+  }
+  const g = ctx.createLinearGradient(0, s.y, 0, s.y + s.h);
+  g.addColorStop(0, lit ? "#3A2E10" : s.tier === "upper" ? "#1A1426" : "#14161E");
+  g.addColorStop(1, lit ? "#1A1306" : "#0B0C12");
+  ctx.fillStyle = g;
+  ctx.fillRect(s.x, s.y, s.w, s.h);
+  ctx.strokeStyle = lit ? "#F2C75C" : "rgba(242,199,92,0.35)";
+  ctx.lineWidth = lit ? 1.4 : 1;
+  ctx.strokeRect(s.x + 0.5, s.y + 0.5, s.w - 1, s.h - 1);
+  ctx.fillStyle = lit ? "#FFE7A3" : "rgba(255,231,163,0.5)";
+  ctx.font = `800 ${s.tier === "board" ? 9 : 7}px ${ARCADE_FX_DISPLAY_FONT}`;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(s.text, s.x + s.w / 2, s.y + s.h / 2 + 0.5);
+  if (lit) {
+    ctx.globalCompositeOperation = "lighter";
+    const r = Math.max(s.w, s.h) * (0.9 + 0.25 * k);
+    const glow = ctx.createRadialGradient(s.x + s.w / 2, s.y + s.h / 2, 2, s.x + s.w / 2, s.y + s.h / 2, r);
+    glow.addColorStop(0, `rgba(255,214,110,${0.3 + 0.15 * k})`);
+    glow.addColorStop(1, "rgba(255,214,110,0)");
+    ctx.fillStyle = glow;
+    ctx.fillRect(s.x + s.w / 2 - r, s.y + s.h / 2 - r, r * 2, r * 2);
+    ctx.globalCompositeOperation = "source-over";
+    // The BONUS tag under the sign.
+    ctx.font = `800 7.5px ${MONO}`;
+    const tw = ctx.measureText("BONUS").width + 8;
+    const ty = s.y + s.h + (s.tier === "board" ? 7 : 2);
+    ctx.fillStyle = "rgba(242,199,92,0.95)";
+    ctx.beginPath();
+    ctx.roundRect(s.x + s.w / 2 - tw / 2, ty, tw, 10, 5);
+    ctx.fill();
+    ctx.fillStyle = "#1A1206";
+    ctx.fillText("BONUS", s.x + s.w / 2, ty + 5.5);
+  }
+  ctx.restore();
+}
+
+/** homerunRev 4: where a fielder stands on screen (the same field mapping a spot is tapped on). */
+function fielderAt(f: Pick<HomerunFielder, "spray" | "feet">): { x: number; y: number; s: number } {
+  return { x: homerunV4XOf(f.spray), y: homerunGroundY(f.feet), s: F / (f.feet + CAM_BACK) };
+}
+
+/** A fielder's catch area: a soft disc on the grass (its sim area: ±half degrees, ±depth feet). */
+function paintCatchArea(ctx: CanvasRenderingContext2D, f: HomerunFielder, alpha = 1): void {
+  const c = fielderAt(f);
+  const rx = (f.half / 10) * 4;
+  const ry = Math.max(3, (homerunGroundY(f.feet - f.depth) - homerunGroundY(f.feet + f.depth)) / 2);
+  const cy = (homerunGroundY(f.feet - f.depth) + homerunGroundY(f.feet + f.depth)) / 2;
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.fillStyle = "rgba(220,255,225,0.10)";
+  ctx.strokeStyle = "rgba(220,255,225,0.28)";
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.ellipse(c.x, cy, rx, ry, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+  ctx.restore();
+}
+
+/** A fielder: a small shaded figure in the home team's red, glove out (raised when making a catch). */
+function paintFielder(ctx: CanvasRenderingContext2D, x: number, y: number, s: number, catching: number): void {
+  const h = Math.max(9, Math.min(34, s * 6));
+  const u = h / 16;
+  ctx.save();
+  ctx.fillStyle = "rgba(0,0,0,0.35)";
+  ctx.beginPath();
+  ctx.ellipse(x, y, 3.4 * u, 1.1 * u, 0, 0, Math.PI * 2);
+  ctx.fill();
+  // Legs.
+  ctx.fillStyle = "#E7E9EF";
+  ctx.fillRect(x - 2.2 * u, y - 6 * u, 1.8 * u, 6 * u);
+  ctx.fillRect(x + 0.4 * u, y - 6 * u, 1.8 * u, 6 * u);
+  // Body.
+  const body = ctx.createLinearGradient(x - 3 * u, 0, x + 3 * u, 0);
+  body.addColorStop(0, "#9E2B2F");
+  body.addColorStop(1, "#E0473E");
+  ctx.fillStyle = body;
+  ctx.beginPath();
+  ctx.roundRect(x - 2.8 * u, y - 12 * u, 5.6 * u, 6.6 * u, 1.4 * u);
+  ctx.fill();
+  // Glove arm.
+  ctx.strokeStyle = "#E0473E";
+  ctx.lineWidth = 1.3 * u;
+  ctx.lineCap = "round";
+  ctx.beginPath();
+  ctx.moveTo(x + 2.4 * u, y - 10.5 * u);
+  const gx = x + 4.2 * u;
+  const gy = y - (catching > 0 ? 16 * u : 8.5 * u);
+  ctx.lineTo(gx, gy);
+  ctx.stroke();
+  ctx.fillStyle = "#6B4325";
+  ctx.beginPath();
+  ctx.arc(gx, gy, 1.3 * u, 0, Math.PI * 2);
+  ctx.fill();
+  // Head and cap.
+  ctx.fillStyle = "#C69C7A";
+  ctx.beginPath();
+  ctx.arc(x, y - 13.6 * u, 1.9 * u, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = "#B8302F";
+  ctx.beginPath();
+  ctx.arc(x, y - 14.3 * u, 2 * u, Math.PI, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
+
+/** The batter's spot: a gold reticle where it was tapped, YOUR SPOT under it (red when it sits in a fielder's area). */
+function paintSpot(ctx: CanvasRenderingContext2D, x: number, y: number, risky: boolean, locked: boolean, tick: number, still: boolean): void {
+  const pulse = still ? 0 : 0.5 + 0.5 * Math.sin(tick * 0.12);
+  ctx.save();
+  ctx.strokeStyle = "rgba(0,0,0,0.55)";
+  ctx.lineWidth = 4;
+  ctx.beginPath();
+  ctx.arc(x, y, 9, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.strokeStyle = locked ? "#FFFFFF" : `rgba(255,255,255,${0.75 + 0.25 * pulse})`;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.arc(x, y, 9, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.lineWidth = 1.6;
+  ctx.beginPath();
+  for (const [dx, dy] of [
+    [0, -1],
+    [0, 1],
+    [-1, 0],
+    [1, 0],
+  ] as const) {
+    ctx.moveTo(x + dx * 6, y + dy * 6);
+    ctx.lineTo(x + dx * 13, y + dy * 13);
+  }
+  ctx.stroke();
+  ctx.fillStyle = "#F2C75C";
+  ctx.beginPath();
+  ctx.arc(x, y, 2.2, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.font = `800 8px ${MONO}`;
+  ctx.textAlign = "center";
+  // In the stands the label goes above the reticle (a lit sign's BONUS tag sits under the sign); on the grass below it.
+  const above = y < 170;
+  ctx.textBaseline = above ? "bottom" : "top";
+  const ly = above ? y - 15 : y + 15;
+  const label = risky ? "YOUR SPOT · FIELDER" : "YOUR SPOT";
+  ctx.lineWidth = 3;
+  ctx.strokeStyle = "rgba(0,0,0,0.6)";
+  ctx.strokeText(label, x, ly);
+  ctx.fillStyle = risky ? "#FF8A6B" : "#F3F1EC";
+  ctx.fillText(label, x, ly);
   ctx.restore();
 }
 
@@ -506,13 +686,14 @@ function paintField(ctx: CanvasRenderingContext2D, e: Extent): void {
 }
 
 /** The park behind everything (sky to the plate), signs and the radar board included; painted once per size and seed. */
-export function paintHomerunPark(ctx: CanvasRenderingContext2D, plan: HomerunPlan | null, extent: Extent = WORLD_EXTENT): void {
+export function paintHomerunPark(ctx: CanvasRenderingContext2D, plan: HomerunPlan | null, extent: Extent = WORLD_EXTENT, v4 = false): void {
   const e = extent;
   paintSky(ctx, e);
   paintStands(ctx, e);
   for (let cx = Math.floor((e.x0 - 120) / 130) * 130 + 65; cx < e.x1 + 120; cx += 130) paintFloodlight(ctx, cx, 4 + (artHash(cx, 5) % 6), 46);
   paintRadarBoard(ctx);
   if (plan) plan.signs.forEach((s, i) => paintSign(ctx, s, i, true));
+  if (v4) HOMERUN_V4_SIGNS.forEach((s) => paintV4Sign(ctx, s, false, 0));
   paintWall(ctx, e);
   paintPole(ctx, homerunSprayX(450));
   paintPole(ctx, homerunSprayX(-450));
@@ -1075,12 +1256,91 @@ function pitcherPhase(state: HomerunState): number {
 /** The swing being shown: the current pitch's (once started) or the one that decided the last pitch. */
 function shownSwing(state: HomerunState, plan: HomerunPlan): { st: number; a: number; b: number; pitch: HomerunPitch } | null {
   const cur = homerunCurrent(state);
-  if (state.swingTick >= 0 && cur) return { st: state.swingTick, a: state.swingA, b: state.swingB, pitch: cur };
+  // homerunRev 4 has no swipe: the bat meets the ball at its height, turned toward the spot (pull or opposite field).
+  const v4 = state.rev >= HOMERUN_REV_4;
+  const aimB = (x: number, y: number) => Math.round((homerunV4Target(x, y).spray * 16) / 9);
+  if (state.swingTick >= 0 && cur)
+    return v4 ? { st: state.swingTick, a: cur.plateY, b: aimB(state.pspotX ?? 195, state.pspotY ?? 193), pitch: cur } : { st: state.swingTick, a: state.swingA, b: state.swingB, pitch: cur };
   const last = state.hits[state.hits.length - 1];
   const pitch = plan.pitches[state.hits.length - 1];
-  if (last && pitch && last.st >= 0 && state.tick - last.st < 110) return { st: last.st, a: last.a, b: last.b, pitch };
+  if (last && pitch && last.st >= 0 && state.tick - last.st < 110) return v4 ? { st: last.st, a: pitch.plateY, b: aimB(last.a, last.b), pitch } : { st: last.st, a: last.a, b: last.b, pitch };
   return null;
 }
+
+/** homerunRev 4's field layer: the lit sign, the fielders in their catch areas and the batter's spot. */
+function paintFieldV4(ctx: CanvasRenderingContext2D, state: HomerunState, plan: HomerunPlan, last: HomerunHit | undefined, sinceLast: number, still: boolean): void {
+  const index = Math.min(state.pitch, HOMERUN_PITCHES - 1);
+  const lit = plan.lit![index]!;
+  const pulse = still ? 0.5 : 0.5 + 0.5 * Math.sin(state.tick * 0.1);
+  if (state.pitch < HOMERUN_PITCHES) paintV4Sign(ctx, HOMERUN_V4_SIGNS[lit]!, true, pulse);
+  // The fielders: the last pitch's places while its ball is out, then a walk to this pitch's places.
+  const now = plan.fielders![index]!;
+  const before = last ? plan.fielders![state.hits.length - 1]! : now;
+  const walk = !last ? 1 : Math.max(0, Math.min(1, (sinceLast - 100) / 50));
+  const shown = now.map((f, i) => {
+    const b = before[i]!;
+    return { ...f, spray: b.spray + (f.spray - b.spray) * walk, feet: b.feet + (f.feet - b.feet) * walk };
+  });
+  const order = shown.map((f, i) => ({ f, i })).sort((a, b) => b.f.feet - a.f.feet);
+  for (const { f } of order) paintCatchArea(ctx, f, state.pitch < HOMERUN_PITCHES ? 1 : 0.5);
+  const catcher = last && last.out === OUT_CAUGHT && sinceLast < 120 ? last.c ?? -1 : -1;
+  for (const { f, i } of order) {
+    let at = fielderAt(f);
+    if (i === catcher && last) {
+      // The catcher runs under the ball: from his place to where it comes down, as it flies.
+      const land = homerunV4Landing(last);
+      const u = Math.min(1, sinceLast / (60 + last.feet / 10));
+      at = { ...at, x: at.x + (land.x - at.x) * u, y: at.y + (land.y - at.y) * u };
+    }
+    paintFielder(ctx, at.x, at.y, at.s, i === catcher ? 1 : 0);
+  }
+  // The spot (the one standing; locked at the release, so a new tap after it shows for the next pitch).
+  if (state.pitch < HOMERUN_PITCHES) {
+    const cur = plan.pitches[state.pitch]!;
+    const locked = state.tick >= cur.release;
+    const sx = locked ? state.pspotX ?? 195 : state.spotX ?? 195;
+    const sy = locked ? state.pspotY ?? 193 : state.spotY ?? 193;
+    const t = homerunV4Target(sx, sy);
+    const risky = t.feet < homerunFence(t.spray) && now.some((f) => Math.abs(t.spray - f.spray) <= f.half && Math.abs(t.feet - f.feet) <= f.depth);
+    paintSpot(ctx, sx, sy, risky, locked, state.tick, still);
+  }
+}
+
+/**
+ * homerunRev 4's timing ring: from the release a faint ring round the pitch closes in, meeting the ball on the tick a
+ * tap meets it perfectly (HOMERUN_SWING_TICKS before it reaches the plate), then fades. The pitch's name rides beside it.
+ */
+function paintTapRing(ctx: CanvasRenderingContext2D, p: HomerunPitch, b: { x: number; y: number; u: number }, r: number, state: HomerunState): void {
+  const perfectTap = p.arrive - HOMERUN_SWING_TICKS;
+  const left = perfectTap - state.tick;
+  if (state.swingTick < 0 && left > -4) {
+    const span = perfectTap - p.release;
+    const k = Math.max(0, left) / span;
+    const rr = r + 2 + 34 * k;
+    const a = left < 0 ? 0.45 * (1 + left / 4) : 0.18 + 0.27 * (1 - k);
+    ctx.save();
+    ctx.strokeStyle = `rgba(255,255,255,${a.toFixed(3)})`;
+    ctx.lineWidth = 1.6;
+    ctx.beginPath();
+    ctx.arc(b.x, b.y, rr, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
+  }
+  if (b.u < 0.85) {
+    ctx.save();
+    ctx.font = `800 9px ${MONO}`;
+    ctx.textAlign = "left";
+    ctx.textBaseline = "middle";
+    const name = HOMERUN_PITCH_NAMES_V4[p.kind] ?? "";
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = "rgba(0,0,0,0.55)";
+    ctx.strokeText(name, b.x + 14, b.y - 6);
+    ctx.fillStyle = "rgba(243,241,236,0.85)";
+    ctx.fillText(name, b.x + 14, b.y - 6);
+    ctx.restore();
+  }
+}
+const HOMERUN_PITCH_NAMES_V4: Record<number, string> = { 0: "FASTBALL", [PITCH_CURVE]: "CURVEBALL", [PITCH_CHANGEUP]: "CHANGEUP" };
 
 function paintBall(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, spin: number): void {
   ctx.save();
@@ -1109,7 +1369,8 @@ function paintBall(ctx: CanvasRenderingContext2D, x: number, y: number, r: numbe
 const pitchR = (u: number) => 1.3 + 5.2 * u * u;
 
 /** Where a batted ball is `k` ticks after contact: from the plate out to its landing (or the stands), shrinking. */
-export function homerunFlight(hit: HomerunHit, from: { x: number; y: number }, k: number, sign?: HomerunSign): { x: number; y: number; r: number; done: boolean } {
+export function homerunFlight(hit: HomerunHit, from: { x: number; y: number }, k: number, sign?: HomerunSign, rev?: number | null): { x: number; y: number; r: number; done: boolean } {
+  if ((rev ?? 1) >= HOMERUN_REV_4) return flightV4(hit, from, k);
   const dur = hit.out === OUT_FOUL ? 50 : 70 + Math.round(hit.feet / 10);
   const u = Math.min(1, k / dur);
   const landX = homerunSprayX(hit.out === OUT_FOUL ? (hit.spray < 0 ? -560 : 560) : hit.spray);
@@ -1125,6 +1386,25 @@ export function homerunFlight(hit: HomerunHit, from: { x: number; y: number }, k
   const x = from.x + (landX - from.x) * e;
   const yLine = from.y + (landY - from.y) * e;
   const y = yLine - peak * Math.sin(Math.PI * Math.min(1, u * (hit.out === OUT_HOMER && !box ? 0.62 : 1)));
+  return { x, y, r: Math.max(1.1, 6.5 * (1 - e) + 1.2 * e), done: u >= 1 };
+}
+
+/** homerunRev 4: where the sim put the ball (a sign hit on the spot itself; a home run in the stands; else on the grass). */
+export function homerunV4Landing(hit: HomerunHit): { x: number; y: number } {
+  if (hit.sign >= 0) return { x: hit.a, y: hit.b };
+  const x = homerunV4XOf(hit.out === OUT_FOUL ? (hit.spray < 0 ? -560 : 560) : hit.spray);
+  if (hit.out === OUT_HOMER) return { x, y: Math.max(30, homerunStandY(hit.spray, hit.feet)) };
+  return { x, y: homerunGroundY(Math.max(20, hit.feet)) };
+}
+
+function flightV4(hit: HomerunHit, from: { x: number; y: number }, k: number): { x: number; y: number; r: number; done: boolean } {
+  const dur = hit.out === OUT_FOUL ? 50 : 60 + Math.round(hit.feet / 10);
+  const u = Math.min(1, k / dur);
+  const land = homerunV4Landing(hit);
+  const peak = 40 + Math.min(220, hit.launch * 0.45);
+  const e = 1 - (1 - u) * (1 - u);
+  const x = from.x + (land.x - from.x) * e;
+  const y = from.y + (land.y - from.y) * e - peak * Math.sin(Math.PI * u);
   return { x, y, r: Math.max(1.1, 6.5 * (1 - e) + 1.2 * e), done: u >= 1 };
 }
 
@@ -1149,6 +1429,8 @@ function chip(ctx: CanvasRenderingContext2D, x: number, y: number, text: string,
 }
 
 function outcomeText(hit: HomerunHit): { big: string; small: string; gold: boolean } {
+  if (hit.out === OUT_CAUGHT) return { big: "CAUGHT", small: `${hit.feet} FT · FIND A GAP`, gold: false };
+  if (hit.out === OUT_HOMER && hit.dt !== undefined) return { big: hit.sign >= 0 ? "BONUS SIGN!" : "HOME RUN", small: `${hit.feet} FT`, gold: true };
   if (hit.out === OUT_HOMER) return { big: hit.sign >= 0 ? "SIGN HIT!" : "HOME RUN", small: `${hit.feet} FT`, gold: true };
   if (hit.out === OUT_FAIR) return { big: `${hit.feet} FT`, small: hit.feet >= 300 ? "OFF THE WALL" : "IN PLAY", gold: false };
   if (hit.out === OUT_FOUL) return { big: "FOUL", small: "", gold: false };
@@ -1223,8 +1505,8 @@ function paintCall(ctx: CanvasRenderingContext2D, hit: HomerunHit, pitch: Homeru
     ctx.fillStyle = "rgba(243,241,236,0.7)";
     ctx.fillText("EARLY", mx - 74, my + 0.5);
     ctx.fillText("LATE", mx + 72, my + 0.5);
-    // Contact height: the ball's crossing (ring) and the bat's line at the swipe's height.
-    if (k < 110) {
+    // Contact height: the ball's crossing (ring) and the bat's line at the swipe's height (no height on homerunRev 4).
+    if (k < 110 && rev < HOMERUN_REV_4) {
       const zx0 = HOMERUN_ZONE_X0 - 8;
       const zx1 = HOMERUN_ZONE_X1 + 8;
       const close = Math.abs(hit.a - pitch.plateY) <= (rev >= HOMERUN_REV_3 ? (hit.m === HOMERUN_MODE_POWER ? 4 : 8) : 4);
@@ -1290,11 +1572,13 @@ function homerunFxFor(viewH: number): typeof HOMERUN_FX {
 }
 
 function drawHomerunWorld(ctx: CanvasRenderingContext2D, state: HomerunState, viewH: number = H): void {
-  const plan = homerunPlan(state.seed);
+  const plan = homerunPlan(state.seed, state.rev);
+  const v4 = state.rev >= HOMERUN_REV_4;
   if (viewH > H) {
     const e: Extent = { ...WORLD_EXTENT, y1: viewH + 8 };
     deviceLayer(ctx, `homerun-park2:${state.seed}:${viewH}`, (c) => paintHomerunPark(c, plan, e));
-  } else deviceLayer(ctx, `homerun-park2:${state.seed}`, (c) => paintHomerunPark(c, plan));
+  } else if (v4) deviceLayer(ctx, `homerun-park4:${state.seed}`, (c) => paintHomerunPark(c, plan, WORLD_EXTENT, true));
+  else deviceLayer(ctx, `homerun-park2:${state.seed}`, (c) => paintHomerunPark(c, plan));
   const still = reducedMotion();
 
   plan.signs.forEach((s, i) => {
@@ -1348,9 +1632,12 @@ function drawHomerunWorld(ctx: CanvasRenderingContext2D, state: HomerunState, vi
   // The radar board reads out the last pitch once it is decided.
   if (last && lastPitch) paintRadarReading(ctx, lastPitch, sinceLast);
 
-  // The pitcher (homerunRev 3: his tell late in the wind-up, and the grip bubble beside him).
+  // homerunRev 4: the lit bonus sign, the fielders (shifting to the next pitch's places after a ball lands) and the spot.
   const cur = homerunCurrent(state);
-  const tellK = state.rev >= HOMERUN_REV_3 && cur ? homerunTellAlpha(cur, state.tick) : 0;
+  if (v4) paintFieldV4(ctx, state, plan, last, sinceLast, still);
+
+  // The pitcher (homerunRev 3: his tell late in the wind-up, and the grip bubble beside him).
+  const tellK = state.rev === HOMERUN_REV_3 && cur ? homerunTellAlpha(cur, state.tick) : 0;
   paintPitcher(ctx, PITCHER_FEET.x, PITCHER_FEET.y, PITCHER_H, pitcherPhase(state), tellK > 0 && cur ? { kind: cur.kind, k: tellK } : undefined);
   if (tellK > 0 && cur) paintTellBubble(ctx, cur.kind, tellK);
 
@@ -1373,9 +1660,9 @@ function drawHomerunWorld(ctx: CanvasRenderingContext2D, state: HomerunState, vi
   // The pitch in flight (and a pitch taken or missed, carrying on past the plate).
   const p = homerunCurrent(state);
   if (p) {
-    const b = homerunBallAt(p, state.tick);
+    const b = homerunBallAt(p, state.tick, state.rev);
     if (b) {
-      const prev = homerunBallAt(p, Math.max(p.release, state.tick - 2));
+      const prev = homerunBallAt(p, Math.max(p.release, state.tick - 2), state.rev);
       const r = pitchR(b.u);
       if (prev && b.u > 0.3) {
         ctx.save();
@@ -1389,14 +1676,19 @@ function drawHomerunWorld(ctx: CanvasRenderingContext2D, state: HomerunState, vi
         ctx.restore();
       }
       paintBall(ctx, b.x, b.y, r, state.tick * 0.9);
+      if (v4) paintTapRing(ctx, p, b, r, state);
     }
   }
 
   // The last decided pitch: its batted ball (or the missed pitch carrying on), then the call.
   if (last && lastPitch) {
     const k = sinceLast;
-    if (last.out === OUT_FAIR || last.out === OUT_HOMER || last.out === OUT_FOUL) {
-      const f = homerunFlight(last, { x: lastPitch.plateX, y: lastPitch.plateY }, k, last.sign >= 0 ? plan.signs[last.sign] : undefined);
+    if (last.out === OUT_CAUGHT) {
+      // Caught: the ball flies out to the fielder's glove and stays there.
+      const f = homerunFlight(last, { x: lastPitch.plateX, y: lastPitch.plateY }, k, undefined, state.rev);
+      if (!f.done) paintBall(ctx, f.x, f.y, f.r, k * 0.6);
+    } else if (last.out === OUT_FAIR || last.out === OUT_HOMER || last.out === OUT_FOUL) {
+      const f = homerunFlight(last, { x: lastPitch.plateX, y: lastPitch.plateY }, k, last.sign >= 0 && !v4 ? plan.signs[last.sign] : undefined, state.rev);
       if (!f.done || k < 140) {
         if (k < 6 && !still) {
           ctx.save();
@@ -1410,7 +1702,7 @@ function drawHomerunWorld(ctx: CanvasRenderingContext2D, state: HomerunState, vi
         }
         if (!f.done) paintBall(ctx, f.x, f.y, f.r, k * 0.6);
         if (f.done && last.sign >= 0 && k < 140) {
-          const sb = homerunSignBox(plan.signs[last.sign]!);
+          const sb = v4 ? HOMERUN_V4_SIGNS[last.sign]! : homerunSignBox(plan.signs[last.sign]!);
           ctx.save();
           ctx.globalCompositeOperation = "lighter";
           ctx.fillStyle = `rgba(255,214,110,${0.5 * (1 - (k % 20) / 20)})`;
@@ -1428,6 +1720,15 @@ function drawHomerunWorld(ctx: CanvasRenderingContext2D, state: HomerunState, vi
 
   // HUD chips along the top (nothing names the pitch before it is thrown).
   const shown = Math.min(state.hits.length + 1, HOMERUN_PITCHES);
+  if (v4) {
+    let x4 = 10;
+    x4 += chip(ctx, x4, 10, `PITCH ${shown}/${HOMERUN_PITCHES}`) + 6;
+    x4 += chip(ctx, x4, 10, `HR ${state.homers}`, state.homers > 0) + 6;
+    chip(ctx, x4, 10, `BONUS ${state.bonus ?? 0}`, (state.bonus ?? 0) > 0);
+    const streak = state.streak ?? 0;
+    chip(ctx, W - 10, 10, streak > 0 ? `PERFECT ×${streak}` : "PERFECT ×0", streak > 0, "right");
+    return;
+  }
   let x = 10;
   x += chip(ctx, x, 10, `PITCH ${shown}/${HOMERUN_PITCHES}`) + 6;
   x += chip(ctx, x, 10, `HR ${state.homers}`, state.homers > 0) + 6;

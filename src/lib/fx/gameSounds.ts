@@ -26,7 +26,7 @@ import { BURST_RADIUS, burstCeiling, burstFloorY, type BurstState } from "@/lib/
 import { BEAT_COMBO_TIERS, BEAT_FALL_TICKS, BEAT_JUDGE_PENDING, type BeatState } from "@/lib/arcade/beat";
 import { BINTOSS_AIM, BINTOSS_FLY, BINTOSS_NARROW_FROM, BINTOSS_THROWS, BINTOSS_WAIT, type BinTossState } from "@/lib/arcade/binToss";
 import type { TiltState } from "@/lib/arcade/tilt";
-import { homerunFence, homerunPlan, OUT_FAIR, OUT_FOUL, OUT_HOMER, OUT_TAKEN, OUT_WHIFF, type HomerunState } from "@/lib/arcade/homerun";
+import { homerunFence, homerunPlan, OUT_CAUGHT, OUT_FAIR, OUT_FOUL, OUT_HOMER, OUT_TAKEN, OUT_WHIFF, type HomerunState } from "@/lib/arcade/homerun";
 import { FK_AIM, FK_FLIGHT, FK_NET_Z, FK_OUT_GOAL, FK_OUT_SAVED, FK_OUT_WALL, FK_OUT_WIDE, type FreekickState } from "@/lib/arcade/freekick";
 import { RACING_CAR_HALF, RACING_LAP, RACING_ROAD_X, RACING_VMAX, racingBalanceSpeed, racingGoTick, racingLightsOn, racingSegAt, racingTrack, type RacingState } from "@/lib/arcade/racing";
 import { btEventCountdown, type BtCourse, type BtState } from "@/lib/arcade/ballTrack";
@@ -1188,18 +1188,29 @@ export function bastionTankSounds(): GameSounds<BastionTankState> {
 
 export function homerunSounds(): GameSounds<HomerunState> {
   let prev: HomerunState | null = null;
+  /** homerunRev 4: the tick a caught ball reaches the glove (the art's flight), when the catch sounds. */
+  let catchAt = -1;
   return {
     frame(state, running) {
       beginFrame("homerun", state);
       loopCue("homerun.crowd", running, CROWD_VOLUME);
       if (prev && state.tick > prev.tick) {
-        const pitch = homerunPlan(state.seed).pitches[state.pitch];
+        const pitch = homerunPlan(state.seed, state.rev).pitches[state.pitch];
         if (pitch && prev.tick < pitch.release && state.tick >= pitch.release) effectCue("homerun.pitch");
         if (state.swingTick >= 0 && prev.swingTick < 0) sfx("homerun.swing", "arc_hover_tap", 0.5, 1.4);
+        if (catchAt > 0 && prev.tick < catchAt && state.tick >= catchAt) {
+          catchAt = -1;
+          sfx("homerun.catch", "arc_fair_thud", 0.8);
+        }
         if (state.hits.length > prev.hits.length) {
           const hit = state.hits[state.hits.length - 1]!;
           const weak = hit.out === OUT_FAIR && hit.q < HOMERUN_WEAK_Q && cueHasFile("homerun.foul");
-          if ((hit.out === OUT_HOMER || hit.out === OUT_FAIR) && !weak) sfx("homerun.crack", "arc_wood_knock", 1, hit.q >= 900 ? 1.15 : 1);
+          if ((hit.out === OUT_HOMER || hit.out === OUT_FAIR || hit.out === OUT_CAUGHT) && !weak) sfx("homerun.crack", "arc_wood_knock", 1, hit.q >= 900 ? 1.15 : 1);
+          // homerunRev 4: a fielder catches it (the glove's pop as it comes down) and the crowd groans.
+          if (hit.out === OUT_CAUGHT) {
+            catchAt = state.tick + Math.max(30, 60 + Math.round(hit.feet / 10) - 4);
+            effectCue("homerun.groan");
+          }
           if (hit.out === OUT_HOMER) {
             sfx("homerun.homer", "arc_fair_sting", 0.9);
             feel("success");
@@ -1218,6 +1229,7 @@ export function homerunSounds(): GameSounds<HomerunState> {
     stop() {
       loopCue("homerun.crowd", false);
       prev = null;
+      catchAt = -1;
     },
   };
 }

@@ -131,6 +131,7 @@ when the run starts. Rooms deal Pinball since 14 Oct 2026; Junction is practice 
 | `homerun.sign` | Home Run | A sign beyond the fence is struck | `arc_fair_bell` (0.9) | 0–4 | 480 ms |
 | `homerun.foul` | Home Run | A foul ball, or weak contact (a fair ball under 400 per mille, once the slot has its file) | `arc_bounce` (0.7) | 0–5 | 150 ms |
 | `homerun.strike` | Home Run | The ball in the catcher's mitt: a swing and a miss, or a pitch taken | `arc_fair_thud` (0.6) | 0–10 | 150 ms |
+| `homerun.catch` | Home Run | homerunRev 4: a fielder catches the ball as it comes down (with `homerun.groan`, the crowd); the library's glove pop, `homerun_mitt.mp3` | `arc_fair_thud` (0.8) | 0–10 | 400 ms |
 | `freekick.kick` | Top Bins | The ball is struck | `arc_fair_thud` | 10 | 150 ms |
 | `freekick.post` | Top Bins | The ball hits a post or the bar | `arc_clank` | 0–5 | 200 ms |
 | `freekick.save` | Top Bins | The keeper saves | `arc_wood_knock` | 0–10 | 200 ms |
