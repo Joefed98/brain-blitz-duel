@@ -1,7 +1,7 @@
 import { BASTION_REV_DEALT } from "@/lib/arcade/bastionTank";
 import { DEPTH_DEMO_STOPS, DEPTH_REV, depthRevOf } from "./logicDepth";
-import { SWING_REV_DARK } from "@/lib/arcade/swing";
-import { INK_REV_SPREAD, INK_REV_STD } from "@/lib/arcade/inkBridge";
+import { SWING_REV_SLIDE } from "@/lib/arcade/swing";
+import { INK_REV_CLOVER } from "@/lib/arcade/inkBridge";
 import { CLAY_REV_DEPTH } from "@/lib/arcade/clayShoot";
 import { WHACK_REV_NOTES } from "@/lib/arcade/whack";
 import { WORDFALL_REV } from "@/lib/arcade/wordfall";
@@ -100,8 +100,10 @@ export const getIntroDemoFn = createServerFn({ method: "GET" })
     // Block-era Rainbow Bridge demos would show red blocks under the birds wording.
     // x200 (inkRev 10): a taller world with clouds, wind, coins and a shamrock; inkRev 11 (phone notes, 27 Oct 2026) drops
     // the wind and spreads the pickups, so its levels differ: only a demo recorded on inkRev 11 plays (the still shows until then).
-    // inkRev 12 (the arcade scoring standard, 29 Oct 2026) keeps inkRev 11's play and HUD exactly, so a demo recorded on either plays.
-    if (data.type === "inkbridge" && demo?.puzzle.type === "inkbridge" && demo.puzzle.inkRev !== INK_REV_SPREAD && demo.puzzle.inkRev !== INK_REV_STD) return null;
+    // inkRev 12 (the arcade scoring standard, 29 Oct 2026) kept inkRev 11's play and HUD exactly, so a demo recorded on either played.
+    // inkRev 13 (Nov 2026: clovers, ink par, more birds, no stars or silver coins) deals other levels: only a demo recorded
+    // on inkRev 13 plays (the still shows until then).
+    if (data.type === "inkbridge" && demo?.puzzle.type === "inkbridge" && demo.puzzle.inkRev !== INK_REV_CLOVER) return null;
     // clayRev 5 (14 Oct 2026) flies 14–16 birds and clayRev 6 (16 Oct 2026, taller worlds batch 2) flies them under a
     // taller sky: an older demo would show the old sky, so only a demo recorded on today's clayRev plays.
     // Depth to 200 (25 Oct 2026): clayRev 9 adds doubles and the hit streak, Bonk's whackRev 3 the gold combo and
@@ -193,9 +195,9 @@ export const getIntroDemoFn = createServerFn({ method: "GET" })
     // An older demo would show the short world (and Ball Tracker's would play a 9-row course), so each stays stopped
     // until one is recorded on its tall revision.
     // Grappler's swinging course (swingRev 15, 29 Oct 2026; the assault course, swingRev 14, before it) and its dark
-    // ledge runs over 90 s (swingRev 16, 1 Nov 2026): only a demo recorded on swingRev 16 plays; until one is, the intro
-    // shows its still. (swingRev 13's, 14's and 15's rules were the same.)
-    if (data.type === "swing" && demo?.puzzle.type === "swing" && demo.puzzle.swingRev !== SWING_REV_DARK) return null;
+    // ledge runs over 90 s (swingRev 16, 1 Nov 2026) and its sliding hooks and streak (swingRev 17, 3 Nov 2026): only a
+    // demo recorded on swingRev 17 plays; until one is, the intro shows its still. (swingRev 13's to 16's rules were the same.)
+    if (data.type === "swing" && demo?.puzzle.type === "swing" && demo.puzzle.swingRev !== SWING_REV_SLIDE) return null;
     // The expansion to 200 (orbitRev 12) shows a wider view with stardust, moons and asteroid fields, so Orbit's demo
     // stays stopped (the intro shows its still) until one is recorded on orbitRev 12.
     // orbitRev 13 (the arcade scoring standard) keeps orbitRev 12's play on new scoring; as flipRev 9 did, only a demo recorded on

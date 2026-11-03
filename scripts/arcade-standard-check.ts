@@ -60,10 +60,11 @@ const STANDARD_ROSTER: readonly { type: string; field: string; rev: number; batc
   { type: "wavefront", field: "wavRev", rev: 12, batch: "C" },
   // flipRev 11 (3 Nov 2026): no star pickups; clean time 100, perfect landings 60, double flips 20, flow streak 20 (flip-rev11-check).
   { type: "flip", field: "flipRev", rev: 11, batch: "C" },
-  { type: "inkbridge", field: "inkRev", rev: 12, batch: "C" },
+  // Rainbow Bridge deals inkRev 13 since Nov 2026 (clovers, ink par, more birds; no stars or silver coins).
+  { type: "inkbridge", field: "inkRev", rev: 13, batch: "C" },
   { type: "orbit", field: "orbitRev", rev: 14, batch: "C" },
   { type: "balltrack", field: "btRev", rev: 8, batch: "C" },
-  { type: "swing", field: "swingRev", rev: 16, batch: "D" }, // swingRev 16 (1 Nov 2026): the dark ledge runs over 90 s, rev 15's parts
+  { type: "swing", field: "swingRev", rev: 17, batch: "D" }, // swingRev 17 (3 Nov 2026): sliding hooks and the clean-swing streak; course 110 + pars 40 + gates 10 + streak 40
   // Cards & Board (30 Oct 2026): born on the standard (their first revision).
   { type: "minesweeper", field: "minesRev", rev: 1, batch: "Cards & Board" },
   { type: "mahjong", field: "mahjongRev", rev: 2, batch: "Cards & Board" },

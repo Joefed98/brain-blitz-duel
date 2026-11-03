@@ -665,6 +665,14 @@ const BUILDERS: Record<string, Builder> = {
         ...(starLevels > 0 ? [{ label: n(r, "silverTotal") > 0 ? "Ink stars" : "Gold stars", value: `${n(r, "stars")} / ${starLevels}` }] : []),
         // inkRev 10 (x200): silver coins and the shamrock.
         ...(n(r, "silverTotal") > 0 ? [{ label: "Silver", value: `${n(r, "silver")} / ${n(r, "silverTotal")}` }, { label: "Shamrock", value: n(r, "shamrock") ? "Yes" : "No" }] : []),
+        // inkRev 13: levels potted within their ink par, trick shots and clovers (no stars or silver coins).
+        ...(n(r, "cloverTotal") > 0
+          ? [
+              { label: "Within ink par", value: `${n(r, "parLevels")} / ${levels}` },
+              { label: "Trick shots", value: `${n(r, "tricks")} / ${n(r, "cloudLevels")}` },
+              { label: "Clovers", value: `${n(r, "shamrock")} / ${n(r, "cloverTotal")}` },
+            ]
+          : []),
         { label: "Fails", value: String(n(r, "fails")) },
       ],
       outcome: done ? "finish" : "time",
@@ -733,6 +741,27 @@ const BUILDERS: Record<string, Builder> = {
     };
   },
   swing: (r, s) => {
+    // swingRev 17 (the sliding hooks and the clean-swing streak): the share of the course on the axis; four parts add up to the stored score.
+    if (n(r, "swingRev") >= 17) {
+      const done = n(r, "sections") >= n(r, "sectionTotal") && n(r, "sectionTotal") > 0;
+      return {
+        axis: { value: Math.trunc(n(r, "permille") / 10), max: 100, label: "% of the course" },
+        lines: [
+          `${Math.trunc(n(r, "permille") / 10)} % of the course · ${n(r, "sections")} / ${n(r, "sectionTotal")} stretches → ${n(r, "basePts")}`,
+          `Pars (${n(r, "parsBeaten")} under) +${n(r, "parPts")}`,
+          `Gates (${n(r, "gates")} / ${n(r, "gateTotal")}) +${n(r, "gatePts")}`,
+          `Clean-swing streak +${n(r, "streakPts")}`,
+          `Total → ${s}`,
+        ],
+        tiles: [
+          { label: "Course", value: `${Math.trunc(n(r, "permille") / 10)} %` },
+          { label: "Under par", value: `${n(r, "parsBeaten")}` },
+          { label: "Restarts", value: `${n(r, "restarts")}` },
+          { label: "Gates", value: `${n(r, "gates")} / ${n(r, "gateTotal")}` },
+        ],
+        outcome: done ? "finish" : ended(r, false),
+      };
+    }
     // swingRev 15 (the swinging course) and 16 (its dark ledge runs, 90 s): the share of the course on the axis; the three parts add up to the stored score.
     if (n(r, "swingRev") >= 15) {
       const done = n(r, "sections") >= n(r, "sectionTotal") && n(r, "sectionTotal") > 0;

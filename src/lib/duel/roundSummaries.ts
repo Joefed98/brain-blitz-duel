@@ -1614,6 +1614,14 @@ const snipSummary: SummaryBuilder = (result) => {
 };
 
 const swingSummary: SummaryBuilder = (result) => {
+  // swingRev 17 (the sliding hooks and the streak): the share of the course, restarts, pars, gates and the streak.
+  if (Number(result.extra?.["swingRev"] ?? 0) >= 17) {
+    const x = (k: string) => Number(result.extra?.[k] ?? 0);
+    return {
+      summary: `${Math.trunc(x("permille") / 10)} % of the course · ${x("restarts")} restart${x("restarts") === 1 ? "" : "s"} · ${result.score ?? 0}`,
+      detail: ["Same course for everyone", `${x("sections")} / ${x("sectionTotal")} stretches · ${x("parsBeaten")} under par · ${x("gates")} gates · streak +${x("streakPts")}`],
+    };
+  }
   // swingRev 15 (the swinging course) and 16 (its dark ledge runs): the share of the course, restarts, pars and pickups.
   if (Number(result.extra?.["swingRev"] ?? 0) >= 15) {
     const x = (k: string) => Number(result.extra?.[k] ?? 0);

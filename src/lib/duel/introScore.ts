@@ -1,3 +1,4 @@
+import { SWING_V17_CORE, SWING_V17_GATES, SWING_V17_GATE_POINTS, SWING_V17_PAR_POINTS, SWING_V17_STREAK_MAX } from "@/lib/arcade/swing";
 import { PS_CORE_FULL_V2 } from "@/lib/arcade/cards/pokerSquares";
 import { FH_CORE_FULL_V2 } from "@/lib/arcade/cards/fiveHands";
 import { FC_CORE_UNITS_V3 } from "@/lib/arcade/cards/freecell";
@@ -7,7 +8,7 @@ import { MOON_CORE_FULL_M } from "@/lib/arcade/ricochetNinja";
 import { MG_CORE_FULL } from "@/lib/arcade/cards/muggins";
 import { BULLSEYE_INNER_BULL_POINTS, BULLSEYE_RING_VALUES } from "@/lib/arcade/bullseye";
 import { BINTOSS_THROWS, BINTOSS_V9_BUCKET, BINTOSS_V9_FAR, BINTOSS_V9_FINISH, BINTOSS_V9_HOOP } from "@/lib/arcade/binToss";
-import { INK_LEVELS, INK_V12_CORE_MAX } from "@/lib/arcade/inkBridge";
+import { INK_V13_CLOVER_MAX, INK_V13_CORE_MAX, INK_V13_PAR_MAX, INK_V13_TRICK_MAX } from "@/lib/arcade/inkBridge";
 import { TILT_P_CLEAN_POINTS, TILT_P_MAZE_POINTS, TILT_P_PAR_POINTS, TILT_P_PROGRESS_POINTS, TILT_S_MAZES } from "@/lib/arcade/tilt";
 import { bandsIntro } from "./puzzleBandsText";
 import { logicStandardIntro } from "./standard/logicText";
@@ -150,11 +151,11 @@ function introScoreTemplates(): Record<PuzzleType, string> {
     wavefront: "Ships, hits, waves, a fast boss kill, saucers, cannons, cores; a lost life −5. Total {max}.",
     flip: "Clean time 100; landing on sweet spots 60; double flips, flow streak 40: total {max}.",
     junction: "Points for each car and bus through, ± for ambulances. Last the minute for 10 more.",
-    inkbridge: `Levels ${INK_V12_CORE_MAX}; stars, tricks, shamrock, silver, speed ${200 - INK_V12_CORE_MAX}. All ${INK_LEVELS} levels quickly: up to {max}.`,
+    inkbridge: `Levels ${INK_V13_CORE_MAX}; little ink ${INK_V13_PAR_MAX}, tricks ${INK_V13_TRICK_MAX}, clovers ${INK_V13_CLOVER_MAX}. All 10 levels quickly: up to {max}.`,
     burst: "Atoms up to 140, fast waves 35, golden atoms 25; a lost life costs 5. Up to {max}.",
     orbit: "Planets 130 + sun speed, stardust, slings, fields, perfect orbits. Mind fuel: up to {max}.",
     snip: "Points for fruit fed and leaves; golden apples, few cuts and speed add more. Up to {max}.",
-    swing: `90 s. Distance along the course (140), pars (30), gates, gems and stars (30): up to {max}.`,
+    swing: `90 s. Course (${SWING_V17_CORE}), pars (${SWING_V17_PAR_POINTS}), gates (${SWING_V17_GATES * SWING_V17_GATE_POINTS}), clean-swing streak (${SWING_V17_STREAK_MAX}): up to {max}.`,
     // tiltRev 11 (3 Nov 2026): no gold stars; par times and a clean run.
     tilt: `${TILT_P_MAZE_POINTS + TILT_P_PROGRESS_POINTS} a maze, +${TILT_P_PAR_POINTS} a maze beaten in time, clean run ${TILT_P_CLEAN_POINTS}. All ${TILT_S_MAZES} quickly: up to {max}.`,
     balltrack: `Marbles home 140; gold, boosted and in-a-row marbles add 60: they total up to {max}.`,

@@ -349,7 +349,7 @@ if (want("swing")) {
   // Tuning F (Oct 2026) moved new Grappler rounds on to swingRev 8 (evenly spread stars); swing-rev8-check covers it.
   // Taller worlds batch 3 (16 Oct 2026) moved rooms on to swingRev 9 (the taller cavern); arcade-tuning-g3-check covers it.
   // Grappler's 200 expansion (26 Oct 2026) moved rooms on to swingRev 13 (swing-x200-check).
-  ok(playRevOf("swing", generateSwing().swingRev) === SWING_REV_TUNED + 10, "new Grappler rounds are stamped swingRev 16 (the dark ledge runs, after swingRev 6, 7, 8, 9, 13, 14 and 15)");
+  ok(playRevOf("swing", generateSwing().swingRev) === SWING_REV_TUNED + 11, "new Grappler rounds are stamped swingRev 17 (the sliding hooks, after swingRev 6, 7, 8, 9, 13, 14, 15 and 16)");
   ok(puzzleUsesBands({ type: "swing", swingRev: SWING_REV_TUNED }) && puzzleUsesBands({ type: "swing", swingRev: SWING_REV_BAND }), "swingRev 5 and 6 both score on the band curve");
   ok(SWING_CHASE_PACE === 4 * FP, "the chasing dragon keeps its pace (4 px a tick)");
   ok(SWING_ROCK_WARN === 60 && SWING_ROCK_WARN_V6 === 120, "stalactites crumble for 2 s on rev 6 (1 s before)");
@@ -415,7 +415,9 @@ if (want("swing")) {
   const art = readFileSync("src/lib/arcade/swing.renderer.ts", "utf8");
   ok(/if \(r\.phase === 1 && state\.tuned\)[\s\S]{0,200}drawCrumble/.test(art), "rev-6 stalactites crumble instead of showing the red warning line");
   const help = INSTRUCTIONS.swing!;
-  ok(help.how.some((h) => /Touch stars/.test(h.action)) && !help.how.some((h) => /star anchors/i.test(`${h.action} ${h.detail}`)), "the help describes touch stars");
+  // The live help describes the revision rooms deal: since swingRev 17 (3 Nov 2026, swing-slide-check) Grappler has no
+  // stars at all, so it no longer describes touch stars (rev 6's touch stars are still proved above on their stamp).
+  ok(!help.how.some((h) => /Touch stars/.test(h.action)) && !help.how.some((h) => /star anchors/i.test(`${h.action} ${h.detail}`)), "the help no longer describes stars (swingRev 17 has none), nor star anchors");
 }
 
 /* ================================= 2e. Tilt ================================= */

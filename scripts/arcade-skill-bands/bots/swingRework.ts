@@ -38,7 +38,11 @@ const CFG: Record<SkillLevel, Cfg> = {
 
 export function reworkBot({ game, seed, human }: BotCtx): BotResult {
   const cfg = CFG[human.level];
-  const sd = human.p.timingSdMs / (1000 / 60);
+  // swingRev 17: the flawless player plans as if a tick either way could happen (lines that still work a tick early or
+  // late, as the other levels' spread makes them), and then plays each moment exactly. Without it the flawless bot picked
+  // knife-edge lines past the sliding hooks and the gates, and fell or missed gates the elite bot took.
+  const planFloor = human.level === "perfect" && (game.init(seed) as SwingState).slide ? 1 : 0;
+  const sd = Math.max(human.p.timingSdMs / (1000 / 60), planFloor);
   /** Weights of a timing error of d ticks (d = −6…6) for this player. */
   const spread: [number, number][] = [];
   if (sd <= 0.05) spread.push([0, 1]);
@@ -114,7 +118,8 @@ export function reworkBot({ game, seed, human }: BotCtx): BotResult {
    * further on or lands, and (for a level that looks a hook ahead, `ahead`) the most pickups one of those lines
    * takes on the way, a reeled-in swing's included for a level that reels.
    */
-  const carries = (s: SwingState, k: number, grab: SwingBody, ahead: boolean): [number, number] => {
+  // (t0: the state tick of the grab; swingRev 17's sliding hooks are seen where they will be. Earlier revisions ignore it.)
+  const carries = (s: SwingState, k: number, grab: SwingBody, ahead: boolean, t0 = s.tick): [number, number] => {
     let good = 0;
     let most = 0;
     const scan = (start: SwingBody, from: number, reeledAt: number) => {
@@ -135,7 +140,7 @@ export function reworkBot({ game, seed, human }: BotCtx): BotResult {
           if (ahead) pickupsAt(s, q, f, line);
           const l = landed(s, k, q.y, f);
           if (l === -1) break;
-          if (l === 1 || (t % 2 === 0 && kit.target(s, k, f.x, f.y) > grab.rope)) {
+          if (l === 1 || (t % 2 === 0 && kit.target(s, k, f.x, f.y, t0 + r + t) > grab.rope)) {
             good += reeledAt ? 0 : 1;
             most = Math.max(most, line.size);
             break;
@@ -164,7 +169,7 @@ export function reworkBot({ game, seed, human }: BotCtx): BotResult {
    * of is `from`): a hook ahead caught that carries on, pickups up to then and the ticks it takes; or a landing.
    * Also returns the landing value if the flight (no grab) lands on the section's ledge.
    */
-  const flight = (s: SwingState, k: number, f0: SwingBody, from: number, before: Set<string>, ticks0: number, n = 50) => {
+  const flight = (s: SwingState, k: number, f0: SwingBody, from: number, before: Set<string>, ticks0: number, n = 50, t0 = s.tick) => {
     const values: number[] = [0];
     const f = { ...f0 };
     const got = new Set(before);
@@ -181,14 +186,15 @@ export function reworkBot({ game, seed, human }: BotCtx): BotResult {
         if (l === 1) land = 1 + cfg.pickup * got.size + cfg.speed * Math.max(0, 160 - ticks0 - g);
         break;
       }
-      const to = kit.target(s, k, f.x, f.y);
+      const to = kit.target(s, k, f.x, f.y, t0 + g);
       let v = 0;
       if (to > from) {
         // Neighbouring ticks grab much the same swing: the look-ahead is made every other tick and shared.
         if (to !== lastTo || g - lastAt >= 2) {
           const grab = { ...f };
-          kit.attach(grab, to, s);
-          lastCarry = carries(s, sectionAfter(s, k, to), grab, cfg.ahead);
+          // swingRev 17: a sliding hook is grabbed where it is then, and stops there (kit.grabView); earlier revisions as before.
+          kit.attachAt(grab, to, s, t0 + g);
+          lastCarry = carries(kit.grabView(s, to, t0 + g), sectionAfter(s, k, to), grab, cfg.ahead, t0 + g);
           lastTo = to;
           lastAt = g;
         }
@@ -220,7 +226,7 @@ export function reworkBot({ game, seed, human }: BotCtx): BotResult {
       const f = { ...b };
       kit.detach(f, s);
       if (f.vx <= 0) { out.push(0); continue; }
-      const { values, land } = flight(s, k, f, b.rope, got, offset + j, 50);
+      const { values, land } = flight(s, k, f, b.rope, got, offset + j, 50, s.tick + j);
       // The grab is timed too: its value is what the player's spread makes of the table.
       let best = land;
       for (let g = 1; g < values.length; g++) if (values[g]! > 0) best = Math.max(best, smooth((t) => values[t] ?? 0, g));
@@ -291,7 +297,7 @@ export function reworkBot({ game, seed, human }: BotCtx): BotResult {
       plan.at(t + Math.max(0, (j ?? human.int(14, 30)) + err()), hold(0));
     } else if (s.grabTick > 0 || s.tick > 0) {
       // In the air: the moment to grab.
-      const { values } = flight(s, k, body, lastRope, new Set(), 0, 50);
+      const { values } = flight(s, k, body, lastRope, new Set(), 0, 50, s.tick);
       const g = choose(values, 1);
       // values[g] is the target after g ticks of flight: a press on the tick after that.
       if (g !== null) plan.at(t + Math.max(0, g + Math.round(err() * 1.3)), hold(1));

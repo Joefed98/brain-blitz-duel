@@ -13,7 +13,7 @@ import { roundMaxFor } from "../duel/roundMax";
 import { BT_REV_STD, BT_REV_STRICT, BT_V8_BAND_CURVE } from "./ballTrack";
 import { WAV_REV_STD, WAV_REV_STRICT, WAV_V12_BAND_CURVE } from "./wavefront";
 import { FLIP_REV_FLOW, FLIP_REV_STRICT, FLIP_V11_BAND_CURVE } from "./flip";
-import { INK_REV_STD, INK_REV_STRICT, INK_V12_BAND_CURVE } from "./inkBridge";
+import { INK_REV_CLOVER, INK_REV_STRICT, INK_V13_BAND_CURVE } from "./inkBridge";
 import { MATCHUP_REV_SIX, MATCHUP_REV_STRICT, MATCHUP_V12_BAND_CURVE } from "./matchup";
 import { BUB_REV_STD, BUB_REV_STRICT, BUB_V11_BAND_CURVE, BUB_V11_STD_SPEC } from "./bubble";
 import { CROSS_REV_FLOW, CROSS_REV_STRICT, CROSS_V11_BAND_CURVE } from "./cross";
@@ -34,7 +34,7 @@ import { ORBIT_V14_BAND_CURVE } from "./orbitRev3";
 import { BEAT_REV_STD, BEAT_REV_STRICT, BEAT_STD_SPEC, BEAT_V11_BAND_CURVE } from "./beat";
 import { SLICE_REV_STRICT, SLICE_REV_STANDARD, SLICE_V11_BAND_CURVE } from "./slice";
 import { BURST_REV_STD, BURST_REV_STRICT, BURST_V10_BAND_CURVE } from "./burst";
-import { SWING_REV_DARK, SWING_REV_STRICT, SWING_V16_BAND_CURVE } from "./swing";
+import { SWING_REV_SLIDE, SWING_REV_STRICT, SWING_V17_BAND_CURVE } from "./swing";
 import { BULLSEYE_REV_STD, BULLSEYE_REV_STRICT, BULLSEYE_STD_SPEC, BULLSEYE_V9_BAND_CURVE } from "./bullseye";
 import { PIN_REV_STD, PIN_STD_SPEC, PIN_V6_BAND_CURVE } from "./pinball4";
 import { PIN_REV_STRICT } from "./pinball";
@@ -92,8 +92,9 @@ export const LIVE_BANDS = {
   // flipRev 11 (3 Nov 2026): the core's straight line (clean half seconds → 100; a saved crash costs 20 s); perfect landings,
   // double flips and the flow streak up to 100 more. flipRev 10: half seconds survived → 150 (FLIP_V10_BAND_CURVE).
   flip: { field: "flipRev", rev: FLIP_REV_FLOW, curve: FLIP_V11_BAND_CURVE, strictRev: FLIP_REV_STRICT },
-  // inkRev 12 (the arcade scoring standard): levels on a straight line to 140; speed and the features add up to 60 more.
-  inkbridge: { field: "inkRev", rev: INK_REV_STD, curve: INK_V12_BAND_CURVE, strictRev: INK_REV_STRICT },
+  // inkRev 13 (Nov 2026: clovers, ink par, more birds; inkRev 12 before it): levels on a straight line to 120; ink par,
+  // trick shots, clovers and speed add up to 80 more.
+  inkbridge: { field: "inkRev", rev: INK_REV_CLOVER, curve: INK_V13_BAND_CURVE, strictRev: INK_REV_STRICT },
   // matchupRev 12 (the arcade scoring standard, six goals and six treasures): the core's straight line (gems cleared, to
   // 108); treasure, goals, ice and big lines pay fixed amounts on top, to 200 (the help says so). matchupRev 11 before it.
   matchup: { field: "matchupRev", rev: MATCHUP_REV_SIX, curve: MATCHUP_V12_BAND_CURVE, strictRev: MATCHUP_REV_STRICT },
@@ -129,8 +130,9 @@ export const LIVE_BANDS = {
   slice: { field: "sliceRev", rev: SLICE_REV_STANDARD, curve: SLICE_V11_BAND_CURVE, strictRev: SLICE_REV_STRICT },
   // burstRev 10 (the arcade scoring standard): the core's straight line (140 at all 87 atoms); wave clears, golden atoms and lives on top (the help says so).
   burst: { field: "burstRev", rev: BURST_REV_STD, curve: BURST_V10_BAND_CURVE, strictRev: BURST_REV_STRICT },
-  // swingRev 16 (the dark ledge runs, 90 s; swingRev 15's parts): the course's straight line to 140; pars and pickups pay up to 60 more (the help says so).
-  swing: { field: "swingRev", rev: SWING_REV_DARK, curve: SWING_V16_BAND_CURVE, strictRev: SWING_REV_STRICT },
+  // swingRev 17 (the sliding hooks and the clean-swing streak, 90 s): the course's straight line to 140, full at SWING_V17_FULL
+  // per mille; pars, gates and the streak pay up to 60 more (the help says so).
+  swing: { field: "swingRev", rev: SWING_REV_SLIDE, curve: SWING_V17_BAND_CURVE, strictRev: SWING_REV_STRICT },
   // bullRev 9 (the arcade scoring standard, docs/arcade-standard/bullseye.md): the dart total on a straight line, plus the
   // bull streak and dead-centre darts.
   bullseye: { field: "bullRev", rev: BULLSEYE_REV_STD, curve: BULLSEYE_V9_BAND_CURVE, strictRev: BULLSEYE_REV_STRICT, std: BULLSEYE_STD_SPEC },

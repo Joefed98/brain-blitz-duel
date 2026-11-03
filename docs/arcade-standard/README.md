@@ -76,10 +76,10 @@ replay exactly as before; standard-live-check grades every stored arcade run thr
 | Jaywalk | `cross` | `crossRev` 11 (10 before, Nov 2026: no coins, the no-stop streak) | C | [cross.md](cross.md) |
 | Wavefront | `wavefront` | `wavRev` 12 | C | [wavefront.md](wavefront.md) |
 | Roofbound | `flip` | `flipRev` 11 (10 before, Nov 2026) | C | [flip.md](flip.md) |
-| Rainbow Bridge | `inkbridge` | `inkRev` 12 | C | [inkbridge.md](inkbridge.md) |
+| Rainbow Bridge | `inkbridge` | `inkRev` 13 (12 before, Nov 2026) | C | [inkbridge.md](inkbridge.md) |
 | Orbit | `orbit` | `orbitRev` 13 | C | [orbit.md](orbit.md) |
 | Ball Tracker | `balltrack` | `btRev` 8 | C | [balltrack.md](balltrack.md) |
-| Grappler | `swing` | `swingRev` 16 (15 before 1 Nov 2026) | D | [swing.md](swing.md) |
+| Grappler | `swing` | `swingRev` 17 (16 before 3 Nov 2026, 15 before 1 Nov 2026) | D | [swing.md](swing.md) |
 | Minesweeper | `minesweeper` | `minesRev` 1 | Cards & Board | [minesweeper.md](minesweeper.md) |
 | Mahjong Solitaire | `mahjong` | `mahjongRev` 1 | Cards & Board | [mahjong.md](mahjong.md) |
 | Home Run Derby | `homerun` | `homerunRev` 1 | Sports | [homerun.md](homerun.md) |
@@ -313,6 +313,11 @@ every course's own route clears it under par.
 **swingRev 16 (1 Nov 2026):** the same parts over a 90 s run on a longer course (42 blocks, six ledge runs) whose ledge
 runs go dark (hooks in the dark cannot be grabbed); swing-dark-check proves it, and that swingRev 14 and 15 replay as
 before. See [swing.md](swing.md), "swingRev 16".
+
+**swingRev 17 (3 Nov 2026):** sliding hooks (seeded rails, none in the first quarter) and a clean-swing streak; no
+gems or stars. Parts: course 110 (a straight line full at 700 per mille of the course), pars 40 (over 45 stretches),
+gates 10 (2 each), streak 40 (2 for every 8 clean grabs in a row). swing-slide-check proves it, and that swingRev 15 and
+16 replay as before. See [swing.md](swing.md), "swingRev 17".
 
 
 ## Cards & Board: Minesweeper and Mahjong Solitaire (30 Oct 2026)
