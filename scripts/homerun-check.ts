@@ -20,7 +20,17 @@
  *     scripts/fixtures/homerun-rev2-legacy.json); the swing choice (Contact at first, carried, locked at the release);
  *     each kind's perfect tick and window (fastball tightest), Contact's wide window and short carry (never a sign),
  *     Power's narrow window and 480 ft; the core full at 460 ft a pitch; the rev-3 deal (300 seeds, proved at 200 on
- *     rev 3) is what `homerun-deal.ts --rev=3` builds and rooms deal from it; the help names the swing choice and the tell.
+ *     rev 3) is what `homerun-deal.ts --rev=3` builds;
+ * 10. homerunRev 4 (rooms deal it since 3 Nov 2026, "pick your spot"): rev 3's runs replay as before (the homerun runs
+ *     of scripts/fixtures/sports-nov3-legacy.json, recorded on main 6326101); rev 4's plan (4 fastballs, 3 curves, 3
+ *     changeups, six fielders a pitch, a lit sign a pitch, never the same twice running; rev 1–3's plan unchanged); the
+ *     spot (inside its area, locked at the release, carried) and the tap (from 12 ticks before the release); contact:
+ *     on the spot within a tick (a sign: its own tolerance), early pulls left and late pushes right, short in proportion,
+ *     a miss past 7 ticks, a fielder's catch scores no distance, the bonus only on the lit sign; the perfect streak;
+ *     the four parts summing to 200; the rev-4 deal (300 seeds, the oracle at 200 through the server replay) is what
+ *     `homerun-deal.ts --rev=4` builds and rooms deal from it; the help names the spot, the ring and the fielders.
+ *     (3 Nov 2026: the brief removes the Contact / Power choice and the tell from what rooms deal, so the help
+ *     assertions on them and on rev 1–3's part names now read rev 4's help; rev 3's own rules are still proved above.)
  *
  *   bun scripts/homerun-check.ts
  */
@@ -63,11 +73,34 @@ import {
   OUT_HOMER,
   OUT_TAKEN,
   OUT_WHIFF,
+  OUT_CAUGHT,
+  PITCH_CURVE,
+  HOMERUN_REV_4,
+  HOMERUN_INPUT_RANGES_V4,
+  HOMERUN_INPUT_SPOT,
+  HOMERUN_INPUT_TAP,
+  HOMERUN_STD_SPEC_V4,
+  HOMERUN_V4_DRIFT,
+  HOMERUN_V4_FALL,
+  HOMERUN_V4_FULL_AT,
+  HOMERUN_V4_MISS,
+  HOMERUN_V4_SIGNS,
+  HOMERUN_V4_SPOT_START,
+  HOMERUN_V4_TAP_EARLY,
+  homerunContactV4,
+  homerunGroundY,
+  homerunPlanV4,
+  homerunV4Counted,
+  homerunV4Perfect,
+  homerunV4SpotOk,
+  homerunV4Target,
+  homerunV4XOf,
 } from "../src/lib/arcade/homerun";
 import { encodeHomerunRun, replayHomerunRun } from "../src/lib/duel/homerun";
 import { HOMERUN_DEAL } from "../src/lib/duel/homerunDeal.server";
 import { HOMERUN_DEAL_V2 } from "../src/lib/duel/homerunDealV2.server";
 import { HOMERUN_DEAL_V3 } from "../src/lib/duel/homerunDealV3.server";
+import { HOMERUN_DEAL_V4 } from "../src/lib/duel/homerunDealV4.server";
 import { generateHomerun } from "../src/lib/duel/sports.server";
 import { PUZZLE_INSTRUCTIONS } from "../src/lib/duel/instructions";
 import { oracleRun, playLog } from "./homerun-oracle";
@@ -191,7 +224,8 @@ try {
 {
   const help = PUZZLE_INSTRUCTIONS.homerun?.score ?? "";
   ok(help.includes("Together 200 points."), `the help ends "Together 200 points." (${help})`);
-  for (const part of ["Distance up to 130", "Home runs up to 50", "Sign hits up to 20"]) ok(help.includes(part), `the help states "${part}"`);
+  // The help states the dealt revision's parts (homerunRev 4 since 3 Nov 2026).
+  for (const part of ["Distance up to 120", "Home runs up to 40", "Bonus signs up to 20", "Perfect streak up to 20"]) ok(help.includes(part), `the help states "${part}"`);
 }
 
 /* 7. homerunRev 1 replays exactly as before. */
@@ -258,15 +292,15 @@ try {
   ok(serve(seed, ev, 150, 2).out.flagged, "rev 2: a claimed score the replay does not give is flagged");
   ok(serve(seed, ev, undefined, 1).out.score < 200, "the rev-2 oracle's aim is not rev 1's (the same log on rev 1 misses signs)");
   const help = `${PUZZLE_INSTRUCTIONS.homerun?.goal ?? ""} ${(PUZZLE_INSTRUCTIONS.homerun?.how ?? []).map((h) => `${h.action} ${h.detail}`).join(" ")}`;
-  ok(!/chip at the top names/i.test(help) && /radar/i.test(help), "the help says the pitch is shown on the radar board after it is thrown, never named before");
+  // homerunRev 4 (3 Nov 2026) shows every pitch plainly in flight with no tell: the help says so (rev 2's radar wording is gone).
+  ok(!/chip at the top names/i.test(help) && /no tells/i.test(help), "the help says the pitches are read from the ball itself, with no tells");
 }
 
 /* 9. homerunRev 3. */
 {
   const g3 = homerunGameFor(3);
   ok(g3.init(5).rev === HOMERUN_REV_3 && homerunGameFor(2).init(5).rev === 2, "homerunGameFor: rev 3 on 3, rev 2 on 2");
-  const dealt = generateHomerun();
-  ok(dealt.homerunRev === 3 && HOMERUN_DEAL_V3.includes(dealt.seed), "rooms deal homerunRev 3 from rev 3's proved deal");
+  ok(HOMERUN_DEAL_V3.length === 300, "rev 3's deal is kept");
   // Rev 2's runs replay exactly as before.
   const fx = JSON.parse(readFileSync("scripts/fixtures/homerun-rev2-legacy.json", "utf8")) as { runs: { seed: number; label: string; events: ArcadeInputEvent[]; score: number; checksum: number; tick: number }[] };
   let same = 0;
@@ -375,8 +409,169 @@ try {
   ok(!r3.out.flagged && r3.out.score === g3.score(r3.sim) && r3.out.desyncTick === null, "rev 3: the server replay agrees with the sim");
   ok(serve(HOMERUN_DEAL_V3[5]!, ev, 150, 3).out.flagged, "rev 3: a claimed score the replay does not give is flagged");
   ok(playLog(HOMERUN_DEAL_V3[5]!, ev.filter((e) => e.k === HOMERUN_INPUT_SWING), 3).hits.every((h) => h.m === HOMERUN_MODE_CONTACT), "rev 3: the oracle's swings without its Power choice are Contact swings");
+}
+
+/* 10. homerunRev 4: pick your spot. */
+{
+  const g4 = homerunGameFor(4);
+  ok(g4.init(5).rev === HOMERUN_REV_4 && homerunGameFor(3).init(5).rev === 3, "homerunGameFor: rev 4 on 4, rev 3 on 3");
+  const dealt = generateHomerun();
+  ok(dealt.homerunRev === 4 && HOMERUN_DEAL_V4.includes(dealt.seed), "rooms deal homerunRev 4 from rev 4's proved deal");
+  // Rev 3's runs replay exactly as before (recorded on main 6326101 before rev 4).
+  const fx = JSON.parse(readFileSync("scripts/fixtures/sports-nov3-legacy.json", "utf8")) as { runs: { type: string; rev: number; seed: number; label: string; raw: string; score: number; checksum: number; tick: number }[] };
+  const runs = fx.runs.filter((r) => r.type === "homerun");
+  let same = 0;
+  for (const run of runs) {
+    const quiet = [console.error, console.warn, console.log] as const;
+    console.error = console.warn = console.log = () => {};
+    const out = replayHomerunRun(run.seed, run.raw, 3);
+    [console.error, console.warn, console.log] = quiet;
+    const good = out.state.rev === 3 && out.score === run.score && homerunCheckpoint(out.state).checksum === run.checksum && out.state.tick === run.tick;
+    if (good) same++;
+    else failures.push(`rev-3 legacy run ${run.label} on ${run.seed}: ${out.score} (was ${run.score})`);
+  }
+  ok(runs.length === 44 && same === runs.length, `homerunRev 3: ${same} of ${runs.length} recorded runs replay to the same score, checksum and end tick`);
+  // The plan: rev 1–3's is untouched; rev 4's has its own pitches, fielders and lit signs.
+  let planOk = true;
+  let plan3Same = true;
+  for (let i = 0; i < 400; i++) {
+    const seed = i * 7919 + 3;
+    if (JSON.stringify(homerunPlan(seed)) !== JSON.stringify(homerunPlan(seed, 3))) plan3Same = false;
+    const pl = homerunPlan(seed, 4);
+    const kinds = [0, 1, 3].map((k) => pl.pitches.filter((p) => p.kind === k).length);
+    if (kinds.join() !== "4,3,3" || pl.pitches.length !== 10) planOk = false;
+    if (pl.fielders!.length !== 10 || pl.fielders!.some((fs) => fs.length !== 6 || fs.filter((f) => f.out).length !== 3)) planOk = false;
+    if (pl.lit!.length !== 10 || pl.lit!.some((k, j) => k < 0 || k >= HOMERUN_V4_SIGNS.length || (j > 0 && k === pl.lit![j - 1]))) planOk = false;
+    for (const p of pl.pitches) {
+      const flight = p.arrive - p.release;
+      if (p.kind === PITCH_FASTBALL && (flight < 36 || flight > 41 || p.breakX !== 0)) planOk = false;
+      if (p.kind === PITCH_CURVE && (flight < 48 || flight > 54 || Math.abs(p.breakX) < 30)) planOk = false;
+      if (p.kind === PITCH_CHANGEUP && (flight < 62 || flight > 70)) planOk = false;
+      if (p.arrive - HOMERUN_SWING_TICKS < p.release) planOk = false;
+    }
+  }
+  ok(plan3Same, "rev 1–3's plan is unchanged (homerunPlan(seed) is homerunPlan(seed, 3))");
+  ok(planOk, "rev 4's plan: 4 fastballs (quick, straight), 3 curveballs (bending), 3 changeups (slow), six fielders a pitch (three out), a lit sign a pitch never the same twice running");
+  ok(JSON.stringify(homerunPlan(77, 4)) === JSON.stringify(homerunPlanV4(77)), "rev 4's plan is the same every time");
+  // Every sign is beyond the fence on its own target, and fair.
+  ok(HOMERUN_V4_SIGNS.every((sg) => {
+    const t = homerunV4Target(sg.x + sg.w / 2, sg.y + sg.h / 2);
+    return t.sign >= 0 && t.feet > homerunFence(t.spray) && Math.abs(t.spray) < 450 && homerunV4SpotOk(sg.x + sg.w / 2, sg.y + sg.h / 2);
+  }), "every sign's centre is a legal spot beyond the fence");
+  ok(HOMERUN_V4_SIGNS.filter((sg) => sg.tier === "fence").every((sg) => sg.tol === 2) && HOMERUN_V4_SIGNS.filter((sg) => sg.tier === "board").every((sg) => sg.tol === 1) && HOMERUN_V4_SIGNS.filter((sg) => sg.tier === "upper").every((sg) => sg.tol === 0), "far and high signs time tighter: fence ±2 ticks, scoreboard ±1, upper deck exact");
+  // Contact.
+  const seed = HOMERUN_DEAL_V4[7]!;
+  const pl = homerunPlan(seed, 4);
+  const gap = { x: 150, y: 200 };
+  const tgt = homerunV4Target(gap.x, gap.y);
+  let rules = true;
+  for (let i = 0; i < 10; i++) {
+    const p = pl.pitches[i]!;
+    const at = (dt: number) => homerunContactV4(pl, i, p.arrive - HOMERUN_SWING_TICKS + dt, gap.x, gap.y);
+    for (const dt of [-1, 0, 1]) {
+      const h = at(dt);
+      if (h.out === OUT_WHIFF || h.spray !== tgt.spray || (h.out !== OUT_CAUGHT && h.feet !== tgt.feet) || h.dt !== dt) rules = false;
+    }
+    const early = at(-3);
+    const late = at(3);
+    if (early.spray !== tgt.spray + 3 * HOMERUN_V4_DRIFT || late.spray !== tgt.spray - 3 * HOMERUN_V4_DRIFT) rules = false;
+    if (early.feet !== Math.floor((tgt.feet * (1000 - 3 * HOMERUN_V4_FALL)) / 1000)) rules = false;
+    if (at(HOMERUN_V4_MISS + 1).out !== OUT_WHIFF || at(-HOMERUN_V4_MISS - 1).out !== OUT_WHIFF || at(HOMERUN_V4_MISS).out === OUT_WHIFF) rules = false;
+  }
+  ok(rules, "rev 4: within a tick the ball lands on the spot; early pulls left, late pushes right (2.5° a tick) and short in proportion; past 7 ticks a miss");
+  // Signs: only the lit one pays, within its tolerance.
+  let signRules = true;
+  for (let i = 0; i < 10; i++) {
+    const p = pl.pitches[i]!;
+    HOMERUN_V4_SIGNS.forEach((sg, k) => {
+      const cx = sg.x + sg.w / 2;
+      const cy = sg.y + sg.h / 2;
+      for (let dt = -3; dt <= 3; dt++) {
+        const h = homerunContactV4(pl, i, p.arrive - HOMERUN_SWING_TICKS + dt, cx, cy);
+        const want = k === pl.lit![i] && Math.abs(dt) <= sg.tol ? k : -1;
+        if (h.sign !== want) signRules = false;
+        if (Math.abs(dt) <= sg.tol && h.out !== OUT_HOMER) signRules = false;
+      }
+    });
+  }
+  ok(signRules, "rev 4: a sign struck pays only when it is the pitch's lit sign and the swing is within its tolerance (always a home run)");
+  // Fielders catch what lands in their areas, short of the fence; a caught ball counts no distance.
+  let catches = 0;
+  let catchRules = true;
+  for (let i = 0; i < 10; i++) {
+    const p = pl.pitches[i]!;
+    for (const f of pl.fielders![i]!) {
+      const x = Math.round(homerunV4XOf(f.spray));
+      const y = Math.round(homerunGroundY(f.feet));
+      const t = homerunV4Target(x, y);
+      const h = homerunContactV4(pl, i, p.arrive - HOMERUN_SWING_TICKS, x, y);
+      const inArea = pl.fielders![i]!.some((g) => Math.abs(t.spray - g.spray) <= g.half && Math.abs(t.feet - g.feet) <= g.depth);
+      if (inArea !== (h.out === OUT_CAUGHT)) catchRules = false;
+      if (h.out === OUT_CAUGHT) {
+        catches++;
+        if (homerunV4Counted(h) !== 0) catchRules = false;
+      }
+    }
+  }
+  ok(catchRules && catches > 20, `rev 4: a ball landing in a fielder's area is caught and counts no distance (${catches} of 60 hit at the fielders caught)`);
+  // The spot and the tap.
+  const p0 = pl.pitches[0]!;
+  const p1 = pl.pitches[1]!;
+  const play = (extra: ArcadeInputEvent[]) => {
+    const ev: ArcadeInputEvent[] = [];
+    const all = [...extra, { t: p0.arrive - HOMERUN_SWING_TICKS, k: HOMERUN_INPUT_TAP, a: 0, b: 0, c: 0, d: 0 }, { t: p1.arrive - HOMERUN_SWING_TICKS, k: HOMERUN_INPUT_TAP, a: 0, b: 0, c: 0, d: 0 }].sort((x, y) => x.t - y.t);
+    for (const e of all) recordInput(ev, e, HOMERUN_INPUT_RANGES_V4);
+    return playLog(seed, ev, 4);
+  };
+  const none = play([]);
+  ok(none.hits[0]!.a === HOMERUN_V4_SPOT_START.x && none.hits[0]!.b === HOMERUN_V4_SPOT_START.y, "rev 4: with no spot tapped, the pitch goes to the starting spot (straightaway centre)");
+  const before = play([{ t: p0.release, k: HOMERUN_INPUT_SPOT, a: 100, b: 150, c: 0, d: 0 }]);
+  ok(before.hits[0]!.a === 100 && before.hits[1]!.a === 100, "rev 4: a spot tapped by the release plays that pitch and stays for the next");
+  const after = play([{ t: p0.release + 1, k: HOMERUN_INPUT_SPOT, a: 100, b: 150, c: 0, d: 0 }]);
+  ok(after.hits[0]!.a === HOMERUN_V4_SPOT_START.x && after.hits[1]!.a === 100, "rev 4: a spot after the release waits for the next pitch");
+  const outside = play([{ t: 20, k: HOMERUN_INPUT_SPOT, a: 100, b: 600, c: 0, d: 0 }]);
+  ok(outside.hits[0]!.a === HOMERUN_V4_SPOT_START.x && outside.acted > 0, "rev 4: a spot outside the field and stands is ignored (but counts as playing)");
+  const tooEarly = playLog(seed, [{ t: p0.release - HOMERUN_V4_TAP_EARLY - 1, k: HOMERUN_INPUT_TAP, a: 0, b: 0, c: 0, d: 0 }], 4);
+  ok(tooEarly.hits[0]!.out === OUT_TAKEN, "rev 4: a tap before the pitch is near swings at nothing (the pitch is taken)");
+  ok(homerunCheckpoint(before).checksum !== homerunCheckpoint(none).checksum, "rev 4: the checksum carries the spots");
+  // The perfect streak.
+  const oracle = playLog(seed, oracleRun(seed, 4), 4);
+  ok(oracle.best === 10 && oracle.perfects === 10 && oracle.bonus === 10 && oracle.homers === 10, "rev 4: the oracle's run is ten perfect swings in a row, ten home runs on the lit signs");
+  const broken = oracleRun(seed, 4).map((e, j) => (e.k === HOMERUN_INPUT_TAP && j === 9 ? { ...e, t: e.t + 1 } : e));
+  const b5 = playLog(seed, broken, 4);
+  ok(b5.best === 5 && b5.perfects === 9, `rev 4: a swing a tick late on the fifth pitch breaks the streak (best ${b5.best}, perfect ${b5.perfects})`);
+  ok(homerunV4Perfect({ ...b5.hits[4]! }) === false && homerunV4Perfect(b5.hits[0]!) === true, "rev 4: PERFECT is the arrival tick exactly");
+  // The parts: 120 + 40 + 20 + 20.
+  const s0 = { ...g4.init(seed), acted: 1 };
+  let line = true;
+  for (let f = 0; f <= 3100; f += 7) if (homerunStdParts({ ...s0, feet: f })!.find((x) => x.key === "core")!.points !== Math.floor((120 * Math.min(f, HOMERUN_V4_FULL_AT)) / HOMERUN_V4_FULL_AT)) line = false;
+  ok(line, "rev 4: distance a straight line to 120 at 3,000 ft (300 a pitch)");
+  ok(HOMERUN_STD_SPEC_V4.parts.reduce((a, p) => a + p.max, 0) === 200 && HOMERUN_STD_SPEC_V4.parts.map((p) => p.max).join() === "120,40,20,20", "rev 4's parts: distance 120, home runs 40, bonus signs 20, perfect streak 20 = 200");
+  ok(serve(seed, [{ t: 9, k: HOMERUN_INPUT_SPOT, a: 120, b: 190, c: 0, d: 0 }], undefined, 4).out.score === 1, "rev 4: a spot tapped and never a swing scores 1");
+  ok(serve(seed, [], undefined, 4).out.score === 0, "rev 4: no input scores 0");
+  // The rev-4 deal.
+  ok(HOMERUN_DEAL_V4.length === 300 && new Set(HOMERUN_DEAL_V4).size === 300, "the rev-4 deal holds 300 distinct seeds");
+  const provedV4 = FULL ? HOMERUN_DEAL_V4 : HOMERUN_DEAL_V4.filter((_, i) => i % 13 === 0);
+  let v4at200 = 0;
+  for (const sd of provedV4) {
+    const { out } = serve(sd, oracleRun(sd, 4), undefined, 4);
+    if (!out.flagged && out.score === 200 && out.state.rev === 4) v4at200++;
+    else failures.push(`rev-4 deal seed ${sd}: the oracle scores ${out.score}${out.flagged ? " (flagged)" : ""}`);
+  }
+  ok(v4at200 === provedV4.length, `the oracle takes ${v4at200} of ${provedV4.length} rev-4 deal seeds to exactly 200 on rev 4 through the server replay`);
+  try {
+    execFileSync("bun", ["scripts/homerun-deal.ts", "--rev=4", "--check"], { stdio: "pipe" });
+    ok(true, "the rev-4 deal file is what homerun-deal.ts --rev=4 builds");
+  } catch {
+    ok(false, "the rev-4 deal file is what homerun-deal.ts --rev=4 builds");
+  }
+  const ev = oracleRun(HOMERUN_DEAL_V4[5]!, 4);
+  const r4 = serve(HOMERUN_DEAL_V4[5]!, ev, undefined, 4);
+  ok(!r4.out.flagged && r4.out.score === g4.score(r4.sim) && r4.out.desyncTick === null, "rev 4: the server replay agrees with the sim");
+  ok(serve(HOMERUN_DEAL_V4[5]!, ev, 150, 4).out.flagged, "rev 4: a claimed score the replay does not give is flagged");
+  ok(serve(HOMERUN_DEAL_V4[5]!, ev, undefined, 3).out.score < 50, "the rev-4 oracle's log means nothing on rev 3 (its kinds are not rev 3's)");
   const help = `${PUZZLE_INSTRUCTIONS.homerun?.goal ?? ""} ${(PUZZLE_INSTRUCTIONS.homerun?.how ?? []).map((h) => `${h.action} ${h.detail}`).join(" ")}`;
-  ok(/Contact/.test(help) && /Power/.test(help) && /tell/i.test(help), "the help names the Contact and Power swings and the pitcher's tell");
+  ok(/spot/i.test(help) && /ring/i.test(help) && /fielder/i.test(help) && /lit sign/i.test(help) && !/Contact/.test(help), "the help names the spot, the ring, the fielders and the lit sign (and no Contact / Power)");
 }
 
 if (failures.length) {
@@ -384,4 +579,4 @@ if (failures.length) {
   console.log(`FAIL homerun-check: ${failures.length} of ${checks} checks failed`);
   process.exit(1);
 }
-console.log(`PASS homerun-check: ${checks} checks — plans, replay, rev 1's 300-seed deal (${proved.length} proved at 200) and recorded runs, rev 2's finer aim, deal and recorded runs, rev 3's swing choice, timing and deal, parts, contact and help`);
+console.log(`PASS homerun-check: ${checks} checks — plans, replay, rev 1's 300-seed deal (${proved.length} proved at 200) and recorded runs, rev 2's finer aim, deal and recorded runs, rev 3's swing choice, timing, deal and recorded runs, rev 4's spot, tap, fielders, lit signs, streak, parts and deal, and help`);

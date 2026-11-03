@@ -1,16 +1,17 @@
 /**
- * Apex's skill bands (racingRev 2 by default, --rev=1 for the first): every level weak → flawless on room seeds
- * n = 0…59 (the dealt seed racingDealSeedV2(roomSeed(n)), racingDealSeed on rev 1), each run replayed through the
+ * Apex's skill bands (the dealt revision by default, racingRev 3 since 3 Nov 2026; --rev=1 or 2 for the earlier ones): every level weak → flawless on room seeds
+ * n = 0…59 (the dealt seed racingDealSeedV3(roomSeed(n)); racingDealSeedV2 on rev 2, racingDealSeed on rev 1), each run replayed through the
  * server path (replayRacingRun); prints the median table (score, each part, race time) and the near-perfect median race
  * time (RACING_V2_PAR_TICKS / RACING_PAR_TICKS are set from it; on racingRev 2 it is measured from lights out).
  *
  *   bun scripts/racing-bands.ts [--rev=2] [--seeds=60] [--from=0] [--raw]   (--raw: room seeds themselves, not the deal)
  */
-import { racingGameFor, RACING_REV_DEALT } from "../src/lib/arcade/racing";
+import { racingGameFor, racingPace10, RACING_REV_DEALT } from "../src/lib/arcade/racing";
 import { replayRacingRun } from "../src/lib/duel/racing";
 import { racingSubmission } from "./racing-deal";
 import { racingDealSeed } from "../src/lib/duel/racingDeal.server";
 import { racingDealSeedV2 } from "../src/lib/duel/racingDealV2.server";
+import { racingDealSeedV3 } from "../src/lib/duel/racingDealV3.server";
 import { roomSeed } from "./arcade-skill-bands/games";
 import { ALL_LEVELS, Human, LEVEL_LABEL } from "./arcade-skill-bands/human";
 import { bot, randomBot } from "./arcade-skill-bands/bots/racing";
@@ -24,7 +25,7 @@ const from = arg("from", 0);
 const raw = process.argv.includes("--raw");
 const rev = arg("rev", RACING_REV_DEALT);
 const game = racingGameFor(rev);
-const dealt = rev >= 2 ? racingDealSeedV2 : racingDealSeed;
+const dealt = rev >= 3 ? racingDealSeedV3 : rev >= 2 ? racingDealSeedV2 : racingDealSeed;
 
 const median = (xs: number[]) => {
   const s = [...xs].sort((a, b) => a - b);
@@ -38,8 +39,9 @@ const pct = (xs: number[], p: number) => {
 };
 
 console.log(`Apex bands, racingRev ${rev}: ${n} room seeds from ${from}${raw ? " (raw room seeds)" : " (dealt seeds)"}`);
-console.log("| Level | Score (p10–p90) | Distance | Clean sectors | Finish | Speed | Finished | Race time (median of finishers) | Zeros |");
-console.log("| --- | --- | --- | --- | --- | --- | --- | --- | --- |");
+const v3 = rev >= 3;
+console.log(v3 ? "| Level | Score (p10–p90) | Pace | Clean sectors | Average km/h | Finished | Race time (median of finishers) | Zeros |" : "| Level | Score (p10–p90) | Distance | Clean sectors | Finish | Speed | Finished | Race time (median of finishers) | Zeros |");
+console.log(v3 ? "| --- | --- | --- | --- | --- | --- | --- | --- |" : "| --- | --- | --- | --- | --- | --- | --- | --- | --- |");
 const levels = [...ALL_LEVELS, "random"] as const;
 let nearFinish = 0;
 for (const level of levels) {
@@ -58,6 +60,7 @@ for (const level of levels) {
     if (r.flagged) console.error(`flagged ${level} ${i}: ${r.reason}`);
     scores.push(r.score);
     r.parts.forEach((p, k) => parts[k]!.push(p.points));
+    if (v3) parts[3]!.push(racingPace10(r.state));
     if (r.score === 0) zeros++;
     if (r.finished) {
       finished++;
@@ -66,7 +69,8 @@ for (const level of levels) {
   }
   const label = level === "random" ? "Random" : LEVEL_LABEL[level];
   const ft = finishes.length ? `${(median(finishes) / 60).toFixed(1)} s (tick ${median(finishes)})` : "–";
-  console.log(`| ${label} | ${median(scores)} (${pct(scores, 0.1)}–${pct(scores, 0.9)}) | ${median(parts[0]!)} | ${median(parts[1]!)} | ${median(parts[2]!)} | ${median(parts[3]!)} | ${finished}/${n} | ${ft} | ${zeros} |`);
+  if (v3) console.log(`| ${label} | ${median(scores)} (${pct(scores, 0.1)}–${pct(scores, 0.9)}) | ${median(parts[0]!)} | ${median(parts[1]!)} | ${(median(parts[3]!) / 10).toFixed(1)} | ${finished}/${n} | ${ft} | ${zeros} |`);
+  else console.log(`| ${label} | ${median(scores)} (${pct(scores, 0.1)}–${pct(scores, 0.9)}) | ${median(parts[0]!)} | ${median(parts[1]!)} | ${median(parts[2]!)} | ${median(parts[3]!)} | ${finished}/${n} | ${ft} | ${zeros} |`);
   if (level === "near") nearFinish = median(finishes);
 }
-console.log(`\nNear-perfect median race time: ${nearFinish} ticks (${rev >= 2 ? "RACING_V2_PAR_TICKS" : "RACING_PAR_TICKS"})`);
+if (!v3) console.log(`\nNear-perfect median race time: ${nearFinish} ticks (${rev >= 2 ? "RACING_V2_PAR_TICKS" : "RACING_PAR_TICKS"})`);

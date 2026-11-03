@@ -1,4 +1,4 @@
-/** Apex (racing) round plumbing: the server replays with the STORED seed and stamp and keeps its own score (racingRev 1 and 2). */
+/** Apex (racing) round plumbing: the server replays with the STORED seed and stamp and keeps its own score (racingRev 1, 2 and 3). */
 
 import {
   racingCheckpoint,
@@ -7,6 +7,7 @@ import {
   racingStdParts,
   RACING_CHECKPOINT_INTERVAL,
   RACING_REV_2,
+  RACING_REV_3,
   RACING_CHECKPOINT_KEYS,
   RACING_SECTORS,
   RACING_TOTAL,
@@ -27,6 +28,8 @@ const runFor = (rev: number) =>
 const run = runFor(1);
 /** racingRev 2: the same wire format, the lights longer (its own run length and checkpoint count). */
 const runV2 = runFor(RACING_REV_2);
+/** racingRev 3: racingRev 2's run length, the softer gravel and the pace score. */
+const runV3 = runFor(RACING_REV_3);
 
 export interface RacingResult extends FlatReplay<RacingState, RacingCheckpoint> {
   /** Both laps completed, and on which tick (0 when not). */
@@ -51,7 +54,8 @@ export const decodeRacingRun = run.decode;
 
 /** The single place an Apex score is worked out (unstamped = racingRev 1). */
 export function replayRacingRun(seed: number, raw: string, rev?: number | null): RacingResult {
-  const result = ((rev ?? 1) >= RACING_REV_2 ? runV2 : run).replay(seed, raw);
+  const r = rev ?? 1;
+  const result = (r >= RACING_REV_3 ? runV3 : r >= RACING_REV_2 ? runV2 : run).replay(seed, raw);
   const s = result.state;
   return {
     ...result,

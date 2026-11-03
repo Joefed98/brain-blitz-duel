@@ -211,7 +211,7 @@ const BASTION_REVEAL: ArcadeRevealRenderer = {
   worldH: BT2_WORLD_H,
   heightFor: (p) => (bastionTankRound(p) ? BT2_WORLD_H : BAS_WORLD_H),
   drawFinal: (ctx, puzzle, answer) => {
-    if (bastionTankRound(puzzle)) bastionTankArtGame.draw(ctx, replayBastionTankRun(seedOf(puzzle), answer).state, { width: BT2_WORLD_W, height: BT2_WORLD_H });
+    if (bastionTankRound(puzzle)) bastionTankArtGame.draw(ctx, replayBastionTankRun(seedOf(puzzle), answer, puzzle.type === "bastion" ? puzzle.bastionRev : undefined).state, { width: BT2_WORLD_W, height: BT2_WORLD_H });
     else bastionGame.draw(ctx, replayBastionRun(seedOf(puzzle), answer).state, { width: BAS_WORLD_W, height: BAS_WORLD_H });
     return null;
   },

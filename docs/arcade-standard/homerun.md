@@ -1,8 +1,10 @@
-# Home Run on the arcade scoring standard (homerunRev 1, 30 Oct 2026; homerunRev 2, 31 Oct 2026; homerunRev 3, 1 Nov 2026)
+# Home Run on the arcade scoring standard (homerunRev 1, 30 Oct 2026; homerunRev 2, 31 Oct 2026; homerunRev 3, 1 Nov 2026; homerunRev 4, 3 Nov 2026)
 
 Shown as **Home Run** since 31 Oct 2026 (was Home Run Derby; the id `homerun` is unchanged). Rooms deal
-**homerunRev 3** since 1 Nov 2026 (section "homerunRev 3" at the end; rev 2 was dealt on 31 Oct 2026, section
-"homerunRev 2"); everything above them describes rev 1, which every later rule keeps unless its section says otherwise.
+**homerunRev 4** since 3 Nov 2026 (section "homerunRev 4" at the end: a new way to bat, with its own plan and parts);
+rev 3 was dealt on 1 Nov 2026 and rev 2 on 31 Oct 2026 (their sections); everything above them describes rev 1, which
+rev 2 and 3 keep unless their sections say otherwise. Rev 4 shares only the park, the batter, the pitcher, the ten
+pitches' timing (one about every 6 s) and the run's 60 s.
 
 A new arcade game (`homerun`, the Sports group): ten seeded pitches in 60 s, one about every 6 s, swung at from the
 hitter's eye level in a night ballpark. Rooms deal **`homerunRev 1`** (`HOMERUN_REV_STD`); it is born on the standard
@@ -293,3 +295,128 @@ warp, so its score is low).
 - **Contact's carry** (≤ 414 ft) keeps the signs Power-only; Contact can still homer down the lines on a square hit.
 - **Weak and average rise most** (73 and 92): Contact is the easy way in. If that is too generous, narrow Contact's
   window before touching Power.
+
+## homerunRev 4 (3 Nov 2026, "pick your spot")
+
+Joe found rev 3 too hard: timing, direction and height at once. Rev 4 splits the swing into two taps and adds a reason
+to aim: fielders. Rooms deal **`homerunRev 4`** (`HOMERUN_REV_4`, `HOMERUN_REV_DEALT`) from its own proved deal,
+`src/lib/duel/homerunDealV4.server.ts` (`bun scripts/homerun-deal.ts --rev=4`; 300 seeds, each the oracle's run
+scoring exactly 200 on rev 4 through the server replay, 0 dropped). Rev 1, 2 and 3 rounds replay and score exactly as
+before: homerun-check replays the 44 rev-3 runs recorded on main 6326101 (`scripts/fixtures/sports-nov3-legacy.json`,
+written by `scripts/sports-nov3-legacy-record.ts`: every skill-band level, the random swiper and four edge logs
+carrying rev 4's kinds 3 and 4, which rev 3's server drops) to the same score, final checksum and end tick, beside the
+rev-1 and rev-2 fixtures. The rev-1, rev-2 and rev-3 deal files and plans are unchanged byte for byte.
+
+### The play (gameplay, gated on the stamp)
+
+- **Tap a spot** (`HOMERUN_INPUT_SPOT`, k = 3, `a`, `b` the tap in world px): anywhere in the fair field and stands
+  (x 16–374, y 34–268: from the upper deck to the infield grass, `homerunV4SpotOk`; a tap outside is ignored but counts
+  as playing). It stands until the next one (straightaway centre at 230 ft to start, `HOMERUN_V4_SPOT_START`) and each
+  pitch is played to the spot standing at its release (`pspotX` / `pspotY`), so a tap after the release waits for the
+  next pitch. The spot's meaning (`homerunV4Target`): its x is the spray (4 px a degree, the art's panorama); on the
+  grass its y is the carry on the field's ground plane (`homerunGroundY`), in the stands the carry past the fence, 1.1
+  px of height a foot (`homerunStandY`); inside a sign's box it is that sign.
+- **Tap to swing** (`HOMERUN_INPUT_TAP`, k = 4, no payload): taken from 12 ticks before the release
+  (`HOMERUN_V4_TAP_EARLY`) until the pitch is decided; the bat meets the plate 6 ticks after the tap, as before. On the
+  phone one tap does both jobs: before the pitch is near it moves the spot, from then on it swings wherever it lands.
+  On a computer: click a spot, then Space or a click to swing.
+- **The ring** (display): from the release a faint ring round the ball closes in and meets it on the tick a tap meets
+  the ball perfectly (6 ticks before it reaches the plate), then fades. The pitch's name rides beside the ball.
+- **Contact** (`homerunContactV4`): `dt` = the bat's tick at the plate less the ball's arrival. Within the target's
+  tolerance (one tick, `HOMERUN_V4_ON_SPOT`; a sign has its own) the ball lands **on the spot**. Past it, it drifts
+  2.5° a tick (`HOMERUN_V4_DRIFT`; **early pulls it left, late pushes it right**) and falls 4.5 % of its carry a tick
+  short (`HOMERUN_V4_FALL`); more than 7 ticks off (`HOMERUN_V4_MISS`, about 117 ms) is a miss. Past the foul lines is
+  foul; past the fence a home run. **PERFECT** is the arrival tick exactly (`homerunV4Perfect`).
+- **Pitches** (`homerunPlanV4`, its own plan from the seed): four fastballs (36–41 ticks, straight), three curveballs
+  (48–54 ticks, a 30–44 px bend that starts early in the flight and is plain to see) and three changeups (62–70 ticks,
+  floating in and sinking a little), shuffled. No tell, no Contact / Power choice: rev 3's pitcher's tell and buttons
+  are gone from rev 4 (rev 3 rounds keep them).
+- **Signs** (`HOMERUN_V4_SIGNS`, fixed boxes): two fence boards (450 CLUB, JOULZ; ±2 ticks), the DEEP scoreboard in the
+  lower tier (±1 tick) and two upper-deck banners (MOON, LIGHTS; the exact tick): **far and high signs time tighter**,
+  and the upper ones are smaller too. One sign a pitch is lit as the **bonus sign** (seeded, never the same twice
+  running); a swing within the lit sign's tolerance on a spot inside it strikes it (always a home run). Another sign,
+  or the lit one off its tolerance, is just where the ball lands.
+- **Fielders**: six a pitch (three outfielders about 285–310 ft, third base, short stop and second base), at seeded
+  places that shift a little between pitches (±2°, ±10 ft); each stands in a pale circle, his catch area (outfield ±4.5°
+  and ±35 ft, infield ±4.5° and ±22 ft, `HOMERUN_V4_CATCH`). A fair ball short of the fence landing in one is
+  **caught** (`OUT_CAUGHT`): it scores no distance. The spot's label turns to YOUR SPOT · FIELDER when it sits in one.
+- **Perfect streak**: perfect swings in a row (`streak`, the best run `best`), shown in the HUD as PERFECT ×n.
+
+### The parts (200 in all, `HOMERUN_STD_SPEC_V4`)
+
+| Part | Max | How it pays |
+| --- | --- | --- |
+| Distance (core) | 120 | `stdLine(120, Σ min(carry, 300), 3,000)`: 12 a pitch for a ball not caught (home runs included), full at **300 ft** |
+| Home runs | 40 | 4 each, up to 10 |
+| Bonus signs | 20 | 2 for each pitch's lit sign struck |
+| Perfect streak | 20 | 2 for each swing in the longest run of perfect swings |
+
+Score = `stdScore(parts, acted > 0)`: 0 with no input, any spot or tap at least 1. Features never cost the core: a lit
+sign and a home run are both 300 ft and more. The oracle (`oracleRunV4`: the lit sign's centre as the spot, every tap
+on the perfect tick) scores 200 on every deal seed (and on 500 seeds tried).
+
+### Medians, rev 3 as dealt → rev 4 (`bun scripts/homerun-bands.ts [--rev=3]`, room seeds 0–59, server replay)
+
+| Level | Target | Rev 3 | **Rev 4** | Distance (120) | Home runs (40) | Bonus signs (20) | Streak (20) | Caught | Best streak |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Random | – | 1 | 15 | 14 | 0 | 0 | 0 | 0 | 0 |
+| Weak | 30–60 | 73 | **52** | 50 | 0 | 0 | 2 | 0 | 1 |
+| Average | about 90 | 92 | **92** | 83 | 6 | 0 | 2 | 1 | 1 |
+| Good | 120–140 | 128 | **130** | 105 | 20 | 3 | 2 | 0 | 1 |
+| Great | about 160 | 159 | **160** | 119 | 28 | 10 | 4 | 0 | 2 |
+| Near-perfect | about 175 | 187 | **180** | 120 | 40 | 16 | 4 | 0 | 2 |
+| Elite | 185–195 | 193 | **183** | 120 | 40 | 16 | 6 | 0 | 3 |
+| Flawless | 200 | 200 | **200** | 120 | 40 | 20 | 20 | 0 | 10 |
+
+Fresh seeds (n = 10000–10099, rev 4): random 14, weak 52, average 87, good 128, great 162, near 180, elite 182,
+flawless 200.
+
+The rev-4 bot (`botV4` in `bots/homerun.ts`; rev 1–3 measure as before): before each pitch it taps a spot with the
+level's pointing error; weak hitters a gap in the outfield at 170–230 ft, average ones a deeper gap (230–290 ft) or, on
+45 % of pitches, a home-run spot just over the wall in a gap, good ones over the wall (80 %) and the lit sign when it is
+a fence board (half the time), great hitters the lit sign unless it is an upper banner, near-perfect and elite always
+the lit sign; gaps are judged from the fielders with the level's judgement blur. It taps on the ring's moment with the
+level's timing sd (× 1 fastball, 1.15 curveball, 1.3 changeup) and its slips (6–10 ticks).
+
+What moved: weak drops into its band (a mistimed tap now drifts into fielders or short), average and good keep their
+place, great is unchanged. The top is where the targets are not met: near-perfect and elite sit 3 apart (180 / 183), as
+they did on rev 3 (187 / 193). The human model's near-perfect and elite timing (12 and 9 ms sd) both land within a tick
+almost every time, so the only thing that tells them apart is the exact tick (PERFECT, the streak and the upper-deck
+signs): about half of near-perfect taps and two thirds of elite ones. Calling ±1 tick PERFECT lifts both to 194 / 196
+instead. Exact-tick PERFECT keeps near-perfect closest to its 175 and elite 2 under 185 (a decision for Joe below).
+
+### The look (display only)
+
+- The five signs painted into the park (`paintV4Sign`: fence boards, the scoreboard panel on its legs, the upper-deck
+  banners); the lit one glows gold with a pulse and a BONUS tag under it.
+- The fielders (`paintFielder`: small shaded figures in red with a glove, scaled by distance) in their pale catch
+  circles (`paintCatchArea`), walking to the next pitch's places after the ball lands; a catcher runs under the ball and
+  raises his glove; the call reads CAUGHT · FIND A GAP.
+- The spot marker (`paintSpot`): a gold-centred white reticle with YOUR SPOT under it (red · FIELDER when risky).
+- The ring and the pitch's name beside the ball (`paintTapRing`); the batted ball lands where the sim put it
+  (`homerunV4Landing`: a sign hit on the spot itself).
+- HUD: PITCH n/10, HR n, BONUS n on the left, PERFECT ×n on the right. The Early / Perfect / Late chip and meter stay;
+  the contact-height marker (rev 1–3's BAT / BALL) is gone.
+- No buttons over the field: the stage's view is the 720-row world again (`homerunViewHFor`), so room-practice-parity-
+  check's homerunRev 3 exception was removed and Home Run follows the plain rule (no controls in the arena slot).
+
+Sounds (`docs/sound-cues/`): a catch plays `homerun.catch` (the library's glove pop, `homerun_mitt.mp3`) as the ball
+reaches the glove, with `homerun.groan` (the crowd groan) at the catch's call. Haptics unchanged (a home run's
+`success` only).
+
+### Review shots
+
+`screenshots/sports-batch-nov-2026/`: `homerun-<414x896|375x667|1440x900>-<spot|ring|call>.png`
+(`bun scripts/shots/sports-batch-shots.ts --url=<dev origin>`: the elite bot's run warped in on the practice example's
+seed) and `homerun-frames.png` (four frames drawn offline by `bun scripts/shots/homerun-spot-frames.ts`).
+
+### Decisions for Joe
+
+- **PERFECT is the exact tick** (17 ms). ±1 tick lands on the spot anyway; only the streak and the upper banners need
+  the exact tick. Calling ±1 PERFECT makes the streak easy for near-perfect and elite (194 / 196).
+- **The spot's depth** on the grass is coarse on a phone (the outfield is a thin band in this camera: about 10 ft a
+  pixel at 300 ft); the angle is what picks the gap. Fielders' circles are drawn to scale, so a far circle is flat.
+- **Sign values** are equal (2 each): the mockup's different values per sign would make a perfect run's 200 depend on
+  which signs are lit. Harder signs pay the same but are lit as often.
+- **Average 92 and weak 52** come partly from the bot's choice of spot (a deep gap or a home-run try); a player who
+  always swings for the lit sign with average timing scores less.

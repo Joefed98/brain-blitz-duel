@@ -2,12 +2,13 @@ import { useMemo, useRef } from "react";
 
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import {
-  ALLEYROLL_REV, AR_BALLS, AR_CHECKPOINT_INTERVAL, AR_CORE_FULL, AR_INPUT_ROLL, AR_MAX_ANGLE_DEN, AR_MAX_ANGLE_NUM, AR_RELEASE_MAX, AR_VMAX, AR_VMIN,
-  AR_WAIT, arCheckpoint, arInit, type ArState,
+  ALLEYROLL_REV_DEALT, ALLEYROLL_REV_RINGER, AR2_CORE_FULL, AR2_GOLD_Y, AR2_POCKETS, AR2_VMAX, AR2_VMIN, AR_BALLS, AR_CHECKPOINT_INTERVAL, AR_CORE_FULL,
+  AR_INPUT_ROLL, AR_RELEASE_MAX, AR_VMAX, AR_VMIN, AR_WAIT, arCheckpoint, arGoldX256, type ArState,
 } from "@/lib/arcade/alleyroll";
 import {
-  AR_BG, AR_LANE_NEAR, AR_WORLD_H, AR_WORLD_W, alleyRollArtGame, alleyRollScene, arNewView, arReleaseFromScreen, drawAlleyRoll,
+  AR_BG, AR_LANE_FAR, AR_WORLD_H, AR_WORLD_W, alleyRollArtGame, alleyRollScene, arNewView, drawAlleyRoll, ringerStill,
 } from "@/lib/arcade/alleyroll.renderer";
+import { arReleaseAt, ringerSwipeInput } from "@/lib/arcade/alleyrollSwipe";
 import { encodeAlleyRollRun, replayAlleyRollRun } from "@/lib/duel/alleyroll";
 import { ALLEYROLL_TIME_MS, type AlleyRollPuzzleData } from "@/lib/duel/types";
 import { ArcadeCanvasStage, type PointerPayload } from "@/components/puzzles/ArcadeCanvasStage";
@@ -16,106 +17,100 @@ import { alleyRollSounds } from "@/lib/fx/gameSounds";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
-/** The intro still: three balls down (50, 30, a pocket), the fourth lined up with its preview arrow. */
+/** The intro still: three balls down (the gold cup, a 50, a pocket), the fourth waiting on the release line. */
 function introState(): ArState {
-  const s = arInit(0);
+  const s = ringerStill(600);
+  const gx = Math.round(arGoldX256(s, 560) / 256);
   return {
-    ...s, tick: 600, acted: 1,
-    balls: [{ release: 0, points: 50, x: 0, y: 190 }, { release: 20, points: 30, x: 30, y: 230 }, { release: -40, points: 100, x: 112, y: 280 }],
+    ...s,
+    balls: [
+      { release: 0, points: 150, x: gx, y: AR2_GOLD_Y },
+      { release: 0, points: 50, x: 0, y: 206 },
+      { release: 40, points: 100, x: AR2_POCKETS[0]!.x, y: AR2_POCKETS[0]!.y },
+    ],
   };
 }
 
 function IntroExample() {
-  const view = { release: -22, aim: { slope: 0.12, power: 0.6 } };
+  const view = { release: -22 };
   return (
     <CardStill
       width={AR_WORLD_W}
       height={AR_WORLD_H}
       draw={(ctx, size) => drawAlleyRoll(ctx, introState(), size, view)}
-      caption="Slide the ball along the bottom, then swipe up: faster rolls further, the angle aims it."
+      caption="Swipe up the lane: where you start lines it up, the angle aims, a faster swipe rolls further."
     />
   );
 }
 
-/** Swipe speed (world px a ms) for the weakest and the strongest roll. */
-const SWIPE_SLOW = 0.35;
-const SWIPE_FAST = 2.4;
-/** The screen's swipe angle is foreshortened on the lane: across ÷ up on the lane is this share of it on screen. */
-const SLOPE_SCALE = 0.6;
-/** A swipe up starts once the finger has gone this far up from where it went down. */
-const SWIPE_START = 24;
+/** A swipe up starts once the finger has gone this far up from where it went down (world px). */
+const SWIPE_START = 12;
+/** The swipe's speed is read over its last this many ms. */
+const SPEED_MS = 140;
 
 interface Gesture {
+  /** Where the swipe started (its release point) and the trail for its speed. */
   x: number;
   y: number;
-  /** "slide" moves the release point; "swipe" rolls. */
-  mode: "slide" | "swipe" | "none";
+  swiping: boolean;
   trail: { x: number; y: number; at: number }[];
 }
 
-/** The input a swipe makes: release, across and up speeds (1/256 px a tick) from its speed and angle. */
-export function arSwipeInput(release: number, dx: number, dy: number, ms: number): PointerPayload | null {
-  if (dy >= -8) return null;
-  const speed = Math.hypot(dx, dy) / Math.max(1, ms);
-  const power = Math.max(0, Math.min(1, (speed - SWIPE_SLOW) / (SWIPE_FAST - SWIPE_SLOW)));
-  const c = Math.round(AR_VMIN + power * (AR_VMAX - AR_VMIN));
-  const most = Math.floor((c * AR_MAX_ANGLE_NUM) / AR_MAX_ANGLE_DEN);
-  const b = Math.max(-most, Math.min(most, Math.round(c * (dx / -dy) * SLOPE_SCALE)));
-  return { k: AR_INPUT_ROLL, a: Math.round(release), b, c };
+/** The input a swipe makes (rev 1's rounds keep their own speed range and angle scale). */
+export function arSwipeInput(startX: number, dx: number, dy: number, ms: number, rev: number = ALLEYROLL_REV_DEALT): PointerPayload | null {
+  return ringerSwipeInput(startX, dx, dy, ms, rev);
 }
 
 function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const data: AlleyRollPuzzleData | null = puzzle.type === "alleyroll" ? puzzle : null;
+  const rev = data?.alleyRollRev ?? 1;
   const view = useMemo(() => arNewView(), []);
-  const game = useMemo(() => alleyRollArtGame(view), [view]);
+  const game = useMemo(() => alleyRollArtGame(view, rev), [view, rev]);
   const g = useRef<Gesture | null>(null);
   const charge = useRef<{ from: number } | null>(null);
-  const keyAim = useRef(0);
 
   const pointer = (kind: "down" | "move" | "up", x: number, y: number): PointerPayload | null => {
     const now = performance.now();
     if (kind === "down") {
-      // Anywhere in the lower part of the screen: a slide sets the release point, a swipe up rolls.
-      g.current = y > AR_LANE_NEAR - 260 ? { x, y, mode: "none", trail: [{ x, y, at: now }] } : null;
+      // Anywhere on the lane: the ball comes to the finger's place across the lane (the release point).
+      if (y < AR_LANE_FAR - 20) {
+        g.current = null;
+        return null;
+      }
+      view.release = arReleaseAt(x);
+      g.current = { x, y, swiping: false, trail: [{ x, y, at: now }] };
       return null;
     }
     const s = g.current;
     if (!s) return null;
     s.trail.push({ x, y, at: now });
-    while (s.trail.length > 2 && now - s.trail[0]!.at > 140) s.trail.shift();
-    if (s.mode === "none") {
-      if (s.y - y > SWIPE_START) s.mode = "swipe";
-      else if (Math.abs(x - s.x) > 8) s.mode = "slide";
-    }
-    if (s.mode === "slide") {
-      view.release = Math.max(-AR_RELEASE_MAX, Math.min(AR_RELEASE_MAX, arReleaseFromScreen(x)));
-      if (s.y - y > SWIPE_START * 1.5) {
-        // The slide turns into a swipe up from here.
-        s.mode = "swipe";
+    while (s.trail.length > 2 && now - s.trail[0]!.at > SPEED_MS) s.trail.shift();
+    if (!s.swiping) {
+      if (s.y - y > SWIPE_START) s.swiping = true;
+      else {
+        // Not yet climbing: the start slides with the finger, so the swipe starts where it really starts.
         s.x = x;
-        s.y = y;
-        s.trail = [{ x, y, at: now }];
+        view.release = arReleaseAt(x);
+        if (y > s.y) s.y = y;
       }
     }
-    const first = s.trail[0]!;
-    const input = s.mode === "swipe" ? arSwipeInput(view.release, x - first.x, y - first.y, now - first.at) : null;
-    if (kind === "move") {
-      if (input) {
-        const most = Math.floor((input.c * AR_MAX_ANGLE_NUM) / AR_MAX_ANGLE_DEN);
-        view.aim = { slope: input.b / input.c, power: (input.c - AR_VMIN) / (AR_VMAX - AR_VMIN) };
-        if (Math.abs(input.b) >= most) view.aim.slope = Math.sign(input.b) * (most / input.c);
-      }
-      return null;
-    }
+    if (kind === "move") return null;
     g.current = null;
-    view.aim = null;
-    return input;
+    if (!s.swiping) return null;
+    // Direction from the whole swipe, power from its speed over the last 140 ms.
+    const first = s.trail[0]!;
+    const speed = Math.hypot(x - first.x, y - first.y) / Math.max(1, now - first.at);
+    const dx = x - s.x;
+    const dy = y - s.y;
+    return arSwipeInput(s.x, dx, dy, Math.hypot(dx, dy) / Math.max(1e-3, speed), rev);
   };
+
+  const [vMin, vMax] = rev >= ALLEYROLL_REV_RINGER ? [AR2_VMIN, AR2_VMAX] : [AR_VMIN, AR_VMAX];
 
   return (
     <ArcadeCanvasStage
       diagKey="alleyroll"
-      label={`${gameDisplayName("alleyroll")}: slide to line up, swipe up to roll`}
+      label={`${gameDisplayName("alleyroll")}: swipe up the lane to roll`}
       background={AR_BG}
       fitWorld
       scene={alleyRollScene}
@@ -133,25 +128,22 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       inputKind={AR_INPUT_ROLL}
       pointer={pointer}
       keys={(kind, key, send, state) => {
-        const used = ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", " "].includes(key);
+        const used = ["ArrowLeft", "ArrowRight", " "].includes(key);
         if (!used) return false;
         const waiting = state.phase === AR_WAIT && state.balls.length < AR_BALLS;
         if (key === " ") {
-          // Hold Space to charge, let go to roll: the longer the hold (up to 1.2 s), the harder the roll.
+          // Hold Space to charge, let go to roll straight: the longer the hold (up to 1.2 s), the harder the roll.
           if (kind === "down" && !charge.current && waiting) charge.current = { from: performance.now() };
           if (kind === "up" && charge.current) {
             const power = Math.min(1, (performance.now() - charge.current.from) / 1200);
             charge.current = null;
-            view.aim = null;
-            const c = Math.round(AR_VMIN + power * (AR_VMAX - AR_VMIN));
-            if (waiting) send({ k: AR_INPUT_ROLL, a: Math.round(view.release), b: Math.round(c * keyAim.current), c });
+            const c = Math.round(vMin + power * (vMax - vMin));
+            if (waiting) send({ k: AR_INPUT_ROLL, a: Math.round(view.release), b: 0, c });
           }
           return true;
         }
         if (kind !== "down") return true;
-        if (key === "ArrowLeft" || key === "ArrowRight") view.release = Math.max(-AR_RELEASE_MAX, Math.min(AR_RELEASE_MAX, view.release + (key === "ArrowLeft" ? -6 : 6)));
-        else keyAim.current = Math.max(-0.3, Math.min(0.3, keyAim.current + (key === "ArrowUp" ? 0.02 : -0.02)));
-        view.aim = { slope: keyAim.current, power: 0.5 };
+        view.release = Math.max(-AR_RELEASE_MAX, Math.min(AR_RELEASE_MAX, view.release + (key === "ArrowLeft" ? -6 : 6)));
         return true;
       }}
       onSubmit={(answer) => onSubmit(answer)}
@@ -160,8 +152,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   );
 }
 
-export function alleyRollLine(r: { rings: number; pockets: number }): string {
-  return `${r.rings} ring points (full at ${AR_CORE_FULL}) · ${r.pockets} pocket${r.pockets === 1 ? "" : "s"}`;
+export function alleyRollLine(r: { rings: number; pockets: number; gold?: number }, rev = 1): string {
+  const pockets = `${r.pockets} pocket${r.pockets === 1 ? "" : "s"}`;
+  if (rev >= ALLEYROLL_REV_RINGER) return `${r.rings} ring points (full at ${AR2_CORE_FULL}) · ${r.gold ?? 0} gold · ${pockets}`;
+  return `${r.rings} ring points (full at ${AR_CORE_FULL}) · ${pockets}`;
 }
 
 function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
@@ -169,7 +163,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   const result = replayAlleyRollRun(puzzle.seed, myAnswer ?? "", puzzle.alleyRollRev);
   return (
     <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-start gap-2 overflow-y-auto">
-      <p className="whitespace-normal break-words text-center font-mono text-base font-bold text-foreground">{alleyRollLine(result)}</p>
+      <p className="whitespace-normal break-words text-center font-mono text-base font-bold text-foreground">{alleyRollLine(result, puzzle.alleyRollRev ?? 1)}</p>
       {result.parts.map((part) => (
         <p key={part.key} className="shrink-0 text-center font-mono text-sm text-foreground">{`${part.label}: ${part.detail}`}</p>
       ))}
@@ -178,14 +172,14 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   );
 }
 
-/** One lane for everyone; every run is replayed on the server for scoring. */
+/** One lane and one gold-cup path for everyone in a room; every run is replayed on the server for scoring. */
 export const alleyRollPuzzle: PuzzleDefinition = {
   key: "alleyroll",
   name: gameDisplayName("alleyroll"),
   category: "arcade",
   timeLimitMs: ALLEYROLL_TIME_MS,
   revealMs: 6_000,
-  generate: () => ({ type: "alleyroll", seed: 1, alleyRollRev: ALLEYROLL_REV }) satisfies AlleyRollPuzzleData,
+  generate: () => ({ type: "alleyroll", seed: 1, alleyRollRev: ALLEYROLL_REV_DEALT }) satisfies AlleyRollPuzzleData,
   check: () => false,
   revealHeading: "Your run",
   IntroExample,

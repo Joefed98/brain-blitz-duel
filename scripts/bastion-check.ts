@@ -1,6 +1,6 @@
 /**
- * Bastion (bastionRev 2, 1 Nov 2026; docs/arcade-standard/bastion.md): the tank-defence shooter, and the original Bastion
- * it replaces in rooms.
+ * Iron Wall (id bastion; bastionRev 2, 1 Nov 2026, and bastionRev 3, 3 Nov 2026; docs/arcade-standard/bastion.md): the
+ * tank-defence shooter, and the original Bastion it replaces in rooms.
  *
  *  1. the original Bastion replays exactly as before: 40 unstamped runs recorded on main 9486004
  *     (scripts/fixtures/bastion-legacy.json, scripts/bastion-legacy-record.ts) give the same score, destroyed count,
@@ -19,7 +19,14 @@
  *     through the server replay and gradeAnswer; a replay is deterministic and a tampered claim is flagged;
  *  7. the skill-band bots rise weak → flawless on 40 seeds (medians strictly rising, flawless 200);
  *  8. art: every tank's drawn hull, turret and weak spot are the sim's rectangles (bastionTankRects), checked by
- *     recording the renderer's fills and paths on a fake context.
+ *     recording the renderer's fills and paths on a fake context;
+ *  9. bastionRev 3 (Iron Wall): rev-2 runs recorded on main 63261010 (scripts/fixtures/bastion-rev2-legacy.json,
+ *     scripts/bastion-rev2-legacy-record.ts) replay and grade exactly as before; rev 3 keeps rev 2's plan with waves 4–5
+ *     eased (80 % and 104 %, were 100 % and 134 %), a 45 ‰ (90 ms) green zone, three seeded drones (from the seed alone,
+ *     each inside its window, flying straight at 4 px a tick, a shell on its rectangle downs it, never touching the base,
+ *     the run waiting for the last one), its five parts (Armour 110, Weak spots 30, Fast reloads 20, Drones 10 each to 30,
+ *     Base intact 10), the oracle at 200 on 260 seeds through the server, rising bands, the drone drawn on its rectangle
+ *     and the lane-edge scenery outside the road.
  *
  *   bun scripts/bastion-check.ts
  */
@@ -53,6 +60,7 @@ import {
   BT2_INPUT_TAP,
   BT2_MAG,
   BT2_RELOAD_TICKS,
+  BT2_SPEED,
   BT2_TANKS,
   BT2_TOTAL_HP,
   BT2_WALL_Y,
@@ -64,7 +72,28 @@ import {
   type BastionTankState,
   type Bt2Tank,
 } from "../src/lib/arcade/bastionTank";
-import { paintTank, BT2_PIP_BACK, BT2_PIP_EMPTY, BT2_PIP_FILL } from "../src/lib/arcade/bastionTank.renderer";
+import { paintDrone, paintTank, BT_SCENERY, BT2_PIP_BACK, BT2_PIP_EMPTY, BT2_PIP_FILL } from "../src/lib/arcade/bastionTank.renderer";
+import {
+  bastionDronePos,
+  bastionDroneRect,
+  bastionDrones,
+  bastionDronesGone,
+  bastionIronGame,
+  bastionTankGameFor,
+  bastionWavePace,
+  bastionZoneW,
+  BASTION_REV_IRON,
+  BT2_WAVE_PACE,
+  BT3_DRONES,
+  BT3_DRONE_SPEED,
+  BT3_DRONE_TICKS,
+  BT3_DRONE_WINDOW,
+  BT3_DRONE_WINDOW_AT,
+  BT3_DRONE_Y_MAX,
+  BT3_DRONE_Y_MIN,
+  BT3_WAVE_PACE,
+  BT3_ZONE_W,
+} from "../src/lib/arcade/bastionTank";
 import { encodeBastionTankRun, replayBastionRun, replayBastionTankRun } from "../src/lib/duel/bastion";
 import { generateBastion } from "../src/lib/duel/arcade.server";
 import { gradeAnswer } from "../src/lib/duel/generate.server";
@@ -103,13 +132,14 @@ const game = bastionTankGame;
 /* 2. The deal. */
 {
   const dealt = Array.from({ length: 20 }, () => generateBastion());
-  ok(dealt.every((p) => p.type === "bastion" && p.bastionRev === BASTION_REV_TANK && p.seed > 0), "rooms deal bastionRev 2 on a fresh seed");
-  ok(BASTION_REV_DEALT === 2, "the dealt stamp is 2");
+  ok(dealt.every((p) => p.type === "bastion" && p.bastionRev === BASTION_REV_IRON && p.seed > 0), "rooms deal bastionRev 3 on a fresh seed");
+  ok(BASTION_REV_DEALT === 3 && BASTION_REV_TANK === 2, "the dealt stamp is 3 (rev 2 still replays)");
   const def = PUZZLE_REGISTRY.bastion;
-  ok((def.generate() as { bastionRev?: number }).bastionRev === 2, "the registry's practice puzzle is bastionRev 2");
-  ok(!isRetired("bastion"), "Bastion is active (dealt in rooms)");
-  ok(arcadeGroupOf("bastion") === "action", "Bastion is in the Action group");
-  ok(roundMaxFor("bastion") === 200, "Bastion's round maximum is 200");
+  ok((def.generate() as { bastionRev?: number }).bastionRev === 3, "the registry's practice puzzle is bastionRev 3");
+  ok(!isRetired("bastion"), "Iron Wall is active (dealt in rooms)");
+  ok(arcadeGroupOf("bastion") === "action", "Iron Wall is in the Action group");
+  ok(roundMaxFor("bastion") === 200, "Iron Wall's round maximum is 200");
+  ok(def.name === "Iron Wall", `shown as Iron Wall (${def.name})`);
 }
 
 /* 3. The plan. */
@@ -138,6 +168,13 @@ const run = (seed: number, events: ArcadeInputEvent[], until = Infinity): Bastio
   return s;
 };
 const ev = (t: number, k: number, a = 0, b = 0): ArcadeInputEvent => ({ t, k, a, b, c: 0, d: 0 });
+const run3 = (seed: number, events: ArcadeInputEvent[]): BastionTankState => {
+  let s = bastionIronGame.init(seed);
+  const at = new Map(events.map((e) => [e.t, e]));
+  while (!bastionIronGame.isOver(s)) s = bastionIronGame.step(s, at.get(s.tick + 1) ?? null);
+  return s;
+};
+const BT2_RUN_TICKS_LOCAL = bastionTankGame.runTicks;
 {
   ok(bastionFlight(BT2_WALL_Y) === BT2_FLIGHT_MIN && bastionFlight(BT2_HORIZON_Y) === BT2_FLIGHT_MAX && bastionFlight(400) > bastionFlight(550), "flight: 18 ticks at the wall's line, 30 at the horizon, longer the higher");
   // A state with one tank of each kind placed by hand, nothing else spawning (the plan's spawns pushed out of reach).
@@ -260,20 +297,22 @@ const ev = (t: number, k: number, a = 0, b = 0): ArcadeInputEvent => ({ t, k, a,
   ok(bastionTankScore(base({ destroyedHp: BT2_TOTAL_HP, weak: 30, fast: 10, base: 3 })) === 200 && bastionTankScore(base({ destroyedHp: BT2_TOTAL_HP - 1, weak: 30, fast: 10, base: 3 })) < 200, "everything in full → 200, one hit point short less");
   ok(bastionStdParts({ ...game.init(3), rev: 1 } as BastionTankState) === null, "a state of another revision has no standard parts");
   const help = PUZZLE_INSTRUCTIONS.bastion?.score ?? "";
-  for (const want of ["Armour up to 140", "Weak spots up to 30", "Fast reloads up to 20", "Base intact up to 10", "Together 200 points."]) ok(help.includes(want), `help states "${want}"`);
+  // The help states the dealt revision's parts (bastionRev 3's; section 9).
+  for (const want of ["Armour up to 110", "Weak spots up to 30", "Fast reloads up to 20", "Drones up to 30", "Base intact up to 10", "Together 200 points."]) ok(help.includes(want), `help states "${want}"`);
 }
 
 /* 6. The oracle at 200 on every tuning and fresh seed. */
-const serverReplay = (seed: number, events: ArcadeInputEvent[], claim?: number) => {
-  const s = bastionPlayLog(seed, events);
+const serverReplay = (seed: number, events: ArcadeInputEvent[], claim?: number, rev = BASTION_REV_TANK) => {
+  const g = bastionTankGameFor(rev);
+  const s = bastionPlayLog(seed, events, rev);
   const checkpoints = [];
   const at = new Map(events.map((e) => [e.t, e]));
-  for (let r = game.init(seed); !game.isOver(r); ) {
-    r = game.step(r, at.get(r.tick + 1) ?? null);
+  for (let r = g.init(seed); !g.isOver(r); ) {
+    r = g.step(r, at.get(r.tick + 1) ?? null);
     if (r.tick % BT2_CHECKPOINT_INTERVAL === 0) checkpoints.push(bastionTankCheckpoint(r));
   }
-  const raw = encodeBastionTankRun({ seed, claimedScore: claim ?? game.score(s), events, endTick: s.tick, checkpoints });
-  return { raw, out: replayBastionTankRun(seed, raw) };
+  const raw = encodeBastionTankRun({ seed, claimedScore: claim ?? g.score(s), events, endTick: s.tick, checkpoints });
+  return { raw, out: replayBastionTankRun(seed, raw, rev) };
 };
 {
   const seeds = [...Array.from({ length: 60 }, (_, i) => i), ...Array.from({ length: 200 }, (_, i) => 10000 + i)];
@@ -290,7 +329,7 @@ const serverReplay = (seed: number, events: ArcadeInputEvent[], claim?: number) 
     }
   }
   checks++;
-  ok(at200 === seeds.length, `the oracle at 200 on ${at200} of ${seeds.length} seeds`);
+  ok(at200 === seeds.length, `rev 2: the oracle at 200 on ${at200} of ${seeds.length} seeds`);
   const { events } = bastionPlay(4321);
   const a = bastionPlayLog(4321, events);
   const b = bastionPlayLog(4321, events);
@@ -310,8 +349,8 @@ const serverReplay = (seed: number, events: ArcadeInputEvent[], claim?: number) 
     }).sort((x, y) => x - y);
     medians.push(scores[20]!);
   }
-  ok(medians.every((m, i) => i === 0 || m > medians[i - 1]!), `medians rise weak → flawless (${medians.join(" < ")})`);
-  ok(medians[medians.length - 1] === 200, "flawless play scores 200");
+  ok(medians.every((m, i) => i === 0 || m > medians[i - 1]!), `rev 2: medians rise weak → flawless (${medians.join(" < ")})`);
+  ok(medians[medians.length - 1] === 200, "rev 2: flawless play scores 200");
 }
 
 /* 8. Art on the sim's rectangles. */
@@ -354,9 +393,225 @@ const serverReplay = (seed: number, events: ArcadeInputEvent[], claim?: number) 
   ok(bad === 0, `every tank's drawn art sits within 2 px of its collision rectangles (${bad} points outside)`);
 }
 
+/* 9. bastionRev 3 (Iron Wall). */
+{
+  // Rev 2 unchanged: runs recorded on main before rev 3 existed.
+  const fixture = JSON.parse(readFileSync(new URL("./fixtures/bastion-rev2-legacy.json", import.meta.url), "utf8")) as {
+    runs: { seed: number; raw: string; score: number; parts: [string, number][]; flagged: boolean; checksum: number; tick: number }[];
+  };
+  ok(fixture.runs.length === 48, `48 recorded rev-2 runs (${fixture.runs.length})`);
+  for (const r of fixture.runs) {
+    for (const rev of [undefined, 2] as const) {
+      const out = replayBastionTankRun(r.seed, r.raw, rev);
+      const same = out.score === r.score && out.flagged === r.flagged && bastionTankCheckpoint(out.state).checksum === r.checksum && out.state.tick === r.tick && JSON.stringify(out.parts.map((p) => [p.key, p.points])) === JSON.stringify(r.parts);
+      ok(same, `rev-2 seed ${r.seed} (rev ${rev ?? "absent"}): replays as on main (score ${out.score} vs ${r.score})`);
+    }
+    const g = gradeAnswer({ type: "bastion", seed: r.seed, bastionRev: 2 }, r.raw, 0);
+    ok(g.score === r.score, `rev-2 seed ${r.seed}: gradeAnswer scores ${g.score} (main ${r.score})`);
+  }
+
+  // The plan is rev 2's; the paces and the zone.
+  const iron = bastionIronGame;
+  ok(iron.init(5).rev === 3 && game.init(5).rev === 2 && bastionTankGameFor(3) === iron && bastionTankGameFor(2) === game, "rev 3's game inits rev-3 states; rev 2's rev-2");
+  ok(JSON.stringify(BT3_WAVE_PACE) === JSON.stringify([44, 50, 56, 80, 104]) && JSON.stringify(BT2_WAVE_PACE) === JSON.stringify([44, 50, 56, 100, 134]), "rev 3 eases waves 4 and 5 (80 % and 104 %, were 100 % and 134 %); waves 1–3 as rev 2");
+  ok(BT3_WAVE_PACE[4] / BT2_WAVE_PACE[4] < BT3_WAVE_PACE[3] / BT2_WAVE_PACE[3], "wave 5 is eased the most");
+  ok([0, 1, 2, 3, 4].every((w) => bastionWavePace(2, w) === BT2_WAVE_PACE[w] && bastionWavePace(3, w) === BT3_WAVE_PACE[w]), "each revision spawns at its own paces");
+  ok(BT3_ZONE_W === 45 && bastionZoneW(3) === 45 && bastionZoneW(2) === BT2_ZONE_W, "rev 3's green zone is 45 ‰ (90 ms); rev 2's 30 ‰");
+  ok(Array.from({ length: 200 }, (_, n) => bastionZoneStart(n * 37, n)).every((z) => z + BT3_ZONE_W < 500), "every rev-3 green zone still ends before half time");
+  {
+    // A spawned rev-3 wave-5 tank moves at 104 % of its type's speed; a rev-2 one at 134 %.
+    const plan = bastionPlan(8);
+    const w5 = plan.findIndex((t) => t.wave === 4);
+    const until = (g: typeof game) => {
+      let st = g.init(8);
+      // (Earlier tanks are cleared each tick, so none reaches the wall.)
+      while (st.nextSpawn <= w5) {
+        st = g.step(st, null);
+        if (st.nextSpawn <= w5) st = { ...st, tanks: [] };
+      }
+      return st.tanks.find((t) => t.i === w5);
+    };
+    const t2 = until(game);
+    const t3 = until(iron);
+    ok(!!t2 && !!t3 && t3.v === Math.floor((BT2_SPEED[t3.kind]! * 104) / 100) && t2.v === Math.floor((BT2_SPEED[t2.kind]! * 134) / 100), `a wave-5 tank rolls on at 104 % on rev 3, 134 % on rev 2 (${t3?.v}, ${t2?.v})`);
+  }
+  {
+    // The wider zone: a tap 40 ‰ into the zone is a fast reload on rev 3 and a jam on rev 2.
+    const parked: Bt2Tank = { i: 0, kind: 0, lane: 0, z: BT2_FAR * 256, v: 0, hp: 1, changed: 1, flash: 0 };
+    for (const g of [game, iron]) {
+      let s = { ...g.init(5), tick: 400, nextSpawn: BT2_TANKS, tanks: [parked] };
+      s = g.step(s, ev(401, BT2_INPUT_FIRE, 195, 400));
+      s = g.step(s, ev(402, BT2_INPUT_RELOAD));
+      const want = s.reloadAt + Math.ceil(((s.zone + 40) * BT2_RELOAD_TICKS) / 1000);
+      while (s.tick < want - 1) s = g.step(s, null);
+      s = g.step(s, ev(s.tick + 1, BT2_INPUT_TAP));
+      ok(g === iron ? s.fast === 1 && s.jams === 0 : s.jams === 1 && s.fast === 0, `rev ${s.rev}: a tap 40 ‰ into the zone is ${g === iron ? "a fast reload" : "a jam"}`);
+    }
+  }
+
+  // The drones: from the seed alone, three, each inside its window, straight across the sky.
+  for (const seed of [1, 7, 42, 99999, 123456789, 2147483646, -5]) {
+    const ds = bastionDrones(seed);
+    ok(JSON.stringify(ds) === JSON.stringify(bastionDrones(seed)), `seed ${seed}: the drones are the seed's alone`);
+    ok(ds.length === BT3_DRONES, `seed ${seed}: three drones`);
+    ok(ds.every((d, n) => d.at >= BT3_DRONE_WINDOW_AT[n]! && d.at < BT3_DRONE_WINDOW_AT[n]! + BT3_DRONE_WINDOW), `seed ${seed}: each drone inside its window`);
+    ok(ds.every((d) => (d.dir === 1 || d.dir === -1) && d.y0 >= BT3_DRONE_Y_MIN && d.y0 <= BT3_DRONE_Y_MAX && d.y1 >= BT3_DRONE_Y_MIN && d.y1 <= BT3_DRONE_Y_MAX), `seed ${seed}: directions and heights in range`);
+    ok(ds.every((d) => {
+      const a = bastionDronePos(d, d.at + 10)!;
+      const b = bastionDronePos(d, d.at + 11)!;
+      return b.x - a.x === d.dir * BT3_DRONE_SPEED && bastionDronePos(d, d.at - 1) === null && bastionDronePos(d, d.at + BT3_DRONE_TICKS + 1) === null;
+    }), `seed ${seed}: each flies ${BT3_DRONE_SPEED} px a tick, in the sky only for its crossing`);
+    ok(ds.every((d) => {
+      for (let k = 0; k <= BT3_DRONE_TICKS; k++) if (bastionDroneRect(bastionDronePos(d, d.at + k)!.x, bastionDronePos(d, d.at + k)!.y)[3] >= BT2_HORIZON_Y) return false;
+      return true;
+    }), `seed ${seed}: drones stay in the sky (above the horizon)`);
+    ok(JSON.stringify(bastionPlan(seed)) === JSON.stringify(bastionPlan(seed)) && bastionDronesGone(seed) < BT2_RUN_TICKS_LOCAL, `seed ${seed}: the last drone has gone before the clock ends`);
+  }
+  {
+    // A shell on a drone downs it; one already down is gone; a drone never touches the base.
+    const seed = 21;
+    const d = bastionDrones(seed)[0]!;
+    const fireAt = d.at + 40;
+    const flight = bastionFlight(150);
+    const at = bastionDronePos(d, fireAt + flight)!;
+    const parked: Bt2Tank = { i: 0, kind: 0, lane: 0, z: BT2_FAR * 256, v: 0, hp: 1, changed: 1, flash: 0 };
+    const start = (): BastionTankState => ({ ...iron.init(seed), tick: fireAt - 1, nextSpawn: BT2_TANKS, tanks: [parked] });
+    const shoot = (s0: BastionTankState, x: number, y: number) => {
+      let s = iron.step(s0, ev(s0.tick + 1, BT2_INPUT_FIRE, x, y));
+      const lands = s.shells[0]?.at ?? 0;
+      while (s.tick < lands && !iron.isOver(s)) s = iron.step(s, null);
+      return s;
+    };
+    const hit = shoot(start(), at.x, at.y);
+    ok(flight === 30 && hit.drones === 1 && (hit.droneMask & 1) === 1 && hit.impacts.some((m) => m.r === 5), `a shell landing on a drone downs it (${hit.drones})`);
+    const r = bastionDroneRect(at.x, at.y);
+    const edge = shoot(start(), r[2], r[3]);
+    ok(edge.drones === 1, "a shell on the drone's rectangle's corner downs it");
+    const off = shoot(start(), r[2] + 3, at.y);
+    ok(off.drones === 0 && off.impacts.some((m) => m.r === 0), "3 px past its rectangle is a miss");
+    ok(hit.destroyedHp === 0 && hit.hits === 0, "a drone is not a tank hit");
+    const again = shoot({ ...hit, shells: [], cool: 0 }, bastionDronePos(d, hit.tick + 1 + flight)!.x, bastionDronePos(d, hit.tick + 1 + flight)!.y);
+    ok(again.drones === 1, "a downed drone cannot be downed twice");
+    // Idle: the drones cross and leave; the base falls only to tanks (three hits, as rev 2).
+    const idle = run3(77, []);
+    ok(idle.ended === 2 && idle.breached === BT2_BASE && idle.drones === 0, `no input on rev 3: the base falls to the tanks alone (${idle.breached})`);
+    ok(iron.score(idle) === 0, "no input on rev 3 scores 0");
+    let fly = iron.init(seed);
+    let baseOk = true;
+    // Through every drone's crossing with the tanks kept off the field: the base is never touched.
+    fly = { ...fly, nextSpawn: BT2_TANKS, tanks: [parked] };
+    while (fly.tick < bastionDronesGone(seed) + 2 && !iron.isOver(fly)) {
+      fly = iron.step(fly, null);
+      if (fly.base !== BT2_BASE || fly.breached) baseOk = false;
+    }
+    ok(baseOk, "the drones never hit the base");
+    // The run waits for the last drone: a cleared field before it has gone does not end the run.
+    let cleared = { ...iron.init(seed), tick: 2000, nextSpawn: BT2_TANKS, tanks: [] as Bt2Tank[] };
+    while (!iron.isOver(cleared)) cleared = iron.step(cleared, null);
+    ok(cleared.ended === 3 && cleared.endedTick >= bastionDronesGone(seed), `a cleared rev-3 field ends only once the last drone has gone (${cleared.endedTick} ≥ ${bastionDronesGone(seed)})`);
+    let cleared2 = { ...game.init(seed), tick: 2000, nextSpawn: BT2_TANKS, tanks: [] as Bt2Tank[] };
+    while (!game.isOver(cleared2)) cleared2 = game.step(cleared2, null);
+    ok(cleared2.ended === 3 && cleared2.endedTick === 2001 + 45, `rev 2's cleared field ends 45 ticks after it cleared, as before (${cleared2.endedTick})`);
+  }
+
+  // The parts.
+  {
+    const base = (over: Partial<BastionTankState>): BastionTankState => ({ ...iron.init(3), acted: 1, ended: 1, ...over });
+    const pts = (s: BastionTankState, k: string) => bastionStdParts(s)!.find((p) => p.key === k)!.points;
+    const keys = bastionStdParts(base({}))!.map((p) => `${p.key}:${p.max}`).join(" ");
+    ok(keys === "core:110 weak:30 fast:20 drone:30 base:10", `rev 3's parts (${keys})`);
+    for (let hp = 0; hp <= BT2_TOTAL_HP; hp += 7) ok(pts(base({ destroyedHp: hp, base: 0 }), "core") === Math.floor((110 * hp) / BT2_TOTAL_HP), `rev 3 Armour: ${hp} HP → ${Math.floor((110 * hp) / BT2_TOTAL_HP)}`);
+    for (const n of [0, 1, 2, 3]) ok(pts(base({ drones: n }), "drone") === 10 * n, `rev 3 Drones: ${n} → ${10 * n}`);
+    for (const w of [0, 15, 30, 36]) ok(pts(base({ weak: w }), "weak") === Math.min(30, w), `rev 3 Weak spots: ${w} → ${Math.min(30, w)}`);
+    for (const f of [0, 5, 10, 14]) ok(pts(base({ fast: f }), "fast") === Math.min(20, 2 * f), `rev 3 Fast reloads: ${f} → ${Math.min(20, 2 * f)}`);
+    ok(pts(base({ base: 3 }), "base") === 10 && pts(base({ base: 2 }), "base") === 5 && pts(base({ base: 3, ended: 2 }), "base") === 0, "rev 3 Base intact: 10 / 5 / 0 once it fell");
+    ok(iron.score(base({ destroyedHp: BT2_TOTAL_HP, weak: 30, fast: 10, drones: 3, base: 3 })) === 200 && iron.score(base({ destroyedHp: BT2_TOTAL_HP, weak: 30, fast: 10, drones: 2, base: 3 })) === 190, "rev 3: everything in full → 200, a drone short 190");
+    const v2 = bastionStdParts({ ...game.init(3), acted: 1, ended: 1, drones: 3 })!;
+    ok(v2.map((p) => p.key).join(" ") === "core weak fast base" && !v2.some((p) => p.key === "drone"), "rev 2 states keep rev 2's four parts");
+    const events: ArcadeInputEvent[] = [];
+    recordInput(events, ev(10, BT2_INPUT_AIM, 195, 400), BT2_INPUT_RANGES);
+    ok(iron.score(run3(77, events)) === 1, "rev 3: one input that did nothing scores 1");
+    ok(bastionTankCheckpoint(run3(77, events)).checksum !== bastionTankCheckpoint({ ...run3(77, events), droneMask: 1 }).checksum, "rev 3's checksum covers the drones");
+    const r2 = bastionPlayLog(77, events);
+    ok(bastionTankCheckpoint(r2).checksum === bastionTankCheckpoint({ ...r2, droneMask: 1, drones: 1 }).checksum, "rev 2's checksum is unchanged (no drone fields)");
+  }
+
+  // The oracle at 200 on every tuning and fresh seed, rev 3.
+  {
+    const seeds = [...Array.from({ length: 60 }, (_, i) => i), ...Array.from({ length: 200 }, (_, i) => 10000 + i)];
+    let at200 = 0;
+    for (const seed of seeds) {
+      const { events } = bastionPlay(seed, undefined, undefined, BASTION_REV_IRON);
+      const { raw, out } = serverReplay(seed, events, undefined, BASTION_REV_IRON);
+      const full = out.parts.every((p) => p.points === p.max) && out.parts.length === 5;
+      if (out.score === 200 && !out.flagged && full && out.drones === 3) at200++;
+      else failures.push(`rev 3 oracle seed ${seed}: ${out.score} (${out.parts.map((p) => `${p.key} ${p.points}`).join(" ")}, flagged ${out.flagged})`);
+      if (seed % 50 === 0) {
+        const g = gradeAnswer({ type: "bastion", seed, bastionRev: 3 }, raw, 0);
+        ok(g.score === 200, `rev 3 seed ${seed}: gradeAnswer scores the oracle's run 200 (${g.score})`);
+      }
+    }
+    checks++;
+    ok(at200 === seeds.length, `rev 3: the oracle at 200 (all three drones) on ${at200} of ${seeds.length} seeds`);
+    const { events } = bastionPlay(4321, undefined, undefined, 3);
+    ok(serverReplay(4321, events, 150, 3).out.flagged && serverReplay(4321, events, 150, 3).out.score === 200, "rev 3: a tampered claim is flagged and the server keeps its own score");
+    ok(replayBastionTankRun(4321, serverReplay(4321, events, undefined, 3).raw, 2).flagged, "a rev-3 run replayed as rev 2 does not pass for it");
+  }
+
+  // The bands rise on rev 3.
+  {
+    const medians: number[] = [];
+    for (const level of ALL_LEVELS) {
+      const scores = Array.from({ length: 40 }, (_, n) => {
+        const seed = 500 + n * 104729;
+        const { events } = bot({ game: iron, seed, rev: 3, human: new Human("bastion", seed, level) });
+        return iron.score(bastionPlayLog(seed, events!, 3));
+      }).sort((x, y) => x - y);
+      medians.push(scores[20]!);
+    }
+    ok(medians.every((m, i) => i === 0 || m > medians[i - 1]!), `rev 3: medians rise weak → flawless (${medians.join(" < ")})`);
+    ok(medians[medians.length - 1] === 200, "rev 3: flawless play scores 200");
+  }
+
+  // Art: the drone on its rectangle; the scenery outside the road.
+  {
+    let bad = 0;
+    for (const dir of [1, -1])
+      for (const [x, y] of [
+        [100, 120],
+        [37, 188],
+        [300, 101],
+      ] as const) {
+        const r = bastionDroneRect(x, y);
+        const pts: [number, number][] = [];
+        const ctx = new Proxy(
+          {},
+          {
+            get(_, k) {
+              if (k === "fillRect") return (px: number, py: number, w: number, h: number) => (pts.push([px, py]), pts.push([px + w, py + h]));
+              if (k === "moveTo" || k === "lineTo") return (px: number, py: number) => pts.push([px, py]);
+              if (k === "arc") return (px: number, py: number, rr: number) => (pts.push([px - rr, py - rr]), pts.push([px + rr, py + rr]));
+              if (k === "ellipse") return (px: number, py: number, rx: number, ry: number) => (pts.push([px - rx, py - ry]), pts.push([px + rx, py + ry]));
+              if (k === "createLinearGradient" || k === "createRadialGradient") return () => ({ addColorStop() {} });
+              return () => {};
+            },
+            set: () => true,
+          },
+        ) as unknown as CanvasRenderingContext2D;
+        paintDrone(ctx, x, y, dir, 3, false);
+        for (const [px, py] of pts) if (px < r[0] - 2 || px > r[2] + 2 || py < r[1] - 2 || py > r[3] + 2) bad++;
+      }
+    ok(bad === 0, `the drone's drawn art sits within 2 px of its rectangle (${bad} points outside)`);
+    // Each item's half-width at scale 1 (the painters' widest reach); the road's edge is 192 px out at the wall and the
+    // outer lanes' hulls end 175 px out.
+    const half: Record<string, number> = { rock: 16, wall: 28, scrub: 18, trap: 12, wreck: 40 };
+    ok(BT_SCENERY.every(([, out, , kind]) => out - half[kind]! > 200), "every scenery item sits outside the road's edges (nothing covers a lane or a shot)");
+  }
+}
+
 if (failures.length) {
   console.log(`FAIL bastion-check: ${failures.length} of ${checks} checks failed`);
   for (const f of failures.slice(0, 30)) console.log(`  - ${f}`);
   process.exit(1);
 }
-console.log(`PASS bastion-check: ${checks} checks — the original Bastion replays as on main, bastionRev 2's plan, rules and parts, the oracle at 200 on 260 seeds, rising bands, art on its rectangles`);
+console.log(`PASS bastion-check: ${checks} checks — the original Bastion and bastionRev 2 replay as on main, the plan, rules and parts of rev 2 and rev 3 (Iron Wall: eased waves, the 90 ms zone, the drones), the oracle at 200 on 260 seeds each, rising bands, art on its rectangles, scenery off the road`);

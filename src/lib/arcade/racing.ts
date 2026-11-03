@@ -37,8 +37,14 @@ import { bandCurve, type BandParts } from "./scoreBands";
 export const RACING_REV_STD = 1;
 /** racingRev 2 (31 Oct 2026, Apex): the F1 lights start, the softer joystick (dead zone, expo, smoothing). */
 export const RACING_REV_2 = 2;
+/**
+ * racingRev 3 (3 Nov 2026, Apex's cornering): a softer gravel penalty (the car keeps about two thirds of its speed and
+ * recovers it faster once back on the tarmac), advisory corner speed signs (display, from racingCornerAdvice), and the
+ * score re-fitted: the core is the race's pace (average speed), clean sectors on top.
+ */
+export const RACING_REV_3 = 3;
 /** The revision rooms and practice deal. */
-export const RACING_REV_DEALT = RACING_REV_2;
+export const RACING_REV_DEALT = RACING_REV_3;
 /** The race itself: 90 s (on racingRev 2 from lights out). */
 export const RACING_RUN_SECONDS = 90;
 export const RACING_RUN_TICKS = RACING_RUN_SECONDS * TICKS_PER_SECOND;
@@ -129,6 +135,14 @@ export const RACING_SLIDE_K = 6;
  */
 export const RACING_V2_DEAD = 10;
 export const RACING_V2_WHEEL_RATE = 8;
+
+/**
+ * racingRev 3's gravel: on leaving the tarmac the car's speed is noted (`offFrom`) and it slows at the same rate as
+ * before, but only to RACING_V3_OFF_KEEP % of that speed (never lower than racingRev 1's cap would leave it); back on
+ * the tarmac the throttle pulls RACING_V3_RECOVER_MUL times harder until that speed is regained (`rec`).
+ */
+export const RACING_V3_OFF_KEEP = 65;
+export const RACING_V3_RECOVER_MUL = 2;
 
 /** racingRev 2: the steer the wheels head for from a stick value (dead zone, then expo; integer, odd-symmetric). */
 export function racingV2SteerTarget(a: number): number {
@@ -292,6 +306,72 @@ export function racingBalanceSpeed(c: number): number {
   return a <= 0 ? RACING_VMAX : Math.min(RACING_VMAX, Math.floor((RACING_C_BAL * RACING_VMAX) / a));
 }
 
+/* ================================ Corner speed signs ================================ */
+
+/** racingRev 3's advisory corner speed signs: shown before every corner slower than this (km/h; flat-out bends have none). */
+export const RACING_SIGN_BELOW_KMH = 300;
+/** The sign stands this many segments before the corner (the 150 / 100 / 50 boards are at 24 / 16 / 8). */
+export const RACING_SIGN_SEGS = 34;
+
+/**
+ * Whether a car held at speed v from the centre line stays on the track (no wheel past the kerb) through a corner,
+ * steering just enough to hold its line, at most full lock (the sim's own push and steering, integer).
+ */
+function racingCornerHolds(track: RacingTrack, sec: RacingSection, v: number): boolean {
+  let s = (sec.start - 2) * RACING_SEG;
+  const end = (sec.start + sec.len + 2) * RACING_SEG;
+  let x = 0;
+  while (s < end) {
+    const c = track.curve[racingSegAt(s)]!;
+    const push = racingPush(c, v);
+    const want = v > 0 ? Math.round((push * RACING_STICK_MAX * RACING_VMAX) / (RACING_STEER_K * v)) : 0;
+    x += racingSteerMove(clampInt(want, -RACING_STICK_MAX, RACING_STICK_MAX), v) - push;
+    if (Math.abs(x) > RACING_CLEAN_X) return false;
+    s += Math.max(1, v);
+  }
+  return true;
+}
+
+/** The fastest speed (sim units) a full-lock line from the centre takes a corner at without leaving the track. */
+export function racingCornerLimit(track: RacingTrack, sec: RacingSection): number {
+  let lo = 0;
+  let hi = RACING_VMAX;
+  while (lo < hi) {
+    const mid = (lo + hi + 1) >> 1;
+    if (racingCornerHolds(track, sec, mid)) lo = mid;
+    else hi = mid - 1;
+  }
+  return lo;
+}
+
+/** One advisory sign: the corner, its limit and the speed shown (the limit in km/h, rounded down to 10). */
+export interface RacingCornerSign {
+  corner: RacingSection;
+  limit: number;
+  kmh: number;
+}
+
+/** A limit (sim units) as the sign shows it: its true km/h rounded down to 10 (so the sign's speed is never over it). */
+export function racingSignKmh(limit: number): number {
+  return Math.floor((limit * RACING_KMH_AT_VMAX) / (RACING_VMAX * 10)) * 10;
+}
+
+const adviceCache = new WeakMap<RacingTrack, RacingCornerSign[]>();
+/** A circuit's corner speed signs, in lap order (pure, cached per circuit; display and the bots' notes only). */
+export function racingCornerAdvice(track: RacingTrack): RacingCornerSign[] {
+  let list = adviceCache.get(track);
+  if (!list) {
+    list = [];
+    for (const corner of track.corners) {
+      const limit = racingCornerLimit(track, corner);
+      const kmh = racingSignKmh(limit);
+      if (kmh < RACING_SIGN_BELOW_KMH) list.push({ corner, limit, kmh });
+    }
+    adviceCache.set(track, list);
+  }
+  return list;
+}
+
 /* ================================ The state ================================ */
 
 export interface RacingState {
@@ -325,6 +405,9 @@ export interface RacingState {
   contacts: number;
   /** The tick the second lap was completed (0 until then). */
   finishTick: number;
+  /** racingRev 3: the speed the car left the tarmac at (0 while on it), and the speed the recovery pulls back to (0 when none). */
+  offFrom?: number;
+  rec?: number;
 }
 
 export function racingInit(seed: number): RacingState {
@@ -365,6 +448,33 @@ export function racingSteerMove(steer: number, v: number): number {
   return Math.trunc((steer * RACING_STEER_K * v) / (RACING_STICK_MAX * RACING_VMAX));
 }
 
+/** racingRev 3's gravel floor for a speed the car left the tarmac at: two thirds of it, never below racingRev 1's cap. */
+export function racingV3OffFloor(offFrom: number): number {
+  return Math.max(Math.floor((offFrom * RACING_V3_OFF_KEEP) / 100), Math.min(offFrom, RACING_OFF_CAP));
+}
+
+/**
+ * racingRev 3's speed for a tick (the pedal, the gravel's floor, the faster recovery): on the gravel the car slows at
+ * racingRev 1's rate to its floor, the throttle holds it there and cannot raise it past it, and off the throttle the
+ * gravel drags as before; back on the tarmac the throttle pulls RACING_V3_RECOVER_MUL times harder until `rec`.
+ */
+function racingV3Speed(s0: RacingState, v0: number, offBefore: boolean): number {
+  let v = v0;
+  // (A state already off with no speed noted, never reached in play, keeps its own speed as the floor.)
+  const floor = offBefore ? racingV3OffFloor(s0.offFrom || v0) : RACING_VMAX;
+  const gain = (mul: number) => Math.floor((mul * RACING_ACCEL * s0.pedal * (RACING_VMAX - v)) / (RACING_STICK_MAX * RACING_VMAX));
+  if (s0.pedal > 0) {
+    if (!offBefore) v += gain((s0.rec ?? 0) > v ? RACING_V3_RECOVER_MUL : 1);
+    else if (v < floor) v = Math.min(floor, v + gain(1));
+  } else if (s0.pedal < 0) v -= Math.floor((RACING_BRAKE * -s0.pedal) / RACING_STICK_MAX);
+  else v -= RACING_COAST;
+  if (offBefore) {
+    if (v > floor) v = Math.max(floor, v - Math.max(RACING_OFF_MIN, Math.floor(v / RACING_OFF_DIV)));
+    else if (s0.pedal <= 0) v -= v >> 7;
+  }
+  return v;
+}
+
 export function racingStep(prev: RacingState, input: ArcadeInputEvent | null): RacingState {
   if (racingIsOver(prev)) return prev;
   const s0 = { ...prev, tick: prev.tick + 1 };
@@ -387,13 +497,16 @@ export function racingStep(prev: RacingState, input: ArcadeInputEvent | null): R
   // Speed.
   let v = s0.v;
   const offBefore = Math.abs(s0.x) > RACING_CLEAN_X;
-  if (s0.pedal > 0) {
-    if (!(offBefore && v >= RACING_OFF_CAP)) v += Math.floor((RACING_ACCEL * s0.pedal * (RACING_VMAX - v)) / (RACING_STICK_MAX * RACING_VMAX));
-  } else if (s0.pedal < 0) v -= Math.floor((RACING_BRAKE * -s0.pedal) / RACING_STICK_MAX);
-  else v -= RACING_COAST;
-  if (offBefore) {
-    if (v > RACING_OFF_CAP) v -= Math.max(RACING_OFF_MIN, Math.floor(v / RACING_OFF_DIV));
-    else v -= v >> 7;
+  if (s0.rev >= RACING_REV_3) v = racingV3Speed(s0, v, offBefore);
+  else {
+    if (s0.pedal > 0) {
+      if (!(offBefore && v >= RACING_OFF_CAP)) v += Math.floor((RACING_ACCEL * s0.pedal * (RACING_VMAX - v)) / (RACING_STICK_MAX * RACING_VMAX));
+    } else if (s0.pedal < 0) v -= Math.floor((RACING_BRAKE * -s0.pedal) / RACING_STICK_MAX);
+    else v -= RACING_COAST;
+    if (offBefore) {
+      if (v > RACING_OFF_CAP) v -= Math.max(RACING_OFF_MIN, Math.floor(v / RACING_OFF_DIV));
+      else v -= v >> 7;
+    }
   }
   v = clampInt(v, 0, RACING_VMAX);
 
@@ -410,6 +523,15 @@ export function racingStep(prev: RacingState, input: ArcadeInputEvent | null): R
   }
   const off = Math.abs(x) > RACING_CLEAN_X ? 1 : 0;
   if ((off || wall) && !s0.off && !s0.wall) s0.contacts += 1;
+  if (s0.rev >= RACING_REV_3) {
+    // The speed the car leaves the tarmac at (its gravel floor and its recovery target), kept while it is off.
+    if (off && !s0.off) s0.offFrom = v;
+    else if (!off && s0.off) {
+      s0.rec = s0.offFrom ?? 0;
+      s0.offFrom = 0;
+    }
+    if (!off && (s0.rec ?? 0) > 0 && v >= s0.rec!) s0.rec = 0;
+  }
   s0.x = x;
   s0.v = v;
   s0.wall = wall;
@@ -494,15 +616,68 @@ export const RACING_V2_STD_SPEC: StdSpec = {
   ),
 };
 
-/** A revision's spec (null for an unknown one). */
-export function racingStdSpecFor(rev: number): StdSpec | null {
-  return rev === RACING_REV_STD ? RACING_STD_SPEC : rev === RACING_REV_2 ? RACING_V2_STD_SPEC : null;
+/*
+ * racingRev 3's score (3 Nov 2026): Pace, the race's average speed on a straight line (0 at RACING_V3_PACE_ZERO, full
+ * at RACING_V3_PACE_FULL, both in tenths of a km/h: a finish's two laps over its race time, or the distance covered over
+ * the whole 90 s), then clean sectors (5 each). No separate finish or speed part: finishing sooner is a higher pace.
+ * Fitted to the brief's targets with scripts/racing-bands.ts (docs/arcade-standard/racing.md, racingRev 3).
+ */
+export const RACING_V3_PACE_MAX = 160;
+export const RACING_V3_SECTORS_MAX = 40;
+export const RACING_V3_PACE_ZERO = 1520;
+export const RACING_V3_PACE_FULL = 2215;
+/** The core's units: tenths of a km/h above the zero. */
+export const RACING_V3_PACE_OF = RACING_V3_PACE_FULL - RACING_V3_PACE_ZERO;
+
+const kmh10 = (n: number) => (n / 10).toFixed(1).replace(/\.0$/, "");
+
+export const RACING_V3_STD_SPEC: StdSpec = {
+  field: "racingRev",
+  rev: RACING_REV_3,
+  parts: [
+    { key: "core", label: "Pace", max: RACING_V3_PACE_MAX, of: RACING_V3_PACE_OF, item: "tenth of a km/h", items: "tenths of a km/h", how: `your average speed on a straight line, 0 at ${kmh10(RACING_V3_PACE_ZERO)} km/h, full at ${kmh10(RACING_V3_PACE_FULL)} km/h` },
+    { key: "sectors", label: "Clean sectors", max: RACING_V3_SECTORS_MAX, of: RACING_SECTORS, item: "clean sector", how: `${RACING_V3_SECTORS_MAX / RACING_SECTORS} each of ${RACING_SECTORS} sectors with no grass or wall` },
+  ],
+};
+
+/** The race ticks a run's pace is measured over: a finish's race time, else the race clock so far (at most 90 s). */
+export function racingPaceTicks(state: Pick<RacingState, "rev" | "tick" | "finishTick">): number {
+  if (state.finishTick > 0) return state.finishTick - racingGoTick(state.rev);
+  return Math.min(RACING_RUN_TICKS, racingRaceTicks(state));
 }
 
-/** The run's parts (null off racingRev 1 and 2). */
+/** The run's pace: its average speed in tenths of a km/h (0 before the race clock starts). */
+export function racingPace10(state: Pick<RacingState, "rev" | "tick" | "finishTick" | "s">): number {
+  const ticks = racingPaceTicks(state);
+  if (ticks <= 0) return 0;
+  const dist = clampInt(state.s, 0, RACING_TOTAL);
+  return Math.floor((dist * 10 * RACING_KMH_AT_VMAX) / (ticks * RACING_VMAX));
+}
+
+/** A revision's spec (null for an unknown one). */
+export function racingStdSpecFor(rev: number): StdSpec | null {
+  return rev === RACING_REV_STD ? RACING_STD_SPEC : rev === RACING_REV_2 ? RACING_V2_STD_SPEC : rev === RACING_REV_3 ? RACING_V3_STD_SPEC : null;
+}
+
+/** racingRev 3's parts: pace and clean sectors. */
+function racingV3Parts(state: RacingState): StdPart[] {
+  const spec = RACING_V3_STD_SPEC;
+  const dist = clampInt(state.s, 0, RACING_TOTAL);
+  const pct = Math.floor((dist * 100) / RACING_TOTAL);
+  const finished = state.finishTick > 0;
+  const pace = racingPace10(state);
+  const lead = finished ? `2 laps in ${(racingPaceTicks(state) / TICKS_PER_SECOND).toFixed(1)} s` : `${pct}% of 2 laps`;
+  return [
+    stdPart(spec, "core", stdLine(RACING_V3_PACE_MAX, pace - RACING_V3_PACE_ZERO, RACING_V3_PACE_OF), `${lead}, average ${kmh10(pace)} km/h`),
+    stdPart(spec, "sectors", stdLine(RACING_V3_SECTORS_MAX, state.clean, RACING_SECTORS), `${state.clean} of ${RACING_SECTORS} clean`),
+  ];
+}
+
+/** The run's parts (null off racingRev 1, 2 and 3). */
 export function racingStdParts(state: RacingState): StdPart[] | null {
   const spec = racingStdSpecFor(state.rev);
   if (!spec) return null;
+  if (state.rev >= RACING_REV_3) return racingV3Parts(state);
   const dist = clampInt(state.s, 0, RACING_TOTAL);
   const pct = Math.floor((dist * 100) / RACING_TOTAL);
   const finished = state.finishTick > 0;
@@ -526,8 +701,10 @@ export function racingScore(state: RacingState): number {
 export const RACING_V1_BAND_CURVE = bandCurve([0, 1000], [0, RACING_CORE_MAX]);
 /** racingRev 2's core: the same straight line. */
 export const RACING_V2_BAND_CURVE = RACING_V1_BAND_CURVE;
+/** racingRev 3's core: Pace, a straight line in tenths of a km/h above the zero. */
+export const RACING_V3_BAND_CURVE = bandCurve([0, RACING_V3_PACE_OF], [0, RACING_V3_PACE_MAX]);
 
-/** For the skill-band tool and the reveal: units = per mille of the race, points = the core, bonus = the features. */
+/** For the skill-band tool and the reveal: units = per mille of the race (racingRev 3: tenths of a km/h of pace above the zero), points = the core, bonus = the features. */
 export function racingBandParts(state: RacingState): BandParts {
   const parts = racingStdParts(state) ?? [];
   const core = parts[0]?.points ?? 0;
@@ -536,7 +713,7 @@ export function racingBandParts(state: RacingState): BandParts {
   return stdBandParts(
     racingStdSpecFor(state.rev) ?? RACING_STD_SPEC,
     { core, features, penalty: 0 },
-    Math.floor((clampInt(state.s, 0, RACING_TOTAL) * 1000) / RACING_TOTAL),
+    state.rev >= RACING_REV_3 ? clampInt(racingPace10(state) - RACING_V3_PACE_ZERO, 0, RACING_V3_PACE_OF) : Math.floor((clampInt(state.s, 0, RACING_TOTAL) * 1000) / RACING_TOTAL),
     parts.map((p) => `${p.label} ${p.points}`).join(" · "),
     state.finishTick > 0,
   );
@@ -575,6 +752,11 @@ export function racingChecksum(s: RacingState): number {
   mix(s.acted);
   // racingRev 2's smoothed wheel (racingRev 1 checksums exactly as before).
   if (s.rev >= RACING_REV_2) mix(s.wheel);
+  // racingRev 3's gravel speed and recovery target.
+  if (s.rev >= RACING_REV_3) {
+    mix(s.offFrom ?? 0);
+    mix(s.rec ?? 0);
+  }
   return h >>> 0;
 }
 
@@ -627,7 +809,17 @@ export const racingGameV2: ArcadeGame<RacingState, ArcadeInputEvent | null> = {
   init: racingInitV2,
 };
 
-/** The game for a stored stamp (unstamped and 1: racingRev 1; 2: the lights start and the softer joystick). */
+/** racingRev 3: racingRev 2's start and stick, the softer gravel and the pace score. */
+export function racingInitV3(seed: number): RacingState {
+  return { ...racingInit(seed), rev: RACING_REV_3, offFrom: 0, rec: 0 };
+}
+export const racingGameV3: ArcadeGame<RacingState, ArcadeInputEvent | null> = {
+  ...racingGameV2,
+  init: racingInitV3,
+};
+
+/** The game for a stored stamp (unstamped and 1: racingRev 1; 2: the lights start and the softer joystick; 3: the softer gravel and the pace score). */
 export function racingGameFor(rev?: number | null): ArcadeGame<RacingState, ArcadeInputEvent | null> {
-  return (rev ?? 1) >= RACING_REV_2 ? racingGameV2 : racingGame;
+  const r = rev ?? 1;
+  return r >= RACING_REV_3 ? racingGameV3 : r >= RACING_REV_2 ? racingGameV2 : racingGame;
 }

@@ -1,5 +1,8 @@
+import { usesParMoves } from "./parMoves";
+import { bastionStdSpecFor } from "@/lib/arcade/bastionTank";
 import { PUZZLE_SCORE_REV, puzzleScoreRevOf } from "./puzzleScoreRev";
 import { ARCADE_STANDARD } from "@/lib/arcade/standard";
+import { homerunStdSpecFor } from "@/lib/arcade/homerun";
 import { LAB_STARS } from "./depth/labyrinth";
 import { usesStandard } from "./standard/stamps";
 import { solutionProgress } from "./progressFigures";
@@ -753,6 +756,18 @@ const towerSummary: SummaryBuilder = (result, puzzle) => {
 const mazeSummary: SummaryBuilder = (result, puzzle) => {
   if (puzzle.type !== "maze") return { summary: "—", detail: [] };
   const progress = Number(result.extra?.["progress"] ?? 0);
+  // mazeRev 4 (the puzzle batch of 3 Nov 2026, parMoves.ts): no stars; a finish shows its steps against par.
+  if (usesParMoves(puzzle)) {
+    if (result.is_correct) {
+      const steps = Number(result.extra?.["steps"] ?? 0);
+      const par = Number(result.extra?.["parSteps"] ?? 0);
+      return {
+        summary: `Solved · ${steps} steps (par ${par}) · ${seconds(elapsedMs(result, puzzle))}`,
+        detail: [steps <= par ? "Reached the exit with no wasted step" : `${steps - par} steps over par`],
+      };
+    }
+    return { summary: `${progress}%`, detail: [`${progress}% of the way to the exit`] };
+  }
   // mazeRev 1 (depth/labyrinth.ts): the stars the trail took, and their stored points on a finish.
   const stars = Array.isArray(result.extra?.["stars"]) ? (result.extra!["stars"] as unknown[]).length : null;
   const starText = stars === null ? "" : ` · ★ ${stars}/${LAB_STARS}`;
@@ -846,6 +861,14 @@ const gravitySummary: SummaryBuilder = (result, puzzle) => {
     const home = Number(result.extra?.["home"] ?? 0);
     const stars = Number(result.extra?.["stars"] ?? 0);
     const out = Number(result.extra?.["outOfTilts"] ?? 0);
+    // gravityRev 6 (the puzzle batch of 3 Nov 2026, parMoves.ts): no stars; a finish shows its tilts against par.
+    if (usesParMoves(puzzle) && result.is_correct) {
+      const par = Number(result.extra?.["parTilts"] ?? 0);
+      return {
+        summary: `Cleared · ${tilts} tilts (par ${par}) · ${seconds(elapsedMs(result, puzzle))}`,
+        detail: [tilts <= par ? "Cleared in the fewest tilts" : `${tilts - par} tilts over par`],
+      };
+    }
     return {
       summary: result.is_correct
         ? `Cleared · ${stars} / ${TOPSY_BOARDS * TOPSY_STARS} stars · ${seconds(elapsedMs(result, puzzle))}`
@@ -1208,7 +1231,10 @@ const blockfallSummary: SummaryBuilder = (result) => {
 const alleyRollSummary: SummaryBuilder = (result) => {
   const n = (key: string) => Number(result.extra?.[key] ?? 0);
   return {
-    summary: `${n("rings")} ring points · ${n("pockets")} pocket${n("pockets") === 1 ? "" : "s"}`,
+    // Ringer (alleyRollRev 2) adds the gold cup; rev 1's rounds read as before.
+    summary: n("alleyRollRev") >= 2
+      ? `${n("rings")} ring points · ${n("gold")} gold · ${n("pockets")} pocket${n("pockets") === 1 ? "" : "s"}`
+      : `${n("rings")} ring points · ${n("pockets")} pocket${n("pockets") === 1 ? "" : "s"}`,
     detail: [`${n("balls")} of 9 balls · ${n("streak")} in a row`],
   };
 };
@@ -1297,8 +1323,9 @@ const mahjongSummary: SummaryBuilder = (result) => {
  * (`part_<key>`), so the summary names them in the spec's order with its maximums.
  */
 function sportsSummary(type: "homerun" | "freekick" | "racing"): SummaryBuilder {
-  return (result) => {
-    const spec = ARCADE_STANDARD[type]?.spec;
+  return (result, puzzle) => {
+    // Home Run's parts changed with homerunRev 4 (4 parts): a stored round reads its own revision's.
+    const spec = puzzle.type === "homerun" ? homerunStdSpecFor(puzzle.homerunRev) : ARCADE_STANDARD[type]?.spec;
     const parts = (spec?.parts ?? []).map((p) => ({ label: p.label, max: p.max, points: Number(result.extra?.[`part_${p.key}`] ?? 0) }));
     const [core, ...features] = parts;
     return {
@@ -1467,13 +1494,14 @@ const wavefrontSummary: SummaryBuilder = (result) => {
 };
 
 const bastionSummary: SummaryBuilder = (result, puzzle) => {
-  // bastionRev 2: the tank game on the arcade scoring standard, its stored parts and counts.
+  // bastionRev 2 and 3: the tank game on the arcade scoring standard, its stored parts and counts.
   if (puzzle.type === "bastion" && (puzzle.bastionRev ?? 1) >= 2) {
     const kills = Number(result.extra?.["kills"] ?? 0);
     const base = Number(result.extra?.["base"] ?? 0);
     const fell = result.extra?.["fell"] === true;
     const ended = Number(result.extra?.["endedSeconds"] ?? 0);
-    const spec = ARCADE_STANDARD["bastion"]?.spec;
+    // Each stamp's own parts (rev 3 adds Drones).
+    const spec = bastionStdSpecFor(puzzle.bastionRev);
     const parts = (spec?.parts ?? []).map((p) => `${p.label} ${Number(result.extra?.[`part_${p.key}`] ?? 0)}/${p.max}`);
     return {
       summary: fell ? `${kills} tanks · base fell at ${ended.toFixed(1)}s` : `${kills} tanks · base ${base} / 3`,

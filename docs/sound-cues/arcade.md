@@ -131,24 +131,26 @@ when the run starts. Rooms deal Pinball since 14 Oct 2026; Junction is practice 
 | `homerun.sign` | Home Run | A sign beyond the fence is struck | `arc_fair_bell` (0.9) | 0–4 | 480 ms |
 | `homerun.foul` | Home Run | A foul ball, or weak contact (a fair ball under 400 per mille, once the slot has its file) | `arc_bounce` (0.7) | 0–5 | 150 ms |
 | `homerun.strike` | Home Run | The ball in the catcher's mitt: a swing and a miss, or a pitch taken | `arc_fair_thud` (0.6) | 0–10 | 150 ms |
+| `homerun.catch` | Home Run | homerunRev 4: a fielder catches the ball as it comes down (with `homerun.groan`, the crowd); the library's glove pop, `homerun_mitt.mp3` | `arc_fair_thud` (0.8) | 0–10 | 400 ms |
 | `freekick.kick` | Top Bins | The ball is struck | `arc_fair_thud` | 10 | 150 ms |
 | `freekick.post` | Top Bins | The ball hits a post or the bar | `arc_clank` | 0–5 | 200 ms |
 | `freekick.save` | Top Bins | The keeper saves | `arc_wood_knock` | 0–10 | 200 ms |
 | `freekick.goal` | Top Bins | A goal (its file is the net; with it, `freekick.net` is not played) | `arc_fair_sting` | 0–10 | 480 ms |
 | `freekick.target` | Top Bins | A target hit | `arc_fair_bell` | 0–4 | 480 ms |
 | `freekick.net` | Top Bins | The ball hits the net | `arc_bounce` | 0–10 | 200 ms |
-| `bastion.cannon` | Bastion | The cannon fires a shell | `arc_blaster` (0.85, rate 0.8) | 20–60 | 420 ms |
-| `bastion.dry` | Bastion | Fire with no shell ready (reloading or cooling): a dry click | `tick` (0.5) | 0–10 | 120 ms |
-| `bastion.reload` | Bastion | A reload starts (the magazine empty, or a swipe down) | `arc_latch` (0.7) | 7–15 | 500 ms |
-| `bastion.fastReload` | Bastion | A tap in the green: a fast reload | `arc_retro_coin` (0.8) | 0–15 | 350 ms |
-| `bastion.jam` | Bastion | A tap outside the green: the gun jams | `arc_clank` (0.9) | 0–10 | 450 ms |
-| `bastion.loaded` | Bastion | The reload finishes (five shells) | `arc_latch` (0.5, rate 1.3) | 7–15 | 200 ms |
-| `bastion.hit` | Bastion | A shell hits a tank's hull or turret | `arc_retro_hit` (0.8) | 10–40 | 250 ms |
-| `bastion.weak` | Bastion | A shell hits a tank's weak spot | `arc_pickup` (0.8) | 0–36 | 300 ms |
-| `bastion.kill` | Bastion | A tank is destroyed | `arc_big_explode` (0.9) | 0–29 | 900 ms |
-| `bastion.miss` | Bastion | A shell lands on open ground | `arc_fair_thud` (0.5) | 0–40 | 300 ms |
-| `bastion.baseHit` | Bastion | A tank reaches the wall and hits the base (with the base-hit haptic) | `arc_crash` | 0–3 | 800 ms |
-| `bastion.wave` | Bastion | A wave rolls in | `arc_horn` (0.6) | 5 | 900 ms |
+| `bastion.cannon` | Iron Wall | The cannon fires a shell | `arc_blaster` (0.85, rate 0.8) | 20–60 | 420 ms |
+| `bastion.dry` | Iron Wall | Fire with no shell ready (reloading or cooling): a dry click | `tick` (0.5) | 0–10 | 120 ms |
+| `bastion.reload` | Iron Wall | A reload starts (the magazine empty, or a swipe down) | `arc_latch` (0.7) | 7–15 | 500 ms |
+| `bastion.fastReload` | Iron Wall | A tap in the green: a fast reload | `arc_retro_coin` (0.8) | 0–15 | 350 ms |
+| `bastion.jam` | Iron Wall | A tap outside the green: the gun jams | `arc_clank` (0.9) | 0–10 | 450 ms |
+| `bastion.loaded` | Iron Wall | The reload finishes (five shells) | `arc_latch` (0.5, rate 1.3) | 7–15 | 200 ms |
+| `bastion.hit` | Iron Wall | A shell hits a tank's hull or turret | `arc_retro_hit` (0.8) | 10–40 | 250 ms |
+| `bastion.weak` | Iron Wall | A shell hits a tank's weak spot | `arc_pickup` (0.8) | 0–36 | 300 ms |
+| `bastion.kill` | Iron Wall | A tank is destroyed | `arc_big_explode` (0.9) | 0–29 | 900 ms |
+| `bastion.miss` | Iron Wall | A shell lands on open ground | `arc_fair_thud` (0.5) | 0–40 | 300 ms |
+| `bastion.baseHit` | Iron Wall | A tank reaches the wall and hits the base (with the base-hit haptic) | `arc_crash` | 0–3 | 800 ms |
+| `bastion.wave` | Iron Wall | A wave rolls in | `arc_horn` (0.6) | 5 | 900 ms |
+| `bastion.droneDown` | Iron Wall | bastionRev 3: a drone is shot down | `arc_retro_explode` (0.85) | 0–3 | 700 ms |
 | `racing.light` | Apex | A red start light comes on (racingRev 2; five a race) | `countdown_step` (0.55) | 5 | 155 ms |
 | `racing.go` | Apex | The race starts (racingRev 2: lights out; racingRev 1: the first throttle) | `arc_horn` | 1 | 300 ms |
 | `racing.lap` | Apex | A lap is completed | `arc_fair_bell` | 1–2 | 480 ms |
@@ -204,13 +206,13 @@ when the run starts. Rooms deal Pinball since 14 Oct 2026; Junction is practice 
 | `blockfall.bigClear` | Blockfall | Three or four rows clear at once (with a `success` haptic) | `arc_retro_pickup` (0.9) | 0–6 | 100 ms |
 | `blockfall.speedUp` | Blockfall | The speed rises (every 15 s) | `arc_retro_note` (0.6, rate 1.25) | 3 | 90 ms |
 | `blockfall.topOut` | Blockfall | The stack reaches the top and the run ends early | `arc_retro_explode` (0.8) | 0–1 | 260 ms |
-| `alleyroll.roll` | Alley Roll | A ball is rolled | `arc_wood_knock` (0.8) | 9 | 90 ms |
-| `alleyroll.rail` | Alley Roll | A rolling ball bounces off a rail | `arc_bounce` (0.5) | 0–9 | 80 ms |
-| `alleyroll.ramp` | Alley Roll | The ball leaves the ramp | `arc_wood_knock` (0.6, rate 1.3) | 9 | 90 ms |
-| `alleyroll.ring` | Alley Roll | The ball drops into a 10–40 ring | `arc_fair_bucket` (0.8) | 0–9 | 200 ms |
-| `alleyroll.fifty` | Alley Roll | The ball drops into the 50 | `arc_fair_bell` (0.8) | 0–9 | 400 ms |
-| `alleyroll.pocket` | Alley Roll | The ball drops into a 100 pocket (with a `success` haptic) | `arc_fair_sting` (0.9) | 0–9 | 300 ms |
-| `alleyroll.gutter` | Alley Roll | The ball misses every ring | `arc_fair_thud` (0.7) | 0–9 | 160 ms |
+| `alleyroll.roll` | Ringer | A ball is rolled | `arc_wood_knock` (0.8) | 9 | 90 ms |
+| `alleyroll.ramp` | Ringer | The ball leaves the ramp | `arc_wood_knock` (0.6, rate 1.3) | 9 | 90 ms |
+| `alleyroll.ring` | Ringer | The ball drops into a 10–50 cup | `arc_fair_bucket` (0.8) | 0–9 | 200 ms |
+| `alleyroll.pocket` | Ringer | The ball drops into a 100 pocket (with a `success` haptic) | `arc_fair_sting` (0.9) | 0–9 | 300 ms |
+| `alleyroll.goldCup` | Ringer | The ball drops into the moving gold cup, 150 (with a `success` haptic; rev 2) | `arc_fair_bell` (0.9) | 0–9 | 400 ms |
+| `alleyroll.gutter` | Ringer | The ball misses every cup | `arc_fair_thud` (0.7) | 0–9 | 160 ms |
+| `alleyroll.streak` | Ringer | A ball keeps the roll streak going (30 or more after 30 or more; 40 on rev 1) | `combo` (0.6) | 0–8 | 300 ms |
 | `inkbridge.draw` | Rainbow Bridge | The first segment of each drawn stroke | `arc_rainbow` (0.6) | 10–30 | 910 ms |
 | `inkbridge.pot` | Rainbow Bridge | The pot of gold is reached | `arc_rainbow_pot` | 3–10 | 1000 ms |
 | `inkbridge.bump` | Rainbow Bridge | A level fails on a block | `arc_rainbow_bump` | 0–5 | 200 ms |

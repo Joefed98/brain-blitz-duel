@@ -10,6 +10,11 @@
  *
  * `bastionScene` carries the same dusk out past the world's sides and below it on the play screen, so the edges have
  * no seam (and on the computer layout the scenery extends to the sides).
+ *
+ * Iron Wall (3 Nov 2026, display only on every revision): scenery along the lane edges and the horizon (rocks, broken
+ * walls, scrub, tank traps, two burnt-out wrecks and ruins on the skyline), all outside the road's edges so nothing
+ * covers a lane or a shot; on bastionRev 3 the drones (paintDrone, exactly on bastionDroneRect), their flak and
+ * wreckage, and a Drones pill between the Wave and Base pills.
  */
 import { reducedMotion } from "./art.renderer";
 import { deviceLayer } from "./cache.renderer";
@@ -17,12 +22,19 @@ import { arcadeFx, type ArcadeFxSpec } from "./arcadeFx.renderer";
 import type { ArenaSceneView } from "./arenaScene.renderer";
 import type { CanvasSize } from "./engine";
 import {
+  bastionDronePos,
+  bastionDroneRect,
+  bastionDrones,
   bastionNeedle,
   bastionPlan,
+  bastionZoneW,
+  BT3_DRONES,
   bastionWeakOpen,
   bastionScale256,
+  bastionIronGame,
   bastionTankGame,
   bastionTankRects,
+  BASTION_REV_IRON,
   bastionWave,
   BT2_BASE,
   BT2_FAR,
@@ -36,7 +48,6 @@ import {
   BT2_WAVE_START,
   BT2_WORLD_H,
   BT2_WORLD_W,
-  BT2_ZONE_W,
   type BastionTankState,
   type Bt2Impact,
   type Bt2Rect,
@@ -153,6 +164,7 @@ function paintBackdrop(ctx: CanvasRenderingContext2D, e: Extent): void {
       ctx.fill();
     }
   }
+  paintScenery(ctx, e);
   // A faint haze where the tanks roll out.
   const haze = ctx.createLinearGradient(0, BT2_HORIZON_Y - 4, 0, BT2_HORIZON_Y + 70);
   haze.addColorStop(0, "rgba(70,81,95,0.55)");
@@ -160,6 +172,325 @@ function paintBackdrop(ctx: CanvasRenderingContext2D, e: Extent): void {
   ctx.fillStyle = haze;
   ctx.fillRect(e.x0, BT2_HORIZON_Y - 4, wx, 74);
   paintWall(ctx, e);
+}
+
+/* -------------------------------------------------------------- scenery */
+
+/**
+ * Lane-edge scenery (display only, painted once with the backdrop): each item sits at a fixed depth and a fixed distance
+ * out from the vanishing point at scale 1, always at least 214 px out (the road's edge is 192 px out at the wall and the
+ * outer lanes' hulls end 175 px out), so nothing ever covers a lane or a shot. The list repeats outward for wide scenes.
+ */
+type SceneryKind = "rock" | "wall" | "scrub" | "trap" | "wreck";
+export const BT_SCENERY: readonly (readonly [side: -1 | 1, out: number, z: number, kind: SceneryKind])[] = [
+  [-1, 236, 70, "wall"],
+  [1, 230, 110, "trap"],
+  [1, 300, 40, "rock"],
+  [-1, 262, 260, "scrub"],
+  [1, 250, 300, "wreck"],
+  [-1, 224, 420, "trap"],
+  [-1, 330, 520, "rock"],
+  [1, 236, 560, "scrub"],
+  [-1, 270, 700, "wreck"],
+  [1, 226, 760, "trap"],
+  [1, 300, 900, "wall"],
+  [-1, 230, 980, "rock"],
+  [-1, 250, 1160, "scrub"],
+  [1, 240, 1240, "rock"],
+  [-1, 420, 180, "rock"],
+  [1, 440, 220, "scrub"],
+  [-1, 480, 620, "wall"],
+  [1, 470, 640, "trap"],
+  [-1, 560, 120, "scrub"],
+  [1, 600, 90, "wall"],
+  [-1, 640, 380, "trap"],
+  [1, 620, 460, "rock"],
+];
+
+function paintScenery(ctx: CanvasRenderingContext2D, e: Extent): void {
+  // The skyline's ruins first (behind the field), then the items far to near.
+  paintRuins(ctx, e);
+  const items = [...BT_SCENERY].sort((a, b) => b[2] - a[2]);
+  for (const [side, out, z, kind] of items) {
+    const s = bastionScale256(z * 256) / 256;
+    const y = BT2_HORIZON_Y + (BT2_WALL_Y - BT2_HORIZON_Y) * s;
+    const x = BT2_VP_X + side * out * s;
+    if (x < e.x0 - 120 * s || x > e.x1 + 120 * s) continue;
+    if (kind === "rock") paintRock(ctx, x, y, s, side);
+    else if (kind === "wall") paintBrokenWall(ctx, x, y, s, side);
+    else if (kind === "scrub") paintScrub(ctx, x, y, s);
+    else if (kind === "trap") paintTankTrap(ctx, x, y, s);
+    else paintWreck(ctx, x, y, s, side);
+  }
+}
+
+/** Ruined buildings and a broken tower on the skyline, in front of the peaks (a pattern repeating every 360 px). */
+function paintRuins(ctx: CanvasRenderingContext2D, e: Extent): void {
+  const shapes: readonly (readonly [x: number, w: number, h: number, broken: number])[] = [
+    [18, 22, 14, 1],
+    [44, 10, 30, 2],
+    [58, 26, 10, 0],
+    [128, 18, 18, 1],
+    [150, 12, 9, 0],
+    [252, 30, 12, 1],
+    [288, 8, 22, 2],
+    [300, 16, 8, 0],
+  ];
+  ctx.fillStyle = "#30363F";
+  const period = 360;
+  for (let base = Math.floor(e.x0 / period) * period; base < e.x1 + period; base += period) {
+    for (const [ox, w, h, broken] of shapes) {
+      const x = base + ox;
+      // Keep the vanishing point's few pixels clear (the tanks roll out there).
+      if (Math.abs(x + w / 2 - BT2_VP_X) < 34) continue;
+      ctx.beginPath();
+      ctx.moveTo(x, BT2_HORIZON_Y + 1);
+      ctx.lineTo(x, BT2_HORIZON_Y - h);
+      if (broken === 1) {
+        ctx.lineTo(x + w * 0.3, BT2_HORIZON_Y - h + 3);
+        ctx.lineTo(x + w * 0.5, BT2_HORIZON_Y - h - 2);
+        ctx.lineTo(x + w * 0.75, BT2_HORIZON_Y - h * 0.55);
+      } else if (broken === 2) {
+        ctx.lineTo(x + w * 0.6, BT2_HORIZON_Y - h - 3);
+        ctx.lineTo(x + w, BT2_HORIZON_Y - h * 0.7);
+      }
+      ctx.lineTo(x + w, BT2_HORIZON_Y - (broken ? h * 0.4 : h));
+      ctx.lineTo(x + w, BT2_HORIZON_Y + 1);
+      ctx.closePath();
+      ctx.fill();
+      // Empty windows, a few dusk-lit.
+      if (w >= 16 && h >= 10) {
+        for (let wx = x + 3; wx < x + w - 4; wx += 6) {
+          ctx.fillStyle = (wx + h) % 4 === 0 ? "rgba(255,170,90,0.35)" : "rgba(14,16,21,0.6)";
+          ctx.fillRect(wx, BT2_HORIZON_Y - h + 4, 2, 3);
+        }
+        ctx.fillStyle = "#30363F";
+      }
+    }
+  }
+}
+
+function paintRock(ctx: CanvasRenderingContext2D, x: number, y: number, s: number, side: number): void {
+  const w = 30 * s + 2;
+  const h = 16 * s + 1;
+  ctx.fillStyle = "rgba(20,16,12,0.35)";
+  ctx.beginPath();
+  ctx.ellipse(x, y, w * 0.62, h * 0.18 + 0.5, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = "#575049";
+  ctx.beginPath();
+  ctx.moveTo(x - w / 2, y);
+  ctx.lineTo(x - w * 0.42, y - h * 0.55);
+  ctx.lineTo(x - w * 0.12, y - h);
+  ctx.lineTo(x + w * 0.24, y - h * 0.82);
+  ctx.lineTo(x + w / 2, y - h * 0.3);
+  ctx.lineTo(x + w * 0.46, y);
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = side > 0 ? "#6E665C" : "#433D37";
+  ctx.beginPath();
+  ctx.moveTo(x - w * 0.12, y - h);
+  ctx.lineTo(x + w * 0.24, y - h * 0.82);
+  ctx.lineTo(x + w * 0.1, y - h * 0.4);
+  ctx.lineTo(x - w * 0.3, y - h * 0.5);
+  ctx.closePath();
+  ctx.fill();
+}
+
+function paintBrokenWall(ctx: CanvasRenderingContext2D, x: number, y: number, s: number, side: number): void {
+  const w = 54 * s + 2;
+  const h = 22 * s + 1;
+  const x0 = x - w / 2;
+  ctx.fillStyle = "#4C4540";
+  ctx.beginPath();
+  ctx.moveTo(x0, y);
+  ctx.lineTo(x0, y - h * 0.7);
+  ctx.lineTo(x0 + w * 0.18, y - h);
+  ctx.lineTo(x0 + w * 0.32, y - h * 0.86);
+  ctx.lineTo(x0 + w * 0.42, y - h * 0.94);
+  ctx.lineTo(x0 + w * 0.55, y - h * 0.45);
+  ctx.lineTo(x0 + w * 0.7, y - h * 0.52);
+  ctx.lineTo(x0 + w * 0.82, y - h * 0.2);
+  ctx.lineTo(x0 + w, y - h * 0.24);
+  ctx.lineTo(x0 + w, y);
+  ctx.closePath();
+  ctx.fill();
+  // Courses of stone and a lit face.
+  if (s > 0.35) {
+    ctx.strokeStyle = "rgba(24,20,18,0.55)";
+    ctx.lineWidth = Math.max(0.6, s);
+    for (let k = 1; k <= 3; k++) {
+      const yy = y - (h * k) / 4;
+      ctx.beginPath();
+      ctx.moveTo(x0, yy);
+      ctx.lineTo(x0 + w * (1 - k * 0.2), yy);
+      ctx.stroke();
+    }
+  }
+  ctx.fillStyle = side > 0 ? "rgba(255,190,130,0.12)" : "rgba(0,0,0,0.15)";
+  ctx.fillRect(x0, y - h * 0.7, w * 0.08, h * 0.7);
+  // Rubble at its foot.
+  ctx.fillStyle = "#3E3833";
+  for (let k = 0; k < 4; k++) {
+    ctx.beginPath();
+    ctx.arc(x0 + w * (0.5 + k * 0.16), y - 1.5 * s, (2.5 + (k % 2)) * s + 0.4, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+function paintScrub(ctx: CanvasRenderingContext2D, x: number, y: number, s: number): void {
+  ctx.strokeStyle = "#4A5131";
+  ctx.lineWidth = Math.max(0.7, 1.6 * s);
+  ctx.lineCap = "round";
+  for (let k = -3; k <= 3; k++) {
+    const h = (12 + ((k * 7 + 9) % 6)) * s + 1;
+    ctx.beginPath();
+    ctx.moveTo(x + k * 3 * s, y);
+    ctx.lineTo(x + k * 5.5 * s, y - h);
+    ctx.stroke();
+  }
+  ctx.fillStyle = "#3B4128";
+  ctx.beginPath();
+  ctx.ellipse(x, y - 2 * s, 12 * s + 1, 4 * s + 0.6, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.lineCap = "butt";
+}
+
+/** A steel hedgehog: three crossed beams. */
+function paintTankTrap(ctx: CanvasRenderingContext2D, x: number, y: number, s: number): void {
+  const h = 20 * s + 1;
+  const w = 22 * s + 1;
+  ctx.strokeStyle = "#2B2D31";
+  ctx.lineWidth = Math.max(1, 3.4 * s);
+  ctx.lineCap = "square";
+  ctx.beginPath();
+  ctx.moveTo(x - w / 2, y);
+  ctx.lineTo(x + w / 2, y - h);
+  ctx.moveTo(x + w / 2, y);
+  ctx.lineTo(x - w / 2, y - h);
+  ctx.moveTo(x - w * 0.12, y - h * 0.08);
+  ctx.lineTo(x + w * 0.12, y - h * 0.92);
+  ctx.stroke();
+  ctx.strokeStyle = "rgba(200,140,90,0.35)";
+  ctx.lineWidth = Math.max(0.5, 1.2 * s);
+  ctx.beginPath();
+  ctx.moveTo(x - w / 2, y - h);
+  ctx.lineTo(x + w / 2, y);
+  ctx.stroke();
+  ctx.lineCap = "butt";
+}
+
+/** A burnt-out tank: a charred hull, its turret knocked askew, the barrel drooping, a thin static smoke wisp. */
+function paintWreck(ctx: CanvasRenderingContext2D, x: number, y: number, s: number, side: number): void {
+  const w = 78 * s + 2;
+  const h = 26 * s + 1;
+  ctx.fillStyle = "rgba(18,14,12,0.45)";
+  ctx.beginPath();
+  ctx.ellipse(x, y, w * 0.6, h * 0.2 + 0.5, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = "#1E1B1A";
+  ctx.fillRect(x - w / 2, y - h * 0.38, w, h * 0.38);
+  ctx.fillStyle = "#2F2925";
+  ctx.beginPath();
+  ctx.moveTo(x - w * 0.46, y - h * 0.38);
+  ctx.lineTo(x - w * 0.38, y - h * 0.78);
+  ctx.lineTo(x + w * 0.4, y - h * 0.74);
+  ctx.lineTo(x + w * 0.5, y - h * 0.38);
+  ctx.closePath();
+  ctx.fill();
+  ctx.save();
+  ctx.translate(x - side * w * 0.08, y - h * 0.78);
+  ctx.rotate(side * 0.22);
+  ctx.fillStyle = "#3A322C";
+  ctx.fillRect(-w * 0.17, -h * 0.4, w * 0.34, h * 0.4);
+  ctx.strokeStyle = "#2A2420";
+  ctx.lineWidth = Math.max(1, 3 * s);
+  ctx.beginPath();
+  ctx.moveTo(side * w * 0.15, -h * 0.22);
+  ctx.lineTo(side * w * 0.5, h * 0.12);
+  ctx.stroke();
+  ctx.restore();
+  // Rust and soot.
+  ctx.fillStyle = "rgba(140,70,40,0.4)";
+  ctx.fillRect(x - w * 0.2, y - h * 0.62, w * 0.16, h * 0.18);
+  ctx.fillStyle = "rgba(255,120,50,0.35)";
+  ctx.beginPath();
+  ctx.arc(x + w * 0.12, y - h * 0.5, 2 * s + 0.5, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = "rgba(60,60,66,0.28)";
+  for (let k = 0; k < 4; k++) {
+    ctx.beginPath();
+    ctx.arc(x + side * k * 6 * s, y - h - k * 9 * s, (6 + k * 3) * s + 0.5, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+/* ----------------------------------------------------------------- drones */
+
+/**
+ * A drone (bastionRev 3) exactly on its rectangle (bastionDroneRect: 24 × 10 round its centre): a dark delta body with a
+ * gunmetal top, two rotor pods with their blur, a camera pod and a blinking red light at the nose.
+ */
+export function paintDrone(ctx: CanvasRenderingContext2D, x: number, y: number, dir: number, tick: number, still: boolean): void {
+  const [x0, y0, x1, y1] = bastionDroneRect(x, y);
+  const cx = (x0 + x1) / 2;
+  const cy = (y0 + y1) / 2 + 0.5;
+  // Rotor arms and pods.
+  ctx.fillStyle = "#1B1E24";
+  ctx.fillRect(x0 + 3, cy - 2, x1 - x0 - 6, 1.6);
+  for (const px of [x0 + 3.5, x1 - 3.5]) {
+    ctx.fillStyle = "#262A32";
+    ctx.beginPath();
+    ctx.arc(px, cy - 1.5, 2, 0, Math.PI * 2);
+    ctx.fill();
+    // Rotor blur on top.
+    ctx.fillStyle = still ? "rgba(215,225,238,0.6)" : `rgba(215,225,238,${0.45 + 0.08 * ((tick + Math.round(px)) % 3)})`;
+    ctx.beginPath();
+    ctx.ellipse(px, y0 + 1.3, 3.3, 1.1, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  // A short pale exhaust streak behind the tail (inside the rectangle), so it reads against the dusk.
+  const streak = ctx.createLinearGradient(cx - dir * 7, 0, cx - dir * 12, 0);
+  streak.addColorStop(0, "rgba(255,190,120,0.8)");
+  streak.addColorStop(1, "rgba(255,190,120,0)");
+  ctx.fillStyle = streak;
+  ctx.fillRect(Math.min(cx - dir * 7, cx - dir * 12), cy - 0.8, 5, 1.6);
+  // The body: a gunmetal delta with a pale keyline, nose toward the way it flies, a lit top.
+  ctx.fillStyle = "#3E4450";
+  ctx.beginPath();
+  ctx.moveTo(cx + dir * 7, cy);
+  ctx.lineTo(cx - dir * 5, cy - 3);
+  ctx.lineTo(cx - dir * 7, cy);
+  ctx.lineTo(cx - dir * 5, cy + 2.5);
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle = "rgba(225,232,242,0.85)";
+  ctx.lineWidth = 0.7;
+  ctx.stroke();
+  ctx.fillStyle = "#AAB3C1";
+  ctx.beginPath();
+  ctx.moveTo(cx + dir * 5, cy - 0.5);
+  ctx.lineTo(cx - dir * 4, cy - 2.6);
+  ctx.lineTo(cx - dir * 4, cy - 0.8);
+  ctx.closePath();
+  ctx.fill();
+  // Camera pod under the body.
+  ctx.fillStyle = "#15171C";
+  ctx.beginPath();
+  ctx.arc(cx + dir, y1 - 1.8, 1.6, 0, Math.PI * 2);
+  ctx.fill();
+  // The blinking light at the nose.
+  const on = still || Math.floor(tick / 8) % 2 === 0;
+  ctx.save();
+  if (on) {
+    ctx.shadowColor = "#FF3B30";
+    ctx.shadowBlur = 6;
+  }
+  ctx.fillStyle = on ? "#FF4A3D" : "#6A1E1A";
+  ctx.beginPath();
+  ctx.arc(cx + dir * 6, cy - 0.5, 1.2, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
 }
 
 /** The parapet: dark stone from the wall's line down, with a lit lip, and below the world the panel's colour. */
@@ -189,7 +520,7 @@ function rect(ctx: CanvasRenderingContext2D, r: Bt2Rect): void {
  * spot (a round orange vent on its square while exposed, a dark plate while closed), a hit's flash, haze on far ones and
  * the orange health pips above.
  */
-export function paintTank(ctx: CanvasRenderingContext2D, kind: number, lane: number, z: number, hp: number, flash: number, tick: number, still: boolean, open = true): void {
+export function paintTank(ctx: CanvasRenderingContext2D, kind: number, lane: number, z: number, hp: number, flash: number, tick: number, still: boolean, open = true, pips = true): void {
   const r = bastionTankRects(kind, lane, z);
   const s = r.s256 / 256;
   const live = LIVERY[kind]!;
@@ -278,7 +609,8 @@ export function paintTank(ctx: CanvasRenderingContext2D, kind: number, lane: num
     ctx.fillStyle = `rgba(70,81,95,${fog})`;
     rect(ctx, [hx0, ty0, hx1, hy1]);
   }
-  // Health pips above the turret: one per hit point, orange while left.
+  // Health pips above the turret: one per hit point, orange while left (not on the tile icon).
+  if (!pips) return;
   const max = BT2_HP[kind]!;
   const pw = Math.max(3, Math.round(11 * s + 2));
   const ph = Math.max(2, Math.round(4 * s + 1.5));
@@ -302,7 +634,44 @@ function paintImpact(ctx: CanvasRenderingContext2D, m: Bt2Impact, tick: number, 
   const s = m.s256 / 256;
   const k = age / 50;
   ctx.save();
-  if (m.r === 0) {
+  if (m.r === 5) {
+    // A drone shot down: a white-hot pop, sparks and falling bits.
+    const k2 = Math.min(1, age / 40);
+    ctx.globalCompositeOperation = "lighter";
+    const rad = still ? 16 : 6 + age * 0.9;
+    const g = ctx.createRadialGradient(m.x, m.y, 0, m.x, m.y, rad);
+    g.addColorStop(0, `rgba(255,250,230,${(1 - k2) * 0.95})`);
+    g.addColorStop(0.4, `rgba(255,170,70,${(1 - k2) * 0.75})`);
+    g.addColorStop(1, "rgba(255,80,40,0)");
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.arc(m.x, m.y, rad, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalCompositeOperation = "source-over";
+    ctx.fillStyle = `rgba(40,44,52,${1 - k2})`;
+    for (let i = 0; i < 6; i++) {
+      const a = (i / 6) * Math.PI * 2 + 0.4;
+      const d = still ? 10 : age * 0.7;
+      ctx.fillRect(m.x + Math.cos(a) * d, m.y + Math.sin(a) * d * 0.6 + (still ? 0 : age * age * 0.02), 2.4, 1.6);
+    }
+  } else if (m.r === 0 && m.y < BT2_HORIZON_Y) {
+    // A miss in the sky: a flak puff.
+    ctx.globalAlpha = (1 - k) * 0.8;
+    ctx.fillStyle = "#3A3E46";
+    for (let i = 0; i < 4; i++) {
+      const a = (i / 4) * Math.PI * 2;
+      const d = still ? 4 : 2 + age * 0.25;
+      ctx.beginPath();
+      ctx.arc(m.x + Math.cos(a) * d, m.y + Math.sin(a) * d, 4 + age * 0.12, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    if (age < 6) {
+      ctx.fillStyle = "rgba(255,190,90,0.85)";
+      ctx.beginPath();
+      ctx.arc(m.x, m.y, 3, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  } else if (m.r === 0) {
     // A miss: a dust puff where it landed.
     ctx.globalAlpha = (1 - k) * 0.7;
     ctx.fillStyle = "#8C6E58";
@@ -365,6 +734,13 @@ function paintHud(ctx: CanvasRenderingContext2D, state: BastionTankState): void 
   const wave = bastionWave(state);
   pill(ctx, 14, 12, `Wave ${wave + 1} of ${BT2_WAVE_COUNT}`, "#F3F1EC");
   pill(ctx, W - 14, 12, `Base ${state.base} / ${BT2_BASE}`, state.base >= 2 ? GREEN : RED, true);
+  if (state.rev >= BASTION_REV_IRON) {
+    // Iron Wall: the drones downed, centred between the two pills.
+    ctx.font = `600 14px ${DISPLAY}`;
+    const text = `Drones ${state.drones}/${BT3_DRONES}`;
+    const w = Math.ceil(ctx.measureText(text).width) + 28;
+    pill(ctx, Math.round(W / 2 - w / 2), 12, text, state.drones > 0 ? ORANGE : "#BDBDCC");
+  }
 
   // The bottom panel: SHELLS, RELOAD and the hint line.
   ctx.textBaseline = "middle";
@@ -400,7 +776,7 @@ function paintHud(ctx: CanvasRenderingContext2D, state: BastionTankState): void 
     ctx.fill();
     if (state.reloadTap !== 1) {
       ctx.fillStyle = state.reloadTap === 2 ? "rgba(255,107,91,0.55)" : "#9BE3AE";
-      ctx.fillRect(BAR_X + (BAR_W * state.zone) / 1000, reloadY - 7, (BAR_W * BT2_ZONE_W) / 1000, 14);
+      ctx.fillRect(BAR_X + (BAR_W * state.zone) / 1000, reloadY - 7, (BAR_W * bastionZoneW(state.rev)) / 1000, 14);
     }
     ctx.fillStyle = "#FFFFFF";
     ctx.fillRect(BAR_X + (BAR_W * needle) / 1000 - 1.5, reloadY - 9, 3, 18);
@@ -525,6 +901,14 @@ function drawBastionWorld(ctx: CanvasRenderingContext2D, state: BastionTankState
     const p = plan[t.i];
     paintTank(ctx, t.kind, t.lane, t.z, t.hp, t.flash, state.tick, still, p ? bastionWeakOpen(p, state.tick) : true);
   }
+  if (state.rev >= BASTION_REV_IRON) {
+    const ds = bastionDrones(state.seed);
+    for (let n = 0; n < ds.length; n++) {
+      if (state.droneMask & (1 << n)) continue;
+      const at = bastionDronePos(ds[n]!, state.tick);
+      if (at) paintDrone(ctx, at.x, at.y, ds[n]!.dir, state.tick, still);
+    }
+  }
   for (const m of state.impacts) paintImpact(ctx, m, state.tick, still);
   // Shells in flight: from the muzzle, shrinking toward the point they land on.
   for (const sh of state.shells) {
@@ -608,6 +992,12 @@ export function drawBastionTankArt(ctx: CanvasRenderingContext2D, state: Bastion
 }
 
 export const bastionTankArtGame = { ...bastionTankGame, draw: drawBastionTankArt };
+/** bastionRev 3's (Iron Wall's) game with the art. */
+export const bastionIronArtGame = { ...bastionIronGame, draw: drawBastionTankArt };
+/** The art game for a stored stamp. */
+export function bastionTankArtGameFor(rev?: number | null) {
+  return (rev ?? 0) >= BASTION_REV_IRON ? bastionIronArtGame : bastionTankArtGame;
+}
 
 /**
  * The play screen's scenery beyond the world (painted once per size, world units): the same dusk, field and wall
@@ -627,20 +1017,77 @@ export function bastionScene(ctx: CanvasRenderingContext2D, view: ArenaSceneView
   }
 }
 
-/** Tile icon helper: tanks rolling down the lanes at dusk, a weak-spot hit and the crosshair (scripts/shots/tile-scenes). */
+/**
+ * Tile icon helper (Iron Wall, 3 Nov 2026; scripts/shots/tile-scenes): a heavy tank with its glowing weak spot, seen
+ * through the gun's crosshair (a scope ring over a darkened edge) on the dusk background, drawn by the game's own art.
+ */
 export function paintBastionTile(ctx: CanvasRenderingContext2D, size: number): void {
+  const u = size / 104;
   ctx.save();
-  const s = size / 220;
-  ctx.scale(s, s);
-  ctx.translate(-85, -232);
-  paintBackdrop(ctx, { x0: 60, x1: 340, y0: 200, y1: 480 });
-  paintTank(ctx, 1, 0, 900 * 256, 2, 0, 0, true);
-  paintTank(ctx, 0, 2, 560 * 256, 1, 0, 0, true);
-  paintTank(ctx, 2, 1, 280 * 256, 3, 0, 0, true);
-  const r = bastionTankRects(2, 1, 280 * 256);
+  // The dusk: sky, skyline ruins and peaks over the earth field (the horizon at 46 % of the tile).
+  ctx.save();
+  const s1 = size / 170;
+  ctx.scale(s1, s1);
+  ctx.translate(-110, -172);
+  paintBackdrop(ctx, { x0: 100, x1: 300, y0: 160, y1: 360 });
+  ctx.restore();
+  // The tank, close and large, its weak spot at the tile's centre.
+  const z = 120 * 256;
+  const r = bastionTankRects(2, 1, z);
   const wx = (r.weak[0] + r.weak[2]) / 2;
   const wy = (r.weak[1] + r.weak[3]) / 2;
-  paintImpact(ctx, { x: wx, y: wy, t: 0, r: 2, kind: 2, s256: r.s256 }, 6, true);
-  paintCrosshair(ctx, { ...bastionTankGame.init(1), aimX: Math.round(wx), aimY: Math.round(wy), aiming: 1 });
+  const k = 0.68 * u;
+  ctx.save();
+  ctx.translate(52 * u, 58 * u);
+  ctx.scale(k, k);
+  ctx.translate(-wx, -wy);
+  ctx.fillStyle = "rgba(20,16,12,0.45)";
+  ctx.beginPath();
+  ctx.ellipse(r.cx, r.ground, (r.hull[2] - r.hull[0]) * 0.62, 5, 0, 0, Math.PI * 2);
+  ctx.fill();
+  paintTank(ctx, 2, 1, z, 3, 0, 0, true, true, false);
+  ctx.restore();
+  // The scope: the edge darkened outside the ring, the ring, the crosshair with its gap and the orange dot.
+  const cx = 52 * u;
+  const cy = 58 * u;
+  const R = 30 * u;
+  ctx.fillStyle = "rgba(6,7,10,0.5)";
+  ctx.beginPath();
+  ctx.rect(0, 0, size, size);
+  ctx.arc(cx, cy, R, 0, Math.PI * 2, true);
+  ctx.fill("evenodd");
+  ctx.strokeStyle = "rgba(0,0,0,0.55)";
+  ctx.lineWidth = 3.4 * u;
+  ctx.beginPath();
+  ctx.arc(cx, cy, R, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.strokeStyle = "#F3F1EC";
+  ctx.lineWidth = 1.6 * u;
+  ctx.beginPath();
+  ctx.arc(cx, cy, R, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.lineWidth = 1.3 * u;
+  ctx.beginPath();
+  for (const [ax, ay] of [
+    [1, 0],
+    [-1, 0],
+    [0, 1],
+    [0, -1],
+  ] as const) {
+    ctx.moveTo(cx + ax * 9 * u, cy + ay * 9 * u);
+    ctx.lineTo(cx + ax * (R - 2 * u), cy + ay * (R - 2 * u));
+  }
+  ctx.stroke();
+  ctx.lineWidth = 1 * u;
+  ctx.beginPath();
+  for (const d of [16, 23]) {
+    ctx.moveTo(cx - 2.5 * u, cy + d * u);
+    ctx.lineTo(cx + 2.5 * u, cy + d * u);
+  }
+  ctx.stroke();
+  ctx.fillStyle = ORANGE;
+  ctx.beginPath();
+  ctx.arc(cx, cy, 1.8 * u, 0, Math.PI * 2);
+  ctx.fill();
   ctx.restore();
 }

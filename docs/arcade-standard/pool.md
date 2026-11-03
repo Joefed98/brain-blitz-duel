@@ -1,7 +1,7 @@
-# Cue Ball (`pool`, was Speed Pool; `poolRev` 3, `poolRev` 2 and 1 for stored rounds)
+# Cue Ball (`pool`, was Speed Pool; `poolRev` 4, `poolRev` 3, 2 and 1 for stored rounds)
 
-The Sports group (30 Oct 2026; shown as Cue Ball since 31 Oct). A full-width table, top down, 120 s: pot all seven
-spots, then the black. Sim `src/lib/arcade/pool.ts`, art `pool.renderer.ts`, stage `src/puzzles/pool.tsx`, plumbing
+The Sports group (30 Oct 2026; shown as Cue Ball since 31 Oct). A full-width table, top down, 90 s since poolRev 4
+(120 s before): pot your seven, spots or stripes (the deal's set since poolRev 4; spots before), then the black. Sim `src/lib/arcade/pool.ts`, art `pool.renderer.ts`, stage `src/puzzles/pool.tsx`, plumbing
 `src/lib/duel/pool.ts` on the Sports kit.
 
 ## Play
@@ -15,7 +15,59 @@ spots, then the black. Sim `src/lib/arcade/pool.ts`, art `pool.renderer.ts`, sta
 - Fouls −10: a stripe (or the black before the spots are down) hit first, or a stripe potted. Cue ball potted: 5 s off
   the clock and it comes back to a seeded spot. The black early ends the run with no black or speed points.
 
-## poolRev 3 (1 Nov 2026, Joe's tuning; what rooms deal)
+## poolRev 4 (3 Nov 2026; what rooms deal)
+
+poolRev 3's table, input, physics and fouls, with:
+
+- **Your set.** Each round's seed decides whether the player's seven are spots or stripes (`poolSetFor(seed, 4)`, a
+  fixed hash of the seed, so everyone in a room has the same set; about half the seeds each). The sim keeps its ids
+  (1–7 are always the player's seven, 9–15 the other set's four), so poolRev 3's physics and rules carry over exactly;
+  on a stripes deal the art swaps them (`poolShownId`): your seven are drawn as stripes 9–15 and the other four as spots
+  1–7. Fouls follow the set: the other set hit first (or the black while any of yours remain), one of theirs potted, or
+  no ball touched, −10 each as before. The state carries `set` (outside the checksum: it comes from the seed).
+- **Shown clearly:** a YOU'RE STRIPES (or SPOTS) banner over the table with your seven, from the start until the first
+  shot (at most 4 s, `POOL_SET_BANNER_TICKS`), and the HUD's rack pill named STRIPES / SPOTS in gold with your seven
+  (drawn upright on the desktop rotate mode's strip; the banner is not drawn on the turned table). The help, the intro,
+  the reveal (“3 of 7 stripes”) and the core's label (“Your balls”) name the set.
+- **90 s** (`POOL_RUN_S_V4`, `poolRunTicksFor`; the definition's clock 93 s). poolRev 3 and older rounds replay on the
+  server at their own 120 s.
+- **The fit to 90 s:** Speed is full by **69 s** (`POOL_FULL_BY_S_V4`, the near-perfect median finish on the poolRev 4
+  bank in 90 s, 69.2 s over 30 layouts) and the core is full at **five** of your seven (`POOL_CORE_FULL_V4`, 28 a ball;
+  140 at 5, 6 or 7): in 90 s the middle levels pot fewer, and the 6th and 7th still open the black, its speed and the run
+  of pots. Black 10 and pots in a row 30 as before; 200 in all.
+- **The bank:** `src/lib/duel/poolBankV4.server.ts`, all 60 poolRev 3 layouts (28 dealt as spots, 32 as stripes): poolRev
+  4 rolls the balls exactly as poolRev 3, so each layout's poolRev 3 witness shots are played again in 90 s and kept when
+  the run scores exactly 200 through the server's replay on the seed's own set **and** with the other set dealt
+  (`poolGameFor(4, set)`; the same final state) (`bun scripts/pool-bank.ts --rev=4 [--check]`, witnesses
+  `scripts/fixtures/pool-witness-v4.json`; the witnesses finish in 16–24 s).
+- poolRev 3 runs replay unchanged: 16 bot runs recorded on main 6326101 (`scripts/fixtures/sports-nov3-legacy.json`)
+  replay to the same score and final state, and every poolRev 3 witness still scores 200 (pool-check).
+
+Measured (`bun scripts/arcade-skill-bands.ts pool --rev=now --levels=all --seeds=30`, the poolRev 4 bank):
+
+| Level | Weak | Average | Good | Great | Near-perfect | Elite | Flawless |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Target | 30–60 | about 90 | 120–140 | about 160 | about 175 | 185–195 | 200 |
+| poolRev 3 median (120 s) | 30 | 73 | 113 | 138 | 163 | 170 | 200 |
+| poolRev 4 at 90 s, before the fit (7 balls, full by 60 s) | 20 | 58 | 95 | 125 | 154 | 170 | 200 |
+| **poolRev 4 median (p10–p90)** | **28** (1–87) | **84** (17–140) | **130** (73–146) | **135** (118–160) | **160** (130–180) | **170** (150–190) | **200** (199–200) |
+| Cleared / 30, median finish | 0 | 0 | 2, 83 s | 10, 80 s | 25, 69 s | 29, 54 s | 30, 24 s |
+| Balls potted, fouls (medians) | 2, 1 | 3.5, 1 | 5, 1 | 7, 2 | 7, 1.5 | 7, 1 | 7, 0 |
+
+Weak, average and good land in or next to their targets; great, near-perfect and elite stay 15–25 under. What holds
+them down is not the clock but fouls (one or two a run at −10 each, which the brief keeps) and the run of pots (30,
+broken by every miss): those levels already clear the table, so neither the core nor the speed part can lift them
+further without changing a rule. Decisions for Joe below.
+
+### Decisions for Joe (poolRev 4)
+
+- **Core full at 5 of 7.** Full at 7 (as before) gives 20 / 58 / 95 / 125 / 154 / 170 / 200 at 90 s; full at 6 about
+  23 / 69 / 111 / 130 / 157 / 170 / 200 (modelled from the same runs).
+- **The top levels** need fewer fouls or a smaller penalty to reach their targets (e.g. a miss foul −5): not done,
+  since the brief keeps −10.
+- **The set's hash** gives a table both sets equally often; nothing else about the deal depends on it.
+
+
 
 poolRev 2's input encoding, table, rules and parts, with:
 

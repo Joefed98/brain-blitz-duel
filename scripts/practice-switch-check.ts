@@ -62,11 +62,11 @@ const NEW_IDS = ["minigolf", "pool", "curling", "homerun", "freekick", "racing",
 check(NEW_IDS.every((t) => ARCADE_GROUPS.some((g) => g.games.includes(t))), "the 11 new ids are in the map");
 // The brief named games by their display names: the map's registered ids resolve to exactly those names.
 const BRIEF: Record<string, string[]> = {
-  // Blockfall joined Retro and Alley Roll Sports on 1 Nov 2026.
+  // Blockfall joined Retro and Alley Roll Sports on 1 Nov 2026; Alley Roll shown as Ringer since 3 Nov 2026.
   retro: ["Hover", "Breaker", "Rally", "Wavefront", "Fission", "Tempo", "Meteor", "Orbit", "Jaywalk", "Pinball", "Blockfall"],
   // Home Run Derby, Free Kick and Racing registered on 30 Oct 2026 (#203); renamed Home Run, Top Bins and Apex on 31 Oct 2026.
   // Minigolf, Speed Pool and Curling shown as Crazy Golf, Cue Ball and Curl Champ since 31 Oct 2026.
-  sports: ["Flightpath", "Swish", "Crazy Golf", "Cue Ball", "Curl Champ", "Home Run", "Top Bins", "Apex", "Alley Roll"],
+  sports: ["Flightpath", "Swish", "Crazy Golf", "Cue Ball", "Curl Champ", "Home Run", "Top Bins", "Apex", "Ringer"],
   // Minesweeper and Mahjong Solitaire registered on 30 Oct 2026 (#205); the group's other ids join as they register.
   // Minesweeper shown as Minefield, and FreeCell, TriPeaks and Poker Squares as Free Cell, Summit and Full House, since
   // 31 Oct 2026 (ids unchanged); Five Hands added. Full House retired to practice on 1 Nov 2026 (Joe's decision): the
@@ -75,7 +75,7 @@ const BRIEF: Record<string, string[]> = {
   cards: ["Minefield", "Free Cell", "Mahjong Solitaire", "Summit", "Five Hands", "Pyramid", "Golf Solitaire"],
   // Strategy split from Action on 1 Nov 2026 (Coral Pop, Gemstone, Ball Tracker, Tilt, Rainbow Bridge, High Rise moved).
   // Ricochet back from retirement as the ninja wall-climb (ricoRev 2, 1 Nov 2026), and Bastion back in rooms (bastionRev 2), in Action.
-  action: ["Slice", "Roofbound", "Grappler", "Ricochet", "Bastion"],
+  action: ["Slice", "Roofbound", "Grappler", "Ricochet", "Iron Wall"],
   strategy: ["Tilt", "Gemstone", "High Rise", "Coral Pop", "Rainbow Bridge", "Ball Tracker"],
 };
 check(ARCADE_GROUPS.map((g) => g.id).join() === "retro,sports,cards,action,strategy", "five groups: Retro, Sports, Cards & Board, Action, Strategy");

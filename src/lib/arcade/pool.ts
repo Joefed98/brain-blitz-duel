@@ -15,6 +15,13 @@
  * foul: a shot whose cue ball touches no ball at all (the first-ball and stripe fouls are as before, 10 each). Speed's
  * full-by time is its own (poolFullByS(3)). poolRev 1 and 2 play, score and replay exactly as before.
  *
+ * poolRev 4 (3 Nov 2026; its own bank, poolBankV4.server.ts): poolRev 3's table, input and physics in 90 s
+ * (POOL_RUN_S_V4), and the seed decides the player's set, spots or stripes (poolSetFor; the same for everyone in a room).
+ * The sim keeps its ball ids (1–7 are the player's seven, 9–15 the other set): on a stripes deal the art and the words
+ * swap them (poolShownId), so the player's seven are drawn as stripes 9–15 and the other four as spots. Fouls follow
+ * the set (the other set hit first, or potted, or the black before the seven). Speed's full-by time is its own
+ * (poolFullByS(4)). poolRev 1, 2 and 3 play, score and replay exactly as before.
+ *
  * Deterministic (engine.ts): the seed deals the layout at init (no break: 7 spots, 4 stripes left as obstacles, the
  * black and the cue ball on a seeded spot at the baulk line) and nothing random happens after. Balls roll in 1/256 px
  * with integer friction, equal-mass collisions and cushions with angled jaws at the pockets; eight substeps a tick, so
@@ -37,16 +44,43 @@ import { bounceSeg, collideEqual, idiv, ilen, rollFriction, sumInts, type Seg, t
 
 /* ================================ Constants ================================ */
 
-/** The revision rooms deal: poolRev 3 (1 Nov 2026; more power and spin, a miss is a foul). */
-export const POOL_REV = 3;
+/** The revision rooms deal: poolRev 4 (3 Nov 2026; a seeded set, spots or stripes, and 90 s). */
+export const POOL_REV = 4;
+/** poolRev 3 (1 Nov 2026; more power and spin, a miss is a foul): kept for stored rounds. */
+export const POOL_REV_V3 = 3;
 /** poolRev 2 (31 Oct 2026; the cue round the ball, the meter, spin anywhere on the face): kept for stored rounds. */
 export const POOL_REV_V2 = 2;
 /** The first revision (30 Oct 2026): its encoding, physics and bank are kept exactly for stored rounds. */
 export const POOL_REV_V1 = 1;
 /** A stored revision as the sim reads it: 3 or 2 as stored, else 1 (unstamped rounds were dealt as 1). */
-export const poolRevOf = (rev?: number | null): number => (rev === 3 ? 3 : rev === 2 ? 2 : 1);
+export const poolRevOf = (rev?: number | null): number => (rev === 4 ? 4 : rev === 3 ? 3 : rev === 2 ? 2 : 1);
 export const POOL_RUN_S = 120;
 export const POOL_RUN_TICKS = POOL_RUN_S * 60;
+/** poolRev 4's run: 90 s. */
+export const POOL_RUN_S_V4 = 90;
+export const POOL_RUN_TICKS_V4 = POOL_RUN_S_V4 * 60;
+/** A revision's run length in ticks (scratches take their 5 s off it). */
+export const poolRunTicksFor = (rev?: number | null): number => (poolRevOf(rev) >= 4 ? POOL_RUN_TICKS_V4 : POOL_RUN_TICKS);
+
+/** The player's set: spots (POOL_SET_SPOTS) or stripes (POOL_SET_STRIPES). */
+export const POOL_SET_SPOTS = 0;
+export const POOL_SET_STRIPES = 1;
+/** poolRev 4: the seed's set (a fixed hash of the seed: everyone in a room has the same). Earlier revisions: spots. */
+export function poolSetFor(seed: number, rev?: number | null): number {
+  if (poolRevOf(rev) < 4) return POOL_SET_SPOTS;
+  let x = Math.imul((seed | 0) ^ 0x5e75_7b1e, 0x9e3779b1);
+  x ^= x >>> 15;
+  x = Math.imul(x, 0x85ebca6b);
+  x ^= x >>> 13;
+  return (x >>> 7) & 1;
+}
+/** The ball a sim id is shown as for a set: on stripes the player's seven (1–7) are 9–15 and the other set's 9–15 are 1–7. */
+export function poolShownId(id: number, set: number): number {
+  if (set !== POOL_SET_STRIPES) return id;
+  return id >= 1 && id <= 7 ? id + 8 : id >= 9 && id <= 15 ? id - 8 : id;
+}
+/** A set's name: "spots" or "stripes". */
+export const poolSetName = (set: number): string => (set === POOL_SET_STRIPES ? "stripes" : "spots");
 
 /** The world (world px): a HUD band on top, then the table (rails and cloth). */
 export const POOL_W = 390;
@@ -179,7 +213,15 @@ export const POOL_FULL_BY_S = 67;
 export const POOL_FULL_BY_S_V2 = 58;
 /** poolRev 3's full-by time: the near-perfect skill-band median finish on the poolRev 3 bank (72.9 s over 30 layouts, docs/arcade-standard/pool.md). */
 export const POOL_FULL_BY_S_V3 = 73;
-export const poolFullByS = (rev: number): number => (rev >= 3 ? POOL_FULL_BY_S_V3 : rev === 2 ? POOL_FULL_BY_S_V2 : POOL_FULL_BY_S);
+/** poolRev 4's full-by time: the near-perfect skill-band median finish on the poolRev 4 bank in 90 s (69.2 s over 30 layouts, docs/arcade-standard/pool.md). */
+export const POOL_FULL_BY_S_V4 = 69;
+/**
+ * poolRev 4's core is full at five of your seven (28 a ball): in 90 s the middle levels pot fewer, and the 6th and 7th
+ * still open the black, its speed and the run of pots (docs/arcade-standard/pool.md "poolRev 4"). Earlier revisions: 7.
+ */
+export const POOL_CORE_FULL_V4 = 5;
+export const poolCoreFullFor = (rev: number): number => (rev >= 4 ? POOL_CORE_FULL_V4 : POOL_SPOTS);
+export const poolFullByS = (rev: number): number => (rev >= 4 ? POOL_FULL_BY_S_V4 : rev >= 3 ? POOL_FULL_BY_S_V3 : rev === 2 ? POOL_FULL_BY_S_V2 : POOL_FULL_BY_S);
 
 /** A revision's spec: the same parts on both; Speed's full-by time is the revision's own. */
 export function poolStdSpecFor(rev?: number | null): StdSpec {
@@ -188,15 +230,17 @@ export function poolStdSpecFor(rev?: number | null): StdSpec {
     field: "poolRev",
     rev: r,
     parts: [
-      { key: "core", label: "Spots", max: 140, of: POOL_SPOTS, item: "spot", how: `${POOL_SPOT_PTS} a spot potted` },
-      { key: "black", label: "Black", max: POOL_BLACK_PTS, of: 1, item: "black", how: "the black after every spot" },
+      r >= 4
+        ? { key: "core", label: "Your balls", max: 140, of: POOL_CORE_FULL_V4, item: "ball", how: `${140 / POOL_CORE_FULL_V4} for each of your set (spots or stripes) potted, full at ${POOL_CORE_FULL_V4} of your 7` }
+        : { key: "core", label: "Spots", max: 140, of: POOL_SPOTS, item: "spot", how: `${POOL_SPOT_PTS} a spot potted` },
+      { key: "black", label: "Black", max: POOL_BLACK_PTS, of: 1, item: "black", how: r >= 4 ? "the black after all seven of yours" : "the black after every spot" },
       { key: "streak", label: "Pots in a row", max: POOL_STREAK_MAX, of: 6, item: "pot", how: `${POOL_FOLLOW_PTS} for each pot straight after another` },
       { key: "speed", label: "Speed", max: POOL_SPEED_PTS, of: 1, item: "finish", how: `the black potted: full by ${poolFullByS(r)} s, none at the buzzer` },
     ],
   };
 }
 
-/** The dealt revision's spec (poolRev 3). */
+/** The dealt revision's spec (poolRev 4). */
 export const POOL_STD_SPEC: StdSpec = poolStdSpecFor(POOL_REV);
 
 /* ================================ The table ================================ */
@@ -332,6 +376,8 @@ export interface PoolState {
   tick: number;
   rev: number;
   seed: number;
+  /** poolRev 4: the player's set (POOL_SET_*; the seed's, display and words only: the sim's 1–7 are always the player's). */
+  set?: number;
   cueSpots: { x: number; y: number }[];
   balls: PoolBall[];
   phase: number;
@@ -376,12 +422,13 @@ function cloneBalls(balls: readonly PoolBall[]): PoolBall[] {
   return balls.map((b) => ({ ...b }));
 }
 
-function initState(seed: number, rev: number): PoolState {
+function initState(seed: number, rev: number, set?: number): PoolState {
   const layout = poolLayout(seed);
   return {
     tick: 0,
     rev,
     seed,
+    ...(rev >= 4 ? { set: set ?? poolSetFor(seed, rev) } : {}),
     cueSpots: layout.cueSpots,
     balls: layout.balls,
     phase: POOL_AIM,
@@ -671,7 +718,7 @@ function stepState(prev: PoolState, input: ArcadeInputEvent | null): PoolState {
     }
     if (ev.still) resolveShot(s);
   }
-  if (!s.over && s.tick + s.lost >= POOL_RUN_TICKS) {
+  if (!s.over && s.tick + s.lost >= poolRunTicksFor(s.rev)) {
     s.over = 1;
     s.phase = POOL_DONE;
   }
@@ -682,12 +729,13 @@ function stepState(prev: PoolState, input: ArcadeInputEvent | null): PoolState {
 
 /** Each part of a state, the core first (fouls are the penalty, outside the parts). */
 export function poolStdParts(s: PoolState): StdPart[] | null {
-  if (s.rev !== 1 && s.rev !== 2 && s.rev !== 3) return null;
+  if (s.rev !== 1 && s.rev !== 2 && s.rev !== 3 && s.rev !== 4) return null;
   const spec = poolStdSpecFor(s.rev);
   const legal = s.black === 1;
-  const speed = legal ? stdSpeed(POOL_SPEED_PTS, s.finishAt, poolFullByS(s.rev) * 60, POOL_RUN_TICKS) : 0;
+  const speed = legal ? stdSpeed(POOL_SPEED_PTS, s.finishAt, poolFullByS(s.rev) * 60, poolRunTicksFor(s.rev)) : 0;
+  const balls = s.rev >= 4 ? poolSetName(s.set ?? POOL_SET_SPOTS) : "spots";
   return [
-    stdPart(spec, "core", stdLine(140, s.spotsDown, POOL_SPOTS), `${s.spotsDown} of ${POOL_SPOTS} spots`),
+    stdPart(spec, "core", stdLine(140, s.spotsDown, poolCoreFullFor(s.rev)), `${s.spotsDown} of ${POOL_SPOTS} ${balls}`),
     stdPart(spec, "black", legal ? POOL_BLACK_PTS : 0, legal ? "potted last" : s.black === 2 ? "potted too soon" : "still up"),
     stdPart(spec, "streak", stdEach(s.follows, POOL_FOLLOW_PTS, POOL_STREAK_MAX), `${s.follows} after another pot (best run ${s.streakBest})`),
     stdPart(spec, "speed", speed, legal ? `cleared in ${Math.round(s.finishAt / 6) / 10} s` : "not cleared"),
@@ -713,18 +761,21 @@ export function poolCheckpoint(s: PoolState): SportsCheckpoint & { spots: number
 
 /** Seconds left on the run's clock (scratches included). */
 export function poolSecondsLeft(s: PoolState): number {
-  return Math.max(0, Math.ceil((POOL_RUN_TICKS - s.tick - s.lost) / 60));
+  return Math.max(0, Math.ceil((poolRunTicksFor(s.rev) - s.tick - s.lost) / 60));
 }
 
 const noDraw = (_ctx: CanvasRenderingContext2D, _s: PoolState, _size: CanvasSize) => {};
 
-/** The game for a stored revision: poolRev 3 as rooms deal it today, 2 as stored; 1 or unstamped plays poolRev 1 exactly. */
-export function poolGameFor(rev?: number | null): ArcadeGame<PoolState, ArcadeInputEvent | null> {
+/**
+ * The game for a stored revision: poolRev 4 as rooms deal it today, 3 and 2 as stored; 1 or unstamped plays poolRev 1
+ * exactly. `set` (checks only) deals a poolRev 4 table with the other set than its seed's: the sim plays it identically.
+ */
+export function poolGameFor(rev?: number | null, set?: number): ArcadeGame<PoolState, ArcadeInputEvent | null> {
   const r = poolRevOf(rev);
   return {
     key: "pool",
-    runTicks: POOL_RUN_TICKS,
-    init: (seed: number) => initState(seed, r),
+    runTicks: poolRunTicksFor(r),
+    init: (seed: number) => initState(seed, r, set),
     step: stepState,
     isOver: (s) => s.over === 1,
     score: poolScore,

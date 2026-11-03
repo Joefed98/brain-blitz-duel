@@ -57,7 +57,7 @@ revisions keep their own world in reveals and replays.
 | Full House | 414x772 | 375x591 → 317x591 | 390x624 → 335x624 | 390x768 → 390x727 | 414x772 → 414x772 | 430x856 → 430x802 | 1280x724 → 388x724 | 0.942x | 60px | 0px | 41px | 0px | - |
 | Five Hands | 414x772 | 375x591 → 317x591 | 390x624 → 335x624 | 390x768 → 390x727 | 414x772 → 414x772 | 430x856 → 430x802 | 1280x724 → 388x724 | 0.942x | 60px | 0px | 41px | 0px | - |
 | Ricochet | 390x730 | 375x591 → 316x591 | 390x624 → 333x624 | 390x768 → 390x730 | 414x772 → 412x772 | 430x856 → 430x805 | 1280x724 → 387x724 | 1.000x | 60px | 0px | 38px | 0px | - |
-| Bastion | 390x720 | 375x591 → 320x591 | 390x624 → 338x624 | 390x768 → 390x720 | 414x772 → 414x764 | 430x856 → 430x794 | 1280x724 → 392x724 | 1.000x | 60px | 0px | 48px | 0px | - |
+| Iron Wall | 390x720 | 375x591 → 320x591 | 390x624 → 338x624 | 390x768 → 390x720 | 414x772 → 414x764 | 430x856 → 430x794 | 1280x724 → 392x724 | 1.000x | 60px | 0px | 48px | 0px | - |
 | Pyramid | 414x772 | 375x591 → 317x591 | 390x624 → 335x624 | 390x768 → 390x727 | 414x772 → 414x772 | 430x856 → 430x802 | 1280x724 → 388x724 | 0.942x | 60px | 0px | 41px | 0px | - |
 | Golf Solitaire | 414x772 | 375x591 → 317x591 | 390x624 → 335x624 | 390x768 → 390x727 | 414x772 → 414x772 | 430x856 → 430x802 | 1280x724 → 388x724 | 0.942x | 60px | 0px | 41px | 0px | - |
 | Muggins | 414x772 | 375x591 → 317x591 | 390x624 → 335x624 | 390x768 → 390x727 | 414x772 → 414x772 | 430x856 → 430x802 | 1280x724 → 388x724 | 0.942x | 60px | 0px | 41px | 0px | - |
@@ -65,7 +65,7 @@ revisions keep their own world in reveals and replays.
 | Cue Ball | 390x740 | 375x591 → 311x591 | 390x624 → 329x624 | 390x768 → 390x740 | 414x772 → 407x772 | 430x856 → 430x816 | 1280x724 → 382x724 | 1.000x | 60px | 0px | 28px | 0px | - |
 | Curl Champ | 390x540 | 375x591 → 375x519 | 390x624 → 390x540 | 390x768 → 390x540 | 414x772 → 414x573 | 430x856 → 430x595 | 1280x724 → 523x724 | 1.000x | 60px | 0px | 228px | 0px | - |
 | Blockfall | 414x744 | 375x591 → 329x591 | 390x624 → 347x624 | 390x768 → 390x701 | 414x772 → 414x744 | 430x856 → 430x773 | 1280x724 → 403x724 | 0.942x | 60px | 0px | 67px | 0px | - |
-| Alley Roll | 414x800 | 375x591 → 306x591 | 390x624 → 323x624 | 390x768 → 390x754 | 414x772 → 400x772 | 430x856 → 430x831 | 1280x724 → 375x724 | 0.942x | 60px | 0px | 14px | 0px | - |
+| Ringer | 414x800 | 375x591 → 306x591 | 390x624 → 323x624 | 390x768 → 390x754 | 414x772 → 400x772 | 430x856 → 430x831 | 1280x724 → 375x724 | 0.942x | 60px | 0px | 14px | 0px | - |
 | Letterfall | 390x700 | 375x591 → 329x591 | 390x624 → 348x624 | 390x768 → 390x700 | 414x772 → 414x743 | 430x856 → 430x772 | 1280x724 → 403x724 | 1.000x | 60px | 0px | 68px | 0px | - |
 | Tenfall | 360x520 | 375x535 → 370x535 | 390x568 → 390x563 | 390x712 → 390x563 | 414x716 → 414x598 | 430x800 → 430x621 | 1280x668 → 462x668 | 1.083x | 116px | 0px | 149px | 0px | - |
 | Bonk | square | 375x491 → 375x375 | 390x524 → 390x390 | 390x668 → 390x390 | 414x672 → 414x414 | 430x756 → 430x430 | 1280x624 → 624x624 | 390.000x | 159.6px | 139px | 139px | 0px | - |
@@ -126,9 +126,9 @@ stars, walkers, lava, reactions) that holds still under reduced motion or reduce
 | Golf Solitaire | 375x591 → 317x591 | 390x624 → 335x624 | 390x768 → 390x727 | 414x772 → 414x772 | 430x856 → 430x802 | 1280x724 → 388x724 | the felt's darker edge runs on beside and below the world, settling darker towards the screen's bottom |
 | Muggins | 375x591 → 317x591 | 390x624 → 335x624 | 390x768 → 390x727 | 414x772 → 414x772 | 430x856 → 430x802 | 1280x724 → 388x724 | the baize's darker green runs on beside and below the world, settling darker towards the screen's bottom |
 | Blockfall | 375x591 → 329x591 | 390x624 → 347x624 | 390x768 → 390x701 | 414x772 → 414x744 | 430x856 → 430x773 | 1280x724 → 403x724 | the cabinet's dark navy glow runs on above, beside and below the well, settling to black |
-| Alley Roll | 375x591 → 306x591 | 390x624 → 323x624 | 390x768 → 390x754 | 414x772 → 400x772 | 430x856 → 430x831 | 1280x724 → 375x724 | the alley's warm dark room runs on beside the lane and the scoreboard's wood above, settling darker below |
+| Ringer | 375x591 → 306x591 | 390x624 → 323x624 | 390x768 → 390x754 | 414x772 → 400x772 | 430x856 → 430x831 | 1280x724 → 375x724 | the funfair alley's maroon walls run on beside the lane and the awning's fascia above, settling darker below |
 | Ricochet | 375x591 → 316x591 | 390x624 → 333x624 | 390x768 → 390x730 | 414x772 → 412x772 | 430x856 → 430x805 | 1280x724 → 387x724 | the temple wall's stone runs on beside the world and a dusk band below it, settling darker towards the screen's bottom |
-| Bastion | 375x591 → 320x591 | 390x624 → 338x624 | 390x768 → 390x720 | 414x772 → 414x764 | 430x856 → 430x794 | 1280x724 → 392x724 | the dusk sky, the field and the stone wall carried out to the sides, the wall settling darker below |
+| Iron Wall | 375x591 → 320x591 | 390x624 → 338x624 | 390x768 → 390x720 | 414x772 → 414x764 | 430x856 → 430x794 | 1280x724 → 392x724 | the dusk sky, the field and the stone wall carried out to the sides, the wall settling darker below |
 
 ## iPhone 11 home-screen app, before and after the 15 Oct 2026 fix
 
@@ -175,7 +175,7 @@ than half hidden; Hover's world is cut the same way, its disc at the top).
 | Full House | 414x724 → 388x724, 64px | 414x772 → 414x772, 16px | world 32px |
 | Five Hands | 414x724 → 388x724, 64px | 414x772 → 414x772, 16px | world 32px |
 | Ricochet | 414x724 → 387x724, 64px | 414x772 → 412x772, 16px | world 32px |
-| Bastion | 414x724 → 392x724, 64px | 414x772 → 414x764, 16px | world 24px |
+| Iron Wall | 414x724 → 392x724, 64px | 414x772 → 414x764, 16px | world 24px |
 | Pyramid | 414x724 → 388x724, 64px | 414x772 → 414x772, 16px | world 32px |
 | Golf Solitaire | 414x724 → 388x724, 64px | 414x772 → 414x772, 16px | world 32px |
 | Muggins | 414x724 → 388x724, 64px | 414x772 → 414x772, 16px | world 32px |
@@ -183,7 +183,7 @@ than half hidden; Hover's world is cut the same way, its disc at the top).
 | Cue Ball | 414x724 → 382x724, 64px | 414x772 → 407x772, 16px | world 32px |
 | Curl Champ | 414x724 → 414x573, 64px | 414x772 → 414x573, 16px | world none |
 | Blockfall | 414x724 → 403x724, 64px | 414x772 → 414x744, 16px | world 4px |
-| Alley Roll | 414x724 → 375x724, 64px | 414x772 → 400x772, 16px | world 32px |
+| Ringer | 414x724 → 375x724, 64px | 414x772 → 400x772, 16px | world 32px |
 | Letterfall | 414x724 → 403x724, 64px | 414x772 → 414x743, 16px | world 3px |
 | Tenfall | 414x668 → 414x598, 64px | 414x716 → 414x598, 16px | world none |
 | Bonk | 414x624 → 414x414, 64px | 414x672 → 414x414, 16px | world none |
@@ -230,7 +230,7 @@ bottom; the spare space was the game's arena fill or the page colour. Same arith
 | Full House | 367x543 → 291x543 | 382x576 → 309x576 | 382x720 → 382x712 | 422x808 → 422x787 | 1272x676 → 363x676 |
 | Five Hands | 367x543 → 291x543 | 382x576 → 309x576 | 382x720 → 382x712 | 422x808 → 422x787 | 1272x676 → 363x676 |
 | Ricochet | 367x543 → 290x543 | 382x576 → 308x576 | 382x720 → 382x715 | 422x808 → 422x790 | 1272x676 → 361x676 |
-| Bastion | 367x543 → 294x543 | 382x576 → 312x576 | 382x720 → 382x705 | 422x808 → 422x779 | 1272x676 → 366x676 |
+| Iron Wall | 367x543 → 294x543 | 382x576 → 312x576 | 382x720 → 382x705 | 422x808 → 422x779 | 1272x676 → 366x676 |
 | Pyramid | 367x543 → 291x543 | 382x576 → 309x576 | 382x720 → 382x712 | 422x808 → 422x787 | 1272x676 → 363x676 |
 | Golf Solitaire | 367x543 → 291x543 | 382x576 → 309x576 | 382x720 → 382x712 | 422x808 → 422x787 | 1272x676 → 363x676 |
 | Muggins | 367x543 → 291x543 | 382x576 → 309x576 | 382x720 → 382x712 | 422x808 → 422x787 | 1272x676 → 363x676 |
@@ -238,4 +238,4 @@ bottom; the spare space was the game's arena fill or the page colour. Same arith
 | Cue Ball | 367x543 → 286x543 | 382x576 → 304x576 | 382x720 → 379x720 | 422x808 → 422x801 | 1272x676 → 356x676 |
 | Curl Champ | 367x543 → 367x508 | 382x576 → 382x529 | 382x720 → 382x529 | 422x808 → 422x584 | 1272x676 → 488x676 |
 | Blockfall | 367x543 → 302x543 | 382x576 → 321x576 | 382x720 → 382x686 | 422x808 → 422x758 | 1272x676 → 376x676 |
-| Alley Roll | 367x543 → 281x543 | 382x576 → 298x576 | 382x720 → 373x720 | 422x808 → 418x808 | 1272x676 → 350x676 |
+| Ringer | 367x543 → 281x543 | 382x576 → 298x576 | 382x720 → 373x720 | 422x808 → 418x808 | 1272x676 → 350x676 |

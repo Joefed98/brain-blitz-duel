@@ -29,6 +29,7 @@ import { withSeededRandom } from "./random";
 import { SPEED_PAR_VERSION } from "./speedPar";
 import { PUZZLE_SCORE_REV_DEALT, dealtPuzzleScoreRev, puzzleScoreRevOf } from "./puzzleScoreRev";
 import { dealStandard } from "./standard/stamps";
+import { dealParMoves } from "./parMoves";
 import { stampMoveLimits } from "./moveLimits.server";
 import type {
   BlockPartyPuzzleData,
@@ -249,5 +250,6 @@ export function bankedIntroExample(type: PuzzleType): PuzzleData | null {
   const copy = stampMoveLimits(JSON.parse(JSON.stringify(example)) as PuzzleData);
   const stamped = { ...(copy as object), speedPar: SPEED_PAR_VERSION, puzzleScoreRev: dealtPuzzleScoreRev() } as unknown as PuzzleData;
   // The scoring standard's stamp, as generatePuzzle deals it, so the example is the live one.
-  return puzzleScoreRevOf(stamped) === PUZZLE_SCORE_REV_DEALT ? dealStandard(stamped) : stamped;
+  // The puzzle batch of 3 Nov 2026 (parMoves.ts): Skid one stamp above the standard's, as generatePuzzle deals it.
+  return puzzleScoreRevOf(stamped) === PUZZLE_SCORE_REV_DEALT ? dealParMoves(dealStandard(stamped)) : stamped;
 }

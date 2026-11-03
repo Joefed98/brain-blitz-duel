@@ -142,7 +142,7 @@ Active games (83): wide 53, rotate 1, tall 29.
 | Shikaku | `shikaku` | Logic | **wide** |  | puzzle board: re-flows into the wider column |
 | Tents and Trees | `tents` | Logic | **wide** |  | puzzle board: re-flows into the wider column |
 | Trail | `trail` | Logic | **wide** |  | puzzle board: re-flows into the wider column |
-| Alley Roll | `alleyroll` | Arcade · Sports | **tall** |  | the lane seen from the player's end: kept upright at full height, the alley carried to the sides |
+| Ringer | `alleyroll` | Arcade · Sports | **tall** |  | the funfair lane seen from the player's end: kept upright at full height, the alley carried to the sides |
 | Apex | `racing` | Arcade · Sports | **tall** |  | behind-camera view; on desktop its world capped at 340×634, centred, with its static backdrop beside it, for 60 fps |
 | Ball Tracker | `balltrack` | Arcade · Strategy | **tall** |  | cups and marbles read top to bottom: kept upright |
 | Blockfall | `blockfall` | Arcade · Retro | **tall** |  | a tall well of falling pieces: kept upright at full height, the cabinet glow carried to the sides |
@@ -183,7 +183,7 @@ Retired to practice (12):
 | --- | --- | --- | --- | --- | --- |
 | Letterfall | `wordfall` | Word | **tall** |  | falling-letter engine game (practice only): kept upright |
 | Dig | `dig` | Logic | **wide** |  | puzzle board: re-flows into the wider column |
-| Bastion | `bastion` | Arcade | **tall** |  | practice only, defended from the bottom: kept upright |
+| Iron Wall (was Bastion) | `bastion` | Arcade | **tall** |  | the tank-defence shooter, kept upright; the dusk, field and lane-edge scenery carried out to the sides |
 | Dual | `dual` | Arcade | **tall** |  | practice only: kept upright |
 | Full House | `pokersquares` | Arcade · Cards & Board | **wide** |  | card / board layout, no physics world: scaled up in a wide column |
 | Hot Floor | `hotfloor` | Arcade | **tall** |  | practice only: kept upright |

@@ -1692,7 +1692,7 @@ function gradeUnderRev(
       };
       break;
     }
-    // Alley Roll (1 Nov 2026): the rolls are replayed on the one lane; only that scores.
+    // Alley Roll (1 Nov 2026) / Ringer (alleyRollRev 2): the rolls are replayed on the one lane; only that scores.
     case "alleyroll": {
       const replayStart = performance.now();
       const run = replayAlleyRollRun(puzzle.seed, answer, puzzle.alleyRollRev);
@@ -1704,6 +1704,7 @@ function gradeUnderRev(
       extraDetail = {
         alleyRollRev: puzzle.alleyRollRev ?? 1,
         rings: run.rings,
+        ...((puzzle.alleyRollRev ?? 1) >= 2 ? { gold: run.gold } : {}),
         pockets: run.pockets,
         streak: run.streak,
         balls: run.balls,
@@ -2233,7 +2234,7 @@ function gradeUnderRev(
         // bastionRev 2 (1 Nov 2026): the tank-defence shooter on the arcade scoring standard; the server's replay alone
         // scores, and the stored extra carries each part's points (numbers only) for the reveal.
         const replayStart = performance.now();
-        const run = replayBastionTankRun(puzzle.seed, answer);
+        const run = replayBastionTankRun(puzzle.seed, answer, puzzle.bastionRev);
         const decoded = decodeBastionTankRun(answer);
         revealRun = run as unknown as typeof revealRun;
         arcadeDiag = buildArcadeDiag(puzzle.type, run as unknown as Parameters<typeof buildArcadeDiag>[1], answer, performance.now() - replayStart);
@@ -2249,6 +2250,7 @@ function gradeUnderRev(
           kills: run.kills,
           weak: run.weak,
           fast: run.fast,
+          ...(run.drones ? { drones: run.drones } : {}),
           jams: run.jams,
           shots: run.shots,
           hits: run.hits,

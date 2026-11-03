@@ -92,7 +92,7 @@ reason given. "Practice" marks games retired to practice.
 | Grappler (`swing`) | Hold to grapple, release to let go; drag up or down while holding to reel | Hold Space to grapple, let go to release; ↑ ↓ / W S reel while held |
 | High Rise (`skyline`) | Click to drop | Space, ↓ or S drops |
 | Hover (`hover`) | Click to flap | Space, ↑ or W flaps |
-| Home Run (`homerun`) | Drag through the ball to swing (its start height meets the pitch, its angle aims); click Contact or Power at the bottom of the field before the pitch (homerunRev 3) | C or 1 = Contact, P or 2 = Power (homerunRev 3); the swing stays a mouse drag (its height and angle are the aim) |
+| Home Run (`homerun`) | homerunRev 4 (3 Nov 2026): click a spot on the field before the pitch, then click anywhere to swing as the ring closes on the ball (rev 1–3: drag through the ball; rev 3 also Contact or Power) | Space = swing (homerunRev 4; the spot stays a click); rev 3: C or 1 = Contact, P or 2 = Power, the swing a mouse drag |
 | Jaywalk (`cross`) | Drag-flick up, down, left or right | ← → ↑ ↓ / WASD step |
 | Meteor (`snake`) | Drag-flick to turn | ← → ↑ ↓ / WASD turn |
 | Orbit (`orbit`) | Click to release; SET CHECKPOINT button | Space releases; C sets a checkpoint (when the button shows) |
@@ -108,7 +108,7 @@ reason given. "Practice" marks games retired to practice.
 | Top Bins (`freekick`, freekickRev 3) | Click the goal to aim, drag sideways to curl, hold the power bar and let go to strike | ← → ↑ ↓ move the aim (20 cm, Shift 5 cm; the first press aims at the goal's centre); A D curl left / right (10 a press); hold Space for the power meter, let go to strike. Earlier revisions (a drawn stroke): mouse only |
 | Wavefront (`wavefront`) | Drag in the bottom quarter to move | ← → / A D move (6 px a tick) |
 | Curl Champ (`curling`) | Drag the target; drag the stone sideways to slide it; In / Out buttons; drag up to throw (its speed is the weight); rub left or right of a moving stone to brush | ← → ↑ ↓ move the target (Shift: further); A D slide the stone; I / O the turn; curlRev 3: − / + set the weight on the meter (from the draw zone's mark; Shift: 50), Enter throws it (curlRev 1 and 2: Enter throws a draw weight); while a stone travels ← → brush its left / right, S carries it |
-| Bastion (`bastion`, practice) | Drag to aim, or the Arrows buttons | ← → / A D rotate |
+| Iron Wall (`bastion`; was Bastion) | Drag to aim (the crosshair 100 px above the thumb), lift to fire, swipe down to reload, tap for the fast reload | the mouse aims, click fires, R reloads, Space is the fast-reload tap (unstamped rounds: ← → / A D rotate) |
 | Dual (`dual`, practice) | Click the left or right half | ← / A / F left, → / D / J right |
 | Hot Floor (`hotfloor`, practice) | Click tiles and the drawn buttons | Mouse for tiles. Enter or G = Go, Z or Backspace = Undo, C or Esc = Clear |
 | Junction (`junction`, practice) | Click an approach | Rev 1: ← → ↑ ↓ / WASD. Rev 2: 1–8 for the eight lights, once built |
@@ -198,9 +198,9 @@ reason given. "Practice" marks games retired to practice.
 | Blackout (`lightsout`) | Click cells; Undo / Reset | Z or Backspace = Undo; R = Reset |
 | Bomb Defusal (`bomb`) | Click wires and buttons; Defuse / Reset | 1–9 cut wire n; A / B the buttons; Enter = Defuse; R = Reset |
 | Box Six (`sudoku`) | Click a cell, then a digit; Pencil; Clear | ← → ↑ ↓ / WASD move the selection; 1–6 the digit; Backspace or Delete = Clear; P = Pencil |
-| Fences (`fences`) | Click an edge: line, ✕, clear; drag along edges to draw several | Mouse only (wide layout) |
-| Fillomino (`fillomino`) | Click a square, then a number; drag from a number to paint it | ← → ↑ ↓ move the selection; 1–9 the number; Backspace or Delete = Clear |
-| Bridges (`bridges`) | Drag from island to island: one bridge, two, none | Mouse only (wide layout) |
+| Loopline (`fences`) | Click an edge: line, ✕, clear; drag along edges to draw several | Mouse only (wide layout) |
+| Regions (`fillomino`) | Click a number on the pad, then click or drag squares; the eraser clears | 1–9 pick the number; 0, E, Backspace or Delete the eraser; ← → ↑ ↓ move a cursor, Enter or Space apply |
+| Island Link (`bridges`) | Drag from island to island: one bridge, two, none | Mouse only (wide layout) |
 | Kakuro (`kakuro`) | Click a square, then a digit; Pencil; Clear | ← → ↑ ↓ move between white squares; 1–9 the digit; Backspace or Delete = Clear; P = Pencil |
 | Colour Flood (`flood`) | Click a colour pot | 1–5 the pots, left to right |
 | Hanoi (`tower`) | Click pegs; Undo / Reset | 1–3 the pegs; Z or Backspace = Undo; R = Reset |
