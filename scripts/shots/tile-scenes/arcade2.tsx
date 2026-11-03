@@ -23,7 +23,7 @@ import { DUAL_GROUND, DUAL_RUNNER, DUAL_RUNNER_R, DUAL_SPIKE, DUAL_SPIKE_H, DUAL
 import { HOT_BG, HOT_GOLD, HOT_RED } from "@/lib/arcade/hotFloor";
 import { JUNC_CX, JUNC_CY } from "@/lib/arcade/junction";
 import { CAR_COLOURS, HALF as JUNC_HALF, LANE as JUNC_LANE, drawCar, drawLight, drawScene } from "@/lib/arcade/junction.renderer";
-import { drawCoin as drawNinjaCoin, drawKatana, drawLantern, drawNinja, drawShuriken } from "@/lib/arcade/ricochetNinja.renderer";
+import { drawKatana, drawLedge, drawNinja, drawSkyLantern } from "@/lib/arcade/ricochetNinja.renderer";
 import { ROOF_GOLD, ROOF_LANES, ROOF_LOW, ROOF_WALL, drawRoofObstacle, drawRoofRunner, project as roofProject } from "@/lib/arcade/rooftop";
 import { STD_DOT, STD_DOT_R, STD_GOLD } from "@/lib/arcade/steady";
 import { SWERVE_LANE_X, swerveGame, type SwerveState } from "@/lib/arcade/swerve";
@@ -338,8 +338,8 @@ export const ARCADE2_SCENES: SceneSet = {
       drawRubberBall(c, 80, 398, 14, 0.6);
     });
   }),
-  // Ricochet (ricoRev 2): the Joulz hero in ninja gear mid-leap between two temple walls, a katana in the left wall, a shuriken
-  // spinning across the gap, a coin on the arc and a gold lantern on the right wall (the game's own painters).
+  // Moon Climb (ricoRev 3): the Joulz hero in ninja gear mid-leap between two temple walls, a paper sky lantern rising
+  // ahead of him, a slim mid-ledge hanging in the shaft and a katana in the left wall (the game's own painters).
   ricochet: canvasScene((c) => {
     const stone = (x0: number, w: number) => {
       c.fillStyle = "#14151D";
@@ -352,22 +352,29 @@ export const ARCADE2_SCENES: SceneSet = {
           if (b > a) c.fillRect(a, r * 13 + 1, b - a, 11);
         }
     };
-    stone(0, 22);
-    stone(82, 22);
+    stone(0, 18);
+    stone(86, 18);
     c.save();
-    c.translate(22 - 70 * 0.62, 0);
+    c.translate(18 - 70 * 0.55, 0);
+    c.scale(0.55, 0.55);
+    drawKatana(c as CanvasRenderingContext2D, 0, 168, 0, 3);
+    c.restore();
+    c.save();
+    c.translate(76, 62);
     c.scale(0.62, 0.62);
-    drawKatana(c as CanvasRenderingContext2D, 0, 150, 0, 3);
-    c.restore();
-    drawShuriken(c as CanvasRenderingContext2D, 44, 30, 4);
-    drawNinjaCoin(c as CanvasRenderingContext2D, 64, 50, 0);
-    c.save();
-    c.translate(82 - 9, 74);
-    c.scale(0.8, 0.8);
-    drawLantern(c as CanvasRenderingContext2D, 0, 0, 0);
+    drawLedge(c as CanvasRenderingContext2D, 0, -24, 56);
     c.restore();
     c.save();
-    c.translate(50, 54);
+    c.translate(64, 19);
+    c.scale(0.82, 0.82);
+    drawSkyLantern(c as CanvasRenderingContext2D, 0, 0, 0);
+    c.restore();
+    // The leap's arc, faint dots up towards the lantern.
+    c.fillStyle = "rgba(255,226,160,0.55)";
+    for (const [x, y] of [[50, 40], [55, 33], [59, 28]] as const) c.fillRect(x, y, 2, 2);
+    c.save();
+    c.translate(36, 60);
+    c.rotate(-0.12);
     c.scale(1.12, 1.12);
     drawNinja(c as CanvasRenderingContext2D, 0, 0, 1, 1, 6);
     c.restore();

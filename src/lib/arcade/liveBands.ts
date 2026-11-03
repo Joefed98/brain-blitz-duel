@@ -46,9 +46,9 @@ import { FC_REV, FC_STD_SPEC, FC_V3_BAND_CURVE } from "./cards/freecell";
 import { TP_REV, TP_STD_SPEC, TP_V1_BAND_CURVE } from "./cards/tripeaks";
 import { PS_REV, PS_STD_SPEC, PS_V2_BAND_CURVE } from "./cards/pokerSquares";
 import { FH_REV, FH_STD_SPEC, FH_V2_BAND_CURVE } from "./cards/fiveHands";
-import { BLOCKFALL_REV, BF_STD_SPEC, BF_V1_BAND_CURVE } from "./blockfall";
+import { BLOCKFALL_REV_ZONE, BF_ZONE_STD_SPEC, BF_V2_BAND_CURVE } from "./blockfall";
 import { ALLEYROLL_REV_DEALT, AR2_STD_SPEC, AR_V2_BAND_CURVE } from "./alleyroll";
-import { NINJA_REV, NINJA_STD_SPEC, NINJA_V2_BAND_CURVE } from "./ricochetNinja";
+import { MOON_REV, MOON_STD_SPEC, MOON_V3_BAND_CURVE } from "./ricochetNinja";
 import { PY_REV, PY_STD_SPEC, PY_V1_BAND_CURVE } from "./cards/pyramid";
 import { GS_REV, GS_STD_SPEC, GS_V1_BAND_CURVE } from "./cards/golfSol";
 import { MG_REV, MG_STD_SPEC, MG_V1_BAND_CURVE } from "./cards/muggins";
@@ -150,7 +150,8 @@ export const LIVE_BANDS = {
   // fiveHandsRev 2 (1 Nov 2026): the steep hand table, hand points alone to 200.
   fivehands: { field: "fiveHandsRev", rev: FH_REV, curve: FH_V2_BAND_CURVE, std: FH_STD_SPEC, born: true },
   // Ricochet (1 Nov 2026): the ninja wall-climb, born on the arcade scoring standard at ricoRev 2 (the old shaft never had a band revision).
-  ricochet: { field: "ricoRev", rev: NINJA_REV, curve: NINJA_V2_BAND_CURVE, std: NINJA_STD_SPEC, born: true },
+  // Moon Climb (ricoRev 3, 3 Nov 2026): the live stamp, its own parts (height, flow, lantern rides, scrolls).
+  ricochet: { field: "ricoRev", rev: MOON_REV, curve: MOON_V3_BAND_CURVE, std: MOON_STD_SPEC, born: true },
   // Pyramid, Golf Solitaire and Muggins (1 Nov 2026): born on the arcade scoring standard.
   pyramid: { field: "pyramidRev", rev: PY_REV, curve: PY_V1_BAND_CURVE, std: PY_STD_SPEC, born: true },
   golfsol: { field: "golfSolRev", rev: GS_REV, curve: GS_V1_BAND_CURVE, std: GS_STD_SPEC, born: true },
@@ -160,7 +161,8 @@ export const LIVE_BANDS = {
   pool: { field: "poolRev", rev: POOL_REV, curve: stdCoreCurve(POOL_STD_SPEC), std: POOL_STD_SPEC, born: true },
   curling: { field: "curlRev", rev: CURLING_REV, curve: stdCoreCurve(CURLING_STD_SPEC), std: CURLING_STD_SPEC, born: true },
   // Blockfall (Retro) and Alley Roll (Sports), 1 Nov 2026: born on the arcade scoring standard at revision 1.
-  blockfall: { field: "blockfallRev", rev: BLOCKFALL_REV, curve: BF_V1_BAND_CURVE, std: BF_STD_SPEC, born: true },
+  // Blockzone (blockfallRev 2, 3 Nov 2026): 90 s, no hold, its own parts (lines, pieces, multi-line clears, low stack).
+  blockfall: { field: "blockfallRev", rev: BLOCKFALL_REV_ZONE, curve: BF_V2_BAND_CURVE, std: BF_ZONE_STD_SPEC, born: true },
   // Ringer (alleyRollRev 2, 3 Nov 2026): the cup stack and the gold cup, four parts.
   alleyroll: { field: "alleyRollRev", rev: ALLEYROLL_REV_DEALT, curve: AR_V2_BAND_CURVE, std: AR2_STD_SPEC, born: true },
   // Iron Wall (id bastion) bastionRev 3 (3 Nov 2026: eased waves 4–5, a 90 ms green zone, the drones); the tank-defence

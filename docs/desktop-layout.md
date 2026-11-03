@@ -145,7 +145,7 @@ Active games (83): wide 53, rotate 1, tall 29.
 | Ringer | `alleyroll` | Arcade · Sports | **tall** |  | the funfair lane seen from the player's end: kept upright at full height, the alley carried to the sides |
 | Apex | `racing` | Arcade · Sports | **tall** |  | behind-camera view; on desktop its world capped at 340×634, centred, with its static backdrop beside it, for 60 fps |
 | Ball Tracker | `balltrack` | Arcade · Strategy | **tall** |  | cups and marbles read top to bottom: kept upright |
-| Blockfall | `blockfall` | Arcade · Retro | **tall** |  | a tall well of falling pieces: kept upright at full height, the cabinet glow carried to the sides |
+| Blockzone | `blockfall` | Arcade · Retro | **tall** |  | a tall well of falling pieces: kept upright at full height, the cabinet glow carried to the sides |
 | Breaker | `breaker` | Arcade · Retro | **tall** |  | portrait play with controls at the bottom (paddle, flippers, launcher): kept upright |
 | Coral Pop | `bubble` | Arcade · Strategy | **tall** |  | shooter aiming up from the bottom: kept upright |
 | Crazy Golf | `minigolf` | Arcade · Sports | **tall** |  | top-down course, kept upright at full height |
@@ -188,7 +188,7 @@ Retired to practice (12):
 | Full House | `pokersquares` | Arcade · Cards & Board | **wide** |  | card / board layout, no physics world: scaled up in a wide column |
 | Hot Floor | `hotfloor` | Arcade | **tall** |  | practice only: kept upright |
 | Junction | `junction` | Arcade | **tall** |  | practice only: kept upright |
-| Ricochet | `ricochet` | Arcade | **tall** |  | practice only, a launcher at the bottom: kept upright |
+| Moon Climb | `ricochet` | Arcade · Action | **tall** |  | a tall two-wall climb (ricoRev 3): kept upright at full height |
 | Rooftop Run | `rooftop` | Arcade | **tall** |  | side-on world: full height, scenery out to both sides |
 | Scrumper | `snip` | Arcade | **tall** |  | practice only, hanging fruit falls down: kept upright |
 | Steady | `steady` | Arcade | **tall** |  | practice only: kept upright |

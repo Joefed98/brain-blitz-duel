@@ -38,7 +38,7 @@ import { freecellGameFor } from "@/lib/arcade/cards/freecell";
 import { tripeaksGameFor } from "@/lib/arcade/cards/tripeaks";
 import { pokerSquaresGameFor } from "@/lib/arcade/cards/pokerSquares";
 import { fiveHandsGameFor } from "@/lib/arcade/cards/fiveHands";
-import { ninjaGame } from "@/lib/arcade/ricochetNinja";
+import { ninjaGameFor } from "@/lib/arcade/ricochetNinja";
 import { ricoGame } from "@/lib/arcade/ricochet";
 import { isNinjaRev } from "@/lib/duel/ricochet";
 import { pyramidGameFor } from "@/lib/arcade/cards/pyramid";
@@ -216,7 +216,7 @@ const SOURCES: Record<string, (p: PuzzleData) => GameSource> = {
   pokersquares: (p) => ({ game: pokerSquaresGameFor(rev(p, "pokerSquaresRev")) as AnyGame }),
   fivehands: (p) => ({ game: fiveHandsGameFor(rev(p, "fiveHandsRev")) as AnyGame }),
   // Ricochet: the ninja wall-climb (ricoRev 2, events) or the original shaft (a tap list).
-  ricochet: (p) => (isNinjaRev(rev(p, "ricoRev")) ? { game: ninjaGame as AnyGame } : { game: ricoGame as AnyGame, taps: true }),
+  ricochet: (p) => (isNinjaRev(rev(p, "ricoRev")) ? { game: ninjaGameFor(rev(p, "ricoRev")) as AnyGame } : { game: ricoGame as AnyGame, taps: true }),
   pyramid: (p) => ({ game: pyramidGameFor(rev(p, "pyramidRev")) as AnyGame }),
   golfsol: (p) => ({ game: golfSolGameFor(rev(p, "golfSolRev")) as AnyGame }),
   muggins: (p) => ({ game: mugginsGameFor(rev(p, "mugginsRev")) as AnyGame }),
