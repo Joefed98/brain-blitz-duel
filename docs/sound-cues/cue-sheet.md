@@ -395,7 +395,7 @@ Grouped by game or screen. These are the cues still missing a sound.
 | Free Cell | arcade | yes | music_freecell | `music_freecell` |
 | Full House | arcade | practice only | music_pokersquares | `music_pokersquares` |
 | Gemstone | arcade | yes | music_matchup | `music_matchup` |
-| Golf Solitaire | arcade | yes | music_golfsol | `music_golfsol` |
+| Golf Solitaire | arcade | practice only | music_golfsol | `music_golfsol` |
 | Grappler | arcade | yes | music_swing | `music_swing` |
 | High Rise | arcade | yes | music_skyline | `music_skyline` |
 | Home Run | arcade | yes | music_homerun | `music_homerun` |
@@ -411,7 +411,6 @@ Grouped by game or screen. These are the cues still missing a sound.
 | Muggins | arcade | practice only | music_muggins | `music_muggins` |
 | Orbit | arcade | yes | music_orbit | `music_orbit` |
 | Pinball | arcade | yes | music_pinball | `music_pinball` |
-| Pyramid | arcade | yes | music_pyramid | `music_pyramid` |
 | Rainbow Bridge | arcade | yes | music_inkbridge | `music_inkbridge` |
 | Rally | arcade | yes | music_rally | `music_rally` |
 | Ringer | arcade | yes | music_alleyroll | `music_alleyroll` |
@@ -424,6 +423,7 @@ Grouped by game or screen. These are the cues still missing a sound.
 | Swerve | arcade | practice only | **none** | `music_swerve` |
 | Swish | arcade | yes | music_bintoss | `music_bintoss` |
 | Tempo | arcade | yes | music_beat | `music_beat` |
+| Thirteen | arcade | yes | music_pyramid | `music_pyramid` |
 | Tilt | arcade | yes | music_tilt | `music_tilt` |
 | Top Bins | arcade | yes | music_freekick | `music_freekick` |
 | Wavefront | arcade | yes | music_wavefront | `music_wavefront` |
@@ -1680,20 +1680,6 @@ Grouped by game or screen.
 | `pinball.flipper` | Pinball: A flipper is raised (each side once per press) [arcade.md] |  | 50–150 | recorded sound | `pinball.flipper` | 50 | UI tap | `pinball.flipper` |
 | `music.pinball` | Pinball (arcade): music_rally (borrowed from Rally) |  | loop | recorded sound | `music_pinball` | 60000 | music | `music_pinball` |
 
-### Pyramid
-
-| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
-|---|---|---|---|---|---|---|---|---|
-| `pyramid.pair` | Pyramid: Two cards adding to 13 removed (pyramid or waste) [arcade.md] |  | 8–14 | recorded sound | `pyramid.pair` | 406 | game event | `pyramid.pair` |
-| `pyramid.king` | Pyramid: A King removed alone [arcade.md] |  | 0–4 | recorded sound | `pyramid.king` | 329 | game event | `pyramid.king` |
-| `pyramid.deal` | Pyramid: A stock card turned onto the waste [arcade.md] |  | 10–60 | recorded sound | `pyramid.deal` | 220 | game event | `pyramid.deal` |
-| `pyramid.invalid` | Pyramid: A tap refused (a covered card, a pair not adding to 13, an empty stock) [arcade.md] |  | 0–10 | recorded sound | `pyramid.invalid` | 434 | game event | `pyramid.invalid` |
-| `pyramid.clear` | Pyramid: All 28 pyramid cards removed [arcade.md] |  | 0–1 | recorded sound | `pyramid.clear` | 1666 | game event | `pyramid.clear` |
-| `pyramid.shuffle` | Pyramid [cards-solitaire.md] |  | 5–40 (per move) | recorded sound | `pyramid.shuffle` | 1093 | game event | `pyramid.shuffle` |
-| `pyramid.select` | Pyramid [cards-solitaire.md] |  | 5–40 (per move) | recorded sound | `pyramid.select` | 334 | UI tap | `pyramid.select` |
-| `pyramid.turn` | Pyramid [cards-solitaire.md] |  | 5–40 (per move) | recorded sound | `pyramid.turn` | 1093 | game event | `pyramid.turn` |
-| `music.pyramid` | Pyramid: music_pyramid (Free Cell's bed, music_freecell.mp3) |  | loop | recorded sound | `music_pyramid` | 47400 | music | `music_pyramid` |
-
 ### Rainbow Bridge
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
@@ -1845,6 +1831,20 @@ Grouped by game or screen.
 | `beat.miss` | Tempo: A note is missed (left out when it breaks a combo of 10+ and beat.comboLost has a file) [arcade.md] |  | 5–20 | recorded sound | `beat.miss` | 150 | fail sting | `beat.miss` |
 | `beat.note` | Tempo: A note is hit or a hold starts (pitched by lane; an own file keeps the lane pitch) [arcade.md] |  | 80–150 | recorded sound | `beat.note` | 140 | game event | `beat.note` |
 | `music.beat` | Tempo (arcade): none: the chart's synthesised beat is the music |  | loop | recorded sound | `music_beat` | 60000 | music | `music_beat` |
+
+### Thirteen
+
+| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
+|---|---|---|---|---|---|---|---|---|
+| `pyramid.pair` | Pyramid: Two cards adding to 13 removed (pyramid or waste) [arcade.md] |  | 8–14 | recorded sound | `pyramid.pair` | 406 | game event | `pyramid.pair` |
+| `pyramid.king` | Pyramid: A King removed alone [arcade.md] |  | 0–4 | recorded sound | `pyramid.king` | 329 | game event | `pyramid.king` |
+| `pyramid.deal` | Pyramid: A stock card turned onto the waste [arcade.md] |  | 10–60 | recorded sound | `pyramid.deal` | 220 | game event | `pyramid.deal` |
+| `pyramid.invalid` | Pyramid: A tap refused (a covered card, a pair not adding to 13, an empty stock) [arcade.md] |  | 0–10 | recorded sound | `pyramid.invalid` | 434 | game event | `pyramid.invalid` |
+| `pyramid.clear` | Pyramid: All 28 pyramid cards removed [arcade.md] |  | 0–1 | recorded sound | `pyramid.clear` | 1666 | game event | `pyramid.clear` |
+| `pyramid.shuffle` | Pyramid [cards-solitaire.md] |  | 5–40 (per move) | recorded sound | `pyramid.shuffle` | 1093 | game event | `pyramid.shuffle` |
+| `pyramid.select` | Pyramid [cards-solitaire.md] |  | 5–40 (per move) | recorded sound | `pyramid.select` | 334 | UI tap | `pyramid.select` |
+| `pyramid.turn` | Pyramid [cards-solitaire.md] |  | 5–40 (per move) | recorded sound | `pyramid.turn` | 1093 | game event | `pyramid.turn` |
+| `music.pyramid` | Pyramid: music_pyramid (Free Cell's bed, music_freecell.mp3) |  | loop | recorded sound | `music_pyramid` | 47400 | music | `music_pyramid` |
 
 ### Tilt
 

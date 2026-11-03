@@ -1154,8 +1154,9 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
     },
     // Cards & Board (30 Oct 2026): born on the arcade scoring standard; the SCORE text comes from each game's spec.
     freecell: {
-      goal: "Get as many cards home as you can in two minutes.",
+      goal: "Get all 40 cards home, fast, in two minutes.",
       how: [
+        { action: "Ace to 10", detail: "in each suit: 40 cards, eight columns of five." },
         { action: "Tap a card", detail: "to move it (and the run on it) to its best spot." },
         { action: "Drag a card", detail: "to put it on a particular pile." },
         { action: "Build down", detail: "in alternating colours; home piles build up by suit from the Ace." },
@@ -1173,11 +1174,12 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Tap a glowing card", detail: "one higher or lower than the discard; Ace and King wrap." },
         { action: "Tap the stock", detail: "when you are stuck: it turns a new discard and ends the run." },
         { action: "Uncover the tops", detail: "of all three peaks for the bonus." },
+        { action: "Stock par", detail: "at the top is the fewest stock cards this deal can be cleared with: clear it within par for the full bonus." },
         { action: "Face-down cards", detail: "turn up when both cards over them are cleared.", helpOnly: true },
         { action: "Drag works too:", detail: "drop a card on the discard.", helpOnly: true },
         { action: "One deal for everyone,", detail: "always clearable.", helpOnly: true },
       ],
-      score: liveStdHelp("tripeaks", "Five parts, which total 200:"),
+      score: liveStdHelp("tripeaks", "Six parts, which total 200:"),
     },
     pokersquares: {
       goal: "Build poker hands in every row and column.",
@@ -1193,18 +1195,19 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       score: liveStdHelp("pokersquares", "Two parts, which total 200:"),
     },
     fivehands: {
-      goal: "Build five poker hands, one row each.",
+      goal: "Build five poker hands, one row each, then pick a column to add.",
       how: [
         { action: "Tap a row", detail: "to place your card in its next slot. Placed cards stay." },
         { action: "Rows fill evenly:", detail: "every row takes a card before any row takes the next. Rows already filled for the round are greyed out." },
         { action: "Each turn", detail: "also turns up a card taken by an opponent: it goes face up on the discard row at the bottom." },
-        { action: "Hands:", detail: "pair 3, two pair 6, three of a kind 8, straight 10, flush 11, full house 13, four of a kind 15, straight flush 16.", helpOnly: true },
+        { action: "Then pick a column:", detail: "once every row is full, tap one column; its hand adds to your score (pick before the buzzer or it counts nothing)." },
+        { action: "Hands:", detail: "high card 0, pair 15, two pair 20, three of a kind 25, straight 30, flush 35, full house 40, four of a kind 45, straight flush 50.", helpOnly: true },
         { action: "20 turns", detail: "after five cards dealt one to each row: 45 of the 52 cards are seen by the end.", helpOnly: true },
         { action: "Rows at the buzzer", detail: "score as they stand.", helpOnly: true },
-        { action: "Every deck", detail: "can be placed to fill the points.", helpOnly: true },
+        { action: "Some decks", detail: "can't reach 200 even placed perfectly: everyone in a room has the same deck, so it's fair.", helpOnly: true },
         { action: "Same deck, same order,", detail: "for everyone.", helpOnly: true },
       ],
-      score: liveStdHelp("fivehands", "One part, hand points alone, which total 200:"),
+      score: liveStdHelp("fivehands", "One part: your five rows' and your picked column's points added up and times 1.4, which total 200 at most:"),
     },
     blockfall: {
       goal: "Clear as many lines as you can in 90 seconds.",

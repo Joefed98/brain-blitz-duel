@@ -10,8 +10,7 @@ import { arcadeFx, type ArcadeFxSpec } from "../arcadeFx.renderer";
 import { NO_CARD } from "./cards";
 import { CARD_FONT, drawCard, drawChip, drawFelt, drawSlot, roundRect } from "./cards.renderer";
 import {
-  FC_CELLS, FC_COLS, FC_INPUT_RESET, FC_INPUT_UNDO, FC_PILE_CELL, FC_PILE_HOME, fcHomeCount, fcNoteText, freecellGameFor, type FcState,
-} from "./freecell";
+  FC_CELLS, FC_COLS, FC_INPUT_RESET, FC_INPUT_UNDO, FC_PILE_CELL, FC_PILE_HOME, fcCardsFor, fcHomeCount, fcNoteText, freecellGameFor, type FcState } from "./freecell";
 import { cardOf, rankOf, suitOf } from "./cards";
 
 export const FC_WORLD_W = 414;
@@ -269,7 +268,8 @@ function drawFreecellWorld(ctx: CanvasRenderingContext2D, state: FcState, size: 
   // HUD chips.
   const home = fcHomeCount(state);
   drawChip(ctx, 10, 9, "MOVES", `${state.moves}`);
-  drawChip(ctx, W / 2, 9, "HOME", `${home}/52`, { align: "center", gold: home === 52 });
+  const all = fcCardsFor(state.rev);
+  drawChip(ctx, W / 2, 9, "HOME", `${home}/${all}`, { align: "center", gold: home === all });
   drawChip(ctx, W - 10, 9, "PAR", `${state.par}`, { align: "right", gold: state.ended === 1 && state.moves <= state.par });
   if (state.hist) drawButtons(ctx, state, view);
 
@@ -335,7 +335,7 @@ function drawFreecellWorld(ctx: CanvasRenderingContext2D, state: FcState, size: 
     });
   }
 
-  if (state.ended === 2 && home < 52) {
+  if (state.ended === 2 && home < all) {
     ctx.fillStyle = "rgba(4,10,26,0.25)";
     ctx.fillRect(0, 0, W, H);
   }

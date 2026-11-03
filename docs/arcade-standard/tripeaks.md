@@ -1,4 +1,47 @@
-# Summit (`tripeaks`) on the arcade scoring standard (tripeaksRev 1, 30 Oct 2026)
+# Summit (`tripeaks`) on the arcade scoring standard (tripeaksRev 2, 3 Nov 2026; tripeaksRev 1, 30 Oct 2026)
+
+## tripeaksRev 2 (3 Nov 2026, Joe's Cards & Board batch: what rooms deal)
+
+- **Speed was already there** (rev 1: 20 points on a clear, full by 27 s, 0 at the buzzer); rev 2 keeps it, re-weighted.
+- **New feature, Stock par:** each bank deal's par is the fewest stock cards turned by any line that clears all 28 with
+  a run of ten (so a flawless run fills every part at once): `src/lib/arcade/cards/tripeaksStockPar.data.ts`, built by
+  `bun scripts/tripeaks-stock-par.ts` (the bank's depth-first search with the stock capped, the cap raised a turn at a
+  time, each cap searched to 2 million positions, so it is the fewest the search found; about 25 minutes on one core, so it runs in parts: `--from --to --part`, then `--merge`; `--check` re-proves
+  every par). Pars 5–23, median 15. The lines are `scripts/fixtures/tripeaks-par-solutions.json` (checks and bots only).
+  The state carries the deal's `stockPar`; the HUD shows **STOCK PAR turned/par** at the top centre (gold while within
+  par); the reveal shows a Stock par tile and line.
+- A clear that turned the stock at most par times earns Stock par in full, falling evenly to 0 when the whole stock (23
+  turns) is turned; nothing without a clear. Same deals, play and 60 s run as rev 1.
+
+| Part | Max | How it pays |
+| --- | ---: | --- |
+| Cards cleared (core) | 80 | `stdLine(80, cleared, 28)` (rev 1: 120) |
+| Peak tops | 30 | 10 each |
+| Longest run | 10 | 1 a card, full at 10 (rev 1: 20, 2 a card) |
+| Clear | 10 | all 28 cleared |
+| Stock par | 20 | all 28 cleared: full at or under par, 0 with all 23 stock cards turned |
+| Speed | 50 | all 28 cleared: full by 20 s, 0 at the buzzer (rev 1: 20, full by 27 s) |
+
+Every bank deal reaches 200: cards-check replays all 300 stock-par lines through the server's replay (a clear, a run of
+ten, the stock turned exactly par times) to exactly 200, and re-proves on eight deals that no such line turns fewer.
+
+Measured (`bun scripts/cards-bands.ts tripeaks --seeds=100`, room seeds 0–99; fresh 10000–10099 in brackets):
+
+| Level | Weak | Average | Good | Great | Near-perfect | Elite | Flawless |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| rev 1 median (before) | 99 | 131 | 177 | 184 | 192 | 192 | 200 |
+| **rev 2 median** | **65** (64) | **89** (88) | **138** (107) | **157** (157) | **176** (173) | **182** (181) | **200** (200) |
+| rev 2 p10–p90 | 53–77 | 72–106 | 85–167 | 97–180 | 164–189 | 171–194 | 200 |
+| cleared | 0/100 | 7/100 | 56/100 | 54/100 | 97/100 | 97/100 | 100/100 |
+| clear, median | — | 56.6 s | 48.3 s | 34.9 s | 27.0 s | 21.2 s | 11.9 s |
+
+**Against the targets:** average, great and near-perfect land on them; weak is 5 over the 30–60 range (every bank deal
+is clearable, so weak play still clears about 20 of the 28 cards, and the core pays cards on a straight line); good is
+bimodal (it clears about half the time: 138 on room seeds, 107 on fresh); elite is 182, just under 185 (the elite and
+near-perfect bots plan with the same search, which doesn't aim for the stock par; speed, full by the elite median clear,
+is what separates them). Rev 1 runs replay unchanged: 25 runs recorded on main (`scripts/fixtures/cards-nov3-legacy.json`)
+replay to the same score and final state (cards-check).
+
 
 Shown as **Summit** since 31 Oct 2026 (was TriPeaks; the id stays `tripeaks`). No gameplay change: the 60 s run from the
 30 Oct review is in (`TP_RUN_TICKS` = 3,600, `TRIPEAKS_TIME_MS` 63 s). Re-measured 31 Oct 2026 on room seeds 0–99:

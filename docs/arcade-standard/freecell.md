@@ -1,4 +1,39 @@
-# Free Cell (`freecell`) on the arcade scoring standard (freecellRev 3, 1 Nov 2026; rev 2 31 Oct 2026; rev 1 30 Oct 2026)
+# Free Cell (`freecell`) on the arcade scoring standard (freecellRev 4, 3 Nov 2026; rev 3 1 Nov 2026; rev 2 31 Oct 2026; rev 1 30 Oct 2026)
+
+## freecellRev 4 (3 Nov 2026, Joe's Cards & Board batch: what rooms deal)
+
+- **A smaller deal so a whole game fits the 2-minute round:** Ace to 10 in each suit (40 cards), eight columns of five,
+  the same four free cells and four home piles. The deal is the same seeded shuffle as before with the Jacks, Queens and
+  Kings taken out (`fcDealCols(seed, 4)`), dealt five to a column. Rev 3's play otherwise (Undo, Reset, the flying safe
+  auto moves) and the same 120 s run.
+- **Every deal proven solvable:** its own bank, `src/lib/arcade/cards/freecellDealsV4.data.ts` (300 deals, none left
+  out), built by `bun scripts/freecell-bank.ts --rev=4` with the bank's solver; par is the shortest line found (13–36
+  moves, median 25); the lines are `scripts/fixtures/freecell-solutions-v4.json` (checks and bots only).
+  `--rev=4 --check` rebuilds both byte for byte (cards-check at full depth). cards-check replays all 300 par lines
+  through the server's replay to all 40 home and exactly 200.
+- **Re-fitted parts** (to the skill-band targets on room seeds 0–99 and fresh seeds 10000–10099): on 40 cards even
+  average players often finish, so finishing well pays.
+
+| Part | Max | How it pays |
+| --- | ---: | --- |
+| Cards (core) | 60 | `stdLine(60, 2 × home + sorted, 50)`: full at 50 units (25 of the 40 home) |
+| Par moves | 50 | finished only: full at par, 0 at 1.5 × par (rev 3: 30, 0 at twice par) |
+| Speed | 90 | finished only: full by 32 s, 0 at the buzzer (rev 3: 30, full by 66 s) |
+
+Measured (`bun scripts/cards-bands.ts freecell --seeds=100`, room seeds 0–99; fresh 10000–10099 in brackets):
+
+| Level | Weak | Average | Good | Great | Near-perfect | Elite | Flawless |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| rev 3 median (before) | 41 | 72 | 121 | 170 | 188 | 194 | 200 |
+| **rev 4 median** | **43** (42) | **96** (85) | **134** (131) | **156** (152) | **176** (176) | **188** (185) | **200** (200) |
+| rev 4 p10–p90 | 27–90 | 37–134 | 93–165 | 126–181 | 148–199 | 163–200 | 200 |
+| finished | 16/100 | 73/100 | 99/100 | 100/100 | 100/100 | 100/100 | 100/100 |
+| finish, median | 112.7 s | 94.5 s | 71.7 s | 52.7 s | 36.7 s | 27.9 s | 16.1 s |
+
+Speed's "full by" (32 s) sits between the near-perfect (37 s) and elite (28 s) median finishes: chosen by the fit, not
+one level's median. Rev 3 runs replay unchanged: 20 rev-3 runs recorded on main (`scripts/fixtures/cards-nov3-legacy.json`)
+replay to the same score and final state (cards-check).
+
 
 Shown as **Free Cell** since 31 Oct 2026 (was FreeCell; the id stays `freecell`).
 

@@ -42,10 +42,10 @@ import { BASTION_REV_DEALT, BASTION_STD_SPEC_V3, BASTION_V3_BAND_CURVE } from ".
 import { HOMERUN_REV_DEALT, HOMERUN_STD_SPEC_DEALT, HOMERUN_V4_BAND_CURVE } from "./homerun";
 import { FREEKICK_REV_DEALT, FREEKICK_V4_STD_SPEC, FREEKICK_V4_BAND_CURVE } from "./freekick";
 import { RACING_REV_DEALT, RACING_V3_BAND_CURVE, RACING_V3_STD_SPEC } from "./racing";
-import { FC_REV, FC_STD_SPEC, FC_V3_BAND_CURVE } from "./cards/freecell";
-import { TP_REV, TP_STD_SPEC, TP_V1_BAND_CURVE } from "./cards/tripeaks";
+import { FC_REV, FC_STD_SPEC, FC_V4_BAND_CURVE } from "./cards/freecell";
+import { TP_REV, TP_STD_SPEC, TP_V2_BAND_CURVE } from "./cards/tripeaks";
 import { PS_REV, PS_STD_SPEC, PS_V2_BAND_CURVE } from "./cards/pokerSquares";
-import { FH_REV, FH_STD_SPEC, FH_V2_BAND_CURVE } from "./cards/fiveHands";
+import { FH_REV, FH_STD_SPEC, FH_V3_BAND_CURVE } from "./cards/fiveHands";
 import { BLOCKFALL_REV_ZONE, BF_ZONE_STD_SPEC, BF_V2_BAND_CURVE } from "./blockfall";
 import { ALLEYROLL_REV_DEALT, AR2_STD_SPEC, AR_V2_BAND_CURVE } from "./alleyroll";
 import { MOON_REV, MOON_STD_SPEC, MOON_V3_BAND_CURVE } from "./ricochetNinja";
@@ -148,14 +148,15 @@ export const LIVE_BANDS = {
   freekick: { field: "freekickRev", rev: FREEKICK_REV_DEALT, curve: FREEKICK_V4_BAND_CURVE, std: FREEKICK_V4_STD_SPEC, born: true },
   racing: { field: "racingRev", rev: RACING_REV_DEALT, curve: RACING_V3_BAND_CURVE, std: RACING_V3_STD_SPEC, born: true },
   // Cards & Board (30 Oct 2026): born on the arcade scoring standard at revision 1.
-  // freecellRev 3 (1 Nov 2026): the core full at FC_CORE_UNITS_V3 units instead of all 52 home.
-  freecell: { field: "freecellRev", rev: FC_REV, curve: FC_V3_BAND_CURVE, std: FC_STD_SPEC, born: true },
-  tripeaks: { field: "tripeaksRev", rev: TP_REV, curve: TP_V1_BAND_CURVE, std: TP_STD_SPEC, born: true },
+  // freecellRev 4 (3 Nov 2026): the 40-card deal (Ace to 10), cards 60 + par 50 + speed 90.
+  freecell: { field: "freecellRev", rev: FC_REV, curve: FC_V4_BAND_CURVE, std: FC_STD_SPEC, born: true },
+  // tripeaksRev 2 (3 Nov 2026): the stock par part, the parts re-fitted.
+  tripeaks: { field: "tripeaksRev", rev: TP_REV, curve: TP_V2_BAND_CURVE, std: TP_STD_SPEC, born: true },
   // pokerSquaresRev 2 (Full House, 31 Oct 2026): the core full at the elite median.
   pokersquares: { field: "pokerSquaresRev", rev: PS_REV, curve: PS_V2_BAND_CURVE, std: PS_STD_SPEC, born: true },
   // Five Hands (31 Oct 2026): born on the arcade scoring standard at revision 1.
-  // fiveHandsRev 2 (1 Nov 2026): the steep hand table, hand points alone to 200.
-  fivehands: { field: "fiveHandsRev", rev: FH_REV, curve: FH_V2_BAND_CURVE, std: FH_STD_SPEC, born: true },
+  // fiveHandsRev 3 (3 Nov 2026): the flat hand table, the hand points summed, capped at 200 (not every deck reaches it).
+  fivehands: { field: "fiveHandsRev", rev: FH_REV, curve: FH_V3_BAND_CURVE, std: FH_STD_SPEC, born: true },
   // Ricochet (1 Nov 2026): the ninja wall-climb, born on the arcade scoring standard at ricoRev 2 (the old shaft never had a band revision).
   // Moon Climb (ricoRev 3, 3 Nov 2026): the live stamp, its own parts (height, flow, lantern rides, scrolls).
   ricochet: { field: "ricoRev", rev: MOON_REV, curve: MOON_V3_BAND_CURVE, std: MOON_STD_SPEC, born: true },

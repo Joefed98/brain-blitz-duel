@@ -1,7 +1,6 @@
 import { SWING_V17_CORE, SWING_V17_GATES, SWING_V17_GATE_POINTS, SWING_V17_PAR_POINTS, SWING_V17_STREAK_MAX } from "@/lib/arcade/swing";
 import { PS_CORE_FULL_V2 } from "@/lib/arcade/cards/pokerSquares";
-import { FH_CORE_FULL_V2 } from "@/lib/arcade/cards/fiveHands";
-import { FC_CORE_UNITS_V3 } from "@/lib/arcade/cards/freecell";
+import { FC_CORE_UNITS_V4, FC_SPEED_FULL_S_V4 } from "@/lib/arcade/cards/freecell";
 import { BF_ZONE_CORE_FULL } from "@/lib/arcade/blockfall";
 import { AR2_CORE_FULL } from "@/lib/arcade/alleyroll";
 import { MOON_CORE_FULL_M } from "@/lib/arcade/ricochetNinja";
@@ -136,10 +135,10 @@ function introScoreTemplates(): Record<PuzzleType, string> {
     freekick: "Goals, targets, curls round the wall, a bonus for bent goals, five in a row. Up to {max}.",
     racing: "Pace (your average speed) 160, clean sectors 40 (5 each). Together {max}.",
     // Cards & Board (the arcade scoring standard from their first revision).
-    freecell: `Cards 140 (full at ${FC_CORE_UNITS_V3} units); finished: few moves 30, speed 30. Together {max}.`,
-    tripeaks: "Cards 120, peak tops 30, longest run 20; all cleared: 10 and speed 20. Together {max}.",
+    freecell: `Cards 60 (full at ${FC_CORE_UNITS_V4} units); finished: few moves 50, speed 90 (by ${FC_SPEED_FULL_S_V4} s). Together {max}.`,
+    tripeaks: "Cards 80, peak tops 30, run 10; cleared: 10, few stock cards 20, speed 50. Together {max}.",
     pokersquares: `Hand points 160 (full at ${PS_CORE_FULL_V2}); made hands 40 (4 a line). Together {max}.`,
-    fivehands: `Hand points to {max}, full at ${FH_CORE_FULL_V2}. Pair 5, two pair 10 … straight flush 75.`,
+    fivehands: "Five rows plus the column you pick, times 1.4, up to {max}. Pair 15 … straight flush 50.",
     blockfall: `Lines 95 (full at ${BF_ZONE_CORE_FULL}); pieces 65; multi-line clears 24; low stack 16: {max}.`,
     alleyroll: `Ring points 140 (full at ${AR2_CORE_FULL}); gold cup 30; roll streak 20; pockets 10. Total {max}.`,
     pyramid: "Cards 120; cleared 10 and speed 50; pyramid pairs 20 (2 each). Together {max}.",

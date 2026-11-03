@@ -7,7 +7,7 @@
  */
 import { TP_CARDS, TP_INPUT_TAP, TP_STOCK_PILE, tpApply, tpFree, tpPlayable, type TpState } from "../../../src/lib/arcade/cards/tripeaks";
 import { driveEvents, type SkillBot } from "../bot";
-import { tripeaksSolution } from "../../cards/solutions";
+import { tripeaksParSolution, tripeaksSolution } from "../../cards/solutions";
 import { tpSolve } from "../../cards/tripeaksSolver";
 
 /** Average thinking time per tap (ms), before the level's thinkScale. */
@@ -37,7 +37,8 @@ function uncovers(s: TpState, i: number): number {
 export const bot: SkillBot = ({ game, seed, human }) => {
   const level = human.level;
   const init = game.init(seed) as TpState;
-  let plan: number[] | null = level === "perfect" ? tripeaksSolution(init.deal).slice() : null;
+  // tripeaksRev 2: flawless plays the deal's stock-par line (a clear with a run of ten at par).
+  let plan: number[] | null = level === "perfect" ? (init.rev >= 2 ? tripeaksParSolution(init.deal) : tripeaksSolution(init.deal)).slice() : null;
   const depth = level === "weak" ? 1 : level === "average" ? 2 : level === "good" ? 3 : 4;
   let nextAt = human.thinkTicks(THINK_MS * 1.5);
   const { events } = driveEvents<TpState>(game, (s, t) => {

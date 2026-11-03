@@ -1,4 +1,57 @@
-# Five Hands on the arcade scoring standard (fiveHandsRev 2, 1 Nov 2026; rev 1 31 Oct 2026)
+# Five Hands on the arcade scoring standard (fiveHandsRev 3, 3 Nov 2026; rev 2 1 Nov 2026; rev 1 31 Oct 2026)
+
+## fiveHandsRev 3 (3 Nov 2026, Joe's Cards & Board batch: what rooms deal)
+
+**A deliberate exception to "200 on every deal"** (arcade-standard-check's `NOT_200_ON_EVERY_DEAL`, the only entry).
+
+- **Flat hand values** (`FH_HANDS_V3`, `fhRowHand(row, 3)`): high card 0, pair 15, two pair 20, three of a kind 25,
+  straight 30, flush 35, full house 40, four of a kind 45, straight flush 50.
+- **The bonus column (Joe's choice, same day):** once all five rows are complete, the five columns light up as tappable
+  over "PICK A COLUMN TO ADD" (no column's points shown); one tap picks a column (slot k of every row, a five-card hand;
+  input kind 2, `FH_INPUT_PICK`, `fhPicking`) and the run ends on the pick. The clock runs on until then; if the buzzer
+  comes first no column counts. A pick before the rows are complete, or a second pick, is refused. After the pick the
+  chosen column stays lit and its hand and points show in the card's place ("COLUMN 3 · PAIR +15"); the reveal names it
+  as the sixth hand (tile "Sixth hand (column)", the breakdown line "rows + column").
+- **Score = (the five rows' hand points + the chosen column's) × 1.4, capped at 200** (Joe's decision, 3 Nov 2026, after
+  the measurements below; integer `floor(points × 7 ÷ 5)`, `fhScoreV3`, so 143 hand points score the full 200 and 142
+  score 198); anyone who plays scores at least 1, no input 0. One part (`FH_STD_SPEC`: Hand points, max 200, full at
+  `FH_CORE_FULL_V3` 143; `fhTotalV3`).
+- **The columns are complete hands, and fixed by the deck.** Rows fill evenly (every row takes one card before any takes
+  the next), so slot k of every row is filled in the same round: column 1 always holds the five dealt cards and column
+  k + 1 round k's five cards, whatever the placement. Placement never changes a column's hand; the pick's skill is reading
+  the five columns (cards-check proves it on a run).
+- **The deal:** the seed's first shuffle, dealt as it is (rev 1's first-attempt deck; no reshuffle, no 200 witness). The
+  checks and the flawless bot use the deck's **exact** best (`scripts/cards/fiveHandsBest.ts`: branch and bound over the
+  four rounds' orders for the rows, about 1 s a deck, plus the best column).
+- Bots: every level but flawless reads the columns for about twice a card's thinking time (so a slow player can run out
+  of clock) and picks through its judgement on the columns' points (a slip picks any column); flawless picks the best at
+  once.
+- Same deck order and 60 s run. Rev 1 and rev 2 runs replay unchanged: 25 rev-2 runs recorded on main
+  (`scripts/fixtures/cards-nov3-legacy.json`, `scripts/cards-nov3-legacy-record.ts`) replay to the same score and final
+  state (cards-check). A rev-2 log's kind-2 input is not an input.
+
+**Can perfect play reach 200?** With × 1.4, the deck's best must reach 143 hand points: the flawless run (the exact best)
+scores 200 on **165 of 200** fresh seeds (median 200, p10–p90 196–200). Without the multiplier only 1 of 200 decks could
+(the exact best's median 155–160 hand points), so the `NOT_200_ON_EVERY_DEAL` exemption stays.
+
+Measured (`bun scripts/cards-bands.ts fivehands --seeds=200 --from=10000`, fresh seeds; room seeds 0–199 in brackets):
+
+| Level | Weak | Average | Good | Great | Near-perfect | Elite | Flawless |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| rev 2 median (before, room seeds) | 61 | 122 | 142 | 142 | 163 | 183 | 200 |
+| rows only (the first rev-3 push, fresh) | 50 | 70 | 80 | 80 | 85 | 90 | 140 |
+| with the column, no multiplier | 50 (45) | 80 (85) | 95 (95) | 95 (100) | 100 (100) | 105 (105) | 155 (155) |
+| **rev 3 as dealt: with the column, × 1.4** | **70** (63) | **112** (119) | **133** (133) | **133** (140) | **140** (140) | **147** (147) | **200** (200) |
+| rev 3 p10–p90 | 42–105 | 77–161 | 98–168 | 105–175 | 98–175 | 112–182 | 196–200 |
+| rev 3 mean | 71.3 | 116.8 | 131.6 | 135.2 | 137.7 | 149.9 | 198.2 |
+| runs with a column picked | 1/200 | 170/200 | 200/200 | 200/200 | 200/200 | 200/200 | 200/200 |
+| targets | 30–60 | ~90 | 120–140 | ~160 | ~175 | 185–195 | 200 |
+
+**Against the targets** (× 1.4, fresh seeds): good (133) lands in 120–140 and flawless at 200; weak is 70 (10 over
+30–60), average 112 (over ~90), great 133 (under ~160), near-perfect 140 (under ~175) and elite 147 (under 185–195).
+Good, great and near-perfect sit within 7 points of each other: every hand step is 5 hand points (7 after × 1.4), and
+the placement bots below elite differ little in the hands they make. The × 1.2 alternative (not dealt) gave 60, 96, 114,
+114, 120, 126 and 186, with flawless at 200 on 45 of 200 seeds.
 
 ## fiveHandsRev 2 (1 Nov 2026, Joe's tuning: what rooms deal)
 

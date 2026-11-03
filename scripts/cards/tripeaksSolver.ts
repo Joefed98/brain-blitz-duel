@@ -5,7 +5,7 @@
  */
 import { TP_CARDS, TP_STOCK_PILE, tpApply, tpPlayable, type TpState } from "../../src/lib/arcade/cards/tripeaks";
 
-export function tpSolve(start: TpState, minRun = 10, limit = 2_000_000): number[] | null {
+export function tpSolve(start: TpState, minRun = 10, limit = 2_000_000, maxTurns = Infinity): number[] | null {
   const dead = new Set<string>();
   const path: number[] = [];
   let visited = 0;
@@ -24,7 +24,7 @@ export function tpSolve(start: TpState, minRun = 10, limit = 2_000_000): number[
       if (dfs(next)) return true;
       path.pop();
     }
-    const turned = tpApply(s, TP_STOCK_PILE);
+    const turned = s.turns < maxTurns ? tpApply(s, TP_STOCK_PILE) : null;
     if (turned) {
       path.push(TP_STOCK_PILE);
       if (dfs(turned)) return true;
@@ -34,4 +34,16 @@ export function tpSolve(start: TpState, minRun = 10, limit = 2_000_000): number[
     return false;
   };
   return dfs(start) ? path.slice() : null;
+}
+
+/**
+ * The fewest stock turns any clearing line with a run of `minRun` needs (Summit's stock par, tripeaksRev 2) and that
+ * line: the search above with the stock capped, the cap raised one turn at a time from 0. Null when none is found.
+ */
+export function tpFewestTurns(start: TpState, minRun = 10, limit = 2_000_000): { turns: number; line: number[] } | null {
+  for (let cap = 0; cap <= 23; cap++) {
+    const line = tpSolve(start, minRun, limit, cap);
+    if (line) return { turns: line.filter((t) => t === TP_STOCK_PILE).length, line };
+  }
+  return null;
 }

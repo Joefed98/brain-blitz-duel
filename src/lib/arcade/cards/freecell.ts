@@ -25,17 +25,28 @@
  * so a run that sends fewer cards home scores well; par and speed unchanged (finished only). The safe auto-move home
  * (every rev) is now animated: each auto move's card and where it came from are kept for the art (display only, rev 3
  * states only, outside the checksum).
+ *
+ * freecellRev 4 (3 Nov 2026, Joe's Cards & Board batch; docs/arcade-standard/freecell.md): a smaller deal so a whole game
+ * fits the 2-minute round: Ace to 10 in each suit (40 cards), 8 columns of 5, the same 4 free cells and 4 home piles,
+ * rev 3's play (undo, reset, the flying auto moves) and 120 s. The deals come from their own bank, every one solved
+ * (freecellDealsV4.data.ts, scripts/freecell-bank.ts --rev=4), par the fewest moves the solver found. The parts are
+ * re-fitted (FC_CORE_UNITS_V4, FC_SPEED_FULL_S_V4). Rev 1–3 runs play and score as before.
  */
 import { inputRange, type ArcadeGame, type ArcadeInputEvent } from "../engine";
 import { stdLine, stdPart, stdScore, stdSpeed, stdSum, type StdPart, type StdSpec } from "../arcadeStandard";
 import { bandCurve, type BandParts } from "../scoreBands";
 import { hashInts, isRed, NO_CARD, rankOf, shuffledDeck, suitOf } from "./cards";
 import { FC_DEALS } from "./freecellDeals.data";
+import { FC_DEALS_V4 } from "./freecellDealsV4.data";
 
-/** The dealt revision (rev 3: the core full sooner); rev 2 runs replay on freecellGameV2, rev 1 on freecellGameV1. */
-export const FC_REV = 3;
+/** The dealt revision (rev 4: the 40-card deal); rev 3 runs replay on freecellGameV3, rev 2 on V2, rev 1 on V1. */
+export const FC_REV = 4;
 export const FC_REV_UNDO = 2;
 export const FC_REV_EASY = 3;
+export const FC_REV_SHORT = 4;
+/** freecellRev 4's deal: Ace to 10 in each suit, five to a column. */
+export const FC_SHORT_TOP_RANK = 10;
+export const FC_SHORT_CARDS = 40;
 export const FC_COLS = 8;
 export const FC_CELLS = 4;
 /** Pile ids. */
@@ -64,16 +75,55 @@ export const FC_SPEED_FULL_S = 66;
  * cards home and a dozen or so in sorted runs.
  */
 export const FC_CORE_UNITS_V3 = 54;
+/*
+ * freecellRev 4's parts (re-fitted to the skill-band targets on room seeds 0–99 and fresh seeds 10000–10099,
+ * docs/arcade-standard/freecell.md): on the 40-card deal even average players often finish, so finishing well pays:
+ * cards 60 on a straight line full at 50 units (all 40 home is 80), par 50 (finished only: full at par, 0 at 1.5 × par)
+ * and speed 90 (finished only: full by 32 s, 0 at the buzzer).
+ */
+export const FC_CORE_MAX_V4 = 60;
+export const FC_PAR_MAX_V4 = 50;
+export const FC_SPEED_MAX_V4 = 90;
+export const FC_CORE_UNITS_V4 = 50;
+export const FC_SPEED_FULL_S_V4 = 32;
 /** The core's full figure on a revision. */
 export function fcCoreUnitsFor(rev: number | null | undefined): number {
-  return (rev ?? 1) >= FC_REV_EASY ? FC_CORE_UNITS_V3 : FC_CORE_UNITS;
+  const r = rev ?? 1;
+  return r >= FC_REV_SHORT ? FC_CORE_UNITS_V4 : r >= FC_REV_EASY ? FC_CORE_UNITS_V3 : FC_CORE_UNITS;
+}
+/** Speed's "full by" seconds on a revision. */
+export function fcSpeedFullFor(rev: number | null | undefined): number {
+  return (rev ?? 1) >= FC_REV_SHORT ? FC_SPEED_FULL_S_V4 : FC_SPEED_FULL_S;
+}
+/** The cards in a revision's deal (52; rev 4 40). */
+export function fcCardsFor(rev: number | null | undefined): number {
+  return (rev ?? 1) >= FC_REV_SHORT ? FC_SHORT_CARDS : 52;
+}
+/** Every card of the deal is home. */
+export function fcAllHome(state: Pick<FcState, "home" | "rev">): boolean {
+  return fcHomeCount(state) === fcCardsFor(state.rev);
 }
 /** The core's straight line (LIVE_BANDS and arcade-help-bands-check read it). */
 export const FC_V1_BAND_CURVE = bandCurve([0, FC_CORE_UNITS], [0, FC_CORE_MAX]);
 export const FC_V3_BAND_CURVE = bandCurve([0, FC_CORE_UNITS_V3], [0, FC_CORE_MAX]);
+export const FC_V4_BAND_CURVE = bandCurve([0, FC_CORE_UNITS_V4], [0, FC_CORE_MAX_V4]);
 
 function fcSpec(rev: number): StdSpec {
   const easy = rev >= FC_REV_EASY;
+  if (rev >= FC_REV_SHORT) {
+    return {
+      field: "freecellRev",
+      rev,
+      parts: [
+        {
+          key: "core", label: "Cards", max: FC_CORE_MAX_V4, of: FC_CORE_UNITS_V4,
+          how: `a straight line: cards home full value, cards in sorted runs on the columns half value; full at ${FC_CORE_UNITS_V4} units (25 of the 40 home)`,
+        },
+        { key: "par", label: "Par moves", max: FC_PAR_MAX_V4, of: 1, how: "finished only: full at the deal's par, 0 at one and a half times par" },
+        { key: "speed", label: "Speed", max: FC_SPEED_MAX_V4, of: 1, how: `finished only: full by ${FC_SPEED_FULL_S_V4} s, 0 at the buzzer` },
+      ],
+    };
+  }
   return {
     field: "freecellRev",
     rev,
@@ -89,9 +139,10 @@ function fcSpec(rev: number): StdSpec {
     ],
   };
 }
-/** The dealt revision's spec (the help, LIVE_BANDS, the reveal); revs 1 and 2 score on FC_STD_SPEC_V1's parts. */
+/** The dealt revision's spec (the help, LIVE_BANDS, the reveal); revs 1 and 2 score on FC_STD_SPEC_V1's parts, rev 3 on V3's. */
 export const FC_STD_SPEC: StdSpec = fcSpec(FC_REV);
 export const FC_STD_SPEC_V1: StdSpec = fcSpec(2);
+export const FC_STD_SPEC_V3: StdSpec = fcSpec(FC_REV_EASY);
 
 export interface FcState {
   tick: number;
@@ -321,9 +372,13 @@ export function fcApply(state: FcState, from: number, index: number, to: number)
 
 /* ================================ The run ================================ */
 
-/** The deal for a bank index: 52 cards dealt across the eight columns (four of seven, four of six). */
-export function fcDealCols(dealSeed: number): number[][] {
-  const { deck } = shuffledDeck(dealSeed);
+/**
+ * The deal for a deal seed: 52 cards dealt across the eight columns (four of seven, four of six); freecellRev 4 the 40
+ * cards Ace to 10, in the order the same seeded shuffle puts them, five to a column.
+ */
+export function fcDealCols(dealSeed: number, rev = 1): number[][] {
+  let { deck } = shuffledDeck(dealSeed);
+  if (rev >= FC_REV_SHORT) deck = deck.filter((c) => rankOf(c) <= FC_SHORT_TOP_RANK);
   const cols: number[][] = Array.from({ length: FC_COLS }, () => []);
   deck.forEach((card, i) => cols[i % FC_COLS]!.push(card));
   return cols;
@@ -333,7 +388,7 @@ export function fcDealCols(dealSeed: number): number[][] {
 export function fcInitFrom(dealSeed: number, par: number, deal = 0, rev = 1): FcState {
   const state: FcState = {
     tick: 0, rev, deal, par,
-    cols: fcDealCols(dealSeed), cells: [NO_CARD, NO_CARD, NO_CARD, NO_CARD], home: [0, 0, 0, 0],
+    cols: fcDealCols(dealSeed, rev), cells: [NO_CARD, NO_CARD, NO_CARD, NO_CARD], home: [0, 0, 0, 0],
     moves: 0, rejects: 0, autos: 0, acted: 0, ended: 0, finishTick: 0,
     lastFrom: -1, lastTo: -1, lastCount: 0, lastTick: 0, std: 1,
   };
@@ -341,11 +396,12 @@ export function fcInitFrom(dealSeed: number, par: number, deal = 0, rev = 1): Fc
   return state;
 }
 
-/** The bank entry a seed deals (the seed is the bank index; any integer maps onto the bank). */
-export function fcDealOf(seed: number): { index: number; dealSeed: number; par: number } {
-  const n = FC_DEALS.length;
+/** The bank entry a seed deals (the seed is the bank index; any integer maps onto the bank; rev 4 its own bank). */
+export function fcDealOf(seed: number, rev = 1): { index: number; dealSeed: number; par: number } {
+  const bank = rev >= FC_REV_SHORT ? FC_DEALS_V4 : FC_DEALS;
+  const n = bank.length;
   const index = ((Math.trunc(seed) % n) + n) % n;
-  const [dealSeed, par] = FC_DEALS[index]!;
+  const [dealSeed, par] = bank[index]!;
   return { index, dealSeed, par };
 }
 
@@ -355,7 +411,7 @@ function init(seed: number): FcState {
 }
 
 function initUndo(seed: number, rev: number): FcState {
-  const d = fcDealOf(seed);
+  const d = fcDealOf(seed, rev);
   const state = { ...fcInitFrom(d.dealSeed, d.par, d.index, rev), hist: [], undos: 0, resets: 0, note: 0, noteNeed: 0, noteCells: 0, noteTick: 0 };
   return { ...state, start: fcPack(state) };
 }
@@ -368,6 +424,10 @@ function initV3(seed: number): FcState {
   return initUndo(seed, FC_REV_EASY);
 }
 
+function initV4(seed: number): FcState {
+  return initUndo(seed, FC_REV_SHORT);
+}
+
 function step(state: FcState, input: ArcadeInputEvent | null): FcState {
   if (state.ended) return state;
   let next: FcState = { ...state, tick: state.tick + 1 };
@@ -378,7 +438,7 @@ function step(state: FcState, input: ArcadeInputEvent | null): FcState {
     if (moved) next = moved;
     else next.rejects++;
   }
-  if (fcHomeCount(next) === 52) {
+  if (fcAllHome(next)) {
     next.ended = 1;
     next.finishTick = next.tick;
   } else if (next.tick >= FC_RUN_TICKS) next.ended = 2;
@@ -488,7 +548,7 @@ function stepV2(state: FcState, input: ArcadeInputEvent | null): FcState {
       next.lastTick = next.tick;
     }
   }
-  if (fcHomeCount(next) === 52) {
+  if (fcAllHome(next)) {
     next.ended = 1;
     next.finishTick = next.tick;
   } else if (next.tick >= FC_RUN_TICKS) next.ended = 2;
@@ -508,11 +568,14 @@ export function freecellStdParts(state: FcState): StdPart[] | null {
   const sorted = fcSortedCards(state.cols);
   const units = 2 * home + sorted;
   const done = state.ended === 1;
-  const par = done ? stdSpeed(FC_PAR_MAX, state.moves, state.par, 2 * state.par) : 0;
-  const speed = done ? stdSpeed(FC_SPEED_MAX, state.finishTick, FC_SPEED_FULL_S * 60, FC_RUN_TICKS) : 0;
-  const spec = (state.rev ?? 1) >= FC_REV_EASY ? FC_STD_SPEC : FC_STD_SPEC_V1;
+  const r = state.rev ?? 1;
+  const short = r >= FC_REV_SHORT;
+  // Rev 4: par 0 at 1.5 × par (in halves, so the line is whole numbers).
+  const par = !done ? 0 : short ? stdSpeed(FC_PAR_MAX_V4, 2 * state.moves, 2 * state.par, 3 * state.par) : stdSpeed(FC_PAR_MAX, state.moves, state.par, 2 * state.par);
+  const speed = done ? stdSpeed(short ? FC_SPEED_MAX_V4 : FC_SPEED_MAX, state.finishTick, fcSpeedFullFor(state.rev) * 60, FC_RUN_TICKS) : 0;
+  const spec = r >= FC_REV_SHORT ? FC_STD_SPEC : r >= FC_REV_EASY ? FC_STD_SPEC_V3 : FC_STD_SPEC_V1;
   return [
-    stdPart(spec, "core", stdLine(FC_CORE_MAX, units, fcCoreUnitsFor(state.rev)), `${home} home · ${sorted} in sorted runs`),
+    stdPart(spec, "core", stdLine(short ? FC_CORE_MAX_V4 : FC_CORE_MAX, units, fcCoreUnitsFor(state.rev)), `${home} home · ${sorted} in sorted runs`),
     stdPart(spec, "par", par, done ? `${state.moves} moves, par ${state.par}` : "not finished"),
     stdPart(spec, "speed", speed, done ? `finished in ${(state.finishTick / 60).toFixed(1)} s` : "not finished"),
   ];
@@ -526,7 +589,7 @@ export function freecellScore(state: FcState): number {
 export function freecellBandParts(state: FcState): BandParts {
   const parts = freecellStdParts(state) ?? [];
   const core = parts[0]?.points ?? 0;
-  return { units: fcCoreUnits(state), points: core, bonus: stdSum(parts) - core, penalty: 0, finished: state.ended === 1, text: `${fcHomeCount(state)} / 52 home` };
+  return { units: fcCoreUnits(state), points: core, bonus: stdSum(parts) - core, penalty: 0, finished: state.ended === 1, text: `${fcHomeCount(state)} / ${fcCardsFor(state.rev)} home` };
 }
 
 /* ============================== Checkpoints ============================== */
@@ -575,10 +638,13 @@ export const freecellGameV2: ArcadeGame<FcState, ArcadeInputEvent | null> = {
 /** freecellRev 3's game: rev 2's play, the core full at FC_CORE_UNITS_V3, the auto moves kept for the art. */
 export const freecellGameV3: ArcadeGame<FcState, ArcadeInputEvent | null> = { ...freecellGameV2, init: initV3 };
 
+/** freecellRev 4's game: rev 3's play on the 40-card deal from its own bank. */
+export const freecellGameV4: ArcadeGame<FcState, ArcadeInputEvent | null> = { ...freecellGameV2, init: initV4 };
+
 /** The checks and tools that play "FreeCell" without a stamp mean rev 1: freecellGameV1. */
 export const freecellGame = freecellGameV1;
 
 export function freecellGameFor(rev?: number | null): ArcadeGame<FcState, ArcadeInputEvent | null> {
   const r = rev ?? 1;
-  return r >= FC_REV_EASY ? freecellGameV3 : r >= FC_REV_UNDO ? freecellGameV2 : freecellGameV1;
+  return r >= FC_REV_SHORT ? freecellGameV4 : r >= FC_REV_EASY ? freecellGameV3 : r >= FC_REV_UNDO ? freecellGameV2 : freecellGameV1;
 }

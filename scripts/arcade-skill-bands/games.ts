@@ -85,7 +85,7 @@ import { racingCheckpoint, racingGameFor, RACING_REV_DEALT } from "../../src/lib
 import { encodeRacingRun, replayRacingRun } from "../../src/lib/duel/racing";
 import { racingDealSeedV3 } from "../../src/lib/duel/racingDealV3.server";
 import { fcCheckpoint, freecellGameFor, FC_REV } from "../../src/lib/arcade/cards/freecell";
-import { FC_DEALS } from "../../src/lib/arcade/cards/freecellDeals.data";
+import { FC_DEALS_V4 } from "../../src/lib/arcade/cards/freecellDealsV4.data";
 import { tpCheckpoint, tripeaksGameFor, TP_REV } from "../../src/lib/arcade/cards/tripeaks";
 import { TP_DEALS } from "../../src/lib/arcade/cards/tripeaksDeals.data";
 import { psCheckpoint, pokerSquaresGameFor, PS_REV } from "../../src/lib/arcade/cards/pokerSquares";
@@ -320,7 +320,7 @@ export const GAMES: GameSpec[] = [
   { ...simple("racing", RACING_REV_DEALT, RACING_REV_DEALT, racingGameFor, racingCheckpoint, encodeRacingRun, replayRacingRun), seedFor: (n) => racingDealSeedV3(roomSeed(n)) },
   // Cards & Board (30 Oct 2026): born on the arcade standard, one revision each. FreeCell and TriPeaks deal a bank
   // index (the room seed modulo the bank); Poker Squares any seed.
-  { ...simple("freecell", FC_REV, FC_REV, freecellGameFor, fcCheckpoint, encodeFreecellRun, replayFreecellRun), seedFor: (n) => roomSeed(n) % FC_DEALS.length },
+  { ...simple("freecell", FC_REV, FC_REV, freecellGameFor, fcCheckpoint, encodeFreecellRun, replayFreecellRun), seedFor: (n) => roomSeed(n) % FC_DEALS_V4.length },
   { ...simple("tripeaks", TP_REV, TP_REV, tripeaksGameFor, tpCheckpoint, encodeTripeaksRun, replayTripeaksRun), seedFor: (n) => roomSeed(n) % TP_DEALS.length },
   simple("pokersquares", PS_REV, PS_REV, pokerSquaresGameFor, psCheckpoint, encodePokerSquaresRun, replayPokerSquaresRun),
   // Five Hands (31 Oct 2026): born on the arcade standard; any seed (the sim deals the deck and proves its witness).

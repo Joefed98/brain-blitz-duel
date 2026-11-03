@@ -164,7 +164,7 @@ import { encodeMinesweeperRun, replayMinesweeperRun } from "@/lib/duel/minesweep
 import { mahjongCheckpoint, mahjongGameFor, MAHJONG_REV_STD, MAHJONG_REV_UNDO } from "@/lib/arcade/mahjong";
 import { encodeMahjongRun, replayMahjongRun } from "@/lib/duel/mahjong";
 import { fcCheckpoint, freecellGame, freecellGameFor } from "@/lib/arcade/cards/freecell";
-import { tpCheckpoint, tripeaksGame } from "@/lib/arcade/cards/tripeaks";
+import { tpCheckpoint, tripeaksGame, tripeaksGameFor } from "@/lib/arcade/cards/tripeaks";
 import { psCheckpoint, pokerSquaresGame, pokerSquaresGameFor } from "@/lib/arcade/cards/pokerSquares";
 import { fhCheckpoint, fiveHandsGame, fiveHandsGameFor } from "@/lib/arcade/cards/fiveHands";
 import { pyCheckpoint, pyramidGame } from "@/lib/arcade/cards/pyramid";
@@ -986,6 +986,12 @@ const GAMES: Game[] = [
   // reds), appended so every earlier entry keeps its stream: each on its rev-4 proved deal's seeds.
   { key: "freekick/v4", interval: FREEKICK_CHECKPOINT_INTERVAL, game: freekickGameFor(4), checkpoint: freekickCheckpoint, mode: "events", rate: 20, encode: encodeFreekickRun, replay: (seed: number, raw: string) => replayFreekickRun(seed, raw, 4), seedFor: (n: number) => FREEKICK_DEAL_V4[n % FREEKICK_DEAL_V4.length]! },
   { key: "curling/v4", game: curlingGameFor(4), seedFor: (n: number) => CURLING_BANK_V4[n % CURLING_BANK_V4.length]!, checkpoint: curlingCheckpoint, mode: "events", rate: 40, encode: encodeCurlingRun, replay: (seed: number, raw: string) => replayCurlingRun(seed, raw, 4) },
+  // The Cards & Board batch (3 Nov 2026), appended so every earlier entry keeps its index: Free Cell freecellRev 4 (the
+  // 40-card deal from its own bank), Summit tripeaksRev 2 (the stock par) and Five Hands fiveHandsRev 3 (the flat table,
+  // the hand points summed to 200).
+  { key: "freecell/v4", game: freecellGameFor(4), checkpoint: fcCheckpoint, mode: "events", rate: 120, encode: encodeFreecellRun, replay: (seed: number, raw: string) => replayFreecellRun(seed, raw, 4), seedFor: (n: number) => n % 300 },
+  { key: "tripeaks/v2", game: tripeaksGameFor(2), checkpoint: tpCheckpoint, mode: "events", rate: 120, encode: encodeTripeaksRun, replay: (seed: number, raw: string) => replayTripeaksRun(seed, raw, 2), seedFor: (n: number) => n % 300 },
+  { key: "fivehands/v3", game: fiveHandsGameFor(3), checkpoint: fhCheckpoint, mode: "events", rate: 60, encode: encodeFiveHandsRun, replay: (seed: number, raw: string) => replayFiveHandsRun(seed, raw, 3) },
 ];
 
 /** A random candidate event, often outside the declared range (a finger off the edge). */

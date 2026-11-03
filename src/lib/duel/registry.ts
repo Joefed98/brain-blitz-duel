@@ -167,6 +167,9 @@ const RETIRED_TYPES = new Set<PuzzleType>([
   // Joe's decision (2 Nov 2026): Muggins is practice only at launch (its medians don't rise with skill); stored rounds
   // replay and grade as before.
   "muggins",
+  // Joe's decision (3 Nov 2026, the Cards & Board batch): Golf Solitaire is practice only; its practice bests and
+  // stored rounds replay and grade as before.
+  "golfsol",
   // New (13 Oct 2026): practice only until PINBALL_IN_ROOMS (src/lib/arcade/pinball.ts) is switched on.
   ...(PINBALL_IN_ROOMS ? [] : (["pinball"] as const)),
 ]);

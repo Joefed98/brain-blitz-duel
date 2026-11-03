@@ -312,10 +312,11 @@ export type ArcadeFxGame = keyof typeof ARCADE_GAME_WORLDS;
 
 /**
  * Arcade games with a world that rooms do not deal (practice only; registry RETIRED_TYPES):
- * Junction (retired in Tuning C), Scrumper (retired 27 Oct 2026), Full House (retired 1 Nov 2026) and Pinball until PINBALL_IN_ROOMS
+ * Junction (retired in Tuning C), Scrumper (retired 27 Oct 2026), Full House (retired 1 Nov 2026), Muggins (practice only from
+ * launch), Golf Solitaire (retired 3 Nov 2026) and Pinball until PINBALL_IN_ROOMS
  * (pinball.ts) is switched on.
  */
-export const RETIRED_ARCADE_GAMES: readonly ArcadeFxGame[] = PINBALL_IN_ROOMS ? ["junction", "snip", "pokersquares", "muggins"] : ["junction", "snip", "pokersquares", "muggins", "pinball"];
+export const RETIRED_ARCADE_GAMES: readonly ArcadeFxGame[] = PINBALL_IN_ROOMS ? ["junction", "snip", "pokersquares", "muggins", "golfsol"] : ["junction", "snip", "pokersquares", "muggins", "golfsol", "pinball"];
 /** The active arcade games (rooms deal these; Pinball joined on 14 Oct 2026 with PINBALL_IN_ROOMS on, Scrumper left on 27 Oct 2026, the three Cards & Board games joined on 30 Oct 2026). */
 export const ACTIVE_ARCADE_GAMES = (Object.keys(ARCADE_GAME_WORLDS) as ArcadeFxGame[]).filter((g) => !RETIRED_ARCADE_GAMES.includes(g));
 

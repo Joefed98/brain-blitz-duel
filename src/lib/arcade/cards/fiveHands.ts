@@ -25,6 +25,18 @@
  * made-hands part, no speed part, no row-order rule. The deck is shuffled exactly as rev 1's; the witness is climbed on
  * the rev-2 table and must reach FH_CORE_FULL_V2 (the same per-seed proof of 200). Rev-1 runs score as before
  * (fiveHandsGameFor(1)).
+ *
+ * fiveHandsRev 3 (3 Nov 2026, Joe's Cards & Board batch; docs/arcade-standard/fivehands.md): the same play, a flat hand
+ * table (FH_HANDS_V3: high card 0, pair 15, two pair 20, three of a kind 25, straight 30, flush 35, full house 40, four
+ * of a kind 45, straight flush 50) and a bonus column: once all five rows are complete, the player taps one of the five
+ * columns (slot k of every row, a five-card hand) to add to the score (input kind 2, FH_INPUT_PICK). The run ends on the
+ * pick; the clock keeps running until then, and if the buzzer comes first no column counts. Score = the five rows' hand
+ * points plus the chosen column's, times 1.4 (Joe's decision, 3 Nov 2026: integer floor(points × 7 ÷ 5)), capped at 200
+ * (full at FH_CORE_FULL_V3 = 143 hand points; one part; anyone who plays at least 1). Rows fill evenly, so column 0 always holds the five dealt cards and column k round k's five cards, whatever the
+ * placement: the columns' hands are fixed by the deck and reading them is the pick's skill. A deliberate exception to
+ * "200 on every deal": the deck is rev 1's first shuffle with no reshuffle, so some decks can't reach 200 even with
+ * perfect play (everyone in a room has the same deck, so rooms stay fair). The witness is still climbed (the checks use
+ * it) but no longer has to reach anything. Rev 1 and rev 2 runs score as before.
  */
 import { inputRange, rngBelow, type ArcadeGame, type ArcadeInputEvent } from "../engine";
 import { stdEach, stdLine, stdPart, stdScore, stdSum, type StdPart, type StdSpec } from "../arcadeStandard";
@@ -32,15 +44,18 @@ import { bandCurve, type BandParts } from "../scoreBands";
 import { hashInts, shuffledDeck } from "./cards";
 import { psHand } from "./pokerSquares";
 
-/** The dealt revision (rev 2: the steep hand table, hand points alone to 200); rev 1 runs replay on fiveHandsGameV1. */
-export const FH_REV = 2;
+/** The dealt revision (rev 3: the flat table, the hand points summed to 200); rev 2 on fiveHandsGameV2, rev 1 on fiveHandsGameV1. */
+export const FH_REV = 3;
 export const FH_REV_STEEP = 2;
+export const FH_REV_FLAT = 3;
 export const FH_ROWS = 5;
 export const FH_SLOTS = 5;
 export const FH_TURNS = 20;
 /** Cards seen by the end: 5 dealt, 20 placed, 20 discarded. */
 export const FH_SEEN = FH_ROWS + 2 * FH_TURNS;
 export const FH_INPUT_PLACE = 1;
+/** fiveHandsRev 3: the bonus column's pick (a: the column, 0–4), once every row is complete. */
+export const FH_INPUT_PICK = 2;
 export const FH_RUN_TICKS = 60 * 60;
 
 export const FH_CORE_MAX = 160;
@@ -74,13 +89,53 @@ export const FH_CORE_MAX_V2 = 200;
 export const FH_CORE_FULL_V2 = 49;
 export const FH_V2_BAND_CURVE = bandCurve([0, FH_CORE_FULL_V2], [0, FH_CORE_MAX_V2]);
 
-/** A revision's full figure (the witness must reach it). */
+/** fiveHandsRev 3's flat hand table, best first (high card 0). */
+export const FH_HANDS_V3 = [
+  ["Straight flush", 50],
+  ["Four of a kind", 45],
+  ["Full house", 40],
+  ["Flush", 35],
+  ["Straight", 30],
+  ["Three of a kind", 25],
+  ["Two pair", 20],
+  ["Pair", 15],
+] as const;
+/** fiveHandsRev 3's single part: the hand points (rows plus the picked column) × 1.4, capped at 200. */
+export const FH_CORE_MAX_V3 = 200;
+/** The ×1.4 as an integer ratio (7 ÷ 5, floored). */
+export const FH_V3_MULT_NUM = 7;
+export const FH_V3_MULT_DEN = 5;
+/** The fewest hand points that score the full 200 (floor(143 × 7 ÷ 5) = 200; 142 gives 198). */
+export const FH_CORE_FULL_V3 = 143;
+export const FH_V3_BAND_CURVE = bandCurve([0, FH_CORE_FULL_V3], [0, FH_CORE_MAX_V3]);
+
+/** Rev 3's points for a hand-point total: floor(total × 1.4), capped at 200. */
+export function fhScoreV3(total: number): number {
+  return Math.min(FH_CORE_MAX_V3, Math.floor((Math.max(0, total) * FH_V3_MULT_NUM) / FH_V3_MULT_DEN));
+}
+/** The hand values as the help states them ("pair 15, two pair 20, …"). */
+export const FH_V3_TABLE_TEXT = [...FH_HANDS_V3].reverse().map(([name, p]) => `${name.toLowerCase()} ${p}`).join(", ");
+
+/** A revision's full figure (rev 1–2: the witness must reach it; rev 3: 143 hand points, ×1.4 = 200, which a deck need not allow). */
 export function fhCoreFullFor(rev: number | null | undefined): number {
-  return (rev ?? 1) >= FH_REV_STEEP ? FH_CORE_FULL_V2 : FH_CORE_FULL;
+  const r = rev ?? 1;
+  return r >= FH_REV_FLAT ? FH_CORE_FULL_V3 : r >= FH_REV_STEEP ? FH_CORE_FULL_V2 : FH_CORE_FULL;
 }
 
-/** fiveHandsRev 2's spec (the dealt one: the help, LIVE_BANDS, the reveal). */
+/** fiveHandsRev 3's spec (the dealt one: the help, LIVE_BANDS, the reveal). */
 export const FH_STD_SPEC: StdSpec = {
+  field: "fiveHandsRev",
+  rev: FH_REV_FLAT,
+  parts: [
+    {
+      key: "core", label: "Hand points", max: FH_CORE_MAX_V3, of: FH_CORE_FULL_V3, item: "hand point",
+      how: `the five rows' hand points plus the column you pick once the rows are complete, times 1.4, capped at 200 (full at ${FH_CORE_FULL_V3} hand points): high card 0, ${FH_V3_TABLE_TEXT}`,
+    },
+  ],
+};
+
+/** fiveHandsRev 2's spec (stored rounds). */
+export const FH_STD_SPEC_V2: StdSpec = {
   field: "fiveHandsRev",
   rev: FH_REV_STEEP,
   parts: [
@@ -128,12 +183,14 @@ export function fhOpenRows(rows: readonly (readonly number[])[]): number[] {
   return out;
 }
 
-/** A row's hand on a revision: rev 1 Full House's table (psHand), rev 2 FH_HANDS_V2 (same names, steeper points). */
+/** A row's hand on a revision: rev 1 Full House's table (psHand), rev 2 FH_HANDS_V2, rev 3 FH_HANDS_V3 (same names). */
 export function fhRowHand(row: readonly number[], rev: number | null = 1): { points: number; name: string } {
   const h = psHand(row);
-  if ((rev ?? 1) < FH_REV_STEEP || !h.name) return h;
-  const v2 = FH_HANDS_V2.find(([name]) => name === h.name);
-  return { points: v2 ? v2[1] : 0, name: h.name };
+  const r = rev ?? 1;
+  if (r < FH_REV_STEEP || !h.name) return h;
+  const table: readonly (readonly [string, number])[] = r >= FH_REV_FLAT ? FH_HANDS_V3 : FH_HANDS_V2;
+  const v = table.find(([name]) => name === h.name);
+  return { points: v ? v[1] : 0, name: h.name };
 }
 
 /** The rows' total hand points and the rows with a pair or better (on the revision's table). */
@@ -209,8 +266,9 @@ export function fhBuildDeal(seed: number, rev = 1): FhDeal {
     }
     const witness = Array.from({ length: FH_ROWS }, (_, r) => rowCards(r));
     const totals = fhTotals(witness, rev);
-    // Rev 1 also needs all five hands made (its made-hands part); rev 2 only the full figure.
-    if ((rev >= FH_REV_STEEP || totals.made === FH_ROWS) && totals.total >= full) {
+    // Rev 1 also needs all five hands made (its made-hands part); rev 2 only the full figure; rev 3 nothing (the first
+    // shuffle is dealt as it is: a deck that can't reach 200 is allowed, the witness is only the climb's best).
+    if (rev >= FH_REV_FLAT || ((rev >= FH_REV_STEEP || totals.made === FH_ROWS) && totals.total >= full)) {
       const witnessTaps: number[] = [];
       for (let g = 0; g < 4; g++) for (let k = 0; k < 5; k++) witnessTaps.push(perm[g]!.indexOf(k));
       return { deck, witness, witnessTaps, target: totals.total };
@@ -221,11 +279,15 @@ export function fhBuildDeal(seed: number, rev = 1): FhDeal {
 /** A few deals kept: the phone's stage builds its first state on every render (the seed's work is the same each time). */
 const DEAL_CACHE = new Map<string, FhDeal>();
 
+function dealRev(rev: number): number {
+  return rev >= FH_REV_FLAT ? FH_REV_FLAT : rev >= FH_REV_STEEP ? FH_REV_STEEP : 1;
+}
+
 export function fhDeal(seed: number, rev = 1): FhDeal {
-  const key = `${seed}:${rev >= FH_REV_STEEP ? 2 : 1}`;
+  const key = `${seed}:${dealRev(rev)}`;
   let d = DEAL_CACHE.get(key);
   if (!d) {
-    d = fhBuildDeal(seed, rev >= FH_REV_STEEP ? 2 : 1);
+    d = fhBuildDeal(seed, dealRev(rev));
     if (DEAL_CACHE.size >= 8) DEAL_CACHE.delete(DEAL_CACHE.keys().next().value!);
     DEAL_CACHE.set(key, d);
   }
@@ -250,6 +312,9 @@ export interface FhState {
   lastRow: number;
   lastTick: number;
   std: number;
+  /** fiveHandsRev 3 only: the bonus column picked (−1 until the pick) and its tick. */
+  pick?: number;
+  pickTick?: number;
 }
 
 export function fhInit(seed: number, rev = 1): FhState {
@@ -257,6 +322,7 @@ export function fhInit(seed: number, rev = 1): FhState {
   return {
     tick: 0, rev, deck, turn: 0, rows: Array.from({ length: FH_ROWS }, (_, r) => [fhStartCard(deck, r)]),
     rejects: 0, acted: 0, ended: 0, finishTick: 0, lastRow: -1, lastTick: 0, std: 1,
+    ...(rev >= FH_REV_FLAT ? { pick: -1, pickTick: 0 } : {}),
   };
 }
 
@@ -272,6 +338,23 @@ export function fhApply(state: FhState, r: number): FhState | null {
   return { ...state, rows, turn: state.turn + 1, lastRow: r, lastTick: state.tick };
 }
 
+/** Column `k`: slot k of every row (complete once every row holds five cards). */
+export function fhColumn(rows: readonly (readonly number[])[], k: number): number[] {
+  return rows.map((row) => row[k]!).filter((c) => c !== undefined);
+}
+
+/** Whether the bonus column may be picked now (rev 3: every row complete, no pick yet, the run going). */
+export function fhPicking(state: FhState): boolean {
+  return (state.rev ?? 1) >= FH_REV_FLAT && state.turn >= FH_TURNS && (state.pick ?? -1) < 0 && state.ended === 0;
+}
+
+/** The picked column's hand on the run's table (points 0 with no pick). */
+export function fhPickedHand(state: FhState): { points: number; name: string; column: number } {
+  const k = state.pick ?? -1;
+  if (k < 0) return { points: 0, name: "", column: -1 };
+  return { ...fhRowHand(fhColumn(state.rows, k), state.rev), column: k };
+}
+
 function step(state: FhState, input: ArcadeInputEvent | null): FhState {
   if (state.ended) return state;
   let next: FhState = { ...state, tick: state.tick + 1 };
@@ -280,6 +363,18 @@ function step(state: FhState, input: ArcadeInputEvent | null): FhState {
     const placed = fhApply(next, input.a);
     if (placed) next = placed;
     else next.rejects++;
+  } else if (input && input.k === FH_INPUT_PICK && (state.rev ?? 1) >= FH_REV_FLAT) {
+    next.acted = 1;
+    if (fhPicking(next) && input.a >= 0 && input.a < FH_SLOTS) next = { ...next, pick: input.a, pickTick: next.tick };
+    else next.rejects++;
+  }
+  if ((next.rev ?? 1) >= FH_REV_FLAT) {
+    // Rev 3: the run ends on the column's pick; the buzzer before it counts no column.
+    if ((next.pick ?? -1) >= 0) {
+      next.ended = 1;
+      next.finishTick = next.tick;
+    } else if (next.tick >= FH_RUN_TICKS) next.ended = 2;
+    return next;
   }
   if (next.turn >= FH_TURNS) {
     next.ended = 1;
@@ -290,11 +385,22 @@ function step(state: FhState, input: ArcadeInputEvent | null): FhState {
 
 /* ================================ Scoring ================================ */
 
+/** Rev 3's hand points: the five rows plus the picked column (rows alone before or without a pick). */
+export function fhTotalV3(state: FhState): number {
+  return fhTotals(state.rows, state.rev).total + fhPickedHand(state).points;
+}
+
 export function fiveHandsStdParts(state: FhState): StdPart[] | null {
   if (!state || !state.std) return null;
+  if ((state.rev ?? 1) >= FH_REV_FLAT) {
+    const total = fhTotalV3(state);
+    const col = fhPickedHand(state);
+    const rows = total - col.points;
+    return [stdPart(FH_STD_SPEC, "core", fhScoreV3(total), col.column >= 0 ? `(${rows} from the rows + ${col.points} from column ${col.column + 1}) × 1.4` : `${rows} hand points × 1.4 (no column picked)`)];
+  }
   if ((state.rev ?? 1) >= FH_REV_STEEP) {
     const { total } = fhTotals(state.rows, state.rev);
-    return [stdPart(FH_STD_SPEC, "core", stdLine(FH_CORE_MAX_V2, total, FH_CORE_FULL_V2), `${total} hand points`)];
+    return [stdPart(FH_STD_SPEC_V2, "core", stdLine(FH_CORE_MAX_V2, total, FH_CORE_FULL_V2), `${total} hand points`)];
   }
   const { total, made } = fhTotals(state.rows);
   return [
@@ -310,7 +416,7 @@ export function fiveHandsScore(state: FhState): number {
 export function fiveHandsBandParts(state: FhState): BandParts {
   const parts = fiveHandsStdParts(state) ?? [];
   const core = parts[0]?.points ?? 0;
-  const { total } = fhTotals(state.rows, state.rev);
+  const total = (state.rev ?? 1) >= FH_REV_FLAT ? fhTotalV3(state) : fhTotals(state.rows, state.rev).total;
   return { units: total, points: core, bonus: stdSum(parts) - core, penalty: 0, finished: state.ended === 1, text: `${total} hand points` };
 }
 
@@ -328,6 +434,8 @@ export interface FhCheckpoint {
 export function fhCheckpoint(state: FhState): FhCheckpoint {
   const flat: number[] = [state.tick, state.turn, state.ended];
   for (const row of state.rows) flat.push(100 + row.length, ...row);
+  // Rev 3: the bonus column's pick (rev 1–2 states have none, so their checksums are as before).
+  if (state.pick !== undefined) flat.push(300 + state.pick);
   return { tick: state.tick, turn: state.turn, ended: state.ended, checksum: hashInts(flat) };
 }
 
@@ -348,6 +456,14 @@ export const fiveHandsGameV1 = fiveHandsGame;
 /** fiveHandsRev 2's game: the same play, the steep hand table, hand points alone to 200. */
 export const fiveHandsGameV2: ArcadeGame<FhState, ArcadeInputEvent | null> = { ...fiveHandsGame, init: (seed) => fhInit(seed, 2) };
 
+/** fiveHandsRev 3's game: the same play, the flat hand table, a bonus column picked once the rows are complete, summed to 200; the first shuffle as dealt. */
+export const fiveHandsGameV3: ArcadeGame<FhState, ArcadeInputEvent | null> = {
+  ...fiveHandsGame,
+  init: (seed) => fhInit(seed, 3),
+  inputRanges: [inputRange(FH_INPUT_PLACE, [0, FH_ROWS - 1]), inputRange(FH_INPUT_PICK, [0, FH_SLOTS - 1])],
+};
+
 export function fiveHandsGameFor(rev?: number | null): ArcadeGame<FhState, ArcadeInputEvent | null> {
-  return (rev ?? 1) >= FH_REV_STEEP ? fiveHandsGameV2 : fiveHandsGame;
+  const r = rev ?? 1;
+  return r >= FH_REV_FLAT ? fiveHandsGameV3 : r >= FH_REV_STEEP ? fiveHandsGameV2 : fiveHandsGame;
 }

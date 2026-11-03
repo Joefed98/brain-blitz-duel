@@ -3,13 +3,16 @@
  * top, the five rows of five slots with a badge at the end of each (lit gold with the hand and its points once the row
  * makes one; rows already filled for the round greyed out), this turn's card large in the middle with the deck count,
  * and the discards along the bottom, overlapping side by side in two rows of ten, oldest on the left, each showing its
- * large index (the shared card renderer's small-card face). fhHitRow reads the layout. No instruction text.
+ * large index (the shared card renderer's small-card face). fhHitRow reads the layout. No instruction text, but for
+ * fiveHandsRev 3's bonus column: once the rows are complete the five columns light up as tappable (fhHitColumn) over a
+ * short prompt in the card's place, with no column's points shown; after the pick the chosen column stays lit and its
+ * hand and points show there.
  */
 import type { ArcadeGame, ArcadeInputEvent, CanvasSize } from "../engine";
 import { arcadeFx, type ArcadeFxSpec } from "../arcadeFx.renderer";
 import { CARD_FONT, drawCard, drawChip, drawFelt, drawSlot, roundRect } from "./cards.renderer";
 import {
-  fhCoreFullFor, FH_ROWS, FH_SEEN, FH_SLOTS, FH_TURNS, fhDiscard, fhDiscardsShown, fhOpenRows, fhRowHand, fhTotals, fhYours, fiveHandsGameFor, type FhState,
+  fhCoreFullFor, FH_ROWS, FH_SEEN, FH_SLOTS, FH_TURNS, fhPickedHand, fhPicking, fhTotalV3, fhDiscard, fhDiscardsShown, fhOpenRows, fhRowHand, fhTotals, fhYours, fiveHandsGameFor, type FhState,
 } from "./fiveHands";
 
 export const FH_WORLD_W = 414;
@@ -48,6 +51,18 @@ export function fhHitRow(x: number, y: number): number {
   return -1;
 }
 
+/** The column under a point (its five slots down the rows, with half the gap round each), or -1 (rev 3's pick). */
+export function fhHitColumn(x: number, y: number): number {
+  const top = fhSlotBox(0, 0).y - GAP / 2;
+  const bottom = fhSlotBox(FH_ROWS - 1, 0).y + FH_CELL_H + GAP / 2;
+  if (y < top || y > bottom) return -1;
+  for (let k = 0; k < FH_SLOTS; k++) {
+    const left = fhSlotBox(0, k).x;
+    if (x >= left - GAP / 2 && x <= left + FH_CELL_W + GAP / 2) return k;
+  }
+  return -1;
+}
+
 /** Whether a point is on this turn's card (a drag starts there). */
 export function fhOnNext(x: number, y: number): boolean {
   const nx = FH_WORLD_W / 2 - FH_NEXT_W / 2;
@@ -64,10 +79,12 @@ export function fhDiscardBox(i: number): { x: number; y: number } {
 export interface FhView {
   pressed: number;
   drag: { x: number; y: number } | null;
+  /** Rev 3's pick: the column under the finger (−1 none). */
+  pressedCol?: number;
 }
 
 export function fhNewView(): FhView {
-  return { pressed: -1, drag: null };
+  return { pressed: -1, drag: null, pressedCol: -1 };
 }
 
 const SHORT: Record<string, string> = {
@@ -127,7 +144,7 @@ export const FIVEHANDS_FX: ArcadeFxSpec<FhState> = {
       at: (s) => (s.lastRow >= 0 ? { x: BADGE_X + BADGE_W / 2, y: fhSlotBox(s.lastRow, 0).y + FH_CELL_H / 2 } : null),
       label: (s) => (s.lastRow >= 0 ? fhRowHand(s.rows[s.lastRow]!, s.rev).name.toUpperCase() || null : null),
     },
-    { kind: "final", count: (s) => (fhTotals(s.rows, s.rev).total >= fhCoreFullFor(s.rev) ? 1 : 0), label: () => "FULL POINTS!" },
+    { kind: "final", count: (s) => (((s.rev ?? 1) >= 3 ? fhTotalV3(s) : fhTotals(s.rows, s.rev).total) >= fhCoreFullFor(s.rev) ? 1 : 0), label: (s) => ((s.rev ?? 1) >= 3 ? "200 POINTS!" : "FULL POINTS!") },
   ],
   misses: [{ count: (s) => s.rejects }],
 };
@@ -143,7 +160,8 @@ function drawFiveHandsWorld(ctx: CanvasRenderingContext2D, state: FhState, size:
   ctx.scale(size.width / W, size.height / H);
   drawFelt(ctx, W, H);
 
-  const { total, made } = fhTotals(state.rows, state.rev);
+  const { made } = fhTotals(state.rows, state.rev);
+  const total = (state.rev ?? 1) >= 3 ? fhTotalV3(state) : fhTotals(state.rows, state.rev).total;
   drawChip(ctx, 10, 9, "POINTS", `${total}`, { gold: total >= fhCoreFullFor(state.rev) });
   drawChip(ctx, W / 2, 9, "TURN", `${Math.min(FH_TURNS, state.turn + (state.turn < FH_TURNS ? 1 : 0))}/${FH_TURNS}`, { align: "center" });
   drawChip(ctx, W - 10, 9, "HANDS", `${made}/${FH_ROWS}`, { align: "right", gold: made === FH_ROWS });
@@ -184,11 +202,20 @@ function drawFiveHandsWorld(ctx: CanvasRenderingContext2D, state: FhState, size:
   // This turn's card, large, with the deck count.
   const nx = W / 2 - FH_NEXT_W / 2;
   const deckLeft = 52 - Math.min(FH_SEEN, FH_ROWS + 2 * Math.min(FH_TURNS, state.turn + (running ? 1 : 0)));
+  const picking = fhPicking(state);
+  const picked = fhPickedHand(state);
   if (running) {
     drawCard(ctx, 0, nx + 5, FH_NEXT_Y + 4, FH_NEXT_W, FH_NEXT_H, { down: true });
     if (!view?.drag) drawCard(ctx, fhYours(state.deck, state.turn), nx, FH_NEXT_Y, FH_NEXT_W, FH_NEXT_H, { glow: 0.6 });
-  } else drawSlot(ctx, nx, FH_NEXT_Y, FH_NEXT_W, FH_NEXT_H);
-  drawChip(ctx, nx + FH_NEXT_W + 24, FH_NEXT_Y + FH_NEXT_H / 2 - 13, "DECK", `${deckLeft}`);
+    drawChip(ctx, nx + FH_NEXT_W + 24, FH_NEXT_Y + FH_NEXT_H / 2 - 13, "DECK", `${deckLeft}`);
+  } else if (picking || picked.column >= 0) {
+    // Rev 3's bonus column: the prompt while picking (no column's points shown), then the chosen column's hand.
+    columnPanel(ctx, W, picking ? null : picked);
+  } else {
+    drawSlot(ctx, nx, FH_NEXT_Y, FH_NEXT_W, FH_NEXT_H);
+    drawChip(ctx, nx + FH_NEXT_W + 24, FH_NEXT_Y + FH_NEXT_H / 2 - 13, "DECK", `${deckLeft}`);
+  }
+  if (picking || picked.column >= 0) columnFrames(ctx, picking ? -1 : picked.column, picking ? (view?.pressedCol ?? -1) : -1, state.tick);
 
   // The discards, taken by the opponents: oldest top left, each newer one over the last's right side.
   const shown = fhDiscardsShown(state);
@@ -205,6 +232,57 @@ function drawFiveHandsWorld(ctx: CanvasRenderingContext2D, state: FhState, size:
 
   if (view?.drag && running) drawCard(ctx, fhYours(state.deck, state.turn), view.drag.x - FH_CELL_W / 2, view.drag.y - FH_CELL_H / 2, FH_CELL_W, FH_CELL_H, { glow: 1 });
   ctx.restore();
+}
+
+/** Rev 3: gold frames round the columns (all lit and tappable while picking, a pulse; the chosen one alone after). */
+function columnFrames(ctx: CanvasRenderingContext2D, chosen: number, pressed: number, tick: number): void {
+  const top = fhSlotBox(0, 0).y - 4;
+  const h = fhSlotBox(FH_ROWS - 1, 0).y + FH_CELL_H + 4 - top;
+  const pulse = 0.55 + 0.35 * Math.abs(((tick % 60) / 30) - 1);
+  for (let k = 0; k < FH_SLOTS; k++) {
+    if (chosen >= 0 && k !== chosen) continue;
+    const x = fhSlotBox(0, k).x - 3;
+    roundRect(ctx, x, top, FH_CELL_W + 6, h, 9);
+    const hot = k === pressed || k === chosen;
+    if (hot) {
+      ctx.fillStyle = "rgba(255,214,110,0.16)";
+      ctx.fill();
+    }
+    ctx.strokeStyle = hot ? "rgba(255,222,130,1)" : `rgba(255,214,110,${pulse.toFixed(3)})`;
+    ctx.lineWidth = hot ? 3 : 2;
+    ctx.stroke();
+  }
+}
+
+/** Rev 3: the panel in the card's place: "PICK A COLUMN TO ADD", then the chosen column's hand and points. */
+function columnPanel(ctx: CanvasRenderingContext2D, W: number, picked: { points: number; name: string; column: number } | null): void {
+  const x = 40;
+  const w = W - 80;
+  const y = FH_NEXT_Y + 8;
+  const h = FH_NEXT_H - 16;
+  roundRect(ctx, x, y, w, h, 14);
+  ctx.fillStyle = "rgba(3,8,22,0.62)";
+  ctx.fill();
+  ctx.strokeStyle = "rgba(255,214,110,0.75)";
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  if (!picked) {
+    ctx.fillStyle = "#FFE7A3";
+    ctx.font = `800 20px ${CARD_FONT}`;
+    ctx.fillText("PICK A COLUMN TO ADD", W / 2, y + h / 2 - 9);
+    ctx.fillStyle = "rgba(246,235,208,0.75)";
+    ctx.font = `700 13px ${CARD_FONT}`;
+    ctx.fillText("Tap a column: its hand adds to your score", W / 2, y + h / 2 + 15);
+    return;
+  }
+  ctx.fillStyle = "rgba(246,235,208,0.8)";
+  ctx.font = `700 13px ${CARD_FONT}`;
+  ctx.fillText(`COLUMN ${picked.column + 1}`, W / 2, y + 20);
+  ctx.fillStyle = picked.points > 0 ? "#FFE7A3" : "rgba(246,235,208,0.7)";
+  ctx.font = `800 24px ${CARD_FONT}`;
+  ctx.fillText(picked.points > 0 ? `${SHORT[picked.name] ?? picked.name.toUpperCase()} +${picked.points}` : "NO HAND +0", W / 2, y + h / 2 + 10);
 }
 
 /** The art game for a stage: the revision's sim with this draw (no stamp: fiveHandsRev 1). */

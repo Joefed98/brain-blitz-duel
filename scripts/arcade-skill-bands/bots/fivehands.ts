@@ -12,10 +12,18 @@
  *
  * fiveHandsRev 2 (the steep table): the hand values come from the revision's table (fhRowHand) and the open draws are
  * weighed by how much more the steep table pays for what they draw to (flush × 3.2, straight × 2.5, ranks × 2).
+ * fiveHandsRev 3 (the flat table): flush × 3.2, straight × 3, ranks × 5 (35/11, 30/10, 15/3). Flawless plays the deck's
+ * exact best arrangement (scripts/cards/fiveHandsBest.ts): rev 3 decks need not reach 200, so the climb's witness is
+ * not enough to measure the ceiling.
+ *
+ * The rev-3 bonus column: once every row is complete the bot reads the five columns (about twice a card's thinking time,
+ * so a slow player can run out of clock) and picks one through the level's judgement on the columns' points (a slip
+ * picks any column); flawless picks the best at once.
  */
 import { rankOf, suitOf } from "../../../src/lib/arcade/cards/cards";
-import { FH_INPUT_PLACE, FH_REV_STEEP, FH_ROWS, FH_SLOTS, FH_TURNS, fhDeal, fhDiscard, fhDiscardsShown, fhOpenRows, fhRowHand, fhYours, type FhState } from "../../../src/lib/arcade/cards/fiveHands";
+import { FH_INPUT_PICK, FH_INPUT_PLACE, FH_REV_STEEP, fhColumn, fhPicking, FH_ROWS, FH_SLOTS, FH_TURNS, fhDeal, fhDiscard, fhDiscardsShown, fhOpenRows, fhRowHand, fhYours, type FhState } from "../../../src/lib/arcade/cards/fiveHands";
 import { driveEvents, type SkillBot } from "../bot";
+import { fhBest } from "../../cards/fiveHandsBest";
 import type { Human } from "../human";
 
 const THINK_MS = 2300;
@@ -25,9 +33,11 @@ function promise(row: readonly number[], deadSuit: readonly number[], deadRank: 
   if (row.length === 0) return 0;
   const hand = fhRowHand(row, rev).points;
   const steep = rev >= FH_REV_STEEP;
-  const wF = steep ? 3.2 : 1;
-  const wS = steep ? 2.5 : 1;
-  const wR = steep ? 2 : 1;
+  const flat = rev >= 3;
+  // Each table's draws weighed by what it pays for them against rev 1's (flush 11, straight 10, pair 3).
+  const wF = flat ? 3.2 : steep ? 3.2 : 1;
+  const wS = flat ? 3 : steep ? 2.5 : 1;
+  const wR = flat ? 5 : steep ? 2 : 1;
   if (row.length >= FH_SLOTS) return hand;
   const suits = new Set(row.map(suitOf));
   const ranks = row.map(rankOf);
@@ -110,9 +120,20 @@ function rolloutValues(s: FhState, card: number, open: readonly number[], human:
 
 export const bot: SkillBot = ({ game, seed, human }) => {
   const level = human.level;
-  const taps = level === "perfect" ? fhDeal(seed, (game.init(seed) as FhState).rev).witnessTaps : null;
+  const rev = (game.init(seed) as FhState).rev;
+  const best = level === "perfect" && rev >= 3 ? fhBest(seed, rev) : null;
+  const taps = level === "perfect" ? (best ? best.taps : fhDeal(seed, rev).witnessTaps) : null;
   let nextAt = human.thinkTicks(THINK_MS * 1.3);
+  let pickAt = -1;
   const { events } = driveEvents<FhState>(game, (s, t) => {
+    if (fhPicking(s)) {
+      // The bonus column: read the five columns, then pick.
+      if (pickAt < 0) pickAt = t + (best ? 1 : human.thinkTicks(THINK_MS * 2));
+      if (t < pickAt) return null;
+      if (best) return { k: FH_INPUT_PICK, a: best.column, b: 0, c: 0, d: 0 };
+      const values = [0, 1, 2, 3, 4].map((k) => fhRowHand(fhColumn(s.rows, k), s.rev).points + 1);
+      return { k: FH_INPUT_PICK, a: human.pick(values), b: 0, c: 0, d: 0 };
+    }
     if (t < nextAt || s.turn >= FH_TURNS) return null;
     nextAt = t + human.thinkTicks(THINK_MS);
     if (taps) return { k: FH_INPUT_PLACE, a: taps[s.turn]!, b: 0, c: 0, d: 0 };

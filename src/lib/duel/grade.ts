@@ -1656,6 +1656,8 @@ function gradeUnderRev(
         peaks: run.peaks,
         bestRun: run.bestRun,
         stockLeft: run.stockLeft,
+        // tripeaksRev 2: stock cards turned and the deal's stock par (the reveal's Stock par tile).
+        ...((puzzle.tripeaksRev ?? 1) >= 2 ? { stockTurns: run.stockTurns, stockPar: run.stockPar } : {}),
         finished: run.finished,
         finishSeconds: run.finishSeconds,
         endedSeconds: run.endedSeconds,
@@ -1767,6 +1769,8 @@ function gradeUnderRev(
         total: run.total,
         made: run.made,
         placed: run.placed,
+        // fiveHandsRev 3: the bonus column picked (−1 none) and its hand; total includes its points.
+        ...((puzzle.fiveHandsRev ?? 1) >= 3 ? { column: run.column, columnPoints: run.columnPoints, columnHand: run.columnHand } : {}),
         finished: run.finished,
         endedSeconds: run.endedSeconds,
         flagged: run.flagged,

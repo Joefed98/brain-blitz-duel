@@ -3,7 +3,7 @@
  * (fcLegal / fcApply in src/lib/arcade/cards/freecell.ts), so every move it returns replays through the sim.
  * A move is [from, index, to]; auto moves home are the sim's and are not moves.
  */
-import { FC_COLS, FC_CELLS, FC_PILE_CELL, FC_PILE_HOME, fcApply, fcHomeCount, fcRunStart, type FcState } from "../../src/lib/arcade/cards/freecell";
+import { FC_COLS, FC_CELLS, FC_PILE_CELL, FC_PILE_HOME, fcAllHome, fcApply, fcHomeCount, fcRunStart, type FcState } from "../../src/lib/arcade/cards/freecell";
 import { NO_CARD, rankOf } from "../../src/lib/arcade/cards/cards";
 
 export type FcMove = readonly [number, number, number];
@@ -104,7 +104,7 @@ export function fcSolve(start: FcState, weight: number, limit: number): FcMove[]
   while (heap.size > 0 && expanded < limit) {
     const node = heap.pop()!;
     expanded++;
-    if (fcHomeCount(node.s) === 52) {
+    if (fcAllHome(node.s)) {
       const moves: FcMove[] = [];
       for (let n: Node | null = node; n && n.move; n = n.parent) moves.push(n.move);
       return moves.reverse();

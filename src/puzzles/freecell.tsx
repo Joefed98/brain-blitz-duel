@@ -1,7 +1,7 @@
 import { useMemo, useRef } from "react";
 
 import { gameDisplayName } from "@/lib/duel/gameNames";
-import { FC_CHECKPOINT_INTERVAL, FC_INPUT_MOVE, FC_INPUT_TAP, FC_REV, fcCheckpoint, type FcState } from "@/lib/arcade/cards/freecell";
+import { FC_CHECKPOINT_INTERVAL, FC_INPUT_MOVE, FC_INPUT_TAP, FC_REV, fcCardsFor, fcCheckpoint, type FcState } from "@/lib/arcade/cards/freecell";
 import {
   drawFreecell, fcButtonHit, fcCardBox, fcDropPile, fcHit, fcNewView, FC_BG, FC_WORLD_H, FC_WORLD_W, freecellArtGame,
 } from "@/lib/arcade/cards/freecell.renderer";
@@ -107,8 +107,9 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   );
 }
 
-export function freecellLine(r: { home: number; finished: boolean; moves: number; par: number; finishSeconds: number }): string {
-  return r.finished ? `All 52 home in ${r.finishSeconds.toFixed(1)} s · ${r.moves} moves (par ${r.par})` : `${r.home} of 52 cards home`;
+export function freecellLine(r: { home: number; finished: boolean; moves: number; par: number; finishSeconds: number }, rev?: number | null): string {
+  const all = fcCardsFor(rev);
+  return r.finished ? `All ${all} home in ${r.finishSeconds.toFixed(1)} s · ${r.moves} moves (par ${r.par})` : `${r.home} of ${all} cards home`;
 }
 
 function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
@@ -116,7 +117,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   const result = replayFreecellRun(puzzle.seed, myAnswer ?? "", puzzle.freecellRev);
   return (
     <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-start gap-3 overflow-y-auto">
-      <p className="whitespace-normal break-words text-center font-mono text-base font-bold text-foreground">{freecellLine(result)}</p>
+      <p className="whitespace-normal break-words text-center font-mono text-base font-bold text-foreground">{freecellLine(result, puzzle.freecellRev)}</p>
       <p className="shrink-0 text-center font-mono text-base text-muted-foreground">{result.sorted} cards in sorted runs · {result.moves} moves{result.undos + result.resets > 0 ? ` (${[result.undos ? `${result.undos} undo${result.undos === 1 ? "" : "s"}` : "", result.resets ? `${result.resets} reset${result.resets === 1 ? "" : "s"}` : ""].filter(Boolean).join(", ")})` : ""}</p>
       <p className="shrink-0 text-center font-mono text-base text-muted-foreground">Same deal for everyone</p>
     </div>
