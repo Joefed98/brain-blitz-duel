@@ -161,7 +161,7 @@ function introScoreTemplates(): Record<PuzzleType, string> {
     steady: "Start on {max}. Touching the edge: lose 5.",
     ricochet: `Height 125 (full at ${MOON_CORE_FULL_M} m); flow 30, lantern rides 30, scrolls 15: {max}.`,
     rooftop: "The longer you last, the more you score. The full minute is {max}.",
-    bastion: "Armour 140, weak spots 30, fast reloads 20, base intact 10: up to {max}.",
+    bastion: "Armour 110, weak spots 30, fast reloads 20, drones 30, base intact 10: up to {max}.",
     hotfloor: arcadeOpen("each stage you survive"),
   };
 }

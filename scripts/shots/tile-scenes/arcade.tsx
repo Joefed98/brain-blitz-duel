@@ -120,13 +120,14 @@ export const ARCADE_SCENES: SceneSet = {
     at(c, 52 - 30, 64, 60 / 64, () => basket(c));
   }),
 
-  // Wavefront: three enemy hulls in formation, the player's fighter below firing its green beam up at them.
+  // Wavefront (3 Nov 2026): the new enemy ships in formation, a Dart, a Bulwark and a Raptor (gunmetal, magenta neon,
+  // furnace seams, fire exhaust), the player's fighter below firing its green beam up at them.
   wavefront: canvasScene((c) => {
-    const s = 30 / WAV_CELL;
+    const s = 31 / WAV_CELL;
     at(c, 0, 0, s, () => {
-      drawHull(c, 0, WAV_COLOURS[0]!, 4 / s, 8 / s, WAV_CELL, 0);
-      drawHull(c, 1, WAV_COLOURS[1]!, 37 / s, 4 / s, WAV_CELL, 0);
-      drawHull(c, 0, WAV_COLOURS[2]!, 70 / s, 8 / s, WAV_CELL, 0);
+      drawHull(c, 0, WAV_COLOURS[0]!, 3 / s, 6 / s, WAV_CELL, 0);
+      drawHull(c, 2, WAV_COLOURS[1]!, 36.5 / s, 2 / s, WAV_CELL, 0);
+      drawHull(c, 1, WAV_COLOURS[0]!, 70 / s, 6 / s, WAV_CELL, 0);
     });
     at(c, 52, 0, 1.6, () => {
       drawWavefrontBeam(c, 0, 26, "player");

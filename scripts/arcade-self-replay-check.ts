@@ -16,7 +16,7 @@
  *   bun scripts/arcade-self-replay-check.ts [runsPerGame] [keys,…] [--part=k/n]
  */
 
-import { bastionTankCheckpoint, bastionTankGame, BT2_CHECKPOINT_INTERVAL } from "../src/lib/arcade/bastionTank";
+import { bastionIronGame, bastionTankCheckpoint, bastionTankGame, BT2_CHECKPOINT_INTERVAL } from "../src/lib/arcade/bastionTank";
 import { encodeBastionTankRun, replayBastionTankRun } from "../src/lib/duel/bastion";
 import { homerunCheckpoint, homerunGameFor, HOMERUN_CHECKPOINT_INTERVAL, HOMERUN_REV_2, HOMERUN_REV_3, HOMERUN_REV_4, HOMERUN_REV_STD } from "../src/lib/arcade/homerun";
 import { encodeHomerunRun, replayHomerunRun } from "../src/lib/duel/homerun";
@@ -949,6 +949,9 @@ const GAMES: Game[] = [
   // so every earlier entry keeps its index: random spots and taps; random shots on the poolRev 4 bank's layouts.
   { key: "homerun/v4", interval: HOMERUN_CHECKPOINT_INTERVAL, game: homerunGameFor(HOMERUN_REV_4), checkpoint: homerunCheckpoint, mode: "events", rate: 20, encode: encodeHomerunRun, replay: (seed: number, raw: string) => replayHomerunRun(seed, raw, HOMERUN_REV_4), seedFor: (n: number) => HOMERUN_DEAL_V4[n % HOMERUN_DEAL_V4.length]! },
   { key: "pool/v4", game: poolGameFor(4), seedFor: (n: number) => POOL_BANK_V4[n % POOL_BANK_V4.length]!, checkpoint: poolCheckpoint, mode: "events", rate: 40, encode: encodePoolRun, replay: (seed: number, raw: string) => replayPoolRun(seed, raw, 4) },
+  // Iron Wall bastionRev 3 (3 Nov 2026: eased waves 4–5, the 90 ms zone, the drones), appended at the end so every
+  // earlier entry keeps its index and stream.
+  { key: "bastion/v3", interval: BT2_CHECKPOINT_INTERVAL, game: bastionIronGame, checkpoint: bastionTankCheckpoint, mode: "events", rate: 30, encode: encodeBastionTankRun, replay: (seed: number, raw: string) => replayBastionTankRun(seed, raw, 3) },
   // Moon Climb ricoRev 3 and Blockzone blockfallRev 2 (3 Nov 2026), appended so every earlier entry keeps its index:
   // random taps (with leap-off directions) and random moves, turns, drops and soft drops.
   { key: "ricochet/moon", interval: NINJA_CHECKPOINT_INTERVAL, game: moonGame, checkpoint: moonCheckpoint, mode: "events", rate: 30, encode: encodeMoonRun, replay: (seed: number, raw: string) => replayMoonRun(seed, raw) },

@@ -5,7 +5,7 @@
  * Each moment plays its own slot (`<gameId>.<event>`, docs/sound-cues/arcade.md)
  * once that slot has a file, else the shared sound it always played, unchanged.
  */
-import { bastionWave, BT2_WAVE_START, type BastionTankState } from "@/lib/arcade/bastionTank";
+import { bastionDronePos, bastionDrones, bastionWave, BASTION_REV_IRON, BT2_WAVE_START, type BastionTankState } from "@/lib/arcade/bastionTank";
 import { cueHasFile, ensureCueLoop, ensureSlotLoop, playCueSlot, playSlotOr, setCueLoopRate, stopCueLoop, stopSlotLoop } from "@/lib/sound";
 import { liveCue, momentFrame } from "@/lib/fx/momentCues";
 import { haptic, type HapticPattern } from "@/lib/haptics";
@@ -1146,11 +1146,18 @@ export function curlingSounds(): GameSounds<CurlingState> {
 /* ============================ The Sports group (30 Oct 2026) ============================ */
 
 /** Home Run Derby: the crowd, each pitch, the swing, the crack of the bat, home runs (the organ and a roar), signs, fouls, whiffs and the mitt. */
+/** Iron Wall (bastionRev 3): is a drone in the sky (not yet downed)? */
+function bastionDroneUp(s: BastionTankState): boolean {
+  if (s.rev < BASTION_REV_IRON) return false;
+  return bastionDrones(s.seed).some((d, n) => !(s.droneMask & (1 << n)) && bastionDronePos(d, s.tick) !== null);
+}
+
 /**
- * Bastion (bastionRev 2): the cannon, a shell landing (a hull hit, a weak-spot hit, a tank destroyed, a miss), the
+ * Iron Wall (id bastion; bastionRev 2 and 3): the cannon, a shell landing (a hull hit, a weak-spot hit, a tank destroyed, a miss), the
  * reload (its start, a fast reload, a jam), a dry click, each wave rolling in and a base hit. Each slot falls back to
  * the shared sound until its own recording is set (docs/sound-cues/arcade.md "Bastion"). Haptics: a base hit only
- * (the buzzer's is the shared arcade one).
+ * (the buzzer's is the shared arcade one). bastionRev 3 adds the drone's quiet loop while one is in the sky
+ * (`bastion.drone`, silent until it has a file) and its fall (`bastion.droneDown`).
  */
 export function bastionTankSounds(): GameSounds<BastionTankState> {
   let prev: BastionTankState | null = null;
@@ -1167,7 +1174,8 @@ export function bastionTankSounds(): GameSounds<BastionTankState> {
         if (prev.reloadAt >= 0 && state.reloadAt < 0) sfx("bastion.loaded", "arc_latch", 0.5, 1.3);
         const fresh = state.impacts.filter((m) => m.t > prev!.tick);
         for (const m of fresh) {
-          if (m.r >= 3) sfx("bastion.kill", "arc_big_explode", 0.9);
+          if (m.r === 5) sfx("bastion.droneDown", "arc_retro_explode", 0.85);
+          else if (m.r >= 3) sfx("bastion.kill", "arc_big_explode", 0.9);
           else if (m.r === 2) sfx("bastion.weak", "arc_pickup", 0.8);
           else if (m.r === 1) sfx("bastion.hit", "arc_retro_hit", 0.8);
           else sfx("bastion.miss", "arc_fair_thud", 0.5);
@@ -1178,9 +1186,11 @@ export function bastionTankSounds(): GameSounds<BastionTankState> {
         }
         if (bastionWave(state) !== bastionWave(prev) || (prev.tick < BT2_WAVE_START[0] && state.tick >= BT2_WAVE_START[0])) sfx("bastion.wave", "arc_horn", 0.6);
       }
+      loopCue("bastion.drone", running && state.ended === 0 && bastionDroneUp(state));
       prev = state;
     },
     stop() {
+      loopCue("bastion.drone", false);
       prev = null;
     },
   };

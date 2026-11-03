@@ -75,8 +75,8 @@ const BRIEF: Record<string, string[]> = {
   cards: ["Minefield", "Free Cell", "Mahjong Solitaire", "Summit", "Five Hands", "Pyramid", "Golf Solitaire"],
   // Strategy split from Action on 1 Nov 2026 (Coral Pop, Gemstone, Ball Tracker, Tilt, Rainbow Bridge, High Rise moved).
   // Ricochet back from retirement as the ninja wall-climb (ricoRev 2, 1 Nov 2026), and Bastion back in rooms (bastionRev 2), in Action.
-  // Ricochet is shown as Moon Climb since 3 Nov 2026 (ricoRev 3).
-  action: ["Slice", "Roofbound", "Grappler", "Moon Climb", "Bastion"],
+  // Ricochet is shown as Moon Climb since 3 Nov 2026 (ricoRev 3), and Bastion as Iron Wall.
+  action: ["Slice", "Roofbound", "Grappler", "Moon Climb", "Iron Wall"],
   strategy: ["Tilt", "Gemstone", "High Rise", "Coral Pop", "Rainbow Bridge", "Ball Tracker"],
 };
 check(ARCADE_GROUPS.map((g) => g.id).join() === "retro,sports,cards,action,strategy", "five groups: Retro, Sports, Cards & Board, Action, Strategy");

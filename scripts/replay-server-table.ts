@@ -74,7 +74,7 @@ const TABLE: Record<string, (p: any, a: string) => ServerReplay> = {
   // Ricochet: the ninja wall-climb on ricoRev 2, else the original shaft.
   ricochet: (p, a) => (isMoonRev(p.ricoRev) ? replayMoonRun(p.seed, a) : isNinjaRev(p.ricoRev) ? replayNinjaRun(p.seed, a) : replayRicoRun(p.seed, a)),
   // Bastion: bastionRev 2's tank game; the original turret for unstamped rounds.
-  bastion: (p, a) => (isBastionTank(p.bastionRev) ? replayBastionTankRun(p.seed, a) : replayBastionRun(p.seed, a)),
+  bastion: (p, a) => (isBastionTank(p.bastionRev) ? replayBastionTankRun(p.seed, a, p.bastionRev) : replayBastionRun(p.seed, a)),
   pyramid: (p, a) => replayPyramidRun(p.seed, a, p.pyramidRev),
   golfsol: (p, a) => replayGolfSolRun(p.seed, a, p.golfSolRev),
   muggins: (p, a) => replayMugginsRun(p.seed, a, p.mugginsRev),

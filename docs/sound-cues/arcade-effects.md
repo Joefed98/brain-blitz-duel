@@ -326,6 +326,14 @@ Already sounded: rope cut (`snip.cut`), springy branch (`snip.springBounce`), pi
 
 Already sounded: gate (`tilt.gate`), maze done (`tilt.mazeDone`), cup (`tilt.cup`, also the first marble home), star (`tilt.starTaken`), caught (`tilt.caught`), knocks and roll.
 
+## Iron Wall
+
+| Cue | When | Looks like | File | Per run | Length |
+| --- | --- | --- | --- | --- | --- |
+| `bastion.drone` | bastionRev 3: while a drone is in the sky and not yet downed (faded out when it is downed, flies off or the run ends) | A small dark drone with a blinking red light crosses the sky | none yet (silent until it has a file) | loop | loop |
+
+Already sounded: the drone shot down (`bastion.droneDown`, arcade.md), every shell, hit, reload and wave (arcade.md).
+
 ## Ball Tracker
 
 | Cue | Trigger | Looks like | Plays today | Per round | Length |

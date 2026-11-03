@@ -1445,24 +1445,26 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         weak: "each cannon destroyed and each boss's open core hit, six in all",
       })} Power-ups score nothing; each life lost costs ${WAV_STD_LIFE_COST} (anyone who plays scores at least 1).`,
     },
-    // bastionRev 2 (1 Nov 2026; docs/arcade-standard/bastion.md): the tank-defence shooter.
+    // Iron Wall (id bastion; bastionRev 3, 3 Nov 2026; docs/arcade-standard/bastion.md): the tank-defence shooter.
     bastion: {
-      goal: "Hold the wall against five waves of tanks.",
+      goal: "Hold the wall against five waves of tanks, and shoot down the drones.",
       how: [
         { action: "Drag anywhere to aim;", detail: "the crosshair floats above your thumb. Lift to fire." },
         { action: "Shells take a moment to land:", detail: "lead a moving tank." },
         { action: "Hit the glowing weak spot", detail: "for double damage, while it is open." },
         { action: "Five shells.", detail: "Swipe down to reload early; tap while the needle is in the green for a fast reload." },
+        { action: "Three drones cross the sky:", detail: "small and fast. Lead one well ahead to shoot it down for a bonus." },
         { action: "Scouts take 1 hit, Mediums 2 and Heavies 4;", detail: "the pips above each tank show what is left.", helpOnly: true },
         { action: "Weak spots open and close:", detail: "each glows orange for about a second, then shuts for half a second. A shell on a shut one is a plain hull hit.", helpOnly: true },
-        { action: "The last two waves", detail: "are bigger and faster, and every tank speeds up or slows down once on its way in.", helpOnly: true },
+        { action: "The last two waves", detail: "are bigger and press harder, and every tank speeds up or slows down once on its way in.", helpOnly: true },
+        { action: "A drone", detail: "flies straight across in under two seconds; a shell into the sky takes half a second to get there. Drones never hit the base.", helpOnly: true },
         { action: "Small, slow drags", detail: "move the crosshair less than your thumb, for fine aim.", helpOnly: true },
         { action: "Empty, the gun reloads by itself in 2 seconds.", detail: "A tap in the green finishes it in half the time; a tap outside jams it for half a second more.", helpOnly: true },
         { action: "A tank that reaches the wall hits the base.", detail: "Three hits and the run ends early (you keep your score).", helpOnly: true },
         { action: "On a computer:", detail: "the mouse aims, click fires, R reloads and Space is the fast-reload tap.", helpOnly: true },
-        { action: "Everyone", detail: "faces the same tanks in the same waves.", helpOnly: true },
+        { action: "Everyone", detail: "faces the same tanks in the same waves, and the same drones.", helpOnly: true },
       ],
-      score: liveStdHelp("bastion", "Four parts, which total 200:"),
+      score: liveStdHelp("bastion", "Five parts, which total 200:"),
     },
     rooftop: {
       goal: "Survive the rooftops as long as you can.",
