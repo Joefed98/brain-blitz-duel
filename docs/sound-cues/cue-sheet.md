@@ -19,7 +19,7 @@ effects ([arcade-effects.md](arcade-effects.md)) so a sound can be written for e
 
 | Category | Silent | Placeholder | Recorded | Total |
 |---|---|---|---|---|
-| game event | 38 | 0 | 466 | 504 |
+| game event | 38 | 0 | 467 | 505 |
 | room moment | 1 | 0 | 34 | 35 |
 | music | 11 | 0 | 104 | 115 |
 | UI tap | 10 | 0 | 30 | 40 |
@@ -27,7 +27,7 @@ effects ([arcade-effects.md](arcade-effects.md)) so a sound can be written for e
 | success sting | 3 | 0 | 73 | 76 |
 | ambience | 0 | 1 | 17 | 18 |
 | replay | 0 | 0 | 186 | 186 |
-| **all** | 67 | 1 | 947 | 1015 |
+| **all** | 67 | 1 | 948 | 1016 |
 
 ## Silent and placeholder cues
 
@@ -1511,11 +1511,12 @@ Grouped by game or screen.
 | `homerun.sign` | Home Run: A sign beyond the fence is struck [arcade.md] |  | 0–4 | recorded sound | `homerun.sign` | 480 | game event | `homerun.sign` |
 | `homerun.foul` | Home Run: A foul ball, or weak contact (a fair ball under 400 per mille, once the slot has its file) [arcade.md] |  | 0–5 | recorded sound | `homerun.foul` | 150 | game event | `homerun.foul` |
 | `homerun.strike` | Home Run: The ball in the catcher's mitt: a swing and a miss, or a pitch taken [arcade.md] |  | 0–10 | recorded sound | `homerun.strike` | 150 | game event | `homerun.strike` |
+| `homerun.catch` | Home Run: homerunRev 4: a fielder catches the ball as it comes down (with homerun.groan, the crowd); the library's glove pop, homerun_mitt.mp3 [arcade.md] |  | 0–10 | recorded sound | `homerun.catch` | 400 | game event | `homerun.catch` |
 | `homerun.crowd` | Home Run: While the run is live (0.26) [batch6-sports-cards.md] |  | loop | recorded sound | `homerun.crowd` | loop | ambience | `homerun.crowd` |
 | `homerun.pitch` | Home Run: The pitcher releases the ball [batch6-sports-cards.md] |  | 10 | recorded sound | `homerun.pitch` | 259 | game event | `homerun.pitch` |
 | `homerun.whiff` | Home Run: A swing and a miss (with homerun.strike, the mitt) [batch6-sports-cards.md] |  | 0–10 | recorded sound | `homerun.whiff` | 400 | game event | `homerun.whiff` |
 | `homerun.roar` | Home Run: A home run [batch6-sports-cards.md] |  | 0–10 | recorded sound | `homerun.roar` | 3477 | game event | `homerun.roar` |
-| `homerun.groan` | Home Run: A fair ball within 30 ft of the fence [batch6-sports-cards.md] |  | 0–5 | recorded sound | `homerun.groan` | 1995 | game event | `homerun.groan` |
+| `homerun.groan` | Home Run: A fair ball within 30 ft of the fence; homerunRev 4: a fielder's catch (with homerun.catch) [batch6-sports-cards.md] |  | 0–5 | recorded sound | `homerun.groan` | 1995 | game event | `homerun.groan` |
 | `music.homerun` | Home Run: music_homerun |  | loop | recorded sound | `music_homerun` | 52000 | music | `music_homerun` |
 
 ### Hover
@@ -2677,6 +2678,7 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 | `homerun.whiff` | effects | `homerun.whiff` | 400 |
 | `homerun.roar` | effects | `homerun.roar` | 3477 |
 | `homerun.groan` | effects | `homerun.groan` | 1995 |
+| `homerun.catch` | effects | `homerun.catch` | 400 |
 | `freekick.crowd` | effects | `freekick.crowd` | 9271 |
 | `freekick.whistle` | effects | `freekick.whistle` | 683 |
 | `freekick.roar` | effects | `freekick.roar` | 3477 |

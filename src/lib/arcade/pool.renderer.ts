@@ -16,6 +16,9 @@ import type { ArenaSceneView } from "./arenaScene.renderer";
 import { artHash } from "./art.renderer";
 import {
   poolSecondsLeft,
+  poolSetName,
+  poolShownId,
+  POOL_SET_SPOTS,
   POOL_BALL_R,
   POOL_BAULK_Y,
   POOL_BLACK,
@@ -625,7 +628,7 @@ function drawDropping(ctx: CanvasRenderingContext2D, s: PoolState): void {
       ctx.clip();
     }
     ctx.globalAlpha = 1 - 0.35 * t;
-    drawBallSprite(ctx, b.id, x, y, r, R);
+    drawBallSprite(ctx, poolShownId(b.id, s.set ?? POOL_SET_SPOTS), x, y, r, R);
     ctx.globalAlpha = 1;
     ctx.fillStyle = `rgba(0,0,0,${(0.85 * t).toFixed(3)})`;
     ctx.beginPath();
@@ -653,27 +656,41 @@ function chip(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, la
 
 function drawHud(ctx: CanvasRenderingContext2D, s: PoolState): void {
   const y = 6;
-  // The rack: seven spots, lit once potted.
+  // The rack: the player's seven, lit once potted. poolRev 4 names the set (SPOTS or STRIPES) inside the pill, in gold.
+  const set = s.set ?? POOL_SET_SPOTS;
+  const named = s.rev >= 4;
+  const label = poolSetName(set).toUpperCase();
+  ctx.font = `800 9px ${FONT}`;
+  const lw = named ? Math.ceil(ctx.measureText(label).width) + 10 : 0;
   ctx.fillStyle = "rgba(14,14,18,0.82)";
-  roundRect(ctx, 8, y, 7 * 15 + 10, 20, 10);
+  roundRect(ctx, 8, y, 7 * 15 + 10 + lw, 20, 10);
   ctx.fill();
+  if (named) {
+    ctx.strokeStyle = "rgba(242,199,92,0.8)";
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    ctx.fillStyle = "#F2C75C";
+    ctx.textAlign = "left";
+    ctx.textBaseline = "middle";
+    ctx.fillText(label, 8 + 9, y + 10.5);
+  }
   for (let id = 1; id <= POOL_SPOTS; id++) {
     const down = s.balls.find((b) => b.id === id)?.down === 1;
     ctx.globalAlpha = down ? 1 : 0.28;
-    drawBall(ctx, id, 8 + 5 + 7.5 + (id - 1) * 15, y + 10, 5.5);
+    drawBall(ctx, poolShownId(id, set), 8 + lw + 5 + 7.5 + (id - 1) * 15, y + 10, 5.5);
     ctx.globalAlpha = 1;
   }
-  let x = 8 + 7 * 15 + 16;
+  let x = 8 + lw + 7 * 15 + 16;
   const allDown = s.spotsDown >= POOL_SPOTS;
   if (allDown && s.black === 0) {
     chip(ctx, x, y, 64, "THE BLACK", "gold");
     x += 70;
   }
-  if (s.streak >= 2) {
+  if (s.streak >= 2 && x + 76 <= POOL_W - 8) {
     chip(ctx, x, y, 76, `${s.streak} IN A ROW`, "gold");
     x += 82;
   }
-  if (s.fouls > 0) {
+  if (s.fouls > 0 && x + 62 <= POOL_W - 8) {
     chip(ctx, x, y, 62, `FOULS ${s.fouls}`, s.tick - s.foulTick < 60 ? "red" : "plain");
     x += 68;
   }
@@ -718,7 +735,8 @@ export function drawPool(ctx: CanvasRenderingContext2D, s: PoolState, aim: PoolA
     }
   }
   drawDropping(ctx, s);
-  for (const b of s.balls) if (!b.down && b.id !== POOL_CUE) drawBall(ctx, b.id, px(b.x), px(b.y));
+  const set = s.set ?? POOL_SET_SPOTS;
+  for (const b of s.balls) if (!b.down && b.id !== POOL_CUE) drawBall(ctx, poolShownId(b.id, set), px(b.x), px(b.y));
   const cue = s.balls.find((b) => b.id === POOL_CUE && !b.down);
   const aiming = aim && s.phase === 0 && !s.over;
   if (aiming) drawAim(ctx, s, aim);
@@ -728,8 +746,38 @@ export function drawPool(ctx: CanvasRenderingContext2D, s: PoolState, aim: PoolA
     if (l > 1e-6) drawCueStick(ctx, px(cue.x), px(cue.y), aim.dx / l, aim.dy / l, aim.power);
   }
   if (!turned) drawHud(ctx, s);
+  // poolRev 4: the deal's set, shown big over the table until the first shot (never on the turned desktop table: its
+  // HUD strip names the set upright).
+  if (!turned && s.rev >= 4) drawSetBanner(ctx, s);
   numberTurn = 0;
   void POOL_BLACK;
+}
+
+/** poolRev 4's opening banner: YOU'RE STRIPES (or SPOTS) and your seven, until the first shot or 4 s, then a fade. */
+export const POOL_SET_BANNER_TICKS = 240;
+function drawSetBanner(ctx: CanvasRenderingContext2D, s: PoolState): void {
+  if (s.shots > 0 && s.phase !== 0) return;
+  const age = s.shots > 0 ? POOL_SET_BANNER_TICKS : s.tick;
+  if (age >= POOL_SET_BANNER_TICKS) return;
+  const a = age < 200 ? 1 : (POOL_SET_BANNER_TICKS - age) / 40;
+  const set = s.set ?? POOL_SET_SPOTS;
+  const cx = POOL_W / 2;
+  const cy = 300;
+  ctx.save();
+  ctx.globalAlpha = a;
+  ctx.fillStyle = "rgba(8,10,14,0.86)";
+  roundRect(ctx, cx - 132, cy - 44, 264, 88, 16);
+  ctx.fill();
+  ctx.strokeStyle = "rgba(242,199,92,0.85)";
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+  ctx.fillStyle = "#F2C75C";
+  ctx.font = `800 22px ${FONT}`;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(`YOU'RE ${poolSetName(set).toUpperCase()}`, cx, cy - 18);
+  for (let id = 1; id <= POOL_SPOTS; id++) drawBall(ctx, poolShownId(id, set), cx - 3 * 22 + (id - 1) * 22, cy + 18, 8);
+  ctx.restore();
 }
 
 /** The room round the table on the play screen: a dark floor under the lamps' spill (display only). */

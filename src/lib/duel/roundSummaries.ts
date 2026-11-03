@@ -2,6 +2,7 @@ import { usesParMoves } from "./parMoves";
 import { bastionStdSpecFor } from "@/lib/arcade/bastionTank";
 import { PUZZLE_SCORE_REV, puzzleScoreRevOf } from "./puzzleScoreRev";
 import { ARCADE_STANDARD } from "@/lib/arcade/standard";
+import { homerunStdSpecFor } from "@/lib/arcade/homerun";
 import { LAB_STARS } from "./depth/labyrinth";
 import { usesStandard } from "./standard/stamps";
 import { solutionProgress } from "./progressFigures";
@@ -1320,8 +1321,9 @@ const mahjongSummary: SummaryBuilder = (result) => {
  * (`part_<key>`), so the summary names them in the spec's order with its maximums.
  */
 function sportsSummary(type: "homerun" | "freekick" | "racing"): SummaryBuilder {
-  return (result) => {
-    const spec = ARCADE_STANDARD[type]?.spec;
+  return (result, puzzle) => {
+    // Home Run's parts changed with homerunRev 4 (4 parts): a stored round reads its own revision's.
+    const spec = puzzle.type === "homerun" ? homerunStdSpecFor(puzzle.homerunRev) : ARCADE_STANDARD[type]?.spec;
     const parts = (spec?.parts ?? []).map((p) => ({ label: p.label, max: p.max, points: Number(result.extra?.[`part_${p.key}`] ?? 0) }));
     const [core, ...features] = parts;
     return {

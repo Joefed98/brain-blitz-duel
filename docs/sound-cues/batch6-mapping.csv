@@ -36,7 +36,7 @@ curling_applause,curling_applause.mp3,curling,good stone,2,no,curling.applause
 curling_shot,curling_shot.mp3,curling,holding shot,1,no,curling.shot
 music_homerun,music_homerun.mp3,homerun,music bed,60,yes,music_homerun
 homerun_pitch,homerun_pitch.mp3,homerun,pitch released,0.6,no,homerun.pitch
-homerun_mitt,homerun_mitt.mp3,homerun,missed pitch,0.4,no,homerun.strike
+homerun_mitt,homerun_mitt.mp3,homerun,missed pitch; a fielder's catch,0.4,no,homerun.strike;homerun.catch
 homerun_crack,homerun_crack.mp3,homerun,solid contact,0.4,no,homerun.crack
 homerun_foul,homerun_foul.mp3,homerun,weak or foul contact,0.3,no,homerun.foul
 homerun_whiff,homerun_whiff.mp3,homerun,swing and miss,0.4,no,homerun.whiff
