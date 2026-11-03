@@ -107,12 +107,7 @@ if (process.argv.includes("--record")) {
   const pr = replayInkBridgeRun(perfect, o.raw, INK_REV_CLOVER);
   runs.push({ who: "perfect", seed: perfect, raw: o.raw, score: pr.score, levels: pr.levels, fails: pr.fails, tick: pr.state.tick, checksum: inkCheckpoint(pr.state).checksum });
   writeFileSync(RUNS_FIXTURE, gzipSync(JSON.stringify({ note: "Rainbow Bridge inkRev 13 runs recorded by scripts/ink-v13-check.ts --record", rev: INK_REV_CLOVER, runs })));
-  // One run for scripts/fixtures/replay-runs.json (the coordinator appends it): the good bot on seed index 1.
-  const good = runs.find((r) => r.who === "good" && r.seed === roomSeed(1))!;
-  writeFileSync(
-    "scripts/fixtures/pending-replay-run-inkbridge.json",
-    `${JSON.stringify({ type: "inkbridge", label: "good bot, today's revision (added 2026-11-03)", puzzle: { type: "inkbridge", seed: good.seed, inkRev: INK_REV_CLOVER, speedPar: 1, puzzleScoreRev: 3 }, answer: good.raw, score: good.score }, null, 1)}\n`,
-  );
+  // scripts/fixtures/replay-runs.json holds one of these (the good bot on seed index 1), appended on 3 Nov 2026; never rewritten here.
   console.log(`recorded ${runs.length} runs: ${runs.map((r) => `${r.who} ${r.score}`).join(", ")}`);
   process.exit(0);
 }
@@ -237,8 +232,8 @@ section("Perfect runs at 200 through the server replay; recorded inkRev 13 runs 
     else failures.push(`recorded ${run.who} seed ${run.seed}: ${r.score}, recorded ${run.score}`);
   }
   ok(same === fx.runs.length, `${same} / ${fx.runs.length} recorded inkRev 13 runs replay unchanged`);
-  const pending = JSON.parse(readFileSync("scripts/fixtures/pending-replay-run-inkbridge.json", "utf8")) as { puzzle: { inkRev: number; seed: number }; answer: string; score: number };
-  ok(pending.puzzle.inkRev === INK_REV_CLOVER && replayInkBridgeRun(pending.puzzle.seed, pending.answer, INK_REV_CLOVER).score === pending.score, "the pending replay-runs entry replays to its stored score on inkRev 13");
+  const stored = (JSON.parse(readFileSync("scripts/fixtures/replay-runs.json", "utf8")) as { runs: { type: string; puzzle: { inkRev?: number; seed: number }; answer: string; score: number }[] }).runs.filter((r) => r.type === "inkbridge" && r.puzzle.inkRev === INK_REV_CLOVER);
+  ok(stored.length >= 1 && stored.every((r) => replayInkBridgeRun(r.puzzle.seed, r.answer, INK_REV_CLOVER).score === r.score), `the stored replay-runs entries on inkRev 13 (${stored.length}) replay to their stored scores`);
 }
 
 /* 6. Scoring floors. */
