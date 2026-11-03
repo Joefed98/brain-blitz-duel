@@ -13,8 +13,9 @@ import { preStandardPinned } from "./standard/stamps";
 import { MINES_COUNT, MINES_HIT_COST } from "@/lib/arcade/minesweeper";
 import { MAHJONG_SHUFFLE_COST } from "@/lib/arcade/mahjong";
 import { puzzleNotesDealt } from "./puzzleNotes";
-import { STANDARD_ATTENTION_HELP } from "./standard/attentionTexts";
-import { PATTERN_STD_HELP } from "./standard/patternText";
+import { PAR_MOVES_MAZE_HELP, STANDARD_ATTENTION_HELP } from "./standard/attentionTexts";
+import { parMovesDealt } from "./parMoves";
+import { PAR_MOVES_PATTERN_HELP, PATTERN_STD_HELP } from "./standard/patternText";
 import { standardNumberHelp } from "./standard/numberText";
 import {
   scoreWordHunt,
@@ -573,10 +574,13 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Swipe", detail: "to slide until something stops you." },
         { action: "Arrows turn you;", detail: "avoid the holes." },
         { action: "Portals", detail: "carry you across." },
-        { action: "Ice gems", detail: "off the direct route score a bonus." },
+        // The puzzle batch of 3 Nov 2026 (slideRev 3, parMoves.ts): no ice gems; the fewest slides score a bonus.
+        parMovesDealt()
+          ? { action: "Fewest slides", detail: "(par) score a bonus." }
+          : { action: "Ice gems", detail: "off the direct route score a bonus." },
         { action: "Cracked ice", detail: "breaks after you cross it once.", helpOnly: true },
       ],
-      score: PATTERN_STD_HELP.iceslide,
+      score: parMovesDealt() ? PAR_MOVES_PATTERN_HELP.iceslide : PATTERN_STD_HELP.iceslide,
     },
     push: {
       goal: "Push every crate onto a marked square.",
@@ -618,11 +622,14 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Drag", detail: "through the passages." },
         { action: "Walls", detail: "block your way." },
         { action: "Reach the exit", detail: "to finish." },
-        { action: "Stars", detail: "anywhere in the maze add points, finished or not." },
+        // The puzzle batch of 3 Nov 2026 (mazeRev 4, parMoves.ts): no stars; no wasted steps scores a bonus.
+        parMovesDealt()
+          ? { action: "No wasted steps", detail: "(par) score a bonus." }
+          : { action: "Stars", detail: "anywhere in the maze add points, finished or not." },
         { action: "The path", detail: "moves one neighbouring cell at a time.", helpOnly: true },
       ],
       // The scoring standard (mazeRev 3): standard/attentionTexts.ts.
-      score: STANDARD_ATTENTION_HELP.maze(),
+      score: parMovesDealt() ? PAR_MOVES_MAZE_HELP() : STANDARD_ATTENTION_HELP.maze(),
     },
     tubes: {
       goal: "Sort the potions so each flask is one colour.",
@@ -667,11 +674,14 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Every ball rolls", detail: "until it hits a block, the edge or a ball." },
         { action: "A ball drops home", detail: "as it rolls over its own colour's hole." },
         { action: "A ball home fills its hole:", detail: "other balls stop against it, as they do against a ball.", helpOnly: true },
-        { action: "Roll through a star", detail: "for bonus points." },
+        // The puzzle batch of 3 Nov 2026 (gravityRev 6, parMoves.ts): no stars; the fewest tilts score a bonus.
+        parMovesDealt()
+          ? { action: "Fewest tilts", detail: "(par) score a bonus." }
+          : { action: "Roll through a star", detail: "for bonus points." },
         { action: "The rings", detail: "above the board fill as balls go home; a clear board brings the next.", helpOnly: true },
         { action: "Tilts are limited", detail: "on each board (the counter). Undo and Reset don't give a tilt back; out of tilts, the next board comes.", helpOnly: true },
       ],
-      score: PATTERN_STD_HELP.gravity,
+      score: parMovesDealt() ? PAR_MOVES_PATTERN_HELP.gravity : PATTERN_STD_HELP.gravity,
     },
     chain: {
       goal: "Tap 40 charms, following the cycle.",
@@ -1637,9 +1647,13 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
     fillomino: {
       goal: "Split the grid into regions: a region of N squares holds N.",
       how: [
-        { action: "Tap a square", detail: "then a number, or drag from a number to paint it." },
+        // The puzzle batch of 3 Nov 2026: number first (pick a number, then tap or drag squares).
+        { action: "Pick a number,", detail: "then tap or drag squares to fill them." },
+        { action: "Tap it again", detail: "to clear a square, or use the eraser." },
         { action: "Each region of N", detail: "is N squares, all numbered N." },
         { action: "Same-size regions", detail: "never touch side by side." },
+        { action: "Right-size regions are tinted", detail: "(touching ones in different shades). The tint means the size is right, not that the region is correct.", helpOnly: true },
+        { action: "Undo", detail: "takes back a whole stroke; Reset clears the board.", helpOnly: true },
       ],
       score: gridStandardHelp("fillomino"),
     },
