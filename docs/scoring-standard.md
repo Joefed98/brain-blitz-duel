@@ -632,3 +632,12 @@ Decisions:
 - Crosses (Fences), pencil marks (Kakuro) and the painting gesture (Fillomino) are the player's notes or input only:
   they never reach the grade.
 - Kakuro's "full by" is 60 s of its 120 s clock, the share Box Six uses of its 90 s.
+
+## Follow-up: Labyrinth, Topsy-Turvy and Skid without collectibles (3 Nov 2026)
+
+Joe's puzzle batch (`docs/puzzle-batch-nov-2026.md`, `src/lib/duel/parMoves.ts`) moves Labyrinth to `mazeRev 4`,
+Topsy-Turvy to `gravityRev 6` and Skid to `slideRev 3`: no stars or ice gems, and a finish of 150 + up to 30 for speed
+(the same "full by" times) + up to 20 for par moves (full at par or under, 0 at twice par). Unfinished credit is the
+standard's, unchanged. The standard's stamps (`mazeRev 3`, `gravityRev 5`, `slideRev 2`) grade exactly as this page
+describes. The grid puzzles below are shown as Loopline (`fences`), Regions (`fillomino`) and Island Link (`bridges`)
+from 3 Nov 2026.

@@ -2,6 +2,7 @@ import { gameDisplayName } from "@/lib/duel/gameNames";
 import { solutionProgress } from "@/lib/duel/progressFigures";
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 
+import { Button } from "@/components/ui/button";
 import { useGridPointer } from "@/components/puzzles/GridDrag";
 import { useStageState } from "@/lib/duel/stageState";
 import {
@@ -9,6 +10,8 @@ import {
   decodeFillomino,
   encodeFillomino,
   fillominoComplete,
+  fillominoGroups,
+  fillominoNeighbours,
   fillominoOversized,
   fillominoSolvedGrid,
 } from "@/lib/duel/fillomino";
@@ -24,9 +27,63 @@ const PAD = Array.from({ length: FILLOMINO_MAX_N }, (_, i) => i + 1);
 
 type Tone = "given" | "entry" | "wrong";
 
+/** The calm shades a finished region can take (display only; never "correct", just "the right size"). */
+export const FILLOMINO_SHADES = 5;
+
+/**
+ * Finished regions' shades (display only): `shade[cell]` is 0…FILLOMINO_SHADES−1 for a cell in a group of exactly its
+ * number, −1 elsewhere. Touching finished regions always get different shades. Deterministic: the regions are taken in
+ * order of their smallest cell, each given the lowest shade its already-shaded neighbours leave free, with backtracking
+ * when one is boxed in (the region map is planar, so 4 shades always exist; 5 leaves room). Pure; integers only.
+ */
+export function fillominoShades(size: number, values: readonly number[], shades = FILLOMINO_SHADES): number[] {
+  const out = new Array<number>(size * size).fill(-1);
+  const { group, cells } = fillominoGroups(size, values);
+  // Finished groups only, in order of their smallest cell (groups are found scanning cells in order, so already so).
+  const done = cells.flatMap((members, id) => (members.length === values[members[0]!] ? [id] : []));
+  if (!done.length) return out;
+  const index = new Map<number, number>(done.map((id, i) => [id, i]));
+  const adj: number[][] = done.map(() => []);
+  done.forEach((id, i) => {
+    const seen = new Set<number>();
+    for (const c of cells[id]!) {
+      for (const nb of fillominoNeighbours(size, c)) {
+        const j = index.get(group[nb]!);
+        if (j === undefined || j === i || seen.has(j)) continue;
+        seen.add(j);
+        adj[i]!.push(j);
+      }
+    }
+  });
+  const colour = new Array<number>(done.length).fill(-1);
+  const place = (i: number): boolean => {
+    if (i === done.length) return true;
+    for (let k = 0; k < shades; k++) {
+      if (adj[i]!.some((j) => colour[j] === k)) continue;
+      colour[i] = k;
+      if (place(i + 1)) return true;
+    }
+    colour[i] = -1;
+    return false;
+  };
+  if (!place(0)) {
+    // Unreachable on a grid (planar); kept total: fall back to the plain greedy pass, shades cycling.
+    for (let i = 0; i < done.length; i++) {
+      let k = 0;
+      while (k < shades && adj[i]!.some((j) => colour[j] === k)) k++;
+      colour[i] = k % shades;
+    }
+  }
+  done.forEach((id, i) => {
+    for (const c of cells[id]!) out[c] = colour[i]!;
+  });
+  return out;
+}
+
 /**
  * The board: one square per cell, a thick line wherever two filled neighbours hold different numbers (region edges),
- * finished regions (size = number) as gold glass, groups past their number in red. Display only: the cells are the
+ * finished regions (size = number) tinted in calm shades (touching ones never alike; "the right size", never
+ * "correct"), groups past their number in red. Display only: the cells are the
  * pointer's grid (useGridPointer maps the finger to a cell from the board's own box).
  */
 export function FillominoBoard({
@@ -47,7 +104,7 @@ export function FillominoBoard({
   /** Tint finished regions and flag oversized groups (the live board; the reveal colours by the solution). */
   checks?: boolean;
 }) {
-  const complete = checks ? fillominoComplete(size, values) : new Set<number>();
+  const shade = checks ? fillominoShades(size, values) : null;
   const over = checks ? fillominoOversized(size, values) : new Set<number>();
   const edge = (a: number, b: number | null) => b === null || (values[a]! > 0 && values[b]! > 0 && values[a] !== values[b]);
   return (
@@ -78,7 +135,8 @@ export function FillominoBoard({
             data-cell={cell}
             data-edge-r={thickR ? "" : undefined}
             data-edge-b={thickB ? "" : undefined}
-            className={`fillomino-cell flex min-h-0 min-w-0 items-center justify-center ${complete.has(cell) ? "fillomino-done" : ""} ${over.has(cell) || tone === "wrong" ? "fillomino-over" : ""} ${cell === selected ? "fillomino-selected" : ""}`}
+            data-shade={shade && shade[cell]! >= 0 ? shade[cell] : undefined}
+            className={`fillomino-cell flex min-h-0 min-w-0 items-center justify-center ${shade && shade[cell]! >= 0 ? "fillomino-done" : ""} ${over.has(cell) || tone === "wrong" ? "fillomino-over" : ""} ${cell === selected ? "fillomino-selected" : ""}`}
             style={{
               borderRightWidth: right === null ? 0 : thickR ? 3 : 1,
               borderBottomWidth: down === null ? 0 : thickB ? 3 : 1,
@@ -132,14 +190,41 @@ function IntroExample() {
   );
 }
 
+/** The pad's tool: a number to paint (1–9) or the eraser (0). */
+const ERASER = 0;
+
+function EraserIcon() {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M16.2 3.8 21 8.6a1.6 1.6 0 0 1 0 2.3L12.4 19.5H7.6L3 14.9a1.6 1.6 0 0 1 0-2.3L13.9 3.8a1.6 1.6 0 0 1 2.3 0Z" />
+      <path d="m9.2 7.6 7.2 7.2" />
+      <path d="M12.4 19.5H21" />
+    </svg>
+  );
+}
+
+/**
+ * Number first (3 Nov 2026, display and input only; the answer is encodeFillomino(values) as before): pick a number on
+ * the pad (1 at the start; it stays picked) or the eraser, then tap or drag across squares. The first square of a
+ * stroke decides it: on an entry already holding the picked number the stroke clears that number from the squares it
+ * crosses, otherwise it paints them (givens never change); the eraser clears. Undo takes back a whole stroke, Reset
+ * clears every entry (one undoable step). Keys: 1–9 pick a number, 0 / E / Backspace / Delete the eraser, the arrows
+ * move a cursor and Enter / Space use the tool on it.
+ */
 function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStageProps) {
   const data: FillominoPuzzleData | null = puzzle.type === "fillomino" ? puzzle : null;
   const size = data?.size ?? FILLOMINO_SIZE;
   const givens = useMemo(() => data?.givens ?? new Array<number>(size * size).fill(0), [data, size]);
   const [entries, setEntries] = useStageState<number[]>(stateKey ?? "fillomino", "fillominoValues", () => new Array<number>(size * size).fill(0));
-  const [selected, setSelected] = useState<number | null>(null);
+  const [tool, setTool] = useState<number>(1);
+  const [history, setHistory] = useState<number[][]>([]);
+  /** The desktop keyboard's cursor (null until an arrow key; a phone never shows it). */
+  const [cursor, setCursor] = useState<number | null>(null);
   const submitted = useRef(false);
-  const drag = useRef<{ from: number; value: number; last: number; moved: boolean } | null>(null);
+  /** The entries as last written (several squares can be crossed between renders). */
+  const live = useRef(entries);
+  live.current = entries;
+  const stroke = useRef<{ before: number[]; mode: "paint" | "clear"; value: number; last: number } | null>(null);
 
   const values = useMemo(() => givens.map((g, c) => (g ? g : (entries[c] ?? 0))), [givens, entries]);
   const encoded = encodeFillomino(values);
@@ -163,24 +248,36 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
   }, [encoded, locked]);
 
   const active = !locked && data !== null;
+  const full = (list: readonly number[]) => givens.map((g, c) => (g ? g : (list[c] ?? 0)));
 
-  /** Sets cells to a number (0 clears), never a given; one cue for the change. */
-  const write = (cells: number[], value: number) => {
-    if (!active || submitted.current) return;
-    const next = [...entries];
-    let changed = false;
-    for (const c of cells) {
-      if (givens[c] || next[c] === value) continue;
-      next[c] = value;
-      changed = true;
-    }
-    if (!changed) return;
-    if (value) {
-      const before = fillominoComplete(size, values).size;
-      const after = fillominoComplete(size, givens.map((g, c) => (g ? g : (next[c] ?? 0)))).size;
+  /** One square under the stroke's rule; one cue for a change. */
+  const apply = (cell: number, mode: "paint" | "clear", value: number) => {
+    if (!active || submitted.current || givens[cell]) return;
+    const cur = live.current;
+    const now = cur[cell] ?? 0;
+    const next = mode === "paint" ? value : value === ERASER || now === value ? 0 : now;
+    if (next === now) return;
+    const list = [...cur];
+    list[cell] = next;
+    if (next) {
+      const before = fillominoComplete(size, full(cur)).size;
+      const after = fillominoComplete(size, full(list)).size;
       soundCue(after > before ? "fillomino.region" : "fillomino.place");
     }
-    setEntries(next);
+    live.current = list;
+    setEntries(list);
+  };
+
+  const begin = (cell: number) => {
+    const now = givens[cell] ? 0 : (live.current[cell] ?? 0);
+    const mode: "paint" | "clear" = tool === ERASER || now === tool ? "clear" : "paint";
+    stroke.current = { before: [...live.current], mode, value: tool, last: cell };
+    apply(cell, mode, tool);
+  };
+  const end = () => {
+    const s = stroke.current;
+    stroke.current = null;
+    if (s && s.before.some((v, c) => v !== (live.current[c] ?? 0))) setHistory((h) => [...h, s.before]);
   };
 
   const pointer = useGridPointer({
@@ -188,60 +285,69 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
     rows: size,
     onCell: active
       ? (cell) => {
-          const d = drag.current;
-          if (!d) {
-            drag.current = { from: cell, value: values[cell] ?? 0, last: cell, moved: false };
-            setSelected(cell);
-            return;
-          }
-          if (cell === d.last) return;
-          d.last = cell;
-          d.moved = true;
-          // Dragging from a number paints it over the squares crossed (givens stay as they are).
-          if (d.value) write([cell], d.value);
+          const s = stroke.current;
+          if (!s) return begin(cell);
+          if (cell === s.last) return;
+          s.last = cell;
+          apply(cell, s.mode, s.value);
         }
       : undefined,
-    onRelease: () => {
-      const d = drag.current;
-      drag.current = null;
-      if (d?.moved && d.value) setSelected(d.last);
-    },
+    onRelease: end,
   });
 
-  const enter = (digit: number) => {
-    if (selected === null) return;
-    write([selected], givens[selected] ? 0 : entries[selected] === digit ? 0 : digit);
+  const canUndo = active && history.length > 0;
+  const anyEntry = entries.some((v, c) => v && !givens[c]);
+  const undo = () => {
+    if (!canUndo || submitted.current) return;
+    const prev = history[history.length - 1]!;
+    setHistory((h) => h.slice(0, -1));
+    live.current = prev;
+    setEntries(prev);
   };
-  const clear = () => {
-    if (selected !== null) write([selected], 0);
+  const reset = () => {
+    if (!active || submitted.current || !anyEntry) return;
+    setHistory((h) => [...h, [...live.current]]);
+    const cleared = new Array<number>(size * size).fill(0);
+    live.current = cleared;
+    setEntries(cleared);
   };
 
-  // Desktop keys: arrows (WASD) move the selected square, 1–9 enter that number, Backspace or Delete clear it.
+  // Desktop keys: 1–9 pick a number, 0 / E / Backspace / Delete the eraser; the arrows (WASD) move a cursor and
+  // Enter / Space use the tool on it (one stroke, so one undo step).
   useGameKeys((kind, key, event) => {
     if (!data) return false;
     const dir = directionOf(key);
     const digit = /^[1-9]$/.test(key) ? Number(key) : null;
-    const used = dir !== null || digit !== null || key === "Backspace" || key === "Delete";
+    const eraser = key === "0" || key === "e" || key === "E" || key === "Backspace" || key === "Delete";
+    const use = key === "Enter" || key === " ";
+    const used = dir !== null || digit !== null || eraser || use;
     if (!used || kind !== "down" || locked) return used;
     if (dir) {
-      const from = selected ?? 0;
+      const from = cursor ?? 0;
       let row = Math.floor(from / size);
       let col = from % size;
-      if (selected !== null) {
+      if (cursor !== null) {
         if (dir === "up") row = Math.max(0, row - 1);
         else if (dir === "down") row = Math.min(size - 1, row + 1);
         else if (dir === "left") col = Math.max(0, col - 1);
         else col = Math.min(size - 1, col + 1);
       }
-      setSelected(row * size + col);
-    } else if (digit !== null) {
-      if (!event.repeat) enter(digit);
-    } else clear();
+      setCursor(row * size + col);
+    } else if (digit !== null) setTool(digit);
+    else if (eraser) setTool(ERASER);
+    else if (cursor !== null && !event.repeat) {
+      begin(cursor);
+      end();
+    }
     return true;
   });
 
   if (!data) return null;
   const tones = givens.map((g) => (g ? "given" : "entry")) as Tone[];
+  const keyLook = (on: boolean) =>
+    `fillomino-key press tap-target min-w-0 rounded-lg border px-0 py-2 font-display text-lg font-bold disabled:opacity-40 ${
+      on ? "fillomino-key-on border-transparent bg-primary/15 text-primary" : `text-foreground ${inFrame ? "gf-glass border-border" : "border-border bg-card"}`
+    }`;
 
   return (
     <div data-logic-stage="fillomino" data-logic-solved={solving ? "" : undefined} data-stage-column="3" className="relative flex min-h-0 flex-1 flex-col gap-3">
@@ -253,7 +359,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
           </p>
         )}
         <div className="logic-square logic-glass-frame fillomino-frame">
-          <FillominoBoard size={size} values={values} tones={tones} selected={locked ? null : selected} pointer={pointer} />
+          <FillominoBoard size={size} values={values} tones={tones} selected={locked ? null : cursor} pointer={pointer} />
         </div>
         <LiveSummary
           inArena
@@ -261,28 +367,51 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
           items={[<SummaryItem key="done" label="Squares in finished regions" value={`${doneCount} / ${size * size}`} />]}
         />
       </div>
-      <div data-game-controls="numbers" className="fillomino-pad flex shrink-0 flex-col gap-1.5">
-        <div className="grid grid-cols-5 gap-1.5">
-          {PAD.map((digit) => (
-            <button
-              key={digit}
-              type="button"
-              onClick={() => enter(digit)}
-              disabled={locked}
-              className={`fillomino-key press tap-target rounded-lg py-2 font-display text-lg font-bold text-foreground disabled:opacity-40 ${inFrame ? "gf-glass" : "border border-border bg-card"}`}
-            >
-              {digit}
-            </button>
-          ))}
+      <div data-game-controls="numbers" className="fillomino-pad grid shrink-0 grid-cols-10 gap-1">
+        {PAD.map((digit) => (
           <button
+            key={digit}
             type="button"
-            onClick={clear}
+            data-fillomino-tool={digit}
+            aria-pressed={tool === digit}
+            onClick={() => setTool(digit)}
             disabled={locked}
-            className={`fillomino-key press tap-target rounded-lg py-2 font-mono text-xs uppercase tracking-widest text-muted-foreground disabled:opacity-40 ${inFrame ? "gf-glass" : "border border-border bg-card"}`}
+            className={keyLook(tool === digit)}
           >
-            Clear
+            {digit}
           </button>
-        </div>
+        ))}
+        <button
+          type="button"
+          data-fillomino-tool="eraser"
+          aria-label="Eraser"
+          aria-pressed={tool === ERASER}
+          onClick={() => setTool(ERASER)}
+          disabled={locked}
+          className={`${keyLook(tool === ERASER)} flex items-center justify-center`}
+        >
+          <EraserIcon />
+        </button>
+      </div>
+      <div data-game-controls="actions" className="fillomino-actions flex shrink-0 gap-3">
+        <Button
+          variant="outline"
+          type="button"
+          disabled={!canUndo}
+          onClick={undo}
+          className="gf-glass h-11 flex-1 rounded-lg border border-border bg-card font-display text-sm font-bold uppercase tracking-widest text-foreground disabled:opacity-40"
+        >
+          Undo
+        </Button>
+        <Button
+          variant="outline"
+          type="button"
+          disabled={!active || !anyEntry}
+          onClick={reset}
+          className="gf-glass h-11 flex-1 rounded-lg border border-border bg-card font-display text-sm font-bold uppercase tracking-widest text-muted-foreground disabled:opacity-40"
+        >
+          Reset
+        </Button>
       </div>
     </div>
   );

@@ -3,13 +3,16 @@
 A running list for task 23 of the master plan (the solicitor's freedom-to-operate review). It records each game name
 the app shows, the puzzle or genre it is, and what to check. Not legal advice; nothing here has been cleared.
 
-## Added 1 Nov 2026: the new grid puzzles
+## Added 1 Nov 2026: the new grid puzzles (renamed 3 Nov 2026)
+
+Joe renamed three of them on 3 Nov 2026 (display names only; the ids, stamps and stored rounds are unchanged):
+Fences → Loopline, Fillomino → Regions, Bridges → Island Link.
 
 | Shown as | Id | Genre (generic description) | Name chosen to avoid | To check |
 | --- | --- | --- | --- | --- |
-| Fences | `fences` | loop puzzle: one closed loop round numbered cells | "Slitherlink" (a Nikoli title) | "Fences" as a puzzle-game name in classes 9 / 28 / 41 |
-| Fillomino | `fillomino` | region puzzle: regions of N squares hold N | — | "Fillomino" is the puzzle's common name and is used by many publishers; check whether any mark covers it (Nikoli published the puzzle; the name is widely used generically) and decide whether to keep it or rename |
-| Bridges | `bridges` | island-and-bridge connection puzzle | "Hashiwokakero" / "Hashi" (Nikoli titles) | "Bridges" as a puzzle-game name in classes 9 / 28 / 41 |
+| Loopline (shown as Fences until 3 Nov 2026) | `fences` | loop puzzle: one closed loop round numbered cells | "Slitherlink" (a Nikoli title) | "Loopline" as a puzzle-game name in classes 9 / 28 / 41 |
+| Regions (shown as Fillomino until 3 Nov 2026) | `fillomino` | region puzzle: regions of N squares hold N | "Fillomino" (the puzzle's common name, published by Nikoli) | "Regions" is a plain word; check it as a puzzle-game name in classes 9 / 28 / 41 |
+| Island Link (shown as Bridges until 3 Nov 2026) | `bridges` | island-and-bridge connection puzzle | "Hashiwokakero" / "Hashi" (Nikoli titles) | "Island Link" as a puzzle-game name in classes 9 / 28 / 41 |
 | Kakuro | `kakuro` | cross-sum number puzzle | — | "Kakuro" is the puzzle's common name; check for marks covering it in classes 9 / 28 / 41 |
 
 The boards, art and rules text are original (generated in the app; no puzzle collection, font or artwork copied).
@@ -22,6 +25,12 @@ The boards, art and rules text are original (generated in the app; no puzzle col
 | Alley Roll | `alleyroll` | ramp-and-rings alley ball game (Sports group) | "Skee-Ball" (a registered trade mark) | "Alley Roll" as a game name in classes 9 / 28 / 41; the art is our own (a warm wooden alley, a lit ring board and a scoreboard drawn in code), ring values 10–50 with two 100 pockets, library sounds only |
 
 Both are working names; Joe may rename either (`src/lib/duel/gameNames.ts`; ids never change).
+
+## Changed 3 Nov 2026: Alley Roll is shown as Ringer (arcade)
+
+| Shown as | Id | Genre (generic description) | Name chosen to avoid | To check |
+| --- | --- | --- | --- | --- |
+| Ringer | `alleyroll` (unchanged) | funfair roll-ball alley game (Sports group; `alleyRollRev` 2) | "Skee-Ball" (a registered trade mark) and its cabinet look | "Ringer" (a common word; also a sports and fairground term) as a game name in classes 9 / 28 / 41. The art is our own, drawn in code: a funfair stall with a striped awning and bulbs, a polished lane, a stepped tower of raised cream cups, corner pockets and a gold cup that slides along a track (our own feature). Joe's reference photo of a commercial roll-ball app was used for mood only; nothing in it (layout, art, items, the ×3 ring, the HUD) was copied. Library sounds until Joe's recordings. |
 
 ## Added 1 Nov 2026: Ricochet back as the ninja wall-climb (arcade)
 

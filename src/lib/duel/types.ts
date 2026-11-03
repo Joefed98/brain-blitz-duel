@@ -2045,7 +2045,7 @@ export const GOLFSOL_TIME_MS = 78_000;
 export const MUGGINS_TIME_MS = 93_000;
 /** Blockfall: a 60-second run (it ends early on a top-out), plus three of slack. */
 export const BLOCKFALL_TIME_MS = 63_000;
-/** Alley Roll: nine balls or 60 seconds, plus three of slack. */
+/** Ringer (Alley Roll): nine balls or 60 seconds, plus three of slack. */
 export const ALLEYROLL_TIME_MS = 63_000;
 
 export interface BlockfallPuzzleData {
@@ -2058,9 +2058,9 @@ export interface BlockfallPuzzleData {
 
 export interface AlleyRollPuzzleData {
   type: "alleyroll";
-  /** The run's seed (the lane is the same for every seed; stored like every arcade seed). */
+  /** The run's seed (the lane is the same for every seed; from alleyRollRev 2 it sets the gold cup's path). */
   seed: number;
-  /** Rules revision (1 = the first rules, on the arcade scoring standard). */
+  /** Rules revision (1 = the first rules, on the arcade scoring standard; 2 = Ringer: the cup stack and the gold cup). */
   alleyRollRev?: number;
 }
 

@@ -1693,7 +1693,7 @@ function gradeUnderRev(
       };
       break;
     }
-    // Alley Roll (1 Nov 2026): the rolls are replayed on the one lane; only that scores.
+    // Alley Roll (1 Nov 2026) / Ringer (alleyRollRev 2): the rolls are replayed on the one lane; only that scores.
     case "alleyroll": {
       const replayStart = performance.now();
       const run = replayAlleyRollRun(puzzle.seed, answer, puzzle.alleyRollRev);
@@ -1705,6 +1705,7 @@ function gradeUnderRev(
       extraDetail = {
         alleyRollRev: puzzle.alleyRollRev ?? 1,
         rings: run.rings,
+        ...((puzzle.alleyRollRev ?? 1) >= 2 ? { gold: run.gold } : {}),
         pockets: run.pockets,
         streak: run.streak,
         balls: run.balls,

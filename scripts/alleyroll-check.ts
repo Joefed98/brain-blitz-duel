@@ -9,16 +9,17 @@
  *  3. the run: one roll a ball, a roll while a ball is moving is refused, nine balls end it (a finish), 60 s ends it
  *     too, and a ball still in the air at the buzzer scores nothing;
  *  4. a replay is deterministic and the server agrees with the sim; a tampered claimed score changes nothing;
- *  5. the oracle scores 200 on every tuning seed (0–59) and fresh seed (10000–10199) through the server replay;
+ *  5. the oracle scores 200 on every tuning seed (0–59) and fresh seed (10000–10199) through the server replay; rev 1
+ *     keeps its own game (rooms deal Ringer, alleyRollRev 2, since 3 Nov 2026: scripts/ringer-check.ts);
  *  6. no input 0, a run that rolled at least 1; the skill bands rise weak → flawless (12 seeds);
- *  7. the help states every part and the controls.
+ *  7. the help states the parts' total and the controls (Ringer's help since 3 Nov 2026).
  *
  *   bun scripts/alleyroll-check.ts
  */
 import { inputAt, recordInput, type ArcadeInputEvent } from "../src/lib/arcade/engine";
 import {
   ALLEYROLL_REV, AR_BALLS, AR_BOARD_D, AR_CHECKPOINT_INTERVAL, AR_FLY, AR_INPUT_ROLL, AR_POCKETS, AR_RINGS, AR_RING_CX, AR_RING_CY, AR_RUN_TICKS, AR_VMAX,
-  AR_VMIN, AR_WAIT, alleyRollGame, arCheckpoint, arInit, arLaunch, arPointsAt, arSimulateBall, arTotals,
+  AR_VMIN, AR_WAIT, alleyRollGame, alleyRollGameFor, arCheckpoint, arInit, arLaunch, arPointsAt, arSimulateBall, arTotals,
 } from "../src/lib/arcade/alleyroll";
 import { encodeAlleyRollRun, replayAlleyRollRun } from "../src/lib/duel/alleyroll";
 import { generateAlleyRoll } from "../src/lib/duel/sports.server";
@@ -117,8 +118,9 @@ function ok(cond: boolean, label: string): void {
     const aim = arAim(t, t === "centre" ? 0 : t === "left" ? 40 : -40);
     ok(arSimulateBall(aim.a, aim.b, aim.c).points === (t === "centre" ? 50 : 100), `oracle: its ${t} aim lands in its target`);
   }
+  // Rooms deal Ringer (alleyRollRev 2) since 3 Nov 2026 (ringer-check proves it); rev 1 keeps its own game and stamp.
   const dealt = generateAlleyRoll();
-  ok(dealt.alleyRollRev === ALLEYROLL_REV && dealt.seed > 0, "rooms deal alleyRollRev 1");
+  ok(ALLEYROLL_REV === 1 && alleyRollGameFor(1) === alleyRollGame && alleyRollGameFor(null) === alleyRollGame && dealt.seed > 0, "rev 1 (stored rounds) keeps alleyRollRev 1's game; rooms still deal any seed");
 }
 
 /* 6. The bands. */
@@ -139,12 +141,12 @@ function ok(cond: boolean, label: string): void {
   ok(medians.every((m, i) => i === 0 || m >= medians[i - 1]!) && medians[0]! < medians[3]! && medians[3]! < medians[4]!, `bands: medians rise weak → flawless (${medians.join(" / ")})`);
 }
 
-/* 7. The help. */
+/* 7. The help (Ringer's since 3 Nov 2026: one swipe, no slide step; ringer-check proves its words). */
 {
   const help = PUZZLE_INSTRUCTIONS.alleyroll;
   ok(!!help && help.score.includes("Together 200"), `help: the parts total 200: ${help?.score}`);
   const how = JSON.stringify(help?.how ?? []);
-  ok(/Slide/.test(how) && /Swipe up/.test(how) && /100/.test(how), "help: the slide, the swipe up and the 100 pockets are named");
+  ok(/Swipe up/.test(how) && /100/.test(how), "help: the swipe up and the 100 pockets are named");
   ok(!/skee/i.test(JSON.stringify(help)), "help: no borrowed names");
 }
 
