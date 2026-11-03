@@ -477,8 +477,8 @@ Grouped by game or screen.
 | `time_up` | TimerBar: The buzzer (fx.onTimeUp) [core.md] |  | 1 | recorded sound | `time_up` | 250 | fail sting | `time_up` |
 | `reveal_score` | AnswerReveal: The stored score lands, 0.35 s after the verdict (fx.onRevealScore) [core.md] |  | 1 | recorded sound | `reveal_score` | 140 | game event | `reveal_score` |
 | `reaction` | room chat: An emoji reaction (fx.onReaction) [core.md] |  | 0–10 | recorded sound | `reaction` | 100 | UI tap | `reaction` |
-| `round10` | round title: Voice "Round ten" [core.md] |  | 1 per round | recorded sound | `round10` | 2038 | game event | `round10` |
-| `round11` | round title: Voice "Round eleven" (round 12 is always the last: finalRound) [core.md] |  | 1 per round | recorded sound | `round11` | 2220 | game event | `round11` |
+| `round10` | round title: Voice "Round ten" [core.md] |  | 1 per round | recorded sound | `round10` | 2847 | game event | `round10` |
+| `round11` | round title: Voice "Round eleven" (round 12 is always the last: finalRound) [core.md] |  | 1 per round | recorded sound | `round11` | 3101 | game event | `round11` |
 | `arc_blaster` | Wavefront: The shared shot sound wavefront.fire falls back to if its own file fails to load [core.md] |  | 0 (stand-in) | recorded sound | `arc_blaster` | 140 | game event | `arc_blaster` |
 | `arc_leaf_collect` | Scrumper, Tilt: The shared sound snip.star and tilt.starTaken fall back to if their own files fail to load [core.md] |  | 0 (stand-in) | recorded sound | `arc_leaf_collect` | 840 | game event | `arc_leaf_collect` |
 | `arc_ketchup` | Slice: The shared sound slice.frenzyStart falls back to if its own file fails to load [core.md] |  | 0 (stand-in) | recorded sound | `arc_ketchup` | 230 | game event | `arc_ketchup` |
@@ -500,8 +500,8 @@ Grouped by game or screen.
 | `round5` | round title: Voice "Round five" [core.md] |  | 1 per round | recorded sound | `round5` | 1569 | room moment | `round5` |
 | `round6` | round title: Voice "Round six" [core.md] |  | 1 per round | recorded sound | `round6` | 1553 | room moment | `round6` |
 | `round7` | round title: Voice "Round seven" (seven-round rooms) [core.md] |  | 1 per round | recorded sound | `round7` | 1716 | room moment | `round7` |
-| `round8` | round title: Voice "Round eight" (rooms of 9–12 rounds; Joe's recording, 3 Nov 2026) [core.md] |  | 1 per round | recorded sound | `round8` | 1933 | room moment | `round8` |
-| `round9` | round title: Voice "Round nine" [core.md] |  | 1 per round | recorded sound | `round9` | 2116 | room moment | `round9` |
+| `round8` | round title: Voice "Round eight" (rooms of 9–12 rounds; Joe's recording, 3 Nov 2026) [core.md] |  | 1 per round | recorded sound | `round8` | 2788 | room moment | `round8` |
+| `round9` | round title: Voice "Round nine" [core.md] |  | 1 per round | recorded sound | `round9` | 2988 | room moment | `round9` |
 | `finalRound` | round title: Voice "Final round" [core.md] |  | 1 per room | recorded sound | `finalRound` | 2110 | room moment | `finalRound` |
 | `roundTaken` | round result, results table: Voice: you took the round [core.md] |  | 0–1 | recorded sound | `roundTaken` | 1801 | room moment | `roundTaken` |
 | `roundLost` | round result: Voice: you lost the round [core.md] |  | 0–1 | recorded sound | `roundLost` | 1801 | room moment | `roundLost` |
@@ -514,11 +514,11 @@ Grouped by game or screen.
 | `voice.tie` | round result, results table, podium, final result: Voice "Tie": a tied round for the players sharing the top score, a shared first place, a draw [core.md] |  | 0–1 | recorded sound | `voice.tie` | 2886 | room moment | `voice.tie` |
 | `voice.youWin` | podium, final result: Voice "You win" for the winner, in place of gg [core.md] |  | 0–1 per room | recorded sound | `voice.youWin` | 2823 | room moment | `voice.youWin` |
 | `voice.rematch` | room (duel.$code): Voice "Rematch" when Play again reopens a finished room, for every player in it [core.md] |  | 0–1 per room | recorded sound | `voice.rematch` | 2594 | room moment | `voice.rematch` |
-| `voice.newBest` | reveal (NewBestMoment, ArcadeReveal): Voice "New best": practice's reveal when the run beat an earlier best, or a room's arcade reveal beating this device's best for the game (3 Nov 2026; queueVoice, never over another line) [core.md] |  | 0–1 | recorded sound | `voice.newBest` | 2482 | room moment | `voice.newBest` |
-| `voice.photoFinish` | podium, final result: Voice "Photo finish": the room's top two totals 1–5 points apart at the end (isPhotoFinish; only there, Joe's decision), after the end line [core.md] |  | 0–1 per room | recorded sound | `voice.photoFinish` | 2194 | room moment | `voice.photoFinish` |
-| `voice.newLeader` | standings: Voice "New leader": first place changed hands after this round (isNewLeader) [core.md] |  | 0–1 per round | recorded sound | `voice.newLeader` | 1881 | room moment | `voice.newLeader` |
-| `voice.cleanSweep` | podium, final result: Voice "Clean sweep": one player had the sole top score in every round (cleanSweepSlot), after the room's end line [core.md] |  | 0–1 per room | recorded sound | `voice.cleanSweep` | 2220 | room moment | `voice.cleanSweep` |
-| `voice.draw` | podium, final result: Voice "Draw": first place shared at the room's end (in place of voice.tie there; queued after "GG" for everyone else) [core.md] |  | 0–1 per room | recorded sound | `voice.draw` | 2090 | room moment | `voice.draw` |
+| `voice.newBest` | reveal (NewBestMoment, ArcadeReveal): Voice "New best": practice's reveal when the run beat an earlier best, or a room's arcade reveal beating this device's best for the game (3 Nov 2026; queueVoice, never over another line) [core.md] |  | 0–1 | recorded sound | `voice.newBest` | 3275 | room moment | `voice.newBest` |
+| `voice.photoFinish` | podium, final result: Voice "Photo finish": the room's top two totals 1–5 points apart at the end (isPhotoFinish; only there, Joe's decision), after the end line [core.md] |  | 0–1 per room | recorded sound | `voice.photoFinish` | 3155 | room moment | `voice.photoFinish` |
+| `voice.newLeader` | standings: Voice "New leader": first place changed hands after this round (isNewLeader) [core.md] |  | 0–1 per round | recorded sound | `voice.newLeader` | 2838 | room moment | `voice.newLeader` |
+| `voice.cleanSweep` | podium, final result: Voice "Clean sweep": one player had the sole top score in every round (cleanSweepSlot), after the room's end line [core.md] |  | 0–1 per room | recorded sound | `voice.cleanSweep` | 3110 | room moment | `voice.cleanSweep` |
+| `voice.draw` | podium, final result: Voice "Draw": first place shared at the room's end (in place of voice.tie there; queued after "GG" for everyone else) [core.md] |  | 0–1 per room | recorded sound | `voice.draw` | 2802 | room moment | `voice.draw` |
 | `room.prepare` | The Prepare to Duel screen starts (phase start): gold glow builds behind the bolt; rings pulse out from 2.0 s (on the voice line), light streaks converge from 3.8 s. [room.md] |  | 1 per room | recorded sound | `room.prepare` | 6000 | room moment | `room.prepare` |
 | `room.prepare.flash` | Prepare to Duel, 5.55 s: the gold flash as the bolt fills the screen, leading into Round 1. [room.md] |  | 1 per room | recorded sound | `room.prepare.flash` | 450 | room moment | `room.prepare.flash` |
 | `room.round.1` | Round 1 title starts: a hairline draws out under the title. [room.md] |  | 1 (that round) | recorded sound | `room.round.1` | 2850 | room moment | `room.round.1` |
@@ -1260,7 +1260,7 @@ Grouped by game or screen.
 | `blockfall.bigClear` | Blockzone: Three or four rows clear at once (with a success haptic) [arcade.md] |  | 0–6 | recorded sound | `blockfall.bigClear` | 100 | game event | `blockfall.bigClear` |
 | `blockfall.speedUp` | Blockzone: The speed rises (every 15 s) [arcade.md] |  | 3 | recorded sound | `arc_retro_note` (shared) | 90 | game event | `blockfall.speedUp` |
 | `blockfall.topOut` | Blockzone: The stack reaches the top and the run ends early [arcade.md] |  | 0–1 | recorded sound | `blockfall.topOut` | 260 | game event | `blockfall.topOut` |
-| `music.blockfall` | Blockzone: music_blockfall (music_blockfall.mp3, Joe's recording, 3 Nov 2026) |  | loop | recorded sound | `music_blockfall` | 60000 | music | `music_blockfall` |
+| `music.blockfall` | Blockzone: music_blockfall (music_blockfall.mp3, Joe's recording, 3 Nov 2026) |  | loop | recorded sound | `music_blockfall` | 52900 | music | `music_blockfall` |
 
 ### Breaker
 
@@ -1435,7 +1435,7 @@ Grouped by game or screen.
 | `arc_gem_zap` | Gemstone: A cross gem goes off (gem.crossBeam.mp3, sound batch 4, volume 0.8) [core.md] |  | 0–5 | recorded sound | `arc_gem_zap` | 450 | game event | `arc_gem_zap` |
 | `arc_gem_bomb` | Gemstone: A bomb gem goes off [core.md] |  | 0–5 | recorded sound | `arc_gem_bomb` | 722 | game event | `arc_gem_bomb` |
 | `arc_gem_star` | Gemstone: A star gem goes off (gem.starBurst.mp3, sound batch 4, volume 0.8) [core.md] |  | 0–5 | recorded sound | `arc_gem_star` | 800 | game event | `arc_gem_star` |
-| `music.matchup` | Gemstone: music_matchup (music_matchup.mp3, Joe's recorded bed since 3 Nov 2026; the 28 Oct chiptune music_matchup2.mp3 retired) |  | loop | recorded sound | `music_matchup` | 60000 | music | `music_matchup` |
+| `music.matchup` | Gemstone: music_matchup (music_matchup.mp3, Joe's recorded bed since 3 Nov 2026; the 28 Oct chiptune music_matchup2.mp3 retired) |  | loop | recorded sound | `music_matchup` | 54500 | music | `music_matchup` |
 
 ### Golf Solitaire
 
@@ -1735,7 +1735,7 @@ Grouped by game or screen.
 | `alleyroll.gutter` | Ringer: The ball misses every cup [arcade.md] |  | 0–9 | recorded sound | `alleyroll.gutter` | 160 | game event | `alleyroll.gutter` |
 | `alleyroll.streak` | Ringer: A ball keeps the roll streak going (30 or more after 30 or more; 40 on rev 1) [arcade.md] |  | 0–8 | recorded sound | `alleyroll.streak` | 300 | game event | `alleyroll.streak` |
 | `alleyroll.rolling` | Ringer [blockfall-alleyroll.md] |  | 5–40 (per move) | recorded sound | `alleyroll.rolling` | loop | game event | `alleyroll.rolling` |
-| `music.alleyroll` | Ringer: music_alleyroll (music_alleyroll.mp3, Joe's recording, 3 Nov 2026) |  | loop | recorded sound | `music_alleyroll` | 60000 | music | `music_alleyroll` |
+| `music.alleyroll` | Ringer: music_alleyroll (music_alleyroll.mp3, Joe's recording, 3 Nov 2026) |  | loop | recorded sound | `music_alleyroll` | 53600 | music | `music_alleyroll` |
 
 ### Roofbound
 
@@ -2011,10 +2011,10 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 | `round5` | voice | `round5` | 1569 |
 | `round6` | voice | `round6` | 1553 |
 | `round7` | voice | `round7` | 1716 |
-| `round8` | voice | `round8` | 1933 |
-| `round9` | voice | `round9` | 2116 |
-| `round10` | voice | `round10` | 2038 |
-| `round11` | voice | `round11` | 2220 |
+| `round8` | voice | `round8` | 2788 |
+| `round9` | voice | `round9` | 2988 |
+| `round10` | voice | `round10` | 2847 |
+| `round11` | voice | `round11` | 3101 |
 | `winnerIs` | voice | `winnerIs` | 1883 |
 | `winner_drumroll` | effects | `winner_drumroll` | 4000 |
 | `winner_crash` | effects | `winner_crash` | 2480 |
@@ -2388,19 +2388,19 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 | `tents.clear` | effects | `tents.clear` | 528 |
 | `tents.solve` | effects | `tents.solve` | 1000 |
 | `music_bastion` | music | `music.bastion` | loop |
-| `bastion.cannon` | effects | `bastion.cannon` | 836 |
-| `bastion.reload` | effects | `bastion.reload` | 183 |
-| `bastion.fastReload` | effects | `bastion.fastReload` | 366 |
-| `bastion.jam` | effects | `bastion.jam` | 601 |
-| `bastion.loaded` | effects | `bastion.loaded` | 78 |
-| `bastion.kill` | effects | `bastion.kill` | 1228 |
-| `bastion.weak` | effects | `bastion.weak` | 209 |
-| `bastion.hit` | effects | `bastion.hit` | 522 |
-| `bastion.miss` | effects | `bastion.miss` | 392 |
-| `bastion.baseHit` | effects | `bastion.baseHit` | 1045 |
-| `bastion.wave` | effects | `bastion.wave` | 1358 |
-| `bastion.drone` | effects | `bastion.drone` | 2040 |
-| `bastion.droneDown` | effects | `bastion.droneDown` | 836 |
+| `bastion.cannon` | effects | `bastion.cannon` | 800 |
+| `bastion.reload` | effects | `bastion.reload` | 590 |
+| `bastion.fastReload` | effects | `bastion.fastReload` | 367 |
+| `bastion.jam` | effects | `bastion.jam` | 566 |
+| `bastion.loaded` | effects | `bastion.loaded` | 398 |
+| `bastion.kill` | effects | `bastion.kill` | 1200 |
+| `bastion.weak` | effects | `bastion.weak` | 479 |
+| `bastion.hit` | effects | `bastion.hit` | 480 |
+| `bastion.miss` | effects | `bastion.miss` | 473 |
+| `bastion.baseHit` | effects | `bastion.baseHit` | 997 |
+| `bastion.wave` | effects | `bastion.wave` | 1342 |
+| `bastion.drone` | effects | `bastion.drone` | 2000 |
+| `bastion.droneDown` | effects | `bastion.droneDown` | 800 |
 | `music_ricochet` | music | `music.ricochet` | loop |
 | `music_beat` | music | `music.beat` | 60087 |
 | `bubble.bomb` | effects | `bubble.bomb` | 662 |
@@ -2435,16 +2435,16 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 | `pinball.spinner` | effects | `pinball.spinner` | 486 |
 | `pinball.flipper` | effects | `pinball.flipper` | 482 |
 | `music_pinball` | music | `music.pinball` | loop |
-| `ricochet.leap` | effects | `ricochet.leap` | 444 |
-| `ricochet.doubleJump` | effects | `ricochet.doubleJump` | 496 |
-| `ricochet.hit` | effects | `ricochet.hit` | 522 |
-| `ricochet.scroll` | effects | `ricochet.scroll` | 496 |
-| `ricochet.lanternGrab` | effects | `ricochet.lanternGrab` | 366 |
-| `ricochet.lanternRide` | effects | `ricochet.lanternRide` | 2040 |
-| `ricochet.ledge` | effects | `ricochet.ledge` | 78 |
-| `ricochet.flow` | effects | `ricochet.flow` | 731 |
-| `ricochet.land` | effects | `ricochet.land` | 261 |
-| `ricochet.slip` | effects | `ricochet.slip` | 261 |
+| `ricochet.leap` | effects | `ricochet.leap` | 416 |
+| `ricochet.doubleJump` | effects | `ricochet.doubleJump` | 473 |
+| `ricochet.hit` | effects | `ricochet.hit` | 476 |
+| `ricochet.scroll` | effects | `ricochet.scroll` | 592 |
+| `ricochet.lanternGrab` | effects | `ricochet.lanternGrab` | 429 |
+| `ricochet.lanternRide` | effects | `ricochet.lanternRide` | 2000 |
+| `ricochet.ledge` | effects | `ricochet.ledge` | 479 |
+| `ricochet.flow` | effects | `ricochet.flow` | 685 |
+| `ricochet.land` | effects | `ricochet.land` | 396 |
+| `ricochet.slip` | effects | `ricochet.slip` | 593 |
 | `ricochet.heightStreak` | effects | `ricochet.heightStreak` | 480 |
 | `ricochet.fullHeight` | effects | `ricochet.fullHeight` | 840 |
 | `snip.star` | effects | `snip.star` | 386 |
@@ -2612,11 +2612,11 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 | `voice.tie` | voice | `voice.tie` | 2886 |
 | `voice.youWin` | voice | `voice.youWin` | 2823 |
 | `voice.rematch` | voice | `voice.rematch` | 2594 |
-| `voice.newBest` | voice | `voice.newBest` | 2482 |
-| `voice.photoFinish` | voice | `voice.photoFinish` | 2194 |
-| `voice.newLeader` | voice | `voice.newLeader` | 1881 |
-| `voice.cleanSweep` | voice | `voice.cleanSweep` | 2220 |
-| `voice.draw` | voice | `voice.draw` | 2090 |
+| `voice.newBest` | voice | `voice.newBest` | 3275 |
+| `voice.photoFinish` | voice | `voice.photoFinish` | 3155 |
+| `voice.newLeader` | voice | `voice.newLeader` | 2838 |
+| `voice.cleanSweep` | voice | `voice.cleanSweep` | 3110 |
+| `voice.draw` | voice | `voice.draw` | 2802 |
 | `wavefront.march` | effects | `wavefront.march` | 528 |
 | `wavefront.rowDrop` | effects | `wavefront.rowDrop` | 528 |
 | `snake.rockFalling` | effects | `snake.rockFalling` | 840 |
@@ -2769,19 +2769,19 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 | `music_pyramid` | music | `music.pyramid` | loop |
 | `music_golfsol` | music | `music.golfsol` | loop |
 | `music_muggins` | music | `music.muggins` | loop |
-| `blockfall.move` | effects | `blockfall.move` | 104 |
-| `blockfall.turn` | effects | `blockfall.turn` | 183 |
-| `blockfall.lock` | effects | `blockfall.lock` | 496 |
-| `blockfall.clear` | effects | `blockfall.clear` | 627 |
-| `blockfall.bigClear` | effects | `blockfall.bigClear` | 914 |
-| `blockfall.topOut` | effects | `blockfall.topOut` | 1228 |
-| `alleyroll.roll` | effects | `alleyroll.roll` | 209 |
-| `alleyroll.rolling` | effects | `alleyroll.rolling` | 2040 |
-| `alleyroll.ramp` | effects | `alleyroll.ramp` | 522 |
-| `alleyroll.ring` | effects | `alleyroll.ring` | 340 |
-| `alleyroll.pocket` | effects | `alleyroll.pocket` | 679 |
-| `alleyroll.goldCup` | effects | `alleyroll.goldCup` | 1228 |
-| `alleyroll.gutter` | effects | `alleyroll.gutter` | 261 |
-| `alleyroll.streak` | effects | `alleyroll.streak` | 731 |
+| `blockfall.move` | effects | `blockfall.move` | 122 |
+| `blockfall.turn` | effects | `blockfall.turn` | 216 |
+| `blockfall.lock` | effects | `blockfall.lock` | 477 |
+| `blockfall.clear` | effects | `blockfall.clear` | 599 |
+| `blockfall.bigClear` | effects | `blockfall.bigClear` | 1194 |
+| `blockfall.topOut` | effects | `blockfall.topOut` | 1200 |
+| `alleyroll.roll` | effects | `alleyroll.roll` | 456 |
+| `alleyroll.rolling` | effects | `alleyroll.rolling` | 2000 |
+| `alleyroll.ramp` | effects | `alleyroll.ramp` | 480 |
+| `alleyroll.ring` | effects | `alleyroll.ring` | 357 |
+| `alleyroll.pocket` | effects | `alleyroll.pocket` | 795 |
+| `alleyroll.goldCup` | effects | `alleyroll.goldCup` | 1200 |
+| `alleyroll.gutter` | effects | `alleyroll.gutter` | 570 |
+| `alleyroll.streak` | effects | `alleyroll.streak` | 679 |
 | `music_blockfall` | music | `music.blockfall` | loop |
 | `music_alleyroll` | music | `music.alleyroll` | loop |
