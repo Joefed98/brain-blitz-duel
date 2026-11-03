@@ -28,10 +28,11 @@ import { encodeFreekickRun, replayFreekickRun } from "../src/lib/duel/freekick";
 import { FREEKICK_DEAL } from "../src/lib/duel/freekickDeal.server";
 import { FREEKICK_DEAL_V2 } from "../src/lib/duel/freekickDealV2.server";
 import { FREEKICK_DEAL_V3 } from "../src/lib/duel/freekickDealV3.server";
-import { racingCheckpoint, racingGameFor, RACING_CHECKPOINT_INTERVAL, RACING_REV_2, RACING_REV_STD } from "../src/lib/arcade/racing";
+import { racingCheckpoint, racingGameFor, RACING_CHECKPOINT_INTERVAL, RACING_REV_2, RACING_REV_3, RACING_REV_STD } from "../src/lib/arcade/racing";
 import { encodeRacingRun, replayRacingRun } from "../src/lib/duel/racing";
 import { RACING_DEAL } from "../src/lib/duel/racingDeal.server";
 import { RACING_DEAL_V2 } from "../src/lib/duel/racingDealV2.server";
+import { RACING_DEAL_V3 } from "../src/lib/duel/racingDealV3.server";
 import {
   inputAt,
   recordInput,
@@ -168,7 +169,7 @@ import { gsCheckpoint, golfSolGame } from "@/lib/arcade/cards/golfSol";
 import { mgCheckpoint, mugginsGame } from "@/lib/arcade/cards/muggins";
 import { encodeGolfSolRun, encodeMugginsRun, encodePyramidRun, replayGolfSolRun, replayMugginsRun, replayPyramidRun } from "@/lib/duel/cards";
 import { bfCheckpoint, blockfallGame } from "@/lib/arcade/blockfall";
-import { arCheckpoint, alleyRollGame } from "@/lib/arcade/alleyroll";
+import { arCheckpoint, alleyRollGame, ringerGame } from "@/lib/arcade/alleyroll";
 import { encodeBlockfallRun, replayBlockfallRun } from "@/lib/duel/blockfall";
 import { encodeAlleyRollRun, replayAlleyRollRun } from "@/lib/duel/alleyroll";
 import { BLOCKFALL_DEAL } from "@/lib/duel/blockfallDeal.server";
@@ -936,6 +937,11 @@ const GAMES: Game[] = [
   { key: "pyramid", game: pyramidGame, checkpoint: pyCheckpoint, mode: "events", rate: 80, encode: encodePyramidRun, replay: (seed: number, raw: string) => replayPyramidRun(seed, raw, 1) },
   { key: "golfsol", game: golfSolGame, checkpoint: gsCheckpoint, mode: "events", rate: 80, encode: encodeGolfSolRun, replay: (seed: number, raw: string) => replayGolfSolRun(seed, raw, 1), seedFor: (n: number) => n % 300 },
   { key: "muggins", game: mugginsGame, checkpoint: mgCheckpoint, mode: "events", rate: 60, encode: encodeMugginsRun, replay: (seed: number, raw: string) => replayMugginsRun(seed, raw, 1) },
+  // Ringer (Alley Roll alleyRollRev 2, 3 Nov 2026: the cup stack and the seeded gold cup), appended so every earlier
+  // entry keeps its index; the rev-1 entry above stays pinned to rev 1.
+  { key: "alleyroll/ringer", game: ringerGame, checkpoint: arCheckpoint, mode: "events", rate: 40, encode: encodeAlleyRollRun, replay: (seed: number, raw: string) => replayAlleyRollRun(seed, raw, 2) },
+  // Apex racingRev 3 (3 Nov 2026: the softer gravel, corner speed signs, the pace score), appended at the end.
+  { key: "racing/v3", interval: RACING_CHECKPOINT_INTERVAL, game: racingGameFor(RACING_REV_3), checkpoint: racingCheckpoint, mode: "events", rate: 120, encode: encodeRacingRun, replay: (seed: number, raw: string) => replayRacingRun(seed, raw, RACING_REV_3), seedFor: (n: number) => RACING_DEAL_V3[n % RACING_DEAL_V3.length]! },
   // Iron Wall bastionRev 3 (3 Nov 2026: eased waves 4–5, the 90 ms zone, the drones), appended at the end so every
   // earlier entry keeps its index and stream.
   { key: "bastion/v3", interval: BT2_CHECKPOINT_INTERVAL, game: bastionIronGame, checkpoint: bastionTankCheckpoint, mode: "events", rate: 30, encode: encodeBastionTankRun, replay: (seed: number, raw: string) => replayBastionTankRun(seed, raw, 3) },

@@ -2,7 +2,7 @@ import { PS_CORE_FULL_V2 } from "@/lib/arcade/cards/pokerSquares";
 import { FH_CORE_FULL_V2 } from "@/lib/arcade/cards/fiveHands";
 import { FC_CORE_UNITS_V3 } from "@/lib/arcade/cards/freecell";
 import { BF_CORE_FULL } from "@/lib/arcade/blockfall";
-import { AR_CORE_FULL } from "@/lib/arcade/alleyroll";
+import { AR2_CORE_FULL } from "@/lib/arcade/alleyroll";
 import { NINJA_CORE_FULL_M } from "@/lib/arcade/ricochetNinja";
 import { MG_CORE_FULL } from "@/lib/arcade/cards/muggins";
 import { BULLSEYE_INNER_BULL_POINTS, BULLSEYE_RING_VALUES } from "@/lib/arcade/bullseye";
@@ -18,9 +18,10 @@ import { CODEWORD_STRETCH, TILEGRID_STRETCH_TOPUP, stretchIntro, strikeoutDepthI
 import { parBonusIntro } from "./parBonusText";
 import { WORD_STANDARD_INTRO } from "./standard/word";
 import { preStandardPinned } from "./standard/stamps";
-import { STANDARD_ATTENTION_INTRO } from "./standard/attentionTexts";
+import { PAR_MOVES_MAZE_INTRO, STANDARD_ATTENTION_INTRO } from "./standard/attentionTexts";
+import { parMovesDealt } from "./parMoves";
 import { BANGON_DEPTH_INTRO, FLASH_DEPTH_INTRO } from "./depth/speedTexts";
-import { PATTERN_STD_INTRO } from "./standard/patternText";
+import { PAR_MOVES_PATTERN_INTRO, PATTERN_STD_INTRO } from "./standard/patternText";
 import { standardNumberIntro } from "./standard/numberText";
 import { fillMax, liveRecord } from "./roundMax";
 import type { PuzzleType } from "./types";
@@ -78,7 +79,8 @@ function introScoreTemplates(): Record<PuzzleType, string> {
     countup: STANDARD_ATTENTION_INTRO.countup,
     spotdiff: STANDARD_ATTENTION_INTRO.spotdiff,
     pairmatch: STANDARD_ATTENTION_INTRO.pairmatch,
-    maze: STANDARD_ATTENTION_INTRO.maze,
+    // The puzzle batch of 3 Nov 2026 (parMoves.ts): no stars, par moves.
+    maze: parMovesDealt() ? PAR_MOVES_MAZE_INTRO : STANDARD_ATTENTION_INTRO.maze,
     stroop: STANDARD_ATTENTION_INTRO.stroop,
 
     // Logic and pattern
@@ -87,14 +89,14 @@ function introScoreTemplates(): Record<PuzzleType, string> {
     pipes: PATTERN_STD_INTRO.pipes,
     sudoku: logicStandardIntro("sudoku"),
     flow: PATTERN_STD_INTRO.flow,
-    iceslide: PATTERN_STD_INTRO.iceslide,
+    iceslide: parMovesDealt() ? PAR_MOVES_PATTERN_INTRO.iceslide : PATTERN_STD_INTRO.iceslide,
     push: PATTERN_STD_INTRO.push,
     laser: PATTERN_STD_INTRO.laser,
     tower: logicStandardIntro("tower"),
     tubes: logicStandardIntro("tubes"),
     safe: logicStandardIntro("safe"),
     bomb: logicStandardIntro("bomb"),
-    gravity: PATTERN_STD_INTRO.gravity,
+    gravity: parMovesDealt() ? PAR_MOVES_PATTERN_INTRO.gravity : PATTERN_STD_INTRO.gravity,
     nonogram: logicStandardIntro("nonogram"),
     flood: logicStandardIntro("flood"),
     tiles: PATTERN_STD_INTRO.tiles,
@@ -130,14 +132,14 @@ function introScoreTemplates(): Record<PuzzleType, string> {
     pinball: "Table points, plus J-O-U-L-Z sets, multiball, jackpots and ramp combos. Up to {max}.",
     homerun: "Distance on every pitch, home runs and signs beyond the fence (Power only). Up to {max}.",
     freekick: "Goals away from the keeper, targets, curls round the wall and five in a row. Up to {max}.",
-    racing: "Distance, clean sectors, the finish and your time from lights out. Up to {max}.",
+    racing: "Pace (your average speed) 160, clean sectors 40 (5 each). Together {max}.",
     // Cards & Board (the arcade scoring standard from their first revision).
     freecell: `Cards 140 (full at ${FC_CORE_UNITS_V3} units); finished: few moves 30, speed 30. Together {max}.`,
     tripeaks: "Cards 120, peak tops 30, longest run 20; all cleared: 10 and speed 20. Together {max}.",
     pokersquares: `Hand points 160 (full at ${PS_CORE_FULL_V2}); made hands 40 (4 a line). Together {max}.`,
     fivehands: `Hand points to {max}, full at ${FH_CORE_FULL_V2}. Pair 5, two pair 10 … straight flush 75.`,
     blockfall: `Lines 140 (full at ${BF_CORE_FULL}); multi-line clears 40; a low stack at the buzzer 20. Together {max}.`,
-    alleyroll: `Ring points 150 (full at ${AR_CORE_FULL}); 100 pockets 30; hot streak 20. Together {max}.`,
+    alleyroll: `Ring points 140 (full at ${AR2_CORE_FULL}); gold cup 30; roll streak 20; pockets 10. Total {max}.`,
     pyramid: "Cards 120; cleared 10 and speed 50; pyramid pairs 20 (2 each). Together {max}.",
     golfsol: "Cards 140; all cleared 20 and speed 20; runs of four 20 (4 each). Together {max}.",
     muggins: `Points 150 (full at ${MG_CORE_FULL}); hand cleared 20 and speed 20; big plays 10. Together {max}.`,

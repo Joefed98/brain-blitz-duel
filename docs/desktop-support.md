@@ -198,9 +198,9 @@ reason given. "Practice" marks games retired to practice.
 | Blackout (`lightsout`) | Click cells; Undo / Reset | Z or Backspace = Undo; R = Reset |
 | Bomb Defusal (`bomb`) | Click wires and buttons; Defuse / Reset | 1–9 cut wire n; A / B the buttons; Enter = Defuse; R = Reset |
 | Box Six (`sudoku`) | Click a cell, then a digit; Pencil; Clear | ← → ↑ ↓ / WASD move the selection; 1–6 the digit; Backspace or Delete = Clear; P = Pencil |
-| Fences (`fences`) | Click an edge: line, ✕, clear; drag along edges to draw several | Mouse only (wide layout) |
-| Fillomino (`fillomino`) | Click a square, then a number; drag from a number to paint it | ← → ↑ ↓ move the selection; 1–9 the number; Backspace or Delete = Clear |
-| Bridges (`bridges`) | Drag from island to island: one bridge, two, none | Mouse only (wide layout) |
+| Loopline (`fences`) | Click an edge: line, ✕, clear; drag along edges to draw several | Mouse only (wide layout) |
+| Regions (`fillomino`) | Click a number on the pad, then click or drag squares; the eraser clears | 1–9 pick the number; 0, E, Backspace or Delete the eraser; ← → ↑ ↓ move a cursor, Enter or Space apply |
+| Island Link (`bridges`) | Drag from island to island: one bridge, two, none | Mouse only (wide layout) |
 | Kakuro (`kakuro`) | Click a square, then a digit; Pencil; Clear | ← → ↑ ↓ move between white squares; 1–9 the digit; Backspace or Delete = Clear; P = Pencil |
 | Colour Flood (`flood`) | Click a colour pot | 1–5 the pots, left to right |
 | Hanoi (`tower`) | Click pegs; Undo / Reset | 1–3 the pegs; Z or Backspace = Undo; R = Reset |

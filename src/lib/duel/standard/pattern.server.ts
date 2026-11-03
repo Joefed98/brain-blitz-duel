@@ -10,6 +10,7 @@ import { wasteFactor } from "../puzzleScoreRev";
 import type { TimedDraft } from "./timeline";
 import { BLOCK_STD, FLOW_STD, ICE_STD, LASER_STD, PATTERN_STD, PUSH_STD, SHARE_CREDIT, SHARE_EARLY, TOPSY_STD, patternFullByS, type PatternStdType } from "./patternRules";
 import type { PuzzleData, UnblockVehicle, PuzzleType } from "../types";
+import { PAR_MOVES_STD, usesParMoves } from "../parMoves";
 import { UNBLOCK_COLS } from "../types";
 import { applyMove, decodeMoves, isSolved as unblockSolved, vehicleCells } from "../unblock";
 import { blockGeometry, decodePlacements, verifyPlacements } from "../blockParty";
@@ -38,6 +39,11 @@ function num(extra: Record<string, unknown> | null | undefined, key: string): nu
 function speed(type: PatternStdType, input: StandardInput): number {
   const r = PATTERN_STD[type];
   return speedPoints(r.speed, input.msLeft, input.limitMs, patternFullByS(type, input.puzzle as { tilesRev?: number }) * 1000);
+}
+
+/** Speed points on the par-moves stamps (parMoves.ts): up to 30, full by the game's own "full by" time. */
+function parMovesSpeed(type: PatternStdType, input: StandardInput): number {
+  return speedPoints(PAR_MOVES_STD.speed, input.msLeft, input.limitMs, patternFullByS(type, input.puzzle as { tilesRev?: number }) * 1000);
 }
 
 /** The par bonus on the game's own rules: full at par, 0 at twice par. */
@@ -246,6 +252,16 @@ function skidClosed(puzzle: Of<"iceslide">, answer: string): { closed: number; t
 const skid: StandardGame = {
   grade(input, ctx) {
     const p = input.puzzle as Of<"iceslide">;
+    // slideRev 3 (the puzzle batch of 3 Nov 2026, parMoves.ts): no gems; a finish is 150 + speed + par slides.
+    if (usesParMoves(p)) {
+      if (input.graded.isCorrect) {
+        const slides = replaySlide(memo(SLIDE_BOARDS, p, () => slideBoard(p)), decodeSlideMoves(input.answer)).moves;
+        return { finished: true, speed: parMovesSpeed("iceslide", input), bonus: parPoints(PAR_MOVES_STD.par, slides, p.minMoves ?? 0), measure: "par", facts: { slides, parSlides: p.minMoves ?? 0 } };
+      }
+      const { closed, total } = skidClosed(p, input.answer);
+      const w = waste(num(input.graded.extra, "moves"), p.minMoves);
+      return { finished: false, credit: shareCredit(ctx, closed, total) * w, facts: { routeClosed: closed, route: total, waste: w } };
+    }
     const gems = p.gems ?? [];
     const got = gems.length ? replayGems(memo(SLIDE_BOARDS, p, () => slideBoard(p)), gems, decodeSlideMoves(input.answer)).collected : 0;
     const gemPoints = gems.length ? (ICE_STD.gems * got) / gems.length : 0;
@@ -267,6 +283,12 @@ const topsy: StandardGame = {
     const totalStars = p.boards.reduce((n, b) => n + b.stars.length, 0);
     const balls = p.boards.reduce((n, b) => n + b.starts.length, 0);
     const starPts = (stars: number) => (totalStars > 0 ? (TOPSY_STD.stars * stars) / totalStars : 0);
+    // gravityRev 6 (the puzzle batch of 3 Nov 2026, parMoves.ts): no stars; a finish is 150 + speed + par tilts.
+    if (usesParMoves(p) && input.graded.isCorrect) {
+      const parTilts = (p.boardMins ?? []).reduce((n, m) => n + m, 0);
+      const bonus = parTilts > 0 ? parPoints(PAR_MOVES_STD.par, replay.tilts, parTilts) : 0;
+      return { finished: true, speed: parMovesSpeed("gravity", input), bonus, measure: "par", facts: { parTilts } };
+    }
     if (input.graded.isCorrect) {
       const parTilts = (p.boardMins ?? []).reduce((n, m) => n + m, 0);
       const bonus = starPts(replay.stars) + par("gravity", replay.tilts, parTilts);
