@@ -93,7 +93,7 @@ carry; a file in their slot plays under the voice line (voice lines duck music).
 | `music.golfsol` | Golf Solitaire | `music_golfsol` (Summit's bed, `music_tripeaks.mp3`) | `music_golfsol` | 55.7 s loop |
 | `music.muggins` | Muggins | `music_muggins` (Mahjong's bed, `music_mahjong.mp3`) | `music_muggins` | 48.0 s loop |
 | `music.blockfall` | Blockfall | `music_blockfall` (Fission's Retro bed, `music_burst.mp3`) | `music_blockfall` | loop |
-| `music.alleyroll` | Alley Roll | `music_alleyroll` (Swish's fairground bed, `music_bintoss.mp3`) | `music_alleyroll` | loop |
+| `music.alleyroll` | Ringer | `music_alleyroll` (Swish's fairground bed, `music_bintoss.mp3`) | `music_alleyroll` | loop |
 
 Every puzzle (Word, Number, Speed, Attention, Pattern, Logic, and the engine games Letterfall,
 Tenfall, Bonk, Pull! and Mixed Signals) plays one of its category's three shared beds

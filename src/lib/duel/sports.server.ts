@@ -19,7 +19,7 @@ import { CURLING_REV } from "@/lib/arcade/curling";
 import { CURLING_BANK_V3 } from "./curlingBankV3.server";
 import { MINIGOLF_BANK_V2 } from "./minigolfBankV2.server";
 import { POOL_BANK_V3 } from "./poolBankV3.server";
-import { ALLEYROLL_REV } from "@/lib/arcade/alleyroll";
+import { ALLEYROLL_REV_DEALT } from "@/lib/arcade/alleyroll";
 import type { AlleyRollPuzzleData, CurlingPuzzleData, FreekickPuzzleData, HomerunPuzzleData, MinigolfPuzzleData, PoolPuzzleData, RacingPuzzleData } from "./types";
 
 export function generateHomerun(): HomerunPuzzleData {
@@ -57,5 +57,6 @@ export function generateCurling(): CurlingPuzzleData {
 
 export function generateAlleyRoll(): AlleyRollPuzzleData {
   // Alley Roll (1 Nov 2026): the lane is the same for every seed (the oracle's line scores 200 on any), so any seed.
-  return { type: "alleyroll", seed: arcadeSeed(), alleyRollRev: ALLEYROLL_REV };
+  // Ringer (alleyRollRev 2, 3 Nov 2026): the seed sets the gold cup's path; the oracle times it to 200 on any seed.
+  return { type: "alleyroll", seed: arcadeSeed(), alleyRollRev: ALLEYROLL_REV_DEALT };
 }
