@@ -69,6 +69,7 @@ import { inputTypeField } from "@/lib/inputType";
 import { PageAside } from "@/components/app/PageAside";
 import type { PuzzleCategory } from "@/lib/duel/types";
 import { ARCADE_GROUPS, arcadeGroupInfo, arcadeGroupOf, arcadeGroupTypes, type ArcadeGroup } from "@/lib/duel/arcadeGroups";
+import { alsoInOf, typesAlsoIn } from "@/lib/duel/alsoIn";
 import {
   practiceSideCounts,
   practiceSideOf,
@@ -222,18 +223,25 @@ const ARCADE_CHIPS: { id: ArcadeFilter; label: string; span?: 2 }[] = [
  * The list's chips and search, scoped to the side shown: the game's name or category (on the Arcade
  * side also its group), any case. A game on the other side never matches.
  */
+const isArcadeGroupId = (id: string) => ARCADE_GROUPS.some((g) => g.id === id);
+
 function matchesFilter(type: PuzzleType, side: PracticeSide, filter: PracticeFilter | ArcadeFilter, query: string): boolean {
-  if (practiceSideOf(type) !== side) return false;
+  // A game listed also in a pick on this side (alsoIn.ts: Pull! in Sports) is shown here too, under that pick.
+  const also = alsoInOf(type);
+  const alsoHere = also !== null && (side === "arcade") === isArcadeGroupId(also);
+  if (practiceSideOf(type) !== side && !alsoHere) return false;
   const definition = PUZZLE_REGISTRY[type];
-  const group = arcadeGroupOf(type);
+  const home = practiceSideOf(type) === side;
+  const group = home ? arcadeGroupOf(type) : side === "arcade" ? (also as ArcadeGroup) : null;
+  const category = home ? definition.category : (also as string);
   if (filter !== "all") {
-    if (side === "puzzles" && definition.category !== filter) return false;
+    if (side === "puzzles" && category !== filter && !(alsoHere && also === filter)) return false;
     // A group's chip lists its active games; a retired one (Full House, 1 Nov 2026) is under All games' Retired, as Scrumper.
-    if (side === "arcade" && (group !== filter || RETIRED_PUZZLE_TYPES.includes(type))) return false;
+    if (side === "arcade" && ((group !== filter && !(alsoHere && also === filter)) || RETIRED_PUZZLE_TYPES.includes(type))) return false;
   }
   const q = query.trim().toLowerCase();
   if (q === "") return true;
-  if (definition.name.toLowerCase().includes(q) || definition.category.includes(q)) return true;
+  if (definition.name.toLowerCase().includes(q) || category.includes(q)) return true;
   return group !== null && arcadeGroupInfo(group).label.toLowerCase().includes(q);
 }
 
@@ -613,10 +621,11 @@ function PracticeScreen() {
       side === "puzzles"
         ? puzzleCategories()
             .filter((category) => category !== "arcade")
-            .map((category) => ({ id: category, label: categoryLabel(category), dot: category, rows: typesInCategory(category).filter(visible) }))
-        : ARCADE_GROUPS.map((group) => ({ id: group.id, label: group.label, dot: group.id, rows: arcadeGroupTypes(group.id).filter(visible) }));
+            .map((category) => ({ id: category, label: categoryLabel(category), dot: category, rows: [...typesInCategory(category), ...typesAlsoIn(category)].filter(visible) }))
+        : ARCADE_GROUPS.map((group) => ({ id: group.id, label: group.label, dot: group.id, rows: [...arcadeGroupTypes(group.id), ...typesAlsoIn(group.id)].filter(visible) }));
     const shown = groups.filter((group) => group.rows.length > 0);
-    const matches = shown.flatMap((group) => group.rows);
+    // A game listed in two sections on this side counts once (none today: Pull!'s sections are on different sides).
+    const matches = [...new Set(shown.flatMap((group) => group.rows))];
     const previewRows = PREVIEW_PUZZLE_TYPES.filter(visible);
     const retiredRows = RETIRED_PUZZLE_TYPES.filter(
       (key) => !PREVIEW_PUZZLE_TYPES.includes(key),

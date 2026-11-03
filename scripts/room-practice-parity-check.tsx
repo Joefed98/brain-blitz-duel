@@ -8,6 +8,7 @@ import { TimerBar } from "../src/components/duel/TimerBar";
 import { PuzzleHelpButton } from "../src/components/duel/PuzzleInstructions";
 import { RoundPips } from "../src/components/duel/RoundPips";
 import { PUZZLE_REGISTRY, puzzleShowsTimer } from "../src/lib/duel/registry";
+import { CURL_TURN_ROW_TOP } from "../src/puzzles/curling";
 import { generatePuzzle } from "../src/lib/duel/generate.server";
 import { splitPuzzle } from "../src/lib/duel/secrets";
 import { withSeededRandom } from "../src/lib/duel/random";
@@ -68,7 +69,7 @@ for (const [key, definition] of active) {
       assert.equal(host.querySelectorAll("[data-game-controls]").length, 1, `${key}: no row below the world on orbitRev 12`);
     } else if (key === "curling" && ((puzzle as { curlRev?: number }).curlRev ?? 1) >= 4) {
       // Curl Champ curlRev 4 (Joe's approval, 3 Nov 2026): In, Out and Throw sit over the bottom of the sheet, below the near
-      // hog line, so the world reaches the screen's bottom; they clear the start point, the aim line and every stone at rest
+      // hog line (between it and the near house since 3 Nov 2026), so the world reaches the screen's bottom; they clear the start point, the aim line and every stone at rest
       // (the review shots at 414x896 and 375x667: stones rest in the far house, the near end behind the thrower is never in
       // play). Exactly that wrapper in the arena, absolutely placed across its bottom and lifted by the home bar, holding the
       // one turn row of exactly the In, Out and Throw buttons (48px, over the 44px minimum). Every other control, and every
@@ -78,7 +79,10 @@ for (const [key, definition] of active) {
       const wrap = row!.parentElement!;
       const wcls = ` ${wrap.getAttribute("class") ?? ""} `;
       for (const c of ["absolute", "inset-x-1", "pointer-events-none"]) assert.ok(wcls.includes(` ${c} `), `${key}: turn wrapper class ${c}`);
-      assert.equal((wrap.getAttribute("style") ?? "").replace(/\s/g, ""), "bottom:max(0px,calc(env(safe-area-inset-bottom,0px)-4px))", `${key}: the turn row sits on the sheet's bottom, lifted by the home bar`);
+      // 3 Nov 2026 (Joe's phone note): centred between the near hog line and the near house's blue ring
+      // (CURL_TURN_ROW_TOP), never lower than the slot's bottom less the row and the home-bar lift.
+      assert.equal((wrap.getAttribute("style") ?? "").replace(/\s/g, ""), `top:${CURL_TURN_ROW_TOP.replace(/\s/g, "")}`, `${key}: the turn row sits between the hog line and the house, lifted by the home bar`);
+      assert.ok(CURL_TURN_ROW_TOP.includes("100cqh - 48px - max(0px, calc(env(safe-area-inset-bottom, 0px) - 4px))"), `${key}: the turn row is clamped above the home bar`);
       const cls = ` ${row!.getAttribute("class") ?? ""} `;
       for (const c of ["grid", "h-12", "grid-cols-3"]) assert.ok(cls.includes(` ${c} `), `${key}: turn row class ${c}`);
       const buttons = [...row!.querySelectorAll("button")];

@@ -488,7 +488,8 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: Puz
 export const bombDefusalPuzzle: PuzzleDefinition = {
   key: "bomb",
   name: gameDisplayName("bomb"),
-  category: "logic",
+  // Attention since 3 Nov 2026 (Joe's decision; Logic before).
+  category: "attention",
   // New six-step rounds carry their own 90 s clock; this default covers stored four-step rounds.
   timeLimitMs: BOMB_TIME_MS,
   revealMs: 8_000,

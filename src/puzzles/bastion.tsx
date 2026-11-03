@@ -247,8 +247,8 @@ function IntroExample() {
   );
 }
 
-/** The crosshair floats this far above the finger (world px) so the thumb never hides the target (60 until 3 Nov 2026; input mapping only, every revision). */
-const FINGER_LIFT = 100;
+/** The crosshair floats this far above the finger (world px) so the thumb never hides the target (60, then 100, until 3 Nov 2026; 120 since Joe's phone notes; input mapping only, every revision). */
+const FINGER_LIFT = 120;
 /** A swipe down this far (world px), mostly vertical and quick, reloads instead of firing. */
 const SWIPE_DOWN_PX = 70;
 const SWIPE_MS = 420;

@@ -96,6 +96,11 @@ interface Props<S, C> {
   discrete?: boolean;
   /** Called every tick; a non-null payload replaces the pointer's wanted payload. */
   tickInput?: (state: S) => PointerPayload | null;
+  /**
+   * Discrete stages only (3 Nov 2026, Blockzone's soft drop): called every tick before the queue is read;
+   * a non-null payload joins the queue like a gesture's (tickInput is not read in discrete mode).
+   */
+  discreteTick?: (state: S) => PointerPayload | null;
   /** The game's own completion cue when it fires as the run ends (state: the last frame), else null; see completeFx. */
   completeCue?: (state: S) => string | null;
   /** Render-side sound observer, created per run and stopped on teardown. */
@@ -108,6 +113,12 @@ interface Props<S, C> {
   hud?: { height: number; worldW: number; draw: (ctx: CanvasRenderingContext2D, state: S) => void };
   /** Controls drawn over the canvas (absolute), never shrinking the play area; a function gets the same `send` as `footer`. */
   overlay?: ReactNode | ((send: (payload: PointerPayload) => void) => ReactNode);
+  /**
+   * The overlay may reach below the world into the arena slot's spare height (3 Nov 2026, Curl Champ's In / Out /
+   * Throw row between the hog line and the house drawn by the scene): the world box stops clipping its children.
+   * The slot itself still clips, and the canvas is the world box's own size, so nothing else changes.
+   */
+  overlayBelowWorld?: boolean;
   /** Controls below the canvas which can enqueue the same recorded inputs as pointer gestures. */
   footer?: ((send: (payload: PointerPayload) => void) => ReactNode) | undefined;
   pointer: (kind: "down" | "move" | "up", x: number, y: number) => PointerPayload | null;
@@ -235,6 +246,8 @@ export function ArcadeCanvasStage<S, C>(props: Props<S, C>) {
         accumulator -= ticks * TICK_MS;
         for (let i = 0; i < ticks; i++) {
           if (propsRef.current.discrete) {
+            const extra = propsRef.current.discreteTick?.(state.current);
+            if (extra && queue.current.length < 4) queue.current.push(extra);
             const next = queue.current.shift();
             if (next) {
               recordInput(
@@ -391,7 +404,7 @@ export function ArcadeCanvasStage<S, C>(props: Props<S, C>) {
       ref={wrap}
       data-play-area=""
       data-game-arena="canvas" className="relative min-h-0 w-full flex-1 overflow-hidden"
-      style={{ ...NO_SCROLL_STYLE, WebkitTouchCallout: "none" }}
+      style={{ ...NO_SCROLL_STYLE, WebkitTouchCallout: "none", ...(props.overlayBelowWorld ? { overflow: "visible" } : null) }}
       onContextMenu={(event) => event.preventDefault()}
     >
       <canvas

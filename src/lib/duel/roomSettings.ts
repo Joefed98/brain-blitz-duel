@@ -20,7 +20,8 @@
  */
 import { ROOM_SETTINGS_PLUS_ONLY } from "@/config/betaConfig";
 
-import { arcadeGroupInfo, arcadeGroupTypes, type ArcadeGroup } from "./arcadeGroups";
+import { typesAlsoIn } from "./alsoIn";
+import { arcadeGroupInfo, arcadeGroupOf, arcadeGroupTypes, type ArcadeGroup } from "./arcadeGroups";
 import { normaliseCategories } from "./categories";
 import { puzzleDef, typesInCategory } from "./registry";
 import { roomRoundCount } from "./selection";
@@ -99,14 +100,29 @@ export function hasDuelzPlus(): boolean {
   return false;
 }
 
-/** A pick's room-eligible games (active, not retired), in registry / group order. */
-export function pickTypes(pick: RoomPick): PuzzleType[] {
-  return isArcadePick(pick) ? arcadeGroupTypes(pick) : typesInCategory(pick);
+/** A game's main pick: its puzzle category, or its arcade group (null for a game in neither). */
+export function mainPickOf(type: PuzzleType): RoomPick | null {
+  const category = puzzleDef(type).category;
+  return category === "arcade" ? arcadeGroupOf(type) : category;
+}
+
+/**
+ * A pick's room-eligible games (active, not retired), in registry / group order, then the games listed also in it
+ * (alsoIn.ts, 3 Nov 2026) whose main pick is not among `picks` (a room with both counts such a game once, under
+ * its main category). `picks` defaults to this pick alone.
+ */
+export function pickTypes(pick: RoomPick, picks: readonly RoomPick[] = [pick]): PuzzleType[] {
+  const main = isArcadePick(pick) ? arcadeGroupTypes(pick) : typesInCategory(pick);
+  const also = typesAlsoIn(pick).filter((t) => {
+    const home = mainPickOf(t);
+    return home !== null && !picks.includes(home) && !main.includes(t);
+  });
+  return [...main, ...also];
 }
 
 /** How many different games the picks hold: the most rounds they can deal without a repeat. */
 export function eligibleCount(picks: readonly RoomPick[]): number {
-  return new Set(picks.flatMap(pickTypes)).size;
+  return new Set(picks.flatMap((p) => pickTypes(p, picks))).size;
 }
 
 /** The highest round count these picks allow (3–12, never above their games). */
@@ -242,8 +258,8 @@ export const ROOM_OVERHEAD_S = 40;
 /** Most players finish before the clock: a round is about this share of its limit. */
 export const PLAYED_SHARE = 0.8;
 
-function averageLimitS(pick: RoomPick): number {
-  const types = pickTypes(pick);
+function averageLimitS(pick: RoomPick, picks: readonly RoomPick[]): number {
+  const types = pickTypes(pick, picks);
   if (!types.length) return 0;
   return (
     types.reduce((sum, t) => sum + (puzzleDef(t).timeLimitMs ?? 60_000), 0) / types.length / 1000
@@ -255,7 +271,7 @@ export function estimateRoomMinutes(settings: RoomSettings): number {
   const picks = settings.picks.filter((p) => pickTypes(p).length > 0);
   if (!picks.length || settings.rounds <= 0) return 0;
   // Fair shares: every pick plays rounds ÷ picks of the rounds, on average.
-  const perRound = picks.reduce((sum, p) => sum + averageLimitS(p), 0) / picks.length;
+  const perRound = picks.reduce((sum, p) => sum + averageLimitS(p, picks), 0) / picks.length;
   const seconds = settings.rounds * (perRound * PLAYED_SHARE + ROUND_OVERHEAD_S) + ROOM_OVERHEAD_S;
   return Math.max(1, Math.round(seconds / 60));
 }
