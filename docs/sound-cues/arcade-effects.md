@@ -170,7 +170,7 @@ Already sounded: shots (`wavefront.fire`), pierce pickup (`wavefront.pierce`), s
 | `orbit.blackHole` | Through a black hole (orbitRev 4+) | The hole's rim turns gold and the rocket jumps ahead; CLEAR banner | `pz_gravity_pull` (shared recording) · own file `orbit.blackHole.mp3` (sound batch 4, volume 0.8) | 0–5 | 1080 ms |
 | `orbit.newHazard` | The planet before the first figure-eight (21) or the first asteroid belt is reached | The new orbit shape or belt comes into view ahead | `alert.newHazard.mp3` | 0–2 | 600 ms |
 
-Already sounded: launch (`orbit.launch`), first checkpoint (`orbit.checkpoint`), respawn and crash (`orbit.crash`), ambience loop.
+Already sounded: launch (`orbit.launch`), first checkpoint (`orbit.checkpoint`), respawn and crash (`orbit.crash`), ambience loop, and (orbitRev 12+) a stardust mote taken (`shared.celebrate.countTick` from `gameSounds.ts`; since Nov 2026 its glitter flash and sparkle trail streaming after the rocket, display only, play on that same tick).
 
 ## Grappler
 
@@ -215,9 +215,7 @@ Already sounded: crossing and its banner (`cross.crossed`), hops (`cross.hop`), 
 | Cue | Trigger | Looks like | Plays today | Per round | Length |
 |---|---|---|---|---|---|
 | `ricochet.heightStreak` | Every 50 m climbed (ricoRev 2) | "50 m" streak banner | `banner.streak.mp3` (volume 0.8) | 1–7 | 480 ms |
-| `ricochet.fullHeight` | The core's full height (241 m) reached (ricoRev 2) | FULL HEIGHT! banner | `banner.fullClear.mp3` | 0–1 | 840 ms |
-| `ricochet.land` | The ninja lands on stone (ricoRev 2; at most one per 80 ms) | The ninja clings to the wall | silent (no file yet) | 80–140 | 120 ms |
-| `ricochet.slip` | The ninja lands on moss or ice (ricoRev 2) | The ninja clings and slides fast | silent (no file yet) | 5–30 | 300 ms |
+| `ricochet.fullHeight` | The core's full height reached (241 m on ricoRev 2, 245 m on Moon Climb's ricoRev 3) | FULL HEIGHT! banner | `banner.fullClear.mp3` | 0–1 | 840 ms |
 | `flip.surviveStreak` | Every 10 s survived | STREAK banner with confetti | `banner.streak.mp3` · own file `flip.tenSeconds.mp3` (sound batch 4, volume 0.8) | 1–6 | 480 ms |
 | `flip.survivedFinish` | Survived to the end | SURVIVED! banner, confetti, shake | `banner.fullClear.mp3` | 0–1 | 1200 ms |
 | `flip.starTaken` | A star taken (flipRev 2+) | +STAR pop; the star stops being drawn | `arc_pickup` (shared recording) | 3–10 | 200 ms |
@@ -231,7 +229,7 @@ Already sounded: crossing and its banner (`cross.crossed`), hops (`cross.hop`), 
 | `flip.checkpointPassed` | A checkpoint gate passed at 15, 30 or 45 s (flipRev 8) | CHECKPOINT banner; the gate's pennant and curtain turn gold | `done.goldPulse.mp3` (volume 0.85) | 0–3 | 600 ms |
 | `flip.crashSaved` | A crash saved by a checkpoint (flipRev 8) | SAVED! pop; the runner box flickers gold for a second | `done.glowSweep.mp3` | 0–3 | 600 ms |
 | `flip.speedZone` | Into a speed zone (flipRev 8) | SPEED ZONE! banner; warm air and streaks between the zone's gates | `hover.zone.mp3` (volume 0.8) | 0–2 | 528 ms |
-| `flip.sweetLanding` | A flip landed with the runner's centre on a roof's sweet spot (flipRev 8) | SWEET! pop at the runner; a glint runs along the strip | `sfx_spark_chime.mp3` (shared recording, volume 0.6) | 0–8 | 600 ms |
+| `flip.sweetLanding` | A flip landed with the runner's centre on a roof's sweet spot (flipRev 8) | a small molten PERFECT at the runner (neon orange, dripping, ~0.6 s; no burst; since 3 Nov 2026, every flipRev 8+ round); the strip glows orange and cools | `sfx_spark_chime.mp3` (shared recording, volume 0.6) | 0–8 | 600 ms |
 | `flip.speedUp` | Every third speed step (9, 18, 27, 36 and 45 s; the tunnel still speeds up every 3 s, sound batch 4) | The scroll speeds up | `speed.up.mp3` · own file `flip.tunnelRush.mp3` (sound batch 4, volume 0.6) | 5 | 390 ms |
 
 Already sounded: gravity flip (`flip.flip`), crash into the pool (`flip.crash`).
@@ -327,6 +325,14 @@ Already sounded: rope cut (`snip.cut`), springy branch (`snip.springBounce`), pi
 | `tilt.chaserFall` | The red chaser marble falls into a pit | The chaser drops and vanishes | `move.softFall.mp3` | 0–3 | 300 ms |
 
 Already sounded: gate (`tilt.gate`), maze done (`tilt.mazeDone`), cup (`tilt.cup`, also the first marble home), star (`tilt.starTaken`), caught (`tilt.caught`), knocks and roll.
+
+## Iron Wall
+
+| Cue | When | Looks like | File | Per run | Length |
+| --- | --- | --- | --- | --- | --- |
+| `bastion.drone` | bastionRev 3: while a drone is in the sky and not yet downed (faded out when it is downed, flies off or the run ends) | A small dark drone with a blinking red light crosses the sky | none yet (silent until it has a file) | loop | loop |
+
+Already sounded: the drone shot down (`bastion.droneDown`, arcade.md), every shell, hit, reload and wave (arcade.md).
 
 ## Ball Tracker
 

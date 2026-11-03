@@ -1,9 +1,9 @@
-import { NINJA_REV } from "@/lib/arcade/ricochetNinja";
+import { MOON_REV } from "@/lib/arcade/ricochetNinja";
 import { BASTION_REV_DEALT } from "@/lib/arcade/bastionTank";
 import { TEN_DROP_DEPTH_REV } from "@/lib/arcade/tenDrop";
 import { SLICE_REV_TARGET, SLICE_REV_STRICT, SLICE_REV_STANDARD } from "@/lib/arcade/slice";
-import { FLIP_REV_TARGET, FLIP_REV_STRICT, FLIP_REV_STD } from "@/lib/arcade/flip";
-import { CROSS_REV_STD } from "@/lib/arcade/cross";
+import { FLIP_REV_TARGET, FLIP_REV_STRICT, FLIP_REV_FLOW } from "@/lib/arcade/flip";
+import { CROSS_REV_FLOW } from "@/lib/arcade/cross";
 import { INK_REV_STD } from "@/lib/arcade/inkBridge";
 import { SNAKE_REV_TARGET, SNAKE_REV_12 } from "@/lib/arcade/snake";
 import { BUB_REV_STD } from "@/lib/arcade/bubble";
@@ -12,7 +12,7 @@ import { minesBoard, minesSolve, MINES_REV_STD } from "@/lib/arcade/minesweeper"
 import { mahjongBuildClears, MAHJONG_REV_DEALT } from "@/lib/arcade/mahjong";
 import { SNIP_REV_TARGET, SNIP_REV_EXPAND } from "@/lib/arcade/snip";
 import { SKYLINE_REV_TARGET, SKYLINE_REV_STRICT, SKYLINE_REV_STD } from "@/lib/arcade/skyline";
-import { TILT_REV_STD } from "@/lib/arcade/tilt";
+import { TILT_REV_PAR } from "@/lib/arcade/tilt";
 import { TILT_BANK } from "./tiltBank.server";
 import { JUNC_REV_BAND } from "@/lib/arcade/junction";
 import { BINTOSS_REV_TARGET, BINTOSS_REV_STRICT, BINTOSS_REV_STD } from "@/lib/arcade/binToss";
@@ -51,8 +51,8 @@ import { PY_REV } from "@/lib/arcade/cards/pyramid";
 import { GS_REV } from "@/lib/arcade/cards/golfSol";
 import { GS_DEALS } from "@/lib/arcade/cards/golfSolDeals.data";
 import { MG_REV } from "@/lib/arcade/cards/muggins";
-import { BLOCKFALL_REV } from "@/lib/arcade/blockfall";
-import { blockfallDealSeed } from "./blockfallDeal.server";
+import { BLOCKFALL_REV_ZONE } from "@/lib/arcade/blockfall";
+import { blockfallDealSeedV2 } from "./blockfallDealV2.server";
 import type { BlockfallPuzzleData, FiveHandsPuzzleData, GolfSolPuzzleData, MugginsPuzzleData, PyramidPuzzleData, FreecellPuzzleData, PokerSquaresPuzzleData, TripeaksPuzzleData } from "./types";
 import { bullseyeWinds, BULLSEYE_REV_TARGET, BULLSEYE_REV_STRICT, BULLSEYE_REV_STD } from "@/lib/arcade/bullseye";
 import type {
@@ -135,9 +135,12 @@ export function generateMuggins(): MugginsPuzzleData {
   return { type: "muggins", seed: arcadeSeed(), mugginsRev: MG_REV };
 }
 
-/** Blockfall (Retro, 1 Nov 2026): a seed from the proved deal (the oracle took it to 200 through the server replay). */
+/**
+ * Blockzone (Blockfall's id, Retro): blockfallRev 2 (3 Nov 2026), a seed from its own proved deal (the oracle took it to
+ * 200 through the server replay). blockfallRev 1 rounds keep their seeds from the first deal.
+ */
 export function generateBlockfall(): BlockfallPuzzleData {
-  return { type: "blockfall", seed: blockfallDealSeed(arcadeSeed()), blockfallRev: BLOCKFALL_REV };
+  return { type: "blockfall", seed: blockfallDealSeedV2(arcadeSeed()), blockfallRev: BLOCKFALL_REV_ZONE };
 }
 
 export function generateSwerve(): SwervePuzzleData {
@@ -176,16 +179,17 @@ export function generateSnake(): SnakePuzzleData {
 }
 
 export function generateCross(): CrossPuzzleData {
-  return { type: "cross", seed: arcadeSeed(), crossRev: CROSS_REV_STD };
+  // crossRev 11 (3 Nov 2026): crossRev 10's courses without coins, scored with the no-stop streak and a cost a hit.
+  return { type: "cross", seed: arcadeSeed(), crossRev: CROSS_REV_FLOW };
 }
 
 export function generateDual(): DualPuzzleData {
   return { type: "dual", seed: arcadeSeed() };
 }
 
-/** Ricochet deals the ninja wall-climb (ricoRev 2, 1 Nov 2026); unstamped rounds keep the old shaft. */
+/** Ricochet deals Moon Climb (ricoRev 3, 3 Nov 2026); ricoRev 2 rounds keep the ninja wall-climb, unstamped ones the old shaft. */
 export function generateRicochet(): RicoPuzzleData {
-  return { type: "ricochet", seed: arcadeSeed(), ricoRev: NINJA_REV };
+  return { type: "ricochet", seed: arcadeSeed(), ricoRev: MOON_REV };
 }
 
 export function generateBreaker(): BreakerPuzzleData {
@@ -292,7 +296,9 @@ export function generateFlip(): FlipPuzzleData {
   // flipRev 9: flipRev 8's taller cave, features and sweet spots (expansion E7, docs/expansions/x200-flip.md), scored to 200
   // on the lifted curves (Joe's phone notes, 27 Oct 2026). flipRev 10 (29 Oct 2026): the same play on the arcade scoring
   // standard (time survived 150, gold stars 15, star trails 15, sweet landings 10, double flips 10; docs/arcade-standard/flip.md).
-  return { type: "flip", seed: arcadeSeed(), flipRev: FLIP_REV_STD };
+  // flipRev 11 (3 Nov 2026): no star pickups and the flow streak; clean time 100, perfect landings 60, double flips 20,
+  // flow streak 20 (docs/arcade-standard/flip.md "flipRev 11").
+  return { type: "flip", seed: arcadeSeed(), flipRev: FLIP_REV_FLOW };
 }
 
 export function generateJunction(): JunctionPuzzleData {
@@ -417,9 +423,10 @@ export function generateTilt(): TiltPuzzleData {
   // through the server's replay (tilt-expand-check replays each).
   // tiltRev 10 (the arcade scoring standard, 29 Oct 2026): the same bank; mazes 1–3 are tiltRev 9's less the quick stars,
   // and the fourth maze is carved from the seed in the sim (a spanning tree, so always passable; tilt-standard-check).
+  // tiltRev 11 (3 Nov 2026): the same bank and mazes, no gold stars, scored on par times and a clean run.
   const pick = arcadeSeed();
   const seed = TILT_BANK[((pick % TILT_BANK.length) + TILT_BANK.length) % TILT_BANK.length]!;
-  return { type: "tilt", seed, tiltRev: TILT_REV_STD };
+  return { type: "tilt", seed, tiltRev: TILT_REV_PAR };
 }
 
 export function generateHotFloor(): HotFloorPuzzleData {

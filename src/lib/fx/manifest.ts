@@ -561,7 +561,8 @@ const ENTRIES = {
   "tents.grass": { channel: "effects", frequency: 0, ms: 200, url: null },
   "tents.clear": { channel: "effects", frequency: 0, ms: 528, url: "/sounds/ui.clear.mp3" },
   "tents.solve": { channel: "effects", frequency: 0, ms: 1000, url: "/sounds/done.pops.mp3" },
-  "music_bastion": { channel: "music", frequency: 0, ms: 0, url: null },
+  // Iron Wall's own bed slot (3 Nov 2026): Wavefront's driving bed until its own recording is set.
+  "music_bastion": { channel: "music", frequency: 0, ms: 0, url: "/__l5e/assets-v1/94ad8b7c-b458-477d-b98e-ec2b1c21c0d5/music_wavefront.mp3" },
   // Bastion bastionRev 2 (1 Nov 2026): own slots, each on its shared fallback until a recording is set (docs/sound-cues/arcade.md).
   "bastion.cannon": { channel: "effects", frequency: 0, ms: 420, url: null },
   "bastion.dry": { channel: "effects", frequency: 0, ms: 120, url: null },
@@ -575,9 +576,13 @@ const ENTRIES = {
   "bastion.miss": { channel: "effects", frequency: 0, ms: 300, url: null },
   "bastion.baseHit": { channel: "effects", frequency: 0, ms: 800, url: null },
   "bastion.wave": { channel: "effects", frequency: 0, ms: 900, url: null },
+  // Iron Wall bastionRev 3 (3 Nov 2026): the drone's quiet loop while one is in the sky, and its fall.
+  "bastion.drone": { channel: "effects", frequency: 0, ms: 0, url: null, loop: true },
+  "bastion.droneDown": { channel: "effects", frequency: 0, ms: 700, url: null },
   "music_dual": { channel: "music", frequency: 0, ms: 0, url: null },
   "music_hotfloor": { channel: "music", frequency: 0, ms: 0, url: null },
-  "music_ricochet": { channel: "music", frequency: 0, ms: 0, url: null },
+  // Moon Climb's bed: Grappler's track until Joe's own file is set.
+  "music_ricochet": { channel: "music", frequency: 0, ms: 0, url: "/__l5e/assets-v1/963e4e94-12e4-488a-af73-4eb72a315432/music_swing.mp3" },
   "music_rooftop": { channel: "music", frequency: 0, ms: 0, url: null },
   "music_steady": { channel: "music", frequency: 0, ms: 0, url: null },
   "music_swerve": { channel: "music", frequency: 0, ms: 0, url: null },
@@ -747,9 +752,12 @@ const ENTRIES = {
   "ricochet.leap": { channel: "effects", frequency: 0, ms: 330, url: null },
   "ricochet.doubleJump": { channel: "effects", frequency: 0, ms: 330, url: null },
   "ricochet.hit": { channel: "effects", frequency: 0, ms: 200, url: null },
-  "ricochet.coin": { channel: "effects", frequency: 0, ms: 100, url: null },
-  "ricochet.lantern": { channel: "effects", frequency: 0, ms: 120, url: null },
   "ricochet.scroll": { channel: "effects", frequency: 0, ms: 120, url: null },
+  // Moon Climb (ricoRev 3, 3 Nov 2026): Joe's recordings to come; each plays a library sound until its file is set.
+  "ricochet.lanternGrab": { channel: "effects", frequency: 0, ms: 120, url: null },
+  "ricochet.lanternRide": { channel: "effects", frequency: 0, ms: 2177, url: "/sounds/curling_slide_loop.mp3", loop: true, volume: 0.6 },
+  "ricochet.ledge": { channel: "effects", frequency: 0, ms: 120, url: null, gapMs: 80 },
+  "ricochet.flow": { channel: "effects", frequency: 0, ms: 120, url: null },
   "ricochet.land": { channel: "effects", frequency: 0, ms: 120, url: null, gapMs: 80 },
   "ricochet.slip": { channel: "effects", frequency: 0, ms: 300, url: null },
   "ricochet.heightStreak": { channel: "effects", frequency: 0, ms: 480, url: "/sounds/banner.streak.mp3", volume: 0.8 },
@@ -1050,6 +1058,7 @@ const ENTRIES = {
   "homerun.whiff": { channel: "effects", frequency: 0, ms: 400, url: "/sounds/homerun_whiff.mp3" },
   "homerun.roar": { channel: "effects", frequency: 0, ms: 3477, url: "/sounds/sports_crowd_roar.mp3" },
   "homerun.groan": { channel: "effects", frequency: 0, ms: 1995, url: "/sounds/sports_crowd_groan.mp3" },
+  "homerun.catch": { channel: "effects", frequency: 0, ms: 400, url: "/sounds/homerun_mitt.mp3" },
   "freekick.crowd": { channel: "effects", frequency: 0, ms: 9271, url: "/sounds/sports_crowd_loop.mp3", loop: true },
   "freekick.whistle": { channel: "effects", frequency: 0, ms: 683, url: "/sounds/freekick_whistle.mp3" },
   "freekick.roar": { channel: "effects", frequency: 0, ms: 3477, url: "/sounds/sports_crowd_roar.mp3" },
@@ -1110,8 +1119,8 @@ const ENTRIES = {
   "music_golfsol": { channel: "music", frequency: 0, ms: 0, url: "/sounds/music_tripeaks.mp3" },
   "music_muggins": { channel: "music", frequency: 0, ms: 0, url: "/sounds/music_mahjong.mp3" },
   // Blockfall and Ringer (Alley Roll, 1 Nov 2026): library sounds only until their own recordings (docs/sound-cues/arcade.md).
+  "blockfall.move": { channel: "effects", frequency: 0, ms: 50, url: null, gapMs: 40 },
   "blockfall.turn": { channel: "effects", frequency: 0, ms: 50, url: null, gapMs: 40 },
-  "blockfall.hold": { channel: "effects", frequency: 0, ms: 90, url: null },
   "blockfall.lock": { channel: "effects", frequency: 0, ms: 120, url: null, gapMs: 60 },
   "blockfall.clear": { channel: "effects", frequency: 0, ms: 120, url: null },
   "blockfall.bigClear": { channel: "effects", frequency: 0, ms: 100, url: null },

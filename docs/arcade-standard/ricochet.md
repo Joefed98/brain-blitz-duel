@@ -1,3 +1,94 @@
+# Moon Climb: ricoRev 3 (3 Nov 2026)
+
+Ricochet is shown as **Moon Climb** since 3 Nov 2026 (`gameNames.ts`; the id stays `ricochet`). Rooms and practice deal
+`ricoRev` 3 (`MOON_REV`); a ricoRev 2 round (the ninja wall-climb, below) and an unstamped one (the old shaft) replay and
+score exactly as before (moon-blockzone-check replays 12 ricoRev 2 runs recorded on main). Rev 3 has its own step
+(`stepMoon`), deal (`moonBuildDeal`), parts (`moonStdParts`), checkpoint and run plumbing (`replayMoonRun`); nothing in
+rev 2's code path changed. Joe's mockup (the moon, the pagoda, the pills, the sky lantern, a mid-ledge) set the look.
+
+## What changed
+
+- **No coins and no gold lanterns.** **Scrolls** stay, rarer: three a tower (the brief's 2–4; a fixed count, the arcade
+  rule), at the top of double-jump lines on the route, never off it.
+- **Sky lanterns** (six a tower, `MOON_SKY`): paper lanterns glowing orange that float slowly up the middle of the shaft
+  (0.75 px a tick, for 15 s each), seeded in place, height and time from the room seed, the same for everyone. A leap
+  that touches one (the ninja's body box within 14 px of its centre) grabs it: the ninja hangs under it and rides up
+  3 px a tick for 105 ticks (1.75 s). A tap leaps off: towards the left wall if the tap is on the screen's left half,
+  the right wall on the right half (the input's `a`, −1 / 1; ← → or A / D on a computer, Space the wall it was heading
+  for). Riding to the end lets go towards the wall the leap was heading for (a drop, not a leap). One ride a lantern.
+- **Mid-ledges:** short hanging stone pieces in the middle of the shaft, 18 px wide (`MOON_LEDGE_HW` 9), 130–180 px tall.
+  A leap that meets one clings to its near side (the body box overlapping the ledge by at least 2 px); a tap from there
+  leaps back to the wall the ninja came from, a shorter hop (the sideways ticks are in proportion to the distance, so a
+  hop to a ledge and back climbs faster than crossing the whole gap). Clinging on a ledge slides as stone and holds at
+  its lower end.
+- **Flow:** every landing (a wall, a ledge or a lantern grabbed) adds one to the streak; a hit, or taking off after
+  sliding 16 px or more since the landing (waiting too long, or moss and ice), sets it to 0. "Flow ×N" in the HUD (gold
+  while a streak runs), beside "Height N m". Every 7 in a row pays.
+- **No triple jump;** the double jump is unchanged. Everything else (walls, leaps, katanas, shurikens, moss, ice, the
+  knock-down and stun, 60 s) is rev 2's.
+- **The look:** a larger moon high in the shaft and the pagoda under it (`paintMoonSky`), the ledges, the lanterns
+  (`drawSkyLantern`, inside the touch radius; the glow is light only), the hanging pose (pose 4), the two pills.
+- **The tile:** the Joulz hero ninja mid-leap towards a sky lantern, a mid-ledge and a katana, on the night temple with
+  the moon and the pagoda (`scripts/shots/tile-scenes/arcade2.tsx`, `backgrounds.ts`).
+
+## The deal and its proof
+
+`moonBuildDeal(seed)`: the surfaces as rev 2, then a route planned through the real movement (`planMoon`): six leaps
+(from walls, about every 500 ticks) meet a sky lantern placed to be where the leap will be in mid-gap (seeded float and
+lead time; clear of the route before it), ridden 30–90 ticks and left towards a seeded wall; several leaps meet a ledge
+placed in their way (clear of the route before it and of the lanterns' floats); waits never let a slide break the flow.
+Scrolls go on three double-jump apexes; katanas and shurikens are laid clear of the route (and shurikens clear of the
+ledges). The deal is kept only if the witness, played through the real step, rides all six lanterns, earns the whole
+flow part, takes the three scrolls, takes no hit and climbs at least 245 m. **Every dealt tower has a route to 200**
+(arcade-standard-check plays 24 witnesses through the server replay, 200 with `CHECKS_FULL=1`; moon-blockzone-check 12,
+60 at full depth). A deal takes about 25 ms (cached, eight seeds).
+
+## Parts (200 in all)
+
+| Part | Max | How |
+| --- | ---: | --- |
+| Height (core) | 125 | metres climbed on a straight line, full at **245 m** |
+| Flow | 30 | 3 for every 7 clean leaps in a row (Flow ×7, ×14, …), up to 10 |
+| Lantern rides | 30 | 5 for each of 6 sky lanterns ridden |
+| Scrolls | 15 | 5 for each of 3 scrolls |
+
+Any input scores at least 1; no input 0. The core's full mark sits between the great (239 m) and near-perfect (259 m)
+medians, fitted to the targets with the flow step (7).
+
+## Medians, weak → flawless, before → after (fresh seeds 10000–10039, the server replay; `bun scripts/ninja-bands.ts --rev=3 --from=10000`)
+
+| Level | ricoRev 2 | Moon Climb, ricoRev 3 | Target | Height | Flow | Rides | Scrolls | Metres | Hits | Best flow |
+| --- | ---: | ---: | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| Random tapper | 44 | 34 | — | 31 | 0 | 0 | 0 | 60 | 21 | 6 |
+| Weak | 76 | **55** | 30–60 | 48 | 0 | 0 | 5 | 96 | 21 | 6 |
+| Average | 105 | **88** | ~90 | 75 | 6 | 5 | 5 | 148 | 18 | 9 |
+| Good | 139 | **126** | 120–140 | 104 | 9 | 10 | 5 | 204 | 15 | 12 |
+| Great | 162 | **165** | ~160 | 121 | 15 | 20 | 8 | 239 | 13 | 15 |
+| Near-perfect | 175 | **178** | ~175 | 125 | 20 | 25 | 10 | 259 | 12 | 18 |
+| Elite | 179 | **189** | 185–195 | 125 | 24 | 30 | 13 | 272 | 11 | 20 |
+| Flawless | 187 | **200** | 200 | 125 | 30 | 30 | 15 | 316 | 0 | 110 |
+
+The bot (`moonBot` in `scripts/arcade-skill-bands/bots/ricochet.ts`) weighs, at each landing, waits and double-jump
+moments, and on a lantern how long to ride and which wall to leap towards, on the real sim, valuing height against time,
+rides, scrolls and Flow steps (less the streak a plan throws away), with the level's reaction, timing, judgement and
+slips. Flawless plays the deal's witness (the route the deal proved), as Blockfall's and Golf Solitaire's oracles do.
+
+## Sounds and haptics
+
+New slots `ricochet.lanternGrab`, `ricochet.lanternRide` (a loop while riding), `ricochet.ledge`, `ricochet.flow`;
+`ricochet.leap`, `.doubleJump`, `.land`, `.hit`, `.slip`, `.scroll` kept; `ricochet.coin` and `ricochet.lantern`
+removed; `music_ricochet` is the bed (Grappler's track until Joe's file). Every slot plays a library sound until its
+file is set (`docs/sound-cues/moon-climb-blockzone.md`). Haptics unchanged: `impact` on a hit and the arcade buzzer.
+
+## Decisions and assumptions
+
+- Lantern-ride direction is chosen by the tap's side of the screen (the brief: "tap to leap off towards either wall").
+- The flow's "no slide" is a slide of 16 px before the take-off (about 0.7 s waiting on stone, a moment on moss, none
+  on ice): short waits for a shuriken keep the flow.
+- Moon Climb's intro still is seed 0's witness riding its first lantern; no intro demo is recorded yet.
+
+---
+
 # Ricochet: the ninja wall-climb (`ricoRev` 2, 1 Nov 2026)
 
 Ricochet is back from retirement as an active arcade game in the **Action** group, under its existing id

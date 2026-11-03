@@ -6,6 +6,9 @@
  *
  * homerunRev 3: it picks Power once (on tick 1; the choice carries from pitch to pitch) and meets each pitch on its
  * kind's perfect tick (homerunPerfectOffset), so every swing carries 480 ft (the core counts 460).
+ *
+ * homerunRev 4: before each pitch it taps the centre of the pitch's lit sign (a spot), then taps so the bat meets the
+ * ball on its arrival tick: every pitch is a home run on the lit sign, ten perfect swings in a row.
  */
 import { recordInput, type ArcadeInputEvent } from "../src/lib/arcade/engine";
 import {
@@ -19,7 +22,12 @@ import {
   HOMERUN_MODE_POWER,
   HOMERUN_REV_2,
   HOMERUN_REV_3,
+  HOMERUN_REV_4,
+  HOMERUN_INPUT_RANGES_V4,
+  HOMERUN_INPUT_SPOT,
+  HOMERUN_INPUT_TAP,
   HOMERUN_SWING_TICKS,
+  HOMERUN_V4_SIGNS,
 } from "../src/lib/arcade/homerun";
 
 /** The swipe angle (tenths of a degree) whose spray is `spray` (rev 1 takes three quarters of the swipe, rev 2 9/16). */
@@ -27,6 +35,7 @@ export const homerunAngleFor = (spray: number, rev = 1) => (rev >= HOMERUN_REV_2
 
 /** The flawless batter's log on `seed` for revision `rev` (default 1; the plan is the same on every revision). */
 export function oracleRun(seed: number, rev = 1): ArcadeInputEvent[] {
+  if (rev >= HOMERUN_REV_4) return oracleRunV4(seed);
   const plan = homerunPlan(seed);
   const events: ArcadeInputEvent[] = [];
   const v3 = rev >= HOMERUN_REV_3;
@@ -48,4 +57,16 @@ export function playLog(seed: number, events: ArcadeInputEvent[], rev = 1) {
   let s = game.init(seed);
   while (!game.isOver(s)) s = game.step(s, at.get(s.tick + 1) ?? null);
   return s;
+}
+
+/** homerunRev 4's flawless batter: the lit sign's centre as the spot 60 ticks before each release, the tap on the perfect tick. */
+export function oracleRunV4(seed: number): ArcadeInputEvent[] {
+  const plan = homerunPlan(seed, HOMERUN_REV_4);
+  const events: ArcadeInputEvent[] = [];
+  plan.pitches.forEach((p, i) => {
+    const sign = HOMERUN_V4_SIGNS[plan.lit![i]!]!;
+    recordInput(events, { t: p.release - 60, k: HOMERUN_INPUT_SPOT, a: Math.round(sign.x + sign.w / 2), b: Math.round(sign.y + sign.h / 2), c: 0, d: 0 }, HOMERUN_INPUT_RANGES_V4);
+    recordInput(events, { t: p.arrive - HOMERUN_SWING_TICKS, k: HOMERUN_INPUT_TAP, a: 0, b: 0, c: 0, d: 0 }, HOMERUN_INPUT_RANGES_V4);
+  });
+  return events;
 }

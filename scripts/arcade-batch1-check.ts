@@ -254,8 +254,9 @@ for (const seed of CROSS_SEEDS.slice(0, 12)) {
 }
 console.log(`  150 reached through the server replay on ${best150} of 12 seeds (planner never loses a life)`);
 const crossIntro = INTRO_SCORE.cross;
-// The intro follows the revision rooms deal: crossRev 9 (x200) states rows, crossings, coins and streaks, up to its maximum.
-ok(crossIntro.includes(`Up to ${roundMaxFor("cross")}`) && /rows/.test(crossIntro) && /crossings/.test(crossIntro) && /coins/.test(crossIntro), "Jaywalk intro states rows, crossings, coins, up to its maximum (crossRev 9)");
+// The intro follows the revision rooms deal: crossRev 9 (x200) stated rows, crossings, coins and streaks, up to its maximum;
+// crossRev 11 (3 Nov 2026, no coins) states rows, crossings and the no-stop streak.
+ok(crossIntro.includes(`Up to ${roundMaxFor("cross")}`) && /rows/.test(crossIntro) && /crossings/.test(crossIntro) && /no-stop streak/.test(crossIntro), "Jaywalk intro states rows, crossings, the no-stop streak, up to its maximum (crossRev 11)");
 }
 
 /* =============================== 2b. Roofbound =============================== */
@@ -332,7 +333,9 @@ console.log(`  150 reached through the server replay on ${flip150} of ${FLIP_SEE
 // intro still states time and stars, and the "?" help still states the 10 for the minute.
 // flipRev 10 (the arcade scoring standard, 29 Oct 2026) pays the full minute through the core (time survived 150 at 120 half
 // seconds) instead of a 10 for lasting it: the help states that.
-ok(/stars/.test(INTRO_SCORE.flip) && /\b200\b/.test(INTRO_SCORE.flip) && /Time survived/.test(PUZZLE_INSTRUCTIONS.flip.score) && /150 at 120\./.test(PUZZLE_INSTRUCTIONS.flip.score), "Roofbound intro states time, stars and the top (200); the help the full minute's 150 for time survived");
+// flipRev 11 (3 Nov 2026, no star pickups; flip-rev11-check) pays the core on clean time, 100 at the full minute's 120 half
+// seconds: the intro states clean time and the top (no stars to state), the help clean time's 100 at the full minute.
+ok(/Clean time/.test(INTRO_SCORE.flip) && /\b200\b/.test(INTRO_SCORE.flip) && /Clean time/.test(PUZZLE_INSTRUCTIONS.flip.score) && /up to 100\. A good run \(100 points\) lasts 120 clean half seconds/.test(PUZZLE_INSTRUCTIONS.flip.score), "Roofbound intro states clean time and the top (200); the help the full minute's 120 clean half seconds for clean time's 100 (flipRev 11)");
 }
 
 /* ============================= 2c. Ball Tracker ============================= */

@@ -28,7 +28,7 @@ import {
   BT2_WORLD_W,
   type BastionTankState,
 } from "@/lib/arcade/bastionTank";
-import { bastionScene, bastionTankArtGame, BT2_ART_BG } from "@/lib/arcade/bastionTank.renderer";
+import { bastionScene, bastionTankArtGameFor, BT2_ART_BG } from "@/lib/arcade/bastionTank.renderer";
 import { bastionTankSounds } from "@/lib/fx/gameSounds";
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { BASTION_TIME_MS, type BastionPuzzleData } from "@/lib/duel/types";
@@ -121,7 +121,7 @@ function LegacyStage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStagePro
   return (
     <ArcadeCanvasStage
       diagKey="bastion"
-      label="Bastion"
+      label={gameDisplayName("bastion")}
       background={BAS_BG}
       seed={data?.seed ?? 1}
       enabled={data !== null}
@@ -186,7 +186,7 @@ function LegacyReveal({ puzzle, myAnswer }: PuzzleRevealProps) {
 
 /* ============================== bastionRev 2 ============================== */
 
-/** Fixed intro still (the mockup's look): the road at dusk, a scout far off, a heavy close with its orange weak spot under the crosshair, the bottom panel. */
+/** Fixed intro still (the mockup's look): the road at dusk, a drone in the sky, a scout far off, a heavy close with its orange weak spot under the crosshair, the bottom panel. */
 function IntroExample() {
   return (
     <div className="flex w-full flex-col items-center gap-2">
@@ -199,6 +199,14 @@ function IntroExample() {
         </defs>
         <rect width="200" height="50" fill="url(#bt2-sky)" />
         <path d="M0 50 L0 42 L14 34 L28 44 L44 28 L60 42 L76 32 L92 44 L110 26 L126 40 L144 30 L162 44 L178 34 L200 42 L200 50 Z" fill="#262B33" />
+        {/* A drone crossing the sky (Iron Wall, bastionRev 3). */}
+        <g transform="translate(150 20)">
+          <rect x="-6" y="-1.6" width="12" height="1" fill="#1B1E24" />
+          <ellipse cx="-6" cy="-3" rx="2.4" ry="0.8" fill="#D7E1EE" opacity="0.6" />
+          <ellipse cx="6" cy="-3" rx="2.4" ry="0.8" fill="#D7E1EE" opacity="0.6" />
+          <path d="M-5 0 L4 -2.2 L5.5 0 L4 2 Z" fill="#3E4450" stroke="#E1E8F2" strokeWidth="0.5" />
+          <circle cx="-4.5" cy="-0.3" r="1" fill="#FF4A3D" />
+        </g>
         <rect y="50" width="200" height="66" fill="#665640" />
         <path d="M97 50 L103 50 L164 116 L36 116 Z" fill="#96806052" />
         <path d="M99 52 L78 116 M101 52 L122 116" stroke="#E1D2B48C" strokeWidth="1.2" strokeDasharray="5 6" />
@@ -233,14 +241,14 @@ function IntroExample() {
         <text x="8" y="144" fontSize="6" fill="#BDBDCC" fontWeight="700">RELOAD</text>
       </svg>
       <p className="text-center text-xs text-muted-foreground">
-        Drag to aim (the crosshair floats above your thumb) and lift to fire. Lead moving tanks and hit the glowing weak spot while it is open for double damage.
+        Drag to aim (the crosshair floats above your thumb) and lift to fire. Lead moving tanks, hit the glowing weak spot while it is open for double damage, and shoot down the drones.
       </p>
     </div>
   );
 }
 
-/** The crosshair floats this far above the finger (world px) so the thumb never hides the target. */
-const FINGER_LIFT = 60;
+/** The crosshair floats this far above the finger (world px) so the thumb never hides the target (60 until 3 Nov 2026; input mapping only, every revision). */
+const FINGER_LIFT = 100;
 /** A swipe down this far (world px), mostly vertical and quick, reloads instead of firing. */
 const SWIPE_DOWN_PX = 70;
 const SWIPE_MS = 420;
@@ -262,7 +270,8 @@ interface Gesture {
 
 function TankStage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const data: BastionPuzzleData | null = puzzle.type === "bastion" ? puzzle : null;
-  const game = useMemo(() => bastionTankArtGame, []);
+  const rev = data?.bastionRev;
+  const game = useMemo(() => bastionTankArtGameFor(rev), [rev]);
   const live = useRef<BastionTankState | null>(null);
   const aim = useRef({ x: 195, y: 470 });
   const actions = useRef<PointerPayload[]>([]);
@@ -366,7 +375,7 @@ function Reveal(props: PuzzleRevealProps) {
   const { puzzle, myAnswer } = props;
   if (puzzle.type !== "bastion") return null;
   if (!isBastionTank(puzzle.bastionRev)) return <LegacyReveal {...props} />;
-  const result = replayBastionTankRun(puzzle.seed, myAnswer ?? "");
+  const result = replayBastionTankRun(puzzle.seed, myAnswer ?? "", puzzle.bastionRev);
   // What the run did, part by part (the points are the stored score's, shown by the arcade reveal above).
   const lines = result.parts.map((part) => `${part.label}: ${part.detail}`);
   return (
@@ -379,7 +388,7 @@ function Reveal(props: PuzzleRevealProps) {
           {line}
         </p>
       ))}
-      <p className="shrink-0 text-center font-mono text-sm text-muted-foreground">Same five waves for everyone</p>
+      <p className="shrink-0 text-center font-mono text-sm text-muted-foreground">{result.state.rev >= 3 ? "Same five waves and drones for everyone" : "Same five waves for everyone"}</p>
     </div>
   );
 }

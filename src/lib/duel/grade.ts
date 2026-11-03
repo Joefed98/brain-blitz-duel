@@ -117,8 +117,8 @@ import { scoreWordSearch, wsDecode, wsGrade, wsSplitBonus } from "./wordSearch";
 import { LW_FREE_MISSES, lwDecode, lwDecodeLog, lwGrade, lwTallyLog, lwUsesLog, scoreLetterWheel, scoreLetterWheelLog } from "./letterWheel";
 import { decodeCrossRun, replayCrossRun } from "./cross";
 import { decodeDualRun, replayDualRun } from "./dual";
-import { decodeNinjaRun, decodeRicoRun, isNinjaRev, replayNinjaRun, replayRicoRun } from "./ricochet";
-import { NINJA_CORE_FULL_M } from "@/lib/arcade/ricochetNinja";
+import { decodeMoonRun, decodeNinjaRun, decodeRicoRun, isMoonRev, isNinjaRev, replayMoonRun, replayNinjaRun, replayRicoRun } from "./ricochet";
+import { MOON_CORE_FULL_M, NINJA_CORE_FULL_M } from "@/lib/arcade/ricochetNinja";
 import { decodeBinTossRun, replayBinTossRun } from "./binToss";
 import { decodeBullseyeRun, replayBullseyeRun } from "./bullseye";
 import { bullseyeDeadPoints, bullseyeStreakPoints } from "@/lib/arcade/bullseye";
@@ -1298,7 +1298,8 @@ function gradeUnderRev(
         inputs: decodeCrossRun(answer).events.length,
         claimedScore: decodeCrossRun(answer).claimedScore,
         // crossRev 9 (x200): coins and streak points (older rounds keep exactly their old fields).
-        ...(run.state.wide ? { coins: run.state.coinTotal ?? 0, streakPts: run.state.streakPts ?? 0, closeCalls: run.state.closeCalls ?? 0 } : {}),
+        // crossRev 11: no coins; the no-stop streak's points (noStop: the streak's no-stop crossings in a row at the end).
+        ...(run.state.flow ? { noStop: run.state.streak ?? 0, streakPts: run.state.streakPts ?? 0, closeCalls: run.state.closeCalls ?? 0 } : run.state.wide ? { coins: run.state.coinTotal ?? 0, streakPts: run.state.streakPts ?? 0, closeCalls: run.state.closeCalls ?? 0 } : {}),
         ...(run.reason ? { reason: run.reason } : {}),
       };
       break;
@@ -1330,6 +1331,36 @@ function gradeUnderRev(
       break;
     }
     case "ricochet": {
+      if (isMoonRev(puzzle.ricoRev)) {
+        // ricoRev 3, Moon Climb: the tower dealt from the stored seed, the move log replayed; only that scores.
+        const replayStart = performance.now();
+        const run = replayMoonRun(puzzle.seed, answer);
+        revealRun = run;
+        arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
+        isCorrect = run.metres >= MOON_CORE_FULL_M;
+        correctCount = run.metres;
+        score = run.score;
+        extraDetail = {
+          ricoRev: puzzle.ricoRev,
+          metres: run.metres,
+          rides: run.rides,
+          flow: run.flow,
+          bestFlow: run.bestFlow,
+          scrolls: run.scrolls,
+          hits: run.hits,
+          leaps: run.leaps,
+          djs: run.djs,
+          endedSeconds: run.endedSeconds,
+          flagged: run.flagged,
+          clientLag: run.clientLag,
+          clientTick: run.clientTick,
+          desyncTick: run.desyncTick,
+          inputs: decodeMoonRun(answer).events.length,
+          claimedScore: decodeMoonRun(answer).claimedScore,
+          ...(run.reason ? { reason: run.reason } : {}),
+        };
+        break;
+      }
       if (isNinjaRev(puzzle.ricoRev)) {
         // ricoRev 2, the ninja wall-climb: the tower dealt from the stored seed, the move log replayed; only that scores.
         const replayStart = performance.now();
@@ -2235,7 +2266,7 @@ function gradeUnderRev(
         // bastionRev 2 (1 Nov 2026): the tank-defence shooter on the arcade scoring standard; the server's replay alone
         // scores, and the stored extra carries each part's points (numbers only) for the reveal.
         const replayStart = performance.now();
-        const run = replayBastionTankRun(puzzle.seed, answer);
+        const run = replayBastionTankRun(puzzle.seed, answer, puzzle.bastionRev);
         const decoded = decodeBastionTankRun(answer);
         revealRun = run as unknown as typeof revealRun;
         arcadeDiag = buildArcadeDiag(puzzle.type, run as unknown as Parameters<typeof buildArcadeDiag>[1], answer, performance.now() - replayStart);
@@ -2251,6 +2282,7 @@ function gradeUnderRev(
           kills: run.kills,
           weak: run.weak,
           fast: run.fast,
+          ...(run.drones ? { drones: run.drones } : {}),
           jams: run.jams,
           shots: run.shots,
           hits: run.hits,
@@ -2559,6 +2591,8 @@ function gradeUnderRev(
         ...(puzzle.tiltRev ? { tiltRev: puzzle.tiltRev, stars: run.stars, totalStars: run.totalStars } : {}),
         // tiltRev 8 (the expansion): quick stars, falls and the paid skill points.
         ...(tiltIsExpand(puzzle.tiltRev) ? { quickStars: run.quickStars, totalQuick: run.totalQuick, falls: run.falls, skillPoints: run.skillPoints } : {}),
+        // tiltRev 11: mazes within par and mazes finished before the first fall.
+        ...(run.parsMet !== undefined ? { parsMet: run.parsMet, cleanMazes: run.cleanMazes } : {}),
         survived: run.survived,
         survivedSeconds: run.survivedSeconds,
         endedSeconds: run.endedSeconds,

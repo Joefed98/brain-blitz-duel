@@ -1,5 +1,6 @@
 /**
- * Blockfall: a player stacking pieces in a 10 × 20 well for 60 s.
+ * Blockfall: a player stacking pieces in a 10 × 20 well for 60 s (Blockzone, blockfallRev 2: 90 s and no hold, so
+ * nobody holds there).
  *
  * Each piece: the player sees it arrive, thinks (a base 900 ms, the level's think scale), then makes the inputs a
  * phone takes: a tap on the hold box, taps to turn, one drag to the column, a flick down. Each input is a separate
@@ -10,7 +11,7 @@
  * multi-line part is full (great ones until about half of it) and play the last 10 s low. The perfect level is the
  * oracle (scripts/blockfall-oracle.ts).
  */
-import { BF_INPUT_DROP, BF_INPUT_HOLD, BF_INPUT_MOVE, BF_MULTI_MAX, BF_RUN_TICKS, bfMultiPoints, bfStackHeight, type BfState } from "../../../src/lib/arcade/blockfall";
+import { BF_INPUT_DROP, BF_INPUT_HOLD, BF_INPUT_MOVE, BF_MULTI_MAX, bfMultiPoints, bfRunTicksFor, bfStackHeight, BLOCKFALL_REV_ZONE, type BfState } from "../../../src/lib/arcade/blockfall";
 import { blockfallOracleEvents } from "../../blockfall-oracle";
 import { bfCandidates, bfValue, type BfCandidate, type BfMode, type BfMove } from "../../blockfall/planner";
 import { driveEvents, type SkillBot } from "../bot";
@@ -27,7 +28,9 @@ function gestureMs(m: BfMove): number {
 function choose(s: BfState, human: Human): BfCandidate | null {
   const level = human.level;
   const strong = level === "great" || level === "near" || level === "elite";
-  const hold = level !== "weak" && level !== "average";
+  // Blockzone (blockfallRev 2) has no hold.
+  const hold = level !== "weak" && level !== "average" && s.rev !== BLOCKFALL_REV_ZONE;
+  const BF_RUN_TICKS = bfRunTicksFor(s.rev);
   const multiAim = level === "great" ? BF_MULTI_MAX / 2 : BF_MULTI_MAX;
   let mode: BfMode = "flat";
   if (strong && s.tick >= BF_RUN_TICKS - 600) mode = "low";
@@ -39,8 +42,8 @@ function choose(s: BfState, human: Human): BfCandidate | null {
   return scored[Math.max(0, i)]!.c;
 }
 
-export const bot: SkillBot = ({ game, seed, human }) => {
-  if (human.level === "perfect") return { events: blockfallOracleEvents(seed).events };
+export const bot: SkillBot = ({ game, seed, human, rev }) => {
+  if (human.level === "perfect") return { events: blockfallOracleEvents(seed, rev ?? 1).events };
   let planFor = -1;
   let queue: { t: number; k: number; a: number }[] = [];
   let thinkUntil = -1;

@@ -1,6 +1,8 @@
 import { usesParMoves } from "./parMoves";
+import { bastionStdSpecFor } from "@/lib/arcade/bastionTank";
 import { PUZZLE_SCORE_REV, puzzleScoreRevOf } from "./puzzleScoreRev";
 import { ARCADE_STANDARD } from "@/lib/arcade/standard";
+import { homerunStdSpecFor } from "@/lib/arcade/homerun";
 import { LAB_STARS } from "./depth/labyrinth";
 import { usesStandard } from "./standard/stamps";
 import { solutionProgress } from "./progressFigures";
@@ -1090,6 +1092,8 @@ const crossSummary: SummaryBuilder = (result) => {
     detail: [
       `${lanes} lane${lanes === 1 ? "" : "s"} crossed in total`,
       // crossRev 9 (x200): coins and the streak.
+      // crossRev 11: no coins; the no-stop streak's points.
+      ...(result.extra?.["noStop"] !== undefined ? [`no-stop streak ${Number(result.extra?.["streakPts"] ?? 0)}${Number(result.extra?.["closeCalls"] ?? 0) ? ` · ${Number(result.extra?.["closeCalls"])} close calls` : ""}`] : []),
       ...(result.extra?.["coins"] !== undefined ? [`${Number(result.extra["coins"])} coin${Number(result.extra["coins"]) === 1 ? "" : "s"} · streak ${Number(result.extra?.["streakPts"] ?? 0)}${Number(result.extra?.["closeCalls"] ?? 0) ? ` · ${Number(result.extra?.["closeCalls"])} close calls` : ""}`] : []),
     ],
   };
@@ -1109,6 +1113,18 @@ const dualSummary: SummaryBuilder = (result) => {
 };
 
 const ricoSummary: SummaryBuilder = (result) => {
+  // ricoRev 3, Moon Climb: the height, the lantern rides, the best Flow and the scrolls.
+  if (result.extra?.["metres"] !== undefined && result.extra?.["rides"] !== undefined) {
+    const m = Number(result.extra["metres"] ?? 0);
+    const hits = Number(result.extra["hits"] ?? 0);
+    return {
+      summary: `${m.toLocaleString("en-GB")} m climbed · ${result.score} points`,
+      detail: [
+        `${Number(result.extra["rides"] ?? 0)} lantern rides · best Flow ×${Number(result.extra["bestFlow"] ?? 0)} · ${Number(result.extra["scrolls"] ?? 0)} scrolls`,
+        `${hits === 1 ? "1 hit" : `${hits} hits`} · ${Number(result.extra["djs"] ?? 0)} double jumps`,
+      ],
+    };
+  }
   // ricoRev 2, the ninja wall-climb: the height and the items, no survival (no game over).
   if (result.extra?.["metres"] !== undefined) {
     const m = Number(result.extra["metres"] ?? 0);
@@ -1218,8 +1234,9 @@ const mugginsSummary: SummaryBuilder = (result) => {
 const blockfallSummary: SummaryBuilder = (result) => {
   const n = (key: string) => Number(result.extra?.[key] ?? 0);
   const multi = n("doubles") + n("triples") + n("quads");
+  const pieces = n("blockfallRev") >= 2 ? ` · ${n("pieces")} pieces` : "";
   return {
-    summary: `${n("lines")} lines · ${multi} multi-line clear${multi === 1 ? "" : "s"}`,
+    summary: `${n("lines")} lines${pieces} · ${multi} multi-line clear${multi === 1 ? "" : "s"}`,
     detail: [result.extra?.["toppedOut"] ? "Topped out" : `Stack ${n("height")} high at the buzzer`],
   };
 };
@@ -1323,8 +1340,9 @@ const mahjongSummary: SummaryBuilder = (result) => {
  * (`part_<key>`), so the summary names them in the spec's order with its maximums.
  */
 function sportsSummary(type: "homerun" | "freekick" | "racing"): SummaryBuilder {
-  return (result) => {
-    const spec = ARCADE_STANDARD[type]?.spec;
+  return (result, puzzle) => {
+    // Home Run's parts changed with homerunRev 4 (4 parts): a stored round reads its own revision's.
+    const spec = puzzle.type === "homerun" ? homerunStdSpecFor(puzzle.homerunRev) : ARCADE_STANDARD[type]?.spec;
     const parts = (spec?.parts ?? []).map((p) => ({ label: p.label, max: p.max, points: Number(result.extra?.[`part_${p.key}`] ?? 0) }));
     const [core, ...features] = parts;
     return {
@@ -1493,13 +1511,14 @@ const wavefrontSummary: SummaryBuilder = (result) => {
 };
 
 const bastionSummary: SummaryBuilder = (result, puzzle) => {
-  // bastionRev 2: the tank game on the arcade scoring standard, its stored parts and counts.
+  // bastionRev 2 and 3: the tank game on the arcade scoring standard, its stored parts and counts.
   if (puzzle.type === "bastion" && (puzzle.bastionRev ?? 1) >= 2) {
     const kills = Number(result.extra?.["kills"] ?? 0);
     const base = Number(result.extra?.["base"] ?? 0);
     const fell = result.extra?.["fell"] === true;
     const ended = Number(result.extra?.["endedSeconds"] ?? 0);
-    const spec = ARCADE_STANDARD["bastion"]?.spec;
+    // Each stamp's own parts (rev 3 adds Drones).
+    const spec = bastionStdSpecFor(puzzle.bastionRev);
     const parts = (spec?.parts ?? []).map((p) => `${p.label} ${Number(result.extra?.[`part_${p.key}`] ?? 0)}/${p.max}`);
     return {
       summary: fell ? `${kills} tanks · base fell at ${ended.toFixed(1)}s` : `${kills} tanks · base ${base} / 3`,

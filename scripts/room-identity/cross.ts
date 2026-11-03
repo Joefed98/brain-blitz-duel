@@ -1,5 +1,5 @@
 /**
- * Room identity for Jaywalk crossRev 9 and 10 (docs/expansions/x200-cross.md, the 26 Oct 2026 arcade rule):
+ * Room identity for Jaywalk crossRev 9, 10 and 11 (docs/expansions/x200-cross.md, the 26 Oct 2026 arcade rule):
  * `scheduleOf` replays an input log on the given revision and lists every seeded appearance. Jaywalk's world
  * is one course per crossing, laid out at init from the seed: its lanes (cars, buses, bikes, motorbikes,
  * roadworks, the island), their speeds, gaps and phases, and its coins (four on each of crossings 1–5, twenty
@@ -11,7 +11,7 @@
  *
  *   import { roomIdentity } from "./room-identity/cross";
  */
-import { CROSS_INPUT_MOVE, crossCourse, crossGameFor, CROSS_REV_STD, type CrossCourse, type CrossState } from "../../src/lib/arcade/cross";
+import { CROSS_INPUT_MOVE, crossCourse, crossGameFor, CROSS_REV_FLOW, type CrossCourse, type CrossState } from "../../src/lib/arcade/cross";
 import type { ArcadeInputEvent } from "../../src/lib/arcade/engine";
 import { Human, type SkillLevel } from "../arcade-skill-bands/human";
 import { bot } from "../arcade-skill-bands/bots/cross";
@@ -73,8 +73,8 @@ export function uniformLog(seed: number, ticks = 3600): ArcadeInputEvent[] {
   return events;
 }
 
-/** A skill-band bot's log on the revision rooms deal (crossRev 10 since the arcade scoring standard, 29 Oct 2026). */
-export function botLog(seed: number, level: SkillLevel, rev: number = CROSS_REV_STD): ArcadeInputEvent[] {
+/** A skill-band bot's log on the revision rooms deal (crossRev 11 since the no-stop streak, 3 Nov 2026). */
+export function botLog(seed: number, level: SkillLevel, rev: number = CROSS_REV_FLOW): ArcadeInputEvent[] {
   const game = crossGameFor(rev);
   return bot({ game, seed, rev, human: new Human("cross", seed, level), fixes: true }).events ?? [];
 }
@@ -84,7 +84,9 @@ export const roomIdentity = {
   type: "cross",
   // crossRev 10 (the arcade scoring standard, 29 Oct 2026): the revision rooms deal; its courses are crossRev 9's,
   // thinned or thickened by a fixed density per crossing, so the same rule holds.
-  rev: CROSS_REV_STD,
+  // crossRev 11 (3 Nov 2026): crossRev 10's courses without coins; nothing new is dealt, and the no-stop streak is
+  // scored from the walker alone, so the same rule holds.
+  rev: CROSS_REV_FLOW,
   scheduleOf,
   logs: (seed: number): ArcadeInputEvent[][] => [[], randomLog(seed), botLog(seed, "weak"), botLog(seed, "elite")],
 };

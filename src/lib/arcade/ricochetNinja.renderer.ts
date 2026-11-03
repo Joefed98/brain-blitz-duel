@@ -2,7 +2,9 @@
  * Ricochet's ninja wall-climb art (ricoRev 2; display only, never imported by the sim or server): night over two
  * temple walls of dark stone, a moon and a distant pagoda behind, the ninja (a clean black silhouette with a red
  * headband and sash), katanas in the walls (a gold guard and a steel blade that glints), spinning shurikens, moss and
- * ice patches, coins, gold lanterns and scrolls. Every object is drawn inside its sim bounds (within 2 px: the
+ * ice patches, coins, gold lanterns and scrolls. Moon Climb (ricoRev 3) draws a larger moon and the pagoda under it,
+ * the mid-ledges (slim hanging stone pieces), the sky lanterns (paper, glowing orange; the ninja hangs from one it
+ * rides) and the Height and Flow pills, and no coins or gold lanterns. Every object is drawn inside its sim bounds (within 2 px: the
  * arcade bounds rule). The sky is painted once per canvas size (deviceLayer); only the walls, the objects in view and
  * the HUD are drawn each frame.
  */
@@ -29,6 +31,7 @@ import {
   NINJA_WORLD_H,
   NINJA_WORLD_W,
   ninjaGame,
+  moonGame,
   ninjaMetres,
   SCROLL_R,
   COIN_R,
@@ -38,6 +41,14 @@ import {
   shurikenAt,
   SURF_ICE,
   SURF_MOSS,
+  MODE_RIDE,
+  MOON_CORE_FULL_M,
+  MOON_LEDGE_HW,
+  MOON_REV,
+  MOON_RIDE_HANG,
+  MOON_SKY_R,
+  moonSkyAt,
+  type MoonState,
   type NinjaState,
 } from "./ricochetNinja";
 
@@ -115,6 +126,55 @@ function paintSky(ctx: CanvasRenderingContext2D): void {
   mist.addColorStop(1, "rgba(120,130,190,0.16)");
   ctx.fillStyle = mist;
   ctx.fillRect(0, H * 0.8, W, H * 0.2);
+}
+
+/** Moon Climb's sky (ricoRev 3): the same night with a larger moon high in the middle and the pagoda under it. */
+function paintMoonSky(ctx: CanvasRenderingContext2D): void {
+  const W = NINJA_WORLD_W;
+  const H = NINJA_WORLD_H;
+  const g = ctx.createLinearGradient(0, 0, 0, H);
+  g.addColorStop(0, "#080B1E");
+  g.addColorStop(0.5, "#141B3E");
+  g.addColorStop(1, "#212650");
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, W, H);
+  for (let i = 0; i < 80; i++) {
+    const h = artHash(i, 43);
+    ctx.globalAlpha = 0.22 + ((h >>> 9) % 6) * 0.1;
+    ctx.fillStyle = "#E8ECFF";
+    ctx.fillRect(NINJA_WALL_L + (h % (NINJA_WALL_R - NINJA_WALL_L)), (h >>> 12) % Math.round(H * 0.75), (h >>> 28) % 5 === 0 ? 2 : 1, 1);
+  }
+  ctx.globalAlpha = 1;
+  const mx = W / 2;
+  const my = 230;
+  const halo = ctx.createRadialGradient(mx, my, 40, mx, my, 128);
+  halo.addColorStop(0, "rgba(255,240,205,0.26)");
+  halo.addColorStop(1, "rgba(255,240,205,0)");
+  ctx.fillStyle = halo;
+  ctx.fillRect(mx - 130, my - 130, 260, 260);
+  ctx.fillStyle = "#F8EDCB";
+  ctx.beginPath();
+  ctx.arc(mx, my, 56, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = "rgba(205,190,160,0.30)";
+  for (const [x, y, r] of [[-18, -10, 11], [16, 14, 8], [8, -24, 6], [-10, 24, 5], [26, -8, 4]] as const) {
+    ctx.beginPath();
+    ctx.arc(mx + x, my + y, r, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.fillStyle = "#151A33";
+  ctx.beginPath();
+  ctx.moveTo(0, H * 0.9);
+  for (let x = 0; x <= W; x += 30) ctx.lineTo(x, H * 0.88 + 12 * Math.sin(x / 41) + 6 * Math.sin(x / 11));
+  ctx.lineTo(W, H);
+  ctx.lineTo(0, H);
+  ctx.fill();
+  drawPagoda(ctx, W / 2, Math.round(H * 0.9), 1.2);
+  const mist = ctx.createLinearGradient(0, H * 0.78, 0, H);
+  mist.addColorStop(0, "rgba(120,130,190,0)");
+  mist.addColorStop(1, "rgba(120,130,190,0.18)");
+  ctx.fillStyle = mist;
+  ctx.fillRect(0, H * 0.78, W, H * 0.22);
 }
 
 /** A five-roof pagoda silhouette, its base at (x, base), with a few lit windows. */
@@ -382,13 +442,76 @@ export function drawScroll(ctx: CanvasRenderingContext2D, x: number, y: number, 
 }
 
 /**
+ * A mid-ledge (Moon Climb): a slim hanging piece of the temple's stone, MOON_LEDGE_HW × 2 px wide from `top` to
+ * `bottom` (screen y), with a bronze cap at each end and a rope up from its top. Drawn inside its sim box.
+ */
+export function drawLedge(ctx: CanvasRenderingContext2D, x: number, top: number, bottom: number): void {
+  const w = MOON_LEDGE_HW * 2;
+  const l = x - MOON_LEDGE_HW;
+  ctx.strokeStyle = "rgba(190,170,130,0.55)";
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(x, top - 22);
+  ctx.lineTo(x, top);
+  ctx.stroke();
+  ctx.fillStyle = STONE;
+  ctx.fillRect(l, top, w, bottom - top);
+  ctx.fillStyle = STONE_LIT;
+  ctx.fillRect(l, top, 3, bottom - top);
+  ctx.fillStyle = STONE_DARK;
+  ctx.fillRect(l + w - 3, top, 3, bottom - top);
+  ctx.fillStyle = MORTAR;
+  for (let y = top + 22; y < bottom - 8; y += 22) ctx.fillRect(l + 2, Math.round(y), w - 4, 1.5);
+  ctx.fillStyle = "#B8873A";
+  ctx.fillRect(l, top, w, 4);
+  ctx.fillRect(l, bottom - 4, w, 4);
+  ctx.fillStyle = "rgba(255,226,150,0.6)";
+  ctx.fillRect(l + 1, top, w - 2, 1.2);
+}
+
+/**
+ * A sky lantern (Moon Climb): a paper lantern glowing orange, its body inside the touch radius (MOON_SKY_R round its
+ * centre), a dark cap and base and a short tassel; the glow round it is light only.
+ */
+export function drawSkyLantern(ctx: CanvasRenderingContext2D, x: number, y: number, tick: number, ridden = false): void {
+  const flick = 0.06 * Math.sin(tick / 7 + x);
+  const glow = ctx.createRadialGradient(x, y, 3, x, y, 34);
+  glow.addColorStop(0, `rgba(255,150,60,${(ridden ? 0.5 : 0.4) + flick})`);
+  glow.addColorStop(1, "rgba(255,150,60,0)");
+  ctx.fillStyle = glow;
+  ctx.fillRect(x - 34, y - 34, 68, 68);
+  const r = MOON_SKY_R;
+  const body = ctx.createLinearGradient(x - r, 0, x + r, 0);
+  body.addColorStop(0, "#E86A1E");
+  body.addColorStop(0.45, "#FFB259");
+  body.addColorStop(1, "#D9581A");
+  ctx.fillStyle = body;
+  ctx.beginPath();
+  ctx.ellipse(x, y, r - 3, r - 1, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = "rgba(140,50,10,0.55)";
+  ctx.lineWidth = 1;
+  for (const dx of [-5, 0, 5]) {
+    ctx.beginPath();
+    ctx.moveTo(x + dx * 0.9, y - r + 3);
+    ctx.quadraticCurveTo(x + dx * 1.35, y, x + dx * 0.9, y + r - 3);
+    ctx.stroke();
+  }
+  ctx.fillStyle = "#3A2210";
+  ctx.fillRect(x - 6, y - r, 12, 3);
+  ctx.fillRect(x - 5, y + r - 3, 10, 3);
+  ctx.fillStyle = NINJA_RED;
+  ctx.fillRect(x - 1, y + r - 1, 2, 2);
+}
+
+/**
  * The ninja: the Joulz hero (hero.renderer.ts, the figure the score celebrations draw: its gold cape, gold-outlined black
  * limbs, chest bolt, gold gloves and boots, black head with the gold ring, mask band and eye slits) in ninja gear: a
  * dark wrap round the head that leaves the hero's face showing, a red headband with trailing tails, a red sash and a
  * small katana on the back. Every pose sits inside the sim's body box (NINJA_HW × NINJA_HH either side of (x, y)),
  * so what you see is what is hit. `pose`: 0 clinging (hands and feet on the wall behind, `face` +1 facing right),
  * 1 leaping (stretched along the arc), 2 double jump (a tuck turning through `spin`), 3 stunned (arms dropped,
- * swaying). `scale` draws it larger or smaller (the tile icon); the game draws at 1.
+ * swaying), 4 hanging from a sky lantern (Moon Climb). `scale` draws it larger or smaller (the tile icon); the game draws at 1.
  */
 const ninjaPoseMemo = heroPose();
 const NINJA_WRAP = "#2A2D45";
@@ -440,6 +563,18 @@ function setPose(p: HeroPose, pose: number, face: number, tick: number): void {
     at("footAX", f * 6); at("footAY", 12);
     at("footBX", -f * 4); at("footBY", 13);
     p.moveX = 0; p.moveY = 0; p.speed = 0;
+  } else if (pose === 4) {
+    // Riding a sky lantern: hanging from both hands above the head, the legs together and swinging a little.
+    const sway = Math.sin(tick / 9) * 2;
+    at("headX", 0); at("headY", -14);
+    at("neckX", 0); at("neckY", -7);
+    at("shoulderX", 0); at("shoulderY", -5);
+    at("hipX", sway * 0.3); at("hipY", 9);
+    at("handAX", -3); at("handAY", -24);
+    at("handBX", 3); at("handBY", -24);
+    at("footAX", sway - 2); at("footAY", 24);
+    at("footBX", sway + 3); at("footBY", 23);
+    p.moveX = 0; p.moveY = -1; p.speed = 0.2;
   } else {
     // Stunned: upright, arms dropped wide, swaying.
     const sway = Math.sin(tick / 5) * 2;
@@ -547,8 +682,44 @@ export function drawNinja(ctx: CanvasRenderingContext2D, x: number, y: number, p
 
 /* ================================ The frame ================================ */
 
+/** Moon Climb's HUD: two pills across the top, "Height N m" and "Flow ×N" (gold while a streak runs). */
+function drawMoonHud(ctx: CanvasRenderingContext2D, s: MoonState): void {
+  const m = ninjaMetres(s);
+  ctx.textBaseline = "middle";
+  ctx.textAlign = "center";
+  ctx.font = `800 14px ${ARCADE_FX_DISPLAY_FONT}`;
+  const h = `Height ${m} m`;
+  const f = `Flow ×${s.streak}`;
+  const hw = Math.ceil(ctx.measureText(h).width) + 28;
+  const fw = Math.ceil(ctx.measureText(f).width) + 28;
+  const gap = 10;
+  const x0 = Math.round((NINJA_WORLD_W - hw - fw - gap) / 2);
+  const y = 12;
+  const lit = s.tick - s.flowTick < 30;
+  ctx.fillStyle = "rgba(22,28,62,0.88)";
+  ctx.beginPath();
+  ctx.roundRect(x0, y, hw, 28, 14);
+  ctx.fill();
+  ctx.fillStyle = m >= MOON_CORE_FULL_M ? NINJA_GOLD : "#F5F5F7";
+  ctx.fillText(h, x0 + hw / 2, y + 14.5);
+  const fx = x0 + hw + gap;
+  ctx.fillStyle = lit ? "rgba(242,199,92,0.28)" : "rgba(22,28,62,0.88)";
+  ctx.beginPath();
+  ctx.roundRect(fx, y, fw, 28, 14);
+  ctx.fill();
+  ctx.strokeStyle = s.streak > 0 ? NINJA_GOLD : "rgba(242,199,92,0.45)";
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+  ctx.fillStyle = s.streak > 0 ? "#FFE3A0" : "#BFC4DA";
+  ctx.fillText(f, fx + fw / 2, y + 14.5);
+}
+
 /** The HUD: "Height N m" top left, the items top right. */
 function drawHud(ctx: CanvasRenderingContext2D, s: NinjaState): void {
+  if (s.rev === MOON_REV) {
+    drawMoonHud(ctx, s as MoonState);
+    return;
+  }
   const chip = (x: number, w: number) => {
     ctx.fillStyle = "rgba(6,8,18,0.62)";
     ctx.beginPath();
@@ -588,7 +759,9 @@ export function drawNinjaWorld(ctx: CanvasRenderingContext2D, s: NinjaState): vo
   const H = NINJA_WORLD_H;
   const cam = ninjaCamera(s);
   const t = s.tick;
-  deviceLayer(ctx, "ninja-sky", paintSky);
+  const moon = s.rev === MOON_REV ? (s as MoonState) : null;
+  if (moon) deviceLayer(ctx, "moon-sky", paintMoonSky);
+  else deviceLayer(ctx, "ninja-sky", paintSky);
   drawWall(ctx, 0, cam);
   drawWall(ctx, 1, cam);
   drawFloor(ctx, cam);
@@ -610,6 +783,19 @@ export function drawNinjaWorld(ctx: CanvasRenderingContext2D, s: NinjaState): vo
     if (k.y < lo) continue;
     if (k.y > hi) break;
     drawKatana(ctx, k.wall, ninjaScreenY(cam, k.y), t, k.y);
+  }
+  if (moon) {
+    for (const l of moon.tower.ledges) {
+      if (l.hi < lo) continue;
+      if (l.lo > hi) break;
+      drawLedge(ctx, l.x, ninjaScreenY(cam, l.hi), ninjaScreenY(cam, l.lo));
+    }
+    moon.tower.sky.forEach((l, i) => {
+      if (moon.gotSky[i]) return;
+      const p = moonSkyAt(l, t);
+      if (!p || p.y < lo || p.y > hi) return;
+      drawSkyLantern(ctx, p.x, ninjaScreenY(cam, p.y), t);
+    });
   }
   tower.lanterns.forEach((l, i) => {
     if (s.gotLanterns[i]) return;
@@ -634,8 +820,12 @@ export function drawNinjaWorld(ctx: CanvasRenderingContext2D, s: NinjaState): vo
   // The ninja: blinking while stunned or in its grace.
   const at = ninjaDrawPoint(s);
   const blink = s.safe > 0 && s.mode !== MODE_STUN && Math.trunc(t / 4) % 2 === 0;
-  const face = s.mode === MODE_FLIGHT ? (s.wall === 1 ? 1 : -1) : s.wall === 0 ? 1 : -1;
-  const pose = s.mode === MODE_STUN ? 3 : s.mode === MODE_FLIGHT ? (s.dj && s.hang > 0 ? 2 : 1) : 0;
+  // On a mid-ledge the ninja faces away from it (its side is the wall it was heading for).
+  const onLedge = moon !== null && moon.mode !== MODE_FLIGHT && moon.ledge >= 0;
+  const face = s.mode === MODE_FLIGHT ? (s.wall === 1 ? 1 : -1) : onLedge ? (s.wall === 1 ? -1 : 1) : s.wall === 0 ? 1 : -1;
+  const pose = s.mode === MODE_STUN ? 3 : s.mode === MODE_RIDE ? 4 : s.mode === MODE_FLIGHT ? (s.dj && s.hang > 0 ? 2 : 1) : 0;
+  // The ridden lantern above the ninja's hands.
+  if (moon && moon.mode === MODE_RIDE) drawSkyLantern(ctx, at.x, at.y - MOON_RIDE_HANG, t, true);
   if (blink) ctx.globalAlpha = 0.4;
   drawNinja(ctx, at.x, at.y, pose, face, t, s.dj ? ((NINJA_HANG - s.hang) / NINJA_HANG) * Math.PI * 2 : 0);
   ctx.globalAlpha = 1;
@@ -655,7 +845,12 @@ export function drawNinjaWorld(ctx: CanvasRenderingContext2D, s: NinjaState): vo
   drawHud(ctx, s);
 }
 
-/** The shared success layer: coins, lanterns and scrolls taken, every 50 m, and the core's full height. */
+const isMoon = (s: NinjaState): s is MoonState => s.rev === MOON_REV;
+
+/**
+ * The shared success layer: coins (Moon Climb: each Flow step), gold lanterns (Moon Climb: a sky lantern grabbed) and
+ * scrolls taken, every 50 m, and the core's full height.
+ */
 export const NINJA_FX: ArcadeFxSpec<NinjaState> = {
   game: "ricochet",
   world: "realworld",
@@ -664,11 +859,11 @@ export const NINJA_FX: ArcadeFxSpec<NinjaState> = {
   shake: true,
   textInset: 40,
   events: [
-    { kind: "pop", count: (s) => s.coins, at: (s) => ninjaDrawPoint(s), label: () => "+COIN" },
-    { kind: "combo", count: (s) => s.lanterns, at: (s) => ninjaDrawPoint(s), label: () => "LANTERN!", colour: () => NINJA_GOLD },
+    { kind: "pop", count: (s) => (isMoon(s) ? s.flow : s.coins), at: (s) => ninjaDrawPoint(s), label: (s) => (isMoon(s) ? `FLOW ×${s.streak}` : "+COIN"), colour: (s) => (isMoon(s) ? NINJA_GOLD : undefined) },
+    { kind: "combo", count: (s) => (isMoon(s) ? s.rides : s.lanterns), at: (s) => ninjaDrawPoint(s), label: (s) => (isMoon(s) ? "LANTERN RIDE!" : "LANTERN!"), colour: (s) => (isMoon(s) ? "#FFB259" : NINJA_GOLD) },
     { kind: "perfect", count: (s) => s.scrolls, at: (s) => ninjaDrawPoint(s), label: () => "SCROLL!", colour: () => "#FFF3C9" },
     { kind: "streak", count: (s) => ninjaMetres(s), every: 50, min: 50, label: (_s, n) => `${Math.floor(n / 50) * 50} m` },
-    { kind: "final", count: (s) => (ninjaMetres(s) >= NINJA_CORE_FULL_M ? 1 : 0), label: () => "FULL HEIGHT!" },
+    { kind: "final", count: (s) => (ninjaMetres(s) >= (isMoon(s) ? MOON_CORE_FULL_M : NINJA_CORE_FULL_M) ? 1 : 0), label: () => "FULL HEIGHT!" },
   ],
   misses: [{ count: (s) => s.hits, at: (s) => ninjaDrawPoint(s) }],
 };
@@ -684,6 +879,12 @@ export function drawNinjaFrame(ctx: CanvasRenderingContext2D, state: NinjaState,
 
 /** The game with its art (the stage, the reveal's frame and the replay player draw through it). */
 export const ninjaArtGame = { ...ninjaGame, draw: drawNinjaFrame };
+/** Moon Climb (ricoRev 3) with its art. */
+export const moonArtGame = { ...moonGame, draw: drawNinjaFrame };
+/** The art game for a stamp. */
+export function ninjaArtGameFor(rev: number | null | undefined) {
+  return (rev ?? 0) >= MOON_REV ? moonArtGame : ninjaArtGame;
+}
 
 /** The metres to px factor, for the reveal. */
 export const NINJA_M = NINJA_PX_PER_M;

@@ -7,7 +7,7 @@ import type { ArcadeGame, ArcadeInputEvent, CanvasSize } from "./engine";
 import { drawArtSprite } from "./sprites.renderer";
 import { arcadeFx, type ArcadeFxSpec } from "./arcadeFx.renderer";
 import { TILT_FX } from "./arcadeFxGames.renderer";
-import { TILT_DISC_R, TILT_MAX_MAZES, TILT_WORLD_H, TILT_WORLD_W, tiltBandGame, tiltGame, tiltRev2Game, tiltStarPoint, tiltTotalStars, tiltTunecGame, tiltTargetGame, tiltStrictGame, tiltExpandGame, tiltLiftGame, tiltStdGame, tiltIsExpand, TILT_REV, TILT_REV_BAND, TILT_REV_TUNEC, TILT_REV_TARGET, TILT_REV_STRICT, TILT_REV_EXPAND, TILT_REV_LIFT, TILT_REV_STD, TILT_X_W, TILT_X_H, TILT_X_QUICK_TAIL, TILT_X_FALL_HOLD, tiltCellCentre, tiltQuickLeftX, tiltQuickFullLeftX, type Maze, type TiltState } from "./tilt";
+import { TILT_DISC_R, TILT_MAX_MAZES, TILT_WORLD_H, TILT_WORLD_W, tiltBandGame, tiltGame, tiltRev2Game, tiltStarPoint, tiltTotalStars, tiltTunecGame, tiltTargetGame, tiltStrictGame, tiltExpandGame, tiltLiftGame, tiltStdGame, tiltParGame, tiltParLeftX, tiltIsExpand, TILT_REV, TILT_REV_PAR, TILT_REV_BAND, TILT_REV_TUNEC, TILT_REV_TARGET, TILT_REV_STRICT, TILT_REV_EXPAND, TILT_REV_LIFT, TILT_REV_STD, TILT_X_W, TILT_X_H, TILT_X_QUICK_TAIL, TILT_X_FALL_HOLD, tiltCellCentre, tiltQuickLeftX, tiltQuickFullLeftX, type Maze, type TiltState } from "./tilt";
 import {
   TOY_BRASS, TOY_BRASS_DARK, TOY_INK, TOY_OAK_LIGHT, TOY_TABLE, TOY_TABLE_LIT, TOY_WOOD_DARK,
   toyBoard, toyChangeAge, toyGrain, toyMarble,
@@ -716,6 +716,7 @@ const tiltTunecArtGame: ArcadeGame<TiltState, ArcadeInputEvent | null> = { ...ti
 const tiltTargetArtGame: ArcadeGame<TiltState, ArcadeInputEvent | null> = { ...tiltTargetGame, draw };
 const tiltStrictArtGame: ArcadeGame<TiltState, ArcadeInputEvent | null> = { ...tiltStrictGame, draw };
 export function tiltArtGameFor(rev?: number | null): ArcadeGame<TiltState, ArcadeInputEvent | null> {
+  if (rev === TILT_REV_PAR) return tiltParArtGame;
   if (rev === TILT_REV_STD) return tiltStdArtGame;
   if (rev === TILT_REV_LIFT) return tiltLiftArtGame;
   if (rev === TILT_REV_EXPAND) return tiltExpandArtGame;
@@ -1257,7 +1258,17 @@ function drawWorldX(ctx: CanvasRenderingContext2D, state: TiltState, size: Canva
   ctx.textAlign = "left";
   ctx.fillText(`Maze ${Math.min(all, state.mazes + 1)} / ${all}`, 14, 26);
   ctx.textAlign = "right";
-  ctx.fillText(`Stars ${state.stars ?? 0} / ${tiltTotalStars(state)}`, W - 14, 26);
+  if (state.parClean) {
+    // tiltRev 11: no gold stars; the seconds left to this maze's par (or the pars made once the run is over), and
+    // "Clean" while no marble has fallen into a black hole.
+    const left = tiltParLeftX(state);
+    ctx.fillText(done ? `Par ${state.parsMet ?? 0} / ${all}` : left > 0 ? `Par ${Math.ceil(left / 60)} s` : "Over par", W - 14, 26);
+    if (!(state.falls ?? 0)) {
+      ctx.font = "600 13px ui-monospace, monospace";
+      ctx.fillText("Clean", W - 14, 46);
+      ctx.font = "600 16px ui-monospace, monospace";
+    }
+  } else ctx.fillText(`Stars ${state.stars ?? 0} / ${tiltTotalStars(state)}`, W - 14, 26);
   // Quick stars left in this maze, with the window's ring.
   const quickOn = (m.quick ?? []).map((_c, k) => k).filter((k) => !(state.quickGot ?? [])[k] && tiltQuickLeftX(state, k) > 0);
   const quickLeft = quickOn.length;
@@ -1291,6 +1302,8 @@ export const TILT_X_FX: ArcadeFxSpec<TiltState> = {
     },
     { kind: "pop", count: (s) => s.quickTaken ?? 0, at: (s) => tiltMarbleAtX(s), label: () => "QUICK STAR!" },
     { kind: "pop", count: (s) => s.keysTaken ?? 0, at: (s) => tiltMarbleAtX(s), label: () => "GATE OPEN!" },
+    // tiltRev 11 (appended, so the moments above keep their indices): a maze finished within its par.
+    { kind: "pop", count: (s) => s.parsMet ?? 0, at: () => ({ x: TILT_X_W / 2, y: 130 }), label: () => "UNDER PAR!" },
   ],
   // tiltRev 8: a fall into a black hole sends the marble back to its start (the run goes on).
   misses: [{ count: (s) => s.falls ?? 0, at: (s) => tiltMarbleAtX(s) }],
@@ -1310,3 +1323,4 @@ function tiltMarbleAtX(s: TiltState): { x: number; y: number } {
 const tiltExpandArtGame: ArcadeGame<TiltState, ArcadeInputEvent | null> = { ...tiltExpandGame, draw: drawX };
 const tiltLiftArtGame: ArcadeGame<TiltState, ArcadeInputEvent | null> = { ...tiltLiftGame, draw: drawX };
 const tiltStdArtGame: ArcadeGame<TiltState, ArcadeInputEvent | null> = { ...tiltStdGame, draw: drawX };
+const tiltParArtGame: ArcadeGame<TiltState, ArcadeInputEvent | null> = { ...tiltParGame, draw: drawX };

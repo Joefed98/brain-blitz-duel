@@ -33,7 +33,7 @@ import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./ty
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { ArcadeCanvasStage } from "@/components/puzzles/ArcadeCanvasStage";
 import { CardStill } from "@/components/puzzles/CardStill";
-import { encodeNinjaRun, isNinjaRev, replayNinjaRun } from "@/lib/duel/ricochet";
+import { encodeMoonRun, encodeNinjaRun, isMoonRev, isNinjaRev, replayMoonRun, replayNinjaRun } from "@/lib/duel/ricochet";
 import {
   ninjaCheckpoint,
   ninjaDeal,
@@ -41,13 +41,21 @@ import {
   NINJA_CHECKPOINT_INTERVAL,
   NINJA_CORE_FULL_M,
   NINJA_INPUT_TAP,
-  NINJA_REV,
   NINJA_RUN_TICKS,
   NINJA_WORLD_H,
   NINJA_WORLD_W,
+  moonCheckpoint,
+  moonDeal,
+  moonGame,
+  MODE_RIDE,
+  MOON_CORE_FULL_M,
+  MOON_REV,
+  MOON_SCROLLS,
+  MOON_SKY,
+  type MoonState,
   type NinjaState,
 } from "@/lib/arcade/ricochetNinja";
-import { drawNinjaFrame, ninjaArtGame, NINJA_BG } from "@/lib/arcade/ricochetNinja.renderer";
+import { drawNinjaFrame, moonArtGame, ninjaArtGame, NINJA_BG } from "@/lib/arcade/ricochetNinja.renderer";
 import { ninjaScene } from "@/lib/arcade/ricochetNinjaScene.renderer";
 import { ninjaSounds } from "@/lib/fx/gameSounds";
 import { arcadeCanvasRatio } from "@/lib/fx/lowEnd";
@@ -250,7 +258,7 @@ function RicoV1Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStagePro
         ref={canvas}
         className="puzzle-board block h-full w-full rounded-xl"
         style={{ background: RICO_BG }}
-        aria-label="Ricochet"
+        aria-label={gameDisplayName("ricochet")}
         onPointerDown={(event) => {
           event.preventDefault();
           if (locked || submitted.current || ricoGame.isOver(state.current)) return;
@@ -290,35 +298,47 @@ function RicoV1Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
 
 /* ===================== ricoRev 2: the ninja wall-climb ===================== */
 
-/** The intro still: seed 0's tower a few seconds into its witness's climb, a leap under way. */
-function ninjaIntroState(): NinjaState {
+/** The intro still (ricoRev 2): seed 0's tower a few seconds into its witness's climb, a leap under way. */
+export function ninjaIntroState(): NinjaState {
   const taps = new Set(ninjaDeal(0).witnessTaps);
   let s = ninjaGame.init(0);
   while (s.tick < 260 || s.mode !== 1) s = ninjaGame.step(s, taps.has(s.tick + 1) ? { t: s.tick + 1, k: NINJA_INPUT_TAP, a: 0, b: 0, c: 0, d: 0 } : null);
   return { ...s, hitTick: -999, pickTick: -999 };
 }
 
-function NinjaIntroExample() {
+/** Moon Climb's intro still (ricoRev 3): seed 0's tower, its witness riding the first sky lantern. */
+export function moonIntroState(): MoonState {
+  const at = new Map(moonDeal(0).witness.map((e) => [e.t, e.a]));
+  let s = moonGame.init(0);
+  while (!(s.mode === MODE_RIDE && s.ride < 80) && !s.ended) {
+    const a = at.get(s.tick + 1);
+    s = moonGame.step(s, a === undefined ? null : { t: s.tick + 1, k: NINJA_INPUT_TAP, a, b: 0, c: 0, d: 0 });
+  }
+  return { ...s, hitTick: -999, pickTick: -999, grabTick: -999, flowTick: -999 };
+}
+
+function IntroExample() {
   return (
     <CardStill
       width={NINJA_WORLD_W}
       height={NINJA_WORLD_H}
-      draw={(ctx, size) => drawNinjaFrame(ctx, ninjaIntroState(), size)}
-      caption="Tap to leap to the other wall; tap again in the air to double jump. Mind the blades and stars."
+      draw={(ctx, size) => drawNinjaFrame(ctx, moonIntroState(), size)}
+      caption="Tap to leap wall to wall, again in the air to double jump. Grab a sky lantern to ride it up."
     />
   );
 }
 
-function IntroExample() {
-  return <NinjaIntroExample />;
-}
-
 function NinjaStage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const data: RicoPuzzleData | null = puzzle.type === "ricochet" ? puzzle : null;
+  const moon = isMoonRev(data?.ricoRev);
   return (
     <ArcadeCanvasStage
       diagKey="ricochet"
-      label={`${gameDisplayName("ricochet")}: tap to leap, tap again in the air to double jump`}
+      label={
+        moon
+          ? `${gameDisplayName("ricochet")}: tap to leap, tap again in the air to double jump; on a lantern, tap the side to leap towards`
+          : `${gameDisplayName("ricochet")}: tap to leap, tap again in the air to double jump`
+      }
       background={NINJA_BG}
       fitWorld
       scene={ninjaScene}
@@ -327,17 +347,20 @@ function NinjaStage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProp
       locked={locked}
       worldW={NINJA_WORLD_W}
       worldH={NINJA_WORLD_H}
-      game={ninjaArtGame}
+      game={(moon ? moonArtGame : ninjaArtGame) as typeof ninjaArtGame}
       sounds={ninjaSounds}
-      checkpoint={ninjaCheckpoint}
+      checkpoint={(moon ? moonCheckpoint : ninjaCheckpoint) as typeof ninjaCheckpoint}
       interval={NINJA_CHECKPOINT_INTERVAL}
-      encodeRun={encodeNinjaRun}
+      encodeRun={(moon ? encodeMoonRun : encodeNinjaRun) as typeof encodeNinjaRun}
       discrete
       inputKind={NINJA_INPUT_TAP}
-      pointer={(kind) => (kind === "down" ? { a: 0, b: 0, c: 0 } : null)}
+      // Moon Climb: a tap's side picks the wall to leap towards from a sky lantern (left half −1, right half 1).
+      pointer={(kind, x) => (kind === "down" ? { a: moon ? (x < NINJA_WORLD_W / 2 ? -1 : 1) : 0, b: 0, c: 0 } : null)}
       keys={(kind, key, send, _state, event) => {
-        if (key !== " " && key !== "ArrowUp" && key !== "w") return false;
-        if (kind === "down" && !event.repeat) send({ a: 0, b: 0, c: 0 });
+        const left = moon && (key === "ArrowLeft" || key === "a");
+        const right = moon && (key === "ArrowRight" || key === "d");
+        if (key !== " " && key !== "ArrowUp" && key !== "w" && !left && !right) return false;
+        if (kind === "down" && !event.repeat) send({ a: left ? -1 : right ? 1 : 0, b: 0, c: 0 });
         return true;
       }}
       onSubmit={(answer) => onSubmit(answer)}
@@ -350,8 +373,22 @@ export function ninjaLine(r: { metres: number; coins: number; lanterns: number; 
   return `${r.metres} m climbed (full at ${NINJA_CORE_FULL_M}) · ${r.coins} coins · ${r.lanterns} lanterns · ${r.scrolls} scrolls`;
 }
 
+export function moonLine(r: { metres: number; rides: number; bestFlow: number; scrolls: number }): string {
+  return `${r.metres} m climbed (full at ${MOON_CORE_FULL_M}) · ${r.rides}/${MOON_SKY} lantern rides · best Flow ×${r.bestFlow} · ${r.scrolls}/${MOON_SCROLLS} scrolls`;
+}
+
 function NinjaReveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   if (puzzle.type !== "ricochet") return null;
+  if (isMoonRev(puzzle.ricoRev)) {
+    const m = replayMoonRun(puzzle.seed, myAnswer ?? "");
+    return (
+      <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-start gap-3 overflow-y-auto">
+        <p className="whitespace-normal break-words text-center font-mono text-base font-bold text-foreground">{moonLine(m)}</p>
+        <p className="shrink-0 text-center font-mono text-base text-muted-foreground">{m.hits === 1 ? "1 hit" : `${m.hits} hits`} · {m.djs} double jumps</p>
+        <p className="shrink-0 text-center font-mono text-base text-muted-foreground">Same tower for everyone</p>
+      </div>
+    );
+  }
   const r = replayNinjaRun(puzzle.seed, myAnswer ?? "");
   return (
     <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-start gap-3 overflow-y-auto">
@@ -372,14 +409,14 @@ function Reveal(props: PuzzleRevealProps) {
   return isNinjaRev(rev) ? <NinjaReveal {...props} /> : <RicoV1Reveal {...props} />;
 }
 
-/** The seed is generated on the server; every run is replayed there for scoring. Rooms and practice deal ricoRev 2. */
+/** The seed is generated on the server; every run is replayed there for scoring. Rooms and practice deal ricoRev 3 (Moon Climb). */
 export const ricochetPuzzle: PuzzleDefinition = {
   key: "ricochet",
   name: gameDisplayName("ricochet"),
   category: "arcade",
   timeLimitMs: (NINJA_RUN_TICKS / TICKS_PER_SECOND) * 1000 + 3000,
   revealMs: 6_000,
-  generate: () => ({ type: "ricochet", seed: 1, ricoRev: NINJA_REV }) satisfies RicoPuzzleData,
+  generate: () => ({ type: "ricochet", seed: 1, ricoRev: MOON_REV }) satisfies RicoPuzzleData,
   check: () => false,
   revealHeading: "Your climb",
   IntroExample,

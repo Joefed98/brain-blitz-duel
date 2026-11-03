@@ -4,7 +4,7 @@ import type { PuzzleType } from "./types";
 export const GAME_DISPLAY_NAMES: Record<PuzzleType, string> = {
   balance: "Counterweight",
   balltrack: "Ball Tracker",
-  bastion: "Bastion",
+  bastion: "Iron Wall",
   beat: "Tempo",
   bintoss: "Swish",
   blockparty: "Tessellate",
@@ -27,7 +27,7 @@ export const GAME_DISPLAY_NAMES: Record<PuzzleType, string> = {
   pool: "Cue Ball",
   curling: "Curl Champ",
   // Working names (1 Nov 2026); Joe may rename.
-  blockfall: "Blockfall",
+  blockfall: "Blockzone",
   alleyroll: "Ringer",
   bubble: "Coral Pop",
   checkout: "Checkout",
@@ -70,7 +70,7 @@ export const GAME_DISPLAY_NAMES: Record<PuzzleType, string> = {
   push: "Heave",
   rally: "Rally",
   reaction: "Flash",
-  ricochet: "Ricochet",
+  ricochet: "Moon Climb",
   rooftop: "Rooftop Run",
   rings: "Turntable",
   safe: "Safe Cracker",
