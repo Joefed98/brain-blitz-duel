@@ -7,7 +7,8 @@
  *  2. Places: 0 at the line's left end, 50 at the first row's right end, 51 one point round the
  *     bend into the middle row (which reads right to left), 100 at its left end, 101 one point
  *     round the second bend, 150 at the right end; along the snake every score is further along
- *     than the one below it. The labels are 0, 50, 100 and 150 at the ends and bends.
+ *     than the one below it. Since 3 Nov 2026 a fourth band, 151–200, reads right to left (200 at the left end), on
+ *     one 0–200 axis for every game, labelled 0, 50, 100, 150 and 200 down the left.
  *  3. Markers: random rooms of 2–10 players (scores bunched, a few points apart and tied) at
  *     phone widths: no two markers in a row overlap, each badge sits on its score's exact place,
  *     names face the chart's middle, ties stack, and "You" is told by ring, label and weight,
@@ -27,6 +28,8 @@ import { readFileSync } from "node:fs";
 import {
   CHART_BADGE,
   CHART_GAP,
+  CHART_ROW_COUNT,
+  CHART_ROWS,
   chartLabels,
   chartPoint,
   chartRow,
@@ -77,11 +80,25 @@ for (let s = 0; s <= 150; s++) {
 }
 for (const [end, start] of [[50, 51], [100, 101]])
   check(near(Math.abs(chartPoint(end).x - chartPoint(start).x), 1 / 50), `${start} continues from ${end} round the bend`);
+// Four bands (3 Nov 2026, the reveal's own screen): the axis is 0–200 for every game, its labels 0, 50, 100, 150 and 200
+// down the left at the line's start, the three band edges and the line's end (the brief changed the rule: the labels were
+// 0, 50, 100, 150 at the ends and bends of three rows on the game's own maximum).
 check(
-  JSON.stringify(chartLabels().map((l) => [l.text, l.row, l.side, l.bend])) ===
-    JSON.stringify([["0", 0, "left", false], ["50", 0, "right", true], ["100", 1, "left", true], ["150", 2, "right", false]]),
-  "labels: 0, 50 (right bend), 100 (left bend), 150",
+  JSON.stringify(chartLabels().map((l) => [l.text, l.edge])) === JSON.stringify([["0", 0], ["50", 1], ["100", 2], ["150", 3], ["200", 4]]) &&
+    JSON.stringify(chartLabels(200)) === JSON.stringify(chartLabels()),
+  "labels: 0, 50, 100, 150, 200 on the axis, the same for every game's maximum",
 );
+check(CHART_ROW_COUNT === 4 && CHART_ROWS.map((r) => `${r.lo}-${r.hi}`).join() === "0-50,51-100,101-150,151-200", "four bands of 50: 0–50, 51–100, 101–150, 151–200");
+for (const [score, row, x] of [[151, 3, 1 - 1 / 50], [175, 3, 0.5], [200, 3, 0], [150, 2, 1]] as const) {
+  const p = chartPoint(score, 200);
+  check(p.row === row && near(p.x, x), `score ${score} of 200 should be row ${row} x ${x.toFixed(3)} (got row ${p.row} x ${p.x.toFixed(3)})`);
+}
+check(chartScore(250, 200) === 200 && chartScore(170, 150) === 150, "a score clamps to its game's maximum and the axis' 200");
+for (let s = 151; s <= 200; s++) {
+  const p = chartPoint(s, 200);
+  const q = chartPoint(s - 1, 200);
+  if (p.row === q.row) check(q.x - p.x > 0, `${s} reads the wrong way on the fourth row (right to left)`);
+}
 
 /* 3. Markers. */
 let seed = 1017;

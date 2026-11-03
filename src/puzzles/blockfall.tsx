@@ -11,6 +11,7 @@ import { BLOCKFALL_TIME_MS, type BlockfallPuzzleData } from "@/lib/duel/types";
 import { ArcadeCanvasStage, type PointerPayload } from "@/components/puzzles/ArcadeCanvasStage";
 import { CardStill } from "@/components/puzzles/CardStill";
 import { blockfallSounds } from "@/lib/fx/gameSounds";
+import { createSoftDrop } from "@/lib/arcade/blockfallSoftDrop";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
@@ -66,44 +67,17 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const view = useMemo(() => bfNewView(), []);
   const game = useMemo(() => blockfallArtGame(view, zone ? BLOCKFALL_REV_ZONE : 1), [view, zone]);
   const g = useRef<Gesture | null>(null);
-  /**
-   * Blockzone's soft drop (3 Nov 2026, Joe's phone note: after a soft drop the next pieces kept falling fast).
-   * A drag down that ended in a flick sent only the hard drop, never the soft drop's "off", so the sim kept
-   * `soft` on for every later piece. Input mapping only, no stamp: the soft drop is on only while a drag
-   * down (or ↓) holds it for the piece it started on; the stage's discreteTick sends the "off" the tick the
-   * finger lifts (whatever the release sent), the key is let go or the piece locks.
-   */
-  const soft = useRef<{ by: "drag" | "key" | null; pieces: number; asked: number }>({ by: null, pieces: -1, asked: 0 });
-  const softOn = (by: "drag" | "key"): PointerPayload => {
-    soft.current = { by, pieces: -1, asked: 1 };
-    return { k: BF_INPUT_SOFT, a: 1, b: 0, c: 0 };
+  // Blockzone's soft drop (blockfallSoftDrop.ts): on only while a drag down (or ↓) holds it for its piece.
+  const soft = useMemo(() => createSoftDrop(), []);
+  soft.onLockedMidDrag = () => {
+    const gesture = g.current;
+    if (!gesture) return;
+    gesture.soft = false;
+    gesture.y = gesture.lastY;
   };
-  const softOff = (): PointerPayload | null => {
-    const was = soft.current.asked;
-    soft.current = { by: null, pieces: -1, asked: 0 };
-    return was ? { k: BF_INPUT_SOFT, a: 0, b: 0, c: 0 } : null;
-  };
-  const discreteTick = (state: BfState): PointerPayload | null => {
-    if (!zone) return null;
-    const s = soft.current;
-    if (s.by !== null && s.pieces < 0) s.pieces = state.pieces;
-    if (s.by !== null && state.pieces !== s.pieces) {
-      // The piece the soft drop started on has locked: the new one starts at its normal speed, and a drag
-      // still down needs to move down again to speed it up.
-      const gesture = g.current;
-      if (gesture && s.by === "drag") {
-        gesture.soft = false;
-        gesture.y = gesture.lastY;
-      }
-      s.by = null;
-    }
-    if (s.by === null && (state.soft ?? 0) === 1 && s.asked !== 0) {
-      s.asked = 0;
-      return { k: BF_INPUT_SOFT, a: 0, b: 0, c: 0 };
-    }
-    if (s.by === null && (state.soft ?? 0) === 0) s.asked = 0;
-    return null;
-  };
+  const softOn = (by: "drag" | "key"): PointerPayload => soft.on(by);
+  const softOff = (): PointerPayload | null => soft.off();
+  const discreteTick = (state: BfState): PointerPayload | null => (zone ? soft.tick(state) : null);
 
   const pointer = (kind: "down" | "move" | "up", x: number, y: number): PointerPayload | null => {
     const now = performance.now();
@@ -154,7 +128,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     g.current = null;
     view.pressed = null;
     // Lifting ends this drag's soft drop: discreteTick sends the "off" next tick if this release sends a drop.
-    if (zone && soft.current.by === "drag") soft.current.by = null;
+    if (zone) soft.lifted();
     if (s.pad) {
       if (bfPadAt(x, y) !== s.pad) return null;
       if (s.pad === "hold") return { k: BF_INPUT_HOLD, a: 0, b: 0, c: 0 };

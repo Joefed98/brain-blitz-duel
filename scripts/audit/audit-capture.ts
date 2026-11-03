@@ -1,21 +1,24 @@
 /**
  * Audit screenshots (Nov 2026): intro, mid-round and reveal frames for every active game at one size.
- * A design tool, not a check. Built on scripts/shots/capture.ts's method (practice mode, the fixed intro
- * example, Math.random seeded, the drivers in scripts/shots/drivers/), with two differences:
+ * A design tool, not a check. Built on scripts/shots/capture.ts's method (practice mode from the Practice list, the
+ * fixed intro example, Math.random seeded, the drivers in scripts/shots/drivers/), all in real time:
  *
- *   - puzzles with a driver run on Playwright's page clock: the driver's partial inputs (or stage seed),
- *     then the clock jumped to half the round for the mid frame; then the driver's solve (a solved reveal)
- *     or a time-up on that same half-played run (a timed-out reveal with the progress made);
- *   - arcade games, the engine games, the Speed games and puzzles with no driver play in real time with
- *     scripted, seeded taps, swipes, holds and stage-button presses (after the driver's partial inputs when
- *     there is one): the mid frame at half the round (or the last frame of a run that ended sooner), the
- *     reveal when the run ends.
+ *   intro   the RoundIntro 2.5 s after it opens;
+ *   mid     the frame when the game header's timer shows half the round (its aria-label; the wall clock when the
+ *           timer is not counting). Puzzles with a driver: the driver's partial inputs (or stage seed), then a wait.
+ *           Arcade games, engine games, Speed games and puzzles with no partial driver: scripted, seeded taps, swipes,
+ *           holds and stage-button presses (taps only for the flap/jump games, a stick push for Apex), after the
+ *           driver's partial inputs when there is one. A run that ends sooner keeps a frame from ~2 s before its end;
+ *   reveal  1.8 s after the AnswerReveal shows: the driver's solve where it has one (a solved reveal), else the run
+ *           played (scripted) or waited (driven) to its end.
  *
- *   bun scripts/audit/audit-capture.ts [games…] [--category=<id>] [--all] [--url=<origin>]
- *       [--out=screenshots/audit-nov-2026] [--size=414x896] [--jobs=3]
+ *   bun scripts/audit/audit-capture.ts [games…] [--category=<id> | --all] [--url=<origin, default :5191>]
+ *       [--out=screenshots/audit-nov-2026] [--size=414x896] [--jobs=4]
  *
- * Frames: <out>/<folder>/<game>-intro.png, -mid.png, -reveal.png (folder: the puzzle category, or
- * arcade-<group> from arcadeGroups.ts). A per-game log goes to <out>/capture-report.json (merged across runs).
+ * It needs a dev server (start one with scripts/audit/vite.audit.config.ts: HMR and watching off, so working-tree
+ * edits never reload a page mid-round). Frames: <out>/<folder>/<game>-intro.png, -mid.png, -reveal.png (folder: the
+ * puzzle category, or arcade-<group> from arcadeGroups.ts). A per-game log (input, times, score, the reveal's text)
+ * goes to <out>/capture-report.json, merged across runs.
  */
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
@@ -36,7 +39,7 @@ const flag = (name: string) => args.includes(`--${name}`);
 const CHROMIUM = process.env.PLAYWRIGHT_CHROMIUM ?? "/opt/pw-browsers/chromium";
 const OUT = opt("out") ?? "screenshots/audit-nov-2026";
 const [W, H] = (opt("size") ?? "414x896").split("x").map(Number) as [number, number];
-const JOBS = Number(opt("jobs") ?? 3);
+const JOBS = Number(opt("jobs") ?? 4);
 const ORIGIN = (opt("url") ?? "http://127.0.0.1:5191").replace(/\/$/, "");
 const REVEAL = "[data-reveal-score], [data-arcade-reveal]";
 
@@ -127,10 +130,10 @@ async function newRun(
   return run;
 }
 
-async function ready(run: Run) {
+async function ready(run: Run, settleMs = 1200) {
   await run.page.getByRole("button", { name: /^Ready/ }).first().click();
   await run.page.locator("[data-game-stage]").first().waitFor({ timeout: 30_000 });
-  await run.page.waitForTimeout(1200);
+  await run.page.waitForTimeout(settleMs);
 }
 
 /** A small seeded PRNG for the scripted input (node side). */
@@ -265,7 +268,8 @@ async function captureGame(browser: Browser, game: PuzzleType) {
     await run.page.waitForTimeout(2500);
     await run.page.screenshot({ path: file("intro") });
     entry.intro = true;
-    await ready(run);
+    // Tap games (Hover falls at once) start tapping as soon as the stage is up.
+    await ready(run, TAP_ONLY.has(game) ? 0 : 1200);
     const t0 = Date.now() - 1200;
     const shown = await secondsLeft(run.page);
     const startLeft = shown && shown > 5 ? shown : Math.round(limit / 1000);
@@ -281,22 +285,18 @@ async function captureGame(browser: Browser, game: PuzzleType) {
     while (Date.now() < deadline) {
       if (await revealUp(run.page)) break;
       const left = await secondsLeft(run.page);
-      if (left !== null && left <= startLeft / 2) {
-        if (left === 0) {
-          if (Date.now() - t0 < 6000) {
-            await run.page.waitForTimeout(300);
-            continue;
-          }
-          break; // the run ended early (game over): the frames from before it
-        }
+      // Half the round on the frame's timer; a timer that is not counting (0, or none) falls back to the wall clock.
+      const halfway =
+        left !== null && left > 0 ? left <= startLeft / 2 : Date.now() - t0 >= (startLeft * 1000) / 2;
+      if (halfway) {
         await run.page.screenshot({ path: file("mid") });
         midAt = Date.now() - t0;
         break;
       }
-      if (!frames.length || Date.now() - frames[frames.length - 1]!.at > 2000) {
+      if (!frames.length || Date.now() - frames[frames.length - 1]!.at > 1000) {
         const png = await run.page.screenshot().catch(() => null);
         if (png) frames.push({ at: Date.now(), png });
-        if (frames.length > 3) frames.shift();
+        if (frames.length > 4) frames.shift();
       }
       if (scripted) {
         if (CUSTOM_INPUT[game]) await CUSTOM_INPUT[game]!(run.page, rnd).catch(() => {});
@@ -312,7 +312,7 @@ async function captureGame(browser: Browser, game: PuzzleType) {
     }
     if (midAt == null && frames.length) {
       // The run ended before half the round: the frame from a couple of seconds before its end.
-      const pick = frames.length >= 2 ? frames[frames.length - 2]! : frames[0]!;
+      const pick = frames[Math.max(0, frames.length - 3)]!;
       writeFileSync(file("mid"), pick.png);
       midAt = pick.at - t0;
       entry.midNote = `run ended before half the round; frame from ${Math.round(midAt / 1000)} s`;
