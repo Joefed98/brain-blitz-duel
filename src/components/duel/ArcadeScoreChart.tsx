@@ -165,7 +165,7 @@ export function ArcadeScoreChart({ players, type }: { players: ChartPlayer[]; ty
               // 0 and 200 just left of the snake's two ends; 50 / 100 / 150 beside the middle of their bends, outside them.
               const top = edgeY(label.edge);
               const bend = label.edge > 0 && label.edge < CHART_ROW_COUNT;
-              const gap = bend ? BEND + 4 : 6;
+              const gap = bend ? BEND + 6 : 10;
               return (
                 <span
                   key={label.text}
