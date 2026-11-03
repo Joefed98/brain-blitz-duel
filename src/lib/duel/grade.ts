@@ -2556,6 +2556,8 @@ function gradeUnderRev(
         ...(puzzle.tiltRev ? { tiltRev: puzzle.tiltRev, stars: run.stars, totalStars: run.totalStars } : {}),
         // tiltRev 8 (the expansion): quick stars, falls and the paid skill points.
         ...(tiltIsExpand(puzzle.tiltRev) ? { quickStars: run.quickStars, totalQuick: run.totalQuick, falls: run.falls, skillPoints: run.skillPoints } : {}),
+        // tiltRev 11: mazes within par and mazes finished before the first fall.
+        ...(run.parsMet !== undefined ? { parsMet: run.parsMet, cleanMazes: run.cleanMazes } : {}),
         survived: run.survived,
         survivedSeconds: run.survivedSeconds,
         endedSeconds: run.endedSeconds,

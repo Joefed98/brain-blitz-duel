@@ -40,7 +40,8 @@ import type { StdEntry } from "./arcade-standard/entry";
 const STANDARD_ROSTER: readonly { type: string; field: string; rev: number; batch: string }[] = [
   { type: "slice", field: "sliceRev", rev: 11, batch: "A" },
   { type: "breaker", field: "brkRev", rev: 11, batch: "A" },
-  { type: "tilt", field: "tiltRev", rev: 10, batch: "A" },
+  // tiltRev 11 (3 Nov 2026): tiltRev 10's mazes with no gold stars, scored on par times and a clean run (tilt-rev11-check).
+  { type: "tilt", field: "tiltRev", rev: 11, batch: "A" },
   { type: "burst", field: "burstRev", rev: 10, batch: "A" },
   // Gemstone deals matchupRev 12 since Nov 2026 (six goals shown at once, six treasures; the same five parts re-weighted).
   { type: "matchup", field: "matchupRev", rev: 12, batch: "A" },

@@ -8,7 +8,7 @@ import { MG_CORE_FULL } from "@/lib/arcade/cards/muggins";
 import { BULLSEYE_INNER_BULL_POINTS, BULLSEYE_RING_VALUES } from "@/lib/arcade/bullseye";
 import { BINTOSS_THROWS, BINTOSS_V9_BUCKET, BINTOSS_V9_FAR, BINTOSS_V9_FINISH, BINTOSS_V9_HOOP } from "@/lib/arcade/binToss";
 import { INK_LEVELS, INK_V12_CORE_MAX } from "@/lib/arcade/inkBridge";
-import { TILT_S_MAZES } from "@/lib/arcade/tilt";
+import { TILT_P_CLEAN_POINTS, TILT_P_MAZE_POINTS, TILT_P_PAR_POINTS, TILT_P_PROGRESS_POINTS, TILT_S_MAZES } from "@/lib/arcade/tilt";
 import { bandsIntro } from "./puzzleBandsText";
 import { logicStandardIntro } from "./standard/logicText";
 import { gridStandardIntro } from "./standard/gridText";
@@ -152,7 +152,8 @@ function introScoreTemplates(): Record<PuzzleType, string> {
     orbit: "Planets 130 + sun speed, stardust, slings, fields, perfect orbits. Mind fuel: up to {max}.",
     snip: "Points for fruit fed and leaves; golden apples, few cuts and speed add more. Up to {max}.",
     swing: `90 s. Distance along the course (140), pars (30), gates, gems and stars (30): up to {max}.`,
-    tilt: `35 a maze (up to 5 for nearing its exit), gold stars 30. All ${TILT_S_MAZES} quickly: up to {max}.`,
+    // tiltRev 11 (3 Nov 2026): no gold stars; par times and a clean run.
+    tilt: `${TILT_P_MAZE_POINTS + TILT_P_PROGRESS_POINTS} a maze, +${TILT_P_PAR_POINTS} each under par, clean run ${TILT_P_CLEAN_POINTS}. All ${TILT_S_MAZES} quickly: up to {max}.`,
     balltrack: `Marbles home 140; gold, boosted and in-a-row marbles add 60: they total up to {max}.`,
     swerve: arcadeOpen("each coin you collect"),
     dual: "The longer both runners survive, the more you score. The full minute is {max}.",

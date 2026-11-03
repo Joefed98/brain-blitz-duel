@@ -63,6 +63,8 @@ export const LIFT_REVS: Partial<Record<LiveBandGame, readonly [lift: number, pla
  * snakeRev 12 (1 Nov 2026, gold stars count 2 towards the core, full at 20) keeps snakeRev 11's play, which is snakeRev 10's
  * (snake-rev12-check proves it).
  */
+// Tilt tiltRev 11 (3 Nov 2026) is not listed: it deals no gold stars, so its world is not tiltRev 10's (the marbles move
+// the same for the same log, but there is nothing to collect); its own check is tilt-rev11-check.
 export const STD_REVS: Partial<Record<LiveBandGame, readonly [std: number, play: number]>> = { flip: [10, 8], snake: [12, 10] };
 
 /**
