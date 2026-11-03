@@ -27,7 +27,11 @@ export const MuteToggle = memo(function MuteToggle({ variant }: {
    * "frame": the game frame's header (Polish 2, 24 Oct 2026): one 36×44 sound button whose popover
    * holds both channels' switches and sliders, so the header keeps its score and "?" at 375px.
    */
-  variant?: "frame";
+  /**
+   * "speaker" (3 Nov 2026, the answer reveal's header): one speaker button, a tap turns all sound off or on; the
+   * channels' volumes live in settings.
+   */
+  variant?: "frame" | "speaker";
 } = {}) {
   const [open, setOpen] = useState<SoundChannel | null>(null);
   const [settings, setSettings] = useState({
@@ -109,6 +113,34 @@ export const MuteToggle = memo(function MuteToggle({ variant }: {
       </div>
     );
   };
+  if (variant === "speaker") {
+    const silent = settings.muted && settings.musicMuted;
+    return (
+      <div data-sound-controls="speaker" className="game-frame-sound">
+        <button
+          type="button"
+          data-sound-channel="speaker"
+          className="press game-frame-icon-button flex h-11 w-11 items-center justify-center text-foreground"
+          aria-label={silent ? "Turn sound on" : "Turn sound off"}
+          aria-pressed={!silent}
+          title="Sound"
+          onClick={() => {
+            setMuted(!silent);
+            setMusicMuted(!silent);
+          }}
+        >
+          <span className="relative flex items-center justify-center">
+            <Volume2 aria-hidden="true" className="h-5 w-5" />
+            {silent && (
+              <svg aria-hidden="true" viewBox="0 0 24 24" className="absolute h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M3 3 21 21" />
+              </svg>
+            )}
+          </span>
+        </button>
+      </div>
+    );
+  }
   if (variant === "frame") {
     const effectsLevel = settings.muted ? "off" : `${Math.round(settings.effects * 100)}%`;
     const musicLevel = settings.musicMuted ? "off" : `${Math.round(settings.music * 100)}%`;

@@ -1,4 +1,8 @@
-import { storedScoreParts } from "@/lib/duel/puzzleScoreRev";
+import { scorePartsText, storedScoreParts } from "@/lib/duel/puzzleScoreRev";
+import { readPracticeBest } from "@/lib/duel/practiceBest";
+import { stampSignature } from "@/lib/duel/practiceStamps";
+import { RevealBreakdown } from "@/components/duel/RevealBreakdown";
+import { SolutionSwitch } from "@/components/duel/SolutionSwitch";
 import { devDiagnosticsOn, type ArcadeDiag } from "@/lib/arcade/diagnostics";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
@@ -255,6 +259,8 @@ function useRevealTray(board: { current: HTMLElement | null }, tray: { current: 
 
 /** Smallest a board is drawn to make the reveal fit (27 Oct 2026); below it the reveal scrolls as before. */
 const REVEAL_FIT_MIN = 0.5;
+/** Largest a board is drawn to fill the reveal's spare height (3 Nov 2026). */
+const REVEAL_GROW_MAX = 1.8;
 /** The reveal's own lines never drop under this (px) when the whole reveal has to shrink. */
 const REVEAL_FIT_MIN_TEXT_PX = 13;
 
@@ -279,6 +285,7 @@ function useRevealFit(ref: { current: HTMLElement | null }) {
         s.el.style.marginBottom = s.margin;
       }
       delete root.dataset["fit"];
+      delete root.dataset["grown"];
     };
     const shrink = (el: HTMLElement, z: number) => {
       const h = el.offsetHeight;
@@ -287,6 +294,15 @@ function useRevealFit(ref: { current: HTMLElement | null }) {
       el.style.transformOrigin = "top center";
       el.style.transform = `scale(${z})`;
       el.style.marginBottom = `${margin - (1 - z) * h}px`;
+    };
+    /** A board drawn larger: scaled from its top centre, with the extra height taken by its bottom margin. */
+    const grow = (el: HTMLElement, z: number) => {
+      const h = el.offsetHeight;
+      const margin = parseFloat(getComputedStyle(el).marginBottom) || 0;
+      scaled.push({ el, transform: el.style.transform, origin: el.style.transformOrigin, margin: el.style.marginBottom });
+      el.style.transformOrigin = "top center";
+      el.style.transform = `scale(${z})`;
+      el.style.marginBottom = `${margin + (z - 1) * h}px`;
     };
     const overflow = () => root.scrollHeight - root.clientHeight;
     const boards = () => {
@@ -308,18 +324,6 @@ function useRevealFit(ref: { current: HTMLElement | null }) {
       walk(root);
       return [...new Set(out)].filter((el) => el !== root && root.contains(el));
     };
-    /** The boards' combined height down the page (side-by-side boards count once). */
-    const span = (els: HTMLElement[]) => {
-      const rows = els.map((el) => el.getBoundingClientRect()).map((r) => [r.top, r.bottom] as const).sort((a, b) => a[0] - b[0]);
-      let total = 0;
-      let end = -Infinity;
-      for (const [top, bottom] of rows) {
-        if (bottom <= end) continue;
-        total += bottom - Math.max(top, end);
-        end = bottom;
-      }
-      return total;
-    };
     let frame = 0;
     let fitted = "";
     const fit = () => {
@@ -329,38 +333,74 @@ function useRevealFit(ref: { current: HTMLElement | null }) {
       const trayDisplay = tray?.style.display ?? "";
       if (tray) tray.style.display = "none";
       reset();
-      let over = overflow();
+      const els = boards();
+      const apply = (z: number) => {
+        for (const s of scaled.splice(0)) {
+          s.el.style.transform = s.transform;
+          s.el.style.transformOrigin = s.origin;
+          s.el.style.marginBottom = s.margin;
+        }
+        if (z > 1) for (const el of els) grow(el, z);
+        else if (z < 1) for (const el of els) shrink(el, z);
+      };
+      // A scale fits when nothing overflows and every board stays inside the reveal's box, under the Solution /
+      // Yours switch (a board in a fixed-height box spills out of it without overflowing it).
+      const fits = () => {
+        if (overflow() > 1) return false;
+        const r = root.getBoundingClientRect();
+        const sw = root.querySelector("[data-solution-switch]:not([hidden])")?.getBoundingClientRect();
+        const ceiling = (sw ? sw.bottom : r.top) - 1;
+        return els.every((el) => {
+          const b = el.getBoundingClientRect();
+          return b.top >= ceiling && b.bottom <= r.bottom + 1 && b.left >= r.left - 1 && b.right <= r.right + 1;
+        });
+      };
+      // The boards at the largest scale that fits (3 Nov 2026, Joe's audit: the answer sat in a small card with half
+      // the screen empty): up to REVEAL_GROW_MAX and never wider than the reveal when they fit as drawn, else down to
+      // REVEAL_FIT_MIN (27 Oct 2026). A few halvings: the games' own flex boxes take up a board's added height, so
+      // the spare height can't be read off the layout.
+      let z = 1;
+      if (els.length) {
+        const widest = Math.max(0, ...els.map((el) => el.getBoundingClientRect().width));
+        const hi = widest > 0 ? Math.max(1, Math.min(REVEAL_GROW_MAX, (root.clientWidth - 16) / widest)) : 1;
+        let lo = 1;
+        let top = hi;
+        if (!fits()) {
+          lo = REVEAL_FIT_MIN;
+          top = 1;
+        }
+        if (top > lo + 0.02) {
+          apply(top);
+          if (fits()) lo = top;
+          else
+            for (let i = 0; i < 7; i++) {
+              const mid = (lo + top) / 2;
+              apply(mid);
+              if (fits()) lo = mid;
+              else top = mid;
+            }
+        }
+        z = Math.abs(lo - 1) <= 0.02 ? 1 : lo;
+        apply(z);
+        if (z > 1) root.dataset["grown"] = String(Math.round(z * 100) / 100);
+        else if (z < 1) root.dataset["fit"] = "";
+      }
+      const over = overflow();
       if (over > 1) {
-        const els = boards();
-        const height = span(els);
-        let z = 1;
-        // Shrinking a board can rewrap what sits beside it: a few passes, each from the measured overflow.
-        for (let pass = 0; pass < 4 && over > 1 && height > 0 && z > REVEAL_FIT_MIN; pass++) {
-          z = Math.max(REVEAL_FIT_MIN, z - (over + 2) / height);
-          for (const s of scaled.splice(0)) {
-            s.el.style.transform = s.transform;
-            s.el.style.transformOrigin = s.origin;
-            s.el.style.marginBottom = s.margin;
-          }
-          for (const el of els) shrink(el, z);
-          over = overflow();
+        // Last resort: the whole reveal, lines included, never under 13 px text.
+        let smallest = Infinity;
+        for (const el of Array.from(root.querySelectorAll<HTMLElement>("p, span, li, div"))) {
+          if (!Array.from(el.childNodes).some((n) => n.nodeType === 3 && (n.textContent ?? "").trim())) continue;
+          if (el.closest("svg, [data-reveal-fit-board]")) continue;
+          smallest = Math.min(smallest, parseFloat(getComputedStyle(el).fontSize) || Infinity);
         }
-        if (over > 1) {
-          // Last resort: the whole reveal, lines included, never under 13 px text.
-          let smallest = Infinity;
-          for (const el of Array.from(root.querySelectorAll<HTMLElement>("p, span, li, div"))) {
-            if (!Array.from(el.childNodes).some((n) => n.nodeType === 3 && (n.textContent ?? "").trim())) continue;
-            if (el.closest("svg, [data-reveal-fit-board]")) continue;
-            smallest = Math.min(smallest, parseFloat(getComputedStyle(el).fontSize) || Infinity);
-          }
-          const floor = Number.isFinite(smallest) ? Math.min(1, REVEAL_FIT_MIN_TEXT_PX / smallest) : 1;
-          const blocks = Array.from(root.children).filter(
-            (el): el is HTMLElement => el instanceof HTMLElement && getComputedStyle(el).position !== "absolute",
-          );
-          const total = blocks.reduce((n, el) => n + el.offsetHeight, 0);
-          const zz = total > 0 ? Math.max(floor, 1 - (over + 2) / total) : 1;
-          if (zz < 1) for (const el of blocks) shrink(el, zz);
-        }
+        const floor = Number.isFinite(smallest) ? Math.min(1, REVEAL_FIT_MIN_TEXT_PX / smallest) : 1;
+        const blocks = Array.from(root.children).filter(
+          (el): el is HTMLElement => el instanceof HTMLElement && getComputedStyle(el).position !== "absolute",
+        );
+        const total = blocks.reduce((n, el) => n + el.offsetHeight, 0);
+        const zz = total > 0 ? Math.max(floor, 1 - (over + 2) / total) : 1;
+        if (zz < 1) for (const el of blocks) shrink(el, zz);
         root.dataset["fit"] = "";
       }
       if (tray) tray.style.display = trayDisplay;
@@ -378,7 +418,8 @@ function useRevealFit(ref: { current: HTMLElement | null }) {
       for (const child of Array.from(root.children)) resize?.observe(child);
       if (!frame) frame = requestAnimationFrame(fit);
     });
-    mutations.observe(root, { childList: true, subtree: true });
+    // The Solution / Yours switch shows (and flips) by attribute: refit then too.
+    mutations.observe(root, { childList: true, subtree: true, attributes: true, attributeFilter: ["hidden", "data-solution-switch", "data-solution-view"] });
     return () => {
       cancelAnimationFrame(frame);
       resize?.disconnect();
@@ -388,14 +429,55 @@ function useRevealFit(ref: { current: HTMLElement | null }) {
   }, []);
 }
 
+/**
+ * Timed games with nothing to solve (3 Nov 2026, Joe's audit: Flash and Bang On said "Solved in 60.0 s" on tiny
+ * scores): their reveal says "Finished", never Solved / Not solved, and shows no tick or cross. Tenfall, Bonk, Mixed
+ * Signals and Pull! join them now they take the puzzle reveal.
+ */
+export const FINISH_ONLY_TYPES: ReadonlySet<string> = new Set(["reaction", "stopwatch", "tendrop", "whack", "stroop", "clayshoot"]);
+
+/**
+ * Engine games in puzzle categories (Speed, Number) that used the arcade reveal: they take the puzzle reveal (verdict,
+ * score, their stored breakdown) from 3 Nov 2026. Display only.
+ */
+export const PUZZLE_REVEAL_ENGINE_TYPES: ReadonlySet<string> = new Set(["tendrop", "whack", "stroop", "clayshoot"]);
+
+/** Puzzles whose own Reveal already writes the stored score parts (solvedMovesText, Topsy-Turvy's line). */
+const REVEAL_SHOWS_PARTS: ReadonlySet<string> = new Set(["gravity", "iceslide", "unblock", "lightsout", "flood", "tiles", "rings"]);
+
 /** The verdict in sentence case, so units stay lowercase: "Solved in 53.2 s", "Partly solved", "Not solved". */
-function verdictLine(correct: boolean, score: number | null, msRemaining: number | undefined, limitMs: number): string {
+function verdictLine(correct: boolean, score: number | null, msRemaining: number | undefined, limitMs: number, type?: string): string {
+  if (type && FINISH_ONLY_TYPES.has(type)) return score === null ? "Scoring…" : "Finished";
   if (score === null && !correct) return "Scoring…";
   if (correct) {
     const used = Math.max(0, limitMs - (msRemaining ?? 0));
     return msRemaining === undefined || used <= 0 ? "Solved" : `Solved in ${(used / 1000).toFixed(1)} s`;
   }
   return score !== null && score > 0 ? "Partly solved" : "Not solved";
+}
+
+/** An engine game's stored breakdown on the puzzle reveal: open in practice, behind "See breakdown" in a room. */
+function EngineBreakdown({ extra, score, practice, costRows }: { extra: Record<string, unknown> | null; score: number | null; practice: boolean; costRows: { label: string; value: string }[] }) {
+  const [open, setOpen] = useState(false);
+  const reveal = (extra?.["reveal"] as ArcadeRevealData | undefined) ?? null;
+  if (!reveal || score === null) return null;
+  const tiles = [...reveal.tiles.slice(0, 4), ...costRows];
+  return (
+    <div data-engine-breakdown="" className="flex shrink-0 flex-col items-center gap-1">
+      {practice ? null : (
+        <button
+          type="button"
+          data-reveal-summary={open ? "open" : "closed"}
+          aria-expanded={open}
+          onClick={() => setOpen((v) => !v)}
+          className="press reveal-see-breakdown min-h-11 rounded-xl px-4 text-[13px] font-bold text-[var(--ap-gold,#F2C75C)]"
+        >
+          {open ? "Hide breakdown" : "See breakdown"}
+        </button>
+      )}
+      <RevealBreakdown lines={reveal.lines} score={score} extra={tiles} hidden={!practice && !open} />
+    </div>
+  );
 }
 
 /** Who else is in (a room's reveal): everyone's badge, "n of N finished" and when the results arrive. */
@@ -410,7 +492,7 @@ function RevealPlayers({ players, secondsLeft }: { players: RevealPlayer[]; seco
           </span>
         ))}
       </span>
-      <span className="min-w-0 flex-1 truncate text-[13px] font-semibold text-[var(--ap-text-2)]">
+      <span className="min-w-0 flex-1 truncate text-[13px] font-semibold text-[#D4D4DC]">
         {finished} of {players.length} finished · results in {secondsLeft}s
       </span>
     </div>
@@ -594,6 +676,16 @@ function LiveAnswerReveal({
   // pointer-events none and the listener only observes).
   const celebrate = useCelebrationsOn();
   const scope = useCelebrationScope();
+  const revealRoot = useRef<HTMLDivElement>(null);
+  /** The hero's reserved strip (above the score), shown only when this score earns a hero moment. */
+  const heroSpot = celebrate && heroRunAllowed && heroRunEarned(myScore);
+  // Practice: this device's best for the game under today's stamps (read once the score has landed and been recorded).
+  const [best, setBest] = useState<number | null>(null);
+  useEffect(() => {
+    if (!practice || myScore === null) return;
+    const id = window.setTimeout(() => setBest(readPracticeBest(puzzle.type, stampSignature(puzzle))), 0);
+    return () => window.clearTimeout(id);
+  }, [practice, myScore, puzzle]);
   useEffect(() => {
     if (!celebrate || !heroRunAllowed || !heroRunEarned(myScore)) return;
     const moment = heroMomentFor(myScore);
@@ -609,9 +701,11 @@ function LiveAnswerReveal({
     };
     const timer = window.setTimeout(() => {
       if (!claimHeroRun(key)) return;
-      if (moment === "grand") heroGrand(scope);
-      else if (moment === "dance") heroDance(scope);
-      else heroRun(scope);
+      // The reserved spot (3 Nov 2026): the hero keeps to its own strip, never over a board, a line or a button.
+      const spot = revealRoot.current?.querySelector("[data-hero-spot]") ?? null;
+      if (moment === "grand") heroGrand(scope, spot);
+      else if (moment === "dance") heroDance(scope, spot);
+      else heroRun(scope, spot);
       const lasts = celebrationCalm() ? (moment === "run" ? 0 : HERO_STILL_MS) : moment === "grand" ? HERO_GRAND_MS : moment === "dance" ? HERO_DANCE_MS : HERO_RUN_MS;
       if (!lasts) return;
       window.addEventListener("pointerdown", skip, { capture: true, passive: true });
@@ -624,7 +718,7 @@ function LiveAnswerReveal({
   }, [celebrate, myScore, round, startedAt]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <div data-skin="room" data-answer-reveal className="relative flex min-h-0 flex-1 flex-col gap-2.5 px-3 text-left animate-phase-in">
+    <div ref={revealRoot} data-skin="room" data-answer-reveal data-hero-earned={heroSpot ? "" : undefined} className="relative flex min-h-0 flex-1 flex-col gap-2.5 px-3 text-left animate-phase-in">
       {/* Practice's new best (arcade too); rooms keep ArcadeReveal's room-best record. */}
       {practice && personalBest && myScore !== null ? <NewBestMoment /> : null}
       {/* Its own screen (3 Nov 2026): this row is the screen's header (no app top bar), so the sound button sits here. */}
@@ -634,12 +728,14 @@ function LiveAnswerReveal({
           <span className="rs-meta">
             {practice ? (practiceActions ? "Practice" : `Practice · ${secondsLeft}s`) : `Round ${round} of ${totalRounds} · ${secondsLeft}s`}
           </span>
-          <MuteToggle />
+          <MuteToggle variant="speaker" />
         </span>
       </div>
 
-      {ARCADE_REVEAL_RENDERERS[puzzle.type] ? (
+      {ARCADE_REVEAL_RENDERERS[puzzle.type] && !PUZZLE_REVEAL_ENGINE_TYPES.has(puzzle.type) ? (
         <ArcadeReveal
+          practice={practice}
+          best={best}
           puzzle={puzzle}
           myAnswer={myAnswer}
           myScore={myScore}
@@ -656,21 +752,38 @@ function LiveAnswerReveal({
         />
       ) : (
       <div className="flex min-h-0 w-full flex-1 flex-col items-stretch gap-2.5">
+        {/* The hero's reserved strip (3 Nov 2026): only when the score earns a hero moment, above the verdict. */}
+        {heroSpot ? <div data-hero-spot="" aria-hidden="true" className="reveal-hero-spot shrink-0" /> : null}
         {/* The verdict row: the mark in the category colour, "Solved in 53.2 s" in sentence case, the score in white. */}
         <div data-verdict-row className="flex shrink-0 items-center gap-3">
-          {!puzzleOwnsRevealLayout ? <Verdict correct={myCorrect} score={myScore} /> : null}
+          {!puzzleOwnsRevealLayout && !FINISH_ONLY_TYPES.has(puzzle.type) ? <Verdict correct={myCorrect} score={myScore} /> : null}
           <span className="flex min-w-0 flex-1 flex-col">
             <span className="truncate text-[16px] font-bold text-foreground">
-              {verdictLine(myCorrect, myScore, myMsRemaining, puzzleTimeLimitMs(puzzle))}
+              {verdictLine(myCorrect, myScore, myMsRemaining, puzzleTimeLimitMs(puzzle), puzzle.type)}
             </span>
             {!puzzleOwnsRevealLayout ? (
-              <span data-reveal-heading className="truncate text-[13px] text-[var(--ap-text-2)]">
+              <span data-reveal-heading className="truncate text-[13px] text-[#D4D4DC]">
                 {def.revealHeading ?? "The answer was"}
               </span>
             ) : null}
           </span>
           <StoredScore score={myScore} type={puzzle.type} />
         </div>
+        {/* One score line on every puzzle reveal (3 Nov 2026): the stored parts, "150 + 20 par + 30 speed". */}
+        {myScore !== null && storedScoreParts(myExtra) && !REVEAL_SHOWS_PARTS.has(puzzle.type) ? (
+          <p data-reveal-score-line="" className="shrink-0 text-center text-[15px] font-semibold tabular-nums text-foreground">
+            {scorePartsText(storedScoreParts(myExtra)!)}
+          </p>
+        ) : null}
+        {practice && myScore !== null ? (
+          <p data-reveal-best="" className="shrink-0 text-center text-[13px] font-semibold text-[#D4D4DC]">
+            {best === null ? "Your first score for this game" : `Your best: ${best}`}
+          </p>
+        ) : null}
+        {/* Engine games on the puzzle reveal: their stored breakdown, open (practice) or one tap away (rooms). */}
+        {PUZZLE_REVEAL_ENGINE_TYPES.has(puzzle.type) ? (
+          <EngineBreakdown extra={myExtra ?? null} score={myScore} practice={practice} costRows={storedCostRows(puzzle.type, myExtra, puzzle.type === "clayshoot" ? puzzle.clayRev : undefined)} />
+        ) : null}
         {/* Shared near-miss line; nearMiss() returns null for every puzzle type without one. */}
         {myScore !== null && nearMiss(puzzle.type, myExtra) ? (
           <p className="shrink-0 text-center text-sm font-semibold text-foreground">{nearMiss(puzzle.type, myExtra)}</p>
@@ -678,6 +791,7 @@ function LiveAnswerReveal({
         {/* The board keeps its box (flex-1, as before); the tray behind it hugs what it draws (useRevealTray). */}
         <div ref={solvedBoard} data-skin-off className="answer-reveal-content relative isolate flex w-full min-h-0 flex-1 flex-col items-center justify-start overflow-x-hidden overflow-y-auto text-base animate-rise-settle">
           <div ref={trayRef} aria-hidden="true" data-reveal-tray className="reveal-tray" />
+          {answersReady ? <SolutionSwitch type={puzzle.type} root={solvedBoard} /> : null}
           {answersReady ? (
             <Reveal
               puzzle={puzzle}

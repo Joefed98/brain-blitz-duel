@@ -16,6 +16,8 @@
 import { readFileSync } from "node:fs";
 import { revealSummary } from "../src/components/duel/ArcadeReveal";
 import { stdLines, type StdPart } from "../src/lib/arcade/arcadeStandard";
+import { breakdownRows, realFullClear, rowText } from "../src/lib/duel/revealBreakdown";
+import { nearMiss } from "../src/lib/duel/nearMiss";
 
 let failures = 0;
 const check = (ok: boolean, what: string) => {
@@ -55,8 +57,50 @@ check(revealSummary([], 10) === null, "no lines: no summary");
 
 const src = readFileSync("src/components/duel/ArcadeReveal.tsx", "utf8");
 check(/data-reveal-summary=\{open \? "open" : "closed"\}/.test(src) && /aria-expanded=\{open\}/.test(src) && /min-h-11/.test(src), "the folded line is a 44 px button with aria-expanded");
-check(/data-reveal-breakdown="" hidden=\{!open\}/.test(src), "the full list is in the markup, hidden until opened");
-check(/data-reveal-tiles=""\s*hidden=\{!open\}/.test(src), "the parts card is in the markup, hidden until opened");
+// 3 Nov 2026 (Joe's audit): a room folds the breakdown behind "See breakdown"; practice shows it open and no chart.
+const list = readFileSync("src/components/duel/RevealBreakdown.tsx", "utf8");
+check(/data-reveal-breakdown="" hidden=\{hidden\}/.test(list), "the breakdown list takes its hidden state from the reveal");
+check(/<RevealBreakdown lines=\{breakdownLines\} score=\{myScore\} hidden=\{!practice && !open\} \/>/.test(src), "rooms: the full list is in the markup, hidden until opened; practice: open");
+check(/data-reveal-tiles=""\s*hidden=\{!practice && !open\}/.test(src), "rooms: the parts card is in the markup, hidden until opened; practice: open");
+check(/See breakdown/.test(src), "rooms: the fold is a clear \"See breakdown\" button, not a tiny ▾");
+check(/\{!practice \? \(\s*<div data-chart-panel/.test(src), "practice: no snake chart (it would hold one dot)");
+
+// The breakdown's words (revealBreakdown.ts): no arrows, adds up to the score, one "·" a line at most, singular for one,
+// lower-case units, every stored line kept on a row.
+{
+  const rowsStd = breakdownRows(lines, 142);
+  const sum = rowsStd.filter((r) => r.kind !== "total" && r.points !== null).reduce((a, r) => a + r.points!, 0);
+  check(sum === 142 && rowsStd.at(-1)?.kind === "total" && rowsStd.at(-1)?.points === 142, `standard rows add up to the score (${sum})`);
+  const lowRows = breakdownRows(low, 1);
+  const adj = lowRows.find((r) => r.kind === "adjust");
+  check(adj?.name === "At least 1 for playing" && adj.points === 1, `the at-least-1 is written out (${JSON.stringify(adj)})`);
+  const penRows = breakdownRows(stdLines([part("Squares", "40 safe", 120, 150), part("No mines hit", "2 hit", 10, 20)], 120).map((l) => l.replace("Total → 120 of 200", "Total → 120")), 120);
+  const pen = penRows.find((r) => r.kind === "adjust");
+  check(pen?.name === "Penalties" && pen.points === -10, `penalties written out so the rows add up (${JSON.stringify(pen)})`);
+  for (const [stored, want] of [
+    ["3 / 25 clays → 2", "3 of 25 clays: 2 points"],
+    ["1 / 42 barriers → 2", "1 of 42 barriers: 2 points"],
+    ["Solved · 2.6S", "Solved · 2.6 s"],
+    ["1 words found → 1", "1 word found: 1 point"],
+    ["1 swaps", "1 swap"],
+  ] as const) {
+    const got = breakdownRows([stored], null).map(rowText).join(" | ");
+    check(got === want, `"${stored}" reads "${want}" (got "${got}")`);
+  }
+  const many = breakdownRows(["Best streak 4 · Gold 2/3 · Let fall 1/2"], null);
+  check(many.length === 3 && many.every((r) => (rowText(r).match(/·/g) ?? []).length <= 1), "a stored line with several \"·\" splits into rows");
+  check(breakdownRows(["A → 5", "A → 5"], null).length === 1, "no duplicated rows");
+  for (const r of [...rowsStd, ...lowRows, ...penRows]) check(!rowText(r).includes("→"), `no arrow: ${rowText(r)}`);
+}
+check(nearMiss("pool", { spots: 0 }) === "7 left to pot", `Cue Ball's near miss reads "7 left to pot" (${nearMiss("pool", { spots: 0 })})`);
+check(!/from the end/.test(readFileSync("src/lib/duel/nearMiss.ts", "utf8").replace(/\/\/.*$/gm, "")), "no \"N from the end\" lines");
+// A real full clear only: a finish whose core part is full (Flightpath, Home Run, Curl Champ, Ringer, Five Hands
+// always "finish", and cheered "Full clear!" on a score of 1).
+check(!realFullClear("finish", low, 1), "no \"Full clear!\" on a score of 1");
+check(realFullClear("finish", stdLines([part("Core", "all", 130, 130), part("Speed", "x", 70, 70)], 200), 200), "a full core on a finish is a full clear");
+check(!realFullClear("time", stdLines([part("Core", "all", 130, 130), part("Speed", "x", 70, 70)], 200), 200), "a run that ran out of time is no full clear");
+const celebrationSrc = readFileSync("src/components/duel/ArcadeCelebration.tsx", "utf8");
+check(!/sr-only/.test(celebrationSrc), "the headline shows once (no second, screen-reader copy)");
 check(/useState\(false\)/.test(src), "folded by default");
 
 if (failures) {

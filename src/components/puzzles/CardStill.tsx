@@ -5,9 +5,8 @@ import { canvasRatio } from "@/lib/battery";
  * A Cards & Board intro still: the game's own renderer draws one frame of a deal into a small canvas (display only),
  * with a one-line caption under it.
  */
-export function CardStill({ width, height, draw, caption }: { width: number; height: number; draw: (ctx: CanvasRenderingContext2D, size: { width: number; height: number }) => void; caption: string }) {
+export function CardStill({ width, height, draw, caption, shownW = 150 }: { width: number; height: number; draw: (ctx: CanvasRenderingContext2D, size: { width: number; height: number }) => void; caption: string; shownW?: number }) {
   const ref = useRef<HTMLCanvasElement | null>(null);
-  const shownW = 150;
   const shownH = Math.round((shownW * height) / width);
   useEffect(() => {
     const node = ref.current;

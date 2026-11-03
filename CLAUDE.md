@@ -1348,6 +1348,30 @@ outside the repo.
   changed). New checks: reveal-palette-check, blockzone-soft-check, offline-media-refresh-check; arcade-chart,
   round-max, room-extras, reveal-marker, room-settings (legacy digest re-recorded: Bomb Defusal's move changes older
   rooms' category pools), category-pool, practice-switch, room-practice-parity and sound-batch6 updated.
+- **Shared screens: intro, reveal, puzzle layout** (3 Nov 2026, Joe's audit of all 92 games, `screenshots/audit-nov-2026/`;
+  presentation only, no stamps, no game's play or scoring changed). *Intro*: GOAL (22 px), the demo box at about 40 %
+  of the height (`.round-instructions > .intro-stage`), HOW (15 px, brighter), SCORE as a short list (`scoreParts` in
+  `PuzzleInstructions.tsx`: the same text a sentence a row), Ready; Wavefront's and Jaywalk's stills drawn by the game's
+  own renderer (`ArtStill`). *Reveal*: the breakdown in plain words (`src/lib/duel/revealBreakdown.ts` and
+  `RevealBreakdown.tsx`: no "→", one "·" a row at most, singular for one, lower-case units, penalties and the
+  at-least-1 written out so the rows add up to the score, every row keeping its stored line in `data-line`); practice
+  shows it open with "Your best" and no snake chart, rooms keep the chart behind a "See breakdown" button; "Who's
+  ahead" only with more than one player; "Full clear!" once and only on a real full clear (`realFullClear`: a finish
+  with the core part full); Flash, Bang On, Tenfall, Bonk, Mixed Signals and Pull! say "Finished" (`FINISH_ONLY_TYPES`),
+  and the last four take the puzzle reveal (`PUZZLE_REVEAL_ENGINE_TYPES`, their stored breakdown under it); near
+  misses read "7 left to pot", never "from the end"; the header has one speaker button (`MuteToggle variant="speaker"`);
+  the hero keeps to a reserved strip above the score (`[data-hero-spot]`, a `HeroLane` in celebrationCanvas.ts). Puzzle
+  reveals: one score line from the stored parts ("150 + 20 par + 30 speed"), the board grown into spare height
+  (`useRevealFit`, up to 1.8×), and a Solution / Yours switch for the twelve side-by-side reveals (`SolutionSwitch`).
+  *Colours*: one hue a game (`REVEAL_ARCADE_HUES` for arcade, each puzzle its category's colour,
+  `REVEAL_CATEGORY_COLOURS`), deep at the top fading to near-black, white at 7:1 (`bun scripts/reveal-palette.ts`;
+  reveal-palette-check proves one hue and one gradient per category). *Puzzle layout*
+  (`src/polish-layout/puzzle-shared.css`): 12 px side margins, HUD and status lines in the UI font with even digits as
+  pill chips, disabled actions grey (gold only when active). reveal-fold-check proves the breakdown's words. The snake
+  chart draws straight on the reveal's gradient (no panel): a translucent white track (`CHART_TRACK_COLOUR`), every
+  line, leader and dot over a thin dark edge (`CHART_OUTLINE`), quiet labels at 0.8 with a soft shadow (≥ 4.5:1 on
+  every game's stops, reveal-palette-check); `bun scripts/shots/chart-gradient-shots.ts [types…]` draws the 16-player
+  room reveal on any game's gradient.
 - **Sound levels fix-up** (3 Nov 2026; presentation only, no stamps; `docs/sound-cues/levels-nov-2026.md`): Joe's
   November files (Moon Climb, Iron Wall, Blockzone and Ringer effects, the five beds, round8–round11 and the five
   moment voice lines) re-cut from his uploads (`sounds-nov-2026`, commit f19a6876) by `scripts/sound-nov-2026/process.py`

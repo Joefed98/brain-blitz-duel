@@ -507,7 +507,9 @@ if (BROWSER) {
               };
             });
             check(folded.summary === "closed", `${where}: the breakdown isn't one folded line (${folded.summary})`);
-            check(folded.summaryText.startsWith("Core 112 / 150"), `${where}: the folded line reads ${JSON.stringify(folded.summaryText)} (want the fixture's first line)`);
+            // 3 Nov 2026 (Joe's audit): the folded line is the fixture's first line in plain words ("12 / 40" reads "12 of 40"),
+            // with a clear "See breakdown" under it.
+            check(folded.summaryText.startsWith("Core 112 of 150") && folded.summaryText.endsWith("See breakdown"), `${where}: the folded line reads ${JSON.stringify(folded.summaryText)} (want the fixture's first line, then "See breakdown")`);
             check(folded.summaryH >= 44, `${where}: the breakdown's tap target is ${folded.summaryH}px tall`);
             check(!folded.tilesShown, `${where}: the parts card shows before the breakdown is opened`);
             check(!folded.scrolls, `${where}: the folded reveal scrolls (${folded.heights})`);
@@ -529,7 +531,8 @@ if (BROWSER) {
                 hidden: document.querySelector("[data-chart-hidden]")?.getAttribute("data-chart-hidden") ?? null,
                 // Every text in the chart but its scale labels: never a digit (no score is shown).
                 digits: [...document.querySelectorAll("[data-arcade-chart] :is(p, span):not([data-chart-label])")].map((e) => e.textContent ?? "").filter((t) => /\d/.test(t)),
-                lines: [...document.querySelectorAll("[data-answer-reveal] p")].filter((p) => /\d+ \/ \d+/.test(p.textContent ?? "")).length,
+                // One breakdown row a stored part line (3 Nov 2026: rows in plain words, each keeping its stored line).
+                lines: [...document.querySelectorAll("[data-reveal-breakdown] li[data-line]")].filter((li) => /\d+ \/ \d+/.test(li.getAttribute("data-line") ?? "")).length,
                 markersInPanel: markers.every((m) => {
                   const b = m.getBoundingClientRect();
                   return !panel || (b.top >= panel.top - 0.5 && b.bottom <= panel.bottom + 0.5);

@@ -631,7 +631,7 @@ const ps = (onScale150: number) => scaledToMax(PUZZLE.type, onScale150);
   const clean = podiumAwards(players, [1, 2, 3].map((s) => result(s, 1, 50 * s, { extra: { gates: 20, totalGates: 20 } })), [HOVER]);
   check(!find(clean, "close"), "So Close with no near miss");
   const miss = podiumAwards(players, [1, 2, 3].map((s) => result(s, 1, 50 * s, { extra: s === 2 ? { gates: 19, totalGates: 20 } : null })), [HOVER]);
-  check(find(miss, "close")?.slot === 2 && /1 barrier from the end/.test(find(miss, "close")!.line), "So Close: a near miss not awarded");
+  check(find(miss, "close")?.slot === 2 && /1 barrier left to pass/.test(find(miss, "close")!.line), "So Close: a near miss not awarded");
   // A big gap is a results line, never So Close: 5 of 20 barriers left, 4 of 4 mazes, 200 m of 500.
   const far = podiumAwards(players, [1, 2, 3].map((s) => result(s, 1, 50 * s, { extra: s === 2 ? { gates: 15, totalGates: 20 } : null })), [HOVER]);
   check(!find(far, "close"), "So Close for 5 of 20 barriers left");

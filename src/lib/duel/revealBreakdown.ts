@@ -1,0 +1,220 @@
+/**
+ * The reveal's breakdown in plain words (3 Nov 2026, Joe's audit of all 92 games; display only, never a regrade).
+ *
+ * The server stores each run's breakdown lines (round_results.extra.reveal.lines, built by the server replay); this
+ * module reads them as stored and writes them for people:
+ *   - no arrows: "Distance: 412 ft → 110 of 130" is the row "Distance · 412 ft · 110 of 130", or as one line
+ *     "Distance: 412 ft: 110 of 130 points"; "3 / 25 clays → 2" reads "3 of 25 clays: 2 points";
+ *   - one line per item, at most one "·" a line (a stored line with more splits into rows), no duplicates;
+ *   - singular for one ("1 word", "1 swap"), lower-case units ("2.6 s", never "2.6S");
+ *   - the rows add up to the score shown: a standard run's parts, then any gap between their sum and the stored
+ *     score written out (penalties, or the at-least-1 for playing), then the total.
+ *
+ * Every row keeps the stored line it came from (`line`), so a check can prove no stored line is lost.
+ */
+
+export interface BreakdownRow {
+  /** The stored line this row was read from (exactly as stored). */
+  line: string;
+  kind: "part" | "adjust" | "total" | "note";
+  /** The part's name ("Distance"), or the whole text for a note. */
+  name: string;
+  /** What the run did ("412 ft"), when the line says. */
+  detail: string | null;
+  /** Points this row adds (signed); null for a note with no figure. */
+  points: number | null;
+  /** The part's maximum, when stored. */
+  max: number | null;
+}
+
+/** A standard part line (stdLines): "<label>: <detail> → <points> of <max>". */
+const STD_PART = /^([^:→]+): (.*) → (-?\d+) of (\d+)$/;
+const TOTAL = /^Total → (\d+)(?: of (\d+))?(?: · (.+))?$/;
+const AT_LEAST_ONE = /^At least 1 for playing → (\d+)$/;
+const NO_INPUT = /^(.*) · no input → 0$/;
+/** Any other "<text> → <number>[ rest]" line. */
+const ARROW_POINTS = /^(.*?) → ([−-]?\d+)$/;
+
+/** Plural words that don't take a plain -s off. */
+const SINGULAR: Record<string, string> = {
+  lives: "life",
+  points: "point",
+  bonuses: "bonus",
+  buses: "bus",
+  boxes: "box",
+  matches: "match",
+  dishes: "dish",
+  pieces: "piece",
+  tries: "try",
+  chillies: "chilli",
+  combos: "combo",
+  misses: "miss",
+  passes: "pass",
+  crosses: "cross",
+  touches: "touch",
+  switches: "switch",
+  shelves: "shelf",
+  leaves: "leaf",
+};
+/** Words ending in s that are already singular (or uncountable) and must never lose it. */
+const KEEP_S = new Set(["pass", "miss", "bus", "bonus", "cross", "gas", "plus", "minus", "status", "this", "is", "was", "has", "as", "us", "chess", "less", "class", "glass", "grass", "boss", "loss", "press", "progress", "success", "access", "focus", "radius", "canvas", "series", "species", "ms", "s", "yes", "always", "its", "his", "lens", "pls", "physics"]);
+
+function singularOf(word: string): string {
+  const lower = word.toLowerCase();
+  if (SINGULAR[lower]) return matchCase(word, SINGULAR[lower]!);
+  if (KEEP_S.has(lower) || !/s$/i.test(word) || word.length < 3) return word;
+  if (/ies$/i.test(word)) return word.slice(0, -3) + "y";
+  if (/(ss|sh|ch|x|z)es$/i.test(word)) return word.slice(0, -2);
+  if (/ss$/i.test(word) || /us$/i.test(word)) return word;
+  return word.slice(0, -1);
+}
+
+function matchCase(original: string, word: string): string {
+  if (original === original.toUpperCase()) return word.toUpperCase();
+  if (original[0] === original[0]!.toUpperCase()) return word[0]!.toUpperCase() + word.slice(1);
+  return word;
+}
+
+/** Singular after a lone 1: "1 words" → "1 word", "1 swaps" → "1 swap" (never "21 words", "1.5 words", "of 1"). */
+function singular(text: string): string {
+  return text.replace(/(^|[^\d.,/])1 ([A-Za-z]+)\b/g, (m, before: string, word: string) => {
+    if (word === "words") return `${before}1 word`;
+    return `${before}1 ${singularOf(word)}`;
+  });
+}
+
+/** Plain words for one stored fragment: no arrows, "of" for counts, lower-case units, singular for one. */
+export function plainText(text: string): string {
+  let out = text
+    // "12 / 40" and "12/40" between figures: "12 of 40".
+    .replace(/(\d)\s*\/\s*(\d)/g, "$1 of $2")
+    // An arrow left in the middle of a phrase reads as a colon.
+    .replace(/\s*→\s*/g, ": ")
+    // Upper-case units drawn by a shouting label ("2.6S", "60.0 S", "12MS"): lower-case.
+    .replace(/(\d)\s?(MS|S|M|KM\/H|FT|CM)\b/g, (_, d: string, unit: string) => `${d} ${unit.toLowerCase()}`)
+    .replace(/\s{2,}/g, " ")
+    .trim();
+  out = singular(out);
+  return out;
+}
+
+/** "N points" with the singular for one. */
+export function pointsWord(n: number): string {
+  const abs = Math.abs(n);
+  return `${n < 0 ? "−" : ""}${abs} ${abs === 1 ? "point" : "points"}`;
+}
+
+/** A stored line with more than one " · " splits into pieces, so no row carries more than one. */
+function pieces(text: string): string[] {
+  const parts = text.split(" · ");
+  if (parts.length <= 2) return [text];
+  return parts;
+}
+
+const num = (s: string) => Number(s.replace("−", "-"));
+
+/**
+ * The breakdown rows for a run's stored lines and stored score. Standard runs (two or more part lines) get a row a
+ * part, then the gap to the score written out ("Penalties" below the parts' sum, "At least 1 for playing" above it),
+ * then the total; anything else gets a row a stored line, in plain words, one "·" at most, each fact once.
+ */
+export function breakdownRows(lines: readonly string[], score: number | null): BreakdownRow[] {
+  const rows: BreakdownRow[] = [];
+  const seen = new Set<string>();
+  const push = (row: BreakdownRow) => {
+    const key = `${row.kind}|${row.name}|${row.detail ?? ""}|${row.points ?? ""}|${row.max ?? ""}`;
+    if (seen.has(key)) return;
+    seen.add(key);
+    rows.push(row);
+  };
+  let partSum = 0;
+  let parts = 0;
+  let total: BreakdownRow | null = null;
+  for (const line of lines) {
+    const std = STD_PART.exec(line);
+    if (std) {
+      parts++;
+      partSum += num(std[3]!);
+      push({ line, kind: "part", name: plainText(std[1]!), detail: plainText(std[2]!), points: num(std[3]!), max: num(std[4]!) });
+      continue;
+    }
+    const tot = TOTAL.exec(line);
+    if (tot) {
+      total = { line, kind: "total", name: "Total", detail: null, points: num(tot[1]!), max: tot[2] ? num(tot[2]) : null };
+      if (tot[3]) push({ line, kind: "note", name: plainText(tot[3]), detail: null, points: null, max: null });
+      continue;
+    }
+    const least = AT_LEAST_ONE.exec(line);
+    if (least) {
+      // Written out below from the parts' sum; the stored line is kept on the total row.
+      total = { line, kind: "total", name: "Total", detail: null, points: num(least[1]!), max: null };
+      continue;
+    }
+    const none = NO_INPUT.exec(line);
+    if (none) {
+      // "0 waves · 0 ships · 0 armour hits · …: no input": one row a fact, then "No input: 0 points".
+      for (const piece of none[1]!.split(" · ")) push({ line, kind: "note", name: plainText(piece), detail: null, points: null, max: null });
+      push({ line, kind: "note", name: "No input", detail: null, points: 0, max: null });
+      continue;
+    }
+    for (const piece of pieces(line)) {
+      const arrow = ARROW_POINTS.exec(piece);
+      if (arrow) {
+        push({ line, kind: "note", name: plainText(arrow[1]!), detail: null, points: num(arrow[2]!), max: null });
+        continue;
+      }
+      // "Board cleared → 130 · time +12": the arrow's figure and the extra as their own rows.
+      const mid = /^(.*?) → ([−-]?\d+) · (.+)$/.exec(piece);
+      if (mid) {
+        push({ line, kind: "note", name: plainText(mid[1]!), detail: null, points: num(mid[2]!), max: null });
+        push({ line, kind: "note", name: plainText(mid[3]!), detail: null, points: null, max: null });
+        continue;
+      }
+      push({ line, kind: "note", name: plainText(piece), detail: null, points: null, max: null });
+    }
+  }
+  // The standard's parts add up to the score shown: write out any gap (penalties, or the 1 for playing).
+  if (parts >= 1 && score !== null && partSum !== score) {
+    const gap = score - partSum;
+    const adjustLine = total?.line ?? "";
+    push({
+      line: adjustLine,
+      kind: "adjust",
+      name: gap > 0 && partSum < 1 ? "At least 1 for playing" : gap < 0 ? "Penalties" : "Adjustment",
+      detail: null,
+      points: gap,
+      max: null,
+    });
+  }
+  if (total) rows.push(total);
+  else if (parts >= 1 && score !== null) rows.push({ line: "", kind: "total", name: "Total", detail: null, points: score, max: null });
+  return rows;
+}
+
+/** One row as one line of plain words: "Distance: 412 ft: 110 of 130 points", "3 of 25 clays: 2 points". */
+export function rowText(row: BreakdownRow): string {
+  const figure =
+    row.points === null ? null : row.max !== null ? `${row.points} of ${row.max} ${row.max === 1 ? "point" : "points"}` : row.kind === "adjust" && row.points > 0 ? `+${pointsWord(row.points)}` : pointsWord(row.points);
+  const head = row.detail ? `${row.name}: ${row.detail}` : row.name;
+  return figure === null ? head : `${head}: ${figure}`;
+}
+
+/**
+ * A real full clear (3 Nov 2026: "Full clear!" showed on scores as low as 1, Flightpath, Home Run, Curl Champ, Ringer,
+ * Five Hands, whose runs always "finish"): the server's finish outcome and, on the standard, the core part (the first)
+ * at its maximum; a game off the standard needs FULL_CLEAR_MIN_SCORE.
+ */
+export const FULL_CLEAR_MIN_SCORE = 150;
+export function realFullClear(outcome: string | undefined, lines: readonly string[], score: number | null): boolean {
+  if (outcome !== "finish" || score === null) return false;
+  const core = lines.map((l) => STD_PART.exec(l)).find(Boolean);
+  if (core) return num(core[3]!) >= num(core[4]!);
+  return score >= FULL_CLEAR_MIN_SCORE;
+}
+
+/** The room reveal's one-line summary in plain words ("13 of 15 barriers: 132 points"; the standard's line as is). */
+export function summaryText(summary: string): string {
+  if (/^\d+ · core \d+ [+−] features \d+$/.test(summary)) return summary;
+  const rows = breakdownRows([summary], null);
+  return rows.map(rowText).slice(0, 2).join(" · ");
+}

@@ -28,14 +28,19 @@ export function PuzzleInstructions({ type, overlay = false, beforeScore }: Puzzl
       <div className="intro-goal shrink-0">
         <p className="font-mono text-[11px] font-bold uppercase text-category-accent">Goal</p>
         <p
-          className={`font-display font-bold leading-tight text-foreground ${overlay ? "text-2xl" : "text-lg"}`}
+          className={`font-display font-bold leading-tight text-foreground ${overlay ? "text-2xl" : "text-[22px]"}`}
         >
           {instructions.goal}
         </p>
       </div>
+      {/* The intro (3 Nov 2026, Joe's audit): GOAL, then the demo box (about 40 % of the height), then HOW and
+          SCORE under it; the "?" help keeps GOAL, HOW, SCORE. */}
+      {beforeScore}
       <div className="intro-how shrink-0">
         <p className="font-mono text-[11px] font-bold uppercase text-category-accent">How</p>
-        <div className="flex flex-col gap-0.5 text-sm leading-snug text-muted-foreground">
+        <div
+          className={`flex flex-col gap-0.5 leading-snug ${overlay ? "text-sm text-muted-foreground" : "text-[15px] text-[color-mix(in_srgb,var(--foreground)_86%,transparent)]"}`}
+        >
           {instructions.how.filter((line) => overlay || !line.helpOnly).map((line) => (
             <p key={`${line.action}-${line.detail}`}>
               <strong className="font-bold text-foreground">{line.action}</strong> {line.detail}
@@ -43,13 +48,32 @@ export function PuzzleInstructions({ type, overlay = false, beforeScore }: Puzzl
           ))}
         </div>
       </div>
-      {beforeScore}
       <div className="intro-score shrink-0">
         <p className="font-mono text-[11px] font-bold uppercase text-category-accent">Score</p>
-        <p className="text-sm leading-snug text-muted-foreground">{overlay ? instructions.score : INTRO_SCORE[type]}</p>
+        {overlay ? (
+          <p className="text-sm leading-snug text-muted-foreground">{instructions.score}</p>
+        ) : (
+          <ul data-intro-score-parts="" className="flex flex-col gap-0.5 text-[14px] leading-snug text-[color-mix(in_srgb,var(--foreground)_80%,transparent)]">
+            {scoreParts(INTRO_SCORE[type]).map((part) => (
+              <li key={part} className="intro-score-part">{part}</li>
+            ))}
+          </ul>
+        )}
       </div>
     </section>
   );
+}
+
+/**
+ * The intro's SCORE as a short list (3 Nov 2026): the same text, one sentence a row. Splits after a full stop
+ * followed by a space and a capital or digit, so decimals ("2.5 s") and abbreviations stay whole.
+ */
+export function scoreParts(text: string | undefined): string[] {
+  // A deleted game (removedGames.ts) has no INTRO_SCORE entry: no Score lines, as main drew none.
+  return (text ?? "")
+    .split(/(?<=[.!])\s+(?=[A-Z0-9])/)
+    .map((part) => part.trim())
+    .filter(Boolean);
 }
 
 /** Puzzles whose "?" card repeats the intro's worked example. */

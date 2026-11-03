@@ -25,6 +25,7 @@
 @import "./polish-layout/game-frame.css";
 @import "./polish-layout/offline.css";
 @import "./polish-layout/reveal-screen.css";
+@import "./polish-layout/puzzle-shared.css";
 
 /*
  * Duelz design system — dark competitive esports feel.
@@ -1109,12 +1110,33 @@ html,
 /* Round intro text steps (data-compact, set by RoundIntro when the text would
  * otherwise squeeze the demo/example under its minimum or not fit at all). */
 .round-intro[data-compact="1"] .round-instructions { gap: 0.25rem; }
-.round-intro[data-compact="1"] .intro-goal > p:last-child { font-size: 1rem; }
-.round-intro[data-compact="1"] :is(.intro-how, .intro-score) :is(p, div) { font-size: 0.8125rem; line-height: 1.3; }
+.round-intro[data-compact="1"] .intro-goal > p:last-child { font-size: 1.125rem; }
+.round-intro[data-compact="1"] :is(.intro-how, .intro-score) :is(p, div, li) { font-size: 0.875rem; line-height: 1.3; }
 .round-intro[data-compact="2"] .round-instructions { gap: 0.125rem; }
 .round-intro[data-compact="2"] .round-intro-content { gap: 0.25rem; }
-.round-intro[data-compact="2"] .intro-goal > p:last-child { font-size: 0.9375rem; }
-.round-intro[data-compact="2"] :is(.intro-how, .intro-score) :is(p, div) { font-size: 0.75rem; line-height: 1.25; }
+.round-intro[data-compact="2"] .intro-goal > p:last-child { font-size: 1rem; }
+.round-intro[data-compact="2"] :is(.intro-how, .intro-score) :is(p, div, li) { font-size: 0.8125rem; line-height: 1.25; }
+
+/* The intro's balance (3 Nov 2026, Joe's audit): GOAL, the demo box at about 40 % of the content's height (it grows
+   into what the text leaves, so no gaps float round a small panel), HOW, SCORE as a short list, then READY. */
+.round-instructions > .intro-stage {
+  flex: 1 1 40%;
+  min-height: 110px;
+}
+.intro-score-part {
+  position: relative;
+  padding-left: 14px;
+}
+.intro-score-part::before {
+  content: "";
+  position: absolute;
+  left: 2px;
+  top: 0.6em;
+  width: 5px;
+  height: 5px;
+  border-radius: 999px;
+  background: var(--category-accent);
+}
 
 /* --- Waiting / loading dots -------------------------------------------- */
 

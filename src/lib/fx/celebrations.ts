@@ -196,8 +196,8 @@ export function onAppOpen(listener: () => void): () => void {
 export type CelebrationRequest =
   | { kind: "burst"; scope: number; x: number; y: number; w: number; count: number }
   | { kind: "banner"; scope: number; text: string; calm: boolean; burst: boolean }
-  | { kind: "heroRun"; scope: number }
-  | { kind: "heroShow"; scope: number; show: "dance" | "grand"; calm: boolean }
+  | { kind: "heroRun"; scope: number; anchor?: Element | null }
+  | { kind: "heroShow"; scope: number; show: "dance" | "grand"; calm: boolean; anchor?: Element | null }
   | { kind: "skip"; scope: number }
   | { kind: "podiumHero"; scope: number; anchor: Element; calm: boolean }
   | { kind: "strike" }
@@ -356,9 +356,9 @@ export function showBanner(scope: number, text: string, options: { burst?: boole
 }
 
 /** The hero runs once along the screen's bottom (never under reduced motion). */
-export function heroRun(scope: number): void {
+export function heroRun(scope: number, anchor: Element | null = null): void {
   if (!celebrationsOn() || celebrationCalm()) return;
-  send({ kind: "heroRun", scope });
+  send({ kind: "heroRun", scope, anchor });
   celebrationSound("heroRun");
 }
 
@@ -366,9 +366,9 @@ export function heroRun(scope: number): void {
  * A 190–199 reveal: the hero runs on, dances about 1.5 s and steps off, with its flourish. Reduced
  * motion: the hero stands still with a short glow instead (the sound still plays).
  */
-export function heroDance(scope: number): void {
+export function heroDance(scope: number, anchor: Element | null = null): void {
   if (!celebrationsOn()) return;
-  send({ kind: "heroShow", scope, show: "dance", calm: celebrationCalm() });
+  send({ kind: "heroShow", scope, show: "dance", calm: celebrationCalm(), anchor });
   celebrationSound("heroDance");
 }
 
@@ -377,10 +377,10 @@ export function heroDance(scope: number): void {
  * flourish and a crackle per firework (the layer plays those as they burst). Reduced motion: the hero
  * stands still with a short glow, and only the flourish plays.
  */
-export function heroGrand(scope: number): void {
+export function heroGrand(scope: number, anchor: Element | null = null): void {
   if (!celebrationsOn()) return;
   const calm = celebrationCalm();
-  send({ kind: "heroShow", scope, show: "grand", calm });
+  send({ kind: "heroShow", scope, show: "grand", calm, anchor });
   if (!calm) celebrationSound("heroRun");
   celebrationSound("heroGrand");
 }
