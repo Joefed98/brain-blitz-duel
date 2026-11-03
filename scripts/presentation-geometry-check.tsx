@@ -83,7 +83,9 @@ const css = readFileSync("src/styles.css", "utf8");
 // headline in the game's own world colour; no crash or warning colour is drawn; and no frozen game backdrop is drawn.
 const revealSrc = readFileSync("src/components/duel/ArcadeReveal.tsx", "utf8");
 const celebrationSrc = readFileSync("src/components/duel/ArcadeCelebration.tsx", "utf8");
-assert.match(revealSrc, /const full = myReveal\.outcome === "finish";/);
+// 3 Nov 2026 (Joe's audit: "Full clear!" on scores as low as 1): only a real full clear, the finish outcome with the
+// core part full (revealBreakdown.realFullClear, proved in reveal-fold-check).
+assert.match(revealSrc, /const full = realFullClear\(myReveal\.outcome, myReveal\.lines, myScore\);/);
 assert.match(revealSrc, /return full && best \? "both" : full \? "full"/);
 assert.match(revealSrc, /<ArcadeCelebration kind=\{celebration\} world=\{arcadeWorldOf\(puzzle\.type\)\} \/>/);
 assert.match(celebrationSrc, /const theme = ARCADE_WORLD_THEMES\[world \?\? "gem"\]/);
