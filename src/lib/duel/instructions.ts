@@ -1190,7 +1190,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Some decks", detail: "can't reach 200 even placed perfectly: everyone in a room has the same deck, so it's fair.", helpOnly: true },
         { action: "Same deck, same order,", detail: "for everyone.", helpOnly: true },
       ],
-      score: liveStdHelp("fivehands", "One part: your five rows' and your picked column's points added up, which total 200 at most:"),
+      score: liveStdHelp("fivehands", "One part: your five rows' and your picked column's points added up and times 1.4, which total 200 at most:"),
     },
     blockfall: {
       goal: "Clear as many lines as you can in 60 seconds.",

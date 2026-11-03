@@ -29,7 +29,7 @@
  *     eight columns of five) and all 300 of its bank's par lines reach 200; Summit tripeaksRev 2's stock pars (one a
  *     deal, re-proved the fewest on eight deals here; `bun scripts/tripeaks-stock-par.ts --check` re-proves all) and
  *     all 300 stock-par lines at 200; Five Hands fiveHandsRev 3's flat table, the sum capped at 200, the first shuffle
- *     dealt as it is, and 12 decks' exact bests through the server replay at min(200, hand points). `CHECKS_FULL=1`
+ *     dealt as it is, and 12 decks' exact bests through the server replay at min(200, floor(hand points × 1.4)). `CHECKS_FULL=1`
  *     also rebuilds the 40-card bank (freecell-bank.ts --rev=4 --check).
  *
  *   bun scripts/cards-check.ts
@@ -470,6 +470,9 @@ ok(new Set(FC_DEALS.map((d) => d[0])).size === FC_DEALS.length && new Set(TP_DEA
   ok(rev1Parts.length === 2 && rev1Parts[0]!.max === 160, "fivehands: a rev-1 state keeps its two parts (hand points 160, made hands 40)");
 }
 
+/** Five Hands rev 3's points for a hand-point total, written out here (not the sim's helper): floor(× 7 ÷ 5), capped at 200. */
+const x14 = (total: number) => Math.min(200, Math.floor((total * 7) / 5));
+
 /* 8. The Cards & Board batch (3 Nov 2026): older stamps exactly as on main; Free Cell freecellRev 4, Summit tripeaksRev 2, Five Hands fiveHandsRev 3. */
 {
   type LegacyRun = { type: string; rev: number; seed: number; label: string; raw: string; score: number; checksum: number; tick: number };
@@ -569,23 +572,23 @@ ok(new Set(FC_DEALS.map((d) => d[0])).size === FC_DEALS.length && new Set(TP_DEA
     const d3 = fhDeal(seed, 3);
     if (JSON.stringify(d3.deck) === JSON.stringify(shuffledDeck((seed ^ Math.imul(1, 0x9e3779b1)) | 0).deck.slice(0, FH_SEEN))) firstShuffle++;
     if (seed < 12) {
-      // The deck's exact best through the server's replay scores min(200, its hand points); the climb's witness never beats it.
+      // The deck's exact best through the server's replay scores min(200, floor(its hand points × 1.4)); the climb's witness never beats it.
       const best = fhBest(seed, 3);
       bests.push(best.total);
       const r = replayFiveHandsRun(seed, fiveHandsFlawless(seed, 20, 3).raw, 3);
-      if (r.score !== Math.min(200, best.total) || r.total !== best.total || !r.finished || r.flagged || fhTotals(d3.witness, 3).total > best.total) {
+      if (r.score !== x14(best.total) || r.total !== best.total || !r.finished || r.flagged || fhTotals(d3.witness, 3).total > best.total) {
         fh3 = false;
         failures.push(`fivehands rev 3: seed ${seed}'s best (${best.total}) replays to ${r.score} (${r.total} hand points)`);
       }
     }
   }
   ok(firstShuffle === 60, `fivehands rev 3: every deck is the seed's first shuffle, never reshuffled (${firstShuffle} of 60)`);
-  ok(fh3, `fivehands rev 3: 12 decks' exact bests replay to min(200, hand points) through the server replay (bests ${bests.join(", ")})`);
+  ok(fh3, `fivehands rev 3: 12 decks' exact bests replay to min(200, floor(hand points × 1.4)) through the server replay (bests ${bests.join(", ")})`);
   const g3f = fiveHandsGameFor(3);
   let m3: FhState = g3f.init(31);
   for (let t = 0; t < 12; t++) m3 = g3f.step(m3, { t: m3.tick + 1, k: FH_INPUT_PLACE, a: fhOpenRows(m3.rows)[0]!, b: 0, c: 0, d: 0 });
   const t3 = fhTotals(m3.rows, 3).total;
-  ok(g3f.score(m3) === Math.max(1, Math.min(200, t3)) && fiveHandsStdParts(m3)![0]!.points === Math.min(200, t3), `fivehands rev 3: ${t3} hand points score ${g3f.score(m3)} (the sum, at least 1)`);
+  ok(g3f.score(m3) === Math.max(1, x14(t3)) && fiveHandsStdParts(m3)![0]!.points === x14(t3), `fivehands rev 3: ${t3} hand points score ${g3f.score(m3)} (× 1.4, at least 1)`);
   {
     // The bonus column: refused until every row is complete; once picked the run ends and the column's hand adds; the
     // buzzer before a pick counts no column; columns are slot k of every row, so their cards are fixed by the deck.
@@ -599,12 +602,12 @@ ok(new Set(FC_DEALS.map((d) => d[0])).size === FC_DEALS.length && new Set(TP_DEA
     const colPts = [0, 1, 2, 3, 4].map((k) => fhRowHand(fhColumn(st.rows, k), 3).points);
     const k = colPts.indexOf(Math.max(...colPts));
     const done = g.step(st, { t: st.tick + 1, k: FH_INPUT_PICK, a: k, b: 0, c: 0, d: 0 });
-    ok(done.pick === k && done.ended === 1 && g.score(done) === Math.max(1, Math.min(200, rowsTotal + colPts[k]!)), `fivehands rev 3: picking column ${k + 1} ends the run and scores rows ${rowsTotal} + column ${colPts[k]} = ${g.score(done)}`);
+    ok(done.pick === k && done.ended === 1 && g.score(done) === Math.max(1, x14(rowsTotal + colPts[k]!)), `fivehands rev 3: picking column ${k + 1} ends the run and scores rows ${rowsTotal} + column ${colPts[k]} = ${g.score(done)}`);
     const again = g.step({ ...done, ended: 0 }, { t: done.tick + 1, k: FH_INPUT_PICK, a: (k + 1) % 5, b: 0, c: 0, d: 0 });
     ok(again.pick === k && again.rejects === done.rejects + 1, "fivehands rev 3: a second pick is refused");
     let late = st;
     while (!g.isOver(late)) late = g.step(late, null);
-    ok(late.ended === 2 && late.pick === -1 && g.score(late) === Math.max(1, Math.min(200, rowsTotal)), "fivehands rev 3: the buzzer before a pick counts no column");
+    ok(late.ended === 2 && late.pick === -1 && g.score(late) === Math.max(1, x14(rowsTotal)), "fivehands rev 3: the buzzer before a pick counts no column");
     const fixed = [0, 1, 2, 3, 4].every((c) => JSON.stringify([...fhColumn(st.rows, c)].sort((x, y) => x - y)) === JSON.stringify((c === 0 ? st.deck.slice(0, 5) : [0, 1, 2, 3, 4].map((j) => fhYours(st.deck, (c - 1) * 5 + j))).sort((x, y) => x - y)));
     ok(fixed, "fivehands rev 3: column 0 is the five dealt cards and column k round k's five cards, whatever the placement");
     ok(fhCheckpoint({ ...st, pick: undefined }).checksum !== fhCheckpoint(done).checksum && fiveHandsGameFor(2).init(44).pick === undefined, "fivehands rev 3: the pick is in the checksum; rev 1–2 states carry none");

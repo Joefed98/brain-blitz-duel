@@ -12,8 +12,10 @@
   comes first no column counts. A pick before the rows are complete, or a second pick, is refused. After the pick the
   chosen column stays lit and its hand and points show in the card's place ("COLUMN 3 · PAIR +15"); the reveal names it
   as the sixth hand (tile "Sixth hand (column)", the breakdown line "rows + column").
-- **Score = the five rows' hand points + the chosen column's, capped at 200**; anyone who plays scores at least 1, no
-  input 0. No scaling, no full figure, no other parts (`FH_STD_SPEC`: one part, Hand points, max 200; `fhTotalV3`).
+- **Score = (the five rows' hand points + the chosen column's) × 1.4, capped at 200** (Joe's decision, 3 Nov 2026, after
+  the measurements below; integer `floor(points × 7 ÷ 5)`, `fhScoreV3`, so 143 hand points score the full 200 and 142
+  score 198); anyone who plays scores at least 1, no input 0. One part (`FH_STD_SPEC`: Hand points, max 200, full at
+  `FH_CORE_FULL_V3` 143; `fhTotalV3`).
 - **The columns are complete hands, and fixed by the deck.** Rows fill evenly (every row takes one card before any takes
   the next), so slot k of every row is filled in the same round: column 1 always holds the five dealt cards and column
   k + 1 round k's five cards, whatever the placement. Placement never changes a column's hand; the pick's skill is reading
@@ -28,9 +30,9 @@
   (`scripts/fixtures/cards-nov3-legacy.json`, `scripts/cards-nov3-legacy-record.ts`) replay to the same score and final
   state (cards-check). A rev-2 log's kind-2 input is not an input.
 
-**Can perfect play reach 200?** Hardly ever: the deck's exact best (rows + best column) reaches 200 on **1 of 200** decks
-for raw seeds 0–199 and **1 of 200** for 10000–10199 (median 155 and 160, p10–p90 135–180, max 200); on the skill-band
-tool's fresh room seeds the flawless run reaches 200 on 0 of 200 (median 155).
+**Can perfect play reach 200?** With × 1.4, the deck's best must reach 143 hand points: the flawless run (the exact best)
+scores 200 on **165 of 200** fresh seeds (median 200, p10–p90 196–200). Without the multiplier only 1 of 200 decks could
+(the exact best's median 155–160 hand points), so the `NOT_200_ON_EVERY_DEAL` exemption stays.
 
 Measured (`bun scripts/cards-bands.ts fivehands --seeds=200 --from=10000`, fresh seeds; room seeds 0–199 in brackets):
 
@@ -38,20 +40,18 @@ Measured (`bun scripts/cards-bands.ts fivehands --seeds=200 --from=10000`, fresh
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | rev 2 median (before, room seeds) | 61 | 122 | 142 | 142 | 163 | 183 | 200 |
 | rows only (the first rev-3 push, fresh) | 50 | 70 | 80 | 80 | 85 | 90 | 140 |
-| **rev 3 median, with the column** | **50** (45) | **80** (85) | **95** (95) | **95** (100) | **100** (100) | **105** (105) | **155** (155) |
-| rev 3 p10–p90 | 30–75 | 55–115 | 70–120 | 75–125 | 70–125 | 80–130 | 140–175 |
-| rev 3 mean | 50.9 | 83.5 | 94.0 | 96.7 | 98.4 | 107.2 | 156.1 |
+| with the column, no multiplier | 50 (45) | 80 (85) | 95 (95) | 95 (100) | 100 (100) | 105 (105) | 155 (155) |
+| **rev 3 as dealt: with the column, × 1.4** | **70** (63) | **112** (119) | **133** (133) | **133** (140) | **140** (140) | **147** (147) | **200** (200) |
+| rev 3 p10–p90 | 42–105 | 77–161 | 98–168 | 105–175 | 98–175 | 112–182 | 196–200 |
+| rev 3 mean | 71.3 | 116.8 | 131.6 | 135.2 | 137.7 | 149.9 | 198.2 |
 | runs with a column picked | 1/200 | 170/200 | 200/200 | 200/200 | 200/200 | 200/200 | 200/200 |
 | targets | 30–60 | ~90 | 120–140 | ~160 | ~175 | 185–195 | 200 |
 
-**Against the targets:** weak and average are close (50 and 80 against 30–60 and ~90); good to elite are 25–85 under,
-and good, great and near-perfect sit within 5 points of each other (the 5-point hand steps). Not applied, for Joe:
-multiplying the total (fresh seeds, the same runs):
-
-| Total × | Weak | Average | Good | Great | Near-perfect | Elite | Flawless | Flawless at 200 |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| 1.2 | 60 (36–90) | 96 (66–138) | 114 (84–144) | 114 (90–150) | 120 (84–150) | 126 (96–156) | 186 (168–200) | 45 of 200 |
-| 1.4 | 70 (42–105) | 112 (77–161) | 133 (98–168) | 133 (105–175) | 140 (98–175) | 147 (112–182) | 200 (196–200) | 165 of 200 |
+**Against the targets** (× 1.4, fresh seeds): good (133) lands in 120–140 and flawless at 200; weak is 70 (10 over
+30–60), average 112 (over ~90), great 133 (under ~160), near-perfect 140 (under ~175) and elite 147 (under 185–195).
+Good, great and near-perfect sit within 7 points of each other: every hand step is 5 hand points (7 after × 1.4), and
+the placement bots below elite differ little in the hands they make. The × 1.2 alternative (not dealt) gave 60, 96, 114,
+114, 120, 126 and 186, with flawless at 200 on 45 of 200 seeds.
 
 ## fiveHandsRev 2 (1 Nov 2026, Joe's tuning: what rooms deal)
 

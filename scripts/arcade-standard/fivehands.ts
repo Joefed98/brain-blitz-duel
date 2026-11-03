@@ -3,13 +3,13 @@
  * docs/arcade-standard/fivehands.md): born on the standard at rev 1 (hand points 160 + made hands 40); rev 2 (1 Nov
  * 2026) one part, hand points on the steep table to 200, full at FH_CORE_FULL_V2; rev 3 (3 Nov 2026) one part, the
  * flat table's hand points (pair 15 … straight flush 50) of the five rows plus a bonus column picked once they are
- * complete, summed, capped at 200, at least 1 for a played run.
+ * complete, summed, times 1.4 (floor of × 7 ÷ 5), capped at 200, at least 1 for a played run.
  *
  * Five Hands is the standard's one named exception to "a perfect run scores 200 on every deal"
  * (NOT_200_ON_EVERY_DEAL in arcade-standard-check): the deck is the seed's first shuffle and some decks can't reach 200
  * even placed perfectly. Its perfect runs are each deck's exact best arrangement (scripts/cards/fiveHandsBest.ts)
- * through the server's replay, each scoring exactly min(200, its hand points); the core's straight line is one point a
- * hand point to the cap.
+ * through the server's replay, each scoring exactly min(200, floor(its hand points × 1.4)); the core's straight line is 1.4 points a
+ * hand point to the cap (full at 143).
  */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { ARCADE_STANDARD } from "../../src/lib/arcade/standard";
@@ -22,6 +22,8 @@ import { fiveHandsFlawless } from "../cards/flawless";
 import type { StdEntry } from "./entry";
 
 const spec = ARCADE_STANDARD.fivehands!.spec!;
+/** Rev 3's points for a hand-point total, written out here (not the sim's helper): floor(total × 7 ÷ 5), capped at 200. */
+const x14 = (total: number) => Math.min(200, Math.floor((total * 7) / 5));
 const game = fiveHandsGameFor(3);
 const rec = (s: FhState) => Object.fromEntries((fiveHandsStdParts(s) ?? []).map((p) => [p.key, p.points]));
 const maxes = (s: FhState) => Object.fromEntries((fiveHandsStdParts(s) ?? []).map((p) => [p.key, p.max]));
@@ -44,7 +46,7 @@ export const entry: StdEntry = {
     [0, 1, 2, 77].map((seed) => {
       const best = fhBest(seed, 3);
       const r = replayFiveHandsRun(seed, fiveHandsFlawless(seed, 20, 3).raw, 3);
-      const want = Math.max(1, Math.min(200, best.total));
+      const want = Math.max(1, x14(best.total));
       return { label: `seed ${seed}'s exact best (${best.total} hand points) through the server replay`, score: r.score, want, parts: rec(r.state), partMaxes: maxes(r.state) };
     }),
   played: () => [{ label: "a tap that placed nothing", score: game.score({ ...game.init(4), acted: 1 }), want: 1 }],
@@ -55,13 +57,14 @@ export const entry: StdEntry = {
     for (const rows of PARTIALS) {
       const { total } = fhTotals(rows, 3);
       const parts = fiveHandsStdParts({ ...game.init(SEED), rows, acted: 1 })!;
-      if (parts.length !== 1 || parts[0]!.points !== Math.min(200, total)) straight = false;
+      if (parts.length !== 1 || parts[0]!.points !== x14(total)) straight = false;
     }
-    ok(straight, "fivehands: the one part is min(200, hand points) on every partial rev-3 best");
+    ok(straight, "fivehands: the one part is min(200, floor(hand points × 1.4)) on every partial rev-3 best");
+    ok(x14(100) === 140 && x14(142) === 198 && x14(143) === 200 && x14(160) === 200, "fivehands: × 1.4 anchors (100 → 140, 142 → 198, 143 → 200, 160 → 200)");
     // A built state over the cap: five straight flushes (250 on the table) pay 200.
     const flushes = [0, 1, 2, 3].map((s) => [0, 1, 2, 3, 4].map((r) => s * 13 + r)).concat([[5, 6, 7, 8, 9]]);
     const capped = fiveHandsStdParts({ ...game.init(SEED), rows: flushes, acted: 1 })!;
-    ok(fhTotals(flushes, 3).total === 250 && capped[0]!.points === 200 && game.score({ ...game.init(SEED), rows: flushes, acted: 1 }) === 200, "fivehands: hand points over 200 are capped at 200");
+    ok(fhTotals(flushes, 3).total === 250 && capped[0]!.points === 200 && game.score({ ...game.init(SEED), rows: flushes, acted: 1 }) === 200, "fivehands: 250 hand points (× 1.4 = 350) are capped at 200");
     // Rev 2 (stored rounds): its one part, full at FH_CORE_FULL_V2, exactly as before.
     const v2 = fiveHandsGameFor(2);
     const w2 = fhDeal(SEED, 2).witness;

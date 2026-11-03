@@ -31,8 +31,8 @@
  * of a kind 45, straight flush 50) and a bonus column: once all five rows are complete, the player taps one of the five
  * columns (slot k of every row, a five-card hand) to add to the score (input kind 2, FH_INPUT_PICK). The run ends on the
  * pick; the clock keeps running until then, and if the buzzer comes first no column counts. Score = the five rows' hand
- * points plus the chosen column's, capped at 200 (no scaling, no full figure, no other parts; anyone who plays at least
- * 1). Rows fill evenly, so column 0 always holds the five dealt cards and column k round k's five cards, whatever the
+ * points plus the chosen column's, times 1.4 (Joe's decision, 3 Nov 2026: integer floor(points × 7 ÷ 5)), capped at 200
+ * (full at FH_CORE_FULL_V3 = 143 hand points; one part; anyone who plays at least 1). Rows fill evenly, so column 0 always holds the five dealt cards and column k round k's five cards, whatever the
  * placement: the columns' hands are fixed by the deck and reading them is the pick's skill. A deliberate exception to
  * "200 on every deal": the deck is rev 1's first shuffle with no reshuffle, so some decks can't reach 200 even with
  * perfect play (everyone in a room has the same deck, so rooms stay fair). The witness is still climbed (the checks use
@@ -100,16 +100,26 @@ export const FH_HANDS_V3 = [
   ["Two pair", 20],
   ["Pair", 15],
 ] as const;
-/** fiveHandsRev 3's single part: the hand points summed, capped at 200 (one point a hand point). */
+/** fiveHandsRev 3's single part: the hand points (rows plus the picked column) × 1.4, capped at 200. */
 export const FH_CORE_MAX_V3 = 200;
-export const FH_V3_BAND_CURVE = bandCurve([0, FH_CORE_MAX_V3], [0, FH_CORE_MAX_V3]);
+/** The ×1.4 as an integer ratio (7 ÷ 5, floored). */
+export const FH_V3_MULT_NUM = 7;
+export const FH_V3_MULT_DEN = 5;
+/** The fewest hand points that score the full 200 (floor(143 × 7 ÷ 5) = 200; 142 gives 198). */
+export const FH_CORE_FULL_V3 = 143;
+export const FH_V3_BAND_CURVE = bandCurve([0, FH_CORE_FULL_V3], [0, FH_CORE_MAX_V3]);
+
+/** Rev 3's points for a hand-point total: floor(total × 1.4), capped at 200. */
+export function fhScoreV3(total: number): number {
+  return Math.min(FH_CORE_MAX_V3, Math.floor((Math.max(0, total) * FH_V3_MULT_NUM) / FH_V3_MULT_DEN));
+}
 /** The hand values as the help states them ("pair 15, two pair 20, …"). */
 export const FH_V3_TABLE_TEXT = [...FH_HANDS_V3].reverse().map(([name, p]) => `${name.toLowerCase()} ${p}`).join(", ");
 
-/** A revision's full figure (rev 1–2: the witness must reach it; rev 3: 200, the cap, which a deck need not allow). */
+/** A revision's full figure (rev 1–2: the witness must reach it; rev 3: 143 hand points, ×1.4 = 200, which a deck need not allow). */
 export function fhCoreFullFor(rev: number | null | undefined): number {
   const r = rev ?? 1;
-  return r >= FH_REV_FLAT ? FH_CORE_MAX_V3 : r >= FH_REV_STEEP ? FH_CORE_FULL_V2 : FH_CORE_FULL;
+  return r >= FH_REV_FLAT ? FH_CORE_FULL_V3 : r >= FH_REV_STEEP ? FH_CORE_FULL_V2 : FH_CORE_FULL;
 }
 
 /** fiveHandsRev 3's spec (the dealt one: the help, LIVE_BANDS, the reveal). */
@@ -118,8 +128,8 @@ export const FH_STD_SPEC: StdSpec = {
   rev: FH_REV_FLAT,
   parts: [
     {
-      key: "core", label: "Hand points", max: FH_CORE_MAX_V3, of: FH_CORE_MAX_V3, item: "hand point",
-      how: `the five rows' hand points plus the column you pick once the rows are complete, capped at 200: high card 0, ${FH_V3_TABLE_TEXT}`,
+      key: "core", label: "Hand points", max: FH_CORE_MAX_V3, of: FH_CORE_FULL_V3, item: "hand point",
+      how: `the five rows' hand points plus the column you pick once the rows are complete, times 1.4, capped at 200 (full at ${FH_CORE_FULL_V3} hand points): high card 0, ${FH_V3_TABLE_TEXT}`,
     },
   ],
 };
@@ -386,7 +396,7 @@ export function fiveHandsStdParts(state: FhState): StdPart[] | null {
     const total = fhTotalV3(state);
     const col = fhPickedHand(state);
     const rows = total - col.points;
-    return [stdPart(FH_STD_SPEC, "core", Math.min(FH_CORE_MAX_V3, total), col.column >= 0 ? `${rows} from the rows + ${col.points} from column ${col.column + 1}` : `${rows} hand points (no column picked)`)];
+    return [stdPart(FH_STD_SPEC, "core", fhScoreV3(total), col.column >= 0 ? `(${rows} from the rows + ${col.points} from column ${col.column + 1}) × 1.4` : `${rows} hand points × 1.4 (no column picked)`)];
   }
   if ((state.rev ?? 1) >= FH_REV_STEEP) {
     const { total } = fhTotals(state.rows, state.rev);

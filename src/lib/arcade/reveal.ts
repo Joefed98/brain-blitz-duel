@@ -201,7 +201,7 @@ const BUILDERS: Record<string, Builder> = {
     axis: { value: n(r, "total"), max: full, label: "Hand points" },
     lines: rev >= 3
       ? [
-          `${n(r, "total") - n(r, "columnPoints")} from the five rows + ${n(r, "column") >= 0 ? `${n(r, "columnPoints")} from column ${n(r, "column") + 1}` : "no column picked"} = ${n(r, "total")} hand points (capped at 200) → ${s}`,
+          `${n(r, "total") - n(r, "columnPoints")} from the five rows + ${n(r, "column") >= 0 ? `${n(r, "columnPoints")} from column ${n(r, "column") + 1}` : "no column picked"} = ${n(r, "total")} hand points × 1.4 (capped at 200) → ${s}`,
         ]
       : [`${n(r, "total")} hand points (full at ${full}) → ${s}`],
     tiles: [

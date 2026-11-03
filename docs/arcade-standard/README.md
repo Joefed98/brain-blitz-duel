@@ -19,7 +19,7 @@ skill-band medians).
   scores at least 1; a run with no input scores 0.
 - Everyone in a room plays the identical seeded run (every feature at seeded moments and places from the room seed).
 - A perfect run scores 200 on every deal, with **one named exception**: Five Hands `fiveHandsRev` 3 (3 Nov 2026, Joe's
-  decision) sums its flat hand values (five rows and a picked column) capped at 200, so a deck's best can fall short (`NOT_200_ON_EVERY_DEAL` in the
+  decision) sums its flat hand values (five rows and a picked column) × 1.4, capped at 200, so a deck's best can fall short (`NOT_200_ON_EVERY_DEAL` in the
   check; its perfect runs score exactly their deck's best).
 - Each game moves onto it on a **new stamp one above its live one**; every older stamp replays and scores exactly as
   before (each game's own legacy check on runs recorded on main before the change).
@@ -429,11 +429,11 @@ and 141, don't rise with skill); stored rounds replay and grade as before.
 
 | Game | New stamp | Parts (max) | Core full at | Medians weak → flawless, before → after (room seeds) |
 | --- | --- | --- | --- | --- |
-| Five Hands | `fiveHandsRev` 3 | Hand points 200 (the five rows plus a bonus column picked once they're complete, flat table, capped) | no full figure (the cap) | 61 122 142 142 163 183 200 → 45 85 95 100 100 105 155 |
+| Five Hands | `fiveHandsRev` 3 | Hand points 200 (the five rows plus a bonus column picked once they're complete, flat table, × 1.4, capped) | 143 hand points | 61 122 142 142 163 183 200 → 63 119 133 140 140 147 200 |
 | Free Cell | `freecellRev` 4 | Cards 60, Par moves 50, Speed 90 (by 32 s) | 50 units (25 of 40 home) | 41 72 121 170 188 194 200 → 43 96 134 156 176 188 200 |
 | Summit | `tripeaksRev` 2 | Cards 80, Peak tops 30, Longest run 10, Clear 10, Stock par 20, Speed 50 (by 20 s) | 28 cards | 99 131 177 184 192 192 200 → 65 89 138 157 176 182 200 |
 
-Five Hands is the standard's one exception to 200 on every deal (above): with the flat values and the bonus column, 2 of
-400 decks measured can reach 200; the exact best's median is 155–160 hand points. Golf Solitaire is retired to practice (as Full House) and Pyramid
+Five Hands is the standard's one exception to 200 on every deal (above): with the flat values, the bonus column and × 1.4,
+the flawless run reaches 200 on 165 of 200 fresh seeds, not all. Golf Solitaire is retired to practice (as Full House) and Pyramid
 is shown as Thirteen (display name only). Each game's page has the full tables, fresh seeds and assumptions.
 
