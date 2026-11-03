@@ -1,4 +1,4 @@
-# Blockfall and Ringer (Alley Roll; 1 Nov 2026, Ringer 3 Nov 2026)
+# Blockfall and Ringer (Alley Roll; 1 Nov 2026, Ringer 3 Nov 2026; Blockfall is shown as Blockzone since 3 Nov 2026, its slots in `moon-climb-blockzone.md`)
 
 Both games play the existing library only: every moment in `gameSounds.ts` (`blockfallSounds`, `alleyRollSounds`) is a
 slot with no file of its own yet (`url: null`), so it plays the shared sound named in `arcade.md`; replay moments use
@@ -17,7 +17,7 @@ at the main moments: three or four rows cleared at once, a 100 pocket, Ringer's 
 ## Slots that deserve their own recording (a later ElevenLabs batch)
 
 - `blockfall.clear`, `blockfall.bigClear`: a glassy neon chime for a row, a rising four-note sweep for three or four.
-- `blockfall.lock`: a soft glass tap; `blockfall.turn`: a tiny click.
+- `blockfall.lock`: a soft glass tap; `blockfall.turn`: a tiny click; `blockfall.move` (Blockzone): a tiny neon tick.
 - `blockfall.topOut`: a short descending neon buzz.
 - `alleyroll.roll` and `alleyroll.rolling`: a wooden ball released and rumbling up a wooden lane.
 - `alleyroll.ramp`: the hop off the ramp's lip.

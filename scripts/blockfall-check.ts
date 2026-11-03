@@ -9,10 +9,11 @@
  *  3. a replay is deterministic and the server path agrees with the sim; out-of-range payloads are clamped; a
  *     tampered claimed score is flagged;
  *  4. the deal: 300 distinct seeds, and the oracle takes each to exactly 200 through the server replay (quick depth
- *     24 spread through the deal, CHECKS_FULL=1 all 300 and the file rebuilt byte for byte); rooms deal from it;
+ *     24 spread through the deal, CHECKS_FULL=1 all 300 and the file rebuilt byte for byte); rooms dealt from it until
+ *     3 Nov 2026 (Blockzone, blockfallRev 2, deals from its own deal: moon-blockzone-check);
  *  5. the score: no input 0, a run that played at least 1;
  *  6. the skill bands rise weak → flawless (12 deal seeds; flawless 200 on each);
- *  7. the help states every part, "total 200" and the controls.
+ *  7. the help states "total 200" and names no borrowed game (Blockzone's own help and controls: moon-blockzone-check).
  *
  *   bun scripts/blockfall-check.ts
  */
@@ -150,8 +151,10 @@ function ok(cond: boolean, label: string): void {
     }
     ok(same, "deal: the file is what blockfall-deal.ts builds");
   }
+  // Rooms dealt blockfallRev 1 from this deal until 3 Nov 2026; they now deal Blockzone (blockfallRev 2) from its own
+  // proved deal (the brief changed the rule; moon-blockzone-check proves the new deal).
   const dealt = generateBlockfall();
-  ok(dealt.blockfallRev === BLOCKFALL_REV && BLOCKFALL_DEAL.includes(dealt.seed), "deal: rooms deal blockfallRev 1 from the deal");
+  ok(BLOCKFALL_REV === 1 && dealt.blockfallRev === 2, "deal: blockfallRev 1 keeps this deal; rooms now deal blockfallRev 2");
 }
 
 /* 5–6. The bands. */
@@ -176,8 +179,10 @@ function ok(cond: boolean, label: string): void {
 {
   const help = PUZZLE_INSTRUCTIONS.blockfall;
   ok(!!help && help.score.includes("total 200") || help!.score.includes("Together 200"), `help: the parts total 200: ${help?.score}`);
+  // Blockzone (3 Nov 2026) has no hold and no pads: its help names drag, tap, the drag down and flick (the brief
+  // changed the rule; moon-blockzone-check holds the rest).
   const how = JSON.stringify(help?.how ?? []);
-  ok(/drag/i.test(how) && /tap/i.test(how) && /flick/i.test(how) && /HOLD/.test(how) && /DROP/.test(how), "help: drag, tap, flick and hold are named");
+  ok(/drag/i.test(how) && /tap/i.test(how) && /flick/i.test(how), "help: drag, tap and flick are named");
   ok(!/tetr/i.test(JSON.stringify(help)), "help: no borrowed names");
 }
 

@@ -2046,8 +2046,11 @@ export const PYRAMID_TIME_MS = 93_000;
 export const GOLFSOL_TIME_MS = 78_000;
 /** Muggins: a 90-second run. */
 export const MUGGINS_TIME_MS = 93_000;
-/** Blockfall: a 60-second run (it ends early on a top-out), plus three of slack. */
-export const BLOCKFALL_TIME_MS = 63_000;
+/**
+ * Blockzone (blockfall): a 90-second run on blockfallRev 2 (it ends early on a top-out), plus three of slack; older
+ * blockfallRev 1 rounds end at 60 s (Gemstone's precedent: the definition's clock is the live stamp's).
+ */
+export const BLOCKFALL_TIME_MS = 93_000;
 /** Ringer (Alley Roll): nine balls or 60 seconds, plus three of slack. */
 export const ALLEYROLL_TIME_MS = 63_000;
 

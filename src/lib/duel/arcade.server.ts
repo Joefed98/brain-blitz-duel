@@ -1,4 +1,4 @@
-import { NINJA_REV } from "@/lib/arcade/ricochetNinja";
+import { MOON_REV } from "@/lib/arcade/ricochetNinja";
 import { BASTION_REV_DEALT } from "@/lib/arcade/bastionTank";
 import { TEN_DROP_DEPTH_REV } from "@/lib/arcade/tenDrop";
 import { SLICE_REV_TARGET, SLICE_REV_STRICT, SLICE_REV_STANDARD } from "@/lib/arcade/slice";
@@ -51,8 +51,8 @@ import { PY_REV } from "@/lib/arcade/cards/pyramid";
 import { GS_REV } from "@/lib/arcade/cards/golfSol";
 import { GS_DEALS } from "@/lib/arcade/cards/golfSolDeals.data";
 import { MG_REV } from "@/lib/arcade/cards/muggins";
-import { BLOCKFALL_REV } from "@/lib/arcade/blockfall";
-import { blockfallDealSeed } from "./blockfallDeal.server";
+import { BLOCKFALL_REV_ZONE } from "@/lib/arcade/blockfall";
+import { blockfallDealSeedV2 } from "./blockfallDealV2.server";
 import type { BlockfallPuzzleData, FiveHandsPuzzleData, GolfSolPuzzleData, MugginsPuzzleData, PyramidPuzzleData, FreecellPuzzleData, PokerSquaresPuzzleData, TripeaksPuzzleData } from "./types";
 import { bullseyeWinds, BULLSEYE_REV_TARGET, BULLSEYE_REV_STRICT, BULLSEYE_REV_STD } from "@/lib/arcade/bullseye";
 import type {
@@ -135,9 +135,12 @@ export function generateMuggins(): MugginsPuzzleData {
   return { type: "muggins", seed: arcadeSeed(), mugginsRev: MG_REV };
 }
 
-/** Blockfall (Retro, 1 Nov 2026): a seed from the proved deal (the oracle took it to 200 through the server replay). */
+/**
+ * Blockzone (Blockfall's id, Retro): blockfallRev 2 (3 Nov 2026), a seed from its own proved deal (the oracle took it to
+ * 200 through the server replay). blockfallRev 1 rounds keep their seeds from the first deal.
+ */
 export function generateBlockfall(): BlockfallPuzzleData {
-  return { type: "blockfall", seed: blockfallDealSeed(arcadeSeed()), blockfallRev: BLOCKFALL_REV };
+  return { type: "blockfall", seed: blockfallDealSeedV2(arcadeSeed()), blockfallRev: BLOCKFALL_REV_ZONE };
 }
 
 export function generateSwerve(): SwervePuzzleData {
@@ -184,9 +187,9 @@ export function generateDual(): DualPuzzleData {
   return { type: "dual", seed: arcadeSeed() };
 }
 
-/** Ricochet deals the ninja wall-climb (ricoRev 2, 1 Nov 2026); unstamped rounds keep the old shaft. */
+/** Ricochet deals Moon Climb (ricoRev 3, 3 Nov 2026); ricoRev 2 rounds keep the ninja wall-climb, unstamped ones the old shaft. */
 export function generateRicochet(): RicoPuzzleData {
-  return { type: "ricochet", seed: arcadeSeed(), ricoRev: NINJA_REV };
+  return { type: "ricochet", seed: arcadeSeed(), ricoRev: MOON_REV };
 }
 
 export function generateBreaker(): BreakerPuzzleData {

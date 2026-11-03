@@ -77,8 +77,8 @@ import { encodeDualRun, replayDualRun } from "@/lib/duel/dual";
 import { encodeHoverRun, replayHoverRun } from "@/lib/duel/hover";
 import { encodeMatchupRun, replayMatchupRun } from "@/lib/duel/matchup";
 import { encodeRallyRun, replayRallyRun } from "@/lib/duel/rally";
-import { encodeNinjaRun, encodeRicoRun, replayNinjaRun, replayRicoRun } from "@/lib/duel/ricochet";
-import { ninjaCheckpoint, ninjaGame, NINJA_CHECKPOINT_INTERVAL } from "@/lib/arcade/ricochetNinja";
+import { encodeMoonRun, encodeNinjaRun, encodeRicoRun, replayMoonRun, replayNinjaRun, replayRicoRun } from "@/lib/duel/ricochet";
+import { moonCheckpoint, moonGame, ninjaCheckpoint, ninjaGame, NINJA_CHECKPOINT_INTERVAL } from "@/lib/arcade/ricochetNinja";
 import { encodeSkylineRun, replaySkylineRun } from "@/lib/duel/skyline";
 import { encodeSliceRun, replaySliceRun } from "@/lib/duel/slice";
 import { encodeSnakeRun, replaySnakeRun } from "@/lib/duel/snake";
@@ -169,11 +169,12 @@ import { pyCheckpoint, pyramidGame } from "@/lib/arcade/cards/pyramid";
 import { gsCheckpoint, golfSolGame } from "@/lib/arcade/cards/golfSol";
 import { mgCheckpoint, mugginsGame } from "@/lib/arcade/cards/muggins";
 import { encodeGolfSolRun, encodeMugginsRun, encodePyramidRun, replayGolfSolRun, replayMugginsRun, replayPyramidRun } from "@/lib/duel/cards";
-import { bfCheckpoint, blockfallGame } from "@/lib/arcade/blockfall";
+import { bfCheckpoint, blockfallGame, blockzoneGame } from "@/lib/arcade/blockfall";
 import { arCheckpoint, alleyRollGame, ringerGame } from "@/lib/arcade/alleyroll";
 import { encodeBlockfallRun, replayBlockfallRun } from "@/lib/duel/blockfall";
 import { encodeAlleyRollRun, replayAlleyRollRun } from "@/lib/duel/alleyroll";
 import { BLOCKFALL_DEAL } from "@/lib/duel/blockfallDeal.server";
+import { BLOCKFALL_DEAL_V2 } from "@/lib/duel/blockfallDealV2.server";
 import { encodeFiveHandsRun, encodeFreecellRun, encodePokerSquaresRun, encodeTripeaksRun, replayFiveHandsRun, replayFreecellRun, replayPokerSquaresRun, replayTripeaksRun } from "@/lib/duel/cards";
 import { minigolfCheckpoint, minigolfGameFor } from "@/lib/arcade/minigolf";
 import { encodeMinigolfRun, replayMinigolfRun } from "@/lib/duel/minigolf";
@@ -951,6 +952,10 @@ const GAMES: Game[] = [
   // Iron Wall bastionRev 3 (3 Nov 2026: eased waves 4–5, the 90 ms zone, the drones), appended at the end so every
   // earlier entry keeps its index and stream.
   { key: "bastion/v3", interval: BT2_CHECKPOINT_INTERVAL, game: bastionIronGame, checkpoint: bastionTankCheckpoint, mode: "events", rate: 30, encode: encodeBastionTankRun, replay: (seed: number, raw: string) => replayBastionTankRun(seed, raw, 3) },
+  // Moon Climb ricoRev 3 and Blockzone blockfallRev 2 (3 Nov 2026), appended so every earlier entry keeps its index:
+  // random taps (with leap-off directions) and random moves, turns, drops and soft drops.
+  { key: "ricochet/moon", interval: NINJA_CHECKPOINT_INTERVAL, game: moonGame, checkpoint: moonCheckpoint, mode: "events", rate: 30, encode: encodeMoonRun, replay: (seed: number, raw: string) => replayMoonRun(seed, raw) },
+  { key: "blockfall/zone", game: blockzoneGame, checkpoint: bfCheckpoint, mode: "events", rate: 120, encode: encodeBlockfallRun, replay: (seed: number, raw: string) => replayBlockfallRun(seed, raw, 2), seedFor: (n: number) => BLOCKFALL_DEAL_V2[n % BLOCKFALL_DEAL_V2.length]! },
   // Tilt tiltRev 11 (3 Nov 2026, docs/arcade-standard/tilt.md), appended so every earlier entry keeps its index:
   // tiltRev 10's mazes with no gold stars, scored on par times and a clean run.
   { key: "tilt/rev11", game: tiltGameFor(TILT_REV_PAR), checkpoint: tiltCheckpoint, mode: "events", rate: 500, encode: encodeTiltRun, replay: (seed: number, raw: string) => replayTiltRun(seed, raw, TILT_REV_PAR) },

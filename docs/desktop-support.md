@@ -112,7 +112,7 @@ reason given. "Practice" marks games retired to practice.
 | Dual (`dual`, practice) | Click the left or right half | ← / A / F left, → / D / J right |
 | Hot Floor (`hotfloor`, practice) | Click tiles and the drawn buttons | Mouse for tiles. Enter or G = Go, Z or Backspace = Undo, C or Esc = Clear |
 | Junction (`junction`, practice) | Click an approach | Rev 1: ← → ↑ ↓ / WASD. Rev 2: 1–8 for the eight lights, once built |
-| Ricochet (`ricochet`, practice) | Click to leap | Space, ↑ or W |
+| Moon Climb (`ricochet`) | Click to leap (on a lantern, the side clicked) | Space, ↑ or W; ← / A and → / D leap off a lantern that way |
 | Rooftop Run (`rooftop`, practice) | Drag-flick | ← → ↑ ↓ / WASD |
 | Steady (`steady`, practice) | Press and drag | Hold ← → / A D to steer (4 px a tick) |
 | Swerve (`swerve`, practice) | Click the left or right half | ← → / A D |

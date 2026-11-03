@@ -2,10 +2,10 @@ import { useMemo, useRef } from "react";
 
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import {
-  BF_CHECKPOINT_INTERVAL, BF_CORE_FULL, BF_INPUT_DOWN, BF_INPUT_DROP, BF_INPUT_HOLD, BF_INPUT_MOVE, BF_INPUT_TURN, BLOCKFALL_REV, bfApply, bfCheckpoint,
-  bfInit, type BfState,
+  BF_CHECKPOINT_INTERVAL, BF_INPUT_DOWN, BF_INPUT_DROP, BF_INPUT_HOLD, BF_INPUT_MOVE, BF_INPUT_SOFT, BF_INPUT_TURN, BLOCKFALL_REV_ZONE, bfApply, bfCheckpoint,
+  bfCoreFullFor, bzInit, type BfState,
 } from "@/lib/arcade/blockfall";
-import { BF_BG, BF_CELL, BF_WORLD_H, BF_WORLD_W, bfNewView, bfPadAt, blockfallArtGame, blockfallScene, drawBlockfall, type BfPadId } from "@/lib/arcade/blockfall.renderer";
+import { BF_BG, BF_WORLD_H, BF_WORLD_W, bfLayout, bfNewView, bfPadAt, blockfallArtGame, blockfallScene, drawBlockfall, type BfPadId } from "@/lib/arcade/blockfall.renderer";
 import { encodeBlockfallRun, replayBlockfallRun } from "@/lib/duel/blockfall";
 import { BLOCKFALL_TIME_MS, type BlockfallPuzzleData } from "@/lib/duel/types";
 import { ArcadeCanvasStage, type PointerPayload } from "@/components/puzzles/ArcadeCanvasStage";
@@ -14,12 +14,12 @@ import { blockfallSounds } from "@/lib/fx/gameSounds";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
-/** The intro still: a fixed hand-placed stack on seed 7, a piece turned over its landing place. */
-function introState(): BfState {
-  let s = bfInit(7);
+/** The intro still (Blockzone, blockfallRev 2): a fixed hand-placed stack on seed 7, a piece turned over its landing place. */
+export function blockzoneIntroState(): BfState {
+  let s = bzInit(7);
   const moves: [number, number][] = [
     [BF_INPUT_MOVE, -4], [BF_INPUT_DROP, 0], [BF_INPUT_MOVE, 3], [BF_INPUT_DROP, 0], [BF_INPUT_TURN, 1], [BF_INPUT_MOVE, -2], [BF_INPUT_DROP, 0],
-    [BF_INPUT_MOVE, 2], [BF_INPUT_DROP, 0], [BF_INPUT_HOLD, 0], [BF_INPUT_TURN, 1], [BF_INPUT_MOVE, 1],
+    [BF_INPUT_MOVE, 2], [BF_INPUT_DROP, 0], [BF_INPUT_MOVE, -3], [BF_INPUT_DROP, 0], [BF_INPUT_TURN, 1], [BF_INPUT_MOVE, 1],
   ];
   for (const [k, a] of moves) s = bfApply({ ...s, tick: s.tick + 1 }, { k, a });
   return { ...s, piece: { ...s.piece, y: s.piece.y + 6 }, clearTick: -100 };
@@ -30,8 +30,8 @@ function IntroExample() {
     <CardStill
       width={BF_WORLD_W}
       height={BF_WORLD_H}
-      draw={(ctx, size) => drawBlockfall(ctx, introState(), size)}
-      caption="Drag sideways to move, tap to turn, flick down to drop (or use the pads). Fill a row to clear it."
+      draw={(ctx, size) => drawBlockfall(ctx, blockzoneIntroState(), size)}
+      caption="Drag sideways to move, tap to turn, drag down to speed it up, flick down to drop. Fill rows to clear them."
     />
   );
 }
@@ -47,6 +47,8 @@ interface Gesture {
   /** A press that started on a pad (HOLD, TURN, DROP): a tap there sends that input, and no drag moves the piece. */
   pad: BfPadId | null;
   trail: { y: number; at: number }[];
+  /** Blockzone: the soft drop sent on for this drag. */
+  soft: boolean;
 }
 
 /** A flick down: at least this fast (world px a ms) over the last 120 ms, and this far. */
@@ -56,15 +58,19 @@ const TAP_MOVE = 10;
 
 function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const data: BlockfallPuzzleData | null = puzzle.type === "blockfall" ? puzzle : null;
+  const rev = data?.blockfallRev ?? 1;
+  const zone = rev >= BLOCKFALL_REV_ZONE;
+  const cell = bfLayout(zone ? BLOCKFALL_REV_ZONE : 1).cell;
   const view = useMemo(() => bfNewView(), []);
-  const game = useMemo(() => blockfallArtGame(view), [view]);
+  const game = useMemo(() => blockfallArtGame(view, zone ? BLOCKFALL_REV_ZONE : 1), [view, zone]);
   const g = useRef<Gesture | null>(null);
 
   const pointer = (kind: "down" | "move" | "up", x: number, y: number): PointerPayload | null => {
     const now = performance.now();
     if (kind === "down") {
-      const pad = bfPadAt(x, y);
-      g.current = { x, y, at: now, cols: 0, rows: 0, moved: false, pad, trail: [{ y, at: now }] };
+      // Blockzone has no pads: the whole screen is for gestures.
+      const pad = zone ? null : bfPadAt(x, y);
+      g.current = { x, y, at: now, cols: 0, rows: 0, moved: false, pad, trail: [{ y, at: now }], soft: false };
       view.pressed = pad;
       return null;
     }
@@ -81,14 +87,23 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         return null;
       }
       // Sideways: one move event for the columns crossed since the last one.
-      const cols = Math.trunc(dx / BF_CELL);
+      const cols = Math.trunc(dx / cell);
       if (cols !== s.cols && Math.abs(dx) >= Math.abs(dy) * 0.7) {
         const step = cols - s.cols;
         s.cols = cols;
         return { k: BF_INPUT_MOVE, a: step, b: 0, c: 0 };
       }
+      // Blockzone: a drag down holds the soft drop on (the piece falls fast) until the finger lifts or turns back.
+      if (zone) {
+        const down = dy > cell * 0.6 && dy > Math.abs(dx);
+        if (down !== s.soft) {
+          s.soft = down;
+          return { k: BF_INPUT_SOFT, a: down ? 1 : 0, b: 0, c: 0 };
+        }
+        return null;
+      }
       // A slow drag down steps the piece down a row at a time.
-      const rows = Math.max(0, Math.trunc(dy / BF_CELL));
+      const rows = Math.max(0, Math.trunc(dy / cell));
       if (rows > s.rows && dy > Math.abs(dx)) {
         s.rows = rows;
         return { k: BF_INPUT_DOWN, a: 0, b: 0, c: 0 };
@@ -107,13 +122,15 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     const first = s.trail[0]!;
     const speed = (y - first.y) / Math.max(1, now - first.at);
     if (dy > FLICK_MIN && dy > Math.abs(dx) && speed > FLICK_SPEED) return { k: BF_INPUT_DROP, a: 0, b: 0, c: 0 };
+    // Blockzone: the finger lifted off a slow drag down: the soft drop ends.
+    if (s.soft) return { k: BF_INPUT_SOFT, a: 0, b: 0, c: 0 };
     return null;
   };
 
   return (
     <ArcadeCanvasStage
       diagKey="blockfall"
-      label={`${gameDisplayName("blockfall")}: drag to move, tap to turn, flick down to drop`}
+      label={`${gameDisplayName("blockfall")}: drag to move, tap to turn, drag down to fall faster, flick down to drop`}
       background={BF_BG}
       fitWorld
       scene={blockfallScene}
@@ -130,7 +147,22 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       discrete
       inputKind={BF_INPUT_MOVE}
       pointer={pointer}
-      keys={(kind, key, send) => {
+      keys={(kind, key, send, _state, event) => {
+        if (zone) {
+          // Blockzone: ← → move, ↑ turns, ↓ soft-drops while held, Space drops; no hold.
+          if (key === "ArrowDown") {
+            if (!event.repeat) send({ k: BF_INPUT_SOFT, a: kind === "down" ? 1 : 0, b: 0, c: 0 });
+            return true;
+          }
+          if (kind !== "down") return ["ArrowLeft", "ArrowRight", "ArrowUp", " ", "x", "z"].includes(key);
+          if (key === "ArrowLeft") send({ k: BF_INPUT_MOVE, a: -1, b: 0, c: 0 });
+          else if (key === "ArrowRight") send({ k: BF_INPUT_MOVE, a: 1, b: 0, c: 0 });
+          else if (key === "ArrowUp" || key === "x") send({ k: BF_INPUT_TURN, a: 1, b: 0, c: 0 });
+          else if (key === "z") send({ k: BF_INPUT_TURN, a: -1, b: 0, c: 0 });
+          else if (key === " ") send({ k: BF_INPUT_DROP, a: 0, b: 0, c: 0 });
+          else return false;
+          return true;
+        }
         if (kind !== "down") return ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", " ", "c", "x", "z"].includes(key);
         if (key === "ArrowLeft") send({ k: BF_INPUT_MOVE, a: -1, b: 0, c: 0 });
         else if (key === "ArrowRight") send({ k: BF_INPUT_MOVE, a: 1, b: 0, c: 0 });
@@ -148,8 +180,9 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   );
 }
 
-export function blockfallLine(r: { lines: number; doubles: number; triples: number; quads: number }): string {
-  return `${r.lines} lines (full at ${BF_CORE_FULL}) · ${r.doubles + r.triples + r.quads} multi-line clears`;
+export function blockfallLine(r: { lines: number; doubles: number; triples: number; quads: number; pieces?: number }, rev?: number | null): string {
+  const pieces = (rev ?? 1) >= BLOCKFALL_REV_ZONE ? ` · ${r.pieces ?? 0} pieces` : "";
+  return `${r.lines} lines (full at ${bfCoreFullFor(rev)})${pieces} · ${r.doubles + r.triples + r.quads} multi-line clears`;
 }
 
 function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
@@ -157,7 +190,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   const result = replayBlockfallRun(puzzle.seed, myAnswer ?? "", puzzle.blockfallRev);
   return (
     <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-start gap-2 overflow-y-auto">
-      <p className="whitespace-normal break-words text-center font-mono text-base font-bold text-foreground">{blockfallLine(result)}</p>
+      <p className="whitespace-normal break-words text-center font-mono text-base font-bold text-foreground">{blockfallLine(result, puzzle.blockfallRev)}</p>
       {result.parts.map((part) => (
         <p key={part.key} className="shrink-0 text-center font-mono text-sm text-foreground">{`${part.label}: ${part.detail}`}</p>
       ))}
@@ -166,14 +199,14 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   );
 }
 
-/** The seed is dealt on the server from the proved deal; every run is replayed there for scoring. */
+/** The seed is dealt on the server from the proved deal (blockfallRev 2, Blockzone); every run is replayed there for scoring. */
 export const blockfallPuzzle: PuzzleDefinition = {
   key: "blockfall",
   name: gameDisplayName("blockfall"),
   category: "arcade",
   timeLimitMs: BLOCKFALL_TIME_MS,
   revealMs: 6_000,
-  generate: () => ({ type: "blockfall", seed: 1, blockfallRev: BLOCKFALL_REV }) satisfies BlockfallPuzzleData,
+  generate: () => ({ type: "blockfall", seed: 1, blockfallRev: BLOCKFALL_REV_ZONE }) satisfies BlockfallPuzzleData,
   check: () => false,
   revealHeading: "Your run",
   IntroExample,

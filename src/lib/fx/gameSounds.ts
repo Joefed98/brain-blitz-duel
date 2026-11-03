@@ -49,11 +49,11 @@ import { fcHomeCount, type FcState } from "@/lib/arcade/cards/freecell";
 import type { TpState } from "@/lib/arcade/cards/tripeaks";
 import { PS_LINES, psHand, psLineHand, psTotals, type PsState } from "@/lib/arcade/cards/pokerSquares";
 import { fhTotals, type FhState } from "@/lib/arcade/cards/fiveHands";
-import { MODE_CLING, MODE_FLIGHT, ninjaSurface, SURF_STONE, type NinjaState } from "@/lib/arcade/ricochetNinja";
+import { MODE_CLING, MODE_FLIGHT, MODE_RIDE, MOON_REV, ninjaSurface, SURF_STONE, type MoonState, type NinjaState } from "@/lib/arcade/ricochetNinja";
 import type { PyState } from "@/lib/arcade/cards/pyramid";
 import type { GsState } from "@/lib/arcade/cards/golfSol";
 import { MG_BIG_AT, type MgState } from "@/lib/arcade/cards/muggins";
-import { bfLevel, type BfState } from "@/lib/arcade/blockfall";
+import { bfLevelFor, type BfState } from "@/lib/arcade/blockfall";
 import { ALLEYROLL_REV_RINGER, AR2_GOLD_POINTS, AR2_STREAK_AT, AR_FLY, AR_POCKET_POINTS, AR_ROLL, AR_SHOW, AR_STREAK_AT, type ArState } from "@/lib/arcade/alleyroll";
 
 /** Sounds a success-effect cue with a file stands in for on this frame (momentCues.ts). */
@@ -1520,38 +1520,46 @@ export function fiveHandsSounds(): GameSounds<FhState> {
 }
 
 /**
- * Ricochet (ricoRev 2, the ninja wall-climb): a leap, the double jump, a landing (on moss or ice, a slip), a coin,
- * a lantern, a scroll and a hit (with the impact haptic). New moments without a file of their own stay silent.
+ * Ricochet (ricoRev 2, the ninja wall-climb) and Moon Climb (ricoRev 3): a leap, the double jump, a landing (on moss
+ * or ice, a slip; on a mid-ledge, the ledge), a scroll and a hit (with the impact haptic). Rev 2: a coin and a gold
+ * lantern (library sounds; their slots were retired with Moon Climb). Rev 3: a sky lantern grabbed, its ride (a quiet
+ * loop) and each Flow step. Every slot plays a library sound until Joe's file is set.
  */
 export function ninjaSounds(): GameSounds<NinjaState> {
   let prev: NinjaState | null = null;
   return {
     frame(state, running) {
       beginFrame("ricochet", state);
-      void running;
+      const moon = state.rev === MOON_REV ? (state as MoonState) : null;
+      loopCue("ricochet.lanternRide", running && moon !== null && moon.mode === MODE_RIDE && moon.ended === 0);
       if (prev && state.tick > prev.tick) {
+        const was = prev as MoonState;
         if (state.hits > prev.hits) { sfx("ricochet.hit", "arc_crash"); feel("impact"); }
         else {
           if (state.leaps > prev.leaps) sfx("ricochet.leap", "arc_gravity_flip", 0.5);
           if (state.djs > prev.djs) sfx("ricochet.doubleJump", "arc_gravity_flip", 0.6, 1.25);
           if (prev.mode === MODE_FLIGHT && state.mode === MODE_CLING) {
-            if (ninjaSurface(state.tower.patches, state.wall, state.y >> 8) !== SURF_STONE) effectCue("ricochet.slip");
-            else effectCue("ricochet.land");
+            if (moon && moon.ledge >= 0) sfx("ricochet.ledge", "arc_retro_hit", 0.4);
+            else if (ninjaSurface(state.tower.patches, state.wall, state.y >> 8) !== SURF_STONE) sfx("ricochet.slip", "arc_retro_blip", 0.35, 0.8);
+            else sfx("ricochet.land", "arc_retro_hit", 0.3);
           }
+          if (moon && moon.rides > (was.rides ?? 0)) sfx("ricochet.lanternGrab", "arc_pickup", 0.8);
+          if (moon && moon.flow > (was.flow ?? 0)) sfx("ricochet.flow", "combo", 0.75);
         }
         if (state.scrolls > prev.scrolls) sfx("ricochet.scroll", "correct", 0.9);
-        else if (state.lanterns > prev.lanterns) sfx("ricochet.lantern", "combo", 0.85);
-        else if (state.coins > prev.coins) sfx("ricochet.coin", "arc_pickup", 0.8);
+        else if (state.lanterns > prev.lanterns) sfx("combo", "combo", 0.85);
+        else if (state.coins > prev.coins) sfx("arc_pickup", "arc_pickup", 0.8);
       }
       prev = state;
     },
-    stop: () => {},
+    stop: () => loopCue("ricochet.lanternRide", false),
   };
 }
 
 /**
- * Blockfall (1 Nov 2026; library sounds only, docs/sound-cues/arcade.md): a turn, a hold, a piece landing, a clear
- * (three or four rows at once the big one, with a haptic), the speed-up every 15 s and a top-out.
+ * Blockfall / Blockzone (1 Nov 2026; library sounds until Joe's files, docs/sound-cues/arcade.md): a move, a turn, a
+ * piece landing, a clear (three or four rows at once the big one, with a haptic), the speed-up every 15 s and a
+ * top-out (a hold on blockfallRev 1 plays the library note; Blockzone has none).
  */
 export function blockfallSounds(): GameSounds<BfState> {
   let prev: BfState | null = null;
@@ -1562,14 +1570,16 @@ export function blockfallSounds(): GameSounds<BfState> {
         const p = state.piece;
         const q = prev.piece;
         if (state.pieces === prev.pieces && state.held === prev.held && p.turn !== q.turn) sfx("blockfall.turn", "arc_retro_blip", 0.45);
-        if (state.held > prev.held) sfx("blockfall.hold", "arc_retro_note", 0.5);
+        else if (state.pieces === prev.pieces && state.held === prev.held && p.x !== q.x) sfx("blockfall.move", "arc_retro_blip", 0.3, 0.8);
+        // A held piece (blockfallRev 1 only; Blockzone has no hold): the library note.
+        if (state.held > prev.held) sfx("arc_retro_note", "arc_retro_note", 0.5);
         const cleared = state.lines - prev.lines;
         if (cleared >= 3) {
           sfx("blockfall.bigClear", "arc_retro_pickup", 0.9);
           feel("success");
         } else if (cleared > 0) sfx("blockfall.clear", "arc_retro_coin", 0.8);
         else if (state.pieces > prev.pieces) sfx("blockfall.lock", "arc_retro_hit", 0.45);
-        if (bfLevel(state.tick) > bfLevel(prev.tick)) sfx("blockfall.speedUp", "arc_retro_note", 0.6, 1.25);
+        if (bfLevelFor(state.tick, state.rev) > bfLevelFor(prev.tick, prev.rev)) sfx("blockfall.speedUp", "arc_retro_note", 0.6, 1.25);
         if (state.ended === 2 && prev.ended === 0) sfx("blockfall.topOut", "arc_retro_explode", 0.8);
       }
       prev = state;
