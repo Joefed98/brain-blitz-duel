@@ -8,11 +8,12 @@ import { arcadeWorldOf } from "@/lib/arcade/arcadeFxGames.renderer";
 import { recordArcadeRoomBest, runKey } from "@/lib/fx/arcadeBest";
 import { CLAY_FREE_EMPTY_SHOTS, CLAY_REV_BANDS } from "@/lib/arcade/clayShoot";
 import type { ArcadeRevealData } from "@/lib/arcade/reveal";
-import { ARCADE_REVEAL_RENDERERS } from "@/lib/arcade/revealRenderers";
 import type { PuzzleData } from "@/lib/duel/types";
 import type { PlayerLook } from "@/lib/duel/playerLook";
 
 import { ArcadeScoreChart } from "./ArcadeScoreChart";
+import { RevealBreakdown } from "./RevealBreakdown";
+import { realFullClear, summaryText } from "@/lib/duel/revealBreakdown";
 
 /** One player in the room for the reveal chart. `reveal` and `score` are null until their result lands. */
 export interface RevealPlayer {
@@ -41,6 +42,13 @@ interface ArcadeRevealProps {
   round?: number | undefined;
   /** Stored costs shown as extra rows under the tiles (storedCostRows); never recomputed. */
   costRows?: ArcadeRevealData["tiles"] | undefined;
+  /**
+   * Practice (3 Nov 2026): the breakdown open with this device's best, and no chart (it would hold one dot).
+   * Rooms keep the chart and open the breakdown from "See breakdown".
+   */
+  practice?: boolean | undefined;
+  /** Practice: this device's best for the game under today's stamps, if any. */
+  best?: number | null | undefined;
 }
 
 /**
@@ -198,7 +206,7 @@ function FitLine({ text, className }: { text: string; className: string }) {
   }, [text]);
   const split = px === 0 ? halves(text) : null;
   return (
-    <p ref={box} className={`relative w-full whitespace-nowrap text-center font-mono ${className}`} style={{ fontSize: px || 12 }}>
+    <p ref={box} className={`relative w-full whitespace-nowrap text-center tabular-nums ${className}`} style={{ fontSize: px || 12 }}>
       <span ref={probe} aria-hidden="true" className="invisible absolute left-0 top-0" style={{ fontSize: 14 }}>
         {text}
       </span>
@@ -256,31 +264,34 @@ function useCelebration(puzzle: PuzzleData, myAnswer: string | null, myScore: nu
     }
   }, [puzzle.type, myScore, myReveal, myAnswer, personalBest, round]);
   if (myScore === null || !myReveal) return null;
-  const full = myReveal.outcome === "finish";
+  // Only a real full clear (revealBreakdown.realFullClear): runs that always "finish" no longer cheer a score of 1.
+  const full = realFullClear(myReveal.outcome, myReveal.lines, myScore);
   return full && best ? "both" : full ? "full" : best ? "best" : null;
 }
 
-export function ArcadeReveal({ puzzle, myAnswer, myScore, myReveal, players, nearMissLine, personalBest, round, costRows = [] }: ArcadeRevealProps) {
-  const accent = ARCADE_REVEAL_RENDERERS[puzzle.type]?.accent ?? "var(--me)";
+export function ArcadeReveal({ puzzle, myAnswer, myScore, myReveal, players, nearMissLine, personalBest, round, costRows = [], practice = false, best = null }: ArcadeRevealProps) {
   const shownScore = useCountUp(myScore);
   const celebration = useCelebration(puzzle, myAnswer, myScore, myReveal, personalBest, round);
   const scoreRef = useRef<HTMLParagraphElement>(null);
   usePerfectBurst(scoreRef, myScore, puzzle.type);
   const shown = myReveal ? revealShown(myReveal, myScore) : null;
-  // The breakdown folds to one line (tap to open), so the chart keeps its full height.
+  // Rooms: one line (the summary) and "See breakdown"; practice: the list open (3 Nov 2026).
   const summary = shown ? revealSummary(shown.lines, myScore) : null;
-  const folds = !!summary && summary.rest.length + (shown?.tiles.length ?? 0) + costRows.length > 0;
+  const tiles = shown ? [...shown.tiles.slice(0, 4), ...costRows] : [];
+  const folds = !practice && !!summary && summary.rest.length + tiles.length > 0;
   const [open, setOpen] = useState(false);
+  const breakdownLines = shown ? shown.lines : [];
   // The reveal is its own screen (3 Nov 2026): no frozen world behind it; PhoneShell's `reveal` paints the game's colours.
   return (
     <div className="relative flex min-h-0 w-full flex-1 flex-col overflow-hidden rounded-xl">
       {celebration ? <ArcadeCelebration kind={celebration} world={arcadeWorldOf(puzzle.type)} /> : null}
       {/* Scrolls rather than overlap (31 Oct 2026): at 375×667 a game with four part lines left the chart
-          less height than it needs, and the chart (min-h-0) drew over the parts card under it. */}
-      {/* 1 Nov 2026: the breakdown folds to one line and the column's padding is 8 px, so the 16-player chart fits
-          375×667 with no scroll; opened, the column scrolls. */}
-      <div data-reveal-column className="relative flex min-h-0 flex-1 flex-col items-center justify-between gap-3 overflow-y-auto px-3 py-2">
+          less height than it needs; opened, the column scrolls. */}
+      <div data-reveal-column className="relative flex min-h-0 flex-1 flex-col items-center justify-start gap-3 overflow-y-auto px-3 py-2">
         <div className="flex w-full flex-col items-center gap-1">
+          {/* The hero's reserved spot (3 Nov 2026): the celebration hero lands here, beside the score, never over the
+              breakdown, the chart or a button (celebrations.ts heroAnchor). */}
+          <div data-hero-spot="" aria-hidden="true" className="reveal-hero-spot" />
           {myScore === null ? (
             <div data-reveal-score="pending" className="py-3">
               <WaitingLine label="Scoring…" />
@@ -295,56 +306,56 @@ export function ArcadeReveal({ puzzle, myAnswer, myScore, myReveal, players, nea
               {shownScore}
             </p>
           )}
-          <p className="font-mono text-xs uppercase tracking-[0.3em] text-muted-foreground">points</p>
-          {summary ? (
+          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-muted-foreground">points</p>
+          {practice ? (
+            <p data-reveal-best="" className="text-[14px] font-semibold text-[#D4D4DC]">
+              {best === null ? "Your first score for this game" : <>Your best: <span className="tabular-nums text-foreground">{best}</span></>}
+            </p>
+          ) : null}
+          {summary && !practice ? (
             folds ? (
               <button
                 type="button"
                 data-reveal-summary={open ? "open" : "closed"}
                 aria-expanded={open}
                 onClick={() => setOpen((v) => !v)}
-                className="press flex min-h-11 w-full items-center justify-center gap-1.5 rounded-lg text-foreground animate-fade-in"
+                className="press reveal-see-breakdown flex min-h-11 w-full flex-col items-center justify-center rounded-xl px-3 py-1.5 text-foreground animate-fade-in"
               >
-                <FitLine text={summary.summary} className="min-w-0 flex-1 text-foreground" />
-                <span aria-hidden="true" className="shrink-0 font-mono text-xs text-muted-foreground">{open ? "▴" : "▾"}</span>
+                <FitLine text={summaryText(summary.summary)} className="w-full text-foreground" />
+                <span className="text-[13px] font-bold text-[var(--ap-gold,#F2C75C)]">{open ? "Hide breakdown" : "See breakdown"}</span>
               </button>
             ) : (
-              <FitLine text={summary.summary} className="text-foreground animate-fade-in" />
+              <FitLine text={summaryText(summary.summary)} className="text-foreground animate-fade-in" />
             )
-          ) : null}
-          {/* The full breakdown, one tap away (always in the markup; drawn only when opened). */}
-          {summary && summary.rest.length ? (
-            <div data-reveal-breakdown="" hidden={!open} className="w-full">
-              {summary.rest.map((line) => <FitLine key={line} text={line} className="text-foreground animate-fade-in" />)}
-            </div>
           ) : null}
           {myScore !== null && nearMissLine ? <FitLine text={nearMissLine} className="text-foreground" /> : null}
         </div>
 
-        {/* The chart in a clean panel on the reveal screen's gradient. */}
-        {/* Never shorter than the chart it holds (no min-h-0): the column scrolls instead of overlapping. */}
-        <div data-chart-panel className="flex w-full flex-1 flex-col rounded-[18px] bg-[#17171B] px-2.5 py-2.5">
-          <ArcadeScoreChart
-            players={players.map((p) => ({ slot: p.slot, name: p.name, isMe: p.isMe, look: p.look, score: p.isMe ? myScore : p.score }))}
-            type={puzzle.type}
-          />
-        </div>
+        {/* The full breakdown: open in practice, one tap away in a room (always in the markup). */}
+        {summary ? <RevealBreakdown lines={breakdownLines} score={myScore} hidden={!practice && !open} /> : null}
 
-        {shown && shown.tiles.length + costRows.length > 0 ? (
-          // One full-width row (in the breakdown: shown once the one-line summary is opened) per stored tile (label left, value right), so a label as
-          // long as "Crossings completed" stays on one line at 12 px on a 375 px phone.
+        {/* The chart in a clean panel (rooms only: in practice it would hold one dot). */}
+        {/* Never shorter than the chart it holds (no min-h-0): the column scrolls instead of overlapping. */}
+        {!practice ? (
+          <div data-chart-panel className="flex w-full flex-1 flex-col rounded-[18px] bg-[#17171B] px-2.5 py-2.5">
+            <ArcadeScoreChart
+              players={players.map((p) => ({ slot: p.slot, name: p.name, isMe: p.isMe, look: p.look, score: p.isMe ? myScore : p.score }))}
+              type={puzzle.type}
+            />
+          </div>
+        ) : null}
+
+        {tiles.length > 0 ? (
+          // One full-width row per stored tile (label left, value right), with the breakdown.
           <div
             data-reveal-tiles=""
-            hidden={!open}
-            className="flex w-full shrink-0 flex-col divide-y rounded-lg border bg-background/70 px-3 animate-fade-in"
-            style={{ borderColor: accent }}
+            hidden={!practice && !open}
+            className="reveal-breakdown flex w-full shrink-0 flex-col animate-fade-in"
           >
-            {[...shown.tiles.slice(0, 4), ...costRows].map((tile) => (
-              <div key={tile.label} className="flex min-w-0 items-baseline justify-between gap-3 py-1" style={{ borderColor: "color-mix(in srgb, var(--muted-foreground) 25%, transparent)" }}>
-                <span className="min-w-0 truncate whitespace-nowrap text-xs uppercase tracking-wider text-muted-foreground">{tile.label}</span>
-                <span className="shrink-0 whitespace-nowrap font-mono text-lg font-bold tabular-nums leading-tight" style={{ color: accent }}>
-                  {tile.value}
-                </span>
+            {tiles.map((tile) => (
+              <div key={tile.label} className="reveal-breakdown-row">
+                <span className="reveal-breakdown-name">{tile.label}</span>
+                <span className="reveal-breakdown-points">{tile.value}</span>
               </div>
             ))}
           </div>

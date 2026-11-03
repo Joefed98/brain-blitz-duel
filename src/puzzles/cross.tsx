@@ -4,7 +4,8 @@ import { ArcadeArenaSlot } from "@/components/puzzles/ArcadeArenaSlot";
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { arcadeFeedback } from "@/lib/fx/arcade";
 import { crossSounds } from "@/lib/fx/gameSounds";
-import { crossArenaScene, drawCrossArt } from "@/lib/arcade/cross.renderer";
+import { crossArenaScene, crossArtGameFor, drawCrossArt } from "@/lib/arcade/cross.renderer";
+import { ArtStill } from "@/components/puzzles/ArtStill";
 import { crossLine } from "@/lib/duel/crossLine";
 import { appendClientCounters, arcadeCounters } from "@/lib/arcade/diagnostics";
 import { recordInput, inputAt } from "@/lib/arcade/engine";
@@ -44,34 +45,17 @@ import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./ty
 import { arcadeCanvasRatio } from "@/lib/fx/lowEnd";
 import { arenaFrame, cancelArenaFrame } from "@/lib/battery";
 
-/** Fixed intro still: a disc below a lane of traffic with a gap to aim for. */
+/** The intro still (3 Nov 2026): the dealt revision's own art at a fixed seed's first crossing, no placeholder panel. */
 function IntroExample() {
   return (
-    <div className="flex w-full flex-col items-center gap-2">
-      <svg
-        viewBox="0 0 180 110"
-        width={180}
-        height={110}
-        aria-hidden="true"
-        style={{ background: CROSS_BG, borderRadius: 10 }}
-      >
-        <rect x="10" y="8" width="160" height="14" fill={CROSS_GOAL} />
-        <rect x="10" y="26" width="160" height="22" fill="rgba(46,160,96,0.35)" />
-        <rect x="10" y="27" width="160" height="1.5" fill="#F5F5F5" />
-        <rect x="10" y="45.5" width="160" height="1.5" fill="#F5F5F5" />
-        <circle cx="34" cy="41" r="4" fill="none" stroke="#D7DCE3" strokeWidth="1.5" />
-        <circle cx="48" cy="41" r="4" fill="none" stroke="#D7DCE3" strokeWidth="1.5" />
-        <path d="M34 41 L39 33 L46 33 L48 41 M42 31 L39 37" stroke="#C6F432" strokeWidth="2" fill="none" />
-        <rect x="10" y="60" width="62" height="8" fill="#F7F7F8" />
-        <path d="M78 60 L82 52 L86 60 Z M120 60 L124 52 L128 60 Z" fill="#FF7A1A" />
-        <rect x="118" y="60" width="52" height="8" fill="#F7F7F8" />
-        <rect x="95" y="76" width="45" height="12" fill={CROSS_BLOCK} />
-        <circle cx="86" cy="96" r="10" fill={CROSS_PLAYER} />
-      </svg>
-      <p className="text-center text-xs text-muted-foreground">
-        Hop up through the gaps and keep moving. Mind the bikes, buses and cones.
-      </p>
-    </div>
+    <ArtStill
+      game={crossArtGameFor(CROSS_REV_FLOW)}
+      worldW={CROSS_WORLD_W}
+      worldH={crossWorldHFor(CROSS_REV_FLOW)}
+      ticks={60}
+      input={null}
+      caption="Hop up through the gaps and keep moving. Mind the bikes, buses and cones."
+    />
   );
 }
 

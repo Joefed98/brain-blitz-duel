@@ -6,8 +6,6 @@ import {
   wavCheckpoint,
   WAV_BG,
   WAV_CHECKPOINT_INTERVAL,
-  WAV_COLOURS,
-  WAV_GOLD,
   WAV_REV_STD,
   wavDragZoneTop,
   wavefrontWorldHFor,
@@ -16,51 +14,26 @@ import {
 import { encodeWavefrontRun, replayWavefrontRun } from "@/lib/duel/wavefront";
 import { WAVEFRONT_TIME_MS, type WavefrontPuzzleData } from "@/lib/duel/types";
 import { ArcadeCanvasStage } from "@/components/puzzles/ArcadeCanvasStage";
+import { ArtStill } from "@/components/puzzles/ArtStill";
 import { wavefrontArtGameFor } from "@/lib/arcade/wavefront.renderer";
 import { wavefrontSounds } from "@/lib/fx/gameSounds";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
-/** Fixed intro still: a 2×3 formation over the ship, with one bolt in flight. */
+/**
+ * The intro still (3 Nov 2026): the dealt revision's own art a few seconds into a fixed seed's run, so the intro shows
+ * the real ships rather than placeholder shapes.
+ */
 function IntroExample() {
-  const shapes = [
-    { kind: "ring", c: 0 },
-    { kind: "tri", c: 1 },
-    { kind: "hex", c: 2 },
-    { kind: "tri", c: 2 },
-    { kind: "hex", c: 0 },
-    { kind: "ring", c: 1 },
-  ];
   return (
-    <div className="flex w-full flex-col items-center gap-2">
-      <svg
-        viewBox="0 0 168 130"
-        width={168}
-        height={130}
-        aria-hidden="true"
-        style={{ background: WAV_BG, borderRadius: 10 }}
-      >
-        {shapes.map((shape, i) => {
-          const cx = 44 + (i % 3) * 40;
-          const cy = 24 + Math.trunc(i / 3) * 30;
-          // The enemy craft in silver, steel grey and black chrome (phone notes, 27 Oct 2026).
-          const colour = ["#E6E9EE", "#9AA1AB", "#5A606A"][shape.c] ?? WAV_COLOURS[shape.c];
-          if (shape.kind === "ring")
-            return <circle key={i} cx={cx} cy={cy} r={10} fill="none" stroke={colour} strokeWidth={3} />;
-          const n = shape.kind === "tri" ? 3 : 6;
-          const pts = Array.from({ length: n }, (_, p) => {
-            const a = -Math.PI / 2 + (p * Math.PI * 2) / n;
-            return `${cx + Math.cos(a) * 11},${cy + Math.sin(a) * 11 + (n === 3 ? 2 : 0)}`;
-          }).join(" ");
-          return (
-            <polygon key={i} points={pts} fill={colour} fillOpacity={0.25} stroke={colour} strokeWidth={3} />
-          );
-        })}
-        <rect x={82} y={78} width={4} height={12} fill={WAV_GOLD} />
-        <polygon points="84,100 104,118 84,112 64,118" fill={WAV_GOLD} />
-      </svg>
-      <p className="text-center text-xs text-muted-foreground">Your ship fires on its own. Shoot the glowing carriers for power-ups, hit the bosses' weak points.</p>
-    </div>
+    <ArtStill
+      game={wavefrontArtGameFor(WAV_REV_STD)}
+      worldW={WAV_WORLD_W}
+      worldH={wavefrontWorldHFor(WAV_REV_STD)}
+      ticks={150}
+      input={null}
+      caption="Your ship fires on its own. Shoot the glowing carriers for power-ups, hit the bosses' weak points."
+    />
   );
 }
 

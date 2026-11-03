@@ -125,9 +125,12 @@ export function ArcadeScoreChart({ players, type }: { players: ChartPlayer[]; ty
 
   return (
     <div className="flex min-h-0 w-full flex-1 flex-col" data-arcade-chart="snake">
-      <p className="mb-0.5 shrink-0 font-mono text-[13px] font-semibold uppercase tracking-widest" style={{ color: TEXT }}>
-        Who's ahead
-      </p>
+      {/* "Who's ahead" only when there is more than one player to be ahead of (3 Nov 2026). */}
+      {players.length > 1 ? (
+        <p className="mb-0.5 shrink-0 text-[13px] font-semibold uppercase tracking-widest" style={{ color: TEXT }}>
+          Who's ahead
+        </p>
+      ) : null}
       <div ref={box} className="relative min-h-0 w-full flex-1" style={{ minHeight: needed }}>
         {width > 0 ? (
           <div className="absolute inset-x-0 top-0" style={{ height }} data-chart-body="">

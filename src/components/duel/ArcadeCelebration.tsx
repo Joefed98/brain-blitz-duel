@@ -111,17 +111,15 @@ export function ArcadeCelebration({
 
   return (
     <>
-      <p role="status" className="sr-only">
-        {HEADLINES[kind]}
-      </p>
+      {/* The headline once (3 Nov 2026: a screen-reader copy beside the visible one read as "Full clear!" twice). */}
       <div
         className="pointer-events-none absolute inset-0 z-10 overflow-hidden rounded-xl"
-        aria-hidden="true"
         data-arcade-celebration={kind}
       >
-        <ConfettiBurst world={world} />
+        <div aria-hidden="true" className="absolute inset-0"><ConfettiBurst world={world} /></div>
         <div className="absolute inset-x-0 top-[34%] flex justify-center">
           <span
+            role="status"
             className="arcade-celebration-headline rounded-full px-4 py-1.5 font-display text-xl font-bold uppercase tracking-wide"
             style={{
               color: theme.outline,

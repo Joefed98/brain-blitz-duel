@@ -1,7 +1,7 @@
 /**
  * reveal-palette-check (3 Nov 2026): the answer reveal is its own screen in the game's own colours.
  *
- *  1. src/lib/duel/revealPalette.data.ts is what `bun scripts/reveal-palette.ts` makes from today's tiles
+ *  1. src/lib/duel/revealPalette.data.ts is what `bun scripts/reveal-palette.ts` makes from the colour rules (one hue a game)
  *     (re-run it after re-exporting a tile).
  *  2. Every active game has a gradient, and white text reads at least REVEAL_MIN_CONTRAST:1 on every stop
  *     (so on the whole gradient), as on the fallback.
@@ -12,7 +12,7 @@
 import { spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 
-import { ACTIVE_PUZZLE_TYPES } from "../src/lib/duel/registry";
+import { ACTIVE_PUZZLE_TYPES, puzzleDef } from "../src/lib/duel/registry";
 import { REVEAL_PALETTE } from "../src/lib/duel/revealPalette.data";
 import { REVEAL_FALLBACK, REVEAL_MIN_CONTRAST, hexToRgb, revealPaletteFor, revealPaletteStyle, whiteContrast } from "../src/lib/duel/revealPalette";
 
@@ -25,7 +25,7 @@ function check(ok: boolean, message: string): void {
 
 // 1. In step with the tiles.
 const run = spawnSync("bun", ["scripts/reveal-palette.ts", "--check"], { encoding: "utf8" });
-check(run.status === 0, `revealPalette.data.ts is out of date with the tiles: ${(run.stdout + run.stderr).trim()}`);
+check(run.status === 0, `revealPalette.data.ts is out of date with the colour rules: ${(run.stdout + run.stderr).trim()}`);
 
 // 2. Every active game, legible.
 for (const type of ACTIVE_PUZZLE_TYPES) {
@@ -66,7 +66,35 @@ check(/var\(--screen-edge\) env\(safe-area-inset-top/.test(css) && /linear-gradi
 check(/@import "\.\/polish-layout\/reveal-screen\.css";/.test(read("src/styles.css")), "styles.css imports it");
 const arcade = read("src/components/duel/ArcadeReveal.tsx");
 check(!/function Backdrop|<Backdrop|drawFinal|data-reveal-scrim/.test(arcade), "the arcade reveal draws no frozen world behind it");
-check(/data-reveal-head/.test(read("src/components/duel/AnswerReveal.tsx")) && /<MuteToggle \/>/.test(read("src/components/duel/AnswerReveal.tsx")), "the reveal's header row carries the sound button");
+check(/data-reveal-head/.test(read("src/components/duel/AnswerReveal.tsx")) && /<MuteToggle variant="speaker" \/>/.test(read("src/components/duel/AnswerReveal.tsx")), "the reveal's header row carries one speaker button (3 Nov 2026: no music or ▾ controls)");
+
+// 5. One hue a game (3 Nov 2026): every puzzle in a category shares its category's gradient; an arcade game's three
+//    stops share one hue (no two-hue blends), each darker than the one above.
+{
+  const hueOf = ([r, g, b]: number[]) => {
+    const max = Math.max(r!, g!, b!), min = Math.min(r!, g!, b!), d = max - min;
+    if (d === 0) return 0;
+    const h = max === r ? ((g! - b!) / d) % 6 : max === g ? (b! - r!) / d + 2 : (r! - g!) / d + 4;
+    return (h * 60 + 360) % 360;
+  };
+  const byCategory = new Map<string, string>();
+  for (const type of ACTIVE_PUZZLE_TYPES) {
+    const stops = revealPaletteFor(type);
+    const category = puzzleDef(type).category;
+    if (category !== "arcade") {
+      const key = stops.join();
+      const seen = byCategory.get(category);
+      if (seen === undefined) byCategory.set(category, key);
+      else check(seen === key, `${type}: its reveal gradient is its category's (${category})`);
+    }
+    const hues = stops.map((hex) => hueOf(hexToRgb(hex)));
+    const gap = (a: number, b: number) => Math.min(Math.abs(a - b), 360 - Math.abs(a - b));
+    check(gap(hues[0]!, hues[1]!) <= 6 && gap(hues[0]!, hues[2]!) <= 8, `${type}: one hue top to bottom (${stops.join(" → ")})`);
+    const lum = stops.map((hex) => whiteContrast(hexToRgb(hex)));
+    check(lum[0]! <= lum[1]! && lum[1]! <= lum[2]!, `${type}: deep at the top, fading to near-black (${stops.join(" → ")})`);
+  }
+  check(byCategory.size === 6, `six puzzle categories, each one gradient (${byCategory.size})`);
+}
 
 if (failures.length) {
   for (const f of failures.slice(0, 40)) console.log(`FAIL ${f}`);

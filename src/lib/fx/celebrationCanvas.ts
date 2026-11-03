@@ -46,6 +46,14 @@ export const GRAND_DANCE_END = 2300;
 
 /** The hero's height (px) when running and on the podium. */
 export const HERO_RUN_H = 58;
+
+/** A strip the hero keeps to (screen px): its left and right ends, its top and the ground line its feet are on. */
+export interface HeroLane {
+  left: number;
+  right: number;
+  top: number;
+  footY: number;
+}
 /** On the podium (Polish batch R, 25 Oct 2026): larger, standing on the top step. */
 export const PODIUM_HERO_H = 60;
 /** The podium hero's loop, pre-drawn once into a strip of this many frames (then one drawImage a frame). */
@@ -123,12 +131,20 @@ export class CelebrationScene {
     }
   }
 
-  heroRun(scope: number, now: number): void {
+  /**
+   * The reveal's reserved hero spot (3 Nov 2026, Joe's audit: the hero covered boards, lines and buttons): when set,
+   * the run, dance and lap keep to this strip (its own row beside the score) instead of the screen's bottom.
+   */
+  lane: HeroLane | null = null;
+
+  heroRun(scope: number, now: number, lane: HeroLane | null = null): void {
     this.run = { scope, at: now };
+    this.lane = lane;
   }
 
-  heroShow(scope: number, kind: "dance" | "grand", calm: boolean, now: number): void {
+  heroShow(scope: number, kind: "dance" | "grand", calm: boolean, now: number, lane: HeroLane | null = null): void {
     this.show = { scope, at: now, kind, calm, fired: 0 };
+    this.lane = lane;
   }
 
   /** How long a hero moment lasts. */
@@ -329,11 +345,12 @@ export class CelebrationScene {
       return;
     }
     const k = age / HERO_RUN_MS;
-    const x = -40 + (width + 80) * k;
-    const footY = height - bottomInset - 18;
-    heroRunPose(this.pose, x, footY, HERO_RUN_H, age / 400);
+    const lane = this.lane;
+    const x = lane ? lane.left + 16 + (lane.right - lane.left - 32) * k : -40 + (width + 80) * k;
+    const footY = lane ? lane.footY : height - bottomInset - 18;
+    heroRunPose(this.pose, x, footY, lane ? Math.min(HERO_RUN_H, lane.footY - lane.top) : HERO_RUN_H, age / 400);
     ctx.save();
-    ctx.globalAlpha = Math.min(1, Math.min(age, HERO_RUN_MS - age) / 120);
+    ctx.globalAlpha = Math.min(1, Math.min(age, HERO_RUN_MS - age) / (lane ? 240 : 120));
     drawHero(ctx, this.pose);
     this.markHero();
     ctx.restore();
@@ -383,10 +400,19 @@ export class CelebrationScene {
       if (age >= total) this.show = null;
       return;
     }
-    const footY = height - bottomInset - 18;
-    const spot = Math.max(44, width * 0.18);
-    const h = HERO_RUN_H;
+    const lane = this.lane;
+    // In the reserved strip: its width is the stage, its bottom the ground, nothing drawn outside it.
+    const x0 = lane ? lane.left : 0;
+    const laneW = lane ? lane.right - lane.left : width;
+    const footY = lane ? lane.footY : height - bottomInset - 18;
+    const spot = x0 + Math.max(44, laneW * 0.18);
+    const h = lane ? Math.min(HERO_RUN_H, lane.footY - lane.top) : HERO_RUN_H;
     ctx.save();
+    if (lane) {
+      ctx.beginPath();
+      ctx.rect(lane.left, lane.top, lane.right - lane.left, lane.footY - lane.top + 4);
+      ctx.clip();
+    }
     if (show.calm) {
       const alpha = Math.min(1, age / 250, (total - age) / 300);
       ctx.globalAlpha = alpha;
@@ -399,7 +425,7 @@ export class CelebrationScene {
     if (show.kind === "dance") {
       ctx.globalAlpha = Math.min(1, age / 120, (total - age) / 120);
       if (age < HERO_DANCE_ON_MS) {
-        const x = -40 + (spot + 40) * (age / HERO_DANCE_ON_MS);
+        const x = x0 - 40 + (spot - x0 + 40) * (age / HERO_DANCE_ON_MS);
         heroRunPose(this.pose, x, footY, h, age / 400);
         this.drawPoseAt(ctx, x, 1);
       } else if (age < total - HERO_DANCE_OFF_MS) {
@@ -407,7 +433,7 @@ export class CelebrationScene {
         this.drawPoseAt(ctx, spot, 1);
       } else {
         const k = (age - (total - HERO_DANCE_OFF_MS)) / HERO_DANCE_OFF_MS;
-        const x = spot - (spot + 40) * k;
+        const x = spot - (spot - x0 + 40) * k;
         heroRunPose(this.pose, x, footY, h, age / 400);
         this.drawPoseAt(ctx, x, -1);
       }
@@ -417,27 +443,29 @@ export class CelebrationScene {
     // The 200 lap: fireworks on their schedule, a brightening glow at the start, then the hero's legs.
     while (show.fired < FIREWORK_AT.length && age >= FIREWORK_AT[show.fired]!) {
       const i = show.fired;
-      this.burst(show.scope, width * FIREWORK_X[i]!, height * FIREWORK_Y[i]!, 0, FIREWORK_SPARKS, show.at + FIREWORK_AT[i]!);
+      // In the strip the fireworks burst along its top, over no content.
+      const fy = lane ? lane.top + 8 + (lane.footY - lane.top) * 0.2 * FIREWORK_Y[i]! : height * FIREWORK_Y[i]!;
+      this.burst(show.scope, x0 + laneW * FIREWORK_X[i]!, fy, 0, lane ? Math.round(FIREWORK_SPARKS / 2) : FIREWORK_SPARKS, show.at + FIREWORK_AT[i]!);
       show.fired++;
       this.fireworks++;
     }
     const glow = Math.max(0, 1 - Math.abs(age - 500) / 500);
-    if (glow > 0) {
+    if (glow > 0 && !lane) {
       ctx.globalAlpha = glow * 0.08;
       ctx.fillStyle = "#FFE08A";
       ctx.fillRect(0, 0, width, height);
       this.mark(0, 0, width, height);
     }
     ctx.globalAlpha = Math.min(1, age / 120, (total - age) / 120);
-    const far = Math.min(width - 44, width * 0.8);
+    const far = x0 + Math.min(laneW - 44, laneW * 0.8);
     if (age < GRAND_RUN_END) {
-      const x = -40 + (far + 40) * (age / GRAND_RUN_END);
+      const x = x0 - 40 + (far - x0 + 40) * (age / GRAND_RUN_END);
       heroRunPose(this.pose, x, footY, h, age / 380);
       this.drawPoseAt(ctx, x, 1);
     } else if (age < GRAND_LEAP_END) {
       const k = (age - GRAND_RUN_END) / (GRAND_LEAP_END - GRAND_RUN_END);
       const x = far + (spot - far) * k;
-      const lift = Math.min(height * 0.3, 240) * 4 * k * (1 - k);
+      const lift = (lane ? 0 : Math.min(height * 0.3, 240)) * 4 * k * (1 - k);
       heroVictoryPose(this.pose, x, footY - lift, h, age, false);
       this.drawPoseAt(ctx, x, -1);
     } else if (age < GRAND_DANCE_END) {
@@ -445,7 +473,7 @@ export class CelebrationScene {
       this.drawPoseAt(ctx, spot, 1);
     } else {
       const k = (age - GRAND_DANCE_END) / (total - GRAND_DANCE_END);
-      const x = spot + (width + 40 - spot) * k;
+      const x = spot + (x0 + laneW + 40 - spot) * k;
       heroRunPose(this.pose, x, footY, h, age / 380);
       this.drawPoseAt(ctx, x, 1);
     }

@@ -8,7 +8,7 @@ import {
   setCelebrationSink,
   type CelebrationRequest,
 } from "@/lib/fx/celebrations";
-import { CelebrationScene } from "@/lib/fx/celebrationCanvas";
+import { CelebrationScene, type HeroLane } from "@/lib/fx/celebrationCanvas";
 import { canvasRatio } from "@/lib/battery";
 
 /**
@@ -159,11 +159,11 @@ export function CelebrationLayer() {
           }
           return;
         case "heroRun":
-          scene.heroRun(request_.scope, now);
+          scene.heroRun(request_.scope, now, laneOf(request_.anchor));
           request();
           return;
         case "heroShow":
-          scene.heroShow(request_.scope, request_.show, request_.calm, now);
+          scene.heroShow(request_.scope, request_.show, request_.calm, now, laneOf(request_.anchor));
           request();
           return;
         case "skip":
@@ -228,4 +228,12 @@ export function CelebrationLayer() {
       <span ref={insetRef} className="celebration-inset" />
     </div>
   );
+}
+
+/** The reveal's reserved hero spot as a lane (measured once when the moment starts). */
+function laneOf(anchor: Element | null | undefined): HeroLane | null {
+  if (!anchor || !anchor.isConnected) return null;
+  const box = anchor.getBoundingClientRect();
+  if (box.width < 40 || box.height < 20) return null;
+  return { left: box.left, right: box.right, top: box.top, footY: box.bottom - 2 };
 }

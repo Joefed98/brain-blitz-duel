@@ -42,18 +42,20 @@ export function nearMissInfo(
   if (!extra) return null;
   const number = (key: string) =>
     typeof extra[key] === "number" && Number.isFinite(extra[key]) ? (extra[key] as number) : null;
-  const remaining = (key: string, total: number | null, noun: string) => {
+  // "7 left to pot", "3 barriers left to pass" (3 Nov 2026: never "N from the end").
+  const remaining = (key: string, total: number | null, noun: string, verb = "go") => {
     const count = number(key);
     if (count === null || total === null || total <= 0 || count < 0 || count >= total) return null;
     const left = Math.ceil(total - count);
-    return info(`${left} ${noun}${left === 1 ? "" : "s"} from the end`, left, total);
+    const things = noun ? ` ${noun}${left === 1 ? "" : "s"}` : "";
+    return info(`${left}${things} left to ${verb}`, left, total);
   };
   const info = (line: string, left: number, total: number | null, measure = false): NearMissInfo => ({ line, left, total, measure });
   switch (type) {
     case "hover":
-      return remaining("gates", number("totalGates"), "barrier");
+      return remaining("gates", number("totalGates"), "barrier", "pass");
     case "orbit":
-      return extra["finished"] === true ? null : remaining("passed", 40, "planet");
+      return extra["finished"] === true ? null : remaining("passed", 40, "planet", "reach");
     case "swing": {
       const metres = number("metres");
       return metres !== null && metres >= 0 && metres < 500
@@ -74,17 +76,17 @@ export function nearMissInfo(
       return level < 10 ? info(`Level ${level + 1} of 10`, 10 - level, 10) : info(`${eaten} of 10 apples collected`, 10 - eaten, 10);
     }
     case "bintoss":
-      return remaining("baskets", 10, "basket");
+      return remaining("baskets", 10, "basket", "score");
     case "minigolf":
-      return remaining("holed", 5, "hole");
+      return remaining("holed", 5, "hole", "play");
     case "pool":
-      return remaining("spots", 7, "spot");
+      return remaining("spots", 7, "", "pot");
     case "curling":
-      return remaining("onButton", 8, "stone");
+      return remaining("onButton", 8, "stone", "land");
     case "tilt":
-      return remaining("mazes", 4, "maze");
+      return remaining("mazes", 4, "maze", "finish");
     case "balltrack":
-      return remaining("home", 30, "marble");
+      return remaining("home", 30, "marble", "bring home");
     case "wordfall": {
       const points = number("points"),
         // wordfallRev 3 (score bands): par scores about 100; the maximum (150) takes WORDFALL_BANDS_FULL_POINTS.
@@ -94,11 +96,11 @@ export function nearMissInfo(
       return info(`${left} word point${left === 1 ? "" : "s"} short of ${roundMaxFor("wordfall")}`, left, par, true);
     }
     case "tendrop":
-      return remaining("cleared", 10, "target");
+      return remaining("cleared", 10, "target", "clear");
     case "wavefront":
       // wavRev 2: all five waves cleared leaves the boss.
-      if (extra["wavRev"] !== undefined && number("wavesCleared") === 5) return extra["bossKilled"] ? null : remaining("bossHits", 36, "boss hit");
-      return remaining("wavesCleared", 5, "wave");
+      if (extra["wavRev"] !== undefined && number("wavesCleared") === 5) return extra["bossKilled"] ? null : remaining("bossHits", 36, "boss hit", "land");
+      return remaining("wavesCleared", 5, "wave", "clear");
     case "flip": {
       const seconds = number("survivedSeconds");
       return extra["survived"] !== true && seconds !== null && seconds >= 0 && seconds < 60
@@ -107,9 +109,9 @@ export function nearMissInfo(
     }
     case "clayshoot":
       // clayRev 4's empty shots and their cost show only in their own reveal rows (storedCostRows).
-      return remaining("hits", number("total"), "clay");
+      return remaining("hits", number("total"), "clay", "hit");
     case "bullseye":
-      return extra["finished"] === true ? null : remaining("arrows", 10, "dart");
+      return extra["finished"] === true ? null : remaining("arrows", 10, "dart", "throw");
     case "breaker": {
       const left = number("bricksLeft");
       return extra["cleared"] !== true && left !== null && left > 0
@@ -117,7 +119,7 @@ export function nearMissInfo(
         : null;
     }
     case "measure":
-      return remaining("solved", 4, "puzzle");
+      return remaining("solved", 4, "puzzle", "solve");
     case "checkout": {
       const solved = number("solved");
       return solved !== null && solved >= 0 && solved < 5
@@ -125,7 +127,7 @@ export function nearMissInfo(
         : null;
     }
     case "numline":
-      return remaining("placed", 15, "number");
+      return remaining("placed", 15, "number", "place");
     case "bubble": {
       const left = number("bubblesLeft");
       return extra["cleared"] !== true && left !== null && left > 0
@@ -133,9 +135,9 @@ export function nearMissInfo(
         : null;
     }
     case "strikeout":
-      return extra["done"] === true ? null : remaining("solvedRows", 5, "word");
+      return extra["done"] === true ? null : remaining("solvedRows", 5, "word", "solve");
     case "codeword":
-      return extra["solved"] === true ? null : remaining("correct", number("hidden"), "letter");
+      return extra["solved"] === true ? null : remaining("correct", number("hidden"), "letter", "crack");
     case "swapword": {
       const left = number("tilesLeft");
       return extra["solved"] !== true && left !== null && left > 0
