@@ -75,7 +75,7 @@ replay exactly as before; standard-live-check grades every stored arcade run thr
 | Tempo | `beat` | `beatRev` 11 | B | [beat.md](beat.md) |
 | Jaywalk | `cross` | `crossRev` 11 (10 before, Nov 2026: no coins, the no-stop streak) | C | [cross.md](cross.md) |
 | Wavefront | `wavefront` | `wavRev` 12 | C | [wavefront.md](wavefront.md) |
-| Roofbound | `flip` | `flipRev` 10 | C | [flip.md](flip.md) |
+| Roofbound | `flip` | `flipRev` 11 (10 before, Nov 2026) | C | [flip.md](flip.md) |
 | Rainbow Bridge | `inkbridge` | `inkRev` 12 | C | [inkbridge.md](inkbridge.md) |
 | Orbit | `orbit` | `orbitRev` 13 | C | [orbit.md](orbit.md) |
 | Ball Tracker | `balltrack` | `btRev` 8 | C | [balltrack.md](balltrack.md) |

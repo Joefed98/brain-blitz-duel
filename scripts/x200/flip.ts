@@ -8,7 +8,7 @@
  * never whether one was taken) and the course's guaranteed counts (flipV8Opportunities).
  */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { flipGameFor, flipV8Opportunities, FLIP_REV_STD, FLIP_V8_CHECKPOINTS, type FlipState } from "../../src/lib/arcade/flip";
+import { flipGameFor, flipV8Opportunities, FLIP_REV_FLOW, FLIP_V8_CHECKPOINTS, type FlipState } from "../../src/lib/arcade/flip";
 import { generateFlip } from "../../src/lib/duel/arcade.server";
 import { bot, randomBot } from "../arcade-skill-bands/bots/flip";
 import { roomSeed } from "../arcade-skill-bands/games";
@@ -17,18 +17,19 @@ import type { X200Room } from "./room";
 
 export const x200Room: X200Room = {
   type: "flip",
-  rev: FLIP_REV_STD,
+  // flipRev 11 since 3 Nov 2026 (no star pickups, the flow streak; docs/arcade-standard/flip.md).
+  rev: FLIP_REV_FLOW,
   deals: 6,
   deal(n) {
     const puzzle = generateFlip();
-    if (puzzle.flipRev !== FLIP_REV_STD) throw new Error(`rooms deal flipRev ${puzzle.flipRev}, not ${FLIP_REV_STD}`);
+    if (puzzle.flipRev !== FLIP_REV_FLOW) throw new Error(`rooms deal flipRev ${puzzle.flipRev}, not ${FLIP_REV_FLOW}`);
     const seed = roomSeed(n);
     return { seed, game: flipGameFor(puzzle.flipRev) };
   },
   play(deal, style) {
     if (style === "idle") return { events: [] };
     const human = new Human("flip", deal.seed, style === "random" ? "weak" : style);
-    const out = (style === "random" ? randomBot : bot)({ game: deal.game, seed: deal.seed, rev: FLIP_REV_STD, human });
+    const out = (style === "random" ? randomBot : bot)({ game: deal.game, seed: deal.seed, rev: FLIP_REV_FLOW, human });
     return { events: out.events ?? [] };
   },
   schedule(state: FlipState) {

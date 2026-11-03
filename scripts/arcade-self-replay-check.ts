@@ -129,7 +129,7 @@ import "@/lib/duel/wordfallDict.server";
 
 import { BT_REV_BAND, BT_REV_TALL } from "@/lib/arcade/ballTrack";
 import { WAV_REV_BAND, WAV_REV_PHONE, WAV_REV_SHAPES, WAV_REV_TALL, WAV_REV_TUNEC } from "@/lib/arcade/wavefront";
-import { FLIP_REV_BAND, FLIP_REV_EXPAND, FLIP_REV_LIFT, FLIP_REV_STD, FLIP_REV_TUNEC } from "@/lib/arcade/flip";
+import { FLIP_REV_BAND, FLIP_REV_EXPAND, FLIP_REV_FLOW, FLIP_REV_LIFT, FLIP_REV_STD, FLIP_REV_TUNEC } from "@/lib/arcade/flip";
 import { WAV_REV_BAND, WAV_REV_PHONE, WAV_REV_SHAPES, WAV_REV_STD, WAV_REV_TALL, WAV_REV_TUNEC } from "@/lib/arcade/wavefront";
 import { FLIP_REV_BAND, FLIP_REV_EXPAND, FLIP_REV_LIFT, FLIP_REV_TUNEC } from "@/lib/arcade/flip";
 import { INK_REV_BAND, INK_REV_TUNEC } from "@/lib/arcade/inkBridge";
@@ -942,6 +942,9 @@ const GAMES: Game[] = [
   // Jaywalk crossRev 11 (3 Nov 2026, docs/arcade-standard/cross.md "crossRev 11"), appended so every earlier entry keeps
   // its index: crossRev 10's courses without coins, the no-stop streak and a cost a hit.
   { key: "cross/rev11", game: crossGameFor(CROSS_REV_FLOW), checkpoint: crossCheckpoint, mode: "events", rate: 60, encode: encodeCrossRun, replay: (seed: number, raw: string) => replayCrossRun(seed, raw, CROSS_REV_FLOW) },
+  // Roofbound flipRev 11 (3 Nov 2026, docs/arcade-standard/flip.md "flipRev 11"), appended so every earlier entry keeps its
+  // index: flipRev 8's course and moves with no star pickups, the flow streak counted.
+  { key: "flip/rev11", game: flipGameFor(FLIP_REV_FLOW), checkpoint: flipCheckpoint, mode: "events", rate: 50, encode: encodeFlipRun, replay: (seed: number, raw: string) => replayFlipRun(seed, raw, FLIP_REV_FLOW) },
 ];
 
 /** A random candidate event, often outside the declared range (a finger off the edge). */

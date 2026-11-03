@@ -58,7 +58,8 @@ const STANDARD_ROSTER: readonly { type: string; field: string; rev: number; batc
   // crossRev 11 (3 Nov 2026): no coins, the no-stop streak, a hit costs 15 (cross-rev11-check).
   { type: "cross", field: "crossRev", rev: 11, batch: "C" },
   { type: "wavefront", field: "wavRev", rev: 12, batch: "C" },
-  { type: "flip", field: "flipRev", rev: 10, batch: "C" },
+  // flipRev 11 (3 Nov 2026): no star pickups; clean time 100, perfect landings 60, double flips 20, flow streak 20 (flip-rev11-check).
+  { type: "flip", field: "flipRev", rev: 11, batch: "C" },
   { type: "inkbridge", field: "inkRev", rev: 12, batch: "C" },
   { type: "orbit", field: "orbitRev", rev: 14, batch: "C" },
   { type: "balltrack", field: "btRev", rev: 8, batch: "C" },

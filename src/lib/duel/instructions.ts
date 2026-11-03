@@ -298,9 +298,9 @@ import {
   FLIP_V8_SWEET_POINTS,
   FLIP_V8_TRAILS,
   FLIP_V8_TRAIL_POINTS,
-  FLIP_V8_TRAIL_STARS,
   FLIP_V8_ZONE_POINTS,
-  FLIP_STD,
+  FLIP_V11,
+  FLIP_V11_SAVE_COST,
 } from "@/lib/arcade/flip";
 import { bandCurve, type BandCurve } from "@/lib/arcade/scoreBands";
 import { SNIP_X_FEATURE_MAX, SNIP_X_FEED_UNITS, SNIP_X_GOLD_RAW, SNIP_X_LEVELS, SNIP_X_PAR_MARGIN, SNIP_X_PAR_RAW, SNIP_X_PERFECT_RAW, SNIP_X_QUICK_RAW, SNIP_X_RAW_TOP, SNIP_X_SKILL_PAY, SNIP_X_STAR2_RAW, SNIP_X_STAR_UNITS } from "@/lib/arcade/snip";
@@ -1458,24 +1458,28 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       score: "The longer you last, the more you score – the full minute is {max}.",
     },
     flip: {
-      goal: "Run the cave – flip to the other side to dodge, and chain flips for more.",
+      goal: "Run the cave – flip to the other side to dodge, and land clean flips in a row.",
       how: [
         { action: "Tap to flip sides;", detail: "dodge the spikes (some slide). Flip again right after landing for a double flip." },
-        { action: "Grab gold stars and star trails;", detail: "land a flip on a roof's faint sweet spot for a bonus." },
-        { action: "Checkpoints save one crash.", detail: "Speed zones rush you on; tall caves mean longer flips." },
+        { action: "Land on a roof's faint sweet spot", detail: "for a PERFECT landing. Clean jumps in a row build your flow streak." },
+        { action: "Checkpoints save one crash,", detail: "but it costs 20 s of clean time and your streak." },
         { action: "Spikes or lava on one side?", detail: "Run on the other. Cracked tiles break less than half a second after you touch them: flip off fast.", helpOnly: true },
         { action: "Moving spikes", detail: "slide to and fro along the groove under them; time your flip to their slide.", helpOnly: true },
         { action: "The cave changes height:", detail: "in a tall stretch a flip takes longer to cross, in a tight one it is quicker. From 10 seconds the cave bends too, and hazards ride the bends with you.", helpOnly: true },
+        { action: "Speed zones", detail: "rush you on for a few seconds: the cave flies past faster.", helpOnly: true },
         { action: "Double flips:", detail: "flip again within about an eighth of a second of landing with a hazard close by. Each one counts, chained or not.", helpOnly: true },
-        { action: "Star trails:", detail: `${FLIP_V8_TRAILS} arcs of ${FLIP_V8_TRAIL_STARS} small stars, taken in the air. Leave the surface at the chevron and your flip sweeps through them.`, helpOnly: true },
-        { action: "Sweet spots:", detail: `${FLIP_V8_SWEETS} roofs carry a short, faint pale strip. Time a flip so you touch down with your feet inside it for a sweet landing; it glints. Each counts once.`, helpOnly: true },
-        { action: "Checkpoints (15, 30 and 45 s):", detail: "pass one and your next crash is saved – a second of shield, and you run on.", helpOnly: true },
+        { action: "Sweet spots:", detail: `${FLIP_V8_SWEETS} roofs carry a short, faint pale strip. Time a flip so you touch down with your feet inside it for a sweet landing: PERFECT glows where you land. Each counts once.`, helpOnly: true },
+        { action: "Flow streak:", detail: "a clean jump is a flip that lands with no crash saved on the way. Clean jumps in a row make your streak; a saved crash starts it again from 0, and your longest streak counts.", helpOnly: true },
+        { action: "Star trails:", detail: `the ${FLIP_V8_TRAILS} faint arcs of small stars are only a guide now, a good line through the air: nothing to collect.`, helpOnly: true },
+        { action: "Checkpoints (15, 30 and 45 s):", detail: `pass one and your next crash is saved – a second of shield, and you run on, but ${FLIP_V11_SAVE_COST / 2} s comes off your clean time.`, helpOnly: true },
       ],
-      // flipRev 10 (the arcade scoring standard): time survived on a straight line, then the features' fixed shares.
-      score: `${liveBandHelp("flip", "Time survived: each half second you last counts 1.25.", {
-        more: "More time survived",
-        good: (u) => `lasts ${u} half seconds (${u / 2} s)`,
-      })} ${stdFeaturesHelp(FLIP_STD)}`,
+      // flipRev 11 (3 Nov 2026, the arcade scoring standard): clean time on a straight line, then the features' fixed shares.
+      // The core tops out at 100, so the help reads "up to 100" and ends on the round's 200 (as Meteor's).
+      score: liveBandHelp("flip", `Clean time: the half seconds you last, less ${FLIP_V11_SAVE_COST} (${FLIP_V11_SAVE_COST / 2} s) for each crash a checkpoint saves.`, {
+        more: "More clean time",
+        good: (u) => `lasts ${u} clean half seconds (${u / 2} s${u >= 120 ? ": the whole minute with no crash saved" : ""})`,
+        finish: stdFeaturesHelp(FLIP_V11, { sweets: `${60 / FLIP_V8_SWEETS} for each sweet landing, touching down inside one of the ${FLIP_V8_SWEETS} sweet spots` }),
+      }),
     },
     junction: {
       goal: "Keep traffic moving, no crashes.",
