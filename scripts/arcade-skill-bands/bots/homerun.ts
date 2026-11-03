@@ -23,6 +23,12 @@
  * they time it from the flight alone (rev 2's spread) without the kind's offset. Before each pitch they choose the
  * swing: weaker hitters mostly Contact (the wide window), stronger ones Power (V3_POWER, the chance per pitch), and a
  * sign is only aimed at with Power (Contact never carries to one).
+ *
+ * homerunRev 4 (3 Nov 2026, botV4): before each pitch the hitter taps a spot (with the level's pointing error, V4_SPOT
+ * the strategy by level: weaker hitters a gap in the outfield, stronger ones over the fence and the lit sign when they
+ * trust their timing for it) and then taps as the ring closes: the moment is anticipated from the ring with the level's
+ * timing spread, a little wider for curveballs and wider again for the slow changeup (V4_READ); slips mistime a tap by
+ * 6–10 ticks. Gaps are judged from the fielders shown with the level's judgement blur.
  */
 import {
   homerunPerfectOffset,
@@ -38,6 +44,18 @@ import {
   PITCH_CURVE,
   PITCH_DROP,
 } from "../../../src/lib/arcade/homerun";
+import {
+  homerunFence,
+  homerunGroundY,
+  homerunV4XOf,
+  homerunWallTopY,
+  HOMERUN_INPUT_SPOT,
+  HOMERUN_INPUT_TAP,
+  HOMERUN_REV_4,
+  HOMERUN_V4_SIGNS,
+  HOMERUN_V4_SPOT_Y0,
+  type HomerunFielder,
+} from "../../../src/lib/arcade/homerun";
 import { recordInput, type ArcadeInputEvent } from "../../../src/lib/arcade/engine";
 import { oracleRun, homerunAngleFor } from "../../homerun-oracle";
 import type { SkillBot } from "../bot";
@@ -50,6 +68,7 @@ const V3_TELL = { weak: 0.55, average: 0.7, good: 0.85, great: 0.93, near: 0.97,
 const V3_POWER = { weak: 0, average: 0.1, good: 0.3, great: 0.85, near: 1, elite: 1, perfect: 1 } as const;
 
 export const bot: SkillBot = ({ game, seed, rev, human }) => {
+  if ((rev ?? 1) >= HOMERUN_REV_4) return botV4({ game, seed, rev, human });
   const v2 = (rev ?? 1) >= HOMERUN_REV_2;
   if ((rev ?? 1) >= HOMERUN_REV_3) return botV3({ game, seed, rev, human });
   if (human.level === "perfect") return { events: oracleRun(seed, v2 ? HOMERUN_REV_2 : 1) };
@@ -87,8 +106,16 @@ export const bot: SkillBot = ({ game, seed, rev, human }) => {
 };
 
 /** Swipes at random moments with random heights and angles (no aim; rev 3: the swing left at Contact). */
-export const randomBot: SkillBot = ({ game, seed, human }) => {
+export const randomBot: SkillBot = ({ game, seed, rev, human }) => {
   const events: ArcadeInputEvent[] = [];
+  if ((rev ?? 1) >= HOMERUN_REV_4) {
+    // Taps at random: a spot anywhere on the screen now and then, and a tap somewhere in each pitch's flight.
+    for (const p of homerunPlan(seed, HOMERUN_REV_4).pitches) {
+      if (human.chance(0.5)) recordInput(events, { t: Math.max(1, p.release - human.int(20, 200)), k: HOMERUN_INPUT_SPOT, a: human.int(0, 390), b: human.int(0, 720), c: 0, d: 0 }, game.inputRanges ?? []);
+      recordInput(events, { t: p.release + human.int(0, 70), k: HOMERUN_INPUT_TAP, a: 0, b: 0, c: 0, d: 0 }, game.inputRanges ?? []);
+    }
+    return { events };
+  }
   for (const p of homerunPlan(seed).pitches)
     recordInput(events, { t: p.release + human.int(0, 70), k: HOMERUN_INPUT_SWING, a: human.int(300, 700), b: human.int(-900, 900), c: 0, d: 0 }, game.inputRanges ?? []);
   return { events };
@@ -134,5 +161,74 @@ const botV3: SkillBot = ({ game, seed, rev, human }) => {
       }
     }
   }
+  return { events };
+};
+
+/* ------------------------------------------------------------------ homerunRev 4 */
+
+/** homerunRev 4: the timing spread by kind (the ring makes the moment plain; a curve's bend and a changeup's float less so). */
+const V4_READ: Record<number, number> = { 0: 1, [PITCH_CURVE]: 1.15, [PITCH_CHANGEUP]: 1.3 };
+/**
+ * homerunRev 4's spot strategy by level: the chance of going for the lit sign (only if its tolerance is at least
+ * `signTol`), else of a home-run spot just over the wall in a gap, else a gap in the outfield at `gapFeet`.
+ */
+const V4_PLAN = {
+  weak: { sign: 0, signTol: 9, homer: 0, gapFeet: [170, 230] },
+  average: { sign: 0, signTol: 9, homer: 0.45, gapFeet: [230, 290] },
+  good: { sign: 0.5, signTol: 2, homer: 0.8, gapFeet: [240, 290] },
+  great: { sign: 0.9, signTol: 1, homer: 0.9, gapFeet: [230, 280] },
+  near: { sign: 1, signTol: 0, homer: 1, gapFeet: [240, 280] },
+  elite: { sign: 1, signTol: 0, homer: 1, gapFeet: [240, 280] },
+  perfect: { sign: 1, signTol: 0, homer: 1, gapFeet: [240, 280] },
+} as const;
+
+/** The spray (tenths of a degree) in the widest gap between the fielders (and the foul lines), seen with a judgement blur. */
+function gapSpray(fielders: readonly HomerunFielder[], minFeet: number, human: { normal(): number; p?: unknown }, blur: number): number {
+  const edges = [-440, ...fielders.filter((f) => f.feet + f.depth >= minFeet).map((f) => f.spray), 440].sort((a, b) => a - b);
+  let best = 0;
+  let bestW = -1;
+  for (let i = 0; i + 1 < edges.length; i++) {
+    const w = edges[i + 1]! - edges[i]! + blur * human.normal();
+    if (w > bestW) {
+      bestW = w;
+      best = Math.round((edges[i]! + edges[i + 1]!) / 2);
+    }
+  }
+  return best;
+}
+
+const botV4: SkillBot = ({ game, seed, human }) => {
+  if (human.level === "perfect") return { events: oracleRun(seed, HOMERUN_REV_4) };
+  const plan = homerunPlan(seed, HOMERUN_REV_4);
+  const events: ArcadeInputEvent[] = [];
+  const ranges = game.inputRanges ?? [];
+  const strat = V4_PLAN[human.level];
+  const blur = ({ weak: 260, average: 180, good: 110, great: 60, near: 25, elite: 15, perfect: 0 } as const)[human.level];
+  plan.pitches.forEach((p, i) => {
+    const lit = HOMERUN_V4_SIGNS[plan.lit![i]!]!;
+    let x: number;
+    let y: number;
+    if (lit.tol >= strat.signTol && human.chance(strat.sign)) {
+      x = lit.x + lit.w / 2;
+      y = lit.y + lit.h / 2;
+    } else if (human.chance(strat.homer)) {
+      const spray = gapSpray(plan.fielders![i]!, 200, human, blur);
+      x = homerunV4XOf(spray);
+      y = homerunWallTopY(spray) - 14;
+    } else {
+      const [lo, hi] = strat.gapFeet;
+      const feet = human.int(lo, hi);
+      const spray = gapSpray(plan.fielders![i]!, feet - 60, human, blur);
+      x = homerunV4XOf(spray);
+      y = homerunGroundY(Math.min(feet, homerunFence(spray) - 20));
+    }
+    x = Math.round(x + human.aim(1));
+    y = Math.round(Math.max(HOMERUN_V4_SPOT_Y0, y + human.aim(1)));
+    recordInput(events, { t: Math.max(1, p.release - 30 - human.int(0, 80)), k: HOMERUN_INPUT_SPOT, a: x, b: y, c: 0, d: 0 }, ranges);
+    let t = p.arrive - HOMERUN_SWING_TICKS + human.timingTicks(V4_READ[p.kind] ?? 1);
+    if (human.slip()) t += (human.chance(0.5) ? -1 : 1) * human.int(6, 10);
+    t = Math.max(t, p.release + human.reactTicks() - 6);
+    recordInput(events, { t, k: HOMERUN_INPUT_TAP, a: 0, b: 0, c: 0, d: 0 }, ranges);
+  });
   return { events };
 };

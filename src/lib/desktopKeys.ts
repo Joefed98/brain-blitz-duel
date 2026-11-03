@@ -18,7 +18,7 @@ export const DESKTOP_KEYS: Partial<Record<PuzzleType, readonly (readonly [string
   cross: [["← → ↑ ↓", "step"]],
   flip: [["Space", "flip"]],
   hover: [["Space", "flap"]],
-  homerun: [["Mouse drag", "swing"], ["C / P", "Contact / Power"]],
+  homerun: [["Click", "pick your spot"], ["Space or click", "swing"]],
   inkbridge: [["Mouse", "draw"], ["Enter", "release"], ["Z", "undo"], ["R", "reset"], ["D", "drop again"]],
   matchup: [["← → ↑ ↓", "move"], ["Space", "pick"], ["Arrow", "swap picked gem"]],
   orbit: [["Space", "release"], ["C", "checkpoint"]],
@@ -34,7 +34,7 @@ export const DESKTOP_KEYS: Partial<Record<PuzzleType, readonly (readonly [string
   golfsol: [["Click", "play a column"], ["1–7", "play a column"], ["Space / S", "draw"]],
   muggins: [["Click", "pick a tile, then an end"], ["D", "draw"]],
   blockfall: [["← →", "move"], ["↑", "turn"], ["↓", "soft drop"], ["Space", "drop"]],
-  alleyroll: [["← →", "line up"], ["↑ ↓", "aim"], ["Hold Space", "power, let go to roll"]],
+  alleyroll: [["Mouse drag", "swipe up the lane to roll"], ["← →", "line up"], ["Hold Space", "roll straight"]],
   // Sports
   freekick: [["Click / ← → ↑ ↓", "aim"], ["Drag / A D", "curl"], ["Space (hold)", "power, release to strike"]],
   rally: [["← →", "paddle"]],

@@ -122,7 +122,7 @@ const { mugginsArt } = await import("../src/lib/arcade/cards/muggins.renderer");
 const { blockfallArtGame } = await import("../src/lib/arcade/blockfall.renderer");
 const { alleyRollArt } = await import("../src/lib/arcade/alleyroll.renderer");
 const { BF_ZONE_CORE_FULL } = await import("../src/lib/arcade/blockfall");
-const { AR_CORE_FULL, AR_SHOW } = await import("../src/lib/arcade/alleyroll");
+const { AR2_CORE_FULL, AR2_GOLD_Y, AR_SHOW } = await import("../src/lib/arcade/alleyroll");
 
 type AnyGame = {
   init: (seed: number) => any;
@@ -604,11 +604,11 @@ const BUMPS: Record<string, ((s: any) => any)[]> = {
     (s) => ({ ...s, lines: s.lines + 4, quads: s.quads + 1, cleared: [18, 19, 20, 21], clearTick: s.tick }),
     (s) => ({ ...s, lines: BF_ZONE_CORE_FULL }),
   ],
-  // Alley Roll: a ball in the 50, a pocket, then nine pockets (the core's full ring points).
+  // Ringer (alleyRollRev 2, the art game's revision): a ball in the 50, a gold cup, then the core's full ring points.
   alleyroll: [
-    (s) => ({ ...s, phase: AR_SHOW, phaseTick: s.tick, balls: [...s.balls, { release: 0, points: 50, x: 0, y: 190 }] }),
-    (s) => ({ ...s, phase: AR_SHOW, phaseTick: s.tick, balls: [...s.balls, { release: 0, points: 100, x: 112, y: 280 }] }),
-    (s) => ({ ...s, phase: AR_SHOW, phaseTick: s.tick, balls: Array.from({ length: Math.ceil(AR_CORE_FULL / 100) }, () => ({ release: 0, points: 100, x: 112, y: 280 })) }),
+    (s) => ({ ...s, phase: AR_SHOW, phaseTick: s.tick, balls: [...s.balls, { release: 0, points: 50, x: 0, y: 206 }] }),
+    (s) => ({ ...s, phase: AR_SHOW, phaseTick: s.tick, balls: [...s.balls, { release: 0, points: 150, x: 0, y: AR2_GOLD_Y }] }),
+    (s) => ({ ...s, phase: AR_SHOW, phaseTick: s.tick, balls: Array.from({ length: Math.ceil(AR2_CORE_FULL / 100) }, () => ({ release: 0, points: 100, x: 114, y: 252 })) }),
   ],
   // Moon Climb: a Flow step, a sky lantern ridden, a scroll, 50 m, the core's full height.
   ricochet: [

@@ -1,3 +1,4 @@
+import { usesParMoves } from "@/lib/duel/parMoves";
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { puzzleReject } from "@/lib/fx/puzzleReject";
 import { memo, useContext, useEffect, useId, useMemo, useRef, useState } from "react";
@@ -301,10 +302,10 @@ function IntroExample() {
         Draw your way from the start to the exit as fast as you can.
       </p>
       <div style={{ width: 120 }}>
-        <MazeBoard cells={cells} cols={3} start={0} exit={8} path={[0, 3, 4]} stars={[6]} />
+        <MazeBoard cells={cells} cols={3} start={0} exit={8} path={[0, 3, 4]} />
       </div>
       <p className="text-xs text-muted-foreground">
-        Wrong turns cost you time. Every star you roll over adds points.
+        Wrong turns cost you time and steps. Finish in the fewest steps for a bonus.
       </p>
     </div>
   );
@@ -320,7 +321,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "maze" }: P
   const depth = usesMazeDepth(puzzle);
   const cols = isMaze ? mazeColsOf(puzzle) : MAZE_COLS;
   const rows = Math.ceil(cells.length / cols) || cols;
-  const stars = depth ? (puzzle.stars ?? []) : undefined;
+  // mazeRev 4 (the puzzle batch of 3 Nov 2026, parMoves.ts): no stars, so no star counter.
+  const stars = depth && !usesParMoves(puzzle) ? (puzzle.stars ?? []) : undefined;
   const [classicPath, setPath] = useStageState<number[]>(stateKey, "mazePath", () => [start]);
   const [trail, setTrail] = useStageState<number[]>(stateKey, "mazeTrail", () => [start]);
   const path = useMemo(() => (depth ? mazeTrailRoute(mazeTrailWalk(cells, start, exit, trail, cols)) : classicPath), [depth, classicPath, trail, cells, start, exit, cols]);
@@ -483,7 +485,8 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining, myExt
     mine,
     cols,
   );
-  const stars = depth ? (puzzle.stars ?? []) : undefined;
+  const parMoves = usesParMoves(puzzle);
+  const stars = depth && !parMoves ? (puzzle.stars ?? []) : undefined;
   const taken = walk && stars ? mazeStarsTaken(walk, stars).map((i) => stars[i]!) : undefined;
   // The stored star points (a finish only), never recomputed here.
   const starBonus = Number(myExtra?.["starBonus"] ?? 0);
@@ -510,6 +513,8 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining, myExt
           ? `Solved${elapsed === null ? "" : ` · ${elapsed.toFixed(1)}s`}`
           : `${Math.round(verdict.progress * 100)}% of the way`}
         {/* The scoring standard (mazeRev 3): stars count finished or not. */}
+        {/* mazeRev 4: the steps taken against par (the stored figures, a finish only). */}
+        {parMoves && myCorrect && typeof myExtra?.["steps"] === "number" ? ` · ${myExtra["steps"]} steps, par ${Number(myExtra["parSteps"] ?? 0)}` : ""}
         {taken ? ` · ★ ${taken.length}/${LAB_STARS}${(myCorrect || mazeStandard(puzzle)) && starBonus > 0 ? ` +${starBonus}` : ""}` : ""}
       </p>
     </div>

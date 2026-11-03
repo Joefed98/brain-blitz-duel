@@ -2021,9 +2021,12 @@ export interface FreekickPuzzleData {
 
 export interface RacingPuzzleData {
   type: "racing";
-  /** A proved seed (racingDealV2.server.ts; racingDeal.server.ts on rev 1): the track, identical for everyone. */
+  /** A proved seed (racingDealV3.server.ts; racingDealV2.server.ts on rev 2, racingDeal.server.ts on rev 1): the track, identical for everyone. */
   seed: number;
-  /** Rules revision (1 = the first race, on the arcade scoring standard; 2 = the F1 lights start and the softer joystick). */
+  /**
+   * Rules revision (1 = the first race, on the arcade scoring standard; 2 = the F1 lights start and the softer joystick;
+   * 3 = the softer gravel, corner speed signs and the pace score).
+   */
   racingRev?: number;
 }
 
@@ -2048,7 +2051,7 @@ export const MUGGINS_TIME_MS = 93_000;
  * blockfallRev 1 rounds end at 60 s (Gemstone's precedent: the definition's clock is the live stamp's).
  */
 export const BLOCKFALL_TIME_MS = 93_000;
-/** Alley Roll: nine balls or 60 seconds, plus three of slack. */
+/** Ringer (Alley Roll): nine balls or 60 seconds, plus three of slack. */
 export const ALLEYROLL_TIME_MS = 63_000;
 
 export interface BlockfallPuzzleData {
@@ -2061,9 +2064,9 @@ export interface BlockfallPuzzleData {
 
 export interface AlleyRollPuzzleData {
   type: "alleyroll";
-  /** The run's seed (the lane is the same for every seed; stored like every arcade seed). */
+  /** The run's seed (the lane is the same for every seed; from alleyRollRev 2 it sets the gold cup's path). */
   seed: number;
-  /** Rules revision (1 = the first rules, on the arcade scoring standard). */
+  /** Rules revision (1 = the first rules, on the arcade scoring standard; 2 = Ringer: the cup stack and the gold cup). */
   alleyRollRev?: number;
 }
 

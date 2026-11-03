@@ -228,7 +228,7 @@ export const gravityMazePuzzle: PuzzleDefinition = {
   generate: () =>
     ({ type: "gravity", walls: [], starts: [0, 8, 72, 80], targets: [40, 41, 39, 31] }) satisfies GravityPuzzleData,
   check: () => false,
-  revealHeading: "Shortest routes, every star",
+  revealHeading: "Shortest routes",
   IntroExample: TopsyIntroExample,
   Stage,
   Reveal,

@@ -65,11 +65,11 @@ const STANDARD_ROSTER: readonly { type: string; field: string; rev: number; batc
   { type: "minesweeper", field: "minesRev", rev: 1, batch: "Cards & Board" },
   { type: "mahjong", field: "mahjongRev", rev: 2, batch: "Cards & Board" },
   // The Sports group (30 Oct 2026): new games born on the standard (rev 1).
-  // Home Run deals homerunRev 3 since 1 Nov 2026 (the swing choice and the pitcher's tell; the same three parts).
-  { type: "homerun", field: "homerunRev", rev: 3, batch: "Sports" },
+  // Home Run deals homerunRev 4 since 3 Nov 2026 (pick your spot: a spot, a tap, fielders; four parts).
+  { type: "homerun", field: "homerunRev", rev: 4, batch: "Sports" },
   { type: "freekick", field: "freekickRev", rev: 3, batch: "Sports" },
-  // Apex (racing) deals racingRev 2 since 31 Oct 2026 (the lights start, the softer joystick; the same four parts).
-  { type: "racing", field: "racingRev", rev: 2, batch: "Sports" },
+  // Apex (racing) deals racingRev 3 since 3 Nov 2026 (pace and clean sectors; racingRev 2 from 31 Oct 2026).
+  { type: "racing", field: "racingRev", rev: 3, batch: "Sports" },
   // Cards & Board (30 Oct 2026): born on the standard at revision 1.
   // Free Cell's rev 2 (Undo and Reset) and Full House's rev 2 (full at the elite median), 31 Oct 2026: still on the standard.
   { type: "freecell", field: "freecellRev", rev: 3, batch: "Cards" },
@@ -85,14 +85,15 @@ const STANDARD_ROSTER: readonly { type: string; field: string; rev: number; batc
   { type: "muggins", field: "mugginsRev", rev: 1, batch: "Cards" },
   // The Sports group (30 Oct 2026): on the standard from their first stamp.
   { type: "minigolf", field: "golfRev", rev: 2, batch: "Sports" }, // golfRev 2 (crazy golf, 31 Oct 2026); golfRev 1 was on the standard too
-  { type: "pool", field: "poolRev", rev: 3, batch: "Sports" },
+  { type: "pool", field: "poolRev", rev: 4, batch: "Sports" },
   // Curling deals curlRev 2 since 31 Oct 2026 (the start along the hog line, side brushing; the same parts) and
   // curlRev 3 since 1 Nov 2026 (the weight meter's draw zone, the aim line, a gentler weight line, the core re-fitted).
   { type: "curling", field: "curlRev", rev: 3, batch: "Sports" },
   // Blockfall (Retro) and Alley Roll (Sports), 1 Nov 2026: born on the standard (rev 1); Blockzone (Blockfall's id)
   // deals blockfallRev 2 since 3 Nov 2026 (90 s, no hold, four parts re-fitted).
   { type: "blockfall", field: "blockfallRev", rev: 2, batch: "Retro" },
-  { type: "alleyroll", field: "alleyRollRev", rev: 1, batch: "Sports" },
+  // Ringer (Alley Roll alleyRollRev 2, 3 Nov 2026): the cup stack and the gold cup; four parts.
+  { type: "alleyroll", field: "alleyRollRev", rev: 2, batch: "Sports" },
   // Ricochet (1 Nov 2026): the ninja wall-climb, back from retirement and born on the standard at ricoRev 2; Moon Climb
   // (Ricochet's id) deals ricoRev 3 since 3 Nov 2026 (sky lanterns, mid-ledges, flow; no coins or gold lanterns).
   { type: "ricochet", field: "ricoRev", rev: 3, batch: "Action" },

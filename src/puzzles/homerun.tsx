@@ -10,7 +10,12 @@ import {
   HOMERUN_MODE_CONTACT,
   HOMERUN_MODE_POWER,
   HOMERUN_REV_3,
+  HOMERUN_REV_4,
   HOMERUN_REV_DEALT,
+  HOMERUN_INPUT_SPOT,
+  HOMERUN_INPUT_TAP,
+  HOMERUN_V4_TAP_EARLY,
+  homerunV4SpotOk,
   homerunSwingStartPx,
   homerunCurrent,
   homerunViewHFor,
@@ -71,18 +76,22 @@ function IntroExample() {
         <path d="M70 84 L84 44 L87 45 L73 85 Z" fill="#C08A52" />
       </svg>
       <p className="text-center text-xs text-muted-foreground">
-        Pick Contact or Power, read the pitcher's tell, then swipe through the ball as it arrives: your swipe's height meets the pitch, its angle sends it left, centre or right.
+        Tap a spot on the field before the pitch, then tap as the ring closes on the ball: perfect timing sends it to your spot.
       </p>
     </div>
   );
 }
 
-/** The sound observer, also handing each drawn frame's swing choice to the Contact / Power buttons (homerunRev 3). */
-function homerunObserver(onMode: (mode: number) => void, onLive?: (live: boolean) => void) {
+/**
+ * The sound observer, also handing each drawn frame's swing choice to the Contact / Power buttons (homerunRev 3) and
+ * the drawn state to the tap handler (homerunRev 4: a tap is a spot before the pitch, a swing once it is coming).
+ */
+function homerunObserver(onMode: (mode: number) => void, onLive?: (live: boolean) => void, onState?: (state: HomerunState) => void) {
   return () => {
     const inner = homerunSounds();
     return {
       frame: (state: HomerunState, running: boolean) => {
+        onState?.(state);
         onMode(state.mode);
         // The pitch is live from its release until it is decided (the sim moves on to the next pitch then).
         const cur = homerunCurrent(state);
@@ -100,13 +109,14 @@ const MODE_BUTTON =
 function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const data: HomerunPuzzleData | null = puzzle.type === "homerun" ? puzzle : null;
   // homerunRev 3: the Contact / Power choice under the field (the sim's own choice lights its button).
-  const choose = (data?.homerunRev ?? 1) >= HOMERUN_REV_3;
+  const choose = (data?.homerunRev ?? 1) === HOMERUN_REV_3;
   const [mode, setMode] = useState(HOMERUN_MODE_CONTACT);
   const shown = useRef(HOMERUN_MODE_CONTACT);
   // The row hides (a quick fade) from the pitch's release until the hit or miss is decided: the choice is locked on
   // the release tick, so nothing is lost, and the plate and the batter are clear while the ball comes in.
   const [live, setLive] = useState(false);
   const liveShown = useRef(false);
+  const drawn = useRef<HomerunState | null>(null);
   const sounds = useRef(
     homerunObserver(
       (m) => {
@@ -119,9 +129,23 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         liveShown.current = l;
         setLive(l);
       },
+      (st) => {
+        drawn.current = st;
+      },
     ),
   );
   const pick = (m: number): PointerPayload => ({ k: HOMERUN_INPUT_MODE, a: m, b: 0, c: 0 });
+  // homerunRev 4: one tap does both jobs. Before the pitch is near it moves the spot (inside the field and stands);
+  // from HOMERUN_V4_TAP_EARLY ticks before the release until the pitch is decided it swings, wherever it lands.
+  const spotGame = (data?.homerunRev ?? 1) >= HOMERUN_REV_4;
+  const tapKind = (x: number, y: number): PointerPayload | null => {
+    const st = drawn.current;
+    const cur = st ? homerunCurrent(st) : null;
+    if (st && cur && st.tick >= cur.release - HOMERUN_V4_TAP_EARLY) return { k: HOMERUN_INPUT_TAP, a: 0, b: 0, c: 0 };
+    const a = Math.round(x);
+    const b = Math.round(y);
+    return homerunV4SpotOk(a, b) ? { k: HOMERUN_INPUT_SPOT, a, b, c: 0 } : null;
+  };
   // devWarp: development review shots only (scripts/shots/homerun-tuning-shots.ts); production returns the game as is.
   const game = useMemo(() => ({ ...devWarp("homerun", homerunGameFor(data?.homerunRev)), draw: drawHomerunArt }), [data?.homerunRev]);
   // The swipe: where the finger went down, and whether this swipe has already started the swing.
@@ -141,13 +165,14 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       worldW={HOMERUN_WORLD_W}
       worldH={homerunViewHFor(data?.homerunRev)}
       game={game}
-      sounds={choose ? sounds.current : homerunSounds}
+      sounds={choose || spotGame ? sounds.current : homerunSounds}
       checkpoint={homerunCheckpoint}
       interval={HOMERUN_CHECKPOINT_INTERVAL}
       encodeRun={encodeHomerunRun}
       discrete
       inputKind={HOMERUN_INPUT_SWING}
       pointer={(kind, x, y) => {
+        if (spotGame) return kind === "down" ? tapKind(x, y) : null;
         if (kind === "down") {
           // homerunRev 3's view runs below the world (display only): a touch there starts no swing.
           start.current = y <= HOMERUN_WORLD_H ? { x, y, sent: false } : null;
@@ -170,6 +195,14 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         return { k: HOMERUN_INPUT_SWING, a: Math.round(s.y), b: Math.max(-900, Math.min(900, angle)), c: 0 };
       }}
       keys={(kind, key, send) => {
+        // homerunRev 4: Space swings (a click does too; a click before the pitch moves the spot).
+        if (spotGame) {
+          if (key !== " " && key !== "Spacebar") return false;
+          const st = drawn.current;
+          const cur = st ? homerunCurrent(st) : null;
+          if (kind === "down" && st && cur && st.tick >= cur.release - HOMERUN_V4_TAP_EARLY) send({ k: HOMERUN_INPUT_TAP, a: 0, b: 0, c: 0 });
+          return true;
+        }
         // homerunRev 3: C (or 1) Contact, P (or 2) Power; the swing itself is the mouse drag.
         if (!choose) return false;
         const k = key.toLowerCase();
@@ -240,7 +273,9 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
           {line}
         </p>
       ))}
-      <p className="shrink-0 text-center font-mono text-sm text-muted-foreground">Same ten pitches for everyone</p>
+      <p className="shrink-0 text-center font-mono text-sm text-muted-foreground">
+        {(puzzle.homerunRev ?? 1) >= HOMERUN_REV_4 ? "Same ten pitches and fielders for everyone" : "Same ten pitches for everyone"}
+      </p>
     </div>
   );
 }

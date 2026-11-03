@@ -4,6 +4,7 @@
  * Topsy-Turvy look (polish-pattern/gravity.css, batch P); holes, stars, home drops and the rings are new
  * (topsy.css). The board animates what replayTopsy decided and never decides anything itself.
  */
+import { usesParMoves } from "@/lib/duel/parMoves";
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 
 import { ArrowPad, gridCellCentre, useGridMetrics, usePrefersReducedMotion } from "@/components/puzzles/GridDrag";
@@ -279,6 +280,7 @@ export function TopsyStage({ puzzle, locked, onSubmit, onDraftAnswer, phaseStart
   };
 
   const starsHere = board.stars.filter((_, i) => state.starMask & (1 << i)).length;
+  const noStars = usesParMoves(data);
   const tiltText = limitHere ? `${tiltsHere} / ${limitHere}` : `${tiltsHere}`;
   const outOfTilts = Boolean(boardResult?.outOfTilts);
 
@@ -309,7 +311,8 @@ export function TopsyStage({ puzzle, locked, onSubmit, onDraftAnswer, phaseStart
       <LiveSummary
         items={[
           <SummaryItem key="tilts" label="Tilts" value={<span data-move-limit={limitHere || undefined}>{tiltText}</span>} warn={outOfTilts} />,
-          <SummaryItem key="stars" label="Stars" value={`${starsHere} / ${TOPSY_STARS}`} />,
+          // gravityRev 6 (the puzzle batch of 3 Nov 2026, parMoves.ts): no stars, so no star count.
+          noStars ? null : <SummaryItem key="stars" label="Stars" value={`${starsHere} / ${TOPSY_STARS}`} />,
           <SummaryItem key="home" label="Home" value={`${replay.home} / ${TOPSY_BALLS * TOPSY_BOARDS}`} />,
         ]}
       />
@@ -375,7 +378,7 @@ export function TopsyReveal({ puzzle, myAnswer, myCorrect, scoreParts }: PuzzleR
         <span className="ml-2 font-mono text-base uppercase tracking-widest text-muted-foreground">boards</span>
       </p>
       <p className="font-mono text-base text-muted-foreground">
-        {replay.home} / {TOPSY_BALLS * TOPSY_BOARDS} home · {replay.stars} / {TOPSY_BOARDS * TOPSY_STARS} stars · {replay.tilts} tilts
+        {replay.home} / {TOPSY_BALLS * TOPSY_BOARDS} home{usesParMoves(data) ? "" : ` · ${replay.stars} / ${TOPSY_BOARDS * TOPSY_STARS} stars`} · {replay.tilts} tilts
       </p>
       {parts ? <p className="font-mono text-base text-primary">{parts}</p> : null}
     </div>
@@ -384,12 +387,15 @@ export function TopsyReveal({ puzzle, myAnswer, myCorrect, scoreParts }: PuzzleR
 
 /* ------------------------------------------------------------------ intro still */
 
-/** A fixed board (never randomised): one tilt right rolls five balls home, gold through a star. */
+/**
+ * A fixed board (never randomised): one tilt right rolls five balls home. No stars since gravityRev 6 (the puzzle
+ * batch of 3 Nov 2026), which deals none.
+ */
 const INTRO_BOARD: TopsyBoardData = {
   walls: [5, 26, 44, 57, 63, 78, 81],
   starts: [10, 31, 52, 3, 70, 86],
   holes: [17, 36, 55, 33, 75, 89],
-  stars: [14, 48],
+  stars: [],
 };
 const INTRO_AFTER: TopsyState = topsyTilt(INTRO_BOARD, new Set(INTRO_BOARD.walls), topsyStart(INTRO_BOARD), "R").state;
 
@@ -407,7 +413,7 @@ export function TopsyIntroExample() {
         </div>
       </div>
       <p className="text-center text-xs text-muted-foreground">
-        One tilt right: five balls roll over their own holes and drop in; gold takes a star on the way.
+        One tilt right: five balls roll over their own holes and drop in.
       </p>
     </div>
   );

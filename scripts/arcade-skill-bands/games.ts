@@ -76,12 +76,13 @@ import { encodeMahjongRun, replayMahjongRun } from "../../src/lib/duel/mahjong";
 import { homerunCheckpoint, homerunGameFor, HOMERUN_REV_DEALT } from "../../src/lib/arcade/homerun";
 import { encodeHomerunRun, replayHomerunRun } from "../../src/lib/duel/homerun";
 import { homerunDealSeedV3 } from "../../src/lib/duel/homerunDealV3.server";
+import { homerunDealSeedV4 } from "../../src/lib/duel/homerunDealV4.server";
 import { freekickCheckpoint, freekickGameFor, FREEKICK_REV_DEALT } from "../../src/lib/arcade/freekick";
 import { encodeFreekickRun, replayFreekickRun } from "../../src/lib/duel/freekick";
 import { freekickDealSeedV2 } from "../../src/lib/duel/freekickDealV2.server";
 import { racingCheckpoint, racingGameFor, RACING_REV_DEALT } from "../../src/lib/arcade/racing";
 import { encodeRacingRun, replayRacingRun } from "../../src/lib/duel/racing";
-import { racingDealSeedV2 } from "../../src/lib/duel/racingDealV2.server";
+import { racingDealSeedV3 } from "../../src/lib/duel/racingDealV3.server";
 import { fcCheckpoint, freecellGameFor, FC_REV } from "../../src/lib/arcade/cards/freecell";
 import { FC_DEALS } from "../../src/lib/arcade/cards/freecellDeals.data";
 import { tpCheckpoint, tripeaksGameFor, TP_REV } from "../../src/lib/arcade/cards/tripeaks";
@@ -95,7 +96,7 @@ import { mgCheckpoint, mugginsGameFor, MG_REV } from "../../src/lib/arcade/cards
 import { bfCheckpoint, blockfallGameFor, BLOCKFALL_REV_ZONE } from "../../src/lib/arcade/blockfall";
 import { encodeBlockfallRun, replayBlockfallRun } from "../../src/lib/duel/blockfall";
 import { blockfallDealSeedV2 } from "../../src/lib/duel/blockfallDealV2.server";
-import { alleyRollGameFor, arCheckpoint, ALLEYROLL_REV } from "../../src/lib/arcade/alleyroll";
+import { alleyRollGameFor, arCheckpoint, ALLEYROLL_REV_DEALT } from "../../src/lib/arcade/alleyroll";
 import { encodeAlleyRollRun, replayAlleyRollRun } from "../../src/lib/duel/alleyroll";
 import { bastionTankCheckpoint, bastionTankGame, BASTION_REV_TANK } from "../../src/lib/arcade/bastionTank";
 import { encodeBastionTankRun, replayBastionTankRun } from "../../src/lib/duel/bastion";
@@ -109,6 +110,7 @@ import { poolCheckpoint, poolGameFor, POOL_REV } from "../../src/lib/arcade/pool
 import { encodePoolRun, replayPoolRun } from "../../src/lib/duel/pool";
 import { poolBankV2SeedFor } from "../../src/lib/duel/poolBankV2.server";
 import { poolBankV3SeedFor } from "../../src/lib/duel/poolBankV3.server";
+import { poolBankV4SeedFor } from "../../src/lib/duel/poolBankV4.server";
 import { curlingCheckpoint, curlingGameFor, CURLING_REV } from "../../src/lib/arcade/curling";
 import { encodeCurlingRun, replayCurlingRun } from "../../src/lib/duel/curling";
 import { curlingBankSeedFor } from "../../src/lib/duel/curlingBank.server";
@@ -310,10 +312,10 @@ export const GAMES: GameSpec[] = [
   // The Sports group (30 Oct 2026): born on the arcade scoring standard (rev 1 is live and next); rooms deal a seed from
   // each game's proved deal (the oracle took it to 200 through the server replay), picked by the room seed.
   // homerunRev 3 (1 Nov 2026): the swing choice and the pitcher's tell, on rev 3's own proved deal.
-  { ...simple("homerun", HOMERUN_REV_DEALT, HOMERUN_REV_DEALT, homerunGameFor, homerunCheckpoint, encodeHomerunRun, replayHomerunRun), seedFor: (n) => homerunDealSeedV3(roomSeed(n)) },
+  { ...simple("homerun", HOMERUN_REV_DEALT, HOMERUN_REV_DEALT, homerunGameFor, homerunCheckpoint, encodeHomerunRun, replayHomerunRun), seedFor: (n) => homerunDealSeedV4(roomSeed(n)), seedForRev: (n, rev) => (rev === 3 ? homerunDealSeedV3(roomSeed(n)) : undefined) },
   { ...simple("freekick", FREEKICK_REV_DEALT, FREEKICK_REV_DEALT, freekickGameFor, freekickCheckpoint, encodeFreekickRun, replayFreekickRun), seedFor: (n) => freekickDealSeedV2(roomSeed(n)) },
-  // Apex (racing) deals racingRev 2 from its own proved deal since 31 Oct 2026.
-  { ...simple("racing", RACING_REV_DEALT, RACING_REV_DEALT, racingGameFor, racingCheckpoint, encodeRacingRun, replayRacingRun), seedFor: (n) => racingDealSeedV2(roomSeed(n)) },
+  // Apex (racing) deals racingRev 3 from its own proved deal since 3 Nov 2026 (racingRev 2 from 31 Oct 2026).
+  { ...simple("racing", RACING_REV_DEALT, RACING_REV_DEALT, racingGameFor, racingCheckpoint, encodeRacingRun, replayRacingRun), seedFor: (n) => racingDealSeedV3(roomSeed(n)) },
   // Cards & Board (30 Oct 2026): born on the arcade standard, one revision each. FreeCell and TriPeaks deal a bank
   // index (the room seed modulo the bank); Poker Squares any seed.
   { ...simple("freecell", FC_REV, FC_REV, freecellGameFor, fcCheckpoint, encodeFreecellRun, replayFreecellRun), seedFor: (n) => roomSeed(n) % FC_DEALS.length },
@@ -329,7 +331,8 @@ export const GAMES: GameSpec[] = [
   // (blockfallRev 2, 3 Nov 2026) deals from its own proved deal.
   { ...simple("blockfall", BLOCKFALL_REV_ZONE, BLOCKFALL_REV_ZONE, blockfallGameFor, bfCheckpoint, encodeBlockfallRun, replayBlockfallRun), seedFor: (n) => blockfallDealSeedV2(roomSeed(n)) },
   // Alley Roll (Sports, 1 Nov 2026): born on the arcade standard; one lane for every seed (rooms deal any seed).
-  simple("alleyroll", ALLEYROLL_REV, ALLEYROLL_REV, alleyRollGameFor, arCheckpoint, encodeAlleyRollRun, replayAlleyRollRun),
+  // Ringer (alleyRollRev 2, 3 Nov 2026): the gold cup's path comes from the seed; any seed.
+  simple("alleyroll", ALLEYROLL_REV_DEALT, ALLEYROLL_REV_DEALT, alleyRollGameFor, arCheckpoint, encodeAlleyRollRun, replayAlleyRollRun),
   // Ricochet (1 Nov 2026): the ninja wall-climb, born on the arcade standard at ricoRev 2; any seed (the sim deals the tower and proves its witness).
   // Moon Climb (ricoRev 3, 3 Nov 2026) is the live stamp; `next` stays 2 for the band-era tools that measure older stamps.
   {
@@ -358,13 +361,13 @@ export const GAMES: GameSpec[] = [
     encode: (run) => encodeMinigolfRun(run),
     replay: (seed, raw, rev) => replayMinigolfRun(seed, raw, minigolfParsOf(seed), minigolfRevOf(rev ?? null, seed)),
   },
-  // Cue Ball deals a bank layout (proved clearable without a miss), poolRev 3 from its own bank (1 Nov 2026).
+  // Cue Ball deals a bank layout (proved clearable without a miss), poolRev 4 from its own bank (3 Nov 2026).
   {
     type: "pool",
     live: POOL_REV,
-    seedFor: poolBankV3SeedFor,
-    // poolRev 2 measures on its own bank's layouts.
-    seedForRev: (n, rev) => (rev === 2 ? poolBankV2SeedFor(n) : undefined),
+    seedFor: poolBankV4SeedFor,
+    // poolRev 2 and 3 measure on their own banks' layouts.
+    seedForRev: (n, rev) => (rev === 2 ? poolBankV2SeedFor(n) : rev === 3 ? poolBankV3SeedFor(n) : undefined),
     gameFor: (rev) => poolGameFor(rev),
     checkpoint: poolCheckpoint,
     encode: (run) => encodePoolRun(run),

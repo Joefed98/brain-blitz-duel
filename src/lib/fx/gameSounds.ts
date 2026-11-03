@@ -26,7 +26,7 @@ import { BURST_RADIUS, burstCeiling, burstFloorY, type BurstState } from "@/lib/
 import { BEAT_COMBO_TIERS, BEAT_FALL_TICKS, BEAT_JUDGE_PENDING, type BeatState } from "@/lib/arcade/beat";
 import { BINTOSS_AIM, BINTOSS_FLY, BINTOSS_NARROW_FROM, BINTOSS_THROWS, BINTOSS_WAIT, type BinTossState } from "@/lib/arcade/binToss";
 import type { TiltState } from "@/lib/arcade/tilt";
-import { homerunFence, homerunPlan, OUT_FAIR, OUT_FOUL, OUT_HOMER, OUT_TAKEN, OUT_WHIFF, type HomerunState } from "@/lib/arcade/homerun";
+import { homerunFence, homerunPlan, OUT_CAUGHT, OUT_FAIR, OUT_FOUL, OUT_HOMER, OUT_TAKEN, OUT_WHIFF, type HomerunState } from "@/lib/arcade/homerun";
 import { FK_AIM, FK_FLIGHT, FK_NET_Z, FK_OUT_GOAL, FK_OUT_SAVED, FK_OUT_WALL, FK_OUT_WIDE, type FreekickState } from "@/lib/arcade/freekick";
 import { RACING_CAR_HALF, RACING_LAP, RACING_ROAD_X, RACING_VMAX, racingBalanceSpeed, racingGoTick, racingLightsOn, racingSegAt, racingTrack, type RacingState } from "@/lib/arcade/racing";
 import { btEventCountdown, type BtCourse, type BtState } from "@/lib/arcade/ballTrack";
@@ -54,7 +54,7 @@ import type { PyState } from "@/lib/arcade/cards/pyramid";
 import type { GsState } from "@/lib/arcade/cards/golfSol";
 import { MG_BIG_AT, type MgState } from "@/lib/arcade/cards/muggins";
 import { bfLevelFor, type BfState } from "@/lib/arcade/blockfall";
-import { AR_FLY, AR_POCKET_POINTS, AR_ROLL, AR_SHOW, type ArState } from "@/lib/arcade/alleyroll";
+import { ALLEYROLL_REV_RINGER, AR2_GOLD_POINTS, AR2_STREAK_AT, AR_FLY, AR_POCKET_POINTS, AR_ROLL, AR_SHOW, AR_STREAK_AT, type ArState } from "@/lib/arcade/alleyroll";
 
 /** Sounds a success-effect cue with a file stands in for on this frame (momentCues.ts). */
 let quiet: ReadonlySet<string> = new Set();
@@ -1188,18 +1188,29 @@ export function bastionTankSounds(): GameSounds<BastionTankState> {
 
 export function homerunSounds(): GameSounds<HomerunState> {
   let prev: HomerunState | null = null;
+  /** homerunRev 4: the tick a caught ball reaches the glove (the art's flight), when the catch sounds. */
+  let catchAt = -1;
   return {
     frame(state, running) {
       beginFrame("homerun", state);
       loopCue("homerun.crowd", running, CROWD_VOLUME);
       if (prev && state.tick > prev.tick) {
-        const pitch = homerunPlan(state.seed).pitches[state.pitch];
+        const pitch = homerunPlan(state.seed, state.rev).pitches[state.pitch];
         if (pitch && prev.tick < pitch.release && state.tick >= pitch.release) effectCue("homerun.pitch");
         if (state.swingTick >= 0 && prev.swingTick < 0) sfx("homerun.swing", "arc_hover_tap", 0.5, 1.4);
+        if (catchAt > 0 && prev.tick < catchAt && state.tick >= catchAt) {
+          catchAt = -1;
+          sfx("homerun.catch", "arc_fair_thud", 0.8);
+        }
         if (state.hits.length > prev.hits.length) {
           const hit = state.hits[state.hits.length - 1]!;
           const weak = hit.out === OUT_FAIR && hit.q < HOMERUN_WEAK_Q && cueHasFile("homerun.foul");
-          if ((hit.out === OUT_HOMER || hit.out === OUT_FAIR) && !weak) sfx("homerun.crack", "arc_wood_knock", 1, hit.q >= 900 ? 1.15 : 1);
+          if ((hit.out === OUT_HOMER || hit.out === OUT_FAIR || hit.out === OUT_CAUGHT) && !weak) sfx("homerun.crack", "arc_wood_knock", 1, hit.q >= 900 ? 1.15 : 1);
+          // homerunRev 4: a fielder catches it (the glove's pop as it comes down) and the crowd groans.
+          if (hit.out === OUT_CAUGHT) {
+            catchAt = state.tick + Math.max(30, 60 + Math.round(hit.feet / 10) - 4);
+            effectCue("homerun.groan");
+          }
           if (hit.out === OUT_HOMER) {
             sfx("homerun.homer", "arc_fair_sting", 0.9);
             feel("success");
@@ -1218,6 +1229,7 @@ export function homerunSounds(): GameSounds<HomerunState> {
     stop() {
       loopCue("homerun.crowd", false);
       prev = null;
+      catchAt = -1;
     },
   };
 }
@@ -1567,8 +1579,9 @@ export function blockfallSounds(): GameSounds<BfState> {
 }
 
 /**
- * Alley Roll (1 Nov 2026; library sounds only): the roll, the rumble up the lane (a loop), off the ramp, a rail, the
- * ball dropping into a ring (the 50 rings a bell), a 100 pocket (with a haptic) and the gutter.
+ * Ringer (Alley Roll; library sounds until Joe's recordings, docs/sound-cues/blockfall-alleyroll.md): the roll, the
+ * rumble up the lane (a loop), off the ramp, the ball dropping into a cup, a 100 pocket and the gold cup (each with a
+ * haptic), the gutter, and the roll streak's chime when a ball keeps it going.
  */
 export function alleyRollSounds(): GameSounds<ArState> {
   let prev: ArState | null = null;
@@ -1578,16 +1591,20 @@ export function alleyRollSounds(): GameSounds<ArState> {
       loopCue("alleyroll.rolling", running && state.phase === AR_ROLL, SURFACE_VOLUME);
       if (prev && state.tick > prev.tick) {
         if (state.phase === AR_ROLL && prev.phase !== AR_ROLL) sfx("alleyroll.roll", "arc_wood_knock", 0.8);
-        if (state.phase === AR_ROLL && prev.phase === AR_ROLL && Math.sign(state.vx) !== Math.sign(prev.vx) && prev.vx !== 0) sfx("alleyroll.rail", "arc_bounce", 0.5);
         if (state.phase === AR_FLY && prev.phase === AR_ROLL) sfx("alleyroll.ramp", "arc_wood_knock", 0.6, 1.3);
         if (state.phase === AR_SHOW && prev.phase === AR_FLY) {
           const pts = state.balls[state.balls.length - 1]?.points ?? 0;
-          if (pts === AR_POCKET_POINTS) {
+          const before = state.balls[state.balls.length - 2]?.points ?? -1;
+          const at = state.rev >= ALLEYROLL_REV_RINGER ? AR2_STREAK_AT : AR_STREAK_AT;
+          if (pts === AR2_GOLD_POINTS) {
+            sfx("alleyroll.goldCup", "arc_fair_bell", 0.9);
+            feel("success");
+          } else if (pts === AR_POCKET_POINTS) {
             sfx("alleyroll.pocket", "arc_fair_sting", 0.9);
             feel("success");
-          } else if (pts >= 50) sfx("alleyroll.fifty", "arc_fair_bell", 0.8);
-          else if (pts > 0) sfx("alleyroll.ring", "arc_fair_bucket", 0.8);
+          } else if (pts > 0) sfx("alleyroll.ring", "arc_fair_bucket", 0.8);
           else sfx("alleyroll.gutter", "arc_fair_thud", 0.7);
+          if (pts >= at && before >= at) sfx("alleyroll.streak", "combo", 0.6, 1, true);
         }
       }
       prev = state;

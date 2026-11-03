@@ -134,6 +134,7 @@ when the run starts. Rooms deal Pinball since 14 Oct 2026; Junction is practice 
 | `homerun.sign` | Home Run | A sign beyond the fence is struck | `arc_fair_bell` (0.9) | 0–4 | 480 ms |
 | `homerun.foul` | Home Run | A foul ball, or weak contact (a fair ball under 400 per mille, once the slot has its file) | `arc_bounce` (0.7) | 0–5 | 150 ms |
 | `homerun.strike` | Home Run | The ball in the catcher's mitt: a swing and a miss, or a pitch taken | `arc_fair_thud` (0.6) | 0–10 | 150 ms |
+| `homerun.catch` | Home Run | homerunRev 4: a fielder catches the ball as it comes down (with `homerun.groan`, the crowd); the library's glove pop, `homerun_mitt.mp3` | `arc_fair_thud` (0.8) | 0–10 | 400 ms |
 | `freekick.kick` | Top Bins | The ball is struck | `arc_fair_thud` | 10 | 150 ms |
 | `freekick.post` | Top Bins | The ball hits a post or the bar | `arc_clank` | 0–5 | 200 ms |
 | `freekick.save` | Top Bins | The keeper saves | `arc_wood_knock` | 0–10 | 200 ms |
@@ -207,13 +208,13 @@ when the run starts. Rooms deal Pinball since 14 Oct 2026; Junction is practice 
 | `blockfall.bigClear` | Blockzone | Three or four rows clear at once (with a `success` haptic) | `arc_retro_pickup` (0.9) | 0–6 | 100 ms |
 | `blockfall.speedUp` | Blockzone | The speed rises (every 15 s) | `arc_retro_note` (0.6, rate 1.25) | 3 | 90 ms |
 | `blockfall.topOut` | Blockzone | The stack reaches the top and the run ends early | `arc_retro_explode` (0.8) | 0–1 | 260 ms |
-| `alleyroll.roll` | Alley Roll | A ball is rolled | `arc_wood_knock` (0.8) | 9 | 90 ms |
-| `alleyroll.rail` | Alley Roll | A rolling ball bounces off a rail | `arc_bounce` (0.5) | 0–9 | 80 ms |
-| `alleyroll.ramp` | Alley Roll | The ball leaves the ramp | `arc_wood_knock` (0.6, rate 1.3) | 9 | 90 ms |
-| `alleyroll.ring` | Alley Roll | The ball drops into a 10–40 ring | `arc_fair_bucket` (0.8) | 0–9 | 200 ms |
-| `alleyroll.fifty` | Alley Roll | The ball drops into the 50 | `arc_fair_bell` (0.8) | 0–9 | 400 ms |
-| `alleyroll.pocket` | Alley Roll | The ball drops into a 100 pocket (with a `success` haptic) | `arc_fair_sting` (0.9) | 0–9 | 300 ms |
-| `alleyroll.gutter` | Alley Roll | The ball misses every ring | `arc_fair_thud` (0.7) | 0–9 | 160 ms |
+| `alleyroll.roll` | Ringer | A ball is rolled | `arc_wood_knock` (0.8) | 9 | 90 ms |
+| `alleyroll.ramp` | Ringer | The ball leaves the ramp | `arc_wood_knock` (0.6, rate 1.3) | 9 | 90 ms |
+| `alleyroll.ring` | Ringer | The ball drops into a 10–50 cup | `arc_fair_bucket` (0.8) | 0–9 | 200 ms |
+| `alleyroll.pocket` | Ringer | The ball drops into a 100 pocket (with a `success` haptic) | `arc_fair_sting` (0.9) | 0–9 | 300 ms |
+| `alleyroll.goldCup` | Ringer | The ball drops into the moving gold cup, 150 (with a `success` haptic; rev 2) | `arc_fair_bell` (0.9) | 0–9 | 400 ms |
+| `alleyroll.gutter` | Ringer | The ball misses every cup | `arc_fair_thud` (0.7) | 0–9 | 160 ms |
+| `alleyroll.streak` | Ringer | A ball keeps the roll streak going (30 or more after 30 or more; 40 on rev 1) | `combo` (0.6) | 0–8 | 300 ms |
 | `inkbridge.draw` | Rainbow Bridge | The first segment of each drawn stroke | `arc_rainbow` (0.6) | 10–30 | 910 ms |
 | `inkbridge.pot` | Rainbow Bridge | The pot of gold is reached | `arc_rainbow_pot` | 3–10 | 1000 ms |
 | `inkbridge.bump` | Rainbow Bridge | A level fails on a block | `arc_rainbow_bump` | 0–5 | 200 ms |

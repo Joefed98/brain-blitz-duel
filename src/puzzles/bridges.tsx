@@ -2,6 +2,8 @@ import { gameDisplayName } from "@/lib/duel/gameNames";
 import { solutionProgress } from "@/lib/duel/progressFigures";
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 
+import { Button } from "@/components/ui/button";
+import { useGameKeys } from "@/lib/desktop";
 import { useStageState } from "@/lib/duel/stageState";
 import {
   bridgePairs,
@@ -137,6 +139,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
   const svg = useRef<SVGSVGElement | null>(null);
   const drag = useRef<Drag | null>(null);
   const [preview, setPreview] = useState<number | null>(null);
+  /** Boards before each change (a built or removed bridge, a reset), newest last; device memory only. */
+  const [history, setHistory] = useState<number[][]>([]);
   const deg = islandDegrees(islands, pairs, current);
   const done = islands.filter((isl, i) => deg[i] === isl.n).length;
   const inFrame = useFrameProgress(done, islands.length, "islands");
@@ -222,8 +226,36 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
       return;
     }
     soundCue(next === 0 ? "bridges.remove" : "bridges.build");
+    setHistory((h) => [...h, current]);
     setCounts(current.map((v, j) => (j === i ? next : v)));
   };
+
+  const built = current.some((v) => v > 0);
+  const canUndo = active && !submitted.current && history.length > 0;
+  const canReset = active && !submitted.current && built;
+  const undo = () => {
+    if (!canUndo) return;
+    drag.current = null;
+    setPreview(null);
+    setCounts(history[history.length - 1]!);
+    setHistory((h) => h.slice(0, -1));
+  };
+  const reset = () => {
+    if (!canReset) return;
+    drag.current = null;
+    setPreview(null);
+    setHistory((h) => [...h, current]);
+    setCounts(current.map(() => 0));
+  };
+
+  // Desktop keys: Z or Backspace = Undo, R = Reset.
+  useGameKeys((kind, key, event) => {
+    const used = key === "z" || key === "Backspace" || key === "r";
+    if (!used || kind !== "down" || event.repeat) return used;
+    if (key === "r") reset();
+    else undo();
+    return true;
+  });
 
   const handlers: React.SVGProps<SVGSVGElement> = active
     ? {
@@ -283,6 +315,24 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
             <SummaryItem key="bridges" label="Bridges" value={String(bridgesBuilt)} />,
           ]}
         />
+      </div>
+      <div data-game-controls="actions" className="flex shrink-0 gap-3 px-3">
+        <Button variant="outline"
+          type="button"
+          disabled={!canUndo}
+          onClick={undo}
+          className="gf-glass h-11 flex-1 rounded-lg border border-border bg-card font-display text-sm font-bold uppercase tracking-widest text-foreground disabled:opacity-40"
+        >
+          Undo
+        </Button>
+        <Button variant="outline"
+          type="button"
+          disabled={!canReset}
+          onClick={reset}
+          className="gf-glass h-11 flex-1 rounded-lg border border-border bg-card font-display text-sm font-bold uppercase tracking-widest text-muted-foreground disabled:opacity-40"
+        >
+          Reset
+        </Button>
       </div>
     </div>
   );

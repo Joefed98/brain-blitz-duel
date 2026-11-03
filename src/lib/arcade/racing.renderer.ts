@@ -27,6 +27,7 @@ import {
   racingGoTick,
   racingKmh,
   racingLap,
+  racingCornerAdvice,
   racingLightsOn,
   racingRaceTicks,
   racingSegAt,
@@ -36,12 +37,14 @@ import {
   RACING_LAP_SEGS,
   RACING_LAPS,
   RACING_REV_2,
+  RACING_REV_3,
   RACING_ROAD_X,
   RACING_RUN_TICKS,
   RACING_SEC_CHICANE,
   RACING_SEC_HAIRPIN,
   RACING_SECTORS,
   RACING_SEG,
+  RACING_SIGN_SEGS,
   RACING_STICK_MAX,
   RACING_V2_GO,
   RACING_V2_LIGHT0,
@@ -94,6 +97,17 @@ const CAR_HALF_W = lat(RACING_CAR_HALF);
 export const RACING_CAR_HALF_PX = (CAR_HALF_W * F) / ZC;
 const WALL_H = 110;
 
+/** The car's turn on screen at full yaw (radians, about 5°): one shape angled into the turn (display). */
+export const RACING_CAR_TURN_MAX = 0.087;
+/**
+ * The scale that keeps the car turned by `ang` exactly as wide as the collision width: its body box (the width × 0.6 of
+ * it high) turned about its centre spans w·cos + h·sin across, so it is drawn smaller by that much (about 5 % at full yaw).
+ */
+export function racingCarTurnFit(ang: number): number {
+  const a = Math.abs(ang);
+  return 1 / (Math.cos(a) + 0.6 * Math.sin(a));
+}
+
 /* ================================ Joystick (display) ================================ */
 
 /** The joystick's resting centre and its throw (world px); the Stage maps the thumb with the same numbers. */
@@ -111,6 +125,19 @@ export function racingSteerThrow(rev: number | null | undefined): number {
 }
 /** The thumb's touch area starts here (world y). */
 export const RACING_STICK_TOP = RACING_WORLD_H - 250;
+/** The knob's radius (world px; 19 before 3 Nov 2026). */
+export const RACING_KNOB_R = 12;
+/**
+ * Where the joystick's ring may be drawn (3 Nov 2026, display only): its centre at least this low, so the ring and the
+ * knob pushed to full throttle stay 4 px clear of the car's contact line (RACING_CAR_Y), and at most this high above the
+ * world's bottom (the world ends above the home bar's strip), so the whole ring stays on the world.
+ */
+export const RACING_STICK_DRAW_MIN_Y = RACING_CAR_Y + 4 + RACING_STICK_R + RACING_KNOB_R;
+export const RACING_STICK_DRAW_MAX_Y = RACING_WORLD_H - RACING_STICK_R - 6;
+/** The joystick's drawn centre for the thumb's origin: its x as the thumb, its y held between the limits above. */
+export function racingStickDrawAt(o: { x: number; y: number }): { x: number; y: number } {
+  return { x: o.x, y: Math.max(RACING_STICK_DRAW_MIN_Y, Math.min(RACING_STICK_DRAW_MAX_Y, o.y)) };
+}
 
 let stickOrigin: { x: number; y: number } | null = null;
 /** Display only: where the thumb went down (null when lifted), so the base is drawn under it. */
@@ -512,6 +539,8 @@ const SPR_TREE = 0;
 const SPR_STAND = 1;
 const SPR_BOARD = 2;
 const SPR_FENCE = 3;
+/** racingRev 3's advisory corner speed sign (`v` = the speed in km/h). */
+const SPR_SIGN = 4;
 let look: Look | null = null;
 
 function lookFor(track: RacingTrack): Look {
@@ -539,6 +568,9 @@ function lookFor(track: RacingTrack): Look {
     // Braking boards on the outside: 150, 100, 50.
     const side = c.dir > 0 ? -1 : 1;
     [24, 16, 8].forEach((d, j) => sprites[at(c.start - d)]!.push({ kind: SPR_BOARD, x: side * (KERB_W + 260), v: j }));
+    // racingRev 3: the corner's advisory speed on the same side, before the boards (drawn on racingRev 3 only).
+    const sign = racingCornerAdvice(track).find((a) => a.corner === c);
+    if (sign) sprites[at(c.start - RACING_SIGN_SEGS)]!.push({ kind: SPR_SIGN, x: side * (KERB_W + 420), v: sign.kmh });
     // The racing line: outside on the approach, the apex inside, out again on the exit.
     const out = -c.dir * RW * 0.5;
     for (let k = -30; k < c.len + 30; k++) {
@@ -870,6 +902,8 @@ function drawWorld(ctx: Ctx2D, state: RacingState, L: Layers, B: Bounds = WORLD_
         if (sx > B.x1 || sx + w < B.x0) continue;
         if (B.beyond && sx - w * 0.1 >= 0 && sx + w * 0.9 <= W && p2.y <= RACING_WORLD_H) continue;
         drawClipped(ctx, L.stand, sx - w * 0.1, p2.y - h, w, h, clip);
+      } else if (sp.kind === SPR_SIGN) {
+        if (state.rev >= RACING_REV_3) drawSpeedSign(ctx, sx, p2.y, sc, sp.v, clip);
       } else if (sp.kind === SPR_BOARD) {
         const w = 220 * sc;
         const h = 300 * sc;
@@ -1002,13 +1036,16 @@ function drawWorld(ctx: Ctx2D, state: RacingState, L: Layers, B: Bounds = WORLD_
   const steerShare = (state.rev >= RACING_REV_2 ? state.wheel : state.steer) / RACING_STICK_MAX;
   const yaw = Math.max(-1, Math.min(1, steerShare * (0.35 + 0.65 * Math.min(1, speedShare * 1.6))));
   ctx.save();
-  ctx.translate(W / 2, RACING_CAR_Y + bounce);
-  // Yaw: the flank on the outside of the turn takes a share of the width and the rear face narrows by it, moving into
-  // the turn, so the whole stays exactly the collision width at the contact line.
-  const flank = Math.abs(yaw) * carW * 0.3;
-  drawFlank(ctx, carW, yaw, flank, steerShare);
-  ctx.translate(Math.sign(yaw) * flank / 2, 0);
-  ctx.scale((carW - flank) / carW, 1);
+  // Yaw (3 Nov 2026, every revision): the car is one shape turned slightly into the turn about its centre, never
+  // reshaped, so it stays symmetrical; scaled so the turned body's width stays the collision width (rule 3) and lifted
+  // so its lowest corner stays on the contact line.
+  const h = carW * 0.6;
+  const ang = yaw * RACING_CAR_TURN_MAX;
+  const fit = racingCarTurnFit(ang);
+  ctx.translate(W / 2, RACING_CAR_Y + bounce - fit * ((h / 2) * Math.cos(ang) + (carW / 2) * Math.abs(Math.sin(ang))));
+  ctx.rotate(ang);
+  ctx.scale(fit, fit);
+  ctx.translate(0, h / 2);
   if (sprite) {
     // The sprite's body spans CAR_SPRITE_W exactly, its contact line 2 px above its bottom.
     const s = carW / CAR_SPRITE_W;
@@ -1177,69 +1214,42 @@ function drawCountdown(ctx: Ctx2D, state: RacingState): void {
 }
 
 /**
- * The car's flank on the outside of a turn (display), in the car's frame (origin at the contact line's centre): when
- * the car yaws right its left side comes into view (and the other way round), taking `f` of the car's width while the
- * rear face narrows by the same share, so the whole stays exactly the collision width (rule 3). The side runs from the
- * rear corner (full height) to the front (lower and further away), with the rear tyre's wall, the side window, the
- * sunset along the shoulder and the front wheel at the far end, turned with the steer.
+ * racingRev 3's advisory corner speed sign (display): a round white sign with a red ring and the corner's speed in
+ * km/h on a dark post, standing on the outside of the corner before the braking boards, scaled with distance.
  */
-function drawFlank(ctx: Ctx2D, w: number, yaw: number, f: number, steer: number): void {
-  if (f < 0.8) return;
-  const h = w * 0.6;
-  const dir = yaw > 0 ? 1 : -1;
-  const outer = -dir * (w / 2);
-  const inner = outer + dir * f;
-  const at = (u: number) => inner + (outer - inner) * u;
+function drawSpeedSign(ctx: Ctx2D, sx: number, groundY: number, sc: number, kmh: number, clip: number): void {
+  const d = 540 * sc;
+  const postH = 360 * sc;
+  if (groundY - postH - d > clip || d < 1) return;
   ctx.save();
   ctx.beginPath();
-  ctx.rect(Math.min(inner, outer), -h * 1.2, f, h * 1.2);
+  ctx.rect(sx - d, groundY - postH - d * 1.1, d * 2, Math.max(0, clip - (groundY - postH - d * 1.1)));
   ctx.clip();
-  // The body's side.
-  const g = ctx.createLinearGradient(0, -h * 0.66, 0, -h * 0.08);
-  g.addColorStop(0, "#75636D");
-  g.addColorStop(0.25, "#4A4650");
-  g.addColorStop(1, "#18181D");
-  ctx.fillStyle = g;
+  ctx.fillStyle = "#1C1C22";
+  ctx.fillRect(sx - d * 0.05, groundY - postH, d * 0.1, postH);
+  const cy = groundY - postH - d / 2;
+  ctx.fillStyle = "#C8312C";
   ctx.beginPath();
-  ctx.moveTo(inner, -h * 0.1);
-  ctx.lineTo(inner, -h * 0.6);
-  ctx.quadraticCurveTo(at(0.5), -h * 0.66, outer, -h * 0.5);
-  ctx.lineTo(outer, -h * 0.18);
-  ctx.closePath();
+  ctx.arc(sx, cy, d / 2, 0, Math.PI * 2);
   ctx.fill();
-  // The side window.
-  ctx.fillStyle = "rgba(22,20,28,0.92)";
+  ctx.fillStyle = "#F7F5EF";
   ctx.beginPath();
-  ctx.moveTo(at(0.12), -h * 0.6);
-  ctx.quadraticCurveTo(at(0.45), -h * 0.68, at(0.78), -h * 0.55);
-  ctx.lineTo(at(0.78), -h * 0.47);
-  ctx.lineTo(at(0.12), -h * 0.51);
-  ctx.closePath();
+  ctx.arc(sx, cy, d * 0.38, 0, Math.PI * 2);
   ctx.fill();
-  // The sunset along the shoulder.
-  ctx.strokeStyle = "rgba(242,160,96,0.7)";
-  ctx.lineWidth = Math.max(0.8, h * 0.025);
-  ctx.beginPath();
-  ctx.moveTo(inner, -h * 0.45);
-  ctx.lineTo(outer, -h * 0.38);
-  ctx.stroke();
-  // The rear tyre's wall (near) and the front wheel (far), turned with the steer.
-  ctx.fillStyle = "#0D0D10";
-  ctx.beginPath();
-  ctx.roundRect(Math.min(inner, at(0.34)), -h * 0.3, f * 0.34, h * 0.3, h * 0.04);
-  ctx.fill();
-  const fx = at(0.8);
-  const fy = -h * 0.24;
-  ctx.translate(fx, fy);
-  ctx.rotate(steer * 0.5);
-  ctx.fillStyle = "#0B0B0E";
-  ctx.beginPath();
-  ctx.ellipse(0, 0, Math.max(1.5, f * 0.2), h * 0.15, 0, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.fillStyle = "rgba(150,140,140,0.45)";
-  ctx.beginPath();
-  ctx.ellipse(0, 0, Math.max(0.8, f * 0.1), h * 0.08, 0, 0, Math.PI * 2);
-  ctx.fill();
+  if (d > 8) {
+    ctx.fillStyle = "#16161B";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.font = `800 ${Math.max(4, d * 0.34)}px ${ARCADE_FX_DISPLAY_FONT}`;
+    ctx.fillText(String(kmh), sx, cy + d * 0.02);
+    if (d > 26) {
+      ctx.font = `700 ${d * 0.1}px ${MONO}`;
+      ctx.fillStyle = "rgba(22,22,27,0.7)";
+      ctx.fillText("KM/H", sx, cy + d * 0.25);
+    }
+    ctx.textBaseline = "alphabetic";
+    ctx.textAlign = "left";
+  }
   ctx.restore();
 }
 
@@ -1299,43 +1309,38 @@ function drawHud(ctx: Ctx2D, state: RacingState): void {
     }
   }
 
-  // The joystick: the base where the thumb went down (or its resting place), the knob from the held input.
-  const o = stickOrigin ?? { x: RACING_STICK_X, y: RACING_STICK_Y };
-  // racingRev 2's base is wider than it is tall: more thumb travel for full lock, the pedals' throw unchanged.
+  // The joystick (3 Nov 2026, display only, every revision): a faint ring and a small gold knob, drawn where the thumb
+  // went down (or at its resting place) but never higher than just below the car, so neither covers the car or the
+  // road ahead; the thumb's mapping is unchanged (the knob shows the held input).
+  const o = racingStickDrawAt(stickOrigin ?? { x: RACING_STICK_X, y: RACING_STICK_Y });
   const throwX = racingSteerThrow(state.rev);
   ctx.save();
-  ctx.globalAlpha = stickOrigin ? 1 : 0.7;
-  const base = ctx.createRadialGradient(o.x, o.y, 4, o.x, o.y, throwX + 8);
-  base.addColorStop(0, "rgba(20,20,26,0.35)");
-  base.addColorStop(1, "rgba(20,20,26,0.6)");
-  ctx.fillStyle = base;
-  ctx.beginPath();
-  ctx.ellipse(o.x, o.y, throwX + 8, RACING_STICK_R + 8, 0, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.strokeStyle = "rgba(243,241,236,0.25)";
+  ctx.globalAlpha = stickOrigin ? 1 : 0.75;
+  ctx.fillStyle = "rgba(20,20,26,0.12)";
+  ctx.strokeStyle = "rgba(243,241,236,0.28)";
   ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.ellipse(o.x, o.y, throwX, RACING_STICK_R, 0, 0, Math.PI * 2);
+  ctx.fill();
   ctx.stroke();
-  ctx.strokeStyle = "rgba(243,241,236,0.18)";
+  ctx.strokeStyle = "rgba(243,241,236,0.12)";
+  ctx.lineWidth = 1;
   ctx.beginPath();
   ctx.moveTo(o.x - throwX, o.y);
   ctx.lineTo(o.x + throwX, o.y);
   ctx.moveTo(o.x, o.y - RACING_STICK_R);
   ctx.lineTo(o.x, o.y + RACING_STICK_R);
   ctx.stroke();
-  if (state.rev >= RACING_REV_2) {
-    // The dead zone round the centre, faintly.
-    ctx.fillStyle = "rgba(243,241,236,0.08)";
-    ctx.fillRect(o.x - throwX * 0.1, o.y - RACING_STICK_R, throwX * 0.2, RACING_STICK_R * 2);
-  }
   const kx = o.x + (state.steer / RACING_STICK_MAX) * throwX;
   const ky = o.y - (state.pedal / RACING_STICK_MAX) * RACING_STICK_R;
-  const knob = ctx.createRadialGradient(kx - 5, ky - 6, 2, kx, ky, 20);
+  const knob = ctx.createRadialGradient(kx - 3, ky - 4, 1, kx, ky, RACING_KNOB_R);
   knob.addColorStop(0, "#F7E3A6");
   knob.addColorStop(0.55, "#D9A93A");
   knob.addColorStop(1, "#8A6516");
+  ctx.globalAlpha *= 0.92;
   ctx.fillStyle = knob;
   ctx.beginPath();
-  ctx.arc(kx, ky, 19, 0, Math.PI * 2);
+  ctx.arc(kx, ky, RACING_KNOB_R, 0, Math.PI * 2);
   ctx.fill();
   ctx.restore();
 }

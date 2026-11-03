@@ -40,7 +40,7 @@ const fences: Driver = {
   solveShotsMs: [120, 450, 850],
 };
 
-/* Fillomino: blanks numbered from the solution; the last blank by tap and pad. */
+/* Fillomino: blanks numbered from the solution; the last blank by its number on the pad, then a tap. */
 const blanks = (p: FullPuzzle) => (p.givens as number[]).flatMap((g, i) => (g ? [] : [i]));
 const fillValues = (p: FullPuzzle, cells: readonly number[]) => {
   const on = new Set(cells);
@@ -51,10 +51,11 @@ const fillomino: Driver = {
   seedMid: (p) => ({ fillominoValues: fillValues(p, half(blanks(p))) }),
   seedNearSolved: (p) => ({ fillominoValues: fillValues(p, blanks(p).slice(0, -1)) }),
   solve: async ({ page, puzzle, wait }) => {
+    // Number first (3 Nov 2026): pick the number on the pad, then tap the square.
     const last = blanks(puzzle).at(-1)!;
-    await page.locator(`[data-logic-stage='fillomino'] [data-cell="${last}"]`).first().click();
+    await page.locator(`[data-logic-stage='fillomino'] [data-fillomino-tool="${(puzzle.solution as number[])[last]}"]`).first().click();
     await wait(120);
-    await page.locator("[data-game-controls] button", { hasText: new RegExp(`^${(puzzle.solution as number[])[last]}$`) }).first().click();
+    await page.locator(`[data-logic-stage='fillomino'] [data-cell="${last}"]`).first().click();
   },
   solveShotsMs: [120, 450, 850],
 };

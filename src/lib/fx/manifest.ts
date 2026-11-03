@@ -1054,6 +1054,7 @@ const ENTRIES = {
   "homerun.whiff": { channel: "effects", frequency: 0, ms: 400, url: "/sounds/homerun_whiff.mp3" },
   "homerun.roar": { channel: "effects", frequency: 0, ms: 3477, url: "/sounds/sports_crowd_roar.mp3" },
   "homerun.groan": { channel: "effects", frequency: 0, ms: 1995, url: "/sounds/sports_crowd_groan.mp3" },
+  "homerun.catch": { channel: "effects", frequency: 0, ms: 400, url: "/sounds/homerun_mitt.mp3" },
   "freekick.crowd": { channel: "effects", frequency: 0, ms: 9271, url: "/sounds/sports_crowd_loop.mp3", loop: true },
   "freekick.whistle": { channel: "effects", frequency: 0, ms: 683, url: "/sounds/freekick_whistle.mp3" },
   "freekick.roar": { channel: "effects", frequency: 0, ms: 3477, url: "/sounds/sports_crowd_roar.mp3" },
@@ -1113,7 +1114,7 @@ const ENTRIES = {
   "music_pyramid": { channel: "music", frequency: 0, ms: 0, url: "/sounds/music_freecell.mp3" },
   "music_golfsol": { channel: "music", frequency: 0, ms: 0, url: "/sounds/music_tripeaks.mp3" },
   "music_muggins": { channel: "music", frequency: 0, ms: 0, url: "/sounds/music_mahjong.mp3" },
-  // Blockfall and Alley Roll (1 Nov 2026): library sounds only until their own recordings (docs/sound-cues/arcade.md).
+  // Blockfall and Ringer (Alley Roll, 1 Nov 2026): library sounds only until their own recordings (docs/sound-cues/arcade.md).
   "blockfall.move": { channel: "effects", frequency: 0, ms: 50, url: null, gapMs: 40 },
   "blockfall.turn": { channel: "effects", frequency: 0, ms: 50, url: null, gapMs: 40 },
   "blockfall.lock": { channel: "effects", frequency: 0, ms: 120, url: null, gapMs: 60 },
@@ -1123,12 +1124,13 @@ const ENTRIES = {
   "blockfall.topOut": { channel: "effects", frequency: 0, ms: 260, url: null },
   "alleyroll.roll": { channel: "effects", frequency: 0, ms: 90, url: null },
   "alleyroll.rolling": { channel: "effects", frequency: 0, ms: 1375, url: "/sounds/minigolf_roll_loop.mp3", loop: true },
-  "alleyroll.rail": { channel: "effects", frequency: 0, ms: 80, url: null, gapMs: 80 },
   "alleyroll.ramp": { channel: "effects", frequency: 0, ms: 90, url: null },
   "alleyroll.ring": { channel: "effects", frequency: 0, ms: 200, url: null },
-  "alleyroll.fifty": { channel: "effects", frequency: 0, ms: 400, url: null },
   "alleyroll.pocket": { channel: "effects", frequency: 0, ms: 300, url: null },
+  // Ringer (3 Nov 2026): the gold cup and the roll streak; library sounds until Joe's files (url null).
+  "alleyroll.goldCup": { channel: "effects", frequency: 0, ms: 400, url: null },
   "alleyroll.gutter": { channel: "effects", frequency: 0, ms: 160, url: null },
+  "alleyroll.streak": { channel: "effects", frequency: 0, ms: 300, url: null },
   // Their beds borrow existing tracks: Fission's Retro bed and Swish's fairground.
   "music_blockfall": { channel: "music", frequency: 0, ms: 0, url: "/__l5e/assets-v1/f635d436-cf68-4844-bbd6-583e3c1bb54f/music_burst.mp3" },
   "music_alleyroll": { channel: "music", frequency: 0, ms: 0, url: "/__l5e/assets-v1/61e51614-582c-4e22-89c1-926f0a553a35/music_bintoss.mp3" },

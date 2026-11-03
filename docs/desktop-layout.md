@@ -142,7 +142,7 @@ Active games (83): wide 53, rotate 1, tall 29.
 | Shikaku | `shikaku` | Logic | **wide** |  | puzzle board: re-flows into the wider column |
 | Tents and Trees | `tents` | Logic | **wide** |  | puzzle board: re-flows into the wider column |
 | Trail | `trail` | Logic | **wide** |  | puzzle board: re-flows into the wider column |
-| Alley Roll | `alleyroll` | Arcade · Sports | **tall** |  | the lane seen from the player's end: kept upright at full height, the alley carried to the sides |
+| Ringer | `alleyroll` | Arcade · Sports | **tall** |  | the funfair lane seen from the player's end: kept upright at full height, the alley carried to the sides |
 | Apex | `racing` | Arcade · Sports | **tall** |  | behind-camera view; on desktop its world capped at 340×634, centred, with its static backdrop beside it, for 60 fps |
 | Ball Tracker | `balltrack` | Arcade · Strategy | **tall** |  | cups and marbles read top to bottom: kept upright |
 | Blockzone | `blockfall` | Arcade · Retro | **tall** |  | a tall well of falling pieces: kept upright at full height, the cabinet glow carried to the sides |

@@ -26,7 +26,18 @@
  *     racingRev 2, and the oracle takes 24 (all with CHECKS_FULL=1) to exactly 200 through the server replay, home by
  *     RACING_V2_PAR_TICKS from lights out;
  * 12. racingRev 2's replay: deterministic, the server agrees with the phone, a tampered claim is flagged, and the
- *     rev-2 checksum covers the wheel.
+ *     rev-2 checksum covers the wheel;
+ * 13. legacy: 36 racingRev 2 runs recorded on main 6326101 before racingRev 3 (scripts/racing-legacy-record.ts --rev=2)
+ *     replay to the same score, final tick and checksum;
+ * 14. racingRev 3 is dealt (3 Nov 2026): rooms and practice deal it from RACING_DEAL_V3 (300 distinct seeds), and the
+ *     oracle takes 24 (all with CHECKS_FULL=1) to exactly 200 through the server replay, at or above the full pace;
+ * 15. racingRev 3's gravel: the car slows to RACING_V3_OFF_KEEP % of the speed it left the tarmac at (racingRev 2 to
+ *     about 105 km/h), the throttle cannot raise it past that while off, and back on the tarmac it regains that speed
+ *     faster than racingRev 2 would; the corner speed signs (every corner slower than flat out, its speed rounded down
+ *     to 10 km/h, held from the centre with full lock in the sim, and a little over the limit running wide);
+ * 16. racingRev 3's parts: pace (a straight line in average speed) and clean sectors (5 each), 200 in all; its
+ *     replay is deterministic, agrees with the phone, flags a tampered claim, and its checksum covers the gravel's
+ *     speed and recovery target (racingRev 2's unchanged).
  *
  *   bun scripts/racing-check.ts      (CHECKS_FULL=1 for the whole deal)
  */
@@ -70,14 +81,31 @@ import {
   RACING_TOTAL,
   RACING_VMAX,
   RACING_WALL_LIMIT,
+  RACING_ACCEL,
+  RACING_REV_3,
+  RACING_SEG,
+  RACING_SIGN_BELOW_KMH,
+  RACING_STEER_K,
+  RACING_V3_OFF_KEEP,
+  RACING_V3_PACE_FULL,
+  RACING_V3_RECOVER_MUL,
+  RACING_V3_STD_SPEC,
+  racingCornerAdvice,
+  racingCornerLimit,
+  racingKmh,
+  racingPace10,
+  racingPush,
+  racingSegAt,
+  racingV3OffFloor,
   type RacingState,
 } from "../src/lib/arcade/racing";
 import { encodeRacingRun, replayRacingRun } from "../src/lib/duel/racing";
 import { RACING_DEAL, racingDealSeed } from "../src/lib/duel/racingDeal.server";
 import { RACING_DEAL_V2, racingDealSeedV2 } from "../src/lib/duel/racingDealV2.server";
+import { RACING_DEAL_V3, racingDealSeedV3 } from "../src/lib/duel/racingDealV3.server";
 import { generateRacing } from "../src/lib/duel/sports.server";
 import { RACING_TIME_MS } from "../src/lib/duel/types";
-import { oracleRun } from "./racing-oracle";
+import { oracleRun, racingV2StickFor } from "./racing-oracle";
 import { racingSubmission } from "./racing-deal";
 
 let checks = 0;
@@ -232,7 +260,8 @@ const play2 = (seed: number, events: readonly ArcadeInputEvent[]): RacingState[]
   return states;
 };
 {
-  ok(RACING_REV_DEALT === 2 && G2.init(seed0).rev === 2 && G2.runTicks === RACING_V2_GO + RACING_RUN_TICKS && RACING_V2_RUN_TICKS === G2.runTicks, "racingRev 2 is dealt; its run is the lights then the 90-second race");
+  // Since 3 Nov 2026 rooms deal racingRev 3 (section 14 proves it); racingRev 2's own rules are unchanged.
+  ok(G2.init(seed0).rev === 2 && G2.runTicks === RACING_V2_GO + RACING_RUN_TICKS && RACING_V2_RUN_TICKS === G2.runTicks, "racingRev 2's run is the lights then the 90-second race");
   ok(RACING_V2_GO === 330 && RACING_V2_LIGHT0 === 30, `lights from tick 30, out at tick 330 (${RACING_V2_GO})`);
   const lights = [0, 29, 30, 89, 90, 150, 210, 269, 270, 329, 330, 400].map((t) => racingLightsOn(2, t));
   ok(JSON.stringify(lights) === "[0,0,1,1,2,3,4,4,5,5,0,0]", `the lights come on one a second, five, then all out (${lights})`);
@@ -293,12 +322,6 @@ const play2 = (seed: number, events: readonly ArcadeInputEvent[]): RacingState[]
   ok(RACING_DEAL_V2.length === 300 && new Set(RACING_DEAL_V2).size === 300, `the rev-2 deal holds 300 distinct seeds (${RACING_DEAL_V2.length})`);
   ok(RACING_DEAL_V2.every((s) => Number.isInteger(s) && s > 0 && s < 2 ** 31), "every rev-2 deal entry is a valid seed");
   ok([0, 1, 299, 300, 12345, 2 ** 31 - 2].every((r) => RACING_DEAL_V2.includes(racingDealSeedV2(r))), "racingDealSeedV2 picks from the rev-2 deal");
-  let dealt = true;
-  for (let i = 0; i < 40; i++) {
-    const p = generateRacing();
-    if (p.racingRev !== 2 || !RACING_DEAL_V2.includes(p.seed)) dealt = false;
-  }
-  ok(dealt, "rooms and practice deal racingRev 2 from the rev-2 deal");
   const list2 = full ? RACING_DEAL_V2 : RACING_DEAL_V2.filter((_, i) => i % Math.floor(RACING_DEAL_V2.length / 24) === 0).slice(0, 24);
   let proved2 = 0;
   for (const seed of list2) {
@@ -331,9 +354,154 @@ const play2 = (seed: number, events: readonly ArcadeInputEvent[]): RacingState[]
   ok(racingChecksum({ ...x1, wheel: x1.wheel + 1 }) !== racingChecksum(x1) && racingChecksum({ ...a, wheel: 5 }) === racingChecksum(a), "racingRev 2's checksum covers the wheel; racingRev 1's is unchanged");
 }
 
+/* 13. racingRev 2's legacy runs. */
+{
+  const fx = JSON.parse(gunzipSync(readFileSync(new URL("./fixtures/racing-v2-legacy.json.gz", import.meta.url))).toString()) as {
+    runs: { seed: number; who: string; raw: string; score: number; checksum: number; tick: number }[];
+  };
+  let same = 0;
+  for (const run of fx.runs) {
+    const r = replayRacingRun(run.seed, run.raw, 2);
+    if (r.score === run.score && racingChecksum(r.state) === run.checksum && r.state.tick === run.tick && r.state.rev === 2) same++;
+    else ok(false, `legacy rev-2 ${run.who} on ${run.seed}: ${r.score}/${run.score}, tick ${r.state.tick}/${run.tick}`);
+  }
+  ok(fx.runs.length === 36 && same === 36, `36 racingRev 2 runs recorded on main replay to the same score, tick and checksum (${same})`);
+}
+
+/* 14. racingRev 3 is dealt. */
+const G3 = racingGameFor(RACING_REV_3);
+let proved3 = 0;
+{
+  ok(RACING_REV_DEALT === 3 && G3.init(seed0).rev === 3 && G3.runTicks === RACING_V2_RUN_TICKS, "racingRev 3 is dealt; its run is racingRev 2's (the lights, then the 90-second race)");
+  ok(RACING_DEAL_V3.length === 300 && new Set(RACING_DEAL_V3).size === 300, `the rev-3 deal holds 300 distinct seeds (${RACING_DEAL_V3.length})`);
+  ok(RACING_DEAL_V3.every((s) => Number.isInteger(s) && s > 0 && s < 2 ** 31), "every rev-3 deal entry is a valid seed");
+  ok([0, 1, 299, 300, 12345, 2 ** 31 - 2].every((r) => RACING_DEAL_V3.includes(racingDealSeedV3(r))), "racingDealSeedV3 picks from the rev-3 deal");
+  let dealt = true;
+  for (let i = 0; i < 40; i++) {
+    const p = generateRacing();
+    if (p.racingRev !== 3 || !RACING_DEAL_V3.includes(p.seed)) dealt = false;
+  }
+  ok(dealt, "rooms and practice deal racingRev 3 from the rev-3 deal");
+  const list3 = full ? RACING_DEAL_V3 : RACING_DEAL_V3.filter((_, i) => i % Math.floor(RACING_DEAL_V3.length / 24) === 0).slice(0, 24);
+  for (const seed of list3) {
+    const r = replayRacingRun(seed, racingSubmission(seed, oracleRun(seed, 3), 3), 3);
+    const good = r.score === 200 && !r.flagged && r.clean === 8 && r.finished && racingPace10(r.state) >= RACING_V3_PACE_FULL && r.state.rev === 3;
+    ok(good, `rev-3 deal seed ${seed}: the oracle reaches 200 through the server (${r.score}, clean ${r.clean}, pace ${racingPace10(r.state)})`);
+    if (good) proved3++;
+  }
+  ok(proved3 === list3.length, `the oracle takes ${proved3} of ${list3.length} rev-3 deal seeds to exactly 200`);
+}
+
+/* 15. racingRev 3's gravel and the corner speed signs. */
+{
+  const seed = RACING_DEAL_V3[0]!;
+  // At 270 km/h on the start straight, steered hard right off the tarmac, full throttle held.
+  const v0 = Math.round((270 * RACING_VMAX) / 300);
+  const start = (rev: number, lock: number): RacingState => ({ ...racingGameFor(rev).init(seed), tick: RACING_V2_GO + 10, s: RACING_SEG * 2, v: v0, x: RACING_CLEAN_X - 200, steer: lock, wheel: lock, pedal: 100, acted: 1 });
+  /** Steps `ticks` ticks from a steer of `lock`; from tick `back` on, full lock the other way (back to the tarmac). */
+  const run = (rev: number, ticks: number, back: number, lock = 100): RacingState[] => {
+    let st = start(rev, lock);
+    const out = [st];
+    for (let t = 0; t < ticks; t++) {
+      if (t === back) st = { ...st, steer: -100, wheel: -100 };
+      if (t === back + 60) st = { ...st, steer: 0, wheel: 0 };
+      st = racingStep(st, null);
+      out.push(st);
+    }
+    return out;
+  };
+  // A gentle steer over the kerb (no wall): the car runs on the gravel with the throttle held.
+  const off3 = run(3, 60, 1e9, 20);
+  const off2 = run(2, 60, 1e9, 20);
+  const k3 = off3.at(-1)!;
+  const k2 = off2.at(-1)!;
+  const left = off3.find((st) => st.off)!;
+  const floor = racingV3OffFloor(left.offFrom!);
+  ok(off3.every((st) => st.wall === 0) && k3.off === 1 && k3.v === floor && floor === Math.floor((left.offFrom! * RACING_V3_OFF_KEEP) / 100), `racingRev 3: on the gravel the car slows to ${RACING_V3_OFF_KEEP}% of its speed and holds there under throttle (${racingKmh(k3.v)} km/h from ${racingKmh(left.offFrom!)})`);
+  ok(k2.off === 1 && k2.v <= RACING_OFF_CAP + 40, `racingRev 2: on the gravel the car still drops to about 105 km/h (${racingKmh(k2.v)})`);
+  ok(racingV3OffFloor(800) === 800 && racingV3OffFloor(1200) === RACING_OFF_CAP && racingV3OffFloor(3000) === 1950, "the gravel floor: 65 % of the speed, never below racingRev 1's cap or the speed itself");
+  // Back on: full lock the other way after 20 ticks, then straight with the throttle held.
+  const ret3 = run(3, 300, 20);
+  const ret2 = run(2, 300, 20);
+  const on3 = ret3.findIndex((st, i) => i > 21 && !st.off && ret3[i - 1]!.off === 1);
+  const on2 = ret2.findIndex((st, i) => i > 21 && !st.off && ret2[i - 1]!.off === 1);
+  ok(on3 > 0 && on2 > 0, `the car comes back onto the tarmac (ticks ${on3}, ${on2})`);
+  const v3on = ret3[on3]!.v;
+  const twice = Math.floor((RACING_V3_RECOVER_MUL * RACING_ACCEL * (RACING_VMAX - v3on)) / RACING_VMAX);
+  ok((ret3[on3]!.rec ?? 0) > 0 && ret3[on3 + 1]!.v - v3on >= twice - 1, `racingRev 3: back on the tarmac the throttle pulls ${RACING_V3_RECOVER_MUL}× (a tick: +${ret3[on3 + 1]!.v - v3on}, at least ${twice - 1})`);
+  ok(v3on > ret2[on2]!.v, `racingRev 3 rejoins faster than racingRev 2 (${racingKmh(v3on)} vs ${racingKmh(ret2[on2]!.v)} km/h)`);
+  const back = ret3.slice(on3).find((st) => (st.rec ?? 0) === 0);
+  ok(!!back && back.v >= left.offFrom!, `the recovery ends once the speed the car left the tarmac at is regained (${back ? racingKmh(back.v) : "never"})`);
+  // The signs.
+  let signsOk = true;
+  let held = true;
+  let wide = true;
+  let count = 0;
+  for (const s of RACING_DEAL_V3.slice(0, 40)) {
+    const track = racingTrack(s);
+    const advice = racingCornerAdvice(track);
+    for (const c of track.corners) {
+      const a = advice.find((x) => x.corner === c);
+      const lim = racingCornerLimit(track, c);
+      const kmh = Math.floor((lim * 300) / (RACING_VMAX * 10)) * 10;
+      if (kmh < RACING_SIGN_BELOW_KMH ? !a || a.kmh !== kmh || a.limit !== lim : !!a) signsOk = false;
+      if (!a) continue;
+      count++;
+      // Held at a speed from the centre, steering just enough (at most full lock), through the real sim's step.
+      const through = (v: number): boolean => {
+        let st: RacingState = { ...G3.init(s), tick: RACING_V2_GO + 10, s: (c.start - 2) * RACING_SEG, v, x: 0, acted: 1, pedal: 0, wheel: 0 };
+        while (st.s < (c.start + c.len + 2) * RACING_SEG) {
+          const cc = track.curve[racingSegAt(st.s)]!;
+          const want = Math.max(-100, Math.min(100, Math.round((racingPush(cc, v) * 100 * RACING_VMAX) / (RACING_STEER_K * v))));
+          // The stick whose dead zone and expo give that steer, the wheels already there; the coast's 5 a tick put back.
+          st = racingStep({ ...st, v: v + 5, steer: racingV2StickFor(want), wheel: want, pedal: 0 }, null);
+          if (st.off) return false;
+        }
+        return true;
+      };
+      if (!through(Math.ceil((a.kmh * RACING_VMAX) / 300))) held = false;
+      if (through(Math.min(RACING_VMAX, lim + 60))) wide = false;
+    }
+  }
+  ok(signsOk && count > 100, `every corner slower than flat out has a sign at its limit rounded down to 10 km/h (${count} signs on 40 circuits)`);
+  ok(held, "every sign's speed holds its corner from the centre with full lock through the sim's step");
+  ok(wide, "a little over a sign's limit, full lock runs wide");
+  const kinds = new Set(RACING_DEAL_V3.slice(0, 40).flatMap((s) => racingCornerAdvice(racingTrack(s)).map((a) => a.corner.kind)));
+  ok(kinds.has(RACING_SEC_HAIRPIN) && kinds.has(RACING_SEC_CHICANE), "hairpins and chicanes carry signs");
+}
+
+/* 16. racingRev 3's parts and replay. */
+{
+  ok(stdSpecMax(RACING_V3_STD_SPEC) === 200 && RACING_V3_STD_SPEC.rev === 3, "racingRev 3's parts' maximums sum to 200");
+  const b3 = { ...G3.init(seed0), acted: 1 };
+  const pts = (over: Partial<RacingState>) => racingStdParts({ ...b3, ...over })!.map((p) => p.points);
+  const fin = (race: number) => ({ s: RACING_TOTAL, tick: RACING_V2_GO + race, finishTick: RACING_V2_GO + race });
+  ok(JSON.stringify(pts({ ...fin(4500), clean: 8 })) === "[160,40]", "a clean finish at full pace: 160 + 40");
+  ok(pts({ s: RACING_TOTAL >> 1, tick: RACING_V2_GO + RACING_RUN_TICKS })[0] === 0, "half the race in 90 s is under the zero pace: no pace points");
+  ok(pts({ clean: 3 })[1] === 15 && pts({ clean: 8 })[1] === 40, "clean sectors pay 5 each");
+  const lineA = pts(fin(5000))[0]!;
+  const lineB = pts(fin(5200))[0]!;
+  ok(lineA > lineB && lineB > 0 && lineA < 160, `a quicker finish scores a higher pace (${lineA} vs ${lineB})`);
+  const seed = RACING_DEAL_V3[0]!;
+  const log = oracleRun(seed, 3);
+  const raw3 = racingSubmission(seed, log, 3);
+  const r = replayRacingRun(seed, raw3, 3);
+  const r2 = replayRacingRun(seed, raw3, 3);
+  ok(r.score === 200 && !r.flagged && r.desyncTick === null && racingChecksum(r.state) === racingChecksum(r2.state) && r.parts.length === 2, `racingRev 3: the server replay is deterministic and agrees with the phone's run (${r.score})`);
+  console.error = () => {};
+  const bits = raw3.split("|");
+  bits[1] = String(Number(bits[1]) - 3);
+  const t3 = replayRacingRun(seed, bits.join("|"), 3);
+  console.error = quiet;
+  ok(t3.flagged && t3.score === 200, "racingRev 3: a tampered claimed score is flagged; the server keeps its own");
+  ok(racingChecksum({ ...r.state, offFrom: 5 }) !== racingChecksum(r.state) && racingChecksum({ ...r.state, rec: 5 }) !== racingChecksum(r.state), "racingRev 3's checksum covers the gravel speed and recovery target");
+  const x2 = play2(RACING_DEAL_V2[0]!, oracleRun(RACING_DEAL_V2[0]!, 2)).at(-1)!;
+  ok(racingChecksum({ ...x2, offFrom: 5, rec: 9 }) === racingChecksum(x2), "racingRev 2's checksum is unchanged");
+}
+
 if (failures.length) {
   for (const f of failures) console.log(`FAIL ${f}`);
   console.log(`FAIL racing-check: ${failures.length} of ${checks} checks failed`);
   process.exit(1);
 }
-console.log(`PASS racing-check: ${checks} checks (oracle 200 on ${proved} rev-1 and the sampled rev-2 deal seeds${full ? ", the whole deals" : ", quick depth"}; 36 legacy rev-1 runs identical)`);
+console.log(`PASS racing-check: ${checks} checks (oracle 200 on ${proved} rev-1, the sampled rev-2 and ${proved3} rev-3 deal seeds${full ? ", the whole deals" : ", quick depth"}; 36 legacy rev-1 and 36 legacy rev-2 runs identical)`);

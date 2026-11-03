@@ -13,8 +13,9 @@ import { preStandardPinned } from "./standard/stamps";
 import { MINES_COUNT, MINES_HIT_COST } from "@/lib/arcade/minesweeper";
 import { MAHJONG_SHUFFLE_COST } from "@/lib/arcade/mahjong";
 import { puzzleNotesDealt } from "./puzzleNotes";
-import { STANDARD_ATTENTION_HELP } from "./standard/attentionTexts";
-import { PATTERN_STD_HELP } from "./standard/patternText";
+import { PAR_MOVES_MAZE_HELP, STANDARD_ATTENTION_HELP } from "./standard/attentionTexts";
+import { parMovesDealt } from "./parMoves";
+import { PAR_MOVES_PATTERN_HELP, PATTERN_STD_HELP } from "./standard/patternText";
 import { standardNumberHelp } from "./standard/numberText";
 import {
   scoreWordHunt,
@@ -573,10 +574,13 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Swipe", detail: "to slide until something stops you." },
         { action: "Arrows turn you;", detail: "avoid the holes." },
         { action: "Portals", detail: "carry you across." },
-        { action: "Ice gems", detail: "off the direct route score a bonus." },
+        // The puzzle batch of 3 Nov 2026 (slideRev 3, parMoves.ts): no ice gems; the fewest slides score a bonus.
+        parMovesDealt()
+          ? { action: "Fewest slides", detail: "(par) score a bonus." }
+          : { action: "Ice gems", detail: "off the direct route score a bonus." },
         { action: "Cracked ice", detail: "breaks after you cross it once.", helpOnly: true },
       ],
-      score: PATTERN_STD_HELP.iceslide,
+      score: parMovesDealt() ? PAR_MOVES_PATTERN_HELP.iceslide : PATTERN_STD_HELP.iceslide,
     },
     push: {
       goal: "Push every crate onto a marked square.",
@@ -618,11 +622,14 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Drag", detail: "through the passages." },
         { action: "Walls", detail: "block your way." },
         { action: "Reach the exit", detail: "to finish." },
-        { action: "Stars", detail: "anywhere in the maze add points, finished or not." },
+        // The puzzle batch of 3 Nov 2026 (mazeRev 4, parMoves.ts): no stars; no wasted steps scores a bonus.
+        parMovesDealt()
+          ? { action: "No wasted steps", detail: "(par) score a bonus." }
+          : { action: "Stars", detail: "anywhere in the maze add points, finished or not." },
         { action: "The path", detail: "moves one neighbouring cell at a time.", helpOnly: true },
       ],
       // The scoring standard (mazeRev 3): standard/attentionTexts.ts.
-      score: STANDARD_ATTENTION_HELP.maze(),
+      score: parMovesDealt() ? PAR_MOVES_MAZE_HELP() : STANDARD_ATTENTION_HELP.maze(),
     },
     tubes: {
       goal: "Sort the potions so each flask is one colour.",
@@ -667,11 +674,14 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Every ball rolls", detail: "until it hits a block, the edge or a ball." },
         { action: "A ball drops home", detail: "as it rolls over its own colour's hole." },
         { action: "A ball home fills its hole:", detail: "other balls stop against it, as they do against a ball.", helpOnly: true },
-        { action: "Roll through a star", detail: "for bonus points." },
+        // The puzzle batch of 3 Nov 2026 (gravityRev 6, parMoves.ts): no stars; the fewest tilts score a bonus.
+        parMovesDealt()
+          ? { action: "Fewest tilts", detail: "(par) score a bonus." }
+          : { action: "Roll through a star", detail: "for bonus points." },
         { action: "The rings", detail: "above the board fill as balls go home; a clear board brings the next.", helpOnly: true },
         { action: "Tilts are limited", detail: "on each board (the counter). Undo and Reset don't give a tilt back; out of tilts, the next board comes.", helpOnly: true },
       ],
-      score: PATTERN_STD_HELP.gravity,
+      score: parMovesDealt() ? PAR_MOVES_PATTERN_HELP.gravity : PATTERN_STD_HELP.gravity,
     },
     chain: {
       goal: "Tap 40 charms, following the cycle.",
@@ -1004,21 +1014,19 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
     },
     // The Sports group (30 Oct 2026; docs/arcade-standard/homerun.md, freekick.md, racing.md).
     homerun: {
-      goal: "Hit ten pitches as far as you can.",
+      goal: "Hit ten pitches into the gaps, over the fence and onto the lit sign.",
       how: [
-        { action: "Before each pitch, pick Contact or Power:", detail: "Contact is easier to time but carries less; Power goes further." },
-        { action: "Watch the pitcher's tell,", detail: "then swipe through the ball as it reaches the plate." },
-        { action: "Swipe height", detail: "meets the pitch; the angle aims it." },
-        { action: "Signs beyond the fence:", detail: "hit each one once (Power only)." },
-        { action: "Contact or Power:", detail: "tap a button under the field before the pitch is thrown; your choice stays until you change it (Contact to start). Contact has a wide timing window and a big sweet spot but carries at most about 410 ft, so it never reaches a sign. Power has a narrow window and a small sweet spot, carries up to 480 ft and makes home runs and sign hits.", helpOnly: true },
-        { action: "The tell:", detail: "just before the release the pitcher shows his grip and arm, with a flash of colour on the glove. Red, high arm and two fingers: a fastball, swing early. Blue, a hooked wrist: a curve, wait on it. Purple, split fingers: a drop, wait on it and swing a little lower. Green, a low arm and a circle grip: a changeup, wait longest.", helpOnly: true },
-        { action: "The swing starts", detail: "the moment your finger starts moving, not when it lifts.", helpOnly: true },
-        { action: "Height:", detail: "start your swipe level with where the ball will cross the faint box. Too high or too low hits it weakly.", helpOnly: true },
-        { action: "Angle:", detail: "a level swipe hits it to centre field, a rising swipe pulls it to left field, a falling swipe sends it to right; the steeper, the further round. The fence is shortest down the lines. Past about 80° goes foul.", helpOnly: true },
-        { action: "Ten pitches, one about every 6 seconds,", detail: "at different speeds, heights and spots: the radar board shows what each was and how fast after it is thrown.", helpOnly: true },
-        { action: "After each swing", detail: "you see Early, Perfect or Late and where your bat met the ball against where it crossed.", helpOnly: true },
-        { action: "The four signs", detail: "stand beyond the fence, so a ball that hits one is always a home run.", helpOnly: true },
-        { action: "Everyone", detail: "faces the same pitches in the same order.", helpOnly: true },
+        { action: "Tap a spot", detail: "on the field before the pitch: that's where you want to hit it." },
+        { action: "Tap again as the ring closes", detail: "on the ball: perfect timing sends it to your spot." },
+        { action: "Early pulls it left, late pushes it right,", detail: "and falls short; a fielder catches anything in his circle." },
+        { action: "Hit the lit sign", detail: "for a bonus; keep your perfect swings going." },
+        { action: "Your spot:", detail: "a tap on the grass, the stands or a sign, before the pitch is near; it stays where it is until you tap a new one (straightaway centre to start). A tap once the pitch is coming is your swing, wherever you tap.", helpOnly: true },
+        { action: "The ring:", detail: "a faint ring closes round the ball as it comes in; tap the moment it meets the ball. Perfect is the exact moment; one frame either side still finds your spot; each frame further off moves the ball about 2.5° and takes some distance off. Too far off is a miss.", helpOnly: true },
+        { action: "The pitches:", detail: "fastballs come in quick and straight, curveballs bend the whole way, changeups float in slowly. No tells: watch the ball.", helpOnly: true },
+        { action: "Fielders:", detail: "six of them, each in a pale circle; a ball that comes down in a circle short of the fence is caught and scores nothing. They shift a little between pitches, so look for the gap each time.", helpOnly: true },
+        { action: "The bonus sign:", detail: "one of five signs is lit for each pitch. The fence boards forgive two frames either side, the scoreboard one, the upper-deck banners only the exact moment.", helpOnly: true },
+        { action: "Perfect streak:", detail: "perfectly timed swings in a row; your longest run counts.", helpOnly: true },
+        { action: "Everyone", detail: "faces the same pitches, fielders and lit signs in the same order.", helpOnly: true },
       ],
       score: liveStdHelp("homerun", "Every pitch counts the same."),
     },
@@ -1042,15 +1050,17 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       how: [
         { action: "Five red lights:", detail: "go when they go out." },
         { action: "Joystick:", detail: "left and right steer, push up to go, pull down to brake." },
+        { action: "Corner speed signs:", detail: "the red-ringed sign before a sharp corner shows the speed it can be taken at." },
         { action: "Stay on the tarmac:", detail: "grass and walls cost time." },
         { action: "The start:", detail: "the car waits on its grid spot while five red lights come on, one a second. When they all go out, the race clock starts.", helpOnly: true },
         { action: "Steering", detail: "is gentle near the middle of the stick and turns the wheels smoothly; push it right out for full lock. Let go to coast.", helpOnly: true },
         { action: "Clean sectors:", detail: "the bars on the right light for each sector with no wall or grass contact.", helpOnly: true },
-        { action: "Braking boards", detail: "(150, 100, 50) count down to the tightest corners.", helpOnly: true },
+        { action: "Braking boards", detail: "(150, 100, 50) count down to the tightest corners. The sign before them is the corner's speed in km/h: be at it by the turn-in and full lock holds the corner.", helpOnly: true },
+        { action: "The gravel", detail: "slows the car to about two thirds of its speed; back on the tarmac it picks up faster.", helpOnly: true },
         { action: "Ghost cars", detail: "show the other players in the room. They can't touch you and passing them scores nothing.", helpOnly: true },
         { action: "Everyone", detail: "races the same track.", helpOnly: true },
       ],
-      score: liveStdHelp("racing", "Every metre of the track counts the same."),
+      score: liveStdHelp("racing", "Pace is your average speed over the race: every km/h counts the same."),
     },
     // The Sports group (30 Oct 2026; docs/arcade-standard/minigolf.md, pool.md, curling.md): on the arcade scoring
     // standard from their first stamps.
@@ -1072,20 +1082,21 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       score: liveStdHelp("minigolf", "120 seconds for five holes."),
     },
     pool: {
-      goal: "Pot all seven spots, then the black, without a miss.",
+      goal: "Pot your seven, spots or stripes, then the black, without a miss.",
       how: [
+        { action: "Your set:", detail: "each table deals you spots or stripes; the banner and the top bar show which." },
         { action: "Drag anywhere on the table", detail: "to turn the cue round the cue ball; drag further from the ball for finer aim." },
         { action: "Pull the cue back", detail: "in the power meter at the bottom and let go to shoot." },
-        { action: "Spot balls first:", detail: "hitting a stripe first, potting a stripe or touching no ball at all is a foul (−10)." },
+        { action: "Your balls first:", detail: "hitting the other set first, potting one of theirs or touching no ball at all is a foul (−10)." },
         { action: "Tap the table", detail: "to point the cue straight at that spot.", helpOnly: true },
         { action: "The dotted line", detail: "runs to a ghost ball; the short line shows where the object ball goes, the faint one the cue ball's path.", helpOnly: true },
         { action: "Power:", detail: "the further you pull the cue, the harder the shot; green is soft, red full power.", helpOnly: true },
         { action: "Spin:", detail: "tap the cue ball, bottom right, and place the red dot anywhere on it: high for top spin (follow), low for back spin (draw, which pulls the cue ball back), left or right for side, which bends the bounce off a cushion.", helpOnly: true },
         { action: "Cue ball potted:", detail: "it comes back to its spot and costs you time.", helpOnly: true },
         { action: "The black too early", detail: "ends your run with no black or speed points.", helpOnly: true },
-        { action: "Every layout is proved clearable", detail: "without a miss. The same table for everyone.", helpOnly: true },
+        { action: "Every layout is proved clearable", detail: "without a miss. The same table and set for everyone.", helpOnly: true },
       ],
-      score: liveStdHelp("pool", "120 seconds. Fouls cost 10 each."),
+      score: liveStdHelp("pool", "90 seconds. Fouls cost 10 each."),
     },
     curling: {
       goal: "Draw your eight stones onto the button.",
@@ -1195,16 +1206,16 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       score: liveStdHelp("blockfall", "Four parts, which total 200:"),
     },
     alleyroll: {
-      goal: "Roll nine balls up the lane into the rings.",
+      goal: "Roll nine balls up the lane into the cups.",
       how: [
-        { action: "Slide the ball", detail: "along the bottom to choose where it starts." },
-        { action: "Swipe up", detail: "to roll: a faster swipe rolls further, the swipe's angle aims it." },
-        { action: "Rings", detail: "score 10 to 50 from the outside in; the two pockets in the top corners score 100." },
-        { action: "Hot streak:", detail: "a ball scoring 40 or more straight after another that did.", helpOnly: true },
+        { action: "Swipe up the lane", detail: "to roll: where you start sets the release, the angle aims, the speed is the power." },
+        { action: "Cups", detail: "score 10 to 50, the top of the stack the most; the two corner pockets score 100." },
+        { action: "The gold cup", detail: "slides along the top: time your roll to drop in for 150." },
+        { action: "Roll streak:", detail: "a ball scoring 30 or more straight after another that did.", helpOnly: true },
         { action: "Nine balls", detail: "or 60 seconds, whichever comes first.", helpOnly: true },
-        { action: "No wind, the same lane,", detail: "for everyone.", helpOnly: true },
+        { action: "The same lane and the same gold cup", detail: "for everyone.", helpOnly: true },
       ],
-      score: liveStdHelp("alleyroll", "Three parts, which total 200:"),
+      score: liveStdHelp("alleyroll", "Four parts, which total 200:"),
     },
     pyramid: {
       goal: "Clear the pyramid in pairs that add to 13.",
@@ -1639,9 +1650,13 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
     fillomino: {
       goal: "Split the grid into regions: a region of N squares holds N.",
       how: [
-        { action: "Tap a square", detail: "then a number, or drag from a number to paint it." },
+        // The puzzle batch of 3 Nov 2026: number first (pick a number, then tap or drag squares).
+        { action: "Pick a number,", detail: "then tap or drag squares to fill them." },
+        { action: "Tap it again", detail: "to clear a square, or use the eraser." },
         { action: "Each region of N", detail: "is N squares, all numbered N." },
         { action: "Same-size regions", detail: "never touch side by side." },
+        { action: "Right-size regions are tinted", detail: "(touching ones in different shades). The tint means the size is right, not that the region is correct.", helpOnly: true },
+        { action: "Undo", detail: "takes back a whole stroke; Reset clears the board.", helpOnly: true },
       ],
       score: gridStandardHelp("fillomino"),
     },

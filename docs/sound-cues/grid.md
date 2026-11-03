@@ -1,4 +1,4 @@
-# Sound cues: Fences, Fillomino and Bridges (1 Nov 2026)
+# Sound cues: Loopline, Regions and Island Link (1 Nov 2026; shown as Fences, Fillomino and Bridges until 3 Nov 2026)
 
 The three Logic grid puzzles born on the scoring standard. Like the other Logic games they dispatch named cues through
 `soundCue()` and `useSolveFx` (`src/puzzles/logicFx.ts`); each slot plays one of the library's existing recordings
