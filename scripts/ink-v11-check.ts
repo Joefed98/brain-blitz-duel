@@ -31,6 +31,7 @@ import {
   INK_CLOUD_LEVELS,
   INK_FEATURE_MAX,
   INK_LEVELS,
+  INK_REV_CLOVER,
   INK_REV_EXPAND,
   INK_REV_SPREAD,
   INK_REV_STRICT,
@@ -45,7 +46,7 @@ import {
   type InkState,
 } from "../src/lib/arcade/inkBridge";
 import { replayInkBridgeRun } from "../src/lib/duel/inkBridge";
-import { generateInkBridge } from "../src/lib/duel/arcade.server";
+import { generateInkBridge, pinInkPreClover } from "../src/lib/duel/arcade.server";
 import { roundMaxFor } from "../src/lib/duel/roundMax";
 import { LIVE_BANDS } from "../src/lib/arcade/liveBands";
 import { PUZZLE_INSTRUCTIONS } from "../src/lib/duel/instructions";
@@ -72,7 +73,11 @@ const SAMPLE = [0, 7, 141, 259].map(roomSeed);
 section("Rooms deal inkRev 11; older stamps unchanged");
 {
   const live = LIVE_BANDS.inkbridge as { rev: number; strictRev?: number };
-  ok(playRevOf("inkbridge", generateInkBridge().inkRev) === INK_REV_SPREAD && INK_REV_SPREAD === INK_REV_EXPAND + 1 && playRevOf("inkbridge", live.rev) === INK_REV_SPREAD && live.strictRev === INK_REV_STRICT, "rooms deal inkRev 11's play (inkRev 12 re-scores it on the arcade standard); LIVE_BANDS measures it against inkRev 8");
+  // inkRev 13 (Nov 2026: clovers, ink par, more birds; ink-v13-check) moved rooms and LIVE_BANDS on: the deal is pinned to
+  // the one before it (inkRev 12, inkRev 11's play), and LIVE_BANDS lists inkRev 13, still against inkRev 8.
+  const wasInk = pinInkPreClover(true);
+  ok(playRevOf("inkbridge", generateInkBridge().inkRev) === INK_REV_SPREAD && INK_REV_SPREAD === INK_REV_EXPAND + 1 && live.rev === INK_REV_CLOVER && live.strictRev === INK_REV_STRICT, "rooms dealt inkRev 11's play before inkRev 13 (inkRev 12 re-scored it on the arcade standard); LIVE_BANDS lists inkRev 13, measured against inkRev 8");
+  pinInkPreClover(wasInk);
   ok(roundMaxFor("inkbridge") === 200 && inkWorldHFor(INK_REV_SPREAD) === INK_TALL_H, "still 200 at most, in the 674-tall world");
   const s = game.init(SAMPLE[0]!);
   ok(s.rev === INK_REV_SPREAD && s.worldH === INK_TALL_H && s.silver === 0 && s.shamrocks === 0 && s.tricks === 0 && s.stars === 0, "the state carries the taller world and the counters");
@@ -175,14 +180,18 @@ section("Scoring: the skill pay, the 200 cap, no input, random input; the help")
   });
   ok(Math.max(...randoms) <= 60, `random input stays near 0 (${randoms.join(", ")})`);
   const help = PUZZLE_INSTRUCTIONS.inkbridge.how.map((h) => `${h.action} ${h.detail}`).join(" ");
-  ok(!/wind/i.test(help) && help.includes(`${INK_V11_SILVER_PER_LEVEL} silver coins`), "the help names two silver coins a level and no wind");
+  // inkRev 13 (Nov 2026) took the silver coins away, so the help (which states what rooms deal) names none; it still names no wind.
+  ok(!/wind/i.test(help) && !/silver/i.test(help) && INK_V11_SILVER_PER_LEVEL === 2, "the help names no wind and (since inkRev 13) no silver coins; inkRev 11 still deals two a level");
 }
 
 /* 6. Room identity. */
 section("Room identity: different logs see the same dealt run");
 for (const seed of SAMPLE.slice(0, 1)) {
-  const logs = roomIdentity.logs(seed);
-  ok(roomIdentity.rev === generateInkBridge().inkRev && playRevOf("inkbridge", roomIdentity.rev) === INK_REV_SPREAD, "room identity is measured on the dealt stamp (inkRev 11's play)");
+  // inkRev 13 moved rooms on (ink-v13-check measures its own room identity): measured here on inkRev 11, the deal before it pinned.
+  const logs = roomIdentity.logs(seed, INK_REV_SPREAD);
+  const wasDeal = pinInkPreClover(true);
+  ok(playRevOf("inkbridge", generateInkBridge().inkRev) === INK_REV_SPREAD, "room identity is measured on inkRev 11's play (the deal before inkRev 13, pinned)");
+  pinInkPreClover(wasDeal);
   const lists = logs.map((log) => JSON.stringify(roomIdentity.scheduleOf(seed, INK_REV_SPREAD, log)));
   ok(lists.every((l) => l === lists[0]) && lists[0]!.length > 100 && !lists[0]!.includes("wind"), `seed ${seed}: ${logs.length} logs (idle, random, weak, elite, perfect) see the same levels and features`);
   const ends = logs.map((log) => {

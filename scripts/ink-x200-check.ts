@@ -53,6 +53,7 @@ import {
   INK_LEVELS,
   INK_REV_EXPAND,
   INK_REV_SPREAD,
+  INK_REV_CLOVER,
   INK_REV_STRICT,
   INK_SHAMROCK_R,
   INK_SILVER_PER_LEVEL,
@@ -64,7 +65,7 @@ import {
   type InkState,
 } from "../src/lib/arcade/inkBridge";
 import { replayInkBridgeRun } from "../src/lib/duel/inkBridge";
-import { generateInkBridge } from "../src/lib/duel/arcade.server";
+import { generateInkBridge, pinInkPreClover } from "../src/lib/duel/arcade.server";
 import { roundMaxFor } from "../src/lib/duel/roundMax";
 import { LIVE_BANDS } from "../src/lib/arcade/liveBands";
 import { roomSeed } from "./arcade-skill-bands/games";
@@ -115,7 +116,11 @@ section("Legacy identity (unstamped … inkRev 8)");
 section("inkRev 10 (390 × 674, scored to 200); rooms deal inkRev 11 since the phone notes (ink-v11-check)");
 {
   const live = LIVE_BANDS.inkbridge as { rev: number; strictRev?: number };
-  ok(playRevOf("inkbridge", generateInkBridge().inkRev) === INK_REV_SPREAD && INK_REV_EXPAND === 10 && INK_REV_SPREAD === 11 && playRevOf("inkbridge", live.rev) === INK_REV_SPREAD && live.strictRev === INK_REV_STRICT, "rooms deal inkRev 11's play (inkRev 10's world, ink-v11-check; inkRev 12 re-scores it on the arcade standard); LIVE_BANDS measures it against inkRev 8");
+  // inkRev 13 (Nov 2026: clovers, ink par, more birds; ink-v13-check) moved rooms and LIVE_BANDS on: the deal is pinned to
+  // the one before it (inkRev 12, inkRev 11's play), and LIVE_BANDS lists inkRev 13, still against inkRev 8.
+  const wasInk = pinInkPreClover(true);
+  ok(playRevOf("inkbridge", generateInkBridge().inkRev) === INK_REV_SPREAD && INK_REV_EXPAND === 10 && INK_REV_SPREAD === 11 && live.rev === INK_REV_CLOVER && live.strictRev === INK_REV_STRICT, "rooms dealt inkRev 11's play before inkRev 13 (inkRev 10's world, ink-v11-check; inkRev 12 re-scored it on the arcade standard); LIVE_BANDS lists inkRev 13, measured against inkRev 8");
+  pinInkPreClover(wasInk);
   ok(roundMaxFor("inkbridge") === 200, "Rainbow Bridge's maximum is 200");
   ok(inkWorldHFor(INK_REV_EXPAND) === INK_TALL_H && INK_TALL_H === 674 && inkWorldHFor(INK_REV_STRICT) === 620 && inkWorldHFor(undefined) === 620, "the world is 674 tall on inkRev 10, 620 before");
   const s = game.init(SAMPLE[0]!);

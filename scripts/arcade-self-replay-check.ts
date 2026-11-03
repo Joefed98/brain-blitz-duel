@@ -124,7 +124,7 @@ import { ORBIT_HOLE_BANK } from "@/lib/duel/orbitHoleBank.server";
 import { ORBIT_REV3_BANK } from "@/lib/duel/orbitRev3Bank.server";
 import { orbitRev3PlanetsForSeed } from "@/lib/duel/orbitRev3Course.server";
 import { binTossGameFor, BINTOSS_REV2, BINTOSS_REV3 } from "@/lib/arcade/binToss";
-import { inkBridgeGameFor, INK_REV3, INK_REV4, INK_REV_EXPAND, INK_REV_SPREAD, INK_REV_STD } from "@/lib/arcade/inkBridge";
+import { inkBridgeGameFor, INK_REV3, INK_REV4, INK_REV_EXPAND, INK_REV_SPREAD, INK_REV_STD, INK_REV_CLOVER } from "@/lib/arcade/inkBridge";
 import { swingGameFor, SWING_REV, SWING_REV_V3 } from "@/lib/arcade/swing";
 import { wordfallCheckpoint, wordfallGame, wordfallGameFor } from "@/lib/arcade/wordfall";
 import { encodeWordfallRun, replayWordfallRun } from "@/lib/duel/wordfall";
@@ -202,7 +202,7 @@ import { ORBIT_FUEL_BANK } from "@/lib/duel/orbitFuelBank.server";
 import { BEAT_REV_BAND, BEAT_REV_TALL, BEAT_REV_TUNEC, BEAT_REV_TUNEF } from "@/lib/arcade/beat";
 import { SLICE_REV_BAND, SLICE_REV_LONG, SLICE_REV_TALL, SLICE_REV_TUNEC } from "@/lib/arcade/slice";
 import { BURST_REV_BAND, BURST_REV_TALL } from "@/lib/arcade/burst";
-import { SWING_REV_BAND, SWING_REV_TUNED, SWING_REV_TUNEC, SWING_REV_SPREAD, SWING_REV_TALL, SWING_REV_EXPAND, SWING_REV_ASSAULT, SWING_REV_REWORK, SWING_REV_DARK } from "@/lib/arcade/swing";
+import { SWING_REV_BAND, SWING_REV_TUNED, SWING_REV_TUNEC, SWING_REV_SPREAD, SWING_REV_TALL, SWING_REV_EXPAND, SWING_REV_ASSAULT, SWING_REV_REWORK, SWING_REV_DARK, SWING_REV_SLIDE } from "@/lib/arcade/swing";
 import { SWING_V13_BANK } from "@/lib/duel/swingBankV13.server";
 import { BULLSEYE_REV_BAND, BULLSEYE_REV_TUNED, bullseyeInitFor } from "@/lib/arcade/bullseye";
 
@@ -968,6 +968,20 @@ const GAMES: Game[] = [
   // Roofbound flipRev 11 (3 Nov 2026, docs/arcade-standard/flip.md "flipRev 11"), appended so every earlier entry keeps its
   // index: flipRev 8's course and moves with no star pickups, the flow streak counted.
   { key: "flip/rev11", game: flipGameFor(FLIP_REV_FLOW), checkpoint: flipCheckpoint, mode: "events", rate: 50, encode: encodeFlipRun, replay: (seed: number, raw: string) => replayFlipRun(seed, raw, FLIP_REV_FLOW) },
+  // Rainbow Bridge inkRev 13 (Nov 2026: clovers, ink par, more birds; failed drops never end the run), appended so every
+  // earlier entry keeps its index. Eight seeds in turn, as ink/std.
+  {
+    key: "ink/clover",
+    game: inkBridgeGameFor(INK_REV_CLOVER),
+    seedFor: (n: number) => 9_000_001 + 7_919 * (n % 8),
+    checkpoint: inkCheckpoint,
+    mode: "events",
+    rate: 400,
+    encode: encodeInkBridgeRun,
+    replay: (seed: number, raw: string) => replayInkBridgeRun(seed, raw, INK_REV_CLOVER),
+  },
+  // Grappler swingRev 17 (3 Nov 2026: the sliding hooks and the clean-swing streak), appended so every earlier entry keeps its index.
+  { key: "swing/slide", game: swingGameFor(SWING_REV_SLIDE), checkpoint: swingCheckpoint, mode: "events", rate: 30, encode: encodeSwingRun, replay: (seed: number, raw: string) => replaySwingRun(seed, raw, SWING_REV_SLIDE) },
   // The Sports batch (3 Nov 2026; Top Bins freekickRev 4, the drawn shot; Curl Champ curlRev 4, the power bar and three
   // reds), appended so every earlier entry keeps its stream: each on its rev-4 proved deal's seeds.
   { key: "freekick/v4", interval: FREEKICK_CHECKPOINT_INTERVAL, game: freekickGameFor(4), checkpoint: freekickCheckpoint, mode: "events", rate: 20, encode: encodeFreekickRun, replay: (seed: number, raw: string) => replayFreekickRun(seed, raw, 4), seedFor: (n: number) => FREEKICK_DEAL_V4[n % FREEKICK_DEAL_V4.length]! },

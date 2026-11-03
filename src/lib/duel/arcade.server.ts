@@ -4,7 +4,7 @@ import { TEN_DROP_DEPTH_REV } from "@/lib/arcade/tenDrop";
 import { SLICE_REV_TARGET, SLICE_REV_STRICT, SLICE_REV_STANDARD } from "@/lib/arcade/slice";
 import { FLIP_REV_TARGET, FLIP_REV_STRICT, FLIP_REV_FLOW } from "@/lib/arcade/flip";
 import { CROSS_REV_FLOW } from "@/lib/arcade/cross";
-import { INK_REV_STD } from "@/lib/arcade/inkBridge";
+import { INK_REV_CLOVER, INK_REV_STD } from "@/lib/arcade/inkBridge";
 import { SNAKE_REV_TARGET, SNAKE_REV_12 } from "@/lib/arcade/snake";
 import { BUB_REV_STD } from "@/lib/arcade/bubble";
 import { MATCHUP_REV_SIX } from "@/lib/arcade/matchup";
@@ -16,7 +16,7 @@ import { TILT_REV_PAR } from "@/lib/arcade/tilt";
 import { TILT_BANK } from "./tiltBank.server";
 import { JUNC_REV_BAND } from "@/lib/arcade/junction";
 import { BINTOSS_REV_TARGET, BINTOSS_REV_STRICT, BINTOSS_REV_STD } from "@/lib/arcade/binToss";
-import { SWING_REV_TALL, SWING_REV_TARGET, SWING_REV_STRICT, SWING_REV_EXPAND, SWING_REV_ASSAULT, SWING_REV_REWORK, SWING_REV_DARK } from "@/lib/arcade/swing";
+import { SWING_REV_TALL, SWING_REV_TARGET, SWING_REV_STRICT, SWING_REV_EXPAND, SWING_REV_ASSAULT, SWING_REV_REWORK, SWING_REV_DARK, SWING_REV_SLIDE } from "@/lib/arcade/swing";
 import { BURST_REV_TARGET, BURST_REV_STRICT, BURST_REV_STD } from "@/lib/arcade/burst";
 import { BRK_REV_TARGET, BRK_REV_STRICT, BRK_REV_DEEP, BRK_REV_PHONE, BRK_REV_STD } from "@/lib/arcade/breaker";
 import { PIN_REV_TARGET, PIN_REV_STRICT, PIN_REV_EXPAND, PIN_REV_LONG, PIN_REV_STD } from "@/lib/arcade/pinball";
@@ -30,6 +30,7 @@ import { orbitFuelCourseForSeed, orbitXpCourseForSeed, orbitHolesForBankSeed, or
 import { proveSwingSeed } from "./swingProof.server";
 import { SWING_V9_BANK } from "./swingBankV9.server";
 import { SWING_V13_BANK } from "./swingBankV13.server";
+import { swingSlideDealSeed } from "./swingSlideDeal.server";
 import { CLAY_REV_DEPTH } from "@/lib/arcade/clayShoot";
 import { WORDFALL_REV_BANDS } from "@/lib/arcade/wordfall";
 import { dealtTopupRev } from "./depthTopup";
@@ -305,10 +306,22 @@ export function generateJunction(): JunctionPuzzleData {
   return { type: "junction", seed: arcadeSeed(), junctionRev: JUNC_REV_BAND };
 }
 
+let inkPreClover = false;
+/**
+ * Checks written for inkRev 12 (the arcade scoring standard) and earlier: deal inkRev 12 as rooms did before inkRev 13
+ * (returns the previous setting), so they keep proving what they were written for.
+ */
+export function pinInkPreClover(on: boolean): boolean {
+  const prev = inkPreClover;
+  inkPreClover = on;
+  return prev;
+}
+
 export function generateInkBridge(): InkBridgePuzzleData {
   // inkRev 11 (phone notes, 27 Oct 2026): no wind zones, fewer silver coins, the pickups spread out.
   // inkRev 12 (the arcade scoring standard, 29 Oct 2026): inkRev 11's play scored on straight lines and fixed shares.
-  return { type: "inkbridge", seed: arcadeSeed(), inkRev: INK_REV_STD };
+  // inkRev 13 (Nov 2026, docs/arcade-standard/inkbridge.md): clovers, ink par and more birds; no stars or silver coins.
+  return { type: "inkbridge", seed: arcadeSeed(), inkRev: inkPreClover ? INK_REV_STD : INK_REV_CLOVER };
 }
 
 export function generateBurst(): BurstPuzzleData {
@@ -394,9 +407,23 @@ export function pinSwingPreDark(on: boolean): boolean {
   return prev;
 }
 
+let swingPreSlide = false;
+/**
+ * Checks written for swingRev 16 (the dark ledge runs): deal it as rooms did before the sliding hooks and the streak
+ * (swingRev 17, 3 Nov 2026; returns the previous setting), so they keep proving what they were written for.
+ */
+export function pinSwingPreSlide(on: boolean): boolean {
+  const prev = swingPreSlide;
+  swingPreSlide = on;
+  return prev;
+}
+
 export function generateSwing(): SwingPuzzleData {
   const roomSeed = arcadeSeed();
-  // swingRev 16 (the dark ledge runs, 90 s), 15 (the swinging course) and 14 (the assault course): any seed; the course is built and proved from it in the sim.
+  // swingRev 17 (the sliding hooks and the streak): from its deal, courses whose oracle run replays to exactly 200
+  // (scripts/swing-slide-deal.ts, as Apex's). 16 (the dark ledge runs, 90 s), 15 (the swinging course) and 14 (the
+  // assault course): any seed; the course is built and proved from it in the sim.
+  if (!swingPreAssault && !swingPreRework && !swingPreDark && !swingPreSlide) return { type: "swing", seed: swingSlideDealSeed(roomSeed), swingRev: SWING_REV_SLIDE };
   if (!swingPreAssault && !swingPreRework && !swingPreDark) return { type: "swing", seed: roomSeed, swingRev: SWING_REV_DARK };
   if (!swingPreAssault && !swingPreRework) return { type: "swing", seed: roomSeed, swingRev: SWING_REV_REWORK };
   if (!swingPreAssault) return { type: "swing", seed: roomSeed, swingRev: SWING_REV_ASSAULT };

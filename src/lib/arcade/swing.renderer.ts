@@ -46,6 +46,10 @@ import {
   SWING_REV_ASSAULT,
   SWING_REV_REWORK,
   SWING_REV_DARK,
+  SWING_REV_SLIDE,
+  swingAnchorAt,
+  swingStreakNow,
+  SWING_V17_STREAK_BLOCK,
   SWING_NO_DARK,
   SWING_KIND_SWING,
   SWING_V16_HOOK_LIGHT,
@@ -644,7 +648,11 @@ function drawSwingArtWorld(ctx: CanvasRenderingContext2D, state: SwingState, siz
   const taken = new Set(state.starsTaken ?? []);
   // swingRev 14: only the hooks of the sections reached (the next section's appear when its start ledge is reached).
   const hooksShown = state.assault && !state.rework ? (() => { const sec = state.sections![Math.min(state.sec ?? 0, state.sections!.length - 1)]!; return sec.hook0 + sec.hooks; })() : Infinity;
-  state.anchors.forEach((a, i) => {
+  // swingRev 17: each sliding hook's rail first (a slot in the rock, end to end of its travel), under its ring.
+  if (state.slide) drawRails(ctx, state, sx, SWING_WORLD_W);
+  state.anchors.forEach((home, i) => {
+    // swingRev 17: a sliding hook is drawn where the sim has it this tick (swingAnchorAt; a stopped one where it stopped).
+    const a = state.slide ? swingAnchorAt(state, i, state.tick) : home;
     const x = sx(a.x);
     if (x < -20 || x > SWING_WORLD_W + 20 || i >= hooksShown || (state.dark && !swingHookLit(state, i))) return;
     // swingRev 4: a gold star around each star anchor until it is taken.
@@ -1020,7 +1028,9 @@ const expandArtGameV13 = { ...swingGameFor(SWING_REV_EXPAND), draw: drawSwingArt
 const assaultArtGameV14 = { ...swingGameFor(SWING_REV_ASSAULT), draw: drawSwingArt };
 const reworkArtGameV15 = { ...swingGameFor(SWING_REV_REWORK), draw: drawSwingArt };
 const darkArtGameV16 = { ...swingGameFor(SWING_REV_DARK), draw: drawSwingArt };
+const slideArtGameV17 = { ...swingGameFor(SWING_REV_SLIDE), draw: drawSwingArt };
 export function swingArtGameFor(rev?: number): typeof swingArtGame {
+  if (rev === SWING_REV_SLIDE) return slideArtGameV17;
   if (rev === SWING_REV_DARK) return darkArtGameV16;
   if (rev === SWING_REV_REWORK) return reworkArtGameV15;
   if (rev === SWING_REV_ASSAULT) return assaultArtGameV14;
@@ -1407,6 +1417,18 @@ function drawAssaultHud(ctx: CanvasRenderingContext2D, state: SwingState, width:
   }
   ctx.textAlign = "right";
   ctx.fillStyle = SWING_GOLD;
+  if (state.slide) {
+    // swingRev 17: the clean-swing streak (gold from a whole block on) and the gates lit; no stars or gems.
+    const streak = swingStreakNow(state);
+    ctx.font = "600 16px 'JetBrains Mono', ui-monospace, monospace";
+    ctx.fillStyle = streak >= SWING_V17_STREAK_BLOCK ? SWING_GOLD : "rgba(235,235,245,0.85)";
+    ctx.fillText(`STREAK ×${streak}`, width - 14, 26);
+    ctx.font = "600 13px 'JetBrains Mono', ui-monospace, monospace";
+    ctx.fillStyle = "rgba(255,224,138,0.9)";
+    ctx.fillText(`GATES ${c.gates} / ${c.gateTotal}`, width - 14, 46);
+    ctx.textAlign = "left";
+    return;
+  }
   const stars = `${(state.starsTaken ?? []).length} / ${c.starTotal}`;
   ctx.font = "600 16px 'JetBrains Mono', ui-monospace, monospace";
   ctx.fillText(stars, width - 14, 26);
@@ -1417,6 +1439,44 @@ function drawAssaultHud(ctx: CanvasRenderingContext2D, state: SwingState, width:
   ctx.fillText(gems, width - 14, 46);
   drawCrystal(ctx, width - 24 - ctx.measureText(gems).width, 41, 6, 0, true);
   ctx.textAlign = "left";
+}
+
+/**
+ * swingRev 17: each sliding hook's rail, a dark slot cut in the rock from one end of its travel to the other with a
+ * faint warm edge and a small stop at each end; a stopped hook's rail is drawn fainter. Not drawn in the dark (as its hook).
+ */
+function drawRails(ctx: CanvasRenderingContext2D, state: SwingState, sx: (x: number) => number, width: number): void {
+  const list = state.sliders ?? [];
+  list.forEach((sl, n) => {
+    if (state.dark && !swingHookLit(state, sl.i)) return;
+    const x0 = sx(sl.x - sl.amp);
+    const x1 = sx(sl.x + sl.amp);
+    if (x1 < -20 || x0 > width + 20) return;
+    const y = state.anchors[sl.i]!.y / FP;
+    const stopped = ((state.slideLock ?? 0) & (1 << n)) !== 0;
+    ctx.save();
+    ctx.globalAlpha = stopped ? 0.45 : 1;
+    ctx.lineCap = "round";
+    ctx.strokeStyle = "rgba(6,4,8,0.9)";
+    ctx.lineWidth = 5;
+    ctx.beginPath();
+    ctx.moveTo(x0, y);
+    ctx.lineTo(x1, y);
+    ctx.stroke();
+    ctx.strokeStyle = "rgba(201,162,90,0.55)";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(x0, y - 2.5);
+    ctx.lineTo(x1, y - 2.5);
+    ctx.stroke();
+    ctx.fillStyle = "#8A6E3E";
+    for (const ex of [x0, x1]) {
+      ctx.beginPath();
+      ctx.arc(ex, y, 2.2, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
+  });
 }
 
 function bitsOf(n: number): number {

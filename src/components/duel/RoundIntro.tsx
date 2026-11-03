@@ -1,5 +1,6 @@
 import { puzzleDef, puzzleName, typeTimeLimitMs, usesArcadeClock } from "@/lib/duel/registry";
 import { prepareSwingCourse } from "@/lib/arcade/swing";
+import { prepareInkLevels } from "@/lib/arcade/inkBridge";
 import { mgDeal } from "@/lib/arcade/cards/muggins";
 import { pyDeal } from "@/lib/arcade/cards/pyramid";
 import { INTRO_COUNTDOWN_MS, INTRO_MS, TOTAL_ROUNDS, type PuzzleType } from "@/lib/duel/types";
@@ -171,7 +172,7 @@ export function RoundIntro({
     if (type === "beat") prepareBeatTrack();
   }, [type, practice]);
 
-  // Grappler (swingRev 14, 15 and 16) builds and proves its course from the seed: built while the intro is up (after its
+  // Grappler (swingRev 14, 15, 16 and 17) builds and proves its course from the seed: built while the intro is up (after its
   // first paint), so the round itself starts at once (rooms and practice; an async round's seed arrives at its start).
   useEffect(() => {
     if (puzzle?.type !== "swing") return;
@@ -185,6 +186,15 @@ export function RoundIntro({
     if (puzzle?.type !== "muggins" && puzzle?.type !== "pyramid") return;
     const { type: kind, seed } = puzzle;
     const timer = window.setTimeout(() => (kind === "muggins" ? mgDeal(seed) : pyDeal(seed)), 120);
+    return () => window.clearTimeout(timer);
+  }, [puzzle]);
+
+  // Rainbow Bridge builds and proves its ten levels from the seed (cached; inkRev 13's take longest): built while the
+  // intro is up, the same way.
+  useEffect(() => {
+    if (puzzle?.type !== "inkbridge") return;
+    const { seed, inkRev } = puzzle;
+    const timer = window.setTimeout(() => prepareInkLevels(seed, inkRev), 120);
     return () => window.clearTimeout(timer);
   }, [puzzle]);
 
