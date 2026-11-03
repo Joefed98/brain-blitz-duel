@@ -1,3 +1,4 @@
+import { usesParMoves } from "./parMoves";
 import { PUZZLE_SCORE_REV, puzzleScoreRevOf } from "./puzzleScoreRev";
 import { ARCADE_STANDARD } from "@/lib/arcade/standard";
 import { LAB_STARS } from "./depth/labyrinth";
@@ -753,6 +754,18 @@ const towerSummary: SummaryBuilder = (result, puzzle) => {
 const mazeSummary: SummaryBuilder = (result, puzzle) => {
   if (puzzle.type !== "maze") return { summary: "—", detail: [] };
   const progress = Number(result.extra?.["progress"] ?? 0);
+  // mazeRev 4 (the puzzle batch of 3 Nov 2026, parMoves.ts): no stars; a finish shows its steps against par.
+  if (usesParMoves(puzzle)) {
+    if (result.is_correct) {
+      const steps = Number(result.extra?.["steps"] ?? 0);
+      const par = Number(result.extra?.["parSteps"] ?? 0);
+      return {
+        summary: `Solved · ${steps} steps (par ${par}) · ${seconds(elapsedMs(result, puzzle))}`,
+        detail: [steps <= par ? "Reached the exit with no wasted step" : `${steps - par} steps over par`],
+      };
+    }
+    return { summary: `${progress}%`, detail: [`${progress}% of the way to the exit`] };
+  }
   // mazeRev 1 (depth/labyrinth.ts): the stars the trail took, and their stored points on a finish.
   const stars = Array.isArray(result.extra?.["stars"]) ? (result.extra!["stars"] as unknown[]).length : null;
   const starText = stars === null ? "" : ` · ★ ${stars}/${LAB_STARS}`;
@@ -846,6 +859,14 @@ const gravitySummary: SummaryBuilder = (result, puzzle) => {
     const home = Number(result.extra?.["home"] ?? 0);
     const stars = Number(result.extra?.["stars"] ?? 0);
     const out = Number(result.extra?.["outOfTilts"] ?? 0);
+    // gravityRev 6 (the puzzle batch of 3 Nov 2026, parMoves.ts): no stars; a finish shows its tilts against par.
+    if (usesParMoves(puzzle) && result.is_correct) {
+      const par = Number(result.extra?.["parTilts"] ?? 0);
+      return {
+        summary: `Cleared · ${tilts} tilts (par ${par}) · ${seconds(elapsedMs(result, puzzle))}`,
+        detail: [tilts <= par ? "Cleared in the fewest tilts" : `${tilts - par} tilts over par`],
+      };
+    }
     return {
       summary: result.is_correct
         ? `Cleared · ${stars} / ${TOPSY_BOARDS * TOPSY_STARS} stars · ${seconds(elapsedMs(result, puzzle))}`

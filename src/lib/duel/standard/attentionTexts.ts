@@ -18,6 +18,7 @@ import {
   CLASH_STREAK_FROM,
 } from "@/lib/arcade/colourClash";
 import { STANDARD_FINISH, STANDARD_UNFINISHED_CAP } from "./shape";
+import { PAR_MOVES_STD } from "../parMoves";
 import { ASCEND_STD, CHAIN_STD, COUNT_STD, MAZE_STD, PAIR_STD, SCAN_STD, SPOT_STD } from "./attention";
 
 const CAP = STANDARD_UNFINISHED_CAP;
@@ -65,6 +66,13 @@ export const STANDARD_ATTENTION_HELP = {
     `All 15 is a finish: ${FIN}, plus ${speedLine(PAIR_STD.speed, PAIR_STD.fullByS)}. ` +
     `Matches in a row build a streak: 1 for each match in your longest streak beyond the first ${PAIR_STD.streakFrom}, up to ${PAIR_STD.streak}; the gold pair adds ${PAIR_STD.gold} if you match it in the first ${PAIR_STD.goldWindowMs / 1000} s. Both count finished or not. ${capLine} {max} needs a finish within ${PAIR_STD.fullByS} s, a long streak and the gold pair.`,
 } as const;
+
+/** Labyrinth on the puzzle batch's stamp (3 Nov 2026, parMoves.ts: mazeRev 4): no stars; 150 + speed + par moves. */
+export const PAR_MOVES_MAZE_HELP = () =>
+  `Unfinished: up to ${MAZE_STD.share} for how far along the route you got (wandering costs), plus up to ${MAZE_STD.early} for getting there early. ` +
+  `Reaching the exit is a finish: ${FIN}, plus ${speedLine(PAR_MOVES_STD.speed, MAZE_STD.fullByS)}, plus up to ${PAR_MOVES_STD.par} for moves: all of it if every step you took (steps back included) adds up to no more than the route's length (par), less for each one over, none at twice par. ${capLine} {max} is the exit within ${MAZE_STD.fullByS} s with no wasted step.`;
+
+export const PAR_MOVES_MAZE_INTRO = `Route: up to ${CAP}. Exit: ${FIN}+, {max} fast with no wasted steps.`;
 
 /* ------------------------------------------------------------------ intro lines (at most 90 characters) */
 
