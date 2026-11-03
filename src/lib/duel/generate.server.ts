@@ -18,6 +18,8 @@ import { WORDHUNT_REV_TARGET, WORDSMITH_REV_DEPTH, WORDSMITH_REV_TARGET, WORDSMI
 import { dealtTopupRev } from "./depthTopup";
 import { dealStandard, usesStandard } from "./standard/stamps";
 import { dealPuzzleNotes } from "./puzzleNotes";
+import { dealParMoves } from "./parMoves";
+import { topsyPlainRoutes } from "./topsy.server";
 import { varyTallyTray } from "@/puzzles/countUp";
 import { gradeStandard } from "./standard/grade.server";
 import { splitTimeline } from "./standard/timeline";
@@ -157,7 +159,9 @@ export function generatePuzzle(type: PuzzleType, context: GenerateContext = {}):
   // The scoring standard (standard/stamps.ts): the game's live stamp moves up by one, on today's score revision only.
   if (puzzleScoreRevOf(stamped) !== PUZZLE_SCORE_REV_DEALT) return stamped;
   // Joe's puzzle notes (28 Oct 2026, puzzleNotes.ts): Slider and Tally one stamp above the standard's.
-  return dealPuzzleNotes(dealStandard(stamped), (p) => (p.type === "countup" ? varyTallyTray(p) : p));
+  // The puzzle batch of 3 Nov 2026 (parMoves.ts): Labyrinth, Topsy-Turvy and Skid one stamp above the standard's,
+  // their collectibles gone.
+  return dealParMoves(dealPuzzleNotes(dealStandard(stamped), (p) => (p.type === "countup" ? varyTallyTray(p) : p)), (p) => (p.type === "gravity" ? topsyPlainRoutes(p) : p));
 }
 
 function generateUnstamped(type: PuzzleType, context: GenerateContext): PuzzleData {

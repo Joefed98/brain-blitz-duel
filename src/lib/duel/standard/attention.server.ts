@@ -16,7 +16,8 @@ import { decodePairFlips, replayPairs } from "../pairmatch";
 import { pairDepthReplay, splitPairGoldTime } from "../depth/matchmaker";
 import { spotBonusFound } from "../depth/doubleTake";
 import type { CountUpPuzzleData, MazePuzzleData, SymbolScanPuzzleData, PuzzleType } from "../types";
-import { earlyPoints, speedPoints } from "./shape";
+import { earlyPoints, parPoints, speedPoints } from "./shape";
+import { PAR_MOVES_STD, usesParMoves } from "../parMoves";
 import type { StandardGame } from "./grade.server";
 import { ASCEND_STD, CHAIN_STD, COUNT_STD, MAZE_STD, PAIR_STD, SCAN_STD, SPOT_STD, ascendBestRun, ascendFlowPoints, mazeStarPoints, pairGoldPoints, pairStreakPoints } from "./attention";
 
@@ -163,6 +164,8 @@ interface MazeRun {
   waste: number;
   stars: number;
   starCount: number;
+  /** Steps walked (every legal step of the trail, backtracks included) and the route's steps: the par-moves stamp's moves and par. */
+  walked: number;
 }
 
 function mazeRun(puzzle: MazePuzzleData, answer: string): MazeRun {
@@ -175,7 +178,7 @@ function mazeRun(puzzle: MazePuzzleData, answer: string): MazeRun {
   const waste = wasteFactor(verdict.walked, length);
   const share = (Math.max(0, progress * waste - MAZE_REV1_DEAD_ZONE) / (1 - MAZE_REV1_DEAD_ZONE));
   const stars = puzzle.stars ?? [];
-  return { steps: Math.round(progress * (length - 1)), routeSteps: length - 1, share: Math.min(1, share), waste, stars: mazeStarsTaken(walk, stars).length, starCount: stars.length };
+  return { steps: Math.round(progress * (length - 1)), routeSteps: length - 1, share: Math.min(1, share), waste, stars: mazeStarsTaken(walk, stars).length, starCount: stars.length, walked: Math.max(0, walk.length - 1) };
 }
 
 const labyrinth: StandardGame = {
@@ -183,6 +186,15 @@ const labyrinth: StandardGame = {
   grade({ puzzle, answer, graded, limitMs, msLeft }, ctx) {
     if (puzzle.type !== "maze") return { finished: false, credit: 0 };
     const run = mazeRun(puzzle, answer);
+    // mazeRev 4 (the puzzle batch of 3 Nov 2026, parMoves.ts): no stars; a finish is 150 + speed + par moves.
+    if (usesParMoves(puzzle)) {
+      const facts = { steps: run.walked, parSteps: run.routeSteps };
+      if (graded.isCorrect) {
+        return { finished: true, speed: speedFor(PAR_MOVES_STD.speed, MAZE_STD.fullByS, msLeft, limitMs), bonus: parPoints(PAR_MOVES_STD.par, run.walked, run.routeSteps), measure: "par", facts };
+      }
+      const early = ctx.early(MAZE_STD.early / Math.max(1, run.routeSteps), run.steps) * run.waste;
+      return { finished: false, credit: MAZE_STD.share * run.share + early, facts };
+    }
     const stars = mazeStarPoints(run.stars, run.starCount);
     const facts = { starBonus: Math.round(stars), starsTaken: run.stars };
     if (graded.isCorrect) return { finished: true, speed: speedFor(MAZE_STD.speed, MAZE_STD.fullByS, msLeft, limitMs), bonus: stars, measure: "stars", facts };
