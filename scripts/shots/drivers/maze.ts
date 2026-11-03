@@ -30,7 +30,9 @@ function branchTo(m: Maze, star: number): number[] {
 /** The trail along the route to step `upTo`, taking the stars listed in `take` on the way. */
 function trail(m: Maze, upTo: number, take: number[]): number[] {
   const route: number[] = m.solution;
-  const branches = take.map((i) => branchTo(m, m.stars[i]));
+  // mazeRev 4 (the puzzle batch of 3 Nov 2026) deals no stars.
+  const stars: number[] = m.stars ?? [];
+  const branches = take.filter((i) => i < stars.length).map((i) => branchTo(m, stars[i]!));
   const out = [route[0]!];
   for (let i = 1; i <= upTo; i++) {
     for (const b of branches) if (b[0] === route[i - 1]) out.push(...b.slice(1), ...b.slice(0, -1).reverse());

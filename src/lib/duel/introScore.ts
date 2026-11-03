@@ -19,9 +19,10 @@ import { CODEWORD_STRETCH, TILEGRID_STRETCH_TOPUP, stretchIntro, strikeoutDepthI
 import { parBonusIntro } from "./parBonusText";
 import { WORD_STANDARD_INTRO } from "./standard/word";
 import { preStandardPinned } from "./standard/stamps";
-import { STANDARD_ATTENTION_INTRO } from "./standard/attentionTexts";
+import { PAR_MOVES_MAZE_INTRO, STANDARD_ATTENTION_INTRO } from "./standard/attentionTexts";
+import { parMovesDealt } from "./parMoves";
 import { BANGON_DEPTH_INTRO, FLASH_DEPTH_INTRO } from "./depth/speedTexts";
-import { PATTERN_STD_INTRO } from "./standard/patternText";
+import { PAR_MOVES_PATTERN_INTRO, PATTERN_STD_INTRO } from "./standard/patternText";
 import { standardNumberIntro } from "./standard/numberText";
 import { fillMax, liveRecord } from "./roundMax";
 import type { PuzzleType } from "./types";
@@ -79,7 +80,8 @@ function introScoreTemplates(): Record<PuzzleType, string> {
     countup: STANDARD_ATTENTION_INTRO.countup,
     spotdiff: STANDARD_ATTENTION_INTRO.spotdiff,
     pairmatch: STANDARD_ATTENTION_INTRO.pairmatch,
-    maze: STANDARD_ATTENTION_INTRO.maze,
+    // The puzzle batch of 3 Nov 2026 (parMoves.ts): no stars, par moves.
+    maze: parMovesDealt() ? PAR_MOVES_MAZE_INTRO : STANDARD_ATTENTION_INTRO.maze,
     stroop: STANDARD_ATTENTION_INTRO.stroop,
 
     // Logic and pattern
@@ -88,14 +90,14 @@ function introScoreTemplates(): Record<PuzzleType, string> {
     pipes: PATTERN_STD_INTRO.pipes,
     sudoku: logicStandardIntro("sudoku"),
     flow: PATTERN_STD_INTRO.flow,
-    iceslide: PATTERN_STD_INTRO.iceslide,
+    iceslide: parMovesDealt() ? PAR_MOVES_PATTERN_INTRO.iceslide : PATTERN_STD_INTRO.iceslide,
     push: PATTERN_STD_INTRO.push,
     laser: PATTERN_STD_INTRO.laser,
     tower: logicStandardIntro("tower"),
     tubes: logicStandardIntro("tubes"),
     safe: logicStandardIntro("safe"),
     bomb: logicStandardIntro("bomb"),
-    gravity: PATTERN_STD_INTRO.gravity,
+    gravity: parMovesDealt() ? PAR_MOVES_PATTERN_INTRO.gravity : PATTERN_STD_INTRO.gravity,
     nonogram: logicStandardIntro("nonogram"),
     flood: logicStandardIntro("flood"),
     tiles: PATTERN_STD_INTRO.tiles,
