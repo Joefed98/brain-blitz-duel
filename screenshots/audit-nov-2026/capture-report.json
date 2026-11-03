@@ -627,5 +627,67 @@
   "revealAtS": 51,
   "score": "0",
   "seconds": 90
+ },
+ "tower": {
+  "input": "driver",
+  "intro": true,
+  "clockS": 89,
+  "midAtS": 46,
+  "reveal": "solved by the driver",
+  "revealText": [
+   "Hanoi",
+   "Practice",
+   "Solved in 56.6 s",
+   "Your tower",
+   "190 points",
+   "34 ✓MOVES · PERFECT SOLVE · PAR 34 · 56.6S",
+   "Park the big rings where they won't block you.",
+   "Back",
+   "Play again"
+  ],
+  "revealAtS": 60,
+  "score": "190",
+  "seconds": 87
+ },
+ "push": {
+  "input": "driver",
+  "intro": true,
+  "clockS": 119,
+  "midAtS": 61,
+  "reveal": "solved by the driver",
+  "revealText": [
+   "Heave",
+   "Practice",
+   "Solved in 1.9 s",
+   "The minimum solution",
+   "200 points",
+   "MINIMUM · 27 PUSHES",
+   "✓ 27 PUSHES · 1.9S",
+   "Back",
+   "Play again"
+  ],
+  "revealAtS": 94,
+  "score": "200",
+  "seconds": 135
+ },
+ "maze": {
+  "input": "driver",
+  "intro": true,
+  "clockS": 59,
+  "midAtS": 32,
+  "reveal": "solved by the driver",
+  "revealText": [
+   "Labyrinth",
+   "Practice",
+   "Solved in 2.6 s",
+   "The route",
+   "200 points",
+   "SOLVED · 2.6S · 120 STEPS, PAR 120",
+   "Back",
+   "Play again"
+  ],
+  "revealAtS": 64,
+  "score": "200",
+  "seconds": 85
  }
 }

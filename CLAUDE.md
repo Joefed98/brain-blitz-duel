@@ -11,7 +11,7 @@ override anything general here.
 
 Duelz: a multiplayer skill-game app. Up to 16 players (`MAX_PLAYERS`, 10 until 31 Oct 2026) join a room with a
 short code and play the same timed rounds; 92 active games across Word, Number, Speed, Attention,
-Pattern, Logic and Arcade (Word 9, Number 9 (Kakuro since 1 Nov 2026), Speed 6, Attention 6, Pattern 10, Logic 15 (Trail moved from Number on 27 Oct 2026; Loopline, Regions and Island Link since 1 Nov 2026, shown as Fences, Fillomino and Bridges until 3 Nov 2026),
+Pattern, Logic and Arcade (Word 9, Number 9 (Kakuro since 1 Nov 2026), Speed 6, Attention 7 (Bomb Defusal moved from Logic on 3 Nov 2026), Pattern 10, Logic 14 (Trail moved from Number on 27 Oct 2026; Loopline, Regions and Island Link since 1 Nov 2026, shown as Fences, Fillomino and Bridges until 3 Nov 2026),
 Arcade 37 with Pinball, since 1 Nov 2026 Blockfall (Retro; shown as Blockzone since 3 Nov 2026, `blockfallRev` 2), Alley Roll (Sports; shown as Ringer since 3 Nov 2026), Ricochet back as the ninja wall-climb (`ricoRev` 2, Action; shown as Moon Climb since 3 Nov 2026, `ricoRev` 3) and Iron Wall (id `bastion`, shown as Bastion until 3 Nov 2026) back as the tank-defence shooter (`bastionRev 2`; `bastionRev 3` since 3 Nov 2026, Action), and, since 30 Oct 2026, the Cards & Board group's Minefield (shown as Minesweeper until 31 Oct 2026), Mahjong Solitaire, Free Cell and Summit (shown as FreeCell and TriPeaks until 31 Oct 2026), since 31 Oct 2026 Five Hands, since 1 Nov 2026 Pyramid (shown as Thirteen since 3 Nov 2026), and the Sports group's Home Run, Top Bins, Apex (shown as Home Run Derby, Free Kick and Racing until 31 Oct 2026), Crazy Golf, Cue Ball and Curl Champ (shown as Minigolf, Speed Pool and Curling until 31 Oct 2026) dealt in rooms; 12 retired to practice: Swerve, Steady, Dual,
 Rooftop Run, Junction, Dig, Hot Floor, since 20 Oct 2026 Letterfall and, since 27 Oct 2026
 (Joe's decision), Scrumper (`snip`: out of room draws and the Practice list's main shelves, in its
@@ -1319,6 +1319,34 @@ outside the repo.
   practice (`RETIRED_TYPES`, `RETIRED_ARCADE_GAMES`); **Pyramid** shown as **Thirteen** (`gameNames.ts`, id `pyramid`).
   cards-check, arcade-standard-check, category-pool-check, practice-switch-check, room-settings-check (legacy digest
   re-recorded: the arcade pool changed). Intro stills only.
+- **Shared screens batch** (3 Nov 2026; presentation, room setup, sound and input mapping only, no stamps, no game's
+  play or scoring changed). *The answer reveal is its own screen* for every game (PhoneShell `reveal`,
+  `data-reveal-screen`, `polish-layout/reveal-screen.css`): no frozen world behind the arcade reveal (ArcadeReveal's
+  backdrop and scrim are gone), no app top bar (the reveal's header row has the sound button), a gradient in the
+  game's own colours from its tile (`revealPalette.ts`, `revealPalette.data.ts` by `bun scripts/reveal-palette.ts`,
+  every stop at least 7:1 under white text; **re-run it after re-exporting a tile**). The arcade chart is a snake in
+  four 50-point bands on one 0–200 axis (thin lines at 50/100/150, labels 0–200 down the left; `arcadeChart.ts`
+  `CHART_ROW_COUNT`), taller (up to 360 px spare). *Categories*: High Rise back in Action, Bomb Defusal an Attention
+  puzzle, and games in two categories (`src/lib/duel/alsoIn.ts`: a main category for counts, colours and the border;
+  "also in" lists the game in one more Practice section and room pool, only when its main pick isn't also chosen,
+  so Mixed counts Pull! once under Speed; `dealRoomRounds` never deals a game twice). Pull! (Speed) is also in
+  Sports. Settings saved before keep reading as before (their picks are unchanged; High Rise now deals under Action).
+  *Quick fixes*: the offline worker refreshes kept media whose bytes changed (`CONFIG.mediaHash`, SHA-256 per file;
+  redrawn tiles such as Moon Climb's, Iron Wall's and Ringer's kept their first copy on phones with offline practice;
+  offline-media-refresh-check); Iron Wall's crosshair 120 px above the thumb; Curl Champ's In / Out / Throw centred
+  between the hog line and the near house (`CURL_TURN_ROW_TOP`, `ArcadeCanvasStage` `overlayBelowWorld`; the parity
+  check's curlRev 4 exception follows it); Blockzone's soft drop ends on lift and on lock (`blockfallSoftDrop.ts`
+  through the stage's new `discreteTick`; a flick's release used to send only the drop, so the sim's `soft` stayed
+  on for every later piece; blockzone-soft-check). *Sounds*: Joe's `sounds-nov-2026` files for every Moon Climb, Iron
+  Wall, Blockzone and Ringer slot in `docs/sound-cues/mapping-nov-2026.csv`, their four beds and Gemstone's
+  `music_matchup.mp3` (the chiptune `music_matchup2.mp3` removed); voice lines `round8`–`round11` and five moment
+  lines through `queueVoice` (never over another line; `src/lib/fx/roomVoices.ts`): `voice.newBest` (practice's New
+  best), `voice.photoFinish` (a round's top two 1–5 apart), `voice.newLeader` (standings, first place changed hands),
+  `voice.cleanSweep` (one player took every round), `voice.draw` (first place shared at the end, in place of
+  `voice.tie` there). *Audit*: `screenshots/audit-nov-2026/` and `docs/audit/intro-reveal-text.md` (no text
+  changed). New checks: reveal-palette-check, blockzone-soft-check, offline-media-refresh-check; arcade-chart,
+  round-max, room-extras, reveal-marker, room-settings (legacy digest re-recorded: Bomb Defusal's move changes older
+  rooms' category pools), category-pool, practice-switch, room-practice-parity and sound-batch6 updated.
 - `src/components/duel/` — room/round screens (PhoneShell, RoundIntro, TimerBar,
   AnswerReveal, ArcadeReveal, WinnerReveal…); `src/components/puzzles/` — shared puzzle
   widgets; `src/lib/fx/` — sound and visual feedback (presentation only).
