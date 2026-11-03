@@ -1,4 +1,4 @@
-# Curling (`curling`, `curlRev` 1, 2 and 3; shown as Curl Champ)
+# Curling (`curling`, `curlRev` 1, 2, 3 and 4; shown as Curl Champ)
 
 The Sports group (30 Oct 2026). Eight stones in 120 s, a broadcast view from behind the thrower down the whole sheet
 (real proportions, perspective) to the far house; a top-down inset of the house (top right) shows exactly where every

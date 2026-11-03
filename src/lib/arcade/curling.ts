@@ -36,6 +36,13 @@
  * sheet) and a faint aim line (curlAimPath: the first third of the stone's path at the zone's tee weight, stepped
  * through curlMotionTick on a copy of the sheet); both are pure helpers here that only read, never the sim's state.
  * Rooms deal curlRev 3 sheets from their own proven bank (src/lib/duel/curlingBankV3.server.ts).
+ *
+ * curlRev 4 (3 Nov 2026, Joe's sports batch; docs/arcade-standard/curling.md "curlRev 4"): curlRev 3's sheet, weight
+ * line, brushing and aids, with the weight set on the power bar and a Throw button on the phone (the same kind-1
+ * throw). Every end starts with three red stones in seeded places in or around the house (curlingOpponentsV4), and
+ * the core follows curling's count: a stone scores its closeness points only when it comes to rest closer to the button
+ * than every red stone in the house at that moment (curlCounts). Rooms deal curlRev 4 sheets from their own proven
+ * bank (src/lib/duel/curlingBankV4.server.ts).
  */
 import { clampInt, inputRange, isqrt, type ArcadeGame, type ArcadeInputEvent, type CanvasSize } from "./engine";
 import { stdFinal, stdLine, stdPart, type StdPart, type StdSpec } from "./arcadeStandard";
@@ -48,7 +55,9 @@ import { collideEqual, idiv, ilen, sumInts, type SportsCheckpoint } from "./spor
  * brush stroke has a side (left or right of the stone) that bends the stone that way and carries it a little further.
  * curlRev 1 (every stone from the centre line; a sweep runs further and curls less) replays and scores as before.
  */
-export const CURLING_REV = 3;
+export const CURLING_REV = 4;
+/** curlRev 3 (1 Nov 2026): the weight meter's draw zone, the aim line, the gentler weight line. */
+export const CURLING_REV_V3 = 3;
 /** The first revision (30 Oct 2026). */
 export const CURLING_REV_V1 = 1;
 /** curlRev 2 (31 Oct 2026): the start along the near hog line and side brushing. */
@@ -178,14 +187,38 @@ export const CURLING_STD_SPEC_V2: StdSpec = {
 };
 
 /** curlRev 3's spec: the same parts and maximums, the core's line running out to 3.2 m from the button. */
-export const CURLING_STD_SPEC: StdSpec = {
+export const CURLING_STD_SPEC_V3: StdSpec = {
   field: "curlRev",
-  rev: CURLING_REV,
+  rev: CURLING_REV_V3,
   parts: [
     { key: "core", label: "Stones", max: 120, of: CURLING_STONES, item: "stone", how: `up to ${CURL_STONE_PTS} a stone by how close to the button it comes to rest (none from 3.2 m away)` },
     { key: "takeouts", label: "Takeouts", max: CURL_TAKEOUT_PTS, of: 1, item: "takeout", how: "the opponent's stones knocked out of the house, shared evenly" },
     { key: "redring", label: "Red ring", max: CURL_RED_PTS, of: CURLING_STONES, item: "stone", how: "3.75 a stone finishing in the 4-foot" },
     { key: "hold", label: "Holding shot", max: CURL_HOLD_PTS, of: 1, item: "shot", how: "your stone nearest the button at the end" },
+  ],
+};
+
+/**
+ * curlRev 4's parts (re-fitted on the skill bands, docs/arcade-standard/curling.md "curlRev 4"): the core is the larger
+ * share (the measure the count makes harder), on a straight line of closeness points full at CURL_V4_CORE_FULL (seven
+ * stones' worth on the button), and the three features are smaller (a weak player knocked the reds about and held
+ * shot often enough that 30 / 30 / 20 left too little between the levels).
+ */
+export const CURL_V4_CORE_MAX = 150;
+export const CURL_V4_CORE_FULL = 7 * CURL_STONE_PTS;
+export const CURL_V4_TAKEOUT_PTS = 20;
+export const CURL_V4_RED_PTS = 20;
+export const CURL_V4_HOLD_PTS = 10;
+
+/** curlRev 4's spec: only stones nearer the button than every red in the house count towards the core. */
+export const CURLING_STD_SPEC: StdSpec = {
+  field: "curlRev",
+  rev: CURLING_REV,
+  parts: [
+    { key: "core", label: "Stones", max: CURL_V4_CORE_MAX, of: CURLING_STONES, item: "stone", how: `up to ${CURL_STONE_PTS} closeness a stone, only when it stops nearer the button than every red in the house; full at ${CURL_V4_CORE_FULL}` },
+    { key: "takeouts", label: "Takeouts", max: CURL_V4_TAKEOUT_PTS, of: 1, item: "takeout", how: "the red stones knocked out of the house, shared evenly" },
+    { key: "redring", label: "Red ring", max: CURL_V4_RED_PTS, of: CURLING_STONES, item: "stone", how: "2.5 a stone finishing in the 4-foot" },
+    { key: "hold", label: "Holding shot", max: CURL_V4_HOLD_PTS, of: 1, item: "shot", how: "your stone nearest the button at the end" },
   ],
 };
 
@@ -256,8 +289,32 @@ export function curlingOpponents(seed: number): { x: number; y: number }[] {
   return out;
 }
 
+/**
+ * curlRev 4's opponents for a seed: exactly three red stones, their centres OPP_V4_MIN…OPP_V4_MAX cm from the button
+ * (in the 4-foot and 8-foot, one of them out towards the 8-foot's edge), at least 40 cm apart: one within 70 cm and
+ * one beyond it, so every sheet has a stone to beat near the button and one further out.
+ */
+export const OPP_V4_MIN = 35;
+export const OPP_V4_MAX = 110;
+export function curlingOpponentsV4(seed: number): { x: number; y: number }[] {
+  const rnd = dealRng(seed ^ 0x4ed5c4);
+  const out: { x: number; y: number }[] = [];
+  for (let tries = 0; out.length < 3 && tries < 2000; tries++) {
+    const x = rnd(2 * OPP_V4_MAX + 1) - OPP_V4_MAX;
+    const y = rnd(2 * OPP_V4_MAX + 1) - OPP_V4_MAX;
+    const d2 = x * x + y * y;
+    if (d2 < OPP_V4_MIN * OPP_V4_MIN || d2 > OPP_V4_MAX * OPP_V4_MAX) continue;
+    // The first stone close (within 70 cm), the second further out (beyond 70 cm), the third anywhere.
+    if (out.length === 0 && d2 > 70 * 70) continue;
+    if (out.length === 1 && d2 <= 70 * 70) continue;
+    if (out.some((o) => (o.x - x) * (o.x - x) + (o.y - y) * (o.y - y) < 40 * 40)) continue;
+    out.push({ x, y });
+  }
+  return out;
+}
+
 function initState(seed: number, rev: number): CurlingState {
-  const opp = curlingOpponents(seed);
+  const opp = rev >= 4 ? curlingOpponentsV4(seed) : curlingOpponents(seed);
   return {
     tick: 0,
     rev,
@@ -330,8 +387,25 @@ export const CORE_EDGE_V3 = 320;
 /** Closeness points on a revision's line (curlRev 1 and 2: curlStonePoints; curlRev 3: the re-fitted line). */
 export function curlStonePointsFor(rev: number, x: number, y: number): number {
   if (rev < 3) return curlStonePoints(x, y);
+  const edge = rev >= 4 ? CORE_EDGE_V4 : CORE_EDGE_V3;
   const d = curlDist(x, y);
-  return stdLine(CURL_STONE_PTS, Math.max(0, cm(CORE_EDGE_V3) - d), cm(CORE_EDGE_V3 - CORE_FULL_V3));
+  return stdLine(CURL_STONE_PTS, Math.max(0, cm(edge) - d), cm(edge - CORE_FULL_V3));
+}
+
+/** curlRev 4's core line: full on the button, 0 at CORE_EDGE_V4 cm from it (2.6 m: fitted on the skill bands). */
+export const CORE_EDGE_V4 = 260;
+
+/**
+ * curlRev 4's count (curling's rule): stone i, at rest, counts when it is nearer the button than every opponent stone
+ * in the house (touching counts as in). With no red in the house every stone counts.
+ */
+export function curlCounts(s: Pick<CurlingState, "x" | "y" | "live" | "team">, i: number): boolean {
+  const d = curlDist(s.x[i]!, s.y[i]!);
+  for (let j = 0; j < s.x.length; j++) {
+    if (j === i || s.team[j] !== TEAM_THEIRS || !s.live[j] || !curlInHouse(s.x[j]!, s.y[j]!)) continue;
+    if (curlDist(s.x[j]!, s.y[j]!) <= d) return false;
+  }
+  return true;
 }
 
 /** True when a stone at (x, y) is in the house (touching it counts). */
@@ -438,7 +512,8 @@ function settle(s: CurlingState): void {
   const inPlay = s.live[i] === 1;
   // A stone at rest has stopped turning: if it is struck later it slides straight.
   s.curl[i] = 0;
-  s.pts.push(inPlay ? curlStonePointsFor(s.rev, s.x[i]!, s.y[i]!) : 0);
+  // curlRev 4: only a stone nearer the button than every red in the house scores its closeness.
+  s.pts.push(inPlay && (s.rev < 4 || curlCounts(s, i)) ? curlStonePointsFor(s.rev, s.x[i]!, s.y[i]!) : 0);
   s.four.push(inPlay && curlDist(s.x[i]!, s.y[i]!) <= cm(IN_FOUR_FOOT) ? 1 : 0);
   s.active = -1;
   s.sweep = 0;
@@ -538,13 +613,21 @@ export function curlShotTeam(s: CurlingState): number {
 
 /** The standard's parts on curlRev 1, 2 and 3 (the same parts and maximums); null for any other revision. */
 export function curlingStdParts(s: CurlingState): StdPart[] | null {
-  if (s.rev !== CURLING_REV_V1 && s.rev !== CURLING_REV_V2 && s.rev !== CURLING_REV) return null;
+  if (s.rev !== CURLING_REV_V1 && s.rev !== CURLING_REV_V2 && s.rev !== CURLING_REV_V3 && s.rev !== CURLING_REV) return null;
   const core = s.pts.reduce((a, p) => a + p, 0);
   const onButton = s.pts.filter((p) => p === CURL_STONE_PTS).length;
   const out = curlTakeouts(s);
   const red = s.four.reduce((a, p) => a + p, 0);
   const holding = s.acted === 1 && curlShotTeam(s) === TEAM_MINE;
-  const spec = s.rev >= 3 ? CURLING_STD_SPEC : CURLING_STD_SPEC_V2;
+  const spec = s.rev >= 4 ? CURLING_STD_SPEC : s.rev >= 3 ? CURLING_STD_SPEC_V3 : CURLING_STD_SPEC_V2;
+  const counted = s.pts.filter((p) => p > 0).length;
+  if (s.rev >= 4)
+    return [
+      stdPart(spec, "core", stdLine(CURL_V4_CORE_MAX, core, CURL_V4_CORE_FULL), `${s.pts.length} thrown, ${counted} counting, ${onButton} on the button`),
+      stdPart(spec, "takeouts", stdLine(CURL_V4_TAKEOUT_PTS, out, Math.max(1, s.theirs)), `${out} of ${s.theirs} out of the house`),
+      stdPart(spec, "redring", stdLine(CURL_V4_RED_PTS, red, CURLING_STONES), `${red} in the 4-foot`),
+      stdPart(spec, "hold", holding ? CURL_V4_HOLD_PTS : 0, holding ? "yours is shot stone" : "not holding shot"),
+    ];
   return [
     stdPart(spec, "core", core, `${s.pts.length} thrown, ${onButton} on the button`),
     stdPart(spec, "takeouts", stdLine(CURL_TAKEOUT_PTS, out, Math.max(1, s.theirs)), `${out} of ${s.theirs} out of the house`),
@@ -570,9 +653,9 @@ export function curlingCheckpoint(s: CurlingState): SportsCheckpoint & { thrown:
 
 const noDraw = (_ctx: CanvasRenderingContext2D, _s: CurlingState, _size: CanvasSize) => {};
 
-/** The game for a stored curlRev (1, 2 or 3; anything else plays curlRev 1; the default is the dealt stamp). */
+/** The game for a stored curlRev (1–4; anything else plays curlRev 1; the default is the dealt stamp). */
 export function curlingGameFor(rev: number | null | undefined = CURLING_REV): ArcadeGame<CurlingState, ArcadeInputEvent | null> {
-  const r = rev === CURLING_REV || rev === CURLING_REV_V2 ? rev : CURLING_REV_V1;
+  const r = rev === CURLING_REV || rev === CURLING_REV_V3 || rev === CURLING_REV_V2 ? rev : CURLING_REV_V1;
   return {
     key: "curling",
     runTicks: CURLING_RUN_TICKS,

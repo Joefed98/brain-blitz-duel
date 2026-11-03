@@ -16,7 +16,7 @@ import { racingDealSeedV2 } from "./racingDealV2.server";
 import { MINIGOLF_REV } from "@/lib/arcade/minigolf";
 import { POOL_REV } from "@/lib/arcade/pool";
 import { CURLING_REV } from "@/lib/arcade/curling";
-import { CURLING_BANK_V3 } from "./curlingBankV3.server";
+import { CURLING_BANK_V4 } from "./curlingBankV4.server";
 import { MINIGOLF_BANK_V2 } from "./minigolfBankV2.server";
 import { POOL_BANK_V3 } from "./poolBankV3.server";
 import { ALLEYROLL_REV } from "@/lib/arcade/alleyroll";
@@ -50,9 +50,9 @@ export function generatePool(): PoolPuzzleData {
 }
 
 export function generateCurling(): CurlingPuzzleData {
-  // curlRev 3 (1 Nov 2026): its own bank, proved on the gentler weight line (curlingBankV3.server.ts); curlRev 2 rounds
-  // replay on curlingBankV2.server.ts's sheets, curlRev 1 on curlingBank.server.ts's.
-  return { type: "curling", seed: CURLING_BANK_V3[arcadeSeed() % CURLING_BANK_V3.length]!, curlRev: CURLING_REV };
+  // curlRev 4 (3 Nov 2026): its own bank, proved with three reds and curling's count (curlingBankV4.server.ts); curlRev 3
+  // rounds replay on curlingBankV3.server.ts's sheets, curlRev 2 on curlingBankV2's, curlRev 1 on curlingBank's.
+  return { type: "curling", seed: CURLING_BANK_V4[arcadeSeed() % CURLING_BANK_V4.length]!, curlRev: CURLING_REV };
 }
 
 export function generateAlleyRoll(): AlleyRollPuzzleData {

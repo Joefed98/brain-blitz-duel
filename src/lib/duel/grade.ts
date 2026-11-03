@@ -1500,6 +1500,8 @@ function gradeUnderRev(
           takeoutPts: pts(parts, "takeouts"),
           ringPts: pts(parts, "redring"),
           holdPts: pts(parts, "hold"),
+          // curlRev 4: the stones that counted (older rounds' details are unchanged).
+          ...((puzzle.curlRev ?? 1) >= 4 ? { counted: run.counted } : {}),
           ...common(run),
         };
       }

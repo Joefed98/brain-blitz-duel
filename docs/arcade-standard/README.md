@@ -95,7 +95,7 @@ replay exactly as before; standard-live-check grades every stored arcade run thr
 | Muggins | `muggins` | `mugginsRev` 1 | Cards & Board | [muggins.md](muggins.md) |
 | Crazy Golf (was Minigolf) | `minigolf` | `golfRev` 2 (1 for stored rounds) | Sports | [minigolf.md](minigolf.md) |
 | Cue Ball (was Speed Pool) | `pool` | `poolRev` 3 (2 and 1 for stored rounds) | Sports | [pool.md](pool.md) |
-| Curl Champ (was Curling) | `curling` | `curlRev` 3 (1 and 2 for stored rounds) | Sports | [curling.md](curling.md) |
+| Curl Champ (was Curling) | `curling` | `curlRev` 4 (1, 2 and 3 for stored rounds) | Sports | [curling.md](curling.md) |
 | Blockfall | `blockfall` | `blockfallRev` 1 | Retro | [blockfall.md](blockfall.md) |
 | Alley Roll | `alleyroll` | `alleyRollRev` 1 | Sports | [alleyroll.md](alleyroll.md) |
 | Ricochet (the ninja wall-climb) | `ricochet` | `ricoRev` 2 (unstamped: the old shaft, never on the standard) | Action | [ricochet.md](ricochet.md) |
