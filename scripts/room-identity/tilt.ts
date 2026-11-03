@@ -1,13 +1,14 @@
 /**
- * Room identity for Tilt tiltRev 8 (docs/expansions/x200-tilt.md) and, since 29 Oct 2026, the dealt tiltRev 10 (four
- * mazes, no quick stars): everything a run meets is dealt from the seed when the mazes are built (the mazes, their
+ * Room identity for Tilt tiltRev 8 (docs/expansions/x200-tilt.md), tiltRev 10 (29 Oct 2026: four mazes, no quick
+ * stars) and, since 3 Nov 2026, the dealt tiltRev 11 (tiltRev 10's mazes with no gold stars, each with a par fixed from
+ * the maze): everything a run meets is dealt from the seed when the mazes are built (the mazes, their
  * holes, ice, keys and gates, gold and quick stars, the pars and each quick star's window), never from how anyone
  * plays. `scheduleOf` replays a log on the new stamp and lists, for every maze the run reached, each seeded item with
  * its place; `t` is the maze's index × 100,000 plus the ticks into that maze (0 for what is there from the maze's
  * start; a quick star's entry is the tick its full-points window ends), so two runs agree entry for entry over the
  * mazes both reached.
  */
-import { tiltCheckpoint, tiltGameFor, TILT_CHECKPOINT_INTERVAL, TILT_INPUT_DRAG, TILT_REV_STD, TILT_X_QUICK_TAIL, type Maze, type TiltState } from "../../src/lib/arcade/tilt";
+import { tiltCheckpoint, tiltGameFor, TILT_CHECKPOINT_INTERVAL, TILT_INPUT_DRAG, TILT_REV_PAR, TILT_X_QUICK_TAIL, type Maze, type TiltState } from "../../src/lib/arcade/tilt";
 import type { ArcadeInputEvent } from "../../src/lib/arcade/engine";
 import { bot } from "../arcade-skill-bands/bots/tilt";
 import { Human } from "../arcade-skill-bands/human";
@@ -49,7 +50,7 @@ export function scheduleOf(seed: number, rev: number, events: unknown): { t: num
 }
 
 /** Uniformly random drags at a human-ish rate (a re-grip now and then), as the phone records them. */
-export function randomLog(seed: number, rev: number = TILT_REV_STD): Ev[] {
+export function randomLog(seed: number, rev: number = TILT_REV_PAR): Ev[] {
   const game = tiltGameFor(rev);
   let s = game.init(seed) as TiltState;
   let v = seed | 0;
@@ -75,7 +76,7 @@ export function randomLog(seed: number, rev: number = TILT_REV_STD): Ev[] {
 
 /** A skill-band bot's log at a level (the bots in scripts/arcade-skill-bands/bots/tilt.ts). */
 /** `rev` is the stamp the logs are played on (the dealt one by default; tilt-expand-check asks for tiltRev 9's, tiltRev 8's play). */
-export function botLog(seed: number, level: "weak" | "average" | "elite", rev: number = TILT_REV_STD): Ev[] {
+export function botLog(seed: number, level: "weak" | "average" | "elite", rev: number = TILT_REV_PAR): Ev[] {
   return bot({ game: tiltGameFor(rev), seed, rev, human: new Human("tilt", seed, level) }).events ?? [];
 }
 
@@ -86,14 +87,14 @@ export function logsFor(seed: number, rev: number): Ev[][] {
 
 export const roomIdentity = {
   type: "tilt",
-  rev: TILT_REV_STD,
+  rev: TILT_REV_PAR,
   scheduleOf,
-  logs: (seed: number): Ev[][] => logsFor(seed, TILT_REV_STD),
+  logs: (seed: number): Ev[][] => logsFor(seed, TILT_REV_PAR),
 };
 
 /** Checkpoints for a log (the encode step needs them; kept here so callers can build a phone-shaped run). */
 export function checkpointsOf(seed: number, events: Ev[]): unknown[] {
-  const game = tiltGameFor(TILT_REV_STD);
+  const game = tiltGameFor(TILT_REV_PAR);
   const byTick = new Map(events.map((e) => [e.t, e]));
   let s = game.init(seed) as TiltState;
   const out: unknown[] = [];

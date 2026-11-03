@@ -597,7 +597,18 @@ const BUILDERS: Record<string, Builder> = {
       outcome: done ? "finish" : ended(r, false),
     };
   },
-  flip: (r, s) => ({
+  flip: (r, s) => b(r, "flow") ? {
+    // flipRev 11 (3 Nov 2026): no stars; clean time, perfect landings, double flips and the longest flow streak.
+    axis: { value: Math.round(n(r, "survivedSeconds") * 10) / 10, max: 60, label: "Seconds survived" },
+    lines: [`${sec(n(r, "survivedSeconds"))} survived${n(r, "saves") > 0 ? ` · ${n(r, "saves")} saved` : ""} · best streak ${n(r, "streak")} → ${s}`],
+    tiles: [
+      { label: b(r, "survived") ? "Survived" : "Crashed at", value: b(r, "survived") ? "60 s" : sec(n(r, "survivedSeconds")) },
+      { label: "Perfect landings", value: `${n(r, "sweets")} / ${n(r, "sweetsTotal")}` },
+      { label: "Best streak", value: String(n(r, "streak")) },
+      { label: "Features", value: `+${n(r, "skill")}` },
+    ],
+    outcome: b(r, "survived") ? "finish" : "crash",
+  } : ({
     axis: { value: Math.round(n(r, "survivedSeconds") * 10) / 10, max: 60, label: "Seconds survived" },
     lines: n(r, "starsTotal") > 0
       ? [`${sec(n(r, "survivedSeconds"))} survived + ${n(r, "stars")} stars × 2 → ${s}`]
@@ -851,6 +862,19 @@ const BUILDERS: Record<string, Builder> = {
     const all = n(r, "tiltRev") === 8 || n(r, "tiltRev") === 9 ? 3 : 4;
     const done = n(r, "mazes") >= all;
     const quick = n(r, "totalQuick") > 0;
+    // tiltRev 11: no gold stars; mazes within par and a clean run instead.
+    if (n(r, "tiltRev") >= 11)
+      return {
+        axis: { value: n(r, "mazes"), max: all, label: "Mazes" },
+        lines: [`${n(r, "mazes")} / ${all} mazes · ${n(r, "parsMet")} under par · ${n(r, "falls") > 0 ? `clean for ${n(r, "cleanMazes")}` : "clean run"} → ${s}`],
+        tiles: [
+          { label: "Mazes", value: `${n(r, "mazes")} / ${all}` },
+          { label: "Under par", value: `${n(r, "parsMet")} / ${all}` },
+          { label: "Falls", value: String(n(r, "falls")) },
+          { label: "Time", value: sec(n(r, "survivedSeconds")) },
+        ],
+        outcome: done ? "finish" : ended(r, false),
+      };
     return {
       axis: { value: n(r, "mazes"), max: all, label: "Mazes" },
       lines: [n(r, "tiltRev") > 0 ? `${n(r, "mazes")} / ${all} mazes · ${n(r, "stars")} / ${n(r, "totalStars")} stars${quick ? ` · ${n(r, "quickStars")} / ${n(r, "totalQuick")} quick stars` : ""} → ${s}` : head(`${n(r, "mazes")} / 4 mazes`, s, done)],

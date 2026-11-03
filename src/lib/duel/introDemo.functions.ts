@@ -6,9 +6,9 @@ import { CLAY_REV_DEPTH } from "@/lib/arcade/clayShoot";
 import { WHACK_REV_NOTES } from "@/lib/arcade/whack";
 import { WORDFALL_REV } from "@/lib/arcade/wordfall";
 import { BRK_REV_STD } from "@/lib/arcade/breaker";
-import { TILT_REV_STD } from "@/lib/arcade/tilt";
-import { CROSS_REV_STD } from "@/lib/arcade/cross";
-import { FLIP_REV_STD } from "@/lib/arcade/flip";
+import { TILT_REV_PAR } from "@/lib/arcade/tilt";
+import { CROSS_REV_FLOW } from "@/lib/arcade/cross";
+import { FLIP_REV_FLOW } from "@/lib/arcade/flip";
 import { SNIP_REV_EXPAND } from "@/lib/arcade/snip";
 import { HOVER_REV_STANDARD } from "@/lib/arcade/hover";
 import { RALLY_REV_STD } from "@/lib/arcade/rally";
@@ -133,13 +133,15 @@ export const getIntroDemoFn = createServerFn({ method: "GET" })
     // demo would show the small disc, so the intro shows its still until a demo is recorded on tiltRev 8.
     // tiltRev 9 (27 Oct 2026) keeps tiltRev 8's play on lifted curves, under a fixed camera: only a demo recorded on 9 plays.
     // tiltRev 10 (29 Oct 2026, the arcade scoring standard) adds a fourth maze: only a demo recorded on 10 plays.
-    if (data.type === "tilt" && demo?.puzzle.type === "tilt" && demo.puzzle.tiltRev !== TILT_REV_STD) return null;
+    // tiltRev 11 (3 Nov 2026) takes the gold stars away and its HUD shows the par: only a demo recorded on 11 plays.
+    if (data.type === "tilt" && demo?.puzzle.type === "tilt" && demo.puzzle.tiltRev !== TILT_REV_PAR) return null;
     // Roofbound flipRev 8 (expansion E7, docs/expansions/x200-flip.md): a taller cave whose height changes, moving spikes,
     // trails, checkpoints, speed zones and sweet spots. An older demo would show the short corridor (and none of them),
     // so Roofbound's stays stopped (the intro shows its still) until one is recorded on flipRev 8. flipRev 9 (27 Oct 2026)
     // keeps flipRev 8's play on lifted curves and flipRev 10 (29 Oct 2026) on the arcade scoring standard; its HUD shows the
-    // run's score, so only a demo recorded on flipRev 10 plays.
-    if (data.type === "flip" && demo?.puzzle.type === "flip" && demo.puzzle.flipRev !== FLIP_REV_STD) return null;
+    // run's score, so only a demo recorded on flipRev 10 plays. flipRev 11 (3 Nov 2026) deals no gold stars, never takes the
+    // trails and shows the flow streak: only a demo recorded on flipRev 11 plays.
+    if (data.type === "flip" && demo?.puzzle.type === "flip" && demo.puzzle.flipRev !== FLIP_REV_FLOW) return null;
     // The 200-point expansion (26 Oct 2026, docs/expansions/x200-hover.md): Hover hoverRev 9 plays in a 390 × 727 world with
     // tight gates, centre lines, star chains and shields, so its demo stays stopped until one is recorded there. hoverRev 10
     // (the arcade scoring standard, 29 Oct 2026) keeps hoverRev 9's play on new scoring (its HUD's centre figure is the
@@ -173,7 +175,8 @@ export const getIntroDemoFn = createServerFn({ method: "GET" })
     // coins, buses and motorbikes; an older demo would show the 9-lane road, so it stays stopped until one is recorded there.
     // The arcade scoring standard (29 Oct 2026, docs/arcade-standard/cross.md): crossRev 10 thins the first crossings'
     // traffic and thickens the later ones, so a crossRev 9 demo stays stopped until one is recorded on crossRev 10.
-    if (data.type === "cross" && demo?.puzzle.type === "cross" && demo.puzzle.crossRev !== CROSS_REV_STD) return null;
+    // crossRev 11 (3 Nov 2026): no coins and a no-stop streak in the HUD, so only a demo recorded on crossRev 11 plays.
+    if (data.type === "cross" && demo?.puzzle.type === "cross" && demo.puzzle.crossRev !== CROSS_REV_FLOW) return null;
     // Taller worlds batch 2 (16 Oct 2026): the same for Tempo, Slice, Coral Pop and Mixed Signals (Pull! above), each stopped
     // until a demo is recorded on its tall revision.
     // Phone notes (27 Oct 2026): Tempo's beatRev 10 plays a lighter chart with wider windows; stopped until one is recorded on it.

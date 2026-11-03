@@ -35,6 +35,7 @@ import {
   CROSS_KIND_CYCLE,
   CROSS_KIND_MOTO,
   CROSS_X_ISLAND,
+  CROSS_V11_STOP_TICKS,
   crossRowsOf,
   CROSS_WORLD_W,
   crossBlocked,
@@ -95,6 +96,20 @@ const HOLD: Record<SkillLevel, number> = { weak: 14, average: 12, good: 12, grea
 const HORIZON2 = 180;
 const CUSH2: Record<SkillLevel, number> = { weak: 8, average: 7, good: 6, great: 5, near: 4, elite: 3, perfect: 1 };
 const SLACK2: Record<SkillLevel, number> = { weak: 6, average: 5, good: 4, great: 3, near: 3, elite: 2, perfect: 1 };
+
+/*
+ * crossRev 11 (3 Nov 2026, the no-stop streak; read only on states with `flow`, so every older revision's runs are
+ * unchanged): there are no coins to chase, and a crossing pays towards the streak only if the walker never stands on the
+ * start kerb or the island for more than half a second (CROSS_V11_STOP_TICKS). Per crossing a player decides whether to
+ * keep it moving (FLOW_TRY). While they do, their plan (as perceived, with their usual read of the traffic) never has
+ * them stand on the kerb or the island longer than the half second less their own safety margin (FLOW_MARGIN: they
+ * know their timing), a plan that reaches the island carries on into the lane above it, and on the kerb or the island
+ * they take the gap they would otherwise only take after a few seconds of waiting (FLOW_HOLD of the hold they want).
+ * When no such plan shows they cross as usual, and the crossing stops. A weaker player pressing on gets hit more.
+ */
+const FLOW_TRY: Record<SkillLevel, number> = { weak: 0.1, average: 0.25, good: 0.45, great: 0.65, near: 0.85, elite: 0.95, perfect: 1 };
+const FLOW_MARGIN: Record<SkillLevel, number> = { weak: 14, average: 12, good: 10, great: 8, near: 6, elite: 4, perfect: 2 };
+const FLOW_HOLD = 0.33;
 
 const UP = 0;
 const DOWN = 1;
@@ -291,6 +306,18 @@ export const bot: SkillBot = ({ game, seed, human, fixes }) => {
    * the first move (null: stand still for now), when the plan gets there (`k`) and whether it
    * reaches its target (`done`); null when nothing survives the horizon.
    */
+  /** crossRev 11: per crossing, whether this player keeps it moving (decided once, the first time it is asked). */
+  const flowTry = new Map<number, boolean>();
+  const kerbRow = (lane: number) => lane === 0 || lane === CROSS_X_ISLAND;
+  const flowing = (s: CrossState): boolean => {
+    if (!s.flow || s.stopped || s.hitThisCrossing) return false;
+    let go = flowTry.get(s.crossings);
+    if (go === undefined) {
+      go = human.chance(FLOW_TRY[level]!);
+      flowTry.set(s.crossings, go);
+    }
+    return go;
+  };
   // Ticks since this player last reached a new lane (or started the crossing).
   let progKey = -1;
   let progAt = 0;
@@ -308,12 +335,19 @@ export const bot: SkillBot = ({ game, seed, human, fixes }) => {
     edgesOk: boolean,
     occ: (lane: number, col: number, k: number) => boolean,
     want: { lane: number; col: number } | null = null,
+    flow = false,
   ): { first: { at: number; m: number } | null; k: number; done: boolean } | null => {
     const course = crossCourse(s);
     // crossRev 9 (x200): a coin plan's target is the coin's lane, reached at its column (col −1: any column).
-    const target = want ? want.lane : Math.min(ROWS + 1, s.lane + DEPTH[level]!);
-    // Impatience: the hold wanted shrinks to a third over ~5 s without a new lane.
-    const hold = gap + Math.round(HOLD[level]! * Math.max(0.33, 1 - stuck(s, t) / 300));
+    let target = want ? want.lane : Math.min(ROWS + 1, s.lane + DEPTH[level]!);
+    // crossRev 11: a no-stop plan never ends on the island (it carries on into the lane above).
+    if (flow && target === CROSS_X_ISLAND) target += 1;
+    /** crossRev 11: the longest this no-stop plan may stand on the kerb or the island. */
+    const budget = CROSS_V11_STOP_TICKS - FLOW_MARGIN[level]!;
+    // Impatience: the hold wanted shrinks to a third over ~5 s without a new lane (crossRev 11: at once, on the kerb or
+    // the island, for a player keeping this crossing moving).
+    const hurry = flow && kerbRow(s.lane) ? FLOW_HOLD : 1;
+    const hold = gap + Math.round(HOLD[level]! * Math.min(hurry, Math.max(0.33, 1 - stuck(s, t) / 300)));
     const cush = CUSH2[level]!;
     const slack = SLACK2[level]!;
     const read = READ[level]!;
@@ -324,14 +358,19 @@ export const bot: SkillBot = ({ game, seed, human, fixes }) => {
       return true;
     };
     const edge = (c: number) => !edgesOk && c !== s.col && (c <= 1 || c >= CROSS_COLS - 2);
-    type N = { lane: number; col: number; cool: number; first: { at: number; m: number } | null };
+    /** `still`: crossRev 11 no-stop plans only, the ticks stood on the kerb or the island in a row. */
+    type N = { lane: number; col: number; cool: number; first: { at: number; m: number } | null; still?: number };
     const put = (map: Map<number, N>, n: N) => {
+      // crossRev 11: a no-stop plan never stands on the kerb or the island past its budget.
+      if (flow && (n.still ?? 0) > budget) return;
       const key = n.lane * 16 + n.col;
       const o = map.get(key);
-      if (!o || n.cool < o.cool) map.set(key, n);
+      if (!o || n.cool < o.cool || (n.cool === o.cool && (n.still ?? 0) < (o.still ?? 0))) map.set(key, n);
     };
+    /** crossRev 11: a tick more stood (on the kerb or the island), or none (anywhere else). */
+    const stand = (n: N): number => (flow && kerbRow(n.lane) ? (n.still ?? 0) + 1 : 0);
     let layer = new Map<number, N>();
-    put(layer, { lane: s.lane, col: s.col, cool: Math.max(0, gap - (t - lastSwipe)), first: null });
+    put(layer, { lane: s.lane, col: s.col, cool: Math.max(0, gap - (t - lastSwipe)), first: null, still: flow && kerbRow(s.lane) ? (s.still ?? 0) : 0 });
     const landing = new Map<number, N[]>();
     for (let k = 0; k < HORIZON2; k++) {
       for (const n of landing.get(k) ?? []) put(layer, n);
@@ -339,14 +378,14 @@ export const bot: SkillBot = ({ game, seed, human, fixes }) => {
       if (!layer.size && !landing.size) return null;
       const next = new Map<number, N>();
       for (const n of layer.values()) {
-        if (safe(n.lane, n.col, k + 1, k + 1)) put(next, { ...n, cool: Math.max(0, n.cool - 1) });
+        if (safe(n.lane, n.col, k + 1, k + 1)) put(next, { ...n, cool: Math.max(0, n.cool - 1), still: stand(n) });
         if (n.cool > 0) continue;
         if (!safe(n.lane, n.col, k, k + slack)) continue;
         for (const m of [LEFT, RIGHT]) {
           const c = n.col + (m === LEFT ? -1 : 1);
           if (c < 0 || c >= CROSS_COLS || crossClosed(course, n.lane, c) || edge(c)) continue;
           if (!safe(n.lane, c, k - cush, k + 1)) continue;
-          put(next, { lane: n.lane, col: c, cool: gap - 1, first: n.first ?? { at: t + k, m } });
+          put(next, { lane: n.lane, col: c, cool: gap - 1, first: n.first ?? { at: t + k, m }, still: stand(n) });
         }
         for (const m of [UP, DOWN]) {
           const to = n.lane + (m === UP ? 1 : -1);
@@ -361,7 +400,7 @@ export const bot: SkillBot = ({ game, seed, human, fixes }) => {
           }
           if (want && to >= target) continue;
           const arr = landing.get(land) ?? [];
-          arr.push({ lane: to, col: n.col, cool: Math.max(0, gap - HOP), first });
+          arr.push({ lane: to, col: n.col, cool: Math.max(0, gap - HOP), first, still: 0 });
           landing.set(land, arr);
         }
       }
@@ -423,7 +462,17 @@ export const bot: SkillBot = ({ game, seed, human, fixes }) => {
             const at = searchFixed(s, t, true, occ, coin);
             if (at?.done && at.first && (!plain?.done || at.k - plain.k <= COIN_DETOUR[level]!)) aimed = at;
           }
-          const f = aimed ?? searchFixed(s, t, false, occ) ?? searchFixed(s, t, true, occ);
+          // crossRev 11: a player keeping this crossing moving takes a no-stop plan when one shows.
+          let kept: ReturnType<typeof searchFixed> = null;
+          if (flowing(s)) {
+            const a = searchFixed(s, t, false, occ, null, true);
+            kept = a?.done ? a : null;
+            if (!kept) {
+              const b = searchFixed(s, t, true, occ, null, true);
+              kept = b?.done ? b : null;
+            }
+          }
+          const f = aimed ?? kept ?? searchFixed(s, t, false, occ) ?? searchFixed(s, t, true, occ);
           waits = !!f && !f.first;
           plan = f?.first ?? null;
         } else {

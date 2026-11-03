@@ -156,7 +156,8 @@ section("New rounds carry the Tuning F stamps; runs on them replay unchanged");
   // swingRev 15; swing-rework-check covers it. Its dark ledge runs (1 Nov 2026) to swingRev 16; swing-dark-check covers it. Its sliding hooks (3 Nov 2026) to swingRev 17; swing-slide-check.
   // The 200-point expansion (26 Oct 2026) moved Scrumper on to snipRev 11; snip-x200-check covers it.
   // x200 (26 Oct 2026) moved Jaywalk on to crossRev 9 (the expansion); cross-x200-check covers it. The arcade scoring
-  // standard (29 Oct 2026) moved it on to crossRev 10; arcade-standard-check covers it.
+  // standard (29 Oct 2026) moved it on to crossRev 10; arcade-standard-check covers it. The no-stop streak (3 Nov 2026) moved
+  // it on to crossRev 11, crossRev 10's play (playRevOf maps it to 10); cross-rev11-check covers it.
   // Gemstone's phone-test notes (27 Oct 2026) moved it on to matchupRev 10; gemstone-rev10-check covers it.
   // sliceRev 10 (27 Oct 2026, Joe's phone notes) is sliceRev 9 with bigger onions and golden fruit; expansion-e5-check covers it.
   // The arcade scoring standard (29 Oct 2026) moved Coral Pop on to bubbleRev 11; bubble-standard-check covers it.

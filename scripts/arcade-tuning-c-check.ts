@@ -77,7 +77,7 @@ import {
   tiltStarPoint,
   TILT_REV_BAND,
   TILT_REV_EXPAND,
-  TILT_REV_STD,
+  TILT_REV_PAR,
   TILT_REV_TUNEC,
   TILT_STARS_PER_MAZE,
   TILT_STAR_MOUTH,
@@ -204,7 +204,8 @@ section("New rounds carry the Tuning C stamps; Junction is practice only");
     ["wavefront", playRevOf("wavefront", generateWavefront().wavRev), WAV_REV_TUNEC + 6],
     // The expansion (x200, 26 Oct 2026) moved Tilt on to tiltRev 8 (bigger mazes, keys, quick stars, par); tilt-expand-check covers it.
     // The arcade scoring standard (29 Oct 2026) then moved it on to tiltRev 10 (a fourth maze, straight-line parts); tilt-standard-check covers it.
-    ["tilt", playRevOf("tilt", generateTilt().tiltRev), TILT_REV_STD],
+    // tiltRev 11 (3 Nov 2026) then took the gold stars away and added par times and a clean run; tilt-rev11-check covers it.
+    ["tilt", playRevOf("tilt", generateTilt().tiltRev), TILT_REV_PAR],
     // World expansion E5 (25 Oct 2026) moved Slice on to its larger board (sliceRev 9); expansion-e5-check covers it.
     // sliceRev 10 (27 Oct 2026, Joe's phone notes): sliceRev 9 with bigger onions and golden fruit; expansion-e5-check covers it.
     ["slice", playRevOf("slice", generateSlice().sliceRev), SLICE_REV_BIG],
@@ -502,7 +503,9 @@ if (want("tilt")) {
   ok(mouth >= SEEDS * 2 * 1.5, `many stars sit at a hole's mouth (${mouth} of ${SEEDS * 8})`);
   ok(mouthOk, "every mouth star is next to its hole and can be taken without falling in");
   // tiltRev 8 (x200) moved the gold stars a step or two off the route; the help names them ("Gold stars:").
-  ok(PUZZLE_INSTRUCTIONS.tilt.how.some((h) => h.action.includes("Gold stars")), "the intro says where the stars are");
+  // tiltRev 11 (3 Nov 2026, tilt-rev11-check) deals no gold stars: the help (for the dealt stamp) names par and the clean
+  // run in their place, and no gold stars.
+  ok(PUZZLE_INSTRUCTIONS.tilt.how.some((h) => h.action.includes("Par:")) && !PUZZLE_INSTRUCTIONS.tilt.how.some((h) => h.action.includes("Gold stars")), "the intro names what the dealt stamp has (tiltRev 11: par, no gold stars)");
   // 150 through the server replay: the checks' scripted Tilt player (scripts/tilt-bot.ts, real-sim lookahead,
   // brisk 4° a tick drags) takes all four mazes and all eight stars fast enough for the full speed bonus.
   let best = 0;

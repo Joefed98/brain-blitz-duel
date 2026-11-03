@@ -61,7 +61,7 @@ replay exactly as before; standard-live-check grades every stored arcade run thr
 | --- | --- | --- | --- | --- |
 | Slice | `slice` | `sliceRev` 11 | A | [slice.md](slice.md) |
 | Breaker | `breaker` | `brkRev` 11 | A | [breaker.md](breaker.md) |
-| Tilt | `tilt` | `tiltRev` 10 | A | [tilt.md](tilt.md) |
+| Tilt | `tilt` | `tiltRev` 11 (10 before, Nov 2026) | A | [tilt.md](tilt.md) |
 | Fission | `burst` | `burstRev` 10 | A | [burst.md](burst.md) |
 | Gemstone | `matchup` | `matchupRev` 12 (11 before, Nov 2026) | A | [matchup.md](matchup.md) |
 | Meteor | `snake` | `snakeRev` 12 | A | [snake.md](snake.md) |
@@ -73,9 +73,9 @@ replay exactly as before; standard-live-check grades every stored arcade run thr
 | Rally | `rally` | `rallyRev` 12 | B | [rally.md](rally.md) |
 | Coral Pop | `bubble` | `bubbleRev` 11 | B | [bubble.md](bubble.md) |
 | Tempo | `beat` | `beatRev` 11 | B | [beat.md](beat.md) |
-| Jaywalk | `cross` | `crossRev` 10 | C | [cross.md](cross.md) |
+| Jaywalk | `cross` | `crossRev` 11 (10 before, Nov 2026: no coins, the no-stop streak) | C | [cross.md](cross.md) |
 | Wavefront | `wavefront` | `wavRev` 12 | C | [wavefront.md](wavefront.md) |
-| Roofbound | `flip` | `flipRev` 10 | C | [flip.md](flip.md) |
+| Roofbound | `flip` | `flipRev` 11 (10 before, Nov 2026) | C | [flip.md](flip.md) |
 | Rainbow Bridge | `inkbridge` | `inkRev` 13 (12 before, Nov 2026) | C | [inkbridge.md](inkbridge.md) |
 | Orbit | `orbit` | `orbitRev` 13 | C | [orbit.md](orbit.md) |
 | Ball Tracker | `balltrack` | `btRev` 8 | C | [balltrack.md](balltrack.md) |
@@ -119,6 +119,7 @@ identical seeded run. Per-game detail, rules and assumptions are in this folder 
 | Slice | `sliceRev` 11 | 120, share of all food sliced | combo 40, golden fruit 20, tickets 10, dodges 10; chilli −10 | 200 |
 | Breaker | `brkRev` 11 | 140, share of all 108 bricks | clear 10, speed 20 (full with half the clock left), gold bricks 30 | 200 |
 | Tilt | `tiltRev` 10 | 140, 35 a maze (30 finish + 5 progress), 4 mazes | all four 10, speed 20 (full by 75 s), gold stars 30 | 200 |
+| Tilt (Nov 2026) | `tiltRev` 11 | 140, 35 a maze (15 finish + 20 progress), 4 mazes; no gold stars | par 24 (6 a maze within its par), clean run 12 (3 a maze before the first fall), speed 24 (all four, full by 60 s) | 200 |
 | Fission | `burstRev` 10 | 140, share of all 87 atoms (splits count) | wave clears 35 (7 × 5), golden atoms 25; a lost life −5 | 200 |
 | Gemstone | `matchupRev` 11 | 110, gems cleared, full at 375 | treasure 40 (10 × 4), goals 30, ice 10, big lines 10 | 200 |
 | Gemstone (Nov 2026) | `matchupRev` 12 | 108, gems cleared, full at 360 | treasure 36 (6 × 6), goals 36 (6 × 6), ice 10, big lines 10 | 200 |

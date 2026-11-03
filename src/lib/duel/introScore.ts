@@ -9,7 +9,7 @@ import { MG_CORE_FULL } from "@/lib/arcade/cards/muggins";
 import { BULLSEYE_INNER_BULL_POINTS, BULLSEYE_RING_VALUES } from "@/lib/arcade/bullseye";
 import { BINTOSS_THROWS, BINTOSS_V9_BUCKET, BINTOSS_V9_FAR, BINTOSS_V9_FINISH, BINTOSS_V9_HOOP } from "@/lib/arcade/binToss";
 import { INK_V13_CLOVER_MAX, INK_V13_CORE_MAX, INK_V13_PAR_MAX, INK_V13_TRICK_MAX } from "@/lib/arcade/inkBridge";
-import { TILT_S_MAZES } from "@/lib/arcade/tilt";
+import { TILT_P_CLEAN_POINTS, TILT_P_MAZE_POINTS, TILT_P_PAR_POINTS, TILT_P_PROGRESS_POINTS, TILT_S_MAZES } from "@/lib/arcade/tilt";
 import { bandsIntro } from "./puzzleBandsText";
 import { logicStandardIntro } from "./standard/logicText";
 import { gridStandardIntro } from "./standard/gridText";
@@ -121,7 +121,8 @@ function introScoreTemplates(): Record<PuzzleType, string> {
     // and big lines, each part's maximum.
     matchup: "Gems 108; treasure, goals, ice and lines of 4 or 5 add 92. Up to {max}.",
     snake: "Stars to 120 at 28 (gold stars count 2); gold, combos, lanes, warps add 80. Up to {max}.",
-    cross: "150 for rows and crossings, coins 30, a clean streak 10, close calls 10. Up to {max}.",
+    // crossRev 11 (3 Nov 2026): no coins; the no-stop streak; a hit costs 15.
+    cross: "150 for rows and crossings, a no-stop streak 40, close calls 10; hits cost 15. Up to {max}.",
     breaker: "Every brick scores; gold bricks add 30. Clear all 105 quickly for up to {max}.",
     rally: "Gold-ball hits, pink targets and gold targets. Up to {max}.",
     // Cards & Board (30 Oct 2026), on the arcade scoring standard.
@@ -148,14 +149,15 @@ function introScoreTemplates(): Record<PuzzleType, string> {
     slice: "Food 120, combos 40, gold fruit 20, tickets 10, dodges 10. Chilli: lose 10. Up to {max}.",
     beat: "Notes hit in time, fevers, golden notes, double taps and a Perfect streak. Up to {max}.",
     wavefront: "Ships, hits, waves, a fast boss kill, saucers, cannons, cores; a lost life −5. Total {max}.",
-    flip: "Time survived 150; gold stars, trails, sweet spots, double flips 50: they total {max}.",
+    flip: "Clean time 100; landing on sweet spots 60; double flips, flow streak 40: total {max}.",
     junction: "Points for each car and bus through, ± for ambulances. Last the minute for 10 more.",
     inkbridge: `Levels ${INK_V13_CORE_MAX}; little ink ${INK_V13_PAR_MAX}, tricks ${INK_V13_TRICK_MAX}, clovers ${INK_V13_CLOVER_MAX}. All 10 levels quickly: up to {max}.`,
     burst: "Atoms up to 140, fast waves 35, golden atoms 25; a lost life costs 5. Up to {max}.",
     orbit: "Planets 130 + sun speed, stardust, slings, fields, perfect orbits. Mind fuel: up to {max}.",
     snip: "Points for fruit fed and leaves; golden apples, few cuts and speed add more. Up to {max}.",
     swing: `90 s. Course (${SWING_V17_CORE}), pars (${SWING_V17_PAR_POINTS}), gates (${SWING_V17_GATES * SWING_V17_GATE_POINTS}), clean-swing streak (${SWING_V17_STREAK_MAX}): up to {max}.`,
-    tilt: `35 a maze (up to 5 for nearing its exit), gold stars 30. All ${TILT_S_MAZES} quickly: up to {max}.`,
+    // tiltRev 11 (3 Nov 2026): no gold stars; par times and a clean run.
+    tilt: `${TILT_P_MAZE_POINTS + TILT_P_PROGRESS_POINTS} a maze, +${TILT_P_PAR_POINTS} a maze beaten in time, clean run ${TILT_P_CLEAN_POINTS}. All ${TILT_S_MAZES} quickly: up to {max}.`,
     balltrack: `Marbles home 140; gold, boosted and in-a-row marbles add 60: they total up to {max}.`,
     swerve: arcadeOpen("each coin you collect"),
     dual: "The longer both runners survive, the more you score. The full minute is {max}.",
