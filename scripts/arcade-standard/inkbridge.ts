@@ -1,18 +1,19 @@
 /**
- * Rainbow Bridge on the arcade scoring standard (inkRev 12, 29 Oct 2026; docs/arcade-standard/inkbridge.md).
- * Perfect runs are the x200 oracle (scripts/ink-x200-oracle.ts) replayed through the server on inkRev 12: every level
- * potted on its proved bonus line (every ink star, trick shot, silver coin and the shamrock) with more than 45 s left;
- * plus one built state with every counter full. A played run that earns nothing is one stroke point and no release.
+ * Rainbow Bridge on the arcade scoring standard: inkRev 13 (Nov 2026; docs/arcade-standard/inkbridge.md "inkRev 13"),
+ * after inkRev 12 (29 Oct 2026). Perfect runs are the oracle (scripts/ink-x200-oracle.ts) replayed through the server on
+ * inkRev 13: every level potted within its ink par, on its proved bonus line where it has a cloud (a trick shot) or a
+ * clover, else its easy line, with more than 50 s left; plus one built state with every counter full. A played run that
+ * earns nothing is one stroke point and no release.
  */
-import { inkBridgeGameFor, inkCheckpoint, INK_CHECKPOINT_INTERVAL, INK_INPUT_STROKE, INK_LEVELS, INK_REV_SPREAD, INK_REV_STD, INK_STD, type InkState } from "../../src/lib/arcade/inkBridge";
+import { inkBridgeGameFor, inkCheckpoint, inkV13Score, INK_CHECKPOINT_INTERVAL, INK_CLOUD_LEVELS, INK_INPUT_STROKE, INK_LEVELS, INK_REV_CLOVER, INK_REV_STD, INK_V13_CLOVERS, INK_V13_STD, type InkState } from "../../src/lib/arcade/inkBridge";
 import { encodeInkBridgeRun, replayInkBridgeRun } from "../../src/lib/duel/inkBridge";
 import { roomSeed } from "../arcade-skill-bands/games";
 import { inkOracleRun } from "../ink-x200-oracle";
 import type { StdEntry, StdRun } from "./entry";
 
-const game = inkBridgeGameFor(INK_REV_STD);
+const game = inkBridgeGameFor(INK_REV_CLOVER);
 
-/** Plays a log on inkRev 12 and scores it through the server's encode + replay. */
+/** Plays a log on inkRev 13 and scores it through the server's encode + replay. */
 function replayed(seed: number, events: { t: number; k: number; a: number; b: number; c: number; d: number }[]): number {
   let s = game.init(seed) as InkState;
   const byTick = new Map(events.map((e) => [e.t, e]));
@@ -22,24 +23,31 @@ function replayed(seed: number, events: { t: number; k: number; a: number; b: nu
     if (s.tick % INK_CHECKPOINT_INTERVAL === 0) checkpoints.push(inkCheckpoint(s));
   }
   const raw = encodeInkBridgeRun({ seed, claimedScore: game.score(s), events, inputs: [], taps: [], endTick: s.tick, checkpoints } as never);
-  return replayInkBridgeRun(seed, raw, INK_REV_STD).score;
+  return replayInkBridgeRun(seed, raw, INK_REV_CLOVER).score;
+}
+
+/** A run's points per part (the core keyed "core"). */
+function partsOf(s: InkState): Record<string, number> {
+  const b = inkV13Score(s);
+  return { core: b.core, ...b.features };
 }
 
 export const entry: StdEntry = {
   type: "inkbridge",
   field: "inkRev",
-  rev: INK_REV_STD,
-  before: INK_REV_SPREAD,
-  parts: INK_STD.parts,
-  spec: INK_STD,
+  rev: INK_REV_CLOVER,
+  before: INK_REV_STD,
+  parts: INK_V13_STD.parts,
+  spec: INK_V13_STD,
   perfect: () => {
     const runs: StdRun[] = [0, 7, 141].map((n) => {
       const seed = roomSeed(n);
-      const o = inkOracleRun(seed, INK_REV_STD);
-      return { label: `oracle seed ${seed} (${o.levels} levels, ${o.endedSeconds.toFixed(1)} s, server replay)`, score: o.replayed === o.score ? o.replayed : -1 };
+      const o = inkOracleRun(seed, INK_REV_CLOVER);
+      return { label: `oracle seed ${seed} (${o.levels} levels, ${o.endedSeconds.toFixed(1)} s, server replay)`, score: o.replayed === o.score ? o.replayed : -1, parts: partsOf(o.state) };
     });
     const s = game.init(roomSeed(3)) as InkState;
-    runs.push({ label: "built state: ten levels at 30 s, 8 stars, 4 trick shots, 16 silver, the shamrock", score: game.score({ ...s, acted: 1, levels: INK_LEVELS, ended: 1, endedTick: 30 * 60, tick: 30 * 60, stars: 8, tricks: 4, silver: 16, shamrocks: 1 }) });
+    const full: InkState = { ...s, acted: 1, levels: INK_LEVELS, ended: 1, endedTick: 30 * 60, tick: 30 * 60, inkPar: 1000 * INK_LEVELS, parLevels: INK_LEVELS, tricks: INK_CLOUD_LEVELS, shamrocks: INK_V13_CLOVERS };
+    runs.push({ label: "built state: ten levels at 30 s, every one within its ink par, 4 trick shots, both clovers", score: game.score(full), parts: partsOf(full) });
     return runs;
   },
   played: () => [0, 1].map((n) => {
@@ -47,5 +55,14 @@ export const entry: StdEntry = {
     return { label: `seed ${seed}: one stroke point, never released`, score: replayed(seed, [{ t: 30, k: INK_INPUT_STROKE, a: 100, b: 100, c: 1, d: 0 }]) };
   }),
   idle: () => [0, 1].map((n) => ({ label: `seed ${roomSeed(n)}: no input`, score: replayed(roomSeed(n), []) })),
-  help: { terms: ["45 s", "14"] },
+  help: { terms: ["50 s", "12", "ink par"] },
+  extra: (ok) => {
+    // The ink-par part: 3 a level within par, a straight line from par to twice it, nothing past that.
+    const s = game.init(roomSeed(0)) as InkState;
+    const at = (inkPar: number) => inkV13Score({ ...s, acted: 1, levels: 1, inkPar }).features["par"];
+    ok(at(1000) === 3 && at(500) === 1 && at(0) === 0 && at(10_000) === 30, "ink par pays 3 a level within par (credit 1000), on a straight line below it");
+    // No stars or silver coins on inkRev 13: their counters never pay.
+    const b = inkV13Score({ ...s, acted: 1, levels: 0, stars: 8, silver: 16 });
+    ok(b.core === 0 && Object.values(b.features).every((v) => v === 0), "ink stars and silver coins pay nothing on inkRev 13 (there are none)");
+  },
 };

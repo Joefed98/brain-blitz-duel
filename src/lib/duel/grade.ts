@@ -94,7 +94,7 @@ import { decodeBurstRun, replayBurstRun } from "./burst";
 import { burstCarryBonus, burstCleanBonus, burstGoldenCount, burstStdParts, BURST_V10_GOLDENS } from "@/lib/arcade/burst";
 import { decodeOrbitRun, replayOrbitRun } from "./orbit";
 import { decodeSwingRun, replaySwingRun } from "./swing";
-import { SWING_REV, SWING_REV_BAND, SWING_REV_TUNED, SWING_REV_TUNEC, SWING_REV_SPREAD, SWING_REV_TALL, SWING_REV_TARGET, SWING_REV_STRICT, SWING_REV_EXPAND, swingFeaturePoints, swingAssaultCounts, swingBandPartsV14, swingReworkParts } from "@/lib/arcade/swing";
+import { SWING_REV, SWING_REV_BAND, SWING_REV_TUNED, SWING_REV_TUNEC, SWING_REV_SPREAD, SWING_REV_TALL, SWING_REV_TARGET, SWING_REV_STRICT, SWING_REV_EXPAND, swingFeaturePoints, swingAssaultCounts, swingBandPartsV14, swingReworkParts, swingSlideParts } from "@/lib/arcade/swing";
 import { decodeSnipRun, replaySnipRun } from "./snip";
 import { snipFeatureBonus, SNIP_REV_EXPAND, SNIP_X_MAX } from "@/lib/arcade/snip";
 import { decodeTiltRun, replayTiltRun } from "./tilt";
@@ -117,8 +117,8 @@ import { scoreWordSearch, wsDecode, wsGrade, wsSplitBonus } from "./wordSearch";
 import { LW_FREE_MISSES, lwDecode, lwDecodeLog, lwGrade, lwTallyLog, lwUsesLog, scoreLetterWheel, scoreLetterWheelLog } from "./letterWheel";
 import { decodeCrossRun, replayCrossRun } from "./cross";
 import { decodeDualRun, replayDualRun } from "./dual";
-import { decodeNinjaRun, decodeRicoRun, isNinjaRev, replayNinjaRun, replayRicoRun } from "./ricochet";
-import { NINJA_CORE_FULL_M } from "@/lib/arcade/ricochetNinja";
+import { decodeMoonRun, decodeNinjaRun, decodeRicoRun, isMoonRev, isNinjaRev, replayMoonRun, replayNinjaRun, replayRicoRun } from "./ricochet";
+import { MOON_CORE_FULL_M, NINJA_CORE_FULL_M } from "@/lib/arcade/ricochetNinja";
 import { decodeBinTossRun, replayBinTossRun } from "./binToss";
 import { decodeBullseyeRun, replayBullseyeRun } from "./bullseye";
 import { bullseyeDeadPoints, bullseyeStreakPoints } from "@/lib/arcade/bullseye";
@@ -1298,7 +1298,8 @@ function gradeUnderRev(
         inputs: decodeCrossRun(answer).events.length,
         claimedScore: decodeCrossRun(answer).claimedScore,
         // crossRev 9 (x200): coins and streak points (older rounds keep exactly their old fields).
-        ...(run.state.wide ? { coins: run.state.coinTotal ?? 0, streakPts: run.state.streakPts ?? 0, closeCalls: run.state.closeCalls ?? 0 } : {}),
+        // crossRev 11: no coins; the no-stop streak's points (noStop: the streak's no-stop crossings in a row at the end).
+        ...(run.state.flow ? { noStop: run.state.streak ?? 0, streakPts: run.state.streakPts ?? 0, closeCalls: run.state.closeCalls ?? 0 } : run.state.wide ? { coins: run.state.coinTotal ?? 0, streakPts: run.state.streakPts ?? 0, closeCalls: run.state.closeCalls ?? 0 } : {}),
         ...(run.reason ? { reason: run.reason } : {}),
       };
       break;
@@ -1330,6 +1331,36 @@ function gradeUnderRev(
       break;
     }
     case "ricochet": {
+      if (isMoonRev(puzzle.ricoRev)) {
+        // ricoRev 3, Moon Climb: the tower dealt from the stored seed, the move log replayed; only that scores.
+        const replayStart = performance.now();
+        const run = replayMoonRun(puzzle.seed, answer);
+        revealRun = run;
+        arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
+        isCorrect = run.metres >= MOON_CORE_FULL_M;
+        correctCount = run.metres;
+        score = run.score;
+        extraDetail = {
+          ricoRev: puzzle.ricoRev,
+          metres: run.metres,
+          rides: run.rides,
+          flow: run.flow,
+          bestFlow: run.bestFlow,
+          scrolls: run.scrolls,
+          hits: run.hits,
+          leaps: run.leaps,
+          djs: run.djs,
+          endedSeconds: run.endedSeconds,
+          flagged: run.flagged,
+          clientLag: run.clientLag,
+          clientTick: run.clientTick,
+          desyncTick: run.desyncTick,
+          inputs: decodeMoonRun(answer).events.length,
+          claimedScore: decodeMoonRun(answer).claimedScore,
+          ...(run.reason ? { reason: run.reason } : {}),
+        };
+        break;
+      }
       if (isNinjaRev(puzzle.ricoRev)) {
         // ricoRev 2, the ninja wall-climb: the tower dealt from the stored seed, the move log replayed; only that scores.
         const replayStart = performance.now();
@@ -1500,6 +1531,8 @@ function gradeUnderRev(
           takeoutPts: pts(parts, "takeouts"),
           ringPts: pts(parts, "redring"),
           holdPts: pts(parts, "hold"),
+          // curlRev 4: the stones that counted (older rounds' details are unchanged).
+          ...((puzzle.curlRev ?? 1) >= 4 ? { counted: run.counted } : {}),
           ...common(run),
         };
       }
@@ -2237,7 +2270,7 @@ function gradeUnderRev(
         // bastionRev 2 (1 Nov 2026): the tank-defence shooter on the arcade scoring standard; the server's replay alone
         // scores, and the stored extra carries each part's points (numbers only) for the reveal.
         const replayStart = performance.now();
-        const run = replayBastionTankRun(puzzle.seed, answer);
+        const run = replayBastionTankRun(puzzle.seed, answer, puzzle.bastionRev);
         const decoded = decodeBastionTankRun(answer);
         revealRun = run as unknown as typeof revealRun;
         arcadeDiag = buildArcadeDiag(puzzle.type, run as unknown as Parameters<typeof buildArcadeDiag>[1], answer, performance.now() - replayStart);
@@ -2253,6 +2286,7 @@ function gradeUnderRev(
           kills: run.kills,
           weak: run.weak,
           fast: run.fast,
+          ...(run.drones ? { drones: run.drones } : {}),
           jams: run.jams,
           shots: run.shots,
           hits: run.hits,
@@ -2393,6 +2427,8 @@ function gradeUnderRev(
         starLevels: run.starLevels,
         // inkRev 10 (x200): trick shots, silver coins and the shamrock (older rounds store none of these).
         ...(run.cloudLevels ? { tricks: run.tricks, cloudLevels: run.cloudLevels, silver: run.silver, silverTotal: run.silverTotal, shamrock: run.shamrock } : {}),
+        // inkRev 13: the clovers on offer (the potted ones are `shamrock`) and the levels potted within their ink par.
+        ...(run.cloverTotal ? { cloverTotal: run.cloverTotal, parLevels: run.parLevels } : {}),
         endedSeconds: run.endedSeconds,
         flagged: run.flagged,
         clientLag: run.clientLag,
@@ -2534,7 +2570,8 @@ function gradeUnderRev(
         ...(run.state.expand ? (({ comboPts, bestChain, gems, gemTotal, gates, gateTotal, ledges, ledgeTotal, sections, sectionTotal, parsBeaten, parBeat, parPts, raw, total }) => ({ comboPts, bestChain, gems, gemTotal, gates, gateTotal, ledges, ledgeTotal, sections, sectionTotal, parsBeaten, parBeat, parPts, skillRaw: raw, skill: total }))(swingFeaturePoints(run.state)) : {}),
         // swingRev 14 (the assault course): sections, restarts, pars and the pickups banked, with the parts that add up to the score.
         // swingRev 15 (the swinging course): the same counts, the course's share reached and the three parts (core, pars, pickups).
-        ...(run.state.rework ? (({ sections, sectionTotal, restarts, caught, parsBeaten, gems, gemTotal, gates, gateTotal, starsBanked, starTotal }, parts) => ({ swingRev: puzzle.swingRev, sections, sectionTotal, restarts, caught, parsBeaten, gems, gemTotal, gates, gateTotal, stars: starsBanked, starTotal, permille: parts.permille, basePts: parts.core, parPts: parts.par, pickupPts: parts.pickups, bonusPts: parts.par + parts.pickups }))(swingAssaultCounts(run.state), swingReworkParts(run.state)) : run.state.assault ? (({ sections, sectionTotal, restarts, caught, parsBeaten, gems, gemTotal, gates, gateTotal, starsBanked, starTotal }, parts) => ({ swingRev: puzzle.swingRev, sections, sectionTotal, restarts, caught, parsBeaten, gems, gemTotal, gates, gateTotal, stars: starsBanked, starTotal, basePts: parts.points, bonusPts: parts.bonus }))(swingAssaultCounts(run.state), swingBandPartsV14(run.state)) : {}),
+        // swingRev 17 (the sliding hooks and the streak): the same counts with its four parts (core, pars, gates, streak).
+        ...(run.state.slide ? (({ sections, sectionTotal, restarts, caught, parsBeaten, gates, gateTotal }, parts) => ({ swingRev: puzzle.swingRev, sections, sectionTotal, restarts, caught, parsBeaten, gates, gateTotal, sliders: (run.state.sliders ?? []).length, streakBlocks: run.state.streakPaid ?? 0, permille: parts.permille, basePts: parts.core, parPts: parts.par, gatePts: parts.gates, streakPts: parts.streak, bonusPts: parts.par + parts.gates + parts.streak }))(swingAssaultCounts(run.state), swingSlideParts(run.state)) : run.state.rework ? (({ sections, sectionTotal, restarts, caught, parsBeaten, gems, gemTotal, gates, gateTotal, starsBanked, starTotal }, parts) => ({ swingRev: puzzle.swingRev, sections, sectionTotal, restarts, caught, parsBeaten, gems, gemTotal, gates, gateTotal, stars: starsBanked, starTotal, permille: parts.permille, basePts: parts.core, parPts: parts.par, pickupPts: parts.pickups, bonusPts: parts.par + parts.pickups }))(swingAssaultCounts(run.state), swingReworkParts(run.state)) : run.state.assault ? (({ sections, sectionTotal, restarts, caught, parsBeaten, gems, gemTotal, gates, gateTotal, starsBanked, starTotal }, parts) => ({ swingRev: puzzle.swingRev, sections, sectionTotal, restarts, caught, parsBeaten, gems, gemTotal, gates, gateTotal, stars: starsBanked, starTotal, basePts: parts.points, bonusPts: parts.bonus }))(swingAssaultCounts(run.state), swingBandPartsV14(run.state)) : {}),
         endedSeconds: run.endedSeconds,
         flagged: run.flagged,
         clientLag: run.clientLag,
@@ -2561,6 +2598,8 @@ function gradeUnderRev(
         ...(puzzle.tiltRev ? { tiltRev: puzzle.tiltRev, stars: run.stars, totalStars: run.totalStars } : {}),
         // tiltRev 8 (the expansion): quick stars, falls and the paid skill points.
         ...(tiltIsExpand(puzzle.tiltRev) ? { quickStars: run.quickStars, totalQuick: run.totalQuick, falls: run.falls, skillPoints: run.skillPoints } : {}),
+        // tiltRev 11: mazes within par and mazes finished before the first fall.
+        ...(run.parsMet !== undefined ? { parsMet: run.parsMet, cleanMazes: run.cleanMazes } : {}),
         survived: run.survived,
         survivedSeconds: run.survivedSeconds,
         endedSeconds: run.endedSeconds,

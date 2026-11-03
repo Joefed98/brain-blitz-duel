@@ -495,6 +495,18 @@ export interface SwingState extends Body, BandFields {
   hangHook?: number;
   /** swingRev 16 only (the dark ledge runs): the marker. Its run is SWING_V16_RUN_TICKS long, and hooks in the dark (swingDarkFrom) cannot be grabbed. */
   dark?: number;
+  /**
+   * swingRev 17 only (the sliding hooks): the marker, the sliding hooks (each an anchor index, its home x and its seeded
+   * rail), the ones stopped where they were grabbed (a bit a slider), and the clean-swing streak: the run of clean grabs,
+   * the tick of the last grab or landing it counts from, the blocks paid and the furthest hook grabbed.
+   */
+  slide?: number;
+  sliders?: SwingSlider[];
+  slideLock?: number;
+  streak?: number;
+  streakAt?: number;
+  streakPaid?: number;
+  bestHook?: number;
   tick: number;
   rng: number;
   camX: number;
@@ -814,6 +826,7 @@ export function swingScoreV4(metres: number, stars: number): number {
 }
 
 function score(state: SwingState): number {
+  if (state.slide) return swingScoreV17(state);
   if (state.rework) return swingScoreV15(state);
   if (state.assault) return swingScoreV14(state);
   if (state.expand) return swingScoreV13(state);
@@ -832,6 +845,7 @@ export function swingExtra(s: SwingState) {
     ...(s.rev === SWING_REV ? { stars: s.stars ?? 0, starTotal: swingStarTotal(s), cause: s.cause ?? 0 } : {}),
     ...(s.expand ? swingFeatureCounts(s) : {}),
     ...(s.assault ? swingAssaultCounts(s) : {}),
+    ...(s.slide ? swingSlideCounts(s) : {}),
   };
 }
 
@@ -899,6 +913,8 @@ export function swingCheckpoint(state: SwingState): SwingCheckpoint {
   if (state.rework) values.push(state.rework, state.len, state.bankGems ?? 0, state.bankGates ?? 0, (state.bankStars ?? []).length, state.hangHook ?? -1);
   // swingRev 16 (the dark ledge runs): its marker, after every rev-15 value.
   if (state.dark) values.push(state.dark);
+  // swingRev 17 (the sliding hooks): its marker, the locked sliders and the streak, after every rev-16 value.
+  if (state.slide) values.push(state.slide, state.slideLock ?? 0, state.streak ?? 0, state.streakAt ?? 0, state.streakPaid ?? 0, state.bestHook ?? -1, ...state.anchors.filter((_, i) => (state.sliders ?? []).some((sl) => sl.i === i)).map((a) => a.x));
   for (const value of values) {
     checksum ^= value | 0;
     checksum = Math.imul(checksum, 0x01000193) >>> 0;
@@ -1061,6 +1077,7 @@ const dragonGameV2 = { ...swingGame, init: initDragonsV2 };
 const dragonGameV3 = { ...swingGame, init: initDragonsV3 };
 const chaseGameV4 = { ...swingGame, init: initV4 };
 export function swingGameFor(rev?: number): typeof swingGame {
+  if (rev === SWING_REV_SLIDE) return swingSlideGame;
   if (rev === SWING_REV_DARK) return swingDarkGame;
   if (rev === SWING_REV_REWORK) return swingReworkGame;
   if (rev === SWING_REV_ASSAULT) return swingAssaultGame;
@@ -1085,6 +1102,7 @@ export const SWING_REV_BAND = 5;
 /** Metres count 1 and stars 5; 140 at 500 m with all ten stars; reaching 500 m adds 10. */
 export const SWING_BAND_CURVE = bandCurve([0, 86, 162, 245, 400, 499, 550], [0, 70, 100, 125, 136, 138, 140]);
 export function swingBandParts(state: SwingState): BandParts {
+  if (state.slide) return swingBandPartsV17(state);
   if (state.rework) return swingBandPartsV15(state);
   if (state.assault) return swingBandPartsV14(state);
   if (state.expand) return swingBandPartsV13(state);
@@ -1094,6 +1112,7 @@ export function swingBandParts(state: SwingState): BandParts {
 }
 
 function scoreBand(state: SwingState): number {
+  if (state.slide) return swingScoreV17(state);
   if (state.rework) return swingScoreV15(state);
   if (state.assault) return swingScoreV14(state);
   if (state.expand) return swingScoreV13(state);
@@ -1393,7 +1412,7 @@ export function swingWorldH(state: { worldH?: number }): number {
 }
 /** The world height (px) a stored round's swingRev plays in. */
 export function swingWorldHFor(rev?: number | null): number {
-  if (rev === SWING_REV_EXPAND || rev === SWING_REV_ASSAULT || rev === SWING_REV_REWORK || rev === SWING_REV_DARK) return SWING_V13_H;
+  if (rev === SWING_REV_EXPAND || rev === SWING_REV_ASSAULT || rev === SWING_REV_REWORK || rev === SWING_REV_DARK || rev === SWING_REV_SLIDE) return SWING_V13_H;
   return rev === SWING_REV_TALL || rev === SWING_REV_TARGET || rev === SWING_REV_STRICT ? SWING_TALL_H : SWING_WORLD_H;
 }
 
@@ -1773,14 +1792,14 @@ export function swingWorldW(state: { worldW?: number }): number {
 }
 /** The world width (px) a stored round's swingRev plays in. */
 export function swingWorldWFor(rev?: number | null): number {
-  return rev === SWING_REV_EXPAND || rev === SWING_REV_ASSAULT || rev === SWING_REV_REWORK || rev === SWING_REV_DARK ? SWING_V13_W : SWING_WORLD_W;
+  return rev === SWING_REV_EXPAND || rev === SWING_REV_ASSAULT || rev === SWING_REV_REWORK || rev === SWING_REV_DARK || rev === SWING_REV_SLIDE ? SWING_V13_W : SWING_WORLD_W;
 }
 /**
  * The height (px) a stored round's reveal and demo draw at in the shared 390-wide reveal box: the
  * world's own height, or for swingRev 13's 450-wide view the height that keeps its shape (731).
  */
 export function swingRevealHFor(rev?: number | null): number {
-  return rev === SWING_REV_EXPAND || rev === SWING_REV_ASSAULT || rev === SWING_REV_REWORK || rev === SWING_REV_DARK ? Math.round((SWING_V13_H * SWING_WORLD_W) / SWING_V13_W) : swingWorldHFor(rev);
+  return rev === SWING_REV_EXPAND || rev === SWING_REV_ASSAULT || rev === SWING_REV_REWORK || rev === SWING_REV_DARK || rev === SWING_REV_SLIDE ? Math.round((SWING_V13_H * SWING_WORLD_W) / SWING_V13_W) : swingWorldHFor(rev);
 }
 
 /** Grabbing from a ledge, the hero kicks off it: SWING_LEDGE_KICK of forward speed along the swing. */
@@ -3133,6 +3152,11 @@ function reworkRestart(s: SwingState, tick: number): void {
   s.starsTaken = [...(s.bankStars ?? [])];
   s.stars = s.starsTaken.length;
   if ((s.chaseX ?? 0) !== 0) s.chaseX = Math.min(s.chaseX!, backX - SWING_V14_CHASE_BACKOFF);
+  // swingRev 17: a miss ends the clean-swing streak (its count starts again after the hold).
+  if (s.slide) {
+    s.streak = 0;
+    s.streakAt = tick + SWING_V14_RESPAWN;
+  }
 }
 
 /** One tick of the swinging course (swingRev 15). */
@@ -3165,9 +3189,11 @@ function stepRework(state: SwingState, input: ArcadeInputEvent | null): SwingSta
     }
     if (standing ? press : input !== null && input.k === SWING_INPUT_HOLD) {
       if (press) {
-        const target = rangeTarget(s.anchors, lo, hi, s.x, s.y, lim);
+        // swingRev 17: a sliding hook is where it is drawn (at the tick the press is made), and stops there once grabbed.
+        const target = s.slide ? rangeTargetAt(s, lo, hi, s.x, s.y, state.tick, lim) : rangeTarget(s.anchors, lo, hi, s.x, s.y, lim);
         if (target >= 0) {
           if (s.rope >= 0) detach(s, s.anchors[s.rope]!);
+          if (s.slide) slideGrab(s, target, state.tick, tick);
           attach(s, target, s.anchors[target]!);
           if (standing) {
             s.ledgeOn = -1;
@@ -3209,6 +3235,8 @@ function stepRework(state: SwingState, input: ArcadeInputEvent | null): SwingSta
         s.ledgeHold = 0;
         s.ledgeOn = i;
         cleared = i === sec.to;
+        // swingRev 17: landing on the next ledge keeps the streak going (the stall is counted from here).
+        if (s.slide && cleared) s.streakAt = tick;
         break;
       }
     }
@@ -3466,6 +3494,9 @@ interface V15Hop {
   /** The section (stretch) and the step of its plan the hop is. */
   sec: number;
   step: number;
+  /** The planned release (pass index) and grab (flight tick) of the hop (swingRev 17's gates sit on this line). */
+  r: number;
+  g: number;
 }
 
 /**
@@ -3478,6 +3509,9 @@ interface V15Hop {
 export interface SwingReworkPlan {
   sections: [number, number][][];
   features: { kind: "gate" | "gem" | "star"; index: number; sec: number; step: number; reel: number; r: number }[];
+  /** swingRev 17: the planned route as input (hold events by absolute tick, played from tick 0) and the state tick it grabs each sliding hook on. */
+  witness?: { t: number; a: number }[];
+  slideTicks?: number[];
 }
 
 /**
@@ -3609,6 +3643,8 @@ interface V15Shape {
   failures: number;
   cache: Map<number, SwingState>;
   plans: Map<number, SwingReworkPlan>;
+  /** swingRev 17: the sliding hooks, gates on the planned line, no gems or stars (slideCourse). */
+  slide?: boolean;
 }
 /** The most failed blocks one rev-15 build may roll back before it starts the course again. */
 const V15_BLOCK_FAILURES = 40;
@@ -3745,7 +3781,7 @@ function buildV15(draw: (n: number) => number, shape: V15Shape): { state: SwingS
         // Every hook is a restart point: the hang from it (S's last) must have a fair window on to the next.
         const hop = v15Hop(c, S, hook0, fromLedges, points, draw, S.length > 1);
         if (!hop) { failed = true; break; }
-        stretchHops.push({ h: S[0]!.rope, b: c.anchors.length - 1, lo: hook0, body: { ...S[0]! }, from: fromIndex, sec: sections.length, step: j });
+        stretchHops.push({ h: S[0]!.rope, b: c.anchors.length - 1, lo: hook0, body: { ...S[0]! }, from: fromIndex, sec: sections.length, step: j, r: hop.r, g: hop.g });
         steps.push([hop.r, hop.g]);
         points.push(...hop.grabs);
         ticks += hop.ticks;
@@ -3815,7 +3851,8 @@ function buildV15(draw: (n: number) => number, shape: V15Shape): { state: SwingS
     restore(snaps[block]!);
   }
   if (squeezes.length !== shape.squeezes) return null;
-  const made = reworkCourse(c, sections, ledges, squeezes, hops, draw);
+  const made = reworkCourse(c, sections, ledges, squeezes, hops, draw, shape.slide);
+  if (made && shape.slide) return slideCourse(made.state, { sections: plan, features: made.features }, draw);
   return made && { state: made.state, plan: { sections: plan, features: made.features } };
 }
 
@@ -3825,7 +3862,7 @@ function buildV15(draw: (n: number) => number, shape: V15Shape): { state: SwingS
  * still reaches the hop's next hook; the dragon's stretch; the hero hanging from the first hook. Null if a feature
  * finds too few places (the course is built again).
  */
-function reworkCourse(c: V14Course, sections: SwingSection[], ledges: SwingLedge[], squeezes: SwingSqueeze[], hops: V15Hop[], draw: (n: number) => number): { state: SwingState; features: SwingReworkPlan["features"] } | null {
+function reworkCourse(c: V14Course, sections: SwingSection[], ledges: SwingLedge[], squeezes: SwingSqueeze[], hops: V15Hop[], draw: (n: number) => number, slide = false): { state: SwingState; features: SwingReworkPlan["features"] } | null {
   const { ceil } = c;
   const ranged = { sections };
   const sectionOf = (hook: number) => sections.findIndex((sec, k) => { const [lo, hi] = swingReworkRange(ranged, k); return sec.kind === SWING_KIND_SWING && hook >= lo && hook < hi && hook < sec.hook0 + sec.hooks; });
@@ -3848,15 +3885,17 @@ function reworkCourse(c: V14Course, sections: SwingSection[], ledges: SwingLedge
     return p;
   };
   type Line = { reel: number; r: number };
+  let gates0: SwingGate[] | null = null;
   const lines = new Map<object, { hop: number } & Line>();
-  const bands = <T extends object>(count: number, make: (i: number) => [T, Line] | null, used: Set<number>): T[] => {
+  // (swingRev 17 spreads its gates over the first `span` hops only.)
+  const bands = <T extends object>(count: number, make: (i: number) => [T, Line] | null, used: Set<number>, span = hops.length): T[] => {
     const out: T[] = [];
     for (let n = 0; n < count; n++) {
-      const lo = Math.trunc((n * hops.length) / count);
-      const hi = Math.max(lo + 1, Math.trunc(((n + 1) * hops.length) / count));
+      const lo = Math.trunc((n * span) / count);
+      const hi = Math.max(lo + 1, Math.trunc(((n + 1) * span) / count));
       const start = lo + draw(hi - lo);
-      for (let m = 0; m < hops.length; m++) {
-        const i = (start + m) % hops.length;
+      for (let m = 0; m < span; m++) {
+        const i = (start + m) % span;
         if (used.has(i)) continue;
         const got = make(i);
         if (got) {
@@ -3882,8 +3921,34 @@ function reworkCourse(c: V14Course, sections: SwingSection[], ledges: SwingLedge
     }
     return false;
   };
+  // swingRev 17: speed gates on the planned line itself (the witness flies through every one), over the first
+  // SWING_V17_GATE_SPAN per mille of the hops (inside the part of the course a fast run reaches); no gems or stars.
+  if (slide) {
+    const slideGates = bands(SWING_V17_GATES, (i) => {
+      const hop = hops[i]!;
+      const { pass, reach } = probeOf(i);
+      const q = reach.find((x) => x.r === hop.r);
+      if (reach.length < 4 || !q) return null;
+      const path = q.path;
+      // Nearest the middle of the hop first (where the lines from one hook to the next run closest together).
+      const mid = (c.anchors[hop.h]!.x + c.anchors[hop.b]!.x) >> 1;
+      const order = Array.from({ length: Math.max(0, path.length - 6) }, (_, n) => n + 3).sort((p, q) => Math.abs(path[p]!.x - mid) - Math.abs(path[q]!.x - mid) || p - q);
+      for (const n of order) {
+        const at = path[n]!;
+        const prev = path[n - 1]!;
+        if ((at.x - prev.x) ** 2 + (at.y - prev.y) ** 2 < (SWING_V15_GATE_SPEED + 0.3) ** 2 * FP * FP) continue;
+        const gate: SwingGate = { x: at.x, y0: at.y - SWING_V17_GATE_HALF, y1: at.y + SWING_V17_GATE_HALF };
+        if (gate.y0 < lerpAt(ceil, gate.x) + 30 * FP || passesGate(pass, gate) || !passesGate(path, gate)) continue;
+        const takers = reach.filter((x) => passesGate(x.path, gate)).length;
+        if (takers >= 2 && takers < reach.length) return [gate, { reel: -1, r: hop.r }];
+      }
+      return null;
+    }, new Set(), Math.max(SWING_V17_GATES, Math.trunc((hops.length * SWING_V17_GATE_SPAN) / 1000)));
+    if (slideGates.length !== SWING_V17_GATES) return null;
+    gates0 = slideGates;
+  }
   // Speed gates: on the natural line (the middle release of the widest window reaching the next hook), where it flies fast.
-  const gates = bands(SWING_V15_GATES, (i) => {
+  const gates = slide ? gates0! : bands(SWING_V15_GATES, (i) => {
     const { pass, reach } = probeOf(i);
     if (reach.length < 4) return null;
     const runs: (typeof reach)[] = [];
@@ -3913,7 +3978,7 @@ function reworkCourse(c: V14Course, sections: SwingSection[], ledges: SwingLedge
   }, new Set());
   // Gems: on a harder line (a flight to the next hook only two or three of the reaching releases share), never touched on the rope.
   const used = new Set<number>();
-  const gems = bands(SWING_V15_GEMS, (i) => {
+  const gems = slide ? [] : bands(SWING_V15_GEMS, (i) => {
     const { pass, reach } = probeOf(i);
     if (reach.length < 5) return null;
     const options: [[number, number], number][] = [];
@@ -3930,7 +3995,7 @@ function reworkCourse(c: V14Course, sections: SwingSection[], ledges: SwingLedge
     return [spot, { reel: -1, r }];
   }, used);
   // Stars: on a tighter swing (the rope reeled in early on the hook), where the plain swing never passes; it still reaches the next hook.
-  const starSpots = bands(SWING_V15_STARS, (i) => {
+  const starSpots = slide ? [] : bands(SWING_V15_STARS, (i) => {
     const hop = hops[i]!;
     const { lo, hi, fl, pass } = probeOf(i);
     for (const u of [6, 8, 10, 12, 14, 16, 18]) {
@@ -3953,7 +4018,7 @@ function reworkCourse(c: V14Course, sections: SwingSection[], ledges: SwingLedge
     return null;
   }, used);
   // Every course carries the full count of each (the pickups' 30 points need them all); a short one is built again.
-  if (gates.length !== SWING_V15_GATES || gems.length !== SWING_V15_GEMS || starSpots.length !== SWING_V15_STARS) return null;
+  if (!slide && (gates.length !== SWING_V15_GATES || gems.length !== SWING_V15_GEMS || starSpots.length !== SWING_V15_STARS)) return null;
   gems.sort((p, q) => p[0] - q[0]);
   starSpots.sort((p, q) => p[0] - q[0]);
   gates.sort((p, q) => p.x - q.x);
@@ -4022,7 +4087,7 @@ function reworkCourse(c: V14Course, sections: SwingSection[], ledges: SwingLedge
  * own init at the start instant. Display timing only: the course is the seed's whatever builds it, and when.
  */
 export function prepareSwingCourse(seed: number, rev?: number): void {
-  if (rev === SWING_REV_DARK || rev === SWING_REV_REWORK || rev === SWING_REV_ASSAULT) swingGameFor(rev).init(seed);
+  if (rev === SWING_REV_SLIDE || rev === SWING_REV_DARK || rev === SWING_REV_REWORK || rev === SWING_REV_ASSAULT) swingGameFor(rev).init(seed);
 }
 
 /** The rope's body (swingRev 15's look-ahead kit below). */
@@ -4038,9 +4103,20 @@ export const swingBotKit = {
   detach: (b: Body, s: SwingState): void => detach(b, s.anchors[b.rope]!),
   reel: (b: Body): void => startReel(b, SWING_REEL_UP),
   // swingRev 16: a hook in the dark is not seen, so never a target (perception: the dark as the state shows it now).
-  target: (s: SwingState, k: number, x: number, y: number): number => {
+  // swingRev 17: a sliding hook is seen where it will be at `tick` (the state tick the press would be made on; its
+  // motion is drawn, so a player reads it); earlier revisions ignore the tick.
+  target: (s: SwingState, k: number, x: number, y: number, tick = s.tick): number => {
     const [lo, hi] = swingReworkRange(s, k);
+    if (s.slide) return rangeTargetAt(s, lo, hi, x, y, tick, s.dark ? swingDarkFrom(s) : SWING_NO_DARK);
     return rangeTarget(s.anchors, lo, hi, x, y, s.dark ? swingDarkFrom(s) : SWING_NO_DARK);
+  },
+  /** swingRev 17: anchor i where a press at `tick` would grab it, and the course as it is once grabbed there (a sliding hook stops). */
+  attachAt: (b: Body, i: number, s: SwingState, tick: number): void => attach(b, i, swingAnchorAt(s, i, tick)),
+  grabView: (s: SwingState, i: number, tick: number): SwingState => {
+    if (!s.slide) return s;
+    const v = { ...s };
+    slideStop(v, i, tick);
+    return v;
   },
   radius: RADIUS,
   reach: REACH,
@@ -4091,7 +4167,7 @@ const V16_SHAPE: V15Shape = { blocks: SWING_V16_BLOCKS, runs: SWING_V16_RUNS, sq
  *  - any other stretch: no dark.
  * An anchor at or past it is in the dark: not drawn and never grabbed.
  */
-export function swingDarkFrom(s: Pick<SwingState, "dark" | "sections" | "sec" | "ledges" | "anchors" | "hangHook">): number {
+export function swingDarkFrom(s: Pick<SwingState, "dark" | "sections" | "sec" | "ledges" | "anchors" | "hangHook" | "sliders">): number {
   if (!s.dark || !s.sections) return SWING_NO_DARK;
   const total = s.sections.length;
   const k = s.sec ?? 0;
@@ -4101,7 +4177,8 @@ export function swingDarkFrom(s: Pick<SwingState, "dark" | "sections" | "sec" | 
   const edge = () => {
     const to = s.ledges![sec.to!]!;
     let x = to.x + to.half;
-    for (let i = sec.hook0; i < sec.hook0 + sec.hooks; i++) x = Math.max(x, s.anchors[i]!.x + SWING_V16_HOOK_LIGHT);
+    // (swingRev 17: a sliding hook's rail end; every earlier revision has no sliders, so its hook.)
+    for (let i = sec.hook0; i < sec.hook0 + sec.hooks; i++) x = Math.max(x, slideRailEnd(s, i) + SWING_V16_HOOK_LIGHT);
     return x;
   };
   if (sec.kind !== SWING_KIND_SWING) return edge();
@@ -4111,8 +4188,9 @@ export function swingDarkFrom(s: Pick<SwingState, "dark" | "sections" | "sec" | 
 }
 
 /** Whether anchor i is lit (drawn, and grabbable as far as the dark goes; swingRev 16). */
-export function swingHookLit(s: Pick<SwingState, "dark" | "sections" | "sec" | "ledges" | "anchors" | "hangHook">, i: number): boolean {
-  return s.anchors[i]!.x < swingDarkFrom(s);
+export function swingHookLit(s: Pick<SwingState, "dark" | "sections" | "sec" | "ledges" | "anchors" | "hangHook" | "sliders" | "slideLock" | "tick">, i: number): boolean {
+  // swingRev 17: a sliding hook where it is now (every earlier revision: the hook).
+  return (s.sliders ? swingAnchorAt(s, i, s.tick).x : s.anchors[i]!.x) < swingDarkFrom(s);
 }
 
 /** The witness of a seed's swingRev 16 course (building it if need be). */
@@ -4126,3 +4204,420 @@ function initV16(seed: number): SwingState {
 
 /** swingRev 16: the dark ledge runs, 90 s. Band 3 like rev 15; the score is swingScoreV15. */
 export const swingDarkGame: typeof swingGame = { ...swingTunecGame, runTicks: SWING_V16_RUN_TICKS, init: (seed) => ({ ...bandInit(initV16(seed)), band: 3 }) };
+
+/* ================= The sliding hooks (swingRev 17, 3 Nov 2026) ================= */
+
+/**
+ * swingRev 17 (docs/arcade-standard/swing.md, "swingRev 17"): Joe's brief on Grappler. Every rule below is gated on the
+ * state's `slide` marker (rev-17 states also carry rev 16's `dark`, rev 15's `rework` and rev 14's `assault`); every
+ * earlier revision plays and scores exactly as before.
+ *
+ *  - Rev 16's course (90 s, 42 blocks, six dark ledge runs, the dragon over the last quarter, the ledge-run dim) on its
+ *    own seeded stream, without the gems and stars; the five speed gates sit on the course's own planned line, inside
+ *    the first SWING_V17_GATE_SPAN per mille of its hops.
+ *  - Sliding hooks: some hooks of the swinging stretches slide back and forth on a short level rail (a triangle wave on
+ *    the round's tick, seeded rail length, period and phase, identical for everyone), none in the course's first
+ *    quarter and more in each quarter after (SWING_V17_SLIDERS). A press grabs one where it is at that tick (as drawn),
+ *    and it stops there for the rest of the run (so the rope's physics is the fixed hook's). Never a stretch's first
+ *    hook, never two in a row; they follow the dark rule (a sliding hook in the dark can't be grabbed).
+ *  - The clean-swing streak: a grab of a new hook within SWING_V17_STALL ticks of the last grab or landing extends it
+ *    (a miss or the dragon's catch ends it; a longer wait starts it again). Every SWING_V17_STREAK_BLOCK in a row pays.
+ *  - Score (200): course SWING_V17_CORE on a straight line full at SWING_V17_FULL per mille of the course, pars
+ *    SWING_V17_PAR_POINTS over SWING_V17_PAR_STRETCHES stretches, gates SWING_V17_GATE_POINTS each, the streak up to
+ *    SWING_V17_STREAK_MAX; anyone who plays scores at least 1.
+ *  - Identical for every player: the course is built and proved from the seed alone (rev 16's builder), then its own
+ *    planned route is played through this step to find when it grabs each hook; each sliding hook is phased to sit at
+ *    its home exactly then, so the planned route is unchanged, and is kept only if a restart's hang before it reaches it
+ *    at every phase, the planned swing has a window on to it, and a hang from it, wherever it stopped, reaches the next.
+ */
+export const SWING_REV_SLIDE = 17;
+/** Sliding hooks a course carries in each quarter of its length (none in the first). */
+export const SWING_V17_SLIDERS: readonly number[] = [0, 4, 6, 8];
+export const SWING_V17_SLIDER_TOTAL = SWING_V17_SLIDERS.reduce((a, b) => a + b, 0);
+/** A rail's period (ticks; multiples of 4 that divide 1800) and half-length (px, seeded in [MIN, MIN + SPAN)). */
+export const SWING_V17_PERIODS = [120, 180] as const;
+export const SWING_V17_AMP_MIN = 20;
+export const SWING_V17_AMP_SPAN = 13;
+/** A clean grab comes within this many ticks of the last grab or landing. */
+export const SWING_V17_STALL = 150;
+/** Every SWING_V17_STREAK_BLOCK clean grabs in a row pay SWING_V17_STREAK_EACH, up to SWING_V17_STREAK_MAX. */
+export const SWING_V17_STREAK_BLOCK = 8;
+export const SWING_V17_STREAK_EACH = 2;
+export const SWING_V17_STREAK_MAX = 40;
+export const SWING_V17_CORE = 110;
+/** The core is full at this share of the course (per mille): about the great level's median (the pars keep paying for every stretch after it). */
+export const SWING_V17_FULL = 700;
+export const SWING_V17_PAR_POINTS = 40;
+/** Pars count over this many stretches (each up to SWING_V15_PAR_FULL ticks under). */
+export const SWING_V17_PAR_STRETCHES = 45;
+export const SWING_V17_GATES = 5;
+export const SWING_V17_GATE_POINTS = 2;
+/** Gates sit inside the first this-many per mille of the course's hops. */
+export const SWING_V17_GATE_SPAN = 650;
+/** A gate's opening (half its height, 1/256 px): taller than rev 14–16's. */
+export const SWING_V17_GATE_HALF = 50 * FP;
+export const SWING_V17_MAX = 200;
+export const SWING_V17_BAND_CURVE = bandCurve([0, SWING_V17_FULL, 1000], [0, SWING_V17_CORE, SWING_V17_CORE]);
+
+/** A sliding hook: anchor `i`, its home x (1/256 px; the anchor's own x), the rail's half-length (1/256 px), period and phase (ticks). */
+export interface SwingSlider {
+  i: number;
+  x: number;
+  amp: number;
+  period: number;
+  off: number;
+}
+
+/** A sliding hook's offset from home at a tick: a triangle wave, home at a quarter and three quarters of its period. */
+export function swingSlideDx(sl: SwingSlider, tick: number): number {
+  const p = sl.period;
+  const ph = (((tick + sl.off) % p) + p) % p;
+  const tri = ph < p / 2 ? ph : p - ph;
+  return Math.trunc((sl.amp * (4 * tri - p)) / p);
+}
+
+/** Anchor i where it is at a state tick (a sliding hook not yet stopped moves; every other anchor, and every earlier revision's, is fixed). */
+export function swingAnchorAt(s: Pick<SwingState, "anchors" | "sliders" | "slideLock">, i: number, tick: number): Anchor {
+  const a = s.anchors[i]!;
+  const list = s.sliders;
+  if (!list) return a;
+  for (let n = 0; n < list.length; n++) {
+    const sl = list[n]!;
+    if (sl.i !== i) continue;
+    return (s.slideLock ?? 0) & (1 << n) ? a : { x: sl.x + swingSlideDx(sl, tick), y: a.y };
+  }
+  return a;
+}
+
+/** The far end of anchor i's rail (its own x when it does not slide). */
+function slideRailEnd(s: Pick<SwingState, "anchors" | "sliders">, i: number): number {
+  for (const sl of s.sliders ?? []) if (sl.i === i) return sl.x + sl.amp;
+  return s.anchors[i]!.x;
+}
+
+/** rangeTarget with the sliding hooks where they are at `tick` (swingRev 17). */
+function rangeTargetAt(s: Pick<SwingState, "anchors" | "sliders" | "slideLock">, lo: number, hi: number, x: number, y: number, tick: number, lim = SWING_NO_DARK): number {
+  let best = -1;
+  let bestD = REACH * REACH;
+  for (let i = lo; i < hi && i < s.anchors.length; i++) {
+    const a = swingAnchorAt(s, i, tick);
+    if (a.x >= lim) continue;
+    const dx = a.x - x;
+    const dy = a.y - y;
+    const d = dx * dx + dy * dy;
+    if (d <= bestD) {
+      bestD = d;
+      best = i;
+    }
+  }
+  return best;
+}
+
+/** A sliding hook grabbed at `tick` stops where it is (the anchors are copied, never changed in place). */
+function slideStop(s: SwingState, i: number, tick: number): void {
+  const list = s.sliders ?? [];
+  for (let n = 0; n < list.length; n++) {
+    if (list[n]!.i !== i || (s.slideLock ?? 0) & (1 << n)) continue;
+    const anchors = s.anchors.slice();
+    anchors[i] = swingAnchorAt(s, i, tick);
+    s.anchors = anchors;
+    s.slideLock = (s.slideLock ?? 0) | (1 << n);
+  }
+}
+
+/** A grab on swingRev 17 (the press made on state tick `at`, the step's tick `tick`): a sliding hook stops; a new hook extends the streak. */
+function slideGrab(s: SwingState, target: number, at: number, tick: number): void {
+  slideStop(s, target, at);
+  if (target <= (s.bestHook ?? -1)) return;
+  s.bestHook = target;
+  s.streak = tick - (s.streakAt ?? 0) <= SWING_V17_STALL ? (s.streak ?? 0) + 1 : 1;
+  s.streakAt = tick;
+  if (s.streak % SWING_V17_STREAK_BLOCK === 0) s.streakPaid = (s.streakPaid ?? 0) + 1;
+}
+
+/** The streak as it stands at the state's tick (0 once the wait since the last grab or landing passes the stall). */
+export function swingStreakNow(s: SwingState): number {
+  if (!s.slide || s.tick - (s.streakAt ?? 0) > SWING_V17_STALL) return 0;
+  return s.streak ?? 0;
+}
+
+/** The parts of a rev-17 score (they add up to it, at most 200). */
+export function swingSlideParts(state: SwingState): { core: number; par: number; gates: number; streak: number; permille: number; parTicks: number } {
+  const p = swingReworkProgress(state);
+  const parTicks = (state.sections ?? []).reduce((sum, _, k) => {
+    const q = swingAssaultPar(state, k);
+    return sum + (q.time >= 0 ? clampInt(q.beat, 0, SWING_V15_PAR_FULL) : 0);
+  }, 0);
+  const line = Math.trunc((SWING_V17_CORE * Math.min(p.permille, SWING_V17_FULL)) / SWING_V17_FULL);
+  return {
+    core: state.acted ? Math.max(1, line) : line,
+    par: Math.min(SWING_V17_PAR_POINTS, Math.trunc((SWING_V17_PAR_POINTS * parTicks) / (SWING_V15_PAR_FULL * SWING_V17_PAR_STRETCHES))),
+    gates: SWING_V17_GATE_POINTS * bits(state.bankGates ?? 0),
+    streak: Math.min(SWING_V17_STREAK_MAX, SWING_V17_STREAK_EACH * (state.streakPaid ?? 0)),
+    permille: p.permille,
+    parTicks,
+  };
+}
+
+/** A rev-17 score: the parts' sum (at most 200); any input at least 1, none 0. */
+export function swingScoreV17(state: SwingState): number {
+  const p = swingSlideParts(state);
+  return stdFinal(p.core + p.par + p.gates + p.streak, Boolean(state.acted));
+}
+
+/** The rev-17 counts (reveal, summaries): sliding hooks, the streak and its blocks, each part's points. */
+export function swingSlideCounts(s: SwingState) {
+  const p = swingSlideParts(s);
+  return { slide: 1, sliders: (s.sliders ?? []).length, streakPaid: s.streakPaid ?? 0, streakPoints: p.streak, gatePoints: p.gates, parPoints: p.par, corePoints: p.core };
+}
+
+/** Score parts (rev 17): the core on its straight line, then pars, gates and the streak. */
+export function swingBandPartsV17(state: SwingState): BandParts {
+  const c = swingAssaultCounts(state);
+  const p = swingSlideParts(state);
+  return {
+    units: p.permille,
+    points: p.core,
+    bonus: p.par + p.gates + p.streak,
+    penalty: 0,
+    finished: c.sectionTotal > 0 && c.sections >= c.sectionTotal,
+    text: `${Math.trunc(p.permille / 10)} % of the course · ${c.sections} / ${c.sectionTotal} stretches`,
+    bonusText: `par +${p.par} · gates ${c.gates} +${p.gates} · streak +${p.streak}`,
+  };
+}
+
+/* ---- The builder (rev 17): rev 16's course, then the planned route, then the sliding hooks ---- */
+
+/** A press of the planned route: the state it was made from, the hook it took and the state after. */
+interface SlidePress {
+  before: SwingState;
+  hook: number;
+  after: SwingState;
+}
+/** The planned route played through the step: its input (absolute ticks) and its presses. */
+interface SlideWitness {
+  events: { t: number; a: number }[];
+  presses: SlidePress[];
+}
+const SLIDE_SHIFT = 1800;
+
+/**
+ * Plays a course's planned route (its witness, SwingReworkPlan.sections) from tick 0 through the step itself: each
+ * hop's planned release and grab, each landing's planned release, each ledge's press as soon as the hero stands at its
+ * centre. Past the run's end the clock is moved back SLIDE_SHIFT ticks (a whole number of every rail's period, so the
+ * hooks are where they would be) so the whole course is played. Null if it misses or does not clear the course.
+ */
+function slideWitness(s0: SwingState, plan: readonly [number, number][][]): SlideWitness | null {
+  let s = s0;
+  let moved = 0;
+  let k = 0;
+  let j = 0;
+  let G = 1;
+  let press = -1;
+  let mode: "rope" | "fly" | "land" | "ledge" = "rope";
+  const events: { t: number; a: number }[] = [];
+  const presses: SlidePress[] = [];
+  const total = s.sections!.length;
+  for (let guard = 0; guard < 40000 && (s.sec ?? 0) < total; guard++) {
+    if (s.tick >= SWING_V16_RUN_TICKS - 200) {
+      s = { ...s, tick: s.tick - SLIDE_SHIFT, grabTick: s.grabTick - SLIDE_SHIFT, secStart: (s.secStart ?? 0) - SLIDE_SHIFT, missTick: (s.missTick ?? 0) - SLIDE_SHIFT, streakAt: (s.streakAt ?? 0) - SLIDE_SHIFT, secTicks: s.secTicks!.map((t) => (t > 0 ? t - SLIDE_SHIFT : t)) };
+      G -= SLIDE_SHIFT;
+      press -= SLIDE_SHIFT;
+      moved += SLIDE_SHIFT;
+    }
+    const t = s.tick + 1;
+    const steps = plan[k];
+    if (!steps) return null;
+    let a = -1;
+    if (mode === "ledge" && (s.ledgeOn ?? -1) >= 0 && s.x === s.ledges![s.ledgeOn!]!.x && (s.respawn ?? 0) === 0) {
+      a = 1;
+      G = t;
+      j = 0;
+      mode = "rope";
+    } else if (mode === "rope" && t === G + steps[j]![0]) {
+      a = 0;
+      mode = steps[j]![1] < 0 ? "land" : "fly";
+      press = steps[j]![1] < 0 ? -1 : t + steps[j]![1];
+    } else if (mode === "fly" && t === press) {
+      a = 1;
+      G = t;
+    }
+    const before = s;
+    s = stepRework(s, a >= 0 ? { k: SWING_INPUT_HOLD, a, b: 0, c: 0, d: 0, t } : null);
+    if (a >= 0) events.push({ t: t + moved, a });
+    if (a === 1) presses.push({ before, hook: s.rope, after: s });
+    if ((s.restarts ?? 0) > 0 || (s.ended && (s.sec ?? 0) < total)) return null;
+    if (mode === "fly" && t === press) {
+      j += 1;
+      mode = "rope";
+      if ((s.sec ?? 0) > k) {
+        k = s.sec!;
+        j = 0;
+      }
+    } else if ((s.sec ?? 0) > k) {
+      k = s.sec!;
+      j = 0;
+      mode = "ledge";
+    }
+  }
+  return (s.sec ?? 0) >= total ? { events, presses } : null;
+}
+
+type SlideView = Pick<SwingState, "anchors" | "sliders" | "slideLock">;
+
+/**
+ * From a free body at state tick t0 (let go on that tick), whether a press on some flight tick within n grabs anchor b
+ * (the sliding hooks where they are then) with a good swing after it (b stopped where it was grabbed).
+ */
+function slideFlyTo(c: V14Course, view: SlideView, start: Body, t0: number, lo: number, hi: number, b: number, n = 60): boolean {
+  const body = { ...start };
+  for (let t = 1; t <= n; t++) {
+    if (moveBody(body, c)) return false;
+    if (rangeTargetAt(view, lo, hi, body.x, body.y, t0 + t) !== b) continue;
+    const at = swingAnchorAt(view, b, t0 + t);
+    const keep = c.anchors[b]!;
+    c.anchors[b] = at;
+    const grab = { ...body };
+    attach(grab, b, at);
+    const good = v15Good(c, grab);
+    c.anchors[b] = keep;
+    if (good) return true;
+  }
+  return false;
+}
+
+/** From a body on a rope at state tick t0, how many release ticks (within `max`, up to `need`) fly to a grab of b (slideFlyTo). */
+function slideWindow(c: V14Course, view: SlideView, body: Body, t0: number, lo: number, hi: number, b: number, need: number, max: number): number {
+  const rope = { ...body };
+  let found = 0;
+  for (let r = 1; r <= max && found < need; r++) {
+    if (moveBody(rope, c)) break;
+    if (rope.om <= 0) continue;
+    const off = { ...rope };
+    detach(off, c.anchors[off.rope]!);
+    if (off.vx <= 0) continue;
+    if (slideFlyTo(c, view, off, t0 + r, lo, hi, b)) found += 1;
+  }
+  return found;
+}
+
+/** Each kept sliding hook's proofs: phases of a restart's hang, release windows and how many each needs. */
+const SLIDE_PHASES = 8;
+const SLIDE_HANG_NEED = 3;
+const SLIDE_SWING_NEED = 3;
+
+/**
+ * Adds the sliding hooks to a built rev-17 course (rev 16's machinery, gates on the planned line). The planned route is
+ * played through the step; then, quarter by quarter, seeded candidates (a swinging stretch's own hook, not its first,
+ * both neighbours hooks the route grabs, neither of them sliding) are tried with a seeded rail and phase (home at the
+ * route's press on it). Kept only if: the rail stays clear of the roof; every press of the route in its stretch still
+ * takes the hook it took; a restart's hang from the hook before reaches it on SLIDE_HANG_NEED release ticks at each of
+ * SLIDE_PHASES phases; the route's swing on the hook before has a window of SLIDE_SWING_NEED releases on to it; and a
+ * hang from it, stopped at either end of its rail or at home, reaches the next hook on four or more. Finally the route is
+ * played again on the finished course and must make exactly the same input and grabs. Null when a quarter finds too
+ * few (the course is built again).
+ */
+function slideCourse(built: SwingState, plan: SwingReworkPlan, draw: (n: number) => number): { state: SwingState; plan: SwingReworkPlan } | null {
+  const base: SwingState = { ...built, dark: 1, slide: 1, sliders: [], slideLock: 0, streak: 0, streakAt: 0, streakPaid: 0, bestHook: -1 };
+  const w = slideWitness(base, plan.sections);
+  if (!w) return null;
+  const secs = base.sections!;
+  const x0 = secs[0]!.x0!;
+  const length = secs[secs.length - 1]!.x1! - x0;
+  const pressOf = new Map<number, SlidePress>();
+  for (const p of w.presses) if (!pressOf.has(p.hook)) pressOf.set(p.hook, p);
+  const anchors = base.anchors.slice();
+  const c: V14Course = { ceil: base.ceil, floor: base.floor, spikes: [], anchors };
+  const sliders: SwingSlider[] = [];
+  const view: SlideView = { anchors, sliders, slideLock: 0 };
+  const isSlider = (i: number) => sliders.some((sl) => sl.i === i);
+  // Candidates by quarter: hooks i of a swinging stretch (not its first) whose neighbours the route grabs.
+  const byQuarter: number[][] = [[], [], [], []];
+  const stretchOf = new Map<number, number>();
+  secs.forEach((sec, k) => {
+    if (sec.kind !== SWING_KIND_SWING) return;
+    const [, hi] = swingReworkRange(base, k);
+    for (let i = sec.hook0 + 1; i < sec.hook0 + sec.hooks && i + 1 < hi; i++) {
+      if (!pressOf.has(i - 1) || !pressOf.has(i) || !pressOf.has(i + 1)) continue;
+      stretchOf.set(i, k);
+      byQuarter[clampInt(Math.trunc((4 * (anchors[i]!.x - x0)) / length), 0, 3)]!.push(i);
+    }
+  });
+  const tryOne = (i: number): boolean => {
+    if (isSlider(i) || isSlider(i - 1) || isSlider(i + 1)) return false;
+    const k = stretchOf.get(i)!;
+    const [lo, hi] = swingReworkRange(base, k);
+    const amp = (SWING_V17_AMP_MIN + draw(SWING_V17_AMP_SPAN)) * FP;
+    const period = SWING_V17_PERIODS[draw(SWING_V17_PERIODS.length)]!;
+    const home = (draw(2) ? 3 : 1) * (period / 4);
+    const T = pressOf.get(i)!.before.tick;
+    const sl: SwingSlider = { i, x: anchors[i]!.x, amp, period, off: (((home - T) % period) + period) % period };
+    const y = anchors[i]!.y;
+    if (y < lerpAt(c.ceil, sl.x - amp) + 40 * FP || y < lerpAt(c.ceil, sl.x + amp) + 40 * FP) return false;
+    sliders.push(sl);
+    const fail = () => {
+      sliders.pop();
+      return false;
+    };
+    // The route's presses in this stretch still take the hooks they took (the dark as the route saw it).
+    for (const p of w.presses) {
+      const pk = Math.min(p.before.sec ?? 0, secs.length - 1);
+      if (pk !== k) continue;
+      const [plo, phi] = swingReworkRange(p.before, pk);
+      const lim = swingDarkFrom({ ...p.before, sliders });
+      if (rangeTargetAt(view, plo, phi, p.before.x, p.before.y, p.before.tick, lim) !== p.hook) return fail();
+    }
+    // A restart's hang from the hook before reaches it at every phase of its rail.
+    const hang = hangBody(anchors[i - 1]!, i - 1);
+    for (let f = 0; f < SLIDE_PHASES; f++) {
+      if (slideWindow(c, view, hang, Math.trunc((f * period) / SLIDE_PHASES), lo, hi, i, SLIDE_HANG_NEED, 240) < SLIDE_HANG_NEED) return fail();
+    }
+    // The route's swing on the hook before has a window on to it.
+    const on = pressOf.get(i - 1)!.after;
+    const onBody: Body = { x: on.x, y: on.y, vx: on.vx, vy: on.vy, rope: on.rope, len: on.len, th: on.th, om: on.om, grabLen: on.grabLen, reelTo: on.reelTo, reelLeft: on.reelLeft, pumps: on.pumps };
+    if (slideWindow(c, view, onBody, on.tick, lo, hi, i, SLIDE_SWING_NEED, 160) < SLIDE_SWING_NEED) return fail();
+    // A hang from it, wherever it stopped, reaches the next hook.
+    const keep = anchors[i]!;
+    for (const dx of [-amp, 0, amp]) {
+      anchors[i] = { x: sl.x + dx, y };
+      const ok = v15Window(c, hangBody(anchors[i]!, i), lo, hi, i + 1, []) !== null;
+      anchors[i] = keep;
+      if (!ok) return fail();
+    }
+    return true;
+  };
+  for (let q = 1; q < 4; q++) {
+    const list = byQuarter[q]!;
+    const want = SWING_V17_SLIDERS[q]!;
+    // Spread over the quarter: one from each of `want` seeded bands of its candidates (the next that proves, on from a
+    // seeded start in the band).
+    for (let n = 0; n < want; n++) {
+      const lo = Math.trunc((n * list.length) / want);
+      const hi = Math.max(lo + 1, Math.trunc(((n + 1) * list.length) / want));
+      const start = lo + draw(hi - lo);
+      let found = false;
+      for (let m = 0; m < list.length && !found; m++) found = tryOne(list[(start + m) % list.length]!);
+      if (!found) return null;
+    }
+  }
+  sliders.sort((p, q) => p.i - q.i);
+  const state: SwingState = { ...base, anchors: base.anchors, sliders };
+  // The route again, on the course with its sliding hooks: it must make exactly the same input and grabs.
+  const again = slideWitness(state, plan.sections);
+  if (!again || again.events.length !== w.events.length || again.events.some((e, n) => e.t !== w.events[n]!.t || e.a !== w.events[n]!.a) || again.presses.some((p, n) => p.hook !== w.presses[n]!.hook)) return null;
+  return { state, plan: { ...plan, witness: w.events, slideTicks: sliders.map((sl) => pressOf.get(sl.i)!.before.tick) } };
+}
+
+const V17_SHAPE: V15Shape = { blocks: SWING_V16_BLOCKS, runs: SWING_V16_RUNS, squeezeRuns: SWING_V16_SQUEEZE_RUNS, squeezes: SWING_V16_SQUEEZES, runFirst: 4, runEvery: 6, salt: 0x1f83d9ab, failures: 60, cache: new Map(), plans: new Map(), slide: true };
+
+/** The witness of a seed's swingRev 17 course (building it if need be): its planned route (and as input), the gates' lines and when the route grabs each sliding hook. */
+export function swingSlidePlan(seed: number): SwingReworkPlan {
+  return shapePlan(seed, V17_SHAPE);
+}
+
+function initV17(seed: number): SwingState {
+  return { ...initShape(seed, V17_SHAPE), dark: 1, slide: 1 };
+}
+
+/** swingRev 17: the sliding hooks and the clean-swing streak, on rev 16's 90 s. Band 3; the score is swingScoreV17. */
+export const swingSlideGame: typeof swingGame = { ...swingTunecGame, runTicks: SWING_V16_RUN_TICKS, init: (seed) => ({ ...bandInit(initV17(seed)), band: 3 }) };

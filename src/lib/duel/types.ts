@@ -1995,7 +1995,7 @@ export interface MahjongPuzzleData {
 
 /** Home Run Derby's 60-second, ten-pitch run; the round clock adds three of slack (63 s). */
 export const HOMERUN_TIME_MS = 63_000;
-/** Top Bins' 90-second, ten-kick run (freekickRev 3; rev 1 and 2 runs end at 75 s), plus three of slack. */
+/** Top Bins' 90-second, ten-kick run (freekickRev 3 and 4; rev 1 and 2 runs end at 75 s), plus three of slack. */
 export const FREEKICK_TIME_MS = 93_000;
 /**
  * Apex's 90-second, two-lap race, plus three of slack; since 31 Oct 2026 (racingRev 2) also its 5.5-second start
@@ -2021,9 +2021,12 @@ export interface FreekickPuzzleData {
 
 export interface RacingPuzzleData {
   type: "racing";
-  /** A proved seed (racingDealV2.server.ts; racingDeal.server.ts on rev 1): the track, identical for everyone. */
+  /** A proved seed (racingDealV3.server.ts; racingDealV2.server.ts on rev 2, racingDeal.server.ts on rev 1): the track, identical for everyone. */
   seed: number;
-  /** Rules revision (1 = the first race, on the arcade scoring standard; 2 = the F1 lights start and the softer joystick). */
+  /**
+   * Rules revision (1 = the first race, on the arcade scoring standard; 2 = the F1 lights start and the softer joystick;
+   * 3 = the softer gravel, corner speed signs and the pace score).
+   */
   racingRev?: number;
 }
 
@@ -2043,8 +2046,11 @@ export const PYRAMID_TIME_MS = 93_000;
 export const GOLFSOL_TIME_MS = 78_000;
 /** Muggins: a 90-second run. */
 export const MUGGINS_TIME_MS = 93_000;
-/** Blockfall: a 60-second run (it ends early on a top-out), plus three of slack. */
-export const BLOCKFALL_TIME_MS = 63_000;
+/**
+ * Blockzone (blockfall): a 90-second run on blockfallRev 2 (it ends early on a top-out), plus three of slack; older
+ * blockfallRev 1 rounds end at 60 s (Gemstone's precedent: the definition's clock is the live stamp's).
+ */
+export const BLOCKFALL_TIME_MS = 93_000;
 /** Ringer (Alley Roll): nine balls or 60 seconds, plus three of slack. */
 export const ALLEYROLL_TIME_MS = 63_000;
 
@@ -2393,7 +2399,7 @@ export interface OrbitPuzzleData {
 
 export interface SwingPuzzleData {
   type: "swing";
-  /** 4 = dragon chase; 5 = score bands; 6 = touch stars (Tuning A); 7 = about 10% lower (Tuning C); 8 = stars spread evenly (Tuning F); 9 = the taller 390 × 730 cavern; 13 = the 200 expansion; 14 = the assault course (sections of ledges, hooks and squeezes); 15 = the swinging course (mostly hook-to-hook swinging, short ledge runs); 16 = its dark ledge runs over 90 s (a longer course). */
+  /** 4 = dragon chase; 5 = score bands; 6 = touch stars (Tuning A); 7 = about 10% lower (Tuning C); 8 = stars spread evenly (Tuning F); 9 = the taller 390 × 730 cavern; 13 = the 200 expansion; 14 = the assault course (sections of ledges, hooks and squeezes); 15 = the swinging course (mostly hook-to-hook swinging, short ledge runs); 16 = its dark ledge runs over 90 s (a longer course); 17 = sliding hooks and the clean-swing streak (no gems or stars). */
   swingRev?: number;
   /** Draws the cavern — identical for everyone. */
   seed: number;
@@ -2764,7 +2770,9 @@ export interface CurlingPuzzleData {
    * curlRev 1: the arcade scoring standard (docs/arcade-standard/curling.md). curlRev 2 (31 Oct 2026, dealt from
    * curlingBankV2.server.ts): the start along the hog line and side brushing, the same parts. curlRev 3 (1 Nov 2026,
    * dealt from curlingBankV3.server.ts): the weight meter's draw zone, the aim line, a gentler weight line and the
-   * re-fitted closeness core, the same parts.
+   * re-fitted closeness core, the same parts. curlRev 4 (3 Nov 2026, dealt from curlingBankV4.server.ts): the power
+   * bar and Throw button, three red stones a sheet and curling's count (only stones nearer the button than every red
+   * in the house score their closeness), the same parts.
    */
   curlRev?: number;
 }

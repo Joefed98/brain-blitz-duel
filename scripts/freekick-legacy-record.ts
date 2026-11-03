@@ -12,9 +12,10 @@ import { recordInput, type ArcadeInputEvent } from "../src/lib/arcade/engine";
 import { freekickCheckpoint, freekickGameFor, FREEKICK_INPUT_KICK, FREEKICK_INPUT_RANGES } from "../src/lib/arcade/freekick";
 import { FREEKICK_DEAL } from "../src/lib/duel/freekickDeal.server";
 import { FREEKICK_DEAL_V2 } from "../src/lib/duel/freekickDealV2.server";
+import { FREEKICK_DEAL_V3 } from "../src/lib/duel/freekickDealV3.server";
+import { bot, randomBot } from "./arcade-skill-bands/bots/freekick";
 import { oracleRun } from "./freekick-oracle";
 import { Human } from "./arcade-skill-bands/human";
-import { bot } from "./arcade-skill-bands/bots/freekick";
 
 export interface FkLegacyRun {
   seed: number;
@@ -48,7 +49,21 @@ function randomRun(seed: number, salt: number): ArcadeInputEvent[] {
   return events;
 }
 
-if (import.meta.main && process.argv.includes("--rev=2")) {
+if (import.meta.main && process.argv.includes("--rev=3")) {
+  // freekickRev 3 runs, recorded on main 6326101 before freekickRev 4 (3 Nov 2026): the oracle, two random prepared
+  // shots and the skill-band bot at weak, good, great and elite on 16 rev-3 deal seeds.
+  const runs: FkLegacyRun[] = [];
+  const seeds = Array.from({ length: 16 }, (_, i) => FREEKICK_DEAL_V3[i * 18 + 2]!);
+  for (const seed of seeds) {
+    const botRun = (level: "weak" | "good" | "great" | "elite") => bot({ game: freekickGameFor(3), seed, rev: 3, human: new Human("freekick", seed, level) }).events ?? [];
+    const rnd = (salt: number) => randomBot({ game: freekickGameFor(3), seed, rev: 3, human: new Human("freekick", seed ^ salt, "average") }).events ?? [];
+    for (const [label, events] of [["oracle", oracleRun(seed, 3)], ["random a", rnd(0x3234)], ["random b", rnd(0xbeed)], ["weak bot", botRun("weak")], ["good bot", botRun("good")], ["great bot", botRun("great")], ["elite bot", botRun("elite")]] as const) {
+      runs.push({ seed, label, events: [...events], ...playRev1(seed, [...events], 3) });
+    }
+  }
+  writeFileSync("scripts/fixtures/freekick-rev3-legacy.json", JSON.stringify(runs));
+  console.log(`freekick legacy (rev 3): ${runs.length} runs recorded`);
+} else if (import.meta.main && process.argv.includes("--rev=2")) {
   const runs: FkLegacyRun[] = [];
   const seeds = Array.from({ length: 16 }, (_, i) => FREEKICK_DEAL_V2[i * 18 + 1]!);
   for (const seed of seeds) {

@@ -444,7 +444,8 @@ const BUILDERS: Record<string, Builder> = {
   }),
   curling: (r, s) => ({
     axis: { value: n(r, "onButton"), max: 8, label: "Stones on the button" },
-    lines: [`${n(r, "onButton")} of 8 on the button → ${s}`],
+    // curlRev 4: the stones that counted (nearer than every red in the house) too.
+    lines: [((r["state"] as { rev?: number } | undefined)?.rev ?? 1) >= 4 ? `${n(r, "onButton")} of 8 on the button · ${n(r, "counted")} counted → ${s}` : `${n(r, "onButton")} of 8 on the button → ${s}`],
     tiles: [
       { label: "In the 4-foot", value: `${n(r, "inFourFoot")} / 8` },
       { label: "Takeouts", value: `${n(r, "takeouts")} / ${n(r, "opponents")}` },
@@ -605,7 +606,18 @@ const BUILDERS: Record<string, Builder> = {
       outcome: done ? "finish" : ended(r, false),
     };
   },
-  flip: (r, s) => ({
+  flip: (r, s) => b(r, "flow") ? {
+    // flipRev 11 (3 Nov 2026): no stars; clean time, perfect landings, double flips and the longest flow streak.
+    axis: { value: Math.round(n(r, "survivedSeconds") * 10) / 10, max: 60, label: "Seconds survived" },
+    lines: [`${sec(n(r, "survivedSeconds"))} survived${n(r, "saves") > 0 ? ` · ${n(r, "saves")} saved` : ""} · best streak ${n(r, "streak")} → ${s}`],
+    tiles: [
+      { label: b(r, "survived") ? "Survived" : "Crashed at", value: b(r, "survived") ? "60 s" : sec(n(r, "survivedSeconds")) },
+      { label: "Perfect landings", value: `${n(r, "sweets")} / ${n(r, "sweetsTotal")}` },
+      { label: "Best streak", value: String(n(r, "streak")) },
+      { label: "Features", value: `+${n(r, "skill")}` },
+    ],
+    outcome: b(r, "survived") ? "finish" : "crash",
+  } : ({
     axis: { value: Math.round(n(r, "survivedSeconds") * 10) / 10, max: 60, label: "Seconds survived" },
     lines: n(r, "starsTotal") > 0
       ? [`${sec(n(r, "survivedSeconds"))} survived + ${n(r, "stars")} stars × 2 → ${s}`]
@@ -662,6 +674,14 @@ const BUILDERS: Record<string, Builder> = {
         ...(starLevels > 0 ? [{ label: n(r, "silverTotal") > 0 ? "Ink stars" : "Gold stars", value: `${n(r, "stars")} / ${starLevels}` }] : []),
         // inkRev 10 (x200): silver coins and the shamrock.
         ...(n(r, "silverTotal") > 0 ? [{ label: "Silver", value: `${n(r, "silver")} / ${n(r, "silverTotal")}` }, { label: "Shamrock", value: n(r, "shamrock") ? "Yes" : "No" }] : []),
+        // inkRev 13: levels potted within their ink par, trick shots and clovers (no stars or silver coins).
+        ...(n(r, "cloverTotal") > 0
+          ? [
+              { label: "Within ink par", value: `${n(r, "parLevels")} / ${levels}` },
+              { label: "Trick shots", value: `${n(r, "tricks")} / ${n(r, "cloudLevels")}` },
+              { label: "Clovers", value: `${n(r, "shamrock")} / ${n(r, "cloverTotal")}` },
+            ]
+          : []),
         { label: "Fails", value: String(n(r, "fails")) },
       ],
       outcome: done ? "finish" : "time",
@@ -730,6 +750,27 @@ const BUILDERS: Record<string, Builder> = {
     };
   },
   swing: (r, s) => {
+    // swingRev 17 (the sliding hooks and the clean-swing streak): the share of the course on the axis; four parts add up to the stored score.
+    if (n(r, "swingRev") >= 17) {
+      const done = n(r, "sections") >= n(r, "sectionTotal") && n(r, "sectionTotal") > 0;
+      return {
+        axis: { value: Math.trunc(n(r, "permille") / 10), max: 100, label: "% of the course" },
+        lines: [
+          `${Math.trunc(n(r, "permille") / 10)} % of the course · ${n(r, "sections")} / ${n(r, "sectionTotal")} stretches → ${n(r, "basePts")}`,
+          `Pars (${n(r, "parsBeaten")} under) +${n(r, "parPts")}`,
+          `Gates (${n(r, "gates")} / ${n(r, "gateTotal")}) +${n(r, "gatePts")}`,
+          `Clean-swing streak +${n(r, "streakPts")}`,
+          `Total → ${s}`,
+        ],
+        tiles: [
+          { label: "Course", value: `${Math.trunc(n(r, "permille") / 10)} %` },
+          { label: "Under par", value: `${n(r, "parsBeaten")}` },
+          { label: "Restarts", value: `${n(r, "restarts")}` },
+          { label: "Gates", value: `${n(r, "gates")} / ${n(r, "gateTotal")}` },
+        ],
+        outcome: done ? "finish" : ended(r, false),
+      };
+    }
     // swingRev 15 (the swinging course) and 16 (its dark ledge runs, 90 s): the share of the course on the axis; the three parts add up to the stored score.
     if (n(r, "swingRev") >= 15) {
       const done = n(r, "sections") >= n(r, "sectionTotal") && n(r, "sectionTotal") > 0;
@@ -830,6 +871,19 @@ const BUILDERS: Record<string, Builder> = {
     const all = n(r, "tiltRev") === 8 || n(r, "tiltRev") === 9 ? 3 : 4;
     const done = n(r, "mazes") >= all;
     const quick = n(r, "totalQuick") > 0;
+    // tiltRev 11: no gold stars; mazes within par and a clean run instead.
+    if (n(r, "tiltRev") >= 11)
+      return {
+        axis: { value: n(r, "mazes"), max: all, label: "Mazes" },
+        lines: [`${n(r, "mazes")} / ${all} mazes · ${n(r, "parsMet")} under par · ${n(r, "falls") > 0 ? `clean for ${n(r, "cleanMazes")}` : "clean run"} → ${s}`],
+        tiles: [
+          { label: "Mazes", value: `${n(r, "mazes")} / ${all}` },
+          { label: "Under par", value: `${n(r, "parsMet")} / ${all}` },
+          { label: "Falls", value: String(n(r, "falls")) },
+          { label: "Time", value: sec(n(r, "survivedSeconds")) },
+        ],
+        outcome: done ? "finish" : ended(r, false),
+      };
     return {
       axis: { value: n(r, "mazes"), max: all, label: "Mazes" },
       lines: [n(r, "tiltRev") > 0 ? `${n(r, "mazes")} / ${all} mazes · ${n(r, "stars")} / ${n(r, "totalStars")} stars${quick ? ` · ${n(r, "quickStars")} / ${n(r, "totalQuick")} quick stars` : ""} → ${s}` : head(`${n(r, "mazes")} / 4 mazes`, s, done)],

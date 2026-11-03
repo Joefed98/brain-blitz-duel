@@ -199,3 +199,159 @@ appended) follow rev 16.
   edge, so the dark shows there as a strip at the edge; the ledge-run dim over the whole scene marks the section anyway.
   `grappler-dark-lifted-414x896.png` shows the scene once the first hook after the run is grabbed (the dim lifted).
 - Build time: about 1.5× rev 15's (about 130–230 ms a course here unthrottled, so roughly 0.4–0.8 s at a 4× CPU throttle), still built while the intro is up (`prepareSwingCourse`); async rounds (the daily, challenges) build at the round's start, as on rev 15.
+
+# swingRev 17: sliding hooks and the clean-swing streak (3 Nov 2026)
+
+Joe's brief on Grappler, on a new stamp, **swingRev 17** (`SWING_REV_SLIDE`, one above swingRev 16). Rooms, practice,
+the daily and challenges deal it; swingRev 15 and 16 (and every earlier revision) play and score exactly as before
+(swing-slide-check replays 24 runs recorded on unmodified main 6326101, `scripts/fixtures/swing-slide-legacy.json`, 12
+each of swingRev 15 and 16, recorded by `scripts/swing-slide-legacy.ts`). Every rule is gated on the state's `slide`
+marker (rev-17 states also carry rev 16's `dark`, rev 15's `rework` and rev 14's `assault`).
+
+## What changed
+
+- **Kept:** 90 s, rev 16's course shape (42 blocks, six dark ledge runs, three squeezes), the dark rule, the ledge-run
+  dim, the dragon over the last quarter, pars and gates. The course is built by rev 16's builder on its own stream
+  (`V17_SHAPE`, salt `0x1f83d9ab`).
+- **Removed:** the gems and the stars (the brief's "coins and diamonds": *assumption*, Grappler's coins are its gold
+  star coins and its diamonds its cave-crystal gems). Rev-17 courses deal neither, so nothing draws or pays them.
+- **Gates (5)** sit on the course's own planned line between two hooks (the witness flies through every one), near the
+  middle of the hop, with a taller opening than before (`SWING_V17_GATE_HALF`, 100 px: the bots showed rev 16's 44 px
+  opening on the planned line was only ever taken by the planned body itself), all inside the first 65 % of the
+  course's hops (`SWING_V17_GATE_SPAN`), the part every good run reaches.
+- **Sliding hooks** (`SwingSlider`, `swingSlideDx`, `swingAnchorAt`): some hooks of the swinging stretches slide back
+  and forth on a short level rail, an integer triangle wave on the round's tick: half-length 20–32 px, period 120 or 180
+  ticks (both divide 1800 and are multiples of 4), phase seeded. **None in the first quarter of the course, then 4, 6
+  and 8** in the next three (`SWING_V17_SLIDERS`, 18 in all). Never a stretch's first hook, never two in a row, never a
+  ledge section's hook. A press grabs a sliding hook where it is at that tick (drawn where the sim has it, so what you see
+  is what you grab), and it **stops there for the rest of the run** (`slideStop`: the anchors are copied with that entry
+  changed, so the rope's physics is a fixed hook's and nothing else moves). They follow the dark rule: a sliding hook in
+  the dark can't be grabbed (`swingHookLit` reads its live place; the dark's edge allows for its rail's far end).
+- **The clean-swing streak** (`slideGrab`, `swingStreakNow`): a grab of a new hook (further than any grabbed before)
+  within `SWING_V17_STALL` (150 ticks, 2.5 s) of the last grab or landing extends it; a longer wait starts it again at 1;
+  a miss or the dragon's catch ends it (it counts again after the 0.4 s hold); re-grabbing a hook already held adds
+  nothing. Every 8 in a row (`SWING_V17_STREAK_BLOCK`) pays 2 (`SWING_V17_STREAK_EACH`), up to 40. The HUD shows
+  "STREAK ×n" top right (gold from 8), "GATES n / 5" under it.
+
+## Identical for everyone, and proved
+
+The course is built and proved as rev 16's (every hook from the planned swing before it, restart hangs, near misses,
+landings). Then `slideCourse` plays the course's **own planned route** through the step itself (`slideWitness`: each
+hop's planned release and grab, each landing's planned release, each ledge's press as soon as the hero is centred; past
+90 s the clock is moved back 1,800 ticks, a whole number of every rail's period), and adds the sliding hooks quarter by
+quarter, one from each seeded band of candidates: a candidate's rail is phased so that it is **at home exactly when the
+route grabs it** (so the route is unchanged), and it is kept only if:
+
+- its rail clears the roof by 40 px at both ends;
+- every press of the route in its stretch still takes the hook it took (with the sliding hooks where they are then);
+- a restart's hang from the hook before reaches it on 3 or more release ticks **at each of 8 phases of its rail**;
+- the route's swing on the hook before has a window of 3 or more releases on to it;
+- a hang from it, stopped at either end of its rail or at home, reaches the next hook on 4 or more release ticks.
+
+Finally the route is played again on the finished course and must make exactly the same input and grabs.
+`swingSlidePlan(seed)` returns the witness: the planned route as input (`witness`) and the tick it grabs each sliding
+hook (`slideTicks`).
+
+## The deal: 200 proved on every dealt course (3 Nov 2026 follow-up)
+
+Joe's follow-up: a perfect run reached 200 on only 10 of 24 courses, so 200 is now proved on every course a room deals,
+as Apex's deal does. `scripts/swing-slide-deal.ts` builds each candidate course (the sim's own builder above, sliding
+hooks phased to its planned route), lets the **oracle** play it (the flawless-level skill-band bot, no timing error) and
+keeps the seed only when the oracle's log scores **exactly 200 through the server's replay** (`encodeSwingRun` →
+`replaySwingRun`, unflagged); the rest are dropped. Rooms, practice, the daily and challenges deal through
+`generateSwing` from `SWING_SLIDE_DEAL` (`src/lib/duel/swingSlideDeal.server.ts`, `swingSlideDealSeed(roomSeed)`), and
+each kept course's oracle log is its witness (`scripts/fixtures/swing-slide-deal-witness.json.gz`).
+
+- **120 courses kept of the first 234 candidates (114 dropped, 51 % kept).** Every course still builds from its seed
+  in the sim (any seed plays, as before; only the deal is narrowed), and nothing about the game changed: the stamp,
+  parts and rules are as above.
+- Why not the planned route: the builder's planned route is a deliberately steady line (each stretch 30+ ticks under
+  par); through the server replay its 90 s scores 165–181 (about 36 of 51 stretches, a streak of ~113 grabs), so it
+  cannot carry 200. The oracle is the flawless bot, which flies the faster lines. A second or third look-ahead stream
+  never rescued a course the first missed, so the oracle has one try. The misses are near-misses (197–198: one stalled
+  grab breaking a streak block, or a stretch a few ticks short of full par).
+- `bun scripts/swing-slide-deal.ts --check` replays all 120 witnesses (each exactly 200, the deal exactly those
+  seeds); swing-slide-check replays every eighth (all with `CHECKS_FULL=1`), each at 200 with every part at its maximum,
+  and asserts rooms deal only from the list; the arcade-standard entry's perfect runs are three dealt courses' witnesses
+  through the server replay.
+
+Medians before (swingRev 17 on any course, fresh room seeds 10000–10011, the table below) → after (the dealt courses
+for fresh room seeds 10000–10023, 24 runs, 19 distinct courses), every run through the server's replay:
+
+| Level | Before | After (range) |
+|---|---|---|
+| Weak | 59 | 69 (21–94) |
+| Average | 90 | 95 (71–108) |
+| Good | 121 | 122 (73–158) |
+| Great | 161 | 165 (152–174) |
+| Near-perfect | 189 | 190 (186–195) |
+| Elite | 195 | 198 (193–200) |
+| Flawless | 199 | **200 (200–200, 24 of 24)** |
+| Random | 8 | 5 (2–15) |
+
+Flawless > great > good on 24 of 24. The top four barely move; weak rises most (59 → 69, now above its 30–60 target):
+the dealt courses are ones a flawless line clears cleanly, a little kinder on average to a weak player too.
+
+## Scoring (`swingSlideParts`, `swingScoreV17`, `swingBandPartsV17`)
+
+| Part | Points | How |
+|---|---|---|
+| Course (core) | 110 | A straight line on the share of the course behind the hero (as rev 15), **full at 700 per mille** (`SWING_V17_FULL`, about the great level's median; `SWING_V17_BAND_CURVE`). |
+| Pars | 40 | Each stretch cleared pays by how far under par (full at 30 ticks under), counted over **45 stretches** (`SWING_V17_PAR_STRETCHES`; a course has 51), so the pars keep paying for every stretch after the core is full. |
+| Gates | 10 | 2 each for the 5 (banked as before: put back on a miss since the last hook). |
+| Clean-swing streak | 40 | 2 for every 8 clean grabs in a row (summed over the run's streaks), up to 40. |
+| **Total** | **200** | No input 0; any input at least 1 (`stdFinal`). Earning a feature never costs core. |
+
+Decisions: the core is full well before the course's end and the pars carry the rest of the distance (a straight core
+over the whole course paid the great level too little and the near-perfect one too much for the targets); the streak
+counts every block of 8 in every streak, so one miss costs the unfinished block, not the run.
+
+## Skill bands (`bun scripts/swing-rework-bands.ts --rev=17`; the parts above)
+
+The bots (`scripts/arcade-skill-bands/bots/swingRework.ts`) see a sliding hook where it will be at each moment they look
+ahead (`swingBotKit.target(…, tick)`, `attachAt`, `grabView`: perception only, every input through the step). The
+flawless level now plans as if a tick either way could happen and plays each moment exactly (rev 17 only): without it
+it picked knife-edge lines past the sliding hooks and gates and fell or missed gates the elite bot took.
+
+Before (swingRev 16) and after (swingRev 17), the same bots (the flawless level's plan floor on rev 17 only), every
+run through the server's replay. Fresh seeds are room seeds 10000–10011; the room seeds 0–11 are the ones rev 16's
+table used. Targets (Joe): weak 30–60, average about 90, good 120–140, great about 160, near-perfect about 175, elite
+185–195, flawless 200.
+
+| Level | rev 16, fresh (range) | rev 17, fresh (range) | rev 16, room 0–11 | rev 17, room 0–11 | rev 17 parts (24 courses: core · par · gates · streak) | rev 17 course ‰ |
+|---|---|---|---|---|---|---|
+| Weak | 56 (22–67) | 59 (38–87) | 50 | 62 | 53 · 2 · 2 · 6 | 343 |
+| Average | 71 (66–76) | 90 (65–108) | 66 | 97 | 74 · 6 · 2 · 12 | 475 |
+| Good | 90 (77–96) | 121 (105–137) | 90 | 118 | 90 · 12 · 4 · 18 | 574 |
+| Great | 125 (116–142) | 161 (146–167) | 132 | 161 | 110 · 22 · 4 · 26 | 712 |
+| Near-perfect | 168 (158–174) | 189 (176–193) | 169 | 189 | 110 · 34 · 10 · 36 | 892 |
+| Elite | 180 (168–194) | 195 (189–200) | 183 | 198 | 110 · 38 · 10 · 40 | 975 |
+| Flawless | 182 (169–189) | 199 (195–200) | 184 | 198 | 110 · 40 · 10 · 40 | 1000 |
+| Random | 7 (2–12) | 8 (2–12) | 8 | 8 | | 44 |
+
+Met: weak, average, good, great, elite (195 fresh, 198 on room seeds 0–11, a little over), flawless (199/198; 200
+on 10 of 24 courses, every one 195 or more; since the deal above, 200 on every dealt course). **Not met: near-perfect** (189 against about 175): the near-perfect bot
+clears about 90 % of the course with no miss and every gate, so it earns nearly the whole par, gate and streak parts;
+any shape that held it to 175 left the great level well under 160 (the great bot reaches 71 % with two misses). The top
+three levels are close (189 · 196 · 198 over 24 courses), as they were on rev 16 (169 · 183 · 184); every level's
+median is above the one below. The stored six (`scripts/fixtures/swing-slide-runs.json`, room seeds 0–5): weak 62 ·
+average 93 · good 127 · great 165 · near 189 · elite 199 · flawless 200 · random 8.
+
+## Checks
+
+swing-slide-check (old rounds; dealing; the course's structure and the sliding hooks' placement; each course's own
+planned route through the real sim clearing every stretch 30+ ticks under par with every gate, every sliding hook
+grabbed at home and no stall, and its 90 s through the server's replay; the wave, the grab and stop, the dark, and
+fairness through the real step (a restart's hang catches the sliding hook at four phases); the streak's rules; the clock;
+the parts and 200; the stored skill-band runs `scripts/fixtures/swing-slide-runs.json` with a stored run at exactly 200
+through the server's replay, every part at its maximum; the texts; build time). swing-dark-check now deals swingRev 16
+through `pinSwingPreSlide`. The room module (`scripts/x200/swing.ts`, schedule with the rails and each sliding hook at
+home), the arcade-standard entry (four parts), the self-replay list (`swing/slide`, appended) and the replay fixture
+(one rev-17 run, `scripts/fixtures/pending-replay-run-swing.json`, appended by the coordinator) follow rev 17.
+
+## Follow-ups
+
+- The intro demo needs recording on swingRev 17 (until then the intro shows its still).
+- Sounds: the library only (no new slot); the streak and the sliding hooks have no cue of their own.
+- Screenshots: `screenshots/grappler-slide-nov-2026/` (`bun scripts/shots/swing-slide-shots.ts`): a sliding hook at
+  each end of its rail, the moment it is grabbed, and the streak in the HUD, at 414×896.

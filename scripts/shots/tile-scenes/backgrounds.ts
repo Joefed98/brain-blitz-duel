@@ -571,20 +571,20 @@ const ARCADE_BACKGROUNDS: Partial<Record<PuzzleType, TileBackground>> = {
     c.fillStyle = "rgba(255,255,255,0.12)";
     c.fillRect(51.5, 0, 1, T);
   }),
-  // Ricochet (ricoRev 2): the night over the temple, the moon and the distant pagoda between the walls.
+  // Moon Climb (ricoRev 3): the night over the temple, the large moon high in the shaft and the pagoda under it.
   ricochet: bg((c) => {
-    vgrad(c, [[0, "#070A18"], [0.55, "#121A36"], [1, "#1E2240"]]);
-    stars(c, 47, 14, ["#E8ECFF"], 0.6, 0.7, [22, 0, 60, 60]);
-    cloud(c, 66, 22, 22, "#FFF0CD", 0.3);
-    c.fillStyle = "#FBF1D6";
+    vgrad(c, [[0, "#080B1E"], [0.5, "#141B3E"], [1, "#212650"]]);
+    stars(c, 47, 14, ["#E8ECFF"], 0.6, 0.7, [18, 0, 68, 60]);
+    cloud(c, 52, 34, 30, "#FFF0CD", 0.26);
+    c.fillStyle = "#F8EDCB";
     c.beginPath();
-    c.arc(66, 22, 9, 0, Math.PI * 2);
+    c.arc(52, 34, 15, 0, Math.PI * 2);
     c.fill();
     c.fillStyle = "#151A33";
-    c.fillRect(0, 86, T, T - 86);
-    drawPagoda(c as CanvasRenderingContext2D, 52, 92, 0.42);
+    c.fillRect(0, 88, T, T - 88);
+    drawPagoda(c as CanvasRenderingContext2D, 52, 94, 0.48);
   }),
-  // Bastion (bastionRev 2): the slate dusk sky over the earth field (the mockups' palette).
+  // Iron Wall (id bastion): the slate dusk sky over the earth field (the mockups' palette).
   bastion: bg((c) => {
     vgrad(c, [[0, "#2A3240"], [0.42, "#46515F"], [0.45, "#6F5E46"], [1, "#5A4B37"]]);
   }, { fade: 0.2 }),

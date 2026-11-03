@@ -8,7 +8,7 @@ import {
   INK_REV,
   INK_REV_BAND,
   INK_REV_TUNEC,
-  INK_REV_TARGET, INK_REV_STRICT, INK_REV_EXPAND, INK_REV_SPREAD, INK_REV_STD,
+  INK_REV_TARGET, INK_REV_STRICT, INK_REV_EXPAND, INK_REV_SPREAD, INK_REV_STD, INK_REV_CLOVER,
   inkBridgeGameFor,
   INK_REV3,
   INK_REV4,
@@ -112,6 +112,15 @@ const stdRun = makeArcadeRun<InkState, InkCheckpoint>({
   interval: INK_CHECKPOINT_INTERVAL,
 });
 
+/** inkRev 13 (Nov 2026): clovers, ink par and more birds, scored on the standard (INK_V13_STD). */
+const cloverRun = makeArcadeRun<InkState, InkCheckpoint>({
+  tag: "inkbridge",
+  game: inkBridgeGameFor(INK_REV_CLOVER),
+  checkpoint: inkCheckpoint,
+  keys: INK_CHECKPOINT_KEYS,
+  interval: INK_CHECKPOINT_INTERVAL,
+});
+
 export interface InkBridgeResult extends FlatReplay<InkState, InkCheckpoint> {
   levels: number;
   total: number;
@@ -127,6 +136,11 @@ export interface InkBridgeResult extends FlatReplay<InkState, InkCheckpoint> {
   silver: number;
   silverTotal: number;
   shamrock: number;
+  /** inkRev 13: clovers on offer (the potted ones are `shamrock`), levels potted within their ink par, and the ink-par
+   * credit (per mille a level; 0 on older rounds). */
+  cloverTotal: number;
+  parLevels: number;
+  inkPar: number;
 }
 
 export const encodeInkBridgeRun = run.encode;
@@ -134,7 +148,7 @@ export const decodeInkBridgeRun = run.decode;
 
 /** The single place an Ink Bridge score is worked out. */
 export function replayInkBridgeRun(seed: number, raw: string, rev?: number | null): InkBridgeResult {
-  const picked = rev === INK_REV_STD ? stdRun : rev === INK_REV_SPREAD ? spreadRun : rev === INK_REV_EXPAND ? expandRun : rev === INK_REV_STRICT ? strictRun : rev === INK_REV_TARGET ? targetRun : rev === INK_REV_TUNEC ? tunecRun : rev === INK_REV_BAND ? bandRun : rev === INK_REV4 ? rev4Run : rev === INK_REV3 ? rev3Run : rev === INK_REV ? birdsRun : run;
+  const picked = rev === INK_REV_CLOVER ? cloverRun : rev === INK_REV_STD ? stdRun : rev === INK_REV_SPREAD ? spreadRun : rev === INK_REV_EXPAND ? expandRun : rev === INK_REV_STRICT ? strictRun : rev === INK_REV_TARGET ? targetRun : rev === INK_REV_TUNEC ? tunecRun : rev === INK_REV_BAND ? bandRun : rev === INK_REV4 ? rev4Run : rev === INK_REV3 ? rev3Run : rev === INK_REV ? birdsRun : run;
   const result = picked.replay(seed, raw);
   const s = result.state;
   return {
@@ -150,5 +164,8 @@ export function replayInkBridgeRun(seed: number, raw: string, rev?: number | nul
     silver: s.silver ?? 0,
     silverTotal: s.list.reduce((sum, l) => sum + (l.silver?.length ?? 0), 0),
     shamrock: s.shamrocks ?? 0,
+    cloverTotal: rev === INK_REV_CLOVER ? s.list.filter((l) => l.shamrock).length : 0,
+    parLevels: s.parLevels ?? 0,
+    inkPar: s.inkPar ?? 0,
   };
 }

@@ -4,7 +4,7 @@
  * pulse. Each count is a counter its sim already keeps; nothing here writes to a sim.
  */
 import type { ArcadeFxSpec } from "./arcadeFx.renderer";
-import { homerunSignCount, homerunViewHFor, HOMERUN_REV_DEALT, HOMERUN_WORLD_H, HOMERUN_WORLD_W, OUT_FOUL, OUT_TAKEN, OUT_WHIFF, type HomerunState } from "./homerun";
+import { homerunSignCount, homerunViewHFor, HOMERUN_REV_DEALT, HOMERUN_REV_4, HOMERUN_WORLD_H, HOMERUN_WORLD_W, OUT_CAUGHT, OUT_FOUL, OUT_TAKEN, OUT_WHIFF, type HomerunState } from "./homerun";
 import { freekickFxCounts, FREEKICK_WORLD_H, FREEKICK_WORLD_W, type FreekickState } from "./freekick";
 import { racingFxCounts, RACING_WORLD_H, RACING_WORLD_W, type RacingState } from "./racing";
 import { px } from "./engine";
@@ -13,11 +13,11 @@ import { POOL_H, POOL_SPOTS, POOL_W, type PoolState } from "./pool";
 import { curlShotTeam, curlTakeouts, CURL_STONE_PTS, CURLING_H, CURLING_H_V2, CURLING_STONES, CURLING_W, TEAM_MINE, type CurlingState } from "./curling";
 import { curlProject, CURL_VIEW_V1, CURL_VIEW_V2 } from "./curling.renderer";
 
-const homerunMisses = (s: HomerunState) => s.hits.filter((h) => h.out === OUT_WHIFF || h.out === OUT_TAKEN || h.out === OUT_FOUL).length;
+const homerunMisses = (s: HomerunState) => s.hits.filter((h) => h.out === OUT_WHIFF || h.out === OUT_TAKEN || h.out === OUT_FOUL || h.out === OUT_CAUGHT).length;
 
 /**
- * Home Run's success layer over the dealt stage view (homerunRev 3: the world plus the field rows below it,
- * homerunViewHFor; 2 Nov 2026, display only). Older revisions' 720-row view takes HOMERUN_FX_V2.
+ * Home Run's success layer over the dealt stage view (homerunRev 4: the 720-row world again; homerunRev 3's view runs
+ * on below it, homerunViewHFor, and takes a copy of this at its height). A caught ball (rev 4) is a miss moment.
  */
 export const HOMERUN_FX: ArcadeFxSpec<HomerunState> = {
   game: "homerun",
@@ -30,7 +30,7 @@ export const HOMERUN_FX: ArcadeFxSpec<HomerunState> = {
     // The renderer writes the call ("HOME RUN", the distance); the layer adds the burst over the stands (31 Oct 2026:
     // the stands sit higher with the camera behind the batter).
     { kind: "perfect", count: (s) => s.homers, at: () => ({ x: HOMERUN_WORLD_W / 2, y: 120 }), label: () => null, lights: ["#F2C75C", "#FFF1C2", "#FFFFFF"] },
-    { kind: "streak", count: (s) => homerunSignCount(s), at: () => ({ x: HOMERUN_WORLD_W / 2, y: 140 }), label: () => null, neon: true },
+    { kind: "streak", count: (s) => (s.rev >= HOMERUN_REV_4 ? (s.bonus ?? 0) : homerunSignCount(s)), at: () => ({ x: HOMERUN_WORLD_W / 2, y: 140 }), label: () => null, neon: true },
   ],
   misses: [{ count: homerunMisses }],
 };

@@ -41,7 +41,8 @@ import type { StdEntry } from "./arcade-standard/entry";
 const STANDARD_ROSTER: readonly { type: string; field: string; rev: number; batch: string }[] = [
   { type: "slice", field: "sliceRev", rev: 11, batch: "A" },
   { type: "breaker", field: "brkRev", rev: 11, batch: "A" },
-  { type: "tilt", field: "tiltRev", rev: 10, batch: "A" },
+  // tiltRev 11 (3 Nov 2026): tiltRev 10's mazes with no gold stars, scored on par times and a clean run (tilt-rev11-check).
+  { type: "tilt", field: "tiltRev", rev: 11, batch: "A" },
   { type: "burst", field: "burstRev", rev: 10, batch: "A" },
   // Gemstone deals matchupRev 12 since Nov 2026 (six goals shown at once, six treasures; the same five parts re-weighted).
   { type: "matchup", field: "matchupRev", rev: 12, batch: "A" },
@@ -55,22 +56,25 @@ const STANDARD_ROSTER: readonly { type: string; field: string; rev: number; batc
   { type: "rally", field: "rallyRev", rev: 12, batch: "B" },
   { type: "bubble", field: "bubbleRev", rev: 11, batch: "B" },
   { type: "beat", field: "beatRev", rev: 11, batch: "B" },
-  { type: "cross", field: "crossRev", rev: 10, batch: "C" },
+  // crossRev 11 (3 Nov 2026): no coins, the no-stop streak, a hit costs 15 (cross-rev11-check).
+  { type: "cross", field: "crossRev", rev: 11, batch: "C" },
   { type: "wavefront", field: "wavRev", rev: 12, batch: "C" },
-  { type: "flip", field: "flipRev", rev: 10, batch: "C" },
-  { type: "inkbridge", field: "inkRev", rev: 12, batch: "C" },
+  // flipRev 11 (3 Nov 2026): no star pickups; clean time 100, perfect landings 60, double flips 20, flow streak 20 (flip-rev11-check).
+  { type: "flip", field: "flipRev", rev: 11, batch: "C" },
+  // Rainbow Bridge deals inkRev 13 since Nov 2026 (clovers, ink par, more birds; no stars or silver coins).
+  { type: "inkbridge", field: "inkRev", rev: 13, batch: "C" },
   { type: "orbit", field: "orbitRev", rev: 14, batch: "C" },
   { type: "balltrack", field: "btRev", rev: 8, batch: "C" },
-  { type: "swing", field: "swingRev", rev: 16, batch: "D" }, // swingRev 16 (1 Nov 2026): the dark ledge runs over 90 s, rev 15's parts
+  { type: "swing", field: "swingRev", rev: 17, batch: "D" }, // swingRev 17 (3 Nov 2026): sliding hooks and the clean-swing streak; course 110 + pars 40 + gates 10 + streak 40
   // Cards & Board (30 Oct 2026): born on the standard (their first revision).
   { type: "minesweeper", field: "minesRev", rev: 1, batch: "Cards & Board" },
   { type: "mahjong", field: "mahjongRev", rev: 2, batch: "Cards & Board" },
   // The Sports group (30 Oct 2026): new games born on the standard (rev 1).
-  // Home Run deals homerunRev 3 since 1 Nov 2026 (the swing choice and the pitcher's tell; the same three parts).
-  { type: "homerun", field: "homerunRev", rev: 3, batch: "Sports" },
-  { type: "freekick", field: "freekickRev", rev: 3, batch: "Sports" },
-  // Apex (racing) deals racingRev 2 since 31 Oct 2026 (the lights start, the softer joystick; the same four parts).
-  { type: "racing", field: "racingRev", rev: 2, batch: "Sports" },
+  // Home Run deals homerunRev 4 since 3 Nov 2026 (pick your spot: a spot, a tap, fielders; four parts).
+  { type: "homerun", field: "homerunRev", rev: 4, batch: "Sports" },
+  { type: "freekick", field: "freekickRev", rev: 4, batch: "Sports" },
+  // Apex (racing) deals racingRev 3 since 3 Nov 2026 (pace and clean sectors; racingRev 2 from 31 Oct 2026).
+  { type: "racing", field: "racingRev", rev: 3, batch: "Sports" },
   // Cards & Board (30 Oct 2026): born on the standard at revision 1.
   // Free Cell's rev 2 (Undo and Reset) and Full House's rev 2 (full at the elite median), 31 Oct 2026: still on the standard.
   // Free Cell freecellRev 4 and Summit tripeaksRev 2 (3 Nov 2026, the Cards & Board batch): the 40-card deal; the stock par.
@@ -79,24 +83,28 @@ const STANDARD_ROSTER: readonly { type: string; field: string; rev: number; batc
   { type: "pokersquares", field: "pokerSquaresRev", rev: 2, batch: "Cards" },
   // Five Hands (31 Oct 2026): born on the standard; fiveHandsRev 3 (3 Nov 2026) is NOT_200_ON_EVERY_DEAL's one exception.
   { type: "fivehands", field: "fiveHandsRev", rev: 3, batch: "Cards" },
-  // Bastion (1 Nov 2026): the tank-defence shooter, born on the standard at bastionRev 2 (the original was unstamped).
-  { type: "bastion", field: "bastionRev", rev: 2, batch: "Action" },
+  // Iron Wall (id bastion): the tank-defence shooter, born on the standard at bastionRev 2 (1 Nov 2026; the original was
+  // unstamped); bastionRev 3 (3 Nov 2026) adds the drones and eases waves 4–5.
+  { type: "bastion", field: "bastionRev", rev: 3, batch: "Action" },
   // Pyramid, Golf Solitaire and Muggins (1 Nov 2026): born on the standard.
   { type: "pyramid", field: "pyramidRev", rev: 1, batch: "Cards" },
   { type: "golfsol", field: "golfSolRev", rev: 1, batch: "Cards" },
   { type: "muggins", field: "mugginsRev", rev: 1, batch: "Cards" },
   // The Sports group (30 Oct 2026): on the standard from their first stamp.
   { type: "minigolf", field: "golfRev", rev: 2, batch: "Sports" }, // golfRev 2 (crazy golf, 31 Oct 2026); golfRev 1 was on the standard too
-  { type: "pool", field: "poolRev", rev: 3, batch: "Sports" },
+  { type: "pool", field: "poolRev", rev: 4, batch: "Sports" },
   // Curling deals curlRev 2 since 31 Oct 2026 (the start along the hog line, side brushing; the same parts) and
   // curlRev 3 since 1 Nov 2026 (the weight meter's draw zone, the aim line, a gentler weight line, the core re-fitted).
-  { type: "curling", field: "curlRev", rev: 3, batch: "Sports" },
-  // Blockfall (Retro) and Alley Roll (Sports), 1 Nov 2026: born on the standard (rev 1).
-  { type: "blockfall", field: "blockfallRev", rev: 1, batch: "Retro" },
+  // curlRev 4 since 3 Nov 2026 (the power bar, three reds a sheet, only stones nearer than every red in the house count).
+  { type: "curling", field: "curlRev", rev: 4, batch: "Sports" },
+  // Blockfall (Retro) and Alley Roll (Sports), 1 Nov 2026: born on the standard (rev 1); Blockzone (Blockfall's id)
+  // deals blockfallRev 2 since 3 Nov 2026 (90 s, no hold, four parts re-fitted).
+  { type: "blockfall", field: "blockfallRev", rev: 2, batch: "Retro" },
   // Ringer (Alley Roll alleyRollRev 2, 3 Nov 2026): the cup stack and the gold cup; four parts.
   { type: "alleyroll", field: "alleyRollRev", rev: 2, batch: "Sports" },
-  // Ricochet (1 Nov 2026): the ninja wall-climb, back from retirement and born on the standard at ricoRev 2.
-  { type: "ricochet", field: "ricoRev", rev: 2, batch: "Action" },
+  // Ricochet (1 Nov 2026): the ninja wall-climb, back from retirement and born on the standard at ricoRev 2; Moon Climb
+  // (Ricochet's id) deals ricoRev 3 since 3 Nov 2026 (sky lanterns, mid-ledges, flow; no coins or gold lanterns).
+  { type: "ricochet", field: "ricoRev", rev: 3, batch: "Action" },
 ];
 
 /**

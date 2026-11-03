@@ -1,9 +1,10 @@
-# Top Bins (`freekick`) on the arcade scoring standard (freekickRev 1, 30 Oct 2026; freekickRev 2, 31 Oct 2026; freekickRev 3, 1 Nov 2026)
+# Top Bins (`freekick`) on the arcade scoring standard (freekickRev 1, 30 Oct 2026; freekickRev 2, 31 Oct 2026; freekickRev 3, 1 Nov 2026; freekickRev 4, 3 Nov 2026)
 
-Shown as **Top Bins** since 31 Oct 2026 (was Free Kick; the id `freekick` is unchanged). Rooms deal **freekickRev 3**
-(the prepared shot: tap to aim, drag to curl, a power meter; the last section, "freekickRev 3"). The section before it
-describes freekickRev 2; everything from here to that section describes freekickRev 1. Every rev-1 and rev-2 round
-still replays and scores exactly as before.
+Shown as **Top Bins** since 31 Oct 2026 (was Free Kick; the id `freekick` is unchanged). Rooms deal **freekickRev 4**
+(the drawn shot: one stroke from the ball for the target and the curl, then the power bar; the last section,
+"freekickRev 4"). The section before it describes freekickRev 3, the one before that freekickRev 2; everything from
+here to those sections describes freekickRev 1. Every rev-1, rev-2 and rev-3 round still replays and scores exactly as
+before.
 
 A new arcade game (`freekick`, Sports), born on the arcade scoring standard (`src/lib/arcade/arcadeStandard.ts`).
 Rooms deal **`freekickRev 1`** (`FREEKICK_REV_STD`, `freekickGame`) on a proved seed from `FREEKICK_DEAL`
@@ -386,3 +387,134 @@ good 123, great 156, near-perfect 186, elite 188 on 60 seeds of the first deal; 
 preview mid-drag, 3 the power bar held (needle sweeping), 4 the strike's verdict in flight, 5 the reveal. The script's
 scripted taps aim naively (no curl, no read of the keeper) and headless timing is loose, so its run scores little;
 the shots are of the steps, not of good play.
+
+## freekickRev 4 (Top Bins, the drawn shot, 3 Nov 2026)
+
+Joe's sports batch: draw the shot instead of tapping a corner and dragging to curl, a Curl bonus, the gold corner
+target shrinking through the round, the whistle once. Rooms deal **`freekickRev 4`** (`FREEKICK_REV_4`,
+`FREEKICK_REV_DEALT`, `freekickGameV4`) on a proved seed from `FREEKICK_DEAL_V4` (`src/lib/duel/freekickDealV4.server.ts`,
+`freekickDealSeedV4(roomSeed)`, built by `bun scripts/freekick-deal.ts --rev=4`). Revs 1–3 are untouched: states,
+checksums, inputs and run lengths exactly as before (freekick-check section 14 replays 112 rev-3 runs recorded on main
+6326101 before the change, `scripts/fixtures/freekick-rev3-legacy.json` from `bun scripts/freekick-legacy-record.ts
+--rev=3`: the oracle, two random prepared-shot runs and the skill-band bot at weak, good, great and elite on 16 rev-3
+deal seeds; sections 6 and 10 still replay the rev-1 and rev-2 runs). Spots, walls, the keeper, the flight, the solver
+(`fkV3Solve`), the meter and its sweet zone, and the 90 s run of ten 540-tick slots are rev 3's.
+
+### The shot, in two steps
+
+1. **Draw the shot from the ball.** One stroke (finger or mouse) out from the ball: where it ends is the target on the
+   goal plane (the ray through the end point, `freekickAimAt`; a stroke that ends short of the goal is carried on along
+   the chord from the ball through its end until it meets the goal; anything off the frame is held on it), and how it
+   bends is the curl: the stroke's widest signed gap from its own chord over the chord's length, a quarter of the chord
+   (`FK_V4_BOW_FULL`) → ±100. A line bowed to the left (the ball goes out left and bends back) curls the ball right,
+   as the real flight does. The phone sends one **SHOT** (`freekickDrawnShot` in `freekick.renderer.ts`). The line is
+   drawn bright while the finger is down and stays on screen faintly (dashed) until the strike; the white target
+   marker and the curl preview dots of rev 3 show where it goes. Redraw as often as you like until the bar is pressed.
+2. **Hold the bar, release in the gold** (rev 3's meter exactly): in the zone the ball flies to the target with the
+   drawn curl; too much rises over the bar, too little comes in low and slow, by how far off.
+
+Removed on rev 4: the tap-a-corner aim and the drag-to-curl step (rev 4 has no range for AIM or CURL).
+
+**Desktop** (`DESKTOP_KEYS`, docs/desktop-support.md): drag with the mouse to draw; ← → ↑ ↓ nudge the drawn shot's
+target (20 cm, Shift 5 cm; with nothing drawn the first press aims at the goal's centre), A / D its curl (10 a press),
+both sent as a new SHOT; Space held starts the meter, its release strikes.
+
+**The shrinking target**: on rev 4 the gold corner hoop's radius falls evenly from 55 cm on the first kick to 70 % of
+it (38.5 cm) on the last (`fkHoopRFor(rev, k)`: per mille 1000 − trunc(300 k / 9)), its centre staying tucked into the
+corner (`FK_GOAL_HALF_W − r`, `FK_GOAL_H − r`). The judge (`fkJudge(kick, flight, hoopR)`) and the art use the same
+radius; revs 1–3 keep the full hoop on every kick. The crossbar target is unchanged.
+
+**The whistle** (`freekick.whistle`) plays once, before the first kick only (every revision; sound only).
+
+### Input encoding (rev 4 only)
+
+`FREEKICK_INPUT_RANGES_V4`; earlier revisions have no range for SHOT, and rev 4 none for AIM (2) or CURL (3):
+
+| Kind | Name | Fields |
+| --- | --- | --- |
+| 6 | SHOT | `a` target x on the goal plane, cm (−372…372), `b` height, cm (11…250), `c` curl −100…100 (+ bends right) |
+| 4 | POWER | starts the meter on its tick (needs a SHOT first) |
+| 5 | STRIKE | takes the kick with the meter at `fkV3Meter(tick − POWER's tick)` |
+
+A SHOT after POWER is ignored. The state adds `bent` (rev 4 only, in rev 4's checksum), and each kick's flags gain bit 4
+for a goal from a bent shot.
+
+### The parts (200)
+
+| Part | Max | How it pays |
+| --- | --- | --- |
+| Goals (core) | 120 | the same units (100 a goal + up to 30 for placement, full at 150 cm from the keeper), a straight line **full at 750 units** (`FREEKICK_V4_CORE_FULL`) |
+| Targets | 40 | 10 for each of the 4 targets (the corner hoops shrinking kick by kick) |
+| Round the wall | 10 | 1 for each goal curled round the wall's end (rev 3: 2) |
+| **Curl bonus** | 20 | 2 for each goal from a shot drawn with at least **70** of bend (`FK_V4_BENT`) |
+| Five in a row | 10 | 10 for five goals in a row |
+
+`FREEKICK_V4_STD_SPEC`; score = `stdScore(parts, acted > 0)` (no input 0, any played run at least 1). The features are
+counted beside the core, never out of it, so earning one never costs core (arcade-standard-check's entry and
+freekick-check section 17 prove it).
+
+### The deal
+
+The rev-4 oracle (`oracleShotsV4`, `fkPlanKickV4`) searches rev 3's goal-plane points (the corner search scaled to the
+kick's shrunk hoop) with strong curls first (75, 80, 70, 85, 90, 100, 95) through the sim's own solver, struck clean, and
+keeps the first shot that scores everything the kick offers, now including the Curl bonus. The deal keeps the first 300
+seeds of the hash sequence whose oracle run replays through `replayFreekickRun(…, 4)` to exactly 200 with every part
+full: **47 of the first 347 dropped**. freekick-check re-proves 24 (all 300 and the file's rebuild with `CHECKS_FULL=1`);
+arcade-standard-check's entry replays the same on stamp 4.
+
+### The skill bands (`bun scripts/freekick-bands.ts --rev=4 --seeds=60 --from=10000`)
+
+The bots (`botV4` in `scripts/arcade-skill-bands/bots/freekick.ts`, rev 4 only; revs 1–3 measure as before) know the two
+plans per kick as drawn shots (the full shot, now bent at least 70 through the shrunk hoop, and the safest goal) and go
+for the full one 5 % (weak) → 97 % (elite) of the time. The stroke's end is off by 0.8 × the level's pointing error at
+the goal's scale (`DRAW_END`: the drawn line and marker show where it ended, but it is a freehand stroke, not a tap) plus
+rev 3's read of where to put it (`AIM_READ`); its bend off by the bulge's pointing error (`CURL_PER_PX` 1.2 units a px
+over a ~330 px stroke) plus a read of the bend (`CURL_READ4`: 26 / 18 / 12 / 8 / 5 / 3); the strike as rev 3 (the
+level's timing error); slips as rev 3.
+
+Before (freekickRev 3 as dealt, its own bot) → after (freekickRev 4), medians (p10–p90), 60 fresh dealt seeds
+(n = 10000–10059):
+
+| Level | **Rev 3** | **Rev 4** | Rev 4 parts (goals · core · targets · wall · Curl bonus · five) |
+| --- | --- | --- | --- |
+| Weak | 45 (15–81) | **46 (20–99)** | 2 · 41 · 0 · 0 · 2 · 0 |
+| Average | 73 (40–116) | **87 (44–125)** | 3 · 62 · 10 · 1 · 4 · 0 |
+| Good | 119 (75–176) | **136 (102–164)** | 5 · 104 · 20 · 3 · 8 · 0 |
+| Great | 172 (125–194) | **167 (143–182)** | 7 · 120 · 20 · 5 · 14 · 10 |
+| Near-perfect | 186 (158–200) | **184 (162–196)** | 9 · 120 · 30 · 8 · 18 · 10 |
+| Elite | 188 (156–200) | **187 (170–200)** | 9 · 120 · 30 · 9 · 18 · 10 |
+| Flawless | 200 | **200** | 10 · 120 · 40 · 10 · 20 · 10 |
+| Random strokes | 1 (1–24) | **1 (1–23)** | |
+
+No zeros at any played level; every run replayed unflagged.
+
+Fitting (the same bot runs re-scored): with the core full at 1,100 and a 60 bend threshold the medians were 40 / 66 /
+121 / 160 / 185 / 190 / 200 (average far under 90); 900 gave 46 / 77 / 133 / 168; 800 51 / 86 / 140 / 168; 750 with
+the threshold at 70 (the oracle and the bots aiming at 75+) gives the table above. Making the near-perfect bot's bend
+and choice worse (reads 7, full shot 85 %) moved its median by under 1 point, so the near-perfect → elite gap is the
+game's shape, not the fit: both levels lose mostly a late, small corner hoop.
+
+### Decisions and assumptions for Joe (rev 4)
+
+- **Near-perfect sits at 184, above the ~175 aimed for, and only 3 under elite (187).** Weak 46, average 87, good 136,
+  great 167 and elite 187 are in or near their bands. The top two levels both miss mostly the last, smallest hoops and a
+  bent goal or two; no core or feature line separates them without pushing elite out of 185–195.
+- **The target marker and preview dots stay** after the stroke (rev 3's), so a player sees where the drawn shot goes
+  and can redraw; the faint drawn line is shown with them. The bots model a freehand stroke as 0.8 of a tap's pointing
+  error for that reason.
+- **A stroke ending short of the goal** is carried on along the chord from the ball through its end (the direction sets
+  the aim); one ending off the frame is held on it (a shot at the post), as rev 3's tap was.
+- **Strong bend = |curl| ≥ 70** (of 100: a bow of 17.5 % of the stroke's length). Gentler curls still score goals, the
+  wall and the targets; they do not earn the Curl bonus.
+- **Round the wall halves** to 1 a goal (10 in all) to make room for the 20-point Curl bonus with the core at 120;
+  the two often come together (a curl round the wall is usually a strong bend).
+- **The whistle once** is applied on every revision (sound only, nothing scored).
+- **The hoop shrinks in a straight line** by kick number (not by time), 55 cm → 38.5 cm, its centre kept in the corner.
+- **The intro demo needs recording** on freekickRev 4 (the intro shows its still, now captioned for the drawn shot).
+
+### Screenshots
+
+`screenshots/sports-batch-nov-2026/freekick-<size>-<step>.png` at 414×896, 375×667 and 1440×900 (the computer layout),
+from the practice screen (`bun scripts/shots/freekick-draw-shots.ts --url=<origin>`): 1 drawing the shot (the live
+line), 2 the drawn line kept with the marker and the curl dots, 3 the power bar held, 4 the shrunken corner target on
+the tenth kick, 5 the reveal.

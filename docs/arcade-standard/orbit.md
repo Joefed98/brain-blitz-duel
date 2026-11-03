@@ -72,7 +72,8 @@ exactly as before (orbit-fuel-check replays 96 orbitRev 10, 12 and 13 runs recor
 - **Any planet catches** (`orbitCaptureAny`): ahead (any distance, including planets above the visible screen) first,
   then behind. A planet jumped past counts as passed: `best` is the furthest planet reached, so skipping planets never
   costs core.
-- **The camera** (`orbitCamera.ts`, display only): in flight it eases toward the point the rocket will reach 45 ticks on
+- **The camera** (`orbitCamera.ts`, display only; **replaced on 3 Nov 2026 by the still camera**, "Camera and stardust"
+  below): in flight it eased toward the point the rocket will reach 45 ticks on
   (`ORBIT_FUEL_LEAD_TICKS`, or where the fuel ends if sooner), framed 42 % down the view, a tenth of the gap a tick and at
   most 10 px, never letting the rocket leave the frame, so the planet it is heading for is in view before it arrives
   (orbit-fuel-check: every witness flight of 20+ ticks shows its target 8+ ticks before the catch).
@@ -136,3 +137,50 @@ with at least 42 of 160 units left (the proof's floor is 40), every hop proved w
 Review frames: `bun scripts/shots/orbit-fuel-shots.ts` (`screenshots/arcade-tuning-nov-2026/orbit-fuel-*.png`: mid-flight,
 low and empty (after the sputter) at 414 × 896 and the computer layout at 1366 × 768, and `orbit-fuel-sputter-414x896.png`,
 0.3 s into the sputter). The intro demo stays stopped until one is recorded on orbitRev 14.
+
+## Camera and stardust, Nov 2026, display only
+
+Joe's brief (3 Nov 2026): the screen stays still while the rocket orbits and while it flies; only a catch moves it; stardust
+that looks like stardust. No stamp: the sim (`orbitRev3.ts`) is untouched, every stored run replays to the same score and
+state (arcade-self-replay-check, orbit-fuel-check's legacy runs), and nothing the sim reads came from the camera. The
+display camera (`orbitCamera.ts`) never fed the sim on any revision: the sim's own `camY` (rev 3's old draw path) and its
+world-edge, flight-length and past-reach ends are computed from the world and the planets, not from what is framed.
+
+**The still camera** (orbitRev 14 only: states carrying `fuel`, `orbitStillCamera`; `advanceStill` in `orbitCamera.ts`):
+
+- In orbit the view holds exactly still. It frames the planet caught as every revision does (`framedPlanet`: the whole
+  orbit inside the safe box, the next planet up the screen); only a backstop keeps the rocket inside the frame (a black
+  hole's rocket flying in from beyond the ring).
+- A catch (any planet, a black hole's target) or a checkpoint respawn starts one eased pan (smoothstep) to that planet's
+  framing: `ORBIT_STILL_PAN_TICKS` = 24 ticks (0.4 s) for an ordinary hop, longer only so its peak speed stays under
+  `ORBIT_STILL_PAN_TOP_SPEED` (22 px a tick) for a far catch or respawn, at most 60 ticks (reduced motion 15, at most 40).
+  A pan still running when the player taps carries on to its end.
+- In flight the view holds still unless the rocket nears the frame's edge: inside a soft band (`ORBIT_STILL_EDGE_BAND`,
+  56 px inside the 14 px on-screen margin) the camera moves by a quarter of the rocket's depth into the band a tick
+  (`ORBIT_STILL_EDGE_FOLLOW`), and never lets the rocket's centre past the 14 px margin, so it follows just enough to keep
+  the rocket in view, easing in rather than snapping. A running pan shifts by the same amount, so the two add smoothly.
+- orbitRev 14's look-ahead lead (`ORBIT_FUEL_LEAD_*`, 1 Nov 2026) is gone.
+- **Older revisions keep their camera exactly** (orbitRev 3–13: the distance-scaled pans, the in-flight safe-box push and
+  the settled visibility pans). Their flights still end at the world's edges and past reach, and their players learned
+  those edges with that framing; orbit-camera-check's first sections still prove it unchanged on the rev-3 bank.
+- SET CHECKPOINT's corner stays clear: the rocket stays 14 px inside the frame, below the 80 rows drawn above it
+  (play-control-clearance-check replays every fuel-bank course in both camera modes).
+
+Proved by orbit-camera-check's "STILL CAMERA" section (12 fuel-bank courses, witness and seeded random taps, normal and
+reduced motion): still in orbit and in flight away from the edges (exactly, frame to frame), a pan only after a catch or
+respawn and never longer than its maximum, the rocket always inside the frame, no step over 24 px a tick. orbit-fuel-check
+section 5 still finds every witness flight's landing planet in view 8+ ticks before the catch.
+
+**Stardust** (`orbit.renderer.ts` `drawDustCluster`, every revision with stardust, orbitRev 12+): each mote is a small
+glittering cluster, five specks (white, pale gold and a faint lilac) inside the pickup's own 4 px radius (`ORBIT_DUST_R`:
+the cluster is the collision size; each speck's centre distance plus size is at most 4 px), each twinkling on its own
+phase, a thin four-point glint on the centre no longer than the radius, over a soft gold-white glow (the cached
+`drawFxGlow` sprites; the glow alone reaches past the core). Reduced effects (battery saver included): no glow. Reduced
+motion: the specks still. Taking a mote keeps its four-ray flash and adds a faint sparkle trail (`XP_TRAIL_MS` 650 ms):
+ten glitter specks streaming after the rocket along its path, each slower than the last and drifting aside, twinkling as
+they fade (deterministic per mote, no `Math.random`). Not under reduced motion or reduced effects. The moment already
+sounds (`shared.celebrate.countTick`, `gameSounds.ts`); no new cue or recording.
+
+Review frames: `bun scripts/shots/orbit-camera-shots.ts` (`screenshots/arcade-batch-nov-2026/orbit-before-catch.png`, a
+long flight just before its catch with the view where it was at the release; `orbit-after-catch.png`, the pan settled on
+the new planet; `orbit-stardust.png`, a mote's sparkle trail and the clusters ahead), 414 × 896 at 2×.

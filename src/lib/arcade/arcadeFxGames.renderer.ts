@@ -108,7 +108,7 @@ import {
   type CrossState,
 } from "./cross";
 import { JUNC_BUILD_EVERY, JUNC_BUILDS, JUNC_LIGHT_AT_V2, JUNC_WORLD_H, JUNC_WORLD_W, type JuncState } from "./junction";
-import { inkBucketX, inkWorldH, INK_LEVELS, INK_TALL_H, INK_WORLD_H, INK_WORLD_W, type InkState } from "./inkBridge";
+import { inkBucketX, inkWorldH, INK_LEVELS, INK_REV_CLOVER, INK_TALL_H, INK_WORLD_H, INK_WORLD_W, type InkState } from "./inkBridge";
 import { wavShipY, wavWorldH, WAV_X_H, WAV_TALL_H, WAV_WORLD_H, WAV_WORLD_W, type WavState } from "./wavefront";
 import { ORBIT_WORLD_H, ORBIT_WORLD_W, type OrbitState } from "./orbit";
 import { orbitViewH, ORBIT_CAM_VIEW_H, ORBIT_CAM_VIEW_W, ORBIT_TALL_VIEW_H } from "./orbitCamera";
@@ -936,7 +936,8 @@ export const CROSS_FX: ArcadeFxSpec<CrossState> = {
       kind: "streak",
       count: (s) => s.streakPts ?? 0,
       at: () => ({ x: CROSS_WORLD_W / 2, y: CROSS_HUD_H + 60 }),
-      label: (s) => `STREAK ×${crossMultiplierFor(s.streak ?? 0)}`,
+      // crossRev 11: the no-stop streak paying (its crossings in a row).
+      label: (s) => (s.flow ? `NO-STOP ×${s.streak ?? 0}` : `STREAK ×${crossMultiplierFor(s.streak ?? 0)}`),
     },
     // crossRev 9 (x200 addendum): a close call, a hop landed just behind a passing vehicle.
     {
@@ -1026,7 +1027,8 @@ export const INKBRIDGE_FX: ArcadeFxSpec<InkState> = {
         const lvl = s.list[Math.max(0, s.level - (s.ended ? 0 : 1))];
         return lvl?.shamrock ? { x: lvl.shamrock.x, y: lvl.shamrock.y } : null;
       },
-      label: () => "SHAMROCK +20!",
+      // inkRev 13: the clover (the shamrock's art), one of two in the run.
+      label: (s) => (s.rev === INK_REV_CLOVER ? "CLOVER!" : "SHAMROCK +20!"),
     },
   ],
   // A failed drop (off the bridge or onto a block): the red flash the renderer draws, kind 2.
@@ -1220,6 +1222,12 @@ export const BUBBLE_FX: ArcadeFxSpec<BubState> = {
 
 /* ============================== Cave & Lava ============================== */
 
+/** Where a perfect landing's PERFECT shows: just off the runner's head, into the cave (below it on the roof above). */
+function flipPerfectAt(s: FlipState): { x: number; y: number } {
+  const p = flipRunnerPoint(s);
+  return { x: p.x + 16, y: s.side === 0 ? p.y - 24 : p.y + 38 };
+}
+
 export const FLIP_FX: ArcadeFxSpec<FlipState> = {
   game: "flip",
   world: "cavelava",
@@ -1252,8 +1260,10 @@ export const FLIP_FX: ArcadeFxSpec<FlipState> = {
     { kind: "streak", count: (s) => s.cpPassed ?? 0, label: () => "CHECKPOINT" },
     { kind: "pop", count: (s) => s.saves ?? 0, at: (s) => flipRunnerPoint(s), label: () => "SAVED!" },
     { kind: "streak", count: flipZonesEntered, label: () => "SPEED ZONE!" },
-    // flipRev 8's sweet spots: a small pop at the runner's feet on a sweet landing.
-    { kind: "pop", count: flipSweetsTaken, at: (s) => flipRunnerPoint(s), label: () => "SWEET!" },
+    // flipRev 8's sweet spots: a perfect landing. Since 3 Nov 2026 (display only, every revision with sweet spots: flipRev
+    // 8–11) a small molten "PERFECT" at the runner's feet, neon orange and dripping, gone in about 0.6 s; no burst
+    // (until then a "SWEET!" pop with a small burst).
+    { kind: "pop", count: flipSweetsTaken, at: flipPerfectAt, label: () => "PERFECT", textOnly: true, molten: true, textScale: 1.2 },
   ],
   misses: [{ count: (s) => (s.ended === 2 ? 1 : 0) }],
 };

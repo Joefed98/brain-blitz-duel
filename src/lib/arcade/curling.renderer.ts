@@ -513,16 +513,39 @@ export interface CurlAim {
   zone?: { lo: number; hi: number; tee: number } | null;
   /** curlRev 3: the first third of the stone's path at the zone's tee weight (sheet cm). */
   path?: readonly { x: number; y: number }[] | null;
-  /** curlRev 3: the weight the last throw was released at (the meter's tick), and the keyboard's set weight. */
+  /**
+   * curlRev 3: the weight the last throw was released at (the meter's tick), and the keyboard's set weight. curlRev 4:
+   * keyWeight is the weight set on the power bar (by a tap or drag, or − / +), its marker staying where it was set.
+   */
   lastRelease?: number | null;
   keyWeight?: number | null;
 }
 
 /** curlRev 3's weight meter (world px, curlRev 2's 390 × 540 view): a bar on the right, weight 0 at the bottom. */
 export const CURL_METER = { x: 360, y: 214, w: 14, h: 252 };
+/**
+ * curlRev 4's power bar (world px): the same bar, wider and taller (a tap or drag on it sets the weight); its touch
+ * area (CURL_METER_HIT_V4) runs from 30 px left of the bar to the world's right edge and 16 px past either end.
+ */
+export const CURL_METER_V4 = { x: 356, y: 172, w: 22, h: 300 };
+export const CURL_METER_HIT_V4 = { x: CURL_METER_V4.x - 30, y: CURL_METER_V4.y - 16, w: 390 - (CURL_METER_V4.x - 30), h: CURL_METER_V4.h + 32 };
+/** The meter a revision draws. */
+export function curlMeterFor(rev: number | null | undefined): { x: number; y: number; w: number; h: number } {
+  return (rev ?? 1) >= 4 ? CURL_METER_V4 : CURL_METER;
+}
 /** The meter's y (world px) for a weight. */
-export function curlMeterY(w: number): number {
-  return CURL_METER.y + CURL_METER.h - (CURL_METER.h * Math.max(0, Math.min(1000, w))) / 1000;
+export function curlMeterY(w: number, m: { y: number; h: number } = CURL_METER): number {
+  return m.y + m.h - (m.h * Math.max(0, Math.min(1000, w))) / 1000;
+}
+/** curlRev 4: the weight (1…1000) a touch at world y sets on the power bar. */
+export function curlMeterWeightAt(y: number): number {
+  const m = CURL_METER_V4;
+  return Math.max(1, Math.min(1000, Math.round(((m.y + m.h - y) / m.h) * 1000)));
+}
+/** curlRev 4: whether a touch at world (x, y) is on the power bar. */
+export function curlOnMeterV4(x: number, y: number): boolean {
+  const h = CURL_METER_HIT_V4;
+  return x >= h.x && x <= h.x + h.w && y >= h.y && y <= h.y + h.h;
 }
 
 /** The weight's words for the swipe pill. */
@@ -619,8 +642,10 @@ function aimPath(ctx: CanvasRenderingContext2D, path: readonly { x: number; y: n
  * curlRev 3's weight meter: the bar (light at the bottom, heavy at the top), the draw zone (gold, "HOUSE") with its tee
  * mark, the live swipe's fill and the last release's tick.
  */
-function weightMeter(ctx: CanvasRenderingContext2D, aim: CurlAim, aiming: boolean): void {
-  const m = CURL_METER;
+function weightMeter(ctx: CanvasRenderingContext2D, aim: CurlAim, aiming: boolean, rev = 3): void {
+  const m = curlMeterFor(rev);
+  const v4 = rev >= 4;
+  const my = (w: number) => curlMeterY(w, m);
   ctx.save();
   ctx.fillStyle = "#05080FD9";
   ctx.strokeStyle = "#FFFFFF33";
@@ -632,7 +657,8 @@ function weightMeter(ctx: CanvasRenderingContext2D, aim: CurlAim, aiming: boolea
   ctx.font = "800 10px Archivo, system-ui, sans-serif";
   ctx.textBaseline = "alphabetic";
   {
-    const lw = ctx.measureText("WEIGHT").width + 12;
+    const label = v4 ? "POWER" : "WEIGHT";
+    const lw = ctx.measureText(label).width + 12;
     const right = m.x + m.w + 3;
     ctx.fillStyle = "#05080FD9";
     ctx.beginPath();
@@ -640,18 +666,18 @@ function weightMeter(ctx: CanvasRenderingContext2D, aim: CurlAim, aiming: boolea
     ctx.fill();
     ctx.textAlign = "center";
     ctx.fillStyle = "#F3F1EC";
-    ctx.fillText("WEIGHT", right - lw / 2, m.y - 12.5);
+    ctx.fillText(label, right - lw / 2, m.y - 12.5);
   }
   const zone = aim.zone;
   if (zone) {
-    const top = curlMeterY(zone.hi);
-    const bottom = curlMeterY(zone.lo);
+    const top = my(zone.hi);
+    const bottom = my(zone.lo);
     ctx.fillStyle = "#E8B53A59";
     ctx.fillRect(m.x, top, m.w, bottom - top);
     ctx.strokeStyle = GOLD;
     ctx.lineWidth = 1.5;
     ctx.strokeRect(m.x + 0.75, top + 0.75, m.w - 1.5, bottom - top - 1.5);
-    const tee = curlMeterY(zone.tee);
+    const tee = my(zone.tee);
     ctx.fillStyle = GOLD_HI;
     ctx.fillRect(m.x - 4, tee - 1, m.w + 8, 2);
     const lw = ctx.measureText("HOUSE").width + 10;
@@ -665,13 +691,34 @@ function weightMeter(ctx: CanvasRenderingContext2D, aim: CurlAim, aiming: boolea
   }
   const fill = aiming ? (aim.swipe ?? aim.keyWeight ?? null) : null;
   if (fill != null) {
-    const y = curlMeterY(fill);
+    const y = my(fill);
     const inZone = zone && fill >= zone.lo && fill <= zone.hi;
     ctx.fillStyle = inZone ? "#FFE29ACC" : "#F3F1EC99";
     ctx.fillRect(m.x + 3, y, m.w - 6, m.y + m.h - y);
   }
+  if (v4 && aiming && aim.keyWeight != null) {
+    // curlRev 4: the set weight's marker, a bright handle across the bar that stays where it was set.
+    const y = my(aim.keyWeight);
+    ctx.fillStyle = "#FFFFFF";
+    ctx.strokeStyle = "#05080F";
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.roundRect(m.x - 6, y - 3.5, m.w + 12, 7, 3.5);
+    ctx.fill();
+    ctx.stroke();
+  } else if (v4 && aiming) {
+    // Nothing set yet: a quiet prompt down the bar.
+    ctx.save();
+    ctx.translate(m.x + m.w / 2, m.y + m.h / 2);
+    ctx.font = "700 9px Archivo, system-ui, sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillStyle = "#F3F1ECB0";
+    ctx.fillText("TAP", 0, -4);
+    ctx.fillText("ME", 0, 7);
+    ctx.restore();
+  }
   if (aim.lastRelease != null) {
-    const y = curlMeterY(aim.lastRelease);
+    const y = my(aim.lastRelease);
     ctx.fillStyle = "#F3F1EC";
     ctx.beginPath();
     ctx.moveTo(m.x + m.w + 2, y);
@@ -749,7 +796,7 @@ export function drawCurling(ctx: CanvasRenderingContext2D, s: CurlingState, aim:
   }
   inset(ctx, s, aim);
   // curlRev 3: the weight meter (while aiming and as the stone travels, with the last release's tick).
-  if (aim && s.rev >= 3 && s.phase !== CURL_DONE) weightMeter(ctx, aim, s.phase === CURL_AIM);
+  if (aim && s.rev >= 3 && s.phase !== CURL_DONE) weightMeter(ctx, aim, s.phase === CURL_AIM, s.rev);
   // The swipe's weight pill, low on the lane (curlRev 1 and 2).
   if (aim?.swipe != null && s.phase === CURL_AIM && s.rev < 3) {
     const text = `${curlWeightWord(aim.swipe)} · ${Math.round(aim.swipe / 10)}%`;

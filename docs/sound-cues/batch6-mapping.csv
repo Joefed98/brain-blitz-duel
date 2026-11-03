@@ -28,7 +28,7 @@ pool_chalk,pool_chalk.mp3,pool,round start,0.8,no,pool.chalk
 pool_black_win,pool_black_win.mp3,pool,black potted,1.5,no,pool.blackWin
 music_curling,music_curling.mp3,curling,music bed,90,yes,music_curling
 curling_release,curling_release.mp3,curling,stone released,0.5,no,curling.release
-curling_slide_loop,curling_slide_loop.mp3,curling,stone travelling,3,yes,curling.slide
+curling_slide_loop,curling_slide_loop.mp3,curling|ricochet,stone travelling,3,yes,curling.slide;ricochet.lanternRide
 curling_sweep_loop,curling_sweep_loop.mp3,curling,sweeping,2,yes,curling.sweep
 curling_hit,curling_hit.mp3,curling,stone hits stone,0.4,no,curling.hit
 curling_board,curling_board.mp3,curling,stone hits back board,0.4,no,curling.board
@@ -36,7 +36,7 @@ curling_applause,curling_applause.mp3,curling,good stone,2,no,curling.applause
 curling_shot,curling_shot.mp3,curling,holding shot,1,no,curling.shot
 music_homerun,music_homerun.mp3,homerun,music bed,60,yes,music_homerun
 homerun_pitch,homerun_pitch.mp3,homerun,pitch released,0.6,no,homerun.pitch
-homerun_mitt,homerun_mitt.mp3,homerun,missed pitch,0.4,no,homerun.strike
+homerun_mitt,homerun_mitt.mp3,homerun,missed pitch; a fielder's catch,0.4,no,homerun.strike;homerun.catch
 homerun_crack,homerun_crack.mp3,homerun,solid contact,0.4,no,homerun.crack
 homerun_foul,homerun_foul.mp3,homerun,weak or foul contact,0.3,no,homerun.foul
 homerun_whiff,homerun_whiff.mp3,homerun,swing and miss,0.4,no,homerun.whiff
@@ -48,7 +48,7 @@ freekick_net,freekick_net.mp3,freekick,goal,0.8,no,freekick.goal
 freekick_post,freekick_post.mp3,freekick,hits post or bar,0.6,no,freekick.post
 freekick_wall,freekick_wall.mp3,freekick,blocked by wall,0.3,no,freekick.wall
 freekick_save,freekick_save.mp3,freekick,keeper save,0.4,no,freekick.save
-freekick_whistle,freekick_whistle.mp3,freekick,before each kick,0.7,no,freekick.whistle
+freekick_whistle,freekick_whistle.mp3,freekick,before the first kick,0.7,no,freekick.whistle
 freekick_target,freekick_target.mp3,freekick,target hit,0.6,no,freekick.target
 music_racing,music_racing.mp3,racing,music bed,90,yes,music_racing
 racing_light,racing_light.mp3,racing,each start light,0.25,no,racing.light

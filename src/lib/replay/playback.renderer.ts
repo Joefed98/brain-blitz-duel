@@ -20,14 +20,14 @@ import { drawMinesweeper } from "@/lib/arcade/minesweeper.renderer";
 import { drawMahjong } from "@/lib/arcade/mahjong.renderer";
 import { homerunArtGame } from "@/lib/arcade/homerun.renderer";
 import { bastionGame } from "@/lib/arcade/bastion";
-import { bastionTankArtGame } from "@/lib/arcade/bastionTank.renderer";
+import { bastionTankArtGameFor } from "@/lib/arcade/bastionTank.renderer";
 import { freekickArtGame } from "@/lib/arcade/freekick.renderer";
 import { racingArtGame } from "@/lib/arcade/racing.renderer";
 import { freecellArt } from "@/lib/arcade/cards/freecell.renderer";
 import { tripeaksArt } from "@/lib/arcade/cards/tripeaks.renderer";
 import { pokerSquaresArt } from "@/lib/arcade/cards/pokerSquares.renderer";
 import { fiveHandsArt } from "@/lib/arcade/cards/fiveHands.renderer";
-import { ninjaArtGame } from "@/lib/arcade/ricochetNinja.renderer";
+import { ninjaArtGameFor } from "@/lib/arcade/ricochetNinja.renderer";
 import { ricoGame } from "@/lib/arcade/ricochet";
 import { isNinjaRev } from "@/lib/duel/ricochet";
 import { pyramidArt } from "@/lib/arcade/cards/pyramid.renderer";
@@ -94,14 +94,14 @@ const SIMPLE: Record<string, (p: PuzzleData) => Draw> = {
   minesweeper: () => drawMinesweeper as Draw,
   mahjong: () => drawMahjong as Draw,
   homerun: () => homerunArtGame.draw as Draw,
-  bastion: (p) => (((p as { bastionRev?: number }).bastionRev ?? 1) >= 2 ? bastionTankArtGame.draw : bastionGame.draw) as Draw,
+  bastion: (p) => (((p as { bastionRev?: number }).bastionRev ?? 1) >= 2 ? bastionTankArtGameFor((p as { bastionRev?: number }).bastionRev).draw : bastionGame.draw) as Draw,
   freekick: () => freekickArtGame.draw as Draw,
   racing: () => racingArtGame.draw as Draw,
   freecell: () => freecellArt.draw as Draw,
   tripeaks: () => tripeaksArt.draw as Draw,
   pokersquares: () => pokerSquaresArt.draw as Draw,
   fivehands: () => fiveHandsArt.draw as Draw,
-  ricochet: (p) => (isNinjaRev(rev(p, "ricoRev")) ? ninjaArtGame.draw : ricoGame.draw) as Draw,
+  ricochet: (p) => (isNinjaRev(rev(p, "ricoRev")) ? ninjaArtGameFor(rev(p, "ricoRev")).draw : ricoGame.draw) as Draw,
   pyramid: () => pyramidArt.draw as Draw,
   golfsol: () => golfSolArt.draw as Draw,
   muggins: () => mugginsArt.draw as Draw,

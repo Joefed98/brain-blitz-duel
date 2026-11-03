@@ -1,13 +1,14 @@
+import { SWING_V17_CORE, SWING_V17_GATES, SWING_V17_GATE_POINTS, SWING_V17_PAR_POINTS, SWING_V17_STREAK_MAX } from "@/lib/arcade/swing";
 import { PS_CORE_FULL_V2 } from "@/lib/arcade/cards/pokerSquares";
 import { FC_CORE_UNITS_V4, FC_SPEED_FULL_S_V4 } from "@/lib/arcade/cards/freecell";
-import { BF_CORE_FULL } from "@/lib/arcade/blockfall";
+import { BF_ZONE_CORE_FULL } from "@/lib/arcade/blockfall";
 import { AR2_CORE_FULL } from "@/lib/arcade/alleyroll";
-import { NINJA_CORE_FULL_M } from "@/lib/arcade/ricochetNinja";
+import { MOON_CORE_FULL_M } from "@/lib/arcade/ricochetNinja";
 import { MG_CORE_FULL } from "@/lib/arcade/cards/muggins";
 import { BULLSEYE_INNER_BULL_POINTS, BULLSEYE_RING_VALUES } from "@/lib/arcade/bullseye";
 import { BINTOSS_THROWS, BINTOSS_V9_BUCKET, BINTOSS_V9_FAR, BINTOSS_V9_FINISH, BINTOSS_V9_HOOP } from "@/lib/arcade/binToss";
-import { INK_LEVELS, INK_V12_CORE_MAX } from "@/lib/arcade/inkBridge";
-import { TILT_S_MAZES } from "@/lib/arcade/tilt";
+import { INK_V13_CLOVER_MAX, INK_V13_CORE_MAX, INK_V13_PAR_MAX, INK_V13_TRICK_MAX } from "@/lib/arcade/inkBridge";
+import { TILT_P_CLEAN_POINTS, TILT_P_MAZE_POINTS, TILT_P_PAR_POINTS, TILT_P_PROGRESS_POINTS, TILT_S_MAZES } from "@/lib/arcade/tilt";
 import { bandsIntro } from "./puzzleBandsText";
 import { logicStandardIntro } from "./standard/logicText";
 import { gridStandardIntro } from "./standard/gridText";
@@ -119,25 +120,26 @@ function introScoreTemplates(): Record<PuzzleType, string> {
     // and big lines, each part's maximum.
     matchup: "Gems 108; treasure, goals, ice and lines of 4 or 5 add 92. Up to {max}.",
     snake: "Stars to 120 at 28 (gold stars count 2); gold, combos, lanes, warps add 80. Up to {max}.",
-    cross: "150 for rows and crossings, coins 30, a clean streak 10, close calls 10. Up to {max}.",
+    // crossRev 11 (3 Nov 2026): no coins; the no-stop streak; a hit costs 15.
+    cross: "150 for rows and crossings, a no-stop streak 40, close calls 10; hits cost 15. Up to {max}.",
     breaker: "Every brick scores; gold bricks add 30. Clear all 105 quickly for up to {max}.",
     rally: "Gold-ball hits, pink targets and gold targets. Up to {max}.",
     // Cards & Board (30 Oct 2026), on the arcade scoring standard.
     minesweeper: "Safe squares 150, no mines hit 20, a fast clear 30; a mine costs 5. Up to {max}.",
     mahjong: "Pairs 150, no shuffles 20, a fast clear 30; a Shuffle costs 5. Up to {max}.",
     minigolf: "Holes 120, few putts 40, birdies 20, speed 20: up to {max}.",
-    pool: "Spots 140, the black 10, pots in a row 30, speed 20; each foul costs 10. Up to {max}.",
-    curling: "Stones near the button 120, takeouts 30, the 4-foot 30, holding shot 20: {max}.",
+    pool: "Your set 140 (full at 5), black 10, pots in a row 30, speed 20; fouls −10. Up to {max}.",
+    curling: "Stones nearer than the reds 150, takeouts 20, the 4-foot 20, shot stone 10: {max}.",
     pinball: "Table points, plus J-O-U-L-Z sets, multiball, jackpots and ramp combos. Up to {max}.",
-    homerun: "Distance on every pitch, home runs and signs beyond the fence (Power only). Up to {max}.",
-    freekick: "Goals away from the keeper, targets, curls round the wall and five in a row. Up to {max}.",
-    racing: "Distance, clean sectors, the finish and your time from lights out. Up to {max}.",
+    homerun: "Distance not caught, home runs, lit signs and your perfect streak. Up to {max}.",
+    freekick: "Goals, targets, curls round the wall, a bonus for bent goals, five in a row. Up to {max}.",
+    racing: "Pace (your average speed) 160, clean sectors 40 (5 each). Together {max}.",
     // Cards & Board (the arcade scoring standard from their first revision).
     freecell: `Cards 60 (full at ${FC_CORE_UNITS_V4} units); finished: few moves 50, speed 90 (by ${FC_SPEED_FULL_S_V4} s). Together {max}.`,
     tripeaks: "Cards 80, peak tops 30, run 10; cleared: 10, few stock cards 20, speed 50. Together {max}.",
     pokersquares: `Hand points 160 (full at ${PS_CORE_FULL_V2}); made hands 40 (4 a line). Together {max}.`,
     fivehands: "Five rows plus the column you pick, times 1.4, up to {max}. Pair 15 … straight flush 50.",
-    blockfall: `Lines 140 (full at ${BF_CORE_FULL}); multi-line clears 40; a low stack at the buzzer 20. Together {max}.`,
+    blockfall: `Lines 95 (full at ${BF_ZONE_CORE_FULL}); pieces 65; multi-line clears 24; low stack 16: {max}.`,
     alleyroll: `Ring points 140 (full at ${AR2_CORE_FULL}); gold cup 30; roll streak 20; pockets 10. Total {max}.`,
     pyramid: "Cards 120; cleared 10 and speed 50; pyramid pairs 20 (2 each). Together {max}.",
     golfsol: "Cards 140; all cleared 20 and speed 20; runs of four 20 (4 each). Together {max}.",
@@ -146,21 +148,22 @@ function introScoreTemplates(): Record<PuzzleType, string> {
     slice: "Food 120, combos 40, gold fruit 20, tickets 10, dodges 10. Chilli: lose 10. Up to {max}.",
     beat: "Notes hit in time, fevers, golden notes, double taps and a Perfect streak. Up to {max}.",
     wavefront: "Ships, hits, waves, a fast boss kill, saucers, cannons, cores; a lost life −5. Total {max}.",
-    flip: "Time survived 150; gold stars, trails, sweet spots, double flips 50: they total {max}.",
+    flip: "Clean time 100; landing on sweet spots 60; double flips, flow streak 40: total {max}.",
     junction: "Points for each car and bus through, ± for ambulances. Last the minute for 10 more.",
-    inkbridge: `Levels ${INK_V12_CORE_MAX}; stars, tricks, shamrock, silver, speed ${200 - INK_V12_CORE_MAX}. All ${INK_LEVELS} levels quickly: up to {max}.`,
+    inkbridge: `Levels ${INK_V13_CORE_MAX}; little ink ${INK_V13_PAR_MAX}, tricks ${INK_V13_TRICK_MAX}, clovers ${INK_V13_CLOVER_MAX}. All 10 levels quickly: up to {max}.`,
     burst: "Atoms up to 140, fast waves 35, golden atoms 25; a lost life costs 5. Up to {max}.",
     orbit: "Planets 130 + sun speed, stardust, slings, fields, perfect orbits. Mind fuel: up to {max}.",
     snip: "Points for fruit fed and leaves; golden apples, few cuts and speed add more. Up to {max}.",
-    swing: `90 s. Distance along the course (140), pars (30), gates, gems and stars (30): up to {max}.`,
-    tilt: `35 a maze (up to 5 for nearing its exit), gold stars 30. All ${TILT_S_MAZES} quickly: up to {max}.`,
+    swing: `90 s. Course (${SWING_V17_CORE}), pars (${SWING_V17_PAR_POINTS}), gates (${SWING_V17_GATES * SWING_V17_GATE_POINTS}), clean-swing streak (${SWING_V17_STREAK_MAX}): up to {max}.`,
+    // tiltRev 11 (3 Nov 2026): no gold stars; par times and a clean run.
+    tilt: `${TILT_P_MAZE_POINTS + TILT_P_PROGRESS_POINTS} a maze, +${TILT_P_PAR_POINTS} a maze beaten in time, clean run ${TILT_P_CLEAN_POINTS}. All ${TILT_S_MAZES} quickly: up to {max}.`,
     balltrack: `Marbles home 140; gold, boosted and in-a-row marbles add 60: they total up to {max}.`,
     swerve: arcadeOpen("each coin you collect"),
     dual: "The longer both runners survive, the more you score. The full minute is {max}.",
     steady: "Start on {max}. Touching the edge: lose 5.",
-    ricochet: `Height 130 (full at ${NINJA_CORE_FULL_M} m); coins 30, lanterns 20, scrolls 20. Together {max}.`,
+    ricochet: `Height 125 (full at ${MOON_CORE_FULL_M} m); flow 30, lantern rides 30, scrolls 15: {max}.`,
     rooftop: "The longer you last, the more you score. The full minute is {max}.",
-    bastion: "Armour 140, weak spots 30, fast reloads 20, base intact 10: up to {max}.",
+    bastion: "Armour 110, weak spots 30, fast reloads 20, drones 30, base intact 10: up to {max}.",
     hotfloor: arcadeOpen("each stage you survive"),
   };
 }

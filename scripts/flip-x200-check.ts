@@ -43,7 +43,7 @@ import {
   flipWorldHFor,
   FLIP_REV_EXPAND,
   FLIP_V9_BAND_CURVE,
-  FLIP_V10_BAND_CURVE,
+  FLIP_V11_BAND_CURVE,
   FLIP_REV_STRICT,
   FLIP_RUN_TICKS,
   FLIP_STARS,
@@ -124,7 +124,8 @@ const gz = <T>(url: URL): T => JSON.parse(gunzipSync(readFileSync(url)).toString
 ok(playRevOf("flip", LIVE_BANDS.flip.rev) === FLIP_REV_EXPAND && liveStrictRev("flip") === FLIP_REV_STRICT, "LIVE_BANDS deals flipRev 8's play and keeps flipRev 6 as its strict revision");
 // Since 29 Oct 2026 rooms deal flipRev 10 (the arcade scoring standard, arcade-standard-check proves its parts): LIVE_BANDS
 // lists its core's straight line; flipRev 9's lifted curve stays on flipRev 8's units.
-ok(LIVE_BANDS.flip.curve === FLIP_V10_BAND_CURVE && FLIP_V9_BAND_CURVE.units.join() === FLIP_V8_BAND_CURVE.units.join(), "LIVE_BANDS' curve is the dealt one (flipRev 10's); flipRev 9's is on flipRev 8's units");
+// Since 3 Nov 2026 rooms deal flipRev 11 (flipRev 8's course and moves, no star pickups, the flow streak; flip-rev11-check).
+ok(LIVE_BANDS.flip.curve === FLIP_V11_BAND_CURVE && FLIP_V9_BAND_CURVE.units.join() === FLIP_V8_BAND_CURVE.units.join(), "LIVE_BANDS' curve is the dealt one (flipRev 11's; flipRev 10's before 3 Nov 2026); flipRev 9's is on flipRev 8's units");
 ok(playRevOf("flip", (generatePuzzle("flip") as { flipRev?: number }).flipRev) === FLIP_REV_EXPAND, "rooms deal flipRev 8's play");
 ok(roundMaxFor("flip") === 200, "Roofbound's round maximum is 200");
 ok(flipWorldHFor(FLIP_REV_EXPAND) === FLIP_V8_WORLD_H && FLIP_V8_WORLD_H === 730, "flipRev 8: the 730 px world");
@@ -303,7 +304,9 @@ const v8Runs = gz<FlipLegacyRun[]>(FLIP_RUNS_FIXTURE);
   ok(/\b200\b/.test(INTRO_SCORE.flip) && INTRO_SCORE.flip.length <= 90 && /sweet spots/.test(INTRO_SCORE.flip), `intro SCORE states 200 and the sweet spots: ${INTRO_SCORE.flip}`);
   // Since 29 Oct 2026 rooms deal flipRev 10 (the arcade scoring standard): the help states its parts, which total 200,
   // with no rising scale (on flipRev 8 and 9 it ended "Up to 200." after the skill pay's rising scale).
-  ok(/the parts total 200\.$/.test(help.score) && /sweet landing/.test(help.score) && !/rising scale/.test(help.score), `"?" score help: ${help.score}`);
+  // Since 3 Nov 2026 rooms deal flipRev 11, whose core tops out at 100: the help states the parts total 200 and ends on
+  // the round's 200 (the help-bands form for a core under the round's maximum, as Meteor's).
+  ok(/the parts total 200\. Up to 200\.$/.test(help.score) && /sweet landing/.test(help.score) && !/rising scale/.test(help.score), `"?" score help: ${help.score}`);
 }
 
 if (failures.length) {

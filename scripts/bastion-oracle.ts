@@ -9,7 +9,11 @@
  * down) and taps the needle in the green zone. The oracle is the planner with no human error; `bastionPlay` with a
  * Human adds reaction, aim, lead and tap-timing error.
  *
- *   bun scripts/bastion-oracle.ts [from] [count]   prints each seed's oracle score and parts
+ * bastionRev 3 (Iron Wall) adds the drones: when one will be in the sky as a shell lands (30 ticks in the sky) the oracle
+ * fires at its centre then, unless a tank is close to the wall; a human notices it a reaction time after it appears,
+ * leads it from its motion with their judgement and aim, and tries a set number of times (bots/bastion.ts `droneTries`).
+ *
+ *   bun scripts/bastion-oracle.ts [from] [count] [rev]   prints each seed's oracle score and parts (rev 2 by default)
  */
 import { inputAt, recordInput, type ArcadeInputEvent } from "../src/lib/arcade/engine";
 import {
@@ -18,8 +22,14 @@ import {
   bastionWeakOpen,
   bastionNeedle,
   bastionStdParts,
-  bastionTankGame,
+  bastionDronePos,
+  bastionDroneRect,
+  bastionDrones,
+  bastionTankGameFor,
   bastionTankRects,
+  bastionZoneW,
+  BASTION_REV_TANK,
+  BT2_WORLD_W,
   BT2_FAST_TICKS,
   BT2_INPUT_FIRE,
   BT2_INPUT_RANGES,
@@ -27,13 +37,11 @@ import {
   BT2_INPUT_TAP,
   BT2_MAG,
   BT2_RELOAD_TICKS,
-  BT2_ZONE_W,
   type BastionTankState,
   type Bt2Rect,
 } from "../src/lib/arcade/bastionTank";
 import type { Human } from "./arcade-skill-bands/human";
 
-const game = bastionTankGame;
 const LOOK = 31;
 
 export interface BastionStyle {
@@ -45,9 +53,11 @@ export interface BastionStyle {
   tapChance: number;
   /** Fire only once the target's weak spot is at least this tall (px). */
   minWeakH: number;
+  /** bastionRev 3: shots tried at each drone (0: never). */
+  droneTries?: number;
 }
 
-export const FLAWLESS: BastionStyle = { weakAim: 1, earlyReload: true, tapChance: 1, minWeakH: 2 };
+export const FLAWLESS: BastionStyle = { weakAim: 1, earlyReload: true, tapChance: 1, minWeakH: 2, droneTries: 1 };
 
 function centre(r: Bt2Rect): [number, number] {
   return [Math.floor((r[0] + r[2]) / 2), Math.floor((r[1] + r[3]) / 2)];
@@ -75,9 +85,14 @@ interface Shot {
  * Plays a run. With no Human it is the oracle (exact sight, aim and timing); with one, each shot and tap carries
  * that level's errors and `style` sets what the player tries.
  */
-export function bastionPlay(seed: number, human?: Human, style: BastionStyle = FLAWLESS): { events: ArcadeInputEvent[]; state: BastionTankState } {
+export function bastionPlay(seed: number, human?: Human, style: BastionStyle = FLAWLESS, rev: number = BASTION_REV_TANK): { events: ArcadeInputEvent[]; state: BastionTankState } {
+  const game = bastionTankGameFor(rev);
   const events: ArcadeInputEvent[] = [];
   let s = game.init(seed);
+  const drones = s.rev > BASTION_REV_TANK ? bastionDrones(seed) : [];
+  const droneTried = drones.map(() => 0);
+  const droneSeen = drones.map((d) => d.at + (human ? human.reactTicks() : 0));
+  let droneFlying = -1;
   const pending: Shot[] = [];
   let tapAt = -1;
   let tapFor = -1;
@@ -97,7 +112,7 @@ export function bastionPlay(seed: number, human?: Human, style: BastionStyle = F
         if (!want) tapAt = -1;
         else {
           // The needle crosses the zone's middle at this offset; the human times it with their error.
-          const mid = s.zone + Math.floor(BT2_ZONE_W / 2);
+          const mid = s.zone + Math.floor(bastionZoneW(s.rev) / 2);
           const off = Math.ceil((mid * BT2_RELOAD_TICKS) / 1000) + (human ? human.timingTicks(1) : 0);
           tapAt = s.reloadAt + Math.max(1, off);
         }
@@ -106,6 +121,37 @@ export function bastionPlay(seed: number, human?: Human, style: BastionStyle = F
     }
 
     const canFire = s.mag > 0 && s.cool === 0 && s.reloadAt < 0;
+    if (droneFlying >= 0 && pending.every((p) => p.tank !== -1 - droneFlying)) droneFlying = -1;
+    if (!ev && canFire && t >= nextThink && droneFlying < 0 && drones.length && (!human || !urgent(s))) {
+      // A drone: a shell aimed into the sky lands 30 ticks later; fire at where it will be then.
+      for (let n = 0; n < drones.length && !ev; n++) {
+        if (s.droneMask & (1 << n) || droneTried[n]! >= (style.droneTries ?? 0) || t < droneSeen[n]!) continue;
+        const flight = bastionFlight(150);
+        const at = bastionDronePos(drones[n]!, t + flight);
+        if (!at || at.x < 6 || at.x > BT2_WORLD_W - 6) continue;
+        if (!human && urgent(s, 60)) continue;
+        let x = at.x;
+        let y = at.y;
+        if (human) {
+          // Led from the drone's motion now, misjudged by the level's judgement, pointed with their aim.
+          const now = bastionDronePos(drones[n]!, t);
+          if (!now) continue;
+          const lead = 1 + human.p.judgement * human.normal();
+          x = Math.round(now.x + (at.x - now.x) * lead + human.aim(1, 1.2));
+          y = Math.round(now.y + (at.y - now.y) * lead + human.aim(1, 1.2));
+          x = Math.max(0, Math.min(BT2_WORLD_W, x));
+        } else {
+          const r = bastionDroneRect(at.x, at.y);
+          x = Math.floor((r[0] + r[2]) / 2);
+          y = Math.floor((r[1] + r[3]) / 2);
+        }
+        droneTried[n] = droneTried[n]! + 1;
+        droneFlying = n;
+        ev = { k: BT2_INPUT_FIRE, a: x, b: y, c: 0, d: 0 };
+        pending.push({ tank: -1 - n, x, y, dmg: 0, lands: t + bastionFlight(y) });
+        if (human) nextThink = t + Math.max(1, human.thinkTicks(260, 0.3));
+      }
+    }
     if (!ev && canFire && t >= nextThink) {
       const shot = pickShot(s, pending, seen, human, style);
       if (shot) {
@@ -124,12 +170,13 @@ export function bastionPlay(seed: number, human?: Human, style: BastionStyle = F
 }
 
 /** A tank close enough that a 1 s reload now would cost it (under 130 ticks from the wall). */
-function urgent(s: BastionTankState): boolean {
-  return s.tanks.some((t) => t.z < t.v * 130);
+function urgent(s: BastionTankState, ticks = 130): boolean {
+  return s.tanks.some((t) => t.z < t.v * ticks);
 }
 
 function pickShot(s: BastionTankState, pending: Shot[], seen: Map<number, number>, human: Human | undefined, style: BastionStyle): Omit<Shot, "lands"> | null {
   if (s.tanks.length === 0) return null;
+  const game = bastionTankGameFor(s.rev);
   // The field as it will be: frames[f] is the state f ticks after the shot's tick (no further input).
   const frames: BastionTankState[] = [];
   let c = game.step(s, null);
@@ -186,13 +233,14 @@ function pickShot(s: BastionTankState, pending: Shot[], seen: Map<number, number
   return null;
 }
 
-/** The oracle's log for a seed. */
-export function bastionOracleRun(seed: number): ArcadeInputEvent[] {
-  return bastionPlay(seed).events;
+/** The oracle's log for a seed (rev 2 by default). */
+export function bastionOracleRun(seed: number, rev: number = BASTION_REV_TANK): ArcadeInputEvent[] {
+  return bastionPlay(seed, undefined, FLAWLESS, rev).events;
 }
 
 /** Replays a log through the sim (the server's replay is src/lib/duel/bastion.ts). */
-export function bastionPlayLog(seed: number, events: readonly ArcadeInputEvent[]): BastionTankState {
+export function bastionPlayLog(seed: number, events: readonly ArcadeInputEvent[], rev: number = BASTION_REV_TANK): BastionTankState {
+  const game = bastionTankGameFor(rev);
   let s = game.init(seed);
   const at = new Map(events.map((e) => [e.t, e]));
   while (!game.isOver(s)) s = game.step(s, at.get(s.tick + 1) ?? null);
@@ -204,14 +252,16 @@ void bastionNeedle;
 if (import.meta.main) {
   const from = Number(process.argv[2] ?? 0);
   const count = Number(process.argv[3] ?? 20);
+  const rev = Number(process.argv[4] ?? BASTION_REV_TANK);
+  const game = bastionTankGameFor(rev);
   let at200 = 0;
   const t0 = performance.now();
   for (let seed = from; seed < from + count; seed++) {
-    const { state } = bastionPlay(seed);
+    const { state } = bastionPlay(seed, undefined, FLAWLESS, rev);
     const score = game.score(state);
     if (score === 200) at200++;
     const parts = bastionStdParts(state)!.map((p) => `${p.key} ${p.points}/${p.max}`).join(" ");
-    if (score !== 200 || count <= 20) console.log(`seed ${seed}: ${score} · ${parts} · shots ${state.shots} hits ${state.hits} reloads ${state.reloads} end ${state.ended}@${state.endedTick}`);
+    if (score !== 200 || count <= 20) console.log(`seed ${seed}: ${score} · ${parts} · shots ${state.shots} hits ${state.hits} drones ${state.drones} reloads ${state.reloads} end ${state.ended}@${state.endedTick}`);
   }
   console.log(`${at200} of ${count} at 200 · ${Math.round((performance.now() - t0) / count)} ms a seed`);
 }

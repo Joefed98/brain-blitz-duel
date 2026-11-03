@@ -66,7 +66,7 @@ replay exactly as before; standard-live-check grades every stored arcade run thr
 | --- | --- | --- | --- | --- |
 | Slice | `slice` | `sliceRev` 11 | A | [slice.md](slice.md) |
 | Breaker | `breaker` | `brkRev` 11 | A | [breaker.md](breaker.md) |
-| Tilt | `tilt` | `tiltRev` 10 | A | [tilt.md](tilt.md) |
+| Tilt | `tilt` | `tiltRev` 11 (10 before, Nov 2026) | A | [tilt.md](tilt.md) |
 | Fission | `burst` | `burstRev` 10 | A | [burst.md](burst.md) |
 | Gemstone | `matchup` | `matchupRev` 12 (11 before, Nov 2026) | A | [matchup.md](matchup.md) |
 | Meteor | `snake` | `snakeRev` 12 | A | [snake.md](snake.md) |
@@ -78,29 +78,29 @@ replay exactly as before; standard-live-check grades every stored arcade run thr
 | Rally | `rally` | `rallyRev` 12 | B | [rally.md](rally.md) |
 | Coral Pop | `bubble` | `bubbleRev` 11 | B | [bubble.md](bubble.md) |
 | Tempo | `beat` | `beatRev` 11 | B | [beat.md](beat.md) |
-| Jaywalk | `cross` | `crossRev` 10 | C | [cross.md](cross.md) |
+| Jaywalk | `cross` | `crossRev` 11 (10 before, Nov 2026: no coins, the no-stop streak) | C | [cross.md](cross.md) |
 | Wavefront | `wavefront` | `wavRev` 12 | C | [wavefront.md](wavefront.md) |
-| Roofbound | `flip` | `flipRev` 10 | C | [flip.md](flip.md) |
-| Rainbow Bridge | `inkbridge` | `inkRev` 12 | C | [inkbridge.md](inkbridge.md) |
+| Roofbound | `flip` | `flipRev` 11 (10 before, Nov 2026) | C | [flip.md](flip.md) |
+| Rainbow Bridge | `inkbridge` | `inkRev` 13 (12 before, Nov 2026) | C | [inkbridge.md](inkbridge.md) |
 | Orbit | `orbit` | `orbitRev` 13 | C | [orbit.md](orbit.md) |
 | Ball Tracker | `balltrack` | `btRev` 8 | C | [balltrack.md](balltrack.md) |
-| Grappler | `swing` | `swingRev` 16 (15 before 1 Nov 2026) | D | [swing.md](swing.md) |
+| Grappler | `swing` | `swingRev` 17 (16 before 3 Nov 2026, 15 before 1 Nov 2026) | D | [swing.md](swing.md) |
 | Minesweeper | `minesweeper` | `minesRev` 1 | Cards & Board | [minesweeper.md](minesweeper.md) |
 | Mahjong Solitaire | `mahjong` | `mahjongRev` 1 | Cards & Board | [mahjong.md](mahjong.md) |
 | Home Run Derby | `homerun` | `homerunRev` 1 | Sports | [homerun.md](homerun.md) |
-| Top Bins | `freekick` | `freekickRev` 3 (1 Nov 2026; 1 and 2 replay) | Sports | [freekick.md](freekick.md) |
+| Top Bins | `freekick` | `freekickRev` 4 (3 Nov 2026; 1 to 3 replay) | Sports | [freekick.md](freekick.md) |
 | Racing | `racing` | `racingRev` 1 | Sports | [racing.md](racing.md) |
 | Free Cell | `freecell` | `freecellRev` 4 (3 Nov 2026, the 40-card deal; 3, 2 and 1 for stored rounds) | Cards & Board | [freecell.md](freecell.md) |
 | Summit | `tripeaks` | `tripeaksRev` 2 (3 Nov 2026, the stock par; 1 for stored rounds) | Cards & Board | [tripeaks.md](tripeaks.md) |
 | Full House | `pokersquares` | `pokerSquaresRev` 2 | Cards & Board | [pokersquares.md](pokersquares.md) |
 | Five Hands | `fivehands` | `fiveHandsRev` 3 (3 Nov 2026, the flat table summed, not 200 on every deck; 2 and 1 for stored rounds) | Cards & Board | [fivehands.md](fivehands.md) |
-| Bastion | `bastion` | `bastionRev` 2 | Action | [bastion.md](bastion.md) |
+| Iron Wall (was Bastion) | `bastion` | `bastionRev` 3 (born on 2) | Action | [bastion.md](bastion.md) |
 | Thirteen (was Pyramid) | `pyramid` | `pyramidRev` 1 | Cards & Board | [pyramid.md](pyramid.md) |
 | Golf Solitaire (practice only since 3 Nov 2026) | `golfsol` | `golfSolRev` 1 | Cards & Board | [golfsol.md](golfsol.md) |
 | Muggins | `muggins` | `mugginsRev` 1 | Cards & Board | [muggins.md](muggins.md) |
 | Crazy Golf (was Minigolf) | `minigolf` | `golfRev` 2 (1 for stored rounds) | Sports | [minigolf.md](minigolf.md) |
 | Cue Ball (was Speed Pool) | `pool` | `poolRev` 3 (2 and 1 for stored rounds) | Sports | [pool.md](pool.md) |
-| Curl Champ (was Curling) | `curling` | `curlRev` 3 (1 and 2 for stored rounds) | Sports | [curling.md](curling.md) |
+| Curl Champ (was Curling) | `curling` | `curlRev` 4 (1, 2 and 3 for stored rounds) | Sports | [curling.md](curling.md) |
 | Blockfall | `blockfall` | `blockfallRev` 1 | Retro | [blockfall.md](blockfall.md) |
 | Ringer (Alley Roll) | `alleyroll` | `alleyRollRev` 2 (rev 1 before 3 Nov 2026) | Sports | [alleyroll.md](alleyroll.md) |
 | Ricochet (the ninja wall-climb) | `ricochet` | `ricoRev` 2 (unstamped: the old shaft, never on the standard) | Action | [ricochet.md](ricochet.md) |
@@ -124,6 +124,7 @@ identical seeded run. Per-game detail, rules and assumptions are in this folder 
 | Slice | `sliceRev` 11 | 120, share of all food sliced | combo 40, golden fruit 20, tickets 10, dodges 10; chilli −10 | 200 |
 | Breaker | `brkRev` 11 | 140, share of all 108 bricks | clear 10, speed 20 (full with half the clock left), gold bricks 30 | 200 |
 | Tilt | `tiltRev` 10 | 140, 35 a maze (30 finish + 5 progress), 4 mazes | all four 10, speed 20 (full by 75 s), gold stars 30 | 200 |
+| Tilt (Nov 2026) | `tiltRev` 11 | 140, 35 a maze (15 finish + 20 progress), 4 mazes; no gold stars | par 24 (6 a maze within its par), clean run 12 (3 a maze before the first fall), speed 24 (all four, full by 60 s) | 200 |
 | Fission | `burstRev` 10 | 140, share of all 87 atoms (splits count) | wave clears 35 (7 × 5), golden atoms 25; a lost life −5 | 200 |
 | Gemstone | `matchupRev` 11 | 110, gems cleared, full at 375 | treasure 40 (10 × 4), goals 30, ice 10, big lines 10 | 200 |
 | Gemstone (Nov 2026) | `matchupRev` 12 | 108, gems cleared, full at 360 | treasure 36 (6 × 6), goals 36 (6 × 6), ice 10, big lines 10 | 200 |
@@ -318,6 +319,11 @@ every course's own route clears it under par.
 runs go dark (hooks in the dark cannot be grabbed); swing-dark-check proves it, and that swingRev 14 and 15 replay as
 before. See [swing.md](swing.md), "swingRev 16".
 
+**swingRev 17 (3 Nov 2026):** sliding hooks (seeded rails, none in the first quarter) and a clean-swing streak; no
+gems or stars. Parts: course 110 (a straight line full at 700 per mille of the course), pars 40 (over 45 stretches),
+gates 10 (2 each), streak 40 (2 for every 8 clean grabs in a row). swing-slide-check proves it, and that swingRev 15 and
+16 replay as before. See [swing.md](swing.md), "swingRev 17".
+
 
 ## Cards & Board: Minesweeper and Mahjong Solitaire (30 Oct 2026)
 
@@ -343,7 +349,7 @@ proved deal (`src/lib/duel/<game>Deal.server.ts`: 300 seeds, each taken to exact
 | Game | Stamp | Core | Features | Sum |
 | --- | --- | --- | --- | --- |
 | Home Run Derby | `homerunRev` 1 | 130, distance (13 a pitch, full at 450 ft) | home runs 50 (5 each), sign hits 20 (5 each of 4) | 200 |
-| Top Bins | `freekickRev` 3 | 130, 10 a goal + up to 3 placement, full at 1,100 units (rev 1–2: 1,300) | targets 40 (10 each of 4), curled round the wall 20 (2 a goal), five in a row 10 | 200 |
+| Top Bins | `freekickRev` 4 | 120, 10 a goal + up to 3 placement, full at 750 units (rev 3: 130 at 1,100; rev 1–2: 1,300) | targets 40 (10 each of 4, the corner hoops shrinking to 70 %), curled round the wall 10 (1 a goal), Curl bonus 20 (2 a goal bent at least 70), five in a row 10 | 200 |
 | Racing | `racingRev` 1 | 140, distance (full at two laps) | clean sectors 30 (8 passes), finish 10, speed 20 (full by par 80.8 s) | 200 |
 
 Medians, weak → flawless (each game's `bun scripts/<game>-bands.ts`, room seeds 0–59 on the dealt seeds):
