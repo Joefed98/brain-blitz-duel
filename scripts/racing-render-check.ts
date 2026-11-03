@@ -22,7 +22,7 @@ const pair = (w: number, h: number) => {
 let frames = 0;
 let differ = 0;
 const failures: string[] = [];
-for (const rev of [1, 2]) {
+for (const rev of [1, 2, 3]) {
   for (const seed of [1, 7, 42, 256, 1234, 9001]) {
     const game = racingGameFor(rev);
     let s = game.init(seed) as Parameters<typeof R.drawRacingPlay>[1];
@@ -71,4 +71,4 @@ if (differ) {
   console.log(`FAIL racing-render-check: ${differ} of ${frames} frames differ with the grass saving`);
   process.exit(1);
 }
-console.log(`PASS racing-render-check: ${frames} frames (world and beyond, 3 sizes, 6 seeds, racingRev 1 and 2) identical with and without the grass saving`);
+console.log(`PASS racing-render-check: ${frames} frames (world and beyond, 3 sizes, 6 seeds, racingRev 1, 2 and 3) identical with and without the grass saving`);

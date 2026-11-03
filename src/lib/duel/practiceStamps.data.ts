@@ -64,7 +64,7 @@ export const PRACTICE_STAMPS = {
   "pool": "poolRev=3 puzzleScoreRev=3 speedPar=1",
   "push": "pushRev=3 puzzleScoreRev=3 speedPar=1",
   "pyramid": "puzzleScoreRev=3 pyramidRev=1 speedPar=1",
-  "racing": "puzzleScoreRev=3 racingRev=2 speedPar=1",
+  "racing": "puzzleScoreRev=3 racingRev=3 speedPar=1",
   "rally": "puzzleScoreRev=3 rallyRev=12 speedPar=1",
   "reaction": "puzzleScoreRev=3 speedPar=1 tapRev=6",
   "ricochet": "puzzleScoreRev=3 ricoRev=2 speedPar=1",

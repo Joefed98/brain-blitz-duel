@@ -2021,9 +2021,12 @@ export interface FreekickPuzzleData {
 
 export interface RacingPuzzleData {
   type: "racing";
-  /** A proved seed (racingDealV2.server.ts; racingDeal.server.ts on rev 1): the track, identical for everyone. */
+  /** A proved seed (racingDealV3.server.ts; racingDealV2.server.ts on rev 2, racingDeal.server.ts on rev 1): the track, identical for everyone. */
   seed: number;
-  /** Rules revision (1 = the first race, on the arcade scoring standard; 2 = the F1 lights start and the softer joystick). */
+  /**
+   * Rules revision (1 = the first race, on the arcade scoring standard; 2 = the F1 lights start and the softer joystick;
+   * 3 = the softer gravel, corner speed signs and the pace score).
+   */
   racingRev?: number;
 }
 

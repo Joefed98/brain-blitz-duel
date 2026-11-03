@@ -81,7 +81,7 @@ import { encodeFreekickRun, replayFreekickRun } from "../../src/lib/duel/freekic
 import { freekickDealSeedV2 } from "../../src/lib/duel/freekickDealV2.server";
 import { racingCheckpoint, racingGameFor, RACING_REV_DEALT } from "../../src/lib/arcade/racing";
 import { encodeRacingRun, replayRacingRun } from "../../src/lib/duel/racing";
-import { racingDealSeedV2 } from "../../src/lib/duel/racingDealV2.server";
+import { racingDealSeedV3 } from "../../src/lib/duel/racingDealV3.server";
 import { fcCheckpoint, freecellGameFor, FC_REV } from "../../src/lib/arcade/cards/freecell";
 import { FC_DEALS } from "../../src/lib/arcade/cards/freecellDeals.data";
 import { tpCheckpoint, tripeaksGameFor, TP_REV } from "../../src/lib/arcade/cards/tripeaks";
@@ -312,8 +312,8 @@ export const GAMES: GameSpec[] = [
   // homerunRev 3 (1 Nov 2026): the swing choice and the pitcher's tell, on rev 3's own proved deal.
   { ...simple("homerun", HOMERUN_REV_DEALT, HOMERUN_REV_DEALT, homerunGameFor, homerunCheckpoint, encodeHomerunRun, replayHomerunRun), seedFor: (n) => homerunDealSeedV3(roomSeed(n)) },
   { ...simple("freekick", FREEKICK_REV_DEALT, FREEKICK_REV_DEALT, freekickGameFor, freekickCheckpoint, encodeFreekickRun, replayFreekickRun), seedFor: (n) => freekickDealSeedV2(roomSeed(n)) },
-  // Apex (racing) deals racingRev 2 from its own proved deal since 31 Oct 2026.
-  { ...simple("racing", RACING_REV_DEALT, RACING_REV_DEALT, racingGameFor, racingCheckpoint, encodeRacingRun, replayRacingRun), seedFor: (n) => racingDealSeedV2(roomSeed(n)) },
+  // Apex (racing) deals racingRev 3 from its own proved deal since 3 Nov 2026 (racingRev 2 from 31 Oct 2026).
+  { ...simple("racing", RACING_REV_DEALT, RACING_REV_DEALT, racingGameFor, racingCheckpoint, encodeRacingRun, replayRacingRun), seedFor: (n) => racingDealSeedV3(roomSeed(n)) },
   // Cards & Board (30 Oct 2026): born on the arcade standard, one revision each. FreeCell and TriPeaks deal a bank
   // index (the room seed modulo the bank); Poker Squares any seed.
   { ...simple("freecell", FC_REV, FC_REV, freecellGameFor, fcCheckpoint, encodeFreecellRun, replayFreecellRun), seedFor: (n) => roomSeed(n) % FC_DEALS.length },
