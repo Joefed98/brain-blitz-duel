@@ -147,6 +147,8 @@ export const SHARDS: Record<string, string[]> = {
   ],
   // ~282 s of checks on run 38608375501's times.
   b: [
+    // arcade-fx-check in thirds (3 Nov 2026: Curl Champ's, Apex's and Cue Ball's runs took the whole check past 5 min locally).
+    "arcade-fx-check.ts@2/3",
     "app-update-check.tsx",
     "arcade-batch1-check.ts",
     "arcade-batch2-check.ts",
@@ -256,7 +258,8 @@ export const SHARDS: Record<string, string[]> = {
   // ~282 s of checks on run 38608375501's times.
   f: [
     "arcade-batch4-check.ts",
-    "arcade-fx-check.ts",
+    // arcade-fx-check in thirds (3 Nov 2026: Curl Champ's, Apex's and Cue Ball's runs took the whole check past 5 min locally).
+    "arcade-fx-check.ts@1/3",
     "arcade-tuning-a-check.ts",
     "arcade-tuning-c-check.ts",
     "chain-time-check.ts",
@@ -277,6 +280,8 @@ export const SHARDS: Record<string, string[]> = {
   ],
   // ~282 s of checks on run 38608375501's times.
   g: [
+    // arcade-fx-check in thirds (3 Nov 2026: Curl Champ's, Apex's and Cue Ball's runs took the whole check past 5 min locally).
+    "arcade-fx-check.ts@3/3",
     "arcade-check.ts",
     "arcade-drag-check.ts",
     "arcade-four-check.ts",
