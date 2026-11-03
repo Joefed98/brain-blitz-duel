@@ -2764,7 +2764,9 @@ export interface CurlingPuzzleData {
    * curlRev 1: the arcade scoring standard (docs/arcade-standard/curling.md). curlRev 2 (31 Oct 2026, dealt from
    * curlingBankV2.server.ts): the start along the hog line and side brushing, the same parts. curlRev 3 (1 Nov 2026,
    * dealt from curlingBankV3.server.ts): the weight meter's draw zone, the aim line, a gentler weight line and the
-   * re-fitted closeness core, the same parts.
+   * re-fitted closeness core, the same parts. curlRev 4 (3 Nov 2026, dealt from curlingBankV4.server.ts): the power
+   * bar and Throw button, three red stones a sheet and curling's count (only stones nearer the button than every red
+   * in the house score their closeness), the same parts.
    */
   curlRev?: number;
 }

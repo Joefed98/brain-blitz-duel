@@ -126,7 +126,7 @@ function introScoreTemplates(): Record<PuzzleType, string> {
     mahjong: "Pairs 150, no shuffles 20, a fast clear 30; a Shuffle costs 5. Up to {max}.",
     minigolf: "Holes 120, few putts 40, birdies 20, speed 20: up to {max}.",
     pool: "Spots 140, the black 10, pots in a row 30, speed 20; each foul costs 10. Up to {max}.",
-    curling: "Stones near the button 120, takeouts 30, the 4-foot 30, holding shot 20: {max}.",
+    curling: "Stones nearer than the reds 150, takeouts 20, the 4-foot 20, shot stone 10: {max}.",
     pinball: "Table points, plus J-O-U-L-Z sets, multiball, jackpots and ramp combos. Up to {max}.",
     homerun: "Distance on every pitch, home runs and signs beyond the fence (Power only). Up to {max}.",
     freekick: "Goals, targets, curls round the wall, a bonus for bent goals, five in a row. Up to {max}.",

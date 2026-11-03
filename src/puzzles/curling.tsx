@@ -28,6 +28,8 @@ import {
   curlingScene,
   curlFarHouse,
   curlInsetToSheet,
+  curlMeterWeightAt,
+  curlOnMeterV4,
   curlProject,
   curlViewFor,
   drawCurling,
@@ -97,7 +99,7 @@ function IntroExample() {
           <line x1="112" y1="108" x2="115.5" y2="111.5" />
         </g>
       </svg>
-      <p className="text-center text-xs text-muted-foreground">Slide the stone, drag the target, pick In or Out, then swipe up into the meter's gold zone. Brush left or right of it to bend it.</p>
+      <p className="text-center text-xs text-muted-foreground">Slide the stone, drag the target, pick In or Out, set the power bar in its gold zone, then Throw. Brush left or right of it to bend it.</p>
     </div>
   );
 }
@@ -109,6 +111,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const v2 = rev >= 2;
   /** curlRev 3: the weight meter with the draw zone and the faint aim line. */
   const v3 = rev >= 3;
+  /** curlRev 4: the weight is set on the power bar (tap or drag) and the Throw button releases it; no swipe. */
+  const v4 = rev >= 4;
+  /** curlRev 4: the weight set on the bar (null until the first set; it stays set from throw to throw). */
+  const [setWeight, setSetWeight] = useState<number | null>(null);
   /** The last aid worked out (curlRev 3): a key for the sheet and aim it was worked out for. */
   const aidKey = useRef("");
   const view = curlViewFor(rev);
@@ -120,7 +126,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const [turn, setTurn] = useState(0);
   /** The sim state the last frame drew (presentation only: where the moving stone is, for sweeping). */
   const seen = useRef<CurlingState | null>(null);
-  const gesture = useRef<{ mode: "broom" | "inset" | "pending" | "slide" | "swipe" | "sweep"; x: number; y: number; bx: number; by: number; samples: { y: number; t: number }[]; lastAt: number; lastX: number; lastY: number } | null>(null);
+  const gesture = useRef<{ mode: "broom" | "inset" | "pending" | "slide" | "swipe" | "sweep" | "power" | "none"; x: number; y: number; bx: number; by: number; samples: { y: number; t: number }[]; lastAt: number; lastX: number; lastY: number } | null>(null);
 
   // The sim as rooms deal it; its draw shows the arena, the stones and what the stage holds (broom, turn, swipe, start).
   const game = useMemo<ArcadeGame<CurlingState, ArcadeInputEvent | null>>(() => {
@@ -154,8 +160,15 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   };
   const throwPayload = (weight: number): PointerPayload => {
     aim.current.lastRelease = weight;
-    aim.current.keyWeight = null;
+    // curlRev 4: the power bar's marker stays where it was set.
+    if (!v4) aim.current.keyWeight = null;
     return throwPayloadOf(weight);
+  };
+  /** curlRev 4: set the bar's weight (the marker, the meter's fill and the Throw button follow it). */
+  const setBar = (w: number) => {
+    const weight = Math.max(1, Math.min(CURL_WEIGHT_MAX, Math.round(w)));
+    aim.current.keyWeight = weight;
+    setSetWeight(weight);
   };
   const throwPayloadOf = (weight: number): PointerPayload => ({
     k: CURL_INPUT_THROW,
@@ -181,7 +194,11 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       }
       if (s.phase !== CURL_AIM) return null;
       const inInset = curlInsetToSheet(x, y);
-      if (inInset) {
+      if (v4 && curlOnMeterV4(x, y)) {
+        // curlRev 4: a tap or drag on the power bar sets the weight.
+        setBar(curlMeterWeightAt(y));
+        gesture.current = { mode: "power", x, y, bx: 0, by: 0, samples: [], lastAt: now, lastX: x, lastY: y };
+      } else if (inInset) {
         setBroom(inInset.x, inInset.y);
         gesture.current = { mode: "inset", x, y, bx: 0, by: 0, samples: [], lastAt: now, lastX: x, lastY: y };
       } else if (y <= farHouse.bottom) {
@@ -199,9 +216,12 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       g.samples.push({ y, t: now });
       const dx = x - g.x;
       const dy = y - g.y;
-      if (Math.hypot(dx, dy) >= 10) g.mode = Math.abs(dx) > Math.abs(dy) ? "slide" : "swipe";
+      // curlRev 4 has no swipe: only a sideways drag (the start slide) does anything here.
+      if (Math.hypot(dx, dy) >= 10) g.mode = Math.abs(dx) > Math.abs(dy) ? "slide" : v4 ? "none" : "swipe";
     }
-    if (g.mode === "slide") {
+    if (g.mode === "power") {
+      if (s.phase === CURL_AIM) setBar(curlMeterWeightAt(y));
+    } else if (g.mode === "slide") {
       setStart(g.bx + (x - g.x) / hogK);
     } else if (g.mode === "inset") {
       const p = curlInsetToSheet(x, y);
@@ -267,6 +287,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
           // Desktop: ←/→ move the broom (while a stone travels, brush its left / right side on curlRev 2), A / D slide
           // the start (curlRev 2), I / O pick the turn, Enter throws a draw weight, S sweeps.
           // curlRev 3: − / + set the weight on the meter (from the draw zone's mark), Enter throws it.
+          // curlRev 4: − / + set the power bar's weight (from the draw zone's mark the first time), Enter throws it.
           if (kind !== "down") return ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Enter", "i", "o", "s", ...(v2 ? ["a", "d"] : []), ...(v3 ? ["-", "=", "+"] : [])].includes(key);
           if (v2 && (key === "ArrowLeft" || key === "ArrowRight") && state.phase === CURL_TRAVEL) send({ k: CURL_INPUT_SWEEP, a: 60, b: key === "ArrowLeft" ? -1 : 1, c: 0 });
           else if (key === "ArrowLeft" || key === "ArrowRight") setBroom(aim.current.broomX + (key === "ArrowLeft" ? -1 : 1) * (event.shiftKey ? 10 : 2), aim.current.broomY);
@@ -275,14 +296,37 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
           else if (key === "i" || key === "o") pickTurn(key === "i" ? 0 : 1);
           else if (v3 && (key === "-" || key === "=" || key === "+") && state.phase === CURL_AIM) {
             const from = aim.current.keyWeight ?? aim.current.zone?.tee ?? 316;
-            aim.current.keyWeight = Math.max(1, Math.min(CURL_WEIGHT_MAX, from + (key === "-" ? -1 : 1) * KEY_WEIGHT_STEP * (event.shiftKey ? 5 : 1)));
+            const next = Math.max(1, Math.min(CURL_WEIGHT_MAX, from + (key === "-" ? -1 : 1) * KEY_WEIGHT_STEP * (event.shiftKey ? 5 : 1)));
+            if (v4) setBar(next);
+            else aim.current.keyWeight = next;
           } else if (key === "Enter" && state.phase === CURL_AIM) send(throwPayload(v3 ? (aim.current.keyWeight ?? aim.current.zone?.tee ?? 316) : 306));
           else if (key === "s" && state.phase === CURL_TRAVEL) send({ k: CURL_INPUT_SWEEP, a: 60, b: 0, c: 0 });
           else return false;
           return true;
         }}
-        footer={() => (
-          <div data-game-controls="turn" className="grid h-12 shrink-0 touch-none select-none grid-cols-2 gap-3 px-1">
+        footer={v4 ? undefined : () => turnButtons(null)}
+        overlay={
+          v4
+            ? (send) => (
+                // curlRev 4: In, Out and Throw over the bottom of the sheet (below the near hog line), drawn in the arena so
+                // the world reaches the bottom, lifted by the home bar: the row ends at least 12 px above
+                // env(safe-area-inset-bottom) (the arena ends 16 px above the screen's bottom, so the lift is the inset less
+                // 4 px). Only the buttons take a touch; a rub beside them reaches the canvas (brushing).
+                <div className="pointer-events-none absolute inset-x-1" style={{ bottom: "max(0px, calc(env(safe-area-inset-bottom, 0px) - 4px))" }}>
+                  {turnButtons(send)}
+                </div>
+              )
+            : undefined
+        }
+        onSubmit={(answer) => onSubmit(answer)}
+        onDraftAnswer={onDraftAnswer}
+      />
+    </div>
+  );
+
+  function turnButtons(send: ((payload: PointerPayload) => void) | null) {
+    return (
+          <div data-game-controls="turn" className={`grid h-12 shrink-0 touch-none select-none ${v4 ? "grid-cols-3" : "grid-cols-2"} gap-3 px-1`}>
             {(["In", "Out"] as const).map((label, t) => (
               <button
                 key={label}
@@ -294,20 +338,41 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
                   event.preventDefault();
                   pickTurn(t);
                 }}
-                className={`h-12 rounded-xl border text-base font-bold tracking-wide transition-colors ${
-                  turn === t ? "border-[#E8B53A] bg-[#E8B53A]/20 text-[#FFE29A]" : "border-white/15 bg-black/40 text-white/70"
+                className={`pointer-events-auto h-12 rounded-xl border text-base font-bold tracking-wide transition-colors ${
+                  // curlRev 4 draws the row over the ice: solid dark buttons so the labels read on white.
+                  turn === t
+                    ? v4
+                      ? "border-[#E8B53A] bg-[#0B1222]/90 text-[#FFE29A]"
+                      : "border-[#E8B53A] bg-[#E8B53A]/20 text-[#FFE29A]"
+                    : v4
+                      ? "border-white/20 bg-[#0B1222]/80 text-white/80"
+                      : "border-white/15 bg-black/40 text-white/70"
                 }`}
               >
                 {label === "In" ? "↻ In" : "↺ Out"}
               </button>
             ))}
+            {v4 && send && (
+              <button
+                type="button"
+                aria-label="Throw"
+                disabled={locked || setWeight === null}
+                onPointerDown={(event) => {
+                  event.preventDefault();
+                  const s = seen.current;
+                  const w = aim.current.keyWeight;
+                  if (s && s.phase === CURL_AIM && w != null) send(throwPayload(w));
+                }}
+                className={`pointer-events-auto h-12 rounded-xl border text-base font-bold tracking-wide transition-colors ${
+                  setWeight === null ? "border-white/20 bg-[#0B1222]/80 text-white/45" : "border-[#E8B53A] bg-[#E8B53A] text-[#1A1205]"
+                }`}
+              >
+                Throw
+              </button>
+            )}
           </div>
-        )}
-        onSubmit={(answer) => onSubmit(answer)}
-        onDraftAnswer={onDraftAnswer}
-      />
-    </div>
-  );
+    );
+  }
 }
 
 function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
@@ -317,7 +382,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   return (
     <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-start gap-2 overflow-y-auto">
       <p className="whitespace-normal break-words text-center font-mono text-base font-bold text-foreground">
-        {result.thrown} of 8 thrown · {result.onButton} on the button · {result.takeouts} of {result.opponents} taken out
+        {result.thrown} of 8 thrown · {(puzzle.curlRev ?? 1) >= 4 ? `${result.counted} counted · ` : ""}{result.onButton} on the button · {result.takeouts} of {result.opponents} taken out
       </p>
       {parts.map((part) => `${part.label}: ${part.detail}`).map((line) => (
         <p key={line} className="shrink-0 text-center font-mono text-sm text-muted-foreground">

@@ -88,7 +88,8 @@ const STANDARD_ROSTER: readonly { type: string; field: string; rev: number; batc
   { type: "pool", field: "poolRev", rev: 3, batch: "Sports" },
   // Curling deals curlRev 2 since 31 Oct 2026 (the start along the hog line, side brushing; the same parts) and
   // curlRev 3 since 1 Nov 2026 (the weight meter's draw zone, the aim line, a gentler weight line, the core re-fitted).
-  { type: "curling", field: "curlRev", rev: 3, batch: "Sports" },
+  // curlRev 4 since 3 Nov 2026 (the power bar, three reds a sheet, only stones nearer than every red in the house count).
+  { type: "curling", field: "curlRev", rev: 4, batch: "Sports" },
   // Blockfall (Retro) and Alley Roll (Sports), 1 Nov 2026: born on the standard (rev 1).
   { type: "blockfall", field: "blockfallRev", rev: 1, batch: "Retro" },
   { type: "alleyroll", field: "alleyRollRev", rev: 1, batch: "Sports" },
