@@ -46,6 +46,11 @@ import { roomPuzzle } from "./puzzle-fairness/run";
 import { LEVELS, hashText, makeRng, SKILLS, type Level, type Skill, type Step } from "./puzzle-fairness/kit";
 import { gradeSteps, median, sentAnswer } from "./standard-lib";
 import { JUMBLED_SKILLS, TOPSY_READ_S, TOPSY_SKILLS, TOPSY_TILT_S } from "./d5-remodels/bots";
+import { pinPreParMoves } from "../src/lib/duel/parMoves";
+
+// Written for the standard's stamps: the puzzle batch of 3 Nov 2026 (parMoves.ts) deals Skid and Topsy-Turvy one
+// stamp above, so new deals here keep the standard's (puzzle-batch-nov-check proves the new stamps).
+pinPreParMoves(true);
 
 const failures: string[] = [];
 let checks = 0;

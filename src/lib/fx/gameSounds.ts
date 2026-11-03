@@ -54,7 +54,7 @@ import type { PyState } from "@/lib/arcade/cards/pyramid";
 import type { GsState } from "@/lib/arcade/cards/golfSol";
 import { MG_BIG_AT, type MgState } from "@/lib/arcade/cards/muggins";
 import { bfLevel, type BfState } from "@/lib/arcade/blockfall";
-import { AR_FLY, AR_POCKET_POINTS, AR_ROLL, AR_SHOW, type ArState } from "@/lib/arcade/alleyroll";
+import { ALLEYROLL_REV_RINGER, AR2_GOLD_POINTS, AR2_STREAK_AT, AR_FLY, AR_POCKET_POINTS, AR_ROLL, AR_SHOW, AR_STREAK_AT, type ArState } from "@/lib/arcade/alleyroll";
 
 /** Sounds a success-effect cue with a file stands in for on this frame (momentCues.ts). */
 let quiet: ReadonlySet<string> = new Set();
@@ -1569,8 +1569,9 @@ export function blockfallSounds(): GameSounds<BfState> {
 }
 
 /**
- * Alley Roll (1 Nov 2026; library sounds only): the roll, the rumble up the lane (a loop), off the ramp, a rail, the
- * ball dropping into a ring (the 50 rings a bell), a 100 pocket (with a haptic) and the gutter.
+ * Ringer (Alley Roll; library sounds until Joe's recordings, docs/sound-cues/blockfall-alleyroll.md): the roll, the
+ * rumble up the lane (a loop), off the ramp, the ball dropping into a cup, a 100 pocket and the gold cup (each with a
+ * haptic), the gutter, and the roll streak's chime when a ball keeps it going.
  */
 export function alleyRollSounds(): GameSounds<ArState> {
   let prev: ArState | null = null;
@@ -1580,16 +1581,20 @@ export function alleyRollSounds(): GameSounds<ArState> {
       loopCue("alleyroll.rolling", running && state.phase === AR_ROLL, SURFACE_VOLUME);
       if (prev && state.tick > prev.tick) {
         if (state.phase === AR_ROLL && prev.phase !== AR_ROLL) sfx("alleyroll.roll", "arc_wood_knock", 0.8);
-        if (state.phase === AR_ROLL && prev.phase === AR_ROLL && Math.sign(state.vx) !== Math.sign(prev.vx) && prev.vx !== 0) sfx("alleyroll.rail", "arc_bounce", 0.5);
         if (state.phase === AR_FLY && prev.phase === AR_ROLL) sfx("alleyroll.ramp", "arc_wood_knock", 0.6, 1.3);
         if (state.phase === AR_SHOW && prev.phase === AR_FLY) {
           const pts = state.balls[state.balls.length - 1]?.points ?? 0;
-          if (pts === AR_POCKET_POINTS) {
+          const before = state.balls[state.balls.length - 2]?.points ?? -1;
+          const at = state.rev >= ALLEYROLL_REV_RINGER ? AR2_STREAK_AT : AR_STREAK_AT;
+          if (pts === AR2_GOLD_POINTS) {
+            sfx("alleyroll.goldCup", "arc_fair_bell", 0.9);
+            feel("success");
+          } else if (pts === AR_POCKET_POINTS) {
             sfx("alleyroll.pocket", "arc_fair_sting", 0.9);
             feel("success");
-          } else if (pts >= 50) sfx("alleyroll.fifty", "arc_fair_bell", 0.8);
-          else if (pts > 0) sfx("alleyroll.ring", "arc_fair_bucket", 0.8);
+          } else if (pts > 0) sfx("alleyroll.ring", "arc_fair_bucket", 0.8);
           else sfx("alleyroll.gutter", "arc_fair_thud", 0.7);
+          if (pts >= at && before >= at) sfx("alleyroll.streak", "combo", 0.6, 1, true);
         }
       }
       prev = state;

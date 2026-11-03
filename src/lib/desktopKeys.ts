@@ -34,7 +34,7 @@ export const DESKTOP_KEYS: Partial<Record<PuzzleType, readonly (readonly [string
   golfsol: [["Click", "play a column"], ["1–7", "play a column"], ["Space / S", "draw"]],
   muggins: [["Click", "pick a tile, then an end"], ["D", "draw"]],
   blockfall: [["← →", "move"], ["↑", "turn"], ["Space", "drop"], ["C", "hold"]],
-  alleyroll: [["← →", "line up"], ["↑ ↓", "aim"], ["Hold Space", "power, let go to roll"]],
+  alleyroll: [["Mouse drag", "swipe up the lane to roll"], ["← →", "line up"], ["Hold Space", "roll straight"]],
   // Sports
   freekick: [["Click / ← → ↑ ↓", "aim"], ["Drag / A D", "curl"], ["Space (hold)", "power, release to strike"]],
   rally: [["← →", "paddle"]],

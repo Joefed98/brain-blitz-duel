@@ -243,11 +243,14 @@ export function generateTopsy(maxTries = Number.POSITIVE_INFINITY): GravityPuzzl
 export function verifyTopsyPuzzle(puzzle: GravityPuzzleData): string | null {
   const rev = puzzle.gravityRev ?? 0;
   // gravityRev 5 (the scoring standard, standard/stamps.ts) deals gravityRev 4's boards and rules.
-  if (puzzle.type !== "gravity" || rev < GRAVITY_REV_TOPSY || rev > GRAVITY_REV_TOPSY_NOTES + 1 || !puzzle.boards) return "not gravityRev 3, 4 or 5";
+  // gravityRev 6 (the puzzle batch of 3 Nov 2026, parMoves.ts): gravityRev 5's boards with the stars taken off and the
+  // shortest routes without them.
+  const noStars = rev >= GRAVITY_REV_TOPSY_NOTES + 2;
+  if (puzzle.type !== "gravity" || rev < GRAVITY_REV_TOPSY || rev > GRAVITY_REV_TOPSY_NOTES + 2 || !puzzle.boards) return "not gravityRev 3 to 6";
   if (puzzle.boards.length !== TOPSY_BOARDS) return "board count";
   for (const [i, board] of puzzle.boards.entries()) {
     if (Boolean(board.homeBlocks) !== (rev >= GRAVITY_REV_TOPSY_NOTES)) return `board ${i}: home-blocks rule does not match gravityRev ${rev}`;
-    if (board.starts.length !== TOPSY_BALLS || board.holes.length !== TOPSY_BALLS || board.stars.length !== TOPSY_STARS) return `board ${i}: counts`;
+    if (board.starts.length !== TOPSY_BALLS || board.holes.length !== TOPSY_BALLS || board.stars.length !== (noStars ? 0 : TOPSY_STARS)) return `board ${i}: counts`;
     const all = [...board.walls, ...board.starts, ...board.holes, ...board.stars];
     if (new Set(all).size !== all.length || all.some((c) => !Number.isInteger(c) || c < 0 || c >= TOPSY_CELLS)) return `board ${i}: squares`;
     const walls = new Set(board.walls);
@@ -255,14 +258,36 @@ export function verifyTopsyPuzzle(puzzle: GravityPuzzleData): string | null {
     const plain = topsySearch(board, false, TOPSY_MAX_TILTS);
     if (!plain || plain.min < TOPSY_MIN_TILTS) return `board ${i}: minimum outside the band`;
     if (plain.min !== puzzle.boardMins?.[i]) return `board ${i}: stored minimum`;
+    if (noStars) {
+      if ((puzzle.boardSolutions?.[i] ?? "").length !== plain.min) return `board ${i}: stored route is not a shortest one`;
+      continue;
+    }
     const full = topsySearch(board, true, plain.min + TOPSY_STAR_DETOUR);
     if (!full || full.min !== puzzle.boardStarMins?.[i]) return `board ${i}: stored star minimum`;
   }
   const route = (puzzle.boardSolutions ?? []).join("").split("") as GravityDir[];
+  if (noStars) {
+    // The tilt limits are gravityRev 5's (from the star minimums, which the deal no longer stores): at least the fewest.
+    if (puzzle.tiltLimits?.length !== TOPSY_BOARDS || puzzle.tiltLimits.some((l, i) => l < puzzle.boardMins![i]!)) return "tilt limits";
+    return replayTopsy(puzzle.boards, route, puzzle.tiltLimits).solved ? null : "stored routes do not clear every board";
+  }
   if (puzzle.tiltLimits?.length !== TOPSY_BOARDS || puzzle.tiltLimits.some((l, i) => l !== topsyTiltLimit(puzzle.boardStarMins![i]!, rev))) return "tilt limits";
   const replay = replayTopsy(puzzle.boards, route, puzzle.tiltLimits);
   if (!replay.solved || replay.stars !== TOPSY_BOARDS * TOPSY_STARS) return "stored routes do not clear every board with every star";
   return null;
+}
+
+/**
+ * gravityRev 6 (the puzzle batch of 3 Nov 2026, parMoves.ts): the boards carry no stars, so the stored routes are each
+ * board's shortest without them (the reveal shows them; their lengths are the stored minimums, the par).
+ */
+export function topsyPlainRoutes(puzzle: GravityPuzzleData): GravityPuzzleData {
+  if (!puzzle.boards) return puzzle;
+  const routes = puzzle.boards.map((board, i) => {
+    const found = topsySearch({ ...board, stars: [] }, false, Math.max(TOPSY_MAX_TILTS, puzzle.boardMins?.[i] ?? 0));
+    return found ? found.solution.join("") : (puzzle.boardSolutions?.[i] ?? "");
+  });
+  return { ...puzzle, boardSolutions: routes, solution: routes.join("") };
 }
 
 export { TOPSY_HOME, TOPSY_SIZE, starCount };

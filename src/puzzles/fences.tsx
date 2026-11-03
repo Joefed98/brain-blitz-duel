@@ -1,7 +1,9 @@
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { solutionProgress } from "@/lib/duel/progressFigures";
-import { useEffect, useMemo, useRef, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react";
 
+import { Button } from "@/components/ui/button";
+import { useGameKeys } from "@/lib/desktop";
 import { useStageState } from "@/lib/duel/stageState";
 import {
   FENCES_CROSS,
@@ -108,7 +110,7 @@ export function FencesBoard({
       style={handlers ? { touchAction: "none", overscrollBehavior: "none" } : undefined}
       {...(handlers ?? {})}
       role="img"
-      aria-label="Fences board"
+      aria-label="Loopline board"
     >
       {/* Cell wells. */}
       {Array.from({ length: size * size }, (_, cell) => (
@@ -249,7 +251,13 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
     dot: number;
     dragging: boolean;
     mode: number | null;
+    /** The board when the gesture began: one Undo step per tap or drag. */
+    before: number[];
+    /** Set once the drag has changed an edge (a drag only moves edges towards its one mode). */
+    changed: boolean;
   } | null>(null);
+  /** Boards before each change (a tap, a whole drag, a reset), newest last; device memory only. */
+  const [history, setHistory] = useState<number[][]>([]);
 
   const encoded = encodeFences(states);
   const solved = Boolean(data && fencesSolved(data, encoded));
@@ -306,7 +314,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
       } catch {
         // Capture is a nicety.
       }
-      gesture.current = { id: e.pointerId, x: p[0], y: p[1], edge: nearestEdge(size, p[0], p[1]), dot: nearestDot(size, p[0], p[1]).dot, dragging: false, mode: null };
+      gesture.current = { id: e.pointerId, x: p[0], y: p[1], edge: nearestEdge(size, p[0], p[1]), dot: nearestDot(size, p[0], p[1]).dot, dragging: false, mode: null, before: states, changed: false };
     },
     onPointerMove: (e: ReactPointerEvent<SVGSVGElement>) => {
       const g = gesture.current;
@@ -321,6 +329,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
       if (!along.length) return;
       // The first edge decides: dragging over a line erases, anything else draws.
       if (g.mode === null) g.mode = states[along[0]!] === FENCES_LINE ? FENCES_EMPTY : FENCES_LINE;
+      if (along.some((edge) => g.before[edge] !== g.mode)) g.changed = true;
       paint(along, g.mode);
       g.dot = near.dot;
     },
@@ -332,17 +341,54 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
       } catch {
         // Already released.
       }
-      if (!g || g.dragging || !active || submitted.current) return;
+      if (g?.dragging) {
+        endDrag(g);
+        return;
+      }
+      if (!g || !active || submitted.current) return;
       // A tap cycles the nearest edge: empty → line → ✕ → empty.
       const now = states[g.edge] ?? FENCES_EMPTY;
       const next = now === FENCES_EMPTY ? FENCES_LINE : now === FENCES_LINE ? FENCES_CROSS : FENCES_EMPTY;
+      setHistory((h) => [...h, states]);
       setStates((current) => current.map((s, i) => (i === g.edge ? next : s)));
       soundCue(next === FENCES_LINE ? "fences.draw" : "fences.cross");
     },
     onPointerCancel: () => {
+      const g = gesture.current;
       gesture.current = null;
+      if (g?.dragging) endDrag(g);
     },
   };
+
+  /** A drag that changed the board is one Undo step. */
+  function endDrag(g: { before: number[]; changed: boolean }) {
+    if (g.changed) setHistory((h) => [...h, g.before]);
+  }
+
+  const marked = states.some((s) => s !== FENCES_EMPTY);
+  const canUndo = active && !submitted.current && history.length > 0;
+  const canReset = active && !submitted.current && marked;
+  const undo = () => {
+    if (!canUndo) return;
+    gesture.current = null;
+    setStates(history[history.length - 1]!);
+    setHistory((h) => h.slice(0, -1));
+  };
+  const reset = () => {
+    if (!canReset) return;
+    gesture.current = null;
+    setHistory((h) => [...h, states]);
+    setStates(new Array<number>(fencesEdgeCount(size)).fill(FENCES_EMPTY));
+  };
+
+  // Desktop keys: Z or Backspace = Undo, R = Reset.
+  useGameKeys((kind, key, event) => {
+    const used = key === "z" || key === "Backspace" || key === "r";
+    if (!used || kind !== "down" || event.repeat) return used;
+    if (key === "r") reset();
+    else undo();
+    return true;
+  });
 
   if (!data) return null;
 
@@ -359,6 +405,24 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
           <FencesBoard size={size} clues={clues} states={states} solved={solving} handlers={handlers} svgRef={svgRef} />
         </div>
         <LiveSummary inArena className="logic-status" items={[<SummaryItem key="lines" label="Lines" value={lineCount} />]} />
+      </div>
+      <div data-game-controls="actions" className="flex shrink-0 gap-3 px-3">
+        <Button variant="outline"
+          type="button"
+          disabled={!canUndo}
+          onClick={undo}
+          className="gf-glass h-11 flex-1 rounded-lg border border-border bg-card font-display text-sm font-bold uppercase tracking-widest text-foreground disabled:opacity-40"
+        >
+          Undo
+        </Button>
+        <Button variant="outline"
+          type="button"
+          disabled={!canReset}
+          onClick={reset}
+          className="gf-glass h-11 flex-1 rounded-lg border border-border bg-card font-display text-sm font-bold uppercase tracking-widest text-muted-foreground disabled:opacity-40"
+        >
+          Reset
+        </Button>
       </div>
     </div>
   );

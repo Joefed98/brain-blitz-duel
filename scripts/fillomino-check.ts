@@ -11,6 +11,9 @@
  *     60, wrong numbers cost, a clean finish with a timeline 200 and each wrong number ever entered costing 2.5.
  *  5. The solver is sound and complete: on boards with 3–6 blanks it counts exactly the solutions a naive brute force
  *     (every number 1–9 in every blank, pruning only groups already past their number) counts.
+ *  6. The play screen's finished-region shades (fillominoShades, display only, 3 Nov 2026): exactly the cells of finished
+ *     groups are shaded, one shade a region, within the palette, deterministic, and touching finished regions never
+ *     share a shade, on solved boards, partly filled boards and random grids.
  *
  *   bun scripts/fillomino-check.ts [--seeds=140]
  */
@@ -22,8 +25,9 @@ import {
   generateFillomino,
   solveFillomino,
 } from "../src/lib/duel/fillomino.server";
-import { encodeFillomino, fillominoGroups, fillominoNeighbours, fillominoSolved, fillominoSolvedGrid } from "../src/lib/duel/fillomino";
+import { encodeFillomino, fillominoComplete, fillominoGroups, fillominoNeighbours, fillominoSolved, fillominoSolvedGrid } from "../src/lib/duel/fillomino";
 import { gradeAnswer, generatePuzzle } from "../src/lib/duel/generate.server";
+import { FILLOMINO_SHADES, fillominoShades } from "../src/puzzles/fillomino";
 import { usesStandard } from "../src/lib/duel/standard/stamps";
 import { FILLOMINO_SIZE, FILLOMINO_TIME_MS, type FillominoPuzzleData } from "../src/lib/duel/types";
 import { sentAnswer } from "./standard-lib";
@@ -183,6 +187,57 @@ for (let i = 0; i < 40; i++) {
 }
 console.log(`solver = brute force on ${compared} boards with 3–6 blanks (${several} with several solutions)`);
 ok(several >= 3, `only ${several} soundness boards had several solutions`);
+
+/* 6: finished-region shades on the play screen */
+function checkShades(label: string, size: number, values: readonly number[]): number {
+  const shade = fillominoShades(size, values);
+  const complete = fillominoComplete(size, values);
+  ok(JSON.stringify(fillominoShades(size, values)) === JSON.stringify(shade), `${label}: shades not deterministic`);
+  ok(shade.length === size * size, `${label}: shade length ${shade.length}`);
+  for (let c = 0; c < size * size; c++) {
+    ok(complete.has(c) === shade[c]! >= 0, `${label}: cell ${c} shaded ${shade[c]} but finished ${complete.has(c)}`);
+    ok(shade[c]! >= -1 && shade[c]! < FILLOMINO_SHADES && Number.isInteger(shade[c]), `${label}: cell ${c} shade ${shade[c]} outside the palette`);
+  }
+  const { group, cells } = fillominoGroups(size, values);
+  let touching = 0;
+  for (const members of cells) {
+    if (!complete.has(members[0]!)) continue;
+    ok(members.every((c) => shade[c] === shade[members[0]!]), `${label}: a finished region holds two shades`);
+  }
+  for (let c = 0; c < size * size; c++) {
+    if (shade[c]! < 0) continue;
+    for (const nb of fillominoNeighbours(size, c)) {
+      if (shade[nb]! < 0 || group[nb] === group[c]) continue;
+      touching++;
+      ok(shade[nb] !== shade[c], `${label}: touching finished regions at ${c} and ${nb} share shade ${shade[c]}`);
+    }
+  }
+  return touching;
+}
+let shadeBoards = 0;
+let shadePairs = 0;
+let maxShade = -1;
+for (let i = 0; i < 200; i++) {
+  const p = generateFillomino(20_000 + i);
+  const sol = p.solution!;
+  shadePairs += checkShades(`shades solved ${i}`, p.size, sol);
+  // Partly filled: each solution cell kept with a seeded chance, otherwise blank or a wrong number.
+  let r = (i * 69_069 + 5) >>> 0;
+  const next = () => (r = (Math.imul(r, 1_103_515_245) + 12_345) >>> 0) >>> 8;
+  const partial = sol.map((v) => (next() % 10 < 6 ? v : next() % 3 ? 0 : 1 + (next() % 5)));
+  shadePairs += checkShades(`shades partial ${i}`, p.size, partial);
+  // Random grids of small numbers (many tiny finished regions touching each other: the hardest maps to colour).
+  for (const sz of [4, 7, 9]) {
+    const rand = Array.from({ length: sz * sz }, () => (next() % 8 === 0 ? 0 : 1 + (next() % 3)));
+    shadePairs += checkShades(`shades random ${sz}x${sz} ${i}`, sz, rand);
+    for (const v of fillominoShades(sz, rand)) maxShade = Math.max(maxShade, v);
+  }
+  shadeBoards += 5;
+}
+// A hand-made map: a 2 ringed by alternating 1s and 3s, every region touching its neighbours.
+shadePairs += checkShades("shades ring", 4, [1, 3, 3, 3, 3, 1, 2, 1, 1, 2, 3, 3, 3, 1, 3, 1]);
+console.log(`shades: ${shadeBoards} boards, ${shadePairs} touching finished-square pairs all in different shades (highest shade used ${maxShade})`);
+ok(shadePairs > 1000, `shades: only ${shadePairs} touching pairs tested`);
 
 if (failures.length) {
   console.log(`FAIL fillomino-check: ${failures.length} failure(s)`);

@@ -375,20 +375,19 @@ Grouped by game or screen. These are the cues still missing a sound.
 | Blackout | logic | yes | music_logic_2 (shared) | `music_logic_lightsout` |
 | Bomb Defusal | logic | yes | music_logic_3 (shared) | `music_logic_bomb` |
 | Box Six | logic | yes | music_logic_1 (shared) | `music_logic_sudoku` |
-| Bridges | logic | yes | music_logic_3 (shared) | `music_logic_bridges` |
 | Colour Flood | logic | yes | music_logic_2 (shared) | `music_logic_flood` |
 | Dig | logic | practice only | music_logic_1 (shared) | `music_logic_dig` |
-| Fences | logic | yes | music_logic_2 (shared) | `music_logic_fences` |
-| Fillomino | logic | yes | music_logic_1 (shared) | `music_logic_fillomino` |
 | Hanoi | logic | yes | music_logic_3 (shared) | `music_logic_tower` |
+| Island Link | logic | yes | music_logic_3 (shared) | `music_logic_bridges` |
 | Lamplighter | logic | yes | music_logic_1 (shared) | `music_logic_lightup` |
+| Loopline | logic | yes | music_logic_2 (shared) | `music_logic_fences` |
 | Mosaic | logic | yes | music_logic_1 (shared) | `music_logic_nonogram` |
 | Polypotions | logic | yes | music_logic_3 (shared) | `music_logic_tubes` |
+| Regions | logic | yes | music_logic_1 (shared) | `music_logic_fillomino` |
 | Safe Cracker | logic | yes | music_logic_2 (shared) | `music_logic_safe` |
 | Shikaku | logic | yes | music_logic_1 (shared) | `music_logic_shikaku` |
 | Tents and Trees | logic | yes | music_logic_1 (shared) | `music_logic_tents` |
 | Trail | logic | yes | music_logic_3 (shared) | `music_logic_trail` |
-| Alley Roll | arcade | yes | music_alleyroll | `music_alleyroll` |
 | Apex | arcade | yes | music_racing | `music_racing` |
 | Ball Tracker | arcade | yes | music_balltrack | `music_balltrack` |
 | Bastion | arcade | yes | **none** | `music_bastion` |
@@ -423,6 +422,7 @@ Grouped by game or screen. These are the cues still missing a sound.
 | Rainbow Bridge | arcade | yes | music_inkbridge | `music_inkbridge` |
 | Rally | arcade | yes | music_rally | `music_rally` |
 | Ricochet | arcade | yes | **none** | `music_ricochet` |
+| Ringer | arcade | yes | music_alleyroll | `music_alleyroll` |
 | Roofbound | arcade | yes | music_flip | `music_flip` |
 | Rooftop Run | arcade | practice only | **none** | `music_rooftop` |
 | Scrumper | arcade | practice only | music_snip | `music_snip` |
@@ -1114,15 +1114,6 @@ Grouped by game or screen.
 | `sudoku.solve` | The grid is complete and valid [logic.md] |  | 0–1 | recorded sound | `sudoku.solve` | 1200 | success sting | `sudoku.solve` |
 | `music.sudoku` | Box Six round bed: music_logic_1 (logic bed shared with other games) |  | loop | recorded sound | `music_logic_1` (shared) | 60000 | music | `music_logic_sudoku` |
 
-### Bridges
-
-| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
-|---|---|---|---|---|---|---|---|---|
-| `bridges.build` |  [grid.md] |  | 5–40 (per move) | recorded sound | `bridges.build` | 200 | game event | `bridges.build` |
-| `bridges.remove` |  [grid.md] |  | 5–40 (per move) | recorded sound | `bridges.remove` | 200 | game event | `bridges.remove` |
-| `bridges.solve` |  [grid.md] |  | 0–1 | recorded sound | `bridges.solve` | 1000 | success sting | `bridges.solve` |
-| `music.bridges` | Bridges round bed: music_logic_3 (logic bed shared with other games) |  | loop | recorded sound | `music_logic_3` (shared) | 60000 | music | `music_logic_bridges` |
-
 ### Colour Flood
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
@@ -1136,24 +1127,6 @@ Grouped by game or screen.
 |---|---|---|---|---|---|---|---|---|
 | `music.dig` | Dig round bed (retired, practice): music_logic_1 (logic bed shared with other games) |  | loop | recorded sound | `music_logic_1` (shared) | 60000 | music | `music_logic_dig` |
 
-### Fences
-
-| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
-|---|---|---|---|---|---|---|---|---|
-| `fences.draw` |  [grid.md] |  | 5–40 (per move) | recorded sound | `fences.draw` | 200 | game event | `fences.draw` |
-| `fences.cross` |  [grid.md] |  | 5–40 (per move) | recorded sound | `fences.cross` | 200 | game event | `fences.cross` |
-| `fences.solve` |  [grid.md] |  | 0–1 | recorded sound | `fences.solve` | 1000 | success sting | `fences.solve` |
-| `music.fences` | Fences round bed: music_logic_2 (logic bed shared with other games) |  | loop | recorded sound | `music_logic_2` (shared) | 60000 | music | `music_logic_fences` |
-
-### Fillomino
-
-| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
-|---|---|---|---|---|---|---|---|---|
-| `fillomino.place` |  [grid.md] |  | 5–40 (per move) | recorded sound | `fillomino.place` | 80 | UI tap | `fillomino.place` |
-| `fillomino.region` |  [grid.md] |  | 5–40 (per move) | recorded sound | `fillomino.region` | 200 | game event | `fillomino.region` |
-| `fillomino.solve` |  [grid.md] |  | 0–1 | recorded sound | `fillomino.solve` | 1000 | success sting | `fillomino.solve` |
-| `music.fillomino` | Fillomino round bed: music_logic_1 (logic bed shared with other games) |  | loop | recorded sound | `music_logic_1` (shared) | 60000 | music | `music_logic_fillomino` |
-
 ### Hanoi
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
@@ -1162,6 +1135,15 @@ Grouped by game or screen.
 | `tower.solve` | Every ring is on the gold post [logic.md] |  | 0–1 | recorded sound | `tower.solve` | 1170 | success sting | `tower.solve` |
 | `music.tower` | Hanoi round bed: music_logic_3 (logic bed shared with other games) |  | loop | recorded sound | `music_logic_3` (shared) | 60000 | music | `music_logic_tower` |
 
+### Island Link
+
+| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
+|---|---|---|---|---|---|---|---|---|
+| `bridges.build` |  [grid.md] |  | 5–40 (per move) | recorded sound | `bridges.build` | 200 | game event | `bridges.build` |
+| `bridges.remove` |  [grid.md] |  | 5–40 (per move) | recorded sound | `bridges.remove` | 200 | game event | `bridges.remove` |
+| `bridges.solve` |  [grid.md] |  | 0–1 | recorded sound | `bridges.solve` | 1000 | success sting | `bridges.solve` |
+| `music.bridges` | Island Link round bed: music_logic_3 (logic bed shared with other games) |  | loop | recorded sound | `music_logic_3` (shared) | 60000 | music | `music_logic_bridges` |
+
 ### Lamplighter
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
@@ -1169,6 +1151,15 @@ Grouped by game or screen.
 | `lightup.clear` | A square is cleared [logic.md] |  | 5–40 (per move) | recorded sound | `lightup.clear` | 200 | game event | `lightup.clear` |
 | `lightup.solve` | Every square is lit with no clash and every number met [logic.md] |  | 0–1 | recorded sound | `lightup.solve` | 1170 | success sting | `lightup.solve` |
 | `music.lightup` | Lamplighter round bed: music_logic_1 (logic bed shared with other games) |  | loop | recorded sound | `music_logic_1` (shared) | 60000 | music | `music_logic_lightup` |
+
+### Loopline
+
+| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
+|---|---|---|---|---|---|---|---|---|
+| `fences.draw` |  [grid.md] |  | 5–40 (per move) | recorded sound | `fences.draw` | 200 | game event | `fences.draw` |
+| `fences.cross` |  [grid.md] |  | 5–40 (per move) | recorded sound | `fences.cross` | 200 | game event | `fences.cross` |
+| `fences.solve` |  [grid.md] |  | 0–1 | recorded sound | `fences.solve` | 1000 | success sting | `fences.solve` |
+| `music.fences` | Loopline round bed: music_logic_2 (logic bed shared with other games) |  | loop | recorded sound | `music_logic_2` (shared) | 60000 | music | `music_logic_fences` |
 
 ### Mosaic
 
@@ -1186,6 +1177,15 @@ Grouped by game or screen.
 | `tubes.cork` | A pour fills a flask with one colour (it gets a cork) [logic.md] |  | 5–40 (per move) | recorded sound | `tubes.cork` | 380 | game event | `tubes.cork` |
 | `tubes.solve` | Every flask is sorted [logic.md] |  | 0–1 | recorded sound | `tubes.solve` | 1140 | success sting | `tubes.solve` |
 | `music.tubes` | Polypotions round bed: music_logic_3 (logic bed shared with other games) |  | loop | recorded sound | `music_logic_3` (shared) | 60000 | music | `music_logic_tubes` |
+
+### Regions
+
+| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
+|---|---|---|---|---|---|---|---|---|
+| `fillomino.place` |  [grid.md] |  | 5–40 (per move) | recorded sound | `fillomino.place` | 80 | UI tap | `fillomino.place` |
+| `fillomino.region` |  [grid.md] |  | 5–40 (per move) | recorded sound | `fillomino.region` | 200 | game event | `fillomino.region` |
+| `fillomino.solve` |  [grid.md] |  | 0–1 | recorded sound | `fillomino.solve` | 1000 | success sting | `fillomino.solve` |
+| `music.fillomino` | Regions round bed: music_logic_1 (logic bed shared with other games) |  | loop | recorded sound | `music_logic_1` (shared) | 60000 | music | `music_logic_fillomino` |
 
 ### Safe Cracker
 
@@ -1216,20 +1216,6 @@ Grouped by game or screen.
 |---|---|---|---|---|---|---|---|---|
 | `trail.solve` | the trail is complete [number.md] |  | 0–1 | recorded sound | `trail.solve` | 1150 | success sting | `trail.solve` |
 | `music.trail` | Trail round bed: music_logic_3 (logic bed shared with other games) |  | loop | recorded sound | `music_logic_3` (shared) | 60000 | music | `music_logic_trail` |
-
-### Alley Roll
-
-| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
-|---|---|---|---|---|---|---|---|---|
-| `alleyroll.roll` | Alley Roll: A ball is rolled [arcade.md] |  | 9 | recorded sound | `arc_wood_knock` (shared) | 90 | game event | `alleyroll.roll` |
-| `alleyroll.rail` | Alley Roll: A rolling ball bounces off a rail [arcade.md] |  | 0–9 | recorded sound | `arc_bounce` (shared) | 80 | game event | `alleyroll.rail` |
-| `alleyroll.ramp` | Alley Roll: The ball leaves the ramp [arcade.md] |  | 9 | recorded sound | `arc_wood_knock` (shared) | 90 | game event | `alleyroll.ramp` |
-| `alleyroll.ring` | Alley Roll: The ball drops into a 10–40 ring [arcade.md] |  | 0–9 | recorded sound | `arc_fair_bucket` (shared) | 200 | game event | `alleyroll.ring` |
-| `alleyroll.fifty` | Alley Roll: The ball drops into the 50 [arcade.md] |  | 0–9 | recorded sound | `arc_fair_bell` (shared) | 400 | game event | `alleyroll.fifty` |
-| `alleyroll.pocket` | Alley Roll: The ball drops into a 100 pocket (with a success haptic) [arcade.md] |  | 0–9 | recorded sound | `arc_fair_sting` (shared) | 300 | game event | `alleyroll.pocket` |
-| `alleyroll.gutter` | Alley Roll: The ball misses every ring [arcade.md] |  | 0–9 | recorded sound | `arc_fair_thud` (shared) | 160 | game event | `alleyroll.gutter` |
-| `alleyroll.rolling` | Alley Roll [blockfall-alleyroll.md] |  | 5–40 (per move) | recorded sound | `alleyroll.rolling` | loop | game event | `alleyroll.rolling` |
-| `music.alleyroll` | Alley Roll: music_alleyroll (Swish's fairground bed, music_bintoss.mp3) |  | loop | recorded sound | `music_alleyroll` | loop | music | `music_alleyroll` |
 
 ### Apex
 
@@ -1547,7 +1533,7 @@ Grouped by game or screen.
 | `homerun.pitch` | Home Run: The pitcher releases the ball [batch6-sports-cards.md] |  | 10 | recorded sound | `homerun.pitch` | 259 | game event | `homerun.pitch` |
 | `homerun.whiff` | Home Run: A swing and a miss (with homerun.strike, the mitt) [batch6-sports-cards.md] |  | 0–10 | recorded sound | `homerun.whiff` | 400 | game event | `homerun.whiff` |
 | `homerun.roar` | Home Run: A home run [batch6-sports-cards.md] |  | 0–10 | recorded sound | `homerun.roar` | 3477 | game event | `homerun.roar` |
-| `homerun.groan` | Home Run: A fair ball within 30 ft of the fence [batch6-sports-cards.md] |  | 0–5 | recorded sound | `homerun.groan` | 1995 | game event | `homerun.groan` |
+| `homerun.groan` | Home Run: A fair ball within 30 ft of the fence; homerunRev 4: a fielder's catch (with homerun.catch) [batch6-sports-cards.md] |  | 0–5 | recorded sound | `homerun.groan` | 1995 | game event | `homerun.groan` |
 | `music.homerun` | Home Run: music_homerun |  | loop | recorded sound | `music_homerun` | 52000 | music | `music_homerun` |
 
 ### Hover
@@ -1748,6 +1734,20 @@ Grouped by game or screen.
 | `ricochet.lantern` | Ricochet: A gold lantern taken (ricoRev 2) [arcade.md] |  | 0–10 | recorded sound | `combo` (shared) | 120 | game event | `ricochet.lantern` |
 | `ricochet.scroll` | Ricochet: A scroll taken (ricoRev 2) [arcade.md] |  | 0–4 | recorded sound | `correct` (shared) | 120 | game event | `ricochet.scroll` |
 
+### Ringer
+
+| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
+|---|---|---|---|---|---|---|---|---|
+| `alleyroll.roll` | Ringer: A ball is rolled [arcade.md] |  | 9 | recorded sound | `arc_wood_knock` (shared) | 90 | game event | `alleyroll.roll` |
+| `alleyroll.ramp` | Ringer: The ball leaves the ramp [arcade.md] |  | 9 | recorded sound | `arc_wood_knock` (shared) | 90 | game event | `alleyroll.ramp` |
+| `alleyroll.ring` | Ringer: The ball drops into a 10–50 cup [arcade.md] |  | 0–9 | recorded sound | `arc_fair_bucket` (shared) | 200 | game event | `alleyroll.ring` |
+| `alleyroll.pocket` | Ringer: The ball drops into a 100 pocket (with a success haptic) [arcade.md] |  | 0–9 | recorded sound | `arc_fair_sting` (shared) | 300 | game event | `alleyroll.pocket` |
+| `alleyroll.goldCup` | Ringer: The ball drops into the moving gold cup, 150 (with a success haptic; rev 2) [arcade.md] |  | 0–9 | recorded sound | `arc_fair_bell` (shared) | 400 | game event | `alleyroll.goldCup` |
+| `alleyroll.gutter` | Ringer: The ball misses every cup [arcade.md] |  | 0–9 | recorded sound | `arc_fair_thud` (shared) | 160 | game event | `alleyroll.gutter` |
+| `alleyroll.streak` | Ringer: A ball keeps the roll streak going (30 or more after 30 or more; 40 on rev 1) [arcade.md] |  | 0–8 | recorded sound | `combo` (shared) | 300 | game event | `alleyroll.streak` |
+| `alleyroll.rolling` | Ringer [blockfall-alleyroll.md] |  | 5–40 (per move) | recorded sound | `alleyroll.rolling` | loop | game event | `alleyroll.rolling` |
+| `music.alleyroll` | Ringer: music_alleyroll (Swish's fairground bed, music_bintoss.mp3) |  | loop | recorded sound | `music_alleyroll` | loop | music | `music_alleyroll` |
+
 ### Roofbound
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
@@ -1926,7 +1926,7 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 | `podium_fanfare` | effects | `podium_fanfare` | 350 |
 | `stage_complete` | effects | `stage_complete`, `cross.crossed`, `junction.complete` | 160 |
 | `complete` | effects | `complete` | 200 |
-| `combo` | effects | `combo`, `ricochet.lantern` | 90 |
+| `combo` | effects | `combo`, `ricochet.lantern`, `alleyroll.streak` | 90 |
 | `warning_10` | effects | `warning_10` | 10000 |
 | `warning_tick` | effects | `warning_tick` | 120 |
 | `warning_tick_final` | effects | `warning_tick_final` | 250 |
@@ -1939,20 +1939,20 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 | `arc_space_ambience` | effects | `orbit.ambience` | loop |
 | `arc_thruster` | effects | `orbit.launch` | 160 |
 | `arc_lose_life` | effects | `bubble.reefLost`, `burst.lifeLost`, `cross.lifeLost`, `wavefront.lifeLost` | 220 |
-| `arc_bounce` | effects | `alleyroll.rail`, `racing.grass`, `rally.bumperBounce`, `snip.springBounce`, `snip.hook`, `bintoss.missBounce`, `bintoss.wobble`, `freekick.net` | 80 |
+| `arc_bounce` | effects | `racing.grass`, `rally.bumperBounce`, `snip.springBounce`, `snip.hook`, `bintoss.missBounce`, `bintoss.wobble`, `freekick.net` | 80 |
 | `arc_retro_note` | effects | `blockfall.hold`, `blockfall.speedUp`, `hover.gate`, `snake.rockWarn`, `snake.showerAlarm`, `rally.goldHit` | 90 |
 | `arc_retro_pickup` | effects | `blockfall.bigClear`, `breaker.powerUp`, `burst.powerUp`, `wavefront.pierce` | 100 |
 | `arc_retro_blip` | effects | `blockfall.turn`, `breaker.relaunch`, `breaker.paddle`, `burst.shot`, `snake.eat`, `rally.hit`, `wavefront.dive` | 50 |
 | `arc_retro_coin` | effects | `racing.sector`, `bastion.fastReload`, `blockfall.clear`, `breaker.start`, `breaker.fireballLit`, `burst.start`, `burst.freezeCaught`, `skyline.streakDrop`, `hover.start`, `hover.star`, `snake.start`, `rally.start`, `beat.start` | 120 |
 | `arc_retro_explode` | effects | `whack.bomb`, `blockfall.topOut`, `breaker.ballLost`, `burst.gameOver`, `hover.crash`, `snake.dead`, `rally.dead` | 260 |
 | `arc_retro_hit` | effects | `bastion.hit`, `blockfall.lock`, `breaker.brickHit`, `burst.hit`, `snake.rockLand`, `wavefront.armourHit`, `wavefront.bossHit` | 120 |
-| `arc_fair_thud` | effects | `alleyroll.gutter`, `bastion.miss`, `bullseye.thud` | 160 |
-| `arc_fair_bell` | effects | `alleyroll.fifty`, `bullseye.bull`, `bintoss.allBaskets` | 400 |
+| `arc_fair_thud` | effects | `bastion.miss`, `bullseye.thud`, `alleyroll.gutter` | 160 |
+| `arc_fair_bell` | effects | `bullseye.bull`, `alleyroll.goldCup`, `bintoss.allBaskets` | 400 |
 | `arc_fair_bucket` | effects | `alleyroll.ring`, `bintoss.basket` | 200 |
-| `arc_fair_sting` | effects | `alleyroll.pocket`, `bullseye.perfect`, `bintoss.perfect` | 300 |
+| `arc_fair_sting` | effects | `bullseye.perfect`, `alleyroll.pocket`, `bintoss.perfect` | 300 |
 | `arc_marble_roll` | effects | `balltrack.roll`, `inkbridge.coinRoll`, `tilt.roll` | 400 |
 | `arc_siren` | effects | `swing.dragon`, `junction.siren` | 600 |
-| `arc_wood_knock` | effects | `alleyroll.roll`, `alleyroll.ramp`, `balltrack.wrong`, `swing.rockLand`, `bintoss.spinnerKnock`, `tilt.knock` | 90 |
+| `arc_wood_knock` | effects | `balltrack.wrong`, `swing.rockLand`, `alleyroll.roll`, `alleyroll.ramp`, `bintoss.spinnerKnock`, `tilt.knock` | 90 |
 | `arc_clank` | effects | `bastion.jam`, `swing.rockShake`, `skyline.drop`, `junction.newRoad` | 150 |
 | `arc_horn` | effects | `bastion.wave`, `junction.horn` | 400 |
 | `arc_latch` | effects | `balltrack.switch`, `bastion.reload`, `bastion.loaded`, `pinball.bankReset`, `tilt.gate` | 100 |
@@ -2029,9 +2029,9 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 | `music_pattern_1` | music | `music.tiles`, `music.blockparty`, `music.rings` | loop |
 | `music_pattern_2` | music | `music.unblock`, `music.iceslide` | loop |
 | `music_pattern_3` | music | `music.laser`, `music.gravity` | loop |
-| `music_logic_1` | music | `music.sudoku`, `music.dig`, `music.fillomino`, `music.lightup`, `music.nonogram`, `music.shikaku`, `music.tents` | loop |
+| `music_logic_1` | music | `music.sudoku`, `music.dig`, `music.lightup`, `music.nonogram`, `music.fillomino`, `music.shikaku`, `music.tents` | loop |
 | `music_logic_2` | music | `music.flow`, `music.pipes`, `music.lightsout`, `music.flood`, `music.fences`, `music.safe` | loop |
-| `music_logic_3` | music | `music.push`, `music.bomb`, `music.bridges`, `music.tower`, `music.tubes`, `music.trail` | loop |
+| `music_logic_3` | music | `music.push`, `music.bomb`, `music.tower`, `music.bridges`, `music.tubes`, `music.trail` | loop |
 | `standings_loop` | music | `music.standings` | loop |
 | `podium_loop` | music | `music.podium` | loop |
 | `music_burst` | music | `music.burst` | loop |
