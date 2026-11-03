@@ -132,7 +132,7 @@ function introScoreTemplates(): Record<PuzzleType, string> {
     pinball: "Table points, plus J-O-U-L-Z sets, multiball, jackpots and ramp combos. Up to {max}.",
     homerun: "Distance not caught, home runs, lit signs and your perfect streak. Up to {max}.",
     freekick: "Goals away from the keeper, targets, curls round the wall and five in a row. Up to {max}.",
-    racing: "Distance, clean sectors, the finish and your time from lights out. Up to {max}.",
+    racing: "Pace (your average speed) 160, clean sectors 40 (5 each). Together {max}.",
     // Cards & Board (the arcade scoring standard from their first revision).
     freecell: `Cards 140 (full at ${FC_CORE_UNITS_V3} units); finished: few moves 30, speed 30. Together {max}.`,
     tripeaks: "Cards 120, peak tops 30, longest run 20; all cleared: 10 and speed 20. Together {max}.",

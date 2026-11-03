@@ -8,7 +8,9 @@ import {
   RACING_CHECKPOINT_INTERVAL,
   RACING_INPUT_STICK,
   RACING_REV_2,
+  RACING_REV_3,
   RACING_REV_DEALT,
+  racingPace10,
   RACING_STICK_MAX,
   RACING_WORLD_H,
   RACING_WORLD_W,
@@ -54,7 +56,7 @@ function IntroExample() {
     <div className="flex w-full flex-col items-center gap-2">
       <canvas ref={ref} width={STILL} height={STILL} aria-hidden="true" style={{ width: STILL, height: STILL, background: RACING_BG, borderRadius: 10 }} />
       <p className="text-center text-xs text-muted-foreground">
-        Five red lights, then go. Thumb stick: up to accelerate, down to brake, left and right to steer. Two laps; keep off the grass.
+        Five red lights, then go. Thumb stick: up to accelerate, down to brake, left and right to steer. Two laps; the red signs show each corner's speed.
       </p>
     </div>
   );
@@ -192,10 +194,12 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   const headline = result.finished
     ? `Finished in ${(result.raceTicks / 60).toFixed(1)} s`
     : `${(result.distancePermille / 10).toFixed(1)}% of the race`;
+  // racingRev 3 scores the pace: the average speed beside the time.
+  const pace = (puzzle.racingRev ?? 1) >= RACING_REV_3 ? ` · average ${(racingPace10(result.state) / 10).toFixed(1)} km/h` : "";
   return (
     <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-start gap-2 overflow-y-auto">
       <p className="whitespace-normal break-words text-center font-mono text-base font-bold text-foreground">
-        {headline} · {result.clean} of {result.sectors} sectors clean
+        {headline}{pace} · {result.clean} of {result.sectors} sectors clean
       </p>
       {lines.map((line) => (
         <p key={line} className="shrink-0 text-center font-mono text-sm text-foreground">
@@ -207,7 +211,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   );
 }
 
-/** The seed is dealt on the server from the proved deal (racingDealV2.server.ts); every run is replayed there for scoring. */
+/** The seed is dealt on the server from the proved deal (racingDealV3.server.ts); every run is replayed there for scoring. */
 export const racingPuzzle: PuzzleDefinition = {
   key: "racing",
   name: gameDisplayName("racing"),

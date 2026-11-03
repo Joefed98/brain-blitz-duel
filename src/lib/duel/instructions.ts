@@ -1050,15 +1050,17 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       how: [
         { action: "Five red lights:", detail: "go when they go out." },
         { action: "Joystick:", detail: "left and right steer, push up to go, pull down to brake." },
+        { action: "Corner speed signs:", detail: "the red-ringed sign before a sharp corner shows the speed it can be taken at." },
         { action: "Stay on the tarmac:", detail: "grass and walls cost time." },
         { action: "The start:", detail: "the car waits on its grid spot while five red lights come on, one a second. When they all go out, the race clock starts.", helpOnly: true },
         { action: "Steering", detail: "is gentle near the middle of the stick and turns the wheels smoothly; push it right out for full lock. Let go to coast.", helpOnly: true },
         { action: "Clean sectors:", detail: "the bars on the right light for each sector with no wall or grass contact.", helpOnly: true },
-        { action: "Braking boards", detail: "(150, 100, 50) count down to the tightest corners.", helpOnly: true },
+        { action: "Braking boards", detail: "(150, 100, 50) count down to the tightest corners. The sign before them is the corner's speed in km/h: be at it by the turn-in and full lock holds the corner.", helpOnly: true },
+        { action: "The gravel", detail: "slows the car to about two thirds of its speed; back on the tarmac it picks up faster.", helpOnly: true },
         { action: "Ghost cars", detail: "show the other players in the room. They can't touch you and passing them scores nothing.", helpOnly: true },
         { action: "Everyone", detail: "races the same track.", helpOnly: true },
       ],
-      score: liveStdHelp("racing", "Every metre of the track counts the same."),
+      score: liveStdHelp("racing", "Pace is your average speed over the race: every km/h counts the same."),
     },
     // The Sports group (30 Oct 2026; docs/arcade-standard/minigolf.md, pool.md, curling.md): on the arcade scoring
     // standard from their first stamps.

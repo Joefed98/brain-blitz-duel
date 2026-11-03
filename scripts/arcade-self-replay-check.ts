@@ -29,10 +29,11 @@ import { encodeFreekickRun, replayFreekickRun } from "../src/lib/duel/freekick";
 import { FREEKICK_DEAL } from "../src/lib/duel/freekickDeal.server";
 import { FREEKICK_DEAL_V2 } from "../src/lib/duel/freekickDealV2.server";
 import { FREEKICK_DEAL_V3 } from "../src/lib/duel/freekickDealV3.server";
-import { racingCheckpoint, racingGameFor, RACING_CHECKPOINT_INTERVAL, RACING_REV_2, RACING_REV_STD } from "../src/lib/arcade/racing";
+import { racingCheckpoint, racingGameFor, RACING_CHECKPOINT_INTERVAL, RACING_REV_2, RACING_REV_3, RACING_REV_STD } from "../src/lib/arcade/racing";
 import { encodeRacingRun, replayRacingRun } from "../src/lib/duel/racing";
 import { RACING_DEAL } from "../src/lib/duel/racingDeal.server";
 import { RACING_DEAL_V2 } from "../src/lib/duel/racingDealV2.server";
+import { RACING_DEAL_V3 } from "../src/lib/duel/racingDealV3.server";
 import {
   inputAt,
   recordInput,
@@ -941,6 +942,8 @@ const GAMES: Game[] = [
   // Ringer (Alley Roll alleyRollRev 2, 3 Nov 2026: the cup stack and the seeded gold cup), appended so every earlier
   // entry keeps its index; the rev-1 entry above stays pinned to rev 1.
   { key: "alleyroll/ringer", game: ringerGame, checkpoint: arCheckpoint, mode: "events", rate: 40, encode: encodeAlleyRollRun, replay: (seed: number, raw: string) => replayAlleyRollRun(seed, raw, 2) },
+  // Apex racingRev 3 (3 Nov 2026: the softer gravel, corner speed signs, the pace score), appended at the end.
+  { key: "racing/v3", interval: RACING_CHECKPOINT_INTERVAL, game: racingGameFor(RACING_REV_3), checkpoint: racingCheckpoint, mode: "events", rate: 120, encode: encodeRacingRun, replay: (seed: number, raw: string) => replayRacingRun(seed, raw, RACING_REV_3), seedFor: (n: number) => RACING_DEAL_V3[n % RACING_DEAL_V3.length]! },
   // Home Run homerunRev 4 (3 Nov 2026: a spot and a tap) and Cue Ball poolRev 4 (3 Nov 2026: a seeded set, 90 s), appended
   // so every earlier entry keeps its index: random spots and taps; random shots on the poolRev 4 bank's layouts.
   { key: "homerun/v4", interval: HOMERUN_CHECKPOINT_INTERVAL, game: homerunGameFor(HOMERUN_REV_4), checkpoint: homerunCheckpoint, mode: "events", rate: 20, encode: encodeHomerunRun, replay: (seed: number, raw: string) => replayHomerunRun(seed, raw, HOMERUN_REV_4), seedFor: (n: number) => HOMERUN_DEAL_V4[n % HOMERUN_DEAL_V4.length]! },
