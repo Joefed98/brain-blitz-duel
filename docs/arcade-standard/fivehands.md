@@ -1,4 +1,48 @@
-# Five Hands on the arcade scoring standard (fiveHandsRev 2, 1 Nov 2026; rev 1 31 Oct 2026)
+# Five Hands on the arcade scoring standard (fiveHandsRev 3, 3 Nov 2026; rev 2 1 Nov 2026; rev 1 31 Oct 2026)
+
+## fiveHandsRev 3 (3 Nov 2026, Joe's Cards & Board batch: what rooms deal)
+
+**A deliberate exception to "200 on every deal"** (arcade-standard-check's `NOT_200_ON_EVERY_DEAL`, the only entry).
+
+- **Flat hand values** (`FH_HANDS_V3`, `fhRowHand(row, 3)`): high card 0, pair 15, two pair 20, three of a kind 25,
+  straight 30, flush 35, full house 40, four of a kind 45, straight flush 50.
+- **Score = the five rows' hand points added up, capped at 200**; anyone who plays scores at least 1, no input 0. No
+  scaling, no full figure, no other parts (`FH_STD_SPEC`: one part, Hand points, max 200).
+- **The deal:** the seed's first shuffle, dealt as it is (rev 1's first-attempt deck; no reshuffle, no 200 witness). The
+  sim still climbs a witness (`fhBuildDeal`), but nothing has to reach anything; the checks and the flawless bot use
+  the deck's **exact** best arrangement (`scripts/cards/fiveHandsBest.ts`: branch and bound over the four rounds'
+  orders, about 1 s a deck).
+- Same play, deck order and 60 s run. Rev 1 and rev 2 runs replay unchanged: 25 rev-2 runs recorded on main
+  (`scripts/fixtures/cards-nov3-legacy.json`, `scripts/cards-nov3-legacy-record.ts`) replay to the same score and final
+  state (cards-check).
+
+**Can perfect play reach 200?** Almost never with these values: 200 needs five hands averaging 40 (five full houses,
+or straights, flushes and better). The exact best arrangement of each deck (`fhBest`):
+
+| Seeds | Decks reaching 200 | Best hand points: min · p10 · median · p90 · max |
+| --- | ---: | --- |
+| 0–199 | **0 of 200** | 100 · 115 · 140 · 160 · 180 |
+| 10000–10199 | **0 of 200** | 100 · 120 · 140 · 160 · 180 |
+
+So the flawless level scores its deck's best, a median of 140, and 200 is out of reach on every deck measured.
+
+Measured (`bun scripts/cards-bands.ts fivehands --seeds=200`, room seeds 0–199; fresh seeds 10000–10199 in brackets;
+the bots weigh the flat table's draws flush × 3.2, straight × 3, ranks × 5 against rev 1's; flawless plays `fhBest`):
+
+| Level | Weak | Average | Good | Great | Near-perfect | Elite | Flawless |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| rev 2 median (before) | 61 | 122 | 142 | 142 | 163 | 183 | 200 |
+| **rev 3 median** | **45** (50) | **70** (70) | **80** (80) | **80** (80) | **85** (85) | **90** (90) | **140** (140) |
+| rev 3 p10–p90 | 30–80 | 45–100 | 50–105 | 60–110 | 55–110 | 65–110 | 120–155 |
+| rev 3 mean | 48.8 | 70.1 | 77.7 | 82.2 | 83.0 | 89.5 | 137.7 |
+| targets | 30–60 | ~90 | 120–140 | ~160 | ~175 | 185–195 | 200 |
+
+**Against the targets:** weak lands in range; every other level is well under (average 70 against ~90–100, elite 90
+against 185–195, flawless 140 against 200), and good, great and near-perfect sit within 5 points of each other. With the
+values fixed and no scaling, nothing else in the rules moves this: the hand points a deck allows are the ceiling.
+A decision for Joe (not made here): scale the sum (×1.4 puts the flawless median near 196 and average near 98), raise
+the values, or accept the lower range.
+
 
 ## fiveHandsRev 2 (1 Nov 2026, Joe's tuning: what rooms deal)
 

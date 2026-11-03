@@ -22,6 +22,15 @@
  *     it, 200 seeds reach 200. Five Hands (fiveHandsRev 1): every tuning (0–59) and fresh (10000–10199) seed and 200
  *     room-style seeds' witnesses replay to 200 through the server replay; the deal (45 different cards, the same every
  *     time), even filling (greyed rows refused), the discards face up, the hands, idle 0 and played 1+.
+ *  7. The 1 Nov 2026 tuning (Free Cell rev 3, Five Hands rev 2) against runs recorded on main.
+ *  8. The Cards & Board batch (3 Nov 2026, docs/arcade-standard/freecell.md, tripeaks.md, fivehands.md): 70 runs recorded
+ *     on main (scripts/fixtures/cards-nov3-legacy.json, scripts/cards-nov3-legacy-record.ts: Free Cell rev 3, Five Hands
+ *     rev 2, Summit rev 1) replay to the same score and final state; Free Cell freecellRev 4 deals 40 cards (Ace to 10,
+ *     eight columns of five) and all 300 of its bank's par lines reach 200; Summit tripeaksRev 2's stock pars (one a
+ *     deal, re-proved the fewest on eight deals here; `bun scripts/tripeaks-stock-par.ts --check` re-proves all) and
+ *     all 300 stock-par lines at 200; Five Hands fiveHandsRev 3's flat table, the sum capped at 200, the first shuffle
+ *     dealt as it is, and 12 decks' exact bests through the server replay at min(200, hand points). `CHECKS_FULL=1`
+ *     also rebuilds the 40-card bank (freecell-bank.ts --rev=4 --check).
  *
  *   bun scripts/cards-check.ts
  */
@@ -34,13 +43,14 @@ import {
   FC_INPUT_TAP, FC_PILE_CELL, FC_PILE_HOME, fcApply, fcBestTarget, fcCapacity, fcHomeCount, fcInitFrom, freecellGame, type FcState,
 } from "../src/lib/arcade/cards/freecell";
 import { TP_DEALS } from "../src/lib/arcade/cards/tripeaksDeals.data";
-import { TP_STOCK_PILE, tpApply, tpFree, tpNext, tpPlayable, tripeaksGame } from "../src/lib/arcade/cards/tripeaks";
+import { TP_REV, TP_STOCK_PILE, tpApply, tpFree, tpNext, tpPlayable, tripeaksGame } from "../src/lib/arcade/cards/tripeaks";
+import { FC_DEALS_V4 } from "../src/lib/arcade/cards/freecellDealsV4.data";
 import { PS_CORE_FULL, PS_CORE_FULL_V2, PS_HANDS, PS_INPUT_PLACE, psHand, psTargetGrid, psTotals, pokerSquaresGame, pokerSquaresGameFor, pokerSquaresStdParts } from "../src/lib/arcade/cards/pokerSquares";
 import {
-  FC_CORE_UNITS, FC_CORE_UNITS_V3, FC_INPUT_MOVE, FC_INPUT_RESET, FC_INPUT_UNDO, FC_REV, FC_STD_SPEC, fcCheckpoint, fcCoreUnits, fcNoteText, fcPack, freecellGameFor, freecellStdParts,
+  FC_CORE_UNITS, FC_CORE_UNITS_V3, FC_INPUT_MOVE, FC_INPUT_RESET, FC_INPUT_UNDO, FC_REV, FC_STD_SPEC_V3, fcCheckpoint, fcCoreUnits, fcNoteText, fcPack, freecellGameFor, freecellStdParts,
 } from "../src/lib/arcade/cards/freecell";
 import {
-  FH_CORE_FULL, FH_CORE_FULL_V2, FH_INPUT_PLACE, FH_REV, FH_ROWS, FH_SEEN, FH_STD_SPEC, FH_TURNS, fhCheckpoint, fhDeal, fhDiscard, fhDiscardsShown, fhOpenRows, fhRowHand, fhTotals, fhYours,
+  FH_CORE_FULL, FH_CORE_FULL_V2, FH_INPUT_PLACE, FH_REV, FH_ROWS, FH_SEEN, FH_STD_SPEC_V2, FH_TURNS, fhCheckpoint, fhDeal, fhDiscard, fhDiscardsShown, fhOpenRows, fhRowHand, fhTotals, fhYours,
   fiveHandsGame, fiveHandsGameFor, fiveHandsStdParts, type FhState,
 } from "../src/lib/arcade/cards/fiveHands";
 import { psCheckpoint } from "../src/lib/arcade/cards/pokerSquares";
@@ -48,6 +58,13 @@ import { readFileSync } from "node:fs";
 import { generatePuzzle } from "../src/lib/duel/generate.server";
 import { decodeFreecellRun, encodeFreecellRun, replayFiveHandsRun, replayFreecellRun, replayPokerSquaresRun, replayTripeaksRun } from "../src/lib/duel/cards";
 import { fiveHandsFlawless, freecellFlawless, pokerSquaresFlawless, tripeaksFlawless } from "./cards/flawless";
+import { fhBest } from "./cards/fiveHandsBest";
+import { tpSolve } from "./cards/tripeaksSolver";
+import { shuffledDeck } from "../src/lib/arcade/cards/cards";
+import { TP_STOCK_PARS } from "../src/lib/arcade/cards/tripeaksStockPar.data";
+import { TP_V2_PAR_MAX, tpCheckpoint, tripeaksGameFor, tripeaksStdParts } from "../src/lib/arcade/cards/tripeaks";
+import { FH_STD_SPEC } from "../src/lib/arcade/cards/fiveHands";
+import { stdSpeed as stdSpeedOf } from "../src/lib/arcade/arcadeStandard";
 import type { ArcadeInputEvent } from "../src/lib/arcade/engine";
 
 console.error = () => {};
@@ -101,8 +118,8 @@ for (let k = 0; k < 20; k++) {
   const tp = generatePuzzle("tripeaks") as { seed: number; tripeaksRev: number };
   const ps = generatePuzzle("pokersquares") as { seed: number; pokerSquaresRev: number };
   const fh = generatePuzzle("fivehands") as { seed: number; fiveHandsRev: number };
-  ok(fc.freecellRev === FC_REV && fc.seed >= 0 && fc.seed < FC_DEALS.length, `freecell: rooms deal a bank index on freecellRev ${FC_REV}`);
-  ok(tp.tripeaksRev === 1 && tp.seed >= 0 && tp.seed < TP_DEALS.length, "tripeaks: rooms deal a bank index on tripeaksRev 1");
+  ok(fc.freecellRev === FC_REV && fc.seed >= 0 && fc.seed < FC_DEALS_V4.length, `freecell: rooms deal a bank index on freecellRev ${FC_REV}`);
+  ok(tp.tripeaksRev === TP_REV && tp.seed >= 0 && tp.seed < TP_DEALS.length, `tripeaks: rooms deal a bank index on tripeaksRev ${TP_REV}`);
   ok(ps.pokerSquaresRev === 2 && ps.seed > 0, "pokersquares: rooms deal a seed on pokerSquaresRev 2");
   ok(fh.fiveHandsRev === FH_REV && fh.seed > 0, `fivehands: rooms deal a seed on fiveHandsRev ${FH_REV}`);
 }
@@ -338,7 +355,8 @@ ok(new Set(FC_DEALS.map((d) => d[0])).size === FC_DEALS.length && new Set(TP_DEA
 
   // Free Cell rev 3: rev 2's play, the core full at FC_CORE_UNITS_V3; every bank deal's par line at 200; the auto moves
   // kept for the art on rev 3 only, outside the checksum.
-  ok(FC_REV === 3 && FC_CORE_UNITS === 104 && FC_CORE_UNITS_V3 === 54 && FC_STD_SPEC.rev === 3 && FC_STD_SPEC.parts[0]!.of === FC_CORE_UNITS_V3, "freecell: rooms deal freecellRev 3, the core full at 54 units (revs 1–2: 104)");
+  // (Rooms deal freecellRev 4 since 3 Nov 2026: section 8.)
+  ok(FC_CORE_UNITS === 104 && FC_CORE_UNITS_V3 === 54 && FC_STD_SPEC_V3.rev === 3 && FC_STD_SPEC_V3.parts[0]!.of === FC_CORE_UNITS_V3, "freecell: rev 3's core is full at 54 units (revs 1–2: 104)");
   let all3 = true;
   for (let i = 0; i < FC_DEALS.length; i++) {
     const { raw } = freecellFlawless(i, 20, 3);
@@ -407,7 +425,7 @@ ok(new Set(FC_DEALS.map((d) => d[0])).size === FC_DEALS.length && new Set(TP_DEA
   }
 
   // Five Hands rev 2: the steep table, hand points alone to 200, every witness at 200.
-  ok(FH_REV === 2 && (generatePuzzle("fivehands") as { fiveHandsRev: number }).fiveHandsRev === 2, "fivehands: rooms deal fiveHandsRev 2");
+  // (Rooms deal fiveHandsRev 3 since 3 Nov 2026: section 8.)
   const fhSeeds = [...Array.from({ length: 60 }, (_, i) => i), ...Array.from({ length: 200 }, (_, i) => 10000 + i), ...Array.from({ length: 200 }, (_, n) => (Math.imul(n + 1, 0x9e3779b1) >>> 1) + 1)];
   const table: [number[], number][] = [
     [[cardOf(0, 1), cardOf(1, 5), cardOf(2, 9), cardOf(3, 11), cardOf(0, 13)], 0],
@@ -423,7 +441,7 @@ ok(new Set(FC_DEALS.map((d) => d[0])).size === FC_DEALS.length && new Set(TP_DEA
     [[cardOf(0, 4), cardOf(1, 5), cardOf(2, 6), cardOf(3, 7)], 0],
   ];
   for (const [row, want] of table) ok(fhRowHand(row, 2).points === want, `fivehands rev 2: ${row.join(",")} scores ${want} (got ${fhRowHand(row, 2).points}); rev 1 ${fhRowHand(row, 1).points}`);
-  ok(FH_STD_SPEC.parts.length === 1 && FH_STD_SPEC.parts[0]!.max === 200 && FH_STD_SPEC.rev === 2, "fivehands rev 2: one part, hand points to 200 (no made-hands or speed part)");
+  ok(FH_STD_SPEC_V2.parts.length === 1 && FH_STD_SPEC_V2.parts[0]!.max === 200 && FH_STD_SPEC_V2.rev === 2, "fivehands rev 2: one part, hand points to 200 (no made-hands or speed part)");
   let fh2 = true;
   const targets: number[] = [];
   for (const seed of fhSeeds) {
@@ -452,8 +470,127 @@ ok(new Set(FC_DEALS.map((d) => d[0])).size === FC_DEALS.length && new Set(TP_DEA
   ok(rev1Parts.length === 2 && rev1Parts[0]!.max === 160, "fivehands: a rev-1 state keeps its two parts (hand points 160, made hands 40)");
 }
 
+/* 8. The Cards & Board batch (3 Nov 2026): older stamps exactly as on main; Free Cell freecellRev 4, Summit tripeaksRev 2, Five Hands fiveHandsRev 3. */
+{
+  type LegacyRun = { type: string; rev: number; seed: number; label: string; raw: string; score: number; checksum: number; tick: number };
+  const nov3 = JSON.parse(readFileSync(new URL("./fixtures/cards-nov3-legacy.json", import.meta.url), "utf8")) as { runs: LegacyRun[] };
+  let same = 0;
+  for (const run of nov3.runs) {
+    const r = run.type === "freecell" ? replayFreecellRun(run.seed, run.raw, run.rev) : run.type === "fivehands" ? replayFiveHandsRun(run.seed, run.raw, run.rev) : replayTripeaksRun(run.seed, run.raw, run.rev);
+    const cp = run.type === "freecell" ? fcCheckpoint(r.state as never) : run.type === "fivehands" ? fhCheckpoint(r.state as never) : tpCheckpoint(r.state as never);
+    if (r.score === run.score && cp.checksum === run.checksum && r.state.tick === run.tick) same++;
+    else failures.push(`${run.type} rev ${run.rev}: seed ${run.seed} ${run.label} replays to ${r.score} (main ${run.score})`);
+  }
+  ok(same === nov3.runs.length && nov3.runs.length === 70, `nov 3: all ${nov3.runs.length} Free Cell rev-3, Five Hands rev-2 and Summit rev-1 runs recorded on main replay to the same score and final state`);
+
+  // Free Cell rev 4: the 40-card deal, every rev-4 bank deal's par line at 200, the re-fitted parts.
+  ok(FC_REV === 4 && (generatePuzzle("freecell") as { freecellRev: number }).freecellRev === 4, "freecell: rooms deal freecellRev 4");
+  let all4 = true;
+  let deal40 = true;
+  for (let i = 0; i < FC_DEALS_V4.length; i++) {
+    const g4 = freecellGameFor(4);
+    const s0 = g4.init(i);
+    const seen = [...s0.cols.flat(), ...s0.home.flatMap((top, suit) => Array.from({ length: top }, (_, r) => cardOf(suit, r + 1)))];
+    if (new Set(seen).size !== 40 || seen.some((c) => rankOfCard(c) > 10) || s0.par !== FC_DEALS_V4[i]![1]) deal40 = false;
+    const { raw } = freecellFlawless(i, 20, 4);
+    const r = replayFreecellRun(i, raw, 4);
+    if (r.score !== 200 || !r.finished || r.home !== 40 || r.moves !== FC_DEALS_V4[i]![1] || r.flagged) {
+      all4 = false;
+      failures.push(`freecell rev 4: bank deal ${i} replays to ${r.score} in ${r.moves} moves (par ${FC_DEALS_V4[i]![1]})`);
+    }
+  }
+  ok(deal40, `freecell rev 4: every one of the ${FC_DEALS_V4.length} deals holds the 40 cards Ace to 10 (eight columns of five) with the bank's par`);
+  ok(all4, `freecell rev 4: all ${FC_DEALS_V4.length} rev-4 bank deals replay their par line to all 40 home and 200`);
+  {
+    const s0 = freecellGameFor(4).init(3);
+    ok(s0.cols.every((c, k) => c.length + 0 <= 5) && s0.cols.reduce((a, c) => a + c.length, 0) + fcHomeCount(s0) === 40, "freecell rev 4: eight columns of (at most, after aces fly home) five");
+    ok(JSON.stringify(freecellGameFor(3).init(3).cols.flat().length + fcHomeCount(freecellGameFor(3).init(3))) === "52", "freecell rev 3: still the 52-card deal");
+    // Finishing at 40 home ends the run on rev 4 only.
+    const fin = { ...freecellGameFor(4).init(3), acted: 1, cols: [[], [], [], [], [], [], [], []], cells: [NO_CARD, NO_CARD, NO_CARD, NO_CARD], home: [9, 10, 10, 10] } as FcState;
+    const last = { ...fin, cells: [cardOf(0, 10), NO_CARD, NO_CARD, NO_CARD] };
+    const done = freecellGameFor(4).step(last, { t: last.tick + 1, k: FC_INPUT_TAP, a: FC_PILE_CELL, b: 0, c: 0, d: 0 });
+    ok(done.ended === 1 && fcHomeCount(done) === 40, "freecell rev 4: the tenth spade home finishes the run at 40");
+  }
+
+  // Summit rev 2: the stock par from the bank's pars, every par line clearing with a run of ten at par and 200.
+  ok(TP_REV === 2 && (generatePuzzle("tripeaks") as { tripeaksRev: number }).tripeaksRev === 2, "tripeaks: rooms deal tripeaksRev 2");
+  ok(TP_STOCK_PARS.length === TP_DEALS.length && TP_STOCK_PARS.every((p) => Number.isInteger(p) && p >= 0 && p <= 23), `tripeaks rev 2: a stock par for each of the ${TP_DEALS.length} bank deals (0–23)`);
+  let tp2 = true;
+  for (let i = 0; i < TP_DEALS.length; i++) {
+    const { raw } = tripeaksFlawless(i, 15, 2);
+    const r = replayTripeaksRun(i, raw, 2);
+    if (r.score !== 200 || r.cleared !== 28 || r.bestRun < 10 || r.stockTurns !== TP_STOCK_PARS[i] || r.stockPar !== TP_STOCK_PARS[i] || r.flagged) {
+      tp2 = false;
+      failures.push(`tripeaks rev 2: bank deal ${i} replays to ${r.score} (${r.cleared} cleared, run ${r.bestRun}, stock ${r.stockTurns} / par ${r.stockPar})`);
+    }
+  }
+  ok(tp2, `tripeaks rev 2: all ${TP_DEALS.length} bank deals replay their stock-par line to a clear with a run of ten at par and 200`);
+  {
+    // The par is the fewest: no clearing line with a run of ten turns the stock fewer times (quick: 8 deals; full: all, by the rebuild).
+    let fewest = true;
+    for (const i of [0, 1, 2, 3, 50, 150, 250, 299]) {
+      const par = TP_STOCK_PARS[i]!;
+      if (par > 0 && tpSolve(tripeaksGameFor(2).init(i), 10, 2_000_000, par - 1)) {
+        fewest = false;
+        failures.push(`tripeaks rev 2: deal ${i} clears with a run of ten in ${par - 1} stock turns, under its par ${par}`);
+      }
+    }
+    ok(fewest, "tripeaks rev 2: on 8 deals no clearing line with a run of ten turns the stock fewer times than the par");
+    const g = tripeaksGameFor(2);
+    const s0 = g.init(7);
+    ok(s0.stockPar === TP_STOCK_PARS[7] && tripeaksGame.init(7).stockPar === undefined && JSON.stringify({ ...s0, stockPar: undefined, rev: 1 }) === JSON.stringify({ ...tripeaksGame.init(7), stockPar: undefined }), "tripeaks rev 2: the same deal as rev 1 with the stock par in the state");
+    const part = (st: typeof s0, key: string) => tripeaksStdParts(st)!.find((p) => p.key === key)!.points;
+    const clear = (turns: number) => ({ ...s0, acted: 1, ended: 1, clearedCount: 28, finishTick: 1200, turns, stockPar: 10 });
+    ok(part(clear(8), "par") === TP_V2_PAR_MAX && part(clear(10), "par") === TP_V2_PAR_MAX && part(clear(23), "par") === 0 && part(clear(16), "par") === stdSpeedOf(TP_V2_PAR_MAX, 16, 10, 23), "tripeaks rev 2: stock par full at or under par, even to 0 with the whole stock turned");
+    ok(part({ ...s0, acted: 1, turns: 0, clearedCount: 27 }, "par") === 0, "tripeaks rev 2: no stock par without a clear");
+    ok(tripeaksStdParts({ ...s0, rev: 1, stockPar: undefined })!.length === 5, "tripeaks: a rev-1 state keeps its five parts");
+  }
+
+  // Five Hands rev 3: the flat table, the hand points summed and capped at 200, the first shuffle as dealt.
+  ok(FH_REV === 3 && (generatePuzzle("fivehands") as { fiveHandsRev: number }).fiveHandsRev === 3, "fivehands: rooms deal fiveHandsRev 3");
+  const flat: [number[], number][] = [
+    [[cardOf(0, 1), cardOf(1, 5), cardOf(2, 9), cardOf(3, 11), cardOf(0, 13)], 0],
+    [[cardOf(0, 4), cardOf(1, 4), cardOf(2, 9), cardOf(3, 11), cardOf(0, 13)], 15],
+    [[cardOf(0, 4), cardOf(1, 4), cardOf(2, 9), cardOf(3, 9), cardOf(0, 13)], 20],
+    [[cardOf(0, 4), cardOf(1, 4), cardOf(2, 4), cardOf(3, 9), cardOf(0, 13)], 25],
+    [[cardOf(0, 4), cardOf(1, 5), cardOf(2, 6), cardOf(3, 7), cardOf(0, 8)], 30],
+    [[cardOf(2, 2), cardOf(2, 5), cardOf(2, 9), cardOf(2, 11), cardOf(2, 13)], 35],
+    [[cardOf(0, 4), cardOf(1, 4), cardOf(2, 4), cardOf(3, 9), cardOf(0, 9)], 40],
+    [[cardOf(0, 4), cardOf(1, 4), cardOf(2, 4), cardOf(3, 4), cardOf(0, 9)], 45],
+    [[cardOf(1, 9), cardOf(1, 10), cardOf(1, 11), cardOf(1, 12), cardOf(1, 13)], 50],
+    [[cardOf(0, 4), cardOf(1, 4)], 15],
+  ];
+  for (const [row, want] of flat) ok(fhRowHand(row, 3).points === want, `fivehands rev 3: ${row.join(",")} scores ${want} (got ${fhRowHand(row, 3).points})`);
+  ok(FH_STD_SPEC.rev === 3 && FH_STD_SPEC.parts.length === 1 && FH_STD_SPEC.parts[0]!.max === 200, "fivehands rev 3: one part, the hand points summed to 200");
+  let firstShuffle = 0;
+  let fh3 = true;
+  const bests: number[] = [];
+  for (let seed = 0; seed < 60; seed++) {
+    const d3 = fhDeal(seed, 3);
+    if (JSON.stringify(d3.deck) === JSON.stringify(shuffledDeck((seed ^ Math.imul(1, 0x9e3779b1)) | 0).deck.slice(0, FH_SEEN))) firstShuffle++;
+    if (seed < 12) {
+      // The deck's exact best through the server's replay scores min(200, its hand points); the climb's witness never beats it.
+      const best = fhBest(seed, 3);
+      bests.push(best.total);
+      const r = replayFiveHandsRun(seed, fiveHandsFlawless(seed, 20, 3).raw, 3);
+      if (r.score !== Math.min(200, best.total) || r.total !== best.total || !r.finished || r.flagged || fhTotals(d3.witness, 3).total > best.total) {
+        fh3 = false;
+        failures.push(`fivehands rev 3: seed ${seed}'s best (${best.total}) replays to ${r.score} (${r.total} hand points)`);
+      }
+    }
+  }
+  ok(firstShuffle === 60, `fivehands rev 3: every deck is the seed's first shuffle, never reshuffled (${firstShuffle} of 60)`);
+  ok(fh3, `fivehands rev 3: 12 decks' exact bests replay to min(200, hand points) through the server replay (bests ${bests.join(", ")})`);
+  const g3f = fiveHandsGameFor(3);
+  let m3: FhState = g3f.init(31);
+  for (let t = 0; t < 12; t++) m3 = g3f.step(m3, { t: m3.tick + 1, k: FH_INPUT_PLACE, a: fhOpenRows(m3.rows)[0]!, b: 0, c: 0, d: 0 });
+  const t3 = fhTotals(m3.rows, 3).total;
+  ok(g3f.score(m3) === Math.max(1, Math.min(200, t3)) && fiveHandsStdParts(m3)![0]!.points === Math.min(200, t3), `fivehands rev 3: ${t3} hand points score ${g3f.score(m3)} (the sum, at least 1)`);
+  ok(JSON.stringify(fiveHandsStdParts({ ...m3, rev: 2 })!.map((p) => p.max)) === "[200]" && fiveHandsStdParts({ ...m3, rev: 2 })![0]!.points === Math.floor((200 * Math.min(fhTotals(m3.rows, 2).total, FH_CORE_FULL_V2)) / FH_CORE_FULL_V2), "fivehands: a rev-2 state keeps its steep table full at 49");
+}
+
 /* 4. No input 0, played 1+. */
-for (const [name, game] of [["freecell", freecellGame], ["tripeaks", tripeaksGame], ["pokersquares", pokerSquaresGame], ["freecell rev 2", freecellGameFor(2)], ["pokersquares rev 2", pokerSquaresGameFor(2)], ["fivehands", fiveHandsGame], ["fivehands rev 2", fiveHandsGameFor(2)], ["freecell rev 3", freecellGameFor(3)]] as const) {
+for (const [name, game] of [["freecell", freecellGame], ["tripeaks", tripeaksGame], ["pokersquares", pokerSquaresGame], ["freecell rev 2", freecellGameFor(2)], ["pokersquares rev 2", pokerSquaresGameFor(2)], ["fivehands", fiveHandsGame], ["fivehands rev 2", fiveHandsGameFor(2)], ["freecell rev 3", freecellGameFor(3)], ["freecell rev 4", freecellGameFor(4)], ["tripeaks rev 2", tripeaksGameFor(2)], ["fivehands rev 3", fiveHandsGameFor(3)]] as const) {
   let s = (game as typeof freecellGame).init(11) as never as { tick: number };
   const g = game as unknown as { step: (s: unknown, i: null) => { tick: number }; isOver: (s: unknown) => boolean; score: (s: unknown) => number };
   while (!g.isOver(s)) s = g.step(s, null);
@@ -466,6 +603,10 @@ if (process.env.CHECKS_FULL === "1") {
     const r = spawnSync("bun", [`scripts/${bank}.ts`, "--check"], { encoding: "utf8" });
     ok(r.status === 0, `${bank}: rebuilds byte for byte`);
   }
+  const v4 = spawnSync("bun", ["scripts/freecell-bank.ts", "--check", "--rev=4"], { encoding: "utf8" });
+  ok(v4.status === 0, "freecell-bank --rev=4: the 40-card bank rebuilds byte for byte");
+  // Summit's stock pars take about 25 minutes on one core to rebuild, past run-checks' limit: their own command,
+  // `bun scripts/tripeaks-stock-par.ts --check`, re-proves every one (section 8 re-proves eight here).
 }
 
 if (failures.length) {
@@ -473,4 +614,4 @@ if (failures.length) {
   for (const f of failures.slice(0, 40)) console.log(`  - ${f}`);
   process.exit(1);
 }
-console.log(`PASS cards-check: ${checks} checks — ${FC_DEALS.length} Free Cell deals (rev 1 and 2), ${TP_DEALS.length} Summit deals, 200 Full House seeds (rev 1 and 2) and 460 Five Hands seeds reach 200 through the server replay; 48 rev-1 runs as on main; undo, reset, rules, determinism, idle 0`);
+console.log(`PASS cards-check: ${checks} checks — ${FC_DEALS_V4.length} 40-card Free Cell deals (rev 4) and ${TP_DEALS.length} Summit stock-par lines (rev 2) at 200; 70 runs as on main 3 Nov; ${FC_DEALS.length} Free Cell deals (rev 1 and 2), ${TP_DEALS.length} Summit deals, 200 Full House seeds (rev 1 and 2) and 460 Five Hands seeds reach 200 through the server replay; 48 rev-1 runs as on main; undo, reset, rules, determinism, idle 0`);

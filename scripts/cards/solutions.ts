@@ -4,13 +4,19 @@ import type { FcMove } from "./freecellSolver";
 
 const root = new URL("../fixtures/", import.meta.url);
 let fc: FcMove[][] | null = null;
+let fc4: FcMove[][] | null = null;
 let tp: number[][] | null = null;
 
-/** FreeCell's solution for bank index `i`: [from, index, to] moves, `par` of them. */
-export function freecellSolution(i: number): FcMove[] {
-  fc ??= (JSON.parse(readFileSync(new URL("freecell-solutions.json", root), "utf8")) as string[]).map((s) =>
-    s.split(",").filter(Boolean).map((m) => m.split(":").map(Number) as unknown as FcMove),
-  );
+const fcLines = (file: string) =>
+  (JSON.parse(readFileSync(new URL(file, root), "utf8")) as string[]).map((s) => s.split(",").filter(Boolean).map((m) => m.split(":").map(Number) as unknown as FcMove));
+
+/** FreeCell's solution for bank index `i`: [from, index, to] moves, `par` of them (freecellRev 4: the 40-card bank's). */
+export function freecellSolution(i: number, rev = 1): FcMove[] {
+  if (rev >= 4) {
+    fc4 ??= fcLines("freecell-solutions-v4.json");
+    return fc4[i]!;
+  }
+  fc ??= fcLines("freecell-solutions.json");
   return fc[i]!;
 }
 
@@ -18,6 +24,13 @@ export function freecellSolution(i: number): FcMove[] {
 export function tripeaksSolution(i: number): number[] {
   tp ??= (JSON.parse(readFileSync(new URL("tripeaks-solutions.json", root), "utf8")) as string[]).map((s) => s.split(",").filter(Boolean).map(Number));
   return tp[i]!;
+}
+
+let tpPar: number[][] | null = null;
+/** Summit's stock-par line for bank index `i` (tripeaksRev 2): a clear with a run of ten turning the stock par times. */
+export function tripeaksParSolution(i: number): number[] {
+  tpPar ??= (JSON.parse(readFileSync(new URL("tripeaks-par-solutions.json", root), "utf8")) as string[]).map((s) => s.split(",").filter(Boolean).map(Number));
+  return tpPar[i]!;
 }
 
 let gs: number[][] | null = null;

@@ -1623,6 +1623,8 @@ function gradeUnderRev(
         peaks: run.peaks,
         bestRun: run.bestRun,
         stockLeft: run.stockLeft,
+        // tripeaksRev 2: stock cards turned and the deal's stock par (the reveal's Stock par tile).
+        ...((puzzle.tripeaksRev ?? 1) >= 2 ? { stockTurns: run.stockTurns, stockPar: run.stockPar } : {}),
         finished: run.finished,
         finishSeconds: run.finishSeconds,
         endedSeconds: run.endedSeconds,

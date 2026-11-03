@@ -59,6 +59,9 @@ expect("snip", "arcade", true);
 expect("pokersquares", "arcade", true);
 // Muggins practice only (Joe, 2 Nov 2026).
 expect("muggins", "arcade", true);
+// Golf Solitaire retired to practice (Joe's Cards & Board batch, 3 Nov 2026), the same way as Full House: out of room
+// draws, the daily and challenges; practice bests and stored replays stay.
+expect("golfsol", "arcade", true);
 // Ricochet back from retirement as the ninja wall-climb (ricoRev 2, 1 Nov 2026), in the Action group.
 expect("ricochet", "arcade", false);
 
@@ -69,7 +72,7 @@ expect("ricochet", "arcade", false);
 for (const type of ["fences", "fillomino", "bridges"] as const) expect(type, "logic", false);
 expect("kakuro", "number", false);
 const POOL: Record<string, number> = { word: 9, number: 9, speed: 6, attention: 6, pattern: 10, logic: 15, arcade: ACTIVE_ARCADE_GAMES.length };
-for (const type of ["minesweeper", "mahjong", "homerun", "freekick", "racing", "freecell", "tripeaks", "fivehands", "pyramid", "golfsol", "minigolf", "pool", "curling", "blockfall", "alleyroll"] as const) expect(type, "arcade", false);
+for (const type of ["minesweeper", "mahjong", "homerun", "freekick", "racing", "freecell", "tripeaks", "fivehands", "pyramid", "minigolf", "pool", "curling", "blockfall", "alleyroll"] as const) expect(type, "arcade", false);
 for (const [category, want] of Object.entries(POOL)) {
   const got = typesInCategory(category as never).length;
   if (got !== want) fail(`${category}: ${got} active games, want ${want}`);
@@ -80,9 +83,10 @@ if (ACTIVE_PUZZLE_TYPES.length !== WANT_ACTIVE) fail(`${ACTIVE_PUZZLE_TYPES.leng
 // After Full House's retirement and the four new grid puzzles (1 Nov 2026): 87 active games, 32 of them arcade;
 // with Blockfall and Alley Roll (1 Nov 2026) 89, 34 of them arcade; with Ricochet back as the ninja wall-climb
 // (ricoRev 2, 1 Nov 2026) 90, 35 of them arcade; with Bastion back in rooms (bastionRev 2, 1 Nov 2026) 91, 36 arcade;
-// with Pyramid and Golf Solitaire (1 Nov 2026; Muggins practice only, Joe's decision) 93, 38 arcade.
-if (ACTIVE_ARCADE_GAMES.length !== 38) fail(`${ACTIVE_ARCADE_GAMES.length} active arcade games, want 38 (Full House and Muggins practice only since 1 Nov 2026; Blockfall, Alley Roll, Pyramid and Golf Solitaire added; Ricochet and Bastion active again)`);
-if (ACTIVE_PUZZLE_TYPES.length !== 93) fail(`${ACTIVE_PUZZLE_TYPES.length} active games, want 93`);
+// with Pyramid and Golf Solitaire (1 Nov 2026; Muggins practice only, Joe's decision) 93, 38 arcade; with Golf Solitaire
+// retired (3 Nov 2026) 92, 37 arcade.
+if (ACTIVE_ARCADE_GAMES.length !== 37) fail(`${ACTIVE_ARCADE_GAMES.length} active arcade games, want 37 (Full House and Muggins practice only since 1 Nov 2026, Golf Solitaire since 3 Nov 2026; Blockfall, Alley Roll and Pyramid added; Ricochet and Bastion active again)`);
+if (ACTIVE_PUZZLE_TYPES.length !== 92) fail(`${ACTIVE_PUZZLE_TYPES.length} active games, want 92`);
 
 // The deleted games and Memory are gone: no registry entry, no category, no draw.
 for (const type of REMOVED_PUZZLE_TYPES)

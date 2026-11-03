@@ -11,7 +11,8 @@
  *  2. rooms deal the standard's revision (generatePuzzle) and LIVE_BANDS lists it (with the spec where `liveSpec`);
  *     where `before` is given, the standard is the stamp one above it;
  *  3. every perfect run, through the game's real scoring path, scores exactly 200; where it is split into parts, the
- *     parts are the spec's in order, each at its maximum;
+ *     parts are the spec's in order, each at its maximum (NOT_200_ON_EVERY_DEAL names the one exception, Five Hands:
+ *     its perfect runs score exactly their deal's best, at most 200);
  *  4. a run that played but earned nothing scores at least 1 (or exactly its `want`), a run with no input 0;
  *  5. where `help` is given, the "?" help's SCORE text says the parts total 200 and states every part's maximum and
  *     every feature's label (and the entry's own terms);
@@ -72,11 +73,12 @@ const STANDARD_ROSTER: readonly { type: string; field: string; rev: number; batc
   { type: "racing", field: "racingRev", rev: 2, batch: "Sports" },
   // Cards & Board (30 Oct 2026): born on the standard at revision 1.
   // Free Cell's rev 2 (Undo and Reset) and Full House's rev 2 (full at the elite median), 31 Oct 2026: still on the standard.
-  { type: "freecell", field: "freecellRev", rev: 3, batch: "Cards" },
-  { type: "tripeaks", field: "tripeaksRev", rev: 1, batch: "Cards" },
+  // Free Cell freecellRev 4 and Summit tripeaksRev 2 (3 Nov 2026, the Cards & Board batch): the 40-card deal; the stock par.
+  { type: "freecell", field: "freecellRev", rev: 4, batch: "Cards" },
+  { type: "tripeaks", field: "tripeaksRev", rev: 2, batch: "Cards" },
   { type: "pokersquares", field: "pokerSquaresRev", rev: 2, batch: "Cards" },
-  // Five Hands (31 Oct 2026): born on the standard.
-  { type: "fivehands", field: "fiveHandsRev", rev: 2, batch: "Cards" },
+  // Five Hands (31 Oct 2026): born on the standard; fiveHandsRev 3 (3 Nov 2026) is NOT_200_ON_EVERY_DEAL's one exception.
+  { type: "fivehands", field: "fiveHandsRev", rev: 3, batch: "Cards" },
   // Bastion (1 Nov 2026): the tank-defence shooter, born on the standard at bastionRev 2 (the original was unstamped).
   { type: "bastion", field: "bastionRev", rev: 2, batch: "Action" },
   // Pyramid, Golf Solitaire and Muggins (1 Nov 2026): born on the standard.
@@ -95,6 +97,17 @@ const STANDARD_ROSTER: readonly { type: string; field: string; rev: number; batc
   // Ricochet (1 Nov 2026): the ninja wall-climb, back from retirement and born on the standard at ricoRev 2.
   { type: "ricochet", field: "ricoRev", rev: 2, batch: "Action" },
 ];
+
+/**
+ * The standard's named exceptions to "a perfect run scores 200 on every deal" (Joe's decisions; every other game keeps
+ * the strict rule). An exempt game's perfect runs are each deal's best play: each must score exactly its `want` (the
+ * deal's own ceiling, at most 200), not necessarily 200.
+ */
+const NOT_200_ON_EVERY_DEAL: ReadonlyMap<string, string> = new Map([
+  // fiveHandsRev 3 (3 Nov 2026): the flat hand table summed and capped at 200 with no scaling; the deck is the seed's
+  // first shuffle, so a deck's best can fall short of 200 (everyone in a room has the same deck, so rooms stay fair).
+  ["fivehands", "Five Hands scores its hands' points summed and capped at 200: some decks can't reach 200 even placed perfectly (Joe, 3 Nov 2026)"],
+]);
 
 const only = process.argv.slice(2).filter((a) => !a.startsWith("--"));
 let checks = 0;
@@ -176,7 +189,14 @@ for (const e of entries) {
   /* 3. Perfect runs. */
   const perfect = await e.perfect();
   ok(perfect.length > 0, `${t}: at least one perfect run`);
+  const exempt = NOT_200_ON_EVERY_DEAL.get(t);
   for (const r of perfect) {
+    if (exempt) {
+      // The named exception: the deal's best play scores exactly its own ceiling (`want`, at most 200).
+      ok(r.want !== undefined && r.want <= STD_MAX && r.score === r.want, `${t}: perfect run (${r.label}) scores its deal's best, ${r.want} (got ${r.score}); exempt from 200 on every deal: ${exempt}`);
+      if (r.partMaxes) for (const p of e.parts) ok(r.partMaxes[p.key] === p.max, `${t}: perfect run (${r.label})'s ${p.key} states the maximum ${p.max} (${r.partMaxes[p.key]})`);
+      continue;
+    }
     ok(r.score === STD_MAX, `${t}: perfect run (${r.label}) scores ${STD_MAX} (got ${r.score})`);
     if (r.parts) {
       ok(JSON.stringify(Object.keys(r.parts)) === JSON.stringify(e.parts.map((p) => p.key)), `${t}: perfect run (${r.label})'s parts are the spec's, in order (${Object.keys(r.parts).join(", ")})`);
@@ -250,5 +270,5 @@ if (failures.length) {
   process.exit(1);
 }
 console.log(
-  `PASS arcade-standard-check: ${checks} checks — ${summary.length} of ${STANDARD_ROSTER.length} rostered games on the standard (${onStandard} dealt on it), each core + features = ${STD_MAX} and a perfect run 200; the helper's lines straight`,
+  `PASS arcade-standard-check: ${checks} checks — ${summary.length} of ${STANDARD_ROSTER.length} rostered games on the standard (${onStandard} dealt on it), each core + features = ${STD_MAX} and a perfect run 200 (${[...NOT_200_ON_EVERY_DEAL.keys()].join(", ")}: its deal's best, the named exception); the helper's lines straight`,
 );

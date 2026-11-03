@@ -20,7 +20,7 @@ import { bandLines } from "./scoreBands";
 import { stdLines } from "./arcadeStandard";
 import { psCoreFullFor } from "./cards/pokerSquares";
 import { fhCoreFullFor } from "./cards/fiveHands";
-import { fcCoreUnitsFor } from "./cards/freecell";
+import { fcCardsFor, fcCoreUnitsFor } from "./cards/freecell";
 import { NINJA_COINS, NINJA_CORE_FULL_M, NINJA_LANTERNS, NINJA_SCROLLS } from "./ricochetNinja";
 import { MG_CORE_FULL } from "./cards/muggins";
 import { arcadeStdParts } from "./standard";
@@ -144,10 +144,11 @@ const BUILDERS: Record<string, Builder> = {
   alleyroll: sportsBuilder("Ring points", (r) => b(r, "finished")),
   // Cards & Board (30 Oct 2026; the lines come from each game's standard parts).
   freecell: (r, s) => ({
-    axis: { value: n(r, "home"), max: 52, label: "Cards home" },
-    // freecellRev 3: the core is full at FC_CORE_UNITS_V3 units (home 2 each, sorted 1 each), well before all 52.
+    axis: { value: n(r, "home"), max: fcCardsFor(n(r, "freecellRev") || 1), label: "Cards home" },
+    // freecellRev 3: the core is full at FC_CORE_UNITS_V3 units (home 2 each, sorted 1 each), well before all 52;
+    // freecellRev 4: the 40-card deal, full at FC_CORE_UNITS_V4.
     lines: (n(r, "freecellRev") || 1) >= 3
-      ? [`${n(r, "home")} home · ${n(r, "sorted")} sorted = ${2 * n(r, "home") + n(r, "sorted")} units (full at ${fcCoreUnitsFor(3)}) → ${s}`]
+      ? [`${n(r, "home")} home · ${n(r, "sorted")} sorted = ${2 * n(r, "home") + n(r, "sorted")} units (full at ${fcCoreUnitsFor(n(r, "freecellRev"))}) → ${s}`]
       : [`${n(r, "home")} / 52 home → ${s}`],
     tiles: [
       { label: "Moves", value: `${n(r, "moves")} · par ${n(r, "par")}` },
@@ -162,7 +163,7 @@ const BUILDERS: Record<string, Builder> = {
     tiles: [
       { label: "Peak tops", value: `${n(r, "peaks")} / 3` },
       { label: "Longest run", value: String(n(r, "bestRun")) },
-      { label: "Stock left", value: String(n(r, "stockLeft")) },
+      (n(r, "tripeaksRev") || 1) >= 2 ? { label: "Stock par", value: `${n(r, "stockTurns")} / ${n(r, "stockPar")}` } : { label: "Stock left", value: String(n(r, "stockLeft")) },
       { label: "Time", value: b(r, "finished") ? sec(n(r, "finishSeconds")) : "—" },
     ],
     outcome: b(r, "finished") ? "finish" : n(r, "endedSeconds") < 60 ? "crash" : "time",
@@ -193,14 +194,15 @@ const BUILDERS: Record<string, Builder> = {
     outcome: "time",
   }),
   fivehands: (r, s) => {
-    // fiveHandsRev 2: hand points alone on the steep table, full at FH_CORE_FULL_V2.
-    const full = fhCoreFullFor(n(r, "fiveHandsRev") || 1);
+    // fiveHandsRev 2: hand points alone on the steep table, full at FH_CORE_FULL_V2; rev 3: the flat table summed, capped at 200.
+    const rev = n(r, "fiveHandsRev") || 1;
+    const full = fhCoreFullFor(rev);
     return {
     axis: { value: n(r, "total"), max: full, label: "Hand points" },
-    lines: [`${n(r, "total")} hand points (full at ${full}) → ${s}`],
+    lines: [rev >= 3 ? `${n(r, "total")} hand points (capped at 200) → ${s}` : `${n(r, "total")} hand points (full at ${full}) → ${s}`],
     tiles: [
       { label: (n(r, "fiveHandsRev") || 1) >= 2 ? "Rows with a hand" : "Made hands", value: `${n(r, "made")} / 5` },
-      { label: "Full at", value: String(full) },
+      rev >= 3 ? { label: "Cap", value: "200" } : { label: "Full at", value: String(full) },
       { label: "Placed", value: `${n(r, "placed")} / 20` },
     ],
     outcome: n(r, "placed") === 20 ? "finish" : "time",

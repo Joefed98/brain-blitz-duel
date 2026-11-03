@@ -49,3 +49,13 @@ set, or sounds beyond the existing library.
 
 The cards and tiles are drawn in code (no deck, font or artwork copied); the rules are the traditional games', with the
 app's own timing and scoring.
+
+## Changed 3 Nov 2026: Pyramid shown as Thirteen; Golf Solitaire retired to practice
+
+| Shown as | Id | Genre (generic description) | Name chosen to avoid | To check |
+| --- | --- | --- | --- | --- |
+| Thirteen (was Pyramid) | `pyramid` | patience: pairs adding to 13 from a 28-card pyramid | "Pyramid" (the traditional patience's name, possibly covered by marks) | "Thirteen" as a card-game name in classes 9 / 28 / 41 (it is also the name of other, unrelated card games) |
+| Golf Solitaire | `golfsol` | as above | — | now practice only (not dealt in rooms); the name is still shown on the Practice list's Retired section |
+
+Display names only (`src/lib/duel/gameNames.ts`); ids, rules and stored rounds unchanged.
+

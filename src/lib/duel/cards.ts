@@ -30,7 +30,11 @@ const fcRun = makeArcadeRun<FcState, FcCheckpoint>({ tag: "freecell", game: free
 const fcRun2 = makeArcadeRun<FcState, FcCheckpoint>({ tag: "freecell", game: freecellGameFor(2), checkpoint: fcCheckpoint, keys: FC_CHECKPOINT_KEYS, interval: FC_CHECKPOINT_INTERVAL });
 /** freecellRev 3 (the core full sooner, the auto moves animated): rev 2's play and wire format. */
 const fcRun3 = makeArcadeRun<FcState, FcCheckpoint>({ tag: "freecell", game: freecellGameFor(3), checkpoint: fcCheckpoint, keys: FC_CHECKPOINT_KEYS, interval: FC_CHECKPOINT_INTERVAL });
+/** freecellRev 4 (the 40-card deal from its own bank): rev 3's play and wire format. */
+const fcRun4 = makeArcadeRun<FcState, FcCheckpoint>({ tag: "freecell", game: freecellGameFor(4), checkpoint: fcCheckpoint, keys: FC_CHECKPOINT_KEYS, interval: FC_CHECKPOINT_INTERVAL });
 const tpRun = makeArcadeRun<TpState, TpCheckpoint>({ tag: "tripeaks", game: tripeaksGameFor(1), checkpoint: tpCheckpoint, keys: TP_CHECKPOINT_KEYS, interval: TP_CHECKPOINT_INTERVAL });
+/** tripeaksRev 2 (the stock par in the state, its own part): the same play and wire format. */
+const tpRun2 = makeArcadeRun<TpState, TpCheckpoint>({ tag: "tripeaks", game: tripeaksGameFor(2), checkpoint: tpCheckpoint, keys: TP_CHECKPOINT_KEYS, interval: TP_CHECKPOINT_INTERVAL });
 const psRun = makeArcadeRun<PsState, PsCheckpoint>({ tag: "pokersquares", game: pokerSquaresGameFor(1), checkpoint: psCheckpoint, keys: PS_CHECKPOINT_KEYS, interval: PS_CHECKPOINT_INTERVAL });
 /** pokerSquaresRev 2 (Full House: the core full at the elite median); the same play and wire format. */
 const psRun2 = makeArcadeRun<PsState, PsCheckpoint>({ tag: "pokersquares", game: pokerSquaresGameFor(2), checkpoint: psCheckpoint, keys: PS_CHECKPOINT_KEYS, interval: PS_CHECKPOINT_INTERVAL });
@@ -38,6 +42,8 @@ const psRun2 = makeArcadeRun<PsState, PsCheckpoint>({ tag: "pokersquares", game:
 const fhRun = makeArcadeRun<FhState, FhCheckpoint>({ tag: "fivehands", game: fiveHandsGameFor(1), checkpoint: fhCheckpoint, keys: FH_CHECKPOINT_KEYS, interval: FH_CHECKPOINT_INTERVAL });
 /** fiveHandsRev 2 (the steep hand table, hand points alone to 200): its own deal's witness; the same play and wire format. */
 const fhRun2 = makeArcadeRun<FhState, FhCheckpoint>({ tag: "fivehands", game: fiveHandsGameFor(2), checkpoint: fhCheckpoint, keys: FH_CHECKPOINT_KEYS, interval: FH_CHECKPOINT_INTERVAL });
+/** fiveHandsRev 3 (the flat table, the hand points summed to 200; the first shuffle as dealt): the same play and wire format. */
+const fhRun3 = makeArcadeRun<FhState, FhCheckpoint>({ tag: "fivehands", game: fiveHandsGameFor(3), checkpoint: fhCheckpoint, keys: FH_CHECKPOINT_KEYS, interval: FH_CHECKPOINT_INTERVAL });
 
 const pyRun = makeArcadeRun<PyState, PyCheckpoint>({ tag: "pyramid", game: pyramidGameFor(1), checkpoint: pyCheckpoint, keys: PY_CHECKPOINT_KEYS, interval: PY_CHECKPOINT_INTERVAL });
 const gsRun = makeArcadeRun<GsState, GsCheckpoint>({ tag: "golfsol", game: golfSolGameFor(1), checkpoint: gsCheckpoint, keys: GS_CHECKPOINT_KEYS, interval: GS_CHECKPOINT_INTERVAL });
@@ -72,7 +78,8 @@ export interface FreecellResult extends FlatReplay<FcState, FcCheckpoint> {
 
 /** The single place a FreeCell score is worked out (no stamp: freecellRev 1). */
 export function replayFreecellRun(seed: number, raw: string, rev?: number | null): FreecellResult {
-  const r = ((rev ?? 1) >= 3 ? fcRun3 : (rev ?? 1) >= 2 ? fcRun2 : fcRun).replay(seed, raw);
+  const v = rev ?? 1;
+  const r = (v >= 4 ? fcRun4 : v >= 3 ? fcRun3 : v >= 2 ? fcRun2 : fcRun).replay(seed, raw);
   const s = r.state;
   return {
     ...r, home: fcHomeCount(s), sorted: fcSortedCards(s.cols), moves: s.moves, par: s.par, finished: s.ended === 1, finishSeconds: s.finishTick / 60,
@@ -87,12 +94,19 @@ export interface TripeaksResult extends FlatReplay<TpState, TpCheckpoint> {
   finished: boolean;
   finishSeconds: number;
   stockLeft: number;
+  /** Stock cards turned and (tripeaksRev 2) the deal's stock par (0 on rev 1). */
+  stockTurns: number;
+  stockPar: number;
 }
 
-export function replayTripeaksRun(seed: number, raw: string, _rev?: number | null): TripeaksResult {
-  const r = tpRun.replay(seed, raw);
+/** The single place a Summit score is worked out (no stamp: tripeaksRev 1). */
+export function replayTripeaksRun(seed: number, raw: string, rev?: number | null): TripeaksResult {
+  const r = ((rev ?? 1) >= 2 ? tpRun2 : tpRun).replay(seed, raw);
   const s = r.state;
-  return { ...r, cleared: s.clearedCount, peaks: s.peaks, bestRun: s.bestRun, finished: s.ended === 1, finishSeconds: s.finishTick / 60, stockLeft: s.stock.length - s.stockPos };
+  return {
+    ...r, cleared: s.clearedCount, peaks: s.peaks, bestRun: s.bestRun, finished: s.ended === 1, finishSeconds: s.finishTick / 60, stockLeft: s.stock.length - s.stockPos,
+    stockTurns: s.turns, stockPar: s.stockPar ?? 0,
+  };
 }
 
 export interface PokerSquaresResult extends FlatReplay<PsState, PsCheckpoint> {
@@ -120,7 +134,7 @@ export interface FiveHandsResult extends FlatReplay<FhState, FhCheckpoint> {
 
 /** The single place a Five Hands score is worked out (no stamp: fiveHandsRev 1). */
 export function replayFiveHandsRun(seed: number, raw: string, rev?: number | null): FiveHandsResult {
-  const r = ((rev ?? 1) >= 2 ? fhRun2 : fhRun).replay(seed, raw);
+  const r = ((rev ?? 1) >= 3 ? fhRun3 : (rev ?? 1) >= 2 ? fhRun2 : fhRun).replay(seed, raw);
   const s = r.state;
   const t = fhTotals(s.rows, s.rev);
   return { ...r, total: t.total, made: t.made, placed: s.turn, finished: s.ended === 1 };

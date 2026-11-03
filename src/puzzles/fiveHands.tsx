@@ -1,7 +1,7 @@
 import { useMemo, useRef } from "react";
 
 import { gameDisplayName } from "@/lib/duel/gameNames";
-import { FH_CHECKPOINT_INTERVAL, FH_CORE_FULL, FH_INPUT_PLACE, FH_REV, FH_REV_STEEP, fhCoreFullFor, FH_ROWS, FH_TURNS, fhApply, fhCheckpoint, fhDeal, type FhState } from "@/lib/arcade/cards/fiveHands";
+import { FH_CHECKPOINT_INTERVAL, FH_CORE_FULL, FH_INPUT_PLACE, FH_REV, FH_REV_FLAT, FH_REV_STEEP, fhCoreFullFor, FH_ROWS, FH_TURNS, fhApply, fhCheckpoint, fhDeal, type FhState } from "@/lib/arcade/cards/fiveHands";
 import { drawFiveHands, fhHitRow, fhNewView, fhOnNext, fiveHandsArtGame, FH_BG, FH_WORLD_H, FH_WORLD_W } from "@/lib/arcade/cards/fiveHands.renderer";
 import { cardsFill } from "@/lib/arcade/cards/cardsFill.renderer";
 import { encodeFiveHandsRun, replayFiveHandsRun } from "@/lib/duel/cards";
@@ -87,6 +87,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
 }
 
 export function fiveHandsLine(r: { total: number; made: number }, rev?: number | null): string {
+  if ((rev ?? 1) >= FH_REV_FLAT) return `${r.total} hand points (${Math.min(200, r.total)} scored, capped at 200) · ${r.made} of ${FH_ROWS} rows with a hand`;
   if ((rev ?? 1) >= FH_REV_STEEP) return `${r.total} hand points (full at ${fhCoreFullFor(rev)}) · ${r.made} of ${FH_ROWS} rows with a hand`;
   return `${r.total} hand points (full at ${FH_CORE_FULL}) · ${r.made} of ${FH_ROWS} hands made`;
 }

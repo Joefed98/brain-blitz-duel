@@ -18,6 +18,9 @@ skill-band medians).
 - The parts' maximums sum to **exactly 200**. Mistakes cost what each game's page says. Anyone who plays (any input)
   scores at least 1; a run with no input scores 0.
 - Everyone in a room plays the identical seeded run (every feature at seeded moments and places from the room seed).
+- A perfect run scores 200 on every deal, with **one named exception**: Five Hands `fiveHandsRev` 3 (3 Nov 2026, Joe's
+  decision) sums its flat hand values capped at 200, so a deck's best can fall short (`NOT_200_ON_EVERY_DEAL` in the
+  check; its perfect runs score exactly their deck's best).
 - Each game moves onto it on a **new stamp one above its live one**; every older stamp replays and scores exactly as
   before (each game's own legacy check on runs recorded on main before the change).
 
@@ -50,7 +53,9 @@ maximum is 200; rooms deal the stamp and LIVE_BANDS lists it; every perfect run,
 entry gives them, it also proves: played runs score at least 1 (or exactly their stated score) and idle runs 0, the
 help says the parts total 200 and states every maximum and feature, the core is a straight line with no feature points
 on it, older revisions have no standard parts, the standard is the stamp one above the one dealt before, the sim's spec
-is the entry's (and LIVE_BANDS carries it), and the game's own assertions. It also proves the helper's lines.
+is the entry's (and LIVE_BANDS carries it), and the game's own assertions. It also proves the helper's lines. A game
+named in `NOT_200_ON_EVERY_DEAL` (Five Hands only, with its reason) proves instead that each perfect run scores exactly
+its deal's own best (`want`, at most 200); every other game keeps the strict rule.
 
 Each game's own `<game>-standard-check` (and Grappler's swing-rework-check) proves its rules and that older stamps
 replay exactly as before; standard-live-check grades every stored arcade run through the production build.
@@ -85,13 +90,13 @@ replay exactly as before; standard-live-check grades every stored arcade run thr
 | Home Run Derby | `homerun` | `homerunRev` 1 | Sports | [homerun.md](homerun.md) |
 | Top Bins | `freekick` | `freekickRev` 3 (1 Nov 2026; 1 and 2 replay) | Sports | [freekick.md](freekick.md) |
 | Racing | `racing` | `racingRev` 1 | Sports | [racing.md](racing.md) |
-| Free Cell | `freecell` | `freecellRev` 3 (2 and 1 for stored rounds) | Cards & Board | [freecell.md](freecell.md) |
-| Summit | `tripeaks` | `tripeaksRev` 1 | Cards & Board | [tripeaks.md](tripeaks.md) |
+| Free Cell | `freecell` | `freecellRev` 4 (3 Nov 2026, the 40-card deal; 3, 2 and 1 for stored rounds) | Cards & Board | [freecell.md](freecell.md) |
+| Summit | `tripeaks` | `tripeaksRev` 2 (3 Nov 2026, the stock par; 1 for stored rounds) | Cards & Board | [tripeaks.md](tripeaks.md) |
 | Full House | `pokersquares` | `pokerSquaresRev` 2 | Cards & Board | [pokersquares.md](pokersquares.md) |
-| Five Hands | `fivehands` | `fiveHandsRev` 2 (1 for stored rounds) | Cards & Board | [fivehands.md](fivehands.md) |
+| Five Hands | `fivehands` | `fiveHandsRev` 3 (3 Nov 2026, the flat table summed, not 200 on every deck; 2 and 1 for stored rounds) | Cards & Board | [fivehands.md](fivehands.md) |
 | Bastion | `bastion` | `bastionRev` 2 | Action | [bastion.md](bastion.md) |
-| Pyramid | `pyramid` | `pyramidRev` 1 | Cards & Board | [pyramid.md](pyramid.md) |
-| Golf Solitaire | `golfsol` | `golfSolRev` 1 | Cards & Board | [golfsol.md](golfsol.md) |
+| Thirteen (was Pyramid) | `pyramid` | `pyramidRev` 1 | Cards & Board | [pyramid.md](pyramid.md) |
+| Golf Solitaire (practice only since 3 Nov 2026) | `golfsol` | `golfSolRev` 1 | Cards & Board | [golfsol.md](golfsol.md) |
 | Muggins | `muggins` | `mugginsRev` 1 | Cards & Board | [muggins.md](muggins.md) |
 | Crazy Golf (was Minigolf) | `minigolf` | `golfRev` 2 (1 for stored rounds) | Sports | [minigolf.md](minigolf.md) |
 | Cue Ball (was Speed Pool) | `pool` | `poolRev` 3 (2 and 1 for stored rounds) | Sports | [pool.md](pool.md) |
@@ -411,4 +416,16 @@ deals built so no quick player with no plan clears them), **Golf Solitaire** (`g
 is final and only the pile's next tile is face up). cards-solitaire-check proves every dealt deal reaches 200 through the server's
 replay. Muggins is practice only since 2 Nov 2026 (Joe's decision: its good, great and near-perfect medians, 146, 141
 and 141, don't rise with skill); stored rounds replay and grade as before.
+
+## The Cards & Board batch (3 Nov 2026): Five Hands, Free Cell, Summit, Golf Solitaire, Thirteen
+
+| Game | New stamp | Parts (max) | Core full at | Medians weak → flawless, before → after (room seeds) |
+| --- | --- | --- | --- | --- |
+| Five Hands | `fiveHandsRev` 3 | Hand points 200 (the flat table summed, capped) | no full figure (the cap) | 61 122 142 142 163 183 200 → 45 70 80 80 85 90 140 |
+| Free Cell | `freecellRev` 4 | Cards 60, Par moves 50, Speed 90 (by 32 s) | 50 units (25 of 40 home) | 41 72 121 170 188 194 200 → 43 96 134 156 176 188 200 |
+| Summit | `tripeaksRev` 2 | Cards 80, Peak tops 30, Longest run 10, Clear 10, Stock par 20, Speed 50 (by 20 s) | 28 cards | 99 131 177 184 192 192 200 → 65 89 138 157 176 182 200 |
+
+Five Hands is the standard's one exception to 200 on every deal (above): with the flat values no deck measured (400) can
+reach 200; the exact best's median is 140 hand points. Golf Solitaire is retired to practice (as Full House) and Pyramid
+is shown as Thirteen (display name only). Each game's page has the full tables, fresh seeds and assumptions.
 

@@ -20,7 +20,7 @@ export const GAME_DISPLAY_NAMES: Record<PuzzleType, string> = {
   tripeaks: "Summit",
   pokersquares: "Full House",
   fivehands: "Five Hands",
-  pyramid: "Pyramid",
+  pyramid: "Thirteen",
   golfsol: "Golf Solitaire",
   muggins: "Muggins",
   minigolf: "Crazy Golf",

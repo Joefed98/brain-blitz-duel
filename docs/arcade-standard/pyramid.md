@@ -1,5 +1,8 @@
 # Pyramid on the arcade scoring standard (pyramidRev 1, 1 Nov 2026)
 
+Shown as **Thirteen** since 3 Nov 2026 (Joe's Cards & Board batch; display name only, the id stays `pyramid`, no
+gameplay or scoring change).
+
 A new Arcade game in the Cards & Board group (`src/lib/duel/arcadeGroups.ts`), born on the standard: `pyramid`, a 90 s
 run (93 s round clock). Sim `src/lib/arcade/cards/pyramid.ts`, art `pyramid.renderer.ts` (Free Cell's deck and blue
 felt), stage `src/puzzles/pyramid.tsx`, replay `replayPyramidRun` (`src/lib/duel/cards.ts`). The follow-up below (made

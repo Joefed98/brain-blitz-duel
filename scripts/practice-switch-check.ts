@@ -71,8 +71,9 @@ const BRIEF: Record<string, string[]> = {
   // Minesweeper shown as Minefield, and FreeCell, TriPeaks and Poker Squares as Free Cell, Summit and Full House, since
   // 31 Oct 2026 (ids unchanged); Five Hands added. Full House retired to practice on 1 Nov 2026 (Joe's decision): the
   // group's active games are the rest (it keeps its group border, under All games' Retired).
-  // Pyramid and Golf Solitaire joined on 2 Nov 2026; Muggins registered but practice only (Joe's decision).
-  cards: ["Minefield", "Free Cell", "Mahjong Solitaire", "Summit", "Five Hands", "Pyramid", "Golf Solitaire"],
+  // Pyramid and Golf Solitaire joined on 2 Nov 2026; Muggins registered but practice only (Joe's decision). Pyramid shown
+  // as Thirteen and Golf Solitaire retired to practice on 3 Nov 2026 (the Cards & Board batch).
+  cards: ["Minefield", "Free Cell", "Mahjong Solitaire", "Summit", "Five Hands", "Thirteen"],
   // Strategy split from Action on 1 Nov 2026 (Coral Pop, Gemstone, Ball Tracker, Tilt, Rainbow Bridge, High Rise moved).
   // Ricochet back from retirement as the ninja wall-climb (ricoRev 2, 1 Nov 2026), and Bastion back in rooms (bastionRev 2), in Action.
   action: ["Slice", "Roofbound", "Grappler", "Ricochet", "Bastion"],

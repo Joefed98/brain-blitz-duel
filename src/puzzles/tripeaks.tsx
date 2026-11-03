@@ -13,7 +13,7 @@ import { tripeaksSounds } from "@/lib/fx/cardSounds";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
 function IntroExample() {
-  return <CardStill width={TP_WORLD_W} height={TP_WORLD_H} draw={(ctx, size) => drawTripeaks(ctx, tripeaksArtGame().init(0), size)} caption="Play a card one higher or lower than the discard; tap the stock when stuck." />;
+  return <CardStill width={TP_WORLD_W} height={TP_WORLD_H} draw={(ctx, size) => drawTripeaks(ctx, tripeaksArtGame(undefined, TP_REV).init(0), size)} caption="Play a card one higher or lower than the discard; tap the stock when stuck." />;
 }
 
 const TAP_SLOP = 10;
@@ -23,10 +23,11 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const view = useMemo(() => tpNewView(), []);
   const latest = useRef<TpState | null>(null);
   const start = useRef<{ x: number; y: number; hit: number; moved: boolean } | null>(null);
+  const rev = data?.tripeaksRev ?? 1;
   const game = useMemo(() => {
-    const art = tripeaksArtGame(view);
+    const art = tripeaksArtGame(view, rev);
     return { ...art, draw: (ctx: CanvasRenderingContext2D, state: TpState, size: { width: number; height: number }) => { latest.current = state; art.draw(ctx, state, size); } };
-  }, [view]);
+  }, [view, rev]);
 
   const pointer = (kind: "down" | "move" | "up", x: number, y: number): PointerPayload | null => {
     const state = latest.current;
@@ -94,6 +95,11 @@ export function tripeaksLine(r: { cleared: number; finished: boolean; finishSeco
   return r.finished ? `All 28 cleared in ${r.finishSeconds.toFixed(1)} s` : `${r.cleared} of 28 cleared`;
 }
 
+/** tripeaksRev 2's stock line: stock cards turned against the deal's par. */
+export function tripeaksStockLine(r: { stockTurns: number; stockPar: number }): string {
+  return `${r.stockTurns} stock card${r.stockTurns === 1 ? "" : "s"} turned · par ${r.stockPar}`;
+}
+
 function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   if (puzzle.type !== "tripeaks") return null;
   const result = replayTripeaksRun(puzzle.seed, myAnswer ?? "", puzzle.tripeaksRev);
@@ -101,6 +107,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
     <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-start gap-3 overflow-y-auto">
       <p className="whitespace-normal break-words text-center font-mono text-base font-bold text-foreground">{tripeaksLine(result)}</p>
       <p className="shrink-0 text-center font-mono text-base text-muted-foreground">{result.peaks} of 3 peak tops · best run {result.bestRun}</p>
+      {(puzzle.tripeaksRev ?? 1) >= 2 && <p className="shrink-0 text-center font-mono text-base text-muted-foreground">{tripeaksStockLine(result)}</p>}
       <p className="shrink-0 text-center font-mono text-base text-muted-foreground">Same deal for everyone</p>
     </div>
   );

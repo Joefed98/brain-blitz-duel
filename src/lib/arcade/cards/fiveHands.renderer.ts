@@ -127,7 +127,7 @@ export const FIVEHANDS_FX: ArcadeFxSpec<FhState> = {
       at: (s) => (s.lastRow >= 0 ? { x: BADGE_X + BADGE_W / 2, y: fhSlotBox(s.lastRow, 0).y + FH_CELL_H / 2 } : null),
       label: (s) => (s.lastRow >= 0 ? fhRowHand(s.rows[s.lastRow]!, s.rev).name.toUpperCase() || null : null),
     },
-    { kind: "final", count: (s) => (fhTotals(s.rows, s.rev).total >= fhCoreFullFor(s.rev) ? 1 : 0), label: () => "FULL POINTS!" },
+    { kind: "final", count: (s) => (fhTotals(s.rows, s.rev).total >= fhCoreFullFor(s.rev) ? 1 : 0), label: (s) => ((s.rev ?? 1) >= 3 ? "200 POINTS!" : "FULL POINTS!") },
   ],
   misses: [{ count: (s) => s.rejects }],
 };

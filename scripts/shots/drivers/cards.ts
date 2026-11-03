@@ -45,6 +45,9 @@ const pokersquares: Driver = {
 const fivehands: Driver = {
   board: "[data-play-area]",
   partial: (ctx) => taps(ctx, [0, 1, 2, 3, 4, 2, 0, 4, 1].map((r) => [160, 44 + r * 86 + 40] as const), 450),
+  // A whole run (3 Nov 2026, for the reveal): all 20 cards, each round's five onto rows 0–4 in turn.
+  solveFromStart: true,
+  solve: (ctx) => taps(ctx, Array.from({ length: 20 }, (_, k) => [160, 44 + (k % 5) * 86 + 40] as const), 350),
 };
 
 /** Pyramid: across the bottom row (cards 54 × 78, 57 apart, centred, at y 346), then the stock (84 × 120 at 64, 520). */

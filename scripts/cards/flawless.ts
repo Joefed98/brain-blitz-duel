@@ -5,11 +5,12 @@
  */
 import { recordInput, inputAt, type ArcadeInputEvent } from "../../src/lib/arcade/engine";
 import { FC_CHECKPOINT_INTERVAL, FC_INPUT_MOVE, fcCheckpoint, freecellGameFor, type FcState } from "../../src/lib/arcade/cards/freecell";
-import { TP_CHECKPOINT_INTERVAL, TP_INPUT_TAP, tpCheckpoint, tripeaksGame, type TpState } from "../../src/lib/arcade/cards/tripeaks";
+import { TP_CHECKPOINT_INTERVAL, TP_INPUT_TAP, tpCheckpoint, tripeaksGameFor, type TpState } from "../../src/lib/arcade/cards/tripeaks";
 import { PS_CHECKPOINT_INTERVAL, PS_INPUT_PLACE, psCheckpoint, psTargetGrid, pokerSquaresGameFor, type PsState } from "../../src/lib/arcade/cards/pokerSquares";
 import { FH_CHECKPOINT_INTERVAL, FH_INPUT_PLACE, fhCheckpoint, fhDeal, fiveHandsGameFor, type FhState } from "../../src/lib/arcade/cards/fiveHands";
 import { encodeFiveHandsRun, encodeFreecellRun, encodePokerSquaresRun, encodeTripeaksRun } from "../../src/lib/duel/cards";
-import { freecellSolution, tripeaksSolution } from "./solutions";
+import { freecellSolution, tripeaksParSolution, tripeaksSolution } from "./solutions";
+import { fhBest } from "./fiveHandsBest";
 
 type Ev = Omit<ArcadeInputEvent, "t">;
 
@@ -40,15 +41,16 @@ function play<S extends { tick: number }>(
 export function freecellFlawless(seed: number, gap = 20, rev = 1): { raw: string; state: FcState } {
   const game = freecellGameFor(rev);
   const deal = game.init(seed).deal;
-  const moves = freecellSolution(deal).map((m) => ({ k: FC_INPUT_MOVE, a: m[0], b: m[1], c: m[2], d: 0 }));
+  const moves = freecellSolution(deal, rev).map((m) => ({ k: FC_INPUT_MOVE, a: m[0], b: m[1], c: m[2], d: 0 }));
   return play(game, seed, moves, gap, fcCheckpoint, FC_CHECKPOINT_INTERVAL, encodeFreecellRun);
 }
 
-/** TriPeaks bank deal `seed`: its clearing line (a run of ten), a tap every `gap` ticks. */
-export function tripeaksFlawless(seed: number, gap = 15): { raw: string; state: TpState } {
-  const deal = tripeaksGame.init(seed).deal;
-  const taps = tripeaksSolution(deal).map((a) => ({ k: TP_INPUT_TAP, a, b: 0, c: 0, d: 0 }));
-  return play(tripeaksGame, seed, taps, gap, tpCheckpoint, TP_CHECKPOINT_INTERVAL, encodeTripeaksRun);
+/** TriPeaks bank deal `seed`: its clearing line (a run of ten), a tap every `gap` ticks; tripeaksRev 2 its stock-par line. */
+export function tripeaksFlawless(seed: number, gap = 15, rev = 1): { raw: string; state: TpState } {
+  const game = tripeaksGameFor(rev);
+  const deal = game.init(seed).deal;
+  const taps = (rev >= 2 ? tripeaksParSolution(deal) : tripeaksSolution(deal)).map((a) => ({ k: TP_INPUT_TAP, a, b: 0, c: 0, d: 0 }));
+  return play(game, seed, taps, gap, tpCheckpoint, TP_CHECKPOINT_INTERVAL, encodeTripeaksRun);
 }
 
 /** Poker Squares seed: every card placed on its target-grid square, one every `gap` ticks, on pokerSquaresRev `rev`. */
@@ -60,9 +62,12 @@ export function pokerSquaresFlawless(seed: number, gap = 20, rev = 1): { raw: st
   return play(game, seed, places, gap, psCheckpoint, PS_CHECKPOINT_INTERVAL, encodePokerSquaresRun);
 }
 
-/** Five Hands seed: each turn's card tapped onto its witness row, one every `gap` ticks. */
+/**
+ * Five Hands seed: each turn's card tapped onto its witness row, one every `gap` ticks. fiveHandsRev 3: the deck's exact
+ * best arrangement (scripts/cards/fiveHandsBest.ts; a rev-3 deck need not reach 200, so the climb's witness is not it).
+ */
 export function fiveHandsFlawless(seed: number, gap = 20, rev = 1): { raw: string; state: FhState } {
-  const taps = fhDeal(seed, rev).witnessTaps.map((row) => ({ k: FH_INPUT_PLACE, a: row, b: 0, c: 0, d: 0 }));
+  const taps = (rev >= 3 ? fhBest(seed, rev).taps : fhDeal(seed, rev).witnessTaps).map((row) => ({ k: FH_INPUT_PLACE, a: row, b: 0, c: 0, d: 0 }));
   return play(fiveHandsGameFor(rev), seed, taps, gap, fhCheckpoint, FH_CHECKPOINT_INTERVAL, encodeFiveHandsRun);
 }
 

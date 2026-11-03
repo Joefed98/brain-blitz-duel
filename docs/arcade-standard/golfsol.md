@@ -1,5 +1,9 @@
 # Golf Solitaire on the arcade scoring standard (golfSolRev 1, 1 Nov 2026)
 
+**Retired to practice on 3 Nov 2026** (Joe's Cards & Board batch), the same way as Full House: in `RETIRED_TYPES`
+(`src/lib/duel/registry.ts`) and `RETIRED_ARCADE_GAMES`, so rooms, the daily and challenges no longer draw it and the
+Cards & Board pool and presets leave it out; practice bests, stored rounds and replays stay exactly as before.
+
 A new Arcade game in the Cards & Board group, born on the standard: `golfsol` (id chosen because `golfRev` is Crazy
 Golf's stamp), a **75 s** run (78 s round clock; the brief allowed 60–90 s). Sim `src/lib/arcade/cards/golfSol.ts`, art
 `golfSol.renderer.ts` (Free Cell's deck and blue felt), stage `src/puzzles/golfSol.tsx`, replay `replayGolfSolRun`.

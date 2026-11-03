@@ -6,7 +6,7 @@
 import type { ArcadeGame, ArcadeInputEvent, CanvasSize } from "../engine";
 import { arcadeFx, type ArcadeFxSpec } from "../arcadeFx.renderer";
 import { CARD_FONT, drawCard, drawChip, drawFelt, drawSlot, roundRect } from "./cards.renderer";
-import { TP_CARDS, TP_STOCK, TP_STOCK_PILE, tpFree, tpPlayable, tripeaksGame, type TpState } from "./tripeaks";
+import { TP_CARDS, TP_STOCK, TP_STOCK_PILE, tpFree, tpPlayable, tripeaksGameFor, type TpState } from "./tripeaks";
 
 export const TP_WORLD_W = 414;
 export const TP_WORLD_H = 772;
@@ -134,6 +134,8 @@ function drawTripeaksWorld(ctx: CanvasRenderingContext2D, state: TpState, size: 
 
   drawChip(ctx, 10, 9, "CLEARED", `${state.clearedCount}/${TP_CARDS}`, { gold: state.clearedCount === TP_CARDS });
   drawChip(ctx, W - 10, 9, "PEAKS", `${state.peaks}/3`, { align: "right", gold: state.peaks === 3 });
+  // tripeaksRev 2: the stock par readout, stock cards turned against the deal's par (gold while within it).
+  if (state.stockPar !== undefined) drawChip(ctx, W / 2, 9, "STOCK PAR", `${state.turns}/${state.stockPar}`, { align: "center", gold: state.turns <= state.stockPar });
 
   const drag = view?.drag ?? null;
   const fresh = state.lastTick > 0 ? Math.max(0, 1 - (state.tick - state.lastTick) / 16) : 0;
@@ -183,8 +185,9 @@ function drawTripeaksWorld(ctx: CanvasRenderingContext2D, state: TpState, size: 
   ctx.restore();
 }
 
-export function tripeaksArtGame(view?: TpView): ArcadeGame<TpState, ArcadeInputEvent | null> {
-  return { ...tripeaksGame, draw: (ctx, state, size) => drawTripeaks(ctx, state, size, view) };
+/** The art game for a stage: the revision's sim with this draw (no stamp: tripeaksRev 1). */
+export function tripeaksArtGame(view?: TpView, rev?: number | null): ArcadeGame<TpState, ArcadeInputEvent | null> {
+  return { ...tripeaksGameFor(rev), draw: (ctx, state, size) => drawTripeaks(ctx, state, size, view) };
 }
 
 export const tripeaksArt = tripeaksArtGame();

@@ -5,7 +5,7 @@
  * Weaker players plan worse: their plans come from a quicker, greedier search with a smaller budget, so they are
  * longer, and a player who cannot see a way through plays the move that looks best and tries again a few moves on.
  */
-import { FC_INPUT_MOVE, fcApply, fcCoreUnits, fcHomeCount, type FcState } from "../../../src/lib/arcade/cards/freecell";
+import { FC_INPUT_MOVE, fcAllHome, fcApply, fcCoreUnits, type FcState } from "../../../src/lib/arcade/cards/freecell";
 import { driveEvents, type SkillBot } from "../bot";
 import { fcMoves, fcSolve, type FcMove } from "../../cards/freecellSolver";
 import { freecellSolution } from "../../cards/solutions";
@@ -49,11 +49,11 @@ export const bot: SkillBot = ({ game, seed, human }) => {
     plan = fcSolve(s, w, limit);
   };
   const init = game.init(seed) as FcState;
-  if (level === "perfect") plan = freecellSolution(init.deal).slice();
+  if (level === "perfect") plan = freecellSolution(init.deal, init.rev).slice();
   else replan(init);
   nextAt = human.thinkTicks(THINK_MS * 1.5);
   const { events } = driveEvents<FcState>(game, (s, t) => {
-    if (t < nextAt || fcHomeCount(s) === 52) return null;
+    if (t < nextAt || fcAllHome(s)) return null;
     nextAt = t + human.thinkTicks(THINK_MS);
     let move: FcMove | null = null;
     if (human.slip(level === "perfect" ? 0 : 1.6)) {
