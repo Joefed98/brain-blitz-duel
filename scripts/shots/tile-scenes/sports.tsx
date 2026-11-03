@@ -12,8 +12,8 @@ import { drawPool } from "@/lib/arcade/pool.renderer";
 import { curlingGameFor, CU, TEAM_MINE, TEAM_THEIRS } from "@/lib/arcade/curling";
 import { curlProject, drawCurling } from "@/lib/arcade/curling.renderer";
 
-import { arInit, AR_FLY } from "@/lib/arcade/alleyroll";
-import { AR_WORLD_H, AR_WORLD_W, drawAlleyRoll } from "@/lib/arcade/alleyroll.renderer";
+import { AR_FLY } from "@/lib/arcade/alleyroll";
+import { AR_WORLD_H, AR_WORLD_W, drawAlleyRoll, ringerStill } from "@/lib/arcade/alleyroll.renderer";
 import { TILE, canvasScene, noText, type SceneSet } from "./scene";
 
 /** A soft dark vignette over a busy scene (the "faded if busy" rule), leaving its middle clear. */
@@ -76,13 +76,14 @@ export const SPORTS_SCENES: SceneSet = {
     drawCurling(c, s, null);
     c.restore();
   }),
-  // Alley Roll: the lit rings close up, a ball dropping toward the 50 above its shadow, a pocket glowing in the corner.
+  // Ringer: the funfair board close up, the raised cup tower with a blue ball dropping toward the 50, the gold cup
+  // gliding on its track behind and a 100 pocket in the corner.
   alleyroll: canvasScene((c) => {
-    const s = { ...arInit(1), acted: 1, phase: AR_FLY, x: 6 * 256, y: 176 * 256, z: 34 * 256, balls: [{ release: 0, points: 0, x: 0, y: 0 }] };
+    const s = { ...ringerStill(60), phase: AR_FLY, x: -26 * 256, y: 196 * 256, z: 13 * 256, balls: [{ release: 0, points: 0, x: 0, y: 0 }] };
     const zoom = TILE / 250;
     c.save();
     c.scale(zoom, zoom);
-    c.translate(-82, -110);
+    c.translate(-82, -140);
     noText(c, () => drawAlleyRoll(c, s, { width: AR_WORLD_W, height: AR_WORLD_H }));
     c.restore();
   }),

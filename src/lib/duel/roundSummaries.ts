@@ -1206,7 +1206,10 @@ const blockfallSummary: SummaryBuilder = (result) => {
 const alleyRollSummary: SummaryBuilder = (result) => {
   const n = (key: string) => Number(result.extra?.[key] ?? 0);
   return {
-    summary: `${n("rings")} ring points · ${n("pockets")} pocket${n("pockets") === 1 ? "" : "s"}`,
+    // Ringer (alleyRollRev 2) adds the gold cup; rev 1's rounds read as before.
+    summary: n("alleyRollRev") >= 2
+      ? `${n("rings")} ring points · ${n("gold")} gold · ${n("pockets")} pocket${n("pockets") === 1 ? "" : "s"}`
+      : `${n("rings")} ring points · ${n("pockets")} pocket${n("pockets") === 1 ? "" : "s"}`,
     detail: [`${n("balls")} of 9 balls · ${n("streak")} in a row`],
   };
 };

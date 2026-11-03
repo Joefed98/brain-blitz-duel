@@ -161,7 +161,7 @@ export const DESKTOP_MODES: Record<PuzzleType, DesktopModeInfo> = {
   // Arcade: side-on and behind-camera worlds, kept upright at full height
   racing: { ...BEHIND, maxWorldWidth: APEX_DESKTOP_WORLD_W, why: "behind-camera view; on desktop its world capped at 340×634, centred, with its static backdrop beside it, for 60 fps" },
   homerun: BEHIND,
-  alleyroll: { ...BEHIND, why: "the lane seen from the player's end: kept upright at full height, the alley carried to the sides" },
+  alleyroll: { ...BEHIND, why: "the funfair lane seen from the player's end: kept upright at full height, the alley carried to the sides" },
   freekick: BEHIND,
   bullseye: BEHIND,
   bintoss: SIDE,

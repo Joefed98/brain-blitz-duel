@@ -1194,16 +1194,16 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       score: liveStdHelp("blockfall", "Three parts, which total 200:"),
     },
     alleyroll: {
-      goal: "Roll nine balls up the lane into the rings.",
+      goal: "Roll nine balls up the lane into the cups.",
       how: [
-        { action: "Slide the ball", detail: "along the bottom to choose where it starts." },
-        { action: "Swipe up", detail: "to roll: a faster swipe rolls further, the swipe's angle aims it." },
-        { action: "Rings", detail: "score 10 to 50 from the outside in; the two pockets in the top corners score 100." },
-        { action: "Hot streak:", detail: "a ball scoring 40 or more straight after another that did.", helpOnly: true },
+        { action: "Swipe up the lane", detail: "to roll: where you start sets the release, the angle aims, the speed is the power." },
+        { action: "Cups", detail: "score 10 to 50, the top of the stack the most; the two corner pockets score 100." },
+        { action: "The gold cup", detail: "slides along the top: time your roll to drop in for 150." },
+        { action: "Roll streak:", detail: "a ball scoring 30 or more straight after another that did.", helpOnly: true },
         { action: "Nine balls", detail: "or 60 seconds, whichever comes first.", helpOnly: true },
-        { action: "No wind, the same lane,", detail: "for everyone.", helpOnly: true },
+        { action: "The same lane and the same gold cup", detail: "for everyone.", helpOnly: true },
       ],
-      score: liveStdHelp("alleyroll", "Three parts, which total 200:"),
+      score: liveStdHelp("alleyroll", "Four parts, which total 200:"),
     },
     pyramid: {
       goal: "Clear the pyramid in pairs that add to 13.",
