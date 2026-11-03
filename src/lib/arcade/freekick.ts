@@ -46,8 +46,15 @@ export const FREEKICK_REV_2 = 2;
  * FREEKICK_V3_CORE_FULL.
  */
 export const FREEKICK_REV_3 = 3;
+/**
+ * freekickRev 4 (Top Bins, 3 Nov 2026; docs/arcade-standard/freekick.md "freekickRev 4"): the shot is drawn: one stroke
+ * out from the ball sets the target (where it ends) and the curl (how it bends), sent as one FREEKICK_INPUT_SHOT; then
+ * rev 3's power meter. A goal from a strongly bent shot (|curl| ≥ FK_V4_BENT) pays the Curl bonus; the corner targets'
+ * hoops shrink kick by kick to 70 % (fkHoopRFor). Spots, walls, keeper, solver, meter and the 90 s run are rev 3's.
+ */
+export const FREEKICK_REV_4 = 4;
 /** The revision rooms deal. */
-export const FREEKICK_REV_DEALT = FREEKICK_REV_3;
+export const FREEKICK_REV_DEALT = FREEKICK_REV_4;
 export const FREEKICK_RUN_SECONDS = 75;
 export const FREEKICK_RUN_TICKS = FREEKICK_RUN_SECONDS * 60;
 export const FREEKICK_KICKS = 10;
@@ -88,6 +95,21 @@ export const FREEKICK_INPUT_RANGES_V3: readonly InputRange[] = [
   inputRange(FREEKICK_INPUT_POWER),
   inputRange(FREEKICK_INPUT_STRIKE),
 ];
+/**
+ * freekickRev 4's inputs: SHOT a = the target's x (cm), b = its height (cm), c = the curl (−100…100, + bends right), all
+ * from one drawn stroke; then POWER and STRIKE as rev 3. Rev 4 has no range for AIM or CURL (kinds 2, 3), and earlier
+ * revisions none for SHOT.
+ */
+export const FREEKICK_INPUT_SHOT = 6;
+export const FREEKICK_INPUT_RANGES_V4: readonly InputRange[] = [
+  inputRange(FREEKICK_INPUT_POWER),
+  inputRange(FREEKICK_INPUT_STRIKE),
+  inputRange(FREEKICK_INPUT_SHOT, [-FK_V3_AIM_X_MAX, FK_V3_AIM_X_MAX], [FK_V3_AIM_Y_MIN, FK_V3_AIM_Y_MAX], [-FREEKICK_CURL_MAX, FREEKICK_CURL_MAX]),
+];
+/** freekickRev 4: a goal whose shot was drawn with at least this much bend (|curl|) pays the Curl bonus. */
+export const FK_V4_BENT = 70;
+/** freekickRev 4: the corner hoop's radius on the last kick, per mille of its first (a straight line between). */
+export const FK_V4_HOOP_LAST_PERMILLE = 700;
 /**
  * The power meter (freekickRev 3): from the POWER tick it sweeps 0 → 1000 → 0 every FK_V3_METER_PERIOD ticks (a
  * triangle, a function of the ticks since it started alone, so the replay recomputes it from the STRIKE's tick). The
@@ -229,6 +251,35 @@ export const FREEKICK_V3_STD_SPEC: StdSpec = {
   parts: FREEKICK_STD_SPEC.parts.map((p) => (p.key === "core" ? { ...p, how: `10 a goal plus up to 3 for placing it away from the keeper (full at ${FREEKICK_PLACE_FULL_CM / 100} m); the part is full at ${FREEKICK_V3_CORE_FULL / 10}` } : p)),
 };
 export const FREEKICK_V3_BAND_CURVE = bandCurve([0, FREEKICK_V3_CORE_FULL], [0, FREEKICK_CORE_MAX]);
+
+/**
+ * freekickRev 4's parts (200): Goals 120 (the same units, full at FREEKICK_V4_CORE_FULL), Targets 40 (10 each), Round
+ * the wall 10 (1 a goal), Curl bonus 20 (2 a goal from a shot bent at least FK_V4_BENT), Five in a row 10.
+ */
+export const FREEKICK_V4_CORE_MAX = 120;
+export const FREEKICK_V4_CORE_FULL = 750;
+export const FREEKICK_V4_WALL_MAX = 10;
+export const FREEKICK_V4_BENT_MAX = 20;
+export const FREEKICK_V4_STD_SPEC: StdSpec = {
+  field: "freekickRev",
+  rev: FREEKICK_REV_4,
+  parts: [
+    { key: "core", label: "Goals", max: FREEKICK_V4_CORE_MAX, of: FREEKICK_KICKS, item: "goal", how: `a goal plus a little for placing it away from the keeper (full at ${FREEKICK_PLACE_FULL_CM / 100} m); the part is full at ${FREEKICK_V4_CORE_FULL / 10}` },
+    { key: "targets", label: "Targets", max: FREEKICK_TARGETS_MAX, of: FREEKICK_TARGETS, item: "target", how: `10 for each of the ${FREEKICK_TARGETS} targets scored through (the corner hoops shrink kick by kick)` },
+    { key: "curl", label: "Round the wall", max: FREEKICK_V4_WALL_MAX, of: FREEKICK_KICKS, item: "curler", how: "1 for each goal curled round the end of the wall" },
+    { key: "bent", label: "Curl bonus", max: FREEKICK_V4_BENT_MAX, of: FREEKICK_KICKS, item: "bender", how: "2 for each goal from a strongly bent shot" },
+    { key: "streak", label: "Five in a row", max: FREEKICK_STREAK_MAX, of: 1, item: "streak", how: "10 for five goals in a row" },
+  ],
+};
+export const FREEKICK_V4_BAND_CURVE = bandCurve([0, FREEKICK_V4_CORE_FULL], [0, FREEKICK_V4_CORE_MAX]);
+
+/** A corner hoop's radius (world units) on kick `k` (0…9): rev 1–3 the full FK_HOOP_R; rev 4 down to 70 % by the last. */
+export function fkHoopRFor(rev: number, k: number): number {
+  if (rev < FREEKICK_REV_4) return FK_HOOP_R;
+  const kk = Math.max(0, Math.min(FREEKICK_KICKS - 1, k));
+  const permille = 1000 - Math.trunc(((1000 - FK_V4_HOOP_LAST_PERMILLE) * kk) / (FREEKICK_KICKS - 1));
+  return Math.trunc((FK_HOOP_R * permille) / 1000);
+}
 
 /* ================================ The deal ================================ */
 
@@ -657,7 +708,7 @@ export function fkFlightStep(k: FkKick, f: FkFlight, frame = true, ground = true
 }
 
 /** What a finished flight earns: placement units (0…30), a target hit, curled round the wall. */
-export function fkJudge(k: FkKick, f: FkFlight): { goal: boolean; place: number; distCm: number; target: boolean; curled: boolean } {
+export function fkJudge(k: FkKick, f: FkFlight, hoopR: number = FK_HOOP_R): { goal: boolean; place: number; distCm: number; target: boolean; curled: boolean } {
   const goal = f.out === FK_OUT_GOAL;
   if (!goal) return { goal, place: 0, distCm: 0, target: false, curled: false };
   const dx = cm(f.passX - f.passK);
@@ -667,9 +718,10 @@ export function fkJudge(k: FkKick, f: FkFlight): { goal: boolean; place: number;
   let target = false;
   if (k.target === FK_TARGET_BAR) target = f.bar === 1;
   else if (k.target === FK_TARGET_LEFT || k.target === FK_TARGET_RIGHT) {
-    const hx = cm(f.crossX - (k.target === FK_TARGET_LEFT ? -FK_HOOP_X : FK_HOOP_X));
-    const hy = cm(f.crossY - FK_HOOP_Y);
-    const r = cm(FK_HOOP_R);
+    // The hoop stays tucked in its corner as it shrinks (freekickRev 4; FK_HOOP_R gives rev 1–3's hoop exactly).
+    const hx = cm(f.crossX - (k.target === FK_TARGET_LEFT ? -(FK_GOAL_HALF_W - hoopR) : FK_GOAL_HALF_W - hoopR));
+    const hy = cm(f.crossY - (FK_GOAL_H - hoopR));
+    const r = cm(hoopR);
     target = hx * hx + hy * hy <= r * r;
   }
   const curled = (f.wallSide === -1 && f.cu >= FREEKICK_CURL_MIN) || (f.wallSide === 1 && f.cu <= -FREEKICK_CURL_MIN);
@@ -815,6 +867,8 @@ export interface FreekickState {
   curl?: number;
   meterAt?: number;
   strikeM?: number;
+  /** freekickRev 4 only: goals from a strongly bent shot (the Curl bonus). */
+  bent?: number;
 }
 
 export function fkDeadline(k: number): number {
@@ -861,6 +915,7 @@ function init(seed: number, rev: number = FREEKICK_REV_STD): FreekickState {
     streak: 0,
     best: 0,
     ...(rev >= FREEKICK_REV_3 ? V3_FRESH : {}),
+    ...(rev >= FREEKICK_REV_4 ? { bent: 0 } : {}),
   };
 }
 
@@ -875,15 +930,18 @@ function resolve(s: FreekickState, kick: FkKick, out: number, f: FkFlight | null
   outs[s.k] = out;
   s.outs = outs;
   if (out === FK_OUT_GOAL && f) {
-    const j = fkJudge(kick, f);
+    const j = fkJudge(kick, f, fkHoopRFor(s.freekickRev, s.k));
     s.goals += 1;
     s.units += FREEKICK_GOAL_UNITS + j.place;
     const places = s.places.slice();
     places[s.k] = j.place;
     s.places = places;
     const flags = s.flags.slice();
-    flags[s.k] = (j.target ? 1 : 0) | (j.curled ? 2 : 0);
+    // freekickRev 4: bit 4 a goal from a strongly bent shot.
+    const bent = s.freekickRev >= FREEKICK_REV_4 && Math.abs(s.curl ?? 0) >= FK_V4_BENT;
+    flags[s.k] = (j.target ? 1 : 0) | (j.curled ? 2 : 0) | (bent ? 4 : 0);
     s.flags = flags;
+    if (bent) s.bent = (s.bent ?? 0) + 1;
     if (j.target) s.targets += 1;
     if (j.curled) s.curled += 1;
     s.streak += 1;
@@ -905,11 +963,18 @@ function step(state: FreekickState, input: ArcadeInputEvent | null): FreekickSta
   } else if (s.phase === FK_AIM && s.freekickRev >= FREEKICK_REV_3) {
     // freekickRev 3: aim and curl (redone freely until the meter starts), the meter, the strike.
     const metering = (s.meterAt ?? -1) >= 0;
-    if (input && input.k === FREEKICK_INPUT_AIM && !metering) {
+    const v4 = s.freekickRev >= FREEKICK_REV_4;
+    if (v4 && input && input.k === FREEKICK_INPUT_SHOT && !metering) {
+      // freekickRev 4: the drawn shot sets the target and the curl together (redrawn freely until the meter starts).
+      s.aimX = clampInt(Math.trunc(input.a), -FK_V3_AIM_X_MAX, FK_V3_AIM_X_MAX);
+      s.aimY = clampInt(Math.trunc(input.b), FK_V3_AIM_Y_MIN, FK_V3_AIM_Y_MAX);
+      s.curl = clampInt(Math.trunc(input.c), -FREEKICK_CURL_MAX, FREEKICK_CURL_MAX);
+      s.aimed = 1;
+    } else if (!v4 && input && input.k === FREEKICK_INPUT_AIM && !metering) {
       s.aimX = clampInt(Math.trunc(input.a), -FK_V3_AIM_X_MAX, FK_V3_AIM_X_MAX);
       s.aimY = clampInt(Math.trunc(input.b), FK_V3_AIM_Y_MIN, FK_V3_AIM_Y_MAX);
       s.aimed = 1;
-    } else if (input && input.k === FREEKICK_INPUT_CURL && !metering) {
+    } else if (!v4 && input && input.k === FREEKICK_INPUT_CURL && !metering) {
       s.curl = clampInt(Math.trunc(input.b), -FREEKICK_CURL_MAX, FREEKICK_CURL_MAX);
     } else if (input && input.k === FREEKICK_INPUT_POWER && !metering && s.aimed === 1) {
       s.meterAt = s.tick;
@@ -966,6 +1031,17 @@ function isOver(state: FreekickState): boolean {
  */
 export function freekickStdParts(state: FreekickState): StdPart[] | null {
   const r = state.freekickRev;
+  if (r === FREEKICK_REV_4) {
+    const placed4 = state.units - state.goals * FREEKICK_GOAL_UNITS;
+    const spec4 = FREEKICK_V4_STD_SPEC;
+    return [
+      stdPart(spec4, "core", stdLine(FREEKICK_V4_CORE_MAX, state.units, FREEKICK_V4_CORE_FULL), `${state.goals} of ${FREEKICK_KICKS} scored · placement ${placed4} of ${state.goals * FREEKICK_PLACE_UNITS}`),
+      stdPart(spec4, "targets", stdEach(state.targets, 10, FREEKICK_TARGETS_MAX), `${state.targets} of ${FREEKICK_TARGETS} targets`),
+      stdPart(spec4, "curl", stdEach(state.curled, 1, FREEKICK_V4_WALL_MAX), `${state.curled} round the wall`),
+      stdPart(spec4, "bent", stdEach(state.bent ?? 0, 2, FREEKICK_V4_BENT_MAX), `${state.bent ?? 0} bent shots scored`),
+      stdPart(spec4, "streak", state.best >= FREEKICK_STREAK_RUN ? FREEKICK_STREAK_MAX : 0, `best ${state.best} in a row`),
+    ];
+  }
   const spec = r === FREEKICK_REV_STD ? FREEKICK_STD_SPEC : r === FREEKICK_REV_2 ? FREEKICK_V2_STD_SPEC : r === FREEKICK_REV_3 ? FREEKICK_V3_STD_SPEC : null;
   if (!spec) return null;
   const placed = state.units - state.goals * FREEKICK_GOAL_UNITS;
@@ -1028,10 +1104,17 @@ export const freekickGameV3: ArcadeGame<FreekickState, ArcadeInputEvent | null> 
   inputRanges: FREEKICK_INPUT_RANGES_V3,
 };
 
-/** The game for a stored stamp: rev 3 on freekickRev 3 and above, rev 2 on 2, else rev 1 (unstamped rounds included). */
+/** freekickRev 4's game: rev 3's step on rev 4 (the drawn shot, the Curl bonus, the shrinking hoops), its own inputs. */
+export const freekickGameV4: ArcadeGame<FreekickState, ArcadeInputEvent | null> = {
+  ...freekickGameV3,
+  init: initFor(FREEKICK_REV_4),
+  inputRanges: FREEKICK_INPUT_RANGES_V4,
+};
+
+/** The game for a stored stamp: rev 4 on freekickRev 4 and above, 3 on 3, 2 on 2, else rev 1 (unstamped rounds included). */
 export function freekickGameFor(rev?: number | null): ArcadeGame<FreekickState, ArcadeInputEvent | null> {
   const r = rev ?? FREEKICK_REV_STD;
-  return r >= FREEKICK_REV_3 ? freekickGameV3 : r >= FREEKICK_REV_2 ? freekickGameV2 : freekickGame;
+  return r >= FREEKICK_REV_4 ? freekickGameV4 : r >= FREEKICK_REV_3 ? freekickGameV3 : r >= FREEKICK_REV_2 ? freekickGameV2 : freekickGame;
 }
 
 /* ================================ Checkpoints ================================ */
@@ -1057,6 +1140,8 @@ export function freekickCheckpoint(state: FreekickState): FreekickCheckpoint {
   const extra = [state.acted, state.targets, state.curled, state.best, state.streak, state.kickTick, f?.kx ?? 0, f?.vx ?? 0, f?.vy ?? 0, f?.vz ?? 0, f?.out ?? 0, ...state.outs];
   // freekickRev 3: the prepared shot too (earlier revisions' checksums are unchanged).
   if (state.freekickRev >= FREEKICK_REV_3) extra.push(state.aimX ?? 0, state.aimY ?? 0, state.aimed ?? 0, state.curl ?? 0, state.meterAt ?? 0, state.strikeM ?? 0);
+  // freekickRev 4: the Curl bonus count.
+  if (state.freekickRev >= FREEKICK_REV_4) extra.push(state.bent ?? 0);
   for (const value of [...Object.values(snap), ...extra]) {
     checksum ^= value | 0;
     checksum = Math.imul(checksum, 0x01000193) >>> 0;

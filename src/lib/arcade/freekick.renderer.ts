@@ -27,9 +27,6 @@ import {
   FK_GOAL_H,
   FK_GOAL_HALF_W,
   FK_GOAL_Z,
-  FK_HOOP_R,
-  FK_HOOP_X,
-  FK_HOOP_Y,
   FK_KEEPER_VMAX,
   FK_KEEPER_Z,
   FK_M,
@@ -53,6 +50,8 @@ import {
   FREEKICK_KICKS,
   FREEKICK_REV_2,
   FREEKICK_REV_3,
+  FREEKICK_REV_4,
+  fkHoopRFor,
   FREEKICK_REV_DEALT,
   FK_OUT_NONE,
   FK_V3_ZONE_HI,
@@ -964,9 +963,85 @@ function previewPath(k: FkKick, x: number, y: number, b: number): P3[] {
   return pts;
 }
 
+/* ================================ freekickRev 4: the drawn shot (display only) ================================ */
+
+/**
+ * The phone's drawn line (world px): `live` while the finger is down, `line` the last stroke that set the shot (kept for
+ * its kick until the strike, drawn faintly). The phone writes it; the art only reads it.
+ */
+export const freekickV4Ui: { live: { x: number; y: number }[] | null; line: { k: number; pts: { x: number; y: number }[] } | null } = { live: null, line: null };
+
+/** The stroke's bow (widest sideways gap from its chord, a share of the chord) that maps to full curl. */
+export const FK_V4_BOW_FULL = 0.25;
+
+/**
+ * freekickRev 4: the shot a stroke drawn out from the ball sets, or null when it does not go up the screen. Target:
+ * where the stroke ends, as the goal-plane point under it (freekickAimAt); a stroke that ends short of the goal is
+ * extended along the chord from the ball through its end until it reaches the goal, and anything off the frame is held
+ * on it. Curl: the stroke's widest signed gap from its chord over the chord's length, BOW_FULL → 100; a line bowed to
+ * the left (as the ball flies out left and bends back) gives + (bends right). Only the integers are sent.
+ */
+export function freekickDrawnShot(state: FreekickState, pts: readonly { x: number; y: number }[]): { x: number; y: number; b: number } | null {
+  if (pts.length < 2) return null;
+  const k = fkKickOf(state);
+  const cam = fkCamera(k);
+  const ballP = fkProject(cam, k.bx / M, FK_BALL_R / M, k.bz / M);
+  if (!ballP) return null;
+  const s = pts[0]!;
+  const e = pts[pts.length - 1]!;
+  const cx = e.x - s.x;
+  const cy = e.y - s.y;
+  const len = Math.hypot(cx, cy);
+  if (len < 30 || cy > -15) return null;
+  let bow = 0;
+  for (const p of pts) {
+    const cross = (cx * (p.y - s.y) - cy * (p.x - s.x)) / len;
+    if (Math.abs(cross) > Math.abs(bow)) bow = cross;
+  }
+  // cross > 0 is a point right of an upward chord on screen (y grows down): a right bow bends the ball left (−).
+  const b = Math.max(-100, Math.min(100, Math.round((-bow / len / FK_V4_BOW_FULL) * 100)));
+  // The target: the end, or the chord from the ball through it carried on until it meets the goal.
+  let at = freekickAimAt(state, e.x, e.y, 0);
+  if (!at) {
+    const dx = e.x - ballP.x;
+    const dy = e.y - ballP.y;
+    if (dy < -5) {
+      for (let t = 1; t <= 6 && !at; t += 0.02) {
+        const q = freekickAimAt(state, ballP.x + dx * t, ballP.y + dy * t, 0);
+        if (q) at = q;
+        else {
+          const wide = freekickAimAt(state, ballP.x + dx * t, ballP.y + dy * t, 100000);
+          if (wide && wide.y >= 250) at = wide;
+        }
+      }
+    }
+    if (!at) at = freekickAimAt(state, e.x, e.y, 100000);
+  }
+  if (!at) return null;
+  return { x: at.x, y: at.y, b };
+}
+
+function paintV4Line(ctx: Ctx, state: FreekickState): void {
+  const live = freekickV4Ui.live;
+  const kept = freekickV4Ui.line && freekickV4Ui.line.k === state.k ? freekickV4Ui.line.pts : null;
+  const pts = live && live.length > 1 ? live : kept;
+  if (!pts || pts.length < 2) return;
+  ctx.save();
+  ctx.strokeStyle = live ? "rgba(255,255,255,0.7)" : "rgba(255,255,255,0.32)";
+  ctx.lineWidth = live ? 4 : 3;
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+  ctx.setLineDash(live ? [] : [7, 6]);
+  ctx.beginPath();
+  pts.forEach((p, i) => (i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y)));
+  ctx.stroke();
+  ctx.restore();
+}
+
 /** The step the player is on (rev 3): what the prompt says. */
 function v3Prompt(state: FreekickState): string {
   if ((state.meterAt ?? -1) >= 0) return "RELEASE IN THE GOLD";
+  if (state.freekickRev >= FREEKICK_REV_4) return state.aimed !== 1 ? "1  DRAW THE SHOT FROM THE BALL" : "2  HOLD THE BAR · OR REDRAW";
   if (state.aimed !== 1) return "1  TAP THE GOAL TO AIM";
   return "2  DRAG TO CURL   3  HOLD THE BAR";
 }
@@ -1181,10 +1256,12 @@ function drawFreekickWorld(ctx: CanvasRenderingContext2D, state: FreekickState, 
   const hitFlags = state.flags[index] ?? 0;
   const targetDone = (hitFlags & 1) === 1;
   if (k.target !== FK_TARGET_NONE && k.target !== FK_TARGET_BAR) {
-    const hx = (k.target === FK_TARGET_LEFT ? -FK_HOOP_X : FK_HOOP_X) / M;
-    const c = fkProject(cam, hx, FK_HOOP_Y / M, 0);
+    // freekickRev 4: the hoop shrinks kick by kick (fkHoopRFor), tucked in its corner; rev 1–3's hoop is FK_HOOP_R.
+    const hoopR = fkHoopRFor(state.freekickRev, index);
+    const hx = (k.target === FK_TARGET_LEFT ? -(FK_GOAL_HALF_W - hoopR) : FK_GOAL_HALF_W - hoopR) / M;
+    const c = fkProject(cam, hx, (FK_GOAL_H - hoopR) / M, 0);
     if (c) {
-      const r = (FK_HOOP_R / M) * c.s;
+      const r = (hoopR / M) * c.s;
       ctx.save();
       ctx.fillStyle = targetDone ? "rgba(255,213,75,0.35)" : `rgba(255,213,75,${0.08 + 0.08 * pulse})`;
       ctx.beginPath();
@@ -1269,6 +1346,8 @@ function drawFreekickWorld(ctx: CanvasRenderingContext2D, state: FreekickState, 
   // freekickRev 3: the aim marker and curl preview while the kick is set, the power bar and the verdict.
   const v3 = state.freekickRev >= FREEKICK_REV_3;
   if (v3 && state.phase === FK_AIM) paintV3Aim(ctx, cam, k, state, pulse);
+  // freekickRev 4: the drawn line, faint until the strike.
+  if (state.freekickRev >= FREEKICK_REV_4 && state.phase === FK_AIM && (state.strikeM ?? -1) < 0) paintV4Line(ctx, state);
   if (v3) paintV3Bar(ctx, state);
 
   // The live stroke.

@@ -1236,7 +1236,8 @@ export function freekickSounds(): GameSounds<FreekickState> {
       if (prev && state.tick > prev.tick) {
         const f = state.fl;
         const was = prev.fl;
-        if (prev.phase !== FK_AIM && state.phase === FK_AIM) effectCue("freekick.whistle");
+        // The whistle once, before the first kick only (3 Nov 2026, every revision; sound only).
+        if (prev.phase !== FK_AIM && state.phase === FK_AIM && state.k === 0) effectCue("freekick.whistle");
         if (prev.phase !== FK_FLIGHT && state.phase === FK_FLIGHT) sfx("freekick.kick", "arc_fair_thud", 0.9, 1.1);
         if (f && was && state.kickTick === prev.kickTick) {
           const woodwork = (f.post && !was.post) || (f.bar && !was.bar);
