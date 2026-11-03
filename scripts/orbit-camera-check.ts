@@ -236,3 +236,72 @@ for (const entry of ORBIT_REV3_BANK) {
   }
 }
 console.log(`ALL ORBITS PASS: ${allOrbits} orbits/${allPoints} phase points, settled minimum ${(framedMin * 100).toFixed(6)}%, next centres visible ${visibleCentres}/${allOrbits}`);
+
+// orbitRev 14's still camera (Nov 2026, Joe's brief; display only): the view holds still in orbit and in flight; a catch
+// or respawn pans it once (~0.4 s, at most ORBIT_STILL_PAN_MAX_TICKS); in flight it moves only while the rocket is in the
+// edge band, never letting it past the on-screen margin. Witness and seeded random runs on fuel-bank courses, both modes.
+{
+  const camMod = await import('../src/lib/arcade/orbitCamera');
+  const { ORBIT_FUEL_BANK } = await import('../src/lib/duel/orbitFuelBank.server');
+  const { initFuelFrom, decodeOrbitHoles, decodeOrbitExtras } = await import('../src/lib/arcade/orbitRev3');
+  const { ORBIT_STILL_PAN_MAX_TICKS, ORBIT_STILL_REDUCED_PAN_MAX_TICKS, ORBIT_STILL_EDGE_BAND, orbitStillCamera, orbitStillPanTicks, orbitViewW, orbitViewH } = camMod;
+  assert.equal(orbitStillPanTicks(100), 24, 'a normal catch pans in 0.4 s');
+  let runs = 0, frames = 0, stillOrbit = 0, stillFlight = 0, edgeMoves = 0, pans = 0, maxPan = 0, maxStep = 0;
+  for (const entry of ORBIT_FUEL_BANK.slice(0, 12)) {
+    const start = () => initFuelFrom(decodeRev3Planets(entry.planets), ORBIT_REV3_WORLD_W, decodeOrbitHoles(entry.holes), decodeOrbitExtras(entry.extras));
+    const witness = new Set(entry.taps);
+    for (const random of [false, true]) {
+      for (const reducedMotion of [false, true]) {
+        runs++;
+        orbitCameraResetCache();
+        let s = start();
+        orbitCameraObserve(s);
+        assert(orbitStillCamera(s), 'orbitRev 14 states use the still camera');
+        const W = orbitViewW(s), H = orbitViewH(s);
+        let prev = orbitCamera(s, { reducedMotion });
+        let v = (entry.seed * 2654435761) | 0;
+        let panFrom = -1;
+        let wasPanning = false;
+        while (!s.ended && s.tick < orbitRev3Game.runTicks) {
+          let tap = false;
+          if (random) {
+            v = (Math.imul(v, 1103515245) + 12345) | 0;
+            tap = (v >>> 8) % 1000 < 14;
+          } else tap = witness.has(s.tick + 1);
+          const before = s;
+          s = orbitRev3ArtGame.step(s, tap ? { t: s.tick + 1, k: ORBIT_INPUT_TAP, a: 0, b: 0, c: 0, d: 0 } : null);
+          const cam = orbitCamera(s, { reducedMotion });
+          const panning = orbitCameraPanning(s, { reducedMotion });
+          const caught = s.cur !== before.cur || s.captured !== before.captured || s.respawnTick !== before.respawnTick;
+          if (caught) { panFrom = s.tick; pans++; }
+          if (panning) {
+            assert(panFrom >= 0 && s.tick - panFrom < (reducedMotion ? ORBIT_STILL_REDUCED_PAN_MAX_TICKS : ORBIT_STILL_PAN_MAX_TICKS), `a pan only after a catch, and short (course ${entry.seed} tick ${s.tick})`);
+          } else if (panFrom >= 0) { maxPan = Math.max(maxPan, s.tick - panFrom); panFrom = -1; }
+          const x = s.x / FP - cam.x, y = s.y / FP - cam.y;
+          assert(x >= M - 1e-6 && x <= W - M + 1e-6 && y >= M - 1e-6 && y <= H - M + 1e-6, `rocket in the frame (course ${entry.seed} tick ${s.tick}: ${x.toFixed(1)}, ${y.toFixed(1)})`);
+          const moved = Math.hypot(cam.x - prev.x, cam.y - prev.y);
+          if ((before.warp ?? 0) === 0 && (s.warp ?? 0) === 0) maxStep = Math.max(maxStep, moved);
+          // A pan's last tick (it lands on its target) already reads as settled.
+          if (!panning && !wasPanning && !caught && !s.ended) {
+            if (s.flying > 0) {
+              // Judged against last tick's frame: the camera moves only for a rocket in the edge band.
+              const px = s.x / FP - prev.x, py = s.y / FP - prev.y, inner = M + ORBIT_STILL_EDGE_BAND;
+              const inBand = px < inner || px > W - inner || py < inner || py > H - inner;
+              if (!inBand) { assert.deepEqual(cam, prev, `still in flight away from the edges (course ${entry.seed} tick ${s.tick})`); stillFlight++; }
+              else if (moved > 0) edgeMoves++;
+            } else if (before.flying === 0) {
+              assert.deepEqual(cam, prev, `still in orbit (course ${entry.seed} tick ${s.tick} warp ${s.warp} cur ${s.cur} rocket ${(s.x / FP - cam.x).toFixed(1)},${(s.y / FP - cam.y).toFixed(1)} random ${random} rm ${reducedMotion})`);
+              stillOrbit++;
+            }
+          }
+          prev = cam;
+          frames++;
+          wasPanning = panning;
+        }
+      }
+    }
+  }
+  assert(maxStep <= NO_JUMP, `the still camera never jumps (largest step ${maxStep.toFixed(1)})`);
+  assert(stillOrbit > 10000 && stillFlight > 1000 && pans > 300, `the still-camera samples cover orbits, flights and pans (${stillOrbit} / ${stillFlight} / ${pans})`);
+  console.log(`STILL CAMERA PASS (orbitRev 14): ${runs} runs, ${frames} frames, ${stillOrbit} still orbit and ${stillFlight} still flight samples, ${edgeMoves} edge-follow moves, ${pans} catch pans (longest ${maxPan} ticks), largest step ${maxStep.toFixed(1)} px a tick`);
+}
