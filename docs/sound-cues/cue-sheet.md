@@ -112,6 +112,12 @@ Grouped by game or screen. These are the cues still missing a sound.
 | `clayshoot.shatter` | Pull!: An orange clay is hit (new shard shatter) [speed-attention.md] |  | 5–40 (per move) | silent | none | 433 | game event | `clayshoot.shatter` |
 | `clayshoot.goldShatter` | Pull!: A gold clay is hit (shatter with gold sparkle) [speed-attention.md] |  | 5–40 (per move) | silent | none | 433 | game event | `clayshoot.goldShatter` |
 
+### Bomb Defusal
+
+| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
+|---|---|---|---|---|---|---|---|---|
+| `bomb.press` | Button A or B is pressed [logic.md] |  | 5–40 (per move) | silent | none | 200 | game event | `bomb.press` |
+
 ### Double Take
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
@@ -189,12 +195,6 @@ Grouped by game or screen. These are the cues still missing a sound.
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
 | `lightsout.toggle` | A light is pressed [logic.md] |  | 5–40 (per move) | silent | none | 180 | UI tap | `lightsout.toggle` |
-
-### Bomb Defusal
-
-| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
-|---|---|---|---|---|---|---|---|---|
-| `bomb.press` | Button A or B is pressed [logic.md] |  | 5–40 (per move) | silent | none | 200 | game event | `bomb.press` |
 
 ### Box Six
 
@@ -342,6 +342,7 @@ Grouped by game or screen. These are the cues still missing a sound.
 | Don't Break the Chain | speed | yes | music_speed_2 (shared) | `music_speed_chain` |
 | Flash | speed | yes | music_speed_1 (shared) | `music_speed_reaction` |
 | Pull! | speed | yes | music_speed_3 (shared) | `music_speed_clayshoot` |
+| Bomb Defusal | attention | yes | music_logic_3 (shared) | `music_attention_bomb` |
 | Double Take | attention | yes | music_attention_1 (shared) | `music_attention_spotdiff` |
 | Eagle Eye | attention | yes | music_attention_2 (shared) | `music_attention_symscan` |
 | Labyrinth | attention | yes | music_attention_3 (shared) | `music_attention_maze` |
@@ -359,7 +360,6 @@ Grouped by game or screen. These are the cues still missing a sound.
 | Topsy-Turvy | pattern | yes | music_pattern_3 (shared) | `music_pattern_gravity` |
 | Turntable | pattern | yes | music_pattern_1 (shared) | `music_pattern_rings` |
 | Blackout | logic | yes | music_logic_2 (shared) | `music_logic_lightsout` |
-| Bomb Defusal | logic | yes | music_logic_3 (shared) | `music_logic_bomb` |
 | Box Six | logic | yes | music_logic_1 (shared) | `music_logic_sudoku` |
 | Colour Flood | logic | yes | music_logic_2 (shared) | `music_logic_flood` |
 | Dig | logic | practice only | music_logic_1 (shared) | `music_logic_dig` |
@@ -514,7 +514,7 @@ Grouped by game or screen.
 | `voice.tie` | round result, results table, podium, final result: Voice "Tie": a tied round for the players sharing the top score, a shared first place, a draw [core.md] |  | 0–1 | recorded sound | `voice.tie` | 2886 | room moment | `voice.tie` |
 | `voice.youWin` | podium, final result: Voice "You win" for the winner, in place of gg [core.md] |  | 0–1 per room | recorded sound | `voice.youWin` | 2823 | room moment | `voice.youWin` |
 | `voice.rematch` | room (duel.$code): Voice "Rematch" when Play again reopens a finished room, for every player in it [core.md] |  | 0–1 per room | recorded sound | `voice.rematch` | 2594 | room moment | `voice.rematch` |
-| `voice.newBest` | reveal (NewBestMoment): Voice "New best": practice's reveal when the run beat an earlier best (3 Nov 2026; queueVoice, never over another line) [core.md] |  | 0–1 | recorded sound | `voice.newBest` | 2482 | room moment | `voice.newBest` |
+| `voice.newBest` | reveal (NewBestMoment, ArcadeReveal): Voice "New best": practice's reveal when the run beat an earlier best, or a room's arcade reveal beating this device's best for the game (3 Nov 2026; queueVoice, never over another line) [core.md] |  | 0–1 | recorded sound | `voice.newBest` | 2482 | room moment | `voice.newBest` |
 | `voice.photoFinish` | round result, results table: Voice "Photo finish": the round's top two scores 1–5 points apart (isPhotoFinish), after the screen's own line [core.md] |  | 0–1 per round | recorded sound | `voice.photoFinish` | 2194 | room moment | `voice.photoFinish` |
 | `voice.newLeader` | standings: Voice "New leader": first place changed hands after this round (isNewLeader) [core.md] |  | 0–1 per round | recorded sound | `voice.newLeader` | 1881 | room moment | `voice.newLeader` |
 | `voice.cleanSweep` | podium, final result: Voice "Clean sweep": one player had the sole top score in every round (cleanSweepSlot), after the room's end line [core.md] |  | 0–1 per room | recorded sound | `voice.cleanSweep` | 2220 | room moment | `voice.cleanSweep` |
@@ -947,6 +947,16 @@ Grouped by game or screen.
 | `clayshoot.birdStartle` | Pull!: A bird is shot (feathers drift) [speed-attention.md] |  | 5–40 (per move) | recorded sound | `clayshoot.birdStartle` | 600 | game event | `clayshoot.birdStartle` |
 | `music.clayshoot` | Pull! round bed: music_speed_3 (speed bed shared with other games) |  | loop | recorded sound | `music_speed_3` (shared) | 60000 | music | `music_speed_clayshoot` |
 
+### Bomb Defusal
+
+| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
+|---|---|---|---|---|---|---|---|---|
+| `pz_bomb_explode` | reveal (Bomb Defusal): The bomb explodes on a wrong answer [core.md] |  | 0–1 | recorded sound | `pz_bomb_explode` | 1770 | fail sting | `pz_bomb_explode` |
+| `bomb.cut` | A wire is cut [logic.md] |  | 5–40 (per move) | recorded sound | `bomb.cut` | 220 | game event | `bomb.cut` |
+| `bomb.defuse` | DEFUSE is tapped (the submission; not a verdict) [logic.md] |  | 0–1 | recorded sound | `bomb.defuse` | 640 | success sting | `bomb.defuse` |
+| `bomb.solve` | The reveal shows a verified defuse [logic.md] |  | 0–1 | recorded sound | `bomb.solve` | 700 | success sting | `bomb.solve` |
+| `music.bomb` | Bomb Defusal round bed: music_logic_3 (attention bed shared with other games) |  | loop | recorded sound | `music_logic_3` (shared) | 60000 | music | `music_attention_bomb` |
+
 ### Double Take
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
@@ -1091,16 +1101,6 @@ Grouped by game or screen.
 |---|---|---|---|---|---|---|---|---|
 | `lightsout.solve` | Every light is off [logic.md] |  | 0–1 | recorded sound | `lightsout.solve` | 1000 | success sting | `lightsout.solve` |
 | `music.lightsout` | Blackout round bed: music_logic_2 (logic bed shared with other games) |  | loop | recorded sound | `music_logic_2` (shared) | 60000 | music | `music_logic_lightsout` |
-
-### Bomb Defusal
-
-| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
-|---|---|---|---|---|---|---|---|---|
-| `pz_bomb_explode` | reveal (Bomb Defusal): The bomb explodes on a wrong answer [core.md] |  | 0–1 | recorded sound | `pz_bomb_explode` | 1770 | fail sting | `pz_bomb_explode` |
-| `bomb.cut` | A wire is cut [logic.md] |  | 5–40 (per move) | recorded sound | `bomb.cut` | 220 | game event | `bomb.cut` |
-| `bomb.defuse` | DEFUSE is tapped (the submission; not a verdict) [logic.md] |  | 0–1 | recorded sound | `bomb.defuse` | 640 | success sting | `bomb.defuse` |
-| `bomb.solve` | The reveal shows a verified defuse [logic.md] |  | 0–1 | recorded sound | `bomb.solve` | 700 | success sting | `bomb.solve` |
-| `music.bomb` | Bomb Defusal round bed: music_logic_3 (logic bed shared with other games) |  | loop | recorded sound | `music_logic_3` (shared) | 60000 | music | `music_logic_bomb` |
 
 ### Box Six
 
@@ -2038,7 +2038,7 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 | `music_pattern_3` | music | `music.laser`, `music.gravity` | loop |
 | `music_logic_1` | music | `music.sudoku`, `music.dig`, `music.lightup`, `music.nonogram`, `music.fillomino`, `music.shikaku`, `music.tents` | loop |
 | `music_logic_2` | music | `music.flow`, `music.pipes`, `music.lightsout`, `music.flood`, `music.fences`, `music.safe` | loop |
-| `music_logic_3` | music | `music.push`, `music.bomb`, `music.tower`, `music.bridges`, `music.tubes`, `music.trail` | loop |
+| `music_logic_3` | music | `music.bomb`, `music.push`, `music.tower`, `music.bridges`, `music.tubes`, `music.trail` | loop |
 | `standings_loop` | music | `music.standings` | loop |
 | `podium_loop` | music | `music.podium` | loop |
 | `music_burst` | music | `music.burst` | loop |

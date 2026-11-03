@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { usePerfectBurst } from "@/lib/fx/useSignature";
+import { queueVoice } from "@/lib/sound";
 
 import { ArcadeCelebration, type CelebrationKind } from "@/components/duel/ArcadeCelebration";
 import { WaitingLine } from "@/components/duel/Dots";
@@ -234,12 +235,25 @@ function useCountUp(target: number | null, ms = 1000): number {
 /** The final tick drawn once with the game's renderer, dimmed and blurred. */
 
 /** Full clear (the server replay's "finish" outcome) and/or a new device best, once the stored score lands. */
+/** Room runs whose "New best" line has played (a remount never repeats it). */
+const voicedBests = new Set<string>();
+
 function useCelebration(puzzle: PuzzleData, myAnswer: string | null, myScore: number | null, myReveal: ArcadeRevealData | null, personalBest: boolean | undefined, round: number | undefined): CelebrationKind | null {
   const [best, setBest] = useState(false);
   useEffect(() => {
     if (myScore === null || !myReveal) return;
     if (personalBest !== undefined) setBest(personalBest);
-    else setBest(recordArcadeRoomBest(puzzle.type, myScore, runKey(puzzle.type, round, myAnswer)));
+    else {
+      const key = runKey(puzzle.type, round, myAnswer);
+      const improved = recordArcadeRoomBest(puzzle.type, myScore, key);
+      setBest(improved);
+      // A room run that beat this device's best for the game (3 Nov 2026): the "New best" voice line, once per run
+      // (practice's comes from NewBestMoment), after the score's own sounds and never over another voice line.
+      if (improved && !voicedBests.has(key)) {
+        voicedBests.add(key);
+        queueVoice("voice.newBest", 1000);
+      }
+    }
   }, [puzzle.type, myScore, myReveal, myAnswer, personalBest, round]);
   if (myScore === null || !myReveal) return null;
   const full = myReveal.outcome === "finish";

@@ -23,6 +23,7 @@ tendrop.refused,Tenfall,a ÷ or − tile is refused [number.md],,5–40 (per mov
 clayshoot.goldSparkle,Pull!,Pull!: 380 ms into the final burst: the fragments turn into gold sparkle across the sky [speed-attention.md],,0–1,silent,,700,success sting,clayshoot.goldSparkle,
 clayshoot.shatter,Pull!,Pull!: An orange clay is hit (new shard shatter) [speed-attention.md],,5–40 (per move),silent,,433,game event,clayshoot.shatter,
 clayshoot.goldShatter,Pull!,Pull!: A gold clay is hit (shatter with gold sparkle) [speed-attention.md],,5–40 (per move),silent,,433,game event,clayshoot.goldShatter,
+bomb.press,Bomb Defusal,Button A or B is pressed [logic.md],,5–40 (per move),silent,,200,game event,bomb.press,
 spotdiff.found,Double Take,Double Take: A difference found (ring draws in) [speed-attention.md],,5–40 (per move),silent,,260,game event,spotdiff.found,
 spotdiff.miss,Double Take,Double Take: A wrong tap (the existing shake) [speed-attention.md],,5–40 (per move),silent,,250,fail sting,spotdiff.miss,
 symscan.mark,Eagle Eye,Eagle Eye: A cell is marked (pop) [speed-attention.md],,5–40 (per move),silent,,200,UI tap,symscan.mark,
@@ -41,7 +42,6 @@ iceslide.slide,Skid,A slide starts (the ball and its frost trail move) [pattern.
 gravity.tilt,Topsy-Turvy,An arrow press tilts the tray and the balls roll [pattern.md (Topsy-Turvy (gravity))],,5–40 (per move),silent,,200,game event,gravity.tilt,
 rings.turn,Turntable,A turn: the ring rotates and every linked ring that moved flashes [pattern.md (Turntable (rings))],,5–40 (per move),silent,,210,game event,rings.turn,
 lightsout.toggle,Blackout,A light is pressed [logic.md],,5–40 (per move),silent,,180,UI tap,lightsout.toggle,
-bomb.press,Bomb Defusal,Button A or B is pressed [logic.md],,5–40 (per move),silent,,200,game event,bomb.press,
 sudoku.place,Box Six,"A digit is entered in a cell (not pencil marks, not clearing) [logic.md]",,5–40 (per move),silent,,170,UI tap,sudoku.place,
 flood.spread,Colour Flood,A colour is tapped and the paint spreads [logic.md],,5–40 (per move),silent,,220,game event,flood.spread,
 tower.drop,Hanoi,A ring lands on a post (legal move) [logic.md],,5–40 (per move),silent,,220,game event,tower.drop,
@@ -137,7 +137,7 @@ voice.perfect,Room moments,"reveal (perfectBurst): Voice ""Perfect"" with shared
 voice.tie,Room moments,"round result, results table, podium, final result: Voice ""Tie"": a tied round for the players sharing the top score, a shared first place, a draw [core.md]",,0–1,recorded sound,voice.tie,2886,room moment,voice.tie,
 voice.youWin,Room moments,"podium, final result: Voice ""You win"" for the winner, in place of gg [core.md]",,0–1 per room,recorded sound,voice.youWin,2823,room moment,voice.youWin,
 voice.rematch,Room moments,"room (duel.$code): Voice ""Rematch"" when Play again reopens a finished room, for every player in it [core.md]",,0–1 per room,recorded sound,voice.rematch,2594,room moment,voice.rematch,
-voice.newBest,Room moments,"reveal (NewBestMoment): Voice ""New best"": practice's reveal when the run beat an earlier best (3 Nov 2026; queueVoice, never over another line) [core.md]",,0–1,recorded sound,voice.newBest,2482,room moment,voice.newBest,
+voice.newBest,Room moments,"reveal (NewBestMoment, ArcadeReveal): Voice ""New best"": practice's reveal when the run beat an earlier best, or a room's arcade reveal beating this device's best for the game (3 Nov 2026; queueVoice, never over another line) [core.md]",,0–1,recorded sound,voice.newBest,2482,room moment,voice.newBest,
 voice.photoFinish,Room moments,"round result, results table: Voice ""Photo finish"": the round's top two scores 1–5 points apart (isPhotoFinish), after the screen's own line [core.md]",,0–1 per round,recorded sound,voice.photoFinish,2194,room moment,voice.photoFinish,
 voice.newLeader,Room moments,"standings: Voice ""New leader"": first place changed hands after this round (isNewLeader) [core.md]",,0–1 per round,recorded sound,voice.newLeader,1881,room moment,voice.newLeader,
 voice.cleanSweep,Room moments,"podium, final result: Voice ""Clean sweep"": one player had the sole top score in every round (cleanSweepSlot), after the room's end line [core.md]",,0–1 per room,recorded sound,voice.cleanSweep,2220,room moment,voice.cleanSweep,
@@ -434,6 +434,11 @@ pz_clay_hit,Pull!,Pull!: A clay is hit [core.md],,10–25,recorded sound,pz_clay
 clayshoot.finalBurst,Pull!,"Pull!: End of run, local clay score ≥ 120: final burst of clay fragments [speed-attention.md]",,0–1,recorded sound,clayshoot.finalBurst,1100,success sting,clayshoot.finalBurst,public/sounds/clayshoot.finalBurst.mp3 (from done.clayBurst.mp3)
 clayshoot.birdStartle,Pull!,Pull!: A bird is shot (feathers drift) [speed-attention.md],,5–40 (per move),recorded sound,clayshoot.birdStartle,600,game event,clayshoot.birdStartle,public/sounds/clayshoot.birdStartle.mp3 (from clayshoot.birdStartle.mp3)
 music.clayshoot,Pull!,Pull! round bed: music_speed_3 (speed bed shared with other games),,loop,recorded sound,music_speed_3 (shared),60000,music,music_speed_clayshoot,
+pz_bomb_explode,Bomb Defusal,reveal (Bomb Defusal): The bomb explodes on a wrong answer [core.md],,0–1,recorded sound,pz_bomb_explode,1770,fail sting,pz_bomb_explode,
+bomb.cut,Bomb Defusal,A wire is cut [logic.md],,5–40 (per move),recorded sound,bomb.cut,220,game event,bomb.cut,public/sounds/bomb.cut.mp3 (from bomb.cut.mp3)
+bomb.defuse,Bomb Defusal,DEFUSE is tapped (the submission; not a verdict) [logic.md],,0–1,recorded sound,bomb.defuse,640,success sting,bomb.defuse,public/sounds/bomb.defuse.mp3 (from bomb.defuse.mp3)
+bomb.solve,Bomb Defusal,The reveal shows a verified defuse [logic.md],,0–1,recorded sound,bomb.solve,700,success sting,bomb.solve,public/sounds/bomb.solve.mp3 (from done.defuse.mp3)
+music.bomb,Bomb Defusal,Bomb Defusal round bed: music_logic_3 (attention bed shared with other games),,loop,recorded sound,music_logic_3 (shared),60000,music,music_attention_bomb,
 spotdiff.allFound,Double Take,"Double Take: Sixth difference of a picture found: all six glow in both panels (spotRev 1: after picture 1 too, then picture 2 slides in) [speed-attention.md]",,0–1,recorded sound,spotdiff.allFound,1100,success sting,spotdiff.allFound,public/sounds/spotdiff.allFound.mp3 (from done.glowSweep.mp3)
 spotdiff.nextPicture,Double Take,Double Take: spotRev 1: Next picture pressed before all six were found (picture 2 slides in) [speed-attention.md],,1–5,recorded sound,spotdiff.nextPicture,320,game event,spotdiff.nextPicture,
 music.spotdiff,Double Take,Double Take round bed: music_attention_1 (attention bed shared with other games),,loop,recorded sound,music_attention_1 (shared),60000,music,music_attention_spotdiff,
@@ -494,11 +499,6 @@ rings.solve,Turntable,The record spins up through two turns with the spokes stro
 music.rings,Turntable,Turntable round bed: music_pattern_1 (pattern bed shared with other games),,loop,recorded sound,music_pattern_1 (shared),60000,music,music_pattern_rings,
 lightsout.solve,Blackout,Every light is off [logic.md],,0–1,recorded sound,lightsout.solve,1000,success sting,lightsout.solve,public/sounds/lightsout.solve.mp3 (from done.glowSweep.mp3)
 music.lightsout,Blackout,Blackout round bed: music_logic_2 (logic bed shared with other games),,loop,recorded sound,music_logic_2 (shared),60000,music,music_logic_lightsout,
-pz_bomb_explode,Bomb Defusal,reveal (Bomb Defusal): The bomb explodes on a wrong answer [core.md],,0–1,recorded sound,pz_bomb_explode,1770,fail sting,pz_bomb_explode,
-bomb.cut,Bomb Defusal,A wire is cut [logic.md],,5–40 (per move),recorded sound,bomb.cut,220,game event,bomb.cut,public/sounds/bomb.cut.mp3 (from bomb.cut.mp3)
-bomb.defuse,Bomb Defusal,DEFUSE is tapped (the submission; not a verdict) [logic.md],,0–1,recorded sound,bomb.defuse,640,success sting,bomb.defuse,public/sounds/bomb.defuse.mp3 (from bomb.defuse.mp3)
-bomb.solve,Bomb Defusal,The reveal shows a verified defuse [logic.md],,0–1,recorded sound,bomb.solve,700,success sting,bomb.solve,public/sounds/bomb.solve.mp3 (from done.defuse.mp3)
-music.bomb,Bomb Defusal,Bomb Defusal round bed: music_logic_3 (logic bed shared with other games),,loop,recorded sound,music_logic_3 (shared),60000,music,music_logic_bomb,
 sudoku.solve,Box Six,The grid is complete and valid [logic.md],,0–1,recorded sound,sudoku.solve,1200,success sting,sudoku.solve,public/sounds/sudoku.solve.mp3 (from done.glowSweep.mp3)
 music.sudoku,Box Six,Box Six round bed: music_logic_1 (logic bed shared with other games),,loop,recorded sound,music_logic_1 (shared),60000,music,music_logic_sudoku,
 flood.solve,Colour Flood,The board is one colour [logic.md],,0–1,recorded sound,flood.solve,1150,success sting,flood.solve,public/sounds/flood.solve.mp3 (from done.glowSweep.mp3)

@@ -340,7 +340,7 @@ async function captureGame(browser: Browser, game: PuzzleType) {
       }
       entry.reveal = scripted ? "played to the end" : "timed out after the driver's partial play";
     }
-    await run.page.locator(REVEAL).first().waitFor({ timeout: 30_000 });
+    await run.page.locator(REVEAL).first().waitFor({ timeout: 150_000 });
     await run.page.waitForTimeout(1800);
     await run.page.screenshot({ path: file("reveal") });
     entry.revealText = await revealText(run.page);
@@ -350,6 +350,14 @@ async function captureGame(browser: Browser, game: PuzzleType) {
       .first()
       .getAttribute("data-reveal-score", { timeout: 1000 })
       .catch(() => null);
+  } catch (error) {
+    // The screen at the failure, for diagnosis (--errors=<dir>; never into the screenshots folder).
+    const errDir = opt("errors");
+    if (errDir) {
+      mkdirSync(errDir, { recursive: true });
+      await run.page.screenshot({ path: join(errDir, `${game}-error.png`) }).catch(() => {});
+    }
+    throw error;
   } finally {
     errors.push(...run.errors);
     await run.close();

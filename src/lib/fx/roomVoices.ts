@@ -5,7 +5,8 @@
  * `queueVoice` (src/lib/sound.ts), so it never talks over another voice line, and the screens
  * call each one once (their own `cued` refs).
  *
- * - `voice.newBest`: practice's reveal, when this run beat an earlier best (the "New best!" moment).
+ * - `voice.newBest`: practice's reveal, when this run beat an earlier best (the "New best!" moment), or a room's
+ *   arcade reveal beating this device's best for the game (ArcadeReveal, arcadeBest.ts).
  * - `voice.photoFinish`: a room's round results, when the round's top two scores are 1–5 apart.
  * - `voice.newLeader`: a room's standings, when first place is held by someone new after a round.
  * - `voice.cleanSweep`: the room's end, when one player had the round's sole top score every round.
