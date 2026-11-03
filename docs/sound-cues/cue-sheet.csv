@@ -496,27 +496,23 @@ bomb.solve,Bomb Defusal,The reveal shows a verified defuse [logic.md],,0–1,rec
 music.bomb,Bomb Defusal,Bomb Defusal round bed: music_logic_3 (logic bed shared with other games),,loop,recorded sound,music_logic_3 (shared),60000,music,music_logic_bomb,
 sudoku.solve,Box Six,The grid is complete and valid [logic.md],,0–1,recorded sound,sudoku.solve,1200,success sting,sudoku.solve,public/sounds/sudoku.solve.mp3 (from done.glowSweep.mp3)
 music.sudoku,Box Six,Box Six round bed: music_logic_1 (logic bed shared with other games),,loop,recorded sound,music_logic_1 (shared),60000,music,music_logic_sudoku,
-bridges.build,Bridges, [grid.md],,5–40 (per move),recorded sound,bridges.build,200,game event,bridges.build,
-bridges.remove,Bridges, [grid.md],,5–40 (per move),recorded sound,bridges.remove,200,game event,bridges.remove,
-bridges.solve,Bridges, [grid.md],,0–1,recorded sound,bridges.solve,1000,success sting,bridges.solve,
-music.bridges,Bridges,Bridges round bed: music_logic_3 (logic bed shared with other games),,loop,recorded sound,music_logic_3 (shared),60000,music,music_logic_bridges,
 flood.solve,Colour Flood,The board is one colour [logic.md],,0–1,recorded sound,flood.solve,1150,success sting,flood.solve,public/sounds/flood.solve.mp3 (from done.glowSweep.mp3)
 music.flood,Colour Flood,Colour Flood round bed: music_logic_2 (logic bed shared with other games),,loop,recorded sound,music_logic_2 (shared),60000,music,music_logic_flood,
 music.dig,Dig,"Dig round bed (retired, practice): music_logic_1 (logic bed shared with other games)",,loop,recorded sound,music_logic_1 (shared),60000,music,music_logic_dig,
-fences.draw,Fences, [grid.md],,5–40 (per move),recorded sound,fences.draw,200,game event,fences.draw,
-fences.cross,Fences, [grid.md],,5–40 (per move),recorded sound,fences.cross,200,game event,fences.cross,
-fences.solve,Fences, [grid.md],,0–1,recorded sound,fences.solve,1000,success sting,fences.solve,
-music.fences,Fences,Fences round bed: music_logic_2 (logic bed shared with other games),,loop,recorded sound,music_logic_2 (shared),60000,music,music_logic_fences,
-fillomino.place,Fillomino, [grid.md],,5–40 (per move),recorded sound,fillomino.place,80,UI tap,fillomino.place,
-fillomino.region,Fillomino, [grid.md],,5–40 (per move),recorded sound,fillomino.region,200,game event,fillomino.region,
-fillomino.solve,Fillomino, [grid.md],,0–1,recorded sound,fillomino.solve,1000,success sting,fillomino.solve,
-music.fillomino,Fillomino,Fillomino round bed: music_logic_1 (logic bed shared with other games),,loop,recorded sound,music_logic_1 (shared),60000,music,music_logic_fillomino,
 tower.lift,Hanoi,A ring is lifted off a post [logic.md],,5–40 (per move),recorded sound,tower.lift,80,UI tap,tower.lift,
 tower.solve,Hanoi,Every ring is on the gold post [logic.md],,0–1,recorded sound,tower.solve,1170,success sting,tower.solve,public/sounds/tower.solve.mp3 (from done.rising.mp3)
 music.tower,Hanoi,Hanoi round bed: music_logic_3 (logic bed shared with other games),,loop,recorded sound,music_logic_3 (shared),60000,music,music_logic_tower,
+bridges.build,Island Link, [grid.md],,5–40 (per move),recorded sound,bridges.build,200,game event,bridges.build,
+bridges.remove,Island Link, [grid.md],,5–40 (per move),recorded sound,bridges.remove,200,game event,bridges.remove,
+bridges.solve,Island Link, [grid.md],,0–1,recorded sound,bridges.solve,1000,success sting,bridges.solve,
+music.bridges,Island Link,Island Link round bed: music_logic_3 (logic bed shared with other games),,loop,recorded sound,music_logic_3 (shared),60000,music,music_logic_bridges,
 lightup.clear,Lamplighter,A square is cleared [logic.md],,5–40 (per move),recorded sound,lightup.clear,200,game event,lightup.clear,
 lightup.solve,Lamplighter,Every square is lit with no clash and every number met [logic.md],,0–1,recorded sound,lightup.solve,1170,success sting,lightup.solve,public/sounds/lightup.solve.mp3 (from done.glowSweep.mp3)
 music.lightup,Lamplighter,Lamplighter round bed: music_logic_1 (logic bed shared with other games),,loop,recorded sound,music_logic_1 (shared),60000,music,music_logic_lightup,
+fences.draw,Loopline, [grid.md],,5–40 (per move),recorded sound,fences.draw,200,game event,fences.draw,
+fences.cross,Loopline, [grid.md],,5–40 (per move),recorded sound,fences.cross,200,game event,fences.cross,
+fences.solve,Loopline, [grid.md],,0–1,recorded sound,fences.solve,1000,success sting,fences.solve,
+music.fences,Loopline,Loopline round bed: music_logic_2 (logic bed shared with other games),,loop,recorded sound,music_logic_2 (shared),60000,music,music_logic_fences,
 nonogram.clear,Mosaic,A cell is cleared [logic.md],,5–40 (per move),recorded sound,nonogram.clear,200,game event,nonogram.clear,
 nonogram.solve,Mosaic,Every line matches its clues [logic.md],,0–1,recorded sound,nonogram.solve,1160,success sting,nonogram.solve,public/sounds/nonogram.solve.mp3 (from done.tileFlip.mp3)
 music.nonogram,Mosaic,Mosaic round bed: music_logic_1 (logic bed shared with other games),,loop,recorded sound,music_logic_1 (shared),60000,music,music_logic_nonogram,
@@ -524,6 +520,10 @@ tubes.lift,Polypotions,A flask's top layer is lifted [logic.md],,5–40 (per mov
 tubes.cork,Polypotions,A pour fills a flask with one colour (it gets a cork) [logic.md],,5–40 (per move),recorded sound,tubes.cork,380,game event,tubes.cork,public/sounds/tubes.cork.mp3 (from tubes.cork.mp3)
 tubes.solve,Polypotions,Every flask is sorted [logic.md],,0–1,recorded sound,tubes.solve,1140,success sting,tubes.solve,public/sounds/tubes.solve.mp3 (from done.corks.mp3)
 music.tubes,Polypotions,Polypotions round bed: music_logic_3 (logic bed shared with other games),,loop,recorded sound,music_logic_3 (shared),60000,music,music_logic_tubes,
+fillomino.place,Regions, [grid.md],,5–40 (per move),recorded sound,fillomino.place,80,UI tap,fillomino.place,
+fillomino.region,Regions, [grid.md],,5–40 (per move),recorded sound,fillomino.region,200,game event,fillomino.region,
+fillomino.solve,Regions, [grid.md],,0–1,recorded sound,fillomino.solve,1000,success sting,fillomino.solve,
+music.fillomino,Regions,Regions round bed: music_logic_1 (logic bed shared with other games),,loop,recorded sound,music_logic_1 (shared),60000,music,music_logic_fillomino,
 pz_safe_open,Safe Cracker,Safe Cracker: The safe opens (solve) [core.md],,0–1,recorded sound,pz_safe_open,2200,game event,pz_safe_open,
 safe.click,Safe Cracker,A dial turns one step (each repeat while held fires again) [logic.md],,5–40 (per move),recorded sound,safe.click,130,game event,safe.click,
 music.safe,Safe Cracker,Safe Cracker round bed: music_logic_2 (logic bed shared with other games),,loop,recorded sound,music_logic_2 (shared),60000,music,music_logic_safe,

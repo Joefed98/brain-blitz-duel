@@ -6,6 +6,7 @@
 import { BLOCK_STD, FLOW_STD, ICE_STD, LASER_STD, PATTERN_STD, PUSH_STD, SHARE_CREDIT, SHARE_EARLY, TOPSY_STD, type PatternStdType } from "./patternRules";
 import { STANDARD_FINISH, STANDARD_UNFINISHED_CAP } from "./shape";
 import { fillMax } from "../roundMax";
+import { PAR_MOVES_STD, parMovesDealt } from "../parMoves";
 
 /** The intro line (two phone lines at most, no scoring terms). */
 export const PATTERN_STD_INTRO: Record<PatternStdType, string> = {
@@ -93,12 +94,42 @@ export const PATTERN_STD_HELP: Record<PatternStdType, string> = {
   ].join(" "),
 };
 
+/**
+ * Skid and Topsy-Turvy on the puzzle batch's stamps (3 Nov 2026, parMoves.ts: slideRev 3, gravityRev 6): no gems or
+ * stars; a finish is 150 + up to 30 for speed + up to 20 for par moves. The intro line (at most 90 characters).
+ */
+export const PAR_MOVES_PATTERN_INTRO: Record<"iceslide" | "gravity", string> = {
+  iceslide: "Points for getting closer. Reach the exit fast in the fewest slides for up to {max}.",
+  gravity: "Points for balls home. Clear all three boards fast in the fewest tilts for up to {max}.",
+};
+
+function parMovesFinish(type: "iceslide" | "gravity", what: string, parIs: string): string {
+  return `Finish: ${STANDARD_FINISH}, + up to ${PAR_MOVES_STD.speed} for speed (all of it if you finish within ${PATTERN_STD[type].fullByS} s, less as the clock runs down, none at the buzzer), + up to ${PAR_MOVES_STD.par} for ${what}: all of it at par (${parIs}) or under, less for each one over, none at twice par.`;
+}
+
+/** The "?" help SCORE text on the puzzle batch's stamps. */
+export const PAR_MOVES_PATTERN_HELP: Record<"iceslide" | "gravity", string> = {
+  iceslide: [
+    parMovesFinish("iceslide", "slides", "the fewest slides the exit can be reached in"),
+    byShare(`the share of the route you close (the fewest slides left from the closest you got)${waste("slides")}`),
+    "{max} needs both.",
+  ].join(" "),
+  gravity: [
+    parMovesFinish("gravity", "tilts", "the fewest tilts that clear each board, added up"),
+    byShare(`the share of the balls home${waste("tilts")}`),
+    "{max} needs both.",
+  ].join(" "),
+};
+
 /** The help as shown ({max} filled in: the game's maximum, 200). */
 export function patternStdHelp(type: PatternStdType): string {
+  // Skid and Topsy-Turvy state the puzzle batch's stamps while rooms deal them (parMoves.ts).
+  if ((type === "iceslide" || type === "gravity") && parMovesDealt()) return fillMax(PAR_MOVES_PATTERN_HELP[type], type);
   return fillMax(PATTERN_STD_HELP[type], type);
 }
 
 /** The intro line as shown ({max} filled in). */
 export function patternStdIntro(type: PatternStdType): string {
+  if ((type === "iceslide" || type === "gravity") && parMovesDealt()) return fillMax(PAR_MOVES_PATTERN_INTRO[type], type);
   return fillMax(PATTERN_STD_INTRO[type], type);
 }
