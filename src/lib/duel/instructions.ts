@@ -1645,9 +1645,13 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
     fillomino: {
       goal: "Split the grid into regions: a region of N squares holds N.",
       how: [
-        { action: "Tap a square", detail: "then a number, or drag from a number to paint it." },
+        // The puzzle batch of 3 Nov 2026: number first (pick a number, then tap or drag squares).
+        { action: "Pick a number,", detail: "then tap or drag squares to fill them." },
+        { action: "Tap it again", detail: "to clear a square, or use the eraser." },
         { action: "Each region of N", detail: "is N squares, all numbered N." },
         { action: "Same-size regions", detail: "never touch side by side." },
+        { action: "Right-size regions are tinted", detail: "(touching ones in different shades). The tint means the size is right, not that the region is correct.", helpOnly: true },
+        { action: "Undo", detail: "takes back a whole stroke; Reset clears the board.", helpOnly: true },
       ],
       score: gridStandardHelp("fillomino"),
     },
