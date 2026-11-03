@@ -92,7 +92,8 @@ const STANDARD_ROSTER: readonly { type: string; field: string; rev: number; batc
   { type: "curling", field: "curlRev", rev: 3, batch: "Sports" },
   // Blockfall (Retro) and Alley Roll (Sports), 1 Nov 2026: born on the standard (rev 1).
   { type: "blockfall", field: "blockfallRev", rev: 1, batch: "Retro" },
-  { type: "alleyroll", field: "alleyRollRev", rev: 1, batch: "Sports" },
+  // Ringer (Alley Roll alleyRollRev 2, 3 Nov 2026): the cup stack and the gold cup; four parts.
+  { type: "alleyroll", field: "alleyRollRev", rev: 2, batch: "Sports" },
   // Ricochet (1 Nov 2026): the ninja wall-climb, back from retirement and born on the standard at ricoRev 2.
   { type: "ricochet", field: "ricoRev", rev: 2, batch: "Action" },
 ];

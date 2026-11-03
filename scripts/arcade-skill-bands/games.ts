@@ -96,7 +96,7 @@ import { mgCheckpoint, mugginsGameFor, MG_REV } from "../../src/lib/arcade/cards
 import { bfCheckpoint, blockfallGameFor, BLOCKFALL_REV } from "../../src/lib/arcade/blockfall";
 import { encodeBlockfallRun, replayBlockfallRun } from "../../src/lib/duel/blockfall";
 import { blockfallDealSeed } from "../../src/lib/duel/blockfallDeal.server";
-import { alleyRollGameFor, arCheckpoint, ALLEYROLL_REV } from "../../src/lib/arcade/alleyroll";
+import { alleyRollGameFor, arCheckpoint, ALLEYROLL_REV_DEALT } from "../../src/lib/arcade/alleyroll";
 import { encodeAlleyRollRun, replayAlleyRollRun } from "../../src/lib/duel/alleyroll";
 import { bastionTankCheckpoint, bastionTankGame, BASTION_REV_TANK } from "../../src/lib/arcade/bastionTank";
 import { encodeBastionTankRun, replayBastionTankRun } from "../../src/lib/duel/bastion";
@@ -329,7 +329,8 @@ export const GAMES: GameSpec[] = [
   // Blockfall (Retro, 1 Nov 2026): born on the arcade standard; rooms deal a seed from its proved deal.
   { ...simple("blockfall", BLOCKFALL_REV, BLOCKFALL_REV, blockfallGameFor, bfCheckpoint, encodeBlockfallRun, replayBlockfallRun), seedFor: (n) => blockfallDealSeed(roomSeed(n)) },
   // Alley Roll (Sports, 1 Nov 2026): born on the arcade standard; one lane for every seed (rooms deal any seed).
-  simple("alleyroll", ALLEYROLL_REV, ALLEYROLL_REV, alleyRollGameFor, arCheckpoint, encodeAlleyRollRun, replayAlleyRollRun),
+  // Ringer (alleyRollRev 2, 3 Nov 2026): the gold cup's path comes from the seed; any seed.
+  simple("alleyroll", ALLEYROLL_REV_DEALT, ALLEYROLL_REV_DEALT, alleyRollGameFor, arCheckpoint, encodeAlleyRollRun, replayAlleyRollRun),
   // Ricochet (1 Nov 2026): the ninja wall-climb, born on the arcade standard at ricoRev 2; any seed (the sim deals the tower and proves its witness).
   simple("ricochet", NINJA_REV, NINJA_REV, () => ninjaGame, ninjaCheckpoint, encodeNinjaRun, (seed, raw) => replayNinjaRun(seed, raw)),
   // Bastion bastionRev 2 (1 Nov 2026): the tank-defence shooter, born on the arcade scoring standard; any seed.
