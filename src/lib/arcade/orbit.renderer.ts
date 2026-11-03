@@ -1266,11 +1266,15 @@ interface XpMemory {
   perfect: number;
   /** Recent moments: kind, world point, presentation time. */
   pops: { text: string; x: number; y: number; at: number; colour: string }[];
-  sparks: { x: number; y: number; at: number }[];
+  /** Stardust taken: the mote's world point, the rocket's velocity then (px a tick, for the sparkle trail), its index. */
+  sparks: { x: number; y: number; at: number; vx: number; vy: number; i: number }[];
 }
 const xpMemories = new WeakMap<object, XpMemory>();
 const XP_POP_MS = 900;
 const XP_SPARK_MS = 380;
+/** The sparkle trail a mote leaves when taken (Nov 2026, display only): glitter streaming after the rocket, then gone. */
+const XP_TRAIL_MS = 650;
+const XP_TRAIL_SPECKS = 10;
 
 function observeXp(ctx: object, s: OrbitRev3State): XpMemory {
   let m = xpMemories.get(ctx);
@@ -1284,7 +1288,7 @@ function observeXp(ctx: object, s: OrbitRev3State): XpMemory {
   const rx = s.x / FP, ry = s.y / FP;
   const got = (s.dustGot ?? 0) & ~m.dustGot;
   (s.dust ?? []).forEach((d, i) => {
-    if (got & (1 << i)) m!.sparks.push({ x: d.x / FP, y: d.y / FP, at: now });
+    if (got & (1 << i)) m!.sparks.push({ x: d.x / FP, y: d.y / FP, at: now, vx: s.vx / FP, vy: s.vy / FP, i });
   });
   if ((s.slung ?? 0) !== m.slung) m.pops.push({ text: "SLINGSHOT! +4", x: rx, y: ry - 26, at: now, colour: XP_TEAL });
   if ((s.threaded ?? 0) !== m.threaded) m.pops.push({ text: "THREADED! +4", x: rx, y: ry - 26, at: now, colour: ORBIT_GOLD });
@@ -1299,7 +1303,7 @@ function observeXp(ctx: object, s: OrbitRev3State): XpMemory {
   m.threaded = s.threaded ?? 0;
   m.perfect = s.perfect ?? 0;
   m.pops = m.pops.filter((p) => now - p.at < XP_POP_MS).slice(-3);
-  m.sparks = m.sparks.filter((p) => now - p.at < XP_SPARK_MS).slice(-8);
+  m.sparks = m.sparks.filter((p) => now - p.at < Math.max(XP_SPARK_MS, XP_TRAIL_MS)).slice(-8);
   return m;
 }
 
@@ -1397,29 +1401,60 @@ function drawXpFeatures(ctx: CanvasRenderingContext2D, s: OrbitRev3State, cam: O
     }
     drawXpMoon(ctx, x, y, ORBIT_MOON_R / FP);
   });
-  // Stardust: a soft glow and a bright core on each mote still to take.
+  // Stardust (Nov 2026, display only): each mote still to take is a small glittering cluster, five specks inside the
+  // pickup's own 4 px radius (ORBIT_DUST_R; the cluster is the collision size), each twinkling on its own phase, a glint
+  // on the brightest, over a soft gold-white glow (the glow alone reaches past it). Reduced effects: no glow; reduced
+  // motion: the specks still.
   ctx.save();
   (s.dust ?? []).forEach((d, i) => {
     if (((s.dustGot ?? 0) >> i) & 1) return;
     const x = d.x / FP - cam.x, y = d.y / FP - cam.y;
-    if (!inView(x, y, 12)) return;
-    const tw = still ? 1 : 0.8 + 0.2 * Math.sin(t * 5 + i * 1.7);
-    if (!lite) {
-      ctx.globalCompositeOperation = "lighter";
-      drawFxGlow(ctx, XP_DUST, x, y, ORBIT_DUST_R / FP + 6, 0.55 * tw);
-      ctx.globalCompositeOperation = "source-over";
-    }
-    ctx.globalAlpha = tw;
-    ctx.fillStyle = XP_DUST;
-    ctx.beginPath();
-    ctx.arc(x, y, ORBIT_DUST_R / FP - 1.5, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = "#FFFFFF";
-    ctx.fillRect(x - 0.6, y - ORBIT_DUST_R / FP, 1.2, (ORBIT_DUST_R / FP) * 2);
-    ctx.fillRect(x - ORBIT_DUST_R / FP, y - 0.6, (ORBIT_DUST_R / FP) * 2, 1.2);
-    ctx.globalAlpha = 1;
+    if (!inView(x, y, 14)) return;
+    drawDustCluster(ctx, x, y, i, t, still, lite);
   });
   ctx.restore();
+}
+
+/** Where a mote's specks sit: offsets (px) and size, all inside ORBIT_DUST_R, turned per mote. */
+const DUST_SPECKS: readonly { a: number; d: number; r: number; c: string }[] = [
+  { a: 0, d: 0, r: 1.5, c: "#FFFFFF" },
+  { a: 0.35, d: 2.7, r: 1.1, c: "#FFE9A8" },
+  { a: 1.95, d: 2.9, r: 0.9, c: "#FFF6D6" },
+  { a: 3.4, d: 2.5, r: 1.05, c: "#FFD98A" },
+  { a: 4.9, d: 2.9, r: 0.85, c: "#E9E2FF" },
+];
+function dustHash(i: number, k: number): number {
+  return (Math.imul(i * 7919 + k * 104729 + 1, 0x9e3779b1) >>> 0) / 4294967296;
+}
+function drawDustCluster(ctx: CanvasRenderingContext2D, x: number, y: number, i: number, t: number, still: boolean, lite: boolean): void {
+  const R = ORBIT_DUST_R / FP;
+  const turn = dustHash(i, 9) * Math.PI * 2;
+  if (!lite) {
+    const breathe = still ? 1 : 0.85 + 0.15 * Math.sin(t * 2.4 + i * 1.3);
+    ctx.globalCompositeOperation = "lighter";
+    drawFxGlow(ctx, XP_DUST, x, y, R + 8, 0.42 * breathe);
+    drawFxGlow(ctx, "#FFFFFF", x, y, R + 2, 0.3 * breathe);
+    ctx.globalCompositeOperation = "source-over";
+  }
+  let glint = 0;
+  DUST_SPECKS.forEach((sp, k) => {
+    const tw = still ? 0.9 : 0.5 + 0.5 * Math.max(0, Math.sin(t * (5 + 3 * dustHash(i, k)) + dustHash(i, k + 5) * 6.283));
+    if (k === 0) glint = tw;
+    const a = sp.a + turn;
+    const sx = x + Math.cos(a) * sp.d, sy = y + Math.sin(a) * sp.d;
+    // Each speck stays inside the pickup radius (centre distance + size ≤ R).
+    const r = Math.min(sp.r, R - sp.d) * (0.75 + 0.25 * tw);
+    ctx.globalAlpha = 0.45 + 0.55 * tw;
+    ctx.fillStyle = sp.c;
+    ctx.fillRect(sx - r, sy - r, r * 2, r * 2);
+  });
+  // The glint: a thin four-point star on the centre speck, at most the pickup radius long.
+  const g = R * (still ? 0.85 : 0.55 + 0.45 * glint);
+  ctx.globalAlpha = still ? 0.8 : 0.35 + 0.65 * glint;
+  ctx.fillStyle = "#FFFFFF";
+  ctx.fillRect(x - 0.45, y - g, 0.9, g * 2);
+  ctx.fillRect(x - g, y - 0.45, g * 2, 0.9);
+  ctx.globalAlpha = 1;
 }
 
 /** While the first lap round the current planet lasts: that part of the orbit, ahead of the rocket, in gold. */
@@ -1451,6 +1486,34 @@ function drawFirstLap(ctx: CanvasRenderingContext2D, s: OrbitRev3State, cam: Orb
 function drawXpPops(ctx: CanvasRenderingContext2D, m: XpMemory, cam: OrbitCamOffset, still: boolean): void {
   const now = presentationNow();
   ctx.save();
+  // The sparkle trail (Nov 2026, display only): a mote taken sheds glitter that streams after the rocket along its
+  // path, each speck slower than the last so they spread into a faint streak, twinkling as they fade. Not under
+  // reduced motion or reduced effects (battery saver included): the four-ray flash below shows alone.
+  if (!still && !arcadeReducedEffects()) {
+    ctx.globalCompositeOperation = "lighter";
+    for (const sp of m.sparks) {
+      const p = (now - sp.at) / XP_TRAIL_MS;
+      if (p < 0 || p >= 1) continue;
+      const ticks = (now - sp.at) / (1000 / 60);
+      const speed = Math.hypot(sp.vx, sp.vy) || 1;
+      const nx = -sp.vy / speed, ny = sp.vx / speed;
+      for (let k = 0; k < XP_TRAIL_SPECKS; k++) {
+        const h1 = dustHash(sp.i, k + 11), h2 = dustHash(sp.i, k + 23);
+        // How far along the rocket's path this speck is carried (a share of the rocket's travel), and its drift aside.
+        const carry = 0.04 + 0.5 * (k / (XP_TRAIL_SPECKS - 1));
+        const side = (h1 - 0.5) * 16 * (0.3 + p);
+        const x = sp.x - cam.x + sp.vx * ticks * carry + nx * side;
+        const y = sp.y - cam.y + sp.vy * ticks * carry + ny * side;
+        const tw = 0.5 + 0.5 * Math.sin(ticks * (0.5 + 0.4 * h2) + h2 * 6.283);
+        const fade = (1 - p) * (1 - p);
+        ctx.globalAlpha = 0.85 * fade * (0.45 + 0.55 * tw);
+        ctx.fillStyle = k & 1 ? XP_DUST : "#FFFFFF";
+        const r = 0.6 + 0.9 * tw * (1 - p * 0.5);
+        ctx.fillRect(x - r, y - r, r * 2, r * 2);
+      }
+    }
+    ctx.globalCompositeOperation = "source-over";
+  }
   for (const sp of m.sparks) {
     const p = (now - sp.at) / XP_SPARK_MS;
     if (p < 0 || p >= 1) continue;

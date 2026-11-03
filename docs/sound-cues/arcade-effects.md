@@ -170,7 +170,7 @@ Already sounded: shots (`wavefront.fire`), pierce pickup (`wavefront.pierce`), s
 | `orbit.blackHole` | Through a black hole (orbitRev 4+) | The hole's rim turns gold and the rocket jumps ahead; CLEAR banner | `pz_gravity_pull` (shared recording) · own file `orbit.blackHole.mp3` (sound batch 4, volume 0.8) | 0–5 | 1080 ms |
 | `orbit.newHazard` | The planet before the first figure-eight (21) or the first asteroid belt is reached | The new orbit shape or belt comes into view ahead | `alert.newHazard.mp3` | 0–2 | 600 ms |
 
-Already sounded: launch (`orbit.launch`), first checkpoint (`orbit.checkpoint`), respawn and crash (`orbit.crash`), ambience loop.
+Already sounded: launch (`orbit.launch`), first checkpoint (`orbit.checkpoint`), respawn and crash (`orbit.crash`), ambience loop, and (orbitRev 12+) a stardust mote taken (`shared.celebrate.countTick` from `gameSounds.ts`; since Nov 2026 its glitter flash and sparkle trail streaming after the rocket, display only, play on that same tick).
 
 ## Grappler
 

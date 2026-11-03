@@ -42,13 +42,39 @@ export function orbitPanTicks(dist: number, reducedMotion = false): number {
 export const ORBIT_GLIDE_DECAY = 0.7;
 /** Largest per-tick flight catch-up toward the safe box (world units). */
 export const ORBIT_FLIGHT_CATCH = 8;
-/** orbitRev 14: the flight camera leads the rocket by this many ticks of its flight (or its fuel left, if less). */
-export const ORBIT_FUEL_LEAD_TICKS = 45;
-/** orbitRev 14: the led point is framed this share of the view down from its top. */
-export const ORBIT_FUEL_LEAD_Y = 0.42;
-/** orbitRev 14: the share of the gap to the led framing closed each tick, and the most units a tick. */
-export const ORBIT_FUEL_EASE = 0.1;
-export const ORBIT_FUEL_CATCH = 10;
+/**
+ * orbitRev 14 (the fuel meter), the still camera (3 Nov 2026, Joe's brief; display only): the view holds still while the
+ * rocket orbits and while it flies. Only a catch (or a checkpoint respawn) pans it, an eased ~0.4 s pan
+ * (ORBIT_STILL_PAN_TICKS, a little longer for a long pan) to frame the planet caught. In flight the camera moves only when
+ * the rocket nears the frame's edge: inside a soft band (ORBIT_STILL_EDGE_BAND px deep, just inside the on-screen margin)
+ * it follows by a share (ORBIT_STILL_EDGE_FOLLOW) of how deep the rocket is in the band each tick, never letting it past
+ * the on-screen margin, so the rocket never leaves the frame and the camera never jerks. orbitRev 14's look-ahead lead
+ * (1–2 Nov 2026) is gone. Earlier revisions' camera is unchanged (their flights end at the world's edges, framed as before).
+ */
+export const ORBIT_STILL_PAN_TICKS = 24;
+export const ORBIT_STILL_PAN_MAX_TICKS = 60;
+export const ORBIT_STILL_REDUCED_PAN_TICKS = 15;
+export const ORBIT_STILL_REDUCED_PAN_MAX_TICKS = 40;
+/**
+ * A long pan (a catch far ahead, a respawn far behind) lasts long enough that its peak speed (1.5 × distance ÷ ticks, the
+ * smoothstep's) stays under this many world units a tick, up to the most ticks above: an ordinary hop (under ~350 px)
+ * keeps the 0.4 s.
+ */
+export const ORBIT_STILL_PAN_TOP_SPEED = 22;
+/** The soft edge band (px inside the on-screen margin) where a flying rocket starts to move the still camera. */
+export const ORBIT_STILL_EDGE_BAND = 56;
+/** The share of the rocket's depth into the band the camera moves each tick. */
+export const ORBIT_STILL_EDGE_FOLLOW = 0.25;
+/** Pan duration in sim ticks for a still-camera (orbitRev 14) pan of `dist` world units. */
+export function orbitStillPanTicks(dist: number, reducedMotion = false): number {
+  const lo = reducedMotion ? ORBIT_STILL_REDUCED_PAN_TICKS : ORBIT_STILL_PAN_TICKS;
+  const hi = reducedMotion ? ORBIT_STILL_REDUCED_PAN_MAX_TICKS : ORBIT_STILL_PAN_MAX_TICKS;
+  return Math.min(hi, Math.max(lo, Math.ceil((1.5 * dist) / ORBIT_STILL_PAN_TOP_SPEED)));
+}
+/** Does this state use the still camera (orbitRev 14's fuel states)? */
+export function orbitStillCamera(state: { fuel?: number } | null | undefined): boolean {
+  return state?.fuel !== undefined;
+}
 /** Margin keeping the rocket fully on screen during a pan. */
 export const ORBIT_ROCKET_ON_SCREEN = 14;
 const ROCKET_ON_SCREEN = ORBIT_ROCKET_ON_SCREEN;
@@ -238,6 +264,8 @@ function advance(s: Rev3Like, still: boolean): OrbitCamOffset {
       glide: { x: 0, y: 0 },
       panV: { x: 0, y: 0 },
     };
+  } else if (orbitStillCamera(s)) {
+    e = advanceStill(s, previous, target, still, viewW, viewH);
   } else {
     e = { ...previous, tick: s.tick };
     if (
@@ -286,24 +314,7 @@ function advance(s: Rev3Like, still: boolean): OrbitCamOffset {
     // pan starts exactly where the camera was — no correction step first. The
     // pan target frames the whole orbit inside the safe box, so it ends there.
     let safe: OrbitCamOffset;
-    if (s.flying && s.fuel !== undefined) {
-      // orbitRev 14 (the fuel meter): any planet the rocket reaches catches it, so the camera follows the flight,
-      // leading it: the point the rocket will be at ORBIT_FUEL_LEAD_TICKS on (or where its fuel ends, if sooner) is
-      // eased toward the view's centre line, ORBIT_FUEL_LEAD_Y down it, so the planet it is heading for comes into view
-      // well before it arrives. Eased (a share of the gap a tick, at most ORBIT_FUEL_CATCH units), never a jump, and the
-      // rocket always stays on screen.
-      const r = rocketOf(s);
-      const lead = Math.min(ORBIT_FUEL_LEAD_TICKS, Math.max(0, s.fuel));
-      const want = { x: r.x + (s.vx / FP) * lead - viewW / 2, y: r.y + (s.vy / FP) * lead - viewH * ORBIT_FUEL_LEAD_Y };
-      let dx = (want.x - at.x) * ORBIT_FUEL_EASE,
-        dy = (want.y - at.y) * ORBIT_FUEL_EASE;
-      const len = Math.hypot(dx, dy);
-      if (len > ORBIT_FUEL_CATCH) {
-        dx *= ORBIT_FUEL_CATCH / len;
-        dy *= ORBIT_FUEL_CATCH / len;
-      }
-      safe = pushInside(r, { x: at.x + dx, y: at.y + dy }, ROCKET_ON_SCREEN, viewH, viewW);
-    } else if (s.flying) {
+    if (s.flying) {
       // Flight: hold, moving only toward the minimum safe-box push, at most
       // ORBIT_FLIGHT_CATCH units a tick (so a tap mid-pan cannot snap), while
       // the rocket always stays fully on screen.
@@ -343,6 +354,70 @@ function advance(s: Rev3Like, still: boolean): OrbitCamOffset {
   }
   map.set(s.planets, e);
   return { x: e.x, y: e.y };
+}
+/** The edge-follow on one axis: how far the camera moves so a flying rocket at `pos` (px into a view `size` long) stays in view. */
+function edgeFollow(pos: number, size: number): number {
+  const inner = ROCKET_ON_SCREEN + ORBIT_STILL_EDGE_BAND;
+  let d = 0;
+  if (pos < inner) d = -(inner - pos) * ORBIT_STILL_EDGE_FOLLOW;
+  else if (pos > size - inner) d = (pos - (size - inner)) * ORBIT_STILL_EDGE_FOLLOW;
+  // The hard backstop: the rocket's centre never closer than ROCKET_ON_SCREEN to an edge.
+  if (pos - d < ROCKET_ON_SCREEN) d = pos - ROCKET_ON_SCREEN;
+  else if (pos - d > size - ROCKET_ON_SCREEN) d = pos - (size - ROCKET_ON_SCREEN);
+  return d;
+}
+/**
+ * orbitRev 14's still camera (see ORBIT_STILL_PAN_TICKS): a catch or respawn starts one eased pan to the planet's framing;
+ * in flight only the edge-follow moves the view (added to a pan still running, so it stays smooth); in orbit it holds.
+ */
+function advanceStill(s: Rev3Like, previous: Entry, target: OrbitCamOffset, still: boolean, viewW: number, viewH: number): Entry {
+  let e: Entry = { ...previous, tick: s.tick };
+  if (s.cur !== previous.cur || s.captured !== previous.captured || s.respawnTick !== previous.respawn) {
+    e = {
+      ...e,
+      cur: s.cur,
+      captured: s.captured,
+      respawn: s.respawnTick,
+      start: s.tick,
+      from: { x: previous.x, y: previous.y },
+      target,
+      dur: orbitStillPanTicks(Math.hypot(target.x - previous.x, target.y - previous.y), still),
+    };
+  }
+  e.glide = { x: 0, y: 0 };
+  let at: OrbitCamOffset = { x: previous.x, y: previous.y };
+  if (Number.isFinite(e.start)) {
+    const p = Math.min(1, (s.tick - e.start) / Math.max(1, e.dur));
+    const eased = p * p * (3 - 2 * p);
+    at = { x: e.from.x + (e.target.x - e.from.x) * eased, y: e.from.y + (e.target.y - e.from.y) * eased };
+    if (p === 1) e.start = -Infinity;
+  }
+  const r = rocketOf(s);
+  let dx = 0,
+    dy = 0;
+  if (s.flying > 0) {
+    dx = edgeFollow(r.x - at.x, viewW);
+    dy = edgeFollow(r.y - at.y, viewH);
+  } else {
+    // In orbit (or mid-pan after a black hole's jump): only the backstop, so the rocket is never off the frame.
+    const kept = pushInside(r, at, ROCKET_ON_SCREEN, viewH, viewW);
+    dx = kept.x - at.x;
+    dy = kept.y - at.y;
+  }
+  if (dx || dy) {
+    // In flight a running pan shifts as a whole, so the follow adds to it without a step. In orbit (a black hole's
+    // rocket flying in from beyond the ring) the backstop only clamps: the pan still lands on the planet's framing.
+    if (s.flying > 0 && Number.isFinite(e.start)) {
+      e.from = { x: e.from.x + dx, y: e.from.y + dy };
+      e.target = { x: e.target.x + dx, y: e.target.y + dy };
+    }
+    at = { x: at.x + dx, y: at.y + dy };
+    clampOverrideCount++;
+  }
+  e.panV = { x: at.x - previous.x, y: at.y - previous.y };
+  e.x = at.x;
+  e.y = at.y;
+  return e;
 }
 /** Art wrappers observe EVERY tick, even when drawing skips frames. */
 export function orbitCameraObserve(state: Rev3Like): void {
