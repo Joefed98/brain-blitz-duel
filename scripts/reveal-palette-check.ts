@@ -48,6 +48,32 @@ check(style["--reveal-top"] === REVEAL_PALETTE["pinball"]?.[0] && "--reveal-mid"
   check(b > g && r > g && b >= r, `Pinball's reveal is purple (${revealPaletteFor("pinball")[0]})`);
 }
 
+// 3b. The snake chart draws straight on the gradient (3 Nov 2026, no panel): its quiet labels (#F3F1EC at the chart's
+//     label opacity) read at least 4.5:1 on every stop of every game's gradient, the lightest and darkest included; the
+//     track is a translucent white and every line and dot has a dark edge.
+{
+  const chart = readFileSync("src/components/duel/ArcadeScoreChart.tsx", "utf8");
+  const opacity = Number(/const LABEL_OPACITY = ([\d.]+);/.exec(chart)?.[1] ?? "0");
+  const label = hexToRgb("#F3F1EC");
+  let worst = { c: Infinity, type: "", hex: "" };
+  for (const type of ACTIVE_PUZZLE_TYPES)
+    for (const hex of revealPaletteFor(type)) {
+      const bg = hexToRgb(hex);
+      const mixed = label.map((v, i) => v * opacity + bg[i]! * (1 - opacity));
+      // WCAG contrast from each colour's relative luminance (whiteContrast = 1.05 / (L + 0.05)).
+      const l1 = 1.05 / whiteContrast(mixed);
+      const l2 = 1.05 / whiteContrast(bg);
+      const ratio = Math.max(l1, l2) / Math.min(l1, l2);
+      if (ratio < worst.c) worst = { c: ratio, type, hex };
+    }
+  check(worst.c >= 4.5, `the chart's labels read ${worst.c.toFixed(2)}:1 on ${worst.type}'s ${worst.hex}, under 4.5:1`);
+  console.log(`chart labels: worst ${worst.c.toFixed(2)}:1 (${worst.type} ${worst.hex})`);
+  check(/CHART_TRACK_COLOUR = "rgba\(255, 255, 255, 0\.\d+\)"/.test(chart), "the snake's track is a translucent white");
+  check(/stroke=\{CHART_OUTLINE\}/.test(chart) && /fill=\{CHART_OUTLINE\}/.test(chart), "every line and dot has a dark edge");
+  const css = readFileSync("src/polish-layout/reveal-screen.css", "utf8");
+  check(/\[data-chart-panel\] \{\s*background: none;\s*box-shadow: none;\s*border: 0;/.test(css) && !/data-chart-panel[^>]*bg-\[/.test(readFileSync("src/components/duel/ArcadeReveal.tsx", "utf8")), "the chart sits on the gradient with no panel behind it");
+}
+
 // 4. Wiring.
 const read = (p: string) => readFileSync(p, "utf8");
 for (const [file, pattern] of [

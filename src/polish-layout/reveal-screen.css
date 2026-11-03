@@ -30,10 +30,11 @@
     linear-gradient(to top, var(--screen-edge), transparent) bottom / 100% calc(env(safe-area-inset-bottom, 0px) + 16px) no-repeat,
     radial-gradient(140% 90% at 50% 45%, transparent 60%, rgba(0, 0, 0, 0.35) 100%);
 }
-/* The reveal's panels sit on the game's colours as dark glass, so the gradient reads through their edges. */
+/* The snake chart draws straight on the game's colours (3 Nov 2026): no panel, background or border behind it. */
 [data-reveal-screen] [data-chart-panel] {
-  background: rgba(10, 10, 14, 0.72);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+  background: none;
+  box-shadow: none;
+  border: 0;
 }
 /* Secondary text on the gradient (the "points" label and the like): every stop is dark enough for white at 7:1, so
    #D4D4DC (relative luminance 0.66) reads at 4.5:1 or better anywhere on it; the page skin's grey read 3.77:1

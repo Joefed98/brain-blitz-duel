@@ -26,7 +26,16 @@ const BOTTOM = 14;
 /** Spare height the chart may take on a tall screen, spread over its four rows, CSS px (the reveal's own screen, 3 Nov 2026). */
 const MAX_EXTRA = 360;
 /** The scale's labels are small and quiet (Joe, 3 Nov 2026): the chart's text colour, no backing, dimmed. */
-const LABEL_OPACITY = 0.62;
+/**
+ * The chart draws straight on the reveal's gradient (3 Nov 2026: no dark panel behind it), so its quiet labels are a
+ * translucent white with a soft shadow: at least 4.5:1 on every game's and category's gradient (reveal-palette-check).
+ */
+const LABEL_OPACITY = 0.8;
+/** The snake's track on the gradient: a soft translucent white. */
+export const CHART_TRACK_COLOUR = "rgba(255, 255, 255, 0.22)";
+/** A thin dark edge under every line, dot and leader, so a player's colour stands out on light and dark hues alike. */
+export const CHART_OUTLINE = "rgba(5, 5, 10, 0.55)";
+const LABEL_SHADOW = "0 1px 2px rgba(0, 0, 0, 0.55)";
 /** The neutral track, every player's line and this player's (drawn on top), CSS px. */
 const TRACK_W = 6;
 const LINE_W = 6;
@@ -127,7 +136,7 @@ export function ArcadeScoreChart({ players, type }: { players: ChartPlayer[]; ty
     <div className="flex min-h-0 w-full flex-1 flex-col" data-arcade-chart="snake">
       {/* "Who's ahead" only when there is more than one player to be ahead of (3 Nov 2026). */}
       {players.length > 1 ? (
-        <p className="mb-0.5 shrink-0 text-[13px] font-semibold uppercase tracking-widest" style={{ color: TEXT }}>
+        <p className="mb-0.5 shrink-0 text-[13px] font-semibold uppercase tracking-widest" style={{ color: TEXT, textShadow: LABEL_SHADOW }}>
           Who's ahead
         </p>
       ) : null}
@@ -135,7 +144,20 @@ export function ArcadeScoreChart({ players, type }: { players: ChartPlayer[]; ty
         {width > 0 ? (
           <div className="absolute inset-x-0 top-0" style={{ height }} data-chart-body="">
             <svg className="absolute inset-0 h-full w-full overflow-visible" viewBox={`0 0 ${width} ${height}`} aria-hidden="true">
-              <path d={path} fill="none" stroke="var(--muted-foreground)" strokeOpacity={0.35} strokeWidth={TRACK_W} strokeLinecap="round" strokeLinejoin="round" />
+              <path d={path} fill="none" stroke={CHART_TRACK_COLOUR} strokeWidth={TRACK_W} strokeLinecap="round" strokeLinejoin="round" />
+              {/* Each player's line over a slightly wider dark edge (drawn first), so it reads on any gradient. */}
+              {lineOrder.map((p) => (
+                <path
+                  key={`edge-${p.slot}`}
+                  d={path}
+                  fill="none"
+                  stroke={CHART_OUTLINE}
+                  strokeWidth={(p.isMe ? MY_LINE_W : LINE_W) + 2.5}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeDasharray={`${lengthTo(p.score)} ${total}`}
+                />
+              ))}
               {lineOrder.map((p) => (
                 <path
                   key={p.slot}
@@ -158,8 +180,10 @@ export function ArcadeScoreChart({ players, type }: { players: ChartPlayer[]; ty
                 const dot = dotAt(p.score, m.px, m.row);
                 return (
                   <g key={m.key}>
+                    <line x1={x} x2={dot.x} y1={badgeBottom - CHART_BADGE / 2} y2={dot.y} stroke={CHART_OUTLINE} strokeWidth={(p.isMe ? 2 : 1.5) + 2} strokeLinecap="round" />
                     <line x1={x} x2={dot.x} y1={badgeBottom - CHART_BADGE / 2} y2={dot.y} stroke={colour} strokeWidth={p.isMe ? 2 : 1.5} strokeLinecap="round" />
-                    <circle data-chart-dot={m.key} data-chart-bend={chartOnBend(p.score, max) ?? undefined} cx={dot.x} cy={dot.y} r={p.isMe ? 6.5 : 5} fill={colour} stroke={p.isMe ? "var(--foreground)" : "var(--background)"} strokeWidth={p.isMe ? 2 : 1.5} />
+                    <circle cx={dot.x} cy={dot.y} r={(p.isMe ? 6.5 : 5) + (p.isMe ? 2.5 : 2)} fill={CHART_OUTLINE} />
+                    <circle data-chart-dot={m.key} data-chart-bend={chartOnBend(p.score, max) ?? undefined} cx={dot.x} cy={dot.y} r={p.isMe ? 6.5 : 5} fill={colour} stroke={p.isMe ? "var(--foreground)" : "rgba(5, 5, 10, 0.7)"} strokeWidth={p.isMe ? 2 : 1.5} />
                   </g>
                 );
               })}
@@ -175,7 +199,7 @@ export function ArcadeScoreChart({ players, type }: { players: ChartPlayer[]; ty
                   data-chart-label={label.text}
                   data-chart-label-side={label.side}
                   className="absolute -translate-y-1/2 font-mono text-[13px] font-semibold leading-none tabular-nums"
-                  style={{ color: TEXT, opacity: LABEL_OPACITY, top, ...(label.side === "left" ? { right: width - L + gap } : { left: R + gap }) }}
+                  style={{ color: TEXT, opacity: LABEL_OPACITY, textShadow: LABEL_SHADOW, top, ...(label.side === "left" ? { right: width - L + gap } : { left: R + gap }) }}
                 >
                   {label.text}
                 </span>

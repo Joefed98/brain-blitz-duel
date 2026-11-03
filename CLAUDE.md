@@ -1367,7 +1367,11 @@ outside the repo.
   `REVEAL_CATEGORY_COLOURS`), deep at the top fading to near-black, white at 7:1 (`bun scripts/reveal-palette.ts`;
   reveal-palette-check proves one hue and one gradient per category). *Puzzle layout*
   (`src/polish-layout/puzzle-shared.css`): 12 px side margins, HUD and status lines in the UI font with even digits as
-  pill chips, disabled actions grey (gold only when active). reveal-fold-check proves the breakdown's words.
+  pill chips, disabled actions grey (gold only when active). reveal-fold-check proves the breakdown's words. The snake
+  chart draws straight on the reveal's gradient (no panel): a translucent white track (`CHART_TRACK_COLOUR`), every
+  line, leader and dot over a thin dark edge (`CHART_OUTLINE`), quiet labels at 0.8 with a soft shadow (≥ 4.5:1 on
+  every game's stops, reveal-palette-check); `bun scripts/shots/chart-gradient-shots.ts [types…]` draws the 16-player
+  room reveal on any game's gradient.
 - **Sound levels fix-up** (3 Nov 2026; presentation only, no stamps; `docs/sound-cues/levels-nov-2026.md`): Joe's
   November files (Moon Climb, Iron Wall, Blockzone and Ringer effects, the five beds, round8–round11 and the five
   moment voice lines) re-cut from his uploads (`sounds-nov-2026`, commit f19a6876) by `scripts/sound-nov-2026/process.py`
