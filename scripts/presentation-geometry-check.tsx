@@ -77,10 +77,19 @@ const window = new Window();
 const root = window.document.createElement("div");
 const letters = ["C", "A", "R", "E", "P", "N", "T", "E", "R"];
 const css = readFileSync("src/styles.css", "utf8");
-const backdrop = readFileSync("src/components/duel/ArcadeReveal.tsx", "utf8").split("function Track")[0] ?? "";
-assert.match(backdrop, /const ring = outcome === "finish" \? "var\(--me\)" : null/);
-assert.doesNotMatch(backdrop, /outcome === "crash"|var\(--warn\)/);
-assert.match(backdrop, /<circle[\s\S]*<rect/); // finish position and fallback retained
+// The arcade reveal (3 Nov 2026, Joe's approval on #251): the reveal is its own screen, so the old backdrop's "you" ring
+// on a full clear, its no-crash-ring rule and its circle-then-rect finish marker went with the frozen world. Their
+// equivalents on the new screen: a full clear (the server replay's "finish" outcome) shows the ArcadeCelebration
+// headline in the game's own world colour; no crash or warning colour is drawn; and no frozen game backdrop is drawn.
+const revealSrc = readFileSync("src/components/duel/ArcadeReveal.tsx", "utf8");
+const celebrationSrc = readFileSync("src/components/duel/ArcadeCelebration.tsx", "utf8");
+assert.match(revealSrc, /const full = myReveal\.outcome === "finish";/);
+assert.match(revealSrc, /return full && best \? "both" : full \? "full"/);
+assert.match(revealSrc, /<ArcadeCelebration kind=\{celebration\} world=\{arcadeWorldOf\(puzzle\.type\)\} \/>/);
+assert.match(celebrationSrc, /const theme = ARCADE_WORLD_THEMES\[world \?\? "gem"\]/);
+assert.match(celebrationSrc, /color: theme\.outline/);
+assert.doesNotMatch(revealSrc + celebrationSrc, /outcome === "crash"|var\(--warn\)/);
+assert.doesNotMatch(revealSrc, /drawFinal|function Backdrop|function Track/);
 assert.match(css, /wordsmith-ring-lines[^}]*pointer-events: none/);
 assert.doesNotMatch(css, /\.fx-outline/);
 assert.match(css, /wordsmith-ring-tile[^}]*min-width: 44px; min-height: 44px/);
@@ -222,8 +231,9 @@ assert.match(frameCss, /\.game-screen:is\(\[data-puzzle-play\], \[data-arcade-pl
 assert.match(shell, /<div data-round-layout data-frame=\{arcade \? "arcade" : "puzzle"\} className="flex min-h-0 flex-1 flex-col animate-round-in">\s*\{header\}/, "no gap from the header to the arena");
 assert.match(shell, /data-arcade-header=\{arcade \? "" : undefined\}/, "arcade play screens keep the header's data-arcade-header");
 // Prompt R (23 Oct 2026): the four tab screens (never a game screen) draw AppHeader instead; every other screen
-// keeps the old top bar, which gives way on every live round (the frame's header replaces it).
-assert.match(shell, /\{tabs && !gameScreen \? <AppHeader \/> : !bare && !framePlay && \(/, "the shell's own top bar gives way on live rounds");
+// keeps the old top bar, which gives way on every live round (the frame's header replaces it) and, since the reveal
+// became its own screen (3 Nov 2026, #251), on a game's answer-reveal screen too.
+assert.match(shell, /\{tabs && !gameScreen \? <AppHeader \/> : !bare && !framePlay && !\(reveal && gameScreen\) && \(/, "the shell's own top bar gives way on live rounds and the reveal screen");
 // The live "finished" ping (17 Oct 2026) is laid over the header's left half (relative, the ping absolute), never in its flow.
 assert.match(shell, /<div data-header-left className="game-frame-left">[\s\S]*?\{ping\}\s*<\/div>/, "the ping lies over the left half");
 assert.match(frameCss, /\.game-frame-left \{\s*position: relative;/, "the left half holds the ping");

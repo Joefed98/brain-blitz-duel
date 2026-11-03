@@ -52,7 +52,7 @@ export function dealShares(
   const shares = new Map<RoomPick, number>(picks.map((p) => [p, 0]));
   let left = rounds;
   while (left > 0) {
-    const open = picks.filter((p) => shares.get(p)! < pickTypes(p).length);
+    const open = picks.filter((p) => shares.get(p)! < pickTypes(p, picks).length);
     if (!open.length) break;
     const low = Math.min(...open.map((p) => shares.get(p)!));
     const lowest = open.filter((p) => shares.get(p) === low);
@@ -112,7 +112,7 @@ export function dealRoomRounds(
   settings: RoomSettings,
   options: { seed: number; recent?: RecentRounds },
 ): RoomDeal {
-  const picks = orderPicks(settings.picks).filter((p) => pickTypes(p).length > 0);
+  const picks = orderPicks(settings.picks).filter((p) => pickTypes(p, settings.picks).length > 0);
   if (!picks.length) return { picks: [], types: [] };
   const rounds = clampRounds(settings.rounds, picks);
   const recent = (options.recent ?? []).slice(0, RECENT_WEIGHTS.length);
@@ -122,11 +122,16 @@ export function dealRoomRounds(
     const used = new Map<RoomPick, PuzzleType[]>();
     const out: PuzzleType[] = [];
     for (const pick of order) {
-      const all = pickTypes(pick);
+      const all = pickTypes(pick, picks);
       let taken = used.get(pick) ?? [];
       // Every game of the pick played: it starts over (not with its last game, when it has others).
       if (taken.length >= all.length) taken = all.length > 1 ? taken.slice(-1) : [];
-      const fresh = shuffled(all).filter((t) => !taken.includes(t));
+      // No-repeat is per game (3 Nov 2026, alsoIn.ts): a game another pick already dealt in this room is never dealt
+      // again while this pick has others. Picks share no game today (a game listed also in a pick joins it only when
+      // its main pick wasn't chosen), so every deal is as before; this is the guard.
+      const elsewhere = new Set(out.filter((t) => !taken.includes(t)));
+      const own = shuffled(all).filter((t) => !taken.includes(t));
+      const fresh = own.some((t) => !elsewhere.has(t)) ? own.filter((t) => !elsewhere.has(t)) : own;
       const skipLast = fresh.filter(
         (t) => !(lastRoom.includes(t) && fresh.length - 1 >= EXCLUDE_MIN_ALTERNATIVES),
       );

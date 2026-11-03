@@ -30,6 +30,7 @@ import { createHash } from "node:crypto";
 import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 
 import { arcadeGroupOf } from "../src/lib/duel/arcadeGroups";
+import { alsoInOf } from "../src/lib/duel/alsoIn";
 import { categoryOrderFor, pickRoundOrder } from "../src/lib/duel/selection";
 import { puzzleDef } from "../src/lib/duel/registry";
 import { dealRoomRounds } from "../src/lib/duel/roomDeal";
@@ -84,6 +85,35 @@ for (const p of ROOM_PRESETS) check(presetOf(p.picks) === p.id, `presetOf recogn
 check(presetOf(["word", "logic"]) === null, "a custom set matches no preset");
 check(ROOM_SETTINGS_PLUS_ONLY === false, "room settings are free for every host (ROOM_SETTINGS_PLUS_ONLY off)");
 
+/* ------------------------------------------------- 1b. games in two categories (alsoIn.ts, 3 Nov 2026) */
+// Pull! keeps Speed as its main category and is also in Sports: listed in Sports' pool when Speed isn't picked, never
+// twice in a room, counted once (under Speed) when both are picked, as in Mixed.
+check(alsoInOf("clayshoot") === "sports" && puzzleDef("clayshoot").category === "speed" && arcadeGroupOf("clayshoot") === null, "Pull!: main Speed, also in Sports, in no arcade group");
+check(pickTypes("sports").includes("clayshoot") && pickTypes("speed").includes("clayshoot"), "Pull!: in Sports' pool alone and in Speed's");
+check(!pickTypes("sports", ["speed", "sports"]).includes("clayshoot"), "Pull!: with Speed picked too, not in Sports' pool");
+const mixed = ROOM_PRESETS.find((p) => p.id === "mixed")!.picks;
+check(
+  mixed.includes("speed") && mixed.filter((p) => pickTypes(p, mixed).includes("clayshoot")).length === 1 && pickTypes("speed", mixed).includes("clayshoot"),
+  "Mixed: Pull! counted once, under Speed",
+);
+check(eligibleCount(["speed", "sports"]) === pickTypes("speed").length + pickTypes("sports").length - 1, "Speed + Sports: Pull! counted once");
+for (let seed = 1; seed <= 400; seed++) {
+  for (const picks of [["speed", "sports"], ["sports"], ["sports", "retro"], [...mixed]] as RoomPick[][]) {
+    const deal = dealRoomRounds({ picks, rounds: Math.min(12, roundCap(picks)) }, { seed: seed * 7907 });
+    check(deal.types.filter((t) => t === "clayshoot").length <= 1, `${picks.join("+")} seed ${seed}: Pull! dealt twice`);
+    deal.types.forEach((t, i) => {
+      if (t === "clayshoot") check(deal.picks[i] === (picks.includes("speed") ? "speed" : "sports"), `${picks.join("+")} seed ${seed}: Pull! under ${deal.picks[i]}`);
+    });
+  }
+}
+check(
+  Array.from({ length: 200 }, (_, s) => dealRoomRounds({ picks: ["sports"], rounds: roundCap(["sports"]) }, { seed: s + 1 }).types.includes("clayshoot")).every(Boolean),
+  "Sports alone at its cap deals Pull! (it is in the pool)",
+);
+// High Rise is back in Action (3 Nov 2026); Bomb Defusal is an Attention puzzle.
+check(arcadeGroupOf("skyline") === "action" && pickTypes("action").includes("skyline") && !pickTypes("strategy").includes("skyline"), "High Rise: in Action, not Strategy");
+check(pickTypes("attention").includes("bomb") && !pickTypes("logic").includes("bomb"), "Bomb Defusal: in Attention, not Logic");
+
 /* ------------------------------------------------------------------ 2. the cap */
 for (const pick of ROOM_PICKS) {
   const games = pickTypes(pick);
@@ -91,7 +121,9 @@ for (const pick of ROOM_PICKS) {
   for (const t of games) {
     const def = puzzleDef(t);
     check(!def.retired, `${pick}: ${t} is retired but eligible`);
-    check(ARCADE_PICKS.includes(pick as never) ? def.category === "arcade" && arcadeGroupOf(t) === pick : def.category === pick, `${pick}: ${t} is not in it`);
+    // Its main pick, or (alsoIn.ts, 3 Nov 2026) listed also in it: Pull! (Speed) in Sports.
+    const main = ARCADE_PICKS.includes(pick as never) ? def.category === "arcade" && arcadeGroupOf(t) === pick : def.category === pick;
+    check(main || alsoInOf(t) === pick, `${pick}: ${t} is not in it`);
   }
   check(roundCap([pick]) === Math.min(MAX_ROUNDS, games.length), `${pick}: cap ${roundCap([pick])}, want min(12, ${games.length})`);
 }
@@ -222,7 +254,12 @@ for (const picks of SETS) {
       deals++;
       const tag = `${picks.join("+")} ×${rounds} seed ${seed}`;
       check(deal.types.length === rounds && deal.picks.length === rounds, `${tag}: ${deal.types.length} rounds dealt`);
-      check(deal.types.every((t, i) => pickOf(t) === deal.picks[i] && picks.includes(pickOf(t))), `${tag}: a game outside its pick or the picks`);
+      // Each game under its main pick, or under the pick it is also in when its main pick wasn't chosen (alsoIn.ts).
+      check(
+        deal.types.every((t, i) => (pickOf(t) === deal.picks[i] && picks.includes(pickOf(t))) || (alsoInOf(t) === deal.picks[i] && !picks.includes(pickOf(t)))),
+        `${tag}: a game outside its pick or the picks`,
+      );
+      check(new Set(deal.types).size === deal.types.length, `${tag}: a game dealt twice in one room`);
       check(deal.types.every((t) => !puzzleDef(t).retired), `${tag}: a retired game was dealt`);
       const counts = picks.map((p) => deal.picks.filter((x) => x === p).length);
       // Within 1 of each other where the pools allow: a share more than 1 below another's only when that pick has
@@ -302,7 +339,8 @@ for (const stored of [["action", "rounds:6"], ["word", "action", "rounds:9"], ["
 check(same(readRoomSettings(["retro", "rounds:6"]).settings.picks, ["retro"]), "a pre-split room without Action reads as it was");
 const postSplit = encodeRoomSettings({ picks: ["action"], rounds: 3 });
 check(postSplit.includes(GROUPS_TOKEN) && same(readRoomSettings(postSplit).settings.picks, ["action"]), "Action alone saved after the split stays Action alone");
-check(same(pickTypes("action"), ["slice", "flip", "swing", "ricochet", "bastion"]) && same(pickTypes("strategy"), ["tilt", "matchup", "skyline", "bubble", "inkbridge", "balltrack"]), "Action keeps Slice, Roofbound, Grappler (and Ricochet, back on 1 Nov 2026); Strategy is the six moved games");
+// High Rise went back from Strategy to Action on 3 Nov 2026 (Joe's decision).
+check(same(pickTypes("action"), ["slice", "flip", "swing", "ricochet", "bastion", "skyline"]) && same(pickTypes("strategy"), ["tilt", "matchup", "bubble", "inkbridge", "balltrack"]), "Action keeps Slice, Roofbound, Grappler (and Ricochet, back on 1 Nov 2026, and High Rise, back on 3 Nov 2026); Strategy is the five moved games");
 check(same(readRoomSettings(["word", "memory", "arcade"]).categories, ["word", "arcade"]), "an older room keeps its categories for its deal");
 const start = /export const startRoomFn[\s\S]*?\n {2}\}\);/.exec(fns)?.[0] ?? "";
 check(/stored\.legacy \? undefined : dealRoomRounds\(stored\.settings/.test(start) && /normaliseCategories\(room\.selected_categories\)/.test(start), "startRoomFn deals older rooms with pickRoundOrder on their categories, saved rooms from their settings");

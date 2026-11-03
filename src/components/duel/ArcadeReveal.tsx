@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { usePerfectBurst } from "@/lib/fx/useSignature";
+import { queueVoice } from "@/lib/sound";
 
 import { ArcadeCelebration, type CelebrationKind } from "@/components/duel/ArcadeCelebration";
 import { WaitingLine } from "@/components/duel/Dots";
@@ -7,12 +8,11 @@ import { arcadeWorldOf } from "@/lib/arcade/arcadeFxGames.renderer";
 import { recordArcadeRoomBest, runKey } from "@/lib/fx/arcadeBest";
 import { CLAY_FREE_EMPTY_SHOTS, CLAY_REV_BANDS } from "@/lib/arcade/clayShoot";
 import type { ArcadeRevealData } from "@/lib/arcade/reveal";
-import { ARCADE_REVEAL_RENDERERS, revealWorldH } from "@/lib/arcade/revealRenderers";
+import { ARCADE_REVEAL_RENDERERS } from "@/lib/arcade/revealRenderers";
 import type { PuzzleData } from "@/lib/duel/types";
 import type { PlayerLook } from "@/lib/duel/playerLook";
 
 import { ArcadeScoreChart } from "./ArcadeScoreChart";
-import { canvasRatio } from "@/lib/battery";
 
 /** One player in the room for the reveal chart. `reveal` and `score` are null until their result lands. */
 export interface RevealPlayer {
@@ -233,72 +233,27 @@ function useCountUp(target: number | null, ms = 1000): number {
 }
 
 /** The final tick drawn once with the game's renderer, dimmed and blurred. */
-function Backdrop({ puzzle, answer, outcome }: { puzzle: PuzzleData; answer: string; outcome: ArcadeRevealData["outcome"] | null }) {
-  const renderer = ARCADE_REVEAL_RENDERERS[puzzle.type];
-  const canvas = useRef<HTMLCanvasElement | null>(null);
-  const [focus, setFocus] = useState<{ x: number; y: number } | null>(null);
-  const worldH = renderer ? revealWorldH(renderer, puzzle) : 0;
-  useEffect(() => {
-    const node = canvas.current;
-    if (!renderer || !node) return;
-    const ratio = canvasRatio();
-    node.width = Math.round(renderer.worldW * ratio);
-    node.height = Math.round(worldH * ratio);
-    const ctx = node.getContext("2d");
-    if (!ctx) return;
-    ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
-    try {
-      setFocus(renderer.drawFinal(ctx, puzzle, answer));
-    } catch {
-      setFocus(null);
-    }
-  }, [renderer, puzzle, answer, worldH]);
-  if (!renderer) return null;
-  const ring = outcome === "finish" ? "var(--me)" : null;
-  return (
-    <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-xl" aria-hidden="true">
-      <canvas
-        ref={canvas}
-        className="h-full w-full object-cover"
-        style={{ filter: "brightness(0.26) blur(3px)", transform: "scale(1.04)" }}
-      />
-      {ring ? (
-        <svg
-          className="absolute inset-0 h-full w-full"
-          viewBox={`0 0 ${renderer.worldW} ${worldH}`}
-          preserveAspectRatio="xMidYMid slice"
-        >
-          {focus ? (
-            <>
-              <circle cx={focus.x} cy={focus.y} r={26} fill="none" stroke={ring} strokeWidth={3} />
-              <circle cx={focus.x} cy={focus.y} r={26} fill="none" stroke={ring} strokeWidth={2} className="arcade-reveal-pulse" />
-            </>
-          ) : (
-            <rect
-              x={4}
-              y={4}
-              width={renderer.worldW - 8}
-              height={worldH - 8}
-              rx={14}
-              fill="none"
-              stroke={ring}
-              strokeWidth={3}
-              className="arcade-reveal-glow"
-            />
-          )}
-        </svg>
-      ) : null}
-    </div>
-  );
-}
 
 /** Full clear (the server replay's "finish" outcome) and/or a new device best, once the stored score lands. */
+/** Room runs whose "New best" line has played (a remount never repeats it). */
+const voicedBests = new Set<string>();
+
 function useCelebration(puzzle: PuzzleData, myAnswer: string | null, myScore: number | null, myReveal: ArcadeRevealData | null, personalBest: boolean | undefined, round: number | undefined): CelebrationKind | null {
   const [best, setBest] = useState(false);
   useEffect(() => {
     if (myScore === null || !myReveal) return;
     if (personalBest !== undefined) setBest(personalBest);
-    else setBest(recordArcadeRoomBest(puzzle.type, myScore, runKey(puzzle.type, round, myAnswer)));
+    else {
+      const key = runKey(puzzle.type, round, myAnswer);
+      const improved = recordArcadeRoomBest(puzzle.type, myScore, key);
+      setBest(improved);
+      // A room run that beat this device's best for the game (3 Nov 2026): the "New best" voice line, once per run
+      // (practice's comes from NewBestMoment), after the score's own sounds and never over another voice line.
+      if (improved && !voicedBests.has(key)) {
+        voicedBests.add(key);
+        queueVoice("voice.newBest", 1000);
+      }
+    }
   }, [puzzle.type, myScore, myReveal, myAnswer, personalBest, round]);
   if (myScore === null || !myReveal) return null;
   const full = myReveal.outcome === "finish";
@@ -316,35 +271,16 @@ export function ArcadeReveal({ puzzle, myAnswer, myScore, myReveal, players, nea
   const summary = shown ? revealSummary(shown.lines, myScore) : null;
   const folds = !!summary && summary.rest.length + (shown?.tiles.length ?? 0) + costRows.length > 0;
   const [open, setOpen] = useState(false);
-  // The score block's bottom edge, so the scrim behind it covers exactly that much of the frozen world.
-  const head = useRef<HTMLDivElement>(null);
-  const [headBottom, setHeadBottom] = useState(0);
-  useLayoutEffect(() => {
-    const node = head.current;
-    if (!node) return;
-    const measure = () => setHeadBottom(node.offsetTop + node.offsetHeight);
-    measure();
-    const watch = new ResizeObserver(measure);
-    watch.observe(node);
-    return () => watch.disconnect();
-  }, []);
+  // The reveal is its own screen (3 Nov 2026): no frozen world behind it; PhoneShell's `reveal` paints the game's colours.
   return (
     <div className="relative flex min-h-0 w-full flex-1 flex-col overflow-hidden rounded-xl">
-      <Backdrop puzzle={puzzle} answer={myAnswer ?? ""} outcome={myReveal?.outcome ?? null} />
-      {/* Opaque behind the score and its lines, fading out 24 px below, so no world HUD text shows through them. */}
-      <div
-        data-reveal-scrim=""
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-x-0 top-0"
-        style={{ height: headBottom + 32, background: "linear-gradient(to bottom, var(--background) calc(100% - 24px), transparent)" }}
-      />
       {celebration ? <ArcadeCelebration kind={celebration} world={arcadeWorldOf(puzzle.type)} /> : null}
       {/* Scrolls rather than overlap (31 Oct 2026): at 375×667 a game with four part lines left the chart
           less height than it needs, and the chart (min-h-0) drew over the parts card under it. */}
       {/* 1 Nov 2026: the breakdown folds to one line and the column's padding is 8 px, so the 16-player chart fits
           375×667 with no scroll; opened, the column scrolls. */}
       <div data-reveal-column className="relative flex min-h-0 flex-1 flex-col items-center justify-between gap-3 overflow-y-auto px-3 py-2">
-        <div ref={head} className="flex w-full flex-col items-center gap-1">
+        <div className="flex w-full flex-col items-center gap-1">
           {myScore === null ? (
             <div data-reveal-score="pending" className="py-3">
               <WaitingLine label="Scoring…" />
@@ -385,7 +321,7 @@ export function ArcadeReveal({ puzzle, myAnswer, myScore, myReveal, players, nea
           {myScore !== null && nearMissLine ? <FitLine text={nearMissLine} className="text-foreground" /> : null}
         </div>
 
-        {/* The chart in a clean panel over the darkened world, never over the busy board itself. */}
+        {/* The chart in a clean panel on the reveal screen's gradient. */}
         {/* Never shorter than the chart it holds (no min-h-0): the column scrolls instead of overlapping. */}
         <div data-chart-panel className="flex w-full flex-1 flex-col rounded-[18px] bg-[#17171B] px-2.5 py-2.5">
           <ArcadeScoreChart

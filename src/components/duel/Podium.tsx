@@ -11,7 +11,8 @@ import { GameIcon, hasGameIcon } from "@/components/app/GameIcon";
 import { ChevronDown } from "lucide-react";
 import { playerBreakdown } from "@/lib/duel/scoring";
 import { haptic } from "@/lib/haptics";
-import { playVoice } from "@/lib/sound";
+import { playVoice, queueVoice } from "@/lib/sound";
+import { cleanSweepSlot, isPhotoFinish } from "@/lib/fx/roomVoices";
 import { fx } from "@/lib/fx";
 import {
   COUNT_UP_SLIDE_MS,
@@ -186,11 +187,18 @@ export function Podium({
     if (cued.current) return;
     cued.current = true;
     fx.onPodium();
-    // The winner hears "you win" (a shared first place "tie"); everyone else "GG".
-    playVoice(sharedFirst ? "voice.tie" : won ? "voice.youWin" : "gg");
+    // The winner hears "you win" (a shared first place "draw", 3 Nov 2026); everyone else "GG".
+    playVoice(sharedFirst ? "voice.draw" : won ? "voice.youWin" : "gg");
+    // The room's end lines (roomVoices.ts), after that one: a shared first place is a draw for
+    // everyone watching too; else the top two's totals 1–5 apart are a photo finish (only here, at the
+    // room's end, Joe's decision); else one player taking every round is a clean sweep.
+    const firstShared = rows.filter((r) => r.position === 1).length > 1;
+    if (firstShared && !sharedFirst) queueVoice("voice.draw");
+    else if (!firstShared && isPhotoFinish(rows.map((r) => r.total))) queueVoice("voice.photoFinish");
+    else if (!firstShared && cleanSweepSlot(results, roundOrder.length) !== null) queueVoice("voice.cleanSweep");
     // Haptics (lib/haptics.ts): the winner's phone celebrates.
     if (won) haptic("celebrate");
-  }, [won, sharedFirst]);
+  }, [won, sharedFirst]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const marks = tieMarks(rows.map((row) => ({ slot: row.slot, points: row.total, position: row.position })));
   // Rooms of 11+ (31 Oct 2026, up to 16): the top three and my own row, the rest one tap away.

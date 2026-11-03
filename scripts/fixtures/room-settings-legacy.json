@@ -1,4 +1,4 @@
 {
-  "note": "pickRoundOrder deals for older rooms (6 stored category lists x 200 seeds), recorded on main before room settings; re-recorded 1 Nov 2026 when Fences, Fillomino, Bridges (Logic) and Kakuro (Number) joined the pools, and again when Blockfall and Alley Roll, then Ricochet, then Bastion, then (2 Nov 2026) Pyramid and Golf Solitaire joined the arcade pool (Muggins is practice only), and (3 Nov 2026) Golf Solitaire left it (practice only): only the game drawn within a pool changes. No stored room or round changes (rounds are stored when dealt).",
-  "digest": "55d3415d1f9bbdfb9baf94bc8637da4c5801dad134f3922ddbc08290de020fba"
+  "note": "pickRoundOrder deals for older rooms (6 stored category lists x 200 seeds), recorded on main before room settings",
+  "digest": "3588037ba3f4845f5be3952586071ff94af32b8123fd7e919b3e32ae33b2390b"
 }

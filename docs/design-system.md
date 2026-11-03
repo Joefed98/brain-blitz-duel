@@ -453,8 +453,12 @@ Presentation only; review shots `bun scripts/shots/tab-refresh-shots.ts --tag=af
   its dots and tile borders), Sports `--group-sports` #4CC24A, Cards & Board `--group-cards` #FF5C93,
   Action `--group-action` (the arcade colour #FF4D4D: Slice, Roofbound, Grappler), Strategy
   `--group-strategy` #8E80FF (a blue-leaning violet, 6.3:1 on #0B0B0F, clear of Pattern's #B26BFF and Word's
-  #4D8CFF beside it in the room settings sheet; split from Action on 1 Nov 2026: Tilt, Gemstone, High Rise, Coral
-  Pop, Rainbow Bridge, Ball Tracker). Since 31 Oct 2026 the groups are also the room settings sheet's arcade
+  #4D8CFF beside it in the room settings sheet; split from Action on 1 Nov 2026: Tilt, Gemstone, Coral
+  Pop, Rainbow Bridge, Ball Tracker; High Rise went back to Action on 3 Nov 2026).
+- **Games in two categories** (3 Nov 2026, `src/lib/duel/alsoIn.ts`): a game's main category (its registry
+  category, or its arcade group) decides its counts, colours and tile border; "also in" only lists it in one more
+  section (and room pool). Pull! (Speed) is also in Sports: it shows in the Arcade side's Sports section with its
+  Speed border, and the Arcade count does not include it. Since 31 Oct 2026 the groups are also the room settings sheet's arcade
   chips (one share each in a room's deal); arcade rounds, the daily arcade and scoring keep Arcade as one category.
   practice-switch-check proves it.
 - **Tournaments**: Next up (the card above), Coming up rows with a calendar icon button, Your results
@@ -466,3 +470,21 @@ Presentation only; review shots `bun scripts/shots/tab-refresh-shots.ts --tag=af
   in the same panel; Daily, Practice bests (BEST column) and Recent rooms (place discs) only once there
   is something in them. A new player sees "Choose your look" and Get started (play a room, today's daily,
   a practice best), each ticking off from the device's own records.
+
+## The answer reveal's own screen (3 Nov 2026)
+
+- The answer reveal is its own screen for every game (PhoneShell `reveal`, `data-reveal-screen`;
+  `polish-layout/reveal-screen.css`), not an overlay on the game: no frozen final world behind the arcade reveal,
+  no category glow or dot pattern behind a puzzle's.
+- The background is a gradient in the game's own colours from its tile (`revealPalette.ts`,
+  `revealPalette.data.ts`, made by `bun scripts/reveal-palette.ts`; re-run it after re-exporting tiles): top, middle
+  and bottom stops, each darkened until white text reads at least 7:1, inside the usual --screen-edge notch and
+  home-bar strips. Panels on it (the chart's) are dark glass (`rgba(10, 10, 14, 0.72)`).
+- No app top bar: the reveal's header row (`data-reveal-head`) carries the game's name, Practice / Round n of N
+  and the sound button. Everything else is as before (the one-line breakdown with tap to open, the parts card).
+- The arcade chart ("Who's ahead") is a snake in four rows on one 0–200 axis for every game, each row a band of 50
+  and each bend the boundary (`arcadeChart.ts`): no lines across the chart; small, quiet labels (13 px, 62 %
+  opacity, no backing): 0 at the snake's start and 200 at its end (both left), 50 and 150 beside the middle of the
+  right-hand bends, 100 beside the left-hand bend; a score of exactly 50, 100 or 150 puts its dot on that bend. It
+  takes the freed height (up to 360 px spread over the rows). reveal-palette-check, arcade-chart-check and room-extras-check
+  prove it.

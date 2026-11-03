@@ -11,6 +11,7 @@ import { BLOCKFALL_TIME_MS, type BlockfallPuzzleData } from "@/lib/duel/types";
 import { ArcadeCanvasStage, type PointerPayload } from "@/components/puzzles/ArcadeCanvasStage";
 import { CardStill } from "@/components/puzzles/CardStill";
 import { blockfallSounds } from "@/lib/fx/gameSounds";
+import { createSoftDrop } from "@/lib/arcade/blockfallSoftDrop";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
@@ -49,6 +50,8 @@ interface Gesture {
   trail: { y: number; at: number }[];
   /** Blockzone: the soft drop sent on for this drag. */
   soft: boolean;
+  /** The finger's latest y (a lock mid-drag measures the next drag down from here). */
+  lastY: number;
 }
 
 /** A flick down: at least this fast (world px a ms) over the last 120 ms, and this far. */
@@ -64,13 +67,24 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const view = useMemo(() => bfNewView(), []);
   const game = useMemo(() => blockfallArtGame(view, zone ? BLOCKFALL_REV_ZONE : 1), [view, zone]);
   const g = useRef<Gesture | null>(null);
+  // Blockzone's soft drop (blockfallSoftDrop.ts): on only while a drag down (or ↓) holds it for its piece.
+  const soft = useMemo(() => createSoftDrop(), []);
+  soft.onLockedMidDrag = () => {
+    const gesture = g.current;
+    if (!gesture) return;
+    gesture.soft = false;
+    gesture.y = gesture.lastY;
+  };
+  const softOn = (by: "drag" | "key"): PointerPayload => soft.on(by);
+  const softOff = (): PointerPayload | null => soft.off();
+  const discreteTick = (state: BfState): PointerPayload | null => (zone ? soft.tick(state) : null);
 
   const pointer = (kind: "down" | "move" | "up", x: number, y: number): PointerPayload | null => {
     const now = performance.now();
     if (kind === "down") {
       // Blockzone has no pads: the whole screen is for gestures.
       const pad = zone ? null : bfPadAt(x, y);
-      g.current = { x, y, at: now, cols: 0, rows: 0, moved: false, pad, trail: [{ y, at: now }], soft: false };
+      g.current = { x, y, at: now, cols: 0, rows: 0, moved: false, pad, trail: [{ y, at: now }], soft: false, lastY: y };
       view.pressed = pad;
       return null;
     }
@@ -80,6 +94,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     const dy = y - s.y;
     if (Math.abs(dx) > TAP_MOVE || Math.abs(dy) > TAP_MOVE) s.moved = true;
     s.trail.push({ y, at: now });
+    s.lastY = y;
     while (s.trail.length > 2 && now - s.trail[0]!.at > 120) s.trail.shift();
     if (kind === "move") {
       if (s.pad) {
@@ -98,7 +113,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         const down = dy > cell * 0.6 && dy > Math.abs(dx);
         if (down !== s.soft) {
           s.soft = down;
-          return { k: BF_INPUT_SOFT, a: down ? 1 : 0, b: 0, c: 0 };
+          return down ? softOn("drag") : softOff();
         }
         return null;
       }
@@ -112,6 +127,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     }
     g.current = null;
     view.pressed = null;
+    // Lifting ends this drag's soft drop: discreteTick sends the "off" next tick if this release sends a drop.
+    if (zone) soft.lifted();
     if (s.pad) {
       if (bfPadAt(x, y) !== s.pad) return null;
       if (s.pad === "hold") return { k: BF_INPUT_HOLD, a: 0, b: 0, c: 0 };
@@ -123,7 +140,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     const speed = (y - first.y) / Math.max(1, now - first.at);
     if (dy > FLICK_MIN && dy > Math.abs(dx) && speed > FLICK_SPEED) return { k: BF_INPUT_DROP, a: 0, b: 0, c: 0 };
     // Blockzone: the finger lifted off a slow drag down: the soft drop ends.
-    if (s.soft) return { k: BF_INPUT_SOFT, a: 0, b: 0, c: 0 };
+    if (zone) return softOff();
     return null;
   };
 
@@ -147,11 +164,15 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       discrete
       inputKind={BF_INPUT_MOVE}
       pointer={pointer}
+      discreteTick={discreteTick}
       keys={(kind, key, send, _state, event) => {
         if (zone) {
           // Blockzone: ← → move, ↑ turns, ↓ soft-drops while held, Space drops; no hold.
           if (key === "ArrowDown") {
-            if (!event.repeat) send({ k: BF_INPUT_SOFT, a: kind === "down" ? 1 : 0, b: 0, c: 0 });
+            if (!event.repeat) {
+              const payload = kind === "down" ? softOn("key") : softOff();
+              if (payload) send(payload);
+            }
             return true;
           }
           if (kind !== "down") return ["ArrowLeft", "ArrowRight", "ArrowUp", " ", "x", "z"].includes(key);

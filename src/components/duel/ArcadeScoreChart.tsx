@@ -1,6 +1,6 @@
 import { useLayoutEffect, useRef, useState } from "react";
 
-import { CHART_BADGE, CHART_LANE, CHART_MARGIN, CHART_NAME_MAX, CHART_TOP, chartLabels, chartShown, chartPoint, layoutMarkers, rowLanes } from "@/lib/duel/arcadeChart";
+import { CHART_BADGE, CHART_LANE, CHART_MARGIN, CHART_NAME_MAX, CHART_ROW_COUNT, CHART_TOP, CHART_TOP_SCORE, chartLabels, chartOnBend, chartShown, chartPoint, layoutMarkers, rowLanes } from "@/lib/duel/arcadeChart";
 import { PLAYER_COLOURS, type PlayerLook } from "@/lib/duel/playerLook";
 import { roundMaxFor } from "@/lib/duel/roundMax";
 import type { PuzzleType } from "@/lib/duel/types";
@@ -23,8 +23,10 @@ const LINE_DROP = 9;
 const ROW_GAP = 14;
 const TOP = 6;
 const BOTTOM = 14;
-/** Spare height the chart may take on a tall screen, spread over its three rows, CSS px. */
-const MAX_EXTRA = 150;
+/** Spare height the chart may take on a tall screen, spread over its four rows, CSS px (the reveal's own screen, 3 Nov 2026). */
+const MAX_EXTRA = 360;
+/** The scale's labels are small and quiet (Joe, 3 Nov 2026): the chart's text colour, no backing, dimmed. */
+const LABEL_OPACITY = 0.62;
 /** The neutral track, every player's line and this player's (drawn on top), CSS px. */
 const TRACK_W = 6;
 const LINE_W = 6;
@@ -39,13 +41,15 @@ const YOU_RING = "0 0 0 2px var(--background), 0 0 0 4px var(--foreground)";
 
 /**
  * The arcade reveal's chart (arcadeChart.ts): each player's badge (their colour and icon) and name
- * placed by their stored score on one snaking line, 0–50, 51–100 (right to left) and 101–150 (thirds of the game's maximum), so
+ * placed by their stored score on one snaking line in four bands, 0–50, 51–100 (right to left), 101–150 and 151–200 (right to
+ * left), each row a band and each bend a boundary: 0 and 200 at the snake's two left ends, 50 and 150 beside the right-hand
+ * bends, 100 beside the left-hand one, and a score of exactly 50, 100 or 150 on its bend (3 Nov 2026), so
  * everyone sees roughly who is ahead. Each player's own line runs along the snake from 0 to their
  * place in their colour (round caps and joins), this player's drawn last and thicker. No points
  * figure is drawn or carried in the page for anyone: exact scores are for the results screen.
  * Markers that would touch stack into lanes above the line, each with a thin leader to its dot.
- * The chart takes the reveal's spare height (rows spread apart, up to MAX_EXTRA). The scale is the
- * round's game's maximum (roundMax.ts; 150 today, its top label). Display only.
+ * The chart takes the reveal's spare height (rows spread apart, up to MAX_EXTRA), so a room's markers sit well apart.
+ * The axis is fixed at 0–200 (a game whose maximum is 150 never reaches the last band). Display only.
  */
 export function ArcadeScoreChart({ players, type }: { players: ChartPlayer[]; type: PuzzleType }) {
   const max = roundMaxFor(type);
@@ -74,27 +78,45 @@ export function ArcadeScoreChart({ players, type }: { players: ChartPlayer[]; ty
   );
   const lanes = rowLanes(markers);
   // The height the rows need; any spare height the reveal gives the chart spreads evenly over the rows.
-  const needed = TOP + lanes.reduce((sum, n) => sum + n * CHART_LANE + LINE_DROP, 0) + 2 * ROW_GAP + BOTTOM;
-  const extra = Math.max(0, Math.min(MAX_EXTRA, size.h - needed)) / 3;
+  const needed = TOP + lanes.reduce((sum, n) => sum + n * CHART_LANE + LINE_DROP, 0) + (CHART_ROW_COUNT - 1) * ROW_GAP + BOTTOM;
+  const extra = Math.max(0, Math.min(MAX_EXTRA, size.h - needed)) / CHART_ROW_COUNT;
   const lineY: number[] = [];
   let y = TOP;
-  for (const row of [0, 1, 2]) {
+  for (let row = 0; row < CHART_ROW_COUNT; row++) {
     const line = y + extra + lanes[row]! * CHART_LANE + LINE_DROP;
     lineY.push(line);
     y = line + ROW_GAP;
   }
-  const height = lineY[2]! + BOTTOM;
+  const height = lineY[CHART_ROW_COUNT - 1]! + BOTTOM;
   const L = CHART_MARGIN;
   const R = CHART_MARGIN + trackW;
-  const path = `M ${L} ${lineY[0]} H ${R} a ${BEND} ${BEND} 0 0 1 ${BEND} ${BEND} V ${lineY[1]! - BEND} a ${BEND} ${BEND} 0 0 1 ${-BEND} ${BEND} H ${L} a ${BEND} ${BEND} 0 0 0 ${-BEND} ${BEND} V ${lineY[2]! - BEND} a ${BEND} ${BEND} 0 0 0 ${BEND} ${BEND} H ${R}`;
+  // The snake: the first row left to right, then a bend down at whichever end the row finished, and back.
+  let path = `M ${L} ${lineY[0]} H ${R}`;
+  for (let row = 1; row < CHART_ROW_COUNT; row++) {
+    const right = row % 2 === 1;
+    const v = lineY[row]! - BEND;
+    path += right
+      ? ` a ${BEND} ${BEND} 0 0 1 ${BEND} ${BEND} V ${v} a ${BEND} ${BEND} 0 0 1 ${-BEND} ${BEND} H ${L}`
+      : ` a ${BEND} ${BEND} 0 0 0 ${-BEND} ${BEND} V ${v} a ${BEND} ${BEND} 0 0 0 ${BEND} ${BEND} H ${R}`;
+  }
   // Length along the snake to a score's place: whole rows and bends before its row, then its share of the row.
-  const bendLen = (row: 0 | 1) => Math.PI * BEND + Math.max(0, lineY[row + 1]! - lineY[row]! - 2 * BEND);
+  const bendLen = (row: number) => Math.PI * BEND + Math.max(0, lineY[row + 1]! - lineY[row]! - 2 * BEND);
   const lengthTo = (score: number) => {
     const p = chartPoint(score, max);
-    const before = p.row === 0 ? 0 : p.row === 1 ? trackW + bendLen(0) : 2 * trackW + bendLen(0) + bendLen(1);
-    return before + p.along * trackW;
+    let before = p.row * trackW;
+    for (let r = 0; r < p.row; r++) before += bendLen(r);
+    // Exactly 50, 100 or 150: the line runs on to the middle of the bend, where the dot sits.
+    return before + p.along * trackW + (chartOnBend(score, max) ? bendLen(p.row) / 2 : 0);
   };
-  const total = lengthTo(max) + 1;
+  const total = lengthTo(CHART_TOP_SCORE) + 1;
+  // The labels' heights: the snake's ends on their rows' lines, 50 / 100 / 150 half-way down their bends.
+  const edgeY = (edge: number) => (edge === 0 ? lineY[0]! : edge >= CHART_ROW_COUNT ? lineY[CHART_ROW_COUNT - 1]! : (lineY[edge - 1]! + lineY[edge]!) / 2);
+  /** Where a score's dot sits: on its row's line, or for exactly 50, 100 or 150 the middle of that bend (just outside the line's ends). */
+  const dotAt = (score: number, px: number, row: number) => {
+    const bend = chartOnBend(score, max);
+    if (!bend) return { x: L + px, y: lineY[row]! };
+    return { x: bend % 2 === 1 ? R + BEND : L - BEND, y: edgeY(bend) };
+  };
   const byKey = new Map(scored.map((p) => [p.slot, p]));
   const colourOf = (p: ChartPlayer) => PLAYER_COLOURS[p.look?.colour ?? 0]?.hex ?? PLAYER_COLOURS[0].hex;
   // Longest lines first, so a shorter line stays visible on top of a longer one; this player's always last.
@@ -130,23 +152,27 @@ export function ArcadeScoreChart({ players, type }: { players: ChartPlayer[]; ty
                 const line = lineY[m.row]!;
                 const badgeBottom = line - LINE_DROP - m.lane * CHART_LANE;
                 const colour = colourOf(p);
+                const dot = dotAt(p.score, m.px, m.row);
                 return (
                   <g key={m.key}>
-                    <line x1={x} x2={x} y1={badgeBottom - CHART_BADGE / 2} y2={line} stroke={colour} strokeWidth={p.isMe ? 2 : 1.5} strokeLinecap="round" />
-                    <circle cx={x} cy={line} r={p.isMe ? 6.5 : 5} fill={colour} stroke={p.isMe ? "var(--foreground)" : "var(--background)"} strokeWidth={p.isMe ? 2 : 1.5} />
+                    <line x1={x} x2={dot.x} y1={badgeBottom - CHART_BADGE / 2} y2={dot.y} stroke={colour} strokeWidth={p.isMe ? 2 : 1.5} strokeLinecap="round" />
+                    <circle data-chart-dot={m.key} data-chart-bend={chartOnBend(p.score, max) ?? undefined} cx={dot.x} cy={dot.y} r={p.isMe ? 6.5 : 5} fill={colour} stroke={p.isMe ? "var(--foreground)" : "var(--background)"} strokeWidth={p.isMe ? 2 : 1.5} />
                   </g>
                 );
               })}
             </svg>
             {chartLabels(max).map((label) => {
-              const top = label.bend ? (lineY[label.row]! + lineY[label.row + 1]!) / 2 : lineY[label.row]!;
-              const edge = label.bend ? BEND + 6 : 8;
+              // 0 and 200 just left of the snake's two ends; 50 / 100 / 150 beside the middle of their bends, outside them.
+              const top = edgeY(label.edge);
+              const bend = label.edge > 0 && label.edge < CHART_ROW_COUNT;
+              const gap = bend ? BEND + 6 : 10;
               return (
                 <span
-                  key={`${label.text}-${label.row}-${label.side}`}
+                  key={label.text}
                   data-chart-label={label.text}
-                  className="absolute -translate-y-1/2 rounded px-1 py-0.5 font-mono text-[13px] font-semibold leading-none tabular-nums"
-                  style={{ ...textStyle, ...(label.side === "left" ? { right: width - L + edge, top } : { left: R + edge, top }) }}
+                  data-chart-label-side={label.side}
+                  className="absolute -translate-y-1/2 font-mono text-[13px] font-semibold leading-none tabular-nums"
+                  style={{ color: TEXT, opacity: LABEL_OPACITY, top, ...(label.side === "left" ? { right: width - L + gap } : { left: R + gap }) }}
                 >
                   {label.text}
                 </span>

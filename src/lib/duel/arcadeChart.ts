@@ -1,49 +1,56 @@
 /**
  * The room answer reveal's arcade chart (17 Oct 2026, display only): every player's marker on one
- * continuous "snake" line that bends round in three rows, 0–50, 51–100 and 101–150 (the middle row
- * runs right to left), labelled 0 and 50 on the first row's ends, 100 at the second bend and 150 at
- * the end. It shows roughly who is ahead: markers carry each player's badge and name and no points
- * figure (exact scores are for the results screen; your own is the reveal's big number).
+ * continuous "snake" line that bends round in rows. It shows roughly who is ahead: markers carry each
+ * player's badge and name and no points figure (exact scores are for the results screen; your own is
+ * the reveal's big number).
  *
- * The scale is the round's game's maximum (roundMax.ts, 25 Oct 2026): the rows split it in thirds
- * (rounded), so a game raised to 200 runs 0–67, 68–133 and 134–200 with 200 at the end. Every
- * function takes `max` (DEFAULT_ROUND_MAX, today's 150 for every game, when left out).
+ * Four bands (3 Nov 2026, the reveal as its own screen): the line runs in four rows of 50 points on one
+ * 0–200 axis whatever the game's maximum (roundMax.ts; SCORE_CEILING): 0–50 left to right, 51–100 right to
+ * left, 101–150 left to right, 151–200 right to left, so 0 and 200 both sit at the left. Each row is one
+ * band and the bend between two rows is the boundary (Joe's correction, same day: no lines across the
+ * chart): "0" at the snake's start (top left), "200" at its end (bottom left), "50" and "150" beside the
+ * middle of the two right-hand bends, "100" beside the middle of the left-hand bend. A score of exactly 50,
+ * 100 or 150 puts its dot on that bend's middle (`chartOnBend`). A game whose maximum is 150 simply never
+ * reaches the last band. (Before: three rows on the game's maximum, in thirds.) `max` only clamps a score.
  *
  * Pure geometry (scripts/arcade-chart-check.ts proves every score's row and place, and that
  * markers never overlap); ArcadeScoreChart draws it. Places come from the server's stored scores.
  */
-import { DEFAULT_ROUND_MAX } from "./roundMax";
+import { DEFAULT_ROUND_MAX, SCORE_CEILING } from "./roundMax";
 
-/** Each row's lowest and highest score on a scale topping out at `max`. */
-export function chartRows(max = DEFAULT_ROUND_MAX): readonly [{ lo: number; hi: number }, { lo: number; hi: number }, { lo: number; hi: number }] {
-  const top = Math.max(3, Math.round(max));
-  const b1 = Math.round(top / 3);
-  const b2 = Math.round((2 * top) / 3);
-  return [
-    { lo: 0, hi: b1 },
-    { lo: b1 + 1, hi: b2 },
-    { lo: b2 + 1, hi: top },
-  ];
+/** The chart's rows (bands), each CHART_BAND points. */
+export const CHART_ROW_COUNT = 4;
+export type ChartRow = 0 | 1 | 2 | 3;
+export const CHART_ROW_IDS: readonly ChartRow[] = [0, 1, 2, 3];
+/** One band's width in points, and the axis' top. */
+export const CHART_BAND = SCORE_CEILING / CHART_ROW_COUNT;
+export const CHART_TOP_SCORE = SCORE_CEILING;
+
+/** Each row's lowest and highest score: 0–50, 51–100, 101–150, 151–200 (`max` is kept for callers; the bands are fixed). */
+export function chartRows(_max = DEFAULT_ROUND_MAX): readonly { lo: number; hi: number }[] {
+  return CHART_ROW_IDS.map((r) => ({ lo: r === 0 ? 0 : r * CHART_BAND + 1, hi: (r + 1) * CHART_BAND }));
 }
 
-/** Today's rows (0–50, 51–100, 101–150). */
+/** The rows (0–50, 51–100, 101–150, 151–200). */
 export const CHART_ROWS = chartRows();
 
-/** A stored score on the chart's scale: a whole number from 0 to `max`. */
+/** A stored score on the chart: a whole number from 0 to the game's maximum (never past the axis' 200). */
 export function chartScore(score: number, max = DEFAULT_ROUND_MAX): number {
   if (!Number.isFinite(score)) return 0;
-  return Math.max(0, Math.min(chartRows(max)[2].hi, Math.round(score)));
+  return Math.max(0, Math.min(Math.min(CHART_TOP_SCORE, Math.max(1, Math.round(max))), Math.round(score)));
 }
 
-/** The row a score sits on: 0 for 0–50, 1 for 51–100, 2 for 101–150 (at 150). */
-export function chartRow(score: number, max = DEFAULT_ROUND_MAX): 0 | 1 | 2 {
+/** The row a score sits on: 0 for 0–50, 1 for 51–100, 2 for 101–150, 3 for 151–200. */
+export function chartRow(score: number, max = DEFAULT_ROUND_MAX): ChartRow {
   const s = chartScore(score, max);
-  const rows = chartRows(max);
-  return s <= rows[0].hi ? 0 : s <= rows[1].hi ? 1 : 2;
+  return Math.min(CHART_ROW_COUNT - 1, Math.max(0, Math.ceil(s / CHART_BAND) - 1)) as ChartRow;
 }
+
+/** Rows that read right to left (the second and fourth). */
+export const chartRowReversed = (row: ChartRow) => row % 2 === 1;
 
 export interface ChartPoint {
-  row: 0 | 1 | 2;
+  row: ChartRow;
   /** How far along its row in reading order, 0 at the row's start boundary to 1 at its end. */
   along: number;
   /** Where across the chart, 0 at the left end of the line to 1 at the right end. */
@@ -51,45 +58,53 @@ export interface ChartPoint {
 }
 
 /**
- * Where a score sits. Each row runs from its start boundary (0, 50, 100) to its end (50, 100,
- * 150): 50 is the first row's end, 51 one point round the bend into the second, which reads right
- * to left, so its x is mirrored.
+ * Where a score sits. Each row runs from its start boundary (0, 50, 100, 150) to its end (50, 100, 150,
+ * 200): 50 is the first row's end, 51 one point round the bend into the second, which reads right to
+ * left, so its x is mirrored (as is the fourth's).
  */
 export function chartPoint(score: number, max = DEFAULT_ROUND_MAX): ChartPoint {
   const s = chartScore(score, max);
   const row = chartRow(s, max);
-  const rows = chartRows(max);
-  const start = row === 0 ? 0 : rows[row - 1]!.hi;
-  const along = (s - start) / (rows[row].hi - start);
-  return { row, along, x: row === 1 ? 1 - along : along };
+  const start = row * CHART_BAND;
+  const along = (s - start) / CHART_BAND;
+  return { row, along, x: chartRowReversed(row) ? 1 - along : along };
 }
 
 export interface ChartLabel {
   text: string;
-  /** The row whose line the label sits by; a bend label sits between this row and the next. */
-  row: 0 | 1 | 2;
+  /**
+   * Where: 0 the first row's line (the snake's start), CHART_ROW_COUNT the last row's line (its end), k the middle of the
+   * bend between rows k − 1 and k.
+   */
+  edge: number;
+  /** Which side of the chart: the start and end and the left-hand bend on the left, the right-hand bends on the right. */
   side: "left" | "right";
-  bend: boolean;
 }
 
-/** The scale's labels: 0 and the maximum (150) at the line's ends, the thirds (50 and 100) at its bends. */
-export function chartLabels(max = DEFAULT_ROUND_MAX): ChartLabel[] {
-  const rows = chartRows(max);
-  return [
-    { text: "0", row: 0, side: "left", bend: false },
-    { text: String(rows[0].hi), row: 0, side: "right", bend: true },
-    { text: String(rows[1].hi), row: 1, side: "left", bend: true },
-    { text: String(rows[2].hi), row: 2, side: "right", bend: false },
-  ];
+/** The scale's labels in order: 0, 50, 100, 150, 200. `max` is kept for callers; the axis is fixed. */
+export function chartLabels(_max = DEFAULT_ROUND_MAX): ChartLabel[] {
+  return Array.from({ length: CHART_ROW_COUNT + 1 }, (_, edge) => ({
+    text: String(edge * CHART_BAND),
+    edge,
+    // Bends after a left-to-right row are on the right (50, 150); the snake's two ends and the bend at 100 on the left.
+    side: edge > 0 && edge < CHART_ROW_COUNT && edge % 2 === 1 ? "right" : "left",
+  }));
+}
+
+/** The bend a score sits on: 1, 2 or 3 for exactly 50, 100 or 150 (its dot is drawn at that bend's middle), else null. */
+export function chartOnBend(score: number, max = DEFAULT_ROUND_MAX): 1 | 2 | 3 | null {
+  const s = chartScore(score, max);
+  const edge = s / CHART_BAND;
+  return Number.isInteger(edge) && edge > 0 && edge < CHART_ROW_COUNT ? (edge as 1 | 2 | 3) : null;
 }
 
 /* ---------------------------------------------------------------- markers */
 
 /**
- * Space each side of the line for the scale's labels and the snake's bends, CSS px (23 Oct 2026: the
- * labels are 13 px semibold on a dark backing, so "150" needs a little more than the 11 px labels did).
+ * Space each side of the line for the snake's bends and, on the left, the axis' labels, CSS px (23 Oct 2026: the
+ * labels are 13 px semibold on a dark backing; 48 since 3 Nov 2026 so "200" clears the left bends).
  */
-export const CHART_MARGIN = 44;
+export const CHART_MARGIN = 48;
 /** A marker's badge diameter and the vertical step between stacked markers, CSS px. */
 export const CHART_BADGE = 22;
 export const CHART_LANE = 30;
@@ -114,7 +129,7 @@ export interface MarkerIn {
 
 export interface MarkerOut {
   key: number;
-  row: 0 | 1 | 2;
+  row: ChartRow;
   /** The score's exact place on the line, CSS px from the line's left end. */
   px: number;
   /** The marker's drawn box, CSS px from the line's left end. */
@@ -141,7 +156,7 @@ export function layoutMarkers(markers: readonly MarkerIn[], trackW: number, max 
     const left = labelSide === "right" ? px - CHART_BADGE / 2 : px + CHART_BADGE / 2 - width;
     return { key: m.key, row: point.row, px, left, width, labelSide, lane: 0 };
   });
-  for (const row of [0, 1, 2] as const) {
+  for (const row of CHART_ROW_IDS) {
     const lanes: { left: number; right: number }[][] = [];
     const inRow = placed
       .filter((m) => m.row === row)
@@ -157,9 +172,9 @@ export function layoutMarkers(markers: readonly MarkerIn[], trackW: number, max 
 }
 
 /** How many lanes each row needs (at least one, so an empty row keeps its height). */
-export function rowLanes(markers: readonly MarkerOut[]): [number, number, number] {
-  const lanes: [number, number, number] = [1, 1, 1];
-  for (const m of markers) lanes[m.row] = Math.max(lanes[m.row], m.lane + 1);
+export function rowLanes(markers: readonly MarkerOut[]): number[] {
+  const lanes: number[] = CHART_ROW_IDS.map(() => 1);
+  for (const m of markers) lanes[m.row] = Math.max(lanes[m.row] ?? 1, m.lane + 1);
   return lanes;
 }
 

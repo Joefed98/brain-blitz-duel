@@ -45,7 +45,7 @@ export function RoundTitle({
     if (elapsed > ROUND_TITLE_VOICE_CUTOFF_MS) return;
     const voice: VoiceId | null = final
       ? "finalRound"
-      : round >= 1 && round <= 7
+      : round >= 1 && round <= 11
         ? (`round${round}` as VoiceId)
         : null;
     if (!voice) return;

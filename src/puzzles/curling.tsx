@@ -22,6 +22,8 @@ import {
   curlDrawZone,
   curlWeightFromSwipeV3,
   HOG_NEAR,
+  HOUSE_R,
+  TEE_NEAR,
   type CurlingState,
 } from "@/lib/arcade/curling";
 import {
@@ -35,6 +37,7 @@ import {
   drawCurling,
   CURLING_BG,
   CURL_PX_PER_CM_FAR,
+  CURL_VIEW_V2,
   type CurlAim,
 } from "@/lib/arcade/curling.renderer";
 import { devWarp } from "@/lib/arcade/devWarp";
@@ -308,16 +311,21 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         overlay={
           v4
             ? (send) => (
-                // curlRev 4: In, Out and Throw over the bottom of the sheet (below the near hog line), drawn in the arena so
-                // the world reaches the bottom, lifted by the home bar: the row ends at least 12 px above
-                // env(safe-area-inset-bottom) (the arena ends 16 px above the screen's bottom, so the lift is the inset less
-                // 4 px). Only the buttons take a touch; a rub beside them reaches the canvas (brushing).
-                <div className="pointer-events-none absolute inset-x-1" style={{ bottom: "max(0px, calc(env(safe-area-inset-bottom, 0px) - 4px))" }}>
+                // curlRev 4: In, Out and Throw over the ice below the near hog line, drawn in the arena so the world reaches
+                // the bottom. Since 3 Nov 2026 (Joe's phone note: too close to the red line) the row is centred between the
+                // hog line (world y 470) and the near house's blue ring (world y 590, drawn by the scene below the 540-row
+                // world): its top is CURL_TURN_ROW_MID of the world's height (the slot is a size container, the world
+                // top-anchored at the slot's scale) less half the row, and never lower than the slot's bottom less the row
+                // and the home-bar lift (the row ends at least 12 px above env(safe-area-inset-bottom): the arena ends 16 px
+                // above the screen's bottom, so the lift is the inset less 4 px). Only the buttons take a touch; a rub beside
+                // them reaches the canvas (brushing).
+                <div className="pointer-events-none absolute inset-x-1" style={{ top: CURL_TURN_ROW_TOP }}>
                   {turnButtons(send)}
                 </div>
               )
             : undefined
         }
+        overlayBelowWorld={v4}
         onSubmit={(answer) => onSubmit(answer)}
         onDraftAnswer={onDraftAnswer}
       />
@@ -374,6 +382,11 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     );
   }
 }
+
+/** curlRev 4's turn row (display only): its centre between the near hog line and the near house, as a share of the world's height. */
+export const CURL_TURN_ROW_MID = (curlProject(0, HOG_NEAR, CURL_VIEW_V2).sy + curlProject(0, TEE_NEAR - HOUSE_R, CURL_VIEW_V2).sy) / 2 / CURL_VIEW_V2.h;
+/** The row's top: the world's height (min(100cqh, 100cqw × h ÷ w)) at CURL_TURN_ROW_MID less half the 48 px row, clamped above the slot's bottom. */
+export const CURL_TURN_ROW_TOP = `min(calc(min(100cqh, 100cqw * ${CURL_VIEW_V2.h} / ${CURL_VIEW_V2.w}) * ${CURL_TURN_ROW_MID.toFixed(4)} - 24px), calc(100cqh - 48px - max(0px, calc(env(safe-area-inset-bottom, 0px) - 4px))))`;
 
 function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   if (puzzle.type !== "curling") return null;

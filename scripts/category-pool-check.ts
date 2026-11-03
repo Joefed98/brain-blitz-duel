@@ -71,7 +71,9 @@ expect("ricochet", "arcade", false);
 // The new grid puzzles (1 Nov 2026): Fences, Fillomino and Bridges in Logic, Kakuro in Number, all dealt in rooms.
 for (const type of ["fences", "fillomino", "bridges"] as const) expect(type, "logic", false);
 expect("kakuro", "number", false);
-const POOL: Record<string, number> = { word: 9, number: 9, speed: 6, attention: 6, pattern: 10, logic: 15, arcade: ACTIVE_ARCADE_GAMES.length };
+// Bomb Defusal moved from Logic to Attention on 3 Nov 2026 (Joe's decision): Attention 7, Logic 14.
+expect("bomb", "attention", false);
+const POOL: Record<string, number> = { word: 9, number: 9, speed: 6, attention: 7, pattern: 10, logic: 14, arcade: ACTIVE_ARCADE_GAMES.length };
 for (const type of ["minesweeper", "mahjong", "homerun", "freekick", "racing", "freecell", "tripeaks", "fivehands", "pyramid", "minigolf", "pool", "curling", "blockfall", "alleyroll"] as const) expect(type, "arcade", false);
 for (const [category, want] of Object.entries(POOL)) {
   const got = typesInCategory(category as never).length;

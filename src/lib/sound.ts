@@ -842,12 +842,23 @@ export type VoiceId =
   | "round5"
   | "round6"
   | "round7"
+  // Rooms of up to 12 rounds (3 Nov 2026): rounds 8–11 announced; round 12 is always "Final round".
+  | "round8"
+  | "round9"
+  | "round10"
+  | "round11"
   // Sound batch 2's voice lines (18 Oct 2026).
   | "voice.timesUp"
   | "voice.perfect"
   | "voice.tie"
   | "voice.youWin"
-  | "voice.rematch";
+  | "voice.rematch"
+  // The room's moment lines (3 Nov 2026, docs/sound-cues/voice-lines-nov-2026.csv): roomVoices.ts.
+  | "voice.newBest"
+  | "voice.photoFinish"
+  | "voice.newLeader"
+  | "voice.cleanSweep"
+  | "voice.draw";
 const VOICE_IDS: VoiceId[] = [
   "prepareToDuel",
   "winnerIs",
@@ -862,13 +873,24 @@ const VOICE_IDS: VoiceId[] = [
   "round5",
   "round6",
   "round7",
+  "round8",
+  "round9",
+  "round10",
+  "round11",
   "voice.timesUp",
   "voice.perfect",
   "voice.tie",
   "voice.youWin",
   "voice.rematch",
+  "voice.newBest",
+  "voice.photoFinish",
+  "voice.newLeader",
+  "voice.cleanSweep",
+  "voice.draw",
 ];
 let voiceTimer: number | undefined;
+/** When the current (or pending) voice line ends, on Date.now()'s clock: queueVoice waits for it. */
+let voiceBusyUntil = 0;
 /** One voice line at a time: a new line (or a pending delayed one) replaces the current line. */
 export function playVoice(id: VoiceId, delayMs = 0): void {
   if (typeof window === "undefined") return;
@@ -876,8 +898,10 @@ export function playVoice(id: VoiceId, delayMs = 0): void {
     window.clearTimeout(voiceTimer);
     voiceTimer = undefined;
   }
+  voiceBusyUntil = Math.max(voiceBusyUntil, Date.now() + delayMs + voiceDurationMs(id));
   const run = () => {
     voiceTimer = undefined;
+    voiceBusyUntil = Date.now() + voiceDurationMs(id);
     for (const other of VOICE_IDS) {
       const src = playingEffects.get(other);
       if (src) {
@@ -894,6 +918,29 @@ export function playVoice(id: VoiceId, delayMs = 0): void {
   if (delayMs > 0) voiceTimer = window.setTimeout(run, delayMs);
   else run();
 }
+/**
+ * A moment's voice line that never talks over another (3 Nov 2026): it plays once the current or
+ * pending voice line has finished (plus a short breath), at least `delayMs` from now. If another
+ * line has started by then, it waits for that one too (at most a few tries, then it is dropped).
+ */
+export function queueVoice(id: VoiceId, delayMs = 0): void {
+  if (typeof window === "undefined") return;
+  let tries = 0;
+  const attempt = (wait: number) => {
+    window.setTimeout(() => {
+      const busy = voiceBusyUntil - Date.now();
+      if (busy > 0) {
+        if (++tries < 4) attempt(busy + VOICE_GAP_MS);
+        return;
+      }
+      voiceBusyUntil = Date.now() + voiceDurationMs(id);
+      playSound(id);
+    }, wait);
+  };
+  const busy = voiceBusyUntil - Date.now();
+  attempt(Math.max(delayMs, busy > 0 ? busy + VOICE_GAP_MS : 0));
+}
+const VOICE_GAP_MS = 250;
 /** Length of a voice line in ms: decoded file when loaded, else the manifest figure. */
 export function voiceDurationMs(id: VoiceId): number {
   const buffer = buffers.get(id);

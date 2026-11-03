@@ -505,7 +505,7 @@ export function AsyncRun({
   if (step.kind === "reveal") {
     const reveal = step.reveal;
     return (
-      <PhoneShell constrained gameScreen gameType={step.puzzle.type}>
+      <PhoneShell constrained gameScreen reveal gameType={step.puzzle.type}>
         <AnswerReveal
           round={step.round}
           totalRounds={roundCount}

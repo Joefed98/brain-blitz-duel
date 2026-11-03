@@ -10,7 +10,7 @@
  * its weak spot's phase (exposed 60 of every 90 ticks; a shell on it while closed is a hull hit). A tank that reaches the wall hits the
  * base; three hits end the run early (the score is kept).
  *
- * Aim is a point on the screen (the phone floats the crosshair 100 px above the finger); lifting fires a shell at that
+ * Aim is a point on the screen (the phone floats the crosshair 120 px above the finger); lifting fires a shell at that
  * point, which lands FLIGHT_MIN…FLIGHT_MAX ticks later (0.3–0.5 s, longer the further up the screen), so a moving tank
  * must be led. The shell hits the front-most tank whose drawn hull or turret covers the point at landing; a hit on the
  * tank's glowing weak spot does double damage. Five shells; empty reloads by itself in 2 s, a swipe down reloads early;

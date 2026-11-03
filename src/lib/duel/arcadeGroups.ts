@@ -4,7 +4,9 @@
  * Retro, Sports, Cards & Board, Action and Strategy on the Practice tab's Arcade side, and each arcade tile's
  * border takes its group's colour. Strategy (1 Nov 2026) was split out of Action: Coral Pop, Gemstone, Ball
  * Tracker, Tilt, Rainbow Bridge and High Rise moved, the rest of Action stayed. A room saved with the Action pick
- * before the split still deals both groups' games (roomSettings.ts `GROUPS_TOKEN`). Arcade rounds, the daily
+ * before the split still deals both groups' games (roomSettings.ts `GROUPS_TOKEN`). High Rise moved back from Strategy
+ * to Action on 3 Nov 2026 (Joe's decision). A game's group here is its main one; a game listed also in a group
+ * (Pull! in Sports) is in alsoIn.ts, never here, so it keeps its own border and counts. Arcade rounds, the daily
  * arcade and scoring never read this: Arcade stays one category there.
  *
  * Games are listed by registry id. Ids not registered yet (the new Sports and Cards & Board games) are
@@ -59,8 +61,8 @@ export const ARCADE_GROUPS: readonly ArcadeGroupInfo[] = [
     colour: "#FF4D4D",
     glow: false,
     // Slice, Roofbound, Grappler, Ricochet (the ninja wall-climb, back from retirement on ricoRev 2, 1 Nov 2026), Bastion
-    // (bastionRev 2, 1 Nov 2026).
-    games: ["slice", "flip", "swing", "ricochet", "bastion"],
+    // (bastionRev 2, 1 Nov 2026), High Rise (back from Strategy, 3 Nov 2026).
+    games: ["slice", "flip", "swing", "ricochet", "bastion", "skyline"],
   },
   {
     id: "strategy",
@@ -69,8 +71,9 @@ export const ARCADE_GROUPS: readonly ArcadeGroupInfo[] = [
     // and of Pattern's purple and Word's blue beside it in the room settings sheet; 6.3:1 on #0B0B0F.
     colour: "#8E80FF",
     glow: false,
-    // Tilt, Gemstone, High Rise, Coral Pop, Rainbow Bridge, Ball Tracker (their order in Action).
-    games: ["tilt", "matchup", "skyline", "bubble", "inkbridge", "balltrack"],
+    // Tilt, Gemstone, Coral Pop, Rainbow Bridge, Ball Tracker (their order in Action); High Rise went back to Action
+    // on 3 Nov 2026.
+    games: ["tilt", "matchup", "bubble", "inkbridge", "balltrack"],
   },
 ];
 

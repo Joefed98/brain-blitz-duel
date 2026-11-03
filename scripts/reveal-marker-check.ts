@@ -41,5 +41,7 @@ check('Skyline', skyline, skylineArtGame, skylineRevealGame, ['rgba(229, 72, 77,
 const rally = rallyGame.init(17); rally.dead = true;
 check('Rally', rally, rallyArtGame, rallyRevealGame, ['rgba(255,59,92,0.2)']);
 assert.match(readFileSync('src/components/duel/IntroDemo.tsx', 'utf8'), /renderer\.drawFinal\([^;]+"demo"\)/);
-assert.match(readFileSync('src/components/duel/ArcadeReveal.tsx', 'utf8'), /outcome === "finish" \? "var\(--me\)" : null/);
-console.log('PASS: five reveal variants at both widths omit crash indicators, preserve live art and state; demo routing and gold finish ring retained.');
+// The answer reveal is its own screen since 3 Nov 2026 (the brief changed the rule): no frozen final world behind it, so
+// no gold finish ring over that world either; the reveal renderers' final frames still serve the intro demos (above).
+assert.doesNotMatch(readFileSync('src/components/duel/ArcadeReveal.tsx', 'utf8'), /drawFinal|function Backdrop/);
+console.log('PASS: five reveal variants at both widths omit crash indicators, preserve live art and state; demo routing retained; the reveal draws no frozen world.');

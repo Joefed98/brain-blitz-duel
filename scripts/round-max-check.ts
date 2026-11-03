@@ -143,7 +143,8 @@ for (const type of RAISED) {
   ok(scoreBandFloor(type, "perfect") === 200 && scoreBandFloor(type, "near-perfect") === 173 && scoreBandFloor(type, "great") === 147 && scoreBandFloor(type, "average") === 80 && scoreBandOf(type, 150) === "great", `${type}: bands on the 200 scale`);
   ok(signatureMinScore(type) === 160 && isValidRoundScore(type, 200) && !isValidRoundScore(type, 201), `${type}: the beat needs 160 and valid scores run to 200`);
   ok(scaledToMax(type, 120) === 160 && isPerfectScore(type, 200) && !isPerfectScore(type, 150), `${type}: raised, its thresholds and perfect are on the 200 scale`);
-  ok(chartLabels(roundMaxFor(type)).map((l) => l.text)[3] === "200", `${type}: the chart's top label is 200`);
+  // The chart's axis is 0–200 for every game since 3 Nov 2026 (four bands); its last label is 200.
+  ok(chartLabels(roundMaxFor(type)).map((l) => l.text).at(-1) === "200", `${type}: the chart's top label is 200`);
   ok(TOP200.test(INTRO_SCORE[type] + " " + PUZZLE_INSTRUCTIONS[type].score), `${type}: its intro or help states its 200 maximum`);
   TOP200.lastIndex = 0;
 }
@@ -155,7 +156,8 @@ for (const type of E6_RAISED) ok(/\b200\b/.test(INTRO_SCORE[type]) && !/\b150\b/
 ok(roundMaxFor("no-such-game") === 150 && roundMaxFor(null) === 150, "an unknown or removed game is 150");
 ok(Object.values(ROUND_MAX).every((m) => m <= SCORE_CEILING), "no maximum above the ceiling");
 ok(RAISED.length ? topRoundMax().top === 200 && !topRoundMax().shared : topRoundMax().top === 150 && topRoundMax().shared, `the onboarding's top score is ${RAISED.length ? "200, not every game's" : "150, shared by every game"}`);
-ok(JSON.stringify(chartLabels().map((l) => l.text)) === '["0","50","100","150"]', "the chart reads 0 / 50 / 100 / 150");
+// Four bands to 200 for every game (3 Nov 2026; was 0 / 50 / 100 / 150 on a 150 game's thirds).
+ok(JSON.stringify(chartLabels().map((l) => l.text)) === '["0","50","100","150","200"]', "the chart reads 0 / 50 / 100 / 150 / 200");
 const [S_WORD, S_SNAKE, S_TILE, S_HOVER] = [at150("wordsmith"), at150("snake"), at150("tilegrid"), at150("hover")];
 ok(signatureMinScore(S_WORD) === SIGNATURE_MIN_SCORE && SIGNATURE_MIN_SCORE === 120, `the no-finish beat still needs 120 (${S_WORD})`);
 ok(scaledToMax(S_SNAKE, 110) === 110 && scaledToMax(S_SNAKE, 120) === 120, `thresholds on the 150 scale are unchanged at 150 (${S_SNAKE})`);
@@ -189,10 +191,11 @@ for (const type of TYPES) {
     ok(!/\b150\b/.test(now.intro.replace(/150 ms/g, "")), `${type}: the intro still says 150: "${now.intro}"`);
     // The chart's axis.
     const labels = chartLabels(roundMaxFor(type)).map((l) => l.text);
-    ok(labels[0] === "0" && labels[3] === "200", `${type}: the chart's top label is its maximum (${labels.join("/")})`);
-    ok(chartScore(250, roundMaxFor(type)) === 200 && chartRow(200, roundMaxFor(type)) === 2 && chartPoint(200, roundMaxFor(type)).x === 1 && chartPoint(150, roundMaxFor(type)).x < 1, `${type}: 200 sits at the end of the line, 150 short of it`);
+    ok(labels[0] === "0" && labels.at(-1) === "200", `${type}: the chart's top label is its maximum (${labels.join("/")})`);
+    // Four bands (3 Nov 2026): 200 ends the fourth row, which reads right to left, so it sits at the left; 150 ends the third.
+    ok(chartScore(250, roundMaxFor(type)) === 200 && chartRow(200, roundMaxFor(type)) === 3 && chartPoint(200, roundMaxFor(type)).x === 0 && chartRow(150, roundMaxFor(type)) === 2, `${type}: 200 sits at the end of the line, 150 a band short of it`);
     const [m] = layoutMarkers([{ key: 1, score: 200, name: "Sam" }], 300, roundMaxFor(type));
-    ok(m?.row === 2 && m.px === 300, `${type}: a 200 marker sits at the line's end`);
+    ok(m?.row === 3 && m.px === 0, `${type}: a 200 marker sits at the line's end`);
     // The perfect moment and Perfectionist.
     ok(!isPerfectScore(type, 150) && isPerfectScore(type, 200), `${type}: perfect is 200, not 150`);
     ok(perfectionist(type, 150) === undefined && perfectionist(type, 200)?.line === "A perfect 200 in Game", `${type}: Perfectionist follows the maximum`);
@@ -228,7 +231,7 @@ ok(/<StoredScore score=\{myScore\} type=\{puzzle\.type\} \/>/.test(read("src/com
 ok(/usePerfectBurst\(scoreRef, myScore, puzzle\.type\)/.test(read("src/components/duel/ArcadeReveal.tsx")) && /<ArcadeScoreChart[\s\S]*?type=\{puzzle\.type\}/.test(read("src/components/duel/ArcadeReveal.tsx")), "the arcade reveal passes its game to the perfect moment and the chart");
 {
   const chart = read("src/components/duel/ArcadeScoreChart.tsx");
-  ok(/const max = roundMaxFor\(type\)/.test(chart) && /lengthTo\(max\)/.test(chart) && /chartLabels\(max\)/.test(chart) && /chartPoint\(score, max\)/.test(chart) && !/\b150\b/.test(chart.replace(/MAX_EXTRA = 150/, "").replace(/\/\*[\s\S]*?\*\/|\/\/.*$/gm, "")), "the chart draws on its game's scale, no 150 written in");
+  ok(/const max = roundMaxFor\(type\)/.test(chart) && /lengthTo\(CHART_TOP_SCORE\)/.test(chart) && /chartLabels\(max\)/.test(chart) && /chartPoint\(score, max\)/.test(chart) && !/\b150\b/.test(chart.replace(/MAX_EXTRA = 150/, "").replace(/\/\*[\s\S]*?\*\/|\/\/.*$/gm, "")), "the chart draws on its game's scale, no 150 written in");
 }
 ok(!/\b150\b|MAX_ROUND_SCORE/.test(read("src/components/async/AsyncResults.tsx")), "the daily and challenge results write in no 150 (batch R dropped their top-score highlight)");
 ok(/roundMaxFor\(gameType\)/.test(read("src/components/duel/RoundResult.tsx")) && /gameType=\{puzzle\?\.type\}/.test(read("src/routes/duel.$code.tsx")), "the two-player round result's bars run to the game's maximum");

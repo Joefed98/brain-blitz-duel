@@ -7,7 +7,10 @@
  *    no run is on screen (serviceWorker.ts), so a run in progress is never interrupted. The newest two
  *    builds' caches are kept, so a page still on the previous build can load its own lazy chunks.
  *  - Media (sounds and music, tile images, the word list) is the same file under the same name from build to
- *    build, so it lives in one shared cache, "joulz-media-v1": a new build only downloads what changed.
+ *    build, so it lives in one shared cache, "joulz-media-v1": a new build only downloads what changed. A
+ *    file is "changed" when it is missing or its kept bytes' SHA-256 differs from CONFIG.mediaHash (3 Nov
+ *    2026: before that a redrawn tile or a replaced recording kept its old copy for good, since requests
+ *    ignore the ?v= hash and install fetched only missing paths).
  *  - Navigations go to the network first (a fresh page whenever there is signal), then to the kept page
  *    for that path, then to a small offline page that points to Practice (rooms, tournaments, the daily
  *    and challenges need a connection).
@@ -32,7 +35,8 @@ self.addEventListener("install", (event) => {
       // Media is shared between builds: only what this cache lacks is fetched.
       const media = await caches.open(MEDIA_CACHE);
       const have = new Set((await media.keys()).map((r) => new URL(r.url).pathname));
-      await addAll(media, CONFIG.media.filter((path) => !have.has(path)), false);
+      const stale = await staleMedia(media, CONFIG.media.filter((path) => have.has(path)));
+      await addAll(media, CONFIG.media.filter((path) => !have.has(path) || stale.has(path)), false);
       await cacheGoogleFonts();
     })(),
   );
@@ -109,6 +113,29 @@ async function cacheFirst(request, cacheName, ignoreSearch) {
     void caches.open(cacheName).then((cache) => cache.put(ignoreSearch ? stripSearch(request.url) : request, copy)).catch(() => {});
   }
   return response;
+}
+
+/** Kept media whose bytes no longer match this build's hash (each kept copy hashed on the phone). */
+async function staleMedia(cache, paths) {
+  const stale = new Set();
+  const hashes = CONFIG.mediaHash || {};
+  for (const path of paths) {
+    const want = hashes[path];
+    if (!want) continue;
+    try {
+      const hit = await cache.match(path, { ignoreSearch: true });
+      if (!hit) {
+        stale.add(path);
+        continue;
+      }
+      const digest = await crypto.subtle.digest("SHA-256", await hit.arrayBuffer());
+      const hex = Array.from(new Uint8Array(digest), (b) => b.toString(16).padStart(2, "0")).join("");
+      if (hex !== want) stale.add(path);
+    } catch {
+      stale.add(path);
+    }
+  }
+  return stale;
 }
 
 function stripSearch(href) {
