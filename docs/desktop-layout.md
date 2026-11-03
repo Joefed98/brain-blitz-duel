@@ -183,7 +183,7 @@ Retired to practice (12):
 | --- | --- | --- | --- | --- | --- |
 | Letterfall | `wordfall` | Word | **tall** |  | falling-letter engine game (practice only): kept upright |
 | Dig | `dig` | Logic | **wide** |  | puzzle board: re-flows into the wider column |
-| Bastion | `bastion` | Arcade | **tall** |  | practice only, defended from the bottom: kept upright |
+| Iron Wall (was Bastion) | `bastion` | Arcade | **tall** |  | the tank-defence shooter, kept upright; the dusk, field and lane-edge scenery carried out to the sides |
 | Dual | `dual` | Arcade | **tall** |  | practice only: kept upright |
 | Full House | `pokersquares` | Arcade · Cards & Board | **wide** |  | card / board layout, no physics world: scaled up in a wide column |
 | Hot Floor | `hotfloor` | Arcade | **tall** |  | practice only: kept upright |

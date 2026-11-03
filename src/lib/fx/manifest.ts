@@ -561,7 +561,8 @@ const ENTRIES = {
   "tents.grass": { channel: "effects", frequency: 0, ms: 200, url: null },
   "tents.clear": { channel: "effects", frequency: 0, ms: 528, url: "/sounds/ui.clear.mp3" },
   "tents.solve": { channel: "effects", frequency: 0, ms: 1000, url: "/sounds/done.pops.mp3" },
-  "music_bastion": { channel: "music", frequency: 0, ms: 0, url: null },
+  // Iron Wall's own bed slot (3 Nov 2026): Wavefront's driving bed until its own recording is set.
+  "music_bastion": { channel: "music", frequency: 0, ms: 0, url: "/__l5e/assets-v1/94ad8b7c-b458-477d-b98e-ec2b1c21c0d5/music_wavefront.mp3" },
   // Bastion bastionRev 2 (1 Nov 2026): own slots, each on its shared fallback until a recording is set (docs/sound-cues/arcade.md).
   "bastion.cannon": { channel: "effects", frequency: 0, ms: 420, url: null },
   "bastion.dry": { channel: "effects", frequency: 0, ms: 120, url: null },
@@ -575,6 +576,9 @@ const ENTRIES = {
   "bastion.miss": { channel: "effects", frequency: 0, ms: 300, url: null },
   "bastion.baseHit": { channel: "effects", frequency: 0, ms: 800, url: null },
   "bastion.wave": { channel: "effects", frequency: 0, ms: 900, url: null },
+  // Iron Wall bastionRev 3 (3 Nov 2026): the drone's quiet loop while one is in the sky, and its fall.
+  "bastion.drone": { channel: "effects", frequency: 0, ms: 0, url: null, loop: true },
+  "bastion.droneDown": { channel: "effects", frequency: 0, ms: 700, url: null },
   "music_dual": { channel: "music", frequency: 0, ms: 0, url: null },
   "music_hotfloor": { channel: "music", frequency: 0, ms: 0, url: null },
   "music_ricochet": { channel: "music", frequency: 0, ms: 0, url: null },

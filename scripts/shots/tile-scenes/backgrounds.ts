@@ -584,7 +584,7 @@ const ARCADE_BACKGROUNDS: Partial<Record<PuzzleType, TileBackground>> = {
     c.fillRect(0, 86, T, T - 86);
     drawPagoda(c as CanvasRenderingContext2D, 52, 92, 0.42);
   }),
-  // Bastion (bastionRev 2): the slate dusk sky over the earth field (the mockups' palette).
+  // Iron Wall (id bastion): the slate dusk sky over the earth field (the mockups' palette).
   bastion: bg((c) => {
     vgrad(c, [[0, "#2A3240"], [0.42, "#46515F"], [0.45, "#6F5E46"], [1, "#5A4B37"]]);
   }, { fade: 0.2 }),

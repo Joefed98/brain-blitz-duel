@@ -101,3 +101,25 @@ median of core units is also 294.
   - the core bits;
   - random drags score 1–25.
 - `arcade-self-replay-check` has an appended `wavefront/std` entry.
+
+## The enemy ships restyled (3 Nov 2026, display only, every revision, no stamp)
+
+Joe's mockups ("Wavefront ships: A + B combined", with the three directions board): every enemy ship, the boss and the
+UFO in **gunmetal steel** with **magenta neon edge lights**, **orange furnace seams**, **side cannons** and **fire exhaust
+with a blue-hot core**, mixing direction A's sleek darts and fighters with direction B's heavier, blockier warships.
+Each type has its own silhouette (`src/lib/arcade/wavefront.renderer.ts`):
+
+| Kind | Name | Look |
+|---|---|---|
+| 0 | Dart | a sleek arrowhead scout: swept wings, magenta leading edges, a cyan cockpit, twin exhausts |
+| 1 | Raptor | a fighter: a narrow body on broad wings, magenta-tipped wingtip cannons, orange seams, twin exhausts |
+| 2 | Bulwark | a blocky heavy: a furnace grid of orange seams, side cannons, a glowing furnace core, three exhausts |
+| armoured ship | — | a gunmetal warship, orange-seamed plates (one a hit point), the furnace glowing through lost plates |
+| boss | Leviathan | a broad warship with a row of exhausts, a furnace grid, magenta lower edges, gun pods and a glowing magenta-white weak core (wavRev 10+: the iris opens magenta-white) |
+| saucer | UFO | a gunmetal disc, a blue-hot glass dome, a furnace band underneath and chasing magenta rim lights |
+
+The hit boxes are unchanged (no stamp, no band change): every hull still fills its 28 px cell, the exhaust burning in
+the cell's top fifth and the hull below it (`drawExhaust`), the armoured ship and boss inside their boxes (clipped), the
+UFO inside the saucer's hit box. A ship's colour picks its steel (light, mid or dark gunmetal) and the 3-in-16 tints
+(maroon, navy, dark red) stay (`wavHullTint`). `scripts/wavefront-ships-check.ts` proves the hulls and the UFO on their
+boxes and three distinct silhouettes. The tile shows a Dart, a Bulwark and a Raptor in formation over the fighter's beam.

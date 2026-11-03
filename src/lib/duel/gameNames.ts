@@ -4,7 +4,7 @@ import type { PuzzleType } from "./types";
 export const GAME_DISPLAY_NAMES: Record<PuzzleType, string> = {
   balance: "Counterweight",
   balltrack: "Ball Tracker",
-  bastion: "Bastion",
+  bastion: "Iron Wall",
   beat: "Tempo",
   bintoss: "Swish",
   blockparty: "Tessellate",

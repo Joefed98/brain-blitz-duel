@@ -20,7 +20,7 @@ import { drawMinesweeper } from "@/lib/arcade/minesweeper.renderer";
 import { drawMahjong } from "@/lib/arcade/mahjong.renderer";
 import { homerunArtGame } from "@/lib/arcade/homerun.renderer";
 import { bastionGame } from "@/lib/arcade/bastion";
-import { bastionTankArtGame } from "@/lib/arcade/bastionTank.renderer";
+import { bastionTankArtGameFor } from "@/lib/arcade/bastionTank.renderer";
 import { freekickArtGame } from "@/lib/arcade/freekick.renderer";
 import { racingArtGame } from "@/lib/arcade/racing.renderer";
 import { freecellArt } from "@/lib/arcade/cards/freecell.renderer";
@@ -94,7 +94,7 @@ const SIMPLE: Record<string, (p: PuzzleData) => Draw> = {
   minesweeper: () => drawMinesweeper as Draw,
   mahjong: () => drawMahjong as Draw,
   homerun: () => homerunArtGame.draw as Draw,
-  bastion: (p) => (((p as { bastionRev?: number }).bastionRev ?? 1) >= 2 ? bastionTankArtGame.draw : bastionGame.draw) as Draw,
+  bastion: (p) => (((p as { bastionRev?: number }).bastionRev ?? 1) >= 2 ? bastionTankArtGameFor((p as { bastionRev?: number }).bastionRev).draw : bastionGame.draw) as Draw,
   freekick: () => freekickArtGame.draw as Draw,
   racing: () => racingArtGame.draw as Draw,
   freecell: () => freecellArt.draw as Draw,

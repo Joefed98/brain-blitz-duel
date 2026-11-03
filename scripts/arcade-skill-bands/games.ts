@@ -98,7 +98,7 @@ import { encodeBlockfallRun, replayBlockfallRun } from "../../src/lib/duel/block
 import { blockfallDealSeed } from "../../src/lib/duel/blockfallDeal.server";
 import { alleyRollGameFor, arCheckpoint, ALLEYROLL_REV_DEALT } from "../../src/lib/arcade/alleyroll";
 import { encodeAlleyRollRun, replayAlleyRollRun } from "../../src/lib/duel/alleyroll";
-import { bastionTankCheckpoint, bastionTankGame, BASTION_REV_TANK } from "../../src/lib/arcade/bastionTank";
+import { bastionTankCheckpoint, bastionTankGameFor, BASTION_REV_IRON, BASTION_REV_TANK } from "../../src/lib/arcade/bastionTank";
 import { encodeBastionTankRun, replayBastionTankRun } from "../../src/lib/duel/bastion";
 import { encodeFiveHandsRun, encodeFreecellRun, encodePokerSquaresRun, encodeTripeaksRun, replayFiveHandsRun, replayFreecellRun, replayPokerSquaresRun, replayTripeaksRun } from "../../src/lib/duel/cards";
 import { encodeGolfSolRun, encodeMugginsRun, encodePyramidRun, replayGolfSolRun, replayMugginsRun, replayPyramidRun } from "../../src/lib/duel/cards";
@@ -334,8 +334,9 @@ export const GAMES: GameSpec[] = [
   simple("alleyroll", ALLEYROLL_REV_DEALT, ALLEYROLL_REV_DEALT, alleyRollGameFor, arCheckpoint, encodeAlleyRollRun, replayAlleyRollRun),
   // Ricochet (1 Nov 2026): the ninja wall-climb, born on the arcade standard at ricoRev 2; any seed (the sim deals the tower and proves its witness).
   simple("ricochet", NINJA_REV, NINJA_REV, () => ninjaGame, ninjaCheckpoint, encodeNinjaRun, (seed, raw) => replayNinjaRun(seed, raw)),
-  // Bastion bastionRev 2 (1 Nov 2026): the tank-defence shooter, born on the arcade scoring standard; any seed.
-  simple("bastion", BASTION_REV_TANK, BASTION_REV_TANK, () => bastionTankGame, bastionTankCheckpoint, encodeBastionTankRun, (seed, raw) => replayBastionTankRun(seed, raw)),
+  // Iron Wall (id bastion): the tank-defence shooter, born on the arcade scoring standard at bastionRev 2 (1 Nov 2026);
+  // bastionRev 3 (3 Nov 2026) eases waves 4–5 and adds the drones; any seed. "live" is rev 2, "next" rev 3.
+  simple("bastion", BASTION_REV_TANK, BASTION_REV_IRON, (rev) => bastionTankGameFor(rev), bastionTankCheckpoint, encodeBastionTankRun, (seed, raw, rev) => replayBastionTankRun(seed, raw, rev)),
   // The Sports group (30 Oct 2026): Minigolf deals a bank course (seed and pars); golfRev 2 (crazy golf, 31 Oct 2026)
   // from its own bank, golfRev 1 (`seedForRev`) from the first.
   {

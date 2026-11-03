@@ -19,15 +19,15 @@ effects ([arcade-effects.md](arcade-effects.md)) so a sound can be written for e
 
 | Category | Silent | Placeholder | Recorded | Total |
 |---|---|---|---|---|
-| game event | 37 | 0 | 466 | 503 |
+| game event | 38 | 0 | 467 | 505 |
 | room moment | 1 | 0 | 34 | 35 |
-| music | 12 | 0 | 103 | 115 |
+| music | 11 | 0 | 104 | 115 |
 | UI tap | 10 | 0 | 30 | 40 |
 | fail sting | 4 | 0 | 37 | 41 |
 | success sting | 3 | 0 | 73 | 76 |
 | ambience | 0 | 1 | 17 | 18 |
 | replay | 0 | 0 | 186 | 186 |
-| **all** | 67 | 1 | 946 | 1014 |
+| **all** | 67 | 1 | 948 | 1016 |
 
 ## Silent and placeholder cues
 
@@ -260,12 +260,6 @@ Grouped by game or screen. These are the cues still missing a sound.
 |---|---|---|---|---|---|---|---|---|
 | `trail.step` | the path gains a step [number.md] |  | 5–40 (per move) | silent | none | 200 | game event | `trail.step` |
 
-### Bastion
-
-| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
-|---|---|---|---|---|---|---|---|---|
-| `music.bastion` | Bastion (retired, practice): none |  | loop | silent | none | 60000 | music | `music_bastion` |
-
 ### Dual
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
@@ -277,6 +271,12 @@ Grouped by game or screen. These are the cues still missing a sound.
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
 | `music.hotfloor` | Hot Floor (retired, practice): none |  | loop | silent | none | 60000 | music | `music_hotfloor` |
+
+### Iron Wall
+
+| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
+|---|---|---|---|---|---|---|---|---|
+| `bastion.drone` |  [arcade-effects.md] | A small dark drone with a blinking red light crosses the sky | 5–40 (per move) | silent | none | loop | game event | `bastion.drone` |
 
 ### Ricochet
 
@@ -390,7 +390,6 @@ Grouped by game or screen. These are the cues still missing a sound.
 | Trail | logic | yes | music_logic_3 (shared) | `music_logic_trail` |
 | Apex | arcade | yes | music_racing | `music_racing` |
 | Ball Tracker | arcade | yes | music_balltrack | `music_balltrack` |
-| Bastion | arcade | yes | **none** | `music_bastion` |
 | Blockfall | arcade | yes | music_blockfall | `music_blockfall` |
 | Breaker | arcade | yes | music_breaker | `music_breaker` |
 | Coral Pop | arcade | yes | music_bubble | `music_bubble` |
@@ -410,6 +409,7 @@ Grouped by game or screen. These are the cues still missing a sound.
 | Home Run | arcade | yes | music_homerun | `music_homerun` |
 | Hot Floor | arcade | practice only | **none** | `music_hotfloor` |
 | Hover | arcade | yes | music_hover | `music_hover` |
+| Iron Wall | arcade | yes | music_bastion | `music_bastion` |
 | Jaywalk | arcade | yes | music_cross | `music_cross` |
 | Junction | arcade | practice only | music_junction | `music_junction` |
 | Mahjong Solitaire | arcade | yes | music_mahjong | `music_mahjong` |
@@ -1254,23 +1254,6 @@ Grouped by game or screen.
 | `balltrack.switch` | Ball Tracker: A switch is flipped [arcade.md] |  | 20–60 | recorded sound | `arc_latch` (shared) | 100 | UI tap | `balltrack.switch` |
 | `music.balltrack` | Ball Tracker: music_balltrack |  | loop | recorded sound | `music_balltrack` | loop | music | `music_balltrack` |
 
-### Bastion
-
-| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
-|---|---|---|---|---|---|---|---|---|
-| `bastion.cannon` | Bastion: The cannon fires a shell [arcade.md] |  | 20–60 | recorded sound | `arc_blaster` (shared) | 420 | game event | `bastion.cannon` |
-| `bastion.dry` | Bastion: Fire with no shell ready (reloading or cooling): a dry click [arcade.md] |  | 0–10 | recorded sound | `tick` (shared) | 120 | game event | `bastion.dry` |
-| `bastion.reload` | Bastion: A reload starts (the magazine empty, or a swipe down) [arcade.md] |  | 7–15 | recorded sound | `arc_latch` (shared) | 500 | game event | `bastion.reload` |
-| `bastion.fastReload` | Bastion: A tap in the green: a fast reload [arcade.md] |  | 0–15 | recorded sound | `arc_retro_coin` (shared) | 350 | game event | `bastion.fastReload` |
-| `bastion.jam` | Bastion: A tap outside the green: the gun jams [arcade.md] |  | 0–10 | recorded sound | `arc_clank` (shared) | 450 | game event | `bastion.jam` |
-| `bastion.loaded` | Bastion: The reload finishes (five shells) [arcade.md] |  | 7–15 | recorded sound | `arc_latch` (shared) | 200 | game event | `bastion.loaded` |
-| `bastion.hit` | Bastion: A shell hits a tank's hull or turret [arcade.md] |  | 10–40 | recorded sound | `arc_retro_hit` (shared) | 250 | game event | `bastion.hit` |
-| `bastion.weak` | Bastion: A shell hits a tank's weak spot [arcade.md] |  | 0–36 | recorded sound | `arc_pickup` (shared) | 300 | game event | `bastion.weak` |
-| `bastion.kill` | Bastion: A tank is destroyed [arcade.md] |  | 0–29 | recorded sound | `arc_big_explode` (shared) | 900 | game event | `bastion.kill` |
-| `bastion.miss` | Bastion: A shell lands on open ground [arcade.md] |  | 0–40 | recorded sound | `arc_fair_thud` (shared) | 300 | fail sting | `bastion.miss` |
-| `bastion.baseHit` | Bastion: A tank reaches the wall and hits the base (with the base-hit haptic) [arcade.md] |  | 0–3 | recorded sound | `arc_crash` (shared) | 800 | game event | `bastion.baseHit` |
-| `bastion.wave` | Bastion: A wave rolls in [arcade.md] |  | 5 | recorded sound | `arc_horn` (shared) | 900 | game event | `bastion.wave` |
-
 ### Blockfall
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
@@ -1551,6 +1534,25 @@ Grouped by game or screen.
 | `hover.star` | Hover: A gold star is collected (hoverRev 2+) [arcade.md] |  | 3–10 | recorded sound | `arc_retro_coin` (shared) | 120 | game event | `hover.star` |
 | `arc_hover_tap` | Hover: Each tap that lifts the craft [core.md] |  | 50–200 | recorded sound | `arc_hover_tap` | 110 | UI tap | `arc_hover_tap` |
 | `music.hover` | Hover: music_hover |  | loop | recorded sound | `music_hover` | loop | music | `music_hover` |
+
+### Iron Wall
+
+| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
+|---|---|---|---|---|---|---|---|---|
+| `bastion.cannon` | Iron Wall: The cannon fires a shell [arcade.md] |  | 20–60 | recorded sound | `arc_blaster` (shared) | 420 | game event | `bastion.cannon` |
+| `bastion.dry` | Iron Wall: Fire with no shell ready (reloading or cooling): a dry click [arcade.md] |  | 0–10 | recorded sound | `tick` (shared) | 120 | game event | `bastion.dry` |
+| `bastion.reload` | Iron Wall: A reload starts (the magazine empty, or a swipe down) [arcade.md] |  | 7–15 | recorded sound | `arc_latch` (shared) | 500 | game event | `bastion.reload` |
+| `bastion.fastReload` | Iron Wall: A tap in the green: a fast reload [arcade.md] |  | 0–15 | recorded sound | `arc_retro_coin` (shared) | 350 | game event | `bastion.fastReload` |
+| `bastion.jam` | Iron Wall: A tap outside the green: the gun jams [arcade.md] |  | 0–10 | recorded sound | `arc_clank` (shared) | 450 | game event | `bastion.jam` |
+| `bastion.loaded` | Iron Wall: The reload finishes (five shells) [arcade.md] |  | 7–15 | recorded sound | `arc_latch` (shared) | 200 | game event | `bastion.loaded` |
+| `bastion.hit` | Iron Wall: A shell hits a tank's hull or turret [arcade.md] |  | 10–40 | recorded sound | `arc_retro_hit` (shared) | 250 | game event | `bastion.hit` |
+| `bastion.weak` | Iron Wall: A shell hits a tank's weak spot [arcade.md] |  | 0–36 | recorded sound | `arc_pickup` (shared) | 300 | game event | `bastion.weak` |
+| `bastion.kill` | Iron Wall: A tank is destroyed [arcade.md] |  | 0–29 | recorded sound | `arc_big_explode` (shared) | 900 | game event | `bastion.kill` |
+| `bastion.miss` | Iron Wall: A shell lands on open ground [arcade.md] |  | 0–40 | recorded sound | `arc_fair_thud` (shared) | 300 | fail sting | `bastion.miss` |
+| `bastion.baseHit` | Iron Wall: A tank reaches the wall and hits the base (with the base-hit haptic) [arcade.md] |  | 0–3 | recorded sound | `arc_crash` (shared) | 800 | game event | `bastion.baseHit` |
+| `bastion.wave` | Iron Wall: A wave rolls in [arcade.md] |  | 5 | recorded sound | `arc_horn` (shared) | 900 | game event | `bastion.wave` |
+| `bastion.droneDown` | Iron Wall: bastionRev 3: a drone is shot down [arcade.md] |  | 0–3 | recorded sound | `arc_retro_explode` (shared) | 700 | game event | `bastion.droneDown` |
+| `music.bastion` | Iron Wall (arcade, Action): music_wavefront (borrowed from Wavefront until its own recording is set) |  | loop | recorded sound | `music_bastion` | 60000 | music | `music_bastion` |
 
 ### Jaywalk
 
@@ -1934,8 +1936,8 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 | `time_up` | effects | `time_up` | 250 |
 | `reveal_score` | effects | `reveal_score` | 140 |
 | `reaction` | effects | `reaction` | 100 |
-| `arc_crash` | effects | `bastion.baseHit`, `swing.crash`, `skyline.miss`, `junction.crash`, `orbit.crash`, `ricochet.hit`, `flip.crash`, `slice.bomb`, `tilt.pitFall`, `tilt.caught` | 200 |
-| `arc_pickup` | effects | `bastion.weak`, `swing.starTaken`, `orbit.checkpoint`, `ricochet.coin`, `flip.starTaken`, `flip.trailStar` | 100 |
+| `arc_crash` | effects | `swing.crash`, `skyline.miss`, `bastion.baseHit`, `junction.crash`, `orbit.crash`, `ricochet.hit`, `flip.crash`, `slice.bomb`, `tilt.pitFall`, `tilt.caught` | 200 |
+| `arc_pickup` | effects | `swing.starTaken`, `bastion.weak`, `orbit.checkpoint`, `ricochet.coin`, `flip.starTaken`, `flip.trailStar` | 100 |
 | `arc_space_ambience` | effects | `orbit.ambience` | loop |
 | `arc_thruster` | effects | `orbit.launch` | 160 |
 | `arc_lose_life` | effects | `bubble.reefLost`, `burst.lifeLost`, `cross.lifeLost`, `wavefront.lifeLost` | 220 |
@@ -1943,17 +1945,17 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 | `arc_retro_note` | effects | `blockfall.hold`, `blockfall.speedUp`, `hover.gate`, `snake.rockWarn`, `snake.showerAlarm`, `rally.goldHit` | 90 |
 | `arc_retro_pickup` | effects | `blockfall.bigClear`, `breaker.powerUp`, `burst.powerUp`, `wavefront.pierce` | 100 |
 | `arc_retro_blip` | effects | `blockfall.turn`, `breaker.relaunch`, `breaker.paddle`, `burst.shot`, `snake.eat`, `rally.hit`, `wavefront.dive` | 50 |
-| `arc_retro_coin` | effects | `racing.sector`, `bastion.fastReload`, `blockfall.clear`, `breaker.start`, `breaker.fireballLit`, `burst.start`, `burst.freezeCaught`, `skyline.streakDrop`, `hover.start`, `hover.star`, `snake.start`, `rally.start`, `beat.start` | 120 |
-| `arc_retro_explode` | effects | `whack.bomb`, `blockfall.topOut`, `breaker.ballLost`, `burst.gameOver`, `hover.crash`, `snake.dead`, `rally.dead` | 260 |
-| `arc_retro_hit` | effects | `bastion.hit`, `blockfall.lock`, `breaker.brickHit`, `burst.hit`, `snake.rockLand`, `wavefront.armourHit`, `wavefront.bossHit` | 120 |
-| `arc_fair_thud` | effects | `bastion.miss`, `bullseye.thud`, `alleyroll.gutter` | 160 |
+| `arc_retro_coin` | effects | `racing.sector`, `blockfall.clear`, `breaker.start`, `breaker.fireballLit`, `burst.start`, `burst.freezeCaught`, `skyline.streakDrop`, `hover.start`, `hover.star`, `bastion.fastReload`, `snake.start`, `rally.start`, `beat.start` | 120 |
+| `arc_retro_explode` | effects | `whack.bomb`, `blockfall.topOut`, `breaker.ballLost`, `burst.gameOver`, `hover.crash`, `bastion.droneDown`, `snake.dead`, `rally.dead` | 260 |
+| `arc_retro_hit` | effects | `blockfall.lock`, `breaker.brickHit`, `burst.hit`, `bastion.hit`, `snake.rockLand`, `wavefront.armourHit`, `wavefront.bossHit` | 120 |
+| `arc_fair_thud` | effects | `bullseye.thud`, `bastion.miss`, `alleyroll.gutter` | 160 |
 | `arc_fair_bell` | effects | `bullseye.bull`, `alleyroll.goldCup`, `bintoss.allBaskets` | 400 |
 | `arc_fair_bucket` | effects | `alleyroll.ring`, `bintoss.basket` | 200 |
 | `arc_fair_sting` | effects | `bullseye.perfect`, `alleyroll.pocket`, `bintoss.perfect` | 300 |
 | `arc_marble_roll` | effects | `balltrack.roll`, `inkbridge.coinRoll`, `tilt.roll` | 400 |
 | `arc_siren` | effects | `swing.dragon`, `junction.siren` | 600 |
 | `arc_wood_knock` | effects | `balltrack.wrong`, `swing.rockLand`, `alleyroll.roll`, `alleyroll.ramp`, `bintoss.spinnerKnock`, `tilt.knock` | 90 |
-| `arc_clank` | effects | `bastion.jam`, `swing.rockShake`, `skyline.drop`, `junction.newRoad` | 150 |
+| `arc_clank` | effects | `swing.rockShake`, `skyline.drop`, `bastion.jam`, `junction.newRoad` | 150 |
 | `arc_horn` | effects | `bastion.wave`, `junction.horn` | 400 |
 | `arc_latch` | effects | `balltrack.switch`, `bastion.reload`, `bastion.loaded`, `pinball.bankReset`, `tilt.gate` | 100 |
 | `arc_marble_clink` | effects | `balltrack.marbleHome`, `inkbridge.coinLand`, `tilt.mazeDone`, `tilt.cup` | 120 |
@@ -2380,6 +2382,7 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 | `kakuro.solve` | effects | `kakuro.solve` | 1000 |
 | `tents.clear` | effects | `tents.clear` | 528 |
 | `tents.solve` | effects | `tents.solve` | 1000 |
+| `music_bastion` | music | `music.bastion` | loop |
 | `music_beat` | music | `music.beat` | 60087 |
 | `bubble.bomb` | effects | `bubble.bomb` | 662 |
 | `bubble.line` | effects | `bubble.line` | 600 |

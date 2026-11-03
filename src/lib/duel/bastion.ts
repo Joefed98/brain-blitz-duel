@@ -3,7 +3,8 @@
  *
  * Unstamped puzzles are the original Bastion (the shapes turret, src/lib/arcade/bastion.ts) and replay exactly as
  * before through `replayBastionRun`; `bastionRev 2` (1 Nov 2026) is the tank-defence shooter
- * (src/lib/arcade/bastionTank.ts) through `replayBastionTankRun`.
+ * (src/lib/arcade/bastionTank.ts) through `replayBastionTankRun`; `bastionRev 3` (3 Nov 2026, Iron Wall: eased waves 4–5,
+ * a wider green zone, the drones) through the same call with the stored stamp.
  */
 
 import {
@@ -19,6 +20,7 @@ import {
   bastionPlan,
   bastionStdParts,
   bastionTankCheckpoint,
+  bastionIronGame,
   bastionTankGame,
   BASTION_REV_TANK,
   BT2_CHECKPOINT_INTERVAL,
@@ -40,6 +42,14 @@ const run = makeArcadeRun<BasState, BasCheckpoint>({
 const tankRun = makeArcadeRun<BastionTankState, Bt2Checkpoint>({
   tag: "bastion",
   game: bastionTankGame,
+  checkpoint: bastionTankCheckpoint,
+  keys: BT2_CHECKPOINT_KEYS,
+  interval: BT2_CHECKPOINT_INTERVAL,
+});
+
+const ironRun = makeArcadeRun<BastionTankState, Bt2Checkpoint>({
+  tag: "bastion",
+  game: bastionIronGame,
   checkpoint: bastionTankCheckpoint,
   keys: BT2_CHECKPOINT_KEYS,
   interval: BT2_CHECKPOINT_INTERVAL,
@@ -75,6 +85,8 @@ export interface BastionTankResult extends FlatReplay<BastionTankState, Bt2Check
   shots: number;
   hits: number;
   base: number;
+  /** Drones shot down (bastionRev 3; 0 on rev 2). */
+  drones: number;
   /** The wave reached (1–5) and whether the base fell. */
   wave: number;
   fell: boolean;
@@ -90,9 +102,9 @@ export function isBastionTank(rev?: number | null): boolean {
   return (rev ?? 1) >= BASTION_REV_TANK;
 }
 
-/** The single place a bastionRev 2 score is worked out. */
-export function replayBastionTankRun(seed: number, raw: string): BastionTankResult {
-  const result = tankRun.replay(seed, raw);
+/** The single place a bastionRev 2 or 3 score is worked out (`rev` the stored stamp; rev 2 when absent). */
+export function replayBastionTankRun(seed: number, raw: string, rev?: number | null): BastionTankResult {
+  const result = ((rev ?? BASTION_REV_TANK) >= BASTION_REV_TANK + 1 ? ironRun : tankRun).replay(seed, raw);
   const s = result.state;
   return {
     ...result,
@@ -104,6 +116,7 @@ export function replayBastionTankRun(seed: number, raw: string): BastionTankResu
     shots: s.shots,
     hits: s.hits,
     base: s.base,
+    drones: s.drones ?? 0,
     wave: waveOf(s),
     fell: s.ended === 2,
     std: true,

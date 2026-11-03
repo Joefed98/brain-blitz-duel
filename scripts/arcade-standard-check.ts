@@ -77,8 +77,9 @@ const STANDARD_ROSTER: readonly { type: string; field: string; rev: number; batc
   { type: "pokersquares", field: "pokerSquaresRev", rev: 2, batch: "Cards" },
   // Five Hands (31 Oct 2026): born on the standard.
   { type: "fivehands", field: "fiveHandsRev", rev: 2, batch: "Cards" },
-  // Bastion (1 Nov 2026): the tank-defence shooter, born on the standard at bastionRev 2 (the original was unstamped).
-  { type: "bastion", field: "bastionRev", rev: 2, batch: "Action" },
+  // Iron Wall (id bastion): the tank-defence shooter, born on the standard at bastionRev 2 (1 Nov 2026; the original was
+  // unstamped); bastionRev 3 (3 Nov 2026) adds the drones and eases waves 4–5.
+  { type: "bastion", field: "bastionRev", rev: 3, batch: "Action" },
   // Pyramid, Golf Solitaire and Muggins (1 Nov 2026): born on the standard.
   { type: "pyramid", field: "pyramidRev", rev: 1, batch: "Cards" },
   { type: "golfsol", field: "golfSolRev", rev: 1, batch: "Cards" },

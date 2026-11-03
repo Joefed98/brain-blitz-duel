@@ -1,4 +1,5 @@
 import { usesParMoves } from "./parMoves";
+import { bastionStdSpecFor } from "@/lib/arcade/bastionTank";
 import { PUZZLE_SCORE_REV, puzzleScoreRevOf } from "./puzzleScoreRev";
 import { ARCADE_STANDARD } from "@/lib/arcade/standard";
 import { homerunStdSpecFor } from "@/lib/arcade/homerun";
@@ -1491,13 +1492,14 @@ const wavefrontSummary: SummaryBuilder = (result) => {
 };
 
 const bastionSummary: SummaryBuilder = (result, puzzle) => {
-  // bastionRev 2: the tank game on the arcade scoring standard, its stored parts and counts.
+  // bastionRev 2 and 3: the tank game on the arcade scoring standard, its stored parts and counts.
   if (puzzle.type === "bastion" && (puzzle.bastionRev ?? 1) >= 2) {
     const kills = Number(result.extra?.["kills"] ?? 0);
     const base = Number(result.extra?.["base"] ?? 0);
     const fell = result.extra?.["fell"] === true;
     const ended = Number(result.extra?.["endedSeconds"] ?? 0);
-    const spec = ARCADE_STANDARD["bastion"]?.spec;
+    // Each stamp's own parts (rev 3 adds Drones).
+    const spec = bastionStdSpecFor(puzzle.bastionRev);
     const parts = (spec?.parts ?? []).map((p) => `${p.label} ${Number(result.extra?.[`part_${p.key}`] ?? 0)}/${p.max}`);
     return {
       summary: fell ? `${kills} tanks · base fell at ${ended.toFixed(1)}s` : `${kills} tanks · base ${base} / 3`,

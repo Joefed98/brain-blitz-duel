@@ -192,8 +192,9 @@ first; within them, "stopped" ones are certain, the rest depend on the query abo
    winner's final board ("Final state only, needs an action log" above).
 9. Ricochet (1 Nov 2026: the ninja wall-climb, `ricoRev` 2; no demo recorded yet, the intro shows its still, a frame
    of seed 0's witness climb drawn by the game's own renderer). Record one on `ricoRev` 2 later.
-10. Bastion (1 Nov 2026: the tank-defence shooter, `bastionRev 2`; no demo yet, the intro shows its still; record one on
-   `bastionRev 2`, an original-turret demo stays stopped, `introDemo.functions.ts`)
+10. Iron Wall, was Bastion (1 Nov 2026: the tank-defence shooter, `bastionRev 2`; 3 Nov 2026 `bastionRev 3` with the
+   drones; no demo yet, the intro shows its still; record one on `bastionRev 3`, older demos stay stopped,
+   `introDemo.functions.ts`)
 
 ## Arcade reveal line
 
