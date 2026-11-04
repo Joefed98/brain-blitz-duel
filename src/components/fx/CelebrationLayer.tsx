@@ -234,6 +234,16 @@ export function CelebrationLayer() {
 function laneOf(anchor: Element | null | undefined): HeroLane | null {
   if (!anchor || !anchor.isConnected) return null;
   const box = anchor.getBoundingClientRect();
-  if (box.width < 40 || box.height < 20) return null;
+  // The whole hero or none of it (4 Nov 2026, Joe's review: a sliver of cape showed on some reveals): a spot that is
+  // too small, off the screen or cut by a scrolling box round it gives an empty lane, so nothing is drawn.
+  const none: HeroLane = { left: 0, right: 0, top: 0, footY: 0 };
+  if (box.width < 40 || box.height < 20) return none;
+  if (box.top < 0 || box.bottom > window.innerHeight || box.left < 0 || box.right > window.innerWidth) return none;
+  for (let el = anchor.parentElement; el && el !== document.body; el = el.parentElement) {
+    const cs = getComputedStyle(el);
+    if (cs.overflowX === "visible" && cs.overflowY === "visible") continue;
+    const clip = el.getBoundingClientRect();
+    if (box.top < clip.top - 0.5 || box.bottom > clip.bottom + 0.5 || box.left < clip.left - 0.5 || box.right > clip.right + 0.5) return none;
+  }
   return { left: box.left, right: box.right, top: box.top, footY: box.bottom - 2 };
 }

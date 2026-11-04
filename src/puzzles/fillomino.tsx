@@ -442,9 +442,12 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: Puz
           </div>
         </div>
       </div>
-      <p className="logic-reveal-text text-center font-mono text-primary">
-        {myCorrect ? `Solved · ${(elapsed / 1000).toFixed(1)}s` : (solutionProgress(puzzle, myAnswer ?? "")?.text ?? "Not solved")}
-      </p>
+      {/* Solved: the verdict row above says it (4 Nov 2026: no repeated "Solved · 1.6s"). */}
+      {myCorrect ? null : (
+        <p className="logic-reveal-text text-center font-mono text-primary">
+          {(solutionProgress(puzzle, myAnswer ?? "")?.text ?? "Not solved")}
+        </p>
+      )}
     </div>
   );
 }

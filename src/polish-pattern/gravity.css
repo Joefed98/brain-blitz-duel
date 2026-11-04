@@ -122,7 +122,7 @@
 }
 
 /* ---------- Reveal: the board as large as the space allows ---------- */
-.answer-reveal-content > .grav-reveal { flex: 1 1 auto; min-height: 0; }
+.answer-reveal-content .reveal-card > .grav-reveal { flex: 1 1 auto; min-height: 0; }
 .grav-reveal > p { flex: 0 0 auto; }
 .grav-reveal-space {
   flex: 1 1 auto;

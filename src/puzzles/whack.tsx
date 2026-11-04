@@ -356,18 +356,11 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
 function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   if (puzzle.type !== "whack") return null;
   const result = replayWhackRun(puzzle.seed, myAnswer ?? "", puzzle.whackRev);
-  const depth = result.state.dp ? whackDepthDetail(result.state) : null;
   return (
     <div className="flex w-full flex-col items-center gap-3">
       <p className="text-center font-mono text-lg font-bold text-foreground">
         Hits {result.hits} / {result.totalTargets} · Wrong {result.wrong}
       </p>
-      {depth ? (
-        <p data-bonk-depth-reveal className="text-center text-sm text-muted-foreground">
-          {depth.base} for hits + {depth.combo} combo (best run {depth.comboBest}) + {depth.diamonds} for {depth.diamondHits} of {depth.diamondTotal} diamonds
-        </p>
-      ) : null}
-      <p className="text-center text-base text-muted-foreground">Same targets for everyone</p>
     </div>
   );
 }

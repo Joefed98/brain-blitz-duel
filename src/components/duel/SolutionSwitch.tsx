@@ -22,9 +22,13 @@ export const SOLUTION_SWITCH_TYPES: ReadonlySet<string> = new Set([
   "tilegrid",
   // Gridlock (3 Nov 2026, puzzle polish): the shortest solution playing back, and a solved player's own board.
   "unblock",
+  // 4 Nov 2026 (Joe's review): the three that still drew "Solution" / "Yours" headings without the switch.
+  "numpyramid",
+  "bomb",
+  "trail",
 ]);
 
-const SOLUTION_LABEL = /^(solution|solved|one solution|the solution|answer)$/i;
+const SOLUTION_LABEL = /^(solution|solved|one solution|the solution|answer|one valid plan)$/i;
 const YOURS_LABEL = /^(yours|your board|your grid|you)$/i;
 
 type View = "solution" | "yours";
@@ -71,6 +75,8 @@ export function SolutionSwitch({ type, root }: { type: string; root: { current: 
       show.style.display = "";
       show.style.flex = "1 1 100%";
       show.style.maxWidth = "100%";
+      // In a two-column grid (Bomb Defusal) the column shown takes the whole row.
+      show.style.gridColumn = "1 / -1";
       show.dataset["solutionView"] = view;
     };
     apply();

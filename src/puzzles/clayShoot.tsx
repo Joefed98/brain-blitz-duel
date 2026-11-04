@@ -405,31 +405,15 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   );
 }
 
-function Reveal({ puzzle, myAnswer, myExtra }: PuzzleRevealProps) {
+/** One short summary (4 Nov 2026): the shots, the costs and the depth points are the breakdown's rows. */
+function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   if (puzzle.type !== "clayshoot") return null;
   const result = replayClayRun(puzzle.seed, myAnswer ?? "", puzzle.clayRev);
-  // clayRev 4: the stored empty-shot count and cost.
-  const empty = typeof myExtra?.["emptyShots"] === "number" ? (myExtra["emptyShots"] as number) : null;
-  const cost = typeof myExtra?.["emptyShotCost"] === "number" ? (myExtra["emptyShotCost"] as number) : null;
   return (
     <div className="flex w-full flex-col items-center gap-3">
       <p className="text-center font-mono text-lg font-bold text-foreground">
         {result.hits} / {result.total} clays · {result.orangeHits} orange · {result.goldHits} gold · {result.birdHits} birds hit
       </p>
-      <p className="text-center text-base text-muted-foreground">{result.shots} shot{result.shots === 1 ? "" : "s"} · Don't shoot the birds — each one costs 10.</p>
-      {result.state.dp ? (() => {
-        const d = clayDepthDetail(result.state);
-        return (
-          <p data-clay-depth-reveal className="text-center text-sm text-muted-foreground">
-            {d.base} for clays + {d.doubles} for {d.doublesHit} of {d.doublesTotal} doubles + {d.streak} streak (best {d.streakBest} in a row)
-          </p>
-        );
-      })() : null}
-      {empty !== null && cost !== null ? (
-        <p className="text-center text-sm text-muted-foreground">
-          {empty} hit nothing{cost > 0 ? ` · −${cost}` : ""} (first {CLAY_FREE_EMPTY_SHOTS} free, then −1 per {CLAY_EMPTY_SHOTS_PER_POINT})
-        </p>
-      ) : null}
     </div>
   );
 }

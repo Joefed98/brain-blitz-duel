@@ -1,6 +1,6 @@
 import { speedBonusCurve } from "./speedPar";
 import { bandCurve, bandOpen } from "../arcade/scoreBands";
-import { finishParts, partialParts, scorePartsText, scoreRev1, tryEfficiency, wasteFactor, PUZZLE_SPEED_POINTS, type ScoreParts } from "./puzzleScoreRev";
+import { finishParts, partialParts, scoreRev1, tryEfficiency, wasteFactor, PUZZLE_SPEED_POINTS, type ScoreParts } from "./puzzleScoreRev";
 import { chainScore } from "./chain";
 import type { ChainPuzzleData } from "./types";
 import {
@@ -682,7 +682,9 @@ export function solvedMovesText(
   parts?: ScoreParts | null,
 ): string {
   // puzzleScoreRev 1 rounds show the breakdown the server stored.
-  if (parts?.kind === "finish") return `Solved · ${moves} moves${minMoves > 0 ? ` (min ${minMoves})` : ""} · ${scorePartsText(parts)}`;
+  // The reveal's own score line (above the board) states the stored parts and the verdict row says "Solved" (4 Nov
+  // 2026): this line keeps the moves.
+  if (parts?.kind === "finish") return `${moves} move${moves === 1 ? "" : "s"}${minMoves > 0 ? ` (fewest ${minMoves})` : ""}`;
   const w = MOVES_SHAPE[shape];
   const mb = movesPoints(w.moves, moves, minMoves);
   const sb = speedPoints(w.speed, msRemaining ?? 0, limitMs);

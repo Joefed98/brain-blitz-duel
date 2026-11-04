@@ -430,11 +430,11 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining, valid
           ))}
         </div>
       )}
-      <p className={`text-center font-mono text-base font-bold ${myCorrect ? "text-primary" : "text-foreground"}`}>
-        {myCorrect
-          ? `Solved · 5 / 5 rows${elapsed ? ` · ${elapsed}s` : ""}`
-          : (solutionProgress(puzzle, myAnswer ?? "", validRows ? { validRows } : null)?.text ?? `${good.size} / 5 rows`)}
-      </p>
+      {myCorrect ? null : (
+        <p className="text-center font-mono text-base font-bold text-foreground">
+          {solutionProgress(puzzle, myAnswer ?? "", validRows ? { validRows } : null)?.text ?? `${good.size} / 5 rows`}
+        </p>
+      )}
       <p className="text-center font-mono text-base text-muted-foreground">
         Par {puzzle.par} – you used {replay.moves}
       </p>

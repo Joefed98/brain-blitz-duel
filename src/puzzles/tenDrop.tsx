@@ -382,7 +382,6 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
       <p className="text-center font-mono text-lg font-bold text-foreground">
         {result.cleared} / {TD_TARGETS} targets · {result.resets} reset{result.resets === 1 ? "" : "s"}
       </p>
-      <p className="text-center text-base text-muted-foreground">Same targets and tiles for everyone</p>
     </div>
   );
 }

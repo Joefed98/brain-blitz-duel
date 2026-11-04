@@ -290,13 +290,12 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: Puz
           </div>
         </div>
       </div>
-      <p
-        className={`logic-reveal-text whitespace-normal break-words text-center font-mono font-bold ${myCorrect ? "text-primary" : "text-foreground"}`}
-      >
-        {myCorrect
-          ? `Solved${elapsed !== null ? ` · ${elapsed.toFixed(1)}s` : ""}`
-          : `${correct} / ${total} cells`}
-      </p>
+      {/* Solved: the verdict row above says it (4 Nov 2026). */}
+      {myCorrect ? null : (
+        <p className="logic-reveal-text whitespace-normal break-words text-center font-mono font-bold text-foreground">
+          {`${correct} / ${total} cells`}
+        </p>
+      )}
     </div>
   );
 }

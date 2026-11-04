@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { ARCADE_WORLD_THEMES, type ArcadeWorld } from "@/lib/arcade/arcadeFx.renderer";
 import { prefersReducedMotion } from "@/lib/motion";
@@ -95,42 +95,44 @@ export function ConfettiBurst({ world }: { world: ArcadeWorld | null }) {
   return <canvas ref={canvas} data-confetti-burst className="absolute inset-0 h-full w-full" />;
 }
 
-/**
- * The results screen's end-of-run moment for a full clear or a personal best:
- * a one-shot confetti burst in the world's colours and a headline. Presentation
- * only; it reads the stored outcome and score and never shows a number of its own.
- */
-export function ArcadeCelebration({
-  kind,
-  world,
-}: {
-  kind: CelebrationKind;
-  world: ArcadeWorld | null;
-}) {
-  const theme = ARCADE_WORLD_THEMES[world ?? "gem"];
+/** How long the headline shows (its animation, styles.css .arcade-celebration-headline) before it is removed. */
+export const CELEBRATION_HEADLINE_MS = 2600;
 
+/**
+ * The results screen's end-of-run moment for a full clear or a personal best: a one-shot confetti burst in the
+ * world's colours, behind everything and gone after two seconds. Presentation only.
+ */
+export function ArcadeCelebration({ kind, world }: { kind: CelebrationKind; world: ArcadeWorld | null }) {
   return (
-    <>
-      {/* The headline once (3 Nov 2026: a screen-reader copy beside the visible one read as "Full clear!" twice). */}
-      <div
-        className="pointer-events-none absolute inset-0 z-10 overflow-hidden rounded-xl"
-        data-arcade-celebration={kind}
-      >
-        <div aria-hidden="true" className="absolute inset-0"><ConfettiBurst world={world} /></div>
-        <div className="absolute inset-x-0 top-[34%] flex justify-center">
-          <span
-            role="status"
-            className="arcade-celebration-headline rounded-full px-4 py-1.5 font-display text-xl font-bold uppercase tracking-wide"
-            style={{
-              color: theme.outline,
-              background: theme.primary,
-              boxShadow: `0 0 24px ${theme.primary}`,
-            }}
-          >
-            {HEADLINES[kind]}
-          </span>
-        </div>
-      </div>
-    </>
+    <div aria-hidden="true" className="pointer-events-none absolute inset-0 z-10 overflow-hidden rounded-xl" data-arcade-celebration={kind}>
+      <ConfettiBurst world={world} />
+    </div>
+  );
+}
+
+/**
+ * The moment's headline (4 Nov 2026, Joe's review: it was drawn over the breakdown rows and a faded copy stayed behind
+ * them): a pill in the score's row, beside the score, removed from the page once its animation ends. It reads the stored
+ * outcome and score and never shows a number of its own.
+ */
+export function CelebrationHeadline({ kind, world }: { kind: CelebrationKind; world: ArcadeWorld | null }) {
+  const theme = ARCADE_WORLD_THEMES[world ?? "gem"];
+  const [shown, setShown] = useState(true);
+  useEffect(() => {
+    setShown(true);
+    const id = window.setTimeout(() => setShown(false), CELEBRATION_HEADLINE_MS + 50);
+    return () => window.clearTimeout(id);
+  }, [kind]);
+  if (!shown) return null;
+  return (
+    <span
+      role="status"
+      data-celebration-headline={kind}
+      onAnimationEnd={() => setShown(false)}
+      className="arcade-celebration-headline max-w-full rounded-2xl px-2.5 py-1 text-center font-display text-[12px] font-bold uppercase leading-tight tracking-wide"
+      style={{ color: theme.outline, background: theme.primary, boxShadow: `0 0 18px ${theme.primary}` }}
+    >
+      {HEADLINES[kind]}
+    </span>
   );
 }

@@ -336,11 +336,12 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: Puz
           <KakuroBoard board={puzzle} values={values} tones={tones} />
         </div>
       </div>
-      <p className="logic-reveal-text text-center font-mono text-primary">
-        {myCorrect
-          ? `Solved · ${(elapsed / 1000).toFixed(1)}s`
-          : (solutionProgress(puzzle, myAnswer ?? "")?.text ?? `${mine.filter(Boolean).length} / ${puzzle.white.length} filled`)}
-      </p>
+      {/* Solved: the verdict row above says it (4 Nov 2026: no repeated "Solved · 1.6s"). */}
+      {myCorrect ? null : (
+        <p className="logic-reveal-text text-center font-mono text-primary">
+          {solutionProgress(puzzle, myAnswer ?? "")?.text ?? `${mine.filter(Boolean).length} / ${puzzle.white.length} filled`}
+        </p>
+      )}
     </div>
   );
 }

@@ -10,7 +10,10 @@ export function RevealBreakdown({
   score,
   extra = [],
   hidden = false,
+  storedLines,
 }: {
+  /** The run's stored lines when `lines` were rewritten for display (arcadeBandStd.ts): kept on the list as stored. */
+  storedLines?: readonly string[] | undefined;
   lines: readonly string[];
   score: number | null;
   /** Stored tiles and cost rows shown as plain label / value rows under the parts. */
@@ -20,7 +23,7 @@ export function RevealBreakdown({
   const rows = breakdownRows(lines, score);
   if (!rows.length && !extra.length) return null;
   return (
-    <ul data-reveal-breakdown="" hidden={hidden} className="reveal-breakdown w-full animate-fade-in">
+    <ul data-reveal-breakdown="" data-stored-lines={storedLines?.join("\n") || undefined} hidden={hidden} className="reveal-breakdown w-full animate-fade-in">
       {rows.map((row, i) => (
         <BreakdownItem key={`${i}-${row.name}`} row={row} />
       ))}

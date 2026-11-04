@@ -54,8 +54,8 @@ export function nearMissInfo(
   switch (type) {
     case "hover":
       return remaining("gates", number("totalGates"), "barrier", "pass");
-    case "orbit":
-      return extra["finished"] === true ? null : remaining("passed", 40, "planet", "reach");
+    // Orbit: no near-miss line (4 Nov 2026: "40 planets left to reach" beside "0 of 40 planets and 15/16 of the next";
+    // its Planets row says exactly how far the run got).
     case "swing": {
       const metres = number("metres");
       return metres !== null && metres >= 0 && metres < 500
@@ -76,13 +76,13 @@ export function nearMissInfo(
       return level < 10 ? info(`Level ${level + 1} of 10`, 10 - level, 10) : info(`${eaten} of 10 apples collected`, 10 - eaten, 10);
     }
     case "bintoss":
-      return remaining("baskets", 10, "basket", "score");
+      return remaining("baskets", 10, "bucket", "land");
     case "minigolf":
       return remaining("holed", 5, "hole", "play");
     case "pool":
       return remaining("spots", 7, "", "pot");
-    case "curling":
-      return remaining("onButton", 8, "stone", "land");
+    // Curl Champ: no near-miss line (4 Nov 2026: "4 stones left to land" after all eight were thrown; onButton counts
+    // stones that ended on the button, not throws left).
     case "tilt":
       return remaining("mazes", 4, "maze", "finish");
     case "balltrack":

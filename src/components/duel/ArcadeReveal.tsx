@@ -1,8 +1,8 @@
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { usePerfectBurst } from "@/lib/fx/useSignature";
 import { queueVoice } from "@/lib/sound";
 
-import { ArcadeCelebration, type CelebrationKind } from "@/components/duel/ArcadeCelebration";
+import { ArcadeCelebration, CelebrationHeadline, type CelebrationKind } from "@/components/duel/ArcadeCelebration";
 import { WaitingLine } from "@/components/duel/Dots";
 import { arcadeWorldOf } from "@/lib/arcade/arcadeFxGames.renderer";
 import { recordArcadeRoomBest, runKey } from "@/lib/fx/arcadeBest";
@@ -13,7 +13,8 @@ import type { PlayerLook } from "@/lib/duel/playerLook";
 
 import { ArcadeScoreChart } from "./ArcadeScoreChart";
 import { RevealBreakdown } from "./RevealBreakdown";
-import { realFullClear, summaryText } from "@/lib/duel/revealBreakdown";
+import { PENALTY_LINE, realFullClear, statRepeatsPart, summaryText } from "@/lib/duel/revealBreakdown";
+import { bandStdLines, standardPartLabels } from "@/lib/duel/arcadeBandStd";
 
 /** One player in the room for the reveal chart. `reveal` and `score` are null until their result lands. */
 export interface RevealPlayer {
@@ -158,7 +159,7 @@ const STD_TOTAL = /^(Total → \d+( of \d+)?|At least 1 for playing → \d+)$/;
  */
 export function revealSummary(lines: readonly string[], score: number | null): { summary: string; rest: string[] } | null {
   if (lines.length === 0) return null;
-  const body = lines.filter((l) => !STD_TOTAL.test(l));
+  const body = lines.filter((l) => !STD_TOTAL.test(l) && !PENALTY_LINE.test(l));
   const parts = body.map((l) => STD_PART.exec(l)).map((m) => (m ? Number(m[1]) : null));
   const standard = score !== null && parts.length >= 2 && parts.every((p) => p !== null);
   if (standard) {
@@ -243,6 +244,12 @@ function useCountUp(target: number | null, ms = 1000): number {
 /** The final tick drawn once with the game's renderer, dimmed and blurred. */
 
 /** Full clear (the server replay's "finish" outcome) and/or a new device best, once the stored score lands. */
+/** Stats a game's newer stamp no longer has (Moon Climb, ricoRev 3: no coins or gold lanterns). */
+function retiredStat(puzzle: PuzzleData, label: string): boolean {
+  const p = puzzle as unknown as Record<string, unknown>;
+  return puzzle.type === "ricochet" && typeof p["ricoRev"] === "number" && (p["ricoRev"] as number) >= 3 && /^(coins|lanterns)$/i.test(label);
+}
+
 /** Room runs whose "New best" line has played (a remount never repeats it). */
 const voicedBests = new Set<string>();
 
@@ -269,7 +276,13 @@ function useCelebration(puzzle: PuzzleData, myAnswer: string | null, myScore: nu
   return full && best ? "both" : full ? "full" : best ? "best" : null;
 }
 
-export function ArcadeReveal({ puzzle, myAnswer, myScore, myReveal, players, nearMissLine, personalBest, round, costRows = [], practice = false, best = null }: ArcadeRevealProps) {
+export function ArcadeReveal({ puzzle, myAnswer, myScore, myReveal: storedReveal, players, nearMissLine, personalBest, round, costRows = [], practice = false, best = null }: ArcadeRevealProps) {
+  // The band-lined standard games read as the standard's part lines (arcadeBandStd.ts); display only.
+  const myReveal = useMemo(() => {
+    if (!storedReveal) return null;
+    const lines = bandStdLines(puzzle as unknown as { type: string } & Record<string, unknown>, storedReveal.lines, myScore);
+    return lines ? { ...storedReveal, lines } : storedReveal;
+  }, [storedReveal, puzzle, myScore]);
   const shownScore = useCountUp(myScore);
   const celebration = useCelebration(puzzle, myAnswer, myScore, myReveal, personalBest, round);
   const scoreRef = useRef<HTMLParagraphElement>(null);
@@ -277,7 +290,9 @@ export function ArcadeReveal({ puzzle, myAnswer, myScore, myReveal, players, nea
   const shown = myReveal ? revealShown(myReveal, myScore) : null;
   // Rooms: one line (the summary) and "See breakdown"; practice: the list open (3 Nov 2026).
   const summary = shown ? revealSummary(shown.lines, myScore) : null;
-  const tiles = shown ? [...shown.tiles.slice(0, 4), ...costRows] : [];
+  // The stats card keeps only what the breakdown doesn't already say (4 Nov 2026): no part repeated as "n / max".
+  const partLabels = standardPartLabels(puzzle as unknown as { type: string } & Record<string, unknown>);
+  const tiles = shown ? [...shown.tiles.filter((t) => !statRepeatsPart(t.label, shown.lines, partLabels) && !retiredStat(puzzle, t.label)).slice(0, 4), ...costRows] : [];
   const folds = !practice && !!summary && summary.rest.length + tiles.length > 0;
   const [open, setOpen] = useState(false);
   const breakdownLines = shown ? shown.lines : [];
@@ -297,14 +312,25 @@ export function ArcadeReveal({ puzzle, myAnswer, myScore, myReveal, players, nea
               <WaitingLine label="Scoring…" />
             </div>
           ) : (
-            <p
-              ref={scoreRef}
-              data-reveal-score={myScore}
-              className={`font-mono text-6xl font-bold tabular-nums leading-none text-foreground${celebration ? " arcade-score-celebrate" : ""}`}
-              aria-label={`${myScore} points`}
-            >
-              {shownScore}
-            </p>
+            // The score's row: the headline of a full clear or a new best sits beside it, never over the rows below.
+            <div className="relative flex w-full items-center justify-center">
+              <p
+                ref={scoreRef}
+                data-reveal-score={myScore}
+                className={`font-mono text-6xl font-bold tabular-nums leading-none text-foreground${celebration ? " arcade-score-celebrate" : ""}`}
+                aria-label={`${myScore} points`}
+              >
+                {shownScore}
+              </p>
+              {celebration ? (
+                <span
+                  className="absolute right-0 top-1/2 flex -translate-y-1/2 justify-start"
+                  style={{ left: `calc(50% + ${Math.max(2, String(myScore).length) * 18 + 10}px)` }}
+                >
+                  <CelebrationHeadline kind={celebration} world={arcadeWorldOf(puzzle.type)} />
+                </span>
+              ) : null}
+            </div>
           )}
           <p className="text-xs font-semibold uppercase tracking-[0.3em] text-muted-foreground">points</p>
           {practice ? (
@@ -332,7 +358,7 @@ export function ArcadeReveal({ puzzle, myAnswer, myScore, myReveal, players, nea
         </div>
 
         {/* The full breakdown: open in practice, one tap away in a room (always in the markup). */}
-        {summary ? <RevealBreakdown lines={breakdownLines} score={myScore} hidden={!practice && !open} /> : null}
+        {summary ? <RevealBreakdown lines={breakdownLines} storedLines={myReveal !== storedReveal ? storedReveal?.lines : undefined} score={myScore} hidden={!practice && !open} /> : null}
 
         {/* The chart straight on the gradient, no panel behind it (rooms only: in practice it would hold one dot). */}
         {/* Never shorter than the chart it holds (no min-h-0): the column scrolls instead of overlapping. */}

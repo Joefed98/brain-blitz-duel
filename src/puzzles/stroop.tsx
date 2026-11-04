@@ -75,11 +75,8 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   if (puzzle.type !== "stroop") return null;
   let replay: ReturnType<typeof replayColourClashRun> | null = null;
   try { replay = replayColourClashRun(puzzle.seed, myAnswer ?? "", clashVariantOf(puzzle)); } catch { /* historic/empty row */ }
-  const d = replay?.depth;
   return <div className="flex flex-col items-center gap-1">
     <p className="text-center font-mono text-2xl font-bold text-primary">{replay ? `${replay.correct} / ${replay.total} · ${replay.wrong} wrong` : "No run"}</p>
-    {d ? <p data-stroop-depth className="text-center font-mono text-[13px] font-semibold text-[var(--ap-text-2)]">{`Best streak ${d.best} · Gold ${d.golds}/${d.goldWords} · Let fall ${d.passed}/${d.skips}`}</p> : null}
-    {d && d.finished ? <p className="text-center font-mono text-[13px] font-semibold text-[var(--ap-text-2)]">{`${d.base} + ${d.gold} gold + ${d.streak} streak + ${d.stretch} speed`}</p> : null}
   </div>;
 }
 

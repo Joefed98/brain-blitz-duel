@@ -87,7 +87,7 @@
 }
 
 /* ---- Reveal: both boards as large as the space allows ---------------------- */
-.answer-reveal-content > .bp-reveal { min-height: 0; }
+.answer-reveal-content .reveal-card > .bp-reveal { min-height: 0; }
 .bp-reveal-space { width: 100%; container-type: inline-size; }
 .bp-reveal-pair { display: flex; align-items: flex-start; justify-content: center; gap: 12px; }
 .bp-reveal-board { width: min(calc(50cqw - 8px), 230px); }

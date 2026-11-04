@@ -328,7 +328,8 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
               {stage.alsoTarget ? <><span className="text-[10px] font-bold uppercase">or</span><EagleIcon dir={stage.alsoTarget} size={20} /></> : null}
             </span>
             <span className={`ml-auto font-mono text-base font-bold ${result.perfect ? "text-primary" : "text-warn"}`}>
-              {result.found} / {result.targets} found{result.wrong ? ` · ${result.wrong} wrong` : ""} {result.perfect ? "✓" : "✗"}
+              {/* A grid with none to find says so (4 Nov 2026: it read "0 / 0 found"). */}
+              {result.targets > 0 ? `${result.found} / ${result.targets} found` : "None to find"}{result.wrong ? ` · ${result.wrong} wrong` : ""} {result.perfect ? "✓" : "✗"}
             </span>
           </button>
         ))}

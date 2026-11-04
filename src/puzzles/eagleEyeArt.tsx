@@ -1,5 +1,7 @@
 /**
- * Eagle Eye art (Polish, 13 Oct 2026; redrawn 3 Nov 2026, Joe's audit: the old outline read as an aeroplane):
+ * Eagle Eye art (Polish, 13 Oct 2026; redrawn 3 Nov 2026, Joe's audit: the old outline read as an aeroplane; drawn
+ * again 4 Nov 2026, Joe's review: it still read as a plane or a cross at grid size, so the wings are now a soaring bird's,
+ * raised at the wrist and swept back to fingered tips, under a bigger round head and beak and over a narrower fanned tail):
  * presentation only. A north-facing eagle seen from above in a glide, an original drawing: a round head with a
  * hooked gold beak at the front, broad wings arched forward at the wrists with five spread primary "fingers" swept
  * back at each tip, and a scalloped, fanned tail. The head and beak are the narrow front and the fanned tail the
@@ -13,22 +15,22 @@ import type { ArrowDir } from "@/lib/duel/types";
 
 /** The north-facing eagle silhouette (head up, tail down), 32-unit box. */
 export const EAGLE_BODY_D =
-  "M16 1.6C17.7 1.6 18.7 3 18.6 4.8 18.5 6.4 17.8 7.4 18 8.4 18.2 9.4 19 10 20.2 9.6 22 8.4 23.6 7.4 25.4 7.4 27.8 7.6 30.2 9.4 31.6 12.6L31.9 14.4 30.3 14.2 31.4 15.9 30.9 16.7 29.4 16 30.3 17.8 29.6 18.5 28.3 17.4 28.7 19.4 27.8 19.8 26.7 18.2C24.8 17.7 22.6 17.6 20.8 17.8 19.4 18 18.7 19 18.6 20.8L22 27.2 21.2 28.8 19.6 28.6 18.4 29.9 16 29.2 13.6 29.9 12.4 28.6 10.8 28.8 10 27.2 13.4 20.8C13.3 19 12.6 18 11.2 17.8 9.4 17.6 7.2 17.7 5.3 18.2L4.2 19.8 3.3 19.4 3.7 17.4 2.4 18.5 1.7 17.8 2.6 16 1.1 16.7.6 15.9 1.7 14.2.1 14.4.4 12.6C1.8 9.4 4.2 7.6 6.6 7.4 8.4 7.4 10 8.4 11.8 9.6 13 10 13.8 9.4 14 8.4 14.2 7.4 13.5 6.4 13.4 4.8 13.3 3 14.3 1.6 16 1.6Z";
+  "M16 2.4 17.2 2.6 18.2 3.2 18.8 4 19.1 5 19 6.2 18.6 7.2 18.3 8.2 18.2 9.2 19.1 8.8 20.2 8.2 21.3 7.4 22.5 6.6 23.8 5.9 25.2 5.4 26.7 5.4 28.2 6 29.4 7.1 30.4 8.7 31.3 10.7 31.8 13 30.4 12.4 31 15 29.3 13.6 29.5 16.2 27.8 14.2 27.4 16.4 26 13.6 25 12.6 23.6 12.1 22.2 12.1 20.7 12.7 19.4 13.8 18.6 15.5 18.1 17.3 17.8 19 18.9 20.8 19.9 22.8 20.6 24.9 21 27 19.8 26.8 19.2 29.2 17.8 28 16 30 14.2 28 12.8 29.2 12.2 26.8 11 27 11.4 24.9 12.1 22.8 13.1 20.8 14.2 19 13.9 17.3 13.4 15.5 12.6 13.8 11.3 12.7 9.8 12.1 8.4 12.1 7 12.6 6 13.6 4.6 16.4 4.2 14.2 2.5 16.2 2.7 13.6 1 15 1.6 12.4 0.2 13 0.7 10.7 1.6 8.7 2.6 7.1 3.8 6 5.3 5.4 6.8 5.4 8.2 5.9 9.5 6.6 10.7 7.4 11.8 8.2 12.9 8.8 13.8 9.2 13.7 8.2 13.4 7.2 13 6.2 12.9 5 13.2 4 13.8 3.2 14.8 2.6Z";
 
 /** The hooked beak at the front of the head (drawn over the head in gold, a thin dark edge). */
-export const EAGLE_BEAK_D = "M14.8 2.9C15 .3 17 .3 17.2 2.9 16.8 2.4 16.4 3.1 16 4 15.6 3.1 15.2 2.4 14.8 2.9Z";
+export const EAGLE_BEAK_D = "M14.7 3.4C14.8-.2 17.2-.2 17.3 3.4 16.8 2.8 16.4 3.6 16 4.8 15.6 3.6 15.2 2.8 14.7 3.4Z";
 
 /** Darker primaries: the spread fingers at each wing tip (inside the outline). */
 const FLIGHT_BAND_D =
-  "M28.8 9.8 31.6 12.6 31.9 14.4 30.3 14.2 31.4 15.9 30.9 16.7 29.4 16 30.3 17.8 29.6 18.5 28.3 17.4 28.7 19.4 27.8 19.8 26.7 18.2 27.6 13.6Z" +
-  "M3.2 9.8.4 12.6.1 14.4 1.7 14.2.6 15.9 1.1 16.7 2.6 16 1.7 17.8 2.4 18.5 3.7 17.4 3.3 19.4 4.2 19.8 5.3 18.2 4.4 13.6Z";
+  "M29.4 7.1 31.3 10.7 31.8 13 30.4 12.4 31 15 29.3 13.6 29.5 16.2 27.8 14.2 27.4 16.4 26 13.6 27.6 9.6Z" +
+  "M2.6 7.1.7 10.7.2 13 1.6 12.4 1 15 2.7 13.6 2.5 16.2 4.2 14.2 4.6 16.4 6 13.6 4.4 9.6Z";
 
 /** Covert edges along both wings and the tail feathers. */
 const FEATHER_D =
   // covert edge, both wings
-  "M20.4 13.2Q24.6 10.6 29.4 12.6M11.6 13.2Q7.4 10.6 2.6 12.6" +
+  "M20.4 10.6Q24.6 8 29.4 9.8M11.6 10.6Q7.4 8 2.6 9.8" +
   // tail fan
-  "M16 22.4V28.6M14.7 22.6 13.2 28.2M17.3 22.6 18.8 28.2";
+  "M16 21V28.6M14.8 21.4 13.4 27.4M17.2 21.4 18.6 27.4";
 
 /**
  * A north-facing eagle seen from above, rotated to `dir`. `currentColor` fills the
@@ -47,8 +49,8 @@ export function EagleArt({ dir, size = 28 }: { dir: ArrowDir; size?: number }) {
         <path d={FLIGHT_BAND_D} fill="var(--eye-feather)" opacity=".22" />
         <path d={FEATHER_D} fill="none" stroke="var(--eye-feather)" strokeOpacity=".4" strokeWidth=".55" strokeLinecap="round" />
         <path d={EAGLE_BEAK_D} fill="var(--eagle-eye)" stroke="var(--eagle-beak)" strokeWidth=".45" strokeLinejoin="round" />
-        <circle cx="14.9" cy="4.6" r=".75" fill="var(--eagle-beak)" />
-        <circle cx="17.1" cy="4.6" r=".75" fill="var(--eagle-beak)" />
+        <circle cx="14.9" cy="5.2" r=".8" fill="var(--eagle-beak)" />
+        <circle cx="17.1" cy="5.2" r=".8" fill="var(--eagle-beak)" />
       </g>
     </svg>
   );

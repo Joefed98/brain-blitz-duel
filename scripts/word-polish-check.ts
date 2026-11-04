@@ -105,7 +105,8 @@ for (const type of new Set([...WORD_POLISH_DEMOS, ...WORD_BATCH_DEMOS])) {
 const keep: Record<string, string[]> = {
   "src/puzzles/strikeout.tsx": ["`5 / 5 words · ${state.strikes} strike${state.strikes === 1 ? \"\" : \"s\"} · ${(elapsed / 1000).toFixed(1)}s`"],
   "src/puzzles/codeword.tsx": ["`Cracked · ${(elapsed / 1000).toFixed(1)}s`", "`${tally.correct} / ${tally.hidden} letters decoded`"],
-  "src/puzzles/swapword.tsx": ["`Solved · ${run.swaps} swaps (min ${puzzle.minSwaps}) · ${(elapsed / 1000).toFixed(1)}s`"],
+  // 4 Nov 2026 (Joe's reveal review): the verdict row says "Solved in N s", so the line keeps only the swaps.
+  "src/puzzles/swapword.tsx": ["`${run.swaps} swap${run.swaps === 1 ? \"\" : \"s\"} (fewest ${puzzle.minSwaps})`"],
   "src/puzzles/wordSearch.tsx": ["`6 / 6 · ${(elapsed / 1000).toFixed(1)}s`"],
   "src/lib/duel/tileGrid.ts": ["`All ${TG_TILES} tiles · every word valid`"],
   "src/puzzles/wordSlide.tsx": ["Par {puzzle.par} – you used {replay.moves}"],

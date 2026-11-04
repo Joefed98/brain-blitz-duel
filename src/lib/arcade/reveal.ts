@@ -21,7 +21,7 @@ import { stdLines } from "./arcadeStandard";
 import { psCoreFullFor } from "./cards/pokerSquares";
 import { fhCoreFullFor } from "./cards/fiveHands";
 import { fcCardsFor, fcCoreUnitsFor } from "./cards/freecell";
-import { NINJA_COINS, NINJA_CORE_FULL_M, NINJA_LANTERNS, NINJA_SCROLLS } from "./ricochetNinja";
+import { MOON_SCROLLS, MOON_SKY, NINJA_COINS, NINJA_CORE_FULL_M, NINJA_LANTERNS, NINJA_SCROLLS } from "./ricochetNinja";
 import { MG_CORE_FULL } from "./cards/muggins";
 import { arcadeStdParts } from "./standard";
 
@@ -181,7 +181,19 @@ const BUILDERS: Record<string, Builder> = {
       outcome: n(r, "placed") === 25 ? "finish" : "time",
     };
   },
-  ricochet: (r, s) => ({
+  // Moon Climb (ricoRev 3) has no coins or gold lanterns: its sky lantern rides and three scrolls (4 Nov 2026).
+  ricochet: (r, s) => "rides" in r ? {
+    axis: { value: n(r, "metres"), max: NINJA_CORE_FULL_M, label: "Metres climbed" },
+    lines: [`${n(r, "metres")} m climbed · ${n(r, "rides")} lantern rides · ${n(r, "scrolls")} scrolls → ${s}`],
+    tiles: [
+      { label: "Height", value: `${n(r, "metres")} m` },
+      { label: "Lantern rides", value: `${n(r, "rides")} / ${MOON_SKY}` },
+      { label: "Scrolls", value: `${n(r, "scrolls")} / ${MOON_SCROLLS}` },
+      { label: "Best flow", value: String(n(r, "bestFlow")) },
+      { label: "Hits", value: String(n(r, "hits")) },
+    ],
+    outcome: "time",
+  } : ({
     axis: { value: n(r, "metres"), max: NINJA_CORE_FULL_M, label: "Metres climbed" },
     lines: [`${n(r, "metres")} m climbed (full at ${NINJA_CORE_FULL_M}) · ${n(r, "coins")} coins · ${n(r, "lanterns")} lanterns · ${n(r, "scrolls")} scrolls → ${s}`],
     tiles: [
