@@ -38,7 +38,7 @@ export const PRACTICE_STAMPS = {
   "hotfloor": "puzzleScoreRev=3 speedPar=1",
   "hover": "hoverRev=10 puzzleScoreRev=3 speedPar=1",
   "iceslide": "puzzleScoreRev=3 slideRev=3 speedPar=1",
-  "inkbridge": "inkRev=13 puzzleScoreRev=3 speedPar=1",
+  "inkbridge": "inkRev=14 puzzleScoreRev=3 speedPar=1",
   "junction": "junctionRev=3 puzzleScoreRev=3 speedPar=1",
   "kakuro": "kakuroRev=1 puzzleScoreRev=3 speedPar=1",
   "laser": "alogRev=1 laserRev=3 puzzleScoreRev=3 speedPar=1",

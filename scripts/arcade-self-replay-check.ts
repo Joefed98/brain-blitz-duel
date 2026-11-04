@@ -124,7 +124,8 @@ import { ORBIT_HOLE_BANK } from "@/lib/duel/orbitHoleBank.server";
 import { ORBIT_REV3_BANK } from "@/lib/duel/orbitRev3Bank.server";
 import { orbitRev3PlanetsForSeed } from "@/lib/duel/orbitRev3Course.server";
 import { binTossGameFor, BINTOSS_REV2, BINTOSS_REV3 } from "@/lib/arcade/binToss";
-import { inkBridgeGameFor, INK_REV3, INK_REV4, INK_REV_EXPAND, INK_REV_SPREAD, INK_REV_STD, INK_REV_CLOVER } from "@/lib/arcade/inkBridge";
+import { inkBridgeGameFor, INK_REV3, INK_REV4, INK_REV_EXPAND, INK_REV_SPREAD, INK_REV_STD, INK_REV_CLOVER, INK_REV_BIG } from "@/lib/arcade/inkBridge";
+import { INK_BIG_DEAL } from "@/lib/duel/inkBigDeal.server";
 import { swingGameFor, SWING_REV, SWING_REV_V3 } from "@/lib/arcade/swing";
 import { wordfallCheckpoint, wordfallGame, wordfallGameFor } from "@/lib/arcade/wordfall";
 import { encodeWordfallRun, replayWordfallRun } from "@/lib/duel/wordfall";
@@ -992,6 +993,18 @@ const GAMES: Game[] = [
   { key: "freecell/v4", game: freecellGameFor(4), checkpoint: fcCheckpoint, mode: "events", rate: 120, encode: encodeFreecellRun, replay: (seed: number, raw: string) => replayFreecellRun(seed, raw, 4), seedFor: (n: number) => n % 300 },
   { key: "tripeaks/v2", game: tripeaksGameFor(2), checkpoint: tpCheckpoint, mode: "events", rate: 120, encode: encodeTripeaksRun, replay: (seed: number, raw: string) => replayTripeaksRun(seed, raw, 2), seedFor: (n: number) => n % 300 },
   { key: "fivehands/v3", game: fiveHandsGameFor(3), checkpoint: fhCheckpoint, mode: "events", rate: 60, encode: encodeFiveHandsRun, replay: (seed: number, raw: string) => replayFiveHandsRun(seed, raw, 3) },
+  // Rainbow Bridge inkRev 14 (3 Nov 2026: inkRev 13's rules with a bigger coin, clovers and birds), appended so every
+  // earlier entry keeps its index: on its proved deal's seeds.
+  {
+    key: "ink/big",
+    game: inkBridgeGameFor(INK_REV_BIG),
+    seedFor: (n: number) => INK_BIG_DEAL[(n * 7) % INK_BIG_DEAL.length]!,
+    checkpoint: inkCheckpoint,
+    mode: "events",
+    rate: 400,
+    encode: encodeInkBridgeRun,
+    replay: (seed: number, raw: string) => replayInkBridgeRun(seed, raw, INK_REV_BIG),
+  },
 ];
 
 /** A random candidate event, often outside the declared range (a finger off the edge). */

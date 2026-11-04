@@ -48,7 +48,9 @@ export const INK_LEVELS = 10;
 export const INK_FAILS = 3;
 const MAX_SEGS = 200;
 
-const BALL_R = 7;
+/** The coin's radius, px: INK_BALL_R, or the level's own (inkRev 14's INK_V14_BALL_R) while its run or build is worked (withSizes). */
+export const INK_BALL_R = 7;
+let BALL_R = INK_BALL_R;
 const GRAVITY = 64; // 0.25 px/tick²
 /** Friction while rolling: speed loses 3/256 a tick. */
 const FRICTION_256 = 3;
@@ -131,9 +133,24 @@ export const INK_REV_STD = 12;
  * (the clock does). Scored on the arcade standard (INK_V13_STD).
  */
 export const INK_REV_CLOVER = 13;
-/** inkRev 10, 11, 12 and 13: the taller world and its features (x200). */
+/**
+ * inkRev 14 (3 Nov 2026; docs/arcade-standard/inkbridge.md "inkRev 14", Joe's audit on an iPhone 11): inkRev 13's rules
+ * and parts with everything the player watches bigger so it reads on a phone: the coin's radius INK_V14_BALL_R (was 7),
+ * the clovers' INK_V14_SHAMROCK_R (was 9) and the birds INK_V14_BIRD_H_FP thick (was 6.5 px), the art drawn to those
+ * bounds. Every level is built and proved with them (the sizes ride on each level as `ballR` / `cloverR`).
+ */
+export const INK_REV_BIG = 14;
+/** inkRev 14's coin radius, clover radius (px) and bird thickness (1/256 px). */
+export const INK_V14_BALL_R = 10;
+export const INK_V14_SHAMROCK_R = 12;
+export const INK_V14_BIRD_H_FP = 10 * 256;
+/** inkRev 10, 11, 12, 13 and 14: the taller world and its features (x200). */
 export function inkX(rev?: number | null): boolean {
-  return rev === INK_REV_EXPAND || rev === INK_REV_SPREAD || rev === INK_REV_STD || rev === INK_REV_CLOVER;
+  return rev === INK_REV_EXPAND || rev === INK_REV_SPREAD || rev === INK_REV_STD || rev === INK_REV_CLOVER || rev === INK_REV_BIG;
+}
+/** inkRev 13 and 14: clovers, ink par, more birds, failed drops that never end the run, the standard's parts (INK_V13_STD). */
+export function inkClover(rev?: number | null): boolean {
+  return rev === INK_REV_CLOVER || rev === INK_REV_BIG;
 }
 export const INK_TALL_H = 674;
 /** How much lower every inkRev 10 pot sits (the extra sky): INK_TALL_H − INK_WORLD_H. */
@@ -179,7 +196,11 @@ const INK_LIVE_BUDGET_256 = 384;
  * ball well short of the bucket, so the mid-fall live stroke genuinely does the rescuing. */
 export const INK_LIVE_PRE_CAP = 170;
 /** No-draw zone radius around the ball's current position on live levels: one coin diameter. */
-export const INK_NO_DRAW_ZONE_PX = BALL_R * 2;
+export const INK_NO_DRAW_ZONE_PX = INK_BALL_R * 2;
+/** The no-draw zone's radius on this run's levels (inkRev 14: its bigger coin's diameter). */
+export function inkNoDrawZone(state: { list: readonly InkLevel[]; level: number }): number {
+  return 2 * (state.list[Math.min(state.level, state.list.length - 1)]?.ballR ?? INK_BALL_R);
+}
 /** Obstacle thickness in px (render and tests). */
 export function inkBlockH(b: InkBlock): number {
   return b.h ? b.h / FP : INK_BLOCK_H;
@@ -222,7 +243,7 @@ export function inkBudgetFor(level: number, rev?: number | null): number {
   const tall = inkX(rev) ? Math.trunc((inkBudget(level) * 279) / 256) : inkBudget(level);
   // inkRev 13: a quarter more again, so every level's ink par (its proved line's ink plus a margin) sits inside the ink
   // and a wasteful line can go over it (levels are still proved within inkRev 10's ink).
-  const base = rev === INK_REV_CLOVER ? Math.trunc((tall * 5) / 4) : tall;
+  const base = inkClover(rev) ? Math.trunc((tall * 5) / 4) : tall;
   return inkIsLive(level, rev) ? Math.trunc((base * INK_LIVE_BUDGET_256) / 256) : base;
 }
 
@@ -291,6 +312,9 @@ export interface InkLevel {
   liveHand?: { start: number; pts: number[] }[];
   /** inkRev 13 only: the level's ink par, px (potting the level with at most this much ink pays the ink-par part in full). */
   inkPar?: number;
+  /** inkRev 14 only: the coin's radius and the clover's pickup radius on this level, px (absent = INK_BALL_R, INK_SHAMROCK_R). */
+  ballR?: number;
+  cloverR?: number;
   spoutX: number;
   bucketX: number;
   /** Bucket rim, px. */
@@ -1184,7 +1208,7 @@ function findLiveReference(
   for (const fy of [20, 32, 44])
     for (const fx of [-36, -16, 16, 36, 60])
       way.push([lvl.spoutX + dir * fx, sy + Math.trunc(((lvl.bucketY - sy) * fy) / 100)]);
-  const zone = INK_NO_DRAW_ZONE_PX + 2;
+  const zone = BALL_R * 2 + 2;
   let fallback: ReturnType<typeof findLiveReference> = null;
   for (const w of way) {
     if (w[0] < 4 || w[0] > INK_WORLD_W - 4) continue;
@@ -1334,7 +1358,8 @@ function buildLevelsRev3(
     }
     // Every round under inkRev 3 draws white birds, never the old red blocks.
     const counts: readonly number[] = BIRD_COUNTS;
-    const h = INK_BIRD_H_FP;
+    // inkRev 14: thicker birds (drawn bigger, to the same box).
+    const h = rev === INK_REV_BIG ? INK_V14_BIRD_H_FP : INK_BIRD_H_FP;
     const gravity = live ? INK_LIVE_GRAVITY : GRAVITY;
     const extra = moreBirds?.[i] ?? 0;
     const count = counts[sourceLevel]! + extra;
@@ -1818,18 +1843,41 @@ const INK_SPEC_11: InkFeatureSpec = { rev: INK_REV_SPREAD, windLevels: INK_V11_W
 /** inkRev 13: two clovers a run, no silver coins, no wind, more birds. */
 export const INK_V13_CLOVERS = 2;
 const INK_SPEC_13: InkFeatureSpec = { rev: INK_REV_CLOVER, windLevels: 0, silverPerLevel: 0, spread: true, clovers: INK_V13_CLOVERS };
+const INK_SPEC_14: InkFeatureSpec = { ...INK_SPEC_13, rev: INK_REV_BIG };
 /** Silver coins a level and wind levels a run on this revision (inkRev 10 or 11; inkRev 13 has neither). */
 export function inkSilverPerLevel(rev?: number | null): number {
-  if (rev === INK_REV_CLOVER) return 0;
+  if (inkClover(rev)) return 0;
   return rev === INK_REV_SPREAD || rev === INK_REV_STD ? INK_V11_SILVER_PER_LEVEL : INK_SILVER_PER_LEVEL;
 }
 export function inkWindLevels(rev?: number | null): number {
-  if (rev === INK_REV_CLOVER) return 0;
+  if (inkClover(rev)) return 0;
   return rev === INK_REV_SPREAD || rev === INK_REV_STD ? INK_V11_WIND_LEVELS : INK_WIND_LEVELS;
 }
 /** Pickup radii (px): the coin takes one when its centre comes within this plus its own radius. */
 export const INK_SILVER_R = 6;
 export const INK_SHAMROCK_R = 9;
+/** The clover's pickup radius while a run or build is worked (INK_SHAMROCK_R, or inkRev 14's INK_V14_SHAMROCK_R). */
+let CLOVER_R = INK_SHAMROCK_R;
+/**
+ * Works `fn` with the coin and clover at these radii (inkRev 14's bigger ones), then puts the previous ones back. Older
+ * revisions never call it with other sizes, so they play and build exactly as before.
+ */
+function withSizes<T>(ballR: number, cloverR: number, fn: () => T): T {
+  const ball = BALL_R;
+  const clover = CLOVER_R;
+  BALL_R = ballR;
+  CLOVER_R = cloverR;
+  try {
+    return fn();
+  } finally {
+    BALL_R = ball;
+    CLOVER_R = clover;
+  }
+}
+/** A level's own sizes (inkRev 14), or the ones in force (every older level, and inkRev 14's while it is being built). */
+function withLevelSizes<T>(lvl: InkLevel | undefined, fn: () => T): T {
+  return lvl?.ballR ? withSizes(lvl.ballR, lvl.cloverR ?? CLOVER_R, fn) : fn();
+}
 /** Raw feature points (paid out on INK_V10_SKILL_PAY): ink star 5, trick shot 5, silver coin 2, shamrock 20. */
 export const INK_RAW_STAR = 5;
 export const INK_RAW_TRICK = 5;
@@ -2347,7 +2395,7 @@ function handLive(lvl: InkLevel, level: number): LiveStroke | null {
   const prePen = strokeSegs(pre.map(inkPhoneLine), Math.min(ink, INK_LIVE_PRE_CAP));
   const preUsed = prePen.segs.reduce((sum, seg) => sum + seg.len, 0);
   const trace = traceDrop(lvl, prePen.segs).slice(1).map((p) => ({ x: p.x / FP, y: p.y / FP, on: p.on }));
-  const zone = INK_NO_DRAW_ZONE_PX + 2;
+  const zone = BALL_R * 2 + 2;
   const preRun = ballsOf(lvl, prePen.segs, GRAVITY);
   /** The cheap screen: the stroke turns solid on its LIFT (start + points + 1 ticks in), and no point it sends comes near the coin. */
   const screen = (cand: LiveStroke): boolean => {
@@ -2642,14 +2690,14 @@ export interface InkV13LevelProof {
   birds: number;
 }
 
-export function inkV13Proof(seed: number): InkV13LevelProof[] {
-  const { list } = buildLevels(seed, INK_REV_CLOVER);
-  return list.map((lvl, i) => {
-    const ink = inkBudgetFor(i, INK_REV_CLOVER);
+export function inkV13Proof(seed: number, rev = INK_REV_CLOVER): InkV13LevelProof[] {
+  const { list } = buildLevels(seed, rev);
+  return list.map((lvl, i) => withLevelSizes(lvl, () => {
+    const ink = inkBudgetFor(i, rev);
     const unaided = landsUnaided(lvl);
     const birds = lvl.blocks.length;
     const par = lvl.inkPar ?? 0;
-    if (inkIsLive(i, INK_REV_CLOVER)) {
+    if (inkIsLive(i, rev)) {
       const hand = lvl.liveHand?.[0];
       const ok = Boolean(hand && handDrop(lvl, i, lvl.ref, [hand]).potted && handDrop(lvl, i, lvl.ref, [hand], 0, 0, 5).potted);
       const witness = phoneInk(lvl.ref, ink) + (hand ? phoneInk([hand.pts], ink) : 0);
@@ -2663,12 +2711,12 @@ export function inkV13Proof(seed: number): InkV13LevelProof[] {
       const pen = phoneSegs(lvl.starRef ?? [], ink);
       const path: Pt[] = [];
       const d = dropWithHit(lvl, pen.segs, lvl.starT0 ?? 0, path);
-      bonus = pen.penDown === 1 && d.result === 1 && (!cloud || d.hitAt >= 0) && (!clover || passes(path, clover, INK_SHAMROCK_R));
+      bonus = pen.penDown === 1 && d.result === 1 && (!cloud || d.hitAt >= 0) && (!clover || passes(path, clover, CLOVER_R));
     }
     const witness = cloud || clover ? phoneInk(lvl.starRef ?? [], ink) : phoneInk(lvl.ref, ink);
     const kind = cloud && clover ? ("cloud+clover" as const) : cloud ? ("cloud" as const) : clover ? ("clover" as const) : ("plain" as const);
     return { level: i, kind, ref: p.ref, unaided, bonus, par, witness, birds };
-  });
+  }));
 }
 
 /** inkX200Proof's levels 1-8 proof (and generation's last test of a decorated level). */
@@ -2693,7 +2741,7 @@ function staticProof(lvl: InkLevel, i: number): InkX200LevelProof {
     bonus,
     silverOnLine,
     silver: lvl.silver?.length ?? 0,
-    shamrock: lvl.shamrock ? passes(path, lvl.shamrock, INK_SHAMROCK_R) : null,
+    shamrock: lvl.shamrock ? passes(path, lvl.shamrock, CLOVER_R) : null,
     windTicks: w ? still.filter((p) => p.x >= w.x0 * FP && p.x <= w.x1 * FP && p.y >= w.y0 * FP && p.y <= w.y1 * FP).length : null,
     hand: null,
     kind: lvl.clouds?.length ? ("cloud" as const) : w ? ("wind" as const) : ("plain" as const),
@@ -2706,7 +2754,7 @@ function staticProof(lvl: InkLevel, i: number): InkX200LevelProof {
  * coins and shamrock come to each other, and `shamrockStar` the shamrock's distance from the star (null without one).
  */
 export function inkPickupSpread(lvl: InkLevel, level: number): { route: number; star: number; pair: number; shamrockStar: number | null } {
-  const route = routeOf(lvl, inkBudgetFor(level, INK_REV_EXPAND));
+  const route = withLevelSizes(lvl, () => routeOf(lvl, inkBudgetFor(level, INK_REV_EXPAND)));
   const pickups = [...(lvl.silver ?? []), ...(lvl.shamrock ? [lvl.shamrock] : [])];
   const all = [...(lvl.star ? [lvl.star] : []), ...pickups];
   let pair = Infinity;
@@ -2750,6 +2798,11 @@ function buildLevels(seed: number, rev?: number): { list: InkLevel[]; rng: numbe
   if (rev === INK_REV_EXPAND) return buildLevelsRev10(seed);
   if (rev === INK_REV_SPREAD || rev === INK_REV_STD) return buildLevelsRev10(seed, INK_SPEC_11);
   if (rev === INK_REV_CLOVER) return buildLevelsRev10(seed, INK_SPEC_13);
+  if (rev === INK_REV_BIG) {
+    // inkRev 14: built and proved with the bigger coin and clover; every level carries their sizes for play and art.
+    const built = withSizes(INK_V14_BALL_R, INK_V14_SHAMROCK_R, () => buildLevelsRev10(seed, INK_SPEC_14));
+    return { ...built, list: built.list.map((l) => ({ ...l, ballR: INK_V14_BALL_R, cloverR: INK_V14_SHAMROCK_R })) };
+  }
   if (rev === INK_REV4) return buildLevelsRev4(seed);
   if (rev === INK_REV3) return buildLevelsRev3(seed);
   const birds = rev === INK_REV;
@@ -3012,7 +3065,7 @@ function initWith(seed: number, rev?: number): InkState {
     preInkUsed: 0,
     ...(rev === INK_REV4 ? { stars: 0, starGot: 0 } : {}),
     ...(inkX(rev) ? { stars: 0, starGot: 0, worldH: INK_TALL_H, tricks: 0, cloudHit: 0, cloudTick: -100, cloudIdx: -1, silver: 0, silverGot: 0, shamrocks: 0, shamrockGot: 0 } : {}),
-    ...(rev === INK_REV_CLOVER ? { inkPar: 0, parLevels: 0, lastInk: -1 } : {}),
+    ...(inkClover(rev) ? { inkPar: 0, parLevels: 0, lastInk: -1 } : {}),
   };
 }
 
@@ -3058,6 +3111,11 @@ function resetLevel(s: InkState): void {
 const bounce = { cloud: -1 };
 
 function step(state: InkState, input: ArcadeInputEvent | null): InkState {
+  // inkRev 14: the level's bigger coin and clover for this tick (older levels carry no sizes and play as before).
+  return withLevelSizes(state.list[state.level], () => stepAt(state, input));
+}
+
+function stepAt(state: InkState, input: ArcadeInputEvent | null): InkState {
   if (isOver(state)) return state;
   const tick = state.tick + 1;
   const s: InkState = {
@@ -3123,7 +3181,7 @@ function step(state: InkState, input: ArcadeInputEvent | null): InkState {
       const y = clampInt(input.b, 0, inkWorldH(s));
       // No-draw zone: a point too close to the ball breaks the stroke instead of drawing to it.
       const tooClose =
-        Math.hypot(x - s.ball.x / FP, y - s.ball.y / FP) < INK_NO_DRAW_ZONE_PX;
+        Math.hypot(x - s.ball.x / FP, y - s.ball.y / FP) < BALL_R * 2;
       if (tooClose) {
         s.draftPenDown = 0;
       } else {
@@ -3192,7 +3250,7 @@ function step(state: InkState, input: ArcadeInputEvent | null): InkState {
         if ((bx - c.x) ** 2 + (by - c.y) ** 2 <= (INK_SILVER_R + BALL_R) * (INK_SILVER_R + BALL_R)) s.silverGot = (s.silverGot ?? 0) | (1 << i);
       }
       const sh = here.shamrock;
-      if (sh && !s.shamrockGot && (bx - sh.x) ** 2 + (by - sh.y) ** 2 <= (INK_SHAMROCK_R + BALL_R) * (INK_SHAMROCK_R + BALL_R)) s.shamrockGot = 1;
+      if (sh && !s.shamrockGot && (bx - sh.x) ** 2 + (by - sh.y) ** 2 <= (CLOVER_R + BALL_R) * (CLOVER_R + BALL_R)) s.shamrockGot = 1;
     }
     const old = s.positions[0];
     if (
@@ -3205,7 +3263,7 @@ function step(state: InkState, input: ArcadeInputEvent | null): InkState {
       result = 2;
     if (result === 1) {
       // inkRev 13: the ink this level took (its line and any live strokes), against the level's par.
-      if (s.rev === INK_REV_CLOVER) {
+      if (inkClover(s.rev)) {
         const used = Math.max(0, inkBudgetFor(s.level, s.rev) * FP - s.ink);
         const par = Math.max(1, s.list[s.level]!.inkPar ?? 1) * FP;
         s.inkPar = (s.inkPar ?? 0) + inkParCredit(used, par);
@@ -3240,7 +3298,7 @@ function step(state: InkState, input: ArcadeInputEvent | null): InkState {
       s.flashTick = tick;
       s.failedBall = { x: s.ball.x, y: s.ball.y };
       // inkRev 13: failed drops never end the run (only the clock does).
-      if (s.fails >= INK_FAILS && s.rev !== INK_REV_CLOVER) {
+      if (s.fails >= INK_FAILS && !inkClover(s.rev)) {
         s.ended = 2;
         s.endedTick = tick;
         return s;
@@ -3353,7 +3411,7 @@ export function inkCheckpoint(state: InkState): InkCheckpoint {
   // inkRev 10 folds its own fields in the same place; no older state has rev 10, so their sums are unchanged.
   if (inkX(state.rev)) values.push(state.stars ?? 0, state.starGot ?? 0, state.tricks ?? 0, state.cloudHit ?? 0, state.cloudTick ?? 0, state.cloudIdx ?? 0, state.worldH ?? 0, state.silver ?? 0, state.silverGot ?? 0, state.shamrocks ?? 0, state.shamrockGot ?? 0);
   // inkRev 13 folds its ink-par counters in after them; no older state has rev 13, so their sums are unchanged.
-  if (state.rev === INK_REV_CLOVER) values.push(state.inkPar ?? 0, state.parLevels ?? 0, state.lastInk ?? 0);
+  if (inkClover(state.rev)) values.push(state.inkPar ?? 0, state.parLevels ?? 0, state.lastInk ?? 0);
   // inkRev 6 (Tuning C) adds its marker before the segments only when present, so older sums are unchanged.
   if (state.tunec) values.push(state.tunec);
   for (const seg of state.segs) values.push(seg.x0, seg.y0, seg.x1, seg.y1);
@@ -3440,7 +3498,7 @@ function draw(ctx: CanvasRenderingContext2D, state: InkState, size: CanvasSize):
   // Ball.
   ctx.fillStyle = INK_GOLD;
   ctx.beginPath();
-  ctx.arc(state.ball.x / FP, state.ball.y / FP, BALL_R, 0, Math.PI * 2);
+  ctx.arc(state.ball.x / FP, state.ball.y / FP, lvl.ballR ?? INK_BALL_R, 0, Math.PI * 2);
   ctx.fill();
 
   // Live levels while dropping: faded, non-solid draft strokes (clipped off any birds) and a
@@ -3471,7 +3529,7 @@ function draw(ctx: CanvasRenderingContext2D, state: InkState, size: CanvasSize):
     ctx.setLineDash([3, 4]);
     ctx.lineWidth = 1.5;
     ctx.beginPath();
-    ctx.arc(state.ball.x / FP, state.ball.y / FP, INK_NO_DRAW_ZONE_PX, 0, Math.PI * 2);
+    ctx.arc(state.ball.x / FP, state.ball.y / FP, inkNoDrawZone(state), 0, Math.PI * 2);
     ctx.stroke();
     ctx.setLineDash([]);
     ctx.restore();
@@ -3482,7 +3540,7 @@ function draw(ctx: CanvasRenderingContext2D, state: InkState, size: CanvasSize):
     ctx.globalAlpha = 1 - (tick - state.flashTick) / 30;
     ctx.fillStyle = INK_RED;
     ctx.beginPath();
-    ctx.arc(state.failedBall.x / FP, state.failedBall.y / FP, BALL_R, 0, Math.PI * 2);
+    ctx.arc(state.failedBall.x / FP, state.failedBall.y / FP, lvl.ballR ?? INK_BALL_R, 0, Math.PI * 2);
     ctx.fill();
     ctx.restore();
   }
@@ -3536,6 +3594,7 @@ export const inkBridgeBirdsGame: ArcadeGame<InkState, ArcadeInputEvent | null> =
 export const inkBridgeInkRev3Game: ArcadeGame<InkState, ArcadeInputEvent | null> = { ...inkBridgeGame, init: (seed) => initWith(seed, INK_REV3) };
 export const inkBridgeInkRev4Game: ArcadeGame<InkState, ArcadeInputEvent | null> = { ...inkBridgeGame, init: (seed) => initWith(seed, INK_REV4) };
 export function inkBridgeGameFor(rev?: number | null): ArcadeGame<InkState, ArcadeInputEvent | null> {
+  if (rev === INK_REV_BIG) return inkBridgeBigGame;
   if (rev === INK_REV_CLOVER) return inkBridgeCloverGame;
   if (rev === INK_REV_STD) return inkBridgeStdGame;
   if (rev === INK_REV_SPREAD) return inkBridgeSpreadGame;
@@ -3562,7 +3621,7 @@ export function inkBridgeBandParts(state: InkState): BandParts {
 }
 
 function scoreBand(state: InkState): number {
-  if (state.std && state.rev === INK_REV_CLOVER) return stdTotal(inkV13Score(state), Boolean(state.acted));
+  if (state.std && inkClover(state.rev)) return stdTotal(inkV13Score(state), Boolean(state.acted));
   if (state.std) return stdTotal(inkStdScore(state), Boolean(state.acted));
   if (inkX(state.rev)) return bandTotal(inkBridgeBandParts(state), Boolean(state.acted), INK_EXPAND_MAX);
   return bandTotal(inkBridgeBandParts(state), Boolean(state.acted));
@@ -3746,7 +3805,7 @@ export function inkStdScore(state: InkState): StdBreakdown {
 
 function inkStdBandParts(state: InkState): BandParts {
   const levels = clampInt(state.levels, 0, INK_LEVELS);
-  if (state.rev === INK_REV_CLOVER) return stdBandParts(INK_V13_STD, inkV13Score(state), levels, `${levels} / ${INK_LEVELS} levels`, levels >= INK_LEVELS);
+  if (inkClover(state.rev)) return stdBandParts(inkStdSpecFor(state.rev), inkV13Score(state), levels, `${levels} / ${INK_LEVELS} levels`, levels >= INK_LEVELS);
   return stdBandParts(INK_STD, inkStdScore(state), levels, `${levels} / ${INK_LEVELS} levels`, levels >= INK_LEVELS);
 }
 
@@ -3808,4 +3867,28 @@ export function inkV13Score(state: InkState): StdBreakdown {
 export const inkBridgeCloverGame: ArcadeGame<InkState, ArcadeInputEvent | null> = {
   ...inkBridgeExpandGame,
   init: (seed) => ({ ...initWith(seed, INK_REV_CLOVER), band: BAND_STRICT_MARK, acted: 0, std: 1 }),
+};
+
+/* ================= inkRev 14 (3 Nov 2026): a bigger coin, clovers and birds ================= */
+
+/** Test hook (ink-v14-check): whether a coin centred at (x, y) px touches bird `b`, at the level's coin size (the sim's own test). */
+export function inkCoinTouchesBird(lvl: InkLevel, b: InkBlock, x: number, y: number): boolean {
+  return withLevelSizes(lvl, () => touchesBlock({ x: Math.round(x * FP), y: Math.round(y * FP), vx: 0, vy: 0, on: -1, u: 0, sp: 0, stall: 0 }, b));
+}
+/** Test hook (ink-v14-check): the coin's radius on a level and how near (px) its centre must come to a clover to take it. */
+export function inkLevelSizes(lvl: InkLevel): { ball: number; cloverReach: number } {
+  return withLevelSizes(lvl, () => ({ ball: BALL_R, cloverReach: CLOVER_R + BALL_R }));
+}
+
+/** inkRev 14's standard: inkRev 13's parts exactly (levels 120, ink par 30, trick shots 20, clovers 10, speed 20). */
+export const INK_V14_STD: StdSpec = { ...INK_V13_STD, rev: INK_REV_BIG };
+/** The standard spec a clover revision (13 or 14) scores on. */
+export function inkStdSpecFor(rev?: number | null): StdSpec {
+  return rev === INK_REV_BIG ? INK_V14_STD : INK_V13_STD;
+}
+
+/** inkRev 14: inkRev 13's rules and parts with the bigger coin, clovers and birds (INK_V14_*). */
+export const inkBridgeBigGame: ArcadeGame<InkState, ArcadeInputEvent | null> = {
+  ...inkBridgeExpandGame,
+  init: (seed) => ({ ...initWith(seed, INK_REV_BIG), band: BAND_STRICT_MARK, acted: 0, std: 1 }),
 };
