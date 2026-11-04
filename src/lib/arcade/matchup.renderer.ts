@@ -55,10 +55,10 @@ function useLayout(state: MatchupState): void {
  * at SIX_TOP and the panel's bottom stays inside the world. Taps go back through the same zoom (matchupCellAtShown),
  * so a tap on a drawn gem picks that gem's cell.
  */
-const SIX_HUD_Y = 6;
-const SIX_PANEL_H = 80;
-const SIX_TOP = 40;
-export const SIX_ZOOM = 1.06;
+const SIX_HUD_Y = 4;
+const SIX_PANEL_H = 74;
+const SIX_TOP = 36;
+export const SIX_ZOOM = 1.055;
 const SIX_ZOOM_CX = MATCHUP_WORLD_W / 2;
 const SIX_ZOOM_CY = (SIX_TOP - MATCHUP_NEXT_Y * SIX_ZOOM) / (1 - SIX_ZOOM);
 
@@ -1005,7 +1005,7 @@ function drawSixGoalsPanel(ctx: CanvasRenderingContext2D, state: MatchupState, t
   ctx.stroke();
   const iceLeft = (state.ice ?? []).reduce((n, v) => n + (v ? 1 : 0), 0);
   const ph = 26;
-  drawHudPillRow(ctx, x + 8, y + 7, [
+  drawHudPillRow(ctx, x + 8, y + 6, [
     { label: "Ice", value: String(iceLeft), opts: { h: ph } },
     { label: "Treasure", value: `${state.treasures ?? 0}/${matchupTreasuresOf(state)}`, opts: { h: ph } },
     { label: "Big lines", value: String(state.bigLines ?? 0), opts: { h: ph } },
@@ -1021,17 +1021,17 @@ function drawSixGoalsPanel(ctx: CanvasRenderingContext2D, state: MatchupState, t
     const l = left[kind] ?? 0;
     const done = n > 0 && l === 0;
     ctx.globalAlpha = done ? 0.55 : 1;
-    drawMatchupGem(ctx, kind, cx - 12, y + 53, 11, time);
+    drawMatchupGem(ctx, kind, cx - 12, y + 47, 11, time);
     ctx.globalAlpha = 1;
     ctx.textAlign = "left";
     ctx.font = `800 15px ${HUD_PILL_FONT}`;
     ctx.fillStyle = done ? "#7CF5A4" : MATCHUP_TEXT;
-    ctx.fillText(done ? "✓" : `${l}`, cx + 1, y + 54);
+    ctx.fillText(done ? "✓" : `${l}`, cx + 1, y + 48);
     const bw = cellW - 12;
     ctx.fillStyle = "rgba(0,0,0,0.45)";
-    ctx.fillRect(cx - bw / 2, y + 69, bw, 3);
+    ctx.fillRect(cx - bw / 2, y + 63, bw, 3);
     ctx.fillStyle = done ? "#7CF5A4" : (MATCHUP_COLOURS[kind] ?? MATCHUP_GOLD);
-    ctx.fillRect(cx - bw / 2, y + 69, n > 0 ? (bw * (n - l)) / n : 0, 3);
+    ctx.fillRect(cx - bw / 2, y + 63, n > 0 ? (bw * (n - l)) / n : 0, 3);
   }
   ctx.restore();
 }

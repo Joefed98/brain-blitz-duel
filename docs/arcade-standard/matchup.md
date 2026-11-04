@@ -204,7 +204,7 @@ down 2 a run, median; 3 of 120 flawless runs got all six). On 30 seeds the tunin
 - The goals panel's top line is pills: "Ice n" (frozen cells left), "Treasure n/6" and "Big lines n"; the six goals
   sit under them as before (gem, gems left or a tick, a bar), in Archivo.
 - The world (390 × 720) and the sim are unchanged; with the top 60 px freed, everything under the HUD (next strip,
-  board, tray, goals panel, backdrop and the shared effects layer) is drawn 6 % larger (`SIX_ZOOM` in
-  `matchup.renderer.ts`, about a point chosen so the strip starts at y 40 and the panel ends inside the world). Taps
+  board, tray, goals panel, backdrop and the shared effects layer) is drawn 5.5 % larger (`SIX_ZOOM` in
+  `matchup.renderer.ts`, about a point chosen so the strip starts at y 36 and the panel ends 17 px inside the world's bottom). Taps
   and the selection, swap tween and desktop key cursor go through the same zoom (`matchupCellAtShown`,
   `matchupShownPoint`), so a tap on a drawn gem selects that gem's cell. Earlier revisions draw exactly as before.
