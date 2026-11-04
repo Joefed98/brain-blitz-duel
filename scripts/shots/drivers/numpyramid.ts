@@ -27,7 +27,10 @@ export const driver: Driver = {
   },
   solve: async ({ page, puzzle }) => {
     for (let index = 0; index < 4; index++) {
-      if (index > 0) await stage(page).getByText(`Pyramid ${index + 1} of 4`).waitFor({ timeout: 10_000 });
+      // The goal line publishes "Stage n of 4" (useGoalProgress, in the frame header, outside the stage); older builds
+      // drew "Pyramid n of 4" in the stage.
+      if (index > 0) await page.getByText(new RegExp(`(Stage|Pyramid) ${index + 1} of 4`)).first().waitFor({ timeout: 10_000 });
+      if (index > 0) await page.waitForTimeout(400);
       await fill(page, puzzle, index);
     }
   },

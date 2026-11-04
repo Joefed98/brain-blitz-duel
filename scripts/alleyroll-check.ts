@@ -144,7 +144,7 @@ function ok(cond: boolean, label: string): void {
 /* 7. The help (Ringer's since 3 Nov 2026: one swipe, no slide step; ringer-check proves its words). */
 {
   const help = PUZZLE_INSTRUCTIONS.alleyroll;
-  ok(!!help && help.score.includes("Together 200"), `help: the parts total 200: ${help?.score}`);
+  ok(!!help && help.score.includes("Total 200"), `help: the parts total 200: ${help?.score}`);
   const how = JSON.stringify(help?.how ?? []);
   ok(/Swipe up/.test(how) && /100/.test(how), "help: the swipe up and the 100 pockets are named");
   ok(!/skee/i.test(JSON.stringify(help)), "help: no borrowed names");

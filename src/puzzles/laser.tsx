@@ -701,9 +701,9 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: Puz
   const ordinal = mine.fires === 1 ? "1st" : mine.fires === 2 ? "2nd" : "3rd";
   const total = puzzle.gems.length;
   const result = myCorrect
-    ? `${total} / ${total} gems · ${ordinal} shot${elapsed === null ? "" : ` · ${elapsed.toFixed(1)}s`}`
+    ? `${total} of ${total} gems · ${ordinal} shot${elapsed === null ? "" : `, ${elapsed.toFixed(1)} s`}`
     : myTrace.gemsLit.length >= 1
-      ? `${myTrace.gemsLit.length} / ${total} gems`
+      ? `${myTrace.gemsLit.length} of ${total} gems`
       : "Missed";
 
   return (

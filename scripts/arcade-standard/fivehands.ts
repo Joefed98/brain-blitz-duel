@@ -51,7 +51,7 @@ export const entry: StdEntry = {
     }),
   played: () => [{ label: "a tap that placed nothing", score: game.score({ ...game.init(4), acted: 1 }), want: 1 }],
   idle: () => [{ label: "an untouched init(12)", score: game.score(game.init(12)) }],
-  help: { terms: ["hand points", "pair 15", "straight flush 50", "capped at 200"] },
+  help: { terms: ["hands", "pair 15", "straight flush 50", "times 1.4"] },
   extra(ok) {
     let straight = true;
     for (const rows of PARTIALS) {

@@ -41,5 +41,5 @@ export const entry: StdEntry = {
   played: (): StdRun[] =>
     [3, 40].map((n) => ({ label: `seed index ${n}: one sideways step`, score: serverScore(roomSeed(n), [{ t: 5, k: CROSS_INPUT_MOVE, a: 2, b: 0, c: 0, d: 0 }]) })),
   idle: (): StdRun[] => [3, 40].map((n) => ({ label: `seed index ${n}: no input`, score: serverScore(roomSeed(n), []) })),
-  help: { terms: ["Rows and crossings", "150 at", "No-stop streak", "Close calls", "hit costs 15"] },
+  help: { terms: ["Rows and crossings", "No-stop streak", "Close calls", "hit costs 15"] },
 };

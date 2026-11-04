@@ -178,7 +178,7 @@ function ok(cond: boolean, label: string): void {
 /* 7. The help. */
 {
   const help = PUZZLE_INSTRUCTIONS.blockfall;
-  ok(!!help && help.score.includes("total 200") || help!.score.includes("Together 200"), `help: the parts total 200: ${help?.score}`);
+  ok(!!help && help.score.includes("total 200") || help!.score.includes("Total 200"), `help: the parts total 200: ${help?.score}`);
   // Blockzone (3 Nov 2026) has no hold and no pads: its help names drag, tap, the drag down and flick (the brief
   // changed the rule; moon-blockzone-check holds the rest).
   const how = JSON.stringify(help?.how ?? []);

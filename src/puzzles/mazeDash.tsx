@@ -527,7 +527,7 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining, myExt
       </div>
       <p className="font-mono text-base uppercase tracking-widest text-muted-foreground">
         {myCorrect
-          ? `Solved${elapsed === null ? "" : ` · ${elapsed.toFixed(1)}s`}`
+          ? `Solved${elapsed === null ? "" : ` in ${elapsed.toFixed(1)} s`}`
           : `${Math.round(verdict.progress * 100)}% of the way`}
         {/* The scoring standard (mazeRev 3): stars count finished or not. */}
         {/* mazeRev 4: the steps taken against par (the stored figures, a finish only). */}

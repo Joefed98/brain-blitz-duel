@@ -3,7 +3,7 @@
  * arcade group, each game a row of intro / mid-round / reveal with its display name as the row label, split into
  * balanced parts of at most --per games. The approach of scripts/shots/sheets.ts (@napi-rs/canvas). Not a check.
  *
- *   bun scripts/audit/contact-sheets.ts [--in=screenshots/audit-nov-2026] [--out=<same>] [--per=8] [--scale=0.5]
+ *   bun scripts/audit/contact-sheets.ts [--in=screenshots/audit-nov-2026-final] [--out=<same>] [--per=8] [--scale=0.5]
  *
  * Writes <out>/sheet-<category>[-<n>].jpg.
  */
@@ -18,7 +18,7 @@ import type { PuzzleType } from "../../src/lib/duel/types";
 
 const args = process.argv.slice(2);
 const opt = (name: string) => args.find((a) => a.startsWith(`--${name}=`))?.slice(name.length + 3);
-const IN = opt("in") ?? "screenshots/audit-nov-2026";
+const IN = opt("in") ?? "screenshots/audit-nov-2026-final";
 const OUT = opt("out") ?? IN;
 const PER = Number(opt("per") ?? 8);
 const SCALE = Number(opt("scale") ?? 0.5);

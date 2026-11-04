@@ -170,7 +170,7 @@ if (want("bintoss")) {
     ok(partialReplay.score === BINTOSS_V3_PARTIAL_MAX, `seed ${seed}: 9 buckets + every hoop = the intro's ${BINTOSS_V3_PARTIAL_MAX}`);
   }
   console.log(`  ${runs} bot runs reach ${best}; one miss caps at ${BINTOSS_V3_PARTIAL_MAX}`);
-  ok(INTRO_SCORE.bintoss.includes(`up to ${roundMaxFor("bintoss")}`) && !INTRO_SCORE.bintoss.includes(`up to ${BINTOSS_V3_PARTIAL_MAX}`), "Swish intro states its maximum and no 99 cap (score bands)");
+  ok(INTRO_SCORE.bintoss.toLowerCase().includes(`up to ${roundMaxFor("bintoss")}`) && !INTRO_SCORE.bintoss.includes(`up to ${BINTOSS_V3_PARTIAL_MAX}`), "Swish intro states its maximum and no 99 cap (score bands)");
 }
 
 /* ============================== 2b. Flightpath ============================== */

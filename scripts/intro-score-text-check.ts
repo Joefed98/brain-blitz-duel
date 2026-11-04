@@ -5,7 +5,9 @@ import { PUZZLE_INSTRUCTIONS } from "../src/lib/duel/instructions";
 import { BAND_SPECS } from "../src/lib/arcade/bandParts";
 import { roundMaxFor } from "../src/lib/duel/roundMax";
 import { LIVE_BANDS, type LiveBand } from "../src/lib/arcade/liveBands";
-import { stdHelp, STD_MAX } from "../src/lib/arcade/arcadeStandard";
+import { stdHelpLines, STD_MAX } from "../src/lib/arcade/arcadeStandard";
+import { SCORE_JARGON } from "../src/lib/duel/scoreList";
+import { ACTIVE_PUZZLE_TYPES } from "../src/lib/duel/registry";
 
 /** About two lines of text-sm on a 360 px phone. */
 const MAX_CHARS = 90;
@@ -37,11 +39,24 @@ for (const type of Object.keys(BAND_SPECS) as (keyof typeof INTRO_SCORE)[]) {
   // Games on the arcade scoring standard (arcadeStandard.ts) list their parts and say they total 200 instead of a band
   // line (arcade-help-bands-check proves the parts and maximums).
   const std = (LIVE_BANDS as Record<string, LiveBand>)[type]?.std;
-  if (std) {
-    if (!help.includes(stdHelp(std))) failures.push(`${type}: "?" help does not state the standard's parts`);
-    if (!help.includes(`Together ${STD_MAX} points.`)) failures.push(`${type}: "?" help does not say the standard's parts total ${STD_MAX}`);
-  } else if (!help.includes("higher score") || !help.includes("A good run (100 points)")) failures.push(`${type}: "?" help has no plain band line`);
+  // Text pass (4 Nov 2026): the help is a list, one line a part ("Part: how you earn it, up to N."), then penalties,
+  // then "Total 200." (scoreList.ts); the band games' "More …, higher score" and "A good run (100 points)" lines are
+  // internal wording and are gone.
+  if (std && !help.includes(stdHelpLines(std))) failures.push(`${type}: "?" help does not state the standard's parts`);
+  if ((ACTIVE_PUZZLE_TYPES as readonly string[]).includes(type) && !help.endsWith(`Total ${std ? STD_MAX : roundMaxFor(type)}.`)) failures.push(`${type}: "?" help does not end with its total`);
   if (/→|Points follow/.test(help)) failures.push(`${type}: "?" help still lists band knots`);
+}
+// Text pass (4 Nov 2026): no internal jargon in any active game's intro SCORE line or "?" help SCORE ("core",
+// "features", "full at N", "units", "in thousandths", "A good run (100 points)", history words), and the help is a list.
+for (const type of ACTIVE_PUZZLE_TYPES) {
+  const intro = INTRO_SCORE[type];
+  const help = PUZZLE_INSTRUCTIONS[type].score;
+  checks++;
+  for (const term of SCORE_JARGON) {
+    if (term.test(intro)) failures.push(`${type}: jargon ${term} in the intro "${intro}"`);
+    if (term.test(help)) failures.push(`${type}: jargon ${term} in the help "${help}"`);
+  }
+  if (!/ Total \d+\.$/.test(help)) failures.push(`${type}: the help is not a list ending with its total: ${help}`);
 }
 if (failures.length) {
   console.log(failures.join("\n"));

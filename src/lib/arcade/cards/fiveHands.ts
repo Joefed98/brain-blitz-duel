@@ -129,7 +129,7 @@ export const FH_STD_SPEC: StdSpec = {
   parts: [
     {
       key: "core", label: "Hand points", max: FH_CORE_MAX_V3, of: FH_CORE_FULL_V3, item: "hand point",
-      how: `the five rows' hand points plus the column you pick once the rows are complete, times 1.4, capped at 200 (full at ${FH_CORE_FULL_V3} hand points): high card 0, ${FH_V3_TABLE_TEXT}`,
+      how: `your five rows' hands plus the column you pick, times 1.4 (${FH_V3_TABLE_TEXT})`,
     },
   ],
 };

@@ -57,10 +57,10 @@ export const PY_STD_SPEC: StdSpec = {
   field: "pyramidRev",
   rev: PY_REV,
   parts: [
-    { key: "core", label: "Pyramid cards", max: PY_CORE_MAX, of: PY_CORE_FULL, item: "card", how: "a straight line over the 28 pyramid cards removed" },
-    { key: "clear", label: "Cleared", max: PY_CLEAR_MAX, of: 1, how: "all 28 removed" },
-    { key: "speed", label: "Speed", max: PY_SPEED_MAX, of: 1, how: `cleared: full by ${PY_SPEED_FULL_S} s, 0 at the buzzer` },
-    { key: "pairs", label: "Pyramid pairs", max: PY_PAIR_MAX, of: PY_PAIR_FULL, item: "pair", how: "2 for each pair of two pyramid cards, up to 10" },
+    { key: "core", label: "Pyramid cards", max: PY_CORE_MAX, of: PY_CORE_FULL, item: "card", how: "remove the 28 pyramid cards, each worth the same" },
+    { key: "clear", label: "Cleared", max: PY_CLEAR_MAX, of: 1, how: "remove all 28" },
+    { key: "speed", label: "Speed", max: PY_SPEED_MAX, of: 1, how: `clear it within ${PY_SPEED_FULL_S} s for all of it, falling to 0 at the buzzer` },
+    { key: "pairs", label: "Pyramid pairs", max: PY_PAIR_MAX, of: PY_PAIR_FULL, item: "pair", how: "2 for each pair made of two pyramid cards" },
   ],
 };
 

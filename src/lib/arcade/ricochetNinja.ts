@@ -792,10 +792,10 @@ export const MOON_STD_SPEC: StdSpec = {
   field: "ricoRev",
   rev: MOON_REV,
   parts: [
-    { key: "core", label: "Height", max: MOON_CORE_MAX, of: MOON_CORE_FULL_M, item: "metre", how: `a straight line, full at ${MOON_CORE_FULL_M} metres climbed` },
+    { key: "core", label: "Height", max: MOON_CORE_MAX, of: MOON_CORE_FULL_M, item: "metre", how: `every metre climbed counts the same, all of it at ${MOON_CORE_FULL_M} m` },
     { key: "flow", label: "Flow", max: MOON_FLOW_MAX, of: MOON_FLOW_MAX / MOON_FLOW_EACH, item: "flow", how: `${MOON_FLOW_EACH} for every ${MOON_FLOW_STEP} clean leaps in a row` },
-    { key: "rides", label: "Lantern rides", max: MOON_RIDES_MAX, of: MOON_SKY, item: "ride", how: `${MOON_RIDE_EACH} for each of ${MOON_SKY} sky lanterns ridden` },
-    { key: "scrolls", label: "Scrolls", max: MOON_SCROLLS_MAX, of: MOON_SCROLLS, item: "scroll", how: `${MOON_SCROLL_EACH} for each of ${MOON_SCROLLS} scrolls` },
+    { key: "rides", label: "Lantern rides", max: MOON_RIDES_MAX, of: MOON_SKY, item: "ride", how: `${MOON_RIDE_EACH} for each of the ${MOON_SKY} sky lanterns you ride` },
+    { key: "scrolls", label: "Scrolls", max: MOON_SCROLLS_MAX, of: MOON_SCROLLS, item: "scroll", how: `${MOON_SCROLL_EACH} for each of the ${MOON_SCROLLS} scrolls` },
   ],
 };
 

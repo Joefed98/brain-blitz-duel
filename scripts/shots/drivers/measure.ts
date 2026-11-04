@@ -26,7 +26,8 @@ const moves = (puzzle: Record<string, any>, board: number): string[] => String(p
 async function play(page: Page, tokens: string[], index: number, last: boolean) {
   for (const t of tokens) await move(page, t);
   if (last) return;
-  await stage(page).getByText(new RegExp(`Puzzle ${index + 2} of`)).first().waitFor({ timeout: 5000 });
+  // The goal line publishes "Stage n of 4" (useGoalProgress, in the frame header); older builds drew "Puzzle n of 4".
+  await page.getByText(new RegExp(`(Stage|Puzzle) ${index + 2} of`)).first().waitFor({ timeout: 10_000 });
   await page.waitForTimeout(400);
 }
 

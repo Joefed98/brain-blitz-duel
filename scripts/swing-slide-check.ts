@@ -37,6 +37,7 @@
  *   bun scripts/swing-slide-check.ts --record (re-records the skill-band runs, several minutes)
  */
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { hasScorePart } from "../src/lib/duel/scoreList";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { gunzipSync, gzipSync } from "node:zlib";
 import { fnv } from "./arcade-tuning-a-legacy";
@@ -519,8 +520,10 @@ console.log(`witness: ${playSeeds.length} courses cleared by their own planned r
   ok(/The run lasts 90 seconds/.test(text) && /last quarter a pterodactyl/.test(text) && /same course, vines, swinging vines, gates and par times/.test(text) && !/lava|dragon/i.test(text), "90 seconds, the pterodactyl's last quarter, the same course for everyone; no lava or dragon left in the help");
   const intro = help.how.filter((h) => !h.helpOnly);
   ok(intro.length === 3 && intro.every((h) => `${h.action} ${h.detail}`.length <= 46) && help.goal.length <= 34, "the intro's goal and three lines fit");
-  ok(/^90 seconds\./.test(help.score) && new RegExp(`course ${SWING_V17_CORE} \\+ par ${SWING_V17_PAR_POINTS} \\+ gates ${SWING_V17_GATE_POINTS * SWING_V17_GATES} \\+ streak ${SWING_V17_STREAK_MAX} = 200`).test(help.score) && /Up to 200/.test(help.score) && /clean-swing streak/.test(help.score), `the help's SCORE text says 90 seconds and the parts totalling 200: "${help.score}"`);
-  ok(/^90 s\./.test(INTRO_SCORE.swing) && /streak/.test(INTRO_SCORE.swing) && /gates/.test(INTRO_SCORE.swing) && !/gems/.test(INTRO_SCORE.swing) && /up to (\{max\}|200)/.test(INTRO_SCORE.swing) && INTRO_SCORE.swing.replace("{max}", "200").length <= 90, `the intro score line (90 characters at most): "${INTRO_SCORE.swing}"`);
+  // Text pass (4 Nov 2026): the help is a list, one line a part, then the total; the intro is one plain sentence naming
+  // the bonuses (the round's 90 seconds is the intro's time line).
+  ok(hasScorePart(help.score, "Course", SWING_V17_CORE) && hasScorePart(help.score, "Pars", SWING_V17_PAR_POINTS) && hasScorePart(help.score, "Gates", SWING_V17_GATE_POINTS * SWING_V17_GATES) && hasScorePart(help.score, "Clean-swing streak", SWING_V17_STREAK_MAX) && help.score.endsWith("Total 200.") && /clean-swing streak/i.test(help.score), `the help's SCORE text states the parts totalling 200: "${help.score}"`);
+  ok(/streak/.test(INTRO_SCORE.swing) && /gates/.test(INTRO_SCORE.swing) && !/gems/.test(INTRO_SCORE.swing) && /Up to (\{max\}|200)/.test(INTRO_SCORE.swing) && INTRO_SCORE.swing.replace("{max}", "200").length <= 90, `the intro score line (90 characters at most): "${INTRO_SCORE.swing}"`);
   const demo = readFileSync("src/lib/duel/introDemo.functions.ts", "utf8");
   ok(/data\.type === "swing" && demo\?\.puzzle\.type === "swing" && demo\.puzzle\.swingRev !== SWING_REV_SLIDE\) return null/.test(demo), "Grappler's intro demo stays stopped until one is recorded on swingRev 17");
   const introSrc = readFileSync("src/components/duel/RoundIntro.tsx", "utf8");

@@ -16,7 +16,8 @@
  */
 import { roundMaxFor } from "../src/lib/duel/roundMax";
 import { LIVE_BANDS, type LiveBand, type LiveBandGame } from "../src/lib/arcade/liveBands";
-import { stdHelp, STD_MAX } from "../src/lib/arcade/arcadeStandard";
+import { stdHelpLines, STD_MAX } from "../src/lib/arcade/arcadeStandard";
+import { ACTIVE_PUZZLE_TYPES } from "../src/lib/duel/registry";
 import { roundMaxFor } from "../src/lib/duel/roundMax";
 import { BAND_SPECS } from "../src/lib/arcade/bandParts";
 import {
@@ -112,10 +113,20 @@ for (const [type, live] of Object.entries(LIVE_BANDS) as [
   const std = (live as LiveBand).std;
   if (std) {
     ok(std.rev === live.rev && std.field === live.field, `${type}: the standard spec is for ${std.field} ${std.rev}, rooms deal ${live.field} ${live.rev}`);
-    ok(score.includes(stdHelp(std)), `${type}: the help states the standard's parts: ${score}`);
-    for (const p of std.parts) ok(score.includes(`${p.label} up to ${p.max}`), `${type}: the help names ${p.label} up to ${p.max}`);
-    ok(score.includes(`Together ${STD_MAX} points.`), `${type}: the help says the parts total ${STD_MAX}`);
+    // Text pass (4 Nov 2026): one line a part, "Label: how you earn it, up to N.", then any penalty, then "Total 200."
+    ok(score.includes(stdHelpLines(std)), `${type}: the help states the standard's parts: ${score}`);
+    for (const p of std.parts) ok(new RegExp(`(^|\\. )${p.label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}: [^]*?up to ${p.max}\\.`).test(score), `${type}: the help names ${p.label} up to ${p.max}`);
+    ok(score.endsWith(`Total ${STD_MAX}.`), `${type}: the help says the parts total ${STD_MAX}`);
     ok(live.curve.units.length === 2 && live.curve.points[0] === 0 && live.curve.points[1] === std.parts[0]!.max, `${type}: the listed curve is the core's straight line to ${std.parts[0]!.max}`);
+    ok(!/→|Points follow|straight lines/.test(score), `${type}: no knot list in the help`);
+    continue;
+  }
+  // Text pass (4 Nov 2026): an active band game's help is a plain list ending with its total (no "More …, higher
+  // score" or "A good run (100 points)" lines, which were internal wording); retired games keep the band wording.
+  if ((ACTIVE_PUZZLE_TYPES as readonly string[]).includes(type)) {
+    ok(score.endsWith(`Total ${roundMaxFor(type)}.`), `${type}: the help is a list ending "Total ${roundMaxFor(type)}.": ${score}`);
+    ok(!/higher score|A good run \(/.test(score), `${type}: no band wording in the help: ${score}`);
+    ok(new RegExp(`up to ${live.curve.points[live.curve.points.length - 1]!}\\.`).test(score), `${type}: the help states the main part's top (${live.curve.points[live.curve.points.length - 1]})`);
     ok(!/→|Points follow|straight lines/.test(score), `${type}: no knot list in the help`);
     continue;
   }

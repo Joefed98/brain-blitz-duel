@@ -149,10 +149,17 @@ export function stdLines(parts: readonly StdPart[], score: number, acted = true)
   return lines;
 }
 
-/** The "?" help SCORE text from each part's `how`: every part with its maximum, and that they total 200. */
-export function stdHelp(spec: StdSpec, lead = ""): string {
-  const parts = spec.parts.map((p) => `${p.label} up to ${p.max} (${p.how ?? ""})`).join("; ");
-  return `${lead ? `${lead} ` : ""}${parts}. Together ${stdSpecMax(spec)} points.`;
+/**
+ * The "?" help SCORE text from each part's `how` (text pass, 4 Nov 2026): one line per part, "Label: how, up to N.",
+ * then `after` (penalties and notes, plain sentences), then "Total 200." The help draws it a sentence a row.
+ */
+export function stdHelp(spec: StdSpec, after = ""): string {
+  return `${stdHelpLines(spec)}${after ? ` ${after}` : ""} Total ${stdSpecMax(spec)}.`;
+}
+
+/** The help's part lines alone ("Label: how, up to N." for each part), without any note or the total. */
+export function stdHelpLines(spec: StdSpec): string {
+  return spec.parts.map((p) => `${p.label}: ${p.how ? `${p.how}, ` : ""}up to ${p.max}.`).join(" ");
 }
 
 /* ---- A run's parts as a breakdown (core points, each feature's, the mistakes' cost): the band tables and bots. ---- */

@@ -14,7 +14,7 @@
  *     parts are the spec's in order, each at its maximum (NOT_200_ON_EVERY_DEAL names the one exception, Five Hands:
  *     its perfect runs score exactly their deal's best, at most 200);
  *  4. a run that played but earned nothing scores at least 1 (or exactly its `want`), a run with no input 0;
- *  5. where `help` is given, the "?" help's SCORE text says the parts total 200 and states every part's maximum and
+ *  5. where `help` is given, the "?" help's SCORE text ends "Total 200." and states every part's maximum and
  *     every feature's label (and the entry's own terms);
  *  6. where `core` is given, the core is a straight line: floor(max × min(v, fullAt) ÷ fullAt) for every v up to its
  *     full-at figure (and a little past), no feature points on the way (a finish part allowed from fullAt);
@@ -236,7 +236,8 @@ for (const e of entries) {
   /* 5. The help. */
   if (e.help) {
     const help = PUZZLE_INSTRUCTIONS[t as PuzzleType]?.score ?? "";
-    ok(help.includes(`total ${STD_MAX}`), `${t}: the help says the parts total ${STD_MAX}: ${help}`);
+    // Text pass (4 Nov 2026): the help is a list ending "Total 200." (it said "the parts total 200" / "Together 200 points.").
+    ok(help.endsWith(`Total ${STD_MAX}.`), `${t}: the help says the parts total ${STD_MAX}: ${help}`);
     for (const p of e.parts) ok(help.includes(String(p.max)), `${t}: the help states ${p.label}'s maximum ${p.max}`);
     for (const p of e.parts.slice(1)) ok(help.includes(p.label), `${t}: the help names ${p.label}`);
     for (const term of e.help.terms ?? []) ok(help.includes(term), `${t}: the help says "${term}"`);

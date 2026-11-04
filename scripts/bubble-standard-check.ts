@@ -28,7 +28,7 @@ import {
   BUB_V11_STD_SPEC,
   type BubState,
 } from "../src/lib/arcade/bubble";
-import { stdHelp, stdLines, stdScore } from "../src/lib/arcade/arcadeStandard";
+import { stdHelp, stdHelpLines, stdLines, stdScore } from "../src/lib/arcade/arcadeStandard";
 import { encodeBubbleRun, replayBubbleRun } from "../src/lib/duel/bubble";
 import { generateBubble } from "../src/lib/duel/arcade.server";
 import { PUZZLE_INSTRUCTIONS } from "../src/lib/duel/instructions";
@@ -73,7 +73,7 @@ for (const seed of [1, 7, 12345, 987654321, 2_000_000_011]) {
   ok(bubCheckpoint(s).checksum !== bubCheckpoint(b).checksum, `seed ${seed}: the checksum folds the mine in`);
 }
 ok(generateBubble().bubbleRev === BUB_REV_STD, `rooms deal bubbleRev ${BUB_REV_STD}`);
-ok(String(PUZZLE_INSTRUCTIONS.bubble?.score ?? "").includes(stdHelp(BUB_V11_STD_SPEC)), "the help states every part and the 200");
+ok(String(PUZZLE_INSTRUCTIONS.bubble?.score ?? "").includes(stdHelpLines(BUB_V11_STD_SPEC)), "the help states every part and the 200");
 
 /* 3. The mine. */
 {

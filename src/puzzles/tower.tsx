@@ -327,8 +327,8 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: Puz
           {mine.moves} {myCorrect ? "✓" : "✗"}
         </span>
         <span className="ml-2 font-mono text-base uppercase tracking-widest text-muted-foreground">
-          moves · {usesDepth(puzzle) ? (mine.moves <= puzzle.minMoves && myCorrect ? "perfect solve · par" : "par") : "min"} {puzzle.minMoves}
-          {myCorrect && elapsed !== null ? ` · ${elapsed.toFixed(1)}s` : ""}
+          moves · {usesDepth(puzzle) ? (mine.moves <= puzzle.minMoves && myCorrect ? "perfect solve, par" : "par") : "min"} {puzzle.minMoves}
+          {myCorrect && elapsed !== null ? `, ${elapsed.toFixed(1)} s` : ""}
         </span>
       </p>
       <p className="logic-reveal-text text-center text-muted-foreground">

@@ -1330,9 +1330,9 @@ export const RALLY_STD_SPEC: StdSpec = {
   field: "rallyRev",
   rev: RALLY_REV_STD,
   parts: [
-    { key: "core", label: "Gold-ball hits", max: RALLY_V12_CORE_MAX, how: `full at ${RALLY_V12_FULL_AT} gold-ball hits` },
-    { key: "pads", label: "Pink pads", max: RALLY_V12_PADS_MAX, how: `${RALLY_V12_PAD_PTS} a pad a gold ball strikes, up to ${RALLY_V12_PADS_MAX / RALLY_V12_PAD_PTS}` },
-    { key: "targets", label: "Gold targets", max: RALLY_V12_TARGETS_MAX, how: `${RALLY_V12_TARGET_PTS} each of the ${RALLY_V10_BONUS_COUNT}` },
+    { key: "core", label: "Gold-ball hits", max: RALLY_V12_CORE_MAX, how: `hit gold balls back, all of it for ${RALLY_V12_FULL_AT} hits` },
+    { key: "pads", label: "Pink pads", max: RALLY_V12_PADS_MAX, how: `${RALLY_V12_PAD_PTS} each time a gold ball strikes a pink pad` },
+    { key: "targets", label: "Gold targets", max: RALLY_V12_TARGETS_MAX, how: `${RALLY_V12_TARGET_PTS} for each of the ${RALLY_V10_BONUS_COUNT} gold targets hit` },
   ],
 };
 

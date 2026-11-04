@@ -1469,6 +1469,20 @@ outside the repo.
   `practice.functions.ts`), not a live scoring bug. puzzle-polish-nov-check (~4 min; legacy
   `scripts/fixtures/puzzle-polish-nov-legacy.json.gz`, `scripts/puzzle-polish-nov-record.ts`); bands
   `bun scripts/puzzle-polish-bands.ts --seeds=60`.
+- **Text pass: score text in plain words** (4 Nov 2026; text, the audit tools and checks only, no game's play or scoring
+  changed, no stamps): every active game's intro SCORE line is one plain sentence of at most 90 characters (what scores,
+  the bonuses by name, "Up to 200."), and its "?" help SCORE a list drawn a row a sentence (`scoreSentences` in
+  `src/lib/duel/scoreList.ts`, `PuzzleInstructions` overlay `data-help-score-parts`): one line a part, "Part: how you earn
+  it, up to N." (`scoreList`, `puzzleScoreList` for the finish puzzles; `stdHelp` / `stdHelpLines` in arcadeStandard.ts
+  from each live spec part's plain `how`), then penalties, then "Total 200." No player text says "core", "features",
+  "full at N", "units", "in thousandths", "A good run (100 points)" or history words (`SCORE_JARGON`, intro-score-text-check
+  for every active game; checks read a part with `hasScorePart`). At most four intro HOW lines. The reveal reads stored
+  lines in plain words at display time (`plainText` drops "(120 at 28)"-style targets and "full at N"; the folded room line
+  is "142 points · distance 110 + bonuses 32", `revealSummary`); stat lines keep one "·" at most. The screenshot audit
+  plays each arcade game with its skill-band bot's log at the Near-perfect level (`scripts/audit/botLog.ts` through the
+  dev-only hook `src/lib/arcade/auditInput.ts`, dropped from production builds), ends puzzles on a solved reveal (the
+  driver's solve, or a driver's full answer graded at the buzzer) and waits for "Stage n of" (Integer Pyramid, Brimful):
+  `screenshots/audit-nov-2026-final/`, `docs/audit/intro-reveal-text-final.md`.
 - `src/components/duel/` — room/round screens (PhoneShell, RoundIntro, TimerBar,
   AnswerReveal, ArcadeReveal, WinnerReveal…); `src/components/puzzles/` — shared puzzle
   widgets; `src/lib/fx/` — sound and visual feedback (presentation only).

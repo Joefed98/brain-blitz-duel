@@ -277,7 +277,7 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: Puz
       )}
       <p className="font-mono text-base uppercase tracking-widest text-muted-foreground">
         {myCorrect
-          ? `opened on try ${tries.length}${usesDepth(puzzle) && (usesStandard(puzzle) ? tries.length === 1 : tries.length < SAFE_TRIES) ? " · clean crack" : ""}${elapsed !== null ? ` · ${elapsed.toFixed(1)}s` : ""}`
+          ? `opened on try ${tries.length}${usesDepth(puzzle) && (usesStandard(puzzle) ? tries.length === 1 : tries.length < SAFE_TRIES) ? ", clean crack" : ""}${elapsed !== null ? ` · ${elapsed.toFixed(1)} s` : ""}`
           : `locked · ${last ? dialsCorrect(last, combination) : 0} / ${SAFE_DIALS} dials`}
       </p>
     </div>

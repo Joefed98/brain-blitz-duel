@@ -61,9 +61,9 @@ export const entry: StdEntry = {
     const cleared = (tick: number) => minesParts({ ...base, acted: 1, revealed: MINES_SAFE, clearedTick: tick }).speed;
     ok(cleared(MINES_SPEED_FULL_TICKS) === MINES_SPEED_MAX && cleared(60) === MINES_SPEED_MAX && cleared(minesweeperGame.runTicks) === 0, "minesweeper: speed full by 50 s, 0 at the buzzer");
     ok(minesParts({ ...base, acted: 1, revealed: MINES_SAFE - 1, clearedTick: 0 }).speed === 0, "minesweeper: no speed without a clear");
-    // The help names every part, its maximum and "Together 200 points."
+    // The help names every part, its maximum and "Total 200."
     const help = PUZZLE_INSTRUCTIONS.minesweeper.score;
-    ok(help.includes("Together 200 points.") && MINES_STD_SPEC.parts.every((p) => help.includes(p.label) && help.includes(String(p.max))) && help.includes("50 s"), `minesweeper: the help states every part and "Together 200 points.": ${help}`);
+    ok(help.includes("Total 200.") && MINES_STD_SPEC.parts.every((p) => help.includes(p.label) && help.includes(String(p.max))) && help.includes("50 s"), `minesweeper: the help states every part and "Total 200.": ${help}`);
     ok((LIVE_BANDS.minesweeper as { std?: unknown }).std === MINES_STD_SPEC, "minesweeper: LIVE_BANDS carries the spec");
   },
 };

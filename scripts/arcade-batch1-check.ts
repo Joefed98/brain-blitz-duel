@@ -256,7 +256,8 @@ console.log(`  150 reached through the server replay on ${best150} of 12 seeds (
 const crossIntro = INTRO_SCORE.cross;
 // The intro follows the revision rooms deal: crossRev 9 (x200) stated rows, crossings, coins and streaks, up to its maximum;
 // crossRev 11 (3 Nov 2026, no coins) states rows, crossings and the no-stop streak.
-ok(crossIntro.includes(`Up to ${roundMaxFor("cross")}`) && /rows/.test(crossIntro) && /crossings/.test(crossIntro) && /no-stop streak/.test(crossIntro), "Jaywalk intro states rows, crossings, the no-stop streak, up to its maximum (crossRev 11)");
+// Text pass (4 Nov 2026): one plain sentence, the bonuses by name, no internal targets.
+ok(crossIntro.includes(`Up to ${roundMaxFor("cross")}`) && /cross/i.test(crossIntro) && /no-stop streak/.test(crossIntro), "Spacewalk intro states crossing, the no-stop streak, up to its maximum (crossRev 11)");
 }
 
 /* =============================== 2b. Roofbound =============================== */

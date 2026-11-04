@@ -2,7 +2,7 @@ import { strict as assert } from "node:assert";
 import { BULLSEYE_RING_VALUES, bullseyeInit, bullseyeRingValue, bullseyeValueColour, bullseyeScoreFor } from "@/lib/arcade/bullseye";
 import { bandUnitsFor } from "@/lib/arcade/scoreBands";
 import { LIVE_BANDS } from "@/lib/arcade/liveBands";
-import { stdHelp, type StdSpec } from "@/lib/arcade/arcadeStandard";
+import { stdHelp, stdHelpLines, type StdSpec } from "@/lib/arcade/arcadeStandard";
 import { crossGame, crossTotalLanes } from "@/lib/arcade/cross";
 import { buildArcadeReveal } from "@/lib/arcade/reveal";
 import { flipGame, flipWarpAt, FLIP_FLOOR_Y, FLIP_CEIL_Y } from "@/lib/arcade/flip";
@@ -81,11 +81,12 @@ for (let seed = 1; seed <= 10; seed++) {
 assert.ok(!INTRO_SCORE.cross.includes("earns extra"));
 // The intro stays short (first-run audit, 11 Oct); the "?" help keeps the formula.
 // 13 Oct 2026: the intro lists every ring value (10 / 9 / 8 / 3 / 2 / 1) and the inner bull 12.
-assert.ok(INTRO_SCORE.bullseye.includes("10 / 9 / 8 / 3 / 2 / 1") && INTRO_SCORE.bullseye.includes("inner bull 12"));
+// Text pass (4 Nov 2026): the intro names the bonuses in one plain sentence; the help lists every ring value.
+assert.ok(PUZZLE_INSTRUCTIONS.bullseye.score.includes("10 / 9 / 8 / 3 / 2 / 1") && PUZZLE_INSTRUCTIONS.bullseye.score.includes("inner bull 12"));
 // Score bands (Oct 2026): the help gives a good run on the live curve; stored rounds keep floor(1.7 × total − 20).
 // The arcade scoring standard (bullRev 9, 29 Oct 2026): the help lists the parts instead of a good run on a curve
 // (arcade-help-bands-check proves the parts); it still names every ring value, the inner bull and the balloons.
 const bullseyeStd = (LIVE_BANDS.bullseye as { std?: StdSpec }).std;
-if (bullseyeStd) assert.ok(PUZZLE_INSTRUCTIONS.bullseye.score.includes(stdHelp(bullseyeStd)) && PUZZLE_INSTRUCTIONS.bullseye.score.includes("rings 10 / 9 / 8 / 3 / 2 / 1 from the centre out, the inner bull 12, plus +1, +2 or +3 for each balloon"));
+if (bullseyeStd) assert.ok(PUZZLE_INSTRUCTIONS.bullseye.score.includes(stdHelpLines(bullseyeStd)) && PUZZLE_INSTRUCTIONS.bullseye.score.includes("rings 10 / 9 / 8 / 3 / 2 / 1 from the centre out, the inner bull 12, balloons 1 to 3 more"));
 else assert.ok(PUZZLE_INSTRUCTIONS.bullseye.score.includes("rings 10 / 9 / 8 / 3 / 2 / 1 from the centre out (the inner bull 12), plus +1, +2 or +3 for each balloon") && PUZZLE_INSTRUCTIONS.bullseye.score.includes(`A good run (100 points) totals ${bandUnitsFor(LIVE_BANDS.bullseye.curve, 100)}`));
 console.log("Bullseye values/shuffles/scores, Cross score/cap/reveal and Flip curve vertices passed; no browser tests.");

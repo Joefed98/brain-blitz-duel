@@ -243,7 +243,7 @@ section("the help, intro, reveal and demo");
   const help = PUZZLE_INSTRUCTIONS.tilt.score;
   ok(!/quick star|skill/i.test(help) && !/gold star/i.test(help), "the help names no quick stars, skill pay or (tiltRev 11) gold stars");
   ok(PUZZLE_INSTRUCTIONS.tilt.how.some((h) => /maze 4/.test(`${h.action} ${h.detail}`)) && PUZZLE_INSTRUCTIONS.tilt.how.every((h) => !/quick star/i.test(h.detail)), "the HOW lines name maze 4 and no quick stars");
-  ok(INTRO_SCORE.tilt.includes("All 4 quickly"), `the intro: ${INTRO_SCORE.tilt}`);
+  ok(INTRO_SCORE.tilt.includes("Finish the mazes") && INTRO_SCORE.tilt.endsWith("Up to 200."), `the intro: ${INTRO_SCORE.tilt}`);
   const runs = load("scripts/fixtures/tilt-standard-runs.json.gz");
   const weak = runs.find((r) => r.kind === "weak")!;
   const r = replayTiltRun(weak.seed, weak.raw, TILT_REV_STD);

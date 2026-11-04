@@ -22,6 +22,7 @@
  *
  *   bun scripts/burst-standard-check.ts      (~40 s)
  */
+import { hasScorePart } from "../src/lib/duel/scoreList";
 import { readFileSync } from "node:fs";
 import { gunzipSync } from "node:zlib";
 import { createHash } from "node:crypto";
@@ -113,8 +114,10 @@ ok(burstWorldHFor(BURST_REV_STD) === BURST_TALL_H, "the 390 × 650 world");
   ok(/demo\.puzzle\.burstRev !== BURST_REV_STD\) return null/.test(src), "an older intro demo stays stopped on burstRev 10");
 }
 const help = PUZZLE_INSTRUCTIONS.burst.score;
-ok(help.includes(`up to ${BURST_V10_CORE_MAX}.`) && help.includes(`${BURST_V10_CORE_MAX} + ${BURST_V10_CLEAR_MAX} + ${BURST_V10_GOLDEN_MAX} = 200`) && help.includes(`costs ${BURST_V10_LIFE_COST}`) && help.endsWith("Up to 200."), `the "?" help states the parts and that they total 200: ${help}`);
-ok(/140/.test(INTRO_SCORE.burst) && /35/.test(INTRO_SCORE.burst) && /25/.test(INTRO_SCORE.burst) && /lost life costs 5/.test(INTRO_SCORE.burst), `the intro states the parts: ${INTRO_SCORE.burst}`);
+// Text pass (4 Nov 2026): the help is a list, one line a part, then penalties, then the total; the intro names the
+// bonuses in one plain sentence (no internal figures).
+ok(hasScorePart(help, "Atoms", BURST_V10_CORE_MAX) && hasScorePart(help, "Wave clears", BURST_V10_CLEAR_MAX) && hasScorePart(help, "Golden atoms", BURST_V10_GOLDEN_MAX) && help.includes(`costs ${BURST_V10_LIFE_COST}`) && help.endsWith("Total 200."), `the "?" help states the parts and that they total 200: ${help}`);
+ok(/wave clears/.test(INTRO_SCORE.burst) && /golden atoms/.test(INTRO_SCORE.burst) && /lives cost/.test(INTRO_SCORE.burst) && INTRO_SCORE.burst.endsWith("Up to 200."), `the intro names the parts: ${INTRO_SCORE.burst}`);
 ok(PUZZLE_INSTRUCTIONS.burst.how.some((h) => /golden/i.test(h.action) && /costs a life|hurts/.test(h.detail)), "the help says the golden atom hurts");
 
 /* ============================== 2. Older stamps ============================== */

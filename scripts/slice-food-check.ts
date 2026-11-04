@@ -92,7 +92,8 @@ section("2. rooms deal sliceRev 12 on a seed with enough chillies");
   const help = PUZZLE_INSTRUCTIONS.slice!;
   const text = help.how.map((h) => `${h.action} ${h.detail}`).join(" ");
   ok(/bread, watermelons, oranges and apples/.test(text) && /golden apples/.test(text) && /bright red chillies/.test(text), "the help names the new food");
-  ok(/Up to half of the food counts nothing\. More food sliced past half of it, higher score/.test(help.score) && new RegExp(`full at ${SLICE_V12_COMBO_FULL}`).test(text), "the help states the core's and the combo's lines");
+  // Text pass (4 Nov 2026): plain words, no "full at N".
+  ok(/the first half of it scores nothing, then every piece counts the same/.test(help.score) && new RegExp(`all of it at ${SLICE_V12_COMBO_FULL}`).test(text), "the help states the core's and the combo's lines");
   let low = 0;
   for (let n = 0; n < 2000; n++) if (!sliceFoodSeedOk(roomSeed(20000 + n))) low++;
   ok(low > 0 && low < 200, `the chilli rule re-draws a few seeds only (${low} of 2,000 have fewer than ${SLICE_V12_MIN_CHILLIES})`);
