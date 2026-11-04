@@ -402,7 +402,6 @@ Grouped by game or screen. These are the cues still missing a sound.
 | Hot Floor | arcade | practice only | **none** | `music_hotfloor` |
 | Hover | arcade | yes | music_hover | `music_hover` |
 | Iron Wall | arcade | yes | music_bastion | `music_bastion` |
-| Jaywalk | arcade | yes | music_cross | `music_cross` |
 | Junction | arcade | practice only | music_junction | `music_junction` |
 | Mahjong Solitaire | arcade | yes | music_mahjong | `music_mahjong` |
 | Meteor | arcade | yes | music_eatgrow | `music_eatgrow` |
@@ -418,6 +417,7 @@ Grouped by game or screen. These are the cues still missing a sound.
 | Rooftop Run | arcade | practice only | **none** | `music_rooftop` |
 | Scrumper | arcade | practice only | music_snip | `music_snip` |
 | Slice | arcade | yes | music_slice | `music_slice` |
+| Spacewalk | arcade | yes | music_cross | `music_cross` |
 | Steady | arcade | practice only | **none** | `music_steady` |
 | Summit | arcade | yes | music_tripeaks | `music_tripeaks` |
 | Swerve | arcade | practice only | **none** | `music_swerve` |
@@ -1560,19 +1560,6 @@ Grouped by game or screen.
 | `bastion.droneDown` | Iron Wall: bastionRev 3: a drone is shot down [arcade.md] |  | 0–3 | recorded sound | `bastion.droneDown` | 700 | game event | `bastion.droneDown` |
 | `music.bastion` | Iron Wall (arcade, Action): music_bastion (music_bastion.mp3, Joe's recording, 3 Nov 2026) |  | loop | recorded sound | `music_bastion` | 60000 | music | `music_bastion` |
 
-### Jaywalk
-
-| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
-|---|---|---|---|---|---|---|---|---|
-| `cross.pastBikes` | Past the cyclists' lane [arcade-effects.md] | A +1 pop at the walker | 2–8 | recorded sound | `cross.pastBikes` | 400 | game event | `cross.pastBikes` |
-| `cross.pastRoadworks` | Through the roadworks [arcade-effects.md] | A +1 pop at the walker | 2–8 | recorded sound | `cross.pastRoadworks` | 274 | game event | `cross.pastRoadworks` |
-| `cross.newHazard` | A new layout's crossing begins (its kerb pause ends): the first cycle lane (crossing 3), roadworks (4) and the chicane (7), crossRev 2+ [arcade-effects.md] | Cyclists, cones or a chicane on the road ahead | 0–3 | recorded sound | `cross.newHazard` | 600 | game event | `cross.newHazard` |
-| `cross.traffic` | While the run is live [arcade-effects.md] | Traffic streaming both ways | loop | recorded sound | `cross.traffic` | loop | ambience | `cross.traffic` |
-| `cross.lifeLost` | Jaywalk: The walker is hit [arcade.md] |  | 0–3 | recorded sound | `arc_lose_life` (shared) | 220 | fail sting | `cross.lifeLost` |
-| `cross.crossed` | Jaywalk: A crossing is completed [arcade.md] |  | 5–15 | recorded sound | `stage_complete` (shared) | 160 | game event | `cross.crossed` |
-| `cross.hop` | Jaywalk: The walker hops a lane or moves sideways (at most one per 90 ms) [arcade.md] |  | 50–150 | recorded sound | `cross.hop` | 380 | game event | `cross.hop` |
-| `music.cross` | Jaywalk: music_cross |  | loop | recorded sound | `music_cross` | loop | music | `music_cross` |
-
 ### Junction
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
@@ -1802,6 +1789,19 @@ Grouped by game or screen.
 | `slice.comboUp` | Slice: A combo grows past 1 [arcade.md] |  | 5–20 | recorded sound | `arc_slice_combo` (shared) | 721 | game event | `slice.comboUp` |
 | `music.slice` | Slice: music_slice |  | loop | recorded sound | `music_slice` | loop | music | `music_slice` |
 
+### Spacewalk
+
+| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
+|---|---|---|---|---|---|---|---|---|
+| `cross.pastBikes` | Past the comets' plasma lane (Spacewalk) [arcade-effects.md] | A +1 pop at the astronaut | 2–8 | recorded sound | `cross.pastBikes` | 840 | game event | `cross.pastBikes` |
+| `cross.pastRoadworks` | Through the drifting debris (Spacewalk) [arcade-effects.md] | A +1 pop at the astronaut | 2–8 | recorded sound | `cross.pastRoadworks` | 350 | game event | `cross.pastRoadworks` |
+| `cross.newHazard` | A new layout's crossing begins (its kerb pause ends): the first cycle lane (crossing 3), roadworks (4) and the chicane (7), crossRev 2+ [arcade-effects.md] | Cyclists, cones or a chicane on the road ahead | 0–3 | recorded sound | `cross.newHazard` | 600 | game event | `cross.newHazard` |
+| `cross.traffic` | While the run is live [arcade-effects.md] | Space traffic streaming both ways (Spacewalk) | loop | recorded sound | `cross.traffic` | loop | ambience | `cross.traffic` |
+| `cross.lifeLost` | Jaywalk: The walker is hit [arcade.md] |  | 0–3 | recorded sound | `arc_lose_life` (shared) | 220 | fail sting | `cross.lifeLost` |
+| `cross.crossed` | Jaywalk: A crossing is completed [arcade.md] |  | 5–15 | recorded sound | `stage_complete` (shared) | 160 | game event | `cross.crossed` |
+| `cross.hop` | Jaywalk: The walker hops a lane or moves sideways (at most one per 90 ms) [arcade.md] |  | 50–150 | recorded sound | `cross.hop` | 380 | game event | `cross.hop` |
+| `music.cross` | Jaywalk: music_cross |  | loop | recorded sound | `music_cross` | loop | music | `music_cross` |
+
 ### Summit
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
@@ -1937,7 +1937,7 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 | `lock` | effects | `lock` | 90 |
 | `round_won` | effects | `round_won` | 680 |
 | `podium_fanfare` | effects | `podium_fanfare` | 350 |
-| `stage_complete` | effects | `stage_complete`, `cross.crossed`, `junction.complete` | 160 |
+| `stage_complete` | effects | `stage_complete`, `junction.complete`, `cross.crossed` | 160 |
 | `complete` | effects | `complete` | 200 |
 | `combo` | effects | `combo` | 90 |
 | `warning_10` | effects | `warning_10` | 10000 |
@@ -2535,8 +2535,8 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 | `swing.comboPoint` | effects | `swing.comboPoint` | 500 |
 | `swing.sectionClear` | effects | `swing.sectionClear` | 1000 |
 | `swing.parBeaten` | effects | `swing.parBeaten` | 1000 |
-| `cross.pastBikes` | effects | `cross.pastBikes` | 400 |
-| `cross.pastRoadworks` | effects | `cross.pastRoadworks` | 274 |
+| `cross.pastBikes` | effects | `cross.pastBikes` | 840 |
+| `cross.pastRoadworks` | effects | `cross.pastRoadworks` | 350 |
 | `flip.surviveStreak` | effects | `flip.surviveStreak` | 480 |
 | `flip.survivedFinish` | effects | `flip.survivedFinish` | 840 |
 | `flip.starTaken` | effects | `flip.starTaken` | 200 |
@@ -2659,7 +2659,7 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 | `swing.splash` | effects | `swing.splash` | 803 |
 | `swing.pterodactyl` | effects | `swing.pterodactyl` | 606 |
 | `swing.pteroCatch` | effects | `swing.pteroCatch` | 606 |
-| `cross.traffic` | effects | `cross.traffic` | 8040 |
+| `cross.traffic` | effects | `cross.traffic` | 2000 |
 | `burst.lastLife` | effects | `burst.lastLife` | 528 |
 | `skyline.gustWarn` | effects | `skyline.gustWarn` | 528 |
 | `swing.rockCrumble` | effects | `swing.rockCrumble` | 528 |

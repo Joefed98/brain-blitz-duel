@@ -31,6 +31,7 @@ import {
   CURL_TRAVEL,
   CURLING_H,
   CURLING_H_V2,
+  CURLING_H_V4,
   CURLING_STONES,
   CURLING_W,
   EIGHT_FOOT_R,
@@ -68,25 +69,38 @@ export interface CurlView {
   horizon: number;
   /** The neighbouring sheets' dimming. */
   dim: number;
+  /** The camera (curlRev 4's view only; the others use CAM_Y, FOCAL and HF): its place along the sheet, focal, height × focal. */
+  camY?: number;
+  focal?: number;
+  hf?: number;
 }
 export const CURL_VIEW_V1: CurlView = { rev: 1, w: CURLING_W, h: CURLING_H, horizon: HORIZON, dim: 0.42 };
 export const CURL_VIEW_V2: CurlView = { rev: 2, w: CURLING_W, h: CURLING_H_V2, horizon: HORIZON - 90, dim: 0.3 };
+/**
+ * curlRev 4's view (3 Nov 2026, display only; Joe's audit): the near house behind the thrower took about a quarter of the
+ * screen while the far house was small. A longer lens from a little further back on a taller world (390 × 640): the far
+ * house is about 1.4 times as wide, the stone's path from the near hog line (world row 540) to the house gets 340 rows
+ * instead of 300, and only the top of the near house shows, below the In / Out / Throw row (CURL_TURN_ROW_TOP is worked
+ * out from this view). Every input that reads the view (the broom, the start slide, the sweep side) reads it.
+ */
+export const CURL_VIEW_V4: CurlView = { rev: 4, w: CURLING_W, h: CURLING_H_V4, horizon: -163, dim: 0.3, camY: 5863, focal: 3204, hf: 2_129_000 };
 /** The view a state's (or a stored round's) curlRev draws. */
 export function curlViewFor(rev: number | null | undefined): CurlView {
-  return (rev ?? 1) >= 2 ? CURL_VIEW_V2 : CURL_VIEW_V1;
+  return (rev ?? 1) >= 4 ? CURL_VIEW_V4 : (rev ?? 1) >= 2 ? CURL_VIEW_V2 : CURL_VIEW_V1;
 }
 
 /** A sheet point (cm) on screen (world px); k is the px per cm across at that depth. */
 export function curlProject(x: number, y: number, v: CurlView = CURL_VIEW_V1): { sx: number; sy: number; k: number } {
-  const z = Math.max(60, CAM_Y - y);
-  return { sx: CX + (x * FOCAL) / z, sy: v.horizon + HF / z, k: FOCAL / z };
+  const z = Math.max(60, (v.camY ?? CAM_Y) - y);
+  const f = v.focal ?? FOCAL;
+  return { sx: CX + (x * f) / z, sy: v.horizon + (v.hf ?? HF) / z, k: f / z };
 }
 
 /** A screen point (world px) back on the sheet (cm); null above the far boards. */
 export function curlUnproject(sx: number, sy: number, v: CurlView = CURL_VIEW_V1): { x: number; y: number } | null {
   if (sy <= v.horizon + 1) return null;
-  const z = HF / (sy - v.horizon);
-  return { x: ((sx - CX) * z) / FOCAL, y: CAM_Y - z };
+  const z = (v.hf ?? HF) / (sy - v.horizon);
+  return { x: ((sx - CX) * z) / (v.focal ?? FOCAL), y: (v.camY ?? CAM_Y) - z };
 }
 
 /** The far house on screen (world px) in a view: its centre and its across-radius, for the stage's broom drag. */
@@ -348,7 +362,7 @@ function staticLayer(ctx: CanvasRenderingContext2D, v: CurlView): HTMLCanvasElem
 function stone(ctx: CanvasRenderingContext2D, x: number, y: number, mine: boolean, seed: number, moving: boolean, v: CurlView): void {
   const p = curlProject(x, y, v);
   const rx = STONE_R * p.k;
-  const ry = Math.max(rx * 0.22, (STONE_R * HF) / Math.max(60, CAM_Y - y) ** 2);
+  const ry = Math.max(rx * 0.22, (STONE_R * (v.hf ?? HF)) / Math.max(60, (v.camY ?? CAM_Y) - y) ** 2);
   const lift = Math.max(1.2, 11 * p.k);
   // Shadow on the ice.
   ctx.fillStyle = "#0B1A2A33";

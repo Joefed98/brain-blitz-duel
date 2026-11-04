@@ -5,7 +5,9 @@ import { balltrackFxFor } from "./arcadeFxGames.renderer";
 /**
  * Ball Track in the Toybox world: a wooden marble run. Render only; mirrors
  * btDraw's private geometry (tile centres, tube path, ball radius 22.5) and
- * reads state without writing it.
+ * reads state without writing it. 3 Nov 2026 polish (display only): the tubes you
+ * turn are raised gold (strokeChannels), the fixed track plain wood, and the combo
+ * moved from the queue shelf into the stage's HUD pills (src/puzzles/ballTrack.tsx).
  */
 import {
   BT_BALLS, BT_COLS, BT_H as BT_BASE_H, BT_HOPPER_COL, BT_HOPPER_H, BT_PALETTE,
@@ -19,11 +21,11 @@ import {
 } from "./toybox.renderer";
 import { artCanvas, artContext, deviceLayer, type ArtCanvas } from "./cache.renderer";
 import { reducedMotion } from "./art.renderer";
+import { drawHudPill, drawHudPillRow, HUD_PILL_GAP, HUD_PILL_H, type HudPillOpts } from "./hudPill.renderer";
 
 const BALL_R = 22.5;
 const SLOT = 100;
 const CHANNEL_FIXED = "#9C6B3E";
-const CHANNEL_SWITCH = "#B5683A";
 const GROOVE = "#5A3519";
 const SWITCH_BRASS = "#A47726";
 const SWITCH_EDGE = "#493619";
@@ -237,20 +239,37 @@ export function strokeChannels(ctx: CanvasRenderingContext2D, trace: (c: CanvasR
   };
   ctx.lineCap = "butt";
   ctx.lineJoin = "round";
+  if (movable) {
+    // 3 Nov 2026 polish (display only, the same widths and paths): the tubes you turn are polished
+    // gold and raised off the board: a deeper shadow cast further down, a dark gold rim, a bright
+    // lip, the gold bed and the same two rail grooves in darker gold.
+    pass(BALL_R * 3 + 8, "rgba(28,12,2,0.42)", 1, 7);
+    pass(BALL_R * 3 + 6, "#5C3B06");
+    pass(BALL_R * 3, "#C99222");
+    pass(BALL_R * 3 - 6, "#F7D873");
+    pass(BALL_R * 2 + 6, "#94650F");
+    pass(BALL_R * 2, "#E2B038");
+    pass(BALL_R * 1.3 + 1, "rgba(255,246,206,0.6)", 0, 2);
+    pass(BALL_R * 1.3, "rgba(96,60,6,0.88)");
+    pass(BALL_R * 1.3 - 3, "rgba(62,38,2,0.5)", 0, -1);
+    pass(BALL_R * 1.3 - 4, "#E6B640");
+    pass(BALL_R * 0.9, "rgba(255,250,215,0.34)");
+    return;
+  }
   pass(BALL_R * 3 + 6, "rgba(40,20,6,0.22)", 0, 4);
   pass(BALL_R * 3 + 6, TOY_WOOD_DEEP);
-  pass(BALL_R * 3, movable ? CHANNEL_SWITCH : CHANNEL_FIXED);
-  pass(BALL_R * 3 - 6, movable ? "#CF8E5E" : "#B88A5A");
-  pass(BALL_R * 2 + 6, movable ? "#7E4524" : "#6E4A2A");
-  pass(BALL_R * 2, movable ? "#C47A48" : "#AD7A4A");
+  pass(BALL_R * 3, CHANNEL_FIXED);
+  pass(BALL_R * 3 - 6, "#B88A5A");
+  pass(BALL_R * 2 + 6, "#6E4A2A");
+  pass(BALL_R * 2, "#AD7A4A");
   // Polish A3 (25 Oct 2026, art only): two carved rail grooves the marble rides between, each with
   // a lit lower lip, then the polished centre and the fine centre groove, all inside the channel.
   // Refinement: deeper grooves (a darker cut, a shadow under its upper wall and a brighter lower lip).
-  pass(BALL_R * 1.3 + 1, movable ? "rgba(255,226,190,0.4)" : "rgba(255,232,200,0.36)", 0, 2);
+  pass(BALL_R * 1.3 + 1, "rgba(255,232,200,0.36)", 0, 2);
   pass(BALL_R * 1.3, "rgba(58,30,10,0.9)");
   pass(BALL_R * 1.3 - 3, "rgba(40,20,6,0.55)", 0, -1);
-  pass(BALL_R * 1.3 - 4, movable ? "#C47A48" : "#AD7A4A");
-  pass(BALL_R * 0.9, movable ? "rgba(255,214,170,0.2)" : "rgba(255,226,186,0.17)");
+  pass(BALL_R * 1.3 - 4, "#AD7A4A");
+  pass(BALL_R * 0.9, "rgba(255,226,186,0.17)");
 }
 
 /** A domed brass pin (radius 6, same as before). */
@@ -810,17 +829,46 @@ function btArtDrawWorld(ctx: CanvasRenderingContext2D, course: BtCourse, s: BtSt
     btMarble(ctx, p.x, p.y, BALL_R, BT_PALETTE[b.colour]!, b.colour);
     if (btIsGold(course, b.id)) goldBand(ctx, p.x, p.y, BALL_R);
   }
-  // btRev 7: the home-in-a-row combo, on the queue shelf's right (left of an event countdown).
-  if (s.r7 && (s.streak ?? 0) >= BT_V7_COMBO_FROM) {
-    ctx.save();
-    ctx.font = '700 24px "JetBrains Mono", monospace';
-    ctx.textAlign = "right";
-    ctx.textBaseline = "middle";
-    ctx.fillStyle = "#7A3E0E";
-    ctx.fillText(`×${s.streak}`, BT_W - (countdown !== null ? 46 : 12), hy);
-    ctx.restore();
-  }
+  // btRev 7's home-in-a-row combo is shown in the stage's HUD pills (3 Nov 2026 polish), not on the shelf.
   const lastHome=[...s.landings].reverse().find(m=>m.ok);
   successFrame(ctx,{id:'balltrack',tick:s.tick,count:s.home,eventTick:lastHome?.tick,misses:s.wrong+s.lost,colour:TOY_BRASS,width:BT_W,height:BT_H,point:{x:(lastHome?.cell??0)*BT_TILE+BT_TILE/2,y:trayY+BT_TRAY_H/2,shape:'ring',radius:20}});
   void TOY_WOOD_DARK;
+}
+
+/** The stage's HUD strip height (CSS px) above the arena (3 Nov 2026 polish). */
+export const BT_HUD_H = 36;
+
+/** What Ball Tracker's HUD pills show (display only; read from the sim state by the stage). */
+export interface BtHudView {
+  home: number;
+  total: number;
+  wrong: number;
+  /** btRev 7+: the home-in-a-row streak and the gold marbles home; null on earlier revisions. */
+  streak: number | null;
+  golds: number | null;
+  /** Whole seconds to the next switch-up (the drops' re-lay, then the colour shuffle), or null after both. */
+  switchIn: number | null;
+  left: number;
+}
+
+/**
+ * Ball Tracker's HUD (3 Nov 2026 polish, display only): one row of the shared pills across a `w`-wide strip
+ * (BT_HUD_H tall): marbles home first (the main count, top left), then the gold marbles home (btRev 7+; the
+ * wrong cups on earlier revisions) and the combo from two in a row, and the seconds to the next switch-up on the right (gold
+ * in its last five seconds; the marbles left once both switch-ups are past). A pill that would not fit is
+ * left out, last first.
+ */
+export function btDrawHud(ctx: CanvasRenderingContext2D, w: number, hud: BtHudView): void {
+  const h = w >= 400 ? HUD_PILL_H : 24;
+  const y = (BT_HUD_H - h) / 2;
+  const right = hud.switchIn !== null
+    ? { label: "Switch up", value: `${hud.switchIn}s`, opts: { h, gold: hud.switchIn <= 5 } }
+    : { label: "Left", value: String(hud.left), opts: { h } };
+  const rw = drawHudPill(ctx, w - 8, y, right.label, right.value, { ...right.opts, align: "right" });
+  const left: { label: string; value: string; opts?: HudPillOpts }[] = [{ label: "Home", value: `${hud.home}/${hud.total}`, opts: { h } }];
+  if (hud.golds !== null) left.push({ label: "Gold", value: String(hud.golds), opts: { h } });
+  else left.push({ label: "Wrong", value: String(hud.wrong), opts: { h, alert: hud.wrong > 0 } });
+  // The combo from two home in a row (gold once it scores, from BT_V7_COMBO_FROM).
+  if (hud.streak !== null && hud.streak >= 2) left.push({ label: "Combo", value: `×${hud.streak}`, opts: { h, gold: hud.streak >= BT_V7_COMBO_FROM } });
+  drawHudPillRow(ctx, 8, y, left, w - 8 - rw - HUD_PILL_GAP);
 }

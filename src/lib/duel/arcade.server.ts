@@ -5,7 +5,8 @@ import { SLICE_REV_TARGET, SLICE_REV_STRICT, SLICE_REV_FOOD, sliceFoodSeedOk } f
 import { FLIP_REV_TARGET, FLIP_REV_STRICT, FLIP_REV_DEAL } from "@/lib/arcade/flip";
 import { flipDealSeed } from "./flipDeal.server";
 import { CROSS_REV_FLOW } from "@/lib/arcade/cross";
-import { INK_REV_CLOVER, INK_REV_STD } from "@/lib/arcade/inkBridge";
+import { INK_REV_BIG, INK_REV_CLOVER, INK_REV_STD } from "@/lib/arcade/inkBridge";
+import { inkBigDealSeed } from "./inkBigDeal.server";
 import { SNAKE_REV_TARGET, SNAKE_REV_12 } from "@/lib/arcade/snake";
 import { BUB_REV_STD } from "@/lib/arcade/bubble";
 import { MATCHUP_REV_SIX } from "@/lib/arcade/matchup";
@@ -13,8 +14,8 @@ import { minesBoard, minesSolve, MINES_REV_STD } from "@/lib/arcade/minesweeper"
 import { mahjongBuildClears, MAHJONG_REV_DEALT } from "@/lib/arcade/mahjong";
 import { SNIP_REV_TARGET, SNIP_REV_EXPAND } from "@/lib/arcade/snip";
 import { SKYLINE_REV_TARGET, SKYLINE_REV_STRICT, SKYLINE_REV_STD } from "@/lib/arcade/skyline";
-import { TILT_REV_PAR } from "@/lib/arcade/tilt";
-import { TILT_BANK } from "./tiltBank.server";
+import { TILT_REV_BIG } from "@/lib/arcade/tilt";
+import { TILT_DEAL_V12 } from "./tiltDealV12.server";
 import { JUNC_REV_BAND } from "@/lib/arcade/junction";
 import { BINTOSS_REV_TARGET, BINTOSS_REV_STRICT, BINTOSS_REV_STD } from "@/lib/arcade/binToss";
 import { SWING_REV_TALL, SWING_REV_TARGET, SWING_REV_STRICT, SWING_REV_EXPAND, SWING_REV_ASSAULT, SWING_REV_REWORK, SWING_REV_DARK, SWING_REV_SLIDE } from "@/lib/arcade/swing";
@@ -323,11 +324,26 @@ export function pinInkPreClover(on: boolean): boolean {
   return prev;
 }
 
+let inkPreBig = false;
+/**
+ * Checks written for inkRev 13 (clovers, ink par, more birds): deal inkRev 13 on any seed as rooms did before inkRev 14
+ * (returns the previous setting), so they keep proving what they were written for. pinInkPreClover wins over it.
+ */
+export function pinInkPreBig(on: boolean): boolean {
+  const prev = inkPreBig;
+  inkPreBig = on;
+  return prev;
+}
+
 export function generateInkBridge(): InkBridgePuzzleData {
   // inkRev 11 (phone notes, 27 Oct 2026): no wind zones, fewer silver coins, the pickups spread out.
   // inkRev 12 (the arcade scoring standard, 29 Oct 2026): inkRev 11's play scored on straight lines and fixed shares.
   // inkRev 13 (Nov 2026, docs/arcade-standard/inkbridge.md): clovers, ink par and more birds; no stars or silver coins.
-  return { type: "inkbridge", seed: arcadeSeed(), inkRev: inkPreClover ? INK_REV_STD : INK_REV_CLOVER };
+  // inkRev 14 (3 Nov 2026, "inkRev 14"): inkRev 13's rules and parts with a bigger coin, clovers and birds, dealt from its
+  // proved deal (every level proved and the perfect run 200 through the server replay on each seed; inkBigDeal.server.ts).
+  if (inkPreClover) return { type: "inkbridge", seed: arcadeSeed(), inkRev: INK_REV_STD };
+  if (inkPreBig) return { type: "inkbridge", seed: arcadeSeed(), inkRev: INK_REV_CLOVER };
+  return { type: "inkbridge", seed: inkBigDealSeed(arcadeSeed()), inkRev: INK_REV_BIG };
 }
 
 export function generateBurst(): BurstPuzzleData {
@@ -457,9 +473,11 @@ export function generateTilt(): TiltPuzzleData {
   // tiltRev 10 (the arcade scoring standard, 29 Oct 2026): the same bank; mazes 1–3 are tiltRev 9's less the quick stars,
   // and the fourth maze is carved from the seed in the sim (a spanning tree, so always passable; tilt-standard-check).
   // tiltRev 11 (3 Nov 2026): the same bank and mazes, no gold stars, scored on par times and a clean run.
+  // tiltRev 12 (3 Nov 2026): tiltRev 11's rules with bigger marbles and keys, dealt from its own proved deal
+  // (TILT_DEAL_V12, scripts/tilt-deal.ts: bank seeds the oracle played to exactly 200 through the server's replay on 12).
   const pick = arcadeSeed();
-  const seed = TILT_BANK[((pick % TILT_BANK.length) + TILT_BANK.length) % TILT_BANK.length]!;
-  return { type: "tilt", seed, tiltRev: TILT_REV_PAR };
+  const seed = TILT_DEAL_V12[((pick % TILT_DEAL_V12.length) + TILT_DEAL_V12.length) % TILT_DEAL_V12.length]!;
+  return { type: "tilt", seed, tiltRev: TILT_REV_BIG };
 }
 
 export function generateHotFloor(): HotFloorPuzzleData {

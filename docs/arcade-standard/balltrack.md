@@ -104,3 +104,14 @@ marbles like any other), so no bot was changed. Before (btRev 7, e6 doc): averag
 - Checks: balltrack-deal-check (the deal list, above), arcade-standard-check (`scripts/arcade-standard/balltrack.ts`: two boosted-oracle runs on dealt courses through the server
   replay score 200, a built full state 200, one tap ≥ 1, no input 0), arcade-self-replay-check's appended
   `balltrack/std`, `playRevOf` maps btRev 8 to 7 (`LIFT_REVS`).
+
+## 3 Nov 2026 polish (display only, no stamp)
+
+- The tubes you turn are raised gold (`strokeChannels(…, movable)` in `ballTrackArt.renderer.ts`: a gold body, a
+  bright lip and a deeper shadow cast down), the fixed track plain wood; the same widths and paths, so every marble
+  still rides inside its drawn channel.
+- A HUD strip of the shared pills (`btDrawHud`, `BT_HUD_H` 36 px, above the arena in `src/puzzles/ballTrack.tsx`):
+  "Home n/36" (the main count, top left), "Gold n" (btRev 7+; "Wrong n" on earlier revisions) and, from two home in
+  a row, "Combo ×n" (gold from 3, when it scores), and "Switch up Ns" on the right (gold in the last five seconds; "Left n" after both
+  switch-ups). It replaced the 28 px status line under the board, so the arena's slot is as tall as before; the
+  combo no longer draws on the queue shelf. Taps, the sim and its inputs are unchanged.

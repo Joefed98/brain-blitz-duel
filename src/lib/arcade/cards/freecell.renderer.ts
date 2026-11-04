@@ -1,7 +1,7 @@
 /**
  * FreeCell's art and layout (display only; the sim is freecell.ts). The world is 414 × 772: HUD chips across the top,
- * the four free cells (larger cards) over a faint "FREECELL", the eight columns spreading down the middle and the four
- * home piles along the bottom with faint suit symbols. The phone's hit tests (fcHit, fcDropPile) read the same layout.
+ * one row of eight outlined places under them (the four free cells left, the four home piles with faint suit symbols
+ * right) and the eight columns of large cards spreading down the rest of the table (3 Nov 2026). The phone's hit tests (fcHit, fcDropPile) read the same layout.
  * freecellRev 2 adds two small buttons in the HUD row's gaps (Undo left of HOME, Reset right of it; fcButtonHit) and
  * the refused move's toast under the free cells ("Need a free cell to move 2 cards", fcNoteText, 1.6 s).
  */
@@ -17,30 +17,39 @@ export const FC_WORLD_W = 414;
 export const FC_WORLD_H = 772;
 export const FC_BG = "#0E2A57";
 
-/* ---- Layout (30 Oct 2026 legibility pass: free cells and home piles the size of the column cards, so the columns
-   get the room; columns spread down the screen and compress only when one would reach the home piles) ---- */
+/* ---- Layout (3 Nov 2026 polish, display only: the sim takes piles, never points). One top row of eight slots on the
+   columns' own grid, the four free cells on the left and the four home piles on the right, each slot outlined; under it
+   the eight columns of larger cards spreading down the whole table, compressing only when one would reach the bottom.
+   (Until 3 Nov 2026 the free cells sat alone over a faint "FREE CELL", the home piles along the bottom, the cards 48 × 68
+   stepping at most 40 down, so the cards used the top 40 % and the middle was empty felt.) ---- */
 export const FC_COL_W = 48;
-export const FC_COL_H = 68;
+export const FC_COL_H = 76;
 export const FC_BIG_W = FC_COL_W;
 export const FC_BIG_H = FC_COL_H;
 export const FC_CELL_Y = 44;
+/** The home piles share the top row with the free cells. */
+export const FC_HOME_Y = FC_CELL_Y;
 export const FC_COL_Y = FC_CELL_Y + FC_BIG_H + 14;
-export const FC_HOME_Y = FC_WORLD_H - FC_BIG_H - 10;
-export const FC_COL_BOTTOM = FC_HOME_Y - 8;
-const BIG_GAP = (FC_WORLD_W - FC_CELLS * FC_BIG_W) / (FC_CELLS + 1);
+export const FC_COL_BOTTOM = FC_WORLD_H - 10;
 const COL_GAP = (FC_WORLD_W - FC_COLS * FC_COL_W) / (FC_COLS + 1);
-/** The most a column's cards step down: the large index and a good part of each card's body show. */
-const STEP_MAX = 40;
+/** The most a column's cards step down: nearly the whole card shows (its index, its suit and most of its body). */
+const STEP_MAX = 70;
 
+/** Free cell `i`'s x: the top row's first four places, over columns 0–3. */
 export function fcBigX(i: number): number {
-  return BIG_GAP + i * (FC_BIG_W + BIG_GAP);
+  return fcColX(i);
+}
+
+/** Suit `s`'s home pile x: the top row's last four places, over columns 4–7. */
+export function fcHomeX(s: number): number {
+  return fcColX(FC_CELLS + s);
 }
 
 export function fcColX(c: number): number {
   return COL_GAP + c * (FC_COL_W + COL_GAP);
 }
 
-/** How far a column of `n` cards steps each card down so it fits above the home piles. */
+/** How far a column of `n` cards steps each card down so it fits above the table's bottom. */
 export function fcColStep(n: number): number {
   if (n <= 1) return STEP_MAX;
   return Math.min(STEP_MAX, (FC_COL_BOTTOM - FC_COL_Y - FC_COL_H) / (n - 1));
@@ -65,14 +74,16 @@ export function fcHit(state: FcState, x: number, y: number): { pile: number; ind
   return null;
 }
 
-/** The pile under a drop point (columns by their whole strip; a free cell; home), or -1. */
+/** The pile under a drop point (the top row's places, free cells left and home right; columns by their whole strip), or -1. */
 export function fcDropPile(x: number, y: number): number {
-  for (let i = 0; i < FC_CELLS; i++) {
-    const cx = fcBigX(i);
-    if (x >= cx - BIG_GAP / 2 && x <= cx + FC_BIG_W + BIG_GAP / 2 && y >= FC_CELL_Y - 10 && y <= FC_CELL_Y + FC_BIG_H + 8) return FC_PILE_CELL + i;
-    if (x >= cx - BIG_GAP / 2 && x <= cx + FC_BIG_W + BIG_GAP / 2 && y >= FC_HOME_Y - 8) return FC_PILE_HOME;
+  if (y >= FC_CELL_Y - 10 && y < FC_COL_Y - 6) {
+    for (let k = 0; k < FC_COLS; k++) {
+      const cx = fcColX(k);
+      if (x >= cx - COL_GAP / 2 && x <= cx + FC_COL_W + COL_GAP / 2) return k < FC_CELLS ? FC_PILE_CELL + k : FC_PILE_HOME;
+    }
+    return -1;
   }
-  if (y >= FC_COL_Y - 6 && y < FC_HOME_Y - 4) {
+  if (y >= FC_COL_Y - 6) {
     for (let c = 0; c < FC_COLS; c++) {
       const cx = fcColX(c);
       if (x >= cx - COL_GAP / 2 && x <= cx + FC_COL_W + COL_GAP / 2) return c;
@@ -190,6 +201,15 @@ function drawNote(ctx: CanvasRenderingContext2D, state: FcState): void {
   ctx.restore();
 }
 
+/** A top-row place's outline (drawn under its card or empty slot): free cells a light frame, home piles gold, so an
+ *  empty one still reads as a place to put a card. */
+function placeOutline(ctx: CanvasRenderingContext2D, x: number, y: number, kind: "cell" | "home"): void {
+  roundRect(ctx, x - 1.5, y - 1.5, FC_BIG_W + 3, FC_BIG_H + 3, Math.max(4, FC_BIG_W * 0.11));
+  ctx.strokeStyle = kind === "home" ? "rgba(233,196,106,0.85)" : "rgba(214,226,255,0.7)";
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+}
+
 /** Where a pile's card sits now (for the drag's offset and the move glow). */
 export function fcCardBox(state: FcState, pile: number, index: number): { x: number; y: number; w: number; h: number } {
   if (pile >= FC_PILE_CELL && pile < FC_PILE_CELL + FC_CELLS) return { x: fcBigX(pile - FC_PILE_CELL), y: FC_CELL_Y, w: FC_BIG_W, h: FC_BIG_H };
@@ -231,7 +251,7 @@ export function fcFlights(state: FcState): { flights: FcFlight[]; homeShown: num
     const s = suitOf(card);
     homeShown[s] = Math.min(homeShown[s]!, rankOf(card) - 1);
     const from = pile >= FC_PILE_CELL ? { x: fcBigX(pile - FC_PILE_CELL), y: FC_CELL_Y } : { x: fcColX(pile), y: FC_COL_Y + index * fcColStep(index + 1) };
-    const to = { x: fcBigX(s), y: FC_HOME_Y };
+    const to = { x: fcHomeX(s), y: FC_HOME_Y };
     const e = t <= 0 ? 0 : 1 - (1 - t) * (1 - t);
     flights.push({ card, x: from.x + (to.x - from.x) * e, y: from.y + (to.y - from.y) * e });
   }
@@ -246,8 +266,8 @@ export const FREECELL_FX: ArcadeFxSpec<FcState> = {
   height: FC_WORLD_H,
   shake: false,
   events: [
-    { kind: "pop", count: (s) => fcHomeCount(s), at: () => ({ x: FC_WORLD_W / 2, y: FC_HOME_Y + FC_BIG_H / 2 }), label: () => null },
-    { kind: "streak", count: (s) => fcHomeCount(s), every: 13, at: () => ({ x: FC_WORLD_W / 2, y: FC_HOME_Y - 30 }), label: (_s, c) => `${c} HOME` },
+    { kind: "pop", count: (s) => fcHomeCount(s), at: () => ({ x: fcHomeX(2) - COL_GAP / 2, y: FC_HOME_Y + FC_BIG_H / 2 }), label: () => null },
+    { kind: "streak", count: (s) => fcHomeCount(s), every: 13, at: () => ({ x: FC_WORLD_W / 2, y: FC_COL_Y + 40 }), label: (_s, c) => `${c} HOME` },
     { kind: "final", count: (s) => (s.ended === 1 ? 1 : 0), label: () => "ALL HOME!" },
   ],
   misses: [{ count: (s) => s.rejects }],
@@ -273,14 +293,7 @@ function drawFreecellWorld(ctx: CanvasRenderingContext2D, state: FcState, size: 
   drawChip(ctx, W - 10, 9, "PAR", `${state.par}`, { align: "right", gold: state.ended === 1 && state.moves <= state.par });
   if (state.hist) drawButtons(ctx, state, view);
 
-  // The free cells over a faint FREE CELL.
-  ctx.save();
-  ctx.fillStyle = "rgba(233,196,106,0.07)";
-  ctx.font = `900 52px ${CARD_FONT}`;
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-  ctx.fillText("FREE CELL", W / 2, FC_CELL_Y + FC_BIG_H / 2 + 2);
-  ctx.restore();
+  // The top row: the four free cells, then the four home piles, every place outlined.
   const dragging = view?.drag ?? null;
   const pressed = view?.pressed ?? null;
   const lit = (pile: number, index: number) =>
@@ -289,6 +302,7 @@ function drawFreecellWorld(ctx: CanvasRenderingContext2D, state: FcState, size: 
   for (let i = 0; i < FC_CELLS; i++) {
     const x = fcBigX(i);
     const card = state.cells[i]!;
+    placeOutline(ctx, x, FC_CELL_Y, "cell");
     if (card === NO_CARD || (dragging && dragging.pile === FC_PILE_CELL + i)) drawSlot(ctx, x, FC_CELL_Y, FC_BIG_W, FC_BIG_H, -1, "FREE");
     if (card !== NO_CARD && !(dragging && dragging.pile === FC_PILE_CELL + i)) {
       drawCard(ctx, card, x, FC_CELL_Y, FC_BIG_W, FC_BIG_H, { glow: lit(FC_PILE_CELL + i, 0) || (state.lastTo === FC_PILE_CELL + i ? fresh * 0.8 : 0) });
@@ -311,8 +325,9 @@ function drawFreecellWorld(ctx: CanvasRenderingContext2D, state: FcState, size: 
   // Home piles with faint suit symbols (rev 3: the top as drawn waits for the cards still flying there).
   const { flights, homeShown } = fcFlights(state);
   for (let s = 0; s < 4; s++) {
-    const x = fcBigX(s);
+    const x = fcHomeX(s);
     const top = homeShown[s]!;
+    placeOutline(ctx, x, FC_HOME_Y, "home");
     if (top === 0) drawSlot(ctx, x, FC_HOME_Y, FC_BIG_W, FC_BIG_H, s);
     else drawCard(ctx, cardOf(s, top), x, FC_HOME_Y, FC_BIG_W, FC_BIG_H, { glow: state.lastTo === FC_PILE_HOME && fresh > 0 ? fresh * 0.6 : 0 });
   }

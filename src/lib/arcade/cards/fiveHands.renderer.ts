@@ -20,7 +20,7 @@ export const FH_WORLD_H = 772;
 export const FH_BG = "#0E2A57";
 
 export const FH_CELL_W = 58;
-export const FH_CELL_H = 80;
+export const FH_CELL_H = 84;
 const GAP = 6;
 const ROW_X = 8;
 export const FH_ROW_Y = 44;
@@ -28,14 +28,14 @@ const BADGE_X = ROW_X + FH_SLOTS * (FH_CELL_W + GAP) + 2;
 const BADGE_W = FH_WORLD_W - BADGE_X - 8;
 export const FH_NEXT_W = 74;
 export const FH_NEXT_H = 104;
-export const FH_NEXT_Y = 494;
-/** The discard rows: ten cards each, overlapping so each shows its large index. */
-export const FH_DISCARD_W = 44;
-export const FH_DISCARD_H = 62;
-export const FH_DISCARD_Y = 626;
+export const FH_NEXT_Y = 512;
+/** The discards (3 Nov 2026: one compact row of up to twenty, each overlapping the last so its index shows; until then
+ *  two rows of ten 44 × 62 cards, about 15 % of the screen). */
+export const FH_DISCARD_W = 34;
+export const FH_DISCARD_H = 48;
+export const FH_DISCARD_Y = 678;
 const DISCARD_X = 12;
-const DISCARD_STEP = (FH_WORLD_W - 2 * DISCARD_X - FH_DISCARD_W) / 9;
-const DISCARD_ROW_GAP = 8;
+const DISCARD_STEP = (FH_WORLD_W - 2 * DISCARD_X - FH_DISCARD_W) / (FH_TURNS - 1);
 
 export function fhSlotBox(r: number, k: number): { x: number; y: number } {
   return { x: ROW_X + k * (FH_CELL_W + GAP), y: FH_ROW_Y + r * (FH_CELL_H + GAP) };
@@ -69,11 +69,9 @@ export function fhOnNext(x: number, y: number): boolean {
   return x >= nx - 8 && x <= nx + FH_NEXT_W + 8 && y >= FH_NEXT_Y - 8 && y <= FH_NEXT_Y + FH_NEXT_H + 8;
 }
 
-/** Discard `i`'s place along the bottom (oldest top left). */
+/** Discard `i`'s place along the bottom row (oldest on the left). */
 export function fhDiscardBox(i: number): { x: number; y: number } {
-  const row = i < 10 ? 0 : 1;
-  const k = i % 10;
-  return { x: DISCARD_X + k * DISCARD_STEP, y: FH_DISCARD_Y + row * (FH_DISCARD_H + DISCARD_ROW_GAP) };
+  return { x: DISCARD_X + i * DISCARD_STEP, y: FH_DISCARD_Y };
 }
 
 export interface FhView {
@@ -98,7 +96,7 @@ const SHORT: Record<string, string> = {
   Pair: "PAIR",
 };
 
-/** The row's badge: dark with a dash, or gold with the hand's name over its points. */
+/** The row's badge: dark with a faint "No hand", or gold with the hand's name over its points. */
 function badge(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, name: string, points: number): void {
   const on = points > 0;
   roundRect(ctx, x, y, w, h, 9);
@@ -115,9 +113,9 @@ function badge(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
   if (!on) {
-    ctx.fillStyle = "rgba(233,220,190,0.35)";
-    ctx.font = `700 13px ${CARD_FONT}`;
-    ctx.fillText("—", x + w / 2, y + h / 2);
+    ctx.fillStyle = "rgba(233,220,190,0.34)";
+    ctx.font = `700 11px ${CARD_FONT}`;
+    ctx.fillText("No hand", x + w / 2, y + h / 2);
     return;
   }
   ctx.fillStyle = "#241603";
@@ -219,11 +217,11 @@ function drawFiveHandsWorld(ctx: CanvasRenderingContext2D, state: FhState, size:
 
   // The discards, taken by the opponents: oldest top left, each newer one over the last's right side.
   const shown = fhDiscardsShown(state);
-  ctx.fillStyle = "rgba(246,235,208,0.6)";
-  ctx.font = `700 11px ${CARD_FONT}`;
+  ctx.fillStyle = "rgba(246,235,208,0.66)";
+  ctx.font = `700 12px ${CARD_FONT}`;
   ctx.textAlign = "left";
   ctx.textBaseline = "middle";
-  ctx.fillText(`TAKEN · ${shown}`, DISCARD_X, FH_DISCARD_Y - 11);
+  ctx.fillText(`Taken ${shown}`, DISCARD_X, FH_DISCARD_Y - 11);
   for (let i = 0; i < shown; i++) {
     const b = fhDiscardBox(i);
     const newest = running && i === shown - 1;
@@ -234,23 +232,37 @@ function drawFiveHandsWorld(ctx: CanvasRenderingContext2D, state: FhState, size:
   ctx.restore();
 }
 
-/** Rev 3: gold frames round the columns (all lit and tappable while picking, a pulse; the chosen one alone after). */
+/**
+ * Rev 3: gold frames round the columns. While picking, every column is outlined as a tappable target (a bright pulsing
+ * frame, a soft gold wash and a "TAP" tag over its top; 3 Nov 2026, until then a faint pulse alone); after the pick the
+ * chosen one alone stays lit.
+ */
 function columnFrames(ctx: CanvasRenderingContext2D, chosen: number, pressed: number, tick: number): void {
   const top = fhSlotBox(0, 0).y - 4;
   const h = fhSlotBox(FH_ROWS - 1, 0).y + FH_CELL_H + 4 - top;
-  const pulse = 0.55 + 0.35 * Math.abs(((tick % 60) / 30) - 1);
+  const pulse = 0.7 + 0.3 * Math.abs(((tick % 60) / 30) - 1);
   for (let k = 0; k < FH_SLOTS; k++) {
     if (chosen >= 0 && k !== chosen) continue;
     const x = fhSlotBox(0, k).x - 3;
     roundRect(ctx, x, top, FH_CELL_W + 6, h, 9);
     const hot = k === pressed || k === chosen;
-    if (hot) {
-      ctx.fillStyle = "rgba(255,214,110,0.16)";
-      ctx.fill();
-    }
+    ctx.fillStyle = hot ? "rgba(255,214,110,0.2)" : "rgba(255,214,110,0.07)";
+    ctx.fill();
     ctx.strokeStyle = hot ? "rgba(255,222,130,1)" : `rgba(255,214,110,${pulse.toFixed(3)})`;
-    ctx.lineWidth = hot ? 3 : 2;
+    ctx.lineWidth = hot ? 3.5 : 2.5;
     ctx.stroke();
+    if (chosen < 0) {
+      // The tag: a small gold pill straddling the frame's top edge.
+      const cx = x + (FH_CELL_W + 6) / 2;
+      roundRect(ctx, cx - 18, top - 9, 36, 18, 9);
+      ctx.fillStyle = hot ? "#FFE7A3" : "rgba(233,196,106,0.95)";
+      ctx.fill();
+      ctx.fillStyle = "#241603";
+      ctx.font = `800 11px ${CARD_FONT}`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText("TAP", cx, top + 0.5);
+    }
   }
 }
 

@@ -1019,7 +1019,10 @@ function drawFlag(ctx: CanvasRenderingContext2D, h: MgHole, tick: number, lowere
   ctx.fill();
 }
 
+/** The ball's drawn radius: 1.5 px over the sim's MG_BALL_R (3 Nov 2026, display only; inside the bounds rule's 2 px). */
+const MG_BALL_DRAW_R = MG_BALL_R + 1.5;
 function drawBall(ctx: CanvasRenderingContext2D, x: number, y: number, alpha = 1): void {
+  const MG_BALL_R = MG_BALL_DRAW_R;
   ctx.globalAlpha = alpha;
   ctx.fillStyle = "rgba(0,0,0,0.4)";
   ctx.beginPath();
@@ -1055,6 +1058,45 @@ function chip(ctx: CanvasRenderingContext2D, x: number, y: number, text: string,
 
 /** A frame: the cached hole, the flag, the ball, the aim (when dragging) and the chips. */
 export function drawMinigolf(ctx: CanvasRenderingContext2D, s: MinigolfState, aim: MinigolfAim | null): void {
+  drawMinigolfCourse(ctx, s, aim);
+  drawMinigolfHud(ctx, s);
+}
+
+/**
+ * The play screen's view (3 Nov 2026, display only; Joe's audit): the stage is 390 × MINIGOLF_VIEW_H, so the
+ * course reaches down over what was a band of bare terrace, and each hole is zoomed to fill it (the early, smaller
+ * holes most). The camera is fixed per hole (from the hole's own box, never the ball), and a putt is a pull
+ * relative to where the finger went down, so no input maps differently and the sim is untouched.
+ */
+export const MINIGOLF_VIEW_H = 720;
+const MG_CAM_MARGIN = 10;
+export interface MinigolfCamera { k: number; x: number; y: number }
+export function minigolfCamera(s: Pick<MinigolfState, "course" | "hole">, viewH = MINIGOLF_VIEW_H): MinigolfCamera {
+  const h = s.course[Math.min(s.hole, MINIGOLF_HOLES - 1)]!;
+  const b = h.box;
+  const k = Math.max(1, Math.min(MINIGOLF_W / (b.w + 2 * MG_CAM_MARGIN), viewH / (b.h + 2 * MG_CAM_MARGIN), 1.3));
+  return { k, x: MINIGOLF_W / 2 - (b.x + b.w / 2) * k, y: viewH / 2 - (b.y + b.h / 2) * k };
+}
+
+/** The live round: the terrace over the whole view, the hole under its camera (effects too), the HUD unzoomed. */
+export function drawMinigolfPlay(
+  ctx: CanvasRenderingContext2D,
+  s: MinigolfState,
+  drawWorld: () => void,
+  viewH = MINIGOLF_VIEW_H,
+): void {
+  const cam = minigolfCamera(s, viewH);
+  minigolfScene(ctx, { worldW: MINIGOLF_W, worldH: viewH, left: 0, top: 0, right: MINIGOLF_W, bottom: viewH, scale: 1 });
+  ctx.save();
+  ctx.translate(cam.x, cam.y);
+  ctx.scale(cam.k, cam.k);
+  drawWorld();
+  ctx.restore();
+  drawMinigolfHud(ctx, s);
+}
+
+/** The hole, flag, ball, sails and aim in world px (no HUD). */
+export function drawMinigolfCourse(ctx: CanvasRenderingContext2D, s: MinigolfState, aim: MinigolfAim | null): void {
   const h = s.course[Math.min(s.hole, MINIGOLF_HOLES - 1)]!;
   const img = cachedHole(ctx, h, s.seed);
   if (img) ctx.drawImage(img, 0, 0, MINIGOLF_W, MINIGOLF_H);
@@ -1099,6 +1141,11 @@ export function drawMinigolf(ctx: CanvasRenderingContext2D, s: MinigolfState, ai
   for (const m of h.windmills ?? []) drawWindmill(ctx, m, s.tick);
   // Water: a brief ripple where the ball went in is drawn by the effects layer; here the ball is already back.
   if (aim && s.phase === MG_AIM) drawAim(ctx, bx, by, aim);
+}
+
+/** The HUD chips at the top corners (world px, never under the hole's camera). */
+export function drawMinigolfHud(ctx: CanvasRenderingContext2D, s: MinigolfState): void {
+  const holedNow = s.holed[s.hole] === 1 && (s.phase === MG_PAUSE || s.phase === MG_DONE);
   // HUD chips at the top corners (inside the garden beds).
   const par = s.pars[Math.min(s.hole, MINIGOLF_HOLES - 1)]!;
   chip(ctx, 8, 6, `Hole ${Math.min(s.hole + 1, MINIGOLF_HOLES)}/${MINIGOLF_HOLES} · Par ${par}`, "left");

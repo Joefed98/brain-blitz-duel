@@ -40,6 +40,7 @@ import {
   TILT_REV_EXPAND,
   TILT_REV_LIFT,
   TILT_REV_PAR,
+  TILT_REV_BIG,
   TILT_V8_BAND_CURVE,
   TILT_V9_BAND_CURVE,
   TILT_V9_SKILL_PAY,
@@ -161,9 +162,10 @@ lifts("Tilt skill pay", TILT_X_SKILL_PAY, TILT_V9_SKILL_PAY);
 ok((generatePuzzle("flip") as { flipRev?: number }).flipRev === FLIP_REV_FLOW + 1, "rooms deal flipRev 12, flipRev 11's game (flipRev 10 before 3 Nov 2026, flipRev 9's play)");
 // Tilt moved on again on 29 Oct 2026 (tiltRev 10, the arcade scoring standard; tilt-standard-check); tiltRev 9 replays here as before.
 // And on 3 Nov 2026 (tiltRev 11: no gold stars, par times and a clean run; tilt-rev11-check).
-ok((generatePuzzle("tilt") as { tiltRev?: number }).tiltRev === TILT_REV_PAR, "rooms deal tiltRev 11 (tiltRev 10's successor)");
+// And on 3 Nov 2026 again (tiltRev 12: tiltRev 11 with bigger marbles and keys; tilt-rev12-check).
+ok((generatePuzzle("tilt") as { tiltRev?: number }).tiltRev === TILT_REV_BIG, "rooms deal tiltRev 12 (tiltRev 11's successor)");
 ok(LIVE_BANDS.flip.rev === FLIP_REV_FLOW + 1 && LIVE_BANDS.flip.curve === FLIP_V11_BAND_CURVE, "LIVE_BANDS: Roofbound on flipRev 11's curve, dealt as flipRev 12 (flipRev 10's before 3 Nov 2026)");
-ok(LIVE_BANDS.tilt.rev === TILT_REV_PAR && LIVE_BANDS.tilt.curve === TILT_V11_BAND_CURVE, "LIVE_BANDS: Tilt on tiltRev 11's core line (tiltRev 10's successor)");
+ok(LIVE_BANDS.tilt.rev === TILT_REV_BIG && LIVE_BANDS.tilt.curve === TILT_V11_BAND_CURVE, "LIVE_BANDS: Tilt tiltRev 12 on tiltRev 11's core line");
 ok(roundMaxFor("flip") === 200 && roundMaxFor("tilt") === 200, "both round maximums stay 200");
 ok(flipWorldHFor(FLIP_REV_LIFT) === FLIP_V8_WORLD_H && tiltWorldHFor(TILT_REV_LIFT) === TILT_X_H && tiltIsExpand(TILT_REV_LIFT), "the new stamps play in the expansions' worlds");
 ok(flipGameFor(FLIP_REV_LIFT).init(7).lift === 1 && !flipGameFor(FLIP_REV_EXPAND).init(7).lift, "flipRev 9 states carry lift; flipRev 8's do not");
@@ -175,7 +177,7 @@ ok(tiltGameFor(TILT_REV_LIFT).init(7).lift === 1 && !tiltGameFor(TILT_REV_EXPAND
   // in place of the gold stars) dealt stamps state the standard's parts since 29 Oct 2026 (no skill pay).
   ok(/stdFeaturesHelp\(FLIP_V11,/.test(help) && /TILT_P_CORE_MAX\} \+ \$\{TILT_P_PAR_MAX\} \+ \$\{TILT_P_CLEAN_POINTS\} \+ \$\{TILT_P_SPEED_POINTS\} = 200/.test(help), "the help states the dealt parts (Roofbound's and Tilt's standard parts)");
   const demos = read("src/lib/duel/introDemo.functions.ts");
-  ok(/flipRev !== FLIP_REV_FLOW && demo\.puzzle\.flipRev !== FLIP_REV_DEAL\) return null/.test(demos) && /tiltRev !== TILT_REV_PAR\) return null/.test(demos), "intro demos play only when recorded on the dealt stamps (Roofbound flipRev 11, Tilt tiltRev 11, since 3 Nov 2026)");
+  ok(/flipRev !== FLIP_REV_FLOW && demo\.puzzle\.flipRev !== FLIP_REV_DEAL\) return null/.test(demos) && /tiltRev !== TILT_REV_BIG\) return null/.test(demos), "intro demos play only when recorded on the dealt stamps (Roofbound flipRev 11, Tilt tiltRev 12, since 3 Nov 2026)");
 }
 
 /* 4. Ball Tracker's counts. */
@@ -190,7 +192,9 @@ ok(tiltGameFor(TILT_REV_LIFT).init(7).lift === 1 && !tiltGameFor(TILT_REV_EXPAND
   const fx = read("src/lib/arcade/arcadeFxGames.renderer.ts");
   ok(/s\.home >= \(s\.r7 \? BT_V7_BALLS : BT_BALLS\)/.test(fx) && !/ALL 30 HOME!/.test(fx), "the final moment fires at 36 home on btRev 7");
   const stage = read("src/puzzles/ballTrack.tsx");
-  ok(/to switch up/.test(stage) && !/to drop</.test(stage), "the bottom readout says \"N to switch up\", not \"N to drop\"");
+  // 3 Nov 2026 polish (display only): the readout moved from the line under the board into the HUD pills (btDrawHud).
+  const hudArt = read("src/lib/arcade/ballTrackArt.renderer.ts");
+  ok(/"Switch up"/.test(hudArt) && /btSwitchUpIn\(course, s\.tick\)/.test(stage) && !/to drop</.test(stage) && !/to drop"/.test(hudArt), "the HUD's readout says \"Switch up Ns\", not \"N to drop\"");
 }
 
 /* 5. Display numbers. */

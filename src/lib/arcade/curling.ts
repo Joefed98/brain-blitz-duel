@@ -72,8 +72,11 @@ export const CURLING_H = 720;
 /** curlRev 2's world (display only): the same width, shorter, so the world fills the width on a 375 × 667 phone. */
 export const CURLING_H_V2 = 540;
 /** The world's height for a revision (display only). */
+/** curlRev 4's play view's height (3 Nov 2026, display only: the renderer's CURL_VIEW_V4; the sim never reads it). */
+export const CURLING_H_V4 = 640;
 export function curlingWorldHFor(rev: number | null | undefined): number {
-  return (rev ?? CURLING_REV_V1) >= 2 ? CURLING_H_V2 : CURLING_H;
+  const r = rev ?? CURLING_REV_V1;
+  return r >= 4 ? CURLING_H_V4 : r >= 2 ? CURLING_H_V2 : CURLING_H;
 }
 
 /** Sheet units: 1 cm = CU. */

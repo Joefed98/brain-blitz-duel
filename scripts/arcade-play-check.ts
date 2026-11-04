@@ -77,7 +77,7 @@ import { DESKTOP_MODES } from "../src/lib/duel/desktopModes";
 import { spawn, type ChildProcess } from "node:child_process";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 
-import { ACTIVE_ARCADE_GAMES, ARCADE_FX_SPECS, ENGINE_FX_SPECS, ENGINE_GAME_WORLDS } from "../src/lib/arcade/arcadeFxGames.renderer";
+import { ACTIVE_ARCADE_GAMES, ARCADE_FX_SPECS, ARCADE_PLAY_VIEWS, ENGINE_FX_SPECS, ENGINE_GAME_WORLDS } from "../src/lib/arcade/arcadeFxGames.renderer";
 import { PINBALL_IN_ROOMS } from "../src/lib/arcade/pinball";
 import { ARENA_SCENE_GAMES } from "../src/lib/arcade/arenaScene.renderer";
 import { ARENA_FILL_CENTRED } from "../src/lib/arcade/arenaFills.renderer";
@@ -383,7 +383,8 @@ const HEADER_MIN_TEXT_PX = 12;
 /** The one exception: the score block's "Score" / "Best" label, 11 px by the frame's spec (game-frame.css). */
 const SCORE_LABEL_MIN_PX = 11;
 /** The game's own HUD rows between the header and the box (presentation-geometry-check's ABOVE). */
-const ABOVE_PX: Record<string, number> = { snip: 24, tendrop: 56, whack: 10 + 36 * 1.1 + 10 + 4 + 8 + 20 + 8, clayshoot: 26 };
+// Ball Tracker: its 36px HUD pill strip since 3 Nov 2026 (BT_HUD_H).
+const ABOVE_PX: Record<string, number> = { snip: 24, tendrop: 56, whack: 10 + 36 * 1.1 + 10 + 4 + 8 + 20 + 8, clayshoot: 26, balltrack: 36 };
 /** The screen edge's black (--screen-edge), every gap on an arcade play screen. */
 const EDGE_RGB = "rgb(7, 7, 9)";
 
@@ -513,7 +514,8 @@ const CENTRED_WORLDS = new Set<string>(["tilt", ...ARENA_FILL_CENTRED]);
  * edge, every gap black, the column and the lowest control 16 px up, controls 44 px or more.
  */
 async function arenaFits(page: import("playwright").Page, game: string, problems: string[]): Promise<void> {
-  const spec = ({ ...ARCADE_FX_SPECS, ...ENGINE_FX_SPECS, ...ENGINE_PLAY_WORLDS } as Record<string, { width: number; height: number }>)[game];
+  // The live round's play view where it differs from the effects world (ARCADE_PLAY_VIEWS, 3 Nov 2026: Swish, Flightpath, Crazy Golf).
+  const spec = ({ ...ARCADE_FX_SPECS, ...ARCADE_PLAY_VIEWS, ...ENGINE_FX_SPECS, ...ENGINE_PLAY_WORLDS } as Record<string, { width: number; height: number }>)[game];
   if (!spec) {
     problems.push(`layout: no world size for ${game}`);
     return;
