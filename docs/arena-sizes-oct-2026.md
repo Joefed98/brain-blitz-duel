@@ -33,7 +33,7 @@ revisions keep their own world in reveals and replays.
 | Wavefront | 390x800 | 375x591 → 288x591 | 390x624 → 304x624 | 390x768 → 374x768 | 414x772 → 376x772 | 430x856 → 417x856 | 1280x724 → 353x724 | 0.960x | 60px | 0px | 0px | 16px | - |
 | Orbit | 450x862 | 375x591 → 309x591 | 390x624 → 326x624 | 390x768 → 390x747 | 414x772 → 403x772 | 430x856 → 430x824 | 1280x724 → 378x724 | 0.867x | 60px | 0px | 21px | 0px | - |
 | High Rise | 390x735 | 375x591 → 314x591 | 390x624 → 331x624 | 390x768 → 390x735 | 414x772 → 410x772 | 430x856 → 430x810 | 1280x724 → 384x724 | 1.000x | 60px | 0px | 33px | 0px | - |
-| Jaywalk | 390x727 | 375x591 → 317x591 | 390x624 → 335x624 | 390x768 → 390x727 | 414x772 → 414x772 | 430x856 → 430x802 | 1280x724 → 388x724 | 1.000x | 60px | 0px | 41px | 0px | - |
+| Spacewalk | 390x727 | 375x591 → 317x591 | 390x624 → 335x624 | 390x768 → 390x727 | 414x772 → 414x772 | 430x856 → 430x802 | 1280x724 → 388x724 | 1.000x | 60px | 0px | 41px | 0px | - |
 | Junction | 390x620 | 375x591 → 372x591 | 390x624 → 390x620 | 390x768 → 390x620 | 414x772 → 414x658 | 430x856 → 430x684 | 1280x724 → 455x724 | 1.000x | 60px | 0px | 148px | 0px | - |
 | Rainbow Bridge | 390x674 | 375x535 → 310x535 | 390x568 → 329x568 | 390x712 → 390x674 | 414x716 → 414x715 | 430x800 → 430x743 | 1280x668 → 387x668 | 1.000x | 60px | 0px | 38px | 0px | Rainbow Bridge's Undo / Reset / Release / Drop again (48px): 16px |
 | Slice | 430x805 | 375x591 → 316x591 | 390x624 → 333x624 | 390x768 → 390x730 | 414x772 → 412x772 | 430x856 → 430x805 | 1280x724 → 387x724 | 0.907x | 60px | 0px | 38px | 0px | - |
@@ -96,7 +96,7 @@ stars, walkers, lava, reactions) that holds still under reduced motion or reduce
 | Wavefront | 375x591 → 288x591 | 390x624 → 304x624 | 390x768 → 374x768 | 414x772 → 376x772 | 430x856 → 417x856 | 1280x724 → 353x724 | the night sky's stars below and beside the world |
 | Orbit | 375x591 → 309x591 | 390x624 → 326x624 | 390x768 → 390x747 | 414x772 → 403x772 | 430x856 → 430x824 | 1280x724 → 378x724 | black space with light stars (SET CHECKPOINT in the world's reserved top-right corner) |
 | High Rise | 375x591 → 314x591 | 390x624 → 331x624 | 390x768 → 390x735 | 414x772 → 410x772 | 430x856 → 430x810 | 1280x724 → 384x724 | a dark road under the tower's base block, softly lit by street lamps |
-| Jaywalk | 375x591 → 317x591 | 390x624 → 335x624 | 390x768 → 390x727 | 414x772 → 414x772 | 430x856 → 430x802 | 1280x724 → 388x724 | the start pavement runs on between grass verges to a grass strip, two or three people strolling along it (none under reduced motion) |
+| Spacewalk | 375x591 → 317x591 | 390x624 → 335x624 | 390x768 → 390x727 | 414x772 → 414x772 | 430x856 → 430x802 | 1280x724 → 388x724 | the start pavement runs on between grass verges to a grass strip, two or three people strolling along it (none under reduced motion) |
 | Rainbow Bridge | 375x535 → 310x535 | 390x568 → 329x568 | 390x712 → 390x674 | 414x716 → 414x715 | 430x800 → 430x743 | 1280x668 → 387x668 | grass and hillside below the ground (sky, hills and ground beside the world) |
 | Slice | 375x591 → 316x591 | 390x624 → 333x624 | 390x768 → 390x730 | 414x772 → 412x772 | 430x856 → 430x805 | 1280x724 → 387x724 | a faded marble worktop under the chopping board |
 | Swish | 375x519 → 307x519 | 390x552 → 326x552 | 390x696 → 390x660 | 414x700 → 413x700 | 430x784 → 430x728 | 1280x652 → 385x652 | the counter's front, a kick board and the fairground floor (sky and counter beside the world) |
@@ -151,7 +151,7 @@ than half hidden; Hover's world is cut the same way, its disc at the top).
 | Wavefront | 414x724 → 353x724, 64px | 414x772 → 376x772, 16px | world 32px |
 | Orbit | 414x724 → 378x724, 64px | 414x772 → 403x772, 16px | world 32px |
 | High Rise | 414x724 → 384x724, 64px | 414x772 → 410x772, 16px | world 32px |
-| Jaywalk | 414x724 → 388x724, 64px | 414x772 → 414x772, 16px | world 32px |
+| Spacewalk | 414x724 → 388x724, 64px | 414x772 → 414x772, 16px | world 32px |
 | Junction | 414x724 → 414x658, 64px | 414x772 → 414x658, 16px | world none |
 | Rainbow Bridge | 414x668 → 387x668, 64px | 414x716 → 414x715, 16px | world none, Rainbow Bridge's Undo / Reset / Release / Drop again (48px) 32px |
 | Slice | 414x724 → 387x724, 64px | 414x772 → 412x772, 16px | world 32px |
@@ -206,7 +206,7 @@ bottom; the spare space was the game's arena fill or the page colour. Same arith
 | Wavefront | 367x543 → 265x543 | 382x576 → 281x576 | 382x720 → 351x720 | 422x808 → 394x808 | 1272x676 → 330x676 |
 | Orbit | 367x455 → 238x455 | 382x488 → 255x488 | 382x632 → 330x632 | 422x720 → 376x720 | 1272x588 → 307x588 |
 | High Rise | 367x543 → 288x543 | 382x576 → 306x576 | 382x720 → 382x720 | 422x808 → 422x795 | 1272x676 → 359x676 |
-| Jaywalk | 367x543 → 291x543 | 382x576 → 309x576 | 382x720 → 382x712 | 422x808 → 422x787 | 1272x676 → 363x676 |
+| Spacewalk | 367x543 → 291x543 | 382x576 → 309x576 | 382x720 → 382x712 | 422x808 → 422x787 | 1272x676 → 363x676 |
 | Junction | 367x543 → 342x543 | 382x576 → 362x576 | 382x720 → 382x607 | 422x808 → 422x671 | 1272x676 → 425x676 |
 | Rainbow Bridge | 367x483 → 279x483 | 382x516 → 299x516 | 382x660 → 382x660 | 422x748 → 422x729 | 1272x616 → 356x616 |
 | Slice | 367x543 → 290x543 | 382x576 → 308x576 | 382x720 → 382x715 | 422x808 → 422x790 | 1272x676 → 361x676 |
