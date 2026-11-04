@@ -7,7 +7,7 @@ import type { ArcadeGame, ArcadeInputEvent, CanvasSize } from "./engine";
 import { drawArtSprite } from "./sprites.renderer";
 import { arcadeFx, type ArcadeFxSpec } from "./arcadeFx.renderer";
 import { TILT_FX } from "./arcadeFxGames.renderer";
-import { TILT_DISC_R, TILT_MAX_MAZES, TILT_WORLD_H, TILT_WORLD_W, tiltBandGame, tiltGame, tiltRev2Game, tiltStarPoint, tiltTotalStars, tiltTunecGame, tiltTargetGame, tiltStrictGame, tiltExpandGame, tiltLiftGame, tiltStdGame, tiltParGame, tiltParLeftX, tiltIsExpand, TILT_REV, TILT_REV_PAR, TILT_REV_BAND, TILT_REV_TUNEC, TILT_REV_TARGET, TILT_REV_STRICT, TILT_REV_EXPAND, TILT_REV_LIFT, TILT_REV_STD, TILT_X_W, TILT_X_H, TILT_X_QUICK_TAIL, TILT_X_FALL_HOLD, tiltCellCentre, tiltQuickLeftX, tiltQuickFullLeftX, type Maze, type TiltState } from "./tilt";
+import { TILT_DISC_R, TILT_MAX_MAZES, TILT_WORLD_H, TILT_WORLD_W, tiltBandGame, tiltGame, tiltRev2Game, tiltStarPoint, tiltTotalStars, tiltTunecGame, tiltTargetGame, tiltStrictGame, tiltExpandGame, tiltLiftGame, tiltStdGame, tiltParGame, tiltBigGame, tiltParLeftX, tiltOverParT, tiltIsExpand, TILT_REV, TILT_REV_PAR, TILT_REV_BIG, TILT_B_CUP, TILT_REV_BAND, TILT_REV_TUNEC, TILT_REV_TARGET, TILT_REV_STRICT, TILT_REV_EXPAND, TILT_REV_LIFT, TILT_REV_STD, TILT_X_W, TILT_X_H, TILT_X_QUICK_TAIL, TILT_X_FALL_HOLD, tiltCellCentre, tiltQuickLeftX, tiltQuickFullLeftX, type Maze, type TiltState } from "./tilt";
 import {
   TOY_BRASS, TOY_BRASS_DARK, TOY_INK, TOY_OAK_LIGHT, TOY_TABLE, TOY_TABLE_LIT, TOY_WOOD_DARK,
   toyBoard, toyChangeAge, toyGrain, toyMarble,
@@ -16,7 +16,8 @@ import { reducedMotion } from "./art.renderer";
 import { arcadeReducedEffects } from "@/lib/fx/lowEnd";
 import { artCanvas, artContext, deviceLayer, type ArtCanvas } from "./cache.renderer";
 import type { ArenaSceneView } from "./arenaScene.renderer";
-import { tiltFill } from "./arenaFills.renderer";
+import { tiltFill, tiltWalnutFill } from "./arenaFills.renderer";
+import { drawHudPill, drawHudPillRow, HUD_PILL_GAP, HUD_PILL_H } from "./hudPill.renderer";
 
 const FP = 256;
 const CX = 220;
@@ -716,6 +717,7 @@ const tiltTunecArtGame: ArcadeGame<TiltState, ArcadeInputEvent | null> = { ...ti
 const tiltTargetArtGame: ArcadeGame<TiltState, ArcadeInputEvent | null> = { ...tiltTargetGame, draw };
 const tiltStrictArtGame: ArcadeGame<TiltState, ArcadeInputEvent | null> = { ...tiltStrictGame, draw };
 export function tiltArtGameFor(rev?: number | null): ArcadeGame<TiltState, ArcadeInputEvent | null> {
+  if (rev === TILT_REV_BIG) return tiltBigArtGame;
   if (rev === TILT_REV_PAR) return tiltParArtGame;
   if (rev === TILT_REV_STD) return tiltStdArtGame;
   if (rev === TILT_REV_LIFT) return tiltLiftArtGame;
@@ -741,6 +743,8 @@ export function tiltArenaScene(ctx: CanvasRenderingContext2D, view: ArenaSceneVi
 /** The arena scene for a stored round's revision (tiltRev 8: the taller world). */
 export function tiltArenaSceneFor(rev?: number | null): (ctx: CanvasRenderingContext2D, view: ArenaSceneView) => void {
   if (!tiltIsExpand(rev)) return tiltArenaScene;
+  // tiltRev 12: the dark walnut table runs on to the screen's edges.
+  if (rev === TILT_REV_BIG) return (ctx, view) => tiltWalnutFill(ctx, view, TILT_X_W, TILT_X_H);
   return (ctx, view) => tiltFill(ctx, view, TILT_X_W, TILT_X_H);
 }
 
@@ -768,8 +772,8 @@ const QUICK_RING = "#FFF1B0";
 const QUICK_RING_LATE = "#FF9A3D";
 
 /** The disc's radius for a maze (px): its grid's half-width and a rim's margin. */
-function discRadiusX(m: Maze): number {
-  return (m.n * (m.cs / FP)) / 2 + 16;
+function discRadiusX(m: Maze, big = false): number {
+  return (m.n * (m.cs / FP)) / 2 + (big ? TILT_B_RIM : 16);
 }
 
 /** The last view any canvas drew: its turn and zoom (the success layer's pops read it to place themselves). */
@@ -871,12 +875,12 @@ function drawIce(ctx: CanvasRenderingContext2D, m: Maze, o: number): void {
 
 /** The disc, its pits, its ice and its strips for one maze, at the canvas's scale (one sprite per maze and scale). */
 const mazeSpritesX = new WeakMap<Maze, { k: number; sprite: ArtCanvas | null }>();
-function mazeSpriteX(ctx: CanvasRenderingContext2D, m: Maze, lite: boolean): ArtCanvas | null {
+function mazeSpriteX(ctx: CanvasRenderingContext2D, m: Maze, lite: boolean, big = false): ArtCanvas | null {
   const t = typeof ctx.getTransform === "function" ? ctx.getTransform() : null;
-  const k = Math.round(Math.max(0.25, Math.min(2.5, t ? Math.hypot(t.a, t.b) : 1)) * 100) / 100 + (lite ? 1000 : 0);
+  const k = Math.round(Math.max(0.25, Math.min(2.5, t ? Math.hypot(t.a, t.b) : 1)) * 100) / 100 + (lite ? 1000 : 0) + (big ? 10000 : 0);
   const old = mazeSpritesX.get(m);
   if (old && old.k === k) return old.sprite;
-  const R = discRadiusX(m);
+  const R = discRadiusX(m, big);
   const scale = k % 1000;
   const size = Math.ceil((R * 2 + 2) * scale);
   const canvas = artCanvas(size, size);
@@ -888,10 +892,12 @@ function mazeSpriteX(ctx: CanvasRenderingContext2D, m: Maze, lite: boolean): Art
     c.beginPath();
     c.arc(0, 0, R + 1, 0, Math.PI * 2);
     c.clip();
-    drawDiscSurfaceX(c, R);
+    if (big) paintWalnutDisc(c, R);
+    else drawDiscSurfaceX(c, R);
     drawIce(c, m, (m.n * (m.cs / FP)) / 2);
     drawPits(c, m);
-    drawStrips(c, m, lite);
+    if (big) drawBrassStrips(c, m, lite);
+    else drawStrips(c, m, lite);
     c.restore();
   }
   const sprite = canvas && c ? canvas : null;
@@ -1075,12 +1081,15 @@ function drawWorldX(ctx: CanvasRenderingContext2D, state: TiltState, size: Canva
   const m = state.list[Math.min(state.level, state.list.length - 1)]!;
   const cs = m.cs / FP;
   const o = (m.n * cs) / 2;
-  const R = discRadiusX(m);
+  // tiltRev 12 (3 Nov 2026): bigger marbles, cups and keys in a walnut and brass board, and the HUD in pills.
+  const big = !!state.big;
+  const R = discRadiusX(m, big);
   const lite = arcadeReducedEffects();
   const rot = (state.angle / 65536) * Math.PI * 2;
+  const cupAt = (exit: number, exitDir: number) => (big ? cupOfB(m, o, exit, exitDir) : cupOf(m, o, exit, exitDir, true));
   const finish = toyChangeAge(ctx, "tilt-mazes", state.mazes, {
-    blue: cupOf(m, o, m.exit, m.exitDir, true),
-    amber: state.b && (m.exit2 ?? -1) >= 0 ? cupOf(m, o, m.exit2!, m.exitDir2!, true) : null,
+    blue: cupAt(m.exit, m.exitDir),
+    amber: state.b && (m.exit2 ?? -1) >= 0 ? cupAt(m.exit2!, m.exitDir2!) : null,
     aHome: !!state.aHome,
     bHome: !!state.bHome,
     r: m.br / FP,
@@ -1089,14 +1098,17 @@ function drawWorldX(ctx: CanvasRenderingContext2D, state: TiltState, size: Canva
   const keyAge = toyChangeAge(ctx, "tilt-keys", state.level * 8 + (state.keysGot ?? 0));
 
   // The table: screen-fixed, one cached layer (the oak board, its planks and the lamplight pool).
-  deviceLayer(ctx, `tilt-x-board:${ox},${oy},${scale}`, (c) => {
-    c.fillStyle = "#9A7347";
+  deviceLayer(ctx, `tilt-x-board${big ? "-walnut" : ""}:${ox},${oy},${scale}`, (c) => {
+    c.fillStyle = big ? WALNUT_TABLE : "#9A7347";
     c.fillRect(0, 0, c.canvas.width, c.canvas.height);
     c.save();
     c.translate(ox, oy);
     c.scale(scale, scale);
-    toyBoard(c, 0, 0, W, H, 10, false);
-    drawTableDressing(c, W, H, W / 2, H / 2);
+    if (big) drawWalnutTable(c, W, H);
+    else {
+      toyBoard(c, 0, 0, W, H, 10, false);
+      drawTableDressing(c, W, H, W / 2, H / 2);
+    }
     c.restore();
   });
   ctx.save();
@@ -1118,19 +1130,22 @@ function drawWorldX(ctx: CanvasRenderingContext2D, state: TiltState, size: Canva
   // The groove and rim, turned with the disc (their light stays screen-fixed: drawn unrotated about the centre).
   ctx.save();
   ctx.rotate(-rot);
-  blitX(ctx, `bed:${R}`, R + 26, (c) => drawDiscBed(c, R));
+  if (big) blitX(ctx, `bed-brass:${R}`, R + 26, (c) => drawBrassBed(c, R));
+  else blitX(ctx, `bed:${R}`, R + 26, (c) => drawDiscBed(c, R));
   ctx.restore();
   ctx.save();
   ctx.beginPath();
   ctx.arc(0, 0, R + 2, 0, Math.PI * 2);
   ctx.clip();
-  const baked = mazeSpriteX(ctx, m, lite);
+  const baked = mazeSpriteX(ctx, m, lite, big);
   if (baked) ctx.drawImage(baked as CanvasImageSource, -R - 1, -R - 1, R * 2 + 2, R * 2 + 2);
   else {
-    drawDiscSurfaceX(ctx, R);
+    if (big) paintWalnutDisc(ctx, R);
+    else drawDiscSurfaceX(ctx, R);
     drawIce(ctx, m, o);
     drawPits(ctx, m);
-    drawStrips(ctx, m, lite);
+    if (big) drawBrassStrips(ctx, m, lite);
+    else drawStrips(ctx, m, lite);
   }
   if (!lite) {
     // The lamp's gloss over the disc, screen-fixed.
@@ -1149,8 +1164,8 @@ function drawWorldX(ctx: CanvasRenderingContext2D, state: TiltState, size: Canva
     ctx.restore();
   }
 
-  drawBigCup(ctx, cupOf(m, o, m.exit, m.exitDir, true), TILT_MARBLE_BLUE, CUP_GLASS, !!state.aHome);
-  if ((m.exit2 ?? -1) >= 0) drawBigCup(ctx, cupOf(m, o, m.exit2!, m.exitDir2!, true), TILT_MARBLE_AMBER, CUP_AMBER_GLASS, !!state.bHome);
+  drawBigCup(ctx, cupAt(m.exit, m.exitDir), TILT_MARBLE_BLUE, CUP_GLASS, !!state.aHome);
+  if ((m.exit2 ?? -1) >= 0) drawBigCup(ctx, cupAt(m.exit2!, m.exitDir2!), TILT_MARBLE_AMBER, CUP_AMBER_GLASS, !!state.bHome);
   (m.stars ?? []).forEach((_c, k) => {
     if ((state.starGot ?? [])[k]) return;
     const p = tiltStarPoint(m, k);
@@ -1174,7 +1189,8 @@ function drawWorldX(ctx: CanvasRenderingContext2D, state: TiltState, size: Canva
       const p = tiltCellCentre(m, c);
       ctx.save();
       ctx.globalAlpha = 1 - just;
-      drawKey(ctx, p.x / FP - o, p.y / FP - o, cs * 0.42, rot, colour, lite);
+      // tiltRev 12: the key drawn to its bigger pickup reach (TILT_B_KEY_REACH % of a cell each way).
+      drawKey(ctx, p.x / FP - o, p.y / FP - o, cs * (big ? TILT_B_KEY_SIZE : 0.42), rot, colour, lite);
       ctx.restore();
       drawGateBar(ctx, m, gates[2 * k]!, gates[2 * k + 1]!, o, colour, just);
     }
@@ -1202,7 +1218,7 @@ function drawWorldX(ctx: CanvasRenderingContext2D, state: TiltState, size: Canva
     return left <= 0 || reducedMotion() ? 1 : 0.25 + 0.75 * (1 - left / TILT_X_FALL_HOLD);
   };
   if (state.b) {
-    const cup = cupOf(m, o, m.exit2!, m.exitDir2!, true);
+    const cup = cupAt(m.exit2!, m.exitDir2!);
     const at = state.bHome ? cup : { x: state.b.x / FP - o, y: state.b.y / FP - o };
     if (!done) {
       ctx.save();
@@ -1213,7 +1229,7 @@ function drawWorldX(ctx: CanvasRenderingContext2D, state: TiltState, size: Canva
     }
   }
   if (state.aHome) {
-    const cup = cupOf(m, o, m.exit, m.exitDir, true);
+    const cup = cupAt(m.exit, m.exitDir);
     toyMarble(ctx, cup.x, cup.y, mr, TILT_MARBLE_BLUE, -rot);
   } else if (!done) {
     const mx = state.x / FP - o, my = state.y / FP - o;
@@ -1252,6 +1268,11 @@ function drawWorldX(ctx: CanvasRenderingContext2D, state: TiltState, size: Canva
   if (state.b && !state.bHome && !done) {
     const p = toScreen(state.b.x / FP - o, state.b.y / FP - o);
     edgeArrow(ctx, p.x, p.y, W, H, TILT_MARBLE_AMBER);
+  }
+  if (big) {
+    drawBigHud(ctx, state, all, done);
+    ctx.restore();
+    return;
   }
   ctx.fillStyle = TOY_INK;
   ctx.font = "600 16px ui-monospace, monospace";
@@ -1324,3 +1345,164 @@ const tiltExpandArtGame: ArcadeGame<TiltState, ArcadeInputEvent | null> = { ...t
 const tiltLiftArtGame: ArcadeGame<TiltState, ArcadeInputEvent | null> = { ...tiltLiftGame, draw: drawX };
 const tiltStdArtGame: ArcadeGame<TiltState, ArcadeInputEvent | null> = { ...tiltStdGame, draw: drawX };
 const tiltParArtGame: ArcadeGame<TiltState, ArcadeInputEvent | null> = { ...tiltParGame, draw: drawX };
+const tiltBigArtGame: ArcadeGame<TiltState, ArcadeInputEvent | null> = { ...tiltBigGame, draw: drawX };
+
+/* ================= tiltRev 12 (3 Nov 2026): walnut and brass, bigger pieces, the HUD in pills ================= */
+
+/*
+ * Joe's audit of Tilt (display only; the sim's bigger marbles and keys are tiltRev 12's, src/lib/arcade/tilt.ts): Tilt
+ * leaves Ball Tracker's light wood for a dark walnut table and disc with a brass rim and brass wall strips; the marbles
+ * are drawn at their (bigger) collision radius, the keys to their pickup reach and the cups TILT_B_CUP % of the marble;
+ * the HUD is the shared pills ("Maze 1 / 4" first, then the par countdown, "Over par" only once the par has passed).
+ */
+export const WALNUT_TABLE = "#2B1A10";
+const WALNUT_DISC = "#5A3721";
+const WALNUT_DISC_LIT = "#6E4529";
+const WALNUT_GRAIN = "#3A2213";
+const BRASS = "#C99A3E";
+const BRASS_LIT = "#F3D383";
+const BRASS_DARK = "#6E4C17";
+/** The rim's margin round a tiltRev 12 grid (px; 16 before), so the bigger cups sit on the disc. */
+const TILT_B_RIM = 26;
+/** The key's drawn size (× a cell): its outline reaches about TILT_B_KEY_REACH % of a cell from the key's centre. */
+const TILT_B_KEY_SIZE = 0.54;
+
+/** A tiltRev 12 cup: TILT_B_CUP % of the marble's radius, its centre 0.6 of a radius beyond the exit edge (on the rim). */
+export function cupOfB(m: Maze, o: number, exit = m.exit, exitDir = m.exitDir) {
+  const cs = m.cs / FP;
+  const cx = (exit % m.n) * cs + cs / 2 - o + (DX[exitDir]! * cs) / 2;
+  const cy = Math.trunc(exit / m.n) * cs + cs / 2 - o + (DY[exitDir]! * cs) / 2;
+  const r = ((m.br / FP) * TILT_B_CUP) / 100;
+  return { x: cx + DX[exitDir]! * r * 0.6, y: cy + DY[exitDir]! * r * 0.6, r };
+}
+
+/** The walnut table under the board (screen-fixed, in the cached board layer): long grain, a warm lamp pool, darker edges. */
+function drawWalnutTable(c: CanvasRenderingContext2D, W: number, H: number): void {
+  c.save();
+  c.fillStyle = WALNUT_TABLE;
+  c.fillRect(0, 0, W, H);
+  for (let k = 0; k < 70; k++) {
+    const h = Math.imul(k * 2654435761 + 131, 0x85ebca6b) >>> 0;
+    const y = 6 + (h % (H - 12));
+    c.strokeStyle = h % 3 ? "rgba(12,6,2,0.32)" : "rgba(160,104,60,0.12)";
+    c.lineWidth = h % 5 ? 0.9 : 1.6;
+    c.beginPath();
+    c.moveTo(0, y);
+    c.bezierCurveTo(W * 0.3, y + ((h >>> 5) % 9) - 4, W * 0.7, y - ((h >>> 9) % 7) + 3, W, y + 1);
+    c.stroke();
+  }
+  const pool = c.createRadialGradient(W / 2 - 20, H / 2 - 50, 20, W / 2 - 20, H / 2 - 50, Math.max(W, H) * 0.6);
+  pool.addColorStop(0, "rgba(255,190,120,0.22)");
+  pool.addColorStop(0.5, "rgba(255,170,100,0.08)");
+  pool.addColorStop(1, "rgba(0,0,0,0)");
+  c.fillStyle = pool;
+  c.fillRect(0, 0, W, H);
+  c.restore();
+}
+
+/** The walnut disc face (grain and growth rings), in the disc's turning frame. */
+function paintWalnutDisc(c: CanvasRenderingContext2D, r: number): void {
+  const face = c.createRadialGradient(-r * 0.3, -r * 0.35, r * 0.1, 0, 0, r);
+  face.addColorStop(0, WALNUT_DISC_LIT);
+  face.addColorStop(1, WALNUT_DISC);
+  c.fillStyle = face;
+  c.beginPath();
+  c.arc(0, 0, r, 0, Math.PI * 2);
+  c.fill();
+  c.save();
+  c.beginPath();
+  c.arc(0, 0, r, 0, Math.PI * 2);
+  c.clip();
+  c.strokeStyle = WALNUT_GRAIN;
+  c.lineWidth = 1;
+  for (let i = 0, gy = -r + 6; gy < r; gy += 11, i++) {
+    c.globalAlpha = 0.28 + (i % 3) * 0.08;
+    c.beginPath();
+    c.moveTo(-r, gy);
+    c.bezierCurveTo(-r * 0.4, gy + (i % 2 ? 5 : -4), r * 0.4, gy + (i % 2 ? -5 : 4), r, gy + 1);
+    c.stroke();
+  }
+  c.globalAlpha = 1;
+  c.strokeStyle = "rgba(20,10,4,0.22)";
+  for (let k = 1; k < 9; k++) {
+    c.beginPath();
+    c.ellipse(-r * 0.9, r * 0.2, k * 26 * (r / TILT_DISC_R), k * 20 * (r / TILT_DISC_R), 0.3, 0, Math.PI * 2);
+    c.stroke();
+  }
+  c.restore();
+}
+
+/** The disc's brass rim and the shadow it casts on the walnut table, about the disc's centre (static, light screen-fixed). */
+function drawBrassBed(ctx: CanvasRenderingContext2D, R: number): void {
+  const drop = ctx.createRadialGradient(8, 6, R - 12, 8, 6, R + 14);
+  drop.addColorStop(0, "rgba(0,0,0,0.85)");
+  drop.addColorStop(0.5, "rgba(0,0,0,0.4)");
+  drop.addColorStop(1, "rgba(0,0,0,0)");
+  ctx.fillStyle = drop;
+  ctx.beginPath();
+  ctx.arc(8, 6, R + 14, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = BRASS_DARK;
+  ctx.beginPath();
+  ctx.arc(0, 0, R + 7, 0, Math.PI * 2);
+  ctx.fill();
+  const bevel = ctx.createLinearGradient(-R, -R, R, R);
+  bevel.addColorStop(0, BRASS_LIT);
+  bevel.addColorStop(0.4, BRASS);
+  bevel.addColorStop(0.7, "#9E7426");
+  bevel.addColorStop(1, BRASS_DARK);
+  ctx.strokeStyle = bevel;
+  ctx.lineWidth = 5;
+  ctx.beginPath();
+  ctx.arc(0, 0, R + 3.6, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.lineWidth = 1.2;
+  ctx.strokeStyle = "rgba(255,248,220,0.9)";
+  ctx.beginPath();
+  ctx.arc(0, 0, R + 5.4, Math.PI * 0.95, Math.PI * 1.55);
+  ctx.stroke();
+  ctx.lineWidth = 1;
+  ctx.strokeStyle = "rgba(0,0,0,0.6)";
+  ctx.beginPath();
+  ctx.arc(0, 0, R + 0.6, 0, Math.PI * 2);
+  ctx.stroke();
+}
+
+/** Raised brass wall strips (the same 3 px footprint on the cell edges as the wooden ones), in the disc's frame. */
+function drawBrassStrips(ctx: CanvasRenderingContext2D, m: Maze, lite: boolean): void {
+  const o = (m.n * (m.cs / FP)) / 2;
+  ctx.lineCap = "round";
+  if (!lite) {
+    ctx.strokeStyle = "rgba(0,0,0,0.45)";
+    ctx.lineWidth = 4.5;
+    walls(ctx, m, o, 2.2, 2.9);
+  }
+  ctx.strokeStyle = "rgba(20,10,2,0.75)";
+  ctx.lineWidth = 3;
+  walls(ctx, m, o, 1.4, 1.9);
+  ctx.strokeStyle = BRASS;
+  ctx.lineWidth = 3;
+  walls(ctx, m, o, 0, 0);
+  ctx.strokeStyle = BRASS_DARK;
+  ctx.lineWidth = 1;
+  walls(ctx, m, o, 0.9, 0.9);
+  ctx.strokeStyle = BRASS_LIT;
+  ctx.lineWidth = 1.1;
+  walls(ctx, m, o, -0.5, -0.5);
+}
+
+/**
+ * tiltRev 12's HUD in the shared pills (hudPill.renderer.ts): "Maze 1 / 4" first, then the seconds left to this maze's
+ * par ("Par 8 s"), "Over par" only once the par has passed (tiltOverParT: a maze finished at exactly its par still
+ * meets it), and a gold "Clean" while no marble has fallen; at the end, the pars met. At most two rows.
+ */
+function drawBigHud(ctx: CanvasRenderingContext2D, state: TiltState, all: number, done: boolean): void {
+  const pills: { label: string; value: string; opts?: { gold?: boolean; alert?: boolean } }[] = [{ label: "Maze", value: `${Math.min(all, state.mazes + 1)} / ${all}` }];
+  if (done) pills.push({ label: "Par", value: `${state.parsMet ?? 0} / ${all}` });
+  else if (tiltOverParT(state) > 0) pills.push({ label: "", value: "Over par", opts: { alert: true } });
+  else pills.push({ label: "Par", value: `${Math.max(1, Math.ceil(tiltParLeftX(state) / 60))} s` });
+  if (!(state.falls ?? 0)) pills.push({ label: "", value: "Clean", opts: { gold: true } });
+  const row = drawHudPillRow(ctx, 12, 12, pills, TILT_X_W - 12);
+  let x = 12;
+  for (const p of row.rest) x += drawHudPill(ctx, x, 12 + HUD_PILL_H + HUD_PILL_GAP, p.label, p.value, p.opts) + HUD_PILL_GAP;
+}

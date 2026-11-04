@@ -194,7 +194,7 @@ import { CURLING_BANK_V2 } from "@/lib/duel/curlingBankV2.server";
 import { CURLING_BANK_V3 } from "@/lib/duel/curlingBankV3.server";
 import { CURLING_BANK_V4 } from "@/lib/duel/curlingBankV4.server";
 import { MINIGOLF_BANK_V2 } from "@/lib/duel/minigolfBankV2.server";
-import { TILT_REV_BAND, TILT_REV_EXPAND, TILT_REV_LIFT, TILT_REV_PAR, TILT_REV_STD, TILT_REV_TUNEC } from "@/lib/arcade/tilt";
+import { TILT_REV_BAND, TILT_REV_BIG, TILT_REV_EXPAND, TILT_REV_LIFT, TILT_REV_PAR, TILT_REV_STD, TILT_REV_TUNEC } from "@/lib/arcade/tilt";
 import { ORBIT_REV_BAND, ORBIT_REV_SWEPT, ORBIT_REV_TALL, ORBIT_REV_TUNED, ORBIT_REV_XP, ORBIT_REV_STD, ORBIT_REV_FUEL } from "@/lib/arcade/orbit";
 import { decodeOrbitExtras, initBandFrom, initSweptFrom, initTallFrom, initTunedFrom, initXpFrom, initStdFrom, initFuelFrom } from "@/lib/arcade/orbitRev3";
 import { ORBIT_XP_BANK } from "@/lib/duel/orbitXpBank.server";
@@ -992,6 +992,9 @@ const GAMES: Game[] = [
   { key: "freecell/v4", game: freecellGameFor(4), checkpoint: fcCheckpoint, mode: "events", rate: 120, encode: encodeFreecellRun, replay: (seed: number, raw: string) => replayFreecellRun(seed, raw, 4), seedFor: (n: number) => n % 300 },
   { key: "tripeaks/v2", game: tripeaksGameFor(2), checkpoint: tpCheckpoint, mode: "events", rate: 120, encode: encodeTripeaksRun, replay: (seed: number, raw: string) => replayTripeaksRun(seed, raw, 2), seedFor: (n: number) => n % 300 },
   { key: "fivehands/v3", game: fiveHandsGameFor(3), checkpoint: fhCheckpoint, mode: "events", rate: 60, encode: encodeFiveHandsRun, replay: (seed: number, raw: string) => replayFiveHandsRun(seed, raw, 3) },
+  // Tilt tiltRev 12 (3 Nov 2026, docs/arcade-standard/tilt.md "tiltRev 12": tiltRev 11 with bigger marbles and keys),
+  // appended so every earlier entry keeps its index.
+  { key: "tilt/big", game: tiltGameFor(TILT_REV_BIG), checkpoint: tiltCheckpoint, mode: "events", rate: 500, encode: encodeTiltRun, replay: (seed: number, raw: string) => replayTiltRun(seed, raw, TILT_REV_BIG) },
 ];
 
 /** A random candidate event, often outside the declared range (a finger off the edge). */

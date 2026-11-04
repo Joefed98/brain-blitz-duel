@@ -92,6 +92,8 @@ export interface Maze {
   /** tiltRev 8 only: the maze's par (ticks from its start) and each quick star's window (ticks from its start). */
   par?: number;
   quickAt?: number[];
+  /** tiltRev 12 only: how near (FP, each axis) a rolling marble's centre must come to a key's cell centre to take it (cs / 3 on older stamps). */
+  keyReach?: number;
 }
 
 function buildMaze(level: number, draw: (n: number) => number): Maze {
@@ -308,6 +310,8 @@ export interface TiltState extends BandFields {
    * (tiltParParts); with the counters below, in the checkpoint checksum.
    */
   parClean?: number;
+  /** tiltRev 12 only (3 Nov 2026): 1. tiltRev 11's mazes and rules with bigger marbles and keys (TILT_B_*); in the checkpoint checksum. */
+  big?: number;
   /** tiltRev 11: mazes finished within their par, and the mazes finished before the run's first fall (absent until a fall). */
   parsMet?: number;
   cleanTo?: number;
@@ -600,6 +604,8 @@ export function tiltCheckpoint(state: TiltState): TiltCheckpoint {
   if (state.std) values.push(state.std);
   // tiltRev 11 adds its marker and counters after that, so every tiltRev 10 checksum is unchanged.
   if (state.parClean) values.push(state.parClean, state.parsMet ?? 0, state.cleanTo ?? -1);
+  // tiltRev 12 adds its marker last, so every tiltRev 11 checksum is unchanged.
+  if (state.big) values.push(state.big);
   for (const value of values) {
     checksum ^= value | 0;
     checksum = Math.imul(checksum, 0x01000193) >>> 0;
@@ -1063,6 +1069,7 @@ export function tiltCellCentre(m: Maze, c: number): { x: number; y: number } {
 
 export const tiltRev2Game: ArcadeGame<TiltState, ArcadeInputEvent | null> = { ...tiltGame, init: initRev2, step: bandStep(stepRev2, tiltTrack), score: bandScoreOf(scoreRev2, scoreBand) };
 export function tiltGameFor(rev?: number | null): ArcadeGame<TiltState, ArcadeInputEvent | null> {
+  if (rev === TILT_REV_BIG) return tiltBigGame;
   if (rev === TILT_REV_PAR) return tiltParGame;
   if (rev === TILT_REV_STD) return tiltStdGame;
   if (rev === TILT_REV_LIFT) return tiltLiftGame;
@@ -2061,7 +2068,7 @@ function stepX(state: TiltState, input: ArcadeInputEvent | null): TiltState {
       s.holdB = tick + TILT_X_FALL_HOLD;
     } else live.push({ x: s.b!.x, y: s.b!.y });
   }
-  const q = Math.trunc(m.cs / 3);
+  const q = m.keyReach ?? Math.trunc(m.cs / 3);
   const near = (p: { x: number; y: number }) => live.some((ball) => Math.abs(ball.x - p.x) < q && Math.abs(ball.y - p.y) < q);
   // Keys: a rolling marble over the key's cell centre opens its gate.
   (m.keys ?? []).forEach((c, k) => {
@@ -2292,7 +2299,7 @@ export const tiltLiftGame: ArcadeGame<TiltState, ArcadeInputEvent | null> = {
 
 /** True for the revisions that play the expansion's mazes (tiltRev 8, and tiltRev 9 on its lifted curves). */
 export function tiltIsExpand(rev?: number | null): boolean {
-  return rev === TILT_REV_EXPAND || rev === TILT_REV_LIFT || rev === TILT_REV_STD || rev === TILT_REV_PAR;
+  return rev === TILT_REV_EXPAND || rev === TILT_REV_LIFT || rev === TILT_REV_STD || rev === TILT_REV_PAR || rev === TILT_REV_BIG;
 }
 
 /* ================= tiltRev 10 (29 Oct 2026): the arcade scoring standard ================= */
@@ -2662,4 +2669,75 @@ export const tiltParGame: ArcadeGame<TiltState, ArcadeInputEvent | null> = {
   init: initP,
   step: bandStep(stepP, tiltTrackS),
   score: tiltParScore,
+};
+
+/* ================= tiltRev 12 (3 Nov 2026): bigger marbles, cups and keys ================= */
+
+/**
+ * tiltRev 12 (Joe's audit of Tilt, 3 Nov 2026; docs/arcade-standard/tilt.md "tiltRev 12"): tiltRev 11's four mazes,
+ * pars, rules and parts exactly (the same carve, holes, keys and gates, ice, cups and amber marble from the same seed
+ * streams; core 140, par 24, clean run 12, speed 24), with bigger pieces:
+ *  - the marbles' radius (the collision radius, drawn exactly) is TILT_B_BALL % of a cell in mazes 1–3 (tiltRev 11:
+ *    28 %, 8.4 px of a 30 px cell; now 12.3 px, 1.46×) and TILT_B_BALL4 % in maze 4 (34 %, 5.4 px of a 16 px cell;
+ *    now 7.2 px, 1.32×), still under half a cell, so every passage the carve opened is passable as before;
+ *  - a key is taken when a rolling marble's centre comes within TILT_B_KEY_REACH % of a cell of the key's centre on
+ *    each axis (cs / 3 before), the key drawn that size;
+ *  - the cups are drawn TILT_B_CUP % of the marble's radius (display only: a marble is home, as before, once its
+ *    centre leaves the maze through its exit).
+ * Rooms deal it from its own proved deal (src/lib/duel/tiltDealV12.server.ts: bank seeds the oracle played to exactly
+ * 200 through the server's replay on this stamp). States add `big: 1` (with tiltRev 11's markers), folded into the
+ * checkpoint checksum after tiltRev 11's counters.
+ */
+export const TILT_REV_BIG = 12;
+/** Marble radius, % of a cell: mazes 1–3 and maze 4. */
+export const TILT_B_BALL = 41;
+export const TILT_B_BALL4 = 45;
+/** Key pickup reach, % of a cell (each axis, from the key cell's centre). */
+export const TILT_B_KEY_REACH = 45;
+/** The cup's radius, % of the marble's (display only; the renderer reads it). */
+export const TILT_B_CUP = 160;
+/** The core's straight line on tiltRev 12: tiltRev 11's (0 → 140; the "?" help and LIVE_BANDS read it). */
+export const TILT_V12_BAND_CURVE = TILT_V11_BAND_CURVE;
+
+const cacheB = new Map<number, Maze[]>();
+
+/** The four tiltRev 12 mazes of a seed (cached): tiltRev 11's (pars included) with bigger marbles and keys. */
+function mazesB(seed: number): Maze[] {
+  let list = cacheB.get(seed | 0);
+  if (!list) {
+    list = mazesP(seed).map((m, i) => ({
+      ...m,
+      br: Math.trunc((m.cs * (i === TILT_S_MAZES - 1 ? TILT_B_BALL4 : TILT_B_BALL)) / 100),
+      keyReach: Math.trunc((m.cs * TILT_B_KEY_REACH) / 100),
+    }));
+    if (cacheB.size > 16) cacheB.clear();
+    cacheB.set(seed | 0, list);
+  }
+  return list;
+}
+
+/** The four tiltRev 12 mazes a seed deals (the same for every player; checks and tools read them). */
+export function tiltMazesB(seed: number): readonly Maze[] {
+  return mazesB(seed);
+}
+
+function initB(seed: number): TiltState {
+  const base = init(seed);
+  const list = mazesB(seed);
+  return bandInit(enterMazeX({ ...base, rev: TILT_REV, list, stars: 0, cupped: 0, starTick: -1000, xp: 1, std: 1, parClean: 1, big: 1, parsMet: 0, mazeTicks: [], quickPts: 0, quickTaken: 0, keysTaken: 0, keyTick: -1000, quickTick: -1000, falls: 0, fallTick: -1000, pace: 0 }, 0));
+}
+
+/**
+ * Ticks gone past the maze being played's par (0 while within it; the HUD's "Over par" reads it). A maze finished at
+ * exactly its par still meets it (stepP's `took <= par`), so "Over par" shows only once the par has passed.
+ */
+export function tiltOverParT(s: TiltState): number {
+  const m = s.list[s.level];
+  if (!m || !m.par) return 0;
+  return Math.max(0, s.tick - (s.mazeAt ?? 0) - m.par);
+}
+
+export const tiltBigGame: ArcadeGame<TiltState, ArcadeInputEvent | null> = {
+  ...tiltParGame,
+  init: initB,
 };
