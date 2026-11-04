@@ -167,6 +167,22 @@ jobs:
         run: bun .github/ci/run-shard.ts ${{ matrix.shard }} 2>&1 | tee ci-results-${{ matrix.shard }}.log
         shell: bash # -eo pipefail: a failing runner fails the step through tee
 
+      # The capture's summary in the job log when a shard fails (the artifact holds the full files).
+      - name: Dev-server capture summary
+        if: failure()
+        run: |
+          shopt -s nullglob
+          for f in ci-results/dev-server/vite-*.log; do
+            echo "== $f"
+            head -n 2 "$f"
+            grep -E '\[[0-9.]+s (exit|stderr)\]' "$f" | tail -n 8
+            grep -E '\[[0-9.]+s memory\]' "$f" | tail -n 3
+          done
+          for r in ci-results/dev-server/report.*.json; do
+            echo "== $r (fatal error report)"
+            node -e 'const r=require(process.argv[1]); const h=r.javascriptHeap||{}; const mb=(n)=>Math.round((n||0)/1048576); console.log(r.header?.event, "| heap used", mb(h.usedMemory), "MB of a", mb(h.memoryLimit), "MB limit; peak rss", mb(r.resourceUsage?.maxRss), "MB")' "$PWD/$r" || true
+          done
+
       - name: Upload logs
         if: failure()
         uses: actions/upload-artifact@v5
