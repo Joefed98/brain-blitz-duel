@@ -8,6 +8,9 @@
  * one short browser check, plus ~45 s of setup and browser install.
  * Rebalance if one job's time drifts well past the others (each job's summary lists
  * every check's time).
+ * Rebalanced 3 Nov 2026: g (the catch-all, every new check) had grown to ~31-33 min while d-f
+ * finished in 6-10; ~18 min of its largest unlisted checks (timed on PR #253's run) now sit on
+ * c, d, e and f, each aiming at ~12-13 min against the job's 45-minute limit.
  *
  * A check file not listed here still runs: in CATCH_ALL (g) if it starts no browser, in BROWSER_CATCH_ALL (play21)
  * if it does.
@@ -188,6 +191,16 @@ export const SHARDS: Record<string, string[]> = {
   ],
   // ~282 s of checks on run 38608375501's times.
   c: [
+    // From g's catch-all (3 Nov 2026 rebalance; ~138 s on PR #253's CI times): g ran ~31 min, d-f 6-10.
+    "scoring-bands-check.ts",
+    "scoring-rev3-check.ts",
+    "ink-v13-check.ts",
+    "burst-standard-check.ts",
+    "bastion-check.ts",
+    "d5-remodels-check.ts",
+    "ink-v11-check.ts",
+    "hover-standard-check.ts",
+    "fences-check.ts",
     // arcade-room-schedule-check in thirds (1 Nov 2026: Grappler swingRev 16's 90 s runs took the whole check to ~4.8 min).
     "arcade-room-schedule-check.ts@2/3",
     "arcade-correction-check.ts",
@@ -211,6 +224,13 @@ export const SHARDS: Record<string, string[]> = {
   ],
   // ~282 s of checks on run 38608375501's times.
   d: [
+    // From g's catch-all (3 Nov 2026 rebalance; ~360 s on PR #253's CI times): g ran ~31 min, d-f 6-10.
+    "arcade-room-identity-check.ts",
+    "flip-rev11-check.ts",
+    "room-practice-grade-check.ts",
+    "racing-render-check.ts",
+    "cross-rev11-check.ts",
+    "swing-assault-check.ts",
     "arcade-tuning-f-check.ts",
     "arcade-tuning-f2-check.ts",
     "beat-hold-check.tsx",
@@ -233,6 +253,17 @@ export const SHARDS: Record<string, string[]> = {
   ],
   // ~282 s of checks on run 38608375501's times.
   e: [
+    // From g's catch-all (3 Nov 2026 rebalance; ~231 s on PR #253's CI times): g ran ~31 min, d-f 6-10.
+    "daily-check.ts",
+    "ink-x200-check.ts",
+    "depth4-check.ts",
+    "room-figures-check.ts",
+    "puzzle-batch-nov-check.ts",
+    "moon-blockzone-check.ts",
+    "orbit-expand-check.ts",
+    "depth-swapword-check.ts",
+    "tilt-expand-check.ts",
+    "haptics-check.tsx",
     // arcade-room-schedule-check in thirds (1 Nov 2026: Grappler swingRev 16's 90 s runs took the whole check to ~4.8 min).
     "arcade-room-schedule-check.ts@3/3",
     "category-pool-check.ts",
@@ -257,6 +288,16 @@ export const SHARDS: Record<string, string[]> = {
   ],
   // ~282 s of checks on run 38608375501's times.
   f: [
+    // From g's catch-all (3 Nov 2026 rebalance; ~336 s on PR #253's CI times): g ran ~31 min, d-f 6-10.
+    "arcade-standard-check.ts",
+    "cards-check.ts",
+    "cross-x200-check.ts",
+    "fillomino-check.ts",
+    "bintoss-standard-check.ts",
+    "tilt-rev11-check.ts",
+    "flip-x200-check.ts",
+    "arcade-phone-notes-check.ts",
+    "challenge-check.ts",
     "arcade-batch4-check.ts",
     // arcade-fx-check in thirds (3 Nov 2026: Curl Champ's, Apex's and Cue Ball's runs took the whole check past 5 min locally).
     "arcade-fx-check.ts@1/3",
