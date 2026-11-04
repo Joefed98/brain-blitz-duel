@@ -158,6 +158,12 @@ jobs:
           echo "> runner: $(free -m | awk '/^Mem:/{print $2}') MB RAM, $(nproc) cores." >> "$GITHUB_STEP_SUMMARY"
 
       - name: Run checks (${{ matrix.shard }})
+        # Dev-server capture (4 Nov 2026, .github/ci/dev-server-log.cjs): each check's vite dev server keeps its last
+        # output lines and memory samples, and Node writes a diagnostic report on a fatal error (out of memory), in
+        # ci-results/dev-server/ (uploaded below). Observation only.
+        env:
+          DUELZ_DEV_SERVER_LOG_DIR: ${{ github.workspace }}/ci-results/dev-server
+          NODE_OPTIONS: --require ${{ github.workspace }}/.github/ci/dev-server-log.cjs --report-on-fatalerror --report-directory=${{ github.workspace }}/ci-results/dev-server
         run: bun .github/ci/run-shard.ts ${{ matrix.shard }} 2>&1 | tee ci-results-${{ matrix.shard }}.log
         shell: bash # -eo pipefail: a failing runner fails the step through tee
 
