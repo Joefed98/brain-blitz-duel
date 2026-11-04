@@ -196,7 +196,8 @@ if (want("cross")) {
   ok(crossBlocked(touching, centre, 0, crossPlayerHalfFp(small.init(5))), "a car 12 px from the centre still hits the new walker");
   // The figure's arms reach 6 + 2 + 3 px plus half the 5.5 px outline: within 2 px of the 13 px box (bounds rule).
   ok(Math.abs(6 + 2 + 3 + 5.5 / 2 - 13) <= 2, "the drawn walker sits within 2 px of the new hit box");
-  ok(PUZZLE_INSTRUCTIONS.cross.how.some((h) => /walker/.test(h.action) && /touch/.test(h.detail)), "the \"?\" help says only the walker itself is hit");
+  // Jaywalk is shown as Spacewalk since 4 Nov 2026 (display only, #255): the help's figure is the astronaut.
+  ok(PUZZLE_INSTRUCTIONS.cross.how.some((h) => /astronaut/.test(h.action) && /touch/.test(h.detail)), "the \"?\" help says only the astronaut itself is hit");
   // 150 through the server replay.
   let best = 0;
   for (let n = 0; n < 6 && best < 150; n++) {

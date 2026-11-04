@@ -63,7 +63,8 @@ import {
   retroBloom,
   retroBurst,
   retroPaddle,
-  retroReadout,
+  retroHud,
+  type RetroHudItem,
   retroScreen,
   retroText,
   retroTrail,
@@ -377,13 +378,16 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: BrkState, key: CanvasRe
     );
   }
 
-  successHud(ctx,'breaker',state.tick,14,26,()=>{retroReadout(ctx, 14, 8, brkHudBricks(state), RETRO_WHITE);});
-  if ((state.fire ?? 0) > 0) {
-    const fire = state.fire ?? 0;
-    retroText(ctx, `FIREBALL ${Math.ceil(fire / 60)}`, BRK_WORLD_W - 14, 10, 12, FIRE, "right");
-    // The bar empties over the Fireball's length (5 s; 3.5 s from brkRev 4; 2.5 s from brkRev 5).
-    pixelRect(ctx, BRK_WORLD_W - 110, 26, Math.round((96 * fire) / brkFireTicks(state)), 3, FIRE);
-  }
+  // One Retro HUD (3 Nov 2026): bricks top left, the gold bricks (or brkRev 9's skill) and a live Fireball's
+  // seconds top right. No "1UP" (it overlapped BRICKS).
+  const fire = state.fire ?? 0;
+  retroHud(
+    ctx,
+    brkWorldW(state),
+    { text: brkHudBricks(state) },
+    [state.deep ? brkDeepHudItem(state) : null, fire > 0 ? { text: `FIREBALL ${Math.ceil(fire / 60)}`, colour: FIRE } : null],
+    { wrapMain: (draw) => successHud(ctx, "breaker", state.tick, 12, 8, draw) },
+  );
   if (state.pause > 0) retroText(ctx, "RELAUNCHING", BRK_WORLD_W / 2, BRK_PADDLE_Y - 40, 16, PADDLE, "center");
   if (state.deep) drawDeepHud(ctx, state, key);
 }
@@ -434,19 +438,21 @@ function brkHudBricks(state: BrkState): string {
   return `BRICKS ${brkDestroyed(state)}/${brkWallSize(state)}`;
 }
 
-/** brkRev 9's HUD: the skill points (top right); brkRev 11's gold bricks broken (its skill pay is gone). */
-const clinkMemo = new WeakMap<CanvasRenderingContext2D, { clinks: number; at: number; tick: number }>();
-function drawDeepHud(ctx: CanvasRenderingContext2D, state: BrkState, key: CanvasRenderingContext2D): void {
-  const W = brkWorldW(state);
-  // Right of the BRICKS readout, under the Fireball line and its bar.
+/** The HUD's top-right count: brkRev 11's gold bricks broken, brkRev 9–10's skill points. */
+function brkDeepHudItem(state: BrkState): RetroHudItem {
   if (state.std) {
     const dealt = brkGoldDealt(state);
     const broken = Math.min(dealt, state.goldBroken ?? 0);
-    retroText(ctx, `GOLD ${broken}/${dealt}`, W - 14, 31, 11, broken >= dealt ? RETRO_WHITE : GOLD, "right");
-  } else {
-    const skill = brkSkillPaid(state);
-    retroText(ctx, `SKILL ${skill}/${BRK_V9_SKILL_MAX}`, W - 14, 31, 11, skill >= BRK_V9_SKILL_MAX ? RETRO_WHITE : GOLD, "right");
+    return { text: `GOLD ${broken}/${dealt}`, colour: broken >= dealt ? RETRO_WHITE : GOLD };
   }
+  const skill = brkSkillPaid(state);
+  return { text: `SKILL ${skill}/${BRK_V9_SKILL_MAX}`, colour: skill >= BRK_V9_SKILL_MAX ? RETRO_WHITE : GOLD };
+}
+
+/** brkRev 9's HUD: the skill points (top right); brkRev 11's gold bricks broken (its skill pay is gone). */
+const clinkMemo = new WeakMap<CanvasRenderingContext2D, { clinks: number; at: number; tick: number }>();
+function drawDeepHud(ctx: CanvasRenderingContext2D, state: BrkState, key: CanvasRenderingContext2D): void {
+  // The gold (or skill) count is drawn by the shared Retro HUD (brkDeepHudItem).
   // The combo is no longer written above the paddle (Joe's phone notes, 28 Oct 2026): the chain still scores as before.
   // A ball bounced off gold (not a direct hit, or a Fireball, laser or ×3 shot): a short white ring on the presentation clock.
   const now = typeof performance === "undefined" ? 0 : performance.now();

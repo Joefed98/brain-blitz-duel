@@ -4,7 +4,9 @@ import { burstFxFor } from "./arcadeFxGames.renderer";
 /** Burst in the Retro Arcade world. Render only; the sim and its bounds are untouched. */
 import {
   burstGame,
+  burstAtomsOf,
   burstGameFor,
+  BURST_V10_WAVES,
   BURST_COLOURS,
   BURST_ICON_FREEZE,
   BURST_REV,
@@ -36,10 +38,13 @@ import {
   retroClock,
   retroEventAge,
   retroNeon,
+  retroHud,
+  RETRO_FONT,
   retroText,
   retroScreen,
   RETRO_RED,
   RETRO_WHITE,
+  type RetroHudItem,
 } from "./retro.renderer";
 
 import { artCanvas, artContext, type ArtCanvas } from "./cache.renderer";
@@ -329,41 +334,37 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: BurstState, lifeFlash: 
     ctx.globalAlpha = 1;
   }
 
-  const score = burstGameFor(state.std ? BURST_REV_STD : state.carry ? BURST_REV_CARRY : state.exp ? BURST_REV_CLEAN : null).score(state);
-  const on = Math.floor(retroClock() / 500) % 2 === 0;
-  if (state.carry) {
-    // burstRev 9: wave and score, a live power-up, the wave-clear bonus still to win ("CLEAR +n") and the lives.
-    const double = state.double ?? 0;
-    const burstT = state.burstT ?? 0;
-    retroText(ctx, `WAVE ${Math.max(1, state.wave)} ${score}`, 10, 7, 8, RETRO_WHITE);
-    if (freeze > 0 || double > 0 || burstT > 0) {
-      const status = freeze > 0 ? [`FREEZE ${Math.ceil(freeze / 60)}`, ICE] : double > 0 ? [`DOUBLE ${Math.ceil(double / 60)}`, BEAM] : [`BURST ${Math.ceil(burstT / 60)}`, SHIP];
-      retroText(ctx, status[0]!, BURST_WORLD_W / 2 - 10, 7, 8, status[1]!, "center");
-    }
-    // burstRev 10: up to 7 a wave, on its straight line.
+  // One Retro HUD (3 Nov 2026, Joe's audit): the wave top left ("WAVE 2 OF 5" on burstRev 10's five waves) and,
+  // top right, the atoms left on screen (every piece their splits will make) over a live power-up, the wave-clear
+  // bonus still to win (burstRev 9+) or the clean counter (burstRev 8), then the lives. No "1UP", no "·".
+  // burstRev 8+ keep the slim 24 px band above the higher ceiling, so their HUD is two 8 px rows there.
+  const atomsLeft = state.balls.reduce((n, b) => n + burstAtomsOf(b.size), 0);
+  const waveText = state.std ? `WAVE ${Math.max(1, state.wave)} OF ${BURST_V10_WAVES}` : `WAVE ${Math.max(1, state.wave)}`;
+  const double = state.double ?? 0;
+  const burstT = state.burstT ?? 0;
+  const status: RetroHudItem | null =
+    freeze > 0 ? { text: `FREEZE ${Math.ceil(freeze / 60)}`, colour: ICE }
+    : double > 0 ? { text: `DOUBLE ${Math.ceil(double / 60)}`, colour: BEAM }
+    : burstT > 0 ? { text: `BURST ${Math.ceil(burstT / 60)}`, colour: SHIP }
+    : state.burst ? { text: "BURST", colour: SHIP }
+    : null;
+  let extra: RetroHudItem | null = status;
+  if (!extra && state.carry && state.balls.length > 0) {
     const clear = state.std ? burstV10ClearNow(state) : burstV9ClearNow(state);
-    if (state.balls.length > 0) retroText(ctx, `CLEAR +${clear}`, BURST_WORLD_W - 56, 7, 8, clear > 0 ? CLEAN : "rgba(255,255,255,0.4)", "right");
-    for (let i = 0; i < BURST_LIVES; i++) sprite(ctx, SHIP_ROWS, BURST_WORLD_W - 48 + i * 14, 4, 0.75, i < state.lives ? SHIP : "rgba(255,216,74,0.2)");
-  } else if (state.exp) {
-    // burstRev 8: one slim line above the higher ceiling (24 px): wave and score, a live power-up, the
-    // clean counter (shots that hit / shots fired this wave; red once one has missed) and the lives.
-    const double = state.double ?? 0;
-    retroText(ctx, `WAVE ${Math.max(1, state.wave)} ${score}`, 10, 7, 8, RETRO_WHITE);
-    if (freeze > 0 || double > 0) {
-      const status = freeze > 0 ? [`FREEZE ${Math.ceil(freeze / 60)}`, ICE] : [`DOUBLE ${Math.ceil(double / 60)}`, BEAM];
-      retroText(ctx, status[0]!, BURST_WORLD_W / 2 - 10, 7, 8, status[1]!, "center");
-    }
-    const missed = (state.missed ?? 0) > 0;
-    retroText(ctx, `CLEAN ${state.landed ?? 0}/${state.fired ?? 0}`, BURST_WORLD_W - 56, 7, 8, missed ? "rgba(255,90,110,0.85)" : CLEAN, "right");
-    for (let i = 0; i < BURST_LIVES; i++) sprite(ctx, SHIP_ROWS, BURST_WORLD_W - 48 + i * 14, 4, 0.75, i < state.lives ? SHIP : "rgba(255,216,74,0.2)");
-  } else {
-  retroText(ctx, "1UP", 14, 8, 8, on ? RETRO_RED : "rgba(255,59,92,0.35)");
-  retroText(ctx, `WAVE ${Math.max(1, state.wave)} ${score}${state.burst ? " BURST" : ""}`, 14, 20, 10, RETRO_WHITE);
-  if (freeze > 0) retroText(ctx, `FREEZE ${Math.ceil(freeze / 60)}`, 14, 34, 10, ICE);
-  for (let i = 0; i < BURST_LIVES; i++) {
-    sprite(ctx, SHIP_ROWS, BURST_WORLD_W - 100 + i * 16, 14, 0.75, i < state.lives ? SHIP : "rgba(255,216,74,0.2)");
+    extra = { text: `CLEAR +${clear}`, colour: clear > 0 ? CLEAN : "rgba(255,255,255,0.5)" };
+  } else if (!extra && state.exp && !state.carry) {
+    extra = { text: `CLEAN ${state.landed ?? 0}/${state.fired ?? 0}`, colour: (state.missed ?? 0) > 0 ? "rgba(255,90,110,0.9)" : CLEAN };
   }
-  }
+  const atoms: RetroHudItem = { text: `ATOMS LEFT ${atomsLeft}`, colour: RETRO_WHITE };
+  const slim = Boolean(state.exp || state.carry);
+  // Left: the wave over the lives; right: the atoms over the extra count.
+  retroHud(ctx, BURST_WORLD_W, { text: waveText }, [atoms, extra], slim ? { top: 2, pitch: 11, mainPx: 10, sidePx: 8, glow: 0 } : { glow: 0 });
+  // The lives: under the wave on the full HUD; in burstRev 8+'s slim band, on the wave's row just after its text.
+  ctx.font = `${slim ? 10 : 14}px ${RETRO_FONT}`;
+  const waveW = typeof ctx.measureText === "function" ? ctx.measureText(waveText)?.width ?? 0 : 0;
+  const livesX = slim ? 12 + Math.ceil(Number.isFinite(waveW) && waveW > 0 ? waveW : waveText.length * 10) + 10 : 12;
+  const livesY = slim ? 3 : 26;
+  for (let i = 0; i < BURST_LIVES; i++) sprite(ctx, SHIP_ROWS, livesX + i * 14, livesY, 0.75, i < state.lives ? SHIP : "rgba(255,216,74,0.2)");
 }
 
 /**

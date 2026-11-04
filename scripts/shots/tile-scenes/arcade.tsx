@@ -13,7 +13,7 @@ import { WAV_CELL, WAV_COLOURS } from "@/lib/arcade/wavefront";
 import { drawAtmosphere, drawPlanet, drawRocketFlame, paintRocket } from "@/lib/arcade/orbit.renderer";
 import { drawPipe, drawSaucer, drawShipLight, drawStar as hoverStar } from "@/lib/arcade/hover.renderer";
 import { HOVER_DISC_X, type HoverState } from "@/lib/arcade/hover";
-import { REAL_ASPHALT, drawVehicle, drawWalkerHero } from "@/lib/arcade/cross.renderer";
+import { drawAstronaut, drawComet, drawSpaceShip, paintPlasmaLane, paintSpaceLane, paintStationDeck } from "@/lib/arcade/spacewalk.renderer";
 import { heroPose, type HeroPose } from "@/lib/arcade/hero.renderer";
 import { drawDart, paintBoard } from "@/lib/arcade/bullseye.renderer";
 import { BULLSEYE_RING_VALUES } from "@/lib/arcade/bullseye";
@@ -187,25 +187,16 @@ export const ARCADE_SCENES: SceneSet = {
     });
   }),
 
-  // Jaywalk: the hero walker crossing two lanes of traffic, a car coming each way.
-  cross: canvasScene((c, k) => {
-    const top = 20, laneH = 32;
-    c.fillStyle = REAL_ASPHALT;
-    c.fillRect(0, top, 104, laneH * 2);
-    c.fillStyle = "rgba(20,24,30,0.1)";
-    for (const lane of [0, 1]) {
-      c.fillRect(0, top + lane * laneH + 6, 104, 4);
-      c.fillRect(0, top + lane * laneH + laneH - 10, 104, 4);
-    }
-    c.fillStyle = "rgba(250,250,250,0.85)";
-    c.fillRect(0, top + 1, 104, 2);
-    c.fillRect(0, top + laneH * 2 - 3, 104, 2);
-    c.fillStyle = "rgba(248,250,252,0.9)";
-    for (let x = -6; x < 104; x += 26) c.fillRect(x, top + laneH - 1, 13, 2);
-    drawVehicle(c, 62, top + 4, 50, laneH - 8, -1, "#5AA9FF", false, false);
-    drawVehicle(c, -14, top + laneH + 4, 50, laneH - 8, 1, "#F25C54", false, false);
-    const s = 1.35;
-    at(c, 46, top + laneH - 2, s, () => drawWalkerHero(c, 0, 0, 0, 0.6, 0, 0.6, true, tileHero(4, 3, 1, s * k)));
+  // Spacewalk (Jaywalk until 3 Nov 2026): the pixel astronaut between two space lanes, a ship coming one way and a comet
+  // the other on its plasma lane, the station deck below.
+  cross: canvasScene((c) => {
+    const top = 18, laneH = 30;
+    paintSpaceLane(c, 0, top, 104, laneH, 1, false);
+    paintPlasmaLane(c, 0, top + laneH, 104, laneH);
+    paintStationDeck(c, 0, top + laneH * 2, 104, 18, "top", 26);
+    drawSpaceShip(c, 56, top + 4, 52, laneH - 8, -1, "#3DFFE0", 0);
+    drawComet(c, -6, top + laneH + 6, 44, laneH - 12, 1, "#FF9BFF");
+    drawAstronaut(c, 52, top + laneH * 2 + 4, 13, 0, 0.6, 0, true);
   }),
 
   // Flightpath: the ring board on its hay bale with a dart in the bull and one in a ring.

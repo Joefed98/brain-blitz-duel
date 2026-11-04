@@ -68,7 +68,7 @@ check(NEW_IDS.every((t) => ARCADE_GROUPS.some((g) => g.games.includes(t))), "the
 // The brief named games by their display names: the map's registered ids resolve to exactly those names.
 const BRIEF: Record<string, string[]> = {
   // Blockfall joined Retro and Alley Roll Sports on 1 Nov 2026 (Blockfall shown as Blockzone and Alley Roll as Ringer since 3 Nov 2026).
-  retro: ["Hover", "Breaker", "Rally", "Wavefront", "Fission", "Tempo", "Meteor", "Orbit", "Jaywalk", "Pinball", "Blockzone"],
+  retro: ["Hover", "Breaker", "Rally", "Wavefront", "Fission", "Tempo", "Meteor", "Spacewalk", "Pinball", "Blockzone"],
   // Home Run Derby, Free Kick and Racing registered on 30 Oct 2026 (#203); renamed Home Run, Top Bins and Apex on 31 Oct 2026.
   // Minigolf, Speed Pool and Curling shown as Crazy Golf, Cue Ball and Curl Champ since 31 Oct 2026.
   sports: ["Flightpath", "Swish", "Crazy Golf", "Cue Ball", "Curl Champ", "Home Run", "Top Bins", "Apex", "Ringer"],
@@ -83,7 +83,8 @@ const BRIEF: Record<string, string[]> = {
   // Ricochet back from retirement as the ninja wall-climb (ricoRev 2, 1 Nov 2026), and Bastion back in rooms (bastionRev 2), in Action.
   // Ricochet is shown as Moon Climb since 3 Nov 2026 (ricoRev 3), and Bastion as Iron Wall.
   // High Rise back from Strategy to Action on 3 Nov 2026 (Joe's decision).
-  action: ["Slice", "Roofbound", "Grappler", "Moon Climb", "Iron Wall", "High Rise"],
+  // Orbit moved from Retro to Action on 3 Nov 2026 (Joe's audit); Jaywalk is shown as Spacewalk.
+  action: ["Slice", "Roofbound", "Grappler", "Moon Climb", "Iron Wall", "High Rise", "Orbit"],
   strategy: ["Tilt", "Gemstone", "Coral Pop", "Rainbow Bridge", "Ball Tracker"],
 };
 check(ARCADE_GROUPS.map((g) => g.id).join() === "retro,sports,cards,action,strategy", "five groups: Retro, Sports, Cards & Board, Action, Strategy");
