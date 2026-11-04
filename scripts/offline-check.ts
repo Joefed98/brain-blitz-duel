@@ -375,6 +375,10 @@ async function fullPass(browser: Browser): Promise<void> {
   const tag = `${W}x${H}`;
   const auth: AuthLog = { signups: [], refreshes: [] };
   const ctx = await browser.newContext({ viewport: { width: W, height: H }, deviceScaleFactor: 1 });
+  // Automated browsers top up packs only on request (topUpAllowed in src/lib/offline/packs.ts): this check opts in.
+  await ctx.addInitScript(() => {
+    (window as unknown as { __DUELZ_ALLOW_PACKS__: boolean }).__DUELZ_ALLOW_PACKS__ = true;
+  });
   await stubAuth(ctx, auth);
   const page = await ctx.newPage();
   const errors: string[] = [];
@@ -591,6 +595,10 @@ async function smallPass(browser: Browser): Promise<void> {
   const tag = `${W}x${H}`;
   const auth: AuthLog = { signups: [], refreshes: [] };
   const ctx = await browser.newContext({ viewport: { width: W, height: H }, deviceScaleFactor: 1 });
+  // Automated browsers top up packs only on request (topUpAllowed in src/lib/offline/packs.ts): this check opts in.
+  await ctx.addInitScript(() => {
+    (window as unknown as { __DUELZ_ALLOW_PACKS__: boolean }).__DUELZ_ALLOW_PACKS__ = true;
+  });
   await stubAuth(ctx, auth);
   const page = await ctx.newPage();
   const errors: string[] = [];
