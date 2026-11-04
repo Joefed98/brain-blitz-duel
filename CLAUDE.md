@@ -337,7 +337,7 @@ outside the repo.
   icon tiles are black with their category's colour as the border (27 Oct 2026). Round leaderboard rows keep time · verdict · summary
   on one line under the name (ellipsis; a tap opens the detail). theme-check (fonts, tokens, contrast ≥ 4.5:1,
   targets ≥ 44 px, `play16`) and no-wrap-check (single-line text never wraps or is cut off but names, at 414×896 app,
-  375×667 and desktop; thirds on `play16`/`play17`) prove it; run both after changing a skinned screen.
+  375×667 and desktop; sixths since 4 Nov 2026, two on `play16` and four on `play17`) prove it; run both after changing a skinned screen.
 - **Daily challenge and async rooms** (21 Oct 2026, the beta's daily; no game's rules, scoring or grading changed, no
   version stamps): an *async room* (`src/lib/duel/asyncRoom.ts` timings, `asyncRoom.server.ts` engine,
   `asyncRoom.functions.ts` calls, `src/components/async/AsyncRun.tsx` / `AsyncResults.tsx`) is a set of rounds dealt once
