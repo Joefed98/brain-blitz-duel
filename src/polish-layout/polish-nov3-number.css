@@ -50,8 +50,8 @@
   color: #cfc8ba;
 }
 
-/* Tenfall's HUD (tenDrop.tsx): three pills on the wooden plank, "Total 8", "Target 25" and the cleared pegs.
-   Above the board it is 44 px (was 56); under the world (data-place="below") it fills the strip that was bare wood. */
+/* Tenfall's HUD (tenDrop.tsx): three pills on the wooden plank, "Total 8", "Target 25" and the cleared pegs, in the
+   plank's fixed 56 px band above the board (arcade-play-check's ABOVE_PX.tendrop: the arena starts 4 px under it). */
 [data-polish="tendrop"] .td-hud-v3 {
   display: flex;
   width: 100%;
@@ -60,20 +60,8 @@
   justify-content: center;
   padding: 0 8px;
 }
-[data-polish="tendrop"] .td-hud-v3[data-place="above"] {
-  height: 44px;
-}
-[data-polish="tendrop"] .td-hud.td-hud-v3[data-place="below"] {
-  position: absolute;
-  z-index: 2;
-  left: 0;
-  right: 0;
+[data-polish="tendrop"] .td-hud-v3 {
   height: 56px;
-  border-radius: 0 0 12px 12px;
-  border-top: 0;
-  border-bottom: 2px solid #2b1a0e;
-  box-shadow: inset 0 3px 0 #d4a84a, inset 0 -6px 10px rgba(0, 0, 0, 0.3);
-  pointer-events: none;
 }
 [data-polish="tendrop"] .td-hud-v3 .td-pills {
   height: 36px;
