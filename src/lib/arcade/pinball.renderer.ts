@@ -68,6 +68,7 @@ import {
   retroBloom,
   retroClock,
   retroScreen,
+  retroHud,
   retroText,
   retroTrail,
   RETRO_WHITE,
@@ -1044,24 +1045,10 @@ function drawWorld(ctx: Ctx, state: PinState, key: Ctx): void {
     );
   }
 
-  // HUD: score left, balls and multiplier right (above the arch).
-  retroText(ctx, state.points.toLocaleString("en-GB"), 12, 8, 12, PIN_COLOURS.hud, "left", 4);
-  const left = Math.max(0, PIN_BALLS - state.lost);
-  retroText(
-    ctx,
-    `BALL ${Math.min(PIN_BALLS, state.launched || 1)}/${PIN_BALLS}`,
-    PIN_WORLD_W - 12,
-    8,
-    10,
-    PIN_COLOURS.hud,
-    "right",
-  );
-  for (let i = 0; i < left; i++) {
-    ctx.fillStyle = PIN_COLOURS.ball;
-    ctx.beginPath();
-    ctx.arc(PIN_WORLD_W - 15 - i * 10, 27, 3, 0, Math.PI * 2);
-    ctx.fill();
-  }
+  // One Retro HUD (3 Nov 2026): score top left, the ball top right.
+  retroHud(ctx, PIN_WORLD_W, { text: state.points.toLocaleString("en-GB"), colour: PIN_COLOURS.hud }, [
+    { text: `BALL ${Math.min(PIN_BALLS, state.launched || 1)}/${PIN_BALLS}`, colour: PIN_COLOURS.hud },
+  ]);
   if (state.lost >= PIN_BALLS && state.tick < PIN_RUN_TICKS)
     retroText(ctx, "GAME OVER", PIN_WORLD_W / 2 - 12, 420, 16, "#FF3B5C", "center", 6);
 }

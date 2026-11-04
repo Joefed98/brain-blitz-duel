@@ -12,7 +12,7 @@ override anything general here.
 Duelz: a multiplayer skill-game app. Up to 16 players (`MAX_PLAYERS`, 10 until 31 Oct 2026) join a room with a
 short code and play the same timed rounds; 92 active games across Word, Number, Speed, Attention,
 Pattern, Logic and Arcade (Word 9, Number 9 (Kakuro since 1 Nov 2026), Speed 6, Attention 7 (Bomb Defusal moved from Logic on 3 Nov 2026), Pattern 10, Logic 14 (Trail moved from Number on 27 Oct 2026; Loopline, Regions and Island Link since 1 Nov 2026, shown as Fences, Fillomino and Bridges until 3 Nov 2026),
-Arcade 37 with Pinball, since 1 Nov 2026 Blockfall (Retro; shown as Blockzone since 3 Nov 2026, `blockfallRev` 2), Alley Roll (Sports; shown as Ringer since 3 Nov 2026), Ricochet back as the ninja wall-climb (`ricoRev` 2, Action; shown as Moon Climb since 3 Nov 2026, `ricoRev` 3) and Iron Wall (id `bastion`, shown as Bastion until 3 Nov 2026) back as the tank-defence shooter (`bastionRev 2`; `bastionRev 3` since 3 Nov 2026, Action), and, since 30 Oct 2026, the Cards & Board group's Minefield (shown as Minesweeper until 31 Oct 2026), Mahjong Solitaire, Free Cell and Summit (shown as FreeCell and TriPeaks until 31 Oct 2026), since 31 Oct 2026 Five Hands, since 1 Nov 2026 Pyramid (shown as Thirteen since 3 Nov 2026), and the Sports group's Home Run, Top Bins, Apex (shown as Home Run Derby, Free Kick and Racing until 31 Oct 2026), Crazy Golf, Cue Ball and Curl Champ (shown as Minigolf, Speed Pool and Curling until 31 Oct 2026) dealt in rooms; 12 retired to practice: Swerve, Steady, Dual,
+Arcade 37 with Pinball (Jaywalk shown as Spacewalk and Orbit in Action since 3 Nov 2026), since 1 Nov 2026 Blockfall (Retro; shown as Blockzone since 3 Nov 2026, `blockfallRev` 2), Alley Roll (Sports; shown as Ringer since 3 Nov 2026), Ricochet back as the ninja wall-climb (`ricoRev` 2, Action; shown as Moon Climb since 3 Nov 2026, `ricoRev` 3) and Iron Wall (id `bastion`, shown as Bastion until 3 Nov 2026) back as the tank-defence shooter (`bastionRev 2`; `bastionRev 3` since 3 Nov 2026, Action), and, since 30 Oct 2026, the Cards & Board group's Minefield (shown as Minesweeper until 31 Oct 2026), Mahjong Solitaire, Free Cell and Summit (shown as FreeCell and TriPeaks until 31 Oct 2026), since 31 Oct 2026 Five Hands, since 1 Nov 2026 Pyramid (shown as Thirteen since 3 Nov 2026), and the Sports group's Home Run, Top Bins, Apex (shown as Home Run Derby, Free Kick and Racing until 31 Oct 2026), Crazy Golf, Cue Ball and Curl Champ (shown as Minigolf, Speed Pool and Curling until 31 Oct 2026) dealt in rooms; 12 retired to practice: Swerve, Steady, Dual,
 Rooftop Run, Junction, Dig, Hot Floor, since 20 Oct 2026 Letterfall and, since 27 Oct 2026
 (Joe's decision), Scrumper (`snip`: out of room draws and the Practice list's main shelves, in its
 Retired section; stored rounds replay and grade as before; icon and name kept; category-pool-check pins
@@ -1385,6 +1385,28 @@ outside the repo.
   arcade-fx-check runs in thirds on CI (`--part=k/3`, shards f, b, g). `docs/demo-replay-audit.md` "Re-record list"
   lists every intro demo to record and its stamp (Strikeout's and Mixed Signals' stop rules need their constants
   updated when they are recorded).
+- **Retro arcade polish** (3 Nov 2026, Joe's audit; display, sound and room grouping only, no stamps;
+  `docs/retro-polish-nov-2026.md`): *one Retro HUD* (`retroHud` in `src/lib/arcade/retro.renderer.ts`: the pixel font, the
+  main count top left at 14 px, one or two counts top right at 10 px, at most two rows, sizes stepping down to fit, no
+  "1UP" and no "·" chains; `retroReadout` is gone) on Hover, Breaker, Rally, Tempo, Meteor, Fission ("WAVE 2 OF 5" over
+  the lives, "ATOMS LEFT n"), Wavefront ("WAVE 1 OF 5"), Blockzone (MULTI-CLEARS), Pinball and Spacewalk. Look only:
+  Hover's craft fills more of its disc and its HUD is two rows; Pinball's table labels larger and brighter; Blockzone's
+  seven pieces in seven of our own neon hues (`BF_COLOURS`, not the familiar falling-block mapping), a brighter ghost and
+  Next; Rally a court surface with an edge glow and pads twice as deep (their 44 px scoring span unchanged); Tempo's
+  fever bar the HUD strip's whole second row; Meteor's stars larger and brighter, wormholes larger, a fuller comet;
+  Wavefront's hulls drawn 2 px past each side of their cell (`WAV_HULL_BLEED`, the bounds rule's limit); Fission's
+  arrows slim translucent cyan (the same 76 px row). Blockzone's hard-drop spam scores 11 (pieces part 11 against a
+  weak bot's 44, `bun scripts/blockzone-spam-measure.ts`), so no stamp. **Jaywalk is shown as Spacewalk** (id `cross`):
+  re-themed in pixel art (`src/lib/arcade/spacewalk.renderer.ts`: ships, cargo freighters, comets on plasma lanes,
+  drifting debris, station decks, a docking platform, a pixel astronaut inside crossPlayerR), every revision, the sim and
+  hit boxes untouched; its effects take the Retro world; sounds from the library (`cross.traffic` → `bastion.drone.mp3`,
+  `cross.pastBikes` → `orbit.shootingStar.mp3`, `cross.pastRoadworks` → `hover.slipPast.mp3`; the three road
+  recordings deleted). **Orbit moved from Retro to Action** (`arcadeGroups.ts`; a saved room's picks are unchanged, as
+  with High Rise): its HUD is Action's pills (`drawHudPillRow`, `src/lib/arcade/hudPills.renderer.ts`, two rows clear of
+  SET CHECKPOINT's corner), the fuel meter further in and higher on a framed backing (`ORBIT_FUEL_METER`), and the
+  orbitRev 14 still camera frames a planet that would sit cut off under the HUD or the top edge fully in view, or fully
+  out of it (`clearTopEdge` in `orbitCamera.ts`, display only). Not done (each needs a new stamp, bands and a re-proved
+  200): Wavefront's larger hit cells and wider formations, Fission's larger atoms.
 - **Sports arcade polish** (3 Nov 2026; look and input mapping only, no stamps; `docs/polish-batches/sports-arcade-nov-2026.md`):
   the Sports pill chip (`sportsHud.renderer.ts`, Swish and Flightpath's HUD); Swish a seaside boardwalk at dusk
   (`boardwalk.renderer.ts`) in a taller 430 × 792 view (`binTossViewFor` / `binTossFrame`, binRev 7+); Flightpath inside a

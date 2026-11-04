@@ -267,7 +267,8 @@ export const ARCADE_GAME_WORLDS = {
   wavefront: "space",
   orbit: "space",
   skyline: "realworld",
-  cross: "realworld",
+  // Spacewalk (3 Nov 2026): the pixel space re-theme, so its effects take the Retro world (pixel font, neon).
+  cross: "retro",
   junction: "realworld",
   inkbridge: "realworld",
   slice: "kitchen",
@@ -896,7 +897,7 @@ export const SKYLINE_FX: ArcadeFxSpec<SkylineState> = {
 
 export const CROSS_FX: ArcadeFxSpec<CrossState> = {
   game: "cross",
-  world: "realworld",
+  world: "retro",
   width: CROSS_WORLD_W,
   height: CROSS_WORLD_H,
   events: [
@@ -911,13 +912,13 @@ export const CROSS_FX: ArcadeFxSpec<CrossState> = {
       kind: "pop",
       count: (s) => crossKindCrossed(s, CROSS_KIND_CYCLE),
       at: (s) => ({ x: px(crossColumnCentreFp(s.col)), y: crossLaneCentre(s.lane, crossGeomOf(s)) - 20 }),
-      label: () => "PAST THE BIKES!",
+      label: () => "PAST THE COMETS!",
     },
     {
       kind: "pop",
       count: (s) => crossKindCrossed(s, CROSS_KIND_ROADWORKS),
       at: (s) => ({ x: px(crossColumnCentreFp(s.col)), y: crossLaneCentre(s.lane, crossGeomOf(s)) - 20 }),
-      label: () => "THROUGH THE CONES!",
+      label: () => "THROUGH THE DEBRIS!",
     },
     // crossRev 9 (counts stay 0 on every earlier round): a coin collected, the island reached, the streak paying.
     {
@@ -930,7 +931,7 @@ export const CROSS_FX: ArcadeFxSpec<CrossState> = {
       kind: "pop",
       count: (s) => (s.wide ? crossKindCrossed(s, CROSS_KIND_ISLAND) : 0),
       at: (s) => ({ x: px(crossColumnCentreFp(s.col)), y: crossLaneCentre(s.lane, crossGeomOf(s)) - 20 }),
-      label: () => "CHECKPOINT!",
+      label: () => "DOCKED!",
     },
     {
       kind: "streak",

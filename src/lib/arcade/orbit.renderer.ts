@@ -778,15 +778,10 @@ function drawOrbitArtWorld(ctx: CanvasRenderingContext2D, state: OrbitState, siz
   ctx.restore();
 
   if(capturePlanet)successFrame(ctx,{id:'orbit',tick:state.tick,count:state.captured,enabled:state.captured%5===0,misses:1-state.respawns,colour:ORBIT_GOLD,width:ORBIT_WORLD_W,height:ORBIT_WORLD_H,point:{x:110,y:26,shape:'spark'},hud:{x:14,y:12,text:`Planets ${state.best} / ${ORBIT_TOTAL}`}});
-  ctx.fillStyle = "#FFFFFF";
-  ctx.font = "600 16px 'JetBrains Mono', ui-monospace, monospace";
-  ctx.textAlign = "left";
-  successHud(ctx,'orbit',state.tick,14,26,()=>ctx.fillText(`Planets ${state.best} / ${ORBIT_TOTAL}`,14,26));
-  if (state.checkpoint >= 0) {
-    ctx.fillStyle = state.respawns > 0 ? ORBIT_GOLD : "rgba(255,255,255,0.4)";
-    ctx.font = "600 14px 'JetBrains Mono', ui-monospace, monospace";
-    ctx.fillText(state.respawns > 0 ? `Checkpoint ${state.checkpoint} · 1 respawn` : `Checkpoint used`, 14, 44);
-  }
+  // Action's pill HUD (3 Nov 2026, Orbit moved to Action): the planets, then the checkpoint, on one row.
+  successHud(ctx, "orbit", state.tick, 14, 12, () =>
+    drawHudPillRow(ctx, [{ text: `Planets ${state.best} / ${ORBIT_TOTAL}` }, ...orbitCheckpointPill(state)], 12, 10, ORBIT_WORLD_W - 12),
+  );
   if (state.tick - state.respawnTick < 45) {
     ctx.globalAlpha = 1 - (state.tick - state.respawnTick) / 45;
     ctx.fillStyle = ORBIT_GOLD;
@@ -822,6 +817,13 @@ import {
 } from "./orbitCamera";
 import { orbitHoleLive, orbitRev3Game, orbitWorldHFor, orbitXpCounts, ORBIT_FUEL_MAX, ORBIT_DUST_R, ORBIT_HOLE_R, ORBIT_MOON_ASSIST, ORBIT_MOON_R, ORBIT_REV3_BG, ORBIT_REV3_RED, type OrbitRev3State } from "./orbitRev3";
 import { devDisplayAllowed } from "@/lib/devDisplay";
+import { drawHudPillRow, HUD_PILL_H, type HudPill } from "./hudPills.renderer";
+
+/** The checkpoint's pill: gold while its one respawn is left, grey once used; none before a checkpoint is set. */
+function orbitCheckpointPill(state: { checkpoint: number; respawns: number }): HudPill[] {
+  if (state.checkpoint < 0) return [];
+  return [state.respawns > 0 ? { text: `Checkpoint ${state.checkpoint}`, colour: ORBIT_GOLD } : { text: "Checkpoint used", colour: "rgba(255,255,255,0.5)" }];
+}
 import { orbitRewardObserve, drawOrbitShootingStar } from './orbitRewards.renderer';
 
 /** One baked sprite per (planet index, lobe, radius) — drawPlanet has no time dependence. */
@@ -1149,23 +1151,27 @@ function drawOrbitRev3ArtWorld(ctx: CanvasRenderingContext2D, state: OrbitRev3St
   // The end of the play layers: the HUD and the success layer's HUD burst are top left.
   ctx.restore();
   if(capturePlanet)successFrame(ctx,{id:'orbit3',tick:state.tick,count:state.captured,enabled:state.captured%5===0,misses:1-state.respawns,colour:ORBIT_GOLD,width:ORBIT_CAM_VIEW_W,height:ORBIT_CAM_VIEW_H,point:{x:110,y:26,shape:'spark'},hud:{x:14,y:12,text:`Planets ${state.best} / ${ORBIT_TOTAL}`}});
-  ctx.fillStyle = "#FFFFFF";
-  ctx.font = "600 16px 'JetBrains Mono', ui-monospace, monospace";
-  ctx.textAlign = "left";
-  successHud(ctx,'orbit3',state.tick,14,26,()=>ctx.fillText(`Planets ${state.best} / ${ORBIT_TOTAL}`,14,26));
-  // orbitRev 12: what the run has taken of the features, under the planets.
+  // Action's pill HUD (3 Nov 2026, Orbit moved to Action): at most two rows, top left, clear of SET CHECKPOINT's
+  // corner (ORBIT_XP_ZONE, orbitRev 12+): the planets and the checkpoint, then what the run has taken of the features.
+  const hudRight = state.xp ? ORBIT_CAM_VIEW_W - ORBIT_XP_ZONE.w - 8 : ORBIT_CAM_VIEW_W - 12;
+  successHud(ctx, "orbit3", state.tick, 14, 12, () =>
+    drawHudPillRow(ctx, [{ text: `Planets ${state.best} / ${ORBIT_TOTAL}` }, ...orbitCheckpointPill(state)], 12, 10, hudRight),
+  );
   if (state.xp) {
     const c = orbitXpCounts(state);
-    ctx.font = "600 12px 'JetBrains Mono', ui-monospace, monospace";
-    ctx.fillStyle = "#FFE9A8";
-    // Two short lines (since 27 Oct 2026), left of SET CHECKPOINT's reserved corner (ORBIT_XP_ZONE).
-    ctx.fillText(`Dust ${c.dust}/${c.dustTotal} · Sling ${c.slings}/${c.slingsTotal}`, 14, 44);
-    ctx.fillText(`Thread ${c.threads}/${c.threadsTotal} · Perfect ${c.perfect}`, 14, 60);
-  }
-  if (state.checkpoint >= 0) {
-    ctx.fillStyle = state.respawns > 0 ? ORBIT_GOLD : "rgba(255,255,255,0.4)";
-    ctx.font = "600 14px 'JetBrains Mono', ui-monospace, monospace";
-    ctx.fillText(state.respawns > 0 ? `Checkpoint ${state.checkpoint} · 1 respawn` : `Checkpoint used`, 14, state.xp ? 78 : 44);
+    drawHudPillRow(
+      ctx,
+      [
+        { text: `Dust ${c.dust}/${c.dustTotal}`, colour: "#FFE9A8" },
+        { text: `Sling ${c.slings}/${c.slingsTotal}`, colour: "#FFE9A8" },
+        { text: `Thread ${c.threads}/${c.threadsTotal}`, colour: "#FFE9A8" },
+        { text: `Perfect ${c.perfect}`, colour: "#FFE9A8" },
+      ],
+      12,
+      10 + HUD_PILL_H + 6,
+      hudRight,
+      13,
+    );
   }
   if (xpMemory) {
     drawXpPops(ctx, xpMemory, cam, still);
@@ -1554,7 +1560,12 @@ function drawXpPops(ctx: CanvasRenderingContext2D, m: XpMemory, cam: OrbitCamOff
  * brightens, so a miss's loss is plain; when the tank runs dry (`dry`) the gauge flashes red through the sputter
  * (below) and "OUT OF FUEL" shows. Reduced motion: no flashing, smoke or drop (the words and a red gauge still show).
  */
-export const ORBIT_FUEL_METER = { w: 16, h: 112, right: 14, bottom: 18, label: 14 } as const;
+/**
+ * The fuel meter's place: since 3 Nov 2026 (Joe's audit; display only) further in from the right edge and well
+ * above the bottom (clear of the home bar's strip on a phone), on its own framed backing, so it is never clipped
+ * at the edge and reads over any orbit ring behind it.
+ */
+export const ORBIT_FUEL_METER = { w: 16, h: 112, right: 30, bottom: 64, label: 14 } as const;
 const FUEL_SEGMENTS = 10;
 /** The meter's box in the drawn view (backing and label included), for the layout checks. */
 export function orbitFuelMeterBox(viewW: number, viewH: number): { x: number; y: number; w: number; h: number } {
@@ -1722,10 +1733,13 @@ function drawFuelMeter(ctx: CanvasRenderingContext2D, state: OrbitRev3State, spu
   const y = H - m.bottom - m.h;
   const box = orbitFuelMeterBox(W, H);
   ctx.save();
-  // Backing, so the gauge reads over planets and stars.
-  ctx.fillStyle = "rgba(6,6,15,0.62)";
-  fuelRoundRect(ctx, box.x, box.y, box.w, box.h, 6);
+  // Backing, so the gauge reads over planets, rings and stars: a near-opaque dark panel with a soft frame.
+  ctx.fillStyle = "rgba(8,9,18,0.9)";
+  fuelRoundRect(ctx, box.x, box.y, box.w, box.h, 8);
   ctx.fill();
+  ctx.strokeStyle = "rgba(255,255,255,0.18)";
+  ctx.lineWidth = 1;
+  ctx.stroke();
   ctx.font = "700 10px 'JetBrains Mono', ui-monospace, monospace";
   ctx.textAlign = "center";
   ctx.fillStyle = sputter ? ORBIT_REV3_RED : "rgba(255,255,255,0.78)";

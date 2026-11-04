@@ -138,10 +138,11 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       onDraftAnswer={onDraftAnswer}
     />
     {/* Two large arrows (76 px tall, half the width each); the arcade play screen puts their bottom 16 px above the visible bottom (15 Oct 2026). */}
-    {/* Polish A1: the same 76 px row and boxes; the arrows larger (36 px for 30) with a soft gold glow (shadows only, so nothing moves). */}
+    {/* 3 Nov 2026 (Joe's audit; look only): the same 76 px row and tap boxes, drawn slim and translucent in the game's Retro cyan (a thin
+        neon frame, a faint fill, the pixel font's arrows) in place of the chunky orange-outlined buttons. */}
     <div data-game-controls="pad" className="grid h-[76px] shrink-0 touch-none select-none grid-cols-2 items-start gap-4">
-      <ArcadeControlButton type="button" aria-label="Move left" disabled={locked} className="h-[76px] w-full border-2 border-primary/80 bg-background/40 p-0 text-[36px] leading-none text-primary shadow-[0_0_14px_rgba(245,184,46,0.28),inset_0_0_12px_rgba(245,184,46,0.12)] [text-shadow:0_0_10px_rgba(245,184,46,0.55)] active:bg-primary/30 active:shadow-[0_0_20px_rgba(245,184,46,0.45),inset_0_0_14px_rgba(245,184,46,0.2)] before:content-['◀']" onPressStart={holdStart(-1)} onPressEnd={holdEnd} />
-      <ArcadeControlButton type="button" aria-label="Move right" disabled={locked} className="h-[76px] w-full border-2 border-primary/80 bg-background/40 p-0 text-[36px] leading-none text-primary shadow-[0_0_14px_rgba(245,184,46,0.28),inset_0_0_12px_rgba(245,184,46,0.12)] [text-shadow:0_0_10px_rgba(245,184,46,0.55)] active:bg-primary/30 active:shadow-[0_0_20px_rgba(245,184,46,0.45),inset_0_0_14px_rgba(245,184,46,0.2)] before:content-['▶']" onPressStart={holdStart(1)} onPressEnd={holdEnd} />
+      <ArcadeControlButton type="button" aria-label="Move left" disabled={locked} className="h-[76px] w-full rounded-[10px] border border-[rgba(61,255,224,0.45)] bg-[rgba(61,255,224,0.06)] p-0 font-['Press_Start_2P',ui-monospace,monospace] text-[30px] leading-none text-[#3DFFE0] [text-shadow:0_0_8px_rgba(61,255,224,0.6)] active:border-[rgba(61,255,224,0.85)] active:bg-[rgba(61,255,224,0.18)] before:content-['◀']" onPressStart={holdStart(-1)} onPressEnd={holdEnd} />
+      <ArcadeControlButton type="button" aria-label="Move right" disabled={locked} className="h-[76px] w-full rounded-[10px] border border-[rgba(61,255,224,0.45)] bg-[rgba(61,255,224,0.06)] p-0 font-['Press_Start_2P',ui-monospace,monospace] text-[30px] leading-none text-[#3DFFE0] [text-shadow:0_0_8px_rgba(61,255,224,0.6)] active:border-[rgba(61,255,224,0.85)] active:bg-[rgba(61,255,224,0.18)] before:content-['▶']" onPressStart={holdStart(1)} onPressEnd={holdEnd} />
     </div>
     </div>
   );

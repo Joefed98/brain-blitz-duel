@@ -203,10 +203,10 @@ Already sounded: rope catch and anchor flash (`swing.grapple`), star (`swing.sta
 
 | Cue | Trigger | Looks like | Plays today | Per round | Length |
 |---|---|---|---|---|---|
-| `cross.pastBikes` | Past the cyclists' lane | A +1 pop at the walker | `pop.bonus.mp3` · own file `cross.bikeBell.mp3` (sound batch 4, volume 0.7) | 2–8 | 400 ms |
-| `cross.pastRoadworks` | Through the roadworks | A +1 pop at the walker | `pop.bonus.mp3` · own file `cross.cones.mp3` (sound batch 4, volume 0.7) | 2–8 | 274 ms |
+| `cross.pastBikes` | Past the comets' plasma lane (Spacewalk) | A +1 pop at the astronaut | `pop.bonus.mp3` · `orbit.shootingStar.mp3` from the library since 3 Nov 2026 (was `cross.bikeBell.mp3`; volume 0.7) | 2–8 | 840 ms |
+| `cross.pastRoadworks` | Through the drifting debris (Spacewalk) | A +1 pop at the astronaut | `pop.bonus.mp3` · `hover.slipPast.mp3` from the library since 3 Nov 2026 (was `cross.cones.mp3`; volume 0.7) | 2–8 | 350 ms |
 | `cross.newHazard` | A new layout's crossing begins (its kerb pause ends): the first cycle lane (crossing 3), roadworks (4) and the chicane (7), crossRev 2+ | Cyclists, cones or a chicane on the road ahead | `alert.newHazard.mp3` | 0–3 | 600 ms |
-| `cross.traffic` | While the run is live | Traffic streaming both ways | `cross.traffic.mp3` | loop | loop |
+| `cross.traffic` | While the run is live | Space traffic streaming both ways (Spacewalk) | `bastion.drone.mp3` from the library since 3 Nov 2026 (was `cross.traffic.mp3`) | loop | loop |
 
 Already sounded: crossing and its banner (`cross.crossed`), hops (`cross.hop`), hit and tumble (`cross.lifeLost`).
 
