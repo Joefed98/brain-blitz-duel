@@ -13,7 +13,7 @@ import { roundMaxFor } from "../duel/roundMax";
 import { BT_REV_STD, BT_REV_STRICT, BT_V8_BAND_CURVE } from "./ballTrack";
 import { WAV_REV_STD, WAV_REV_STRICT, WAV_V12_BAND_CURVE } from "./wavefront";
 import { FLIP_REV_FLOW, FLIP_REV_STRICT, FLIP_V11_BAND_CURVE } from "./flip";
-import { INK_REV_CLOVER, INK_REV_STRICT, INK_V13_BAND_CURVE } from "./inkBridge";
+import { INK_REV_BIG, INK_REV_STRICT, INK_V13_BAND_CURVE } from "./inkBridge";
 import { MATCHUP_REV_SIX, MATCHUP_REV_STRICT, MATCHUP_V12_BAND_CURVE } from "./matchup";
 import { BUB_REV_STD, BUB_REV_STRICT, BUB_V11_BAND_CURVE, BUB_V11_STD_SPEC } from "./bubble";
 import { CROSS_REV_FLOW, CROSS_REV_STRICT, CROSS_V11_BAND_CURVE } from "./cross";
@@ -28,7 +28,7 @@ import { HOVER_REV_STANDARD, HOVER_REV_STRICT, HOVER_V10_BAND_CURVE } from "./ho
 import { SKYLINE_REV_STD, SKYLINE_REV_STRICT, SKYLINE_STD_SPEC, SKYLINE_V9_BAND_CURVE } from "./skyline";
 import { JUNC_REV_BAND, JUNC_BAND_CURVE } from "./junction";
 import { BRK_REV_STD, BRK_REV_STRICT, BRK_V11_BAND_CURVE } from "./breaker";
-import { TILT_REV_PAR, TILT_REV_STRICT, TILT_V11_BAND_CURVE } from "./tilt";
+import { TILT_REV_BIG, TILT_REV_STRICT, TILT_V12_BAND_CURVE } from "./tilt";
 import { ORBIT_REV_STRICT, ORBIT_REV_FUEL } from "./orbit";
 import { ORBIT_V14_BAND_CURVE } from "./orbitRev3";
 import { BEAT_REV_STD, BEAT_REV_STRICT, BEAT_STD_SPEC, BEAT_V11_BAND_CURVE } from "./beat";
@@ -92,9 +92,9 @@ export const LIVE_BANDS = {
   // flipRev 11 (3 Nov 2026): the core's straight line (clean half seconds → 100; a saved crash costs 20 s); perfect landings,
   // double flips and the flow streak up to 100 more. flipRev 10: half seconds survived → 150 (FLIP_V10_BAND_CURVE).
   flip: { field: "flipRev", rev: FLIP_REV_FLOW, curve: FLIP_V11_BAND_CURVE, strictRev: FLIP_REV_STRICT },
-  // inkRev 13 (Nov 2026: clovers, ink par, more birds; inkRev 12 before it): levels on a straight line to 120; ink par,
-  // trick shots, clovers and speed add up to 80 more.
-  inkbridge: { field: "inkRev", rev: INK_REV_CLOVER, curve: INK_V13_BAND_CURVE, strictRev: INK_REV_STRICT },
+  // inkRev 14 (3 Nov 2026: inkRev 13's rules and parts with a bigger coin, clovers and birds; inkRev 13 before it, clovers,
+  // ink par, more birds): levels on a straight line to 120; ink par, trick shots, clovers and speed add up to 80 more.
+  inkbridge: { field: "inkRev", rev: INK_REV_BIG, curve: INK_V13_BAND_CURVE, strictRev: INK_REV_STRICT },
   // matchupRev 12 (the arcade scoring standard, six goals and six treasures): the core's straight line (gems cleared, to
   // 108); treasure, goals, ice and big lines pay fixed amounts on top, to 200 (the help says so). matchupRev 11 before it.
   matchup: { field: "matchupRev", rev: MATCHUP_REV_SIX, curve: MATCHUP_V12_BAND_CURVE, strictRev: MATCHUP_REV_STRICT },
@@ -120,7 +120,8 @@ export const LIVE_BANDS = {
   // tiltRev 10 (the arcade scoring standard): the core's straight line (35 a maze, to 140); finish, speed and gold stars add up to 60 (the help says so).
   // tiltRev 11 (3 Nov 2026): no gold stars; the core's straight line (25 a maze, to 100); par, a clean run, finish and
   // speed add up to 100 (the help says so). tiltRev 10: 35 a maze, to 140 (TILT_V10_BAND_CURVE).
-  tilt: { field: "tiltRev", rev: TILT_REV_PAR, curve: TILT_V11_BAND_CURVE, strictRev: TILT_REV_STRICT },
+  // tiltRev 12 (3 Nov 2026): tiltRev 11's parts and straight line (35 a maze, to 140) with bigger marbles and keys.
+  tilt: { field: "tiltRev", rev: TILT_REV_BIG, curve: TILT_V12_BAND_CURVE, strictRev: TILT_REV_STRICT },
   // orbitRev 13 (the arcade scoring standard): planets on a straight line to 130; speed and features pay up to 70 more.
   // orbitRev 14 (the fuel meter): the same parts and straight line on the fuel bank's zigzag courses.
   orbit: { field: "orbitRev", rev: ORBIT_REV_FUEL, curve: ORBIT_V14_BAND_CURVE, strictRev: ORBIT_REV_STRICT },

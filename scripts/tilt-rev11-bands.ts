@@ -10,7 +10,11 @@
  *
  * --dump=<file> writes every run's maze times, pars, falls and progress as JSON (for trying other constants offline).
  *
- *   bun scripts/tilt-rev11-bands.ts [--seeds=40] [--from=10000] [--levels=weak,average,...] [--what-if=100,60] [--dump=<file>]
+ * --rev=12 plays tiltRev 12 instead (3 Nov 2026: tiltRev 11 with bigger marbles and keys; the same parts, so the same
+ * report), on the same bank seeds (paired with --rev=11); --deal takes the seeds from tiltRev 12's proved deal instead
+ * (TILT_DEAL_V12, n mod its length; 10000 on from its 61st seed).
+ *
+ *   bun scripts/tilt-rev11-bands.ts [--rev=11|12] [--deal] [--seeds=40] [--from=10000] [--levels=weak,average,...] [--what-if=100,60] [--dump=<file>]
  */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { GAME_BY_TYPE } from "./arcade-skill-bands/games";
@@ -34,7 +38,14 @@ const WHAT_IF = (opt("what-if")?.split(";") ?? []).map((w) => w.split(",").map(N
 const DUMP = opt("dump");
 const dump: unknown[] = [];
 const spec = GAME_BY_TYPE.get("tilt" as never)!;
-const game = tiltGameFor(TILT_REV_PAR);
+const REV = Number(opt("rev") ?? TILT_REV_PAR);
+const game = tiltGameFor(REV);
+const TILT_DEAL_V12: readonly number[] = process.argv.includes("--deal") ? (await import("../src/lib/duel/tiltDealV12.server")).TILT_DEAL_V12 : [];
+const seedFor = (n: number): number => {
+  if (!process.argv.includes("--deal")) return spec.seedFor(n);
+  const len = TILT_DEAL_V12.length;
+  return n < 10000 ? TILT_DEAL_V12[n % len]! : TILT_DEAL_V12[60 + ((n - 10000) % (len - 60))]!;
+};
 const median = (xs: number[]) => {
   const s = [...xs].sort((a, b) => a - b);
   return s.length ? (s.length % 2 ? s[s.length >> 1]! : (s[s.length / 2 - 1]! + s[s.length / 2]!) / 2) : 0;
@@ -59,8 +70,8 @@ for (const level of LEVELS) {
   const ratios: number[][] = [[], [], [], []];
   const what: number[][] = WHAT_IF.map(() => []);
   for (let n = FROM; n < FROM + SEEDS; n++) {
-    const seed = spec.seedFor(n);
-    const out = bot({ game, seed, rev: TILT_REV_PAR, human: new Human("tilt", seed, level), fixes: true } as any);
+    const seed = seedFor(n);
+    const out = bot({ game, seed, rev: REV, human: new Human("tilt", seed, level), fixes: true } as any);
     const by = new Map((out.events ?? []).map((e: any) => [e.t, e]));
     let state = game.init(seed) as TiltState;
     const checkpoints: unknown[] = [];
@@ -68,8 +79,8 @@ for (const level of LEVELS) {
       state = game.step(state, (by.get(state.tick + 1) as any) ?? null) as TiltState;
       if (state.tick % 300 === 0) checkpoints.push(spec.checkpoint(state));
     }
-    const raw = spec.encode({ seed, claimedScore: game.score(state), events: out.events ?? [], endTick: state.tick, checkpoints }, TILT_REV_PAR, seed);
-    const result = spec.replay(seed, raw, TILT_REV_PAR);
+    const raw = spec.encode({ seed, claimedScore: game.score(state), events: out.events ?? [], endTick: state.tick, checkpoints }, REV, seed);
+    const result = spec.replay(seed, raw, REV);
     if (result.flagged || result.score !== game.score(state)) throw new Error(`${level} seed ${seed}: replay ${result.score} flagged ${result.flagged}`);
     const s = result.state as TiltState;
     const p = tiltParParts(s);
@@ -95,7 +106,7 @@ for (const level of LEVELS) {
   console.error(`${level} done`);
 }
 if (DUMP) (await import("node:fs")).writeFileSync(DUMP, JSON.stringify(dump));
-console.log(`tiltRev 11 bands, bank seeds n = ${FROM}–${FROM + SEEDS - 1}`);
+console.log(`tiltRev ${REV} bands, ${process.argv.includes("--deal") ? "deal" : "bank"} seeds n = ${FROM}–${FROM + SEEDS - 1}`);
 console.log("| Level | Score | Core | Par | Clean | All 4 | Speed | Mazes | Pars met | Clean mazes | Falls | Finish s |");
 console.log("| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |");
 for (const r of rows) console.log(r);

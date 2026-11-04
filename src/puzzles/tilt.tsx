@@ -1,6 +1,6 @@
 import { heldHorizontal } from "@/lib/desktop";
 import { gameDisplayName } from "@/lib/duel/gameNames";
-import { tiltArenaSceneFor, tiltArtGameFor } from "@/lib/arcade/tiltArt.renderer";
+import { tiltArenaSceneFor, tiltArtGameFor, WALNUT_TABLE } from "@/lib/arcade/tiltArt.renderer";
 import { tiltSounds } from "@/lib/fx/gameSounds";
 import { useRef } from "react";
 
@@ -10,6 +10,7 @@ import {
   TILT_CHECKPOINT_INTERVAL,
   TILT_GOLD,
   TILT_RED,
+  TILT_REV_BIG,
   TILT_REV_STD,
   TILT_TEAL,
   TILT_WORLD_W,
@@ -52,8 +53,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     <ArcadeCanvasStage
       diagKey="tilt"
       label={gameDisplayName("tilt")}
-      // The board's oak, so the sub-pixel sliver at the centred world's edges is wood, not a dark line (17 Oct 2026).
-      background="#9A7347"
+      // The board's oak (tiltRev 12: its walnut), so the sub-pixel sliver at the centred world's edges is wood, not a dark line (17 Oct 2026).
+      background={data?.tiltRev === TILT_REV_BIG ? WALNUT_TABLE : "#9A7347"}
       fitWorld
       centreWorld
       scene={tiltArenaSceneFor(data?.tiltRev)}

@@ -108,7 +108,7 @@ import {
   type CrossState,
 } from "./cross";
 import { JUNC_BUILD_EVERY, JUNC_BUILDS, JUNC_LIGHT_AT_V2, JUNC_WORLD_H, JUNC_WORLD_W, type JuncState } from "./junction";
-import { inkBucketX, inkWorldH, INK_LEVELS, INK_REV_CLOVER, INK_TALL_H, INK_WORLD_H, INK_WORLD_W, type InkState } from "./inkBridge";
+import { inkBucketX, inkWorldH, INK_LEVELS, inkClover, INK_TALL_H, INK_WORLD_H, INK_WORLD_W, type InkState } from "./inkBridge";
 import { wavShipY, wavWorldH, WAV_X_H, WAV_TALL_H, WAV_WORLD_H, WAV_WORLD_W, type WavState } from "./wavefront";
 import { ORBIT_WORLD_H, ORBIT_WORLD_W, type OrbitState } from "./orbit";
 import { orbitViewH, ORBIT_CAM_VIEW_H, ORBIT_CAM_VIEW_W, ORBIT_TALL_VIEW_H } from "./orbitCamera";
@@ -1029,7 +1029,7 @@ export const INKBRIDGE_FX: ArcadeFxSpec<InkState> = {
         return lvl?.shamrock ? { x: lvl.shamrock.x, y: lvl.shamrock.y } : null;
       },
       // inkRev 13: the clover (the shamrock's art), one of two in the run.
-      label: (s) => (s.rev === INK_REV_CLOVER ? "CLOVER!" : "SHAMROCK +20!"),
+      label: (s) => (inkClover(s.rev) ? "CLOVER!" : "SHAMROCK +20!"),
     },
   ],
   // A failed drop (off the bridge or onto a block): the red flash the renderer draws, kind 2.

@@ -5,14 +5,14 @@
  * reaches each one by a beam search over held tilts turned at a finger's speed (`ORACLE_FINGER` px a tick,
  * re-gripping at the screen's edges as a hand does). It never lets the marble it is steering fall in.
  *
- *   bun scripts/tilt-oracle.ts [--from=0] [--seeds=260] [--rev=8|10|11] [--write=<file>]   # per seed: the oracle's score
+ *   bun scripts/tilt-oracle.ts [--from=0] [--seeds=260] [--rev=8|10|11|12] [--write=<file>]   # per seed: the oracle's score
  *
  * tilt-expand-check replays stored oracle runs; this script proves every seed can be played to 200.
  */
 import { appendFileSync, writeFileSync } from "node:fs";
 import { gzipSync } from "node:zlib";
 import type { ArcadeInputEvent } from "../src/lib/arcade/engine";
-import { tiltCellCentre, tiltCheckpoint, tiltExpandGame, tiltFieldX, tiltParGame, tiltParWalksX, tiltStdGame, tiltWalkTurnsX, TILT_CHECKPOINT_INTERVAL, TILT_INPUT_DRAG, TILT_REV_EXPAND, TILT_REV_PAR, TILT_REV_STD, type Maze, type TiltState } from "../src/lib/arcade/tilt";
+import { tiltCellCentre, tiltCheckpoint, tiltBigGame, tiltExpandGame, tiltFieldX, tiltParGame, tiltParWalksX, tiltStdGame, tiltWalkTurnsX, TILT_CHECKPOINT_INTERVAL, TILT_INPUT_DRAG, TILT_REV_BIG, TILT_REV_EXPAND, TILT_REV_PAR, TILT_REV_STD, type Maze, type TiltState } from "../src/lib/arcade/tilt";
 import { decodeTiltRun, encodeTiltRun, replayTiltRun } from "../src/lib/duel/tilt";
 import { GAME_BY_TYPE } from "./arcade-skill-bands/games";
 
@@ -185,7 +185,7 @@ function playGoals(node: Node, m: Maze, level: number, goals: Goal[]): Node | nu
 
 /** Plays a seed; returns the log and the server's score for it. */
 export function oracleRun(seed: number, rev: number = TILT_REV_EXPAND): { raw: string; score: number; state: TiltState } {
-  game = rev === TILT_REV_PAR ? tiltParGame : rev === TILT_REV_STD ? tiltStdGame : tiltExpandGame;
+  game = rev === TILT_REV_BIG ? tiltBigGame : rev === TILT_REV_PAR ? tiltParGame : rev === TILT_REV_STD ? tiltStdGame : tiltExpandGame;
   let node: Node = { s: game.init(seed), log: [] };
   for (let level = 0; level < node.s.list.length && !game.isOver(node.s); level++) {
     const m = node.s.list[level]!;

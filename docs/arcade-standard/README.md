@@ -66,7 +66,7 @@ replay exactly as before; standard-live-check grades every stored arcade run thr
 | --- | --- | --- | --- | --- |
 | Slice | `slice` | `sliceRev` 11 | A | [slice.md](slice.md) |
 | Breaker | `breaker` | `brkRev` 11 | A | [breaker.md](breaker.md) |
-| Tilt | `tilt` | `tiltRev` 11 (10 before, Nov 2026) | A | [tilt.md](tilt.md) |
+| Tilt | `tilt` | `tiltRev` 12 (10, then 11, before; Nov 2026) | A | [tilt.md](tilt.md) |
 | Fission | `burst` | `burstRev` 10 | A | [burst.md](burst.md) |
 | Gemstone | `matchup` | `matchupRev` 12 (11 before, Nov 2026) | A | [matchup.md](matchup.md) |
 | Meteor | `snake` | `snakeRev` 12 | A | [snake.md](snake.md) |
@@ -81,7 +81,7 @@ replay exactly as before; standard-live-check grades every stored arcade run thr
 | Jaywalk | `cross` | `crossRev` 11 (10 before, Nov 2026: no coins, the no-stop streak) | C | [cross.md](cross.md) |
 | Wavefront | `wavefront` | `wavRev` 12 | C | [wavefront.md](wavefront.md) |
 | Roofbound | `flip` | `flipRev` 11 (10 before, Nov 2026) | C | [flip.md](flip.md) |
-| Rainbow Bridge | `inkbridge` | `inkRev` 13 (12 before, Nov 2026) | C | [inkbridge.md](inkbridge.md) |
+| Rainbow Bridge | `inkbridge` | `inkRev` 14 (13 before, 3 Nov 2026; 12 before that) | C | [inkbridge.md](inkbridge.md) |
 | Orbit | `orbit` | `orbitRev` 13 | C | [orbit.md](orbit.md) |
 | Ball Tracker | `balltrack` | `btRev` 8 | C | [balltrack.md](balltrack.md) |
 | Grappler | `swing` | `swingRev` 17 (16 before 3 Nov 2026, 15 before 1 Nov 2026) | D | [swing.md](swing.md) |

@@ -1,6 +1,6 @@
 /**
  * TriPeaks' art and layout (display only; the sim is tripeaks.ts). The world is 414 × 772: HUD chips across the top,
- * three tall peaks of large cards, the run meter (a row of ten gold flames), and the stock and discard on a dark panel
+ * three tall peaks of large cards, the run readout ("Run 3 (best 5)"; a row of ten flames until 3 Nov 2026), and the stock and discard on a dark panel
  * at the bottom, within thumb reach. Playable cards glow gold. tpHit reads the same layout.
  */
 import type { ArcadeGame, ArcadeInputEvent, CanvasSize } from "../engine";
@@ -77,27 +77,6 @@ export function tpNewView(): TpView {
   return { pressed: -1, drag: null };
 }
 
-function flame(ctx: CanvasRenderingContext2D, x: number, y: number, s: number, lit: boolean, t: number): void {
-  ctx.save();
-  ctx.translate(x, y);
-  const sway = lit ? Math.sin(t) * 0.06 : 0;
-  ctx.rotate(sway);
-  ctx.beginPath();
-  ctx.moveTo(0, -s);
-  ctx.bezierCurveTo(s * 0.55, -s * 0.45, s * 0.6, s * 0.2, 0, s * 0.55);
-  ctx.bezierCurveTo(-s * 0.6, s * 0.2, -s * 0.55, -s * 0.45, 0, -s);
-  if (lit) {
-    const g = ctx.createLinearGradient(0, -s, 0, s * 0.55);
-    g.addColorStop(0, "#FFF2B8");
-    g.addColorStop(0.5, "#F2C75C");
-    g.addColorStop(1, "#D8892A");
-    ctx.fillStyle = g;
-    ctx.shadowColor = "rgba(255,200,90,0.8)";
-    ctx.shadowBlur = 10;
-  } else ctx.fillStyle = "rgba(233,196,106,0.16)";
-  ctx.fill();
-  ctx.restore();
-}
 
 const discardAt = () => ({ x: TP_DISCARD_X + TP_PILE_W / 2, y: TP_PILE_Y + TP_PILE_H / 2 });
 
@@ -150,17 +129,9 @@ function drawTripeaksWorld(ctx: CanvasRenderingContext2D, state: TpState, size: 
     });
   }
 
-  // The run meter: ten gold flames, lit to the current run.
-  const flames = 10;
-  const gap = 30;
-  const fx0 = W / 2 - ((flames - 1) * gap) / 2;
-  const t = state.tick / 8;
-  for (let k = 0; k < flames; k++) flame(ctx, fx0 + k * gap, TP_FLAME_Y + 6, 12, k < state.run, t + k);
-  ctx.fillStyle = "rgba(246,235,208,0.8)";
-  ctx.font = `700 12px ${CARD_FONT}`;
-  ctx.textAlign = "center";
-  ctx.textBaseline = "top";
-  ctx.fillText(`RUN ${state.run}  ·  BEST ${state.bestRun}`, W / 2, TP_FLAME_Y + 26);
+  // The run readout (3 Nov 2026: one chip, "Run 3 (best 5)", gold from a run of five; until then a row of ten flames,
+  // mostly faint dots, over "RUN 0 · BEST 2").
+  drawChip(ctx, W / 2, TP_FLAME_Y - 4, "Run", `${state.run} (best ${state.bestRun})`, { align: "center", gold: state.run >= 5 });
 
   // The dark panel: stock and discard.
   roundRect(ctx, 14, TP_PANEL_Y, W - 28, H - TP_PANEL_Y - 14, 22);

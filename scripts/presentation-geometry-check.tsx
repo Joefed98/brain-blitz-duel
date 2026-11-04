@@ -265,14 +265,17 @@ const ABOVE: Record<string, number> = {
   whack: (10 + 36 * 1.1 + 10 + 4) + 8 + 20 + 8,
   // Pull!: the 12px hit line and 6px pips, 4px gaps.
   clayshoot: 12 + 4 + 6 + 4,
+  // Ball Tracker (3 Nov 2026 polish): its HUD pill strip (BT_HUD_H, 36px), no gap.
+  balltrack: 36,
 };
 /** Height taken below each slot: 8px gap + control row (Swish: its 72px cancel strip, flush). */
 // Orbit: none since 27 Oct 2026 (orbitRev 12's SET CHECKPOINT sits in the world's reserved top-right corner; its 450 x 862
 // view reaches the bottom; play-control-clearance-check proves the corner).
-const BELOW: Record<string, number> = { burst: 8 + 76, inkbridge: 8 + 48, balltrack: 8 + 28, bintoss: 72, stroop: 8 + 52 };
+// Ball Tracker: none since 3 Nov 2026 (its 28px status line became the 36px HUD strip above the box, ABOVE).
+const BELOW: Record<string, number> = { burst: 8 + 76, inkbridge: 8 + 48, bintoss: 72, stroop: 8 + 52 };
 const BELOW_CONTROLS: Record<string, string> = {
   burst: "Fission's two 76px arrows", inkbridge: "Rainbow Bridge's Undo / Reset / Release / Drop again (48px)", orbit: "Orbit's SET CHECKPOINT (44px row)",
-  balltrack: "Ball Tracker's status row (28px)", bintoss: "Swish's cancel strip (72px)", stroop: "Mixed Signals' arrows (44px) and joystick (52px), bottom-aligned",
+  bintoss: "Swish's cancel strip (72px)", stroop: "Mixed Signals' arrows (44px) and joystick (52px), bottom-aligned",
 };
 /** Until 15 Oct 2026: arena top, the bottom term and the rows below (OLD_BELOW), 4px side insets. */
 const OLD_TOP = (game: string) => 116 + (game === "snip" ? 40 : 0) + (game === "tilt" ? 40 : 0);

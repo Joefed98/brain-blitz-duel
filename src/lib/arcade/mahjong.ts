@@ -264,7 +264,10 @@ export function mahjongInputRanges(rev?: number | null): readonly InputRange[] {
 
 /* ================================ World ================================ */
 
-export const MAHJONG_WORLD_W = 390;
+/** 356 wide since 3 Nov 2026 (display only: the sim never reads the world's size; taps reach it as places), so the
+ *  stack, at the largest scale that fits the play screen's width, grows into the space that was empty below it (390
+ *  until then). */
+export const MAHJONG_WORLD_W = 356;
 export const MAHJONG_TILE_W = 56;
 export const MAHJONG_TILE_H = 74;
 /** Each layer is drawn this far up and to the left of the one below (the stack's depth). */
@@ -273,7 +276,7 @@ export const MAHJONG_LIFT_Y = 6;
 export const MAHJONG_HUD_H = 44;
 export const MAHJONG_BOARD_W = 6 * MAHJONG_TILE_W;
 export const MAHJONG_BOARD_H = 7 * MAHJONG_TILE_H;
-export const MAHJONG_BOARD_X = Math.round((MAHJONG_WORLD_W - MAHJONG_BOARD_W) / 2) + 4;
+export const MAHJONG_BOARD_X = Math.round((MAHJONG_WORLD_W - MAHJONG_BOARD_W) / 2);
 export const MAHJONG_BOARD_Y = MAHJONG_HUD_H + 14 + 3 * MAHJONG_LIFT_Y;
 export const MAHJONG_WORLD_H = MAHJONG_BOARD_Y + MAHJONG_BOARD_H + 14;
 

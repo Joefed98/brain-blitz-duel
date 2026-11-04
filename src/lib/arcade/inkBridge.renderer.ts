@@ -5,10 +5,11 @@ import { inkBridgeFxFor } from "./arcadeFxGames.renderer";
 import { reducedMotion } from "./art.renderer";
 /** Rainbow Ink Bridge. Presentation only; all geometry comes from the unchanged sim. */
 import type { CanvasSize } from './engine';
-import { inkBridgeGame, inkBridgeGameFor, inkBlockH, inkBucketX, inkBudget, inkBudgetFor, inkIsLive, inkWorldH, INK_BLOCK_H, INK_BUCKET_H, INK_BUCKET_W, INK_CLOUD_HW, INK_CLOUD_R, INK_FAILS, INK_LEVELS, INK_REV_CLOVER, inkParText, INK_NO_DRAW_ZONE_PX, INK_LIVE_PRE_CAP, INK_SHAMROCK_R, INK_SILVER_R, INK_STAR_R, INK_WORLD_H, INK_WORLD_W, type InkCloud, type InkState, type InkWind } from './inkBridge';
+import { inkBridgeGame, inkBridgeGameFor, inkBlockH, inkBucketX, inkBudget, inkBudgetFor, inkIsLive, inkWorldH, INK_BLOCK_H, INK_BUCKET_H, INK_BUCKET_W, INK_CLOUD_HW, INK_CLOUD_R, INK_FAILS, INK_LEVELS, inkClover, inkNoDrawZone, INK_LIVE_PRE_CAP, INK_SHAMROCK_R, INK_SILVER_R, INK_STAR_R, INK_WORLD_H, INK_WORLD_W, type InkCloud, type InkState, type InkWind } from './inkBridge';
 import { artCanvas, artContext, type ArtCanvas } from './cache.renderer';
 import { sceneBelow, sceneBlades, sceneFill, sceneSides, type ArenaSceneView } from './arenaScene.renderer';
 import { artHash } from './art.renderer';
+import { drawHudPill, hudPillWidth, HUD_PILL_GAP, HUD_PILL_H } from './hudPill.renderer';
 import { COUNTRY_SKY as SKY, COUNTRY_GRASS as GRASS, countryCloud as cloud, countryClock, countryStamp } from './countryside.renderer';
 
 /* Private geometry mirrors: 7px coin, 4px rim caps, 6px stroke. */
@@ -43,11 +44,13 @@ function birdFrame(c: CanvasRenderingContext2D, f: number): void {
 }
 /** A flock filling the obstacle box exactly, flapping in place. */
 function drawBirds(c: CanvasRenderingContext2D, b: { x0: number; x1: number; y: number }, h: number, tick: number): void {
-  const len = b.x1 - b.x0, n = Math.max(1, Math.round(len / 18)), w = len / n;
+  // inkRev 14's thicker birds (10 px) keep the cell's shape: one bird every 24 px of the box (18 px at 6.5 px and below).
+  const len = b.x1 - b.x0, n = Math.max(1, Math.round(len / (h > 7 ? 24 : 18))), w = len / n;
   for (let i = 0; i < n; i++) {
     const f = Math.floor((tick + i * 5) / 7) % 4;
     const img = sprite(`bird${f}`, 64, 26, (m) => { m.scale(2, 2); birdFrame(m, f); });
     if (img) c.drawImage(img, b.x0 + i * w, b.y, w, h);
+    else { c.save(); c.translate(b.x0 + i * w, b.y); c.scale(w / 32, h / 13); birdFrame(c, f); c.restore(); }
   }
 }
 function sprite(key: string, w: number, h: number, draw: (c: CanvasRenderingContext2D) => void, k = 2): ArtCanvas | null {
@@ -99,6 +102,23 @@ export function coin(c: CanvasRenderingContext2D): void {
   c.fillStyle = SHINE; c.beginPath(); c.ellipse(4.7,4,1.1,2.5,0.7,0,Math.PI*2); c.fill();
   c.strokeStyle = GOLD_EDGE; c.lineWidth = 1; c.beginPath(); c.moveTo(7,4); c.lineTo(7,10); c.stroke();
 }
+/**
+ * The coin at radius `r` (inkRev 14's bigger coin; 7 on every older level): the 14 px painter, cached at 4× and drawn to
+ * the coin's collision circle exactly.
+ */
+function drawCoin(c: CanvasRenderingContext2D, x: number, y: number, r: number): void {
+  if (r === BALL_R) { stamp(c,'coin',BALL_R*2,BALL_R*2,x-BALL_R,y-BALL_R,coin); return; }
+  const img = sprite('coin', 14, 14, coin, 4);
+  if (img) c.drawImage(img, x - r, y - r, 2 * r, 2 * r);
+  else { c.save(); c.translate(x - r, y - r); c.scale(r / BALL_R, r / BALL_R); coin(c); c.restore(); }
+}
+/** The clover at radius `r` (inkRev 14's bigger one), the 18 px painter scaled to its pickup circle exactly. */
+function drawClover(c: CanvasRenderingContext2D, x: number, y: number, r: number): void {
+  if (r === INK_SHAMROCK_R) { stamp(c,'shamrock',r*2,r*2,x-r,y-r,shamrock); return; }
+  const img = sprite('shamrock', INK_SHAMROCK_R * 2, INK_SHAMROCK_R * 2, shamrock, 4);
+  if (img) c.drawImage(img, x - r, y - r, 2 * r, 2 * r);
+  else { c.save(); c.translate(x - r, y - r); c.scale(r / INK_SHAMROCK_R, r / INK_SHAMROCK_R); shamrock(c); c.restore(); }
+}
 export function pot(c: CanvasRenderingContext2D): void {
   // Exact body rectangle and opening width; only the authoritative rim caps protrude.
   c.fillStyle = POT; c.beginPath(); c.moveTo(0,0); c.lineTo(64,0); c.lineTo(64,19); c.quadraticCurveTo(64,36,48,36); c.lineTo(16,36); c.quadraticCurveTo(0,36,0,19); c.closePath(); c.fill();
@@ -138,7 +158,8 @@ export function inkFailedOnBlock(state: InkState): boolean {
   return lvl.blocks.some(block => {
     const dx=x-Math.max(block.x0,Math.min(block.x1,x));
     const dy=y-Math.max(block.y,Math.min(block.y+inkBlockH(block),y));
-    return dx*dx+dy*dy<=BALL_R*BALL_R;
+    const r=lvl.ballR??BALL_R;
+    return dx*dx+dy*dy<=r*r;
   });
 }
 export function rainbow(c: CanvasRenderingContext2D, x0:number,y0:number,x1:number,y1:number,offset:number,len:number): CanvasGradient {
@@ -407,6 +428,8 @@ function shamrock(m: CanvasRenderingContext2D): void {
   }
   m.fillStyle = 'rgba(255,255,255,0.7)'; m.beginPath(); m.arc(cx - 2.2, cy - 3.6, 1.1, 0, Math.PI * 2); m.fill();
 }
+/** Test hook (ink-v14-check's bounds proof): the coin, the clover and a flock drawn at any size, as play draws them. */
+export const INK_SIZED_ART = { coin: drawCoin, clover: drawClover, birds: drawBirds } as const;
 /** Test hook (the x200 check's bounds proof): each pickup's cell side and painter. */
 export const INK_PICKUP_ART = { silver: { w: INK_SILVER_R * 2, paint: silverCoin }, shamrock: { w: INK_SHAMROCK_R * 2, paint: shamrock } } as const;
 /**
@@ -447,7 +470,7 @@ function drawPickups(c: CanvasRenderingContext2D, lvl: InkState['list'][number],
     stamp(c, 'silver', INK_SILVER_R * 2, INK_SILVER_R * 2, p.x - INK_SILVER_R, p.y - INK_SILVER_R, silverCoin);
   }
   const sh = lvl.shamrock;
-  if (sh && !state.shamrockGot) stamp(c, 'shamrock', INK_SHAMROCK_R * 2, INK_SHAMROCK_R * 2, sh.x - INK_SHAMROCK_R, sh.y - INK_SHAMROCK_R, shamrock);
+  if (sh && !state.shamrockGot) drawClover(c, sh.x, sh.y, lvl.cloverR ?? INK_SHAMROCK_R);
 }
 
 function drawInkBridgeArtWorld(c:CanvasRenderingContext2D,state:InkState,size:CanvasSize):void {
@@ -484,8 +507,9 @@ function drawInkBridgeArtWorld(c:CanvasRenderingContext2D,state:InkState,size:Ca
     const trail=state.positions.slice(-5);c.strokeStyle=GOLD;c.lineWidth=2;c.lineCap='round';
     for(let i=1;i<trail.length;i++){const a=trail[i-1],b=trail[i];if(!a||!b)continue;c.globalAlpha=i/trail.length*0.35;c.beginPath();c.moveTo(a.x/FP,a.y/FP);c.lineTo(b.x/FP,b.y/FP);c.stroke();}c.globalAlpha=1;
   }
-  drawGlow(c,'gold','255,214,80',state.ball.x/FP,state.ball.y/FP,BALL_R*2.4,BALL_R*2.4,0.7);
-  stamp(c,'coin',BALL_R*2,BALL_R*2,state.ball.x/FP-BALL_R,state.ball.y/FP-BALL_R,coin);
+  const ballR=lvl.ballR??BALL_R;
+  drawGlow(c,'gold','255,214,80',state.ball.x/FP,state.ball.y/FP,ballR*2.4,ballR*2.4,0.7);
+  drawCoin(c,state.ball.x/FP,state.ball.y/FP,ballR);
   // Live levels while dropping: faded, non-solid draft strokes (clipped off any birds) and a
   // no-draw ring where the next draft point would be rejected.
   if (inkIsLive(state.level,state.rev)&&state.dropping) {
@@ -496,62 +520,72 @@ function drawInkBridgeArtWorld(c:CanvasRenderingContext2D,state:InkState,size:Ca
     for(const seg of state.draftSegs){c.beginPath();c.moveTo(seg.x0,seg.y0);c.lineTo(seg.x1,seg.y1);c.stroke();}
     c.setLineDash([]);c.globalAlpha=1;c.restore();
     c.save();c.strokeStyle='rgba(255,255,255,0.55)';c.setLineDash([3,4]);c.lineWidth=1.5;
-    c.beginPath();c.arc(state.ball.x/FP,state.ball.y/FP,INK_NO_DRAW_ZONE_PX,0,Math.PI*2);c.stroke();
+    c.beginPath();c.arc(state.ball.x/FP,state.ball.y/FP,inkNoDrawZone(state),0,Math.PI*2);c.stroke();
     c.setLineDash([]);c.restore();
   }
   const caughtLevel=state.list[Math.max(0,state.level-1)]??lvl;
   successFrame(c,{id:'inkbridge',tick:state.tick,count:state.levels,misses:state.fails,eventTick:state.flashKind===1?state.flashTick:0,colour:GOLD,width:INK_WORLD_W,height:H,point:{x:inkBucketX(caughtLevel,state.flashTick),y:caughtLevel.bucketY,shape:'spark'}});
   const age=state.tick-state.flashTick;
   if(state.flashKind===2&&state.failedBall&&age<20) {
-    c.globalAlpha=1-age/20;stamp(c,'coin',14,14,state.failedBall.x/FP-7,state.failedBall.y/FP-7,coin);
-    if(inkFailedOnBlock(state)){c.fillStyle=RED;c.globalAlpha=(1-age/20)*0.7;c.beginPath();c.arc(state.failedBall.x/FP,state.failedBall.y/FP,7,0,Math.PI*2);c.fill();}c.globalAlpha=1;
+    c.globalAlpha=1-age/20;drawCoin(c,state.failedBall.x/FP,state.failedBall.y/FP,ballR);
+    if(inkFailedOnBlock(state)){c.fillStyle=RED;c.globalAlpha=(1-age/20)*0.7;c.beginPath();c.arc(state.failedBall.x/FP,state.failedBall.y/FP,ballR,0,Math.PI*2);c.fill();}c.globalAlpha=1;
   }
-  // Left side empties first; the surviving right-hand rainbow is clipped, not rescaled.
-  const remaining=Math.max(0,Math.min(1,state.ink/(inkBudgetFor(state.level,state.rev)*FP)));
-  // Polish A2: soft backing pills behind the level and the ink meter with its fails.
-  c.font="bold 16px 'JetBrains Mono', ui-monospace, monospace";
-  const levelText=`Level ${Math.min(state.level+1,INK_LEVELS)} / ${INK_LEVELS}`;
-  hudPill(c,4,4,Math.ceil(c.measureText(levelText).width)+16,26);
-  // inkRev 13: the ink-par readout ("Ink 84 / par 90", red over par) takes the fail dots' place (a miss never ends the run).
-  const parLvl=state.rev===INK_REV_CLOVER?lvl.inkPar:undefined;
-  if(parLvl!==undefined){
-    hudPill(c,182,4,202,28);
-    const used=Math.max(0,Math.ceil((inkBudgetFor(state.level,state.rev)*FP-state.ink)/FP));
-    c.save();c.fillStyle=used>parLvl?RED:TEXT;c.font="bold 11px 'JetBrains Mono', ui-monospace, monospace";c.textAlign='left';c.textBaseline='middle';
-    c.fillText(inkParText(used,parLvl),190,18.5);c.restore();
-  } else hudPill(c,216,4,168,28);
-  // The ink meter: x 274, 100 wide (inkRev 13: x 304, 72 wide, beside the readout).
-  const MX=parLvl!==undefined?304:274, MW=parLvl!==undefined?72:100;
-  c.fillStyle=EMPTY;c.fillRect(MX-2,12,MW+4,12);
-  c.save();c.beginPath();c.rect(MX+MW*(1-remaining),14,MW*remaining,8);c.clip();
-  const meter=sprite('meter',100,8,m=>{m.fillStyle=rainbow(m,0,0,100,0,0,100);m.fillRect(0,0,100,8);});
-  if(meter)c.drawImage(meter,MX,14,MW,8);c.restore();
-  // Live levels before release: mark how far the capped first line can drain the meter,
-  // and flash the meter plus the pen end once that cap is reached (render only).
-  if(inkIsLive(state.level,state.rev)&&!state.dropping) {
-    const budget=inkBudgetFor(state.level,state.rev);
-    const mx=MX+MW*Math.min(1,INK_LIVE_PRE_CAP/budget);
-    c.fillStyle=TEXT;c.fillRect(mx-1,10,2,16);
-    const atCap=state.preInkUsed>=(INK_LIVE_PRE_CAP-2)*FP;
-    if(atCap) {
-      const pulse=0.55+0.45*Math.sin(state.tick/3);
-      c.save();c.globalAlpha=pulse;c.strokeStyle=RED;c.lineWidth=2;c.strokeRect(MX-3,11,MW+6,14);
-      const last=state.segs[state.segs.length-1];
-      if(last){c.beginPath();c.arc(last.x1,last.y1,7,0,Math.PI*2);c.stroke();}
-      c.fillStyle=RED;c.font="bold 11px 'JetBrains Mono', ui-monospace, monospace";c.textAlign='right';c.textBaseline='top';c.fillText('LINE LIMIT',376,28);
-      c.restore();
-    }
-  }
-  if(parLvl===undefined)for(let i=0;i<INK_FAILS;i++){c.fillStyle=i<state.fails?RED:EMPTY;c.beginPath();c.arc(228+i*14,18,5,0,Math.PI*2);c.fill();c.strokeStyle=i<state.fails?RED_EDGE:'rgba(36,51,60,0.35)';c.lineWidth=1;c.stroke();}
-  c.fillStyle=TEXT;c.font="bold 16px 'JetBrains Mono', ui-monospace, monospace";c.textAlign='left';c.textBaseline='alphabetic';successHud(c,'inkbridge',state.tick,12,22,()=>c.fillText(levelText,12,22));
+  drawInkHud(c,state,lvl);
   c.restore();
 }
-function hudPill(c: CanvasRenderingContext2D, x: number, y: number, w: number, h: number): void {
+/**
+ * The HUD (3 Nov 2026, Joe's audit; display only, every revision): the shared HUD pills, "Level 3 / 10" top left as the
+ * main count, then the ink this level has taken against its par ("Ink 18 · par 54", red over par; inkRev 13 and 14) or
+ * the misses (older revisions, three end the run), and the ink left as a rainbow bar emptying from the left. A second row
+ * only on live levels: LIVE, and LINE LIMIT once the first line reaches its cap.
+ */
+function drawInkHud(c: CanvasRenderingContext2D, state: InkState, lvl: InkState['list'][number]): void {
+  const X = 6, Y = 6, budget = inkBudgetFor(state.level, state.rev);
+  const remaining = Math.max(0, Math.min(1, state.ink / (budget * FP)));
+  const levelValue = `${Math.min(state.level + 1, INK_LEVELS)} / ${INK_LEVELS}`;
+  const levelW = hudPillWidth(c, 'Level', levelValue);
+  successHud(c, 'inkbridge', state.tick, X + levelW / 2, Y + HUD_PILL_H / 2, () => drawHudPill(c, X, Y, 'Level', levelValue));
+  let x = X + levelW + HUD_PILL_GAP;
+  const par = inkClover(state.rev) ? lvl.inkPar : undefined;
+  if (par !== undefined) {
+    const used = Math.max(0, Math.ceil((budget * FP - state.ink) / FP));
+    x += drawHudPill(c, x, Y, 'Ink', inkInkText(used, par), { alert: used > par }) + HUD_PILL_GAP;
+  } else {
+    x += drawHudPill(c, x, Y, 'Misses', `${state.fails} / ${INK_FAILS}`, { alert: state.fails > 0 && state.fails >= INK_FAILS - 1 }) + HUD_PILL_GAP;
+  }
+  // The ink left: a pill-shaped track to the world's right edge, the rainbow emptying from the left (clipped, not rescaled).
+  const right = INK_WORLD_W - X, TW = Math.max(56, Math.min(120, right - x)), tx = right - TW, h = HUD_PILL_H;
   c.save();
-  c.fillStyle='rgba(20,60,90,0.14)';c.beginPath();c.roundRect(x,y+1.5,w,h,h/2);c.fill();
-  c.fillStyle='rgba(255,255,255,0.48)';c.beginPath();c.roundRect(x,y,w,h,h/2);c.fill();
-  c.strokeStyle='rgba(255,255,255,0.85)';c.lineWidth=1;c.beginPath();c.roundRect(x+0.5,y+0.5,w-1,h-1,h/2);c.stroke();
+  c.fillStyle = 'rgba(6,8,16,0.72)'; c.beginPath(); c.roundRect(tx, Y, TW, h, h / 2); c.fill();
+  c.strokeStyle = 'rgba(255,255,255,0.16)'; c.lineWidth = 1; c.stroke();
+  c.font = `700 ${Math.round(h * 0.43)}px 'Archivo', system-ui, sans-serif`; c.fillStyle = 'rgba(235,238,248,0.72)'; c.textBaseline = 'middle'; c.textAlign = 'left';
+  c.fillText('Left', tx + 10, Y + h / 2 + 0.5);
+  const MX = tx + 10 + Math.ceil(c.measureText('Left').width) + 6, MW = Math.max(16, tx + TW - 10 - MX), MY = Y + h / 2 - 4;
+  c.fillStyle = 'rgba(255,255,255,0.18)'; c.beginPath(); c.roundRect(MX, MY, MW, 8, 4); c.fill();
+  c.beginPath(); c.rect(MX + MW * (1 - remaining), MY, MW * remaining, 8); c.clip();
+  const meter = sprite('meter', 100, 8, (m) => { m.fillStyle = rainbow(m, 0, 0, 100, 0, 0, 100); m.fillRect(0, 0, 100, 8); });
+  if (meter) c.drawImage(meter, MX, MY, MW, 8);
   c.restore();
+  // Live levels before release: mark how far the capped first line can drain the meter, and flag the cap once reached.
+  const live = inkIsLive(state.level, state.rev);
+  const Y2 = Y + h + HUD_PILL_GAP;
+  if (live) drawHudPill(c, X, Y2, '', 'LIVE', { gold: true });
+  if (live && !state.dropping) {
+    const mx = MX + MW * Math.min(1, INK_LIVE_PRE_CAP / budget);
+    c.fillStyle = '#FFFFFF'; c.fillRect(mx - 1, MY - 3, 2, 14);
+    if (state.preInkUsed >= (INK_LIVE_PRE_CAP - 2) * FP) {
+      const pulse = 0.55 + 0.45 * Math.sin(state.tick / 3);
+      c.save(); c.globalAlpha = pulse; c.strokeStyle = RED; c.lineWidth = 2; c.beginPath(); c.roundRect(tx - 1, Y - 1, TW + 2, h + 2, h / 2 + 1); c.stroke();
+      const last = state.segs[state.segs.length - 1];
+      if (last) { c.beginPath(); c.arc(last.x1, last.y1, 7, 0, Math.PI * 2); c.stroke(); }
+      c.restore();
+      drawHudPill(c, right, Y2, '', 'Line limit', { align: 'right', alert: true });
+    }
+  }
+}
+/** The ink readout's value: the ink this level has taken, then its par ("18 · par 54"). */
+export function inkInkText(used: number, par: number): string {
+  return `${used} · par ${par}`;
 }
 /** Fixed intro art shares the same sprites; no gameplay inputs or demo log changes. */
 export function drawInkRainbowExample(c:CanvasRenderingContext2D):void {

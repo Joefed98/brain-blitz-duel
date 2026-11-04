@@ -75,7 +75,7 @@ import {
 import { encodeSwingRun, replaySwingRun } from "../src/lib/duel/swing";
 import { SWING_V4_BANK } from "../src/lib/duel/swingBankV4.server";
 import { proveSwingSeedV4 } from "../src/lib/duel/swingProof.server";
-import { tiltCupReachable, tiltDealableX, tiltGameFor, tiltSeedCupsReachable, TILT_REV_BAND, TILT_REV_PAR } from "../src/lib/arcade/tilt";
+import { tiltCupReachable, tiltDealableX, tiltGameFor, tiltSeedCupsReachable, TILT_REV_BAND, TILT_REV_BIG } from "../src/lib/arcade/tilt";
 import { generateOrbit, generateSkyline, generateSwing, generateTilt, generateWavefront, pinOrbitPreFuel } from "../src/lib/duel/arcade.server";
 import { skylineGameFor, SKYLINE_REV_EXPAND, SKYLINE_REV_STD, SKYLINE_REV_TALL } from "../src/lib/arcade/skyline";
 import { APP_FLAG_LOGO_URL } from "../src/lib/brand";
@@ -429,7 +429,8 @@ if (want("tilt")) {
   // arcade-phone-notes-check); every cup stays reachable.
   // The arcade scoring standard (29 Oct 2026) on to tiltRev 10 (the same bank; tilt-standard-check covers it).
   // tiltRev 11 (3 Nov 2026): the same bank and mazes, no gold stars, par times and a clean run (tilt-rev11-check).
-  ok(p.tiltRev === TILT_REV_PAR && tiltDealableX(p.seed), "new Tilt rounds are stamped tiltRev 11 (the expansion's mazes and a fourth, par and a clean run) and deal a seed with every key and cup reachable");
+  // tiltRev 12 (3 Nov 2026): tiltRev 11 with bigger marbles and keys, from its proved deal (tilt-rev12-check).
+  ok(p.tiltRev === TILT_REV_BIG && tiltDealableX(p.seed), "new Tilt rounds are stamped tiltRev 12 (the expansion's mazes and a fourth, par and a clean run, bigger marbles) and deal a seed with every key and cup reachable");
   ok(TILT_REV_BAND + 1 === 4 && typeof tiltSeedCupsReachable === "function", "tiltRev 4 still follows the band revision");
   const n = FULL ? 40_000 : 4_000;
   let bad = 0;

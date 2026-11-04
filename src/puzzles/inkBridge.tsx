@@ -15,7 +15,7 @@ import {
   INK_WORLD_W,
   inkWorldH,
   inkWorldHFor,
-  INK_REV_CLOVER,
+  INK_REV_BIG,
 } from "@/lib/arcade/inkBridge";
 import { encodeInkBridgeRun, replayInkBridgeRun } from "@/lib/duel/inkBridge";
 import { INKBRIDGE_TIME_MS, type InkBridgePuzzleData } from "@/lib/duel/types";
@@ -41,7 +41,7 @@ function IntroExample() {
   return (
     <div className="flex w-full flex-col items-center gap-2">
       <canvas ref={canvas} width={336} height={260} className="h-[130px] w-[168px] rounded-lg" aria-hidden="true" />
-      <p className="text-center text-xs text-muted-foreground">Draw lines around the white birds, then RELEASE. Roll through stars, silver coins and the shamrock for bonus points.</p>
+      <p className="text-center text-xs text-muted-foreground">Draw lines around the white birds, then RELEASE. Roll through a clover or bounce off a cloud for bonus points.</p>
     </div>
   );
 }
@@ -97,6 +97,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const liveDroppingRef = useRef(false);
   const [liveLevel, setLiveLevel] = useState(false);
   const [liveDropping, setLiveDropping] = useState(false);
+  // Any drop under way: DROP AGAIN (end this drop as a miss and draw again) shows only then (3 Nov 2026, Joe's audit).
+  const [dropping, setDropping] = useState(false);
   const [showHint, setShowHint] = useState(false);
   const hintSeen = useRef(false);
   useEffect(() => {
@@ -135,6 +137,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
           liveLevelRef.current = live;
           liveDroppingRef.current = live && state.dropping === 1;
           if (live !== liveLevel) setLiveLevel(live);
+          if ((state.dropping === 1) !== dropping) setDropping(state.dropping === 1);
           if (liveDroppingRef.current !== liveDropping) setLiveDropping(liveDroppingRef.current);
           if (live && !hintSeen.current && !showHint) {
             hintSeen.current = true;
@@ -167,11 +170,6 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         onDraftAnswer={onDraftAnswer}
         overlay={
           <>
-            {liveLevel && (
-              <span className="pointer-events-none absolute left-1/2 top-2 -translate-x-1/2 rounded-full border border-primary bg-primary/90 px-3 py-1 text-xs font-bold uppercase tracking-wide text-primary-foreground">
-                Live
-              </span>
-            )}
             {reject && (
               <>
                 <span
@@ -181,7 +179,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
                 />
                 <span
                   role="status"
-                  className="pointer-events-none absolute left-1/2 top-10 -translate-x-1/2 rounded-full bg-destructive px-3 py-1 text-xs font-bold uppercase tracking-wide text-destructive-foreground"
+                  className="pointer-events-none absolute left-1/2 top-20 -translate-x-1/2 rounded-full bg-destructive px-3 py-1 text-xs font-bold uppercase tracking-wide text-destructive-foreground"
                 >
                   {reject.label}
                 </span>
@@ -198,7 +196,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       <div data-game-controls="tools" className="flex h-12 shrink-0 gap-1.5" style={{ position: "relative" }}>
         {/* Polish A2: the dock's backing, drawn round the row without changing its size or place. */}
         <span aria-hidden="true" className="pointer-events-none absolute -inset-x-1 -inset-y-1 rounded-2xl" style={DOCK_BACKING} />
-        {([ [INK_INPUT_UNDO, "UNDO"], [INK_INPUT_RESET, "RESET"], [INK_INPUT_RELEASE, "RELEASE"], [INK_INPUT_DROP_AGAIN, "DROP AGAIN"] ] as const).map(([k, label]) => (
+        {/* DROP AGAIN only while a drop is under way (it ends that drop as a miss); the row keeps its 48 px height. */}
+        {([ [INK_INPUT_UNDO, "UNDO"], [INK_INPUT_RESET, "RESET"], [INK_INPUT_RELEASE, "RELEASE"], [INK_INPUT_DROP_AGAIN, "DROP AGAIN"] ] as const).filter(([k]) => k !== INK_INPUT_DROP_AGAIN || dropping).map(([k, label]) => (
           <Button key={k} type="button" disabled={locked || (k === INK_INPUT_UNDO && liveDropping)} variant={k === INK_INPUT_RELEASE ? "default" : "outline"} className="h-12 min-w-0 flex-1 rounded-xl px-1 text-xs font-bold" style={k === INK_INPUT_RELEASE ? DOCK_GOLD : DOCK_GLASS} onPointerDown={(e) => {
             e.preventDefault();
             input.current.press(k);
@@ -241,7 +240,7 @@ export const inkBridgePuzzle: PuzzleDefinition = {
   category: "arcade",
   timeLimitMs: INKBRIDGE_TIME_MS,
   revealMs: 6_000,
-  generate: () => ({ type: "inkbridge", seed: 1, inkRev: INK_REV_CLOVER }) satisfies InkBridgePuzzleData,
+  generate: () => ({ type: "inkbridge", seed: 1, inkRev: INK_REV_BIG }) satisfies InkBridgePuzzleData,
   check: () => false,
   revealHeading: "Your run",
   IntroExample,

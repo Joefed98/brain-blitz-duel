@@ -99,3 +99,9 @@ cannot.
 - `bun scripts/bubble-standard-check.ts`: legacy bubbleRev 10 replays, the new start and checksum, rooms deal 11, the
   help, the mine on a built reef (and bubbleRev 10's two rings on the same shot), tie order, bot runs through
   `replayBubbleRun` scoring their parts' sum.
+
+## 3 Nov 2026 polish (display only, no stamp)
+
+The HUD on the rock is the shared pills (`hudPill.renderer.ts`): "Popped n" (the main count, top left), "Treasure n/6"
+top right with its chest bubble beside it (gold once all six are out), and "Combo ×n" (gold) under "Popped" while a pop
+streak runs (bubbleRev 8+). It replaced the gold monospace "Popped" readout and the bare "0/6" tally.

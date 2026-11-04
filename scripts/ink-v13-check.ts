@@ -42,6 +42,7 @@ import {
   INK_INPUT_STROKE,
   INK_LEVELS,
   INK_REV_CLOVER,
+  INK_REV_BIG,
   INK_REV_STD,
   INK_REV_STRICT,
   INK_STAR_OFF_ROUTE,
@@ -53,7 +54,7 @@ import {
 } from "../src/lib/arcade/inkBridge";
 import { stdSpecMax } from "../src/lib/arcade/arcadeStandard";
 import { encodeInkBridgeRun, replayInkBridgeRun } from "../src/lib/duel/inkBridge";
-import { generateInkBridge, pinInkPreClover } from "../src/lib/duel/arcade.server";
+import { generateInkBridge, pinInkPreBig, pinInkPreClover } from "../src/lib/duel/arcade.server";
 import { LIVE_BANDS } from "../src/lib/arcade/liveBands";
 import { PUZZLE_INSTRUCTIONS } from "../src/lib/duel/instructions";
 import { INTRO_SCORE } from "../src/lib/duel/introScore";
@@ -75,6 +76,8 @@ const ok = (cond: unknown, msg: string) => {
 const section = (name: string) => console.log(`— ${name}`);
 
 const game = inkBridgeGameFor(INK_REV_CLOVER);
+// inkRev 14 (3 Nov 2026, ink-v14-check) moved rooms on from inkRev 13: this check pins the deal before it.
+pinInkPreBig(true);
 /** Sample seeds: skill-band seed indices (tuning 0–59, fresh 10000 on). */
 const SAMPLE = [0, 7, 41, 10000, 10013].map(roomSeed);
 const RUNS_FIXTURE = "scripts/fixtures/ink-v13-runs.json.gz";
@@ -121,7 +124,7 @@ section("Rooms deal inkRev 13; LIVE_BANDS, help and intro follow it");
   ok(generateInkBridge().inkRev === INK_REV_STD, "pinInkPreClover deals inkRev 12 for the checks written for it");
   pinInkPreClover(was);
   ok(generateInkBridge().inkRev === INK_REV_CLOVER, "unpinned, rooms deal inkRev 13 again");
-  ok(live.rev === INK_REV_CLOVER && live.strictRev === INK_REV_STRICT && JSON.stringify(live.curve) === JSON.stringify(INK_V13_BAND_CURVE), "LIVE_BANDS lists inkRev 13 on its core's straight line (12 a level), still against inkRev 8");
+  ok(live.rev === INK_REV_BIG && live.strictRev === INK_REV_STRICT && JSON.stringify(live.curve) === JSON.stringify(INK_V13_BAND_CURVE), "LIVE_BANDS lists inkRev 14 (inkRev 13's parts, ink-v14-check) on inkRev 13's core's straight line (12 a level), still against inkRev 8");
   ok(roundMaxFor("inkbridge") === 200 && stdSpecMax(INK_V13_STD) === 200, "the parts total 200, the round maximum");
   const help = PUZZLE_INSTRUCTIONS.inkbridge;
   const how = help.how.map((h) => `${h.action} ${h.detail}`).join(" ");
@@ -129,7 +132,7 @@ section("Rooms deal inkRev 13; LIVE_BANDS, help and intro follow it");
   ok(["level potted counts 12", "up to 120", "Ink par", "Trick shots", "Clovers", "Speed", "120", "30", "20", "10", "50 s", "parts total 200"].every((w) => help.score.includes(w)), `the help's SCORE states every part and its maximum (${help.score})`);
   const intro = INTRO_SCORE.inkbridge.replace("{max}", "200");
   ok(intro.length <= 90 && /little ink/i.test(intro) && /clover/i.test(intro) && /quickly/i.test(intro) && !/star|silver/i.test(intro), `the intro line names the parts in at most 90 characters (${intro.length}: "${intro}")`);
-  ok(roomIdentity.rev === INK_REV_CLOVER, "room identity is measured on the dealt stamp (inkRev 13)");
+  ok(roomIdentity.rev === INK_REV_BIG && roomIdentity.logs(SAMPLE[0]!, INK_REV_CLOVER).length === 5, "room identity is measured on the dealt stamp (inkRev 14; inkRev 13 by passing its rev, section 7)");
   ok(inkParText(84, 90) === "Ink 84 / par 90" && inkParText(1198, 594).length <= 16, "the HUD readout reads \"Ink 84 / par 90\" (closer when long)");
 }
 
@@ -250,7 +253,7 @@ section("Scoring: no input 0, any input at least 1, random input low");
 section("Room identity: different logs see the same dealt run");
 {
   const seed = SAMPLE[0]!;
-  const logs = roomIdentity.logs(seed);
+  const logs = roomIdentity.logs(seed, INK_REV_CLOVER);
   const lists = logs.map((log) => JSON.stringify(roomIdentity.scheduleOf(seed, INK_REV_CLOVER, log)));
   ok(lists.every((l) => l === lists[0]) && lists[0]!.includes("ink par") && !lists[0]!.includes("ink star") && !lists[0]!.includes("silver"), `seed ${seed}: ${logs.length} logs (idle, random, weak, elite, perfect) see the same levels, clovers and ink pars`);
   const ends = logs.map((log) => {
