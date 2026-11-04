@@ -41,4 +41,38 @@ From Joe's audit (iPhone 11, 414×896; also checked at 375×667). Screenshots: `
 
 ## Strategy
 
-See the sections below (Ball Tracker, Gemstone, Coral Pop display only; Tilt and Rainbow Bridge on new stamps).
+8. **Ball Tracker** (display only): turnable tubes raised gold (gold bed, bright lip, deeper shadow), the fixed track
+   plain wood; a 36 px pill strip above the arena (`btDrawHud`: Home n/36, Gold / Wrong, Combo ×n from 2, Switch up
+   Ns) replaces the near-invisible status line under the board (the arena slot keeps its height).
+9. **Gemstone** (display only, matchupRev 12): "Score n" on the 0–200 scale from the sim's own standard parts
+   (`matchupStdScore`) and "Goals n/6" in place of the raw "pts" counter; the gem row above the board is the next
+   drop into each column, labelled "Next drops ↓"; the goals panel's top line as pills (Ice, Treasure n/6, Big
+   lines); everything under the HUD drawn 5.5 % larger (`SIX_ZOOM`, taps through `matchupCellAtShown`).
+10. **Rainbow Bridge** (`inkRev 14`, `docs/arcade-standard/inkbridge.md` "inkRev 14"): coin radius 10 (was 7),
+    clovers 12 (9), birds 10 px thick (6.5), every level built and proved at those sizes; parts unchanged (levels 120 +
+    ink par 30 + trick shots 20 + clovers 10 + speed 20); dealt from `inkBigDeal.server.ts` (100 seeds, the oracle at
+    200 through the server replay, none dropped). Pills "Level 1 / 10", "Ink 18 · par 54", "Left" (every revision);
+    Drop again shows only while a drop is under way (a failed drop resets the level and the button does nothing
+    outside a drop, so "after a failed drop" would be a dead button).
+11. **Tilt** (`tiltRev 12`, `docs/arcade-standard/tilt.md` "tiltRev 12"): marbles 41 % of a cell (45 % in maze 4; were
+    28 % / 34 %), key reach 45 % of a cell (was a third), cups drawn 160 % of the marble; mazes, pars and parts
+    unchanged (core 140 + par 24 + clean 12 + speed 24); dealt from `tiltDealV12.server.ts` (347 of the 389 bank seeds,
+    each replayed to exactly 200 by the oracle; 42 dropped); walnut and brass in place of the light wood; pills "Maze
+    1 / 4", "Par 13 s" counting down, "Clean"; "Over par" only once the par has passed (`tiltOverParT`: the old HUD
+    showed it on the tick exactly at par, which still meets it).
+12. **Coral Pop** (display only): pills "Popped n", "Treasure n/6" and a gold "Combo ×n" while a streak runs.
+
+### Medians weak → near → elite → flawless, before → after
+
+| Game | weak | average | good | great | near | elite | flawless |
+|---|---|---|---|---|---|---|---|
+| Tilt 11 (bank seeds) → 12 (deal seeds) | 53.5 → 43 | 87 → 89 | 135 → 130 | 139.5 → 161 | 183.5 → 181.5 | 185 → 185.5 | 194 → 189 |
+| Rainbow Bridge 13 → 14 (fresh seeds) | 56 → 59 | 88 → 83 | 119 → 122 | 162 → 159 | 181 → 183 | 195 → 193 | 200 → 200 |
+
+Tilt's flawless bot stays under 200 (189; it was 194 on tiltRev 11): the oracle reaches 200 on every dealt seed, but
+the band tool's flawless level misses a par now and then. Retunes of the par and speed parts moved elite and flawless
+together (at best 192 / 193.5) without separating them, so the parts were kept. Rainbow Bridge's near-perfect sits a
+little over "about 175", as on inkRev 13.
+
+Not done: the five intro demos stay as they were (Tilt and Rainbow Bridge stopped until recorded on their new
+stamps); Tilt's tile still shows light wood (its scene draws its own still, unchanged by the stamp).
