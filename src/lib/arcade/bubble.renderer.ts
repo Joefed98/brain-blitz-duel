@@ -2,13 +2,15 @@
  * Bubble Pop art: an underwater reef in the High Seas world. Render only.
  * Uses the sim's own stretched world transform (scaleX/scaleY) and draws every
  * bubble at the sim's radius on its sim cell; rock, kelp and coral sit only in
- * the side wall margins and above the sim ceiling line.
+ * the side wall margins and above the sim ceiling line. 3 Nov 2026 polish (display
+ * only): the HUD on the rock is the shared pills ("Popped n", "Treasure n/6", "Combo ×n").
  */
 import type { CanvasSize } from "./engine";
 import { artReady, drawArtSprite } from "./sprites.renderer";
 import { arcadeFx } from "./arcadeFx.renderer";
 import { bubbleFxFor } from "./arcadeFxGames.renderer";
 import { successHud, successFrame } from './success.renderer';
+import { drawHudPill, HUD_PILL_GAP } from "./hudPill.renderer";
 import {
   bubbleGame,
   bubCellX,
@@ -23,7 +25,6 @@ import {
   BUB_JOKER,
   BUB_LINE,
   BUB_PALETTE,
-  BUB_HUD_H,
   BUB_R,
   BUB_ROW_H,
   BUB_SHOOTER_X,
@@ -823,18 +824,11 @@ function note(m: Memo, text: string, x: number, y: number, born: number, gold: b
 }
 
 /** bubbleRev 8: a small chest for the HUD's tally (the chest bubble's own sprite, no bubble round it would read smaller). */
-function drawChestTally(ctx: CanvasRenderingContext2D, state: BubState, right: number, cy: number, rs: number, dpr: number): void {
+function drawChestTally(ctx: CanvasRenderingContext2D, state: BubState, right: number, top: number, h: number, rs: number, dpr: number): void {
+  // 3 Nov 2026 polish (display only): a "Treasure n/6" HUD pill (gold once every chest is out), its chest bubble beside it.
   const got = state.chests ?? 0;
-  ctx.save();
-  ctx.font = `bold ${Math.round(15 * rs)}px ui-monospace, monospace`;
-  ctx.textAlign = "right";
-  ctx.textBaseline = "middle";
-  ctx.fillStyle = got > 0 ? SEA_GOLD : SEA_TEXT;
-  const text = `${got}/${BUB_V8_CHESTS}`;
-  ctx.fillText(text, right, cy);
-  const w = ctx.measureText(text).width;
-  blitBubble(ctx, BUB_CHEST, right - w - 13 * rs, cy, 10 * rs, dpr);
-  ctx.restore();
+  const w = drawHudPill(ctx, right, top, "Treasure", `${got}/${BUB_V8_CHESTS}`, { h, align: "right", gold: got >= BUB_V8_CHESTS });
+  blitBubble(ctx, BUB_CHEST, right - w - 14 * rs, top + h / 2, 11 * rs, dpr);
 }
 
 let lastFlight = 0;
@@ -1223,23 +1217,13 @@ function drawBubbleArtWorld(ctx: CanvasRenderingContext2D, state: BubState, size
     blitBubble(ctx, state.flightColour, X(state.x / 256), Y(state.y / 256), radius, dpr, 1, heading);
   }
 
-  // HUD readout on the rock.
-  ctx.fillStyle = SEA_GOLD;
-  ctx.font = `bold ${Math.round(18 * rs)}px ui-monospace, monospace`;
-  ctx.textBaseline = "middle";
-  ctx.textAlign = "left";
-  successHud(ctx,'bubble',state.tick,14,18,()=>{ctx.fillText(`Popped ${state.popped}`, X(14), Y(BUB_HUD_H * 0.36));});
-  // bubbleRev 8: the chest tally on the rock's right, and the pop streak once it is a combo.
+  // HUD on the rock (3 Nov 2026 polish, display only): the shared pills, "Popped n" the main count top left; bubbleRev 8+
+  // adds the treasure tally top right and, under "Popped", the pop streak once it is a combo (a gold pill).
+  const pillH = 26 * rs;
+  successHud(ctx,'bubble',state.tick,X(10),Y(6),()=>{drawHudPill(ctx, X(10), Y(6), "Popped", String(state.popped), { h: pillH });});
   if (state.reef) {
-    drawChestTally(ctx, state, X(BUB_WORLD_W - 14), Y(BUB_HUD_H * 0.36), rs, dpr);
-    if ((state.streak ?? 0) >= 2) {
-      ctx.save();
-      ctx.font = `bold ${Math.round(13 * rs)}px ui-monospace, monospace`;
-      ctx.fillStyle = "#BFF4FF";
-      ctx.textAlign = "left";
-      ctx.fillText(`COMBO ×${state.streak}`, X(14), Y(BUB_HUD_H * 0.72));
-      ctx.restore();
-    }
+    drawChestTally(ctx, state, X(BUB_WORLD_W - 10), Y(6), pillH, rs, dpr);
+    if ((state.streak ?? 0) >= 2) drawHudPill(ctx, X(10), Y(6) + pillH + HUD_PILL_GAP * rs, "Combo", `×${state.streak}`, { h: 22 * rs, gold: true });
   }
   const pop=m.fx[m.fx.length-1];
   successFrame(ctx,{id:'bubble',tick:state.tick,count:state.popped,colour:SEA_GOLD,width:size.width,height:size.height,point:{x:X(pop?.x??BUB_SHOOTER_X),y:Y(pop?.y??BUB_TOP),shape:'fish'},hud:{x:X(14),y:Y(8),text:`Popped ${state.popped}`}});

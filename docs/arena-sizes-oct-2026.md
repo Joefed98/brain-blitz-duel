@@ -44,7 +44,7 @@ revisions keep their own world in reveals and replays.
 | Grappler | 450x844 | 375x591 → 315x591 | 390x624 → 333x624 | 390x768 → 390x731 | 414x772 → 412x772 | 430x856 → 430x806 | 1280x724 → 386x724 | 0.867x | 60px | 0px | 37px | 0px | - |
 | Scrumper | 360x672 | 375x567 → 304x567 | 390x600 → 321x600 | 390x744 → 390x728 | 414x748 → 401x748 | 430x832 → 430x803 | 1280x700 → 375x700 | 1.083x | 84px | 8px | 8px | 0px | - |
 | Tilt | 440x820 | 375x591 → 317x591 | 390x624 → 335x624 | 390x768 → 390x727 | 414x772 → 414x772 | 430x856 → 430x801 | 1280x724 → 388x724 | 0.886x | 60px | 21px | 21px | 0px | - |
-| Ball Tracker | 700x1400 | 375x555 → 278x555 | 390x588 → 294x588 | 390x732 → 366x732 | 414x736 → 368x736 | 430x820 → 410x820 | 1280x688 → 344x688 | 0.523x | 60px | 0px | -0px | 24px | Ball Tracker's status row (28px): 16px |
+| Ball Tracker | 700x1400 | 375x555 → 278x555 | 390x588 → 294x588 | 390x732 → 366x732 | 414x736 → 368x736 | 430x820 → 410x820 | 1280x688 → 344x688 | 0.523x | 96px | 0px | -0px | 24px | - |
 | Gemstone | 390x720 | 375x591 → 320x591 | 390x624 → 338x624 | 390x768 → 390x720 | 414x772 → 414x764 | 430x856 → 430x794 | 1280x724 → 392x724 | 1.000x | 60px | 24px | 24px | 0px | - |
 | Pinball | 390x820 | 375x591 → 281x591 | 390x624 → 297x624 | 390x768 → 365x768 | 414x772 → 367x772 | 430x856 → 407x856 | 1280x724 → 344x724 | 0.937x | 60px | 0px | 0px | 25px | - |
 | Minefield | 390x662 | 375x591 → 348x591 | 390x624 → 368x624 | 390x768 → 390x662 | 414x772 → 414x703 | 430x856 → 430x730 | 1280x724 → 427x724 | 1.000x | 60px | 0px | 106px | 0px | - |
@@ -162,7 +162,7 @@ than half hidden; Hover's world is cut the same way, its disc at the top).
 | Grappler | 414x724 → 386x724, 64px | 414x772 → 412x772, 16px | world 32px |
 | Scrumper | 414x700 → 375x700, 64px | 414x748 → 401x748, 16px | world 32px |
 | Tilt | 414x724 → 388x724, 64px | 414x772 → 414x772, 16px | world 32px |
-| Ball Tracker | 414x688 → 344x688, 64px | 414x736 → 368x736, 16px | world none, Ball Tracker's status row (28px) 32px |
+| Ball Tracker | 414x688 → 344x688, 64px | 414x736 → 368x736, 16px | world 32px |
 | Gemstone | 414x724 → 392x724, 64px | 414x772 → 414x764, 16px | world 24px |
 | Pinball | 414x724 → 344x724, 64px | 414x772 → 367x772, 16px | world 32px |
 | Minefield | 414x724 → 414x703, 64px | 414x772 → 414x703, 16px | world none |

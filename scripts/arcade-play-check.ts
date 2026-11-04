@@ -383,7 +383,8 @@ const HEADER_MIN_TEXT_PX = 12;
 /** The one exception: the score block's "Score" / "Best" label, 11 px by the frame's spec (game-frame.css). */
 const SCORE_LABEL_MIN_PX = 11;
 /** The game's own HUD rows between the header and the box (presentation-geometry-check's ABOVE). */
-const ABOVE_PX: Record<string, number> = { snip: 24, tendrop: 56, whack: 10 + 36 * 1.1 + 10 + 4 + 8 + 20 + 8, clayshoot: 26 };
+// Ball Tracker: its 36px HUD pill strip since 3 Nov 2026 (BT_HUD_H).
+const ABOVE_PX: Record<string, number> = { snip: 24, tendrop: 56, whack: 10 + 36 * 1.1 + 10 + 4 + 8 + 20 + 8, clayshoot: 26, balltrack: 36 };
 /** The screen edge's black (--screen-edge), every gap on an arcade play screen. */
 const EDGE_RGB = "rgb(7, 7, 9)";
 
