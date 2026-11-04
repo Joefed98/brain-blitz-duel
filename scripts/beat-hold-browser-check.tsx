@@ -25,7 +25,7 @@
  * wall-clock milliseconds, and four PRs (#241, #247, #243, #253) failed on a 2-core runner's
  * timing alone (submissions 156–177 ms against 150, a reveal 332 ms after the verdict against
  * 250). The ordering assertions are unchanged; the only wall-clock limit left is one generous
- * ceiling (REAL_SUBMIT_CEILING_MS) that catches a grossly slow submission.
+ * ceiling (REAL_SUBMIT_CEILING_MS, 1 s) that catches a grossly slow submission.
  *
  *   bun scripts/beat-hold-browser-check.tsx
  */
@@ -191,10 +191,13 @@ const STEP_MS = 20;
 const SUBMIT_WINDOW_MS = 50;
 /**
  * The one wall-clock limit: the stubbed server must see the submission within this long, in real
- * time, after onSubmit is called (fake clock paused). Only a grossly slow page trips it: twice the
- * 150 ms CI window the wall-clock version used.
+ * time, after onSubmit is called (fake clock paused). It includes this script's own polling round
+ * trips, so it measures the runner as much as the page; only a grossly slow page should trip it. A
+ * submission held behind a timer needs page time to pass and fails SUBMIT_WINDOW_MS instead. 300 ms
+ * (2x the old 150 ms CI window) tripped at 337 ms on a busy 2-core runner (#254, room unsolved, the
+ * fake-clock submission at 0 ms), so it is about 6.7x.
  */
-const REAL_SUBMIT_CEILING_MS = 300;
+const REAL_SUBMIT_CEILING_MS = 1000;
 
 const { chromium } = await import("playwright");
 const browser = await chromium.launch({ executablePath: CHROMIUM });
