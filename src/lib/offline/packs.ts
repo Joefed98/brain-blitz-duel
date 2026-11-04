@@ -117,8 +117,23 @@ async function defaultFetch(types: PuzzleType[], count: number) {
   return packs as { type: PuzzleType; deals: PackDeal[] }[];
 }
 
+/**
+ * A browser driven by automation (navigator.webdriver: the repo's browser checks) never tops up packs unless the page
+ * opts in with `window.__DUELZ_ALLOW_PACKS__` (offline-check does). Each check context is a fresh device, and its
+ * top-up dealt every offline game's packs on the checks' dev server: ~3 GB of server banks loaded and a busy CPU,
+ * which ran the server out of memory and timed pages out (4 Nov 2026). Real devices never report webdriver.
+ */
+function automatedWithoutPacks(): boolean {
+  try {
+    return navigator.webdriver === true && (window as { __DUELZ_ALLOW_PACKS__?: boolean }).__DUELZ_ALLOW_PACKS__ !== true;
+  } catch {
+    return false;
+  }
+}
+
 /** Whether a top-up may run now: online, downloads on, not metered, and no round on screen. */
 export function topUpAllowed(): boolean {
+  if (automatedWithoutPacks()) return false;
   if (!isOnline() || !offlineDownloadsOn() || meteredConnection()) return false;
   return appUpdater()?.gate() !== "hold";
 }

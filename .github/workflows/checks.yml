@@ -77,6 +77,13 @@ jobs:
           cp "$RUNNER_TEMP/bun.lock.orig" bun.lock
           git diff --exit-code -- bun.lock
 
+      # The runner's memory and cores, for the dev-server memory work (4 Nov 2026).
+      - name: Runner memory
+        run: |
+          free -m
+          nproc
+          echo "> runner: $(free -m | awk '/^Mem:/{print $2}') MB RAM, $(nproc) cores." >> "$GITHUB_STEP_SUMMARY"
+
       - name: Run checks (${{ matrix.shard }})
         run: bun .github/ci/run-shard.ts ${{ matrix.shard }} 2>&1 | tee ci-results-${{ matrix.shard }}.log
         shell: bash # -eo pipefail: a failing runner fails the step through tee
