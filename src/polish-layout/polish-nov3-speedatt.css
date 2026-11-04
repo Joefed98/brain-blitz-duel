@@ -119,6 +119,18 @@
   font-size: 16px;
   line-height: 22px;
 }
+/* A short screen (375×667 with a notch and home bar) has no height to give: the clue list keeps its earlier size there
+   (bottom-clearance-check's seam test), only the gap between clues. */
+@media (max-height: 699px) {
+  [data-puzzle-play][data-puzzle-play] [data-logic-stage="bomb"] .logic-bomb-rules {
+    gap: 2px;
+    padding: revert-layer;
+  }
+  [data-puzzle-play][data-puzzle-play] [data-logic-stage="bomb"] .logic-bomb-rules > p {
+    font-size: 14px;
+    line-height: 20px;
+  }
+}
 
 /* ============================================================ Matchmaker (pairmatch) */
 /* Larger cards on a live round: the board up to 460 px wide (400 before; on a phone it now runs to the 12 px
