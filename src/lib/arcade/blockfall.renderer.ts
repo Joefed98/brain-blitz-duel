@@ -15,7 +15,7 @@ import type { ArcadeGame, ArcadeInputEvent, CanvasSize } from "./engine";
 import { arcadeFx, type ArcadeFxSpec } from "./arcadeFx.renderer";
 import type { ArenaSceneView } from "./arenaScene.renderer";
 import { fillAbove, fillBelow, fillGradient, fillSides } from "./arenaFills.renderer";
-import { RETRO_FONT } from "./retro.renderer";
+import { retroHud, RETRO_FONT, RETRO_WHITE } from "./retro.renderer";
 import {
   BF_H, BF_HIDDEN, BF_PREVIEW, BF_W, BF_ZONE_MULTI_MAX, BF_ZONE_PIECES_MAX, BLOCKFALL_REV_ZONE, bfCells, bfCoreFullFor, bfGhostY, bfGravityFor, bfLevelFor,
   bfMultiPoints, blockfallGame, blockfallGameFor, type BfState,
@@ -67,15 +67,19 @@ export function bfLayout(rev: number | null | undefined): BfLayout {
   return rev === BLOCKFALL_REV_ZONE ? LAYOUT_V2 : LAYOUT_V1;
 }
 
-/** Each shape's neon (rim) and core colours: our own cyan family. */
+/**
+ * Each shape's neon (rim) and core colours. Since 3 Nov 2026 (Joe's audit, display only) seven clearly different
+ * hues of our own neon palette, so the shapes tell apart at a glance (the old cyan family's three cool blues
+ * read alike); deliberately not the familiar falling-blocks colours or their usual shape-to-colour mapping.
+ */
 export const BF_COLOURS: readonly { rim: string; core: string }[] = [
-  { rim: "#E4E0FF", core: "#2B2850" }, // bar: pale lilac
-  { rim: "#36E2F5", core: "#08343D" }, // square: Retro cyan
-  { rim: "#5AB8FF", core: "#0B2A4A" }, // tee: sky
-  { rim: "#5CF2C4", core: "#0A3A30" }, // step right: mint
-  { rim: "#9A8CFF", core: "#221C52" }, // step left: violet-blue
-  { rim: "#9FFFF0", core: "#0E3C3A" }, // hook left: aqua
-  { rim: "#4D7BFF", core: "#0E1C4E" }, // hook right: cobalt
+  { rim: "#FF4FD8", core: "#4A0B40" }, // bar: hot magenta
+  { rim: "#A6FF3A", core: "#2A4A08" }, // square: neon lime
+  { rim: "#FFB02E", core: "#4E3006" }, // tee: amber
+  { rim: "#36E2F5", core: "#08343D" }, // step right: Retro cyan
+  { rim: "#FF5A5A", core: "#4E0E0E" }, // step left: coral
+  { rim: "#A57CFF", core: "#25135A" }, // hook left: violet
+  { rim: "#FFFFFF", core: "#6C7896" }, // hook right: pearl white
 ];
 
 /** The pad under a world point (half the gap round each), or null; the held piece's box counts as HOLD too. */
@@ -192,12 +196,13 @@ export function drawBfSquare(ctx: CanvasRenderingContext2D, shape: number, x: nu
 function drawGhostSquare(ctx: CanvasRenderingContext2D, shape: number, x: number, y: number, size: number): void {
   const c = BF_COLOURS[shape] ?? BF_COLOURS[1]!;
   ctx.save();
-  ctx.globalAlpha = 0.16;
+  // Brighter since 3 Nov 2026 (Joe's audit): a stronger tint and a full-strength 2 px rim.
+  ctx.globalAlpha = 0.3;
   ctx.fillStyle = c.rim;
   ctx.fillRect(x + 2, y + 2, size - 4, size - 4);
-  ctx.globalAlpha = 0.75;
+  ctx.globalAlpha = 1;
   ctx.strokeStyle = c.rim;
-  ctx.lineWidth = 1.6;
+  ctx.lineWidth = 2;
   ctx.strokeRect(x + 2.5, y + 2.5, size - 5, size - 5);
   ctx.restore();
 }
@@ -218,30 +223,6 @@ export function drawBfMini(ctx: CanvasRenderingContext2D, shape: number, cx: num
   const w = (x1 - x0 + 1) * size;
   const h = (y1 - y0 + 1) * size;
   for (const [x, y] of cells) drawBfSquare(ctx, shape, cx - w / 2 + (x - x0) * size, cy - h / 2 + (y - y0) * size, size, alpha);
-}
-
-function chip(ctx: CanvasRenderingContext2D, x: number, y: number, label: string, value: string, align: "left" | "center" | "right", hot = false): void {
-  ctx.font = `9px ${RETRO_FONT}`;
-  const lw = ctx.measureText(label).width;
-  ctx.font = `13px ${RETRO_FONT}`;
-  const vw = ctx.measureText(value).width;
-  const w = lw + vw + 22;
-  const left = align === "left" ? x : align === "right" ? x - w : x - w / 2;
-  ctx.fillStyle = "rgba(6,22,34,0.9)";
-  ctx.strokeStyle = hot ? "#F2C75C" : "rgba(54,226,245,0.55)";
-  ctx.lineWidth = 1.5;
-  ctx.beginPath();
-  ctx.roundRect(left, y, w, 26, 6);
-  ctx.fill();
-  ctx.stroke();
-  ctx.textBaseline = "middle";
-  ctx.textAlign = "left";
-  ctx.fillStyle = "rgba(160,236,248,0.8)";
-  ctx.font = `9px ${RETRO_FONT}`;
-  ctx.fillText(label, left + 8, y + 14);
-  ctx.fillStyle = hot ? "#F2C75C" : "#E8FDFF";
-  ctx.font = `13px ${RETRO_FONT}`;
-  ctx.fillText(value, left + 14 + lw, y + 14);
 }
 
 /** The shared success layer: a pop for every clear (bigger for two or more at once) and the core filled. */
@@ -290,10 +271,22 @@ function drawBlockfallWorld(ctx: CanvasRenderingContext2D, state: BfState, size:
   const level = bfLevelFor(state.tick, state.rev);
   const full = bfCoreFullFor(state.rev);
   const multiMax = zone ? BF_ZONE_MULTI_MAX : 40;
-  chip(ctx, 8, 8, "LINES", String(state.lines), "left", state.lines >= full);
-  if (zone) chip(ctx, W / 2, 8, "PIECES", String(state.pieces), "center", state.pieces >= BF_ZONE_PIECES_MAX);
-  else chip(ctx, W / 2, 8, "SPEED", `${level + 1}/${bfGravityFor(state.rev).length}`, "center");
-  chip(ctx, W - 8, 8, "MULTI", String(Math.min(multiMax, bfMultiPoints(state))), "right", bfMultiPoints(state) >= multiMax);
+  // One Retro HUD (3 Nov 2026): lines top left, pieces (or the speed, blockfallRev 1) and multi-clears top
+  // right, in place of the three chips; "MULTI" is now "MULTI-CLEARS" (the count of 2-, 3- and 4-line clears).
+  const hot = "#F2C75C";
+  const multiClears = state.doubles + state.triples + state.quads;
+  retroHud(
+    ctx,
+    W,
+    { text: `LINES ${state.lines}`, colour: state.lines >= full ? hot : RETRO_WHITE },
+    [
+      zone
+        ? { text: `PIECES ${state.pieces}`, colour: state.pieces >= BF_ZONE_PIECES_MAX ? hot : RETRO_WHITE }
+        : { text: `SPEED ${level + 1}/${bfGravityFor(state.rev).length}` },
+      { text: `MULTI-CLEARS ${multiClears}`, colour: bfMultiPoints(state) >= multiMax ? hot : RETRO_WHITE },
+    ],
+    { top: 5, pitch: 16 },
+  );
 
   // The well: a dark glass panel with a faint grid and a softly glowing edge.
   const bx = L.bx;
@@ -379,14 +372,18 @@ function drawBlockfallWorld(ctx: CanvasRenderingContext2D, state: BfState, size:
   ctx.font = `8px ${RETRO_FONT}`;
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
-  ctx.fillStyle = "rgba(160,236,248,0.85)";
+  ctx.fillStyle = RETRO_WHITE;
   ctx.fillText("NEXT", L.nextX + L.sideW / 2, by + 8);
   for (let i = 0; i < BF_PREVIEW; i++) {
     const cy = by + 44 + i * 60;
-    ctx.fillStyle = "rgba(6,22,34,0.75)";
+    // Brighter since 3 Nov 2026: a lit box (the first framed in its piece's colour) and full-strength pieces.
+    ctx.fillStyle = "rgba(20,44,64,0.9)";
     ctx.fillRect(L.nextX, cy - 25, L.sideW, 50);
     const shape = state.queue[i];
-    if (shape !== undefined) drawBfMini(ctx, shape, L.nextX + L.sideW / 2, cy, zone ? (i === 0 ? 11 : 9) : i === 0 ? 12 : 10, i === 0 ? 1 : 0.75);
+    ctx.strokeStyle = i === 0 && shape !== undefined ? (BF_COLOURS[shape]?.rim ?? "#36E2F5") : "rgba(54,226,245,0.35)";
+    ctx.lineWidth = i === 0 ? 2 : 1;
+    ctx.strokeRect(L.nextX + 0.5, cy - 24.5, L.sideW - 1, 49);
+    if (shape !== undefined) drawBfMini(ctx, shape, L.nextX + L.sideW / 2, cy, zone ? (i === 0 ? 11 : 9) : i === 0 ? 12 : 10, i === 0 ? 1 : 0.92);
   }
   if (zone) {
     // The speed, under the next three.

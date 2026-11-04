@@ -384,19 +384,12 @@ const ARCADE_BACKGROUNDS: Partial<Record<PuzzleType, TileBackground>> = {
     stars(c, 16, 44, ["#FFFFFF", "#D6E4FF", "#FFF0D6"], 0.7, 0.75);
     stars(c, 17, 6, ["#BFD8FF"], 1.1, 0.9);
   }),
-  // Jaywalk: the evening verges and the asphalt with its dashed lane lines, a dusk wash and a lamp pool.
+  // Spacewalk (3 Nov 2026): deep space with pixel stars round the lanes, a faint cyan haze.
   cross: bg((c) => {
-    fill(c, "#2F4B31");
-    c.fillStyle = "#5F646E";
-    c.fillRect(0, 14, T, 8);
-    c.fillRect(0, 82, T, 8);
-    c.fillStyle = "#25292F";
-    c.fillRect(0, 22, T, 60);
-    c.fillStyle = "rgba(248,250,252,0.6)";
-    for (const y of [42, 62]) for (let x = 2; x < T; x += 22) c.fillRect(x, y, 10, 1.5);
-    fill(c, "rgba(16,22,58,0.22)");
-    cloud(c, 18, 96, 34, "#FFC478", 0.35);
-    cloud(c, 88, 8, 30, "#FFC478", 0.3);
+    fill(c, "#04051A");
+    stars(c, 23, 40, ["#FFFFFF", "#C8D4FF", "#9FF5EA"], 0.8, 0.8);
+    cloud(c, 80, 20, 36, "#3DFFE0", 0.12);
+    cloud(c, 20, 90, 30, "#FF4FD8", 0.1);
   }, { fade: 0.2 }),
   // Pinball: the rich purple table with colour pools and the magenta horizon grid low down.
   pinball: bg((c) => {

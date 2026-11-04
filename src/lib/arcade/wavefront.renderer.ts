@@ -60,6 +60,7 @@ import {
   type WavState,
 } from "./wavefront";
 import { artHash, reducedMotion } from "./art.renderer";
+import { retroHud, type RetroHudItem } from "./retro.renderer";
 import { arcadeReducedEffects } from "../fx/lowEnd";
 import { artCanvas, artContext, type ArtCanvas } from "./cache.renderer";
 
@@ -338,6 +339,12 @@ export function drawExhaust(ctx: CanvasRenderingContext2D, cx: number, top: numb
 }
 
 const HULL_SCALE = 3;
+/**
+ * 3 Nov 2026 (Joe's audit; display only): the enemy hulls are drawn 2 px past each side of their 28 px hit cell (32 px),
+ * the most the arcade bounds rule allows (art within 2 px of the collision box), so their detail reads a little larger.
+ * Drawing them larger still, or spacing the formation wider, changes the hit boxes and needs a new wavRev.
+ */
+export const WAV_HULL_BLEED = 2;
 const hullSprites = new Map<string, ArtCanvas | null>();
 
 /** One enemy hull filling the cell box (x, y, s × s): a cached sprite plus the live exhaust in the cell's top fifth. */
@@ -1099,7 +1106,7 @@ function drawWavefrontArtWorld(ctx: CanvasRenderingContext2D, state: WavState, s
     const box = wavShapeBox(state, i);
     const kind = Math.trunc((code - 1) / 3);
     const colour = wavHullTint(i, state.wave) ?? WAV_COLOURS[(code - 1) % 3] ?? WAV_GOLD;
-    drawHull(ctx, kind, colour, box.x, box.y, WAV_CELL, t);
+    drawHull(ctx, kind, colour, box.x - WAV_HULL_BLEED, box.y - WAV_HULL_BLEED, WAV_CELL + 2 * WAV_HULL_BLEED, t);
     if (state.r11 && (state.carry?.[i] ?? -1) >= 0) drawCarrierMark(ctx, box.x + WAV_CELL / 2, box.y + WAV_CELL / 2, state.carry![i]!, t);
   });
   if (state.armour) drawArmourHull(ctx, state, state.armour);
@@ -1113,7 +1120,7 @@ function drawWavefrontArtWorld(ctx: CanvasRenderingContext2D, state: WavState, s
     ctx.fillStyle = "#C9CED6";
     ctx.fillRect(c.x - 2, c.y - WAV_CELL / 2 - 10, 4, 10);
     ctx.globalAlpha = 1;
-    drawHull(ctx, Math.trunc((code - 1) / 3), colour, c.x - WAV_CELL / 2, c.y - WAV_CELL / 2, WAV_CELL, t);
+    drawHull(ctx, Math.trunc((code - 1) / 3), colour, c.x - WAV_CELL / 2 - WAV_HULL_BLEED, c.y - WAV_CELL / 2 - WAV_HULL_BLEED, WAV_CELL + 2 * WAV_HULL_BLEED, t);
     if (state.r11 && (state.carry?.[d.cell] ?? -1) >= 0) drawCarrierMark(ctx, c.x, c.y, state.carry![d.cell]!, t);
   }
   if (state.boss) {
@@ -1200,12 +1207,12 @@ function drawWavefrontArtWorld(ctx: CanvasRenderingContext2D, state: WavState, s
   }
   ctx.restore();
 
-  ctx.font = "600 16px 'JetBrains Mono', ui-monospace, monospace";
-  ctx.fillStyle = "#F7F7F8";
-  ctx.textBaseline = "top";
-  ctx.textAlign = "left";
-  const head = state.boss?.mid ? "Gunship" : state.boss ? "Boss" : `Wave ${state.wave}`;
-  successHud(ctx,'wavefront-hit',state.tick,14,14,()=>ctx.fillText(`${head} · ${wavefrontGame.score(state)}`,14,14));
+  // One Retro HUD (3 Nov 2026, Joe's audit): "WAVE 1 OF 5" (or BOSS / GUNSHIP) top left, the lives under it,
+  // the power-up held and the hit streak (wavRev 10) top right, in the pixel arcade font. No score and no "·".
+  const head = state.boss?.mid ? "GUNSHIP" : state.boss ? "BOSS" : `WAVE ${Math.max(1, state.wave)} OF ${wavWaves(state)}`;
+  retroHud(ctx, WAV_WORLD_W, { text: head }, wavHudSide(state), {
+    wrapMain: (draw) => successHud(ctx, "wavefront-hit", state.tick, 12, 8, draw),
+  });
   // wavRev 2: "WAVE n" (or "BOSS") while the next formation flies in.
   if ((state.enter ?? 0) > 0 && state.ended === 0) {
     const k = state.enter ?? 0;
@@ -1224,46 +1231,30 @@ function drawWavefrontArtWorld(ctx: CanvasRenderingContext2D, state: WavState, s
     ctx.textAlign = "left";
     ctx.textBaseline = "top";
   }
-  if (state.x10) drawExpandHud(ctx, state);
-  else if (state.pierce > 0) {
-    ctx.fillStyle = WAV_PURPLE;
-    ctx.fillText(`Laser ×${state.pierce}`, 14, 34);
-  }
   for (let i = 0; i < WAV_LIVES; i++) {
     ctx.globalAlpha = i < state.lives ? 1 : 0.2;
-    drawFighter(ctx, WAV_WORLD_W - 24 - i * 26, 22, 18, 11, false, 0, 0);
+    drawFighter(ctx, 21 + i * 24, 34, 16, 10, false, 0, 0);
   }
   ctx.globalAlpha = 1;
   ctx.restore();
 }
 
 /**
- * wavRev 10 HUD, second line: the power-up held on the left (laser shots, spread volleys or the shield's
- * seconds) and, on wavRev 10, the hit streak on the right ("STREAK 17 ×3", gold from ×2; wavRev 11 has no streak).
+ * The HUD's top-right counts (one Retro HUD, 3 Nov 2026): the power-up held (laser shots, spread volleys or the
+ * shield's seconds) and, on wavRev 10, the hit streak ("STREAK 17 x3", gold from x2; wavRev 11 has no streak).
  * Counter facts only, never points.
  */
-function drawExpandHud(ctx: CanvasRenderingContext2D, state: WavState): void {
-  ctx.save();
-  ctx.font = "600 13px 'JetBrains Mono', ui-monospace, monospace";
-  ctx.textBaseline = "top";
-  let x = 14;
-  const tag = (text: string, colour: string) => {
-    ctx.fillStyle = colour;
-    ctx.textAlign = "left";
-    ctx.fillText(text, x, 36);
-    x += ctx.measureText(text).width + 10;
-  };
-  if (state.pierce > 0) tag(`Laser ×${state.pierce}`, WAV_PURPLE);
-  if ((state.spread ?? 0) > 0) tag(`Spread ×${state.spread}`, "#7CF29A");
-  if ((state.shield ?? 0) > 0) tag(`Shield ${Math.ceil((state.shield ?? 0) / 60)}s`, "#4FD8FF");
-  const streak = state.streak ?? 0;
-  const mult = wavStreakMult(streak);
-  if (streak > 0) {
-    ctx.textAlign = "right";
-    ctx.fillStyle = mult > 1 ? WAV_GOLD : "rgba(247,247,248,0.75)";
-    ctx.fillText(mult > 1 ? `STREAK ${streak} ×${mult}` : `STREAK ${streak}`, WAV_WORLD_W - 14, 36);
+function wavHudSide(state: WavState): RetroHudItem[] {
+  const out: RetroHudItem[] = [];
+  if (state.pierce > 0) out.push({ text: `LASER x${state.pierce}`, colour: WAV_PURPLE });
+  else if ((state.spread ?? 0) > 0) out.push({ text: `SPREAD x${state.spread}`, colour: "#7CF29A" });
+  else if ((state.shield ?? 0) > 0) out.push({ text: `SHIELD ${Math.ceil((state.shield ?? 0) / 60)}`, colour: "#4FD8FF" });
+  if (state.x10) {
+    const streak = state.streak ?? 0;
+    const mult = wavStreakMult(streak);
+    if (streak > 0) out.push({ text: mult > 1 ? `STREAK ${streak} x${mult}` : `STREAK ${streak}`, colour: mult > 1 ? WAV_GOLD : "rgba(247,247,248,0.8)" });
   }
-  ctx.restore();
+  return out;
 }
 
 /** The sim with the art renderer swapped in; step/score are the sim's own. */

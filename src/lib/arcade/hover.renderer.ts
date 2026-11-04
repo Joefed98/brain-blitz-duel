@@ -24,7 +24,6 @@ import {
   hoverCentreGrade,
   hoverCentreY,
   hoverFeatureTotals,
-  hoverStandardParts,
   hoverWorldH,
   HOVER_CENTRE_TOL,
   type HoverState,
@@ -39,7 +38,7 @@ import {
   pixelShape,
   retroBloom,
   retroClock,
-  retroReadout,
+  retroHud,
   retroScreen,
   retroText,
   RETRO_RED,
@@ -283,12 +282,18 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: HoverState, crashIndica
   drawSaucer(ctx, state, crashIndicator);
   ctx.globalAlpha = 1;
   if (state.xp) drawShield(ctx, state);
-  successHud(ctx,'hover',state.tick,10,28,()=>{retroReadout(ctx, 10, 10, `BARRIERS ${state.gates}/${state.totalGates}`, RETRO_WHITE);});
-  if ((state.totalStars ?? 0) > 0) retroText(ctx, `STARS ${state.stars ?? 0}/${state.totalStars}`, 10, 46, 14, STAR_GOLD, "left", 4);
-  if (state.xp) {
-    const totals = hoverFeatureTotals(state);
-    retroText(ctx, `TIGHT ${state.tight ?? 0}/${totals.tight}  CHAINS ${state.chainsDone ?? 0}/${totals.chains}  CENTRE ${state.std ? hoverStandardParts(state).centre : state.ctrPts ?? 0}`, 10, 64, 12, STAR_GOLD, "left");
-  }
+  // One Retro HUD (3 Nov 2026): barriers top left, stars and chains top right, two rows at most.
+  const totals = state.xp ? hoverFeatureTotals(state) : null;
+  retroHud(
+    ctx,
+    HOVER_WORLD_W,
+    { text: `BARRIERS ${state.gates}/${state.totalGates}` },
+    [
+      (state.totalStars ?? 0) > 0 ? { text: `STARS ${state.stars ?? 0}/${state.totalStars}`, colour: STAR_GOLD } : null,
+      totals ? { text: `CHAINS ${state.chainsDone ?? 0}/${totals.chains}`, colour: STAR_GOLD } : null,
+    ],
+    { wrapMain: (draw) => successHud(ctx, "hover", state.tick, 12, 8, draw) },
+  );
 
   if (state.crashed && crashIndicator) {
     ctx.fillStyle = "rgba(255,59,92,0.2)";
@@ -538,14 +543,15 @@ export function drawSaucer(ctx: CanvasRenderingContext2D, state: HoverState, cra
   const body = state.crashed && crashIndicator ? RETRO_RED : SAUCER;
   pixelShape(ctx, cx, cy, r, 2, (dx, dy) => {
     if (dx * dx + dy * dy > r * r) return null;
-    // Dome above the hull.
-    const domeY = dy + r * 0.1;
-    if (domeY < 0 && dx * dx + domeY * domeY <= (r * 0.5) ** 2) return state.crashed && crashIndicator ? RETRO_RED : DOME;
-    // Flat hull ellipse.
-    const ey = (dy - r * 0.2) / (r * 0.38);
+    // Dome above the hull. Since 3 Nov 2026 (Joe's audit, display only) the craft fills more of its round
+    // collision disc: a taller hull and a larger dome, still inside the disc's radius, so it reads larger.
+    const domeY = dy + r * 0.12;
+    if (domeY < 0 && dx * dx + domeY * domeY <= (r * 0.66) ** 2) return state.crashed && crashIndicator ? RETRO_RED : DOME;
+    // Hull ellipse.
+    const ey = (dy - r * 0.18) / (r * 0.52);
     const ex = dx / r;
     if (ex * ex + ey * ey > 1) return null;
-    if (ey > 0.35) {
+    if (ey > 0.4) {
       const slot = Math.floor((dx + r) / 4);
       return slot % 3 === blink ? RETRO_WHITE : SAUCER_DARK;
     }

@@ -248,14 +248,6 @@ export function retroText(
   ctx.shadowBlur = 0;
 }
 
-/** The "1UP" corner readout: a blinking label over a value. */
-export function retroReadout(ctx: CanvasRenderingContext2D, x: number, y: number, value: string, colour: string): void {
-  const t = retroClock();
-  const on = t === 0 || Math.floor(t / 500) % 2 === 0;
-  retroText(ctx, "1UP", x, y, 14, on ? RETRO_RED : "rgba(255,59,92,0.35)");
-  retroText(ctx, value, x, y + 18, 14, colour, "left", 4);
-}
-
 /**
  * A thin trapezium paddle filling the sim's paddle rect: full width on the
  * bottom row, stepping in by 2 px per row towards the top. Never wider.
@@ -353,4 +345,86 @@ export function retroEventAge(ctx: CanvasRenderingContext2D, name: string, trigg
   if (trigger) map.set(name, now);
   const at = map.get(name);
   return at === undefined ? Infinity : now - at;
+}
+
+/**
+ * One Retro HUD (3 Nov 2026, Joe's audit; display only): every Retro game's counts in the pixel arcade font,
+ * the main count top left (14 px, glowing) and one or two secondary counts top right (10 px), at most two
+ * rows, never a "·" chain and never a "1UP". Sizes step down (to 8 px on the right, then 10 px on the left)
+ * until the left and right columns stay 10 px apart. `wrapMain` lets a game pulse its main count (successHud).
+ */
+export interface RetroHudItem {
+  text: string;
+  colour?: string;
+}
+export interface RetroHudOptions {
+  /** Top of the first row (default 8). */
+  top?: number;
+  /** Row pitch (default 18). */
+  pitch?: number;
+  /** Largest sizes (default 14 left, 10 right). */
+  mainPx?: number;
+  sidePx?: number;
+  /** Side margin (default 12). */
+  inset?: number;
+  wrapMain?: (draw: () => void) => void;
+  /** The main count's glow (default 4; 0 for a game that keeps its frame free of live text blur, Meteor). */
+  glow?: number;
+}
+export const RETRO_HUD_TOP = 8;
+export const RETRO_HUD_ROW = 18;
+/** The HUD's height from the world's top: two rows of the pixel font. */
+export const RETRO_HUD_H = RETRO_HUD_TOP + RETRO_HUD_ROW + 12;
+
+/** Lays the HUD out: the sizes it draws at (exported for the layout check). */
+export function retroHudLayout(
+  measure: (text: string, px: number) => number,
+  worldW: number,
+  main: RetroHudItem,
+  side: readonly (RetroHudItem | null | undefined)[],
+  opts: RetroHudOptions = {},
+): { mainPx: number; sidePx: number; mainW: number; sideW: number } {
+  const inset = opts.inset ?? 12;
+  const items = side.filter((s): s is RetroHudItem => Boolean(s && s.text)).slice(0, 2);
+  let mainPx = opts.mainPx ?? 14;
+  let sidePx = opts.sidePx ?? 10;
+  const widths = () => ({
+    mainW: measure(main.text, mainPx),
+    sideW: Math.max(0, ...items.map((s) => measure(s.text, sidePx))),
+  });
+  let w = widths();
+  while (inset * 2 + w.mainW + w.sideW + 10 > worldW && (sidePx > 8 || mainPx > 10)) {
+    if (sidePx > 8) sidePx -= 1;
+    else mainPx -= 1;
+    w = widths();
+  }
+  return { mainPx, sidePx, ...w };
+}
+
+export function retroHud(
+  ctx: CanvasRenderingContext2D,
+  worldW: number,
+  main: RetroHudItem,
+  side: readonly (RetroHudItem | null | undefined)[] = [],
+  opts: RetroHudOptions = {},
+): void {
+  const inset = opts.inset ?? 12;
+  const top = opts.top ?? RETRO_HUD_TOP;
+  const pitch = opts.pitch ?? RETRO_HUD_ROW;
+  // The pixel font is monospaced at 1 em a character: the fallback where a context cannot measure (test doubles).
+  const measure = (text: string, px: number) => {
+    ctx.font = `${Math.round(px)}px ${RETRO_FONT}`;
+    const w = typeof ctx.measureText === "function" ? ctx.measureText(text)?.width : undefined;
+    return typeof w === "number" && Number.isFinite(w) ? w : text.length * Math.round(px);
+  };
+  const lay = retroHudLayout(measure, worldW, main, side, opts);
+  const drawMain = () => retroText(ctx, main.text, inset, top, lay.mainPx, main.colour ?? RETRO_WHITE, "left", opts.glow ?? 4);
+  if (opts.wrapMain) opts.wrapMain(drawMain);
+  else drawMain();
+  const items = side.filter((s): s is RetroHudItem => Boolean(s && s.text)).slice(0, 2);
+  items.forEach((s, i) => {
+    // Each side row sits on the main row's baseline band: the first level with it, the second a row below.
+    const y = top + Math.round((lay.mainPx - lay.sidePx) / 2) + i * pitch;
+    retroText(ctx, s.text, worldW - inset, y, lay.sidePx, s.colour ?? RETRO_WHITE, "right");
+  });
 }
