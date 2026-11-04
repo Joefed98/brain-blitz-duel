@@ -949,7 +949,11 @@ outside the repo.
   reload hands over to it instead of unregistering it). Practice packs (`packs.ts`, `practicePackFn`: up to 10 deals a
   game, the public half plus the server's sealed token, tied to the game's stamps, replaced when they change) are topped
   up in the background (not with Settings' Offline practice switch off, on a metered connection or while a round is on
-  screen). A run from a pack, or with no connection, is queued in IndexedDB (`queue.ts`) and sent oldest first, after a
+  screen). Since 4 Nov 2026 (`packGrowth.ts`) a new device downloads nothing until its first finished practice round
+  (the top-up starts back on the list), then 3 deals a game, growing 5, 7, 9, 10 over later visits (a device that already
+  held packs keeps the full target); no top-up with Battery saver, Save-Data or a 2G connection; and a browser under
+  automation (`navigator.webdriver`, the checks) never tops up unless the page sets `window.__DUELZ_ALLOW_PACKS__`
+  (offline-check does). A run from a pack, or with no connection, is queued in IndexedDB (`queue.ts`) and sent oldest first, after a
   sign-in refresh, to `practiceGradeQueuedFn` (practice's own grading; a deal changed on the phone is rejected:
   "Couldn't be confirmed"); confirmed runs update practice bests only. Arcade runs show the phone's own score as
   provisional, puzzles "Score pending", both with a clock (`src/components/offline/`). The nine games whose stage asks
