@@ -1,5 +1,5 @@
 import { directionOf } from "@/lib/desktop";
-import { swingFill } from "@/lib/arcade/arenaFills.renderer";
+import { swingFillFor } from "@/lib/arcade/arenaFills.renderer";
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { useRef } from "react";
 
@@ -88,7 +88,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   return (
     <ArcadeCanvasStage
       diagKey="swing"
-      scene={swingFill}
+      scene={swingFillFor(data?.swingRev)}
       label={gameDisplayName("swing")}
       background="transparent"
       fitWorld

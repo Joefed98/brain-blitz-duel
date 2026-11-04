@@ -70,6 +70,7 @@ import {
   drawJungleBackdrop,
   drawJungleCanopy,
   drawJungleGate,
+  drawJungleGlow,
   drawJungleGrabPoints,
   drawJunglePlatform,
   drawJungleRiver,
@@ -1745,15 +1746,7 @@ function drawSwingJungleWorld(ctx: CanvasRenderingContext2D, state: SwingState, 
   hero.core = state.ended === 2 ? "#FF4D5E" : null;
   hero.gentle = still;
   // A soft light round the hero so it reads against the leaves.
-  if (!lite) {
-    const glow = ctx.createRadialGradient(fx, fy, 2, fx, fy, 22);
-    glow.addColorStop(0, "rgba(255,230,150,0.32)");
-    glow.addColorStop(1, "rgba(255,230,150,0)");
-    ctx.fillStyle = glow;
-    ctx.beginPath();
-    ctx.arc(fx, fy, 22, 0, Math.PI * 2);
-    ctx.fill();
-  }
+  if (!lite) drawJungleGlow(ctx, fx, fy, 24, "rgba(255,230,150,0.36)", "rgba(255,230,150,0.12)");
   const blink = (state.respawn ?? 0) > 0 && !still && Math.floor(state.tick / 4) % 2 === 1;
   if (blink) ctx.globalAlpha = 0.35;
   drawHero(ctx, hero);

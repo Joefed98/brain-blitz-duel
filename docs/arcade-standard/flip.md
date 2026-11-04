@@ -16,9 +16,9 @@ Parts, core target and play are flipRev 11's (below), so the medians are too: `b
 --rev=now --levels=all --seeds=60` gives 43 / 86 / 140 / 155 / 164 / 185 / 200 (weak → flawless; the tool's room seeds
 include the four left-out courses, hence flawless's p10 of 198 there).
 
-**Display (flipRev 11 and 12, no stamp: collision is along x and never reads a surface's y):** the cave is drawn 8/5 as
-tall about its middle line (`FLIP_FLOW_VIEW_NUM` / `DEN` in `flipSurfaceBase`: 200 → 320, 260 → 416, 340 → 544 px of the
-730 px world), the spikes and overhangs taller with it (30 and 46 px, their x-spans the sim's), a warm light round the
+**Display (flipRev 11 and 12, no stamp: collision is along x and never reads a surface's y):** the cave is drawn 5/4 as
+tall about its middle line (`FLIP_FLOW_VIEW_NUM` / `DEN` in `flipSurfaceBase`: 200 → 250, 260 → 325, 340 → 425 px of the
+730 px world; 8/5 made a flip cross 47 px in a tick, over arcade-play-check's 40), the spikes and overhangs taller with it (30 and 46 px, their x-spans the sim's), a warm light round the
 runner and a brighter backing in its box (the runner already fills its 24 × 28 collision box, which is unchanged, so it
 is not drawn bigger), and the HUD is the Action HUD's chips (SCORE left; FLOW and, once ahead, BEST right).
 

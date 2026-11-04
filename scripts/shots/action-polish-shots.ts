@@ -1,7 +1,8 @@
 /**
  * Action arcade polish (3 Nov 2026) review frames: each Action game's live practice round in headless Chromium at a
  * phone size, a few seconds in, with simple scripted input so the world is in motion (Slice swipes, Roofbound and
- * Moon Climb tap, Grappler holds and lets go, Iron Wall drags and lifts, High Rise drops). Frames
+ * Moon Climb tap, Grappler holds and lets go, Iron Wall drags and lifts; Roofbound and High Rise are photographed early
+ * with no input, before a crash or a missed drop ends the run). Frames
  * `<out>/<game>-<w>x<h>-<k>-<tag>.png` at 2× device pixels, two per game (about 4 s and 9 s in). A design tool, not a check.
  *
  *   bun scripts/shots/action-polish-shots.ts --url=<origin> [--tag=before|after] [--sizes=414x896,375x667]
@@ -99,9 +100,9 @@ async function shoot(game: string, w: number, h: number): Promise<void> {
   let k = 0;
   let shot = 0;
   // Roofbound ends at its first crash, so it is photographed early, before any input.
-  for (const at of game === "flip" ? [800, 2000] : [4000, 9000]) {
+  for (const at of game === "flip" ? [800, 2000] : game === "skyline" ? [1500, 4000] : [4000, 9000]) {
     while (Date.now() - start < at) {
-      if (game === "flip") await page.waitForTimeout(50);
+      if (game === "flip" || game === "skyline") await page.waitForTimeout(50);
       else await beat(page, touch, game, a, k++);
     }
     shot += 1;

@@ -1239,7 +1239,7 @@ function drawShield(ctx: CanvasRenderingContext2D, state: FlipState, y: number, 
 
 /**
  * flipRev 11/12 HUD (the Action HUD since 3 Nov 2026): the score, the flow streak and, once it is ahead of the current one,
- * the run's best streak, as pill chips across the top (the taller cave's roof never rises above y 93).
+ * the run's best streak, as pill chips across the top (the taller cave's roof never rises above y 153).
  */
 function drawFlowHud(ctx: CanvasRenderingContext2D, state: FlipState): void {
   const streak = state.streak ?? 0;

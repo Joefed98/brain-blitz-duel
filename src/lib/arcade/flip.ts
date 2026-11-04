@@ -1796,9 +1796,13 @@ function flipV8Score(state: FlipState): number {
 
 /* Render geometry (art, effects and checks only; the sim never reads it). */
 
-/** The flipRev 11/12 cave's drawn height: this share of the course's cave height (8 / 5: 200 → 320, 260 → 416, 340 → 544 px). */
-export const FLIP_FLOW_VIEW_NUM = 8;
-export const FLIP_FLOW_VIEW_DEN = 5;
+/**
+ * The flipRev 11/12 cave's drawn height: this share of the course's cave height (5 / 4: 200 → 250, 260 → 325, 340 → 425
+ * px). Taller would make a flip across the tallest cave cross more than 40 px in a tick at the arc's fastest
+ * (arcade-play-check's limit for a drawn object): 8 / 5 measured 47 px.
+ */
+export const FLIP_FLOW_VIEW_NUM = 5;
+export const FLIP_FLOW_VIEW_DEN = 4;
 
 /** A surface's unbent y (px) at world x: the original corridor's fixed lines, or rev 8's cave height about FLIP_V8_CY. */
 export function flipSurfaceBase(state: Pick<FlipState, "exp" | "v8" | "flow">, side: number, worldX: number): number {

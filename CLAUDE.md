@@ -1399,7 +1399,7 @@ outside the repo.
   food, the combo from 40 to 110 foods; the deal re-draws a seed with fewer than 5 chillies (`sliceFoodSeedOk`), so every
   dealt seed reaches 200; slice-food-check. *Roofbound* `flipRev 12` (`FLIP_REV_DEAL`): flipRev 11's game exactly, dealt only
   on the 256 courses whose witness scores 200 (`flipDeal.server.ts`, `bun scripts/flip-deal.ts [--check]`; `DEAL_REVS` maps
-  12 to 11's play); flip-deal-check; display on flipRev 11/12: the cave drawn 8/5 as tall (collision is along x), taller
+  12 to 11's play); flip-deal-check; display on flipRev 11/12: the cave drawn 5/4 as tall (collision is along x), taller
   spikes, a warm light round the runner (its body already fills the 24 × 28 box). *Iron Wall* (display and input mapping
   only, every tank revision): less sky (the horizon 60 px higher, `bastionView.ts`: the field drawn at depth scale s^P, far
   tanks 1.27×), the stage sending the view's exact inverse; no standing hint line; iron-wall-view-check. *Moon Climb*: the

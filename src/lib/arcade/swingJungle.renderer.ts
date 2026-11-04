@@ -18,6 +18,7 @@
 import type { SwingGate, SwingLedge, SwingSlider, SwingState } from "./swing";
 import { swingAnchorAt, swingHookLit, SWING_GATE_HALF_W, SWING_LEDGE_THICK } from "./swing";
 import { artHash } from "./art.renderer";
+import { artCanvas, artContext, deviceLayer, type ArtCanvas } from "./cache.renderer";
 
 const FP = 256;
 const COL = 40 * FP;
@@ -50,8 +51,11 @@ function lerpAt(arr: readonly number[], x: number): number {
   return arr[i]! + Math.trunc(((arr[i + 1]! - arr[i]!) * f) / COL);
 }
 
-/** The backdrop: haze, distant crowns, mid trunks and light shafts (no collision; slow parallax on the camera). */
-export function drawJungleBackdrop(ctx: CanvasRenderingContext2D, cam: number, W: number, H: number, t: number, lite: boolean): void {
+/**
+ * The far backdrop: the green haze, light shafts and two layers of distant tree crowns, painted once per canvas size and
+ * held still behind the scrolling course (deviceLayer; no collision). Reduced effects: one crown layer, no shafts.
+ */
+function paintJungleFar(ctx: CanvasRenderingContext2D, W: number, H: number, lite: boolean): void {
   const sky = ctx.createLinearGradient(0, 0, 0, H);
   sky.addColorStop(0, "#0E2A1C");
   sky.addColorStop(0.45, "#1B4A35");
@@ -60,14 +64,12 @@ export function drawJungleBackdrop(ctx: CanvasRenderingContext2D, cam: number, W
   ctx.fillStyle = sky;
   ctx.fillRect(0, 0, W, H);
   if (!lite) {
-    // Light shafts from the canopy's gaps, slanting down to the right, fixed to a slow parallax.
-    ctx.save();
-    ctx.globalCompositeOperation = "lighter";
-    for (let k = -1; k < 5; k++) {
-      const base = k * 150 - ((cam * 0.08) % 150);
-      const h = artHash(Math.floor((cam * 0.08) / 150) + k, 313);
+    // Light shafts from the canopy's gaps, slanting down to the right.
+    for (let k = -1; k < 4; k++) {
+      const h = artHash(k, 313);
+      const base = k * 150 + (h % 40);
       const w = 30 + (h % 40);
-      const a = 0.05 + ((h >>> 5) % 5) * 0.012 + 0.01 * Math.sin(t * 0.6 + k);
+      const a = 0.06 + ((h >>> 5) % 5) * 0.012;
       const g = ctx.createLinearGradient(0, 0, 0, H);
       g.addColorStop(0, `rgba(220,255,170,${a})`);
       g.addColorStop(1, "rgba(220,255,170,0)");
@@ -80,20 +82,17 @@ export function drawJungleBackdrop(ctx: CanvasRenderingContext2D, cam: number, W
       ctx.closePath();
       ctx.fill();
     }
-    ctx.restore();
   }
-  // Distant tree crowns, two layers: rounded canopies on thin trunks.
-  const layers = lite ? ([[0.2, H * 0.52, "#1E5440", 70]] as const) : ([[0.12, H * 0.46, "#1E5440", 80], [0.25, H * 0.58, "#173F2F", 62]] as const);
-  for (const [par, base, colour, step] of layers) {
+  // Distant tree crowns: rounded canopies on thin trunks.
+  const layers = lite ? ([[H * 0.52, "#1E5440", 70]] as const) : ([[H * 0.46, "#1E5440", 80], [H * 0.58, "#173F2F", 62]] as const);
+  for (const [base, colour, step] of layers) {
     ctx.fillStyle = colour;
-    const off = (cam * par) % step;
-    const k0 = Math.floor((cam * par) / step);
-    for (let k = -1; k <= W / step + 2; k++) {
-      const h = artHash(k0 + k, step);
-      const x = k * step - off + (h % 20);
-      const top = base + (h >>> 4) % 60 - 30;
+    for (let k = -1; k <= W / step + 1; k++) {
+      const h = artHash(k, step);
+      const x = k * step + (h % 20);
+      const top = base + ((h >>> 4) % 60) - 30;
       ctx.fillRect(x - 3, top, 6, H - top);
-      const r = 26 + (h >>> 9) % 18;
+      const r = 26 + ((h >>> 9) % 18);
       ctx.beginPath();
       ctx.arc(x, top, r, 0, Math.PI * 2);
       ctx.arc(x - r * 0.7, top + r * 0.35, r * 0.7, 0, Math.PI * 2);
@@ -101,30 +100,64 @@ export function drawJungleBackdrop(ctx: CanvasRenderingContext2D, cam: number, W
       ctx.fill();
     }
   }
-  // Mid trunks (parallax 0.5): tall, dark, a lit edge, a few hanging lianas.
-  if (!lite) {
-    const step = 170;
-    const off = (cam * 0.5) % step;
-    const k0 = Math.floor((cam * 0.5) / step);
-    for (let k = -1; k <= W / step + 1; k++) {
-      const h = artHash(k0 + k, 977);
-      const x = k * step - off + (h % 60);
-      const w = 16 + (h >>> 6) % 14;
-      const g = ctx.createLinearGradient(x, 0, x + w, 0);
-      g.addColorStop(0, "#1A2E1C");
-      g.addColorStop(0.3, "#2C4026");
-      g.addColorStop(1, "#0F1E12");
-      ctx.fillStyle = g;
-      ctx.fillRect(x, 0, w, H);
-      ctx.strokeStyle = "rgba(40,80,40,0.7)";
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      const lx = x + w + 6;
-      ctx.moveTo(lx, 0);
-      ctx.quadraticCurveTo(lx + 10, H * 0.3, lx - 2, H * 0.45 + (h % 80));
-      ctx.stroke();
-    }
+}
+
+/** The backdrop: the far layer (cached, still) and the mid trunks at half the course's speed (flat fills, cheap). */
+export function drawJungleBackdrop(ctx: CanvasRenderingContext2D, cam: number, W: number, H: number, t: number, lite: boolean): void {
+  deviceLayer(ctx, `swing-jungle-far:${W}x${H}:${lite ? 1 : 0}`, (c) => paintJungleFar(c, W, H, lite));
+  void t;
+  if (lite) return;
+  const step = 170;
+  const off = (cam * 0.5) % step;
+  const k0 = Math.floor((cam * 0.5) / step);
+  ctx.strokeStyle = "rgba(40,80,40,0.7)";
+  ctx.lineWidth = 2;
+  for (let k = -1; k <= W / step + 1; k++) {
+    const h = artHash(k0 + k, 977);
+    const x = k * step - off + (h % 60);
+    const w = 16 + ((h >>> 6) % 14);
+    ctx.fillStyle = "#1F331F";
+    ctx.fillRect(x, 0, w, H);
+    ctx.fillStyle = "#2C4026";
+    ctx.fillRect(x + 2, 0, 3, H);
+    ctx.beginPath();
+    const lx = x + w + 6;
+    ctx.moveTo(lx, 0);
+    ctx.quadraticCurveTo(lx + 10, H * 0.3, lx - 2, H * 0.45 + (h % 80));
+    ctx.stroke();
   }
+}
+
+/** A soft round glow (warm centre to clear), cached once per colour at 64 px and drawn at any radius. */
+const glowCache = new Map<string, ArtCanvas | null>();
+export function drawJungleGlow(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, inner: string, outer: string): void {
+  const key = `${inner}|${outer}`;
+  let sprite = glowCache.get(key);
+  if (sprite === undefined) {
+    sprite = artCanvas(64, 64);
+    const c = sprite ? artContext(sprite) : null;
+    if (c) {
+      const g = c.createRadialGradient(32, 32, 2, 32, 32, 32);
+      g.addColorStop(0, inner);
+      g.addColorStop(0.5, outer);
+      g.addColorStop(1, "rgba(0,0,0,0)");
+      c.fillStyle = g;
+      c.fillRect(0, 0, 64, 64);
+    } else sprite = null;
+    glowCache.set(key, sprite);
+  }
+  if (sprite) {
+    ctx.drawImage(sprite as CanvasImageSource, x - r, y - r, r * 2, r * 2);
+    return;
+  }
+  const g = ctx.createRadialGradient(x, y, 2, x, y, r);
+  g.addColorStop(0, inner);
+  g.addColorStop(0.5, outer);
+  g.addColorStop(1, "rgba(0,0,0,0)");
+  ctx.fillStyle = g;
+  ctx.beginPath();
+  ctx.arc(x, y, r, 0, Math.PI * 2);
+  ctx.fill();
 }
 
 /** The canopy: the mass above the sim's ceiling line, its underside exactly on the line, fringed with leaves inside it. */
@@ -143,12 +176,12 @@ export function drawJungleCanopy(ctx: CanvasRenderingContext2D, state: SwingStat
   ctx.fill();
   ctx.clip();
   // Leaf clumps inside the mass, brightest along the underside; branches through them.
-  const c0 = Math.floor((state.camX / FP) / 22) - 1;
-  for (let k = c0; k < c0 + W / 22 + 3; k++) {
-    const wx = k * 22;
+  const c0 = Math.floor((state.camX / FP) / 26) - 1;
+  for (let k = c0; k < c0 + W / 26 + 3; k++) {
+    const wx = k * 26;
     const px = wx - state.camX / FP;
     const cy = lerpAt(ceil, wx * FP) / FP;
-    for (let row = 0; row < 3; row++) {
+    for (let row = 0; row < (lite ? 1 : 2); row++) {
       const h = artHash(k, 41 + row);
       const r = 12 + (h % 8) - row * 2;
       const y = cy - 6 - row * 22 - (h >>> 4) % 8;
@@ -456,15 +489,8 @@ export function drawJungleGrabPoints(ctx: CanvasRenderingContext2D, state: Swing
     // The glow and the knotted loop at the anchor.
     const flash = held && state.tick - state.grabTick < 12;
     if (!lite) {
-      const pulse = still ? 0 : 0.08 * Math.sin(t * 3 + i);
-      const g = ctx.createRadialGradient(x, y, 3, x, y, 28);
-      g.addColorStop(0, `rgba(255,236,140,${(flash ? 0.8 : 0.6) + pulse})`);
-      g.addColorStop(0.5, `rgba(220,255,130,${0.22 + pulse / 2})`);
-      g.addColorStop(1, "rgba(220,255,130,0)");
-      ctx.fillStyle = g;
-      ctx.beginPath();
-      ctx.arc(x, y, 28, 0, Math.PI * 2);
-      ctx.fill();
+      const pulse = still ? 0 : 2 * Math.sin(t * 3 + i);
+      drawJungleGlow(ctx, x, y, (flash ? 32 : 28) + pulse, "rgba(255,236,140,0.7)", "rgba(220,255,130,0.24)");
     }
     ctx.lineWidth = flash ? 6 : 5.5;
     ctx.strokeStyle = flash ? JUNGLE.gold : "#2E4A16";
