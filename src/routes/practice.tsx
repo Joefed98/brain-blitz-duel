@@ -85,6 +85,8 @@ import { PendingClock } from "@/components/offline/PendingClock";
 import { useOfflinePractice } from "@/components/offline/useOfflinePractice";
 import { isOnline, useOnline } from "@/lib/offline/online";
 import { ONLINE_ONLY_TYPES } from "@/lib/offline/offlineStatus";
+import { syncOffline } from "@/lib/offline/install";
+import { notePracticeRoundFinished } from "@/lib/offline/packGrowth";
 import { takePackDeal } from "@/lib/offline/packs";
 import { flushQueue, queueRun } from "@/lib/offline/queue";
 
@@ -281,6 +283,16 @@ function PracticeScreen() {
   const navigate = useNavigate();
   // A new version reloads only on the list, never mid-run (lib/appUpdate).
   useUpdateGate(practiceUpdateGate(stage));
+  // The first finished round's top-up, once back on the list (after the gate above has opened).
+  const firstPacks = useRef(false);
+  useEffect(() => {
+    if (stage !== "list" || !firstPacks.current) return;
+    const timer = window.setTimeout(() => {
+      firstPacks.current = false;
+      void syncOffline().catch(() => {});
+    }, 300);
+    return () => window.clearTimeout(timer);
+  }, [stage]);
   const [type, setType] = useState<PuzzleType | null>(null);
   // Crash reports name the game on screen (lib/crashReporting.ts); practice has no round number.
   useCrashContext(type, null);
@@ -537,6 +549,9 @@ function PracticeScreen() {
         const record = recordPracticeBest(puzzle.type, stampSignature(puzzle), result.score);
         setDeviceBest(record.best);
         setNewBest(record.improved);
+        // This device's first finished round starts its offline packs (lib/offline/packGrowth.ts), not the app's
+        // opening: the top-up runs once the player is back on the list (a round on screen holds it).
+        if (notePracticeRoundFinished()) firstPacks.current = true;
       }
       // When the beat fires (a solve, a 120+ run) the board stays until it has finished
       // (at most 2 s from the solve; a tap skips the wait); otherwise the reveal is at once.

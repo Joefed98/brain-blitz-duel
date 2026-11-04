@@ -19,6 +19,11 @@
  *   6. starts a run, publishes a new build's worker: it installs and waits while the run plays on (no reload, same
  *      controller), and takes over once the run is over and the list is back.
  *
+ *   7. (4 Nov 2026, src/lib/offline/packGrowth.ts) on a brand-new device: no pack download on app open; the first
+ *      finished practice round starts the first top-up at PACK_FIRST_DEALS deals a game; the next visit grows each
+ *      pack; Battery saver, Save-Data and a 2G connection each hold the top-up. Passes 1–6 run as a device that has
+ *      started practising at the full target, so packs behave there exactly as before.
+ *
  * Also proves the online-only list is exactly the games whose stage asks the server during play.
  *
  *   bun scripts/offline-check.ts [--no-build] [--shots=<dir>]
@@ -36,6 +41,7 @@ import { PUZZLE_TYPES, isRetired } from "../src/lib/duel/registry";
 import { currentPracticeStamp, stampSignature } from "../src/lib/duel/practiceStamps";
 import type { PuzzleData, PuzzleType } from "../src/lib/duel/types";
 import { ONLINE_ONLY_TYPES, PACK_MAX_DEALS } from "../src/lib/offline/offlineStatus";
+import { PACK_FIRST_DEALS, PACK_GROWTH_STEP, PACK_LEVEL_KEY } from "../src/lib/offline/packGrowth";
 import { showPracticeSide } from "./practice-side-lib";
 
 const args = process.argv.slice(2);
@@ -51,6 +57,17 @@ const SEAL_SECRET = "offline-check";
 const NEEDS_DATABASE = new Set<PuzzleType>(["unblock"]);
 /** The offline storage budget (MB). */
 const BUDGET_MB = 60;
+/** A pack level whose target is PACK_MAX_DEALS (packGrowth.ts: 3, 5, 7, 9, 10). */
+const FULL_LEVEL = Math.ceil((PACK_MAX_DEALS - PACK_FIRST_DEALS) / PACK_GROWTH_STEP);
+
+/** Init script: opt in to packs (navigator.webdriver checks are off otherwise); optionally a started device at a level. */
+function allowPacks(opts: { started?: boolean; level?: number; saver?: boolean; connection?: { saveData?: boolean; effectiveType?: string } }): void {
+  (window as unknown as { __DUELZ_ALLOW_PACKS__: boolean }).__DUELZ_ALLOW_PACKS__ = true;
+  if (opts.started) localStorage.setItem("duelz-offline-started:v1", "1");
+  if (opts.level !== undefined) localStorage.setItem("duelz-offline-pack-level:v1", String(opts.level));
+  if (opts.saver) localStorage.setItem("duelz-battery-saver:v1", "1");
+  if (opts.connection) Object.defineProperty(navigator, "connection", { configurable: true, get: () => opts.connection });
+}
 const IPHONE_UA =
   "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1";
 
@@ -369,6 +386,89 @@ async function backToList(page: Page): Promise<void> {
 /*  The run                                                                                                      */
 /* ------------------------------------------------------------------------------------------------------------ */
 
+/**
+ * The lazy, smaller first top-up (4 Nov 2026, packGrowth.ts) on a brand-new device: nothing is downloaded on app open;
+ * the first finished practice round starts it, at PACK_FIRST_DEALS deals a game; the next visit grows the target; and
+ * Battery saver, Save-Data and a 2G connection each hold the top-up. Reports the server's deals for a new device.
+ */
+async function lazyPass(browser: Browser): Promise<void> {
+  const tag = "new device";
+  const wanted = PUZZLE_TYPES.filter((t) => !ONLINE_ONLY_TYPES.has(t) && !NEEDS_DATABASE.has(t));
+  const dealsIn = (packs: IdbPack[]) => packs.reduce((a, p) => a + p.deals.length, 0);
+  const fresh = async (opts: Parameters<typeof allowPacks>[0]) => {
+    const ctx = await browser.newContext({ viewport: { width: 414, height: 896 }, deviceScaleFactor: 1 });
+    await ctx.addInitScript(allowPacks, opts);
+    await stubAuth(ctx, { signups: [], refreshes: [] });
+    const page = await ctx.newPage();
+    let packCalls = 0;
+    // A pack request (practicePackFn's input is { types, count }; production builds hash server-function ids).
+    page.on("request", (req) => {
+      const body = req.postData() ?? "";
+      if (req.url().includes("/_serverFn/") && body.includes('"types"') && body.includes('"count"')) packCalls += 1;
+    });
+    return { ctx, page, packCalls: () => packCalls };
+  };
+
+  // App open: no top-up at all.
+  {
+    const { ctx, page, packCalls } = await fresh({});
+    await page.goto(`${ORIGIN}/practice`);
+    await until(`${tag}: worker controls the page`, async () => (await controllerVersion(page)) !== null, 120_000);
+    await page.waitForTimeout(8_000);
+    check(packCalls() === 0 && (await idbAll<IdbPack>(page, "packs")).length === 0, `${tag}: no packs downloaded on app open`, `${packCalls()} pack calls`);
+    // The first finished practice round (Meteor, online, no input) starts the first top-up: PACK_FIRST_DEALS a game.
+    await startGame(page, "snake");
+    await page.locator("[data-practice-reveal-actions]").waitFor({ timeout: 120_000 });
+    // A round on screen holds a top-up (the app updater's gate): it starts back on the list.
+    await page.waitForTimeout(3_000);
+    check(packCalls() === 0, `${tag}: no top-up while the finished round is on screen`, `${packCalls()} pack calls`);
+    await backToList(page);
+    const first = await until(
+      `${tag}: first top-up`,
+      async () => {
+        const packs = await idbAll<IdbPack>(page, "packs");
+        return wanted.every((t) => packs.some((p) => p.type === t && p.deals.length >= PACK_FIRST_DEALS));
+      },
+      180_000,
+      1000,
+    );
+    const packs = await idbAll<IdbPack>(page, "packs");
+    check(first && packs.every((p) => p.deals.length === PACK_FIRST_DEALS), `${tag}: the first finished round fills ${PACK_FIRST_DEALS} deals a game`, packs.filter((p) => p.deals.length !== PACK_FIRST_DEALS).map((p) => `${p.type}:${p.deals.length}`).join(","));
+    const level = await page.evaluate((k) => localStorage.getItem(k), PACK_LEVEL_KEY);
+    check(level === "1", `${tag}: the next visit's target grows`, `level ${level}`);
+    check(packCalls() > 0, `${tag}: the pack requests are seen`, `${packCalls()} pack calls`);
+    report.push(`${tag}: server deals: 0 on app open; ${dealsIn(packs)} (${PACK_FIRST_DEALS} a game, ${packs.length} games) after the first finished round, over ${packCalls()} calls; until 4 Nov 2026 ${packs.length * PACK_MAX_DEALS} (${PACK_MAX_DEALS} a game), starting 3 s after the app opened`);
+    // The next visit: the target grows to PACK_FIRST_DEALS + PACK_GROWTH_STEP.
+    await page.reload();
+    const grown = PACK_FIRST_DEALS + PACK_GROWTH_STEP;
+    const second = await until(
+      `${tag}: second visit's top-up`,
+      async () => {
+        const all = await idbAll<IdbPack>(page, "packs");
+        return wanted.every((t) => all.some((p) => p.type === t && p.deals.length >= grown));
+      },
+      180_000,
+      1000,
+    );
+    check(second && (await idbAll<IdbPack>(page, "packs")).every((p) => p.deals.length === grown), `${tag}: the next visit grows each pack to ${grown}`);
+    await ctx.close();
+  }
+
+  // Battery saver, Save-Data and a 2G connection hold the top-up (a started device).
+  for (const [name, opts] of [
+    ["Battery saver", { started: true, saver: true }],
+    ["Save-Data", { started: true, connection: { saveData: true, effectiveType: "4g" } }],
+    ["a 2G connection", { started: true, connection: { effectiveType: "2g" } }],
+  ] as const) {
+    const { ctx, page, packCalls } = await fresh(opts);
+    await page.goto(`${ORIGIN}/practice`);
+    await until(`${tag}: worker controls the page (${name})`, async () => (await controllerVersion(page)) !== null, 120_000);
+    await page.waitForTimeout(8_000);
+    check(packCalls() === 0 && (await idbAll<IdbPack>(page, "packs")).length === 0, `${tag}: no top-up with ${name}`, `${packCalls()} pack calls`);
+    await ctx.close();
+  }
+}
+
 async function fullPass(browser: Browser): Promise<void> {
   const W = 414;
   const H = 896;
@@ -376,9 +476,8 @@ async function fullPass(browser: Browser): Promise<void> {
   const auth: AuthLog = { signups: [], refreshes: [] };
   const ctx = await browser.newContext({ viewport: { width: W, height: H }, deviceScaleFactor: 1 });
   // Automated browsers top up packs only on request (topUpAllowed in src/lib/offline/packs.ts): this check opts in.
-  await ctx.addInitScript(() => {
-    (window as unknown as { __DUELZ_ALLOW_PACKS__: boolean }).__DUELZ_ALLOW_PACKS__ = true;
-  });
+  // A device that has already started practising, at the full pack target (packGrowth.ts): packs as before.
+  await ctx.addInitScript(allowPacks, { started: true, level: FULL_LEVEL });
   await stubAuth(ctx, auth);
   const page = await ctx.newPage();
   const errors: string[] = [];
@@ -596,9 +695,8 @@ async function smallPass(browser: Browser): Promise<void> {
   const auth: AuthLog = { signups: [], refreshes: [] };
   const ctx = await browser.newContext({ viewport: { width: W, height: H }, deviceScaleFactor: 1 });
   // Automated browsers top up packs only on request (topUpAllowed in src/lib/offline/packs.ts): this check opts in.
-  await ctx.addInitScript(() => {
-    (window as unknown as { __DUELZ_ALLOW_PACKS__: boolean }).__DUELZ_ALLOW_PACKS__ = true;
-  });
+  // A device that has already started practising, at the full pack target (packGrowth.ts): packs as before.
+  await ctx.addInitScript(allowPacks, { started: true, level: FULL_LEVEL });
   await stubAuth(ctx, auth);
   const page = await ctx.newPage();
   const errors: string[] = [];
@@ -671,6 +769,7 @@ try {
   try {
     await fullPass(browser);
     await smallPass(browser);
+    await lazyPass(browser);
   } finally {
     await browser.close();
   }
