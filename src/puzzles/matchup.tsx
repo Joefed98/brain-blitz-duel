@@ -14,7 +14,7 @@ import {
   type CanvasSize,
 } from "@/lib/arcade/engine";
 import {
-  matchupCellAt,
+  MATCHUP_REV_SIX,
   matchupAnimationDuration,
   matchupBusy,
   matchupConstantPlay,
@@ -43,7 +43,7 @@ import { directionOf, useGameKeys } from "@/lib/desktop";
 import { decodeMatchupRun, encodeMatchupRun, replayMatchupRun } from "@/lib/duel/matchup";
 import {
   drawMatchupArt, drawMatchupArtAnimated, drawMatchupArtSelection, drawMatchupSwap,
-  matchupStepOffsets, matchupStepSound, MATCHUP_SWAP_MS, type MatchupSwapTween,
+  matchupStepOffsets, matchupStepSound, MATCHUP_SWAP_MS, type MatchupSwapTween, matchupCellAtShown, matchupShownPoint, SIX_ZOOM,
 } from "@/lib/arcade/matchup.renderer";
 import { playSound } from "@/lib/sound";
 import type { SoundId } from "@/lib/fx/manifest";
@@ -104,6 +104,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const matchupGame = matchupGameFor(data?.matchupRev);
   // matchupRev 9: the taller board (ten rows in a 390 × 720 world); every phone draws the stored revision's.
   const MATCHUP_ROWS = matchupRowsFor(data?.matchupRev);
+  /** matchupRev 12: its board is drawn zoomed (matchup.renderer SIX_ZOOM, display only). */
+  const six = data?.matchupRev === MATCHUP_REV_SIX;
   const MATCHUP_WORLD_H = matchupWorldHFor(data?.matchupRev);
   /** matchupRev 2–4: keep swapping while gems clear and fall; each resolution step animates on its own. */
   const constantPlay = matchupConstantPlay(matchupGame.init(seed));
@@ -353,12 +355,15 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
 
   const cellFrom = (event: React.PointerEvent<HTMLCanvasElement>) => {
     const box = event.currentTarget.getBoundingClientRect();
-    return matchupCellAt(
+    // matchupRev 12 draws its board zoomed (3 Nov 2026 polish, display only): the tap goes back through the same zoom,
+    // so it picks the cell whose gem is drawn under the finger.
+    return matchupCellAtShown(
       { width: box.width, height: box.height },
       event.clientX - box.left,
       event.clientY - box.top,
       MATCHUP_ROWS,
       MATCHUP_WORLD_H,
+      six,
     );
   };
 
@@ -451,7 +456,11 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
           }}
         />
         <KeyCursor
-          rect={cursor.cell ? { x: MATCHUP_BOARD_X + cursor.cell.col * MATCHUP_CELL_PX, y: MATCHUP_BOARD_Y + cursor.cell.row * MATCHUP_CELL_PX, w: MATCHUP_CELL_PX, h: MATCHUP_CELL_PX } : null}
+          rect={cursor.cell ? (() => {
+            const at = matchupShownPoint(six, MATCHUP_BOARD_X + cursor.cell.col * MATCHUP_CELL_PX, MATCHUP_BOARD_Y + cursor.cell.row * MATCHUP_CELL_PX);
+            const s = MATCHUP_CELL_PX * (six ? SIX_ZOOM : 1);
+            return { x: at.x, y: at.y, w: s, h: s };
+          })() : null}
           worldW={MATCHUP_WORLD_W}
           worldH={MATCHUP_WORLD_H}
         />

@@ -194,3 +194,17 @@ down 2 a run, median; 3 of 120 flawless runs got all six). On 30 seeds the tunin
   With six treasures each worth 6 and a median of 1 brought down at near-perfect (2 at elite and flawless), near-perfect cannot reach 170 without
   a core target below its own median, which the standard does not allow.
 - Practice stamps (`practiceStamps.data.ts`) are not regenerated here. The merger does it.
+
+## 3 Nov 2026 polish (`matchupRev 12`, display only, no stamp)
+
+- The big "0 pts" counter (raw match points, at odds with the 0–200 score) is gone: a row of the shared HUD pills at
+  the world's top shows "Score n" (the running score on the 0–200 scale, `matchupStdScore` on the live state, so the
+  reveal's figure at the end) and "Goals n/6" (gold once all six are met), with "Next drops ↓" on the right over the
+  strip of small gems under it (that strip was unlabelled: it shows the next gem to drop into each column).
+- The goals panel's top line is pills: "Ice n" (frozen cells left), "Treasure n/6" and "Big lines n"; the six goals
+  sit under them as before (gem, gems left or a tick, a bar), in Archivo.
+- The world (390 × 720) and the sim are unchanged; with the top 60 px freed, everything under the HUD (next strip,
+  board, tray, goals panel, backdrop and the shared effects layer) is drawn 5.5 % larger (`SIX_ZOOM` in
+  `matchup.renderer.ts`, about a point chosen so the strip starts at y 36 and the panel ends 17 px inside the world's bottom). Taps
+  and the selection, swap tween and desktop key cursor go through the same zoom (`matchupCellAtShown`,
+  `matchupShownPoint`), so a tap on a drawn gem selects that gem's cell. Earlier revisions draw exactly as before.

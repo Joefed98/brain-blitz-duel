@@ -19,6 +19,7 @@
  * Nothing here is imported by a sim, grader or server code, and nothing here reads or writes
  * a sim: scores, timing, inputs and replays are untouched.
  */
+import { SWING_REV_SLIDE } from "./swing";
 import { artHash, reducedMotion } from "./art.renderer";
 import { SCENE_TUCK, type ArenaAmbient, type ArenaSceneView } from "./arenaScene.renderer";
 import { METEOR_BORDER_COLOURS } from "./snake.renderer";
@@ -544,6 +545,32 @@ export function swingFill(ctx: CanvasRenderingContext2D, view: ArenaSceneView): 
   stars(ctx, { ...r, h: Math.min(r.h, 40) }, 193, ["#FF8A3A", "#FFB054"], 220, 0.35, 2);
 }
 
+/**
+ * 19b. Grappler on swingRev 17 (the jungle canopy, 3 Nov 2026): the river's deep water carried on under the world (from
+ * its bottom colour), a few faint current streaks, settling to near-black.
+ */
+export function swingJungleFill(ctx: CanvasRenderingContext2D, view: ArenaSceneView): void {
+  const r = fillBelow(view);
+  if (!r) return;
+  fillGradient(ctx, r, r.y, r.y + r.h, [[0, "#0B3A4A"], [Math.min(0.6, 24 / r.h), "#082C38"], [Math.min(0.9, 60 / r.h), "#06202A"], [1, "#04141A"]]);
+  ctx.lineWidth = 1;
+  for (let k = 0; k < 7; k++) {
+    const h = artHash(k, 211);
+    const x = r.x + ((h % 1000) / 1000) * r.w;
+    const y = r.y + 6 + (((h >>> 10) % 1000) / 1000) * Math.max(4, Math.min(r.h, 60) - 12);
+    ctx.strokeStyle = "rgba(200,245,240,0.12)";
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.lineTo(x + 12 + (h % 16), y);
+    ctx.stroke();
+  }
+}
+
+/** Grappler's fill for a stored revision: the jungle's river on swingRev 17, the cave's lava before. */
+export function swingFillFor(rev?: number | null): (ctx: CanvasRenderingContext2D, view: ArenaSceneView) => void {
+  return rev === SWING_REV_SLIDE ? swingJungleFill : swingFill;
+}
+
 /** 17. Fission: under the arena's floor, a dark teal ground (the floor's soft edge) that settles into the dark under the arrows. */
 export function burstFill(ctx: CanvasRenderingContext2D, view: ArenaSceneView): void {
   const r = fillBelow(view);
@@ -639,6 +666,36 @@ export function tiltFill(ctx: CanvasRenderingContext2D, view: ArenaSceneView, wo
   const fall = ctx.createRadialGradient(cx, cy, Math.max(worldW, worldH) * 0.55, cx, cy, Math.max(view.right - view.left, view.bottom - view.top) * 0.9);
   fall.addColorStop(0, "rgba(40,24,12,0)");
   fall.addColorStop(1, "rgba(40,24,12,0.45)");
+  ctx.fillStyle = fall;
+  ctx.fillRect(view.left, view.top, view.right - view.left, view.bottom - view.top);
+  ctx.restore();
+}
+
+/** Tilt tiltRev 12 (3 Nov 2026): the dark walnut table runs on to the screen's edges, darker away from the board. */
+export function tiltWalnutFill(ctx: CanvasRenderingContext2D, view: ArenaSceneView, worldW: number, worldH: number): void {
+  const regions = around(view, true);
+  for (const r of regions) {
+    ctx.fillStyle = "#2B1A10";
+    ctx.fillRect(r.x, r.y, r.w, r.h);
+  }
+  ctx.save();
+  ctx.beginPath();
+  for (const r of regions) ctx.rect(r.x, r.y, r.w, r.h);
+  ctx.clip();
+  for (let i = 0; i < 90; i++) {
+    const h = artHash(i, 223);
+    const y = view.top + (((h >>> 6) % 10007) / 10007) * (view.bottom - view.top);
+    ctx.strokeStyle = h % 3 ? "rgba(12,6,2,0.3)" : "rgba(160,104,60,0.10)";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(view.left, y);
+    ctx.bezierCurveTo(view.left + (view.right - view.left) * 0.3, y + ((h % 7) - 3), view.left + (view.right - view.left) * 0.7, y - ((h % 5) - 2), view.right, y + 1);
+    ctx.stroke();
+  }
+  const cx = worldW / 2, cy = worldH / 2;
+  const fall = ctx.createRadialGradient(cx, cy, Math.max(worldW, worldH) * 0.55, cx, cy, Math.max(view.right - view.left, view.bottom - view.top) * 0.9);
+  fall.addColorStop(0, "rgba(0,0,0,0)");
+  fall.addColorStop(1, "rgba(0,0,0,0.4)");
   ctx.fillStyle = fall;
   ctx.fillRect(view.left, view.top, view.right - view.left, view.bottom - view.top);
   ctx.restore();
@@ -762,34 +819,35 @@ export const flipAmbient: ArenaAmbient = {
   },
 };
 
-/** 13. Jaywalk: two or three people stroll slowly along the pavement below the world (never the lanes). */
-const WALKER_COLOURS = ["#5A7FB0", "#B0605A", "#6E9A5A", "#9A7AB0"] as const;
+/**
+ * 13. Spacewalk (3 Nov 2026; was Jaywalk's strolling people): two or three tiny maintenance drones drift slowly over the
+ * station deck below the world (never the lanes), each a grey pixel body with a blinking cyan light.
+ */
 export const crossAmbient: ArenaAmbient = {
   region: "below",
   draw(ctx, view, t, still) {
     if (still) return;
     const r = fillBelow(view);
     if (!r || r.h < 30) return;
-    const walk = { top: r.y + 8, bottom: r.y + Math.max(20, r.h - 30) };
+    const band = { top: r.y + 8, bottom: r.y + Math.max(20, r.h - 30) };
     const span = r.w + 40;
     for (let i = 0; i < 3; i++) {
       const h = artHash(i, 131);
       const dir = i % 2 ? -1 : 1;
       const speed = 9 + (h % 6);
       const along = ((((h % 997) / 997) * span + (speed * t) / 1000) % span + span) % span;
-      const x = dir > 0 ? r.x - 20 + along : r.x + r.w + 20 - along;
-      const y = walk.top + (((h >>> 9) % 100) / 100) * Math.max(0, walk.bottom - walk.top);
-      const step = Math.sin((t / 1000) * speed * 0.6 + i) * 2;
-      ctx.globalAlpha = 0.55;
-      ctx.fillStyle = "rgba(20,24,30,0.35)";
-      ctx.fillRect(x - 3, y + 9, 7, 2);
-      ctx.fillStyle = "#3A3A44";
-      ctx.fillRect(x - 1 + step * 0.5, y + 5, 1.5, 5);
-      ctx.fillRect(x + 1 - step * 0.5, y + 5, 1.5, 5);
-      ctx.fillStyle = WALKER_COLOURS[(h >>> 4) % WALKER_COLOURS.length]!;
-      ctx.fillRect(x - 2, y, 5, 6);
-      ctx.fillStyle = "#E3B98F";
-      ctx.fillRect(x - 1, y - 3, 3, 3);
+      const x = Math.round(dir > 0 ? r.x - 20 + along : r.x + r.w + 20 - along);
+      const bob = Math.round(Math.sin((t / 1000) * 1.3 + i) * 1.5);
+      const y = Math.round(band.top + (((h >>> 9) % 100) / 100) * Math.max(0, band.bottom - band.top)) + bob;
+      ctx.globalAlpha = 0.6;
+      ctx.fillStyle = "#7C8798";
+      ctx.fillRect(x - 4, y, 8, 4);
+      ctx.fillStyle = "#4A5466";
+      ctx.fillRect(x - 6, y + 1, 2, 2);
+      ctx.fillRect(x + 4, y + 1, 2, 2);
+      const blink = Math.floor(t / 500 + i) % 2 === 0;
+      ctx.fillStyle = blink ? "#3DFFE0" : "rgba(61,255,224,0.3)";
+      ctx.fillRect(x - 1, y - 2, 2, 2);
     }
     ctx.globalAlpha = 1;
   },

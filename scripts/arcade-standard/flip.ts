@@ -14,7 +14,7 @@
  */
 import { readFileSync } from "node:fs";
 import { gunzipSync } from "node:zlib";
-import { flipGameFor, flipSweetsTaken, FLIP_REV_FLOW, FLIP_REV_STD, FLIP_V11, FLIP_V11_DOUBLES, FLIP_V11_STREAK_FULL, FLIP_V8_SWEETS, type FlipState } from "../../src/lib/arcade/flip";
+import { flipGameFor, flipSweetsTaken, FLIP_REV_DEAL, FLIP_REV_FLOW, FLIP_REV_STD, FLIP_V11, FLIP_V11_DOUBLES, FLIP_V11_STREAK_FULL, FLIP_V8_SWEETS, type FlipState } from "../../src/lib/arcade/flip";
 import { replayFlipRun } from "../../src/lib/duel/flip";
 import { encodeFlipLog, FLIP_WITNESS_FIXTURE, type FlipWitness } from "../flip-x200-record";
 import { flipTap } from "../flip-x200-plan";
@@ -28,10 +28,12 @@ export const flipTakesAll = (s: FlipState) =>
 export const entry: StdEntry = {
   type: "flip",
   field: "flipRev",
-  rev: FLIP_REV_FLOW,
-  before: FLIP_REV_STD,
+  // flipRev 12 (3 Nov 2026): flipRev 11's game dealt from its proved courses (flip-deal-check); scored as flipRev 11.
+  rev: FLIP_REV_DEAL,
+  before: FLIP_REV_FLOW,
   parts: FLIP_V11.parts,
-  spec: FLIP_V11,
+  // flipRev 12 keeps flipRev 11's spec (the same parts); only the stamp it is dealt under differs.
+  spec: { ...FLIP_V11, rev: FLIP_REV_DEAL },
   perfect() {
     const out: StdRun[] = [];
     let every = 0;

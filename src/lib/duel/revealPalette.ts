@@ -35,7 +35,7 @@ export const REVEAL_ARCADE_HUES: Readonly<Record<string, number>> = {
   bubble: 192, // Coral Pop's sea
   bullseye: 2, // dartboard red
   burst: 205, // Fission's blue reactor
-  cross: 228, // Jaywalk's evening blue
+  cross: 228, // Spacewalk's deep space blue (Jaywalk's evening blue until 3 Nov 2026)
   curling: 198, // ice
   fivehands: 338, // card pink
   flip: 6, // Roofbound's lava

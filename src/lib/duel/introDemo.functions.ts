@@ -1,14 +1,14 @@
 import { BASTION_REV_DEALT } from "@/lib/arcade/bastionTank";
 import { DEPTH_DEMO_STOPS, DEPTH_REV, depthRevOf } from "./logicDepth";
 import { SWING_REV_SLIDE } from "@/lib/arcade/swing";
-import { INK_REV_CLOVER } from "@/lib/arcade/inkBridge";
+import { INK_REV_BIG } from "@/lib/arcade/inkBridge";
 import { CLAY_REV_DEPTH } from "@/lib/arcade/clayShoot";
 import { WHACK_REV_NOTES } from "@/lib/arcade/whack";
 import { WORDFALL_REV } from "@/lib/arcade/wordfall";
 import { BRK_REV_STD } from "@/lib/arcade/breaker";
-import { TILT_REV_PAR } from "@/lib/arcade/tilt";
+import { TILT_REV_BIG } from "@/lib/arcade/tilt";
 import { CROSS_REV_FLOW } from "@/lib/arcade/cross";
-import { FLIP_REV_FLOW } from "@/lib/arcade/flip";
+import { FLIP_REV_DEAL, FLIP_REV_FLOW } from "@/lib/arcade/flip";
 import { SNIP_REV_EXPAND } from "@/lib/arcade/snip";
 import { HOVER_REV_STANDARD } from "@/lib/arcade/hover";
 import { RALLY_REV_STD } from "@/lib/arcade/rally";
@@ -17,7 +17,7 @@ import { BURST_REV_STD } from "@/lib/arcade/burst";
 import { BULLSEYE_REV_STD } from "@/lib/arcade/bullseye";
 import { BEAT_REV_STD } from "@/lib/arcade/beat";
 import { SNAKE_REV_12 } from "@/lib/arcade/snake";
-import { SLICE_REV_BIG, SLICE_REV_STANDARD, SLICE_REV_TALL } from "@/lib/arcade/slice";
+import { SLICE_REV_BIG, SLICE_REV_FOOD, SLICE_REV_STANDARD, SLICE_REV_TALL } from "@/lib/arcade/slice";
 import { BINTOSS_REV_STD } from "@/lib/arcade/binToss";
 import { BUB_REV_STD } from "@/lib/arcade/bubble";
 import { MATCHUP_REV_SIX } from "@/lib/arcade/matchup";
@@ -105,8 +105,9 @@ export const getIntroDemoFn = createServerFn({ method: "GET" })
     // the wind and spreads the pickups, so its levels differ: only a demo recorded on inkRev 11 plays (the still shows until then).
     // inkRev 12 (the arcade scoring standard, 29 Oct 2026) kept inkRev 11's play and HUD exactly, so a demo recorded on either played.
     // inkRev 13 (Nov 2026: clovers, ink par, more birds, no stars or silver coins) deals other levels: only a demo recorded
-    // on inkRev 13 plays (the still shows until then).
-    if (data.type === "inkbridge" && demo?.puzzle.type === "inkbridge" && demo.puzzle.inkRev !== INK_REV_CLOVER) return null;
+    // on inkRev 13 plays (the still shows until then). inkRev 14 (3 Nov 2026) draws a bigger coin, clovers and birds on other
+    // levels: only a demo recorded on inkRev 14 plays.
+    if (data.type === "inkbridge" && demo?.puzzle.type === "inkbridge" && demo.puzzle.inkRev !== INK_REV_BIG) return null;
     // clayRev 5 (14 Oct 2026) flies 14–16 birds and clayRev 6 (16 Oct 2026, taller worlds batch 2) flies them under a
     // taller sky: an older demo would show the old sky, so only a demo recorded on today's clayRev plays.
     // Depth to 200 (25 Oct 2026): clayRev 9 adds doubles and the hit streak, Bonk's whackRev 3 the gold combo and
@@ -137,14 +138,16 @@ export const getIntroDemoFn = createServerFn({ method: "GET" })
     // tiltRev 9 (27 Oct 2026) keeps tiltRev 8's play on lifted curves, under a fixed camera: only a demo recorded on 9 plays.
     // tiltRev 10 (29 Oct 2026, the arcade scoring standard) adds a fourth maze: only a demo recorded on 10 plays.
     // tiltRev 11 (3 Nov 2026) takes the gold stars away and its HUD shows the par: only a demo recorded on 11 plays.
-    if (data.type === "tilt" && demo?.puzzle.type === "tilt" && demo.puzzle.tiltRev !== TILT_REV_PAR) return null;
+    // tiltRev 12 (3 Nov 2026) draws bigger marbles, cups and keys in walnut and brass: only a demo recorded on 12 plays.
+    if (data.type === "tilt" && demo?.puzzle.type === "tilt" && demo.puzzle.tiltRev !== TILT_REV_BIG) return null;
     // Roofbound flipRev 8 (expansion E7, docs/expansions/x200-flip.md): a taller cave whose height changes, moving spikes,
     // trails, checkpoints, speed zones and sweet spots. An older demo would show the short corridor (and none of them),
     // so Roofbound's stays stopped (the intro shows its still) until one is recorded on flipRev 8. flipRev 9 (27 Oct 2026)
     // keeps flipRev 8's play on lifted curves and flipRev 10 (29 Oct 2026) on the arcade scoring standard; its HUD shows the
     // run's score, so only a demo recorded on flipRev 10 plays. flipRev 11 (3 Nov 2026) deals no gold stars, never takes the
     // trails and shows the flow streak: only a demo recorded on flipRev 11 plays.
-    if (data.type === "flip" && demo?.puzzle.type === "flip" && demo.puzzle.flipRev !== FLIP_REV_FLOW) return null;
+    // flipRev 12 (3 Nov 2026) plays flipRev 11 exactly, so a demo recorded on either plays.
+    if (data.type === "flip" && demo?.puzzle.type === "flip" && demo.puzzle.flipRev !== FLIP_REV_FLOW && demo.puzzle.flipRev !== FLIP_REV_DEAL) return null;
     // The 200-point expansion (26 Oct 2026, docs/expansions/x200-hover.md): Hover hoverRev 9 plays in a 390 × 727 world with
     // tight gates, centre lines, star chains and shields, so its demo stays stopped until one is recorded there. hoverRev 10
     // (the arcade scoring standard, 29 Oct 2026) keeps hoverRev 9's play on new scoring (its HUD's centre figure is the
@@ -256,6 +259,8 @@ export const getIntroDemoFn = createServerFn({ method: "GET" })
     if (data.type === "slice" && demo?.puzzle.type === "slice" && demo.puzzle.sliceRev !== SLICE_REV_BIG) return null;
     // Slice sliceRev 11 (29 Oct 2026, the arcade scoring standard): the new parts and bread tickets; only a sliceRev 11 demo plays.
     if (data.type === "slice" && demo?.puzzle.type === "slice" && demo.puzzle.sliceRev !== SLICE_REV_STANDARD) return null;
+    // Slice sliceRev 12 (3 Nov 2026, the Action polish): bigger, recognisable food; only a sliceRev 12 demo plays.
+    if (data.type === "slice" && demo?.puzzle.type === "slice" && demo.puzzle.sliceRev !== SLICE_REV_FOOD) return null;
 
     return demo;
   });

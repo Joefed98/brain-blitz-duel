@@ -50,6 +50,26 @@ import { artHash, reducedMotion } from "./art.renderer";
 import { artCanvas, artContext, type ArtCanvas } from "./cache.renderer";
 import { arcadeReducedEffects } from "../fx/lowEnd";
 import { sceneBelow, sceneSides, type ArenaSceneView } from "./arenaScene.renderer";
+import { retroHud, retroText, RETRO_WHITE, type RetroHudItem } from "./retro.renderer";
+import {
+  COMET_COLOURS,
+  FREIGHT_HULLS,
+  SHIP_HULLS,
+  SPACE_VOID,
+  SPACE_VOID_DEEP,
+  drawAstronaut,
+  drawComet,
+  drawDebris,
+  drawFreighter,
+  drawHelmetIcon,
+  drawSpaceShip,
+  paintDockingPlatform,
+  paintFreightLane,
+  paintPlasmaLane,
+  paintSpaceLane,
+  paintSpaceVoid,
+  paintStationDeck,
+} from "./spacewalk.renderer";
 
 /** crossRev 9: the plain paving stone of the world's foot (the slab pattern's own face colour). */
 const CROSS_X_FOOT_PAVING = "#5A5F69";
@@ -753,52 +773,21 @@ function drawIslandFlag(ctx: CanvasRenderingContext2D, top: number, h: number, b
 }
 
 /**
- * crossRev 11 HUD, after the crossings pill (no coins): the no-stop streak. "NO-STOP ×n" is the no-stop crossings in a
- * row the crossing under way makes if it carries on as it is going (gold from ×2, when it pays); grey "NO-STOP –" once
- * this crossing has stopped on the kerb or the island, or been hit.
+ * The HUD's top-right counts (one Retro HUD, 3 Nov 2026). crossRev 11: the no-stop streak, "NO-STOP x n" for the
+ * no-stop crossings in a row the crossing under way makes if it carries on as it is going (gold from x2, when it
+ * pays), grey "NO-STOP -" once this crossing has stopped on the deck or the platform, or been hit. crossRev 9–10:
+ * the coins taken of the run's twenty, then the streak multiplier the crossing under way pays (from x2).
  */
-function drawFlowHud(ctx: CanvasRenderingContext2D, state: CrossState, x: number): void {
-  ctx.font = "600 16px 'JetBrains Mono', ui-monospace, monospace";
-  const next = crossFlowNext(state);
-  const label = next > 0 ? `NO-STOP ×${next}` : "NO-STOP –";
-  const w = Math.ceil(ctx.measureText(label).width) + 18;
-  hudPill(ctx, x, 4, w, 28);
-  ctx.textBaseline = "top";
-  ctx.textAlign = "left";
-  ctx.lineJoin = "round";
-  ctx.strokeStyle = REAL_INK;
-  ctx.lineWidth = 3.5;
-  ctx.strokeText(label, x + 9, 10);
-  ctx.fillStyle = next >= 2 ? CROSS_PLAYER : next === 1 ? "#FFFFFF" : "rgba(255,255,255,0.45)";
-  ctx.fillText(label, x + 9, 10);
-}
-
-/** crossRev 9 HUD, after the crossings pill: the coins taken of the run's twenty, then the streak multiplier the crossing under way pays (from ×2). */
-function drawExpandHud(ctx: CanvasRenderingContext2D, state: CrossState, x: number, lite: boolean): void {
-  if (state.flow) return drawFlowHud(ctx, state, x);
-  ctx.font = "600 16px 'JetBrains Mono', ui-monospace, monospace";
-  // x200: out of the run's fixed twenty.
-  const count = `${state.coinTotal ?? 0}/${CROSS_X_COINS_PER_RUN}`;
-  const coinW = 30 + Math.ceil(ctx.measureText(count).width) + 8;
-  hudPill(ctx, x, 4, coinW, 28);
-  drawCoin(ctx, x + 15, 18, lite, 999);
-  ctx.textBaseline = "top";
-  ctx.textAlign = "left";
-  ctx.lineJoin = "round";
-  ctx.strokeStyle = REAL_INK;
-  ctx.lineWidth = 3.5;
-  ctx.fillStyle = "#FFFFFF";
-  ctx.strokeText(count, x + 28, 10);
-  ctx.fillText(count, x + 28, 10);
+function crossHudSide(state: CrossState): RetroHudItem[] {
+  if (!state.wide) return [];
+  if (state.flow) {
+    const next = crossFlowNext(state);
+    return [{ text: next > 0 ? `NO-STOP x${next}` : "NO-STOP -", colour: next >= 2 ? CROSS_PLAYER : next === 1 ? RETRO_WHITE : "rgba(255,255,255,0.5)" }];
+  }
+  const out: RetroHudItem[] = [{ text: `COINS ${state.coinTotal ?? 0}/${CROSS_X_COINS_PER_RUN}`, colour: "#FFD84A" }];
   const mult = crossNextMultiplier(state);
-  if (mult < 2) return;
-  const label = `×${mult}`;
-  const mx = x + coinW + 6;
-  const mw = Math.ceil(ctx.measureText(label).width) + 18;
-  hudPill(ctx, mx, 4, mw, 28);
-  ctx.strokeText(label, mx + 9, 10);
-  ctx.fillStyle = CROSS_PLAYER;
-  ctx.fillText(label, mx + 9, 10);
+  if (mult >= 2) out.push({ text: `STREAK x${mult}`, colour: CROSS_PLAYER });
+  return out;
 }
 
 /* ------------------------------ Cached road layer ------------------------------ */
@@ -854,87 +843,52 @@ function paintGrass(c: CanvasRenderingContext2D, x: number, y: number, w: number
   c.restore();
 }
 
-/** The static scene for one crossing, in world units. */
-function paintRoad(c: CanvasRenderingContext2D, course: ReturnType<typeof crossCourse>, tex: ReturnType<typeof texture>, g: CrossGeom): void {
-  paintGrass(c, 0, 0, CROSS_WORLD_W, g.worldH);
-  const lanesY = CROSS_HUD_H + g.goalH;
-  // Pavements: paving slabs with a kerb stone along the road edge.
-  const pavement = (top: number, finish: boolean) => {
-    const height = finish ? g.goalH : g.startH;
-    c.fillStyle = tex.paving ?? CROSS_PAVING;
-    c.fillRect(CROSS_BOARD_X, top, CROSS_BOARD_W, height);
-    const kerbY = finish ? top + height - 5 : top;
-    c.fillStyle = REAL_KERB;
-    c.fillRect(CROSS_BOARD_X, kerbY, CROSS_BOARD_W, 5);
-    c.fillStyle = "rgba(255,255,255,0.45)";
-    c.fillRect(CROSS_BOARD_X, kerbY, CROSS_BOARD_W, 1);
-    c.fillStyle = "rgba(60,66,76,0.35)";
-    for (let x = CROSS_BOARD_X + CROSS_COL_W; x < CROSS_BOARD_X + CROSS_BOARD_W; x += CROSS_COL_W * 2) c.fillRect(x, kerbY, 1, 5);
-    c.fillStyle = "rgba(30,38,48,0.4)";
-    c.fillRect(CROSS_BOARD_X, finish ? kerbY + 4 : kerbY + 4, CROSS_BOARD_W, 1);
-    // Polish A2: the kerb stones lit along their road-side face, each stone slightly shaded.
-    for (let x = CROSS_BOARD_X; x < CROSS_BOARD_X + CROSS_BOARD_W; x += CROSS_COL_W) {
-      const g = c.createLinearGradient(x, 0, x + CROSS_COL_W, 0);
-      g.addColorStop(0, "rgba(255,255,255,0.18)");
-      g.addColorStop(1, "rgba(60,66,76,0.12)");
-      c.fillStyle = g;
-      c.fillRect(x, kerbY, Math.min(CROSS_COL_W, CROSS_BOARD_X + CROSS_BOARD_W - x), 4);
-    }
-    c.fillStyle = "rgba(255,255,255,0.7)";
-    c.fillRect(CROSS_BOARD_X, finish ? kerbY + 3 : kerbY, CROSS_BOARD_W, 1);
-    // Grass edge shadow onto the pavement's outer side.
-    c.fillStyle = "rgba(30,50,20,0.18)";
-    c.fillRect(CROSS_BOARD_X, finish ? top : top + height - 2, CROSS_BOARD_W, 2);
-  };
-  pavement(CROSS_HUD_H, true);
-  pavement(crossStartTop(g), false);
-
+/**
+ * The static scene for one crossing, in world units. Since 3 Nov 2026 (Spacewalk, display only) open space at
+ * the sides, station decks for the kerbs and pavements, dark space lanes with beacon dots between them, plasma
+ * lanes for the comet (cyclist and motorbike) lanes, an amber freight lane and the docking platform; the debris
+ * in closed columns is drawn live (drawDebris). The old road painters stay for the tile and icon art.
+ */
+function paintRoad(c: CanvasRenderingContext2D, course: ReturnType<typeof crossCourse>, _tex: ReturnType<typeof texture>, g: CrossGeom): void {
+  paintSpaceVoid(c, 0, 0, CROSS_WORLD_W, g.worldH);
+  paintStationDeck(c, CROSS_BOARD_X, CROSS_HUD_H, CROSS_BOARD_W, g.goalH, "bottom");
+  paintStationDeck(c, CROSS_BOARD_X, crossStartTop(g), CROSS_BOARD_W, g.startH, "top");
   for (let lane = 1; lane <= g.rows; lane++) {
     const top = crossLaneTop(lane, g);
     const laneDef = course.lanes[lane - 1];
     if (laneDef?.kind === CROSS_KIND_ISLAND) {
-      paintIsland(c, top, g.laneH);
+      paintDockingPlatform(c, CROSS_BOARD_X, top, CROSS_BOARD_W, g.laneH);
       continue;
     }
-    c.fillStyle = tex.asphalt ?? REAL_ASPHALT;
-    c.fillRect(CROSS_BOARD_X, top, CROSS_BOARD_W, g.laneH);
-    // Wheel tracks: two faint darker bands where the tyres run.
-    c.fillStyle = "rgba(20,24,30,0.1)";
-    const track = Math.round((g.laneH * 10) / 52);
-    c.fillRect(CROSS_BOARD_X, top + track, CROSS_BOARD_W, 6);
-    c.fillRect(CROSS_BOARD_X, top + g.laneH - track - 6, CROSS_BOARD_W, 6);
-    // Patch repairs and cracks, fixed per lane.
-    for (let k = 0; k < 2; k++) {
-      const r = artHash(lane, k + 7);
-      const x = CROSS_BOARD_X + (r % (CROSS_BOARD_W - 40));
-      c.fillStyle = "rgba(30,34,40,0.08)";
-      c.fillRect(x, top + 6 + ((r >>> 9) % (g.laneH - 32)), 22 + ((r >>> 14) % 18), 12);
-    }
-    // Dashed lane marking on the upper edge (Polish A2: snapped to the layer's own pixels, so crisp);
-    // none against the island, which has its own kerbs.
-    if (lane < g.rows && course.lanes[lane]?.kind !== CROSS_KIND_ISLAND) {
-      const k = c.getTransform ? c.getTransform().d || 1 : 1;
-      const y0 = Math.round((top - 1) * k) / k;
-      const dh = Math.max(1, Math.round(2 * k)) / k;
-      c.fillStyle = "rgba(248,250,252,0.9)";
-      for (let x = CROSS_BOARD_X + 6; x < CROSS_BOARD_X + CROSS_BOARD_W; x += 34) {
-        const x0 = Math.round(x * k) / k;
-        const x1 = Math.round(Math.min(x + 16, CROSS_BOARD_X + CROSS_BOARD_W) * k) / k;
-        c.fillRect(x0, y0, x1 - x0, dh);
-      }
-    }
+    const beacons = lane > 1 && course.lanes[lane - 2]?.kind !== CROSS_KIND_ISLAND;
+    paintSpaceLane(c, CROSS_BOARD_X, top, CROSS_BOARD_W, g.laneH, lane, beacons);
     if (!laneDef) continue;
-    if (laneDef.kind === CROSS_KIND_ROADWORKS) drawRoadworks(c, top, laneDef, g.laneH);
-    else if (laneDef.kind === CROSS_KIND_CYCLE) drawCycleLane(c, top, g.laneH);
-    else if (laneDef.kind === CROSS_KIND_BUS) drawBusLane(c, top, g.laneH);
+    if (laneDef.kind === CROSS_KIND_CYCLE || laneDef.kind === CROSS_KIND_MOTO) paintPlasmaLane(c, CROSS_BOARD_X, top, CROSS_BOARD_W, g.laneH);
+    else if (laneDef.kind === CROSS_KIND_BUS) paintFreightLane(c, CROSS_BOARD_X, top, CROSS_BOARD_W, g.laneH);
+    else if (laneDef.kind === CROSS_KIND_ROADWORKS) {
+      c.fillStyle = "rgba(255,194,58,0.08)";
+      c.fillRect(CROSS_BOARD_X, top, CROSS_BOARD_W, g.laneH);
+    }
   }
-  // Solid edge lines at the kerbs.
-  c.fillStyle = "rgba(250,250,250,0.85)";
-  c.fillRect(CROSS_BOARD_X, lanesY + 1, CROSS_BOARD_W, 2);
-  c.fillRect(CROSS_BOARD_X, crossStartTop(g) - 3, CROSS_BOARD_W, 2);
-  // Polish A2: low hedges along both verges, from the HUD band down (background only; no lane reaches them).
-  for (const x of [0, CROSS_BOARD_X + CROSS_BOARD_W]) paintHedge(c, x, CROSS_HUD_H, CROSS_BOARD_X, g.worldH - CROSS_HUD_H);
-  paintEvening(c, g);
+  // The board's side rails: thin cyan lines between the lanes and open space.
+  c.fillStyle = "rgba(61,255,224,0.35)";
+  c.fillRect(CROSS_BOARD_X - 1, CROSS_HUD_H, 1, g.worldH - CROSS_HUD_H);
+  c.fillRect(CROSS_BOARD_X + CROSS_BOARD_W, CROSS_HUD_H, 1, g.worldH - CROSS_HUD_H);
+}
+
+/** The closed columns' span on a roadworks lane (as drawRoadworks: the barrier edges 10 px past the last closed centre). */
+function debrisSpans(lane: CrossLane): [number, number][] {
+  const closed = new Set(lane.closed ?? []);
+  const centre = (col: number) => px(crossColumnCentreFp(col));
+  const edge = CROSS_COL_W / 2 - 3;
+  const out: [number, number][] = [];
+  for (let col = 0; col < CROSS_COLS; col++) {
+    if (!closed.has(col) || closed.has(col - 1)) continue;
+    let end = col;
+    while (closed.has(end + 1)) end += 1;
+    out.push([col === 0 ? CROSS_BOARD_X : centre(col) - edge, end === CROSS_COLS - 1 ? CROSS_BOARD_X + CROSS_BOARD_W : centre(end) + edge]);
+  }
+  return out;
 }
 
 /**
@@ -1066,7 +1020,7 @@ function drawCrossArtWorld(ctx: CanvasRenderingContext2D, state: CrossState, siz
   const fxLite = arcadeReducedEffects();
 
   ctx.save();
-  ctx.fillStyle = REAL_GRASS_DARK;
+  ctx.fillStyle = SPACE_VOID_DEEP;
   ctx.fillRect(0, 0, size.width, size.height);
   ctx.translate(offsetX, offsetY);
   ctx.scale(scale, scale);
@@ -1083,14 +1037,17 @@ function drawCrossArtWorld(ctx: CanvasRenderingContext2D, state: CrossState, siz
   // The play screen's arena scene (crossArenaScene) widens the start pavement downwards: the
   // grass strip under it is paved too, so pavement runs on unbroken past the world's edge.
   if (pavedFoot) {
+    // Spacewalk: the start deck runs on unbroken under the world (crossArenaScene carries it on below).
     const foot = crossStartTop(g) + g.startH - 2;
-    // crossRev 9's world ends 7 px under a slab joint: its foot is the paving's plain stone, so no
-    // joint lines the world's bottom edge (the scene below carries the slabs on).
-    ctx.fillStyle = g.island ? CROSS_X_FOOT_PAVING : (tex.paving ?? CROSS_PAVING);
-    ctx.fillRect(CROSS_BOARD_X, foot, CROSS_BOARD_W, worldH - foot);
-    ctx.fillStyle = CROSS_DUSK;
-    ctx.fillRect(CROSS_BOARD_X, foot, CROSS_BOARD_W, worldH - foot);
+    paintStationDeck(ctx, CROSS_BOARD_X, foot, CROSS_BOARD_W, worldH - foot, "none");
   }
+  // Debris drifting in the closed columns (display only, inside the closed span).
+  const clock = still ? 0 : typeof performance === "undefined" ? 0 : performance.now();
+  course.lanes.forEach((laneDef, i) => {
+    if (laneDef.kind !== CROSS_KIND_ROADWORKS) return;
+    const top = crossLaneTop(i + 1, g);
+    debrisSpans(laneDef).forEach(([x0, x1], k) => drawDebris(ctx, x0, x1, top + g.laneH / 2, (i + 1) * 13 + k, clock));
+  });
   // Finish pavement pulse after a clean crossing.
   const age = state.tick - memory.pulseTick;
   if (age >= 0 && age < 45) {
@@ -1138,39 +1095,22 @@ function drawCrossArtWorld(ctx: CanvasRenderingContext2D, state: CrossState, siz
           const rx = px(start + index * laneDef.period + offset);
           const rw = px(laneDef.blockW);
           if (rx > CROSS_BOARD_X + CROSS_BOARD_W || rx + rw < CROSS_BOARD_X) return;
-          if (moto) {
-            if (!fxLite) {
-              ctx.fillStyle = "rgba(10,14,20,0.26)";
-              roundRect(ctx, rx + 2, vy + vh * 0.55 + 2, rw, vh * 0.45, vh * 0.2);
-              ctx.fill();
-            }
-            drawMotorbike(ctx, rx, vy, rw, vh, laneDef.dir, MOTO_COLOURS[(lane + index * 3 + k + 8) % MOTO_COLOURS.length] ?? MOTO_COLOURS[0]);
-            if (!fxLite) vehicleLight(ctx, rx, vy, rw, vh, laneDef.dir, true);
-            return;
-          }
-          const jersey = RIDER_COLOURS[(lane + index * 3 + k + 8) % RIDER_COLOURS.length] ?? RIDER_COLOURS[0];
-          drawRider(ctx, rx, vy, rw, vh, laneDef.dir, jersey);
+          // Spacewalk: motorbikes and bikes are fast comets on the plasma lanes.
+          const palette = COMET_COLOURS[(lane + index * 3 + k + 8) % COMET_COLOURS.length] ?? COMET_COLOURS[0];
+          drawComet(ctx, rx, vy, rw, vh, laneDef.dir, palette);
         });
         continue;
       }
-      const colour = CROSS_BLOCK_COLOURS[(lane + index + 8) % CROSS_BLOCK_COLOURS.length] ?? CROSS_BLOCK;
       const vw = px(laneDef.blockW);
       if (x > CROSS_BOARD_X + CROSS_BOARD_W || x + vw < CROSS_BOARD_X) continue;
-      // Polish A2: a soft shadow on the road under the vehicle (2 px down and right), then the vehicle,
-      // then a light sheen on its upper half and two small headlight glows at its front.
-      if (!fxLite) {
-        ctx.fillStyle = "rgba(10,14,20,0.28)";
-        roundRect(ctx, x + 2, vy + 2, vw, vh, Math.min(bus ? 6 : 12, vh / 2));
-        ctx.fill();
-      }
       if (bus) {
-        drawBus(ctx, x, vy, vw, vh, laneDef.dir, BUS_COLOURS[(lane + index + 8) % BUS_COLOURS.length] ?? BUS_COLOURS[0]);
-        if (!fxLite) vehicleLight(ctx, x, vy, vw, vh, laneDef.dir);
+        // Buses are long slow cargo freighters.
+        drawFreighter(ctx, x, vy, vw, vh, laneDef.dir, FREIGHT_HULLS[(lane + index + 8) % FREIGHT_HULLS.length] ?? FREIGHT_HULLS[0], clock);
         continue;
       }
-      // Daylight: no headlight beams, so nothing drawn reaches past the collision box.
-      drawVehicle(ctx, x, vy, vw, vh, laneDef.dir, colour, lorry, false);
-      if (!fxLite) vehicleLight(ctx, x, vy, vw, vh, laneDef.dir);
+      // Cars (and lorries, the fastest third) are small ships; lorries take the brighter hulls.
+      const hull = SHIP_HULLS[(lane + index + 8 + (lorry ? 3 : 0)) % SHIP_HULLS.length] ?? SHIP_HULLS[0];
+      drawSpaceShip(ctx, x, vy, vw, vh, laneDef.dir, hull, clock);
     }
   }
 
@@ -1182,7 +1122,7 @@ function drawCrossArtWorld(ctx: CanvasRenderingContext2D, state: CrossState, siz
       const k = layer.width / CROSS_WORLD_W;
       ctx.drawImage(layer as CanvasImageSource, x * k, CROSS_HUD_H * k, sideW * k, sideH * k, x, CROSS_HUD_H, sideW, sideH);
     } else {
-      ctx.fillStyle = REAL_GRASS;
+      ctx.fillStyle = SPACE_VOID;
       ctx.fillRect(x, CROSS_HUD_H, sideW, sideH);
     }
   }
@@ -1200,7 +1140,7 @@ function drawCrossArtWorld(ctx: CanvasRenderingContext2D, state: CrossState, siz
       ctx.arc(memory.hitX, memory.hitY, crossPlayerR(state), 0, Math.PI * 2);
       ctx.fill();
     }
-    drawWalkerHero(ctx, memory.hitX, memory.hitY, memory.facing, 0, still ? 0 : Math.min(1, p * 1.5) * Math.PI * 1.5, 0, still, tumbleHero);
+    drawAstronaut(ctx, memory.hitX, memory.hitY, crossPlayerR(state), memory.facing, 0, still ? 0 : Math.min(1, p * 1.5) * Math.PI * 1.5, false);
     ctx.globalAlpha = 1;
   }
   if (!state.dead) {
@@ -1208,36 +1148,17 @@ function drawCrossArtWorld(ctx: CanvasRenderingContext2D, state: CrossState, siz
     const parity = memory.steps % 2 ? 1 : -1;
     const stride = still ? parity * 0.6 : parity * (state.hop > 0 ? Math.sin(done * Math.PI) : 0.6);
     ctx.globalAlpha = state.ghost && Math.floor(state.tick / 6) % 2 === 0 ? 0.45 : 1;
-    drawWalkerHero(ctx, cx, cy, memory.facing, stride, 0, state.hop > 0 ? 0.7 : 0, still);
+    drawAstronaut(ctx, cx, cy, crossPlayerR(state), memory.facing, stride, 0, !fxLite);
     ctx.globalAlpha = 1;
   }
 
-  // Polish A2: the HUD on soft dark pills (the count and the lives).
-  ctx.font = "600 16px 'JetBrains Mono', ui-monospace, monospace";
-  const crossingsW = Math.ceil(ctx.measureText(`Crossings ${state.crossings}`).width) + 18;
-  hudPill(ctx, 6, 4, crossingsW, 28);
-  if (state.wide) drawExpandHud(ctx, state, 6 + crossingsW + 6, fxLite);
-  hudPill(ctx, CROSS_WORLD_W - 22 - (CROSS_LIVES - 1) * 18 - 14, 4, (CROSS_LIVES - 1) * 18 + 28, 28);
-  for (let i = 0; i < CROSS_LIVES; i++) {
-    ctx.fillStyle = i < state.lives ? CROSS_PLAYER : "rgba(255,255,255,0.22)";
-    ctx.beginPath();
-    ctx.arc(CROSS_WORLD_W - 22 - i * 18, 18, 6, 0, Math.PI * 2);
-    ctx.fill();
-    if (i < state.lives) {
-      ctx.strokeStyle = REAL_INK;
-      ctx.lineWidth = 1.5;
-      ctx.stroke();
-    }
-  }
-  ctx.font = "600 16px 'JetBrains Mono', ui-monospace, monospace";
-  ctx.fillStyle = "#FFFFFF";
-  ctx.textBaseline = "top";
-  ctx.textAlign = "left";
-  ctx.strokeStyle = REAL_INK;
-  ctx.lineWidth = 3.5;
-  ctx.lineJoin = "round";
-  successHud(ctx,'cross',state.tick,14,10,()=>{ctx.strokeText(`Crossings ${state.crossings}`,14,10);ctx.fillText(`Crossings ${state.crossings}`,14,10);});
-
+  // One Retro HUD (3 Nov 2026): crossings top left with the lives (helmets) under them; top right the no-stop
+  // streak (crossRev 11) or the coins and the multiplier (crossRev 9–10).
+  retroHud(ctx, CROSS_WORLD_W, { text: `CROSSINGS ${state.crossings}` }, crossHudSide(state), {
+    top: 6,
+    wrapMain: (draw) => successHud(ctx, "cross", state.tick, 12, 6, draw),
+  });
+  for (let i = 0; i < CROSS_LIVES; i++) drawHelmetIcon(ctx, 18 + i * 14, 28, i < state.lives);
   successFrame(ctx,{id:'cross',tick:state.tick,count:state.crossings,misses:CROSS_LIVES-state.lives,colour:CROSS_PLAYER,width:CROSS_WORLD_W,height:worldH,point:{x:cx,y:CROSS_HUD_H+g.goalH/2,shape:'line',radius:24,label:'+1'},hud:{x:14,y:10,text:`Crossings ${state.crossings}`}});
   if (hitAge < 20 && !state.dead && crashIndicator) {
     ctx.fillStyle = `rgba(255, 77, 77, ${0.25 * (1 - hitAge / 20)})`;
@@ -1246,11 +1167,7 @@ function drawCrossArtWorld(ctx: CanvasRenderingContext2D, state: CrossState, siz
   if (crossPaused(state) && hitAge >= CROSS_PAUSE_TICKS) {
     ctx.fillStyle = "rgba(11, 11, 15, 0.55)";
     ctx.fillRect(CROSS_BOARD_X, worldH / 2 - 30, CROSS_BOARD_W, 60);
-    ctx.fillStyle = CROSS_PLAYER;
-    ctx.font = "700 24px 'JetBrains Mono', ui-monospace, monospace";
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.fillText(`Crossing ${state.crossings + 1}`, CROSS_WORLD_W / 2, worldH / 2);
+    retroText(ctx, `CROSSING ${state.crossings + 1}`, CROSS_WORLD_W / 2, worldH / 2 - 8, 16, CROSS_PLAYER, "center", 4);
   }
   if (state.dead && crashIndicator) {
     ctx.fillStyle = "rgba(255, 77, 77, 0.22)";
@@ -1290,34 +1207,13 @@ export const crossRevealGame = { draw: (ctx: CanvasRenderingContext2D, state: Cr
  * lanes, kerbs and the walker's start are unchanged; nothing here moves or takes a touch.
  */
 export function crossArenaScene(ctx: CanvasRenderingContext2D, view: ArenaSceneView): void {
-  const tex = texture(ctx);
-  for (const side of sceneSides(view)) {
-    paintGrass(ctx, side.x, side.y, side.w, side.h);
-    ctx.fillStyle = CROSS_DUSK;
-    ctx.fillRect(side.x, side.y, side.w, side.h);
-  }
+  // Spacewalk (3 Nov 2026): open space at the sides; below the world the start deck runs on to the box's bottom.
+  for (const side of sceneSides(view)) paintSpaceVoid(ctx, side.x, side.y, side.w, side.h, 29);
   const below = sceneBelow(view);
   if (!below) return;
-  paintGrass(ctx, below.x, below.y, below.w, below.h);
-  ctx.fillStyle = CROSS_DUSK;
-  ctx.fillRect(below.x, below.y, below.w, below.h);
-  // crossRev 9's world fills the screen: the short strip below is all pavement, no grass verge.
-  const verge = view.worldH > CROSS_WORLD_H && below.h < 40 ? 0 : Math.min(14, below.h);
-  const paved = below.h - verge;
-  if (paved > 0) {
-    ctx.fillStyle = tex.paving ?? CROSS_PAVING;
-    ctx.fillRect(CROSS_BOARD_X, below.y, CROSS_BOARD_W, paved);
-    ctx.fillStyle = CROSS_DUSK;
-    ctx.fillRect(CROSS_BOARD_X, below.y, CROSS_BOARD_W, paved);
-    // The paving's outer edge: a low edging stone, then the grass edge's shadow.
-    if (verge > 0) {
-    ctx.fillStyle = REAL_KERB;
-    ctx.fillRect(CROSS_BOARD_X, below.y + paved - 3, CROSS_BOARD_W, 3);
-    ctx.fillStyle = "rgba(30,38,48,0.35)";
-    ctx.fillRect(CROSS_BOARD_X, below.y + paved - 1, CROSS_BOARD_W, 1);
-    }
-    ctx.fillStyle = "rgba(30,50,20,0.18)";
-    ctx.fillRect(CROSS_BOARD_X - 2, below.y, 2, paved);
-    ctx.fillRect(CROSS_BOARD_X + CROSS_BOARD_W, below.y, 2, paved);
-  }
+  paintSpaceVoid(ctx, below.x, below.y, below.w, below.h, 31);
+  paintStationDeck(ctx, CROSS_BOARD_X, below.y, CROSS_BOARD_W, below.h, "none");
+  ctx.fillStyle = "rgba(61,255,224,0.35)";
+  ctx.fillRect(CROSS_BOARD_X - 1, below.y, 1, below.h);
+  ctx.fillRect(CROSS_BOARD_X + CROSS_BOARD_W, below.y, 1, below.h);
 }

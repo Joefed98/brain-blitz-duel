@@ -184,7 +184,8 @@ Already sounded: launch (`orbit.launch`), first checkpoint (`orbit.checkpoint`),
 | `swing.jetErupt` | A lava jet erupts (at most one per 600 ms across all jets) | A molten column shoots up | `cave.lavaErupt.mp3` | 5–20 | 500 ms |
 | `swing.dragonNear` | The dragon closes within 4 m while off the left edge (at most one per 4 s) | The DRAGON label grows to full size and its arrow turns red | `swing.dragonNear.mp3` | 0–5 | 1000 ms |
 | `swing.rockCrumble` | Halfway through a stalactite's warning | Grit and chips crumble off and its shadow grows | `cave.stoneCrack.mp3` | 2–8 | 500 ms |
-| `swing.lava` | While the run is live | Lava waves, embers and drips | `swing.lava.mp3` | loop | loop |
+| `swing.lava` | While the run is live (every revision before swingRev 17) | Lava waves, embers and drips | `swing.lava.mp3` | loop | loop |
+| `swing.jungle` | While the run is live (swingRev 17, the jungle canopy) | The river, leaves and light shafts | none yet (silent until recorded) | loop | loop |
 | `swing.gemTaken` | A high-route gem taken (swingRev 13) | +GEM pop in cyan at the hero | `sfx_spark_chime.mp3` (shared recording, volume 0.7) | 0–12 | 600 ms |
 | `swing.gateLit` | A speed gate lit by a fast swoop (swingRev 13) | SPEED GATE! pop under the hero | `sfx_joulz_zap.mp3` (shared recording, volume 0.8) | 0–8 | 380 ms |
 | `swing.ledgeLanded` | Landed on a set-route ledge (swingRev 13) | LANDED! pop above the hero | `sfx_count_ding.mp3` (shared recording, volume 0.7) | 0–15 | 487 ms |
@@ -203,10 +204,10 @@ Already sounded: rope catch and anchor flash (`swing.grapple`), star (`swing.sta
 
 | Cue | Trigger | Looks like | Plays today | Per round | Length |
 |---|---|---|---|---|---|
-| `cross.pastBikes` | Past the cyclists' lane | A +1 pop at the walker | `pop.bonus.mp3` · own file `cross.bikeBell.mp3` (sound batch 4, volume 0.7) | 2–8 | 400 ms |
-| `cross.pastRoadworks` | Through the roadworks | A +1 pop at the walker | `pop.bonus.mp3` · own file `cross.cones.mp3` (sound batch 4, volume 0.7) | 2–8 | 274 ms |
+| `cross.pastBikes` | Past the comets' plasma lane (Spacewalk) | A +1 pop at the astronaut | `pop.bonus.mp3` · `orbit.shootingStar.mp3` from the library since 3 Nov 2026 (was `cross.bikeBell.mp3`; volume 0.7) | 2–8 | 840 ms |
+| `cross.pastRoadworks` | Through the drifting debris (Spacewalk) | A +1 pop at the astronaut | `pop.bonus.mp3` · `hover.slipPast.mp3` from the library since 3 Nov 2026 (was `cross.cones.mp3`; volume 0.7) | 2–8 | 350 ms |
 | `cross.newHazard` | A new layout's crossing begins (its kerb pause ends): the first cycle lane (crossing 3), roadworks (4) and the chicane (7), crossRev 2+ | Cyclists, cones or a chicane on the road ahead | `alert.newHazard.mp3` | 0–3 | 600 ms |
-| `cross.traffic` | While the run is live | Traffic streaming both ways | `cross.traffic.mp3` | loop | loop |
+| `cross.traffic` | While the run is live | Space traffic streaming both ways (Spacewalk) | `bastion.drone.mp3` from the library since 3 Nov 2026 (was `cross.traffic.mp3`) | loop | loop |
 
 Already sounded: crossing and its banner (`cross.crossed`), hops (`cross.hop`), hit and tumble (`cross.lifeLost`).
 

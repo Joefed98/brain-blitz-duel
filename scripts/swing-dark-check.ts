@@ -560,8 +560,9 @@ console.log(`witness: ${playSeeds.length} courses cleared through the dark by th
   ok(LIVE_BANDS.swing.rev === SWING_REV_SLIDE && LIVE_BANDS.swing.curve === SWING_V17_BAND_CURVE && SWING_V16_BAND_CURVE.points[1] === 140, "the help's numbers come from the revision rooms deal (swingRev 17, after 16)");
   const help = PUZZLE_INSTRUCTIONS.swing!;
   const text = help.how.map((h) => `${h.action} ${h.detail}`).join(" ");
-  ok(/Ledge runs are dark/.test(text) && /goes dark, hooks and all/.test(text) && /Land on a ledge to light the next part/.test(text) && /Hooks in the dark can't be grabbed/.test(text), "the help explains the dark ledge runs");
-  ok(/The run lasts 90 seconds/.test(text) && /6 short ledge runs/.test(text) && /3 of them with a squeeze/.test(text), "the help says 90 seconds, six ledge runs and three squeezes");
+  // The jungle canopy (3 Nov 2026): ledges are tree platforms and the dark is the canopy's deep shade, the same rule.
+  ok(/Platform runs are in deep shade/.test(text) && /lost in the canopy's shade, vines and all/.test(text) && /Land on a platform to light the next part/.test(text) && /Vines in the shade can't be grabbed/.test(text), "the help explains the dark ledge runs (the jungle's deep shade)");
+  ok(/The run lasts 90 seconds/.test(text) && /6 short platform runs/.test(text) && /3 of them with a squeeze/.test(text), "the help says 90 seconds, six ledge (platform) runs and three squeezes");
   const intro = help.how.filter((h) => !h.helpOnly);
   ok(intro.length === 3 && intro.every((h) => `${h.action} ${h.detail}`.length <= 46) && help.goal.length <= 34, "the intro's goal and three lines fit");
   // (swingRev 17's parts since 3 Nov 2026: course 110 + par 40 + gates 10 + streak 40.)

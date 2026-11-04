@@ -19,15 +19,15 @@ effects ([arcade-effects.md](arcade-effects.md)) so a sound can be written for e
 
 | Category | Silent | Placeholder | Recorded | Total |
 |---|---|---|---|---|
-| game event | 35 | 0 | 474 | 509 |
+| game event | 35 | 0 | 478 | 513 |
 | room moment | 1 | 0 | 41 | 42 |
 | music | 10 | 0 | 105 | 115 |
 | UI tap | 10 | 0 | 30 | 40 |
 | fail sting | 4 | 0 | 37 | 41 |
 | success sting | 3 | 0 | 73 | 76 |
-| ambience | 0 | 1 | 17 | 18 |
+| ambience | 1 | 1 | 17 | 19 |
 | replay | 0 | 0 | 186 | 186 |
-| **all** | 63 | 1 | 963 | 1027 |
+| **all** | 64 | 1 | 967 | 1032 |
 
 ## Silent and placeholder cues
 
@@ -266,6 +266,12 @@ Grouped by game or screen. These are the cues still missing a sound.
 |---|---|---|---|---|---|---|---|---|
 | `music.dual` | Dual (retired, practice): none |  | loop | silent | none | 60000 | music | `music_dual` |
 
+### Grappler
+
+| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
+|---|---|---|---|---|---|---|---|---|
+| `swing.jungle` | While the run is live (swingRev 17, the jungle canopy) [arcade-effects.md] | The river, leaves and light shafts | loop | silent | none | loop | ambience | `swing.jungle` |
+
 ### Hot Floor
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
@@ -396,7 +402,6 @@ Grouped by game or screen. These are the cues still missing a sound.
 | Hot Floor | arcade | practice only | **none** | `music_hotfloor` |
 | Hover | arcade | yes | music_hover | `music_hover` |
 | Iron Wall | arcade | yes | music_bastion | `music_bastion` |
-| Jaywalk | arcade | yes | music_cross | `music_cross` |
 | Junction | arcade | practice only | music_junction | `music_junction` |
 | Mahjong Solitaire | arcade | yes | music_mahjong | `music_mahjong` |
 | Meteor | arcade | yes | music_eatgrow | `music_eatgrow` |
@@ -412,6 +417,7 @@ Grouped by game or screen. These are the cues still missing a sound.
 | Rooftop Run | arcade | practice only | **none** | `music_rooftop` |
 | Scrumper | arcade | practice only | music_snip | `music_snip` |
 | Slice | arcade | yes | music_slice | `music_slice` |
+| Spacewalk | arcade | yes | music_cross | `music_cross` |
 | Steady | arcade | practice only | **none** | `music_steady` |
 | Summit | arcade | yes | music_tripeaks | `music_tripeaks` |
 | Swerve | arcade | practice only | **none** | `music_swerve` |
@@ -1461,7 +1467,7 @@ Grouped by game or screen.
 | `swing.jetErupt` | A lava jet erupts (at most one per 600 ms across all jets) [arcade-effects.md] | A molten column shoots up | 5–20 | recorded sound | `swing.jetErupt` | 500 | game event | `swing.jetErupt` |
 | `swing.dragonNear` | The dragon closes within 4 m while off the left edge (at most one per 4 s) [arcade-effects.md] | The DRAGON label grows to full size and its arrow turns red | 0–5 | recorded sound | `swing.dragonNear` | 1000 | game event | `swing.dragonNear` |
 | `swing.rockCrumble` | Halfway through a stalactite's warning [arcade-effects.md] | Grit and chips crumble off and its shadow grows | 2–8 | recorded sound | `swing.rockCrumble` | 500 | game event | `swing.rockCrumble` |
-| `swing.lava` | While the run is live [arcade-effects.md] | Lava waves, embers and drips | loop | recorded sound | `swing.lava` | loop | ambience | `swing.lava` |
+| `swing.lava` | While the run is live (every revision before swingRev 17) [arcade-effects.md] | Lava waves, embers and drips | loop | recorded sound | `swing.lava` | loop | ambience | `swing.lava` |
 | `swing.gemTaken` | A high-route gem taken (swingRev 13) [arcade-effects.md] | +GEM pop in cyan at the hero | 0–12 | recorded sound | `swing.gemTaken` | 600 | game event | `swing.gemTaken` |
 | `swing.gateLit` | A speed gate lit by a fast swoop (swingRev 13) [arcade-effects.md] | SPEED GATE! pop under the hero | 0–8 | recorded sound | `swing.gateLit` | 380 | game event | `swing.gateLit` |
 | `swing.ledgeLanded` | Landed on a set-route ledge (swingRev 13) [arcade-effects.md] | LANDED! pop above the hero | 0–15 | recorded sound | `swing.ledgeLanded` | 487 | game event | `swing.ledgeLanded` |
@@ -1479,6 +1485,10 @@ Grouped by game or screen.
 | `swing.dragon` | Grappler: The dragon appears behind the player [arcade.md] |  | 0–1 | recorded sound | `arc_siren` (shared) | 600 | game event | `swing.dragon` |
 | `swing.rockShake` | Grappler: A stalactite starts to shake [arcade.md] |  | 2–8 | recorded sound | `arc_clank` (shared) | 150 | game event | `swing.rockShake` |
 | `swing.rockLand` | Grappler: A stalactite hits the floor [arcade.md] |  | 2–8 | recorded sound | `arc_wood_knock` (shared) | 90 | game event | `swing.rockLand` |
+| `swing.vineCreak` | Grappler: The vine catches (swingRev 17, the jungle canopy; swing.grapple before; its slot plays the library's ricochet.lanternGrab.mp3) [arcade.md] |  | 20–60 | recorded sound | `swing.vineCreak` | 450 | game event | `swing.vineCreak` |
+| `swing.splash` | Grappler: A miss drops the hero into the river (swingRev 17; swing.crash before; the library's minigolf_splash.mp3) [arcade.md] |  | 0–10 | recorded sound | `swing.splash` | 800 | game event | `swing.splash` |
+| `swing.pterodactyl` | Grappler: The pterodactyl swoops in over the last quarter (swingRev 17; swing.dragon before; the library's clayshoot.birdStartle.mp3) [arcade.md] |  | 0–1 | recorded sound | `swing.pterodactyl` | 600 | game event | `swing.pterodactyl` |
+| `swing.pteroCatch` | Grappler: The pterodactyl catches the hero (swingRev 17; clayshoot.birdStartle.mp3 a little lower) [arcade.md] |  | 0–3 | recorded sound | `swing.pteroCatch` | 600 | game event | `swing.pteroCatch` |
 | `music.swing` | Grappler: music_swing |  | loop | recorded sound | `music_swing` | loop | music | `music_swing` |
 
 ### High Rise
@@ -1549,19 +1559,6 @@ Grouped by game or screen.
 | `bastion.wave` | Iron Wall: A wave rolls in [arcade.md] |  | 5 | recorded sound | `bastion.wave` | 900 | game event | `bastion.wave` |
 | `bastion.droneDown` | Iron Wall: bastionRev 3: a drone is shot down [arcade.md] |  | 0–3 | recorded sound | `bastion.droneDown` | 700 | game event | `bastion.droneDown` |
 | `music.bastion` | Iron Wall (arcade, Action): music_bastion (music_bastion.mp3, Joe's recording, 3 Nov 2026) |  | loop | recorded sound | `music_bastion` | 60000 | music | `music_bastion` |
-
-### Jaywalk
-
-| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
-|---|---|---|---|---|---|---|---|---|
-| `cross.pastBikes` | Past the cyclists' lane [arcade-effects.md] | A +1 pop at the walker | 2–8 | recorded sound | `cross.pastBikes` | 400 | game event | `cross.pastBikes` |
-| `cross.pastRoadworks` | Through the roadworks [arcade-effects.md] | A +1 pop at the walker | 2–8 | recorded sound | `cross.pastRoadworks` | 274 | game event | `cross.pastRoadworks` |
-| `cross.newHazard` | A new layout's crossing begins (its kerb pause ends): the first cycle lane (crossing 3), roadworks (4) and the chicane (7), crossRev 2+ [arcade-effects.md] | Cyclists, cones or a chicane on the road ahead | 0–3 | recorded sound | `cross.newHazard` | 600 | game event | `cross.newHazard` |
-| `cross.traffic` | While the run is live [arcade-effects.md] | Traffic streaming both ways | loop | recorded sound | `cross.traffic` | loop | ambience | `cross.traffic` |
-| `cross.lifeLost` | Jaywalk: The walker is hit [arcade.md] |  | 0–3 | recorded sound | `arc_lose_life` (shared) | 220 | fail sting | `cross.lifeLost` |
-| `cross.crossed` | Jaywalk: A crossing is completed [arcade.md] |  | 5–15 | recorded sound | `stage_complete` (shared) | 160 | game event | `cross.crossed` |
-| `cross.hop` | Jaywalk: The walker hops a lane or moves sideways (at most one per 90 ms) [arcade.md] |  | 50–150 | recorded sound | `cross.hop` | 380 | game event | `cross.hop` |
-| `music.cross` | Jaywalk: music_cross |  | loop | recorded sound | `music_cross` | loop | music | `music_cross` |
 
 ### Junction
 
@@ -1792,6 +1789,19 @@ Grouped by game or screen.
 | `slice.comboUp` | Slice: A combo grows past 1 [arcade.md] |  | 5–20 | recorded sound | `arc_slice_combo` (shared) | 721 | game event | `slice.comboUp` |
 | `music.slice` | Slice: music_slice |  | loop | recorded sound | `music_slice` | loop | music | `music_slice` |
 
+### Spacewalk
+
+| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
+|---|---|---|---|---|---|---|---|---|
+| `cross.pastBikes` | Past the comets' plasma lane (Spacewalk) [arcade-effects.md] | A +1 pop at the astronaut | 2–8 | recorded sound | `cross.pastBikes` | 840 | game event | `cross.pastBikes` |
+| `cross.pastRoadworks` | Through the drifting debris (Spacewalk) [arcade-effects.md] | A +1 pop at the astronaut | 2–8 | recorded sound | `cross.pastRoadworks` | 350 | game event | `cross.pastRoadworks` |
+| `cross.newHazard` | A new layout's crossing begins (its kerb pause ends): the first cycle lane (crossing 3), roadworks (4) and the chicane (7), crossRev 2+ [arcade-effects.md] | Cyclists, cones or a chicane on the road ahead | 0–3 | recorded sound | `cross.newHazard` | 600 | game event | `cross.newHazard` |
+| `cross.traffic` | While the run is live [arcade-effects.md] | Space traffic streaming both ways (Spacewalk) | loop | recorded sound | `cross.traffic` | loop | ambience | `cross.traffic` |
+| `cross.lifeLost` | Jaywalk: The walker is hit [arcade.md] |  | 0–3 | recorded sound | `arc_lose_life` (shared) | 220 | fail sting | `cross.lifeLost` |
+| `cross.crossed` | Jaywalk: A crossing is completed [arcade.md] |  | 5–15 | recorded sound | `stage_complete` (shared) | 160 | game event | `cross.crossed` |
+| `cross.hop` | Jaywalk: The walker hops a lane or moves sideways (at most one per 90 ms) [arcade.md] |  | 50–150 | recorded sound | `cross.hop` | 380 | game event | `cross.hop` |
+| `music.cross` | Jaywalk: music_cross |  | loop | recorded sound | `music_cross` | loop | music | `music_cross` |
+
 ### Summit
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
@@ -1927,7 +1937,7 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 | `lock` | effects | `lock` | 90 |
 | `round_won` | effects | `round_won` | 680 |
 | `podium_fanfare` | effects | `podium_fanfare` | 350 |
-| `stage_complete` | effects | `stage_complete`, `cross.crossed`, `junction.complete` | 160 |
+| `stage_complete` | effects | `stage_complete`, `junction.complete`, `cross.crossed` | 160 |
 | `complete` | effects | `complete` | 200 |
 | `combo` | effects | `combo` | 90 |
 | `warning_10` | effects | `warning_10` | 10000 |
@@ -2525,8 +2535,8 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 | `swing.comboPoint` | effects | `swing.comboPoint` | 500 |
 | `swing.sectionClear` | effects | `swing.sectionClear` | 1000 |
 | `swing.parBeaten` | effects | `swing.parBeaten` | 1000 |
-| `cross.pastBikes` | effects | `cross.pastBikes` | 400 |
-| `cross.pastRoadworks` | effects | `cross.pastRoadworks` | 274 |
+| `cross.pastBikes` | effects | `cross.pastBikes` | 840 |
+| `cross.pastRoadworks` | effects | `cross.pastRoadworks` | 350 |
 | `flip.surviveStreak` | effects | `flip.surviveStreak` | 480 |
 | `flip.survivedFinish` | effects | `flip.survivedFinish` | 840 |
 | `flip.starTaken` | effects | `flip.starTaken` | 200 |
@@ -2645,7 +2655,11 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 | `whack.hedgehogUp` | effects | `whack.hedgehogUp` | 528 |
 | `clayshoot.birdIn` | effects | `clayshoot.birdIn` | 528 |
 | `swing.lava` | effects | `swing.lava` | 6024 |
-| `cross.traffic` | effects | `cross.traffic` | 8040 |
+| `swing.vineCreak` | effects | `swing.vineCreak` | 429 |
+| `swing.splash` | effects | `swing.splash` | 803 |
+| `swing.pterodactyl` | effects | `swing.pterodactyl` | 606 |
+| `swing.pteroCatch` | effects | `swing.pteroCatch` | 606 |
+| `cross.traffic` | effects | `cross.traffic` | 2000 |
 | `burst.lastLife` | effects | `burst.lastLife` | 528 |
 | `skyline.gustWarn` | effects | `skyline.gustWarn` | 528 |
 | `swing.rockCrumble` | effects | `swing.rockCrumble` | 528 |

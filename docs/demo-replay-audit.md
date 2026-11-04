@@ -197,7 +197,7 @@ yet" means the game has never had a demo (its intro shows the still).
 | Blockzone (`blockfall`) | `blockfallRev 2` | None yet (gestures only, 90 s since 3 Nov) |
 | Jaywalk (`cross`) | `crossRev 11` | Stopped (`CROSS_REV_FLOW`) |
 | Tilt (`tilt`) | `tiltRev 11` | Stopped (`TILT_REV_PAR`) |
-| Roofbound (`flip`) | `flipRev 11` | Stopped (`FLIP_REV_FLOW`) |
+| Roofbound (`flip`) | `flipRev 11` or `12` | Stopped (`FLIP_REV_FLOW`, `FLIP_REV_DEAL`: flipRev 12 is flipRev 11's game, so a demo on either plays) |
 | Curl Champ (`curling`) | `curlRev 4` | None yet (the power bar since 3 Nov) |
 | Top Bins (`freekick`) | `freekickRev 4` | None yet (the drawn shot since 3 Nov) |
 | Grappler (`swing`) | `swingRev 17` | Stopped (`SWING_REV_SLIDE`) |
@@ -207,7 +207,7 @@ yet" means the game has never had a demo (its intro shows the still).
 | Gemstone (`matchup`) | `matchupRev 12` | Stopped (`MATCHUP_REV_SIX`) |
 | Fission (`burst`) | `burstRev 10` | Stopped (`BURST_REV_STD`) |
 | Breaker (`breaker`) | `brkRev 11` | Stopped (`BRK_REV_STD`) |
-| Slice (`slice`) | `sliceRev 11` | Stopped (`SLICE_REV_STANDARD`) |
+| Slice (`slice`) | `sliceRev 12` | Stopped (`SLICE_REV_FOOD`: bigger food and chillies since 3 Nov, the Action polish) |
 | Hover (`hover`) | `hoverRev 10` | Stopped (`HOVER_REV_STANDARD`) |
 | Rally (`rally`) | `rallyRev 12` | Stopped (`RALLY_REV_STD`) |
 | Flightpath (`bullseye`) | `bullRev 9` | Stopped (`BULLSEYE_REV_STD`) |

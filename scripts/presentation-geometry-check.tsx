@@ -6,7 +6,7 @@ import { WordsmithRing } from "../src/components/puzzles/WordsmithRing";
 import { miniSudokuPuzzle } from "../src/puzzles/miniSudoku";
 import { shikakuPuzzle } from "../src/puzzles/shikaku";
 import { wordsmithPuzzle } from "../src/puzzles/wordsmith";
-import { ARCADE_FX_SPECS, ENGINE_FX_SPECS } from "../src/lib/arcade/arcadeFxGames.renderer";
+import { ARCADE_FX_SPECS, ARCADE_PLAY_VIEWS, ENGINE_FX_SPECS } from "../src/lib/arcade/arcadeFxGames.renderer";
 import { TD_H, TD_W } from "../src/lib/arcade/tenDrop";
 import { CLAY_TALL_H, CLAY_W } from "../src/lib/arcade/clayShoot";
 import { CLASH_TALL_H, CLASH_WORLD_W } from "../src/lib/arcade/colourClash";
@@ -265,14 +265,17 @@ const ABOVE: Record<string, number> = {
   whack: (10 + 36 * 1.1 + 10 + 4) + 8 + 20 + 8,
   // Pull!: the 12px hit line and 6px pips, 4px gaps.
   clayshoot: 12 + 4 + 6 + 4,
+  // Ball Tracker (3 Nov 2026 polish): its HUD pill strip (BT_HUD_H, 36px), no gap.
+  balltrack: 36,
 };
 /** Height taken below each slot: 8px gap + control row (Swish: its 72px cancel strip, flush). */
 // Orbit: none since 27 Oct 2026 (orbitRev 12's SET CHECKPOINT sits in the world's reserved top-right corner; its 450 x 862
 // view reaches the bottom; play-control-clearance-check proves the corner).
-const BELOW: Record<string, number> = { burst: 8 + 76, inkbridge: 8 + 48, balltrack: 8 + 28, bintoss: 72, stroop: 8 + 52 };
+// Ball Tracker: none since 3 Nov 2026 (its 28px status line became the 36px HUD strip above the box, ABOVE).
+const BELOW: Record<string, number> = { burst: 8 + 76, inkbridge: 8 + 48, bintoss: 72, stroop: 8 + 52 };
 const BELOW_CONTROLS: Record<string, string> = {
   burst: "Fission's two 76px arrows", inkbridge: "Rainbow Bridge's Undo / Reset / Release / Drop again (48px)", orbit: "Orbit's SET CHECKPOINT (44px row)",
-  balltrack: "Ball Tracker's status row (28px)", bintoss: "Swish's cancel strip (72px)", stroop: "Mixed Signals' arrows (44px) and joystick (52px), bottom-aligned",
+  bintoss: "Swish's cancel strip (72px)", stroop: "Mixed Signals' arrows (44px) and joystick (52px), bottom-aligned",
 };
 /** Until 15 Oct 2026: arena top, the bottom term and the rows below (OLD_BELOW), 4px side insets. */
 const OLD_TOP = (game: string) => 116 + (game === "snip" ? 40 : 0) + (game === "tilt" ? 40 : 0);
@@ -300,7 +303,8 @@ const ARENA_SIZES = [[375, 667, 0], [390, 700, 0], [390, 844, 0], [414, 896, 48]
 const IPHONE11 = { w: 414, h: 896, top: 48, short: 48 };
 /** Per game: the box (slot) and world (arena) at each viewport, then scale and spare space at 390x844. */
 const arenaTable = new Map<string, { world: string; sizes: string[]; detail: string; before: string[]; iphone: string; cut: string }>();
-const WORLDS = { ...(ARCADE_FX_SPECS as Record<string, { width: number; height: number }>), ...ENGINE_WORLDS };
+// The stage's box is the live round's play view where it differs from the effects world (ARCADE_PLAY_VIEWS, 3 Nov 2026).
+const WORLDS = { ...(ARCADE_FX_SPECS as Record<string, { width: number; height: number }>), ...(ARCADE_PLAY_VIEWS as Record<string, { width: number; height: number }>), ...ENGINE_WORLDS };
 for (const [width, height, inset] of ARENA_SIZES) {
   for (const [game, spec] of Object.entries(WORLDS)) {
     const top = HEADER_AT(inset) + (ABOVE[game] ?? 0);

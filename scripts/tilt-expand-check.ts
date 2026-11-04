@@ -40,6 +40,7 @@ import {
   TILT_REV_EXPAND,
   TILT_REV_LIFT,
   TILT_REV_PAR,
+  TILT_REV_BIG,
   TILT_REV_STRICT,
   TILT_V8_BAND_CURVE,
   TILT_V9_BAND_CURVE,
@@ -139,7 +140,8 @@ const dealt = generatePuzzle("tilt") as unknown as { tiltRev: number; seed: numb
 // since 29 Oct 2026 tiltRev 10 (the arcade scoring standard: tiltRev 8's three mazes less the quick stars, then a fourth;
 // tilt-standard-check proves it). The deal below (the same bank) is still checked on tiltRev 8's rule.
 // Since 3 Nov 2026 tiltRev 11 (the same mazes with no gold stars, par times and a clean run; tilt-rev11-check proves it).
-ok(dealt.tiltRev === TILT_REV_PAR, `rooms deal tiltRev ${TILT_REV_PAR}, tiltRev 8's mazes and a fourth (got ${dealt.tiltRev})`);
+// Since 3 Nov 2026 tiltRev 12 (tiltRev 11 with bigger marbles and keys, from its proved deal, a subset of the bank; tilt-rev12-check).
+ok(dealt.tiltRev === TILT_REV_BIG, `rooms deal tiltRev ${TILT_REV_BIG}, tiltRev 8's mazes and a fourth (got ${dealt.tiltRev})`);
 ok(tiltDealableX(dealt.seed) && TILT_BANK.includes(dealt.seed), "rooms deal a bank seed, which passes the dealer's rule");
 ok(TILT_BANK.length >= 260 && new Set(TILT_BANK).size === TILT_BANK.length, `the bank holds 260 or more distinct seeds (${TILT_BANK.length})`);
 /** Hops from a cell to the nearest cell of a marble's route. */
@@ -348,7 +350,8 @@ for (const n of [0, 1, 2]) {
   const live = LIVE_BANDS.tilt as { rev: number; curve: unknown; strictRev?: number };
   // tiltRev 9 kept tiltRev 8's units on its lifted curve; since 29 Oct 2026 rooms deal tiltRev 10 on its core's straight line (tilt-standard-check).
   // Since 3 Nov 2026 rooms deal tiltRev 11 on its core's straight line (tilt-rev11-check).
-  ok(live.rev === TILT_REV_PAR && live.curve === TILT_V11_BAND_CURVE && TILT_V9_BAND_CURVE.units.join() === TILT_V8_BAND_CURVE.units.join() && live.strictRev === TILT_REV_STRICT, "LIVE_BANDS lists the dealt tiltRev 11 on its curve (tiltRev 9 on tiltRev 8's units), tiltRev 6 as its strict revision");
+  // Since 3 Nov 2026 tiltRev 12 on the same line (tilt-rev12-check).
+  ok(live.rev === TILT_REV_BIG && live.curve === TILT_V11_BAND_CURVE && TILT_V9_BAND_CURVE.units.join() === TILT_V8_BAND_CURVE.units.join() && live.strictRev === TILT_REV_STRICT, "LIVE_BANDS lists the dealt tiltRev 12 on its curve (tiltRev 11's line; tiltRev 9 on tiltRev 8's units), tiltRev 6 as its strict revision");
 }
 
 if (failures.length) {

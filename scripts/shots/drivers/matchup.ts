@@ -6,17 +6,20 @@
  */
 import type { Driver, DriverCtx } from "../driver";
 import { matchupGameFor, matchupHintSwap, matchupTransform, matchupWorldH, MATCHUP_BOARD_X, MATCHUP_BOARD_Y, MATCHUP_CELL_PX, MATCHUP_INPUT_SWAP, type MatchupState } from "../../../src/lib/arcade/matchup";
+import { matchupShownPoint } from "../../../src/lib/arcade/matchup.renderer";
 
 const CANVAS = "[data-game-arena='canvas'] canvas";
 /** Swaps played before the mid-play frame. */
 const SWAPS = 26;
 
-async function tapCell(ctx: DriverCtx, row: number, col: number, worldH: number): Promise<void> {
+async function tapCell(ctx: DriverCtx, row: number, col: number, worldH: number, six: boolean): Promise<void> {
   const box = await ctx.page.locator(CANVAS).first().boundingBox();
   if (!box) throw new Error("no arena canvas");
   const t = matchupTransform({ width: box.width, height: box.height }, worldH);
-  const x = box.x + t.offsetX + (MATCHUP_BOARD_X + (col + 0.5) * MATCHUP_CELL_PX) * t.scale;
-  const y = box.y + t.offsetY + (MATCHUP_BOARD_Y + (row + 0.5) * MATCHUP_CELL_PX) * t.scale;
+  // matchupRev 12 draws its board zoomed (3 Nov 2026 polish, display only): tap the gem where it is drawn.
+  const at = matchupShownPoint(six, MATCHUP_BOARD_X + (col + 0.5) * MATCHUP_CELL_PX, MATCHUP_BOARD_Y + (row + 0.5) * MATCHUP_CELL_PX);
+  const x = box.x + t.offsetX + at.x * t.scale;
+  const y = box.y + t.offsetY + at.y * t.scale;
   await ctx.page.mouse.click(x, y);
   await ctx.wait(60);
 }
@@ -30,8 +33,8 @@ export const matchupDriver: Driver = {
     for (let k = 0; k < SWAPS; k++) {
       const h = matchupHintSwap(s);
       if (!h) break;
-      await tapCell(ctx, h.row1, h.col1, worldH);
-      await tapCell(ctx, h.row2, h.col2, worldH);
+      await tapCell(ctx, h.row1, h.col1, worldH, Boolean(s.six));
+      await tapCell(ctx, h.row2, h.col2, worldH, Boolean(s.six));
       s = game.step(s, { t: s.tick + 1, k: MATCHUP_INPUT_SWAP, a: h.row1, b: h.col1, c: h.row2, d: h.col2 }) as MatchupState;
       const wait = Math.max(0, (s.busyUntil ?? s.tick) - s.tick);
       s = { ...s, tick: s.tick + wait };

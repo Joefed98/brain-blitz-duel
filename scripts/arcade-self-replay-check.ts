@@ -83,6 +83,7 @@ import { encodeMoonRun, encodeNinjaRun, encodeRicoRun, replayMoonRun, replayNinj
 import { moonCheckpoint, moonGame, ninjaCheckpoint, ninjaGame, NINJA_CHECKPOINT_INTERVAL } from "@/lib/arcade/ricochetNinja";
 import { encodeSkylineRun, replaySkylineRun } from "@/lib/duel/skyline";
 import { encodeSliceRun, replaySliceRun } from "@/lib/duel/slice";
+import { FLIP_DEAL } from "@/lib/duel/flipDeal.server";
 import { encodeSnakeRun, replaySnakeRun } from "@/lib/duel/snake";
 import { encodeSteadyRun, replaySteadyRun } from "@/lib/duel/steady";
 import { encodeSwerveRun, replaySwerveRun } from "@/lib/duel/swerve";
@@ -124,7 +125,8 @@ import { ORBIT_HOLE_BANK } from "@/lib/duel/orbitHoleBank.server";
 import { ORBIT_REV3_BANK } from "@/lib/duel/orbitRev3Bank.server";
 import { orbitRev3PlanetsForSeed } from "@/lib/duel/orbitRev3Course.server";
 import { binTossGameFor, BINTOSS_REV2, BINTOSS_REV3 } from "@/lib/arcade/binToss";
-import { inkBridgeGameFor, INK_REV3, INK_REV4, INK_REV_EXPAND, INK_REV_SPREAD, INK_REV_STD, INK_REV_CLOVER } from "@/lib/arcade/inkBridge";
+import { inkBridgeGameFor, INK_REV3, INK_REV4, INK_REV_EXPAND, INK_REV_SPREAD, INK_REV_STD, INK_REV_CLOVER, INK_REV_BIG } from "@/lib/arcade/inkBridge";
+import { INK_BIG_DEAL } from "@/lib/duel/inkBigDeal.server";
 import { swingGameFor, SWING_REV, SWING_REV_V3 } from "@/lib/arcade/swing";
 import { wordfallCheckpoint, wordfallGame, wordfallGameFor } from "@/lib/arcade/wordfall";
 import { encodeWordfallRun, replayWordfallRun } from "@/lib/duel/wordfall";
@@ -194,7 +196,7 @@ import { CURLING_BANK_V2 } from "@/lib/duel/curlingBankV2.server";
 import { CURLING_BANK_V3 } from "@/lib/duel/curlingBankV3.server";
 import { CURLING_BANK_V4 } from "@/lib/duel/curlingBankV4.server";
 import { MINIGOLF_BANK_V2 } from "@/lib/duel/minigolfBankV2.server";
-import { TILT_REV_BAND, TILT_REV_EXPAND, TILT_REV_LIFT, TILT_REV_PAR, TILT_REV_STD, TILT_REV_TUNEC } from "@/lib/arcade/tilt";
+import { TILT_REV_BAND, TILT_REV_BIG, TILT_REV_EXPAND, TILT_REV_LIFT, TILT_REV_PAR, TILT_REV_STD, TILT_REV_TUNEC } from "@/lib/arcade/tilt";
 import { ORBIT_REV_BAND, ORBIT_REV_SWEPT, ORBIT_REV_TALL, ORBIT_REV_TUNED, ORBIT_REV_XP, ORBIT_REV_STD, ORBIT_REV_FUEL } from "@/lib/arcade/orbit";
 import { decodeOrbitExtras, initBandFrom, initSweptFrom, initTallFrom, initTunedFrom, initXpFrom, initStdFrom, initFuelFrom } from "@/lib/arcade/orbitRev3";
 import { ORBIT_XP_BANK } from "@/lib/duel/orbitXpBank.server";
@@ -992,6 +994,25 @@ const GAMES: Game[] = [
   { key: "freecell/v4", game: freecellGameFor(4), checkpoint: fcCheckpoint, mode: "events", rate: 120, encode: encodeFreecellRun, replay: (seed: number, raw: string) => replayFreecellRun(seed, raw, 4), seedFor: (n: number) => n % 300 },
   { key: "tripeaks/v2", game: tripeaksGameFor(2), checkpoint: tpCheckpoint, mode: "events", rate: 120, encode: encodeTripeaksRun, replay: (seed: number, raw: string) => replayTripeaksRun(seed, raw, 2), seedFor: (n: number) => n % 300 },
   { key: "fivehands/v3", game: fiveHandsGameFor(3), checkpoint: fhCheckpoint, mode: "events", rate: 60, encode: encodeFiveHandsRun, replay: (seed: number, raw: string) => replayFiveHandsRun(seed, raw, 3) },
+  // Tilt tiltRev 12 (3 Nov 2026, docs/arcade-standard/tilt.md "tiltRev 12": tiltRev 11 with bigger marbles and keys),
+  // appended so every earlier entry keeps its index.
+  { key: "tilt/big", game: tiltGameFor(TILT_REV_BIG), checkpoint: tiltCheckpoint, mode: "events", rate: 500, encode: encodeTiltRun, replay: (seed: number, raw: string) => replayTiltRun(seed, raw, TILT_REV_BIG) },
+  // Rainbow Bridge inkRev 14 (3 Nov 2026: inkRev 13's rules with a bigger coin, clovers and birds), appended so every
+  // earlier entry keeps its index: on its proved deal's seeds.
+  {
+    key: "ink/big",
+    game: inkBridgeGameFor(INK_REV_BIG),
+    seedFor: (n: number) => INK_BIG_DEAL[(n * 7) % INK_BIG_DEAL.length]!,
+    checkpoint: inkCheckpoint,
+    mode: "events",
+    rate: 400,
+    encode: encodeInkBridgeRun,
+    replay: (seed: number, raw: string) => replayInkBridgeRun(seed, raw, INK_REV_BIG),
+  },
+  // Slice sliceRev 12 (3 Nov 2026, the Action polish): bigger, recognisable food and chillies.
+  { key: "slice/food", game: sliceGameFor(12), checkpoint: sliceCheckpoint, mode: "events", rate: 1000, encode: encodeSliceRun, replay: (seed: number, raw: string) => replaySliceRun(seed, raw, 12) },
+  // Roofbound flipRev 12 (3 Nov 2026): flipRev 11's game dealt from its proved courses (seeds from the deal).
+  { key: "flip/deal", game: flipGameFor(12), checkpoint: flipCheckpoint, mode: "events", rate: 50, encode: encodeFlipRun, replay: (seed: number, raw: string) => replayFlipRun(seed, raw, 12), seedFor: (n: number) => FLIP_DEAL[n % FLIP_DEAL.length]! },
 ];
 
 /** A random candidate event, often outside the declared range (a finger off the edge). */

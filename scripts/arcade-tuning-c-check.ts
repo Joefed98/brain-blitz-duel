@@ -77,7 +77,7 @@ import {
   tiltStarPoint,
   TILT_REV_BAND,
   TILT_REV_EXPAND,
-  TILT_REV_PAR,
+  TILT_REV_BIG,
   TILT_REV_TUNEC,
   TILT_STARS_PER_MAZE,
   TILT_STAR_MOUTH,
@@ -205,10 +205,12 @@ section("New rounds carry the Tuning C stamps; Junction is practice only");
     // The expansion (x200, 26 Oct 2026) moved Tilt on to tiltRev 8 (bigger mazes, keys, quick stars, par); tilt-expand-check covers it.
     // The arcade scoring standard (29 Oct 2026) then moved it on to tiltRev 10 (a fourth maze, straight-line parts); tilt-standard-check covers it.
     // tiltRev 11 (3 Nov 2026) then took the gold stars away and added par times and a clean run; tilt-rev11-check covers it.
-    ["tilt", playRevOf("tilt", generateTilt().tiltRev), TILT_REV_PAR],
+    // tiltRev 12 (3 Nov 2026) then made the marbles and keys bigger (its own play); tilt-rev12-check covers it.
+    ["tilt", playRevOf("tilt", generateTilt().tiltRev), TILT_REV_BIG],
     // World expansion E5 (25 Oct 2026) moved Slice on to its larger board (sliceRev 9); expansion-e5-check covers it.
     // sliceRev 10 (27 Oct 2026, Joe's phone notes): sliceRev 9 with bigger onions and golden fruit; expansion-e5-check covers it.
-    ["slice", playRevOf("slice", generateSlice().sliceRev), SLICE_REV_BIG],
+    // sliceRev 12 (3 Nov 2026, bigger food; slice-food-check) plays on its own (bigger hit sizes), so it is not lifted to 10.
+    ["slice", playRevOf("slice", generateSlice().sliceRev), SLICE_REV_BIG + 2],
   ];
   const field: Record<string, string> = { matchup: "matchupRev", swing: "swingRev", hover: "hoverRev", inkbridge: "inkRev", flip: "flipRev", beat: "beatRev", wavefront: "wavRev", tilt: "tiltRev", slice: "sliceRev" };
   for (const [type, got, rev] of stamps) {

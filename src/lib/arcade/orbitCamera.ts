@@ -221,11 +221,47 @@ function framedPlanet(s: Rev3Like): OrbitCamOffset {
     b.right - (ORBIT_CAM_VIEW_W - SAFE_INSET_X),
     Math.min(b.left - SAFE_INSET_X, wantX),
   );
-  const y = Math.max(
-    b.bottom - (ORBIT_CAM_VIEW_H - SAFE_INSET_Y),
-    Math.min(b.top - SAFE_INSET_Y, wantY),
-  );
+  const lo = b.bottom - (ORBIT_CAM_VIEW_H - SAFE_INSET_Y);
+  const hi = b.top - SAFE_INSET_Y;
+  let y = Math.max(lo, Math.min(hi, wantY));
+  if (orbitStillCamera(s)) y = clearTopEdge(s, y, lo, hi);
   return { x, y };
+}
+/**
+ * Rows drawn above the framed view on orbitRev 12+ (ORBIT_XP_AHEAD in the renderer) and the HUD's pill rows' depth
+ * from the drawn top: a planet whose body crosses the HUD band or the drawn top edge is cut off.
+ */
+const DRAWN_AHEAD = 80;
+const HUD_BAND = 72;
+/**
+ * 3 Nov 2026 (Joe's audit; display only, orbitRev 14's still camera): no planet is left cut off at the top. A planet
+ * whose body crosses the HUD band and the drawn top edge pulls the framing up until it sits whole below the HUD, or,
+ * where that would take the current orbit out of its safe box, pushes it until it is out of view above; the framing
+ * never leaves [lo, hi] (the current orbit's safe box).
+ */
+function clearTopEdge(s: Rev3Like, y: number, lo: number, hi: number): number {
+  const ahead = s.viewW ? DRAWN_AHEAD : 0;
+  let out = y;
+  for (let pass = 0; pass < 3; pass++) {
+    const top = out - ahead;
+    const clean = top + HUD_BAND;
+    let moved = false;
+    for (let i = s.cur + 1; i < s.planets.length; i++) {
+      const p = s.planets[i]!;
+      const py = p.y / FP;
+      const r = p.r / FP + 4;
+      if (py - r >= clean || py + r <= top) continue;
+      const down = out - (clean - (py - r) + 2);
+      const up = out + (py + r - top + 2);
+      if (down >= lo) out = down;
+      else if (up <= hi) out = up;
+      else continue;
+      moved = true;
+      break;
+    }
+    if (!moved) break;
+  }
+  return out;
 }
 /** How far below the next planet's centre the view reaches when framed (half the original 620 view). */
 const FRAME_BELOW = 310;

@@ -1,3 +1,5 @@
+import { drawActionHud } from "./actionHud.renderer";
+import { ARCADE_FX_DISPLAY_FONT } from "./arcadeFx.renderer";
 import { successHud, successFrame, SUCCESS_ACCENTS } from "./success.renderer";
 import { arcadeFx } from "./arcadeFx.renderer";
 import { SKYLINE_FX, skylineFxFor } from "./arcadeFxGames.renderer";
@@ -601,9 +603,13 @@ function drawSkylineArtWorld(ctx: CanvasRenderingContext2D, state: SkylineState,
   ctx.fillStyle = REAL_NIGHT_TEXT;
   ctx.textBaseline = "top";
   ctx.textAlign = "left";
-  successHud(ctx,'skyline',state.tick,12,12,()=>{ctx.fillText(`Blocks ${state.placed}`, 12, 12);});
-  // skylineRev 7: the streak multiplier and the next-block preview.
-  if (expand) drawExpandHud(ctx, state);
+  // skylineRev 9 (the revision rooms deal): the Action HUD's chips and the larger NEXT panel (3 Nov 2026).
+  const actionHud = state.expandRev === SKYLINE_REV_STD;
+  if (actionHud) drawSkylineActionHud(ctx, state);
+  else successHud(ctx,'skyline',state.tick,12,12,()=>{ctx.fillText(`Blocks ${state.placed}`, 12, 12);});
+  // skylineRev 7–8: the streak multiplier and the next-block preview (skylineRev 9's are in its Action HUD).
+  if (actionHud) { /* the streak and NEXT are in the Action HUD */ }
+  else if (expand) drawExpandHud(ctx, state);
   // skylineRev 2: the perfect-streak counter, gold once it is scoring.
   else if (state.rev && (state.streak ?? 0) > 0) {
     const streak = state.streak ?? 0;
@@ -787,6 +793,58 @@ function drawKindMark(ctx: CanvasRenderingContext2D, kind: number, x: number, to
     }
     ctx.fillStyle = look.glow;
     ctx.fillRect(x, top + 4, w, 2);
+  }
+  ctx.restore();
+}
+
+/**
+ * High Rise's Action HUD (skylineRev 9, 3 Nov 2026): BLOCKS (the main count) left, STREAK right (gold once it fills the
+ * streak part); under STREAK the NEXT panel, larger than before (its block preview 1.6× the old one), with the kind's name.
+ */
+function drawSkylineActionHud(ctx: CanvasRenderingContext2D, state: SkylineState): void {
+  const streak = state.streak ?? 0;
+  drawActionHud(ctx, SKYLINE_WORLD_W, [
+    {
+      left: [{ label: "BLOCKS", value: String(state.placed), pulse: { id: "skyline", tick: state.tick } }],
+      right: [{ label: "STREAK", value: String(streak), tone: streak >= SKYLINE_V9_STREAK_MAX ? "gold" : streak > 0 ? "plain" : "dim" }],
+    },
+  ]);
+  if (state.missed) return;
+  const nextKind = skylineKindAt(state, state.placed + 1);
+  const look = KIND_LOOK[nextKind];
+  const named = Boolean(look && nextKind !== SKYLINE_KIND_NORMAL);
+  const w = 132;
+  const h = named ? 62 : 48;
+  const x0 = SKYLINE_WORLD_W - 10 - w;
+  const y0 = 46;
+  ctx.save();
+  ctx.fillStyle = "rgba(10,12,18,0.82)";
+  ctx.beginPath();
+  ctx.roundRect(x0, y0, w, h, 14);
+  ctx.fill();
+  ctx.strokeStyle = "rgba(255,255,255,0.12)";
+  ctx.lineWidth = 1;
+  ctx.stroke();
+  ctx.font = `700 10px ${ARCADE_FX_DISPLAY_FONT}`;
+  ctx.textAlign = "left";
+  ctx.textBaseline = "middle";
+  ctx.fillStyle = "#A9AEC0";
+  ctx.fillText("NEXT", x0 + 12, y0 + 24);
+  // The block, 1.6× the old preview (narrow 35, normal 48, wide 64 px by 19).
+  const bw = Math.round((nextKind === SKYLINE_KIND_NARROW ? 22 : nextKind === SKYLINE_KIND_WIDE ? 40 : 30) * 1.6);
+  const bh = 19;
+  const bx = x0 + 50 + (68 - bw) / 2;
+  const by = y0 + 24 - bh / 2;
+  ctx.fillStyle = STEEL;
+  ctx.fillRect(bx, by, bw, bh);
+  ctx.fillStyle = GLASS[(state.blocks.length + 1) % GLASS.length]!;
+  ctx.fillRect(bx + 3, by + 5, bw - 6, bh - 10);
+  if (look) drawKindMark(ctx, nextKind, bx, by, bw, bh, state.tick, nextKind === SKYLINE_KIND_GOLD);
+  if (named && look) {
+    ctx.font = `800 12px ${ARCADE_FX_DISPLAY_FONT}`;
+    ctx.textAlign = "center";
+    ctx.fillStyle = look.band;
+    ctx.fillText(look.label, x0 + w / 2, y0 + 50);
   }
   ctx.restore();
 }

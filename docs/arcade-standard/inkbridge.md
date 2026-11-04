@@ -1,6 +1,86 @@
-# Rainbow Bridge on the arcade scoring standard (inkRev 12, 29 Oct 2026; inkRev 13, Nov 2026)
+# Rainbow Bridge on the arcade scoring standard (inkRev 12, 29 Oct 2026; inkRev 13, Nov 2026; inkRev 14, 3 Nov 2026)
 
-Rooms deal **`inkRev 13`** since Nov 2026 (its section is at the end). Until then rooms dealt **`inkRev 12`**. Play is inkRev 11's exactly (Joe's phone notes, 27 Oct 2026: no wind, two silver coins a
+## inkRev 14 (3 Nov 2026): a bigger coin, clovers and birds
+
+Rooms deal **`inkRev 14`** (`INK_REV_BIG`, one above inkRev 13) since 3 Nov 2026, from a proved deal. Joe's audit on an
+iPhone 11 (414×896): the birds, the coin and the clover were too small to read. Everything else is inkRev 13's (its
+section below): the same rules, features, counts and parts.
+
+**What changed (inkRev 14 only).** The coin's radius 7 → **10 px** (`INK_V14_BALL_R`), the clover's pickup radius
+9 → **12 px** (`INK_V14_SHAMROCK_R`), the birds 6.5 → **10 px** thick (`INK_V14_BIRD_H_FP`; their boxes' widths are drawn
+one bird every 24 px, was 18). These are collision sizes, so this is a gameplay stamp: the art is drawn to them exactly
+(the coin and clover painters scaled to their circles, the flocks to their boxes; ink-v14-check proves every drawn
+pixel within 2 px of the bounds and the bounds filled). The live levels' no-draw ring is the coin's diameter (20 px).
+Each inkRev 14 level carries its sizes (`ballR`, `cloverR`), and the sim plays and builds with them (`withSizes` /
+`withLevelSizes` in `src/lib/arcade/inkBridge.ts`: the radii are module values set for a level's tick or a build and put
+back after; older levels carry none, so every older stamp plays, builds and scores exactly as before: ink-v14-check
+replays inkRev 13 runs and inkRev 10–13 level digests recorded on main, `scripts/fixtures/ink-v14-legacy.json.gz`).
+
+**Every level is built and proved with the bigger sizes**: generation's own proofs (each level drawable as a phone draws
+it and holding for a hand, the coin never potting unaided, the cloud and clover bonus lines proved, the live levels'
+hand-drawn strokes potting, also 5 ticks late) run with the 10 px coin and the 10 px birds. Bird counts stay inkRev 13's.
+
+**The deal** (`src/lib/duel/inkBigDeal.server.ts`, `INK_BIG_DEAL`, built by `bun scripts/ink-big-deal.ts [--check]`):
+100 seeds, each with every level's proof passing (two clovers, four clouds, two live levels, every ink par at least its
+proved line's ink) and the oracle's perfect run (`scripts/ink-x200-oracle.ts`) replaying through the server to exactly
+200, every part at its maximum; witnesses in `scripts/fixtures/ink-big-deal-witness.json.gz`. **0 of the first 100
+candidates dropped** (100 kept). Rooms deal `inkBigDealSeed(arcadeSeed())`; `pinInkPreBig(true)` deals inkRev 13 on any
+seed for the checks written for it (`pinInkPreClover` still deals inkRev 12).
+
+## The parts (sum 200, inkRev 13's exactly: `INK_V14_STD`)
+
+| Part | Max | How it counts |
+| --- | ---: | --- |
+| Levels (core) | 120 | 12 a level potted, 10 levels (a fixed maximum): `stdLine(120, levels, 10)`. |
+| Ink par | 30 | 3 a level potted within its par, a straight line to 0 at twice par. |
+| Trick shots | 20 | 5 each of 4. |
+| Clovers | 10 | 5 each of 2. |
+| Speed | 20 | Only with all ten levels potted: full with 50 s left, 0 at the buzzer. |
+
+Core target: full at all 10 levels (a fixed maximum). No "full at" figure was retuned.
+
+## Skill bands, before (inkRev 13) → after (inkRev 14)
+
+`bun scripts/arcade-skill-bands.ts inkbridge --rev=now --levels=all --seeds=30 [--from=10000]` (paired seeds, every run
+through the server replay; before = inkRev 13's table below):
+
+| Level | Target | Tuning seeds 0–29 | Fresh seeds 10000–10029 |
+| --- | --- | --- | --- |
+| Weak | 30–60 | 58 → 58 (30–78) | 56 → 59 (30–76) |
+| Average | about 90 | 89 → 88 (57–107) | 88 → 83 (58–105) |
+| Good | 120–140 | 121 → 125 (107–149) | 119 → 122 (86–143) |
+| Great | about 160 | 163 → 158 (137–174) | 162 → 159 (122–172) |
+| Near-perfect | about 175 | 180 → 182 (167–191) | 181 → 183 (170–195) |
+| Elite | 185–195 | 188 → 191 (179–198) | 195 → 193 (175–198) |
+| Flawless | 200 | 200 → 200 (199–200) | 200 → 200 (196–200) |
+
+The bigger sizes barely move the bands (the levels are re-proved with them, so a level is no harder to draw, only easier
+to see). Every target is met but near-perfect, 7–8 above "about 175" as on inkRev 13; moving points from the core lowers
+elite as much (inkRev 13's fit), so the parts are kept. The skill-band flawless bot dips to 196 on a few fresh seeds (a
+moving-pot release it misjudges by a tick); the deal's guarantee is the oracle's 200 on every entry.
+
+## Display (every revision; no hitbox or sim change)
+
+- The HUD is the shared HUD pills (`src/lib/arcade/hudPill.renderer.ts`): **Level 3 / 10** top left (the main count),
+  then **Ink 18 · par 54** (the ink this level has taken, then its par; red over par) on inkRev 13 and 14, or **Misses
+  1 / 3** on older revisions, and the ink left as a rainbow bar in a pill (**Left**). A second row only on live levels:
+  a gold **LIVE** pill (it was a DOM tag over the same spot) and **Line limit** once the first line reaches its cap.
+- **DROP AGAIN** shows only while a drop is under way (the only time it does anything: it ends that drop as a miss).
+  Undo, Reset and Release are unchanged; the row keeps its 48 px height.
+- The help quotes the new readout. The intro demo stays stopped until one is recorded on inkRev 14
+  (`introDemo.functions.ts`).
+
+## Proofs
+
+ink-v14-check (~75 s; `CHECKS_FULL=1` replays all 100 deal witnesses, ~4 min): the deal and pins, LIVE_BANDS and the
+spec, legacy replay and digests, the sizes in the sim and the art, every level's proofs on deal and fresh seeds, the deal's
+perfect runs at 200 with every part full, the rules, recorded inkRev 14 runs (`scripts/fixtures/ink-v14-runs.json.gz`) and
+the replay-runs entry, scoring floors and room identity. arcade-standard-check's entry plays the oracle on three deal seeds.
+arcade-self-replay-check: `ink/big` appended at the end.
+
+---
+
+Rooms dealt **`inkRev 13`** from Nov 2026 until inkRev 14 (its section is at the end). Until then rooms dealt **`inkRev 12`**. Play is inkRev 11's exactly (Joe's phone notes, 27 Oct 2026: no wind, two silver coins a
 level, the pickups spread out): an inkRev 12 state is inkRev 11's plus `std: 1`, which is outside the checkpoint
 checksum, so an inkRev 11 input log replays tick for tick on inkRev 12. Only the score changed. inkRev 11 and every
 older stamp replay and score exactly as before (ink-v11-check, ink-x200-check and the legacy checks).

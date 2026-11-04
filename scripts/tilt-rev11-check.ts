@@ -46,6 +46,7 @@ import {
   TILT_P_SPEED_FULL,
   TILT_P_SPEED_POINTS,
   TILT_REV_PAR,
+  TILT_REV_BIG,
   TILT_REV_STD,
   TILT_RUN_TICKS,
   TILT_S_MAZES,
@@ -96,11 +97,12 @@ section("wiring: the deal, the help, the intro, the standard module, the demo an
 {
   for (let k = 0; k < 12; k++) {
     const p = generatePuzzle("tilt") as unknown as { tiltRev: number; seed: number };
-    ok(p.tiltRev === TILT_REV_PAR && TILT_BANK.includes(p.seed), `rooms deal tiltRev 11 from the bank (got ${p.tiltRev}, ${p.seed})`);
+    // Since 3 Nov 2026 rooms deal tiltRev 12 (tiltRev 11 with bigger marbles and keys) from its proved deal, a subset of the bank (tilt-rev12-check).
+    ok(p.tiltRev === TILT_REV_BIG && TILT_BANK.includes(p.seed), `rooms deal tiltRev 12 from the bank's proved subset (got ${p.tiltRev}, ${p.seed})`);
   }
   ok(TILT_REV_PAR === TILT_REV_STD + 1, "tiltRev 11 is one above the stamp it replaces");
   const live = LIVE_BANDS.tilt as { field: string; rev: number; curve: typeof TILT_V11_BAND_CURVE };
-  ok(live.field === "tiltRev" && live.rev === TILT_REV_PAR && live.curve === TILT_V11_BAND_CURVE, "LIVE_BANDS: tiltRev 11 on its core's line");
+  ok(live.field === "tiltRev" && live.rev === TILT_REV_BIG && live.curve === TILT_V11_BAND_CURVE, "LIVE_BANDS: the dealt tiltRev 12 on tiltRev 11's core line");
   ok(TILT_V11_BAND_CURVE.units.join() === `0,${TILT_P_CORE_MAX}` && TILT_V11_BAND_CURVE.points.join() === `0,${TILT_P_CORE_MAX}`, "the core's line is straight, 0 → 0 and 140 → 140");
   ok(TILT_P_CORE_MAX === 140 && TILT_P_PAR_MAX === 24 && TILT_P_CLEAN_POINTS === 12 && TILT_P_SPEED_POINTS === 24, "parts: core 140, par 24, clean 12, speed 24");
   ok(TILT_P_CORE_MAX + TILT_P_PAR_MAX + TILT_P_CLEAN_POINTS + TILT_P_SPEED_POINTS === 200, "the parts' maxima add up to 200");
@@ -114,12 +116,12 @@ section("wiring: the deal, the help, the intro, the standard module, the demo an
   ok(/Par:/.test(how) && /Clean run:/.test(how) && !/gold star/i.test(how) && /maze 4/.test(how), `the HOW lines name par, the clean run and maze 4, and no gold stars: ${how}`);
   const intro = INTRO_SCORE.tilt;
   ok(intro.length <= 90 && intro.includes("35 a maze") && intro.includes("+6 a maze beaten in time") && intro.includes("clean run 12") && !/star/i.test(intro), `the intro (${intro.length} chars): ${intro}`);
-  ok(entry.type === "tilt" && entry.field === "tiltRev" && entry.rev === TILT_REV_PAR, "the standard module names tiltRev 11");
+  ok(entry.type === "tilt" && entry.field === "tiltRev" && entry.rev === TILT_REV_BIG, "the standard module names the dealt tiltRev 12 (tiltRev 11's parts)");
   ok(entry.parts.reduce((t, p) => t + p.max, 0) === 200 && JSON.stringify(entry.parts.map((p) => [p.key, p.max])) === JSON.stringify([["core", 140], ["par", 24], ["clean", 12], ["speed", 24]]), "the standard module's parts: core 140, par 24, clean 12, speed 24");
   const perfect = entry.perfect() as StdRun[];
   ok(perfect.length >= 1 && perfect.every((r) => r.score === 200 && entry.parts.every((p) => r.parts?.[p.key] === p.max)), `the standard module's perfect runs: 200 with every part full (${JSON.stringify(perfect)})`);
   const demos = readFileSync("src/lib/duel/introDemo.functions.ts", "utf8");
-  ok(/tiltRev !== TILT_REV_PAR\) return null/.test(demos), "the intro demo plays only when recorded on tiltRev 11");
+  ok(/tiltRev !== TILT_REV_BIG\) return null/.test(demos), "the intro demo plays only when recorded on the dealt tiltRev 12");
   const art = readFileSync("src/lib/arcade/tiltArt.renderer.ts", "utf8");
   ok(/if \(state\.parClean\)[\s\S]{0,400}`Par \$\{Math\.ceil\(left \/ 60\)\} s`[\s\S]{0,300}"Clean"/.test(art), "the HUD shows the par countdown and \"Clean\" on tiltRev 11 (no star count)");
   ok(/label: \(\) => "UNDER PAR!"/.test(art) && /if \(rev === TILT_REV_PAR\) return tiltParArtGame;/.test(art), "the success layer pops UNDER PAR! and tiltRev 11 has its own art game");
@@ -269,7 +271,7 @@ section("stored tiltRev 11 runs replay through the server");
 /* 6. Rooms identical. */
 section("rooms identical: the same mazes, pars and items whatever is played");
 {
-  ok(roomIdentity.rev === TILT_REV_PAR, "the room-identity module plays tiltRev 11");
+  ok(roomIdentity.rev === TILT_REV_BIG, "the room-identity module plays the dealt tiltRev 12 (tiltRev 11's mazes and pars)");
   for (const seed of [TILT_BANK[7]!, TILT_BANK[77]!]) {
     const logs = roomIdentity.logs(seed);
     const schedules = logs.map((l) => roomIdentity.scheduleOf(seed, TILT_REV_PAR, l));

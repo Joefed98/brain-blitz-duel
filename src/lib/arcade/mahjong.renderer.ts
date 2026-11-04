@@ -3,10 +3,11 @@
  * layers along their edges, slightly engraved glossy faces, each layer casting a shadow on the one below, on a
  * jade-green play mat with gold stitching over a dark wooden table. Faces are drawn in code: dots, bamboo and
  * characters 1–9, the four winds and three dragons (the characters as stroke glyphs, so no font is loaded). Blocked
- * tiles are slightly shaded; the selected tile glows gold. The board is painted into a device layer keyed on the faces
+ * tiles are dimmed (well down since 3 Nov 2026, so the free ones stand out); the selected tile glows gold. The board is painted into a device layer keyed on the faces
  * and the selection, so a frame is one blit plus the moving effects.
  */
 import { deviceLayer } from "./cache.renderer";
+import { drawHudPillRow } from "./hudPill.renderer";
 import { arcadeFx } from "./arcadeFx.renderer";
 import { MAHJONG_FX } from "./arcadeFxGames.renderer";
 import { reducedMotion } from "./art.renderer";
@@ -55,7 +56,6 @@ export const MAHJONG_ART = {
   muted: "#B9C4BC",
 };
 
-const HUD_FONT = "700 13px 'Duelz Mono', 'JetBrains Mono', ui-monospace, monospace";
 
 function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number): void {
   ctx.beginPath();
@@ -270,9 +270,10 @@ export function paintMahjongTile(ctx: CanvasRenderingContext2D, x: number, y: nu
 export function paintMahjongTable(ctx: CanvasRenderingContext2D, w: number, h: number, mat = true): void {
   paintMahjongWood(ctx, 0, 0, w, h, h);
   if (!mat) return;
-  const mx = MAHJONG_BOARD_X - 22;
+  // The mat spans the world's width less a 4-unit margin (3 Nov 2026: the world narrowed to the stack's width).
+  const mx = 4;
   const my = MAHJONG_BOARD_Y - 34;
-  const mw = MAHJONG_BOARD_W + 36;
+  const mw = w - 8;
   const mh = MAHJONG_BOARD_H + 46;
   const mg = ctx.createRadialGradient(mx + mw / 2, my + mh / 2, 20, mx + mw / 2, my + mh / 2, mw);
   mg.addColorStop(0, MAHJONG_ART.mat);
@@ -339,31 +340,12 @@ function paintBoard(ctx: CanvasRenderingContext2D, s: MahjongState): void {
     paintMahjongTile(ctx, r.x, r.y, r.w, r.h);
     paintMahjongFace(ctx, face, r.x, r.y, r.w, r.h);
     if (!mahjongFree(s.face, slot)) {
-      ctx.fillStyle = "rgba(30, 24, 10, 0.24)";
+      // Blocked tiles dimmed well down (3 Nov 2026; 0.24 until then), so the free ones read at a glance.
+      ctx.fillStyle = "rgba(22, 18, 10, 0.46)";
       roundRect(ctx, r.x, r.y, r.w, r.h, Math.max(3, r.w * 0.1));
       ctx.fill();
     }
   }
-}
-
-function chip(ctx: CanvasRenderingContext2D, x: number, w: number, label: string, value: string, tint?: string): void {
-  const y = 8;
-  const h = 28;
-  ctx.fillStyle = MAHJONG_ART.chip;
-  roundRect(ctx, x, y, w, h, 14);
-  ctx.fill();
-  ctx.strokeStyle = tint ?? MAHJONG_ART.chipEdge;
-  ctx.lineWidth = 1;
-  roundRect(ctx, x + 0.5, y + 0.5, w - 1, h - 1, 13.5);
-  ctx.stroke();
-  ctx.font = HUD_FONT;
-  ctx.textBaseline = "middle";
-  ctx.textAlign = "left";
-  ctx.fillStyle = MAHJONG_ART.muted;
-  ctx.fillText(label, x + 12, y + h / 2 + 1);
-  ctx.textAlign = "right";
-  ctx.fillStyle = tint ?? MAHJONG_ART.text;
-  ctx.fillText(value, x + w - 12, y + h / 2 + 1);
 }
 
 /** Moves left on the board, cached per board (the HUD's MOVES chip; 0 means only a Shuffle helps). */
@@ -379,9 +361,12 @@ export function mahjongMovesShown(face: readonly number[]): number {
 
 function paintHud(ctx: CanvasRenderingContext2D, s: MahjongState): void {
   const moves = mahjongMovesShown(s.face);
-  chip(ctx, 15, 130, "PAIRS", `${s.pairs}/${MAHJONG_PAIRS}`);
-  chip(ctx, 153, 112, "MOVES", String(moves), moves === 0 && !mahjongCleared(s) ? MAHJONG_ART.gold : undefined);
-  chip(ctx, 273, 102, "SHUF", String(s.shuffles), s.shuffles > 0 ? "#FF9C7A" : undefined);
+  // Pill chips (3 Nov 2026): the main count top left; "Shuffles" spelled out (it read "SHUF" until then).
+  drawHudPillRow(ctx, 12, 8, [
+    { label: "Pairs", value: `${s.pairs}/${MAHJONG_PAIRS}`, opts: { gold: mahjongCleared(s) } },
+    { label: "Moves", value: String(moves), opts: { gold: moves === 0 && !mahjongCleared(s) } },
+    { label: "Shuffles", value: String(s.shuffles), opts: { alert: s.shuffles > 0 } },
+  ]);
 }
 
 /** The board, the HUD and the moving effects, under the shared success layer (MAHJONG_FX). */

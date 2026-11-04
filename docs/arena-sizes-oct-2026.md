@@ -33,22 +33,22 @@ revisions keep their own world in reveals and replays.
 | Wavefront | 390x800 | 375x591 → 288x591 | 390x624 → 304x624 | 390x768 → 374x768 | 414x772 → 376x772 | 430x856 → 417x856 | 1280x724 → 353x724 | 0.960x | 60px | 0px | 0px | 16px | - |
 | Orbit | 450x862 | 375x591 → 309x591 | 390x624 → 326x624 | 390x768 → 390x747 | 414x772 → 403x772 | 430x856 → 430x824 | 1280x724 → 378x724 | 0.867x | 60px | 0px | 21px | 0px | - |
 | High Rise | 390x735 | 375x591 → 314x591 | 390x624 → 331x624 | 390x768 → 390x735 | 414x772 → 410x772 | 430x856 → 430x810 | 1280x724 → 384x724 | 1.000x | 60px | 0px | 33px | 0px | - |
-| Jaywalk | 390x727 | 375x591 → 317x591 | 390x624 → 335x624 | 390x768 → 390x727 | 414x772 → 414x772 | 430x856 → 430x802 | 1280x724 → 388x724 | 1.000x | 60px | 0px | 41px | 0px | - |
+| Spacewalk | 390x727 | 375x591 → 317x591 | 390x624 → 335x624 | 390x768 → 390x727 | 414x772 → 414x772 | 430x856 → 430x802 | 1280x724 → 388x724 | 1.000x | 60px | 0px | 41px | 0px | - |
 | Junction | 390x620 | 375x591 → 372x591 | 390x624 → 390x620 | 390x768 → 390x620 | 414x772 → 414x658 | 430x856 → 430x684 | 1280x724 → 455x724 | 1.000x | 60px | 0px | 148px | 0px | - |
 | Rainbow Bridge | 390x674 | 375x535 → 310x535 | 390x568 → 329x568 | 390x712 → 390x674 | 414x716 → 414x715 | 430x800 → 430x743 | 1280x668 → 387x668 | 1.000x | 60px | 0px | 38px | 0px | Rainbow Bridge's Undo / Reset / Release / Drop again (48px): 16px |
 | Slice | 430x805 | 375x591 → 316x591 | 390x624 → 333x624 | 390x768 → 390x730 | 414x772 → 412x772 | 430x856 → 430x805 | 1280x724 → 387x724 | 0.907x | 60px | 0px | 38px | 0px | - |
-| Swish | 430x728 | 375x519 → 307x519 | 390x552 → 326x552 | 390x696 → 390x660 | 414x700 → 413x700 | 430x784 → 430x728 | 1280x652 → 385x652 | 0.907x | 60px | 0px | 36px | 0px | Swish's cancel strip (72px): 16px |
-| Flightpath | 390x728 | 375x591 → 317x591 | 390x624 → 334x624 | 390x768 → 390x728 | 414x772 → 414x772 | 430x856 → 430x803 | 1280x724 → 388x724 | 1.000x | 60px | 0px | 40px | 0px | - |
+| Swish | 430x792 | 375x519 → 282x519 | 390x552 → 300x552 | 390x696 → 378x696 | 414x700 → 380x700 | 430x784 → 426x784 | 1280x652 → 354x652 | 0.879x | 60px | 0px | 0px | 12px | Swish's cancel strip (72px): 16px |
+| Flightpath | 390x800 | 375x591 → 288x591 | 390x624 → 304x624 | 390x768 → 374x768 | 414x772 → 376x772 | 430x856 → 417x856 | 1280x724 → 353x724 | 0.960x | 60px | 0px | 0px | 16px | - |
 | Coral Pop | 390x730 | 375x591 → 316x591 | 390x624 → 333x624 | 390x768 → 390x730 | 414x772 → 412x772 | 430x856 → 430x805 | 1280x724 → 387x724 | 1.000x | 60px | 0px | 38px | 0px | - |
 | Roofbound | 390x730 | 375x591 → 316x591 | 390x624 → 333x624 | 390x768 → 390x730 | 414x772 → 412x772 | 430x856 → 430x805 | 1280x724 → 387x724 | 1.000x | 60px | 0px | 38px | 0px | - |
 | Grappler | 450x844 | 375x591 → 315x591 | 390x624 → 333x624 | 390x768 → 390x731 | 414x772 → 412x772 | 430x856 → 430x806 | 1280x724 → 386x724 | 0.867x | 60px | 0px | 37px | 0px | - |
 | Scrumper | 360x672 | 375x567 → 304x567 | 390x600 → 321x600 | 390x744 → 390x728 | 414x748 → 401x748 | 430x832 → 430x803 | 1280x700 → 375x700 | 1.083x | 84px | 8px | 8px | 0px | - |
 | Tilt | 440x820 | 375x591 → 317x591 | 390x624 → 335x624 | 390x768 → 390x727 | 414x772 → 414x772 | 430x856 → 430x801 | 1280x724 → 388x724 | 0.886x | 60px | 21px | 21px | 0px | - |
-| Ball Tracker | 700x1400 | 375x555 → 278x555 | 390x588 → 294x588 | 390x732 → 366x732 | 414x736 → 368x736 | 430x820 → 410x820 | 1280x688 → 344x688 | 0.523x | 60px | 0px | -0px | 24px | Ball Tracker's status row (28px): 16px |
+| Ball Tracker | 700x1400 | 375x555 → 278x555 | 390x588 → 294x588 | 390x732 → 366x732 | 414x736 → 368x736 | 430x820 → 410x820 | 1280x688 → 344x688 | 0.523x | 96px | 0px | -0px | 24px | - |
 | Gemstone | 390x720 | 375x591 → 320x591 | 390x624 → 338x624 | 390x768 → 390x720 | 414x772 → 414x764 | 430x856 → 430x794 | 1280x724 → 392x724 | 1.000x | 60px | 24px | 24px | 0px | - |
 | Pinball | 390x820 | 375x591 → 281x591 | 390x624 → 297x624 | 390x768 → 365x768 | 414x772 → 367x772 | 430x856 → 407x856 | 1280x724 → 344x724 | 0.937x | 60px | 0px | 0px | 25px | - |
-| Minefield | 390x662 | 375x591 → 348x591 | 390x624 → 368x624 | 390x768 → 390x662 | 414x772 → 414x703 | 430x856 → 430x730 | 1280x724 → 427x724 | 1.000x | 60px | 0px | 106px | 0px | - |
-| Mahjong Solitaire | 390x608 | 375x591 → 375x585 | 390x624 → 390x608 | 390x768 → 390x608 | 414x772 → 414x645 | 430x856 → 430x670 | 1280x724 → 464x724 | 1.000x | 60px | 0px | 160px | 0px | - |
+| Minefield | 380x644 | 375x591 → 349x591 | 390x624 → 368x624 | 390x768 → 390x661 | 414x772 → 414x702 | 430x856 → 430x729 | 1280x724 → 427x724 | 1.026x | 60px | 0px | 107px | -0px | - |
+| Mahjong Solitaire | 356x608 | 375x591 → 346x591 | 390x624 → 365x624 | 390x768 → 390x666 | 414x772 → 414x707 | 430x856 → 430x734 | 1280x724 → 424x724 | 1.096x | 60px | 0px | 102px | 0px | - |
 | Home Run | 390x720 | 375x591 → 320x591 | 390x624 → 338x624 | 390x768 → 390x720 | 414x772 → 414x764 | 430x856 → 430x794 | 1280x724 → 392x724 | 1.000x | 60px | 0px | 48px | 0px | - |
 | Top Bins | 390x720 | 375x591 → 320x591 | 390x624 → 338x624 | 390x768 → 390x720 | 414x772 → 414x764 | 430x856 → 430x794 | 1280x724 → 392x724 | 1.000x | 60px | 0px | 48px | 0px | - |
 | Apex | 390x727 | 375x591 → 317x591 | 390x624 → 335x624 | 390x768 → 390x727 | 414x772 → 414x772 | 430x856 → 430x802 | 1280x724 → 388x724 | 1.000x | 60px | 0px | 41px | 0px | - |
@@ -61,9 +61,9 @@ revisions keep their own world in reveals and replays.
 | Thirteen | 414x772 | 375x591 → 317x591 | 390x624 → 335x624 | 390x768 → 390x727 | 414x772 → 414x772 | 430x856 → 430x802 | 1280x724 → 388x724 | 0.942x | 60px | 0px | 41px | 0px | - |
 | Golf Solitaire | 414x772 | 375x591 → 317x591 | 390x624 → 335x624 | 390x768 → 390x727 | 414x772 → 414x772 | 430x856 → 430x802 | 1280x724 → 388x724 | 0.942x | 60px | 0px | 41px | 0px | - |
 | Muggins | 414x772 | 375x591 → 317x591 | 390x624 → 335x624 | 390x768 → 390x727 | 414x772 → 414x772 | 430x856 → 430x802 | 1280x724 → 388x724 | 0.942x | 60px | 0px | 41px | 0px | - |
-| Crazy Golf | 390x690 | 375x591 → 334x591 | 390x624 → 353x624 | 390x768 → 390x690 | 414x772 → 414x732 | 430x856 → 430x761 | 1280x724 → 409x724 | 1.000x | 60px | 0px | 78px | 0px | - |
+| Crazy Golf | 390x720 | 375x591 → 320x591 | 390x624 → 338x624 | 390x768 → 390x720 | 414x772 → 414x764 | 430x856 → 430x794 | 1280x724 → 392x724 | 1.000x | 60px | 0px | 48px | 0px | - |
 | Cue Ball | 390x740 | 375x591 → 311x591 | 390x624 → 329x624 | 390x768 → 390x740 | 414x772 → 407x772 | 430x856 → 430x816 | 1280x724 → 382x724 | 1.000x | 60px | 0px | 28px | 0px | - |
-| Curl Champ | 390x540 | 375x591 → 375x519 | 390x624 → 390x540 | 390x768 → 390x540 | 414x772 → 414x573 | 430x856 → 430x595 | 1280x724 → 523x724 | 1.000x | 60px | 0px | 228px | 0px | - |
+| Curl Champ | 390x640 | 375x591 → 360x591 | 390x624 → 380x624 | 390x768 → 390x640 | 414x772 → 414x679 | 430x856 → 430x706 | 1280x724 → 441x724 | 1.000x | 60px | 0px | 128px | 0px | - |
 | Blockzone | 414x744 | 375x591 → 329x591 | 390x624 → 347x624 | 390x768 → 390x701 | 414x772 → 414x744 | 430x856 → 430x773 | 1280x724 → 403x724 | 0.942x | 60px | 0px | 67px | 0px | - |
 | Ringer | 414x800 | 375x591 → 306x591 | 390x624 → 323x624 | 390x768 → 390x754 | 414x772 → 400x772 | 430x856 → 430x831 | 1280x724 → 375x724 | 0.942x | 60px | 0px | 14px | 0px | - |
 | Letterfall | 390x700 | 375x591 → 329x591 | 390x624 → 348x624 | 390x768 → 390x700 | 414x772 → 414x743 | 430x856 → 430x772 | 1280x724 → 403x724 | 1.000x | 60px | 0px | 68px | 0px | - |
@@ -96,11 +96,11 @@ stars, walkers, lava, reactions) that holds still under reduced motion or reduce
 | Wavefront | 375x591 → 288x591 | 390x624 → 304x624 | 390x768 → 374x768 | 414x772 → 376x772 | 430x856 → 417x856 | 1280x724 → 353x724 | the night sky's stars below and beside the world |
 | Orbit | 375x591 → 309x591 | 390x624 → 326x624 | 390x768 → 390x747 | 414x772 → 403x772 | 430x856 → 430x824 | 1280x724 → 378x724 | black space with light stars (SET CHECKPOINT in the world's reserved top-right corner) |
 | High Rise | 375x591 → 314x591 | 390x624 → 331x624 | 390x768 → 390x735 | 414x772 → 410x772 | 430x856 → 430x810 | 1280x724 → 384x724 | a dark road under the tower's base block, softly lit by street lamps |
-| Jaywalk | 375x591 → 317x591 | 390x624 → 335x624 | 390x768 → 390x727 | 414x772 → 414x772 | 430x856 → 430x802 | 1280x724 → 388x724 | the start pavement runs on between grass verges to a grass strip, two or three people strolling along it (none under reduced motion) |
+| Spacewalk | 375x591 → 317x591 | 390x624 → 335x624 | 390x768 → 390x727 | 414x772 → 414x772 | 430x856 → 430x802 | 1280x724 → 388x724 | the start pavement runs on between grass verges to a grass strip, two or three people strolling along it (none under reduced motion) |
 | Rainbow Bridge | 375x535 → 310x535 | 390x568 → 329x568 | 390x712 → 390x674 | 414x716 → 414x715 | 430x800 → 430x743 | 1280x668 → 387x668 | grass and hillside below the ground (sky, hills and ground beside the world) |
 | Slice | 375x591 → 316x591 | 390x624 → 333x624 | 390x768 → 390x730 | 414x772 → 412x772 | 430x856 → 430x805 | 1280x724 → 387x724 | a faded marble worktop under the chopping board |
-| Swish | 375x519 → 307x519 | 390x552 → 326x552 | 390x696 → 390x660 | 414x700 → 413x700 | 430x784 → 430x728 | 1280x652 → 385x652 | the counter's front, a kick board and the fairground floor (sky and counter beside the world) |
-| Flightpath | 375x591 → 317x591 | 390x624 → 334x624 | 390x768 → 390x728 | 414x772 → 414x772 | 430x856 → 430x803 | 1280x724 → 388x724 | the counter's front, a kick board and the fairground floor |
+| Swish | 375x519 → 282x519 | 390x552 → 300x552 | 390x696 → 378x696 | 414x700 → 380x700 | 430x784 → 426x784 | 1280x652 → 354x652 | the counter's front, a kick board and the fairground floor (sky and counter beside the world) |
+| Flightpath | 375x591 → 288x591 | 390x624 → 304x624 | 390x768 → 374x768 | 414x772 → 376x772 | 430x856 → 417x856 | 1280x724 → 353x724 | the counter's front, a kick board and the fairground floor |
 | Coral Pop | 375x591 → 316x591 | 390x624 → 333x624 | 390x768 → 390x730 | 414x772 → 412x772 | 430x856 → 430x805 | 1280x724 → 387x724 | the deep water settles onto soft sand |
 | Roofbound | 375x591 → 316x591 | 390x624 → 333x624 | 390x768 → 390x730 | 414x772 → 412x772 | 430x856 → 430x805 | 1280x724 → 387x724 | deep rock below the floor's rock, faint lava streaks drifting and bubbling (still under reduced motion) |
 | Grappler | 375x591 → 315x591 | 390x624 → 333x624 | 390x768 → 390x731 | 414x772 → 412x772 | 430x856 → 430x806 | 1280x724 → 386x724 | more lava under the cavern's lava, then dark rock |
@@ -112,12 +112,12 @@ stars, walkers, lava, reactions) that holds still under reduced motion or reduce
 | Home Run | 375x591 → 320x591 | 390x624 → 338x624 | 390x768 → 390x720 | 414x772 → 414x764 | 430x856 → 430x794 | 1280x724 → 392x724 | the park's bands carried out to the sides (sky, stands, wall, grass, dirt), each a shade darker, the plate's dirt settling darker below |
 | Top Bins | 375x591 → 320x591 | 390x624 → 338x624 | 390x768 → 390x720 | 414x772 → 414x764 | 430x856 → 430x794 | 1280x724 → 392x724 | the stands' dark carried out above the horizon, the grass below, settling darker under the world |
 | Apex | 375x591 → 317x591 | 390x624 → 335x624 | 390x768 → 390x727 | 414x772 → 414x772 | 430x856 → 430x802 | 1280x724 → 388x724 | the sky above, grass at the sides, dark tarmac below |
-| Crazy Golf | 375x591 → 334x591 | 390x624 → 353x624 | 390x768 → 390x690 | 414x772 → 414x732 | 430x856 → 430x761 | 1280x724 → 409x724 | more of the night terrace, darker towards the edges |
+| Crazy Golf | 375x591 → 320x591 | 390x624 → 338x624 | 390x768 → 390x720 | 414x772 → 414x764 | 430x856 → 430x794 | 1280x724 → 392x724 | more of the night terrace, darker towards the edges |
 | Cue Ball | 375x591 → 311x591 | 390x624 → 329x624 | 390x768 → 390x740 | 414x772 → 407x772 | 430x856 → 430x816 | 1280x724 → 382x724 | the room round the table: a dark floor under the lamps' spill |
-| Curl Champ | 375x591 → 375x519 | 390x624 → 390x540 | 390x768 → 390x540 | 414x772 → 414x573 | 430x856 → 430x595 | 1280x724 → 523x724 | the arena's dark above, the sheet's floor below and to the sides |
+| Curl Champ | 375x591 → 360x591 | 390x624 → 380x624 | 390x768 → 390x640 | 414x772 → 414x679 | 430x856 → 430x706 | 1280x724 → 441x724 | the arena's dark above, the sheet's floor below and to the sides |
 | Mixed Signals | 375x531 → 319x531 | 390x564 → 338x564 | 390x708 → 390x650 | 414x712 → 414x690 | 430x796 → 430x717 | 1280x664 → 398x664 | the night board runs on under the arrows: its faint dot grid, lifting from the board's black to a soft indigo glow |
-| Minefield | 375x591 → 348x591 | 390x624 → 368x624 | 390x768 → 390x662 | 414x772 → 414x703 | 430x856 → 430x730 | 1280x724 → 427x724 | the faint hexagon background runs on beside and below the framed board, easing darker to the screen's bottom |
-| Mahjong Solitaire | 375x591 → 375x585 | 390x624 → 390x608 | 390x768 → 390x608 | 414x772 → 414x645 | 430x856 → 430x670 | 1280x724 → 464x724 | the dark wooden table runs on beside and below the jade mat, its grain unbroken, settling darker |
+| Minefield | 375x591 → 349x591 | 390x624 → 368x624 | 390x768 → 390x661 | 414x772 → 414x702 | 430x856 → 430x729 | 1280x724 → 427x724 | the faint hexagon background runs on beside and below the framed board, easing darker to the screen's bottom |
+| Mahjong Solitaire | 375x591 → 346x591 | 390x624 → 365x624 | 390x768 → 390x666 | 414x772 → 414x707 | 430x856 → 430x734 | 1280x724 → 424x724 | the dark wooden table runs on beside and below the jade mat, its grain unbroken, settling darker |
 | Free Cell | 375x591 → 317x591 | 390x624 → 335x624 | 390x768 → 390x727 | 414x772 → 414x772 | 430x856 → 430x802 | 1280x724 → 388x724 | the felt's darker edge runs on beside and below the world, settling darker towards the screen's bottom |
 | Summit | 375x591 → 317x591 | 390x624 → 335x624 | 390x768 → 390x727 | 414x772 → 414x772 | 430x856 → 430x802 | 1280x724 → 388x724 | the felt's darker edge runs on beside and below the world, settling darker towards the screen's bottom |
 | Full House | 375x591 → 317x591 | 390x624 → 335x624 | 390x768 → 390x727 | 414x772 → 414x772 | 430x856 → 430x802 | 1280x724 → 388x724 | the felt's darker edge runs on beside and below the world, settling darker towards the screen's bottom |
@@ -151,22 +151,22 @@ than half hidden; Hover's world is cut the same way, its disc at the top).
 | Wavefront | 414x724 → 353x724, 64px | 414x772 → 376x772, 16px | world 32px |
 | Orbit | 414x724 → 378x724, 64px | 414x772 → 403x772, 16px | world 32px |
 | High Rise | 414x724 → 384x724, 64px | 414x772 → 410x772, 16px | world 32px |
-| Jaywalk | 414x724 → 388x724, 64px | 414x772 → 414x772, 16px | world 32px |
+| Spacewalk | 414x724 → 388x724, 64px | 414x772 → 414x772, 16px | world 32px |
 | Junction | 414x724 → 414x658, 64px | 414x772 → 414x658, 16px | world none |
 | Rainbow Bridge | 414x668 → 387x668, 64px | 414x716 → 414x715, 16px | world none, Rainbow Bridge's Undo / Reset / Release / Drop again (48px) 32px |
 | Slice | 414x724 → 387x724, 64px | 414x772 → 412x772, 16px | world 32px |
-| Swish | 414x652 → 385x652, 64px | 414x700 → 413x700, 16px | world none, Swish's cancel strip (72px) 32px |
-| Flightpath | 414x724 → 388x724, 64px | 414x772 → 414x772, 16px | world 32px |
+| Swish | 414x652 → 354x652, 64px | 414x700 → 380x700, 16px | world none, Swish's cancel strip (72px) 32px |
+| Flightpath | 414x724 → 353x724, 64px | 414x772 → 376x772, 16px | world 32px |
 | Coral Pop | 414x724 → 387x724, 64px | 414x772 → 412x772, 16px | world 32px |
 | Roofbound | 414x724 → 387x724, 64px | 414x772 → 412x772, 16px | world 32px |
 | Grappler | 414x724 → 386x724, 64px | 414x772 → 412x772, 16px | world 32px |
 | Scrumper | 414x700 → 375x700, 64px | 414x748 → 401x748, 16px | world 32px |
 | Tilt | 414x724 → 388x724, 64px | 414x772 → 414x772, 16px | world 32px |
-| Ball Tracker | 414x688 → 344x688, 64px | 414x736 → 368x736, 16px | world none, Ball Tracker's status row (28px) 32px |
+| Ball Tracker | 414x688 → 344x688, 64px | 414x736 → 368x736, 16px | world 32px |
 | Gemstone | 414x724 → 392x724, 64px | 414x772 → 414x764, 16px | world 24px |
 | Pinball | 414x724 → 344x724, 64px | 414x772 → 367x772, 16px | world 32px |
-| Minefield | 414x724 → 414x703, 64px | 414x772 → 414x703, 16px | world none |
-| Mahjong Solitaire | 414x724 → 414x645, 64px | 414x772 → 414x645, 16px | world none |
+| Minefield | 414x724 → 414x702, 64px | 414x772 → 414x702, 16px | world none |
+| Mahjong Solitaire | 414x724 → 414x707, 64px | 414x772 → 414x707, 16px | world none |
 | Home Run | 414x724 → 392x724, 64px | 414x772 → 414x764, 16px | world 24px |
 | Top Bins | 414x724 → 392x724, 64px | 414x772 → 414x764, 16px | world 24px |
 | Apex | 414x724 → 388x724, 64px | 414x772 → 414x772, 16px | world 32px |
@@ -179,9 +179,9 @@ than half hidden; Hover's world is cut the same way, its disc at the top).
 | Thirteen | 414x724 → 388x724, 64px | 414x772 → 414x772, 16px | world 32px |
 | Golf Solitaire | 414x724 → 388x724, 64px | 414x772 → 414x772, 16px | world 32px |
 | Muggins | 414x724 → 388x724, 64px | 414x772 → 414x772, 16px | world 32px |
-| Crazy Golf | 414x724 → 409x724, 64px | 414x772 → 414x732, 16px | world none |
+| Crazy Golf | 414x724 → 392x724, 64px | 414x772 → 414x764, 16px | world 24px |
 | Cue Ball | 414x724 → 382x724, 64px | 414x772 → 407x772, 16px | world 32px |
-| Curl Champ | 414x724 → 414x573, 64px | 414x772 → 414x573, 16px | world none |
+| Curl Champ | 414x724 → 414x679, 64px | 414x772 → 414x679, 16px | world none |
 | Blockzone | 414x724 → 403x724, 64px | 414x772 → 414x744, 16px | world 4px |
 | Ringer | 414x724 → 375x724, 64px | 414x772 → 400x772, 16px | world 32px |
 | Letterfall | 414x724 → 403x724, 64px | 414x772 → 414x743, 16px | world 3px |
@@ -206,12 +206,12 @@ bottom; the spare space was the game's arena fill or the page colour. Same arith
 | Wavefront | 367x543 → 265x543 | 382x576 → 281x576 | 382x720 → 351x720 | 422x808 → 394x808 | 1272x676 → 330x676 |
 | Orbit | 367x455 → 238x455 | 382x488 → 255x488 | 382x632 → 330x632 | 422x720 → 376x720 | 1272x588 → 307x588 |
 | High Rise | 367x543 → 288x543 | 382x576 → 306x576 | 382x720 → 382x720 | 422x808 → 422x795 | 1272x676 → 359x676 |
-| Jaywalk | 367x543 → 291x543 | 382x576 → 309x576 | 382x720 → 382x712 | 422x808 → 422x787 | 1272x676 → 363x676 |
+| Spacewalk | 367x543 → 291x543 | 382x576 → 309x576 | 382x720 → 382x712 | 422x808 → 422x787 | 1272x676 → 363x676 |
 | Junction | 367x543 → 342x543 | 382x576 → 362x576 | 382x720 → 382x607 | 422x808 → 422x671 | 1272x676 → 425x676 |
 | Rainbow Bridge | 367x483 → 279x483 | 382x516 → 299x516 | 382x660 → 382x660 | 422x748 → 422x729 | 1272x616 → 356x616 |
 | Slice | 367x543 → 290x543 | 382x576 → 308x576 | 382x720 → 382x715 | 422x808 → 422x790 | 1272x676 → 361x676 |
-| Swish | 367x471 → 278x471 | 382x504 → 298x504 | 382x648 → 382x647 | 422x736 → 422x714 | 1272x604 → 357x604 |
-| Flightpath | 367x543 → 291x543 | 382x576 → 309x576 | 382x720 → 382x713 | 422x808 → 422x788 | 1272x676 → 362x676 |
+| Swish | 367x471 → 256x471 | 382x504 → 274x504 | 382x648 → 352x648 | 422x736 → 400x736 | 1272x604 → 328x604 |
+| Flightpath | 367x543 → 265x543 | 382x576 → 281x576 | 382x720 → 351x720 | 422x808 → 394x808 | 1272x676 → 330x676 |
 | Coral Pop | 367x543 → 290x543 | 382x576 → 308x576 | 382x720 → 382x715 | 422x808 → 422x790 | 1272x676 → 361x676 |
 | Roofbound | 367x543 → 290x543 | 382x576 → 308x576 | 382x720 → 382x715 | 422x808 → 422x790 | 1272x676 → 361x676 |
 | Grappler | 367x543 → 290x543 | 382x576 → 307x576 | 382x720 → 382x716 | 422x808 → 422x791 | 1272x676 → 360x676 |
@@ -220,8 +220,8 @@ bottom; the spare space was the game's arena fill or the page colour. Same arith
 | Ball Tracker | 367x503 → 251x503 | 382x536 → 268x536 | 382x680 → 340x680 | 422x768 → 384x768 | 1272x636 → 318x636 |
 | Gemstone | 367x543 → 294x543 | 382x576 → 312x576 | 382x720 → 382x705 | 422x808 → 422x779 | 1272x676 → 366x676 |
 | Pinball | 367x543 → 258x543 | 382x576 → 274x576 | 382x720 → 342x720 | 422x808 → 384x808 | 1272x676 → 322x676 |
-| Minefield | 367x543 → 320x543 | 382x576 → 339x576 | 382x720 → 382x648 | 422x808 → 422x716 | 1272x676 → 398x676 |
-| Mahjong Solitaire | 367x543 → 348x543 | 382x576 → 369x576 | 382x720 → 382x596 | 422x808 → 422x658 | 1272x676 → 434x676 |
+| Minefield | 367x543 → 320x543 | 382x576 → 340x576 | 382x720 → 382x647 | 422x808 → 422x715 | 1272x676 → 399x676 |
+| Mahjong Solitaire | 367x543 → 318x543 | 382x576 → 337x576 | 382x720 → 382x652 | 422x808 → 422x721 | 1272x676 → 396x676 |
 | Home Run | 367x543 → 294x543 | 382x576 → 312x576 | 382x720 → 382x705 | 422x808 → 422x779 | 1272x676 → 366x676 |
 | Top Bins | 367x543 → 294x543 | 382x576 → 312x576 | 382x720 → 382x705 | 422x808 → 422x779 | 1272x676 → 366x676 |
 | Apex | 367x543 → 291x543 | 382x576 → 309x576 | 382x720 → 382x712 | 422x808 → 422x787 | 1272x676 → 363x676 |
@@ -234,8 +234,8 @@ bottom; the spare space was the game's arena fill or the page colour. Same arith
 | Thirteen | 367x543 → 291x543 | 382x576 → 309x576 | 382x720 → 382x712 | 422x808 → 422x787 | 1272x676 → 363x676 |
 | Golf Solitaire | 367x543 → 291x543 | 382x576 → 309x576 | 382x720 → 382x712 | 422x808 → 422x787 | 1272x676 → 363x676 |
 | Muggins | 367x543 → 291x543 | 382x576 → 309x576 | 382x720 → 382x712 | 422x808 → 422x787 | 1272x676 → 363x676 |
-| Crazy Golf | 367x543 → 307x543 | 382x576 → 326x576 | 382x720 → 382x676 | 422x808 → 422x747 | 1272x676 → 382x676 |
+| Crazy Golf | 367x543 → 294x543 | 382x576 → 312x576 | 382x720 → 382x705 | 422x808 → 422x779 | 1272x676 → 366x676 |
 | Cue Ball | 367x543 → 286x543 | 382x576 → 304x576 | 382x720 → 379x720 | 422x808 → 422x801 | 1272x676 → 356x676 |
-| Curl Champ | 367x543 → 367x508 | 382x576 → 382x529 | 382x720 → 382x529 | 422x808 → 422x584 | 1272x676 → 488x676 |
+| Curl Champ | 367x543 → 331x543 | 382x576 → 351x576 | 382x720 → 382x627 | 422x808 → 422x693 | 1272x676 → 412x676 |
 | Blockzone | 367x543 → 302x543 | 382x576 → 321x576 | 382x720 → 382x686 | 422x808 → 422x758 | 1272x676 → 376x676 |
 | Ringer | 367x543 → 281x543 | 382x576 → 298x576 | 382x720 → 373x720 | 422x808 → 418x808 | 1272x676 → 350x676 |

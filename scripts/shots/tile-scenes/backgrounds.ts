@@ -12,6 +12,8 @@
  * Math.random (a seeded `rand` only).
  */
 import { drawPagoda } from "../../../src/lib/arcade/ricochetNinja.renderer";
+import { paintBoardwalk } from "../../../src/lib/arcade/boardwalk.renderer";
+import { paintDartStall } from "../../../src/lib/arcade/dartStall.renderer";
 import type { PuzzleType } from "@/lib/duel/types";
 
 import { TILE } from "./scene";
@@ -193,6 +195,24 @@ function fairground(c: Ctx, counter = 84): void {
     c.arc(x + 9, 7, 9, 0, Math.PI);
     c.fill();
   }
+}
+
+/** Swish's seaside boardwalk (3 Nov 2026): the game's own painter, the sun, pier and railing over the deck. */
+function boardwalk(c: Ctx): void {
+  c.save();
+  c.scale(0.4, 0.4);
+  c.translate(-110, 0);
+  paintBoardwalk(c, { x0: 110, y0: 0, x1: 110 + T / 0.4, y1: T / 0.4 }, 220);
+  c.restore();
+}
+
+/** Flightpath's darts stall (3 Nov 2026): the game's own painter, the awning, prize shelves and back wall. */
+function dartStall(c: Ctx): void {
+  c.save();
+  c.scale(0.3, 0.3);
+  c.translate(-22, 0);
+  paintDartStall(c, { x0: 22, y0: 0, x1: 22 + T / 0.3, y1: T / 0.3 }, 300, 34);
+  c.restore();
 }
 
 /** Oak (Tilt, Ball Tracker, the toybox): planks with a soft grain and a lamp pool. */
@@ -384,19 +404,12 @@ const ARCADE_BACKGROUNDS: Partial<Record<PuzzleType, TileBackground>> = {
     stars(c, 16, 44, ["#FFFFFF", "#D6E4FF", "#FFF0D6"], 0.7, 0.75);
     stars(c, 17, 6, ["#BFD8FF"], 1.1, 0.9);
   }),
-  // Jaywalk: the evening verges and the asphalt with its dashed lane lines, a dusk wash and a lamp pool.
+  // Spacewalk (3 Nov 2026): deep space with pixel stars round the lanes, a faint cyan haze.
   cross: bg((c) => {
-    fill(c, "#2F4B31");
-    c.fillStyle = "#5F646E";
-    c.fillRect(0, 14, T, 8);
-    c.fillRect(0, 82, T, 8);
-    c.fillStyle = "#25292F";
-    c.fillRect(0, 22, T, 60);
-    c.fillStyle = "rgba(248,250,252,0.6)";
-    for (const y of [42, 62]) for (let x = 2; x < T; x += 22) c.fillRect(x, y, 10, 1.5);
-    fill(c, "rgba(16,22,58,0.22)");
-    cloud(c, 18, 96, 34, "#FFC478", 0.35);
-    cloud(c, 88, 8, 30, "#FFC478", 0.3);
+    fill(c, "#04051A");
+    stars(c, 23, 40, ["#FFFFFF", "#C8D4FF", "#9FF5EA"], 0.8, 0.8);
+    cloud(c, 80, 20, 36, "#3DFFE0", 0.12);
+    cloud(c, 20, 90, 30, "#FF4FD8", 0.1);
   }, { fade: 0.2 }),
   // Pinball: the rich purple table with colour pools and the magenta horizon grid low down.
   pinball: bg((c) => {
@@ -409,9 +422,9 @@ const ARCADE_BACKGROUNDS: Partial<Record<PuzzleType, TileBackground>> = {
     radial(c, T / 2, T / 2, 80, [[0.55, "rgba(0,0,0,0)"], [1, "rgba(0,0,0,0.45)"]]);
   }, { fade: 0.15, spot: 0.25 }),
   // Flightpath: the fairground stall's dusk sky, canopy and counter.
-  bullseye: bg((c) => fairground(c, 86), { fade: 0.3, spot: 0.35 }),
+  bullseye: bg((c) => dartStall(c), { fade: 0.3, spot: 0.35 }),
   // Swish: the same fairground stall.
-  bintoss: bg((c) => fairground(c, 88), { fade: 0.3, spot: 0.35 }),
+  bintoss: bg((c) => boardwalk(c), { fade: 0.3, spot: 0.35 }),
   // Slice: the chopping board's three planks with grain, the tiled strip above.
   slice: bg((c) => {
     vgrad(c, [[0, "#EEF6F4"], [1, "#C4D6D2"]], 0, 14);
@@ -522,20 +535,25 @@ const ARCADE_BACKGROUNDS: Partial<Record<PuzzleType, TileBackground>> = {
     radial(c, T / 2, T / 2, 60, [[0, "rgba(255,220,160,0.3)"], [1, "rgba(0,0,0,0)"]]);
     radial(c, T / 2, T / 2, 80, [[0.6, "rgba(0,0,0,0)"], [1, "rgba(40,20,5,0.35)"]]);
   }, { fade: 0.45, spot: 0.2 }),
-  // Grappler: the dark cavern, rock overhead, the lava's glow at the bottom.
+  // Grappler (the jungle canopy, 3 Nov 2026): the green haze, distant crowns, a light shaft and the river.
   swing: bg((c) => {
-    vgrad(c, [[0, "#0A070B"], [0.6, "#160B0C"], [1, "#2A0D08"]]);
-    vgrad(c, [[0, "#0C090B"], [1, "#241A1D"]], 0, 12);
-    c.fillStyle = "#160D10";
-    for (const [x, h] of [[18, 14], [52, 10], [84, 16]] as const) {
+    vgrad(c, [[0, "#0E2A1C"], [0.5, "#1B4A35"], [1, "#24604A"]]);
+    c.fillStyle = "#1E5440";
+    for (const [x, y, r] of [[14, 62, 18], [46, 56, 22], [80, 64, 18], [104, 58, 16]] as const) {
       c.beginPath();
-      c.moveTo(x - 7, 12);
-      c.lineTo(x, 12 + h);
-      c.lineTo(x + 7, 12);
+      c.arc(x, y, r, 0, Math.PI * 2);
       c.fill();
     }
-    vgrad(c, [[0, "#FFB23A"], [0.2, "#FF5A1F"], [0.6, "#B3200F"], [1, "#4A0B08"]], 94, T);
-    cloud(c, T / 2, T, 50, "#FF5A1F", 0.35);
+    c.fillStyle = "rgba(220,255,170,0.08)";
+    c.beginPath();
+    c.moveTo(50, 0);
+    c.lineTo(70, 0);
+    c.lineTo(104, T);
+    c.lineTo(80, T);
+    c.closePath();
+    c.fill();
+    vgrad(c, [[0, "#06160D"], [1, "#1C4A2A"]], 0, 12);
+    vgrad(c, [[0, "#2F9FB0"], [1, "#0B3A4A"]], 94, T);
   }),
   // Scrumper (retired): the orchard's sky and green hill.
   snip: bg((c) => {
