@@ -1,5 +1,6 @@
 import { puzzleReject } from "@/lib/fx/puzzleReject";
-import { LiveSummary, SummaryItem, useFrameProgress } from "@/components/puzzles/batchP/LiveSummary";
+import { useFrameProgress } from "@/components/puzzles/batchP/LiveSummary";
+import { FramePills } from "@/components/puzzles/pattern/framePills";
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { useEffect, useMemo, useRef, useState } from "react";
 
@@ -174,11 +175,12 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "push" }: P
           gold={gold}
         />
       </div>
-      <LiveSummary
+      <FramePills
+        testId="push"
         items={[
-          <SummaryItem key="pushes" label="Pushes" value={replay.pushes} />,
-          <SummaryItem key="moves" label="Moves" value={replay.moves} />,
-          gold ? <SummaryItem key="gold" label="Gold crate" value={goldHome ? "on its mark" : "not yet"} /> : null,
+          { id: "pushes", label: "Pushes", value: replay.pushes },
+          { id: "moves", label: "Moves", value: replay.moves },
+          gold ? { id: "gold", label: "Gold crate", value: goldHome ? "on its mark" : "not yet", ...(goldHome ? { tone: "good" as const } : {}) } : null,
         ]}
       />
         <ArrowPad onPress={step} disabled={locked || replay.solved} />

@@ -18,7 +18,7 @@ import {
   CLASH_STREAK_FROM,
 } from "@/lib/arcade/colourClash";
 import { STANDARD_FINISH, STANDARD_UNFINISHED_CAP } from "./shape";
-import { PAR_MOVES_STD } from "../parMoves";
+import { PAR_MOVES_STD, PAR_STRICT_FULL_BY_S, parStrictDealt } from "../parMoves";
 import { ASCEND_STD, CHAIN_STD, COUNT_STD, MAZE_STD, PAIR_STD, SCAN_STD, SPOT_STD } from "./attention";
 
 const CAP = STANDARD_UNFINISHED_CAP;
@@ -68,9 +68,12 @@ export const STANDARD_ATTENTION_HELP = {
 } as const;
 
 /** Labyrinth on the puzzle batch's stamp (3 Nov 2026, parMoves.ts: mazeRev 4): no stars; 150 + speed + par moves. */
-export const PAR_MOVES_MAZE_HELP = () =>
-  `Unfinished: up to ${MAZE_STD.share} for how far along the route you got (wandering costs), plus up to ${MAZE_STD.early} for getting there early. ` +
-  `Reaching the exit is a finish: ${FIN}, plus ${speedLine(PAR_MOVES_STD.speed, MAZE_STD.fullByS)}, plus up to ${PAR_MOVES_STD.par} for moves: all of it if every step you took (steps back included) adds up to no more than the route's length (par), less for each one over, none at twice par. ${capLine} {max} is the exit within ${MAZE_STD.fullByS} s with no wasted step.`;
+export const PAR_MOVES_MAZE_HELP = (strict = parStrictDealt()) => {
+  // mazeRev 5 (puzzle polish, 3 Nov 2026): par shown on screen, speed full a little earlier, par points gone at 1.5× par.
+  const fullBy = strict ? PAR_STRICT_FULL_BY_S.maze : MAZE_STD.fullByS;
+  return `Unfinished: up to ${MAZE_STD.share} for how far along the route you got (wandering costs), plus up to ${MAZE_STD.early} for getting there early. ` +
+  `Reaching the exit is a finish: ${FIN}, plus ${speedLine(PAR_MOVES_STD.speed, fullBy)}, plus up to ${PAR_MOVES_STD.par} for moves: all of it if every step you took (steps back included) adds up to no more than the route's length (par${strict ? ", shown on screen" : ""}), less for each one over, none at ${strict ? "one and a half times" : "twice"} par. ${capLine} {max} is the exit within ${fullBy} s with no wasted step.`;
+};
 
 export const PAR_MOVES_MAZE_INTRO = `Route: up to ${CAP}. Exit: ${FIN}+, {max} fast with no wasted steps.`;
 

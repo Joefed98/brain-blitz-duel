@@ -33,6 +33,7 @@ export const PAR_MOVES_STAMPS: Partial<Record<PuzzleType, { key: string; rev: nu
 };
 
 let pinned = false;
+let strictPinned = false;
 
 /** Checks written for the standard's stamps pin new deals to them (returns the previous setting). */
 export function pinPreParMoves(on: boolean): boolean {
@@ -94,5 +95,74 @@ export function dealParMoves<T extends PuzzleData>(puzzle: T, vary?: (puzzle: T)
   if (!batch || !standard || pinned) return puzzle;
   if (stampOf(puzzle, batch.key) !== (standard.dealt ?? standard.rev)) return puzzle;
   const stamped = strip({ ...puzzle, [batch.key]: batch.rev } as T);
-  return vary ? vary(stamped) : stamped;
+  const varied = vary ? vary(stamped) : stamped;
+  // Puzzle polish (3 Nov 2026): one stamp further, the par stored and shown, speed and par stricter.
+  return strictPinned ? varied : dealParStrict(varied);
+}
+
+/* ------------------------------------------------------------------ Stricter par (puzzle polish, 3 Nov 2026) */
+
+/**
+ * Puzzle polish, 3 Nov 2026 (docs/puzzle-polish-nov-2026.md): the top of these three games was bunched (near-perfect
+ * and flawless both 200), so each moves up one more stamp: Labyrinth `mazeRev 5`, Topsy-Turvy `gravityRev 7`, Skid
+ * `slideRev 4`. The board and play are the previous stamp's; the puzzle stores its par (`par`, public: shown during
+ * play as "Moves n · Par p"), speed is full a little earlier and the par points fall to 0 at 1.5× par instead of 2×.
+ */
+export const MAZE_REV_STRICT = 5;
+export const GRAVITY_REV_STRICT = 7;
+export const SLIDE_REV_STRICT = 4;
+
+export const PAR_STRICT_STAMPS: Partial<Record<PuzzleType, { key: string; rev: number }>> = {
+  maze: { key: "mazeRev", rev: MAZE_REV_STRICT },
+  gravity: { key: "gravityRev", rev: GRAVITY_REV_STRICT },
+  iceslide: { key: "slideRev", rev: SLIDE_REV_STRICT },
+};
+
+/** True for a stored puzzle on the stricter-par stamp (or later). */
+export function usesParStrict(puzzle: PuzzleData | null | undefined): boolean {
+  if (!puzzle) return false;
+  const st = PAR_STRICT_STAMPS[puzzle.type];
+  if (!st) return false;
+  const v = stampOf(puzzle, st.key);
+  return v !== null && v >= st.rev;
+}
+
+/** The par shown during play (stricter-par stamps only; null on every older stamp, whose par stays server-side). */
+export function shownPar(puzzle: PuzzleData | null | undefined): number | null {
+  if (!usesParStrict(puzzle)) return null;
+  const v = (puzzle as { par?: unknown }).par;
+  return typeof v === "number" && Number.isFinite(v) && v > 0 ? v : null;
+}
+
+/** Checks written for the puzzle batch's stamps (mazeRev 4, gravityRev 6, slideRev 3) pin new deals to them. */
+export function pinPreParStrict(on: boolean): boolean {
+  const prev = strictPinned;
+  strictPinned = on;
+  if (prev !== on) rebuildLiveRecords();
+  return prev;
+}
+
+/** True while new Labyrinth, Topsy-Turvy and Skid rounds are dealt the stricter-par stamps (the help texts describe them). */
+export function parStrictDealt(): boolean {
+  return parMovesDealt() && !strictPinned;
+}
+
+/** The stricter "full by" times (s), set from the bots' finish times so near-perfect play (median 35–37 s) no longer ties flawless (18–31 s); the puzzle batch had 40 / 80 / 60. */
+export const PAR_STRICT_FULL_BY_S: Record<"maze" | "gravity" | "iceslide", number> = { maze: 32, gravity: 32, iceslide: 30 };
+/** Par points fall to 0 at this multiple of par (the puzzle batch: 2). */
+export const PAR_STRICT_ZERO_AT = 1.5;
+
+/** The par a puzzle on the puzzle batch's stamp is graded against (Labyrinth's route steps, the fewest slides or tilts). */
+export function parOfParMoves(puzzle: PuzzleData): number {
+  if (puzzle.type === "maze") return Math.max(2, (puzzle.solution ?? []).length) - 1;
+  if (puzzle.type === "iceslide") return puzzle.minMoves ?? 0;
+  if (puzzle.type === "gravity") return (puzzle.boardMins ?? []).reduce((n, m) => n + m, 0);
+  return 0;
+}
+
+/** The stricter-par stamp on a puzzle-batch deal: the same puzzle, one stamp up, its par stored. */
+function dealParStrict<T extends PuzzleData>(puzzle: T): T {
+  const st = PAR_STRICT_STAMPS[puzzle.type];
+  if (!st) return puzzle;
+  return { ...puzzle, [st.key]: st.rev, par: parOfParMoves(puzzle) } as T;
 }

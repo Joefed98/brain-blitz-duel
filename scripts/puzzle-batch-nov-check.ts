@@ -22,7 +22,7 @@ import { readFileSync } from "node:fs";
 import { gunzipSync } from "node:zlib";
 import { gradeAnswer } from "../src/lib/duel/generate.server";
 import { puzzleTimeLimitMs } from "../src/lib/duel/registry";
-import { GRAVITY_REV_PAR, MAZE_REV_PAR, PAR_MOVES_STAMPS, SLIDE_REV_PAR, pinPreParMoves, usesParMoves } from "../src/lib/duel/parMoves";
+import { GRAVITY_REV_PAR, MAZE_REV_PAR, PAR_MOVES_STAMPS, SLIDE_REV_PAR, pinPreParMoves, pinPreParStrict, usesParMoves } from "../src/lib/duel/parMoves";
 import { STANDARD_STAMPS, pinPreStandard } from "../src/lib/duel/standard/stamps";
 import { PUZZLE_INSTRUCTIONS } from "../src/lib/duel/instructions";
 import { INTRO_SCORE } from "../src/lib/duel/introScore";
@@ -32,6 +32,10 @@ import { BATCH_LEVELS, BATCH_TYPES, dealBatch, flawlessSolve, playBatch, spamBat
 import { gradeSteps, median } from "./standard-lib";
 import type { MazePuzzleData, PuzzleData } from "../src/lib/duel/types";
 import { verifyTopsyPuzzle } from "../src/lib/duel/topsy.server";
+
+// This check proves the puzzle batch's stamps (mazeRev 4, gravityRev 6, slideRev 3); the stricter-par stamps above them
+// (puzzle polish, 3 Nov 2026) are proved by puzzle-polish-nov-check.
+pinPreParStrict(true);
 
 let fails = 0;
 let passes = 0;

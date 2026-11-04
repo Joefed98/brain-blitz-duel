@@ -72,7 +72,7 @@ export const DESKTOP_KEYS: Partial<Record<PuzzleType, readonly (readonly [string
   symscan: [["Enter", "submit"]],
   // Number
   checkout: [["Enter", "throw"], ["Z", "undo"]],
-  equation: [["+ − × ÷", "operator"], ["Backspace", "clear"], ["Enter", "next"]],
+  equation: [["+ − × ÷", "sign"], ["Digits", "number"], ["Backspace", "clear"], ["Enter", "next"]],
   measure: [["1–9", "jug"], ["F / E", "fill / empty"], ["R", "reset"]],
   numline: [["← →", "marker"], ["Enter", "place"]],
   numpyramid: [["Enter", "skip"]],

@@ -14,6 +14,7 @@ import { playLock } from "@/lib/sound";
 
 import { soundCue, useSolveFx } from "./logicFx";
 import { useFrameProgress } from "@/components/puzzles/batchP/LiveSummary";
+import "@/polish-layout/polish-nov3-logic.css";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
 function clueText(clue: number[]): string {
@@ -83,6 +84,7 @@ export function Board({
         return (
         <Fragment key={`r${row}`}>
           <span
+            data-runs={clue.length}
             className={`nono-clue-row flex items-center justify-end gap-1 pr-1.5 font-mono font-bold leading-none ${reveal ? "" : "max-w-10 text-[15px]"} ${
               !reveal && lineSatisfied(clue, cellsOf("row", row))
                 ? "text-muted-foreground/40"

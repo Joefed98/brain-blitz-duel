@@ -40,6 +40,8 @@ import { NO_SCROLL_STYLE, useNoTouchScroll } from "@/components/puzzles/noScroll
 import { PolishStyle, soundCue, useSolveFx } from "@/components/puzzles/numberPolish";
 import { drawTenDropLive, tenDropArenaScene } from "@/lib/arcade/tenDrop.renderer";
 import "@/polish-layout/batch-w-tendrop.css";
+import "@/polish-layout/polish-nov3-number.css";
+import { HudPills } from "@/components/puzzles/HudPills";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 import { arcadeCanvasRatio } from "@/lib/fx/lowEnd";
@@ -76,30 +78,50 @@ const TD_CSS = `
 .td-intro-plaque[data-hit="1"] { background: linear-gradient(180deg, #FFE08A, #F2B63C); border-color: #8A6420; }
 `;
 
+/**
+ * Puzzle polish (3 Nov 2026, Joe's audit; display only): the HUD is three label-and-value pills, "Total 8",
+ * "Target 25" and the cleared pegs, instead of the plank's "TOTAL 8" beside an unlabelled "25" plaque. The plank
+ * keeps its fixed 56 px band above the board (arcade-play-check's ABOVE_PX.tendrop), the pills on one row inside it.
+ */
 function Hud({ target, total, cleared, flash }: { target: number; total: number; cleared: number; flash: "" | "red" | "gold" }) {
   return (
-    <div className="td-hud relative flex h-14 w-full shrink-0 items-center justify-between gap-2 px-3 font-mono font-bold leading-none">
-      <div className="flex w-[84px] flex-col items-start gap-1">
-        <span className="td-label">TOTAL</span>
-        <span className="td-total text-3xl" data-flash={flash === "red" ? "red" : undefined} aria-label={`Running total ${total}`}>
-          <span key={total} className="td-bump">{total}</span>
-        </span>
-      </div>
-      <div
-        className="td-plaque absolute left-1/2 top-1/2 flex min-w-[84px] -translate-x-1/2 -translate-y-1/2 items-baseline justify-center px-3 py-0.5 text-[34px]"
-        data-hit={flash === "gold" ? "1" : undefined}
-        aria-label={`Target ${target}`}
-      >
-        <span key={target} className="td-bump">{target}</span>
-      </div>
-      <div className="flex flex-col items-end gap-1" aria-label={`Targets cleared ${cleared} of ${TD_TARGETS}`}>
-        <span className="td-label">{cleared}/{TD_TARGETS}</span>
-        <div className="grid grid-cols-5 gap-1">
-          {Array.from({ length: TD_TARGETS }, (_, i) => (
-            <span key={i} className="td-peg" data-on={i < cleared ? "1" : undefined} data-new={i === cleared - 1 ? "1" : undefined} />
-          ))}
-        </div>
-      </div>
+    <div className="td-hud td-hud-v3">
+      <HudPills
+        testId="tendrop"
+        className="td-pills"
+        items={[
+          {
+            id: "total",
+            label: "Total",
+            value: (
+              <span className="td-total" data-flash={flash === "red" ? "red" : undefined} aria-label={`Running total ${total}`}>
+                <span key={total} className="td-bump">{total}</span>
+              </span>
+            ),
+          },
+          {
+            id: "target",
+            label: "Target",
+            tone: "gold",
+            value: (
+              <span className="td-target" data-hit={flash === "gold" ? "1" : undefined} aria-label={`Target ${target}`}>
+                <span key={target} className="td-bump">{target}</span>
+              </span>
+            ),
+          },
+          {
+            id: "cleared",
+            label: (
+              <span className="td-pegs" aria-hidden="true">
+                {Array.from({ length: TD_TARGETS }, (_, i) => (
+                  <span key={i} className="td-peg" data-on={i < cleared ? "1" : undefined} data-new={i === cleared - 1 ? "1" : undefined} />
+                ))}
+              </span>
+            ),
+            value: <span aria-label={`Targets cleared ${cleared} of ${TD_TARGETS}`}>{cleared}/{TD_TARGETS}</span>,
+          },
+        ]}
+      />
     </div>
   );
 }

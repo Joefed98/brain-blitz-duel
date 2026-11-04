@@ -25,7 +25,7 @@ import {
 } from "@/lib/duel/types";
 
 import { useStageState } from "@/lib/duel/stageState";
-import { LiveSummary } from "@/components/puzzles/batchW/LiveSummary";
+import { HudPills } from "@/components/puzzles/HudPills";
 import { wrongMoveFlash } from "@/lib/fx/gameToolkit";
 import "@/polish-layout/batch-w-target.css";
 import { fastFinishSeconds } from "@/lib/duel/puzzleBandsText";
@@ -403,15 +403,20 @@ function TargetStage({
           )}
           </div>
         </div>
-        {/* The live summary (polish batch W): numbers left, steps, the closest number so far. */}
-        <LiveSummary
+        {/* The live status (puzzle polish, 3 Nov 2026): one label-and-value pill per figure, never dots in one pill. */}
+        <HudPills
           testId="target"
-          parts={[
-            <><b>{pool.filter((t) => t.active).length}</b> {depth ? "left" : "numbers left"}</>,
-            !depth && <><b>{steps.length}</b> step{steps.length === 1 ? "" : "s"}</>,
+          items={[
+            { id: "left", label: depth ? "Left" : "Numbers left", value: pool.filter((t) => t.active).length },
+            !depth && { id: "steps", label: "Steps", value: steps.length },
             // depthRev 1: the distance stays on the Lock button, so the line has room for the elegance bonus.
-            closest !== null && (away === 0 ? <b>On target</b> : depth ? <>Closest <b>{closest}</b></> : <>Closest <b>{closest}</b> · {away} away</>),
-            depth && (onTarget ? (elegant ? <b className="exact-elegant">✦ Elegant</b> : <>{onTarget.uses ?? 1} numbers used</>) : <span className="exact-elegant">✦ Elegant: {EXACT_ELEGANT_TILES} numbers</span>),
+            closest !== null && (away === 0
+              ? { id: "closest", value: "On target", tone: "good" as const }
+              : { id: "closest", label: "Closest", value: closest }),
+            !depth && closest !== null && away !== null && away > 0 && { id: "away", label: "Away", value: away },
+            depth && (onTarget
+              ? (elegant ? { id: "elegant", value: "✦ Elegant", tone: "gold" as const } : { id: "used", label: "Used", value: onTarget.uses ?? 1 })
+              : { id: "elegant", label: "✦ Elegant", value: `${EXACT_ELEGANT_TILES} numbers`, tone: "gold" as const }),
           ]}
         />
       </div>
@@ -476,9 +481,13 @@ function TargetStage({
           type="button"
           onClick={() => send(steps)}
           disabled={isLockedNow}
-          className="press tap-target rounded-xl bg-primary px-6 font-display text-sm font-bold uppercase tracking-wide text-primary-foreground disabled:opacity-40"
+          data-exact-lock=""
+          className="press tap-target rounded-xl bg-primary px-5 font-display text-sm font-bold tracking-wide text-primary-foreground disabled:opacity-40"
         >
-          Lock{steps.length > 0 && away !== null && away > 0 ? ` · ${away} away` : ""}
+          {/* Puzzle polish (3 Nov 2026): "Lock in 150 (564 away)": the number that would be locked and its distance. */}
+          {steps.length > 0 && closest !== null && away !== null
+            ? away > 0 ? `Lock in ${closest} (${away} away)` : `Lock in ${closest}`
+            : "Lock"}
         </button>
       </div>
 

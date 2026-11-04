@@ -243,8 +243,13 @@ export interface ReactionPuzzleData {
 export type Operator = "+" | "-" | "×" | "÷";
 
 export interface EquationStage {
+  /** The numbers left to right; on gapsRev 1 (operatorGaps.ts) a number gap is 0. */
   numbers: number[];
   target: number;
+  /** gapsRev 1: the signs left to right, null at a sign gap (absent before: every sign a gap). */
+  signs?: (Operator | null)[];
+  /** gapsRev 1: the numbers a number gap is filled from, each used at most once (absent: no number gaps). */
+  tray?: number[];
 }
 
 export interface EquationPuzzleData {
@@ -259,6 +264,10 @@ export interface EquationPuzzleData {
   equationRev?: number;
   /** Full operator sets a player may try on each equation (equationRev 1). */
   tryLimit?: number;
+  /** Operator's gaps (puzzle polish, 3 Nov 2026, operatorGaps.ts): 1 = sign gaps, number gaps and mixed equations. */
+  gapsRev?: number;
+  /** gapsRev 1, server-side only until reveal: one fill per stage that makes it true (any true fill counts). */
+  gapAnswers?: string[];
 }
 
 export const EQUATION_TIME_MS = 90_000;
@@ -1093,6 +1102,8 @@ export interface SlideStats {
 }
 
 export interface SlidePuzzleData {
+  /** Puzzle polish (3 Nov 2026, parMoves.ts): the stricter-par stamp's par, public and shown during play; absent before. */
+  par?: number;
   /** Puzzle score shape stamp (puzzleScoreRev.ts; set by generatePuzzle, kept on the banked intro example). */
   puzzleScoreRev?: number;
   type: "iceslide";
@@ -1347,6 +1358,8 @@ export const MAZE_BLIND_TAIL = 10;
 export const MAZE_PARTIAL_POINTS = 110;
 
 export interface MazePuzzleData {
+  /** Puzzle polish (3 Nov 2026, parMoves.ts): the stricter-par stamp's par, public and shown during play; absent before. */
+  par?: number;
   type: "maze";
   /**
    * One open-side mask per cell: north 1, east 2, south 4, west 8. A perfect
@@ -1525,6 +1538,8 @@ export const GRAV_LOCK_POINTS = 30;
 export type GravityDir = "U" | "D" | "L" | "R" | "X" | "Y";
 
 export interface GravityPuzzleData {
+  /** Puzzle polish (3 Nov 2026, parMoves.ts): the stricter-par stamp's par, public and shown during play; absent before. */
+  par?: number;
   /** Puzzle score shape stamp (puzzleScoreRev.ts; set by generatePuzzle, kept on the banked intro example). */
   puzzleScoreRev?: number;
   type: "gravity";

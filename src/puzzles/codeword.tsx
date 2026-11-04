@@ -18,8 +18,9 @@ import { KeypadAction, LetterKeypad } from "@/components/puzzles/LetterKeypad";
 import { NO_SCROLL_STYLE, useNoTouchScroll } from "@/components/puzzles/noScroll";
 import { useMoveSync } from "@/components/puzzles/useMoveSync";
 import { goldFlip, playFinish, useWordFinish, wordCue, type FinishStep } from "@/components/puzzles/wordFinish";
-import { LiveSummary } from "@/components/puzzles/batchW/LiveSummary";
+import { HudPills } from "@/components/puzzles/HudPills";
 import "@/polish-layout/batch-w-codeword.css";
+import "@/polish-layout/polish-nov3-word.css";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
@@ -68,10 +69,12 @@ export function Grid({
             aria-label={onCell ? `Number ${n}` : undefined}
             onClick={onCell ? () => onCell(n) : undefined}
             className={`relative flex items-center justify-center rounded-sm font-display font-bold ${CELL[look(n)]}`}
-            style={{ fontSize: `calc(100cqw / ${size} * 0.52)` }}
+            // 3 Nov 2026: the live stage sets --cw-num-scale (larger clue numbers) and --cw-letter-drop (the letter a
+            // touch lower, clear of the number); the intro, reveal and tile scene keep the defaults.
+            style={{ fontSize: `calc(100cqw / ${size} * 0.52)`, paddingTop: numbers ? `calc(100cqw / ${size} * var(--cw-letter-drop, 0))` : undefined }}
           >
             {numbers ? (
-              <span className="absolute left-0.5 top-0 font-mono font-normal leading-none text-muted-foreground" style={{ fontSize: `calc(100cqw / ${size} * 0.24)` }}>
+              <span className="cw-num absolute left-0.5 top-0 font-mono font-normal leading-none text-muted-foreground" style={{ fontSize: `calc(100cqw / ${size} * var(--cw-num-scale, 0.24))` }}>
                 {n}
               </span>
             ) : null}
@@ -108,8 +111,8 @@ function KeyStrip({
             disabled={!onPick}
             data-cw-key={n}
             data-cw-key-on={selected === n ? "" : undefined}
-            className={`flex min-w-0 flex-1 flex-col items-center rounded-sm py-0.5 ${selected === n ? "bg-primary/25 ring-1 ring-primary" : "bg-card"}`}
-            style={{ maxWidth: 26, touchAction: "manipulation" }}
+            className={`flex min-w-0 flex-1 flex-col items-center justify-center rounded-sm py-0.5 ${selected === n ? "bg-primary/25 ring-1 ring-primary" : "bg-card"}`}
+            style={{ maxWidth: 34, touchAction: "manipulation" }}
           >
             {/* Batch W: the clue strip's type a step larger (10px numbers, 16px letters); the note line under it gave up the 4px. */}
             <span className="font-mono text-[10px] leading-none text-muted-foreground">{n}</span>
@@ -269,7 +272,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkMoves, stateKey }
         </div>
       </div>
       <KeyStrip letters={letters} given={given} selected={selected} onPick={done ? undefined : (n) => setSelected(n)} />
-      <div className="flex h-5 w-full shrink-0 items-center justify-center font-mono text-xs uppercase tracking-widest text-muted-foreground" aria-live="polite">
+      <div data-cw-status="" className="flex h-6 w-full shrink-0 items-center justify-center font-mono text-xs uppercase tracking-widest text-muted-foreground" aria-live="polite">
         {note ? (
           <span className="text-destructive">{note}</span>
         ) : solved ? (
@@ -278,16 +281,14 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkMoves, stateKey }
           <span>Checking…</span>
         ) : actions.length > 0 ? (
           // Batch W: the live summary once a letter is placed (counts the grid already shows).
-          <LiveSummary
+          <HudPills
             testId="codeword"
-            parts={[
-              <><b>{placedCount}</b> placed</>,
-              <><b>{Math.max(0, numbers - givens.length - placedCount)}</b> to go</>,
+            items={[
+              { id: "placed", label: "Placed", value: placedCount, tone: "gold" },
+              { id: "togo", label: "To go", value: Math.max(0, numbers - givens.length - placedCount) },
             ]}
           />
-        ) : (
-          <span>Tap a square, then a letter</span>
-        )}
+        ) : null /* 3 Nov 2026 (Joe's audit): no on-board hint; the intro's HOW says "Tap a square, then a letter". */}
       </div>
       <LetterKeypad
         onLetter={pressLetter}

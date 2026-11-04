@@ -1,0 +1,170 @@
+/*
+ * Logic polish (3 Nov 2026, Joe's audit; display only, no game's play, answers or scoring changed).
+ * Imported by the games it styles: Regions (fillomino), Tents and Trees, Mosaic (nonogram), Lamplighter (lightup)
+ * and Colour Flood. Selectors are doubled where they must win over the batch P / pass 2 rules.
+ */
+
+/* Status pills inside a Logic arena (under the board, where the old summary line sat): the same reserved line. */
+[data-logic-stage] .logic-hud-pills {
+  margin-top: 6px;
+}
+
+/* ------------------------------------------------------------------ Regions (fillomino) */
+/* The 1–9 pad and the eraser in two rows of five: every key at least 44 px wide and exactly 44 px tall. */
+[data-logic-stage="fillomino"][data-logic-stage] .fillomino-pad {
+  grid-template-columns: repeat(5, minmax(44px, 1fr));
+  gap: 6px;
+}
+[data-logic-stage="fillomino"][data-logic-stage] .fillomino-pad .fillomino-key {
+  height: 44px;
+  min-height: 44px;
+  font-size: 20px;
+  line-height: 1;
+}
+
+/* ------------------------------------------------------------------ Tents and Trees */
+/* Bigger pieces: trees and tents fill most of their square, the signpost numbers read at a glance. */
+.logic-camp > .logic-camp-cell > svg {
+  width: 88%;
+  height: 88%;
+}
+.logic-camp > .logic-camp-cell > svg.logic-tent {
+  width: 92%;
+  height: 92%;
+}
+[data-logic-stage="tents"] .logic-camp.logic-camp > .logic-sign {
+  font-size: 19px;
+  font-weight: 800;
+  line-height: 1.15;
+  color: #fff6e6;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.8), 0 0 3px rgba(0, 0, 0, 0.6);
+}
+/* A finished line's sign fades less, so its number still reads. */
+.logic-camp.logic-camp > .logic-sign.opacity-40 {
+  opacity: 0.55;
+}
+/* Grid contrast: each square a clearly edged patch of grass, lighter than the gaps between. */
+[data-puzzle-play][data-puzzle-play] .logic-camp.logic-camp > .logic-camp-cell,
+.logic-camp.logic-camp > .logic-camp-cell {
+  border-color: rgba(190, 240, 170, 0.42);
+  background-color: color-mix(in oklab, var(--grass, #2f5a2c) 100%, #ffffff 6%);
+}
+.logic-camp-frame.logic-camp-frame {
+  background-color: #070b08;
+}
+
+/* ------------------------------------------------------------------ Mosaic (nonogram) */
+/* Larger clue numbers in the live round (the reveal keeps its own 12 px). */
+[data-logic-stage="nonogram"] .logic-nonogram-board.logic-nonogram-board > span {
+  font-size: max(16px, calc(100cqw / 8.15 * 0.4));
+  font-weight: 800;
+  color: #f3f1ec;
+}
+[data-logic-stage="nonogram"] .logic-nonogram-board.logic-nonogram-board > span.text-muted-foreground\/40 {
+  color: color-mix(in oklab, var(--muted-foreground) 55%, transparent);
+}
+[data-logic-stage="nonogram"] .logic-nonogram-board > .nono-clue-col {
+  line-height: 1.05;
+  padding-bottom: 4px;
+}
+[data-logic-stage="nonogram"] .logic-nonogram-board > .nono-clue-row {
+  padding-right: 5px;
+  gap: 4px;
+  letter-spacing: 0;
+}
+/* A row of four or more runs keeps inside its clue column: a little smaller, tighter. */
+[data-logic-stage="nonogram"] .logic-nonogram-board.logic-nonogram-board > .nono-clue-row:is([data-runs="4"], [data-runs="5"]) {
+  font-size: max(14px, calc(100cqw / 8.15 * 0.32));
+  gap: 2px;
+  padding-right: 3px;
+}
+
+/* ------------------------------------------------------------------ Lamplighter (lightup) */
+/* Lit squares: a light, warm tint instead of the heavy gold wash; the beams stay the light's line. (Specificity
+   0,6,0 to beat the shared surface's !important cell rules and pass 2's.) */
+.logic-lamps.logic-lamps.logic-lamps > .logic-lamp-cell.lightup-cell-lit.lightup-cell-lit {
+  background-color: #29261f !important;
+  background-image: radial-gradient(circle at 50% 50%, rgba(255, 226, 160, 0.16), rgba(255, 226, 160, 0.05) 75%) !important;
+  box-shadow: inset 0 0 6px rgba(255, 210, 130, 0.18) !important;
+}
+.logic-lamps.logic-lamps.logic-lamps .lightup-beam.lightup-beam {
+  background: rgba(255, 222, 150, 0.55);
+  box-shadow: 0 0 4px rgba(255, 200, 90, 0.35);
+}
+/* Walls: near-black blocks with a crisp light edge; their numbers white, bold and large. */
+.logic-lamps.logic-lamps.logic-lamps > .logic-wall.lightup-wall.lightup-wall {
+  background-color: #050506 !important;
+  background-image: none !important;
+  box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, 0.4), 0 2px 3px rgba(0, 0, 0, 0.6) !important;
+}
+.logic-lamps.logic-lamps.logic-lamps > .logic-wall.lightup-wall.bg-destructive {
+  background-color: var(--destructive) !important;
+}
+.logic-lamps.logic-lamps > .logic-wall > span:first-child {
+  color: #ffffff;
+  font-weight: 800;
+  text-shadow: none;
+}
+[data-logic-stage="lightup"] .logic-lamps > .logic-wall > span:first-child {
+  font-size: clamp(16px, 5.4cqw, 24px);
+}
+/* A wall whose count is met: its tick in the success green. */
+.logic-lamps.logic-lamps > .logic-wall > span.text-primary {
+  color: #5fe69c;
+}
+
+/* ------------------------------------------------------------------ Colour Flood: the reveal */
+.flood-reveal-figures {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+}
+.flood-reveal-figure {
+  display: flex;
+  min-width: 96px;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 8px 16px;
+  border-radius: 14px;
+  background: rgba(10, 10, 14, 0.55);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+}
+.flood-reveal-figure > span {
+  font-family: var(--ap-font, "Manrope", system-ui, sans-serif);
+  font-size: 13px;
+  font-weight: 600;
+  color: #c9c6cf;
+}
+.flood-reveal-figure > b {
+  font-family: var(--ap-font, "Manrope", system-ui, sans-serif);
+  font-size: 32px;
+  font-weight: 800;
+  line-height: 1.1;
+  color: #f3f1ec;
+  font-variant-numeric: tabular-nums;
+}
+.flood-reveal-figure[data-tone="good"] > b {
+  color: #5fe69c;
+}
+.flood-reveal-figure[data-tone="over"] > b {
+  color: #ffb070;
+}
+.flood-reveal-strip {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px;
+  max-width: 320px;
+  margin-inline: auto;
+}
+.flood-reveal-swatch {
+  width: 18px;
+  height: 18px;
+  border-radius: 5px;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+.flood-reveal-swatch[data-over-par] {
+  outline: 2px solid rgba(255, 176, 112, 0.85);
+  outline-offset: 1px;
+}

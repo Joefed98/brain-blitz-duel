@@ -1,14 +1,16 @@
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { Button } from "@/components/ui/button";
 import { useGameColumnLayout } from "@/components/puzzles/gameColumn";
-import { useContext, useEffect, useRef, useState, type CSSProperties, type ReactNode, type RefObject } from "react";
-import { useBeforePaint } from "@/components/puzzles/useBeforePaint";
+import { useContext, useEffect, useRef, useState, type CSSProperties } from "react";
+import { FitLine, useFitOneLine } from "@/components/puzzles/useFitOneLine";
 import { PolishStyle, soundCue, useSolveFx } from "@/components/puzzles/numberPolish";
 import { useGameKeys } from "@/lib/desktop";
 import { GoalLineContext } from "@/components/duel/GameFrame";
-import { LiveSummary } from "@/components/puzzles/batchW/LiveSummary";
+import { HudPills } from "@/components/puzzles/HudPills";
 import { wrongMoveFlash } from "@/lib/fx/gameToolkit";
 import "@/polish-layout/batch-w-equation.css";
+import { equationVerdict, operatorGapsDealt, usesOperatorGaps } from "@/lib/duel/operatorGaps";
+import { GapsIntroExample, GapsReveal, GapsStage } from "./equationGaps";
 
 import { StageProgress } from "@/components/puzzles/StageProgress";
 import { StageCorrect, useStageCorrectHold } from "@/components/puzzles/StageCorrect";
@@ -138,34 +140,6 @@ const OP_EQUATION_MIN_PX = 16;
 /** In a live round's frame (polish batch W) the equation starts larger, using the board's spare room; it still shrinks to fit. */
 const OP_EQUATION_FRAME_PX = 46;
 
-function useFitOneLine(box: RefObject<HTMLElement | null>, line: RefObject<HTMLElement | null>, basePx: number, minPx: number, key: unknown) {
-  useBeforePaint(() => {
-    const el = box.current;
-    const inner = line.current;
-    if (!el || !inner) return;
-    const fit = () => {
-      el.style.setProperty("--fit-fs", `${basePx}px`);
-      const style = getComputedStyle(el);
-      const avail = el.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
-      const need = inner.scrollWidth;
-      if (!(avail > 0) || !(need > avail)) return;
-      // Half-pixel steps, a pixel's slack for rounding in the glyph widths.
-      const px = Math.max(minPx, Math.floor(((basePx * (avail - 1)) / need) * 2) / 2);
-      el.style.setProperty("--fit-fs", `${px}px`);
-    };
-    fit();
-    if (typeof ResizeObserver === "undefined") return;
-    let width = el.clientWidth;
-    const watch = new ResizeObserver(() => {
-      if (el.clientWidth === width) return;
-      width = el.clientWidth;
-      fit();
-    });
-    watch.observe(el);
-    return () => watch.disconnect();
-  }, [key, basePx, minPx]);
-}
-
 export function OperatorSlot({ value, onClick, fresh, next }: { value: Operator | null; onClick?: (() => void) | undefined; fresh?: boolean; next?: boolean }) {
   return (
     <Button
@@ -183,7 +157,7 @@ export function OperatorSlot({ value, onClick, fresh, next }: { value: Operator 
   );
 }
 
-function IntroExample() {
+function SignsIntroExample() {
   return (
     <div className="flex flex-col items-center gap-3">
       <div className="flex items-center gap-1.5 font-mono text-xl font-bold tabular-nums">
@@ -215,7 +189,7 @@ function IntroSlot() {
   );
 }
 
-function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "equation" }: PuzzleStageProps) {
+function SignsStage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "equation" }: PuzzleStageProps) {
   const column = useGameColumnLayout();
   // In a live round's frame the goal line shows the stage (StageProgress), so the board drops its own count.
   const inFrame = useContext(GoalLineContext) !== null;
@@ -365,16 +339,16 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "equation" 
         {inFrame ? (
           // The live summary (polish batch W): tries, slots filled, equations right so far, in the tries
           // line's place inside the board, so the board keeps main's size.
-          <LiveSummary
+          <HudPills
             testId="equation"
-            parts={[
-              tryLimit !== null ? (
-                <span data-move-limit={tryLimit}>
-                  {outOfTries ? <span className="text-warn">No tries left</span> : <>Tries <span className="text-primary">{limitText(triesUsed, tryLimit)}</span></>}
-                </span>
-              ) : null,
-              <><b>{slots.filter(Boolean).length}</b> of {slots.length} slots</>,
-              <><b>{rightSoFar}</b> of {total} right</>,
+            items={[
+              tryLimit !== null
+                ? outOfTries
+                  ? { id: "tries", value: "No tries left", tone: "warn", limit: tryLimit }
+                  : { id: "tries", label: "Tries", value: limitText(triesUsed, tryLimit), limit: tryLimit }
+                : null,
+              { id: "slots", label: "Slots", value: `${slots.filter(Boolean).length}/${slots.length}` },
+              { id: "right", label: "Right", value: `${rightSoFar}/${total}`, tone: rightSoFar > 0 ? "good" : undefined },
             ]}
           />
         ) : null}
@@ -443,18 +417,6 @@ function Line({ numbers, ops }: { numbers: number[]; ops: string[] }) {
   );
 }
 
-/** A reveal line kept on one line (useFitOneLine), its font cut only as far as it must be. */
-function FitLine({ className, basePx, fitKey, children }: { className: string; basePx: number; fitKey: string; children: ReactNode }) {
-  const box = useRef<HTMLParagraphElement>(null);
-  const line = useRef<HTMLSpanElement>(null);
-  useFitOneLine(box, line, basePx, 11, fitKey);
-  return (
-    <p ref={box} className={className} style={{ "--fit-base": `${basePx}px` } as CSSProperties}>
-      <span ref={line} className="op-fit-line">{children}</span>
-    </p>
-  );
-}
-
 const OPERATOR_REVEAL_CSS = `
 .op-reveal { display: flex; min-height: 0; width: 100%; flex: 1 1 auto; flex-direction: column; justify-content: center; gap: 8px; }
 .op-reveal-row { position: relative; display: flex; width: 100%; flex-direction: column; align-items: center; gap: 2px; padding: 8px 10px 9px; border-radius: 14px;
@@ -470,7 +432,7 @@ const OPERATOR_REVEAL_CSS = `
 .op-reveal-mine { text-align: center; font-family: var(--font-mono); font-size: 16px; font-weight: 700; font-variant-numeric: tabular-nums; color: #ff7a70; }
 `;
 
-function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
+function SignsReveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   if (puzzle.type !== "equation") return null;
   const tryLimit = equationTryLimit(puzzle);
   const { body, counts: tries } = tryLimit !== null ? splitCountSuffix(myAnswer) : { body: myAnswer ?? "", counts: [] as number[] };
@@ -501,6 +463,25 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   );
 }
 
+/* Operator's gaps (puzzle polish, 3 Nov 2026, gapsRev 1; equationGaps.tsx): the stamp picks the screen. */
+function IntroExample() {
+  return operatorGapsDealt() ? <GapsIntroExample /> : <SignsIntroExample />;
+}
+
+function Stage(props: PuzzleStageProps) {
+  if (!usesOperatorGaps(props.puzzle)) return <SignsStage {...props} />;
+  return (
+    <>
+      <PolishStyle id="equation" css={OPERATOR_CSS} />
+      <GapsStage {...props} />
+    </>
+  );
+}
+
+function Reveal(props: PuzzleRevealProps) {
+  return usesOperatorGaps(props.puzzle) ? <GapsReveal {...props} /> : <SignsReveal {...props} />;
+}
+
 export const equationPuzzle: PuzzleDefinition = {
   key: "equation",
   name: gameDisplayName("equation"),
@@ -510,7 +491,7 @@ export const equationPuzzle: PuzzleDefinition = {
   check: (answer, puzzle) => {
     if (puzzle.type !== "equation") return false;
     const parts = splitStages(splitCountSuffix(answer).body, puzzle.stages.length);
-    return puzzle.stages.every((st, i) => equationStageCorrect(st.numbers, st.target, parts[i] ?? ""));
+    return puzzle.stages.every((_st, i) => equationVerdict(puzzle, i, parts[i] ?? ""));
   },
   IntroExample,
   Stage,

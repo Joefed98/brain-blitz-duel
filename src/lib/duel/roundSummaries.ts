@@ -1,3 +1,4 @@
+import { equationVerdict, gapStageText, usesOperatorGaps } from "./operatorGaps";
 import { usesParMoves } from "./parMoves";
 import { bastionStdSpecFor } from "@/lib/arcade/bastionTank";
 import { PUZZLE_SCORE_REV, puzzleScoreRevOf } from "./puzzleScoreRev";
@@ -321,13 +322,16 @@ function equationSummary(result: RoundResultRow, puzzle: PuzzleData): BuiltDetai
   const tryLimit = equationTryLimit(puzzle);
   const { body, counts: tries } = tryLimit !== null ? splitCountSuffix(result.answer) : { body: result.answer, counts: [] };
   const parts = splitStages(body, puzzle.stages.length);
-  const correct = puzzle.stages.map((st, i) =>
-    equationStageCorrect(st.numbers, st.target, parts[i] ?? "") && (tryLimit === null || (tries[i] ?? 0) <= tryLimit));
+  const gaps = usesOperatorGaps(puzzle);
+  const correct = puzzle.stages.map((_st, i) =>
+    equationVerdict(puzzle, i, parts[i] ?? "") && (tryLimit === null || (tries[i] ?? 0) <= tryLimit));
   return {
     summary: `${correct.filter(Boolean).length} / ${puzzle.stages.length} equations · ${seconds(elapsedMs(result, puzzle))}`,
     detail: correct.map((ok, i) => {
       const overTries = tryLimit !== null && (tries[i] ?? 0) > tryLimit;
-      return `Equation ${i + 1}: ${parts[i] ? joinOperators(parts[i]!.split(",")) : "skipped"} ${ok ? "✓" : "✗"}${overTries ? ` (over ${tryLimit} tries)` : ""}`;
+      // gapsRev 1: the equation as filled ("7 + 3 × 2 = 20").
+      const shown = gaps ? gapStageText(puzzle.stages[i]!, parts[i] ?? "") : joinOperators(parts[i]!.split(","));
+      return `Equation ${i + 1}: ${parts[i] ? shown : "skipped"} ${ok ? "✓" : "✗"}${overTries ? ` (over ${tryLimit} tries)` : ""}`;
     }),
   };
 }
@@ -1974,7 +1978,12 @@ export const CORRECT_ANSWERS: Record<PuzzleType, AnswerBuilder> = {
   wordslide: (p) => (p.type === "wordslide" && p.words ? p.words.join(" · ") : null),
   target: (p) => (p.type === "target" ? String(p.target) : null),
   reaction: () => null,
-  equation: (p) => (p.type === "equation" && p.operators ? p.operators.map((ops) => joinOperators(ops)).join(" · ") : null),
+  equation: (p) =>
+    p.type !== "equation"
+      ? null
+      : usesOperatorGaps(p)
+        ? p.gapAnswers ? p.stages.map((st, i) => gapStageText(st, p.gapAnswers![i] ?? "")).join(" · ") : null
+        : p.operators ? p.operators.map((ops) => joinOperators(ops)).join(" · ") : null,
   stroop: () => null,
   symscan: (p) => (p.type === "symscan" && p.targets ? p.targets.map((t) => t.length).join(" · ") + " arrows" : null),
   numhunt: () => null,

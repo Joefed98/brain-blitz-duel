@@ -9,8 +9,8 @@ import {
   usePrefersReducedMotion,
 } from "@/components/puzzles/GridDrag";
 import { UnblockCarArt, UnblockExitFx, UnblockLot } from "@/components/puzzles/pattern/unblockArt";
-import { LiveSummary, SummaryItem, useInFrame } from "@/components/puzzles/batchP/LiveSummary";
-import { parItems } from "@/components/puzzles/depth4/ParMeter";
+import { useInFrame } from "@/components/puzzles/batchP/LiveSummary";
+import { FramePills, parPills } from "@/components/puzzles/pattern/framePills";
 import { soundCue, useSolveMoment } from "@/lib/fx/patternFx";
 import { clampSlide, encodeMoves, isSolved, position, type UnblockMove } from "@/lib/duel/unblock";
 import {
@@ -297,11 +297,12 @@ export function UnblockPuzzle({
         </UnblockLot>
       </div>
 
-      {/* unblockRev 1 (depth batch 4): "Moves n · Par p" with the par meter. */}
-      <LiveSummary
+      {/* unblockRev 1 (depth batch 4): "Moves n" and "Par p" as pills (puzzle polish, 3 Nov 2026). */}
+      <FramePills
+        testId="unblock"
         items={(puzzle.unblockRev ?? 0) >= 1 && (puzzle.par ?? 0) > 0
-          ? parItems("Moves", moveCount, puzzle.par!)
-          : [<SummaryItem key="moves" label="Moves" value={moveCount} />]}
+          ? parPills("Moves", moveCount, puzzle.par!)
+          : [{ id: "moves", label: "Moves", value: moveCount }]}
       />
 
       <div data-game-controls="actions" className="flex gap-2">

@@ -1,7 +1,8 @@
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { solutionProgress } from "@/lib/duel/progressFigures";
 import { puzzleReject } from "@/lib/fx/puzzleReject";
-import { LiveSummary, SummaryItem, useFrameProgress } from "@/components/puzzles/batchP/LiveSummary";
+import { useFrameProgress } from "@/components/puzzles/batchP/LiveSummary";
+import { FramePills } from "@/components/puzzles/pattern/framePills";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 
 import { gridCellCentre, useGridMetrics, useGridPointer } from "@/components/puzzles/GridDrag";
@@ -311,7 +312,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "flow" }: P
           solved={verdict.solved}
         />
       </div>
-      <LiveSummary items={[<SummaryItem key="cells" label="Filled" value={`${filled} / ${FLOW_CELLS - walls.length}`} />]} />
+      <FramePills testId="flow" items={[{ id: "filled", label: "Filled", value: `${filled} / ${FLOW_CELLS - walls.length}` }]} />
     </div>
   );
 }

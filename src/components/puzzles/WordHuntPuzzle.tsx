@@ -2,6 +2,7 @@ import { useGameKeys } from "@/lib/desktop";
 import { playWrong } from "@/lib/sound";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AcceptedWordChip } from "./AcceptedWordChip";
+import { HudPills, type HudPillItem } from "./HudPills";
 import { extendWordHuntPath, wordHuntInnerCell } from "./wordInput";
 
 import {
@@ -406,11 +407,21 @@ export function WordHuntPuzzle({
 
   // Batch W live summary (display only): what the status line shows when no message is up.
   const best = found.reduce<Found | null>((top, entry) => (!top || valueOf(entry) > valueOf(top) || (valueOf(entry) === valueOf(top) && entry.word.length > top.word.length) ? entry : top), null);
-  const summary = path.length > 0
-    ? `${path.length} letter${path.length === 1 ? "" : "s"}${path.length < WORDHUNT_MIN_LENGTH ? ` · ${WORDHUNT_MIN_LENGTH} needed` : ""}`
+  // Puzzle polish (3 Nov 2026): separate pills, never one line with dots in it.
+  const summary: Array<HudPillItem | null> = path.length > 0
+    ? [
+        { id: "letters", label: path.length === 1 ? "Letter" : "Letters", value: path.length },
+        path.length < WORDHUNT_MIN_LENGTH ? { id: "needed", label: "Need", value: WORDHUNT_MIN_LENGTH, tone: "gold" } : null,
+      ]
     : best
-      ? `Best ${best.word} · ${valueOf(best)} pts`
-      : `Drag through touching letters · ${WORDHUNT_MIN_LENGTH}+`;
+      ? [
+          { id: "best", label: "Best", value: best.word },
+          { id: "points", label: "Pts", value: valueOf(best), tone: "gold" },
+        ]
+      : [
+          { id: "hint", label: "Drag through touching letters" },
+          { id: "min", label: "Min", value: `${WORDHUNT_MIN_LENGTH}+` },
+        ];
 
   return (
     <div data-polish="wordhunt" data-stage-column="2" className="flex min-h-0 flex-1 flex-col gap-2">
@@ -442,7 +453,13 @@ export function WordHuntPuzzle({
         </div>
       </div>
 
-      <p data-game-controls="status" data-live-summary="wordhunt" className={`h-4 shrink-0 truncate text-center leading-4 ${message ? "font-mono text-xs text-warn" : "text-[13px] font-semibold text-[#a09da6] tabular-nums"}`}>{message ?? summary}</p>
+      {message ? (
+        <p data-game-controls="status" data-live-summary="wordhunt" className="h-6 shrink-0 truncate text-center font-mono text-xs leading-6 text-warn">{message}</p>
+      ) : (
+        <div data-game-controls="status" data-live-summary="wordhunt" className="h-6 shrink-0">
+          <HudPills testId="wordhunt" items={summary} />
+        </div>
+      )}
 
       <button
         type="button"

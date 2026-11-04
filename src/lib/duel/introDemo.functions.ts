@@ -91,6 +91,9 @@ export const getIntroDemoFn = createServerFn({ method: "GET" })
     // new colour schemes) play differently, so only demos recorded on those stamps play.
     if (data.type === "gravity" && demo?.puzzle.type === "gravity" && (demo.puzzle.gravityRev ?? 0) < 4) return null;
     if (data.type === "tiles" && demo?.puzzle.type === "tiles" && (demo.puzzle.tilesRev ?? 0) < 4) return null;
+    // Operator's gaps (puzzle polish, 3 Nov 2026, gapsRev 1): number and mixed gaps on a new screen, so a signs-only demo
+    // stays stopped (the intro shows its still) until one is recorded on gapsRev 1.
+    if (data.type === "equation" && demo?.puzzle.type === "equation" && (demo.puzzle.gapsRev ?? 0) < 1) return null;
     // Four-step bomb demos cannot replay the six-step example, and version-2 demos show the old clue wording (version 3 rewrote every clue, 14 Oct 2026).
     if (data.type === "bomb" && demo?.puzzle.type === "bomb" && demo.puzzle.bombVersion !== 3) return null;
     // strikeoutRev 3 (15 Oct 2026) shows ten strike markers, three vowel dots and an extra starting letter on words 1–3,

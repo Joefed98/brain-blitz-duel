@@ -1,0 +1,147 @@
+/* Puzzle polish (3 Nov 2026, Joe's audit): Speed and Attention, display only. Flash and Bang On's two-column result
+   lists, Bang On's larger watch and quieter "Tap to stop", Don't Break the Chain's larger charms, Labyrinth's quieter
+   arrow pad, Bomb Defusal's roomier clue list and Matchmaker's larger cards. Size rules are scoped to a live round
+   ([data-puzzle-play]) so intros and recorded demos keep their layout. */
+
+/* ============================================================ Flash / Bang On reveal lists */
+.speed-reveal-list {
+  display: grid;
+  grid-auto-flow: column;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: 10px;
+  row-gap: 4px;
+  width: 100%;
+  max-width: 340px;
+  margin: 0 auto;
+  padding: 0;
+  list-style: none;
+}
+.speed-reveal-row {
+  display: flex;
+  min-width: 0;
+  height: 30px;
+  align-items: center;
+  gap: 8px;
+  padding: 0 10px;
+  border-radius: 10px;
+  background: rgba(10, 10, 14, 0.5);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.07);
+  font-family: var(--ap-font, "Manrope", system-ui, sans-serif);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.speed-reveal-n {
+  width: 1.4em;
+  flex-shrink: 0;
+  font-size: 12px;
+  font-weight: 700;
+  color: #b4b1bb;
+}
+.speed-reveal-v {
+  margin-left: auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 15px;
+  font-weight: 800;
+  color: #f3f1ec;
+}
+.speed-reveal-row[data-missed] .speed-reveal-v { color: #ff8a80; }
+.speed-reveal-row[data-bangon-mark="zone"] { box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--primary) 55%, transparent); }
+.speed-reveal-row[data-bangon-mark="centre"] {
+  box-shadow: inset 0 0 0 1px var(--primary), 0 0 10px color-mix(in oklab, var(--primary) 35%, transparent);
+}
+.speed-reveal-row[data-bangon-mark="centre"] .speed-reveal-v { color: var(--primary); }
+.speed-reveal-notes {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  font-size: 13px;
+  line-height: 18px;
+  color: #b4b1bb;
+  text-align: center;
+}
+
+/* ============================================================ Bang On (stopwatch) live round */
+/* A larger watch (the face up to 38 % of the screen's height, was 30 %; the vertical face wider, the diagonal one
+   larger) and a quieter "Tap to stop" / "Get ready": 18 px instead of 30 px, on the same 36 px line, so the result
+   ("+12 ms") keeps its size and nothing moves when it shows. The whole stage is still the tap target. */
+[data-puzzle-play][data-puzzle-play] [data-polish="stopwatch"] .bangon-face:not([data-vertical]):not(.bangon-face-diagonal) { height: clamp(176px, 38dvh, 330px); }
+[data-puzzle-play][data-puzzle-play] [data-polish="stopwatch"] .bangon-face[data-vertical] { width: 74%; }
+[data-puzzle-play][data-puzzle-play] [data-polish="stopwatch"] .bangon-diagonal { max-width: min(100%, 420px); }
+[data-puzzle-play][data-puzzle-play] [data-polish="stopwatch"] .bangon-face.bangon-face-diagonal { height: 112px; }
+[data-puzzle-play][data-puzzle-play] [data-polish="stopwatch"] [data-game-controls="status"][data-bangon-prompt] {
+  font-size: 18px;
+  line-height: 36px;
+  letter-spacing: 0.04em;
+  font-weight: 700;
+}
+
+/* ============================================================ Labyrinth (maze) arrow pad */
+/* Dragging on the maze is the main control, so the arrows are smaller and secondary on a live round: 52 × 44 px
+   (were full-width 68 px tall), grouped in the middle, outlined and muted, with the glyph in the quiet text colour
+   (still 44 px tap targets; desktop keys and the joystick switch unchanged). Intros keep the pad as it was. */
+[data-puzzle-play][data-puzzle-play] [data-polish="maze"] [data-maze-pad] [data-game-controls="arrows"] {
+  height: 60px;
+  padding-top: 8px;
+}
+[data-puzzle-play][data-puzzle-play] [data-polish="maze"] [data-maze-pad] [data-game-controls="arrows"] > div:first-child {
+  justify-content: center;
+  gap: 10px;
+}
+[data-puzzle-play][data-puzzle-play] [data-polish="maze"] [data-maze-pad] [data-game-controls="arrows"] > div:first-child > button {
+  flex: 0 0 52px;
+  height: 44px;
+  min-width: 44px;
+  border-color: rgba(255, 255, 255, 0.12);
+  background: rgba(10, 10, 14, 0.35);
+  background-image: none;
+  box-shadow: none;
+  color: #9a97a3;
+  font-size: 14px;
+}
+[data-puzzle-play][data-puzzle-play] [data-polish="maze"] [data-maze-pad] [data-game-controls="arrows"] > div:first-child > button:active {
+  background: color-mix(in srgb, var(--category-accent, #f2c75c) 18%, transparent);
+  color: #f3f1ec;
+}
+
+/* ============================================================ Bomb Defusal (bomb) clue list */
+/* The clues are the puzzle, so they get more room and larger type on a live round: 16 px on a 22 px line (14 px
+   on 21 before), more padding and a little air between clues; the bomb panel gives up the height (down to its
+   existing 196 px minimum, logic.css). */
+[data-puzzle-play][data-puzzle-play] [data-logic-stage="bomb"] .logic-bomb-rules {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+}
+[data-puzzle-play][data-puzzle-play] [data-logic-stage="bomb"] .logic-bomb-rules > p {
+  font-size: 16px;
+  line-height: 22px;
+}
+/* A short screen (375×667 with a notch and home bar) has no height to give: the clue list keeps its earlier size there
+   (bottom-clearance-check's seam test), only the gap between clues. */
+@media (max-height: 699px) {
+  [data-puzzle-play][data-puzzle-play] [data-logic-stage="bomb"] .logic-bomb-rules {
+    gap: 2px;
+    padding: revert-layer;
+  }
+  [data-puzzle-play][data-puzzle-play] [data-logic-stage="bomb"] .logic-bomb-rules > p {
+    font-size: 14px;
+    line-height: 20px;
+  }
+}
+
+/* ============================================================ Matchmaker (pairmatch) */
+/* Larger cards on a live round: the board up to 460 px wide (400 before; on a phone it now runs to the 12 px
+   margins), a tighter 3 px gap, the faces drawn 36 px (30 before) and, on screens 700 px tall or more, playing-card
+   cards (4 : 5; from 780 px before). The status pills sit over the board, the HUD. */
+[data-puzzle-play][data-puzzle-play] [data-polish="pairmatch"] > [data-game-arena="fixed"] {
+  max-width: 460px;
+}
+[data-puzzle-play][data-puzzle-play] [data-polish="pairmatch"] > [data-game-arena="fixed"] > .grid {
+  gap: 3px;
+}
+@media (min-height: 700px) {
+  [data-puzzle-play][data-puzzle-play] [data-polish="pairmatch"] .pairmatch-card { aspect-ratio: 4 / 5; }
+}

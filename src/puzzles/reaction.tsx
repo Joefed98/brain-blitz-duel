@@ -36,6 +36,7 @@ import { knots } from "@/lib/duel/depth200";
 import { FLASH_REV6_CURVE, FLASH_STEADY_LOOSE_MS, FLASH_STEADY_TIGHT_MS, flashSpread, usesFlashDepth } from "@/lib/duel/depth/flash";
 import { roundMaxFor } from "@/lib/duel/roundMax";
 
+import { SpeedRevealList } from "@/components/puzzles/SpeedRevealList";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
 const DECOY_COLOURS = REACTION_PLAIN_DECOYS;
@@ -538,24 +539,34 @@ function Reveal({ puzzle, myAnswer, myReactionAvgMs, myExtra }: PuzzleRevealProp
   const depth = usesFlashDepth(puzzle) ? storedFlashDepth(myExtra) : null;
   const avg = storedAvg ?? (times.length ? reactionAverage(times, falseStarts, puzzle.flashes.length) : null);
 
+  // Puzzle polish (3 Nov 2026): the big average first, then the reactions in two tidy columns and the notes under them.
   return (
     <>
-      <div className="flex flex-col items-center gap-1.5">
-        {times.length === 0 ? (
-          <p className="font-display text-2xl font-bold text-warn">No attempts</p>
-        ) : (
-          times.map((ms, index) => (
-            <p key={index} className="font-mono text-lg leading-7 tabular-nums text-foreground">
-              Flash {index + 1} - {ms >= REACTION_MISS_MS ? "missed (1,200 ms)" : `${ms} ms`}
-            </p>
-          ))
-        )}
-        <p className="mt-1 font-mono text-base text-muted-foreground">
+      <div className="flash-reveal-avg flex w-full flex-col items-center gap-1 rounded-2xl bg-card px-4 py-3">
+        <p className="text-sm uppercase tracking-[0.2em] text-muted-foreground">Your average</p>
+        <p className="font-mono text-4xl font-bold tabular-nums text-primary">{avg ?? "—"} ms</p>
+      </div>
+      {times.length === 0 ? (
+        <p className="font-display text-2xl font-bold text-warn">No attempts</p>
+      ) : (
+        <SpeedRevealList
+          testId="reaction"
+          label="Your reactions"
+          items={times.map((ms, index) =>
+            ms >= REACTION_MISS_MS
+              ? { value: "Missed", missed: true, label: `Flash ${index + 1} - missed (1,200 ms)` }
+              : { value: `${ms} ms`, label: `Flash ${index + 1} - ${ms} ms` },
+          )}
+        />
+      )}
+      <div className="speed-reveal-notes">
+        <p>
           False starts: {falseStarts}
           {falseStarts > 0 ? ` (−${cost} points)` : ""}
+          {times.some((ms) => ms >= REACTION_MISS_MS) ? ` · a miss counts ${REACTION_MISS_MS.toLocaleString("en-GB")} ms` : ""}
         </p>
         {depth ? (
-          <p data-flash-steady-reveal="" className="text-center font-mono text-sm text-muted-foreground">
+          <p data-flash-steady-reveal="">
             {depth.steady > 0
               ? `Steady hand: all within ${depth.spread} ms, +${depth.steady}`
               : depth.spread === null
@@ -564,14 +575,10 @@ function Reveal({ puzzle, myAnswer, myReactionAvgMs, myExtra }: PuzzleRevealProp
           </p>
         ) : null}
         {decoyReplay && decoyReplay.decoyCut > 0 ? (
-          <p className="text-center font-mono text-xs text-muted-foreground">
+          <p>
             Decoys tapped: {decoyReplay.decoysTapped} of {decoyReplay.decoysShown}, so reactions count slower
           </p>
         ) : null}
-      </div>
-      <div className="flash-reveal-avg flex w-full flex-col items-center gap-1 rounded-2xl bg-card px-4 py-4">
-        <p className="text-sm uppercase tracking-[0.2em] text-muted-foreground">Your average</p>
-        <p className="font-mono text-4xl font-bold tabular-nums text-primary">{avg ?? "—"} ms</p>
       </div>
     </>
   );

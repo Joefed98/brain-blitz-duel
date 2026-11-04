@@ -20,7 +20,10 @@ import {
 } from "@/lib/duel/types";
 import { playCorrect, playWrong } from "@/lib/sound";
 import { puzzleReject } from "@/lib/fx/puzzleReject";
-import { LiveSummary, SummaryItem, useInFrame } from "@/components/puzzles/batchP/LiveSummary";
+import { useInFrame } from "@/components/puzzles/batchP/LiveSummary";
+import { FramePills, parPills } from "@/components/puzzles/pattern/framePills";
+import { shownPar } from "@/lib/duel/parMoves";
+import "@/polish-layout/polish-nov3-pattern.css";
 import { IceGems } from "@/components/puzzles/depth4/IceGems";
 import { popCount, replayGems } from "@/lib/duel/depth4/iceGems";
 import { rightMoveFlash } from "@/lib/fx/gameToolkit";
@@ -193,6 +196,7 @@ function Stage({
   });
 
   if (!data) return null;
+  const par = shownPar(data);
 
   return (
     <div data-stage-column="2" data-polish="iceslide" className="flex min-h-0 flex-1 flex-col gap-2">
@@ -244,8 +248,9 @@ function Stage({
               aria-label="Ball"
               className="pointer-events-none absolute z-10 block rounded-full ice-player ice-ball"
               style={{
-                width: "calc((100% - 22px) * 0.066666667)",
-                height: "calc((100% - 22px) * 0.066666667)",
+                // 92 % of a square (12 across), as the resting ball (polish-nov3-pattern.css).
+                width: "calc((100% - 22px) * 0.076666667)",
+                height: "calc((100% - 22px) * 0.076666667)",
                 left: `calc((100% - 22px) * ${((visualBall.cell % SLIDE_COLS) + 0.5) / SLIDE_COLS} + ${(visualBall.cell % SLIDE_COLS) * 2}px)`,
                 top: `calc((100% - 22px) * ${(Math.floor(visualBall.cell / SLIDE_COLS) + 0.5) / SLIDE_COLS} + ${Math.floor(visualBall.cell / SLIDE_COLS) * 2}px)`,
                 transform: "translate(-50%, -50%)",
@@ -255,11 +260,14 @@ function Stage({
           )}
         </div>
       </div>
-      <LiveSummary
+      {/* Puzzle polish (3 Nov 2026): the summary as pills. On a stamp that shows its par (parMoves.ts `shownPar`),
+          "Moves n" is every slide made, an undone one included (the replay's count, as the server grades it). */}
+      <FramePills
+        testId="iceslide"
         items={[
-          <SummaryItem key="moves" label="Moves" value={replay.moves} />,
-          gems.length ? <SummaryItem key="gems" label="Gems" value={`${popCount(gemsShown)} / ${gems.length}`} /> : null,
-          replay.falls > 0 ? <SummaryItem key="falls" value={replay.falls} after={replay.falls === 1 ? "fall" : "falls"} warn /> : null,
+          ...(par !== null ? parPills("Moves", replay.moves, par) : [{ id: "moves", label: "Moves", value: replay.moves }]),
+          gems.length ? { id: "gems", label: "Gems", value: `${popCount(gemsShown)} / ${gems.length}` } : null,
+          replay.falls > 0 ? { id: "falls", label: replay.falls === 1 ? "Fall" : "Falls", value: replay.falls, tone: "warn" } : null,
         ]}
       />
       <ArrowPad onPress={slide} disabled={locked || replay.solved || animating} />

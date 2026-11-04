@@ -22,6 +22,8 @@ import { PAIR_GOLD_WINDOW_MS, isGoldCard, joinPairGoldTime, pairDepthReplay, pai
 import { serverNow } from "@/lib/duel/clock";
 import { pairGoldPoints, pairStandard } from "@/lib/duel/standard/attention";
 
+import { HudPills } from "@/components/puzzles/HudPills";
+import "@/polish-layout/polish-nov3-speedatt.css";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
 export function CardFace({ card, size }: { card: PairCard; size: number }) {
@@ -229,40 +231,49 @@ function Stage({
 
   return (
     <div data-polish="pairmatch" data-stage-column="3" className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3">
+      {/* Puzzle polish (3 Nov 2026): the status as separate pills ("Flips 23", "Streak 0", "Gold 12s"), not one line. */}
+      <div data-game-controls="status" className="pairmatch-hud flex w-full shrink-0 justify-center">
+      <HudPills
+        testId="pairmatch"
+        items={[
+          !framed && { id: "pairs", label: "Pairs", value: `${replay.pairs} / ${PAIR_PAIRS}`, tone: "gold" },
+          { id: "flips", label: "Flips", value: replay.flips },
+          depth && {
+            id: "streak",
+            label: "Streak",
+            value: (
+              <span key={depth.multiplier} data-pair-streak={depth.multiplier} className={`pairmatch-streak ${depth.multiplier >= 2 ? "is-live animate-scale-in" : ""}`}>
+                {standard ? depth.streak : `×${depth.multiplier}`}
+              </span>
+            ),
+            ...(depth.multiplier >= 2 ? { tone: "gold" as const } : {}),
+          },
+          depth && depth.goldTry !== null && {
+            id: "gold",
+            label: "Gold",
+            value: <span data-pair-gold-found="" className="pairmatch-gold-found">+{standard ? pairGoldPoints(depth.goldTry, depth.goldMs) : depth.goldBonus}</span>,
+            tone: "gold",
+          },
+          // pairRev 2: the gold pair's window, counting down (display only).
+          depth && depth.goldTry === null && timedGold && now - phaseStartedAt < PAIR_GOLD_WINDOW_MS && {
+            id: "gold",
+            label: "Gold",
+            value: <span data-pair-gold-window="">{Math.max(0, Math.ceil((PAIR_GOLD_WINDOW_MS - (now - phaseStartedAt)) / 1000))}s</span>,
+          },
+        ]}
+      />
+      </div>
       <div ref={boardRef} data-game-arena="fixed" className="w-full max-w-[340px]">
         <Board
           cards={data.cards}
           faceUp={new Set(open)}
           matched={matched}
-          glyph={30}
+          glyph={36}
           compact
           gold={depth ? data.gold : undefined}
           onCard={open.length >= 2 ? undefined : tap}
         />
       </div>
-      <p data-game-controls="status" className="shrink-0 text-center font-mono text-xs text-muted-foreground">
-        {framed ? `${replay.flips} flips` : `pairs ${replay.pairs} / ${PAIR_PAIRS} · flips ${replay.flips}`}
-        {depth ? (
-          <>
-            {" · "}
-            <span key={depth.multiplier} data-pair-streak={depth.multiplier} className={`pairmatch-streak ${depth.multiplier >= 2 ? "is-live animate-scale-in" : ""}`}>
-              {standard ? `streak ${depth.streak}` : `streak ×${depth.multiplier}`}
-            </span>
-            {depth.goldTry !== null ? (
-              <>
-                {" · "}
-                <span data-pair-gold-found="" className="pairmatch-gold-found">gold +{standard ? pairGoldPoints(depth.goldTry, depth.goldMs) : depth.goldBonus}</span>
-              </>
-            ) : timedGold && now - phaseStartedAt < PAIR_GOLD_WINDOW_MS ? (
-              <>
-                {" · "}
-                {/* pairRev 2: the gold pair's window, counting down (display only). */}
-                <span data-pair-gold-window="">gold {Math.max(0, Math.ceil((PAIR_GOLD_WINDOW_MS - (now - phaseStartedAt)) / 1000))}s</span>
-              </>
-            ) : null}
-          </>
-        ) : null}
-      </p>
     </div>
   );
 }

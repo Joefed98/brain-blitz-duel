@@ -6,7 +6,7 @@
 import { BLOCK_STD, FLOW_STD, ICE_STD, LASER_STD, PATTERN_STD, PUSH_STD, SHARE_CREDIT, SHARE_EARLY, TOPSY_STD, type PatternStdType } from "./patternRules";
 import { STANDARD_FINISH, STANDARD_UNFINISHED_CAP } from "./shape";
 import { fillMax } from "../roundMax";
-import { PAR_MOVES_STD, parMovesDealt } from "../parMoves";
+import { PAR_MOVES_STD, PAR_STRICT_FULL_BY_S, parMovesDealt, parStrictDealt } from "../parMoves";
 
 /** The intro line (two phone lines at most, no scoring terms). */
 export const PATTERN_STD_INTRO: Record<PatternStdType, string> = {
@@ -103,28 +103,38 @@ export const PAR_MOVES_PATTERN_INTRO: Record<"iceslide" | "gravity", string> = {
   gravity: "Points for balls home. Clear all three boards fast in the fewest tilts for up to {max}.",
 };
 
-function parMovesFinish(type: "iceslide" | "gravity", what: string, parIs: string): string {
-  return `Finish: ${STANDARD_FINISH}, + up to ${PAR_MOVES_STD.speed} for speed (all of it if you finish within ${PATTERN_STD[type].fullByS} s, less as the clock runs down, none at the buzzer), + up to ${PAR_MOVES_STD.par} for ${what}: all of it at par (${parIs}) or under, less for each one over, none at twice par.`;
+function parMovesFinish(type: "iceslide" | "gravity", what: string, parIs: string, strict: boolean): string {
+  // slideRev 4 / gravityRev 7 (puzzle polish, 3 Nov 2026): par shown on screen, speed full earlier, par gone at 1.5×.
+  const fullBy = strict ? PAR_STRICT_FULL_BY_S[type] : PATTERN_STD[type].fullByS;
+  return `Finish: ${STANDARD_FINISH}, + up to ${PAR_MOVES_STD.speed} for speed (all of it if you finish within ${fullBy} s, less as the clock runs down, none at the buzzer), + up to ${PAR_MOVES_STD.par} for ${what}: all of it at par (${parIs}${strict ? ", shown on screen" : ""}) or under, less for each one over, none at ${strict ? "one and a half times" : "twice"} par.`;
+}
+
+function parMovesHelp(strict: boolean): Record<"iceslide" | "gravity", string> {
+  return {
+    iceslide: [
+      parMovesFinish("iceslide", "slides", "the fewest slides the exit can be reached in", strict),
+      byShare(`the share of the route you close (the fewest slides left from the closest you got)${waste("slides")}`),
+      "{max} needs both.",
+    ].join(" "),
+    gravity: [
+      parMovesFinish("gravity", "tilts", "the fewest tilts that clear each board, added up", strict),
+      byShare(`the share of the balls home${waste("tilts")}`),
+      "{max} needs both.",
+    ].join(" "),
+  };
 }
 
 /** The "?" help SCORE text on the puzzle batch's stamps. */
-export const PAR_MOVES_PATTERN_HELP: Record<"iceslide" | "gravity", string> = {
-  iceslide: [
-    parMovesFinish("iceslide", "slides", "the fewest slides the exit can be reached in"),
-    byShare(`the share of the route you close (the fewest slides left from the closest you got)${waste("slides")}`),
-    "{max} needs both.",
-  ].join(" "),
-  gravity: [
-    parMovesFinish("gravity", "tilts", "the fewest tilts that clear each board, added up"),
-    byShare(`the share of the balls home${waste("tilts")}`),
-    "{max} needs both.",
-  ].join(" "),
-};
+export const PAR_MOVES_PATTERN_HELP: Record<"iceslide" | "gravity", string> = parMovesHelp(false);
+/** The "?" help SCORE text on the stricter-par stamps (puzzle polish, 3 Nov 2026). */
+export const PAR_STRICT_PATTERN_HELP: Record<"iceslide" | "gravity", string> = parMovesHelp(true);
+/** The help for the stamps dealt now. */
+export const parMovesPatternHelp = (type: "iceslide" | "gravity"): string => (parStrictDealt() ? PAR_STRICT_PATTERN_HELP : PAR_MOVES_PATTERN_HELP)[type];
 
 /** The help as shown ({max} filled in: the game's maximum, 200). */
 export function patternStdHelp(type: PatternStdType): string {
   // Skid and Topsy-Turvy state the puzzle batch's stamps while rooms deal them (parMoves.ts).
-  if ((type === "iceslide" || type === "gravity") && parMovesDealt()) return fillMax(PAR_MOVES_PATTERN_HELP[type], type);
+  if ((type === "iceslide" || type === "gravity") && parMovesDealt()) return fillMax(parMovesPatternHelp(type), type);
   return fillMax(PATTERN_STD_HELP[type], type);
 }
 

@@ -4,11 +4,12 @@
  * Topsy-Turvy look (polish-pattern/gravity.css, batch P); holes, stars, home drops and the rings are new
  * (topsy.css). The board animates what replayTopsy decided and never decides anything itself.
  */
-import { usesParMoves } from "@/lib/duel/parMoves";
+import { shownPar, usesParMoves } from "@/lib/duel/parMoves";
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 
 import { ArrowPad, gridCellCentre, useGridMetrics, usePrefersReducedMotion } from "@/components/puzzles/GridDrag";
-import { LiveSummary, SummaryItem, useFrameProgress } from "@/components/puzzles/batchP/LiveSummary";
+import { useFrameProgress } from "@/components/puzzles/batchP/LiveSummary";
+import { FramePills, parPills } from "@/components/puzzles/pattern/framePills";
 import { Button } from "@/components/ui/button";
 import { useGameKeys } from "@/lib/desktop";
 import { decodeGravityTilts, encodeGravityTilts } from "@/lib/duel/gravity";
@@ -283,6 +284,7 @@ export function TopsyStage({ puzzle, locked, onSubmit, onDraftAnswer, phaseStart
   const noStars = usesParMoves(data);
   const tiltText = limitHere ? `${tiltsHere} / ${limitHere}` : `${tiltsHere}`;
   const outOfTilts = Boolean(boardResult?.outOfTilts);
+  const par = shownPar(data);
 
   return (
     <div data-stage-column="2" data-polish="gravity" data-topsy="" className="flex min-h-0 flex-1 flex-col gap-2">
@@ -308,13 +310,23 @@ export function TopsyStage({ puzzle, locked, onSubmit, onDraftAnswer, phaseStart
         ) : null}
         {outOfTilts ? <span className="topsy-banner" data-topsy-banner="">Out of tilts</span> : null}
       </div>
-      <LiveSummary
-        items={[
-          <SummaryItem key="tilts" label="Tilts" value={<span data-move-limit={limitHere || undefined}>{tiltText}</span>} warn={outOfTilts} />,
-          // gravityRev 6 (the puzzle batch of 3 Nov 2026, parMoves.ts): no stars, so no star count.
-          noStars ? null : <SummaryItem key="stars" label="Stars" value={`${starsHere} / ${TOPSY_STARS}`} />,
-          <SummaryItem key="home" label="Home" value={`${replay.home} / ${TOPSY_BALLS * TOPSY_BOARDS}`} />,
-        ]}
+      {/* Puzzle polish (3 Nov 2026): the summary as pills. On a stamp that shows its par (parMoves.ts `shownPar`):
+          "Moves n" (every tilt made on every board, as the server counts them), "Par p", the balls home and the
+          board's tilts left (red from five; the move-limit counter, `limit`). */}
+      <FramePills
+        testId="gravity"
+        items={par !== null
+          ? [
+              ...parPills("Moves", replay.tilts, par),
+              { id: "home", label: "Home", value: `${replay.home} / ${TOPSY_BALLS * TOPSY_BOARDS}` },
+              limitHere ? { id: "left", label: "Left", value: Math.max(0, limitHere - tiltsHere), limit: limitHere, ...(limitHere - tiltsHere <= 5 ? { tone: "warn" as const } : {}) } : null,
+            ]
+          : [
+              { id: "tilts", label: "Tilts", value: tiltText, ...(limitHere ? { limit: limitHere } : {}), ...(outOfTilts ? { tone: "warn" as const } : {}) },
+              // gravityRev 6 (the puzzle batch of 3 Nov 2026, parMoves.ts): no stars, so no star count.
+              noStars ? null : { id: "stars", label: "Stars", value: `${starsHere} / ${TOPSY_STARS}` },
+              { id: "home", label: "Home", value: `${replay.home} / ${TOPSY_BALLS * TOPSY_BOARDS}` },
+            ]}
       />
       <div data-game-controls="pad" className="flex shrink-0 flex-col items-center gap-3">
         <ArrowPad onPress={press} disabled={blocked} />

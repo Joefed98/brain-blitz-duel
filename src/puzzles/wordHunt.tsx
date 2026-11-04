@@ -4,6 +4,7 @@ import { WORDHUNT_TIME_MS, wordHuntPoints, type WordHuntPuzzleData } from "@/lib
 import { wordHuntDepth, wordHuntLongHalves } from "@/lib/duel/wordHunt";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
+import "@/polish-layout/polish-nov3-word.css";
 
 /** Fixed intro example — never randomised: a 6×6 board (wordHuntRev 3) with its golden tile on the A. */
 const EXAMPLE_GRID = "TAPLEDNSROINEMCKUGGBEAHTWYTRSOLINESA".split("");
@@ -95,7 +96,8 @@ function Reveal({ puzzle, myAnswer, myExtra }: PuzzleRevealProps) {
       {missed.length > 0 && (
         <div className="flex w-full flex-col items-center gap-1">
           <p className="font-mono text-xs uppercase tracking-widest text-muted-foreground">Missed</p>
-          <ul className="word-reveal-list word-reveal-missed w-full">
+          {/* 3 Nov 2026: wrapping chips (the fixed columns ran past the screen's right edge). */}
+          <ul data-word-missed="" className="word-reveal-chips w-full">
             {missed.map((entry) => (
               <li key={entry.word}>
                 <span>{entry.word}</span>

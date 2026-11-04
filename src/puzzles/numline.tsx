@@ -36,7 +36,7 @@ import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./ty
 import { useBeforePaint } from "@/components/puzzles/useBeforePaint";
 import { horizontalOf, useGameKeys } from "@/lib/desktop";
 import { GoalLineContext } from "@/components/duel/GameFrame";
-import { LiveSummary } from "@/components/puzzles/batchW/LiveSummary";
+import { HudPills } from "@/components/puzzles/HudPills";
 import { ballparkStreak, isBullseye, usesNumberDepth } from "@/lib/duel/numberDepth";
 import { usesStandard } from "@/lib/duel/standard/stamps";
 import { BALLPARK_STD_FULL, isStdBullseye } from "@/lib/duel/standard/number";
@@ -556,7 +556,8 @@ function Stage({
             </span>
           </div>
           <div ref={lineBox} key={stageIndex} className="numline-line-in w-full">
-            <Line stage={stage} width={size.width} height={lineH} t={16} label={17} yShare={lineY}>
+            {/* Puzzle polish (3 Nov 2026, display only): a thicker tape (16 → 24) and larger pins; x mapping unchanged. */}
+            <Line stage={stage} width={size.width} height={lineH} t={24} label={18} yShare={lineY}>
               {(x, y, geom) => (
                 <>
                   {placedHere.map((p, i) => (
@@ -564,8 +565,8 @@ function Stage({
                       <Pin
                         cx={x(p / NUMLINE_SCALE)}
                         geom={geom}
-                        r={5.5}
-                        rise={12 + levels[i]! * 24}
+                        r={7.5}
+                        rise={12 + levels[i]! * 28}
                         fill={`url(#${geom.id}-placed)`}
                         needle="#c9cbd6"
                       />
@@ -577,9 +578,9 @@ function Stage({
                       key={i}
                       className="numline-drop"
                       x={x(p / NUMLINE_SCALE)}
-                      y={y - geom.t / 2 - 12 - levels[i]! * 24 - 10}
+                      y={y - geom.t / 2 - 12 - levels[i]! * 28 - 12}
                       textAnchor="middle"
-                      fontSize={12}
+                      fontSize={13}
                       fontWeight={600}
                       fill="var(--muted-foreground)"
                       stroke="var(--background)"
@@ -596,8 +597,8 @@ function Stage({
                       <Pin
                         cx={x(share)}
                         geom={geom}
-                        r={11}
-                        rise={38}
+                        r={14}
+                        rise={40}
                         fill={`url(#${geom.id}-pin)`}
                         needle="var(--primary)"
                       />
@@ -733,16 +734,16 @@ function Stage({
         </div>
       ) : null}
       {framed ? (
-        <LiveSummary
+        <HudPills
           testId="numline"
-          parts={
+          items={
             placements.length >= NUMLINE_TOTAL
-              ? ["All placed"]
+              ? [{ id: "placed", value: "All placed", tone: "good" }]
               : [
-                  `${placedHere.length} of ${NUMLINE_ITEMS} placed`,
-                  marker === null ? "touch the line" : depth ? "drag, then Place" : "drag to adjust, then Place",
+                  { id: "placed", label: "Placed", value: `${placedHere.length} of ${NUMLINE_ITEMS}` },
+                  { id: "hint", value: marker === null ? "Touch the line" : depth ? "Drag, then Place" : "Drag to adjust, then Place" },
                   // depthRev 1: the bullseye streak (judged at the reveal; the exact values stay on the server).
-                  depth && <span style={{ color: "#F5B82E" }}>{standard ? "◎ Bullseyes" : "◎ Streak bonus"}</span>,
+                  depth && { id: "bonus", value: standard ? "◎ Bullseyes" : "◎ Streak bonus", tone: "gold" },
                 ]
           }
         />

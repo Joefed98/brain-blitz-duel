@@ -44,6 +44,8 @@ import { playCorrect, playWrong } from "@/lib/sound";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 import { useBeforePaint } from "@/components/puzzles/useBeforePaint";
 import "@/polish-layout/batch-w-checkout.css";
+import { StepChips } from "@/components/puzzles/number/StepChips";
+import { HudPills } from "@/components/puzzles/HudPills";
 
 /** iOS: no text selection or callout on long presses anywhere in the game. */
 const ROOT_STYLE: CSSProperties = {
@@ -523,10 +525,6 @@ function endedBig(stage: CheckoutStageData, encoded: string | undefined): boolea
   return checkoutBigFinish(stage, darts[darts.length - 1]);
 }
 
-function dartsRule(stage: CheckoutStageData): string {
-  return stage.exactDarts ? `exactly ${stage.maxDarts} darts` : `up to ${stage.maxDarts} darts`;
-}
-
 /** Fixed example: 57 on the standard board, T15 then D6. */
 const EXAMPLE_STAGE: CheckoutStageData = {
   wedges: [...CHECKOUT_STANDARD],
@@ -739,27 +737,30 @@ function Stage({
           </button>
         ))}
       </div>
-      <p
-        className="co-rule h-5 w-full shrink-0 text-center font-mono text-xs uppercase tracking-wider"
-        data-checkout-rule
-      >
-        {current.bigFinish ? (
-          correct && bigPays && endedBig(current, solved[stage]) ? (
-            <span className="co-big">★ Big finish!</span>
-          ) : (
-            <>
-              <span className="text-primary">{bigFinishRule(current).split(" · ")[0]}</span>
-              {" · "}{bigPays ? <span className="co-big">{bigFinishRule(current).split(" · ")[1]}</span> : <span>{bigFinishRule(current).split(" · ")[1]!.replace("★ ", "")}</span>}{" · "}
-              {dartsRule(current)}
-            </>
-          )
-        ) : (
-          <>
-            Finish on a <span className="text-primary">{finishWord(current)}</span> ·{" "}
-            {dartsRule(current)}
-          </>
-        )}
-      </p>
+      {/* Puzzle polish (3 Nov 2026): the finish rule as separate pills ("Finish Double" "★ Bull" "Darts up to 3"), not one dotted line. */}
+      <div className="h-6 w-full shrink-0" data-checkout-rules>
+        <HudPills
+          testId="checkout"
+          items={
+            current.bigFinish && correct && bigPays && endedBig(current, solved[stage])
+              ? [{ id: "big", value: "★ Big finish!", tone: "gold" as const }]
+              : [
+                  {
+                    id: "finish",
+                    label: "Finish",
+                    value: current.bigFinish ? bigFinishRule(current).split(" · ")[0]! : finishWord(current) === "treble" ? "Treble" : "Double",
+                    tone: "gold" as const,
+                  },
+                  current.bigFinish && {
+                    id: "big",
+                    ...(bigPays ? { tone: "gold" as const } : {}),
+                    value: bigPays ? bigFinishRule(current).split(" · ")[1]! : bigFinishRule(current).split(" · ")[1]!.replace("★ ", ""),
+                  },
+                  { id: "darts", label: "Darts", value: current.exactDarts ? `exactly ${current.maxDarts}` : `up to ${current.maxDarts}` },
+                ]
+          }
+        />
+      </div>
       <StageCorrect visible={correct} />
       <div
         ref={box}
@@ -881,12 +882,11 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
                     : "✗ not checked out"}
                 </span>
               </div>
-              <p className="text-sm leading-tight" style={{ color: REVEAL_LABEL }}>
-                Fewest {puzzle.minDarts?.[index] ?? "?"}:{" "}
-                {best
-                  .map((d) => `${checkoutDartLabel(stage, d)} (${checkoutDartValue(stage, d)})`)
-                  .join(" + ")}
-              </p>
+              <StepChips
+                testId="checkout"
+                label={`Fewest ${puzzle.minDarts?.[index] ?? "?"}`}
+                steps={best.map((d) => `${checkoutDartLabel(stage, d)} (${checkoutDartValue(stage, d)})`)}
+              />
             </div>
           </div>
         );

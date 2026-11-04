@@ -132,10 +132,10 @@ check(roundVerdict({ roundCorrect: false, roundScore: 40 }) === "partial", "a pu
 // Operator, equationRev 1: the tries suffix and the limit.
 {
   const puzzle = gen("equation") as Extract<PuzzleData, { type: "equation" }>;
-  const ops = puzzle.operators ?? [];
-  if (!ops.length) failures.push("equation: generated puzzle has no stored operators (fixture)");
+  // gapsRev 1 (puzzle polish, 3 Nov 2026): the stored fills per equation; earlier stamps: the operator sets.
+  const right = puzzle.gapAnswers ?? (puzzle.operators ?? []).map((o) => o.join(","));
+  if (!right.length) failures.push("equation: generated puzzle has no stored answers (fixture)");
   else {
-    const right = ops.map((o) => o.join(","));
     const limited = puzzle.tryLimit !== undefined && puzzle.equationRev !== undefined;
     const cases: [string, string][] = limited
       ? [

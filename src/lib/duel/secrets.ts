@@ -15,7 +15,7 @@ const SECRET_KEYS: Record<PuzzleType, string[]> = {
   balance: ["solutions"],
   // Par is shown on the move counter; the intended words are not.
   wordslide: ["words"],
-  equation: ["operators"],
+  equation: ["operators", "gapAnswers"],
   symscan: ["targets"],
   spotdiff: ["differences", "bonus"],
   // The server derives each answer directly from the stored scene.

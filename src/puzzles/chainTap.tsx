@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { GLYPH_COLOURS } from "@/components/duel/ShapeGlyph";
 import { fireChainFinish } from "@/components/puzzles/chainFx";
 import { pointerElementIndex } from "@/components/puzzles/GridDrag";
+import { useBeforePaint } from "@/components/puzzles/useBeforePaint";
 import { registerFxPreview } from "@/components/puzzles/speedFx";
 import {
   chainBoardIndex,
@@ -25,6 +26,8 @@ import { CHAIN_MILESTONE_POINTS, CHAIN_MILESTONES, chainDepthRevOf, chainMilesto
 import { chainStandard } from "@/lib/duel/standard/attention";
 import {
   CHAIN_BLOCK,
+  CHAIN_BOARD_H_PX,
+  CHAIN_BOARD_W_PX,
   CHAIN_REVERSE_AT,
   CHAIN_REVERSE_WARN_AT,
   CHAIN_TIME_MS,
@@ -43,6 +46,19 @@ import { soundCue } from "@/lib/fx/soundCues";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
 const NODE = 34;
+
+/**
+ * Puzzle polish (3 Nov 2026, Joe's audit; display only): larger charms. The generator keeps every pair of charm
+ * centres at least CHAIN_NODE_PX + CHAIN_NODE_GAP_PX (46 px) apart on the smallest board (343 × 380), and the board
+ * only grows from there, so the charms scale with the board: the charm drawn 37 px at the smallest board (25 before), up
+ * to 1.35× that on a larger one, each button at least 44 px and never wider than the minimum gap at that scale, so
+ * buttons never overlap. Centres (the node positions) are unchanged.
+ */
+function chainCharmScale(width: number, height: number): number {
+  if (width <= 0 || height <= 0) return 1;
+  return Math.min(1.35, Math.max(1, Math.min(width / CHAIN_BOARD_W_PX, height / CHAIN_BOARD_H_PX)));
+}
+const CHARM_GLYPH = 50;
 /** Delay between a break and the submit, so the snap can be seen. */
 const BREAK_HOLD_MS = 1_000;
 const CYCLE_HIGHLIGHT_MS = 650;
@@ -280,6 +296,19 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, phaseStartedAt, stateK
   const submitted = useRef(false);
   const warned = useRef("");
   const rootRef = useRef<HTMLDivElement>(null);
+  // Puzzle polish (3 Nov 2026): the charms' scale from the arena's size, measured before the first paint.
+  const arenaRef = useRef<HTMLDivElement>(null);
+  const [charmScale, setCharmScale] = useState(1);
+  useBeforePaint(() => {
+    const el = arenaRef.current;
+    if (!el) return;
+    const measure = () => setCharmScale(chainCharmScale(el.clientWidth, el.clientHeight));
+    measure();
+    if (typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(measure);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
   /** Latest board path (arena %) and length, for the dev effect preview only. */
   const previewRef = useRef<{ path: { x: number; y: number }[]; length: number }>({ path: [], length: 0 });
   useEffect(() => registerFxPreview("chain", () => fireChainFinish(rootRef.current, previewRef.current.path, previewRef.current.length)), []);
@@ -434,11 +463,13 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, phaseStartedAt, stateK
         ) : null}
       </p>
       <ChainLinks links={links} total={rules.length} broken={broken} />
-      <div data-play-area data-game-arena="tall" className={`relative min-h-0 w-full flex-1 ${broken ? "animate-shake" : ""}`}>
+      <div ref={arenaRef} data-play-area data-game-arena="tall" className={`relative min-h-0 w-full flex-1 ${broken ? "animate-shake" : ""}`}>
         <ChainLine nodes={board} path={path} broken={broken} />
         {board.map((node, index) => {
           const isUsed = used.has(index);
           const ringed = index === lastSlot && !over && replay.lastT !== null;
+          const glyph = Math.round(CHARM_GLYPH * charmScale);
+          const box = Math.max(NODE + 10, Math.round((NODE + 10) * charmScale));
           return (
             <button
               key={index}
@@ -455,15 +486,15 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, phaseStartedAt, stateK
                 isUsed && !ringed ? "opacity-35" : ""
               } ${pulse === index ? "scale-125" : "scale-100"}`}
               style={{
-                width: NODE + 10,
-                height: NODE + 10,
-                left: `calc(${node.x}% - ${(NODE + 10) / 2}px)`,
-                top: `calc(${node.y}% - ${(NODE + 10) / 2}px)`,
+                width: box,
+                height: box,
+                left: `calc(${node.x}% - ${box / 2}px)`,
+                top: `calc(${node.y}% - ${box / 2}px)`,
                 transition: "left 150ms ease-out, top 150ms ease-out, transform 150ms ease-out, opacity 150ms",
               }}
             >
-              {ringed && <MomentumRing left={left} size={NODE + 10} warn={left * windowMs <= CHAIN_WARN_MS} />}
-              <NodeGlyph shape={node.shape} colour={GLYPH_COLOURS[node.colour]} size={NODE} />
+              {ringed && <MomentumRing left={left} size={box} warn={left * windowMs <= CHAIN_WARN_MS} />}
+              <NodeGlyph shape={node.shape} colour={GLYPH_COLOURS[node.colour]} size={glyph} />
             </button>
           );
         })}
@@ -507,39 +538,45 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, phaseStartedAt, stateK
   );
 }
 
+/**
+ * The reveal (puzzle polish, 3 Nov 2026): the shared verdict row above it ("Solved in 41.2 s" / "Partly solved" with
+ * the mark and the stored score, as every puzzle), then the chain itself, the links made, how it ended and the
+ * milestones, laid out as the other puzzle reveals (board first, plain lines under it).
+ */
 function Reveal({ timeLimitMs, puzzle, myAnswer, myMsRemaining, myExtra }: PuzzleRevealProps) {
   if (puzzle.type !== "chain") return null;
   const answer = decodeChainAnswer(myAnswer ?? "");
   const replay = replayChain(puzzle, answer);
+  const total = chainRules(puzzle).length;
   const elapsed =
     myMsRemaining === undefined ? null : Math.round((timeLimitMs - myMsRemaining) / 100) / 10;
+  const broken = replay.reason === "wrong" || replay.reason === "momentum";
   const ending =
     replay.reason === "complete"
       ? "Full chain"
       : replay.reason === "wrong"
-        ? `Broken at link ${replay.links + 1} - wrong tap`
+        ? `Broken at link ${replay.links + 1}: wrong tap`
         : replay.reason === "momentum"
-          ? `Broken at link ${replay.links + 1} - too slow`
+          ? `Broken at link ${replay.links + 1}: too slow`
           : "Time ran out";
+  const milestones = chainUsesDepth(puzzle) ? chainMilestones(answer.taps, replay.links, chainDepthRevOf(puzzle)) : null;
   return (
-    <div data-polish-reveal="chain" className="flex min-h-0 w-full flex-1 flex-col items-center justify-center gap-2">
+    <div data-polish-reveal="chain" className="flex w-full flex-col items-center gap-3 pt-1">
       <ChainDefs />
-      <p className="font-mono text-3xl font-bold">
-        {replay.links} / {chainRules(puzzle).length}
-      </p>
       <div className="w-full max-w-[320px]">
-        <ChainLinks links={replay.links} total={chainRules(puzzle).length} broken={replay.reason === "wrong" || replay.reason === "momentum"} />
+        <ChainLinks links={replay.links} total={total} broken={broken} />
       </div>
-      <p className="whitespace-normal break-words text-center font-mono text-sm">
-        {ending}
-        {elapsed !== null ? ` · ${elapsed.toFixed(1)}s` : ""}
+      <p data-chain-reveal-links="" className="text-center text-[17px] font-bold tabular-nums text-foreground">
+        {replay.links} of {total} links
       </p>
-      {chainUsesDepth(puzzle) ? (
+      <p className={`whitespace-normal break-words text-center text-[14px] font-semibold ${broken ? "text-warn" : "text-[#D4D4DC]"}`}>
+        {ending}
+        {elapsed !== null && replay.reason !== "complete" ? ` · ${elapsed.toFixed(1)} s` : ""}
+      </p>
+      {milestones ? (
         <div data-chain-reveal-milestones="" className="flex flex-col items-center gap-1">
-          <MilestonePips reached={chainMilestones(answer.taps, replay.links, chainDepthRevOf(puzzle))} compact />
-          <p className="text-center font-mono text-xs text-muted-foreground">
-            {revealDepthLine(chainMilestones(answer.taps, replay.links, chainDepthRevOf(puzzle)), myExtra)}
-          </p>
+          <MilestonePips reached={milestones} compact />
+          <p className="text-center text-[13px] text-[#D4D4DC]">{revealDepthLine(milestones, myExtra)}</p>
         </div>
       ) : null}
     </div>

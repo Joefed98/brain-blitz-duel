@@ -15,6 +15,8 @@ import { puzzleReject } from "@/lib/fx/puzzleReject";
 import { goldPulse, playFinish, useWordFinish, wordCue, type FinishStep } from "@/components/puzzles/wordFinish";
 import { rightMoveFlash } from "@/lib/fx/gameToolkit";
 import "@/polish-layout/batch-w-letterwheel.css";
+import "@/polish-layout/polish-nov3-word.css";
+import { HudPills } from "@/components/puzzles/HudPills";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
@@ -240,9 +242,11 @@ export function BonusJar({ drops, size, words }: { drops: number; size: number; 
       data-lw-jar-size={size}
       role="img"
       aria-label={`Bonus jar: ${words} word${words === 1 ? "" : "s"}, ${Math.min(drops, size)} of ${size}`}
-      className="flex h-8 items-center gap-1 font-mono text-xs font-bold tabular-nums"
+      data-lw-jar-full={full ? "" : undefined}
+      className="flex h-8 items-center gap-1.5 font-mono text-xs font-bold tabular-nums"
     >
-      <svg viewBox="0 0 24 32" width={22} height={30} aria-hidden="true">
+      {/* 3 Nov 2026: a larger jar (26 × 35, was 22 × 30) and its count in a bright pill (polish-nov3-word.css). */}
+      <svg viewBox="0 0 24 32" width={26} height={35} aria-hidden="true">
         <defs>
           <clipPath id="lw-jar-inside">
             <path d="M5 9 h14 a2 2 0 0 1 2 2 v17 a3 3 0 0 1 -3 3 h-12 a3 3 0 0 1 -3 -3 v-17 a2 2 0 0 1 2 -2z" />
@@ -258,7 +262,7 @@ export function BonusJar({ drops, size, words }: { drops: number; size: number; 
         <rect x="6" y="4" width="12" height="4" rx="1.2" fill={full ? "#f2c75c" : "#5a5a66"} stroke="rgba(255,255,255,0.35)" strokeWidth="0.8" />
         <path d="M8 12 v14" stroke="rgba(255,255,255,0.28)" strokeWidth="1.4" strokeLinecap="round" />
       </svg>
-      <span className={full ? "text-primary" : "text-muted-foreground"}>{words}</span>
+      <span className="lw-jar-count">{words}</span>
     </div>
   );
 }
@@ -439,12 +443,15 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkWord, stateKey }:
       // inside the stage's width, by 100cqh - 376 px (the crossword's 260 px plus 108 px of trace row, gaps and the 52 px
       // dock buttons, plus 8 px), so the crossword keeps its height (styles.css: min(260px, 100cqh - wheel - 80px)).
       // The wheel hit-tests in its own percentages, so taps and traces follow the bigger tiles.
-      style={{ "--lw-wheel": "max(clamp(180px, calc(100cqh - 330px), 240px), min(340px, calc(100cqw - 24px), calc(100cqh - 376px)))" } as CSSProperties}
+      // 3 Nov 2026 (Joe's audit: tiny crossword cells under a large wheel): the wheel gives the crossword about 80 px,
+      // 172–220 px plus growth up to 280 px only past a 380 px crossword (100cqh - 460 px); the crossword's cap is
+      // 380 px tall (polish-nov3-word.css) and 400 px wide.
+      style={{ "--lw-wheel": "max(clamp(172px, calc(100cqh - 410px), 220px), min(280px, calc(100cqw - 24px), calc(100cqh - 460px)))" } as CSSProperties}
     >
       <div data-arena-part="letterwheel-board" data-word-first="" className="flex min-h-0 w-full flex-[7] items-center justify-center" style={{ containerType: "size" }}>
         <div
           style={{
-            width: `min(334px, 100cqw, calc(100cqh * ${data.cols / data.rows}))`,
+            width: `min(400px, 100cqw, calc(100cqh * ${data.cols / data.rows}))`,
             aspectRatio: `${data.cols} / ${data.rows}`,
             containerType: "size",
           }}
@@ -469,17 +476,12 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkWord, stateKey }:
       </div>
       {/* Raised inside the Stage (pb-3) so the buttons sit clear of the screen's bottom edge. */}
       <div data-game-controls="actions" data-word-controls-first="" className="grid w-full shrink-0 grid-cols-[1fr_auto_1fr] items-center gap-3 px-2 pb-3 pt-2">
-        <span className="flex h-11 flex-col justify-center font-mono text-xs uppercase leading-4 tracking-widest text-muted-foreground">
-          <span>
-            <span className="text-primary">{filledCount}</span> / {slotCount} words
-          </span>
+        {/* 3 Nov 2026: the count and the misses as pills, one above the other. */}
+        <span data-lw-count="" className="flex h-11 min-w-0 flex-col items-start justify-center">
+          <HudPills testId="letterwheel" items={[{ id: "words", label: "Words", value: `${filledCount} / ${slotCount}`, tone: "gold" }]} />
           {usesLog && misses > 0 ? (
-            <span
-              data-lw-misses={misses}
-              title={`${LW_FREE_MISSES} misses are free`}
-              className={`whitespace-nowrap normal-case tracking-normal ${misses > LW_FREE_MISSES ? "text-destructive" : ""}`}
-            >
-              {misses} miss{misses === 1 ? "" : "es"}
+            <span data-lw-misses={misses} title={`${LW_FREE_MISSES} misses are free`}>
+              <HudPills testId="letterwheel-misses" items={[{ id: "misses", label: misses === 1 ? "Miss" : "Misses", value: misses, ...(misses > LW_FREE_MISSES ? { tone: "warn" as const } : {}) }]} />
             </span>
           ) : null}
         </span>

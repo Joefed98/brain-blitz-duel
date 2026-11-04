@@ -23,9 +23,10 @@ import { playCorrect, playWrong } from "@/lib/sound";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 import { useBeforePaint } from "@/components/puzzles/useBeforePaint";
 import { GoalLineContext } from "@/components/duel/GameFrame";
-import { LiveSummary } from "@/components/puzzles/batchW/LiveSummary";
+import { HudPills } from "@/components/puzzles/HudPills";
 import { usesNumberDepth } from "@/lib/duel/numberDepth";
 import "@/polish-layout/batch-w-measure.css";
+import { StepChips } from "@/components/puzzles/number/StepChips";
 
 /** iOS: no text selection or callout on long presses anywhere in the game. */
 const ROOT_STYLE: CSSProperties = {
@@ -586,17 +587,27 @@ function Stage({
       <PolishStyle id="measure" css={MEASURE_CSS} />
       <StageProgress stage={stage} total={MEASURE_BOARDS} />
       <div className={`flex ${framed ? "h-8" : "h-9"} w-full shrink-0 items-center justify-between gap-2`}>
-        <p className="font-mono text-xs uppercase text-muted-foreground">
-          {framed ? "Moves" : `Puzzle ${stage + 1} of ${MEASURE_BOARDS} · moves`}{" "}
-          <span className={outOfMoves ? "text-warn" : "text-primary"} data-move-limit={moveLimit ?? undefined}>
-            {moveLimit !== null ? limitText(replay.moves, moveLimit) : replay.moves}
-          </span>
-          {par !== null && (
-            <span data-par={par} className={replay.moves > par ? "mj-dim" : "mj-par"}>
-              {" · "}{replay.solved && replay.moves <= par ? "★ Par" : `Par ${par}`}
-            </span>
-          )}
-        </p>
+        {/* Puzzle polish (3 Nov 2026): moves and par as separate pills (one line with a "·" before). */}
+        <HudPills
+          testId="measure-moves"
+          className="mx-0"
+          items={[
+            !framed && { id: "puzzle", label: "Puzzle", value: `${stage + 1} / ${MEASURE_BOARDS}` },
+            {
+              id: "moves",
+              label: "Moves",
+              ...(moveLimit !== null ? { limit: moveLimit } : {}),
+              value: moveLimit !== null ? limitText(replay.moves, moveLimit) : replay.moves,
+              ...(outOfMoves ? { tone: "warn" as const } : {}),
+            },
+            par !== null && {
+              id: "par",
+              label: replay.solved && replay.moves <= par ? "★" : "Par",
+              value: replay.solved && replay.moves <= par ? "Par" : par,
+              tone: "gold",
+            },
+          ]}
+        />
         <p className="font-display text-sm font-bold text-primary" data-measure-goal>
           {goalText(board)}
         </p>
@@ -621,15 +632,15 @@ function Stage({
         />
       </div>
       {framed ? (
-        // Batch W: the hint line becomes the live summary (the row above gave up the 4px it needs).
-        <LiveSummary
+        // Puzzle polish (3 Nov 2026): the live status as label-and-value pills (Batch W's one summary line before).
+        <HudPills
           testId="measure"
-          parts={
+          items={
             selected === null
-              ? ["Tap a jug", moveLimit !== null ? `${Math.max(0, moveLimit - replay.moves)} moves left` : null]
+              ? [{ id: "hint", value: "Tap a jug" }, moveLimit !== null && { id: "left", label: "Left", value: Math.max(0, moveLimit - replay.moves) }]
               : [
-                  `Jug ${selected + 1}: ${replay.amounts[selected] ?? 0} of ${board.caps[selected] ?? 0} L`,
-                  board.tap ? "pour, Fill or Empty" : "tap another to pour",
+                  { id: "jug", label: `Jug ${selected + 1}`, value: `${replay.amounts[selected] ?? 0} of ${board.caps[selected] ?? 0} L` },
+                  { id: "hint", value: board.tap ? "Pour, Fill or Empty" : "Tap another to pour" },
                 ]
           }
         />
@@ -675,7 +686,8 @@ function Stage({
   );
 }
 
-function routeText(board: MeasureBoardData, raw: string): string {
+/** The best route's moves, one label each (the reveal draws them as numbered chips). */
+function routeSteps(board: MeasureBoardData, raw: string): string[] {
   return decodeMeasureActions(raw, board.caps.length)
     .map((a) =>
       a.kind === "fill"
@@ -685,8 +697,7 @@ function routeText(board: MeasureBoardData, raw: string): string {
           : a.kind === "pour"
             ? `${board.caps[a.from]}→${board.caps[a.to]}`
             : "Reset",
-    )
-    .join(" · ");
+    );
 }
 
 function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
@@ -728,9 +739,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
               </span>
             </div>
             {puzzle.solutions?.[index] ? (
-              <p className="mj-dim mt-0.5 break-words font-mono text-[10px] leading-snug">
-                Best: {routeText(board, puzzle.solutions[index]!)}
-              </p>
+              <StepChips testId="measure" label="Best" steps={routeSteps(board, puzzle.solutions[index]!)} />
             ) : null}
           </div>
         );

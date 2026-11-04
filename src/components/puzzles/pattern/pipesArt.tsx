@@ -21,12 +21,21 @@ export function PipeDefs({ id }: { id: string }) {
   return (
     <svg width="0" height="0" aria-hidden="true" focusable="false" className="pointer-events-none absolute">
       <defs>
+        {/* Puzzle polish (3 Nov 2026): brighter steel, so a dry pipe reads on the dark board. */}
         <linearGradient id={`${id}-tube`} x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0" stopColor="#2a3039" />
-          <stop offset="0.22" stopColor="#7d8896" />
-          <stop offset="0.42" stopColor="#e4eaf1" />
-          <stop offset="0.6" stopColor="#a3aebb" />
-          <stop offset="1" stopColor="#323944" />
+          <stop offset="0" stopColor="#56606e" />
+          <stop offset="0.22" stopColor="#adb8c5" />
+          <stop offset="0.42" stopColor="#f6f9fc" />
+          <stop offset="0.6" stopColor="#c8d1db" />
+          <stop offset="1" stopColor="#5e6876" />
+        </linearGradient>
+        {/* A pipe the water reaches: the tube itself turns blue, so the connected network is plainly lit. */}
+        <linearGradient id={`${id}-tube-wet`} x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0" stopColor="#0d4f86" />
+          <stop offset="0.22" stopColor="#2f9be6" />
+          <stop offset="0.42" stopColor="#d4f2ff" />
+          <stop offset="0.6" stopColor="#66c4f5" />
+          <stop offset="1" stopColor="#11568f" />
         </linearGradient>
         <linearGradient id={`${id}-flange`} x1="0" y1="0" x2="0" y2="1">
           <stop offset="0" stopColor="#c9d2dc" />
@@ -44,13 +53,13 @@ export function PipeDefs({ id }: { id: string }) {
           <stop offset="1" stopColor="#7c1d18" />
         </radialGradient>
         <linearGradient id={`${id}-water`} x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0" stopColor="#1668b3" />
-          <stop offset="0.45" stopColor="#4cc6f7" />
-          <stop offset="0.6" stopColor="#7bd8fb" />
-          <stop offset="1" stopColor="#1668b3" />
+          <stop offset="0" stopColor="#1f86e0" />
+          <stop offset="0.45" stopColor="#6fd8ff" />
+          <stop offset="0.6" stopColor="#b5ecff" />
+          <stop offset="1" stopColor="#1f86e0" />
         </linearGradient>
         <clipPath id={`${id}-channel`} clipPathUnits="userSpaceOnUse">
-          <rect x="44" y="0" width="12" height="50" />
+          <rect x="41" y="0" width="18" height="50" />
         </clipPath>
       </defs>
     </svg>
@@ -108,18 +117,18 @@ export const PipeArt = memo(function PipeArt({
       <g ref={turnRef} className="pipe-turn">
         {arms.map((arm) => (
           <g key={arm.bit} transform={`rotate(${arm.turn} 50 50)`}>
-            <rect x="31" y="0" width="38" height="52" fill={`url(#${id}-tube)`} />
-            <rect x="44" y="0" width="12" height="50" className="pipe-channel" />
+            <rect x="31" y="0" width="38" height="52" fill={`url(#${id}-${wet ? "tube-wet" : "tube"})`} />
+            <rect x="41" y="0" width="18" height="50" className="pipe-channel" />
           </g>
         ))}
         <g ref={waterRef} className={wet ? "pipe-water" : "pipe-water pipe-water-off"}>
           {arms.map((arm) => (
             <g key={arm.bit} transform={`rotate(${arm.turn} 50 50)`}>
-              <rect x="44" y="0" width="12" height="50" fill={`url(#${id}-water)`} />
+              <rect x="41" y="0" width="18" height="50" fill={`url(#${id}-water)`} />
               <g clipPath={`url(#${id}-channel)`}>
                 <g className={inflow & arm.bit ? "pipe-ripple pipe-ripple-in" : "pipe-ripple"}>
                   {[-12, 0, 12, 24, 36, 48, 60].map((y) => (
-                    <rect key={y} x="46" y={y} width="4" height="4" rx="2" className="pipe-ripple-dot" />
+                    <rect key={y} x="47" y={y} width="6" height="5" rx="2.5" className="pipe-ripple-dot" />
                   ))}
                 </g>
               </g>

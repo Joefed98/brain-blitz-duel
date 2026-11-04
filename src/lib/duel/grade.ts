@@ -1,3 +1,4 @@
+import { equationVerdict } from "./operatorGaps";
 import { buildArcadeReveal } from "@/lib/arcade/reveal";
 import { TICKS_PER_SECOND } from "@/lib/arcade/engine";
 import { puzzleUsesTieRev } from "./tieBreak";
@@ -3039,8 +3040,9 @@ function gradeUnderRev(
       const tryLimit = equationTryLimit(puzzle);
       const { body, counts: tries } = tryLimit !== null ? splitCountSuffix(answer) : { body: answer, counts: [] };
       const parts = splitStages(body, puzzle.stages.length);
-      const correct = puzzle.stages.map((stage, i) =>
-        equationStageCorrect(stage.numbers, stage.target, parts[i] ?? "") && (tryLimit === null || (tries[i] ?? 0) <= tryLimit));
+      // gapsRev 1 (operatorGaps.ts): any fill of the gaps that makes the equation true counts.
+      const correct = puzzle.stages.map((_stage, i) =>
+        equationVerdict(puzzle, i, parts[i] ?? "") && (tryLimit === null || (tries[i] ?? 0) <= tryLimit));
       correctCount = correct.filter(Boolean).length;
       isCorrect = puzzle.stages.length > 0 && correctCount === puzzle.stages.length;
       score = scoreEquationStages(correct, ms);

@@ -37,8 +37,9 @@ import { NO_SCROLL_STYLE, useNoTouchScroll } from "@/components/puzzles/noScroll
 import { useMoveSync } from "@/components/puzzles/useMoveSync";
 import { goldFlip, playFinish, useWordFinish, wordCue, type FinishStep } from "@/components/puzzles/wordFinish";
 
-import { LiveSummary } from "@/components/puzzles/batchW/LiveSummary";
+import { HudPills } from "@/components/puzzles/HudPills";
 import "@/polish-layout/batch-w-strikeout.css";
+import "@/polish-layout/polish-nov3-word.css";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
@@ -699,16 +700,16 @@ function Stage2({ puzzle, locked, onSubmit, onDraftAnswer, checkMoves, stateKey 
           <span>Checking…</span>
         ) : mine.length > 0 ? (
           // Batch W: the live summary once this word has a guess (what the board and keypad already show).
-          <LiveSummary
+          <HudPills
             testId="strikeout"
-            parts={[
-              <><b>{hits.size}</b> found</>,
-              <><b>{misses.size}</b> missed</>,
-              <><b>{holes.length}</b> to go</>,
+            items={[
+              { id: "found", label: "Found", value: hits.size, tone: "good" },
+              { id: "missed", label: "Missed", value: misses.size, ...(misses.size > 0 ? { tone: "warn" as const } : {}) },
+              { id: "togo", label: "To go", value: holes.length },
             ]}
           />
         ) : (
-          <span>Tap a letter · Solve to guess the word</span>
+          <span>Tap a letter or Solve to guess the word</span>
         )}
         <div className="pointer-events-none absolute inset-0">
           <FoundWordMoment value={accepted} />
