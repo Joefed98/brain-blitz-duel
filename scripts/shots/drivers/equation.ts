@@ -32,8 +32,18 @@ const fill = (page: Page, p: Full, tokens: string[], settle?: number) => (p.gapA
 /* A solved stage is held about 1 s, then the next one comes in. */
 const nextStage = (page: Page) => page.waitForTimeout(1400);
 
+/** EQ_STAGE=n (gaps stamp): the mid-play frame opens on equation n (0–3), its first gap filled, for review shots. */
+const EQ_STAGE = process.env.EQ_STAGE === undefined ? null : Number(process.env.EQ_STAGE);
+
 export const driver: Driver = {
-  partial: async ({ page, puzzle }) => {
+  seedMid: EQ_STAGE === null
+    ? undefined
+    : (puzzle) => {
+        const p = puzzle as Full & { stages: unknown[] };
+        const fills = steps(p, EQ_STAGE).map((f, i) => (i === 0 ? f : null));
+        return { gapStage: EQ_STAGE, gapAnswers: p.stages.map((_, i) => (i < EQ_STAGE ? p.gapAnswers![i] : "")), gapFills: fills, gapTries: [1, 1, 1, 0].map((t, i) => (i < EQ_STAGE ? t : 0)) };
+      },
+  partial: EQ_STAGE !== null ? undefined : async ({ page, puzzle }) => {
     await fill(page, puzzle, steps(puzzle, 0));
     await nextStage(page);
     await fill(page, puzzle, steps(puzzle, 1).slice(0, 2));
