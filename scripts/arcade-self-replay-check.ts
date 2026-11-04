@@ -83,6 +83,7 @@ import { encodeMoonRun, encodeNinjaRun, encodeRicoRun, replayMoonRun, replayNinj
 import { moonCheckpoint, moonGame, ninjaCheckpoint, ninjaGame, NINJA_CHECKPOINT_INTERVAL } from "@/lib/arcade/ricochetNinja";
 import { encodeSkylineRun, replaySkylineRun } from "@/lib/duel/skyline";
 import { encodeSliceRun, replaySliceRun } from "@/lib/duel/slice";
+import { FLIP_DEAL } from "@/lib/duel/flipDeal.server";
 import { encodeSnakeRun, replaySnakeRun } from "@/lib/duel/snake";
 import { encodeSteadyRun, replaySteadyRun } from "@/lib/duel/steady";
 import { encodeSwerveRun, replaySwerveRun } from "@/lib/duel/swerve";
@@ -1008,6 +1009,10 @@ const GAMES: Game[] = [
     encode: encodeInkBridgeRun,
     replay: (seed: number, raw: string) => replayInkBridgeRun(seed, raw, INK_REV_BIG),
   },
+  // Slice sliceRev 12 (3 Nov 2026, the Action polish): bigger, recognisable food and chillies.
+  { key: "slice/food", game: sliceGameFor(12), checkpoint: sliceCheckpoint, mode: "events", rate: 1000, encode: encodeSliceRun, replay: (seed: number, raw: string) => replaySliceRun(seed, raw, 12) },
+  // Roofbound flipRev 12 (3 Nov 2026): flipRev 11's game dealt from its proved courses (seeds from the deal).
+  { key: "flip/deal", game: flipGameFor(12), checkpoint: flipCheckpoint, mode: "events", rate: 50, encode: encodeFlipRun, replay: (seed: number, raw: string) => replayFlipRun(seed, raw, 12), seedFor: (n: number) => FLIP_DEAL[n % FLIP_DEAL.length]! },
 ];
 
 /** A random candidate event, often outside the declared range (a finger off the edge). */

@@ -16,6 +16,7 @@ import { SLICE_BLADE_V4, sliceFrenzyOn, sliceGame, sliceGameFor, sliceMayoOn, sl
 import { artCanvas, artContext, type ArtCanvas } from './cache.renderer';
 import { reducedMotion } from './art.renderer';
 import { FX_PARTICLE_LIMIT } from '../fx/limits';
+import { drawActionHud, type ActionChip } from './actionHud.renderer';
 
 // Kitchen palette belongs to the renderer, never to the simulation's colour table.
 // The onion's skin is light green #CFEDE6 since Joe's phone notes (27 Oct 2026; look only, every revision).
@@ -26,9 +27,13 @@ const K = { ink:'#232721', board:'#AC784B', grain:'#855936', edge:'#70492F', til
   seeds:'#FFE18E', leaf:'#275C27', mustard:'#FFDC24', chilli:'#ED202F', glow:'rgba(255,38,45,0.45)',
   mayo:'#FFF6DC', mayoShade:'#E9DDB8', mayoCap:'#3F7FD8', knot:'#6E4428', groove:'#93623C' };
 export const SLICE_FOODS = ['bagel','cabbage','onion','meat'] as const;
-type Food = typeof SLICE_FOODS[number];
-const colours: Record<Food,string> = {bagel:K.bagel,cabbage:K.cabbage,onion:K.onion,meat:K.meat};
-const foodOf = (colour:number):Food => SLICE_FOODS[colour % SLICE_FOODS.length] ?? 'bagel';
+/** sliceRev 12 (3 Nov 2026): food that reads as food, by colour index: bread, watermelon, orange, apple. */
+export const SLICE_FOODS_V12 = ['bread','melon','orange','apple'] as const;
+type OldFood = typeof SLICE_FOODS[number];
+type NewFood = typeof SLICE_FOODS_V12[number];
+type Food = OldFood | NewFood;
+const colours: Record<Food,string> = {bagel:K.bagel,cabbage:K.cabbage,onion:K.onion,meat:K.meat,bread:'#D9963F',melon:'#2E9E3E',orange:'#FF9A1F',apple:'#E5232E'};
+const foodOf = (colour:number,v12=false):Food => v12 ? SLICE_FOODS_V12[colour % SLICE_FOODS_V12.length] ?? 'bread' : SLICE_FOODS[colour % SLICE_FOODS.length] ?? 'bagel';
 const cache = new Map<string,ArtCanvas>();
 export function sprite(key:string,size:number,paint:(c:CanvasRenderingContext2D,s:number)=>void):ArtCanvas|null {
   const px=Math.max(4,Math.round(size)); const id=`${key}@${px}`;
@@ -62,6 +67,7 @@ function circle(c:CanvasRenderingContext2D,x:number,y:number,r:number,fill:strin
 }
 /** Food outer circle is the exact collision envelope; inner details convey the ingredient. */
 export function paintFood(kind:Food,cut=false) {
+  if(kind==='bread'||kind==='melon'||kind==='orange'||kind==='apple')return paintFoodV12(kind,cut);
   return (c:CanvasRenderingContext2D,size:number)=>{
     const r=size/2;c.translate(r,r);
     circle(c,0,0,r,K.ink);circle(c,0,0,r*.94,colours[kind]);
@@ -284,22 +290,22 @@ function drawSliceArtWorld(ctx:CanvasRenderingContext2D,state:SliceState,size:Ca
   const latest=state.slicedAt.reduce((best,t,i)=>t>(state.slicedAt[best]??0)?i:best,0),object=state.objects[latest];
   const cutAt=object?sliceObjectAt(object,state.slicedAt[latest]??state.tick,state.slowFrom,state.mayo):null;
   drawSqueeze(ctx,state,still);
-  successFrame(ctx,{id:'slice',tick:state.tick,count:state.slices,eventTick:state.slicedAt[latest],colour:object?colours[foodOf(object.colour)]:K.tomato,width:SLICE_WORLD_W,height:SLICE_WORLD_H,point:{x:cutAt?cutAt.x/256:195,y:cutAt?cutAt.y/256:SLICE_WORLD_H/2,shape:'splat'},hud:{x:20,y:14,text:`Sliced ${state.slices}`}});
+  successFrame(ctx,{id:'slice',tick:state.tick,count:state.slices,eventTick:state.slicedAt[latest],colour:object?colours[foodOf(object.colour,!!state.v12)]:K.tomato,width:SLICE_WORLD_W,height:SLICE_WORLD_H,point:{x:cutAt?cutAt.x/256:195,y:cutAt?cutAt.y/256:SLICE_WORLD_H/2,shape:'splat'},hud:{x:20,y:14,text:`Sliced ${state.slices}`}});
   let particles=0;
   for(let i=0;i<state.objects.length;i++) {
     const o=state.objects[i];if(!o||sliceSuppressed(state,o))continue;
-    const slicedAt=state.slicedAt[i]??0,r=sliceRadius(o),kind=foodOf(o.colour);
+    const slicedAt=state.slicedAt[i]??0,r=sliceRadius(o),kind=foodOf(o.colour,!!state.v12);const v12=!!state.v12;
     const mayo=o.special===SLICE_SPECIAL_MAYO;
     // sliceRev 9: golden fruit (a tiny gilded apple); every food's stamp is its own sim diameter.
     const gold=!!state.v9&&!o.special&&!o.bomb&&o.colour===SLICE_V9_GOLD;
-    const stamp=sprite(o.bomb?'chilli':mayo?'mayo':o.special===SLICE_SPECIAL_FRENZY?'ketchup':o.special===SLICE_SPECIAL_SLOW?'mustard':gold?'golden':kind,px*r/SLICE_R,
-      o.bomb?paintChilli:mayo?paintMayo:o.special?paintBottle(o.special===SLICE_SPECIAL_SLOW):gold?paintGolden(false):paintFood(kind));
+    const stamp=sprite(o.bomb?(v12?'chilli-v12':'chilli'):mayo?'mayo':o.special===SLICE_SPECIAL_FRENZY?'ketchup':o.special===SLICE_SPECIAL_SLOW?'mustard':gold?(v12?'golden-apple':'golden'):kind,px*r/SLICE_R,
+      o.bomb?(v12?paintChilliV12:paintChilli):mayo?paintMayo:o.special?paintBottle(o.special===SLICE_SPECIAL_SLOW):gold?(v12?paintGoldenApple(false):paintGolden(false)):paintFood(kind));
     if(!stamp)continue;
     if(slicedAt){const age=state.tick-slicedAt;if(age>SLICE_HALVES_TICKS)continue;
       const at=sliceObjectAt(o,slicedAt,state.slowFrom,state.mayo);if(!at)continue;
       const cx=at.x/256,cy=at.y/256+(still?0:age*age/20),spread=still?3:3+age;
       const cut=memo.cuts.get(i)??{angle:0,offset:0};
-      const face=!o.bomb&&!o.special?(gold?sprite('golden-face',px*r/SLICE_R,paintGolden(true)):sprite(`${kind}-face`,px*r/SLICE_R,paintFood(kind,true))):stamp;
+      const face=!o.bomb&&!o.special?(gold?(v12?sprite('golden-apple-face',px*r/SLICE_R,paintGoldenApple(true)):sprite('golden-face',px*r/SLICE_R,paintGolden(true))):sprite(`${kind}-face`,px*r/SLICE_R,paintFood(kind,true))):stamp;
       ctx.globalAlpha=Math.max(0,1-age/SLICE_HALVES_TICKS);
       for(const side of [-1,1]) {
         ctx.save();ctx.translate(cx-Math.sin(cut.angle)*spread*side,cy+Math.cos(cut.angle)*spread*side);ctx.rotate(cut.angle);
@@ -317,13 +323,14 @@ function drawSliceArtWorld(ctx:CanvasRenderingContext2D,state:SliceState,size:Ca
     const at=sliceObjectAt(o,state.tick,state.slowFrom,state.mayo);if(!at)continue;const cx=at.x/256,cy=at.y/256;
     const shade=shadowSprite(px*1.3);if(shade)ctx.drawImage(shade as CanvasImageSource,cx-r*1.15+3,cy-r*1.15*SHADOW_SQUASH+6,2.3*r,2.3*r*SHADOW_SQUASH);
     // Art pilot (Kitchen): food sprites fill the collision circle's square; code art when absent or for chillies.
-    if(o.bomb||gold||!drawArtSprite(ctx,'kitchen',kind,cx-r,cy-r,2*r,2*r))ctx.drawImage(stamp as CanvasImageSource,cx-r,cy-r,2*r,2*r);
+    if(o.bomb||gold||v12||!drawArtSprite(ctx,'kitchen',kind,cx-r,cy-r,2*r,2*r))ctx.drawImage(stamp as CanvasImageSource,cx-r,cy-r,2*r,2*r);
     // sliceRev 9: a soft gold glint round golden fruit (inside its circle) so the tiny target reads.
     if(gold){ctx.save();ctx.globalAlpha=still?.5:.4+.25*Math.sin(now/120+i);ctx.strokeStyle='#FFF4C2';ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(cx,cy,r-1,0,Math.PI*2);ctx.stroke();ctx.restore();}
     if(o.special){const tint=mayo?K.white:o.special===SLICE_SPECIAL_SLOW?K.silver:SLICE_RAINBOW[Math.floor((still?0:now/110))%SLICE_RAINBOW.length]??K.tomato;
       ctx.globalAlpha=still?.28:.25+.16*Math.sin(now/140);ctx.strokeStyle=tint;ctx.lineWidth=2;ctx.beginPath();ctx.arc(cx,cy,r-1,0,Math.PI*2);ctx.stroke();ctx.globalAlpha=1;
     }
-    if(o.bomb){const glow=sprite('chilli-glow',px,paintGlow);if(glow)ctx.drawImage(glow as CanvasImageSource,cx-r,cy-r,2*r,2*r);
+    if(o.bomb&&v12){drawChilliPulse(ctx,cx,cy,r,still,now);}
+    if(o.bomb&&!v12){const glow=sprite('chilli-glow',px,paintGlow);if(glow)ctx.drawImage(glow as CanvasImageSource,cx-r,cy-r,2*r,2*r);
       // Fuse, spark and glow clipped to the hazard envelope; no inner warning icon or shrunken body.
       ctx.save();ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.clip();
       ctx.strokeStyle=K.white;ctx.lineWidth=1.4;ctx.beginPath();ctx.moveTo(cx+r*.3,cy-r*.78);ctx.lineTo(cx+r*.23,cy-r*.91);ctx.stroke();
@@ -336,6 +343,11 @@ function drawSliceArtWorld(ctx:CanvasRenderingContext2D,state:SliceState,size:Ca
   ctx.lineCap='round';for(const e of memo.trail){const [x1,y1,x2,y2]=e.seg;ctx.globalAlpha=.65*(1-(now-e.at)/110);ctx.strokeStyle=K.silver;ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();}
   ctx.globalAlpha=1;if(state.swipe){const[x1,y1,x2,y2]=state.swipe;ctx.strokeStyle=K.silver;ctx.lineWidth=state.tunec?2*SLICE_BLADE_V4:3;ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();ctx.strokeStyle=K.white;ctx.lineWidth=.8;ctx.stroke();}
   if(state.flash>0){ctx.fillStyle=`rgba(224,80,60,${state.flash/SLICE_FLASH_TICKS*.45})`;ctx.fillRect(0,0,SLICE_WORLD_W,SLICE_WORLD_H);}
+  // sliceRev 11+ (3 Nov 2026, the Action HUD): one row of pill chips per line; the combo tag, ticket and bonus plate
+  // below are the older revisions' look.
+  if(state.v11){drawSliceV9Hud(ctx,state,SLICE_WORLD_W,still,now);drawSliceActionHud(ctx,state,now,still);
+    if(!still&&state.comboFlash>0){ctx.strokeStyle=K.gold;ctx.globalAlpha=state.comboFlash/SLICE_COMBO_FLASH_TICKS;ctx.lineWidth=6;ctx.strokeRect(3,3,SLICE_WORLD_W-6,SLICE_WORLD_H-6);}
+    ctx.restore();return;}
   drawSliceComboMeter(ctx,state);
   if(state.v9)drawSliceV9Hud(ctx,state,SLICE_WORLD_W,still,now);
   // Polish A3: the tiled wall shows through a light veil; the words sit on dark plates.
@@ -427,9 +439,11 @@ export function drawSliceKitchenExample(ctx:CanvasRenderingContext2D):void {
   ctx.save();ctx.fillStyle=K.board;ctx.fillRect(0,0,168,120);
   ctx.strokeStyle=K.grain;ctx.lineWidth=.5;
   for(let y=8;y<120;y+=12){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(168,y+2);ctx.stroke();}
-  for(const [kind,x,y] of [['bagel',44,70],['cabbage',84,50],['meat',124,72]] as const){
-    const s=sprite(kind,26,paintFood(kind));if(s)ctx.drawImage(s as CanvasImageSource,x-13,y-13,26,26);
+  // sliceRev 12's food (3 Nov 2026): bread, a watermelon and an apple, and the bright chilli to miss.
+  for(const [kind,x,y] of [['bread',44,70],['melon',84,50],['apple',124,72]] as const){
+    const s=sprite(kind,30,paintFood(kind));if(s)ctx.drawImage(s as CanvasImageSource,x-15,y-15,30,30);
   }
+  const ch=sprite('chilli-v12',26,paintChilliV12);if(ch)ctx.drawImage(ch as CanvasImageSource,14,14,26,26);
   const m=sprite('mayo',22,paintMayo);if(m)ctx.drawImage(m as CanvasImageSource,138,86,22,22);
   ctx.strokeStyle=K.silver;ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(24,92);ctx.lineTo(146,40);ctx.stroke();ctx.restore();
 }
@@ -476,7 +490,7 @@ function drawSliceV9Hud(ctx:CanvasRenderingContext2D,state:SliceState,W:number,s
   if((state.dodges??0)>memo.dodges){memo.dodges=state.dodges??0;memo.dodgeAt=now;}
   ctx.save();
   // sliceRev 11: the bread ticket (three breads in a row, none missed) in the order ticket's place.
-  if(state.v11){
+  if(state.v11&&!ACTION_HUD_SLICE){
     const got=Math.min(SLICE_V11_TICKET_BREADS,state.breadRun??0),done=state.breadTickets??0;
     const x=W-118,y=SLICE_HUD_H+8,w=108,h=58;
     ctx.fillStyle='#FFF9EB';ctx.beginPath();ctx.roundRect(x,y,w,h,6);ctx.fill();
@@ -515,12 +529,15 @@ function drawSliceV9Hud(ctx:CanvasRenderingContext2D,state:SliceState,W:number,s
   // sliceRev 11: the bonus is the combo, golden fruit, tickets and dodges parts; there is no dodge streak.
   const bonus=v11?v11.combo+v11.gold+v11.tickets+v11.dodges:sliceV9Bonus(state),streak=v11?0:state.dodgeStreak??0;
   const by=SLICE_HUD_H+72;
+  if(state.v11)streakMemo.set(ctx,{ticketAt:memo.ticketAt,dodgeAt:memo.dodgeAt});
+  if(!state.v11){
   ctx.font="800 13px 'JetBrains Mono', monospace";ctx.textAlign='left';ctx.textBaseline='middle';
   const line=`BONUS +${bonus}${streak>0?`  DODGE ×${streak}`:''}`;
   const lw=ctx.measureText(line).width+16;
   ctx.fillStyle='rgba(22,14,9,0.72)';ctx.beginPath();ctx.roundRect(8,by,lw,22,7);ctx.fill();
   ctx.fillStyle=bonus>0?K.gold:'#F6EEE2';ctx.fillText(line,16,by+11.5);
   if(!still&&now-memo.dodgeAt<500){ctx.globalAlpha=1-(now-memo.dodgeAt)/500;ctx.strokeStyle='#3DDC84';ctx.lineWidth=2;ctx.beginPath();ctx.roundRect(7,by-1,lw+2,24,8);ctx.stroke();ctx.globalAlpha=1;}
+  }
   // "+n" over a golden fruit cut (still, in place, under reduced motion).
   const age=now-memo.at;
   if(age<700&&memo.gain>0){
@@ -530,4 +547,130 @@ function drawSliceV9Hud(ctx:CanvasRenderingContext2D,state:SliceState,W:number,s
     ctx.strokeText(`+${memo.gain} GOLD`,memo.x,yy);ctx.fillStyle=K.gold;ctx.fillText(`+${memo.gain} GOLD`,memo.x,yy);ctx.globalAlpha=1;
   }
   ctx.restore();
+}
+
+/** sliceRev 11+ draws its readouts through the Action HUD (actionHud.renderer.ts). */
+const ACTION_HUD_SLICE=true;
+const streakMemo=new WeakMap<object,{ticketAt:number;dodgeAt:number}>();
+/**
+ * The Action HUD for sliceRev 11+ (3 Nov 2026; display only): row one SLICED (the main count) left, BONUS and
+ * TICKETS right; row two the combo's seconds left (a draining bar) and the bottle effect left, the bread run right.
+ */
+function drawSliceActionHud(ctx:CanvasRenderingContext2D,state:SliceState,now:number,still:boolean):void {
+  const W=sliceWorldW(state);
+  const p=sliceV11Parts(state);
+  const bonus=p.combo+p.gold+p.tickets+p.dodges;
+  const left=Math.max(0,state.comboUntil-state.tick),live=state.comboLive&&left>0;
+  const m=streakMemo.get(ctx)??{ticketAt:-Infinity,dodgeAt:-Infinity};
+  const effect=sliceFrenzyOn(state,state.tick)?'SAUCY':sliceSlowOn(state,state.tick)?'SIMMER':sliceMayoOn(state,state.tick)?'SQUEEZE':'';
+  const got=Math.min(SLICE_V11_TICKET_BREADS,state.breadRun??0);
+  const row2:ActionChip[]=[{label:'COMBO',value:live?`${Math.ceil(left/TICKS_PER_SECOND)}s`:'–',tone:live?'gold':'dim',...(live?{meter:Math.min(1,left/SLICE_COMBO_TICKS)}:{})}];
+  if(effect)row2.push({label:'',value:effect,tone:'hot'});
+  drawActionHud(ctx,W,[
+    {left:[{label:'SLICED',value:String(state.slices),pulse:{id:'slice',tick:state.tick}}],
+      right:[{label:'BONUS',value:`+${bonus}`,tone:bonus>0?'gold':'plain',flash:!still&&now-m.dodgeAt<500?1-(now-m.dodgeAt)/500:0},{label:'TICKETS',value:String(state.breadTickets??0)}]},
+    {left:row2,right:[{label:'BREAD',value:`${got}/${SLICE_V11_TICKET_BREADS}`,tone:got>0?'gold':'plain',icon:state.v12?loafIcon:breadIcon,flash:!still&&now-m.ticketAt<600?1-(now-m.ticketAt)/600:0}]},
+  ]);
+}
+function loafIcon(ctx:CanvasRenderingContext2D,cx:number,cy:number):void {
+  const icon=sprite('bread',28,paintFood('bread'));
+  if(icon)ctx.drawImage(icon as CanvasImageSource,cx-8,cy-8,16,16);
+}
+function breadIcon(ctx:CanvasRenderingContext2D,cx:number,cy:number):void {
+  const icon=sprite('bagel',28,paintFood('bagel'));
+  if(icon)ctx.drawImage(icon as CanvasImageSource,cx-8,cy-8,16,16);
+}
+
+
+/* ============ sliceRev 12: food that reads as food (3 Nov 2026, Joe's audit; display of the new stamp) ============ */
+
+/**
+ * Bread, watermelon, orange and apple. Each fills its sim hit circle (the outer ink ring is the collision edge, as
+ * every food's), drawn large and bold so it reads at play size; a cut face shows its inside.
+ */
+function paintFoodV12(kind:NewFood,cut:boolean){
+  return (c:CanvasRenderingContext2D,size:number)=>{
+    const r=size/2;c.translate(r,r);
+    circle(c,0,0,r,K.ink);
+    if(kind==='bread'){
+      if(cut){circle(c,0,0,r*.94,'#B5722E');circle(c,0,0,r*.8,'#F7E2B5');
+        for(const [x,y,rr] of [[-.3,-.2,.08],[.25,-.3,.06],[.1,.15,.09],[-.2,.35,.05],[.4,.2,.05],[-.45,.1,.04]] as const)circle(c,r*x,r*y,r*rr,'#E2C68E');return;}
+      const g=c.createRadialGradient(-r*.3,-r*.35,r*.1,0,0,r*.95);g.addColorStop(0,'#F3C477');g.addColorStop(.6,'#D9963F');g.addColorStop(1,'#9C5A1E');
+      c.fillStyle=g;c.beginPath();c.arc(0,0,r*.94,0,Math.PI*2);c.fill();
+      // Three scored slashes across the top and a dusting of flour.
+      c.strokeStyle='#7A4313';c.lineWidth=r*.12;c.lineCap='round';
+      for(const k of [-1,0,1]){c.beginPath();c.moveTo(r*(k*.38-.22),-r*(.42-k*.05));c.quadraticCurveTo(r*k*.38,-r*.05,r*(k*.38+.2),r*(.36+k*.05));c.stroke();}
+      c.strokeStyle='#FBE3B0';c.lineWidth=r*.05;
+      for(const k of [-1,0,1]){c.beginPath();c.moveTo(r*(k*.38-.2),-r*(.4-k*.05));c.quadraticCurveTo(r*(k*.38+.02),-r*.07,r*(k*.38+.18),r*(.33+k*.05));c.stroke();}
+      c.fillStyle='rgba(255,255,255,0.55)';for(let i=0;i<10;i++){const a=i*2.3,d=r*(.2+((i*37)%50)/100);c.fillRect(Math.cos(a)*d,Math.sin(a)*d,r*.05,r*.05);}
+    }else if(kind==='melon'){
+      if(cut){circle(c,0,0,r*.94,'#1F7A2E');circle(c,0,0,r*.84,'#E8F5C8');circle(c,0,0,r*.76,'#FF4560');
+        c.fillStyle='#1A1A1A';for(let i=0;i<9;i++){const a=i*0.7,d=r*(.25+(i%3)*.15);c.beginPath();c.ellipse(Math.cos(a)*d,Math.sin(a)*d,r*.05,r*.09,a,0,Math.PI*2);c.fill();}return;}
+      circle(c,0,0,r*.94,'#2E9E3E');
+      c.save();c.beginPath();c.arc(0,0,r*.94,0,Math.PI*2);c.clip();
+      c.strokeStyle='#145A22';c.lineWidth=r*.16;
+      for(let k=-3;k<=3;k++){c.beginPath();c.moveTo(r*k*.3,-r);c.bezierCurveTo(r*(k*.3+.15),-r*.3,r*(k*.3-.15),r*.3,r*k*.3,r);c.stroke();}
+      c.restore();
+      c.fillStyle='#5E3A1A';c.fillRect(-r*.06,-r*.98,r*.12,r*.2);
+    }else if(kind==='orange'){
+      if(cut){circle(c,0,0,r*.94,'#FF8A12');circle(c,0,0,r*.82,'#FFF1D0');circle(c,0,0,r*.74,'#FFB43C');
+        c.strokeStyle='#FFF1D0';c.lineWidth=r*.07;for(let i=0;i<8;i++){const a=i*Math.PI/4;c.beginPath();c.moveTo(0,0);c.lineTo(Math.cos(a)*r*.74,Math.sin(a)*r*.74);c.stroke();}
+        circle(c,0,0,r*.1,'#FFF1D0');return;}
+      const g=c.createRadialGradient(-r*.3,-r*.35,r*.1,0,0,r);g.addColorStop(0,'#FFD07A');g.addColorStop(.5,'#FF9A1F');g.addColorStop(1,'#D96A08');
+      c.fillStyle=g;c.beginPath();c.arc(0,0,r*.94,0,Math.PI*2);c.fill();
+      c.fillStyle='rgba(160,70,0,0.25)';for(let i=0;i<22;i++){const a=i*2.4,d=r*(.15+((i*53)%70)/100);c.beginPath();c.arc(Math.cos(a)*d,Math.sin(a)*d,r*.035,0,Math.PI*2);c.fill();}
+      c.fillStyle='#3E8A2A';c.beginPath();c.ellipse(r*.18,-r*.74,r*.26,r*.11,-.5,0,Math.PI*2);c.fill();
+      circle(c,0,-r*.72,r*.07,'#5E3A1A');
+    }else{
+      if(cut){circle(c,0,0,r*.94,'#D41E2A');circle(c,0,0,r*.84,'#FFF4D6');
+        c.fillStyle='#5A3410';for(const a of [0,1.26,2.51,3.77,5.03]){c.beginPath();c.ellipse(Math.cos(a)*r*.2,Math.sin(a)*r*.2,r*.05,r*.09,a,0,Math.PI*2);c.fill();}return;}
+      const g=c.createRadialGradient(-r*.35,-r*.3,r*.08,0,0,r);g.addColorStop(0,'#FF7A6E');g.addColorStop(.45,'#E5232E');g.addColorStop(1,'#93101A');
+      c.fillStyle=g;c.beginPath();c.arc(0,0,r*.94,0,Math.PI*2);c.fill();
+      // The dimple at the top, the stalk and a leaf.
+      c.fillStyle='#93101A';c.beginPath();c.ellipse(0,-r*.7,r*.22,r*.1,0,0,Math.PI*2);c.fill();
+      c.strokeStyle='#5E3A1A';c.lineWidth=r*.12;c.lineCap='round';c.beginPath();c.moveTo(0,-r*.68);c.quadraticCurveTo(r*.04,-r*.86,r*.1,-r*.92);c.stroke();
+      c.fillStyle='#3E9A2E';c.beginPath();c.ellipse(r*.32,-r*.78,r*.24,r*.1,-.4,0,Math.PI*2);c.fill();
+    }
+  };
+}
+
+/** The golden apple: the apple's shape in polished gold with a sparkle. */
+function paintGoldenApple(cut:boolean){
+  return (c:CanvasRenderingContext2D,size:number)=>{
+    const r=size/2;c.translate(r,r);
+    circle(c,0,0,r,'#6E4A10');
+    if(cut){circle(c,0,0,r*.94,'#E0A21C');circle(c,0,0,r*.8,'#FFF1B8');for(const a of [0,2.1,4.2])circle(c,Math.cos(a)*r*.25,Math.sin(a)*r*.25,r*.09,'#5A3A10');return;}
+    const g=c.createRadialGradient(-r*.35,-r*.4,r*.05,0,0,r*.94);g.addColorStop(0,'#FFF8D0');g.addColorStop(.45,'#F5C542');g.addColorStop(1,'#B37A12');
+    c.fillStyle=g;c.beginPath();c.arc(0,0,r*.94,0,Math.PI*2);c.fill();
+    c.fillStyle='#B37A12';c.beginPath();c.ellipse(0,-r*.7,r*.22,r*.1,0,0,Math.PI*2);c.fill();
+    c.strokeStyle='#5A3A10';c.lineWidth=r*.13;c.lineCap='round';c.beginPath();c.moveTo(0,-r*.66);c.lineTo(r*.1,-r*.9);c.stroke();
+    c.fillStyle='#3E9A2E';c.beginPath();c.ellipse(r*.34,-r*.76,r*.24,r*.1,-.4,0,Math.PI*2);c.fill();
+    // A four-point sparkle.
+    c.fillStyle='#FFFFFF';c.beginPath();const sx=-r*.32,sy=-r*.18,a=r*.26,b=r*.06;
+    c.moveTo(sx,sy-a);c.lineTo(sx+b,sy-b);c.lineTo(sx+a,sy);c.lineTo(sx+b,sy+b);c.lineTo(sx,sy+a);c.lineTo(sx-b,sy+b);c.lineTo(sx-a,sy);c.lineTo(sx-b,sy-b);c.closePath();c.fill();
+  };
+}
+
+/**
+ * The chilli (sliceRev 12): a big, bright red pepper on a dark plate that fills the hazard circle exactly, so the
+ * whole danger zone reads; drawn diagonally, with a green stalk and a white shine.
+ */
+function paintChilliV12(c:CanvasRenderingContext2D,size:number){
+  const r=size/2;c.translate(r,r);
+  circle(c,0,0,r,'#2A0306');circle(c,0,0,r*.92,'#4A070C');
+  c.rotate(-.7);
+  const g=c.createLinearGradient(0,-r*.4,0,r*.4);g.addColorStop(0,'#FF5A4A');g.addColorStop(.5,'#FF1A1A');g.addColorStop(1,'#B00010');
+  c.fillStyle=g;c.beginPath();
+  c.moveTo(-r*.62,-r*.18);c.bezierCurveTo(-r*.3,-r*.42,r*.35,-r*.3,r*.78,r*.05);
+  c.bezierCurveTo(r*.55,r*.12,r*.1,r*.32,-r*.55,r*.24);c.bezierCurveTo(-r*.72,r*.16,-r*.74,-r*.06,-r*.62,-r*.18);c.closePath();c.fill();
+  c.strokeStyle='#5A0008';c.lineWidth=r*.05;c.stroke();
+  c.strokeStyle='rgba(255,255,255,0.85)';c.lineWidth=r*.08;c.lineCap='round';c.beginPath();c.moveTo(-r*.35,-r*.16);c.quadraticCurveTo(0,-r*.25,r*.35,-r*.1);c.stroke();
+  c.fillStyle='#3FBF3A';c.beginPath();c.ellipse(-r*.68,-r*.02,r*.12,r*.22,0,0,Math.PI*2);c.fill();
+  c.strokeStyle='#3FBF3A';c.lineWidth=r*.12;c.beginPath();c.moveTo(-r*.74,0);c.quadraticCurveTo(-r*.9,-r*.1,-r*.86,-r*.36);c.stroke();
+}
+
+/** The chilli's danger ring: a bright red edge on the hazard circle, pulsing (steady with reduced motion). */
+function drawChilliPulse(ctx:CanvasRenderingContext2D,cx:number,cy:number,r:number,still:boolean,now:number):void {
+  ctx.save();ctx.globalAlpha=still?.8:.6+.35*Math.sin(now/120);ctx.strokeStyle='#FF2A2A';ctx.lineWidth=2.5;
+  ctx.beginPath();ctx.arc(cx,cy,r-1.25,0,Math.PI*2);ctx.stroke();ctx.restore();
 }

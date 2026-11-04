@@ -19,6 +19,7 @@
  * Nothing here is imported by a sim, grader or server code, and nothing here reads or writes
  * a sim: scores, timing, inputs and replays are untouched.
  */
+import { SWING_REV_SLIDE } from "./swing";
 import { artHash, reducedMotion } from "./art.renderer";
 import { SCENE_TUCK, type ArenaAmbient, type ArenaSceneView } from "./arenaScene.renderer";
 import { METEOR_BORDER_COLOURS } from "./snake.renderer";
@@ -542,6 +543,32 @@ export function swingFill(ctx: CanvasRenderingContext2D, view: ArenaSceneView): 
     ctx.stroke();
   }
   stars(ctx, { ...r, h: Math.min(r.h, 40) }, 193, ["#FF8A3A", "#FFB054"], 220, 0.35, 2);
+}
+
+/**
+ * 19b. Grappler on swingRev 17 (the jungle canopy, 3 Nov 2026): the river's deep water carried on under the world (from
+ * its bottom colour), a few faint current streaks, settling to near-black.
+ */
+export function swingJungleFill(ctx: CanvasRenderingContext2D, view: ArenaSceneView): void {
+  const r = fillBelow(view);
+  if (!r) return;
+  fillGradient(ctx, r, r.y, r.y + r.h, [[0, "#0B3A4A"], [Math.min(0.6, 24 / r.h), "#082C38"], [Math.min(0.9, 60 / r.h), "#06202A"], [1, "#04141A"]]);
+  ctx.lineWidth = 1;
+  for (let k = 0; k < 7; k++) {
+    const h = artHash(k, 211);
+    const x = r.x + ((h % 1000) / 1000) * r.w;
+    const y = r.y + 6 + (((h >>> 10) % 1000) / 1000) * Math.max(4, Math.min(r.h, 60) - 12);
+    ctx.strokeStyle = "rgba(200,245,240,0.12)";
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.lineTo(x + 12 + (h % 16), y);
+    ctx.stroke();
+  }
+}
+
+/** Grappler's fill for a stored revision: the jungle's river on swingRev 17, the cave's lava before. */
+export function swingFillFor(rev?: number | null): (ctx: CanvasRenderingContext2D, view: ArenaSceneView) => void {
+  return rev === SWING_REV_SLIDE ? swingJungleFill : swingFill;
 }
 
 /** 17. Fission: under the arena's floor, a dark teal ground (the floor's soft edge) that settles into the dark under the arrows. */

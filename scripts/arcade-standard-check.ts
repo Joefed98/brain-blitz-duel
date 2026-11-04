@@ -39,7 +39,8 @@ import type { StdEntry } from "./arcade-standard/entry";
  * swingRev 15). Once rooms deal that stamp (or later), the game must have an entry; an entry for a game not listed fails.
  */
 const STANDARD_ROSTER: readonly { type: string; field: string; rev: number; batch: string }[] = [
-  { type: "slice", field: "sliceRev", rev: 11, batch: "A" },
+  // sliceRev 12 (3 Nov 2026, the Action polish): bigger food, the core from half the food (slice-food-check).
+  { type: "slice", field: "sliceRev", rev: 12, batch: "A" },
   { type: "breaker", field: "brkRev", rev: 11, batch: "A" },
   // tiltRev 11 (3 Nov 2026): tiltRev 10's mazes with no gold stars, scored on par times and a clean run (tilt-rev11-check).
   // tiltRev 12 (3 Nov 2026): tiltRev 11's parts with bigger marbles and keys, from its proved deal (tilt-rev12-check).
@@ -61,7 +62,8 @@ const STANDARD_ROSTER: readonly { type: string; field: string; rev: number; batc
   { type: "cross", field: "crossRev", rev: 11, batch: "C" },
   { type: "wavefront", field: "wavRev", rev: 12, batch: "C" },
   // flipRev 11 (3 Nov 2026): no star pickups; clean time 100, perfect landings 60, double flips 20, flow streak 20 (flip-rev11-check).
-  { type: "flip", field: "flipRev", rev: 11, batch: "C" },
+  // flipRev 12 (3 Nov 2026): flipRev 11's game dealt only on its proved courses (flip-deal-check).
+  { type: "flip", field: "flipRev", rev: 12, batch: "C" },
   // Rainbow Bridge deals inkRev 14 since 3 Nov 2026 (inkRev 13's clovers, ink par and parts with a bigger coin, clovers and
   // birds, from a proved deal; ink-v14-check).
   { type: "inkbridge", field: "inkRev", rev: 14, batch: "C" },

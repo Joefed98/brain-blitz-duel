@@ -1,8 +1,9 @@
 import { MOON_REV } from "@/lib/arcade/ricochetNinja";
 import { BASTION_REV_DEALT } from "@/lib/arcade/bastionTank";
 import { TEN_DROP_DEPTH_REV } from "@/lib/arcade/tenDrop";
-import { SLICE_REV_TARGET, SLICE_REV_STRICT, SLICE_REV_STANDARD } from "@/lib/arcade/slice";
-import { FLIP_REV_TARGET, FLIP_REV_STRICT, FLIP_REV_FLOW } from "@/lib/arcade/flip";
+import { SLICE_REV_TARGET, SLICE_REV_STRICT, SLICE_REV_FOOD, sliceFoodSeedOk } from "@/lib/arcade/slice";
+import { FLIP_REV_TARGET, FLIP_REV_STRICT, FLIP_REV_DEAL } from "@/lib/arcade/flip";
+import { flipDealSeed } from "./flipDeal.server";
 import { CROSS_REV_FLOW } from "@/lib/arcade/cross";
 import { INK_REV_BIG, INK_REV_CLOVER, INK_REV_STD } from "@/lib/arcade/inkBridge";
 import { inkBigDealSeed } from "./inkBigDeal.server";
@@ -241,7 +242,11 @@ export function generateSteady(): SteadyPuzzleData {
 export function generateSlice(): SlicePuzzleData {
   // sliceRev 10: sliceRev 9 (expansion E5) with onions and golden fruit 1.2× the size (Joe's phone notes, 27 Oct 2026).
   // sliceRev 11: sliceRev 10's play on the arcade scoring standard (29 Oct 2026, docs/arcade-standard/slice.md).
-  return { type: "slice", seed: arcadeSeed(), sliceRev: SLICE_REV_STANDARD };
+  // sliceRev 12: sliceRev 11 with bigger, recognisable food and chillies, the core counted above half the food (3 Nov 2026).
+  // Its deal re-draws a seed with too few chillies for the five dodges (sliceFoodSeedOk), so every dealt seed reaches 200.
+  let seed = arcadeSeed();
+  while (!sliceFoodSeedOk(seed)) seed = arcadeSeed();
+  return { type: "slice", seed, sliceRev: SLICE_REV_FOOD };
 }
 
 export function generateBubble(): BubblePuzzleData {
@@ -300,7 +305,8 @@ export function generateFlip(): FlipPuzzleData {
   // standard (time survived 150, gold stars 15, star trails 15, sweet landings 10, double flips 10; docs/arcade-standard/flip.md).
   // flipRev 11 (3 Nov 2026): no star pickups and the flow streak; clean time 100, perfect landings 60, double flips 20,
   // flow streak 20 (docs/arcade-standard/flip.md "flipRev 11").
-  return { type: "flip", seed: arcadeSeed(), flipRev: FLIP_REV_FLOW };
+  // flipRev 12 (3 Nov 2026): flipRev 11's game, dealt only on the courses proved to reach 200 (flipDeal.server.ts).
+  return { type: "flip", seed: flipDealSeed(arcadeSeed()), flipRev: FLIP_REV_DEAL };
 }
 
 export function generateJunction(): JunctionPuzzleData {

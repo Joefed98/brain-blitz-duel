@@ -31,7 +31,7 @@ import { SLICE_BEFORE, type SliceLegacyRecord } from "./slice-standard-legacy";
 import { sliceOracleEvents, sliceOracleRun } from "./slice-standard-oracle";
 import { entry } from "./arcade-standard/slice";
 import type { StdRun } from "./arcade-standard/entry";
-import { BAND_STRICT_MARK } from "../src/lib/arcade/scoreBands";
+import { BAND_STRICT_MARK, bandPoints } from "../src/lib/arcade/scoreBands";
 import { LIVE_BANDS } from "../src/lib/arcade/liveBands";
 import type { ArcadeInputEvent } from "../src/lib/arcade/engine";
 import {
@@ -175,8 +175,9 @@ section("Older stamps replay exactly as recorded on main");
 section("Rooms deal sliceRev 11; the help, intro and maximum say so");
 {
   const dealt = (generatePuzzle("slice") as unknown as Record<string, unknown>).sliceRev;
-  ok(dealt === SLICE_REV_STANDARD && SLICE_REV_STANDARD === 11, `rooms deal sliceRev 11 (got ${String(dealt)})`);
-  ok(LIVE_BANDS.slice.rev === SLICE_REV_STANDARD && LIVE_BANDS.slice.curve === SLICE_V11_BAND_CURVE, "LIVE_BANDS reads sliceRev 11 and its core line");
+  // Rooms deal sliceRev 12 since 3 Nov 2026 (bigger food, the core from half the food; slice-food-check), after 11.
+  ok(dealt === SLICE_REV_STANDARD + 1 && SLICE_REV_STANDARD === 11, `rooms deal sliceRev 12, after 11 (got ${String(dealt)})`);
+  ok(LIVE_BANDS.slice.rev === SLICE_REV_STANDARD + 1 && bandPoints(SLICE_V11_BAND_CURVE, 1000) === 120, "LIVE_BANDS reads sliceRev 12 (after 11, whose core line is unchanged)");
   ok(JSON.stringify(SLICE_V11_BAND_CURVE) === JSON.stringify({ units: [0, 1000], points: [0, 120] }), "the core is one straight line, 0 → 120 over the share in thousandths");
   ok(playRevOf("slice", SLICE_REV_STANDARD) === SLICE_REV_BIG, "playRevOf maps sliceRev 11 to sliceRev 10's play");
   ok(ROUND_MAX.slice === 200, "ROUND_MAX is 200");
@@ -384,7 +385,7 @@ section("A perfect run scores 200 through the server's replay");
   ok(perfect === seeds, `${perfect} of ${seeds} oracle runs score 200 with every part full`);
   if (perfect > 0) audit(spec.seedFor(300), sliceOracleEvents(spec.seedFor(300)), "the oracle");
   const st = STANDARD.perfect();
-  ok(STANDARD.id === "slice" && STANDARD.stampKey === "sliceRev" && STANDARD.stamp === 11, "STANDARD names sliceRev 11");
+  ok(STANDARD.id === "slice" && STANDARD.stampKey === "sliceRev" && STANDARD.stamp === 12, "STANDARD names sliceRev 12 (since 3 Nov 2026; slice-food-check proves it)");
   ok(st.score === 200 && STANDARD.parts.every((part) => st.parts[part.key] === part.max), `STANDARD.perfect(): 200 with every part at its maximum (${JSON.stringify(st)})`);
 }
 

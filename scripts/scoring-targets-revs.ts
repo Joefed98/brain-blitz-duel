@@ -75,7 +75,15 @@ export const STD_REVS: Partial<Record<LiveBandGame, readonly [std: number, play:
  * The revision whose play a dealt revision keeps: the target and score-bands revisions map to the target's
  * predecessor, a later score-only revision (LIFT_REVS, STD_REVS) to the revision it re-scores, any other is itself.
  */
+/**
+ * Deal-only revisions (3 Nov 2026): type → [the revision, the revision whose game it plays exactly]. Roofbound flipRev 12
+ * is flipRev 11's game dealt only on its proved courses (flip-deal-check).
+ */
+export const DEAL_REVS: Partial<Record<LiveBandGame, readonly [deal: number, game: number]>> = { flip: [12, 11] };
+
 export function playRevOf(type: string, rev: number | undefined | null): number | undefined | null {
+  const deal = DEAL_REVS[type as LiveBandGame];
+  if (deal && rev === deal[0]) return playRevOf(type, deal[1]);
   const std = STD_REVS[type as LiveBandGame];
   if (std && rev === std[0]) return std[1];
   const lift = LIFT_REVS[type as LiveBandGame];

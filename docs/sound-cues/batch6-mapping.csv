@@ -14,7 +14,7 @@ minigolf_roll_loop,minigolf_roll_loop.mp3,minigolf,ball rolling,2,yes,minigolf.r
 minigolf_rail,minigolf_rail.mp3,minigolf,hits rail or log,0.3,no,minigolf.bounce
 minigolf_stone,minigolf_stone.mp3,minigolf,hits boulder or planter,0.3,no,minigolf.stone
 minigolf_bush,minigolf_bush.mp3,minigolf,brushes bush,0.5,no,minigolf.bush
-minigolf_splash,minigolf_splash.mp3,minigolf,water hazard,0.8,no,minigolf.water
+minigolf_splash,minigolf_splash.mp3,minigolf,water hazard,0.8,no,minigolf.water;swing.splash
 minigolf_cup,minigolf_cup.mp3,minigolf,holed,0.8,no,minigolf.holed
 minigolf_birdie,minigolf_birdie.mp3,minigolf,under par,1,no,minigolf.birdie
 music_pool,music_pool.mp3,pool,music bed,90,yes,music_pool

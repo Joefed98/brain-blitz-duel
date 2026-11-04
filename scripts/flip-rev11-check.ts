@@ -107,8 +107,10 @@ const moves = (s: FlipState) =>
   JSON.stringify([s.tick, s.x, s.side, s.flipT, s.arcN, s.cursor, s.warpY, s.ended, s.rng, s.land, s.chain, s.combos, s.comboPts, s.save, s.saves, s.inv, s.cpPassed, s.cleanCps, s.zonesOk, s.pause, s.lost, s.sweetGot, s.sweetT, s.cracks, s.acted]);
 
 /* 1. Wiring. */
-ok((generatePuzzle("flip") as any).flipRev === FLIP_REV_FLOW && FLIP_REV_FLOW === FLIP_REV_STD + 1, "rooms deal flipRev 11 (flipRev 10 before 3 Nov 2026)");
-ok(LIVE_BANDS.flip.rev === FLIP_REV_FLOW && LIVE_BANDS.flip.curve === FLIP_V11_BAND_CURVE, "the help reads flipRev 11's core line");
+// Rooms deal flipRev 12 since 3 Nov 2026 (the Action polish): flipRev 11's game exactly, dealt from its proved courses
+// (flip-deal-check proves the two play and score identically), so flipRev 11's rules here hold for what rooms deal.
+ok((generatePuzzle("flip") as any).flipRev === FLIP_REV_FLOW + 1 && flipGameFor(FLIP_REV_FLOW + 1) === flipGameFor(FLIP_REV_FLOW) && FLIP_REV_FLOW === FLIP_REV_STD + 1, "rooms deal flipRev 12, flipRev 11's game (flipRev 10 before 3 Nov 2026)");
+ok(LIVE_BANDS.flip.rev === FLIP_REV_FLOW + 1 && LIVE_BANDS.flip.curve === FLIP_V11_BAND_CURVE, "the help reads flipRev 11's core line (dealt as flipRev 12)");
 ok(JSON.stringify(FLIP_V11_BAND_CURVE.units) === JSON.stringify([0, 120]) && JSON.stringify(FLIP_V11_BAND_CURVE.points) === JSON.stringify([0, 100]), "the help's curve is the straight line 0 → 0, 120 → 100");
 ok(ROUND_MAX.flip === 200, "ROUND_MAX: Roofbound is 200");
 ok(flipWorldHFor(FLIP_REV_FLOW) === FLIP_V8_WORLD_H, "flipRev 11 plays in flipRev 8's 730 px world");
@@ -134,15 +136,17 @@ ok(FLIP_V11.parts.reduce((a, p) => a + p.max, 0) === 200 && FLIP_V11_SAVE_COST =
   const line = INTRO_SCORE.flip;
   ok(line.length <= 90 && line.includes("Clean time 100") && line.includes("sweet spots 60") && line.includes("flow streak") && line.includes("200"), `the intro states the parts and the top in ≤ 90 characters: ${line}`);
   const demo = readFileSync("src/lib/duel/introDemo.functions.ts", "utf8");
-  ok(demo.includes("demo.puzzle.flipRev !== FLIP_REV_FLOW) return null;"), "the intro demo plays only when recorded on flipRev 11");
+  ok(demo.includes("demo.puzzle.flipRev !== FLIP_REV_FLOW && demo.puzzle.flipRev !== FLIP_REV_DEAL) return null;"), "the intro demo plays only when recorded on flipRev 11 (or 12, the same game)");
   const art = readFileSync("src/lib/arcade/flipArt.renderer.ts", "utf8");
-  ok(art.includes("if (state.flow) drawFlowHud(ctx, state);") && art.includes("const text = `FLOW ${streak}`;"), "the HUD shows the flow streak on flipRev 11");
+  // The Action HUD (3 Nov 2026): the flow streak as a chip.
+  ok(art.includes("if (state.flow) drawFlowHud(ctx, state);") && art.includes('{ label: "FLOW", value: String(streak)'), "the HUD shows the flow streak on flipRev 11");
   const sweet = FLIP_FX.events.find((e) => e.label?.({} as any, 1, 1) === "PERFECT");
   ok(Boolean(sweet && sweet.kind === "pop" && sweet.textOnly && sweet.molten && sweet.count === flipSweetsTaken), "a perfect landing pops a molten PERFECT with no burst (the shared layer's sweet-landing event)");
 }
 {
   const perfect = (entry.perfect() as StdRun[]).filter((r) => r.score !== 200);
-  ok(entry.type === "flip" && entry.field === "flipRev" && entry.rev === FLIP_REV_FLOW && entry.before === FLIP_REV_STD, "the standard module names flipRev 11, one above flipRev 10");
+  // Since 3 Nov 2026 the standard module names flipRev 12 (flipRev 11's game, its proved deal), one above flipRev 11.
+  ok(entry.type === "flip" && entry.field === "flipRev" && entry.rev === FLIP_REV_FLOW + 1 && entry.before === FLIP_REV_FLOW && FLIP_REV_FLOW === FLIP_REV_STD + 1, "the standard module names flipRev 12 (flipRev 11's game), one above flipRev 11");
   ok(perfect.length === 0, `every perfect witness scores 200 (${perfect.map((r) => `${r.label} ${r.score}`).join(", ")})`);
 }
 

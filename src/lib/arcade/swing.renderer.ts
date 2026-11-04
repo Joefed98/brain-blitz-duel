@@ -1,6 +1,6 @@
 import { successHud, successFrame, SUCCESS_ACCENTS } from "./success.renderer";
 import { drawArtSprite } from "./sprites.renderer";
-import { arcadeFx } from "./arcadeFx.renderer";
+import { arcadeFx, ARCADE_FX_DISPLAY_FONT } from "./arcadeFx.renderer";
 import { swingFxFor } from "./arcadeFxGames.renderer";
 /**
  * Swing art pass. Render only: reads SwingState and never mutates it. The lava
@@ -64,6 +64,21 @@ import { artHash, reducedMotion } from "./art.renderer";
 import { arcadeReducedEffects } from "@/lib/fx/lowEnd";
 import { drawHero, heroPose } from "./hero.renderer";
 import { ANG_PER_RAD } from "./trig";
+import { drawActionHud, type ActionChip } from "./actionHud.renderer";
+import {
+  JUNGLE,
+  drawJungleBackdrop,
+  drawJungleCanopy,
+  drawJungleGate,
+  drawJungleGlow,
+  drawJungleGrabPoints,
+  drawJunglePlatform,
+  drawJungleRiver,
+  drawJungleRope,
+  drawJungleSqueeze,
+  drawJungleVinePaths,
+  drawPterodactyl,
+} from "./swingJungle.renderer";
 
 /** Grappler's hero pose (stick figure joints, 3.4 px head, 2.4 px stick), refilled every frame. */
 const grapplerHero = Object.assign(heroPose(), { headR: 3.4, stick: 2.4 });
@@ -92,6 +107,11 @@ export function drawSwingArt(ctx: CanvasRenderingContext2D, state: SwingState, s
 }
 
 function drawSwingArtWorld(ctx: CanvasRenderingContext2D, state: SwingState, size: CanvasSize): void {
+  // swingRev 17 (the revision rooms deal) draws the prehistoric jungle canopy (3 Nov 2026; display only).
+  if (state.slide) {
+    drawSwingJungleWorld(ctx, state, size);
+    return;
+  }
   // swingRev 9: the taller cavern (its lava 110 px lower); 620 on every earlier revision.
   // swingRev 13: the expansion's wider, taller view (450 × 844); 390 wide on every earlier revision.
   const SWING_WORLD_H = swingWorldH(state);
@@ -1500,22 +1520,22 @@ const LIGHT_TICKS = 20;
  * cave (from where the dark started before to where it starts now) brightens over LIGHT_TICKS. The hooks in the dark
  * are skipped by the anchor pass (swingHookLit), so none shows behind the veil.
  */
-function drawDark(ctx: CanvasRenderingContext2D, state: SwingState, sx: (x: number) => number, width: number, height: number, still: boolean): void {
+function drawDark(ctx: CanvasRenderingContext2D, state: SwingState, sx: (x: number) => number, width: number, height: number, still: boolean, shade = "4,3,6"): void {
   const from = swingDarkFrom(state);
   const fill = (x0: number, alpha: number, soft: boolean) => {
     if (x0 >= width || alpha <= 0) return;
     if (soft) {
       const g = ctx.createLinearGradient(x0, 0, x0 + DARK_EDGE, 0);
-      g.addColorStop(0, "rgba(4,3,6,0)");
-      g.addColorStop(1, `rgba(4,3,6,${alpha})`);
+      g.addColorStop(0, `rgba(${shade},0)`);
+      g.addColorStop(1, `rgba(${shade},${alpha})`);
       ctx.fillStyle = g;
       ctx.fillRect(Math.max(0, x0), 0, Math.min(width, x0 + DARK_EDGE) - Math.max(0, x0), height);
       if (x0 + DARK_EDGE < width) {
-        ctx.fillStyle = `rgba(4,3,6,${alpha})`;
+        ctx.fillStyle = `rgba(${shade},${alpha})`;
         ctx.fillRect(Math.max(0, x0 + DARK_EDGE), 0, width - Math.max(0, x0 + DARK_EDGE), height);
       }
     } else {
-      ctx.fillStyle = `rgba(4,3,6,${alpha})`;
+      ctx.fillStyle = `rgba(${shade},${alpha})`;
       ctx.fillRect(Math.max(0, x0), 0, width - Math.max(0, x0), height);
     }
   };
@@ -1535,7 +1555,7 @@ function drawDark(ctx: CanvasRenderingContext2D, state: SwingState, sx: (x: numb
       const x0 = sx(before);
       const x1 = from === SWING_NO_DARK ? width : sx(from);
       if (x1 > 0 && x0 < width) {
-        ctx.fillStyle = `rgba(4,3,6,${fade})`;
+        ctx.fillStyle = `rgba(${shade},${fade})`;
         ctx.fillRect(Math.max(0, x0), 0, Math.min(width, x1) - Math.max(0, x0), height);
       }
     }
@@ -1555,7 +1575,7 @@ function drawDark(ctx: CanvasRenderingContext2D, state: SwingState, sx: (x: numb
 const DIM_CENTRE = 0.25;
 const DIM_EDGE = 0.55;
 /** The vignette, built once per context and world size (never per frame). */
-const dimCache = new WeakMap<CanvasRenderingContext2D, { w: number; h: number; fill: CanvasGradient }>();
+const dimCache = new WeakMap<CanvasRenderingContext2D, { w: number; h: number; shade: string; fill: CanvasGradient }>();
 
 /**
  * How far the ledge-run dim is on (0–1; presentation only, from the sim's swingDarkFrom): on from the stretch that ends
@@ -1579,20 +1599,216 @@ export function swingLedgeDim(state: SwingState, still = false): number {
   return Math.max(0, 1 - (state.tick - state.grabTick) / LIGHT_TICKS);
 }
 
-function drawLedgeDim(ctx: CanvasRenderingContext2D, state: SwingState, width: number, height: number, still: boolean): void {
+function drawLedgeDim(ctx: CanvasRenderingContext2D, state: SwingState, width: number, height: number, still: boolean, shade = "4,3,6"): void {
   const level = swingLedgeDim(state, still);
   if (level <= 0) return;
   let c = dimCache.get(ctx);
-  if (!c || c.w !== width || c.h !== height) {
+  if (!c || c.w !== width || c.h !== height || c.shade !== shade) {
     const r = Math.hypot(width, height) / 2;
     const g = ctx.createRadialGradient(width / 2, height / 2, r * 0.25, width / 2, height / 2, r);
-    g.addColorStop(0, `rgba(4,3,6,${DIM_CENTRE})`);
-    g.addColorStop(1, `rgba(4,3,6,${DIM_EDGE})`);
-    c = { w: width, h: height, fill: g };
+    g.addColorStop(0, `rgba(${shade},${DIM_CENTRE})`);
+    g.addColorStop(1, `rgba(${shade},${DIM_EDGE})`);
+    c = { w: width, h: height, shade, fill: g };
     dimCache.set(ctx, c);
   }
   ctx.globalAlpha = level;
   ctx.fillStyle = c.fill;
   ctx.fillRect(0, 0, width, height);
   ctx.globalAlpha = 1;
+}
+
+/* ============================ The jungle canopy (swingRev 17) ============================ */
+
+/** The jungle hero's pose: the Joulz hero filling the sim's 10 px body radius (head 4.2, stick 3; ±11 px, inside 2 px). */
+const jungleHero = Object.assign(heroPose(), { headR: 4.2, stick: 3 });
+/** The "PTERODACTYL N m" label's full size (world px); its scale is swingDragonLabelScale's. */
+export const SWING_PTERO_LABEL_PX = 15;
+
+/**
+ * Grappler on swingRev 17 (3 Nov 2026; display only): the jungle canopy of swingJungle.renderer.ts on the sim's own
+ * geometry, the hero larger (filling the 10 px body radius) and brighter on a visible vine, the Action HUD's chips.
+ * Same course, rules and timings as the cave it replaced; nothing here writes the state.
+ */
+function drawSwingJungleWorld(ctx: CanvasRenderingContext2D, state: SwingState, size: CanvasSize): void {
+  const W = swingWorldW(state);
+  const H = swingWorldH(state);
+  const still = reducedMotion();
+  const lite = arcadeReducedEffects();
+  const t = still ? 0 : state.tick / 60;
+  const scale = Math.min(size.width / W, size.height / H);
+  ctx.save();
+  ctx.clearRect(0, 0, size.width, size.height);
+  ctx.translate((size.width - W * scale) / 2, (size.height - H * scale) / 2);
+  ctx.scale(scale, scale);
+  ctx.beginPath();
+  ctx.rect(0, 0, W, H);
+  ctx.clip();
+  const cam = state.camX / FP;
+  const sx = (x: number) => x / FP - cam;
+  const first = Math.max(0, Math.min(state.ceil.length - 2, Math.trunc(state.camX / COL) - 1));
+  const last = Math.min(state.ceil.length - 1, first + Math.ceil(W / 40) + 2);
+
+  drawJungleBackdrop(ctx, cam, W, H, t, lite);
+  drawJungleCanopy(ctx, state, first, last, sx, W, t, lite);
+  drawJungleRiver(ctx, state, cam, W, H, t, still, lite);
+
+  // Squeezes: a hanging trunk over the roof rectangle and a boulder stack over the floor one.
+  for (const sq of state.squeezes ?? []) {
+    const x0 = sx(sq.x0);
+    const x1 = sx(sq.x1);
+    if (x1 < -10 || x0 > W + 10) continue;
+    const roofFrom = Math.min(lerpAt(state.ceil, sq.x0), lerpAt(state.ceil, sq.x1), sq.top) / FP - 2;
+    const floorTo = Math.min(H, Math.max(lerpAt(state.floor, sq.x0), lerpAt(state.floor, sq.x1)) / FP + 4);
+    drawJungleSqueeze(ctx, x0, x1, roofFrom, sq.top / FP, true, sq.x0);
+    drawJungleSqueeze(ctx, x0, x1, sq.bottom / FP, floorTo, false, sq.x0);
+  }
+  // Speed gates.
+  (state.gates ?? []).forEach((g, i) => {
+    const x = sx(g.x);
+    if (x < -30 || x > W + 30) return;
+    drawJungleGate(ctx, g, x, ((state.gatesLit ?? 0) & (1 << i)) !== 0, i, state.tick, still, lite);
+  });
+  // Tree platforms: the stretch in play's start carries the arrow, the last the flag, those reached gold.
+  const k = Math.min(state.sec ?? 0, state.sections!.length - 1);
+  const cur = state.sections![k]!;
+  const reached = (i: number) => i === cur.from || state.sections!.some((sec, j) => j < (state.sec ?? 0) && sec.to === i);
+  (state.ledges ?? []).forEach((l, i) => {
+    const x = sx(l.x);
+    const half = l.half / FP;
+    if (x < -half - 40 || x > W + half + 40) return;
+    const kind = i === state.ledges!.length - 1 ? 2 : i === cur.from ? 0 : 1;
+    drawJunglePlatform(ctx, l, x, lerpAt(state.floor, l.x) / FP, kind, reached(i), state.tick, still);
+    if (kind === 0) {
+      const par = swingSectionPar(state, l.section);
+      if (par.par > 0 && par.flag <= 0) {
+        ctx.font = `700 11px ${ARCADE_FX_DISPLAY_FONT}`;
+        ctx.textAlign = "center";
+        ctx.fillStyle = "rgba(255,236,160,0.8)";
+        ctx.fillText(`PAR ${(par.par / 60).toFixed(1)} s`, x, l.top / FP - 8);
+      }
+    }
+  });
+  // The deep canopy shade beyond the next platform of a platform run; its vines are not drawn (swingHookLit).
+  if (state.dark) drawDark(ctx, state, sx, W, H, still, JUNGLE.shade);
+  // Swinging vines' paths under their loops, then every grab point where the sim has it this tick.
+  if (state.slide) drawJungleVinePaths(ctx, state, sx, W);
+  drawJungleGrabPoints(ctx, state, sx, W, t, still, lite);
+
+  const anchor = state.anchors[state.rope];
+  if (anchor) successFrame(ctx, { id: "swing", tick: state.tick, count: Math.max(0, state.rope), eventTick: state.grabTick, colour: SWING_GOLD, width: W, height: H, point: { x: sx(swingAnchorAt(state, state.rope, state.tick).x), y: anchor.y / FP, shape: "spark" } });
+
+  // The pterodactyl, its beak on the catch line.
+  if ((state.chaseX ?? 0) !== 0) {
+    const x = sx((state.chaseX ?? 0) + SWING_CHASE_REACH) - 34;
+    if (x > -50 && x < W + 50) drawPterodactyl(ctx, x, (state.chaseY ?? 0) / FP, still ? 0 : Math.floor(state.tick / 5));
+  }
+
+  const fx = sx(state.x);
+  const fy = state.y / FP;
+  let armX = -0.6;
+  let armY = 0.8;
+  if (state.rope >= 0) {
+    const a = swingAnchorAt(state, state.rope, state.tick);
+    const ax = sx(a.x);
+    const ay = a.y / FP;
+    drawJungleRope(ctx, ax, ay, fx, fy - 4);
+    const d = Math.hypot(ax - fx, ay - fy) || 1;
+    armX = (ax - fx) / d;
+    armY = (ay - fy) / d;
+  } else {
+    const d = Math.hypot(state.vx, state.vy) || 1;
+    armX = -state.vx / d;
+    armY = -state.vy / d;
+  }
+  // The hero, larger than the cave's: head at -7.5 (top -11.7), feet at +11, inside the 10 px radius plus 2 px.
+  const hero = jungleHero;
+  hero.headX = fx; hero.headY = fy - 7.5;
+  hero.neckX = fx; hero.neckY = fy - 3.2;
+  hero.hipX = fx; hero.hipY = fy + 3.6;
+  hero.shoulderX = fx; hero.shoulderY = fy - 3.2;
+  hero.handAX = fx + armX * 9.5; hero.handAY = fy - 3.2 + armY * 9.5;
+  hero.handBX = fx + armX * 8.5 + armY * 2.4; hero.handBY = fy - 3.2 + armY * 8.5 - armX * 2.4;
+  hero.footAX = fx - 3.6; hero.footAY = fy + 11;
+  hero.footBX = fx + 3.6; hero.footBY = fy + 11;
+  let vx = state.vx / FP;
+  let vy = state.vy / FP;
+  if (state.rope >= 0) {
+    const a = swingAnchorAt(state, state.rope, state.tick);
+    const turn = state.om / ROPE_RAD;
+    vx = (fy - a.y / FP) * turn;
+    vy = -(fx - sx(a.x)) * turn;
+  }
+  const speed = Math.hypot(vx, vy);
+  hero.moveX = vx;
+  hero.moveY = vy;
+  hero.speed = Math.min(1, speed / 8);
+  hero.face = speed > 0 ? vx / speed : 0;
+  hero.core = state.ended === 2 ? "#FF4D5E" : null;
+  hero.gentle = still;
+  // A soft light round the hero so it reads against the leaves.
+  if (!lite) drawJungleGlow(ctx, fx, fy, 24, "rgba(255,230,150,0.36)", "rgba(255,230,150,0.12)");
+  const blink = (state.respawn ?? 0) > 0 && !still && Math.floor(state.tick / 4) % 2 === 1;
+  if (blink) ctx.globalAlpha = 0.35;
+  drawHero(ctx, hero);
+  ctx.globalAlpha = 1;
+
+  ctx.restore();
+  // The platform-run dim (deep shade over the whole view), then the edge warning and the HUD over it.
+  if (state.dark) {
+    ctx.save();
+    ctx.translate((size.width - W * scale) / 2, (size.height - H * scale) / 2);
+    ctx.scale(scale, scale);
+    drawLedgeDim(ctx, state, W, H, still, JUNGLE.shade);
+    ctx.restore();
+  }
+  ctx.save();
+  ctx.translate((size.width - W * scale) / 2, (size.height - H * scale) / 2);
+  ctx.scale(scale, scale);
+  if (state.ended === 0 && (state.chaseX ?? 0) !== 0) {
+    const chase = state.chaseX ?? 0;
+    const behind = Math.max(0, Math.trunc((state.x - chase - SWING_CHASE_REACH) / (40 * FP)));
+    if (sx(chase + SWING_CHASE_REACH) < 0) {
+      ctx.fillStyle = behind < 4 ? "#FF4D5E" : "#FF7884";
+      ctx.beginPath();
+      ctx.moveTo(4, fy);
+      ctx.lineTo(16, fy - 9);
+      ctx.lineTo(16, fy + 9);
+      ctx.closePath();
+      ctx.fill();
+      const k2 = swingDragonLabelScale(behind);
+      if (k2 > 0) {
+        const px = Math.round(SWING_PTERO_LABEL_PX * k2 * 10) / 10;
+        const ty = Math.max(px + 4, Math.min(H - 6, fy + px * 0.36));
+        ctx.font = `800 ${px}px ${ARCADE_FX_DISPLAY_FONT}`;
+        ctx.textAlign = "left";
+        ctx.lineJoin = "round";
+        ctx.lineWidth = Math.max(2, px * 0.22);
+        ctx.strokeStyle = "rgba(7,7,13,0.85)";
+        ctx.strokeText(`PTERODACTYL ${behind} m`, 20, ty);
+        ctx.fillText(`PTERODACTYL ${behind} m`, 20, ty);
+      }
+    }
+  }
+  drawSwingActionHud(ctx, state, W);
+  ctx.restore();
+}
+
+/**
+ * Grappler's Action HUD (swingRev 17): STRETCH x / y (the main count) and STREAK ×n on the first row, the stretch's
+ * par clock and GATES n / y on the second.
+ */
+function drawSwingActionHud(ctx: CanvasRenderingContext2D, state: SwingState, W: number): void {
+  const c = swingAssaultCounts(state);
+  const shown = Math.min(c.sectionTotal, c.sections + (c.sections < c.sectionTotal ? 1 : 0));
+  const streak = swingStreakNow(state);
+  const clock = swingAssaultClock(state);
+  const row2: ActionChip[] = [];
+  if (clock && clock.par > 0) {
+    const under = clock.elapsed < clock.par;
+    row2.push({ label: "PAR", value: `${(clock.elapsed / 60).toFixed(1)} / ${(clock.par / 60).toFixed(1)} s`, tone: under ? "gold" : "dim", meter: Math.min(1, clock.elapsed / clock.par) });
+  }
+  drawActionHud(ctx, W, [
+    { left: [{ label: "STRETCH", value: `${shown} / ${c.sectionTotal}`, pulse: { id: "swing", tick: state.tick } }], right: [{ label: "STREAK", value: `×${streak}`, tone: streak >= SWING_V17_STREAK_BLOCK ? "gold" : "plain" }] },
+    { left: row2, right: [{ label: "GATES", value: `${c.gates} / ${c.gateTotal}`, tone: c.gates > 0 ? "gold" : "plain" }] },
+  ]);
 }

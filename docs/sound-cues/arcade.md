@@ -30,6 +30,10 @@ when the run starts. Rooms deal Pinball since 14 Oct 2026; Junction is practice 
 | `swing.dragon` | Grappler | The dragon appears behind the player | `arc_siren` (0.6) | 0–1 | 600 ms |
 | `swing.rockShake` | Grappler | A stalactite starts to shake | `arc_clank` (0.5) | 2–8 | 150 ms |
 | `swing.rockLand` | Grappler | A stalactite hits the floor | `arc_wood_knock` (0.5) | 2–8 | 90 ms |
+| `swing.vineCreak` | Grappler | The vine catches (swingRev 17, the jungle canopy; `swing.grapple` before; its slot plays the library's `ricochet.lanternGrab.mp3`) | `arc_grapple` | 20–60 | 450 ms |
+| `swing.splash` | Grappler | A miss drops the hero into the river (swingRev 17; `swing.crash` before; the library's `minigolf_splash.mp3`) | `arc_crash` | 0–10 | 800 ms |
+| `swing.pterodactyl` | Grappler | The pterodactyl swoops in over the last quarter (swingRev 17; `swing.dragon` before; the library's `clayshoot.birdStartle.mp3`) | `arc_siren` (0.6) | 0–1 | 600 ms |
+| `swing.pteroCatch` | Grappler | The pterodactyl catches the hero (swingRev 17; `clayshoot.birdStartle.mp3` a little lower) | `arc_crash` | 0–3 | 600 ms |
 | `wavefront.fire` | Wavefront | A shot is fired (one per volley; at most one per 120 ms, two at once) | `arc_blaster` (0.6, overlapping); own soft file `wavefront.greenBolt.mp3` at 0.36 (sound batch 4, slot volume 0.6; batch 3's `wavefront.fire.mp3` deleted) | about 250 in 90 s | 90 ms |
 | `wavefront.pierce` | Wavefront | A piercing power-up is taken | `arc_retro_pickup` | 0–3 | 100 ms |
 | `wavefront.bigExplode` | Wavefront | A ship or the armoured ship is destroyed | `arc_big_explode` (0.8) | 5–20 | 810 ms |

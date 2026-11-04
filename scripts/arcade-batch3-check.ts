@@ -420,7 +420,8 @@ if (want("swing")) {
   ok(reached > 0, `150 is reachable on swingRev 4 through the server replay (${reached} of 3 sampled bank courses)`);
   const text = JSON.stringify(PUZZLE_INSTRUCTIONS.swing) + INTRO_SCORE.swing + readFileSync(new URL("../src/puzzles/swing.tsx", import.meta.url), "utf8") + readFileSync(new URL("../src/components/duel/IntroDemo.tsx", import.meta.url), "utf8") + readFileSync(new URL("../src/lib/arcade/reveal.ts", import.meta.url), "utf8");
   ok(!/dragons near the end/i.test(text), "no 'Watch out for dragons near the end' anywhere (intro, HOW, demo, help, reveal)");
-  ok(/dragon chases/i.test(JSON.stringify(PUZZLE_INSTRUCTIONS.swing)), "the intro describes the chasing dragon");
+  // The chaser is a pterodactyl in the jungle canopy since 3 Nov 2026 (swingRev 17's look; the same chase).
+  ok(/pterodactyl swoops in behind you/i.test(JSON.stringify(PUZZLE_INSTRUCTIONS.swing)), "the intro describes the chaser (the chasing dragon, a pterodactyl in the jungle)");
 }
 
 /* ============================ 3. Intro text rules ============================ */

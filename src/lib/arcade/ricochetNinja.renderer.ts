@@ -8,6 +8,7 @@
  * arcade bounds rule). The sky is painted once per canvas size (deviceLayer); only the walls, the objects in view and
  * the HUD are drawn each frame.
  */
+import { drawActionHud } from "./actionHud.renderer";
 import { deviceLayer } from "./cache.renderer";
 import { drawHero, heroPose, type HeroPose } from "./hero.renderer";
 import { artHash } from "./art.renderer";
@@ -522,8 +523,10 @@ function setPose(p: HeroPose, pose: number, face: number, tick: number): void {
   const at = (k: keyof HeroPose, v: number) => {
     (p as unknown as Record<string, number>)[k] = v;
   };
-  p.stick = 3.4;
-  p.headR = 7;
+  // Bolder since 3 Nov 2026 (Joe's audit: the hero read small at play size): thicker limbs and a bigger head, still
+  // inside the 26 × 52 body box (the hood's edge at most 11 px out, the box's half-width 13).
+  p.stick = 4.6;
+  p.headR = 8;
   p.scale = 1;
   p.detailScale = NaN;
   p.core = null;
@@ -598,10 +601,13 @@ export function drawNinja(ctx: CanvasRenderingContext2D, x: number, y: number, p
   if (scale !== 1) ctx.scale(scale, scale);
   const f = face;
   // A soft moonlit glow behind the figure (inside its body box), so it reads on the night sky.
-  ctx.fillStyle = "rgba(170,190,255,0.16)";
+  ctx.fillStyle = "rgba(170,190,255,0.3)";
   ctx.beginPath();
   ctx.ellipse(0, 0, NINJA_HW + 1, NINJA_HH + 1, 0, 0, Math.PI * 2);
   ctx.fill();
+  ctx.strokeStyle = "rgba(242,199,92,0.35)";
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
   if (pose === 2) ctx.rotate(spin * face);
   // The katana on the back, behind the hero: a dark scabbard and a gold-wrapped hilt over the far shoulder.
   ctx.save();
@@ -625,7 +631,7 @@ export function drawNinja(ctx: CanvasRenderingContext2D, x: number, y: number, p
   // The ninja wrap round the head: a dark hood larger than the head, peaked behind, with the face left open.
   ctx.fillStyle = NINJA_WRAP;
   ctx.beginPath();
-  ctx.arc(p.headX, p.headY, p.headR + 2.6, 0, Math.PI * 2);
+  ctx.arc(p.headX, p.headY, p.headR + 2.4, 0, Math.PI * 2);
   ctx.fill();
   ctx.beginPath();
   ctx.moveTo(p.headX - f * (p.headR + 1), p.headY - 3);
@@ -636,7 +642,7 @@ export function drawNinja(ctx: CanvasRenderingContext2D, x: number, y: number, p
   ctx.strokeStyle = NINJA_WRAP_EDGE;
   ctx.lineWidth = 1.1;
   ctx.beginPath();
-  ctx.arc(p.headX, p.headY, p.headR + 2.6, 0, Math.PI * 2);
+  ctx.arc(p.headX, p.headY, p.headR + 2.4, 0, Math.PI * 2);
   ctx.stroke();
   // The hero itself (cape, limbs, bolt, gloves and boots, head with its face).
   drawHero(ctx, p);
@@ -682,36 +688,16 @@ export function drawNinja(ctx: CanvasRenderingContext2D, x: number, y: number, p
 
 /* ================================ The frame ================================ */
 
-/** Moon Climb's HUD: two pills across the top, "Height N m" and "Flow ×N" (gold while a streak runs). */
+/** Moon Climb's HUD (the Action HUD since 3 Nov 2026): HEIGHT N m (the main count) left, FLOW ×N right (gold while a streak runs). */
 function drawMoonHud(ctx: CanvasRenderingContext2D, s: MoonState): void {
   const m = ninjaMetres(s);
-  ctx.textBaseline = "middle";
-  ctx.textAlign = "center";
-  ctx.font = `800 14px ${ARCADE_FX_DISPLAY_FONT}`;
-  const h = `Height ${m} m`;
-  const f = `Flow ×${s.streak}`;
-  const hw = Math.ceil(ctx.measureText(h).width) + 28;
-  const fw = Math.ceil(ctx.measureText(f).width) + 28;
-  const gap = 10;
-  const x0 = Math.round((NINJA_WORLD_W - hw - fw - gap) / 2);
-  const y = 12;
   const lit = s.tick - s.flowTick < 30;
-  ctx.fillStyle = "rgba(22,28,62,0.88)";
-  ctx.beginPath();
-  ctx.roundRect(x0, y, hw, 28, 14);
-  ctx.fill();
-  ctx.fillStyle = m >= MOON_CORE_FULL_M ? NINJA_GOLD : "#F5F5F7";
-  ctx.fillText(h, x0 + hw / 2, y + 14.5);
-  const fx = x0 + hw + gap;
-  ctx.fillStyle = lit ? "rgba(242,199,92,0.28)" : "rgba(22,28,62,0.88)";
-  ctx.beginPath();
-  ctx.roundRect(fx, y, fw, 28, 14);
-  ctx.fill();
-  ctx.strokeStyle = s.streak > 0 ? NINJA_GOLD : "rgba(242,199,92,0.45)";
-  ctx.lineWidth = 1.5;
-  ctx.stroke();
-  ctx.fillStyle = s.streak > 0 ? "#FFE3A0" : "#BFC4DA";
-  ctx.fillText(f, fx + fw / 2, y + 14.5);
+  drawActionHud(ctx, NINJA_WORLD_W, [
+    {
+      left: [{ label: "HEIGHT", value: `${m} m`, tone: m >= MOON_CORE_FULL_M ? "gold" : "plain", pulse: { id: "ricochet", tick: s.tick } }],
+      right: [{ label: "FLOW", value: `×${s.streak}`, tone: s.streak > 0 ? "gold" : "dim", flash: lit ? 1 - (s.tick - s.flowTick) / 30 : 0 }],
+    },
+  ]);
 }
 
 /** The HUD: "Height N m" top left, the items top right. */

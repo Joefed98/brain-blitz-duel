@@ -12,6 +12,7 @@ import {
   type FlipSeg, type FlipState,
 } from "./flip";
 import { flipSurfaceLine } from "./flip.renderer";
+import { drawActionHud } from "./actionHud.renderer";
 import { artHash, reducedMotion } from "./art.renderer";
 import { artCanvas, artContext, type ArtCanvas } from "./cache.renderer";
 import { sceneBelow, sceneFill, sceneSides, type ArenaSceneView } from "./arenaScene.renderer";
@@ -22,6 +23,9 @@ const FP = 256;
 let RUNNER_X = 90;
 const SPIKE_HEIGHT = 22;
 const OVERHANG_DEPTH = 34;
+/** flipRev 11/12's taller hazards (display only, the taller cave): their heights; their x-spans are the sim's. */
+const FLIP_FLOW_SPIKE_H = 30;
+const FLIP_FLOW_OVERHANG_H = 46;
 /** Canvas-only material tokens shared by every part of this renderer. */
 export const MATERIAL = {
   wash: "rgba(8,7,10,0.76)", tunnel: "#121418", basalt: "#1E1E24",
@@ -469,15 +473,17 @@ export function drawFlipPool(ctx: CanvasRenderingContext2D, a: number, b: number
 function runnerFrame(ctx: CanvasRenderingContext2D, state: FlipState, y: number, sink: number | null, dead: boolean, angle: number): boolean {
   const box = runnerBox(state);
   const big = state.rev === FLIP_REV;
+  // flipRev 11/12 (3 Nov 2026, the Action polish): a brighter backing inside the box.
+  const flow = !big && Boolean(state.flow);
   ctx.save();
   // Clip before rotation so tumbling limbs never enlarge the runner's collision box.
   ctx.beginPath();
   ctx.rect(RUNNER_X - box.half, y - box.h / 2, box.half * 2, box.h);
   ctx.clip();
-  if (big && !(dead && sink === null)) {
-    // Rev 2: a soft lamp-lit backing inside the box so the runner stands out from the rock.
+  if ((big || flow) && !(dead && sink === null)) {
+    // Rev 2: a soft lamp-lit backing inside the box so the runner stands out from the rock (brighter on flipRev 11/12).
     const halo = ctx.createRadialGradient(RUNNER_X, y, 2, RUNNER_X, y, box.h / 2);
-    halo.addColorStop(0, "rgba(255,228,161,0.32)");
+    halo.addColorStop(0, flow ? "rgba(255,236,180,0.55)" : "rgba(255,228,161,0.32)");
     halo.addColorStop(1, "rgba(255,228,161,0)");
     ctx.fillStyle = halo;
     ctx.fillRect(RUNNER_X - box.half, y - box.h / 2, box.half * 2, box.h);
@@ -747,7 +753,8 @@ function drawFlipArtWorld(ctx: CanvasRenderingContext2D, state: FlipState, size:
   ctx.fillStyle = "#F7F7F8";
   ctx.textBaseline = "top";
   ctx.textAlign = "left";
-  ctx.fillText(`${flipGame.score(state)}`, 14, 14);
+  // flipRev 11/12 draw the Action HUD's chips instead (drawFlowHud).
+  if (!state.flow) ctx.fillText(`${flipGame.score(state)}`, 14, 14);
   ctx.beginPath();
   ctx.rect(0, 0, FLIP_WORLD_W, FLIP_WORLD_H);
   ctx.clip();
@@ -878,16 +885,19 @@ function drawFlipArtWorld(ctx: CanvasRenderingContext2D, state: FlipState, size:
     if (b + (seg.amp ?? 0) / FP < 0) continue;
     const inward = seg.side === 0 ? -1 : 1;
     const at = seg.side === 0 ? floorAt : ceilAt;
+    // flipRev 11/12 (display only): the spikes and overhangs drawn taller with the taller cave (their x-spans unchanged).
+    const spikeH = state.flow ? FLIP_FLOW_SPIKE_H : SPIKE_HEIGHT;
+    const overH = state.flow ? FLIP_FLOW_OVERHANG_H : OVERHANG_DEPTH;
     if (seg.amp) {
       // Rev 8 moving spike: its groove (the stretch it slides along) under the rock, then the spike where the sim has it.
       const shift = flipSegShift(seg, state.tick) / FP;
       drawSlideGroove(ctx, a - seg.amp / FP, b + seg.amp / FP, inward, at, pulse);
-      drawRockObstacle(ctx, a + shift, b + shift, inward, at, SPIKE_HEIGHT, seg.x0 ^ state.warpFloor, pulse);
+      drawRockObstacle(ctx, a + shift, b + shift, inward, at, spikeH, seg.x0 ^ state.warpFloor, pulse);
       continue;
     }
     if (seg.kind === FLIP_CRUMBLE) drawCrumble(ctx, state, i, seg, a, b, inward, at, still);
     else if (seg.kind === FLIP_GAP) drawFlipPool(ctx, a, b, inward, at, still ? 0 : state.tick / 60, seg.x0);
-    else drawRockObstacle(ctx, a, b, inward, at, seg.kind === FLIP_SPIKE ? SPIKE_HEIGHT : OVERHANG_DEPTH, seg.x0 ^ state.warpFloor, pulse);
+    else drawRockObstacle(ctx, a, b, inward, at, seg.kind === FLIP_SPIKE ? spikeH : overH, seg.x0 ^ state.warpFloor, pulse);
   }
   // Rev 2 stars not yet taken, at the runner's standing height on their surface.
   if (state.stars) {
@@ -913,6 +923,18 @@ function drawFlipArtWorld(ctx: CanvasRenderingContext2D, state: FlipState, size:
   ctx.save();
   // Pool deaths sink behind the opening; no new player or hazard geometry.
   if (sink !== null) { bandPath(ctx, ceilAt, floorAt); ctx.clip(); }
+  // flipRev 11/12 (3 Nov 2026, display only): a warm light round the runner so it reads bright against the rock (the body
+  // itself already fills its 24 × 28 collision box, which is unchanged).
+  if (state.flow && state.ended !== 2) {
+    const glow = ctx.createRadialGradient(RUNNER_X, y, 4, RUNNER_X, y, 34);
+    glow.addColorStop(0, "rgba(255,214,120,0.42)");
+    glow.addColorStop(0.55, "rgba(255,170,70,0.16)");
+    glow.addColorStop(1, "rgba(255,150,60,0)");
+    ctx.fillStyle = glow;
+    ctx.beginPath();
+    ctx.arc(RUNNER_X, y, 34, 0, Math.PI * 2);
+    ctx.fill();
+  }
   drawRunnerHero(ctx, state, y, still, sink);
   if (state.exp && (state.inv ?? 0) > 0 && state.ended === 0) drawShield(ctx, state, y, still);
   successFrame(ctx,{id:'flip',tick:state.tick,count:0,eventTick:state.flipT>0?state.tick-((state.exp?state.arcN||FLIP_ARC_TICKS:FLIP_ARC_TICKS)-state.flipT):0,enabled:state.ended===0,colour:MATERIAL.hot,width:FLIP_WORLD_W,height:FLIP_WORLD_H,point:{x:RUNNER_X,y:y+(state.side===0?-1:1)*runnerBox(state).h/2,shape:'pixel'}});
@@ -1216,31 +1238,19 @@ function drawShield(ctx: CanvasRenderingContext2D, state: FlipState, y: number, 
 }
 
 /**
- * flipRev 11 HUD (3 Nov 2026): the flow streak, "FLOW 12", in the rock above the cave's top-left (the cave's roof never
- * rises above y 190 there, so it never covers play), and the run's best streak beside it once it is ahead of the
- * current one. A streak broken by a saved crash dims the count for a moment.
+ * flipRev 11/12 HUD (the Action HUD since 3 Nov 2026): the score, the flow streak and, once it is ahead of the current one,
+ * the run's best streak, as pill chips across the top (the taller cave's roof never rises above y 153).
  */
 function drawFlowHud(ctx: CanvasRenderingContext2D, state: FlipState): void {
   const streak = state.streak ?? 0;
   const best = state.bestStreak ?? 0;
-  ctx.save();
-  ctx.textBaseline = "top";
-  ctx.textAlign = "left";
-  ctx.font = "700 13px 'JetBrains Mono', ui-monospace, monospace";
-  ctx.fillStyle = "rgba(10,6,6,0.55)";
-  const text = `FLOW ${streak}`;
-  const w = ctx.measureText(text).width;
-  ctx.beginPath();
-  ctx.roundRect(10, 38, w + 14, 20, 6);
-  ctx.fill();
-  ctx.fillStyle = streak > 0 ? "#FFB347" : "rgba(255,179,71,0.55)";
-  ctx.fillText(text, 17, 42);
-  if (best > streak) {
-    ctx.font = "600 11px 'JetBrains Mono', ui-monospace, monospace";
-    ctx.fillStyle = "rgba(247,247,248,0.7)";
-    ctx.fillText(`BEST ${best}`, 10 + w + 22, 44);
-  }
-  ctx.restore();
+  // The Action HUD (3 Nov 2026): SCORE top left (the main count), FLOW and the run's BEST right.
+  drawActionHud(ctx, FLIP_WORLD_W, [
+    {
+      left: [{ label: "SCORE", value: String(flipGame.score(state)), pulse: { id: "flip", tick: state.tick } }],
+      right: [...(best > streak ? [{ label: "BEST", value: String(best), tone: "dim" as const }] : []), { label: "FLOW", value: String(streak), tone: streak > 0 ? ("hot" as const) : ("dim" as const) }],
+    },
+  ]);
 }
 
 /** HUD: a small gold shield beside the score while a checkpoint's save is ready. */

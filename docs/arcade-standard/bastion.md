@@ -1,5 +1,24 @@
 # Iron Wall (id `bastion`) on the arcade scoring standard (bastionRev 2, 1 Nov 2026; bastionRev 3, 3 Nov 2026)
 
+## The view (3 Nov 2026, the Action polish; display and input mapping only, no stamp)
+
+Joe's audit: about half the screen was sky, so the tanks, pips and weak spots were small and far. The view
+(`src/lib/arcade/bastionView.ts`) draws the sim's perspective with less sky: the horizon 60 px higher on the screen (190
+for 250; the brief said "lower the horizon", meaning less sky) and every depth scale s drawn as s^P (P = 350 / 410), so the
+wall line and everything below it (the gun, the wall, the panel) stay put, the road's edges stay straight into the new
+vanishing point, and each depth is drawn at a uniform scale s^(P − 1): 1 at the wall, about 1.11 mid-field and 1.27 where
+the tanks roll on. Each tank is drawn as its own collision rectangles under the warp's affine at its centre (that scale and
+the warp's shear there), within 2 px of the exact warp everywhere on it; impacts and shells follow the same map, the drones
+move up with the sky. The stage keeps the crosshair in view pixels and sends its exact inverse (`btWorldX`, `btWorldY`), so
+the shell lands where the crosshair is drawn. iron-wall-view-check proves the inverse (to 1e-6 px) and that every drawn tank
+pixel more than 2 px from its edge maps to the matching side of its rectangle (about 100,000 pixels over every kind, lane
+and depth).
+
+The permanent hint line ("Drag to aim · lift to fire · swipe down to reload early") is gone from the play screen (the intro
+says it); the reload's own words ("Tap while the needle is in the green", "Fast reload!", "Jammed!") still show. The HUD is
+the Action HUD's chips (WAVE and DRONES left, BASE right).
+
+
 Shown as **Iron Wall** since 3 Nov 2026 (display name only, `gameNames.ts`; the id `bastion` and every stored round,
 best and history stay; "Bastion" was dropped as a trademark risk, `docs/ip-names.md`). Rooms deal **bastionRev 3**
 (section "bastionRev 3: Iron Wall" below); rev 2 and the original unstamped Bastion replay and score exactly as before.

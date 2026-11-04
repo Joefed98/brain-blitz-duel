@@ -1003,6 +1003,12 @@ const ENTRIES = {
   "whack.hedgehogUp": { channel: "effects", frequency: 0, ms: 528, url: "/sounds/whack.hedgehogUp.mp3" },
   "clayshoot.birdIn": { channel: "effects", frequency: 0, ms: 528, url: "/sounds/clayshoot.birdIn.mp3" },
   "swing.lava": { channel: "effects", frequency: 0, ms: 6024, url: "/sounds/swing.lava.mp3", loop: true },
+  // Grappler's jungle canopy (swingRev 17, 3 Nov 2026): library sounds until Joe's recordings (docs/sound-cues/arcade.md).
+  "swing.jungle": { channel: "effects", frequency: 0, ms: 6000, url: null, loop: true },
+  "swing.vineCreak": { channel: "effects", frequency: 0, ms: 429, url: "/sounds/ricochet.lanternGrab.mp3", volume: 0.7 },
+  "swing.splash": { channel: "effects", frequency: 0, ms: 803, url: "/sounds/minigolf_splash.mp3" },
+  "swing.pterodactyl": { channel: "effects", frequency: 0, ms: 606, url: "/sounds/clayshoot.birdStartle.mp3", volume: 0.8 },
+  "swing.pteroCatch": { channel: "effects", frequency: 0, ms: 606, url: "/sounds/clayshoot.birdStartle.mp3", rate: 0.85 },
   // Spacewalk: the space traffic's hum, the library's drone loop (was the city road ambience).
   "cross.traffic": { channel: "effects", frequency: 0, ms: 2000, url: "/sounds/bastion.drone.mp3", loop: true },
   "burst.lastLife": { channel: "effects", frequency: 0, ms: 528, url: "/sounds/ui.warn.mp3" },

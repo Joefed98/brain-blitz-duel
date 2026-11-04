@@ -1,5 +1,61 @@
 # Slice on the arcade scoring standard (sliceRev 11, 29 Oct 2026)
 
+## sliceRev 12 (3 Nov 2026, the Action polish): food that reads as food
+
+Rooms deal **sliceRev 12** (`SLICE_REV_FOOD`). It is sliceRev 11's seeded schedule, board, bottles, blade, combo rule and
+parts, with two changes Joe asked for in his audit (the foods read as small brown and green circles, the chillies didn't
+stand out) and two scoring lines re-set so the bands stay on his targets. Every older stamp (unstamped, 2–11) replays and
+scores exactly as before (slice-food-check replays 36 runs recorded on main, `scripts/fixtures/slice-food-legacy.json.gz`,
+`scripts/slice-food-legacy.ts`).
+
+- **Bigger, recognisable food.** The kinds are drawn as bread (a scored loaf), watermelon, orange and apple, the golden
+  fruit as a golden apple, each filling its own hit circle, and each circle is bigger: radius 30, 26, 23, 25 and 18 px
+  (`SLICE_V12_RADIUS`; sliceRev 10/11: 26, 20, 17, 20, 12). The art's outer ring is the collision edge, as before.
+- **An unmistakable chilli.** A big bright red pepper on a dark plate filling the hazard circle, with a pulsing red ring on
+  its edge; its circle is 24 px (`SLICE_V12_CHILLI_R`; 20 before). Bottles are unchanged.
+- The radii are written into the objects after sliceRev 11's schedule is built, so every draw from the seed is the same.
+  States add `v12: 1` (folded into the checkpoint checksum last).
+- **Scoring.** Bigger food is easier to cut, so the core's straight line starts at 480 per mille of the food thrown (0 below
+  it, 120 at all of it; `SLICE_V12_CORE_FROM`, `SLICE_V12_BAND_CURVE`), and the combo is a straight line from 40 foods cut
+  while a combo is live (0) to 110 (40; `SLICE_V12_COMBO_FROM`, `SLICE_V12_COMBO_FULL`). Gold, tickets and dodges are
+  unchanged. 0 with no input, at least 1 with any, at most 200.
+- **The deal.** About one seed in 20 throws fewer than five chillies, so its five dodges aren't all on offer (one such room
+  seed, 10135, tops out at 196 on sliceRev 11 too). sliceRev 12's deal re-draws those (`sliceFoodSeedOk`,
+  `SLICE_V12_MIN_CHILLIES`), so every dealt seed reaches 200: the oracle scores 200 through the server replay on all 1,260
+  dealt seeds tried (60 tuning, 200 fresh, 1,000 random; `CHECKS_FULL=1 bun scripts/slice-food-check.ts`).
+
+| Part | Max | sliceRev 12 |
+| --- | ---: | --- |
+| Food sliced | 120 | 0 up to 480 ‰ of the food thrown, a straight line to 120 at all of it |
+| Combo | 40 | 0 up to 40 foods cut while a combo is live, a straight line to 40 at 110 |
+| Golden fruit | 20 | as sliceRev 11 |
+| Bread tickets | 10 | as sliceRev 11 |
+| Dodges | 10 | as sliceRev 11 |
+| Chilli | −10 each | as sliceRev 11 |
+
+Core target: fixed (all the food thrown). Medians weak → flawless (`bun scripts/arcade-skill-bands.ts slice --rev=now
+--levels=all --seeds=60`, room seeds 0–59; then fresh 10000–10059):
+
+| Level | sliceRev 11 (before) | sliceRev 12 (rooms 0–59) | sliceRev 12 (fresh) |
+| --- | --- | --- | --- |
+| Weak | 75 (56–86) | 35 (10–59) | 31 (12–65) |
+| Average | 116 (92–131) | 87 (59–121) | 89 (54–120) |
+| Good | 156 (140–176) | 145 (114–165) | 135 (103–169) |
+| Great | 173 (156–182) | 160 (128–179) | 159 (139–174) |
+| Near-perfect | 181 (163–191) | 166 (141–183) | 171 (144–185) |
+| Elite | 194 (180–200) | 188 (166–198) | 190 (173–200) |
+| Flawless | 200 (200–200) | 200 (200–200) | 200 (200–200) |
+
+Against the targets (weak 30–60, average about 90, good 120–140, great about 160, near-perfect about 175, elite 185–195,
+flawless 200): weak, average, great, elite and flawless sit in their bands; good is at the top of its band on fresh seeds
+(135) and a little over on the room seeds (145); near-perfect is 4–9 short of 175 (the near-perfect bot's chilli caution
+costs it cuts on the bigger chillies). Every gap is clear.
+
+The HUD on sliceRev 11 and 12 is the Action HUD's chips (SLICED, BONUS, TICKETS; COMBO with its seconds and a draining bar,
+the bottle effect; BREAD n/3), in place of the walnut combo tag, the paper ticket and the bonus plate. The tile and the
+intro still show the new food. The intro demo stays stopped until one is recorded on sliceRev 12.
+
+
 Rooms and practice deal **`sliceRev 11`** (was 10). It plays sliceRev 10 exactly: the same seeded schedule on the
 430 × 805 board, the same food sizes, bottles, chillies, blade and combo rule (three foods in one finger-down-to-up
 path start a combo; every path that does renews its 10 seconds; a chilli ends it). Only the scoring changed, into
