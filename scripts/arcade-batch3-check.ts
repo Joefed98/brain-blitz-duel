@@ -342,7 +342,8 @@ if (want("burst")) {
   }
   ok(best === 150, `150 is reachable on burstRev 2 through the server replay (best ${best})`);
   // The arcade scoring standard (burstRev 10, 29 Oct 2026): the intro states the parts in place of "10 more for the 90 s" (burst-standard-check).
-  ok(/Atoms up to 140, fast waves 35, golden atoms 25/.test(INTRO_SCORE.burst) && /lost life/.test(INTRO_SCORE.burst), "intro: atoms, lives and the burstRev 10 parts (score bands, then the standard)");
+  // Text pass (4 Nov 2026): the intro names the bonuses in one plain sentence (no internal figures).
+  ok(/atoms/.test(INTRO_SCORE.burst) && /fast wave clears and golden atoms/.test(INTRO_SCORE.burst) && /lives cost/.test(INTRO_SCORE.burst), "intro: atoms, lives and the burstRev 10 parts (score bands, then the standard)");
 }
 
 /* ================================ 2d. Grappler ================================ */
@@ -398,7 +399,8 @@ if (want("swing")) {
   ok(swingScoreV4(499, 10) === 130 && swingScoreV4(250, 0) === 60 && swingScoreV4(500, 10) === 150 && swingScoreV4(500, 3) === 143, "120 × m ÷ 500 + stars; 500 m adds 20");
   // The intro is the dealt revision's: since the swinging course (swingRev 15) it states the three parts (swing-rework-check).
   // swingRev 17 (3 Nov 2026, the sliding hooks; swing-slide-check): gates and the streak in place of gems and stars.
-  ok(INTRO_SCORE.swing.includes("Course (110), pars (40), gates (10), clean-swing streak (40)") && !INTRO_SCORE.swing.includes("otherwise"), "intro states the course and features (the swinging course's sliding hooks) and no partial cap (score bands)");
+  // Text pass (4 Nov 2026): the intro names the bonuses in one plain sentence.
+  ok(/pars, gates and clean-swing streaks/.test(INTRO_SCORE.swing) && !INTRO_SCORE.swing.includes("otherwise"), "intro states the course and features (the swinging course's sliding hooks) and no partial cap (score bands)");
   // The bank: every entry has 10 stars; sampled entries reach 150 through the server replay.
   ok(SWING_V4_BANK.length >= 200 && SWING_V4_BANK.every((e) => e.stars === SWING_STARS), `${SWING_V4_BANK.length} banked courses, each proved with all 10 stars`);
   let reached = 0;

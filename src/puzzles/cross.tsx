@@ -1,4 +1,5 @@
 import { useGameKeys, directionOf } from "@/lib/desktop";
+import { auditEventAt } from "@/lib/arcade/auditInput";
 import { crossAmbient } from "@/lib/arcade/arenaFills.renderer";
 import { ArcadeArenaSlot } from "@/components/puzzles/ArcadeArenaSlot";
 import { gameDisplayName } from "@/lib/duel/gameNames";
@@ -154,6 +155,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
               ? null
               : { t: state.current.tick + 1, k: CROSS_INPUT_MOVE, a: move, b: 0, c: 0, d: 0 };
           recordInput(events.current, applied, crossGame.inputRanges);
+          // The dev audit's bot log (auditInput.ts; never in a production build).
+          { const audit = auditEventAt(state.current.tick + 1); if (audit) recordInput(events.current, audit, crossGame.inputRanges); }
           state.current = crossGame.step(
             state.current,
             inputAt(events.current, state.current.tick + 1),

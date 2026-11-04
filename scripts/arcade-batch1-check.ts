@@ -336,7 +336,8 @@ console.log(`  150 reached through the server replay on ${flip150} of ${FLIP_SEE
 // seconds) instead of a 10 for lasting it: the help states that.
 // flipRev 11 (3 Nov 2026, no star pickups; flip-rev11-check) pays the core on clean time, 100 at the full minute's 120 half
 // seconds: the intro states clean time and the top (no stars to state), the help clean time's 100 at the full minute.
-ok(/Clean time/.test(INTRO_SCORE.flip) && /\b200\b/.test(INTRO_SCORE.flip) && /Clean time/.test(PUZZLE_INSTRUCTIONS.flip.score) && /up to 100\. A good run \(100 points\) lasts 120 clean half seconds/.test(PUZZLE_INSTRUCTIONS.flip.score), "Roofbound intro states clean time and the top (200); the help the full minute's 120 clean half seconds for clean time's 100 (flipRev 11)");
+// Text pass (4 Nov 2026): the intro is one plain sentence; the help a list ("A good run (100 points)" is gone).
+ok(/without crashing/.test(INTRO_SCORE.flip) && /\b200\b/.test(INTRO_SCORE.flip) && /Clean time: [^.]*the whole minute with no crash for all of it, up to 100\./.test(PUZZLE_INSTRUCTIONS.flip.score), "Roofbound intro states clean time and the top (200); the help the full minute's 120 clean half seconds for clean time's 100 (flipRev 11)");
 }
 
 /* ============================= 2c. Ball Tracker ============================= */
@@ -610,7 +611,8 @@ ok(totals.v2.filter((x) => x === 150).length <= totals.v1.filter((x) => x === 15
   ok(after1.bombsHit === 1 && after1.comboLive === 1, "original: a chilli only costs points");
 }
 ok(SLICE_MAYO_TICKS > 60 && SLICE_MAYO_TICKS < 90, "the squeeze lasts just over a second");
-ok(INTRO_SCORE.slice.includes(`Up to ${roundMaxFor("slice")}`) && /lose 10/.test(INTRO_SCORE.slice), "Slice intro: up to its maximum, chilli loses 10");
+// Text pass (4 Nov 2026): the intro names the chilli's cost in words; the help states the 10.
+ok(INTRO_SCORE.slice.includes(`Up to ${roundMaxFor("slice")}`) && /chillies cost/.test(INTRO_SCORE.slice) && /chilli you slice costs 10/.test(PUZZLE_INSTRUCTIONS.slice.score), "Slice intro: up to its maximum, chillies cost (10 in the help)");
 }
 
 /* ============================ 3. Intro rules ============================ */

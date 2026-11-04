@@ -1,4 +1,5 @@
 import { heldHorizontal, useGameKeys } from "@/lib/desktop";
+import { auditEventAt } from "@/lib/arcade/auditInput";
 import { rallyAmbient, rallyFill } from "@/lib/arcade/arenaFills.renderer";
 import { ArcadeArenaSlot } from "@/components/puzzles/ArcadeArenaSlot";
 import { gameDisplayName } from "@/lib/duel/gameNames";
@@ -172,6 +173,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
             sent.current = target;
             recordInput(events.current, applied, rallyGame.inputRanges);
           }
+          // The dev audit's bot log (auditInput.ts; never in a production build).
+          { const audit = auditEventAt(state.current.tick + 1); if (audit) recordInput(events.current, audit, rallyGame.inputRanges); }
           state.current = rallyGame.step(
             state.current,
             inputAt(events.current, state.current.tick + 1),

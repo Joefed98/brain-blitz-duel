@@ -844,7 +844,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       score: liveStdHelp("skyline"),
     },
     bintoss: {
-      goal: "Throw the ball into the bucket on the boardwalk.",
+      goal: "Throw into the boardwalk bucket.",
       how: [
         { action: "Drag to aim,", detail: "then let go to throw." },
         { action: "Wind 1 = a quarter bucket.", detail: "Aim into the flag." },
@@ -878,7 +878,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       score: liveStdHelp("bintoss"),
     },
     bullseye: {
-      goal: "Hit the gold 10 at the darts stall, near and far.",
+      goal: "Hit the darts stall's gold 10.",
       how: [
         { action: "Drag to aim,", detail: "let go to throw." },
         { action: "Bulls in a row:", detail: `from the 3rd, +${BULLSEYE_V8_STREAK_STEP}, +${2 * BULLSEYE_V8_STREAK_STEP}, +${3 * BULLSEYE_V8_STREAK_STEP}…` },
@@ -1022,8 +1022,8 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       goal: "Clear the wall; break the gold.",
       how: [
         { action: "Drag the paddle;", detail: "tap to fire a power-up." },
-        { action: "Gold bricks:", detail: `break after ${BRK_V10_GOLD_HITS} hits.` },
-        { action: "Every brick scores;", detail: `gold bricks add ${BRK_V11_GOLD_MAX / BRK_V9_GOLD} each (${BRK_V11_GOLD_MAX} for all three).` },
+        { action: "Gold:", detail: `${BRK_V10_GOLD_HITS} hits; ${BRK_V11_GOLD_MAX / BRK_V9_GOLD} each (${BRK_V11_GOLD_MAX} for all three).` },
+        { action: "Every brick scores;", detail: "a fast clear scores more." },
         { action: "Catch power-ups:", detail: "laser, ×3, ×2, Fireball.", helpOnly: true },
         { action: "Keep the ball up", detail: "– it gets faster with bricks and with time. Losing the last ball costs 3 seconds.", helpOnly: true },
         { action: "Cracked bricks take 2 or 3 hits", detail: "– each hit cracks them further.", helpOnly: true },
@@ -1645,8 +1645,8 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       how: [
         { action: "Tap to let go;", detail: "any orbit catches you." },
         { action: "Grab stardust;", detail: "sling through moon halos." },
-        { action: "Thread rock gaps;", detail: "let go on the first lap." },
-        { action: "Mind your fuel:", detail: "it drains in flight and refills when an orbit catches you." },
+        { action: "Thread rock gaps;", detail: "let go on the first lap.", helpOnly: true },
+        { action: "Fuel:", detail: "drains in flight, refills in orbit." },
         { action: "Checkpoint:", detail: "a crash returns you there.", helpOnly: true },
         { action: "Black hole:", detail: "fly in, skip 5-6 planets.", helpOnly: true },
         { action: "You orbit automatically.", detail: "Tap to let go – you fly straight until an orbit catches you: any planet's orbit you reach, even one you skip ahead to (the planets you pass count as reached).", helpOnly: true },

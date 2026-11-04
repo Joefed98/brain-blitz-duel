@@ -1,4 +1,5 @@
 import { aimVector, directionOf, useGameKeys } from "@/lib/desktop";
+import { auditEventAt } from "@/lib/arcade/auditInput";
 import { ArcadeArenaSlot } from "@/components/puzzles/ArcadeArenaSlot";
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { useArcadeFrameTiming } from "@/components/puzzles/useArcadeFrameTiming";
@@ -232,6 +233,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
           const applied = queued ? { ...queued, t: state.current.tick + 1 } : null;
           const before = state.current;
           recordInput(events.current, applied, binTossGame.inputRanges);
+          // The dev audit's bot log (auditInput.ts; never in a production build).
+          { const audit = auditEventAt(state.current.tick + 1); if (audit) recordInput(events.current, audit, binTossGame.inputRanges); }
           state.current = binTossGame.step(
             state.current,
             inputAt(events.current, state.current.tick + 1),

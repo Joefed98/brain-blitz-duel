@@ -273,7 +273,7 @@ if (want("rally")) {
   console.log(`  ${runs} tracking-bot runs: ${reached} reach 150; ${targets} targets struck, ${bounces} bumper bounces`);
   ok(reached > 0, "150 is reachable on rev 2 through the server replay");
   ok(targets > 0 && bounces > 0, "targets and the bumper come into play");
-  ok(new RegExp(`up to ${roundMaxFor("rally")}\\b`, "i").test(INTRO_SCORE.rally) && INTRO_SCORE.rally.includes("pink target"), "Rally intro states gold hits, targets and its maximum (score bands)");
+  ok(new RegExp(`up to ${roundMaxFor("rally")}\\b`, "i").test(INTRO_SCORE.rally) && INTRO_SCORE.rally.includes("pink pads") && INTRO_SCORE.rally.includes("gold targets"), "Rally intro states gold hits, targets and its maximum (score bands)");
 }
 
 /* ================================ 2d. Tempo ================================ */
@@ -348,7 +348,7 @@ if (want("inkbridge")) {
     ok(reveal && !JSON.stringify(reveal).includes("Standard") && JSON.stringify(reveal).includes("live drawing"), "the reveal explains the level kind in plain words");
   }
   console.log(`  ${seeds.length} seeds: four proved off-route stars each; ${runs} bot runs reach 150, ${INK_V4_PARTIAL_MAX} one level short, all levels without stars`);
-  ok(INTRO_SCORE.inkbridge.includes(`up to ${roundMaxFor("inkbridge")}`) && !INTRO_SCORE.inkbridge.includes(`up to ${INK_V4_PARTIAL_MAX}`), "Rainbow Bridge intro states its maximum and no partial cap (score bands)");
+  ok(INTRO_SCORE.inkbridge.toLowerCase().includes(`up to ${roundMaxFor("inkbridge")}`) && !INTRO_SCORE.inkbridge.includes(`up to ${INK_V4_PARTIAL_MAX}`), "Rainbow Bridge intro states its maximum and no partial cap (score bands)");
 }
 
 /* ================================ 2f. Orbit ================================ */
@@ -458,7 +458,7 @@ if (want("orbit")) {
     }
   }
   console.log(`  ${runs} courses: witness runs take all three holes and score 150; normal routes unaffected; checkpoints work across a jump`);
-  ok(INTRO_SCORE.orbit.includes(`up to ${roundMaxFor("orbit")}`) && !/117/.test(INTRO_SCORE.orbit), "Orbit intro: its maximum for the sun, no partial cap (score bands)");
+  ok(INTRO_SCORE.orbit.toLowerCase().includes(`up to ${roundMaxFor("orbit")}`) && !/117/.test(INTRO_SCORE.orbit), "Orbit intro: its maximum for the sun, no partial cap (score bands)");
 }
 
 /* ============================ 3. Intro text rules ============================ */
