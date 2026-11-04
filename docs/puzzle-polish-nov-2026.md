@@ -105,7 +105,7 @@ buzzer):
   and the tile keep 44 px so recorded touches land).
 - Exact: "Lock in 150 (564 away)" ("Lock in 714" when exact, "Lock" with no steps).
 - Operator: see section 1 (the row refits on five-number equations).
-- Tenfall: "Total 16" and "Target 25" pills; on tall phones the plank moves into the bare wooden strip under the world.
+- Tenfall: "Total 16", "Target 25" and the cleared pegs as pills, on one row in the plank's fixed 56 px band above the board (arcade-play-check's `ABOVE_PX.tendrop`).
 - Brimful and Checkout reveals: the best route as numbered step chips, one chip per move or dart.
 - Ballpark: the tape 24 px (was 16), the live marker r 14, pins r 7.5, the card 4 px above the line (was 22).
 
