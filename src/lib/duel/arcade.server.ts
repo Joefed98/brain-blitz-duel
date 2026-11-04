@@ -12,8 +12,8 @@ import { minesBoard, minesSolve, MINES_REV_STD } from "@/lib/arcade/minesweeper"
 import { mahjongBuildClears, MAHJONG_REV_DEALT } from "@/lib/arcade/mahjong";
 import { SNIP_REV_TARGET, SNIP_REV_EXPAND } from "@/lib/arcade/snip";
 import { SKYLINE_REV_TARGET, SKYLINE_REV_STRICT, SKYLINE_REV_STD } from "@/lib/arcade/skyline";
-import { TILT_REV_PAR } from "@/lib/arcade/tilt";
-import { TILT_BANK } from "./tiltBank.server";
+import { TILT_REV_BIG } from "@/lib/arcade/tilt";
+import { TILT_DEAL_V12 } from "./tiltDealV12.server";
 import { JUNC_REV_BAND } from "@/lib/arcade/junction";
 import { BINTOSS_REV_TARGET, BINTOSS_REV_STRICT, BINTOSS_REV_STD } from "@/lib/arcade/binToss";
 import { SWING_REV_TALL, SWING_REV_TARGET, SWING_REV_STRICT, SWING_REV_EXPAND, SWING_REV_ASSAULT, SWING_REV_REWORK, SWING_REV_DARK, SWING_REV_SLIDE } from "@/lib/arcade/swing";
@@ -451,9 +451,11 @@ export function generateTilt(): TiltPuzzleData {
   // tiltRev 10 (the arcade scoring standard, 29 Oct 2026): the same bank; mazes 1–3 are tiltRev 9's less the quick stars,
   // and the fourth maze is carved from the seed in the sim (a spanning tree, so always passable; tilt-standard-check).
   // tiltRev 11 (3 Nov 2026): the same bank and mazes, no gold stars, scored on par times and a clean run.
+  // tiltRev 12 (3 Nov 2026): tiltRev 11's rules with bigger marbles and keys, dealt from its own proved deal
+  // (TILT_DEAL_V12, scripts/tilt-deal.ts: bank seeds the oracle played to exactly 200 through the server's replay on 12).
   const pick = arcadeSeed();
-  const seed = TILT_BANK[((pick % TILT_BANK.length) + TILT_BANK.length) % TILT_BANK.length]!;
-  return { type: "tilt", seed, tiltRev: TILT_REV_PAR };
+  const seed = TILT_DEAL_V12[((pick % TILT_DEAL_V12.length) + TILT_DEAL_V12.length) % TILT_DEAL_V12.length]!;
+  return { type: "tilt", seed, tiltRev: TILT_REV_BIG };
 }
 
 export function generateHotFloor(): HotFloorPuzzleData {

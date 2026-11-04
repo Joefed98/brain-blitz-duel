@@ -1,7 +1,105 @@
-# Tilt on the arcade scoring standard: tiltRev 10 (29 Oct 2026), tiltRev 11 (3 Nov 2026)
+# Tilt on the arcade scoring standard: tiltRev 10 (29 Oct 2026), tiltRev 11 and tiltRev 12 (3 Nov 2026)
 
-Rooms and practice deal `tiltRev 11` since 3 Nov 2026 (see [tiltRev 11](#tiltrev-11-3-nov-2026-par-times-and-a-clean-run-no-gold-stars)
-below); the tiltRev 10 sections describe the stamp before it, which still replays and scores exactly as written.
+Rooms and practice deal `tiltRev 12` since 3 Nov 2026 (the next section); the tiltRev 11 and tiltRev 10 sections below
+describe the stamps before it, which still replay and score exactly as written.
+
+## tiltRev 12 (3 Nov 2026): bigger marbles, cups and keys; walnut and brass
+
+Joe's audit of Tilt (iPhone 11): the marbles, cups and keys read small; Tilt looked like Ball Tracker's light wood; the
+HUD said "Over par" at a maze's start. Rooms and practice deal `tiltRev 12` (`TILT_REV_BIG`, one above 11).
+
+### Play
+
+tiltRev 11's four mazes, pars and rules exactly (the same carve, holes, keys and gates, ice, cups, amber marble and pars
+from the same seed streams; the same physics, falls and 90 s), with bigger pieces (`tiltMazesB`):
+
+| Piece | tiltRev 11 | tiltRev 12 |
+| --- | --- | --- |
+| Marble radius, mazes 1–3 (30 px cells) | 28 % of a cell, 8.4 px | `TILT_B_BALL` 41 %, 12.3 px (1.46×) |
+| Marble radius, maze 4 (16 px cells) | 34 %, 5.4 px | `TILT_B_BALL4` 45 %, 7.2 px (1.32×) |
+| Key pickup (marble centre to the key cell's centre, each axis) | cs / 3, 10 px | `TILT_B_KEY_REACH` 45 %, 13.5 px (1.35×) |
+| Cup radius (display) | min(0.55 cell, 1.75 × marble), 14.7 px | `TILT_B_CUP` 160 % of the marble, 19.7 px (1.34×) |
+
+The marble is the collision radius and is drawn at it; every radius stays under half a cell, so every passage the carve
+opened is still passable. The key is drawn to its reach (`TILT_B_KEY_SIZE` 0.54 of a cell: its outline reaches about
+45 % of a cell from its centre). A marble is home, as before, once its centre leaves the maze through its exit; the
+bigger cup sits 0.6 of its radius beyond the exit edge, on a disc rim 26 px wide (16 before, display only). States add
+`big: 1` (after tiltRev 11's markers in the checkpoint checksum, so every tiltRev 11 checksum is unchanged); `Maze`
+adds `keyReach` (tiltRev 12 only; older mazes take cs / 3 in the same line of `stepX`).
+
+### Parts (200 in all, tiltRev 11's)
+
+| Part | Max | Rule |
+| --- | --- | --- |
+| Core: mazes | 140 | 35 a finished maze (15 + its full 20 for the way), up to 20 for progress in the maze being played. A straight line on the way covered. |
+| Par | 24 | 6 for each maze finished within its par (`tiltParT`, from the maze alone). |
+| Clean run | 12 | 3 for each maze finished before the run's first fall. |
+| Speed | 24 | All four done: full by 60 s, evenly to 0 at the buzzer. |
+
+**Core target:** a fixed maximum (all four mazes = 140), as tiltRev 10 and 11; no skill-band target needed. The parts'
+"full at" figures were left as tiltRev 11's (see the what-if below).
+
+### The deal: 200 proved on every seed rooms can deal
+
+`src/lib/duel/tiltDealV12.server.ts` (`TILT_DEAL_V12`) lists every tiltRev 8 bank seed (TILT_BANK, in its order) whose
+oracle run (`scripts/tilt-oracle.ts --rev=12`: every maze within its par, no fall) replays through `replayTiltRun` on
+tiltRev 12 to exactly 200 with every part full. **347 of the 389 candidates kept, 42 dropped** (39 at 194 — one maze
+over its par with the bigger marble —, one at 199, one at 188, two at 132). Witnesses (each kept seed's log):
+`scripts/fixtures/tilt-deal-v12-witness.json.gz`. `bun scripts/tilt-deal.ts` builds both (4 workers, ~25 min);
+`--check` replays every witness to 200 and rebuilds the deal file from the witnesses byte for byte (~1 min);
+`--check --full` also re-runs the oracle on every candidate and compares the file and the witnesses byte for byte.
+`generateTilt` deals `TILT_DEAL_V12` on tiltRev 12.
+
+### Skill bands
+
+`bun scripts/tilt-rev11-bands.ts --rev=11|12 [--deal] --seeds=40 --from=10000` (the skill-band bots,
+`scripts/arcade-skill-bands/bots/tilt.ts`, unchanged; every run replayed through the server). Median score:
+
+| Revision, seeds | Weak | Average | Good | Great | Near | Elite | Flawless |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| tiltRev 11 (before), bank seeds 10000–10039 | 53.5 | 87 | 135 | 139.5 | 183.5 | 185 | 194 |
+| tiltRev 12, the same bank seeds (paired) | 44.5 | 88 | 128.5 | 136 | 177 | 183.5 | 189 |
+| tiltRev 12, deal seeds 10000–10039 (what rooms deal) | 43 | 89 | 130 | 161 | 181.5 | 185.5 | 189 |
+
+Targets: weak 30–60, average about 90, good 120–140, great about 160, near about 175, elite 185–195, flawless 200. On
+the dealt seeds every level but flawless is in or at its target band; flawless is the band tool's flawless bot (189:
+it usually misses one par and finishes near 63 s); the oracle scores 200 on every deal seed. The bigger marbles cost the
+bots a little time at the corners (median maze time ÷ par up 2–10 points at most levels), so the pars bite slightly
+more. What-if (same runs, score only; par scale %, speed full by s): 100/60 (as dealt) 43 / 89 / 130 / 161 / 181.5 /
+185.5 / 189; 110/60 43 / 90.5 / 130 / 161 / 182.5 / 189 / 191.5; 100/64 43 / 89 / 130 / 162 / 184 / 188 / 192; 110/64
+43 / 90.5 / 130 / 162 / 185 / 192 / 193.5. Each lifts the top three together and narrows near → elite → flawless, so
+tiltRev 11's parts stay.
+
+### Display (tiltRev 12 only; `state.big`)
+
+- **Walnut and brass** in place of Ball Tracker's light wood: a dark walnut table (`drawWalnutTable`, the screen fill
+  `tiltWalnutFill`, the stage's edge `WALNUT_TABLE`), a walnut disc (`paintWalnutDisc`), a brass rim (`drawBrassBed`) and
+  brass wall strips on the same 3 px footprint (`drawBrassStrips`).
+- **HUD in the shared pills** (`drawHudPill` / `drawHudPillRow`, `hudPill.renderer.ts`): "Maze 1 / 4" first, then
+  "Par 8 s" counting down, then a gold "Clean" while no marble has fallen; at most two rows, no "·". **"Over par" only
+  once the par has passed** (`tiltOverParT`: ticks past the par, 0 while within it; a missing par shows no "Over
+  par"). tiltRev 11's HUD showed "Over par" whenever the seconds left read 0, which includes the tick at exactly the par
+  (still a par met, `took <= par`). The start-of-maze case Joe saw was not reproduced in the sim: every maze starts with
+  its full par on the oracle, bot and random runs (tilt-rev12-check proves it tick by tick); the new HUD reads the ticks
+  past the par directly instead. tiltRev 11's HUD is unchanged (tilt-rev11-check pins its source).
+
+### Proof
+
+`tilt-rev12-check` (~40 s): the wiring (deal, LIVE_BANDS on tiltRev 11's line `TILT_V12_BAND_CURVE`, parts, help, the
+standard module's perfect runs, the intro demo stopped until recorded on 12, the renderer's walnut, cups, keys and HUD);
+34 runs on tiltRev 11 (24, every level), 10, 9, 8, 4 and unstamped, recorded on the tree before tiltRev 12
+(`scripts/fixtures/tilt-rev12-legacy.json.gz`, `bun scripts/tilt-rev12-record.ts --legacy`), replaying to the same
+score, flag, final state and checkpoints; tiltRev 12's mazes are tiltRev 11's but for the marble and key reach; a
+marble 40 % of a cell from a key takes it on 12 and not on 11; the parts and the par countdown on bot and random runs;
+all 347 deal witnesses at 200 with every part full and the deal file rebuilt byte for byte; 19 stored tiltRev 12 runs
+(`scripts/fixtures/tilt-rev12-runs.json.gz`, `--new`; 4 oracle runs at 200); rooms identical (the schedule names the
+marble and the key reach); the reveal. Also changed: `liveBands.ts`, `arcade.server.ts`, `introDemo.functions.ts`, the
+standard module (`scripts/arcade-standard/tilt.ts`, its roster line), the room-identity module, one self-replay entry
+(`tilt/big`, appended), one replay-runs fixture run (`--add=tilt`), the practice stamps; checks that pinned "rooms deal
+tiltRev 11" now expect 12. **The intro demo needs recording on tiltRev 12.** The tile image still shows the light wood
+(re-export with `bun scripts/shots/tile-scenes.ts tilt` and `bun scripts/reveal-palette.ts` to follow).
+
+## tiltRev 10 (29 Oct 2026)
 
 Batch A of the arcade scoring standard. Rooms and practice deal `tiltRev 10` (was 9), from the same oracle-proved
 bank (`src/lib/duel/tiltBank.server.ts`). Every older stamp replays and scores exactly as before

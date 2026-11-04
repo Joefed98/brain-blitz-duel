@@ -644,6 +644,36 @@ export function tiltFill(ctx: CanvasRenderingContext2D, view: ArenaSceneView, wo
   ctx.restore();
 }
 
+/** Tilt tiltRev 12 (3 Nov 2026): the dark walnut table runs on to the screen's edges, darker away from the board. */
+export function tiltWalnutFill(ctx: CanvasRenderingContext2D, view: ArenaSceneView, worldW: number, worldH: number): void {
+  const regions = around(view, true);
+  for (const r of regions) {
+    ctx.fillStyle = "#2B1A10";
+    ctx.fillRect(r.x, r.y, r.w, r.h);
+  }
+  ctx.save();
+  ctx.beginPath();
+  for (const r of regions) ctx.rect(r.x, r.y, r.w, r.h);
+  ctx.clip();
+  for (let i = 0; i < 90; i++) {
+    const h = artHash(i, 223);
+    const y = view.top + (((h >>> 6) % 10007) / 10007) * (view.bottom - view.top);
+    ctx.strokeStyle = h % 3 ? "rgba(12,6,2,0.3)" : "rgba(160,104,60,0.10)";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(view.left, y);
+    ctx.bezierCurveTo(view.left + (view.right - view.left) * 0.3, y + ((h % 7) - 3), view.left + (view.right - view.left) * 0.7, y - ((h % 5) - 2), view.right, y + 1);
+    ctx.stroke();
+  }
+  const cx = worldW / 2, cy = worldH / 2;
+  const fall = ctx.createRadialGradient(cx, cy, Math.max(worldW, worldH) * 0.55, cx, cy, Math.max(view.right - view.left, view.bottom - view.top) * 0.9);
+  fall.addColorStop(0, "rgba(0,0,0,0)");
+  fall.addColorStop(1, "rgba(0,0,0,0.4)");
+  ctx.fillStyle = fall;
+  ctx.fillRect(view.left, view.top, view.right - view.left, view.bottom - view.top);
+  ctx.restore();
+}
+
 /** 22. Ball Tracker: the wooden board runs on across the sides and to the bottom. */
 export function ballTrackFill(ctx: CanvasRenderingContext2D, view: ArenaSceneView): void {
   const regions = around(view, true);
