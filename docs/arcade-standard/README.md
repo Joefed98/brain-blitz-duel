@@ -66,7 +66,7 @@ replay exactly as before; standard-live-check grades every stored arcade run thr
 | --- | --- | --- | --- | --- |
 | Slice | `slice` | `sliceRev` 11 | A | [slice.md](slice.md) |
 | Breaker | `breaker` | `brkRev` 11 | A | [breaker.md](breaker.md) |
-| Tilt | `tilt` | `tiltRev` 11 (10 before, Nov 2026) | A | [tilt.md](tilt.md) |
+| Tilt | `tilt` | `tiltRev` 12 (10, then 11, before; Nov 2026) | A | [tilt.md](tilt.md) |
 | Fission | `burst` | `burstRev` 10 | A | [burst.md](burst.md) |
 | Gemstone | `matchup` | `matchupRev` 12 (11 before, Nov 2026) | A | [matchup.md](matchup.md) |
 | Meteor | `snake` | `snakeRev` 12 | A | [snake.md](snake.md) |

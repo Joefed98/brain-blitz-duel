@@ -773,7 +773,9 @@ const QUICK_RING_LATE = "#FF9A3D";
 
 /** The disc's radius for a maze (px): its grid's half-width and a rim's margin. */
 function discRadiusX(m: Maze, big = false): number {
-  return (m.n * (m.cs / FP)) / 2 + (big ? TILT_B_RIM : 16);
+  // tiltRev 12: a wider rim, so the bigger cups sit on the disc.
+  if (big) return (m.n * (m.cs / FP)) / 2 + TILT_B_RIM;
+  return (m.n * (m.cs / FP)) / 2 + 16;
 }
 
 /** The last view any canvas drew: its turn and zoom (the success layer's pops read it to place themselves). */
