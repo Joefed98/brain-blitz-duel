@@ -1,5 +1,23 @@
 # Grappler: the swinging course (swingRev 15)
 
+## The jungle canopy (3 Nov 2026, the Action polish; display only, swingRev 17)
+
+Joe's audit: the hooks were tiny yellow dots on a mostly black screen, the rope and player small, and it looked like
+Roofbound (both dark lava caves). swingRev 17 (the revision rooms deal) draws a prehistoric jungle canopy
+(`src/lib/arcade/swingJungle.renderer.ts`, dispatched from `drawSwingArtWorld` on `state.slide`; every earlier revision keeps
+its cave) with the same rules, course and timings, every shape on the sim's own geometry: the canopy is the mass above the
+ceiling line, the river the floor line (a miss drops you in), grab points are knotted vine loops at the anchors hanging from
+the canopy with a glow (swinging vines for the sliding hooks, drawn where the sim has the hook this tick, their travel a faint
+dotted arc), ledges are tree platforms, squeezes a hanging trunk over the roof rectangle and a mossy boulder stack over the
+floor one, speed gates bamboo posts, the dark ledge runs the canopy's deep shade (the same rule, in green-black), the dragon a
+pterodactyl (its beak on the catch line; "PTERODACTYL n m" at the left edge). The backdrop is layered: a green haze, distant
+tree crowns at slow parallax, mid trunks with lianas and light shafts. The hero fills the sim's 10 px body radius (±11 px;
+it was about ±8) with a soft light round it, on a thicker vine. The HUD is the Action HUD's chips (STRETCH and STREAK; the
+stretch's PAR clock with a bar, and GATES). The help, intro still and tile say vines, platforms, the river and the
+pterodactyl. Sounds: `swing.vineCreak`, `swing.splash`, `swing.pterodactyl`, `swing.pteroCatch` on library files and the
+`swing.jungle` bed (silent until recorded; docs/sound-cues/action-polish-nov-2026.md).
+
+
 29 Oct 2026. Joe's direction after swingRev 14: it went too far, all ledges and hooks. Grappler (`swing`) is mostly
 the old swinging game again, with short stretches of the assault course mixed in, on a new stamp, **swingRev 15**
 (`SWING_REV_REWORK`, one above swingRev 14). Rooms, practice, the daily and challenges deal it; every earlier

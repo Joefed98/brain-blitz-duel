@@ -107,7 +107,8 @@ const TYPES = Object.keys(NEW_REV) as (keyof typeof NEW_REV)[];
 /** What rooms deal today: Swish moved on to binRev 8 (phone notes, 27 Oct 2026; section 5) and Slice to sliceRev 10 (sliceRev 9 with bigger onions and golden fruit); NEW_REV stays the stamp the stored runs were recorded on. */
 // Swish then moved on to binRev 9 (the arcade scoring standard, 29 Oct 2026, docs/arcade-standard/bintoss.md: binRev 8's play with
 // exactly three hoops, its help in the standard's words, "Together 200 points.").
-const DEALT: Record<"bintoss" | "slice", number> = { bintoss: BINTOSS_REV_STD, slice: SLICE_REV_BIG };
+// Slice then moved on to sliceRev 12 (3 Nov 2026, the Action polish: bigger food, its own play; slice-food-check).
+const DEALT: Record<"bintoss" | "slice", number> = { bintoss: BINTOSS_REV_STD, slice: SLICE_REV_BIG + 2 };
 /** The legacy fixture also holds Flightpath's older stamps, which still replay on main's (unchanged) Flightpath. */
 const LEGACY_TYPES = [...TYPES, "bullseye"];
 const spec = (type: string) => GAMES.find((g) => g.type === type)!;

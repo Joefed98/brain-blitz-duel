@@ -1,3 +1,4 @@
+import { btViewY, btWorldX, btWorldY } from "@/lib/arcade/bastionView";
 import { heldHorizontal } from "@/lib/desktop";
 import {
   basCheckpoint,
@@ -273,7 +274,8 @@ function TankStage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps
   const rev = data?.bastionRev;
   const game = useMemo(() => bastionTankArtGameFor(rev), [rev]);
   const live = useRef<BastionTankState | null>(null);
-  const aim = useRef({ x: 195, y: 470 });
+  // The crosshair in the view (bastionView.ts: what the player sees); the aim sent is its exact world point.
+  const aim = useRef({ x: 195, y: btViewY(470) });
   const actions = useRef<PointerPayload[]>([]);
   const gesture = useRef<Gesture | null>(null);
   const mouse = useRef(false);
@@ -281,10 +283,11 @@ function TankStage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps
   const clampAim = (x: number, y: number) => {
     aim.current = { x: Math.max(0, Math.min(BT2_WORLD_W, x)), y: Math.max(0, Math.min(BT2_WORLD_H, y)) };
   };
-  const aimPayload = (down: boolean): PointerPayload => ({ k: BT2_INPUT_AIM, a: Math.round(aim.current.x), b: Math.round(aim.current.y), c: down ? 1 : 0 });
+  const worldAim = () => ({ a: Math.round(Math.max(0, Math.min(BT2_WORLD_W, btWorldX(aim.current.x, aim.current.y)))), b: Math.round(Math.max(0, Math.min(BT2_WORLD_H, btWorldY(aim.current.y)))) });
+  const aimPayload = (down: boolean): PointerPayload => ({ k: BT2_INPUT_AIM, ...worldAim(), c: down ? 1 : 0 });
   // Every action gets its own `c` (clamped to 0 when recorded) so two alike in a row are both sent.
   const act = (k: number) => {
-    if (actions.current.length < 4) actions.current.push({ k, a: Math.round(aim.current.x), b: Math.round(aim.current.y), c: k === BT2_INPUT_AIM ? 0 : seq.current++ });
+    if (actions.current.length < 4) actions.current.push({ k, ...worldAim(), c: k === BT2_INPUT_AIM ? 0 : seq.current++ });
   };
   return (
     <ArcadeCanvasStage

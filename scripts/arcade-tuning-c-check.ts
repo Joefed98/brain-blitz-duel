@@ -208,7 +208,8 @@ section("New rounds carry the Tuning C stamps; Junction is practice only");
     ["tilt", playRevOf("tilt", generateTilt().tiltRev), TILT_REV_PAR],
     // World expansion E5 (25 Oct 2026) moved Slice on to its larger board (sliceRev 9); expansion-e5-check covers it.
     // sliceRev 10 (27 Oct 2026, Joe's phone notes): sliceRev 9 with bigger onions and golden fruit; expansion-e5-check covers it.
-    ["slice", playRevOf("slice", generateSlice().sliceRev), SLICE_REV_BIG],
+    // sliceRev 12 (3 Nov 2026, bigger food; slice-food-check) plays on its own (bigger hit sizes), so it is not lifted to 10.
+    ["slice", playRevOf("slice", generateSlice().sliceRev), SLICE_REV_BIG + 2],
   ];
   const field: Record<string, string> = { matchup: "matchupRev", swing: "swingRev", hover: "hoverRev", inkbridge: "inkRev", flip: "flipRev", beat: "beatRev", wavefront: "wavRev", tilt: "tiltRev", slice: "sliceRev" };
   for (const [type, got, rev] of stamps) {

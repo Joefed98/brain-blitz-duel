@@ -212,7 +212,8 @@ section("New rounds: stamps, start states, checksums, worlds by revision");
   ok(playRevOf("beat", generateBeat().beatRev) === BEAT_REV_TALL + 4, "rooms deal beatRev 10 (phone notes, after beatRev 9 and 6)");
   // World expansion E5 (25 Oct 2026) moved Slice on to its larger board (sliceRev 9); expansion-e5-check covers it.
   // sliceRev 10 (27 Oct 2026) keeps sliceRev 9 with bigger onions and golden fruit; expansion-e5-check covers it too.
-  ok([SLICE_REV_TALL, SLICE_REV_EXPAND, SLICE_REV_BIG].includes(playRevOf("slice", generateSlice().sliceRev) ?? -1), "rooms deal sliceRev 6 (or sliceRev 9, the expansion, or its sliceRev 10)");
+  // sliceRev 12 (3 Nov 2026, the Action polish: bigger food; slice-food-check) after those.
+  ok([SLICE_REV_TALL, SLICE_REV_EXPAND, SLICE_REV_BIG, SLICE_REV_BIG + 2].includes(playRevOf("slice", generateSlice().sliceRev) ?? -1), "rooms deal sliceRev 6 (or sliceRev 9, the expansion, its sliceRev 10, or sliceRev 12)");
   // Expansion E6 (25 Oct 2026) moved Coral Pop on to its deeper reef (bubbleRev 8, the same tank); e6-check covers it.
   // Phone notes (27 Oct 2026): bubbleRev 10 (bubbleRev 9 with the mine's bigger blast); e6-check covers it.
   // The arcade scoring standard (29 Oct 2026): bubbleRev 11 (the mine pops its 4 nearest); bubble-standard-check covers it.

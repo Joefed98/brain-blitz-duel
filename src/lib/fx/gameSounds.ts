@@ -158,15 +158,30 @@ export function swingSounds(): GameSounds<SwingState> {
   return {
     frame(state, running) {
       beginFrame("swing", state);
-      loopCue("swing.lava", running && state.ended === 0);
+      // swingRev 17 is the jungle canopy (3 Nov 2026): no lava bed; the jungle's own bed (silent until recorded), a vine
+      // creak on a grab, a splash on a miss (the pterodactyl's screech when it caught you) and its screech as it swoops in.
+      const jungle = Boolean(state.slide);
+      loopCue("swing.lava", running && !jungle && state.ended === 0);
+      loopCue("swing.jungle", running && jungle && state.ended === 0);
       if (prev && state.tick > prev.tick) {
+        const caught = (state.caught ?? 0) > (prev.caught ?? 0);
         if (state.ended === 2 && prev.ended !== 2) { sfx("swing.crash", "arc_crash"); feel("impact"); }
         // swingRev 14: a miss (or the dragon) puts the hero back on the start ledge: the same crash.
-        else if ((state.restarts ?? 0) > (prev.restarts ?? 0)) { sfx("swing.crash", "arc_crash"); feel("impact"); }
-        else if (prev.rope < 0 && state.rope >= 0) sfx("swing.grapple", "arc_grapple");
+        else if ((state.restarts ?? 0) > (prev.restarts ?? 0)) {
+          if (!jungle) sfx("swing.crash", "arc_crash");
+          else if (caught) sfx("swing.pteroCatch", "arc_crash");
+          else sfx("swing.splash", "arc_crash");
+          feel("impact");
+        } else if (prev.rope < 0 && state.rope >= 0) {
+          if (jungle) sfx("swing.vineCreak", "arc_grapple");
+          else sfx("swing.grapple", "arc_grapple");
+        }
         // swingRev 4: a star taken, the dragon appearing, a stalactite starting to shake, a jet erupting.
         if ((state.stars ?? 0) > (prev.stars ?? 0)) sfx("swing.starTaken", "arc_pickup", 0.9);
-        if ((state.chaseX ?? 0) !== 0 && (prev.chaseX ?? 0) === 0) sfx("swing.dragon", "arc_siren", 0.6);
+        if ((state.chaseX ?? 0) !== 0 && (prev.chaseX ?? 0) === 0) {
+          if (jungle) sfx("swing.pterodactyl", "arc_siren", 0.6);
+          else sfx("swing.dragon", "arc_siren", 0.6);
+        }
         if ((state.rocks ?? []).some((r, i) => r.phase === 1 && prev!.rocks?.[i]?.phase === 0)) sfx("swing.rockShake", "arc_clank", 0.5);
         if ((state.rocks ?? []).some((r, i) => r.phase === 3 && prev!.rocks?.[i]?.phase === 2)) sfx("swing.rockLand", "arc_wood_knock", 0.5);
         if ((state.rocks ?? []).some((r, i) => r.phase === 2 && prev!.rocks?.[i]?.phase === 1)) effectCue("swing.rockFall");
@@ -184,7 +199,10 @@ export function swingSounds(): GameSounds<SwingState> {
       }
       prev = state;
     },
-    stop: () => stopCueLoop("swing.lava"),
+    stop: () => {
+      stopCueLoop("swing.lava");
+      stopCueLoop("swing.jungle");
+    },
   };
 }
 

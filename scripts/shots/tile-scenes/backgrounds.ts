@@ -522,20 +522,25 @@ const ARCADE_BACKGROUNDS: Partial<Record<PuzzleType, TileBackground>> = {
     radial(c, T / 2, T / 2, 60, [[0, "rgba(255,220,160,0.3)"], [1, "rgba(0,0,0,0)"]]);
     radial(c, T / 2, T / 2, 80, [[0.6, "rgba(0,0,0,0)"], [1, "rgba(40,20,5,0.35)"]]);
   }, { fade: 0.45, spot: 0.2 }),
-  // Grappler: the dark cavern, rock overhead, the lava's glow at the bottom.
+  // Grappler (the jungle canopy, 3 Nov 2026): the green haze, distant crowns, a light shaft and the river.
   swing: bg((c) => {
-    vgrad(c, [[0, "#0A070B"], [0.6, "#160B0C"], [1, "#2A0D08"]]);
-    vgrad(c, [[0, "#0C090B"], [1, "#241A1D"]], 0, 12);
-    c.fillStyle = "#160D10";
-    for (const [x, h] of [[18, 14], [52, 10], [84, 16]] as const) {
+    vgrad(c, [[0, "#0E2A1C"], [0.5, "#1B4A35"], [1, "#24604A"]]);
+    c.fillStyle = "#1E5440";
+    for (const [x, y, r] of [[14, 62, 18], [46, 56, 22], [80, 64, 18], [104, 58, 16]] as const) {
       c.beginPath();
-      c.moveTo(x - 7, 12);
-      c.lineTo(x, 12 + h);
-      c.lineTo(x + 7, 12);
+      c.arc(x, y, r, 0, Math.PI * 2);
       c.fill();
     }
-    vgrad(c, [[0, "#FFB23A"], [0.2, "#FF5A1F"], [0.6, "#B3200F"], [1, "#4A0B08"]], 94, T);
-    cloud(c, T / 2, T, 50, "#FF5A1F", 0.35);
+    c.fillStyle = "rgba(220,255,170,0.08)";
+    c.beginPath();
+    c.moveTo(50, 0);
+    c.lineTo(70, 0);
+    c.lineTo(104, T);
+    c.lineTo(80, T);
+    c.closePath();
+    c.fill();
+    vgrad(c, [[0, "#06160D"], [1, "#1C4A2A"]], 0, 12);
+    vgrad(c, [[0, "#2F9FB0"], [1, "#0B3A4A"]], 94, T);
   }),
   // Scrumper (retired): the orchard's sky and green hill.
   snip: bg((c) => {

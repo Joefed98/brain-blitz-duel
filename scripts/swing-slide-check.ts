@@ -512,10 +512,11 @@ console.log(`witness: ${playSeeds.length} courses cleared by their own planned r
   ok(LIVE_BANDS.swing.rev === SWING_REV_SLIDE && LIVE_BANDS.swing.curve === SWING_V17_BAND_CURVE, "the help's numbers come from the revision rooms deal (swingRev 17)");
   const help = PUZZLE_INSTRUCTIONS.swing!;
   const text = help.how.map((h) => `${h.action} ${h.detail}`).join(" ");
-  ok(/Sliding hooks/.test(text) && /time the grab/.test(text) && /stops where you grab it/.test(text) && /none in the first quarter/.test(text), "the help explains the sliding hooks");
+  // The jungle canopy (3 Nov 2026): sliding hooks are shown as swinging vines on the same paths.
+  ok(/Swinging vines/.test(text) && /time the grab/.test(text) && /stops where you grab it/.test(text) && /none in the first quarter/.test(text), "the help explains the sliding hooks (swinging vines)");
   ok(/clean-swing streak/i.test(text) && new RegExp(`Every ${SWING_V17_STREAK_BLOCK} in a row`).test(text) && /A miss, or hanging about longer, starts it again/.test(text), "the help explains the streak");
-  ok(!/Gems/.test(text) && !/stars/i.test(text) && /Speed gates/.test(text) && /Par times/.test(text) && /Ledge runs are dark/.test(text) && /sliding ones included/.test(text), "no gems or stars; gates, pars and the dark (sliding hooks included) kept");
-  ok(/The run lasts 90 seconds/.test(text) && /last quarter a dragon/.test(text) && /same course, hooks, sliding hooks, gates and par times/.test(text), "90 seconds, the dragon's last quarter, the same course for everyone");
+  ok(!/Gems/.test(text) && !/stars/i.test(text) && /Speed gates/.test(text) && /Par times/.test(text) && /Platform runs are in deep shade/.test(text) && /swinging ones included/.test(text), "no gems or stars; gates, pars and the dark (swinging vines included) kept");
+  ok(/The run lasts 90 seconds/.test(text) && /last quarter a pterodactyl/.test(text) && /same course, vines, swinging vines, gates and par times/.test(text) && !/lava|dragon/i.test(text), "90 seconds, the pterodactyl's last quarter, the same course for everyone; no lava or dragon left in the help");
   const intro = help.how.filter((h) => !h.helpOnly);
   ok(intro.length === 3 && intro.every((h) => `${h.action} ${h.detail}`.length <= 46) && help.goal.length <= 34, "the intro's goal and three lines fit");
   ok(/^90 seconds\./.test(help.score) && new RegExp(`course ${SWING_V17_CORE} \\+ par ${SWING_V17_PAR_POINTS} \\+ gates ${SWING_V17_GATE_POINTS * SWING_V17_GATES} \\+ streak ${SWING_V17_STREAK_MAX} = 200`).test(help.score) && /Up to 200/.test(help.score) && /clean-swing streak/.test(help.score), `the help's SCORE text says 90 seconds and the parts totalling 200: "${help.score}"`);
@@ -526,6 +527,9 @@ console.log(`witness: ${playSeeds.length} courses cleared by their own planned r
   ok(/setTimeout\(\(\) => prepareSwingCourse\(seed, swingRev\)/.test(introSrc), "the round's intro builds the course ahead");
   const art = readFileSync("src/lib/arcade/swing.renderer.ts", "utf8");
   ok(/const a = state\.slide \? swingAnchorAt\(state, i, state\.tick\) : home;/.test(art) && /if \(state\.slide\) drawRails\(/.test(art) && /STREAK ×\$\{streak\}/.test(art), "the renderer draws each sliding hook where the sim has it, its rail, and the streak in the HUD");
+  // swingRev 17 draws the jungle canopy (3 Nov 2026): the same rules in its own file, and the streak as an Action HUD chip.
+  const jungle = readFileSync("src/lib/arcade/swingJungle.renderer.ts", "utf8");
+  ok(/if \(state\.slide\) \{\n    drawSwingJungleWorld\(/.test(art) && /const a = state\.slide \? swingAnchorAt\(state, i, state\.tick\) : home;/.test(jungle) && /state\.dark && !swingHookLit\(state, i\)/.test(jungle) && /if \(state\.slide\) drawJungleVinePaths\(/.test(art) && /label: "STREAK", value: `×\$\{streak\}`/.test(art), "the jungle draws each swinging vine where the sim has it (none in the shade), its path, and the streak chip");
   const sim = readFileSync("src/lib/arcade/swing.ts", "utf8");
   ok(/s\.slide \? rangeTargetAt\(s, lo, hi, s\.x, s\.y, state\.tick, lim\)/.test(sim) && /if \(s\.slide\) return rangeTargetAt\(s, lo, hi, x, y, tick, s\.dark \? swingDarkFrom\(s\) : SWING_NO_DARK\)/.test(sim), "the step and the bots' look-ahead read the same sliding hooks");
 }

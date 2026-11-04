@@ -16,11 +16,9 @@ import {
   SWING_REV_TALL, SWING_REV_TARGET, SWING_REV_STRICT, SWING_REV_EXPAND, SWING_REV_ASSAULT, SWING_REV_REWORK, SWING_REV_DARK, SWING_REV_SLIDE,
   swingWorldHFor,
   swingWorldWFor,
-  SWING_BG,
   SWING_CHECKPOINT_INTERVAL,
   SWING_GOLD,
   SWING_INPUT_HOLD,
-  SWING_RED,
 } from "@/lib/arcade/swing";
 import { encodeSwingRun, replaySwingRun } from "@/lib/duel/swing";
 import { SWING_TIME_MS, type SwingPuzzleData } from "@/lib/duel/types";
@@ -30,30 +28,55 @@ import { swingSounds } from "@/lib/fx/gameSounds";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
-/** Fixed intro still (swingRev 15): hook-to-hook swinging with a gate and a star on the way, then a short ledge run with a squeeze. */
+/**
+ * Fixed intro still (the jungle canopy of swingRev 17, 3 Nov 2026): vine-to-vine swinging over the river with a speed
+ * gate on the way, then a short platform run with a squeeze between a trunk and a rock.
+ */
 function IntroExample() {
+  const vine = "#5E8F33";
+  const loop = "#CDEB7A";
+  const knot = "#F2C75C";
   return (
     <div className="flex w-full flex-col items-center gap-2">
-      <svg viewBox="0 0 168 130" width={168} height={130} aria-hidden="true" style={{ background: SWING_BG, borderRadius: 10 }}>
-        <polyline points="0,14 20,20 40,10 60,18 80,12 100,22 120,14 140,20 168,12" fill="none" stroke={SWING_GOLD} strokeWidth={2} />
-        <polygon points="0,118 8,108 16,118 24,108 32,118 40,108 48,118 56,108 64,118 72,108 80,118 88,108 96,118 104,108 112,118 120,108 128,118 136,108 144,118 152,108 160,118 168,108 168,130 0,130" fill={SWING_RED} />
-        {/* Swinging: the hero on the first hook, the flight to the next (through a speed gate), a star on the tighter swing. */}
-        <circle cx={22} cy={34} r={5} fill="none" stroke={SWING_GOLD} strokeWidth={2} />
-        <line x1={22} y1={34} x2={34} y2={76} stroke={SWING_GOLD} strokeWidth={2} />
+      <svg viewBox="0 0 168 130" width={168} height={130} aria-hidden="true" style={{ background: "linear-gradient(#0E2A1C, #24604A)", borderRadius: 10 }}>
+        <defs>
+          <radialGradient id="swing-intro-glow">
+            <stop offset="0" stopColor="rgba(255,236,140,0.75)" />
+            <stop offset="1" stopColor="rgba(220,255,130,0)" />
+          </radialGradient>
+        </defs>
+        {/* Distant crowns, the canopy overhead and the river below. */}
+        <circle cx={30} cy={78} r={22} fill="#1E5440" />
+        <circle cx={96} cy={72} r={26} fill="#1E5440" />
+        <circle cx={150} cy={80} r={20} fill="#1E5440" />
+        <path d="M0 0 H168 V12 Q150 22 132 14 Q112 22 94 13 Q74 22 56 14 Q36 22 18 13 Q8 18 0 14 Z" fill="#1C4A2A" />
+        <path d="M0 14 Q8 18 18 13 Q36 22 56 14 Q74 22 94 13 Q112 22 132 14 Q150 22 168 12" fill="none" stroke="#8FD15A" strokeWidth={1.2} />
+        <path d="M0 116 Q20 112 42 116 T84 116 T126 116 T168 116 V130 H0 Z" fill="#2F9FB0" />
+        <path d="M0 116 Q20 112 42 116 T84 116 T126 116 T168 116" fill="none" stroke="#D8F6F2" strokeWidth={1.4} />
+        {/* Swinging: the hero on the first vine, the flight to the next (through a speed gate). */}
+        {([[22, 36], [78, 32], [112, 38]] as const).map(([x, y]) => (
+          <g key={x}>
+            <line x1={x} y1={16} x2={x} y2={y - 6} stroke={vine} strokeWidth={2} />
+            <circle cx={x} cy={y} r={10} fill="url(#swing-intro-glow)" />
+            <circle cx={x} cy={y} r={5} fill="none" stroke={loop} strokeWidth={2.2} />
+            <circle cx={x} cy={y - 5} r={2} fill={knot} />
+          </g>
+        ))}
+        <line x1={22} y1={36} x2={34} y2={76} stroke="#A7DB6A" strokeWidth={2.4} />
         <rect x={28} y={72} width={12} height={20} rx={6} fill="var(--ice-wall)" stroke="var(--grappler-rim)" strokeWidth={1} />
-        <path d="M 40 76 Q 56 44 72 58" fill="none" stroke={SWING_GOLD} strokeOpacity={0.45} strokeDasharray="3 4" />
+        <path d="M 40 76 Q 56 44 72 58" fill="none" stroke={knot} strokeOpacity={0.5} strokeDasharray="3 4" />
         <line x1={52} y1={46} x2={52} y2={66} stroke="#FFE08A" strokeWidth={1.2} strokeDasharray="3 3" />
-        <circle cx={78} cy={30} r={5} fill="none" stroke={SWING_GOLD} strokeWidth={2} />
-        <circle cx={92} cy={70} r={3.5} fill={SWING_GOLD} />
-        <circle cx={112} cy={36} r={5} fill="none" stroke={SWING_GOLD} strokeWidth={2} />
-        {/* A short ledge run: a landing ledge, then a squeeze's gap. */}
-        <rect x={120} y={84} width={24} height={6} rx={1} fill="#5A4A50" stroke={SWING_GOLD} strokeWidth={0.8} />
-        <rect x={152} y={14} width={10} height={40} fill="#3A2B31" />
-        <rect x={152} y={80} width={10} height={32} fill="#3A2B31" />
-        <rect x={152} y={52} width={10} height={2} fill="rgba(255,150,90,0.8)" />
-        <rect x={152} y={80} width={10} height={2} fill="rgba(255,150,90,0.8)" />
+        <rect x={50} y={34} width={4} height={12} fill="#7E8E3A" />
+        <rect x={50} y={66} width={4} height={12} fill="#7E8E3A" />
+        {/* A short platform run: a tree platform, then a squeeze between a hanging trunk and a rock. */}
+        <rect x={129} y={90} width={6} height={26} fill="#4A3322" />
+        <rect x={120} y={84} width={24} height={6} rx={1} fill="#A47A4C" stroke={knot} strokeWidth={0.8} />
+        <rect x={152} y={14} width={10} height={40} fill="#4A3322" />
+        <rect x={152} y={80} width={10} height={36} fill="#5B5E52" />
+        <rect x={152} y={80} width={10} height={3} fill="#4D7A2E" />
+        <rect x={152} y={52} width={10} height={2} fill="rgba(200,240,140,0.8)" />
       </svg>
-      <p className="text-center text-xs text-muted-foreground">Swing hook to hook: let go to fly, hold to grab the next. Short ledge runs and squeezes between. Miss: back to your last hook.</p>
+      <p className="text-center text-xs text-muted-foreground">Swing vine to vine: let go to fly, hold to grab the next. Tree platforms and squeezes between. Miss: back to your last vine.</p>
     </div>
   );
 }

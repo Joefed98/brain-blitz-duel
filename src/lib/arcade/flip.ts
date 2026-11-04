@@ -840,7 +840,8 @@ const flipRev2Game: ArcadeGame<FlipState, ArcadeInputEvent | null> = { ...flipGa
 
 /** Takes puzzle.flipRev; anything else is the original corridor. */
 export function flipGameFor(rev?: number | null): ArcadeGame<FlipState, ArcadeInputEvent | null> {
-  if (rev === FLIP_REV_FLOW) return flipFlowGame;
+  // flipRev 12 plays flipRev 11 exactly; only its deal differs (the proved courses, src/lib/duel/flipDeal.server.ts).
+  if (rev === FLIP_REV_FLOW || rev === FLIP_REV_DEAL) return flipFlowGame;
   if (rev === FLIP_REV_STD) return flipStdGame;
   if (rev === FLIP_REV_LIFT) return flipLiftGame;
   if (rev === FLIP_REV_EXPAND) return flipExpandGame;
@@ -1039,7 +1040,7 @@ export interface FlipV8Course {
 }
 
 export function flipWorldHFor(rev?: number | null): number {
-  return rev === FLIP_REV_EXPAND || rev === FLIP_REV_LIFT || rev === FLIP_REV_STD || rev === FLIP_REV_FLOW ? FLIP_V8_WORLD_H : FLIP_WORLD_H;
+  return rev === FLIP_REV_EXPAND || rev === FLIP_REV_LIFT || rev === FLIP_REV_STD || rev === FLIP_REV_FLOW || rev === FLIP_REV_DEAL ? FLIP_V8_WORLD_H : FLIP_WORLD_H;
 }
 export function flipWorldH(state: Pick<FlipState, "exp">): number {
   return state.exp ? FLIP_V8_WORLD_H : FLIP_WORLD_H;
@@ -1795,15 +1796,21 @@ function flipV8Score(state: FlipState): number {
 
 /* Render geometry (art, effects and checks only; the sim never reads it). */
 
+/** The flipRev 11/12 cave's drawn height: this share of the course's cave height (8 / 5: 200 → 320, 260 → 416, 340 → 544 px). */
+export const FLIP_FLOW_VIEW_NUM = 8;
+export const FLIP_FLOW_VIEW_DEN = 5;
+
 /** A surface's unbent y (px) at world x: the original corridor's fixed lines, or rev 8's cave height about FLIP_V8_CY. */
-export function flipSurfaceBase(state: Pick<FlipState, "exp" | "v8">, side: number, worldX: number): number {
+export function flipSurfaceBase(state: Pick<FlipState, "exp" | "v8" | "flow">, side: number, worldX: number): number {
   if (!state.exp || !state.v8) return side === 0 ? FLIP_FLOOR_Y : FLIP_CEIL_Y;
-  const h = flipV8HeightAt(state.v8, worldX);
+  // flipRev 11 and 12 (3 Nov 2026, the Action polish; display only): the cave drawn FLIP_FLOW_VIEW_NUM / DEN as tall
+  // about its middle line, so the run fills the screen (collision is along x and never reads a surface's y).
+  const h = state.flow ? Math.trunc((flipV8HeightAt(state.v8, worldX) * FLIP_FLOW_VIEW_NUM) / FLIP_FLOW_VIEW_DEN) : flipV8HeightAt(state.v8, worldX);
   return side === 0 ? FLIP_V8_CY + h / 2 : FLIP_V8_CY - h / 2;
 }
 
 /** The runner's drawn centre y (px, before the bend) on a side and arc timer; `lift` is half the runner box's height. */
-export function flipRunnerBaseY(state: Pick<FlipState, "exp" | "v8" | "x" | "arcN">, side: number, flipT: number, lift: number): number {
+export function flipRunnerBaseY(state: Pick<FlipState, "exp" | "v8" | "x" | "arcN" | "flow">, side: number, flipT: number, lift: number): number {
   const fy = flipSurfaceBase(state, 0, state.x) - lift;
   const cy = flipSurfaceBase(state, 1, state.x) + lift;
   const target = side === 0 ? fy : cy;
@@ -1938,6 +1945,13 @@ export const flipStdGame: ArcadeGame<FlipState, ArcadeInputEvent | null> = {
  * into the checkpoint checksum last with the streak counters; flipRev 1–10 play and score exactly as before.
  */
 export const FLIP_REV_FLOW = 11;
+/**
+ * flipRev 12 (3 Nov 2026, the Action polish; docs/arcade-standard/flip.md "flipRev 12"): flipRev 11's game exactly (the
+ * same sim, states, scoring and checksum), dealt only on the course seeds whose stored witness route takes every part's
+ * maximum through the server replay (256 of the 260; src/lib/duel/flipDeal.server.ts, `bun scripts/flip-deal.ts`), so a
+ * perfect run reaches 200 on every dealt course. flipRev 11 rounds stay as they were.
+ */
+export const FLIP_REV_DEAL = 12;
 /** Half seconds of the core a saved crash costs (20 s): the run goes on, the clean time does not. */
 export const FLIP_V11_SAVE_COST = 40;
 /** The core is full at the whole minute of clean time (120 half seconds). */
