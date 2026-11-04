@@ -47,8 +47,8 @@ revisions keep their own world in reveals and replays.
 | Ball Tracker | 700x1400 | 375x555 → 278x555 | 390x588 → 294x588 | 390x732 → 366x732 | 414x736 → 368x736 | 430x820 → 410x820 | 1280x688 → 344x688 | 0.523x | 96px | 0px | -0px | 24px | - |
 | Gemstone | 390x720 | 375x591 → 320x591 | 390x624 → 338x624 | 390x768 → 390x720 | 414x772 → 414x764 | 430x856 → 430x794 | 1280x724 → 392x724 | 1.000x | 60px | 24px | 24px | 0px | - |
 | Pinball | 390x820 | 375x591 → 281x591 | 390x624 → 297x624 | 390x768 → 365x768 | 414x772 → 367x772 | 430x856 → 407x856 | 1280x724 → 344x724 | 0.937x | 60px | 0px | 0px | 25px | - |
-| Minefield | 390x662 | 375x591 → 348x591 | 390x624 → 368x624 | 390x768 → 390x662 | 414x772 → 414x703 | 430x856 → 430x730 | 1280x724 → 427x724 | 1.000x | 60px | 0px | 106px | 0px | - |
-| Mahjong Solitaire | 390x608 | 375x591 → 375x585 | 390x624 → 390x608 | 390x768 → 390x608 | 414x772 → 414x645 | 430x856 → 430x670 | 1280x724 → 464x724 | 1.000x | 60px | 0px | 160px | 0px | - |
+| Minefield | 380x644 | 375x591 → 349x591 | 390x624 → 368x624 | 390x768 → 390x661 | 414x772 → 414x702 | 430x856 → 430x729 | 1280x724 → 427x724 | 1.026x | 60px | 0px | 107px | -0px | - |
+| Mahjong Solitaire | 356x608 | 375x591 → 346x591 | 390x624 → 365x624 | 390x768 → 390x666 | 414x772 → 414x707 | 430x856 → 430x734 | 1280x724 → 424x724 | 1.096x | 60px | 0px | 102px | 0px | - |
 | Home Run | 390x720 | 375x591 → 320x591 | 390x624 → 338x624 | 390x768 → 390x720 | 414x772 → 414x764 | 430x856 → 430x794 | 1280x724 → 392x724 | 1.000x | 60px | 0px | 48px | 0px | - |
 | Top Bins | 390x720 | 375x591 → 320x591 | 390x624 → 338x624 | 390x768 → 390x720 | 414x772 → 414x764 | 430x856 → 430x794 | 1280x724 → 392x724 | 1.000x | 60px | 0px | 48px | 0px | - |
 | Apex | 390x727 | 375x591 → 317x591 | 390x624 → 335x624 | 390x768 → 390x727 | 414x772 → 414x772 | 430x856 → 430x802 | 1280x724 → 388x724 | 1.000x | 60px | 0px | 41px | 0px | - |
@@ -116,8 +116,8 @@ stars, walkers, lava, reactions) that holds still under reduced motion or reduce
 | Cue Ball | 375x591 → 311x591 | 390x624 → 329x624 | 390x768 → 390x740 | 414x772 → 407x772 | 430x856 → 430x816 | 1280x724 → 382x724 | the room round the table: a dark floor under the lamps' spill |
 | Curl Champ | 375x591 → 375x519 | 390x624 → 390x540 | 390x768 → 390x540 | 414x772 → 414x573 | 430x856 → 430x595 | 1280x724 → 523x724 | the arena's dark above, the sheet's floor below and to the sides |
 | Mixed Signals | 375x531 → 319x531 | 390x564 → 338x564 | 390x708 → 390x650 | 414x712 → 414x690 | 430x796 → 430x717 | 1280x664 → 398x664 | the night board runs on under the arrows: its faint dot grid, lifting from the board's black to a soft indigo glow |
-| Minefield | 375x591 → 348x591 | 390x624 → 368x624 | 390x768 → 390x662 | 414x772 → 414x703 | 430x856 → 430x730 | 1280x724 → 427x724 | the faint hexagon background runs on beside and below the framed board, easing darker to the screen's bottom |
-| Mahjong Solitaire | 375x591 → 375x585 | 390x624 → 390x608 | 390x768 → 390x608 | 414x772 → 414x645 | 430x856 → 430x670 | 1280x724 → 464x724 | the dark wooden table runs on beside and below the jade mat, its grain unbroken, settling darker |
+| Minefield | 375x591 → 349x591 | 390x624 → 368x624 | 390x768 → 390x661 | 414x772 → 414x702 | 430x856 → 430x729 | 1280x724 → 427x724 | the faint hexagon background runs on beside and below the framed board, easing darker to the screen's bottom |
+| Mahjong Solitaire | 375x591 → 346x591 | 390x624 → 365x624 | 390x768 → 390x666 | 414x772 → 414x707 | 430x856 → 430x734 | 1280x724 → 424x724 | the dark wooden table runs on beside and below the jade mat, its grain unbroken, settling darker |
 | Free Cell | 375x591 → 317x591 | 390x624 → 335x624 | 390x768 → 390x727 | 414x772 → 414x772 | 430x856 → 430x802 | 1280x724 → 388x724 | the felt's darker edge runs on beside and below the world, settling darker towards the screen's bottom |
 | Summit | 375x591 → 317x591 | 390x624 → 335x624 | 390x768 → 390x727 | 414x772 → 414x772 | 430x856 → 430x802 | 1280x724 → 388x724 | the felt's darker edge runs on beside and below the world, settling darker towards the screen's bottom |
 | Full House | 375x591 → 317x591 | 390x624 → 335x624 | 390x768 → 390x727 | 414x772 → 414x772 | 430x856 → 430x802 | 1280x724 → 388x724 | the felt's darker edge runs on beside and below the world, settling darker towards the screen's bottom |
@@ -165,8 +165,8 @@ than half hidden; Hover's world is cut the same way, its disc at the top).
 | Ball Tracker | 414x688 → 344x688, 64px | 414x736 → 368x736, 16px | world 32px |
 | Gemstone | 414x724 → 392x724, 64px | 414x772 → 414x764, 16px | world 24px |
 | Pinball | 414x724 → 344x724, 64px | 414x772 → 367x772, 16px | world 32px |
-| Minefield | 414x724 → 414x703, 64px | 414x772 → 414x703, 16px | world none |
-| Mahjong Solitaire | 414x724 → 414x645, 64px | 414x772 → 414x645, 16px | world none |
+| Minefield | 414x724 → 414x702, 64px | 414x772 → 414x702, 16px | world none |
+| Mahjong Solitaire | 414x724 → 414x707, 64px | 414x772 → 414x707, 16px | world none |
 | Home Run | 414x724 → 392x724, 64px | 414x772 → 414x764, 16px | world 24px |
 | Top Bins | 414x724 → 392x724, 64px | 414x772 → 414x764, 16px | world 24px |
 | Apex | 414x724 → 388x724, 64px | 414x772 → 414x772, 16px | world 32px |
@@ -220,8 +220,8 @@ bottom; the spare space was the game's arena fill or the page colour. Same arith
 | Ball Tracker | 367x503 → 251x503 | 382x536 → 268x536 | 382x680 → 340x680 | 422x768 → 384x768 | 1272x636 → 318x636 |
 | Gemstone | 367x543 → 294x543 | 382x576 → 312x576 | 382x720 → 382x705 | 422x808 → 422x779 | 1272x676 → 366x676 |
 | Pinball | 367x543 → 258x543 | 382x576 → 274x576 | 382x720 → 342x720 | 422x808 → 384x808 | 1272x676 → 322x676 |
-| Minefield | 367x543 → 320x543 | 382x576 → 339x576 | 382x720 → 382x648 | 422x808 → 422x716 | 1272x676 → 398x676 |
-| Mahjong Solitaire | 367x543 → 348x543 | 382x576 → 369x576 | 382x720 → 382x596 | 422x808 → 422x658 | 1272x676 → 434x676 |
+| Minefield | 367x543 → 320x543 | 382x576 → 340x576 | 382x720 → 382x647 | 422x808 → 422x715 | 1272x676 → 399x676 |
+| Mahjong Solitaire | 367x543 → 318x543 | 382x576 → 337x576 | 382x720 → 382x652 | 422x808 → 422x721 | 1272x676 → 396x676 |
 | Home Run | 367x543 → 294x543 | 382x576 → 312x576 | 382x720 → 382x705 | 422x808 → 422x779 | 1272x676 → 366x676 |
 | Top Bins | 367x543 → 294x543 | 382x576 → 312x576 | 382x720 → 382x705 | 422x808 → 422x779 | 1272x676 → 366x676 |
 | Apex | 367x543 → 291x543 | 382x576 → 309x576 | 382x720 → 382x712 | 422x808 → 422x787 | 1272x676 → 363x676 |
