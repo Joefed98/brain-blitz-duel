@@ -82,12 +82,13 @@ if (!CHROMIUM) {
 const PORT = 5240 + Math.floor(Math.random() * 300);
 async function startServer(): Promise<{ origin: string; proc: ChildProcess | null }> {
   if (URL_ARG) return { origin: URL_ARG.replace(/\/$/, ""), proc: null };
-  // Stopgap (4 Nov 2026, #258), this check only, pending the dev-server memory investigation: the dev server
-  // reached Node's ~2 GB default heap during the check and died ("JavaScript heap out of memory"; ~4.4 GB peak).
+  // A 4 GB heap for this check's dev server (4 Nov 2026, #260; 6 GB from #258 until then): the first practice deal
+  // compiles about 40 server bank modules at once (dev only), a brief spike past Node's ~2 GB default heap. With the
+  // offline pack top-up off in checks (src/lib/offline/packs.ts) the server peaks at ~3.9 GB here; runners have ~7.7 GB.
   const proc = spawn("npx", ["vite", "dev", "--port", String(PORT), "--host", "127.0.0.1", "--strictPort"], {
     stdio: "ignore",
     detached: true,
-    env: { ...process.env, NODE_OPTIONS: `${process.env.NODE_OPTIONS ?? ""} --max-old-space-size=6144`.trim() },
+    env: { ...process.env, NODE_OPTIONS: `${process.env.NODE_OPTIONS ?? ""} --max-old-space-size=4096`.trim() },
   });
   const origin = `http://127.0.0.1:${PORT}`;
   for (let i = 0; i < 120; i++) {
