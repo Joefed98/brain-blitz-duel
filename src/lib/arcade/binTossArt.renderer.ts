@@ -16,6 +16,8 @@ import {
 import { reducedMotion } from "./art.renderer";
 import { FAIR_CREAM, FAIR_RED, FAIR_TEXT, fairArenaScene, fairChangeAge, fairClock, fairScreen, fairTransform } from "./fairground.renderer";
 import type { ArenaSceneView } from "./arenaScene.renderer";
+import { boardwalkLayer, boardwalkTwinkle, paintBoardwalk } from "./boardwalk.renderer";
+import { sportsChipRow } from "./sportsHud.renderer";
 
 const px = (v: number) => v / 256;
 /** The ball (Joe's phone notes, 28 Oct 2026): a white baseball with red stitching, no glow. */
@@ -28,6 +30,28 @@ const TIN_DARK = "#787E83";
 const AIM_INK = "#453C53";
 const AIM_WHITE = "#FFFFFF";
 const FLOOR = px(BINTOSS_FLOOR_Y);
+
+/**
+ * Swish's play view on binRev 7+ (3 Nov 2026, display only; Joe's audit): the seaside boardwalk. The view is the binRev 7
+ * world (430 wide, the lift included) from BINTOSS_VIEW_TOP down to its foot, 792 rows: taller than the world, so on a
+ * phone the boardwalk's deck reaches the screen's bottom where a strip of lamp posts used to be, and the sky above holds
+ * the sea, the pier and the wind flag. Every sim coordinate keeps its place in the world, the scale is the world's
+ * (the width decides it on a phone), and a drag is measured in world px, so a throw feels as it did.
+ */
+export const BINTOSS_VIEW_H = 792;
+export const BINTOSS_VIEW_TOP = BINTOSS_V7_WORLD_H - BINTOSS_VIEW_H;
+/** The floor line in the binRev 7 world (the lift included). */
+const FLOOR_V7 = FLOOR + BINTOSS_V7_LIFT;
+/** The stage's box for a revision: binRev 7+'s boardwalk view, else the 390 × 560 world. */
+export function binTossViewFor(expand: boolean): { w: number; h: number; top: number } {
+  return expand ? { w: BINTOSS_V7_WORLD_W, h: BINTOSS_VIEW_H, top: BINTOSS_VIEW_TOP } : { w: BINTOSS_WORLD_W, h: BINTOSS_WORLD_H, top: 0 };
+}
+/** The canvas transform of the world (the binRev 7 world's own px, the lift included) for a revision's view. */
+export function binTossFrame(size: CanvasSize, expand: boolean): { scale: number; offsetX: number; offsetY: number } {
+  const v = binTossViewFor(expand);
+  const f = fairTransform(size, v.w, v.h);
+  return { scale: f.scale, offsetX: f.offsetX, offsetY: f.offsetY - v.top * f.scale };
+}
 
 /**
  * The ball (Joe's phone notes, 28 Oct 2026; look only, every revision): a white baseball with red stitching and
@@ -363,12 +387,13 @@ function drawSpinner(ctx: CanvasRenderingContext2D, state: BinTossState, index: 
  * under reduced motion), with the wind's strength printed on the cloth. No wind: the flag hangs limp, "0".
  * It replaces the old arrow, bars and corner pennant (the same reading in one place).
  */
-function drawWind(ctx: CanvasRenderingContext2D, wind: number, worldW = BINTOSS_WORLD_W, top = 0): void {
+function drawWind(ctx: CanvasRenderingContext2D, wind: number, worldW = BINTOSS_WORLD_W, top = 0, mastTo = 0): void {
   const strength = Math.abs(wind);
   const dir = wind < 0 ? -1 : 1;
   const poleX = worldW / 2 - dir * 20;
   const poleTop = 52 + top;
-  const poleFoot = poleTop + 58;
+  // The boardwalk (binRev 7+): a tall flag mast down to the railing (`mastTo`, the pole's local px).
+  const poleFoot = Math.max(poleTop + 58, mastTo);
   const t = fairClock();
   ctx.save();
   // The pole, its gold knob and a small foot.
@@ -386,8 +411,10 @@ function drawWind(ctx: CanvasRenderingContext2D, wind: number, worldW = BINTOSS_
   ctx.beginPath();
   ctx.arc(poleX, poleTop - 2, 3, 0, Math.PI * 2);
   ctx.fill();
-  ctx.fillStyle = "rgba(20,12,30,0.55)";
-  ctx.fillRect(poleX - 6, poleFoot - 1, 12, 3);
+  if (!mastTo) {
+    ctx.fillStyle = "rgba(20,12,30,0.55)";
+    ctx.fillRect(poleX - 6, poleFoot - 1, 12, 3);
+  }
 
   const h = 24;
   const segments = 14;
@@ -527,7 +554,7 @@ function draw(ctx: CanvasRenderingContext2D, state: BinTossState, size: CanvasSi
   const world = binTossWorldOf(state);
   const expand = world.lift > 0;
   const farAge = expand ? fairChangeAge(ctx, "bintoss-far", state.farIn ?? 0) : Infinity;
-  fairScreen(ctx, size, world.w, world.h, FLOOR + world.lift, () => { if (expand) ctx.translate(0, world.lift); arcadeFx(ctx, expand ? BINTOSS_FX_V7 : BINTOSS_FX, state, () => {
+  (expand ? boardwalkScreen : fairScreen)(ctx, size, world.w, world.h, FLOOR + world.lift, () => { if (expand) ctx.translate(0, world.lift); arcadeFx(ctx, expand ? BINTOSS_FX_V7 : BINTOSS_FX, state, () => {
     const index = Math.min(state.throwIndex, BINTOSS_THROWS - 1);
     const centre = px(binTossCentreAt(state, index, state.tick));
     const half = px(binTossHalf(index, state.rev));
@@ -567,7 +594,10 @@ function draw(ctx: CanvasRenderingContext2D, state: BinTossState, size: CanvasSi
     }
     successFrame(ctx,{id:'bintoss',tick:state.tick,count:state.baskets,eventTick:state.results.at(-1)===1?state.readyTick-BINTOSS_NEXT_DELAY:0,misses:state.resolved-state.baskets,colour:SUCCESS_ACCENTS.gold,width:world.w,height:world.h,point:{x:caughtFar?px(caughtFar):px(binTossCentreAt(state,caughtIndex,state.tick)),y:px(BINTOSS_RIM_Y)+world.lift,shape:'spark'},hud:{x:12,y:12,text:`Throw ${Math.min(BINTOSS_THROWS,state.throwIndex+1)} / ${BINTOSS_THROWS} · ${state.baskets} in`}});
     if (expand) ctx.restore();
-    if (state.throwIndex < BINTOSS_THROWS) drawWind(ctx, state.winds[state.throwIndex] ?? 0, world.w, -world.lift);
+    if (state.throwIndex < BINTOSS_THROWS) {
+      if (expand) drawBoardwalkWind(ctx, state.winds[state.throwIndex] ?? 0, world.w);
+      else drawWind(ctx, state.winds[state.throwIndex] ?? 0, world.w, -world.lift);
+    }
     if (state.resolved < BINTOSS_THROWS) {
       drawTrail(ctx, state);
       const r = px(BINTOSS_BALL_R);
@@ -586,16 +616,18 @@ function draw(ctx: CanvasRenderingContext2D, state: BinTossState, size: CanvasSi
     ctx.textBaseline = "top";
     ctx.textAlign = "left";
     const shown = Math.min(BINTOSS_THROWS, state.throwIndex + 1);
-  successHud(ctx,'bintoss',state.tick,12,12-world.lift,()=>{ctx.fillText(`Throw ${shown} / ${BINTOSS_THROWS} · ${state.baskets} in`, 12, 12-world.lift);});
-    // binRev 7: the far points so far, under the throw line.
     if (expand) {
-      ctx.save();
-      ctx.font = "700 14px 'JetBrains Mono', ui-monospace, monospace";
-      ctx.textBaseline = "top";
-      ctx.fillStyle = (state.farIn ?? 0) > 0 ? "#F5B82E" : "rgba(247,247,248,0.6)";
-      ctx.fillText(`FAR ${state.farIn ?? 0} · +${binTossFarShown(state)}`, 12, 40 - world.lift);
-      ctx.restore();
-    }
+      // The boardwalk's HUD (3 Nov 2026): Sports pill chips along the view's top, the throw count first.
+      const hy = BINTOSS_VIEW_TOP - world.lift + 10;
+      const far = state.farIn ?? 0;
+      successHud(ctx, "bintoss", state.tick, 12, hy, () => {
+        sportsChipRow(ctx, 10, hy, [
+          { label: "THROW", value: `${shown}/${BINTOSS_THROWS}` },
+          { label: "IN", value: String(state.baskets), accent: state.baskets > 0 },
+          { label: "FAR", value: `${far} · +${binTossFarShown(state)}`, accent: far > 0 },
+        ]);
+      });
+    } else successHud(ctx,'bintoss',state.tick,12,12-world.lift,()=>{ctx.fillText(`Throw ${shown} / ${BINTOSS_THROWS} · ${state.baskets} in`, 12, 12-world.lift);});
     for (let i = 0; i < BINTOSS_THROWS; i++) {
       const result = state.results[i];
       ctx.fillStyle = result === 1 ? "#F5B82E" : result === 0 ? BINTOSS_MISS_COLOUR : "#F7F7F844";
@@ -622,7 +654,7 @@ export function binTossArtAim(ctx: CanvasRenderingContext2D, size: CanvasSize, a
   const first = points[0];
   if (!first) return;
   const world = worldFor(expand);
-  const { scale, offsetX, offsetY } = fairTransform(size, world.w, world.h);
+  const { scale, offsetX, offsetY } = binTossFrame(size, expand);
   ctx.save();
   ctx.translate(offsetX, offsetY);
   ctx.scale(scale, scale);
@@ -651,7 +683,7 @@ export function binTossArtLanding(
   landing: BinTossLandingPresentation,
 ): void {
   const world = worldFor(landing.expand === BINTOSS_EXPAND);
-  const { scale, offsetX, offsetY } = fairTransform(size, world.w, world.h);
+  const { scale, offsetX, offsetY } = binTossFrame(size, landing.expand === BINTOSS_EXPAND);
   const p = Math.max(0, Math.min(1, landing.progress));
   const centre = px(landing.binCentre);
   const half = px(landing.far ? (landing.farHalf ?? BINTOSS_FAR_HALF) : binTossHalf(landing.binIndex, landing.rev));
@@ -698,7 +730,47 @@ export function binTossArenaScene(ctx: CanvasRenderingContext2D, view: ArenaScen
 
 /** binRev 7's arena scene: the floor line sits lift px lower in the taller world. */
 export function binTossArenaSceneV7(ctx: CanvasRenderingContext2D, view: ArenaSceneView): void {
-  fairArenaScene(ctx, view, FLOOR + BINTOSS_V7_LIFT);
+  // The boardwalk (3 Nov 2026): the view's units are the world's moved down by the view's top.
+  ctx.save();
+  ctx.translate(0, -BINTOSS_VIEW_TOP);
+  paintBoardwalk(ctx, { x0: view.left - 2, y0: view.top + BINTOSS_VIEW_TOP - 2, x1: view.right + 2, y1: view.bottom + BINTOSS_VIEW_TOP + 2 }, FLOOR_V7);
+  ctx.restore();
+}
+
+/**
+ * The boardwalk's screen (binRev 7+): the static scene over the whole canvas, the pier lights' twinkle, then the world
+ * (drawWorld) under the view's transform. The same signature as fairScreen, so the draw can pick either.
+ */
+function boardwalkScreen(ctx: CanvasRenderingContext2D, size: CanvasSize, _w: number, _h: number, _floor: number, drawWorld: () => void, _tents?: readonly number[]): void {
+  const f = binTossFrame(size, true);
+  ctx.save();
+  ctx.translate(f.offsetX, f.offsetY);
+  ctx.scale(f.scale, f.scale);
+  const r = { x0: -f.offsetX / f.scale, y0: -f.offsetY / f.scale, x1: (size.width - f.offsetX) / f.scale, y1: (size.height - f.offsetY) / f.scale };
+  boardwalkLayer(ctx, "swish", r, FLOOR_V7);
+  boardwalkTwinkle(ctx, FLOOR_V7, fairClock());
+  drawWorld();
+  ctx.restore();
+}
+
+/**
+ * The boardwalk's wind flag (binRev 7+): the flag 1.35 times its fairground size on a tall mast standing on the railing
+ * in the middle of the view, so it reads from anywhere on the screen. Drawn in the sim's px (the lift already applied).
+ */
+const WIND_FLAG_K = 1.35;
+function drawBoardwalkWind(ctx: CanvasRenderingContext2D, wind: number, worldW: number): void {
+  const lift = BINTOSS_V7_LIFT;
+  // Pole top at view row 330 of the binRev 7 world (sim px 330 − lift), scaled about it.
+  const top = 330 - lift - 52;
+  const poleTop = 52 + top;
+  const cx = worldW / 2;
+  const railTop = FLOOR - 46;
+  ctx.save();
+  ctx.translate(cx, poleTop);
+  ctx.scale(WIND_FLAG_K, WIND_FLAG_K);
+  ctx.translate(-cx, -poleTop);
+  drawWind(ctx, wind, worldW, top, poleTop + (railTop - poleTop) / WIND_FLAG_K);
+  ctx.restore();
 }
 
 /** binRev 7: the last throw's arc, faint until the next release, in the wider world (binTossDrawGhost's look). */
@@ -707,7 +779,7 @@ export function binTossArtGhost(ctx: CanvasRenderingContext2D, size: CanvasSize,
   const points = binTossPath(ghost.vx, ghost.vy, ghost.wind, true, binTossWindAcc(ghost.index ?? 0, ghost.rev), binTossWindSub(ghost.rev));
   const first = points[0];
   if (!first) return;
-  const { scale, offsetX, offsetY } = fairTransform(size, world.w, world.h);
+  const { scale, offsetX, offsetY } = binTossFrame(size, true);
   ctx.save();
   ctx.translate(offsetX, offsetY);
   ctx.scale(scale, scale);

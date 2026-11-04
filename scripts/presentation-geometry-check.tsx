@@ -6,7 +6,7 @@ import { WordsmithRing } from "../src/components/puzzles/WordsmithRing";
 import { miniSudokuPuzzle } from "../src/puzzles/miniSudoku";
 import { shikakuPuzzle } from "../src/puzzles/shikaku";
 import { wordsmithPuzzle } from "../src/puzzles/wordsmith";
-import { ARCADE_FX_SPECS, ENGINE_FX_SPECS } from "../src/lib/arcade/arcadeFxGames.renderer";
+import { ARCADE_FX_SPECS, ARCADE_PLAY_VIEWS, ENGINE_FX_SPECS } from "../src/lib/arcade/arcadeFxGames.renderer";
 import { TD_H, TD_W } from "../src/lib/arcade/tenDrop";
 import { CLAY_TALL_H, CLAY_W } from "../src/lib/arcade/clayShoot";
 import { CLASH_TALL_H, CLASH_WORLD_W } from "../src/lib/arcade/colourClash";
@@ -300,7 +300,8 @@ const ARENA_SIZES = [[375, 667, 0], [390, 700, 0], [390, 844, 0], [414, 896, 48]
 const IPHONE11 = { w: 414, h: 896, top: 48, short: 48 };
 /** Per game: the box (slot) and world (arena) at each viewport, then scale and spare space at 390x844. */
 const arenaTable = new Map<string, { world: string; sizes: string[]; detail: string; before: string[]; iphone: string; cut: string }>();
-const WORLDS = { ...(ARCADE_FX_SPECS as Record<string, { width: number; height: number }>), ...ENGINE_WORLDS };
+// The stage's box is the live round's play view where it differs from the effects world (ARCADE_PLAY_VIEWS, 3 Nov 2026).
+const WORLDS = { ...(ARCADE_FX_SPECS as Record<string, { width: number; height: number }>), ...(ARCADE_PLAY_VIEWS as Record<string, { width: number; height: number }>), ...ENGINE_WORLDS };
 for (const [width, height, inset] of ARENA_SIZES) {
   for (const [game, spec] of Object.entries(WORLDS)) {
     const top = HEADER_AT(inset) + (ABOVE[game] ?? 0);

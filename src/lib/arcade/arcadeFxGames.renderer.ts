@@ -10,7 +10,7 @@
  * from the same counters its sound observer uses (src/lib/fx/gameSounds.ts), for the
  * shared red edge pulse and, where a point is given, the puff at the miss.
  */
-import { CURLING_FX, MINIGOLF_FX, POOL_FX } from "./sportsFx.renderer";
+import { CURLING_FX_V4, MINIGOLF_FX, POOL_FX } from "./sportsFx.renderer";
 import type { ArcadeFxMiss, ArcadeFxSpec, ArcadeWorld } from "./arcadeFx.renderer";
 import { minesCellX, minesCellY, minesCleared, MINES_CELL, MINES_WORLD_H, MINES_WORLD_W, type MinesState } from "./minesweeper";
 import { mahjongCleared, mahjongSlotRect, MAHJONG_WORLD_H, MAHJONG_WORLD_W, type MahjongState } from "./mahjong";
@@ -1774,6 +1774,18 @@ export const PINBALL_FX: ArcadeFxSpec<PinState> = {
   misses: [{ count: (s) => s.lost, at: () => ({ x: PIN_WORLD_W / 2, y: PIN_WORLD_H - 24 }) }],
 };
 
+/**
+ * The stage's box where the live round's view is not its effects layer's world (3 Nov 2026, the Sports polish; display
+ * only): Swish's boardwalk view (binRev 7+, the world's 430 × 728 rows plus 64 of sky), Flightpath's darts stall
+ * (bullRev 8+, the range zoomed 1.15 in a 390 × 800 box) and Crazy Golf's per-hole camera (390 × 720). Their effects
+ * still draw in the world's own px (ARCADE_FX_SPECS). The box checks (room-practice-parity) read this first.
+ */
+export const ARCADE_PLAY_VIEWS: Partial<Record<keyof typeof ARCADE_FX_SPECS, { width: number; height: number }>> = {
+  bintoss: { width: 430, height: 792 },
+  bullseye: { width: 390, height: 800 },
+  minigolf: { width: 390, height: 720 },
+};
+
 export const ARCADE_FX_SPECS = {
   hover: HOVER_FX_EXPAND,
   breaker: BREAKER_FX_DEEP,
@@ -1822,7 +1834,8 @@ export const ARCADE_FX_SPECS = {
   muggins: MUGGINS_FX,
   minigolf: MINIGOLF_FX,
   pool: POOL_FX,
-  curling: CURLING_FX,
+  // The live round's view (curlRev 4's 390 × 640, 3 Nov 2026); older rounds draw through curlingFxFor.
+  curling: CURLING_FX_V4,
   blockfall: BLOCKFALL_FX,
   alleyroll: ALLEYROLL_FX,
 } satisfies Record<ArcadeFxGame, ArcadeFxSpec<never>>;

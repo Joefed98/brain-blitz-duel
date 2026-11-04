@@ -9,14 +9,14 @@ import {
   MG_AIM,
   MG_INPUT_PUTT,
   MG_POWER_MAX,
-  MINIGOLF_H,
+
   MINIGOLF_HOLES,
   MINIGOLF_REV,
   MINIGOLF_RUN_TICKS,
   MINIGOLF_W,
   type MinigolfState,
 } from "@/lib/arcade/minigolf";
-import { drawMinigolf, minigolfScene, MINIGOLF_BG, type MinigolfAim } from "@/lib/arcade/minigolf.renderer";
+import { drawMinigolfCourse, drawMinigolfPlay, minigolfScene, MINIGOLF_BG, MINIGOLF_VIEW_H, type MinigolfAim } from "@/lib/arcade/minigolf.renderer";
 import { SPORTS_CHECKPOINT_INTERVAL } from "@/lib/arcade/sportsKit";
 import { withArcadeFx } from "@/lib/arcade/arcadeFx.renderer";
 import { MINIGOLF_FX } from "@/lib/arcade/sportsFx.renderer";
@@ -68,7 +68,9 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   // The game the stage runs: the stored pars' sim, drawn with the aim the finger is holding (presentation only).
   const game = useMemo<ArcadeGame<MinigolfState, ArcadeInputEvent | null>>(() => {
     const base = minigolfGameFor(pars ?? undefined, data?.golfRev);
-    return { ...base, draw: withArcadeFx(MINIGOLF_FX, (ctx, s) => drawMinigolf(ctx, s, aim.current)) };
+    // The live view (3 Nov 2026, display only): the hole under its fixed camera with its effects, the HUD unzoomed.
+    const world = withArcadeFx(MINIGOLF_FX, (ctx, s) => drawMinigolfCourse(ctx, s, aim.current));
+    return { ...base, draw: (ctx, s, size) => drawMinigolfPlay(ctx, s, () => world(ctx, s, size)) };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pars?.join(","), data?.golfRev]);
 
@@ -117,7 +119,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         enabled={data !== null}
         locked={locked}
         worldW={MINIGOLF_W}
-        worldH={MINIGOLF_H}
+        worldH={MINIGOLF_VIEW_H}
         game={game}
         sounds={minigolfSounds}
         checkpoint={minigolfCheckpoint}

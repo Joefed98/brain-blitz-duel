@@ -41,7 +41,7 @@ import {
   BULLSEYE_WORLD_W,
 } from "@/lib/arcade/bullseye";
 import { decodeBullseyeRun, encodeBullseyeRun, replayBullseyeRun } from "@/lib/duel/bullseye";
-import { bullseyeArenaScene, bullseyeArenaSceneV8, bullseyeArtAim, drawBullseye } from "@/lib/arcade/bullseye.renderer";
+import { bullseyeArenaScene, bullseyeArenaSceneV8, bullseyeArtAim, drawBullseye, FP_VIEW_H } from "@/lib/arcade/bullseye.renderer";
 import { fairTransform } from "@/lib/arcade/fairground.renderer";
 import { bullseyeExtraSounds } from "@/lib/arcade/e5Sounds";
 import { useFairSceneKey } from "@/components/puzzles/useFairSceneKey";
@@ -117,6 +117,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   // bullRev 8 and 9: the taller range (lift px above the original top); every phone draws the stored revision's world.
   const lift = bullseyeTallRev(data?.bullRev) ? BULLSEYE_V8_LIFT : 0;
   const worldH = BULLSEYE_WORLD_H + lift;
+  const boxH = lift ? FP_VIEW_H : worldH;
 
   const wrap = useRef<HTMLDivElement | null>(null);
   const canvas = useRef<HTMLCanvasElement | null>(null);
@@ -261,6 +262,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
               aim.current.vy,
             ),
             lift,
+            state.current,
           );
         }
       }
@@ -313,7 +315,9 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   /** Canvas coordinates to world pixels, using the sim's own mapping. */
   const worldPoint = (event: React.PointerEvent<HTMLCanvasElement>) => {
     const box = event.currentTarget.getBoundingClientRect();
-    const { scale, offsetX, offsetY } = fairTransform({ width: box.width, height: box.height }, BULLSEYE_WORLD_W, worldH);
+    // The stage's box (bullRev 8+: the darts stall's 390 × FP_VIEW_H view): a drag is measured at the box's own
+    // scale, as before the stall's zoom (display only), so a throw lands where it always did.
+    const { scale, offsetX, offsetY } = fairTransform({ width: box.width, height: box.height }, BULLSEYE_WORLD_W, boxH);
     const divisor = Math.max(scale, 0.0001);
     return {
       x: (event.clientX - box.left - offsetX) / divisor,
@@ -324,7 +328,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   if (!data) return null;
 
   return (
-    <ArcadeArenaSlot width={BULLSEYE_WORLD_W} height={worldH} scene={lift ? bullseyeArenaSceneV8 : bullseyeArenaScene} sceneKey={fairSceneKey}>
+    <ArcadeArenaSlot width={BULLSEYE_WORLD_W} height={boxH} scene={lift ? bullseyeArenaSceneV8 : bullseyeArenaScene} sceneKey={fairSceneKey}>
       <div ref={wrap} data-game-arena="canvas" className="relative min-h-0 w-full flex-1 overflow-hidden rounded-xl">
         <canvas
           ref={canvas}

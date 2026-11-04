@@ -37,7 +37,7 @@ import {
   drawCurling,
   CURLING_BG,
   CURL_PX_PER_CM_FAR,
-  CURL_VIEW_V2,
+  CURL_VIEW_V4,
   type CurlAim,
 } from "@/lib/arcade/curling.renderer";
 import { devWarp } from "@/lib/arcade/devWarp";
@@ -384,9 +384,9 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
 }
 
 /** curlRev 4's turn row (display only): its centre between the near hog line and the near house, as a share of the world's height. */
-export const CURL_TURN_ROW_MID = (curlProject(0, HOG_NEAR, CURL_VIEW_V2).sy + curlProject(0, TEE_NEAR - HOUSE_R, CURL_VIEW_V2).sy) / 2 / CURL_VIEW_V2.h;
+export const CURL_TURN_ROW_MID = (curlProject(0, HOG_NEAR, CURL_VIEW_V4).sy + curlProject(0, TEE_NEAR - HOUSE_R, CURL_VIEW_V4).sy) / 2 / CURL_VIEW_V4.h;
 /** The row's top: the world's height (min(100cqh, 100cqw × h ÷ w)) at CURL_TURN_ROW_MID less half the 48 px row, clamped above the slot's bottom. */
-export const CURL_TURN_ROW_TOP = `min(calc(min(100cqh, 100cqw * ${CURL_VIEW_V2.h} / ${CURL_VIEW_V2.w}) * ${CURL_TURN_ROW_MID.toFixed(4)} - 24px), calc(100cqh - 48px - max(0px, calc(env(safe-area-inset-bottom, 0px) - 4px))))`;
+export const CURL_TURN_ROW_TOP = `min(calc(min(100cqh, 100cqw * ${CURL_VIEW_V4.h} / ${CURL_VIEW_V4.w}) * ${CURL_TURN_ROW_MID.toFixed(4)} - 24px), calc(100cqh - 48px - max(0px, calc(env(safe-area-inset-bottom, 0px) - 4px))))`;
 
 function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   if (puzzle.type !== "curling") return null;

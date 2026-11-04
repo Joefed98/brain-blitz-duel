@@ -41,6 +41,8 @@ import {
   freekickStroke,
   freekickV3Ui,
   freekickV4Ui,
+  freekickViewOn,
+  freekickViewToWorld,
 } from "@/lib/arcade/freekick.renderer";
 import { encodeFreekickRun, replayFreekickRun } from "@/lib/duel/freekick";
 import { FREEKICK_TIME_MS, type FreekickPuzzleData } from "@/lib/duel/types";
@@ -228,13 +230,15 @@ function v4Pointer(
 ): PointerPayload | null {
   const aiming = state !== null && state.phase === FK_AIM;
   const metering = (state?.meterAt ?? -1) >= 0;
+  // The stroke in the camera's world px: freekickRev 4's view is zoomed (display only), the power bar is not.
+  const at = state && freekickViewOn(state) ? freekickViewToWorld(x, y) : { x, y };
   if (kind === "down") {
     const power = aiming && y >= FK_V3_PRESS_Y && state.aimed === 1 && !metering;
     gesture.current = { x, y, power, drag: false };
     if (power) return { k: FREEKICK_INPUT_POWER, a: 0, b: 0, c: 0 };
     if (aiming && !metering && y < FK_V3_PRESS_Y) {
-      stroke.current = [{ x, y }];
-      freekickV4Ui.live = [{ x, y }];
+      stroke.current = [at];
+      freekickV4Ui.live = [at];
     }
     return null;
   }
@@ -242,7 +246,7 @@ function v4Pointer(
   if (!g) return null;
   if (!g.power && stroke.current.length > 0) {
     const last = stroke.current[stroke.current.length - 1]!;
-    if (Math.hypot(x - last.x, y - last.y) >= 2) stroke.current.push({ x, y });
+    if (Math.hypot(at.x - last.x, at.y - last.y) >= 2) stroke.current.push(at);
     if (stroke.current.length > 160) stroke.current.splice(1, 1);
     freekickV4Ui.live = stroke.current.slice();
   }

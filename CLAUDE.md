@@ -1385,6 +1385,16 @@ outside the repo.
   arcade-fx-check runs in thirds on CI (`--part=k/3`, shards f, b, g). `docs/demo-replay-audit.md` "Re-record list"
   lists every intro demo to record and its stamp (Strikeout's and Mixed Signals' stop rules need their constants
   updated when they are recorded).
+- **Sports arcade polish** (3 Nov 2026; look and input mapping only, no stamps; `docs/polish-batches/sports-arcade-nov-2026.md`):
+  the Sports pill chip (`sportsHud.renderer.ts`, Swish and Flightpath's HUD); Swish a seaside boardwalk at dusk
+  (`boardwalk.renderer.ts`) in a taller 430 × 792 view (`binTossViewFor` / `binTossFrame`, binRev 7+); Flightpath inside a
+  darts stall (`dartStall.renderer.ts`) with the range zoomed 1.15 in a 390 × 800 box (`flightpathPan`, bullRev 8+); Home
+  Run's view a warp of the sim's world (`hvPt`, the outfield ~2× as tall, the batter at 0.59) with taps sent through its
+  inverse (`homerunV4ViewToWorld`) and the call in a bottom banner (homerunRev 4); Top Bins zoomed 1.4 about the horizon
+  (`freekickViewToWorld` for the stroke, freekickRev 4; the bots never see it); Apex's horizon at row 185 with the camera
+  raised; Curl Champ's `CURL_VIEW_V4` (390 × 640, `CURL_TURN_ROW_TOP` derived from it); Cue Ball's and Crazy Golf's balls
+  1.5 px over their hitboxes (the bounds rule's room), stripes with a white band and spots with a white spot; Crazy Golf's
+  fixed per-hole camera in a 390 × 720 view (`minigolfCamera`); Ringer's GOLD CUP 150 label and larger cup numbers.
 - `src/components/duel/` — room/round screens (PhoneShell, RoundIntro, TimerBar,
   AnswerReveal, ArcadeReveal, WinnerReveal…); `src/components/puzzles/` — shared puzzle
   widgets; `src/lib/fx/` — sound and visual feedback (presentation only).

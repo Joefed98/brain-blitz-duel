@@ -22,6 +22,9 @@ import {
   FAIR_CHALK, FAIR_WOOD, FAIR_WOOD_DARK, fairArenaScene, fairChangeAge, fairClock, fairScreen, fairTransform,
 } from "./fairground.renderer";
 import type { ArenaSceneView } from "./arenaScene.renderer";
+import { deviceLayer } from "./cache.renderer";
+import { paintDartStall } from "./dartStall.renderer";
+import { sportsChip, sportsChipRow } from "./sportsHud.renderer";
 
 /** The counter line: below the resting dart's flights. */
 const COUNTER_Y = 546;
@@ -595,6 +598,65 @@ export function bullseyeView(state: BullseyeState, landAge: number): { arrow: nu
   return { arrow: next, dx: dxOf(next), dart: null };
 }
 
+/**
+ * Flightpath's play view on bullRev 8+ (3 Nov 2026, display only; Joe's audit): inside a funfair darts stall, the
+ * range drawn FP_VIEW_K times larger with less empty wall round the post. The stage's box is 390 × FP_VIEW_H; the
+ * range's px (bullRev 8's taller world, the lift included) are zoomed FP_VIEW_K about its centre line, world row FP_AY
+ * at view row FP_VY, and panned sideways only as far as keeps a drifting board whole on screen (`flightpathPan`). A
+ * throw is a drag, measured at the view's own scale (as before the zoom), so it lands where it always did; the sim,
+ * the rings and every collision are unchanged. Earlier revisions draw the fairground as before.
+ */
+export const FP_VIEW_H = 800;
+export const FP_VIEW_K = 1.15;
+const FP_AY = 80;
+const FP_VY = 52;
+/** The counter's top edge in the view: just under where the resting dart's flights end. */
+const FP_COUNTER_Y = FP_VY + (BULLSEYE_BOW_Y + BULLSEYE_V8_LIFT + 12 - FP_AY) * FP_VIEW_K;
+/** The sideways pan (range px) that keeps the board on show whole: 0 unless a drifting board would touch an edge. */
+export function flightpathPan(state: BullseyeState, landAge = Infinity): number {
+  const v = bullseyeView(state, landAge);
+  const board = bullseyeBoard(state, v.arrow);
+  const r = (BULLSEYE_OUTER_R * board.scalePct) / 100 + 6;
+  const bx = BULLSEYE_CX + v.dx;
+  const half = BULLSEYE_WORLD_W / 2 / FP_VIEW_K;
+  const left = BULLSEYE_CX - half;
+  const right = BULLSEYE_CX + half;
+  if (bx - r < left) return bx - r - left;
+  if (bx + r > right) return bx + r - right;
+  return 0;
+}
+/** The range's px (lift included) to the view's, panned by `pan`. */
+function fpZoom(ctx: CanvasRenderingContext2D, pan: number): void {
+  ctx.translate(BULLSEYE_CX, FP_VY);
+  ctx.scale(FP_VIEW_K, FP_VIEW_K);
+  ctx.translate(-BULLSEYE_CX - pan, -FP_AY);
+}
+/** The canvas transform of the view (390 × FP_VIEW_H, fitted and centred). */
+export function flightpathFrame(size: CanvasSize): { scale: number; offsetX: number; offsetY: number } {
+  return fairTransform(size, BULLSEYE_WORLD_W, FP_VIEW_H);
+}
+
+/**
+ * The frame's map from the range's sim px (the lift not yet added) to canvas px: canvas = (o + p × a) on each axis.
+ * The stall's zoom and pan on bullRev 8+, the fairground's fit before (checks read it to find what a point is drawn on).
+ */
+export function bullseyeCanvasMap(state: BullseyeState, size: CanvasSize, landAge = Infinity): { a: number; ox: number; oy: number } {
+  const world = bullseyeWorldOf(state);
+  if (world.lift > 0) {
+    const f = flightpathFrame(size);
+    const pan = flightpathPan(state, landAge);
+    const a = f.scale * FP_VIEW_K;
+    return { a, ox: f.offsetX + f.scale * (BULLSEYE_CX - (BULLSEYE_CX + pan) * FP_VIEW_K), oy: f.offsetY + f.scale * (FP_VY + (world.lift - FP_AY) * FP_VIEW_K) };
+  }
+  const f = fairTransform(size, world.w, world.h);
+  return { a: f.scale, ox: f.offsetX, oy: f.offsetY + world.lift * f.scale };
+}
+
+/** The stall (static, one device layer per size) over the view rectangle `r`. */
+function stallLayer(ctx: CanvasRenderingContext2D, r: { x0: number; y0: number; x1: number; y1: number }): void {
+  deviceLayer(ctx, `dart-stall:${r.x0.toFixed(1)},${r.y0.toFixed(1)},${r.x1.toFixed(1)},${r.y1.toFixed(1)}`, (c) => paintDartStall(c, r, FP_COUNTER_Y));
+}
+
 export function drawBullseye(ctx: CanvasRenderingContext2D, state: BullseyeState, size: CanvasSize): void {
   const landAge = fairChangeAge(ctx, "bullseye-landed", state.flightTick === 0 ? state.hits.length : -1);
   const view = bullseyeView(state, landAge);
@@ -603,7 +665,8 @@ export function drawBullseye(ctx: CanvasRenderingContext2D, state: BullseyeState
   const world = bullseyeWorldOf(state);
   const expand = world.lift > 0;
   const streakAge = expand ? fairChangeAge(ctx, "bullseye-streak", (state.streak ?? 0) * 100 + (state.dead ?? 0)) : Infinity;
-  fairScreen(ctx, size, world.w, world.h, COUNTER_Y + world.lift, () => { if (expand) ctx.translate(0, world.lift); arcadeFx(ctx, expand ? BULLSEYE_FX_V8 : BULLSEYE_FX, state, () => {
+  const screen = expand ? stallScreen(state, landAge) : fairScreen;
+  screen(ctx, size, world.w, world.h, COUNTER_Y + world.lift, () => { if (expand) ctx.translate(0, world.lift); arcadeFx(ctx, expand ? BULLSEYE_FX_V8 : BULLSEYE_FX, state, () => {
     const board = bullseyeBoard(state, shown);
     const dx = view.dx;
     drawBoard(ctx, board.scalePct, dx, bullseyeRingValues(state, shown), shown >= BULLSEYE_DRIFT_FROM, board.cy, expand ? COUNTER_Y : 0);
@@ -711,7 +774,7 @@ export function drawBullseye(ctx: CanvasRenderingContext2D, state: BullseyeState
       }
       drawDart(ctx, x, y, 1.2 - (1.2 - BULLSEYE_LANDED_DART) * progress, flightColour(last.arrow));
     }
-    if (state.arrowIndex < BULLSEYE_ARROWS) drawWind(ctx, state.winds[state.arrowIndex] ?? 0, -world.lift);
+    if (state.arrowIndex < BULLSEYE_ARROWS && !expand) drawWind(ctx, state.winds[state.arrowIndex] ?? 0, -world.lift);
     if (state.arrowIndex < BULLSEYE_ARROWS && state.flightTick === 0) {
       drawDart(ctx, BULLSEYE_BOW_X, DART_TIP_Y, 1.2, flightColour(state.arrowIndex));
     }
@@ -720,17 +783,68 @@ export function drawBullseye(ctx: CanvasRenderingContext2D, state: BullseyeState
     ctx.textBaseline = "top";
     ctx.textAlign = "left";
     const shownArrow = Math.min(BULLSEYE_ARROWS, state.arrowIndex + 1);
-    if (expand) drawExpandHud(ctx, state, -world.lift, streakAge);
-    else ctx.fillText(`Dart ${shownArrow} / ${BULLSEYE_ARROWS} · ${state.total} pts`, 12, 12 - world.lift);
+    if (!expand) ctx.fillText(`Dart ${shownArrow} / ${BULLSEYE_ARROWS} · ${state.total} pts`, 12, 12 - world.lift);
   }); }, [0.08, 0.3]);
+  if (expand) drawStallHud(ctx, state, size, streakAge);
+}
+
+/**
+ * The stall's screen (bullRev 8+): the same signature as fairScreen, so the draw picks either. The stall over the whole
+ * canvas in view px, then the range (drawWorld) under the zoom and its pan.
+ */
+function stallScreen(state: BullseyeState, landAge: number) {
+  return (ctx: CanvasRenderingContext2D, size: CanvasSize, _w: number, _h: number, _counter: number, drawWorld: () => void, _tents?: readonly number[]): void => {
+    const f = flightpathFrame(size);
+    ctx.save();
+    ctx.translate(f.offsetX, f.offsetY);
+    ctx.scale(f.scale, f.scale);
+    stallLayer(ctx, { x0: -f.offsetX / f.scale, y0: -f.offsetY / f.scale, x1: (size.width - f.offsetX) / f.scale, y1: (size.height - f.offsetY) / f.scale });
+    // The range behind the counter: the post and darts stop at its top edge.
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(-f.offsetX / f.scale - 1, -f.offsetY / f.scale - 1, size.width / f.scale + 2, FP_COUNTER_Y + f.offsetY / f.scale + 1);
+    ctx.clip();
+    fpZoom(ctx, flightpathPan(state, landAge));
+    drawWorld();
+    ctx.restore();
+    ctx.restore();
+  };
+}
+
+/**
+ * The stall's HUD (bullRev 8+), in view px: Sports pill chips along the top (the dart count first, the streak gold
+ * while it runs, the dead-centre count), and the wind flag hanging from the awning's right end.
+ */
+function drawStallHud(ctx: CanvasRenderingContext2D, state: BullseyeState, size: CanvasSize, age: number): void {
+  const f = flightpathFrame(size);
+  ctx.save();
+  ctx.translate(f.offsetX, f.offsetY);
+  ctx.scale(f.scale, f.scale);
+  const n = state.streak ?? 0;
+  const dart = Math.min(BULLSEYE_ARROWS, state.arrowIndex + 1);
+  const pulse = !reducedMotion() && age < 600 ? 1 + 0.08 * Math.sin((age / 600) * Math.PI) : 1;
+  ctx.save();
+  ctx.translate(10, 10);
+  ctx.scale(pulse, pulse);
+  ctx.translate(-10, -10);
+  const x = sportsChipRow(ctx, 10, 10, [
+    { label: "DART", value: `${dart}/${BULLSEYE_ARROWS}` },
+    { label: "STREAK", value: String(n), accent: n >= 2 },
+  ]);
+  sportsChip(ctx, x, 10, "CENTRE", String(state.dead ?? 0), (state.dead ?? 0) > 0);
+  ctx.restore();
+  if (state.arrowIndex < BULLSEYE_ARROWS) drawWindFlag(ctx, BULLSEYE_WORLD_W - 46, 76, state.winds[state.arrowIndex] ?? 0);
+  ctx.restore();
 }
 
 /** Chalk aim line from the dart to the predicted landing point. Render only. */
-export function bullseyeArtAim(ctx: CanvasRenderingContext2D, size: CanvasSize, landing: { x: number; y: number }, lift = 0): void {
-  const { scale, offsetX, offsetY } = fairTransform(size, BULLSEYE_WORLD_W, BULLSEYE_WORLD_H + lift);
+export function bullseyeArtAim(ctx: CanvasRenderingContext2D, size: CanvasSize, landing: { x: number; y: number }, lift = 0, state?: BullseyeState): void {
+  const stall = !!state && state.expand === BULLSEYE_EXPAND;
+  const { scale, offsetX, offsetY } = stall ? flightpathFrame(size) : fairTransform(size, BULLSEYE_WORLD_W, BULLSEYE_WORLD_H + lift);
   ctx.save();
   ctx.translate(offsetX, offsetY);
   ctx.scale(scale, scale);
+  if (stall) fpZoom(ctx, flightpathPan(state));
   ctx.translate(0, lift);
   ctx.strokeStyle = FAIR_CHALK;
   ctx.globalAlpha = 0.42;
@@ -755,5 +869,6 @@ export function bullseyeArenaScene(ctx: CanvasRenderingContext2D, view: ArenaSce
 
 /** bullRev 8's arena scene: the counter line sits lift px lower in the taller world. */
 export function bullseyeArenaSceneV8(ctx: CanvasRenderingContext2D, view: ArenaSceneView): void {
-  fairArenaScene(ctx, view, COUNTER_Y + BULLSEYE_V8_LIFT);
+  // The darts stall (3 Nov 2026) carried on beyond the box, in the view's own px.
+  paintDartStall(ctx, { x0: view.left - 2, y0: view.top - 2, x1: view.right + 2, y1: view.bottom + 2 }, FP_COUNTER_Y);
 }

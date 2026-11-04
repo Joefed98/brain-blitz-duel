@@ -12,6 +12,8 @@
  * Math.random (a seeded `rand` only).
  */
 import { drawPagoda } from "../../../src/lib/arcade/ricochetNinja.renderer";
+import { paintBoardwalk } from "../../../src/lib/arcade/boardwalk.renderer";
+import { paintDartStall } from "../../../src/lib/arcade/dartStall.renderer";
 import type { PuzzleType } from "@/lib/duel/types";
 
 import { TILE } from "./scene";
@@ -193,6 +195,24 @@ function fairground(c: Ctx, counter = 84): void {
     c.arc(x + 9, 7, 9, 0, Math.PI);
     c.fill();
   }
+}
+
+/** Swish's seaside boardwalk (3 Nov 2026): the game's own painter, the sun, pier and railing over the deck. */
+function boardwalk(c: Ctx): void {
+  c.save();
+  c.scale(0.4, 0.4);
+  c.translate(-110, 0);
+  paintBoardwalk(c, { x0: 110, y0: 0, x1: 110 + T / 0.4, y1: T / 0.4 }, 220);
+  c.restore();
+}
+
+/** Flightpath's darts stall (3 Nov 2026): the game's own painter, the awning, prize shelves and back wall. */
+function dartStall(c: Ctx): void {
+  c.save();
+  c.scale(0.3, 0.3);
+  c.translate(-22, 0);
+  paintDartStall(c, { x0: 22, y0: 0, x1: 22 + T / 0.3, y1: T / 0.3 }, 300, 34);
+  c.restore();
 }
 
 /** Oak (Tilt, Ball Tracker, the toybox): planks with a soft grain and a lamp pool. */
@@ -409,9 +429,9 @@ const ARCADE_BACKGROUNDS: Partial<Record<PuzzleType, TileBackground>> = {
     radial(c, T / 2, T / 2, 80, [[0.55, "rgba(0,0,0,0)"], [1, "rgba(0,0,0,0.45)"]]);
   }, { fade: 0.15, spot: 0.25 }),
   // Flightpath: the fairground stall's dusk sky, canopy and counter.
-  bullseye: bg((c) => fairground(c, 86), { fade: 0.3, spot: 0.35 }),
+  bullseye: bg((c) => dartStall(c), { fade: 0.3, spot: 0.35 }),
   // Swish: the same fairground stall.
-  bintoss: bg((c) => fairground(c, 88), { fade: 0.3, spot: 0.35 }),
+  bintoss: bg((c) => boardwalk(c), { fade: 0.3, spot: 0.35 }),
   // Slice: the chopping board's three planks with grain, the tiled strip above.
   slice: bg((c) => {
     vgrad(c, [[0, "#EEF6F4"], [1, "#C4D6D2"]], 0, 14);
