@@ -4,15 +4,14 @@ export const EAGLE_ANGLES: Record<ArrowDir, number> = { N: 0, NE: 45, E: 90, SE:
 export const SWEET_NAMES: Record<SpotShapeKind, string> = { circle: 'lollipop', square: 'wrapped sweet', triangle: 'ice cream cone', star: 'cupcake', hexagon: 'doughnut', arrow: 'candy cane' };
 
 /**
- * A north-facing eagle seen from above in a glide: pointed hooked head with a gold eye at the
- * front, wings swept back into a chevron with feathered tips, and a fanned tail. The front reads like an arrow tip.
+ * A north-facing eagle seen from above in a glide (redrawn 3 Nov 2026 with Eagle Eye's art, eagleEyeArt.tsx): a round
+ * head with a hooked gold beak at the front, broad wings arched forward with spread fingers, and a fanned tail.
  */
 export function EagleIcon({ dir, size = 28 }: { dir: ArrowDir; size?: number }) {
   return <svg width={size} height={size} style={{ width: size, height: size }} viewBox="0 0 32 32" aria-hidden="true" className="shrink-0">
     <g transform={`rotate(${EAGLE_ANGLES[dir]} 16 16)`}>
-      <path fill="currentColor" d="M16 .8 18.9 4.6 18.7 9.2 21.4 11.4 30.6 20.2 31.4 21.8 30 21.6 30.4 23.2 29 22.6 29.4 23.8 27.8 22.6 19.9 17.6 18.4 22.4 21.2 29.4 19.6 29.2 18.8 30.8 17.4 29.8 16 31 14.6 29.8 13.2 30.8 12.4 29.2 10.8 29.4 13.6 22.4 12.1 17.6 4.2 22.6 2.6 23.8 3 22.6 1.6 23.2 2 21.6 .6 21.8 1.4 20.2 10.6 11.4 13.3 9.2 13.1 4.6Z" />
-      <path d="M16 1 17.4 3.2 16 4" fill="none" stroke="var(--eagle-beak)" strokeWidth="1.1" strokeLinejoin="round" />
-      <circle cx="16" cy="5.4" r="1.3" fill="var(--eagle-eye)" />
+      <path fill="currentColor" d="M16 1.6C17.7 1.6 18.7 3 18.6 4.8 18.5 6.4 17.8 7.4 18 8.4 18.2 9.4 19 10 20.2 9.6 22 8.4 23.6 7.4 25.4 7.4 27.8 7.6 30.2 9.4 31.6 12.6L31.9 14.4 30.3 14.2 31.4 15.9 30.9 16.7 29.4 16 30.3 17.8 29.6 18.5 28.3 17.4 28.7 19.4 27.8 19.8 26.7 18.2C24.8 17.7 22.6 17.6 20.8 17.8 19.4 18 18.7 19 18.6 20.8L22 27.2 21.2 28.8 19.6 28.6 18.4 29.9 16 29.2 13.6 29.9 12.4 28.6 10.8 28.8 10 27.2 13.4 20.8C13.3 19 12.6 18 11.2 17.8 9.4 17.6 7.2 17.7 5.3 18.2L4.2 19.8 3.3 19.4 3.7 17.4 2.4 18.5 1.7 17.8 2.6 16 1.1 16.7.6 15.9 1.7 14.2.1 14.4.4 12.6C1.8 9.4 4.2 7.6 6.6 7.4 8.4 7.4 10 8.4 11.8 9.6 13 10 13.8 9.4 14 8.4 14.2 7.4 13.5 6.4 13.4 4.8 13.3 3 14.3 1.6 16 1.6Z" />
+      <path d="M14.8 2.9C15 .3 17 .3 17.2 2.9 16.8 2.4 16.4 3.1 16 4 15.6 3.1 15.2 2.4 14.8 2.9Z" fill="var(--eagle-eye)" stroke="var(--eagle-beak)" strokeWidth=".45" strokeLinejoin="round" />
     </g>
   </svg>;
 }

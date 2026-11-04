@@ -18,6 +18,7 @@ import type {
 } from "../../src/lib/duel/types";
 import { applyOperation, encodeSteps, TARGET_OPERATORS } from "../../src/lib/duel/target";
 import { equationStageCorrect, joinStages } from "../../src/lib/duel/stagedRounds";
+import { gapSlots, gapStageCorrect, joinGapSegment, splitGapSegment, usesOperatorGaps } from "../../src/lib/duel/operatorGaps";
 import { balancePlaceLimits, equationTryLimit, joinCountSuffix } from "../../src/lib/duel/moveLimits";
 import { encodeBalance, scalePegs, scaleSolved, type Placement } from "../../src/lib/duel/balance";
 import { NP_SET_SIZE, npComplete, npEncodeRound, type NpPlacements } from "../../src/lib/duel/numberPyramid";
@@ -175,11 +176,102 @@ function equationEncode(puzzle: EquationPuzzleData, answers: string[], tries: nu
   return equationTryLimit(puzzle) !== null ? joinCountSuffix(body, tries) : body;
 }
 
+/* Operator's gaps (gapsRev 1, operatorGaps.ts): fills per gap in reading order. */
+function gapAnswer(puzzle: EquationPuzzleData, st: number): string[] {
+  const stage = puzzle.stages[st]!;
+  const n = gapSlots(stage).length;
+  const stored = splitGapSegment(puzzle.gapAnswers?.[st] ?? "", n);
+  return stored;
+}
+
+/** A wrong fill for gap k: another sign, or another tray number not used elsewhere. */
+function gapSlip(stage: EquationPuzzleData["stages"][number], fills: (string | null)[], k: number, want: string, rng: Rng): string {
+  const slot = gapSlots(stage)[k]!;
+  if (slot.kind === "sign") return rng.pick(TARGET_OPERATORS.filter((o) => o !== want));
+  const free = (stage.tray ?? []).map(String).filter((v) => v !== want);
+  const usedElsewhere = fills.filter((f, i) => i !== k && f).map(String);
+  const left = free.filter((v) => {
+    const i = usedElsewhere.indexOf(v);
+    if (i >= 0) {
+      usedElsewhere.splice(i, 1);
+      return false;
+    }
+    return true;
+  });
+  return left.length ? rng.pick(left) : want;
+}
+
+function gapsPlay(puzzle: EquationPuzzleData, rng: Rng, skill: Parameters<PuzzleKit["play"]>[2]) {
+  // BASE 4 s per gap (a number gap means trying tray numbers in your head: 1.4× that).
+  const BASE = 4;
+  const total = puzzle.stages.length;
+  const cap = equationTryLimit(puzzle) ?? Infinity;
+  const rec = recorder();
+  const answers = Array.from({ length: total }, () => "");
+  const tries = puzzle.stages.map(() => 0);
+  for (let st = 0; st < total; st++) {
+    const stage = puzzle.stages[st]!;
+    const slots = gapSlots(stage);
+    const want = gapAnswer(puzzle, st);
+    const fills: (string | null)[] = slots.map(() => null);
+    const draft = () => equationEncode(puzzle, answers.map((a, i) => (i === st ? joinGapSegment(fills) : a)), tries);
+    for (let k = 0; k < slots.length; k++) {
+      rec.wait(thinkMs(rng, slots[k]!.kind === "number" ? BASE * 1.4 : BASE, skill));
+      fills[k] = rng.chance(skill.err) ? gapSlip(stage, fills, k, want[k]!, rng) : want[k]!;
+      if (k === slots.length - 1) tries[st]!++;
+      rec.push(draft());
+    }
+    let guard = 0;
+    while (!gapStageCorrect(stage, joinGapSegment(fills)) && tries[st]! < cap && guard++ < 10) {
+      rec.wait(thinkMs(rng, BASE, skill));
+      const bad = fills.findIndex((f, i) => f !== want[i]);
+      if (bad < 0) break;
+      fills[bad] = null;
+      rec.wait(TAP_MS + 200);
+      rec.push(draft());
+      rec.wait(thinkMs(rng, BASE * 0.4, skill));
+      fills[bad] = want[bad]!;
+      tries[st]!++;
+      rec.push(draft());
+    }
+    answers[st] = joinGapSegment(fills);
+    if (st < total - 1) rec.wait(HOLD_MS);
+  }
+  return { steps: rec.steps };
+}
+
+function gapsSpam(puzzle: EquationPuzzleData, rng: Rng): SpamPlay[] {
+  const randomFill = (stage: EquationPuzzleData["stages"][number]) => {
+    const tray = rng.shuffle((stage.tray ?? []).map(String));
+    return joinGapSegment(gapSlots(stage).map((s) => (s.kind === "sign" ? rng.pick(TARGET_OPERATORS) : tray.pop() ?? "")));
+  };
+  const out: SpamPlay[] = [];
+  out.push({ label: "random-next", answer: equationEncode(puzzle, puzzle.stages.map(randomFill), puzzle.stages.map(() => 1)) });
+  // Three random fills per equation (the try limit), the last one kept.
+  const answers: string[] = [];
+  const tries: number[] = [];
+  for (const stage of puzzle.stages) {
+    let fill = "";
+    let n = 0;
+    for (let t = 0; t < (equationTryLimit(puzzle) ?? 3); t++) {
+      fill = randomFill(stage);
+      n++;
+      if (gapStageCorrect(stage, fill)) break;
+    }
+    answers.push(fill);
+    tries.push(n);
+  }
+  out.push({ label: "random-tries", answer: equationEncode(puzzle, answers, tries) });
+  out.push({ label: "all-plus", answer: equationEncode(puzzle, puzzle.stages.map((stage) => { const tray = (stage.tray ?? []).map(String); return joinGapSegment(gapSlots(stage).map((s) => (s.kind === "sign" ? "+" : tray.shift() ?? ""))); }), puzzle.stages.map(() => 1)) });
+  return out;
+}
+
 const equationKit: PuzzleKit = {
   type: "equation",
   nothing: (p) => equationEncode(p as EquationPuzzleData, Array.from({ length: (p as EquationPuzzleData).stages.length }, () => ""), (p as EquationPuzzleData).stages.map(() => 0)),
   spam(p, rng, limitMs) {
     const puzzle = p as EquationPuzzleData;
+    if (usesOperatorGaps(puzzle)) return gapsSpam(puzzle, rng);
     const total = puzzle.stages.length;
     const cap = equationTryLimit(puzzle) ?? Infinity;
     const out: SpamPlay[] = [];
@@ -233,6 +325,7 @@ const equationKit: PuzzleKit = {
     // BASE 3.5 s per operator slot: a stage of 2–4 slots is read and filled in ~7–14 s.
     const BASE = 3.5;
     const puzzle = p as EquationPuzzleData;
+    if (usesOperatorGaps(puzzle)) return gapsPlay(puzzle, rng, skill);
     const total = puzzle.stages.length;
     const cap = equationTryLimit(puzzle) ?? Infinity;
     const rec = recorder();

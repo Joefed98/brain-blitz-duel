@@ -33,11 +33,13 @@ import { playCorrect, playLock } from "@/lib/sound";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 import { useBeforePaint } from "@/components/puzzles/useBeforePaint";
 import { useGoalProgress } from "@/components/duel/GameFrame";
-import { LiveSummary } from "@/components/puzzles/batchW/LiveSummary";
+import { HudPills } from "@/components/puzzles/HudPills";
 import "@/polish-layout/batch-w-balance.css";
 
 const PEG_GAP = 0;
 const MIN_PEG_WIDTH = 44;
+/** A live round's widest notch (3 Nov 2026): the scale fills the panel on a 414 px phone. */
+const LIVE_PEG_WIDTH = 50;
 /** balanceRev 2's 10-notch scale: ten notches must fit a 375 px phone, so each may narrow to this. */
 const MIN_WIDE_PEG_WIDTH = 32;
 
@@ -83,7 +85,8 @@ export function Beam({ scale, placement, spacing, onWeightTap, onPlace, selected
   const weight = big ? 52 : Math.min(44, spacing);
   // A weight's art is exactly its button: 44 × 52 on the live beam, 44 × 44 in the old layout.
   const bellW = big ? spacing : weight;
-  const bellH = big ? 52 : showControls ? weight : Math.round(weight * 52 / 44);
+  // A wider live notch (3 Nov 2026) grows the hung kettlebell with it, keeping its 44 × 52 shape.
+  const bellH = big ? Math.max(52, Math.round(spacing * 52 / 44)) : showControls ? weight : Math.round(weight * 52 / 44);
   const beamY = height !== undefined ? Math.max(32, Math.round(height * 0.36)) : compact ? 24 : 32;
   const H = height ?? (compact ? beamY + 12 + 8 + bellH + 6 : showControls ? 144 : 126);
   const standW = big ? 10 : 6;
@@ -151,7 +154,7 @@ export function Beam({ scale, placement, spacing, onWeightTap, onPlace, selected
         </Button> : <div className="flex h-11 w-full items-center justify-center font-mono text-sm"><span className="bal-notch-label" style={{ width: labelW }}>{pegDistance(peg, pegs)}</span></div>}
         {item && <div key={item.fixed ? 'f' : `t${item.tray}`} className={`flex flex-col items-center ${showControls && !item.fixed ? 'bal-drop' : ''}`}>
           <svg className="bal-hook" width="8" height="8" viewBox="0 0 8 8" aria-hidden="true"><path d="M4 0V3.2a2.1 2.1 0 1 1-2.1 2.1" fill="none" stroke="#D9A940" strokeWidth="1.6" strokeLinecap="round"/></svg>
-          {item.fixed ? <Disc value={item.w} fixed width={bellW} height={bellH} /> : <Button variant="ghost" className={`min-w-0 p-0 ${big ? 'h-[52px]' : 'h-11'} w-full hover:bg-transparent ${item.tray === selected ? 'ring-2 ring-primary' : ''}`} onClick={() => { if (item.tray !== undefined) onWeightTap?.(item.tray); }} aria-label={`Select weight ${item.w}`}><Disc value={item.w} fixed={false} width={bellW} height={bellH}/></Button>}
+          {item.fixed ? <Disc value={item.w} fixed width={bellW} height={bellH} /> : <Button variant="ghost" style={big ? { height: bellH } : undefined} className={`min-w-0 p-0 ${big ? '' : 'h-11'} w-full hover:bg-transparent ${item.tray === selected ? 'ring-2 ring-primary' : ''}`} onClick={() => { if (item.tray !== undefined) onWeightTap?.(item.tray); }} aria-label={`Select weight ${item.w}`}><Disc value={item.w} fixed={false} width={bellW} height={bellH}/></Button>}
         </div>}
       </div>;
     })}
@@ -184,23 +187,23 @@ function IntroExample() {
 }
 
 /** Notch width for the current scale: 44 px on 8 notches; a 10-notch scale shares the width, down to 32 px. */
-function useSpacing(ref: React.RefObject<HTMLDivElement | null>, pegs: number): number {
+function useSpacing(ref: React.RefObject<HTMLDivElement | null>, pegs: number, max = 44): number {
   const [spacing, setSpacing] = useState(44);
   useBeforePaint(() => {
     const el = ref.current;
     if (!el) return;
     const min = pegs > 8 ? MIN_WIDE_PEG_WIDTH : MIN_PEG_WIDTH;
-    const measure = () => setSpacing(Math.max(min, Math.min(44, Math.floor((el.clientWidth - PEG_GAP * (pegs - 1)) / pegs))));
+    const measure = () => setSpacing(Math.max(min, Math.min(max, Math.floor((el.clientWidth - PEG_GAP * (pegs - 1)) / pegs))));
     measure();
     const observer = new ResizeObserver(measure);
     observer.observe(el);
     return () => observer.disconnect();
-  }, [ref, pegs]);
+  }, [ref, pegs, max]);
   return spacing;
 }
 
-/** Live instrument height: as tall as the bench allows, within a readable range. */
-const beamHeightFor = (arenaHeight: number) => Math.min(300, Math.max(146, arenaHeight - 56));
+/** Live instrument height: as tall as the bench allows, within a readable range (a live round up to 400, 3 Nov 2026). */
+const beamHeightFor = (arenaHeight: number, max = 300) => Math.min(max, Math.max(146, arenaHeight - 56));
 
 function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, stateKey = "balance" }: PuzzleStageProps) {
   const column = useGameColumnLayout();
@@ -226,12 +229,14 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, s
   const submitted = useRef(false);
   const root = useRef<HTMLDivElement | null>(null);
   useNoTouchScroll(root);
-  const spacing = useSpacing(root, scales[current] ? scalePegs(scales[current]!) : 8);
   const arena = useRef<HTMLDivElement | null>(null);
   const arenaHeight = useHeight(arena);
 
   // Polish batch W: in a live round the frame's goal line shows the scale; the old pip bar is not drawn.
   const inFrame = useGoalProgress({ done: current, total, text: `Scale ${current + 1} of ${total}` });
+  // Puzzle polish (3 Nov 2026, display only): in a live round the notches widen into the panel's width (up to
+  // LIVE_PEG_WIDTH) and the kettlebells grow with them; intros and demos keep 44 px, so recorded touches still land.
+  const spacing = useSpacing(root, scales[current] ? scalePegs(scales[current]!) : 8, inFrame ? LIVE_PEG_WIDTH : 44);
 
   useEffect(() => {
     setProgressTarget(inFrame ? null : document.getElementById(`balance-progress-${stateKey}`));
@@ -324,7 +329,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, s
   };
 
   const trayLeft = scale.tray.map((_, i) => i).filter((i) => placement[i] === null);
-  const beamHeight = beamHeightFor(arenaHeight);
+  const beamHeight = beamHeightFor(arenaHeight, inFrame ? 400 : 300);
   // The instrument stands on the bench: centred in the panel, with the desk from its base down.
   const beamTop = Math.max(26, Math.round((arenaHeight - beamHeight) / 2) + 8);
   const trayButtons = trayLeft.map((i) => (
@@ -333,22 +338,24 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, s
       aria-label={`Select weight ${scale.tray[i] ?? 0}`}
       data-selected={selected === i}
       onClick={() => tapWeight(i)}
-      className={`bal-tray-cup ${inFrame ? "h-16 w-16" : "h-14 w-14"} p-0`}
+      className={`bal-tray-cup ${inFrame ? "h-[72px] w-[72px]" : "h-14 w-14"} p-0`}
     >
-      {/* A live round's cups are a size up (polish batch W); intros and demos keep main's. */}
-      <Disc value={scale.tray[i] ?? 0} fixed={false} width={inFrame ? 50 : 44} height={inFrame ? 59 : 52} />
+      {/* A live round's cups are a size up (polish batch W, again 3 Nov 2026); intros and demos keep main's. */}
+      <Disc value={scale.tray[i] ?? 0} fixed={false} width={inFrame ? 56 : 44} height={inFrame ? 66 : 52} />
     </Button>
   ));
 
-  // The live summary above the rack (polish batch W): the scale (outside the frame), hangs, balanced scales, the pick.
+  // The live status above the rack (puzzle polish, 3 Nov 2026): one label-and-value pill per figure.
   const summary = (
-    <LiveSummary
+    <HudPills
       testId="balance"
-      parts={[
-        !inFrame && `Scale ${current + 1} / ${total}`,
-        placeLimits ? <>Hangs <span className={outOfHangs ? "text-warn" : "text-primary"} data-move-limit={placeLimits[current]}>{limitText(hangs[current] ?? 0, placeLimits[current] ?? 0)}</span></> : null,
-        <><b>{solved}</b> of {total} balanced</>,
-        selected !== null ? <>Weight <b>{scale.tray[selected] ?? 0}</b> picked</> : trayLeft.length ? `${trayLeft.length} to hang` : null,
+      items={[
+        !inFrame && { id: "scale", label: "Scale", value: `${current + 1} / ${total}` },
+        placeLimits && { id: "hangs", label: "Hangs", ...(placeLimits[current] !== undefined ? { limit: placeLimits[current] } : {}), value: limitText(hangs[current] ?? 0, placeLimits[current] ?? 0), tone: outOfHangs ? "warn" as const : "gold" as const },
+        { id: "balanced", label: "Balanced", value: `${solved} / ${total}` },
+        selected !== null
+          ? { id: "pick", label: "Picked", value: scale.tray[selected] ?? 0, tone: "gold" as const }
+          : trayLeft.length ? { id: "pick", label: "To hang", value: trayLeft.length } : null,
       ]}
     />
   );
@@ -394,7 +401,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, s
           {/* The rack stands 16 px clear of the bottom of the screen. */}
           <div data-game-controls="tray" className="flex w-full shrink-0 flex-col items-center gap-1.5 pb-4">
             {summary}
-            <div className="bal-rack flex min-h-[68px] w-full flex-wrap items-center justify-center gap-3 px-2 py-1.5">
+            <div className="bal-rack flex min-h-[80px] w-full flex-wrap items-center justify-center gap-3 px-2 py-1.5">
               {trayButtons}
             </div>
           </div>

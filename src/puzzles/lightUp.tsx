@@ -19,7 +19,9 @@ import { LIGHTUP_TIME_MS, type LightUpPuzzleData } from "@/lib/duel/types";
 import { playCorrect } from "@/lib/sound";
 
 import { soundCue, useSolveFx } from "./logicFx";
-import { LiveSummary, SummaryItem, useFrameProgress } from "@/components/puzzles/batchP/LiveSummary";
+import { useFrameProgress } from "@/components/puzzles/batchP/LiveSummary";
+import { HudPills } from "@/components/puzzles/HudPills";
+import "@/polish-layout/polish-nov3-logic.css";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
 /** 0 empty, 1 bulb, 2 dot (a note: no bulb here). */
@@ -253,14 +255,16 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
         >
           <Board board={data} marks={marks} pointer={pointer} spread={spread} />
         </div>
-        <LiveSummary
-          inArena
-          className="logic-status"
-          items={[
-            <SummaryItem key="lamps" label="Lamps" value={bulbs.length} />,
-            <SummaryItem key="dots" label="Dots" value={marks.filter((mark) => mark === 2).length} />,
-          ]}
-        />
+        {inFrame ? (
+          <HudPills
+            testId="lightup"
+            className="logic-hud-pills"
+            items={[
+              { id: "lamps", label: "Lamps", value: bulbs.length },
+              { id: "dots", label: "Dots", value: marks.filter((mark) => mark === 2).length },
+            ]}
+          />
+        ) : null}
       </div>
     </div>
   );

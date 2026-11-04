@@ -20,6 +20,8 @@ export const SOLUTION_SWITCH_TYPES: ReadonlySet<string> = new Set([
   "fences",
   "bridges",
   "tilegrid",
+  // Gridlock (3 Nov 2026, puzzle polish): the shortest solution playing back, and a solved player's own board.
+  "unblock",
 ]);
 
 const SOLUTION_LABEL = /^(solution|solved|one solution|the solution|answer)$/i;

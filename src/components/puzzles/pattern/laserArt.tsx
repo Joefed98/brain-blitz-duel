@@ -81,14 +81,26 @@ export const LaserBomb = memo(function LaserBomb({ flash }: { flash: boolean }) 
   );
 });
 
-/** A glass prism splitter; its arrows show which way it splits the beam. */
+/**
+ * A glass prism splitter; its arrows show which way it splits the beam. Puzzle polish (3 Nov 2026, display only): a
+ * violet prism (a filled diamond with a lit facet and white split arrows), so it never reads as a mirror (a thin pale
+ * glass line) or a block (solid brick).
+ */
 export const LaserSplitter = memo(function LaserSplitter({ kind = "S-" }: { kind?: MirrorKind }) {
+  const id = `laser-prism-${useId().replace(/[^a-zA-Z0-9_-]/g, "")}`;
   return (
     <svg viewBox="0 0 24 24" className="laser-splitter h-full w-full" aria-hidden="true">
-      <polygon points="12,0.9 23.1,12 12,23.1 0.9,12" fill="color-mix(in oklab, var(--opponent) 18%, #10151C)" stroke="var(--opponent)" strokeWidth="1.6" strokeLinejoin="round" />
-      <polygon points="12,2.6 21.4,12 2.6,12" fill="#FFFFFF" fillOpacity="0.1" />
-      <path transform={kind === "S|" ? "" : "rotate(90 12 12)"} d="M12 22V12M2 12H22M2 12L6 8M2 12L6 16M22 12L18 8M22 12L18 16" fill="none" stroke="var(--opponent)" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" />
-      <path transform={kind === "S|" ? "" : "rotate(90 12 12)"} d="M12 21V12M3 12H21" fill="none" stroke="#E9FFFB" strokeOpacity="0.55" strokeWidth="0.8" strokeLinecap="round" />
+      <defs>
+        <linearGradient id={id} x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stopColor="#E9D8FF" />
+          <stop offset="0.45" stopColor="#A97BFF" />
+          <stop offset="1" stopColor="#5B2FB8" />
+        </linearGradient>
+      </defs>
+      <polygon points="12,0.9 23.1,12 12,23.1 0.9,12" fill={`url(#${id})`} fillOpacity="0.9" stroke="#F3EAFF" strokeWidth="1.3" strokeLinejoin="round" />
+      <polygon points="12,2.6 21.4,12 2.6,12" fill="#FFFFFF" fillOpacity="0.22" />
+      <path transform={kind === "S|" ? "" : "rotate(90 12 12)"} d="M12 22V12M2 12H22M2 12L6 8M2 12L6 16M22 12L18 8M22 12L18 16" fill="none" stroke="#2A1260" strokeOpacity="0.55" strokeWidth="3.4" strokeLinecap="round" strokeLinejoin="round" />
+      <path transform={kind === "S|" ? "" : "rotate(90 12 12)"} d="M12 22V12M2 12H22M2 12L6 8M2 12L6 16M22 12L18 8M22 12L18 16" fill="none" stroke="#FFFFFF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 });
@@ -112,7 +124,11 @@ export const LaserEmitter = memo(function LaserEmitter({ dir, firing = false }: 
   );
 });
 
-/** One placed mirror: a silvered bar with a dark backing, on its diagonal. */
+/**
+ * One placed mirror on its diagonal. Puzzle polish (3 Nov 2026, display only): a reflective glass line (a pale
+ * blue-white pane with a bright edge, a thin dark silvered backing and a soft cold glow), clearly unlike a splitter's
+ * violet prism and a block's solid brick.
+ */
 export function LaserMirror({
   x,
   y,
@@ -126,16 +142,26 @@ export function LaserMirror({
   kind: MirrorKind;
   animate: boolean;
 }) {
-  const length = unit * 1.12;
-  const thick = Math.max(3, unit * 0.2);
+  const id = `laser-glass-${useId().replace(/[^a-zA-Z0-9_-]/g, "")}`;
+  const length = unit * 1.16;
+  const thick = Math.max(3, unit * 0.16);
   const angle = kind === "/" ? -45 : 45;
   return (
     <g transform={`translate(${x} ${y}) rotate(${angle})`}>
       <g className={animate ? "laser-mirror-in" : undefined}>
-        <rect x={-length / 2} y={-thick / 2} width={length} height={thick} rx={thick / 2} fill="#30343F" />
-        <rect x={-length / 2 + thick * 0.2} y={-thick / 2 + thick * 0.08} width={length - thick * 0.4} height={thick * 0.62} rx={thick * 0.31} fill="#F4F7FF" />
-        <rect x={-length / 2 + thick * 0.6} y={-thick / 2 + thick * 0.16} width={length * 0.38} height={thick * 0.18} rx={thick * 0.09} fill="#FFFFFF" />
-        <rect x={-length / 2 + thick * 0.2} y={-thick / 2 + thick * 0.5} width={length - thick * 0.4} height={thick * 0.2} fill="#AEB7CC" fillOpacity="0.7" />
+        <defs>
+          <linearGradient id={id} x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0" stopColor="#BFE8FF" />
+            <stop offset="0.35" stopColor="#FFFFFF" />
+            <stop offset="0.55" stopColor="#9BD8FF" />
+            <stop offset="1" stopColor="#E6F7FF" />
+          </linearGradient>
+        </defs>
+        <rect className="laser-mirror-glow" x={-length / 2 - thick * 0.4} y={-thick * 1.1} width={length + thick * 0.8} height={thick * 2.2} rx={thick * 1.1} fill="#8FDBFF" fillOpacity="0.22" />
+        <rect x={-length / 2} y={-thick / 2} width={length} height={thick} rx={thick * 0.25} fill="#0F2A44" />
+        <rect x={-length / 2 + thick * 0.15} y={-thick / 2} width={length - thick * 0.3} height={thick * 0.68} rx={thick * 0.2} fill={`url(#${id})`} />
+        <rect x={-length / 2 + thick * 0.15} y={-thick / 2} width={length - thick * 0.3} height={Math.max(0.8, thick * 0.14)} fill="#FFFFFF" />
+        <rect x={-length / 2 + thick * 0.8} y={-thick / 2 + thick * 0.22} width={length * 0.3} height={thick * 0.16} rx={thick * 0.08} fill="#FFFFFF" fillOpacity="0.9" />
       </g>
     </g>
   );

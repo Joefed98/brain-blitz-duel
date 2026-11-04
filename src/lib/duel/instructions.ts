@@ -14,8 +14,9 @@ import { MINES_COUNT, MINES_HIT_COST } from "@/lib/arcade/minesweeper";
 import { MAHJONG_SHUFFLE_COST } from "@/lib/arcade/mahjong";
 import { puzzleNotesDealt } from "./puzzleNotes";
 import { PAR_MOVES_MAZE_HELP, STANDARD_ATTENTION_HELP } from "./standard/attentionTexts";
-import { parMovesDealt } from "./parMoves";
-import { PAR_MOVES_PATTERN_HELP, PATTERN_STD_HELP } from "./standard/patternText";
+import { parMovesDealt, parStrictDealt } from "./parMoves";
+import { operatorGapsDealt } from "./operatorGaps";
+import { PATTERN_STD_HELP, parMovesPatternHelp } from "./standard/patternText";
 import { standardNumberHelp } from "./standard/numberText";
 import {
   scoreWordHunt,
@@ -411,14 +412,25 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
     },
     equation: {
       goal: "Fill the gaps so each equation is true.",
-      how: [
-        { action: "Tap a gap", detail: "to choose its sign." },
-        { action: "Work left to right,", detail: "in the order shown." },
-        { action: "Four equations,", detail: "each harder. Next skips." },
-        { action: "A true equation", detail: "holds for 1 second, then moves on; the timer keeps running.", helpOnly: true },
-        { action: "The last one", detail: "uses division in a harder mix. 90 seconds for all four.", helpOnly: true },
-        { action: "3 tries each:", detail: "every full set of signs is a try. After the third wrong one the equation locks; tap Next.", helpOnly: true },
-      ],
+      // Operator's gaps (puzzle polish, 3 Nov 2026, operatorGaps.ts): sign gaps, number gaps, then both.
+      how: operatorGapsDealt()
+        ? [
+              { action: "Gold circles", detail: "take a sign; teal squares take a number from the tray." },
+              { action: "Work left to right,", detail: "in the order shown. Any answer that's true counts." },
+              { action: "Four equations:", detail: "signs, then numbers, then both. Next skips." },
+              { action: "Each tray number", detail: "can be used once; some are decoys. Tap a filled gap to empty it.", helpOnly: true },
+              { action: "A true equation", detail: "holds for 1 second, then moves on; the timer keeps running.", helpOnly: true },
+              { action: "The last one", detail: "uses division in a harder mix; every step must stay a whole number. 90 seconds for all four.", helpOnly: true },
+              { action: "3 tries each:", detail: "every full fill is a try. After the third wrong one the equation locks; tap Next.", helpOnly: true },
+            ]
+        : [
+              { action: "Tap a gap", detail: "to choose its sign." },
+              { action: "Work left to right,", detail: "in the order shown." },
+              { action: "Four equations,", detail: "each harder. Next skips." },
+              { action: "A true equation", detail: "holds for 1 second, then moves on; the timer keeps running.", helpOnly: true },
+              { action: "The last one", detail: "uses division in a harder mix. 90 seconds for all four.", helpOnly: true },
+              { action: "3 tries each:", detail: "every full set of signs is a try. After the third wrong one the equation locks; tap Next.", helpOnly: true },
+            ],
       score: standardNumberHelp("equation"),
     },
     reaction: {
@@ -591,11 +603,11 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Portals", detail: "carry you across." },
         // The puzzle batch of 3 Nov 2026 (slideRev 3, parMoves.ts): no ice gems; the fewest slides score a bonus.
         parMovesDealt()
-          ? { action: "Fewest slides", detail: "(par) score a bonus." }
+          ? { action: "Fewest slides", detail: parStrictDealt() ? "(par, shown on screen) score a bonus." : "(par) score a bonus." }
           : { action: "Ice gems", detail: "off the direct route score a bonus." },
         { action: "Cracked ice", detail: "breaks after you cross it once.", helpOnly: true },
       ],
-      score: parMovesDealt() ? PAR_MOVES_PATTERN_HELP.iceslide : PATTERN_STD_HELP.iceslide,
+      score: parMovesDealt() ? parMovesPatternHelp("iceslide") : PATTERN_STD_HELP.iceslide,
     },
     push: {
       goal: "Push every crate onto a marked square.",
@@ -639,7 +651,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Reach the exit", detail: "to finish." },
         // The puzzle batch of 3 Nov 2026 (mazeRev 4, parMoves.ts): no stars; no wasted steps scores a bonus.
         parMovesDealt()
-          ? { action: "No wasted steps", detail: "(par) score a bonus." }
+          ? { action: "No wasted steps", detail: parStrictDealt() ? "(par, shown on screen) score a bonus." : "(par) score a bonus." }
           : { action: "Stars", detail: "anywhere in the maze add points, finished or not." },
         { action: "The path", detail: "moves one neighbouring cell at a time.", helpOnly: true },
       ],
@@ -691,12 +703,12 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "A ball home fills its hole:", detail: "other balls stop against it, as they do against a ball.", helpOnly: true },
         // The puzzle batch of 3 Nov 2026 (gravityRev 6, parMoves.ts): no stars; the fewest tilts score a bonus.
         parMovesDealt()
-          ? { action: "Fewest tilts", detail: "(par) score a bonus." }
+          ? { action: "Fewest tilts", detail: parStrictDealt() ? "(par, shown on screen) score a bonus." : "(par) score a bonus." }
           : { action: "Roll through a star", detail: "for bonus points." },
         { action: "The rings", detail: "above the board fill as balls go home; a clear board brings the next.", helpOnly: true },
         { action: "Tilts are limited", detail: "on each board (the counter). Undo and Reset don't give a tilt back; out of tilts, the next board comes.", helpOnly: true },
       ],
-      score: parMovesDealt() ? PAR_MOVES_PATTERN_HELP.gravity : PATTERN_STD_HELP.gravity,
+      score: parMovesDealt() ? parMovesPatternHelp("gravity") : PATTERN_STD_HELP.gravity,
     },
     chain: {
       goal: "Tap 40 charms, following the cycle.",

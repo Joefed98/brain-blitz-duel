@@ -14,7 +14,9 @@ import { TENTS_TIME_MS, type TentsPuzzleData } from "@/lib/duel/types";
 import { playCorrect } from "@/lib/sound";
 
 import { soundCue, useSolveFx } from "./logicFx";
-import { LiveSummary, SummaryItem, useFrameProgress } from "@/components/puzzles/batchP/LiveSummary";
+import { useFrameProgress } from "@/components/puzzles/batchP/LiveSummary";
+import { HudPills } from "@/components/puzzles/HudPills";
+import "@/polish-layout/polish-nov3-logic.css";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
 /** Clean flat trees; pine or round is picked from the cell position (cosmetic only). */
@@ -243,15 +245,13 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
             onTap={locked ? undefined : tap}
             flash={flash}
             pitched={pitched}
-            countSize={16}
+            countSize={22}
             gap={1}
           />
         </div>
-        <LiveSummary
-          inArena
-          className="logic-status"
-          items={[<SummaryItem key="grass" label="Grass marked" value={marks.filter((mark) => mark === 2).length} />]}
-        />
+        {inFrame ? (
+          <HudPills testId="tents" className="logic-hud-pills" items={[{ id: "grass", label: "Grass marked", value: marks.filter((mark) => mark === 2).length }]} />
+        ) : null}
       </div>
     </div>
   );

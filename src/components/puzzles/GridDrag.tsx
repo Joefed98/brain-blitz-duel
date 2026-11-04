@@ -641,6 +641,9 @@ export function ArrowPad({
     return true;
   });
 
+  // Puzzle polish (3 Nov 2026, display only): the Button's default variant brings `hover:bg-primary/90`, and a touch
+  // screen keeps :hover on the last button tapped, so one arrow stayed gold after a press. Every arrow is the same
+  // card until it is pressed (`active:` tint only).
   const button = (dir: "U" | "D" | "L" | "R", glyph: string, label: string) => (
     <ArcadeControlButton
       key={dir}
@@ -649,7 +652,7 @@ export function ArrowPad({
       onPressStart={() => start(dir)}
       onPressEnd={stop}
       aria-label={label}
-      className={`flex min-w-11 flex-1 shrink-0 items-center justify-center rounded-lg border border-border bg-card text-xl text-foreground transition-colors select-none touch-none active:bg-primary/20 disabled:opacity-40 ${expanded ? "h-[68px]" : "h-11"}`}
+      className={`flex min-w-11 flex-1 shrink-0 items-center justify-center rounded-lg border border-border bg-card text-xl text-foreground shadow-none transition-colors select-none touch-none hover:bg-card active:bg-primary/20 disabled:opacity-40 ${expanded ? "h-[68px]" : "h-11"}`}
     >{glyph}</ArcadeControlButton>
   );
 

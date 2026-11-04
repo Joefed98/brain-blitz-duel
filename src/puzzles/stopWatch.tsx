@@ -33,6 +33,8 @@ import { bangOnEarnsGoldFaces, fireBangOnGoldFaces, localBangOnScore } from "@/c
 import { roundMaxFor } from "@/lib/duel/roundMax";
 import { BANGON_STREAK_MIN, BANGON_CENTRE_POINTS, BANGON_TOPUP_CENTRE_POINTS, BANGON_TOPUP_STREAK_TOP, bangOnMarks, liveZoneStreak, scoreBangOnDepth, usesBangOnDepth, type WatchMark } from "@/lib/duel/depth/bangOn";
 
+import { SpeedRevealList } from "@/components/puzzles/SpeedRevealList";
+import "@/polish-layout/polish-nov3-speedatt.css";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
 export { markerState, targetCentre } from "@/lib/duel/stopWatch";
@@ -454,6 +456,7 @@ function WatchView({
       </div>
       <p data-game-controls="status"
         data-bangon-dead={lastMark?.centre ? "" : undefined}
+        data-bangon-prompt={showing ? undefined : ""}
         className={`font-mono text-3xl font-bold tabular-nums ${
           showing ? (result === "missed" ? "text-warn" : "text-primary") : "text-muted-foreground"
         }`}
@@ -612,25 +615,32 @@ function Reveal({ puzzle, myAnswer, myExtra }: PuzzleRevealProps) {
   // Depth (tapRev 5): the server's stored marks and bonus points.
   const depth = usesBangOnDepth(puzzle) ? storedBangOnDepth(myExtra) : null;
 
+  // Puzzle polish (3 Nov 2026): the big average first, then the watches in two tidy columns and the notes under them.
   return (
     <>
-      <div className="grid w-full grid-cols-1 justify-items-center gap-y-0.5">
-        {errors.map((ms, index) => (
-          <p key={index} data-bangon-mark={depth ? (depth.dead[index] ? "centre" : depth.zone[index] ? "zone" : "out") : undefined} className="whitespace-nowrap font-mono text-base leading-6 tabular-nums text-foreground">
-            Watch {index + 1} - {ms >= STOPWATCH_MISS_MS ? "missed (500 ms)" : `${ms} ms off`}
-          </p>
-        ))}
-      </div>
-      <div className="bangon-reveal-avg flex w-full flex-col items-center gap-1 rounded-2xl bg-card px-4 py-4">
+      <div className="bangon-reveal-avg flex w-full flex-col items-center gap-1 rounded-2xl bg-card px-4 py-3">
         <p className="text-sm uppercase tracking-[0.2em] text-muted-foreground">Average error</p>
         <p className="font-mono text-4xl font-bold tabular-nums text-primary">{avg} ms</p>
+      </div>
+      <SpeedRevealList
+        testId="stopwatch"
+        label="Your stops"
+        items={errors.map((ms, index) => ({
+          value: ms >= STOPWATCH_MISS_MS ? "Missed" : `${ms} ms off`,
+          label: `Watch ${index + 1} - ${ms >= STOPWATCH_MISS_MS ? "missed (500 ms)" : `${ms} ms off`}`,
+          missed: ms >= STOPWATCH_MISS_MS,
+          mark: depth ? (depth.dead[index] ? "centre" : depth.zone[index] ? "zone" : "out") : undefined,
+        }))}
+      />
+      <div className="speed-reveal-notes">
+        {errors.some((ms) => ms >= STOPWATCH_MISS_MS) ? <p>A missed watch counts {STOPWATCH_MISS_MS} ms off</p> : null}
         {depth ? (
-          <p data-bangon-depth="" className="text-center font-mono text-xs text-muted-foreground">
+          <p data-bangon-depth="">
             Dead centre {depth.centreHits} × {depth.centreEach} = +{depth.centre} · zone streak +{depth.streak}
           </p>
         ) : null}
         {curve && avg > curve.kneeMs ? (
-          <p className="text-center text-xs text-muted-foreground">
+          <p>
             Over {curve.kneeMs} ms the score falls faster: 0 at {curve.zeroMs} ms.
           </p>
         ) : null}

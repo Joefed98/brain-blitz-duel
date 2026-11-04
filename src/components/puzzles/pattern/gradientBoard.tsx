@@ -15,7 +15,8 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent, type ReactElement } from "react";
 
 import { useGridMetrics, usePrefersReducedMotion } from "@/components/puzzles/GridDrag";
-import { LiveSummary, SummaryItem, useFrameProgress } from "@/components/puzzles/batchP/LiveSummary";
+import { useFrameProgress } from "@/components/puzzles/batchP/LiveSummary";
+import { FramePills, parPills } from "@/components/puzzles/pattern/framePills";
 import { useNoTouchScroll } from "@/components/puzzles/noScroll";
 import { useGameKeys } from "@/lib/desktop";
 import {
@@ -323,20 +324,6 @@ export function GradientBoard({
   );
 }
 
-/* ------------------------------------------------------------------ par meter */
-
-/** One pip per par move, filled as slides are made; past par the extra pips show warn red. */
-function ParMeter({ moves, par }: { moves: number; par: number }) {
-  const pips = Math.max(par, Math.min(moves, par + 4));
-  return (
-    <span className="jumbled-par" aria-hidden="true" data-jumbled-par="">
-      {Array.from({ length: pips }, (_, i) => (
-        <i key={i} data-on={i < moves ? "" : undefined} data-over={i >= par ? "" : undefined} />
-      ))}
-    </span>
-  );
-}
-
 /* ------------------------------------------------------------------ the live stage */
 
 export function GradientStage(props: PuzzleStageProps) {
@@ -417,7 +404,6 @@ function GradientSwapStage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDr
   };
 
   const size = space ? Math.max(0, Math.floor(Math.min(space.width, space.height, 460))) : 0;
-  const overPar = replay.moves > par;
 
   return (
     <div data-stage-column="3" data-polish="tiles-gradient" className="flex min-h-0 flex-1 flex-col items-center gap-2">
@@ -440,13 +426,7 @@ function GradientSwapStage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDr
         </div>
       </div>
       {inFrame ? (
-        <LiveSummary
-          items={[
-            <SummaryItem key="moves" label="Swaps" value={replay.moves} warn={overPar} />,
-            <SummaryItem key="par" label="Par" value={par} />,
-            <ParMeter key="meter" moves={replay.moves} par={par} />,
-          ]}
-        />
+        <FramePills testId="tiles" items={parPills("Swaps", replay.moves, par)} />
       ) : (
         <p data-after-arena data-game-controls="status" className="shrink-0 font-mono text-xs uppercase tracking-widest text-muted-foreground">
           swaps <span className="text-primary">{replay.moves}</span> · par <span className="text-primary">{par}</span>
@@ -458,9 +438,11 @@ function GradientSwapStage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDr
           aria-pressed={numbers}
           aria-label="Show tile numbers"
           onClick={toggleNumbers}
-          className="jumbled-numbers-toggle h-11 w-14 rounded-xl border border-border bg-card font-mono text-sm font-bold text-foreground"
+          className="jumbled-numbers-toggle flex h-11 items-center gap-2 rounded-xl border border-border bg-card px-3 text-foreground"
         >
-          123
+          {/* Puzzle polish (3 Nov 2026): the toggle says what it does. */}
+          <span aria-hidden="true" className="font-mono text-xs font-bold">123</span>
+          <span className="text-sm font-semibold">Numbers</span>
         </button>
       </div>
     </div>
@@ -527,7 +509,6 @@ function GradientSlideStage({ puzzle, phaseStartedAt, now, locked, onSubmit, onD
   };
 
   const size = space ? Math.max(0, Math.floor(Math.min(space.width, space.height, 460))) : 0;
-  const overPar = replay.moves > par;
 
   return (
     <div data-stage-column="3" data-polish="tiles-gradient" className="flex min-h-0 flex-1 flex-col items-center gap-2">
@@ -535,13 +516,7 @@ function GradientSlideStage({ puzzle, phaseStartedAt, now, locked, onSubmit, onD
         {size ? <GradientBoard frame={replay.frame} size={size} numbers={numbers} showHome celebrate={celebrate} onSlide={blocked ? undefined : slide} /> : null}
       </div>
       {inFrame ? (
-        <LiveSummary
-          items={[
-            <SummaryItem key="moves" label="Moves" value={replay.moves} warn={overPar} />,
-            <SummaryItem key="par" label="Par" value={par} />,
-            <ParMeter key="meter" moves={replay.moves} par={par} />,
-          ]}
-        />
+        <FramePills testId="tiles" items={parPills("Moves", replay.moves, par)} />
       ) : (
         <p data-after-arena data-game-controls="status" className="shrink-0 font-mono text-xs uppercase tracking-widest text-muted-foreground">
           moves <span className="text-primary">{replay.moves}</span> · par <span className="text-primary">{par}</span>
@@ -567,9 +542,11 @@ function GradientSlideStage({ puzzle, phaseStartedAt, now, locked, onSubmit, onD
           aria-pressed={numbers}
           aria-label="Show tile numbers"
           onClick={toggleNumbers}
-          className="jumbled-numbers-toggle h-11 w-14 rounded-xl border border-border bg-card font-mono text-sm font-bold text-foreground"
+          className="jumbled-numbers-toggle flex h-11 items-center gap-2 rounded-xl border border-border bg-card px-3 text-foreground"
         >
-          123
+          {/* Puzzle polish (3 Nov 2026): the toggle says what it does. */}
+          <span aria-hidden="true" className="font-mono text-xs font-bold">123</span>
+          <span className="text-sm font-semibold">Numbers</span>
         </button>
       </div>
     </div>

@@ -3,6 +3,7 @@ import { useGameColumnLayout } from "@/components/puzzles/gameColumn";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { AcceptedWordChip } from "./AcceptedWordChip";
+import { HudPills, type HudPillItem } from "./HudPills";
 import { WordsmithRing } from "./WordsmithRing";
 import { toggleWordsmithTile } from "./wordInput";
 import { Shuffle } from "lucide-react";
@@ -12,6 +13,7 @@ import { scoreWordsmith, WORDSMITH_REV_DEPTH, WORDSMITH_V3_PANGRAM_BONUS } from 
 import { useStageState } from "@/lib/duel/stageState";
 import { rightMoveFlash } from "@/lib/fx/gameToolkit";
 import "@/polish-layout/batch-w-wordsmith.css";
+import "@/polish-layout/polish-nov3-word.css";
 
 /** The pangram moment (wordsmithRev 3): the shared moment-card sting, not a completion cue (docs/sound-cues/word.md lists those). */
 const PANGRAM_CUE = "shared.momentcard";
@@ -187,11 +189,18 @@ export function WordsmithPuzzle({
 
   // Batch W live summary (display only): what the status line shows when no message is up.
   const longest = found.reduce((best, entry) => Math.max(best, entry.word.length), 0);
-  const summary = word
-    ? `${word.length} letter${word.length === 1 ? "" : "s"}${word.length < WORDSMITH_MIN_LENGTH ? ` · ${WORDSMITH_MIN_LENGTH} needed` : ""}`
+  // Puzzle polish (3 Nov 2026): the summary as separate pills, never one line with dots in it.
+  const summary: Array<HudPillItem | null> = word
+    ? [
+        { id: "letters", label: word.length === 1 ? "Letter" : "Letters", value: word.length },
+        word.length < WORDSMITH_MIN_LENGTH ? { id: "needed", label: "Need", value: WORDSMITH_MIN_LENGTH, tone: "gold" } : null,
+      ]
     : found.length > 0
-      ? `${found.length} word${found.length === 1 ? "" : "s"} · longest ${longest} letters`
-      : "Tap tiles to build a word";
+      ? [
+          { id: "words", label: found.length === 1 ? "Word" : "Words", value: found.length },
+          { id: "longest", label: "Longest", value: longest, tone: "gold" },
+        ]
+      : [{ id: "hint", label: "Tap tiles to build a word" }];
 
   return (
     <div data-stage-column="2" data-word-polish="wordsmith" className="flex min-h-0 flex-1 flex-col gap-2">
@@ -239,9 +248,10 @@ export function WordsmithPuzzle({
 
       <div data-game-arena="word" data-word-first="" className="relative flex min-h-0 flex-1 flex-col items-center">
         {pangramRule ? (
-          // Laid over the arena's top-left corner (outside the ring), so it never moves anything when it lights.
+          // Its own reserved row above the ring (3 Nov 2026: laid over the corner it overlapped the plate), the same
+          // fixed size open or found, so nothing moves when it lights.
           <div data-pangram-badge={pangramFound ? "found" : "open"} aria-label={pangramFound ? `Pangram found, plus ${WORDSMITH_V3_PANGRAM_BONUS}` : `Pangram: the word using every tile adds ${WORDSMITH_V3_PANGRAM_BONUS}`}
-            className="pointer-events-none absolute left-0 top-0 z-10 flex h-6 items-center gap-1 rounded-full px-2.5 font-mono text-[11px] font-bold uppercase tracking-widest">
+            className="pointer-events-none z-10 mb-1 flex h-6 shrink-0 items-center gap-1 rounded-full px-2.5 font-mono text-[11px] font-bold uppercase tracking-widest">
             <span>Pangram</span>
             <span className="tabular-nums">+{WORDSMITH_V3_PANGRAM_BONUS}</span>
           </div>
@@ -256,7 +266,13 @@ export function WordsmithPuzzle({
         data-game-controls="input" data-word-controls-first="" className={`flex h-11 shrink-0 items-center justify-center rounded-lg border bg-card px-2 text-center font-mono text-xl uppercase text-foreground ${message ? "border-warn animate-shake" : "border-border"}`}>
         {word || " "}
       </div>
-      <p data-game-controls="status" data-live-summary="wordsmith" className={`h-4 shrink-0 truncate text-center leading-4 ${message ? "font-mono text-xs text-warn" : "text-[13px] font-semibold text-[#a09da6] tabular-nums"}`}>{message ?? summary}</p>
+      {message ? (
+        <p data-game-controls="status" data-live-summary="wordsmith" className="h-6 shrink-0 truncate text-center font-mono text-xs leading-6 text-warn">{message}</p>
+      ) : (
+        <div data-game-controls="status" data-live-summary="wordsmith" className="h-6 shrink-0">
+          <HudPills testId="wordsmith" items={summary} />
+        </div>
+      )}
 
       <div data-game-controls="actions" className={`${column ? "" : "mt-auto "}grid shrink-0 grid-cols-[44px_1fr_1fr] gap-2`}>
         <Button type="button" variant="outline" className="h-11 w-11 p-0" aria-label="Shuffle letters" title="Shuffle letters" disabled={locked || busy} onClick={() => setOrder(current => shuffleLetterOrder(current, WORDSMITH_CENTRE_INDEX))}><Shuffle className="h-5 w-5" /></Button>

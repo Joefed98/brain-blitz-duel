@@ -126,7 +126,8 @@ for (const t of PUZZLES) {
 // Operator: four equations, 90 s clock, speed 40 full by 60 s (30 s window), 2.5 per equation right first time.
 {
   const p = P.equation as EquationPuzzleData;
-  const ops = p.operators!.map((o) => o.join(","));
+  // gapsRev 1 (puzzle polish, 3 Nov 2026): the stored fills; the signs-only stamp: the operator sets.
+  const ops = p.gapAnswers ?? p.operators!.map((o) => o.join(","));
   const ans = (right: number, tries: number[]) => joinCountSuffix(joinStages(ops.map((o, i) => (i < right ? o : "")), 4), tries);
   const drafts = (times: number[], tries: number[][]) => times.map((t, i) => ({ answer: ans(i + 1, tries[i]!), atMs: t }));
   // Fast: each right on its first try, the last at 50 s → 150 + 40 + 10 = 200.

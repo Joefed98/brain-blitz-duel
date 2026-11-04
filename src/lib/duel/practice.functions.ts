@@ -114,7 +114,13 @@ export const practiceGenerateFn = createServerFn({ method: "POST" })
     const { generateWordsmithExample } = await import("./wordsmith.server");
     // The six banked types store their example, so it needs no live solve.
     const { bankedIntroExample } = await import("./puzzleBank.server");
-    const made = bankedIntroExample(type) ?? withSeededRandom(INTRO_EXAMPLE_SEED, () => type === "wordsmith" ? generateWordsmithExample() : generatePuzzle(type, { unblockRow }));
+    // Skid, Chroma Lines and Tessellate (puzzle polish, 3 Nov 2026): their live boards come from the depth banks, which
+    // deal only from a bank seed, so the stored example (the bank's first board) carried none of the live stamps and
+    // graded on the older 120 + 30 shape (the audit's "150 at par"). Their example is the live deal at the example seed.
+    const liveFromBank = type === "iceslide" || type === "flow" || type === "blockparty";
+    const made = liveFromBank
+      ? withSeededRandom(INTRO_EXAMPLE_SEED, () => generatePuzzle(type, { bankSeed: INTRO_EXAMPLE_SEED }))
+      : bankedIntroExample(type) ?? withSeededRandom(INTRO_EXAMPLE_SEED, () => type === "wordsmith" ? generateWordsmithExample() : generatePuzzle(type, { unblockRow }));
     const { pub, priv } = splitPuzzle(made);
     return { puzzle: pub, sealed: await seal({ ...priv, __example: INTRO_EXAMPLE_ID }) };
   });

@@ -25,6 +25,7 @@ import { useGameKeys } from "@/lib/desktop";
 
 import { soundCue } from "./logicFx";
 import { useFrameProgress } from "@/components/puzzles/batchP/LiveSummary";
+import "@/polish-layout/polish-nov3-speedatt.css";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
 interface PanelProps {

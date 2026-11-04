@@ -47,8 +47,8 @@ import {
   LaserSplitter,
   useLaserCues,
 } from "@/components/puzzles/pattern/laserArt";
-import { parItems } from "@/components/puzzles/depth4/ParMeter";
-import { LiveSummary, SummaryItem, useInFrame } from "@/components/puzzles/batchP/LiveSummary";
+import { useInFrame } from "@/components/puzzles/batchP/LiveSummary";
+import { FramePills, parPills } from "@/components/puzzles/pattern/framePills";
 import { useSolveMoment } from "@/lib/fx/patternFx";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
@@ -604,18 +604,19 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "laser", ph
         />
       </div>
 
-      <LiveSummary
+      <FramePills
+        testId="laser"
         items={elegantPar > 0
           ? [
-              // laserRev 1 (depth batch 4): the elegant beam's par mirrors on the par meter.
-              ...parItems("Mirrors", mirrorsPlaced, elegantPar),
-              splitterTotal > 0 ? <SummaryItem key="splitter" label="Splitter" value={`${splitterPlaced}/${splitterTotal}`} /> : null,
-              <SummaryItem key="gems" label="Gems" value={`${litGems.length}/${gems.length}`} />,
+              // laserRev 1 (depth batch 4): the elegant beam's par mirrors.
+              ...parPills("Mirrors", mirrorsPlaced, elegantPar, "mirrors"),
+              splitterTotal > 0 ? { id: "splitter", label: "Splitter", value: `${splitterPlaced}/${splitterTotal}` } : null,
+              { id: "gems", label: "Gems", value: `${litGems.length}/${gems.length}` },
             ]
           : [
-              <SummaryItem key="mirrors" label="Mirrors" value={`${mirrorsPlaced} / ${total}`} />,
-              splitterTotal > 0 ? <SummaryItem key="splitter" label="Splitter" value={`${splitterPlaced} / ${splitterTotal}`} /> : null,
-              <SummaryItem key="gems" label="Gems lit" value={`${litGems.length} / ${gems.length}`} />,
+              { id: "mirrors", label: "Mirrors", value: `${mirrorsPlaced} / ${total}` },
+              splitterTotal > 0 ? { id: "splitter", label: "Splitter", value: `${splitterPlaced} / ${splitterTotal}` } : null,
+              { id: "gems", label: "Gems lit", value: `${litGems.length} / ${gems.length}` },
             ]}
       />
       <div data-game-controls="pieces" className="flex shrink-0 items-center justify-center gap-2">

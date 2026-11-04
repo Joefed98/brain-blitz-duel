@@ -639,7 +639,9 @@ function LiveAnswerReveal({
   );
   const def = puzzleDef(puzzle.type);
   const Reveal = def.Reveal;
-  const puzzleOwnsRevealLayout = puzzle.type === "chain";
+  // Puzzle polish (3 Nov 2026): Don't Break the Chain takes the shared verdict row like every other puzzle (it hid the
+  // mark and heading before); no puzzle owns the layout now.
+  const puzzleOwnsRevealLayout = false as boolean;
   // Haptics (lib/haptics.ts) never play over a reveal: its boards, replays and verdict cues hold them.
   useIsoLayoutEffect(() => holdHaptics(), []);
   const cued = useRef(0);

@@ -28,8 +28,9 @@ import { playSound } from "@/lib/sound";
 import { puzzleReject } from "@/lib/fx/puzzleReject";
 import { rightMoveFlash } from "@/lib/fx/gameToolkit";
 import { registerFxPreview } from "@/components/puzzles/speedFx";
+import { HudPills } from "@/components/puzzles/HudPills";
 
-import { ASCEND_FLOW_TOP, ascendFlow, liveFlowMultiplier, usesAscendDepth } from "@/lib/duel/depth/ascend";
+import { ascendFlow, liveFlowMultiplier, usesAscendDepth } from "@/lib/duel/depth/ascend";
 import { ascendBestRun, ascendStandard } from "@/lib/duel/standard/attention";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
@@ -252,16 +253,19 @@ function AscendBoard({
   useEffect(() => registerFxPreview("numhunt", () => fireAscendFinish(arenaRef.current, spotsRef.current)), [arenaRef]);
   return (
     <div data-polish="numhunt" data-stage-column="3" className="flex min-h-0 flex-1 flex-col gap-3">
-      <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
-        <span className="flex min-w-0 items-center gap-2 font-mono text-xs uppercase tracking-widest text-muted-foreground">
-          <span className="truncate">Next: {spots[Math.min(next, spots.length - 1)]?.n ?? ""}</span>
-          {flow !== null ? <FlowChip level={flow} /> : null}
-          {run !== null ? <RunChip run={run} /> : null}
-        </span>
+      {/* Puzzle polish (3 Nov 2026): the HUD as separate pills ("Next 7", "In a row 3", "Errors 0"), the move timer
+          centred under them; the old one-line label was cut off ("NEX…") beside the chips. Display only. */}
+      <div data-ascend-hud="" className="flex flex-col items-center gap-2">
+        <HudPills
+          testId="numhunt"
+          items={[
+            { id: "next", label: "Next", value: spots[Math.min(next, spots.length - 1)]?.n ?? "", tone: "gold" },
+            flow !== null && { id: "flow", label: "Flow", value: `×${flow}`, ...(flow > 1 ? { tone: "gold" as const } : {}) },
+            run !== null && { id: "run", label: "In a row", value: run, ...(run >= 4 ? { tone: "gold" as const } : {}) },
+            { id: "errors", label: "Errors", value: errors, ...(errors > 0 ? { tone: "warn" as const } : {}) },
+          ]}
+        />
         <MoveTimer elapsed={elapsed} />
-        <span className="text-right font-mono text-xs text-muted-foreground">
-          {errors} {errors === 1 ? "error" : "errors"}
-        </span>
       </div>
 
       <div ref={arenaRef} data-game-arena="tall" className={`ascend-board relative min-h-[320px] flex-1 rounded-2xl border border-border bg-muted/10 ${pulse ? "animate-pulse" : ""}`}>
@@ -280,45 +284,6 @@ function AscendBoard({
         ))}
       </div>
     </div>
-  );
-}
-
-/**
- * Depth (tapRev 5): the flow multiplier, a small pill beside "Next" in the HUD row (always there on a depth
- * round, so nothing moves): ×1 dim, ×2 to ×4 gold and brighter, with one dot per level. Display only; the server
- * works the flow out from the same tap log.
- */
-function FlowChip({ level }: { level: number }) {
-  return (
-    <span
-      data-ascend-flow={level}
-      aria-label={`Flow ×${level}`}
-      className="ascend-flow-chip inline-flex h-5 shrink-0 items-center gap-1 rounded-full px-1.5 font-mono text-xs font-bold normal-case tracking-normal tabular-nums"
-    >
-      ×{level}
-      <span aria-hidden="true" className="inline-flex gap-[2px]">
-        {Array.from({ length: ASCEND_FLOW_TOP - 1 }, (_, i) => (
-          <span key={i} className="ascend-flow-dot" data-on={i < level - 1 ? "" : undefined} />
-        ))}
-      </span>
-    </span>
-  );
-}
-
-/**
- * The scoring standard (tapRev 6): the flow streak is the longest run of right taps with no wrong tap between, so the
- * pill shows the run going now (its dot lit from 4). Display only; the server works it out from the same tap log.
- */
-function RunChip({ run }: { run: number }) {
-  return (
-    <span
-      data-ascend-run={run}
-      aria-label={`${run} in a row`}
-      className="ascend-flow-chip inline-flex h-5 shrink-0 items-center gap-1 rounded-full px-1.5 font-mono text-xs font-bold normal-case tracking-normal tabular-nums"
-    >
-      <span aria-hidden="true" className="ascend-flow-dot" data-on={run >= 4 ? "" : undefined} />
-      {run} in a row
-    </span>
   );
 }
 

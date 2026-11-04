@@ -17,7 +17,7 @@ import { pairDepthReplay, splitPairGoldTime } from "../depth/matchmaker";
 import { spotBonusFound } from "../depth/doubleTake";
 import type { CountUpPuzzleData, MazePuzzleData, SymbolScanPuzzleData, PuzzleType } from "../types";
 import { earlyPoints, parPoints, speedPoints } from "./shape";
-import { PAR_MOVES_STD, usesParMoves } from "../parMoves";
+import { PAR_MOVES_STD, PAR_STRICT_FULL_BY_S, PAR_STRICT_ZERO_AT, usesParMoves, usesParStrict } from "../parMoves";
 import type { StandardGame } from "./grade.server";
 import { ASCEND_STD, CHAIN_STD, COUNT_STD, MAZE_STD, PAIR_STD, SCAN_STD, SPOT_STD, ascendBestRun, ascendFlowPoints, mazeStarPoints, pairGoldPoints, pairStreakPoints } from "./attention";
 
@@ -190,7 +190,11 @@ const labyrinth: StandardGame = {
     if (usesParMoves(puzzle)) {
       const facts = { steps: run.walked, parSteps: run.routeSteps };
       if (graded.isCorrect) {
-        return { finished: true, speed: speedFor(PAR_MOVES_STD.speed, MAZE_STD.fullByS, msLeft, limitMs), bonus: parPoints(PAR_MOVES_STD.par, run.walked, run.routeSteps), measure: "par", facts };
+        // mazeRev 5 (puzzle polish, 3 Nov 2026): speed full a little earlier, par points 0 at 1.5× par.
+        const strict = usesParStrict(puzzle);
+        const fullBy = strict ? PAR_STRICT_FULL_BY_S.maze : MAZE_STD.fullByS;
+        const zeroAt = strict ? PAR_STRICT_ZERO_AT * run.routeSteps : 2 * run.routeSteps;
+        return { finished: true, speed: speedFor(PAR_MOVES_STD.speed, fullBy, msLeft, limitMs), bonus: parPoints(PAR_MOVES_STD.par, run.walked, run.routeSteps, zeroAt), measure: "par", facts };
       }
       const early = ctx.early(MAZE_STD.early / Math.max(1, run.routeSteps), run.steps) * run.waste;
       return { finished: false, credit: MAZE_STD.share * run.share + early, facts };

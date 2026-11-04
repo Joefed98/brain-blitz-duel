@@ -3,6 +3,7 @@
  * from the game's own grade (grade.ts) and re-derives what it needs from the answer with the game's own helpers;
  * history (wrong numbers entered, tiles undone) comes from the draft timeline. Tenfall scores in its sim (tenRev 5).
  */
+import { equationVerdict } from "../operatorGaps";
 import { gradeCheckoutStages, splitCheckoutRound, decodeCheckoutDarts, checkoutBigFinish } from "../checkout";
 import { decodeBalance, balanceScalesSolved } from "../balance";
 import { gradeMeasureBoards } from "../measure";
@@ -122,7 +123,8 @@ function equationVerdicts(puzzle: EquationPuzzleData, answer: string): { correct
   const tryLimit = equationTryLimit(puzzle);
   const { body, counts: tries } = tryLimit !== null ? splitCountSuffix(answer) : { body: answer, counts: [] as number[] };
   const parts = splitStages(body, puzzle.stages.length);
-  const correct = puzzle.stages.map((stage, i) => equationStageCorrect(stage.numbers, stage.target, parts[i] ?? "") && (tryLimit === null || (tries[i] ?? 0) <= tryLimit));
+  // gapsRev 1 (operatorGaps.ts): any fill of the gaps that makes the equation true counts.
+  const correct = puzzle.stages.map((_stage, i) => equationVerdict(puzzle, i, parts[i] ?? "") && (tryLimit === null || (tries[i] ?? 0) <= tryLimit));
   return { correct, tries };
 }
 

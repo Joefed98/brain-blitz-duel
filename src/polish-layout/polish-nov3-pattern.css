@@ -1,0 +1,145 @@
+/*
+ * Puzzle polish, 3 Nov 2026 (Joe's audit; display only): the Pattern games. Imported from
+ * src/components/puzzles/pattern/framePills.tsx and the Pattern games' own modules.
+ */
+
+/* ---------------------------------------------------------------- the pill row (FramePills) */
+.pattern-pills {
+  display: flex;
+  flex: none;
+  justify-content: center;
+  min-width: 0;
+  max-width: 100%;
+}
+
+/* ---------------------------------------------------------------- Gridlock (unblock) */
+/* The lot sits centred in the space between the frame's goal line and the pills (equal spare above and below);
+   the pill row is 24 px (the old summary 20), so the height budget is 96 px. */
+[data-puzzle-play][data-puzzle-play][data-puzzle-play] .game-column [data-polish="unblock"] > [data-game-arena].unblock-arena {
+  height: min(100cqw, calc(100cqh - 96px));
+  margin-block: auto;
+}
+
+/* ---------------------------------------------------------------- Skid (iceslide) */
+/* Brighter ice in the live round (batch P's sheet was near-black blue): a pale steel-blue sheet with a clearer sheen,
+   brighter scratches and glints and lighter tile lines; rocks, holes and the gold exit keep their art, now with more
+   contrast. The ball is bigger (92 % of a square, was 80 %) and brighter, everywhere it is drawn. */
+[data-puzzle-play][data-puzzle-play][data-puzzle-play] .ice-board.ice-rink { background: #4a6a84; }
+[data-puzzle-play][data-puzzle-play][data-puzzle-play] .ice-base-0 { stop-color: #7d9fb9; }
+[data-puzzle-play][data-puzzle-play][data-puzzle-play] .ice-base-1 { stop-color: #5f819c; }
+[data-puzzle-play][data-puzzle-play][data-puzzle-play] .ice-base-2 { stop-color: #47657e; }
+[data-puzzle-play][data-puzzle-play][data-puzzle-play] .ice-sheen-0 { stop-color: #eaf6ff; stop-opacity: 0.42; }
+[data-puzzle-play][data-puzzle-play][data-puzzle-play] .ice-cool-0 { stop-color: #8fc7ec; stop-opacity: 0.35; }
+[data-puzzle-play][data-puzzle-play][data-puzzle-play] .ice-grain { opacity: 0.18; }
+[data-puzzle-play][data-puzzle-play][data-puzzle-play] .ice-scratch path { stroke: #e4f3fc; opacity: 0.4; }
+[data-puzzle-play][data-puzzle-play][data-puzzle-play] .ice-scratch-fine path { stroke: #c4e2f4; opacity: 0.38; }
+[data-puzzle-play][data-puzzle-play][data-puzzle-play] .ice-glint { filter: brightness(1.15); }
+[data-puzzle-play][data-puzzle-play][data-puzzle-play] .ice-tile {
+  box-shadow: inset 0 0 0 1px rgba(205, 232, 248, 0.16), inset 0 1px 0 rgba(235, 247, 255, 0.16);
+}
+[data-puzzle-play][data-puzzle-play][data-puzzle-play] .ice-tile.ice-gone { background: rgba(5, 14, 24, 0.6); }
+.ice-board .ice-ball {
+  width: 92%;
+  height: 92%;
+}
+.ice-board .ice-fall {
+  width: calc((100% - 22px) / 12 * 0.92);
+  height: calc((100% - 22px) / 12 * 0.92);
+}
+[data-puzzle-play][data-puzzle-play][data-puzzle-play] .ice-ball {
+  background: radial-gradient(circle at 34% 30%, #ffffff 0, #9bd4ff 16%, #2f8fe0 48%, #0a3d78 100%);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.55), 0 0 0 1.5px rgba(255, 255, 255, 0.7), 0 0 12px rgba(120, 200, 255, 0.75);
+}
+
+/* ---------------------------------------------------------------- Pipeline (pipes) */
+/* Brighter steel (pipesArt.tsx's gradients); a dry pipe's channel a mid slate instead of near-black; water in the
+   connected network flows visibly (brighter ripples, a little faster; still under reduced motion). */
+.pipes-board .pipe-channel { fill: #34404e; }
+.pipes-board .pipe-hub-eye { fill: #26303b; }
+.pipes-board .pipe-hub-eye-wet { fill: #8fe0ff; }
+.pipes-board .pipe-ripple-dot { fill: rgba(240, 252, 255, 0.95); }
+.pipes-board .pipe-ripple { animation-duration: 700ms; }
+.pipes-board .pipe-surge-line { stroke-width: 18; }
+[data-puzzle-play][data-puzzle-play][data-puzzle-play] .pipe-tile[data-lit] .pipe-art {
+  filter: drop-shadow(0 0 4px rgba(90, 200, 255, 0.9));
+}
+@media (prefers-reduced-motion: reduce) {
+  .pipes-board .pipe-ripple { animation: none; }
+}
+
+/* ---------------------------------------------------------------- Turntable (rings): the link legend diagram */
+.rings-legend {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.rings-legend-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 24px;
+  white-space: nowrap;
+  font-family: var(--ap-font, "Manrope", system-ui, sans-serif);
+}
+.rings-legend-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  height: 24px;
+  padding: 0 7px 0 3px;
+  border-radius: 999px;
+  background: rgba(10, 10, 14, 0.55);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+}
+.rings-legend-num {
+  display: inline-grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--category-accent, #f2c75c) 85%, #fff);
+  color: #101014;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1;
+}
+.rings-legend-turn {
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1;
+  color: #f3f1ec;
+}
+.rings-legend-chip[data-turn="opposite"] .rings-legend-turn { color: #ff9f8a; }
+.rings-legend-arrow { font-size: 15px; color: #b4b1bb; }
+.rings-legend-word { font-size: 13px; font-weight: 600; color: #d6d3dc; }
+
+/* ---------------------------------------------------------------- Lightbender (laser) */
+/* Blocks are solid brick (a warm stone with mortar courses and a raised bevel), so they never read like the pale glass
+   mirrors or the violet splitters (laserArt.tsx). */
+.laser-board .laser-block,
+.laser-board .laser-block[data-puzzle-cell],
+[data-puzzle-play][data-puzzle-play][data-puzzle-play] .laser-board .laser-block,
+[data-puzzle-play][data-puzzle-play][data-puzzle-play] .laser-board .laser-block[data-puzzle-cell] {
+  background-color: #8a5a43 !important;
+  background-image:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0) 38%, rgba(0, 0, 0, 0.28)),
+    linear-gradient(90deg, transparent 0 48%, rgba(30, 14, 8, 0.7) 48% 52%, transparent 52%),
+    linear-gradient(90deg, transparent 0 22%, rgba(30, 14, 8, 0.7) 22% 26%, transparent 26% 74%, rgba(30, 14, 8, 0.7) 74% 78%, transparent 78%),
+    linear-gradient(180deg, transparent 0 47%, rgba(30, 14, 8, 0.7) 47% 53%, transparent 53%);
+  background-size: 100% 100%, 100% 50%, 100% 50%, 100% 100%;
+  background-position: 0 0, 0 0, 0 100%, 0 0;
+  background-repeat: no-repeat;
+  box-shadow:
+    inset 0 2px 0 rgba(255, 220, 200, 0.45),
+    inset 0 -3px 0 rgba(0, 0, 0, 0.45),
+    inset 0 0 0 1px rgba(40, 18, 10, 0.6),
+    0 4px 6px rgba(0, 0, 0, 0.6);
+}
+
+/* Gridlock's reveal: the results screen's time-lapse replays the winner's own moves, so it shows only "Yours". */
+[data-timelapse] [data-unblock-solution] { display: none; }
+[data-timelapse] [data-unblock-yours] > span:first-child { display: none; }

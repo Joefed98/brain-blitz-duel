@@ -1,6 +1,6 @@
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { solutionProgress } from "@/lib/duel/progressFigures";
-import { Lock, LockOpen } from "lucide-react";
+import { Lock, LockOpen, RotateCcw, Undo2 } from "lucide-react";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
 import { gridCellAt } from "@/components/puzzles/GridDrag";
@@ -38,6 +38,8 @@ import { goldPulse, playFinish, useWordFinish, wordCue, type FinishStep } from "
 import { useBeforePaint } from "@/components/puzzles/useBeforePaint";
 import { rightMoveFlash } from "@/lib/fx/gameToolkit";
 import "@/polish-layout/batch-w-wordslide.css";
+import "@/polish-layout/polish-nov3-word.css";
+import { HudPills } from "@/components/puzzles/HudPills";
 
 const CELL = 56;
 /** Wider phones grow the tiles (lock column 56, board frame and gaps 36 take the rest). */
@@ -369,36 +371,42 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
         <FoundWordMoment value={accepted} />
       </div>
       <Board grid={replay.grid} cell={cell} good={good} boardRef={board} onPointerDown={onPointerDown} locked={lockedRows} shut={finished} swapRow={frozen ? null : swapRow} picked={picked} onLock={(row) => { playSound("pz_padlock"); push(`L${row}`); }} />
-      <div data-game-controls="status" data-word-controls-first="" className="relative flex h-8 shrink-0 items-center justify-center font-mono text-xs uppercase tracking-widest text-muted-foreground">
-        {/* Batch W live summary (display only): rows reading as words, rows locked, moves. */}
-        <span data-live-summary="wordslide" className="whitespace-nowrap font-sans text-[13px] font-semibold normal-case tracking-normal tabular-nums text-[#a09da6]">
-          <b className="font-extrabold text-[#f3f1ec]">{good.size}</b> / {WS_MARKED_ROWS.length} words<span className="text-[#5d5a63]"> · </span>
-          <b className="font-extrabold text-[#f3f1ec]">{lockedRows.size}</b> locked<span className="text-[#5d5a63]"> · </span>
-          Moves <span data-par-moves={parOn ? (withinPar ? "within" : "over") : undefined} className={parOn && !withinPar ? "text-[#f3f1ec]" : "text-primary"}>{replay.moves}</span>
-          {/* Par moves (wordSlideRev 1): gold while the moves are still within par, the par dimmed once past it. */}
-          {parOn ? (
-            <>
-              <span className="text-[#5d5a63]"> · </span>
-              <span data-par-label="" className={withinPar ? "font-extrabold text-primary" : "text-[#5d5a63] line-through"}>Par {data?.par}</span>
-            </>
-          ) : null}
-        </span>
+      <div data-game-controls="status" data-word-controls-first="" className="relative flex h-8 shrink-0 items-center justify-center">
+        {/* Live summary (display only) as separate pills (3 Nov 2026): rows reading as words, rows locked, moves and,
+            on wordSlideRev 1+, the par: gold while the moves are within it, red once past. */}
+        <HudPills
+          testId="wordslide"
+          items={[
+            { id: "words", label: "Words", value: `${good.size} / ${WS_MARKED_ROWS.length}` },
+            { id: "locked", label: "Locked", value: lockedRows.size },
+            { id: "moves", label: "Moves", value: replay.moves },
+            parOn ? { id: "par", label: "Par", value: data?.par, tone: withinPar ? "gold" : "warn" } : null,
+          ]}
+        />
       </div>
       <div data-game-controls="actions" className="flex shrink-0 gap-3 px-2">
         <Button
           type="button"
+          data-slide-action="undo"
+          aria-label="Undo last move"
+          title="Undo last move"
           disabled={frozen || !canUndo}
           onPointerDown={() => push("U")}
-          className="h-11 w-24 rounded-xl border border-border bg-card font-display text-sm font-bold uppercase tracking-widest text-foreground disabled:opacity-40"
+          className="h-11 w-28 rounded-xl border border-border bg-card font-display text-sm font-bold uppercase tracking-widest text-foreground disabled:opacity-40"
         >
+          <Undo2 className="h-4 w-4" aria-hidden="true" />
           Undo
         </Button>
         <Button
           type="button"
+          data-slide-action="reset"
+          aria-label="Reset the board"
+          title="Reset the board"
           disabled={frozen || !canUndo}
           onPointerDown={() => push("X")}
-          className="h-11 w-24 rounded-xl border border-border bg-card font-display text-sm font-bold uppercase tracking-widest text-foreground disabled:opacity-40"
+          className="h-11 w-28 rounded-xl border border-border bg-card font-display text-sm font-bold uppercase tracking-widest text-foreground disabled:opacity-40"
         >
+          <RotateCcw className="h-4 w-4" aria-hidden="true" />
           Reset
         </Button>
       </div>

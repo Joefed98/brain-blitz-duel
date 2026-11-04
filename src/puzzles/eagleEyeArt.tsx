@@ -1,35 +1,34 @@
 /**
- * Eagle Eye art (Polish, 13 Oct 2026): presentation only. The eagle keeps the exact
- * silhouette of the shared EagleIcon (same path, same 32-unit box, same rotation), so
- * its facing stays the dominant cue; feather strokes, a darker flight-feather band and a
- * soft screen-fixed shadow are drawn inside / under that outline. The take-off effect
- * draws the same outline on the overlay canvas.
+ * Eagle Eye art (Polish, 13 Oct 2026; redrawn 3 Nov 2026, Joe's audit: the old outline read as an aeroplane):
+ * presentation only. A north-facing eagle seen from above in a glide, an original drawing: a round head with a
+ * hooked gold beak at the front, broad wings arched forward at the wrists with five spread primary "fingers" swept
+ * back at each tip, and a scalloped, fanned tail. The head and beak are the narrow front and the fanned tail the
+ * wide back, and the arched wings point the same way, so the facing reads at grid size. Same 32-unit box and the
+ * same rotations (EAGLE_ANGLES) as before, so every direction is exactly the one the old art encoded. The take-off
+ * effect draws the same outline on the overlay canvas.
  */
 import { EAGLE_ANGLES } from "@/components/puzzles/refreshIcons";
 import { bump, easeOut, playOverlayFx, relRect, soundCue } from "@/components/puzzles/speedFx";
 import type { ArrowDir } from "@/lib/duel/types";
 
-/** The shared north-facing silhouette (identical to EagleIcon's outline). */
+/** The north-facing eagle silhouette (head up, tail down), 32-unit box. */
 export const EAGLE_BODY_D =
-  "M16 .8 18.9 4.6 18.7 9.2 21.4 11.4 30.6 20.2 31.4 21.8 30 21.6 30.4 23.2 29 22.6 29.4 23.8 27.8 22.6 19.9 17.6 18.4 22.4 21.2 29.4 19.6 29.2 18.8 30.8 17.4 29.8 16 31 14.6 29.8 13.2 30.8 12.4 29.2 10.8 29.4 13.6 22.4 12.1 17.6 4.2 22.6 2.6 23.8 3 22.6 1.6 23.2 2 21.6 .6 21.8 1.4 20.2 10.6 11.4 13.3 9.2 13.1 4.6Z";
+  "M16 1.6C17.7 1.6 18.7 3 18.6 4.8 18.5 6.4 17.8 7.4 18 8.4 18.2 9.4 19 10 20.2 9.6 22 8.4 23.6 7.4 25.4 7.4 27.8 7.6 30.2 9.4 31.6 12.6L31.9 14.4 30.3 14.2 31.4 15.9 30.9 16.7 29.4 16 30.3 17.8 29.6 18.5 28.3 17.4 28.7 19.4 27.8 19.8 26.7 18.2C24.8 17.7 22.6 17.6 20.8 17.8 19.4 18 18.7 19 18.6 20.8L22 27.2 21.2 28.8 19.6 28.6 18.4 29.9 16 29.2 13.6 29.9 12.4 28.6 10.8 28.8 10 27.2 13.4 20.8C13.3 19 12.6 18 11.2 17.8 9.4 17.6 7.2 17.7 5.3 18.2L4.2 19.8 3.3 19.4 3.7 17.4 2.4 18.5 1.7 17.8 2.6 16 1.1 16.7.6 15.9 1.7 14.2.1 14.4.4 12.6C1.8 9.4 4.2 7.6 6.6 7.4 8.4 7.4 10 8.4 11.8 9.6 13 10 13.8 9.4 14 8.4 14.2 7.4 13.5 6.4 13.4 4.8 13.3 3 14.3 1.6 16 1.6Z";
 
-/** Darker flight feathers along each wing's trailing edge (inside the outline). */
+/** The hooked beak at the front of the head (drawn over the head in gold, a thin dark edge). */
+export const EAGLE_BEAK_D = "M14.8 2.9C15 .3 17 .3 17.2 2.9 16.8 2.4 16.4 3.1 16 4 15.6 3.1 15.2 2.4 14.8 2.9Z";
+
+/** Darker primaries: the spread fingers at each wing tip (inside the outline). */
 const FLIGHT_BAND_D =
-  "M20.5 15.1 29.3 20.5 30 21.6 30.4 23.2 29 22.6 29.4 23.8 27.8 22.6 19.9 17.6Z" +
-  "M11.5 15.1 2.7 20.5 2 21.6 1.6 23.2 3 22.6 2.6 23.8 4.2 22.6 12.1 17.6Z";
+  "M28.8 9.8 31.6 12.6 31.9 14.4 30.3 14.2 31.4 15.9 30.9 16.7 29.4 16 30.3 17.8 29.6 18.5 28.3 17.4 28.7 19.4 27.8 19.8 26.7 18.2 27.6 13.6Z" +
+  "M3.2 9.8.4 12.6.1 14.4 1.7 14.2.6 15.9 1.1 16.7 2.6 16 1.7 17.8 2.4 18.5 3.7 17.4 3.3 19.4 4.2 19.8 5.3 18.2 4.4 13.6Z";
 
-/** Covert edges, primary fingers, secondaries, tail feathers and the white-head line. */
+/** Covert edges along both wings and the tail feathers. */
 const FEATHER_D =
   // covert edge, both wings
-  "M19.6 12.7Q24 15.1 28.9 19.4M12.4 12.7Q8 15.1 3.1 19.4" +
-  // primary fingers
-  "M25.4 18.2 29.4 21.8M24.2 18.7 28.2 22.4M6.6 18.2 2.6 21.8M7.8 18.7 3.8 22.4" +
-  // secondaries
-  "M22.2 16.3 21.7 18.4M24.2 17.4 23.7 19.6M9.8 16.3 10.3 18.4M7.8 17.4 8.3 19.6" +
+  "M20.4 13.2Q24.6 10.6 29.4 12.6M11.6 13.2Q7.4 10.6 2.6 12.6" +
   // tail fan
-  "M16 23.4V29.8M14.8 23.4 13.6 29.4M17.2 23.4 18.4 29.4" +
-  // white head meets the body
-  "M13.7 9.7Q16 11 18.3 9.7";
+  "M16 22.4V28.6M14.7 22.6 13.2 28.2M17.3 22.6 18.8 28.2";
 
 /**
  * A north-facing eagle seen from above, rotated to `dir`. `currentColor` fills the
@@ -45,20 +44,20 @@ export function EagleArt({ dir, size = 28 }: { dir: ArrowDir; size?: number }) {
       </g>
       <g transform={turn}>
         <path fill="currentColor" d={EAGLE_BODY_D} />
-        <path d={FLIGHT_BAND_D} fill="var(--eye-feather)" opacity=".16" />
-        <ellipse cx="16" cy="15.6" rx="2.1" ry="4.4" fill="var(--eye-feather)" opacity=".1" />
-        <path d={FEATHER_D} fill="none" stroke="var(--eye-feather)" strokeOpacity=".42" strokeWidth=".55" strokeLinecap="round" />
-        <path d="M16 1 17.4 3.2 16 4" fill="none" stroke="var(--eagle-beak)" strokeWidth="1.1" strokeLinejoin="round" />
-        <circle cx="16" cy="5.4" r="1.3" fill="var(--eagle-eye)" />
+        <path d={FLIGHT_BAND_D} fill="var(--eye-feather)" opacity=".22" />
+        <path d={FEATHER_D} fill="none" stroke="var(--eye-feather)" strokeOpacity=".4" strokeWidth=".55" strokeLinecap="round" />
+        <path d={EAGLE_BEAK_D} fill="var(--eagle-eye)" stroke="var(--eagle-beak)" strokeWidth=".45" strokeLinejoin="round" />
+        <circle cx="14.9" cy="4.6" r=".75" fill="var(--eagle-beak)" />
+        <circle cx="17.1" cy="4.6" r=".75" fill="var(--eagle-beak)" />
       </g>
     </svg>
   );
 }
 
-let paths: { body: Path2D; band: Path2D; feathers: Path2D } | null = null;
+let paths: { body: Path2D; band: Path2D; feathers: Path2D; beak: Path2D } | null = null;
 function eaglePaths() {
   if (!paths && typeof Path2D !== "undefined") {
-    paths = { body: new Path2D(EAGLE_BODY_D), band: new Path2D(FLIGHT_BAND_D), feathers: new Path2D(FEATHER_D) };
+    paths = { body: new Path2D(EAGLE_BODY_D), band: new Path2D(FLIGHT_BAND_D), feathers: new Path2D(FEATHER_D), beak: new Path2D(EAGLE_BEAK_D) };
   }
   return paths;
 }
@@ -149,7 +148,7 @@ export function playEagleTakeoff(area: Element, birds: { cell: Element; dir: Arr
         ctx.fillStyle = gold;
         ctx.fill(shapes.body);
         ctx.shadowBlur = 0;
-        ctx.globalAlpha = fade * 0.16;
+        ctx.globalAlpha = fade * 0.22;
         ctx.fillStyle = ink;
         ctx.fill(shapes.band);
         ctx.globalAlpha = fade * 0.42;
@@ -159,8 +158,11 @@ export function playEagleTakeoff(area: Element, birds: { cell: Element; dir: Arr
         ctx.stroke(shapes.feathers);
         ctx.globalAlpha = fade;
         ctx.fillStyle = ink;
+        ctx.fill(shapes.beak);
         ctx.beginPath();
-        ctx.arc(16, 5.4, 1.3, 0, Math.PI * 2);
+        ctx.arc(14.9, 4.6, 0.75, 0, Math.PI * 2);
+        ctx.moveTo(17.85, 4.6);
+        ctx.arc(17.1, 4.6, 0.75, 0, Math.PI * 2);
         ctx.fill();
         ctx.restore();
       }

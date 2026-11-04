@@ -40,6 +40,9 @@ import { NO_SCROLL_STYLE, useNoTouchScroll } from "@/components/puzzles/noScroll
 import { PolishStyle, soundCue, useSolveFx } from "@/components/puzzles/numberPolish";
 import { drawTenDropLive, tenDropArenaScene } from "@/lib/arcade/tenDrop.renderer";
 import "@/polish-layout/batch-w-tendrop.css";
+import "@/polish-layout/polish-nov3-number.css";
+import { HudPills } from "@/components/puzzles/HudPills";
+import { useBeforePaint } from "@/components/puzzles/useBeforePaint";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 import { arcadeCanvasRatio } from "@/lib/fx/lowEnd";
@@ -76,32 +79,81 @@ const TD_CSS = `
 .td-intro-plaque[data-hit="1"] { background: linear-gradient(180deg, #FFE08A, #F2B63C); border-color: #8A6420; }
 `;
 
-function Hud({ target, total, cleared, flash }: { target: number; total: number; cleared: number; flash: "" | "red" | "gold" }) {
+/**
+ * Puzzle polish (3 Nov 2026, Joe's audit; display only): the HUD is three label-and-value pills, "Total 8",
+ * "Target 25" and the cleared pegs, instead of the plank's "TOTAL 8" beside an unlabelled "25" plaque.
+ * Where the world is narrower than its slot is tall (an iPhone 11), the plank sits in the strip under the
+ * world that used to be bare wood (`place="below"`); otherwise it stays above the board, a little slimmer.
+ */
+function Hud({ target, total, cleared, flash, place, top }: { target: number; total: number; cleared: number; flash: "" | "red" | "gold"; place: "above" | "below"; top?: number }) {
   return (
-    <div className="td-hud relative flex h-14 w-full shrink-0 items-center justify-between gap-2 px-3 font-mono font-bold leading-none">
-      <div className="flex w-[84px] flex-col items-start gap-1">
-        <span className="td-label">TOTAL</span>
-        <span className="td-total text-3xl" data-flash={flash === "red" ? "red" : undefined} aria-label={`Running total ${total}`}>
-          <span key={total} className="td-bump">{total}</span>
-        </span>
-      </div>
-      <div
-        className="td-plaque absolute left-1/2 top-1/2 flex min-w-[84px] -translate-x-1/2 -translate-y-1/2 items-baseline justify-center px-3 py-0.5 text-[34px]"
-        data-hit={flash === "gold" ? "1" : undefined}
-        aria-label={`Target ${target}`}
-      >
-        <span key={target} className="td-bump">{target}</span>
-      </div>
-      <div className="flex flex-col items-end gap-1" aria-label={`Targets cleared ${cleared} of ${TD_TARGETS}`}>
-        <span className="td-label">{cleared}/{TD_TARGETS}</span>
-        <div className="grid grid-cols-5 gap-1">
-          {Array.from({ length: TD_TARGETS }, (_, i) => (
-            <span key={i} className="td-peg" data-on={i < cleared ? "1" : undefined} data-new={i === cleared - 1 ? "1" : undefined} />
-          ))}
-        </div>
-      </div>
+    <div
+      className="td-hud td-hud-v3"
+      data-place={place}
+      style={place === "below" ? { top } : undefined}
+    >
+      <HudPills
+        testId="tendrop"
+        className="td-pills"
+        items={[
+          {
+            id: "total",
+            label: "Total",
+            value: (
+              <span className="td-total" data-flash={flash === "red" ? "red" : undefined} aria-label={`Running total ${total}`}>
+                <span key={total} className="td-bump">{total}</span>
+              </span>
+            ),
+          },
+          {
+            id: "target",
+            label: "Target",
+            tone: "gold",
+            value: (
+              <span className="td-target" data-hit={flash === "gold" ? "1" : undefined} aria-label={`Target ${target}`}>
+                <span key={target} className="td-bump">{target}</span>
+              </span>
+            ),
+          },
+          {
+            id: "cleared",
+            label: (
+              <span className="td-pegs" aria-hidden="true">
+                {Array.from({ length: TD_TARGETS }, (_, i) => (
+                  <span key={i} className="td-peg" data-on={i < cleared ? "1" : undefined} data-new={i === cleared - 1 ? "1" : undefined} />
+                ))}
+              </span>
+            ),
+            value: <span aria-label={`Targets cleared ${cleared} of ${TD_TARGETS}`}>{cleared}/{TD_TARGETS}</span>,
+          },
+        ]}
+      />
     </div>
   );
+}
+
+/** The plank's height under the world; it moves there only when the strip below the world is at least this tall. */
+const TD_HUD_BELOW_H = 56;
+
+/** Where the HUD goes: under the world when the root is tall enough to show the whole width-fitted world above it. */
+function useHudPlace(root: React.RefObject<HTMLDivElement | null>): { place: "above" | "below"; top: number } {
+  const [layout, setLayout] = useState<{ place: "above" | "below"; top: number }>({ place: "above", top: 0 });
+  useBeforePaint(() => {
+    const el = root.current;
+    if (!el) return;
+    const measure = () => {
+      const w = el.clientWidth;
+      const h = el.clientHeight;
+      const worldH = Math.floor((w * TD_H) / TD_W);
+      const next = w > 0 && h - worldH >= TD_HUD_BELOW_H ? { place: "below" as const, top: worldH } : { place: "above" as const, top: 0 };
+      setLayout((prev) => (prev.place === next.place && prev.top === next.top ? prev : next));
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [root]);
+  return layout;
 }
 
 /** Intro: target 20, reached with three digit presses. */
@@ -316,13 +368,14 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   }, [seed, data]);
 
   const solveFx = useSolveFx(hud.cleared >= TD_TARGETS, "tendrop.solve");
+  const hudPlace = useHudPlace(wrap);
 
   if (!data) return null;
 
   return (
-    <div ref={wrap} data-polish="tendrop" data-solve={solveFx ? "1" : undefined} data-stage-column="0" className="flex min-h-0 w-full flex-1 flex-col select-none" style={GAME_ROOT_STYLE}>
+    <div ref={wrap} data-polish="tendrop" data-solve={solveFx ? "1" : undefined} data-stage-column="0" className="relative flex min-h-0 w-full flex-1 flex-col select-none" style={GAME_ROOT_STYLE}>
       <PolishStyle id="tendrop" css={TD_CSS} />
-      <Hud target={hud.target} total={hud.total} cleared={hud.cleared} flash={hud.flash} />
+      {hudPlace.place === "above" ? <Hud target={hud.target} total={hud.total} cleared={hud.cleared} flash={hud.flash} place="above" /> : null}
       {/* The world at its own aspect, largest fit, top-anchored (15 Oct 2026, display only; tdView maps through this box). */}
       <ArcadeArenaSlot width={TD_W} height={TD_H} scene={tenDropArenaScene}>
       <div
@@ -347,6 +400,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         <canvas ref={canvas} className="pointer-events-none absolute inset-0 h-full w-full" />
       </div>
       </ArcadeArenaSlot>
+      {hudPlace.place === "below" ? <Hud target={hud.target} total={hud.total} cleared={hud.cleared} flash={hud.flash} place="below" top={hudPlace.top} /> : null}
       {dev ? <p className="truncate font-mono text-[10px] text-muted-foreground">{dev}</p> : null}
     </div>
   );

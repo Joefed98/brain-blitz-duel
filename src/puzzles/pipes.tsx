@@ -1,8 +1,8 @@
 import { pipelineDepths } from "@/components/puzzles/pipelineFlow";
 import { PIPE_ARMS, PipeArt, PipeDefs, PipeSurge } from "@/components/puzzles/pattern/pipesArt";
 import { soundCue, useSolveMoment } from "@/lib/fx/patternFx";
-import { LiveSummary, useFrameProgress } from "@/components/puzzles/batchP/LiveSummary";
-import { parItems } from "@/components/puzzles/depth4/ParMeter";
+import { useFrameProgress } from "@/components/puzzles/batchP/LiveSummary";
+import { FramePills, parPills } from "@/components/puzzles/pattern/framePills";
 import { decodePipesTaps, encodePipesTapAnswer, pipesAfterTaps } from "@/lib/duel/depth4/pipesTaps";
 import { rightMoveFlash } from "@/lib/fx/gameToolkit";
 import { gameDisplayName } from "@/lib/duel/gameNames";
@@ -278,7 +278,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "pipes" }: 
         />
         </div>
       </div>
-      {parTurns > 0 ? <LiveSummary items={parItems("Turns", taps.length, parTurns)} /> : null}
+      {parTurns > 0 ? <FramePills testId="pipes" items={parPills("Turns", taps.length, parTurns, "turns")} /> : null}
     </div>
   );
 }

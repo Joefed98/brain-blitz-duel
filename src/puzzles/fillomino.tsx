@@ -20,7 +20,9 @@ import { directionOf, useGameKeys } from "@/lib/desktop";
 import { playCorrect } from "@/lib/sound";
 
 import { soundCue, useSolveFx } from "./logicFx";
-import { LiveSummary, SummaryItem, useFrameProgress } from "@/components/puzzles/batchP/LiveSummary";
+import { useFrameProgress } from "@/components/puzzles/batchP/LiveSummary";
+import { HudPills } from "@/components/puzzles/HudPills";
+import "@/polish-layout/polish-nov3-logic.css";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
 const PAD = Array.from({ length: FILLOMINO_MAX_N }, (_, i) => i + 1);
@@ -345,7 +347,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
   if (!data) return null;
   const tones = givens.map((g) => (g ? "given" : "entry")) as Tone[];
   const keyLook = (on: boolean) =>
-    `fillomino-key press tap-target min-w-0 rounded-lg border px-0 py-2 font-display text-lg font-bold disabled:opacity-40 ${
+    `fillomino-key press tap-target min-w-0 rounded-lg border px-0 py-0 font-display text-lg font-bold disabled:opacity-40 ${
       on ? "fillomino-key-on border-transparent bg-primary/15 text-primary" : `text-foreground ${inFrame ? "gf-glass border-border" : "border-border bg-card"}`
     }`;
 
@@ -361,13 +363,11 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
         <div className="logic-square logic-glass-frame fillomino-frame">
           <FillominoBoard size={size} values={values} tones={tones} selected={locked ? null : cursor} pointer={pointer} />
         </div>
-        <LiveSummary
-          inArena
-          className="logic-status"
-          items={[<SummaryItem key="done" label="Squares in finished regions" value={`${doneCount} / ${size * size}`} />]}
-        />
+        {inFrame ? (
+          <HudPills testId="fillomino" className="logic-hud-pills" items={[{ id: "done", label: "In finished regions", value: `${doneCount} / ${size * size}` }]} />
+        ) : null}
       </div>
-      <div data-game-controls="numbers" className="fillomino-pad grid shrink-0 grid-cols-10 gap-1">
+      <div data-game-controls="numbers" className="fillomino-pad grid shrink-0 grid-cols-5 gap-1.5">
         {PAD.map((digit) => (
           <button
             key={digit}

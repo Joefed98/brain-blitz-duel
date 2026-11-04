@@ -21,22 +21,50 @@ import {
   type RingsPuzzleData,
 } from "@/lib/duel/types";
 import { useSolveMoment } from "@/lib/fx/patternFx";
-import { parItems } from "@/components/puzzles/depth4/ParMeter";
-import { LiveSummary, SummaryItem, useFrameProgress } from "@/components/puzzles/batchP/LiveSummary";
+import { useFrameProgress } from "@/components/puzzles/batchP/LiveSummary";
+import { FramePills, parPills } from "@/components/puzzles/pattern/framePills";
 import { playLock } from "@/lib/sound";
 import { directionOf, useGameKeys } from "@/lib/desktop";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
-/** The link legend shown beside the rings. */
-function Legend({ pattern }: { pattern: number }) {
+/** A ring's number in a small disc (1 = innermost), with the way it turns when "dir" is set. */
+function RingChip({ ring, dir }: { ring: number; dir?: "same" | "opposite" }) {
   return (
-    <ul className="flex flex-col gap-0.5 text-center font-mono text-sm leading-tight text-muted-foreground">
-      {ringPattern(pattern).legend.map((line) => (
-        <li key={line}>
-          {line}
-        </li>
-      ))}
+    <span className="rings-legend-chip" data-turn={dir}>
+      <span className="rings-legend-num">{ring + 1}</span>
+      {dir ? <span aria-hidden="true" className="rings-legend-turn">{dir === "same" ? "↻" : "↺"}</span> : null}
+    </span>
+  );
+}
+
+/**
+ * The link legend shown above the rings. Puzzle polish (3 Nov 2026, display only): a small diagram instead of tiny
+ * monospace lines. One row per ring that drives others: its numbered disc turning clockwise (↻), an arrow, then each
+ * linked ring's disc turning the same way (↻) or the opposite way (↺), with "same" / "opposite" spelt out. The legend
+ * lines stay as the list's accessible name.
+ */
+function Legend({ pattern }: { pattern: number }) {
+  const { links, legend } = ringPattern(pattern);
+  const drivers = [...new Set(links.map((link) => link.from))];
+  return (
+    <ul className="rings-legend" data-rings-legend="" aria-label={legend.join(". ")}>
+      {drivers.map((from) => {
+        const targets = links.filter((link) => link.from === from);
+        const ways = new Set(targets.map((link) => link.sign));
+        return (
+          <li key={from} className="rings-legend-row" aria-hidden="true">
+            <RingChip ring={from} dir="same" />
+            <span aria-hidden="true" className="rings-legend-arrow">→</span>
+            {targets.map((link) => (
+              <RingChip key={link.to} ring={link.to} dir={link.sign === 1 ? "same" : "opposite"} />
+            ))}
+            <span aria-hidden="true" className="rings-legend-word">
+              {ways.size > 1 ? "" : targets[0]!.sign === 1 ? "same way" : "opposite way"}
+            </span>
+          </li>
+        );
+      })}
     </ul>
   );
 }
@@ -122,7 +150,7 @@ function Stage({
 
   return (
     <div data-stage-column="2" data-polish="rings" className="flex min-h-0 w-full flex-1 flex-col items-center gap-2 pt-1">
-      <div className="flex min-h-10 shrink-0 items-center justify-center py-1 [&>*]:scale-90"><Legend pattern={data.pattern} /></div>
+      <div className="flex min-h-10 shrink-0 items-center justify-center py-1"><Legend pattern={data.pattern} /></div>
       <div data-game-arena="board" className="puzzle-square-space flex min-h-0 w-full flex-1 items-center justify-center">
         <div className="puzzle-square-board aspect-square [&>svg]:h-full [&>svg]:w-full">
         <Rings
@@ -137,13 +165,14 @@ function Stage({
         </div>
       </div>
       {inFrame ? (
-        <LiveSummary
+        <FramePills
+          testId="rings"
           items={[
-            <SummaryItem key="ring" label="Ring" value={selectedRing + 1} after="selected" />,
-            // ringsRev 1 (depth batch 4): "Turns n · Par p" with the par meter.
+            { id: "ring", label: "Ring", value: selectedRing + 1 },
+            // ringsRev 1 (depth batch 4): "Turns n" and "Par p".
             ...((data.ringsRev ?? 0) >= 1 && (data.par ?? 0) > 0
-              ? parItems("Turns", replay.moves, data.par!)
-              : [<SummaryItem key="turns" label="Turns" value={replay.moves} />]),
+              ? parPills("Turns", replay.moves, data.par!, "turns")
+              : [{ id: "turns", label: "Turns", value: replay.moves }]),
           ]}
         />
       ) : (

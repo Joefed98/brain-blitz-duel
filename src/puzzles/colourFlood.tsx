@@ -2,7 +2,7 @@ import { gameDisplayName } from "@/lib/duel/gameNames";
 import { solvedMovesText } from "@/lib/duel/scoring";
 import { useEffect, useMemo, useRef, type CSSProperties } from "react";
 
-import { decodeFloodMoves, encodeFloodMoves, regionCells, replayFlood } from "@/lib/duel/flood";
+import { decodeFloodMoves, encodeFloodMoves, floodApply, floodSolved, regionCells, replayFlood } from "@/lib/duel/flood";
 import { floodMoveLimit, limitText } from "@/lib/duel/moveLimits";
 import { useStageState } from "@/lib/duel/stageState";
 import {
@@ -16,7 +16,9 @@ import { playLock } from "@/lib/sound";
 import { useGameKeys } from "@/lib/desktop";
 
 import { soundCue, useSolveFx } from "./logicFx";
-import { LiveSummary, SummaryItem, useFrameProgress } from "@/components/puzzles/batchP/LiveSummary";
+import { useFrameProgress } from "@/components/puzzles/batchP/LiveSummary";
+import { HudPills } from "@/components/puzzles/HudPills";
+import "@/polish-layout/polish-nov3-logic.css";
 import { wrongMoveFlash } from "@/lib/fx/gameToolkit";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
@@ -193,15 +195,17 @@ function Stage({
       </div>
       {/* The moves line sits above the colours and the colours are lifted off the bottom edge (14 Oct 2026), so nothing is cut off. */}
       {inFrame ? (
-        <LiveSummary
+        <HudPills
+          testId="flood"
           items={[
-            <SummaryItem
-              key="moves"
-              label="Moves"
-              value={<span data-move-limit={moveLimit ?? undefined}>{moveLimit !== null ? limitText(replay.moves, moveLimit) : replay.moves}</span>}
-              warn={replay.outOfMoves}
-            />,
-            data.par ? <SummaryItem key="par" label="Par" value={data.par} /> : null,
+            {
+              id: "moves",
+              label: "Moves",
+              value: moveLimit !== null ? limitText(replay.moves, moveLimit) : replay.moves,
+              ...(moveLimit !== null ? { limit: moveLimit } : {}),
+              ...(replay.outOfMoves ? { tone: "warn" as const } : {}),
+            },
+            data.par ? { id: "par", label: "Par", value: data.par, tone: "gold" } : null,
           ]}
         />
       ) : (
@@ -229,23 +233,67 @@ function Stage({
   );
 }
 
+/**
+ * The colours of the moves the replay counted, in order (display only; the same walk as replayFlood: an undo (-1)
+ * takes the board back but a counted move stays counted, a tap that changes nothing is not a move).
+ */
+function countedMoves(start: number[], moves: number[], limit: number | null): number[] {
+  const history = [[...start]];
+  const out: number[] = [];
+  for (const colour of moves) {
+    if (limit !== null && out.length >= limit) break;
+    if (colour === -1) { if (history.length > 1) history.pop(); continue; }
+    const grid = history[history.length - 1]!;
+    if (floodSolved(grid)) break;
+    const next = floodApply(grid, colour);
+    if (next === grid) continue;
+    history.push(next);
+    out.push(colour);
+  }
+  return out;
+}
+
+/** Reveal (3 Nov 2026, display only): moves against par as two figures, the moves made as a strip of swatches. */
 function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining, scoreParts }: PuzzleRevealProps) {
   if (puzzle.type !== "flood") return null;
   const moveLimit = floodMoveLimit(puzzle);
-  const replay = replayFlood(puzzle.grid, decodeFloodMoves(myAnswer ?? ""), undefined, moveLimit);
-  const elapsed =
-    myMsRemaining === undefined ? null : Math.round((timeLimitMs - myMsRemaining) / 100) / 10;
+  const decoded = decodeFloodMoves(myAnswer ?? "");
+  const replay = replayFlood(puzzle.grid, decoded, undefined, moveLimit);
+  const made = countedMoves(puzzle.grid, decoded, moveLimit);
+  const par = puzzle.par;
+  const tone = par > 0 && replay.solved ? (replay.moves <= par ? "good" : "over") : undefined;
 
   return (
     <div className="logic-reveal">
-      <div className="logic-reveal-board">
-        <div className="logic-square-bare logic-flood-frame" style={{ maxWidth: 300 }}>
+      <div className="logic-reveal-board flex flex-col items-center gap-3">
+        <div className="flood-reveal-figures" data-flood-reveal="">
+          <div className="flood-reveal-figure" data-tone={tone}>
+            <span>{moveLimit !== null ? `Moves (of ${moveLimit})` : "Moves"}</span>
+            <b data-flood-moves="">{replay.moves}</b>
+          </div>
+          {par > 0 ? (
+            <div className="flood-reveal-figure">
+              <span>Par</span>
+              <b data-flood-par="">{par}</b>
+            </div>
+          ) : null}
+        </div>
+        {made.length ? (
+          <div className="flood-reveal-strip" aria-label={`Moves made: ${made.map((c) => FLOOD_NAMES[c] ?? "").join(", ")}`}>
+            {made.map((colour, i) => (
+              <span
+                key={i}
+                className="flood-reveal-swatch"
+                data-over-par={par > 0 && i >= par ? "" : undefined}
+                style={{ backgroundColor: fillOf(colour) }}
+              />
+            ))}
+          </div>
+        ) : null}
+        <div className="logic-square-bare logic-flood-frame" style={{ maxWidth: 120 }}>
           <Board grid={replay.grid} fluid />
         </div>
       </div>
-      <p className="logic-reveal-text text-center font-mono text-muted-foreground">
-        Par {puzzle.par} – you used {replay.moves}{moveLimit !== null ? ` of ${moveLimit}` : ""}
-      </p>
       <p
         className={`logic-reveal-text whitespace-normal break-words text-center font-mono font-bold ${myCorrect ? "text-primary" : "text-foreground"}`}
       >

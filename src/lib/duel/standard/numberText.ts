@@ -3,6 +3,7 @@
  * the round intro SCORE line for the rounds rooms deal today. Every figure comes from number.ts (Tenfall: tenDrop.ts);
  * the maximum is the game's own (roundMaxFor).
  */
+import { operatorGapsDealt } from "../operatorGaps";
 import {
   TD_REV3_FREE_RESETS,
   TD_REV3_RESET_COST,
@@ -60,7 +61,7 @@ export function standardNumberHelp(type: PuzzleType): string {
     case "target":
       return `Hit the target: ${STANDARD_FINISH}, plus ${speedLine(type)} and up to ${EXACT_STD_ELEGANCE} for elegance: hit it with the fewest numbers it needs (${EXACT_ELEGANT_TILES} on these targets), ${EXACT_STD_ELEGANCE_PER} less for each number more. Not exact: up to ${STANDARD_UNFINISHED_CAP} for the closest number you made, about ${Math.round(exactCloseCredit(1))} one away, ${Math.round(exactCloseCredit(5))} five away, ${Math.round(exactCloseCredit(10))} ten away and ${Math.round(exactCloseCredit(20))} twenty away, falling to nothing far off. ${max} is perfect.`;
     case "equation":
-      return `Each equation right: ${NUMBER_PART_POINTS}, plus up to ${NUMBER_PART_EARLY} for how early you solved it, and ${NUMBER_CLEAN_EACH} more when its first full set of signs was right (no wrong try), up to ${g!.bonus}. All four: ${STANDARD_FINISH}, plus ${speedLine(type)} and those first-try points. ${max} is perfect.`;
+      return `Each equation right: ${NUMBER_PART_POINTS}, plus up to ${NUMBER_PART_EARLY} for how early you solved it, and ${NUMBER_CLEAN_EACH} more when its first ${operatorGapsDealt() ? "full fill" : "full set of signs"} was right (no wrong try), up to ${g!.bonus}. All four: ${STANDARD_FINISH}, plus ${speedLine(type)} and those first-try points. ${max} is perfect.`;
     case "balance":
       return `Each scale balanced: ${NUMBER_PART_POINTS}, plus up to ${NUMBER_PART_EARLY} for how early. All four: ${STANDARD_FINISH}, plus ${speedLine(type)} and up to ${g!.bonus} for hangs: all of it when every weight is hung once (the fewest hangs), falling evenly to 0 at twice that, over the four scales together. ${max} is perfect.`;
     case "numpyramid":

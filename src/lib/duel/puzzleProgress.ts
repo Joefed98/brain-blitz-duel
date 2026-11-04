@@ -30,6 +30,7 @@
  * Every search is exact and bounded by a node budget per round, so grading can never stall: a board the
  * budget cannot settle counts as no closer. Server-only (imported by generate.server.ts and checks).
  */
+import { equationVerdict, usesOperatorGaps } from "./operatorGaps";
 import { judgeTileGrid } from "./tileGrid.server";
 import { decodeTileGrid, fitsTray as tileGridFitsTray, tileGridRuns } from "./tileGrid";
 import { decodeSlideTokens, WS_MARKED_ROWS } from "./wordSlide";
@@ -294,13 +295,14 @@ function equationProgress(puzzle: Extract<PuzzleData, { type: "equation" }>, ans
   const { body, counts: tries } = tryLimit !== null ? splitCountSuffix(answer) : { body: answer, counts: [] };
   const segments = splitStages(body, total);
   const inLimit = (i: number) => tryLimit === null || (tries[i] ?? 0) <= tryLimit;
-  const correct = puzzle.stages.map((stage, i) => inLimit(i) && equationStageCorrect(stage.numbers, stage.target, segments[i] ?? ""));
+  const correct = puzzle.stages.map((_stage, i) => inLimit(i) && equationVerdict(puzzle, i, segments[i] ?? ""));
   const solved = correct.filter(Boolean).length;
   // The current equation is the last one with operators in it: its operators right from the left count.
   let within = 0;
   let current = -1;
   for (let i = total - 1; i >= 0; i--) if ((segments[i] ?? "") !== "") { current = i; break; }
-  const want = puzzle.operators?.[current];
+  // gapsRev 1 (operatorGaps.ts) has no one stored answer to compare a prefix with: whole equations only.
+  const want = usesOperatorGaps(puzzle) ? undefined : puzzle.operators?.[current];
   if (current >= 0 && !correct[current] && want && inLimit(current)) {
     const ops = parseOperators(segments[current] ?? "");
     let prefix = 0;

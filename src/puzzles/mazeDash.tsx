@@ -1,4 +1,6 @@
-import { usesParMoves } from "@/lib/duel/parMoves";
+import { shownPar, usesParMoves } from "@/lib/duel/parMoves";
+import { HudPills } from "@/components/puzzles/HudPills";
+import "@/polish-layout/polish-nov3-speedatt.css";
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { puzzleReject } from "@/lib/fx/puzzleReject";
 import { memo, useContext, useEffect, useId, useMemo, useRef, useState } from "react";
@@ -367,6 +369,14 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "maze" }: P
     return repeats;
   }, [path, depth, trail]);
 
+  // Puzzle polish (3 Nov 2026): on a stamp that stores its par (shownPar), "Moves n" counts every step of the trail
+  // walked, steps back included: the server's `walked` (standard/attention.server.ts mazeRun), from the same walk.
+  const par = shownPar(puzzle);
+  const walked = useMemo(
+    () => (par !== null && depth ? Math.max(0, mazeTrailWalk(cells, start, exit, trail, cols).length - 1) : 0),
+    [par, depth, cells, start, exit, trail, cols],
+  );
+
   const answerNow = depth ? encodeMazeTrail(trail, cols) : encodeMazePath(path);
   useEffect(() => {
     onDraftAnswer?.(answerNow);
@@ -444,21 +454,28 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "maze" }: P
 
   return (
     <div data-stage-column="1" data-polish="maze" className="flex min-h-0 flex-1 flex-col gap-1">
-      <p className="text-center font-mono text-xs uppercase tracking-widest text-muted-foreground">
-        squares <span className="text-primary">{path.length}</span> · wasted {wasted}
-        {stars ? (
-          <>
-            {" · "}stars <span data-maze-stars="" className="text-primary">{taken.length}</span>/{LAB_STARS}
-          </>
-        ) : null}
-      </p>
+      <HudPills
+        testId="maze"
+        items={
+          par !== null
+            ? [
+                { id: "moves", label: "Moves", value: walked, ...(walked > par ? { tone: "warn" as const } : {}) },
+                { id: "par", label: "Par", value: par, tone: "gold" },
+              ]
+            : [
+                { id: "squares", label: "Squares", value: path.length, tone: "gold" },
+                { id: "wasted", label: "Wasted", value: wasted },
+                stars ? { id: "stars", label: "Stars", value: <span data-maze-stars="">{taken.length}/{LAB_STARS}</span>, tone: "gold" } : null,
+              ]
+        }
+      />
 
       <div ref={arenaRef} data-game-arena="board" className="flex min-h-0 flex-1 items-center justify-center">
         {/* mazeRev 1: the same board box as before (taller-than-square by k), split into 23 rows. */}
         <MazeBoard cells={cells} cols={cols} start={start} exit={exit} path={path} onCell={touch} k={(k * cols) / rows} stars={stars} taken={taken} />
       </div>
 
-       <div data-game-controls="pad" className="flex shrink-0 flex-col items-center justify-center">
+       <div data-game-controls="pad" data-maze-pad="" className="flex shrink-0 flex-col items-center justify-center">
         <ArrowPad
           onPress={step}
           disabled={locked || solved}
