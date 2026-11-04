@@ -34,13 +34,14 @@ import { encodeBallTrackRun, replayBallTrackRun } from "@/lib/duel/ballTrack";
 import { BALLTRACK_TIME_MS, type BallTrackPuzzleData } from "@/lib/duel/types";
 import { playSound, playTick, playWrong } from "@/lib/sound";
 import { NO_SCROLL_STYLE, useNoTouchScroll } from "@/components/puzzles/noScroll";
-import { btArtDraw } from "@/lib/arcade/ballTrackArt.renderer";
+import { btArtDraw, btDrawHud, BT_HUD_H, type BtHudView } from "@/lib/arcade/ballTrackArt.renderer";
+import { HUD_PILL_FONT } from "@/lib/arcade/hudPill.renderer";
 import { TOY_TABLE } from "@/lib/arcade/toybox.renderer";
 import { ballTrackSounds } from "@/lib/fx/gameSounds";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 import { arcadeCanvasRatio } from "@/lib/fx/lowEnd";
-import { arenaFrame, cancelArenaFrame } from "@/lib/battery";
+import { arenaFrame, cancelArenaFrame, canvasRatio } from "@/lib/battery";
 
 /** Practice fallback course (the first bank course). */
 const PRACTICE_COURSE: BtCourse = {"trays":[-1,-1,2,0,1,-1,3],"relay":{"tick":1414,"trays":[-1,2,-1,0,1,3,-1]},"shuffle":{"tick":2596,"trays":[-1,0,-1,2,3,1,-1]},"balls":[3,3,1,2,2,1,0,0,2,0,2,0,3,2,1,2,2,1,3,0,0,3,1,2,3,1,1,3,0,1],"fixed":[8,9,11,12,18,23,26,29,37,39,44,46,47,50]};
@@ -273,6 +274,17 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
 
   return (
     <div ref={wrap} data-stage-column="0" className="flex min-h-0 w-full flex-1 flex-col select-none" style={GAME_ROOT_STYLE}>
+      <BtHud
+        view={{
+          home: hud.home,
+          total,
+          wrong: hud.wrong,
+          streak: btIsV7Play(rev) ? hud.streak : null,
+          golds: btIsV7Play(rev) ? hud.golds : null,
+          switchIn: hud.switchIn,
+          left: hud.left,
+        }}
+      />
       <ArcadeArenaSlot width={BT_W} height={BT_H} scene={ballTrackFill}>
         <div
           ref={board}
@@ -295,11 +307,53 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
           <KeyCursor rect={cursor.cell ? { x: cursor.cell.col * BT_TILE, y: BT_HOPPER_H + cursor.cell.row * BT_TILE, w: BT_TILE, h: BT_TILE } : null} worldW={BT_W} worldH={BT_H} />
         </div>
       </ArcadeArenaSlot>
-      <div data-game-controls="status" className="flex h-7 w-full shrink-0 items-center justify-between px-1 font-mono text-xs text-muted-foreground">
-        <span>{hud.home} home{hud.wrong ? ` · ${hud.wrong} wrong` : ""}{btIsV7Play(rev) && hud.streak >= 3 ? ` · combo ×${hud.streak}` : ""}</span>
-        {/* The countdown (seconds) to the next switch-up: the drops' re-lay, then the colour shuffle; marbles left after both. */}
-        <span>{btIsV7Play(rev) ? `${hud.golds} gold · ` : ""}{hud.switchIn !== null ? `${hud.switchIn} to switch up` : `${hud.left} left`}</span>
-      </div>
+    </div>
+  );
+}
+
+/**
+ * The HUD strip above the arena (3 Nov 2026 polish, display only; it replaced the 28px status line under the
+ * board): the shared pills (btDrawHud) on a BT_HUD_H canvas, redrawn only when a figure changes. "Home" is the
+ * main count, top left; "Switch up" counts the seconds to the next switch-up (marbles "Left" after both).
+ */
+function BtHud({ view }: { view: BtHudView }) {
+  const box = useRef<HTMLDivElement | null>(null);
+  const canvas = useRef<HTMLCanvasElement | null>(null);
+  const [width, setWidth] = useState(0);
+  const [fontsReady, setFontsReady] = useState(0);
+  useEffect(() => {
+    const node = box.current;
+    if (!node) return;
+    const measure = () => setWidth(Math.round(node.getBoundingClientRect().width));
+    measure();
+    const observer = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(measure);
+    observer?.observe(node);
+    let live = true;
+    void document.fonts?.load(`800 15px ${HUD_PILL_FONT}`).then(() => live && setFontsReady((n) => n + 1), () => {});
+    return () => {
+      live = false;
+      observer?.disconnect();
+    };
+  }, []);
+  const key = JSON.stringify(view);
+  useEffect(() => {
+    const node = canvas.current;
+    if (!node || width < 1) return;
+    const ratio = canvasRatio();
+    if (node.width !== Math.round(width * ratio) || node.height !== Math.round(BT_HUD_H * ratio)) {
+      node.width = Math.round(width * ratio);
+      node.height = Math.round(BT_HUD_H * ratio);
+    }
+    const ctx = node.getContext("2d");
+    if (!ctx) return;
+    ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+    ctx.clearRect(0, 0, width, BT_HUD_H);
+    btDrawHud(ctx, width, view);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key, width, fontsReady]);
+  return (
+    <div ref={box} data-bt-hud className="relative w-full shrink-0" style={{ height: BT_HUD_H }} aria-label={`${view.home} of ${view.total} home`}>
+      <canvas ref={canvas} className="pointer-events-none absolute inset-0 h-full w-full" />
     </div>
   );
 }

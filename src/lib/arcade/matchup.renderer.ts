@@ -1,7 +1,11 @@
 /**
  * Matchup art pass and swap tween. Render only: reads MatchupState and never
  * mutates it. Gems sit on the sim's cell centres at the sim's symbol radius;
- * each colour keeps its own cut so shapes stay distinguishable.
+ * each colour keeps its own cut so shapes stay distinguishable. 3 Nov 2026 polish
+ * (display only, matchupRev 12): HUD pills (the 0–200 score, goals, "Next drops"
+ * over the next strip; ice, treasure and big lines in the goals panel) and the
+ * board drawn SIX_ZOOM larger into the space the raw "pts" counter held (taps
+ * mapped back through matchupCellAtShown).
  */
 import { arcadeReducedEffects } from "@/lib/fx/lowEnd";
 import type { CanvasSize } from "./engine";
@@ -9,7 +13,7 @@ import { arcadeFx } from "./arcadeFx.renderer";
 import { MATCHUP_FX, fxSpecAt } from "./arcadeFxGames.renderer";
 import type { SoundId } from "@/lib/fx/manifest";
 import {
-  matchupGame, matchupIndex, matchupShowHint, matchupTransform,
+  matchupGame, matchupIndex, matchupShowHint, matchupTransform, matchupCellAt, matchupStdScore,
   MATCHUP_BOARD_W, MATCHUP_BOARD_X, MATCHUP_BOARD_Y, MATCHUP_BOMB, MATCHUP_CELL_PX,
   MATCHUP_CLEAR_MS, MATCHUP_COLOURS, MATCHUP_CROSS, MATCHUP_DETONATE_MS, MATCHUP_DROP_MS, MATCHUP_GOLD,
   MATCHUP_NEXT_H, MATCHUP_NEXT_Y, MATCHUP_QUEUE_LEN, MATCHUP_ROWS, MATCHUP_SHAPES, MATCHUP_SIZE, MATCHUP_STAR,
@@ -21,6 +25,7 @@ import { artHash, reducedMotion } from "./art.renderer";
 import { sceneBelow, sceneFill, sceneSides, type ArenaSceneView } from "./arenaScene.renderer";
 import { artCanvas, artContext, type ArtCanvas } from "./cache.renderer";
 import { successHud } from "./success.renderer";
+import { drawHudPill, drawHudPillRow, HUD_PILL_FONT, HUD_PILL_GAP } from "./hudPill.renderer";
 
 /** Nine frames at 60 Hz, independent of simulation ticks. */
 export const MATCHUP_SWAP_MS = 150;
@@ -34,9 +39,66 @@ interface BoardLayout { rows: number; boardH: number; worldH: number }
 const layoutOf = (rows: number, worldH: number): BoardLayout => ({ rows, boardH: rows * MATCHUP_CELL_PX, worldH });
 const LAYOUT_8 = layoutOf(MATCHUP_ROWS, MATCHUP_WORLD_H);
 let L: BoardLayout = LAYOUT_8;
+/** Whether the frame being drawn is matchupRev 12's (its HUD pills and the grown board). */
+let SIX = false;
 function useLayout(state: MatchupState): void {
   const rows = matchupRowsOf(state.cells);
   L = rows === MATCHUP_ROWS ? LAYOUT_8 : L.rows === rows ? L : layoutOf(rows, matchupWorldH(state));
+  SIX = Boolean(state.six);
+}
+
+/*
+ * matchupRev 12's look (3 Nov 2026 polish, display only; the sim, its cells and the 390 × 720 world are unchanged):
+ * the big raw "pts" counter at the world's top became a row of HUD pills (drawSixHud: the 0–200 score), which freed
+ * the top 60 px, so everything below it (the next strip, the board, its tray and the goals panel, with the backdrop
+ * and the shared effects layer) is drawn SIX_ZOOM larger about (SIX_ZOOM_CX, SIX_ZOOM_CY): the next strip's top lands
+ * at SIX_TOP and the panel's bottom stays inside the world. Taps go back through the same zoom (matchupCellAtShown),
+ * so a tap on a drawn gem picks that gem's cell.
+ */
+const SIX_HUD_Y = 6;
+const SIX_PANEL_H = 80;
+const SIX_TOP = 40;
+export const SIX_ZOOM = 1.06;
+const SIX_ZOOM_CX = MATCHUP_WORLD_W / 2;
+const SIX_ZOOM_CY = (SIX_TOP - MATCHUP_NEXT_Y * SIX_ZOOM) / (1 - SIX_ZOOM);
+
+/** The canvas point the rev-12 zoom is about, for this canvas size and world height. */
+function sixPivot(size: CanvasSize, worldH: number): { x: number; y: number } {
+  const { scale, offsetX, offsetY } = matchupTransform(size, worldH);
+  return { x: offsetX + SIX_ZOOM_CX * scale, y: offsetY + SIX_ZOOM_CY * scale };
+}
+
+/** Runs `draw` zoomed (matchupRev 12) or as is. */
+function withSixZoom(ctx: CanvasRenderingContext2D, size: CanvasSize, draw: () => void): void {
+  if (!SIX) {
+    draw();
+    return;
+  }
+  const p = sixPivot(size, L.worldH);
+  ctx.save();
+  ctx.translate(p.x, p.y);
+  ctx.scale(SIX_ZOOM, SIX_ZOOM);
+  ctx.translate(-p.x, -p.y);
+  try {
+    draw();
+  } finally {
+    ctx.restore();
+  }
+}
+
+/** A world point as drawn (matchupRev 12's zoom applied; unchanged on earlier revisions). Display only. */
+export function matchupShownPoint(six: boolean, x: number, y: number): { x: number; y: number } {
+  return six ? { x: SIX_ZOOM_CX + (x - SIX_ZOOM_CX) * SIX_ZOOM, y: SIX_ZOOM_CY + (y - SIX_ZOOM_CY) * SIX_ZOOM } : { x, y };
+}
+
+/**
+ * The board cell under a canvas point as the board is drawn: matchupCellAt after undoing matchupRev 12's display zoom,
+ * so a tap maps to the cell whose gem is drawn under it (the sim receives the same swap for the same gems).
+ */
+export function matchupCellAtShown(size: CanvasSize, x: number, y: number, rows: number, worldH: number, six: boolean): { row: number; col: number } | null {
+  if (!six) return matchupCellAt(size, x, y, rows, worldH);
+  const p = sixPivot(size, worldH);
+  return matchupCellAt(size, p.x + (x - p.x) / SIX_ZOOM, p.y + (y - p.y) / SIX_ZOOM, rows, worldH);
 }
 const SPECIAL_WHITE = "#FFFFFF";
 const BOMB_OUTLINE = "#D5D7DF";
@@ -923,12 +985,13 @@ function drawGoalsPanel(ctx: CanvasRenderingContext2D, state: MatchupState, time
 }
 
 /**
- * matchupRev 12's goals panel (the same 360 × 84 tray under the board): a top line with the goals met, the ice left, the
- * treasure brought down and the big lines, then the six goals side by side, each a gem, the gems of that colour still
- * to clear (a tick once met) and a progress bar in the gem's colour.
+ * matchupRev 12's goals panel (a 360 × SIX_PANEL_H tray under the board; 3 Nov 2026 polish, display only): a row of the
+ * shared HUD pills, "Goals n/6" (gold once all are met), "Ice" (frozen cells left), "Treasure n/6" and "Big lines n",
+ * then the six goals side by side, each a gem, the gems of that colour still to clear (a tick once met) and a progress
+ * bar in the gem's colour.
  */
 function drawSixGoalsPanel(ctx: CanvasRenderingContext2D, state: MatchupState, time: number): void {
-  const x = MATCHUP_BOARD_X - 5, y = MATCHUP_V9_PANEL_Y, w = MATCHUP_BOARD_W + 10, h = 84;
+  const x = MATCHUP_BOARD_X - 5, y = MATCHUP_V9_PANEL_Y, w = MATCHUP_BOARD_W + 10, h = SIX_PANEL_H;
   ctx.save();
   ctx.beginPath();
   ctx.roundRect(x, y, w, h, 12);
@@ -940,23 +1003,14 @@ function drawSixGoalsPanel(ctx: CanvasRenderingContext2D, state: MatchupState, t
   ctx.strokeStyle = "rgba(245,184,46,0.35)";
   ctx.lineWidth = 1;
   ctx.stroke();
-  ctx.textBaseline = "middle";
-  ctx.textAlign = "left";
-  // Top line: goals met (gold), then ice left, treasure and big lines.
-  const met = matchupGoalsMet(state);
-  ctx.font = "700 12px 'JetBrains Mono', ui-monospace, monospace";
-  ctx.fillStyle = MATCHUP_GOLD;
-  ctx.fillText(met >= MATCHUP_V12_GOALS ? "ALL GOALS MET" : `GOALS ${met}/${MATCHUP_V12_GOALS}`, x + 12, y + 15);
   const iceLeft = (state.ice ?? []).reduce((n, v) => n + (v ? 1 : 0), 0);
-  ctx.font = "600 12px 'JetBrains Mono', ui-monospace, monospace";
-  ctx.fillStyle = "rgba(247,247,248,0.8)";
-  if (iceSprite) ctx.drawImage(iceSprite as CanvasImageSource, x + 134, y + 7, 16, 16);
-  ctx.fillText(`${iceLeft}`, x + 153, y + 15);
-  drawMatchupGem(ctx, MATCHUP_TREASURE, x + 190, y + 15, 8, time);
-  ctx.fillText(`${state.treasures ?? 0}/${matchupTreasuresOf(state)}`, x + 202, y + 15);
-  ctx.fillStyle = MATCHUP_GOLD;
-  ctx.textAlign = "right";
-  ctx.fillText(`big ${state.bigLines ?? 0}`, x + w - 12, y + 15);
+  const ph = 26;
+  drawHudPillRow(ctx, x + 8, y + 7, [
+    { label: "Ice", value: String(iceLeft), opts: { h: ph } },
+    { label: "Treasure", value: `${state.treasures ?? 0}/${matchupTreasuresOf(state)}`, opts: { h: ph } },
+    { label: "Big lines", value: String(state.bigLines ?? 0), opts: { h: ph } },
+  ], x + w - 8);
+  ctx.textBaseline = "middle";
   // The six goals, one a colour, in colour order.
   const need = state.goalNeed ?? [];
   const left = state.goalLeft ?? [];
@@ -967,18 +1021,36 @@ function drawSixGoalsPanel(ctx: CanvasRenderingContext2D, state: MatchupState, t
     const l = left[kind] ?? 0;
     const done = n > 0 && l === 0;
     ctx.globalAlpha = done ? 0.55 : 1;
-    drawMatchupGem(ctx, kind, cx - 12, y + 44, 10, time);
+    drawMatchupGem(ctx, kind, cx - 12, y + 53, 11, time);
     ctx.globalAlpha = 1;
     ctx.textAlign = "left";
-    ctx.font = "700 14px 'JetBrains Mono', ui-monospace, monospace";
+    ctx.font = `800 15px ${HUD_PILL_FONT}`;
     ctx.fillStyle = done ? "#7CF5A4" : MATCHUP_TEXT;
-    ctx.fillText(done ? "✓" : `${l}`, cx + 1, y + 45);
+    ctx.fillText(done ? "✓" : `${l}`, cx + 1, y + 54);
     const bw = cellW - 12;
     ctx.fillStyle = "rgba(0,0,0,0.45)";
-    ctx.fillRect(cx - bw / 2, y + 63, bw, 3);
+    ctx.fillRect(cx - bw / 2, y + 69, bw, 3);
     ctx.fillStyle = done ? "#7CF5A4" : (MATCHUP_COLOURS[kind] ?? MATCHUP_GOLD);
-    ctx.fillRect(cx - bw / 2, y + 63, n > 0 ? (bw * (n - l)) / n : 0, 3);
+    ctx.fillRect(cx - bw / 2, y + 69, n > 0 ? (bw * (n - l)) / n : 0, 3);
   }
+  ctx.restore();
+}
+
+/**
+ * matchupRev 12's top HUD (3 Nov 2026 polish, display only), drawn unzoomed over the world's top strip: the round's
+ * running score on the 0–200 scale (matchupStdScore, the sim's own standard parts; the reveal's figure at the end) as
+ * the main pill, top left, then "Goals n/6" (gold once all six are met), and on the right a "Next drops ↓" pill naming
+ * the strip of small gems under it (the next gem to drop into each column).
+ */
+function drawSixHud(ctx: CanvasRenderingContext2D, state: MatchupState): void {
+  ctx.save();
+  let x = 8;
+  successHud(ctx, "matchup", state.tick, 12, SIX_HUD_Y, () => {
+    x += drawHudPill(ctx, 8, SIX_HUD_Y, "Score", String(matchupStdScore(state))) + HUD_PILL_GAP;
+  });
+  const met = matchupGoalsMet(state);
+  drawHudPill(ctx, x, SIX_HUD_Y, "Goals", `${met}/${MATCHUP_V12_GOALS}`, { gold: met >= MATCHUP_V12_GOALS });
+  drawHudPill(ctx, MATCHUP_WORLD_W - 8, SIX_HUD_Y + 2, "Next drops", "↓", { align: "right", h: 24 });
   ctx.restore();
 }
 
@@ -1079,7 +1151,21 @@ function drawClearBursts(ctx: CanvasRenderingContext2D, state: MatchupState): vo
 /** The board drawing through the shared success layer (presentation only). */
 function drawScene(ctx: CanvasRenderingContext2D, state: MatchupState, size: CanvasSize, options: SceneOptions = {}): void {
   // matchupRev 9: the shared layer spans the taller world (fxSpecAt, as the other taller worlds do).
-  arcadeFx(ctx, fxSpecAt(MATCHUP_FX, matchupWorldH(state)), state, () => drawSceneWorld(ctx, state, size, options), size);
+  // matchupRev 12 (3 Nov 2026 polish): the world and its effects drawn zoomed, then the HUD pills on top, unzoomed.
+  useLayout(state);
+  withSixZoom(ctx, size, () => arcadeFx(ctx, fxSpecAt(MATCHUP_FX, matchupWorldH(state)), state, () => drawSceneWorld(ctx, state, size, options), size));
+  drawSixHudOver(ctx, state, size);
+}
+
+/** matchupRev 12's HUD pills over the zoomed world, in unzoomed world units (nothing on earlier revisions). */
+function drawSixHudOver(ctx: CanvasRenderingContext2D, state: MatchupState, size: CanvasSize): void {
+  if (!state.six) return;
+  const { scale, offsetX, offsetY } = matchupTransform(size, L.worldH);
+  ctx.save();
+  ctx.translate(offsetX, offsetY);
+  ctx.scale(scale, scale);
+  drawSixHud(ctx, state);
+  ctx.restore();
 }
 
 function drawSceneWorld(ctx: CanvasRenderingContext2D, state: MatchupState, size: CanvasSize, options: SceneOptions = {}): void {
@@ -1118,10 +1204,11 @@ function drawSceneWorld(ctx: CanvasRenderingContext2D, state: MatchupState, size
       ctx.globalAlpha = 1;
     }
   }
-  // A bigger score (A3): the number large, "pts" small beside it, on a soft shadow.
+  // A bigger score (A3): the number large, "pts" small beside it, on a soft shadow. matchupRev 12 draws its HUD
+  // pills instead (drawSixHud, over the zoomed world).
   ctx.textBaseline = "alphabetic";
   ctx.textAlign = "left";
-  successHud(ctx,'matchup',state.tick,12,12,()=>{
+  if (!state.six) successHud(ctx,'matchup',state.tick,12,12,()=>{
     const num = `${state.raw}`;
     ctx.font = "700 28px 'JetBrains Mono', ui-monospace, monospace";
     ctx.fillStyle = "rgba(0,0,0,0.45)";
@@ -1148,6 +1235,10 @@ export function drawMatchupArtAnimated(ctx: CanvasRenderingContext2D, state: Mat
 
 /** Selected gem glows gold. */
 export function drawMatchupArtSelection(ctx: CanvasRenderingContext2D, size: CanvasSize, row: number, col: number): void {
+  withSixZoom(ctx, size, () => drawSelection(ctx, size, row, col));
+}
+
+function drawSelection(ctx: CanvasRenderingContext2D, size: CanvasSize, row: number, col: number): void {
   const { scale, offsetX, offsetY } = matchupTransform(size, L.worldH);
   ctx.save();
   ctx.translate(offsetX, offsetY);
@@ -1195,7 +1286,8 @@ export function drawMatchupSwap(
   const options = { cells: tween.before.cells, skip: new Set([tween.a, tween.b]) };
   // The two sliding gems are part of the world, so the shared layer's effects (a refused swap's
   // miss puff, Polish 1) paint over them, as over every other gem.
-  arcadeFx(ctx, fxSpecAt(MATCHUP_FX, matchupWorldH(state)), scene, () => {
+  useLayout(scene);
+  withSixZoom(ctx, size, () => arcadeFx(ctx, fxSpecAt(MATCHUP_FX, matchupWorldH(state)), scene, () => {
     drawSceneWorld(ctx, scene, size, options);
     const { scale, offsetX, offsetY } = matchupTransform(size, L.worldH);
     ctx.save();
@@ -1207,7 +1299,8 @@ export function drawMatchupSwap(
     drawMatchupGem(ctx, tween.before.cells[tween.a] ?? 0, a.x + (b.x - a.x) * p, a.y + (b.y - a.y) * p, RADIUS);
     drawMatchupGem(ctx, tween.before.cells[tween.b] ?? 0, b.x + (a.x - b.x) * p, b.y + (a.y - b.y) * p, RADIUS);
     ctx.restore();
-  }, size);
+  }, size));
+  drawSixHudOver(ctx, scene, size);
 }
 
 /** The sim with the art renderer swapped in; step/score are the sim's own. */

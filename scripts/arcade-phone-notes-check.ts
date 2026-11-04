@@ -189,7 +189,9 @@ ok(tiltGameFor(TILT_REV_LIFT).init(7).lift === 1 && !tiltGameFor(TILT_REV_EXPAND
   const fx = read("src/lib/arcade/arcadeFxGames.renderer.ts");
   ok(/s\.home >= \(s\.r7 \? BT_V7_BALLS : BT_BALLS\)/.test(fx) && !/ALL 30 HOME!/.test(fx), "the final moment fires at 36 home on btRev 7");
   const stage = read("src/puzzles/ballTrack.tsx");
-  ok(/to switch up/.test(stage) && !/to drop</.test(stage), "the bottom readout says \"N to switch up\", not \"N to drop\"");
+  // 3 Nov 2026 polish (display only): the readout moved from the line under the board into the HUD pills (btDrawHud).
+  const hudArt = read("src/lib/arcade/ballTrackArt.renderer.ts");
+  ok(/"Switch up"/.test(hudArt) && /btSwitchUpIn\(course, s\.tick\)/.test(stage) && !/to drop</.test(stage) && !/to drop"/.test(hudArt), "the HUD's readout says \"Switch up Ns\", not \"N to drop\"");
 }
 
 /* 5. Display numbers. */
