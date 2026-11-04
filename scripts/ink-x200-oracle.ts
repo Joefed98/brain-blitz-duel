@@ -23,7 +23,7 @@ import {
   INK_INPUT_RELEASE,
   INK_INPUT_STROKE,
   INK_LEVELS,
-  INK_REV_CLOVER,
+  inkClover,
   INK_REV_EXPAND,
   type InkState,
 } from "../src/lib/arcade/inkBridge";
@@ -93,7 +93,7 @@ export function inkOracleRun(seed: number, rev: number = INK_REV_EXPAND): Oracle
     const lvl = s.list[s.level]!;
     // inkRev 13: the bonus line only where it takes something (a cloud's trick shot or a clover), else the easy line;
     // every level within its ink par.
-    const v13 = s.rev === INK_REV_CLOVER;
+    const v13 = inkClover(s.rev);
     const bonus = s.level < 8 && lvl.starRef && (!v13 || Boolean(lvl.clouds?.length || lvl.shamrock));
     const lines = bonus ? lvl.starRef! : lvl.ref;
     const live = lvl.liveHand ?? [];

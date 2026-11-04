@@ -42,7 +42,7 @@ import {
   INK_WORLD_H,
   INK_WORLD_W,
   inkX,
-  INK_REV_CLOVER,
+  inkClover,
   inkIsLive,
   inkPhoneLine,
   inkFeatureRaw,
@@ -356,7 +356,7 @@ export function simulate(game: Game, from: InkState, strokes: number[][], rel: n
     if (wantTrace && s.dropping) trace.push({ x: s.ball.x / 256, y: s.ball.y / 256, on: s.ball.on });
   }
   // inkRev 13: no stars; a bonus line's "star" is the level's clover where it has one (else any pot).
-  const star = from.rev === INK_REV_CLOVER ? (from.list[lvl]!.shamrock ? (s.shamrocks ?? 0) > (from.shamrocks ?? 0) : true) : (s.stars ?? 0) > (from.stars ?? 0);
+  const star = inkClover(from.rev) ? (from.list[lvl]!.shamrock ? (s.shamrocks ?? 0) > (from.shamrocks ?? 0) : true) : (s.stars ?? 0) > (from.stars ?? 0);
   return { potted: s.levels > from.levels, star, trick: (s.tricks ?? 0) > (from.tricks ?? 0), raw: inkFeatureRaw(s) - inkFeatureRaw(from), flight: released >= 0 ? s.tick - released : 0, trace };
 }
 
@@ -1013,7 +1013,7 @@ export const bot: SkillBot = ({ game, seed, human, fixes }) => {
   const init = game.init(seed) as InkState;
   worldH = inkWorldH(init);
   const expand = inkX(init.rev);
-  const v13 = init.rev === INK_REV_CLOVER;
+  const v13 = inkClover(init.rev);
   phoneExact = expand;
 
   const plan = new Plan();

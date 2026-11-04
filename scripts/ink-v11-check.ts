@@ -32,6 +32,7 @@ import {
   INK_FEATURE_MAX,
   INK_LEVELS,
   INK_REV_CLOVER,
+  INK_REV_BIG,
   INK_REV_EXPAND,
   INK_REV_SPREAD,
   INK_REV_STRICT,
@@ -76,7 +77,7 @@ section("Rooms deal inkRev 11; older stamps unchanged");
   // inkRev 13 (Nov 2026: clovers, ink par, more birds; ink-v13-check) moved rooms and LIVE_BANDS on: the deal is pinned to
   // the one before it (inkRev 12, inkRev 11's play), and LIVE_BANDS lists inkRev 13, still against inkRev 8.
   const wasInk = pinInkPreClover(true);
-  ok(playRevOf("inkbridge", generateInkBridge().inkRev) === INK_REV_SPREAD && INK_REV_SPREAD === INK_REV_EXPAND + 1 && live.rev === INK_REV_CLOVER && live.strictRev === INK_REV_STRICT, "rooms dealt inkRev 11's play before inkRev 13 (inkRev 12 re-scored it on the arcade standard); LIVE_BANDS lists inkRev 13, measured against inkRev 8");
+  ok(playRevOf("inkbridge", generateInkBridge().inkRev) === INK_REV_SPREAD && INK_REV_SPREAD === INK_REV_EXPAND + 1 && live.rev === INK_REV_BIG && live.strictRev === INK_REV_STRICT, "rooms dealt inkRev 11's play before inkRev 13 (inkRev 12 re-scored it on the arcade standard); LIVE_BANDS lists inkRev 14 (inkRev 13's parts with a bigger coin, clovers and birds), measured against inkRev 8");
   pinInkPreClover(wasInk);
   ok(roundMaxFor("inkbridge") === 200 && inkWorldHFor(INK_REV_SPREAD) === INK_TALL_H, "still 200 at most, in the 674-tall world");
   const s = game.init(SAMPLE[0]!);

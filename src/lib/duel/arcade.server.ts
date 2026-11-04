@@ -4,7 +4,8 @@ import { TEN_DROP_DEPTH_REV } from "@/lib/arcade/tenDrop";
 import { SLICE_REV_TARGET, SLICE_REV_STRICT, SLICE_REV_STANDARD } from "@/lib/arcade/slice";
 import { FLIP_REV_TARGET, FLIP_REV_STRICT, FLIP_REV_FLOW } from "@/lib/arcade/flip";
 import { CROSS_REV_FLOW } from "@/lib/arcade/cross";
-import { INK_REV_CLOVER, INK_REV_STD } from "@/lib/arcade/inkBridge";
+import { INK_REV_BIG, INK_REV_CLOVER, INK_REV_STD } from "@/lib/arcade/inkBridge";
+import { inkBigDealSeed } from "./inkBigDeal.server";
 import { SNAKE_REV_TARGET, SNAKE_REV_12 } from "@/lib/arcade/snake";
 import { BUB_REV_STD } from "@/lib/arcade/bubble";
 import { MATCHUP_REV_SIX } from "@/lib/arcade/matchup";
@@ -317,11 +318,26 @@ export function pinInkPreClover(on: boolean): boolean {
   return prev;
 }
 
+let inkPreBig = false;
+/**
+ * Checks written for inkRev 13 (clovers, ink par, more birds): deal inkRev 13 on any seed as rooms did before inkRev 14
+ * (returns the previous setting), so they keep proving what they were written for. pinInkPreClover wins over it.
+ */
+export function pinInkPreBig(on: boolean): boolean {
+  const prev = inkPreBig;
+  inkPreBig = on;
+  return prev;
+}
+
 export function generateInkBridge(): InkBridgePuzzleData {
   // inkRev 11 (phone notes, 27 Oct 2026): no wind zones, fewer silver coins, the pickups spread out.
   // inkRev 12 (the arcade scoring standard, 29 Oct 2026): inkRev 11's play scored on straight lines and fixed shares.
   // inkRev 13 (Nov 2026, docs/arcade-standard/inkbridge.md): clovers, ink par and more birds; no stars or silver coins.
-  return { type: "inkbridge", seed: arcadeSeed(), inkRev: inkPreClover ? INK_REV_STD : INK_REV_CLOVER };
+  // inkRev 14 (3 Nov 2026, "inkRev 14"): inkRev 13's rules and parts with a bigger coin, clovers and birds, dealt from its
+  // proved deal (every level proved and the perfect run 200 through the server replay on each seed; inkBigDeal.server.ts).
+  if (inkPreClover) return { type: "inkbridge", seed: arcadeSeed(), inkRev: INK_REV_STD };
+  if (inkPreBig) return { type: "inkbridge", seed: arcadeSeed(), inkRev: INK_REV_CLOVER };
+  return { type: "inkbridge", seed: inkBigDealSeed(arcadeSeed()), inkRev: INK_REV_BIG };
 }
 
 export function generateBurst(): BurstPuzzleData {

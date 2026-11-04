@@ -1542,13 +1542,14 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Levels 1-4", detail: "Draw lines around the white birds, then tap RELEASE to drop the coin into a still pot.", helpOnly: true },
         { action: "Levels 5-8", detail: "The pot moves! Time your release so the coin rolls into it.", helpOnly: true },
         { action: "Levels 9-10: LIVE", detail: "Draw one line, RELEASE, then keep drawing as the coin falls. Faded strokes commit when you lift your finger; you can't draw through birds or near the coin.", helpOnly: true },
-        { action: "Ink par:", detail: "every level shows its ink par beside the ink meter (\"Ink 84 / par 90\"). Pot the coin using no more ink than the par for the level's full ink-par points; a little over still pays some, twice the par nothing. Undo gives the ink back.", helpOnly: true },
+        { action: "Ink par:", detail: "the top of the screen shows the ink this level has taken and its par (\"Ink 18 · par 54\"), and a bar the ink left. Pot the coin using no more ink than the par for the level's full ink-par points; a little over still pays some, twice the par nothing. Undo gives the ink back.", helpOnly: true },
         { action: "Clovers:", detail: `${INK_V13_CLOVERS} levels in the run have a clover on a harder route, well away from the easy one. Roll the coin through it and into the pot: it counts only once the coin is potted. You never need it to finish a level.`, helpOnly: true },
         { action: "Bounce clouds:", detail: `${INK_CLOUD_LEVELS} levels have a springy cloud that throws the coin back up: pot the coin after a bounce for a trick shot.`, helpOnly: true },
         { action: "Ink is limited", detail: "Each level has a budget, with a larger shared supply for live levels.", helpOnly: true },
         { action: "A failed drop", detail: "clears your lines: try again until the clock runs out.", helpOnly: true },
       ],
-      // inkRev 13 (Nov 2026): levels on a straight line; ink par, trick shots, clovers and speed fixed amounts on top.
+      // inkRev 13 (Nov 2026) and 14 (3 Nov 2026, the same parts with a bigger coin, clovers and birds): levels on a straight
+      // line; ink par, trick shots, clovers and speed fixed amounts on top.
       score: liveBandHelp("inkbridge", `Each level potted counts ${INK_V13_CORE_MAX / INK_LEVELS}.`, {
         more: "More levels",
         good: (u) => `pots ${u} levels`,
