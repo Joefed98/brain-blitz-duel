@@ -291,12 +291,13 @@ function drawCupLabel(ctx: CanvasRenderingContext2D, cup: ArCup): void {
   const top = arBoardScreen(cup.cx, cup.cy, cup.h);
   const rx = cup.r * top.k;
   const ry = cup.r * BOARD_YK;
-  ctx.font = `800 ${cup.points >= 50 ? 13 : 12}px ${FONT}`;
+  ctx.font = `800 ${cup.points >= 50 ? 17 : 16}px ${FONT}`;
   ctx.textAlign = "left";
   ctx.textBaseline = "middle";
   const x = top.x + rx * 0.82 + 6;
   const y = top.y + ry * 0.62;
-  ctx.lineWidth = 3;
+  ctx.lineWidth = 4;
+  ctx.lineJoin = "round";
   ctx.strokeStyle = "rgba(40,8,14,0.9)";
   ctx.strokeText(String(cup.points), x, y);
   ctx.fillStyle = CREAM;
@@ -327,10 +328,14 @@ function drawPocket(ctx: CanvasRenderingContext2D, p: { x: number; y: number }, 
     ctx.shadowBlur = 0;
   }
   ctx.fillStyle = CREAM;
-  ctx.font = `800 12px ${FONT}`;
+  ctx.font = `800 16px ${FONT}`;
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
-  ctx.fillText("100", q.x, q.y + ry + 14);
+  ctx.lineWidth = 4;
+  ctx.lineJoin = "round";
+  ctx.strokeStyle = "rgba(40,8,14,0.9)";
+  ctx.strokeText("100", q.x, q.y + ry + 15);
+  ctx.fillText("100", q.x, q.y + ry + 15);
 }
 
 /** The gold cup at its place on the round clock, its track and its label. */
@@ -347,10 +352,11 @@ function drawGold(ctx: CanvasRenderingContext2D, state: ArState, lit: boolean): 
   ctx.stroke();
   ctx.setLineDash([]);
   ctx.fillStyle = GOLD;
-  ctx.font = `800 11px ${FONT}`;
+  // 3 Nov 2026 (display only): "· MOVING" was a mockup note; the label names the cup and its points.
+  ctx.font = `800 13px ${FONT}`;
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
-  ctx.fillText("GOLD CUP 150 · MOVING", CX, a.y - 34);
+  ctx.fillText("GOLD CUP 150", CX, a.y - 34);
 
   const x = arGoldX256(state, state.tick) / 256;
   const top = arBoardScreen(x, AR2_GOLD_Y, AR2_GOLD_H);

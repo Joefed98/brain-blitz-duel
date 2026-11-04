@@ -23,7 +23,7 @@ import {
   HOMERUN_WORLD_H,
   HOMERUN_WORLD_W,
 } from "@/lib/arcade/homerun";
-import { drawHomerunArt, homerunScene } from "@/lib/arcade/homerun.renderer";
+import { drawHomerunArt, homerunScene, homerunSceneV4, homerunV4ViewToWorld } from "@/lib/arcade/homerun.renderer";
 import { encodeHomerunRun, replayHomerunRun } from "@/lib/duel/homerun";
 import { HOMERUN_TIME_MS, type HomerunPuzzleData } from "@/lib/duel/types";
 import { ArcadeCanvasStage, type PointerPayload } from "@/components/puzzles/ArcadeCanvasStage";
@@ -142,8 +142,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     const st = drawn.current;
     const cur = st ? homerunCurrent(st) : null;
     if (st && cur && st.tick >= cur.release - HOMERUN_V4_TAP_EARLY) return { k: HOMERUN_INPUT_TAP, a: 0, b: 0, c: 0 };
-    const a = Math.round(x);
-    const b = Math.round(y);
+    // The view is drawn through homerunRev 4's warp (display only): the tap goes back to the sim's world px first.
+    const w = homerunV4ViewToWorld(x, y);
+    const a = Math.round(w.x);
+    const b = Math.round(w.y);
     return homerunV4SpotOk(a, b) ? { k: HOMERUN_INPUT_SPOT, a, b, c: 0 } : null;
   };
   // devWarp: development review shots only (scripts/shots/homerun-tuning-shots.ts); production returns the game as is.
@@ -158,7 +160,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       label={gameDisplayName("homerun")}
       background={HOMERUN_BG}
       fitWorld
-      scene={homerunScene}
+      scene={spotGame ? homerunSceneV4 : homerunScene}
       seed={data?.seed ?? 1}
       enabled={data !== null}
       locked={locked}

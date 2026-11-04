@@ -44,8 +44,7 @@ import {
 import { decodeBinTossRun, encodeBinTossRun, replayBinTossRun } from "@/lib/duel/binToss";
 import { ARCADE_CRASH_FREEZE_MS, type BinTossPuzzleData } from "@/lib/duel/types";
 import { playWrong } from "@/lib/sound";
-import { binTossArenaScene, binTossArenaSceneV7, binTossArtGame, binTossArtGhost, binTossArtLanding, binTossArtAim as binTossDrawAim } from "@/lib/arcade/binTossArt.renderer";
-import { fairTransform } from "@/lib/arcade/fairground.renderer";
+import { binTossArenaScene, binTossArenaSceneV7, binTossArtGame, binTossFrame, binTossViewFor, binTossArtGhost, binTossArtLanding, binTossArtAim as binTossDrawAim } from "@/lib/arcade/binTossArt.renderer";
 import { binTossExtraSounds } from "@/lib/arcade/e5Sounds";
 import { useFairSceneKey } from "@/components/puzzles/useFairSceneKey";
 import { binTossSounds } from "@/lib/fx/gameSounds";
@@ -106,6 +105,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   // binRev 7: the wider, taller fairground and its stronger throw; every phone draws the stored revision's world.
   const expand = binTossIsExpand(data?.binRev);
   const world = expand ? { w: BINTOSS_V7_WORLD_W, h: BINTOSS_V7_WORLD_H, lift: BINTOSS_V7_LIFT } : { w: BINTOSS_WORLD_W, h: BINTOSS_WORLD_H, lift: 0 };
+  const view = binTossViewFor(expand);
   const dragOf = (dx: number, dy: number) => binTossDragFor(data?.binRev, dx, dy);
 
   const wrap = useRef<HTMLDivElement | null>(null);
@@ -357,7 +357,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   /** Canvas coordinates to world pixels, using the sim's own mapping. */
   const worldPoint = (event: React.PointerEvent<HTMLCanvasElement>) => {
     const box = event.currentTarget.getBoundingClientRect();
-    const { scale, offsetX, offsetY } = fairTransform({ width: box.width, height: box.height }, world.w, world.h);
+    // The stage's view (binRev 7+: the boardwalk's taller view; display only): the same world px under the finger.
+    const { scale, offsetX, offsetY } = binTossFrame({ width: box.width, height: box.height }, expand);
     return {
       x: (event.clientX - box.left - offsetX) / Math.max(scale, 0.0001),
       y: (event.clientY - box.top - offsetY) / Math.max(scale, 0.0001) - world.lift,
@@ -397,7 +398,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       ref={wrap}
       className="relative flex min-h-0 w-full flex-1 flex-col overflow-hidden"
     >
-      <ArcadeArenaSlot width={world.w} height={world.h} scene={expand ? binTossArenaSceneV7 : binTossArenaScene} sceneKey={fairSceneKey}>
+      <ArcadeArenaSlot width={view.w} height={view.h} scene={expand ? binTossArenaSceneV7 : binTossArenaScene} sceneKey={fairSceneKey}>
       <div ref={arenaBox} data-game-arena="canvas" className="relative overflow-hidden">
       <canvas
         ref={canvas}

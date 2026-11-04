@@ -69,6 +69,11 @@ export interface PoolAim {
 
 const px = (u: number) => u / 256;
 const R = POOL_BALL_R;
+/**
+ * A table ball's drawn radius (3 Nov 2026, display only): 1.5 px over the sim's POOL_BALL_R, inside the bounds
+ * rule's 2 px, so the balls read larger without moving any hitbox (no stamp; collisions are POOL_BALL_R).
+ */
+export const POOL_BALL_DRAW_R = POOL_BALL_R + 1.5;
 
 /* ============================== Cached layers ============================== */
 
@@ -331,30 +336,38 @@ function paintBall(ctx: CanvasRenderingContext2D, id: number, x: number, y: numb
   ctx.beginPath();
   ctx.arc(x, y, r, 0, Math.PI * 2);
   ctx.clip();
-  ctx.fillStyle = stripe ? "#F4F1E8" : colour;
+  // 3 Nov 2026 (display only; Joe's audit): spots and stripes told apart at a glance, the set being the
+  // game's rule since poolRev 4. A spot is the solid colour with a small white spot; a stripe the colour
+  // with a broad, clean white band through its middle (the number sits in the band).
+  ctx.fillStyle = id === POOL_CUE ? "#F4F1E8" : colour;
   ctx.fillRect(x - r, y - r, r * 2, r * 2);
   if (stripe) {
-    ctx.fillStyle = colour;
-    ctx.fillRect(x - r, y - r * 0.55, r * 2, r * 1.1);
+    ctx.fillStyle = "#FBFAF5";
+    ctx.fillRect(x - r, y - r * 0.36, r * 2, r * 0.72);
   }
-  // Number disc.
   if (id !== POOL_CUE) {
-    ctx.fillStyle = "#F7F5EE";
-    ctx.beginPath();
-    ctx.arc(x, y, r * 0.5, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = "#111";
-    ctx.font = `800 ${Math.max(4, r * 0.66)}px ${FONT}`;
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    if (numberTurn) {
-      // Cue Ball's turned desktop table: the number turned back to read upright on screen.
-      ctx.save();
-      ctx.translate(x, y);
-      ctx.rotate(numberTurn);
-      ctx.fillText(String(id), r * 0.04, 0);
-      ctx.restore();
-    } else ctx.fillText(String(id), x, y + r * 0.04);
+    const spotR = stripe ? r * 0.3 : r * 0.36;
+    if (!stripe) {
+      ctx.fillStyle = "#FBFAF5";
+      ctx.beginPath();
+      ctx.arc(x, y, spotR, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    // The number only where it can be read (the HUD's small rack balls show the pattern alone).
+    if (r >= 7) {
+      ctx.fillStyle = "#111";
+      ctx.font = `800 ${Math.max(4, r * (stripe ? 0.6 : 0.5))}px ${FONT}`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      if (numberTurn) {
+        // Cue Ball's turned desktop table: the number turned back to read upright on screen.
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.rotate(numberTurn);
+        ctx.fillText(String(id), r * 0.04, 0);
+        ctx.restore();
+      } else ctx.fillText(String(id), x, y + r * 0.04);
+    }
   }
   // Shading from the lamp above: a soft dark rim and a sharp highlight.
   const shade = ctx.createRadialGradient(x - r * 0.35, y - r * 0.4, r * 0.1, x, y, r * 1.05);
@@ -371,7 +384,7 @@ function paintBall(ctx: CanvasRenderingContext2D, id: number, x: number, y: numb
   ctx.restore();
 }
 
-function drawBall(ctx: CanvasRenderingContext2D, id: number, x: number, y: number, r = R): void {
+function drawBall(ctx: CanvasRenderingContext2D, id: number, x: number, y: number, r = POOL_BALL_DRAW_R): void {
   // Contact shadow.
   ctx.fillStyle = "rgba(0,0,0,0.35)";
   ctx.beginPath();
@@ -619,7 +632,7 @@ function drawDropping(ctx: CanvasRenderingContext2D, s: PoolState): void {
     const ease = 1 - (1 - roll) * (1 - roll);
     const x = px(b.x) + (p.x - px(b.x)) * ease;
     const y = px(b.y) + (p.y - px(b.y)) * ease;
-    const r = R * (1 - 0.55 * t);
+    const r = POOL_BALL_DRAW_R * (1 - 0.55 * t);
     ctx.save();
     // Keep the sinking ball inside the hole once it reaches the mouth (it falls below the cloth, not over the rail).
     if (roll >= 1) {
@@ -628,7 +641,7 @@ function drawDropping(ctx: CanvasRenderingContext2D, s: PoolState): void {
       ctx.clip();
     }
     ctx.globalAlpha = 1 - 0.35 * t;
-    drawBallSprite(ctx, poolShownId(b.id, s.set ?? POOL_SET_SPOTS), x, y, r, R);
+    drawBallSprite(ctx, poolShownId(b.id, s.set ?? POOL_SET_SPOTS), x, y, r, POOL_BALL_DRAW_R);
     ctx.globalAlpha = 1;
     ctx.fillStyle = `rgba(0,0,0,${(0.85 * t).toFixed(3)})`;
     ctx.beginPath();

@@ -67,9 +67,15 @@ const SL = 200;
 const RW = 1000;
 /** Focal length (px per unit at depth 1), camera height, the car's depth from the camera, the horizon's y. */
 const F = 300;
-const CH = 1714;
+/**
+ * 3 Nov 2026 (display only; Joe's audit): the horizon raised from row 270 to 185 and the camera lifted to match
+ * (CH 1714 → 2200), so the car's contact line stays where it was (row 570) and the sky takes a quarter of the world
+ * instead of about 40 %: more road shows ahead, and corners are seen earlier. The sim, the stick and its mapping are
+ * unchanged.
+ */
+const CH = 2200;
 const ZC = 1714;
-const HORIZON = 270;
+const HORIZON = 185;
 /** Where the haze under the road reaches the near grass colour (COL.grassA), which it keeps below. */
 const HAZE_END = HORIZON + 40;
 /** Rows past HAZE_END where the gradient may still round a channel off grassA: grassA bands there are painted. */
