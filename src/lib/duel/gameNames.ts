@@ -37,7 +37,7 @@ export const GAME_DISPLAY_NAMES: Record<PuzzleType, string> = {
   clayshoot: "Pull!",
   flood: "Colour Flood",
   countup: "Tally",
-  cross: "Jaywalk",
+  cross: "Spacewalk",
   dig: "Dig",
   dual: "Dual",
   equation: "Operator",

@@ -14,7 +14,7 @@ import { splitPuzzle } from "../src/lib/duel/secrets";
 import { withSeededRandom } from "../src/lib/duel/random";
 import { INTRO_EXAMPLE_SEED } from "../src/lib/duel/puzzleDemo";
 import type { PuzzleType } from "../src/lib/duel/types";
-import { ACTIVE_ARCADE_GAMES, ARCADE_FX_SPECS } from "../src/lib/arcade/arcadeFxGames.renderer";
+import { ACTIVE_ARCADE_GAMES, ARCADE_FX_SPECS, ARCADE_PLAY_VIEWS } from "../src/lib/arcade/arcadeFxGames.renderer";
 import { orbitXpRev } from "../src/lib/arcade/orbit";
 
 // Happy DOM parses DOM only. Budgets below are CSS arithmetic, NOT pixel measurements.
@@ -32,7 +32,8 @@ let arenas = 0;
 let arcadeHeaders = 0;
 // Phones from the smallest supported to the tallest, plus a laptop window.
 const SIZES = [[390, 700], [375, 667], [390, 844], [430, 932], [1280, 800]] as const;
-const ARCADE_WORLDS = ARCADE_FX_SPECS as Record<string, { width: number; height: number }>;
+// The stage's box is the live round's play view where that differs from the effects world (ARCADE_PLAY_VIEWS, 3 Nov 2026).
+const ARCADE_WORLDS = { ...(ARCADE_FX_SPECS as Record<string, { width: number; height: number }>), ...(ARCADE_PLAY_VIEWS as Record<string, { width: number; height: number }>) };
 for (const [key, definition] of active) {
   const type = key as PuzzleType;
   const puzzle = splitPuzzle(withSeededRandom(INTRO_EXAMPLE_SEED, () => generatePuzzle(type))).pub;

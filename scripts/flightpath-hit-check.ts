@@ -166,16 +166,16 @@ for (const rev of REVS) {
           if (Math.abs(sx - cx) < 14 && sy < board.cy) return;
           const balloon = B.bullseyeBalloonPos(state, view.arrow, state.tick);
           if (balloon && Math.hypot(balloon.x - sx, balloon.y - sy) < B.BULLSEYE_BALLOON_R + 8) return;
-          const world = R.bullseyeWorldOf(state);
-          const frame = fairTransform(size, world.w, world.h);
+          // The frame's own map from the range's px to the canvas (3 Nov 2026: bullRev 8+ draws the darts stall's
+          // zoomed view, the fairground's fit before), so the reference board is painted exactly where the frame put it.
+          const map = R.bullseyeCanvasMap(state, size, 600);
           const ref = createCanvas(size.width, size.height);
           const rc = ref.getContext("2d") as unknown as CanvasRenderingContext2D;
-          rc.translate(frame.offsetX, frame.offsetY);
-          rc.scale(frame.scale, frame.scale);
-          rc.translate(0, world.lift);
+          rc.translate(map.ox, map.oy);
+          rc.scale(map.a, map.a);
           R.paintBoard(rc, cx, board.cy, board.scalePct, B.bullseyeRingValues(state, view.arrow));
-          const px = frame.offsetX + sx * frame.scale;
-          const py = frame.offsetY + (sy + world.lift) * frame.scale;
+          const px = map.ox + sx * map.a;
+          const py = map.oy + sy * map.a;
           const got = pixelAt(ctx, px, py);
           const want = pixelAt(rc, px, py);
           pixelSamples += 1;

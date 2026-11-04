@@ -26,7 +26,7 @@
  * scenery beyond the world (homerunScene) is the same park carried on with no seam.
  */
 import { artHash, reducedMotion } from "./art.renderer";
-import { deviceLayer } from "./cache.renderer";
+import { artCanvas, artContext, deviceLayer } from "./cache.renderer";
 import { arcadeFx, ARCADE_FX_DISPLAY_FONT } from "./arcadeFx.renderer";
 import { HOMERUN_FX, HOMERUN_FX_V2 } from "./sportsFx.renderer";
 import type { ArenaSceneView } from "./arenaScene.renderer";
@@ -113,6 +113,138 @@ const P = (v: V3): Pt => proj(v[0], v[2], v[1]);
 /** The plate plane (z = 0): a screen point back to field feet (x, height). */
 function plateFeet(sx: number, sy: number): { x: number; h: number } {
   return { x: ((sx - CX) * CAM_BACK) / F + CAM_X, h: CAM_H - ((sy - YH) * CAM_BACK) / F };
+}
+
+/* ------------------------------------------------- homerunRev 4's play view */
+
+/**
+ * homerunRev 4's play view (3 Nov 2026, display only; Joe's audit): the camera pulled up and back. The batter used to
+ * fill the left half and the outfield, where the spot is tapped, was a thin band. The view is now a warp of the world
+ * the sim measures in (`hvPt`): the stands as they were (rows 0–168, so the signs keep their size), the outfield and
+ * infield (rows 168–300) drawn about twice as tall, a smooth blend (300–380), then the near field, the plate and the
+ * batter at HV_NEAR_K of their size, scaled about the centre line. The static park is painted in world px and blitted
+ * through the warp once per size (`paintWarpedPark`); fielders, the spot, the pitcher and the balls are placed through
+ * it at their own shape; a tap is taken back through the exact inverse (`homerunV4ViewToWorld`) before it is sent, so
+ * the sim's field coordinates, timing and every input are unchanged. Earlier revisions draw as before.
+ */
+const HV_OLD = [168, 300, 380, H] as const;
+const HV_NEW = [168, 450, 520, H] as const;
+export const HV_NEAR_K = (HV_NEW[3] - HV_NEW[2]) / (HV_OLD[3] - HV_OLD[2]);
+const HV_AX = CX;
+/** A world row's row in the view (identity above the stands' foot, the near field's slope extended below the world). */
+function hvY(y: number): number {
+  if (y <= HV_OLD[0]) return y;
+  for (let i = 1; i < HV_OLD.length; i++) {
+    if (y <= HV_OLD[i]!) {
+      const a = HV_OLD[i - 1]!;
+      return HV_NEW[i - 1]! + ((y - a) * (HV_NEW[i]! - HV_NEW[i - 1]!)) / (HV_OLD[i]! - a);
+    }
+  }
+  return H + (y - H) * HV_NEAR_K;
+}
+/** The inverse of hvY. */
+function hvUnY(y: number): number {
+  if (y <= HV_NEW[0]) return y;
+  for (let i = 1; i < HV_NEW.length; i++) {
+    if (y <= HV_NEW[i]!) {
+      const a = HV_NEW[i - 1]!;
+      return HV_OLD[i - 1]! + ((y - a) * (HV_OLD[i]! - HV_OLD[i - 1]!)) / (HV_NEW[i]! - a);
+    }
+  }
+  return H + (y - H) / HV_NEAR_K;
+}
+/** The horizontal scale at a world row: 1 down to the infield, blending to HV_NEAR_K over the blend rows. */
+function hvSX(y: number): number {
+  if (y <= HV_OLD[1]) return 1;
+  if (y >= HV_OLD[2]) return HV_NEAR_K;
+  return 1 + ((y - HV_OLD[1]) / (HV_OLD[2] - HV_OLD[1])) * (HV_NEAR_K - 1);
+}
+/** A drawn item's size at a world row (fielders and balls a little larger on the taller outfield, smaller near the plate). */
+function hvItemK(y: number): number {
+  if (y <= 160) return 1;
+  if (y <= 190) return 1 + ((y - 160) / 30) * 0.3;
+  if (y <= HV_OLD[1]) return 1.3;
+  if (y >= HV_OLD[2]) return HV_NEAR_K;
+  return 1.3 + ((y - HV_OLD[1]) / (HV_OLD[2] - HV_OLD[1])) * (HV_NEAR_K - 1.3);
+}
+/** Whether the frame being drawn is homerunRev 4's warped view (set by drawHomerunWorld for the frame). */
+let hvOn = false;
+/** A world point in the frame's view (identity when the view is not warped). */
+function hvPt(x: number, y: number): { x: number; y: number } {
+  if (!hvOn) return { x, y };
+  return { x: HV_AX + (x - HV_AX) * hvSX(y), y: hvY(y) };
+}
+/** A view point (world px of the stage) back to the world px the sim measures in: the exact inverse of the warp. */
+export function homerunV4ViewToWorld(x: number, y: number): { x: number; y: number } {
+  const wy = hvUnY(y);
+  return { x: HV_AX + (x - HV_AX) / hvSX(wy), y: wy };
+}
+/** A world point drawn in the view (for checks and the shots tool). */
+export function homerunV4WorldToView(x: number, y: number): { x: number; y: number } {
+  return { x: HV_AX + (x - HV_AX) * hvSX(y), y: hvY(y) };
+}
+/** Draws `paint` (in world px about (x, y)) at that point's place in the view, at its own shape scaled by `k`. */
+function hvAt(ctx: CanvasRenderingContext2D, x: number, y: number, paint: () => void, k = hvOn ? hvItemK(y) : 1): void {
+  if (!hvOn) {
+    paint();
+    return;
+  }
+  const q = hvPt(x, y);
+  ctx.save();
+  ctx.translate(q.x, q.y);
+  ctx.scale(k, k);
+  ctx.translate(-x, -y);
+  paint();
+  ctx.restore();
+}
+/** The near field's affine part of the warp (rows HV_OLD[2] and below), for the batter, the plate and the zone. */
+function hvNear(ctx: CanvasRenderingContext2D): void {
+  if (!hvOn) return;
+  ctx.translate(HV_AX - HV_AX * HV_NEAR_K, HV_NEW[2] - HV_OLD[2] * HV_NEAR_K);
+  ctx.scale(HV_NEAR_K, HV_NEAR_K);
+}
+
+/**
+ * The static park through the warp, over a view rectangle (world px of the stage): painted once at world px into an
+ * offscreen canvas wide and tall enough to cover the rectangle once warped, then copied in bands (the stands and the
+ * near field in one copy each, the outfield stretched in one, the blend in one-row strips). Painted straight (no warp)
+ * where no offscreen canvas exists.
+ */
+function paintWarpedPark(c: CanvasRenderingContext2D, plan: HomerunPlan | null, v: Extent): void {
+  const t = typeof c.getTransform === "function" ? c.getTransform() : null;
+  const ds = t ? Math.max(0.5, Math.min(4, Math.hypot(t.a, t.b))) : 1;
+  const x0o = HV_AX + (v.x0 - HV_AX) / HV_NEAR_K - 4;
+  const x1o = HV_AX + (v.x1 - HV_AX) / HV_NEAR_K + 4;
+  const y0o = Math.min(v.y0, 0) - 4;
+  const y1o = hvUnY(v.y1) + 4;
+  const e: Extent = { x0: x0o, x1: x1o, y0: y0o, y1: y1o };
+  const sw = Math.ceil((x1o - x0o) * ds);
+  const sh = Math.ceil((y1o - y0o) * ds);
+  const src = sw * sh <= 24_000_000 ? artCanvas(sw, sh) : null;
+  const sc = src ? (artContext(src) as CanvasRenderingContext2D | null) : null;
+  if (!src || !sc) {
+    paintHomerunPark(c, plan, v, true);
+    return;
+  }
+  sc.scale(ds, ds);
+  sc.translate(-x0o, -y0o);
+  sc.fillStyle = "#3E2B1C";
+  sc.fillRect(x0o, y0o, x1o - x0o, y1o - y0o);
+  paintHomerunPark(sc, plan, e, true);
+  const img = src as CanvasImageSource;
+  const band = (ya: number, yb: number) => {
+    if (yb <= ya) return;
+    const ua = hvUnY(ya);
+    const ub = hvUnY(yb);
+    const k = hvSX((ua + ub) / 2);
+    const oa = HV_AX + (v.x0 - HV_AX) / k;
+    const ob = HV_AX + (v.x1 - HV_AX) / k;
+    c.drawImage(img, (oa - x0o) * ds, (ua - y0o) * ds, (ob - oa) * ds, (ub - ua) * ds, v.x0, ya, v.x1 - v.x0, yb - ya + 0.6);
+  };
+  band(v.y0, Math.min(v.y1, HV_NEW[0]));
+  band(Math.max(v.y0, HV_NEW[0]), Math.min(v.y1, HV_NEW[1]));
+  for (let y = Math.max(v.y0, HV_NEW[1]); y < Math.min(v.y1, HV_NEW[2]); y += 1) band(y, Math.min(y + 1, HV_NEW[2]));
+  band(Math.max(v.y0, HV_NEW[2]), v.y1);
 }
 
 /** The outfield's panoramic mapping: spray angle (tenths of a degree, + = left field) → screen x. */
@@ -327,9 +459,12 @@ function fielderAt(f: Pick<HomerunFielder, "spray" | "feet">): { x: number; y: n
 /** A fielder's catch area: a soft disc on the grass (its sim area: ±half degrees, ±depth feet). */
 function paintCatchArea(ctx: CanvasRenderingContext2D, f: HomerunFielder, alpha = 1): void {
   const c = fielderAt(f);
-  const rx = (f.half / 10) * 4;
-  const ry = Math.max(3, (homerunGroundY(f.feet - f.depth) - homerunGroundY(f.feet + f.depth)) / 2);
-  const cy = (homerunGroundY(f.feet - f.depth) + homerunGroundY(f.feet + f.depth)) / 2;
+  // Its near and far edges through the frame's view (homerunRev 4's warp; identity otherwise).
+  const near = hvPt(c.x, homerunGroundY(f.feet - f.depth));
+  const far = hvPt(c.x, homerunGroundY(f.feet + f.depth));
+  const rx = (f.half / 10) * 4 * (hvOn ? hvSX(c.y) : 1);
+  const ry = Math.max(3, (near.y - far.y) / 2);
+  const cy = (near.y + far.y) / 2;
   ctx.save();
   ctx.globalAlpha = alpha;
   ctx.fillStyle = "rgba(220,255,225,0.10)";
@@ -1292,7 +1427,7 @@ function paintFieldV4(ctx: CanvasRenderingContext2D, state: HomerunState, plan: 
       const u = Math.min(1, sinceLast / (60 + last.feet / 10));
       at = { ...at, x: at.x + (land.x - at.x) * u, y: at.y + (land.y - at.y) * u };
     }
-    paintFielder(ctx, at.x, at.y, at.s, i === catcher ? 1 : 0);
+    hvAt(ctx, at.x, at.y, () => paintFielder(ctx, at.x, at.y, at.s, i === catcher ? 1 : 0));
   }
   // The spot (the one standing; locked at the release, so a new tap after it shows for the next pitch).
   if (state.pitch < HOMERUN_PITCHES) {
@@ -1302,7 +1437,7 @@ function paintFieldV4(ctx: CanvasRenderingContext2D, state: HomerunState, plan: 
     const sy = locked ? state.pspotY ?? 193 : state.spotY ?? 193;
     const t = homerunV4Target(sx, sy);
     const risky = t.feet < homerunFence(t.spray) && now.some((f) => Math.abs(t.spray - f.spray) <= f.half && Math.abs(t.feet - f.feet) <= f.depth);
-    paintSpot(ctx, sx, sy, risky, locked, state.tick, still);
+    hvAt(ctx, sx, sy, () => paintSpot(ctx, sx, sy, risky, locked, state.tick, still), 1);
   }
 }
 
@@ -1533,6 +1668,64 @@ function paintCall(ctx: CanvasRenderingContext2D, hit: HomerunHit, pitch: Homeru
   ctx.restore();
 }
 
+/** A batted ball's flight point through the frame's view (its size scaled at its row). */
+function hvFlight(f: { x: number; y: number; r: number; done: boolean }): { x: number; y: number; r: number; done: boolean } {
+  if (!hvOn) return f;
+  return { ...f, ...hvPt(f.x, f.y), r: f.r * hvItemK(f.y) };
+}
+
+/**
+ * homerunRev 4's call (3 Nov 2026, display only): one banner along the bottom of the view, below the batter, so it never
+ * covers the field: the result on the left ("37 FT · IN PLAY", "HOME RUN · 412 FT"), the timing pill on the right
+ * ("LATE · 117 MS", gold "PERFECT").
+ */
+function paintCallBanner(ctx: CanvasRenderingContext2D, hit: HomerunHit, pitch: HomerunPitch, k: number, rev: number): void {
+  const t = outcomeText(hit);
+  const alpha = k < 100 ? Math.min(1, k / 4 + 0.25) : (120 - k) / 20;
+  const y0 = H - 40;
+  const h = 32;
+  ctx.save();
+  ctx.globalAlpha = Math.max(0, Math.min(1, alpha));
+  ctx.fillStyle = "rgba(6,9,18,0.82)";
+  ctx.beginPath();
+  ctx.roundRect(8, y0, W - 16, h, 16);
+  ctx.fill();
+  ctx.strokeStyle = t.gold ? "rgba(242,199,92,0.8)" : "rgba(255,255,255,0.16)";
+  ctx.lineWidth = 1;
+  ctx.stroke();
+  ctx.textBaseline = "middle";
+  ctx.textAlign = "left";
+  const timing = homerunTimingCall(hit, pitch, rev);
+  const label = timing ? (timing.perfect ? "PERFECT" : `${timing.label} · ${timing.ms} MS`) : "";
+  ctx.font = `800 11px ${MONO}`;
+  const pw = label ? Math.ceil(ctx.measureText(label).width) + 20 : 0;
+  // The result: the big word, then its detail after one dot, shrunk to fit the space left of the timing pill.
+  const text = t.small ? `${t.big} · ${t.small}` : t.big;
+  const room = W - 16 - 28 - (pw ? pw + 10 : 0);
+  let size = 17;
+  ctx.font = `800 ${size}px ${ARCADE_FX_DISPLAY_FONT}`;
+  while (size > 11 && ctx.measureText(text).width > room) {
+    size -= 1;
+    ctx.font = `800 ${size}px ${ARCADE_FX_DISPLAY_FONT}`;
+  }
+  ctx.fillStyle = t.gold ? "#F2C75C" : "#F3F1EC";
+  ctx.fillText(text, 22, y0 + h / 2 + 0.5);
+  if (label && timing) {
+    const px0 = W - 8 - 6 - pw;
+    ctx.fillStyle = timing.perfect ? "rgba(242,199,92,0.95)" : "rgba(255,255,255,0.08)";
+    ctx.beginPath();
+    ctx.roundRect(px0, y0 + 5, pw, h - 10, (h - 10) / 2);
+    ctx.fill();
+    ctx.strokeStyle = timing.perfect ? "rgba(255,240,200,0.9)" : "rgba(255,255,255,0.25)";
+    ctx.stroke();
+    ctx.font = `800 11px ${MONO}`;
+    ctx.textAlign = "center";
+    ctx.fillStyle = timing.perfect ? "#1A1206" : "#F3F1EC";
+    ctx.fillText(label, px0 + pw / 2, y0 + h / 2 + 0.5);
+  }
+  ctx.restore();
+}
+
 /** The radar board's reading for the last pitch thrown, once it is decided (never before). */
 function paintRadarReading(ctx: CanvasRenderingContext2D, pitch: HomerunPitch, k: number): void {
   if (k < 0 || k > 170) return;
@@ -1572,12 +1765,21 @@ function homerunFxFor(viewH: number): typeof HOMERUN_FX {
 }
 
 function drawHomerunWorld(ctx: CanvasRenderingContext2D, state: HomerunState, viewH: number = H): void {
+  hvOn = state.rev >= HOMERUN_REV_4 && viewH <= H;
+  try {
+    drawHomerunFrame(ctx, state, viewH);
+  } finally {
+    hvOn = false;
+  }
+}
+
+function drawHomerunFrame(ctx: CanvasRenderingContext2D, state: HomerunState, viewH: number): void {
   const plan = homerunPlan(state.seed, state.rev);
   const v4 = state.rev >= HOMERUN_REV_4;
   if (viewH > H) {
     const e: Extent = { ...WORLD_EXTENT, y1: viewH + 8 };
     deviceLayer(ctx, `homerun-park2:${state.seed}:${viewH}`, (c) => paintHomerunPark(c, plan, e));
-  } else if (v4) deviceLayer(ctx, `homerun-park4:${state.seed}`, (c) => paintHomerunPark(c, plan, WORLD_EXTENT, true));
+  } else if (v4) deviceLayer(ctx, `homerun-park4w:${state.seed}`, (c) => paintWarpedPark(c, plan, WORLD_EXTENT));
   else deviceLayer(ctx, `homerun-park2:${state.seed}`, (c) => paintHomerunPark(c, plan));
   const still = reducedMotion();
 
@@ -1638,11 +1840,12 @@ function drawHomerunWorld(ctx: CanvasRenderingContext2D, state: HomerunState, vi
 
   // The pitcher (homerunRev 3: his tell late in the wind-up, and the grip bubble beside him).
   const tellK = state.rev === HOMERUN_REV_3 && cur ? homerunTellAlpha(cur, state.tick) : 0;
-  paintPitcher(ctx, PITCHER_FEET.x, PITCHER_FEET.y, PITCHER_H, pitcherPhase(state), tellK > 0 && cur ? { kind: cur.kind, k: tellK } : undefined);
+  hvAt(ctx, PITCHER_FEET.x, PITCHER_FEET.y, () => paintPitcher(ctx, PITCHER_FEET.x, PITCHER_FEET.y, PITCHER_H, pitcherPhase(state), tellK > 0 && cur ? { kind: cur.kind, k: tellK } : undefined));
   if (tellK > 0 && cur) paintTellBubble(ctx, cur.kind, tellK);
 
-  // The faint dashed strike zone.
+  // The faint dashed strike zone (with the batter, under the near field's part of the view).
   ctx.save();
+  hvNear(ctx);
   ctx.setLineDash([5, 5]);
   ctx.strokeStyle = "rgba(255,255,255,0.26)";
   ctx.lineWidth = 1;
@@ -1651,19 +1854,25 @@ function drawHomerunWorld(ctx: CanvasRenderingContext2D, state: HomerunState, vi
 
   // The batter and his swing (the pitch is drawn over him: it is nearer the plate than he is once it arrives).
   const sw = shownSwing(state, plan);
+  ctx.save();
+  hvNear(ctx);
   if (sw) {
     const k = state.tick - sw.st;
     const blur = !still && k > 0 && k <= HOMERUN_SWING_TICKS + 3 ? [swingPose(k - 0.66, sw.a, sw.b, sw.pitch.plateX), swingPose(k - 0.33, sw.a, sw.b, sw.pitch.plateX)] : [];
     paintBatter(ctx, swingPose(k, sw.a, sw.b, sw.pitch.plateX), blur);
   } else paintBatter(ctx, STANCE);
+  ctx.restore();
 
   // The pitch in flight (and a pitch taken or missed, carrying on past the plate).
   const p = homerunCurrent(state);
   if (p) {
-    const b = homerunBallAt(p, state.tick, state.rev);
-    if (b) {
-      const prev = homerunBallAt(p, Math.max(p.release, state.tick - 2), state.rev);
-      const r = pitchR(b.u);
+    const raw = homerunBallAt(p, state.tick, state.rev);
+    if (raw) {
+      const rawPrev = homerunBallAt(p, Math.max(p.release, state.tick - 2), state.rev);
+      // Through the view (homerunRev 4's warp): the pitch's place and size at its row; identity otherwise.
+      const b = { ...raw, ...hvPt(raw.x, raw.y) };
+      const prev = rawPrev ? hvPt(rawPrev.x, rawPrev.y) : null;
+      const r = pitchR(b.u) * (hvOn ? hvItemK(raw.y) : 1);
       if (prev && b.u > 0.3) {
         ctx.save();
         ctx.strokeStyle = "rgba(255,255,255,0.16)";
@@ -1685,13 +1894,14 @@ function drawHomerunWorld(ctx: CanvasRenderingContext2D, state: HomerunState, vi
     const k = sinceLast;
     if (last.out === OUT_CAUGHT) {
       // Caught: the ball flies out to the fielder's glove and stays there.
-      const f = homerunFlight(last, { x: lastPitch.plateX, y: lastPitch.plateY }, k, undefined, state.rev);
+      const f = hvFlight(homerunFlight(last, { x: lastPitch.plateX, y: lastPitch.plateY }, k, undefined, state.rev));
       if (!f.done) paintBall(ctx, f.x, f.y, f.r, k * 0.6);
     } else if (last.out === OUT_FAIR || last.out === OUT_HOMER || last.out === OUT_FOUL) {
-      const f = homerunFlight(last, { x: lastPitch.plateX, y: lastPitch.plateY }, k, last.sign >= 0 && !v4 ? plan.signs[last.sign] : undefined, state.rev);
+      const f = hvFlight(homerunFlight(last, { x: lastPitch.plateX, y: lastPitch.plateY }, k, last.sign >= 0 && !v4 ? plan.signs[last.sign] : undefined, state.rev));
       if (!f.done || k < 140) {
         if (k < 6 && !still) {
           ctx.save();
+          hvNear(ctx);
           ctx.globalCompositeOperation = "lighter";
           const g = ctx.createRadialGradient(lastPitch.plateX, lastPitch.plateY, 0, lastPitch.plateX, lastPitch.plateY, 36);
           g.addColorStop(0, `rgba(255,240,200,${0.75 - k * 0.11})`);
@@ -1713,9 +1923,15 @@ function drawHomerunWorld(ctx: CanvasRenderingContext2D, state: HomerunState, vi
     } else if (k < 20) {
       // Missed or taken: the ball carries on past the plate, down and out of the picture.
       const u = k / 20;
+      ctx.save();
+      hvNear(ctx);
       paintBall(ctx, lastPitch.plateX + lastPitch.breakX * 0.3 * u, lastPitch.plateY + 140 * u + 60 * u * u, pitchR(1) * (1 + 0.8 * u), state.tick * 0.9);
+      ctx.restore();
     }
-    if (k >= 0 && k < 120) paintCall(ctx, last, lastPitch, k, state.rev);
+    if (k >= 0 && k < 120) {
+      if (hvOn) paintCallBanner(ctx, last, lastPitch, k, state.rev);
+      else paintCall(ctx, last, lastPitch, k, state.rev);
+    }
   }
 
   // HUD chips along the top (nothing names the pitch before it is thrown).
@@ -1761,6 +1977,21 @@ export function homerunScene(ctx: CanvasRenderingContext2D, view: ArenaSceneView
     g.addColorStop(1, "rgba(10,6,3,0.35)");
     ctx.fillStyle = g;
     ctx.fillRect(e.x0, H + 60, e.x1 - e.x0, view.bottom - H - 60);
+  }
+}
+
+/** homerunRev 4's scenery beyond the world: the same park through the same warp, so the box's edges carry on with no seam. */
+export function homerunSceneV4(ctx: CanvasRenderingContext2D, view: ArenaSceneView): void {
+  const v: Extent = { x0: view.left - 2, x1: view.right + 2, y0: Math.min(view.top, 0) - 2, y1: view.bottom + 2 };
+  ctx.fillStyle = "#3E2B1C";
+  ctx.fillRect(v.x0, v.y0, v.x1 - v.x0, v.y1 - v.y0);
+  paintWarpedPark(ctx, null, v);
+  if (view.bottom > H + 60) {
+    const g = ctx.createLinearGradient(0, H + 60, 0, view.bottom);
+    g.addColorStop(0, "rgba(10,6,3,0)");
+    g.addColorStop(1, "rgba(10,6,3,0.35)");
+    ctx.fillStyle = g;
+    ctx.fillRect(v.x0, H + 60, v.x1 - v.x0, view.bottom - H - 60);
   }
 }
 

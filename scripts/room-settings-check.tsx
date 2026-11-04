@@ -339,8 +339,10 @@ for (const stored of [["action", "rounds:6"], ["word", "action", "rounds:9"], ["
 check(same(readRoomSettings(["retro", "rounds:6"]).settings.picks, ["retro"]), "a pre-split room without Action reads as it was");
 const postSplit = encodeRoomSettings({ picks: ["action"], rounds: 3 });
 check(postSplit.includes(GROUPS_TOKEN) && same(readRoomSettings(postSplit).settings.picks, ["action"]), "Action alone saved after the split stays Action alone");
-// High Rise went back from Strategy to Action on 3 Nov 2026 (Joe's decision).
-check(same(pickTypes("action"), ["slice", "flip", "swing", "ricochet", "bastion", "skyline"]) && same(pickTypes("strategy"), ["tilt", "matchup", "bubble", "inkbridge", "balltrack"]), "Action keeps Slice, Roofbound, Grappler (and Ricochet, back on 1 Nov 2026, and High Rise, back on 3 Nov 2026); Strategy is the five moved games");
+// High Rise went back from Strategy to Action on 3 Nov 2026 (Joe's decision), and Orbit moved from Retro to Action the
+// same day (Joe's audit).
+check(!pickTypes("retro").includes("orbit" as never), "Orbit is no longer a Retro game");
+check(same(pickTypes("action"), ["slice", "flip", "swing", "ricochet", "bastion", "skyline", "orbit"]) && same(pickTypes("strategy"), ["tilt", "matchup", "bubble", "inkbridge", "balltrack"]), "Action keeps Slice, Roofbound, Grappler (and Ricochet, back on 1 Nov 2026, High Rise, back on 3 Nov 2026, and Orbit, from Retro on 3 Nov 2026); Strategy is the five moved games");
 check(same(readRoomSettings(["word", "memory", "arcade"]).categories, ["word", "arcade"]), "an older room keeps its categories for its deal");
 const start = /export const startRoomFn[\s\S]*?\n {2}\}\);/.exec(fns)?.[0] ?? "";
 check(/stored\.legacy \? undefined : dealRoomRounds\(stored\.settings/.test(start) && /normaliseCategories\(room\.selected_categories\)/.test(start), "startRoomFn deals older rooms with pickRoundOrder on their categories, saved rooms from their settings");

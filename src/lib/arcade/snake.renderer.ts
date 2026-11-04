@@ -11,7 +11,7 @@ import {
 import type { ArcadeGame, ArcadeInputEvent, CanvasSize } from "./engine";
 import { reducedMotion } from "./art.renderer";
 import { artCanvas, artContext, type ArtCanvas } from "./cache.renderer";
-import { retroClock, retroScreen, retroText, RETRO_BLACK, RETRO_RED, RETRO_WHITE } from "./retro.renderer";
+import { retroClock, retroHud, retroScreen, retroText, RETRO_BLACK, RETRO_RED, RETRO_WHITE, type RetroHudItem } from "./retro.renderer";
 import { arcadeReducedEffects } from "../fx/lowEnd";
 import { FX_PARTICLE_LIMIT } from "../fx/limits";
 import { addPop, backdrop, blob, drawPops, glow, linear, pixelStars } from "./polishA1.renderer";
@@ -116,20 +116,31 @@ export function paintStamp(c: CanvasRenderingContext2D, kind: "bead" | "head" | 
     c.fillRect(middle - 4, middle - 7, 2, 2);
     c.globalAlpha = 1;
   } else if (kind === "star") {
+    // 3 Nov 2026 (Joe's audit; display only): larger and brighter, still inside its cell. A soft gold light
+    // round the whole cell, then a bigger four-pointed pixel star (18 px across) with a white-gold heart.
+    // The light: a soft pixel diamond, brightest at the heart (blocks only, no gradient).
+    for (let d = 10; d >= 2; d -= 4) {
+      c.fillStyle = `rgba(255,233,168,${(0.34 - d * 0.024).toFixed(3)})`;
+      for (let k = 0; k <= d; k += 2) c.fillRect(middle - d + k, middle - k - 1, 2 * (d - k), 2 * k + 2);
+    }
     c.fillStyle = PELLET;
     c.shadowColor = PELLET;
-    c.shadowBlur = 1.5 * ratio;
+    c.shadowBlur = 3 * ratio;
     // Four pointed pixel star; no soft/gradient geometry.
-    c.fillRect(middle - 1, middle - 6, 2, 12);
-    c.fillRect(middle - 6, middle - 1, 12, 2);
-    c.fillRect(middle - 3, middle - 3, 6, 6);
+    c.fillRect(middle - 1, middle - 9, 2, 18);
+    c.fillRect(middle - 9, middle - 1, 18, 2);
+    c.fillRect(middle - 2, middle - 6, 4, 12);
+    c.fillRect(middle - 6, middle - 2, 12, 4);
+    c.fillRect(middle - 4, middle - 4, 8, 8);
     c.shadowBlur = 0;
     // Polish A1: a white-gold heart, so the star reads as light.
     c.fillStyle = "#FFF3C4";
-    c.fillRect(middle - 1, middle - 4, 2, 8);
-    c.fillRect(middle - 4, middle - 1, 8, 2);
+    c.fillRect(middle - 1, middle - 6, 2, 12);
+    c.fillRect(middle - 6, middle - 1, 12, 2);
+    c.fillRect(middle - 2, middle - 2, 4, 4);
     c.fillStyle = RETRO_WHITE;
-    c.fillRect(middle - 1, middle - 1, 2, 2);
+    c.fillRect(middle - 1, middle - 2, 2, 4);
+    c.fillRect(middle - 2, middle - 1, 4, 2);
   } else {
     paintComet(c, kind, level, tail);
   }
@@ -159,7 +170,9 @@ function paintComet(c: CanvasRenderingContext2D, kind: "bead" | "head", level: n
   const colour = rgbHex(mixRgb(colours[step]!, colours[step + 1]!, at - step));
   // Head: core to rim 10.5 px (larger than any segment) and a halo out to the cell's edge. Segments: 9 px
   // just behind the head tapering to 4 px at the tip, fading as they go.
-  const solid = kind === "head" ? 10.5 : 9 - 5 * along;
+  // 3 Nov 2026 (Joe's audit; display only): a fuller body so a short early comet reads at a glance: 11 px just
+  // behind the head tapering to 6 px at the tip (was 9 to 4), the head 11 px; all inside the cell.
+  const solid = kind === "head" ? 11 : 11 - 5 * along;
   const haloTo = kind === "head" ? middle : Math.min(middle, solid + 3);
   const fade = kind === "head" ? 1 : 1 - 0.6 * along;
   for (let y = 0; y < SNAKE_CELL; y += STEP) {
@@ -325,25 +338,34 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: SnakeState, key: Canvas
   const rewardPoint=memo.eatCell>=0?point(memo.eatCell):point(state.body[0]??0);
   successFrame(ctx,{id:'snake',tick:state.tick,count:state.eaten,colour:ACCENT,width:W,height:SNAKE_WORLD_H,point:{...rewardPoint,shape:'spark'},hud:{x:14,y:22,text:`STARS ${snakeCoreStars(state)}`}});
   ctx.restore();
-  // Same 1UP readout, without a per-frame text blur.
   const on = Math.floor(retroClock() / 500) % 2 === 0;
-  retroText(ctx, "1UP", 14, 10, 8, on ? RETRO_RED : "rgba(255,59,92,0.35)");
   drawPops(ctx, key, W);
-  successHud(ctx,'snake',state.tick,14,22,()=>{retroText(ctx, `STARS ${snakeCoreStars(state)}`, 14, 22, 10, RETRO_WHITE);});
+  // One Retro HUD (3 Nov 2026): stars top left; top right the combo while it scores (else the bonus so far,
+  // snakeRev 9+) over the rocks or a rock warning. No "1UP".
+  let first: RetroHudItem | null = null;
+  if (state.exp) {
+    const combo = state.combo ?? 0;
+    // snakeRev 11: the combo shows while its 3 s window is open.
+    const quick = state.tick - (state.lastStar ?? -9999) <= (state.std ? SNAKE_STD_COMBO_TICKS : 150);
+    first = combo >= 2 && quick
+      ? { text: `COMBO x${combo}`, colour: combo >= 3 ? GOLD : RETRO_WHITE }
+      : { text: `BONUS +${snakeV9Bonus(state).total}`, colour: GOLD };
+  }
+  let second: RetroHudItem | null = null;
   if (state.rev) {
     const rocks = state.rocks?.length ?? 0;
     const falling = (state.rockWarn ?? -1) >= 0;
     const shower = (state.showerWarn ?? []).length > 0;
-    retroText(ctx, shower ? "METEOR SHOWER!" : falling ? "ROCK INCOMING" : `ROCKS ${rocks}`, W - 14, 22, 8, (falling || shower) && on ? RETRO_RED : "rgba(255,255,255,0.6)", "right");
+    second = {
+      text: shower ? "METEOR SHOWER!" : falling ? "ROCK INCOMING" : `ROCKS ${rocks}`,
+      colour: (falling || shower) && on ? RETRO_RED : "rgba(255,255,255,0.7)",
+    };
   }
-  if (state.exp) {
-    // snakeRev 9's HUD line: the combo (gold while it scores) and the skill bonus so far.
-    const combo = state.combo ?? 0;
-    // snakeRev 11: the combo shows while its 3 s window is open.
-    const quick = state.tick - (state.lastStar ?? -9999) <= (state.std ? SNAKE_STD_COMBO_TICKS : 150);
-    retroText(ctx, combo >= 2 && quick ? `COMBO x${combo}` : "", W / 2, 22, 10, combo >= 3 ? GOLD : RETRO_WHITE, "center");
-    retroText(ctx, `BONUS +${snakeV9Bonus(state).total}`, W - 14, 8, 8, GOLD, "right");
-  }
+  retroHud(ctx, W, { text: `STARS ${snakeCoreStars(state)}` }, [first, second], {
+    // No per-frame text blur on Meteor (snake-renderer-check).
+    glow: 0,
+    wrapMain: (draw) => successHud(ctx, "snake", state.tick, 12, 8, draw),
+  });
 }
 
 /**
@@ -421,7 +443,7 @@ function paintSpace(c: CanvasRenderingContext2D, rows: number, worldH: number, W
   blob(c, W * 0.86, worldH * 0.7, W * 0.58, "#137A78", 0.34, 1.35);
   blob(c, W * 0.55, worldH * 0.48, W * 0.36, "#7A3FC4", 0.16, 1.1);
   blob(c, W * 0.12, worldH * 0.84, W * 0.32, "#1FA8A0", 0.14, 1.2);
-  pixelStars(c, 0, 0, W, worldH, 150, 512, ["#FFFFFF", "#CFC4FF", "#9FF5EA", "#FFE9A8"], 0.85);
+  pixelStars(c, 0, 0, W, worldH, 190, 512, ["#FFFFFF", "#CFC4FF", "#9FF5EA", "#FFE9A8"], 1);
   // The board's edge: a soft light just inside and outside the frame (the live border is drawn over it).
   const bx = boardX, by = SNAKE_BOARD_Y;
   c.globalAlpha = 1;
@@ -664,14 +686,15 @@ function drawFeatures(ctx: CanvasRenderingContext2D, state: SnakeState, motion: 
   warps.forEach((cell, i) => {
     const p = point(cell);
     const colour = WARP_COLOURS[i >> 1] ?? WARP_COLOURS[0];
-    glow(ctx, colour, p.x, p.y, 11, 11, 0.45 + 0.4 * flash);
+    // 3 Nov 2026 (Joe's audit; display only): a larger mouth and rings, to the cell's edge (2 px past it at most).
+    glow(ctx, colour, p.x, p.y, 14, 14, 0.6 + 0.35 * flash);
     ctx.fillStyle = "#05030C";
     ctx.beginPath();
-    ctx.arc(p.x, p.y, 7, 0, Math.PI * 2);
+    ctx.arc(p.x, p.y, 9, 0, Math.PI * 2);
     ctx.fill();
     const turn = motion ? state.tick * 0.08 * (i % 2 ? -1 : 1) : 0;
-    dashedRing(ctx, p.x, p.y, 10, 18, turn, colour, 0.9);
-    dashedRing(ctx, p.x, p.y, 6, 10, -turn * 1.6, "#FFFFFF", 0.55 + 0.45 * flash);
+    dashedRing(ctx, p.x, p.y, 12, 22, turn, colour, 1);
+    dashedRing(ctx, p.x, p.y, 7.5, 12, -turn * 1.6, "#FFFFFF", 0.65 + 0.35 * flash);
   });
   // The gold comet star: the star sprite on a gold glow, fading as it runs out, with a timer ring.
   const gold = state.gold ?? -1;

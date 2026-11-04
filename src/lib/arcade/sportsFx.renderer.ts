@@ -10,8 +10,8 @@ import { racingFxCounts, RACING_WORLD_H, RACING_WORLD_W, type RacingState } from
 import { px } from "./engine";
 import { MINIGOLF_H, MINIGOLF_HOLES, MINIGOLF_W, type MinigolfState } from "./minigolf";
 import { POOL_H, POOL_SPOTS, POOL_W, type PoolState } from "./pool";
-import { curlShotTeam, curlTakeouts, CURL_STONE_PTS, CURLING_H, CURLING_H_V2, CURLING_STONES, CURLING_W, TEAM_MINE, type CurlingState } from "./curling";
-import { curlProject, CURL_VIEW_V1, CURL_VIEW_V2 } from "./curling.renderer";
+import { curlShotTeam, curlTakeouts, CURL_STONE_PTS, CURLING_H, CURLING_H_V2, CURLING_H_V4, CURLING_STONES, CURLING_W, TEAM_MINE, type CurlingState } from "./curling";
+import { curlProject, CURL_VIEW_V1, CURL_VIEW_V2, CURL_VIEW_V4 } from "./curling.renderer";
 
 const homerunMisses = (s: HomerunState) => s.hits.filter((h) => h.out === OUT_WHIFF || h.out === OUT_TAKEN || h.out === OUT_FOUL || h.out === OUT_CAUGHT).length;
 
@@ -123,8 +123,8 @@ export const POOL_FX: ArcadeFxSpec<PoolState> = {
 };
 
 /** Curling's success layer on a revision's view (curlRev 1: 390 × 720; curlRev 2: 390 × 540). */
-function curlingFx(rev: 1 | 2): ArcadeFxSpec<CurlingState> {
-  const view = rev === 2 ? CURL_VIEW_V2 : CURL_VIEW_V1;
+function curlingFx(rev: 1 | 2 | 4): ArcadeFxSpec<CurlingState> {
+  const view = rev === 4 ? CURL_VIEW_V4 : rev === 2 ? CURL_VIEW_V2 : CURL_VIEW_V1;
   const houseAt = () => {
     const p = curlProject(0, 0, view);
     return { x: p.sx, y: p.sy };
@@ -133,7 +133,7 @@ function curlingFx(rev: 1 | 2): ArcadeFxSpec<CurlingState> {
     game: "curling",
     world: "realworld",
     width: CURLING_W,
-    height: rev === 2 ? CURLING_H_V2 : CURLING_H,
+    height: rev === 4 ? CURLING_H_V4 : rev === 2 ? CURLING_H_V2 : CURLING_H,
     fit: "world",
     shake: false,
     events: [
@@ -150,4 +150,6 @@ export const CURLING_FX: ArcadeFxSpec<CurlingState> = curlingFx(2);
 /** curlRev 1's success layer (its taller world). */
 export const CURLING_FX_V1: ArcadeFxSpec<CurlingState> = curlingFx(1);
 /** The success layer for a stored curlRev. */
-export const curlingFxFor = (rev: number | null | undefined): ArcadeFxSpec<CurlingState> => ((rev ?? 1) >= 2 ? CURLING_FX : CURLING_FX_V1);
+/** curlRev 4's view (3 Nov 2026, display only): the same events on its taller world. */
+export const CURLING_FX_V4: ArcadeFxSpec<CurlingState> = curlingFx(4);
+export const curlingFxFor = (rev: number | null | undefined): ArcadeFxSpec<CurlingState> => ((rev ?? 1) >= 4 ? CURLING_FX_V4 : (rev ?? 1) >= 2 ? CURLING_FX : CURLING_FX_V1);

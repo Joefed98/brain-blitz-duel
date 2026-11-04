@@ -34,7 +34,7 @@ import {
 } from "./beat";
 import type { ArcadeGame, ArcadeInputEvent, CanvasSize } from "./engine";
 import { blob, glow, linear } from "./polishA1.renderer";
-import { pixelRect, retroBloom, retroNeon, retroReadout, retroScreen, retroText, RETRO_RED, RETRO_WHITE } from "./retro.renderer";
+import { pixelRect, retroBloom, retroNeon, retroHud, retroScreen, retroText, RETRO_RED, RETRO_WHITE } from "./retro.renderer";
 
 /** beatRev 9's fifth lane takes a hot pink (the four lanes keep their colours). */
 const NEON = [...BEAT_LANE_COLOURS, "#FF6FAE"].map(retroNeon);
@@ -186,7 +186,15 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: BeatState): void {
   for (let lane = 0; lane < LANES; lane++) pixelRect(ctx, lane * laneW, BEAT_HUD_H - 2, laneW, 2, `${NEON[lane]!}90`);
   const reward=successFrame(ctx,{id:'beat',tick:state.tick,count:state.combo,eventTick:state.lastJudge===1?state.tick-state.judgeAge:0,misses:state.misses,every:10,colour:tier>=3?GOLD:tier===2?SUCCESS_ACCENTS.pink:SUCCESS_ACCENTS.cyan,width:BEAT_WORLD_W,height:BEAT_WORLD_H,point:{x:laneX(Math.max(0,state.lastLane)),y:BEAT_HIT_LINE_Y,shape:'ring',radius:6},hud:{x:12,y:20,text:`COMBO ${state.combo}`}});
   if(state.lastJudge===1&&state.judgeAge<10){ctx.save();ctx.globalAlpha=.45*(1-state.judgeAge/10);ctx.strokeStyle=RETRO_WHITE;ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(laneX(Math.max(0,state.lastLane)),BEAT_HIT_LINE_Y,8+state.judgeAge*3,3,0,0,Math.PI*2);ctx.stroke();ctx.restore();}
-  successHud(ctx,'beat',state.tick,12,20,()=>{retroReadout(ctx, 12, 2, `COMBO ${state.combo}`, RETRO_WHITE);});
+  // One Retro HUD (3 Nov 2026): the combo top left, the bonus so far top right; the fever bar (beatRev 9+) is
+  // the strip's second row, full width. No "1UP".
+  retroHud(
+    ctx,
+    BEAT_WORLD_W,
+    { text: `COMBO ${state.combo}` },
+    [state.exp ? { text: `BONUS +${state.std ? beatStdBonus(state) : beatV9Bonus(state).paid}`, colour: GOLD } : null],
+    { top: 4, wrapMain: (draw) => successHud(ctx, "beat", state.tick, 12, 4, draw) },
+  );
   if (state.exp) drawMeter(ctx, state);
 }
 
@@ -438,19 +446,27 @@ const v9Memos = new WeakMap<CanvasRenderingContext2D, V9Memo>();
  * Under it, one feature moment at a time ("GOLD +1", "DOUBLE!", "FEVER!") floats up for half a second.
  */
 function drawMeter(ctx: CanvasRenderingContext2D, state: BeatState): void {
-  const x = 150, y = 14, w = 140, h = 12;
+  // 3 Nov 2026 (Joe's audit, display only): the bar is the HUD strip's whole second row, a bright pink frame
+  // round a dark well, filling cyan → gold, pink while fever drains, glowing once full; the label sits inside.
+  const x = 12, y = 23, w = BEAT_WORLD_W - 24, h = 15;
   const fever = state.fever ?? 0;
   const full = (state.meter ?? 0) >= BEAT_FEVER_FULL;
   const share = fever > 0 ? fever / BEAT_FEVER_TICKS : (state.meter ?? 0) / BEAT_FEVER_FULL;
-  pixelRect(ctx, x, y, w, h, "rgba(255,255,255,0.12)");
-  pixelRect(ctx, x, y, Math.round(w * share), h, fever > 0 ? FEVER_PINK : full ? GOLD : NEON[0]!);
-  pixelRect(ctx, x, y, w, 1, "rgba(255,255,255,0.4)");
   const blink = reducedMotion() || Math.floor(state.tick / 15) % 2 === 0;
-  // beatRev 11 (the scoring standard): fever is its own fixed part, no longer ×2.
-  if (fever > 0) retroText(ctx, state.std ? "FEVER!" : "FEVER x2", x + w / 2, y + 2, 8, RETRO_WHITE, "center");
-  else if (full) retroText(ctx, "TAP FEVER!", x + w / 2, y + 2, 8, blink ? "#000000" : RETRO_WHITE, "center");
-  else retroText(ctx, "FEVER", x + w / 2, y + 2, 8, "rgba(255,255,255,0.75)", "center");
-  retroText(ctx, `+${state.std ? beatStdBonus(state) : beatV9Bonus(state).paid}`, BEAT_WORLD_W - 10, y + 2, 8, GOLD, "right");
+  pixelRect(ctx, x, y, w, h, "#2A0A26");
+  const fillW = Math.round((w - 4) * Math.min(1, share));
+  if (fillW > 0) {
+    ctx.fillStyle = fever > 0 ? FEVER_PINK : linear(ctx, x, 0, x + w, 0, [[0, NEON[0]!], [1, GOLD]]);
+    ctx.fillRect(x + 2, y + 2, fillW, h - 4);
+    pixelRect(ctx, x + 2, y + 2, fillW, 2, "rgba(255,255,255,0.45)");
+  }
+  const frame = fever > 0 || full ? (blink ? GOLD : FEVER_PINK) : FEVER_PINK;
+  pixelRect(ctx, x, y, w, 2, frame, full || fever > 0 ? retroBloom() : 0);
+  pixelRect(ctx, x, y + h - 2, w, 2, frame);
+  pixelRect(ctx, x, y, 2, h, frame);
+  pixelRect(ctx, x + w - 2, y, 2, h, frame);
+  const label = fever > 0 ? (state.std ? "FEVER!" : "FEVER x2") : full ? "TAP FEVER!" : "FEVER";
+  retroText(ctx, label, x + w / 2, y + 4, 8, full && !fever && !blink ? "#000000" : RETRO_WHITE, "center");
   let memo = v9Memos.get(ctx);
   const now = { tick: state.tick, gold: state.goldsHit ?? 0, fevers: state.fevers ?? 0, doubles: state.doublesDone ?? 0 };
   if (!memo || state.tick < memo.tick) memo = { ...now, at: -99, text: "", colour: GOLD };

@@ -5,7 +5,8 @@
  * border takes its group's colour. Strategy (1 Nov 2026) was split out of Action: Coral Pop, Gemstone, Ball
  * Tracker, Tilt, Rainbow Bridge and High Rise moved, the rest of Action stayed. A room saved with the Action pick
  * before the split still deals both groups' games (roomSettings.ts `GROUPS_TOKEN`). High Rise moved back from Strategy
- * to Action on 3 Nov 2026 (Joe's decision). A game's group here is its main one; a game listed also in a group
+ * to Action on 3 Nov 2026 (Joe's decision), and Orbit moved from Retro to Action the same day (Joe's audit); as with
+ * High Rise, a saved room's picks are unchanged and the game now deals under its new group. A game's group here is its main one; a game listed also in a group
  * (Pull! in Sports) is in alsoIn.ts, never here, so it keeps its own border and counts. Arcade rounds, the daily
  * arcade and scoring never read this: Arcade stays one category there.
  *
@@ -34,9 +35,9 @@ export const ARCADE_GROUPS: readonly ArcadeGroupInfo[] = [
     label: "Retro",
     colour: "#36E2F5",
     glow: true,
-    // Hover, Breaker, Rally, Wavefront, Fission, Tempo, Meteor, Orbit, Jaywalk, Pinball.
-    // Blockfall (1 Nov 2026).
-    games: ["hover", "breaker", "rally", "wavefront", "burst", "beat", "snake", "orbit", "cross", "pinball", "blockfall"],
+    // Hover, Breaker, Rally, Wavefront, Fission, Tempo, Meteor, Spacewalk (Jaywalk until 3 Nov 2026), Pinball.
+    // Blockfall (1 Nov 2026). Orbit moved to Action on 3 Nov 2026 (Joe's audit).
+    games: ["hover", "breaker", "rally", "wavefront", "burst", "beat", "snake", "cross", "pinball", "blockfall"],
   },
   {
     id: "sports",
@@ -61,8 +62,9 @@ export const ARCADE_GROUPS: readonly ArcadeGroupInfo[] = [
     colour: "#FF4D4D",
     glow: false,
     // Slice, Roofbound, Grappler, Ricochet (the ninja wall-climb, back from retirement on ricoRev 2, 1 Nov 2026), Bastion
-    // (bastionRev 2, 1 Nov 2026), High Rise (back from Strategy, 3 Nov 2026).
-    games: ["slice", "flip", "swing", "ricochet", "bastion", "skyline"],
+    // (bastionRev 2, 1 Nov 2026), High Rise (back from Strategy, 3 Nov 2026), Orbit (from Retro, 3 Nov 2026: its HUD
+    // takes Action's pills, not the pixel font).
+    games: ["slice", "flip", "swing", "ricochet", "bastion", "skyline", "orbit"],
   },
   {
     id: "strategy",

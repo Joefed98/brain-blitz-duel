@@ -45,7 +45,7 @@ import {
   retroClock,
   retroEventAge,
   retroPaddle,
-  retroReadout,
+  retroHud,
   retroScreen,
   retroText,
   retroTrail,
@@ -108,6 +108,23 @@ function courtLayer(ctx: CanvasRenderingContext2D, RALLY_WORLD_H: number, RALLY_
   blob(c, RALLY_WORLD_W / 2, (top + RALLY_PADDLE_Y) / 2, RALLY_WORLD_W * 0.75, "#123A8C", 0.42, 1.55);
   blob(c, RALLY_WORLD_W / 2, (top + RALLY_PADDLE_Y) / 2, RALLY_WORLD_W * 0.38, "#1E5FC0", 0.16, 1.3);
   blob(c, RALLY_WORLD_W / 2, top + 10, RALLY_WORLD_W * 0.5, "#7A2C8C", 0.12, 0.5);
+  // The court surface (3 Nov 2026, Joe's audit; display only): a hard court in deep teal-blue set inside the
+  // walls, its own white lines round it, and a soft neon glow along every wall's inner edge so the court's edge reads.
+  const inset = 12;
+  const courtTop = top + inset;
+  const courtBottom = RALLY_PADDLE_Y + RALLY_PADDLE_H + 10;
+  c.fillStyle = linear(c, 0, courtTop, 0, courtBottom, [[0, "rgba(22,64,112,0.55)"], [1, "rgba(14,86,110,0.6)"]]);
+  c.fillRect(left + inset, courtTop, right - left - 2 * inset, courtBottom - courtTop);
+  c.fillStyle = "rgba(220,248,255,0.55)";
+  c.fillRect(left + inset, courtTop, right - left - 2 * inset, 2);
+  c.fillRect(left + inset, courtTop, 2, courtBottom - courtTop);
+  c.fillRect(right - inset - 2, courtTop, 2, courtBottom - courtTop);
+  for (const [x0, dir] of [[left, 1], [right, -1]] as const) {
+    c.fillStyle = linear(c, x0, 0, x0 + dir * 22, 0, [[0, "rgba(61,255,224,0.32)"], [1, "rgba(61,255,224,0)"]]);
+    c.fillRect(dir > 0 ? x0 : x0 - 22, top, 22, RALLY_WORLD_H - top);
+  }
+  c.fillStyle = linear(c, 0, top, 0, top + 22, [[0, "rgba(255,111,216,0.3)"], [1, "rgba(255,111,216,0)"]]);
+  c.fillRect(left, top, right - left, 22);
   const fade = Math.min(60, RALLY_WORLD_H - RALLY_PADDLE_Y);
   c.fillStyle = linear(c, 0, RALLY_WORLD_H - fade, 0, RALLY_WORLD_H, [[0, "rgba(2,5,7,0)"], [1, "rgba(2,5,7,0.85)"]]);
   c.fillRect(left, RALLY_WORLD_H - fade, right - left, fade);
@@ -181,11 +198,14 @@ function drawWalls(ctx: CanvasRenderingContext2D, colour: string, _bloom: number
 /** Rev 2: a target pad set into the far wall; the ball scores it by touching the wall within its span. */
 export function drawPad(ctx: CanvasRenderingContext2D, left: number, bloom: number, blink: boolean): void {
   const top = RALLY_HUD_H + RALLY_WALL;
-  // Polish A1: a soft magenta light under the pad.
-  glow(ctx, PAD, left + RALLY_TARGET_W / 2, top - 2, RALLY_TARGET_W * 0.8, 14, 0.55);
-  pixelRect(ctx, left, top - 6, RALLY_TARGET_W, 6, blink ? RETRO_WHITE : PAD, bloom);
-  pixelRect(ctx, left + 4, top - 4, RALLY_TARGET_W - 8, 2, "#5A1050");
-  retroText(ctx, `+${RALLY_TARGET_POINTS}`, left + RALLY_TARGET_W / 2, top + 4, 8, PAD, "center");
+  // Polish A1: a soft magenta light under the pad. 3 Nov 2026 (Joe's audit; display only): the pad is drawn twice
+  // as deep and brighter, up into the far wall's casing, with its light spilling onto the court. Its width is its
+  // scoring span (the ball scores it by touching the far wall within it), unchanged.
+  glow(ctx, PAD, left + RALLY_TARGET_W / 2, top + 2, RALLY_TARGET_W * 1.1, 26, 0.75);
+  pixelRect(ctx, left, top - 12, RALLY_TARGET_W, 12, blink ? RETRO_WHITE : PAD, bloom + 4);
+  pixelRect(ctx, left + 3, top - 9, RALLY_TARGET_W - 6, 6, "#5A1050");
+  pixelRect(ctx, left + 3, top - 12, RALLY_TARGET_W - 6, 2, "#FFD6F4");
+  retroText(ctx, `+${RALLY_TARGET_POINTS}`, left + RALLY_TARGET_W / 2, top + 4, 10, PAD, "center", 3);
 }
 
 /** Rev 2: the round bumper post, drawn exactly as its bounce circle. */
@@ -289,21 +309,28 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: RallyState, key: Canvas
     drawPops(ctx, key, RALLY_WORLD_W);
   }
 
-  successHud(ctx,'rally',state.tick,14,26,()=>{retroReadout(ctx, 14, 8, `RALLY ${state.hits}`, RETRO_WHITE);});
-  // rallyRev 3+ (band-stamped, `band`) score on the band curve, so the HUD shows the counts only (17 Oct
-  // 2026, display only); unstamped and rallyRev 2 rounds keep their points readout in replays.
+  // One Retro HUD (3 Nov 2026): the main count top left, one or two counts top right, no "1UP" and no "·"
+  // chains. rallyRev 10+ lead with the gold-ball hits (the core's measure), then the pads and gold targets;
+  // band rounds (rallyRev 3+) the rally, then gold and pads; older rounds keep their points readout.
+  const pulse = { wrapMain: (draw: () => void) => successHud(ctx, "rally", state.tick, 12, 8, draw) };
   if (deep) {
-    // rallyRev 10: the gold targets struck, then the counts under them, clear of the RALLY readout.
-    const struck = rallyBonusCount(state);
-    retroText(ctx, `TARGET ${struck}/${RALLY_V10_BONUS_COUNT}`, RALLY_WORLD_W - 14, 9, 12, GOLD, "right");
-    retroText(ctx, `GOLD ${state.goldHits} · PADS ${state.targetHits ?? 0}`, RALLY_WORLD_W - 14, 27, 10, `${GOLD}B0`, "right");
+    retroHud(ctx, RALLY_WORLD_W, { text: `GOLD ${state.goldHits}`, colour: GOLD }, [
+      { text: `PADS ${state.targetHits ?? 0}`, colour: PAD },
+      { text: `TARGETS ${rallyBonusCount(state)}/${RALLY_V10_BONUS_COUNT}`, colour: GOLD },
+    ], pulse);
   } else if ((state as RallyState & BandFields).band) {
-    retroText(ctx, `GOLD ${state.goldHits} · PADS ${state.targetHits ?? 0}`, RALLY_WORLD_W - 14, 21, 13, GOLD, "right");
+    retroHud(ctx, RALLY_WORLD_W, { text: `RALLY ${state.hits}` }, [
+      { text: `GOLD ${state.goldHits}`, colour: GOLD },
+      { text: `PADS ${state.targetHits ?? 0}`, colour: PAD },
+    ], pulse);
   } else {
     const points = state.rev === RALLY_REV
       ? Math.floor(RALLY_GOLD_POINTS * state.goldHits) + RALLY_TARGET_POINTS * (state.targetHits ?? 0)
       : Math.floor(RALLY_GOLD_POINTS * state.goldHits);
-    retroText(ctx, `GOLD ${state.goldHits} ${points}PTS`, RALLY_WORLD_W - 14, 20, 15, GOLD, "right");
+    retroHud(ctx, RALLY_WORLD_W, { text: `RALLY ${state.hits}` }, [
+      { text: `GOLD ${state.goldHits}`, colour: GOLD },
+      { text: `${points} PTS`, colour: GOLD },
+    ], pulse);
   }
 
   if (state.dead && crashIndicator) {

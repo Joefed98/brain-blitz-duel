@@ -792,34 +792,35 @@ export const flipAmbient: ArenaAmbient = {
   },
 };
 
-/** 13. Jaywalk: two or three people stroll slowly along the pavement below the world (never the lanes). */
-const WALKER_COLOURS = ["#5A7FB0", "#B0605A", "#6E9A5A", "#9A7AB0"] as const;
+/**
+ * 13. Spacewalk (3 Nov 2026; was Jaywalk's strolling people): two or three tiny maintenance drones drift slowly over the
+ * station deck below the world (never the lanes), each a grey pixel body with a blinking cyan light.
+ */
 export const crossAmbient: ArenaAmbient = {
   region: "below",
   draw(ctx, view, t, still) {
     if (still) return;
     const r = fillBelow(view);
     if (!r || r.h < 30) return;
-    const walk = { top: r.y + 8, bottom: r.y + Math.max(20, r.h - 30) };
+    const band = { top: r.y + 8, bottom: r.y + Math.max(20, r.h - 30) };
     const span = r.w + 40;
     for (let i = 0; i < 3; i++) {
       const h = artHash(i, 131);
       const dir = i % 2 ? -1 : 1;
       const speed = 9 + (h % 6);
       const along = ((((h % 997) / 997) * span + (speed * t) / 1000) % span + span) % span;
-      const x = dir > 0 ? r.x - 20 + along : r.x + r.w + 20 - along;
-      const y = walk.top + (((h >>> 9) % 100) / 100) * Math.max(0, walk.bottom - walk.top);
-      const step = Math.sin((t / 1000) * speed * 0.6 + i) * 2;
-      ctx.globalAlpha = 0.55;
-      ctx.fillStyle = "rgba(20,24,30,0.35)";
-      ctx.fillRect(x - 3, y + 9, 7, 2);
-      ctx.fillStyle = "#3A3A44";
-      ctx.fillRect(x - 1 + step * 0.5, y + 5, 1.5, 5);
-      ctx.fillRect(x + 1 - step * 0.5, y + 5, 1.5, 5);
-      ctx.fillStyle = WALKER_COLOURS[(h >>> 4) % WALKER_COLOURS.length]!;
-      ctx.fillRect(x - 2, y, 5, 6);
-      ctx.fillStyle = "#E3B98F";
-      ctx.fillRect(x - 1, y - 3, 3, 3);
+      const x = Math.round(dir > 0 ? r.x - 20 + along : r.x + r.w + 20 - along);
+      const bob = Math.round(Math.sin((t / 1000) * 1.3 + i) * 1.5);
+      const y = Math.round(band.top + (((h >>> 9) % 100) / 100) * Math.max(0, band.bottom - band.top)) + bob;
+      ctx.globalAlpha = 0.6;
+      ctx.fillStyle = "#7C8798";
+      ctx.fillRect(x - 4, y, 8, 4);
+      ctx.fillStyle = "#4A5466";
+      ctx.fillRect(x - 6, y + 1, 2, 2);
+      ctx.fillRect(x + 4, y + 1, 2, 2);
+      const blink = Math.floor(t / 500 + i) % 2 === 0;
+      ctx.fillStyle = blink ? "#3DFFE0" : "rgba(61,255,224,0.3)";
+      ctx.fillRect(x - 1, y - 2, 2, 2);
     }
     ctx.globalAlpha = 1;
   },

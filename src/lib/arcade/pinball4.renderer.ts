@@ -94,7 +94,7 @@ import {
   type P4Ball,
   type Pin4State,
 } from "./pinball4";
-import { retroBloom, retroClock, retroScreen, retroText, retroTrail } from "./retro.renderer";
+import { retroBloom, retroClock, retroHud, retroScreen, retroText, retroTrail, type RetroHudItem } from "./retro.renderer";
 import { reducedMotion } from "./art.renderer";
 import { arcadeReducedEffects } from "../fx/lowEnd";
 
@@ -439,7 +439,7 @@ function paintRamps(c: Ctx): void {
   c.strokeStyle = LOCK_GOLD;
   c.lineWidth = 2;
   c.stroke();
-  retroText(c, "LOCK", P4_LOCK_X, P4_LOCK_Y - 24, 7, "rgba(255,216,74,0.8)", "center");
+  retroText(c, "LOCK", P4_LOCK_X, P4_LOCK_Y - 25, 9, LOCK_GOLD, "center", 3);
   c.restore();
 }
 
@@ -490,7 +490,7 @@ function drawLights(ctx: Ctx, s: Pin4State, bloom: number, t: number): void {
       ctx.fillStyle = gold ? LOCK_GOLD : PIN_COLOURS.laneOn;
       ctx.fill();
     }
-    retroText(ctx, P4_LETTERS[lane]!, cx, LANE_INSERT_BASE + 4, 10, lit ? LETTER_ON : gold ? LOCK_GOLD : "rgba(75,255,122,0.38)", "center", lit && glow ? 4 : 0);
+    retroText(ctx, P4_LETTERS[lane]!, cx, LANE_INSERT_BASE + 4, 10, lit ? LETTER_ON : gold ? LOCK_GOLD : "rgba(75,255,122,0.62)", "center", lit && glow ? 4 : 0);
   }
   // The multiplier inserts.
   for (let m = 2; m <= PIN_MULT_MAX; m++) {
@@ -505,7 +505,7 @@ function drawLights(ctx: Ctx, s: Pin4State, bloom: number, t: number): void {
       ovalPath(ctx, x, MULT_Y + 4.5, 12.5, 8);
       ctx.fill();
     }
-    retroText(ctx, `x${m}`, x + 1, MULT_Y + 0.5, 9, on ? "#2B1A00" : "rgba(255,216,74,0.42)", "center");
+    retroText(ctx, `x${m}`, x + 1, MULT_Y + 0.5, 9, on ? "#2B1A00" : "rgba(255,226,120,0.85)", "center");
   }
   P4_TARGET_XS.forEach((x, i) => {
     if (((s.targets >> i) & 1) === 0) return;
@@ -534,7 +534,7 @@ function drawLights(ctx: Ctx, s: Pin4State, bloom: number, t: number): void {
       ctx.fillStyle = colour;
       ctx.fill();
     }
-    retroText(ctx, lockLit ? "LOCK" : `x${s.combo + 1}`, x, RAMP_INSERT_Y + 9, 7, colour, "center");
+    retroText(ctx, lockLit ? "LOCK" : `x${s.combo + 1}`, x, RAMP_INSERT_Y + 8.5, 8, colour, "center");
   });
   // The jackpot standup's insert, lit through multiball.
   if (p4JackpotLit(s)) {
@@ -543,7 +543,7 @@ function drawLights(ctx: Ctx, s: Pin4State, bloom: number, t: number): void {
     ctx.fillStyle = blink(t, 200) ? "#FF9BFF" : "#FF4DFF";
     ctx.fill();
   }
-  retroText(ctx, "JACKPOT", P4_MID_X + 9, JACKPOT_INSERT_Y - 3.5, 7, p4JackpotLit(s) ? "#2A0A26" : "rgba(255,77,255,0.45)", "center");
+  retroText(ctx, "JACKPOT", P4_MID_X + 9, JACKPOT_INSERT_Y - 4, 8, p4JackpotLit(s) ? "#2A0A26" : "rgba(255,140,255,0.85)", "center");
 }
 
 /** The jackpot standup on its capsule: gold-rimmed magenta, bright and flashing when lit or just hit. */
@@ -684,7 +684,7 @@ function drawMeter(ctx: Ctx, s: Pin4State, t: number): void {
     const gold = lane === s.skillLane;
     ctx.fillStyle = gold ? (blink(t, 180) ? "rgba(255,216,74,0.75)" : "rgba(255,216,74,0.45)") : zone % 2 ? "rgba(75,255,122,0.16)" : "rgba(75,255,122,0.1)";
     ctx.fillRect(x0, y0 + 1, w, y1 - y0 - 2);
-    retroText(ctx, P4_LETTERS[lane]!, x0 + w / 2, (y0 + y1) / 2 - 5, 9, gold ? "#2B1A00" : "rgba(220,255,230,0.7)", "center");
+    retroText(ctx, P4_LETTERS[lane]!, x0 + w / 2, (y0 + y1) / 2 - 5, 9, gold ? "#2B1A00" : "#F0FFF4", "center");
   }
   const power = p4PowerAt(s.charge);
   const ny = METER_BOTTOM - ((power + 0.5) * h) / (P4_POWER_MAX + 1);
@@ -699,21 +699,16 @@ function drawMeter(ctx: Ctx, s: Pin4State, t: number): void {
 
 /** The HUD above the arch: points left; ball, locks and the multiball clock right. */
 function drawHud(ctx: Ctx, s: Pin4State): void {
-  retroText(ctx, s.points.toLocaleString("en-GB"), 12, 8, 12, PIN_COLOURS.hud, "left", 4);
+  // One Retro HUD (3 Nov 2026): points top left; the ball and the lock / multiball state top right.
   const ball = Math.min(PIN_BALLS, s.lost + 1);
-  retroText(ctx, `BALL ${ball}/${PIN_BALLS}`, P4_WORLD_W - 12, 8, 10, PIN_COLOURS.hud, "right");
-  const left = Math.max(0, PIN_BALLS - s.lost);
-  for (let i = 0; i < left; i++) {
-    ctx.fillStyle = PIN_COLOURS.ball;
-    ctx.beginPath();
-    ctx.arc(P4_WORLD_W - 15 - i * 10, 27, 3, 0, Math.PI * 2);
-    ctx.fill();
-  }
-  if (p4JackpotLit(s)) {
-    const secs = Math.ceil((s.mbUntil - s.tick) / 60);
-    retroText(ctx, `MULTIBALL ${secs}`, 12, 26, 9, "#FF9BFF", "left", 3);
-  } else if (s.locks > 0) retroText(ctx, s.lockLit && s.locks === 2 ? "2 LOCKED: MULTIBALL LIT" : `${s.locks} LOCKED`, 12, 26, 9, LOCK_GOLD, "left");
-  else if (s.lockLit) retroText(ctx, "LOCK LIT", 12, 26, 9, LOCK_GOLD, "left");
+  let status: RetroHudItem | null = null;
+  if (p4JackpotLit(s)) status = { text: `MULTIBALL ${Math.ceil((s.mbUntil - s.tick) / 60)}`, colour: "#FF9BFF" };
+  else if (s.locks > 0) status = { text: s.lockLit && s.locks === 2 ? "MULTIBALL LIT" : `${s.locks} LOCKED`, colour: LOCK_GOLD };
+  else if (s.lockLit) status = { text: "LOCK LIT", colour: LOCK_GOLD };
+  retroHud(ctx, P4_WORLD_W, { text: s.points.toLocaleString("en-GB"), colour: PIN_COLOURS.hud }, [
+    { text: `BALL ${ball}/${PIN_BALLS}`, colour: PIN_COLOURS.hud },
+    status,
+  ]);
   if (s.lost >= PIN_BALLS && s.tick < pinRunTicksOf(s)) retroText(ctx, "GAME OVER", P4_WORLD_W / 2 - 12, 420 + S, 16, "#FF3B5C", "center", 6);
 }
 
@@ -750,7 +745,7 @@ function drawWorld(ctx: Ctx, s: Pin4State, key: Ctx): void {
   }
   for (let side = 0; side < 2; side++) {
     const held = ((s.held >> side) & 1) === 1;
-    retroText(ctx, side === 0 ? "< HOLD" : "HOLD >", side === 0 ? 20 : P4_LANE_INNER - 10, P4_WORLD_H - 22, 8, held ? PIN_COLOURS.flipper : "rgba(255,216,74,0.42)", side === 0 ? "left" : "right");
+    retroText(ctx, side === 0 ? "< HOLD" : "HOLD >", side === 0 ? 20 : P4_LANE_INNER - 10, P4_WORLD_H - 24, 10, held ? PIN_COLOURS.flipper : "rgba(255,226,120,0.85)", side === 0 ? "left" : "right");
   }
   drawHud(ctx, s);
 }

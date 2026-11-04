@@ -1041,7 +1041,7 @@ function paintV4Line(ctx: Ctx, state: FreekickState): void {
 /** The step the player is on (rev 3): what the prompt says. */
 function v3Prompt(state: FreekickState): string {
   if ((state.meterAt ?? -1) >= 0) return "RELEASE IN THE GOLD";
-  if (state.freekickRev >= FREEKICK_REV_4) return state.aimed !== 1 ? "1  DRAW THE SHOT FROM THE BALL" : "2  HOLD THE BAR · OR REDRAW";
+  if (state.freekickRev >= FREEKICK_REV_4) return state.aimed !== 1 ? "1  DRAW THE SHOT FROM THE BALL" : "2  HOLD THE BAR";
   if (state.aimed !== 1) return "1  TAP THE GOAL TO AIM";
   return "2  DRAG TO CURL   3  HOLD THE BAR";
 }
@@ -1228,11 +1228,47 @@ function resultText(state: FreekickState): { big: string; small: string; gold: b
 
 /** The play screen's frame. */
 /** The play screen's frame, under the shared success and miss effects (sportsFx.renderer.ts). */
-export function drawFreekickArt(ctx: CanvasRenderingContext2D, state: FreekickState, size: CanvasSize): void {
-  arcadeFx(ctx, FREEKICK_FX, state, () => drawFreekickWorld(ctx, state, size), size);
+/**
+ * freekickRev 4's framing (3 Nov 2026, display only; Joe's audit): the crowd filled half the screen and the goal was
+ * small and far. The camera's picture is zoomed FK_VIEW_K about the horizon's centre and the horizon raised to
+ * FK_VIEW_HZ, which is exactly the same camera with a longer lens: the goal, wall and keeper drawn larger, less crowd.
+ * The HUD chips, the power bar, the prompt and the result stay where they were. The phone takes a finger's world px
+ * back through the inverse (`freekickViewToWorld`) before the shot is read, so a stroke ends where the target is
+ * drawn, and the sim, the server and the bots never see the zoom. Earlier revisions draw as before.
+ */
+export const FK_VIEW_K = 1.4;
+export const FK_VIEW_HZ = 190;
+export function freekickViewOn(state: Pick<FreekickState, "freekickRev">): boolean {
+  return state.freekickRev >= FREEKICK_REV_4;
+}
+/** A view point (world px of the stage) to the camera's world px. */
+export function freekickViewToWorld(x: number, y: number): { x: number; y: number } {
+  return { x: W / 2 + (x - W / 2) / FK_VIEW_K, y: HZ + (y - FK_VIEW_HZ) / FK_VIEW_K };
+}
+function fkViewZoom(ctx: CanvasRenderingContext2D): void {
+  ctx.translate(W / 2 - (W / 2) * FK_VIEW_K, FK_VIEW_HZ - HZ * FK_VIEW_K);
+  ctx.scale(FK_VIEW_K, FK_VIEW_K);
+}
+function fkViewUnzoom(ctx: CanvasRenderingContext2D): void {
+  ctx.scale(1 / FK_VIEW_K, 1 / FK_VIEW_K);
+  ctx.translate(-(W / 2 - (W / 2) * FK_VIEW_K), -(FK_VIEW_HZ - HZ * FK_VIEW_K));
 }
 
-function drawFreekickWorld(ctx: CanvasRenderingContext2D, state: FreekickState, size: CanvasSize): void {
+export function drawFreekickArt(ctx: CanvasRenderingContext2D, state: FreekickState, size: CanvasSize): void {
+  if (!freekickViewOn(state)) {
+    arcadeFx(ctx, FREEKICK_FX, state, () => drawFreekickWorld(ctx, state, size), size);
+    return;
+  }
+  // The world under the zoom (the success layer's pops too, at the points it projects); the zoom's corners filled first.
+  ctx.save();
+  ctx.fillStyle = FREEKICK_ART_BG;
+  ctx.fillRect(0, 0, W, H);
+  fkViewZoom(ctx);
+  arcadeFx(ctx, FREEKICK_FX, state, () => drawFreekickWorld(ctx, state, size, true), size);
+  ctx.restore();
+}
+
+function drawFreekickWorld(ctx: CanvasRenderingContext2D, state: FreekickState, size: CanvasSize, zoomed = false): void {
   void size;
   const plan = fkSeedPlan(state.seed, state.freekickRev);
   const index = Math.min(state.k, FREEKICK_KICKS - 1);
@@ -1348,6 +1384,11 @@ function drawFreekickWorld(ctx: CanvasRenderingContext2D, state: FreekickState, 
   if (v3 && state.phase === FK_AIM) paintV3Aim(ctx, cam, k, state, pulse);
   // freekickRev 4: the drawn line, faint until the strike.
   if (state.freekickRev >= FREEKICK_REV_4 && state.phase === FK_AIM && (state.strikeM ?? -1) < 0) paintV4Line(ctx, state);
+  // From here on (the bar, the HUD and the result) the view's own px: out of freekickRev 4's zoom.
+  if (zoomed) {
+    ctx.save();
+    fkViewUnzoom(ctx);
+  }
   if (v3) paintV3Bar(ctx, state);
 
   // The live stroke.
@@ -1409,6 +1450,7 @@ function drawFreekickWorld(ctx: CanvasRenderingContext2D, state: FreekickState, 
       ctx.restore();
     }
   }
+  if (zoomed) ctx.restore();
 }
 
 function drawBall(ctx: CanvasRenderingContext2D, cam: FkCamera, state: FreekickState, ball: P3): void {
@@ -1477,7 +1519,17 @@ export function freekickScene(ctx: CanvasRenderingContext2D, view: ArenaSceneVie
   ctx.fillStyle = "#03050A";
   ctx.fillRect(view.left, view.top, view.right - view.left, view.bottom - view.top);
   const scale = Math.max(1, Math.min(4, Math.abs(ctx.getTransform().a) || 1));
-  paintPitchLayer(ctx, Math.round(scale * 4) / 4, k, cam, view.left, view.right);
+  if (state && freekickViewOn(state)) {
+    // freekickRev 4's zoom carried on beyond the world, so its edges meet the world's with no seam.
+    ctx.save();
+    fkViewZoom(ctx);
+    const a = freekickViewToWorld(view.left, view.top);
+    const b = freekickViewToWorld(view.right, view.bottom);
+    ctx.fillStyle = "#03050A";
+    ctx.fillRect(a.x, a.y, b.x - a.x, b.y - a.y);
+    paintPitchLayer(ctx, Math.round(scale * FK_VIEW_K * 4) / 4, k, cam, a.x, b.x);
+    ctx.restore();
+  } else paintPitchLayer(ctx, Math.round(scale * 4) / 4, k, cam, view.left, view.right);
   const below = sceneBelow(view);
   if (below) {
     const g = ctx.createLinearGradient(0, below.y, 0, below.y + below.h);
