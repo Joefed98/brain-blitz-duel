@@ -40,6 +40,16 @@ class Surface {
 }
 Object.defineProperty(globalThis, "OffscreenCanvas", { configurable: true, value: Surface });
 if (typeof (globalThis as { Path2D?: unknown }).Path2D === "undefined") Object.defineProperty(globalThis, "Path2D", { configurable: true, value: NapiPath2D });
+// The banner's face, the same on every machine (3 Nov 2026). The Retro stack is 'Press Start 2P', ui-monospace,
+// monospace, and the app ships no Press Start 2P, so @napi-rs/canvas fell back to whatever monospace face the
+// machine had: on some CI runners (9 font families) "J-O-U-L-Z!" measured 273.9 px at 22 px against 108.7 px here
+// (27 families), and the banner left no gold at its place (evidence from #254's failing run). The app's own shipped
+// JetBrains Mono stands in under the stack's first name, so the frames no longer depend on the runner's fonts.
+const RETRO_STAND_IN = "public/fonts/jetbrains-mono-600-700-latin.woff2";
+if (!GlobalFonts.registerFromPath(RETRO_STAND_IN, "Press Start 2P")) {
+  console.log(`FAIL pinball-joulz-check: could not register ${RETRO_STAND_IN} as the Retro face`);
+  process.exit(1);
+}
 
 const { pinball6Game, P4_WORLD_W, P4_WORLD_H } = await import("../src/lib/arcade/pinball4");
 const art = await import("../src/lib/arcade/pinball4.renderer");
