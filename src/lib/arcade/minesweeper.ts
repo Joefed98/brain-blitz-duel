@@ -486,9 +486,9 @@ export const MINES_STD_SPEC: StdSpec = {
   field: "minesRev",
   rev: MINES_REV_STD,
   parts: [
-    { key: "core", label: "Safe squares", max: MINES_CORE_MAX, item: "safe square", how: "a share of the safe squares you reveal beyond the opening" },
-    { key: "clean", label: "No mines hit", max: MINES_CLEAN_MAX, how: "the same share, while no mine has been hit" },
-    { key: "speed", label: "Speed", max: MINES_SPEED_MAX, how: `board cleared only: full by ${MINES_SPEED_FULL_S} s, 0 at the buzzer` },
+    { key: "core", label: "Safe squares", max: MINES_CORE_MAX, item: "safe square", how: "uncover the safe squares beyond the opening, each worth the same" },
+    { key: "clean", label: "No mines hit", max: MINES_CLEAN_MAX, how: "the same again for each safe square, until you hit a mine" },
+    { key: "speed", label: "Speed", max: MINES_SPEED_MAX, how: `clear the board within ${MINES_SPEED_FULL_S} s for all of it, falling to 0 at the buzzer` },
   ],
 };
 

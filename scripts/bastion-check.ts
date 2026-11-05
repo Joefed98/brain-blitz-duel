@@ -30,6 +30,7 @@
  *
  *   bun scripts/bastion-check.ts
  */
+import { hasScorePart } from "../src/lib/duel/scoreList";
 import { readFileSync } from "node:fs";
 import { recordInput, type ArcadeInputEvent } from "../src/lib/arcade/engine";
 import { bastionGame, basCheckpoint } from "../src/lib/arcade/bastion";
@@ -298,7 +299,8 @@ const BT2_RUN_TICKS_LOCAL = bastionTankGame.runTicks;
   ok(bastionStdParts({ ...game.init(3), rev: 1 } as BastionTankState) === null, "a state of another revision has no standard parts");
   const help = PUZZLE_INSTRUCTIONS.bastion?.score ?? "";
   // The help states the dealt revision's parts (bastionRev 3's; section 9).
-  for (const want of ["Armour up to 110", "Weak spots up to 30", "Fast reloads up to 20", "Drones up to 30", "Base intact up to 10", "Together 200 points."]) ok(help.includes(want), `help states "${want}"`);
+  for (const [label, max] of [["Armour", 110], ["Weak spots", 30], ["Fast reloads", 20], ["Drones", 30], ["Base intact", 10]] as const) ok(hasScorePart(help, label, max), `help states "${label}: …, up to ${max}."`);
+  ok(help.endsWith("Total 200."), `help states "Total 200."`);
 }
 
 /* 6. The oracle at 200 on every tuning and fresh seed. */

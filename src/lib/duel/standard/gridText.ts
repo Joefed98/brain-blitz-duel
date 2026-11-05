@@ -4,46 +4,55 @@
  * stays within two phone lines with no scoring terms (intro-score-text-check). Shared and pure.
  */
 import { roundMaxFor } from "../roundMax";
-import { STANDARD_FINISH, STANDARD_UNFINISHED_CAP } from "./shape";
-import { GRID_EARLY_POINTS, GRID_SHARE_POINTS, GRID_STANDARD, type GridStandardType } from "./gridRules";
+import { GRID_STANDARD, type GridStandardType } from "./gridRules";
+import { puzzleScoreList } from "../scoreList";
 
 const fmt = (n: number) => String(Math.round(n * 10) / 10);
 
-/** What the unfinished share counts. */
+/** What counts unfinished (plain words). */
 const UNFINISHED: Record<GridStandardType, string> = {
-  fences: "by the share of the loop's edges you draw, less the share of lines drawn off it",
-  fillomino: "by the share of blank squares numbered right, less the share numbered wrong",
-  bridges: "by the share of the solution's bridges you build, less the share on pairs built differently from the solution",
-  kakuro: "by the share of white squares filled right, less the share filled wrong",
+  fences: "the share of the loop you draw, less lines drawn off it, more for drawing it early",
+  fillomino: "the share of blank squares numbered right, less those numbered wrong, more for doing it early",
+  bridges: "the share of the solution's bridges you build, less wrong ones, more for building them early",
+  kakuro: "the share of white squares filled right, less those filled wrong, more for doing it early",
 };
 
 /** What a mistake is, for the clean bonus. */
 const MISTAKE: Record<GridStandardType, string> = {
-  fences: "line ever drawn off the loop",
-  fillomino: "wrong number ever entered (erased ones too)",
-  bridges: "wrong bridge ever built",
-  kakuro: "wrong digit ever entered (erased ones too)",
+  fences: "no line ever drawn off the loop",
+  fillomino: "no wrong number ever entered (erased ones too)",
+  bridges: "no wrong bridge ever built",
+  kakuro: "no wrong digit ever entered (erased ones too)",
 };
 
-/** The "?" help SCORE text. */
+const FINISH: Record<GridStandardType, string> = {
+  fences: "draw the whole loop",
+  fillomino: "fill every region correctly",
+  bridges: "link every island correctly",
+  kakuro: "fill the grid correctly",
+};
+
+/** The "?" help SCORE text: one line a part (scoreList.ts). */
 export function gridStandardHelp(type: GridStandardType): string {
   const r = GRID_STANDARD[type];
-  const max = roundMaxFor(type);
-  const unfinished = `Unfinished: up to ${GRID_SHARE_POINTS} ${UNFINISHED[type]}, plus up to ${GRID_EARLY_POINTS} for placing them early; at most ${STANDARD_UNFINISHED_CAP}, so any finish beats it.`;
-  const finish = `Finish: ${STANDARD_FINISH}, plus up to ${r.speed} for speed (all of it within ${r.fullByS} s, shrinking evenly to none at the buzzer) and a ${r.word} ${r.bonus}, ${fmt(r.per)} less for each ${MISTAKE[type]}, so ${max} is a ${r.word} within ${r.fullByS} s.`;
-  return `${unfinished} ${finish}`;
+  const word = r.word.charAt(0).toUpperCase() + r.word.slice(1);
+  return puzzleScoreList({
+    finish: FINISH[type],
+    speed: { max: r.speed, fullByS: r.fullByS },
+    bonuses: [{ label: word, how: `${MISTAKE[type]}, ${fmt(r.per)} less for each`, max: r.bonus }],
+    unfinished: UNFINISHED[type],
+    total: roundMaxFor(type),
+  });
 }
 
-/** What the intro counts unfinished, and what a perfect finish needs (no scoring terms). */
-const INTRO: Record<GridStandardType, [string, string]> = {
-  fences: ["Loop drawn", "with no wrong line"],
-  fillomino: ["Squares right", "with no wrong number"],
-  bridges: ["Bridges right", "with no wrong bridge"],
-  kakuro: ["Squares right", "with no wrong digit"],
+/** The round intro SCORE line (at most 90 characters, no scoring terms). */
+const INTRO: Record<GridStandardType, string> = {
+  fences: "Draw the whole loop; bonuses for speed and no wrong lines.",
+  fillomino: "Fill every region; bonuses for speed and no wrong numbers.",
+  bridges: "Link every island; bonuses for speed and no wrong bridges.",
+  kakuro: "Fill the grid; bonuses for speed and no wrong digits.",
 };
 
-/** The round intro SCORE line (at most two phone lines, no scoring terms). */
 export function gridStandardIntro(type: GridStandardType): string {
-  const [lead, top] = INTRO[type];
-  return `${lead}: up to ${STANDARD_UNFINISHED_CAP}. Finish: ${STANDARD_FINISH}+, ${roundMaxFor(type)} ${top} within ${GRID_STANDARD[type].fullByS} s.`;
+  return `${INTRO[type]} Up to ${roundMaxFor(type)}.`;
 }

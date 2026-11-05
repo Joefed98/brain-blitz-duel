@@ -16,6 +16,7 @@
  *
  *   bun scripts/breaker-standard-check.ts
  */
+import { hasScorePart } from "../src/lib/duel/scoreList";
 import { readFileSync } from "node:fs";
 import { gunzipSync } from "node:zlib";
 import { fnv } from "./arcade-tuning-a-legacy";
@@ -223,7 +224,8 @@ section("6. A perfect run is 200; reveal and help");
     ok(parts.points + parts.bonus === breakerStdParts(run.state).sum && lines[0]!.startsWith(`${breakerStdParts(run.state).bricks} / 108 bricks → `), `reveal parts for seed ${rec.seed}: ${lines.join(" | ")}`);
   }
   const help = PUZZLE_INSTRUCTIONS.breaker.score;
-  ok(/up to 140\./.test(help) && /adds 10/.test(help) && /up to 20 for speed/.test(help) && /up to 30/.test(help) && /= 200\./.test(help) && help.endsWith("Up to 200."), `the help states every part and the 200: ${help}`);
+  // Text pass (4 Nov 2026): one line a part, then the total.
+  ok(hasScorePart(help, "Bricks", 140) && hasScorePart(help, "Clear", 10) && hasScorePart(help, "Speed", 20) && hasScorePart(help, "Gold bricks", 30) && help.includes("10 each (30 for all 3)") && help.endsWith("Total 200."), `the help states every part and the 200: ${help}`);
   ok(!/combo/i.test(INTRO_SCORE.breaker) && /200|\{max\}/.test(INTRO_SCORE.breaker), `the intro line: ${INTRO_SCORE.breaker}`);
   ok(!PUZZLE_INSTRUCTIONS.breaker.how.some((h) => /combo/i.test(h.action + h.detail)), "the help no longer explains combos (they pay nothing)");
 }

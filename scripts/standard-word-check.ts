@@ -291,7 +291,8 @@ eq("clocks", clocks, { tilegrid: 100, wordslide: 100, wordsearch: 120, letterwhe
     const help = PUZZLE_INSTRUCTIONS[type].score;
     eq(`${type}: help is the standard's`, help, WORD_STANDARD_HELP[type as keyof typeof WORD_STANDARD_HELP].split("{max}").join("200"));
     ok(`${type}: help says 150 and 130`, help.includes("150") && help.includes("130"), help);
-    ok(`${type}: intro names 150`, INTRO_SCORE[type].includes("150"), INTRO_SCORE[type]);
+    // Text pass (4 Nov 2026): the intro is one plain sentence naming the bonuses, ending with the top.
+    ok(`${type}: intro names the bonuses and the top`, /bonus/.test(INTRO_SCORE[type]) && INTRO_SCORE[type].endsWith("Up to 200."), INTRO_SCORE[type]);
   }
   const before = pinPreStandard(true);
   try {

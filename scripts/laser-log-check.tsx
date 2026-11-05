@@ -381,7 +381,8 @@ for (let seed = 1; seed <= SEEDS; seed++) {
         myMsRemaining={newGrade.storedMs} timeLimitMs={LASER_TIME_MS} />,
     ).replace(/<!-- -->/g, "");
     const ordinal = ["1st", "2nd", "3rd"][(honest.shot ?? 1) - 1];
-    const expectText = newGrade.isCorrect ? `6 / 6 gems · ${ordinal} shot` : newGrade.correctCount ? `${newGrade.correctCount} / 6 gems` : "Missed";
+    // Text pass (4 Nov 2026): "6 of 6 gems" (plain words), the time after a comma.
+    const expectText = newGrade.isCorrect ? `6 of 6 gems · ${ordinal} shot` : newGrade.correctCount ? `${newGrade.correctCount} of 6 gems` : "Missed";
     if (!html.includes(expectText)) fail(() => (revealOk = false), `${key}: reveal lacks "${expectText}"`);
 
     // 4. Tampering, on the stamped puzzle.

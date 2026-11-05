@@ -346,7 +346,7 @@ function RevealRev1({ puzzle, myAnswer, myMsRemaining, timeLimitMs }: PuzzleReve
       </div>
       <p className="font-mono text-base text-primary">
         {state.done
-          ? `5 / 5 words · ${state.strikes} strike${state.strikes === 1 ? "" : "s"} · ${(elapsed / 1000).toFixed(1)}s`
+          ? `5 of 5 words · ${state.strikes} strike${state.strikes === 1 ? "" : "s"}, ${(elapsed / 1000).toFixed(1)} s`
           : `${solvedRows} / 5 words · ${state.strikes} strike${state.strikes === 1 ? "" : "s"}`}
       </p>
     </div>
@@ -768,7 +768,7 @@ function Reveal2({ puzzle, myAnswer, myMsRemaining, timeLimitMs }: PuzzleRevealP
       </div>
       <p className="font-mono text-base text-primary">
         {state.done
-          ? `5 / 5 words · ${strikeText} · ${(elapsed / 1000).toFixed(1)}s`
+          ? `5 of 5 words · ${strikeText}, ${(elapsed / 1000).toFixed(1)} s`
           : `${state.solvedWords} / 5 words · ${strikeText}`}
       </p>
     </div>

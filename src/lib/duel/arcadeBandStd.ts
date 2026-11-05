@@ -258,7 +258,7 @@ export function bandStdLines(puzzle: { type: string } & Record<string, unknown>,
     const g = got.get(f);
     out.push(`${f.label}: ${plainDetail(g?.detail ?? "")} → ${Math.min(f.max, g?.points ?? 0)} of ${f.max}`);
   }
-  if (penalty && penalty.points > 0) out.push(`Penalty: ${penalty.text.replace(/ × /g, " at ").replace(/\s{2,}/g, " ")} → −${penalty.points}`);
+  if (penalty && penalty.points > 0) out.push(`Penalty: ${penalty.text} → −${penalty.points}`);
   if (score !== null) out.push(`Total → ${score} of ${STD_TOTAL_MAX}`);
   return out;
 }

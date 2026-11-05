@@ -11,81 +11,120 @@ import {
   CLASH_STD_FINISH,
   CLASH_STD_FULL_BY_TICK,
   CLASH_STD_GOLD,
-  CLASH_STD_SHARE,
   CLASH_STD_SPEED,
   CLASH_STD_STREAK,
   CLASH_STD_UNFINISHED_TOP,
   CLASH_STREAK_FROM,
 } from "@/lib/arcade/colourClash";
-import { STANDARD_FINISH, STANDARD_UNFINISHED_CAP } from "./shape";
+
+import { puzzleScoreList, scoreList } from "../scoreList";
 import { PAR_MOVES_STD, PAR_STRICT_FULL_BY_S, parStrictDealt } from "../parMoves";
 import { ASCEND_STD, CHAIN_STD, COUNT_STD, MAZE_STD, PAIR_STD, SCAN_STD, SPOT_STD } from "./attention";
 
-const CAP = STANDARD_UNFINISHED_CAP;
-const FIN = STANDARD_FINISH;
-const pct = (share: number) => `${Math.round(share * 100)} %`;
 const fmt = (n: number) => (Number.isInteger(n) ? String(n) : n.toFixed(1));
-/** "up to N for speed (all of it within F s, none at the buzzer)". */
-const speedLine = (max: number, fullByS: number, extra = "") =>
-  `up to ${max} for speed (all of it if you finish within ${fullByS} s, falling evenly to none at the buzzer${extra})`;
-const capLine = `Unfinished scores at most ${CAP}, so any finish scores more.`;
+const TOTAL = "{max}" as unknown as number;
 
-/* ------------------------------------------------------------------ help */
+/* ------------------------------------------------------------------ help (one line a part, scoreList.ts) */
 
 export const STANDARD_ATTENTION_HELP = {
   numhunt: () =>
-    `Unfinished: up to ${ASCEND_STD.share} for the share of the 24 numbers reached, plus up to ${ASCEND_STD.early} for reaching them early; each wrong tap costs ${ASCEND_STD.wrongCost}. ` +
-    `A finish scores ${FIN}, plus ${speedLine(ASCEND_STD.speed, ASCEND_STD.fullByS, `; each wrong tap takes a sixth of it`)} and up to ${ASCEND_STD.flow} for flow: your longest run of right taps with no wrong tap (all 24 in one run for the lot; it counts unfinished too). ${capLine} {max} is a finish within ${ASCEND_STD.fullByS} s with no wrong tap.`,
+    puzzleScoreList({
+      finish: "tap all 24 numbers in order",
+      speed: { max: ASCEND_STD.speed, fullByS: ASCEND_STD.fullByS, note: "each wrong tap takes a sixth of it" },
+      bonuses: [{ label: "Flow", how: "your longest run of right taps with no wrong tap, finished or not", max: ASCEND_STD.flow }],
+      unfinished: "the share of the numbers reached, more for reaching them early",
+      penalties: [`When not finished, each wrong tap costs ${ASCEND_STD.wrongCost}`],
+      total: TOTAL,
+    }),
   chain: () =>
-    `Unfinished: up to ${CHAIN_STD.share} for the share of the ${40} links made, plus up to ${CHAIN_STD.early} for making them early. ` +
-    `A full chain scores ${FIN}, plus ${speedLine(CHAIN_STD.speed, CHAIN_STD.fullByS)}, so {max} is a full chain within ${CHAIN_STD.fullByS} s. ${capLine}`,
-  stroop: () => {
-    const fullBy = CLASH_STD_FULL_BY_TICK / 60;
-    const run = CLASH_REV3_RUN_TICKS / 60;
-    return (
-      `Unfinished: up to ${CLASH_STD_SHARE} for the words sorted right less the words sorted wrong (all ${CLASH_QUEUE} right for the lot). ` +
-      `All ${CLASH_QUEUE} sorted (or let fall) with at most ${CLASH_DEPTH_MAX_WRONG} wrong is a finish: ${CLASH_STD_FINISH}, plus up to ${CLASH_STD_SPEED} for speed (all of it if the last word lands within ${fullBy} s, falling evenly to none at ${run} s; each wrong word takes a sixth of it; touching a grey word counts as wrong). ` +
-      `Your longest streak of words right in a row adds up to ${CLASH_STD_STREAK} (from ${CLASH_STREAK_FROM + 1} in a row, all ${CLASH_QUEUE} for the lot) and each of the ${CLASH_GOLDS} gold words sorted right adds ${CLASH_STD_GOLD}, finished or not (unfinished, only once more words are right than wrong). Unfinished scores at most ${CLASH_STD_UNFINISHED_TOP}, so any finish scores more. {max} is a quick finish with all ${CLASH_QUEUE} right in a row and every gold word.`
-    );
-  },
+    puzzleScoreList({
+      finish: "make all 40 links",
+      speed: { max: CHAIN_STD.speed, fullByS: CHAIN_STD.fullByS },
+      unfinished: "the share of the links made, more for making them early",
+      total: TOTAL,
+    }),
+  stroop: () =>
+    scoreList([
+      { label: "Finish", how: `sort all ${CLASH_QUEUE} words with at most ${CLASH_DEPTH_MAX_WRONG} wrong`, fixed: CLASH_STD_FINISH },
+      { label: "Speed", how: `the last word lands within ${CLASH_STD_FULL_BY_TICK / 60} s for all of it, nothing at ${CLASH_REV3_RUN_TICKS / 60} s; each wrong word takes a sixth of it`, max: CLASH_STD_SPEED },
+      { label: "Streak", how: `your longest run of words right in a row (${CLASH_STREAK_FROM + 1} or more)`, max: CLASH_STD_STREAK },
+      { label: "Gold words", how: `${CLASH_STD_GOLD} for each of the ${CLASH_GOLDS} gold words sorted right`, max: CLASH_STD_GOLD * CLASH_GOLDS },
+      { label: "Not finished", how: "the words sorted right, less the words sorted wrong", max: CLASH_STD_UNFINISHED_TOP },
+    ], { penalties: ["Touching a grey word counts as wrong"], total: TOTAL }),
   symscan: () =>
-    `Unfinished: up to ${SCAN_STD.perGrid} a grid for the share of its eagles marked, plus up to ${SCAN_STD.early} for each grid completed early; each wrong eagle left marked costs ${SCAN_STD.wrongCost}. ` +
-    `Every eagle found in all three grids, with at most ${SCAN_STD.finishWrongPerGrid} wrong eagles left marked in each, is a finish: ${FIN}, plus ${speedLine(SCAN_STD.speed, SCAN_STD.fullByS)} and up to ${SCAN_STD.clean} for clean grids (about ${fmt(SCAN_STD.clean / 3)} for each grid where you never marked a wrong eagle). ${capLine} {max} is a finish within ${SCAN_STD.fullByS} s with no wrong eagle ever marked.`,
+    puzzleScoreList({
+      finish: `find every eagle in all three grids, with at most ${SCAN_STD.finishWrongPerGrid} wrong ones left marked in each`,
+      speed: { max: SCAN_STD.speed, fullByS: SCAN_STD.fullByS },
+      bonuses: [{ label: "Clean grids", how: `about ${fmt(SCAN_STD.clean / 3)} for each grid where you never mark a wrong eagle`, max: SCAN_STD.clean }],
+      unfinished: `up to ${SCAN_STD.perGrid} a grid for the eagles you mark, more for finishing a grid early`,
+      penalties: [`When not finished, each wrong eagle left marked costs ${SCAN_STD.wrongCost}`],
+      total: TOTAL,
+    }),
   spotdiff: () =>
-    `Unfinished: ${SPOT_STD.perDiff} a difference, plus up to ${fmt(SPOT_STD.early)} each for finding it early; each wrong tap costs ${SPOT_STD.wrongCost}. ` +
-    `All 12 found, with at most 5 wrong taps in each picture, is a finish: ${FIN}, plus ${speedLine(SPOT_STD.speed, SPOT_STD.fullByS)} and ${SPOT_STD.clean} for no wrong taps at all. ` +
-    `One picture also hides a seventh, subtler difference, not in the count: find it before that picture's sixth for ${SPOT_STD.hidden}, finished or not. ${capLine} {max} is all 12 and the hidden one within ${SPOT_STD.fullByS} s with no wrong tap.`,
+    puzzleScoreList({
+      finish: "find all 12 differences, with at most 5 wrong taps in each picture",
+      speed: { max: SPOT_STD.speed, fullByS: SPOT_STD.fullByS },
+      bonuses: [
+        { label: "No wrong taps", how: "never tap a wrong spot", max: SPOT_STD.clean },
+        { label: "Hidden difference", how: "find the subtle seventh one before that picture's sixth, finished or not", max: SPOT_STD.hidden },
+      ],
+      unfinished: `${SPOT_STD.perDiff} for each difference found, more for finding it early`,
+      penalties: [`When not finished, each wrong tap costs ${SPOT_STD.wrongCost}`],
+      total: TOTAL,
+    }),
   countup: () =>
-    `Unfinished: ${COUNT_STD.perTray} a tray counted right (one off still earns ${pct(COUNT_STD.near)} of it), plus up to ${fmt(COUNT_STD.early)} each for counting it early. ` +
-    `All four exact is a finish: ${FIN}, plus ${speedLine(COUNT_STD.speed, COUNT_STD.fullByS)}, so {max} is all four within ${COUNT_STD.fullByS} s. ${capLine}`,
+    puzzleScoreList({
+      finish: "count all four trays exactly",
+      speed: { max: COUNT_STD.speed, fullByS: COUNT_STD.fullByS },
+      unfinished: `${COUNT_STD.perTray} for each tray counted right (a little for one off), more for counting it early`,
+      total: TOTAL,
+    }),
   maze: () =>
-    `Unfinished: up to ${MAZE_STD.share} for how far along the route you got (wandering costs), plus up to ${MAZE_STD.early} for getting there early. ` +
-    `Reaching the exit is a finish: ${FIN}, plus ${speedLine(MAZE_STD.speed, MAZE_STD.fullByS)}. Stars add ${MAZE_STD.stars} shared across the maze's stars (${MAZE_STD.stars / 3} each), finished or not. ${capLine} {max} is every star and the exit within ${MAZE_STD.fullByS} s.`,
+    puzzleScoreList({
+      finish: "reach the exit",
+      speed: { max: MAZE_STD.speed, fullByS: MAZE_STD.fullByS },
+      bonuses: [{ label: "Stars", how: `${MAZE_STD.stars / 3} for each star, finished or not`, max: MAZE_STD.stars }],
+      unfinished: "how far along the route you got (wandering costs), more for getting there early",
+      total: TOTAL,
+    }),
   pairmatch: () =>
-    `Unfinished: ${PAIR_STD.perPair} a pair, plus up to ${fmt(PAIR_STD.early)} each for finding it early; after ${PAIR_STD.freeMisses} missed tries, every ${PAIR_STD.missesPerPair} more cost a pair's points. ` +
-    `All 15 is a finish: ${FIN}, plus ${speedLine(PAIR_STD.speed, PAIR_STD.fullByS)}. ` +
-    `Matches in a row build a streak: 1 for each match in your longest streak beyond the first ${PAIR_STD.streakFrom}, up to ${PAIR_STD.streak}; the gold pair adds ${PAIR_STD.gold} if you match it in the first ${PAIR_STD.goldWindowMs / 1000} s. Both count finished or not. ${capLine} {max} needs a finish within ${PAIR_STD.fullByS} s, a long streak and the gold pair.`,
+    puzzleScoreList({
+      finish: "match all 15 pairs",
+      speed: { max: PAIR_STD.speed, fullByS: PAIR_STD.fullByS },
+      bonuses: [
+        { label: "Streak", how: `1 for each match in your longest streak after the first ${PAIR_STD.streakFrom}, finished or not`, max: PAIR_STD.streak },
+        { label: "Gold pair", how: `match the gold pair in the first ${PAIR_STD.goldWindowMs / 1000} s, finished or not`, max: PAIR_STD.gold },
+      ],
+      unfinished: `${PAIR_STD.perPair} for each pair, more for finding it early`,
+      penalties: [`After ${PAIR_STD.freeMisses} missed tries, every ${PAIR_STD.missesPerPair} more cost a pair's points`],
+      total: TOTAL,
+    }),
 } as const;
 
 /** Labyrinth on the puzzle batch's stamp (3 Nov 2026, parMoves.ts: mazeRev 4): no stars; 150 + speed + par moves. */
 export const PAR_MOVES_MAZE_HELP = (strict = parStrictDealt()) => {
   // mazeRev 5 (puzzle polish, 3 Nov 2026): par shown on screen, speed full a little earlier, par points gone at 1.5× par.
   const fullBy = strict ? PAR_STRICT_FULL_BY_S.maze : MAZE_STD.fullByS;
-  return `Unfinished: up to ${MAZE_STD.share} for how far along the route you got (wandering costs), plus up to ${MAZE_STD.early} for getting there early. ` +
-  `Reaching the exit is a finish: ${FIN}, plus ${speedLine(PAR_MOVES_STD.speed, fullBy)}, plus up to ${PAR_MOVES_STD.par} for moves: all of it if every step you took (steps back included) adds up to no more than the route's length (par${strict ? ", shown on screen" : ""}), less for each one over, none at ${strict ? "one and a half times" : "twice"} par. ${capLine} {max} is the exit within ${fullBy} s with no wasted step.`;
+  return puzzleScoreList({
+    finish: "reach the exit",
+    speed: { max: PAR_MOVES_STD.speed, fullByS: fullBy },
+    bonuses: [{ label: "Moves", how: `take no more steps than the route's length (par${strict ? ", shown" : ""}) for all of it, less for each one over, nothing at ${strict ? "one and a half times" : "twice"} par`, max: PAR_MOVES_STD.par }],
+    unfinished: "how far along the route you got (wandering costs), more for getting there early",
+    total: TOTAL,
+  });
 };
 
-export const PAR_MOVES_MAZE_INTRO = `Route: up to ${CAP}. Exit: ${FIN}+, {max} fast with no wasted steps.`;
+export const PAR_MOVES_MAZE_INTRO = "Reach the exit; bonuses for speed and no wasted steps. Up to {max}.";
 
 /* ------------------------------------------------------------------ intro lines (at most 90 characters) */
 
 export const STANDARD_ATTENTION_INTRO = {
-  numhunt: `Numbers reached: up to ${CAP}. Finish: ${FIN}+, {max} fast with no wrong taps.`,
-  chain: `Links: up to ${CAP}. A full chain: ${FIN}+, {max} if you finish within ${CHAIN_STD.fullByS} s.`,
-  stroop: `Sort all ${CLASH_QUEUE}, ${CLASH_DEPTH_MAX_WRONG} wrong at most: ${FIN}+. Streaks and gold words add up to {max}.`,
-  symscan: `Eagles found: up to ${CAP}. All found: ${FIN}+, {max} fast with no wrong taps.`,
-  spotdiff: `Differences: up to ${CAP}. All 12: ${FIN}+; the hidden 7th and no wrong taps add up to {max}.`,
-  countup: `Trays counted: up to ${CAP}. All four right: ${FIN}+, {max} within ${COUNT_STD.fullByS} s.`,
-  maze: `Route: up to ${CAP}; stars add. Exit: ${FIN}+, {max} fast with every star.`,
-  pairmatch: `Pairs: up to ${CAP}. All 15: ${FIN}+; streaks and the gold pair in 30 s add up to {max}.`,
+  numhunt: "Tap the numbers in order; bonuses for speed and no wrong taps. Up to {max}.",
+  chain: "Make every link; a bonus for speed. Up to {max}.",
+  stroop: `Sort the words; bonuses for speed, streaks and gold words. Up to {max}.`,
+  symscan: "Find every eagle; bonuses for speed and no wrong taps. Up to {max}.",
+  spotdiff: "Find the differences; bonuses for speed, no wrong taps and the hidden one. Up to {max}.",
+  countup: "Count every tray right; a bonus for speed. Up to {max}.",
+  maze: "Reach the exit; bonuses for speed and every star. Up to {max}.",
+  pairmatch: "Match every pair; bonuses for speed, streaks and the gold pair. Up to {max}.",
 } as const;

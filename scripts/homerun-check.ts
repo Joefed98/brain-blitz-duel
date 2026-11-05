@@ -10,7 +10,7 @@
  *  4. the parts: distance 130 on a straight line (13 a pitch, full at 450 ft), home runs 5 each to 50, signs 5 each
  *     to 20; no input scores 0, a swipe that did nothing 1; a sign hit is always a home run;
  *  5. contact rules: timing and height quality, foul beyond the fair angle, a pitch nobody swings at is taken;
- *  6. the help states every part and "Together 200 points.";
+ *  6. the help states every part and "Total 200.";
  *  7. homerunRev 1 replays as before: 54 runs recorded on main b154694 (scripts/fixtures/homerun-rev1-legacy.json, the
  *     skill-band bots at every level, random swipes and edge swings) give the same score, final checksum and end tick;
  *  8. homerunRev 2 (rooms deal it): the finer aim (spray = 9/16 of the swipe, fair to ±80°), everything else rev 1's;
@@ -34,6 +34,7 @@
  *
  *   bun scripts/homerun-check.ts
  */
+import { hasScorePart } from "../src/lib/duel/scoreList";
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { recordInput, type ArcadeInputEvent } from "../src/lib/arcade/engine";
@@ -223,9 +224,9 @@ try {
 /* 6. The help. */
 {
   const help = PUZZLE_INSTRUCTIONS.homerun?.score ?? "";
-  ok(help.includes("Together 200 points."), `the help ends "Together 200 points." (${help})`);
+  ok(help.includes("Total 200."), `the help ends "Total 200." (${help})`);
   // The help states the dealt revision's parts (homerunRev 4 since 3 Nov 2026).
-  for (const part of ["Distance up to 120", "Home runs up to 40", "Bonus signs up to 20", "Perfect streak up to 20"]) ok(help.includes(part), `the help states "${part}"`);
+  for (const [label, max] of [["Distance", 120], ["Home runs", 40], ["Bonus signs", 20], ["Perfect streak", 20]] as const) ok(hasScorePart(help, label, max), `the help states "${label}: …, up to ${max}."`);
 }
 
 /* 7. homerunRev 1 replays exactly as before. */

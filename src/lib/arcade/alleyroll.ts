@@ -364,10 +364,10 @@ export const AR2_STD_SPEC: StdSpec = {
   field: "alleyRollRev",
   rev: ALLEYROLL_REV_RINGER,
   parts: [
-    { key: "core", label: "Ring points", max: AR2_CORE_MAX, of: AR2_CORE_FULL, item: "ring point", how: `a straight line, full at ${AR2_CORE_FULL} ring points` },
-    { key: "gold", label: "Gold cup", max: AR2_GOLD_MAX, of: 3, item: "gold cup", how: "10 a hit, up to 3" },
-    { key: "streak", label: "Roll streak", max: AR2_STREAK_MAX, of: 5, item: "ball", how: "4 for each ball scoring 30 or more straight after another that did, up to 5" },
-    { key: "pockets", label: "Pocket hits", max: AR2_POCKETS_MAX, of: 2, item: "pocket", how: "5 each, up to 2" },
+    { key: "core", label: "Ring points", max: AR2_CORE_MAX, of: AR2_CORE_FULL, item: "ring point", how: `add up the cups your balls land in, all of it at ${AR2_CORE_FULL}` },
+    { key: "gold", label: "Gold cup", max: AR2_GOLD_MAX, of: 3, item: "gold cup", how: "10 each time you land in the gold cup" },
+    { key: "streak", label: "Roll streak", max: AR2_STREAK_MAX, of: 5, item: "ball", how: "4 for each ball scoring 30 or more straight after another that did" },
+    { key: "pockets", label: "Pocket hits", max: AR2_POCKETS_MAX, of: 2, item: "pocket", how: "5 for each 100 pocket" },
   ],
 };
 

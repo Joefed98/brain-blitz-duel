@@ -23,6 +23,7 @@
  *   bun scripts/snake-rev12-check.ts [--record]
  */
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { hasScorePart } from "../src/lib/duel/scoreList";
 import { gunzipSync, gzipSync } from "node:zlib";
 import { readFileSync, writeFileSync } from "node:fs";
 import { GAME_BY_TYPE } from "./arcade-skill-bands/games";
@@ -91,12 +92,13 @@ ok(snakeWorldWForRev(SNAKE_REV_12) === snakeWorldWForRev(SNAKE_REV_STD) && snake
 ok(playRevOf("snake", SNAKE_REV_12) === 10 && playRevOf("snake", SNAKE_REV_STD) === 10, "snakeRev 12 keeps snakeRev 10's play for the band-era checks (as snakeRev 11 does)");
 {
   const help = PUZZLE_INSTRUCTIONS.snake.score;
-  ok(help.includes("each big gold star 2") && help.includes("up to 120") && help.includes("A good run (100 points) counts 24 stars") && help.includes("Stars are full at 28"), `the help says a gold star counts 2 and the core is full at 20: ${help}`);
-  ok(help.includes("Gold stars also add up to 40, combos up to 20, lane rides up to 10 and warp stars up to 10: 120 + 80 = 200") && help.endsWith("Up to 200."), "the help lists every part and their 200");
+  // Text pass (4 Nov 2026): the help is a list, one line a part, then the total; the intro names the bonuses.
+  ok(help.includes("a big gold star counts 2") && hasScorePart(help, "Stars", 120) && help.includes("all of it at 28 stars"), `the help says a gold star counts 2 and the stars part is full at 28: ${help}`);
+  ok(hasScorePart(help, "Gold stars", 40) && hasScorePart(help, "Combos", 20) && hasScorePart(help, "Lane rides", 10) && hasScorePart(help, "Warp stars", 10) && help.endsWith("Total 200."), "the help lists every part and their 200");
   const gold = PUZZLE_INSTRUCTIONS.snake.how.find((l) => l.action.startsWith("Gold comet stars"));
   ok(Boolean(gold?.detail.includes("counts as 2 stars")), "the help's gold-star line says it counts as 2 stars");
   const intro = INTRO_SCORE.snake;
-  ok(intro.length <= 90 && intro.includes("120 at 28") && intro.includes("gold stars count 2") && intro.includes("200"), `the intro states the core, the gold stars' 2 and the top: ${intro}`);
+  ok(intro.length <= 90 && /stars/.test(intro) && intro.includes("gold stars") && intro.endsWith("Up to 200."), `the intro states the stars, the gold stars and the top: ${intro}`);
   const demo = readFileSync("src/lib/duel/introDemo.functions.ts", "utf8");
   ok(demo.includes('demo.puzzle.snakeRev !== SNAKE_REV_12) return null;'), "the intro demo plays only when recorded on snakeRev 12");
   const renderer = readFileSync("src/lib/arcade/snake.renderer.ts", "utf8");

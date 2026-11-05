@@ -461,9 +461,9 @@ export const MAHJONG_STD_SPEC: StdSpec = {
   field: "mahjongRev",
   rev: MAHJONG_REV_DEALT,
   parts: [
-    { key: "core", label: "Pairs", max: MAHJONG_CORE_MAX, item: "pair", how: `a share of the ${MAHJONG_PAIRS} pairs cleared` },
-    { key: "clean", label: "No shuffles", max: MAHJONG_CLEAN_MAX, how: "the same share, while you have not shuffled" },
-    { key: "speed", label: "Speed", max: MAHJONG_SPEED_MAX, how: `board cleared only: full by ${MAHJONG_SPEED_FULL_S} s, 0 at the buzzer` },
+    { key: "core", label: "Pairs", max: MAHJONG_CORE_MAX, item: "pair", how: `clear the ${MAHJONG_PAIRS} pairs, each worth the same` },
+    { key: "clean", label: "No shuffles", max: MAHJONG_CLEAN_MAX, how: "the same again for each pair, until you shuffle" },
+    { key: "speed", label: "Speed", max: MAHJONG_SPEED_MAX, how: `clear the board within ${MAHJONG_SPEED_FULL_S} s for all of it, falling to 0 at the buzzer` },
   ],
 };
 

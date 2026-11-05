@@ -1,4 +1,5 @@
 import { pinball4Ambient, pinballAmbient } from "@/lib/arcade/arenaFills.renderer";
+import { auditEventAt } from "@/lib/arcade/auditInput";
 import { ArcadeArenaSlot } from "@/components/puzzles/ArcadeArenaSlot";
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { useArcadeFrameTiming } from "@/components/puzzles/useArcadeFrameTiming";
@@ -132,6 +133,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
             const event = { t: state.current.tick + 1, k: PIN_INPUT_FLIPPERS, a: mask, b: 0, c: 0, d: 0 };
             if (recordInput(events.current, event, game.inputRanges)) sent.current = mask;
           }
+          // The dev audit's bot log (auditInput.ts; never in a production build).
+          { const audit = auditEventAt(state.current.tick + 1); if (audit) recordInput(events.current, audit, game.inputRanges); }
           state.current = game.step(state.current, inputAt(events.current, state.current.tick + 1));
           if (state.current.tick % PIN_CHECKPOINT_INTERVAL === 0) checkpoints.current.push(pinCheckpointAny(state.current));
           if (game.isOver(state.current)) break;

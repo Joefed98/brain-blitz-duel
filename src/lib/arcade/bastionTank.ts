@@ -655,11 +655,11 @@ export const BASTION_STD_SPEC_V3: StdSpec = {
   field: "bastionRev",
   rev: BASTION_REV_IRON,
   parts: [
-    { key: "core", label: "Armour", max: BT3_CORE_MAX, of: BT2_TOTAL_HP, how: `a share of all ${BT2_TOTAL_HP} tank hit points destroyed across the ${BT2_WAVE_COUNT} waves` },
-    { key: "weak", label: "Weak spots", max: BT3_WEAK_MAX, of: BT3_WEAK_MAX, item: "weak-spot hit", how: `1 for each weak-spot hit, up to ${BT3_WEAK_MAX}` },
-    { key: "fast", label: "Fast reloads", max: BT3_FAST_MAX, of: BT3_FAST_MAX / BT3_FAST_EACH, item: "fast reload", how: `${BT3_FAST_EACH} for each fast reload, up to ${BT3_FAST_MAX / BT3_FAST_EACH}` },
+    { key: "core", label: "Armour", max: BT3_CORE_MAX, of: BT2_TOTAL_HP, how: `knock out tank armour, every hit point of the ${BT2_TOTAL_HP} worth the same` },
+    { key: "weak", label: "Weak spots", max: BT3_WEAK_MAX, of: BT3_WEAK_MAX, item: "weak-spot hit", how: "1 for each hit on a glowing weak spot" },
+    { key: "fast", label: "Fast reloads", max: BT3_FAST_MAX, of: BT3_FAST_MAX / BT3_FAST_EACH, item: "fast reload", how: `${BT3_FAST_EACH} for each fast reload` },
     { key: "drone", label: "Drones", max: BT3_DRONE_MAX, of: BT3_DRONES, item: "drone", how: `${BT3_DRONE_EACH} for each of the ${BT3_DRONES} drones shot down` },
-    { key: "base", label: "Base intact", max: BT3_BASE_MAX, of: BT2_BASE, item: "base hit point", how: `${BT3_BASE_MAX} with 3 of 3 left at the end, 5 with 2 of 3` },
+    { key: "base", label: "Base intact", max: BT3_BASE_MAX, of: BT2_BASE, item: "base hit point", how: "all of it with the base unhurt, half with one hit" },
   ],
 };
 

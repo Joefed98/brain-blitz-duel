@@ -67,5 +67,5 @@ export const entry: StdEntry = {
     const r = replayFlipRun(seed, encodeFlipLog(FLIP_REV_FLOW, seed, []).raw, FLIP_REV_FLOW);
     return [{ label: `no input (seed ${seed}, ${r.survivedSeconds.toFixed(1)} s)`, score: r.flagged ? -1 : r.score }];
   },
-  help: { terms: ["Clean time", "half second", "up to 100", "120 clean half seconds", "Perfect landings", "Flow streak"] },
+  help: { terms: ["Clean time", "half second", "up to 100", "the whole minute with no crash", "Perfect landings", "Flow streak"] },
 };

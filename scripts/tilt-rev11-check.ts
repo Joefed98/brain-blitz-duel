@@ -26,6 +26,7 @@
  *
  *   bun scripts/tilt-rev11-check.ts
  */
+import { hasScorePart } from "../src/lib/duel/scoreList";
 import { readFileSync } from "node:fs";
 import { gunzipSync } from "node:zlib";
 import {
@@ -109,13 +110,15 @@ section("wiring: the deal, the help, the intro, the standard module, the demo an
   ok(ROUND_MAX.tilt === 200, "ROUND_MAX: Tilt is 200");
   ok(tiltWorldHFor(TILT_REV_PAR) === TILT_X_H && tiltIsExpand(TILT_REV_PAR), "tiltRev 11 plays in the expansion's world");
   const help = PUZZLE_INSTRUCTIONS.tilt.score;
-  for (const words of ["counts 35", "up to 20 more", "up to 140", "within its par adds 6", "24 for all 4", "clean run adds up to 12", "3 for each maze", "up to 24 for speed", "by 60 s", "140 + 24 + 12 + 24 = 200", "at least 1", "Up to 200."])
+  // Text pass (4 Nov 2026): one line a part, then the total.
+  for (const [label, max] of [["Mazes", 140], ["Par times", 24], ["Clean run", 12], ["Speed", 24]] as const) ok(hasScorePart(help, label, max), `the help says "${label}: …, up to ${max}.": ${help}`);
+  for (const words of ["35 for each maze", "6 for each maze finished within its par time", "3 for each maze", "within 60 s", "Total 200."])
     ok(help.includes(words), `the help says "${words}": ${help}`);
   ok(!/gold star|quick star|skill/i.test(help), "the help names no gold or quick stars and no skill pay");
   const how = PUZZLE_INSTRUCTIONS.tilt.how.map((h) => `${h.action} ${h.detail}`).join(" ");
   ok(/Par:/.test(how) && /Clean run:/.test(how) && !/gold star/i.test(how) && /maze 4/.test(how), `the HOW lines name par, the clean run and maze 4, and no gold stars: ${how}`);
   const intro = INTRO_SCORE.tilt;
-  ok(intro.length <= 90 && intro.includes("35 a maze") && intro.includes("+6 a maze beaten in time") && intro.includes("clean run 12") && !/star/i.test(intro), `the intro (${intro.length} chars): ${intro}`);
+  ok(intro.length <= 90 && intro.includes("mazes") && intro.includes("beating each maze's time") && intro.includes("a clean run") && !/star/i.test(intro), `the intro (${intro.length} chars): ${intro}`);
   ok(entry.type === "tilt" && entry.field === "tiltRev" && entry.rev === TILT_REV_BIG, "the standard module names the dealt tiltRev 12 (tiltRev 11's parts)");
   ok(entry.parts.reduce((t, p) => t + p.max, 0) === 200 && JSON.stringify(entry.parts.map((p) => [p.key, p.max])) === JSON.stringify([["core", 140], ["par", 24], ["clean", 12], ["speed", 24]]), "the standard module's parts: core 140, par 24, clean 12, speed 24");
   const perfect = entry.perfect() as StdRun[];

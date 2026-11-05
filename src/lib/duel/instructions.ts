@@ -91,7 +91,13 @@ import {
   MATCHUP_V12_TREASURES,
 } from "@/lib/arcade/matchup";
 import { BT_STD, BT_V7_BALLS, BT_V7_BOOST_STEPS, BT_V7_FEATURE_MAX, BT_V7_LAST_LAND_MIN } from "@/lib/arcade/ballTrack";
-import { stdCore, stdFeatures, stdFeaturesHelp } from "@/lib/arcade/arcadeStandard";
+import { stdCore, stdFeatures, stdFeaturesHelp, stdSpecMax, type StdSpec } from "@/lib/arcade/arcadeStandard";
+import { scoreList } from "./scoreList";
+
+/** A standard game's help list from its spec: each part's label and maximum, in plain words (text pass, 4 Nov 2026). */
+function listFromSpec(spec: StdSpec, hows: Record<string, string>, penalties: string[] = []): string {
+  return scoreList(spec.parts.map((p) => ({ label: p.label, how: hows[p.key] ?? "", max: p.max })), { penalties, total: stdSpecMax(spec) });
+}
 import {
   HOVER_CENTRE_POINTS,
   HOVER_CENTRE_TOP,
@@ -357,7 +363,10 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "No plurals", detail: "or -s verb forms (FINDS, BOXES); words like GLASS are fine.", helpOnly: true },
         { action: "Words are checked", detail: "against a standard British English dictionary.", helpOnly: true },
       ],
-      score: `Word points: 4 letters 1, 5 → 2, 6 → 4, 7 → 7, 8 → 11, 9+ → 15. More points, higher score: ${wordsmithV3Line()}. The word that uses every tile (the pangram) adds ${WORDSMITH_V3_PANGRAM_BONUS}: {max} only with it. The counter shows word points.`,
+      score: scoreList([
+        { label: "Words", how: "longer words score more (4 letters 1 word point, 5 letters 2, 6 letters 4, 7 letters 7, 8 letters 11, 9 or more 15, shown on the counter)", max: WORDSMITH_V3_CAP },
+        { label: "Every-tile word", how: "find the word that uses every tile (there's always one)", fixed: WORDSMITH_V3_PANGRAM_BONUS },
+      ], { total: "{max}" as unknown as number }),
     },
     tilegrid: {
       goal: "Build a mini crossword from your tiles.",
@@ -462,7 +471,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       goal: "Steer each falling word into the right gate.",
       how: [
         { action: "◀ ▶, joystick or tap a lane", detail: "to steer." },
-        { action: "Swipe down or ▼", detail: "to drop it fast." },
+        { action: "Swipe down or ▼", detail: "to drop it fast.", helpOnly: true },
         { action: "Watch the banner:", detail: "the rule swaps every 15 s." },
         { action: "The rule", detail: "is either the ink colour or what the word says.", helpOnly: true },
         { action: "Grey word in a dashed frame:", detail: "don't touch it – let it fall." },
@@ -534,7 +543,10 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Words are checked", detail: "against a standard British English dictionary.", helpOnly: true },
       ],
       // wordHuntRev 3 (word depth, 25 Oct 2026; wordHunt.ts): base points on their curve, the features' extras on theirs.
-      score: `Word points: 4 letters 1, 5 → 2, 6 → 4, 7 → 7, 8+ → 11. Base points score up to ${WORDHUNT_DEPTH_BASE_MAX}: ${[18, 27, 44].map((u) => `${u} points ≈ ${bandOpen(WORDHUNT_V4_BASE_CURVE, u)}`).join(", ")}, ${WORDHUNT_DEPTH_BASE_MAX} at ${bandUnitsFor(WORDHUNT_V4_BASE_CURVE, WORDHUNT_DEPTH_BASE_MAX)}. What long words and the gold tile add (6 letters ×1.5, 7+ ×2, through the gold tile ×2) scores up to ${WORDHUNT_DEPTH_BONUS_MAX} more: ${[17, 48].map((u) => `${u} extra ≈ ${bandOpen(WORDHUNT_V4_BONUS_CURVE, u, WORDHUNT_DEPTH_BONUS_MAX)}`).join(", ")}, ${WORDHUNT_DEPTH_BONUS_MAX} at ${bandUnitsFor(WORDHUNT_V4_BONUS_CURVE, WORDHUNT_DEPTH_BONUS_MAX)}; {max} only with both. Tracing lots of non-words costs: ${WORDHUNT_FREE_MISSES} plus ${WORDHUNT_FREE_MISSES_PER_WORD} per word found are free, then ${WORDHUNT_MISS_COST_PCT} % off each. The counter shows word points with their multipliers.`,
+      score: scoreList([
+        { label: "Words", how: "longer words score more (4 letters 1 word point, 5 letters 2, 6 letters 4, 7 letters 7, 8 or more 11)", max: WORDHUNT_DEPTH_BASE_MAX },
+        { label: "Long words and gold", how: "extra for 6-letter words, double for 7 or more, double again through the gold tile", max: WORDHUNT_DEPTH_BONUS_MAX },
+      ], { penalties: [`Tracing non-words: ${WORDHUNT_FREE_MISSES} plus ${WORDHUNT_FREE_MISSES_PER_WORD} for each word found are free, then each takes ${WORDHUNT_MISS_COST_PCT} % off`], total: "{max}" as unknown as number }),
     },
     unblock: {
       goal: "Slide the gold block out through the exit.",
@@ -796,7 +808,13 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Everyone flies", detail: `the same course for sixty seconds: ${HOVER_REACHABLE_GATES} barriers in a clean run (the first a wide warm-up gap) and ${HOVER_STARS} gold stars.`, helpOnly: true },
       ],
       // hoverRev 10 (the arcade scoring standard): five parts, each with its maximum, adding up to 200.
-      score: liveBandHelp("hover", `Barriers passed: ${HOVER_STD_CORE} for all ${HOVER_REACHABLE_GATES} barriers, each one worth the same.`, { more: "More barriers", good: (u) => `passes ${u} barriers`, finish: `Star chains add up to ${HOVER_STD_CHAINS} (${HOVER_STD_CHAINS / HOVER_CHAINS} a chain: ${HOVER_STD_CHAIN_SHARE} by the share of its stars you touch, ${HOVER_STD_CHAIN_WHOLE} for the whole chain), gold stars up to ${HOVER_STD_GOLD} (${HOVER_STD_GOLD / HOVER_STARS} each), tight gates up to ${HOVER_STD_TIGHT} (${HOVER_STD_TIGHT / HOVER_TIGHT_GATES} each) and centre lines up to ${HOVER_STD_CENTRE} (${HOVER_STD_CENTRE / HOVER_TIGHT_GATES} a gate). Barriers ${HOVER_STD_CORE} + chains ${HOVER_STD_CHAINS} + gold stars ${HOVER_STD_GOLD} + tight gates ${HOVER_STD_TIGHT} + centre lines ${HOVER_STD_CENTRE} = ${HOVER_STD_MAX}; lasting the minute adds nothing. Any run you play scores at least 1.` }),
+      score: scoreList([
+        { label: "Barriers", how: `fly through the ${HOVER_REACHABLE_GATES} barriers, each worth the same`, max: HOVER_STD_CORE },
+        { label: "Star chains", how: "touch a chain's stars, more for the whole chain", max: HOVER_STD_CHAINS },
+        { label: "Gold stars", how: `${HOVER_STD_GOLD / HOVER_STARS} for each gold star`, max: HOVER_STD_GOLD },
+        { label: "Tight gates", how: `${HOVER_STD_TIGHT / HOVER_TIGHT_GATES} for each tight gate flown through`, max: HOVER_STD_TIGHT },
+        { label: "Centre lines", how: "fly a tight gate along its centre line", max: HOVER_STD_CENTRE },
+      ], { penalties: ["A crash ends the run"], total: HOVER_STD_MAX }),
     },
     swerve: {
       goal: "Collect coins while dodging the blocks.",
@@ -823,10 +841,10 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Taller view, more sky:", detail: "the tower climbs higher before the camera pulls back.", helpOnly: true },
         { action: "Everyone", detail: "gets the same gusts at the same moments.", helpOnly: true },
       ],
-      score: liveStdHelp("skyline", "Every floor you build counts the same."),
+      score: liveStdHelp("skyline"),
     },
     bintoss: {
-      goal: "Throw the ball into the bucket.",
+      goal: "Throw into the boardwalk bucket.",
       how: [
         { action: "Drag to aim,", detail: "then let go to throw." },
         { action: "Wind 1 = a quarter bucket.", detail: "Aim into the flag." },
@@ -857,10 +875,10 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Drag down to the cancel strip", detail: "to put a throw back.", helpOnly: true },
       ],
       // binRev 9 (the arcade scoring standard, docs/arcade-standard/bintoss.md): fixed amounts, no curve.
-      score: liveStdHelp("bintoss", "Ten throws, the same for everyone."),
+      score: liveStdHelp("bintoss"),
     },
     bullseye: {
-      goal: "Hit the gold 10, near and far.",
+      goal: "Hit the darts stall's gold 10.",
       how: [
         { action: "Drag to aim,", detail: "let go to throw." },
         { action: "Bulls in a row:", detail: `from the 3rd, +${BULLSEYE_V8_STREAK_STEP}, +${2 * BULLSEYE_V8_STREAK_STEP}, +${3 * BULLSEYE_V8_STREAK_STEP}…` },
@@ -908,7 +926,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       ],
       // bullRev 9 (the arcade scoring standard, docs/arcade-standard/bullseye.md): the dart total on a straight line, plus
       // the bull streak and dead-centre darts.
-      score: bullseyeStdHelp("bullseye", "Every dart point counts the same."),
+      score: bullseyeStdHelp("bullseye"),
     },
     matchup: {
       goal: "Match gems to meet each goal.",
@@ -928,11 +946,13 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       ],
       // matchupRev 12 (the arcade scoring standard, six goals and six treasures): the core on its straight line, then fixed
       // amounts, to 200.
-      score: liveBandHelp("matchup", "Every gem cleared counts, in a line, a cascade or a blast.", {
-        more: "More gems cleared",
-        good: (u) => `clears ${u.toLocaleString("en-GB")} gems`,
-        finish: `Then treasure: ${MATCHUP_V12_TREASURE_PTS} for each brought down (up to ${MATCHUP_V12_TREASURE_MAX}); goals: ${MATCHUP_V12_GOAL_PTS} for each of the ${MATCHUP_V12_GOALS} colour goals met (up to ${MATCHUP_V12_GOALS_MAX}); ice: ${MATCHUP_V12_ICE_PTS} for each frozen cell broken (up to ${MATCHUP_V12_ICE_MAX}); big lines: ${MATCHUP_V12_BIG_PTS} for each line of 4 or 5 you match (up to ${MATCHUP_V12_BIG_MAX}). Gems ${MATCHUP_V12_CORE_MAX} + ${MATCHUP_V12_TREASURE_MAX} + ${MATCHUP_V12_GOALS_MAX} + ${MATCHUP_V12_ICE_MAX} + ${MATCHUP_V12_BIG_MAX} make 200.`,
-      }),
+      score: scoreList([
+        { label: "Gems", how: "every gem cleared counts the same, in a line, a cascade or a blast", max: MATCHUP_V12_CORE_MAX },
+        { label: "Treasure", how: `${MATCHUP_V12_TREASURE_PTS} for each treasure brought down`, max: MATCHUP_V12_TREASURE_MAX },
+        { label: "Goals", how: `${MATCHUP_V12_GOAL_PTS} for each of the ${MATCHUP_V12_GOALS} colour goals met`, max: MATCHUP_V12_GOALS_MAX },
+        { label: "Ice", how: `${MATCHUP_V12_ICE_PTS} for each frozen cell broken`, max: MATCHUP_V12_ICE_MAX },
+        { label: "Big lines", how: `${MATCHUP_V12_BIG_PTS} for each line of 4 or 5`, max: MATCHUP_V12_BIG_MAX },
+      ], { total: 200 }),
     },
     snake: {
       goal: "Eat the stars; don't crash.",
@@ -955,11 +975,13 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       ],
       // snakeRev 12 (1 Nov 2026): stars on a straight line to 120, full at 28, a big gold star counting 2; then four fixed
       // feature parts, 200 in all.
-      score: liveBandHelp("snake", `Each star eaten counts 1, each big gold star ${SNAKE_V12_GOLD_CORE}.`, {
-        more: "More stars",
-        good: (u) => `counts ${u} stars`,
-        finish: `Stars are full at ${SNAKE_V12_CORE_STARS}. Gold stars also add up to ${SNAKE_STD_CAPS.gold}, combos up to ${SNAKE_STD_CAPS.combo}, lane rides up to ${SNAKE_STD_CAPS.lane} and warp stars up to ${SNAKE_STD_CAPS.warp}: ${SNAKE_STD_CORE_MAX} + ${SNAKE_STD_CAPS.gold + SNAKE_STD_CAPS.combo + SNAKE_STD_CAPS.lane + SNAKE_STD_CAPS.warp} = ${SNAKE_STD_CORE_MAX + SNAKE_STD_CAPS.gold + SNAKE_STD_CAPS.combo + SNAKE_STD_CAPS.lane + SNAKE_STD_CAPS.warp}. A crash ends the run.`,
-      }),
+      score: scoreList([
+        { label: "Stars", how: `every star eaten counts, a big gold star counts ${SNAKE_V12_GOLD_CORE}; all of it at ${SNAKE_V12_CORE_STARS} stars`, max: SNAKE_STD_CORE_MAX },
+        { label: "Gold stars", how: "eat a gold star soon after it appears for more", max: SNAKE_STD_CAPS.gold },
+        { label: "Combos", how: `1 for each star from the third eaten within ${SNAKE_STD_COMBO_TICKS / 60} s of the last`, max: SNAKE_STD_CAPS.combo },
+        { label: "Lane rides", how: `${SNAKE_STD_LANE_POINTS} for every ${SNAKE_STD_LANE_RIDE} squares along a violet lane`, max: SNAKE_STD_CAPS.lane },
+        { label: "Warp stars", how: `${SNAKE_STD_WARP_POINTS} for a star eaten within ${SNAKE_STD_WARP_TICKS / 60} s of a wormhole`, max: SNAKE_STD_CAPS.warp },
+      ], { penalties: ["A crash ends the run"], total: 200 }),
     },
     cross: {
       goal: "Spacewalk across the space traffic as many times as you can.",
@@ -978,7 +1000,11 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Only the astronaut counts:", detail: "traffic has to touch the figure itself (its arms' reach), not the space around it.", helpOnly: true },
       ],
       // crossRev 11 (3 Nov 2026): rows and crossings on a straight line to 150, the no-stop streak 40, close calls 10; a hit costs 15.
-      score: `Rows and crossings: ${liveBandHelp("cross", "Each row crossed counts 1 and each full crossing 2 more.", { more: "More rows and crossings" })} ${stdFeaturesHelp(CROSS_FLOW_STD, { streak: `${CROSS_V11_FLOW_EACH} for each no-stop crossing straight after a no-stop crossing, four of them` })} Each hit costs ${CROSS_V11_HIT_COST}.`,
+      score: listFromSpec(CROSS_FLOW_STD, {
+        core: "1 for each row crossed, 2 more for each full crossing",
+        streak: `${CROSS_V11_FLOW_EACH} for each crossing without stopping, straight after another`,
+        close: "1 for each close call",
+      }, [`Each hit costs ${CROSS_V11_HIT_COST}`]),
     },
     dual: {
       goal: "Keep both runners alive.",
@@ -996,8 +1022,8 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       goal: "Clear the wall; break the gold.",
       how: [
         { action: "Drag the paddle;", detail: "tap to fire a power-up." },
-        { action: "Gold bricks:", detail: `break after ${BRK_V10_GOLD_HITS} hits.` },
-        { action: "Every brick scores;", detail: `gold bricks add ${BRK_V11_GOLD_MAX / BRK_V9_GOLD} each.` },
+        { action: "Gold:", detail: `${BRK_V10_GOLD_HITS} hits; ${BRK_V11_GOLD_MAX / BRK_V9_GOLD} each (${BRK_V11_GOLD_MAX} for all three).` },
+        { action: "Every brick scores;", detail: "a fast clear scores more." },
         { action: "Catch power-ups:", detail: "laser, ×3, ×2, Fireball.", helpOnly: true },
         { action: "Keep the ball up", detail: "– it gets faster with bricks and with time. Losing the last ball costs 3 seconds.", helpOnly: true },
         { action: "Cracked bricks take 2 or 3 hits", detail: "– each hit cracks them further.", helpOnly: true },
@@ -1010,7 +1036,12 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: `${BRK_V9_GOLD} gold bricks`, detail: `sit near the top, each behind an armoured brick. Any ${BRK_V10_GOLD_HITS} hits break one: balls, Fireball balls, ×3 shots and the laser all count, and each hit cracks it further.`, helpOnly: true },
       ],
       // brkRev 11 (the arcade scoring standard): four fixed parts that total 200.
-      score: liveBandHelp("breaker", `Every brick destroyed counts 1, the ${BRK_V9_GOLD} gold bricks included.`, { more: "More bricks", good: (u) => `breaks ${u} of the ${BRK_V11_BRICKS}`, finish: `Breaking the other ${BRK_V11_BRICKS - BRK_V9_GOLD} clears the wall and ends the run: clearing adds ${BRK_V11_CLEAR_POINTS}, plus up to ${BRK_V11_SPEED_MAX} for speed, the full ${BRK_V11_SPEED_MAX} with at least half the time left, falling evenly to 0 at the buzzer. Gold bricks add up to ${BRK_V11_GOLD_MAX}, ${BRK_V11_GOLD_MAX / BRK_V9_GOLD} each. Power-ups and combos add nothing extra, and a lost ball costs only time. Bricks ${BRK_V11_CORE_MAX} + clear ${BRK_V11_CLEAR_POINTS} + speed ${BRK_V11_SPEED_MAX} + gold ${BRK_V11_GOLD_MAX} = ${BRK_V11_MAX}.` }),
+      score: scoreList([
+        { label: "Bricks", how: `every brick broken counts the same, the ${BRK_V9_GOLD} gold bricks too`, max: BRK_V11_CORE_MAX },
+        { label: "Clear", how: "break every brick", max: BRK_V11_CLEAR_POINTS },
+        { label: "Speed", how: "clear the wall with half the time left for all of it, falling to 0 at the buzzer", max: BRK_V11_SPEED_MAX },
+        { label: "Gold bricks", how: `${BRK_V11_GOLD_MAX / BRK_V9_GOLD} each (${BRK_V11_GOLD_MAX} for all ${BRK_V9_GOLD})`, max: BRK_V11_GOLD_MAX },
+      ], { penalties: ["A lost ball costs only time"], total: BRK_V11_MAX }),
     },
     // Cards & Board (30 Oct 2026; docs/arcade-standard/minesweeper.md and mahjong.md).
     minesweeper: {
@@ -1023,7 +1054,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "A mine costs 5", detail: "and stays marked; play goes on.", helpOnly: true },
         { action: "One board for everyone,", detail: `${MINES_COUNT} mines on 10 × 16, 90 seconds.`, helpOnly: true },
       ],
-      score: liveStdHelp("minesweeper", `A mine hit costs ${MINES_HIT_COST}.`),
+      score: liveStdHelp("minesweeper", `Each mine hit costs ${MINES_HIT_COST}.`),
     },
     mahjong: {
       goal: "Clear the stack in matching pairs.",
@@ -1037,7 +1068,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Faces:", detail: "dots, bamboo and characters 1–9, the four winds and three dragons; a face matches only itself.", helpOnly: true },
         { action: "One stack for everyone,", detail: "72 tiles in four layers, 2 minutes.", helpOnly: true },
       ],
-      score: liveStdHelp("mahjong", `A Shuffle costs ${MAHJONG_SHUFFLE_COST}.`),
+      score: liveStdHelp("mahjong", `Each Shuffle costs ${MAHJONG_SHUFFLE_COST}.`),
     },
     // The Sports group (30 Oct 2026; docs/arcade-standard/homerun.md, freekick.md, racing.md).
     homerun: {
@@ -1055,7 +1086,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Perfect streak:", detail: "perfectly timed swings in a row; your longest run counts.", helpOnly: true },
         { action: "Everyone", detail: "faces the same pitches, fielders and lit signs in the same order.", helpOnly: true },
       ],
-      score: liveStdHelp("homerun", "Every pitch counts the same."),
+      score: liveStdHelp("homerun"),
     },
     freekick: {
       goal: "Score ten free kicks past the wall and the keeper.",
@@ -1070,7 +1101,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "A bar target", detail: "counts only if the ball goes in off the bar.", helpOnly: true },
         { action: "The keeper", detail: "reacts the same way to the same shot every time, for everyone.", helpOnly: true },
       ],
-      score: liveStdHelp("freekick", "Every kick counts the same."),
+      score: liveStdHelp("freekick"),
     },
     racing: {
       goal: "Drive two laps as fast and as cleanly as you can.",
@@ -1087,7 +1118,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Ghost cars", detail: "show the other players in the room. They can't touch you and passing them scores nothing.", helpOnly: true },
         { action: "Everyone", detail: "races the same track.", helpOnly: true },
       ],
-      score: liveStdHelp("racing", "Pace is your average speed over the race: every km/h counts the same."),
+      score: liveStdHelp("racing"),
     },
     // The Sports group (30 Oct 2026; docs/arcade-standard/minigolf.md, pool.md, curling.md): on the arcade scoring
     // standard from their first stamps.
@@ -1106,7 +1137,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Logs, boulders and planters", detail: "bounce the ball; use the timber rails and logs as banks.", helpOnly: true },
         { action: "Par is the best route we found plus one,", detail: "so a birdie is always possible. The same five holes for everyone.", helpOnly: true },
       ],
-      score: liveStdHelp("minigolf", "120 seconds for five holes."),
+      score: liveStdHelp("minigolf"),
     },
     pool: {
       goal: "Pot your seven, spots or stripes, then the black, without a miss.",
@@ -1123,7 +1154,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "The black too early", detail: "ends your run with no black or speed points.", helpOnly: true },
         { action: "Every layout is proved clearable", detail: "without a miss. The same table and set for everyone.", helpOnly: true },
       ],
-      score: liveStdHelp("pool", "90 seconds. Fouls cost 10 each."),
+      score: liveStdHelp("pool", "Each foul costs 10."),
     },
     curling: {
       goal: "Beat the three red stones to the button with all eight of yours.",
@@ -1141,7 +1172,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "The inset, top right,", detail: "shows exactly where every stone sits.", helpOnly: true },
         { action: "A stone short of the far hog line,", detail: "or through the back or the sides, is out of play.", helpOnly: true },
       ],
-      score: liveStdHelp("curling", "120 seconds, eight stones; each stone counts where it stops when you throw it, if no red is nearer."),
+      score: liveStdHelp("curling"),
     },
     pinball: {
       goal: "Keep the ball in play and rack up table points.",
@@ -1162,7 +1193,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Yellow slingshots", detail: `kick the ball back across (${PIN_PTS_SLING} each).`, helpOnly: true },
         { action: "A ball between the flippers drains.", detail: "Hold a flipper up to catch the ball on it, then let go and flip again to aim.", helpOnly: true },
       ],
-      score: liveStdHelp("pinball", "Every switch, ramp, lock, jackpot and skill shot scores table points (no multiplier)."),
+      score: liveStdHelp("pinball"),
     },
     // Cards & Board (30 Oct 2026): born on the arcade scoring standard; the SCORE text comes from each game's spec.
     freecell: {
@@ -1170,7 +1201,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       how: [
         { action: "Ace to 10", detail: "in each suit: 40 cards, eight columns of five." },
         { action: "Tap a card", detail: "to move it (and the run on it) to its best spot." },
-        { action: "Drag a card", detail: "to put it on a particular pile." },
+        { action: "Drag a card", detail: "to put it on a particular pile.", helpOnly: true },
         { action: "Build down", detail: "in alternating colours; home piles build up by suit from the Ace." },
         { action: "Undo and Reset", detail: "are the small buttons at the top: Undo takes back the last move (as often as you like), Reset deals the cards back out. Each counts as a move; the clock runs on." },
         { action: "Four free cells", detail: "each hold one card. Empty cells and columns let you move longer runs at once.", helpOnly: true },
@@ -1178,20 +1209,20 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Par", detail: "is the fewest moves our solver found for this deal.", helpOnly: true },
         { action: "One deal for everyone,", detail: "always solvable.", helpOnly: true },
       ],
-      score: liveStdHelp("freecell", "Three parts, which total 200:"),
+      score: liveStdHelp("freecell"),
     },
     tripeaks: {
       goal: "Clear the three peaks.",
       how: [
         { action: "Tap a glowing card", detail: "one higher or lower than the discard; Ace and King wrap." },
-        { action: "Tap the stock", detail: "when you are stuck: it turns a new discard and ends the run." },
+        { action: "Tap the stock", detail: "when you are stuck: it turns a new discard and ends your run of cards." },
         { action: "Uncover the tops", detail: "of all three peaks for the bonus." },
         { action: "Stock par", detail: "at the top is the fewest stock cards this deal can be cleared with: clear it within par for the full bonus." },
         { action: "Face-down cards", detail: "turn up when both cards over them are cleared.", helpOnly: true },
         { action: "Drag works too:", detail: "drop a card on the discard.", helpOnly: true },
         { action: "One deal for everyone,", detail: "always clearable.", helpOnly: true },
       ],
-      score: liveStdHelp("tripeaks", "Six parts, which total 200:"),
+      score: liveStdHelp("tripeaks"),
     },
     pokersquares: {
       goal: "Build poker hands in every row and column.",
@@ -1204,14 +1235,14 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Empty squares at the buzzer", detail: "score whatever their lines already hold.", helpOnly: true },
         { action: "Same cards, same order,", detail: "for everyone.", helpOnly: true },
       ],
-      score: liveStdHelp("pokersquares", "Two parts, which total 200:"),
+      score: liveStdHelp("pokersquares"),
     },
     fivehands: {
       goal: "Build five poker hands, one row each, then pick a column to add.",
       how: [
         { action: "Tap a row", detail: "to place your card in its next slot. Placed cards stay." },
         { action: "Rows fill evenly:", detail: "every row takes a card before any row takes the next. Rows already filled for the round are greyed out." },
-        { action: "Each turn", detail: "also turns up a card taken by an opponent: it goes face up on the discard row at the bottom." },
+        { action: "Each turn", detail: "also turns up a card you don't get: it goes face up on the discard row at the bottom." },
         { action: "Then pick a column:", detail: "once every row is full, tap one column; its hand adds to your score (pick before the buzzer or it counts nothing)." },
         { action: "Hands:", detail: "high card 0, pair 15, two pair 20, three of a kind 25, straight 30, flush 35, full house 40, four of a kind 45, straight flush 50.", helpOnly: true },
         { action: "20 turns", detail: "after five cards dealt one to each row: 45 of the 52 cards are seen by the end.", helpOnly: true },
@@ -1219,7 +1250,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Some decks", detail: "can't reach 200 even placed perfectly: everyone in a room has the same deck, so it's fair.", helpOnly: true },
         { action: "Same deck, same order,", detail: "for everyone.", helpOnly: true },
       ],
-      score: liveStdHelp("fivehands", "One part: your five rows' and your picked column's points added up and times 1.4, which total 200 at most:"),
+      score: liveStdHelp("fivehands"),
     },
     blockfall: {
       goal: "Clear as many lines as you can in 90 seconds.",
@@ -1234,7 +1265,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Keep it low:", detail: "a stack within the bottom four rows at the buzzer scores extra.", helpOnly: true },
         { action: "Same pieces, same order,", detail: "for everyone.", helpOnly: true },
       ],
-      score: liveStdHelp("blockfall", "Four parts, which total 200:"),
+      score: liveStdHelp("blockfall"),
     },
     alleyroll: {
       goal: "Roll nine balls up the lane into the cups.",
@@ -1246,7 +1277,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Nine balls", detail: "or 60 seconds, whichever comes first.", helpOnly: true },
         { action: "The same lane and the same gold cup", detail: "for everyone.", helpOnly: true },
       ],
-      score: liveStdHelp("alleyroll", "Four parts, which total 200:"),
+      score: liveStdHelp("alleyroll"),
     },
     pyramid: {
       goal: "Clear the pyramid in pairs that add to 13.",
@@ -1255,12 +1286,12 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "A King", detail: "is 13 on its own: one tap removes it." },
         { action: "Tap the stock", detail: "to turn a card onto the waste; the waste's top card pairs too." },
         { action: "One pass:", detail: "the stock is turned once; a waste card is buried by the next draw, so free its partner in time." },
-        { action: "Undo and Reset", detail: "at the bottom take back the last action or go back to the deal; the clock runs on." },
+        { action: "Undo and Reset", detail: "at the bottom take back the last action or go back to the deal; the clock runs on.", helpOnly: true },
         { action: "Pairs of two pyramid cards", detail: "score extra, 2 each, up to ten.", helpOnly: true },
         { action: "Every deal", detail: "can be cleared with ten pyramid pairs, but only in the right order: look before you pair.", helpOnly: true },
         { action: "Same deal", detail: "for everyone.", helpOnly: true },
       ],
-      score: liveStdHelp("pyramid", "Four parts, which total 200:"),
+      score: liveStdHelp("pyramid"),
     },
     golfsol: {
       goal: "Clear all seven columns onto the foundation.",
@@ -1269,11 +1300,11 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "No wrapping:", detail: "nothing goes between a King and an Ace." },
         { action: "Tap the stock", detail: "when stuck: its card becomes the new foundation." },
         { action: "Runs:", detail: "four or more cards in a row without drawing score extra, 4 each, up to five.", helpOnly: true },
-        { action: "Undo and Reset", detail: "at the bottom take back the last action or go back to the deal; the clock runs on." },
+        { action: "Undo and Reset", detail: "at the bottom take back the last action or go back to the deal; the clock runs on.", helpOnly: true },
         { action: "Every deal", detail: "can be cleared without seeing the stock, and with five runs of four.", helpOnly: true },
         { action: "Same deal", detail: "for everyone.", helpOnly: true },
       ],
-      score: liveStdHelp("golfsol", "Four parts, which total 200:"),
+      score: liveStdHelp("golfsol"),
     },
     muggins: {
       goal: "Play out your dominoes and score with the ends.",
@@ -1286,7 +1317,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Undo and Reset", detail: "take back plays back to your latest draw (a draw is final), or go back to it; the clock runs on.", helpOnly: true },
         { action: "Same start, hand and pile", detail: "for everyone.", helpOnly: true },
       ],
-      score: liveStdHelp("muggins", "Four parts, which total 200:"),
+      score: liveStdHelp("muggins"),
     },
     rally: {
       goal: "Keep the rally going.",
@@ -1305,7 +1336,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Miss the blue ball", detail: "and the run is over: you keep what you have scored. Blue returns and lasting the minute score nothing themselves.", helpOnly: true },
       ],
       // rallyRev 12 (the arcade scoring standard, docs/arcade-standard/rally.md): gold-ball hits on a straight line, pads and gold targets fixed.
-      score: liveStdHelp("rally", "Only gold balls and gold targets score; losing the blue ball ends the run."),
+      score: liveStdHelp("rally", "Losing the blue ball ends the run."),
     },
 
     steady: {
@@ -1328,7 +1359,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Cut food near a chilli;", detail: "never cut one." },
         { action: "Never cut a chilli:", detail: `it costs ${SLICE_V11_CHILLI} points and ends your combo.`, helpOnly: true },
         { action: "Cut a bottle:", detail: "ketchup, mustard or mayo power-up.", helpOnly: true },
-        { action: "Combo:", detail: `three foods in one swipe start it and each one renews its 10 seconds. Past the first ${SLICE_V12_COMBO_FROM} foods cut while it is live, each adds to the combo's ${SLICE_V11_COMBO_CAP}, full at ${SLICE_V12_COMBO_FULL}.`, helpOnly: true },
+        { action: "Combo:", detail: `three foods in one swipe start it and each one renews its 10 seconds. Past the first ${SLICE_V12_COMBO_FROM} foods cut while it is live, each adds to the combo's ${SLICE_V11_COMBO_CAP}, all of it at ${SLICE_V12_COMBO_FULL}.`, helpOnly: true },
         { action: "The food:", detail: "bread, watermelons, oranges and apples; the bright red chillies are the ones to miss.", helpOnly: true },
         { action: "Golden fruit:", detail: `the golden apples, ${SLICE_V9_GOLDS} a run, share ${SLICE_V11_GOLD_CAP} points.`, helpOnly: true },
         { action: "Bread tickets:", detail: `${SLICE_V11_TICKET_BREADS} breads cut in a row fill a ticket (other food in between is fine; a bread you miss starts the count again). Tickets share ${SLICE_V11_TICKET_CAP} points.`, helpOnly: true },
@@ -1339,7 +1370,13 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       ],
       // sliceRev 12 (3 Nov 2026, docs/arcade-standard/slice.md): the share of food cut on a straight line from half of
       // it to 120, then the four parts.
-      score: `Each food cut counts, out of every food thrown (bottles and chillies don't count), in thousandths. Up to half of the food counts nothing. More food sliced past half of it, higher score – up to ${SLICE_V11_CORE}. A good run (${BAND_GOOD_POINTS} points) slices ${bandUnitsFor(SLICE_V12_BAND_CURVE, BAND_GOOD_POINTS)}. Combos add up to ${SLICE_V11_COMBO_CAP}, golden fruit ${SLICE_V11_GOLD_CAP}, bread tickets ${SLICE_V11_TICKET_CAP} and dodges ${SLICE_V11_DODGE_CAP}: ${SLICE_V11_CORE + SLICE_V11_COMBO_CAP + SLICE_V11_GOLD_CAP + SLICE_V11_TICKET_CAP + SLICE_V11_DODGE_CAP} in all. Each chilli costs ${SLICE_V11_CHILLI} and ends the combo. Up to ${SLICE_V9_MAX}.`,
+      score: scoreList([
+        { label: "Food", how: "slice the food thrown up; the first half of it scores nothing, then every piece counts the same", max: SLICE_V11_CORE },
+        { label: "Combos", how: "slice several foods in one swipe", max: SLICE_V11_COMBO_CAP },
+        { label: "Golden fruit", how: "slice the golden fruit", max: SLICE_V11_GOLD_CAP },
+        { label: "Bread tickets", how: "slice the bread", max: SLICE_V11_TICKET_CAP },
+        { label: "Dodges", how: "let the chillies pass", max: SLICE_V11_DODGE_CAP },
+      ], { penalties: [`Each chilli you slice costs ${SLICE_V11_CHILLI} and ends the combo`], total: SLICE_V9_MAX }),
     },
     bubble: {
       goal: "Pop threes and free the treasure.",
@@ -1357,7 +1394,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Ninety seconds", detail: "on the same field and queue for everyone.", helpOnly: true },
       ],
       // bubbleRev 11 (the arcade scoring standard): every part, its maximum and how it pays, 200 in all.
-      score: liveStdHelp("bubble", "Clear the reef's bubbles; falling chests, bank shots and combos add more."),
+      score: liveStdHelp("bubble"),
     },
     beat: {
       goal: "Tap the notes in time.",
@@ -1379,7 +1416,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Swipe notes (from 30 seconds)", detail: "show a left or right arrow. Flick your finger that way in the lane as the note reaches the line. A plain tap won't hit them, and the wrong way is a miss.", helpOnly: true },
         { action: "Keep a combo going", detail: "to light up the lanes at 10, 25 and 50 – a miss resets it.", helpOnly: true },
       ],
-      score: liveStdHelp("beat", "Notes hit closer to the beat score more."),
+      score: liveStdHelp("beat"),
     },
 
     ricochet: {
@@ -1395,7 +1432,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Scrolls", detail: "are rare: three, at the top of double-jump lines.", helpOnly: true },
         { action: "Everyone in a room", detail: "climbs the same tower.", helpOnly: true },
       ],
-      score: liveStdHelp("ricochet", "Four parts, which total 200:"),
+      score: liveStdHelp("ricochet"),
     },
     wordfall: {
       goal: "Make words to clear the falling letters.",
@@ -1437,7 +1474,12 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Doubles and streaks:", detail: "hit both clays of a pair, and clays in a row, for bonuses." },
         { action: "The hit streak", detail: "grows ×2 from the 5th clay in a row, ×3 from the 10th, ×4 from the 15th; a clay that gets away or a bird ends it.", helpOnly: true },
       ],
-      score: `5 per orange, 10 per gold, −10 per bird, −1 per 20 shots that hit nothing after the first 30; all 25 with zero birds hit adds 10. That total gives up to ${bandMapTotal(CLAY_QUICK_HIT_MAP, 150)}: 88 gives ${bandMapTotal(CLAY_QUICK_HIT_MAP, 88)}, 125 gives ${bandMapTotal(CLAY_QUICK_HIT_MAP, 125)}. Quick hits add up to ${CLAY_QUICK_POINTS} more: a clay hit within a quarter of a second of its launch earns its full share, none after about 0.37 s; a perfect, quick run is 150. Past that: up to ${CLAY_DOUBLE_POINTS * CLAY_DOUBLES} for the ${CLAY_DOUBLES} doubles and ${CLAY_STREAK_POINTS} for one streak through all 25, both paid by how quick your hits were. {max} only for a perfect, quick run with every double and an unbroken streak.`,
+      score: scoreList([
+        { label: "Clays", how: "5 for each orange clay, 10 for each gold, 10 more for all 25 with no bird hit", max: bandMapTotal(CLAY_QUICK_HIT_MAP, 150) },
+        { label: "Quick hits", how: "hit each clay within a quarter of a second of its launch (none after about 0.37 s)", max: CLAY_QUICK_POINTS },
+        { label: "Doubles", how: `hit both clays of each of the ${CLAY_DOUBLES} doubles, more for quick hits`, max: CLAY_DOUBLE_POINTS * CLAY_DOUBLES },
+        { label: "Streak", how: "hit all 25 in one unbroken streak, more for quick hits", max: CLAY_STREAK_POINTS },
+      ], { penalties: ["Each bird hit costs 10", "After 30 shots, every 20 that hit nothing cost 1"], total: "{max}" as unknown as number }),
     },
     whack: {
       goal: "Bonk gophers whose hats match the banner.",
@@ -1450,7 +1492,11 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Combo and diamonds:", detail: "right hits in a row multiply; tap the rare diamond fast." },
         { action: "The gold combo", detail: "grows ×2 from the 6th right hit in a row, ×3 from the 11th, ×4 from the 16th; a wrong hat, a hedgehog or an empty burrow ends it (a gopher left to sink does not).", helpOnly: true },
       ],
-      score: `Up to 135 for the share of targets hit, −3 per wrong hat, −5 per hedgehog, −3 per empty tap, +15 for hitting every target; that total sets the first 150: 62 scores ${bandMapTotal(WHACK_BANDS_MAP, 62)}, 102 scores ${bandMapTotal(WHACK_BANDS_MAP, 102)}, 118 scores ${bandMapTotal(WHACK_BANDS_MAP, 118)}, 133 scores ${bandMapTotal(WHACK_BANDS_MAP, 133)}, a perfect run 150. The combo adds up to ${WHACK_COMBO_POINTS} for long unbroken runs of very quick hits (slower hits count less, none after about ${Math.round((WHACK_QUICK_ZERO_TICKS * 1000) / 60)} ms); each of the ${WHACK_DIAMONDS} diamonds adds ${WHACK_DIAMOND_POINTS}. {max} only for a perfect, very fast run with an unbroken combo and both diamonds.`,
+      score: scoreList([
+        { label: "Hits", how: "hit the targets as they pop up; every target hit scores the same, 15 more for hitting them all", max: 150 },
+        { label: "Combo", how: `long unbroken runs of very quick hits (none slower than about ${Math.round((WHACK_QUICK_ZERO_TICKS * 1000) / 60)} ms)`, max: WHACK_COMBO_POINTS },
+        { label: "Diamonds", how: `${WHACK_DIAMOND_POINTS} for each of the ${WHACK_DIAMONDS} diamonds`, max: WHACK_DIAMOND_POINTS * WHACK_DIAMONDS },
+      ], { penalties: ["Each wrong hat or empty tap costs 3 and each hedgehog 5"], total: "{max}" as unknown as number }),
     },
     wavefront: {
       goal: "Five waves and two bosses in 90 s.",
@@ -1469,20 +1515,20 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Weak points score:", detail: "each cannon you destroy and each boss whose open core you hit (once is enough) – six in a run.", helpOnly: true },
       ],
       // wavRev 12 (the arcade scoring standard, docs/arcade-standard/wavefront.md): the core and fixed parts, 200 in all.
-      score: `${liveBandHelp("wavefront", `Ships, hits and waves: ships shot, armour hits and the gunship's hit points count 1, and cleared waves (the gunship too) 15; everything before the boss counts ${WAV_STD_CORE_FULL}.`, {
-        more: "More ships, hits and waves",
-      })} ${stdFeaturesHelp(WAVEFRONT_STD, {
-        speed: "only with the boss destroyed: the full 10 within 20 s of its arrival, falling to 0 at 40 s",
-        saucers: `${20 / WAV_X_SAUCERS} a saucer of the ${WAV_X_SAUCERS} a run flies; destroying the boss counts those still to come`,
-        weak: "each cannon destroyed and each boss's open core hit, six in all",
-      })} Power-ups score nothing; each life lost costs ${WAV_STD_LIFE_COST} (anyone who plays scores at least 1).`,
+      score: listFromSpec(WAVEFRONT_STD, {
+        core: "1 for each ship shot, armour hit and boss hit, 15 for each wave cleared",
+        boss: "destroy the boss",
+        speed: "destroy it within 20 s of its arrival for all of it, nothing after 40 s",
+        saucers: `${20 / WAV_X_SAUCERS} for each saucer shot down`,
+        weak: "destroy cannons and hit the boss's open core",
+      }, [`Each life lost costs ${WAV_STD_LIFE_COST}`, "Power-ups score nothing"]),
     },
     // Iron Wall (id bastion; bastionRev 3, 3 Nov 2026; docs/arcade-standard/bastion.md): the tank-defence shooter.
     bastion: {
       goal: "Hold the wall against five waves of tanks, and shoot down the drones.",
       how: [
         { action: "Drag anywhere to aim;", detail: "the crosshair floats above your thumb. Lift to fire." },
-        { action: "Shells take a moment to land:", detail: "lead a moving tank." },
+        { action: "Shells take a moment to land:", detail: "lead a moving tank.", helpOnly: true },
         { action: "Hit the glowing weak spot", detail: "for double damage, while it is open." },
         { action: "Five shells.", detail: "Swipe down to reload early; tap while the needle is in the green for a fast reload." },
         { action: "Three drones cross the sky:", detail: "small and fast. Lead one well ahead to shoot it down for a bonus." },
@@ -1496,7 +1542,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "On a computer:", detail: "the mouse aims, click fires, R reloads and Space is the fast-reload tap.", helpOnly: true },
         { action: "Everyone", detail: "faces the same tanks in the same waves, and the same drones.", helpOnly: true },
       ],
-      score: liveStdHelp("bastion", "Five parts, which total 200:"),
+      score: liveStdHelp("bastion", "Three hits on the base end the run."),
     },
     rooftop: {
       goal: "Survive the rooftops as long as you can.",
@@ -1519,15 +1565,16 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Double flips:", detail: "flip again within about an eighth of a second of landing with a hazard close by. Each one counts, chained or not.", helpOnly: true },
         { action: "Sweet spots:", detail: `${FLIP_V8_SWEETS} roofs carry a short, faint pale strip. Time a flip so you touch down with your feet inside it for a sweet landing: PERFECT glows where you land. Each counts once.`, helpOnly: true },
         { action: "Flow streak:", detail: "a clean jump is a flip that lands with no crash saved on the way. Clean jumps in a row make your streak; a saved crash starts it again from 0, and your longest streak counts.", helpOnly: true },
-        { action: "Star trails:", detail: `the ${FLIP_V8_TRAILS} faint arcs of small stars are only a guide now, a good line through the air: nothing to collect.`, helpOnly: true },
+        { action: "Star trails:", detail: `the ${FLIP_V8_TRAILS} faint arcs of small stars are only a guide, a good line through the air: nothing to collect.`, helpOnly: true },
         { action: "Checkpoints (15, 30 and 45 s):", detail: `pass one and your next crash is saved – a second of shield, and you run on, but ${FLIP_V11_SAVE_COST / 2} s comes off your clean time.`, helpOnly: true },
       ],
       // flipRev 11 (3 Nov 2026, the arcade scoring standard): clean time on a straight line, then the features' fixed shares.
       // The core tops out at 100, so the help reads "up to 100" and ends on the round's 200 (as Meteor's).
-      score: liveBandHelp("flip", `Clean time: the half seconds you last, less ${FLIP_V11_SAVE_COST} (${FLIP_V11_SAVE_COST / 2} s) for each crash a checkpoint saves.`, {
-        more: "More clean time",
-        good: (u) => `lasts ${u} clean half seconds (${u / 2} s${u >= 120 ? ": the whole minute with no crash saved" : ""})`,
-        finish: stdFeaturesHelp(FLIP_V11, { sweets: `${60 / FLIP_V8_SWEETS} for each sweet landing, touching down inside one of the ${FLIP_V8_SWEETS} sweet spots` }),
+      score: listFromSpec(FLIP_V11, {
+        core: `every half second you last counts, less ${FLIP_V11_SAVE_COST / 2} s for each crash a checkpoint saves; the whole minute with no crash for all of it`,
+        sweets: `${60 / FLIP_V8_SWEETS} for each landing on one of the ${FLIP_V8_SWEETS} sweet spots`,
+        doubles: "2.5 for each double flip",
+        flow: "your longest run of clean jumps",
       }),
     },
     junction: {
@@ -1563,13 +1610,12 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       ],
       // inkRev 13 (Nov 2026) and 14 (3 Nov 2026, the same parts with a bigger coin, clovers and birds): levels on a straight
       // line; ink par, trick shots, clovers and speed fixed amounts on top.
-      score: liveBandHelp("inkbridge", `Each level potted counts ${INK_V13_CORE_MAX / INK_LEVELS}.`, {
-        more: "More levels",
-        good: (u) => `pots ${u} levels`,
-        finish: stdFeaturesHelp(INK_V13_STD, {
-          par: `${INK_V13_PAR_MAX / INK_LEVELS} a level potted within its ink par, less above it, none at twice the par`,
-          speed: `only with all ten levels: the full ${INK_V13_SPEED_MAX} with at least ${INK_V13_SPEED_FULL / 60} s left, falling evenly to 0 at the buzzer`,
-        }),
+      score: listFromSpec(INK_V13_STD, {
+        core: `${INK_V13_CORE_MAX / INK_LEVELS} for each level potted`,
+        par: `${INK_V13_PAR_MAX / INK_LEVELS} a level drawn within its ink par, less above it`,
+        tricks: "5 for each trick shot",
+        clovers: "5 for each clover",
+        speed: `pot all ten with ${INK_V13_SPEED_FULL / 60} s left for all of it, falling to 0 at the buzzer`,
       }),
     },
 
@@ -1588,14 +1634,19 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Power-ups ride on atoms:", detail: "an atom showing a small icon drops that power-up when you split it (the same atoms for everyone). Walk under it to catch it. DOUBLE fires two beams a shot for 8 s; BURST fires three quick short shots a tap for 8 s; FREEZE stops every atom for 3 s. Frozen atoms still hurt if you walk into one. They score nothing themselves.", helpOnly: true },
       ],
       // burstRev 10 (the arcade scoring standard, docs/arcade-standard/burst.md): the atoms on a straight line, wave clears, golden atoms, lives.
-      score: liveBandHelp("burst", `Every atom you pop counts, each split piece too: ${BURST_V10_ATOMS} in the ${BURST_V10_WAVES} waves.`, { more: "More atoms", good: (u) => `pops ${u} atoms`, finish: `Wave clears add up to ${BURST_V10_CLEAR_MAX} (${BURST_V10_CLEAR_PER_WAVE} a wave) and golden atoms up to ${BURST_V10_GOLDEN_MAX} (${BURST_V10_GOLDEN_PTS} each): ${BURST_V10_CORE_MAX} + ${BURST_V10_CLEAR_MAX} + ${BURST_V10_GOLDEN_MAX} = 200. Each life lost costs ${BURST_V10_LIFE_COST}; power-ups score nothing.` }),
+      score: scoreList([
+        { label: "Atoms", how: `every atom and split piece popped counts the same (${BURST_V10_ATOMS} in the ${BURST_V10_WAVES} waves)`, max: BURST_V10_CORE_MAX },
+        { label: "Wave clears", how: `up to ${BURST_V10_CLEAR_PER_WAVE} for each wave, more the quicker you clear it`, max: BURST_V10_CLEAR_MAX },
+        { label: "Golden atoms", how: `${BURST_V10_GOLDEN_PTS} for each golden atom`, max: BURST_V10_GOLDEN_MAX },
+      ], { penalties: [`Each life lost costs ${BURST_V10_LIFE_COST}`, "Power-ups score nothing"], total: 200 }),
     },
     orbit: {
       goal: "Fly planet to planet to the sun.",
       how: [
         { action: "Tap to let go;", detail: "any orbit catches you." },
         { action: "Grab stardust;", detail: "sling through moon halos." },
-        { action: "Thread rock gaps;", detail: "let go on the first lap." },
+        { action: "Thread rock gaps;", detail: "let go on the first lap.", helpOnly: true },
+        { action: "Fuel:", detail: "drains in flight, refills in orbit." },
         { action: "Checkpoint:", detail: "a crash returns you there.", helpOnly: true },
         { action: "Black hole:", detail: "fly in, skip 5-6 planets.", helpOnly: true },
         { action: "You orbit automatically.", detail: "Tap to let go – you fly straight until an orbit catches you: any planet's orbit you reach, even one you skip ahead to (the planets you pass count as reached).", helpOnly: true },
@@ -1610,7 +1661,14 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Perfect orbits:", detail: "let go while the gold arc still shows – during your first lap round the planet – and land in the next orbit.", helpOnly: true },
       ],
       // orbitRev 13 (the arcade scoring standard) and 14 (the fuel meter): planets on a straight line to 130, then speed and the features, 200 in all.
-      score: liveBandHelp("orbit", "Each planet reached counts 1 (a planet you jump past counts too), and a crash still counts the part of the way to the next planet you flew.", { more: "More planets", good: (u) => `reaches ${u} planets`, finish: `Planets pay on a straight line, all ${stdCore(ORBIT_STD).max} at the sun. ${stdFeaturesHelp(ORBIT_STD, { speed: "only for reaching the sun: all 20 with half the time left, falling evenly to 0 at the buzzer", perfect: `an equal share for each perfect orbit, all ${stdFeatures(ORBIT_STD).find((f) => f.key === "perfect")!.max} at ${ORBIT_STD_PERFECT_OF}` })}` }),
+      score: listFromSpec(ORBIT_STD, {
+        core: "every planet reached counts the same (one you jump past too), all of it at the sun",
+        speed: "reach the sun with half the time left for all of it, falling to 0 at the buzzer",
+        dust: "0.5 for each speck of stardust",
+        slings: "3 for each slingshot round a moon",
+        fields: "4 for each asteroid field crossed",
+        perfect: "a little for each perfect orbit",
+      }, ["Running out of fuel ends the run"]),
     },
 
     snip: {
@@ -1634,7 +1692,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       score: liveBandHelp("snip", `Each level's fruit count ${SNIP_X_FEED_UNITS} between them and a leaf ${SNIP_X_STAR_UNITS}.`, { more: "More fruit and leaves", good: (u) => `counts ${u} – about ${Math.round(u / 20)} levels fed`, finish: `Feeding every fruit adds up to 10 for speed: the full 10 by 48 s. Skill adds up to ${SNIP_X_FEATURE_MAX} more: ${SNIP_X_GOLD_RAW / 10} a golden apple fed while golden, ${SNIP_X_PAR_RAW / 10} a level at par cuts, ${SNIP_X_STAR2_RAW / 10} a second leaf, up to ${SNIP_X_QUICK_RAW / 10} a level under its par time and ${SNIP_X_PERFECT_RAW / 10} for a perfect run (${SNIP_X_RAW_TOP / 10} in all). ${skillPayLine(bandCurve(SNIP_X_SKILL_PAY.units.map((u) => u / 10), SNIP_X_SKILL_PAY.points))}` }),
     },
     swing: {
-      goal: "Swing vine to vine to the end.",
+      goal: "Swing the jungle vines to the end.",
       how: [
         { action: "Hold to grab the nearest vine,", detail: "let go to fly." },
         { action: "Swinging vines:", detail: "time the grab as they swing." },
@@ -1653,7 +1711,12 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: `The run lasts ${SWING_V16_RUN_TICKS / 60} seconds.`, detail: "Only the fastest reach the end of the course.", helpOnly: true },
         { action: "Everyone", detail: "gets the same course, vines, swinging vines, gates and par times.", helpOnly: true },
       ],
-      score: liveBandHelp("swing", `${SWING_V16_RUN_TICKS / 60} seconds. The course counts 1,000 in all, shared by its stretches by length: every one cleared, and most of the one you are on.`, { more: "Further along", good: (u) => `counts ${u} – about ${Math.round(u / 10)} % of the course`, finish: `The course is full by ${Math.round(SWING_V17_FULL / 10)} % of the way. Up to ${SWING_V17_PAR_POINTS} more for stretches under par (the further under, the more, over ${SWING_V17_PAR_STRETCHES} stretches), ${SWING_V17_GATE_POINTS} for each gate (${SWING_V17_GATE_POINTS * SWING_V17_GATES} in all) and up to ${SWING_V17_STREAK_MAX} for the clean-swing streak. Clearing the course adds nothing more. The parts: course ${SWING_V17_CORE} + par ${SWING_V17_PAR_POINTS} + gates ${SWING_V17_GATE_POINTS * SWING_V17_GATES} + streak ${SWING_V17_STREAK_MAX} = ${SWING_V17_MAX}.` }),
+      score: scoreList([
+        { label: "Course", how: `every stretch cleared counts by its length, all of it at ${Math.round(SWING_V17_FULL / 10)} % of the way`, max: SWING_V17_CORE },
+        { label: "Pars", how: `clear stretches under their par time (the further under, the more)`, max: SWING_V17_PAR_POINTS },
+        { label: "Gates", how: `${SWING_V17_GATE_POINTS} for each gate`, max: SWING_V17_GATE_POINTS * SWING_V17_GATES },
+        { label: "Clean-swing streak", how: `${SWING_V17_STREAK_EACH} for every ${SWING_V17_STREAK_BLOCK} clean swings in a row`, max: SWING_V17_STREAK_MAX },
+      ], { total: SWING_V17_MAX }),
     },
     tilt: {
       goal: "Roll each marble into its own cup.",
@@ -1669,7 +1732,12 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Clean run:", detail: "keep both marbles out of the black holes. \"Clean\" shows top right until the first fall.", helpOnly: true },
       ],
       // tiltRev 11 (3 Nov 2026): no gold stars; mazes on a straight line, then par, a clean run, all four and speed, 200 in all.
-      score: liveBandHelp("tilt", `Each finished maze counts ${TILT_P_MAZE_POINTS + TILT_P_PROGRESS_POINTS}, and getting closer to the exit in the maze you are on up to ${TILT_P_PROGRESS_POINTS} more (an even share of the way), so the core is up to ${TILT_P_CORE_MAX}.`, { more: "Further through the mazes", good: (u) => `has about ${Math.round(u / (TILT_P_MAZE_POINTS + TILT_P_PROGRESS_POINTS))} mazes done`, finish: `Each maze finished within its par adds ${TILT_P_PAR_POINTS} (${TILT_P_PAR_MAX} for all ${TILT_S_MAZES}). A clean run adds up to ${TILT_P_CLEAN_POINTS}: ${TILT_P_CLEAN_POINTS / TILT_S_MAZES} for each maze finished before any marble falls into a black hole. Once all ${TILT_S_MAZES} mazes are done, up to ${TILT_P_SPEED_POINTS} for speed: all of it if done by ${TILT_P_SPEED_FULL / 60} s, then evenly less to none at the buzzer. ${TILT_P_CORE_MAX} + ${TILT_P_PAR_MAX} + ${TILT_P_CLEAN_POINTS} + ${TILT_P_SPEED_POINTS} = 200; any play scores at least 1.` }),
+      score: scoreList([
+        { label: "Mazes", how: `${TILT_P_MAZE_POINTS + TILT_P_PROGRESS_POINTS} for each maze, part of it for getting closer to the exit`, max: TILT_P_CORE_MAX },
+        { label: "Par times", how: `${TILT_P_PAR_POINTS} for each maze finished within its par time`, max: TILT_P_PAR_MAX },
+        { label: "Clean run", how: `${TILT_P_CLEAN_POINTS / TILT_S_MAZES} for each maze finished before any marble falls in a hole`, max: TILT_P_CLEAN_POINTS },
+        { label: "Speed", how: `finish all ${TILT_S_MAZES} within ${TILT_P_SPEED_FULL / 60} s for all of it, falling to 0 at the buzzer`, max: TILT_P_SPEED_POINTS },
+      ], { total: 200 }),
     },
     hotfloor: {
       goal: "Plan a route to the exit before the floor falls.",
@@ -1819,14 +1887,11 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       ],
       // btRev 8 (the arcade scoring standard, docs/arcade-standard/balltrack.md): marbles home on one even line, then the
       // features' fixed shares; no speed part.
-      score: liveBandHelp("balltrack", "Each marble home counts 1.", {
-        more: "More marbles home",
-        good: (u) => `gets ${u} marbles home`,
-        finish: `Marbles home pay the same for every marble (all ${BT_V7_BALLS}: ${stdCore(BT_STD).max}). ${stdFeaturesHelp(BT_STD, {
-          gold: `an equal share for each of the ${stdFeatures(BT_STD)[0]!.of} gold marbles home`,
-          combo: "1 a marble home from the third in a row",
-          boost: `an equal share for each of the ${BT_V7_BALLS} marbles home after a speed booster`,
-        })}`,
+      score: listFromSpec(BT_STD, {
+        core: `every marble home counts the same (${BT_V7_BALLS} in all)`,
+        gold: `a share for each of the ${stdFeatures(BT_STD)[0]!.of} gold marbles home`,
+        combo: "1 for each marble home from the third in a row",
+        boost: "a share for each marble home after a speed booster",
       }),
     },
     wordsearch: {

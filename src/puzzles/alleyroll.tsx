@@ -2,7 +2,7 @@ import { useMemo, useRef } from "react";
 
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import {
-  ALLEYROLL_REV_DEALT, ALLEYROLL_REV_RINGER, AR2_CORE_FULL, AR2_GOLD_Y, AR2_POCKETS, AR2_VMAX, AR2_VMIN, AR_BALLS, AR_CHECKPOINT_INTERVAL, AR_CORE_FULL,
+  ALLEYROLL_REV_DEALT, ALLEYROLL_REV_RINGER, AR2_GOLD_Y, AR2_POCKETS, AR2_VMAX, AR2_VMIN, AR_BALLS, AR_CHECKPOINT_INTERVAL,
   AR_INPUT_ROLL, AR_RELEASE_MAX, AR_VMAX, AR_VMIN, AR_WAIT, arCheckpoint, arGoldX256, type ArState,
 } from "@/lib/arcade/alleyroll";
 import {
@@ -154,8 +154,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
 
 export function alleyRollLine(r: { rings: number; pockets: number; gold?: number }, rev = 1): string {
   const pockets = `${r.pockets} pocket${r.pockets === 1 ? "" : "s"}`;
-  if (rev >= ALLEYROLL_REV_RINGER) return `${r.rings} ring points (full at ${AR2_CORE_FULL}) · ${r.gold ?? 0} gold · ${pockets}`;
-  return `${r.rings} ring points (full at ${AR_CORE_FULL}) · ${pockets}`;
+  if (rev >= ALLEYROLL_REV_RINGER) return `${r.rings} ring points · ${r.gold ?? 0} gold, ${pockets}`;
+  return `${r.rings} ring points · ${pockets}`;
 }
 
 function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {

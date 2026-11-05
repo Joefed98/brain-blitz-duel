@@ -1,4 +1,5 @@
 import { beatAmbient, beatFill } from "@/lib/arcade/arenaFills.renderer";
+import { auditEventAt } from "@/lib/arcade/auditInput";
 import { ArcadeArenaSlot } from "@/components/puzzles/ArcadeArenaSlot";
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { useArcadeFrameTiming } from "@/components/puzzles/useArcadeFrameTiming";
@@ -192,6 +193,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
           const queued = pending.current.shift() ?? null;
           const applied = queued ? { ...queued, t: state.current.tick + 1 } : null;
           recordInput(events.current, applied, beatGame.inputRanges);
+          // The dev audit's bot log (auditInput.ts; never in a production build).
+          { const audit = auditEventAt(state.current.tick + 1); if (audit) recordInput(events.current, audit, beatGame.inputRanges); }
           state.current = beatGame.step(
             state.current,
             inputAt(events.current, state.current.tick + 1),
@@ -376,7 +379,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
       </p>
       {result.state.exp ? (
         <p className="shrink-0 text-center font-mono text-sm text-muted-foreground">
-          {`${result.state.fevers ?? 0} fever · ${result.state.goldsHit ?? 0} golden · ${result.state.doublesDone ?? 0} doubles · best streak ${result.state.maxStreak ?? 0} · ${result.state.std ? `features +${beatStdBonus(result.state)}` : `skill ${beatV9Bonus(result.state).total} → +${beatV9Bonus(result.state).paid}`}`}
+          {`${result.state.fevers ?? 0} fever, ${result.state.goldsHit ?? 0} golden, ${result.state.doublesDone ?? 0} doubles, best streak ${result.state.maxStreak ?? 0} · ${result.state.std ? `bonuses +${beatStdBonus(result.state)}` : `skill ${beatV9Bonus(result.state).total}: +${beatV9Bonus(result.state).paid}`}`}
         </p>
       ) : null}
     </div>

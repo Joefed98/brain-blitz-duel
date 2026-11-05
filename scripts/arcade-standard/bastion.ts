@@ -58,7 +58,7 @@ export const entry: StdEntry = {
     return [{ ...replayed(31, events, "one aim and nothing more"), want: 1 }];
   },
   idle: () => [replayed(32, [], "no input at all")],
-  help: { terms: ["hit points", "weak-spot", "fast reload", "drones"] },
+  help: { terms: ["hit point", "weak spot", "fast reload", "drones"] },
   core: { fullAt: BT2_TOTAL_HP, at: (v) => base({ destroyedHp: v }), parts: bastionStdParts },
   older: () => bastionStdParts(bastionGame.init(5) as unknown as BastionTankState) === null,
   extra(ok) {

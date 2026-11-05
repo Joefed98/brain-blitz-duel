@@ -153,7 +153,7 @@ const STD_TOTAL = /^(Total → \d+( of \d+)?|At least 1 for playing → \d+)$/;
 
 /**
  * The reveal's one-line breakdown (1 Nov 2026, Joe: the full list squashed the chart): on the arcade scoring standard,
- * "142 · core 110 + features 32" from its stored part lines (the first part is the core, the others the features, each
+ * "142 points · lines 110 + bonuses 32" from its stored part lines (the first part by its own name, the others as bonuses, each
  * figure as stored); any other game's first stored line. `rest` is what the tap opens: every stored line the summary
  * doesn't already show. Display only: it reads the stored strings and never regrades.
  */
@@ -165,7 +165,9 @@ export function revealSummary(lines: readonly string[], score: number | null): {
   if (standard) {
     const [core, ...features] = parts as number[];
     const more = features.reduce((a, b) => a + b, 0);
-    return { summary: `${score} · core ${core} ${more < 0 ? "−" : "+"} features ${Math.abs(more)}`, rest: [...lines] };
+    // Plain words (text pass, 4 Nov 2026): the first part by its own name, the rest as bonuses.
+    const label = (/^([^:→]+):/.exec(body[0]!)?.[1] ?? "main").trim().toLowerCase();
+    return { summary: `${score} ${score === 1 ? "point" : "points"} · ${label} ${core} ${more < 0 ? "−" : "+"} ${more < 0 ? "penalties" : "bonuses"} ${Math.abs(more)}`, rest: [...lines] };
   }
   return { summary: lines[0]!, rest: lines.slice(1) };
 }

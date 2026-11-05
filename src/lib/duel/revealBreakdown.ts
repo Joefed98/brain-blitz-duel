@@ -88,6 +88,13 @@ function singular(text: string): string {
 /** Plain words for one stored fragment: no arrows, "of" for counts, lower-case units, singular for one. */
 export function plainText(text: string): string {
   let out = text
+    // Internal targets never reach a player (text pass, 4 Nov 2026): "(120 at 28)", ", full at 51", "in thousandths".
+    .replace(/\s*\((?:full |all )?(?:at )?[\d,.]+ at [\d,.]+[^)]*\)/g, "")
+    .replace(/,?\s*\bfull at [\d,.]+(?:\s*[a-z%]+)?/gi, "")
+    .replace(/,?\s*in thousandths/gi, "")
+    // "(84 from the rows + 0 from column 2) × 1.4": "84 from the rows + 0 from column 2, times 1.4".
+    .replace(/^\((.+)\) × ([\d.]+)$/, "$1, times $2")
+    .replace(/\s×\s/g, " times ")
     // "12 / 40" and "12/40" between figures: "12 of 40".
     .replace(/(\d)\s*\/\s*(\d)/g, "$1 of $2")
     // An arrow left in the middle of a phrase reads as a colon.
@@ -226,7 +233,7 @@ export function realFullClear(outcome: string | undefined, lines: readonly strin
 
 /** The room reveal's one-line summary in plain words ("13 of 15 barriers: 132 points"; the standard's line as is). */
 export function summaryText(summary: string): string {
-  if (/^\d+ · core \d+ [+−] features \d+$/.test(summary)) return summary;
+  if (/^\d+ points? · .+ \d+ [+−] (?:bonuses|penalties) \d+$/.test(summary)) return summary;
   const rows = breakdownRows([summary], null);
   return rows.map(rowText).slice(0, 2).join(" · ");
 }

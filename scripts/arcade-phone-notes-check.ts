@@ -175,7 +175,14 @@ ok(tiltGameFor(TILT_REV_LIFT).init(7).lift === 1 && !tiltGameFor(TILT_REV_EXPAND
   const help = read("src/lib/duel/instructions.ts");
   // Roofbound's (flipRev 10; flipRev 11 since 3 Nov 2026) and Tilt's (tiltRev 10; tiltRev 11 since 3 Nov 2026, par and a clean run
   // in place of the gold stars) dealt stamps state the standard's parts since 29 Oct 2026 (no skill pay).
-  ok(/stdFeaturesHelp\(FLIP_V11,/.test(help) && /TILT_P_CORE_MAX\} \+ \$\{TILT_P_PAR_MAX\} \+ \$\{TILT_P_CLEAN_POINTS\} \+ \$\{TILT_P_SPEED_POINTS\} = 200/.test(help), "the help states the dealt parts (Roofbound's and Tilt's standard parts)");
+  // The text pass (F2, 4 Nov 2026) lists each part on its own line: Roofbound's from FLIP_V11's spec (listFromSpec), Tilt's four
+  // parts each with its maximum, ending "Total 200." (scoreList).
+  ok(
+    /listFromSpec\(FLIP_V11,/.test(help) &&
+      ["TILT_P_CORE_MAX", "TILT_P_PAR_MAX", "TILT_P_CLEAN_POINTS", "TILT_P_SPEED_POINTS"].every((max) => new RegExp(`max: ${max} \\}`).test(help)) &&
+      /max: TILT_P_SPEED_POINTS \},\n\s*\], \{ total: 200 \}\)/.test(help),
+    "the help states the dealt parts (Roofbound's and Tilt's standard parts)",
+  );
   const demos = read("src/lib/duel/introDemo.functions.ts");
   ok(/flipRev !== FLIP_REV_FLOW && demo\.puzzle\.flipRev !== FLIP_REV_DEAL\) return null/.test(demos) && /tiltRev !== TILT_REV_BIG\) return null/.test(demos), "intro demos play only when recorded on the dealt stamps (Roofbound flipRev 11, Tilt tiltRev 12, since 3 Nov 2026)");
 }

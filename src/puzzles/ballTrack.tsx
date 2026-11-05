@@ -1,4 +1,5 @@
 import { KeyCursor, useGridCursor } from "@/components/puzzles/KeyCursor";
+import { auditEventAt } from "@/lib/arcade/auditInput";
 import { directionOf, useGameKeys } from "@/lib/desktop";
 import { ballTrackFill } from "@/lib/arcade/arenaFills.renderer";
 import { ArcadeArenaSlot } from "@/components/puzzles/ArcadeArenaSlot";
@@ -167,6 +168,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         for (let i = 0; i < ticks; i++) {
           const next = queue.current.shift();
           if (next) recordInput(events.current, { ...next, t: state.current.tick + 1 }, game.inputRanges);
+          // The dev audit's bot log (auditInput.ts; never in a production build).
+          { const audit = auditEventAt(state.current.tick + 1); if (audit) recordInput(events.current, audit, game.inputRanges); }
           state.current = game.step(state.current, inputAt(events.current, state.current.tick + 1));
           const warning = btEventCountdown(course, state.current.tick);
           if (warning !== null && warning !== btEventCountdown(course, state.current.tick - 1)) playTick(0.4);

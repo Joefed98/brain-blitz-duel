@@ -19,6 +19,7 @@
  *   bun scripts/gemstone-rev12-check.ts
  */
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { hasScorePart } from "../src/lib/duel/scoreList";
 import { readFileSync } from "node:fs";
 import { gunzipSync } from "node:zlib";
 import { fnv } from "./arcade-tuning-a-legacy";
@@ -120,11 +121,14 @@ ok(entry.rev === MATCHUP_REV_SIX && entry.field === "matchupRev" && entry.parts.
   const demo = readFileSync("src/lib/duel/introDemo.functions.ts", "utf8");
   ok(/matchupRev !== MATCHUP_REV_SIX\) return null/.test(demo), "the intro demo stays stopped until recorded on matchupRev 12");
   const help = PUZZLE_INSTRUCTIONS.matchup.score;
-  for (const text of ["More gems cleared", "up to 108", `${MATCHUP_V12_TREASURE_PTS} for each brought down (up to ${MATCHUP_V12_TREASURE_MAX})`, `${MATCHUP_V12_GOAL_PTS} for each of the ${MATCHUP_V12_GOALS} colour goals met (up to ${MATCHUP_V12_GOALS_MAX})`, `(up to ${MATCHUP_V12_ICE_MAX})`, `${MATCHUP_V12_BIG_PTS} for each line of 4 or 5 you match (up to ${MATCHUP_V12_BIG_MAX})`, "108 + 36 + 36 + 10 + 10 make 200", "Up to 200."])
+  for (const text of [`Treasure: ${MATCHUP_V12_TREASURE_PTS} for each treasure brought down, up to ${MATCHUP_V12_TREASURE_MAX}.`, `Goals: ${MATCHUP_V12_GOAL_PTS} for each of the ${MATCHUP_V12_GOALS} colour goals met, up to ${MATCHUP_V12_GOALS_MAX}.`, `Ice: ${MATCHUP_V12_ICE_PTS} for each frozen cell broken, up to ${MATCHUP_V12_ICE_MAX}.`, `Big lines: ${MATCHUP_V12_BIG_PTS} for each line of 4 or 5, up to ${MATCHUP_V12_BIG_MAX}.`, "Total 200."])
     ok(help.includes(text), `the help says "${text}": ${help}`);
+  // Text pass (4 Nov 2026): the help is a list, one line a part ("More gems cleared … make 200" was the old wording).
+  ok(hasScorePart(help, "Gems", MATCHUP_V12_CORE_MAX), `the help's gems line: ${help}`);
   const how = PUZZLE_INSTRUCTIONS.matchup.how.map((l) => `${l.action} ${l.detail}`).join(" ");
   ok(/Six goals/.test(how) && /6 come a round/.test(how) && !/Four levels/.test(how), "the help's rules: six goals, six treasures, no levels");
-  ok(/108/.test(INTRO_SCORE.matchup) && /treasure, goals, ice and lines of 4 or 5 add 92/.test(INTRO_SCORE.matchup), `the intro's score line: ${INTRO_SCORE.matchup}`);
+  // Text pass (4 Nov 2026): the intro names the bonuses in one plain sentence (no internal figures).
+  ok(/gems/.test(INTRO_SCORE.matchup) && /treasure, colour goals, ice and big lines/.test(INTRO_SCORE.matchup) && INTRO_SCORE.matchup.endsWith("Up to 200."), `the intro's score line: ${INTRO_SCORE.matchup}`);
   const renderer = readFileSync("src/lib/arcade/matchup.renderer.ts", "utf8");
   ok(/if \(state\.six\) \{\s*drawSixGoalsPanel/.test(renderer) && /for \(let kind = 0; kind < MATCHUP_V12_GOALS; kind\+\+\)/.test(renderer), "the panel under the board draws the six goals side by side");
 }

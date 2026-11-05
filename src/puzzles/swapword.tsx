@@ -366,8 +366,8 @@ function Reveal({ puzzle, myAnswer, myMsRemaining, timeLimitMs }: PuzzleRevealPr
       <Board letters={solution} looks={looks} side={252} />
       <p className="font-mono text-base text-primary">
         {run.solved
-          ? `${run.swaps} swap${run.swaps === 1 ? "" : "s"} (fewest ${puzzle.minSwaps})`
-          : `${solutionProgress(puzzle, myAnswer ?? "")?.text ?? `${inPlace} / ${SW_TILES} in place`} · ${run.swaps} swaps`}
+          ? `${run.swaps} ${run.swaps === 1 ? "swap" : "swaps"} (fewest ${puzzle.minSwaps})`
+          : `${solutionProgress(puzzle, myAnswer ?? "")?.text ?? `${inPlace} of ${SW_TILES} in place`} · ${run.swaps} ${run.swaps === 1 ? "swap" : "swaps"}`}
       </p>
       {!run.solved ? <p className="text-sm text-muted-foreground">Red-edged tiles were not in place on your board.</p> : null}
     </div>

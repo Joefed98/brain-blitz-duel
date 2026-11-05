@@ -529,6 +529,6 @@ if (want("skyline")) ok(new RegExp(`up to ${roundMaxFor("skyline")}\\b`, "i").te
 // The 200-point expansion (snipRev 11): six levels of up to 14 s each, stated in the help (the intro's three lines carry the features).
 if (want("snip")) ok(PUZZLE_INSTRUCTIONS.snip.how.some((l) => `${l.action} ${l.detail}`.includes("up to 14 s each")), "Scrumper help says up to 14 s each");
 if (want("junction")) ok(/minute for 10 more/i.test(INTRO_SCORE.junction), "Junction intro states the 10 for lasting the minute (score bands)");
-if (want("tilt")) ok(!INTRO_SCORE.tilt.includes(`up to ${TILT_V2_PARTIAL_MAX}`) && INTRO_SCORE.tilt.includes(`up to ${roundMaxFor("tilt")}`), "Tilt intro states its maximum and no partial cap (score bands)");
+if (want("tilt")) ok(!INTRO_SCORE.tilt.includes(`up to ${TILT_V2_PARTIAL_MAX}`) && INTRO_SCORE.tilt.toLowerCase().includes(`up to ${roundMaxFor("tilt")}`), "Tilt intro states its maximum and no partial cap (score bands)");
 
 console.log(`arcade batch 4: ${checks} checks passed`);

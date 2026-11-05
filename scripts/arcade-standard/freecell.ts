@@ -50,7 +50,7 @@ export const entry: StdEntry = {
     }),
   played: () => [{ label: "a tap that moved nothing", score: freecellGame.score({ ...freecellGame.init(3), acted: 1, cols: [[], [], [], [], [], [], [], []], home: [0, 0, 0, 0], cells: [-1, -1, -1, -1] }), want: 1 }],
   idle: () => [{ label: "an untouched init(12)", score: freecellGame.score(freecellGame.init(12)) }],
-  help: { terms: ["par", "sorted runs", "40"] },
+  help: { terms: ["par", "sorted run", "25 cards home"] },
   // Cards home pay two units each, so the core is full at FC_CORE_UNITS_V4 ÷ 2 cards home.
   core: { fullAt: FC_CORE_UNITS_V4 / 2, at: (v) => withHome(v), parts: (s) => freecellStdParts(s), finishParts: [] },
   extra(ok) {

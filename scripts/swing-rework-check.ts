@@ -37,6 +37,7 @@
  *   bun scripts/swing-rework-check.ts --record (re-records the skill-band runs, about 20 minutes)
  */
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { hasScorePart } from "../src/lib/duel/scoreList";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { gunzipSync, gzipSync } from "node:zlib";
 import { fnv } from "./arcade-tuning-a-legacy";
@@ -527,8 +528,10 @@ console.log(`witness: ${playSeeds.length} courses cleared by their own planned r
   const intro = help.how.filter((h) => !h.helpOnly);
   ok(intro.length === 3 && intro.every((h) => `${h.action} ${h.detail}`.length <= 46) && help.goal.length <= 34, "the intro's goal and three lines fit");
   // (swingRev 17's parts since 3 Nov 2026: gates and the streak in place of gems and stars.)
-  ok(/course 110 \+ par 40 \+ gates 10 \+ streak 40 = 200/.test(help.score) && /Up to 200/.test(help.score) && /under par/.test(help.score) && /each gate/.test(help.score) && /adds nothing more/.test(help.score), `the help's SCORE text states the parts totalling 200: "${help.score}"`);
-  ok(/110/.test(INTRO_SCORE.swing) && /pars \(40\)/.test(INTRO_SCORE.swing) && /gates/.test(INTRO_SCORE.swing) && /up to (\{max\}|200)/.test(INTRO_SCORE.swing), `the intro score line: "${INTRO_SCORE.swing}"`);
+  // Text pass (4 Nov 2026): the help is a list, one line a part, then the total; the intro is one plain sentence naming
+  // the bonuses (the round's 90 seconds is the intro's time line).
+  ok(hasScorePart(help.score, "Course", 110) && hasScorePart(help.score, "Pars", 40) && hasScorePart(help.score, "Gates", 10) && hasScorePart(help.score, "Clean-swing streak", 40) && help.score.endsWith("Total 200.") && /under their par/.test(help.score) && /each gate/.test(help.score), `the help's SCORE text states the parts totalling 200: "${help.score}"`);
+  ok(/pars/.test(INTRO_SCORE.swing) && /gates/.test(INTRO_SCORE.swing) && /Up to (\{max\}|200)/.test(INTRO_SCORE.swing), `the intro score line: "${INTRO_SCORE.swing}"`);
   // The intro demo's gate moved to swing-dark-check (only a demo recorded on swingRev 16 plays, so none on swingRev 15),
   // then to swing-slide-check (swingRev 17).
   const demo = readFileSync("src/lib/duel/introDemo.functions.ts", "utf8");

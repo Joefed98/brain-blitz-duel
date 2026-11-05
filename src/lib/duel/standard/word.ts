@@ -6,7 +6,7 @@
  *   finished   = 150 + speed (full by `fullByS` seconds used, 0 at the buzzer) + the game's bonus, at most 200
  *   unfinished = the game's credit + "how early" extras + mid-puzzle bonuses, at most 130
  */
-import { STANDARD_FINISH, STANDARD_UNFINISHED_CAP } from "./shape";
+import { puzzleScoreList } from "../scoreList";
 
 /** Interlock (`tilegrid`, tileGridRev 3). */
 export const STD_INTERLOCK = {
@@ -81,43 +81,74 @@ export function swapwordBlindSwaps(start: string, swaps: readonly (readonly [num
 
 /* ------------------------------------------------------------------------------------------------ texts */
 
-const FIN = STANDARD_FINISH;
-const CAP = STANDARD_UNFINISHED_CAP;
-const speedLine = (points: number, s: number) => `up to ${points} for speed (all ${points} if you finish within ${s} s, falling evenly to 0 at the buzzer)`;
-const unfinishedCap = `An unfinished round scores at most ${CAP}, so any finish beats it.`;
+const TOTAL = "{max}" as unknown as number;
 
-/** The "?" help SCORE text for each Word game on the standard (`{max}` is the round maximum). */
+/** The "?" help SCORE text for each Word game on the standard (`{max}` is the round maximum): one line a part. */
 export const WORD_STANDARD_HELP = {
-  tilegrid:
-    `Finish (all 15 tiles in one connected grid, every run a real word): ${FIN}, plus ${speedLine(STD_INTERLOCK.speed, STD_INTERLOCK.fullByS)}, plus big words: each 5-letter word +${STD_INTERLOCK.big[5]}, 6 letters +${STD_INTERLOCK.big[6]}, 7 letters +${STD_INTERLOCK.big[7]}, up to ${STD_INTERLOCK.bigMax}; {max} needs both. ` +
-    `Unfinished: ${STD_INTERLOCK.tile} per tile inside a real word, plus up to ${STD_INTERLOCK.early} each for placing it early, plus big words already made. ${unfinishedCap}`,
-  wordslide:
-    `Finish (all five rows words): ${FIN}, plus ${speedLine(STD_SLIDER.speed, STD_SLIDER.fullByS)}, plus up to ${STD_SLIDER.par} for moves: all ${STD_SLIDER.par} within par (the slides that scrambled the board, shown beside your moves), falling evenly to 0 at twice par; Undo and Reset count as moves. ` +
-    `Unfinished: ${STD_SLIDER.row} per row you turned into a word, plus up to ${STD_SLIDER.early} each for making it early. ${unfinishedCap}`,
-  wordsearch:
-    `Finish (all six listed words): ${FIN}, plus ${speedLine(STD_LOOKOUT.speed, STD_LOOKOUT.fullByS)}, plus ${STD_LOOKOUT.bonus} for the hidden bonus word (find it before the sixth word: the sixth ends the round); {max} needs both. ` +
-    `Unfinished: ${STD_LOOKOUT.word} per word, plus up to ${STD_LOOKOUT.early} each for finding it early, plus ${STD_LOOKOUT.bonus} for the bonus word; the first ${STD_LOOKOUT.freeWrong} wrong drags are free, then each costs ${STD_LOOKOUT.wrongCost}. ${unfinishedCap}`,
-  letterwheel:
-    `Finish (every crossword slot filled): ${FIN}, plus ${speedLine(STD_ROUNDABOUT.speed, STD_ROUNDABOUT.fullByS)} (cut by misses after the first ${STD_ROUNDABOUT.freeMisses}), plus the bonus jar: real words that are not in the crossword fill it (3 letters 1 drop, 4 letters 2, 5 letters 3, 6+ letters 4; each word once) and each miss after the first ${STD_ROUNDABOUT.freeMisses} spills a drop; it adds up to ${STD_ROUNDABOUT.jar} by how full it is. {max} needs a fast finish and a full jar. ` +
-    `Unfinished: up to ${STD_ROUNDABOUT.share} by the share of slots filled, plus up to ${STD_ROUNDABOUT.early} for filling them early, plus the jar; a trace that is not a word is a miss, the first ${STD_ROUNDABOUT.freeMisses} free, then each costs ${STD_ROUNDABOUT.missCost}. ${unfinishedCap}`,
-  strikeout:
-    `Finish (all five words): ${FIN}, plus ${speedLine(STD_STRIKEOUT.speed, STD_STRIKEOUT.fullByS)}, plus early solves: ${STD_STRIKEOUT.earlySolve} for each word you Solve while ${STD_STRIKEOUT.earlyHidden} or more of its letters are still hidden (up to ${STD_STRIKEOUT.earlySolveMax}), plus ${STD_STRIKEOUT.strikeLeft} per strike left (up to ${STD_STRIKEOUT.strikeMax}). ` +
-    `Unfinished: ${STD_STRIKEOUT.word} per word solved, plus ${STD_STRIKEOUT.tile} per letter you found in the current word, plus up to ${STD_STRIKEOUT.early} per word for solving it early, plus early solves so far. ${unfinishedCap}`,
-  codeword:
-    `Finish (every number decoded): ${FIN}, plus ${speedLine(STD_CRYPTOGRID.speed, STD_CRYPTOGRID.fullByS)}, plus ${STD_CRYPTOGRID.clean} for a clean crack: no wrong letter ever entered. ` +
-    `Unfinished: up to ${STD_CRYPTOGRID.share} by the share of the code decoded, plus up to ${STD_CRYPTOGRID.early} for decoding it early; each wrong letter left standing costs ${STD_CRYPTOGRID.wrongCost}. ${unfinishedCap}`,
-  swapword:
-    `Finish (all six words right): ${FIN}, plus ${speedLine(STD_SWAPWORD.speed, STD_SWAPWORD.fullByS)}, plus up to ${STD_SWAPWORD.par} for swaps: all ${STD_SWAPWORD.par} in par (the fewest swaps that solve the board), falling evenly to 0 at twice par. ` +
-    `Unfinished: up to ${STD_SWAPWORD.share} by the share of tiles you put in place (a tile that started in place and was moved out takes one back), plus up to ${STD_SWAPWORD.early} for placing them early. ${unfinishedCap}`,
+  tilegrid: puzzleScoreList({
+    finish: "place all 15 tiles in one connected grid, every run a real word",
+    speed: { max: STD_INTERLOCK.speed, fullByS: STD_INTERLOCK.fullByS },
+    bonuses: [{ label: "Big words", how: `${STD_INTERLOCK.big[5]} for each 5-letter word, ${STD_INTERLOCK.big[6]} for 6 letters, ${STD_INTERLOCK.big[7]} for 7, finished or not`, max: STD_INTERLOCK.bigMax }],
+    unfinished: `${STD_INTERLOCK.tile} for each tile inside a real word, more for placing it early`,
+    total: TOTAL,
+  }),
+  wordslide: puzzleScoreList({
+    finish: "make all five rows words",
+    speed: { max: STD_SLIDER.speed, fullByS: STD_SLIDER.fullByS },
+    bonuses: [{ label: "Moves", how: "finish within par (shown beside your moves; Undo and Reset count) for all of it, nothing at twice par", max: STD_SLIDER.par }],
+    unfinished: `${STD_SLIDER.row} for each row you make a word, more for making it early`,
+    total: TOTAL,
+  }),
+  wordsearch: puzzleScoreList({
+    finish: "find all six listed words",
+    speed: { max: STD_LOOKOUT.speed, fullByS: STD_LOOKOUT.fullByS },
+    bonuses: [{ label: "Bonus word", how: "find the hidden bonus word before the sixth word (the sixth ends the round), finished or not", fixed: STD_LOOKOUT.bonus }],
+    unfinished: `${STD_LOOKOUT.word} for each word found, more for finding it early`,
+    penalties: [`The first ${STD_LOOKOUT.freeWrong} wrong drags are free, then each costs ${STD_LOOKOUT.wrongCost}`],
+    total: TOTAL,
+  }),
+  letterwheel: puzzleScoreList({
+    finish: "fill every crossword slot",
+    speed: { max: STD_ROUNDABOUT.speed, fullByS: STD_ROUNDABOUT.fullByS },
+    bonuses: [{ label: "Bonus jar", how: "real words not in the crossword fill it (longer words more), finished or not", max: STD_ROUNDABOUT.jar }],
+    unfinished: "the share of slots filled, more for filling them early",
+    penalties: [`A trace that is not a word is a miss: the first ${STD_ROUNDABOUT.freeMisses} are free, then each costs ${STD_ROUNDABOUT.missCost} and spills a drop from the jar`],
+    total: TOTAL,
+  }),
+  strikeout: puzzleScoreList({
+    finish: "solve all five words",
+    speed: { max: STD_STRIKEOUT.speed, fullByS: STD_STRIKEOUT.fullByS },
+    bonuses: [
+      { label: "Early solves", how: `${STD_STRIKEOUT.earlySolve} for each word you Solve with ${STD_STRIKEOUT.earlyHidden} or more letters still hidden`, max: STD_STRIKEOUT.earlySolveMax },
+      { label: "Strikes left", how: `${STD_STRIKEOUT.strikeLeft} for each strike you have left`, max: STD_STRIKEOUT.strikeMax },
+    ],
+    unfinished: `${STD_STRIKEOUT.word} for each word solved, ${STD_STRIKEOUT.tile} for each letter found in the current one, more for solving early`,
+    total: TOTAL,
+  }),
+  codeword: puzzleScoreList({
+    finish: "decode every number",
+    speed: { max: STD_CRYPTOGRID.speed, fullByS: STD_CRYPTOGRID.fullByS },
+    bonuses: [{ label: "Clean crack", how: "no wrong letter ever entered", fixed: STD_CRYPTOGRID.clean }],
+    unfinished: "the share of the code decoded, more for decoding it early",
+    penalties: [`When not finished, each wrong letter left standing costs ${STD_CRYPTOGRID.wrongCost}`],
+    total: TOTAL,
+  }),
+  swapword: puzzleScoreList({
+    finish: "make all six words right",
+    speed: { max: STD_SWAPWORD.speed, fullByS: STD_SWAPWORD.fullByS },
+    bonuses: [{ label: "Swaps", how: "solve it in the fewest swaps (par) for all of it, nothing at twice par", max: STD_SWAPWORD.par }],
+    unfinished: "the share of tiles you put in place, more for placing them early",
+    total: TOTAL,
+  }),
 } as const;
 
 /** The round intro SCORE line for each Word game on the standard (at most two phone lines, no scoring terms). */
 export const WORD_STANDARD_INTRO = {
-  tilegrid: `${STD_INTERLOCK.tile} per tile in a word. Finish ${FIN}; fast, with long words, up to {max}.`,
-  wordslide: `${STD_SLIDER.row} per word row you make. Finish ${FIN}; fast, in few moves, up to {max}.`,
-  wordsearch: `${STD_LOOKOUT.word} per word. Finish ${FIN}; fast, with the hidden bonus word, up to {max}.`,
-  letterwheel: `Points for slots filled. Finish ${FIN}; fast, with a full bonus jar, up to {max}.`,
-  strikeout: `${STD_STRIKEOUT.word} per word. Finish ${FIN}; fast, early solves and strikes left: {max}.`,
-  codeword: `Points for the code decoded. Finish ${FIN}; fast, with no wrong letter: {max}.`,
-  swapword: `Points for tiles in place. Finish ${FIN}; fast, in the fewest swaps: {max}.`,
+  tilegrid: "Use every tile in real words; bonuses for speed and long words. Up to {max}.",
+  wordslide: "Make every row a word; bonuses for speed and few moves. Up to {max}.",
+  wordsearch: "Find every word; bonuses for speed and the hidden bonus word. Up to {max}.",
+  letterwheel: "Fill every slot; bonuses for speed and a full bonus jar. Up to {max}.",
+  strikeout: "Solve every word; bonuses for speed, early solves and strikes left. Up to {max}.",
+  codeword: "Crack the code; bonuses for speed and no wrong letters. Up to {max}.",
+  swapword: "Put every tile in place; bonuses for speed and the fewest swaps. Up to {max}.",
 } as const;

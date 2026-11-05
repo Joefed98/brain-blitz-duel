@@ -28,7 +28,7 @@ import { roundMaxFor } from "../src/lib/duel/roundMax";
 import { PUZZLE_INSTRUCTIONS } from "../src/lib/duel/instructions";
 import { INTRO_SCORE } from "../src/lib/duel/introScore";
 import { LIVE_BANDS } from "../src/lib/arcade/liveBands";
-import { stdHelp, stdSum, stdLines } from "../src/lib/arcade/arcadeStandard";
+import { stdHelp, stdHelpLines, stdSum, stdLines } from "../src/lib/arcade/arcadeStandard";
 import { buildArcadeReveal } from "../src/lib/arcade/reveal";
 import { pinballGame, pinIsExpanded, pinRunTicksFor, PIN_REV_EXPAND, PIN_REV_LONG, PIN_REV_STD, PIN_V5_RUN_TICKS } from "../src/lib/arcade/pinball";
 import {
@@ -189,7 +189,7 @@ section("Rooms deal pinRev 6; the help, intro line, band, maximum and run length
   ok(live.rev === PIN_REV_STD && live.std === PIN_STD_SPEC && live.curve === PIN_V6_BAND_CURVE, "LIVE_BANDS lists pinRev 6 and its spec");
   ok(PIN_V6_BAND_CURVE.units.join() === `0,${PIN_V6_FULL_AT}` && PIN_V6_BAND_CURVE.points.join() === "0,130", "the core's straight line to 130");
   const help = PUZZLE_INSTRUCTIONS.pinball;
-  ok(help.score.includes(stdHelp(PIN_STD_SPEC)), `the help states the parts: ${help.score}`);
+  ok(help.score.includes(stdHelpLines(PIN_STD_SPEC)), `the help states the parts: ${help.score}`);
   const how = help.how.map((l) => `${l.action} ${l.detail}`).join(" ");
   ok(!/multiplier/i.test(how) && /90 seconds/.test(how), "the help's how lines don't promise a multiplier and say 90 seconds");
   const intro = INTRO_SCORE.pinball ?? "";

@@ -306,7 +306,9 @@ const v8Runs = gz<FlipLegacyRun[]>(FLIP_RUNS_FIXTURE);
   // with no rising scale (on flipRev 8 and 9 it ended "Up to 200." after the skill pay's rising scale).
   // Since 3 Nov 2026 rooms deal flipRev 11, whose core tops out at 100: the help states the parts total 200 and ends on
   // the round's 200 (the help-bands form for a core under the round's maximum, as Meteor's).
-  ok(/the parts total 200\. Up to 200\.$/.test(help.score) && /sweet landing/.test(help.score) && !/rising scale/.test(help.score), `"?" score help: ${help.score}`);
+  // Text pass (4 Nov 2026): the help is a list, one line a part, then penalties, then the total; the intro names the
+  // bonuses in one plain sentence (no internal figures).
+  ok(/ Total 200\.$/.test(help.score) && /landing on one of the \d+ sweet spots/.test(help.score) && !/rising scale/.test(help.score), `"?" score help: ${help.score}`);
 }
 
 if (failures.length) {

@@ -19,6 +19,7 @@
  *   bun scripts/slice-standard-check.ts      # ~30 s
  */
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { hasScorePart } from "../src/lib/duel/scoreList";
 import { readFileSync } from "node:fs";
 import { gunzipSync } from "node:zlib";
 
@@ -184,10 +185,13 @@ section("Rooms deal sliceRev 11; the help, intro and maximum say so");
   const sum = STANDARD.parts.reduce((a, p) => a + p.max, 0);
   ok(sum === 200 && SLICE_V11_CORE === 120 && SLICE_V11_COMBO_CAP === 40 && SLICE_V11_GOLD_CAP === 20 && SLICE_V11_TICKET_CAP === 10 && SLICE_V11_DODGE_CAP === 10, `the parts are 120 + 40 + 20 + 10 + 10 = 200 (got ${sum})`);
   const help = PUZZLE_INSTRUCTIONS.slice.score;
-  for (const part of ["up to 120", "Combos add up to 40", "golden fruit 20", "bread tickets 10", "dodges 10", "200 in all", "costs 10", "Up to 200."])
-    ok(help.includes(part), `the help states "${part}": ${help}`);
+  // Text pass (4 Nov 2026): one line a part, the chilli's cost, then the total.
+  for (const [label, max] of [["Food", 120], ["Combos", 40], ["Golden fruit", 20], ["Bread tickets", 10], ["Dodges", 10]] as const)
+    ok(hasScorePart(help, label, max), `the help states "${label}: …, up to ${max}.": ${help}`);
+  for (const part of ["costs 10", "Total 200."]) ok(help.includes(part), `the help states "${part}": ${help}`);
   const intro = fillMax(INTRO_SCORE.slice, "slice");
-  ok(["120", "40", "20", "10", "200"].every((n) => intro.includes(n)), `the intro states the parts and 200: ${intro}`);
+  // Text pass (4 Nov 2026): the intro names the bonuses in one plain sentence (no internal figures).
+  ok(["combos", "gold fruit", "bread", "dodges", "chillies cost", "Up to 200."].every((n) => intro.includes(n)), `the intro names the parts and 200: ${intro}`);
   ok(sliceWorldWFor(SLICE_REV_STANDARD) === SLICE_V9_W && sliceWorldHFor(SLICE_REV_STANDARD) === SLICE_V9_H, "sliceRev 11 plays on the 430 × 805 board");
   const init = g11.init(spec.seedFor(0)) as SliceState;
   ok(init.band === BAND_STRICT_MARK && init.v11 === SLICE_V11 && init.v10 === 1 && init.v9 === 1, "band 3, v9, v10 and v11 from the first tick");

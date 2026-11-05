@@ -1250,11 +1250,11 @@ export const PIN_STD_SPEC: StdSpec = {
   field: "pinRev",
   rev: PIN_REV_STD,
   parts: [
-    { key: "core", label: "Table points", max: PIN_V6_CORE_MAX, how: `a straight line, full at ${fmt(PIN_V6_FULL_AT)}` },
-    { key: "joulz", label: "J-O-U-L-Z", max: PIN_V6_JOULZ_MAX, how: `${PIN_V6_JOULZ_EACH} for each set of all five letters, up to ${PIN_V6_JOULZ_MAX / PIN_V6_JOULZ_EACH}` },
-    { key: "multiball", label: "Multiball", max: PIN_V6_MULTIBALL, how: "once multiball has started" },
-    { key: "jackpots", label: "Jackpots", max: PIN_V6_JACKPOT_MAX, how: `${PIN_V6_JACKPOT_EACH} each, up to ${PIN_V6_JACKPOT_MAX / PIN_V6_JACKPOT_EACH}` },
-    { key: "combos", label: "Ramp combos", max: PIN_V6_COMBO_MAX, how: `${PIN_V6_COMBO_EACH} for each ramp shot back to back, up to ${PIN_V6_COMBO_MAX / PIN_V6_COMBO_EACH}` },
+    { key: "core", label: "Table points", max: PIN_V6_CORE_MAX, how: `every switch, ramp, lock, jackpot and skill shot scores table points, all of it at ${fmt(PIN_V6_FULL_AT)}` },
+    { key: "joulz", label: "J-O-U-L-Z", max: PIN_V6_JOULZ_MAX, how: `${PIN_V6_JOULZ_EACH} for each set of all five letters` },
+    { key: "multiball", label: "Multiball", max: PIN_V6_MULTIBALL, how: "start multiball" },
+    { key: "jackpots", label: "Jackpots", max: PIN_V6_JACKPOT_MAX, how: `${PIN_V6_JACKPOT_EACH} for each jackpot` },
+    { key: "combos", label: "Ramp combos", max: PIN_V6_COMBO_MAX, how: `${PIN_V6_COMBO_EACH} for each ramp shot straight after another` },
   ],
 };
 

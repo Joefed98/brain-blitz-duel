@@ -72,7 +72,7 @@ export const entry: StdEntry = {
     }
     ok(mahjongGame.init(SEED).face.join() === base.face.join(), "mahjong: rev 2 deals rev 1's stack");
     const help = PUZZLE_INSTRUCTIONS.mahjong.score;
-    ok(help.includes("Together 200 points.") && MAHJONG_STD_SPEC.parts.every((p) => help.includes(p.label) && help.includes(String(p.max))) && help.includes("65 s"), `mahjong: the help states every part and "Together 200 points.": ${help}`);
+    ok(help.includes("Total 200.") && MAHJONG_STD_SPEC.parts.every((p) => help.includes(p.label) && help.includes(String(p.max))) && help.includes("65 s"), `mahjong: the help states every part and "Total 200.": ${help}`);
     ok((LIVE_BANDS.mahjong as { std?: unknown }).std === MAHJONG_STD_SPEC, "mahjong: LIVE_BANDS carries the spec");
   },
 };

@@ -71,8 +71,8 @@ eq(buildArcadeReveal("matchup", { raw: 2500 }, 150)?.axis.max, 2500, "Matchup re
 // Oct 2026 score bands: intros describe the band rules in plain words (the "?" help gives the top and a good run).
 // Expansion E6 (25 Oct 2026): Ball Tracker's intro names btRev 7's features; e6-check covers the new rules. Its help named
 // btRev 7's speed line (56.6 s); btRev 8 (the arcade scoring standard, 29 Oct 2026) has no speed part and states its parts.
-for (const [type, text] of [["balltrack", "gold, boosted and in-a-row marbles"], ["junction", "± for ambulances"], ["rally", "pink target"], ["skyline", "a perfect streak"]] as const) eq(INTRO_SCORE[type].includes(text), true, `${type} intro`);
-for (const [type, text] of [["matchup", "More gems cleared"], ["bullseye", "plus +1, +2 or +3 for each balloon"], ["junction", "one stopped takes 4 off"], ["skyline", "Perfect streak up to 10 (1 for each perfect drop in your best streak"], ["rally", "Gold-ball hits up to 140"], ["balltrack", "Boosted marbles up to 15"]] as const) eq(PUZZLE_INSTRUCTIONS[type].score.includes(text), true, `${type} help`);
+for (const [type, text] of [["balltrack", "gold marbles, combos and boosted marbles"], ["junction", "± for ambulances"], ["rally", "pink pads"], ["skyline", "a perfect streak"]] as const) eq(INTRO_SCORE[type].includes(text), true, `${type} intro`);
+for (const [type, text] of [["matchup", "every gem cleared counts the same"], ["bullseye", "balloons 1 to 3 more"], ["junction", "one stopped takes 4 off"], ["skyline", "Perfect streak: 1 for each perfect drop in your best streak, up to 10."], ["rally", "Gold-ball hits: hit gold balls back"], ["balltrack", "Boosted marbles: "]] as const) eq(PUZZLE_INSTRUCTIONS[type].score.includes(text), true, `${type} help`);
 // The 11 Oct 130 / 150 split is gone from every intro: no partial cap is stated any more.
 for (const type of ["balltrack", "bintoss", "breaker", "bubble", "inkbridge", "orbit", "swing", "tilt"] as const) eq(/otherwise up to \d+/.test(INTRO_SCORE[type]), false, `${type} intro has no partial cap`);
 // The legacy split figures still hold for stored rounds (they replay on their original rules).
@@ -140,7 +140,8 @@ for (const game of [orbitGame, orbitRev3Game] as const) {
   eq(game.score({ ...game.init(1), best: ORBIT_TOTAL - 1, finished: 0 } as never), SPLIT_PARTIAL_MAX.orbit, "Orbit partial max");
 }
 // Expansion E6: Ball Tracker's btRev 7 intro names its features (btRev 8, the arcade scoring standard: and the 60 they add). Grappler (swingRev 17, the sliding hooks): the course, pars, gates and the streak. Tilt (x200, tiltRev 8): three mazes. "{max}" is the game's own maximum (roundMax.ts: 150 today, 200 once its expansion raises it).
-for (const [type, goal] of [["balltrack", "in-a-row marbles add 60: they total up to {max}"], ["bintoss", "All 10 in for 10 more"], ["breaker", "Clear all 105 quickly for up to {max}"], ["inkbridge", "All 10 levels quickly: up to {max}"], ["swing", "Course (110), pars (40), gates (10), clean-swing streak (40): up to {max}"], ["tilt", "All 4 quickly: up to {max}"]] as const) {
+// Text pass (4 Nov 2026): each intro is one plain sentence naming the bonuses, ending "Up to 200." (no internal figures).
+for (const [type, goal] of [["balltrack", "gold marbles, combos and boosted marbles. Up to {max}"], ["bintoss", "far buckets, hoops and all ten in. Up to {max}"], ["breaker", "a fast clear adds more. Up to {max}"], ["inkbridge", "little ink, trick shots, clovers and speed. Up to {max}"], ["swing", "pars, gates and clean-swing streaks. Up to {max}"], ["tilt", "a clean run and speed. Up to {max}"]] as const) {
   eq(INTRO_SCORE[type].includes(goal.replace("{max}", String(roundMaxFor(type)))), true, `${type} intro goal`);
 }
 // Scrumper and Mixed Signals are not on the split: no partial cap at 130.

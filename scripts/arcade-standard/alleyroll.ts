@@ -45,7 +45,7 @@ export const entry: StdEntry = {
     }),
   played: () => [{ label: "nine balls in the gutter", score: alleyRollGameFor(2).score(ringer(Array.from({ length: 9 }, () => 0))), want: 1 }],
   idle: () => [{ label: "an untouched init(12)", score: alleyRollGameFor(2).score(arInitV2(12)) }],
-  help: { terms: ["ring points", "30 or more"] },
+  help: { terms: ["cups", "30 or more"] },
   extra(ok) {
     // The core's straight line on ring points (10s and 20s between 0s: no feature).
     let straight = true;

@@ -112,10 +112,10 @@ export const MINIGOLF_STD_SPEC: StdSpec = {
   field: "golfRev",
   rev: MINIGOLF_REV,
   parts: [
-    { key: "core", label: "Holes", max: 120, of: MINIGOLF_HOLES, item: "hole", how: `${MG_HOLE_PTS} a hole holed; an unfinished hole up to ${MG_CLOSE_PTS} by how close you finish` },
-    { key: "par", label: "Par", max: 40, of: MINIGOLF_HOLES, item: "hole", how: `${MG_PAR_PTS} a hole at par or better, less for each stroke over` },
-    { key: "under", label: "Under par", max: 20, of: MINIGOLF_HOLES, item: "hole", how: `${MG_UNDER_PTS} a hole under par` },
-    { key: "speed", label: "Speed", max: 20, of: 1, item: "finish", how: `all five holed: full by ${MINIGOLF_FULL_BY_S} s, none at the buzzer` },
+    { key: "core", label: "Holes", max: 120, of: MINIGOLF_HOLES, item: "hole", how: `${MG_HOLE_PTS} for each hole holed, or up to ${MG_CLOSE_PTS} by how close you get` },
+    { key: "par", label: "Par", max: 40, of: MINIGOLF_HOLES, item: "hole", how: `${MG_PAR_PTS} for each hole in par or better, less for each stroke over` },
+    { key: "under", label: "Under par", max: 20, of: MINIGOLF_HOLES, item: "hole", how: `${MG_UNDER_PTS} for each hole under par` },
+    { key: "speed", label: "Speed", max: 20, of: 1, item: "finish", how: `hole all five within ${MINIGOLF_FULL_BY_S} s for all of it, falling to 0 at the buzzer` },
   ],
 };
 

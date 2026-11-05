@@ -829,9 +829,9 @@ export const SKYLINE_STD_SPEC: StdSpec = {
   field: "skylineRev",
   rev: SKYLINE_REV_STD,
   parts: [
-    { key: "core", label: "Floors", max: SKYLINE_V9_CORE_MAX, how: `full at ${SKYLINE_V9_FULL_AT} floors` },
-    { key: "perfects", label: "Perfect drops", max: SKYLINE_V9_PERFECTS_MAX, how: `by the share of your drops that are perfect, counted over at least ${SKYLINE_V9_FULL_AT} drops` },
-    { key: "streak", label: "Perfect streak", max: SKYLINE_V9_STREAK_MAX, how: `1 for each perfect drop in your best streak, full at ${SKYLINE_V9_STREAK_MAX} in a row` },
+    { key: "core", label: "Floors", max: SKYLINE_V9_CORE_MAX, how: `every floor counts the same, all of it at ${SKYLINE_V9_FULL_AT} floors` },
+    { key: "perfects", label: "Perfect drops", max: SKYLINE_V9_PERFECTS_MAX, how: `the share of your drops that are perfect (out of at least ${SKYLINE_V9_FULL_AT})` },
+    { key: "streak", label: "Perfect streak", max: SKYLINE_V9_STREAK_MAX, how: "1 for each perfect drop in your best streak" },
     { key: "gold", label: "Gold blocks", max: SKYLINE_V9_GOLD_MAX, how: `${SKYLINE_V9_GOLD_MAX / SKYLINE_V9_GOLD_COUNT} for each of the ${SKYLINE_V9_GOLD_COUNT} gold blocks landed perfectly` },
   ],
 };

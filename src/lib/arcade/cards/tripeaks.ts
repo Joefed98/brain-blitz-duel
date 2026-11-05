@@ -73,12 +73,12 @@ export const TP_STD_SPEC: StdSpec = {
   field: "tripeaksRev",
   rev: TP_REV_PAR,
   parts: [
-    { key: "core", label: "Cards cleared", max: TP_V2_CORE_MAX, of: TP_CARDS, item: "card", how: "a straight line over the 28 peak cards" },
-    { key: "peaks", label: "Peak tops", max: TP_V2_PEAK_MAX, of: 3, item: "peak top", how: `${TP_V2_PEAK_EACH} each` },
-    { key: "run", label: "Longest run", max: TP_V2_RUN_MAX, of: 10, item: "card", how: `${TP_V2_RUN_EACH} a card, full at 10` },
-    { key: "clear", label: "Clear", max: TP_V2_CLEAR_MAX, of: 1, how: "all 28 cleared" },
-    { key: "par", label: "Stock par", max: TP_V2_PAR_MAX, of: 1, how: "all 28 cleared: full when you turned the stock no more than the deal's par, 0 when you turned it all" },
-    { key: "speed", label: "Speed", max: TP_V2_SPEED_MAX, of: 1, how: `all 28 cleared: full by ${TP_V2_SPEED_FULL_S} s, 0 at the buzzer` },
+    { key: "core", label: "Cards cleared", max: TP_V2_CORE_MAX, of: TP_CARDS, item: "card", how: "clear the 28 peak cards, each worth the same" },
+    { key: "peaks", label: "Peak tops", max: TP_V2_PEAK_MAX, of: 3, item: "peak top", how: `${TP_V2_PEAK_EACH} for each peak top cleared` },
+    { key: "run", label: "Longest run", max: TP_V2_RUN_MAX, of: 10, item: "card", how: `${TP_V2_RUN_EACH} for each card in your longest run` },
+    { key: "clear", label: "Clear", max: TP_V2_CLEAR_MAX, of: 1, how: "clear all 28" },
+    { key: "par", label: "Stock par", max: TP_V2_PAR_MAX, of: 1, how: "clear all 28 turning the stock no more than the deal's par for all of it, nothing if you turned it all" },
+    { key: "speed", label: "Speed", max: TP_V2_SPEED_MAX, of: 1, how: `clear all 28 within ${TP_V2_SPEED_FULL_S} s for all of it, falling to 0 at the buzzer` },
   ],
 };
 
@@ -87,7 +87,7 @@ export const TP_STD_SPEC_V1: StdSpec = {
   field: "tripeaksRev",
   rev: 1,
   parts: [
-    { key: "core", label: "Cards cleared", max: TP_CORE_MAX, of: TP_CARDS, item: "card", how: "a straight line over the 28 peak cards" },
+    { key: "core", label: "Cards cleared", max: TP_CORE_MAX, of: TP_CARDS, item: "card", how: "clear the 28 peak cards, each worth the same" },
     { key: "peaks", label: "Peak tops", max: TP_PEAK_MAX, of: 3, item: "peak top", how: "10 each" },
     { key: "run", label: "Longest run", max: TP_RUN_MAX, of: 10, item: "card", how: "2 a card, full at 10" },
     { key: "clear", label: "Clear", max: TP_CLEAR_MAX, of: 1, how: "all 28 cleared" },

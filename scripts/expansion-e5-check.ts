@@ -106,7 +106,7 @@ const NEW_REV: Record<"bintoss" | "slice", number> = { bintoss: BINTOSS_REV_EXPA
 const TYPES = Object.keys(NEW_REV) as (keyof typeof NEW_REV)[];
 /** What rooms deal today: Swish moved on to binRev 8 (phone notes, 27 Oct 2026; section 5) and Slice to sliceRev 10 (sliceRev 9 with bigger onions and golden fruit); NEW_REV stays the stamp the stored runs were recorded on. */
 // Swish then moved on to binRev 9 (the arcade scoring standard, 29 Oct 2026, docs/arcade-standard/bintoss.md: binRev 8's play with
-// exactly three hoops, its help in the standard's words, "Together 200 points.").
+// exactly three hoops, its help in the standard's words, "Total 200.").
 // Slice then moved on to sliceRev 12 (3 Nov 2026, the Action polish: bigger food, its own play; slice-food-check).
 const DEALT: Record<"bintoss" | "slice", number> = { bintoss: BINTOSS_REV_STD, slice: SLICE_REV_BIG + 2 };
 /** The legacy fixture also holds Flightpath's older stamps, which still replay on main's (unchanged) Flightpath. */
@@ -148,7 +148,8 @@ for (const type of TYPES) {
   ok(ROUND_MAX[type] === 200 && roundMaxFor(type) === 200, `${type}: ROUND_MAX is 200`);
   ok(fillMax(INTRO_SCORE[type], type).includes("200"), `${type}: the intro states 200: ${fillMax(INTRO_SCORE[type], type)}`);
   // A game on the arcade scoring standard states its 200 in the standard's words (arcade-help-bands-check proves them).
-  const helpEnd = LIVE_BANDS[type].std ? "Together 200 points." : "Up to 200.";
+  // Text pass (4 Nov 2026): every help list ends with its total.
+  const helpEnd = "Total 200.";
   ok(fillMax(PUZZLE_INSTRUCTIONS[type].score, type).includes(helpEnd),`${type}: the help ends "${helpEnd}"`);
   const how = PUZZLE_INSTRUCTIONS[type].how.filter((line) => !line.helpOnly);
   // One phone line each (46 characters, as batch 5's; Slice's first line was written before that rule, 50).

@@ -23,6 +23,7 @@
  *   bun scripts/ink-v13-check.ts            (~1–2 min)
  *   bun scripts/ink-v13-check.ts --record   (re-records ink-v13-runs.json.gz and the pending replay-runs entry)
  */
+import { hasScorePart } from "../src/lib/duel/scoreList";
 import { createHash } from "node:crypto";
 import { readFileSync, writeFileSync } from "node:fs";
 import { gunzipSync, gzipSync } from "node:zlib";
@@ -129,9 +130,11 @@ section("Rooms deal inkRev 13; LIVE_BANDS, help and intro follow it");
   const help = PUZZLE_INSTRUCTIONS.inkbridge;
   const how = help.how.map((h) => `${h.action} ${h.detail}`).join(" ");
   ok(!/star|silver|wind|three failed/i.test(how) && /clover/i.test(how) && /ink par/i.test(how) && /trick shot/i.test(how), "the help names clovers, the ink par and trick shots, and no stars, silver coins, wind or a three-miss limit");
-  ok(["level potted counts 12", "up to 120", "Ink par", "Trick shots", "Clovers", "Speed", "120", "30", "20", "10", "50 s", "parts total 200"].every((w) => help.score.includes(w)), `the help's SCORE states every part and its maximum (${help.score})`);
+  // Text pass (4 Nov 2026): the help is a list, one line a part, then penalties, then the total; the intro names the
+  // bonuses in one plain sentence (no internal figures).
+  ok(["12 for each level potted", "Ink par", "Trick shots", "Clovers", "Speed", "50 s", "Total 200."].every((w) => help.score.includes(w)) && hasScorePart(help.score, "Levels", 120) && hasScorePart(help.score, "Ink par", 30), `the help's SCORE states every part and its maximum (${help.score})`);
   const intro = INTRO_SCORE.inkbridge.replace("{max}", "200");
-  ok(intro.length <= 90 && /little ink/i.test(intro) && /clover/i.test(intro) && /quickly/i.test(intro) && !/star|silver/i.test(intro), `the intro line names the parts in at most 90 characters (${intro.length}: "${intro}")`);
+  ok(intro.length <= 90 && /little ink/i.test(intro) && /clover/i.test(intro) && /speed/i.test(intro) && !/star|silver/i.test(intro), `the intro line names the parts in at most 90 characters (${intro.length}: "${intro}")`);
   ok(roomIdentity.rev === INK_REV_BIG && roomIdentity.logs(SAMPLE[0]!, INK_REV_CLOVER).length === 5, "room identity is measured on the dealt stamp (inkRev 14; inkRev 13 by passing its rev, section 7)");
   ok(inkParText(84, 90) === "Ink 84 / par 90" && inkParText(1198, 594).length <= 16, "the HUD readout reads \"Ink 84 / par 90\" (closer when long)");
 }
