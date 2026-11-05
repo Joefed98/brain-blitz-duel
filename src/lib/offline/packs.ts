@@ -18,6 +18,7 @@ import { getAll, putOne, update } from "./db";
 import { emitOfflineChange } from "./events";
 import { isOnline } from "./online";
 import { ONLINE_ONLY_TYPES, PACK_MAX_DEALS, PACK_MAX_TYPES } from "./offlineStatus";
+import { lightTopUpBlocked, notePackVisitComplete, packLevelForTopUp, packTargetFor, practiceStarted } from "./packGrowth";
 import { meteredConnection, offlineDownloadsOn } from "./settings";
 
 export interface PackDeal {
@@ -74,14 +75,22 @@ export async function takePackDeal(type: PuzzleType): Promise<PackDeal | null> {
   return taken;
 }
 
-/** What a top-up should ask the server for: each game short of a full pack, or whose stamps changed. */
-export function packNeeds(packs: readonly PracticePack[], types: readonly PuzzleType[] = packTypes()): { type: PuzzleType; count: number }[] {
+/**
+ * What a top-up should ask the server for: each game short of `target` deals (PACK_MAX_DEALS unless given; the
+ * growing target from packGrowth.ts), or whose stamps changed.
+ */
+export function packNeeds(
+  packs: readonly PracticePack[],
+  types: readonly PuzzleType[] = packTypes(),
+  target: number = PACK_MAX_DEALS,
+): { type: PuzzleType; count: number }[] {
+  const want = Math.max(1, Math.min(PACK_MAX_DEALS, Math.floor(target)));
   const byType = new Map(packs.map((p) => [p.type, p]));
   const needs: { type: PuzzleType; count: number }[] = [];
   for (const type of types) {
     const pack = byType.get(type);
-    if (!pack || pack.builtFor !== currentPracticeStamp(type)) needs.push({ type, count: PACK_MAX_DEALS });
-    else if (pack.deals.length < PACK_MAX_DEALS) needs.push({ type, count: PACK_MAX_DEALS - pack.deals.length });
+    if (!pack || pack.builtFor !== currentPracticeStamp(type)) needs.push({ type, count: want });
+    else if (pack.deals.length < want) needs.push({ type, count: want - pack.deals.length });
   }
   return needs;
 }
@@ -131,10 +140,13 @@ function automatedWithoutPacks(): boolean {
   }
 }
 
-/** Whether a top-up may run now: online, downloads on, not metered, and no round on screen. */
+/**
+ * Whether a top-up may run now: online, downloads on, not metered, no Battery saver, Save-Data or 2G-class
+ * connection (packGrowth.ts), and no round on screen.
+ */
 export function topUpAllowed(): boolean {
   if (automatedWithoutPacks()) return false;
-  if (!isOnline() || !offlineDownloadsOn() || meteredConnection()) return false;
+  if (!isOnline() || !offlineDownloadsOn() || meteredConnection() || lightTopUpBlocked()) return false;
   return appUpdater()?.gate() !== "hold";
 }
 
@@ -152,20 +164,25 @@ export function topUpPacks(deps: TopUpDeps = { fetchPacks: defaultFetch }): Prom
         const i = recent.indexOf(t);
         return i < 0 ? recent.length : i;
       };
-      const needs = packNeeds(await readPacks()).sort((a, b) => order(a.type) - order(b.type));
+      const packs = await readPacks();
+      // The first top-up waits for a finished practice round (packGrowth.ts); a device with packs carries on.
+      if (packs.length === 0 && !practiceStarted()) return;
+      const needs = packNeeds(packs, packTypes(), packTargetFor(packLevelForTopUp(packs.length > 0))).sort((a, b) => order(a.type) - order(b.type));
       for (let i = 0; i < needs.length; i += PACK_MAX_TYPES) {
         if (!topUpAllowed()) return;
         const batch = needs.slice(i, i + PACK_MAX_TYPES);
         const count = Math.max(...batch.map((n) => n.count));
-        let packs: { type: PuzzleType; deals: PackDeal[] }[];
+        let fetched: { type: PuzzleType; deals: PackDeal[] }[];
         try {
-          packs = await deps.fetchPacks(batch.map((n) => n.type), count);
+          fetched = await deps.fetchPacks(batch.map((n) => n.type), count);
         } catch {
           return;
         }
-        for (const pack of packs) await storeDeals(pack.type, pack.deals);
+        for (const pack of fetched) await storeDeals(pack.type, pack.deals);
         emitOfflineChange();
       }
+      // Every game reached this visit's target: the next visit's target grows (3, 5, 7, 9, 10).
+      notePackVisitComplete();
     } finally {
       topping = null;
     }
