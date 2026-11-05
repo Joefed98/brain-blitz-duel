@@ -319,7 +319,8 @@ function useRevealFit(rootRef: { current: HTMLElement | null }, cardRef: { curre
       const r = root.getBoundingClientRect();
       const c = card.getBoundingClientRect();
       const u = boardBox(card);
-      const has = !empty() && Number.isFinite(u.left) && u.right - u.left >= 1 && u.bottom - u.top >= 1;
+      // Still "Revealing": nothing to fit yet (the board's arrival refits).
+      const has = !empty() && !card.querySelector("[data-reveal-waiting]") && Number.isFinite(u.left) && u.right - u.left >= 1 && u.bottom - u.top >= 1;
       if (has) {
         const cx = c.left + c.width / 2;
         const leftRoom = cx - (r.left + REVEAL_CARD_PAD);
@@ -788,7 +789,7 @@ function LiveAnswerReveal({
               myExtra={myExtra ?? null}
             />
           ) : !answersReady ? (
-            <div className="flex justify-center">
+            <div data-reveal-waiting="" className="flex justify-center">
               <WaitingLine label="Revealing" />
             </div>
           ) : null}
