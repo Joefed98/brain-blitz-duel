@@ -358,7 +358,9 @@ export function ArcadeReveal({ puzzle, myAnswer, myScore, myReveal: storedReveal
         </div>
 
         {/* The full breakdown: open in practice, one tap away in a room (always in the markup). */}
-        {summary ? <RevealBreakdown lines={breakdownLines} storedLines={myReveal !== storedReveal ? storedReveal?.lines : undefined} score={myScore} hidden={!practice && !open} /> : null}
+        {summary ? <RevealBreakdown lines={breakdownLines} score={myScore} hidden={!practice && !open} /> : null}
+        {/* The run's lines exactly as stored, when the rows above were rewritten as part rows (arcadeBandStd.ts). */}
+        {summary && myReveal !== storedReveal && storedReveal ? <span hidden data-stored-lines={storedReveal.lines.join("\n")} /> : null}
 
         {/* The chart straight on the gradient, no panel behind it (rooms only: in practice it would hold one dot). */}
         {/* Never shorter than the chart it holds (no min-h-0): the column scrolls instead of overlapping. */}
