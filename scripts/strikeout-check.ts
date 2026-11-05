@@ -436,6 +436,16 @@ const stamp = (p: StrikeoutPuzzleData) => ({ ...p, speedPar: 1, puzzleScoreRev: 
   );
 }
 
+/**
+ * The text pass (F2, 4 Nov 2026) rewrote the finished reveal's stat line in plain words: "5 / 5 words · 2 strikes ·
+ * 34.5s" became "5 of 5 words · 2 strikes, 34.5 s" (at most one "·", "of" for counts, a spaced unit). The legacy
+ * fixtures hold main's markup, so each recorded reveal is put into that wording before the exact comparison; the
+ * words, strikes and time it states are the recorded ones, and any other difference still fails.
+ */
+function inTextPassWording(reveal: string): string {
+  return reveal.replace(/5 \/ 5 words · ([^<·]*?) · (\d+(?:\.\d+)?)s/g, "5 of 5 words · $1, $2 s");
+}
+
 // 6. Rev-1 legacy identity: stored rounds grade, store, live-check and reveal exactly as main did.
 {
   interface LegacyCase {
@@ -459,7 +469,7 @@ const stamp = (p: StrikeoutPuzzleData) => ({ ...p, speedPar: 1, puzzleScoreRev: 
     if (c.reveal !== null) {
       reveals++;
       const html = renderToStaticMarkup(createElement(strikeoutPuzzle.Reveal, { puzzle: c.puzzle, myAnswer: (c.graded as { answer: string }).answer, myMsRemaining: (c.graded as { storedMs: number }).storedMs, timeLimitMs: LIMIT } as never));
-      ok &&= html === c.reveal;
+      ok &&= html === inTextPassWording(c.reveal);
     }
     if (ok) same++;
     else if (diffs.length < 5) diffs.push(`"${c.answer}" @ ${c.ms}: ${JSON.stringify(graded)} vs ${JSON.stringify(c.graded)}`);
@@ -506,7 +516,7 @@ const stamp = (p: StrikeoutPuzzleData) => ({ ...p, speedPar: 1, puzzleScoreRev: 
     if (c.reveal !== null) {
       reveals++;
       const html = renderToStaticMarkup(createElement(strikeoutPuzzle.Reveal, { puzzle: c.puzzle, myAnswer: (c.graded as { answer: string }).answer, myMsRemaining: (c.graded as { storedMs: number }).storedMs, timeLimitMs: LIMIT } as never));
-      ok &&= html === c.reveal;
+      ok &&= html === inTextPassWording(c.reveal);
     }
     if (ok) same++;
     else if (diffs.length < 5) diffs.push(`"${c.answer}" @ ${c.ms}: ${JSON.stringify(graded)} vs ${JSON.stringify(c.graded)}`);
@@ -606,7 +616,7 @@ const stamp = (p: StrikeoutPuzzleData) => ({ ...p, speedPar: 1, puzzleScoreRev: 
     if (c.reveal !== null) {
       reveals++;
       const html = renderToStaticMarkup(createElement(strikeoutPuzzle.Reveal, { puzzle: c.puzzle, myAnswer: (c.graded as { answer: string }).answer, myMsRemaining: (c.graded as { storedMs: number }).storedMs, timeLimitMs: LIMIT } as never));
-      ok &&= html === c.reveal;
+      ok &&= html === inTextPassWording(c.reveal);
     }
     if (ok) same++;
     else if (diffs.length < 5) diffs.push(`"${c.answer}" @ ${c.ms}: ${JSON.stringify(graded)} vs ${JSON.stringify(c.graded)}`);
