@@ -31,6 +31,7 @@
  *   bun scripts/flip-rev11-check.ts [--record]
  */
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { hasScorePart } from "../src/lib/duel/scoreList";
 import { gunzipSync, gzipSync } from "node:zlib";
 import { readFileSync, writeFileSync } from "node:fs";
 import { GAME_BY_TYPE } from "./arcade-skill-bands/games";
@@ -125,16 +126,18 @@ ok(FLIP_V11.parts.reduce((a, p) => a + p.max, 0) === 200 && FLIP_V11_SAVE_COST =
 {
   const help = PUZZLE_INSTRUCTIONS.flip;
   const score = help.score;
-  ok(score.includes("Clean time: the half seconds you last, less 40 (20 s) for each crash a checkpoint saves.") && score.includes("higher score – up to 100. A good run (100 points) lasts 120 clean half seconds (60 s: the whole minute with no crash saved)."), `the help states clean time and its line: ${score}`);
-  ok(score.includes("Perfect landings up to 60 (7.5 for each sweet landing") && score.includes("Double flips up to 20 (2.5 each of 8 double flips)") && score.includes("Flow streak up to 20 (0.4 each of 50 clean jumps in a row)") && score.endsWith("Core 100 and the features 100: the parts total 200. Up to 200."), `the help states every feature and the 200: ${score}`);
+  // Text pass (4 Nov 2026): the help is a list, one line a part, then the total ("A good run (100 points)", "Core 100 and the
+  // features 100" and the history word "now" were internal or dated wording); the intro names the bonuses.
+  ok(score.includes("Clean time: every half second you last counts, less 20 s for each crash a checkpoint saves; the whole minute with no crash for all of it, up to 100."), `the help states clean time and its line: ${score}`);
+  ok(hasScorePart(score, "Perfect landings", 60) && score.includes("7.5 for each landing") && hasScorePart(score, "Double flips", 20) && hasScorePart(score, "Flow streak", 20) && score.endsWith("Total 200."), `the help states every feature and the 200: ${score}`);
   ok(!/gold star|Star trails up to|Time survived/.test(score), "the help no longer pays stars, trails or time survived");
   const all = help.how.map((l) => `${l.action} ${l.detail}`).join(" ");
-  ok(/PERFECT/.test(all) && /flow streak/i.test(all) && /clean jump is a flip that lands with no crash saved/.test(all) && /only a guide now/.test(all) && /20 s/.test(all), "the help explains the PERFECT landing, the flow streak, clean jumps, the faint trails and the 20 s");
+  ok(/PERFECT/.test(all) && /flow streak/i.test(all) && /clean jump is a flip that lands with no crash saved/.test(all) && /only a guide, a good line/.test(all) && /20 s/.test(all), "the help explains the PERFECT landing, the flow streak, clean jumps, the faint trails and the 20 s");
   const intro = help.how.filter((l) => !l.helpOnly);
   ok(intro.length === 3 && intro.every((l) => `${l.action} ${l.detail}`.length <= 110), "the intro HOW in three short lines");
   ok(!/Grab gold stars/.test(all), "the intro no longer asks for gold stars");
   const line = INTRO_SCORE.flip;
-  ok(line.length <= 90 && line.includes("Clean time 100") && line.includes("sweet spots 60") && line.includes("flow streak") && line.includes("200"), `the intro states the parts and the top in ≤ 90 characters: ${line}`);
+  ok(line.length <= 90 && /without crashing/.test(line) && line.includes("sweet spots") && line.includes("flow") && line.endsWith("Up to 200."), `the intro states the parts and the top in ≤ 90 characters: ${line}`);
   const demo = readFileSync("src/lib/duel/introDemo.functions.ts", "utf8");
   ok(demo.includes("demo.puzzle.flipRev !== FLIP_REV_FLOW && demo.puzzle.flipRev !== FLIP_REV_DEAL) return null;"), "the intro demo plays only when recorded on flipRev 11 (or 12, the same game)");
   const art = readFileSync("src/lib/arcade/flipArt.renderer.ts", "utf8");

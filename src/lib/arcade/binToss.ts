@@ -1546,9 +1546,9 @@ export const BINTOSS_STD_SPEC: StdSpec = {
   field: "binRev",
   rev: BINTOSS_REV_STD,
   parts: [
-    { key: "core", label: "Buckets", max: BINTOSS_V9_CORE_MAX, how: `${BINTOSS_V9_BUCKET} a bucket, 1 a throw that only just misses` },
-    { key: "far", label: "Far buckets", max: BINTOSS_V9_FAR_MAX, how: `${BINTOSS_V9_FAR} each on throws 1-${BINTOSS_FAR_THROWS}` },
-    { key: "hoops", label: "Hoops", max: BINTOSS_V9_HOOP_MAX, how: `${BINTOSS_V9_HOOP} each of ${BINTOSS_HOOP_COUNT}, through the hoop and in` },
+    { key: "core", label: "Buckets", max: BINTOSS_V9_CORE_MAX, how: `${BINTOSS_V9_BUCKET} for each throw in a bucket, 1 for a near miss` },
+    { key: "far", label: "Far buckets", max: BINTOSS_V9_FAR_MAX, how: `${BINTOSS_V9_FAR} more for the far bucket on throws 1 to ${BINTOSS_FAR_THROWS}` },
+    { key: "hoops", label: "Hoops", max: BINTOSS_V9_HOOP_MAX, how: `${BINTOSS_V9_HOOP} for each of the ${BINTOSS_HOOP_COUNT} hoops, through the hoop and into a bucket` },
     { key: "finish", label: "All ten in", max: BINTOSS_V9_FINISH, how: "every throw in a bucket" },
   ],
 };

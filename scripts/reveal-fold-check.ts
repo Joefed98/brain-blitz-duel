@@ -2,7 +2,7 @@
  * reveal-fold-check (1 Nov 2026, Joe: the score breakdown squashed the snake chart): the arcade answer reveal shows its
  * breakdown as one line until tapped (`revealSummary`, src/components/duel/ArcadeReveal.tsx).
  *
- *  1. On the arcade scoring standard the line is "<score> · core <first part> + features <the other parts>", each
+ *  1. On the arcade scoring standard the line is "<score> points · <first part's name> <its points> + bonuses <the other parts>" (text pass, 4 Nov 2026: no "core" or "features"), each
  *     figure as stored in the part lines (stdLines), and the tap opens every stored line.
  *  2. Any other game's line is its first stored line, and the tap opens the rest: every stored line is shown once,
  *     folded or opened, never rewritten (reveal-score-check proves they are all in the markup).
@@ -31,12 +31,12 @@ const part = (label: string, detail: string, points: number, max: number): StdPa
 const parts = [part("Distance", "412 ft", 110, 130), part("Home runs", "4 of 10", 20, 50), part("Signs", "2 hit", 12, 20)];
 const lines = stdLines(parts, 142);
 const std = revealSummary(lines, 142);
-check(std?.summary === "142 · core 110 + features 32", `standard: ${JSON.stringify(std?.summary)}`);
+check(std?.summary === "142 points · distance 110 + bonuses 32", `standard: ${JSON.stringify(std?.summary)}`);
 check(JSON.stringify(std?.rest) === JSON.stringify(lines), "standard: the tap opens every stored line");
 
 // A run held up to 1 for playing: its parts are still read as stored.
 const low = stdLines([part("Distance", "3 ft", 0, 130), part("Home runs", "0 of 10", 0, 50)], 1);
-check(revealSummary(low, 1)?.summary === "1 · core 0 + features 0", `at least 1: ${JSON.stringify(revealSummary(low, 1)?.summary)}`);
+check(revealSummary(low, 1)?.summary === "1 point · distance 0 + bonuses 0", `at least 1: ${JSON.stringify(revealSummary(low, 1)?.summary)}`);
 
 // Two parts at least: a one-part list falls back to its first line.
 const one = stdLines([part("Hands", "23 points", 160, 160)], 160);
@@ -107,4 +107,4 @@ if (failures) {
   console.log(`FAIL reveal-fold-check: ${failures} failure(s)`);
   process.exit(1);
 }
-console.log("PASS reveal-fold-check: the breakdown folds to one line (core + features on the standard, else the first stored line); every stored line once, behind a 44 px tap");
+console.log("PASS reveal-fold-check: the breakdown folds to one line (the first part + bonuses on the standard, else the first stored line); every stored line once, behind a 44 px tap");

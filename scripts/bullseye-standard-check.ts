@@ -53,7 +53,7 @@ import { gradeAnswer } from "../src/lib/duel/generate.server";
 import { buildArcadeReveal } from "../src/lib/arcade/reveal";
 import { PUZZLE_INSTRUCTIONS } from "../src/lib/duel/instructions";
 import { LIVE_BANDS } from "../src/lib/arcade/liveBands";
-import { stdHelp } from "../src/lib/arcade/arcadeStandard";
+import { stdHelp, stdHelpLines } from "../src/lib/arcade/arcadeStandard";
 
 let checks = 0;
 const failures: string[] = [];
@@ -190,7 +190,7 @@ console.log(`  ${runs} runs on bullRev 9 (dead-centre darts ${deadSeen}, streak 
 section("Rooms deal bullRev 9; help and art");
 ok(generateBullseye().bullRev === BULLSEYE_REV_STD, "rooms deal bullRev 9");
 ok(LIVE_BANDS.bullseye.rev === BULLSEYE_REV_STD && (LIVE_BANDS.bullseye as any).std === BULLSEYE_STD_SPEC, "LIVE_BANDS lists bullRev 9 and its spec");
-ok(PUZZLE_INSTRUCTIONS.bullseye.score.includes(stdHelp(BULLSEYE_STD_SPEC)), "the help states the standard's parts");
+ok(PUZZLE_INSTRUCTIONS.bullseye.score.includes(stdHelpLines(BULLSEYE_STD_SPEC)), "the help states the standard's parts");
 ok(PUZZLE_INSTRUCTIONS.bullseye.how.some((h) => h.detail.includes("about +2 or +3 more")) && PUZZLE_INSTRUCTIONS.bullseye.how.some((h) => h.detail.includes("shared between the darts that have one")) && !PUZZLE_INSTRUCTIONS.bullseye.how.some((h) => /\+7|42/.test(h.detail)), "the help's dead-centre lines describe the shared 20");
 {
   // The dead-centre pop shows what that dart added: its share on bullRev 9 (the pops add up to 20), 7 on bullRev 8.

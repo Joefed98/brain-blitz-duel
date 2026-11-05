@@ -185,7 +185,7 @@ export const CURLING_STD_SPEC_V2: StdSpec = {
     { key: "core", label: "Stones", max: 120, of: CURLING_STONES, item: "stone", how: `up to ${CURL_STONE_PTS} a stone by how close to the button it comes to rest` },
     { key: "takeouts", label: "Takeouts", max: CURL_TAKEOUT_PTS, of: 1, item: "takeout", how: "the opponent's stones knocked out of the house, shared evenly" },
     { key: "redring", label: "Red ring", max: CURL_RED_PTS, of: CURLING_STONES, item: "stone", how: "3.75 a stone finishing in the 4-foot" },
-    { key: "hold", label: "Holding shot", max: CURL_HOLD_PTS, of: 1, item: "shot", how: "your stone nearest the button at the end" },
+    { key: "hold", label: "Holding shot", max: CURL_HOLD_PTS, of: 1, item: "shot", how: "finish with your stone nearest the button" },
   ],
 };
 
@@ -197,7 +197,7 @@ export const CURLING_STD_SPEC_V3: StdSpec = {
     { key: "core", label: "Stones", max: 120, of: CURLING_STONES, item: "stone", how: `up to ${CURL_STONE_PTS} a stone by how close to the button it comes to rest (none from 3.2 m away)` },
     { key: "takeouts", label: "Takeouts", max: CURL_TAKEOUT_PTS, of: 1, item: "takeout", how: "the opponent's stones knocked out of the house, shared evenly" },
     { key: "redring", label: "Red ring", max: CURL_RED_PTS, of: CURLING_STONES, item: "stone", how: "3.75 a stone finishing in the 4-foot" },
-    { key: "hold", label: "Holding shot", max: CURL_HOLD_PTS, of: 1, item: "shot", how: "your stone nearest the button at the end" },
+    { key: "hold", label: "Holding shot", max: CURL_HOLD_PTS, of: 1, item: "shot", how: "finish with your stone nearest the button" },
   ],
 };
 
@@ -218,10 +218,10 @@ export const CURLING_STD_SPEC: StdSpec = {
   field: "curlRev",
   rev: CURLING_REV,
   parts: [
-    { key: "core", label: "Stones", max: CURL_V4_CORE_MAX, of: CURLING_STONES, item: "stone", how: `up to ${CURL_STONE_PTS} a stone by closeness (full on the button, none from 1.2 m), only when it stops nearer the button than every red in the house; the part is full at ${CURL_V4_CORE_FULL}` },
-    { key: "takeouts", label: "Takeouts", max: CURL_V4_TAKEOUT_PTS, of: 1, item: "takeout", how: "the red stones knocked out of the house, shared evenly" },
-    { key: "redring", label: "Red ring", max: CURL_V4_RED_PTS, of: CURLING_STONES, item: "stone", how: "2.5 a stone finishing in the 4-foot" },
-    { key: "hold", label: "Holding shot", max: CURL_V4_HOLD_PTS, of: 1, item: "shot", how: "your stone nearest the button at the end" },
+    { key: "core", label: "Stones", max: CURL_V4_CORE_MAX, of: CURLING_STONES, item: "stone", how: `${CURL_STONE_PTS} for a stone on the button, less further out, if it stops nearer than every red` },
+    { key: "takeouts", label: "Takeouts", max: CURL_V4_TAKEOUT_PTS, of: 1, item: "takeout", how: "knock the red stones out of the house" },
+    { key: "redring", label: "Red ring", max: CURL_V4_RED_PTS, of: CURLING_STONES, item: "stone", how: "2.5 for each stone that stops in the red ring" },
+    { key: "hold", label: "Holding shot", max: CURL_V4_HOLD_PTS, of: 1, item: "shot", how: "finish with your stone nearest the button" },
   ],
 };
 

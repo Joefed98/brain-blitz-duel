@@ -4,27 +4,40 @@
  * text. "{max}" is the game's round maximum (roundMax.ts); the figures below it are the curves' own.
  */
 import { FLASH_DECOY_FREE_SHARE_PCT } from "../tapLog";
+import { scoreList } from "../scoreList";
 import { STOPWATCH_REV4_CURVE } from "../scoring";
 import { fastFinishSeconds, rev3Figures } from "../puzzleBandsText";
-import { FLASH_PARTIAL_HIT_MS, FLASH_PARTIAL_PER_HIT, FLASH_REV6_CURVE, FLASH_STEADY_LOOSE_MS, FLASH_STEADY_LOOSE_POINTS, FLASH_STEADY_TIGHT_MS, FLASH_STEADY_TIGHT_POINTS } from "./flash";
-import { BANGON_PARTIAL_MS, BANGON_PARTIAL_POINTS, BANGON_TOPUP_CENTRE_POINTS, BANGON_TOPUP_STREAK_TOP } from "./bangOn";
+import { FLASH_REV6_CURVE, FLASH_STEADY_LOOSE_MS, FLASH_STEADY_LOOSE_POINTS, FLASH_STEADY_TIGHT_MS, FLASH_STEADY_TIGHT_POINTS } from "./flash";
+import { BANGON_TOPUP_CENTRE_POINTS, BANGON_TOPUP_STREAK_TOP } from "./bangOn";
 import { ASCEND_FLOW_GAP_MS, ASCEND_FLOW_MAX, ASCEND_FLOW_STEP, ASCEND_FLOW_TOP } from "./ascend";
 
 const grouped = (n: number) => n.toLocaleString("en-GB");
 
 export function flashDepthHelp(): string {
-  const knots = FLASH_REV6_CURVE.slice(0, 6).reverse().map(([ms, pts]) => `${ms} ms ≈ ${pts}`).join(", ");
-  return `Faster average reactions score more: ${knots} (${FLASH_REV6_CURVE[0][0]} ms or faster). Steady hand: every flash hit with no false start and all your reactions within ${FLASH_STEADY_TIGHT_MS} ms of each other +${FLASH_STEADY_TIGHT_POINTS}, within ${FLASH_STEADY_LOOSE_MS} ms +${FLASH_STEADY_LOOSE_POINTS}; {max} needs ${FLASH_REV6_CURVE[0][0]} ms and a steady hand. Misses count ${grouped(1200)} ms; false starts −8 each for the first two, −11 each after that. Tap more than ${FLASH_DECOY_FREE_SHARE_PCT} % of the decoys and every reaction counts slower; tap them all and none counts. Every flash hit within ${FLASH_PARTIAL_HIT_MS} ms keeps at least ${FLASH_PARTIAL_PER_HIT}.`;
+  const [topMs, topPts] = FLASH_REV6_CURVE[0];
+  return scoreList([
+    { label: "Reactions", how: `the faster your average reaction, the more; ${topMs} ms or faster for all of it (a miss counts as ${grouped(1200)} ms)`, max: topPts },
+    { label: "Steady hand", how: `hit every flash with no false start and every reaction within ${FLASH_STEADY_TIGHT_MS} ms of the others (${FLASH_STEADY_LOOSE_POINTS} within ${FLASH_STEADY_LOOSE_MS} ms)`, max: FLASH_STEADY_TIGHT_POINTS },
+  ], {
+    penalties: [
+      "Each false start costs 8, then 11 after the second",
+      `Tapping more than ${FLASH_DECOY_FREE_SHARE_PCT} % of the decoys slows every reaction; tapping them all scores nothing`,
+    ],
+    total: "{max}" as unknown as number,
+  });
 }
 
-export const FLASH_DEPTH_INTRO = `Tap fast and steady: ${FLASH_REV6_CURVE[0][0]} ms on average, all close together, scores {max}.`;
+export const FLASH_DEPTH_INTRO = "React fast to every flash; a bonus for a steady hand. Up to {max}.";
 
 export function bangOnDepthHelp(): string {
-  const curve = [...STOPWATCH_REV4_CURVE].reverse().filter(([, pts]) => pts > 0).map(([ms, pts]) => `${ms} ms off ≈ ${pts}`).join(", ");
-  return `Closer average stops score up to 150: ${curve}; misses count 500 ms. Dead centre: each stop on the bright centre line +${BANGON_TOPUP_CENTRE_POINTS}. Zone streak: watches in a row stopped in the gold zone, the 2nd +2, the 3rd +3, the 4th +4, every later one +${BANGON_TOPUP_STREAK_TOP}; the two add up to 50 at most. {max} needs a close average and a long run on the line. Every watch stopped within ${BANGON_PARTIAL_MS} ms keeps at least ${BANGON_PARTIAL_POINTS}.`;
+  return scoreList([
+    { label: "Closeness", how: "the closer your average stop, the more (a miss counts as 500 ms)", max: 150 },
+    { label: "Dead centre", how: `${BANGON_TOPUP_CENTRE_POINTS} for each stop on the bright centre line` },
+    { label: "Zone streak", how: `watches in a row stopped in the gold zone: 2 for the second, 3 for the third, 4, then ${BANGON_TOPUP_STREAK_TOP} each` },
+  ], { penalties: ["Dead centre and the zone streak add up to 50 at most"], total: "{max}" as unknown as number });
 }
 
-export const BANGON_DEPTH_INTRO = `Close stops score more. Hit the bright line, and the zone again and again: up to {max}.`;
+export const BANGON_DEPTH_INTRO = "Stop each watch close to the mark; bonuses for dead centre and zone streaks. Up to {max}.";
 
 export function ascendDepthHelp(): string {
   const f = rev3Figures("numhunt");

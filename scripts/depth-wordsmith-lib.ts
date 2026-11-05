@@ -75,6 +75,7 @@ export function checkNew(ok: Ok): void {
 
   // Texts.
   const help = PUZZLE_INSTRUCTIONS.wordsmith.score;
-  ok(/pangram/i.test(help) && help.includes(`adds ${WORDSMITH_V3_PANGRAM_BONUS}`) && /\b200\b/.test(help), `help states the pangram bonus and 200: "${help}"`);
+  // The text pass (F2, 4 Nov 2026) calls the pangram the every-tile word: "Every-tile word: find the word that uses every tile …, 20."
+  ok(/Every-tile word: [^.]*every tile[^.]*, (\d+)\./.exec(help)?.[1] === String(WORDSMITH_V3_PANGRAM_BONUS) && /Total 200\./.test(help), `help states the pangram bonus and 200: "${help}"`);
   ok(/every tile/.test(INTRO_SCORE.wordsmith) && /\b200\b/.test(INTRO_SCORE.wordsmith), `intro states the bonus and 200: "${INTRO_SCORE.wordsmith}"`);
 }

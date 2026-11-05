@@ -1,4 +1,5 @@
 import { sliceFill } from "@/lib/arcade/arenaFills.renderer";
+import { auditEventAt } from "@/lib/arcade/auditInput";
 import { ArcadeArenaSlot } from "@/components/puzzles/ArcadeArenaSlot";
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { useArcadeFrameTiming } from "@/components/puzzles/useArcadeFrameTiming";
@@ -150,6 +151,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
             // The sim enforces the cumulative path cap and explicit swipe boundaries.
             recordInput(events.current, applied, sliceGame.inputRanges);
           }
+          // The dev audit's bot log (auditInput.ts; never in a production build).
+          { const audit = auditEventAt(state.current.tick + 1); if (audit) recordInput(events.current, audit, sliceGame.inputRanges); }
           state.current = sliceGame.step(
             state.current,
             inputAt(events.current, state.current.tick + 1),

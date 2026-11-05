@@ -1,4 +1,5 @@
 import { useGameKeys, directionOf } from "@/lib/desktop";
+import { auditEventAt } from "@/lib/arcade/auditInput";
 import { snakeAmbient, snakeFill } from "@/lib/arcade/arenaFills.renderer";
 import { ArcadeArenaSlot } from "@/components/puzzles/ArcadeArenaSlot";
 import { gameDisplayName } from "@/lib/duel/gameNames";
@@ -197,6 +198,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
               ? null
               : { t: state.current.tick + 1, k: SNAKE_INPUT_TURN, a: turn, b: 0, c: 0, d: 0 };
           recordInput(events.current, applied, snakeGame.inputRanges);
+          // The dev audit's bot log (auditInput.ts; never in a production build).
+          { const audit = auditEventAt(state.current.tick + 1); if (audit) recordInput(events.current, audit, snakeGame.inputRanges); }
           state.current = snakeGame.step(
             state.current,
             inputAt(events.current, state.current.tick + 1),

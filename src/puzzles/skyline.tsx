@@ -5,6 +5,7 @@ import { useArcadeFrameTiming } from "@/components/puzzles/useArcadeFrameTiming"
 import { arcadeFeedback } from "@/lib/fx/arcade";
 import { appendClientCounters, arcadeCounters } from "@/lib/arcade/diagnostics";
 import { recordTap, tapAt } from "@/lib/arcade/engine";
+import { auditTapAt } from "@/lib/arcade/auditInput";
 import { reportArcadeTick, resetArcadeClock } from "@/lib/arcade/clock";
 import { useEffect, useRef, useState } from "react";
 
@@ -148,6 +149,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         if (ticks > MAX_CATCH_UP_TICKS) ticks = MAX_CATCH_UP_TICKS;
         accumulator -= ticks * TICK_MS;
         for (let i = 0; i < ticks; i++) {
+          // The dev audit's bot log (auditInput.ts; never in a production build) taps like a player.
+          if (auditTapAt(state.current.tick + 1)) pending.current = Math.max(pending.current, 1);
           const tapped = pending.current > 0;
           if (tapped) {
             pending.current -= 1;

@@ -304,7 +304,7 @@ if (want("matchup")) {
   // Expansion E6's matchupRev 9 scores on its own curve (150 at 3,200 before its feature bonus); e6-check covers it.
   // matchupRev 10 (27 Oct 2026, the 90 s run) topped its base curve at 4,200; matchupRev 11 (the arcade scoring standard)
   // pays gems cleared on a straight line to 110, then fixed parts to 200.
-  ok(PUZZLE_INSTRUCTIONS.matchup.score.includes("More gems cleared") && PUZZLE_INSTRUCTIONS.matchup.score.includes("make 200"), "the \"?\" help shows the scoring rooms deal (gems cleared, parts to 200)");
+  ok(PUZZLE_INSTRUCTIONS.matchup.score.includes("every gem cleared counts the same") && PUZZLE_INSTRUCTIONS.matchup.score.endsWith("Total 200."), "the \"?\" help shows the scoring rooms deal (gems cleared, parts to 200)");
 }
 
 console.log(failures.length === 0 ? `PASS arcade-tuning-f2-check (${checks} checks)` : `FAIL arcade-tuning-f2-check: ${failures.length} of ${checks} failed`);

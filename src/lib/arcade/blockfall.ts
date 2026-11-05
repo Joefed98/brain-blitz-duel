@@ -70,7 +70,7 @@ export const BF_STD_SPEC: StdSpec = {
   parts: [
     { key: "core", label: "Lines", max: BF_CORE_MAX, of: BF_CORE_FULL, item: "line", how: `a straight line, full at ${BF_CORE_FULL} lines` },
     { key: "multi", label: "Multi-line clears", max: BF_MULTI_MAX, of: 10, item: "clear", how: "4 for two lines at once, 8 for three, 12 for four" },
-    { key: "low", label: "Low stack", max: BF_LOW_MAX, of: BF_LOW_ZERO - BF_LOW_FULL, item: "row", how: `full with the highest block in the bottom ${BF_LOW_FULL} rows at the buzzer, 0 from row ${BF_LOW_ZERO} up` },
+    { key: "low", label: "Low stack", max: BF_LOW_MAX, of: BF_LOW_ZERO - BF_LOW_FULL, item: "row", how: `keep the stack in the bottom ${BF_LOW_FULL} rows at the buzzer for all of it, nothing from row ${BF_LOW_ZERO} up` },
   ],
 };
 
@@ -440,10 +440,10 @@ export const BF_ZONE_STD_SPEC: StdSpec = {
   field: "blockfallRev",
   rev: BLOCKFALL_REV_ZONE,
   parts: [
-    { key: "core", label: "Lines", max: BF_ZONE_CORE_MAX, of: BF_ZONE_CORE_FULL, item: "line", how: `a straight line, full at ${BF_ZONE_CORE_FULL} lines` },
-    { key: "pieces", label: "Pieces placed", max: BF_ZONE_PIECES_MAX, of: BF_ZONE_PIECES_MAX, item: "piece", how: `1 for every piece placed, up to ${BF_ZONE_PIECES_MAX}` },
-    { key: "multi", label: "Multi-line clears", max: BF_ZONE_MULTI_MAX, of: 6, item: "clear", how: `4 for two lines at once, 8 for three, 12 for four, up to ${BF_ZONE_MULTI_MAX}` },
-    { key: "low", label: "Low stack", max: BF_ZONE_LOW_MAX, of: BF_LOW_ZERO - BF_LOW_FULL, item: "row", how: `full with the highest block in the bottom ${BF_LOW_FULL} rows at the buzzer, 0 from row ${BF_LOW_ZERO} up` },
+    { key: "core", label: "Lines", max: BF_ZONE_CORE_MAX, of: BF_ZONE_CORE_FULL, item: "line", how: `every line cleared counts the same, all of it at ${BF_ZONE_CORE_FULL} lines` },
+    { key: "pieces", label: "Pieces placed", max: BF_ZONE_PIECES_MAX, of: BF_ZONE_PIECES_MAX, item: "piece", how: "1 for every piece placed" },
+    { key: "multi", label: "Multi-line clears", max: BF_ZONE_MULTI_MAX, of: 6, item: "clear", how: "4 for two lines at once, 8 for three, 12 for four" },
+    { key: "low", label: "Low stack", max: BF_ZONE_LOW_MAX, of: BF_LOW_ZERO - BF_LOW_FULL, item: "row", how: `keep the stack in the bottom ${BF_LOW_FULL} rows at the buzzer for all of it, nothing from row ${BF_LOW_ZERO} up` },
   ],
 };
 

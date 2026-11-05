@@ -19,6 +19,8 @@
  *   bun scripts/arcade-tuning-c-check.ts          (TUNING_C_ONLY=matchup,tilt,…)
  */
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { stdHelpLines } from "../src/lib/arcade/arcadeStandard";
+import { hasScorePart } from "../src/lib/duel/scoreList";
 import { readFileSync } from "node:fs";
 import { gunzipSync } from "node:zlib";
 import { fnv } from "./arcade-tuning-a-legacy";
@@ -268,7 +270,8 @@ section("Grappler, Hover, Rainbow Bridge and Tempo: same play, new curves");
   // Grappler's 200 expansion (swingRev 13) stated a good run on its own base curve (swing-x200-check); the assault course
   // (swingRev 14) on its sections' curve (swing-assault-check); the swinging course (swingRev 15) as a share of the course. Tempo's beatRev 11 (the arcade scoring
   // standard) states its standard parts instead (arcade-help-bands-check, beat-standard-check).
-  ok(PUZZLE_INSTRUCTIONS.swing.score.includes("A good run (100 points) counts 637") /* swingRev 17 (110, full at 700 per mille; swingRev 16 counted 715) */ && PUZZLE_INSTRUCTIONS.inkbridge.score.includes("A good run (100 points) pots 9 levels") /* inkRev 13 (12 a level; inkRev 12 potted 8 at 14 a level, inkRev 10 counted 73) */ && PUZZLE_INSTRUCTIONS.beat.score.includes(stdHelp(BEAT_STD_SPEC)), "the \"?\" help states a good run on the curves rooms deal");
+  // Text pass (4 Nov 2026): the help is a list of parts ("A good run (100 points)" was internal wording, now gone).
+  ok(hasScorePart(PUZZLE_INSTRUCTIONS.swing.score, "Course", 110) && hasScorePart(PUZZLE_INSTRUCTIONS.inkbridge.score, "Levels", 120) && PUZZLE_INSTRUCTIONS.beat.score.includes(stdHelpLines(BEAT_STD_SPEC)), "the \"?\" help states the parts rooms deal");
 }
 
 /* ================================ 4a. Gemstone ================================ */
@@ -279,7 +282,7 @@ if (want("matchup")) {
   // The live help shows the curve rooms deal today (Tuning F: 150 at 2,800; expansion E6: 150 at 3,200, e6-check;
   // matchupRev 10: 150 at 4,200, gemstone-rev10-check; matchupRev 11: gems cleared to 110, then fixed parts to 200,
   // gemstone-standard-check).
-  ok(PUZZLE_INSTRUCTIONS.matchup.score.includes("More gems cleared") && PUZZLE_INSTRUCTIONS.matchup.how.some((h) => h.detail.includes("wait")), "the \"?\" help and intro say so");
+  ok(hasScorePart(PUZZLE_INSTRUCTIONS.matchup.score, "Gems", 108) && PUZZLE_INSTRUCTIONS.matchup.how.some((h) => h.detail.includes("wait")), "the \"?\" help and intro say so");
   // Find a valid swap on a fresh board, make it, then check the wait.
   const swaps: [number, number, number, number][] = [];
   for (let r = 0; r < MATCHUP_ROWS; r++)
@@ -410,7 +413,7 @@ if (want("wavefront")) {
   ok(kill(WAV_KILL_WINDOW_V5 / 2) === 10 && kill(WAV_KILL_WINDOW_V5) === 0 && kill((WAV_KILL_WINDOW_V5 * 3) / 4) === 5, "the kill's bonus: 10 within half the window, 5 at three quarters, 0 at the end");
   for (let f = 0; f < WAV_KILL_WINDOW_V5; f += 30) if (kill(f + 30) > kill(f)) ok(false, `a slower kill scores more at ${f} ticks`);
   // The 200 expansion (wavRev 10) made saucers skill points ("3 a saucer") instead of base units.
-  ok(PUZZLE_INSTRUCTIONS.wavefront.goal.startsWith("Five waves") && (PUZZLE_INSTRUCTIONS.wavefront.score.includes("saucers count 1") || /\d+ a saucer/.test(PUZZLE_INSTRUCTIONS.wavefront.score)) && PUZZLE_INSTRUCTIONS.wavefront.score.includes("within 20 s"), "the intro and help say five waves and the timed kill");
+  ok(PUZZLE_INSTRUCTIONS.wavefront.goal.startsWith("Five waves") && (PUZZLE_INSTRUCTIONS.wavefront.score.includes("saucers count 1") || /\d+ (a|for each) saucer/.test(PUZZLE_INSTRUCTIONS.wavefront.score)) && PUZZLE_INSTRUCTIONS.wavefront.score.includes("within 20 s"), "the intro and help say five waves and the timed kill");
   // 150 through the server replay: the skill-band player with a perfect profile (no lapses, no aim or timing error).
   let best = 0;
   for (let n = 0; n < 12 && best < 150; n++) {

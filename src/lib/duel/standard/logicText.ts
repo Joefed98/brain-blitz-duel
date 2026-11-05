@@ -5,102 +5,109 @@
  * Shared and pure.
  */
 import { roundMaxFor } from "../roundMax";
-import { STANDARD_FINISH, STANDARD_UNFINISHED_CAP } from "./shape";
-import { FLOOD_STANDARD_SPARE_MOVES, LOGIC_EARLY_POINTS, LOGIC_SHARE_POINTS, LOGIC_STANDARD, type LogicStandardType } from "./logicRules";
+import { puzzleScoreList, type ScoreLine } from "../scoreList";
+import { FLOOD_STANDARD_SPARE_MOVES, LOGIC_STANDARD, type LogicStandardType } from "./logicRules";
 
 const fmt = (n: number) => String(Math.round(n * 10) / 10);
 
-/** What the unfinished share counts, and today's points off that stay. */
-const E = LOGIC_EARLY_POINTS;
+/** What counts unfinished (plain words; the share is up to LOGIC_SHARE_POINTS, early play adds up to LOGIC_EARLY_POINTS). */
 const UNFINISHED: Record<LogicStandardType, string> = {
-  lightsout: `by the share of the lights you turn off, plus up to ${E} for turning them off early; presses past par shrink it, to nothing at twice par`,
-  sudoku: `by the share of cells right, plus up to ${E} for filling them early, less ${LOGIC_STANDARD.sudoku.wrongOff} for each wrong digit left in the grid`,
-  tower: `by the share of rings home on the gold post (from the bottom), plus up to ${E} for getting them home early`,
-  tubes: `by the share of flasks corked, plus up to ${E} for corking them early; pours past par shrink it, to nothing at the pour limit`,
-  safe: `by the share of dials right on your best try (one right is a guess and counts nothing), plus up to ${E} for getting them early`,
-  bomb: `by the share of steps done right before a wrong one, plus up to ${E} for doing them early`,
-  nonogram: `by the share of the picture's cells filled, plus up to ${E} for filling them early, less ${LOGIC_STANDARD.nonogram.wrongOff} for each wrong cell left filled`,
-  flood: `by the share of the board flooded, plus up to ${E} for flooding it early; moves past par shrink it, to nothing at the move limit, so a board out of moves scores 0`,
-  tents: `by the share of tents right, plus up to ${E} for pitching them early, less ${LOGIC_STANDARD.tents.wrongOff} for each wrong tent left standing`,
-  shikaku: `by the share of the grid covered by correct rectangles, plus up to ${E} for drawing them early, less the share any wrong rectangles cover`,
-  lightup: `by the share of bulbs on their solution squares, plus up to ${E} for placing them early, less ${LOGIC_STANDARD.lightup.wrongOff} for each other bulb`,
+  lightsout: "the share of the lights you turn off, more for doing it early; presses past par take it down",
+  sudoku: "the share of cells right, more for filling them early",
+  tower: "the rings home on the gold post (from the bottom), more for getting them there early",
+  tubes: "the share of flasks corked, more for corking them early; pours past par take it down",
+  safe: "the dials right on your best try (one right is a guess and counts nothing), more for getting them early",
+  bomb: "the steps done right before a wrong one, more for doing them early",
+  nonogram: "the share of the picture's cells filled, more for filling them early",
+  flood: "the share of the board flooded, more for flooding it early; moves past par take it down, and a board out of moves scores 0",
+  tents: "the share of tents right, more for pitching them early",
+  shikaku: "the share of the grid covered by correct rectangles, more for drawing them early, less what wrong ones cover",
+  lightup: "the share of bulbs on their solution squares, more for placing them early",
 };
 
-/** The bonus, in words. */
-function bonusText(type: LogicStandardType): string {
+/** Points off for a wrong item left on the board, unfinished. */
+const LEFT: Partial<Record<LogicStandardType, string>> = {
+  sudoku: "wrong digit left in the grid",
+  nonogram: "wrong cell left filled",
+  tents: "wrong tent left standing",
+  lightup: "bulb off its solution square",
+};
+
+/** The bonus line, in words. */
+function bonusLine(type: LogicStandardType): ScoreLine | null {
   const r = LOGIC_STANDARD[type];
   switch (type) {
     case "lightsout":
-      return `up to ${r.bonus} for par (the fewest presses, shown; every press counts, undone ones too), shrinking evenly to none at twice par`;
+      return { label: "Par", how: "solve it in the fewest presses (shown; undone presses count) for all of it, nothing at twice that", max: r.bonus };
     case "tower":
-      return `up to ${r.bonus} for par (the fewest moves, shown), shrinking evenly to none at twice par`;
+      return { label: "Par", how: "solve it in the fewest moves (shown) for all of it, nothing at twice that", max: r.bonus };
     case "tubes":
-      return `up to ${r.bonus} for par (the fewest pours, shown; every pour counts), shrinking evenly to none at twice par`;
+      return { label: "Par", how: "solve it in the fewest pours (shown) for all of it, nothing at twice that", max: r.bonus };
     case "flood":
-      return `up to ${r.bonus} for par (the fewest moves, shown), ${fmt(r.bonus / FLOOD_STANDARD_SPARE_MOVES)} less for each move over, none at par + ${FLOOD_STANDARD_SPARE_MOVES} (the move limit)`;
+      return { label: "Par", how: `solve it in the fewest moves (shown) for all of it, ${fmt(r.bonus / FLOOD_STANDARD_SPARE_MOVES)} less for each move over`, max: r.bonus };
     case "safe":
-      return `a clean crack ${r.bonus}, ${fmt(r.per ?? 0)} less for each wrong try`;
+      return { label: "First try", how: `open it on your first try, ${fmt(r.per ?? 0)} less for each wrong try`, max: r.bonus };
     case "sudoku":
-      return `a clean grid ${r.bonus}, ${fmt(r.per ?? 0)} less for each wrong digit ever entered (erased ones too)`;
+      return { label: "Clean grid", how: `no wrong digit ever entered, ${fmt(r.per ?? 0)} less for each (erased ones too)`, max: r.bonus };
     case "nonogram":
-      return `a clean picture ${r.bonus}, ${fmt(r.per ?? 0)} less for each wrong cell ever filled`;
+      return { label: "Clean picture", how: `no wrong cell ever filled, ${fmt(r.per ?? 0)} less for each`, max: r.bonus };
     case "tents":
-      return `a clean camp ${r.bonus}, ${fmt(r.per ?? 0)} less for each wrong tent ever pitched`;
+      return { label: "Clean camp", how: `no wrong tent ever pitched, ${fmt(r.per ?? 0)} less for each`, max: r.bonus };
     case "shikaku":
-      return `clean cuts ${r.bonus}, ${fmt(r.per ?? 0)} less for each wrong rectangle drawn and removed`;
+      return { label: "Clean cuts", how: `no wrong rectangle ever drawn, ${fmt(r.per ?? 0)} less for each`, max: r.bonus };
     case "lightup":
-      return `a clean board ${r.bonus}, ${fmt(r.per ?? 0)} less for each wrong bulb ever placed`;
+      return { label: "Clean board", how: `no wrong bulb ever placed, ${fmt(r.per ?? 0)} less for each`, max: r.bonus };
     case "bomb":
-      return "";
+      return null;
   }
 }
 
-/** How a perfect round reads. */
-const TOP: Record<LogicStandardType, string> = {
-  lightsout: "par",
-  sudoku: "a clean grid",
-  tower: "par",
-  tubes: "par",
-  safe: "the first try",
-  bomb: "a defuse",
-  nonogram: "a clean picture",
-  flood: "par",
-  tents: "a clean camp",
-  shikaku: "clean cuts",
-  lightup: "a clean board",
+/** What a finish is. */
+const FINISH: Record<LogicStandardType, [string, string]> = {
+  lightsout: ["Finish", "turn every light off"],
+  sudoku: ["Finish", "fill the grid correctly"],
+  tower: ["Finish", "move every ring to the gold post"],
+  tubes: ["Finish", "sort and cork every flask"],
+  safe: ["Open it", "find the code"],
+  bomb: ["Defuse it", "do every step right"],
+  nonogram: ["Finish", "complete the picture"],
+  flood: ["Finish", "flood the whole board one colour"],
+  tents: ["Finish", "pitch every tent correctly"],
+  shikaku: ["Finish", "cut the grid into the right rectangles"],
+  lightup: ["Finish", "light every square with the right bulbs"],
 };
 
-/** The "?" help SCORE text. */
+/** The "?" help SCORE text: one line a part (scoreList.ts). */
 export function logicStandardHelp(type: LogicStandardType): string {
   const r = LOGIC_STANDARD[type];
-  const max = roundMaxFor(type);
-  const unfinished = `Unfinished: up to ${LOGIC_SHARE_POINTS} ${UNFINISHED[type]}; at most ${STANDARD_UNFINISHED_CAP}, so any finish beats it.`;
-  const speed = type === "safe"
-    ? `up to ${r.speed} for speed (all of it within ${r.fullByS} s, shrinking evenly to none at the buzzer; about half of it on the second try, none on the third)`
-    : `up to ${r.speed} for speed (all of it within ${r.fullByS} s, shrinking evenly to none at the buzzer)`;
-  const bonus = bonusText(type);
-  const finish = `${type === "safe" ? "Open it" : type === "bomb" ? "Defuse it" : "Finish"}: ${STANDARD_FINISH}, plus ${speed}${bonus ? ` and ${bonus}` : ""}, so ${max} is ${TOP[type]} within ${r.fullByS} s.`;
-  return `${unfinished} ${finish}`;
+  const bonus = bonusLine(type);
+  const left = LEFT[type];
+  return puzzleScoreList({
+    finishLabel: FINISH[type][0],
+    finish: FINISH[type][1],
+    speed: { max: r.speed, fullByS: r.fullByS, what: type === "safe" ? "open it" : type === "bomb" ? "defuse it" : "finish", note: type === "safe" ? "about half on the second try, none on the third" : undefined },
+    bonuses: bonus ? [bonus] : [],
+    unfinished: UNFINISHED[type],
+    penalties: left && r.wrongOff ? [`When not finished, each ${left} costs ${r.wrongOff}`] : [],
+    total: roundMaxFor(type),
+  });
 }
 
-/** What the intro counts unfinished, and what a perfect finish needs (no scoring terms). */
-const INTRO: Record<LogicStandardType, [string, string]> = {
-  lightsout: ["Lights off", "in the fewest presses"],
-  sudoku: ["Cells right", "with no wrong digit"],
-  tower: ["Rings home", "in the fewest moves"],
-  tubes: ["Flasks corked", "in the fewest pours"],
-  safe: ["Dials right", "on the first try"],
-  bomb: ["Steps right", ""],
-  nonogram: ["Cells right", "with no wrong cell"],
-  flood: ["Board flooded", "in the fewest moves"],
-  tents: ["Tents right", "with no wrong tent"],
-  shikaku: ["Area right", "with no wrong box"],
-  lightup: ["Bulbs right", "with no wrong bulb"],
+/** The round intro SCORE line (at most 90 characters, no scoring terms): what scores, then the bonuses. */
+const INTRO: Record<LogicStandardType, string> = {
+  lightsout: "Turn every light off; bonuses for speed and the fewest presses.",
+  sudoku: "Fill the grid; bonuses for speed and no wrong digits.",
+  tower: "Move every ring home; bonuses for speed and the fewest moves.",
+  tubes: "Sort every flask; bonuses for speed and the fewest pours.",
+  safe: "Crack the code; bonuses for speed and opening it first try.",
+  bomb: "Do every step right; a bonus for speed.",
+  nonogram: "Complete the picture; bonuses for speed and no wrong cells.",
+  flood: "Flood the board one colour; bonuses for speed and the fewest moves.",
+  tents: "Pitch every tent; bonuses for speed and no wrong tents.",
+  shikaku: "Cut the grid into rectangles; bonuses for speed and no wrong boxes.",
+  lightup: "Light every square; bonuses for speed and no wrong bulbs.",
 };
 
-/** The round intro SCORE line (at most two phone lines, no scoring terms). */
 export function logicStandardIntro(type: LogicStandardType): string {
-  const [lead, top] = INTRO[type];
-  const verb = type === "safe" ? "Open it" : type === "bomb" ? "Defuse it" : "Finish";
-  return `${lead}: up to ${STANDARD_UNFINISHED_CAP}. ${verb}: ${STANDARD_FINISH}+, ${roundMaxFor(type)}${top ? ` ${top}` : ""} within ${LOGIC_STANDARD[type].fullByS} s.`;
+  return `${INTRO[type]} Up to ${roundMaxFor(type)}.`;
 }

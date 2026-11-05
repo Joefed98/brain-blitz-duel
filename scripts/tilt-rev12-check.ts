@@ -28,6 +28,7 @@
  *
  *   bun scripts/tilt-rev12-check.ts
  */
+import { hasScorePart } from "../src/lib/duel/scoreList";
 import { readFileSync } from "node:fs";
 import { gunzipSync } from "node:zlib";
 import {
@@ -109,7 +110,9 @@ section("wiring: the deal, the parts, the standard module, the demo and the rend
   ok(v12.score === tiltParScore && ROUND_MAX.tilt === 200, "tiltRev 12 scores with tiltRev 11's parts; ROUND_MAX 200");
   ok(tiltWorldHFor(TILT_REV_BIG) === TILT_X_H && tiltIsExpand(TILT_REV_BIG), "tiltRev 12 plays in the expansion's world");
   const help = PUZZLE_INSTRUCTIONS.tilt.score;
-  for (const words of ["within its par adds 6", "clean run adds up to 12", "up to 24 for speed", "140 + 24 + 12 + 24 = 200", "at least 1"]) ok(help.includes(words), `the help says "${words}"`);
+  // Text pass (4 Nov 2026): one line a part, then the total.
+  for (const [label, max] of [["Mazes", 140], ["Par times", 24], ["Clean run", 12], ["Speed", 24]] as const) ok(hasScorePart(help, label, max), `the help says "${label}: …, up to ${max}."`);
+  ok(help.endsWith("Total 200."), "the help ends with its total");
   ok(entry.type === "tilt" && entry.field === "tiltRev" && entry.rev === TILT_REV_BIG, "the standard module names tiltRev 12");
   ok(JSON.stringify(entry.parts.map((p) => [p.key, p.max])) === JSON.stringify([["core", 140], ["par", 24], ["clean", 12], ["speed", 24]]), "the standard module's parts");
   const perfect = entry.perfect() as StdRun[];

@@ -3,6 +3,7 @@ import { useEffect, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { puzzleDef } from "@/lib/duel/registry";
 import { INTRO_SCORE } from "@/lib/duel/introScore";
+import { scoreSentences } from "@/lib/duel/scoreList";
 import { soundCue } from "@/lib/fx/soundCues";
 import type { PuzzleType } from "@/lib/duel/types";
 
@@ -51,7 +52,12 @@ export function PuzzleInstructions({ type, overlay = false, beforeScore }: Puzzl
       <div className="intro-score shrink-0">
         <p className="font-mono text-[11px] font-bold uppercase text-category-accent">Score</p>
         {overlay ? (
-          <p className="text-sm leading-snug text-muted-foreground">{instructions.score}</p>
+          // The help's SCORE is a list too (text pass, 4 Nov 2026): one row a part, then penalties, then the total.
+          <ul data-help-score-parts="" className="flex flex-col gap-0.5 text-sm leading-snug text-muted-foreground">
+            {scoreParts(instructions.score).map((part) => (
+              <li key={part}>{part}</li>
+            ))}
+          </ul>
         ) : (
           <ul data-intro-score-parts="" className="flex flex-col gap-0.5 text-[14px] leading-snug text-[color-mix(in_srgb,var(--foreground)_80%,transparent)]">
             {scoreParts(INTRO_SCORE[type]).map((part) => (
@@ -70,10 +76,7 @@ export function PuzzleInstructions({ type, overlay = false, beforeScore }: Puzzl
  */
 export function scoreParts(text: string | undefined): string[] {
   // A deleted game (removedGames.ts) has no INTRO_SCORE entry: no Score lines, as main drew none.
-  return (text ?? "")
-    .split(/(?<=[.!])\s+(?=[A-Z0-9])/)
-    .map((part) => part.trim())
-    .filter(Boolean);
+  return scoreSentences(text);
 }
 
 /** Puzzles whose "?" card repeats the intro's worked example. */

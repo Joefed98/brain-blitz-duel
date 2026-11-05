@@ -1337,15 +1337,15 @@ export const BULLSEYE_STD_SPEC: StdSpec = {
       key: "core",
       label: "Dart total",
       max: BULLSEYE_V9_CORE_MAX,
-      how: `full at a total of ${BULLSEYE_V9_FULL_AT}: rings ${BULLSEYE_RING_VALUES.join(" / ")} from the centre out, the inner bull ${BULLSEYE_INNER_BULL_POINTS}, plus +1, +2 or +3 for each balloon popped`,
+      how: `your darts added up (rings ${BULLSEYE_RING_VALUES.join(" / ")} from the centre out, the inner bull ${BULLSEYE_INNER_BULL_POINTS}, balloons 1 to 3 more), all of it for a total of ${BULLSEYE_V9_FULL_AT}`,
     },
     {
       key: "streak",
       label: "Bull streaks",
       max: BULLSEYE_V8_STREAK_CAP,
-      how: `the third gold 10 in a row +${BULLSEYE_V8_STREAK_STEP}, the fourth +${2 * BULLSEYE_V8_STREAK_STEP}, and so on`,
+      how: `the third gold 10 in a row adds ${BULLSEYE_V8_STREAK_STEP}, the fourth ${2 * BULLSEYE_V8_STREAK_STEP}, and so on`,
     },
-    { key: "dead", label: "Dead-centre darts", max: BULLSEYE_V9_DEAD_CAP, how: "shared between the darts whose 10 is the middle ring, about 2 or 3 each" },
+    { key: "dead", label: "Dead-centre darts", max: BULLSEYE_V9_DEAD_CAP, how: "darts in the very middle of the 10, about 2 or 3 each" },
   ],
 };
 

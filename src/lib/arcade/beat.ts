@@ -1271,11 +1271,11 @@ export const BEAT_STD_SPEC: StdSpec = {
   field: "beatRev",
   rev: BEAT_REV_STD,
   parts: [
-    { key: "core", label: "Accuracy", max: BEAT_V11_MAX.core, how: "Perfect 4, Good 3, OK 1 and a missed note −2, of 4 a note, in thousandths of the song; full at 1,000, every note Perfect" },
-    { key: "fever", label: "Fever", max: BEAT_V11_MAX.fever, how: "for each fever you start, full at 4 fevers" },
-    { key: "gold", label: "Golden notes", max: BEAT_V11_MAX.gold, how: "the share of the song's golden notes hit dead on" },
-    { key: "double", label: "Double taps", max: BEAT_V11_MAX.double, how: "the share of the song's double taps with both hits Perfect" },
-    { key: "streak", label: "Perfect streak", max: BEAT_V11_MAX.streak, how: "your longest run of Perfects as a share of the song's notes" },
+    { key: "core", label: "Accuracy", max: BEAT_V11_MAX.core, how: "every note scores by its timing (Perfect best, then Good, then OK; a missed note takes a little off), every note Perfect for all of it" },
+    { key: "fever", label: "Fever", max: BEAT_V11_MAX.fever, how: "for each fever you start, all of it for 4 fevers" },
+    { key: "gold", label: "Golden notes", max: BEAT_V11_MAX.gold, how: "the share of the golden notes you hit dead on" },
+    { key: "double", label: "Double taps", max: BEAT_V11_MAX.double, how: "the share of the double taps with both hits Perfect" },
+    { key: "streak", label: "Perfect streak", max: BEAT_V11_MAX.streak, how: "your longest run of Perfects, against the length of the song" },
   ],
 };
 

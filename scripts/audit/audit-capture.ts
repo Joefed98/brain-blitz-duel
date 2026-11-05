@@ -5,15 +5,18 @@
  *
  *   intro   the RoundIntro 2.5 s after it opens;
  *   mid     the frame when the game header's timer shows half the round (its aria-label; the wall clock when the
- *           timer is not counting). Puzzles with a driver: the driver's partial inputs (or stage seed), then a wait.
- *           Arcade games, engine games, Speed games and puzzles with no partial driver: scripted, seeded taps, swipes,
- *           holds and stage-button presses (taps only for the flap/jump games, a stick push for Apex), after the
- *           driver's partial inputs when there is one. A run that ends sooner keeps a frame from ~2 s before its end;
- *   reveal  1.8 s after the AnswerReveal shows: the driver's solve where it has one (a solved reveal), else the run
- *           played (scripted) or waited (driven) to its end.
+ *           timer is not counting). Arcade games with a skill-band bot (scripts/arcade-skill-bands/bots/) play the
+ *           bot's input log at the Near-perfect level (scripts/audit/botLog.ts, through the dev-only hook
+ *           src/lib/arcade/auditInput.ts), so the frame shows strong play in progress. Puzzles with a driver: the
+ *           driver's partial inputs (or stage seed), then a wait. Engine and Speed games and puzzles with no partial
+ *           driver: scripted, seeded taps, swipes, holds and stage-button presses (taps only for the flap/jump games,
+ *           a stick push for Apex). A run that ends sooner keeps a frame from ~2 s before its end;
+ *   reveal  1.8 s after the AnswerReveal shows: a solved run for every puzzle that can be solved (the driver's
+ *           solve, or a driver's full answer swapped into the practice grade request at the buzzer), else the run
+ *           played (bot or scripted) or waited (driven) to its end.
  *
  *   bun scripts/audit/audit-capture.ts [games…] [--category=<id> | --all] [--url=<origin, default :5191>]
- *       [--out=screenshots/audit-nov-2026] [--size=414x896] [--jobs=4]
+ *       [--out=screenshots/audit-nov-2026-final] [--size=414x896] [--jobs=4]
  *
  * It needs a dev server (start one with scripts/audit/vite.audit.config.ts: HMR and watching off, so working-tree
  * edits never reload a page mid-round). Frames: <out>/<folder>/<game>-intro.png, -mid.png, -reveal.png (folder: the
@@ -32,12 +35,13 @@ import type { PuzzleType } from "../../src/lib/duel/types";
 import type { Driver, DriverCtx } from "../shots/driver";
 import { DRIVERS } from "../shots/drivers";
 import { exampleFor } from "../shots/examples";
+import { auditBotLog, type AuditLog } from "./botLog";
 
 const args = process.argv.slice(2);
 const opt = (name: string) => args.find((a) => a.startsWith(`--${name}=`))?.slice(name.length + 3);
 const flag = (name: string) => args.includes(`--${name}`);
 const CHROMIUM = process.env.PLAYWRIGHT_CHROMIUM ?? "/opt/pw-browsers/chromium";
-const OUT = opt("out") ?? "screenshots/audit-nov-2026";
+const OUT = opt("out") ?? "screenshots/audit-nov-2026-final";
 const [W, H] = (opt("size") ?? "414x896").split("x").map(Number) as [number, number];
 const JOBS = Number(opt("jobs") ?? 4);
 const ORIGIN = (opt("url") ?? "http://127.0.0.1:5191").replace(/\/$/, "");
@@ -85,10 +89,15 @@ interface Run {
 async function newRun(
   browser: Browser,
   game: PuzzleType,
-  opts: { clock: boolean; seed?: Record<string, unknown> },
+  opts: { clock: boolean; seed?: Record<string, unknown>; answer?: string | null; input?: AuditLog | null },
 ): Promise<Run> {
   const context = await browser.newContext({ viewport: { width: W, height: H }, deviceScaleFactor: 1 });
   await context.addInitScript(SEED_RANDOM);
+  if (opts.input) {
+    await context.addInitScript((log) => {
+      (window as unknown as { __DUELZ_AUDIT_INPUT__?: unknown }).__DUELZ_AUDIT_INPUT__ = log;
+    }, { events: opts.input.events, taps: opts.input.taps });
+  }
   const page = await context.newPage();
   const run: Run = { page, close: () => context.close(), errors: [] };
   page.on("pageerror", (e) => run.errors.push(String(e.message ?? e).split("\n")[0]!));
@@ -104,6 +113,15 @@ async function newRun(
           '$1{"t":2,"s":2}',
         ),
       });
+    }
+    if (/practiceGrade/.test(name) && opts.answer != null && body.includes('"answer"')) {
+      // A solved reveal for a puzzle the driver cannot solve live: its full answer in the grade request (Seroval body:
+      // data's keys and values side by side), as scripts/shots/capture.ts's "full" phase.
+      const parsed = JSON.parse(body) as { t: { p: { v: { p: { k: string[]; v: unknown[] } }[] } } };
+      const inner = parsed.t.p.v[0]!.p;
+      const at = inner.k.indexOf("answer");
+      if (at >= 0) inner.v[at] = { t: 1, s: opts.answer };
+      return route.continue({ postData: JSON.stringify(parsed) });
     }
     return route.continue();
   });
@@ -276,11 +294,17 @@ async function captureGame(browser: Browser, game: PuzzleType) {
   mkdirSync(dir, { recursive: true });
   const file = (phase: string) => join(dir, `${game}-${phase}.png`);
   const limit = puzzleDef(game).timeLimitMs ?? 60_000;
-  const scripted = realtime(game, driver);
-  const entry: Record<string, unknown> = { input: scripted ? (driver?.partial ? "driver partial + scripted" : "scripted") : "driver" };
+  const arcade = puzzleDef(game).category === "arcade";
+  const bot = arcade ? await auditBotLog(game).catch(() => null) : null;
+  // A puzzle the driver cannot solve live, with a full answer: swapped into the grade request at the buzzer.
+  const swap = !arcade && !driver?.solve && driver?.answer ? driver.answer(full) : null;
+  const scripted = !bot && realtime(game, driver);
+  const entry: Record<string, unknown> = {
+    input: bot ? `bot (${bot.level}, sim score ${bot.simScore})` : scripted ? (driver?.partial ? "driver partial + scripted" : "scripted") : "driver",
+  };
   const ctx = (page: Page): DriverCtx => ({ page, puzzle: full, wait: (ms) => page.waitForTimeout(ms) });
   const errors: string[] = [];
-  let run = await newRun(browser, game, { clock: false, seed: driver?.seedMid?.(full) });
+  let run = await newRun(browser, game, { clock: false, seed: bot ? undefined : driver?.seedMid?.(full), answer: swap, input: bot });
   try {
     await run.page.waitForTimeout(2500);
     await run.page.screenshot({ path: file("intro") });
@@ -291,13 +315,14 @@ async function captureGame(browser: Browser, game: PuzzleType) {
     const shown = await secondsLeft(run.page);
     const startLeft = shown && shown > 5 ? shown : Math.round(limit / 1000);
     entry.clockS = startLeft;
-    if (driver?.partial)
+    if (driver?.partial && !bot)
       await driver.partial(ctx(run.page)).catch((e) => (entry.partialError = String(e).split("\n")[0]));
     const rnd = prng([...game].reduce((a, c) => (a * 31 + c.charCodeAt(0)) >>> 0, 7));
     const frames: { at: number; png: Buffer }[] = [];
     let midAt: number | null = null;
     const deadline = t0 + limit + 45_000;
-    const solveNext = Boolean(driver?.solve && !scripted);
+    // Puzzles with a solve always end on a solved reveal (Speed and arcade games play to the end).
+    const solveNext = Boolean(driver?.solve && !bot && (!scripted || puzzleDef(game).category !== "speed"));
     // Mid-round: play on (scripted games) or wait (driven puzzles) until the clock shows half the round.
     while (Date.now() < deadline) {
       if (await revealUp(run.page)) break;
@@ -372,7 +397,7 @@ async function captureGame(browser: Browser, game: PuzzleType) {
         }
         await run.page.waitForTimeout(scripted ? 200 + rnd() * 250 : 1000);
       }
-      entry.reveal = scripted ? "played to the end" : "timed out after the driver's partial play";
+      entry.reveal = bot ? "the bot's run played to the end" : swap ? "solved (the full answer graded at the buzzer)" : scripted ? "played to the end" : "timed out after the driver's partial play";
     }
     await run.page.locator(REVEAL).first().waitFor({ timeout: 150_000 });
     await run.page.waitForTimeout(1800);

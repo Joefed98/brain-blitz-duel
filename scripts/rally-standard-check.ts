@@ -34,7 +34,7 @@ import {
   type RallyState,
 } from "../src/lib/arcade/rally";
 import { replayRallyRun, encodeRallyRun } from "../src/lib/duel/rally";
-import { stdScore, stdHelp } from "../src/lib/arcade/arcadeStandard";
+import { stdScore, stdHelp, stdHelpLines } from "../src/lib/arcade/arcadeStandard";
 import { ARCADE_INPUT_DRAG } from "../src/lib/arcade/engine";
 import { generatePuzzle } from "../src/lib/duel/generate.server";
 import { PUZZLE_INSTRUCTIONS } from "../src/lib/duel/instructions";
@@ -134,7 +134,7 @@ for (const run of std.runs) {
 /* 6. Texts. */
 const help = PUZZLE_INSTRUCTIONS.rally;
 const score = help.score;
-ok(score.includes(stdHelp(RALLY_STD_SPEC)), `the help states the standard's parts: ${score}`);
+ok(score.includes(stdHelpLines(RALLY_STD_SPEC)), `the help states the standard's parts: ${score}`);
 ok(help.how.some((h) => /curves back round the other way/.test(h.detail)), "the help says a swipe goes its way, then curves back");
 ok(!help.how.some((h) => /swerves the way it moved/.test(h.detail)), "the help no longer says the ball swerves the way the paddle moved");
 const best = std.runs.find((r) => r.level === "near")!;

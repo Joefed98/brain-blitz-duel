@@ -635,8 +635,8 @@ export const RACING_V3_STD_SPEC: StdSpec = {
   field: "racingRev",
   rev: RACING_REV_3,
   parts: [
-    { key: "core", label: "Pace", max: RACING_V3_PACE_MAX, of: RACING_V3_PACE_OF, item: "tenth of a km/h", items: "tenths of a km/h", how: `your average speed on a straight line, 0 at ${kmh10(RACING_V3_PACE_ZERO)} km/h, full at ${kmh10(RACING_V3_PACE_FULL)} km/h` },
-    { key: "sectors", label: "Clean sectors", max: RACING_V3_SECTORS_MAX, of: RACING_SECTORS, item: "clean sector", how: `${RACING_V3_SECTORS_MAX / RACING_SECTORS} each of ${RACING_SECTORS} sectors with no grass or wall` },
+    { key: "core", label: "Pace", max: RACING_V3_PACE_MAX, of: RACING_V3_PACE_OF, item: "tenth of a km/h", items: "tenths of a km/h", how: `your average speed, from nothing at ${kmh10(RACING_V3_PACE_ZERO)} km/h to all of it at ${kmh10(RACING_V3_PACE_FULL)} km/h` },
+    { key: "sectors", label: "Clean sectors", max: RACING_V3_SECTORS_MAX, of: RACING_SECTORS, item: "clean sector", how: `${RACING_V3_SECTORS_MAX / RACING_SECTORS} for each of the ${RACING_SECTORS} sectors driven with no grass or wall` },
   ],
 };
 

@@ -15,6 +15,7 @@
  *  6. Perfect: every stored witness run (60 tuning and 200 fresh seeds) scores 200 through the server's replay on
  *     hoverRev 10 with every part at its maximum; the reveal and stored detail add up to the stored score.
  */
+import { hasScorePart } from "../src/lib/duel/scoreList";
 import { readFileSync } from "node:fs";
 import { gunzipSync } from "node:zlib";
 import {
@@ -140,8 +141,10 @@ section("wiring");
   ok(hoverWorldHFor(HOVER_REV_STANDARD) === HOVER_EXPAND_H, "hoverRev 10 plays in hoverRev 9's 390 × 727 world");
   ok(/demo\.puzzle\.hoverRev !== HOVER_REV_STANDARD\) return null/.test(readFileSync("src/lib/duel/introDemo.functions.ts", "utf8")), "the intro demo is stopped until one is recorded on hoverRev 10");
   const help = PUZZLE_INSTRUCTIONS.hover.score;
-  ok(["120", "30", "20", "10", "= 200"].every((t) => help.includes(t)) && /Star chains add up to 30/.test(help) && /gold stars up to 20/.test(help) && /tight gates up to 20/.test(help) && /centre lines up to 10/.test(help) && /at least 1/.test(help), `the help states each part's maximum and the 200 total: ${help}`);
-  ok(/barriers 120, chains 30, gold stars 20, tight gates 20, centre lines 10/.test(INTRO_SCORE.hover), `the intro names the parts (${INTRO_SCORE.hover})`);
+  // Text pass (4 Nov 2026): the help is a list, one line a part, then penalties, then the total; the intro names the
+  // bonuses in one plain sentence (no internal figures).
+  ok(hasScorePart(help, "Barriers", 120) && hasScorePart(help, "Star chains", 30) && hasScorePart(help, "Gold stars", 20) && hasScorePart(help, "Tight gates", 20) && hasScorePart(help, "Centre lines", 10) && help.endsWith("Total 200."), `the help states each part's maximum and the 200 total: ${help}`);
+  ok(/barriers/.test(INTRO_SCORE.hover) && /star chains/.test(INTRO_SCORE.hover) && /gold stars/.test(INTRO_SCORE.hover) && /tight gates/.test(INTRO_SCORE.hover) && INTRO_SCORE.hover.endsWith("Up to 200."), `the intro names the parts (${INTRO_SCORE.hover})`);
   ok(STANDARD.stamp === HOVER_REV_STANDARD && STANDARD.parts.reduce((a, p) => a + p.max, 0) === 200, "the standard module lists parts summing to 200");
 }
 

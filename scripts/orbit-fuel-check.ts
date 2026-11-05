@@ -313,7 +313,7 @@ const step = (s: OrbitRev3State, input: ArcadeInputEvent | null = null) => orbit
   ok((LIVE_BANDS as Record<string, { rev: number; curve: unknown }>).orbit!.rev === ORBIT_REV_FUEL && ORBIT_STD.rev === ORBIT_REV_FUEL, "LIVE_BANDS and ORBIT_STD carry orbitRev 14");
   ok(JSON.stringify(ORBIT_V14_BAND_CURVE) === JSON.stringify(ORBIT_V13_BAND_CURVE) && ORBIT_STD.parts.reduce((a, p) => a + p.max, 0) === 200, "orbitRev 14 keeps orbitRev 13's straight core line and six parts (200)");
   const help = PUZZLE_INSTRUCTIONS.orbit;
-  ok(help.how.some((h) => /Fuel/.test(h.action) && /drains only while you fly/.test(h.detail)) && /jump past counts/.test(help.score), "the help explains the fuel and that a planet jumped past counts");
+  ok(help.how.some((h) => /Fuel/.test(h.action) && /drains only while you fly/.test(h.detail)) && /jump past too/.test(help.score), "the help explains the fuel and that a planet jumped past counts");
   const demo = readFileSync("src/lib/duel/introDemo.functions.ts", "utf8");
   ok(/data\.type === "orbit" && demo\?\.puzzle\.type === "orbit" && demo\.puzzle\.orbitRev !== ORBIT_REV_FUEL\) return null/.test(demo), "Orbit's intro demo stays stopped until one is recorded on orbitRev 14");
 }

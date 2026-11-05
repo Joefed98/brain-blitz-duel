@@ -534,7 +534,7 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myMsRemaining, myExtra }: Puzzl
       ) : null}
       {lwUsesJar(puzzle) && myExtra?.["jarSize"] !== undefined ? (
         <p data-lw-reveal-jar={Number(myExtra["bonusWords"] ?? 0)} className="font-mono text-xs text-muted-foreground">
-          Bonus jar · {Number(myExtra["bonusWords"] ?? 0)} word{Number(myExtra["bonusWords"] ?? 0) === 1 ? "" : "s"} · {Math.min(Number(myExtra["jarDrops"] ?? 0), Number(myExtra["jarSize"]))} / {Number(myExtra["jarSize"])}
+          Bonus jar: {Number(myExtra["bonusWords"] ?? 0)} word{Number(myExtra["bonusWords"] ?? 0) === 1 ? "" : "s"} · {Math.min(Number(myExtra["jarDrops"] ?? 0), Number(myExtra["jarSize"]))} / {Number(myExtra["jarSize"])}
         </p>
       ) : null}
     </div>

@@ -105,7 +105,12 @@ export function newStampChecks(ok: Ok): void {
 
   // Texts.
   const help = PUZZLE_INSTRUCTIONS.wordhunt;
-  ok(/gold tile/.test(help.score) && /×1\.5/.test(help.score) && /\b200\b/.test(help.score), "the help states the long words, the gold tile and the 200 maximum");
+  // The text pass (F2, 4 Nov 2026) says "×1.5" in words: "extra for 6-letter words, double for 7 or more, double again through
+  // the gold tile", then "Total 200."
+  ok(
+    /extra for 6-letter words/.test(help.score) && /double for 7 or more/.test(help.score) && /gold tile/.test(help.score) && /Total 200\./.test(help.score),
+    "the help states the long words, the gold tile and the 200 maximum",
+  );
   ok(help.how.some((l) => !l.helpOnly && /gold tile/.test(`${l.action} ${l.detail}`)), "the intro's how lines name the features in one line");
   ok(/gold tile/.test(INTRO_SCORE.wordhunt) && /\b200\b/.test(INTRO_SCORE.wordhunt), "the intro score line names the gold tile and the maximum");
 }

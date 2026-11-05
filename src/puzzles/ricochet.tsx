@@ -3,6 +3,7 @@ import { useArcadeFrameTiming } from "@/components/puzzles/useArcadeFrameTiming"
 import { arcadeFeedback } from "@/lib/fx/arcade";
 import { appendClientCounters, arcadeCounters } from "@/lib/arcade/diagnostics";
 import { recordTap, tapAt } from "@/lib/arcade/engine";
+import { auditTapAt } from "@/lib/arcade/auditInput";
 import { reportArcadeTick, resetArcadeClock } from "@/lib/arcade/clock";
 import { useEffect, useRef, useState } from "react";
 
@@ -39,7 +40,6 @@ import {
   ninjaDeal,
   ninjaGame,
   NINJA_CHECKPOINT_INTERVAL,
-  NINJA_CORE_FULL_M,
   NINJA_INPUT_TAP,
   NINJA_RUN_TICKS,
   NINJA_WORLD_H,
@@ -48,7 +48,6 @@ import {
   moonDeal,
   moonGame,
   MODE_RIDE,
-  MOON_CORE_FULL_M,
   MOON_REV,
   MOON_SCROLLS,
   MOON_SKY,
@@ -174,6 +173,8 @@ function RicoV1Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStagePro
         if (ticks > MAX_CATCH_UP_TICKS) ticks = MAX_CATCH_UP_TICKS;
         accumulator -= ticks * TICK_MS;
         for (let i = 0; i < ticks; i++) {
+          // The dev audit's bot log (auditInput.ts; never in a production build) taps like a player.
+          if (auditTapAt(state.current.tick + 1)) pending.current = Math.max(pending.current, 1);
           const tapped = pending.current > 0;
           if (tapped) {
             pending.current -= 1;
@@ -370,11 +371,11 @@ function NinjaStage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProp
 }
 
 export function ninjaLine(r: { metres: number; coins: number; lanterns: number; scrolls: number }): string {
-  return `${r.metres} m climbed (full at ${NINJA_CORE_FULL_M}) · ${r.coins} coins · ${r.lanterns} lanterns · ${r.scrolls} scrolls`;
+  return `${r.metres} m climbed · ${r.coins} coins, ${r.lanterns} lanterns, ${r.scrolls} scrolls`;
 }
 
 export function moonLine(r: { metres: number; rides: number; bestFlow: number; scrolls: number }): string {
-  return `${r.metres} m climbed (full at ${MOON_CORE_FULL_M}) · ${r.rides}/${MOON_SKY} lantern rides · best Flow ×${r.bestFlow} · ${r.scrolls}/${MOON_SCROLLS} scrolls`;
+  return `${r.metres} m climbed · ${r.rides} of ${MOON_SKY} lantern rides, best flow ${r.bestFlow}, ${r.scrolls} of ${MOON_SCROLLS} scrolls`;
 }
 
 function NinjaReveal({ puzzle, myAnswer }: PuzzleRevealProps) {

@@ -35,6 +35,7 @@
  *   bun scripts/swing-dark-check.ts --record (re-records the skill-band runs, about 10 minutes)
  */
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { hasScorePart } from "../src/lib/duel/scoreList";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { gunzipSync, gzipSync } from "node:zlib";
 import { fnv } from "./arcade-tuning-a-legacy";
@@ -566,8 +567,10 @@ console.log(`witness: ${playSeeds.length} courses cleared through the dark by th
   const intro = help.how.filter((h) => !h.helpOnly);
   ok(intro.length === 3 && intro.every((h) => `${h.action} ${h.detail}`.length <= 46) && help.goal.length <= 34, "the intro's goal and three lines fit");
   // (swingRev 17's parts since 3 Nov 2026: course 110 + par 40 + gates 10 + streak 40.)
-  ok(/^90 seconds\./.test(help.score) && /course 110 \+ par 40 \+ gates 10 \+ streak 40 = 200/.test(help.score) && /Up to 200/.test(help.score), `the help's SCORE text says 90 seconds and the parts totalling 200: "${help.score}"`);
-  ok(/^90 s\./.test(INTRO_SCORE.swing) && /\(110\)/.test(INTRO_SCORE.swing) && /pars \(40\)/.test(INTRO_SCORE.swing) && /up to 200/.test(INTRO_SCORE.swing), `the intro score line: "${INTRO_SCORE.swing}"`);
+  // Text pass (4 Nov 2026): the help is a list, one line a part, then the total; the intro is one plain sentence naming
+  // the bonuses (the round's 90 seconds is the intro's time line).
+  ok(hasScorePart(help.score, "Course", 110) && hasScorePart(help.score, "Pars", 40) && hasScorePart(help.score, "Gates", 10) && hasScorePart(help.score, "Clean-swing streak", 40) && help.score.endsWith("Total 200."), `the help's SCORE text states the parts totalling 200: "${help.score}"`);
+  ok(/pars/.test(INTRO_SCORE.swing) && /gates/.test(INTRO_SCORE.swing) && /Up to 200/.test(INTRO_SCORE.swing), `the intro score line: "${INTRO_SCORE.swing}"`);
   const demo = readFileSync("src/lib/duel/introDemo.functions.ts", "utf8");
   ok(/data\.type === "swing" && demo\?\.puzzle\.type === "swing" && demo\.puzzle\.swingRev !== SWING_REV_SLIDE\) return null/.test(demo), "Grappler's intro demo stays stopped until one is recorded on swingRev 17 (after 16)");
   const introSrc = readFileSync("src/components/duel/RoundIntro.tsx", "utf8");

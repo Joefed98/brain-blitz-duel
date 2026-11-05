@@ -19,6 +19,7 @@
  *   bun scripts/gemstone-standard-check.ts
  */
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { hasScorePart } from "../src/lib/duel/scoreList";
 import { readFileSync } from "node:fs";
 import { gunzipSync } from "node:zlib";
 import { fnv } from "./arcade-tuning-a-legacy";
@@ -76,6 +77,7 @@ import {
   MATCHUP_V12_GOALS,
   MATCHUP_V12_GOALS_MAX,
   MATCHUP_V12_ICE_MAX,
+  MATCHUP_V12_ICE_PTS,
   MATCHUP_V12_TREASURE_MAX,
   MATCHUP_V12_TREASURE_PTS,
   type MatchupState,
@@ -139,12 +141,15 @@ ok(roundMaxFor("matchup") === 200, "the round maximum stays 200");
   const demo = readFileSync("src/lib/duel/introDemo.functions.ts", "utf8");
   ok(/matchupRev !== MATCHUP_REV_SIX\) return null/.test(demo), "the intro demo stays stopped until recorded on matchupRev 12 (matchupRev 11's successor)");
   const help = PUZZLE_INSTRUCTIONS.matchup.score;
-  for (const text of ["More gems cleared", `up to ${MATCHUP_V12_CORE_MAX}`, `${MATCHUP_V12_TREASURE_PTS} for each brought down (up to ${MATCHUP_V12_TREASURE_MAX})`, `${MATCHUP_V12_GOAL_PTS} for each of the ${MATCHUP_V12_GOALS} colour goals met (up to ${MATCHUP_V12_GOALS_MAX})`, `(up to ${MATCHUP_V12_ICE_MAX})`, `${MATCHUP_V12_BIG_PTS} for each line of 4 or 5 you match (up to ${MATCHUP_V12_BIG_MAX})`, "make 200", "Up to 200."])
+  for (const text of [`Treasure: ${MATCHUP_V12_TREASURE_PTS} for each treasure brought down, up to ${MATCHUP_V12_TREASURE_MAX}.`, `Goals: ${MATCHUP_V12_GOAL_PTS} for each of the ${MATCHUP_V12_GOALS} colour goals met, up to ${MATCHUP_V12_GOALS_MAX}.`, `Ice: ${MATCHUP_V12_ICE_PTS} for each frozen cell broken, up to ${MATCHUP_V12_ICE_MAX}.`, `Big lines: ${MATCHUP_V12_BIG_PTS} for each line of 4 or 5, up to ${MATCHUP_V12_BIG_MAX}.`, "Total 200."])
     ok(help.includes(text), `the help says "${text}": ${help}`);
+  // Text pass (4 Nov 2026): the help is a list, one line a part ("More gems cleared … make 200" was the old wording).
+  ok(hasScorePart(help, "Gems", MATCHUP_V12_CORE_MAX), `the help's gems line: ${help}`);
   ok(!/cascade multiplier|match points/i.test(help), "the help no longer pays match points or the cascade multiplier");
   const how = PUZZLE_INSTRUCTIONS.matchup.how.map((l) => `${l.action} ${l.detail}`).join(" ");
   ok(/swaps with a gem that then makes a line of three/.test(how) && /Six goals/.test(how) && !/Cascades multiply/.test(how), "the help's rules: treasure swaps, the dealt stamp's six goals (matchupRev 12), no cascade multiplier");
-  ok(/treasure, goals, ice and lines of 4 or 5/.test(INTRO_SCORE.matchup) && !/cascades/.test(INTRO_SCORE.matchup), `the intro's score line: ${INTRO_SCORE.matchup}`);
+  // Text pass (4 Nov 2026): the intro names the bonuses in one plain sentence.
+  ok(/treasure, colour goals, ice and big lines/.test(INTRO_SCORE.matchup) && !/cascades/.test(INTRO_SCORE.matchup), `the intro's score line: ${INTRO_SCORE.matchup}`);
 }
 
 /* 3. The deal */

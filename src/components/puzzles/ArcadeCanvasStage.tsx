@@ -3,6 +3,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 
 import { appendClientCounters, arcadeCounters } from "@/lib/arcade/diagnostics";
 import { reportArcadeTick, resetArcadeClock } from "@/lib/arcade/clock";
+import { auditEventAt } from "@/lib/arcade/auditInput";
 import {
   inputAt,
   recordInput,
@@ -272,6 +273,9 @@ export function ArcadeCanvasStage<S, C>(props: Props<S, C>) {
               );
             }
           }
+          // The dev audit's bot log (auditInput.ts; never in a production build).
+          const audit = auditEventAt(tickOf() + 1);
+          if (audit) recordInput(events.current, audit, game.inputRanges);
           state.current = game.step(state.current, inputAt(events.current, tickOf() + 1));
           if (tickOf() % propsRef.current.interval === 0) {
             checkpoints.current.push(propsRef.current.checkpoint(state.current));

@@ -103,9 +103,10 @@ for (const type of new Set([...WORD_POLISH_DEMOS, ...WORD_BATCH_DEMOS])) {
 
 // 5. Reveal score lines kept.
 const keep: Record<string, string[]> = {
-  "src/puzzles/strikeout.tsx": ["`5 / 5 words · ${state.strikes} strike${state.strikes === 1 ? \"\" : \"s\"} · ${(elapsed / 1000).toFixed(1)}s`"],
+  // Text pass (4 Nov 2026): one "·" a line at most, "of" for counts, lower-case units, singular for one.
+  "src/puzzles/strikeout.tsx": ["`5 of 5 words · ${state.strikes} strike${state.strikes === 1 ? \"\" : \"s\"}, ${(elapsed / 1000).toFixed(1)} s`"],
   "src/puzzles/codeword.tsx": ["`Cracked · ${(elapsed / 1000).toFixed(1)}s`", "`${tally.correct} / ${tally.hidden} letters decoded`"],
-  "src/puzzles/swapword.tsx": ["`Solved · ${run.swaps} swaps (min ${puzzle.minSwaps}) · ${(elapsed / 1000).toFixed(1)}s`"],
+  "src/puzzles/swapword.tsx": ["`Solved in ${(elapsed / 1000).toFixed(1)} s · ${run.swaps} ${run.swaps === 1 ? \"swap\" : \"swaps\"} (fewest ${puzzle.minSwaps})`"],
   "src/puzzles/wordSearch.tsx": ["`6 / 6 · ${(elapsed / 1000).toFixed(1)}s`"],
   "src/lib/duel/tileGrid.ts": ["`All ${TG_TILES} tiles · every word valid`"],
   "src/puzzles/wordSlide.tsx": ["Par {puzzle.par} – you used {replay.moves}"],

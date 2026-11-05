@@ -1376,12 +1376,12 @@ export const BUB_V11_STD_SPEC: StdSpec = {
   field: "bubbleRev",
   rev: BUB_REV_STD,
   parts: [
-    { key: "core", label: "Bubbles cleared", max: BUB_V11_CORE_MAX, how: `in proportion, full when all ${BUB_V11_REEF} reef bubbles are cleared` },
+    { key: "core", label: "Bubbles cleared", max: BUB_V11_CORE_MAX, how: `pop or drop the ${BUB_V11_REEF} reef bubbles, each worth the same` },
     { key: "clear", label: "Reef cleared", max: BUB_V11_CLEAR, how: "clear the whole reef" },
-    { key: "speed", label: "Speed", max: BUB_V11_SPEED_MAX, how: "when the reef is cleared: full with half the clock left, falling to 0 at the buzzer" },
+    { key: "speed", label: "Speed", max: BUB_V11_SPEED_MAX, how: "clear the reef with half the clock left for all of it, falling to 0 at the buzzer" },
     { key: "chests", label: "Chests", max: BUB_V11_CHESTS_MAX, how: `${BUB_V11_CHEST_EACH} for each of the ${BUB_V8_CHESTS} chests that falls` },
-    { key: "banks", label: "Bank shots", max: BUB_V11_BANK_MAX, how: `1 for every ${BUB_V11_BANK_PER}` },
-    { key: "combos", label: "Combos", max: BUB_V11_COMBO_MAX, how: `${BUB_V11_COMBO_EACH} each` },
+    { key: "banks", label: "Bank shots", max: BUB_V11_BANK_MAX, how: `1 for every ${BUB_V11_BANK_PER} bank shots` },
+    { key: "combos", label: "Combos", max: BUB_V11_COMBO_MAX, how: `${BUB_V11_COMBO_EACH} for each combo` },
   ],
 };
 

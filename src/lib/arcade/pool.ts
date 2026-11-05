@@ -231,11 +231,11 @@ export function poolStdSpecFor(rev?: number | null): StdSpec {
     rev: r,
     parts: [
       r >= 4
-        ? { key: "core", label: "Your balls", max: 140, of: POOL_CORE_FULL_V4, item: "ball", how: `${140 / POOL_CORE_FULL_V4} for each of your set (spots or stripes) potted, full at ${POOL_CORE_FULL_V4} of your 7` }
+        ? { key: "core", label: "Your balls", max: 140, of: POOL_CORE_FULL_V4, item: "ball", how: `${140 / POOL_CORE_FULL_V4} for each of your balls (spots or stripes) potted, all of it at ${POOL_CORE_FULL_V4} of your 7` }
         : { key: "core", label: "Spots", max: 140, of: POOL_SPOTS, item: "spot", how: `${POOL_SPOT_PTS} a spot potted` },
-      { key: "black", label: "Black", max: POOL_BLACK_PTS, of: 1, item: "black", how: r >= 4 ? "the black after all seven of yours" : "the black after every spot" },
+      { key: "black", label: "Black", max: POOL_BLACK_PTS, of: 1, item: "black", how: r >= 4 ? "pot the black after all seven of yours" : "pot the black after every spot" },
       { key: "streak", label: "Pots in a row", max: POOL_STREAK_MAX, of: 6, item: "pot", how: `${POOL_FOLLOW_PTS} for each pot straight after another` },
-      { key: "speed", label: "Speed", max: POOL_SPEED_PTS, of: 1, item: "finish", how: `the black potted: full by ${poolFullByS(r)} s, none at the buzzer` },
+      { key: "speed", label: "Speed", max: POOL_SPEED_PTS, of: 1, item: "finish", how: `pot the black within ${poolFullByS(r)} s for all of it, falling to 0 at the buzzer` },
     ],
   };
 }

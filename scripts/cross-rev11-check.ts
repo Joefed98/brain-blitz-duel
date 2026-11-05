@@ -22,6 +22,7 @@
  *   bun scripts/cross-rev11-check.ts [--record]
  */
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { hasScorePart } from "../src/lib/duel/scoreList";
 import { gunzipSync, gzipSync } from "node:zlib";
 import { readFileSync, writeFileSync } from "node:fs";
 import { GAME_BY_TYPE, roomSeed } from "./arcade-skill-bands/games";
@@ -182,10 +183,12 @@ function scriptedRun(seed: number, waits: readonly number[]): ArcadeInputEvent[]
   const help = PUZZLE_INSTRUCTIONS.cross;
   const text = [help.goal, ...help.how.map((l) => `${l.action} ${l.detail}`), help.score].join(" ");
   ok(!/coin/i.test(text), "the help mentions no coins");
-  ok(/no-stop streak/i.test(help.score) && help.score.includes("150 at 76") && help.score.includes("total 200") && help.score.includes(`hit costs ${CROSS_V11_HIT_COST}`), `the help's score: the core line, the streak, the hit cost, 200 (${help.score})`);
+  // Text pass (4 Nov 2026): the help is a list, one line a part, then penalties, then the total; the intro names the
+  // bonuses in one plain sentence (no internal figures).
+  ok(/no-stop streak/i.test(help.score) && hasScorePart(help.score, "Rows and crossings", 150) && help.score.endsWith("Total 200.") && help.score.includes(`hit costs ${CROSS_V11_HIT_COST}`), `the help's score: the core line, the streak, the hit cost, 200 (${help.score})`);
   ok(help.how.some((l) => l.action.startsWith("No-stop streak") && l.detail.includes("0.5 s") && l.detail.includes(`adds ${CROSS_V11_FLOW_EACH}, up to ${CROSS_V11_FLOW_MAX}`)), "the help states the no-stop rule: half a second, 10 each, up to 40");
   const intro = INTRO_SCORE.cross;
-  ok(intro.length <= 90 && /no-stop/.test(intro) && !/coin/i.test(intro) && intro.includes("150") && intro.includes("40") && intro.includes("15"), `the intro line (${intro.length} characters): ${intro}`);
+  ok(intro.length <= 90 && /no-stop/.test(intro) && !/coin/i.test(intro) && /close calls/.test(intro) && /hits cost/.test(intro) && intro.endsWith("Up to 200."), `the intro line (${intro.length} characters): ${intro}`);
   const demo = readFileSync("src/lib/duel/introDemo.functions.ts", "utf8");
   ok(demo.includes('demo.puzzle.crossRev !== CROSS_REV_FLOW) return null'), "the intro demo plays only when recorded on crossRev 11");
   ok(playRevOf("cross", CROSS_REV_FLOW) === CROSS_REV_STD, "playRevOf: crossRev 11 keeps crossRev 10's play");
