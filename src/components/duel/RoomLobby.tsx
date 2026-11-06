@@ -27,6 +27,7 @@ import { PLAYER_ICON_ART } from "./playerIcons";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { RoomFooter, RoomMenu } from "./RoomFooter";
 import { RoomSettingsSheet } from "./RoomSettingsSheet";
+import { Button } from "@/design/components";
 
 interface RoomLobbyProps {
   /** The room's stored settings (duels.selected_categories: roomSettings.ts, or an older room's categories). */
@@ -287,14 +288,13 @@ export function RoomLobby({
           {settingsSummary(settings)}
         </p>
         {canEditSettings ? (
-          <button
-            type="button"
+          <Button
+            variant="secondary"
             data-room-settings
             onClick={() => setSettingsOpen(true)}
-            className="rs-btn press tap-target"
           >
             Room settings
-          </button>
+          </Button>
         ) : null}
       </section>
 
@@ -455,11 +455,10 @@ export function RoomLobby({
       <RoomFooter className="mt-auto">
         {isHost ? (
           canStart || starting ? (
-            <button
-              type="button"
+            <Button
+              variant="gold"
               onClick={onStart}
               disabled={starting}
-              className="th-btn-gold ap-btn-gold rs-btn-gold press tap-target"
             >
               {starting ? (
                 <>
@@ -469,7 +468,7 @@ export function RoomLobby({
               ) : (
                 "Start game"
               )}
-            </button>
+            </Button>
           ) : (
             // Not a disabled button: a status line, so the share link above is the call to action.
             <p data-lobby-waiting className="rs-status" role="status">

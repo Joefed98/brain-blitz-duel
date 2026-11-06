@@ -684,7 +684,7 @@ for (const nav of ["none", "refused"] as const) {
     roomCode: "PLAY",
   };
   const label = nextPublicLabel(game as never, Date.UTC(2026, 9, 21, 12));
-  check(/^NEXT PUBLIC GAME: SAT 24 OCT 7:00 PM$/.test(label), `public game button "${label}"`);
+  check(/^Next public game · Sat 24 Oct, 7:00 pm$/.test(label), `public game button "${label}"`);
   const row = shareEventRow("user-1", {
     event: "arrival_welcome",
     welcome: "public",
@@ -860,6 +860,7 @@ else {
               againRight: a?.right ?? null,
               left: r.left,
               cls: b.className,
+              variant: b.getAttribute("data-variant"),
               transform: cs.textTransform,
               lines,
               text: b.textContent,
@@ -874,10 +875,10 @@ else {
               geo.left >= (geo.againRight ?? 0),
             `${where}: Share is not beside Play again (${geo.againTop} vs ${geo.top})`,
           );
-          // Polish batch R: Share is a secondary button in sentence case (th-btn-teal is drawn as the room
-          // look's neutral outline, room-screens.css).
+          // Polish batch R: Share is a secondary button in sentence case (since design foundation F2 the shared
+          // Button, variant secondary).
           check(
-            /\bth-btn-teal\b/.test(geo.cls) && geo.transform === "none",
+            geo.variant === "secondary" && geo.transform === "none",
             `${where}: Share is not the room look's sentence-case secondary button`,
           );
           check(
@@ -998,7 +999,8 @@ else {
             text: h.innerText.trim(),
             label: h.getAttribute("aria-label"),
             tag: el.tagName,
-            cls: h.className,
+            // The shared Button's variant (design foundation F2) rides along with its classes.
+            cls: `${h.className} data-variant="${h.getAttribute("data-variant") ?? ""}"`,
             w: r.width,
             h: r.height,
             lines: lines(el),
@@ -1038,14 +1040,14 @@ else {
         `${where}: line "${line?.text}"`,
       );
       const buttons = probe.items.filter((i) => i.tag === "BUTTON");
-      const practice = buttons.find((b) => b.text === "TRY A PRACTICE GAME");
-      const pub = buttons.find((b) => b.text.startsWith("NEXT PUBLIC GAME: "));
+      const practice = buttons.find((b) => b.text === "Try a practice game");
+      const pub = buttons.find((b) => b.text.startsWith("Next public game · "));
       check(
-        !!practice && /\bth-btn-gold\b/.test(practice.cls),
+        !!practice && /\bdata-variant="gold"/.test(practice.cls),
         `${where}: no gold TRY A PRACTICE GAME button`,
       );
       check(
-        publicGame ? !!pub && /\bth-btn-teal\b/.test(pub.cls) : !pub,
+        publicGame ? !!pub && /\bdata-variant="secondary"/.test(pub.cls) : !pub,
         `${where}: public game button ${pub?.text ?? "missing"} (scheduled: ${publicGame})`,
       );
       check(!!buttons.find((b) => b.label === "Dismiss"), `${where}: no dismiss button`);

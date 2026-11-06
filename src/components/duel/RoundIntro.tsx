@@ -6,7 +6,7 @@ import { pyDeal } from "@/lib/arcade/cards/pyramid";
 import { INTRO_COUNTDOWN_MS, INTRO_MS, TOTAL_ROUNDS, type PuzzleType } from "@/lib/duel/types";
 import type { Outcome } from "@/lib/duel/scoring";
 import type { PuzzleData } from "@/lib/duel/types";
-import { Button } from "@/components/ui/button";
+import { Button as JzButton } from "@/design/components";
 import { useContext, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { ChevronLeft } from "lucide-react";
 import { fx } from "@/lib/fx";
@@ -342,16 +342,15 @@ export function RoundIntro({
               {!counting && onReady && autoStart ? (
                 <AutoStartRing seconds={autoSeconds} total={Math.round((INTRO_MS - INTRO_COUNTDOWN_MS) / 1000)} />
               ) : null}
-              <Button
-                type="button"
+              <JzButton
+                variant={ready ? "secondary" : "gold"}
+                size={52}
                 disabled={ready || !dataReady}
                 onClick={onReady}
-                className={`press h-[52px] min-w-0 flex-1 rounded-[14px] text-[18px] font-extrabold disabled:opacity-100 ${
-                  ready ? "intro-ready-done" : "ap-btn-gold"
-                }`}
+                className="min-w-0 flex-1"
               >
                 {!dataReady ? "Loading words…" : ready ? "Ready ✓" : "Ready"}
-              </Button>
+              </JzButton>
             </div>
 
             {/* The ready count only takes a row when there is someone to wait for. */}

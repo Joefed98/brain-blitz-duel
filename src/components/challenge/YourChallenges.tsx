@@ -36,14 +36,14 @@ export function YourChallenges({ onOpen }: { onOpen: (code: string) => void }) {
       <div className="ap-section-head">
         <h2 className="ap-section-title">Your challenges</h2>
       </div>
-      <ul className="ap-panel">
+      <ul className="jz-panel">
         {list.map((c) => (
           <li key={c.code}>
             <button
               type="button"
               data-your-challenge={c.code}
               onClick={() => onOpen(c.code)}
-              className="ap-row press"
+              className="jz-row press"
             >
               <span className="flex min-w-0 flex-1 flex-col gap-1">
                 <span className="flex items-baseline gap-2">

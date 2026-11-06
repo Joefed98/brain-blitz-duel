@@ -1,5 +1,6 @@
 import { Dots } from "./Dots";
 import { RoomFooter } from "./RoomFooter";
+import { Button } from "@/design/components";
 
 export interface ContinueState {
   /** This player has tapped Continue on the current screen. */
@@ -38,16 +39,16 @@ export function ContinueFooter({
             <Dots />
           </p>
         ) : (
-          <button
-            type="button"
-            className="th-btn-gold ap-btn-gold rs-btn-gold press tap-target h-[52px]"
+          <Button
+            variant="gold"
+            size={52}
             onClick={onContinue}
           >
             {/* One flex item, so the button's gap doesn't widen the space. */}
             <span>
               Continue ({autoSeconds}s)
             </span>
-          </button>
+          </Button>
         )}
       </div>
     </RoomFooter>

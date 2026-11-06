@@ -92,7 +92,7 @@ export function DailyBoard({
 
       {board.open ? (
         board.rows.length === 0 ? (
-          <p className="ap-panel px-4 py-6 text-center text-sm text-muted-foreground">
+          <p className="jz-panel px-4 py-6 text-center text-sm text-muted-foreground">
             No one finished this day.
           </p>
         ) : (
@@ -124,7 +124,7 @@ export function DailyBoard({
         )
       ) : (
         <p
-          className="ap-panel flex items-center gap-2 px-4 py-5 text-sm text-muted-foreground"
+          className="jz-panel flex items-center gap-2 px-4 py-5 text-sm text-muted-foreground"
           data-daily-locked
         >
           <Lock aria-hidden="true" className="h-4 w-4 shrink-0" />

@@ -12,6 +12,7 @@ import { resultCardFile } from "@/lib/share/resultCard";
 import type { RoomShareData, RoomShareTop } from "@/lib/share/roomShare";
 import { APP_URL } from "@/config/appUrl";
 import { sendShareEvent, type ShareRecorder } from "@/lib/share/shareRef";
+import { Button } from "@/design/components";
 
 
 /** Whether friend challenges are available (the migration applied); null until the server answers. */
@@ -166,8 +167,9 @@ export function RoomChallengeButton({
     );
   return (
     <div className="flex flex-col gap-1">
-      <button
-        type="button"
+      <Button
+        variant="secondary"
+        block
         data-room-challenge={state.kind}
         disabled={state.kind === "busy"}
         onClick={() => {
@@ -183,7 +185,6 @@ export function RoomChallengeButton({
             () => setState({ kind: "error", message: "Couldn't reach the server. Try again." }),
           );
         }}
-        className="th-btn-outline-gold press tap-target flex w-full items-center justify-center gap-2 whitespace-nowrap rounded-xl border border-primary/70 bg-primary/10 font-display text-base font-bold uppercase tracking-wide text-primary"
       >
         {state.kind === "busy" ? (
           <Dots className="bg-primary" />
@@ -192,7 +193,7 @@ export function RoomChallengeButton({
             <Swords aria-hidden="true" className="h-[18px] w-[18px] shrink-0" /> Challenge a friend
           </>
         )}
-      </button>
+      </Button>
       {state.kind === "error" ? (
         <p role="alert" className="text-center text-xs text-warn">
           {state.message}

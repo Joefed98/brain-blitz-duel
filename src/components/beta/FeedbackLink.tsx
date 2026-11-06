@@ -29,8 +29,8 @@ export function FeedbackLink({ small = false, row = false }: { small?: boolean; 
   // The settings sheet's row (Polish batch R).
   if (row)
     return (
-      <a href={href} target="_blank" rel="noopener noreferrer" data-feedback-link="settings" className="ap-row press">
-        <span className="ap-row-title flex-1">Send feedback</span>
+      <a href={href} target="_blank" rel="noopener noreferrer" data-feedback-link="settings" className="jz-row press">
+        <span className="jz-row-title flex-1">Send feedback</span>
         <MessageSquare aria-hidden="true" className="ap-chevron" />
       </a>
     );

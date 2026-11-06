@@ -10,12 +10,12 @@
  * round, live arcade round (Gemstone), round result, standings and final results. On each:
  *  - every element's computed -webkit-tap-highlight-color is fully transparent;
  *  - every visible focusable element (buttons, links, inputs, [tabindex], [role=button]), focused
- *    as a keyboard would (focusVisible) and as a tap does, draws no outline and changes no
- *    box-shadow (no ring);
+ *    as a tap does, draws no outline and changes no box-shadow (no ring);
  *  - every element except where text is typed (inputs, text areas, editable text) has
  *    user-select none, so a long press selects nothing;
- *  - real taps (touchscreen) on the screen's first few buttons leave no outline or ring, and nor
- *    does real keyboard focus (Tab) on the touch device.
+ *  - real taps (touchscreen) on the screen's first few buttons leave no outline or ring, while real
+ *    keyboard focus (Tab) on the touch device does show one (design foundation F2: an iPad with a
+ *    keyboard gets focus rings, DESIGN.md section 11).
  * Then as a desktop browser (1366×768, mouse): Tab to the first button on the practice list and a
  * room lobby must show a visible focus ring (outline or ring shadow).
  *
@@ -141,7 +141,9 @@ function touchProbe() {
   let rings = 0;
   for (const el of focusables) {
     const before = visible(getComputedStyle(el).boxShadow);
-    for (const focusVisible of [true, false]) {
+    // A tap's focus (focusVisible false) never draws a ring. Keyboard-style focus does since design foundation
+    // F2 (DESIGN.md section 11: rings on every device with a keyboard, iPad included); the Tab pass below proves it.
+    for (const focusVisible of [false]) {
       el.focus({ preventScroll: true, focusVisible } as FocusOptions);
       if (document.activeElement !== el) continue;
       const style = getComputedStyle(el);
@@ -242,20 +244,22 @@ try {
         if (ring && (ring.outline || ring.ring)) problems.push(`a tap on "${name}" left ${ring.outline ? "an outline" : `a ring ${ring.ring}`} on <${ring.tag}> "${ring.name}"`);
         tapped++;
       }
-      // Keyboard-style focus (:focus-visible) on a touch device: a paired keyboard, or a focus the
-      // browser treats as one. Still no ring on touch.
+      // Keyboard focus (:focus-visible) on a touch device: a paired keyboard (an iPad with one). Since design
+      // foundation F2 it shows the ring, as on a computer.
       await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
       let tabbed = 0;
+      let ringShown = false;
       for (let i = 0; i < 6; i++) {
         await page.keyboard.press("Tab");
         const ring = await page.evaluate(activeRing);
         if (!ring) continue;
         tabbed++;
         if (ring.outline || ring.ring) {
-          problems.push(`keyboard focus on a touch device drew ${ring.outline ? "an outline" : `a ring ${ring.ring}`} on <${ring.tag}> "${ring.name}"`);
+          ringShown = true;
           break;
         }
       }
+      if (tabbed > 0 && !ringShown) problems.push(`keyboard focus on a touch device drew no ring after ${tabbed} Tab presses`);
       note = `${probe.elements} elements, ${probe.focusables} focusable, ${tapped} tapped, ${tabbed} tabbed`;
     } catch (error) {
       problems.push(String((error as Error).message ?? error).split("\n")[0]!);
@@ -295,4 +299,4 @@ if (failures.length) {
   console.log(`FAIL: ${failures.length} problem(s): a tap highlight, touch focus ring or selection box on a game or room screen`);
   process.exit(1);
 }
-console.log(`PASS: no tap highlight, touch focus ring or text selection on ${checked.length} screens (${checked.join("; ")}); keyboard focus rings kept on desktop`);
+console.log(`PASS: no tap highlight, touch focus ring or text selection on ${checked.length} screens (${checked.join("; ")}); keyboard focus rings kept on desktop and on touch devices with a keyboard`);

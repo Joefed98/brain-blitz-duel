@@ -1,10 +1,10 @@
-import { ChevronRight, X } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import { useEffect, useState } from "react";
-import { createPortal } from "react-dom";
 
 import { FeedbackLink } from "@/components/beta/FeedbackLink";
 import { OfflineSettingsRow } from "@/components/offline/OfflineSettingsRow";
 import { Slider } from "@/components/ui/slider";
+import { Panel, Row, Segmented, Sheet, SwitchKnob } from "@/design/components";
 import { APP_BUILD_ID, buildLabel } from "@/lib/appVersion";
 import { setBatterySaver, useBatterySaver } from "@/lib/battery";
 import { setHapticsOn, useHapticsOn, useHapticsSupported } from "@/lib/haptics";
@@ -49,13 +49,6 @@ export function SettingsSheet({
 }) {
   const [arrows, setArrows] = useState<"arrows" | "joystick">("arrows");
   useEffect(() => setArrows(readArrows()), []);
-  useEffect(() => {
-    const key = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", key);
-    return () => window.removeEventListener("keydown", key);
-  }, [onClose]);
   const choose = (value: "arrows" | "joystick") => {
     setArrows(value);
     try {
@@ -69,38 +62,23 @@ export function SettingsSheet({
   const haptics = useHapticsOn();
   const hapticsSupported = useHapticsSupported();
   const server = useServerBuild();
-  return createPortal(
-    <div
-      data-skin="profile"
-      className="th-scrim fixed inset-0 z-40 flex items-end justify-center bg-black/60"
-      onClick={onClose}
+  return (
+    <Sheet
+      title="Settings"
+      closeLabel="Close settings"
+      skin="profile"
+      onClose={onClose}
+      data={{ "data-settings-sheet": "" }}
+      className="gap-3"
+      style={{ paddingBottom: "max(24px, calc(env(safe-area-inset-bottom, 0px) + 16px))" }}
     >
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-label="Settings"
-        data-settings-sheet
-        onClick={(e) => e.stopPropagation()}
-        className="th-sheet flex w-full max-w-[430px] flex-col gap-4 rounded-t-3xl border border-b-0 border-border bg-card px-4 pt-3"
-        style={{ paddingBottom: "max(24px, calc(env(safe-area-inset-bottom, 0px) + 16px))", background: "var(--ap-bg)" }}
-      >
-        <div className="flex items-center justify-between pl-1">
-          <h2 className="ap-section-title text-[20px]">Settings</h2>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Close settings"
-            className="press tap-target -mr-1 flex w-11 items-center justify-center text-muted-foreground"
-          >
-            <X aria-hidden="true" className="h-5 w-5" />
-          </button>
-        </div>
+        <div data-scrollable className="flex min-h-0 flex-col gap-4 overflow-y-auto px-4">
         {/* Tab-page panels of divided rows (Polish batch R): the two sound switches and one volume row. */}
-        <div data-sound-controls="settings" className="ap-panel">
+        <Panel data-sound-controls="settings">
           <SwitchRow label="Sound effects" on={!sound.muted} onChange={(on) => setMuted(!on)} />
           <SwitchRow label="Music" on={!sound.musicMuted} onChange={(on) => setMusicMuted(!on)} />
-          <div className="ap-row">
-            <span className="ap-row-title w-[76px] shrink-0">Volume</span>
+          <div className="jz-row">
+            <span className="jz-row-title w-19 shrink-0">Volume</span>
             <Slider
               aria-label="Volume"
               min={0}
@@ -116,30 +94,26 @@ export function SettingsSheet({
             />
             <span className="ap-meta w-10 text-right tabular-nums">{Math.round(Math.max(sound.effects, sound.music) * 100)}%</span>
           </div>
-        </div>
+        </Panel>
         <div className="flex flex-col gap-2">
           <span className="ap-group-title">Direction controls</span>
-          <div role="radiogroup" aria-label="Direction controls" className="rs-seg">
-            {(["arrows", "joystick"] as const).map((value) => (
-              <button
-                key={value}
-                type="button"
-                role="radio"
-                aria-checked={arrows === value}
-                onClick={() => choose(value)}
-                className="press"
-              >
-                {value === "arrows" ? "Arrows" : "Joystick"}
-              </button>
-            ))}
-          </div>
-          <span className="ap-row-sub pl-1">For games played with arrows</span>
+          <Segmented
+            label="Direction controls"
+            radio
+            value={arrows}
+            onChange={choose}
+            options={[
+              { value: "arrows", label: "Arrows" },
+              { value: "joystick", label: "Joystick" },
+            ]}
+          />
+          <span className="jz-row-sub pl-1">For games played with arrows</span>
         </div>
         {/* Offline practice (31 Oct 2026): storage used and the pack downloads switch. */}
-        <div className="ap-panel">
+        <div className="jz-panel">
           <OfflineSettingsRow />
         </div>
-        <div className="ap-panel">
+        <div className="jz-panel">
           {/* Battery saver (lib/battery.ts, off by default): fewer particles and glows, puzzles at 30 fps. */}
           <SwitchRow label="Battery saver" on={saver} onChange={setBatterySaver} />
           {/* Haptics (lib/haptics.ts, on by default): main moments only. Shown where the device has none, with a note. */}
@@ -150,15 +124,15 @@ export function SettingsSheet({
             note={hapticsSupported ? undefined : "Not supported on this device"}
             data="haptics"
           />
-          <button type="button" onClick={onHowItWorks} className="ap-row press">
-            <span className="ap-row-title flex-1">How it works</span>
+          <Row as="button" onClick={onHowItWorks}>
+            <span className="jz-row-title flex-1">How it works</span>
             <ChevronRight aria-hidden="true" className="ap-chevron" />
-          </button>
+          </Row>
           {onTerms ? (
-            <button type="button" data-open-terms onClick={onTerms} className="ap-row press">
-              <span className="ap-row-title flex-1">Beta terms</span>
+            <Row as="button" data-open-terms onClick={onTerms}>
+              <span className="jz-row-title flex-1">Beta terms</span>
               <ChevronRight aria-hidden="true" className="ap-chevron" />
-            </button>
+            </Row>
           ) : null}
           <FeedbackLink row />
         </div>
@@ -166,22 +140,21 @@ export function SettingsSheet({
             only when it differs, since the server is what deals and grades. */}
         <div className="flex flex-col gap-2">
           <span className="ap-group-title">About</span>
-          <div className="ap-panel">
-            <div data-build-marker className="ap-row">
-              <span className="ap-row-title flex-1">Build</span>
+          <div className="jz-panel">
+            <div data-build-marker className="jz-row">
+              <span className="jz-row-title flex-1">Build</span>
               <span className="ap-meta tabular-nums">{buildLabel(APP_BUILD_ID)}</span>
             </div>
             {server && server !== APP_BUILD_ID ? (
-              <div data-server-build-marker className="ap-row">
-                <span className="ap-row-title flex-1">Server</span>
+              <div data-server-build-marker className="jz-row">
+                <span className="jz-row-title flex-1">Server</span>
                 <span className="ap-meta tabular-nums">{buildLabel(server)}</span>
               </div>
             ) : null}
           </div>
         </div>
-      </div>
-    </div>,
-    document.body,
+        </div>
+    </Sheet>
   );
 }
 
@@ -222,19 +195,17 @@ function SwitchRow({
   data?: string;
 }) {
   return (
-    <button type="button" role="switch" aria-checked={on} aria-label={label} data-setting={data} onClick={() => onChange(!on)} className="ap-row press">
+    <Row as="button" role="switch" aria-checked={on} aria-label={label} data-setting={data} onClick={() => onChange(!on)}>
       {note ? (
-        <span className="ap-row-text items-start text-left">
-          <span className="ap-row-title">{label}</span>
-          <span data-setting-note className="ap-row-sub">{note}</span>
+        <span className="jz-row-text items-start text-left">
+          <span className="jz-row-title">{label}</span>
+          <span data-setting-note className="jz-row-sub">{note}</span>
         </span>
       ) : (
-        <span className="ap-row-title flex-1">{label}</span>
+        <span className="jz-row-title flex-1">{label}</span>
       )}
-      <span aria-hidden="true" className="rs-switch" data-on={on ? "" : undefined}>
-        <span />
-      </span>
-    </button>
+      <SwitchKnob on={on} />
+    </Row>
   );
 }
 

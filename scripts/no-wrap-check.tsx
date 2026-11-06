@@ -43,7 +43,7 @@ const DRAWS = partOf(
 /** In-page: every single-line text that wraps or overflows. */
 function wrapProbe() {
   const SINGLE =
-    "h1, h2, h3, button, a, label, summary, [role='button'], .th-kicker, .th-pill, .th-name, .th-score, .th-medal, .font-display, .font-mono, [data-practice-filter], [data-tab], [data-category-pill]";
+    "h1, h2, h3, button, a, label, summary, [role='button'], .th-kicker, .th-pill, .th-name, .th-score, .jz-medal, .font-display, .font-mono, [data-practice-filter], [data-tab], [data-category-pill]";
   const NOT_JUDGED = "[data-skin-off], .whitespace-normal, .line-clamp-2, [data-wrap-ok]";
   const visible = (el: Element) => {
     const r = el.getBoundingClientRect();

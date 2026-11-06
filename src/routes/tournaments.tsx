@@ -21,6 +21,7 @@ import {
 } from "@/lib/publicSchedule";
 import { APP_NAME } from "@/lib/brand";
 import { OnlineOnly } from "@/components/offline/OnlineOnly";
+import { ButtonLink } from "@/design/components";
 
 export const Route = createFileRoute("/tournaments")({
   ssr: false,
@@ -92,7 +93,7 @@ function TournamentsScreen() {
             <div className="ap-section-head">
               <h2 className="ap-section-title">Next up</h2>
             </div>
-            <div className="ap-panel overflow-hidden">
+            <div className="jz-panel overflow-hidden">
               <PublicGameNext
                 game={next}
                 now={now}
@@ -102,7 +103,7 @@ function TournamentsScreen() {
           </section>
         ) : (
           // Nothing scheduled (T-TournamentsEmpty): what to do meanwhile; the Discord button only with its link.
-          <section aria-label="No public games" data-public-none className="ap-panel ap-empty-card">
+          <section aria-label="No public games" data-public-none className="jz-panel ap-empty-card">
             <span aria-hidden="true" className="ap-empty-icon">
               <CalendarDays strokeWidth={1.7} />
             </span>
@@ -115,16 +116,18 @@ function TournamentsScreen() {
             </p>
             <div className="mt-1.5 flex w-full flex-col gap-2">
               {discord ? (
-                <a
+                <ButtonLink
                   href={discord}
                   target="_blank"
                   rel="noopener noreferrer"
                   data-discord-link
-                  className="ap-btn-outline press tap-target h-12 w-full text-[15px]"
+                  variant="secondary"
+                  size={48}
+                  block
                 >
                   Open the beta Discord
-                  <ExternalLink aria-hidden="true" className="h-[15px] w-[15px]" />
-                </a>
+                  <ExternalLink aria-hidden="true" className="h-4 w-4" />
+                </ButtonLink>
               ) : null}
               <button
                 type="button"
@@ -142,7 +145,7 @@ function TournamentsScreen() {
             <div className="ap-section-head">
               <h2 className="ap-section-title">Coming up</h2>
             </div>
-            <div className="ap-panel">
+            <div className="jz-panel">
               {later.map((game) => (
                 <div key={`${game.roomCode}-${game.startsAt}`} data-public-later>
                   <PublicGameRow game={game} />
@@ -162,7 +165,7 @@ function TournamentsScreen() {
             ) : null}
           </div>
           {results.length === 0 ? (
-            <div data-public-results-empty className="ap-panel flex items-center gap-3.5 p-4">
+            <div data-public-results-empty className="jz-panel flex items-center gap-3.5 p-4">
               <span aria-hidden="true" className="ap-ghost-discs">
                 <span />
                 <span />
@@ -173,14 +176,14 @@ function TournamentsScreen() {
               </p>
             </div>
           ) : (
-            <ul className="ap-panel">
+            <ul className="jz-panel">
               {results.map((r) => {
                 const title = gameForResult(r, games)?.title ?? "Public game";
                 // "2nd of 14" where the room's size is recorded; the place alone if it isn't.
                 const place =
                   r.place === null ? "Left" : r.players > 0 ? `${ordinal(r.place)} of ${r.players}` : ordinal(r.place);
                 return (
-                  <li key={r.key} data-public-result data-icon="place" className="ap-row">
+                  <li key={r.key} data-public-result data-icon="place" className="jz-row">
                     {r.place === null ? (
                       <span role="img" aria-label="Left before the end" data-place-disc="n" className="ap-place">
                         <span aria-hidden="true">–</span>
@@ -188,11 +191,11 @@ function TournamentsScreen() {
                     ) : (
                       <PlaceDisc place={r.place} label={`${ordinal(r.place)} place`} />
                     )}
-                    <span className="ap-row-text">
-                      <span data-ellipsis className="ap-row-title">
+                    <span className="jz-row-text">
+                      <span data-ellipsis className="jz-row-title">
                         {title}
                       </span>
-                      <span data-ellipsis className="ap-row-sub">
+                      <span data-ellipsis className="jz-row-sub">
                         {ukDay(r.at, now)} · {place}
                       </span>
                     </span>

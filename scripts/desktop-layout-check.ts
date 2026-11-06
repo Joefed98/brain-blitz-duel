@@ -121,7 +121,7 @@ function probe() {
   const panel = document.querySelector("[data-room-panel-body]");
   const arena = document.querySelector("[data-game-arena]") as HTMLElement | null;
   const turned = Boolean(arena?.closest("[data-arena-rotor]"));
-  const practiceRows = [...document.querySelectorAll("[data-practice-group] .ap-panel")].map((p) => {
+  const practiceRows = [...document.querySelectorAll("[data-practice-group] .jz-panel")].map((p) => {
     const tops = [...p.querySelectorAll("[data-practice-game]")].map((b) => Math.round(b.getBoundingClientRect().top));
     return { count: tops.length, firstRow: tops.filter((t) => t === tops[0]).length };
   });

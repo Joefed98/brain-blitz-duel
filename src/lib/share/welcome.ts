@@ -1,6 +1,6 @@
 import { ukDay, ukTime, type PublicGame } from "@/lib/publicSchedule";
 
-/** "NEXT PUBLIC GAME: SAT 24 OCT 7:00 PM" (UK time, as the Tournaments card shows it). */
+/** "Next public game · Sat 24 Oct, 7:00 pm" (UK time, as the Tournaments card shows it; sentence case since F2). */
 export function nextPublicLabel(game: PublicGame, now: number): string {
-  return `Next public game: ${ukDay(game.startsAt, now)} ${ukTime(game.startsAt)}`.toUpperCase();
+  return `Next public game · ${ukDay(game.startsAt, now)}, ${ukTime(game.startsAt)}`;
 }
