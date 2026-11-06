@@ -7,8 +7,9 @@
 /* ---------- Reveals: compact word columns (Nucleus, Forage) ---------- */
 .word-reveal-list {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
-  gap: 2px 10px;
+  /* Columns wide enough for an 11-letter word and its score (4 Nov 2026: "44CATALOGUER" ran into the next column). */
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 136px), 1fr));
+  gap: 2px 14px;
   font-family: var(--font-mono);
   font-size: 14px;
   line-height: 20px;
@@ -16,6 +17,8 @@
   color: var(--foreground);
 }
 .word-reveal-list > li { display: flex; justify-content: space-between; gap: 6px; min-width: 0; white-space: nowrap; }
+.word-reveal-list > li > span:first-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.word-reveal-list > li > span:last-child { flex-shrink: 0; }
 .word-reveal-missed { color: var(--muted-foreground); }
 
 /* ---------- Arena position ----------

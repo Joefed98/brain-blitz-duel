@@ -153,7 +153,8 @@ export function storedScoreParts(extra: Record<string, unknown> | null | undefin
 export function scorePartsText(parts: ScoreParts): string {
   if (parts.kind === "partial") return `${parts.base} for progress`;
   const terms = [`${parts.base}`];
-  if (parts.efficiency !== undefined) terms.push(`${parts.efficiency} ${parts.measure ?? "efficiency"}`);
+  // A measure naming two things reads "25 gold crate and par" (4 Nov 2026: "25 gold crate + par" read as a missing number).
+  if (parts.efficiency !== undefined) terms.push(`${parts.efficiency} ${(parts.measure ?? "efficiency").replace(/ \+ /g, " and ")}`);
   if (parts.speed !== undefined) terms.push(`${parts.speed} speed`);
   return terms.join(" + ");
 }

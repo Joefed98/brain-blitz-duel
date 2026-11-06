@@ -953,7 +953,8 @@ html,
     gap: 0.35rem;
   }
 
-  .answer-reveal-content > * {
+  .answer-reveal-content > *,
+  .answer-reveal-content .reveal-card > * {
     max-width: 100%;
   }
 }
@@ -968,7 +969,8 @@ html,
   font-size: 1rem;
 }
 
-.answer-reveal-content > * {
+.answer-reveal-content > *,
+.answer-reveal-content .reveal-card > * {
   flex-shrink: 0;
   max-width: 100%;
 }

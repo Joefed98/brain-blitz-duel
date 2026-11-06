@@ -260,7 +260,7 @@ span.ice-player.ice-ball { background: radial-gradient(circle at 34% 30%, #d6eff
 .ice-rink.is-solving .ice-ball { box-shadow: 0 0 0 2px #ffe08a, 0 0 12px 4px rgba(255, 210, 90, 0.9); }
 
 /* ---------- Reveal: the board as large as the space allows ---------- */
-.answer-reveal-content > .ice-reveal { flex: 1 1 auto; min-height: 0; }
+.answer-reveal-content .reveal-card > .ice-reveal { flex: 1 1 auto; min-height: 0; }
 .ice-reveal > p { flex: 0 0 auto; }
 .ice-reveal-space {
   flex: 1 1 auto;

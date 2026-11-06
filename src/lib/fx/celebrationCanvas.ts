@@ -54,6 +54,15 @@ export interface HeroLane {
   top: number;
   footY: number;
 }
+/**
+ * The hero's height in a reveal's lane: the whole pose inside it (4 Nov 2026, Joe's review: only a sliver of cape showed
+ * on some reveals): its raised arms and cape reach SPRITE_TOP heights above the feet. Under HERO_LANE_MIN_H it is not
+ * drawn at all.
+ */
+export function heroLaneH(lane: HeroLane): number {
+  return Math.max(0, Math.min(HERO_RUN_H, (lane.footY - lane.top - 2) / SPRITE_TOP));
+}
+export const HERO_LANE_MIN_H = 30;
 /** On the podium (Polish batch R, 25 Oct 2026): larger, standing on the top step. */
 export const PODIUM_HERO_H = 60;
 /** The podium hero's loop, pre-drawn once into a strip of this many frames (then one drawImage a frame). */
@@ -346,9 +355,12 @@ export class CelebrationScene {
     }
     const k = age / HERO_RUN_MS;
     const lane = this.lane;
-    const x = lane ? lane.left + 16 + (lane.right - lane.left - 32) * k : -40 + (width + 80) * k;
+    const h = lane ? heroLaneH(lane) : HERO_RUN_H;
+    if (lane && h < HERO_LANE_MIN_H) return;
+    // In a lane the whole hero stays inside it from end to end (its cape reaches SPRITE_LEFT heights behind it).
+    const x = lane ? lane.left + SPRITE_LEFT * h + (lane.right - lane.left - (SPRITE_LEFT + SPRITE_RIGHT) * h) * k : -40 + (width + 80) * k;
     const footY = lane ? lane.footY : height - bottomInset - 18;
-    heroRunPose(this.pose, x, footY, lane ? Math.min(HERO_RUN_H, lane.footY - lane.top) : HERO_RUN_H, age / 400);
+    heroRunPose(this.pose, x, footY, h, age / 400);
     ctx.save();
     ctx.globalAlpha = Math.min(1, Math.min(age, HERO_RUN_MS - age) / (lane ? 240 : 120));
     drawHero(ctx, this.pose);
@@ -406,7 +418,11 @@ export class CelebrationScene {
     const laneW = lane ? lane.right - lane.left : width;
     const footY = lane ? lane.footY : height - bottomInset - 18;
     const spot = x0 + Math.max(44, laneW * 0.18);
-    const h = lane ? Math.min(HERO_RUN_H, lane.footY - lane.top) : HERO_RUN_H;
+    const h = lane ? heroLaneH(lane) : HERO_RUN_H;
+    if (lane && h < HERO_LANE_MIN_H) {
+      if (age >= total) this.show = null;
+      return;
+    }
     ctx.save();
     if (lane) {
       ctx.beginPath();

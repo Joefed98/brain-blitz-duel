@@ -561,8 +561,8 @@ function Reveal({ puzzle, myAnswer, myReactionAvgMs, myExtra }: PuzzleRevealProp
       )}
       <div className="speed-reveal-notes">
         <p>
+          {/* The count alone (4 Nov 2026: "(−973 points)" was the cost before the curve, not points off the score). */}
           False starts: {falseStarts}
-          {falseStarts > 0 ? ` (−${cost} points)` : ""}
           {times.some((ms) => ms >= REACTION_MISS_MS) ? ` · a miss counts ${REACTION_MISS_MS.toLocaleString("en-GB")} ms` : ""}
         </p>
         {depth ? (

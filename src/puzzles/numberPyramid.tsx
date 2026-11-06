@@ -432,18 +432,18 @@ function Reveal({ puzzle, myAnswer, myCorrect }: PuzzleRevealProps) {
     if (complete) completed++; totalRight += right; totalEmpty += empties;
     const marks: Record<number, boolean> = {};
     board.givens.forEach((g, cell) => { if (g == null && mine[cell] != null) marks[cell] = mine[cell] === solution[cell]; });
-    return <div key={index} className="flex w-full items-center justify-center gap-2" aria-label={`Pyramid ${index + 1}`}>
-      <span className="np-reveal-label w-3.5 shrink-0 text-center font-mono text-xs font-bold">{index + 1}</span>
-      <div className="flex gap-3"><Pyramid rows={board.rows} givens={board.givens} values={solution} cellW={cellW} cellH={cellH} gap={gap} fontSize={fontSize} animate={false} /><Pyramid rows={board.rows} givens={board.givens} values={mine} cellW={cellW} cellH={cellH} gap={gap} fontSize={fontSize} marks={marks} animate={false} /></div>
-    </div>;
+    const label = <span className="np-reveal-label w-3.5 shrink-0 text-center font-mono text-xs font-bold">{index + 1}</span>;
+    return {
+      solution: <div key={index} className="flex items-center justify-center gap-2" aria-label={`Pyramid ${index + 1}, solution`}>{label}<Pyramid rows={board.rows} givens={board.givens} values={solution} cellW={cellW} cellH={cellH} gap={gap} fontSize={fontSize} animate={false} /></div>,
+      yours: <div key={index} className="flex items-center justify-center gap-2" aria-label={`Pyramid ${index + 1}, yours`}>{label}<Pyramid rows={board.rows} givens={board.givens} values={mine} cellW={cellW} cellH={cellH} gap={gap} fontSize={fontSize} marks={marks} animate={false} /></div>,
+    };
   });
-  const colW = rowsMax * cellW + (rowsMax - 1) * gap;
+  // Two columns, the solution's four pyramids and yours (4 Nov 2026): the reveal's Solution / Yours switch shows one.
   return <div ref={root} className="flex w-full flex-col items-center gap-1.5">
-    <div className="flex w-full items-center justify-center gap-2" aria-hidden>
-      <span className="w-3.5 shrink-0" />
-      <div className="flex gap-3"><span className="np-reveal-label text-center text-xs uppercase tracking-widest" style={{ width: colW }}>Solution</span><span className="np-reveal-label text-center text-xs uppercase tracking-widest" style={{ width: colW }}>Yours</span></div>
+    <div className="flex w-full items-start justify-center gap-3">
+      <div className="flex flex-col items-center gap-1.5"><span className="np-reveal-label text-center text-xs uppercase tracking-widest">Solution</span>{rows.map((r) => r.solution)}</div>
+      <div className="flex flex-col items-center gap-1.5"><span className="np-reveal-label text-center text-xs uppercase tracking-widest">Yours</span>{rows.map((r) => r.yours)}</div>
     </div>
-    {rows}
     <p className="font-mono text-base text-primary">{myCorrect ? "4 / 4 complete" : `${completed} complete · ${totalRight} / ${totalEmpty} cells right`}</p>{dev && <p className="font-mono text-[10px] text-muted-foreground">dev · all four solutions shown</p>}</div>;
 }
 export const numberPyramidPuzzle: PuzzleDefinition = {

@@ -7,7 +7,8 @@ import { devDiagnosticsOn, type ArcadeDiag } from "@/lib/arcade/diagnostics";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
 import { WaitingLine } from "@/components/duel/Dots";
-import { ArcadeReveal, storedCostRows, type RevealPlayer } from "@/components/duel/ArcadeReveal";
+import { ArcadeReveal, revealShown, storedCostRows, type RevealPlayer } from "@/components/duel/ArcadeReveal";
+import { engineLines, statRepeatsPart } from "@/lib/duel/revealBreakdown";
 import { PlayerBadge } from "@/components/duel/PlayerBadge";
 import type { ArcadeRevealData } from "@/lib/arcade/reveal";
 import { ARCADE_REVEAL_RENDERERS } from "@/lib/arcade/revealRenderers";
@@ -202,81 +203,45 @@ function useRevealLabels(ref: { current: HTMLElement | null }) {
 
 const useIsoLayoutEffect = typeof window === "undefined" ? useEffect : useLayoutEffect;
 
-/**
- * The reveal board's tray (Polish batch R, display only): placed behind the board's drawn box (boardBox,
- * the game frame's measure) plus 10 px, before the first paint and whenever the board's boxes change, so
- * the board sits in a tray that hugs it instead of a tall tinted panel. The board's own layout is untouched.
- */
-function useRevealTray(board: { current: HTMLElement | null }, tray: { current: HTMLElement | null }) {
-  useIsoLayoutEffect(() => {
-    const b = board.current;
-    const t = tray.current;
-    if (!b || !t) return;
-    let frame = 0;
-    const place = () => {
-      frame = 0;
-      // Measured against the board's own box, so its entrance (a translate) moves the tray with it.
-      const box = boardBox(b);
-      const r = b.getBoundingClientRect();
-      const pad = 10;
-      const left = Math.max(0, box.left - r.left - pad);
-      const right = Math.min(b.clientWidth, box.right - r.left + pad);
-      const top = Math.max(0, box.top - r.top + b.scrollTop - pad);
-      // Never past the content's own end (or the box's height): the tray's padding alone must not make
-      // the reveal scroll or fade (a board that fills the box, the Logic reveals, ended 10 px short).
-      let end = b.clientHeight;
-      for (const child of Array.from(b.children)) {
-        if (child === t || getComputedStyle(child).position === "absolute") continue;
-        end = Math.max(end, child.getBoundingClientRect().bottom - r.top + b.scrollTop);
-      }
-      const bottom = Math.min(end, box.bottom - r.top + b.scrollTop + pad);
-      if (right - left < 24 || bottom - top < 24) {
-        t.style.display = "none";
-        return;
-      }
-      t.style.display = "";
-      t.style.left = `${left}px`;
-      t.style.top = `${top}px`;
-      t.style.width = `${right - left}px`;
-      t.style.height = `${bottom - top}px`;
-    };
-    place();
-    const later = () => {
-      if (!frame) frame = requestAnimationFrame(place);
-    };
-    const resize = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(later);
-    resize?.observe(b);
-    for (const child of Array.from(b.children)) resize?.observe(child);
-    const mutations = new MutationObserver(later);
-    mutations.observe(b, { childList: true, subtree: true });
-    return () => {
-      cancelAnimationFrame(frame);
-      resize?.disconnect();
-      mutations.disconnect();
-    };
-  }, []);
-}
-
 /** Smallest a board is drawn to make the reveal fit (27 Oct 2026); below it the reveal scrolls as before. */
 const REVEAL_FIT_MIN = 0.5;
-/** Largest a board is drawn to fill the reveal's spare height (3 Nov 2026). */
+/** Largest the reveal's card is drawn to fill the reveal's spare height (3 Nov 2026). */
 const REVEAL_GROW_MAX = 1.8;
-/** The reveal's own lines never drop under this (px) when the whole reveal has to shrink. */
+/** The reveal's own lines never drop under this (px) when the reveal has to shrink. */
 const REVEAL_FIT_MIN_TEXT_PX = 13;
+/** Padding inside the card, round everything it holds (4 Nov 2026). */
+const REVEAL_CARD_PAD = 12;
+
+/** The smallest text drawn in an element (its own text nodes, outside svgs). */
+function smallestText(el: HTMLElement): number {
+  let smallest = Infinity;
+  for (const node of Array.from(el.querySelectorAll<HTMLElement>("p, span, li, div, button"))) {
+    if (!Array.from(node.childNodes).some((n) => n.nodeType === 3 && (n.textContent ?? "").trim())) continue;
+    if (node.closest("svg")) continue;
+    const cs = getComputedStyle(node);
+    if (cs.display === "none" || cs.visibility === "hidden") continue;
+    smallest = Math.min(smallest, parseFloat(cs.fontSize) || Infinity);
+  }
+  return smallest;
+}
 
 /**
- * The reveal fits the screen (27 Oct 2026, display only): when the board and its lines are taller
- * than the space under the verdict row, the boards (each game's canvases, svgs and grids, the
- * outermost ones) are drawn smaller, centred, until everything is in frame, so there is no faded
- * edge and no scroll. Only when shrinking the boards to REVEAL_FIT_MIN is not enough does the whole
- * reveal shrink too, never taking its lines under 13 px. A transform plus a matching negative
- * margin, so each board's own layout, sizing and drawing are untouched. Run before the first
- * paint and again when the space or the content changes.
+ * The reveal's card fits the screen (4 Nov 2026, Joe's review of every reveal; display only): the whole card — the
+ * game's board, its own panel, and every line under it — is measured as one (boardBox: what it draws) and scaled as
+ * one, from its top centre, to the largest size that keeps everything REVEAL_CARD_PAD inside the reveal's box (up to
+ * REVEAL_GROW_MAX, so a small board fills the spare height), never wider than the screen's margins. Scaling the card as
+ * one keeps its own layout, so a grown board can never run past its panel or over its lines (the 3 Nov fit grew the
+ * boards alone: Kakuro, Box Six and a dozen more ran past their card; Lookout's words, Roundabout's status line and
+ * Trail's labels were drawn over). A card too tall for the screen shrinks the same way, as long as its smallest text
+ * stays 13 px or more; past that only the boards shrink (to half size), then the reveal scrolls. The tray behind the
+ * card is placed on what the card draws plus the padding. A transform, so no game's own sizing or drawing changes; run
+ * before the first paint and again when the space or the content changes.
  */
-function useRevealFit(ref: { current: HTMLElement | null }) {
+function useRevealFit(rootRef: { current: HTMLElement | null }, cardRef: { current: HTMLElement | null }, trayRef: { current: HTMLElement | null }) {
   useIsoLayoutEffect(() => {
-    const root = ref.current;
-    if (!root) return;
+    const root = rootRef.current;
+    const card = cardRef.current;
+    if (!root || !card) return;
     const scaled: { el: HTMLElement; transform: string; origin: string; margin: string }[] = [];
     const reset = () => {
       for (const s of scaled.splice(0)) {
@@ -284,10 +249,13 @@ function useRevealFit(ref: { current: HTMLElement | null }) {
         s.el.style.transformOrigin = s.origin;
         s.el.style.marginBottom = s.margin;
       }
+      card.style.transform = "";
+      card.style.transformOrigin = "";
+      root.style.overflowY = "";
       delete root.dataset["fit"];
       delete root.dataset["grown"];
     };
-    const shrink = (el: HTMLElement, z: number) => {
+    const shrinkBoard = (el: HTMLElement, z: number) => {
       const h = el.offsetHeight;
       const margin = parseFloat(getComputedStyle(el).marginBottom) || 0;
       scaled.push({ el, transform: el.style.transform, origin: el.style.transformOrigin, margin: el.style.marginBottom });
@@ -295,16 +263,6 @@ function useRevealFit(ref: { current: HTMLElement | null }) {
       el.style.transform = `scale(${z})`;
       el.style.marginBottom = `${margin - (1 - z) * h}px`;
     };
-    /** A board drawn larger: scaled from its top centre, with the extra height taken by its bottom margin. */
-    const grow = (el: HTMLElement, z: number) => {
-      const h = el.offsetHeight;
-      const margin = parseFloat(getComputedStyle(el).marginBottom) || 0;
-      scaled.push({ el, transform: el.style.transform, origin: el.style.transformOrigin, margin: el.style.marginBottom });
-      el.style.transformOrigin = "top center";
-      el.style.transform = `scale(${z})`;
-      el.style.marginBottom = `${margin + (z - 1) * h}px`;
-    };
-    const overflow = () => root.scrollHeight - root.clientHeight;
     const boards = () => {
       const out: HTMLElement[] = [];
       const walk = (el: Element) => {
@@ -313,109 +271,122 @@ function useRevealFit(ref: { current: HTMLElement | null }) {
           const cs = getComputedStyle(child);
           if (cs.display === "none" || cs.position === "absolute" || cs.position === "fixed") continue;
           const r = child.getBoundingClientRect();
-          const board =
-            r.height >= 56 &&
-            (/^(CANVAS|svg|IMG)$/i.test(child.tagName) || cs.display === "grid" || cs.display === "inline-grid");
-          // An svg can't be moved by its own style in every browser: its html parent is.
+          const board = r.height >= 56 && (/^(CANVAS|svg|IMG)$/i.test(child.tagName) || cs.display === "grid" || cs.display === "inline-grid");
           if (board) out.push(child instanceof HTMLElement ? child : (child.parentElement as HTMLElement));
           else walk(child);
         }
       };
-      walk(root);
-      return [...new Set(out)].filter((el) => el !== root && root.contains(el));
+      walk(card);
+      return [...new Set(out)].filter((el) => el !== card && card.contains(el));
+    };
+    // Nothing drawn in the card (an engine game's breakdown above says it all): no tray (boardBox would give the
+    // empty card's own box).
+    const empty = () =>
+      !Array.from(card.children).some((el) => {
+        const r = el.getBoundingClientRect();
+        return r.width >= 1 && r.height >= 1 && getComputedStyle(el).display !== "none";
+      });
+    const placeTray = () => {
+      const tray = trayRef.current;
+      if (!tray) return;
+      if (empty()) {
+        tray.style.display = "none";
+        return;
+      }
+      const box = boardBox(card);
+      const r = root.getBoundingClientRect();
+      if (!(box.right - box.left >= 24 && box.bottom - box.top >= 24)) {
+        tray.style.display = "none";
+        return;
+      }
+      const left = Math.max(0, box.left - r.left - REVEAL_CARD_PAD);
+      const right = Math.min(root.clientWidth, box.right - r.left + REVEAL_CARD_PAD);
+      const top = Math.max(0, box.top - r.top + root.scrollTop - REVEAL_CARD_PAD);
+      const bottom = Math.min(Math.max(root.scrollHeight, root.clientHeight), box.bottom - r.top + root.scrollTop + REVEAL_CARD_PAD);
+      tray.style.display = "";
+      tray.style.left = `${left}px`;
+      tray.style.top = `${top}px`;
+      tray.style.width = `${right - left}px`;
+      tray.style.height = `${bottom - top}px`;
     };
     let frame = 0;
     let fitted = "";
     const fit = () => {
       frame = 0;
-      // The tray (placed on the board's box) is left out of the measure: it follows the board.
-      const tray = root.querySelector<HTMLElement>("[data-reveal-tray]");
-      const trayDisplay = tray?.style.display ?? "";
+      const tray = trayRef.current;
       if (tray) tray.style.display = "none";
       reset();
-      const els = boards();
-      const apply = (z: number) => {
-        for (const s of scaled.splice(0)) {
-          s.el.style.transform = s.transform;
-          s.el.style.transformOrigin = s.origin;
-          s.el.style.marginBottom = s.margin;
+      const r = root.getBoundingClientRect();
+      const c = card.getBoundingClientRect();
+      const u = boardBox(card);
+      // Still "Revealing": nothing to fit yet (the board's arrival refits).
+      const has = !empty() && !card.querySelector("[data-reveal-waiting]") && Number.isFinite(u.left) && u.right - u.left >= 1 && u.bottom - u.top >= 1;
+      if (has) {
+        const cx = c.left + c.width / 2;
+        const leftRoom = cx - (r.left + REVEAL_CARD_PAD);
+        const rightRoom = r.left + root.clientWidth - REVEAL_CARD_PAD - cx;
+        const visBottom = r.top + root.clientHeight - REVEAL_CARD_PAD;
+        // A grown card starts at the top of its space (a board centred in a tall card would carry the empty space above
+        // it into the scale); it scales from the top centre of what it draws.
+        const top = Math.min(u.top, c.top + REVEAL_CARD_PAD);
+        const limits = [REVEAL_GROW_MAX];
+        if (cx - u.left > 0.5) limits.push(leftRoom / (cx - u.left));
+        if (u.right - cx > 0.5) limits.push(rightRoom / (u.right - cx));
+        if (u.bottom - u.top > 0.5) limits.push((visBottom - top) / (u.bottom - u.top));
+        let z = Math.max(0, Math.min(...limits));
+        // Not grown: scaled (if at all) from its top centre, starting at the top of its space all the same.
+        if (z < 0.98) z = Math.min(z, Math.max(0, (visBottom - top) / Math.max(1, u.bottom - u.top)));
+        // Below 1 only while the text stays readable; the boards alone take the rest.
+        const smallest = z < 1 ? smallestText(card) : Infinity;
+        const textFloor = Number.isFinite(smallest) ? Math.min(1, REVEAL_FIT_MIN_TEXT_PX / smallest) : REVEAL_FIT_MIN;
+        if (z < 1 && z < textFloor) z = textFloor;
+        if (Math.abs(z - 1) <= 0.02) z = 1;
+        if (z !== 1 || top < u.top - 0.5) {
+          card.style.transformOrigin = `${cx - c.left}px ${u.top - c.top}px`;
+          card.style.transform = `translateY(${top - u.top}px) scale(${z})`;
+          if (z > 1) root.dataset["grown"] = String(Math.round(z * 100) / 100);
+          else if (z < 1) root.dataset["fit"] = "";
         }
-        if (z > 1) for (const el of els) grow(el, z);
-        else if (z < 1) for (const el of els) shrink(el, z);
-      };
-      // A scale fits when nothing overflows and every board stays inside the reveal's box, under the Solution /
-      // Yours switch (a board in a fixed-height box spills out of it without overflowing it).
-      const fits = () => {
-        if (overflow() > 1) return false;
-        const r = root.getBoundingClientRect();
-        const sw = root.querySelector("[data-solution-switch]:not([hidden])")?.getBoundingClientRect();
-        const ceiling = (sw ? sw.bottom : r.top) - 1;
-        return els.every((el) => {
-          const b = el.getBoundingClientRect();
-          return b.top >= ceiling && b.bottom <= r.bottom + 1 && b.left >= r.left - 1 && b.right <= r.right + 1;
-        });
-      };
-      // The boards at the largest scale that fits (3 Nov 2026, Joe's audit: the answer sat in a small card with half
-      // the screen empty): up to REVEAL_GROW_MAX and never wider than the reveal when they fit as drawn, else down to
-      // REVEAL_FIT_MIN (27 Oct 2026). A few halvings: the games' own flex boxes take up a board's added height, so
-      // the spare height can't be read off the layout.
-      let z = 1;
-      if (els.length) {
-        const widest = Math.max(0, ...els.map((el) => el.getBoundingClientRect().width));
-        const hi = widest > 0 ? Math.max(1, Math.min(REVEAL_GROW_MAX, (root.clientWidth - 16) / widest)) : 1;
-        let lo = 1;
-        let top = hi;
-        if (!fits()) {
-          lo = REVEAL_FIT_MIN;
-          top = 1;
-        }
-        if (top > lo + 0.02) {
-          apply(top);
-          if (fits()) lo = top;
-          else
-            for (let i = 0; i < 7; i++) {
-              const mid = (lo + top) / 2;
-              apply(mid);
-              if (fits()) lo = mid;
-              else top = mid;
+        // Still too tall (the text floor held the card): the boards alone shrink, down to half size.
+        const over = () => boardBox(card).bottom - visBottom;
+        if (over() > 1) {
+          const els = boards();
+          let lo = REVEAL_FIT_MIN;
+          let hi = 1;
+          const apply = (k: number) => {
+            for (const s of scaled.splice(0)) {
+              s.el.style.transform = s.transform;
+              s.el.style.transformOrigin = s.origin;
+              s.el.style.marginBottom = s.margin;
             }
+            if (k < 1) for (const el of els) shrinkBoard(el, k);
+          };
+          for (let i = 0; i < 7 && els.length; i++) {
+            const mid = (lo + hi) / 2;
+            apply(mid);
+            if (over() <= 1) lo = mid;
+            else hi = mid;
+          }
+          apply(els.length ? lo : 1);
+          root.dataset["fit"] = "";
         }
-        z = Math.abs(lo - 1) <= 0.02 ? 1 : lo;
-        apply(z);
-        if (z > 1) root.dataset["grown"] = String(Math.round(z * 100) / 100);
-        else if (z < 1) root.dataset["fit"] = "";
+        // The card's own (transparent) box scaled past the reveal must not make it scroll when what it draws fits.
+        if (boardBox(card).bottom <= visBottom + REVEAL_CARD_PAD + 1 && card.style.transform) root.style.overflowY = "hidden";
       }
-      const over = overflow();
-      if (over > 1) {
-        // Last resort: the whole reveal, lines included, never under 13 px text.
-        let smallest = Infinity;
-        for (const el of Array.from(root.querySelectorAll<HTMLElement>("p, span, li, div"))) {
-          if (!Array.from(el.childNodes).some((n) => n.nodeType === 3 && (n.textContent ?? "").trim())) continue;
-          if (el.closest("svg, [data-reveal-fit-board]")) continue;
-          smallest = Math.min(smallest, parseFloat(getComputedStyle(el).fontSize) || Infinity);
-        }
-        const floor = Number.isFinite(smallest) ? Math.min(1, REVEAL_FIT_MIN_TEXT_PX / smallest) : 1;
-        const blocks = Array.from(root.children).filter(
-          (el): el is HTMLElement => el instanceof HTMLElement && getComputedStyle(el).position !== "absolute",
-        );
-        const total = blocks.reduce((n, el) => n + el.offsetHeight, 0);
-        const zz = total > 0 ? Math.max(floor, 1 - (over + 2) / total) : 1;
-        if (zz < 1) for (const el of blocks) shrink(el, zz);
-        root.dataset["fit"] = "";
-      }
-      if (tray) tray.style.display = trayDisplay;
-      fitted = `${root.clientWidth}x${root.clientHeight}:${root.scrollHeight}`;
+      placeTray();
+      fitted = `${root.clientWidth}x${root.clientHeight}:${card.scrollHeight}`;
     };
     fit();
     const later = () => {
-      if (`${root.clientWidth}x${root.clientHeight}:${root.scrollHeight}` === fitted) return;
+      if (`${root.clientWidth}x${root.clientHeight}:${card.scrollHeight}` === fitted) return;
       if (!frame) frame = requestAnimationFrame(fit);
     };
     const resize = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(later);
     resize?.observe(root);
-    for (const child of Array.from(root.children)) resize?.observe(child);
+    resize?.observe(card);
+    for (const child of Array.from(card.children)) resize?.observe(child);
     const mutations = new MutationObserver(() => {
-      for (const child of Array.from(root.children)) resize?.observe(child);
+      for (const child of Array.from(card.children)) resize?.observe(child);
       if (!frame) frame = requestAnimationFrame(fit);
     });
     // The Solution / Yours switch shows (and flips) by attribute: refit then too.
@@ -432,9 +403,10 @@ function useRevealFit(ref: { current: HTMLElement | null }) {
 /**
  * Timed games with nothing to solve (3 Nov 2026, Joe's audit: Flash and Bang On said "Solved in 60.0 s" on tiny
  * scores): their reveal says "Finished", never Solved / Not solved, and shows no tick or cross. Tenfall, Bonk, Mixed
- * Signals and Pull! join them now they take the puzzle reveal.
+ * Signals and Pull! join them now they take the puzzle reveal; Nucleus and Forage, open games with nothing to finish,
+ * since 4 Nov 2026 (they said "Solved in 99.5 s" over "171 for progress").
  */
-export const FINISH_ONLY_TYPES: ReadonlySet<string> = new Set(["reaction", "stopwatch", "tendrop", "whack", "stroop", "clayshoot"]);
+export const FINISH_ONLY_TYPES: ReadonlySet<string> = new Set(["reaction", "stopwatch", "tendrop", "whack", "stroop", "clayshoot", "wordsmith", "wordhunt"]);
 
 /**
  * Engine games in puzzle categories (Speed, Number) that used the arcade reveal: they take the puzzle reveal (verdict,
@@ -442,8 +414,11 @@ export const FINISH_ONLY_TYPES: ReadonlySet<string> = new Set(["reaction", "stop
  */
 export const PUZZLE_REVEAL_ENGINE_TYPES: ReadonlySet<string> = new Set(["tendrop", "whack", "stroop", "clayshoot"]);
 
-/** Puzzles whose own Reveal already writes the stored score parts (solvedMovesText, Topsy-Turvy's line). */
-const REVEAL_SHOWS_PARTS: ReadonlySet<string> = new Set(["gravity", "iceslide", "unblock", "lightsout", "flood", "tiles", "rings"]);
+/**
+ * Puzzles whose own Reveal writes the stored score parts: none since 4 Nov 2026 (Blackout, Turntable and Colour Flood
+ * showed them twice): every puzzle's line is the one above the board; solvedMovesText keeps the moves.
+ */
+const REVEAL_SHOWS_PARTS: ReadonlySet<string> = new Set<string>();
 
 /** The verdict in sentence case, so units stay lowercase: "Solved in 53.2 s", "Partly solved", "Not solved". */
 function verdictLine(correct: boolean, score: number | null, msRemaining: number | undefined, limitMs: number, type?: string): string {
@@ -457,11 +432,14 @@ function verdictLine(correct: boolean, score: number | null, msRemaining: number
 }
 
 /** An engine game's stored breakdown on the puzzle reveal: open in practice, behind "See breakdown" in a room. */
-function EngineBreakdown({ extra, score, practice, costRows }: { extra: Record<string, unknown> | null; score: number | null; practice: boolean; costRows: { label: string; value: string }[] }) {
-  const [open, setOpen] = useState(false);
-  const reveal = (extra?.["reveal"] as ArcadeRevealData | undefined) ?? null;
-  if (!reveal || score === null) return null;
-  const tiles = [...reveal.tiles.slice(0, 4), ...costRows];
+function EngineBreakdown({ type, extra, score, practice, costRows, open, setOpen }: { type: string; extra: Record<string, unknown> | null; score: number | null; practice: boolean; costRows: { label: string; value: string }[]; open: boolean; setOpen: (f: (v: boolean) => boolean) => void }) {
+  const stored = (extra?.["reveal"] as ArcadeRevealData | undefined) ?? null;
+  if (!stored || score === null) return null;
+  // Each fact once (4 Nov 2026, Joe's review: Tenfall said "9 of 10 targets" three times): the stored lines in plain
+  // words with no pre-curve "points", then only the stats they don't already state.
+  const reveal = { ...stored, lines: engineLines(type, stored.lines) };
+  const shown = revealShown(reveal, score);
+  const tiles = [...shown.tiles.filter((t) => !statRepeatsPart(t.label, shown.lines)).slice(0, 4), ...costRows.filter((t) => t.value !== "0")];
   return (
     <div data-engine-breakdown="" className="flex shrink-0 flex-col items-center gap-1">
       {practice ? null : (
@@ -475,7 +453,7 @@ function EngineBreakdown({ extra, score, practice, costRows }: { extra: Record<s
           {open ? "Hide breakdown" : "See breakdown"}
         </button>
       )}
-      <RevealBreakdown lines={reveal.lines} score={score} extra={tiles} hidden={!practice && !open} />
+      <RevealBreakdown lines={shown.lines} score={score} extra={tiles} hidden={!practice && !open} />
     </div>
   );
 }
@@ -633,6 +611,7 @@ function LiveAnswerReveal({
   onBack,
 }: AnswerRevealProps) {
   const practiceActions = practice && (onPlayAgain || onBack);
+  const [engineOpen, setEngineOpen] = useState(false);
   const secondsLeft = Math.max(
     0,
     Math.ceil((puzzleRevealMs(puzzle) - Math.max(0, now - startedAt)) / 1000),
@@ -649,10 +628,10 @@ function LiveAnswerReveal({
   const solvedBoard = useRef<HTMLDivElement>(null);
   useSolveFlourish(solvedBoard, puzzle.type, answersReady && myScore !== null && myCorrect);
   useRevealLabels(solvedBoard);
-  useRevealFit(solvedBoard);
-  useRevealMore(solvedBoard);
+  const revealCard = useRef<HTMLDivElement>(null);
   const trayRef = useRef<HTMLDivElement>(null);
-  useRevealTray(solvedBoard, trayRef);
+  useRevealFit(solvedBoard, revealCard, trayRef);
+  useRevealMore(solvedBoard);
 
   useEffect(() => {
     if (myScore === null || cued.current === round) return;
@@ -757,7 +736,7 @@ function LiveAnswerReveal({
         {/* The hero's reserved strip (3 Nov 2026): only when the score earns a hero moment, above the verdict. */}
         {heroSpot ? <div data-hero-spot="" aria-hidden="true" className="reveal-hero-spot shrink-0" /> : null}
         {/* The verdict row: the mark in the category colour, "Solved in 53.2 s" in sentence case, the score in white. */}
-        <div data-verdict-row className="flex shrink-0 items-center gap-3">
+        <div data-verdict-row className="flex shrink-0 items-center gap-3 px-1">
           {!puzzleOwnsRevealLayout && !FINISH_ONLY_TYPES.has(puzzle.type) ? <Verdict correct={myCorrect} score={myScore} /> : null}
           <span className="flex min-w-0 flex-1 flex-col">
             <span className="truncate text-[16px] font-bold text-foreground">
@@ -772,7 +751,7 @@ function LiveAnswerReveal({
           <StoredScore score={myScore} type={puzzle.type} />
         </div>
         {/* One score line on every puzzle reveal (3 Nov 2026): the stored parts, "150 + 20 par + 30 speed". */}
-        {myScore !== null && storedScoreParts(myExtra) && !REVEAL_SHOWS_PARTS.has(puzzle.type) ? (
+        {myScore !== null && storedScoreParts(myExtra) && !REVEAL_SHOWS_PARTS.has(puzzle.type) && !(FINISH_ONLY_TYPES.has(puzzle.type) && storedScoreParts(myExtra)!.kind === "partial") ? (
           <p data-reveal-score-line="" className="shrink-0 text-center text-[15px] font-semibold tabular-nums text-foreground">
             {scorePartsText(storedScoreParts(myExtra)!)}
           </p>
@@ -784,17 +763,20 @@ function LiveAnswerReveal({
         ) : null}
         {/* Engine games on the puzzle reveal: their stored breakdown, open (practice) or one tap away (rooms). */}
         {PUZZLE_REVEAL_ENGINE_TYPES.has(puzzle.type) ? (
-          <EngineBreakdown extra={myExtra ?? null} score={myScore} practice={practice} costRows={storedCostRows(puzzle.type, myExtra, puzzle.type === "clayshoot" ? puzzle.clayRev : undefined)} />
+          <EngineBreakdown type={puzzle.type} open={engineOpen} setOpen={setEngineOpen} extra={myExtra ?? null} score={myScore} practice={practice} costRows={storedCostRows(puzzle.type, myExtra, puzzle.type === "clayshoot" ? puzzle.clayRev : undefined)} />
         ) : null}
         {/* Shared near-miss line; nearMiss() returns null for every puzzle type without one. */}
         {myScore !== null && nearMiss(puzzle.type, myExtra) ? (
           <p className="shrink-0 text-center text-sm font-semibold text-foreground">{nearMiss(puzzle.type, myExtra)}</p>
         ) : null}
-        {/* The board keeps its box (flex-1, as before); the tray behind it hugs what it draws (useRevealTray). */}
+        {/* The board keeps its box (flex-1, as before); the tray behind its card hugs what the card draws (useRevealFit). */}
         <div ref={solvedBoard} data-skin-off className="answer-reveal-content relative isolate flex w-full min-h-0 flex-1 flex-col items-center justify-start overflow-x-hidden overflow-y-auto text-base animate-rise-settle">
           <div ref={trayRef} aria-hidden="true" data-reveal-tray className="reveal-tray" />
           {answersReady ? <SolutionSwitch type={puzzle.type} root={solvedBoard} /> : null}
-          {answersReady ? (
+          {/* The card: the game's board and every line it draws, measured and scaled as one (useRevealFit). */}
+          <div ref={revealCard} data-reveal-card="" className="reveal-card">
+          {/* An engine game's own summary line only while its breakdown is folded away (a room's "See breakdown"). */}
+          {answersReady && !(PUZZLE_REVEAL_ENGINE_TYPES.has(puzzle.type) && myScore !== null && (practice || engineOpen)) ? (
             <Reveal
               puzzle={puzzle}
               myAnswer={myAnswer}
@@ -806,11 +788,12 @@ function LiveAnswerReveal({
               scoreParts={storedScoreParts(myExtra)}
               myExtra={myExtra ?? null}
             />
-          ) : (
-            <div className="flex justify-center">
+          ) : !answersReady ? (
+            <div data-reveal-waiting="" className="flex justify-center">
               <WaitingLine label="Revealing" />
             </div>
-          )}
+          ) : null}
+          </div>
         </div>
         {players && players.length > 1 ? <RevealPlayers players={players} secondsLeft={secondsLeft} /> : null}
       </div>

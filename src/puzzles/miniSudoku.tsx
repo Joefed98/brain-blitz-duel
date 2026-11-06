@@ -317,11 +317,12 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: Puz
           <SudokuGrid values={values} tones={tones} />
         </div>
       </div>
-      <p className="logic-reveal-text text-center font-mono uppercase tracking-widest text-muted-foreground">
-        {myCorrect
-          ? `✓ Solved${elapsed === null ? "" : ` · ${elapsed}s`}`
-          : `✗ ${correct} / ${blanks} correct`}
-      </p>
+      {/* Solved: the verdict row above says it (4 Nov 2026). */}
+      {myCorrect ? null : (
+        <p className="logic-reveal-text text-center font-mono uppercase tracking-widest text-muted-foreground">
+          {`${correct} / ${blanks} correct`}
+        </p>
+      )}
     </div>
   );
 }

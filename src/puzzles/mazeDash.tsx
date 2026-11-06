@@ -526,13 +526,16 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining, myExt
         />
       </div>
       <p className="font-mono text-base uppercase tracking-widest text-muted-foreground">
-        {myCorrect
-          ? `Solved${elapsed === null ? "" : ` in ${elapsed.toFixed(1)} s`}`
-          : `${Math.round(verdict.progress * 100)}% of the way`}
-        {/* The scoring standard (mazeRev 3): stars count finished or not. */}
-        {/* mazeRev 4: the steps taken against par (the stored figures, a finish only). */}
-        {parMoves && myCorrect && typeof myExtra?.["steps"] === "number" ? ` · ${myExtra["steps"]} steps, par ${Number(myExtra["parSteps"] ?? 0)}` : ""}
-        {taken ? ` · ★ ${taken.length}/${LAB_STARS}${(myCorrect || mazeStandard(puzzle)) && starBonus > 0 ? ` +${starBonus}` : ""}` : ""}
+        {/* Solved: the verdict row above says it (4 Nov 2026); this line keeps only the extra detail. */}
+        {[
+          myCorrect ? "" : `${Math.round(verdict.progress * 100)}% of the way`,
+          // mazeRev 4: the steps taken against par (the stored figures, a finish only).
+          parMoves && myCorrect && typeof myExtra?.["steps"] === "number" ? `${myExtra["steps"]} steps, par ${Number(myExtra["parSteps"] ?? 0)}` : "",
+          // The scoring standard (mazeRev 3): stars count finished or not.
+          taken ? `★ ${taken.length}/${LAB_STARS}${(myCorrect || mazeStandard(puzzle)) && starBonus > 0 ? ` +${starBonus}` : ""}` : "",
+        ]
+          .filter(Boolean)
+          .join(" · ")}
       </p>
     </div>
   );

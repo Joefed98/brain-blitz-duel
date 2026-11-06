@@ -324,11 +324,12 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining, score
       <p className="font-mono text-base uppercase tracking-widest text-muted-foreground">
         shortest route · {min} move{min === 1 ? "" : "s"}
       </p>
-      <p className="font-mono text-base uppercase tracking-widest text-muted-foreground">
-        {myCorrect
-          ? `✓ ${solvedMovesText(replay.moves, min, myMsRemaining, timeLimitMs, "B", scoreParts)}`
-          : "✗ Not solved"}
-      </p>
+      {/* The verdict row says solved or not (4 Nov 2026: "Partly solved" above "✗ Not solved"); this keeps the moves. */}
+      {myCorrect ? (
+        <p className="font-mono text-base uppercase tracking-widest text-muted-foreground">
+          {solvedMovesText(replay.moves, min, myMsRemaining, timeLimitMs, "B", scoreParts)}
+        </p>
+      ) : null}
     </div>
   );
 }

@@ -31,6 +31,8 @@ export interface BreakdownRow {
 const STD_PART = /^([^:→]+): (.*) → (-?\d+) of (\d+)$/;
 const TOTAL = /^Total → (\d+)(?: of (\d+))?(?: · (.+))?$/;
 const AT_LEAST_ONE = /^At least 1 for playing → (\d+)$/;
+/** A penalty line (arcadeBandStd.ts): "Penalty: 2 lives lost → −10". */
+export const PENALTY_LINE = /^Penalty: (.*) → [−-](\d+)$/;
 const NO_INPUT = /^(.*) · no input → 0$/;
 /** Any other "<text> → <number>[ rest]" line. */
 const ARROW_POINTS = /^(.*?) → ([−-]?\d+)$/;
@@ -135,6 +137,7 @@ export function breakdownRows(lines: readonly string[], score: number | null): B
     rows.push(row);
   };
   let partSum = 0;
+  let maxSum = 0;
   let parts = 0;
   let total: BreakdownRow | null = null;
   for (const line of lines) {
@@ -142,7 +145,14 @@ export function breakdownRows(lines: readonly string[], score: number | null): B
     if (std) {
       parts++;
       partSum += num(std[3]!);
+      maxSum += num(std[4]!);
       push({ line, kind: "part", name: plainText(std[1]!), detail: plainText(std[2]!), points: num(std[3]!), max: num(std[4]!) });
+      continue;
+    }
+    const pen = PENALTY_LINE.exec(line);
+    if (pen) {
+      partSum -= num(pen[2]!);
+      push({ line, kind: "adjust", name: "Penalty", detail: plainText(pen[1]!), points: -num(pen[2]!), max: null });
       continue;
     }
     const tot = TOTAL.exec(line);
@@ -193,8 +203,10 @@ export function breakdownRows(lines: readonly string[], score: number | null): B
       max: null,
     });
   }
+  // Every standard total reads "N of 200" (4 Nov 2026: Cue Ball's said "145 points" where a penalty made it differ).
+  if (total && total.max === null && parts >= 2) total = { ...total, max: maxSum };
   if (total) rows.push(total);
-  else if (parts >= 1 && score !== null) rows.push({ line: "", kind: "total", name: "Total", detail: null, points: score, max: null });
+  else if (parts >= 1 && score !== null) rows.push({ line: "", kind: "total", name: "Total", detail: null, points: score, max: parts >= 2 ? maxSum : null });
   return rows;
 }
 
@@ -224,4 +236,70 @@ export function summaryText(summary: string): string {
   if (/^\d+ points? · .+ \d+ [+−] (?:bonuses|penalties) \d+$/.test(summary)) return summary;
   const rows = breakdownRows([summary], null);
   return rows.map(rowText).slice(0, 2).join(" · ");
+}
+
+/* ---- The stats card under an arcade breakdown (4 Nov 2026, Joe's review): only what the parts don't already say. ---- */
+
+/** Words too common to tie a stat to a part. */
+const STAT_STOP = new Set(["the", "and", "for", "best", "left", "total", "all", "per", "with", "your", "off", "out"]);
+
+function statWords(text: string): Set<string> {
+  return new Set(
+    text
+      .toLowerCase()
+      .replace(/j-o-u-l-z/g, "joulz")
+      .split(/[^a-z]+/)
+      .filter((w) => w.length >= 3 && !STAT_STOP.has(w))
+      .map((w) => singularOf(w)),
+  );
+}
+
+/** Stat labels that are never extra facts: jargon, or the parts' sum by another name. */
+const STAT_NEVER = /^(full at|features?|bonus|core)$/i;
+
+/**
+ * Whether a stored stat repeats a part of the run's standard breakdown (its label shares a word with a part's name,
+ * "Far buckets" with "Far buckets", "J-O-U-L-Z" with "J-O-U-L-Z", "The black" with "Black"), or is jargon ("Full at",
+ * "Features"). Runs not on the standard keep every stat.
+ */
+export function statRepeatsPart(label: string, lines: readonly string[], partLabels: readonly string[] = []): boolean {
+  if (STAT_NEVER.test(label.trim())) return true;
+  // The part names from the stored lines, else from the game's spec (a run with no input stores one line).
+  const fromLines = lines.map((l) => STD_PART.exec(l)?.[1]).filter((n): n is string => Boolean(n));
+  const names = fromLines.length >= 2 ? fromLines : partLabels;
+  if (names.length < 2) return false;
+  const words = statWords(label);
+  if (!words.size) return false;
+  return names.some((name) => {
+    const part = statWords(name);
+    return [...words].some((w) => part.has(w));
+  });
+}
+
+/**
+ * An engine game's stored lines on the puzzle reveal in real points only (4 Nov 2026, Joe's review: Bonk's "Total −6
+ * wrong · −207 empty" and Pull!'s "−0 from the total" were costs taken off the run's total before its curve, never off
+ * the score): a cost on the total, or a cost of 0, is left out (the counts stay as stats under the rows); anything else
+ * reads as stored.
+ */
+export function engineLines(type: string, lines: readonly string[]): string[] {
+  const out: string[] = [];
+  for (const line of lines) {
+    if (type === "whack" && /(^|·\s*)[−-]\d+ (wrong|hedgehogs|empty)\b/.test(line)) {
+      // "Total −6 wrong · −207 empty · +15 all targets": the costs are the total's; the bonus for every target stays.
+      const kept = line.replace(/^Total /, "").split(" · ").filter((p) => !/^[−-]\d+ /.test(p));
+      if (kept.length) out.push(kept.map((p) => (/^\+15 all targets$/.test(p) ? "All targets hit" : p)).join(" · "));
+      continue;
+    }
+    if (type === "clayshoot" && /birds? hit · [−-]\d+/.test(line) && (/ from the total$/.test(line) || /[−-]0\b/.test(line))) continue;
+    if (/[−-]0(?!\d)/.test(line) && !/→/.test(line)) continue;
+    // Extras that paid nothing ("Combo +0 (best run 0) · diamonds +0 (0 of 2)") are left out, piece by piece.
+    if (!/→/.test(line) && /\+0(?!\d)/.test(line)) {
+      const kept = line.split(" · ").filter((p) => !/\+0(?!\d)/.test(p));
+      if (kept.length) out.push(kept.join(" · "));
+      continue;
+    }
+    out.push(line);
+  }
+  return out;
 }

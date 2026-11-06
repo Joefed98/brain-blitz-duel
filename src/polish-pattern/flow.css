@@ -104,7 +104,7 @@
 }
 
 /* --- Reveal: both boards as large as the space allows --- */
-.answer-reveal-content > .flow-reveal {
+.answer-reveal-content .reveal-card > .flow-reveal {
   flex: 1 1 0;
   min-height: 0;
   container-type: size;
