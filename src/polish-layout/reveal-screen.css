@@ -39,8 +39,13 @@
 /* Secondary text on the gradient (the "points" label and the like): every stop is dark enough for white at 7:1, so
    #D4D4DC (relative luminance 0.66) reads at 4.5:1 or better anywhere on it; the page skin's grey read 3.77:1
    (theme-check). */
+[data-reveal-screen] {
+  /* The secondary text on the gradient (design foundation F3): the main text a quarter of the way to --jz-text-2.
+     --jz-text-2 alone reads under 4.5:1 on the darkest-allowed stops; this mix (#E0E7F6) reads above 5:1 on all. */
+  --reveal-text-2: color-mix(in srgb, var(--jz-text) 75%, var(--jz-text-2));
+}
 [data-reveal-screen] [data-reveal-column] {
-  --muted-foreground: #d4d4dc;
+  --muted-foreground: var(--reveal-text-2);
 }
 
 /* ---- Shared screens batch (3 Nov 2026, Joe's audit) -------------------------------------------------------------- */
@@ -52,10 +57,10 @@
   flex-direction: column;
   gap: 2px;
   padding: 6px 12px;
-  border-radius: 14px;
-  background: rgba(10, 10, 14, 0.72);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
-  font-family: var(--ap-font, var(--jz-font));
+  border-radius: var(--jz-radius);
+  background: color-mix(in srgb, var(--jz-bg) 72%, transparent);
+  box-shadow: inset 0 0 0 1px var(--jz-line);
+  font-family: var(--jz-font);
   font-variant-numeric: tabular-nums;
   list-style: none;
   margin: 0;
@@ -73,10 +78,10 @@
   padding: 6px 0 8px;
   font-size: 14px;
   line-height: 1.25;
-  color: #f5f5f7;
+  color: var(--jz-text);
 }
 .reveal-breakdown-row + .reveal-breakdown-row {
-  border-top: 1px solid rgba(255, 255, 255, 0.07);
+  border-top: 1px solid var(--jz-line);
 }
 .reveal-breakdown-text {
   display: flex;
@@ -85,28 +90,29 @@
   flex-direction: column;
 }
 .reveal-breakdown-name {
-  font-weight: 700;
+  font-weight: var(--jz-weight-medium);
   min-width: 0;
 }
 .reveal-breakdown-detail {
-  color: #d4d4dc;
+  color: var(--reveal-text-2, var(--jz-text-2));
   font-size: 13px;
-  font-weight: 500;
+  font-weight: var(--jz-weight-regular);
 }
 .reveal-breakdown-points {
   flex-shrink: 0;
-  font-weight: 800;
+  font-weight: var(--jz-weight-bold);
   white-space: nowrap;
 }
 .reveal-breakdown-row[data-breakdown-kind="adjust"] .reveal-breakdown-points {
-  color: #ffb3a8;
+  /* A cost: the app's red lifted towards the text colour, so it reads on the dark panel. */
+  color: color-mix(in srgb, var(--jz-red) 45%, var(--jz-text));
 }
 .reveal-breakdown-row[data-breakdown-kind="total"] {
   font-size: 15px;
 }
 .reveal-breakdown-row[data-breakdown-kind="total"] .reveal-breakdown-name,
 .reveal-breakdown-row[data-breakdown-kind="total"] .reveal-breakdown-points {
-  color: #f2c75c;
+  color: var(--jz-gold);
 }
 .reveal-breakdown-bar {
   position: absolute;
@@ -115,20 +121,71 @@
   bottom: 2px;
   height: 3px;
   border-radius: 2px;
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--jz-surface-2);
   overflow: hidden;
 }
 .reveal-breakdown-bar > span {
   display: block;
   height: 100%;
   border-radius: 2px;
-  background: #f2c75c;
+  background: var(--jz-gold);
 }
 
-/* "See breakdown" in a room: a clear button on dark glass, not a tiny ▾. */
-.reveal-see-breakdown {
-  background: rgba(10, 10, 14, 0.55);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+/* "See breakdown" in a room: the shared secondary Button (F3), its label in cyan (info, DESIGN.md section 2). */
+.reveal-see-breakdown-label {
+  font-size: 13px;
+  font-weight: var(--jz-weight-bold);
+  color: var(--jz-cyan);
+}
+/* The arcade reveal's folded summary: the summary line over the label, inside one button (F2's Button grows to fit). */
+.jz-btn.reveal-see-breakdown-summary {
+  height: auto;
+  flex-direction: column;
+  gap: 0;
+  padding: 6px 12px;
+  white-space: normal;
+}
+
+/* The reveal's type (F3): DESIGN.md section 3's roles on the reveal's own lines. */
+.reveal-title,
+.reveal-verdict {
+  font-family: var(--jz-font);
+  font-size: 16px;
+  line-height: 20px;
+  font-weight: var(--jz-weight-bold);
+  color: var(--jz-text);
+}
+.reveal-meta {
+  font-family: var(--jz-font);
+  font-size: 13px;
+  line-height: 18px;
+  font-weight: var(--jz-weight-medium);
+  color: var(--reveal-text-2, var(--jz-text-2));
+}
+.reveal-score-line {
+  font-family: var(--jz-font);
+  font-size: 15px;
+  line-height: 21px;
+  font-weight: var(--jz-weight-medium);
+  font-variant-numeric: tabular-nums;
+  color: var(--jz-text);
+}
+/* The arcade reveal's big number: the score role at display size. */
+.reveal-big-score {
+  font-family: var(--jz-font);
+  font-size: 60px;
+  line-height: 1;
+  font-weight: var(--jz-weight-bold);
+  font-stretch: 105%;
+  font-variant-numeric: tabular-nums;
+  color: var(--jz-text);
+}
+.reveal-points-label {
+  font-family: var(--jz-font);
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: var(--jz-weight-medium);
+  color: var(--reveal-text-2, var(--jz-text-2));
 }
 
 /* The hero's reserved strip: its own row above the score, so the hero never covers a board, a line or a button. */
@@ -150,9 +207,9 @@
   gap: 4px;
   margin-bottom: 8px;
   padding: 3px;
-  border-radius: 999px;
-  background: rgba(10, 10, 14, 0.72);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+  border-radius: var(--jz-round);
+  background: color-mix(in srgb, var(--jz-bg) 72%, transparent);
+  box-shadow: inset 0 0 0 1px var(--jz-line);
 }
 .solution-switch[hidden] {
   display: none;
@@ -161,11 +218,11 @@
   min-width: 96px;
   height: 36px;
   padding: 0 14px;
-  border-radius: 999px;
-  font-family: var(--ap-font, var(--jz-font));
+  border-radius: var(--jz-round);
+  font-family: var(--jz-font);
   font-size: 14px;
-  font-weight: 700;
-  color: #d4d4dc;
+  font-weight: var(--jz-weight-medium);
+  color: var(--reveal-text-2, var(--jz-text-2));
 }
 .solution-switch-btn::before {
   /* 44 px tall hit area */
@@ -177,8 +234,8 @@
   position: relative;
 }
 .solution-switch-btn[data-active] {
-  background: #f5f5f7;
-  color: #0b0b0f;
+  background: var(--jz-text);
+  color: var(--jz-bg);
 }
 
 /* Reveal text reads as the app, not debug output (3 Nov 2026): the games' reveal lines and word lists drew in a
@@ -186,7 +243,7 @@
    units stay lower case. The board art itself is untouched. */
 .answer-reveal-content :is(p, span, li).font-mono,
 [data-answer-reveal] [data-verdict-row] .font-mono {
-  font-family: var(--ap-font, var(--jz-font));
+  font-family: var(--jz-font);
   font-variant-numeric: tabular-nums;
 }
 .answer-reveal-content :is(p, span).uppercase {

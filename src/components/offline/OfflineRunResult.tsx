@@ -6,6 +6,7 @@ import type { PuzzleType } from "@/lib/duel/types";
 
 import { PendingClock } from "./PendingClock";
 import { useQueuedRun } from "./useOfflinePractice";
+import { Button } from "@/design/components";
 
 /**
  * The end of a practice run played away from the server (offline practice, 31 Oct 2026), in place of the
@@ -61,12 +62,12 @@ export function OfflineRunResult({
         </div>
       )}
       <div data-practice-reveal-actions className="flex w-full max-w-[320px] gap-2.5">
-        <button type="button" onClick={onBack} className="rs-btn press tap-target h-[50px] flex-1">
+        <Button variant="secondary" size={50} onClick={onBack} className="flex-1">
           Back
-        </button>
-        <button type="button" onClick={onPlayAgain} className="th-btn-gold ap-btn-gold press tap-target h-[50px] flex-1 rounded-[14px] text-[17px]">
+        </Button>
+        <Button variant="gold" size={50} onClick={onPlayAgain} className="flex-1">
           Play again
-        </button>
+        </Button>
       </div>
     </div>
   );

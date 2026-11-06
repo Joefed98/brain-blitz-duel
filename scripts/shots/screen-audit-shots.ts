@@ -5,7 +5,7 @@
  * (scripts/safe-area-harness.tsx, network stubbed; the theme screens' fixtures), plus one overview
  * sheet per group. JPEG at 1×.
  *
- *   bun scripts/shots/screen-audit-shots.ts [--out=screenshots/screen-audit] [--only=<group,…>]
+ *   bun scripts/shots/screen-audit-shots.ts [--out=screenshots/screen-audit] [--only=<group,…>] [--viewport=390x844]
  *
  * The 404 page is the root route's own component and is not drawn by the harness: it needs the app's
  * dev server (`--app=<origin>`, e.g. `bun run dev`); without one it is left out.
@@ -51,10 +51,14 @@ interface Viewport {
   h: number;
   insets?: { top: number; bottom: number };
 }
-const VIEWPORTS: Viewport[] = [
-  { key: "414x896", w: 414, h: 896, insets: { top: 48, bottom: 34 } },
-  { key: "375x667", w: 375, h: 667 },
-];
+// `--viewport=390x844` draws one plain viewport instead (before/after sheets, design foundation F2).
+const ONE_VIEWPORT = arg("viewport")?.match(/^(\d+)x(\d+)$/);
+const VIEWPORTS: Viewport[] = ONE_VIEWPORT
+  ? [{ key: `${ONE_VIEWPORT[1]}x${ONE_VIEWPORT[2]}`, w: Number(ONE_VIEWPORT[1]), h: Number(ONE_VIEWPORT[2]) }]
+  : [
+      { key: "414x896", w: 414, h: 896, insets: { top: 48, bottom: 34 } },
+      { key: "375x667", w: 375, h: 667 },
+    ];
 
 /* ---------------------------------------------------------------- room states */
 

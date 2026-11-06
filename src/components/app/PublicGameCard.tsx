@@ -11,6 +11,7 @@ import {
   type PublicGame,
 } from "@/lib/publicSchedule";
 import { pageHidden } from "@/lib/battery";
+import { Button, LiveTag } from "@/design/components";
 
 /** "Sat 24 Oct · 7:00 pm UK" (UK time). */
 export function publicGameWhen(game: PublicGame): string {
@@ -103,18 +104,18 @@ export function PublicGameNext({
           <span className="ap-date-day">{parts ? parts.weekday.toUpperCase() : "···"}</span>
           <span className="ap-date-num">{parts ? parts.day : "··"}</span>
         </span>
-        <span className="ap-row-text">
-          <span data-ellipsis className="ap-row-title">
+        <span className="jz-row-text">
+          <span data-ellipsis className="jz-row-title">
             {game?.title ?? "Public game"}
           </span>
-          <span data-ellipsis className="ap-row-sub">
+          <span data-ellipsis className="jz-row-sub">
             {game ? publicGameLine(game, now) : "····"}
           </span>
         </span>
       </div>
       {open && game ? (
         <p data-public-status data-open="" className="ap-next-status">
-          <span aria-hidden="true" className="ap-live-dot" />
+          <LiveTag kind="live" className="shrink-0" />
           <span>
             Lobby open
             {waiting !== null ? ` · ${waiting} ${waiting === 1 ? "player" : "players"} waiting` : ""} · starts in{" "}
@@ -129,35 +130,26 @@ export function PublicGameNext({
       )}
       <div className="ap-next-actions">
         {open && game ? (
-          <button
-            type="button"
-            data-public-join
-            onClick={() => onJoin(game.roomCode)}
-            className="ap-btn-gold press tap-target h-11 w-full text-[16px]"
-          >
-            <Users aria-hidden="true" className="h-[18px] w-[18px]" /> Join now
-          </button>
+          <Button variant="gold" size={44} block data-public-join onClick={() => onJoin(game.roomCode)}>
+            <Users aria-hidden="true" className="h-4 w-4" /> Join now
+          </Button>
         ) : (
           <>
-            <button
-              type="button"
+            <Button
+              variant="secondary"
+              size={44}
+              block
               data-public-join
               disabled
               // Still named Join now (it becomes it at lobby time); it shows when it opens.
               aria-label={game ? `Join now (opens ${ukTime(game.lobbyAt)})` : "Join now"}
-              className="ap-btn-quiet tap-target h-11 w-full text-[15px]"
             >
-              <Lock aria-hidden="true" className="h-[15px] w-[15px]" strokeWidth={2.2} />
+              <Lock aria-hidden="true" className="h-4 w-4" strokeWidth={2.2} />
               {game ? `Opens ${ukTime(game.lobbyAt)}` : "Opens ····"}
-            </button>
-            <button
-              type="button"
-              data-public-calendar
-              onClick={() => game && downloadCalendar(game)}
-              className="ap-btn-outline press tap-target h-11 w-full text-[15px]"
-            >
-              <CalendarPlus aria-hidden="true" className="h-[18px] w-[18px]" /> Add to calendar
-            </button>
+            </Button>
+            <Button variant="secondary" size={44} block data-public-calendar onClick={() => game && downloadCalendar(game)}>
+              <CalendarPlus aria-hidden="true" className="h-4 w-4" /> Add to calendar
+            </Button>
           </>
         )}
       </div>
@@ -170,16 +162,16 @@ export function PublicGameRow({ game }: { game: PublicGame }) {
   const parts = ukDateParts(game.startsAt);
   const name = game.title ?? "Public game";
   return (
-    <div data-icon="date-sm" className="ap-row">
+    <div data-icon="date-sm" className="jz-row">
       <span aria-hidden="true" data-quiet="" className="ap-date">
         <span className="ap-date-day">{parts.weekday.toUpperCase()}</span>
         <span className="ap-date-num">{parts.day}</span>
       </span>
-      <span className="ap-row-text">
-        <span data-ellipsis className="ap-row-title">
+      <span className="jz-row-text">
+        <span data-ellipsis className="jz-row-title">
           {name}
         </span>
-        <span data-ellipsis className="ap-row-sub">
+        <span data-ellipsis className="jz-row-sub">
           {parts.day} {parts.month} · {ukTime(game.startsAt)} UK
         </span>
       </span>
@@ -217,7 +209,7 @@ export function PublicGameCard({
         <h2 className="ap-section-title">{heading}</h2>
         {link}
       </div>
-      <div className="ap-panel overflow-hidden">
+      <div className="jz-panel overflow-hidden">
         <PublicGameNext game={game} now={now} onJoin={onJoin} />
       </div>
     </section>

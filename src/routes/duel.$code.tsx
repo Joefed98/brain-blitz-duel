@@ -147,6 +147,7 @@ import { useSignatureHold, useSignatureVerdict } from "@/lib/fx/useSignature";
 import { APP_NAME, APP_TAGLINE } from "@/lib/brand";
 import { roomUpdateGate, useUpdateGate } from "@/lib/appUpdate";
 import { OnlineOnly } from "@/components/offline/OnlineOnly";
+import { Button, SkeletonPage } from "@/design/components";
 
 const ROOM_TITLE = `Join a ${APP_NAME} room`;
 const ROOM_DESCRIPTION = `You’re invited to a live ${APP_NAME} room. ${APP_TAGLINE}`;
@@ -239,20 +240,20 @@ function LobbyActions({ roomCode }: { roomCode: string }) {
   return (
     // Secondary buttons (the gold rule: sharing is not a play action).
     <div className="flex shrink-0 gap-2">
-      <button
-        type="button"
+      <Button
+        variant="secondary"
         onClick={() => void copy()}
-        className="rs-btn press tap-target w-[104px] px-2"
+        className="w-26 px-2"
       >
         {copied ? "Link copied" : "Copy link"}
-      </button>
-      <button
-        type="button"
+      </Button>
+      <Button
+        variant="secondary"
         onClick={() => void share()}
-        className="rs-btn press tap-target w-[76px] px-2"
+        className="w-19 px-2"
       >
         Share
-      </button>
+      </Button>
     </div>
   );
 }
@@ -802,9 +803,9 @@ function DuelScreen() {
 
   if (state.loading) {
     return (
-      <Centered>
-        <WaitingLine label="Loading room" />
-      </Centered>
+      <PhoneShell skin="room">
+        <SkeletonPage label="Loading room" rows={4} card />
+      </PhoneShell>
     );
   }
 

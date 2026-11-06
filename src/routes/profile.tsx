@@ -26,6 +26,7 @@ import { ordinal } from "@/lib/duel/ordinal";
 import type { PuzzleType } from "@/lib/duel/types";
 import { ukDay } from "@/lib/publicSchedule";
 import { APP_NAME } from "@/lib/brand";
+import { Button, Input } from "@/design/components";
 
 export const Route = createFileRoute("/profile")({
   ssr: false,
@@ -105,7 +106,7 @@ function ProfileScreen() {
         <label htmlFor="profile-name" className="text-[13px] font-semibold text-muted-foreground">
           Display name
         </label>
-        <input
+        <Input
           id="profile-name"
           value={name}
           maxLength={14}
@@ -114,7 +115,6 @@ function ProfileScreen() {
             setName(e.target.value);
             setStoredName(e.target.value.trim());
           }}
-          className="ap-input tap-target"
         />
       </div>
       <LookPicker
@@ -145,61 +145,51 @@ function ProfileScreen() {
       <div className="ap-stack">
         <div className="flex items-center justify-between gap-2">
           <h1 className="ap-title">Profile</h1>
-          <button
-            type="button"
-            aria-label="Settings"
-            data-open-settings
-            onClick={() => setSettings(true)}
-            className="press -mr-2.5 flex h-11 w-11 items-center justify-center text-muted-foreground"
-          >
-            <Settings aria-hidden="true" className="h-6 w-6" strokeWidth={1.9} />
-          </button>
+          <Button variant="icon" aria-label="Settings" data-open-settings onClick={() => setSettings(true)} className="-mr-2.5">
+            <Settings aria-hidden="true" strokeWidth={1.9} />
+          </Button>
         </div>
 
         {fresh ? (
           // A new player (T-ProfileNew): the badge in their colour, what it is, and Choose your look.
-          <section aria-label="Your look" data-profile-new className="ap-panel">
+          <section aria-label="Your look" data-profile-new className="jz-panel">
             <div className="ap-profile-new">
               <PlayerBadge look={look} name={shownName} size={72} />
               <span className="th-name mt-1 max-w-full truncate text-[20px] font-bold text-foreground">{shownName}</span>
               <p data-wrap-ok className="max-w-[280px] text-[14px] leading-[1.4] text-[var(--ap-text-2)]">
                 This is your badge in rooms. Pick a name, colour and icon so friends know it’s you.
               </p>
-              <button
-                type="button"
-                aria-expanded={picking}
-                onClick={() => setPicking((v) => !v)}
-                className="ap-btn-outline press tap-target mt-1 h-[46px] w-full text-[15px]"
-              >
+              <Button variant="secondary" size={46} block aria-expanded={picking} onClick={() => setPicking((v) => !v)} className="mt-1">
                 {picking ? "Done" : "Choose your look"}
-              </button>
+              </Button>
             </div>
             {picker}
           </section>
         ) : (
           // The badge in the player's own colour, name, Beta player, Change look; the room stats beneath.
-          <section aria-label="Your look" className="ap-panel">
+          <section aria-label="Your look" className="jz-panel">
             <div className="ap-profile-head">
               <PlayerBadge look={look} name={shownName} size={56} />
               <div className="flex min-w-0 flex-1 flex-col gap-0.5">
                 <span className="flex min-w-0 items-center gap-2">
                   <span className="th-name truncate text-[19px] font-bold text-foreground">{shownName}</span>
-                  <span className="ap-chip-quiet">Beta player</span>
+                  <span className="jz-chip-quiet">Beta player</span>
                 </span>
                 <span data-ellipsis className="truncate text-[13px] text-muted-foreground">
                   How you look in rooms
                 </span>
               </div>
-              <button
-                type="button"
+              <Button
+                variant="secondary"
+                size={44}
                 aria-expanded={picking}
                 // Drawn "Change" (the mockup); named in full for screen readers.
                 aria-label={picking ? "Done" : "Change look"}
                 onClick={() => setPicking((v) => !v)}
-                className="ap-btn-outline press tap-target h-11 shrink-0 px-3.5 text-[14px]"
+                className="shrink-0"
               >
                 {picking ? "Done" : "Change"}
-              </button>
+              </Button>
             </div>
             {picker}
             {history.length > 0 ? (
@@ -228,7 +218,7 @@ function ProfileScreen() {
                 {doneCount} of {steps.length}
               </span>
             </div>
-            <div className="ap-panel">
+            <div className="jz-panel">
               {steps.map((step) => (
                 <button
                   key={step.id}
@@ -238,14 +228,14 @@ function ProfileScreen() {
                   aria-label={step.done ? `${step.title}, done` : step.title}
                   data-icon="check"
                   onClick={() => openStep(step.id)}
-                  className="ap-row press"
+                  className="jz-row press"
                 >
                   <span aria-hidden="true" data-done={step.done || undefined} className="ap-check">
                     {step.done ? <Check strokeWidth={3} /> : null}
                   </span>
-                  <span className="ap-row-text">
-                    <span className="ap-row-title">{step.title}</span>
-                    <span data-ellipsis className="ap-row-sub">
+                  <span className="jz-row-text">
+                    <span className="jz-row-title">{step.title}</span>
+                    <span data-ellipsis className="jz-row-sub">
                       {step.sub}
                     </span>
                   </span>
@@ -262,7 +252,7 @@ function ProfileScreen() {
             <div className="ap-section-head">
               <h2 className="ap-section-title">Daily</h2>
             </div>
-            <div className="ap-panel ap-stats">
+            <div className="jz-panel ap-stats">
               {[
                 { label: "Day streak", value: dailyStreak(daily.days, ukDayKey(Date.now())) },
                 { label: "Best puzzle", value: daily.best.puzzle ?? null },
@@ -295,11 +285,11 @@ function ProfileScreen() {
                 All {bests.length}
               </button>
             </div>
-            <ul className="ap-panel">
+            <ul className="jz-panel">
               {bests.slice(0, 3).map(({ type, best }) => (
-                <li key={type} data-icon="game" className="ap-row">
+                <li key={type} data-icon="game" className="jz-row">
                   <GameIcon type={type} size={40} />
-                  <span data-ellipsis className="ap-row-title min-w-0 flex-1">
+                  <span data-ellipsis className="jz-row-title min-w-0 flex-1">
                     {PUZZLE_REGISTRY[type].name}
                   </span>
                   <span className="ap-best">{best}</span>
@@ -314,9 +304,9 @@ function ProfileScreen() {
             <div className="ap-section-head">
               <h2 className="ap-section-title">Recent rooms</h2>
             </div>
-            <ul className="ap-panel">
+            <ul className="jz-panel">
               {history.slice(0, 5).map((r) => (
-                <li key={r.key} data-recent-room={r.code} data-icon="place" className="ap-row">
+                <li key={r.key} data-recent-room={r.code} data-icon="place" className="jz-row">
                   {r.place === null ? (
                     <span role="img" aria-label="Left before the end" data-place-disc="n" className="ap-place">
                       <span aria-hidden="true">–</span>
@@ -324,11 +314,11 @@ function ProfileScreen() {
                   ) : (
                     <PlaceDisc place={r.place} label={`${ordinal(r.place)} place`} />
                   )}
-                  <span className="ap-row-text">
-                    <span data-ellipsis className="ap-row-title">
+                  <span className="jz-row-text">
+                    <span data-ellipsis className="jz-row-title">
                       Room {r.code}
                     </span>
-                    <span data-ellipsis className="ap-row-sub">
+                    <span data-ellipsis className="jz-row-sub">
                       {ukDay(r.at, Date.now())} · {r.players} {r.players === 1 ? "player" : "players"}
                       {r.place === null ? " · left" : ""}
                     </span>

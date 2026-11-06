@@ -1,6 +1,7 @@
 import { X } from "lucide-react";
 
 import { topRoundMax } from "@/lib/duel/roundMax";
+import { Button } from "@/design/components";
 
 /**
  * The first-time intro as a card at the top of the Play tab (tab pages refresh, 26 Oct 2026; the design
@@ -19,7 +20,7 @@ export function IntroCard({
 }) {
   const top = topRoundMax().top;
   return (
-    <section aria-labelledby="intro-card-title" data-intro-card className="ap-panel ap-intro">
+    <section aria-labelledby="intro-card-title" data-intro-card className="jz-panel ap-intro">
       <button type="button" aria-label="Close intro" data-intro-close onClick={onClose} className="ap-intro-close ap-icon-btn press">
         <X aria-hidden="true" strokeWidth={2} />
       </button>
@@ -46,9 +47,9 @@ export function IntroCard({
         ))}
       </ol>
       <div className="grid grid-cols-2 gap-2">
-        <button type="button" data-intro-practice onClick={onPractice} className="ap-btn-outline press tap-target h-11 px-2 text-[15px]">
+        <Button variant="secondary" size={44} data-intro-practice onClick={onPractice} className="px-2">
           Try a practice game
-        </button>
+        </Button>
         <button type="button" data-intro-how onClick={onHowItWorks} className="ap-link-quiet press tap-target h-11 px-2">
           How it works
         </button>

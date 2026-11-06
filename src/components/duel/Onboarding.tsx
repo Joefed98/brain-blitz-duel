@@ -6,6 +6,7 @@ import { LogoMark } from "@/components/brand/LogoMark";
 import { topRoundMax } from "@/lib/duel/roundMax";
 import { markOnboardingSeen } from "@/lib/onboarding";
 import { playLock, unlockAudio } from "@/lib/sound";
+import { Button } from "@/design/components";
 
 /**
  * The first-time intro (16 Oct 2026, presentation only; src/lib/onboarding.ts): three
@@ -165,16 +166,9 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
           <p className="sr-only" aria-live="polite">
             {`Step ${index + 1} of ${PANELS.length}`}
           </p>
-          <button
-            type="button"
-            data-onboarding-next
-            onClick={next}
-            className={`press tap-target relative h-[52px] w-full overflow-hidden rounded-[14px] text-[17px] font-bold ${
-              last ? "ap-btn-gold" : "bg-[var(--ap-text)] text-[var(--ap-bg)]"
-            }`}
-          >
+          <Button variant={last ? "gold" : "secondary"} size={52} block data-onboarding-next onClick={next}>
             {last ? "Let’s play" : "Next"}
-          </button>
+          </Button>
         </div>
       </div>
     </PhoneShell>

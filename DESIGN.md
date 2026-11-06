@@ -19,8 +19,8 @@ colours kept on game screens, art drawn in-house (no paid commissions).
    (`text-[13px]`, `rounded-[14px]`, `h-[52px]`, `bg-[#…]`). Use the token or the component.
 2. **Components first.** Use the shared components in `src/design/components/`. Never restyle a raw `<button>`,
    build a new card class, or copy a sheet.
-3. **One font: Archivo.** In app screens and game chrome (intro, frame, reveal). Press Start 2P stays inside Retro
-   game art only. No Space Grotesk, Inter, Saira, Manrope or JetBrains Mono in new work.
+3. **One font: Archivo.** In app screens and game chrome (intro, frame, reveal). Game art inside the play area
+   is the exception (section 9): Press Start 2P for Retro art and JetBrains Mono where canvas art names it. No Space Grotesk, Inter, Saira, Manrope or JetBrains Mono in new work.
 4. **Gold means act, you, or first place.** Nothing else is gold. At most one gold button per screen.
 5. **Gradients only on metal.** Gold buttons, the podium, medals, trophies and rank emblems. No gradient text, no
    glow or sheen on app chrome. Game worlds may glow; the frame around them may not.
@@ -43,9 +43,10 @@ All values live in `src/design/tokens.css` as `--jz-*` custom properties. The ol
 |---|---|---|---|
 | `--jz-bg` | `#06080F` | Page background | — |
 | `--jz-bg-raised` | `#0B0F1C` | Tab bar, sticky footers | — |
-| `--jz-surface` | `#0F1424` | Panels, rows, cards, inputs | — |
+| `--jz-surface` | `#0F1424` | Panels, rows, cards, secondary buttons | — |
 | `--jz-surface-2` | `#1E2640` | Secondary buttons, empty progress, dividers that need weight | — |
 | `--jz-line` | `#1E2640` | Hairlines and rules | — |
+| `--jz-well` | `#06080F` | Inputs and the segmented switch's track: a well, the page colour sunk into its panel with an inset top shadow (`--jz-well-shadow`), so a field is clearly darker than the panel round it | — |
 | `--jz-text` | `#EEF2FF` | Main text | 16.4:1 |
 | `--jz-text-2` | `#B5C6DD` | Secondary text on tinted panels | 10.5:1 |
 | `--jz-text-3` | `#8F9BBF` | Meta text, captions, inactive tabs | 6.6:1 |
@@ -56,13 +57,17 @@ All values live in `src/design/tokens.css` as `--jz-*` custom properties. The ol
 |---|---|---|
 | `--jz-gold` | `#E2C07A` | Gold text, icons, the bolt, active tab, scores you set |
 | `--jz-gold-metal` | `linear-gradient(165deg, #FBEDC4 0%, #E6C67E 34%, #D2AC5E 68%, #EED79C 100%)` | Gold buttons, first place, medals |
+| `--jz-gold-ledge` | `#A8843E` | The solid 4 px ledge under a gold button's metal face |
 | `--jz-on-gold` | `#06080F` | Text and icons on gold (9.3:1 at the darkest point) |
 | `--jz-cyan` | `#22E4FF` | Live, info, links, correct, done, "up" movement (replaces the old teal `#2ED3B7`) |
-| `--jz-cyan-panel` | `#112A3A` | Tinted panel for head-to-head and "next up" moments |
+| `--jz-cyan-panel` | `#112A3A` | Tinted panel for head-to-head and "next up" moments, and the public game's date tile (its day label in `--jz-cyan`) |
 | `--jz-red` | `#FF3B5C` | LIVE tag, wrong, errors, "down" movement |
 | `--jz-silver` / `--jz-bronze` | `#C9D3EA` / `#D9A066` | Second and third place numerals |
 
 Colour is never the only signal: right and wrong also carry a tick or cross, up and down carry an arrow.
+
+The screen edge (`--screen-edge`: below a short page, under the home bar, the gaps round an arcade world) is
+#070709, kept apart from `--jz-bg` (the arcade backdrops fade towards it, and the fill checks tell them apart).
 
 ### Category and player colours
 
@@ -122,27 +127,31 @@ surface steps and the gold button's ledge.
 
 ## 5. Components
 
-Built once in `src/design/components/`, used everywhere. Each has a story in the component gallery page.
+Built once in `src/design/components/` (import from `@/design/components`), styled in
+`src/design/components.css` on tokens only, used everywhere. Every one is shown in every state on the
+component gallery, `/dev-design` (development builds only).
 
 | Component | Variants | Replaces |
 |---|---|---|
-| `Button` | `gold` (56–68 px, metal fill, cut-lg), `secondary` (surface-2, 8 px radius), `quiet` (text only), `icon` (44 × 44) | `.th-btn-*`, `.ap-btn-*`, `.rs-btn*`, shadcn `Button` in app chrome |
-| `Panel` / `Row` | panel, striped panel, row with divider | `.th-card`, `.ap-panel`, `.ap-row`, `ui/card` |
-| `SectionHeader` | title + rule + right-hand meta or link | ad-hoc headers |
-| `Chip` | default, selected, with category diamond | `.th-chip`, `.ap-chip*`, `.rs-cat`, `CategoryPill` |
-| `Segmented` | 2–4 options, counts allowed | `.ap-switch`, `.rs-seg`, `SolutionSwitch` |
-| `Input` / `CodeInput` | text, search; 4-box room code | `.th-input`, `.ap-input`, the long Tailwind strings |
-| `Sheet` | drag to dismiss (vaul), follows the finger | `SettingsSheet`, `RoomSettingsSheet` and the chat sheet's custom portals |
-| `Toast` | info, live, error | the four toast and banner patterns |
-| `Skeleton` | text line, row, card, tile | `Dots` where a layout is known |
-| `LiveTag` | LIVE (red), NEXT (cyan) | |
+| `Button` / `ButtonLink` | `gold` (the `--jz-gold-metal` face on a solid 4 px `--jz-gold-ledge`, inside the cut-lg; `small` takes cut-sm; no glow, haze or sheen), `secondary` (`--jz-surface` fill, 1.5 px `--jz-surface-2` border, 8 px radius), `quiet` (text only), `icon` (44 × 44); `size` is the height (44, 46, 48, 50, 52 or 58), `block` fills the width | `.th-btn-*`, `.ap-btn-*`, `.rs-btn*` (deleted), shadcn `Button` in app chrome |
+| `Panel` / `Row` | panel (`pad`, `striped`, `tone="cyan"`), row with divider (`as="button"` / `"a"` is interactive; `leading`, `title`, `sub`) | `.th-card`, `.ap-panel` / `.ap-row` (now `.jz-panel` / `.jz-row`), `ui/card` |
+| `SectionHeader` | title + 2 px rule + right-hand meta or link | ad-hoc headers |
+| `Chip` | default, selected (light fill), with category diamond (`cat`), tinted in its category when on (`tint`); `status`: a non-interactive 22 px label-and-value `<span>` for live counts (every HUD pill), with no hover, pressed or focus state, its value toned `accent` / `good` / `warn` | `.th-chip`, `.ap-chip*`, `.rs-cat` (deleted), `CategoryPill`; `.hud-pill`'s own look |
+| `Segmented` | 2–4 options, counts allowed, radio or toggle; `tone="gold"` for a switch that is the way into play (Practice's Puzzles / Arcade) | `.ap-switch`, `.rs-seg` (deleted) |
+| `SwitchKnob` | the knob at the end of a `role="switch"` row (cyan when on) | `.rs-switch` (deleted) |
+| `Input` / `CodeInput` | text, search (44 px); 4-box room code over one real field. Both are wells: `--jz-well` with an inset top shadow, darker than the panel they sit in | `.th-input`, `.ap-input`, the long Tailwind strings (deleted) |
+| `Sheet` | drag to dismiss (vaul), follows the finger; grab handle, title and ✕, or the sheet's own header | `SettingsSheet`, `RoomSettingsSheet` and the chat sheet's custom portals |
+| `Toast` | info, live, error (a 3 px edge in the tone); `as="button"` when the toast opens something | the four toast and banner patterns |
+| `Skeleton` | text line, row, card, tile; `SkeletonPage` for a loading page of known shape | `Dots` where a layout is known (rooms, the daily, challenges loading); dots stay for short waits ("Scoring…") |
+| `LiveTag` | LIVE (red), NEXT (cyan) | the public game's live dot |
 | `GameTile` | S 56, M 100, L full width; with best score and charge bar | Practice rows' icon, Warm up tiles |
-| `Nameplate` | strip (standings, lobby), full, mini | `PlayerBadge` layouts (the avatar disc stays inside) |
-| `Medal` | gold, silver, bronze; S 22, M 36, L 64 | `Medal.tsx` (temporary until the art arrives) |
-| `TabBar` | phone bar and desktop rail from one list | the two copies in `AppTabBar` and `AppRail` |
+| `Nameplate` | strip (standings, lobby), full, mini; the avatar disc (PlayerBadge) inside | `PlayerBadge` layouts |
+| `Medal` | gold, silver, bronze metal; S 22, M 36, L 64 | `Medal.tsx` (temporary until the art arrives) |
+| `TabBar` | phone bar and desktop rail from one list (`TABS`) | the two copies in `AppTabBar` and `AppRail` |
 
-Every interactive component has hover (fine pointer), pressed (scale 0.97, 120 ms) and focus-visible states.
-Minimum target 44 × 44.
+Every interactive component has hover (fine pointer), pressed (scale 0.97, 120 ms) and focus-visible (2 px
+`--jz-gold`, 2 px offset; a clipped component draws its cut on a pseudo-element so the ring is never cut)
+states. Minimum target 44 × 44.
 
 ---
 
@@ -185,6 +194,10 @@ the only places motion gets theatrical. No bounce easing on app chrome. Reduced 
   tinted backdrop and the arcade reveal's colour gradient all keep their category colour. Only the base underneath
   changes to `--jz-bg`, and fonts and buttons follow these rules.
 - Game art inside the play area is untouched.
+- **Game art is exempt from the one-font rule** (hard rule 3). Canvas and board art keeps the faces it names:
+  Press Start 2P (Retro games, Google Fonts) and JetBrains Mono (self-hosted in `public/fonts`, declared in
+  `src/lib/arcade/gameArtFonts.css` and loaded only while a round's intro is up). Neither may appear in app chrome
+  or game chrome (intro, frame, HUD pills, reveal), which are Archivo.
 - Skins (later) never change sizes, hit areas, motion or contrast against the background.
 
 ---
@@ -199,7 +212,8 @@ Short, dry, a bit cheeky. British spelling. Sentence case. Name the player and t
 ## 11. Accessibility
 
 - Text contrast at least 4.5:1 (the theme check stays in CI).
-- Focus-visible rings on every device with a keyboard, including iPad: 2 px `--jz-gold`, 2 px offset.
+- Focus-visible rings on every device with a keyboard, including iPad: 2 px `--jz-gold`, 2 px offset (since F2 the
+  touch-device rule only drops rings a tap leaves, `:focus:not(:focus-visible)`).
 - Targets at least 44 × 44.
 - Reduced motion respected, with every element ending visible.
 - Capitals via CSS, never typed.

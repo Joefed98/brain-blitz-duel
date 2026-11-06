@@ -47,6 +47,7 @@ import type { PuzzleCategory } from "@/lib/duel/types";
 import { noteLinkArrival } from "@/lib/share/shareRef";
 import { unlockAudio } from "@/lib/sound";
 import { OnlineOnly } from "@/components/offline/OnlineOnly";
+import { Button, Input, SkeletonPage } from "@/design/components";
 
 export const Route = createFileRoute("/challenge")({
   ssr: false,
@@ -306,9 +307,7 @@ function ChallengeScreen() {
   if (mode.kind === "loading") {
     return (
       <PhoneShell skin="play">
-        <div className="flex flex-1 items-center justify-center">
-          <WaitingLine label="Loading the challenge" />
-        </div>
+        <SkeletonPage label="Loading the challenge" rows={3} card />
       </PhoneShell>
     );
   }
@@ -430,7 +429,7 @@ function ChallengeScreen() {
                       >
                         Your name on the board
                       </label>
-                      <input
+                      <Input
                         id="challenge-play-name"
                         value={name}
                         maxLength={14}
@@ -440,7 +439,6 @@ function ChallengeScreen() {
                           setError(null);
                           setName(e.target.value);
                         }}
-                        className="th-input tap-target w-full rounded-xl border border-border bg-background px-4 py-3 text-base text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
                       />
                     </div>
                   ) : info.state === "play" ? (
@@ -461,12 +459,13 @@ function ChallengeScreen() {
                       {info.roundsDone} of {info.roundCount} rounds played
                     </p>
                   )}
-                  <button
-                    type="button"
+                  <Button
+                    variant="gold"
+                    size={58}
+                    block
                     data-challenge-play
                     disabled={busy}
                     onClick={() => void play(info)}
-                    className="th-btn-gold press tap-target flex w-full items-center justify-center gap-2 whitespace-nowrap rounded-xl bg-primary py-4 font-display text-lg font-extrabold uppercase tracking-wide text-primary-foreground"
                   >
                     {busy ? (
                       <Dots className="bg-primary-foreground" />
@@ -475,7 +474,7 @@ function ChallengeScreen() {
                     ) : (
                       "Play"
                     )}
-                  </button>
+                  </Button>
                 </>
               )}
               {error ? (
@@ -496,13 +495,13 @@ function ChallengeScreen() {
 
 function NewChallengeButton({ onClick }: { onClick: () => void }) {
   return (
-    <button
-      type="button"
+    <Button
+      variant="secondary"
+      block
       onClick={onClick}
-      className="th-btn-outline-gold press tap-target w-full whitespace-nowrap rounded-xl border border-primary/70 bg-primary/10 font-display text-sm font-bold uppercase tracking-wide text-primary"
     >
       Make your own challenge
-    </button>
+    </Button>
   );
 }
 
@@ -541,22 +540,20 @@ function ChallengeDone({
   if (!board && !view) {
     return (
       <PhoneShell skin="play">
-        <div className="flex flex-1 items-center justify-center">
-          <WaitingLine label="Loading the results" />
-        </div>
+        <SkeletonPage label="Loading the results" rows={5} />
       </PhoneShell>
     );
   }
   const total = view?.total ?? rows.find((r) => r.slot === board?.mySlot)?.total ?? 0;
   const roundCount = view?.roundCount ?? board?.roundOrder.length ?? 0;
   const done = (
-    <button
-      type="button"
+    <Button
+      variant="secondary"
+      block
       onClick={onHome}
-      className="th-btn-ghost press tap-target w-full rounded-xl border border-border font-display text-base font-semibold uppercase tracking-wide text-muted-foreground"
     >
       Done
-    </button>
+    </Button>
   );
 
   // Nobody else yet: the creator's own results, and the link to send.
@@ -627,24 +624,21 @@ function ChallengeDone({
                   total={mine?.total ?? total}
                   rounds={roundCount}
                   label="Challenge someone else"
-                  className="th-btn-outline-gold"
                 />
               </div>
               <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
+                <Button
+                  variant="secondary"
                   onClick={onNew}
-                  className="th-btn-ghost press tap-target whitespace-nowrap rounded-xl border border-border font-display text-sm font-semibold uppercase tracking-wide text-muted-foreground"
                 >
                   New challenge
-                </button>
-                <button
-                  type="button"
+                </Button>
+                <Button
+                  variant="secondary"
                   onClick={onHome}
-                  className="th-btn-ghost press tap-target whitespace-nowrap rounded-xl border border-border font-display text-sm font-semibold uppercase tracking-wide text-muted-foreground"
                 >
                   Done
-                </button>
+                </Button>
               </div>
             </div>
           }

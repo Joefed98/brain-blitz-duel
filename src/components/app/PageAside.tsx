@@ -12,6 +12,7 @@ import { dailyStreak, readDailyRecord } from "@/lib/duel/dailyRecord";
 import { readRoomHistory } from "@/lib/duel/deviceHistory";
 import { practiceThisWeek } from "@/lib/duel/practiceRecent";
 import { scheduledGames, upcomingGames } from "@/lib/publicSchedule";
+import { Button } from "@/design/components";
 
 /**
  * The computer layout's page extras (31 Oct 2026, presentation only; docs/desktop-layout.md): the banner
@@ -46,9 +47,9 @@ export function BannerSlot({ page }: { page: BannerPage }) {
           {banner.line}
         </span>
       </span>
-      <button type="button" onClick={go} className="ap-btn-outline press dk-banner-action">
+      <Button variant="secondary" onClick={go} className="dk-banner-action">
         {banner.action} <ChevronRight aria-hidden="true" className="h-4 w-4" />
-      </button>
+      </Button>
     </aside>
   );
 }
@@ -64,7 +65,7 @@ function NextPublicPanel() {
     <section aria-label="Next public room" data-aside-panel="public" className="ap-section">
       <h2 className="ap-section-title">Next public room</h2>
       {next ? (
-        <div className="ap-panel">
+        <div className="jz-panel">
           <PublicGameNext
             game={next}
             now={now}
@@ -75,11 +76,11 @@ function NextPublicPanel() {
         <button
           type="button"
           onClick={() => void navigate({ to: "/tournaments" })}
-          className="ap-panel ap-row press"
+          className="jz-panel jz-row press"
         >
-          <span className="ap-row-text">
-            <span className="ap-row-title">None scheduled yet</span>
-            <span data-ellipsis className="ap-row-sub">
+          <span className="jz-row-text">
+            <span className="jz-row-title">None scheduled yet</span>
+            <span data-ellipsis className="jz-row-sub">
               Public games show here and in Tournaments
             </span>
           </span>
@@ -136,7 +137,7 @@ function WeekPanel() {
         <h2 className="ap-section-title">Your week</h2>
         <span className="ap-meta">Last 7 days</span>
       </div>
-      <div className="ap-panel dk-week">
+      <div className="jz-panel dk-week">
         {cells.map(([label, value]) => (
           <div key={label} className="dk-week-cell">
             <span className="dk-week-value">{value ?? "–"}</span>

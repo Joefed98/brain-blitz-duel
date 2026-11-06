@@ -3,6 +3,7 @@ import { useState } from "react";
 
 import { PhoneShell } from "@/components/duel/PhoneShell";
 import { crashReportingOn, setCrashContext } from "@/lib/crashReporting";
+import { Button } from "@/design/components";
 
 /**
  * Crash reporting test page (development only; lib/crashReporting.ts). Not linked anywhere; a
@@ -26,8 +27,6 @@ function Thrower(): null {
 function DevCrash() {
   const [render, setRender] = useState(false);
   const on = crashReportingOn();
-  const button =
-    "th-btn-ghost press tap-target w-full whitespace-nowrap rounded-xl border border-border font-display text-sm font-semibold uppercase tracking-widest text-foreground";
   return (
     <PhoneShell skin="profile">
       <div className="flex flex-col gap-3">
@@ -37,17 +36,17 @@ function DevCrash() {
             ? "Crash reporting is on (SENTRY_DSN is set)."
             : "Crash reporting is off (SENTRY_DSN is empty): nothing is sent."}
         </p>
-        <button
-          type="button"
-          className={button}
+        <Button
+          variant="secondary"
+          block
           onClick={() => setCrashContext({ gameId: "sudoku", round: 3 })}
         >
           Tag as Box Six, round 3
-        </button>
-        <button
-          type="button"
+        </Button>
+        <Button
+          variant="secondary"
+          block
           data-crash="error"
-          className={button}
           onClick={() => {
             setTimeout(() => {
               throw new Error("dev-crash: an uncaught error");
@@ -55,23 +54,23 @@ function DevCrash() {
           }}
         >
           Uncaught error
-        </button>
-        <button
-          type="button"
+        </Button>
+        <Button
+          variant="secondary"
+          block
           data-crash="rejection"
-          className={button}
           onClick={() => void Promise.reject(new Error("dev-crash: an unhandled rejection"))}
         >
           Unhandled rejection
-        </button>
-        <button
-          type="button"
+        </Button>
+        <Button
+          variant="secondary"
+          block
           data-crash="render"
-          className={button}
           onClick={() => setRender(true)}
         >
           Render error
-        </button>
+        </Button>
         {render ? <Thrower /> : null}
       </div>
     </PhoneShell>

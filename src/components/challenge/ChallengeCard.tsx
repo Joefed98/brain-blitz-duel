@@ -10,12 +10,12 @@ import { ChallengeTile } from "@/components/app/TabIcons";
 export function ChallengeCard({ available, onOpen }: { available: boolean; onOpen: () => void }) {
   if (!available) return null;
   return (
-    <div className="ap-panel">
-      <button type="button" data-challenge-card onClick={onOpen} data-icon="tile" className="ap-row press">
+    <div className="jz-panel">
+      <button type="button" data-challenge-card onClick={onOpen} data-icon="tile" className="jz-row press">
         <ChallengeTile />
-        <span className="ap-row-text">
-          <span className="ap-row-title">Challenge a friend</span>
-          <span data-ellipsis className="ap-row-sub">
+        <span className="jz-row-text">
+          <span className="jz-row-title">Challenge a friend</span>
+          <span data-ellipsis className="jz-row-sub">
             Play a set, then dare them to beat it
           </span>
         </span>

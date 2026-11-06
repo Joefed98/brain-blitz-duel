@@ -360,7 +360,7 @@ function themeProbe(families: { head: string; body: string; mono: string; app: s
     skins: skins.length,
     // The tab pages' panels (Prompt R) and Practice's game tiles (shelves and grid, follow-up to #129) are its cards.
     // Polish batch R: the room screens' panels and lists (.rs-list), the error layout and the terms' page text.
-    cards: document.querySelectorAll("[data-skin] .th-card, [data-skin] .th-sheet, [data-skin] .ap-panel, [data-skin] .ap-tile, [data-skin] .rs-list, [data-skin] .rs-grid, [data-skin] [data-error-screen], [data-skin] [data-terms]").length,
+    cards: document.querySelectorAll("[data-skin] .th-card, [data-skin] .th-sheet, .jz-sheet[data-skin], [data-skin] .jz-sheet, [data-skin] .jz-panel, [data-skin] .ap-tile, [data-skin] .rs-list, [data-skin] .rs-grid, [data-skin] [data-error-screen], [data-skin] [data-terms]").length,
     // The round leaderboard's closed rows: each shows its verdict line under the name.
     rowLines: [...document.querySelectorAll("[data-skin] [aria-expanded='false'] [data-row-line]")].map((line) => ({
       shown: visible(line) && !!line.querySelector("[data-verdict]") && visible(line.querySelector("[data-verdict]")!),
@@ -566,9 +566,10 @@ async function introColours() {
               labelBoxes: [...intro.querySelectorAll(".round-instructions > div > p:first-child")].map(box),
               // Gold: the gold button's own fill, never the intro's accent.
               readyGold: ready
-                ? /ap-btn-gold/.test(ready.className) &&
-                  rgb(getComputedStyle(ready).backgroundColor) !== resolve(intro, "var(--category-accent)") &&
-                  (getComputedStyle(ready).backgroundImage !== "none" || getComputedStyle(ready).backgroundColor !== "rgba(0, 0, 0, 0)")
+                ? // The shared gold Button (design foundation F2): the metal is painted on its ::before, inside the cut.
+                  ready.getAttribute("data-variant") === "gold" &&
+                  rgb(getComputedStyle(ready, "::before").backgroundColor) !== resolve(intro, "var(--category-accent)") &&
+                  getComputedStyle(ready, "::before").backgroundImage.includes("gradient")
                 : false,
               readyClass: ready?.className ?? "",
             };
@@ -585,7 +586,7 @@ async function introColours() {
             if (probe.title !== probe.titleWant || !towardsWhite) problems.push(`the title is ${probe.title}, not the accent's tint (${probe.titleWant} from ${probe.want})`);
             if (probe.dot !== probe.want) problems.push(`the category dot is ${probe.dot}, not the accent`);
             if (probe.labels.length < 3 || probe.labels.some((c) => c !== probe.want)) problems.push(`Goal / How / Score labels are ${probe.labels.join(", ")}, not the accent`);
-            if (!/ap-btn-gold/.test(probe.readyClass) || !probe.readyGold) problems.push(`Ready is not the gold button (${probe.readyClass})`);
+            if (!probe.readyGold) problems.push(`Ready is not the gold button (${probe.readyClass})`);
             // Contrast of the coloured text against the screen behind it (text hidden).
             await page.addStyleTag({ content: `.round-intro * { color: transparent !important; -webkit-text-fill-color: transparent !important; text-shadow: none !important; } .round-intro canvas, .round-intro svg, .round-intro img { visibility: hidden !important; } * { transition: none !important; animation-play-state: paused !important; }` });
             await page.waitForTimeout(120);

@@ -45,7 +45,7 @@ assert.match(
   card,
   /setStoredName\(trimmed\);\s*await joinRoomByCode\(roomCode, trimmed, "link"\);\s*await onJoined\(\);/,
 );
-assert.equal((card.match(/<input/g) ?? []).length, 1, "only the display name is asked for");
+assert.equal((card.match(/<[iI]nput\b/g) ?? []).length, 1, "only the display name is asked for");
 assert.match(card, /preview\.state !== "lobby"/);
 assert.match(card, /This game has already started/);
 assert.match(card, /navigate\(\{ to: "\/" \}\)/);

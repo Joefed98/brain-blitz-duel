@@ -1,7 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Maximize2, MessageCircle, Minimize2, Send, X } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { fx } from "@/lib/fx";
 import { haptic } from "@/lib/haptics";
 import { playBlip } from "@/lib/sound";
@@ -19,6 +18,7 @@ import type { DuelPlayerRow } from "@/lib/duel/types";
 
 import { PlayerBadge } from "./PlayerBadge";
 import { RoomChatButton, RoomChatSlot, RoomFooter } from "./RoomFooter";
+import { Button as JzButton, Input, Sheet, Toast } from "@/design/components";
 
 interface RoomChatProps {
   chat: RoomChatState;
@@ -159,7 +159,6 @@ export function RoomChat({
   const [newBelow, setNewBelow] = useState(false);
   const seenCount = useRef(chat.messages.length);
   const focusScroll = useRef<{ x: number; y: number } | null>(null);
-  const headerTouch = useRef<{ x: number; y: number } | null>(null);
   const savedListTop = useRef(0);
   const open = available && chat.sheetOpen;
   const setSheetOpen = chat.setSheetOpen;
@@ -259,7 +258,7 @@ export function RoomChat({
   const composer = (
     <div className="flex min-w-0 shrink-0 flex-col gap-1.5">
       <div className="flex h-11 min-w-0 items-center gap-2">
-        <input
+        <Input size={44}
           data-room-chat-input
           value={text}
           onChange={(event) => setText(event.target.value.slice(0, MESSAGE_MAX_LENGTH))}
@@ -283,19 +282,19 @@ export function RoomChat({
                 window.scrollTo(saved.x, saved.y);
             }, 50);
           }}
-          className="ap-input h-11 min-w-0 flex-1 px-3 text-[16px]"
+          className="min-w-0 flex-1 px-3"
         />
         {/* Neutral: sending a message is not a play action (the gold rule). */}
-        <button
-          type="button"
+        <JzButton
+          variant="secondary"
           onClick={submit}
           disabled={chat.sending || !text.trim()}
           aria-label="Send message"
           title="Send message"
-          className="press flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[var(--ap-text)] text-[var(--ap-bg)] disabled:opacity-40"
+          className="w-11 shrink-0 px-0"
         >
           <Send aria-hidden="true" className="h-5 w-5" />
-        </button>
+        </JzButton>
       </div>
       <div className="flex shrink-0 items-center justify-between" data-chat-reactions>
         {ROOM_EMOJI.map((emoji) => (
@@ -313,71 +312,41 @@ export function RoomChat({
     </div>
   );
   if (!available) return null;
-  const sheet = open ? (
-    <>
-      <Button
-        type="button"
-        variant="ghost"
-        aria-label="Close messages"
-        onClick={close}
-        className="fixed inset-0 z-40 h-full w-full rounded-none bg-background/40 p-0"
-      />
-      <section
-        role="dialog"
-        aria-modal="true"
-        aria-label="Room messages"
-        data-room-chat-sheet
-        data-expanded={expanded}
-        data-skin="room"
-        className="th-sheet fixed inset-x-0 z-50 mx-auto flex min-h-0 w-full max-w-[430px] flex-col overflow-hidden rounded-t-2xl border border-border bg-card"
-        style={{
-          height: viewport
-            ? viewport.height * (expanded ? 0.85 : 0.6)
-            : expanded
-              ? "85dvh"
-              : "60dvh",
-          bottom: viewport?.bottom ?? 0,
-        }}
-        onKeyDown={(event) => {
-          if (event.key === "Escape") close();
-        }}
-      >
-        <header
-          className="flex h-12 min-h-0 shrink-0 items-center gap-2 border-b border-border px-3"
-          onTouchStart={(event) => {
-            const touch = event.touches[0];
-            headerTouch.current = touch ? { x: touch.clientX, y: touch.clientY } : null;
-          }}
-          onTouchEnd={(event) => {
-            const start = headerTouch.current;
-            const end = event.changedTouches[0];
-            if (start && end && end.clientY - start.y > 40 && Math.abs(end.clientX - start.x) < 40)
-              close();
-            headerTouch.current = null;
-          }}
-        >
-          <Button
-            type="button"
-            variant="ghost"
+  const sheet = (
+    <Sheet
+      open={open}
+      onClose={close}
+      title="Room messages"
+      skin="room"
+      repositionInputs={false}
+      data={{ "data-room-chat-sheet": "", "data-expanded": String(expanded) }}
+      className="min-h-0 overflow-hidden"
+      style={{
+        height: viewport
+          ? viewport.height * (expanded ? 0.85 : 0.6)
+          : expanded
+            ? "85dvh"
+            : "60dvh",
+        bottom: viewport?.bottom ?? 0,
+      }}
+      header={
+        <header className="flex h-12 min-h-0 shrink-0 items-center gap-2 border-b border-border px-3">
+          <JzButton
+            variant="quiet"
             onClick={() => (expanded ? close() : setExpanded(true))}
-            className="h-11 min-w-0 flex-1 justify-between px-0"
+            className="min-w-0 flex-1 justify-between px-0"
             aria-label={expanded ? "Collapse messages" : "Expand messages"}
           >
-            <span className="truncate font-display font-bold">Messages</span>
-            <span className="font-mono text-xs text-muted-foreground">{screenLabel}</span>
-            {expanded ? <Minimize2 /> : <Maximize2 />}
-          </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            onClick={close}
-            aria-label="Close messages"
-            className="h-11 w-11 shrink-0"
-          >
-            <X />
-          </Button>
+            <span className="truncate font-bold text-foreground">Messages</span>
+            <span className="text-xs text-muted-foreground">{screenLabel}</span>
+            {expanded ? <Minimize2 aria-hidden="true" className="h-4 w-4" /> : <Maximize2 aria-hidden="true" className="h-4 w-4" />}
+          </JzButton>
+          <JzButton variant="icon" onClick={close} aria-label="Close messages" className="shrink-0">
+            <X aria-hidden="true" />
+          </JzButton>
         </header>
+      }
+    >
         <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
           <ul
             ref={list}
@@ -405,26 +374,21 @@ export function RoomChat({
             ))}
           </ul>
           {newBelow && (
-            <Button
-              type="button"
-              onClick={toBottom}
-              className="absolute bottom-2 left-1/2 h-8 -translate-x-1/2 px-3 font-mono text-[11px]"
-            >
+            <JzButton variant="secondary" onClick={toBottom} className="absolute bottom-2 left-1/2 -translate-x-1/2 text-xs">
               New messages ↓
-            </Button>
+            </JzButton>
           )}
         </div>
-        <footer className="min-h-0 shrink-0 border-t border-border bg-card px-2 pt-2 pb-[max(8px,env(safe-area-inset-bottom))]">
+        <footer className="chat-sheet-footer min-h-0 shrink-0 border-t border-border px-2 pt-2">
           {composer}
           {(chat.notice || chat.error) && (
-            <p className="pt-1 text-center text-[11px] text-muted-foreground">
+            <p className="pt-1 text-center text-xs text-muted-foreground">
               {chat.error ?? chat.notice}
             </p>
           )}
         </footer>
-      </section>
-    </>
-  ) : null;
+    </Sheet>
+  );
   const menu = menuFor ? (
     <div
       className="fixed inset-0 z-[60] flex items-end justify-center bg-background/70 p-4"
@@ -437,46 +401,47 @@ export function RoomChat({
         <p className="px-3 py-2 text-center font-mono text-[11px] uppercase text-muted-foreground">
           {menuFor.sender_name}
         </p>
-        <Button
-          type="button"
-          variant="ghost"
+        <JzButton
+          variant="quiet"
+          block
           onClick={() => {
             chat.toggleLocalMute(menuFor.sender_user_id);
             setMenuFor(null);
           }}
-          className="tap-target w-full justify-start"
+          className="justify-start text-foreground"
         >
           {chat.mutedUserIds.includes(menuFor.sender_user_id)
             ? `Unmute ${menuFor.sender_name}`
             : `Mute ${menuFor.sender_name}`}
-        </Button>
-        <Button
-          type="button"
-          variant="ghost"
+        </JzButton>
+        <JzButton
+          variant="quiet"
+          block
           onClick={() => {
             void chat.report(menuFor.id);
             setMenuFor(null);
           }}
-          className="tap-target w-full justify-start text-warn"
+          className="justify-start text-warn"
         >
           Report
-        </Button>
-        <Button
-          type="button"
-          variant="ghost"
+        </JzButton>
+        <JzButton
+          variant="quiet"
+          block
           onClick={() => setMenuFor(null)}
-          className="tap-target w-full justify-start text-muted-foreground"
+          className="justify-start"
         >
           Cancel
-        </Button>
+        </JzButton>
       </div>
     </div>
   ) : null;
   const toastCard = toast && !open ? (
-    <button
-      type="button"
+    <Toast
+      as="button"
+      tone="live"
       key={toast.id}
-      ref={toastRef}
+      ref={toastRef as never}
       data-chat-toast={toast.id}
       data-skin="room"
       aria-label={`New message from ${toast.sender_name}: ${toast.text}. Open messages`}
@@ -484,11 +449,11 @@ export function RoomChat({
         setToast(null);
         setSheetOpen(true);
       }}
-      className="th-sheet fixed inset-x-0 z-[58] mx-auto flex h-12 w-[calc(100%-32px)] max-w-[398px] items-center gap-2 rounded-full border bg-card px-3 text-left shadow-lg chat-toast-up"
+      className="chat-toast chat-toast-up text-left"
       style={{
         bottom: toastBottom === null ? "calc(env(safe-area-inset-bottom, 0px) + 8px)" : `${toastBottom}px`,
         visibility: toastBottom === null ? "hidden" : undefined,
-        borderColor: playerColourHex(lookOf(toast.sender_user_id)),
+        borderLeftColor: playerColourHex(lookOf(toast.sender_user_id)),
       }}
     >
       <PlayerBadge look={lookOf(toast.sender_user_id)} name={toast.sender_name} size={24} />
@@ -496,8 +461,8 @@ export function RoomChat({
         <span className="font-display font-semibold text-foreground">{toast.sender_name}</span>{" "}
         <span className="text-muted-foreground">{chatToastText(toast.text)}</span>
       </span>
-      <MessageCircle aria-hidden="true" className="h-4 w-4 shrink-0 text-primary" />
-    </button>
+      <MessageCircle aria-hidden="true" className="h-4 w-4 shrink-0 text-muted-foreground" />
+    </Toast>
   ) : null;
   return (
     <>
