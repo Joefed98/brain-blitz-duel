@@ -65,7 +65,7 @@ carry; a file in their slot plays under the voice line (voice lines duck music).
 | `music.swing` | Grappler | `music_swing` | `music_swing` | loop |
 | `music.skyline` | High Rise | `music_skyline` | `music_skyline` | loop |
 | `music.hover` | Hover | `music_hover` | `music_hover` | loop |
-| `music.cross` | Jaywalk | `music_cross` | `music_cross` | loop |
+| `music.cross` | Spacewalk | `music_cross` (`music_cross.mp3`, Joe's recorded bed since 6 Nov 2026) | `music_cross` | 60.0 s loop |
 | `music.snake` | Meteor | `music_eatgrow` | `music_eatgrow` | loop |
 | `music.orbit` | Orbit | `music_orbit` | `music_orbit` | loop |
 | `music.inkbridge` | Rainbow Bridge | `music_inkbridge` | `music_inkbridge` | loop |

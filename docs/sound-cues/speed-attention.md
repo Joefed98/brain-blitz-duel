@@ -32,6 +32,7 @@ Completion effects last at most 1.2 s. Most of the motion is done by about 0.9 s
 | `stroop.gatesFlash` | Mixed Signals | Run finished (stage submit): every gate flashes in its own colour | 1.1 s |
 | `stroop.gatePulse` | Mixed Signals | A word lands in a gate (white pulse if right, grey if wrong) | 18 ticks (about 0.3 s) |
 | `symscan.takeoff` | Eagle Eye | Final grid submitted: the matching eagles take off | 1.1 s |
+| `symscan.eagle` | Eagle Eye | With the take-off: an eagle's cry over the wingbeats (Joe's recording, 6 Nov 2026) | 0.8 s |
 | `symscan.mark` | Eagle Eye | A cell is marked (pop) | 200 ms |
 | `symscan.unmark` | Eagle Eye | A cell is unmarked | instant |
 | `symscan.revealGrid` | Eagle Eye | Reveal: a different grid is shown | instant |

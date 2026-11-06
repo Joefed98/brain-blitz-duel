@@ -155,7 +155,8 @@ const ENTRIES = {
   podium_loop: { channel: "music", frequency: 0, ms: 0, url: "/__l5e/assets-v1/d79b262e-d0fb-43f0-91f1-42e14c994186/podium_loop.mp3" },
   // Per-game arcade round beds.
   music_burst: { channel: "music", frequency: 0, ms: 0, url: "/__l5e/assets-v1/f635d436-cf68-4844-bbd6-583e3c1bb54f/music_burst.mp3" },
-  music_cross: { channel: "music", frequency: 0, ms: 0, url: "/__l5e/assets-v1/88df3ac5-d8de-47b1-b258-deb9a5e4260c/music_cross.mp3" },
+  // Spacewalk: Joe's own bed (6 Nov 2026, docs/sound-cues/retheme-nov-2026.md).
+  music_cross: { channel: "music", frequency: 0, ms: 0, url: "/sounds/music_cross.mp3" },
   music_eatgrow: { channel: "music", frequency: 0, ms: 0, url: "/__l5e/assets-v1/9d207ed8-42fc-45a7-9306-1630d93dbee8/music_eatgrow.mp3" },
   music_flip: { channel: "music", frequency: 0, ms: 0, url: "/__l5e/assets-v1/730061b0-a8d4-4199-b67f-0896c69c4857/music_flip.mp3" },
   music_hover: { channel: "music", frequency: 0, ms: 0, url: "/__l5e/assets-v1/a12e4fd0-b424-4c4c-bb7b-c555c57c36d9/music_hover.mp3" },
@@ -713,9 +714,9 @@ const ENTRIES = {
   "hover.crash": { channel: "effects", frequency: 0, ms: 260, url: null },
   "hover.gate": { channel: "effects", frequency: 0, ms: 90, url: null },
   "hover.star": { channel: "effects", frequency: 0, ms: 120, url: null },
-  "cross.lifeLost": { channel: "effects", frequency: 0, ms: 220, url: null },
-  "cross.crossed": { channel: "effects", frequency: 0, ms: 160, url: null },
-  "cross.hop": { channel: "effects", frequency: 0, ms: 528, url: "/sounds/cross.hop.mp3", gapMs: 90 },
+  "cross.lifeLost": { channel: "effects", frequency: 0, ms: 350, url: "/sounds/cross.lifeLost.mp3" },
+  "cross.crossed": { channel: "effects", frequency: 0, ms: 607, url: "/sounds/cross.crossed.mp3" },
+  "cross.hop": { channel: "effects", frequency: 0, ms: 487, url: "/sounds/cross.hop.mp3", gapMs: 90 },
   "junction.horn": { channel: "effects", frequency: 0, ms: 400, url: null },
   "junction.siren": { channel: "effects", frequency: 0, ms: 600, url: null },
   "junction.newRoad": { channel: "effects", frequency: 0, ms: 150, url: null },
@@ -878,9 +879,9 @@ const ENTRIES = {
   "swing.sectionClear": { channel: "effects", frequency: 0, ms: 1000, url: "/sounds/done.chimeSweep.mp3" },
   "swing.parBeaten": { channel: "effects", frequency: 0, ms: 1000, url: "/sounds/done.goldPulse.mp3", volume: 0.8 },
   // Spacewalk (3 Nov 2026): past the comets' plasma lane, a comet's whoosh from the library (was the bicycle bell).
-  "cross.pastBikes": { channel: "effects", frequency: 0, ms: 840, url: "/sounds/orbit.shootingStar.mp3", volume: 0.7 },
+  "cross.pastBikes": { channel: "effects", frequency: 0, ms: 480, url: "/sounds/cross.pastBikes.mp3" },
   // Spacewalk: through the drifting debris, the library's slip-past (was the traffic cone).
-  "cross.pastRoadworks": { channel: "effects", frequency: 0, ms: 350, url: "/sounds/hover.slipPast.mp3", volume: 0.7 },
+  "cross.pastRoadworks": { channel: "effects", frequency: 0, ms: 464, url: "/sounds/cross.pastRoadworks.mp3" },
   "flip.surviveStreak": { channel: "effects", frequency: 0, ms: 480, url: "/sounds/flip.tenSeconds.mp3", volume: 0.8 },
   "flip.survivedFinish": { channel: "effects", frequency: 0, ms: 840, url: "/sounds/banner.fullClear.mp3" },
   "flip.starTaken": { channel: "effects", frequency: 0, ms: 200, url: "/__l5e/assets-v1/74578ea6-b262-49a8-841d-69d3b72f3643/arc_pickup.mp3", volume: 0.9 },
@@ -898,7 +899,7 @@ const ENTRIES = {
   "flip.sweetLanding": { channel: "effects", frequency: 0, ms: 600, url: "/sounds/sfx_spark_chime.mp3", volume: 0.6 },
   "inkbridge.goldStar": { channel: "effects", frequency: 0, ms: 528, url: "/sounds/pop.perfect.mp3" },
   "inkbridge.trickShot": { channel: "effects", frequency: 0, ms: 600, url: "/sounds/sfx_spark_chime.mp3", volume: 0.85 },
-  "inkbridge.cloudBounce": { channel: "effects", frequency: 0, ms: 528, url: "/sounds/cross.hop.mp3", gapMs: 120 },
+  "inkbridge.cloudBounce": { channel: "effects", frequency: 0, ms: 528, url: "/sounds/inkbridge.cloudBounce.mp3", gapMs: 120 },
   "inkbridge.silverCoin": { channel: "effects", frequency: 0, ms: 528, url: "/sounds/pop.perfect.mp3", volume: 0.6, rate: 1.4, gapMs: 60 },
   "inkbridge.shamrock": { channel: "effects", frequency: 0, ms: 600, url: "/sounds/sfx_spark_chime.mp3", volume: 0.9, rate: 1.15 },
   "inkbridge.allLevels": { channel: "effects", frequency: 0, ms: 840, url: "/sounds/banner.fullClear.mp3" },
@@ -1003,11 +1004,12 @@ const ENTRIES = {
   "whack.hedgehogUp": { channel: "effects", frequency: 0, ms: 528, url: "/sounds/whack.hedgehogUp.mp3" },
   "clayshoot.birdIn": { channel: "effects", frequency: 0, ms: 528, url: "/sounds/clayshoot.birdIn.mp3" },
   "swing.lava": { channel: "effects", frequency: 0, ms: 6024, url: "/sounds/swing.lava.mp3", loop: true },
-  // Grappler's jungle canopy (swingRev 17, 3 Nov 2026): library sounds until Joe's recordings (docs/sound-cues/arcade.md).
-  "swing.jungle": { channel: "effects", frequency: 0, ms: 6000, url: null, loop: true },
-  "swing.vineCreak": { channel: "effects", frequency: 0, ms: 429, url: "/sounds/ricochet.lanternGrab.mp3", volume: 0.7 },
-  "swing.splash": { channel: "effects", frequency: 0, ms: 803, url: "/sounds/minigolf_splash.mp3" },
-  "swing.pterodactyl": { channel: "effects", frequency: 0, ms: 606, url: "/sounds/clayshoot.birdStartle.mp3", volume: 0.8 },
+  // Grappler's jungle canopy (swingRev 17): Joe's recordings since 6 Nov 2026 (docs/sound-cues/retheme-nov-2026.md); the
+  // catch keeps the library's screech. The jungle is an ambience bed (gameSounds ambienceCue).
+  "swing.jungle": { channel: "effects", frequency: 0, ms: 8000, url: "/sounds/swing.jungle.mp3", loop: true },
+  "swing.vineCreak": { channel: "effects", frequency: 0, ms: 480, url: "/sounds/swing.vineCreak.mp3" },
+  "swing.splash": { channel: "effects", frequency: 0, ms: 880, url: "/sounds/swing.splash.mp3" },
+  "swing.pterodactyl": { channel: "effects", frequency: 0, ms: 1198, url: "/sounds/swing.pterodactyl.mp3" },
   "swing.pteroCatch": { channel: "effects", frequency: 0, ms: 606, url: "/sounds/clayshoot.birdStartle.mp3", rate: 0.85 },
   // Spacewalk: the space traffic's hum, the library's drone loop (was the city road ambience).
   "cross.traffic": { channel: "effects", frequency: 0, ms: 2000, url: "/sounds/bastion.drone.mp3", loop: true },
@@ -1158,6 +1160,21 @@ const ENTRIES = {
   // Their beds borrow existing tracks: Fission's Retro bed and Swish's fairground.
   "music_blockfall": { channel: "music", frequency: 0, ms: 0, url: "/sounds/music_blockfall.mp3" },
   "music_alleyroll": { channel: "music", frequency: 0, ms: 0, url: "/sounds/music_alleyroll.mp3" },
+  // Joe's recordings for the re-themed games (6 Nov 2026, docs/sound-cues/retheme-nov-2026.md): new moments.
+  "cross.closeCall": { channel: "effects", frequency: 0, ms: 223, url: "/sounds/cross.closeCall.mp3" },
+  "cross.streakUp": { channel: "effects", frequency: 0, ms: 607, url: "/sounds/cross.streakUp.mp3" },
+  "cross.freighter": { channel: "effects", frequency: 0, ms: 1350, url: "/sounds/cross.freighter.mp3", gapMs: 600 },
+  "swing.gate": { channel: "effects", frequency: 0, ms: 479, url: "/sounds/swing.gate.mp3" },
+  "swing.land": { channel: "effects", frequency: 0, ms: 485, url: "/sounds/swing.land.mp3" },
+  "swing.release": { channel: "effects", frequency: 0, ms: 480, url: "/sounds/swing.release.mp3", gapMs: 90 },
+  "swing.streak": { channel: "effects", frequency: 0, ms: 600, url: "/sounds/swing.streak.mp3" },
+  "swing.slideVine": { channel: "effects", frequency: 0, ms: 2000, url: "/sounds/swing.slideVine.mp3", loop: true },
+  "swing.wings": { channel: "effects", frequency: 0, ms: 2000, url: "/sounds/swing.wings.mp3", loop: true },
+  "slice.chilli": { channel: "effects", frequency: 0, ms: 485, url: "/sounds/slice.chilli.mp3" },
+  "symscan.eagle": { channel: "effects", frequency: 0, ms: 807, url: "/sounds/symscan.eagle.mp3" },
+  "bintoss.wind": { channel: "effects", frequency: 0, ms: 800, url: "/sounds/bintoss.wind.mp3" },
+  "bintoss.ambience": { channel: "effects", frequency: 0, ms: 8000, url: "/sounds/bintoss.ambience.mp3", loop: true },
+  "bullseye.ambience": { channel: "effects", frequency: 0, ms: 8000, url: "/sounds/bullseye.ambience.mp3", loop: true },
 } satisfies Record<string, SoundEntry>;
 export type SoundId = keyof typeof ENTRIES;
 export const SOUND_MANIFEST: Record<SoundId, SoundEntry> = ENTRIES;

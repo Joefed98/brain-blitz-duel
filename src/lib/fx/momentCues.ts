@@ -30,14 +30,20 @@ export interface MomentCue {
   replaces?: readonly string[];
   /** At most one per this many ms. */
   gapMs?: number;
+  /**
+   * Only on states this is true for: two rows on one moment can then sound it differently by the run's look
+   * (Grappler's jungle canopy, swingRev 17, has its own gate sound; every earlier revision keeps the zap).
+   */
+  when?: (state: Record<string, unknown>) => boolean;
 }
 
-const row = (game: string, moment: string, cue: string, replaces: readonly string[] = [], gapMs?: number): MomentCue => ({
+const row = (game: string, moment: string, cue: string, replaces: readonly string[] = [], gapMs?: number, when?: (state: Record<string, unknown>) => boolean): MomentCue => ({
   game,
   moment,
   cue,
   replaces,
   ...(gapMs !== undefined ? { gapMs } : {}),
+  ...(when ? { when } : {}),
 });
 
 /** Every shared success effect that had no sound of its own at the frame it starts. */
@@ -115,7 +121,9 @@ export const MOMENT_CUES: readonly MomentCue[] = [
   row("swing", "combo", "swing.comboPoint", ["combo"]),
   row("swing", "section", "swing.sectionClear"),
   row("swing", "par", "swing.parBeaten", ["swing.sectionClear"]),
-  row("swing", "gate14", "swing.assaultGate"),
+  // Swing's jungle canopy (swingRev 17, `slide`) lights its gates with Joe's own sound; every earlier course keeps the zap.
+  row("swing", "gate14", "swing.assaultGate", [], undefined, (s) => !s["slide"]),
+  row("swing", "gate14", "swing.gate", [], undefined, (s) => !!s["slide"]),
   row("swing", "gem14", "swing.assaultGem", [], 120),
   row("swing", "star14", "swing.assaultStar", [], 120),
   row("swing", "clear14", "swing.assaultClear"),
@@ -159,10 +167,9 @@ function watchFor(game: string, variant: "orbit3" | undefined): Watch {
   const existing = watches.get(game);
   if (existing && existing.variant === variant) return existing;
   const rows = MOMENT_CUES.filter((c) => c.game === game);
-  const counters = momentCounters(game, variant).flatMap((counter) => {
-    const cue = rows.find((r) => r.moment === counter.row.id);
-    return cue ? [{ counter, cue }] : [];
-  });
+  const counters = momentCounters(game, variant).flatMap((counter) =>
+    rows.filter((r) => r.moment === counter.row.id).map((cue) => ({ counter, cue })),
+  );
   const watch: Watch = { counters, variant, prev: null, last: null, quiet: EMPTY };
   watches.set(game, watch);
   return watch;
@@ -181,7 +188,9 @@ export function momentFrame(game: string, state: { tick: number }): ReadonlySet<
   watch.prev = state;
   watch.quiet = EMPTY;
   if (!prev || state.tick <= prev.tick || watch.counters.length === 0) return EMPTY;
-  const fired = watch.counters.filter(({ counter }) => counterFired(counter, prev, state)).map(({ cue }) => cue);
+  const fired = watch.counters
+    .filter(({ counter, cue }) => (!cue.when || cue.when(state)) && counterFired(counter, prev, state))
+    .map(({ cue }) => cue);
   if (fired.length === 0) return EMPTY;
   const quiet = new Set<string>();
   for (const cue of fired) if (cueHasFile(cue.cue)) for (const r of cue.replaces ?? []) quiet.add(r);

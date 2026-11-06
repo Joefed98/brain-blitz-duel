@@ -19,15 +19,15 @@ effects ([arcade-effects.md](arcade-effects.md)) so a sound can be written for e
 
 | Category | Silent | Placeholder | Recorded | Total |
 |---|---|---|---|---|
-| game event | 35 | 0 | 478 | 513 |
+| game event | 35 | 0 | 488 | 523 |
 | room moment | 1 | 0 | 41 | 42 |
 | music | 10 | 0 | 105 | 115 |
 | UI tap | 10 | 0 | 30 | 40 |
 | fail sting | 4 | 0 | 37 | 41 |
 | success sting | 3 | 0 | 73 | 76 |
-| ambience | 1 | 1 | 17 | 19 |
+| ambience | 0 | 1 | 22 | 23 |
 | replay | 0 | 0 | 186 | 186 |
-| **all** | 64 | 1 | 967 | 1032 |
+| **all** | 63 | 1 | 982 | 1046 |
 
 ## Silent and placeholder cues
 
@@ -265,12 +265,6 @@ Grouped by game or screen. These are the cues still missing a sound.
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
 | `music.dual` | Dual (retired, practice): none |  | loop | silent | none | 60000 | music | `music_dual` |
-
-### Grappler
-
-| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
-|---|---|---|---|---|---|---|---|---|
-| `swing.jungle` | While the run is live (swingRev 17, the jungle canopy) [arcade-effects.md] | The river, leaves and light shafts | loop | silent | none | loop | ambience | `swing.jungle` |
 
 ### Hot Floor
 
@@ -976,6 +970,7 @@ Grouped by game or screen.
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
 | `symscan.takeoff` | Eagle Eye: Final grid submitted: the matching eagles take off [speed-attention.md] |  | 0–1 | recorded sound | `symscan.takeoff` | 1100 | success sting | `symscan.takeoff` |
+| `symscan.eagle` | Eagle Eye: With the take-off: an eagle's cry over the wingbeats (Joe's recording, 6 Nov 2026) [speed-attention.md] |  | 5–40 (per move) | recorded sound | `symscan.eagle` | 800 | game event | `symscan.eagle` |
 | `symscan.revealGrid` | Eagle Eye: Reveal: a different grid is shown [speed-attention.md] |  | 1–5 | recorded sound | `tick` (shared) | 150 | game event | `symscan.revealGrid` |
 | `music.symscan` | Eagle Eye round bed: music_attention_2 (attention bed shared with other games) |  | loop | recorded sound | `music_attention_2` (shared) | 60000 | music | `music_attention_symscan` |
 
@@ -1396,6 +1391,7 @@ Grouped by game or screen.
 | `bullseye.bullsRow` | Two or more bulls in a row [arcade-effects.md] | n BULLS IN A ROW banner | 0–5 | recorded sound | `bullseye.bullsRow` | 500 | game event | `bullseye.bullsRow` |
 | `bullseye.allOnTarget` | All ten arrows on the target [arcade-effects.md] | FULL CLEAR banner, confetti | 0–1 | recorded sound | `bullseye.allOnTarget` | 1200 | game event | `bullseye.allOnTarget` |
 | `bullseye.dartThrow` | An arrow is thrown [arcade-effects.md] | The arrow flies with a chalk trail | 10 | recorded sound | `bullseye.dartThrow` | 150 | game event | `bullseye.dartThrow` |
+| `bullseye.ambience` | While the run is live: the darts stall's ambience bed, held off while the music is muted [arcade-effects.md] | The darts stall | loop | recorded sound | `bullseye.ambience` | loop | ambience | `bullseye.ambience` |
 | `bullseye.thud` | Flightpath: An arrow lands [arcade.md] |  | 5–10 | recorded sound | `arc_fair_thud` (shared) | 160 | game event | `bullseye.thud` |
 | `bullseye.bull` | Flightpath: An arrow lands in the 10 [arcade.md] |  | 0–10 | recorded sound | `arc_fair_bell` (shared) | 400 | success sting | `bullseye.bull` |
 | `bullseye.perfect` | Flightpath: Every arrow in the 10 (once per run) [arcade.md] |  | 0–1 | recorded sound | `arc_fair_sting` (shared) | 300 | success sting | `bullseye.perfect` |
@@ -1468,13 +1464,20 @@ Grouped by game or screen.
 | `swing.dragonNear` | The dragon closes within 4 m while off the left edge (at most one per 4 s) [arcade-effects.md] | The DRAGON label grows to full size and its arrow turns red | 0–5 | recorded sound | `swing.dragonNear` | 1000 | game event | `swing.dragonNear` |
 | `swing.rockCrumble` | Halfway through a stalactite's warning [arcade-effects.md] | Grit and chips crumble off and its shadow grows | 2–8 | recorded sound | `swing.rockCrumble` | 500 | game event | `swing.rockCrumble` |
 | `swing.lava` | While the run is live (every revision before swingRev 17) [arcade-effects.md] | Lava waves, embers and drips | loop | recorded sound | `swing.lava` | loop | ambience | `swing.lava` |
+| `swing.jungle` | While the run is live (swingRev 17, the jungle canopy): an ambience bed, held off while the music is muted [arcade-effects.md] | The river, leaves and light shafts | loop | recorded sound | `swing.jungle` | loop | ambience | `swing.jungle` |
+| `swing.wings` | While the pterodactyl chases (swingRev 17) [arcade-effects.md] | The pterodactyl flapping behind the hero | loop | recorded sound | `swing.wings` | loop | ambience | `swing.wings` |
+| `swing.slideVine` | While a sliding vine still slides on screen (swingRev 17) [arcade-effects.md] | Swinging vines gliding along their rails | loop | recorded sound | `swing.slideVine` | loop | ambience | `swing.slideVine` |
+| `swing.release` | The hero lets go of a vine (swingRev 17; at most one per 90 ms) [arcade-effects.md] | The vine swings back empty | 20–60 | recorded sound | `swing.release` | 480 | game event | `swing.release` |
+| `swing.land` | The hero lands on a tree platform (swingRev 17; never the restart's placing) [arcade-effects.md] | The hero on the platform | 0–40 | recorded sound | `swing.land` | 490 | game event | `swing.land` |
+| `swing.streak` | Each block of the clean-swing streak paid (swingRev 17) [arcade-effects.md] | STREAK ×n in the HUD | 0–20 | recorded sound | `swing.streak` | 600 | game event | `swing.streak` |
+| `swing.gate` | A speed gate lit on the jungle canopy (swingRev 17, in place of swing.assaultGate) [arcade-effects.md] | SPEED GATE! pop under the hero | 0–5 | recorded sound | `swing.gate` | 480 | game event | `swing.gate` |
 | `swing.gemTaken` | A high-route gem taken (swingRev 13) [arcade-effects.md] | +GEM pop in cyan at the hero | 0–12 | recorded sound | `swing.gemTaken` | 600 | game event | `swing.gemTaken` |
 | `swing.gateLit` | A speed gate lit by a fast swoop (swingRev 13) [arcade-effects.md] | SPEED GATE! pop under the hero | 0–8 | recorded sound | `swing.gateLit` | 380 | game event | `swing.gateLit` |
 | `swing.ledgeLanded` | Landed on a set-route ledge (swingRev 13) [arcade-effects.md] | LANDED! pop above the hero | 0–15 | recorded sound | `swing.ledgeLanded` | 487 | game event | `swing.ledgeLanded` |
 | `swing.comboPoint` | Every fifth linked swing (swingRev 13) [arcade-effects.md] | SWING COMBO ×n streak | 0–10 | recorded sound | `swing.comboPoint` | 500 | game event | `swing.comboPoint` |
 | `swing.sectionClear` | A set-route section's finish flag reached (swingRev 13) [arcade-effects.md] | SECTION CLEAR! banner | 0–3 | recorded sound | `swing.sectionClear` | 600 | game event | `swing.sectionClear` |
 | `swing.parBeaten` | A section finished under its par time (swingRev 13) [arcade-effects.md] | "−0.8 s UNDER PAR" pop above the hero (in place of the section chime) | 0–3 | recorded sound | `swing.parBeaten` | 600 | game event | `swing.parBeaten` |
-| `swing.assaultGate` | A speed gate lit on the assault course (swingRev 14) [arcade-effects.md] | SPEED GATE! pop under the hero | 0–4 | recorded sound | `swing.assaultGate` | 380 | game event | `swing.assaultGate` |
+| `swing.assaultGate` | A speed gate lit on the assault course (swingRev 14–16; swingRev 17 plays swing.gate) [arcade-effects.md] | SPEED GATE! pop under the hero | 0–4 | recorded sound | `swing.assaultGate` | 380 | game event | `swing.assaultGate` |
 | `swing.assaultGem` | A gem taken on a harder line (swingRev 14; a miss puts it back) [arcade-effects.md] | +GEM pop in cyan at the hero | 0–4 | recorded sound | `swing.assaultGem` | 600 | game event | `swing.assaultGem` |
 | `swing.assaultStar` | A star taken on a tighter swing (swingRev 14; a miss puts it back) [arcade-effects.md] | STAR! burst in gold | 0–4 | recorded sound | `swing.assaultStar` | 600 | game event | `swing.assaultStar` |
 | `swing.assaultClear` | A section's landing ledge reached (swingRev 14) [arcade-effects.md] | CLEAR! (or "−0.4 s UNDER PAR") pop above the hero | 0–36 | recorded sound | `swing.assaultClear` | 487 | game event | `swing.assaultClear` |
@@ -1485,9 +1488,9 @@ Grouped by game or screen.
 | `swing.dragon` | Grappler: The dragon appears behind the player [arcade.md] |  | 0–1 | recorded sound | `arc_siren` (shared) | 600 | game event | `swing.dragon` |
 | `swing.rockShake` | Grappler: A stalactite starts to shake [arcade.md] |  | 2–8 | recorded sound | `arc_clank` (shared) | 150 | game event | `swing.rockShake` |
 | `swing.rockLand` | Grappler: A stalactite hits the floor [arcade.md] |  | 2–8 | recorded sound | `arc_wood_knock` (shared) | 90 | game event | `swing.rockLand` |
-| `swing.vineCreak` | Grappler: The vine catches (swingRev 17, the jungle canopy; swing.grapple before; its slot plays the library's ricochet.lanternGrab.mp3) [arcade.md] |  | 20–60 | recorded sound | `swing.vineCreak` | 450 | game event | `swing.vineCreak` |
-| `swing.splash` | Grappler: A miss drops the hero into the river (swingRev 17; swing.crash before; the library's minigolf_splash.mp3) [arcade.md] |  | 0–10 | recorded sound | `swing.splash` | 800 | game event | `swing.splash` |
-| `swing.pterodactyl` | Grappler: The pterodactyl swoops in over the last quarter (swingRev 17; swing.dragon before; the library's clayshoot.birdStartle.mp3) [arcade.md] |  | 0–1 | recorded sound | `swing.pterodactyl` | 600 | game event | `swing.pterodactyl` |
+| `swing.vineCreak` | Grappler: The vine catches (swingRev 17, the jungle canopy; swing.grapple before; Joe's swing.vineCreak.mp3 since 6 Nov 2026) [arcade.md] |  | 20–60 | recorded sound | `swing.vineCreak` | 480 | game event | `swing.vineCreak` |
+| `swing.splash` | Grappler: A miss drops the hero into the river (swingRev 17; swing.crash before; Joe's swing.splash.mp3 since 6 Nov 2026) [arcade.md] |  | 0–10 | recorded sound | `swing.splash` | 880 | game event | `swing.splash` |
+| `swing.pterodactyl` | Grappler: The pterodactyl swoops in over the last quarter (swingRev 17; swing.dragon before; Joe's swing.pterodactyl.mp3 since 6 Nov 2026) [arcade.md] |  | 0–1 | recorded sound | `swing.pterodactyl` | 1200 | game event | `swing.pterodactyl` |
 | `swing.pteroCatch` | Grappler: The pterodactyl catches the hero (swingRev 17; clayshoot.birdStartle.mp3 a little lower) [arcade.md] |  | 0–3 | recorded sound | `swing.pteroCatch` | 600 | game event | `swing.pteroCatch` |
 | `music.swing` | Grappler: music_swing |  | loop | recorded sound | `music_swing` | loop | music | `music_swing` |
 
@@ -1778,7 +1781,8 @@ Grouped by game or screen.
 | `slice.mayoSqueeze` | Mayonnaise squeezed [arcade-effects.md] | SQUEEZE! pop with the mayo glow and swirl | 1–5 | recorded sound | `slice.mayoSqueeze` | 450 | game event | `slice.mayoSqueeze` |
 | `slice.manyInOne` | Four or more cut in one slice [arcade-effects.md] | COMBO ×n pop at the cut | 0–5 | recorded sound | `slice.manyInOne` | 600 | game event | `slice.manyInOne` |
 | `slice.comboEnd` | The combo meter runs out (a chilli ending it has its own sound) [arcade-effects.md] | The combo meter empties and the gold border goes | 2–10 | recorded sound | `slice.comboEnd` | 500 | game event | `slice.comboEnd` |
-| `slice.fuse` | A chilli launches (at most one per 150 ms) [arcade-effects.md] | The chilli flies up with a fizzing fuse | 5–15 | recorded sound | `slice.fuse` | 600 | game event | `slice.fuse` |
+| `slice.fuse` | A chilli launches (at most one per 150 ms; sliceRev 12 plays slice.chilli) [arcade-effects.md] | The chilli flies up with a fizzing fuse | 5–15 | recorded sound | `slice.fuse` | 600 | game event | `slice.fuse` |
+| `slice.chilli` | A chilli launches on sliceRev 12's food board (at most one per 150 ms) [arcade-effects.md] | The red chilli flies up, sizzling | 5–15 | recorded sound | `slice.chilli` | 490 | game event | `slice.chilli` |
 | `slice.toss` | Food is thrown up (at most one per 250 ms, volume 0.4; left out on a frame slice.specialIn plays its file) [arcade-effects.md] | Discs fly up from below | about 100 | recorded sound | `slice.toss` | 250 | game event | `slice.toss` |
 | `slice.specialIn` | A special bottle (ketchup, mustard or mayonnaise) is thrown up (sound batch 4) [arcade-effects.md] | The bottle flies up spinning | 3–6 | recorded sound | `slice.specialIn` | 300 | game event | `slice.specialIn` |
 | `slice.cut` | Slice: A slice (at most one per 60 ms) [arcade.md] |  | 50–150 | recorded sound | `arc_knife_slice` (shared) | 300 | game event | `slice.cut` |
@@ -1793,14 +1797,17 @@ Grouped by game or screen.
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
-| `cross.pastBikes` | Past the comets' plasma lane (Spacewalk) [arcade-effects.md] | A +1 pop at the astronaut | 2–8 | recorded sound | `cross.pastBikes` | 840 | game event | `cross.pastBikes` |
-| `cross.pastRoadworks` | Through the drifting debris (Spacewalk) [arcade-effects.md] | A +1 pop at the astronaut | 2–8 | recorded sound | `cross.pastRoadworks` | 350 | game event | `cross.pastRoadworks` |
+| `cross.pastBikes` | Past the comets' plasma lane (Spacewalk) [arcade-effects.md] | A +1 pop at the astronaut | 2–8 | recorded sound | `cross.pastBikes` | 480 | game event | `cross.pastBikes` |
+| `cross.pastRoadworks` | Through the drifting debris (Spacewalk) [arcade-effects.md] | A +1 pop at the astronaut | 2–8 | recorded sound | `cross.pastRoadworks` | 460 | game event | `cross.pastRoadworks` |
+| `cross.freighter` | A freighter lane crossed (crossRev 9+; at most one per 600 ms) [arcade-effects.md] | The long cargo freighter going by | 0–15 | recorded sound | `cross.freighter` | 1350 | game event | `cross.freighter` |
 | `cross.newHazard` | A new layout's crossing begins (its kerb pause ends): the first cycle lane (crossing 3), roadworks (4) and the chicane (7), crossRev 2+ [arcade-effects.md] | Cyclists, cones or a chicane on the road ahead | 0–3 | recorded sound | `cross.newHazard` | 600 | game event | `cross.newHazard` |
 | `cross.traffic` | While the run is live [arcade-effects.md] | Space traffic streaming both ways (Spacewalk) | loop | recorded sound | `cross.traffic` | loop | ambience | `cross.traffic` |
-| `cross.lifeLost` | Jaywalk: The walker is hit [arcade.md] |  | 0–3 | recorded sound | `arc_lose_life` (shared) | 220 | fail sting | `cross.lifeLost` |
-| `cross.crossed` | Jaywalk: A crossing is completed [arcade.md] |  | 5–15 | recorded sound | `stage_complete` (shared) | 160 | game event | `cross.crossed` |
-| `cross.hop` | Jaywalk: The walker hops a lane or moves sideways (at most one per 90 ms) [arcade.md] |  | 50–150 | recorded sound | `cross.hop` | 380 | game event | `cross.hop` |
-| `music.cross` | Jaywalk: music_cross |  | loop | recorded sound | `music_cross` | loop | music | `music_cross` |
+| `cross.lifeLost` | Spacewalk: The astronaut is hit (Joe's cross.lifeLost.mp3 since 6 Nov 2026) [arcade.md] |  | 0–3 | recorded sound | `cross.lifeLost` | 350 | fail sting | `cross.lifeLost` |
+| `cross.crossed` | Spacewalk: A crossing is completed: the astronaut docks (Joe's cross.crossed.mp3 since 6 Nov 2026) [arcade.md] |  | 5–15 | recorded sound | `cross.crossed` | 610 | game event | `cross.crossed` |
+| `cross.hop` | Spacewalk: The astronaut hops a lane or moves sideways (at most one per 90 ms) [arcade.md] |  | 50–150 | recorded sound | `cross.hop` | 490 | game event | `cross.hop` |
+| `cross.streakUp` | Spacewalk: The streak bonus rises (crossRev 9+; Joe's recording since 6 Nov 2026, was arc_fair_sting at 0.7) [arcade.md] |  | 0–5 | recorded sound | `cross.streakUp` | 610 | game event | `cross.streakUp` |
+| `cross.closeCall` | Spacewalk: A close call (crossRev 9+; Joe's recording since 6 Nov 2026, was arc_retro_pickup at 0.6) [arcade.md] |  | 0–12 | recorded sound | `cross.closeCall` | 220 | game event | `cross.closeCall` |
+| `music.cross` | Spacewalk: music_cross (music_cross.mp3, Joe's recorded bed since 6 Nov 2026) |  | loop | recorded sound | `music_cross` | 60000 | music | `music_cross` |
 
 ### Summit
 
@@ -1823,6 +1830,8 @@ Grouped by game or screen.
 | `bintoss.spinnerBasket` | A basket past the spinner [arcade-effects.md] | A +1 pop at the bucket | 0–5 | recorded sound | `bintoss.spinnerBasket` | 250 | game event | `bintoss.spinnerBasket` |
 | `bintoss.spinnerKnock` | The ball hits the spinner or a hoop cap (at most one per 100 ms) [arcade-effects.md] | The paddle flashes gold | 0–8 | recorded sound | `arc_wood_knock` (shared) | 120 | game event | `bintoss.spinnerKnock` |
 | `bintoss.throw` | The ball is thrown [arcade-effects.md] | The ball flies with its trail | 10 | recorded sound | `bintoss.throw` | 300 | game event | `bintoss.throw` |
+| `bintoss.wind` | A throw with wind comes into hand [arcade-effects.md] | The wind flag waves with its strength | 0–10 | recorded sound | `bintoss.wind` | 800 | game event | `bintoss.wind` |
+| `bintoss.ambience` | While the run is live: the boardwalk's ambience bed, held off while the music is muted [arcade-effects.md] | The seaside boardwalk at dusk | loop | recorded sound | `bintoss.ambience` | loop | ambience | `bintoss.ambience` |
 | `bintoss.newHazard` | The next ball brings the narrower bucket (throw 4), the first spinner or the first trolley [arcade-effects.md] | The bucket narrows, or the spinner or trolley appears | 1–3 | recorded sound | `bintoss.newHazard` | 600 | game event | `bintoss.newHazard` |
 | `bintoss.basket` | Swish: A throw goes in [arcade.md] |  | 3–10 | recorded sound | `arc_fair_bucket` (shared) | 200 | success sting | `bintoss.basket` |
 | `bintoss.allBaskets` | Swish: The last throw goes in with every throw in [arcade.md] |  | 0–1 | recorded sound | `arc_fair_bell` (shared) | 400 | success sting | `bintoss.allBaskets` |
@@ -1937,7 +1946,7 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 | `lock` | effects | `lock` | 90 |
 | `round_won` | effects | `round_won` | 680 |
 | `podium_fanfare` | effects | `podium_fanfare` | 350 |
-| `stage_complete` | effects | `stage_complete`, `junction.complete`, `cross.crossed` | 160 |
+| `stage_complete` | effects | `stage_complete`, `junction.complete` | 160 |
 | `complete` | effects | `complete` | 200 |
 | `combo` | effects | `combo` | 90 |
 | `warning_10` | effects | `warning_10` | 10000 |
@@ -1951,7 +1960,7 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 | `arc_pickup` | effects | `swing.starTaken`, `orbit.checkpoint`, `flip.starTaken`, `flip.trailStar` | 100 |
 | `arc_space_ambience` | effects | `orbit.ambience` | loop |
 | `arc_thruster` | effects | `orbit.launch` | 160 |
-| `arc_lose_life` | effects | `bubble.reefLost`, `burst.lifeLost`, `cross.lifeLost`, `wavefront.lifeLost` | 220 |
+| `arc_lose_life` | effects | `bubble.reefLost`, `burst.lifeLost`, `wavefront.lifeLost` | 220 |
 | `arc_bounce` | effects | `racing.grass`, `rally.bumperBounce`, `snip.springBounce`, `snip.hook`, `bintoss.missBounce`, `bintoss.wobble`, `freekick.net` | 80 |
 | `arc_retro_note` | effects | `blockfall.speedUp`, `hover.gate`, `snake.rockWarn`, `snake.showerAlarm`, `rally.goldHit` | 90 |
 | `arc_retro_pickup` | effects | `breaker.powerUp`, `burst.powerUp`, `wavefront.pierce` | 100 |
@@ -2432,7 +2441,9 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 | `racing.lap` | effects | `racing.lap` | 800 |
 | `racing.wall` | effects | `racing.wall` | 604 |
 | `racing.finish` | effects | `racing.finish` | 1357 |
-| `cross.hop` | effects | `cross.hop` | 528 |
+| `cross.lifeLost` | effects | `cross.lifeLost` | 350 |
+| `cross.crossed` | effects | `cross.crossed` | 607 |
+| `cross.hop` | effects | `cross.hop` | 487 |
 | `pinball.start` | effects | `pinball.start` | 486 |
 | `pinball.ballLost` | effects | `pinball.ballLost` | 587 |
 | `pinball.launch` | effects | `pinball.launch` | 428 |
@@ -2535,8 +2546,8 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 | `swing.comboPoint` | effects | `swing.comboPoint` | 500 |
 | `swing.sectionClear` | effects | `swing.sectionClear` | 1000 |
 | `swing.parBeaten` | effects | `swing.parBeaten` | 1000 |
-| `cross.pastBikes` | effects | `cross.pastBikes` | 840 |
-| `cross.pastRoadworks` | effects | `cross.pastRoadworks` | 350 |
+| `cross.pastBikes` | effects | `cross.pastBikes` | 480 |
+| `cross.pastRoadworks` | effects | `cross.pastRoadworks` | 464 |
 | `flip.surviveStreak` | effects | `flip.surviveStreak` | 480 |
 | `flip.survivedFinish` | effects | `flip.survivedFinish` | 840 |
 | `flip.starTaken` | effects | `flip.starTaken` | 200 |
@@ -2655,9 +2666,10 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 | `whack.hedgehogUp` | effects | `whack.hedgehogUp` | 528 |
 | `clayshoot.birdIn` | effects | `clayshoot.birdIn` | 528 |
 | `swing.lava` | effects | `swing.lava` | 6024 |
-| `swing.vineCreak` | effects | `swing.vineCreak` | 429 |
-| `swing.splash` | effects | `swing.splash` | 803 |
-| `swing.pterodactyl` | effects | `swing.pterodactyl` | 606 |
+| `swing.jungle` | effects | `swing.jungle` | 8000 |
+| `swing.vineCreak` | effects | `swing.vineCreak` | 480 |
+| `swing.splash` | effects | `swing.splash` | 880 |
+| `swing.pterodactyl` | effects | `swing.pterodactyl` | 1198 |
 | `swing.pteroCatch` | effects | `swing.pteroCatch` | 606 |
 | `cross.traffic` | effects | `cross.traffic` | 2000 |
 | `burst.lastLife` | effects | `burst.lastLife` | 528 |
@@ -2799,3 +2811,17 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 | `alleyroll.streak` | effects | `alleyroll.streak` | 679 |
 | `music_blockfall` | music | `music.blockfall` | loop |
 | `music_alleyroll` | music | `music.alleyroll` | loop |
+| `cross.closeCall` | effects | `cross.closeCall` | 223 |
+| `cross.streakUp` | effects | `cross.streakUp` | 607 |
+| `cross.freighter` | effects | `cross.freighter` | 1350 |
+| `swing.gate` | effects | `swing.gate` | 479 |
+| `swing.land` | effects | `swing.land` | 485 |
+| `swing.release` | effects | `swing.release` | 480 |
+| `swing.streak` | effects | `swing.streak` | 600 |
+| `swing.slideVine` | effects | `swing.slideVine` | 2000 |
+| `swing.wings` | effects | `swing.wings` | 2000 |
+| `slice.chilli` | effects | `slice.chilli` | 485 |
+| `symscan.eagle` | effects | `symscan.eagle` | 807 |
+| `bintoss.wind` | effects | `bintoss.wind` | 800 |
+| `bintoss.ambience` | effects | `bintoss.ambience` | 8000 |
+| `bullseye.ambience` | effects | `bullseye.ambience` | 8000 |
