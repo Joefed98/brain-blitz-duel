@@ -316,7 +316,7 @@ for (const type of [...BATCH_TYPES, "equation"] as const) {
     pinned(pinPreParStrict, () => ok(/twice par/.test(help(type)) && !/shown on screen/.test(help(type)), `${type}: pinned, the help states the puzzle batch's rules`));
   }
   const eq = help("equation");
-  ok(/teal squares take a number/.test(eq) && /Any answer that's true counts/.test(eq) && /full fill/.test(eq), "equation: the help states the gaps");
+  ok(/teal squares take a number/.test(eq) && /Any answer that’s true counts/.test(eq) && /full fill/.test(eq), "equation: the help states the gaps");
   pinned(pinPreOperatorGaps, () => ok(/choose its sign/.test(help("equation")) && /full set of signs/.test(help("equation")), "equation: pinned, the help states the signs-only rules"));
 }
 

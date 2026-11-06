@@ -291,7 +291,7 @@ try {
         if ((await currentPanel(page)) !== i + 1) fail(`${where}: dots show panel ${await currentPanel(page)} on panel ${i + 1}`);
         for (const o of m.out) fail(`${where} panel ${i + 1}: ${o}`);
         const label = (await page.locator("[data-onboarding-next]").textContent())?.trim();
-        if (label !== (i === 2 ? "Let's play" : "Next")) fail(`${where} panel ${i + 1}: button says "${label}"`);
+        if (label !== (i === 2 ? "Let’s play" : "Next")) fail(`${where} panel ${i + 1}: button says "${label}"`);
         if (SHOTS) await page.screenshot({ path: `${SHOTS}/onboarding-${i + 1}-${where}.png` });
         await page.locator("[data-onboarding-next]").click();
       }

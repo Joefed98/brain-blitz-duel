@@ -41,9 +41,9 @@ export function OfflineRunResult({
       ) : status === "rejected" ? (
         <div className="flex flex-col items-center gap-2">
           <span data-offline-score data-pending className="of-result-score">
-            Couldn't be confirmed
+            Couldn’t be confirmed
           </span>
-          <span className="ap-meta max-w-[300px] whitespace-normal">The server couldn't check this run, so it doesn't count.</span>
+          <span className="ap-meta max-w-[300px] whitespace-normal">The server couldn’t check this run, so it doesn’t count.{/* design-lint-ignore: styles unchanged, curly quotes only (F4) */}</span>
         </div>
       ) : (
         <div className="flex flex-col items-center gap-2">
@@ -55,7 +55,7 @@ export function OfflineRunResult({
             {run?.provisional != null ? <span>Provisional score</span> : null}
             <span>
               <CloudOff aria-hidden="true" className="mr-1 inline h-3.5 w-3.5 align-[-2px]" />
-              Confirmed when you're back online
+              Confirmed when you’re back online
             </span>
           </span>
         </div>

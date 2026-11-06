@@ -192,7 +192,7 @@ export function FullRunViewer({
       data-replay-viewer
     >
       <div className="flex w-full max-w-md items-center justify-between">
-        <p className="truncate font-display text-sm font-bold text-foreground">{name}&apos;s run</p>
+        <p className="truncate font-display text-sm font-bold text-foreground">{name}’s run</p>
         <button
           type="button"
           onClick={onClose}

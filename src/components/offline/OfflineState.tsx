@@ -13,7 +13,7 @@ export function OfflineState({ body }: { body: string }) {
         <CloudOff className="h-7 w-7" />
       </span>
       <div className="flex flex-col gap-2">
-        <h1 className="text-[26px] font-extrabold leading-tight text-foreground">You're offline</h1>
+        <h1 className="text-[26px] font-extrabold leading-tight text-foreground">You’re offline{/* design-lint-ignore: styles unchanged, curly quotes only (F4) */}</h1>
         <p className="mx-auto max-w-[300px] text-[15px] leading-snug text-[var(--ap-text-2)]">{body}</p>
       </div>
       <div className="flex w-full max-w-[320px] flex-col gap-2.5">

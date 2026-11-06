@@ -79,7 +79,7 @@ export function RoomSettingsSheet({
       await onSave({ picks, rounds });
       onClose();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Couldn't save the settings. Try again.");
+      setError(e instanceof Error ? e.message : "Couldn’t save the settings. Try again.");
     } finally {
       setSaving(false);
     }

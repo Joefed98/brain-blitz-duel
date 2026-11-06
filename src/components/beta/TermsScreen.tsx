@@ -47,7 +47,7 @@ export function TermsContent() {
     <div data-terms-content className="flex flex-col gap-5">
       <Section title="An early-access beta">
         <p>
-          {`${OPERATOR} ("we", "us") runs this early-access beta of ${APP_NAME}. It's free to play. Games, scores and features may change, break or be reset while we test.`}
+          {`${OPERATOR} (“we”, “us”) runs this early-access beta of ${APP_NAME}. It’s free to play. Games, scores and features may change, break or be reset while we test.`}
         </p>
       </Section>
       <Section title="For ages 18 and over">
@@ -55,7 +55,7 @@ export function TermsContent() {
       </Section>
       <Section title="Our games stay ours">
         <p>
-          {`The games, puzzles, art, sounds and code belong to ${OPERATOR}. Please don't copy, reverse engineer, scrape or redistribute them.`}
+          {`The games, puzzles, art, sounds and code belong to ${OPERATOR}. Please don’t copy, reverse engineer, scrape or redistribute them.`}
         </p>
       </Section>
       <Section title="What other players see">
@@ -71,7 +71,7 @@ export function TermsContent() {
         </p>
       </Section>
       <Section title="Deleting your data">
-        <p>Ask us and we'll delete your data.</p>
+        <p>Ask us and we’ll delete your data.</p>
         {contact ? (
           <p data-terms-contact>
             Contact:{" "}

@@ -9,7 +9,7 @@ export function OfflineBanner() {
   return (
     <div data-offline-banner role="status" className="of-banner">
       <CloudOff aria-hidden="true" className="h-4 w-4 shrink-0" />
-      <span>You're offline. Practice still works.</span>
+      <span>You’re offline. Practice still works.</span>
     </div>
   );
 }

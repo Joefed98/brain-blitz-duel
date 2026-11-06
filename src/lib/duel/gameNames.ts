@@ -33,7 +33,7 @@ export const GAME_DISPLAY_NAMES: Record<PuzzleType, string> = {
   checkout: "Checkout",
   bullseye: "Flightpath",
   burst: "Fission",
-  chain: "Don't Break the Chain",
+  chain: "Don’t Break the Chain",
   clayshoot: "Pull!",
   flood: "Colour Flood",
   countup: "Tally",

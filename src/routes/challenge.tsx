@@ -242,7 +242,7 @@ function ChallengeScreen() {
       } as never);
       await run(made.code, made.roomId);
     } catch {
-      setError("Couldn't reach the server. Try again.");
+      setError("Couldn’t reach the server. Try again.");
     } finally {
       setBusy(false);
     }
@@ -264,7 +264,7 @@ function ChallengeScreen() {
       setStoredName(trimmed);
       await run(info.code, started.roomId);
     } catch {
-      setError("Couldn't reach the server. Try again.");
+      setError("Couldn’t reach the server. Try again.");
     } finally {
       setBusy(false);
     }
@@ -356,7 +356,7 @@ function ChallengeScreen() {
         <div data-challenge-screen="landing" className="flex flex-1 flex-col">
           <ErrorState
             title="Challenge not found"
-            body="This challenge link doesn't work. Check it with whoever sent it, or make your own."
+            body="This challenge link doesn’t work. Check it with whoever sent it, or make your own."
             action={{ label: "Make your own challenge", onClick: () => setCode(null) }}
           />
         </div>
@@ -383,7 +383,7 @@ function ChallengeScreen() {
               Challenge
             </h1>
             <p className="th-empty rounded-xl border border-dashed border-border px-4 py-6 text-center text-sm text-muted-foreground">
-              This challenge link doesn't work. Check it with whoever sent it.
+              This challenge link doesn’t work. Check it with whoever sent it.
             </p>
             <NewChallengeButton onClick={() => setCode(null)} />
           </>

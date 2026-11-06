@@ -26,7 +26,7 @@ const PANELS: Panel[] = [
   },
   {
     title: "Same game, same time.",
-    body: "Create a room and share the code, or join a friend's. Everyone plays the same game at once.",
+    body: "Create a room and share the code, or join a friend’s. Everyone plays the same game at once.",
     art: <RoomCodeArt />,
   },
   {
@@ -173,7 +173,7 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
               last ? "ap-btn-gold" : "bg-[var(--ap-text)] text-[var(--ap-bg)]"
             }`}
           >
-            {last ? "Let's play" : "Next"}
+            {last ? "Let’s play" : "Next"}
           </button>
         </div>
       </div>

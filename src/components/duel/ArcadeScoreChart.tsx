@@ -137,7 +137,7 @@ export function ArcadeScoreChart({ players, type }: { players: ChartPlayer[]; ty
       {/* "Who's ahead" only when there is more than one player to be ahead of (3 Nov 2026). */}
       {players.length > 1 ? (
         <p className="mb-0.5 shrink-0 text-[13px] font-semibold uppercase tracking-widest" style={{ color: TEXT, textShadow: LABEL_SHADOW }}>
-          Who's ahead
+          Who’s ahead
         </p>
       ) : null}
       <div ref={box} className="relative min-h-0 w-full flex-1" style={{ minHeight: needed }}>

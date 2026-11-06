@@ -41,7 +41,7 @@ export const sendRoomMessageFn = createServerFn({ method: "POST" })
     const client = context.supabase;
     const sender = await senderRow(client, data.roomId, context.userId);
     if (!sender || sender.status === "left") {
-      return { ok: false as const, message: "You're not in this room." };
+      return { ok: false as const, message: "You’re not in this room." };
     }
     if (sender.muted_by_host) {
       return { ok: false as const, message: "The host has muted you in this room." };
@@ -60,7 +60,7 @@ export const sendRoomMessageFn = createServerFn({ method: "POST" })
     const sent = (mine ?? []) as { created_at: string }[];
 
     if (sent.length >= MESSAGE_MAX_PER_PLAYER) {
-      return { ok: false as const, message: "You've hit the message limit for this room." };
+      return { ok: false as const, message: "You’ve hit the message limit for this room." };
     }
     const last = sent[0]?.created_at;
     if (last && Date.now() - new Date(last).getTime() < MESSAGE_MIN_GAP_MS) {
@@ -75,7 +75,7 @@ export const sendRoomMessageFn = createServerFn({ method: "POST" })
       sender_name: sender.display_name,
       text: censor(text),
     });
-    if (error) return { ok: false as const, message: "Message didn't send. Try again." };
+    if (error) return { ok: false as const, message: "Message didn’t send. Try again." };
     return { ok: true as const };
   });
 
@@ -89,7 +89,7 @@ export const allowReactionFn = createServerFn({ method: "POST" })
     }
     const sender = await senderRow(context.supabase, data.roomId, context.userId);
     if (!sender || sender.status === "left") {
-      return { ok: false as const, message: "You're not in this room." };
+      return { ok: false as const, message: "You’re not in this room." };
     }
     if (sender.muted_by_host) {
       return { ok: false as const, message: "The host has muted you in this room." };
@@ -115,7 +115,7 @@ export const reportMessageFn = createServerFn({ method: "POST" })
   .inputValidator((input: { roomId: string; messageId: string }) => input)
   .handler(async ({ data, context }) => {
     const sender = await senderRow(context.supabase, data.roomId, context.userId);
-    if (!sender) return { ok: false as const, message: "You're not in this room." };
+    if (!sender) return { ok: false as const, message: "You’re not in this room." };
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     // The reported message must be one of this room's (read through the caller's RLS).
     const { data: message } = await context.supabase
@@ -124,10 +124,10 @@ export const reportMessageFn = createServerFn({ method: "POST" })
       .eq("id", String(data.messageId ?? ""))
       .eq("duel_id", data.roomId)
       .maybeSingle();
-    if (!message) return { ok: false as const, message: "That message isn't in this room." };
+    if (!message) return { ok: false as const, message: "That message isn’t in this room." };
     const { REPORT_LIMIT, withinRateLimit } = await import("./rateLimit.server");
     if (!(await withinRateLimit(supabaseAdmin, context.userId, REPORT_LIMIT)))
-      return { ok: false as const, message: "Thanks, we've got your reports." };
+      return { ok: false as const, message: "Thanks, we’ve got your reports." };
     await supabaseAdmin.from("room_reports").insert({
       duel_id: data.roomId,
       message_id: data.messageId,

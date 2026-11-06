@@ -9,7 +9,7 @@ import { DAILY_TITLE, type DailyKind } from "@/lib/duel/daily";
 export const DAILY_REF = "daily";
 
 export function dailyShareLine(kind: DailyKind, total: number): string {
-  return `I scored ${total} on today's ${DAILY_TITLE[kind]} – can you beat it?`;
+  return `I scored ${total} on today’s ${DAILY_TITLE[kind]} – can you beat it?`;
 }
 
 export function dailyShareLink(origin: string, kind: DailyKind): string {
