@@ -11,6 +11,8 @@ import {
   Input,
   LiveTag,
   Medal,
+  Progress,
+  Stars,
   Nameplate,
   Panel,
   Row,
@@ -264,6 +266,24 @@ function DevDesign() {
               <Medal place={1} shared size={size} />
             </div>
           ))}
+        </Block>
+
+        <Block title="Stars">
+          {(["s", "m"] as const).map((size) => (
+            <div key={size} className="jz-gallery-grid">
+              {[0, 1, 2, 3].map((tier) => (
+                <Stars key={tier} tier={tier} size={size} />
+              ))}
+            </div>
+          ))}
+        </Block>
+
+        <Block title="Progress">
+          <div className="flex w-full flex-col gap-3">
+            <Progress value={0} />
+            <Progress value={0.4} />
+            <Progress value={1} done />
+          </div>
         </Block>
 
         <Block title="TabBar">

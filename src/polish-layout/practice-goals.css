@@ -1,0 +1,105 @@
+/*
+ * Practice goals (6 Nov 2026): the stars total under Practice's title, the stars on each Practice row and the intro,
+ * and the Challenges section. Tokens only (DESIGN.md); text emphasis: one bright line a row (the goal), names in
+ * --jz-text-2, figures and captions in --jz-text-3.
+ */
+
+/* "41 / 276 stars" under the title. */
+.pg-total {
+  display: flex;
+  align-items: center;
+  gap: var(--jz-space-8);
+  color: var(--jz-text-3);
+  font-size: 14px;
+  line-height: 18px;
+}
+.pg-total-earned {
+  color: var(--jz-text);
+  font-size: 18px;
+  font-weight: var(--jz-weight-bold);
+  line-height: 22px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* A Practice row's stars, just left of the BEST column. */
+.jz-row[data-icon="game"] > .jz-stars {
+  margin-left: auto;
+}
+
+/* The intro's stars under its best. */
+.intro-best > .jz-stars {
+  margin-top: 2px;
+}
+
+/* ------------------------------------------------------------------ Challenges */
+.pc-row {
+  align-items: flex-start;
+  gap: var(--jz-space-12);
+  padding-top: var(--jz-space-12);
+  padding-bottom: var(--jz-space-12);
+}
+.pc-body {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+}
+.pc-name {
+  color: var(--jz-text-2);
+  font-size: 12px;
+  font-weight: var(--jz-weight-medium);
+  line-height: 16px;
+}
+.pc-goal {
+  color: var(--jz-text);
+  font-size: 15px;
+  font-weight: var(--jz-weight-medium);
+  line-height: 20px;
+}
+.pc-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--jz-space-8);
+  margin-top: var(--jz-space-4);
+}
+.pc-progress {
+  flex: 1;
+  min-width: 0;
+}
+.pc-figure {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: var(--jz-space-4);
+  color: var(--jz-text-3);
+  font-size: 12px;
+  font-weight: var(--jz-weight-medium);
+  line-height: 16px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.pc-row[data-status="done"] .pc-figure {
+  color: var(--jz-cyan);
+}
+.pc-unlock {
+  color: var(--jz-text-3);
+  font-size: 12px;
+  line-height: 16px;
+}
+.pc-reward {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: var(--jz-space-4);
+  color: var(--jz-text-3);
+  font-size: 12px;
+  font-weight: var(--jz-weight-medium);
+  line-height: 16px;
+  white-space: nowrap;
+}
+.pc-icon {
+  width: 14px;
+  height: 14px;
+  flex: none;
+}
