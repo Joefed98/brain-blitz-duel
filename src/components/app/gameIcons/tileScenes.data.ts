@@ -90,7 +90,7 @@ export const TILE_SCENES: Partial<Record<PuzzleType, string>> = {
   swapword: "fa928ef31f",
   swerve: "019aaa98a6",
   swing: "64cc1ab165",
-  symscan: "56fc6650a4",
+  symscan: "be4afd4924",
   target: "1574aa027c",
   tendrop: "3958635a79",
   tents: "0a35369527",

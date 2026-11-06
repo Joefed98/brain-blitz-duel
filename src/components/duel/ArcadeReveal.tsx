@@ -13,7 +13,7 @@ import type { PlayerLook } from "@/lib/duel/playerLook";
 
 import { ArcadeScoreChart } from "./ArcadeScoreChart";
 import { RevealBreakdown } from "./RevealBreakdown";
-import { PENALTY_LINE, realFullClear, statRepeatsPart, summaryText } from "@/lib/duel/revealBreakdown";
+import { COST_LINE, PENALTY_LINE, realFullClear, statRepeatsPart, summaryText } from "@/lib/duel/revealBreakdown";
 import { bandStdLines, standardPartLabels } from "@/lib/duel/arcadeBandStd";
 
 /** One player in the room for the reveal chart. `reveal` and `score` are null until their result lands. */
@@ -159,7 +159,7 @@ const STD_TOTAL = /^(Total → \d+( of \d+)?|At least 1 for playing → \d+)$/;
  */
 export function revealSummary(lines: readonly string[], score: number | null): { summary: string; rest: string[] } | null {
   if (lines.length === 0) return null;
-  const body = lines.filter((l) => !STD_TOTAL.test(l) && !PENALTY_LINE.test(l));
+  const body = lines.filter((l) => !STD_TOTAL.test(l) && !PENALTY_LINE.test(l) && !COST_LINE.test(l));
   const parts = body.map((l) => STD_PART.exec(l)).map((m) => (m ? Number(m[1]) : null));
   const standard = score !== null && parts.length >= 2 && parts.every((p) => p !== null);
   if (standard) {
@@ -294,7 +294,7 @@ export function ArcadeReveal({ puzzle, myAnswer, myScore, myReveal: storedReveal
   const summary = shown ? revealSummary(shown.lines, myScore) : null;
   // The stats card keeps only what the breakdown doesn't already say (4 Nov 2026): no part repeated as "n / max".
   const partLabels = standardPartLabels(puzzle as unknown as { type: string } & Record<string, unknown>);
-  const tiles = shown ? [...shown.tiles.filter((t) => !statRepeatsPart(t.label, shown.lines, partLabels) && !retiredStat(puzzle, t.label)).slice(0, 4), ...costRows] : [];
+  const tiles = shown ? [...shown.tiles.filter((t) => !statRepeatsPart(t.label, shown.lines, partLabels, t.value) && !retiredStat(puzzle, t.label)).slice(0, 4), ...costRows] : [];
   const folds = !practice && !!summary && summary.rest.length + tiles.length > 0;
   const [open, setOpen] = useState(false);
   const breakdownLines = shown ? shown.lines : [];
@@ -320,7 +320,7 @@ export function ArcadeReveal({ puzzle, myAnswer, myScore, myReveal: storedReveal
                 ref={scoreRef}
                 data-reveal-score={myScore}
                 className={`font-mono text-6xl font-bold tabular-nums leading-none text-foreground${celebration ? " arcade-score-celebrate" : ""}`}
-                aria-label={`${myScore} points`}
+                aria-label={`${myScore} ${myScore === 1 ? "point" : "points"}`}
               >
                 {shownScore}
               </p>
@@ -334,7 +334,7 @@ export function ArcadeReveal({ puzzle, myAnswer, myScore, myReveal: storedReveal
               ) : null}
             </div>
           )}
-          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-muted-foreground">points</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-muted-foreground">{myScore === 1 ? "point" : "points"}</p>
           {practice ? (
             <p data-reveal-best="" className="text-[14px] font-semibold text-[#D4D4DC]">
               {best === null ? "Your first score for this game" : <>Your best: <span className="tabular-nums text-foreground">{best}</span></>}

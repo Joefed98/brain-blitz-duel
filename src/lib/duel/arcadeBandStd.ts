@@ -77,7 +77,13 @@ export const BAND_STD_GAMES: Readonly<Record<string, BandStdGame>> = {
       { label: "Warp stars", max: SNAKE_STD_CAPS.warp, find: /^warps?\b/i },
     ]),
     // "3 stars + 1 gold ×2 (120 at 28)": the curve's own figures are jargon on the reveal.
-    coreDetail: (text) => text.replace(/\s*\(\d+ at \d+\)\s*$/, "").replace(/ gold ×2$/, " gold counting 2"),
+    // "22 stars + 5 gold ×2": "22 stars and 5 gold stars, each worth 2" (6 Nov 2026, Joe's review: "counting 2").
+    coreDetail: (text) =>
+      text
+        .replace(/\s*\(\d+ at \d+\)\s*$/, "")
+        .replace(/^(\d+) stars? \+ (\d+) gold ×(\d+)$/, (_, stars: string, golds: string, worth: string) =>
+          `${stars} ${stars === "1" ? "star" : "stars"} and ${golds} gold ${golds === "1" ? "star, worth" : "stars, each worth"} ${worth}`,
+        ),
   },
   cross: {
     field: "crossRev",

@@ -242,7 +242,7 @@ export function Podium({
               <button
                 type="button"
                 aria-expanded={open === row.slot}
-                aria-label={`${row.name}: ${row.total} points. Show round scores`}
+                aria-label={`${row.name}: ${row.total} ${row.total === 1 ? "point" : "points"}. Show round scores`}
                 onClick={() => setOpen((current) => (current === row.slot ? null : row.slot))}
                 data-you={isMe ? "" : undefined}
                 style={isMe ? youStyle(look) : undefined}

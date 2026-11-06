@@ -72,8 +72,8 @@ function Reveal({ puzzle, myAnswer, myExtra }: PuzzleRevealProps) {
         <div className="wordsmith-ring-example w-[112px] shrink-0">
           <WordsmithRing letters={puzzle.letters} />
         </div>
-        <div className="flex flex-col gap-1 font-mono text-sm">
-          <p className="text-base uppercase tracking-widest text-foreground">{mine.length} words</p>
+        <div className="flex flex-col gap-1 text-sm">
+          <p className="text-base font-semibold text-foreground">{mine.length} words</p>
           {pangram && (
             <p className="text-muted-foreground">
               {puzzle.letters.length}-letter word:

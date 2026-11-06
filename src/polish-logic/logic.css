@@ -858,12 +858,18 @@
   from { opacity: 0.4; }
   to { opacity: 1; }
 }
+/* The reveal's clues (6 Nov 2026, Joe's review: tiny and pressed against the grid): readable, with room to the grid. */
 .logic-nono-reveal > span {
-  font-size: 12px !important;
+  font-size: 14px !important;
   line-height: 1.15;
 }
 .logic-nono-reveal > .nono-clue-row {
-  padding-right: 4px;
+  gap: 5px;
+  padding-right: 9px;
+  padding-left: 2px;
+}
+.logic-nono-reveal > .nono-clue-col {
+  padding-bottom: 8px;
 }
 /* Completion: the picture fills with colour in a diagonal sweep, then a small bounce. */
 .logic-nono > .logic-nono-cell.bg-primary::after {

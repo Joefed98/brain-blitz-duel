@@ -357,15 +357,14 @@ export function TopsyStage({ puzzle, locked, onSubmit, onDraftAnswer, phaseStart
 
 /* ------------------------------------------------------------------ reveal */
 
-export function TopsyReveal({ puzzle, myAnswer, myCorrect, scoreParts }: PuzzleRevealProps) {
+export function TopsyReveal({ puzzle, myAnswer, myCorrect }: PuzzleRevealProps) {
   const data = puzzle as GravityPuzzleData & { boards: TopsyBoardData[] };
   const replay = replayTopsyPuzzle(data, decodeGravityTilts(myAnswer ?? ""));
   const last = Math.min(replay.current, TOPSY_BOARDS - 1);
   const shownIndex = replay.solved ? TOPSY_BOARDS - 1 : last;
   const state = currentBoardState(data, replay, shownIndex);
   const routes = data.boardSolutions ?? [];
-  // gravityRev 5 (the scoring standard) stores its bonus's name ("stars + par"); older rounds' bonus is the stars.
-  const parts = scoreParts && scoreParts.kind === "finish" ? `${scoreParts.base} + ${scoreParts.efficiency ?? 0} ${scoreParts.measure ?? "stars"} + ${scoreParts.speed ?? 0} speed` : null;
+  // The stored parts are the reveal's own score line at the top (6 Nov 2026: this board drew them again at the bottom).
   return (
     <div className="grav-reveal flex min-h-0 w-full flex-1 flex-col items-center gap-3" data-topsy-reveal="">
       <TopsyRings state={state} />
@@ -392,7 +391,6 @@ export function TopsyReveal({ puzzle, myAnswer, myCorrect, scoreParts }: PuzzleR
       <p className="font-mono text-base text-muted-foreground">
         {replay.home} / {TOPSY_BALLS * TOPSY_BOARDS} home{usesParMoves(data) ? "" : ` · ${replay.stars} / ${TOPSY_BOARDS * TOPSY_STARS} stars`} · {replay.tilts} tilts
       </p>
-      {parts ? <p className="font-mono text-base text-primary">{parts}</p> : null}
     </div>
   );
 }

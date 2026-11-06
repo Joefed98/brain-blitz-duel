@@ -239,22 +239,17 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: Puz
     decodePushMoves(myAnswer ?? ""),
   );
   const min = puzzle.minPushes ?? solution.length;
-  const elapsed =
-    myMsRemaining === undefined ? null : Math.round((timeLimitMs - myMsRemaining) / 100) / 10;
-
   return (
     <div className="flex min-h-0 w-full flex-1 flex-col items-center gap-3">
       <div className="push-reveal-space flex min-h-0 w-full flex-1 flex-col items-center justify-center gap-3">
         <div className="push-reveal-board">
         <Board walls={puzzle.walls} targets={puzzle.targets} crates={myCorrect ? mine.state.crates : crates} pusher={myCorrect ? mine.state.pusher : pusherCell} gold={(puzzle.pushRev ?? 0) >= 1 ? puzzle.gold : undefined} />
         </div>
-      <p className="font-mono text-base uppercase tracking-widest text-muted-foreground">
-        minimum · {min} push{min === 1 ? "" : "es"}
-      </p>
+      {/* One line (6 Nov 2026: "Minimum · 27 pushes" over "✓ 27 pushes" said the pushes twice; the verdict row has the time). */}
       <p className="font-mono text-base uppercase tracking-widest text-muted-foreground">
         {myCorrect
-          ? `✓ ${mine.pushes} push${mine.pushes === 1 ? "" : "es"}${elapsed === null ? "" : ` · ${elapsed.toFixed(1)}s`}`
-          : `✗ ${cratesOnTargets(mine.state.crates, puzzle.targets)} / ${puzzle.targets.length} crates home`}
+          ? `✓ ${mine.pushes} push${mine.pushes === 1 ? "" : "es"}${mine.pushes === min ? " · the minimum" : ` · minimum ${min}`}`
+          : `✗ ${cratesOnTargets(mine.state.crates, puzzle.targets)} / ${puzzle.targets.length} crates home · minimum ${min} push${min === 1 ? "" : "es"}`}
       </p>
       </div>
     </div>

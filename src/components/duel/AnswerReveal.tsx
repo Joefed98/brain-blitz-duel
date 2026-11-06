@@ -9,6 +9,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { WaitingLine } from "@/components/duel/Dots";
 import { ArcadeReveal, revealShown, storedCostRows, type RevealPlayer } from "@/components/duel/ArcadeReveal";
 import { engineLines, statRepeatsPart } from "@/lib/duel/revealBreakdown";
+import { engineScoreLines } from "@/lib/duel/engineBreakdown";
 import { PlayerBadge } from "@/components/duel/PlayerBadge";
 import type { ArcadeRevealData } from "@/lib/arcade/reveal";
 import { ARCADE_REVEAL_RENDERERS } from "@/lib/arcade/revealRenderers";
@@ -205,37 +206,90 @@ const useIsoLayoutEffect = typeof window === "undefined" ? useEffect : useLayout
 
 /** Smallest a board is drawn to make the reveal fit (27 Oct 2026); below it the reveal scrolls as before. */
 const REVEAL_FIT_MIN = 0.5;
-/** Largest the reveal's card is drawn to fill the reveal's spare height (3 Nov 2026). */
+/** Largest a reveal's board is drawn to fill the reveal's spare height (3 Nov 2026). */
 const REVEAL_GROW_MAX = 1.8;
-/** The reveal's own lines never drop under this (px) when the reveal has to shrink. */
-const REVEAL_FIT_MIN_TEXT_PX = 13;
 /** Padding inside the card, round everything it holds (4 Nov 2026). */
 const REVEAL_CARD_PAD = 12;
 
-/** The smallest text drawn in an element (its own text nodes, outside svgs). */
-function smallestText(el: HTMLElement): number {
-  let smallest = Infinity;
-  for (const node of Array.from(el.querySelectorAll<HTMLElement>("p, span, li, div, button"))) {
-    if (!Array.from(node.childNodes).some((n) => n.nodeType === 3 && (n.textContent ?? "").trim())) continue;
-    if (node.closest("svg")) continue;
-    const cs = getComputedStyle(node);
-    if (cs.display === "none" || cs.visibility === "hidden") continue;
-    smallest = Math.min(smallest, parseFloat(cs.fontSize) || Infinity);
-  }
-  return smallest;
+type Box = { left: number; top: number; right: number; bottom: number };
+
+/** An element's own (direct) text, outside svgs. */
+function ownText(el: Element): boolean {
+  if (el.closest("svg")) return false;
+  return Array.from(el.childNodes).some((n) => n.nodeType === 3 && (n.textContent ?? "").trim() !== "");
 }
 
+const shown = (el: Element) => {
+  const cs = getComputedStyle(el);
+  if (cs.display === "none" || cs.visibility === "hidden" || cs.position === "absolute" || cs.position === "fixed") return false;
+  const r = el.getBoundingClientRect();
+  return r.width >= 1 && r.height >= 1;
+};
+
 /**
- * The reveal's card fits the screen (4 Nov 2026, Joe's review of every reveal; display only): the whole card — the
- * game's board, its own panel, and every line under it — is measured as one (boardBox: what it draws) and scaled as
- * one, from its top centre, to the largest size that keeps everything REVEAL_CARD_PAD inside the reveal's box (up to
- * REVEAL_GROW_MAX, so a small board fills the spare height), never wider than the screen's margins. Scaling the card as
- * one keeps its own layout, so a grown board can never run past its panel or over its lines (the 3 Nov fit grew the
- * boards alone: Kakuro, Box Six and a dozen more ran past their card; Lookout's words, Roundabout's status line and
- * Trail's labels were drawn over). A card too tall for the screen shrinks the same way, as long as its smallest text
- * stays 13 px or more; past that only the boards shrink (to half size), then the reveal scrolls. The tray behind the
- * card is placed on what the card draws plus the padding. A transform, so no game's own sizing or drawing changes; run
- * before the first paint and again when the space or the content changes.
+ * The boards in a reveal's card (6 Nov 2026): what the fit scales, never the lines round them. A board is a game's own
+ * `data-reveal-board` element (a board drawn with its labels), a canvas, svg or image 56 px or taller, a grid 56 px or
+ * larger whose text is cells and clues (no word over 3 characters: a word list or a table of lines is text, not a
+ * board), or a box drawn entirely by absolutely placed layers (Gridlock's car park). Each board takes in the wrappers
+ * tight round it (a panel no more than 40 px larger that holds nothing else), so its frame grows with it.
+ */
+function revealBoards(card: HTMLElement): HTMLElement[] {
+  const leaves: HTMLElement[] = [];
+  const cellText = (el: Element) => {
+    const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+    // Each run of characters on its own (a column clue "1\n1\n2" is three short cells, a word is one long run).
+    for (let n = walker.nextNode(); n; n = walker.nextNode()) if ((n.textContent ?? "").split(/\s+/).some((run) => run.length > 3)) return false;
+    return true;
+  };
+  const walk = (el: Element) => {
+    for (const child of Array.from(el.children)) {
+      if (!(child instanceof HTMLElement || child instanceof SVGElement) || !shown(child)) continue;
+      const r = child.getBoundingClientRect();
+      const cs = getComputedStyle(child);
+      const big = r.width >= 56 && r.height >= 56;
+      const kids = Array.from(child.children);
+      const board =
+        child.hasAttribute("data-reveal-board") ||
+        (/^(CANVAS|svg|IMG)$/i.test(child.tagName) && r.height >= 56) ||
+        (big && (cs.display === "grid" || cs.display === "inline-grid") && cellText(child)) ||
+        (big && kids.length > 0 && !ownText(child) && kids.every((k) => !shown(k)) && kids.some((k) => getComputedStyle(k).position === "absolute"));
+      if (board) leaves.push(child instanceof HTMLElement ? child : (child.parentElement as HTMLElement));
+      else walk(child);
+    }
+  };
+  walk(card);
+  const blocks = leaves.map((leaf) => {
+    let b: HTMLElement = leaf;
+    if (b.hasAttribute("data-reveal-board")) return b;
+    while (b.parentElement && b.parentElement !== card && card.contains(b.parentElement)) {
+      const p = b.parentElement;
+      const kids = Array.from(p.children).filter(shown);
+      if (kids.length !== 1 || ownText(p)) break;
+      const pr = p.getBoundingClientRect();
+      const br = b.getBoundingClientRect();
+      // Not into a box smaller than what it holds (a board overflowing a squeezed box: the box's size isn't the board's).
+      if (pr.height > br.height + 40 || pr.width > br.width + 40 || pr.height < br.height - 1 || pr.width < br.width - 1) break;
+      b = p;
+    }
+    return b;
+  });
+  const unique = [...new Set(blocks)].filter((el) => el !== card);
+  return unique.filter((el) => !unique.some((o) => o !== el && o.contains(el)));
+}
+
+const overlaps = (a: Box, b: Box) => Math.min(a.right, b.right) - Math.max(a.left, b.left) > 1 && Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top) > 1;
+const inside = (a: Box, b: Box) => a.left >= b.left - 0.5 && a.right <= b.right + 0.5 && a.top >= b.top - 0.5 && a.bottom <= b.bottom + 0.5;
+
+/**
+ * The reveal's boards fit the screen (6 Nov 2026, Joe's review; the 4 Nov fit scaled the whole card, so the lines in it
+ * came out oversized). Only the boards (revealBoards) are scaled, all by one factor, from their top centre, with a
+ * matching bottom margin so the lines under them move rather than being drawn over: up to REVEAL_GROW_MAX to fill the
+ * reveal's spare height, or down to half size when the card is too tall (then the reveal scrolls). The factor is the
+ * largest at which, measured in the page, every board stays REVEAL_CARD_PAD inside the reveal's sides and the content
+ * ends REVEAL_CARD_PAD above its bottom, no board meets another board or a line it did not already touch, and no board
+ * runs past a panel or clipping box that held it at full size. The text keeps its size. The tray behind the card is
+ * placed on what the card draws plus the padding. A transform, so no game's own sizing or drawing changes; run before
+ * the first paint and again when the space or the content changes.
  */
 function useRevealFit(rootRef: { current: HTMLElement | null }, cardRef: { current: HTMLElement | null }, trayRef: { current: HTMLElement | null }) {
   useIsoLayoutEffect(() => {
@@ -249,51 +303,36 @@ function useRevealFit(rootRef: { current: HTMLElement | null }, cardRef: { curre
         s.el.style.transformOrigin = s.origin;
         s.el.style.marginBottom = s.margin;
       }
-      card.style.transform = "";
-      card.style.transformOrigin = "";
       root.style.overflowY = "";
       delete root.dataset["fit"];
       delete root.dataset["grown"];
     };
-    const shrinkBoard = (el: HTMLElement, z: number) => {
-      const h = el.offsetHeight;
-      const margin = parseFloat(getComputedStyle(el).marginBottom) || 0;
-      scaled.push({ el, transform: el.style.transform, origin: el.style.transformOrigin, margin: el.style.marginBottom });
-      el.style.transformOrigin = "top center";
-      el.style.transform = `scale(${z})`;
-      el.style.marginBottom = `${margin - (1 - z) * h}px`;
-    };
-    const boards = () => {
-      const out: HTMLElement[] = [];
-      const walk = (el: Element) => {
-        for (const child of Array.from(el.children)) {
-          if (!(child instanceof HTMLElement || child instanceof SVGElement)) continue;
-          const cs = getComputedStyle(child);
-          if (cs.display === "none" || cs.position === "absolute" || cs.position === "fixed") continue;
-          const r = child.getBoundingClientRect();
-          const board = r.height >= 56 && (/^(CANVAS|svg|IMG)$/i.test(child.tagName) || cs.display === "grid" || cs.display === "inline-grid");
-          if (board) out.push(child instanceof HTMLElement ? child : (child.parentElement as HTMLElement));
-          else walk(child);
-        }
-      };
-      walk(card);
-      return [...new Set(out)].filter((el) => el !== card && card.contains(el));
-    };
-    // Nothing drawn in the card (an engine game's breakdown above says it all): no tray (boardBox would give the
-    // empty card's own box).
+    // Nothing drawn in the card (an engine game's breakdown above says it all): no tray.
     const empty = () =>
       !Array.from(card.children).some((el) => {
         const r = el.getBoundingClientRect();
         return r.width >= 1 && r.height >= 1 && getComputedStyle(el).display !== "none";
       });
-    const placeTray = () => {
+    /** What the card draws: its lines and panels (boardBox) and its boards' drawn boxes. */
+    const drawn = (boards: HTMLElement[]): Box => {
+      const box = { ...boardBox(card) };
+      for (const el of boards) {
+        const r = el.getBoundingClientRect();
+        box.left = Math.min(box.left, r.left);
+        box.top = Math.min(box.top, r.top);
+        box.right = Math.max(box.right, r.right);
+        box.bottom = Math.max(box.bottom, r.bottom);
+      }
+      return box;
+    };
+    const placeTray = (boards: HTMLElement[]) => {
       const tray = trayRef.current;
       if (!tray) return;
       if (empty()) {
         tray.style.display = "none";
         return;
       }
-      const box = boardBox(card);
+      const box = drawn(boards);
       const r = root.getBoundingClientRect();
       if (!(box.right - box.left >= 24 && box.bottom - box.top >= 24)) {
         tray.style.display = "none";
@@ -316,64 +355,101 @@ function useRevealFit(rootRef: { current: HTMLElement | null }, cardRef: { curre
       const tray = trayRef.current;
       if (tray) tray.style.display = "none";
       reset();
-      const r = root.getBoundingClientRect();
-      const c = card.getBoundingClientRect();
-      const u = boardBox(card);
       // Still "Revealing": nothing to fit yet (the board's arrival refits).
-      const has = !empty() && !card.querySelector("[data-reveal-waiting]") && Number.isFinite(u.left) && u.right - u.left >= 1 && u.bottom - u.top >= 1;
-      if (has) {
-        const cx = c.left + c.width / 2;
-        const leftRoom = cx - (r.left + REVEAL_CARD_PAD);
-        const rightRoom = r.left + root.clientWidth - REVEAL_CARD_PAD - cx;
+      const boards = !empty() && !card.querySelector("[data-reveal-waiting]") ? revealBoards(card) : [];
+      if (boards.length) {
+        const r = root.getBoundingClientRect();
+        const left = r.left + REVEAL_CARD_PAD;
+        const right = r.left + root.clientWidth - REVEAL_CARD_PAD;
         const visBottom = r.top + root.clientHeight - REVEAL_CARD_PAD;
-        // A grown card starts at the top of its space (a board centred in a tall card would carry the empty space above
-        // it into the scale); it scales from the top centre of what it draws.
-        const top = Math.min(u.top, c.top + REVEAL_CARD_PAD);
-        const limits = [REVEAL_GROW_MAX];
-        if (cx - u.left > 0.5) limits.push(leftRoom / (cx - u.left));
-        if (u.right - cx > 0.5) limits.push(rightRoom / (u.right - cx));
-        if (u.bottom - u.top > 0.5) limits.push((visBottom - top) / (u.bottom - u.top));
-        let z = Math.max(0, Math.min(...limits));
-        // Not grown: scaled (if at all) from its top centre, starting at the top of its space all the same.
-        if (z < 0.98) z = Math.min(z, Math.max(0, (visBottom - top) / Math.max(1, u.bottom - u.top)));
-        // Below 1 only while the text stays readable; the boards alone take the rest.
-        const smallest = z < 1 ? smallestText(card) : Infinity;
-        const textFloor = Number.isFinite(smallest) ? Math.min(1, REVEAL_FIT_MIN_TEXT_PX / smallest) : REVEAL_FIT_MIN;
-        if (z < 1 && z < textFloor) z = textFloor;
-        if (Math.abs(z - 1) <= 0.02) z = 1;
-        if (z !== 1 || top < u.top - 0.5) {
-          card.style.transformOrigin = `${cx - c.left}px ${u.top - c.top}px`;
-          card.style.transform = `translateY(${top - u.top}px) scale(${z})`;
-          if (z > 1) root.dataset["grown"] = String(Math.round(z * 100) / 100);
-          else if (z < 1) root.dataset["fit"] = "";
-        }
-        // Still too tall (the text floor held the card): the boards alone shrink, down to half size.
-        const over = () => boardBox(card).bottom - visBottom;
-        if (over() > 1) {
-          const els = boards();
-          let lo = REVEAL_FIT_MIN;
-          let hi = 1;
-          const apply = (k: number) => {
-            for (const s of scaled.splice(0)) {
+        const base = boards.map((el) => ({
+          el,
+          h: el.offsetHeight || el.getBoundingClientRect().height,
+          margin: parseFloat(getComputedStyle(el).marginBottom) || 0,
+          transform: el.style.transform,
+          origin: el.style.transformOrigin,
+          mb: el.style.marginBottom,
+        }));
+        // The lines (text outside the boards) and the panels or clipping boxes round each board.
+        const lines = Array.from(card.querySelectorAll<HTMLElement>("*")).filter(
+          (el) => ownText(el) && !boards.some((b) => b.contains(el)) && shown(el),
+        );
+        const holders = boards.map((b) => {
+          const out: HTMLElement[] = [];
+          for (let p = b.parentElement; p && p !== card && card.contains(p); p = p.parentElement) {
+            const cs = getComputedStyle(p);
+            const painted =
+              (cs.backgroundColor !== "" && cs.backgroundColor !== "transparent" && !/rgba\([^)]*,\s*0\)$/.test(cs.backgroundColor)) ||
+              cs.backgroundImage !== "none" ||
+              cs.boxShadow !== "none" ||
+              cs.overflowX !== "visible" ||
+              cs.overflowY !== "visible";
+            if (painted) out.push(p);
+          }
+          return out;
+        });
+        const rect = (el: Element): Box => el.getBoundingClientRect();
+        // Boards that already met at full size are left as they are; a line is never drawn over (6 Nov 2026: Mosaic's
+        // board overflowed its squeezed box onto "0 / 33 cells", so the fit has to make room, not keep the overlap).
+        const touchedAt1 = new Set<string>();
+        const holdsAt1 = new Set<string>();
+        const boardRects = boards.map(rect);
+        boardRects.forEach((b, i) => {
+          boardRects.forEach((o, k) => k !== i && overlaps(b, o) && touchedAt1.add(`b${i}:${k}`));
+          holders[i]!.forEach((h, k) => inside(b, rect(h)) && holdsAt1.add(`${i}:${k}`));
+        });
+        const apply = (z: number) => {
+          for (const s of base) {
+            if (Math.abs(z - 1) < 0.001) {
               s.el.style.transform = s.transform;
               s.el.style.transformOrigin = s.origin;
-              s.el.style.marginBottom = s.margin;
+              s.el.style.marginBottom = s.mb;
+            } else {
+              s.el.style.transformOrigin = "top center";
+              s.el.style.transform = `scale(${z})`;
+              s.el.style.marginBottom = `${s.margin + (z - 1) * s.h}px`;
             }
-            if (k < 1) for (const el of els) shrinkBoard(el, k);
-          };
-          for (let i = 0; i < 7 && els.length; i++) {
+          }
+        };
+        const fits = (): boolean => {
+          const rs = boards.map(rect);
+          if (drawn(boards).bottom > visBottom + 0.5) return false;
+          for (let i = 0; i < rs.length; i++) {
+            const b = rs[i]!;
+            if (b.left < left - 0.5 || b.right > right + 0.5) return false;
+            for (let k = 0; k < rs.length; k++) if (k !== i && !touchedAt1.has(`b${i}:${k}`) && overlaps(b, rs[k]!)) return false;
+            for (let j = 0; j < lines.length; j++) if (!touchedAt1.has(`l${i}:${j}`) && overlaps(b, rect(lines[j]!))) return false;
+            const hs = holders[i]!;
+            for (let k = 0; k < hs.length; k++) if (holdsAt1.has(`${i}:${k}`) && !inside(b, rect(hs[k]!))) return false;
+          }
+          return true;
+        };
+        let lo: number;
+        let hi: number;
+        if (fits()) {
+          lo = 1;
+          hi = REVEAL_GROW_MAX;
+        } else {
+          lo = REVEAL_FIT_MIN;
+          hi = 1;
+        }
+        apply(hi);
+        if (hi > 1 && fits()) lo = hi;
+        else {
+          for (let i = 0; i < 8; i++) {
             const mid = (lo + hi) / 2;
             apply(mid);
-            if (over() <= 1) lo = mid;
+            if (fits()) lo = mid;
             else hi = mid;
           }
-          apply(els.length ? lo : 1);
-          root.dataset["fit"] = "";
         }
-        // The card's own (transparent) box scaled past the reveal must not make it scroll when what it draws fits.
-        if (boardBox(card).bottom <= visBottom + REVEAL_CARD_PAD + 1 && card.style.transform) root.style.overflowY = "hidden";
+        const z = Math.abs(lo - 1) <= 0.02 ? 1 : lo;
+        for (const s of base) scaled.push({ el: s.el, transform: s.transform, origin: s.origin, margin: s.mb });
+        apply(z);
+        if (z > 1) root.dataset["grown"] = String(Math.round(z * 100) / 100);
+        else if (z < 1) root.dataset["fit"] = "";
       }
-      placeTray();
+      placeTray(boards);
       fitted = `${root.clientWidth}x${root.clientHeight}:${card.scrollHeight}`;
     };
     fit();
@@ -432,14 +508,22 @@ function verdictLine(correct: boolean, score: number | null, msRemaining: number
 }
 
 /** An engine game's stored breakdown on the puzzle reveal: open in practice, behind "See breakdown" in a room. */
-function EngineBreakdown({ type, extra, score, practice, costRows, open, setOpen }: { type: string; extra: Record<string, unknown> | null; score: number | null; practice: boolean; costRows: { label: string; value: string }[]; open: boolean; setOpen: (f: (v: boolean) => boolean) => void }) {
+/** Stats the engine rows already state (engineBreakdown.ts): left out under them. */
+const ENGINE_ROW_TILES: ReadonlySet<string> = new Set(["Wrong colour", "Hedgehogs", "Empty taps", "Birds hit", "Correct", "Best streak", "Bonus", "Wrong"]);
+
+function EngineBreakdown({ type, extra, score, practice, costRows, open, setOpen, rev }: { type: string; rev?: number | undefined; extra: Record<string, unknown> | null; score: number | null; practice: boolean; costRows: { label: string; value: string }[]; open: boolean; setOpen: (f: (v: boolean) => boolean) => void }) {
   const stored = (extra?.["reveal"] as ArcadeRevealData | undefined) ?? null;
   if (!stored || score === null) return null;
   // Each fact once (4 Nov 2026, Joe's review: Tenfall said "9 of 10 targets" three times): the stored lines in plain
   // words with no pre-curve "points", then only the stats they don't already state.
-  const reveal = { ...stored, lines: engineLines(type, stored.lines) };
+  // Bonk, Pull! and Mixed Signals (6 Nov 2026): rows that add up to the score, costs included, when the stored counts
+  // give exactly the stored score (engineBreakdown.ts); else the stored lines as before.
+  const scored = engineScoreLines(type, extra, stored.lines, score, rev);
+  const reveal = { ...stored, lines: scored ?? engineLines(type, stored.lines) };
   const shown = revealShown(reveal, score);
-  const tiles = [...shown.tiles.filter((t) => !statRepeatsPart(t.label, shown.lines)).slice(0, 4), ...costRows.filter((t) => t.value !== "0")];
+  const tiles = scored
+    ? shown.tiles.filter((t) => !ENGINE_ROW_TILES.has(t.label) && !statRepeatsPart(t.label, shown.lines)).slice(0, 4)
+    : [...shown.tiles.filter((t) => !statRepeatsPart(t.label, shown.lines)).slice(0, 4), ...costRows.filter((t) => t.value !== "0")];
   return (
     <div data-engine-breakdown="" className="flex shrink-0 flex-col items-center gap-1">
       {practice ? null : (
@@ -490,7 +574,7 @@ export function StoredScore({ score, type }: { score: number | null; type: Puzzl
   }
   return (
     <p ref={scoreRef} data-reveal-score={score} className="th-score shrink-0 whitespace-nowrap text-2xl tabular-nums text-foreground animate-pop-in">
-      {score} points
+      {score === 1 ? "1 point" : `${score} points`}
     </p>
   );
 }
@@ -582,7 +666,7 @@ function RemovedRoundReveal({ round, totalRounds = TOTAL_ROUNDS, puzzle, myScore
       </div>
       <div className="flex w-full flex-1 flex-col items-center gap-2">
         <p data-reveal-score={myScore ?? "none"} className="shrink-0 font-mono text-2xl font-bold tabular-nums text-primary">
-          {myScore === null ? "No score" : `${myScore} points`}
+          {myScore === null ? "No score" : `${myScore} ${myScore === 1 ? "point" : "points"}`}
         </p>
         <p className="text-center text-sm text-muted-foreground">{`This game is no longer in ${APP_NAME}; the stored score stands.`}</p>
       </div>
@@ -763,7 +847,7 @@ function LiveAnswerReveal({
         ) : null}
         {/* Engine games on the puzzle reveal: their stored breakdown, open (practice) or one tap away (rooms). */}
         {PUZZLE_REVEAL_ENGINE_TYPES.has(puzzle.type) ? (
-          <EngineBreakdown type={puzzle.type} open={engineOpen} setOpen={setEngineOpen} extra={myExtra ?? null} score={myScore} practice={practice} costRows={storedCostRows(puzzle.type, myExtra, puzzle.type === "clayshoot" ? puzzle.clayRev : undefined)} />
+          <EngineBreakdown type={puzzle.type} rev={puzzle.type === "clayshoot" ? puzzle.clayRev : undefined} open={engineOpen} setOpen={setEngineOpen} extra={myExtra ?? null} score={myScore} practice={practice} costRows={storedCostRows(puzzle.type, myExtra, puzzle.type === "clayshoot" ? puzzle.clayRev : undefined)} />
         ) : null}
         {/* Shared near-miss line; nearMiss() returns null for every puzzle type without one. */}
         {myScore !== null && nearMiss(puzzle.type, myExtra) ? (

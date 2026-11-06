@@ -182,7 +182,7 @@ function ArcadeHighlight({
     const fallback = finalMomentsClip(
       analysis.timeline.endTick,
       round.puzzle.type,
-      `${winner.score} points`,
+      `${winner.score} ${winner.score === 1 ? "point" : "points"}`,
       budget,
     );
     return fallback ? [fallback] : [];

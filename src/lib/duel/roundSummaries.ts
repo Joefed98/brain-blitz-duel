@@ -1122,7 +1122,7 @@ const ricoSummary: SummaryBuilder = (result) => {
     const m = Number(result.extra["metres"] ?? 0);
     const hits = Number(result.extra["hits"] ?? 0);
     return {
-      summary: `${m.toLocaleString("en-GB")} m climbed · ${result.score} points`,
+      summary: `${m.toLocaleString("en-GB")} m climbed · ${result.score} ${result.score === 1 ? "point" : "points"}`,
       detail: [
         `${Number(result.extra["rides"] ?? 0)} lantern rides · best Flow ×${Number(result.extra["bestFlow"] ?? 0)} · ${Number(result.extra["scrolls"] ?? 0)} scrolls`,
         `${hits === 1 ? "1 hit" : `${hits} hits`} · ${Number(result.extra["djs"] ?? 0)} double jumps`,
@@ -1134,7 +1134,7 @@ const ricoSummary: SummaryBuilder = (result) => {
     const m = Number(result.extra["metres"] ?? 0);
     const hits = Number(result.extra["hits"] ?? 0);
     return {
-      summary: `${m.toLocaleString("en-GB")} m climbed · ${result.score} points`,
+      summary: `${m.toLocaleString("en-GB")} m climbed · ${result.score} ${result.score === 1 ? "point" : "points"}`,
       detail: [
         `${Number(result.extra["coins"] ?? 0)} coins · ${Number(result.extra["lanterns"] ?? 0)} lanterns · ${Number(result.extra["scrolls"] ?? 0)} scrolls`,
         `${hits === 1 ? "1 hit" : `${hits} hits`} · ${Number(result.extra["djs"] ?? 0)} double jumps`,
@@ -1147,8 +1147,8 @@ const ricoSummary: SummaryBuilder = (result) => {
   const ended = Number(result.extra?.["endedSeconds"] ?? 0);
   return {
     summary: survived
-      ? `${metres.toLocaleString("en-GB")} m climbed · ${result.score} points · survived`
-      : `${metres.toLocaleString("en-GB")} m climbed · ${result.score} points · ${spiked ? "hit a spike" : "slid down"} at ${ended.toFixed(1)}s`,
+      ? `${metres.toLocaleString("en-GB")} m climbed · ${result.score} ${result.score === 1 ? "point" : "points"} · survived`
+      : `${metres.toLocaleString("en-GB")} m climbed · ${result.score} ${result.score === 1 ? "point" : "points"} · ${spiked ? "hit a spike" : "slid down"} at ${ended.toFixed(1)}s`,
     detail: [`${Number(result.extra?.["leaps"] ?? 0)} leaps`],
   };
 };
@@ -1585,7 +1585,7 @@ const inkBridgeSummary: SummaryBuilder = (result, puzzle) => {
     phase = current <= 4 ? " (Standard)" : current <= 8 ? " (Moving Pot)" : " (Live)";
   }
   return {
-    summary: levels >= total ? `All ${total} · ${result.score}` : `Level ${current}${phase} · ${result.score} points`,
+    summary: levels >= total ? `All ${total} · ${result.score}` : `Level ${current}${phase} · ${result.score} ${result.score === 1 ? "point" : "points"}`,
     detail: ["Same levels for everyone"],
   };
 };

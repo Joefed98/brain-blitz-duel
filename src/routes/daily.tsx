@@ -98,7 +98,7 @@ function stateLine(kind: DailyKind, state: DailyState, count: number | null): st
   if (state.state === "play") return `${DAILY_ROUNDS[kind]} rounds · one go`;
   if (state.state === "continue")
     return `${state.roundsDone} of ${DAILY_ROUNDS[kind]} rounds played`;
-  return `${state.total} points · ${rankLine(state.rank, count, ordinal)}`;
+  return `${state.total} ${state.total === 1 ? "point" : "points"} · ${rankLine(state.rank, count, ordinal)}`;
 }
 
 function Segmented<T extends string>({

@@ -1,19 +1,12 @@
 import type { ArrowDir, SpotShapeKind } from '@/lib/duel/types';
+import { EagleArt } from '@/puzzles/eagleEyeArt';
 
 export const EAGLE_ANGLES: Record<ArrowDir, number> = { N: 0, NE: 45, E: 90, SE: 135, S: 180, SW: 225, W: 270, NW: 315 };
 export const SWEET_NAMES: Record<SpotShapeKind, string> = { circle: 'lollipop', square: 'wrapped sweet', triangle: 'ice cream cone', star: 'cupcake', hexagon: 'doughnut', arrow: 'candy cane' };
 
-/**
- * A north-facing eagle seen from above in a glide (redrawn 3 Nov 2026 with Eagle Eye's art, eagleEyeArt.tsx): a round
- * head with a hooked gold beak at the front, broad wings arched forward with spread fingers, and a fanned tail.
- */
+/** Eagle Eye's eagle (eagleEyeArt.tsx, redrawn 6 Nov 2026): one drawing everywhere. */
 export function EagleIcon({ dir, size = 28 }: { dir: ArrowDir; size?: number }) {
-  return <svg width={size} height={size} style={{ width: size, height: size }} viewBox="0 0 32 32" aria-hidden="true" className="shrink-0">
-    <g transform={`rotate(${EAGLE_ANGLES[dir]} 16 16)`}>
-      <path fill="currentColor" d="M16 2.4 17.2 2.6 18.2 3.2 18.8 4 19.1 5 19 6.2 18.6 7.2 18.3 8.2 18.2 9.2 19.1 8.8 20.2 8.2 21.3 7.4 22.5 6.6 23.8 5.9 25.2 5.4 26.7 5.4 28.2 6 29.4 7.1 30.4 8.7 31.3 10.7 31.8 13 30.4 12.4 31 15 29.3 13.6 29.5 16.2 27.8 14.2 27.4 16.4 26 13.6 25 12.6 23.6 12.1 22.2 12.1 20.7 12.7 19.4 13.8 18.6 15.5 18.1 17.3 17.8 19 18.9 20.8 19.9 22.8 20.6 24.9 21 27 19.8 26.8 19.2 29.2 17.8 28 16 30 14.2 28 12.8 29.2 12.2 26.8 11 27 11.4 24.9 12.1 22.8 13.1 20.8 14.2 19 13.9 17.3 13.4 15.5 12.6 13.8 11.3 12.7 9.8 12.1 8.4 12.1 7 12.6 6 13.6 4.6 16.4 4.2 14.2 2.5 16.2 2.7 13.6 1 15 1.6 12.4 0.2 13 0.7 10.7 1.6 8.7 2.6 7.1 3.8 6 5.3 5.4 6.8 5.4 8.2 5.9 9.5 6.6 10.7 7.4 11.8 8.2 12.9 8.8 13.8 9.2 13.7 8.2 13.4 7.2 13 6.2 12.9 5 13.2 4 13.8 3.2 14.8 2.6Z" />
-      <path d="M14.7 3.4C14.8-.2 17.2-.2 17.3 3.4 16.8 2.8 16.4 3.6 16 4.8 15.6 3.6 15.2 2.8 14.7 3.4Z" fill="var(--eagle-eye)" stroke="var(--eagle-beak)" strokeWidth=".45" strokeLinejoin="round" />
-    </g>
-  </svg>;
+  return <EagleArt dir={dir} size={size} />;
 }
 
 /** Bold, simplified sweets that fill the 40-unit box; at most one detail stroke each. */
