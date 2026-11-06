@@ -240,7 +240,8 @@
   border-left: 1px solid var(--ap-divider, #26262c);
 }
 .dk-week-value {
-  font-family: "Duelz Mono", ui-monospace, monospace;
+  font-family: var(--jz-font);
+  font-variant-numeric: tabular-nums;
   font-size: 24px;
   font-weight: 700;
   color: var(--ap-text, #f3f1ec);
@@ -525,7 +526,8 @@
     white-space: nowrap;
   }
   .dk-rp-code {
-    font-family: "Duelz Mono", ui-monospace, monospace;
+    font-family: var(--jz-font);
+    font-variant-numeric: tabular-nums;
     font-size: 30px;
     font-weight: 700;
     letter-spacing: 0.12em;
@@ -594,7 +596,8 @@
   .dk-rp-place {
     width: 20px;
     flex: none;
-    font-family: "Duelz Mono", ui-monospace, monospace;
+    font-family: var(--jz-font);
+    font-variant-numeric: tabular-nums;
     font-size: 13px;
     color: var(--ap-text-2, #a09da6);
     text-align: right;
@@ -625,7 +628,8 @@
   }
   .dk-rp-score {
     flex: none;
-    font-family: "Duelz Mono", ui-monospace, monospace;
+    font-family: var(--jz-font);
+    font-variant-numeric: tabular-nums;
     font-size: 15px;
     font-weight: 700;
   }

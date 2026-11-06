@@ -11,7 +11,7 @@
   grid-template-columns: repeat(auto-fill, minmax(min(100%, 136px), 1fr));
   gap: 2px 14px;
   /* The UI font with even-width digits (6 Nov 2026, Joe's review: the lists were still monospace). */
-  font-family: var(--ap-font, "Manrope", system-ui, sans-serif);
+  font-family: var(--ap-font, var(--jz-font));
   font-variant-numeric: tabular-nums;
   font-weight: 600;
   font-size: 14px;

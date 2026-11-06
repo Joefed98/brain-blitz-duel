@@ -83,7 +83,7 @@
   gap: 6px;
   height: 24px;
   white-space: nowrap;
-  font-family: var(--ap-font, "Manrope", system-ui, sans-serif);
+  font-family: var(--ap-font, var(--jz-font));
 }
 .rings-legend-chip {
   display: inline-flex;

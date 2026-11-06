@@ -10,82 +10,53 @@
  *   fonts…), so everything already built on those tokens takes the new look.
  * - data-skin-off puts the original tokens back for a game's own art inside a skinned screen
  *   (a reveal board, a replay or time-lapse), so the game draws exactly as before.
- * - The fonts are self-hosted (public/fonts, OFL), preloaded from the root route, font-display:
- *   swap with fallback stacks. Saira 600–800: headings and buttons; Manrope 500–800: body text and
- *   player names; JetBrains Mono 600–700 (as "Duelz Mono", so the games' own JetBrains Mono from
- *   Google Fonts is untouched): scores, times and codes.
+ * - One font, Archivo (src/design/tokens.css, self-hosted, preloaded from the root route). Since
+ *   design foundation F1 (6 Nov 2026) every --th-* colour and font is an alias of a --jz-* token
+ *   (DESIGN.md); the skin's old Saira, Manrope and mono faces are gone.
  * - Light on the GPU: the backgrounds are static gradients on the fixed screen background, no
  *   backdrop blur anywhere, no animation added.
  * theme-check proves the fonts load, the tokens are used on the listed screens and contrast passes;
  * no-wrap-check proves no single-line text wraps or overflows.
  */
 
-@font-face {
-  font-family: "Saira";
-  font-style: normal;
-  font-weight: 600 800;
-  font-display: swap;
-  src: url("/fonts/saira-600-800-latin.woff2") format("woff2");
-  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
-}
-@font-face {
-  font-family: "Manrope";
-  font-style: normal;
-  font-weight: 500 800;
-  font-display: swap;
-  src: url("/fonts/manrope-500-800-latin.woff2") format("woff2");
-  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
-}
-@font-face {
-  font-family: "Manrope";
-  font-style: normal;
-  font-weight: 500 800;
-  font-display: swap;
-  src: url("/fonts/manrope-500-800-latin-ext.woff2") format("woff2");
-  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
-}
-@font-face {
-  font-family: "Duelz Mono";
-  font-style: normal;
-  font-weight: 600 700;
-  font-display: swap;
-  src: url("/fonts/jetbrains-mono-600-700-latin.woff2") format("woff2");
-  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
-}
-
 /* ------------------------------------------------------------------ the shared tokens */
 :root {
-  --th-font-head: "Saira", "Arial Narrow", "Roboto Condensed", system-ui, sans-serif;
-  --th-font-body: "Manrope", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  --th-font-mono: "Duelz Mono", "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  /* Aliases of the design tokens (src/design/tokens.css, DESIGN.md) until the component PRs retire them.
+     Old values with no exact match point at the nearest token (listed in the F1 PR). */
+  --th-font-head: var(--jz-font);
+  --th-font-body: var(--jz-font);
+  --th-font-mono: var(--jz-font);
 
-  --th-bg: #07070A;
-  --th-text: #F5F5F7;
-  --th-text-2: #BDBDCC;
-  --th-gold-text: #F2C75C;
-  --th-teal-text: #2ED3B7;
-  --th-green-text: #5BE3A0;
-  --th-orange-text: #FFA066;
-  --th-ink: #120C02;
-  --th-teal-ink: #04201B;
+  --th-bg: var(--jz-bg);
+  --th-text: var(--jz-text);
+  --th-text-2: var(--jz-text-2);
+  --th-gold-text: var(--jz-gold);
+  --th-teal-text: var(--jz-cyan);
+  --th-green-text: var(--jz-cyan);
+  --th-orange-text: var(--jz-bronze);
+  --th-ink: var(--jz-on-gold);
+  --th-teal-ink: var(--jz-on-gold);
 
-  --th-gold: linear-gradient(135deg, #FBE39A 0%, #E9BB45 38%, #C8922E 70%, #A87420 100%);
-  --th-gold-rim: rgb(255 234 170 / 0.6);
+  --th-gold: var(--jz-gold-metal);
+  --th-gold-rim: color-mix(in srgb, var(--jz-gold) 60%, transparent);
   --th-gold-glow: 0 0 18px -4px rgb(233 187 69 / 0.5);
-  --th-teal: linear-gradient(135deg, #7FF5DF 0%, #2ED3B7 50%, #179A83 100%);
-  --th-teal-rim: rgb(190 255 240 / 0.55);
+  /* Gradients only on metal: the old teal gradient is flat cyan (a one-colour gradient, as it is
+     used as a background image). */
+  --th-teal: linear-gradient(var(--jz-cyan), var(--jz-cyan));
+  --th-teal-rim: color-mix(in srgb, var(--jz-cyan) 55%, transparent);
   --th-teal-glow: 0 0 18px -4px rgb(46 211 183 / 0.45);
   --th-glass: linear-gradient(180deg, rgb(255 255 255 / 0.42), rgb(255 255 255 / 0.1));
 
-  --th-card: linear-gradient(180deg, #20202D 0%, #111119 58%, #0D0D13 100%);
-  --th-card-edge: rgb(255 255 255 / 0.09);
+  /* The card is the flat surface (a one-colour gradient: it is layered in background-image lists). */
+  --th-card: linear-gradient(var(--jz-surface), var(--jz-surface));
+  --th-card-edge: var(--jz-line);
   --th-card-top: inset 0 1px 0 rgb(255 255 255 / 0.08);
   --th-card-shadow: 0 14px 30px -16px rgb(0 0 0 / 0.85), 0 2px 6px rgb(0 0 0 / 0.4);
   --th-sheen: linear-gradient(180deg, rgb(255 255 255 / 0.055), transparent 42%), linear-gradient(115deg, transparent 32%, rgb(255 255 255 / 0.035) 46%, transparent 58%);
 
-  --th-medal-gold: linear-gradient(135deg, #FFF0B8, #F2C75C 45%, #B98320);
-  --th-medal-silver: linear-gradient(135deg, #FFFFFF, #CBD1DA 45%, #8A93A1);
-  --th-medal-bronze: linear-gradient(135deg, #FFD3A6, #D08A3E 45%, #8C5320);
+  --th-medal-gold: var(--jz-gold-metal);
+  --th-medal-silver: var(--jz-silver);
+  --th-medal-bronze: var(--jz-bronze);
 }
 
 /*
@@ -112,7 +83,7 @@
   --cat-hi: color-mix(in oklab, var(--cat) 62%, #fff);
   --cat-lo: color-mix(in oklab, var(--cat) 62%, #000);
 }
-[data-cat="all"] { --cat: #E9BB45; --cat-hi: #FBE39A; --cat-lo: #A87420; }
+[data-cat="all"] { --cat: var(--jz-gold); }
 
 /* ------------------------------------------------------------------ the skin scope */
 /* In the components layer, so a component's own utilities (sizes, tracking, case) still win. */
@@ -126,8 +97,8 @@
     --primary-foreground: var(--th-ink);
     --me: var(--th-gold-text);
     --opponent: var(--th-teal-text);
-    --card: #15151E;
-    --border: rgb(255 255 255 / 0.11);
+    --card: var(--jz-surface);
+    --border: var(--jz-line);
     --font-display: var(--th-font-head);
     --font-body: var(--th-font-body);
     --font-mono: var(--th-font-mono);
@@ -488,7 +459,7 @@
   background: linear-gradient(180deg, rgb(34 199 126 / 0.05), transparent 40%);
 }
 
-/* The wordmark: Saira 800, a gold glow on the last letter. */
+/* The wordmark: the head font at 800, a gold glow on the last letter. */
 [data-skin] .th-wordmark {
   font-family: var(--th-font-head);
   font-weight: 800;

@@ -1,5 +1,5 @@
 /*
- * The game frame (Polish 2, 24 Oct 2026, display only; docs/design-system.md "Game screens").
+ * The game frame (Polish 2, 24 Oct 2026, display only; DESIGN.md "Game screens").
  *
  * "Same game, enhanced": every game keeps its own art, layout logic and rules; this file draws the
  * shared frame round it. Every game's live round (PhoneShell `play`, GameLayout) has:
@@ -308,7 +308,7 @@
 }
 
 /* ---------------------------------------------------------------- the toolkit (for the category batches)
- * Shared looks the category batches apply game by game (docs/design-system.md "Game screens"). Not yet
+ * Shared looks the category batches apply game by game (DESIGN.md "Game screens"). Not yet
  * used by any game: this PR only builds and documents them. Every class is display only.
  */
 

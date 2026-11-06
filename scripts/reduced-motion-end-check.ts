@@ -3,10 +3,14 @@
  * animated element ends in its visible final state.
  *
  * The global rule (src/styles.css, "Reduced motion: keep the information, drop the movement") cuts every
- * animation to 0.01 ms with one iteration, and keeps its fill mode. So an animation whose last keyframe is
- * hidden (opacity 0, or scaled to 0), filled forwards or both, ends on that hidden frame at once: the
- * "New best" line and the arcade results headline vanished that way. Likewise an element whose own style is
- * opacity 0 and that only shows while its animation fills it ends hidden if the fill doesn't hold.
+ * animation and transition to 0.01 ms with one iteration and zero delay, and keeps its fill mode, on every
+ * element but the calm sequences in EXCLUDED, which keep their own reduced-motion timing (6 Nov 2026, the
+ * design foundation; Joe chose this rule over the 7 Nov "hold still" fix). So an animation whose last keyframe
+ * is hidden (opacity 0, or scaled to 0), filled forwards or both, ends on that hidden frame at once. Likewise
+ * an element whose own style is opacity 0 and that only shows while its animation fills it ends hidden if the
+ * fill doesn't hold. The check proves: the global rule zeroes delays; EXCLUDED is exactly its excluded list
+ * and each has its own reduced-motion rule; the arcade results headline's and practice's "New best" calm fades
+ * end in the same state at the same time as their full versions; every other animation ends visible.
  *
  * Read statically from every CSS file under src/ (and Tailwind @utility blocks) and every inline `animation`
  * in src/**\/*.tsx. Each such use must either be resolved under reduced motion — a rule in a
@@ -20,6 +24,15 @@
  */
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
+
+/**
+ * The calm sequences the global reduced-motion rule leaves out (its `:not(…)` list, exactly), each with its own
+ * reduced-motion rule: the room moments' calm fades, practice's "New best" and the arcade results' headline
+ * fades, Logic's solve glow.
+ */
+const EXCLUDED = [".room-fx [data-part]", ".practice-new-best", ".arcade-celebration-headline", ".logic-calm-glow"];
+/** Of those, the ones with a full-motion version the calm fade must match: same end state, at the same time. */
+const MATCHES_FULL = [".practice-new-best", ".arcade-celebration-headline"];
 
 /** Keyframes whose hidden end (or hidden start) is their rest state: purely decorative, never content. */
 const EFFECTS: Record<string, string> = {
@@ -238,6 +251,8 @@ for (const r of rules) {
     if (!problem) continue;
     checked++;
     for (const sel of r.selectors) {
+      // The excluded calm sequences keep their own timing; MATCHES_FULL below proves how they end.
+      if (EXCLUDED.includes(sel)) continue;
       if (EFFECTS[a.name] || resolved(sel)) continue;
       failures.push(`${r.file}: \`${sel}\` (${a.name}) ${problem} under reduced motion; hold it visible there (animation: none) or, if it is a pure effect, list ${a.name} in EFFECTS`);
     }
@@ -255,13 +270,55 @@ for (const file of walk("src", /\.tsx$/)) {
   }
 }
 
-// The fixes this check was written for.
-for (const sel of [".arcade-celebration-headline", ".new-best-moment", ".practice-new-best"])
-  if (!resolved(sel)) failures.push(`${sel} is not held visible under reduced motion`);
-// The global rule this check reasons about is still the one described.
-const styles = readFileSync("src/styles.css", "utf8");
-if (!/prefers-reduced-motion: reduce\)\s*\{\s*\*,\s*\*::before,\s*\*::after\s*\{\s*animation-duration: 0\.01ms !important;/.test(styles))
-  failures.push("src/styles.css's global reduced-motion rule changed: re-read this check's reasoning");
+// The "New best" pill (NewBestPill draws nothing under reduced motion) stays held visible should it be drawn.
+if (!resolved(".new-best-moment")) failures.push(".new-best-moment is not held visible under reduced motion");
+
+// The global rule this check reasons about: every animation and transition cut to 0.01 ms with zero delay, on
+// everything but EXCLUDED.
+const styles = readFileSync("src/styles.css", "utf8").replace(/\/\*[\s\S]*?\*\//g, "");
+const globalRule = /@media \(prefers-reduced-motion: reduce\)\s*\{\s*:not\(([^)]*)\),\s*::before,\s*::after\s*\{([^}]*)\}/.exec(styles);
+if (!globalRule) failures.push("src/styles.css's global reduced-motion rule (`:not(…), ::before, ::after`) not found: re-read this check's reasoning");
+else {
+  const body = decls(globalRule[2]!);
+  const want: [string, string][] = [
+    ["animation-duration", "0.01ms"],
+    ["animation-iteration-count", "1"],
+    ["animation-delay", "0s"],
+    ["transition-duration", "0.01ms"],
+    ["transition-delay", "0s"],
+  ];
+  for (const [prop, value] of want)
+    if (body.get(prop)?.value !== value || !body.get(prop)?.important) failures.push(`the global reduced-motion rule must set \`${prop}: ${value} !important\``);
+  const listed = globalRule[1]!.split(",").map(norm);
+  if (listed.length !== EXCLUDED.length || EXCLUDED.some((e) => !listed.includes(e)))
+    failures.push(`the global reduced-motion rule leaves out [${listed.join(", ")}]; this check expects exactly [${EXCLUDED.join(", ")}]`);
+}
+// Each excluded sequence has its own reduced-motion rule.
+for (const sel of EXCLUDED) {
+  const own = rules.some((r) => r.reduced && r.selectors.some((x) => x === sel || x.endsWith(` ${sel}`) || x.endsWith(`> ${sel}`) || x.includes(`${sel}`)) && (r.decls.has("animation") || r.decls.has("animation-name") || r.decls.has("animation-duration")));
+  if (!own) failures.push(`${sel} is left out of the global reduced-motion rule but has no reduced-motion rule of its own`);
+}
+// The calm fade ends in the same state, at the same time, as the full version.
+const animOf = (sel: string, reduced: boolean): { name: string; ms: number } | null => {
+  let found: { name: string; ms: number } | null = null;
+  for (const r of rules) {
+    if (r.reduced !== reduced || !r.selectors.includes(sel)) continue;
+    const short = r.decls.get("animation")?.value;
+    if (!short) continue;
+    const tokens = short.split(/\s+/);
+    const name = tokens.find((t) => keyframes.has(t));
+    const dur = tokens.find((t) => /^\d+(\.\d+)?m?s$/.test(t));
+    if (name && dur) found = { name, ms: dur.endsWith("ms") ? Number(dur.slice(0, -2)) : Number(dur.slice(0, -1)) * 1000 };
+  }
+  return found;
+};
+for (const sel of MATCHES_FULL) {
+  const full = animOf(sel, false);
+  const calm = animOf(sel, true);
+  if (!full || !calm) failures.push(`${sel}: needs a full-motion and a reduced-motion animation (found ${full?.name ?? "none"} / ${calm?.name ?? "none"})`);
+  else if (calm.ms !== full.ms || endsHidden(calm.name) !== endsHidden(full.name))
+    failures.push(`${sel}: the calm fade (${calm.name}, ${calm.ms} ms, ends ${endsHidden(calm.name) ? "hidden" : "visible"}) must end as the full version does (${full.name}, ${full.ms} ms, ends ${endsHidden(full.name) ? "hidden" : "visible"})`);
+}
 
 // Every EFFECTS entry still names a keyframe that ends (or starts) hidden.
 for (const name of Object.keys(EFFECTS))

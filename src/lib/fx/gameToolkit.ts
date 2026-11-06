@@ -2,7 +2,7 @@ import { prefersReducedMotion } from "@/lib/motion";
 import { puzzleReject } from "./puzzleReject";
 
 /**
- * The game toolkit's move feedback (Polish 2, 24 Oct 2026, display only; docs/design-system.md
+ * The game toolkit's move feedback (Polish 2, 24 Oct 2026, display only; DESIGN.md
  * "Game screens"): one right-move flash and one wrong-move flash for the category batches to use
  * game by game. Neither validates, scores or submits anything.
  */

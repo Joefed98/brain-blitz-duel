@@ -131,13 +131,13 @@
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1);
 }
 .flood-reveal-figure > span {
-  font-family: var(--ap-font, "Manrope", system-ui, sans-serif);
+  font-family: var(--ap-font, var(--jz-font));
   font-size: 13px;
   font-weight: 600;
   color: #c9c6cf;
 }
 .flood-reveal-figure > b {
-  font-family: var(--ap-font, "Manrope", system-ui, sans-serif);
+  font-family: var(--ap-font, var(--jz-font));
   font-size: 32px;
   font-weight: 800;
   line-height: 1.1;

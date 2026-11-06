@@ -96,7 +96,7 @@ const CONTROL = "button, a, input, textarea, select, [role='button']";
 /**
  * Identical round geometry: mode-specific text cannot resize the game region.
  *
- * The game frame (Polish 2, 24 Oct 2026, display only; docs/design-system.md "Game screens"): every
+ * The game frame (Polish 2, 24 Oct 2026, display only; DESIGN.md "Game screens"): every
  * game's live round, puzzle or arcade, in practice, a room or the daily, has one 60px header
  * (polish-layout/game-frame.css): the game's name over a dot in its category colour and
  * "{Category} · {label}" (Practice, Round n of N, Daily) on the left, the 48px timer ring centred,
