@@ -349,7 +349,7 @@ export function ArcadeReveal({ puzzle, myAnswer, myScore, myReveal: storedReveal
                 data-reveal-summary={open ? "open" : "closed"}
                 aria-expanded={open}
                 onClick={() => setOpen((v) => !v)}
-                className="reveal-see-breakdown reveal-see-breakdown-summary w-full animate-fade-in"
+                className="reveal-see-breakdown reveal-see-breakdown-summary min-h-11 w-full animate-fade-in"
               >
                 <FitLine text={summaryText(summary.summary)} className="w-full text-foreground" />
                 <span className="reveal-see-breakdown-label">{open ? "Hide breakdown" : "See breakdown"}</span>
