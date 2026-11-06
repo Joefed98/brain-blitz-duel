@@ -131,7 +131,7 @@ export function PublicGameNext({
       <div className="ap-next-actions">
         {open && game ? (
           <Button variant="gold" size={44} block data-public-join onClick={() => onJoin(game.roomCode)}>
-            <Users aria-hidden="true" className="h-4.5 w-4.5" /> Join now
+            <Users aria-hidden="true" className="h-4 w-4" /> Join now
           </Button>
         ) : (
           <>
@@ -148,7 +148,7 @@ export function PublicGameNext({
               {game ? `Opens ${ukTime(game.lobbyAt)}` : "Opens ····"}
             </Button>
             <Button variant="secondary" size={44} block data-public-calendar onClick={() => game && downloadCalendar(game)}>
-              <CalendarPlus aria-hidden="true" className="h-4.5 w-4.5" /> Add to calendar
+              <CalendarPlus aria-hidden="true" className="h-4 w-4" /> Add to calendar
             </Button>
           </>
         )}

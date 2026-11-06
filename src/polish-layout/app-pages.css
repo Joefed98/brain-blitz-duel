@@ -618,6 +618,12 @@ html[data-play-cards~="challenge"] [data-play-slot="daily"]:not([data-slot-state
 .ap-next-actions > .jz-btn {
   padding: 0 8px;
 }
+/* Their icons are 16 px wherever the card sits (Play and Tournaments), never squeezed by the label. */
+.ap-next-actions > .jz-btn > svg {
+  width: 16px;
+  height: 16px;
+  flex: none;
+}
 /* A date tile that isn't the next game: neutral. */
 .ap-date[data-quiet] {
   width: 40px;

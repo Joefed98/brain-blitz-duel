@@ -20,7 +20,7 @@ export const CodeInput = forwardRef<HTMLInputElement, CodeInputProps>(function C
     <span data-jz="code-input" className={`jz-code${className ? ` ${className}` : ""}`}>
       {Array.from({ length }, (_, i) => (
         <span key={i} aria-hidden="true" data-current={focused && i === Math.min(chars.length, length - 1) ? "" : undefined}>
-          {chars[i] ?? ""}
+          {chars[i] ?? <span className="jz-code-dash">–</span>}
         </span>
       ))}
       <input

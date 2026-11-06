@@ -375,6 +375,10 @@ function Home() {
               <span>Create a room</span>
             )}
           </Button>
+          <div className="flex flex-col gap-1.5">
+          <label htmlFor="code" className="jz-label text-muted-foreground">
+            Room code
+          </label>
           <div key={shake} className={`flex gap-2 ${error ? "animate-shake" : ""}`}>
             <CodeInput
               id="code"
@@ -395,6 +399,7 @@ function Home() {
             <Button variant="secondary" size={50} onClick={() => void start("join")} disabled={busy !== null} className="w-22 shrink-0">
               {busy === "join" ? <Dots className="bg-foreground" /> : "Join"}
             </Button>
+          </div>
           </div>
           {error && (
             <p role="alert" className="text-sm text-warn">

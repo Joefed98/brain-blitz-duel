@@ -259,8 +259,9 @@
     padding-bottom: 6px;
     border-bottom: 2px solid var(--jz-line);
   }
-  .jz-section-head > h2,
-  .jz-section-head > h3 {
+  /* Doubled class: beats the page skin's uppercase heading rule ([data-skin] :is(h1, h2, h3)). */
+  .jz-section-head.jz-section-head > h2,
+  .jz-section-head.jz-section-head > h3 {
     margin: 0;
     color: var(--jz-text);
     font-family: var(--jz-font);
@@ -486,6 +487,11 @@
     font-size: 20px;
     font-weight: var(--jz-weight-bold);
     text-transform: uppercase;
+  }
+  /* An empty box: a faint dash. */
+  .jz-code-dash {
+    color: var(--jz-text-3);
+    font-weight: var(--jz-weight-regular);
   }
   .jz-code > span[data-current] {
     border-color: var(--jz-text-3);
