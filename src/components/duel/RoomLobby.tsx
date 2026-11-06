@@ -154,11 +154,11 @@ export function LookPicker({
 }) {
   return (
     <div data-look-picker className="th-card flex flex-col gap-2 rounded-xl border border-border bg-card px-3 py-3 text-left">
-      <p className="font-display text-xs font-semibold text-foreground">Your colour</p>
+      <p className="font-display text-xs font-semibold jz-em-name">Your colour</p>
       <ColourWheel selected={look.colour} taken={taken} takenBy={takenBy} onPick={(colour) => onChange({ colour })} />
       {PLAYER_ICONS_ENABLED && (
         <>
-          <p className="mt-1 font-display text-xs font-semibold text-foreground">Your icon</p>
+          <p className="mt-1 font-display text-xs font-semibold jz-em-name">Your icon</p>
           <div className="grid grid-cols-6 gap-1" role="radiogroup" aria-label="Your icon">
             {[null, ...PLAYER_ICON_IDS].map((icon) => {
               const selected = look.icon === icon;

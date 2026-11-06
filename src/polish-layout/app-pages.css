@@ -768,7 +768,7 @@ html[data-play-cards~="challenge"] [data-play-slot="daily"]:not([data-slot-state
   align-items: center;
   gap: 5px;
   padding: 0 4px;
-  color: var(--ap-text);
+  color: var(--jz-text-2);
   -webkit-tap-highlight-color: transparent;
 }
 .ap-game-strip[data-divided] > * + * {
@@ -784,6 +784,7 @@ html[data-play-cards~="challenge"] [data-play-slot="daily"]:not([data-slot-state
   white-space: nowrap;
 }
 .ap-game-strip .ap-strip-best {
+  color: var(--ap-text);
   font-size: 13px;
   font-weight: 800;
   line-height: 17px;

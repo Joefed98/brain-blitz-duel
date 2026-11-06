@@ -228,9 +228,10 @@
     flex-direction: column;
     gap: 2px;
   }
+  /* Names and list titles step down a level; the row's key number keeps the white (DESIGN.md, text emphasis). */
   .jz-row-title {
     overflow: hidden;
-    color: var(--jz-text);
+    color: var(--jz-text-2);
     font-size: 16px;
     font-weight: var(--jz-weight-medium);
     line-height: 20px;
@@ -638,7 +639,7 @@
     gap: var(--jz-space-8);
     border: 0;
     background: transparent;
-    color: var(--jz-text);
+    color: var(--jz-text-2);
     font-family: var(--jz-font);
     text-align: left;
   }
@@ -682,7 +683,7 @@
     min-width: 0;
     align-items: center;
     gap: var(--jz-space-8);
-    color: var(--jz-text);
+    color: var(--jz-text-2);
     font-family: var(--jz-font);
   }
   .jz-plate-name {
