@@ -1535,7 +1535,8 @@ outside the repo.
   ring, HUD pills (`HudPills` renders `Chip`) and the answer and arcade reveals (Back / Play again / See breakdown as
   Buttons, `.reveal-*` type classes, `--reveal-text-2` for secondary text on the gradient) take `--jz-*` tokens; the
   backdrops' base is `--jz-bg` under the unchanged category tint, and the reveal palette is unchanged. Game art inside
-  the play area is untouched (canvas art that names JetBrains Mono now draws in the system monospace). Shots:
+  the play area is untouched; canvas art that names JetBrains Mono keeps it through a self-hosted `@font-face` for game
+  art only (`src/lib/arcade/gameArtFonts.css`, asked for by `preloadGameArt`; DESIGN.md section 9's exception). Shots:
   `screenshots/design-f3-nov-2026/`.
 - `src/components/duel/` — room/round screens (PhoneShell, RoundIntro, TimerBar,
   AnswerReveal, ArcadeReveal, WinnerReveal…); `src/components/puzzles/` — shared puzzle

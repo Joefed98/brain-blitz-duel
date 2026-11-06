@@ -5,6 +5,8 @@
 @import "./design/tokens.css";
 @import "./design/utilities.css";
 @import "./design/components/components.css";
+/* The game art's own face (JetBrains Mono, self-hosted), for canvas art only (DESIGN.md section 9). */
+@import "./lib/arcade/gameArtFonts.css";
 @import "./polish-logic/logic.css";
 @import "./polish-logic/fences.css";
 @import "./polish-logic/fillomino.css";
