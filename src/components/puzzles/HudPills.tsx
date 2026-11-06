@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 
-import { Chip, type ChipTone } from "@/design/components";
+import { Chip, type ChipTone } from "@/design/components/Chip";
 import "@/polish-layout/hud-pills.css";
 
 /**
