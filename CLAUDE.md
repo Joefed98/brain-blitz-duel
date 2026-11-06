@@ -1389,6 +1389,17 @@ outside the repo.
   arcade-fx-check runs in thirds on CI (`--part=k/3`, shards f, b, g). `docs/demo-replay-audit.md` "Re-record list"
   lists every intro demo to record and its stamp (Strikeout's and Mixed Signals' stop rules need their constants
   updated when they are recorded).
+- **Sounds for the re-themed games** (6 Nov 2026; sound only, no stamps; `docs/sound-cues/retheme-nov-2026.md`,
+  `mapping-retheme-nov-2026.csv`): Joe's 24 uploads (branch `sounds-retheme-nov-2026`) cut and levelled by
+  `scripts/sound-retheme-nov-2026/process.py` on levels-nov-2026.md's method. Spacewalk: `cross.hop`, `cross.lifeLost`,
+  `cross.crossed`, `cross.pastBikes`, `cross.pastRoadworks`, `music_cross` and new `cross.closeCall`, `cross.streakUp`
+  (`cross.streak` is a replay cue), `cross.freighter`; Rainbow Bridge's cloud bounce keeps the old footstep
+  (`inkbridge.cloudBounce.mp3`). Grappler's jungle (swingRev 17 only): `swing.vineCreak`, `swing.splash`,
+  `swing.pterodactyl`, new `swing.release`, `swing.land`, `swing.streak`, `swing.gate` (in place of the assault zap: a
+  moment row may carry `when`, `momentCues.ts`) and loops `swing.wings`, `swing.slideVine`. Ambience beds `swing.jungle`,
+  `bintoss.ambience`, `bullseye.ambience` (`ambienceCue`: effects channel, held off while the music is muted or at zero);
+  `bintoss.wind`, `slice.chilli` (sliceRev 12, in place of the fuse), `symscan.eagle` (with the take-off).
+  sound-retheme-check (~1 min) proves the files and every cue firing in play through the skill-band bots.
 - **Retro arcade polish** (3 Nov 2026, Joe's audit; display, sound and room grouping only, no stamps;
   `docs/retro-polish-nov-2026.md`): *one Retro HUD* (`retroHud` in `src/lib/arcade/retro.renderer.ts`: the pixel font, the
   main count top left at 14 px, one or two counts top right at 10 px, at most two rows, sizes stepping down to fit, no

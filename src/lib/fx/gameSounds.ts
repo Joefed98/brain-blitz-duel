@@ -6,15 +6,15 @@
  * once that slot has a file, else the shared sound it always played, unchanged.
  */
 import { bastionDronePos, bastionDrones, bastionWave, BASTION_REV_IRON, BT2_WAVE_START, type BastionTankState } from "@/lib/arcade/bastionTank";
-import { cueHasFile, ensureCueLoop, ensureSlotLoop, playCueSlot, playSlotOr, setCueLoopRate, stopCueLoop, stopSlotLoop } from "@/lib/sound";
+import { cueHasFile, ensureCueLoop, ensureSlotLoop, isMusicMuted, musicVolume, playCueSlot, playSlotOr, setCueLoopRate, stopCueLoop, stopSlotLoop } from "@/lib/sound";
 import { liveCue, momentFrame } from "@/lib/fx/momentCues";
 import { haptic, type HapticPattern } from "@/lib/haptics";
 import type { SoundId } from "@/lib/fx/manifest";
 import { ORBIT_EIGHT, type OrbitState } from "@/lib/arcade/orbit";
 import { CLASH_LANE_EXPAND_TICK, type ClashState } from "@/lib/arcade/colourClash";
-import { SWING_CHASE_REACH, SWING_REV, SWING_ROCK_WARN, SWING_ROCK_WARN_V6, SWING_WORLD_W, swingJetAt, type SwingState } from "@/lib/arcade/swing";
+import { SWING_CHASE_REACH, SWING_REV, SWING_ROCK_WARN, SWING_ROCK_WARN_V6, SWING_WORLD_W, swingAnchorAt, swingJetAt, type SwingState } from "@/lib/arcade/swing";
 import { WAV_CELL, WAV_COLS, WAV_SHIP_H, wavDropPx, wavForm, wavShipY, wavStreakMult, type WavState } from "@/lib/arcade/wavefront";
-import { CROSS_CYCLE_FROM, CROSS_CYCLE_TWO_FROM, CROSS_REV2, CROSS_ROADWORKS_FROM, CROSS_ROADWORKS_TWO_FROM, CROSS_X_BUS_FROM, CROSS_X_BUS_TWO_FROM, type CrossState } from "@/lib/arcade/cross";
+import { CROSS_CYCLE_FROM, CROSS_CYCLE_TWO_FROM, CROSS_KIND_BUS, CROSS_REV2, CROSS_ROADWORKS_FROM, CROSS_ROADWORKS_TWO_FROM, CROSS_X_BUS_FROM, CROSS_X_BUS_TWO_FROM, crossKindCrossed, type CrossState } from "@/lib/arcade/cross";
 import { FLIP_CRUMBLE_TICKS, flipCrackTick, flipSpeed, type FlipState } from "@/lib/arcade/flip";
 import { HOVER_WORLD_W, type HoverPillar, type HoverState } from "@/lib/arcade/hover";
 import { snakeStepTicks, type SnakeState } from "@/lib/arcade/snake";
@@ -92,6 +92,16 @@ function loopCue(cue: string, on: boolean, volume = LOOP_VOLUME): void {
   else stopCueLoop(cue);
 }
 
+/**
+ * An ambience bed (Joe's recordings, 6 Nov 2026: Grappler's jungle, Swish's boardwalk, Flightpath's stall): a quiet
+ * loop under the round's music while the run is live. It plays on the effects channel (its volume and mute) and is
+ * held off while the music is muted or at zero, so either setting silences it; faded in and out as the other loops.
+ */
+const AMBIENCE_BED_VOLUME = 0.3;
+function ambienceCue(cue: string, on: boolean): void {
+  loopCue(cue, on && !isMusicMuted() && musicVolume() > 0, AMBIENCE_BED_VOLUME);
+}
+
 /** A ball (velocities in 1/256 px a tick) that turned back this frame: sideways reversed, or rising turned to falling. */
 function turnedBack(before: { vx: number; vy: number } | undefined, after: { vx: number; vy: number }): boolean {
   if (!before) return false;
@@ -153,6 +163,16 @@ function swingDragonNear(s: SwingState): boolean {
   return Math.max(0, Math.trunc((s.x - chase - SWING_CHASE_REACH) / (40 * 256))) < 4;
 }
 
+/** swingRev 17: a sliding hook not yet stopped by a grab, inside the camera's window. */
+function swingVineSliding(s: SwingState): boolean {
+  const lock = s.slideLock ?? 0;
+  return (s.sliders ?? []).some((sl, k) => {
+    if ((lock >> k) & 1) return false;
+    const x = swingAnchorAt(s, sl.i, s.tick).x;
+    return x >= s.camX && x <= s.camX + SWING_WORLD_W * 256;
+  });
+}
+
 export function swingSounds(): GameSounds<SwingState> {
   let prev: SwingState | null = null;
   return {
@@ -161,8 +181,13 @@ export function swingSounds(): GameSounds<SwingState> {
       // swingRev 17 is the jungle canopy (3 Nov 2026): no lava bed; the jungle's own bed (silent until recorded), a vine
       // creak on a grab, a splash on a miss (the pterodactyl's screech when it caught you) and its screech as it swoops in.
       const jungle = Boolean(state.slide);
-      loopCue("swing.lava", running && !jungle && state.ended === 0);
-      loopCue("swing.jungle", running && jungle && state.ended === 0);
+      const live = running && state.ended === 0;
+      loopCue("swing.lava", live && !jungle);
+      ambienceCue("swing.jungle", live && jungle);
+      // Joe's jungle recordings (6 Nov 2026): the pterodactyl's wingbeats while it chases, the sliding vines' rails
+      // while one still slides on screen.
+      loopCue("swing.wings", live && jungle && (state.chaseX ?? 0) !== 0);
+      loopCue("swing.slideVine", live && jungle && swingVineSliding(state));
       if (prev && state.tick > prev.tick) {
         const caught = (state.caught ?? 0) > (prev.caught ?? 0);
         if (state.ended === 2 && prev.ended !== 2) { sfx("swing.crash", "arc_crash"); feel("impact"); }
@@ -175,7 +200,10 @@ export function swingSounds(): GameSounds<SwingState> {
         } else if (prev.rope < 0 && state.rope >= 0) {
           if (jungle) sfx("swing.vineCreak", "arc_grapple");
           else sfx("swing.grapple", "arc_grapple");
-        }
+        } else if (jungle && prev.rope >= 0 && state.rope < 0 && state.ended === 0) effectCue("swing.release");
+        // The jungle: landing on a tree platform (never the restart's placing), and each block of the clean-swing streak.
+        if (jungle && (state.restarts ?? 0) === (prev.restarts ?? 0) && (prev.ledgeOn ?? -1) < 0 && (state.ledgeOn ?? -1) >= 0) effectCue("swing.land");
+        if (jungle && (state.streakPaid ?? 0) > (prev.streakPaid ?? 0)) effectCue("swing.streak");
         // swingRev 4: a star taken, the dragon appearing, a stalactite starting to shake, a jet erupting.
         if ((state.stars ?? 0) > (prev.stars ?? 0)) sfx("swing.starTaken", "arc_pickup", 0.9);
         if ((state.chaseX ?? 0) !== 0 && (prev.chaseX ?? 0) === 0) {
@@ -202,6 +230,8 @@ export function swingSounds(): GameSounds<SwingState> {
     stop: () => {
       stopCueLoop("swing.lava");
       stopCueLoop("swing.jungle");
+      stopCueLoop("swing.wings");
+      stopCueLoop("swing.slideVine");
     },
   };
 }
@@ -276,6 +306,8 @@ export function crossSounds(): GameSounds<CrossState> {
       loopCue("cross.traffic", running && !state.dead);
       if (prev && state.tick > prev.tick) {
         if (state.lives < prev.lives) { sfx("cross.lifeLost", "arc_lose_life"); feel("impact"); }
+        // Spacewalk (6 Nov 2026): a freighter lane crossed (crossRev 9+, the only courses with them), its rumble going by.
+        if (state.wide && crossKindCrossed(state, CROSS_KIND_BUS) > crossKindCrossed(prev, CROSS_KIND_BUS)) effectCue("cross.freighter");
         else if (state.crossings > prev.crossings) sfx("cross.crossed", "stage_complete");
         else if (state.col !== prev.col || (state.hop > 0 && (prev.hop === 0 || state.hop > prev.hop))) sfx("cross.hop", "arc_honk", 0.6);
         // A new layout's crossing begins (its kerb pause ends).
@@ -284,12 +316,12 @@ export function crossSounds(): GameSounds<CrossState> {
           announced.add(state.crossings);
           effectCue("cross.newHazard");
         }
-        // crossRev 9, on existing sounds: a coin's clink, the island's bell, the streak's sting.
+        // crossRev 9: a coin's clink and the island's bell (existing sounds), the streak and close calls (Joe's own since 6 Nov 2026).
         if (state.wide) {
           if ((state.coinTotal ?? 0) > (prev.coinTotal ?? 0)) sfx("arc_retro_coin", "arc_retro_coin", 0.7);
           if ((state.banked ?? 0) > (prev.banked ?? 0)) sfx("arc_fair_bell", "arc_fair_bell", 0.55);
-          if ((state.streakPts ?? 0) > (prev.streakPts ?? 0)) sfx("arc_fair_sting", "arc_fair_sting", 0.7);
-          if ((state.closeCalls ?? 0) > (prev.closeCalls ?? 0)) sfx("arc_retro_pickup", "arc_retro_pickup", 0.6);
+          if ((state.streakPts ?? 0) > (prev.streakPts ?? 0)) sfx("cross.streakUp", "arc_fair_sting", cueHasFile("cross.streakUp") ? 1 : 0.7);
+          if ((state.closeCalls ?? 0) > (prev.closeCalls ?? 0)) sfx("cross.closeCall", "arc_retro_pickup", cueHasFile("cross.closeCall") ? 1 : 0.6);
         }
       } else if (prev && state.tick < prev.tick) announced.clear();
       prev = state;
@@ -648,9 +680,16 @@ function binTossNewHazard(s: BinTossState): boolean {
 export function binTossSounds(): GameSounds<BinTossState> {
   let prev: BinTossState | null = null;
   const perfect = fairPerfect("bintoss.perfect");
+  let gustFor = -1;
   return {
-    frame(state) {
+    frame(state, running) {
       beginFrame("bintoss", state);
+      // The boardwalk's ambience under the music (6 Nov 2026), and a gust as each windy throw comes into hand.
+      ambienceCue("bintoss.ambience", running);
+      if (running && state.phase === BINTOSS_AIM && state.throwIndex !== gustFor) {
+        gustFor = state.throwIndex;
+        if ((state.winds[state.throwIndex] ?? 0) !== 0) effectCue("bintoss.wind");
+      }
       if (prev && state.tick > prev.tick) {
         if (state.baskets > prev.baskets) {
           sfx("bintoss.basket", "arc_fair_bucket");
@@ -665,7 +704,7 @@ export function binTossSounds(): GameSounds<BinTossState> {
       }
       prev = state;
     },
-    stop: () => {},
+    stop: () => stopCueLoop("bintoss.ambience"),
   };
 }
 
@@ -673,8 +712,10 @@ export function bullseyeSounds(): GameSounds<BullseyeState> {
   let prev: BullseyeState | null = null;
   const perfect = fairPerfect("bullseye.perfect");
   return {
-    frame(state) {
+    frame(state, running) {
       beginFrame("bullseye", state);
+      // The darts stall's ambience under the music (6 Nov 2026).
+      ambienceCue("bullseye.ambience", running);
       if (prev && state.tick > prev.tick) {
         if (state.flightTick > 0 && prev.flightTick === 0) effectCue("bullseye.dartThrow");
         if (prev.flightTick > 0 && state.flightTick === 0 && state.hits.length > 0) {
@@ -685,7 +726,7 @@ export function bullseyeSounds(): GameSounds<BullseyeState> {
       }
       prev = state;
     },
-    stop: () => {},
+    stop: () => stopCueLoop("bullseye.ambience"),
   };
 }
 
@@ -979,7 +1020,11 @@ export function sliceSounds(): GameSounds<SliceState> {
         if (prev.comboLive && !state.comboLive && state.bombsHit === prev.bombsHit) effectCue("slice.comboEnd");
         // Food thrown up, or a chilli launched with its fizzing fuse.
         const thrown = state.objects.filter((o) => o.launchTick > prev!.tick && o.launchTick <= state.tick);
-        if (thrown.some((o) => o.bomb)) effectCue("slice.fuse", 150);
+        // sliceRev 12's food board: Joe's chilli sizzle (6 Nov 2026) in place of the fuse; every earlier board keeps the fuse.
+        if (thrown.some((o) => o.bomb)) {
+          if (state.v12 && cueHasFile("slice.chilli")) effectCue("slice.chilli", 150);
+          else effectCue("slice.fuse", 150);
+        }
         // A special bottle thrown up: its own toss sound stands in for the plain whoosh once it has a file.
         const special = thrown.some((o) => o.special !== SLICE_SPECIAL_NONE);
         if (special) effectCue("slice.specialIn");

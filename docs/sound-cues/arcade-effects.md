@@ -185,14 +185,20 @@ Already sounded: launch (`orbit.launch`), first checkpoint (`orbit.checkpoint`),
 | `swing.dragonNear` | The dragon closes within 4 m while off the left edge (at most one per 4 s) | The DRAGON label grows to full size and its arrow turns red | `swing.dragonNear.mp3` | 0–5 | 1000 ms |
 | `swing.rockCrumble` | Halfway through a stalactite's warning | Grit and chips crumble off and its shadow grows | `cave.stoneCrack.mp3` | 2–8 | 500 ms |
 | `swing.lava` | While the run is live (every revision before swingRev 17) | Lava waves, embers and drips | `swing.lava.mp3` | loop | loop |
-| `swing.jungle` | While the run is live (swingRev 17, the jungle canopy) | The river, leaves and light shafts | none yet (silent until recorded) | loop | loop |
+| `swing.jungle` | While the run is live (swingRev 17, the jungle canopy): an ambience bed, held off while the music is muted | The river, leaves and light shafts | `swing.jungle.mp3` (Joe's 8 s loop, 6 Nov 2026) | loop | loop |
+| `swing.wings` | While the pterodactyl chases (swingRev 17) | The pterodactyl flapping behind the hero | `swing.wings.mp3` (Joe's 2 s loop) | loop | loop |
+| `swing.slideVine` | While a sliding vine still slides on screen (swingRev 17) | Swinging vines gliding along their rails | `swing.slideVine.mp3` (Joe's 2 s loop) | loop | loop |
+| `swing.release` | The hero lets go of a vine (swingRev 17; at most one per 90 ms) | The vine swings back empty | `swing.release.mp3` | 20–60 | 480 ms |
+| `swing.land` | The hero lands on a tree platform (swingRev 17; never the restart's placing) | The hero on the platform | `swing.land.mp3` | 0–40 | 490 ms |
+| `swing.streak` | Each block of the clean-swing streak paid (swingRev 17) | STREAK ×n in the HUD | `swing.streak.mp3` | 0–20 | 600 ms |
+| `swing.gate` | A speed gate lit on the jungle canopy (swingRev 17, in place of `swing.assaultGate`) | SPEED GATE! pop under the hero | `swing.gate.mp3` | 0–5 | 480 ms |
 | `swing.gemTaken` | A high-route gem taken (swingRev 13) | +GEM pop in cyan at the hero | `sfx_spark_chime.mp3` (shared recording, volume 0.7) | 0–12 | 600 ms |
 | `swing.gateLit` | A speed gate lit by a fast swoop (swingRev 13) | SPEED GATE! pop under the hero | `sfx_joulz_zap.mp3` (shared recording, volume 0.8) | 0–8 | 380 ms |
 | `swing.ledgeLanded` | Landed on a set-route ledge (swingRev 13) | LANDED! pop above the hero | `sfx_count_ding.mp3` (shared recording, volume 0.7) | 0–15 | 487 ms |
 | `swing.comboPoint` | Every fifth linked swing (swingRev 13) | SWING COMBO ×n streak | `banner.combo.mp3` (volume 0.85) | 0–10 | 500 ms |
 | `swing.sectionClear` | A set-route section's finish flag reached (swingRev 13) | SECTION CLEAR! banner | `done.chimeSweep.mp3` | 0–3 | 600 ms |
 | `swing.parBeaten` | A section finished under its par time (swingRev 13) | "−0.8 s UNDER PAR" pop above the hero (in place of the section chime) | `done.goldPulse.mp3` (shared recording, volume 0.8) | 0–3 | 600 ms |
-| `swing.assaultGate` | A speed gate lit on the assault course (swingRev 14) | SPEED GATE! pop under the hero | `sfx_joulz_zap.mp3` (shared recording, volume 0.8) | 0–4 | 380 ms |
+| `swing.assaultGate` | A speed gate lit on the assault course (swingRev 14–16; swingRev 17 plays `swing.gate`) | SPEED GATE! pop under the hero | `sfx_joulz_zap.mp3` (shared recording, volume 0.8) | 0–4 | 380 ms |
 | `swing.assaultGem` | A gem taken on a harder line (swingRev 14; a miss puts it back) | +GEM pop in cyan at the hero | `sfx_spark_chime.mp3` (shared recording, volume 0.7) | 0–4 | 600 ms |
 | `swing.assaultStar` | A star taken on a tighter swing (swingRev 14; a miss puts it back) | STAR! burst in gold | `sfx_spark_chime.mp3` (shared recording, volume 0.8) | 0–4 | 600 ms |
 | `swing.assaultClear` | A section's landing ledge reached (swingRev 14) | CLEAR! (or "−0.4 s UNDER PAR") pop above the hero | `sfx_count_ding.mp3` (shared recording, volume 0.6) | 0–36 | 487 ms |
@@ -204,8 +210,9 @@ Already sounded: rope catch and anchor flash (`swing.grapple`), star (`swing.sta
 
 | Cue | Trigger | Looks like | Plays today | Per round | Length |
 |---|---|---|---|---|---|
-| `cross.pastBikes` | Past the comets' plasma lane (Spacewalk) | A +1 pop at the astronaut | `pop.bonus.mp3` · `orbit.shootingStar.mp3` from the library since 3 Nov 2026 (was `cross.bikeBell.mp3`; volume 0.7) | 2–8 | 840 ms |
-| `cross.pastRoadworks` | Through the drifting debris (Spacewalk) | A +1 pop at the astronaut | `pop.bonus.mp3` · `hover.slipPast.mp3` from the library since 3 Nov 2026 (was `cross.cones.mp3`; volume 0.7) | 2–8 | 350 ms |
+| `cross.pastBikes` | Past the comets' plasma lane (Spacewalk) | A +1 pop at the astronaut | `cross.pastBikes.mp3` (Joe's comet, 6 Nov 2026; was the library's `orbit.shootingStar.mp3`) | 2–8 | 480 ms |
+| `cross.pastRoadworks` | Through the drifting debris (Spacewalk) | A +1 pop at the astronaut | `cross.pastRoadworks.mp3` (Joe's `cross.pass` recording, 6 Nov 2026; was the library's `hover.slipPast.mp3`) | 2–8 | 460 ms |
+| `cross.freighter` | A freighter lane crossed (crossRev 9+; at most one per 600 ms) | The long cargo freighter going by | `cross.freighter.mp3` (Joe's, 6 Nov 2026) | 0–15 | 1350 ms |
 | `cross.newHazard` | A new layout's crossing begins (its kerb pause ends): the first cycle lane (crossing 3), roadworks (4) and the chicane (7), crossRev 2+ | Cyclists, cones or a chicane on the road ahead | `alert.newHazard.mp3` | 0–3 | 600 ms |
 | `cross.traffic` | While the run is live | Space traffic streaming both ways (Spacewalk) | `bastion.drone.mp3` from the library since 3 Nov 2026 (was `cross.traffic.mp3`) | loop | loop |
 
@@ -248,7 +255,7 @@ Already sounded: gravity flip (`flip.flip`), crash into the pool (`flip.crash`).
 | `inkbridge.liveLevel` | The live levels (9–10) begin (inkRev 3+) | The no-draw ring appears round the coin | `alert.newHazard.mp3` | 0–1 | 600 ms |
 | `inkbridge.coinLand` | The coin lands on a rainbow (at most one per 150 ms) | The coin meets the line | `arc_marble_clink` (shared recording) | 10–30 | 120 ms |
 | `inkbridge.coinRoll` | While the coin rolls along a rainbow | The coin rolls with its gold trail | `arc_marble_roll` (shared recording) | loop | loop |
-| `inkbridge.cloudBounce` | The coin springs off a bounce cloud (inkRev 10; at most one per 120 ms) | The cloud squashes and springs back (still under reduced motion) | `cross.hop.mp3` | 0–15 | 300 ms |
+| `inkbridge.cloudBounce` | The coin springs off a bounce cloud (inkRev 10; at most one per 120 ms) | The cloud squashes and springs back (still under reduced motion) | `inkbridge.cloudBounce.mp3` (Jaywalk's old footstep, `cross.hop.mp3` until 6 Nov 2026) | 0–15 | 300 ms |
 | `inkbridge.trickShot` | The coin is potted after bouncing off a cloud (inkRev 10) | A TRICK SHOT! pop over the pot | `sfx_spark_chime.mp3` | 0–5 | 600 ms |
 | `inkbridge.silverCoin` | The coin in flight takes a silver coin (inkRev 10; at most one per 60 ms) | The silver coin goes | `pop.perfect.mp3` (higher, quieter) | 0–25 | 150 ms |
 | `inkbridge.shamrock` | The coin in flight takes the run's shamrock (inkRev 10) | The shamrock goes; a SHAMROCK +20! pop when the coin is potted | `sfx_spark_chime.mp3` (a little higher) | 0–1 | 600 ms |
@@ -263,7 +270,8 @@ Already sounded: drawing (`inkbridge.draw`), pot of gold and level clear (`inkbr
 | `slice.mayoSqueeze` | Mayonnaise squeezed | SQUEEZE! pop with the mayo glow and swirl | `arc_mustard` (shared recording) · own file `slice.mayo.mp3` (sound batch 4, volume 0.8) | 1–5 | 450 ms |
 | `slice.manyInOne` | Four or more cut in one slice | COMBO ×n pop at the cut | `banner.combo.mp3` | 0–5 | 600 ms |
 | `slice.comboEnd` | The combo meter runs out (a chilli ending it has its own sound) | The combo meter empties and the gold border goes | `combo.lost.mp3` | 2–10 | 500 ms |
-| `slice.fuse` | A chilli launches (at most one per 150 ms) | The chilli flies up with a fizzing fuse | `slice.fuse.mp3` | 5–15 | 600 ms |
+| `slice.fuse` | A chilli launches (at most one per 150 ms; sliceRev 12 plays `slice.chilli`) | The chilli flies up with a fizzing fuse | `slice.fuse.mp3` | 5–15 | 600 ms |
+| `slice.chilli` | A chilli launches on sliceRev 12's food board (at most one per 150 ms) | The red chilli flies up, sizzling | `slice.chilli.mp3` (Joe's, 6 Nov 2026) | 5–15 | 490 ms |
 | `slice.toss` | Food is thrown up (at most one per 250 ms, volume 0.4; left out on a frame `slice.specialIn` plays its file) | Discs fly up from below | `arrow.whoosh.mp3` | about 100 | 250 ms |
 | `slice.specialIn` | A special bottle (ketchup, mustard or mayonnaise) is thrown up (sound batch 4) | The bottle flies up spinning | `slice.bottleToss.mp3` (volume 0.6) | 3–6 | 300 ms |
 
@@ -279,6 +287,8 @@ Already sounded: slices and juice (`slice.cut`), combo and the gold border (`sli
 | `bintoss.hoopGlow` | The ball goes through the hoop | The hoop glows | `pop.bonus.mp3` | 0–5 | 250 ms |
 | `bintoss.spinnerKnock` | The ball hits the spinner or a hoop cap (at most one per 100 ms) | The paddle flashes gold | `arc_wood_knock` (shared recording) | 0–8 | 120 ms |
 | `bintoss.throw` | The ball is thrown | The ball flies with its trail | `arrow.whoosh.mp3` | 10 | 300 ms |
+| `bintoss.wind` | A throw with wind comes into hand | The wind flag waves with its strength | `bintoss.wind.mp3` (Joe's gust, 6 Nov 2026) | 0–10 | 800 ms |
+| `bintoss.ambience` | While the run is live: the boardwalk's ambience bed, held off while the music is muted | The seaside boardwalk at dusk | `bintoss.ambience.mp3` (Joe's 8 s loop) | loop | loop |
 | `bintoss.newHazard` | The next ball brings the narrower bucket (throw 4), the first spinner or the first trolley | The bucket narrows, or the spinner or trolley appears | `alert.newHazard.mp3` | 1–3 | 600 ms |
 
 Already sounded: basket and bucket sway (`bintoss.basket`), wobble (`bintoss.wobble`), miss bounce (`bintoss.missBounce`), ten out of ten (`bintoss.allBaskets`, `bintoss.perfect`).
@@ -292,6 +302,7 @@ Already sounded: basket and bucket sway (`bintoss.basket`), wobble (`bintoss.wob
 | `bullseye.bullsRow` | Two or more bulls in a row | n BULLS IN A ROW banner | `banner.combo.mp3` | 0–5 | 500 ms |
 | `bullseye.allOnTarget` | All ten arrows on the target | FULL CLEAR banner, confetti | `banner.fullClear.mp3` | 0–1 | 1200 ms |
 | `bullseye.dartThrow` | An arrow is thrown | The arrow flies with a chalk trail | `arrow.whoosh.mp3` | 10 | 150 ms |
+| `bullseye.ambience` | While the run is live: the darts stall's ambience bed, held off while the music is muted | The darts stall | `bullseye.ambience.mp3` (Joe's 8 s loop) | loop | loop |
 
 Already sounded: arrow lands (`bullseye.thud`), bullseye (`bullseye.bull`), all tens (`bullseye.perfect`).
 
