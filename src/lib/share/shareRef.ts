@@ -91,7 +91,7 @@ export function isShareRef(search: string): boolean {
   }
 }
 
-const ROOM_CODE = /^[A-Za-z]{4}$/;
+const ROOM_CODE = /^[A-Za-z0-9]{4}$/;
 
 function writeArrival(arrival: ShareArrival, record: ShareRecorder): void {
   writeShareArrival(arrival);

@@ -142,7 +142,7 @@ export interface LastRoom {
 export function readLastRoom(): LastRoom | null {
   try {
     const raw = JSON.parse(storage()?.getItem(LAST_ROOM_KEY) ?? "null") as LastRoom | null;
-    return raw && typeof raw.code === "string" && /^[A-Z]{4}$/.test(raw.code) ? raw : null;
+    return raw && typeof raw.code === "string" && /^[A-Z0-9]{4}$/.test(raw.code) ? raw : null;
   } catch {
     return null;
   }

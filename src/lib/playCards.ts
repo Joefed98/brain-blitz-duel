@@ -139,7 +139,7 @@ export function playCardTokens(
   if (!cache.daily || cache.daily.available !== false) tokens.push("daily");
   if (cache.challenges !== false) tokens.push("challenge");
   const last = read("duelz-last-room:v1") as { code?: unknown } | null;
-  if (last && typeof last.code === "string" && /^[A-Z]{4}$/.test(last.code))
+  if (last && typeof last.code === "string" && /^[A-Z0-9]{4}$/.test(last.code))
     if (!(cache.rejoin && cache.rejoin.code === last.code && cache.rejoin.open === null)) tokens.push("rejoin");
   if (/[?&]ref=share(&|$)/.test(search) && !read("duelz-share-arrival:v1")) tokens.push("welcome");
   // The first-time intro card (tab pages refresh): a device that hasn't seen it, unless a shared link
@@ -179,7 +179,7 @@ export const PLAY_CARDS_BOOT =
   'if(!c.daily||c.daily.available!==false)t.push("daily");' +
   'if(c.challenges!==false)t.push("challenge");' +
   'var l=r("duelz-last-room:v1");' +
-  'if(l&&typeof l.code==="string"&&/^[A-Z]{4}$/.test(l.code)&&!(c.rejoin&&c.rejoin.code===l.code&&c.rejoin.open===null))t.push("rejoin");' +
+  'if(l&&typeof l.code==="string"&&/^[A-Z0-9]{4}$/.test(l.code)&&!(c.rejoin&&c.rejoin.code===l.code&&c.rejoin.open===null))t.push("rejoin");' +
   'if(/[?&]ref=share(&|$)/.test(q)&&!r("duelz-share-arrival:v1"))t.push("welcome");' +
   'var o=false;try{o=s.getItem("duelz_onboarding_seen")==="1"}catch(e){o=false}' +
   'var e2=false;try{e2=window.sessionStorage.getItem("duelz_onboarding_seen")==="1"}catch(e){}' +

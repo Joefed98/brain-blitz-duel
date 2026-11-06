@@ -2,6 +2,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 
 import { LogoMark } from "@/components/brand/LogoMark";
+import { roomCodeChars } from "@/lib/duel/roomCode";
 
 /**
  * One layout for the error screens (Polish batch R, 25 Oct 2026, presentation only): the 404 page, a room
@@ -48,7 +49,7 @@ export function ErrorState({
         >
           <input
             value={code}
-            onChange={(event) => setCode(event.target.value.replace(/[^a-z]/gi, "").slice(0, 6).toUpperCase())}
+            onChange={(event) => setCode(roomCodeChars(event.target.value).slice(0, 6))}
             placeholder="Room code"
             aria-label="Room code"
             autoCapitalize="characters"

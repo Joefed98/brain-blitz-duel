@@ -214,7 +214,9 @@ check(
   Math.random = () => (n < 4 ? seq[n++]! : original());
   const code = generateRoomCode();
   Math.random = original;
-  check(RESERVED_ROOM_CODES.has("JULZ") && code !== "JULZ" && /^[A-Z]{4}$/.test(code), `a new room never gets the public room's code (${code})`);
+  // Since 7 Nov 2026 new codes come from the challenge alphabet (roomCode.ts), which has no L, so JULZ can't
+  // be dealt at all; the draws above make a code from it instead.
+  check(RESERVED_ROOM_CODES.has("JULZ") && code !== "JULZ" && /^[ABCDEFGHJKMNPQRSTUVWXYZ23456789]{4}$/.test(code), `a new room never gets the public room's code (${code})`);
 }
 
 /* ------------------------------------------------------------------ 5. the screens in Chromium */

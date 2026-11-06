@@ -1861,7 +1861,9 @@ body.game-lock {
 @keyframes practice-best-moment { 0% { opacity: 0; } 12%, 75% { opacity: 1; } 100% { opacity: 0; } }
 .letter-shuffle-tile { transition: left 260ms ease-out, top 260ms ease-out; }
 @media (prefers-reduced-motion: reduce) { .letter-shuffle-tile, .practice-new-best { transition: none; animation: none; } }
-@media (prefers-reduced-motion: reduce) { .practice-new-best { animation: practice-best-moment 1800ms linear both; } }
+/* Reduced motion (7 Nov 2026, design audit): the line above holds still and stays visible. A calm copy of the
+ * fade used to sit here, but the global reduced-motion rule cuts every animation to 0.01 ms, so it ended at
+ * once on its last frame, opacity 0. reduced-motion-end-check proves no content ends hidden this way. */
 [data-shared-rejections] [data-game-stage] .animate-shake { animation: none !important; }
 [data-game-stage] [data-puzzle-rejected] { outline: 2px solid var(--destructive) !important; outline-offset: -2px; }
 .lookout-word-placeholder { background: var(--background); }
@@ -1903,7 +1905,10 @@ body.game-lock {
 .arcade-score-celebrate { animation: arcade-score-celebrate 900ms ease-out 2; text-shadow: 0 0 18px currentColor; }
 @keyframes arcade-score-celebrate { 0%, 100% { transform: scale(1); } 40% { transform: scale(1.12); } }
 @media (prefers-reduced-motion: reduce) {
-  .arcade-celebration-headline { animation: practice-best-moment 2600ms linear both; }
+  /* Held still and visible (7 Nov 2026): the calm fade it had ended at once at opacity 0 under the global
+   * rule, and its animationend removed the headline at once. CelebrationHeadline's timer removes it after
+   * CELEBRATION_HEADLINE_MS, as with motion. */
+  .arcade-celebration-headline { animation: none; }
   .arcade-score-celebrate { animation: none; }
 }
 
@@ -1923,6 +1928,8 @@ html[data-reduced-effects] .podium-award-in { animation: none; }
 }
 /* Practice's "New best!" moment on the reveal (NewBestMoment; skipped entirely with reduced motion or effects). */
 .new-best-moment { animation: new-best-moment 1800ms ease-out both; }
+/* NewBestPill draws nothing under reduced motion; held still and visible should it ever be drawn. */
+@media (prefers-reduced-motion: reduce) { .new-best-moment { animation: none; } }
 @keyframes new-best-moment { 0% { opacity: 0; transform: scale(0.6); } 14% { opacity: 1; transform: scale(1.08); } 22% { transform: scale(1); } 80% { opacity: 1; } 100% { opacity: 0; } }
 
 /* The room's chat toast (RoomChat, 22 Oct 2026): slides up from the bottom. */
