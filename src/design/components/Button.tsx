@@ -1,39 +1,58 @@
-import { forwardRef, type ButtonHTMLAttributes, type ReactNode } from "react";
+import { forwardRef, type AnchorHTMLAttributes, type ButtonHTMLAttributes } from "react";
 
 /**
- * Button (DESIGN.md section 5; design foundation F3, 6 Nov 2026: first used by the game chrome).
- *
- * - `gold`: the one action that plays (metal fill, the large angled cut). At most one a screen.
- * - `secondary`: surface-2 fill, the 8 px radius.
+ * The one button (DESIGN.md section 5). Variants:
+ * - `gold`: the metal face on a 4 px ledge inside the angled cut; the action that plays. At most one a screen.
+ * - `secondary`: the surface with a 1.5 px --jz-surface-2 edge, 8 px radius.
  * - `quiet`: text only.
- * - `icon`: 44 × 44, no fill.
- *
- * The cut is on the inner face, never the button itself, so the focus ring (on the button) is never clipped
- * (section 4). Pressed: scale 0.97 over --jz-fast; reduced motion: no scale (components.css).
- * `size` sets the height: `l` 56 px (the gold default), `m` 44 px (two small actions side by side).
+ * - `icon`: 44 × 44, an icon alone (give it an aria-label).
+ * `size` is the height in px (the screens keep their heights: 44, 46, 48, 50, 52 or 58); `block` fills the
+ * width. Hover, pressed (0.97) and focus-visible states and the 44 px minimum come from components.css.
  */
 export type ButtonVariant = "gold" | "secondary" | "quiet" | "icon";
-export type ButtonSize = "l" | "m";
+export type ButtonSize = 44 | 46 | 48 | 50 | 52 | 58;
 
-export interface JzButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+export type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
   variant?: ButtonVariant;
   size?: ButtonSize;
-  /** Stretch to the row's free width (flex: 1). */
-  grow?: boolean;
-  children?: ReactNode;
-}
+  block?: boolean;
+  /** The gold button's small cut (--jz-cut-sm), for a small primary button. */
+  small?: boolean;
+};
 
-export const Button = forwardRef<HTMLButtonElement, JzButtonProps>(function Button(
-  { variant = "secondary", size, grow = false, className, children, type = "button", ...rest },
+export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button(
+  { variant = "secondary", size, block = false, small = false, className, type = "button", ...rest },
   ref,
 ) {
-  const height = size ?? (variant === "gold" ? "l" : "m");
-  const classes = ["jz-btn", `jz-btn-${variant}`, `jz-btn-${height}`, grow ? "jz-btn-grow" : "", className ?? ""]
-    .filter(Boolean)
-    .join(" ");
   return (
-    <button ref={ref} type={type} className={classes} data-jz-button={variant} {...rest}>
-      <span className={`jz-btn-face${variant === "gold" ? " jz-cut-lg" : ""}`}>{children}</span>
-    </button>
+    <button
+      ref={ref}
+      type={type}
+      data-jz="button"
+      data-variant={variant}
+      data-size={variant === "icon" ? undefined : size}
+      data-block={block ? "" : undefined}
+      data-small={small ? "" : undefined}
+      className={`jz-btn${className ? ` ${className}` : ""}`}
+      {...rest}
+    />
+  );
+});
+
+/** The same button as a link (an external page, a download). */
+export const ButtonLink = forwardRef<
+  HTMLAnchorElement,
+  AnchorHTMLAttributes<HTMLAnchorElement> & { variant?: ButtonVariant; size?: ButtonSize; block?: boolean }
+>(function ButtonLink({ variant = "secondary", size, block = false, className, ...rest }, ref) {
+  return (
+    <a
+      ref={ref}
+      data-jz="button"
+      data-variant={variant}
+      data-size={variant === "icon" ? undefined : size}
+      data-block={block ? "" : undefined}
+      className={`jz-btn${className ? ` ${className}` : ""}`}
+      {...rest}
+    />
   );
 });

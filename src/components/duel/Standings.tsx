@@ -25,6 +25,7 @@ import { Medal } from "./Medal";
 import { PlayerBadge } from "./PlayerBadge";
 import { CATEGORY_NAMES } from "./GameFrame";
 import { useScrollMore } from "./RoomFooter";
+import { Nameplate } from "@/design/components";
 
 /** Movement since the round before: ▲ green, ▼ red, – grey. */
 export function Arrow({ standing }: { standing: Standing }) {
@@ -166,15 +167,7 @@ export function Standings({ round, totalRounds = TOTAL_ROUNDS, rows, looks, mySl
               <div className="grid w-full grid-cols-[1.5rem_1.375rem_minmax(0,1fr)_auto_3.25rem] items-center gap-x-2">
                 <Medal place={row.position} shared={mark?.shared} />
                 <Arrow standing={row} />
-                <span className="flex min-w-0 items-center gap-2">
-                  <PlayerBadge look={look} name={row.name} size={compact ? 24 : 28} />
-                  <span className="flex min-w-0 flex-col">
-                    <span className="flex min-w-0 items-baseline gap-1">
-                      <span className="rs-name th-name">{row.name}</span>
-                      {isMe ? <span className="rs-you shrink-0 text-[13px]">(you)</span> : null}
-                    </span>
-                  </span>
-                </span>
+                <Nameplate look={look} name={row.name} you={isMe} kind="mini" disc={compact ? 24 : 28} />
                 <span className="whitespace-nowrap text-[13px] font-semibold tabular-nums text-[var(--ap-text-2)]">
                   +{row.roundScore}
                 </span>

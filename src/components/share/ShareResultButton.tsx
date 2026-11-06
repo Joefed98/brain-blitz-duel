@@ -11,6 +11,7 @@ import {
 } from "@/lib/share/shareResult";
 import { noteShareFinish, sendShareEvent, type ShareRecorder } from "@/lib/share/shareRef";
 import type { DuelPlayerRow, DuelRow, RoundResultRow } from "@/lib/duel/types";
+import { Button } from "@/design/components";
 
 /** How long "Copied" shows after the clipboard fallback. */
 export const COPIED_MS = 2000;
@@ -64,16 +65,16 @@ export function ShareResultButton({
     });
   };
   return (
-    <button
-      type="button"
+    <Button
+      variant="secondary"
       data-share-button
       data-share-image={input.image ? "ready" : "none"}
       onClick={onClick}
-      className={`th-btn-teal press tap-target flex min-w-0 flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-xl px-4 font-display text-base font-extrabold uppercase tracking-wide ${className}`}
+      className={`min-w-0 flex-1 ${className}`}
     >
       <ShareGlyph />
       <span aria-live="polite">{copied ? "Copied" : label}</span>
-    </button>
+    </Button>
   );
 }
 

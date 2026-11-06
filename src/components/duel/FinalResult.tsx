@@ -20,6 +20,7 @@ import { Dots } from "./Dots";
 import { PlayerBadge } from "./PlayerBadge";
 import { PodiumAwards } from "./PodiumAwards";
 import { RoomFooter } from "./RoomFooter";
+import { Button } from "@/design/components";
 
 interface FinalResultProps {
   outcome: Outcome;
@@ -168,11 +169,11 @@ export function FinalResult({
       <RoomFooter className="mt-auto">
         <div data-podium-actions className="flex min-w-0 flex-1 items-center gap-2">
           {isHost ? (
-            <button
-              type="button"
+            <Button
+              variant="gold"
+              size={52}
               onClick={onPlayAgain}
               disabled={busy}
-              className="th-btn-gold ap-btn-gold rs-btn-gold press tap-target h-[52px]"
             >
               {busy ? (
                 <>
@@ -182,7 +183,7 @@ export function FinalResult({
               ) : (
                 "Play again"
               )}
-            </button>
+            </Button>
           ) : (
             <p className="rs-status h-[52px]">Waiting for the host</p>
           )}

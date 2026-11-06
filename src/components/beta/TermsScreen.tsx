@@ -5,6 +5,7 @@ import { betaValue } from "@/lib/beta/betaValues";
 import { agreeToTerms, termsAgreement } from "@/lib/beta/terms";
 import { APP_NAME } from "@/lib/brand";
 import { unlockAudio } from "@/lib/sound";
+import { Button } from "@/design/components";
 
 /** "22 Oct 2026" in UK time. */
 function agreedDay(iso: string): string {
@@ -120,28 +121,30 @@ export function TermsScreen({ onAgree, onBack }: { onAgree?: () => void; onBack?
                 You agreed on {agreedDay(agreement.agreedAt)}
               </p>
               {onBack ? (
-                <button
-                  type="button"
+                <Button
+                  variant="secondary"
+                  size={52}
+                  block
                   onClick={onBack}
-                  className="rs-btn press tap-target h-[52px] w-full"
                 >
                   Back
-                </button>
+                </Button>
               ) : null}
             </>
           ) : (
-            <button
-              type="button"
+            <Button
+              variant="gold"
+              size={52}
+              block
               data-terms-agree
               onClick={() => {
                 unlockAudio();
                 setAgreement(agreeToTerms());
                 onAgree?.();
               }}
-              className="th-btn-gold ap-btn-gold press tap-target h-[52px] w-full whitespace-nowrap rounded-[14px] text-[17px]"
             >
               I agree
-            </button>
+            </Button>
           )}
         </div>
       </div>

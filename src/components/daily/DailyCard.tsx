@@ -92,7 +92,7 @@ export function DailyCard({
         <h2 className="ap-section-title">Today</h2>
         <span className="ap-meta">New at midnight</span>
       </div>
-      <div className="ap-panel">
+      <div className="jz-panel">
         {DAILY_KINDS.map((kind) => {
           const { sub, action, done } = rowState(kind, status[kind], streak);
           const Icon = DAILY_ICON[kind];
@@ -104,12 +104,12 @@ export function DailyCard({
               data-daily-state={status[kind].state}
               onClick={() => onOpen(kind)}
               data-icon="tile"
-              className="ap-row press"
+              className="jz-row press"
             >
               <Icon />
-              <span className="ap-row-text">
-                <span className="ap-row-title">{DAILY_TITLE[kind]}</span>
-                <span data-ellipsis className="ap-row-sub">
+              <span className="jz-row-text">
+                <span className="jz-row-title">{DAILY_TITLE[kind]}</span>
+                <span data-ellipsis className="jz-row-sub">
                   {sub}
                 </span>
               </span>

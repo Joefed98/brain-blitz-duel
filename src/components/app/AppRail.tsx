@@ -1,5 +1,5 @@
 import { useRouter } from "@tanstack/react-router";
-import { Search, Settings, Target, Trophy, UserRound, Zap, type LucideIcon } from "lucide-react";
+import { Search, Settings } from "lucide-react";
 import { useEffect, useState, type FormEvent, type MouseEvent } from "react";
 
 import { AppWordmark } from "@/components/brand/AppWordmark";
@@ -11,6 +11,7 @@ import { goToTab, TAB_PATHS, type AppTab } from "@/components/app/AppTabBar";
 import { getStoredName } from "@/lib/duel/session";
 import { rememberedLook, type PlayerLook } from "@/lib/duel/playerLook";
 import { unlockAudio } from "@/lib/sound";
+import { Input, TabBar } from "@/design/components";
 
 /**
  * The computer layout's left navigation rail (31 Oct 2026, presentation only; docs/desktop-layout.md).
@@ -21,13 +22,6 @@ import { unlockAudio } from "@/lib/sound";
  *   to Profile), settings (Profile's sheet) and sound. It replaces the bottom tab bar.
  * - `compact` (76 px, rooms and games): the logo mark and the four icons with their names as tooltips.
  */
-const TABS: { tab: AppTab; label: string; Icon: LucideIcon }[] = [
-  { tab: "play", label: "Play", Icon: Zap },
-  { tab: "practice", label: "Practice", Icon: Target },
-  { tab: "tournaments", label: "Tournaments", Icon: Trophy },
-  { tab: "profile", label: "Profile", Icon: UserRound },
-];
-
 export function AppRail({
   current,
   compact = false,
@@ -75,37 +69,19 @@ export function AppRail({
         {compact ? <LogoMark width={26} height={34} /> : <AppWordmark />}
       </a>
       <div className="dk-rail-tabs">
-        {TABS.map(({ tab, label, Icon }) => {
-          const here = tab === current;
-          return (
-            <a
-              key={tab}
-              href={TAB_PATHS[tab]}
-              onClick={open(tab)}
-              aria-current={here ? "page" : undefined}
-              aria-label={compact ? label : undefined}
-              title={compact ? label : undefined}
-              data-rail-tab={tab}
-              className="dk-rail-tab press"
-            >
-              <Icon aria-hidden="true" className="h-6 w-6" strokeWidth={1.9} />
-              {compact ? null : <span>{label}</span>}
-            </a>
-          );
-        })}
+        <TabBar variant="rail" current={current} compact={compact} onOpen={open} />
       </div>
       <div className="dk-rail-foot">
         {compact ? null : (
           <form role="search" onSubmit={search} className="dk-rail-search">
             <Search aria-hidden="true" className="dk-rail-search-icon" />
-            <input
+            <Input
               name="q"
               type="search"
               placeholder="Search games"
               aria-label="Search games"
               autoComplete="off"
               spellCheck={false}
-              className="ap-input"
             />
           </form>
         )}

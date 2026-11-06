@@ -1,5 +1,4 @@
 import { scorePartsText, storedScoreParts } from "@/lib/duel/puzzleScoreRev";
-import { Button } from "@/design/components";
 import { readPracticeBest } from "@/lib/duel/practiceBest";
 import { stampSignature } from "@/lib/duel/practiceStamps";
 import { RevealBreakdown } from "@/components/duel/RevealBreakdown";
@@ -46,6 +45,7 @@ import { useCelebrationScope, useCelebrationsOn } from "@/components/fx/useCeleb
 const REVEAL_SCORE_DELAY_MS = 350;
 import { fx } from "@/lib/fx";
 import { APP_NAME } from "@/lib/brand";
+import { Button } from "@/design/components";
 
 interface AnswerRevealProps {
   round: number;
@@ -92,12 +92,17 @@ function PracticeRevealActions({ onPlayAgain, onBack }: { onPlayAgain?: (() => v
   return (
     <div data-practice-reveal-actions className="flex shrink-0 items-center gap-2 pt-0.5">
       {onBack ? (
-        <Button variant="secondary" size="m" grow onClick={onBack}>
+        <Button variant="secondary" size={44} onClick={onBack} className="flex-1">
           Back
         </Button>
       ) : null}
       {onPlayAgain ? (
-        <Button variant="gold" size="m" grow onClick={onPlayAgain}>
+        <Button
+          variant="gold"
+          size={44}
+          onClick={onPlayAgain}
+          className="flex-1"
+        >
           Play again
         </Button>
       ) : null}
@@ -526,7 +531,7 @@ function EngineBreakdown({ type, extra, score, practice, costRows, open, setOpen
       {practice ? null : (
         <Button
           variant="secondary"
-          size="m"
+          size={44}
           data-reveal-summary={open ? "open" : "closed"}
           aria-expanded={open}
           onClick={() => setOpen((v) => !v)}

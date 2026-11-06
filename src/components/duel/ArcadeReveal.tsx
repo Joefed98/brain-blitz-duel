@@ -345,7 +345,7 @@ export function ArcadeReveal({ puzzle, myAnswer, myScore, myReveal: storedReveal
             folds ? (
               <Button
                 variant="secondary"
-                size="m"
+                size={44}
                 data-reveal-summary={open ? "open" : "closed"}
                 aria-expanded={open}
                 onClick={() => setOpen((v) => !v)}

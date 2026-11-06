@@ -1,5 +1,6 @@
 /* Puzzle polish (3 Nov 2026): HudPills, a status line as separate label-and-value pills (display only). Each pill
-   is the shared Chip (src/design/components, design foundation F3): its look lives in components.css; this file
+   is the shared Chip's status variant (src/design/components, design foundation F3): its look lives in
+   src/design/components.css; this file
    keeps the row. */
 .hud-pills {
   display: flex;

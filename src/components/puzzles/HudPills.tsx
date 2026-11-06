@@ -7,7 +7,7 @@ import "@/polish-layout/hud-pills.css";
  * Puzzle polish (3 Nov 2026, Joe's audit; display only): a status line as separate label-and-value pills
  * ("Moves 12" "Par 14"), never one pill with dots inside it. Each item is one pill: an optional quiet label and a
  * bright value (either may be omitted). Falsy items are skipped. The row keeps one line and a fixed 24 px height,
- * empty or not, so nothing moves when values change. Each pill is the shared Chip (design foundation F3, 6 Nov 2026).
+ * empty or not, so nothing moves when values change. Each pill is the shared Chip's status variant (design foundation F3, 6 Nov 2026).
  */
 export interface HudPillItem {
   label?: ReactNode | undefined;
@@ -26,6 +26,7 @@ export function HudPills({ items, testId, className }: { items: ReadonlyArray<Hu
     <div data-hud-pills={testId ?? ""} className={`hud-pills${className ? ` ${className}` : ""}`} aria-live="polite">
       {shown.map((p, i) => (
         <Chip
+          variant="status"
           key={p.id ?? i}
           className="hud-pill"
           labelClassName="hud-pill-label"

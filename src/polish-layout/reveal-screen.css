@@ -137,11 +137,9 @@
   font-weight: var(--jz-weight-bold);
   color: var(--jz-cyan);
 }
-/* The arcade reveal's folded summary: the summary line over the label, inside one button. */
+/* The arcade reveal's folded summary: the summary line over the label, inside one button (F2's Button grows to fit). */
 .jz-btn.reveal-see-breakdown-summary {
   height: auto;
-}
-.reveal-see-breakdown-summary .jz-btn-face {
   flex-direction: column;
   gap: 0;
   padding: 6px 12px;

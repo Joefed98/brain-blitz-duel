@@ -11,12 +11,13 @@ import {
   type ShareRecorder,
   type WelcomeOutcome,
 } from "@/lib/share/shareRef";
+import { Button } from "@/design/components";
 
 /**
  * The Play tab's one-time welcome for a device that arrived from a shared link and landed on the
  * home (shareRef.ts shareWelcomeDue; a room-lobby landing gets none, the lobby is the welcome).
- * Shown on that visit only, until closed: the ✕, TRY A PRACTICE GAME (Warm up's first game) or,
- * when a public game is scheduled, NEXT PUBLIC GAME (the Tournaments tab). Each is counted once
+ * Shown on that visit only, until closed: the ✕, Try a practice game (Warm up's first game) or,
+ * when a public game is scheduled, Next public game (the Tournaments tab). Each is counted once
  * with the arrival (arrival_welcome). Presentation and device storage only.
  */
 export function ShareWelcomeCard({
@@ -89,23 +90,25 @@ export function ShareWelcomeCard({
         </p>
       </div>
       <div className="flex flex-col gap-2">
-        <button
-          type="button"
+        <Button
+          variant="gold"
+          block
           data-share-welcome-practice
           onClick={() => close("practice", onPractice)}
-          className="th-btn-gold press tap-target flex w-full items-center justify-center whitespace-nowrap rounded-xl bg-primary px-3 font-display text-base font-extrabold uppercase tracking-wide text-primary-foreground"
+          className="px-3 tracking-normal"
         >
           Try a practice game
-        </button>
+        </Button>
         {nextGame ? (
-          <button
-            type="button"
+          <Button
+            variant="secondary"
+            block
             data-share-welcome-public
             onClick={() => close("public", onPublic)}
-            className="th-btn-teal press tap-target flex w-full items-center justify-center whitespace-nowrap rounded-xl px-3 font-display text-[13px] font-extrabold uppercase"
+            className="px-3 tracking-normal"
           >
             {nextPublicLabel(nextGame, now)}
-          </button>
+          </Button>
         ) : null}
       </div>
     </section>

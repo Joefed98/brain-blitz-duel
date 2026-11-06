@@ -54,6 +54,7 @@ import {
   useRivalPings,
   type AsyncRivals,
 } from "./rivals";
+import { Button, SkeletonPage } from "@/design/components";
 
 /**
  * One player's run through an async room (21 Oct 2026; the daily challenge, later friend
@@ -435,13 +436,14 @@ export function AsyncRun({
       <PhoneShell skin="play" topAction={leave}>
         <div className="flex flex-1 flex-col items-center justify-center gap-4 text-center">
           <p className="text-sm text-muted-foreground">{step.message}</p>
-          <button
-            type="button"
+          <Button
+            variant="gold"
+            block
             onClick={() => void sync()}
-            className="th-btn-gold press tap-target w-full max-w-xs rounded-xl bg-primary px-6 font-display text-base font-extrabold uppercase tracking-wide text-primary-foreground"
+            className="max-w-xs px-6"
           >
             Try again
-          </button>
+          </Button>
         </div>
       </PhoneShell>
     );
@@ -450,9 +452,7 @@ export function AsyncRun({
   if (step.kind === "loading" || !view) {
     return (
       <PhoneShell skin="play">
-        <div className="flex flex-1 items-center justify-center">
-          <WaitingLine label={`Loading ${title}`} />
-        </div>
+        <SkeletonPage label={`Loading ${title}`} rows={3} card />
       </PhoneShell>
     );
   }

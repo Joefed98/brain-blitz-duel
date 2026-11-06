@@ -1,7 +1,18 @@
-/** The shared components (DESIGN.md section 5). Styles: components.css, imported once from styles.css. */
-export { Button } from "./Button";
-export type { ButtonSize, ButtonVariant, JzButtonProps } from "./Button";
-export { Chip } from "./Chip";
-export type { ChipProps, ChipTone } from "./Chip";
+/** The shared components (DESIGN.md section 5). Import from here: `@/design/components`. */
+export { Button, ButtonLink, type ButtonProps, type ButtonSize, type ButtonVariant } from "./Button";
+export { Panel, type PanelProps } from "./Panel";
+export { Row, RowText, type RowProps } from "./Row";
+export { SectionHeader } from "./SectionHeader";
+export { Chip, type ChipProps, type ChipTone, type FilterChipProps, type StatusChipProps } from "./Chip";
+export { Segmented, type SegmentOption } from "./Segmented";
+export { SwitchKnob } from "./Switch";
+export { Input, type InputProps } from "./Input";
+export { CodeInput, type CodeInputProps } from "./CodeInput";
+export { Sheet } from "./Sheet";
+export { Toast } from "./Toast";
+export { Skeleton, SkeletonPage, SkeletonScreen } from "./Skeleton";
 export { LiveTag } from "./LiveTag";
-export type { LiveTagKind, LiveTagProps } from "./LiveTag";
+export { GameTile } from "./GameTile";
+export { Nameplate } from "./Nameplate";
+export { Medal } from "./Medal";
+export { TabBar, TABS, TAB_PATHS, type AppTab } from "./TabBar";

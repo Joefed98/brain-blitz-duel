@@ -4,8 +4,8 @@
 /* Design tokens and utilities (DESIGN.md): imported once, here, before every other stylesheet. */
 @import "./design/tokens.css";
 @import "./design/utilities.css";
-@import "./design/components/components.css";
-/* The game art's own face (JetBrains Mono, self-hosted), for canvas art only (DESIGN.md section 9). */
+@import "./design/components.css";
+/* The game art\'s own face (JetBrains Mono, self-hosted), for canvas art only (DESIGN.md section 9). */
 @import "./lib/arcade/gameArtFonts.css";
 @import "./polish-logic/logic.css";
 @import "./polish-logic/fences.css";
@@ -681,8 +681,8 @@ body.game-lock {
  * devices never show a tap highlight, the browser's focus outline or a ring left by a tap or a
  * programmatic focus, and never select text (or show its callout) on a long press, except where
  * text is typed (inputs, text areas, editable text). Keyboard focus keeps its visible ring (the
- * gold ring and :focus-visible outlines) only with a mouse or trackpad (hover and a fine pointer:
- * desktop browsers).
+ * gold ring and :focus-visible outlines) on every device, touch ones with a keyboard included (since
+ * design foundation F2; before, only with a mouse or trackpad).
  */
 html,
 *,
@@ -691,13 +691,12 @@ html,
   -webkit-tap-highlight-color: transparent;
 }
 @media not all and (hover: hover) and (pointer: fine) {
-  *:focus,
-  *:focus-visible {
+  /* A tap or a programmatic focus after a tap never shows a ring; keyboard focus (:focus-visible) does,
+     on every device with a keyboard, iPad included (design foundation F2, DESIGN.md section 11). */
+  *:focus:not(:focus-visible) {
     outline: none !important;
   }
-  /* Focus rings drawn as rings (focus-visible:ring-*), never a selected state's own ring. */
-  [class*="focus-visible:ring"]:focus-visible,
-  [class*="focus:ring"]:focus {
+  [class*="focus:ring"]:focus:not(:focus-visible) {
     --tw-ring-shadow: 0 0 #0000 !important;
     --tw-ring-offset-shadow: 0 0 #0000 !important;
   }

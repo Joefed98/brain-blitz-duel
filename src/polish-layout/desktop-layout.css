@@ -103,7 +103,7 @@
 .dk-rail-search {
   position: relative;
 }
-.dk-rail-search .ap-input {
+.dk-rail-search .jz-input {
   height: 44px;
   padding-left: 38px;
   font-size: 15px;
@@ -344,11 +344,11 @@
     flex-wrap: wrap;
     gap: 8px;
   }
-  [data-layout="desktop"] [data-practice-tools] .ap-chip {
+  [data-layout="desktop"] [data-practice-tools] .jz-chip {
     width: auto;
     padding-inline: 16px;
   }
-  [data-layout="desktop"] :is([data-practice-group], [data-practice-retired]) > .ap-panel {
+  [data-layout="desktop"] :is([data-practice-group], [data-practice-retired]) > .jz-panel {
     display: grid;
     /* 176 px cards, never fewer than 3 or more than 5 across (1024 px windows to 1920 px screens). */
     grid-template-columns: repeat(auto-fill, minmax(clamp(calc((100% - 56px) / 5), 176px, calc((100% - 28px) / 3)), 1fr));
@@ -357,7 +357,7 @@
     border: 0;
     background: transparent;
   }
-  [data-layout="desktop"] :is([data-practice-group], [data-practice-retired]) .ap-row {
+  [data-layout="desktop"] :is([data-practice-group], [data-practice-retired]) .jz-row {
     position: relative;
     display: flex;
     min-height: 0;
@@ -370,22 +370,22 @@
     background: var(--ap-panel, #17171b);
     text-align: left;
   }
-  [data-layout="desktop"] :is([data-practice-group], [data-practice-retired]) .ap-row::before,
-  [data-layout="desktop"] :is([data-practice-group], [data-practice-retired]) .ap-row::after {
+  [data-layout="desktop"] :is([data-practice-group], [data-practice-retired]) .jz-row::before,
+  [data-layout="desktop"] :is([data-practice-group], [data-practice-retired]) .jz-row::after {
     display: none;
   }
-  [data-layout="desktop"] :is([data-practice-group], [data-practice-retired]) .ap-row:hover {
+  [data-layout="desktop"] :is([data-practice-group], [data-practice-retired]) .jz-row:hover {
     border-color: var(--ap-outline, #2e2e35);
     filter: none;
     background: #1d1d22;
   }
-  [data-layout="desktop"] :is([data-practice-group], [data-practice-retired]) .ap-row > .game-icon {
+  [data-layout="desktop"] :is([data-practice-group], [data-practice-retired]) .jz-row > .game-icon {
     width: 100% !important;
     height: auto !important;
     aspect-ratio: 1;
     border-radius: 14%;
   }
-  [data-layout="desktop"] :is([data-practice-group], [data-practice-retired]) .ap-row-title {
+  [data-layout="desktop"] :is([data-practice-group], [data-practice-retired]) .jz-row-title {
     font-size: 16px;
     flex: none;
   }
@@ -661,7 +661,7 @@
     align-items: center;
     gap: 8px;
   }
-  .dk-rp-send .ap-input {
+  .dk-rp-send .jz-input {
     height: 44px;
     font-size: 15px;
   }

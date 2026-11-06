@@ -25,7 +25,7 @@ export function HomeScreenHint({ onDismiss }: { onDismiss: () => void }) {
     <section
       aria-label="Add to Home Screen"
       data-home-hint
-      className="ap-panel relative flex flex-col gap-1.5 py-3.5 pl-4 pr-12"
+      className="jz-panel relative flex flex-col gap-1.5 py-3.5 pl-4 pr-12"
     >
       <button
         type="button"
@@ -37,7 +37,7 @@ export function HomeScreenHint({ onDismiss }: { onDismiss: () => void }) {
       </button>
       <div className="flex items-center gap-2.5">
         <SquarePlus aria-hidden="true" className="h-5 w-5 shrink-0 text-muted-foreground" />
-        <h2 className="ap-row-title">Add to Home Screen</h2>
+        <h2 className="jz-row-title">Add to Home Screen</h2>
       </div>
       <p className="flex flex-wrap items-center gap-x-1 text-[14px] text-muted-foreground">
         <span>Tap</span>

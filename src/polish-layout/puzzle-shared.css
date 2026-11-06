@@ -42,8 +42,8 @@
 
 /* Disabled actions: a clear grey, never a muddy dark gold (Interlock's Done, Roundabout's Submit, Ballpark's Place):
    gold is only for an action that can be pressed. */
-[data-puzzle-play] button:disabled:is(.bg-primary, .ap-btn-gold, .th-btn-gold, .rs-btn-gold),
-[data-puzzle-play] button[data-disabled]:is(.bg-primary, .ap-btn-gold, .th-btn-gold) {
+[data-puzzle-play] button:disabled:is(.bg-primary, .jz-btn[data-variant="gold"]),
+[data-puzzle-play] button[data-disabled]:is(.bg-primary, .jz-btn[data-variant="gold"]) {
   background: #2a2a31 !important;
   background-image: none !important;
   border-color: #3a3a44 !important;
@@ -51,4 +51,7 @@
   box-shadow: none !important;
   opacity: 1 !important;
   text-shadow: none !important;
+}
+[data-puzzle-play] .jz-btn[data-variant="gold"]:is(:disabled, [data-disabled])::before {
+  display: none;
 }
