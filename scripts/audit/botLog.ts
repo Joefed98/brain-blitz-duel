@@ -7,6 +7,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { existsSync } from "node:fs";
 
+import { makeBallTrackGame, type BtCourse } from "../../src/lib/arcade/ballTrack";
 import { LIVE_BANDS } from "../../src/lib/arcade/liveBands";
 import type { ArcadeInputEvent } from "../../src/lib/arcade/engine";
 import { GAMES } from "../arcade-skill-bands/games";
@@ -31,7 +32,10 @@ export async function auditBotLog(type: string, level: SkillLevel = "near"): Pro
   const seed = Number(puzzle.seed);
   const field = (LIVE_BANDS as Record<string, { field: string } | undefined>)[type]?.field;
   const rev = field && typeof puzzle[field] === "number" ? (puzzle[field] as number) : null;
-  const game = spec.gameFor(rev, seed);
+  // Ball Tracker's dealt puzzle carries its course (seed = bank index + 1); the bands tool's seed → course map would pick the
+  // next course, so the audit plays the course the stage deals (5 Nov 2026).
+  const game: ReturnType<typeof spec.gameFor> =
+    type === "balltrack" && puzzle.course ? (makeBallTrackGame(puzzle.course as BtCourse, rev) as unknown as ReturnType<typeof spec.gameFor>) : spec.gameFor(rev, seed);
   const out = bot({ game, seed, rev, human: new Human(type, seed, level), fixes: true });
   let state = game.init(seed);
   const byTick = new Map((out.events ?? []).map((e) => [e.t, e]));
