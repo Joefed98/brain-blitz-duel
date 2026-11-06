@@ -15,3 +15,6 @@ until Joe's own files arrive. The slots are in `src/lib/fx/manifest.ts`, their r
   river's murmur), quiet under the music.
 
 The cave's cues (swing.grapple, swing.crash, swing.dragon, swing.lava) keep playing on every earlier revision.
+
+**6 Nov 2026:** Joe's recordings are wired for all of these but `swing.pteroCatch` (no new file; it keeps the library's
+screech), plus new jungle slots ([retheme-nov-2026.md](retheme-nov-2026.md)).

@@ -30,9 +30,9 @@ when the run starts. Rooms deal Pinball since 14 Oct 2026; Junction is practice 
 | `swing.dragon` | Grappler | The dragon appears behind the player | `arc_siren` (0.6) | 0–1 | 600 ms |
 | `swing.rockShake` | Grappler | A stalactite starts to shake | `arc_clank` (0.5) | 2–8 | 150 ms |
 | `swing.rockLand` | Grappler | A stalactite hits the floor | `arc_wood_knock` (0.5) | 2–8 | 90 ms |
-| `swing.vineCreak` | Grappler | The vine catches (swingRev 17, the jungle canopy; `swing.grapple` before; its slot plays the library's `ricochet.lanternGrab.mp3`) | `arc_grapple` | 20–60 | 450 ms |
-| `swing.splash` | Grappler | A miss drops the hero into the river (swingRev 17; `swing.crash` before; the library's `minigolf_splash.mp3`) | `arc_crash` | 0–10 | 800 ms |
-| `swing.pterodactyl` | Grappler | The pterodactyl swoops in over the last quarter (swingRev 17; `swing.dragon` before; the library's `clayshoot.birdStartle.mp3`) | `arc_siren` (0.6) | 0–1 | 600 ms |
+| `swing.vineCreak` | Grappler | The vine catches (swingRev 17, the jungle canopy; `swing.grapple` before; Joe's `swing.vineCreak.mp3` since 6 Nov 2026) | `arc_grapple` | 20–60 | 480 ms |
+| `swing.splash` | Grappler | A miss drops the hero into the river (swingRev 17; `swing.crash` before; Joe's `swing.splash.mp3` since 6 Nov 2026) | `arc_crash` | 0–10 | 880 ms |
+| `swing.pterodactyl` | Grappler | The pterodactyl swoops in over the last quarter (swingRev 17; `swing.dragon` before; Joe's `swing.pterodactyl.mp3` since 6 Nov 2026) | `arc_siren` (0.6) | 0–1 | 1200 ms |
 | `swing.pteroCatch` | Grappler | The pterodactyl catches the hero (swingRev 17; `clayshoot.birdStartle.mp3` a little lower) | `arc_crash` | 0–3 | 600 ms |
 | `wavefront.fire` | Wavefront | A shot is fired (one per volley; at most one per 120 ms, two at once) | `arc_blaster` (0.6, overlapping); own soft file `wavefront.greenBolt.mp3` at 0.36 (sound batch 4, slot volume 0.6; batch 3's `wavefront.fire.mp3` deleted) | about 250 in 90 s | 90 ms |
 | `wavefront.pierce` | Wavefront | A piercing power-up is taken | `arc_retro_pickup` | 0–3 | 100 ms |
@@ -42,9 +42,11 @@ when the run starts. Rooms deal Pinball since 14 Oct 2026; Junction is practice 
 | `wavefront.bossHit` | Wavefront | The boss is hit and survives (wavRev 2) | `arc_retro_hit` (0.7, overlapping) | 0–30 | 120 ms |
 | `wavefront.formation` | Wavefront | The next formation (or the boss) arrives | `stage_complete` (0.8) · own file `wavefront.waveIn.mp3` (sound batch 4, volume 0.8) | 3–5 | 830 ms |
 | `wavefront.dive` | Wavefront | A ship peels off to dive | `arc_retro_blip` (0.5, overlapping) | 5–20 | 50 ms |
-| `cross.lifeLost` | Jaywalk | The walker is hit | `arc_lose_life` | 0–3 | 220 ms |
-| `cross.crossed` | Jaywalk | A crossing is completed | `stage_complete` | 5–15 | 160 ms |
-| `cross.hop` | Jaywalk | The walker hops a lane or moves sideways (at most one per 90 ms) | `arc_honk` (0.6); own footstep file `cross.hop.mp3` | 50–150 | 380 ms |
+| `cross.lifeLost` | Spacewalk | The astronaut is hit (Joe's `cross.lifeLost.mp3` since 6 Nov 2026) | `arc_lose_life` | 0–3 | 350 ms |
+| `cross.crossed` | Spacewalk | A crossing is completed: the astronaut docks (Joe's `cross.crossed.mp3` since 6 Nov 2026) | `stage_complete` | 5–15 | 610 ms |
+| `cross.hop` | Spacewalk | The astronaut hops a lane or moves sideways (at most one per 90 ms) | `arc_honk` (0.6); own file `cross.hop.mp3` (Joe's jet hop since 6 Nov 2026; the old footstep is Rainbow Bridge's `inkbridge.cloudBounce.mp3`) | 50–150 | 490 ms |
+| `cross.streakUp` | Spacewalk | The streak bonus rises (crossRev 9+; Joe's recording since 6 Nov 2026, was `arc_fair_sting` at 0.7) | `arc_fair_sting` (0.7) | 0–5 | 610 ms |
+| `cross.closeCall` | Spacewalk | A close call (crossRev 9+; Joe's recording since 6 Nov 2026, was `arc_retro_pickup` at 0.6) | `arc_retro_pickup` (0.6) | 0–12 | 220 ms |
 | `flip.crash` | Roofbound | The run ends in a crash | `arc_crash` | 0–1 | 200 ms |
 | `flip.flip` | Roofbound | Gravity flips | `arc_gravity_flip` (0.7) | 20–60 | 330 ms |
 | `ricochet.leap` | Moon Climb | The ninja leaps off a wall, a ledge or a sky lantern (ricoRev 2–3) | `arc_gravity_flip` (0.5) | 80–140 | 330 ms |
