@@ -187,7 +187,8 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-/* "?" and sound: 36 × 44, #A09DA6, no chip. */
+/* "?" and sound: 36 × 44, #A09DA6, no chip. Since 6 Nov 2026 the game menu's ⋮ (GameMenu) takes the sound button's
+   place (in the intro header too, below), and the "?" button's 36px stays empty (.game-frame-slot). */
 .game-frame-right :is([aria-label="Show puzzle instructions"], .game-frame-icon-button) {
   position: relative;
   display: flex;
@@ -211,6 +212,32 @@
 }
 .game-frame-sound {
   display: flex;
+  flex: none;
+}
+/* The ⋮ is drawn in the sound button's 36px; its hit area is 44 × 44 (4px either side). */
+.game-menu-button::before {
+  content: "";
+  position: absolute;
+  inset: 0 -4px;
+}
+/* The intro header's speaker was drawn bare (its 20px icon): the ⋮ keeps that width there, so "No best yet" and the
+   back button stay put, with the same 44 × 44 hit area (12px either side). */
+.intro-header-right .game-menu-button {
+  position: relative;
+  display: flex;
+  width: 20px;
+  height: 44px;
+  align-items: center;
+  justify-content: center;
+}
+.intro-header-right .game-menu-button::before {
+  inset: 0 -12px;
+}
+/* The "?" button's old 36px, kept empty for live 1v1 scores, so the score block keeps its place. */
+.game-frame-slot {
+  display: block;
+  width: 36px;
+  height: 44px;
   flex: none;
 }
 

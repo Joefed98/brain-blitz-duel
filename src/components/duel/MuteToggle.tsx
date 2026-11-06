@@ -24,14 +24,10 @@ import type { SoundChannel } from "@/lib/soundSettings";
  */
 export const MuteToggle = memo(function MuteToggle({ variant }: {
   /**
-   * "frame": the game frame's header (Polish 2, 24 Oct 2026): one 36×44 sound button whose popover
-   * holds both channels' switches and sliders, so the header keeps its score and "?" at 375px.
-   */
-  /**
    * "speaker" (3 Nov 2026, the answer reveal's header): one speaker button, a tap turns all sound off or on; the
    * channels' volumes live in settings.
    */
-  variant?: "frame" | "speaker";
+  variant?: "speaker";
 } = {}) {
   const [open, setOpen] = useState<SoundChannel | null>(null);
   const [settings, setSettings] = useState({
@@ -51,68 +47,6 @@ export const MuteToggle = memo(function MuteToggle({ variant }: {
     read();
     return onSoundSettingsChange(read);
   }, []);
-  const dismiss =
-    open &&
-    createPortal(
-      <div
-        data-sound-dismiss
-        className="fixed inset-0 z-40"
-        onPointerDown={(event) => {
-          event.preventDefault();
-          event.stopPropagation();
-        }}
-        onPointerUp={(event) => {
-          event.preventDefault();
-          event.stopPropagation();
-        }}
-        onClick={(event) => {
-          event.preventDefault();
-          event.stopPropagation();
-          setOpen(null);
-        }}
-        onContextMenu={(event) => event.preventDefault()}
-      />,
-      document.body,
-    );
-  const panel = (channel: SoundChannel) => {
-    const effects = channel === "effects";
-    const muted = effects ? settings.muted : settings.musicMuted;
-    const volume = muted ? 0 : settings[channel];
-    const label = effects ? "Effects" : "Music";
-    const Icon = effects ? Volume2 : Music2;
-    return (
-      <div key={channel} data-sound-panel={channel}>
-        <div className="mb-2 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 text-sm">
-          <span className="min-w-0 font-display">{label}</span>
-          <output className="font-mono tabular-nums">{Math.round(volume * 100)}%</output>
-        </div>
-        <Button
-          variant="outline"
-          type="button"
-          className={`press mb-2 h-11 w-full justify-start gap-2 ${muted ? "text-muted-foreground" : "text-foreground"}`}
-          aria-label={`${muted ? "Turn on" : "Turn off"} ${label.toLowerCase()}`}
-          aria-pressed={!muted}
-          onClick={() => (effects ? setMuted(!muted) : setMusicMuted(!muted))}
-        >
-          <Icon aria-hidden="true" />
-          {muted ? `Turn on ${label.toLowerCase()}` : `Turn off ${label.toLowerCase()}`}
-        </Button>
-        <Slider
-          aria-label={`${label} volume percentage`}
-          min={0}
-          max={100}
-          step={1}
-          value={[Math.round(volume * 100)]}
-          className="h-9"
-          onValueChange={([value]) => {
-            if (value === undefined) return;
-            if (effects) setEffectsVolume(value / 100);
-            else setMusicVolume(value / 100);
-          }}
-        />
-      </div>
-    );
-  };
   if (variant === "speaker") {
     const silent = settings.muted && settings.musicMuted;
     return (
@@ -138,48 +72,6 @@ export const MuteToggle = memo(function MuteToggle({ variant }: {
             )}
           </span>
         </button>
-      </div>
-    );
-  }
-  if (variant === "frame") {
-    const effectsLevel = settings.muted ? "off" : `${Math.round(settings.effects * 100)}%`;
-    const musicLevel = settings.musicMuted ? "off" : `${Math.round(settings.music * 100)}%`;
-    const silent = settings.muted && settings.musicMuted;
-    return (
-      <div data-sound-controls="frame" className="game-frame-sound">
-        {dismiss}
-        <Popover open={open !== null} onOpenChange={(value) => setOpen(value ? "effects" : null)}>
-          <PopoverTrigger asChild>
-            <button
-              type="button"
-              data-sound-channel="frame"
-              className="press game-frame-icon-button"
-              aria-label={`Sound: effects ${effectsLevel}, music ${musicLevel}`}
-              title="Sound"
-            >
-              <span className="relative flex items-center justify-center">
-                <Volume2 aria-hidden="true" className="h-5 w-5" />
-                {silent && (
-                  <svg aria-hidden="true" viewBox="0 0 24 24" className="absolute h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M3 3 21 21" />
-                  </svg>
-                )}
-              </span>
-            </button>
-          </PopoverTrigger>
-          <PopoverContent
-            align="end"
-            side="bottom"
-            className="flex w-56 flex-col gap-3 p-3"
-            onPointerDownOutside={(event) => event.preventDefault()}
-            onPointerDown={(event) => event.stopPropagation()}
-            onPointerUp={(event) => event.stopPropagation()}
-            onClick={(event) => event.stopPropagation()}
-          >
-            {panel("effects")}
-            {panel("music")}
-          </PopoverContent>
-        </Popover>
       </div>
     );
   }
