@@ -79,12 +79,13 @@ export function ShareWelcomeCard({
         <h2 className="whitespace-nowrap font-display text-lg font-extrabold uppercase leading-tight tracking-[0.02em] text-primary">
           Your friend played {APP_NAME}
         </h2>
-        {/* Two set lines, each kept whole: the sentence on one line doesn't fit a 375 px phone. */}
-        <p data-share-welcome-line className="mt-1 text-[13px] text-muted-foreground">
-          <span className="block whitespace-nowrap">
-            Quick multiplayer puzzle and arcade games.
-          </span>
-          <span className="block whitespace-nowrap">No sign-up.</span>
+        {/* Two set lines, each kept whole (the sentence on one line doesn't fit a 375 px phone): plain text with a line
+            break, 14 px (DESIGN.md's meta size). Block spans gave each line a second, taller box in Archivo, which
+            share-check's line count read as an extra line (6 Nov 2026). */}
+        <p data-share-welcome-line className="mt-1 whitespace-nowrap text-sm text-muted-foreground">
+          Quick multiplayer puzzle and arcade games.{" "}
+          <br />
+          No sign-up.
         </p>
       </div>
       <div className="flex flex-col gap-2">
