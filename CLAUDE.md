@@ -1541,6 +1541,18 @@ outside the repo.
   (not `--jz-bg`; the bottom, fill and play-screen checks compare against it). Checks find buttons by `data-variant`
   (share-check, theme-check's Ready). Happy-dom checks that draw a sheet need `MutationObserver` and `CustomEvent`
   on the global (Radix's focus scope under vaul).
+- **Room scoring choice** (6 Nov 2026; room setup and standings only, no game's rules, scoring, grading or stamps
+  changed; `src/lib/duel/scoringMode.ts`): the room settings sheet's Scoring control, **Total score** (the default,
+  every room before it) or **Placings** (each round gives points by place: 2 players 1, 0; 3: 3, 1, 0; 4: 5, 3, 1, 0;
+  5–8: 10, 7, 5, 4, 3, 2, 1, 0; 9–16: 15, 12, 10, 8, 6, 5, 4, 3, 2, 1, then 0; level round scores share the place and
+  the higher points; most points wins, then the total score, then the existing tie-break time). `standings()`,
+  `duelOutcome`, `podiumAwards` and Play again's saved winner take the mode; Placings rows add `points`,
+  `roundPoints`, `roundPlace` (Total rows are unchanged, field for field and in markup). Stored in `duels.scoring_mode`
+  from `supabase/migrations/20261108120000_room_scoring_mode.sql`, **written but not applied**: until it is, the row
+  has no column, every room reads as Total (`roomScoringMode`), the sheet and the lobby's "Scoring:" line are hidden
+  (`hasScoringColumn`) and the server refuses Placings with a message. Only `changeRoomSettings` writes it (host,
+  lobby); new rooms take the host's last mode. room-scoring-check (~2 s, happy-dom); shots
+  `bun scripts/shots/room-scoring-shots.ts` (`screenshots/room-scoring-nov-2026/`, 390×844).
 - `src/components/duel/` — room/round screens (PhoneShell, RoundIntro, TimerBar,
   AnswerReveal, ArcadeReveal, WinnerReveal…); `src/components/puzzles/` — shared puzzle
   widgets; `src/lib/fx/` — sound and visual feedback (presentation only).

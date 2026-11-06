@@ -7,6 +7,7 @@ import { type SubmitExtra } from "./grade";
 import { normaliseCategories, STANDARD_CATEGORIES } from "./categories";
 import { dealRoomRounds } from "./roomDeal";
 import { encodeRoomSettings, readRoomSettings } from "./roomSettings";
+import type { ScoringMode } from "./scoringMode";
 import { puzzleRevealMs, typesInCategory } from "./registry";
 import { puzzleCloseReason } from "./roomClose";
 import { generateRoomCode } from "./puzzles";
@@ -198,6 +199,8 @@ async function createRoomRow(
   /** The room's stored settings (roomSettings.ts: picks then `rounds:N`), or a legacy category list. */
   categories: readonly string[] = STANDARD_CATEGORIES,
   look: LookPreference = {},
+  /** The host's last room's scoring (scoringMode.ts); only Placings is written (the column defaults to 'total'). */
+  scoring: ScoringMode = "total",
 ): Promise<DuelRow> {
   for (let attempt = 0; attempt < 8; attempt++) {
     const { data, error } = await client
@@ -210,6 +213,7 @@ async function createRoomRow(
         round_count: TOTAL_ROUNDS,
         round_order: [],
         selected_categories: categories,
+        ...(scoring === "placings" ? { scoring_mode: scoring } : {}),
 
         puzzles_public: [],
         current_round: 0,
@@ -341,13 +345,14 @@ export const createRoomFn = createServerFn({ method: "POST" })
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle();
-    const { rememberedSettings } = await import("./roomSettings.server");
+    const { rememberedScoring, rememberedSettings } = await import("./roomSettings.server");
     const room = await createRoomRow(
       client,
       context.userId,
       data.displayName,
       rememberedSettings(previous?.selected_categories),
       data.look ?? {},
+      await rememberedScoring(client, context.userId),
     );
     return { roomId: room.id, roomCode: room.room_code };
   });
@@ -578,17 +583,22 @@ export const setRoomModesFn = createServerFn({ method: "POST" })
   });
 
 /**
- * Host only, in the lobby: the room settings sheet's categories and round count (roomSettings.ts),
+ * Host only, in the lobby: the room settings sheet's categories, round count (roomSettings.ts) and scoring
+ * (scoringMode.ts, only when the sheet sends it),
  * validated and stored by changeRoomSettings; a guest's or a started room's change is refused.
  */
 export const setRoomSettingsFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { roomId: string; picks: string[]; rounds: number }) => input)
+  .inputValidator((input: { roomId: string; picks: string[]; rounds: number; scoring?: string }) => input)
   .handler(async ({ data, context }) => {
     const client = await db();
     await requireParticipant(client, data.roomId, context.userId);
     const { changeRoomSettings } = await import("./roomSettings.server");
-    const result = await changeRoomSettings(client, data.roomId, context.userId, { picks: data.picks, rounds: data.rounds });
+    const result = await changeRoomSettings(client, data.roomId, context.userId, {
+      picks: data.picks,
+      rounds: data.rounds,
+      ...(data.scoring !== undefined ? { scoring: data.scoring } : {}),
+    });
     return result.ok ? { ok: true as const } : result;
   });
 

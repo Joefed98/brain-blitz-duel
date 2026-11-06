@@ -418,6 +418,14 @@
     white-space: nowrap;
     color: var(--ap-text);
   }
+  /* A standings row's round column ("+142", or "2nd +7" in a Placings room) and the Placings notes. */
+  .rs-gain {
+    white-space: nowrap;
+    font-size: 13px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    color: var(--ap-text-2);
+  }
   .rs-sub {
     overflow: hidden;
     font-size: 12.5px;
