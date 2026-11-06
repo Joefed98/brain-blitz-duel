@@ -738,11 +738,53 @@
   .jz-medal[data-size="l"]:not([data-medal]) {
     border: 1px solid var(--jz-surface-2);
   }
-  .jz-medal[data-medal] { color: var(--jz-on-metal); }
-  .jz-medal[data-medal="1"] { background: var(--jz-gold-metal); }
-  .jz-medal[data-medal="2"] { background: var(--jz-silver-metal); }
-  .jz-medal[data-medal="3"] { background: var(--jz-bronze-metal); }
   .jz-medal[data-shared] { font-size: 10px; letter-spacing: -0.04em; }
+  /* 1st to 3rd: the approved medal art (design foundation F5), its width the size, 7/6 as tall. */
+  .jz-medal[data-medal] {
+    position: relative;
+    width: auto;
+    height: auto;
+    border: 0;
+    border-radius: 0;
+    color: var(--jz-on-metal);
+  }
+  .jz-medal[data-medal] > svg { display: block; overflow: visible; }
+  .jz-medal-tie {
+    position: absolute;
+    right: -3px;
+    bottom: -2px;
+    display: inline-flex;
+    min-width: 12px;
+    height: 12px;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--jz-art-edge);
+    border-radius: var(--jz-round);
+    background: var(--jz-text);
+    color: var(--jz-on-metal);
+    font-size: 10px;
+    font-weight: var(--jz-weight-bold);
+    line-height: 1;
+  }
+  .jz-medal[data-size="m"] .jz-medal-tie { min-width: 16px; height: 16px; font-size: 13px; }
+  .jz-medal[data-size="l"] .jz-medal-tie { min-width: 22px; height: 22px; font-size: 17px; }
+
+  /* ------------------------------------------------------------------ Reward art (src/design/art: Emblem, Trophy, Badge) */
+  .jz-art {
+    display: inline-flex;
+    flex: none;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--jz-space-4);
+    line-height: 1;
+  }
+  .jz-art > svg { display: block; overflow: visible; }
+  .jz-emblem-rank {
+    color: var(--jz-cyan);
+    font-family: var(--jz-font);
+    font-weight: var(--jz-weight-bold);
+    font-variant-numeric: tabular-nums;
+  }
 
   /* ------------------------------------------------------------------ TabBar (phone bar; the rail keeps dk-rail-tab) */
   .jz-tab {

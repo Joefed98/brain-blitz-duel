@@ -17,6 +17,7 @@ import {
 import { arcadeGroupInfo, arcadeGroupOf } from "@/lib/duel/arcadeGroups";
 import { ordinal } from "@/lib/duel/ordinal";
 import { puzzleDef } from "@/lib/duel/registry";
+import { MEDAL_BOX, defs, medal as medalMarkup, resolved, svgDocument, type MedalMetal } from "@/design/art/markup";
 
 import type { RoomShareData } from "./roomShare";
 
@@ -159,7 +160,45 @@ function logoMark(c: Ctx, x: number, y: number, s: number): void {
   c.restore();
 }
 
-function medal(c: Ctx, cx: number, cy: number, r: number, place: number): void {
+/** The approved medal art for 1st to 3rd (design foundation F5), drawn as images once the card's fonts load. */
+export type CardMedals = ReadonlyMap<number, CanvasImageSource | null>;
+
+/** The medal art (src/design/art, the Medal component's own geometry) as images, the tokens read from the page. */
+export async function loadCardMedals(px: number): Promise<CardMedals> {
+  const out = new Map<number, CanvasImageSource | null>();
+  if (typeof document === "undefined" || typeof Image === "undefined") return out;
+  const style = getComputedStyle(document.documentElement);
+  const metals: [number, MedalMetal][] = [
+    [1, "gold"],
+    [2, "silver"],
+    [3, "bronze"],
+  ];
+  await Promise.all(
+    metals.map(async ([place, metal]) => {
+      const w = px;
+      const h = Math.round((px * MEDAL_BOX.h) / MEDAL_BOX.w);
+      const svg = resolved(svgDocument(MEDAL_BOX, w, h, defs("m") + medalMarkup("m", metal)), (name) => style.getPropertyValue(name));
+      const img = new Image(w, h);
+      img.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+      try {
+        await img.decode();
+        out.set(place, img);
+      } catch {
+        out.set(place, null);
+      }
+    }),
+  );
+  return out;
+}
+
+function medal(c: Ctx, cx: number, cy: number, r: number, place: number, art?: CanvasImageSource | null): void {
+  if (art) {
+    // The art's disc (centre 60, 86 of its 120 × 140 box) on the row's centre, 2r wide.
+    const w = r * 2;
+    const h = (w * MEDAL_BOX.h) / MEDAL_BOX.w;
+    c.drawImage(art, cx - w / 2, cy - (h * 86) / MEDAL_BOX.h, w, h);
+    return;
+  }
   const [hi, lo] = MEDALS[place] ?? ["#3A3D4C", "#2A2C38"];
   const g = c.createLinearGradient(0, cy - r, 0, cy + r);
   g.addColorStop(0, hi);
@@ -219,7 +258,7 @@ function iconTile(
 export type CardIcons = ReadonlyMap<string, CanvasImageSource | null>;
 
 /** Draws the card on a 1080 × 1350 context. */
-export function drawResultCard(c: Ctx, data: RoomShareData, icons: CardIcons = new Map()): void {
+export function drawResultCard(c: Ctx, data: RoomShareData, icons: CardIcons = new Map(), medals: CardMedals = new Map()): void {
   c.save();
   c.textAlign = "center";
   c.textBaseline = "alphabetic";
@@ -295,7 +334,7 @@ export function drawResultCard(c: Ctx, data: RoomShareData, icons: CardIcons = n
   c.stroke();
   data.top.forEach((row, i) => {
     const cy = panelY + 12 + rowH * i + rowH / 2;
-    medal(c, panelX + 66, cy, 32, row.place);
+    medal(c, panelX + 66, cy, 32, row.place, medals.get(row.place));
     c.textBaseline = "middle";
     c.textAlign = "right";
     c.font = `700 50px ${MONO}`;
@@ -347,12 +386,13 @@ export async function resultCardFile(
 ): Promise<File | null> {
   if (typeof document === "undefined") return null;
   await loadCardFonts();
+  const medals = await loadCardMedals(64);
   const canvas = document.createElement("canvas");
   canvas.width = CARD_W;
   canvas.height = CARD_H;
   const c = canvas.getContext("2d");
   if (!c) return null;
-  drawResultCard(c, data, icons);
+  drawResultCard(c, data, icons, medals);
   const blob = await new Promise<Blob | null>((resolve) => {
     try {
       canvas.toBlob((b) => resolve(b), "image/png");
