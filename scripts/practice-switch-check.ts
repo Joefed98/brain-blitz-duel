@@ -4,7 +4,7 @@
  * Proves, from the registry and src/lib/duel/arcadeGroups.ts:
  *  - the switch's counts are the registry's active games on each side (arcade category / every other one);
  *  - every active arcade game is in exactly one group, every group lists only arcade ids, the colours are
- *    the --group-* tokens in styles.css, and ids the registry lacks (the new Sports and Cards & Board
+ *    the --group-* tokens in src/design/tokens.css, and ids the registry lacks (the new Sports and Cards & Board
  *    games) are skipped;
  * and in headless Chromium (the real Practice route through scripts/theme-screens.ts) at 414×896 as an
  * iPhone 11 home-screen app and at 375×667:
@@ -92,7 +92,8 @@ for (const g of ARCADE_GROUPS) {
   const names = arcadeGroupTypes(g.id).map((t) => gameDisplayName(t));
   check(JSON.stringify(names) === JSON.stringify(BRIEF[g.id]), `${g.label} lists ${names.join(", ") || "no registered games"}`);
 }
-const css = readFileSync("src/styles.css", "utf8");
+// The group colours live in the design tokens since F1 (6 Nov 2026), values unchanged.
+const css = readFileSync("src/design/tokens.css", "utf8");
 for (const g of ARCADE_GROUPS) {
   const token = g.id === "action" ? null : new RegExp(`--group-${g.id}:\\s*(#[0-9A-Fa-f]{6})`).exec(css)?.[1];
   if (g.id === "action") check(/--group-action:\s*var\(--category-arcade\)/.test(css) && /--category-arcade:\s*#FF4D4D/.test(css) && g.colour === "#FF4D4D", "Action is the existing arcade colour (#FF4D4D)");

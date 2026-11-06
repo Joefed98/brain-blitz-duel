@@ -132,7 +132,10 @@ const importantDurations = [
 ].map((m) => m[1]!.trim().replace(/\s+/g, " "));
 ok(
   importantDurations.length === 2 &&
-    importantDurations.some((sel) => sel === "*, *::before, *::after") &&
+    // The global rule (design foundation F1, 6 Nov 2026: it leaves out the calm sequences with their own reduced-motion timing).
+    importantDurations.some(
+      (sel) => sel === ":not(.room-fx [data-part], .practice-new-best, .arcade-celebration-headline, .logic-calm-glow), ::before, ::after",
+    ) &&
     importantDurations.some((sel) => sel === ".room-fx [data-part]"),
   `only the global rule and .room-fx [data-part] force animation-duration (${importantDurations.join(" | ")})`,
 );

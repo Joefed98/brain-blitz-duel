@@ -3,20 +3,18 @@
  * it and the self-hosted fonts the root route preloads. theme-check and no-wrap-check read these.
  */
 
-/** The skin's fonts (public/fonts, SIL Open Font License), preloaded with the stylesheet. */
-export const THEME_FONTS = [
-  "/fonts/saira-600-800-latin.woff2",
-  "/fonts/manrope-500-800-latin.woff2",
-  "/fonts/jetbrains-mono-600-700-latin.woff2",
-  // The tab screens' Archivo (polish-layout/app-pages.css, Prompt R).
-  "/fonts/archivo-var-latin.woff2",
-] as const;
+/**
+ * The app's one font, Archivo (public/fonts, SIL Open Font License; @font-face in src/design/tokens.css),
+ * preloaded with the stylesheet. Saira, Manrope and "Duelz Mono" were dropped in design foundation F1
+ * (6 Nov 2026, DESIGN.md: one font).
+ */
+export const THEME_FONTS = ["/fonts/archivo-var-latin.woff2"] as const;
 
 /** The tab screens' one family (data-app-page: headings, body, numbers, buttons). */
 export const APP_PAGE_FAMILY = "Archivo";
 
-/** The font families the skin's tokens name (--th-font-head, --th-font-body, --th-font-mono). */
-export const THEME_FAMILIES = { head: "Saira", body: "Manrope", mono: "Duelz Mono" } as const;
+/** The font families the skin's tokens name (--th-font-head, --th-font-body, --th-font-mono): Archivo, all three, since F1. */
+export const THEME_FAMILIES = { head: APP_PAGE_FAMILY, body: APP_PAGE_FAMILY, mono: APP_PAGE_FAMILY } as const;
 
 /**
  * A skinned screen's background glows (data-skin): each tab screen its own, the room's screens

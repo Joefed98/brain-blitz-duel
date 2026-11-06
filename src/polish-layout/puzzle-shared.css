@@ -15,7 +15,7 @@
 [data-puzzle-play] [data-game-stage] :is(p, label) > span.font-mono,
 [data-puzzle-play] .logic-status,
 [data-puzzle-play] .game-goal-line {
-  font-family: var(--ap-font, "Manrope", system-ui, sans-serif);
+  font-family: var(--ap-font, var(--jz-font));
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.01em;
 }

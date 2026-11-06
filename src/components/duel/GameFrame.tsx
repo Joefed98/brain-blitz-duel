@@ -6,7 +6,7 @@ import { PUZZLE_INSTRUCTIONS } from "@/lib/duel/instructions";
 import type { PuzzleCategory, PuzzleType } from "@/lib/duel/types";
 
 /**
- * The game frame (Polish 2, 24 Oct 2026, display only; docs/design-system.md "Game screens"): one
+ * The game frame (Polish 2, 24 Oct 2026, display only; DESIGN.md "Game screens"): one
  * 60px header for every game's live round (GameLayout), the puzzles' goal line under it, and the
  * score block. Nothing here reads or writes a sim, a grade or a stamp.
  */

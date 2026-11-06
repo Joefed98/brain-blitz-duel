@@ -55,7 +55,8 @@ html[data-offline-install] [data-offline-install-card] {
 
 /* The result of a run played away from the server. */
 .of-result-score {
-  font-family: "Duelz Mono", ui-monospace, monospace;
+  font-family: var(--jz-font);
+  font-variant-numeric: tabular-nums;
   font-size: 56px;
   font-weight: 700;
   line-height: 1;

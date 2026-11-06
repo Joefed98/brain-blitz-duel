@@ -1,18 +1,21 @@
 /**
  * The page skin (19 Oct 2026, presentation only; polish-layout/theme.css, src/lib/theme.ts).
  *
- *  1. The fonts (no browser): every file THEME_FONTS names is in public/fonts and is a woff2; each
- *     @font-face in theme.css points at a file there with font-display: swap; the root route
- *     preloads THEME_FONTS; each font token ends in a generic fallback family; no package was
- *     added for them.
+ *  1. The fonts and tokens (no browser): every file THEME_FONTS names is in public/fonts and is a woff2;
+ *     each @font-face (src/design/tokens.css, theme.css, app-pages.css) points at a file there with
+ *     font-display: swap and names Archivo, the one app font (DESIGN.md, design foundation F1, 6 Nov
+ *     2026); the root route preloads THEME_FONTS; --jz-font ends in a generic fallback family and every
+ *     old font token (--th-font-*, --ap-font) is var(--jz-font); no package was added for them. The
+ *     token pairs DESIGN.md section 2 promises (text, text-2 and text-3 on the background and surfaces,
+ *     on-gold on gold, gold on the background) are at least 4.5:1, from tokens.css's own values.
  *  2. On every skinned screen (scripts/theme-screens.ts: the four tab screens, settings, lobby and
  *     its confirm dialog, link join, the answer reveal, the round leaderboard, standings, final
  *     results and podium), drawn in headless Chromium as an iPhone 11 home-screen app (414×896):
- *     - the fonts load: Saira, Manrope and Duelz Mono (JetBrains Mono) are each loaded wherever
- *       they are used, and every one is used somewhere;
+ *     - the fonts load: Archivo is loaded wherever it is used;
  *     - the tokens are used: the screen carries data-skin, its background, text and gold tokens are
- *       the skin's (#07070A, #F5F5F7, #F2C75C), headings are Saira, body text Manrope, scores
- *       and codes Duelz Mono, and its cards are the skin's cards;
+ *       the design tokens' (--jz-bg #06080F, --jz-text #EEF2FF, --jz-gold #E2C07A on the tab
+ *       screens; the room screens' --primary is the neutral --jz-text), headings, body text, scores
+ *       and codes are Archivo, and its cards are the skin's cards;
  *     - contrast: every visible piece of text (not dimmed on purpose, not in a game's own art)
  *       is at least 4.5:1 against what is drawn behind it, measured from a screenshot of the
  *       screen with all text hidden (gradients, glows and tints included);
@@ -45,13 +48,15 @@ const fail = (message: string) => failures.push(message);
 
 /* ------------------------------------------------------------------ 1. the fonts */
 const css = readFileSync("src/polish-layout/theme.css", "utf8");
-// The tab screens' Archivo (Prompt R, 23 Oct 2026) has its @font-face with their look.
 const appCss = readFileSync("src/polish-layout/app-pages.css", "utf8");
+// The design tokens (F1, 6 Nov 2026): the colours, and Archivo's @font-face.
+const tokensCss = readFileSync("src/design/tokens.css", "utf8");
 const root = readFileSync("src/routes/__root.tsx", "utf8");
-const faces = [...`${css}\n${appCss}`.matchAll(/@font-face\s*\{([^}]*)\}/g)].map((m) => m[1]!);
-if (faces.length < 3) fail(`theme.css: ${faces.length} @font-face rules, expected one per family`);
+const faces = [...`${tokensCss}\n${css}\n${appCss}`.matchAll(/@font-face\s*\{([^}]*)\}/g)].map((m) => m[1]!);
+if (faces.length < 1) fail("tokens.css: no @font-face for Archivo");
 for (const face of faces) {
   const family = /font-family:\s*"([^"]+)"/.exec(face)?.[1] ?? "?";
+  if (family !== APP_PAGE_FAMILY) fail(`@font-face ${family}: the app has one font, ${APP_PAGE_FAMILY} (DESIGN.md)`);
   const url = /url\("([^"]+)"\)/.exec(face)?.[1];
   if (!/font-display:\s*swap/.test(face)) fail(`@font-face ${family}: no font-display: swap`);
   if (!url) {
@@ -70,15 +75,50 @@ for (const href of THEME_FONTS) {
 }
 if (!/THEME_FONTS\.map\([\s\S]{0,80}rel:\s*"preload"[\s\S]{0,80}as:\s*"font"/.test(root))
   fail("the root route does not preload THEME_FONTS");
-for (const [token, generic] of [
-  ["--th-font-head", "sans-serif"],
-  ["--th-font-body", "sans-serif"],
-  ["--th-font-mono", "monospace"],
-  ["--ap-font", "sans-serif"],
+{
+  const value = /--jz-font:\s*([^;]+);/.exec(tokensCss)?.[1] ?? "";
+  if (!value.trim().startsWith(`"${APP_PAGE_FAMILY}"`) || !value.trim().endsWith("sans-serif"))
+    fail(`--jz-font is not Archivo with a fallback stack ending in sans-serif: ${value}`);
+}
+for (const [token, file] of [
+  ["--th-font-head", css],
+  ["--th-font-body", css],
+  ["--th-font-mono", css],
+  ["--ap-font", appCss],
 ] as const) {
-  const value = new RegExp(`${token}:\\s*([^;]+);`).exec(token === "--ap-font" ? appCss : css)?.[1] ?? "";
-  if (!value.trim().endsWith(generic))
-    fail(`${token} has no fallback stack ending in ${generic}: ${value}`);
+  const value = new RegExp(`:root\\s*\\{[^}]*?${token}:\\s*([^;]+);`).exec(file)?.[1] ?? "";
+  if (value.trim() !== "var(--jz-font)") fail(`${token} is not an alias of --jz-font: ${value}`);
+}
+// The contrast DESIGN.md section 2 promises, from tokens.css's own values.
+{
+  const token = (name: string) => {
+    const hex = new RegExp(`--${name}:\\s*(#[0-9A-Fa-f]{6})\\s*;`).exec(tokensCss)?.[1];
+    if (!hex) fail(`tokens.css: --${name} is not a #rrggbb colour`);
+    return hex ?? "#000000";
+  };
+  const lum = (hex: string) => {
+    const c = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255).map((v) => (v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4));
+    return 0.2126 * c[0]! + 0.7152 * c[1]! + 0.0722 * c[2]!;
+  };
+  const ratio = (a: string, b: string) => {
+    const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p);
+    return (x! + 0.05) / (y! + 0.05);
+  };
+  const pairs: [string, string][] = [];
+  for (const text of ["jz-text", "jz-text-2", "jz-text-3", "jz-gold", "jz-cyan"])
+    for (const behind of ["jz-bg", "jz-bg-raised", "jz-surface"]) pairs.push([text, behind]);
+  pairs.push(["jz-text", "jz-surface-2"], ["jz-text", "jz-cyan-panel"], ["jz-text-2", "jz-cyan-panel"]);
+  // The gold metal's darkest stop under its text (DESIGN.md: 9.3:1 at the darkest point).
+  const metal = /--jz-gold-metal:\s*([^;]+);/.exec(tokensCss)?.[1] ?? "";
+  const stops = [...metal.matchAll(/#[0-9A-Fa-f]{6}/g)].map((m) => m[0]);
+  if (stops.length < 2) fail(`--jz-gold-metal has no colour stops: ${metal}`);
+  for (const stop of stops) if (ratio(token("jz-on-gold"), stop) < 4.5) fail(`--jz-on-gold on the gold metal's ${stop} is ${ratio(token("jz-on-gold"), stop).toFixed(2)}:1, under 4.5`);
+  if (ratio(token("jz-on-gold"), token("jz-gold")) < 4.5) fail("--jz-on-gold on --jz-gold is under 4.5:1");
+  for (const [text, behind] of pairs) {
+    const r = ratio(token(text), token(behind));
+    if (r < 4.5) fail(`--${text} on --${behind} is ${r.toFixed(2)}:1, under 4.5`);
+  }
+  console.log(`${failures.length ? "FAIL" : "PASS"} tokens: ${pairs.length + stops.length + 1} token pairs at 4.5:1 or more`);
 }
 const pkg = readFileSync("package.json", "utf8");
 if (/fontsource|@fontsource|typeface-/.test(pkg))
@@ -224,14 +264,15 @@ function themeProbe(families: { head: string; body: string; mono: string; app: s
     const room = !root.hasAttribute("data-tab-screen");
     const want: [string, string][] = room
       ? [
-          ["--background", "#0D0D0F"],
-          ["--foreground", "#F3F1EC"],
-          ["--primary", "#F3F1EC"],
+          // The design tokens (F1): --jz-bg, --jz-text; --primary neutral.
+          ["--background", "#06080F"],
+          ["--foreground", "#EEF2FF"],
+          ["--primary", "#EEF2FF"],
         ]
       : [
-          ["--background", "#07070A"],
-          ["--foreground", "#F5F5F7"],
-          ["--primary", "#F2C75C"],
+          ["--background", "#06080F"],
+          ["--foreground", "#EEF2FF"],
+          ["--primary", "#E2C07A"],
         ];
     const norm = (v: string) => v.trim().toUpperCase();
     for (const [token, value] of want) {
@@ -581,8 +622,7 @@ async function introColours() {
       console.log(`${problems.length ? "FAIL" : "PASS"} ${where}${problems.length ? `: ${problems[0]}` : ": the game's colour on the title, dot and labels, Ready gold, contrast ≥ 4.5:1"}`);
     }
 }
-// Polish batch R: every skinned screen now uses Archivo (the tab pages' family); the skin's Saira, Manrope and
-// Duelz Mono stay only for the share welcome card, which these screens don't draw.
+// Every skinned screen uses Archivo, the app's one font (Polish batch R; F1 dropped the skin's other faces).
 if (!ONLY.length)
   for (const family of [APP_PAGE_FAMILY])
     if (!familiesUsed.has(family) || !familiesLoaded.has(family))

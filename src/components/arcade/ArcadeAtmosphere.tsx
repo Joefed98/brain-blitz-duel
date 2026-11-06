@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 
 /**
- * The arcade atmosphere layer (Polish 2 toolkit, 24 Oct 2026, display only; docs/design-system.md
+ * The arcade atmosphere layer (Polish 2 toolkit, 24 Oct 2026, display only; DESIGN.md
  * "Game screens"): a still backdrop for an arcade world's screen fill, for the category batches to
  * apply game by game. Not used by any game yet. It draws, back to front: a vertical gradient, then a
  * starfield or a soft glow, then a vignette, then (for retro worlds) scanlines. Nothing moves, so it

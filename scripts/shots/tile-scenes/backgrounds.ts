@@ -4,7 +4,7 @@
  * Breaker's navy, Wavefront's purple nebula, Fission's green lab glow, Jaywalk's grass and road, a
  * puzzle's board colours), painted by `bun scripts/shots/tile-scenes.ts` into the same WebP.
  *
- * The style (docs/design-system.md "Game icon tiles"): the background fills the whole TILE × TILE square
+ * The style (DESIGN.md "Game icon tiles"): the background fills the whole TILE × TILE square
  * (the tile's border is drawn over its edge by GameIcon); it is quieter than the game: `fade` darkens
  * all of it (0 none … 1 black) and `spot` darkens a soft disc behind the picture (centre `spotAt`),
  * so busy backgrounds never compete with the scene's pieces. Motifs are few, low-contrast and large

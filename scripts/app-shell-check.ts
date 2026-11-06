@@ -206,8 +206,8 @@ try {
       const tabs = await page.locator("[data-app-tabbar] a").evaluateAll((els) => els.map((el) => (el.textContent ?? "").trim()));
       check(tabs.join(",") === "Play,Practice,Tournaments,Profile", `four tabs with labels (${tabs.join(",")})`);
       const gold = await page.locator("[data-app-tabbar] [aria-current='page']").evaluate((el) => getComputedStyle(el).color);
-      // The tab screens' gold (#F7BF2F, polish-layout/app-pages.css, Prompt R 23 Oct 2026).
-      check(gold === "rgb(247, 191, 47)", `the current tab is gold (${gold})`);
+      // The tab screens' gold: --jz-gold #E2C07A (src/design/tokens.css, design foundation F1, 6 Nov 2026).
+      check(gold === "rgb(226, 192, 122)", `the current tab is gold (${gold})`);
       // The device's geometry (emulateDevice: the short layout viewport, the insets) lands a frame or more
       // after the load: wait (up to 5 s) for the bar to settle on the bottom for 3 frames before judging it,
       // the intermittent CI failure was a measurement taken mid-resize. The check below is unchanged.

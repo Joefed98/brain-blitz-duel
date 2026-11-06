@@ -46,20 +46,20 @@ const CATEGORY: Record<string, string> = {
   arcade: "#FF4D4D",
 };
 
-const DISPLAY = `"Saira", "Space Grotesk", system-ui, sans-serif`;
-const BODY = `"Manrope", system-ui, sans-serif`;
-const MONO = `"Duelz Mono", "JetBrains Mono", ui-monospace, monospace`;
+// One font since design foundation F1 (DESIGN.md): Archivo for every line; numbers drawn tabular by the glyphs.
+const DISPLAY = `"Archivo", system-ui, sans-serif`;
+const BODY = `"Archivo", system-ui, sans-serif`;
+const MONO = `"Archivo", system-ui, sans-serif`;
 
 /** The card's fonts, loaded before drawing (self-hosted, so this is quick once the app has shown them). */
 export async function loadCardFonts(): Promise<void> {
   if (typeof document === "undefined" || !document.fonts?.load) return;
   await Promise.all(
     [
-      `800 100px "Saira"`,
-      `700 100px "Saira"`,
-      `700 40px "Manrope"`,
-      `600 40px "Manrope"`,
-      `700 40px "Duelz Mono"`,
+      `800 100px "Archivo"`,
+      `700 100px "Archivo"`,
+      `700 40px "Archivo"`,
+      `600 40px "Archivo"`,
     ].map((f) => document.fonts.load(f).catch(() => [])),
   );
 }
@@ -238,7 +238,7 @@ export function drawResultCard(c: Ctx, data: RoomShareData, icons: CardIcons = n
   c.lineWidth = 4;
   c.stroke();
 
-  // The app name: Saira 800, its last letter gold (the Wordmark), the logo beside it.
+  // The app name: Archivo 800, its last letter gold (the Wordmark), the logo beside it.
   c.font = `800 112px ${DISPLAY}`;
   const head = APP_NAME.slice(0, -1);
   const last = APP_NAME.slice(-1);

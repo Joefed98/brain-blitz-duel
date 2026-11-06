@@ -10,7 +10,7 @@
   margin-top: 3px;
 }
 .nv3-steps-label {
-  font-family: var(--ap-font, "Manrope", system-ui, sans-serif);
+  font-family: var(--ap-font, var(--jz-font));
   font-size: 12px;
   font-weight: 700;
   color: #cfc8ba;
@@ -30,7 +30,7 @@
   border-radius: 999px;
   background: rgba(10, 10, 14, 0.55);
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1);
-  font-family: var(--ap-font, "Manrope", system-ui, sans-serif);
+  font-family: var(--ap-font, var(--jz-font));
   font-size: 12px;
   font-weight: 700;
   color: #f3f1ec;

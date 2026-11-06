@@ -1,9 +1,10 @@
 # CLAUDE.md — Duelz
 
 Guide for Claude Code sessions. Read `docs/` first (master plan, game bank, scoring
-reference, anti-cheat; **`docs/design-system.md` for every screen's look**: colour tokens, the gold
-rule, the tile palette, fonts, radii, panels and rows, tap feedback, the logo, the wordmark and the
-Joulz hero; follow it for any screen change), then the `AGENTS.md` files (root, `scripts/`, `src/lib/arcade/`,
+reference, anti-cheat) and **`DESIGN.md` (repo root) for every screen's look**: the `--jz-*` tokens in
+`src/design/tokens.css`, the gold rule, one font (Archivo), type roles, cuts and radii, motion, components
+and `scripts/design-lint.ts`; follow it for any screen change (it replaced `docs/design-system.md` on 6 Nov
+2026), then the `AGENTS.md` files (root, `scripts/`, `src/lib/arcade/`,
 `src/lib/duel/`, `src/puzzles/`). Those hold Lovable's per-area design rules and
 override anything general here.
 
@@ -331,9 +332,9 @@ outside the repo.
   #07070A, text #F5F5F7 / #BDBDCC, gold #F2C75C, metallic gold and teal buttons `th-btn-gold` / `th-btn-teal`, cards
   `th-card` with `data-tint` gold / teal / me, category pills `th-pill`, chip dots `th-chip-dot` and icon tiles from `data-cat` in each category's own game colour (`--category-*`), medal discs
   `Medal`, scores `th-score`, names `th-name`). `data-skin-off` restores the original tokens for a game's own art inside a
-  skinned screen (reveal boards, replays). Fonts are self-hosted in `public/fonts` (OFL), preloaded from the root route:
-  Saira 600–800 (headings, buttons), Manrope 500–800 (body, names), JetBrains Mono 600–700 as "Duelz Mono" (scores, times,
-  codes; the games' own JetBrains Mono is untouched). Game screens, round intros and room moments are not skinned. Game
+  skinned screen (reveal boards, replays). One font, Archivo, self-hosted in `public/fonts` (OFL) and preloaded from the
+  root route (the skin's earlier faces were dropped in design foundation F1, 6 Nov 2026; every `--th-*` colour and font is
+  now an alias of a `--jz-*` token). Game screens, round intros and room moments are not skinned. Game
   icon tiles are black with their category's colour as the border (27 Oct 2026). Round leaderboard rows keep time · verdict · summary
   on one line under the name (ellipsis; a tap opens the detail). theme-check (fonts, tokens, contrast ≥ 4.5:1,
   targets ≥ 44 px, `play16`) and no-wrap-check (single-line text never wraps or is cut off but names, at 414×896 app,
@@ -404,7 +405,7 @@ outside the repo.
   `docs/beta-sql.md` section 7.
 - **Beta extras** (22 Oct 2026, presentation, device storage and beta recording only; no scoring, game or stamp
   changes): the app's public name is **Joulz** (`APP_NAME`, `src/lib/brand.ts`, and the manifest; storage keys, tables,
-  the build id and "Duelz Mono" keep the old name). Values Joe supplies later live in `src/config/betaConfig.ts`
+  the build id keep the old name). Values Joe supplies later live in `src/config/betaConfig.ts`
   (`SENTRY_DSN`, `TALLY_URL`, `CONTACT_EMAIL`, empty until then; read through `betaValue`, which checks can stand in
   through `window.__DUELZ_BETA_CONFIG__`); an empty value switches its feature off with nothing shown or loaded.
   *Crash reporting* (`src/lib/crashReporting.ts`): a first-party client for Sentry's envelope API (no package, so
@@ -495,7 +496,7 @@ outside the repo.
   large-card tags in the root route's head from `LINK_PREVIEW` (`src/lib/brand.ts`, absolute on `APP_URL`, plus a canonical link per path, `canonicalUrl`; there is no
   index.html, TanStack Start renders the head), image `public/og-image.png` from `bun scripts/og-image.ts`
   (link-preview-check). app-shell-check waits out a cold dev server's reload before setup and repeats only the setup once
-  on "Execution context was destroyed". `docs/design-system.md` (the look rules) and `docs/stale-code-report.md` (a
+  on "Execution context was destroyed". The look rules (then `docs/design-system.md`, now `DESIGN.md`) and `docs/stale-code-report.md` (a
   report; nothing deleted).
 - **Polish 1: game feedback, fonts and readability** (24 Oct 2026; display and sound only, no stamps; from the game
   look audit): arcade banners and pops on every world but Retro and Space draw in Archivo 800
@@ -510,7 +511,7 @@ outside the repo.
   13 px / 600 on their 16 px line; Lookout letters 60 % of a cell (16–28 px); Bomb Defusal rules 14 px on 1.5;
   Cryptogrid keys 19 px, Clear/Next 16 px. arcade-fx-check proves the miss layer; `bun scripts/shots/miss-shots.ts
   --url=<origin>` draws the review frames (`screenshots/polish1-oct-2026/`).
-- **Polish 2: the game frame** (24 Oct 2026; display only, no stamps; `docs/design-system.md` "Game screens"): every
+- **Polish 2: the game frame** (24 Oct 2026; display only, no stamps; `DESIGN.md` "Game screens"): every
   game's live round (PhoneShell `play`) draws GameLayout's one 60 px header (`polish-layout/game-frame.css`,
   `GameFrame.tsx`) instead of the app's top bar and the old arcade row: the name and "{Category} · Practice / Round n
   of N / Daily" left, the 48 px timer ring centred (TimerBar), the score block (`FrameScore`: room total with place or
@@ -525,7 +526,7 @@ outside the repo.
   `ArcadeAtmosphere`. Tools: `bun scripts/shots/before-after.ts` (main beside the branch, `screenshots/before-after/`)
   and `bun scripts/shots/frame-probe.ts` (cut text, tray overflow, dock heights at 414×896 and 375×667).
 - **Polish batch R: room and other screens** (25 Oct 2026; presentation only, no stamps;
-  `docs/polish-batches/room-screens.md`, `src/polish-layout/room-screens.css`, design-system.md "Room and other
+  `docs/polish-batches/room-screens.md`, `src/polish-layout/room-screens.css`, the old design-system.md "Room and other
   screens"): every non-tab skinned screen (lobby, link join, round results, standings, podium and final, the
   answer reveal's chrome, daily and challenge screens, terms, settings, chat sheet, dialogs, first-time intro)
   takes the tab pages' look, gold only on the action that plays; one room footer row (`RoomFooter`: chat
@@ -533,7 +534,7 @@ outside the repo.
   header (`bare` PhoneShell); ties shown with `tieDisplay.ts` (tie-display-check); one error layout
   (`ErrorState`) for the 404, room not found and challenge not found; `Wordmark.tsx` retired for
   `AppWordmark`. celebrations-off.json was re-recorded on the branch (switch set off).
-- **Tab pages refresh** (26 Oct 2026; presentation and device storage only, no stamps; `docs/design-system.md`
+- **Tab pages refresh** (26 Oct 2026; presentation and device storage only, no stamps; the old `docs/design-system.md`
   "Tab pages refresh", the design canvas's T-* boards): Play's first visit shows the first-time intro as a
   card (`IntroCard`, Play slot "intro", reserved by `PLAY_CARDS_BOOT` from the onboarding flag; its How it
   works opens the three panels; onboarding-check), the Next public game card says "Lobby opens in 1 h 25
@@ -799,7 +800,7 @@ outside the repo.
   arcade rounds, the daily arcade and scoring keep Arcade as one category. **A new arcade game needs a line in
   arcadeGroups.ts** (practice-switch-check fails on an active arcade game in no group). Every tile's inside now
   echoes its game's screen (`scripts/shots/tile-scenes/backgrounds.ts`, painted under the scene into the same WebP;
-  style rules in `docs/design-system.md` "Tile backgrounds"; tile-scenes-check fails on a scene with no background).
+  style rules in the old `docs/design-system.md` "Tile backgrounds" (now DESIGN.md); tile-scenes-check fails on a scene with no background).
   practice-switch-check (~1 min, headless Chromium); shots `bun scripts/shots/practice-switch-shots.ts` and
   `bun scripts/shots/tile-icons-sheet.ts` (`screenshots/practice-arcade-oct-2026/`).
 - **Cards & Board: Minesweeper (shown as Minefield since 31 Oct 2026) and Mahjong Solitaire** (30 Oct 2026; `docs/arcade-standard/minesweeper.md`, `mahjong.md`):
@@ -1498,6 +1499,20 @@ outside the repo.
   dev-only hook `src/lib/arcade/auditInput.ts`, dropped from production builds), ends puzzles on a solved reveal (the
   driver's solve, or a driver's full answer graded at the buzzer) and waits for "Stage n of" (Integer Pyramid, Brimful):
   `screenshots/audit-nov-2026-final/`, `docs/audit/intro-reveal-text-final.md`.
+- **Design foundation F1: tokens and enforcement** (6 Nov 2026; presentation only, no stamps; `DESIGN.md`): every colour,
+  shape, space and motion value lives in `src/design/tokens.css` as `--jz-*` (plus the category accents, arcade group
+  colours and the 32 player colours as `--jz-player-N`, values unchanged), imported once at the top of `styles.css` with
+  `src/design/utilities.css` (`.jz-cut-lg`, `.jz-cut-sm`, `.jz-stripes`, the type roles `.jz-title`, `.jz-section`,
+  `.jz-score-m`…). The `--th-*` (theme.css) and `--ap-*` (app-pages.css) colours and fonts are aliases of the tokens (the
+  F1 PR lists every nearest-token mapping); one font, Archivo (Saira, Manrope and "Duelz Mono" gone). Reduced motion
+  (styles.css): every animation and transition jumps to its end, delays included, except the calm sequences with their
+  own reduced-motion timing (room moments, practice's and the arcade results' fades, Logic's solve glow).
+  **design-lint-check** (fast, ~1 s, `scripts/design-lint.ts`) fails on new hex/rgb()/hsl() colours outside tokens.css,
+  Tailwind arbitrary values, non-Archivo font families, `--jz-*` defined elsewhere and new `@keyframes` ending hidden with
+  no reduced-motion rule, in a change's added lines under `src/`; existing ones are printed as warnings with counts; game
+  art (src/lib/arcade, canvas code) is excluded and puzzle boards' own art is warned, never failed; a deliberate exception
+  takes `design-lint-ignore` on the line. It also proves `--jz-player-N` matches `PLAYER_COLOURS`. theme-check checks the
+  token contrast pairs from tokens.css and the skinned screens on the new values.
 - `src/components/duel/` — room/round screens (PhoneShell, RoundIntro, TimerBar,
   AnswerReveal, ArcadeReveal, WinnerReveal…); `src/components/puzzles/` — shared puzzle
   widgets; `src/lib/fx/` — sound and visual feedback (presentation only).

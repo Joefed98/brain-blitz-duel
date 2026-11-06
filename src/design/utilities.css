@@ -1,0 +1,71 @@
+/*
+ * Joulz design utilities (DESIGN.md sections 3 and 4; design foundation F1, 6 Nov 2026).
+ * Built only on tokens.css. Nothing uses them yet: the component PRs adopt them screen by screen.
+ */
+
+/* ------------------------------------------------ the angled cuts (section 4) */
+/* Top-left and bottom-right corners cut at 45°. A clipped element can't show its own focus ring:
+   put the ring on a wrapper. */
+.jz-cut-lg {
+  clip-path: polygon(
+    var(--jz-cut-lg) 0,
+    100% 0,
+    100% calc(100% - var(--jz-cut-lg)),
+    calc(100% - var(--jz-cut-lg)) 100%,
+    0 100%,
+    0 var(--jz-cut-lg)
+  );
+}
+.jz-cut-sm {
+  clip-path: polygon(
+    var(--jz-cut-sm) 0,
+    100% 0,
+    100% calc(100% - var(--jz-cut-sm)),
+    calc(100% - var(--jz-cut-sm)) 100%,
+    0 100%,
+    0 var(--jz-cut-sm)
+  );
+}
+
+/* ------------------------------------------------ the stripe texture (section 4) */
+/* Only behind the top of tab pages, the standings header and inside daily cards. */
+.jz-stripes {
+  background-image: var(--jz-stripes);
+}
+
+/* ------------------------------------------------ type roles (section 3) */
+.jz-wordmark,
+.jz-display,
+.jz-title,
+.jz-screen-title,
+.jz-section,
+.jz-card-title,
+.jz-body,
+.jz-meta,
+.jz-label,
+.jz-tab-label,
+.jz-score-s,
+.jz-score-m,
+.jz-score-l {
+  font-family: var(--jz-font);
+}
+.jz-wordmark { font-size: 22px; line-height: 22px; font-weight: var(--jz-weight-black); font-stretch: 118%; text-transform: uppercase; }
+.jz-display { font-size: 40px; line-height: 40px; font-weight: var(--jz-weight-bold); font-stretch: 115%; }
+.jz-title { font-size: 30px; line-height: 32px; font-weight: var(--jz-weight-bold); font-stretch: 112%; }
+.jz-screen-title { font-size: 22px; line-height: 24px; font-weight: var(--jz-weight-bold); font-stretch: 108%; }
+.jz-section { font-size: 18px; line-height: 22px; font-weight: var(--jz-weight-bold); font-stretch: 110%; }
+.jz-card-title { font-size: 16px; line-height: 20px; font-weight: var(--jz-weight-medium); font-stretch: 100%; }
+.jz-body { font-size: 15px; line-height: 21px; font-weight: var(--jz-weight-regular); font-stretch: 100%; }
+.jz-meta { font-size: 14px; line-height: 18px; font-weight: var(--jz-weight-regular); font-stretch: 100%; }
+.jz-label { font-size: 12px; line-height: 16px; font-weight: var(--jz-weight-medium); font-stretch: 100%; }
+.jz-tab-label { font-size: 11px; line-height: 12px; font-weight: var(--jz-weight-medium); font-stretch: 100%; }
+.jz-score-s,
+.jz-score-m,
+.jz-score-l {
+  font-weight: var(--jz-weight-bold);
+  font-stretch: 105%;
+  font-variant-numeric: tabular-nums;
+}
+.jz-score-s { font-size: 18px; line-height: 22px; }
+.jz-score-m { font-size: 22px; line-height: 26px; }
+.jz-score-l { font-size: 28px; line-height: 32px; }

@@ -1,6 +1,9 @@
 @import "tailwindcss" source(none);
 @source "../src";
 @import "tw-animate-css";
+/* Design tokens and utilities (DESIGN.md): imported once, here, before every other stylesheet. */
+@import "./design/tokens.css";
+@import "./design/utilities.css";
 @import "./polish-logic/logic.css";
 @import "./polish-logic/fences.css";
 @import "./polish-logic/fillomino.css";
@@ -494,19 +497,7 @@
   --card-foreground: oklch(0.97 0.005 285);
   --primary: #F5B82E;
   --timer-gold: #FFD166;
-  --category-word: #4D8CFF;
-  --category-number: #3DDC84;
-  --category-speed: #FF8A3D;
-  --category-attention: #FF6BD6;
-  --category-pattern: #B26BFF;
-  --category-logic: #2ED3B7;
-  --category-arcade: #FF4D4D;
-  /* Arcade groups (Practice browsing and arcade tile borders only; src/lib/duel/arcadeGroups.ts). */
-  --group-retro: #36E2F5;
-  --group-sports: #4CC24A;
-  --group-cards: #FF5C93;
-  --group-action: var(--category-arcade);
-  --group-strategy: #8E80FF;
+  /* The category accents and arcade group colours live in src/design/tokens.css. */
   --category-accent: var(--category-logic);
   --puzzle-surface: oklch(0.205 0.012 285);
   --puzzle-edge: oklch(0.36 0.014 285);
@@ -1225,14 +1216,24 @@ html,
   animation: shake 320ms ease-in-out both;
 }
 
-/* Reduced motion: keep the information, drop the movement. */
+/*
+ * Reduced motion: keep the information, drop the movement (DESIGN.md hard rule 8: every animation
+ * ends visible). Every animation and transition jumps to its end at once, delays included, so an
+ * entrance held at its hidden first frame by a delay shows straight away (6 Nov 2026: delays used to
+ * keep it hidden for the delay). Excluded: the calm sequences that already have their own reduced-motion
+ * timing and carry information while they show (the room moments' fades, practice's and the arcade
+ * results' "New best" / "Full clear" fades, Logic's solve glow); the 0.01 ms here used to cut those
+ * to nothing, so they were never seen.
+ */
 @media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
+  :not(.room-fx [data-part], .practice-new-best, .arcade-celebration-headline, .logic-calm-glow),
+  ::before,
+  ::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
+    animation-delay: 0s !important;
     transition-duration: 0.01ms !important;
+    transition-delay: 0s !important;
   }
 
   .animate-countdown-number {

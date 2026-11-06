@@ -1,0 +1,144 @@
+/*
+ * Joulz design tokens (DESIGN.md sections 2, 4 and 7; design foundation F1, 6 Nov 2026).
+ *
+ * The single source for every colour, shape, spacing and motion value in app chrome. No hex,
+ * rgb() or hsl() value lives anywhere else in new work (scripts/design-lint.ts enforces it on
+ * changed lines). The old token sets (--th-* in polish-layout/theme.css, --ap-* in
+ * polish-layout/app-pages.css) are aliases of these until the component PRs retire them.
+ *
+ * Also here, values unchanged from where they lived before:
+ * - the category accents and arcade group colours (were in styles.css :root);
+ * - the 32 player colours as --jz-player-0 … --jz-player-31, index for index the PLAYER_COLOURS
+ *   wheel in src/lib/duel/playerLook.ts (the server and canvases read that list; design-lint fails
+ *   if the two ever differ);
+ * - Archivo, the one app font (was in polish-layout/app-pages.css).
+ */
+
+@font-face {
+  font-family: "Archivo";
+  font-style: normal;
+  font-weight: 100 900;
+  font-stretch: 62% 125%;
+  font-display: swap;
+  src: url("/fonts/archivo-var-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "Archivo";
+  font-style: normal;
+  font-weight: 100 900;
+  font-stretch: 62% 125%;
+  font-display: swap;
+  src: url("/fonts/archivo-var-latin-ext.woff2") format("woff2");
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+:root {
+  /* ------------------------------------------------ neutrals (section 2) */
+  --jz-bg: #06080F;
+  --jz-bg-raised: #0B0F1C;
+  --jz-surface: #0F1424;
+  --jz-surface-2: #1E2640;
+  --jz-line: #1E2640;
+  --jz-text: #EEF2FF;
+  --jz-text-2: #B5C6DD;
+  --jz-text-3: #8F9BBF;
+
+  /* ------------------------------------------------ accents (section 2) */
+  --jz-gold: #E2C07A;
+  --jz-gold-metal: linear-gradient(165deg, #FBEDC4 0%, #E6C67E 34%, #D2AC5E 68%, #EED79C 100%);
+  --jz-on-gold: #06080F;
+  --jz-cyan: #22E4FF;
+  --jz-cyan-panel: #112A3A;
+  --jz-red: #FF3B5C;
+  --jz-silver: #C9D3EA;
+  --jz-bronze: #D9A066;
+
+  /* ------------------------------------------------ type (section 3) */
+  --jz-font: "Archivo", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --jz-weight-regular: 400;
+  --jz-weight-medium: 600;
+  --jz-weight-bold: 800;
+  --jz-weight-black: 900;
+
+  /* ------------------------------------------------ space (section 4) */
+  --jz-space-4: 4px;
+  --jz-space-8: 8px;
+  --jz-space-12: 12px;
+  --jz-space-16: 16px;
+  --jz-space-20: 20px;
+  --jz-space-24: 24px;
+  --jz-space-32: 32px;
+  --jz-space-48: 48px;
+  --jz-page-pad: 20px;
+  --jz-section-gap: 24px;
+
+  /* ------------------------------------------------ shape (section 4) */
+  /* The angled cuts: the corner's leg length, used by .jz-cut-lg / .jz-cut-sm (utilities.css). */
+  --jz-cut-lg: 14px;
+  --jz-cut-sm: 8px;
+  --jz-radius: 8px;
+  --jz-round: 999px;
+  --jz-radius-tile: 16px;
+  --jz-radius-sheet: 20px;
+  /* The one shadow (sheets only). DESIGN.md names it without a value: this one is F1's pick. */
+  --jz-shadow-sheet: 0 -12px 32px rgb(0 0 0 / 0.55);
+  /* The stripe texture (.jz-stripes): faint text-coloured diagonals. DESIGN.md gives no value: F1's pick. */
+  --jz-stripe-ink: rgb(238 242 255 / 0.035);
+  --jz-stripes: repeating-linear-gradient(135deg, var(--jz-stripe-ink) 0 2px, transparent 2px 10px);
+
+  /* ------------------------------------------------ motion (section 7) */
+  --jz-fast: 120ms;
+  --jz-base: 200ms;
+  --jz-slow: 320ms;
+  --jz-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+
+  /* ------------------------------------------------ category accents (moved from styles.css, unchanged) */
+  --category-word: #4D8CFF;
+  --category-number: #3DDC84;
+  --category-speed: #FF8A3D;
+  --category-attention: #FF6BD6;
+  --category-pattern: #B26BFF;
+  --category-logic: #2ED3B7;
+  --category-arcade: #FF4D4D;
+  /* Arcade groups (Practice browsing and arcade tile borders only; src/lib/duel/arcadeGroups.ts). */
+  --group-retro: #36E2F5;
+  --group-sports: #4CC24A;
+  --group-cards: #FF5C93;
+  --group-action: var(--category-arcade);
+  --group-strategy: #8E80FF;
+
+  /* ------------------------------------------------ player colours (PLAYER_COLOURS, playerLook.ts; never reorder) */
+  --jz-player-0: #DFD855;
+  --jz-player-1: #E3945F;
+  --jz-player-2: #ED3920;
+  --jz-player-3: #D45389;
+  --jz-player-4: #8A65F0;
+  --jz-player-5: #8D97F4;
+  --jz-player-6: #77C1DD;
+  --jz-player-7: #76F4F4;
+  --jz-player-8: #A7E9A4;
+  --jz-player-9: #8A8EA3;
+  --jz-player-10: #008F4F;
+  --jz-player-11: #FFC7B7;
+  --jz-player-12: #8F7F00;
+  --jz-player-13: #3F8787;
+  --jz-player-14: #FF87FF;
+  --jz-player-15: #8FA77F;
+  --jz-player-16: #0087C7;
+  --jz-player-17: #F7DFB7;
+  --jz-player-18: #FF7F7F;
+  --jz-player-19: #FFAF00;
+  --jz-player-20: #FFCFEF;
+  --jz-player-21: #C7CFFF;
+  --jz-player-22: #00C73F;
+  --jz-player-23: #E700E7;
+  --jz-player-24: #679700;
+  --jz-player-25: #BF8FAF;
+  --jz-player-26: #00BF9F;
+  --jz-player-27: #BF6700;
+  --jz-player-28: #BFA767;
+  --jz-player-29: #97F700;
+  --jz-player-30: #A76F6F;
+  --jz-player-31: #9F7F5F;
+}
