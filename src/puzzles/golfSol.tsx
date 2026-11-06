@@ -13,7 +13,7 @@ import { golfSolSounds } from "@/lib/fx/gameSounds";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
 function IntroExample() {
-  return <CardStill width={GS_WORLD_W} height={GS_WORLD_H} draw={(ctx, size) => drawGolfSol(ctx, golfSolArtGame().init(0), size)} caption="Play a column's bottom card one higher or lower than the foundation; draw from the stock when stuck." />;
+  return <CardStill width={GS_WORLD_W} height={GS_WORLD_H} draw={(ctx, size) => drawGolfSol(ctx, golfSolArtGame().init(0), size)} caption="Play a column’s bottom card one higher or lower than the foundation; draw from the stock when stuck." />;
 }
 
 const TAP_SLOP = 10;
@@ -76,7 +76,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   return (
     <ArcadeCanvasStage
       diagKey="golfsol"
-      label={`${gameDisplayName("golfsol")}: tap a column's bottom card one higher or lower than the foundation, or the stock; Undo and Reset at the bottom`}
+      label={`${gameDisplayName("golfsol")}: tap a column’s bottom card one higher or lower than the foundation, or the stock; Undo and Reset at the bottom`}
       background={GS_BG}
       fitWorld
       scene={cardsFill}

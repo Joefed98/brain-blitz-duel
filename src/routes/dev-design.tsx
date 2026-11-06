@@ -171,6 +171,26 @@ function DevDesign() {
           </div>
         </Block>
 
+        <Block title="Chip: status (HUD pills; not a control)">
+          <div className="jz-gallery-grid" data-category="logic">
+            <Labelled label="label and value">
+              <Chip variant="status" label="Moves" value={12} />
+            </Labelled>
+            <Labelled label="value only">
+              <Chip variant="status" value="25 / 36" />
+            </Labelled>
+            <Labelled label="accent (par)">
+              <Chip variant="status" label="Par" value={14} tone="accent" />
+            </Labelled>
+            <Labelled label="good">
+              <Chip variant="status" label="Found" value="5 / 5" tone="good" />
+            </Labelled>
+            <Labelled label="warn">
+              <Chip variant="status" label="Moves left" value={2} tone="warn" />
+            </Labelled>
+          </div>
+        </Block>
+
         <Block title="Segmented">
           <Segmented
             label="Example"

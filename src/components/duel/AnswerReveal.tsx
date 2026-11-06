@@ -531,15 +531,16 @@ function EngineBreakdown({ type, extra, score, practice, costRows, open, setOpen
   return (
     <div data-engine-breakdown="" className="flex shrink-0 flex-col items-center gap-1">
       {practice ? null : (
-        <button
-          type="button"
+        <Button
+          variant="secondary"
+          size={44}
           data-reveal-summary={open ? "open" : "closed"}
           aria-expanded={open}
           onClick={() => setOpen((v) => !v)}
-          className="press reveal-see-breakdown min-h-11 rounded-xl px-4 text-[13px] font-bold text-[var(--ap-gold,#F2C75C)]"
+          className="reveal-see-breakdown"
         >
-          {open ? "Hide breakdown" : "See breakdown"}
-        </button>
+          <span className="reveal-see-breakdown-label">{open ? "Hide breakdown" : "See breakdown"}</span>
+        </Button>
       )}
       <RevealBreakdown lines={shown.lines} score={score} extra={tiles} hidden={!practice && !open} />
     </div>
@@ -558,7 +559,7 @@ function RevealPlayers({ players, secondsLeft }: { players: RevealPlayer[]; seco
           </span>
         ))}
       </span>
-      <span className="min-w-0 flex-1 truncate text-[13px] font-semibold text-[#D4D4DC]">
+      <span className="reveal-meta min-w-0 flex-1 truncate">
         {finished} of {players.length} finished · results in {secondsLeft}s
       </span>
     </div>
@@ -577,7 +578,7 @@ export function StoredScore({ score, type }: { score: number | null; type: Puzzl
     );
   }
   return (
-    <p ref={scoreRef} data-reveal-score={score} className="th-score shrink-0 whitespace-nowrap text-2xl tabular-nums text-foreground animate-pop-in">
+    <p ref={scoreRef} data-reveal-score={score} className="jz-score-m shrink-0 whitespace-nowrap text-foreground animate-pop-in">
       {score === 1 ? "1 point" : `${score} points`}
     </p>
   );
@@ -793,7 +794,7 @@ function LiveAnswerReveal({
       {practice && (personalBest || starLine) && myScore !== null ? <NewBestMoment starLine={starLine} /> : null}
       {/* Its own screen (3 Nov 2026): this row is the screen's header (no app top bar), so the sound button sits here. */}
       <div data-reveal-head className="rs-head shrink-0 items-center">
-        <span className="min-w-0 truncate text-[15px] font-bold text-foreground">{def.name}</span>
+        <span className="reveal-title min-w-0 truncate">{def.name}</span>
         <span className="flex shrink-0 items-center gap-1">
           <span className="rs-meta">
             {practice ? (practiceActions ? "Practice" : `Practice · ${secondsLeft}s`) : `Round ${round} of ${totalRounds} · ${secondsLeft}s`}
@@ -828,11 +829,11 @@ function LiveAnswerReveal({
         <div data-verdict-row className="flex shrink-0 items-center gap-3 px-1">
           {!puzzleOwnsRevealLayout && !FINISH_ONLY_TYPES.has(puzzle.type) ? <Verdict correct={myCorrect} score={myScore} /> : null}
           <span className="flex min-w-0 flex-1 flex-col">
-            <span className="truncate text-[16px] font-bold text-foreground">
+            <span className="reveal-verdict truncate">
               {verdictLine(myCorrect, myScore, myMsRemaining, puzzleTimeLimitMs(puzzle), puzzle.type)}
             </span>
             {!puzzleOwnsRevealLayout ? (
-              <span data-reveal-heading className="truncate text-[13px] text-[#D4D4DC]">
+              <span data-reveal-heading className="reveal-meta truncate">
                 {def.revealHeading ?? "The answer was"}
               </span>
             ) : null}
@@ -841,12 +842,12 @@ function LiveAnswerReveal({
         </div>
         {/* One score line on every puzzle reveal (3 Nov 2026): the stored parts, "150 + 20 par + 30 speed". */}
         {myScore !== null && storedScoreParts(myExtra) && !REVEAL_SHOWS_PARTS.has(puzzle.type) && !(FINISH_ONLY_TYPES.has(puzzle.type) && storedScoreParts(myExtra)!.kind === "partial") ? (
-          <p data-reveal-score-line="" className="shrink-0 text-center text-[15px] font-semibold tabular-nums text-foreground">
+          <p data-reveal-score-line="" className="reveal-score-line shrink-0 text-center">
             {scorePartsText(storedScoreParts(myExtra)!)}
           </p>
         ) : null}
         {practice && myScore !== null ? (
-          <p data-reveal-best="" className="shrink-0 text-center text-[13px] font-semibold text-[#D4D4DC]">
+          <p data-reveal-best="" className="reveal-meta shrink-0 text-center">
             {best === null ? "Your first score for this game" : `Your best: ${best}`}
           </p>
         ) : null}

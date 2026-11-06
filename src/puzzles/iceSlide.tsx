@@ -49,7 +49,7 @@ function IntroExample() {
   return (
     <div className="flex flex-col items-center gap-4">
       <p className="text-sm text-muted-foreground">
-        Swipe to slide the ball. It won&apos;t stop until it hits something. Avoid the holes - fall
+        Swipe to slide the ball. It won’t stop until it hits something. Avoid the holes - fall
         in and you start again. A chevron turns the ball. Portals carry you across the board.
         Cracked ice breaks after you cross it once.
       </p>

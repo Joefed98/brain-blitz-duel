@@ -44,7 +44,7 @@ export function ClassicIntroExample() {
       </div>
       <p className="text-center text-xs text-muted-foreground">
         One tilt down: gold, teal and pink lock on their rings; purple stops on the block - and
-        it's locked too.
+        it’s locked too.
       </p>
     </div>
   );

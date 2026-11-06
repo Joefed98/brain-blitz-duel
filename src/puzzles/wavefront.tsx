@@ -32,7 +32,7 @@ function IntroExample() {
       worldH={wavefrontWorldHFor(WAV_REV_STD)}
       ticks={150}
       input={null}
-      caption="Your ship fires on its own. Shoot the glowing carriers for power-ups, hit the bosses' weak points."
+      caption="Your ship fires on its own. Shoot the glowing carriers for power-ups, hit the bosses’ weak points."
     />
   );
 }

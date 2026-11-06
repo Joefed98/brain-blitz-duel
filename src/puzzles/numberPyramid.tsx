@@ -82,8 +82,8 @@ const NP_CSS = `
 [data-bw-live] [data-game-arena="board"] > .relative { isolation: isolate; }
 [data-bw-live] [data-game-arena="board"] > .relative::before { content: ""; position: absolute; inset: -18% -6% -10%; z-index: -1; pointer-events: none; background: radial-gradient(60% 55% at 50% 52%, color-mix(in srgb, var(--category-accent) 30%, transparent), transparent 72%); }
 [data-bw-live] .np-quarry { background-image: ${SPECKLE}, linear-gradient(180deg, #100e0c, #221e19 60%, #2a251f); box-shadow: inset 0 4px 10px rgba(0,0,0,.8), inset 0 0 0 1px rgba(222,196,150,.2), 0 1px 0 rgba(255,255,255,.06); }
-/* Joe's phone notes (28 Oct 2026, display only): a completed pyramid's stones turn gold row by row from the bottom
-   during the short CORRECT hold (and the final board's finish). The layer tints each stone gold (blend "color" keeps
+/* Joe’s phone notes (28 Oct 2026, display only): a completed pyramid’s stones turn gold row by row from the bottom
+   during the short CORRECT hold (and the final board’s finish). The layer tints each stone gold (blend "color" keeps
    its light and dark, so the numbers stay readable), lifted by a screen layer with a warm rim; it stays until the next
    pyramid shows. */
 .np-gold, .np-gold-lift { position: absolute; inset: 0; z-index: 4; border-radius: 4px; pointer-events: none; opacity: 0; animation: np-gold-in 240ms ease-out forwards; }

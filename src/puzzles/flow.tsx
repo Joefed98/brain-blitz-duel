@@ -167,7 +167,7 @@ function IntroExample() {
   return (
     <div className="flex flex-col items-center gap-4">
       <p className="text-sm text-muted-foreground">
-        Join each pair of dots with a path. Paths can&apos;t cross, and every square must be filled.
+        Join each pair of dots with a path. Paths can’t cross, and every square must be filled.
       </p>
       <div style={{ width: 148 }}>
         <FlowBoard pairs={pairs} paths={paths} walls={walls} cols={4} cells={16} />

@@ -22,7 +22,7 @@ export async function ensureSession(): Promise<string> {
     const { data: signedIn, error } = await supabase.auth.signInAnonymously();
     if (error || !signedIn.user) {
       pending = null;
-      throw new Error("Couldn't start a session on this device. Please try again.");
+      throw new Error("Couldn’t start a session on this device. Please try again.");
     }
     return signedIn.user.id;
   })();

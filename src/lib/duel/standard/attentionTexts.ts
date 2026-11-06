@@ -66,7 +66,7 @@ export const STANDARD_ATTENTION_HELP = {
       speed: { max: SPOT_STD.speed, fullByS: SPOT_STD.fullByS },
       bonuses: [
         { label: "No wrong taps", how: "never tap a wrong spot", max: SPOT_STD.clean },
-        { label: "Hidden difference", how: "find the subtle seventh one before that picture's sixth, finished or not", max: SPOT_STD.hidden },
+        { label: "Hidden difference", how: "find the subtle seventh one before that picture’s sixth, finished or not", max: SPOT_STD.hidden },
       ],
       unfinished: `${SPOT_STD.perDiff} for each difference found, more for finding it early`,
       penalties: [`When not finished, each wrong tap costs ${SPOT_STD.wrongCost}`],
@@ -96,7 +96,7 @@ export const STANDARD_ATTENTION_HELP = {
         { label: "Gold pair", how: `match the gold pair in the first ${PAIR_STD.goldWindowMs / 1000} s, finished or not`, max: PAIR_STD.gold },
       ],
       unfinished: `${PAIR_STD.perPair} for each pair, more for finding it early`,
-      penalties: [`After ${PAIR_STD.freeMisses} missed tries, every ${PAIR_STD.missesPerPair} more cost a pair's points`],
+      penalties: [`After ${PAIR_STD.freeMisses} missed tries, every ${PAIR_STD.missesPerPair} more cost a pair’s points`],
       total: TOTAL,
     }),
 } as const;
@@ -108,7 +108,7 @@ export const PAR_MOVES_MAZE_HELP = (strict = parStrictDealt()) => {
   return puzzleScoreList({
     finish: "reach the exit",
     speed: { max: PAR_MOVES_STD.speed, fullByS: fullBy },
-    bonuses: [{ label: "Moves", how: `take no more steps than the route's length (par${strict ? ", shown" : ""}) for all of it, less for each one over, nothing at ${strict ? "one and a half times" : "twice"} par`, max: PAR_MOVES_STD.par }],
+    bonuses: [{ label: "Moves", how: `take no more steps than the route’s length (par${strict ? ", shown" : ""}) for all of it, less for each one over, nothing at ${strict ? "one and a half times" : "twice"} par`, max: PAR_MOVES_STD.par }],
     unfinished: "how far along the route you got (wandering costs), more for getting there early",
     total: TOTAL,
   });

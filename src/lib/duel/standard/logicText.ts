@@ -18,7 +18,7 @@ const UNFINISHED: Record<LogicStandardType, string> = {
   tubes: "the share of flasks corked, more for corking them early; pours past par take it down",
   safe: "the dials right on your best try (one right is a guess and counts nothing), more for getting them early",
   bomb: "the steps done right before a wrong one, more for doing them early",
-  nonogram: "the share of the picture's cells filled, more for filling them early",
+  nonogram: "the share of the picture’s cells filled, more for filling them early",
   flood: "the share of the board flooded, more for flooding it early; moves past par take it down, and a board out of moves scores 0",
   tents: "the share of tents right, more for pitching them early",
   shikaku: "the share of the grid covered by correct rectangles, more for drawing them early, less what wrong ones cover",

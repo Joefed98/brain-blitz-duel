@@ -19,8 +19,8 @@ colours kept on game screens, art drawn in-house (no paid commissions).
    (`text-[13px]`, `rounded-[14px]`, `h-[52px]`, `bg-[#…]`). Use the token or the component.
 2. **Components first.** Use the shared components in `src/design/components/`. Never restyle a raw `<button>`,
    build a new card class, or copy a sheet.
-3. **One font: Archivo.** In app screens and game chrome (intro, frame, reveal). Press Start 2P stays inside Retro
-   game art only. No Space Grotesk, Inter, Saira, Manrope or JetBrains Mono in new work.
+3. **One font: Archivo.** In app screens and game chrome (intro, frame, reveal). Game art inside the play area
+   is the exception (section 9): Press Start 2P for Retro art and JetBrains Mono where canvas art names it. No Space Grotesk, Inter, Saira, Manrope or JetBrains Mono in new work.
 4. **Gold means act, you, or first place.** Nothing else is gold. At most one gold button per screen.
 5. **Gradients only on metal.** Gold buttons, the podium, medals, trophies and rank emblems. No gradient text, no
    glow or sheen on app chrome. Game worlds may glow; the frame around them may not.
@@ -136,7 +136,7 @@ component gallery, `/dev-design` (development builds only).
 | `Button` / `ButtonLink` | `gold` (the `--jz-gold-metal` face on a solid 4 px `--jz-gold-ledge`, inside the cut-lg; `small` takes cut-sm; no glow, haze or sheen), `secondary` (`--jz-surface` fill, 1.5 px `--jz-surface-2` border, 8 px radius), `quiet` (text only), `icon` (44 × 44); `size` is the height (44, 46, 48, 50, 52 or 58), `block` fills the width | `.th-btn-*`, `.ap-btn-*`, `.rs-btn*` (deleted), shadcn `Button` in app chrome |
 | `Panel` / `Row` | panel (`pad`, `striped`, `tone="cyan"`), row with divider (`as="button"` / `"a"` is interactive; `leading`, `title`, `sub`) | `.th-card`, `.ap-panel` / `.ap-row` (now `.jz-panel` / `.jz-row`), `ui/card` |
 | `SectionHeader` | title + 2 px rule + right-hand meta or link | ad-hoc headers |
-| `Chip` | default, selected (light fill), with category diamond (`cat`), tinted in its category when on (`tint`) | `.th-chip`, `.ap-chip*`, `.rs-cat` (deleted), `CategoryPill` |
+| `Chip` | default, selected (light fill), with category diamond (`cat`), tinted in its category when on (`tint`); `status`: a non-interactive 22 px label-and-value `<span>` for live counts (every HUD pill), with no hover, pressed or focus state, its value toned `accent` / `good` / `warn` | `.th-chip`, `.ap-chip*`, `.rs-cat` (deleted), `CategoryPill`; `.hud-pill`'s own look |
 | `Segmented` | 2–4 options, counts allowed, radio or toggle; `tone="gold"` for a switch that is the way into play (Practice's Puzzles / Arcade) | `.ap-switch`, `.rs-seg` (deleted) |
 | `SwitchKnob` | the knob at the end of a `role="switch"` row (cyan when on) | `.rs-switch` (deleted) |
 | `Input` / `CodeInput` | text, search (44 px); 4-box room code over one real field. Both are wells: `--jz-well` with an inset top shadow, darker than the panel they sit in | `.th-input`, `.ap-input`, the long Tailwind strings (deleted) |
@@ -194,6 +194,10 @@ the only places motion gets theatrical. No bounce easing on app chrome. Reduced 
   tinted backdrop and the arcade reveal's colour gradient all keep their category colour. Only the base underneath
   changes to `--jz-bg`, and fonts and buttons follow these rules.
 - Game art inside the play area is untouched.
+- **Game art is exempt from the one-font rule** (hard rule 3). Canvas and board art keeps the faces it names:
+  Press Start 2P (Retro games, Google Fonts) and JetBrains Mono (self-hosted in `public/fonts`, declared in
+  `src/lib/arcade/gameArtFonts.css` and loaded only while a round's intro is up). Neither may appear in app chrome
+  or game chrome (intro, frame, HUD pills, reveal), which are Archivo.
 - Skins (later) never change sizes, hit areas, motion or contrast against the background.
 
 ---

@@ -332,7 +332,7 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: Puz
         </span>
       </p>
       <p className="logic-reveal-text text-center text-muted-foreground">
-        Park the big rings where they won&apos;t block you.
+        Park the big rings where they won’t block you.
       </p>
     </div>
   );
