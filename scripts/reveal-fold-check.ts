@@ -16,7 +16,8 @@
 import { readFileSync } from "node:fs";
 import { revealSummary } from "../src/components/duel/ArcadeReveal";
 import { stdLines, type StdPart } from "../src/lib/arcade/arcadeStandard";
-import { breakdownRows, realFullClear, rowText } from "../src/lib/duel/revealBreakdown";
+import { breakdownRows, plainText, realFullClear, rowText, statRepeatsPart } from "../src/lib/duel/revealBreakdown";
+import { engineScoreLines } from "../src/lib/duel/engineBreakdown";
 import { nearMiss } from "../src/lib/duel/nearMiss";
 
 let failures = 0;
@@ -102,6 +103,44 @@ check(!realFullClear("time", stdLines([part("Core", "all", 130, 130), part("Spee
 const celebrationSrc = readFileSync("src/components/duel/ArcadeCelebration.tsx", "utf8");
 check(!/sr-only/.test(celebrationSrc), "the headline shows once (no second, screen-reader copy)");
 check(/useState\(false\)/.test(src), "folded by default");
+
+// 6 Nov 2026 (Joe's review of the re-captured reveals).
+// Grappler's course part is full at 70 % of the course: "Full clear!" only for the whole course.
+const swingLines = stdLines([part("Course", "85 % of the course, 44 of 51 stretches", 110, 110), part("Pars", "32 of 40", 32, 40)], 142);
+check(!realFullClear("finish", swingLines, 142), "no \"Full clear!\" at 85 % of the course (44 of 51 stretches)");
+check(realFullClear("finish", stdLines([part("Course", "100 % of the course, 51 of 51 stretches", 110, 110), part("Pars", "32 of 40", 32, 40)], 142), 142), "the whole course is a full clear");
+// Plain words for a count and its cost each, and Meteor's gold stars.
+check(plainText("2 lives lost × 5") === "2 lives lost, 5 each", `"2 lives lost, 5 each" (${plainText("2 lives lost × 5")})`);
+// Stats a part's detail already states are left out (Summit / Thirteen's Time, Thirteen's Removed, Curl Champ's 4-foot);
+// Rally's paddle width is never a stat.
+const cardLines = stdLines([part("Pyramid cards", "28 of 28 removed", 120, 120), part("Speed", "cleared in 23.0 s", 47, 50)], 167);
+check(statRepeatsPart("Time", cardLines, [], "23.0 s"), "Time 23.0 s repeats Speed's detail");
+check(statRepeatsPart("Removed", cardLines, [], "28 / 28"), "Removed 28 / 28 repeats the cards' detail");
+check(statRepeatsPart("In the 4-foot", stdLines([part("Stones", "8 thrown", 137, 150), part("Red ring", "6 in the 4-foot", 15, 20)], 152), [], "6 / 8"), "In the 4-foot repeats Red ring");
+check(!statRepeatsPart("Length", stdLines([part("Stars eaten", "22 stars", 120, 120), part("Combos", "4", 14, 20)], 134), [], "25"), "an extra fact stays");
+check(statRepeatsPart("Paddle", ["Gold-ball hits: 22 → 133 of 140"], [], "40 px"), "no paddle width");
+// Bonk, Pull! and Mixed Signals: rows with points, costs included, adding up to the stored score.
+const sum = (ls: string[] | null, score: number) => {
+  const rows = breakdownRows(ls ?? [], score);
+  const total = rows.filter((r) => r.kind !== "total" && r.kind !== "note").reduce((a, r) => a + (r.points ?? 0), 0);
+  return { rows, total };
+};
+{
+  const whack = engineScoreLines("whack", { hits: 4, totalTargets: 64, wrong: 2, bombs: 1, empty: 83, depth: { base: 0, combo: 0, diamonds: 0, comboBest: 1, diamondHits: 0, diamondTotal: 2 } }, ["4 / 64 hits → 0"], 0);
+  check(whack !== null, "Bonk: rows for a stored depth run");
+  const w = sum(whack, 0);
+  check(w.total === 0 && w.rows.some((r) => r.name === "Wrong colour" && (r.points ?? 0) < 0) && w.rows.some((r) => r.name === "Hedgehogs"), `Bonk: wrong colour and hedgehogs as cost rows adding up to 0 (${w.rows.map(rowText).join(" | ")})`);
+  check(!w.rows.some((r) => r.name === "Penalties" || r.name === "Adjustment"), "Bonk: no unexplained gap row");
+  check(engineScoreLines("whack", { hits: 4, totalTargets: 64, wrong: 2, bombs: 1, empty: 83, depth: { base: 9, combo: 0, diamonds: 0 } }, [], 9) === null, "Bonk: counts that don't give the stored base fall back to the stored lines");
+  const clash = engineScoreLines("stroop", { wrong: 38, depth: { base: 0, gold: 3, streak: 0, stretch: 0, best: 2, golds: 1, goldWords: 5, standard: 1 } }, ["14 / 52 correct → 0", "38 wrong · 0 net → 0 · more than 3 wrong", "streak +0 (best 2) · gold +3 (1/5)"], 0);
+  const c = sum(clash, 0);
+  check(clash !== null && c.total === 0 && c.rows.some((r) => r.name === "Wrong words" && (r.points ?? 0) < 0), `Mixed Signals: words right less the wrong words, adding up to 0 (${c.rows.map(rowText).join(" | ")})`);
+  const finish = engineScoreLines("stroop", { wrong: 1, depth: { base: 150, gold: 12, streak: 15, stretch: 9, best: 40, golds: 4, goldWords: 5, standard: 1 } }, ["51 / 52 correct → 186", "1 wrong · finish 150 · speed +9", "streak +15 (best 40) · gold +12 (4/5)"], 186);
+  check(finish !== null && sum(finish, 186).total === 186, "Mixed Signals: a finish's rows add up to its score");
+  const clay = engineScoreLines("clayshoot", { orangeHits: 1, goldHits: 0, birdHits: 0, emptyShots: 86, emptyShotCost: 2, total: 25, depth: { base: 2, doubles: 0, streak: 0, doublesHit: 0, doublesTotal: 7, streakBest: 1 } }, ["1 / 25 clays → 2"], 2, 9);
+  const k = sum(clay, 2);
+  check(clay !== null && k.total === 2 && k.rows.some((r) => r.name === "Empty shots" && (r.points ?? 0) < 0), `Pull!: the empty-shot cost as a row, adding up to 2 (${k.rows.map(rowText).join(" | ")})`);
+}
 
 if (failures) {
   console.log(`FAIL reveal-fold-check: ${failures} failure(s)`);

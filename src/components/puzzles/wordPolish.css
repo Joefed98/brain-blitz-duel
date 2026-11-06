@@ -10,9 +10,13 @@
   /* Columns wide enough for an 11-letter word and its score (4 Nov 2026: "44CATALOGUER" ran into the next column). */
   grid-template-columns: repeat(auto-fill, minmax(min(100%, 136px), 1fr));
   gap: 2px 14px;
-  font-family: var(--font-mono);
+  /* The UI font with even-width digits (6 Nov 2026, Joe's review: the lists were still monospace). */
+  font-family: var(--ap-font, "Manrope", system-ui, sans-serif);
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
   font-size: 14px;
   line-height: 20px;
+  letter-spacing: 0.02em;
   text-transform: uppercase;
   color: var(--foreground);
 }

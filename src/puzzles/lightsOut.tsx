@@ -271,7 +271,9 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining, score
         {myCorrect ? "✓" : "✗"} your presses <span className="text-primary">{mine}</span> · {usesDepth(puzzle) ? "par" : "min"}{" "}
         {min}
       </p>
-      {myCorrect ? (
+      {/* The moves line above says the presses and the par (6 Nov 2026: "12 moves (fewest 12)" under it said it again);
+          only an older round without stored parts adds its breakdown. */}
+      {myCorrect && !scoreParts ? (
         <p className="logic-reveal-text text-center font-mono text-primary">
           {solvedMovesText(mine, min, myMsRemaining, timeLimitMs, "B", scoreParts)}
         </p>

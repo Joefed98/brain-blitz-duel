@@ -91,4 +91,6 @@
 .bp-reveal-space { width: 100%; container-type: inline-size; }
 .bp-reveal-pair { display: flex; align-items: flex-start; justify-content: center; gap: 12px; }
 .bp-reveal-board { width: min(calc(50cqw - 8px), 230px); }
+/* One board at a time under the reveal's Solution / Yours switch (6 Nov 2026): the whole row, not half of it. */
+[data-solution-view] .bp-reveal-board { width: min(100cqw, 360px); }
 .bp-reveal > p { flex-shrink: 0; }

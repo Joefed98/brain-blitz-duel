@@ -39,7 +39,7 @@ export function removedGameDefinition(type: RemovedPuzzleType | string): PuzzleD
       throw new Error(`${name} has been deleted; no new rounds are made.`);
     },
     check: () => false,
-    roundSummary: (result) => ({ summary: `${removedRoundScore(result)} points`, detail: [] }),
+    roundSummary: (result) => ({ summary: `${removedRoundScore(result)}${removedRoundScore(result) === 1 ? " point" : " points"}`, detail: [] }),
     correctAnswer: () => null,
     showTimer: false,
     retired: true,

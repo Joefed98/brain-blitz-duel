@@ -33,6 +33,8 @@ const TOTAL = /^Total → (\d+)(?: of (\d+))?(?: · (.+))?$/;
 const AT_LEAST_ONE = /^At least 1 for playing → (\d+)$/;
 /** A penalty line (arcadeBandStd.ts): "Penalty: 2 lives lost → −10". */
 export const PENALTY_LINE = /^Penalty: (.*) → [−-](\d+)$/;
+/** A named cost (engineBreakdown.ts, 6 Nov 2026): "Cost: Wrong colour: 2 taps → −7". */
+export const COST_LINE = /^Cost: ([^:]+): (.*) → [−-](\d+)$/;
 const NO_INPUT = /^(.*) · no input → 0$/;
 /** Any other "<text> → <number>[ rest]" line. */
 const ARROW_POINTS = /^(.*?) → ([−-]?\d+)$/;
@@ -94,6 +96,8 @@ export function plainText(text: string): string {
     .replace(/,?\s*in thousandths/gi, "")
     // "(84 from the rows + 0 from column 2) × 1.4": "84 from the rows + 0 from column 2, times 1.4".
     .replace(/^\((.+)\) × ([\d.]+)$/, "$1, times $2")
+    // "2 lives lost × 5" (a count and its cost each): "2 lives lost, 5 each" (6 Nov 2026, Joe's review).
+    .replace(/^(\d+ [A-Za-z][A-Za-z ]*?) × (\d+)$/, "$1, $2 each")
     .replace(/\s×\s/g, " times ")
     // "12 / 40" and "12/40" between figures: "12 of 40".
     .replace(/(\d)\s*\/\s*(\d)/g, "$1 of $2")
@@ -153,6 +157,12 @@ export function breakdownRows(lines: readonly string[], score: number | null): B
     if (pen) {
       partSum -= num(pen[2]!);
       push({ line, kind: "adjust", name: "Penalty", detail: plainText(pen[1]!), points: -num(pen[2]!), max: null });
+      continue;
+    }
+    const named = COST_LINE.exec(line);
+    if (named) {
+      partSum -= num(named[3]!);
+      push({ line, kind: "adjust", name: plainText(named[1]!), detail: plainText(named[2]!), points: -num(named[3]!), max: null });
       continue;
     }
     const tot = TOTAL.exec(line);
@@ -224,9 +234,18 @@ export function rowText(row: BreakdownRow): string {
  * at its maximum; a game off the standard needs FULL_CLEAR_MIN_SCORE.
  */
 export const FULL_CLEAR_MIN_SCORE = 150;
+/** Whether a core part's detail says the whole of it was done: no "N of M" short of M, no percentage under 100. */
+function wholeDone(detail: string): boolean {
+  for (const m of detail.matchAll(/(\d+) (?:of|\/) (\d+)/g)) if (Number(m[1]) < Number(m[2])) return false;
+  for (const m of detail.matchAll(/(\d+(?:\.\d+)?) ?% of/g)) if (Number(m[1]) < 100) return false;
+  return true;
+}
 export function realFullClear(outcome: string | undefined, lines: readonly string[], score: number | null): boolean {
   if (outcome !== "finish" || score === null) return false;
   const core = lines.map((l) => STD_PART.exec(l)).find(Boolean);
+  // A core full before the whole course (6 Nov 2026: Grappler's course part is full at 70 % of the course, and "Full
+  // clear!" showed at 85 %): every counted item ("44 of 51 stretches", "85 % of the course") must be done too.
+  if (core && !wholeDone(core[2]!)) return false;
   if (core) return num(core[3]!) >= num(core[4]!);
   return score >= FULL_CLEAR_MIN_SCORE;
 }
@@ -239,6 +258,24 @@ export function summaryText(summary: string): string {
 }
 
 /* ---- The stats card under an arcade breakdown (4 Nov 2026, Joe's review): only what the parts don't already say. ---- */
+
+/**
+ * Whether a stat states what a part's detail already says (6 Nov 2026, Joe's review: Summit's and Thirteen's "Time
+ * 23.0 s" under "Speed: cleared in 23.0 s", Thirteen's "Removed 28 / 28" under "28 of 28 removed", Curl Champ's "In the
+ * 4-foot 6 / 8" under "Red ring: 6 in the 4-foot"): its value with its unit appears in a detail, or its first figure and
+ * every word of its label do.
+ */
+function statInDetails(label: string, value: string, lines: readonly string[]): boolean {
+  const details = lines.map((l) => STD_PART.exec(l)?.[2]).filter((d): d is string => Boolean(d)).map((d) => plainText(d).toLowerCase());
+  if (!details.length) return false;
+  const shown = plainText(value).toLowerCase();
+  if (/[a-z]/.test(shown) && /\d/.test(shown) && details.some((d) => d.includes(shown))) return true;
+  const figure = /\d+(?:\.\d+)?/.exec(shown)?.[0];
+  if (!figure) return false;
+  const words = [...statWords(label)];
+  if (!words.length) return false;
+  return details.some((d) => new RegExp(`(^|[^\\d.])${figure.replace(".", "\\.")}(?![\\d.])`).test(d) && words.every((w) => statWords(d).has(w)));
+}
 
 /** Words too common to tie a stat to a part. */
 const STAT_STOP = new Set(["the", "and", "for", "best", "left", "total", "all", "per", "with", "your", "off", "out"]);
@@ -255,15 +292,16 @@ function statWords(text: string): Set<string> {
 }
 
 /** Stat labels that are never extra facts: jargon, or the parts' sum by another name. */
-const STAT_NEVER = /^(full at|features?|bonus|core)$/i;
+const STAT_NEVER = /^(full at|features?|bonus|core|paddle)$/i;
 
 /**
  * Whether a stored stat repeats a part of the run's standard breakdown (its label shares a word with a part's name,
  * "Far buckets" with "Far buckets", "J-O-U-L-Z" with "J-O-U-L-Z", "The black" with "Black"), or is jargon ("Full at",
  * "Features"). Runs not on the standard keep every stat.
  */
-export function statRepeatsPart(label: string, lines: readonly string[], partLabels: readonly string[] = []): boolean {
+export function statRepeatsPart(label: string, lines: readonly string[], partLabels: readonly string[] = [], value?: string): boolean {
   if (STAT_NEVER.test(label.trim())) return true;
+  if (value !== undefined && statInDetails(label, value, lines)) return true;
   // The part names from the stored lines, else from the game's spec (a run with no input stores one line).
   const fromLines = lines.map((l) => STD_PART.exec(l)?.[1]).filter((n): n is string => Boolean(n));
   const names = fromLines.length >= 2 ? fromLines : partLabels;

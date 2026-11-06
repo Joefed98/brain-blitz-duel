@@ -4,6 +4,7 @@
  * balanced parts of at most --per games. The approach of scripts/shots/sheets.ts (@napi-rs/canvas). Not a check.
  *
  *   bun scripts/audit/contact-sheets.ts [--in=screenshots/audit-nov-2026-final] [--out=<same>] [--per=8] [--scale=0.5]
+ *       [--captured]   only the games with a frame in --in (a re-capture of a few games), no empty sheets
  *
  * Writes <out>/sheet-<category>[-<n>].jpg.
  */
@@ -46,12 +47,17 @@ for (const g of ARCADE_GROUPS) {
   });
 }
 
+if (args.includes("--captured")) {
+  for (const g of groups) g.games = g.games.filter((t) => PHASES.some(([phase]) => existsSync(join(IN, g.key, `${t}-${phase}.png`))));
+}
+
 mkdirSync(OUT, { recursive: true });
 const pad = 14;
 const label = 210;
 const head = 44;
 const colHead = 24;
 for (const g of groups) {
+  if (!g.games.length) continue;
   const parts = Math.max(1, Math.ceil(g.games.length / PER));
   for (let p = 0; p < parts; p++) {
     const size = Math.ceil(g.games.length / parts); // balanced parts (9 games: 5 + 4)

@@ -871,12 +871,14 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
               <Board stage={stage} darts={ok ? mine : []} size={44} bare finish={stage.finish} />
             </div>
             <div className="min-w-0 flex-1">
-              <div className="flex items-center justify-between gap-1 text-sm">
-                <span className="text-xs" style={{ color: REVEAL_LABEL }}>
+              {/* Each column keeps its own text (6 Nov 2026, Joe's review: "★ big finish" ran into the darts): the label
+                  wraps inside its column, the darts never shrink. */}
+              <div className="flex items-start justify-between gap-2 text-sm">
+                <span className="min-w-0 flex-1 text-xs" style={{ color: REVEAL_LABEL }}>
                   {index + 1}. {stage.target} · {finishWord(stage)}
-                  {ok && pays[index] && checkoutBigFinish(stage, mine[mine.length - 1]) ? <span style={{ color: GOLD }}> · ★ big finish</span> : null}
+                  {ok && pays[index] && checkoutBigFinish(stage, mine[mine.length - 1]) ? <span className="block whitespace-nowrap" style={{ color: GOLD }}>★ big finish</span> : null}
                 </span>
-                <span className={ok ? "font-bold text-primary" : "text-warn"}>
+                <span className={`shrink-0 text-right ${ok ? "font-bold text-primary" : "text-warn"}`}>
                   {ok
                     ? `✓ ${mine.map((d) => checkoutDartLabel(stage, d)).join(" ")} (${mine.length})`
                     : "✗ not checked out"}
