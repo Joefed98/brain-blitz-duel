@@ -18,6 +18,7 @@ import { noteShareArrival } from "../lib/share/shareRef";
 import { PLAY_CARDS_BOOT } from "../lib/playCards";
 import { installSoundCueBridge, installSoundUnlock } from "../lib/sound";
 import { batterySaverOn } from "../lib/battery";
+import { BRAND_INK } from "../components/brand/logoGeometry";
 import { APP_DESCRIPTION, APP_ICONS, APP_NAME, APP_SPLASHES, APP_TITLE, canonicalUrl, LINK_PREVIEW } from "../lib/brand";
 import { installAppUpdater } from "../lib/appUpdate";
 import { reportCrash, startCrashReporting } from "../lib/crashReporting";
@@ -117,7 +118,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "twitter:description", content: LINK_PREVIEW.description },
       { name: "twitter:image", content: LINK_PREVIEW.image },
       { name: "twitter:image:alt", content: LINK_PREVIEW.imageAlt },
-      { name: "theme-color", content: "#0B0B0F" },
+      { name: "theme-color", content: BRAND_INK },
       { name: "apple-mobile-web-app-capable", content: "yes" },
       { name: "apple-mobile-web-app-status-bar-style", content: "black-translucent" },
       { name: "apple-mobile-web-app-title", content: APP_NAME },

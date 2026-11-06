@@ -6,6 +6,9 @@
  */
 import { APP_NAME } from "@/lib/brand";
 import {
+  BRAND_GOLD,
+  BRAND_INK,
+  cssGradientLine,
   LOGO_BOX,
   LOGO_COLOURS,
   LOGO_HAIRLINE_PX,
@@ -13,6 +16,7 @@ import {
   LOGO_LOWER,
   LOGO_TRAIL,
   LOGO_UPPER,
+  RING_GOLD,
 } from "@/components/brand/logoGeometry";
 import {
   loadWordmarkFace,
@@ -31,17 +35,21 @@ import type { RoomShareData } from "./roomShare";
 export const CARD_W = 1080;
 export const CARD_H = 1350;
 
-/** The skin's tokens (polish-layout/theme.css). */
-const INK = "#07070A";
+/**
+ * The card's colours. Gold and black are the design tokens (DESIGN.md section 2, design foundation F4;
+ * logoGeometry.ts mirrors them for canvases): the background --jz-bg, gold text --jz-gold, every gold
+ * fill the ring-gold metal --jz-gold-metal (goldFill), text on gold --jz-on-gold. The text greys are the
+ * skin's (polish-layout/theme.css).
+ */
+const INK = BRAND_INK;
+const ON_GOLD = BRAND_INK;
+const GOLD = BRAND_GOLD;
 const TEXT = "#F5F5F7";
 const MUTED = "#BDBDCC";
-const GOLD = "#F2C75C";
 /** The wordmark's letters (--jz-white). */
 const WORDMARK_WHITE = "#FFFFFF";
-const GOLD_HI = "#FFE7A3";
-const GOLD_LO = "#B9862A";
+/** Second and third place's discs; first place is the ring-gold metal. */
 const MEDALS: Record<number, [string, string]> = {
-  1: ["#FFE07A", "#C9971F"],
   2: ["#E4E8EE", "#8E96A3"],
   3: ["#EBA866", "#9A5B22"],
 };
@@ -102,12 +110,17 @@ export function fitText(c: Ctx, text: string, max: number): string {
   return `${cut.trimEnd()}…`;
 }
 
-function goldFill(c: Ctx, top: number, bottom: number): CanvasGradient {
-  const g = c.createLinearGradient(0, top, 0, bottom);
-  g.addColorStop(0, GOLD_HI);
-  g.addColorStop(0.48, GOLD);
-  g.addColorStop(0.52, "#E2AE3E");
-  g.addColorStop(1, GOLD_LO);
+/** A #rrggbb colour at `alpha`. */
+function withAlpha(hex: string, alpha: number): string {
+  const n = parseInt(hex.slice(1), 16);
+  return `rgb(${(n >> 16) & 255} ${(n >> 8) & 255} ${n & 255} / ${alpha})`;
+}
+
+/** The ring-gold metal (--jz-gold-metal) over the box (x, y, w, h), as the CSS gradient draws it there. */
+function goldFill(c: Ctx, x: number, y: number, w: number, h: number): CanvasGradient {
+  const line = cssGradientLine(RING_GOLD.angle, w, h);
+  const g = c.createLinearGradient(x + line.x1, y + line.y1, x + line.x2, y + line.y2);
+  for (const [offset, colour] of RING_GOLD.stops) g.addColorStop(offset, colour);
   return g;
 }
 
@@ -165,18 +178,23 @@ function goldBolt(c: Ctx, x: number, y: number, h: number): void {
 }
 
 function medal(c: Ctx, cx: number, cy: number, r: number, place: number): void {
-  const [hi, lo] = MEDALS[place] ?? ["#3A3D4C", "#2A2C38"];
-  const g = c.createLinearGradient(0, cy - r, 0, cy + r);
-  g.addColorStop(0, hi);
-  g.addColorStop(1, lo);
-  c.fillStyle = g;
+  const disc = MEDALS[place];
+  if (place === 1) {
+    c.fillStyle = goldFill(c, cx - r, cy - r, r * 2, r * 2);
+  } else {
+    const [hi, lo] = disc ?? ["#3A3D4C", "#2A2C38"];
+    const g = c.createLinearGradient(0, cy - r, 0, cy + r);
+    g.addColorStop(0, hi);
+    g.addColorStop(1, lo);
+    c.fillStyle = g;
+  }
   c.beginPath();
   c.arc(cx, cy, r, 0, Math.PI * 2);
   c.fill();
   c.strokeStyle = "rgb(255 255 255 / 0.35)";
   c.lineWidth = 2;
   c.stroke();
-  c.fillStyle = place <= 3 ? "#1A1405" : TEXT;
+  c.fillStyle = place <= 3 ? ON_GOLD : TEXT;
   c.font = `700 ${Math.round(r * 1.05)}px ${MONO}`;
   c.textAlign = "center";
   c.textBaseline = "middle";
@@ -204,7 +222,7 @@ function iconTile(
   c.save();
   roundRect(c, x, y, s, s, s * 0.28);
   c.clip();
-  c.fillStyle = "#000";
+  c.fillStyle = INK;
   c.fillRect(x, y, s, s);
   if (art) {
     c.drawImage(art, x, y, s, s);
@@ -233,13 +251,13 @@ export function drawResultCard(c: Ctx, data: RoomShareData, icons: CardIcons = n
   c.fillStyle = INK;
   c.fillRect(0, 0, CARD_W, CARD_H);
   const glow = c.createRadialGradient(CARD_W / 2, 470, 40, CARD_W / 2, 470, 640);
-  glow.addColorStop(0, "rgb(242 199 92 / 0.22)");
-  glow.addColorStop(0.55, "rgb(242 199 92 / 0.05)");
-  glow.addColorStop(1, "rgb(242 199 92 / 0)");
+  glow.addColorStop(0, withAlpha(GOLD, 0.22));
+  glow.addColorStop(0.55, withAlpha(GOLD, 0.05));
+  glow.addColorStop(1, withAlpha(GOLD, 0));
   c.fillStyle = glow;
   c.fillRect(0, 0, CARD_W, CARD_H);
   roundRect(c, 36, 36, CARD_W - 72, CARD_H - 72, 52);
-  c.strokeStyle = goldFill(c, 36, CARD_H - 36);
+  c.strokeStyle = goldFill(c, 36, 36, CARD_W - 72, CARD_H - 72);
   c.lineWidth = 4;
   c.stroke();
 
@@ -271,8 +289,9 @@ export function drawResultCard(c: Ctx, data: RoomShareData, icons: CardIcons = n
   // Place and total.
   const placeText = data.place ? ordinal(data.place).toUpperCase() : "GG";
   c.font = `800 260px ${DISPLAY}`;
-  c.fillStyle = goldFill(c, 330, 520);
-  c.shadowColor = "rgb(242 199 92 / 0.45)";
+  const placeW = c.measureText(placeText).width;
+  c.fillStyle = goldFill(c, CARD_W / 2 - placeW / 2, 330, placeW, 190);
+  c.shadowColor = withAlpha(GOLD, 0.45);
   c.shadowBlur = 40;
   c.fillText(placeText, CARD_W / 2, 520);
   c.shadowBlur = 0;

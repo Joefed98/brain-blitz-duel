@@ -1535,7 +1535,9 @@ outside the repo.
   scripts/brand-icons.ts` draws the app icons (the black bolt on the ring-gold metal, `--jz-gold-metal` at 165°), the
   solve burst's logo (`public/icon-512.png`: the bolt in the ring-gold metal on `--jz-bg`) and the iPhone launch
   screens (`APP_SPLASHES`, `public/splash/`, the gold bolt on `--jz-bg`, linked as `apple-touch-startup-image`, not kept
-  offline); `bun scripts/og-image.ts` the link preview; the manifest's background is `--jz-bg`. Copy: player-facing
+  offline); `bun scripts/og-image.ts` the link preview; the manifest's background and theme colours and the
+  theme-color meta are `--jz-bg`. The share card's gold and black are the tokens (background `--jz-bg`, gold text
+  `--jz-gold`, gold fills and the first-place disc the ring-gold metal, text on gold `--jz-on-gold`). Copy: player-facing
   strings use ’ “ ” (the mechanical pass from `docs/design-audit/strings.csv`; the bomb bank's stored rule text and dev
   messages left alone). Press states: `.jz-press` (`src/design/utilities.css`, on the shadcn Button) and one rule for
   every other button in app and game chrome sink to 97 % over `--jz-fast` with the `scale` property (never in game

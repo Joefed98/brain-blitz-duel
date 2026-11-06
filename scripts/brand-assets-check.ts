@@ -8,7 +8,8 @@
  *   with capitals by CSS, and the share card, link preview and update overlay all draw it;
  * - the PNGs scripts/brand-icons.ts and og-image.ts write exist at their sizes (the app icons, the solve
  *   burst's logo, one launch screen per APP_SPLASHES entry, the link preview);
- * - the manifest's background colour is --jz-bg; the root head links every launch screen with its media
+ * - the share card's gold and black are the tokens (--jz-bg, --jz-gold, --jz-gold-metal, --jz-on-gold);
+ * - the manifest's background and theme colours and the theme-color meta are --jz-bg; the root head links every launch screen with its media
  *   query; the offline worker doesn't keep them.
  *
  *   bun scripts/brand-assets-check.ts
@@ -58,6 +59,11 @@ ok(WORDMARK_WEIGHT === 900 && WORDMARK_STRETCH === 118, "wordmark.ts: 900 at 118
 ok(!/\.ap-wordmark-last/.test(css), "no gold last letter in app-pages.css");
 const card = readFileSync("src/lib/share/resultCard.ts", "utf8");
 ok(/wordmarkCanvasFont\(/.test(card) && /WORDMARK_TEXT/.test(card) && /loadWordmarkFace\(\)/.test(card) && !/APP_NAME\.slice/.test(card), "the share card draws the one wordmark");
+// The share card's gold and black are the tokens: no gold or near-black literal of its own.
+const cardColours = card.match(/#[0-9A-Fa-f]{6}\b/g) ?? [];
+const OLD_GOLD_BLACK = ["#07070A", "#F2C75C", "#FFE7A3", "#B9862A", "#E2AE3E", "#FFE07A", "#C9971F", "#1A1405", "#000000"];
+ok(!cardColours.some((c) => OLD_GOLD_BLACK.includes(c.toUpperCase())) && !/"#000"/.test(card) && !/242 199 92/.test(card), `the share card has no gold or black of its own (${cardColours.join(", ")})`);
+ok(/const INK = BRAND_INK;/.test(card) && /const ON_GOLD = BRAND_INK;/.test(card) && /const GOLD = BRAND_GOLD;/.test(card) && /RING_GOLD\.stops/.test(card), "the share card: background --jz-bg, text on gold --jz-on-gold, gold --jz-gold, gold fills --jz-gold-metal");
 const og = readFileSync("scripts/og-image.ts", "utf8");
 ok(/WORDMARK_TEXT/.test(og) && /WORDMARK_STRETCH/.test(og) && !/class="last"/.test(og), "the link preview draws the one wordmark");
 ok(/<AppWordmark still \/>/.test(readFileSync("src/components/app/AppUpdateOverlay.tsx", "utf8")), "the update overlay draws the one wordmark");
@@ -89,8 +95,10 @@ ok(og2?.w === 1200 && og2.h === 630, "og-image.png is 1200×630");
 // The manifest and the head.
 const manifest = JSON.parse(readFileSync("public/manifest.webmanifest", "utf8"));
 ok(same(manifest.background_color, BRAND_INK), `manifest background_color is --jz-bg (${manifest.background_color})`);
+ok(same(manifest.theme_color, BRAND_INK), `manifest theme_color is --jz-bg (${manifest.theme_color})`);
 const root = readFileSync("src/routes/__root.tsx", "utf8");
 ok(/APP_SPLASHES\.map\(\(splash\) => \(\{ rel: "apple-touch-startup-image", href: splash\.href, media: splash\.media \}\)\)/.test(root), "the root head links every launch screen");
+ok(/\{ name: "theme-color", content: BRAND_INK \}/.test(root), "the page's theme-color meta is --jz-bg");
 ok(/apple-mobile-web-app-capable/.test(root), "the head marks the page a home-screen app (iOS reads launch screens only then)");
 
 if (failures) {
