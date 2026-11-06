@@ -774,6 +774,12 @@
     "size": "390x844"
   },
   {
+    "file": "celebrations/celebrations_winner-reveal_reveal_390x844.png",
+    "area": "celebrations",
+    "label": "Winner reveal",
+    "size": "390x844"
+  },
+  {
     "file": "celebrations/celebrations_reveal_150-hero-run_390x844.png",
     "area": "celebrations",
     "label": "Reveal 150: the hero run",
@@ -795,12 +801,6 @@
     "file": "celebrations/celebrations_reveal_200-fireworks-late_390x844.png",
     "area": "celebrations",
     "label": "Reveal 200, later in the lap",
-    "size": "390x844"
-  },
-  {
-    "file": "celebrations/celebrations_winner-reveal_reveal_390x844.png",
-    "area": "celebrations",
-    "label": "Winner reveal",
     "size": "390x844"
   }
 ]

@@ -458,6 +458,11 @@ file.
   - Game screens: Space Grotesk / Inter / JetBrains Mono, on category gradients.
 - **Gold means "tap to play"** (`docs/design-system.md`). The rule is followed on the tab pages, but the gold CTA
   exists as three separate classes.
+- **Two wordmarks.** The share card (`src/lib/share/resultCard.ts`, `share_card_result-card_1080x1350.png`) writes
+  "Joulz" in mixed case beside a gold bolt tile, while the app header writes "JOULZ" in Archivo 900 at 118 % with a
+  gold Z. The app icon is a third treatment: the inverted bolt on gold.
+- **Desktop shows a house banner** ("Saturday night quiz", `BannerSlot`) above Play, Practice and Tournaments, built
+  from the public schedule; phones never show it.
 - **Room screens draw no tab bar;** the header carries a "⋯" menu for Disband and Leave (`RoomFooter.tsx`). Desktop
   replaces the tab bar with a 240 px rail and adds a right-hand column (`docs/desktop-layout.md`).
 - **The harness always treats this device as the host,** so screens a guest sees are under-represented. The lobby
@@ -476,6 +481,8 @@ file.
 | Slow network | Retries are silent and leave no visible state to capture. Loading states drawn: room loading. |
 | A real round played to its end on the phone | The reveal, results and celebrations are drawn from stored results (fixtures), as the room would show them, not from live play. |
 | Haptics | Not visible; mapped in §7. |
-| Hero in Spacewalk (Jaywalk) | Spacewalk now draws a pixel astronaut, not the hero (since 3 Nov 2026). The hero frames in `screenshots/hero/` come from `scripts/shots/hero-shots.ts`. Its "jaywalk" frame (`hero_jaywalk_standing_*`) is from that tool's older drawing path and may not match today's Spacewalk. |
+| Hero in Spacewalk (Jaywalk) | Spacewalk now draws a pixel astronaut, not the hero (since 3 Nov 2026), so it has no hero frame. `screenshots/hero/` holds Grappler and Roofbound renders from `scripts/shots/hero-shots.ts` (the real renderers, at 414 px and 4× close-ups). |
+| Hero moments on the reveal | The reveal plays its hero once, as soon as it opens, before a screenshot can settle. The shots in `celebrations/` re-fire the same moment (`heroRun`, `heroDance`, `heroGrand`) through the page's own celebrations module, as `scripts/celebrations-browser.ts` does, and are taken mid-move. |
+| Puzzle reveal board | The puzzle answer reveals (Box Six) stay on "Revealing…" because the harness doesn't serve the closed round's full puzzle (`fetchRevealPuzzle`). The score, verdict and footer are real; the solved board that fills the space on a phone is missing. The arcade reveals (chart, breakdown) are complete. |
 
 Every planned shot was captured (121 frames from the capture script, 0 misses; plus the hero renders, asset copies and the typography close-up).
