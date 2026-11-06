@@ -222,7 +222,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
           {dict.ready ? null : (
             <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
               <p className="rounded-lg bg-background/80 px-3 py-2 font-mono text-sm text-foreground">
-                {dict.failed ? "Couldn't load the words – retrying…" : "Loading words…"}
+                {dict.failed ? "Couldn’t load the words – retrying…" : "Loading words…"}
               </p>
             </div>
           )}

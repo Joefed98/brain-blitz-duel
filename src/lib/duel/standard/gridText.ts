@@ -13,7 +13,7 @@ const fmt = (n: number) => String(Math.round(n * 10) / 10);
 const UNFINISHED: Record<GridStandardType, string> = {
   fences: "the share of the loop you draw, less lines drawn off it, more for drawing it early",
   fillomino: "the share of blank squares numbered right, less those numbered wrong, more for doing it early",
-  bridges: "the share of the solution's bridges you build, less wrong ones, more for building them early",
+  bridges: "the share of the solution’s bridges you build, less wrong ones, more for building them early",
   kakuro: "the share of white squares filled right, less those filled wrong, more for doing it early",
 };
 

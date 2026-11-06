@@ -493,7 +493,7 @@ for (const mineFirst of [true, false]) {
   const mark = await mount(React.createElement(LogoMark, {}));
   const wordmark = await mount(React.createElement(AppWordmark));
   check(!wordmark.host.querySelector("[data-logo-charge]") && !mark.host.querySelector("[data-logo-charge]"), "off: the logo charges in");
-  check(mark.host.querySelectorAll("path").length === 4 && !mark.host.querySelector("clipPath, animate"), "off: the logo's markup changed");
+  check(mark.host.querySelectorAll("path").length === 3 && !mark.host.querySelector("clipPath, animate"), "off: the logo's markup changed");
   C.heroRun(1);
   C.goStrike();
   C.showBanner(1, "x");

@@ -127,13 +127,13 @@
   --cat-hi: var(--ap-text-2);
 }
 
-/* Tap feedback, as on the tab pages: sink to 98 % and lighten; transform and filter only. */
+/* Tap feedback, as on the tab pages: sink to 97 % and lighten; transform and filter only. */
 [data-skin]:not([data-tab-screen]) .press {
-  transition: transform 90ms ease-out, filter 90ms ease-out;
+  transition: transform var(--jz-fast) var(--jz-ease), filter var(--jz-fast) ease-out;
   -webkit-tap-highlight-color: transparent;
 }
 [data-skin]:not([data-tab-screen]) .press:active:not(:disabled) {
-  transform: scale(0.98);
+  transform: scale(0.97);
   filter: brightness(1.12);
 }
 @media (prefers-reduced-motion: reduce) {

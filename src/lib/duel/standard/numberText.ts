@@ -110,7 +110,7 @@ export function standardNumberHelp(type: PuzzleType): string {
       ], { total: max });
     case "numline":
       return scoreList([
-        { label: "Accuracy", how: `place all 15 numbers; each scores in full within ${pct(BALLPARK_STD_FULL)} of the line's length, nothing at ${pct(BALLPARK_STD_ZERO)} away`, max: STANDARD_FINISH },
+        { label: "Accuracy", how: `place all 15 numbers; each scores in full within ${pct(BALLPARK_STD_FULL)} of the line’s length, nothing at ${pct(BALLPARK_STD_ZERO)} away`, max: STANDARD_FINISH },
         { label: "Speed", how: `place them all within ${g!.fullByS} s for all of it, falling to 0 at the buzzer, times your accuracy`, max: g!.speed },
         { label: "Bullseyes", how: `${BALLPARK_STD_BULL_POINTS} for each number within ${pct(BALLPARK_STD_BULLSEYE)}, finished or not`, max: BALLPARK_STD_BULL_MAX },
         { label: "Not finished", how: `up to ${BALLPARK_STD_ITEM} for each number by how close, more for placing close ones early`, max: STANDARD_UNFINISHED_CAP },

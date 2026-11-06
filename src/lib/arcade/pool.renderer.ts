@@ -788,7 +788,7 @@ function drawSetBanner(ctx: CanvasRenderingContext2D, s: PoolState): void {
   ctx.font = `800 22px ${FONT}`;
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
-  ctx.fillText(`YOU'RE ${poolSetName(set).toUpperCase()}`, cx, cy - 18);
+  ctx.fillText(`YOU’RE ${poolSetName(set).toUpperCase()}`, cx, cy - 18);
   for (let id = 1; id <= POOL_SPOTS; id++) drawBall(ctx, poolShownId(id, set), cx - 3 * 22 + (id - 1) * 22, cy + 18, 8);
   ctx.restore();
 }

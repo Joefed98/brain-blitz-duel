@@ -32,7 +32,7 @@ export function OfflineInstallCard() {
         <span className="font-semibold text-foreground">Add to Home Screen</span>
       </p>
       <p className="text-[13.5px] text-muted-foreground">
-        Practice then works with no signal, and Safari can't clear your saved games.
+        Practice then works with no signal, and Safari can’t clear your saved games.
       </p>
     </section>
   );

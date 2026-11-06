@@ -317,7 +317,7 @@ try {
       check(!(await calls(page)).includes("createRoom"), "no room is created before I AGREE");
       check((await page.locator("[data-terms-contact]").count()) === 0, "CONTACT_EMAIL empty: no contact line");
       const text = (await page.locator("[data-terms-content]").textContent()) ?? "";
-      check(text.includes('Joulz ("we", "us")') && !/the company/.test(text), "the terms name the operator: Joulz (\"we\", \"us\")");
+      check(text.includes("Joulz (“we”, “us”)") && !/the company/.test(text), "the terms name the operator: Joulz (“we”, “us”)");
       check(text.includes("chat messages you send in a room"), "what we record includes room chat");
       for (const phrase of ["early-access beta", "free", "18", "copy", "reverse engineer", "scrape", "redistribute", "leaderboards", "share", "device ID", "nicknames", "scores", "crash reports", "run the game", "delete your data"])
         check(text.includes(phrase), `the terms say "${phrase}"`);

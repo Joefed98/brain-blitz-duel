@@ -225,7 +225,7 @@ check(!drawError, `the card fails to draw: ${drawError}`);
 const all = drawn.join(" | ");
 check(!all.includes(SECRET), "the card draws answer or puzzle content");
 check(
-  all.includes(APP_NAME.slice(0, -1)) && all.includes(APP_NAME.slice(-1)),
+  all.includes(APP_NAME.toUpperCase()),
   `the card lacks the app name: ${all}`,
 );
 check(

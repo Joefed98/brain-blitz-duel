@@ -27,7 +27,7 @@ export function RunScore({ run }: { run: QueuedRun }) {
   if (run.status === "rejected") {
     return (
       <span data-run-status="rejected" className="of-mark">
-        Couldn't be confirmed
+        Couldn’t be confirmed
       </span>
     );
   }
