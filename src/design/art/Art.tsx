@@ -34,7 +34,9 @@ type Box = { x: number; y: number; w: number; h: number };
 
 /** One SVG of a piece at `width` px (its height from the box), the markup styled once per id and inputs. */
 function ArtSvg({ box, width, markup }: { box: Box; width: number; markup: string }) {
-  const html = useMemo(() => styled(markup), [markup]);
+  // One object per markup: React 19 rewrites dangerouslySetInnerHTML whenever the object changes, so a fresh one each
+  // render redrew every medal on each room clock tick (battery-check).
+  const inner = useMemo(() => ({ __html: styled(markup) }), [markup]);
   const height = Math.round(((width * box.h) / box.w) * 10) / 10;
   return (
     <svg
@@ -43,7 +45,7 @@ function ArtSvg({ box, width, markup }: { box: Box; width: number; markup: strin
       viewBox={`${box.x} ${box.y} ${box.w} ${box.h}`}
       aria-hidden="true"
       focusable="false"
-      dangerouslySetInnerHTML={{ __html: html }}
+      dangerouslySetInnerHTML={inner}
     />
   );
 }
