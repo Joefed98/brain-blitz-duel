@@ -27,9 +27,10 @@ export interface PublicGameConfig {
 }
 
 /**
- * The beta's persistent public room. "JOULZ" can't be a room code: codes are 4 letters with no I or O
- * (generateRoomCode, src/lib/duel/puzzles.ts), so the nearest valid code is JULZ. New rooms never get
- * it (RESERVED_ROOM_CODES); the room itself is made once by hand (docs/beta-sql.md section 11).
+ * The beta's persistent public room. "JOULZ" can't be a room code: codes are 4 characters (roomCode.ts),
+ * so the nearest code was JULZ, made under the first alphabet (A–Z without I or O). New rooms never get
+ * it (RESERVED_ROOM_CODES; since 7 Nov 2026 their alphabet has no L either); the room itself is made once
+ * by hand (docs/beta-sql.md section 11).
  */
 export const PUBLIC_ROOM_CODE = "JULZ";
 
