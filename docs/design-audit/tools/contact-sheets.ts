@@ -25,12 +25,13 @@ const TITLES: Record<string, string> = {
   share: "Share",
   celebrations: "Celebrations and the Joulz Hero",
   states: "Empty, error, offline and update states",
+  assets: "Assets: app icons, in-game logo, link preview",
   desktop: "Desktop 1440×900",
 };
 const groups = new Map<string, typeof index>();
 for (const f of index) {
   if (f.file.includes("-scrolled")) continue;
-  const key = f.size === "1440x900" ? "desktop" : f.size === "390x844" ? f.area : null;
+  const key = f.size === "1440x900" ? "desktop" : f.area === "typography" ? null : f.area;
   if (!key) continue;
   groups.set(key, [...(groups.get(key) ?? []), f]);
 }

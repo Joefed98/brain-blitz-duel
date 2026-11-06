@@ -243,6 +243,13 @@ const updating = async (page: Page) => {
   await page.waitForTimeout(300);
 };
 
+/** Re-fires a hero moment through the page's own celebrations module (as scripts/celebrations-browser.ts does)
+ * and waits `ms` into it: the reveal plays it once on open, before a screenshot can settle. */
+const hero = (fn: "heroRun" | "heroDance" | "heroGrand", ms: number) => async (page: Page) => {
+  await page.evaluate(`import("/src/lib/fx/celebrations.ts").then((C) => { const scope = C.celebrationScope(); C.${fn}(scope, document.querySelector("[data-hero-spot]")); })`);
+  await page.waitForTimeout(ms);
+};
+
 const S: Shot[] = [
   // ---------------------------------------------------------------- Play
   { area: "play", screen: "home", state: "first-visit", label: "Play: first visit (intro card)", base: { name: "play first", mode: "home", daily: () => dailyFixture().before, challenge: () => challengeFixture("create") }, override: NEW_DEVICE, desktop: true, scrollEnd: true },
@@ -324,13 +331,13 @@ const S: Shot[] = [
   { area: "challenge", screen: "error", state: "not-found", label: "Challenge link not found", base: { name: "nf", mode: "challenge", search: { code: "ZZZZZZ" }, waitMs: 1500 } },
   { area: "share", screen: "card", state: "room-podium", label: "Share card (room podium)", base: theme("podium, 10 players"), override: { share: true }, shareCard: true },
   // ------------------------------------------------------- Celebrations and Hero
-  { area: "celebrations", screen: "reveal", state: "150-hero-run", label: "Reveal 150: the hero run", base: { name: "r150", mode: "room", room: revealWith(150), waitMs: 900, plain: true } },
-  { area: "celebrations", screen: "reveal", state: "190-hero-dance", label: "Reveal 190: the hero dance", base: { name: "r190", mode: "room", room: revealWith(190), waitMs: 1300, plain: true } },
-  { area: "celebrations", screen: "reveal", state: "200-hero-grand", label: "Reveal 200: the grand lap and fireworks", base: { name: "r200", mode: "room", room: revealWith(200), waitMs: 1500, plain: true } },
-  { area: "celebrations", screen: "reveal", state: "200-fireworks-late", label: "Reveal 200, 2.6 s in", base: { name: "r200b", mode: "room", room: revealWith(200), waitMs: 2600, plain: true } },
+  { area: "celebrations", screen: "reveal", state: "150-hero-run", label: "Reveal 150: the hero run", base: { name: "r150", mode: "room", room: revealWith(150), waitMs: 2600, plain: true }, after: hero("heroRun", 500) },
+  { area: "celebrations", screen: "reveal", state: "190-hero-dance", label: "Reveal 190: the hero dance", base: { name: "r190", mode: "room", room: revealWith(190), waitMs: 3000, plain: true }, after: hero("heroDance", 800) },
+  { area: "celebrations", screen: "reveal", state: "200-hero-grand", label: "Reveal 200: the grand lap and fireworks", base: { name: "r200", mode: "room", room: revealWith(200), waitMs: 2400, plain: true }, after: hero("heroGrand", 1250) },
+  { area: "celebrations", screen: "reveal", state: "200-fireworks-late", label: "Reveal 200, later in the lap", base: { name: "r200b", mode: "room", room: revealWith(200), waitMs: 3600, plain: true }, after: hero("heroGrand", 2050) },
   { area: "celebrations", screen: "podium", state: "winner-hero", label: "Podium: the winner's hero and burst", base: { ...theme("podium, 10 players"), waitMs: 1200 } },
   { area: "celebrations", screen: "podium", state: "whitewash", label: "Podium after a whitewash (200 every round)", base: { name: "ww", mode: "room", room: whitewash, waitMs: 3500 } },
-  { area: "celebrations", screen: "winner-reveal", state: "reveal", label: "Winner reveal", base: { name: "wr", mode: "room", room: room("finished", "winner_reveal", { players: 4, rounds: 6 }), waitMs: 1200, plain: true } },
+  { area: "celebrations", screen: "winner-reveal", state: "reveal", label: "Winner reveal", base: { name: "wr", mode: "room", room: room("in_progress", "winner_reveal", { players: 4, rounds: 6 }), waitMs: 1200, plain: true } },
   // --------------------------------------------------------------- States
   { area: "states", screen: "offline", state: "play", label: "Offline: Play tab", base: theme("play"), after: offline },
   { area: "states", screen: "offline", state: "practice", label: "Offline: Practice (banner)", base: theme("practice list"), after: offline },
