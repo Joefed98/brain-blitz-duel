@@ -97,6 +97,19 @@ Archivo variable font, self-hosted (weights 400–900, widths 62–125 %).
 
 Weights in use: **400, 600, 800**, plus 900 for the wordmark only. Retire 450, 500, 550, 620, 650, 700 and 750.
 
+### Text emphasis: one bright thing per panel
+
+A panel has one bright thing; everything else steps down, so the eye lands on what matters.
+
+1. **`--jz-text` (white)** only for a panel's headline or its key number (a rating, score, price, or a count that
+   matters).
+2. **`--jz-text-2`** for names and labels: player names, game names, card titles in lists, category labels.
+3. **`--jz-text-3`** for supporting detail: times, counts, hints, captions.
+4. **Colour carries meaning, not brightness:** gold for yours or being won, cyan for live and positive, red for
+   down or wrong (section 2, Accents).
+5. **Cut lines that repeat what the screen already shows.** No " · " separators in meta lines: use a comma or
+   chips.
+
 ---
 
 ## 4. Space and shape
