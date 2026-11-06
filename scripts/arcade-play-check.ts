@@ -295,7 +295,15 @@ function seeded(seed: number) {
 
 async function startServer(): Promise<{ origin: string; proc: ChildProcess | null }> {
   if (URL_ARG) return { origin: URL_ARG.replace(/\/$/, ""), proc: null };
-  const proc = spawn("npx", ["vite", "dev", "--port", String(PORT), "--host", "127.0.0.1", "--strictPort"], { stdio: "ignore", detached: true });
+  // A 4 GB heap for this check's dev server (5 Nov 2026, a stopgap as app-shell-check's): on CI it sat at 1.9 GB of
+  // Node's ~2.2 GB default heap all run (the dev-server capture, ci-results/dev-server), slowing pages until Hover's
+  // load timed out in the desktop pass (arcade-play-desktop-check runs this script). The first-deal compile spike
+  // that drives it is on the later list. Runners have ~7.7 GB.
+  const proc = spawn("npx", ["vite", "dev", "--port", String(PORT), "--host", "127.0.0.1", "--strictPort"], {
+    stdio: "ignore",
+    detached: true,
+    env: { ...process.env, NODE_OPTIONS: `${process.env.NODE_OPTIONS ?? ""} --max-old-space-size=4096`.trim() },
+  });
   const origin = `http://127.0.0.1:${PORT}`;
   for (let i = 0; i < 120; i++) {
     try {
