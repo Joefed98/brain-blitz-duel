@@ -18,7 +18,7 @@ import { noteShareArrival } from "../lib/share/shareRef";
 import { PLAY_CARDS_BOOT } from "../lib/playCards";
 import { installSoundCueBridge, installSoundUnlock } from "../lib/sound";
 import { batterySaverOn } from "../lib/battery";
-import { APP_DESCRIPTION, APP_ICONS, APP_NAME, APP_TITLE, canonicalUrl, LINK_PREVIEW } from "../lib/brand";
+import { APP_DESCRIPTION, APP_ICONS, APP_NAME, APP_SPLASHES, APP_TITLE, canonicalUrl, LINK_PREVIEW } from "../lib/brand";
 import { installAppUpdater } from "../lib/appUpdate";
 import { reportCrash, startCrashReporting } from "../lib/crashReporting";
 import { THEME_FONTS } from "../lib/theme";
@@ -44,7 +44,7 @@ function NotFoundComponent() {
         </header>
         <ErrorState
           title="Page not found"
-          body={`This page isn't part of ${APP_NAME}, or it has moved. Head back to Play, or start a room.`}
+          body={`This page isn’t part of ${APP_NAME}, or it has moved. Head back to Play, or start a room.`}
           action={{ label: "Create a room", onClick: () => void navigate({ to: "/" }) }}
         />
       </div>
@@ -64,7 +64,7 @@ function ErrorComponent({ error, reset }: ErrorComponentProps) {
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="max-w-md text-center">
         <h1 className="text-xl font-semibold tracking-tight text-foreground">
-          This page didn't load
+          This page didn’t load
         </h1>
         <p className="mt-2 text-sm text-muted-foreground">
           Something went wrong on our end. You can try refreshing or head back home.
@@ -142,7 +142,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         rel: "stylesheet",
         href: GOOGLE_FONTS_CSS,
       },
-      // The app's icons (Prompt R): the inverted logo mark on the gold shine (scripts/brand-icons.ts).
+      // The app's icons (Prompt R; F4): the black logo mark on the ring-gold metal (scripts/brand-icons.ts).
       ...APP_ICONS.filter((icon) => icon.use === "favicon").map((icon) => ({
         rel: "icon",
         href: icon.href,
@@ -150,6 +150,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         sizes: `${icon.size}x${icon.size}`,
       })),
       { rel: "apple-touch-icon", href: APP_ICONS.find((icon) => icon.use === "apple-touch-icon")!.href, sizes: "180x180" },
+      // The home-screen app's launch screens (F4): the gold bolt on --jz-bg, one per iPhone screen.
+      ...APP_SPLASHES.map((splash) => ({ rel: "apple-touch-startup-image", href: splash.href, media: splash.media })),
       { rel: "manifest", href: "/manifest.webmanifest" },
       // The canonical address: this page's path on APP_URL (src/config/appUrl.ts), never a query
       // string, so the redirecting domains and preview hosts all point search engines at joulz.uk.

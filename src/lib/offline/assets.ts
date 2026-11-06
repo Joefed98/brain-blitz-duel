@@ -16,6 +16,8 @@ export const MEDIA_DIRS = ["sounds", "tiles", "wordfall"] as const;
 /** Public files never kept: the link preview image and licence texts are not used by the app itself. */
 export function keepPublicFile(path: string): boolean {
   if (path === "/og-image.png" || path === "/robots.txt") return false;
+  // The iPhone launch screens (APP_SPLASHES): iOS reads them when the app is added to the home screen.
+  if (path.startsWith("/splash/")) return false;
   if (/\.txt$/.test(path) && !path.startsWith("/wordfall/")) return false;
   return true;
 }

@@ -1526,6 +1526,22 @@ outside the repo.
   art (src/lib/arcade, canvas code) is excluded and puzzle boards' own art is warned, never failed; a deliberate exception
   takes `design-lint-ignore` on the line. It also proves `--jz-player-N` matches `PLAYER_COLOURS`. theme-check checks the
   token contrast pairs from tokens.css and the skinned screens on the new values.
+- **Design foundation F4: brand and polish** (6 Nov 2026; presentation only, no stamps; `DESIGN.md`): *one wordmark*
+  (`src/components/brand/wordmark.ts`): APP_NAME in Archivo 900 at 118 %, every letter white (`--jz-white`, capitals by
+  CSS), then the bolt in flat `--jz-gold` (LogoMark; both halves one path, `LOGO_PATHS.bolt`, so no seam), on the
+  header, the share card (a canvas face pinned to 900 / 118 %, `loadWordmarkFace`), the link preview and the update
+  overlay (`AppWordmark still`). The canvases and asset scripts read the brand colours from `logoGeometry.ts`
+  (`BRAND_GOLD`, `BRAND_INK`, `BRAND_TEXT_3`, `RING_GOLD`, `cssGradientLine`), mirrors of the tokens. `bun
+  scripts/brand-icons.ts` draws the app icons (the black bolt on the ring-gold metal, `--jz-gold-metal` at 165°), the
+  solve burst's logo (`public/icon-512.png`: the bolt in the ring-gold metal on `--jz-bg`) and the iPhone launch
+  screens (`APP_SPLASHES`, `public/splash/`, the gold bolt on `--jz-bg`, linked as `apple-touch-startup-image`, not kept
+  offline); `bun scripts/og-image.ts` the link preview; the manifest's background is `--jz-bg`. Copy: player-facing
+  strings use ’ “ ” (the mechanical pass from `docs/design-audit/strings.csv`; the bomb bank's stored rule text and dev
+  messages left alone). Press states: `.jz-press` (`src/design/utilities.css`, on the shadcn Button) and one rule for
+  every other button in app and game chrome sink to 97 % over `--jz-fast` with the `scale` property (never in game
+  art: `data-skin-off`, `data-game-arena`, `data-game-stage`); `.press` and its skin overrides match. brand-assets-check
+  (~1 s) proves the mirrors, the wordmark's sources and every image's size; review images
+  `bun scripts/shots/brand-f4-shots.ts` (`screenshots/brand-f4-nov-2026/`).
 - `src/components/duel/` — room/round screens (PhoneShell, RoundIntro, TimerBar,
   AnswerReveal, ArcadeReveal, WinnerReveal…); `src/components/puzzles/` — shared puzzle
   widgets; `src/lib/fx/` — sound and visual feedback (presentation only).

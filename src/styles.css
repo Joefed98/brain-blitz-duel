@@ -702,11 +702,11 @@ html,
   min-height: 48px;
 }
 
-/* Pressed state for every button-like control. */
+/* Pressed state for every button-like control: 97 % over --jz-fast (DESIGN.md section 5; F4). */
 @utility press {
   transition:
-    transform 80ms ease-out,
-    opacity 120ms ease-out;
+    transform var(--jz-fast) var(--jz-ease),
+    opacity var(--jz-fast) ease-out;
   &:active:not(:disabled) {
     transform: scale(0.97);
   }

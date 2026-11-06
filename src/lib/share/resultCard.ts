@@ -6,14 +6,22 @@
  */
 import { APP_NAME } from "@/lib/brand";
 import {
-  GOLD_SHINE_STOPS,
   LOGO_BOX,
   LOGO_COLOURS,
+  LOGO_HAIRLINE_PX,
   LOGO_LEAD,
   LOGO_LOWER,
   LOGO_TRAIL,
   LOGO_UPPER,
 } from "@/components/brand/logoGeometry";
+import {
+  loadWordmarkFace,
+  WORDMARK_GAP_EM,
+  WORDMARK_LETTER_SPACING_EM,
+  WORDMARK_MARK_EM,
+  WORDMARK_TEXT,
+  wordmarkCanvasFont,
+} from "@/components/brand/wordmark";
 import { arcadeGroupInfo, arcadeGroupOf } from "@/lib/duel/arcadeGroups";
 import { ordinal } from "@/lib/duel/ordinal";
 import { puzzleDef } from "@/lib/duel/registry";
@@ -28,6 +36,8 @@ const INK = "#07070A";
 const TEXT = "#F5F5F7";
 const MUTED = "#BDBDCC";
 const GOLD = "#F2C75C";
+/** The wordmark's letters (--jz-white). */
+const WORDMARK_WHITE = "#FFFFFF";
 const GOLD_HI = "#FFE7A3";
 const GOLD_LO = "#B9862A";
 const MEDALS: Record<number, [string, string]> = {
@@ -62,6 +72,7 @@ export async function loadCardFonts(): Promise<void> {
       `600 40px "Archivo"`,
     ].map((f) => document.fonts.load(f).catch(() => [])),
   );
+  await loadWordmarkFace();
 }
 
 type Ctx = CanvasRenderingContext2D;
@@ -120,40 +131,34 @@ function bolt(c: Ctx, x: number, y: number, s: number): void {
   c.fill();
 }
 
-/** The app's logo (Prompt R): the inverted mark on a rounded square of the gold shine (logoGeometry.ts). */
-function logoMark(c: Ctx, x: number, y: number, s: number): void {
+/**
+ * The bolt of the one wordmark (design foundation F4, wordmark.ts): the logo mark in flat --jz-gold
+ * (LOGO_COLOURS.gold), `h` px tall with its top-left at (x, y), its speed lines hairlines as LogoMark's.
+ */
+function goldBolt(c: Ctx, x: number, y: number, h: number): void {
+  const look = LOGO_COLOURS.gold;
+  const k = h / LOGO_BOX.h;
   c.save();
   c.shadowBlur = 0;
-  roundRect(c, x, y, s, s, s * 0.225);
-  const shine = c.createLinearGradient(0, y, 0, y + s);
-  for (const [offset, colour] of GOLD_SHINE_STOPS) shine.addColorStop(offset, colour);
-  c.fillStyle = shine;
-  c.fill();
-  const k = (s * 0.58) / LOGO_BOX.h;
-  const ox = x + (s - LOGO_BOX.w * k) / 2;
-  const oy = y + (s - LOGO_BOX.h * k) / 2;
-  const look = LOGO_COLOURS.inverted;
-  const polygon = (points: readonly (readonly [number, number])[], colours: readonly string[]) => {
-    const fill = c.createLinearGradient(0, oy + Math.min(...points.map((p) => p[1])) * k, 0, oy + Math.max(...points.map((p) => p[1])) * k);
-    colours.forEach((colour, i) => fill.addColorStop(i / (colours.length - 1), colour));
-    c.beginPath();
-    points.forEach(([px, py], i) => (i ? c.lineTo(ox + px * k, oy + py * k) : c.moveTo(ox + px * k, oy + py * k)));
+  c.fillStyle = look.upper[0];
+  // Both halves in one path, filled once, so their shared edge leaves no seam.
+  c.beginPath();
+  for (const points of [LOGO_UPPER, LOGO_LOWER]) {
+    points.forEach(([px, py], i) => (i ? c.lineTo(x + px * k, y + py * k) : c.moveTo(x + px * k, y + py * k)));
     c.closePath();
-    c.fillStyle = fill;
-    c.fill();
-  };
-  polygon(LOGO_UPPER, look.upper);
-  polygon(LOGO_LOWER, look.lower);
-  c.lineWidth = k;
+  }
+  c.fill();
+  c.lineWidth = Math.max(LOGO_HAIRLINE_PX * 2, k * 0.6);
   c.lineCap = "round";
   for (const line of [LOGO_TRAIL, LOGO_LEAD]) {
-    const fade = c.createLinearGradient(ox + line.from * k, 0, ox + line.to * k, 0);
-    fade.addColorStop(0, `rgb(13 13 15 / ${look.lineOpacity})`);
-    fade.addColorStop(1, "rgb(13 13 15 / 0)");
+    const fade = c.createLinearGradient(x + line.from * k, 0, x + line.to * k, 0);
+    fade.addColorStop(0, look.line);
+    fade.addColorStop(1, "transparent");
     c.strokeStyle = fade;
+    c.globalAlpha = look.lineOpacity;
     c.beginPath();
-    c.moveTo(ox + line.from * k, oy + line.y * k);
-    c.lineTo(ox + line.to * k, oy + line.y * k);
+    c.moveTo(x + line.from * k, y + line.y * k);
+    c.lineTo(x + line.to * k, y + line.y * k);
     c.stroke();
   }
   c.restore();
@@ -238,25 +243,23 @@ export function drawResultCard(c: Ctx, data: RoomShareData, icons: CardIcons = n
   c.lineWidth = 4;
   c.stroke();
 
-  // The app name: Archivo 800, its last letter gold (the Wordmark), the logo beside it.
-  c.font = `800 112px ${DISPLAY}`;
-  const head = APP_NAME.slice(0, -1);
-  const last = APP_NAME.slice(-1);
-  const headW = c.measureText(head).width;
-  const lastW = c.measureText(last).width;
-  const boltS = 92;
-  const nameW = headW + lastW + 18 + boltS;
-  let x = CARD_W / 2 - nameW / 2;
+  // The one wordmark (wordmark.ts): JOULZ in Archivo 900 at 118 % width, all white, then the gold
+  // bolt as tall as the font size; the pair centred, the bolt centred on the letters.
+  const wordPx = 112;
+  c.font = wordmarkCanvasFont(wordPx);
+  c.letterSpacing = `${(wordPx * WORDMARK_LETTER_SPACING_EM).toFixed(2)}px`;
+  const wordW = c.measureText(WORDMARK_TEXT).width;
+  const boltH = wordPx * WORDMARK_MARK_EM;
+  const markGap = wordPx * WORDMARK_GAP_EM;
+  const boltW = (boltH * LOGO_BOX.w) / LOGO_BOX.h;
+  const baseline = 196;
+  const capH = c.measureText(WORDMARK_TEXT).actualBoundingBoxAscent || wordPx * 0.72;
+  const x = CARD_W / 2 - (wordW + markGap + boltW) / 2;
   c.textAlign = "left";
-  c.fillStyle = TEXT;
-  c.fillText(head, x, 196);
-  c.fillStyle = goldFill(c, 110, 200);
-  c.shadowColor = "rgb(242 199 92 / 0.6)";
-  c.shadowBlur = 24;
-  c.fillText(last, x + headW, 196);
-  x += headW + lastW + 18;
-  logoMark(c, x, 106, boltS);
-  c.shadowBlur = 0;
+  c.fillStyle = WORDMARK_WHITE;
+  c.fillText(WORDMARK_TEXT, x, baseline);
+  c.letterSpacing = "0px";
+  goldBolt(c, x + wordW + markGap, baseline - capH / 2 - boltH / 2, boltH);
   c.textAlign = "center";
 
   c.fillStyle = MUTED;
