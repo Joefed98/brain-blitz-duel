@@ -11,7 +11,7 @@ import { dismissOfflineInstall } from "@/lib/offline/online";
  */
 export function OfflineInstallCard() {
   return (
-    <section aria-label="Play offline" data-offline-install-card className="ap-panel relative flex-col gap-1.5 py-3.5 pl-4 pr-12">
+    <section aria-label="Play offline" data-offline-install-card className="jz-panel relative flex-col gap-1.5 py-3.5 pl-4 pr-12">
       <button
         type="button"
         onClick={dismissOfflineInstall}
@@ -22,7 +22,7 @@ export function OfflineInstallCard() {
       </button>
       <div className="flex items-center gap-2.5">
         <SquarePlus aria-hidden="true" className="h-5 w-5 shrink-0 text-muted-foreground" />
-        <h2 className="ap-row-title">Play offline</h2>
+        <h2 className="jz-row-title">Play offline</h2>
       </div>
       <p className="flex flex-wrap items-center gap-x-1 text-[14px] text-muted-foreground">
         <span>Tap</span>

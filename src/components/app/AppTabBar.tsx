@@ -1,6 +1,7 @@
 import { useRouter } from "@tanstack/react-router";
-import { Target, Trophy, UserRound, Zap, type LucideIcon } from "lucide-react";
 import type { MouseEvent } from "react";
+
+import { TabBar, TAB_PATHS, type AppTab } from "@/design/components/TabBar";
 
 import { unlockAudio } from "@/lib/sound";
 
@@ -13,21 +14,7 @@ import { unlockAudio } from "@/lib/sound";
  * opened from another tab replace it, and Play from a tab that came from Play goes back, so the
  * back button always returns to Play once and then leaves, never cycling through every tab.
  */
-export type AppTab = "play" | "practice" | "tournaments" | "profile";
-
-export const TAB_PATHS: Record<AppTab, "/" | "/practice" | "/tournaments" | "/profile"> = {
-  play: "/",
-  practice: "/practice",
-  tournaments: "/tournaments",
-  profile: "/profile",
-};
-
-const TABS: { tab: AppTab; label: string; Icon: LucideIcon }[] = [
-  { tab: "play", label: "Play", Icon: Zap },
-  { tab: "practice", label: "Practice", Icon: Target },
-  { tab: "tournaments", label: "Tournaments", Icon: Trophy },
-  { tab: "profile", label: "Profile", Icon: UserRound },
-];
+export { TAB_PATHS, type AppTab };
 
 type TabRouter = ReturnType<typeof useRouter>;
 
@@ -67,23 +54,7 @@ export function AppTabBar({ current }: { current: AppTab }) {
   return (
     <nav aria-label="Main" data-app-tabbar className="app-tabbar">
       <div className="app-tabbar-row">
-        {TABS.map(({ tab, label, Icon }) => {
-          const here = tab === current;
-          return (
-            <a
-              key={tab}
-              href={TAB_PATHS[tab]}
-              onClick={open(tab)}
-              aria-current={here ? "page" : undefined}
-              data-tab={tab}
-              className="ap-tab press flex min-w-0 flex-1 flex-col items-center justify-center gap-1"
-            >
-              {/* Simple line icons (Prompt R): one stroke weight, gold when current (polish-layout/app-pages.css). */}
-              <Icon aria-hidden="true" className="h-6 w-6" strokeWidth={1.9} />
-              <span className="truncate text-[11px] font-semibold leading-none">{label}</span>
-            </a>
-          );
-        })}
+        <TabBar variant="bar" current={current} onOpen={open} />
       </div>
     </nav>
   );

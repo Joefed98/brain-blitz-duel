@@ -14,6 +14,7 @@ import { unlockAudio } from "@/lib/sound";
 import { ErrorState } from "@/components/app/ErrorState";
 
 import { Dots, WaitingLine } from "./Dots";
+import { Button, Input, SkeletonPage } from "@/design/components";
 
 /**
  * Someone opened a room link but isn't in the room. While the room is in its
@@ -81,16 +82,18 @@ export function JoinFromLink({
   };
 
   const home = (
-    <button
-      type="button"
+    <Button
+      variant="secondary"
+      size={50}
+      block
       onClick={() => void navigate({ to: "/" })}
-      className="rs-btn press tap-target h-[50px] w-full max-w-xs"
+      className="max-w-xs"
     >
       Home
-    </button>
+    </Button>
   );
 
-  if (!preview || redirect) return <WaitingLine label="Loading room" />;
+  if (!preview || redirect) return <SkeletonPage label="Loading room" rows={2} card />;
 
   if (!preview.found) {
     return (
@@ -147,21 +150,22 @@ export function JoinFromLink({
         >
           Display name
         </label>
-        <input
+        <Input
           id="link-name"
           value={name}
           autoFocus
           maxLength={14}
           placeholder="Your name"
           onChange={(event) => setName(event.target.value)}
-          className="th-input tap-target w-full rounded-xl border border-border bg-card px-4 py-3 text-base text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
         />
       </div>
       {error && <p className="text-sm text-warn">{error}</p>}
-      <button
+      <Button
+        variant="gold"
+        size={52}
+        block
         type="submit"
         disabled={busy || full}
-        className="th-btn-gold ap-btn-gold press tap-target flex h-[52px] w-full items-center justify-center gap-2 rounded-[14px] text-[17px] disabled:opacity-40"
       >
         {busy ? (
           <>
@@ -173,14 +177,15 @@ export function JoinFromLink({
         ) : (
           "Join room"
         )}
-      </button>
-      <button
-        type="button"
+      </Button>
+      <Button
+        variant="secondary"
+        size={50}
+        block
         onClick={() => void navigate({ to: "/" })}
-        className="rs-btn press tap-target h-[50px] w-full"
       >
         Home
-      </button>
+      </Button>
     </form>
   );
 }

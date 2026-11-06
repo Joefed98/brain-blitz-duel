@@ -8,6 +8,7 @@ import type { PlayerLooks } from "@/lib/duel/playerLook";
 import { isLiveType, puzzleDef, puzzleName } from "@/lib/duel/registry";
 import type { RoomChatState } from "@/lib/duel/useRoomChat";
 import type { DuelPlayerRow, StoredPuzzleType } from "@/lib/duel/types";
+import { Input } from "@/design/components";
 
 /**
  * A room's right panel on the computer layout (31 Oct 2026, presentation only; docs/desktop-layout.md):
@@ -209,13 +210,12 @@ function PanelChat({ chat, myUserId }: { chat: RoomChatState; myUserId: string }
         ))}
       </ul>
       <form onSubmit={submit} className="dk-rp-send">
-        <input
+        <Input
           value={text}
           onChange={(e) => setText(e.target.value)}
           placeholder="Chat…"
           aria-label="Chat message"
           maxLength={200}
-          className="ap-input"
         />
         <button
           type="submit"

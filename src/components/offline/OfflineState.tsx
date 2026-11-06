@@ -1,5 +1,6 @@
 import { useNavigate } from "@tanstack/react-router";
 import { CloudOff } from "lucide-react";
+import { Button } from "@/design/components";
 
 /**
  * What an online-only screen shows with no connection (offline practice, 31 Oct 2026): Play, Tournaments,
@@ -17,14 +18,15 @@ export function OfflineState({ body }: { body: string }) {
         <p className="mx-auto max-w-[300px] text-[15px] leading-snug text-[var(--ap-text-2)]">{body}</p>
       </div>
       <div className="flex w-full max-w-[320px] flex-col gap-2.5">
-        <button
-          type="button"
+        <Button
+          variant="gold"
+          size={52}
+          block
           data-offline-practice
           onClick={() => void navigate({ to: "/practice" })}
-          className="th-btn-gold ap-btn-gold press tap-target h-[52px] w-full rounded-[14px] text-[17px]"
         >
           Go to Practice
-        </button>
+        </Button>
       </div>
     </div>
   );

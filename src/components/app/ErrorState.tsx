@@ -3,6 +3,7 @@ import { useState } from "react";
 
 import { LogoMark } from "@/components/brand/LogoMark";
 import { roomCodeChars } from "@/lib/duel/roomCode";
+import { Button, Input } from "@/design/components";
 
 /**
  * One layout for the error screens (Polish batch R, 25 Oct 2026, presentation only): the 404 page, a room
@@ -47,27 +48,27 @@ export function ErrorState({
             tryCode();
           }}
         >
-          <input
+          <Input
             value={code}
             onChange={(event) => setCode(roomCodeChars(event.target.value).slice(0, 6))}
             placeholder="Room code"
             aria-label="Room code"
             autoCapitalize="characters"
             autoComplete="off"
-            className="ap-input ap-code min-w-0 flex-1"
+            className="min-w-0 flex-1 uppercase tracking-widest"
           />
-          <button type="submit" disabled={code.trim().length < 4} className="rs-btn press tap-target h-[50px] w-[84px] disabled:opacity-50">
+          <Button variant="secondary" size={50} type="submit" disabled={code.trim().length < 4} className="w-21">
             Join
-          </button>
+          </Button>
         </form>
       ) : null}
       <div className="flex w-full max-w-[320px] flex-col gap-2.5">
-        <button type="button" onClick={() => void navigate({ to: "/" })} className="rs-btn press tap-target h-[50px] w-full">
+        <Button variant="secondary" size={50} block onClick={() => void navigate({ to: "/" })}>
           Back to Play
-        </button>
-        <button type="button" onClick={action.onClick} className="th-btn-gold ap-btn-gold press tap-target h-[52px] w-full rounded-[14px] text-[17px]">
+        </Button>
+        <Button variant="gold" size={52} block onClick={action.onClick}>
           {action.label}
-        </button>
+        </Button>
       </div>
     </div>
   );

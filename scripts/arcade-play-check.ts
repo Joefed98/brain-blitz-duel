@@ -35,7 +35,7 @@
  *    not the largest uniform fit of its box, not top-anchored (Tilt, since 15 Oct 2026:
  *    centred vertically, data-arena-centred) and centred across, or its top moving between
  *    sizes (centred worlds excepted); the box or the space below the arena not the screen edge's
- *    black (#070709), or the page behind not that black; the column not ending 16 px
+ *    black (#06080F), or the page behind not that black; the column not ending 16 px
  *    above the bottom, or the lowest control not exactly 16 px above it, whatever the
  *    home-bar inset (at 390x844 also with a 34 px home bar emulated, where the arena must
  *    keep its no-inset size, and with a 47 px notch, where the header must sit just under
@@ -394,7 +394,7 @@ const SCORE_LABEL_MIN_PX = 11;
 // Ball Tracker: its 36px HUD pill strip since 3 Nov 2026 (BT_HUD_H).
 const ABOVE_PX: Record<string, number> = { snip: 24, tendrop: 56, whack: 10 + 36 * 1.1 + 10 + 4 + 8 + 20 + 8, clayshoot: 26, balltrack: 36 };
 /** The screen edge's black (--screen-edge), every gap on an arcade play screen. */
-const EDGE_RGB = "rgb(7, 7, 9)";
+const EDGE_RGB = "rgb(6, 8, 15)";
 
 /** Viewports the arena layout is proved at: four phones and a laptop window. */
 const LAYOUT_VIEWPORTS: [number, number][] = [[375, 667], [390, 700], [390, 844], [430, 932], [1280, 800]];

@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { Button } from "@/design/components";
 
 /** One confirm sheet for room actions that can't be undone (leave, disband, finish). Neutral: none of them plays (the gold rule). */
 export function ConfirmDialog({
@@ -27,13 +28,13 @@ export function ConfirmDialog({
         </p>
         <p className="text-sm text-muted-foreground">{body}</p>
         <div className="flex gap-3">
-          <button
-            type="button"
+          <Button
+            variant="secondary"
             onClick={onCancel}
-            className="rs-btn press tap-target flex-1"
+            className="flex-1"
           >
             Cancel
-          </button>
+          </Button>
           <button
             type="button"
             onClick={onConfirm}

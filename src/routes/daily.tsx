@@ -45,6 +45,7 @@ import { getStoredName, setStoredName } from "@/lib/duel/session";
 import { unlockAudio } from "@/lib/sound";
 import { APP_NAME } from "@/lib/brand";
 import { OnlineOnly } from "@/components/offline/OnlineOnly";
+import { Button, Input, Segmented, SkeletonPage } from "@/design/components";
 
 export const Route = createFileRoute("/daily")({
   ssr: false,
@@ -101,7 +102,8 @@ function stateLine(kind: DailyKind, state: DailyState, count: number | null): st
   return `${state.total} ${state.total === 1 ? "point" : "points"} · ${rankLine(state.rank, count, ordinal)}`;
 }
 
-function Segmented<T extends string>({
+/** A neutral segmented control (Polish batch R): the selected segment a light fill, never gold. */
+function DailySegmented<T extends string>({
   label,
   value,
   options,
@@ -113,21 +115,12 @@ function Segmented<T extends string>({
   onChange: (value: T) => void;
 }) {
   return (
-    // A neutral segmented control (Polish batch R): the selected segment a light fill, never gold.
-    <div role="group" aria-label={label} className="rs-seg">
-      {options.map((option) => (
-        <button
-          key={option.value}
-          type="button"
-          aria-pressed={value === option.value}
-          data-daily-tab={option.value}
-          onClick={() => onChange(option.value)}
-          className="press"
-        >
-          {option.label}
-        </button>
-      ))}
-    </div>
+    <Segmented
+      label={label}
+      value={value}
+      onChange={onChange}
+      options={options.map((option) => ({ value: option.value, label: option.label, data: { "data-daily-tab": option.value } }))}
+    />
   );
 }
 
@@ -304,9 +297,7 @@ function DailyScreen() {
   if (!status) {
     return (
       <PhoneShell skin="play">
-        <div className="flex flex-1 items-center justify-center">
-          <WaitingLine label="Loading the daily" />
-        </div>
+        <SkeletonPage label="Loading the daily" rows={3} card />
       </PhoneShell>
     );
   }
@@ -332,7 +323,7 @@ function DailyScreen() {
         <div className="flex flex-1 flex-col gap-5">
           {header}
           <h1 className="ap-title text-[28px]">Daily challenge</h1>
-          <p className="ap-panel px-4 py-6 text-center text-sm text-muted-foreground">
+          <p className="jz-panel px-4 py-6 text-center text-sm text-muted-foreground">
             The daily challenge is coming soon.
           </p>
         </div>
@@ -353,7 +344,7 @@ function DailyScreen() {
           </p>
         </div>
 
-        <Segmented
+        <DailySegmented
           label="Daily"
           value={kind}
           options={DAILY_KINDS.map((k) => ({ value: k, label: DAILY_TITLE[k] }))}
@@ -380,7 +371,7 @@ function DailyScreen() {
                 <label htmlFor="daily-name" className="th-kicker text-muted-foreground">
                   Name on the leaderboard
                 </label>
-                <input
+                <Input
                   id="daily-name"
                   value={name}
                   maxLength={14}
@@ -390,7 +381,6 @@ function DailyScreen() {
                     setError(null);
                     setName(e.target.value);
                   }}
-                  className="th-input tap-target w-full rounded-xl border border-border bg-background px-4 py-3 text-base text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
                 />
               </div>
             ) : state.state === "play" ? (
@@ -408,22 +398,23 @@ function DailyScreen() {
               </p>
             ) : null}
             {state.state === "done" ? (
-              <button
-                type="button"
+              <Button
+                variant="secondary"
+                block
                 data-daily-results
                 disabled={busy}
                 onClick={() => void openResults()}
-                className="rs-btn press tap-target w-full"
               >
                 {busy ? <Dots /> : "Your results"}
-              </button>
+              </Button>
             ) : (
-              <button
-                type="button"
+              <Button
+                variant="gold"
+                size={52}
+                block
                 data-daily-play
                 disabled={busy}
                 onClick={() => void play()}
-                className="th-btn-gold ap-btn-gold press tap-target flex h-[52px] w-full items-center justify-center gap-2 whitespace-nowrap rounded-[14px] text-[17px]"
               >
                 {busy ? (
                   <Dots className="bg-primary-foreground" />
@@ -432,7 +423,7 @@ function DailyScreen() {
                 ) : (
                   "Play"
                 )}
-              </button>
+              </Button>
             )}
             {error ? (
               <p role="alert" className="text-sm text-warn">
@@ -446,7 +437,7 @@ function DailyScreen() {
           <div className="flex items-baseline justify-between gap-2">
             <h2 className="ap-section-title">Leaderboard</h2>
           </div>
-          <Segmented
+          <DailySegmented
             label="Day"
             value={day}
             options={[
@@ -463,9 +454,7 @@ function DailyScreen() {
               share={day === "today" && board.me ? <DailyShareButton kind={kind} total={board.me.total} /> : undefined}
             />
           ) : (
-            <div className="flex justify-center py-6">
-              <WaitingLine label="Loading the board" />
-            </div>
+            <SkeletonPage label="Loading the board" rows={6} />
           )}
         </div>
       </div>

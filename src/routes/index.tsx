@@ -5,11 +5,11 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { HomeScreenHint } from "@/components/beta/HomeScreenHint";
 import { TermsScreen } from "@/components/beta/TermsScreen";
 import { Dots } from "@/components/duel/Dots";
+import { Button, CodeInput, GameTile, Input, Panel, SectionHeader } from "@/design/components";
 import { PhoneShell } from "@/components/duel/PhoneShell";
 import { PageAside } from "@/components/app/PageAside";
 import { Onboarding } from "@/components/duel/Onboarding";
 import { goToTab } from "@/components/app/AppTabBar";
-import { GameIcon } from "@/components/app/GameIcon";
 import { PublicGameCard } from "@/components/app/PublicGameCard";
 import { DailyCard, shownDailyStatus, useDailyStatus } from "@/components/daily/DailyCard";
 import { ChallengeCard } from "@/components/challenge/ChallengeCard";
@@ -315,12 +315,12 @@ function Home() {
         </div>
 
         {/* Quick play: create a room, or join one with its code. */}
-        <section aria-label="Quick play" className="ap-panel ap-pad flex flex-col gap-3">
+        <Panel as="section" pad aria-label="Quick play" className="flex flex-col gap-3">
           {/* Its height is set before the first paint from whether a name is stored (app-shell.css), so
               the name loading after mount never moves anything. */}
           <div data-name-row data-editing={mounted ? String(editingName) : undefined}>
           {editingName ? (
-            <input
+            <Input
               id="name"
               aria-label="Display name"
               ref={nameRef}
@@ -332,10 +332,9 @@ function Home() {
                 setError(null);
                 setName(e.target.value);
               }}
-              className="ap-input tap-target"
             />
           ) : (
-            <p className="flex h-11 items-center justify-between gap-2.5 text-[15px] text-muted-foreground">
+            <p className="flex h-11 items-center justify-between gap-2.5 text-muted-foreground jz-body">
               <PlayerBadge look={look} name={name} size={28} />
               <span className="min-w-0 flex-1 truncate">
                 Playing as <span className="th-name font-semibold text-foreground">{name}</span>
@@ -353,8 +352,10 @@ function Home() {
             </p>
           )}
           </div>
-          <button
-            type="button"
+          <Button
+            variant="gold"
+            size={58}
+            block
             onClick={() => {
               // Celebrations: the signature zap (lib/fx/celebrations.ts; silent while they're off or muted).
               if (celebrationsOn()) {
@@ -364,7 +365,6 @@ function Home() {
               void start("create");
             }}
             disabled={busy !== null}
-            className="ap-btn-gold press tap-target h-[58px] w-full text-[18px]"
           >
             {busy === "create" ? (
               <>
@@ -374,17 +374,14 @@ function Home() {
             ) : (
               <span>Create a room</span>
             )}
-          </button>
+          </Button>
           <div key={shake} className={`flex gap-2 ${error ? "animate-shake" : ""}`}>
-            <input
+            <CodeInput
               id="code"
               value={code}
+              length={ROOM_CODE_LENGTH}
               inputMode="text"
               autoCapitalize="characters"
-              autoCorrect="off"
-              autoComplete="off"
-              spellCheck={false}
-              placeholder="Room code"
               aria-label="Room code"
               onChange={(e) => {
                 setError(null);
@@ -393,23 +390,18 @@ function Home() {
               onKeyDown={(e) => {
                 if (e.key === "Enter") void start("join");
               }}
-              className="ap-input ap-code tap-target flex-1"
+              className="flex-1"
             />
-            <button
-              type="button"
-              onClick={() => void start("join")}
-              disabled={busy !== null}
-              className="ap-btn-outline press tap-target h-[50px] w-[88px] shrink-0 text-base"
-            >
+            <Button variant="secondary" size={50} onClick={() => void start("join")} disabled={busy !== null} className="w-22 shrink-0">
               {busy === "join" ? <Dots className="bg-foreground" /> : "Join"}
-            </button>
+            </Button>
           </div>
           {error && (
             <p role="alert" className="text-sm text-warn">
               {error}
             </p>
           )}
-        </section>
+        </Panel>
 
         <PlaySlot id="homescreen" state={homeHint}>
           <HomeScreenHint onDismiss={() => setHomeHint("hide")} />
@@ -425,14 +417,14 @@ function Home() {
             data-rejoin-room={shown.code}
             onClick={() => lastRoom.shown && void navigate({ to: "/duel/$code", params: { code: lastRoom.shown.code } })}
             data-icon="sq"
-            className="ap-panel ap-row press"
+            className="jz-panel jz-row press"
           >
             <span className="ap-icon-sq">
               <DoorOpen aria-hidden="true" />
             </span>
-            <span className="ap-row-text">
-              <span className="ap-row-title">Rejoin your last room</span>
-              <span data-ellipsis className="ap-row-sub">
+            <span className="jz-row-text">
+              <span className="jz-row-title">Rejoin your last room</span>
+              <span data-ellipsis className="jz-row-sub">
                 <span className="tracking-[0.12em] text-foreground">{shown.code}</span> ·{" "}
                 {shown.players === 0
                   ? "Checking the room"
@@ -503,18 +495,20 @@ function Home() {
         </PlaySlot>
 
         <section aria-label="Warm up" className="ap-section">
-          <div className="ap-section-head">
-            <h2 className="ap-section-title">Warm up</h2>
-            <button
-              type="button"
-              onClick={() => goToTab(router, "play", "practice")}
-              className="ap-link press -my-2.5 -mr-1 h-11 px-1"
-            >
-              All {ACTIVE_GAMES} games
-            </button>
-          </div>
+          <SectionHeader
+            title="Warm up"
+            right={
+              <button
+                type="button"
+                onClick={() => goToTab(router, "play", "practice")}
+                className="ap-link press -my-2.5 -mr-1 h-11 px-1"
+              >
+                All {ACTIVE_GAMES} games
+              </button>
+            }
+          />
           {/* Three games in one panel, each with this device's best (or "Not played"). */}
-          <div data-warm-panel data-warm="" data-divided="" className="ap-panel ap-game-strip" style={{ ["--ap-strip" as string]: 3 }}>
+          <div data-warm-panel data-warm="" data-divided="" className="jz-panel ap-game-strip" style={{ ["--ap-strip" as string]: 3 }}>
             {warmUp.map((type) => (
               <button
                 key={type}
@@ -527,7 +521,7 @@ function Home() {
                 }}
                 className="press"
               >
-                <GameIcon type={type} size={60} />
+                <GameTile type={type} iconSize={60} />
                 <span aria-hidden="true" className="ap-strip-name">
                   {PUZZLE_REGISTRY[type].name}
                 </span>

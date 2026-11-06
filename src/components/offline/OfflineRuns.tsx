@@ -50,11 +50,11 @@ export function OfflineRuns({ runs, now }: { runs: readonly QueuedRun[]; now: nu
   return (
     <section aria-label="Played offline" data-offline-runs className="ap-section">
       <h2 className="ap-section-title">Played offline</h2>
-      <div className="ap-panel">
+      <div className="jz-panel">
         {shown.map((run) => (
-          <div key={run.id} data-offline-run={run.type} data-run-id={run.id} className="ap-row">
+          <div key={run.id} data-offline-run={run.type} data-run-id={run.id} className="jz-row">
             <GameIcon type={run.type} size={36} />
-            <span data-ellipsis className="ap-row-title min-w-0 flex-1">
+            <span data-ellipsis className="jz-row-title min-w-0 flex-1">
               {PUZZLE_REGISTRY[run.type]?.name ?? run.type}
             </span>
             <RunScore run={run} />

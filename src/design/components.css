@@ -1,0 +1,830 @@
+/*
+ * Joulz shared components (DESIGN.md section 5; design foundation F2, 6 Nov 2026).
+ *
+ * The look of every component in src/design/components/, built only on tokens.css. Each interactive
+ * component has: hover with a fine pointer, pressed (scale 0.97 over --jz-fast), focus-visible (2 px
+ * --jz-gold ring, 2 px offset, on every device with a keyboard: DESIGN.md section 11) and a 44 × 44
+ * minimum target. A clipped (angled-cut) component draws its cut on a pseudo-element, so its own
+ * focus ring is never clipped.
+ *
+ * In the components layer: a call site's Tailwind utilities (widths, flex, margins) still win.
+ */
+
+@layer components {
+  /* ------------------------------------------------------------------ shared states */
+  .jz-btn,
+  .jz-chip,
+  .jz-seg > button,
+  .jz-row[data-interactive],
+  .jz-tab,
+  .jz-tile[data-interactive] {
+    -webkit-tap-highlight-color: transparent;
+    transition:
+      transform var(--jz-fast) var(--jz-ease),
+      filter var(--jz-fast) var(--jz-ease),
+      background-color var(--jz-fast) var(--jz-ease),
+      color var(--jz-fast) var(--jz-ease);
+  }
+  :is(.jz-btn, .jz-chip, .jz-seg > button, .jz-tab, .jz-tile[data-interactive]):active:not(:disabled, [aria-disabled="true"]) {
+    transform: scale(0.97);
+  }
+  :is(.jz-btn, .jz-chip, .jz-seg > button, .jz-row, .jz-tab, .jz-tile, .jz-input, .jz-code, .jz-sheet-close):focus-visible,
+  .jz-code:has(input:focus-visible) {
+    outline: 2px solid var(--jz-gold);
+    outline-offset: 2px;
+  }
+  @media (hover: hover) and (pointer: fine) {
+    :is(.jz-btn, .jz-chip, .jz-seg > button, .jz-tab, .jz-tile[data-interactive]):hover:not(:disabled, [aria-disabled="true"]) {
+      filter: brightness(1.08);
+    }
+    .jz-row[data-interactive]:hover {
+      background-color: var(--jz-press-tint);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    :is(.jz-btn, .jz-chip, .jz-seg > button, .jz-tab, .jz-tile[data-interactive]):active:not(:disabled, [aria-disabled="true"]) {
+      transform: none;
+    }
+  }
+
+  /* ------------------------------------------------------------------ Button */
+  .jz-btn {
+    position: relative;
+    isolation: isolate;
+    display: inline-flex;
+    min-width: 44px;
+    min-height: 44px;
+    align-items: center;
+    justify-content: center;
+    gap: var(--jz-space-8);
+    padding: 0 var(--jz-space-16);
+    border: 0;
+    background: transparent;
+    color: var(--jz-text);
+    font-family: var(--jz-font);
+    font-size: 15px;
+    font-weight: var(--jz-weight-medium);
+    line-height: 1;
+    letter-spacing: 0;
+    text-transform: none;
+    white-space: nowrap;
+    cursor: pointer;
+    user-select: none;
+  }
+  .jz-btn:disabled,
+  .jz-btn[aria-disabled="true"] {
+    cursor: default;
+  }
+  .jz-btn[data-block] {
+    display: flex;
+    width: 100%;
+  }
+  .jz-btn[data-size="44"] { height: 44px; font-size: 15px; }
+  .jz-btn[data-size="46"] { height: 46px; font-size: 15px; }
+  .jz-btn[data-size="48"] { height: 48px; font-size: 15px; }
+  .jz-btn[data-size="50"] { height: 50px; font-size: 16px; }
+  .jz-btn[data-size="52"] { height: 52px; font-size: 17px; }
+  .jz-btn[data-size="58"] { height: 58px; font-size: 18px; }
+
+  /* Gold: the metal face over a solid 4 px ledge, both inside the angled cut. Nothing else: no glow,
+     haze or sheen (F1 review). The cut is on ::before so the button's own focus ring shows. */
+  .jz-btn[data-variant="gold"] {
+    padding-bottom: 4px;
+    color: var(--jz-on-gold);
+    font-weight: var(--jz-weight-bold);
+  }
+  .jz-btn[data-variant="gold"]::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background:
+      var(--jz-gold-metal) top / 100% calc(100% - 4px) no-repeat,
+      var(--jz-gold-ledge);
+    clip-path: polygon(
+      var(--jz-cut-lg) 0,
+      100% 0,
+      100% calc(100% - var(--jz-cut-lg)),
+      calc(100% - var(--jz-cut-lg)) 100%,
+      0 100%,
+      0 var(--jz-cut-lg)
+    );
+    pointer-events: none;
+  }
+  .jz-btn[data-variant="gold"][data-small]::before {
+    clip-path: polygon(
+      var(--jz-cut-sm) 0,
+      100% 0,
+      100% calc(100% - var(--jz-cut-sm)),
+      calc(100% - var(--jz-cut-sm)) 100%,
+      0 100%,
+      0 var(--jz-cut-sm)
+    );
+  }
+  .jz-btn[data-variant="gold"]:is(:disabled, [aria-disabled="true"]) {
+    filter: saturate(0.6) brightness(0.82);
+  }
+
+  /* Secondary: a visible 1.5 px --jz-surface-2 edge on the surface (F1 review). */
+  .jz-btn[data-variant="secondary"] {
+    border: 1.5px solid var(--jz-surface-2);
+    border-radius: var(--jz-radius);
+    background-color: var(--jz-surface);
+  }
+  .jz-btn[data-variant="secondary"]:is(:disabled, [aria-disabled="true"]) {
+    color: var(--jz-text-3);
+  }
+
+  /* Quiet: text only. */
+  .jz-btn[data-variant="quiet"] {
+    padding: 0 var(--jz-space-8);
+    border-radius: var(--jz-radius);
+    color: var(--jz-text-2);
+  }
+  .jz-btn[data-variant="quiet"]:is(:disabled, [aria-disabled="true"]) {
+    color: var(--jz-text-3);
+  }
+
+  /* Icon: a 44 × 44 square, the icon at 20 px. */
+  .jz-btn[data-variant="icon"] {
+    width: 44px;
+    height: 44px;
+    flex: none;
+    padding: 0;
+    border-radius: var(--jz-radius);
+    color: var(--jz-text-2);
+  }
+  .jz-btn[data-variant="icon"] > svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  /* ------------------------------------------------------------------ Panel and Row */
+  .jz-panel {
+    position: relative;
+    border-radius: var(--jz-radius);
+    background-color: var(--jz-surface);
+  }
+  .jz-panel[data-striped] {
+    background-image: var(--jz-stripes);
+  }
+  .jz-panel[data-tone="cyan"] {
+    background-color: var(--jz-cyan-panel);
+  }
+  .jz-panel[data-pad] {
+    padding: var(--jz-space-16);
+  }
+  .jz-row {
+    --row-inset: 16px;
+    position: relative;
+    display: flex;
+    width: 100%;
+    min-height: 62px;
+    align-items: center;
+    gap: var(--jz-space-12);
+    padding: 9px var(--jz-space-16);
+    border-radius: 0;
+    background: transparent;
+    color: var(--jz-text);
+    font-family: var(--jz-font);
+    text-align: left;
+  }
+  .jz-row[data-icon="sq"] { --row-inset: 68px; }
+  .jz-row[data-icon="44"] { --row-inset: 72px; }
+  .jz-row[data-icon="date"] { --row-inset: 76px; }
+  .jz-panel > .jz-row:first-child,
+  .jz-panel > :first-child > .jz-row {
+    border-top-left-radius: var(--jz-radius);
+    border-top-right-radius: var(--jz-radius);
+  }
+  .jz-panel > .jz-row:last-child,
+  .jz-panel > :last-child > .jz-row {
+    border-bottom-left-radius: var(--jz-radius);
+    border-bottom-right-radius: var(--jz-radius);
+  }
+  /* The divider above every row but the first, starting after the row's icon. */
+  .jz-panel > * + * > .jz-row:first-child::before,
+  .jz-panel .jz-row + .jz-row::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    right: 0;
+    left: var(--row-inset);
+    height: 1px;
+    background: var(--jz-line);
+    pointer-events: none;
+  }
+  .jz-row[data-interactive]:active {
+    background-color: var(--jz-press-tint);
+  }
+  .jz-row-text {
+    display: flex;
+    min-width: 0;
+    flex: 1;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .jz-row-title {
+    overflow: hidden;
+    color: var(--jz-text);
+    font-size: 16px;
+    font-weight: var(--jz-weight-medium);
+    line-height: 20px;
+    letter-spacing: normal;
+    text-overflow: ellipsis;
+    text-transform: none;
+    white-space: nowrap;
+  }
+  .jz-row-sub {
+    overflow: hidden;
+    color: var(--jz-text-3);
+    font-size: 14px;
+    font-weight: var(--jz-weight-regular);
+    line-height: 18px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* ------------------------------------------------------------------ SectionHeader */
+  .jz-section-head {
+    display: flex;
+    min-height: 24px;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--jz-space-12);
+    padding-bottom: 6px;
+    border-bottom: 2px solid var(--jz-line);
+  }
+  .jz-section-head > h2,
+  .jz-section-head > h3 {
+    margin: 0;
+    color: var(--jz-text);
+    font-family: var(--jz-font);
+    font-size: 18px;
+    font-weight: var(--jz-weight-bold);
+    font-stretch: 110%;
+    line-height: 22px;
+    letter-spacing: 0;
+    text-transform: none;
+  }
+  .jz-section-head > :not(h2, h3) {
+    color: var(--jz-text-3);
+    font-size: 14px;
+    line-height: 18px;
+    white-space: nowrap;
+  }
+
+  /* ------------------------------------------------------------------ Chip */
+  .jz-chip {
+    position: relative;
+    display: inline-flex;
+    height: 36px;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    padding: 0 var(--jz-space-12);
+    border: 1px solid var(--jz-surface-2);
+    border-radius: var(--jz-radius);
+    background: transparent;
+    color: var(--jz-text-2);
+    font-family: var(--jz-font);
+    font-size: 14px;
+    font-weight: var(--jz-weight-medium);
+    white-space: nowrap;
+    cursor: pointer;
+  }
+  /* An invisible hit area: 44 px tall at least. */
+  .jz-chip::after {
+    content: "";
+    position: absolute;
+    inset: -4px 0;
+  }
+  .jz-chip[aria-pressed="true"],
+  .jz-chip[aria-checked="true"] {
+    border-color: transparent;
+    background: var(--jz-text);
+    color: var(--jz-bg);
+    font-weight: var(--jz-weight-bold);
+  }
+  /* The category diamond: the one place a category colour marks a name (DESIGN.md section 2). */
+  .jz-diamond {
+    display: inline-block;
+    width: 7px;
+    height: 7px;
+    flex: none;
+    rotate: 45deg;
+    background: var(--cat, var(--jz-text-3));
+  }
+  /* A tinted chip (room settings' picks): on, it takes its category's colour; off, grey. */
+  .jz-chip[data-tint] {
+    color: var(--jz-text-3);
+  }
+  .jz-chip[data-tint] > .jz-diamond {
+    background: var(--jz-surface-2);
+  }
+  .jz-chip[data-tint][aria-pressed="true"] {
+    border-color: color-mix(in oklab, var(--cat) 60%, transparent);
+    background: color-mix(in oklab, var(--cat) 16%, var(--jz-bg));
+    color: var(--cat-hi, var(--jz-text));
+    font-weight: var(--jz-weight-medium);
+  }
+  .jz-chip[data-tint][aria-pressed="true"] > .jz-diamond {
+    background: var(--cat);
+  }
+  .jz-chip:disabled {
+    opacity: 0.6;
+  }
+  .jz-chip-quiet {
+    display: inline-flex;
+    height: 22px;
+    align-items: center;
+    padding: 0 9px;
+    border: 1px solid var(--jz-surface-2);
+    border-radius: var(--jz-round);
+    color: var(--jz-text-2);
+    font-size: 12px;
+    font-weight: var(--jz-weight-medium);
+    white-space: nowrap;
+  }
+
+  /* ------------------------------------------------------------------ Segmented */
+  .jz-seg {
+    display: grid;
+    grid-auto-columns: minmax(0, 1fr);
+    grid-auto-flow: column;
+    gap: 2px;
+    padding: 3px;
+    border-radius: var(--jz-radius);
+    background: var(--jz-well);
+    box-shadow: var(--jz-well-shadow);
+  }
+  .jz-seg > button {
+    position: relative;
+    display: flex;
+    min-width: 0;
+    min-height: 44px;
+    align-items: center;
+    justify-content: center;
+    gap: var(--jz-space-8);
+    padding: 0 var(--jz-space-8);
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--jz-text-3);
+    font-family: var(--jz-font);
+    font-size: 14px;
+    font-weight: var(--jz-weight-medium);
+    white-space: nowrap;
+    cursor: pointer;
+  }
+  .jz-seg > button:is([aria-pressed="true"], [aria-checked="true"]) {
+    background: var(--jz-text);
+    color: var(--jz-bg);
+    font-weight: var(--jz-weight-bold);
+  }
+  /* The gold segmented switch (Practice's Puzzles | Arcade, Joe's call: the way into play on that tab). */
+  .jz-seg[data-tone="gold"] > button:is([aria-pressed="true"], [aria-checked="true"]) {
+    background: var(--jz-gold-metal);
+    color: var(--jz-on-gold);
+  }
+  .jz-seg > button:disabled {
+    color: var(--jz-text-3);
+    opacity: 0.5;
+    cursor: default;
+  }
+  .jz-seg-count {
+    font-variant-numeric: tabular-nums;
+    font-weight: var(--jz-weight-medium);
+  }
+
+  /* ------------------------------------------------------------------ Switch (a row's on/off) */
+  .jz-switch {
+    position: relative;
+    display: inline-block;
+    width: 46px;
+    height: 28px;
+    flex: none;
+    border-radius: var(--jz-round);
+    background: var(--jz-surface-2);
+    transition: background-color var(--jz-fast) var(--jz-ease);
+  }
+  .jz-switch > span {
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 22px;
+    height: 22px;
+    border-radius: var(--jz-round);
+    background: var(--jz-text);
+    transition: transform var(--jz-fast) var(--jz-ease);
+  }
+  .jz-switch[data-on] {
+    background: var(--jz-cyan);
+  }
+  .jz-switch[data-on] > span {
+    background: var(--jz-bg);
+    transform: translateX(18px);
+  }
+
+  /* ------------------------------------------------------------------ Input and CodeInput (wells) */
+  .jz-input {
+    width: 100%;
+    min-width: 0;
+    height: 50px;
+    padding: 0 var(--jz-space-16);
+    border: 1.5px solid transparent;
+    border-radius: var(--jz-radius);
+    background: var(--jz-well);
+    box-shadow: var(--jz-well-shadow);
+    color: var(--jz-text);
+    font-family: var(--jz-font);
+    font-size: 16px;
+    font-weight: var(--jz-weight-regular);
+    outline: none;
+  }
+  .jz-input[data-size="44"] {
+    height: 44px;
+  }
+  .jz-input::placeholder {
+    color: var(--jz-text-3);
+    opacity: 1;
+  }
+  .jz-input:focus {
+    border-color: var(--jz-text-3);
+  }
+  .jz-input[data-search] {
+    padding-left: 42px;
+  }
+  .jz-input::-webkit-search-cancel-button {
+    -webkit-appearance: none;
+  }
+  /* Four boxes over one real input (so typing, paste and autofill work as on any field). */
+  .jz-code {
+    position: relative;
+    display: grid;
+    height: 50px;
+    min-width: 0;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: var(--jz-space-8);
+    border-radius: var(--jz-radius);
+  }
+  .jz-code > span {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1.5px solid transparent;
+    border-radius: var(--jz-radius);
+    background: var(--jz-well);
+    box-shadow: var(--jz-well-shadow);
+    color: var(--jz-text);
+    font-family: var(--jz-font);
+    font-size: 20px;
+    font-weight: var(--jz-weight-bold);
+    text-transform: uppercase;
+  }
+  .jz-code > span[data-current] {
+    border-color: var(--jz-text-3);
+  }
+  .jz-code > input {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    border: 0;
+    background: transparent;
+    color: transparent;
+    caret-color: transparent;
+    font-size: 16px;
+    outline: none;
+    opacity: 0.01;
+  }
+
+  /* ------------------------------------------------------------------ Sheet (vaul) */
+  .jz-sheet-scrim {
+    position: fixed;
+    inset: 0;
+    z-index: 40;
+    background: var(--jz-scrim);
+  }
+  .jz-sheet {
+    position: fixed;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 41;
+    display: flex;
+    width: 100%;
+    max-width: 430px;
+    max-height: 92dvh;
+    margin: 0 auto;
+    flex-direction: column;
+    border-top-left-radius: var(--jz-radius-sheet);
+    border-top-right-radius: var(--jz-radius-sheet);
+    background: var(--jz-bg-raised);
+    box-shadow: var(--jz-shadow-sheet);
+    color: var(--jz-text);
+    font-family: var(--jz-font);
+    outline: none;
+  }
+  .jz-sheet-grab {
+    width: 36px;
+    height: 4px;
+    flex: none;
+    margin: var(--jz-space-8) auto 0;
+    border-radius: var(--jz-round);
+    background: var(--jz-surface-2);
+  }
+  .jz-sheet-head {
+    display: flex;
+    flex: none;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--jz-space-4) var(--jz-space-12) 0 var(--jz-space-20);
+  }
+  .jz-sheet-head > h2 {
+    margin: 0;
+    font-family: var(--jz-font);
+    font-size: 20px;
+    font-weight: var(--jz-weight-bold);
+    font-stretch: 110%;
+    line-height: 24px;
+    letter-spacing: 0;
+    text-transform: none;
+  }
+
+  /* ------------------------------------------------------------------ Toast */
+  .jz-toast {
+    display: flex;
+    min-height: 48px;
+    align-items: center;
+    gap: var(--jz-space-12);
+    padding: var(--jz-space-8) var(--jz-space-16);
+    border-radius: var(--jz-radius);
+    border-left: 3px solid var(--jz-text-3);
+    background: var(--jz-surface);
+    box-shadow: var(--jz-shadow-sheet);
+    color: var(--jz-text);
+    font-family: var(--jz-font);
+    font-size: 15px;
+    line-height: 20px;
+  }
+  .jz-toast[data-tone="live"] { border-left-color: var(--jz-cyan); }
+  .jz-toast[data-tone="error"] { border-left-color: var(--jz-red); }
+
+  /* ------------------------------------------------------------------ Skeleton */
+  .jz-skel {
+    position: relative;
+    display: block;
+    overflow: hidden;
+    border-radius: var(--jz-radius);
+    background: var(--jz-surface);
+  }
+  .jz-skel::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, transparent, var(--jz-sheen), transparent);
+    transform: translateX(-100%);
+    animation: jz-skel-sheen 1.4s var(--jz-ease) infinite;
+  }
+  .jz-skel[data-kind="line"] { height: 14px; border-radius: 4px; }
+  .jz-skel[data-kind="row"] { height: 62px; }
+  .jz-skel[data-kind="card"] { height: 120px; }
+  .jz-skel[data-kind="tile"] { width: 56px; height: 56px; border-radius: var(--jz-radius-tile); }
+  .jz-skel-stack {
+    display: flex;
+    flex-direction: column;
+    gap: var(--jz-space-12);
+  }
+
+  /* ------------------------------------------------------------------ LiveTag */
+  .jz-live {
+    display: inline-flex;
+    height: 20px;
+    align-items: center;
+    gap: 5px;
+    padding: 0 var(--jz-space-8);
+    background: var(--jz-red);
+    color: var(--jz-text);
+    font-family: var(--jz-font);
+    font-size: 11px;
+    font-weight: var(--jz-weight-bold);
+    letter-spacing: 0.06em;
+    line-height: 1;
+    text-transform: uppercase;
+    clip-path: polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px);
+  }
+  .jz-live[data-kind="next"] {
+    background: var(--jz-cyan);
+    color: var(--jz-bg);
+  }
+
+  /* ------------------------------------------------------------------ GameTile */
+  .jz-tile {
+    display: flex;
+    min-width: 44px;
+    flex-direction: column;
+    gap: var(--jz-space-8);
+    border: 0;
+    background: transparent;
+    color: var(--jz-text);
+    font-family: var(--jz-font);
+    text-align: left;
+  }
+  .jz-tile[data-size="l"] {
+    width: 100%;
+    flex-direction: row;
+    align-items: center;
+    gap: var(--jz-space-12);
+  }
+  .jz-tile-name {
+    overflow: hidden;
+    font-size: 14px;
+    font-weight: var(--jz-weight-medium);
+    line-height: 18px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .jz-tile-best {
+    color: var(--jz-text-3);
+    font-size: 12px;
+    font-weight: var(--jz-weight-medium);
+    line-height: 16px;
+    font-variant-numeric: tabular-nums;
+  }
+  .jz-tile-charge {
+    display: block;
+    height: 4px;
+    overflow: hidden;
+    border-radius: var(--jz-round);
+    background: var(--jz-surface-2);
+  }
+  .jz-tile-charge > span {
+    display: block;
+    height: 100%;
+    background: var(--jz-gold);
+  }
+
+  /* ------------------------------------------------------------------ Nameplate */
+  .jz-plate {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    gap: var(--jz-space-8);
+    color: var(--jz-text);
+    font-family: var(--jz-font);
+  }
+  .jz-plate-name {
+    min-width: 0;
+    overflow: hidden;
+    font-weight: var(--jz-weight-medium);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .jz-plate[data-kind="strip"] {
+    min-height: 44px;
+    gap: var(--jz-space-12);
+    font-size: 16px;
+  }
+  .jz-plate[data-kind="full"] {
+    flex-direction: column;
+    gap: var(--jz-space-8);
+    font-size: 18px;
+    text-align: center;
+  }
+  .jz-plate[data-kind="mini"] {
+    gap: var(--jz-space-8);
+    font-size: 14px;
+  }
+  .jz-plate-you {
+    font-size: 13px;
+  }
+  .jz-plate-meta {
+    color: var(--jz-text-3);
+    font-size: 14px;
+    font-weight: var(--jz-weight-regular);
+  }
+
+  /* ------------------------------------------------------------------ Medal */
+  .jz-medal {
+    display: inline-flex;
+    width: 22px;
+    height: 22px;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--jz-round);
+    color: var(--jz-text-2);
+    font-family: var(--jz-font);
+    font-size: 12px;
+    font-weight: var(--jz-weight-bold);
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+  }
+  .jz-medal[data-size="m"] { width: 36px; height: 36px; font-size: 15px; }
+  .jz-medal[data-size="l"] { width: 64px; height: 64px; font-size: 26px; }
+  .jz-medal[data-size="m"]:not([data-medal]),
+  .jz-medal[data-size="l"]:not([data-medal]) {
+    border: 1px solid var(--jz-surface-2);
+  }
+  .jz-medal[data-medal] { color: var(--jz-on-metal); }
+  .jz-medal[data-medal="1"] { background: var(--jz-gold-metal); }
+  .jz-medal[data-medal="2"] { background: var(--jz-silver-metal); }
+  .jz-medal[data-medal="3"] { background: var(--jz-bronze-metal); }
+  .jz-medal[data-shared] { font-size: 10px; letter-spacing: -0.04em; }
+
+  /* ------------------------------------------------------------------ TabBar (phone bar; the rail keeps dk-rail-tab) */
+  .jz-tab {
+    display: flex;
+    min-width: 44px;
+    min-height: 44px;
+    flex: 1;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--jz-space-4);
+    color: var(--jz-text-3);
+  }
+  .jz-tab[aria-current="page"] {
+    color: var(--jz-gold);
+  }
+  .jz-tab > span {
+    max-width: 100%;
+    overflow: hidden;
+    font-size: 11px;
+    font-weight: var(--jz-weight-medium);
+    line-height: 12px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .jz-tab > svg {
+    width: 24px;
+    height: 24px;
+  }
+}
+
+@keyframes jz-skel-sheen {
+  to {
+    transform: translateX(100%);
+  }
+}
+/* Reduced motion: the sheen stops (the skeleton itself is static and stays visible). */
+@media (prefers-reduced-motion: reduce) {
+  .jz-skel::after {
+    animation: none;
+    opacity: 0;
+  }
+  .jz-switch,
+  .jz-switch > span {
+    transition: none;
+  }
+}
+
+/* A visually hidden label (sheet titles for screen readers). */
+.jz-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* The search field's magnifier (Input `search`). */
+.jz-input-icon {
+  position: absolute;
+  top: 50%;
+  left: 14px;
+  width: 20px;
+  height: 20px;
+  color: var(--jz-text-3);
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+/* Keyboard focus on everything else: the same ring (DESIGN.md section 11). In the base layer, so any
+   component's own focus style wins. */
+@layer base {
+  :focus-visible {
+    outline: 2px solid var(--jz-gold);
+    outline-offset: 2px;
+  }
+}
+
+/* The component gallery (/dev-design, development only) shows each state still: hover, pressed and
+   focus-visible forced on a copy of the component. */
+[data-jz-state="hover"] { filter: brightness(1.08); }
+[data-jz-state="pressed"] { transform: scale(0.97); }
+[data-jz-state="focus"] { outline: 2px solid var(--jz-gold); outline-offset: 2px; }
+.jz-gallery-grid {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--jz-space-12);
+}
+.jz-gallery-label {
+  color: var(--jz-text-3);
+  font-size: 12px;
+  font-weight: var(--jz-weight-medium);
+}

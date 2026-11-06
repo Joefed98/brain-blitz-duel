@@ -53,7 +53,7 @@
  *    of it (an offset edge), or its backing store is not 1:1 with device pixels;
  *  - any of the canvas's bottom 3 rows is not fully opaque (a transparent edge);
  *  - any composited pixel there differs from what the canvas painted, or, in the sub-pixel strip under
- *    the canvas, from the gap's own #070709 (a hairline of the parent, a resampled or clipped edge row):
+ *    the canvas, from the gap's own #06080F (a hairline of the parent, a resampled or clipped edge row):
  *    changes the scene itself paints are allowed;
  *  - the rock or the shower did not land, or the run ended, within the 5 s.
  * The cause it guards against: the canvas was rounded to the nearest CSS pixel (769 px over a 768.55 px
@@ -612,8 +612,8 @@ async function meteorEdgePass(browser: import("playwright").Browser, origin: str
             want = `canvas ${f.rows[c]},${f.rows[c + 1]},${f.rows[c + 2]}`;
           } else {
             // Under the canvas (less than 1 px) or beside it: the gap's own black, as under every world.
-            ok = close(s, 7, 7, 9);
-            want = "the #070709 gap";
+            ok = close(s, 6, 8, 15);
+            want = "the #06080F gap";
           }
           if (ok) continue;
           differ++;

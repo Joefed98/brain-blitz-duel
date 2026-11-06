@@ -45,6 +45,7 @@ import { useCelebrationScope, useCelebrationsOn } from "@/components/fx/useCeleb
 const REVEAL_SCORE_DELAY_MS = 350;
 import { fx } from "@/lib/fx";
 import { APP_NAME } from "@/lib/brand";
+import { Button } from "@/design/components";
 
 interface AnswerRevealProps {
   round: number;
@@ -91,18 +92,19 @@ function PracticeRevealActions({ onPlayAgain, onBack }: { onPlayAgain?: (() => v
   return (
     <div data-practice-reveal-actions className="flex shrink-0 items-center gap-2 pt-0.5">
       {onBack ? (
-        <button type="button" onClick={onBack} className="rs-btn press tap-target h-11 flex-1">
+        <Button variant="secondary" size={44} onClick={onBack} className="flex-1">
           Back
-        </button>
+        </Button>
       ) : null}
       {onPlayAgain ? (
-        <button
-          type="button"
+        <Button
+          variant="gold"
+          size={44}
           onClick={onPlayAgain}
-          className="th-btn-gold ap-btn-gold rs-btn-gold press tap-target h-11 flex-1 !text-[15px]"
+          className="flex-1"
         >
           Play again
-        </button>
+        </Button>
       ) : null}
     </div>
   );

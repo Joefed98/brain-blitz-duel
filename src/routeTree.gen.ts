@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as ChallengeRouteImport } from './routes/challenge'
 import { Route as DailyRouteImport } from './routes/daily'
 import { Route as DevCrashRouteImport } from './routes/dev-crash'
+import { Route as DevDesignRouteImport } from './routes/dev-design'
 import { Route as PracticeRouteImport } from './routes/practice'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as ReplayLabRouteImport } from './routes/replay-lab'
@@ -38,6 +39,11 @@ const DailyRoute = DailyRouteImport.update({
 const DevCrashRoute = DevCrashRouteImport.update({
   id: '/dev-crash',
   path: '/dev-crash',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DevDesignRoute = DevDesignRouteImport.update({
+  id: '/dev-design',
+  path: '/dev-design',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PracticeRoute = PracticeRouteImport.update({
@@ -76,6 +82,7 @@ export interface FileRoutesByFullPath {
   '/challenge': typeof ChallengeRoute
   '/daily': typeof DailyRoute
   '/dev-crash': typeof DevCrashRoute
+  '/dev-design': typeof DevDesignRoute
   '/practice': typeof PracticeRoute
   '/profile': typeof ProfileRoute
   '/replay-lab': typeof ReplayLabRoute
@@ -88,6 +95,7 @@ export interface FileRoutesByTo {
   '/challenge': typeof ChallengeRoute
   '/daily': typeof DailyRoute
   '/dev-crash': typeof DevCrashRoute
+  '/dev-design': typeof DevDesignRoute
   '/practice': typeof PracticeRoute
   '/profile': typeof ProfileRoute
   '/replay-lab': typeof ReplayLabRoute
@@ -101,6 +109,7 @@ export interface FileRoutesById {
   '/challenge': typeof ChallengeRoute
   '/daily': typeof DailyRoute
   '/dev-crash': typeof DevCrashRoute
+  '/dev-design': typeof DevDesignRoute
   '/practice': typeof PracticeRoute
   '/profile': typeof ProfileRoute
   '/replay-lab': typeof ReplayLabRoute
@@ -115,6 +124,7 @@ export interface FileRouteTypes {
     | '/challenge'
     | '/daily'
     | '/dev-crash'
+    | '/dev-design'
     | '/practice'
     | '/profile'
     | '/replay-lab'
@@ -127,6 +137,7 @@ export interface FileRouteTypes {
     | '/challenge'
     | '/daily'
     | '/dev-crash'
+    | '/dev-design'
     | '/practice'
     | '/profile'
     | '/replay-lab'
@@ -139,6 +150,7 @@ export interface FileRouteTypes {
     | '/challenge'
     | '/daily'
     | '/dev-crash'
+    | '/dev-design'
     | '/practice'
     | '/profile'
     | '/replay-lab'
@@ -152,6 +164,7 @@ export interface RootRouteChildren {
   ChallengeRoute: typeof ChallengeRoute
   DailyRoute: typeof DailyRoute
   DevCrashRoute: typeof DevCrashRoute
+  DevDesignRoute: typeof DevDesignRoute
   PracticeRoute: typeof PracticeRoute
   ProfileRoute: typeof ProfileRoute
   ReplayLabRoute: typeof ReplayLabRoute
@@ -188,6 +201,13 @@ declare module '@tanstack/react-router' {
       path: '/dev-crash'
       fullPath: '/dev-crash'
       preLoaderRoute: typeof DevCrashRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/dev-design': {
+      id: '/dev-design'
+      path: '/dev-design'
+      fullPath: '/dev-design'
+      preLoaderRoute: typeof DevDesignRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/practice': {
@@ -240,6 +260,7 @@ const rootRouteChildren: RootRouteChildren = {
   ChallengeRoute: ChallengeRoute,
   DailyRoute: DailyRoute,
   DevCrashRoute: DevCrashRoute,
+  DevDesignRoute: DevDesignRoute,
   PracticeRoute: PracticeRoute,
   ProfileRoute: ProfileRoute,
   ReplayLabRoute: ReplayLabRoute,
@@ -250,6 +271,7 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
 
 import type { getRouter } from './router.tsx'
 import type { startInstance } from './start.ts'

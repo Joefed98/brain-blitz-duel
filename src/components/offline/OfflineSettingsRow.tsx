@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { useOfflineVersion } from "@/lib/offline/events";
 import { topUpPacks } from "@/lib/offline/packs";
 import { offlineDownloadsOn, setOfflineDownloads } from "@/lib/offline/settings";
+import { Row, SwitchKnob } from "@/design/components";
 
 /** "12.4 MB" (one decimal under 100 MB). */
 export function formatBytes(bytes: number): string {
@@ -47,16 +48,14 @@ export function OfflineSettingsRow() {
     if (next) void topUpPacks();
   };
   return (
-    <button type="button" role="switch" aria-checked={on} aria-label="Offline practice" data-offline-settings onClick={toggle} className="ap-row press">
-      <span className="ap-row-text min-w-0 flex-1 text-left">
-        <span className="ap-row-title block">Offline practice</span>
-        <span data-offline-storage className="ap-row-sub block">
+    <Row as="button" role="switch" aria-checked={on} aria-label="Offline practice" data-offline-settings onClick={toggle}>
+      <span className="jz-row-text min-w-0 flex-1 text-left">
+        <span className="jz-row-title block">Offline practice</span>
+        <span data-offline-storage className="jz-row-sub block">
           {used === null ? "Saves games to play with no signal" : `${formatBytes(used)} used on this phone`}
         </span>
       </span>
-      <span aria-hidden="true" className="rs-switch" data-on={on ? "" : undefined}>
-        <span />
-      </span>
-    </button>
+      <SwitchKnob on={on} />
+    </Row>
   );
 }

@@ -1,9 +1,10 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { CloudOff, Search } from "lucide-react";
+import { CloudOff } from "lucide-react";
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 
 import { AnswerReveal } from "@/components/duel/AnswerReveal";
 import { WaitingLine } from "@/components/duel/Dots";
+import { Chip, GameTile, Input, Segmented } from "@/design/components";
 import { GameLayout, PhoneShell, isArcadeScreenType } from "@/components/duel/PhoneShell";
 import { FrameScore } from "@/components/duel/GameFrame";
 import { SteadyOrPlain } from "@/components/duel/SteadyStage";
@@ -62,7 +63,6 @@ import { currentPracticeStamp, stampSignature } from "@/lib/duel/practiceStamps"
 import { APP_NAME } from "@/lib/brand";
 import { noteSignatureSubmit, signatureHoldUntil } from "@/lib/fx/signature";
 import { useSignatureVerdict } from "@/lib/fx/useSignature";
-import { GameIcon } from "@/components/app/GameIcon";
 import { notePracticePlayed, recentPracticeTypes } from "@/lib/duel/practiceRecent";
 import { useLayoutMode } from "@/lib/layoutMode";
 import { inputTypeField } from "@/lib/inputType";
@@ -675,10 +675,10 @@ function PracticeScreen() {
         aria-describedby={cardBestId(key)}
         data-practice-game={key}
         data-icon="game"
-        className={`ap-row press${retired ? " opacity-80" : ""}`}
+        className={`jz-row press${retired ? " opacity-80" : ""}`}
       >
-        <GameIcon type={key} size={44} />
-        <span data-ellipsis aria-hidden="true" className="ap-row-title min-w-0 flex-1">
+        <GameTile type={key} iconSize={44} />
+        <span data-ellipsis aria-hidden="true" className="jz-row-title min-w-0 flex-1">
           {PUZZLE_REGISTRY[key].name}
         </span>
         {offlineMark(key)}
@@ -713,23 +713,19 @@ function PracticeScreen() {
     // Puzzles | Arcade: one tab, two sides; the counts are the registry's active games. On the desktop
     // layout it joins the search and chips in one row (data-practice-tools, polish-layout/desktop-layout.css).
     const switchRow = (
-      <div role="group" aria-label="Game type" data-practice-switch={side} className="ap-switch">
-
-                {(["puzzles", "arcade"] as const).map((option) => (
-                  <button
-                    key={option}
-                    type="button"
-                    aria-pressed={side === option}
-                    data-practice-side={option}
-                    data-count={SIDE_COUNTS[option]}
-                    onClick={() => setSide(option)}
-                    className="ap-switch-opt press"
-                  >
-                    {option === "puzzles" ? "Puzzles" : "Arcade"}{" "}
-                    <span className="ap-switch-count">{SIDE_COUNTS[option]}</span>
-                  </button>
-                ))}
-              </div>
+      <Segmented
+        label="Game type"
+        tone="gold"
+        data={{ "data-practice-switch": side }}
+        value={side}
+        onChange={setSide}
+        options={(["puzzles", "arcade"] as const).map((option) => ({
+          value: option,
+          label: option === "puzzles" ? "Puzzles" : "Arcade",
+          count: SIDE_COUNTS[option],
+          data: { "data-practice-side": option, "data-count": SIDE_COUNTS[option] },
+        }))}
+      />
     );
     return (
       <PhoneShell tabs="practice" aside={<PageAside panels={["public", "daily", "week"]} />}>
@@ -744,16 +740,16 @@ function PracticeScreen() {
             {/* Offline practice: Add to Home Screen (iPhone Safari only, shown from <html data-offline-install>). */}
             <OfflineInstallCard />
             {notice ? (
-              <p role="status" data-practice-notice className="ap-panel ap-empty">
+              <p role="status" data-practice-notice className="jz-panel ap-empty">
                 {notice}
               </p>
             ) : null}
 
             {demoKey ? (
-              <label className="ap-panel ap-row">
-                <span className="ap-row-text">
-                  <span className="ap-row-title">Intro examples</span>
-                  <span className="ap-row-sub whitespace-normal">
+              <label className="jz-panel jz-row">
+                <span className="jz-row-text">
+                  <span className="jz-row-title">Intro examples</span>
+                  <span className="jz-row-sub whitespace-normal">
                     Each game loads its fixed intro example, for recording demos.
                   </span>
                 </span>
@@ -770,57 +766,47 @@ function PracticeScreen() {
             <div data-practice-tools={desktop ? "" : undefined} className="flex flex-col gap-3">
               {desktop ? switchRow : null}
               <div data-practice-search={desktop ? "" : undefined} className="contents">
-              <div className="relative">
-                <Search
-                  aria-hidden="true"
-                  className="pointer-events-none absolute left-3.5 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-[var(--ap-faint)]"
-                />
-                <input
-                  type="search"
+              <Input
+                  search
+                  size={44}
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   placeholder={searchLabel}
                   aria-label={searchLabel}
                   autoComplete="off"
                   spellCheck={false}
-                  className="ap-input ap-search"
                 />
-              </div>
               {side === "puzzles" ? (
                 // All games and the six puzzle categories in the 4-column grid: none is cut off at 375 px.
                 <div role="group" aria-label="Category" className="ap-chip-grid">
                   {(["all", ...puzzleCategories().filter((category) => category !== "arcade")] as const).map((chip) => {
                     const on = puzzleFilter === chip;
                     return (
-                      <button
+                      <Chip
                         key={chip}
-                        type="button"
-                        aria-pressed={on}
+                        selected={on}
+                        cat={chip === "all" ? undefined : chip}
                         data-practice-filter={chip}
                         onClick={() => setPuzzleFilter(chip)}
-                        className="ap-chip th-hit press"
                       >
-                        {chip === "all" ? null : <span aria-hidden="true" data-dot={chip} className="ap-dot" />}
                         {chip === "all" ? "All games" : categoryLabel(chip)}
-                      </button>
+                      </Chip>
                     );
                   })}
                 </div>
               ) : (
                 <div role="group" aria-label="Arcade group" className="ap-chip-grid">
                   {ARCADE_CHIPS.map((chip) => (
-                    <button
+                    <Chip
                       key={chip.id}
-                      type="button"
-                      aria-pressed={arcadeFilter === chip.id}
+                      selected={arcadeFilter === chip.id}
+                      cat={chip.id === "all" ? undefined : chip.id}
                       data-practice-filter={chip.id}
                       data-span={chip.span}
                       onClick={() => setArcadeFilter(chip.id)}
-                      className="ap-chip th-hit press"
                     >
-                      {chip.id === "all" ? null : <span aria-hidden="true" data-dot={chip.id} className="ap-dot" />}
                       {chip.label}
-                    </button>
+                    </Chip>
                   ))}
                 </div>
               )}
@@ -830,7 +816,7 @@ function PracticeScreen() {
             {recentRows.length > 0 ? (
               <section aria-label="Recently played" data-practice-recent-list className="ap-section">
                 <h2 className="ap-section-title">Recently played</h2>
-                <div className="ap-panel ap-game-strip">
+                <div className="jz-panel ap-game-strip">
                   {recentRows.map((key) => {
                     const best = readPracticeBest(key, currentPracticeStamp(key));
                     return (
@@ -842,7 +828,7 @@ function PracticeScreen() {
                         onClick={() => void load(key)}
                         className="press"
                       >
-                        <GameIcon type={key} size={52} />
+                        <GameTile type={key} iconSize={52} />
                         <span aria-hidden="true" className="ap-strip-name">
                           {PUZZLE_REGISTRY[key].name}
                         </span>
@@ -861,21 +847,21 @@ function PracticeScreen() {
             {shown.map(({ id, label, dot, rows }) => (
               <section key={id} aria-label={label} data-practice-group={id} className="ap-section">
                 {listHead(label, rows.length, dot)}
-                <div className="ap-panel">{rows.map((key) => row(key))}</div>
+                <div className="jz-panel">{rows.map((key) => row(key))}</div>
               </section>
             ))}
             {emptyGroup ? (
-              <p data-practice-empty-group={emptyGroup.id} className="ap-panel ap-empty">
+              <p data-practice-empty-group={emptyGroup.id} className="jz-panel ap-empty">
                 {emptyGroup.label} games are coming soon
               </p>
             ) : matches.length === 0 && previewRows.length === 0 && retiredRows.length === 0 ? (
-              <p className="ap-panel ap-empty">No games match</p>
+              <p className="jz-panel ap-empty">No games match</p>
             ) : null}
 
             {previewRows.length > 0 && (
               <section aria-label="Practice only" className="ap-section">
                 {listHead("New · practice only", previewRows.length)}
-                <div className="ap-panel">{previewRows.map((key) => row(key))}</div>
+                <div className="jz-panel">{previewRows.map((key) => row(key))}</div>
               </section>
             )}
 
@@ -884,7 +870,7 @@ function PracticeScreen() {
                 <summary className="ap-section-title th-hit press cursor-pointer">
                   Retired ({retiredRows.length})
                 </summary>
-                <div className="ap-panel mt-2.5">{retiredRows.map((key) => row(key, true))}</div>
+                <div className="jz-panel mt-2.5">{retiredRows.map((key) => row(key, true))}</div>
               </details>
             )}
 

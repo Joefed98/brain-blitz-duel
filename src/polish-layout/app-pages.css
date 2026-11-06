@@ -36,9 +36,8 @@
   --ap-line: var(--jz-surface-2);
   --ap-done: var(--jz-surface-2);
   --ap-on-gold: var(--jz-on-gold);
-  --ap-shine: var(--jz-gold-metal);
-  --ap-shine-top: inset 0 1px 0 rgb(255 255 255 / 0.7);
-  --ap-shine-shadow: var(--ap-shine-top), inset 0 -2px 0 rgb(110 60 0 / 0.35), 0 8px 24px rgb(240 170 30 / 0.3);
+  /* The gold shine's glow, haze and sheen are gone (design foundation F2): gold buttons are the shared
+     Button, the metal on a solid ledge. */
 }
 
 /* ------------------------------------------------------------------ scope and tokens */
@@ -265,88 +264,9 @@
 }
 
 /* ------------------------------------------------------------------ panels and rows */
-.ap-panel {
-  position: relative;
-  border-radius: 18px;
-  background: var(--ap-panel);
-}
+/* Panel and Row (src/design/components, components.css: .jz-panel, .jz-row) since design foundation F2. */
 .ap-pad {
   padding: 16px;
-}
-.ap-row {
-  --ap-inset: 16px;
-  position: relative;
-  display: flex;
-  width: 100%;
-  min-height: 62px;
-  align-items: center;
-  gap: 12px;
-  padding: 9px 16px;
-  text-align: left;
-  color: var(--ap-text);
-  -webkit-tap-highlight-color: transparent;
-}
-.ap-row[data-icon="sq"] {
-  --ap-inset: 68px;
-}
-.ap-row[data-icon="44"] {
-  --ap-inset: 72px;
-}
-.ap-row[data-icon="date"] {
-  --ap-inset: 76px;
-}
-.ap-panel > .ap-row:first-child,
-.ap-panel > :first-child > .ap-row {
-  border-top-left-radius: 18px;
-  border-top-right-radius: 18px;
-}
-.ap-panel > .ap-row:last-child,
-.ap-panel > :last-child > .ap-row {
-  border-bottom-left-radius: 18px;
-  border-bottom-right-radius: 18px;
-}
-/* The divider above every row but the first, starting after the row's icon. */
-.ap-panel > * + * > .ap-row:first-child::before,
-.ap-panel .ap-row + .ap-row::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  right: 0;
-  left: var(--ap-inset);
-  height: 1px;
-  background: var(--ap-divider);
-  pointer-events: none;
-}
-button.ap-row:active,
-a.ap-row:active {
-  background: rgb(255 255 255 / 0.035);
-}
-.ap-row-text {
-  display: flex;
-  min-width: 0;
-  flex: 1;
-  flex-direction: column;
-  gap: 2px;
-}
-.ap-row-title {
-  overflow: hidden;
-  text-transform: none;
-  letter-spacing: normal;
-  font-size: 16px;
-  font-weight: 620;
-  line-height: 20px;
-  color: var(--ap-text);
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.ap-row-sub {
-  overflow: hidden;
-  font-size: 13.5px;
-  font-weight: 450;
-  line-height: 18px;
-  color: var(--ap-text-2);
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 .ap-chevron {
   width: 20px;
@@ -400,38 +320,8 @@ a.ap-row:active {
 }
 
 /* ------------------------------------------------------------------ buttons and inputs */
-.ap-btn-gold {
-  position: relative;
-  display: flex;
-  overflow: hidden;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  border: 0;
-  border-radius: 14px;
-  background: var(--ap-shine);
-  box-shadow: var(--ap-shine-shadow);
-  color: var(--ap-on-gold);
-  font-weight: 800;
-  isolation: isolate;
-  -webkit-tap-highlight-color: transparent;
-}
-/* The static highlight streak: 35 % wide, 38 % white at its centre, skewed, clipped to the button. */
-.ap-btn-gold::after {
-  content: "";
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 14%;
-  z-index: -1;
-  width: 35%;
-  transform: skewX(-18deg);
-  background: linear-gradient(90deg, rgb(255 255 255 / 0) 0%, rgb(255 255 255 / 0.38) 50%, rgb(255 255 255 / 0) 100%);
-  pointer-events: none;
-}
-.ap-btn-gold:disabled {
-  filter: saturate(0.7) brightness(0.9);
-}
+/* A daily's Play / Continue (inside its row's button, so not a Button itself): the small primary, the
+   metal inside the small angled cut, no glow or highlight. */
 .ap-pill-gold {
   display: inline-flex;
   height: 32px;
@@ -439,15 +329,13 @@ a.ap-row:active {
   align-items: center;
   justify-content: center;
   padding: 0 16px;
-  border-radius: 999px;
-  background: var(--ap-shine);
-  box-shadow: var(--ap-shine-top);
-  color: var(--ap-on-gold);
+  background: var(--jz-gold-metal);
+  color: var(--jz-on-gold);
   font-size: 14px;
-  font-weight: 750;
+  font-weight: var(--jz-weight-bold);
   white-space: nowrap;
+  clip-path: polygon(var(--jz-cut-sm) 0, 100% 0, 100% calc(100% - var(--jz-cut-sm)), calc(100% - var(--jz-cut-sm)) 100%, 0 100%, 0 var(--jz-cut-sm));
 }
-/* A secondary button: a quiet outline, never gold. */
 /* A daily already played today: a grey pill (no shine). */
 .ap-pill-done {
   display: inline-flex;
@@ -463,97 +351,6 @@ a.ap-row:active {
   font-weight: 650;
   white-space: nowrap;
 }
-.ap-btn-outline {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  border: 1px solid var(--ap-line);
-  border-radius: 14px;
-  background: transparent;
-  color: var(--ap-text);
-  font-weight: 600;
-  white-space: nowrap;
-  -webkit-tap-highlight-color: transparent;
-}
-.ap-input {
-  width: 100%;
-  min-width: 0;
-  height: 50px;
-  padding: 0 16px;
-  border: 1.5px solid transparent;
-  border-radius: 12px;
-  background: var(--ap-input);
-  color: var(--ap-text);
-  font-family: var(--ap-font);
-  font-size: 16px;
-  font-weight: 500;
-  outline: none;
-}
-.ap-input::placeholder {
-  color: var(--ap-faint);
-  opacity: 1;
-}
-/* Focus shows as the field's own edge (no ring: touch-highlight-check). */
-.ap-input:focus {
-  border-color: var(--ap-text-2);
-}
-/* Practice's search: 44 px, room for the search icon. */
-.ap-search {
-  height: 44px;
-  padding-left: 42px;
-}
-/* Play's room code: typed in capitals, spaced; the placeholder in plain text. */
-.ap-code {
-  font-size: 17px;
-  font-weight: 700;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-}
-.ap-code::placeholder {
-  font-weight: 500;
-  letter-spacing: 0;
-  text-transform: none;
-}
-.ap-input::-webkit-search-cancel-button {
-  -webkit-appearance: none;
-}
-
-/* ------------------------------------------------------------------ chips */
-.ap-chips {
-  display: flex;
-  gap: 8px;
-  margin: -4px -20px;
-  padding: 4px 20px;
-  overflow-x: auto;
-  scrollbar-width: none;
-  -webkit-overflow-scrolling: touch;
-}
-.ap-chips::-webkit-scrollbar {
-  display: none;
-}
-.ap-chip {
-  display: inline-flex;
-  height: 36px;
-  flex: none;
-  align-items: center;
-  padding: 0 16px;
-  border: 1px solid var(--ap-outline);
-  border-radius: 999px;
-  background: transparent;
-  color: #D6D3DC;
-  font-size: 14px;
-  font-weight: 600;
-  white-space: nowrap;
-  -webkit-tap-highlight-color: transparent;
-}
-/* The selected chip: a light fill, dark text (tab pages refresh: gold only for play, the tab and the Z). */
-.ap-chip[aria-pressed="true"] {
-  border-color: transparent;
-  background: var(--ap-text);
-  color: #121216;
-  font-weight: 750;
-}
 /* Practice's chips (tab pages refresh): All games and the seven categories in a 4 × 2 grid, so none is
    cut off at 375 px; each category with its colour dot. */
 .ap-chip-grid {
@@ -561,7 +358,7 @@ a.ap-row:active {
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 8px;
 }
-.ap-chip-grid > .ap-chip {
+.ap-chip-grid > .jz-chip {
   justify-content: center;
   gap: 6px;
   min-width: 0;
@@ -570,65 +367,8 @@ a.ap-row:active {
 }
 /* The Arcade side's chips (Strategy split from Action, 1 Nov 2026): the same 4-column grid as Puzzles', All
    games, Retro, Sports, Action over Cards & Board and Strategy at two columns each, never scrolling. */
-.ap-chip-grid > .ap-chip[data-span="2"] {
+.ap-chip-grid > .jz-chip[data-span="2"] {
   grid-column: span 2;
-}
-
-/* Practice's Puzzles | Arcade switch (30 Oct 2026): two halves on a panel; the side shown takes the gold
-   shine (Joe's call: it is the way into play on this tab), the other is muted. 44 px targets. */
-.ap-switch {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 4px;
-  padding: 4px;
-  border-radius: 16px;
-  background: var(--ap-panel, #17171B);
-}
-.ap-switch-opt {
-  position: relative;
-  display: flex;
-  overflow: hidden;
-  height: 44px;
-  min-width: 0;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  border: 0;
-  border-radius: 12px;
-  background: transparent;
-  color: var(--ap-faint);
-  font-size: 15px;
-  font-weight: 700;
-  white-space: nowrap;
-  isolation: isolate;
-  -webkit-tap-highlight-color: transparent;
-}
-.ap-switch-count {
-  font-variant-numeric: tabular-nums;
-  font-weight: 600;
-  opacity: 0.85;
-}
-.ap-switch-opt[aria-pressed="true"] {
-  background: var(--ap-shine);
-  box-shadow: var(--ap-shine-top);
-  color: var(--ap-on-gold);
-  font-weight: 800;
-}
-.ap-switch-opt[aria-pressed="true"] .ap-switch-count {
-  opacity: 1;
-  font-weight: 700;
-}
-.ap-switch-opt[aria-pressed="true"]::after {
-  content: "";
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 14%;
-  z-index: -1;
-  width: 35%;
-  transform: skewX(-18deg);
-  background: linear-gradient(90deg, rgb(255 255 255 / 0) 0%, rgb(255 255 255 / 0.38) 50%, rgb(255 255 255 / 0) 100%);
-  pointer-events: none;
 }
 
 .ap-dot {
@@ -687,13 +427,13 @@ a.ap-row:active {
   justify-content: center;
   gap: 1px;
   border-radius: 11px;
-  background: #173229;
+  background: var(--jz-cyan-panel);
 }
 .ap-date-day {
   font-size: 11px;
   font-weight: 700;
   line-height: 1;
-  color: #5CD6C0;
+  color: var(--jz-cyan);
   white-space: nowrap;
 }
 .ap-date-num {
@@ -742,12 +482,6 @@ a.ap-row:active {
   }
 }
 
-/* Join now before its lobby opens: there but off (the public game card). */
-.ap-btn-off:disabled {
-  opacity: 1;
-  color: var(--ap-faint);
-}
-
 /* ------------------------------------------------------------------ tab pages refresh (26 Oct 2026) */
 /* The design canvas's "Tab pages refresh" row (T-Play, T-PlayFirst, T-Practice, T-Tournaments,
    T-TournamentsEmpty, T-Profile, T-ProfileNew): the room screens' panels and rows, gold only for play. */
@@ -791,8 +525,8 @@ a.ap-row:active {
   --ap-tile-glow: rgb(178 107 255 / 0.35);
   background: linear-gradient(145deg, #C084FF 0%, #7A35E0 55%, #3A1680 100%);
 }
-.ap-row[data-icon="tile"] {
-  --ap-inset: 72px;
+.jz-row[data-icon="tile"] {
+  --row-inset: 72px;
   min-height: 64px;
   gap: 14px;
 }
@@ -819,22 +553,22 @@ a.ap-row:active {
 html[data-play-cards~="daily"] [data-play-slot="daily"]:not([data-slot-state="hide"]) + [data-play-slot="challenge"] {
   margin-top: -22px;
 }
-html[data-play-cards~="daily"] [data-play-slot="daily"]:not([data-slot-state="hide"]) + [data-play-slot="challenge"] .ap-panel {
+html[data-play-cards~="daily"] [data-play-slot="daily"]:not([data-slot-state="hide"]) + [data-play-slot="challenge"] .jz-panel {
   border-top-left-radius: 0;
   border-top-right-radius: 0;
 }
-html[data-play-cards~="daily"] [data-play-slot="daily"]:not([data-slot-state="hide"]) + [data-play-slot="challenge"] .ap-row::before {
+html[data-play-cards~="daily"] [data-play-slot="daily"]:not([data-slot-state="hide"]) + [data-play-slot="challenge"] .jz-row::before {
   content: "";
   position: absolute;
   top: 0;
   right: 0;
-  left: var(--ap-inset);
+  left: var(--row-inset);
   height: 1px;
   background: var(--ap-divider);
   pointer-events: none;
 }
-html[data-play-cards~="challenge"] [data-play-slot="daily"]:not([data-slot-state="hide"]):has(+ [data-play-slot="challenge"]) [data-daily-card] .ap-panel,
-html[data-play-cards~="challenge"] [data-play-slot="daily"]:not([data-slot-state="hide"]):has(+ [data-play-slot="challenge"]) [data-daily-card] .ap-panel > :last-child {
+html[data-play-cards~="challenge"] [data-play-slot="daily"]:not([data-slot-state="hide"]):has(+ [data-play-slot="challenge"]) [data-daily-card] .jz-panel,
+html[data-play-cards~="challenge"] [data-play-slot="daily"]:not([data-slot-state="hide"]):has(+ [data-play-slot="challenge"]) [data-daily-card] .jz-panel > :last-child {
   border-bottom-left-radius: 0;
   border-bottom-right-radius: 0;
 }
@@ -871,14 +605,6 @@ html[data-play-cards~="challenge"] [data-play-slot="daily"]:not([data-slot-state
 .ap-next-status[data-open] {
   color: #5CD6C0;
 }
-.ap-live-dot {
-  width: 8px;
-  height: 8px;
-  flex: none;
-  border-radius: 50%;
-  background: #5CD6C0;
-  box-shadow: 0 0 0 4px rgb(92 214 192 / 0.18);
-}
 .ap-next-actions {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -887,22 +613,6 @@ html[data-play-cards~="challenge"] [data-play-slot="daily"]:not([data-slot-state
 }
 .ap-next-actions > :only-child {
   grid-column: 1 / -1;
-}
-/* Before the lobby opens: a quiet, disabled "Opens 7:45 pm" with a lock. */
-.ap-btn-quiet {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 7px;
-  border: 0;
-  border-radius: 12px;
-  background: #222228;
-  color: var(--ap-text-2);
-  font-weight: 700;
-  white-space: nowrap;
-}
-.ap-btn-quiet:disabled {
-  opacity: 1;
 }
 /* A date tile that isn't the next game: neutral. */
 .ap-date[data-quiet] {
@@ -918,8 +628,8 @@ html[data-play-cards~="challenge"] [data-play-slot="daily"]:not([data-slot-state
 .ap-date[data-quiet] > .ap-date-num {
   font-size: 17px;
 }
-.ap-row[data-icon="date-sm"] {
-  --ap-inset: 70px;
+.jz-row[data-icon="date-sm"] {
+  --row-inset: 70px;
   min-height: 68px;
   padding-right: 8px;
   gap: 14px;
@@ -975,8 +685,8 @@ html[data-play-cards~="challenge"] [data-play-slot="daily"]:not([data-slot-state
   box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.55), inset 0 -2px 0 rgb(0 0 0 / 0.2);
   color: #1E120A;
 }
-.ap-row[data-icon="place"] {
-  --ap-inset: 66px;
+.jz-row[data-icon="place"] {
+  --row-inset: 66px;
   min-height: 68px;
   gap: 14px;
 }
@@ -1027,11 +737,11 @@ html[data-play-cards~="challenge"] [data-play-slot="daily"]:not([data-slot-state
   flex: 1;
   min-width: 0;
 }
-.ap-row[data-icon="game"] {
-  --ap-inset: 74px;
+.jz-row[data-icon="game"] {
+  --row-inset: 74px;
   gap: 14px;
 }
-.ap-row[data-icon="game"] .game-icon {
+.jz-row[data-icon="game"] .game-icon {
   border-radius: 11px;
 }
 
@@ -1199,12 +909,12 @@ html[data-play-cards~="intro"] [data-play-hero] {
   width: 15px;
   height: 15px;
 }
-.ap-row[data-icon="check"] {
-  --ap-inset: 56px;
+.jz-row[data-icon="check"] {
+  --row-inset: 56px;
   min-height: 68px;
   gap: 14px;
 }
-.ap-row[data-icon="check"][data-done] .ap-row-title {
+.jz-row[data-icon="check"][data-done] .jz-row-title {
   color: var(--ap-text-2);
 }
 
@@ -1218,20 +928,7 @@ html[data-play-cards~="intro"] [data-play-hero] {
 .ap-profile-head > [data-player-badge] {
   box-shadow: 0 0 0 3px var(--ap-panel), 0 0 0 4px var(--ap-line);
 }
-.ap-chip-quiet {
-  display: inline-flex;
-  height: 20px;
-  flex: none;
-  align-items: center;
-  padding: 0 7px;
-  border: 1px solid var(--ap-line);
-  border-radius: 999px;
-  color: var(--ap-text-2);
-  font-size: 11px;
-  font-weight: 700;
-  white-space: nowrap;
-}
-.ap-panel > .ap-stats {
+.jz-panel > .ap-stats {
   border-top: 1px solid var(--ap-divider);
 }
 .ap-profile-new {

@@ -68,9 +68,9 @@ check(showRoundChatDot(2, false) && !showRoundChatDot(0, false) && !showRoundCha
 /* ------------------------------------------------------------ the real RoomChat in happy-dom */
 
 const win = new Window({ url: "https://joulz.uk/duel/ABCD" });
-for (const key of ["window", "document", "navigator", "HTMLElement", "Element", "Node", "Event", "localStorage", "sessionStorage", "location", "getComputedStyle", "matchMedia", "requestAnimationFrame", "cancelAnimationFrame"] as const) {
+for (const key of ["window", "document", "navigator", "HTMLElement", "Element", "Node", "Event", "localStorage", "sessionStorage", "location", "getComputedStyle", "matchMedia", "requestAnimationFrame", "cancelAnimationFrame", "MutationObserver", "CustomEvent"] as const) {
   const value = (win as unknown as Record<string, unknown>)[key];
-  Object.defineProperty(globalThis, key, { configurable: true, writable: true, value: typeof value === "function" && key !== "HTMLElement" && key !== "Element" && key !== "Node" && key !== "Event" ? (value as (...a: unknown[]) => unknown).bind(win) : value });
+  Object.defineProperty(globalThis, key, { configurable: true, writable: true, value: typeof value === "function" && key !== "HTMLElement" && key !== "Element" && key !== "Node" && key !== "Event" && key !== "MutationObserver" && key !== "CustomEvent" ? (value as (...a: unknown[]) => unknown).bind(win) : value });
 }
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 let vibrations = 0;
@@ -128,7 +128,8 @@ check(!!toast(), "no toast for a new message between rounds");
 check(toast()?.textContent?.includes("Sam") === true, "toast lacks the sender's name");
 check(toast()?.textContent?.includes(chatToastText(live.text)) === true, `toast lacks the first words: ${toast()?.textContent}`);
 check(!!toast()?.querySelector("[data-player-badge], svg, span"), "toast lacks the sender's badge");
-check((toast() as HTMLElement | null)?.style.borderColor !== "", "toast lacks the sender's colour");
+// The shared Toast (design foundation F2) carries the sender's colour on its edge.
+check(((toast() as HTMLElement | null)?.style.borderLeftColor ?? "") !== "", "toast lacks the sender's colour");
 check(blips === 1 && vibrations === 1, `toast sound ${blips} / haptic ${vibrations}, expected 1 / 1`);
 // At the bottom (22 Oct 2026): placed from the bottom, sliding up; never from the top.
 const placed = toast() as HTMLElement | null;

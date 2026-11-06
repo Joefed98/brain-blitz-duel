@@ -19,6 +19,7 @@ import {
 } from "@/lib/duel/resultPresentation";
 import type { ReplayRound } from "@/lib/replay/replay.server";
 import type { PuzzleType } from "@/lib/duel/types";
+import { Button } from "@/design/components";
 
 /**
  * An async room's results for the player who has finished it (21 Oct 2026; the daily challenge):
@@ -96,14 +97,15 @@ export function AsyncResults({
           startedAt={0}
           now={now}
         />
-        <button
-          type="button"
+        <Button
+          variant="secondary"
+          block
           data-async-back
           onClick={() => setRevealing(null)}
-          className="rs-btn press tap-target mx-auto mt-2 w-full max-w-xs shrink-0"
+          className="mx-auto mt-2 max-w-xs shrink-0"
         >
           Back to results
-        </button>
+        </Button>
       </PhoneShell>
     );
   }
@@ -212,14 +214,14 @@ export function AsyncResults({
                             <RoundHighlightView round={replay} players={2} />
                           </ReplayBoundary>
                         ) : null}
-                        <button
-                          type="button"
+                        <Button
+                          variant="secondary"
+                          block
                           data-async-reveal={round.round}
                           onClick={() => setRevealing(round.round)}
-                          className="rs-btn press tap-target w-full"
                         >
                           See the reveal
-                        </button>
+                        </Button>
                       </>
                     ) : (
                       <WaitingLine label="Loading" />
@@ -233,14 +235,15 @@ export function AsyncResults({
 
         {actions ?? (
           <div className="mt-auto flex gap-2">
-            <button
-              type="button"
+            <Button
+              variant="secondary"
+              size={52}
               data-async-board
               onClick={onBoard}
-              className="rs-btn press tap-target h-[52px] min-w-0 flex-1"
+              className="min-w-0 flex-1"
             >
               {boardLabel}
-            </button>
+            </Button>
             {share}
           </div>
         )}

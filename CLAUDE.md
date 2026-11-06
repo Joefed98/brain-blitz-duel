@@ -1526,6 +1526,21 @@ outside the repo.
   art (src/lib/arcade, canvas code) is excluded and puzzle boards' own art is warned, never failed; a deliberate exception
   takes `design-lint-ignore` on the line. It also proves `--jz-player-N` matches `PLAYER_COLOURS`. theme-check checks the
   token contrast pairs from tokens.css and the skinned screens on the new values.
+- **Design foundation F2: shared components** (6 Nov 2026; presentation only, no stamps; `DESIGN.md` section 5):
+  `src/design/components/` (import from `@/design/components`; look in `src/design/components.css`, tokens only):
+  Button / ButtonLink (gold: the metal face on a solid 4 px `--jz-gold-ledge` inside the cut, drawn on `::before` so the
+  focus ring shows; secondary; quiet; icon; `size` = the height), Panel / Row (`.jz-panel` / `.jz-row`, the old
+  `.ap-panel` / `.ap-row` renamed), SectionHeader, Chip, Segmented, SwitchKnob, Input / CodeInput (wells, `--jz-well`),
+  Sheet (vaul: drag to dismiss; the settings, room settings and chat sheets), Toast, Skeleton / SkeletonPage, LiveTag,
+  GameTile, Nameplate, Medal and TabBar (one `TABS` list for AppTabBar and AppRail). Each has hover, pressed (0.97),
+  focus-visible and a 44 px target; `/dev-design` (development only) shows every one in every state. **The old
+  `.th-btn-*`, `.ap-btn-*`, `.rs-btn*`, `.th-input`, `.ap-input`, `.th-chip`, `.ap-chip`, `.rs-cat`, `.ap-switch`, `.rs-seg`
+  and `.rs-switch` classes are deleted: use the components.** The shadcn files in `src/components/ui` are down to
+  button, popover and slider (still used by puzzles and the sound popover). Focus rings show on any device with a
+  keyboard, iPad included (touch-highlight-check: a tap leaves none, Tab shows one); `--screen-edge` is `--jz-bg`
+  (#06080F; the bottom, fill and play-screen checks compare against it). Checks find buttons by `data-variant`
+  (share-check, theme-check's Ready). Happy-dom checks that draw a sheet need `MutationObserver` and `CustomEvent`
+  on the global (Radix's focus scope under vaul).
 - `src/components/duel/` — room/round screens (PhoneShell, RoundIntro, TimerBar,
   AnswerReveal, ArcadeReveal, WinnerReveal…); `src/components/puzzles/` — shared puzzle
   widgets; `src/lib/fx/` — sound and visual feedback (presentation only).

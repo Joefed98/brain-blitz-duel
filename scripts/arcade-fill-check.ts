@@ -9,7 +9,7 @@
  *  - the backdrop canvas is missing, takes touches, or does not reach the screen's bottom and sides;
  *  - a black strip is left: any pixel row below the world (or, where the game fills its sides, any
  *    column beside it; and the gap above a centred world) whose uncovered pixels (controls and the
- *    header excepted) are 60 % or more the screen edge's black #070709 (within 3 per channel);
+ *    header excepted) are 60 % or more the screen edge's black #06080F (within 3 per channel);
  *  - a border line or seam remains: on each world edge that meets a fill, the colour across the edge
  *    (the 4 px inside against the 4 px outside, averaged along it) steps by more than SEAM_MAX on
  *    average per channel, or a line runs along it: within 8 px of the edge, a 1 px row (or column)
@@ -43,7 +43,7 @@ const VERBOSE = args.includes("--verbose");
 const SHOTS = opt("shots");
 const CHROMIUM = process.env.PLAYWRIGHT_CHROMIUM ?? "/opt/pw-browsers/chromium";
 const PORT = 5199;
-const EDGE: [number, number, number] = [7, 7, 9];
+const EDGE: [number, number, number] = [6, 8, 15];
 const BLACK_TOLERANCE = 3;
 /** A row (or column) at least this share of the screen edge's black is a black strip. */
 const BLACK_SHARE = 0.6;
@@ -351,7 +351,7 @@ async function main() {
           const w = m.world;
           // Below the world, to the screen's bottom.
           const below = blackLines(pixels, { left: 0, top: w.bottom + 1, right: m.W, bottom: m.H }, m.covered, false);
-          if (below.length) mine.push(`${where}: black strip below the world: ${below.length} row(s) mostly #070709, first at y ${below[0]}`);
+          if (below.length) mine.push(`${where}: black strip below the world: ${below.length} row(s) mostly #06080F, first at y ${below[0]}`);
           // Above a centred world (between the header and the world).
           if (m.centred && w.top - m.slot.top > 2) {
             const above = blackLines(pixels, { left: 0, top: m.slot.top, right: m.W, bottom: w.top - 1 }, m.covered, false);
@@ -362,7 +362,7 @@ async function main() {
               ...blackLines(pixels, { left: 0, top: w.top, right: w.left - 1, bottom: w.bottom }, m.covered, true),
               ...blackLines(pixels, { left: w.right + 1, top: w.top, right: m.W, bottom: w.bottom }, m.covered, true),
             ];
-            if (cols.length) mine.push(`${where}: black strip beside the world: ${cols.length} column(s) mostly #070709, first at x ${cols[0]}`);
+            if (cols.length) mine.push(`${where}: black strip beside the world: ${cols.length} column(s) mostly #06080F, first at x ${cols[0]}`);
           }
           const border = BORDER_KEPT.has(game);
           if (m.H - w.bottom > 3) for (const p of edgeProblems(pixels, w, "bottom", m.covered, border)) mine.push(`${where}: ${p}`);
