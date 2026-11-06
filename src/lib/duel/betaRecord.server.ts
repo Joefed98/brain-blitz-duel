@@ -353,7 +353,7 @@ export function shareEventRow(userId: string, input: Record<string, unknown>): S
   // A welcome row is nothing but its outcome.
   if (event === "arrival_welcome" && !welcome) return null;
   const duelId = typeof input["duelId"] === "string" && UUID.test(input["duelId"]) ? input["duelId"] : null;
-  const code = typeof input["roomCode"] === "string" && /^[A-Z]{4}$/.test(input["roomCode"]) ? input["roomCode"] : null;
+  const code = typeof input["roomCode"] === "string" && /^[A-Z0-9]{4}$/.test(input["roomCode"]) ? input["roomCode"] : null;
   const method = input["method"] === "native" || input["method"] === "copy" ? input["method"] : null;
   const landing = input["landing"] === "home" || input["landing"] === "room" ? input["landing"] : null;
   // Daily and challenge shares and arrivals (22 Oct 2026); anything else, and every row before, is a room's.

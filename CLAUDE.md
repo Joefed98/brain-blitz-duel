@@ -1498,6 +1498,16 @@ outside the repo.
   dev-only hook `src/lib/arcade/auditInput.ts`, dropped from production builds), ends puzzles on a solved reveal (the
   driver's solve, or a driver's full answer graded at the buzzer) and waits for "Stage n of" (Integer Pyramid, Brimful):
   `screenshots/audit-nov-2026-final/`, `docs/audit/intro-reveal-text-final.md`.
+- **Design audit fixes** (7 Nov 2026, `docs/design-audit/INVENTORY.md`; presentation and room codes only, no stamps):
+  *reduced motion*: every animated element ends visible with prefers-reduced-motion on (the global rule cuts
+  animations to 0.01 ms and keeps their fill, so a hidden last frame stuck: the arcade results headline and the
+  "New best" pill now hold still, `animation: none`); reduced-motion-end-check (~1 s, static CSS) fails on any
+  animation that ends hidden under reduced motion unless it is a listed pure effect (`EFFECTS`, with reasons).
+  *Room codes*: new rooms take four characters from the challenge codes' alphabet (`src/lib/duel/roomCode.ts`,
+  no I, L, O, 0 or 1); everything that reads a code accepts four letters or digits, so older codes (JULZ
+  included) keep working; `supabase/migrations/20261107120000_room_code_digits.sql` (**written but not
+  applied**) widens share_events' room-code check; until it is, the beta share event from a room with a digit in its
+  code is refused by the old check (fire-and-forget, so play is unaffected). room-code-check (~1 s).
 - `src/components/duel/` — room/round screens (PhoneShell, RoundIntro, TimerBar,
   AnswerReveal, ArcadeReveal, WinnerReveal…); `src/components/puzzles/` — shared puzzle
   widgets; `src/lib/fx/` — sound and visual feedback (presentation only).
