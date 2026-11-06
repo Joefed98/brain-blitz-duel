@@ -92,7 +92,7 @@ function ProfileScreen() {
   // section with nothing in it yet isn't drawn (a new player sees no zeros).
   const steps = [
     { id: "room", title: "Play your first room", sub: "Rooms, wins and podiums start counting", done: history.length > 0 },
-    { id: "daily", title: "Do today's daily", sub: "Starts your streak", done: (daily?.days.length ?? 0) > 0 },
+    { id: "daily", title: "Do today’s daily", sub: "Starts your streak", done: (daily?.days.length ?? 0) > 0 },
     { id: "practice", title: "Set a practice best", sub: `Any of the ${ACTIVE_GAMES} games`, done: bests.length > 0 },
   ] as const;
   const fresh = loaded && steps.every((step) => !step.done);
@@ -157,7 +157,7 @@ function ProfileScreen() {
               <PlayerBadge look={look} name={shownName} size={72} />
               <span className="th-name mt-1 max-w-full truncate text-[20px] font-bold text-foreground">{shownName}</span>
               <p data-wrap-ok className="max-w-[280px] text-[14px] leading-[1.4] text-[var(--ap-text-2)]">
-                This is your badge in rooms. Pick a name, colour and icon so friends know it's you.
+                This is your badge in rooms. Pick a name, colour and icon so friends know it’s you.
               </p>
               <Button variant="secondary" size={46} block aria-expanded={picking} onClick={() => setPicking((v) => !v)} className="mt-1">
                 {picking ? "Done" : "Choose your look"}

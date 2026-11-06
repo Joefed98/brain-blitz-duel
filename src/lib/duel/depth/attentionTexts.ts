@@ -44,7 +44,7 @@ export function doubleTakeDepthHelp(): string {
     "differences found (wrong taps cost)",
     SPOT_DEPTH_CURVE,
     "with no wrong taps (each wrong tap cuts the climb above 150)",
-    ` One picture also hides a seventh, subtler difference, not in the count: find it before that picture's sixth and a finish adds ${DOUBLE_TAKE_BONUS}, so ${roundMaxFor("spotdiff")} needs both.`,
+    ` One picture also hides a seventh, subtler difference, not in the count: find it before that picture’s sixth and a finish adds ${DOUBLE_TAKE_BONUS}, so ${roundMaxFor("spotdiff")} needs both.`,
   );
 }
 export function doubleTakeDepthIntro(): string {

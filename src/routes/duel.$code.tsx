@@ -150,7 +150,7 @@ import { OnlineOnly } from "@/components/offline/OnlineOnly";
 import { Button, SkeletonPage } from "@/design/components";
 
 const ROOM_TITLE = `Join a ${APP_NAME} room`;
-const ROOM_DESCRIPTION = `You're invited to a live ${APP_NAME} room. ${APP_TAGLINE}`;
+const ROOM_DESCRIPTION = `You’re invited to a live ${APP_NAME} room. ${APP_TAGLINE}`;
 
 export const Route = createFileRoute("/duel/$code")({
   ssr: false,

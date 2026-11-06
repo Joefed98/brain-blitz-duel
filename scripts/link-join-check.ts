@@ -36,7 +36,7 @@ assert.match(
   route,
   /if \(state\.notFound \|\| !duel \|\| !me \|\| \(me\.status === "left" && duel\.status === "waiting"\)\) \{[\s\S]{0,200}<JoinFromLink roomCode=\{roomCode\} onJoined=\{state\.refresh\} \/>/,
 );
-assert.doesNotMatch(route, /You're not in this room|Head back home and join with the room code/);
+assert.doesNotMatch(route, /You['’]re not in this room|Head back home and join with the room code/);
 
 // Join card: name only, remembered, same server join, plain message once started.
 const card = readFileSync("src/components/duel/JoinFromLink.tsx", "utf8");

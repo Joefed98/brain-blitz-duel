@@ -150,7 +150,7 @@ function IntroExample() {
         <Tubes tubes={tubes} lifted={2} compact />
       </div>
       <p className="text-xs text-muted-foreground">
-        Flask 3&apos;s top layer is lifted - pour it into the empty flask or onto a matching colour. Each flask holds five layers; a full one-colour flask gets a cork. You have 90 seconds.
+        Flask 3’s top layer is lifted - pour it into the empty flask or onto a matching colour. Each flask holds five layers; a full one-colour flask gets a cork. You have 90 seconds.
       </p>
     </div>
   );

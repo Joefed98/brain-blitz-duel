@@ -131,7 +131,7 @@ function IntroExample() {
           Wait…
         </span>
         <span className="flash-decoy-amber flex h-16 w-20 items-center justify-center rounded-xl font-display text-xs font-bold text-primary-foreground">
-          Don't tap
+          Don’t tap
         </span>
         <span className="flex h-16 w-20 items-center justify-center rounded-xl bg-primary font-display text-sm font-bold text-primary-foreground">
           Gold

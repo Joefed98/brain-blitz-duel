@@ -155,14 +155,14 @@ export async function changePlayerLook(
   me: DuelPlayerRow,
   input: { colour?: number; icon?: string | null },
 ): Promise<{ ok: true } | { ok: false; message: string }> {
-  if (!(await hasLookColumns(client))) return { ok: false, message: "Colours can't be changed yet." };
+  if (!(await hasLookColumns(client))) return { ok: false, message: "Colours can’t be changed yet." };
   const update: { colour?: number; icon?: string | null } = {};
   if (input.colour !== undefined) {
-    if (!isPlayerColour(input.colour)) return { ok: false, message: "That isn't one of the colours." };
+    if (!isPlayerColour(input.colour)) return { ok: false, message: "That isn’t one of the colours." };
     update.colour = input.colour;
   }
   if (input.icon !== undefined) {
-    if (input.icon !== null && !isPlayerIcon(input.icon)) return { ok: false, message: "That isn't one of the icons." };
+    if (input.icon !== null && !isPlayerIcon(input.icon)) return { ok: false, message: "That isn’t one of the icons." };
     if (input.icon !== null && takenIcons(await roomPlayers(client, me.duel_id), me.player_slot).has(input.icon))
       return { ok: false, message: "Someone else has that icon." };
     update.icon = input.icon;
@@ -175,7 +175,7 @@ export async function changePlayerLook(
   }
   const { error } = await client.from("duel_players").update(update).eq("id", me.id);
   if (colourClash(error)) return { ok: false, message: "Someone else has that colour." };
-  if (colourRangeRefused(error)) return { ok: false, message: "That colour can't be stored yet." };
+  if (colourRangeRefused(error)) return { ok: false, message: "That colour can’t be stored yet." };
   if (error) throw new Error(error.message);
   return { ok: true };
 }

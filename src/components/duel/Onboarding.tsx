@@ -27,7 +27,7 @@ const PANELS: Panel[] = [
   },
   {
     title: "Same game, same time.",
-    body: "Create a room and share the code, or join a friend's. Everyone plays the same game at once.",
+    body: "Create a room and share the code, or join a friend’s. Everyone plays the same game at once.",
     art: <RoomCodeArt />,
   },
   {
@@ -167,7 +167,7 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
             {`Step ${index + 1} of ${PANELS.length}`}
           </p>
           <Button variant={last ? "gold" : "secondary"} size={52} block data-onboarding-next onClick={next}>
-            {last ? "Let's play" : "Next"}
+            {last ? "Let’s play" : "Next"}
           </Button>
         </div>
       </div>

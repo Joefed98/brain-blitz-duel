@@ -211,7 +211,7 @@ async function storeChallenge(
     if (error) throw new Error(error.message);
     return { room, meta };
   }
-  throw new Error("Couldn't find a free challenge code.");
+  throw new Error("Couldn’t find a free challenge code.");
 }
 
 /**
@@ -227,7 +227,7 @@ export async function createChallenge(
 ): Promise<{ ok: true; code: string; roomId: string } | Fail> {
   if (!validChallengeRounds(input.rounds)) return { ok: false, message: "Pick how many rounds." };
   if ((await challengesMadeLastHour(client, userId, nowMs)) >= CHALLENGE_CREATE_PER_HOUR)
-    return { ok: false, message: "That's a lot of challenges. Try again in a while." };
+    return { ok: false, message: "That’s a lot of challenges. Try again in a while." };
   const categories = challengeCategories(input.categories);
   const seed = newRoomSeed();
   let unblockRow: UnblockBankRow | null = null;
@@ -281,7 +281,7 @@ export async function createChallengeFromRoom(
     (a, b) => a.player_slot - b.player_slot,
   );
   if (!players.some((p) => p.user_id === userId))
-    return { ok: false, message: "Only this room's players can do that." };
+    return { ok: false, message: "Only this room’s players can do that." };
   const gameIndex = gameIndexOf(room);
   const { data: existing } = await client
     .from("challenges")
@@ -304,9 +304,9 @@ export async function createChallengeFromRoom(
     pub.length !== (room.round_count || order.length) ||
     !pub.every((p) => isLiveType(p.type))
   )
-    return { ok: false, message: "This game can't be turned into a challenge." };
+    return { ok: false, message: "This game can’t be turned into a challenge." };
   if ((await challengesMadeLastHour(client, userId, nowMs)) >= CHALLENGE_CREATE_PER_HOUR)
-    return { ok: false, message: "That's a lot of challenges. Try again in a while." };
+    return { ok: false, message: "That’s a lot of challenges. Try again in a while." };
   const { data: secretRow } = await client
     .from("duel_secrets")
     .select("puzzles_private")
@@ -493,7 +493,7 @@ export async function startChallenge(
   nowMs: number,
 ): Promise<{ ok: true; roomId: string; created: boolean } | Fail> {
   const found = await challengeByCode(client, code);
-  if (!found) return { ok: false, message: "That challenge doesn't exist." };
+  if (!found) return { ok: false, message: "That challenge doesn’t exist." };
   const { room } = found;
   const existing = await attemptFor(client, room.id, userId);
   if (existing) return { ok: true, roomId: room.id, created: false };
@@ -619,7 +619,7 @@ export async function challengeRoundBoard(
   if (!pub) return { ok: false, message: "Unknown round." };
   const mineRows = await resultsOf(client, attempt.id);
   if (!doneRow(mineRows.find((r) => r.round_number === round)))
-    return { ok: false, message: "That round isn't finished yet." };
+    return { ok: false, message: "That round isn’t finished yet." };
   const all = slotted(await attemptsIn(client, room.id));
   const people = [...earlierThan(all, attempt), all.find((a) => a.id === attempt.id)!].sort(
     (a, b) => a.slot - b.slot,

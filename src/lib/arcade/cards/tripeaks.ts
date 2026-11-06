@@ -77,7 +77,7 @@ export const TP_STD_SPEC: StdSpec = {
     { key: "peaks", label: "Peak tops", max: TP_V2_PEAK_MAX, of: 3, item: "peak top", how: `${TP_V2_PEAK_EACH} for each peak top cleared` },
     { key: "run", label: "Longest run", max: TP_V2_RUN_MAX, of: 10, item: "card", how: `${TP_V2_RUN_EACH} for each card in your longest run` },
     { key: "clear", label: "Clear", max: TP_V2_CLEAR_MAX, of: 1, how: "clear all 28" },
-    { key: "par", label: "Stock par", max: TP_V2_PAR_MAX, of: 1, how: "clear all 28 turning the stock no more than the deal's par for all of it, nothing if you turned it all" },
+    { key: "par", label: "Stock par", max: TP_V2_PAR_MAX, of: 1, how: "clear all 28 turning the stock no more than the deal’s par for all of it, nothing if you turned it all" },
     { key: "speed", label: "Speed", max: TP_V2_SPEED_MAX, of: 1, how: `clear all 28 within ${TP_V2_SPEED_FULL_S} s for all of it, falling to 0 at the buzzer` },
   ],
 };
