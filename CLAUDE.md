@@ -1541,6 +1541,17 @@ outside the repo.
   (not `--jz-bg`; the bottom, fill and play-screen checks compare against it). Checks find buttons by `data-variant`
   (share-check, theme-check's Ready). Happy-dom checks that draw a sheet need `MutationObserver` and `CustomEvent`
   on the global (Radix's focus scope under vaul).
+- **Design foundation F3: game chrome** (6 Nov 2026; presentation only, no stamps; `DESIGN.md` sections 3 and 9):
+  `--font-display`, `--font-body` and `--font-mono` (styles.css) are Archivo (`--jz-font`; `.font-mono` keeps
+  `tabular-nums`); the Google Fonts load is Press Start 2P only (`GOOGLE_FONTS_CSS`, Retro game art). It uses F2's
+  components (Button; Chip's non-interactive `status` variant, a 22 px label-and-value `<span>`, for every HUD pill). The intro (title, Goal / How / Score `.intro-label`
+  and friends, the 3-2-1 `.intro-countdown-number`, Ready as the gold Button in its 52 px row), the frame header, timer
+  ring, HUD pills (`HudPills` renders `Chip variant="status"`) and the answer and arcade reveals (Back / Play again / See breakdown as
+  Buttons, `.reveal-*` type classes, `--reveal-text-2` for secondary text on the gradient) take `--jz-*` tokens; the
+  backdrops' base is `--jz-bg` under the unchanged category tint, and the reveal palette is unchanged. Game art inside
+  the play area is untouched; canvas art that names JetBrains Mono keeps it through a self-hosted `@font-face` for game
+  art only (`src/lib/arcade/gameArtFonts.css`, asked for by `preloadGameArt`; DESIGN.md section 9's exception). Shots:
+  `screenshots/design-f3-nov-2026/`.
 - `src/components/duel/` — room/round screens (PhoneShell, RoundIntro, TimerBar,
   AnswerReveal, ArcadeReveal, WinnerReveal…); `src/components/puzzles/` — shared puzzle
   widgets; `src/lib/fx/` — sound and visual feedback (presentation only).

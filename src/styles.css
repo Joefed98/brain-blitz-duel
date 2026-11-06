@@ -5,6 +5,8 @@
 @import "./design/tokens.css";
 @import "./design/utilities.css";
 @import "./design/components.css";
+/* The game art\'s own face (JetBrains Mono, self-hosted), for canvas art only (DESIGN.md section 9). */
+@import "./lib/arcade/gameArtFonts.css";
 @import "./polish-logic/logic.css";
 @import "./polish-logic/fences.css";
 @import "./polish-logic/fillomino.css";
@@ -163,7 +165,7 @@
   margin: 0;
   padding: 0 16px;
   text-align: center;
-  font-family: "Space Grotesk", system-ui, sans-serif;
+  font-family: var(--jz-font);
   font-weight: 700;
   font-size: clamp(28px, 9vw, 44px);
   line-height: 1.1;
@@ -619,9 +621,12 @@
   --ball-orange: #FF8A3D;
   --ball-brown: #8B5A2B;
   --ball-yellow: #FFE600;
-  --font-display: "Space Grotesk", system-ui, sans-serif;
-  --font-body: "Inter", system-ui, sans-serif;
-  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+  /* One font, Archivo (DESIGN.md section 3; design foundation F3, 6 Nov 2026). Space Grotesk, Inter and
+     JetBrains Mono are gone; the mono role keeps even-width digits through tabular-nums (below). Press Start 2P
+     stays, inside Retro game art only. */
+  --font-display: var(--jz-font);
+  --font-body: var(--jz-font);
+  --font-mono: var(--jz-font);
 }
 
 @layer base {
@@ -644,6 +649,12 @@
     font-weight: 700;
     letter-spacing: -0.01em;
   }
+}
+
+/* The mono role is Archivo now (F3): its digits keep even widths, as JetBrains Mono's did, so counters and scores
+   don't jitter as they change. */
+.font-mono {
+  font-variant-numeric: tabular-nums;
 }
 
 .game-screen,

@@ -27,9 +27,9 @@ export function PuzzleInstructions({ type, overlay = false, beforeScore }: Puzzl
       aria-label={`${puzzleDef(type).name} instructions`}
     >
       <div className="intro-goal shrink-0">
-        <p className="font-mono text-[11px] font-bold uppercase text-category-accent">Goal</p>
+        <p className="intro-label">Goal</p>
         <p
-          className={`font-display font-bold leading-tight text-foreground ${overlay ? "text-2xl" : "text-[22px]"}`}
+          className={`intro-goal-text${overlay ? " intro-goal-text-help" : ""}`}
         >
           {instructions.goal}
         </p>
@@ -38,19 +38,19 @@ export function PuzzleInstructions({ type, overlay = false, beforeScore }: Puzzl
           SCORE under it; the "?" help keeps GOAL, HOW, SCORE. */}
       {beforeScore}
       <div className="intro-how shrink-0">
-        <p className="font-mono text-[11px] font-bold uppercase text-category-accent">How</p>
+        <p className="intro-label">How</p>
         <div
-          className={`flex flex-col gap-0.5 leading-snug ${overlay ? "text-sm text-muted-foreground" : "text-[15px] text-[color-mix(in_srgb,var(--foreground)_86%,transparent)]"}`}
+          className={`flex flex-col gap-0.5 leading-snug ${overlay ? "text-sm text-muted-foreground" : "intro-how-text"}`}
         >
           {instructions.how.filter((line) => overlay || !line.helpOnly).map((line) => (
             <p key={`${line.action}-${line.detail}`}>
-              <strong className="font-bold text-foreground">{line.action}</strong> {line.detail}
+              <strong className="intro-how-action">{line.action}</strong> {line.detail}
             </p>
           ))}
         </div>
       </div>
       <div className="intro-score shrink-0">
-        <p className="font-mono text-[11px] font-bold uppercase text-category-accent">Score</p>
+        <p className="intro-label">Score</p>
         {overlay ? (
           // The help's SCORE is a list too (text pass, 4 Nov 2026): one row a part, then penalties, then the total.
           <ul data-help-score-parts="" className="flex flex-col gap-0.5 text-sm leading-snug text-muted-foreground">
@@ -59,7 +59,7 @@ export function PuzzleInstructions({ type, overlay = false, beforeScore }: Puzzl
             ))}
           </ul>
         ) : (
-          <ul data-intro-score-parts="" className="flex flex-col gap-0.5 text-[14px] leading-snug text-[color-mix(in_srgb,var(--foreground)_80%,transparent)]">
+          <ul data-intro-score-parts="" className="intro-score-text flex flex-col gap-0.5 leading-snug">
             {scoreParts(INTRO_SCORE[type]).map((part) => (
               <li key={part} className="intro-score-part">{part}</li>
             ))}
