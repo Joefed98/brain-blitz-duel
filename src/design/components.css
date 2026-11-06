@@ -71,6 +71,10 @@
     cursor: pointer;
     user-select: none;
   }
+  /* An icon beside a label keeps its size; the label gives way first. */
+  .jz-btn > svg {
+    flex: none;
+  }
   .jz-btn:disabled,
   .jz-btn[aria-disabled="true"] {
     cursor: default;

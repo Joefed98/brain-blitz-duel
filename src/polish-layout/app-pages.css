@@ -614,6 +614,10 @@ html[data-play-cards~="challenge"] [data-play-slot="daily"]:not([data-slot-state
 .ap-next-actions > :only-child {
   grid-column: 1 / -1;
 }
+/* Two buttons a half each: the label and its icon need the width (the old buttons had no side padding). */
+.ap-next-actions > .jz-btn {
+  padding: 0 8px;
+}
 /* A date tile that isn't the next game: neutral. */
 .ap-date[data-quiet] {
   width: 40px;
