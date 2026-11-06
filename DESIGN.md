@@ -67,7 +67,7 @@ All values live in `src/design/tokens.css` as `--jz-*` custom properties. The ol
 Colour is never the only signal: right and wrong also carry a tick or cross, up and down carry an arrow.
 
 The screen edge (`--screen-edge`: below a short page, under the home bar, the gaps round an arcade world) is
-`--jz-bg` since F2.
+#070709, kept apart from `--jz-bg` (the arcade backdrops fade towards it, and the fill checks tell them apart).
 
 ### Category and player colours
 

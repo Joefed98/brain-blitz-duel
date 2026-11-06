@@ -45,7 +45,7 @@
  * home bar emulated at 375×667 and 390×844 and fails if any pixel outside its content (the
  * world, the game's scene and fill-ins (a canvas; arcade-fill-check judges those), the header
  * and HUD text, controls and painted boxes, each with its shadow and 4 px of anti-aliasing) is
- * not the screen edge's black #06080F (within 2 per channel): the sides and the space below
+ * not the screen edge's black #070709 (within 2 per channel): the sides and the space below
  * the world, around the controls, the 16 px bottom strip, the safe-area strips and the page
  * behind (html and body) are one colour.
  *
@@ -77,7 +77,7 @@ export const TOOLBAR_PX = 80;
 /** Arcade play screens and their lowest control end exactly this far above the visible bottom (15 Oct 2026). */
 export const ARCADE_BOTTOM_PX = 16;
 /** The screen edge's black (--screen-edge): every gap on an arcade play screen. */
-const SCREEN_EDGE: [number, number, number] = [6, 8, 15];
+const SCREEN_EDGE: [number, number, number] = [7, 7, 9];
 /** The emulated notch and home bar (an iPhone 14 in portrait), as safe-area-screens-check. */
 const INSETS = { top: 47, bottom: 34, left: 0, right: 0 };
 const NO_INSETS = { top: 0, bottom: 0, left: 0, right: 0 };
@@ -791,7 +791,7 @@ async function main() {
           mine
             ? `${mine} problem(s)`
             : arcade
-              ? `play column and lowest control end ${ARCADE_BOTTOM_PX}px up with and without a home bar and as an iPhone 11 home-screen app (nothing clipped), every gap #06080F (notch and home bar emulated), intro Ready ≥ ${CLEARANCE_PX}px clear`
+              ? `play column and lowest control end ${ARCADE_BOTTOM_PX}px up with and without a home bar and as an iPhone 11 home-screen app (nothing clipped), every gap #070709 (notch and home bar emulated), intro Ready ≥ ${CLEARANCE_PX}px clear`
               : `every control ≥ ${CLEARANCE_PX}px clear at 4 viewports; no seam on intro, stage or reveal`
         }`,
       );

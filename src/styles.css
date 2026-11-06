@@ -520,7 +520,7 @@
   --puzzle-action-radius: 7px;
   --puzzle-ghost-opacity: 0.65;
   --screen-mid: #15151D;
-  --screen-edge: var(--jz-bg);
+  --screen-edge: #070709;
   --primary-foreground: oklch(0.16 0.02 82);
   --accepted-word-foreground: #FFFFFF;
   --secondary: oklch(0.26 0.014 285);

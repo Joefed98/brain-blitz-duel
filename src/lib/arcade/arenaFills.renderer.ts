@@ -237,7 +237,7 @@ const PIN_LAMPS = ["#FF4FD8", "#FFD84A", "#3DFFE0", "#FFD84A", "#FF4FD8"] as con
 export function pinballFill(ctx: CanvasRenderingContext2D, view: ArenaSceneView): void {
   const below = fillBelow(view);
   const above = fillAbove(view);
-  if (above) fillGradient(ctx, above, above.y, above.y + above.h, [[0, "#06080F"], [1, "#000000"]]);
+  if (above) fillGradient(ctx, above, above.y, above.y + above.h, [[0, "#070709"], [1, "#000000"]]);
   if (!below) return;
   fillGradient(ctx, below, below.y, below.y + below.h, [[0, "#000000"], [0.5, "#07040C"], [1, "#0A0510"]]);
   const glow = ctx.createRadialGradient(view.worldW / 2, below.y + below.h, 4, view.worldW / 2, below.y + below.h, view.worldW * 0.7);
@@ -256,7 +256,7 @@ export const pinballAmbient = lightRow("pinball", PIN_LAMPS);
 export function pinball4Fill(ctx: CanvasRenderingContext2D, view: ArenaSceneView): void {
   const below = fillBelow(view);
   const above = fillAbove(view);
-  if (above) fillGradient(ctx, above, above.y, above.y + above.h, [[0, "#06080F"], [1, "#000000"]]);
+  if (above) fillGradient(ctx, above, above.y, above.y + above.h, [[0, "#070709"], [1, "#000000"]]);
   if (!below) return;
   fillGradient(ctx, below, below.y, below.y + below.h, [[0, "#0E0422"], [0.5, "#0A0318"], [1, "#0D0420"]]);
   const glow = ctx.createRadialGradient(view.worldW / 2, below.y + below.h, 4, view.worldW / 2, below.y + below.h, view.worldW * 0.7);
@@ -342,7 +342,7 @@ export function snakeFill(ctx: CanvasRenderingContext2D, view: ArenaSceneView): 
     ctx.fillRect(r.x, r.y, r.w, r.h);
   }
   const above = fillAbove(view);
-  if (above) fillGradient(ctx, above, above.y, above.y + Math.min(above.h, 14), [[0, "#06080F"], [1, "#00000000"]]);
+  if (above) fillGradient(ctx, above, above.y, above.y + Math.min(above.h, 14), [[0, "#070709"], [1, "#00000000"]]);
 }
 export const snakeAmbient: ArenaAmbient = {
   region: "all",
@@ -501,7 +501,7 @@ export function bubbleFill(ctx: CanvasRenderingContext2D, view: ArenaSceneView):
 /** 14. Wavefront: its night sky (stars and a faint nebula) runs on below and beside the world. */
 export function wavefrontFill(ctx: CanvasRenderingContext2D, view: ArenaSceneView): void {
   for (const [i, r] of around(view, true).entries()) {
-    // A deep navy (wavRev 10's taller world leaves sides at 414 px): never the screen edge's #06080F.
+    // A deep navy (wavRev 10's taller world leaves sides at 414 px): never the screen edge's #070709.
     ctx.fillStyle = "#0B0B18";
     ctx.fillRect(r.x, r.y, r.w, r.h);
     stars(ctx, r, 401 + i, ["#FFFFFF", "#C9D6FF", "#8FA8FF"], 380, 0.42);

@@ -13,7 +13,7 @@ arcade-play-check and bottom-clearance-check reproduce it in Chromium and prove 
 The world is drawn at the largest uniform scale that fits the box, top-anchored (Tilt, and since 17 Oct 2026 Pinball, Meteor,
 Scrumper and Gemstone: centred) and centred across. Since the screen fill-ins (17 Oct 2026) every arcade game's space round
 its world is its own scene out to the screen's edges (Arena scenes, below); the engine games without one keep the screen
-edge's black (#06080F). Sizes are CSS px, width x height, box → world. Analytic geometry, cross-checked in the
+edge's black (#070709). Sizes are CSS px, width x height, box → world. Analytic geometry, cross-checked in the
 browser by arcade-play-check; not device measurements.
 
 Worlds are the revisions rooms deal today. Taller worlds: Tuning E (13 Oct 2026) Hover hoverRev 5, High Rise skylineRev 4,

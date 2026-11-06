@@ -57,6 +57,8 @@ export function Segmented<T extends string | number>({
             {...option.data}
           >
             {option.label}
+            {/* A real space, so the name reads "Puzzles 55"; the flex gap draws the visible one (trailing space collapses). */}
+            {option.count !== undefined ? " " : null}
             {option.count !== undefined ? <span className="jz-seg-count">{option.count}</span> : null}
           </button>
         );

@@ -1537,8 +1537,8 @@ outside the repo.
   `.th-btn-*`, `.ap-btn-*`, `.rs-btn*`, `.th-input`, `.ap-input`, `.th-chip`, `.ap-chip`, `.rs-cat`, `.ap-switch`, `.rs-seg`
   and `.rs-switch` classes are deleted: use the components.** The shadcn files in `src/components/ui` are down to
   button, popover and slider (still used by puzzles and the sound popover). Focus rings show on any device with a
-  keyboard, iPad included (touch-highlight-check: a tap leaves none, Tab shows one); `--screen-edge` is `--jz-bg`
-  (#06080F; the bottom, fill and play-screen checks compare against it). Checks find buttons by `data-variant`
+  keyboard, iPad included (touch-highlight-check: a tap leaves none, Tab shows one); `--screen-edge` stays #070709
+  (not `--jz-bg`; the bottom, fill and play-screen checks compare against it). Checks find buttons by `data-variant`
   (share-check, theme-check's Ready). Happy-dom checks that draw a sheet need `MutationObserver` and `CustomEvent`
   on the global (Radix's focus scope under vaul).
 - `src/components/duel/` — room/round screens (PhoneShell, RoundIntro, TimerBar,

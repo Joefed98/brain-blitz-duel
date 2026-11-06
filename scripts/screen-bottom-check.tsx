@@ -1,6 +1,6 @@
 /**
  * Screen bottoms (16 Oct 2026, display only): every non-game screen is black (the screen
- * edge's #06080F) all the way to the bottom of the screen, as an iPhone 11 home-screen app.
+ * edge's #070709) all the way to the bottom of the screen, as an iPhone 11 home-screen app.
  *
  * Headless Chromium in the iPhone 11 home-screen app's geometry (scripts/device-emulation.ts:
  * 414 × 896, 48 / 34 px insets, laid out 414 × 848 as WebKit does, navigator.standalone) draws
@@ -10,12 +10,12 @@
  * and a room's lobby (2 and 10 players), link join, Prepare to Duel, round title, round intro,
  * round result, standings and podium (2 and 10 players) and winner reveal. For each screen, at
  * the top of the page and, when the page scrolls, half-way down and at the end of its scroll:
- *  - the page behind (html and body) is #06080F: it is what shows below a page shorter than the
+ *  - the page behind (html and body) is #070709: it is what shows below a page shorter than the
  *    screen, in the strip below the 848 px layout viewport down to the screen's bottom, and
  *    during an overscroll bounce (which headless Chromium cannot draw, so it is proved here);
  *  - the bottom 34 rows (the home-bar area) of the screen's own background, drawn with every
- *    piece of content hidden, are #06080F in every pixel (within 2 per channel);
- *  - the bottom 34 rows of the screen as drawn are #06080F in every pixel no content covers
+ *    piece of content hidden, are #070709 in every pixel (within 2 per channel);
+ *  - the bottom 34 rows of the screen as drawn are #070709 in every pixel no content covers
  *    (text, controls, cards and other painted boxes, each grown by its shadow and 4 px of
  *    anti-aliasing), so no band or box paints the home-bar area another colour.
  *
@@ -49,7 +49,7 @@ if (!CHROMIUM) {
   process.exit(1);
 }
 /** The screen edge's black (--screen-edge). */
-const BLACK: [number, number, number] = [6, 8, 15];
+const BLACK: [number, number, number] = [7, 7, 9];
 const TOLERANCE = 2;
 const DEVICE = IPHONE11_APP;
 

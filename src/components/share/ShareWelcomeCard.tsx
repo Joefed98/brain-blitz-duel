@@ -16,8 +16,8 @@ import { Button } from "@/design/components";
 /**
  * The Play tab's one-time welcome for a device that arrived from a shared link and landed on the
  * home (shareRef.ts shareWelcomeDue; a room-lobby landing gets none, the lobby is the welcome).
- * Shown on that visit only, until closed: the ✕, TRY A PRACTICE GAME (Warm up's first game) or,
- * when a public game is scheduled, NEXT PUBLIC GAME (the Tournaments tab). Each is counted once
+ * Shown on that visit only, until closed: the ✕, Try a practice game (Warm up's first game) or,
+ * when a public game is scheduled, Next public game (the Tournaments tab). Each is counted once
  * with the arrival (arrival_welcome). Presentation and device storage only.
  */
 export function ShareWelcomeCard({
@@ -95,7 +95,7 @@ export function ShareWelcomeCard({
           block
           data-share-welcome-practice
           onClick={() => close("practice", onPractice)}
-          className="px-3 uppercase"
+          className="px-3 tracking-normal"
         >
           Try a practice game
         </Button>
@@ -105,7 +105,7 @@ export function ShareWelcomeCard({
             block
             data-share-welcome-public
             onClick={() => close("public", onPublic)}
-            className="px-3 uppercase"
+            className="px-3 tracking-normal"
           >
             {nextPublicLabel(nextGame, now)}
           </Button>

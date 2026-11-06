@@ -40,7 +40,7 @@
   gap: 18px;
   padding: 20px 14px 16px;
   border-right: 1px solid var(--ap-divider, #26262c);
-  background: var(--screen-edge);
+  background: var(--screen-edge, #070709);
   color: var(--ap-text-2, #a09da6);
   font-family: var(--ap-font, system-ui, sans-serif);
 }
@@ -420,7 +420,7 @@
     overflow: hidden;
     padding: 20px 20px 24px;
     border-left: 1px solid var(--ap-divider, #26262c);
-    background: var(--screen-edge);
+    background: var(--screen-edge, #070709);
     color: var(--ap-text, #f3f1ec);
     font-family: var(--ap-font, system-ui, sans-serif);
   }

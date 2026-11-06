@@ -188,7 +188,7 @@ assert.match(css2, /\[data-arena-slot\] \{[^}]*container-type: size;[^}]*align-i
 assert.match(css2, /\[data-arena-slot\] \{[^}]*background: var\(--screen-edge\);/, "slot paints the screen edge's black");
 assert.match(css2, /\[data-arena-slot\]::after \{[^}]*background: var\(--screen-edge\);/, "the space below the world is the screen edge's black");
 assert.doesNotMatch(css2, /--arena-fill/, "no per-game arena fill");
-assert.match(css2, /--screen-edge: var\(--jz-bg\);/);
+assert.match(css2, /--screen-edge: #070709;/);
 // Arena scenes (15 Oct 2026; on the play screen itself since 17 Oct 2026): an untouchable layer under the column.
 assert.match(css2, /\[data-arcade-play\] > :is\(\[data-arena-scene\], \[data-arena-ambient\]\) \{[^}]*position: absolute;[^}]*z-index: 0;[^}]*pointer-events: none;/, "arena scene is an untouchable layer on the play screen");
 assert.match(css2, /\[data-arcade-play\] > \[data-game-column\] \{\s*z-index: 1;\s*\}/, "the world, header and controls paint over the scene");
@@ -364,7 +364,7 @@ writeFileSync("docs/arena-sizes-oct-2026.md", [
   "The world is drawn at the largest uniform scale that fits the box, top-anchored (Tilt, and since 17 Oct 2026 Pinball, Meteor,",
   "Scrumper and Gemstone: centred) and centred across. Since the screen fill-ins (17 Oct 2026) every arcade game's space round",
   "its world is its own scene out to the screen's edges (Arena scenes, below); the engine games without one keep the screen",
-  "edge's black (#06080F). Sizes are CSS px, width x height, box → world. Analytic geometry, cross-checked in the",
+  "edge's black (#070709). Sizes are CSS px, width x height, box → world. Analytic geometry, cross-checked in the",
   "browser by arcade-play-check; not device measurements.", "",
   "Worlds are the revisions rooms deal today. Taller worlds: Tuning E (13 Oct 2026) Hover hoverRev 5, High Rise skylineRev 4,",
   "Meteor snakeRev 5, Scrumper snipRev 5; batch 1 (16 Oct 2026) Breaker brkRev 6, Rally rallyRev 6, Wavefront wavRev 6 (390x730),",
