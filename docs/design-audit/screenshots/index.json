@@ -1,0 +1,806 @@
+[
+  {
+    "file": "play/play_home_first-visit_390x844.png",
+    "area": "play",
+    "label": "Play: first visit (intro card)",
+    "size": "390x844"
+  },
+  {
+    "file": "play/play_home_first-visit-scrolled_390x844.png",
+    "area": "play",
+    "label": "Play: first visit (intro card) (scrolled to end)",
+    "size": "390x844"
+  },
+  {
+    "file": "play/play_home_first-visit_1440x900.png",
+    "area": "play",
+    "label": "Play: first visit (intro card)",
+    "size": "1440x900"
+  },
+  {
+    "file": "play/play_home_first-visit-scrolled_1440x900.png",
+    "area": "play",
+    "label": "Play: first visit (intro card) (scrolled to end)",
+    "size": "1440x900"
+  },
+  {
+    "file": "play/play_home_rejoin_390x844.png",
+    "area": "play",
+    "label": "Play: Rejoin your last room",
+    "size": "390x844"
+  },
+  {
+    "file": "play/play_home_no-public-game_390x844.png",
+    "area": "play",
+    "label": "Play: nothing scheduled",
+    "size": "390x844"
+  },
+  {
+    "file": "play/play_terms_first-room_390x844.png",
+    "area": "play",
+    "label": "Beta terms (before a first room)",
+    "size": "390x844"
+  },
+  {
+    "file": "play/play_terms_first-room-scrolled_390x844.png",
+    "area": "play",
+    "label": "Beta terms (before a first room) (scrolled to end)",
+    "size": "390x844"
+  },
+  {
+    "file": "practice/practice_list_arcade_390x844.png",
+    "area": "practice",
+    "label": "Practice: Arcade side",
+    "size": "390x844"
+  },
+  {
+    "file": "practice/practice_list_arcade-scrolled_390x844.png",
+    "area": "practice",
+    "label": "Practice: Arcade side (scrolled to end)",
+    "size": "390x844"
+  },
+  {
+    "file": "practice/practice_list_arcade_1440x900.png",
+    "area": "practice",
+    "label": "Practice: Arcade side",
+    "size": "1440x900"
+  },
+  {
+    "file": "practice/practice_list_arcade-scrolled_1440x900.png",
+    "area": "practice",
+    "label": "Practice: Arcade side (scrolled to end)",
+    "size": "1440x900"
+  },
+  {
+    "file": "practice/practice_list_filter-logic_390x844.png",
+    "area": "practice",
+    "label": "Practice: Logic chip",
+    "size": "390x844"
+  },
+  {
+    "file": "practice/practice_list_search-empty_390x844.png",
+    "area": "practice",
+    "label": "Practice: search, no match",
+    "size": "390x844"
+  },
+  {
+    "file": "tournaments/tournaments_list_empty_390x844.png",
+    "area": "tournaments",
+    "label": "Tournaments: none scheduled",
+    "size": "390x844"
+  },
+  {
+    "file": "profile/profile_profile_returning_390x844.png",
+    "area": "profile",
+    "label": "Profile: returning player",
+    "size": "390x844"
+  },
+  {
+    "file": "profile/profile_profile_returning-scrolled_390x844.png",
+    "area": "profile",
+    "label": "Profile: returning player (scrolled to end)",
+    "size": "390x844"
+  },
+  {
+    "file": "profile/profile_profile_returning_1440x900.png",
+    "area": "profile",
+    "label": "Profile: returning player",
+    "size": "1440x900"
+  },
+  {
+    "file": "profile/profile_profile_returning-scrolled_1440x900.png",
+    "area": "profile",
+    "label": "Profile: returning player (scrolled to end)",
+    "size": "1440x900"
+  },
+  {
+    "file": "profile/profile_settings_open_390x844.png",
+    "area": "profile",
+    "label": "Settings sheet",
+    "size": "390x844"
+  },
+  {
+    "file": "profile/profile_settings_open-scrolled_390x844.png",
+    "area": "profile",
+    "label": "Settings sheet (scrolled to end)",
+    "size": "390x844"
+  },
+  {
+    "file": "profile/profile_settings_open_1440x900.png",
+    "area": "profile",
+    "label": "Settings sheet",
+    "size": "1440x900"
+  },
+  {
+    "file": "profile/profile_settings_open-scrolled_1440x900.png",
+    "area": "profile",
+    "label": "Settings sheet (scrolled to end)",
+    "size": "1440x900"
+  },
+  {
+    "file": "room/room_lobby_16-players_390x844.png",
+    "area": "room",
+    "label": "Lobby, 16 players",
+    "size": "390x844"
+  },
+  {
+    "file": "room/room_lobby_16-players-scrolled_390x844.png",
+    "area": "room",
+    "label": "Lobby, 16 players (scrolled to end)",
+    "size": "390x844"
+  },
+  {
+    "file": "room/room_lobby_16-players_1440x900.png",
+    "area": "room",
+    "label": "Lobby, 16 players",
+    "size": "1440x900"
+  },
+  {
+    "file": "room/room_lobby_player-left_390x844.png",
+    "area": "room",
+    "label": "Lobby after a player left",
+    "size": "390x844"
+  },
+  {
+    "file": "room/room_settings-sheet_capped_390x844.png",
+    "area": "room",
+    "label": "Room settings sheet (rounds capped)",
+    "size": "390x844"
+  },
+  {
+    "file": "room/room_menu_player-options_390x844.png",
+    "area": "room",
+    "label": "Host's options for a player (mute / remove)",
+    "size": "390x844"
+  },
+  {
+    "file": "room/room_link-join_open-lobby_390x844.png",
+    "area": "room",
+    "label": "Room link: join with a name",
+    "size": "390x844"
+  },
+  {
+    "file": "room/room_link-join_full_390x844.png",
+    "area": "room",
+    "label": "Room link: room full",
+    "size": "390x844"
+  },
+  {
+    "file": "room/room_loading_loading_390x844.png",
+    "area": "room",
+    "label": "Room loading",
+    "size": "390x844"
+  },
+  {
+    "file": "room/room_prepare-to-duel_start_390x844.png",
+    "area": "room",
+    "label": "Prepare to Duel",
+    "size": "390x844"
+  },
+  {
+    "file": "room/room_intro_puzzle_390x844.png",
+    "area": "room",
+    "label": "Game intro (Box Six, room)",
+    "size": "390x844"
+  },
+  {
+    "file": "room/room_intro_puzzle_1440x900.png",
+    "area": "room",
+    "label": "Game intro (Box Six, room)",
+    "size": "1440x900"
+  },
+  {
+    "file": "room/room_countdown_3-2-1_390x844.png",
+    "area": "room",
+    "label": "3-2-1 countdown",
+    "size": "390x844"
+  },
+  {
+    "file": "room/room_game-frame_arcade_390x844.png",
+    "area": "room",
+    "label": "Game frame: Gemstone live round",
+    "size": "390x844"
+  },
+  {
+    "file": "room/room_game-frame_arcade_1440x900.png",
+    "area": "room",
+    "label": "Game frame: Gemstone live round",
+    "size": "1440x900"
+  },
+  {
+    "file": "room/room_answer-reveal_puzzle_390x844.png",
+    "area": "room",
+    "label": "Answer reveal (puzzle)",
+    "size": "390x844"
+  },
+  {
+    "file": "room/room_answer-reveal_arcade-16-breakdown_390x844.png",
+    "area": "room",
+    "label": "Arcade reveal, 16 players, four part lines",
+    "size": "390x844"
+  },
+  {
+    "file": "room/room_points_2-players_390x844.png",
+    "area": "room",
+    "label": "Round results (points), 2 players",
+    "size": "390x844"
+  },
+  {
+    "file": "room/room_points_16-players_390x844.png",
+    "area": "room",
+    "label": "Round results (points), 16 players",
+    "size": "390x844"
+  },
+  {
+    "file": "room/room_points_16-players-scrolled_390x844.png",
+    "area": "room",
+    "label": "Round results (points), 16 players (scrolled to end)",
+    "size": "390x844"
+  },
+  {
+    "file": "room/room_standings_10-players_390x844.png",
+    "area": "room",
+    "label": "Standings, 10 players",
+    "size": "390x844"
+  },
+  {
+    "file": "room/room_standings_16-players_390x844.png",
+    "area": "room",
+    "label": "Standings, 16 players",
+    "size": "390x844"
+  },
+  {
+    "file": "room/room_standings_16-players-scrolled_390x844.png",
+    "area": "room",
+    "label": "Standings, 16 players (scrolled to end)",
+    "size": "390x844"
+  },
+  {
+    "file": "room/room_standings_16-players_1440x900.png",
+    "area": "room",
+    "label": "Standings, 16 players",
+    "size": "1440x900"
+  },
+  {
+    "file": "room/room_standings_16-players-scrolled_1440x900.png",
+    "area": "room",
+    "label": "Standings, 16 players (scrolled to end)",
+    "size": "1440x900"
+  },
+  {
+    "file": "room/room_podium_10-players_390x844.png",
+    "area": "room",
+    "label": "Podium, 10 players",
+    "size": "390x844"
+  },
+  {
+    "file": "room/room_podium_10-players_1440x900.png",
+    "area": "room",
+    "label": "Podium, 10 players",
+    "size": "1440x900"
+  },
+  {
+    "file": "room/room_final_2-players_390x844.png",
+    "area": "room",
+    "label": "Two-player final",
+    "size": "390x844"
+  },
+  {
+    "file": "room/room_chat_reactions_390x844.png",
+    "area": "room",
+    "label": "Floating reactions over the lobby",
+    "size": "390x844"
+  },
+  {
+    "file": "daily/daily_daily_puzzle-before_390x844.png",
+    "area": "daily",
+    "label": "Daily Puzzle, before playing",
+    "size": "390x844"
+  },
+  {
+    "file": "daily/daily_daily_puzzle-before_1440x900.png",
+    "area": "daily",
+    "label": "Daily Puzzle, before playing",
+    "size": "1440x900"
+  },
+  {
+    "file": "daily/daily_daily_puzzle-board_390x844.png",
+    "area": "daily",
+    "label": "Daily Puzzle, board after playing",
+    "size": "390x844"
+  },
+  {
+    "file": "daily/daily_daily_puzzle-board-scrolled_390x844.png",
+    "area": "daily",
+    "label": "Daily Puzzle, board after playing (scrolled to end)",
+    "size": "390x844"
+  },
+  {
+    "file": "daily/daily_results_done_390x844.png",
+    "area": "daily",
+    "label": "Daily results",
+    "size": "390x844"
+  },
+  {
+    "file": "challenge/challenge_link_opened_390x844.png",
+    "area": "challenge",
+    "label": "Challenge: friend opens the link",
+    "size": "390x844"
+  },
+  {
+    "file": "challenge/challenge_standings_after-round-1_390x844.png",
+    "area": "challenge",
+    "label": "Challenge: standings",
+    "size": "390x844"
+  },
+  {
+    "file": "challenge/challenge_creator_link-to-send_390x844.png",
+    "area": "challenge",
+    "label": "Challenge: creator's results and link",
+    "size": "390x844"
+  },
+  {
+    "file": "share/share_card_room-podium_390x844.png",
+    "area": "share",
+    "label": "Share card (room podium)",
+    "size": "390x844"
+  },
+  {
+    "file": "share/share_card_result-card_1080x1350.png",
+    "area": "share",
+    "label": "Share card image (1080×1350, the PNG attached to the share sheet)",
+    "size": "1080x1350"
+  },
+  {
+    "file": "celebrations/celebrations_podium_whitewash_390x844.png",
+    "area": "celebrations",
+    "label": "Podium after a whitewash (200 every round)",
+    "size": "390x844"
+  },
+  {
+    "file": "states/states_offline_play_390x844.png",
+    "area": "states",
+    "label": "Offline: Play tab",
+    "size": "390x844"
+  },
+  {
+    "file": "states/states_offline_room_390x844.png",
+    "area": "states",
+    "label": "Offline: in a room lobby",
+    "size": "390x844"
+  },
+  {
+    "file": "states/states_update_updating_390x844.png",
+    "area": "states",
+    "label": "Update available: the Updating… overlay",
+    "size": "390x844"
+  },
+  {
+    "file": "play/play_home_returning_390x844.png",
+    "area": "play",
+    "label": "Play: returning player",
+    "size": "390x844"
+  },
+  {
+    "file": "play/play_home_returning-scrolled_390x844.png",
+    "area": "play",
+    "label": "Play: returning player (scrolled to end)",
+    "size": "390x844"
+  },
+  {
+    "file": "play/play_home_returning_1440x900.png",
+    "area": "play",
+    "label": "Play: returning player",
+    "size": "1440x900"
+  },
+  {
+    "file": "play/play_home_returning-scrolled_1440x900.png",
+    "area": "play",
+    "label": "Play: returning player (scrolled to end)",
+    "size": "1440x900"
+  },
+  {
+    "file": "play/play_home_home-screen-hint_390x844.png",
+    "area": "play",
+    "label": "Play: Add to Home Screen hint (iPhone Safari)",
+    "size": "390x844"
+  },
+  {
+    "file": "play/play_onboarding_how-it-works_390x844.png",
+    "area": "play",
+    "label": "First-time intro: How it works panels",
+    "size": "390x844"
+  },
+  {
+    "file": "practice/practice_list_puzzles_390x844.png",
+    "area": "practice",
+    "label": "Practice: Puzzles side",
+    "size": "390x844"
+  },
+  {
+    "file": "practice/practice_list_puzzles-scrolled_390x844.png",
+    "area": "practice",
+    "label": "Practice: Puzzles side (scrolled to end)",
+    "size": "390x844"
+  },
+  {
+    "file": "practice/practice_list_puzzles_1440x900.png",
+    "area": "practice",
+    "label": "Practice: Puzzles side",
+    "size": "1440x900"
+  },
+  {
+    "file": "practice/practice_list_puzzles-scrolled_1440x900.png",
+    "area": "practice",
+    "label": "Practice: Puzzles side (scrolled to end)",
+    "size": "1440x900"
+  },
+  {
+    "file": "practice/practice_list_new-device_390x844.png",
+    "area": "practice",
+    "label": "Practice: no bests yet",
+    "size": "390x844"
+  },
+  {
+    "file": "practice/practice_list_search_390x844.png",
+    "area": "practice",
+    "label": "Practice: search \"ra\"",
+    "size": "390x844"
+  },
+  {
+    "file": "tournaments/tournaments_list_with-event_390x844.png",
+    "area": "tournaments",
+    "label": "Tournaments: games scheduled",
+    "size": "390x844"
+  },
+  {
+    "file": "tournaments/tournaments_list_with-event_1440x900.png",
+    "area": "tournaments",
+    "label": "Tournaments: games scheduled",
+    "size": "1440x900"
+  },
+  {
+    "file": "profile/profile_profile_new_390x844.png",
+    "area": "profile",
+    "label": "Profile: new player",
+    "size": "390x844"
+  },
+  {
+    "file": "profile/profile_colour-wheel_open_390x844.png",
+    "area": "profile",
+    "label": "Profile: colour wheel",
+    "size": "390x844"
+  },
+  {
+    "file": "room/room_lobby_2-players_390x844.png",
+    "area": "room",
+    "label": "Lobby, 2 players",
+    "size": "390x844"
+  },
+  {
+    "file": "room/room_lobby_guest_390x844.png",
+    "area": "room",
+    "label": "Lobby as a guest (settings summary)",
+    "size": "390x844"
+  },
+  {
+    "file": "room/room_settings-sheet_mixed_390x844.png",
+    "area": "room",
+    "label": "Room settings sheet (Mixed)",
+    "size": "390x844"
+  },
+  {
+    "file": "room/room_settings-sheet_mixed_1440x900.png",
+    "area": "room",
+    "label": "Room settings sheet (Mixed)",
+    "size": "1440x900"
+  },
+  {
+    "file": "room/room_menu_disband-confirm_390x844.png",
+    "area": "room",
+    "label": "Room menu: Disband confirm",
+    "size": "390x844"
+  },
+  {
+    "file": "room/room_menu_remove-confirm_390x844.png",
+    "area": "room",
+    "label": "Host removes a player: confirm",
+    "size": "390x844"
+  },
+  {
+    "file": "room/room_link-join_not-found_390x844.png",
+    "area": "room",
+    "label": "Room link: room not found",
+    "size": "390x844"
+  },
+  {
+    "file": "room/room_link-join_finished_390x844.png",
+    "area": "room",
+    "label": "Room link: game finished",
+    "size": "390x844"
+  },
+  {
+    "file": "room/room_disbanded_disbanded_390x844.png",
+    "area": "room",
+    "label": "Room disbanded",
+    "size": "390x844"
+  },
+  {
+    "file": "room/room_round-title_round-1_390x844.png",
+    "area": "room",
+    "label": "Round title",
+    "size": "390x844"
+  },
+  {
+    "file": "room/room_intro_arcade_390x844.png",
+    "area": "room",
+    "label": "Game intro (Gemstone, room)",
+    "size": "390x844"
+  },
+  {
+    "file": "room/room_game-frame_puzzle_390x844.png",
+    "area": "room",
+    "label": "Game frame: Box Six live round",
+    "size": "390x844"
+  },
+  {
+    "file": "room/room_game-frame_puzzle_1440x900.png",
+    "area": "room",
+    "label": "Game frame: Box Six live round",
+    "size": "1440x900"
+  },
+  {
+    "file": "room/room_game-frame_player-left_390x844.png",
+    "area": "room",
+    "label": "Live round after a player left",
+    "size": "390x844"
+  },
+  {
+    "file": "room/room_answer-reveal_arcade_390x844.png",
+    "area": "room",
+    "label": "Answer reveal (arcade chart)",
+    "size": "390x844"
+  },
+  {
+    "file": "room/room_answer-reveal_arcade_1440x900.png",
+    "area": "room",
+    "label": "Answer reveal (arcade chart)",
+    "size": "1440x900"
+  },
+  {
+    "file": "room/room_answer-reveal_zero-points_390x844.png",
+    "area": "room",
+    "label": "Answer reveal: 0 points",
+    "size": "390x844"
+  },
+  {
+    "file": "room/room_points_10-players_390x844.png",
+    "area": "room",
+    "label": "Round results (points), 10 players",
+    "size": "390x844"
+  },
+  {
+    "file": "room/room_points_zero_390x844.png",
+    "area": "room",
+    "label": "Round results with a 0",
+    "size": "390x844"
+  },
+  {
+    "file": "room/room_standings_tie_390x844.png",
+    "area": "room",
+    "label": "Standings with ties",
+    "size": "390x844"
+  },
+  {
+    "file": "room/room_standings_player-left_390x844.png",
+    "area": "room",
+    "label": "Standings after a player left",
+    "size": "390x844"
+  },
+  {
+    "file": "room/room_podium_16-players_390x844.png",
+    "area": "room",
+    "label": "Podium, 16 players",
+    "size": "390x844"
+  },
+  {
+    "file": "room/room_chat_sheet_390x844.png",
+    "area": "room",
+    "label": "Chat sheet with messages and reactions",
+    "size": "390x844"
+  },
+  {
+    "file": "room/room_chat_toast_390x844.png",
+    "area": "room",
+    "label": "Chat toast between rounds",
+    "size": "390x844"
+  },
+  {
+    "file": "daily/daily_daily_arcade-before_390x844.png",
+    "area": "daily",
+    "label": "Daily Arcade, before playing",
+    "size": "390x844"
+  },
+  {
+    "file": "daily/daily_daily_arcade-board_390x844.png",
+    "area": "daily",
+    "label": "Daily Arcade, board after playing",
+    "size": "390x844"
+  },
+  {
+    "file": "challenge/challenge_make_pick_390x844.png",
+    "area": "challenge",
+    "label": "Challenge: make one",
+    "size": "390x844"
+  },
+  {
+    "file": "challenge/challenge_round-results_after-round-1_390x844.png",
+    "area": "challenge",
+    "label": "Challenge: round leaderboard",
+    "size": "390x844"
+  },
+  {
+    "file": "challenge/challenge_podium_finished_390x844.png",
+    "area": "challenge",
+    "label": "Challenge: podium",
+    "size": "390x844"
+  },
+  {
+    "file": "challenge/challenge_error_not-found_390x844.png",
+    "area": "challenge",
+    "label": "Challenge link not found",
+    "size": "390x844"
+  },
+  {
+    "file": "celebrations/celebrations_podium_winner-hero_390x844.png",
+    "area": "celebrations",
+    "label": "Podium: the winner's hero and burst",
+    "size": "390x844"
+  },
+  {
+    "file": "states/states_offline_practice_390x844.png",
+    "area": "states",
+    "label": "Offline: Practice (banner)",
+    "size": "390x844"
+  },
+  {
+    "file": "states/states_offline_daily_390x844.png",
+    "area": "states",
+    "label": "Offline: Daily",
+    "size": "390x844"
+  },
+  {
+    "file": "states/states_error_challenge-not-found_390x844.png",
+    "area": "states",
+    "label": "Error: challenge not found",
+    "size": "390x844"
+  },
+  {
+    "file": "hero/hero_grappler_start_closeup_4x.png",
+    "area": "celebrations",
+    "label": "Joulz Hero: grappler start closeup 4x",
+    "size": "hero"
+  },
+  {
+    "file": "hero/hero_grappler_swinging_frame_414w.png",
+    "area": "celebrations",
+    "label": "Joulz Hero: grappler swinging frame 414w",
+    "size": "hero"
+  },
+  {
+    "file": "hero/hero_roofbound_flipping_frame_414w.png",
+    "area": "celebrations",
+    "label": "Joulz Hero: roofbound flipping frame 414w",
+    "size": "hero"
+  },
+  {
+    "file": "hero/hero_grappler_start_frame_414w.png",
+    "area": "celebrations",
+    "label": "Joulz Hero: grappler start frame 414w",
+    "size": "hero"
+  },
+  {
+    "file": "hero/hero_roofbound_running_frame_414w.png",
+    "area": "celebrations",
+    "label": "Joulz Hero: roofbound running frame 414w",
+    "size": "hero"
+  },
+  {
+    "file": "hero/hero_roofbound_running_closeup_4x.png",
+    "area": "celebrations",
+    "label": "Joulz Hero: roofbound running closeup 4x",
+    "size": "hero"
+  },
+  {
+    "file": "hero/hero_grappler_swinging_closeup_4x.png",
+    "area": "celebrations",
+    "label": "Joulz Hero: grappler swinging closeup 4x",
+    "size": "hero"
+  },
+  {
+    "file": "hero/hero_roofbound_flipping_closeup_4x.png",
+    "area": "celebrations",
+    "label": "Joulz Hero: roofbound flipping closeup 4x",
+    "size": "hero"
+  },
+  {
+    "file": "assets/assets_og-image_1200x630.png",
+    "area": "assets",
+    "label": "assets_og-image_1200x630",
+    "size": "asset"
+  },
+  {
+    "file": "assets/assets_app-icon-maskable_512.png",
+    "area": "assets",
+    "label": "assets_app-icon-maskable_512",
+    "size": "asset"
+  },
+  {
+    "file": "assets/assets_app-icon_512.png",
+    "area": "assets",
+    "label": "assets_app-icon_512",
+    "size": "asset"
+  },
+  {
+    "file": "assets/assets_in-game-logo_816.png",
+    "area": "assets",
+    "label": "assets_in-game-logo_816",
+    "size": "asset"
+  },
+  {
+    "file": "typography_play_closeup.png",
+    "area": "typography",
+    "label": "Play page top, 2x close-up",
+    "size": "390x844"
+  },
+  {
+    "file": "celebrations/celebrations_winner-reveal_reveal_390x844.png",
+    "area": "celebrations",
+    "label": "Winner reveal",
+    "size": "390x844"
+  },
+  {
+    "file": "celebrations/celebrations_reveal_150-hero-run_390x844.png",
+    "area": "celebrations",
+    "label": "Reveal 150: the hero run",
+    "size": "390x844"
+  },
+  {
+    "file": "celebrations/celebrations_reveal_190-hero-dance_390x844.png",
+    "area": "celebrations",
+    "label": "Reveal 190: the hero dance",
+    "size": "390x844"
+  },
+  {
+    "file": "celebrations/celebrations_reveal_200-hero-grand_390x844.png",
+    "area": "celebrations",
+    "label": "Reveal 200: the grand lap and fireworks",
+    "size": "390x844"
+  },
+  {
+    "file": "celebrations/celebrations_reveal_200-fireworks-late_390x844.png",
+    "area": "celebrations",
+    "label": "Reveal 200, later in the lap",
+    "size": "390x844"
+  }
+]
