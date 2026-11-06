@@ -1,0 +1,187 @@
+/*
+ * The shared components' styles (DESIGN.md section 5; design foundation F3, 6 Nov 2026). Tokens only.
+ * Imported once from styles.css, after tokens.css and utilities.css.
+ */
+
+/* ------------------------------------------------ Button */
+.jz-btn {
+  position: relative;
+  display: inline-flex;
+  min-width: 44px;
+  min-height: 44px;
+  flex: none;
+  align-items: stretch;
+  justify-content: stretch;
+  padding: 0;
+  border: 0;
+  border-radius: var(--jz-radius);
+  background: transparent;
+  color: var(--jz-text);
+  font-family: var(--jz-font);
+  font-stretch: 100%;
+  letter-spacing: 0;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform var(--jz-fast) var(--jz-ease);
+}
+.jz-btn-grow {
+  min-width: 0;
+  flex: 1 1 0;
+}
+.jz-btn-l {
+  height: 56px;
+}
+.jz-btn-m {
+  height: 44px;
+}
+.jz-btn-face {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  align-items: center;
+  justify-content: center;
+  gap: var(--jz-space-8);
+  padding-inline: var(--jz-space-16);
+  border-radius: inherit;
+  white-space: nowrap;
+}
+.jz-btn:active:not(:disabled) {
+  transform: scale(0.97);
+}
+.jz-btn:focus-visible {
+  outline: 2px solid var(--jz-gold);
+  outline-offset: 2px;
+}
+.jz-btn:disabled {
+  cursor: default;
+}
+
+/* gold: the metal fill on the cut face; the button keeps the 8 px radius only for its focus ring's shape. */
+.jz-btn-gold .jz-btn-face {
+  border-radius: 0;
+  background: var(--jz-gold-metal);
+  color: var(--jz-on-gold);
+  font-size: 18px;
+  font-weight: var(--jz-weight-bold);
+}
+.jz-btn-gold.jz-btn-m .jz-btn-face {
+  font-size: 15px;
+}
+.jz-btn-gold:disabled .jz-btn-face {
+  background: var(--jz-surface-2);
+  color: var(--jz-text-3);
+}
+
+.jz-btn-secondary .jz-btn-face {
+  background: var(--jz-surface-2);
+  color: var(--jz-text);
+  font-size: 15px;
+  font-weight: var(--jz-weight-medium);
+}
+.jz-btn-secondary.jz-btn-l .jz-btn-face {
+  font-size: 18px;
+  font-weight: var(--jz-weight-bold);
+}
+
+.jz-btn-quiet .jz-btn-face {
+  background: transparent;
+  color: var(--jz-text-2);
+  font-size: 15px;
+  font-weight: var(--jz-weight-medium);
+}
+
+.jz-btn-icon {
+  width: 44px;
+  height: 44px;
+}
+.jz-btn-icon .jz-btn-face {
+  padding: 0;
+  color: var(--jz-text-3);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .jz-btn-secondary:hover:not(:disabled) .jz-btn-face {
+    background: color-mix(in srgb, var(--jz-surface-2) 80%, var(--jz-text));
+  }
+  .jz-btn-quiet:hover:not(:disabled) .jz-btn-face,
+  .jz-btn-icon:hover:not(:disabled) .jz-btn-face {
+    color: var(--jz-text);
+  }
+}
+
+/* ------------------------------------------------ Chip */
+.jz-chip {
+  display: inline-flex;
+  min-width: 0;
+  height: 22px;
+  flex: 0 1 auto;
+  align-items: center;
+  gap: var(--jz-space-4);
+  padding: 0 10px;
+  border-radius: var(--jz-round);
+  background: color-mix(in srgb, var(--jz-bg) 60%, transparent);
+  box-shadow: inset 0 0 0 1px var(--jz-line);
+  font-family: var(--jz-font);
+  font-size: 13px;
+  line-height: 22px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.jz-chip[data-selected] {
+  box-shadow: inset 0 0 0 1px var(--jz-gold);
+}
+.jz-chip-label {
+  font-weight: var(--jz-weight-medium);
+  color: var(--jz-text-2);
+}
+.jz-chip-value {
+  font-weight: var(--jz-weight-bold);
+  color: var(--jz-text);
+}
+.jz-chip[data-tone="accent"] .jz-chip-value {
+  color: var(--category-accent, var(--jz-gold));
+}
+.jz-chip[data-tone="good"] .jz-chip-value {
+  color: var(--jz-cyan);
+}
+.jz-chip[data-tone="warn"] .jz-chip-value {
+  color: var(--jz-red);
+}
+.jz-chip-diamond {
+  width: 7px;
+  height: 7px;
+  flex: none;
+  background: var(--category-accent, var(--jz-text-3));
+  transform: rotate(45deg);
+}
+
+/* ------------------------------------------------ LiveTag */
+.jz-live-tag {
+  display: inline-flex;
+  height: 20px;
+  flex: none;
+  align-items: center;
+  padding: 0 var(--jz-space-8);
+  background: var(--jz-red);
+  color: var(--jz-on-gold);
+  font-family: var(--jz-font);
+  font-size: 11px;
+  font-weight: var(--jz-weight-bold);
+  letter-spacing: 0.06em;
+  line-height: 20px;
+  text-transform: uppercase;
+}
+.jz-live-tag[data-kind="next"] {
+  background: var(--jz-cyan);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .jz-btn {
+    transition: none;
+  }
+  .jz-btn:active:not(:disabled) {
+    transform: none;
+  }
+}

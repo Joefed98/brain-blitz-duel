@@ -1526,6 +1526,17 @@ outside the repo.
   art (src/lib/arcade, canvas code) is excluded and puzzle boards' own art is warned, never failed; a deliberate exception
   takes `design-lint-ignore` on the line. It also proves `--jz-player-N` matches `PLAYER_COLOURS`. theme-check checks the
   token contrast pairs from tokens.css and the skinned screens on the new values.
+- **Design foundation F3: game chrome** (6 Nov 2026; presentation only, no stamps; `DESIGN.md` sections 3 and 9):
+  `--font-display`, `--font-body` and `--font-mono` (styles.css) are Archivo (`--jz-font`; `.font-mono` keeps
+  `tabular-nums`); the Google Fonts load is Press Start 2P only (`GOOGLE_FONTS_CSS`, Retro game art). The shared
+  components start in `src/design/components/` (`Button` gold / secondary / quiet / icon with the cut on an inner face so
+  the focus ring shows, `Chip`, `LiveTag`; styles `components.css`). The intro (title, Goal / How / Score `.intro-label`
+  and friends, the 3-2-1 `.intro-countdown-number`, Ready as the gold Button in a 56 px row), the frame header, timer
+  ring, HUD pills (`HudPills` renders `Chip`) and the answer and arcade reveals (Back / Play again / See breakdown as
+  Buttons, `.reveal-*` type classes, `--reveal-text-2` for secondary text on the gradient) take `--jz-*` tokens; the
+  backdrops' base is `--jz-bg` under the unchanged category tint, and the reveal palette is unchanged. Game art inside
+  the play area is untouched (canvas art that names JetBrains Mono now draws in the system monospace). Shots:
+  `screenshots/design-f3-nov-2026/`.
 - `src/components/duel/` — room/round screens (PhoneShell, RoundIntro, TimerBar,
   AnswerReveal, ArcadeReveal, WinnerReveal…); `src/components/puzzles/` — shared puzzle
   widgets; `src/lib/fx/` — sound and visual feedback (presentation only).

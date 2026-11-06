@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { Button } from "@/design/components";
 import { usePerfectBurst } from "@/lib/fx/useSignature";
 import { queueVoice } from "@/lib/sound";
 
@@ -319,7 +320,7 @@ export function ArcadeReveal({ puzzle, myAnswer, myScore, myReveal: storedReveal
               <p
                 ref={scoreRef}
                 data-reveal-score={myScore}
-                className={`font-mono text-6xl font-bold tabular-nums leading-none text-foreground${celebration ? " arcade-score-celebrate" : ""}`}
+                className={`reveal-big-score${celebration ? " arcade-score-celebrate" : ""}`}
                 aria-label={`${myScore} ${myScore === 1 ? "point" : "points"}`}
               >
                 {shownScore}
@@ -334,24 +335,25 @@ export function ArcadeReveal({ puzzle, myAnswer, myScore, myReveal: storedReveal
               ) : null}
             </div>
           )}
-          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-muted-foreground">{myScore === 1 ? "point" : "points"}</p>
+          <p className="reveal-points-label">{myScore === 1 ? "point" : "points"}</p>
           {practice ? (
-            <p data-reveal-best="" className="text-[14px] font-semibold text-[#D4D4DC]">
+            <p data-reveal-best="" className="reveal-meta">
               {best === null ? "Your first score for this game" : <>Your best: <span className="tabular-nums text-foreground">{best}</span></>}
             </p>
           ) : null}
           {summary && !practice ? (
             folds ? (
-              <button
-                type="button"
+              <Button
+                variant="secondary"
+                size="m"
                 data-reveal-summary={open ? "open" : "closed"}
                 aria-expanded={open}
                 onClick={() => setOpen((v) => !v)}
-                className="press reveal-see-breakdown flex min-h-11 w-full flex-col items-center justify-center rounded-xl px-3 py-1.5 text-foreground animate-fade-in"
+                className="reveal-see-breakdown reveal-see-breakdown-summary w-full animate-fade-in"
               >
                 <FitLine text={summaryText(summary.summary)} className="w-full text-foreground" />
-                <span className="text-[13px] font-bold text-[var(--ap-gold,#F2C75C)]">{open ? "Hide breakdown" : "See breakdown"}</span>
-              </button>
+                <span className="reveal-see-breakdown-label">{open ? "Hide breakdown" : "See breakdown"}</span>
+              </Button>
             ) : (
               <FitLine text={summaryText(summary.summary)} className="text-foreground animate-fade-in" />
             )

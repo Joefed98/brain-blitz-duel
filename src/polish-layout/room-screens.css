@@ -223,13 +223,13 @@
 
 /* The intro takes the play screen's category gradient (game-frame.css "the puzzle background"). */
 [data-category]:has(.round-intro) {
-  --frame-deep: color-mix(in srgb, var(--category-accent) 10%, #0d0d0f);
+  --frame-deep: color-mix(in srgb, var(--category-accent) 10%, var(--jz-bg));
 }
 [data-category]:has(.round-intro) > .screen-background {
   background:
     radial-gradient(130% 45% at 50% 0%, color-mix(in srgb, var(--category-accent) 20%, transparent), transparent 65%),
     radial-gradient(120% 40% at 50% 100%, color-mix(in srgb, var(--category-accent) 14%, transparent), transparent 70%),
-    linear-gradient(180deg, var(--frame-deep) 0%, #0d0d0f 45%, #0d0d0f 60%, var(--frame-deep) 100%);
+    linear-gradient(180deg, var(--frame-deep) 0%, var(--jz-bg) 45%, var(--jz-bg) 60%, var(--frame-deep) 100%);
 }
 [data-category]:has(.round-intro) > .screen-background::before,
 [data-category]:has(.round-intro) > .screen-background > .screen-drift {
@@ -779,7 +779,7 @@
     flex: none;
     align-items: center;
     gap: 6px;
-    font-family: var(--ap-font);
+    font-family: var(--jz-font);
   }
   .intro-header > .game-frame-left {
     flex: 1;
@@ -792,7 +792,7 @@
     align-items: center;
     justify-content: flex-start;
     margin-left: -6px;
-    color: #A09DA6;
+    color: var(--jz-text-3);
     -webkit-tap-highlight-color: transparent;
   }
   .intro-header-right {
@@ -808,33 +808,34 @@
     align-items: flex-end;
     margin-right: 4px;
     font-size: 12px;
-    font-weight: 600;
+    font-weight: var(--jz-weight-medium);
     line-height: 15px;
-    color: #A09DA6;
+    color: var(--jz-text-3);
     white-space: nowrap;
   }
   .intro-best-label {
     font-size: 11px;
-    color: #8E8B94;
+    color: var(--jz-text-3);
   }
   .intro-best-value {
     font-size: 20px;
-    font-weight: 800;
+    font-weight: var(--jz-weight-bold);
+    font-stretch: 105%;
     line-height: 22px;
-    color: #F3F1EC;
+    color: var(--jz-text);
     font-variant-numeric: tabular-nums;
   }
   .round-intro .intro-footer {
     background: transparent;
-    font-family: var(--ap-font);
+    font-family: var(--jz-font);
   }
-  .round-intro .intro-footer .ap-btn-gold {
-    color: var(--ap-on-gold);
+  /* Ready is the shared gold Button (src/design/components); once tapped, the secondary one ("Ready ✓"). */
+  .intro-footer-row {
+    height: 56px;
   }
-  .intro-ready-done {
-    border: 1px solid var(--ap-line);
-    background: var(--ap-panel);
-    color: var(--ap-text);
+  .intro-ready-count {
+    font-size: 13px;
+    color: var(--jz-text-3);
   }
   .intro-ring {
     position: relative;
@@ -844,11 +845,25 @@
     flex: none;
     align-items: center;
     justify-content: center;
-    color: #F3F1EC;
-    font-family: var(--ap-font);
+    color: var(--jz-text);
+    font-family: var(--jz-font);
     font-size: 15px;
-    font-weight: 800;
+    font-weight: var(--jz-weight-bold);
     font-variant-numeric: tabular-nums;
+  }
+  .intro-ring-track {
+    stroke: var(--jz-surface-2);
+  }
+  /* The 3-2-1: the category colour, Archivo at the score role's weight and width (was the mono face). */
+  .intro-countdown-number {
+    margin: 0;
+    font-family: var(--jz-font);
+    font-size: min(40vh, 18rem);
+    font-weight: var(--jz-weight-bold);
+    font-stretch: 105%;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+    color: var(--category-accent);
   }
   .intro-ring > svg {
     position: absolute;
@@ -866,15 +881,7 @@
   }
 }
 
-/* The intro's GOAL / HOW / SCORE labels in sentence case (PuzzleInstructions writes them that way); unlayered,
-   so it beats the component's own uppercase utility. */
-.round-intro .round-instructions > div > p:first-child {
-  font-family: var(--ap-font);
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0;
-  text-transform: none;
-}
+/* The intro's Goal / How / Score labels: .intro-label (game-frame.css, design foundation F3), sentence case. */
 
 /* The answer reveal's board tray (AnswerReveal useRevealTray): placed on the board's drawn box. */
 .reveal-tray {

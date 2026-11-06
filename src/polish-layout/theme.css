@@ -135,9 +135,10 @@
     --opponent: #2ED3B7;
     --card: oklch(0.205 0.012 285);
     --border: oklch(0.29 0.015 285);
-    --font-display: "Space Grotesk", system-ui, sans-serif;
-    --font-body: "Inter", system-ui, sans-serif;
-    --font-mono: "JetBrains Mono", ui-monospace, monospace;
+    /* Archivo, as the game screens (design foundation F3): the older faces are no longer loaded. */
+    --font-display: var(--jz-font);
+    --font-body: var(--jz-font);
+    --font-mono: var(--jz-font);
     font-family: var(--font-body);
     font-weight: 400;
   }
