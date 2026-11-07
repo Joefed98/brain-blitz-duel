@@ -29,10 +29,11 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const view = useMemo(() => pyNewView(), []);
   const latest = useRef<PyState | null>(null);
   const start = useRef<number>(-1);
+  const rev = data?.pyramidRev ?? 1;
   const game = useMemo(() => {
-    const art = pyramidArtGame(view);
+    const art = pyramidArtGame(view, rev);
     return { ...art, draw: (ctx: CanvasRenderingContext2D, state: PyState, size: { width: number; height: number }) => { latest.current = state; art.draw(ctx, state, size); } };
-  }, [view]);
+  }, [view, rev]);
 
   // A tap on a card or pile; Undo and Reset are a press and release on the same button.
   const pointer = (kind: "down" | "move" | "up", x: number, y: number): PointerPayload | null => {

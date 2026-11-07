@@ -76,16 +76,16 @@ export function fiveHandsFlawless(seed: number, gap = 20, rev = 1): { raw: strin
 }
 
 /* Pyramid, Golf Solitaire and Muggins (1 Nov 2026). */
-import { PY_CHECKPOINT_INTERVAL, PY_INPUT_TAP, pyCheckpoint, pyDeal, pyramidGame, type PyState } from "../../src/lib/arcade/cards/pyramid";
+import { PY_CHECKPOINT_INTERVAL, PY_INPUT_TAP, pyCheckpoint, pyDeal, pyramidGameFor, type PyState } from "../../src/lib/arcade/cards/pyramid";
 import { GS_CHECKPOINT_INTERVAL, GS_INPUT_TAP, gsCheckpoint, golfSolGame, type GsState } from "../../src/lib/arcade/cards/golfSol";
 import { MG_CHECKPOINT_INTERVAL, MG_INPUT_DRAW, MG_INPUT_PLAY, mgCheckpoint, mgDeal, mugginsGame, type MgState } from "../../src/lib/arcade/cards/muggins";
 import { encodeGolfSolRun, encodeMugginsRun, encodePyramidRun } from "../../src/lib/duel/cards";
 import { golfSolSolution } from "./solutions";
 
-/** Pyramid seed: the deal's witness (a clear with ten pyramid pairs), a tap every `gap` ticks. */
-export function pyramidFlawless(seed: number, gap = 15): { raw: string; state: PyState } {
+/** Pyramid seed: the deal's witness (a clear with ten pyramid pairs), a tap every `gap` ticks, on pyramidRev `rev` (1 unless named; the deal is the same on every revision). */
+export function pyramidFlawless(seed: number, gap = 15, rev = 1): { raw: string; state: PyState } {
   const taps = pyDeal(seed).witness.map((a) => ({ k: PY_INPUT_TAP, a, b: 0, c: 0, d: 0 }));
-  return play(pyramidGame, seed, taps, gap, pyCheckpoint, PY_CHECKPOINT_INTERVAL, encodePyramidRun);
+  return play(pyramidGameFor(rev), seed, taps, gap, pyCheckpoint, PY_CHECKPOINT_INTERVAL, encodePyramidRun);
 }
 
 /** Golf Solitaire bank deal `seed`: its clearing line (five runs of five), a tap every `gap` ticks. */

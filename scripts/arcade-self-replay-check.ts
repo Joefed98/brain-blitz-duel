@@ -168,7 +168,7 @@ import { fcCheckpoint, freecellGame, freecellGameFor } from "@/lib/arcade/cards/
 import { tpCheckpoint, tripeaksGame, tripeaksGameFor } from "@/lib/arcade/cards/tripeaks";
 import { psCheckpoint, pokerSquaresGame, pokerSquaresGameFor } from "@/lib/arcade/cards/pokerSquares";
 import { fhCheckpoint, fiveHandsGame, fiveHandsGameFor } from "@/lib/arcade/cards/fiveHands";
-import { pyCheckpoint, pyramidGame } from "@/lib/arcade/cards/pyramid";
+import { pyCheckpoint, pyramidGame, pyramidGameFor } from "@/lib/arcade/cards/pyramid";
 import { gsCheckpoint, golfSolGame } from "@/lib/arcade/cards/golfSol";
 import { mgCheckpoint, mugginsGame } from "@/lib/arcade/cards/muggins";
 import { encodeGolfSolRun, encodeMugginsRun, encodePyramidRun, replayGolfSolRun, replayMugginsRun, replayPyramidRun } from "@/lib/duel/cards";
@@ -1012,6 +1012,11 @@ const GAMES: Game[] = [
   { key: "slice/food", game: sliceGameFor(12), checkpoint: sliceCheckpoint, mode: "events", rate: 1000, encode: encodeSliceRun, replay: (seed: number, raw: string) => replaySliceRun(seed, raw, 12) },
   // Roofbound flipRev 12 (3 Nov 2026): flipRev 11's game dealt from its proved courses (seeds from the deal).
   { key: "flip/deal", game: flipGameFor(12), checkpoint: flipCheckpoint, mode: "events", rate: 50, encode: encodeFlipRun, replay: (seed: number, raw: string) => replayFlipRun(seed, raw, 12), seedFor: (n: number) => FLIP_DEAL[n % FLIP_DEAL.length]! },
+  // The cards partial-credit stamps (7 Nov 2026, scoring audit issue 6), appended so every earlier entry keeps its index:
+  // Free Cell freecellRev 5, Summit tripeaksRev 3 and Thirteen pyramidRev 2 (the same deals and play, new parts).
+  { key: "freecell/v5", game: freecellGameFor(5), checkpoint: fcCheckpoint, mode: "events", rate: 120, encode: encodeFreecellRun, replay: (seed: number, raw: string) => replayFreecellRun(seed, raw, 5), seedFor: (n: number) => n % 300 },
+  { key: "tripeaks/v3", game: tripeaksGameFor(3), checkpoint: tpCheckpoint, mode: "events", rate: 120, encode: encodeTripeaksRun, replay: (seed: number, raw: string) => replayTripeaksRun(seed, raw, 3), seedFor: (n: number) => n % 300 },
+  { key: "pyramid/v2", game: pyramidGameFor(2), checkpoint: pyCheckpoint, mode: "events", rate: 80, encode: encodePyramidRun, replay: (seed: number, raw: string) => replayPyramidRun(seed, raw, 2) },
 ];
 
 /** A random candidate event, often outside the declared range (a finger off the edge). */
