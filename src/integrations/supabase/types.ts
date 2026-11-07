@@ -113,6 +113,7 @@ export type Database = {
           errors: number | null
           extra: Json | null
           id: string
+          input_type: string | null
           is_correct: boolean
           missed: boolean
           ms_remaining: number
@@ -132,6 +133,7 @@ export type Database = {
           errors?: number | null
           extra?: Json | null
           id?: string
+          input_type?: string | null
           is_correct?: boolean
           missed?: boolean
           ms_remaining?: number
@@ -151,6 +153,7 @@ export type Database = {
           errors?: number | null
           extra?: Json | null
           id?: string
+          input_type?: string | null
           is_correct?: boolean
           missed?: boolean
           ms_remaining?: number
@@ -584,6 +587,7 @@ export type Database = {
           flagged: boolean
           game_id: string
           id: number
+          input_type: string | null
           is_correct: boolean
           ms_remaining: number
           revision: Json
@@ -599,6 +603,7 @@ export type Database = {
           flagged?: boolean
           game_id: string
           id?: never
+          input_type?: string | null
           is_correct?: boolean
           ms_remaining?: number
           revision?: Json
@@ -614,6 +619,7 @@ export type Database = {
           flagged?: boolean
           game_id?: string
           id?: never
+          input_type?: string | null
           is_correct?: boolean
           ms_remaining?: number
           revision?: Json
@@ -790,6 +796,7 @@ export type Database = {
           errors: number | null
           extra: Json | null
           id: string
+          input_type: string | null
           is_correct: boolean
           ms_remaining: number
           player_slot: number
@@ -805,6 +812,7 @@ export type Database = {
           errors?: number | null
           extra?: Json | null
           id?: string
+          input_type?: string | null
           is_correct?: boolean
           ms_remaining?: number
           player_slot: number
@@ -820,6 +828,7 @@ export type Database = {
           errors?: number | null
           extra?: Json | null
           id?: string
+          input_type?: string | null
           is_correct?: boolean
           ms_remaining?: number
           player_slot?: number
@@ -850,6 +859,7 @@ export type Database = {
           game_id: string | null
           game_index: number
           id: string
+          input_type: string | null
           is_correct: boolean
           ms_remaining: number
           player_slot: number
@@ -872,6 +882,7 @@ export type Database = {
           game_id?: string | null
           game_index: number
           id: string
+          input_type?: string | null
           is_correct: boolean
           ms_remaining: number
           player_slot: number
@@ -894,6 +905,7 @@ export type Database = {
           game_id?: string | null
           game_index?: number
           id?: string
+          input_type?: string | null
           is_correct?: boolean
           ms_remaining?: number
           player_slot?: number
