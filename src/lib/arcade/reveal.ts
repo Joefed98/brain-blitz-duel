@@ -24,6 +24,7 @@ import { fcCardsFor, fcCoreUnitsFor } from "./cards/freecell";
 import { MOON_SCROLLS, MOON_SKY, NINJA_COINS, NINJA_CORE_FULL_M, NINJA_LANTERNS, NINJA_SCROLLS } from "./ricochetNinja";
 import { MG_CORE_FULL } from "./cards/muggins";
 import { arcadeStdParts } from "./standard";
+import { revealStdParts } from "./revealStdParts";
 
 export interface ArcadeRevealTile {
   label: string;
@@ -1104,7 +1105,8 @@ export function buildArcadeReveal(type: string, run: unknown, score: number): Ar
   if (type === "bastion" && (run as Run)["std"] !== true) return null;
   const data = builder(run as Run, score);
   // The arcade scoring standard (arcadeStandard.ts): one line per part (core, then each feature) and the total.
-  const std = arcadeStdParts(type, (run as Run)["state"]);
+  // Seven games scored on the standard outside ARCADE_STANDARD (revealStdParts.ts): their live stamps' parts too.
+  const std = arcadeStdParts(type, (run as Run)["state"]) ?? revealStdParts(type, (run as Run)["state"]);
   if (std) return { ...data, lines: stdLines(std, score, Boolean(((run as Run)["state"] as { acted?: number }).acted)) };
   // Oct 2026 score-band rounds: same axis and tiles, breakdown lines from the band rules.
   const state = (run as Run)["state"] as { band?: number; acted?: number } | undefined;
