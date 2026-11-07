@@ -136,7 +136,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         footer={(send) => (
           // The Shuffle button in the bottom corner, within thumb reach (rev 2: Undo and Reset, smaller, beside it); its row
           // ends 16 px above the bottom like every arcade control row.
-          <div data-game-controls="shuffle" className="flex h-[52px] shrink-0 items-center justify-end gap-2">
+          <div data-game-controls="shuffle" data-home-bar-clear="8" className="flex h-[52px] shrink-0 items-center justify-end gap-2">
             {undo ? (
               <>
                 <ArcadeControlButton
@@ -161,6 +161,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
             ) : null}
             <ArcadeControlButton
               type="button"
+              data-home-bar-fill=""
               aria-label={`Shuffle (−${MAHJONG_SHUFFLE_COST})`}
               disabled={locked}
               className="h-[52px] rounded-xl border-2 border-primary/70 bg-background/40 px-5 text-[15px] font-extrabold text-primary hover:bg-background/40 shadow-[0_0_12px_rgba(245,184,46,0.22)] active:bg-primary/25"

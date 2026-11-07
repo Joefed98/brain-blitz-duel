@@ -139,12 +139,14 @@
   stroke-width: 4;
   stroke-linecap: round;
 }
-/* The last ten seconds: the ring and digits in the app's red (was the page skin's --destructive). */
+/* The last ten seconds: the ring in the app's red (was the page skin's --destructive); the digits a lighter red
+   (7 Nov 2026, accessibility audit #6: --jz-red read 3.9–4.5:1 on the Number and Logic tints at 15 px; this mix
+   reads at least 5.5:1 on every category's header). */
 .game-timer.fx-timer-critical .timer-ring-fill {
   stroke: var(--jz-red);
 }
 .game-timer.fx-timer-critical > .game-timer-seconds {
-  color: var(--jz-red);
+  color: color-mix(in srgb, var(--jz-red) 70%, var(--jz-white));
 }
 .game-timer-seconds {
   position: relative;

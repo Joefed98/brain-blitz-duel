@@ -176,12 +176,13 @@ export function Standings({ round, totalRounds = TOTAL_ROUNDS, rows, looks, mySl
               data-you={isMe ? "" : undefined}
               data-pinned={isMe && compact ? "" : undefined}
               style={isMe ? youStyle(look) : undefined}
-              className={`rs-row ${row.status === "inactive" ? "opacity-40" : ""}`}
+              data-left={row.status === "inactive" ? "" : undefined}
+              className="rs-row"
             >
               <div className="grid w-full grid-cols-[1.5rem_1.375rem_minmax(0,1fr)_auto_3.25rem] items-center gap-x-2">
                 <Medal place={row.position} shared={mark?.shared} />
                 <Arrow standing={row} />
-                <Nameplate look={look} name={row.name} you={isMe} kind="mini" disc={compact ? 24 : 28} />
+                <Nameplate look={look} name={row.name} you={isMe} left={row.status === "inactive"} kind="mini" disc={compact ? 24 : 28} />
                 {placings ? (
                   <span data-round-gain className="rs-gain">
                     {shownGain(row)}

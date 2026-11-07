@@ -99,6 +99,7 @@ export function Panel({
         </span>
         <span
           className="flex items-center gap-0.5 rounded border border-border bg-card p-0.5"
+          role="img"
           aria-label={`Switch ${switchPosition}`}
         >
           {BOMB_SWITCH_POSITIONS.map((position) => (
@@ -133,7 +134,8 @@ export function Panel({
               type="button"
               disabled={!onWire || isCutWire}
               onClick={() => onWire?.(index)}
-              aria-label={`Wire ${index + 1}`}
+              // 7 Nov 2026 (accessibility audit #16): the rules name colours, so the label does too.
+              aria-label={`Wire ${index + 1}, ${colour.toLowerCase()}${isCutWire ? ", cut" : ""}`}
               className="flex w-full items-center gap-1"
             >
               <span className="bomb-wire-index font-mono text-sm font-bold text-muted-foreground">{index + 1}</span>
@@ -159,7 +161,7 @@ export function Panel({
               type="button"
               disabled={!onButton}
               onClick={() => onButton?.(button.label)}
-              aria-label={`Button ${button.label}`}
+              aria-label={`Button ${button.label}, ${button.colour.toLowerCase()}${isDown ? ", pressed" : ""}`}
               className={`logic-bomb-cap flex items-center justify-center rounded-full border-2 font-mono text-xs font-bold ${justPressed ? "logic-bomb-cap-press" : ""}`}
               style={{
                 width: compact ? 24 : 44,

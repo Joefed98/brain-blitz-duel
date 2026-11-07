@@ -9,6 +9,7 @@ import {
 } from "@/lib/duel/startPresentation";
 import { WINNER_SPEC } from "@/lib/fx/roomMoments";
 import { playSound, playVoice, stopMusicExcept, stopSound } from "@/lib/sound";
+import { prefersReducedMotion } from "@/lib/motion";
 import { RoomMomentFx } from "./RoomMomentFx";
 
 /** Shared-clock cue: skipped entirely when the player arrives after its start time. */
@@ -53,8 +54,10 @@ export function WinnerReveal({ startedAt }: { startedAt: number }) {
     body.classList.add("duel-start-lock");
     window.scrollTo(0, 0);
     let frame = 0;
+    const reduced = prefersReducedMotion();
     const paint = () => {
-      const state = winnerRevealFrame(serverNow() - startedAt);
+      const elapsed = serverNow() - startedAt;
+      const state = winnerRevealFrame(elapsed, reduced);
       if (text.current) {
         text.current.style.opacity = String(state.opacity);
         text.current.style.transform = `scale(${state.scale})`;
@@ -63,7 +66,8 @@ export function WinnerReveal({ startedAt }: { startedAt: number }) {
             ? `0 0 ${Math.round(24 * state.glow)}px rgba(245, 184, 46, ${state.glow.toFixed(2)})`
             : "none";
       }
-      frame = requestAnimationFrame(paint);
+      // Nothing changes after the roll ends (full opacity, no pulse): the loop stops there.
+      if (elapsed < WINNER_ROLL_END_MS) frame = requestAnimationFrame(paint);
     };
     paint();
     return () => {

@@ -47,6 +47,18 @@
 [data-reveal-screen] [data-reveal-column] {
   --muted-foreground: var(--reveal-text-2);
 }
+/* A puzzle reveal's board and lines (data-skin-off, AnswerReveal) on the gradient (7 Nov 2026, accessibility audit #1;
+   display only): the page skin's legacy grey (#9797A1, 2.8:1 on the brightest stops) and red (#FF4D4D, 2.4:1) read
+   under 4.5:1 high on the gradient. Grey takes the reveal's secondary text (at least 6.4:1 on every stop); red and warn
+   TEXT a light red (30 % red, at least 4.8:1 on every stop; reveal-palette-check). Fills and borders (a board's wrong
+   cells, clashing lamps) keep their own red, so board art is unchanged. */
+[data-reveal-screen] [data-skin-off] {
+  --muted-foreground: var(--reveal-text-2);
+  --reveal-text-red: color-mix(in srgb, var(--jz-red) 30%, var(--jz-text));
+}
+[data-reveal-screen] [data-skin-off] :is([class*="text-destructive"], [class*="text-warn"]) {
+  color: var(--reveal-text-red);
+}
 
 /* ---- Shared screens batch (3 Nov 2026, Joe's audit) -------------------------------------------------------------- */
 

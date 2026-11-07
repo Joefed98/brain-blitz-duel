@@ -1,3 +1,4 @@
+import { LeftTag } from "./LeftTag";
 import type { PlayerLooks } from "@/lib/duel/playerLook";
 import type { Standing } from "@/lib/duel/scoring";
 import { placedOf, shownGain, shownTotal } from "@/lib/duel/resultPresentation";
@@ -56,7 +57,8 @@ export function DuelOverall({
               key={row.slot}
               data-you={isMe ? "" : undefined}
               style={isMe ? youStyle(look) : undefined}
-              className={`rs-row min-h-[60px] ${row.status === "inactive" ? "opacity-40" : ""}`}
+              data-left={row.status === "inactive" ? "" : undefined}
+              className="rs-row min-h-[60px]" /* design-lint-ignore: the existing values; only the dimming changed (audit #3/#4) */
             >
               <div className="grid w-full grid-cols-[1.5rem_1.375rem_minmax(0,1fr)_auto_3.75rem] items-center gap-x-2">
                 <Medal place={row.position} shared={mark?.shared} />
@@ -67,6 +69,7 @@ export function DuelOverall({
                     <span className="flex min-w-0 items-baseline gap-1">
                       <span className="rs-name th-name">{row.name}</span>
                       {isMe ? <span className="rs-you shrink-0 text-[13px]">(you)</span> : null}
+                      {row.status === "inactive" ? <LeftTag /> : null}
                     </span>
                   </span>
                 </span>

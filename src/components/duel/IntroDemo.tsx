@@ -137,7 +137,7 @@ export function IntroDemo({ type, demo, onReady }: { type: PuzzleType; demo: Arc
       className="intro-demo relative overflow-hidden rounded-lg border border-border bg-background"
       style={{ aspectRatio: `${renderer.worldW} / ${worldH}` }}
     >
-      <canvas ref={canvasRef} className="block h-full w-full" aria-label={`${gameDisplayName(type)} demo`} />
+      <canvas role="img" ref={canvasRef} className="block h-full w-full" aria-label={`${gameDisplayName(type)} demo`} />
       <span className="absolute right-1.5 top-1 font-mono text-[9px] font-bold uppercase tracking-widest text-muted-foreground">
         Demo
       </span>

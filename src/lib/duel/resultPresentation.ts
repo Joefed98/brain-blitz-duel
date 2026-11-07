@@ -95,6 +95,14 @@ export const VERDICT_LABEL: Record<RoundVerdict, string> = {
   zero: "✗",
 };
 
+/** The same verdicts in words for screen readers (VerdictLabel; 7 Nov 2026, accessibility audit #7). */
+export const VERDICT_SPOKEN: Record<RoundVerdict, string> = {
+  correct: "Correct",
+  partial: "Partly solved",
+  scored: "Scored",
+  zero: "No score",
+};
+
 /** Text colour per verdict: green solve, amber partial credit, neutral points, red nothing. */
 export const VERDICT_TONE: Record<RoundVerdict, string> = {
   correct: "text-timer-green",

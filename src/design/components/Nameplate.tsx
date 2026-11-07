@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 
+import { LeftTag } from "@/components/duel/LeftTag";
 import { PlayerBadge } from "@/components/duel/PlayerBadge";
 import type { PlayerLook } from "@/lib/duel/playerLook";
 
@@ -9,7 +10,7 @@ import type { PlayerLook } from "@/lib/duel/playerLook";
  * - `strip`: one line for lists (standings, lobby), disc 28;
  * - `full`: the disc large over the name (a winner, a head-to-head), disc 64;
  * - `mini`: inline in a line of text or a chip, disc 20.
- * `you` adds "(you)" after the name; `meta` a quiet line or value after it.
+ * `you` adds "(you)" after the name; `left` the "Left" tag (a player who left); `meta` a quiet line or value after it.
  */
 const DISC = { strip: 28, full: 64, mini: 20 } as const;
 
@@ -18,6 +19,7 @@ export function Nameplate({
   name,
   kind = "strip",
   you = false,
+  left = false,
   meta,
   disc,
   className,
@@ -26,6 +28,7 @@ export function Nameplate({
   name: string;
   kind?: "strip" | "full" | "mini";
   you?: boolean;
+  left?: boolean;
   meta?: ReactNode;
   /** The disc's size where a screen keeps its own. */
   disc?: number;
@@ -39,6 +42,7 @@ export function Nameplate({
           {name}
         </span>
         {you ? <span className="rs-you jz-plate-you shrink-0">(you)</span> : null}
+        {left ? <LeftTag /> : null}
       </span>
       {meta !== undefined ? <span className="jz-plate-meta">{meta}</span> : null}
     </span>

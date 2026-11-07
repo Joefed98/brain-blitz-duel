@@ -1,3 +1,4 @@
+import { VerdictLabel } from "./VerdictLabel";
 import { MetaChips } from "@/components/app/MetaChips";
 import { useEffect, useRef, type ReactNode } from "react";
 
@@ -6,7 +7,6 @@ import { roundMaxFor } from "@/lib/duel/roundMax";
 import { soundCue } from "@/lib/fx/soundCues";
 import { cueDurationMs, playRoundWon, playVoice } from "@/lib/sound";
 import {
-  VERDICT_LABEL,
   VERDICT_TONE,
   summaryWithoutTime,
   type RoundVerdict,
@@ -25,7 +25,7 @@ function SummaryLine({ verdict, summary }: { verdict: RoundVerdict; summary: str
   return (
     <p title={summary} className="mt-2 text-[12.5px] leading-snug text-[var(--ap-text-2)]">
       <span data-verdict={verdict} className={`font-bold ${VERDICT_TONE[verdict]}`}>
-        {VERDICT_LABEL[verdict]}
+        <VerdictLabel verdict={verdict} />
       </span>
       {rest ? `, ${rest}` : ""}
     </p>
@@ -112,7 +112,8 @@ export function RoundResult({
           <div
             data-you=""
             style={youStyle(myLook)}
-            className={`th-card min-w-0 flex-1 rounded-[18px] border p-4 transition-opacity ${theyWon ? "opacity-60" : ""}`}
+            data-round-dim={theyWon ? "" : undefined}
+            className="th-card min-w-0 flex-1 rounded-[18px] border p-4" /* design-lint-ignore: the existing values; only the dimming changed (audit #3/#4) */
           >
             <p className="flex min-w-0 items-center gap-1.5 text-sm">
               <PlayerBadge look={myLook} name={myName} size={24} />
@@ -136,7 +137,8 @@ export function RoundResult({
             )}
           </div>
           <div
-            className={`th-card min-w-0 flex-1 rounded-[18px] border p-4 text-right transition-opacity ${iWon ? "opacity-60" : ""}`}
+            data-round-dim={iWon ? "" : undefined}
+            className="th-card min-w-0 flex-1 rounded-[18px] border p-4 text-right" /* design-lint-ignore: the existing values; only the dimming changed (audit #3/#4) */
           >
             <p className="flex min-w-0 items-center justify-end gap-1.5 text-sm">
               <span className="th-name truncate font-semibold">{opponentName}</span>

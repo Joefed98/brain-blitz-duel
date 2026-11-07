@@ -29,6 +29,7 @@ import { screenKeys } from "@/lib/desktopKeys";
 import { goStrike } from "@/lib/fx/celebrations";
 import { useCelebrationsOn } from "@/components/fx/useCelebration";
 import { haptic } from "@/lib/haptics";
+import { useReducedMotion } from "@/lib/motion";
 
 /** The intro ending this close to GO (ms) still gets its GO strike as the round takes over. */
 const GO_STRIKE_GRACE_MS = 600;
@@ -105,6 +106,7 @@ export function RoundIntro({
   // stopped or missing, the same box shows the game's still (IntroStage), so the intro never moves.
   const savedArcadeDemo = useArcadeIntroDemo(type);
   const arcadeDemo = hasIntroDemo(type) && savedArcadeDemo !== "pending" ? savedArcadeDemo : null;
+  const reducedMotion = useReducedMotion();
   const introLine = puzzle ? (puzzleDef(type).introLine?.(puzzle) ?? null) : null;
   // Arcade phases carry 3 s of invisible slack; show the run length only.
   // Any puzzle that carries its own stored clock shows it (Bomb v2 90 s, Counterweight balanceRev 2 120 s,
@@ -315,8 +317,12 @@ export function RoundIntro({
                   key={type}
                   still={<Example />}
                   aspect={arcadeDemo ? introDemoAspect(type, arcadeDemo) : puzzleDemo ? puzzleDemo.log.w / puzzleDemo.log.h : null}
+                  // Reduce Motion (7 Nov 2026, accessibility audit #11): a demo loops until Ready with no pause, so
+                  // it isn't played; the game's still holds the same box (IntroStage sizes it by the text alone).
                   demo={
-                    arcadeDemo
+                    reducedMotion
+                      ? null
+                      : arcadeDemo
                       ? (onDemoReady) => <IntroDemo type={type} demo={arcadeDemo} onReady={onDemoReady} />
                       : puzzleDemo
                         ? (onDemoReady) => <PuzzleIntroDemo demo={puzzleDemo} onReady={onDemoReady} />
