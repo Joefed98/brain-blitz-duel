@@ -1782,6 +1782,8 @@ function gradeUnderRev(
         claimedScore: decodeFiveHandsRun(answer).claimedScore,
         ...(run.reason ? { reason: run.reason } : {}),
       };
+      // The replay result carries no stamp: the reveal reads the stored fiveHandsRev and column from these fields.
+      revealRun = { ...run, ...extraDetail };
       break;
     }
     // Pyramid (1 Nov 2026): the deal is built from the stored seed and the run replayed; only that scores.
@@ -2582,6 +2584,8 @@ function gradeUnderRev(
         claimedScore: decodeSwingRun(answer).claimedScore,
         ...(run.reason ? { reason: run.reason } : {}),
       };
+      // The replay result carries no stamp: the reveal reads swingRev, permille and the parts from these fields.
+      revealRun = { ...run, ...extraDetail };
       break;
     }
     case "tilt": {

@@ -219,7 +219,7 @@ const BUILDERS: Record<string, Builder> = {
     tiles: [
       { label: (n(r, "fiveHandsRev") || 1) >= 2 ? "Rows with a hand" : "Made hands", value: `${n(r, "made")} / 5` },
       rev >= 3
-        ? { label: "Sixth hand (column)", value: n(r, "column") >= 0 ? `${String((r as Record<string, unknown>)["columnHand"] || "No hand")} +${n(r, "columnPoints")}` : "Not picked" }
+        ? { label: "Bonus column", value: n(r, "column") >= 0 ? `${String((r as Record<string, unknown>)["columnHand"] || "No hand")} +${n(r, "columnPoints")}` : "Not picked" }
         : { label: "Full at", value: String(full) },
       { label: "Placed", value: `${n(r, "placed")} / 20` },
     ],
@@ -459,7 +459,7 @@ const BUILDERS: Record<string, Builder> = {
     // curlRev 4: the stones that counted (nearer than every red in the house) too.
     lines: [((r["state"] as { rev?: number } | undefined)?.rev ?? 1) >= 4 ? `${n(r, "onButton")} of 8 on the button · ${n(r, "counted")} counted → ${s}` : `${n(r, "onButton")} of 8 on the button → ${s}`],
     tiles: [
-      { label: "In the 4-foot", value: `${n(r, "inFourFoot")} / 8` },
+      { label: "In the red ring", value: `${n(r, "inFourFoot")} / 8` },
       { label: "Takeouts", value: `${n(r, "takeouts")} / ${n(r, "opponents")}` },
       { label: "Holding shot", value: b(r, "holding") ? "Yes" : "No" },
     ],
@@ -993,7 +993,7 @@ const BUILDERS: Record<string, Builder> = {
         { label: "Targets", value: `${n(r, "cleared")} / 10` },
         { label: "Resets", value: String(n(r, "resets")) },
         // tenRev 4: tens made by the gold tile.
-        ...("goldTens" in (r as object) ? [{ label: "Gold tens", value: String(n(r, "goldTens")) }] : []),
+        ...("goldTens" in (r as object) ? [{ label: "Gold tiles", value: String(n(r, "goldTens")) }] : []),
       ],
       outcome: done ? "finish" : "time",
     };
@@ -1012,7 +1012,7 @@ const BUILDERS: Record<string, Builder> = {
         axis: { value: n(r, "correct"), max: n(r, "queue"), label: "Correct" },
         lines: [
           `${n(r, "correct")} / ${n(r, "queue")} correct → ${s}`,
-          done ? `${n(r, "wrong")} wrong · finish ${depth.base} · speed +${depth.stretch}` : `${n(r, "wrong")} wrong · ${Math.max(0, n(r, "net"))} net → ${depth.base} · ${sorted ? "more than 3 wrong" : "not all sorted"}`,
+          done ? `${n(r, "wrong")} wrong · finish ${depth.base} · speed +${depth.stretch}` : `${n(r, "wrong")} wrong, ${Math.max(0, n(r, "net"))} more right than wrong → ${depth.base} · ${sorted ? "more than 3 wrong" : "not all sorted"}`,
           `streak +${depth.streak} (best ${depth.best}) · gold +${depth.gold} (${depth.golds}/${depth.goldWords})`,
         ],
         tiles: [

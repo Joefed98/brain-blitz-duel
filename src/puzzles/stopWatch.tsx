@@ -31,7 +31,7 @@ import { wrongMoveFlash } from "@/lib/fx/gameToolkit";
 import { playSound } from "@/lib/sound";
 import { bangOnEarnsGoldFaces, fireBangOnGoldFaces, localBangOnScore } from "@/components/puzzles/stopWatchFx";
 import { roundMaxFor } from "@/lib/duel/roundMax";
-import { BANGON_STREAK_MIN, BANGON_CENTRE_POINTS, BANGON_TOPUP_CENTRE_POINTS, BANGON_TOPUP_STREAK_TOP, bangOnMarks, liveZoneStreak, scoreBangOnDepth, usesBangOnDepth, type WatchMark } from "@/lib/duel/depth/bangOn";
+import { BANGON_PARTIAL_MS, BANGON_PARTIAL_POINTS, BANGON_STREAK_MIN, BANGON_CENTRE_POINTS, BANGON_TOPUP_REV, BANGON_TOPUP_CENTRE_POINTS, BANGON_TOPUP_STREAK_TOP, bangOnMarks, liveZoneStreak, scoreBangOnDepth, usesBangOnDepth, type WatchMark } from "@/lib/duel/depth/bangOn";
 
 import { SpeedRevealList } from "@/components/puzzles/SpeedRevealList";
 import "@/polish-layout/polish-nov3-speedatt.css";
@@ -642,6 +642,11 @@ function Reveal({ puzzle, myAnswer, myExtra }: PuzzleRevealProps) {
         {curve && avg > curve.kneeMs ? (
           <p>
             Over {curve.kneeMs} ms the score falls faster: 0 at {curve.zeroMs} ms.
+          </p>
+        ) : null}
+        {curve && avg >= curve.zeroMs && tapRevOf(puzzle) >= BANGON_TOPUP_REV && errors.some((ms) => ms <= BANGON_PARTIAL_MS) ? (
+          <p>
+            At least {BANGON_PARTIAL_POINTS} for each watch stopped within {BANGON_PARTIAL_MS} ms.
           </p>
         ) : null}
       </div>

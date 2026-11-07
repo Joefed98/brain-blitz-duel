@@ -367,7 +367,7 @@ const EXAMPLE_STEPS: { amounts: number[]; label: string }[] = [
   { amounts: [2, 0], label: "Empty the 3" },
   { amounts: [0, 2], label: "Pour 5 → 3" },
   { amounts: [5, 2], label: "Fill the 5" },
-  { amounts: [4, 3], label: "Pour 5 → 3: 4 L!" },
+  { amounts: [4, 3], label: "Pour 5 → 3: 4 L" },
 ];
 /** The stream drawn for each example step (display only). */
 const EXAMPLE_FLOWS: (Flow | null)[] = EXAMPLE_STEPS.map((step, i) => {

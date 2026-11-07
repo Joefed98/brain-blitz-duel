@@ -206,7 +206,7 @@ Already sounded: launch (`orbit.launch`), first checkpoint (`orbit.checkpoint`),
 
 Already sounded: rope catch and anchor flash (`swing.grapple`), star (`swing.starTaken`), dragon (`swing.dragon`), stalactite shake (`swing.rockShake`), stalactite lands and the replays' "dodged" pop (`swing.rockLand`), crash (`swing.crash`).
 
-## Jaywalk
+## Spacewalk
 
 | Cue | Trigger | Looks like | Plays today | Per round | Length |
 |---|---|---|---|---|---|

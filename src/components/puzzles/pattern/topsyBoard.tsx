@@ -317,7 +317,7 @@ export function TopsyStage({ puzzle, locked, onSubmit, onDraftAnswer, phaseStart
         testId="gravity"
         items={par !== null
           ? [
-              ...parPills("Moves", replay.tilts, par),
+              ...parPills("Tilts", replay.tilts, par),
               { id: "home", label: "Home", value: `${replay.home} / ${TOPSY_BALLS * TOPSY_BOARDS}` },
               limitHere ? { id: "left", label: "Left", value: Math.max(0, limitHere - tiltsHere), limit: limitHere, ...(limitHere - tiltsHere <= 5 ? { tone: "warn" as const } : {}) } : null,
             ]

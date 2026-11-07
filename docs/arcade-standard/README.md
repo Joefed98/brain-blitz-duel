@@ -64,7 +64,7 @@ replay exactly as before; standard-live-check grades every stored arcade run thr
 
 | Game | Type | Stamp | Batch | Page |
 | --- | --- | --- | --- | --- |
-| Slice | `slice` | `sliceRev` 11 | A | [slice.md](slice.md) |
+| Slice | `slice` | `sliceRev` 12 (11 before 3 Nov 2026) | A | [slice.md](slice.md) |
 | Breaker | `breaker` | `brkRev` 11 | A | [breaker.md](breaker.md) |
 | Tilt | `tilt` | `tiltRev` 12 (10, then 11, before; Nov 2026) | A | [tilt.md](tilt.md) |
 | Fission | `burst` | `burstRev` 10 | A | [burst.md](burst.md) |
@@ -78,32 +78,32 @@ replay exactly as before; standard-live-check grades every stored arcade run thr
 | Rally | `rally` | `rallyRev` 12 | B | [rally.md](rally.md) |
 | Coral Pop | `bubble` | `bubbleRev` 11 | B | [bubble.md](bubble.md) |
 | Tempo | `beat` | `beatRev` 11 | B | [beat.md](beat.md) |
-| Jaywalk | `cross` | `crossRev` 11 (10 before, Nov 2026: no coins, the no-stop streak) | C | [cross.md](cross.md) |
+| Spacewalk (was Jaywalk) | `cross` | `crossRev` 11 (10 before, Nov 2026: no coins, the no-stop streak) | C | [cross.md](cross.md) |
 | Wavefront | `wavefront` | `wavRev` 12 | C | [wavefront.md](wavefront.md) |
-| Roofbound | `flip` | `flipRev` 11 (10 before, Nov 2026) | C | [flip.md](flip.md) |
+| Roofbound | `flip` | `flipRev` 12 (flipRev 11's game on a proved deal; 11, then 10, before; Nov 2026) | C | [flip.md](flip.md) |
 | Rainbow Bridge | `inkbridge` | `inkRev` 14 (13 before, 3 Nov 2026; 12 before that) | C | [inkbridge.md](inkbridge.md) |
-| Orbit | `orbit` | `orbitRev` 13 | C | [orbit.md](orbit.md) |
+| Orbit | `orbit` | `orbitRev` 14 (13 before 1 Nov 2026) | C | [orbit.md](orbit.md) |
 | Ball Tracker | `balltrack` | `btRev` 8 | C | [balltrack.md](balltrack.md) |
 | Grappler | `swing` | `swingRev` 17 (16 before 3 Nov 2026, 15 before 1 Nov 2026) | D | [swing.md](swing.md) |
-| Minesweeper | `minesweeper` | `minesRev` 1 | Cards & Board | [minesweeper.md](minesweeper.md) |
-| Mahjong Solitaire | `mahjong` | `mahjongRev` 1 | Cards & Board | [mahjong.md](mahjong.md) |
-| Home Run Derby | `homerun` | `homerunRev` 1 | Sports | [homerun.md](homerun.md) |
+| Minefield (was Minesweeper) | `minesweeper` | `minesRev` 1 | Cards & Board | [minesweeper.md](minesweeper.md) |
+| Mahjong Solitaire | `mahjong` | `mahjongRev` 2 (1 for stored rounds) | Cards & Board | [mahjong.md](mahjong.md) |
+| Home Run (was Home Run Derby) | `homerun` | `homerunRev` 4 (3 Nov 2026; 1 to 3 replay) | Sports | [homerun.md](homerun.md) |
 | Top Bins | `freekick` | `freekickRev` 4 (3 Nov 2026; 1 to 3 replay) | Sports | [freekick.md](freekick.md) |
-| Racing | `racing` | `racingRev` 1 | Sports | [racing.md](racing.md) |
+| Apex (was Racing) | `racing` | `racingRev` 3 (3 Nov 2026; 1 and 2 replay) | Sports | [racing.md](racing.md) |
 | Free Cell | `freecell` | `freecellRev` 4 (3 Nov 2026, the 40-card deal; 3, 2 and 1 for stored rounds) | Cards & Board | [freecell.md](freecell.md) |
 | Summit | `tripeaks` | `tripeaksRev` 2 (3 Nov 2026, the stock par; 1 for stored rounds) | Cards & Board | [tripeaks.md](tripeaks.md) |
-| Full House | `pokersquares` | `pokerSquaresRev` 2 | Cards & Board | [pokersquares.md](pokersquares.md) |
+| Full House (practice only since 1 Nov 2026) | `pokersquares` | `pokerSquaresRev` 2 | Cards & Board | [pokersquares.md](pokersquares.md) |
 | Five Hands | `fivehands` | `fiveHandsRev` 3 (3 Nov 2026, the flat table summed, not 200 on every deck; 2 and 1 for stored rounds) | Cards & Board | [fivehands.md](fivehands.md) |
 | Iron Wall (was Bastion) | `bastion` | `bastionRev` 3 (born on 2) | Action | [bastion.md](bastion.md) |
 | Thirteen (was Pyramid) | `pyramid` | `pyramidRev` 1 | Cards & Board | [pyramid.md](pyramid.md) |
 | Golf Solitaire (practice only since 3 Nov 2026) | `golfsol` | `golfSolRev` 1 | Cards & Board | [golfsol.md](golfsol.md) |
-| Muggins | `muggins` | `mugginsRev` 1 | Cards & Board | [muggins.md](muggins.md) |
+| Muggins (practice only) | `muggins` | `mugginsRev` 1 | Cards & Board | [muggins.md](muggins.md) |
 | Crazy Golf (was Minigolf) | `minigolf` | `golfRev` 2 (1 for stored rounds) | Sports | [minigolf.md](minigolf.md) |
-| Cue Ball (was Speed Pool) | `pool` | `poolRev` 3 (2 and 1 for stored rounds) | Sports | [pool.md](pool.md) |
+| Cue Ball (was Speed Pool) | `pool` | `poolRev` 4 (3 Nov 2026; 3, 2 and 1 for stored rounds) | Sports | [pool.md](pool.md) |
 | Curl Champ (was Curling) | `curling` | `curlRev` 4 (1, 2 and 3 for stored rounds) | Sports | [curling.md](curling.md) |
-| Blockfall | `blockfall` | `blockfallRev` 1 | Retro | [blockfall.md](blockfall.md) |
-| Ringer (Alley Roll) | `alleyroll` | `alleyRollRev` 2 (rev 1 before 3 Nov 2026) | Sports | [alleyroll.md](alleyroll.md) |
-| Ricochet (the ninja wall-climb) | `ricochet` | `ricoRev` 2 (unstamped: the old shaft, never on the standard) | Action | [ricochet.md](ricochet.md) |
+| Blockzone (was Blockfall) | `blockfall` | `blockfallRev` 2 (3 Nov 2026; 1 for stored rounds) | Retro | [blockfall.md](blockfall.md) |
+| Ringer (was Alley Roll) | `alleyroll` | `alleyRollRev` 2 (rev 1 before 3 Nov 2026) | Sports | [alleyroll.md](alleyroll.md) |
+| Moon Climb (was Ricochet, the ninja wall-climb) | `ricochet` | `ricoRev` 3 (3 Nov 2026; born on 2; unstamped: the old shaft, never on the standard) | Action | [ricochet.md](ricochet.md) |
 
 The batches land one at a time on top of this; each adds its games' entries, pages and its summary section below.
 

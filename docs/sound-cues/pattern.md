@@ -51,7 +51,7 @@ Cues fire only on the live board, never on intro examples or reveal boards.
 | `gravity.lock` | A ball locks onto its target (not on the solving tilt) | 460 ms ring after a 200 ms delay |
 | `gravity.solve` | The solving tilt: the four balls light up on their targets one after another | ~1,150 ms |
 
-## Jumbled (`tiles`)
+## Gradient (`tiles`)
 
 | Cue | Trigger | Length |
 |---|---|---|

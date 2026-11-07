@@ -71,7 +71,7 @@ function IntroExample() {
   return (
     <div className="flex flex-col items-center gap-4">
       <p className="text-sm text-muted-foreground">
-        Push every crate onto a hatched floor marking. You can only push - never pull - and only one crate at a
+        Push every crate onto a hatched floor marking. You can only push – never pull – and only one crate at a
         time.
       </p>
       <div className="flex items-center gap-2">

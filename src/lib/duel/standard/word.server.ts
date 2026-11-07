@@ -174,7 +174,7 @@ const strikeout: StandardGame = {
         finished: true,
         speed: speedOf(input, STD_STRIKEOUT.speed, STD_STRIKEOUT.fullByS),
         bonus: earlySolve + strikePoints,
-        measure: "solve bonus",
+        measure: "early solves and strikes",
         facts: { ...facts, strikePoints },
       };
     }

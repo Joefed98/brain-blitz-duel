@@ -221,7 +221,7 @@ function IntroExample() {
         </span>
       </div>
       <p className="text-center font-mono text-[11px] text-muted-foreground">
-        Tap the green triangle charm before the ring empties - not the yellow one. Each right tap adds a link.
+        Tap the green triangle charm before the ring empties – not the yellow one. Each right tap adds a link.
       </p>
     </div>
   );
