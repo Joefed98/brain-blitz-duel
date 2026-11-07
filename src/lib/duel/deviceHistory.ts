@@ -10,6 +10,7 @@
  * now" forfeit). Games before this was added, games this device left before the end and games on
  * another device are not counted.
  */
+import { roomScoringMode } from "./scoringMode";
 import { useEffect } from "react";
 
 import { forfeitOutcome } from "./roomFlow";
@@ -114,6 +115,7 @@ export function gameRecord(
     duel.round_count ?? TOTAL_ROUNDS,
     undefined,
     roomTieRounds(duel.puzzles_public),
+    roomScoringMode(duel),
   );
   const place = forfeit
     ? forfeit.winner.user_id === me.user_id

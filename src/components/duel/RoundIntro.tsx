@@ -17,7 +17,7 @@ import { preloadGameArt } from "@/lib/arcade/gameArt.renderer";
 import { preloadGameData, useGameDataReady } from "@/lib/duel/gamePreload";
 
 import { CATEGORY_NAMES, FrameName } from "./GameFrame";
-import { MuteToggle } from "./MuteToggle";
+import { GameMenu } from "./GameMenu";
 import { RoomChatSlot } from "./RoomFooter";
 import { Dots } from "./Dots";
 import { arcadeGroupOf } from "@/lib/duel/arcadeGroups";
@@ -257,7 +257,7 @@ export function RoundIntro({
       className="round-intro flex min-h-0 flex-1 flex-col gap-2 overflow-hidden animate-round-in"
     >
       {/* The game frame's 60 px header (Polish batch R): back (practice), the name over the category dot and
-          "{Category} · Practice / Round n of N", the best (practice), the room's "⋯" menu and sound. */}
+          "{Category} · Practice / Round n of N", the best (practice), the room's "⋯" menu and the game menu (⋮). */}
       <div data-intro-header className="intro-header" style={NO_SELECT}>
         {practice && onBack ? (
           <button type="button" onClick={onBack} aria-label="Back" className="intro-back press">
@@ -289,7 +289,7 @@ export function RoundIntro({
             </span>
           ) : null}
           {topAction}
-          <MuteToggle variant="frame" />
+          <GameMenu type={type} />
         </div>
       </div>
       {counting ? (

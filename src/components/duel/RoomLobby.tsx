@@ -27,13 +27,18 @@ import { PLAYER_ICON_ART } from "./playerIcons";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { RoomFooter, RoomMenu } from "./RoomFooter";
 import { RoomSettingsSheet } from "./RoomSettingsSheet";
+import { scoringLabel, type ScoringMode } from "@/lib/duel/scoringMode";
 import { Button } from "@/design/components";
 
 interface RoomLobbyProps {
   /** The room's stored settings (duels.selected_categories: roomSettings.ts, or an older room's categories). */
   storedSettings: unknown;
   /** Host only: stores new settings on the server (rejects with the server's message). */
-  onSettingsChange: (settings: RoomSettings) => Promise<void>;
+  onSettingsChange: (settings: RoomSettings, scoring?: ScoringMode) => Promise<void>;
+  /** The room's scoring (scoringMode.ts; Total score for a room before the migration). */
+  scoring?: ScoringMode;
+  /** True once the room row has the scoring column: the summary names it and the sheet offers it. */
+  scoringChoice?: boolean;
 
   players: DuelPlayerRow[];
   hostUserId: string | null;
@@ -154,11 +159,11 @@ export function LookPicker({
 }) {
   return (
     <div data-look-picker className="th-card flex flex-col gap-2 rounded-xl border border-border bg-card px-3 py-3 text-left">
-      <p className="font-display text-xs font-semibold text-foreground">Your colour</p>
+      <p className="font-display text-xs font-semibold jz-em-name">Your colour</p>
       <ColourWheel selected={look.colour} taken={taken} takenBy={takenBy} onPick={(colour) => onChange({ colour })} />
       {PLAYER_ICONS_ENABLED && (
         <>
-          <p className="mt-1 font-display text-xs font-semibold text-foreground">Your icon</p>
+          <p className="mt-1 font-display text-xs font-semibold jz-em-name">Your icon</p>
           <div className="grid grid-cols-6 gap-1" role="radiogroup" aria-label="Your icon">
             {[null, ...PLAYER_ICON_IDS].map((icon) => {
               const selected = look.icon === icon;
@@ -208,6 +213,8 @@ export function RoomLobby({
   players,
   storedSettings,
   onSettingsChange,
+  scoring = "total",
+  scoringChoice = false,
   hostUserId,
   meUserId,
   isHost,
@@ -227,11 +234,11 @@ export function RoomLobby({
   const hostName = players.find((player) => player.user_id === hostUserId)?.display_name;
   const [settingsOpen, setSettingsOpen] = useState(false);
   /** Settings just saved, shown until the room's own row carries them (or a few seconds pass). */
-  const [savedSettings, setSavedSettings] = useState<{ settings: RoomSettings; stored: unknown } | null>(null);
-  const storedKey = JSON.stringify(storedSettings ?? null);
+  const [savedSettings, setSavedSettings] = useState<{ settings: RoomSettings; stored: unknown; scoring: ScoringMode; scoringBefore: ScoringMode } | null>(null);
+  const storedKey = JSON.stringify([storedSettings ?? null, scoring]);
   useEffect(() => {
     if (!savedSettings) return;
-    if (JSON.stringify(savedSettings.stored ?? null) !== storedKey) {
+    if (JSON.stringify([savedSettings.stored ?? null, savedSettings.scoringBefore]) !== storedKey) {
       setSavedSettings(null);
       return;
     }
@@ -239,6 +246,7 @@ export function RoomLobby({
     return () => window.clearTimeout(timer);
   }, [savedSettings, storedKey]);
   const settings = savedSettings?.settings ?? lobbySettings(storedSettings);
+  const scoringShown = savedSettings?.scoring ?? scoring;
   const canEditSettings = isHost && roomSettingsUnlocked();
   const [removing, setRemoving] = useState<number | null>(null);
   const [picking, setPicking] = useState(false);
@@ -287,6 +295,12 @@ export function RoomLobby({
         <p data-room-summary className="rs-summary">
           {settingsSummary(settings)}
         </p>
+        {scoringChoice ? (
+          <p data-room-scoring={scoringShown} className="rs-summary -mt-2">
+            Scoring: {scoringLabel(scoringShown)}
+            {scoringShown === "placings" ? " · points by place each round" : null}
+          </p>
+        ) : null}
         {canEditSettings ? (
           <Button
             variant="secondary"
@@ -429,10 +443,11 @@ export function RoomLobby({
       {settingsOpen && canEditSettings ? (
         <RoomSettingsSheet
           initial={settings}
+          scoring={scoringChoice ? scoringShown : undefined}
           onClose={() => setSettingsOpen(false)}
-          onSave={async (next) => {
-            await onSettingsChange(next);
-            setSavedSettings({ settings: next, stored: storedSettings });
+          onSave={async (next, nextScoring) => {
+            await onSettingsChange(next, nextScoring);
+            setSavedSettings({ settings: next, stored: storedSettings, scoring: nextScoring ?? scoring, scoringBefore: scoring });
           }}
         />
       ) : null}

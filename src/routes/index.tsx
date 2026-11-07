@@ -337,7 +337,7 @@ function Home() {
             <p className="flex h-11 items-center justify-between gap-2.5 text-muted-foreground jz-body">
               <PlayerBadge look={look} name={name} size={28} />
               <span className="min-w-0 flex-1 truncate">
-                Playing as <span className="th-name font-semibold text-foreground">{name}</span>
+                Playing as <span className="th-name font-semibold jz-em-name">{name}</span>
               </span>
               <button
                 type="button"

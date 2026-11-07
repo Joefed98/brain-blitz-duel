@@ -78,6 +78,10 @@ interface RoomOpts {
   host?: string;
   /** The room's stored settings (duels.selected_categories; default [], an older room's Standard mix). */
   settings?: string[];
+  /** A row with the scoring column (scoringMode.ts) holding this mode; unset: a row from before the migration. */
+  scoring?: "total" | "placings";
+  /** Each stored round score (unset: the default spread). */
+  scores?: (slot: number, round: number) => number;
 }
 
 function roomNow(status: Status, phase: string, opts: RoomOpts) {
@@ -112,7 +116,7 @@ function roomNow(status: Status, phase: string, opts: RoomOpts) {
     correct_count: null,
     errors: null,
     extra: null,
-    score: 190 - rankOf(slot) * 13 - round,
+    score: opts.scores ? opts.scores(slot, round) : 190 - rankOf(slot) * 13 - round,
     submitted_at: iso(now - 5_000),
   });
   const scored = status === "finished" || ["result", "standings", "winner_reveal"].includes(phase) || !!opts.revealParts;
@@ -130,6 +134,7 @@ function roomNow(status: Status, phase: string, opts: RoomOpts) {
       room_code: "SAFE",
       status,
       selected_categories: opts.settings ?? [],
+      ...(opts.scoring ? { scoring_mode: opts.scoring } : {}),
       tournament_history: [],
       disbanded_at: null,
       host_user_id: opts.host ?? "u1",

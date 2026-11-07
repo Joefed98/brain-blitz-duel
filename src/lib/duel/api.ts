@@ -34,6 +34,7 @@ import { rememberLook, rememberedLook, type PlayerLook } from "./playerLook";
 import type { DuelPlayerRow, DuelRow, RoundResultRow, RoundRevealData } from "./types";
 import type { PuzzleCategory } from "./types";
 import type { RoomSettings } from "./roomSettings";
+import type { ScoringMode } from "./scoringMode";
 
 export class DuelError extends Error {}
 
@@ -111,9 +112,14 @@ export async function setRoomModes(
   if (!result.ok) throw new DuelError(result.message);
 }
 
-/** Host only, in the lobby: the room's categories and round count (roomSettings.ts). */
-export async function setRoomSettings(roomId: string, settings: RoomSettings): Promise<void> {
-  const result = await setRoomSettingsFn({ data: { roomId, picks: [...settings.picks], rounds: settings.rounds } });
+/**
+ * Host only, in the lobby: the room's categories and round count (roomSettings.ts) and, once the room row has the
+ * column, its scoring (scoringMode.ts; left out before the migration).
+ */
+export async function setRoomSettings(roomId: string, settings: RoomSettings, scoring?: ScoringMode): Promise<void> {
+  const result = await setRoomSettingsFn({
+    data: { roomId, picks: [...settings.picks], rounds: settings.rounds, ...(scoring ? { scoring } : {}) },
+  });
   if (!result.ok) throw new DuelError(result.message);
 }
 

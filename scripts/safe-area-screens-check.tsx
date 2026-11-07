@@ -201,7 +201,9 @@ const ALL_SCREENS: Screen[] = [
         .first()
         .click();
       await page.locator("[data-game-stage]").first().waitFor({ timeout: 30_000 });
-      await page.getByRole("button", { name: "Show puzzle instructions" }).first().click();
+      // The help is in the game menu since 6 Nov 2026: the ⋮, then How to play.
+      await page.getByRole("button", { name: "Game menu" }).first().click();
+      await page.getByRole("button", { name: "How to play" }).first().click();
       await page.getByRole("button", { name: "Close help" }).first().waitFor({ timeout: 10_000 });
     },
   },

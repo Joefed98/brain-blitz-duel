@@ -16,7 +16,7 @@ import { GameLayout, PhoneShell, RoomPanelSlot, isArcadeScreenType } from "@/com
 import { RoomPanel } from "@/components/duel/RoomPanel";
 import { SteadyOrPlain } from "@/components/duel/SteadyStage";
 import { useDemoKey } from "@/components/duel/SaveDemoButton";
-import { PuzzleHelp, PuzzleHelpButton } from "@/components/duel/PuzzleInstructions";
+import { PuzzleHelp } from "@/components/duel/PuzzleInstructions";
 import { RoundIntro } from "@/components/duel/RoundIntro";
 import { preloadGameData } from "@/lib/duel/gamePreload";
 import { markOnboardingSeen } from "@/lib/onboarding";
@@ -105,11 +105,13 @@ import {
   duelOutcome,
   resultFor,
   roundBreakdown,
+  duelPlacings,
   standings,
   totalScore,
   totalScoreThrough,
 } from "@/lib/duel/scoring";
 import { roomTieRounds } from "@/lib/duel/tieBreak";
+import { hasScoringColumn, roomScoringMode } from "@/lib/duel/scoringMode";
 import { useDuel } from "@/lib/duel/useDuel";
 import { roundClockMs } from "@/lib/duel/buzzer";
 import { showRoundChatDot } from "@/lib/duel/chatNotice";
@@ -421,6 +423,8 @@ function DuelScreen() {
   );
   // Tie-break clocks for rooms stamped tieRev; null keeps older rooms' ranking.
   const tieRounds = roomTieRounds(duel?.puzzles_public);
+  // The room's scoring (scoringMode.ts): Placings ranks by points by place; a room before the migration is Total.
+  const scoringMode = roomScoringMode(duel);
   // Everyone's colour and icon, the same on every phone (every row, left players included).
   const looks = useMemo(() => resolvePlayerLooks(players), [players]);
   // Who else has finished this round (never how they did); the live round only, never practice or replays.
@@ -444,7 +448,7 @@ function DuelScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ghostRound, duel?.id, mySlot]);
   const finishedPings = useFinishedPings(players, round, mySlot, duel?.status === "in_progress" && phase === "puzzle", stateKey);
-  const table = standings(roomPlayers, results, scoredThrough, roundDetails, tieRounds).map((row) => {
+  const table = standings(roomPlayers, results, scoredThrough, roundDetails, tieRounds, scoringMode).map((row) => {
     const line = phase === "result" && puzzle ? nearMiss(puzzle.type, resultFor(results, row.slot, round)?.extra) : null;
     return line ? { ...row, summary: `${row.summary} · ${line}` } : row;
   });
@@ -888,7 +892,7 @@ function DuelScreen() {
   const panelRows =
     duel.status === "waiting"
       ? roomPlayers.map((p, i) => ({ slot: p.player_slot, name: p.display_name, total: 0, position: i + 1 }))
-      : table.map((r) => ({ slot: r.slot, name: r.name, total: r.total, position: r.position }));
+      : table.map((r) => ({ slot: r.slot, name: r.name, total: r.points ?? r.total, position: r.position }));
   const roomPanel = (
     <RoomPanel
       roomCode={duel.room_code}
@@ -935,7 +939,9 @@ function DuelScreen() {
             onStart={() => void handleStart()}
             storedSettings={duel.selected_categories}
             tournamentHistory={duel.tournament_history ?? []}
-            onSettingsChange={(settings) => setRoomSettings(duel.id, settings)}
+            onSettingsChange={(settings, scoring) => setRoomSettings(duel.id, settings, scoring)}
+            scoring={scoringMode}
+            scoringChoice={hasScoringColumn(duel)}
             onDisband={() => setConfirmDisband(true)}
             onLeave={() => setConfirmLeave(true)}
             onRemove={(slot) => void removePlayer(duel.id, slot)}
@@ -987,9 +993,9 @@ function DuelScreen() {
           <PhoneShell skin="room" topAction={finalMenu}>
             <RoomChatSlot.Provider value={chatButton}>
             <Podium
-              rows={standings(roomPlayers, results, duel.round_count ?? TOTAL_ROUNDS, undefined, tieRounds)}
+              rows={standings(roomPlayers, results, duel.round_count ?? TOTAL_ROUNDS, undefined, tieRounds, scoringMode)}
               looks={looks}
-              awards={podiumAwards(roomPlayers, results, awardRoundsFor(duel), tieRounds)}
+              awards={podiumAwards(roomPlayers, results, awardRoundsFor(duel), tieRounds, scoringMode)}
               mySlot={mySlot}
               results={results}
               roundOrder={duel.round_order}
@@ -1013,7 +1019,7 @@ function DuelScreen() {
           <RoomChatSlot.Provider value={chatButton}>
           <FinalResult
             outcome={
-              forfeit ? (iWonForfeit ? "win" : "loss") : duelOutcome(results, mySlot, opponentSlot, tieRounds)
+              forfeit ? (iWonForfeit ? "win" : "loss") : duelOutcome(results, mySlot, opponentSlot, tieRounds, scoringMode, duel.round_count ?? TOTAL_ROUNDS)
             }
             note={
               forfeit
@@ -1026,13 +1032,14 @@ function DuelScreen() {
             opponentName={rivalName}
             myLook={looks.get(mySlot)}
             opponentLook={looks.get(opponentSlot)}
-            awards={podiumAwards(roomPlayers, results, awardRoundsFor(duel), tieRounds)}
+            awards={podiumAwards(roomPlayers, results, awardRoundsFor(duel), tieRounds, scoringMode)}
             looks={looks}
             names={new Map(players.map((p) => [p.player_slot, p.display_name]))}
             mySlot={mySlot}
             myTotal={totalScore(results, mySlot)}
             opponentTotal={totalScore(results, opponentSlot)}
             breakdown={roundBreakdown(results, mySlot, opponentSlot, duel.round_count ?? TOTAL_ROUNDS)}
+            placings={scoringMode === "placings" && !forfeit ? duelPlacings(results, mySlot, opponentSlot, duel.round_count ?? TOTAL_ROUNDS) : null}
             roundOrder={duel.round_order}
             busy={rematchBusy}
             isHost={canPlayAgain}
@@ -1266,14 +1273,14 @@ function DuelScreen() {
   // The frame's score block: my room total, with my place (3+ players) or the opponent's total under it.
   const frameScore = isMulti ? (
     <FrameScore
-      value={myTotal}
+      value={myStanding?.points ?? myTotal}
       note={`${ordinal(myStanding?.position ?? 1)} of ${roomPlayers.length}`}
       extra={chatDot}
     />
   ) : (
     <FrameScore
-      value={myTotal}
-      note={<span className="text-opponent">{opponent?.display_name ?? "Opponent"} {opponentTotal}</span>}
+      value={myStanding?.points ?? myTotal}
+      note={<span className="text-opponent">{opponent?.display_name ?? "Opponent"} {opponentStanding?.points ?? opponentTotal}</span>}
       extra={chatDot}
     />
   );
@@ -1282,7 +1289,7 @@ function DuelScreen() {
       <GameLayout
         label={`Round ${round} of ${duel.round_count ?? TOTAL_ROUNDS}`}
         title={puzzle ? puzzleName(puzzle.type) : ""}
-        help={<PuzzleHelpButton onClick={() => setHelpOpen(true)} />}
+        onHelp={() => setHelpOpen(true)}
         progress={<RoundPips currentRound={round} outcomes={outcomes} totalRounds={duel.round_count ?? TOTAL_ROUNDS} />}
         score={frameScore}
         ping={pingStrip}

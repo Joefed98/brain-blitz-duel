@@ -12,6 +12,7 @@
  * recordForfeitInHistory (roomPhase.server.ts) instead.
  */
 import { standings } from "./scoring";
+import { roomScoringMode } from "./scoringMode";
 import { roomTieRounds } from "./tieBreak";
 import {
   TOTAL_ROUNDS,
@@ -36,7 +37,7 @@ export interface TieWinnerRecord {
  * Null for rooms played before the tie-break stamp, or with no one left in it.
  */
 export function tieWinnerRecord(
-  room: Pick<DuelRow, "puzzles_public" | "round_count" | "tournament_history">,
+  room: Pick<DuelRow, "puzzles_public" | "round_count" | "tournament_history" | "scoring_mode">,
   players: readonly DuelPlayerRow[],
   results: readonly RoundResultRow[],
 ): TieWinnerRecord | null {
@@ -48,6 +49,8 @@ export function tieWinnerRecord(
     room.round_count ?? TOTAL_ROUNDS,
     undefined,
     tie,
+    // A Placings room's winner is the most placing points (scoringMode.ts), as its podium shows.
+    roomScoringMode(room),
   );
   const top = table[0];
   if (!top) return null;

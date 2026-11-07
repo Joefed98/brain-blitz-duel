@@ -492,6 +492,11 @@ export interface DuelRow {
   round_started_at: string | null;
   next_duel_id: string | null;
   created_at: string;
+  /**
+   * Room scoring (scoringMode.ts): 'total' or 'placings'. Missing until migration
+   * 20261106120000_room_scoring_mode.sql is applied; read through roomScoringMode (missing = 'total').
+   */
+  scoring_mode?: string | null;
 }
 
 export type PlayerStatus = "active" | "inactive" | "left";
