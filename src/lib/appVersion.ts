@@ -81,5 +81,5 @@ export function buildLabel(id: string): string {
     minute: "2-digit",
     hour12: false,
   }).format(new Date(ms));
-  return `${name} · ${when.replace(",", "")}`;
+  return `${name}, ${when.replace(",", "")}`;
 }

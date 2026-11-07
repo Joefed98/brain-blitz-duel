@@ -221,7 +221,7 @@ function ReplayLab() {
   return (
     <PhoneShell gameType={round.puzzle.type}>
       <RoundResultsTable
-        roundTitle={`Round 2 · ${gameDisplayName(round.puzzle.type)}`}
+        roundTitle={["Round 2", gameDisplayName(round.puzzle.type)]}
         rows={standingRows(
           [
             round.winner!.score,

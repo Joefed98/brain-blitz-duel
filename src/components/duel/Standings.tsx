@@ -26,6 +26,7 @@ import { PlayerBadge } from "./PlayerBadge";
 import { CATEGORY_NAMES } from "./GameFrame";
 import { useScrollMore } from "./RoomFooter";
 import { Nameplate } from "@/design/components";
+import { MetaChips } from "@/components/app/MetaChips";
 
 /** Movement since the round before: ▲ green, ▼ red, – grey. */
 export function Arrow({ standing }: { standing: Standing }) {
@@ -72,7 +73,7 @@ export function RoundWinnerCard({ round, extras, looks }: { round: number; extra
       <div className="rs-row min-h-[58px]">
         <PlayerBadge look={looks?.get(first.slot)} name={first.name} size={32} />
         <span className="flex min-w-0 flex-1 flex-col">
-          <span className="rs-sub">{winners.length > 1 ? `Round ${round} · level` : `Round ${round} winner`}</span>
+          <span className="rs-sub">{winners.length > 1 ? `Round ${round}, level` : `Round ${round} winner`}</span>
           <span data-names className="rs-name th-name">{winners.map((w) => w.name).join(", ")}</span>
         </span>
         <span className="flex shrink-0 flex-col items-end">
@@ -91,7 +92,7 @@ export function NextRoundCard({ round, totalRounds, next }: { round: number; tot
       <div className="rs-row min-h-[58px]">
         <GameIcon type={next} size={40} />
         <span className="flex min-w-0 flex-1 flex-col">
-          <span className="rs-sub">{round + 1 >= totalRounds ? "Final round" : `Next · round ${round + 1} of ${totalRounds}`}</span>
+          <span className="rs-sub">{round + 1 >= totalRounds ? "Final round" : `Next, round ${round + 1} of ${totalRounds}`}</span>
           <span className="rs-name">{puzzleName(next)}</span>
         </span>
         <span className="th-pill shrink-0" data-cat={category}>{CATEGORY_NAMES[category]}</span>
@@ -143,12 +144,15 @@ export function Standings({ round, totalRounds = TOTAL_ROUNDS, rows, looks, mySl
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3 pt-1 text-left animate-phase-in">
-      <header className="rs-head shrink-0">
-        <h1 className="rs-title">Standings</h1>
-        <span className="rs-meta">
-          After round {round} of {totalRounds}
-          {placings ? " · Placings" : null}
-        </span>
+      <header className="flex shrink-0 flex-col gap-0.5">
+        <div className="rs-head">
+          <h1 className="rs-title">Standings</h1>
+          <span className="rs-meta">
+            After round {round} of {totalRounds}
+          </span>
+        </div>
+        {/* The room's scoring when it isn't the default (copy pass: a chip, no " · " separator). */}
+        {placings ? <MetaChips data-standings-scoring facts={["Placings"]} /> : null}
       </header>
 
       {/* Rows take their content's height from the top; the list scrolls (and fades) if a big room needs it. */}

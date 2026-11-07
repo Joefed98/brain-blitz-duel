@@ -454,7 +454,7 @@ function DuelScreen() {
   });
   const myStanding = table.find((r) => r.slot === mySlot);
   const opponentStanding = table.find((r) => r.slot === opponentSlot);
-  const roundTitle = puzzle ? `Round ${round} · ${puzzleName(puzzle.type)}` : `Round ${round}`;
+  const roundTitle = puzzle ? [`Round ${round}`, puzzleName(puzzle.type)] : [`Round ${round}`];
   /** Only a single fewest-moves count makes a short "Best: 17 moves" line; longer answers stay off the title. */
   const bestLine = /^\d+ (moves|presses|pushes|pours|tilts)$/.test(
     currentReveal?.correctAnswer ?? "",

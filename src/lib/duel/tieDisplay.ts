@@ -40,7 +40,7 @@ export function tieMarks(rows: readonly Placed[]): Map<number, TieMark> {
       const split = apart.length > 0;
       const placings = row.score !== undefined;
       const by = placings && apart.some((other) => other.score !== row.score) ? "score" : "time";
-      note = `Level on ${row.points}${placings ? " pts" : ""}${split ? (row.position === best ? ` · ahead on ${by}` : ` · behind on ${by}`) : ""}`;
+      note = `Level on ${row.points}${placings ? " pts" : ""}${split ? (row.position === best ? `, ahead on ${by}` : `, behind on ${by}`) : ""}`;
     }
     out.set(row.slot, { label: `${shared ? "=" : ""}${row.position}`, shared, note });
   }

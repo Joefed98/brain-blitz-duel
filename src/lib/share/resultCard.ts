@@ -336,7 +336,7 @@ export function drawResultCard(c: Ctx, data: RoomShareData, icons: CardIcons = n
   c.shadowBlur = 0;
   c.fillStyle = MUTED;
   c.font = `600 38px ${BODY}`;
-  const of = data.place ? `of ${data.players} player${data.players === 1 ? "" : "s"} · ` : "";
+  const of = data.place ? `of ${data.players} player${data.players === 1 ? "" : "s"}, ` : "";
   c.fillText(`${of}${data.rounds} rounds`, CARD_W / 2, 584);
   c.fillStyle = TEXT;
   c.font = `700 92px ${MONO}`;

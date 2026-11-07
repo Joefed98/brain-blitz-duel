@@ -345,6 +345,22 @@
     text-overflow: ellipsis;
     cursor: default;
   }
+  /* Two or three short facts in a header (MetaChips, copy pass 7 Nov 2026): quiet status chips in a wrapping row. */
+  .jz-facts {
+    display: inline-flex;
+    min-width: 0;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--jz-space-4);
+  }
+  .jz-facts > .jz-status {
+    max-width: 100%;
+  }
+  .jz-facts .jz-status-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
   .jz-status-label {
     font-weight: var(--jz-weight-medium);
     color: var(--jz-text-2);

@@ -96,7 +96,7 @@ export async function loadRoundReveal(
   if (isRemovedType(puzzle.type)) {
     const players: PlayerRoundDetail[] = shown.map((result) => ({
       playerSlot: result.player_slot,
-      summary: `${puzzleName(puzzle.type)} · ${removedRoundScore(result)}${removedRoundScore(result) === 1 ? " point" : " points"}`,
+      summary: `${puzzleName(puzzle.type)}, ${removedRoundScore(result)}${removedRoundScore(result) === 1 ? " point" : " points"}`,
       detail: [],
     }));
     return { ok: true, data: { puzzle, correctAnswer: null, players, ...(open ? {} : { partial: true, progress: [] }) } };
