@@ -32,6 +32,7 @@ import type {
   RoundResultRow,
   RoundRevealData,
 } from "./types";
+import { dbError } from "./dbError";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -67,7 +68,7 @@ export async function loadRoundReveal(
     .eq("duel_id", room.id)
     .eq("round_number", roundNumber)
     .order("player_slot");
-  if (error) throw new Error(error.message);
+  if (error) throw dbError(error, "reveal");
   const rows = (resultRows ?? []) as RoundResultRow[];
   const open = othersAnswersReadable(room, roundNumber);
   // No answer in yet and late answers still accepted: nothing beyond the public
