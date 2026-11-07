@@ -496,6 +496,7 @@ export type Database = {
           round_count: number
           round_order: Json
           round_started_at: string | null
+          scoring_mode: string
           selected_categories: Json
           status: string
           tournament_history: Json
@@ -518,6 +519,7 @@ export type Database = {
           round_count?: number
           round_order: Json
           round_started_at?: string | null
+          scoring_mode?: string
           selected_categories?: Json
           status?: string
           tournament_history?: Json
@@ -540,6 +542,7 @@ export type Database = {
           round_count?: number
           round_order?: Json
           round_started_at?: string | null
+          scoring_mode?: string
           selected_categories?: Json
           status?: string
           tournament_history?: Json
