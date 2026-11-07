@@ -1570,6 +1570,23 @@ outside the repo.
   art: `data-skin-off`, `data-game-arena`, `data-game-stage`); `.press` and its skin overrides match. brand-assets-check
   (~1 s) proves the mirrors, the wordmark's sources and every image's size; review images
   `bun scripts/shots/brand-f4-shots.ts` (`screenshots/brand-f4-nov-2026/`).
+- **Design foundation F5: approved art** (6 Nov 2026; presentation only, no stamps; `docs/art/README.md`, DESIGN.md
+  section 5 "Reward art"): the metals, inks and glow are tokens (`--jz-metal-*`, `--jz-ink-*`, `--jz-glow`,
+  `--jz-art-*`); `src/design/art/` holds Emblem, Trophy, Badge and the medal art, ported line for line from
+  `docs/art/source/gen.py` (`markup.ts`, colours through var()); `Medal` (same name and API) draws the medal art for
+  1st–3rd (no numbers, "=" tag on a shared place, "1st"/"Joint 1st" labels), and the share card draws it as an image
+  (`loadCardMedals`). **Captain Joulz** replaces the hero skin in `src/lib/arcade/hero.renderer.ts`: `drawCaptain` is
+  hero2.py variant '4' in canvas primitives, gold on SVG's objectBoundingBox gradient; the celebrations build the
+  figure from the approved ready, run and win poses (`CAPTAIN_POSES`, captain-poses.json), interpolating joints
+  (victory = win, run = run with limbs trading places, dance = ready ↔ win arms); the games' HeroPose joints are
+  retargeted onto the same body (shoulders and hips from the torso, elbows and knees solved near-straight, helmet by
+  head radius, fists and short boots, the cape as wide as the old one), the small figure (< 40 px) flat gold without
+  fine detail; Moon Climb's ninja gear stays an overlay. Hit boxes, sims, timings, seeds and scores are untouched.
+  art-check (~3 s, no browser) proves the 17 reward SVGs byte for byte, the metals, the poses, the canvas captain
+  against the approved SVGs (pixels), every game pose no bigger than main's figure
+  (`scripts/fixtures/hero-bounds-main.json`, `--record=<main checkout>`) and the Medal. The Roofbound, Grappler and
+  Moon Climb tiles are re-exported. Shots: `bun scripts/shots/captain-shots.ts [--old=<main checkout>]`,
+  `bun scripts/shots/art-gallery-shots.tsx` (`screenshots/art-f5-nov-2026/`); `/dev-design` shows every piece.
 - **Practice goals** (6 Nov 2026; device storage and presentation only, no stamps): mastery stars from the practice best
   (bronze 120, silver 160, gold 190; a star once earned is kept; "21 / 276 stars" under Practice's title, `Stars` on each
   row and the intro) and challenges (`src/lib/duel/practiceChallenges.ts`: two for each of 20 games, read only from a run's

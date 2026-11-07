@@ -103,6 +103,11 @@ const clientRender = (el: React.ReactElement): string => {
   root.unmount();
   return html;
 };
+/**
+ * The approved art (design foundation F5) names its SVG gradients from React's useId (`jz_r_3__bronzeA`, used as
+ * `url(#jz_r_3__bronzeA)`), which shifts with the tree; only that id prefix is replaced, every other difference counts.
+ */
+const artIds = (html: string) => html.replace(/jz_r_[0-9a-z]+__/g, "jz_ID__");
 const strip = (html: string) => html.replace(/<div data-test-panel="true">panel<\/div>/g, "");
 
 /* 1: screens keep their controls */
@@ -140,15 +145,17 @@ const tableEl = (highlight?: React.ReactNode) => (
   />
 );
 ok(
-  quiet(() =>
-    clientRender(
-      tableEl(
-        <ReplayBoundary>
-          <Boom />
-        </ReplayBoundary>,
+  artIds(
+    quiet(() =>
+      clientRender(
+        tableEl(
+          <ReplayBoundary>
+            <Boom />
+          </ReplayBoundary>,
+        ),
       ),
     ),
-  ) === quiet(() => clientRender(tableEl())),
+  ) === artIds(quiet(() => clientRender(tableEl()))),
   "RoundResultsTable: a failing highlight changed the screen",
 );
 
@@ -211,15 +218,17 @@ const podiumEl = (panel?: React.ReactNode) => (
   />
 );
 ok(
-  quiet(() =>
-    clientRender(
-      podiumEl(
-        <ReplayBoundary>
-          <Boom />
-        </ReplayBoundary>,
+  artIds(
+    quiet(() =>
+      clientRender(
+        podiumEl(
+          <ReplayBoundary>
+            <Boom />
+          </ReplayBoundary>,
+        ),
       ),
     ),
-  ) === quiet(() => clientRender(podiumEl())),
+  ) === artIds(quiet(() => clientRender(podiumEl()))),
   "Podium: a failing play of the game changed the screen",
 );
 const final = (panel?: React.ReactNode) =>

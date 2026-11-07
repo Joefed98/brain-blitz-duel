@@ -25,6 +25,7 @@ import {
   Toast,
   type AppTab,
 } from "@/design/components";
+import { Badge, Emblem, Trophy, TROPHY_SIZES, type BadgeKind, type Tier, type TrophyKind } from "@/design/art";
 
 /**
  * The component gallery (design foundation F2, DESIGN.md section 5; development only, as /dev-crash: a
@@ -40,6 +41,10 @@ export const Route = createFileRoute("/dev-design")({
   },
   component: DevDesign,
 });
+
+const TIERS: Tier[] = ["spark", "charge", "volt", "surge", "storm", "lightning"];
+const TROPHIES: TrophyKind[] = ["bronze", "silver", "gold", "championship"];
+const BADGES: BadgeKind[] = ["winner", "arena", "club", "founder"];
 
 const STATES = ["rest", "hover", "pressed", "focus", "disabled"] as const;
 type State = (typeof STATES)[number];
@@ -279,12 +284,15 @@ function DevDesign() {
 
         <Block title="Medal">
           {(["s", "m", "l"] as const).map((size) => (
-            <div key={size} className="jz-gallery-grid">
-              {[1, 2, 3, 4].map((place) => (
-                <Medal key={place} place={place} size={size} />
-              ))}
-              <Medal place={1} shared size={size} />
-            </div>
+            <Labelled key={size} label={`${size.toUpperCase()} · ${{ s: 22, m: 36, l: 64 }[size]} px: gold, silver, bronze, 4th, shared 1st, shared 4th`}>
+              <div className="jz-gallery-grid">
+                {[1, 2, 3, 4].map((place) => (
+                  <Medal key={place} place={place} size={size} />
+                ))}
+                <Medal place={1} shared size={size} />
+                <Medal place={4} shared size={size} />
+              </div>
+            </Labelled>
           ))}
         </Block>
 
@@ -304,6 +312,79 @@ function DevDesign() {
             <Progress value={0.4} />
             <Progress value={1} done />
           </div>
+        </Block>
+
+        <Block title="Emblem">
+          <Labelled label="150 px (rank card): the six tiers, division II, Lightning #37">
+            <div className="jz-gallery-grid">
+              {TIERS.map((tier) => (
+                <Emblem key={tier} tier={tier} size={150} division={tier === "lightning" ? undefined : 2} rank={tier === "lightning" ? 37 : undefined} />
+              ))}
+            </div>
+          </Labelled>
+          <Labelled label="Divisions III, II, I (Volt, 64 px)">
+            <div className="jz-gallery-grid">
+              {([3, 2, 1] as const).map((division) => (
+                <Emblem key={division} tier="volt" size={64} division={division} />
+              ))}
+            </div>
+          </Labelled>
+          <Labelled label="28 px (standings row): no marker, the name beside it">
+            <div className="jz-gallery-grid">
+              {TIERS.map((tier) => (
+                <Emblem key={tier} tier={tier} size={28} marker={false} division={2} rank={37} />
+              ))}
+            </div>
+          </Labelled>
+          <Panel>
+            {(
+              [
+                ["lightning", "Sam", "Lightning #37", 1842, 7],
+                ["storm", "TheInventor", "Storm I", 1611, 3],
+                ["volt", "Priya", "Volt III", 1204, 8],
+              ] as const
+            ).map(([tier, name, rank, score, colour]) => (
+              <div key={name} className="jz-row">
+                <Nameplate look={{ colour, icon: null }} name={name} kind="mini" meta={`${rank} · ${score.toLocaleString("en-GB")}`} />
+                <Emblem tier={tier} size={28} marker={false} label={rank} />
+              </div>
+            ))}
+          </Panel>
+        </Block>
+
+        <Block title="Trophy">
+          <div className="jz-gallery-grid">
+            {TROPHIES.map((kind) => (
+              <Labelled key={kind} label={`${kind} · ${TROPHY_SIZES[kind]} px`}>
+                <Trophy kind={kind} />
+              </Labelled>
+            ))}
+          </div>
+          <Labelled label="56 px (profile cabinet row)">
+            <div className="jz-gallery-grid">
+              {TROPHIES.map((kind) => (
+                <Trophy key={kind} kind={kind} size={56} />
+              ))}
+            </div>
+          </Labelled>
+        </Block>
+
+        <Block title="Badge">
+          <Labelled label="104 px (player card); the founder's number is data (players 42 and 1337)">
+            <div className="jz-gallery-grid">
+              {BADGES.map((kind) => (
+                <Badge key={kind} kind={kind} player={42} />
+              ))}
+              <Badge kind="founder" player={1337} />
+            </div>
+          </Labelled>
+          <Labelled label="48 px">
+            <div className="jz-gallery-grid">
+              {BADGES.map((kind) => (
+                <Badge key={kind} kind={kind} player={42} size={48} />
+              ))}
+            </div>
+          </Labelled>
         </Block>
 
         <Block title="TabBar">

@@ -97,6 +97,19 @@ Archivo variable font, self-hosted (weights 400–900, widths 62–125 %).
 
 Weights in use: **400, 600, 800**, plus 900 for the wordmark only. Retire 450, 500, 550, 620, 650, 700 and 750.
 
+### Text emphasis: one bright thing per panel
+
+A panel has one bright thing; everything else steps down, so the eye lands on what matters.
+
+1. **`--jz-text` (white)** only for a panel's headline or its key number (a rating, score, price, or a count that
+   matters).
+2. **`--jz-text-2`** for names and labels: player names, game names, card titles in lists, category labels.
+3. **`--jz-text-3`** for supporting detail: times, counts, hints, captions.
+4. **Colour carries meaning, not brightness:** gold for yours or being won, cyan for live and positive, red for
+   down or wrong (section 2, Accents).
+5. **Cut lines that repeat what the screen already shows.** No " · " separators in meta lines: use a comma or
+   chips.
+
 ---
 
 ## 4. Space and shape
@@ -146,13 +159,22 @@ component gallery, `/dev-design` (development builds only).
 | `LiveTag` | LIVE (red), NEXT (cyan) | the public game's live dot |
 | `GameTile` | S 56, M 100, L full width; with best score and charge bar | Practice rows' icon, Warm up tiles |
 | `Nameplate` | strip (standings, lobby), full, mini; the avatar disc (PlayerBadge) inside | `PlayerBadge` layouts |
-| `Medal` | gold, silver, bronze metal; S 22, M 36, L 64 | `Medal.tsx` (temporary until the art arrives) |
+| `Medal` | the approved medal art (docs/art) for 1st–3rd, no numbers; the plain number from 4th; a shared place adds an "=" tag; S 22, M 36, L 64 wide | `Medal.tsx`'s placeholder discs (F5) |
 | `TabBar` | phone bar and desktop rail from one list (`TABS`) | the two copies in `AppTabBar` and `AppRail` |
 
 Every interactive component has hover (fine pointer), pressed (scale 0.97, 120 ms) and focus-visible (2 px
 `--jz-gold`, 2 px offset; a clipped component draws its cut on a pseudo-element so the ring is never cut)
 states. Minimum target 44 × 44.
 
+
+**Reward art (design foundation F5, 6 Nov 2026).** `src/design/art/` (import from `@/design/art`): `Emblem` (six
+tiers, division diamonds or Lightning's rank; `marker={false}` at the 28 px standings size), `Trophy` (bronze,
+silver, gold, championship), `Badge` (winner, arena, club, founder with the player number as data), and the
+medal art `Medal` draws. Each is inline SVG ported line for line from `docs/art/source/gen.py`
+(`src/design/art/markup.ts`), every colour a token: the five metals' stops `--jz-metal-<metal>-1…4` (plus a CSS
+gradient each), their inks `--jz-ink-<metal>`, `--jz-glow`, `--jz-art-sheen`, `--jz-art-edge` and
+`--jz-art-gold-deep`. `size` is the width; a role="img" label on each. art-check proves the markup is
+docs/art/svg/ byte for byte. Captain Joulz is canvas art (`src/lib/arcade/hero.renderer.ts`, section 9).
 ---
 
 ## 6. Icons
