@@ -54,6 +54,8 @@ interface RoundIntroProps {
   ready?: boolean;
   readyCount?: number;
   activeCount?: number;
+  /** In a two-player room, the other player's name for "Waiting for Sam" (copy pass 2). */
+  waitingFor?: string | undefined;
   onReady?: () => void;
   practice?: boolean;
   deviceBest?: number | null;
@@ -80,6 +82,7 @@ export function RoundIntro({
   ready = false,
   readyCount = 0,
   activeCount = 0,
+  waitingFor,
   onReady,
   practice = false,
   deviceBest = null,
@@ -357,7 +360,7 @@ export function RoundIntro({
             <p className="intro-ready-count flex h-5 items-center justify-center gap-1.5">
               {ready && twoPlayer && readyCount < activeCount ? (
                 <>
-                  Waiting for opponent <Dots />
+                  {waitingFor ? `Waiting for ${waitingFor}` : "Waiting for opponent"} <Dots />
                 </>
               ) : (
                 <>

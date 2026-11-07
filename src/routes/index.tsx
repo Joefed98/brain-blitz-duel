@@ -239,7 +239,7 @@ function Home() {
       return;
     }
     if (mode === "join" && code.trim().length !== CODE_LENGTH) {
-      fail("Room codes are 4 letters.");
+      fail("Room codes are 4 characters.");
       return;
     }
 
@@ -259,7 +259,7 @@ function Home() {
       await navigate({ to: "/duel/$code", params: { code: duel.roomCode } });
     } catch (err) {
       setBusy(null);
-      fail(err instanceof Error ? err.message : "Something went wrong. Try again.");
+      fail(err instanceof Error ? err.message : "That didn’t work. Try again.");
     }
   };
 
@@ -367,7 +367,7 @@ function Home() {
           >
             {busy === "create" ? (
               <>
-                <span>Please wait</span>
+                <span>Making your room</span>
                 <Dots className="bg-primary-foreground" />
               </>
             ) : (

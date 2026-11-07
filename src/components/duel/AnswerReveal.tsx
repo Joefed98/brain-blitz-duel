@@ -850,7 +850,7 @@ function LiveAnswerReveal({
         ) : null}
         {practice && myScore !== null ? (
           <p data-reveal-best="" className="reveal-meta shrink-0 text-center">
-            {best === null ? "Your first score for this game" : `Your best: ${best}`}
+            {best === null ? "First go at this one" : `Your best: ${best}`}
           </p>
         ) : null}
         {/* Engine games on the puzzle reveal: their stored breakdown, open (practice) or one tap away (rooms). */}

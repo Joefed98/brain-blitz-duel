@@ -181,7 +181,7 @@ export function RoomChallengeButton({
               noteMyChallenge(made.code);
               setState({ kind: "ready", code: made.code });
             },
-            () => setState({ kind: "error", message: "Couldn’t reach the server. Try again." }),
+            () => setState({ kind: "error", message: "Can’t reach us. Try again." }),
           );
         }}
       >

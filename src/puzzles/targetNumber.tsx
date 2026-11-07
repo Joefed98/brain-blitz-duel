@@ -550,7 +550,7 @@ function TargetReveal({
         {EXACT_RINGS}
         <p className="exact-reveal-target">Target {puzzle.target}</p>
         <p className="exact-reveal-value">{replay.value ?? "—"}</p>
-        <p className="exact-reveal-verdict">{myCorrect || away === 0 ? "Target hit!" : away === null ? "No number locked" : `${away} away from the target`}</p>
+        <p className="exact-reveal-verdict">{myCorrect || away === 0 ? "Spot on" : away === null ? "No number locked" : `${away} away from the target`}</p>
         {used !== null && (
           <p className="exact-reveal-target" style={used <= EXACT_ELEGANT_TILES ? { color: "#F5B82E" } : undefined}>
             {used <= EXACT_ELEGANT_TILES ? `✦ Elegant: ${used} numbers` : `${used} numbers used (${EXACT_ELEGANT_TILES} is elegant)`}

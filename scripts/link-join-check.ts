@@ -67,7 +67,7 @@ const join = server.slice(
 );
 assert.match(
   join,
-  /if \(room\.status !== "waiting"\) \{\s*return \{ ok: false as const, message: "Game already started\." \};/,
+  /if \(room\.status !== "waiting"\) \{\s*return \{ ok: false as const, message: "This game’s already started\." \};/,
 );
 
 // Lobby Copy/Share use the invite; Share falls back to copying.

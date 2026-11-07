@@ -285,7 +285,7 @@ function DevDesign() {
         <Block title="Toast">
           <Toast tone="info">Saved.</Toast>
           <Toast tone="live">Sam: nice one</Toast>
-          <Toast tone="error">Couldn’t reach the server. Try again.</Toast>
+          <Toast tone="error">Can’t reach us. Try again.</Toast>
         </Block>
 
         <Block title="Skeleton">

@@ -231,7 +231,7 @@ async function createRoomRow(
     await recordJoin(client, { duel_id: room.id, user_id: userId, player_slot: 1, game_index: 0, via: "host" });
     return room;
   }
-  throw new Error("Could not create a room right now. Please try again.");
+  throw new Error("Couldn’t make a room just now. Give it another go.");
 }
 
 /**
@@ -368,7 +368,7 @@ export const roomPreviewFn = createServerFn({ method: "POST" })
     const client = await db();
     const { ROOM_LOOKUP_LIMIT, withinRateLimit } = await import("./rateLimit.server");
     if (!(await withinRateLimit(client, context.userId, ROOM_LOOKUP_LIMIT)))
-      throw new Error("Too many room lookups. Try again in a few minutes.");
+      throw new Error("That’s a lot of codes. Give it a few minutes.");
     const code = String(data.roomCode ?? "").trim().toUpperCase().slice(0, 8);
     const { data: found } = await client
       .from("duels")
@@ -403,7 +403,7 @@ export const joinRoomFn = createServerFn({ method: "POST" })
     const client = await db();
     const { ROOM_LOOKUP_LIMIT, withinRateLimit } = await import("./rateLimit.server");
     if (!(await withinRateLimit(client, context.userId, ROOM_LOOKUP_LIMIT)))
-      return { ok: false as const, message: "Too many tries. Wait a few minutes and try again." };
+      return { ok: false as const, message: "That’s a lot of tries. Give it a few minutes." };
     const via = joinViaFrom(data.via);
     const code = String(data.roomCode ?? "").trim().toUpperCase().slice(0, 8);
     const { data: found } = await client
@@ -411,7 +411,7 @@ export const joinRoomFn = createServerFn({ method: "POST" })
       .select("*")
       .eq("room_code", code)
       .maybeSingle();
-    if (!found) return { ok: false as const, message: "No room found with that code." };
+    if (!found) return { ok: false as const, message: "No room with that code. Check it with the host." };
 
     const room = found as DuelRow;
     if (room.disbanded_at) return { ok: false as const, message: "This room has been disbanded." };
@@ -421,7 +421,7 @@ export const joinRoomFn = createServerFn({ method: "POST" })
     if (mine) {
       if (mine.status === "left") {
         if (room.status !== "waiting")
-          return { ok: false as const, message: "Game already started." };
+          return { ok: false as const, message: "This game’s already started." };
         await client.from("duel_players").update({ status: "active" }).eq("id", mine.id);
         await recordJoin(client, {
           duel_id: room.id,
@@ -436,7 +436,7 @@ export const joinRoomFn = createServerFn({ method: "POST" })
     }
 
     if (room.status !== "waiting") {
-      return { ok: false as const, message: "Game already started." };
+      return { ok: false as const, message: "This game’s already started." };
     }
     const seat = seatFor(players, room);
     if (!seat.ok) return { ok: false as const, message: seat.message };
@@ -473,7 +473,7 @@ export const startRoomFn = createServerFn({ method: "POST" })
     if (room.status !== "waiting") return { ok: true as const };
     const players = present(await getPlayers(client, room.id));
     if (players.length < MIN_PLAYERS) {
-      return { ok: false as const, message: "You need at least two players." };
+      return { ok: false as const, message: "You need at least two players. Rope someone in." };
     }
 
     const { buildRoomPuzzles } = await import("./generate.server");
@@ -488,7 +488,7 @@ export const startRoomFn = createServerFn({ method: "POST" })
     if (!categories.some((category) => typesInCategory(category).length > 0))
       return {
         ok: false as const,
-        message: "Choose at least one category with active games.",
+        message: "Pick at least one category with games in it.",
       };
     const { newRoomSeed } = await import("./selection");
     const roomSeed = newRoomSeed();
@@ -563,14 +563,14 @@ export const setRoomModesFn = createServerFn({ method: "POST" })
       return { ok: false as const, message: "Only the host can change this." };
     }
     if (room.status !== "waiting") {
-      return { ok: false as const, message: "The game has already started." };
+      return { ok: false as const, message: "This game’s already started." };
     }
     if (
       !Array.isArray(data.categories) ||
       data.categories.length === 0 ||
       normaliseCategories(data.categories).length !== new Set(data.categories).size
     )
-      return { ok: false as const, message: "Choose at least one valid category." };
+      return { ok: false as const, message: "Pick at least one category." };
     const categories = normaliseCategories(data.categories);
     await client
       .from("duels")
@@ -630,7 +630,7 @@ export const removePlayerFn = createServerFn({ method: "POST" })
       return { ok: false as const, message: "Only the host can remove players." };
     }
     if (room.status !== "waiting") {
-      return { ok: false as const, message: "The game has already started." };
+      return { ok: false as const, message: "This game’s already started." };
     }
     await client
       .from("duel_players")
@@ -1086,7 +1086,7 @@ export const rematchFn = createServerFn({ method: "POST" })
       p_room_id: room.id,
       p_host_id: context.userId,
     });
-    if (error || !restarted) return { ok: false as const, message: "Could not play again yet." };
+    if (error || !restarted) return { ok: false as const, message: "Can’t play again just yet." };
     await clearSubmitted(client, room.id);
     if (forfeit && !(await recordForfeitInHistory(client, room.id, forfeit)))
       console.warn(`[rematch] room=${room.room_code}: forfeit winner not recorded in history`);

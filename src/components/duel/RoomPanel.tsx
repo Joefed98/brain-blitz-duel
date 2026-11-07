@@ -197,7 +197,7 @@ function PanelChat({ chat, myUserId }: { chat: RoomChatState; myUserId: string }
   return (
     <>
       <ul ref={list} data-scrollable className="dk-rp-messages">
-        {chat.messages.length === 0 ? <li className="dk-rp-quiet">No messages yet</li> : null}
+        {chat.messages.length === 0 ? <li className="dk-rp-quiet">Quiet in here</li> : null}
         {chat.messages.slice(-40).map((m) => (
           <li
             key={m.id}

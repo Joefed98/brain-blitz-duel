@@ -616,10 +616,10 @@ export async function challengeRoundBoard(
   round: number,
 ): Promise<{ ok: true; board: ChallengeRoundBoard } | Fail> {
   const pub = room.puzzles_public[round - 1];
-  if (!pub) return { ok: false, message: "Unknown round." };
+  if (!pub) return { ok: false, message: "That round doesn’t exist." };
   const mineRows = await resultsOf(client, attempt.id);
   if (!doneRow(mineRows.find((r) => r.round_number === round)))
-    return { ok: false, message: "That round isn’t finished yet." };
+    return { ok: false, message: "That round isn’t over yet." };
   const all = slotted(await attemptsIn(client, room.id));
   const people = [...earlierThan(all, attempt), all.find((a) => a.id === attempt.id)!].sort(
     (a, b) => a.slot - b.slot,

@@ -607,7 +607,7 @@ export function roomCapacity(room: { max_players?: number | null } | null | unde
 }
 /** What a join past the room's seats is told. */
 export function roomFullMessage(seats: number): string {
-  return `That room is full (${seats} players).`;
+  return `That room’s full. It’s ${seats} max.`;
 }
 export const COUNTDOWN_MS = 3_000;
 /** Round intro: up to 30s waiting on READY taps, then a 3-2-1 countdown. */

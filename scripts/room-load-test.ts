@@ -278,7 +278,7 @@ async function playRoom(count: number, scenario: "arcade" | "dealt"): Promise<Re
   }
   if (count === 16) {
     const extra = await call("joinRoomFn", "bot-17th", { roomCode: code, displayName: "Bot 17" });
-    if (extra["ok"] || extra["message"] !== "That room is full (16 players).") failures.push(`17th join: ${JSON.stringify(extra)}`);
+    if (extra["ok"] || extra["message"] !== "That room’s full. It’s 16 max.") failures.push(`17th join: ${JSON.stringify(extra)}`);
   }
   const seated = tables["duel_players"]!.filter((p) => p["duel_id"] === roomId).length;
   if (seated !== count) failures.push(`${seated} seated, want ${count}`);

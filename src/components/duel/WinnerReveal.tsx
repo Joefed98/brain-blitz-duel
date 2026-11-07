@@ -77,7 +77,7 @@ export function WinnerReveal({ startedAt }: { startedAt: number }) {
     <div className="duel-start-screen" aria-label="Winner reveal">
       <RoomMomentFx spec={WINNER_SPEC} startedAt={startedAt} />
       <h1 ref={text} className="winner-reveal-text">
-        AND THE WINNER IS…
+        And the winner is…
       </h1>
     </div>
   );

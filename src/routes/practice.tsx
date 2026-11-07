@@ -896,7 +896,7 @@ function PracticeScreen() {
                 {emptyGroup.label} games are coming soon
               </p>
             ) : matches.length === 0 && previewRows.length === 0 && retiredRows.length === 0 ? (
-              <p className="jz-panel ap-empty">No games match</p>
+              <p className="jz-panel ap-empty">Nothing matches that</p>
             ) : null}
 
             {previewRows.length > 0 && (

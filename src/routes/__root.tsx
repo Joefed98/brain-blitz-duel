@@ -44,7 +44,7 @@ function NotFoundComponent() {
           <AppWordmark />
         </header>
         <ErrorState
-          title="Page not found"
+          title="Nothing here"
           body={`This page isn’t part of ${APP_NAME}, or it has moved. Head back to Play, or start a room.`}
           action={{ label: "Create a room", onClick: () => void navigate({ to: "/" }) }}
         />
@@ -68,7 +68,7 @@ function ErrorComponent({ error, reset }: ErrorComponentProps) {
           This page didn’t load
         </h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          Something went wrong on our end. You can try refreshing or head back home.
+          That one’s on us. Refresh, or head back home.
         </p>
         <div className="mt-6 flex flex-wrap justify-center gap-2">
           <button

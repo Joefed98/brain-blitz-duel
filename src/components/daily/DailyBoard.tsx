@@ -93,7 +93,7 @@ export function DailyBoard({
       {board.open ? (
         board.rows.length === 0 ? (
           <p className="jz-panel px-4 py-6 text-center text-sm text-muted-foreground">
-            No one finished this day.
+            Nobody finished that day.
           </p>
         ) : (
           <ol className="rs-list" aria-label="Leaderboard">

@@ -1181,7 +1181,7 @@ export const BULLSEYE_FX: ArcadeFxSpec<BullseyeState> = {
         s.flightTick === 0 && s.hits.length >= BULLSEYE_ARROWS && s.hits.every((h) => h.ring >= 0 || h.pop === 1)
           ? 1
           : 0,
-      label: () => "ALL TEN ON TARGET!",
+      label: () => "TEN FROM TEN!",
     },
   ],
   // A dart off the scoring rings (a popped balloon scores, so it is no miss): a dust puff where it landed.

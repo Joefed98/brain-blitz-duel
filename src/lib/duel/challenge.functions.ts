@@ -78,7 +78,7 @@ export const createChallengeFn = createServerFn({ method: "POST" })
     const client = await db();
     const { CHALLENGE_CREATE_LIMIT, withinRateLimit } = await import("./rateLimit.server");
     if (!(await withinRateLimit(client, context.userId, CHALLENGE_CREATE_LIMIT)))
-      return { ok: false as const, message: "Too many tries. Wait a few minutes and try again." };
+      return { ok: false as const, message: "That’s a lot of tries. Give it a few minutes." };
     const { createChallenge } = await import("./challenge.server");
     return createChallenge(
       client,
@@ -96,7 +96,7 @@ export const challengeFromRoomFn = createServerFn({ method: "POST" })
     const client = await db();
     const { CHALLENGE_CREATE_LIMIT, withinRateLimit } = await import("./rateLimit.server");
     if (!(await withinRateLimit(client, context.userId, CHALLENGE_CREATE_LIMIT)))
-      return { ok: false as const, message: "Too many tries. Wait a few minutes and try again." };
+      return { ok: false as const, message: "That’s a lot of tries. Give it a few minutes." };
     const { createChallengeFromRoom } = await import("./challenge.server");
     return createChallengeFromRoom(client, context.userId, String(data.duelId ?? ""), Date.now());
   });
