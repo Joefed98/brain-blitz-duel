@@ -30,7 +30,7 @@ export function starsFor(score: number | null | undefined): StarTier {
 }
 
 export interface ChallengeRecord {
-  /** The best part or bonus points in one run, or the count of runs that counted. */
+  /** The best part points, bonus points or score in one run. */
   value: number;
   /** When it was completed (ISO date), once done. */
   done?: string;
@@ -150,7 +150,7 @@ export function recordPracticeGoals(
     const got = challengeValueOf(challenge.goal, score, extra);
     const prev = record.challenges[challenge.id] ?? { value: 0 };
     if (prev.done) continue;
-    const value = challenge.goal.kind === "scoreRuns" ? prev.value + got : Math.max(prev.value, got);
+    const value = Math.max(prev.value, got);
     const next: ChallengeRecord = { value };
     if (value >= challengeTarget(challenge.goal)) {
       next.done = now.toISOString().slice(0, 10);

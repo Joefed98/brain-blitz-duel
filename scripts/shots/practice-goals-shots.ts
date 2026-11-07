@@ -39,7 +39,7 @@ storage.push([
       "lightsout.speed": { value: 12 },
       "pinball.joulz": { value: 12 },
       "pinball.multiball": { value: 20, done: "2026-11-05" },
-      "beat.runs150": { value: 2 },
+      "beat.score180": { value: 164 },
       "pool.black": { value: 10, done: "2026-11-04" },
       "skyline.perfects": { value: 9 },
     },

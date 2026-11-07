@@ -7,7 +7,7 @@
  *   bonus      a puzzle on the scoring standard: a finish (extra.parts.kind "finish") whose bonus (par or clean,
  *              extra.parts.efficiency) reaches `max`;
  *   speed      the same finish with its speed points (extra.parts.speed) at `max`: solved by the game's "full by" time;
- *   scoreRuns  `runs` runs of `score` or more.
+ *   score      one run scoring `score` or more (the bar shows the best run so far).
  *
  * Every number is the game's own (practice-goals-check proves each against the live spec or the standard's rules
  * table, so a retune that moves one fails the check). Shared and pure; no registry import (the registry pulls in
@@ -22,7 +22,7 @@ export type ChallengeGoal =
   | { kind: "part"; label: string; max: number }
   | { kind: "bonus"; max: number }
   | { kind: "speed"; max: number; withinS: number }
-  | { kind: "scoreRuns"; score: number; runs: number };
+  | { kind: "score"; score: number };
 
 export interface PracticeChallenge {
   /** Stable id: `<type>.<name>`; progress is stored under it. */
@@ -56,12 +56,12 @@ const speed = (type: PuzzleType, withinS: number, max: number): PracticeChalleng
   reward: "Badge",
   goal: { kind: "speed", max, withinS },
 });
-const runs = (type: PuzzleType, score: number, count: number): PracticeChallenge => ({
-  id: `${type}.runs${score}`,
+const score = (type: PuzzleType, points: number): PracticeChallenge => ({
+  id: `${type}.score${points}`,
   type,
-  text: `Score ${score} or more in ${count} runs`,
+  text: `Score ${points} or more`,
   reward: "Badge",
-  goal: { kind: "scoreRuns", score, runs: count },
+  goal: { kind: "score", score: points },
 });
 
 export const PRACTICE_CHALLENGES: readonly PracticeChallenge[] = [
@@ -92,13 +92,13 @@ export const PRACTICE_CHALLENGES: readonly PracticeChallenge[] = [
   part("skyline", "perfects", "Max out Perfect drops", "Perfect drops", 30),
   part("skyline", "gold", "Max out Gold blocks", "Gold blocks", 20),
   part("beat", "gold", "Max out Golden notes", "Golden notes", 15),
-  runs("beat", 150, 3),
+  score("beat", 180),
   part("bubble", "clear", "Clear the reef", "Reef cleared", 10),
   part("bubble", "chests", "Max out Chests", "Chests", 30),
   part("bintoss", "finish", "Get all ten in", "All ten in", 10),
   part("bintoss", "hoops", "Max out Hoops", "Hoops", 24),
   part("bullseye", "dead", "Max out Dead-centre darts", "Dead-centre darts", 20),
-  runs("bullseye", 150, 3),
+  score("bullseye", 180),
   part("homerun", "homers", "Max out Home runs", "Home runs", 40),
   part("homerun", "streak", "Max out Perfect streak", "Perfect streak", 20),
   part("pool", "black", "Pot the black", "Black", 10),
@@ -109,9 +109,9 @@ export const PRACTICE_CHALLENGES: readonly PracticeChallenge[] = [
   part("bastion", "base", "Keep the base untouched", "Base intact", 10),
 ];
 
-/** The challenge's target on its progress bar (the part's or bonus's maximum, or the runs needed). */
+/** The challenge's target on its progress bar (the part's or bonus's maximum, or the score needed). */
 export function challengeTarget(goal: ChallengeGoal): number {
-  return goal.kind === "scoreRuns" ? goal.runs : goal.max;
+  return goal.kind === "score" ? goal.score : goal.max;
 }
 
 /** A standard part line as the server stores it: "<Label>: <detail> → <points> of <max>". */
@@ -122,7 +122,7 @@ const STD_PART_LINE = /^([^:→]+): .* → (-?\d+) of (\d+)$/;
  * the stored score and extra (the server's own grade); a run with no such part reads 0.
  */
 export function challengeValueOf(goal: ChallengeGoal, score: number, extra: Record<string, unknown> | null | undefined): number {
-  if (goal.kind === "scoreRuns") return Number.isFinite(score) && score >= goal.score ? 1 : 0;
+  if (goal.kind === "score") return Number.isFinite(score) ? Math.max(0, score) : 0;
   if (goal.kind === "part") {
     const lines = (extra?.["reveal"] as { lines?: unknown } | undefined)?.lines;
     if (!Array.isArray(lines)) return 0;

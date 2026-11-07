@@ -11,8 +11,8 @@
  *     speed are its standard rules' (patternRules.ts, logicRules.ts, word.ts), the speed goal's seconds the rule's
  *     "full by" time, and every puzzle is graded on the standard (STANDARD_GAMES).
  *  4. Progress from recorded results, in the server's own stored formats (stdLines for arcade parts, standardFinish
- *     and the standard grader's extra for puzzles): a part's best in one run, a finish's bonus and speed, runs over a
- *     score counted; partial runs, older (non-standard) puzzles and other games' runs never count; done stays done.
+ *     and the standard grader's extra for puzzles): a part's best in one run, a finish's bonus and speed, a single run's
+ *     score (Tempo and Flightpath: 180 or more); partial runs, older (non-standard) puzzles and other games' runs never count; done stays done.
  *  5. Storage survives a reload (the record is read back from storage alone); corrupt or blocked storage falls back
  *     safely; the record is one key, never a practice best's.
  *  6. Wiring: practice and the offline queue record every graded run's goals from the server's score and extra; the
@@ -148,7 +148,7 @@ for (const c of PRACTICE_CHALLENGES) {
     if (rule && g.kind === "speed") check(g.max === rule.speed && g.withinS === rule.fullByS && c.text.includes(`${rule.fullByS} s`), `${c.id}: speed ${g.max} within ${g.withinS} s is the rule's ${rule.speed} by ${rule.fullByS} s`);
     if (rule) check(rule.speed + rule.bonus <= 50, `${c.id}: speed and bonus both fit a finish's 50 (standardFinish never trims either)`);
   } else {
-    check(g.score >= 120 && g.score <= 200 && g.runs >= 2, `${c.id}: a run count over a real score`);
+    check(g.score === 180 && c.text === "Score 180 or more", `${c.id}: one run of 180 or more (Joe's decision, 7 Nov 2026)`);
   }
 }
 
@@ -202,16 +202,22 @@ recordPracticeGoals("unblock", 180, { parts: { kind: "finish", base: 150, effici
 check(challengeState(par).status === "new", "an older (non-standard) puzzle's parts never count");
 recordPracticeGoals("lightsout", 200, finishExtra(30, 20).extra, 200);
 check(challengeState(par).status === "new", "another game's run never counts");
-// Runs over a score, counted.
-const tempo = PRACTICE_CHALLENGES.find((c) => c.id === "beat.runs150")!;
-for (const [score, want] of [[149, 0], [150, 1], [190, 2], [40, 2]] as const) {
-  recordPracticeGoals("beat", score, arcadeExtra("beat", { core: score }), 190);
-  check(challengeState(tempo).value === want, `Tempo: ${want} runs of 150+ after a ${score}`);
+// One run's score (Tempo and Flightpath: 180 or more in a single run; runs never add up).
+for (const id of ["beat.score180", "bullseye.score180"]) check(PRACTICE_CHALLENGES.some((c) => c.id === id), `${id} is listed`);
+const tempo = PRACTICE_CHALLENGES.find((c) => c.id === "beat.score180")!;
+check(challengeTarget(tempo.goal) === 180, "Tempo's target is a 180 run");
+for (const [score, want, status] of [[120, 120, "progress"], [179, 179, "progress"], [150, 179, "progress"], [40, 179, "progress"]] as const) {
+  recordPracticeGoals("beat", score, arcadeExtra("beat", { core: score }), 179);
+  const st = challengeState(tempo);
+  check(st.value === want && st.status === status, `Tempo: best run ${want} after a ${score} (got ${st.value}, ${st.status})`);
 }
-recordPracticeGoals("beat", 175, null, 190);
-check(challengeState(tempo).status === "done" && challengeTarget(tempo.goal) === 3, "the third run of 150+ completes it");
-recordPracticeGoals("beat", 175, null, 190);
-check(challengeState(tempo).value === 3, "a done count stops at its target");
+check(challengeState(tempo).status !== "done", "runs of 120, 179, 150 and 40 never add up to a completion");
+const t180 = recordPracticeGoals("beat", 180, null, 180);
+check(challengeState(tempo).status === "done" && t180.completed.some((c) => c.id === "beat.score180"), "one run of 180 completes it");
+recordPracticeGoals("beat", 60, null, 180);
+check(challengeState(tempo).status === "done" && challengeState(tempo).value === 180, "done stays done after a weaker run");
+const flight = PRACTICE_CHALLENGES.find((c) => c.id === "bullseye.score180")!;
+check(challengeState(flight).status === "new", "a Tempo run never counts for Flightpath");
 
 /* ------------------------------------------------------------------ 5. storage */
 wipe();
