@@ -22,7 +22,7 @@ type Loose = Record<string, unknown>;
 async function sealKey(): Promise<CryptoKey> {
   const secret = process.env["SUPABASE_SERVICE_ROLE_KEY"];
   // The public URL is no secret: only a dev server (practice in checks) may seal with it.
-  if (!secret && import.meta.env.PROD) throw new Error("Practice is unavailable right now.");
+  if (!secret && import.meta.env.PROD) throw new Error("Practice is down for a moment. Try again shortly.");
   const material = secret ?? process.env["SUPABASE_URL"] ?? "";
   const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(material));
   return crypto.subtle.importKey("raw", digest, "AES-GCM", false, ["encrypt", "decrypt"]);
@@ -58,7 +58,7 @@ async function unseal(sealed: string): Promise<Loose> {
 
 async function unsealRaw(sealed: string): Promise<Loose> {
   const [ivPart, cipherPart] = sealed.split(".");
-  if (!ivPart || !cipherPart) throw new Error("Bad practice puzzle.");
+  if (!ivPart || !cipherPart) throw new Error("That puzzle didn’t load. Try another.");
   const plain = await crypto.subtle.decrypt(
     { name: "AES-GCM", iv: fromBase64(ivPart) },
     await sealKey(),
@@ -145,7 +145,7 @@ export const practiceGradeFn = createServerFn({ method: "POST" })
     const staleNote = staleSubmissionNote("practice_grade", data.clientVersion, data.puzzle.type);
     if (staleNote) console.warn(staleNote);
     const { __example: example, ...priv } = await unsealRaw(data.sealed);
-    if (priv["type"] !== data.puzzle.type) throw new Error("Bad practice puzzle.");
+    if (priv["type"] !== data.puzzle.type) throw new Error("That puzzle didn’t load. Try another.");
     return gradePracticeRun(data, mergePuzzle(data.puzzle, priv), example !== undefined);
   });
 
@@ -294,7 +294,7 @@ export const practiceCheckWordFn = createServerFn({ method: "POST" })
     const found = Array.isArray(data.found) ? data.found.slice(0, 200).map(String) : [];
     if (data.puzzle.type === "letterwheel") {
       const priv = await unseal(String(data.sealed ?? ""));
-      if (priv["type"] !== "letterwheel") throw new Error("Bad practice puzzle.");
+      if (priv["type"] !== "letterwheel") throw new Error("That puzzle didn’t load. Try another.");
       const puzzle = mergePuzzle(data.puzzle, priv);
       if (puzzle.type !== "letterwheel") return { valid: false as const, points: 0, word: "" };
       const { checkLetterWheelWord } = await import("./letterWheel");
@@ -304,7 +304,7 @@ export const practiceCheckWordFn = createServerFn({ method: "POST" })
     }
     if (data.puzzle.type === "wordsearch") {
       const priv = await unseal(String(data.sealed ?? ""));
-      if (priv["type"] !== "wordsearch") throw new Error("Bad practice puzzle.");
+      if (priv["type"] !== "wordsearch") throw new Error("That puzzle didn’t load. Try another.");
       const puzzle = mergePuzzle(data.puzzle, priv);
       if (puzzle.type !== "wordsearch") return { valid: false as const, points: 0, word: "" };
       const { checkWordSearchPath } = await import("./wordSearch");
@@ -338,7 +338,7 @@ export const practiceCheckMovesFn = createServerFn({ method: "POST" })
     const type = data.puzzle?.type;
     if (type !== "strikeout" && type !== "codeword" && type !== "swapword") return null;
     const priv = await unseal(String(data.sealed ?? ""));
-    if (priv["type"] !== type) throw new Error("Bad practice puzzle.");
+    if (priv["type"] !== type) throw new Error("That puzzle didn’t load. Try another.");
     const { checkPuzzleMoves } = await import("./moves.server");
     return checkPuzzleMoves(mergePuzzle(data.puzzle, priv), data.moves);
   });
@@ -379,7 +379,7 @@ export const saveIntroDemoFn = createServerFn({ method: "POST" })
     const run = String(data.answer ?? "");
     if (!run || run.length > DEMO_MAX_CHARS) throw new Error("Run log is empty or too long.");
     const priv = await unseal(String(data.sealed ?? ""));
-    if (priv["type"] !== type) throw new Error("Bad practice puzzle.");
+    if (priv["type"] !== type) throw new Error("That puzzle didn’t load. Try another.");
     const { pub } = splitPuzzle(mergePuzzle(data.puzzle, priv));
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { error } = await supabaseAdmin.from("intro_demos" as never).upsert(
@@ -418,7 +418,7 @@ export const savePuzzleDemoFn = createServerFn({ method: "POST" })
     const text = JSON.stringify(data.log);
     if (text.length > PUZZLE_DEMO_MAX_CHARS) throw new Error("Demo is too long.");
     const raw = await unsealRaw(String(data.sealed ?? ""));
-    if (raw["type"] !== type) throw new Error("Bad practice puzzle.");
+    if (raw["type"] !== type) throw new Error("That puzzle didn’t load. Try another.");
     if (raw["__example"] !== INTRO_EXAMPLE_ID) throw new Error("Only the fixed intro example can be saved.");
     const { __example: _example, ...priv } = raw;
     const { pub } = splitPuzzle(mergePuzzle(data.puzzle, priv));

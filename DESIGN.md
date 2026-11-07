@@ -227,7 +227,9 @@ the only places motion gets theatrical. No bounce easing on app chrome. Reduced 
 ## 10. Words
 
 Short, dry, a bit cheeky. British spelling. Sentence case. Name the player and the number when we have them
-("4 off your best on Apex", "Sam takes the round"). No exclamation marks except "You win!". No "Oops".
+("4 off your best on Apex", "Sam takes the round"). Exclamation marks only in genuine celebration moments (new
+best, full clear, joint winner, streaks, "You win!") and in arcade canvas text, which is game art. Never in errors,
+help, waiting or information text. No "Oops".
 
 ---
 

@@ -361,7 +361,7 @@ export function RoomChat({
             className="chat-scroll h-0 min-h-0 flex-1 px-3 py-2"
           >
             {!chat.messages.length && (
-              <li className="py-6 text-center text-xs text-muted-foreground">No messages yet.</li>
+              <li className="py-6 text-center text-xs text-muted-foreground">Quiet in here.</li>
             )}
             {chat.messages.map((message) => (
               <MessageRow

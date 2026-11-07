@@ -56,7 +56,7 @@ export const dailyStartFn = createServerFn({ method: "POST" })
       input,
   )
   .handler(async ({ data, context }) => {
-    if (!isDailyKind(data.kind)) return { ok: false as const, message: "Unknown daily." };
+    if (!isDailyKind(data.kind)) return { ok: false as const, message: "That daily doesn’t exist." };
     const nowMs = Date.now();
     const client = await db();
     const { attemptFor, startAttempt } = await import("./asyncRoom.server");
@@ -75,7 +75,7 @@ export const dailyStartFn = createServerFn({ method: "POST" })
       return { ok: false as const, message: NAME_REFUSED_MESSAGE, nameRefused: true };
     const { DAILY_START_LIMIT, withinRateLimit } = await import("./rateLimit.server");
     if (!(await withinRateLimit(client, context.userId, DAILY_START_LIMIT)))
-      return { ok: false as const, message: "Too many tries. Wait a few minutes and try again." };
+      return { ok: false as const, message: "That’s a lot of tries. Give it a few minutes." };
     const { isPlayerColour, isPlayerIcon } = await import("./playerLook");
     const colour = isPlayerColour(data.colour) ? data.colour : null;
     const icon = isPlayerIcon(data.icon) ? data.icon : null;
@@ -90,7 +90,7 @@ export const dailyBoardFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { kind: string; day: "today" | "yesterday" }) => input)
   .handler(async ({ data, context }) => {
-    if (!isDailyKind(data.kind)) throw new Error("Unknown daily.");
+    if (!isDailyKind(data.kind)) throw new Error("That daily doesn’t exist.");
     const nowMs = Date.now();
     const today = ukDayKey(nowMs);
     const day = data.day === "yesterday" ? shiftDayKey(today, -1) : today;

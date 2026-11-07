@@ -338,7 +338,7 @@ export function ArcadeReveal({ puzzle, myAnswer, myScore, myReveal: storedReveal
           <p className="reveal-points-label">{myScore === 1 ? "point" : "points"}</p>
           {practice ? (
             <p data-reveal-best="" className="reveal-meta">
-              {best === null ? "Your first score for this game" : <>Your best: <span className="tabular-nums text-foreground">{best}</span></>}
+              {best === null ? "First go at this one" : <>Your best: <span className="tabular-nums text-foreground">{best}</span></>}
             </p>
           ) : null}
           {summary && !practice ? (

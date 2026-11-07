@@ -26,7 +26,7 @@ const CHECK_VIOLATION = "23514";
  */
 export class RoomSeatsError extends Error {
   constructor(readonly seats: number) {
-    super(`That room is full (${seats} players).`);
+    super(`That room’s full. It’s ${seats} max.`);
   }
 }
 /** Seats the database takes before the 16-player migration. */
@@ -175,7 +175,7 @@ export async function changePlayerLook(
   }
   const { error } = await client.from("duel_players").update(update).eq("id", me.id);
   if (colourClash(error)) return { ok: false, message: "Someone else has that colour." };
-  if (colourRangeRefused(error)) return { ok: false, message: "That colour can’t be stored yet." };
+  if (colourRangeRefused(error)) return { ok: false, message: "That colour isn’t ready yet. Pick another." };
   if (error) throw new Error(error.message);
   return { ok: true };
 }

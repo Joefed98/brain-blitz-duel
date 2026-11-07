@@ -58,7 +58,7 @@ function wordsOf(name: string): string[] {
 }
 
 export const NAME_REFUSED_MESSAGE =
-  "That name can’t go on the leaderboards. Please pick another one.";
+  "That name can’t go on the board. Pick another.";
 
 /** True when a leaderboard name is refused. */
 export function offensiveName(name: string): boolean {

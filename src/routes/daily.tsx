@@ -225,7 +225,7 @@ function DailyScreen() {
       if (followup) sendChallengeFollowup("daily", followup);
       setMode({ kind: "run", roomId: started.roomId });
     } catch {
-      setError("Couldn’t reach the server. Try again.");
+      setError("Can’t reach us. Try again.");
     } finally {
       setBusy(false);
     }

@@ -243,7 +243,7 @@ function ChallengeScreen() {
       } as never);
       await run(made.code, made.roomId);
     } catch {
-      setError("Couldn’t reach the server. Try again.");
+      setError("Can’t reach us. Try again.");
     } finally {
       setBusy(false);
     }
@@ -265,7 +265,7 @@ function ChallengeScreen() {
       setStoredName(trimmed);
       await run(info.code, started.roomId);
     } catch {
-      setError("Couldn’t reach the server. Try again.");
+      setError("Can’t reach us. Try again.");
     } finally {
       setBusy(false);
     }

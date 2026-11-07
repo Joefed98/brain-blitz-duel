@@ -1,5 +1,22 @@
 # Copy pass 2: voice proposal (7 Nov 2026)
 
+## Joe's decisions (applied)
+- DESIGN.md section 10 now reads: exclamation marks only in genuine celebration moments (new best, full clear,
+  joint winner, streaks, "You win!") and in arcade canvas text, which is game art; never in errors, help, waiting or
+  information text.
+- Kept as they are: rows 1–4, 5 ("Joint winner!"), 6 ("7-day streak!"), 8–10, 12, 13 ("JUST IN TIME!"), 14–16, 19.
+- Row 11 is "TEN FROM TEN!". Row 40 is "That room’s full. It’s 16 max." (the seat count from the room; 10 until the
+  16-player migration is applied).
+- Applied as proposed: rows 7, 17, 18, 20–39, 41–48, 50–60, with these notes:
+  - Row 49 isn't applied: `src/integrations/supabase/auth-middleware.ts` is generated ("Do not edit it directly").
+    Mapping its message where errors are shown would be a separate change.
+  - Row 50's short form ("Couldn’t reach the server. Try again.", also on the challenge and daily screens) became
+    "Can’t reach us. Try again.".
+  - Rows 31 and 33 cover every copy of the same message (daily's start limit, room settings).
+
+The proposal as approved follows.
+
+
 **A proposal only; nothing is changed yet.** These are 60 player-facing strings that don't match DESIGN.md section 10:
 short, dry, a bit cheeky, British, no "Oops", and no exclamation marks except "You win!". They come from
 `docs/design-audit/strings.csv`, cross-checked against the current code on main (`file:line` is main's). Mark each

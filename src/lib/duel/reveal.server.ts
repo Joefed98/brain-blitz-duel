@@ -57,10 +57,10 @@ export async function loadRoundReveal(
   mySlot: number,
 ): Promise<RevealResponse> {
   if (!roundHasEnded(room, roundNumber)) {
-    return { ok: false, message: "That round has not finished yet." };
+    return { ok: false, message: "That round isn’t over yet." };
   }
   const pub = room.puzzles_public[roundNumber - 1];
-  if (!pub) return { ok: false, message: "Unknown round." };
+  if (!pub) return { ok: false, message: "That round doesn’t exist." };
   const { data: resultRows, error } = await client
     .from("round_results")
     .select("*")

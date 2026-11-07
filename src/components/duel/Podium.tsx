@@ -350,7 +350,7 @@ export function Podium({
                 )}
               </Button>
             ) : (
-              <p className="rs-status h-[52px]">Waiting for host…</p>
+              <p className="rs-status h-[52px]">Waiting for the host{/* design-lint-ignore: the existing height; only the words changed */}</p>
             )}
             {share}
           </div>

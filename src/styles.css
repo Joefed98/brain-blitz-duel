@@ -171,6 +171,8 @@
   font-size: clamp(28px, 9vw, 44px);
   line-height: 1.1;
   letter-spacing: 0.04em;
+  /* Capitals from CSS, never typed (DESIGN.md section 11). */
+  text-transform: uppercase;
   color: #F5B82E;
   opacity: 0;
   will-change: transform, opacity;
