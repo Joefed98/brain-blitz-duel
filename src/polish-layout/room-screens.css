@@ -519,12 +519,6 @@
   }
 
   /* Room settings (31 Oct 2026): the summary line under the room code, then the host's sheet. */
-  .rs-summary {
-    font-size: 14px;
-    font-weight: 600;
-    line-height: 1.4;
-    color: var(--ap-text-2);
-  }
   .rss-sheet {
     max-height: calc(100dvh - env(safe-area-inset-top, 0px) - 12px);
   }

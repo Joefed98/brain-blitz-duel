@@ -168,7 +168,7 @@ export function revealSummary(lines: readonly string[], score: number | null): {
     const more = features.reduce((a, b) => a + b, 0);
     // Plain words (text pass, 4 Nov 2026): the first part by its own name, the rest as bonuses.
     const label = (/^([^:→]+):/.exec(body[0]!)?.[1] ?? "main").trim().toLowerCase();
-    return { summary: `${score} ${score === 1 ? "point" : "points"} · ${label} ${core} ${more < 0 ? "−" : "+"} ${more < 0 ? "penalties" : "bonuses"} ${Math.abs(more)}`, rest: [...lines] };
+    return { summary: `${score} ${score === 1 ? "point" : "points"}, ${label} ${core} ${more < 0 ? "−" : "+"} ${more < 0 ? "penalties" : "bonuses"} ${Math.abs(more)}`, rest: [...lines] };
   }
   return { summary: lines[0]!, rest: lines.slice(1) };
 }

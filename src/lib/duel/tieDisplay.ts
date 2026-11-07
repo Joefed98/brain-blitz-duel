@@ -32,7 +32,7 @@ export function tieMarks(rows: readonly Placed[]): Map<number, TieMark> {
     if (level.length > 1 && row.points !== 0) {
       const best = Math.min(...level.map((other) => other.position));
       const split = level.some((other) => other.position !== row.position);
-      note = `Level on ${row.points}${split ? (row.position === best ? " · ahead on time" : " · behind on time") : ""}`;
+      note = `Level on ${row.points}${split ? (row.position === best ? ", ahead on time" : ", behind on time") : ""}`;
     }
     out.set(row.slot, { label: `${shared ? "=" : ""}${row.position}`, shared, note });
   }

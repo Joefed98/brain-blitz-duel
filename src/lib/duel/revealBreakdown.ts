@@ -252,9 +252,9 @@ export function realFullClear(outcome: string | undefined, lines: readonly strin
 
 /** The room reveal's one-line summary in plain words ("13 of 15 barriers: 132 points"; the standard's line as is). */
 export function summaryText(summary: string): string {
-  if (/^\d+ points? · .+ \d+ [+−] (?:bonuses|penalties) \d+$/.test(summary)) return summary;
+  if (/^\d+ points?, .+ \d+ [+−] (?:bonuses|penalties) \d+$/.test(summary)) return summary;
   const rows = breakdownRows([summary], null);
-  return rows.map(rowText).slice(0, 2).join(" · ");
+  return rows.map(rowText).slice(0, 2).join(", ");
 }
 
 /* ---- The stats card under an arcade breakdown (4 Nov 2026, Joe's review): only what the parts don't already say. ---- */

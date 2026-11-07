@@ -1,3 +1,4 @@
+import { MetaChips } from "@/components/app/MetaChips";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 
 import {
@@ -23,7 +24,8 @@ import { useScrollMore } from "./RoomFooter";
 import { isCompactRoom, youStyle } from "./Standings";
 
 interface RoundResultsTableProps {
-  roundTitle: string;
+  /** The round and its game, shown as chips ("Round 3", "Gemstone"). */
+  roundTitle: string | readonly string[];
   /** A short best-answer line ("Best: 17 moves"), when the game has one. */
   best?: string | null;
   rows: Standing[];
@@ -89,7 +91,7 @@ export function RoundResultsTable({
           <h1 className="rs-title">{finalRound ? "Final round" : "Round results"}</h1>
           {best && <span className="rs-meta">{best}</span>}
         </div>
-        <p className="rs-sub">{roundTitle}</p>
+        <MetaChips data-round-title facts={typeof roundTitle === "string" ? [roundTitle] : roundTitle} />
       </header>
 
       {highlight}
@@ -135,12 +137,12 @@ export function RoundResultsTable({
                         data-row-line
                         className={`text-[12.5px] leading-tight text-[var(--ap-text-2)] ${open ? "block whitespace-normal" : "block truncate"}`}
                       >
-                        {time ? <span className="tabular-nums">{time} · </span> : null}
+                        {time ? <span className="tabular-nums">{time}, </span> : null}
                         <span data-verdict={verdict} className={`font-bold ${VERDICT_TONE[verdict]}`}>
                           {VERDICT_LABEL[verdict]}
                         </span>
-                        {note ? ` · ${note}` : ""}
-                        {summary ? ` · ${open ? [summary, ...row.detail].join(" · ") : summary}` : ""}
+                        {note ? `, ${note}` : ""}
+                        {summary ? `, ${open ? [summary, ...row.detail].join(" · ") : summary}` : ""}
                       </span>
                     </span>
                   </span>

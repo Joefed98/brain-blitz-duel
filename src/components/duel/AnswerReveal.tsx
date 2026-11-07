@@ -46,6 +46,7 @@ const REVEAL_SCORE_DELAY_MS = 350;
 import { fx } from "@/lib/fx";
 import { APP_NAME } from "@/lib/brand";
 import { Button } from "@/design/components";
+import { MetaChips } from "@/components/app/MetaChips";
 
 interface AnswerRevealProps {
   round: number;
@@ -558,7 +559,7 @@ function RevealPlayers({ players, secondsLeft }: { players: RevealPlayer[]; seco
         ))}
       </span>
       <span className="reveal-meta min-w-0 flex-1 truncate">
-        {finished} of {players.length} finished · results in {secondsLeft}s
+        {finished} of {players.length} finished, results in {secondsLeft}s
       </span>
     </div>
   );
@@ -793,9 +794,10 @@ function LiveAnswerReveal({
       <div data-reveal-head className="rs-head shrink-0 items-center">
         <span className="reveal-title min-w-0 truncate">{def.name}</span>
         <span className="flex shrink-0 items-center gap-1">
-          <span className="rs-meta">
-            {practice ? (practiceActions ? "Practice" : `Practice · ${secondsLeft}s`) : `Round ${round} of ${totalRounds} · ${secondsLeft}s`}
-          </span>
+          <MetaChips
+            data-reveal-meta
+            facts={practice ? (practiceActions ? ["Practice"] : ["Practice", `${secondsLeft}s`]) : [`Round ${round} of ${totalRounds}`, `${secondsLeft}s`]}
+          />
           <MuteToggle variant="speaker" />
         </span>
       </div>

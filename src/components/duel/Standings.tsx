@@ -72,7 +72,7 @@ export function RoundWinnerCard({ round, extras, looks }: { round: number; extra
       <div className="rs-row min-h-[58px]">
         <PlayerBadge look={looks?.get(first.slot)} name={first.name} size={32} />
         <span className="flex min-w-0 flex-1 flex-col">
-          <span className="rs-sub">{winners.length > 1 ? `Round ${round} · level` : `Round ${round} winner`}</span>
+          <span className="rs-sub">{winners.length > 1 ? `Round ${round}, level` : `Round ${round} winner`}</span>
           <span data-names className="rs-name th-name">{winners.map((w) => w.name).join(", ")}</span>
         </span>
         <span className="flex shrink-0 flex-col items-end">
@@ -91,7 +91,7 @@ export function NextRoundCard({ round, totalRounds, next }: { round: number; tot
       <div className="rs-row min-h-[58px]">
         <GameIcon type={next} size={40} />
         <span className="flex min-w-0 flex-1 flex-col">
-          <span className="rs-sub">{round + 1 >= totalRounds ? "Final round" : `Next · round ${round + 1} of ${totalRounds}`}</span>
+          <span className="rs-sub">{round + 1 >= totalRounds ? "Final round" : `Next, round ${round + 1} of ${totalRounds}`}</span>
           <span className="rs-name">{puzzleName(next)}</span>
         </span>
         <span className="th-pill shrink-0" data-cat={category}>{CATEGORY_NAMES[category]}</span>

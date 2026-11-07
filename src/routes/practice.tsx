@@ -860,7 +860,7 @@ function PracticeScreen() {
 
             {previewRows.length > 0 && (
               <section aria-label="Practice only" className="ap-section">
-                {listHead("New · practice only", previewRows.length)}
+                {listHead("New, practice only", previewRows.length)}
                 <div className="jz-panel">{previewRows.map((key) => row(key))}</div>
               </section>
             )}

@@ -153,7 +153,7 @@ export function PlayOfTheGameView({ rounds }: { rounds: ReplayRound[] }) {
     setDone(true);
   };
   const w = chosen.round.winner!;
-  const heading = `Play of the game · ${w.name} · R${chosen.round.round} ${gameDisplayName(chosen.round.puzzle.type)}`;
+  const heading = `Play of the game, ${w.name}, R${chosen.round.round} ${gameDisplayName(chosen.round.puzzle.type)}`;
   if (chosen.candidate.kind === "card" && chosen.card)
     return <CardPlay heading={heading} card={chosen.card} onSkip={skip} onEnd={finish} />;
   if (chosen.candidate.kind === "timelapse") {
