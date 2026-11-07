@@ -111,10 +111,13 @@ export function CelebrationLayer() {
       banner.style.opacity = "0";
       bannerScope = 0;
     };
-    const showBanner = (text: string, calm: boolean, scope: number) => {
+    const showBanner = (text: string, calm: boolean, scope: number, sub?: string) => {
       bannerAnimation?.cancel();
       bannerScope = scope;
       banner.textContent = text;
+      // A second line (practice goals' star line), drawn by CSS from the attribute (the layer is aria-hidden).
+      if (sub) banner.dataset["sub"] = sub;
+      else delete banner.dataset["sub"];
       banner.style.opacity = "0";
       if (typeof banner.animate !== "function") return;
       const total = BANNER_IN_MS + BANNER_HOLD_MS + BANNER_OUT_MS;
@@ -150,7 +153,7 @@ export function CelebrationLayer() {
           request();
           return;
         case "banner":
-          showBanner(request_.text, request_.calm, request_.scope);
+          showBanner(request_.text, request_.calm, request_.scope, request_.sub);
           if (request_.burst) {
             // Sparks off the pill as it lands (it is measured once, not per frame).
             const box = banner.getBoundingClientRect();

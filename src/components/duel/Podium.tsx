@@ -9,7 +9,7 @@ import type { PuzzleType, RoundResultRow, StoredPuzzleType } from "@/lib/duel/ty
 import { tieMarks } from "@/lib/duel/tieDisplay";
 import { GameIcon, hasGameIcon } from "@/components/app/GameIcon";
 import { ChevronDown } from "lucide-react";
-import { playerBreakdown } from "@/lib/duel/scoring";
+import { playerBreakdown, roundPlacingsOf } from "@/lib/duel/scoring";
 import { haptic } from "@/lib/haptics";
 import { playVoice, queueVoice } from "@/lib/sound";
 import { cleanSweepSlot, isPhotoFinish } from "@/lib/fx/roomVoices";
@@ -17,13 +17,12 @@ import { fx } from "@/lib/fx";
 import {
   COUNT_UP_SLIDE_MS,
   celebrationSound,
-  countUpFrom,
   podiumHero,
   podiumWinnerIsMe,
   showBanner,
   sparkBurst,
 } from "@/lib/fx/celebrations";
-import { previousStandingOrder } from "@/lib/duel/resultPresentation";
+import { placedOf, previousStandingOrder, shownCountFrom, shownTotal } from "@/lib/duel/resultPresentation";
 import { useCelebrationScope, useCelebrationsOn, useCountUpClimbs, useTapToSkip } from "@/components/fx/useCelebration";
 import { useFlipRows } from "@/components/fx/useFlipRows";
 
@@ -82,8 +81,8 @@ function Plinth({
           {standing.name}
         </span>
         <AnimatedScore
-          value={standing.total}
-          from={celebrate ? countUpFrom(standing) : 0}
+          value={shownTotal(standing)}
+          from={celebrate ? shownCountFrom(standing) : 0}
           durationMs={COUNT_UP_MS}
           quiet
           skip={skip}
@@ -201,7 +200,10 @@ export function Podium({
     if (won) haptic("celebrate");
   }, [won, sharedFirst]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const marks = tieMarks(rows.map((row) => ({ slot: row.slot, points: row.total, position: row.position })));
+  const marks = tieMarks(rows.map(placedOf));
+  // Placings rooms (scoringMode.ts): points on every row, and each round's place in the round list.
+  const placings = rows.some((row) => row.points !== undefined);
+  const roundPlaces = (round: number) => roundPlacingsOf(results, rows, round);
   // Rooms of 11+ (31 Oct 2026, up to 16): the top three and my own row, the rest one tap away.
   const big = isCompactRoom(rows.length);
   const podiumRows = big && !showAll ? listRows.filter((row) => row.position <= 3 || row.slot === mySlot) : listRows;
@@ -243,7 +245,7 @@ export function Podium({
               <button
                 type="button"
                 aria-expanded={open === row.slot}
-                aria-label={`${row.name}: ${row.total} ${row.total === 1 ? "point" : "points"}. Show round scores`}
+                aria-label={`${row.name}: ${shownTotal(row)} ${shownTotal(row) === 1 ? "point" : "points"}. Show round scores`}
                 onClick={() => setOpen((current) => (current === row.slot ? null : row.slot))}
                 data-you={isMe ? "" : undefined}
                 style={isMe ? youStyle(look) : undefined}
@@ -259,8 +261,8 @@ export function Podium({
                   {mark?.note ? <span data-tie-note className="rs-sub">{mark.note}</span> : null}
                 </span>
                 <AnimatedScore
-                  value={row.total}
-                  from={celebrate ? countUpFrom(row) : 0}
+                  value={shownTotal(row)}
+                  from={celebrate ? shownCountFrom(row) : 0}
                   durationMs={COUNT_UP_MS}
                   quiet
                   skip={skipped}
@@ -273,11 +275,21 @@ export function Podium({
                 <div className="border-t border-border px-3.5 py-1.5">
                   {playerBreakdown(results, row.slot, roundOrder.length || undefined).map((entry) => {
                     const type = roundOrder[entry.round - 1] ?? "wordsmith";
+                    const placing = placings ? roundPlaces(entry.round).get(row.slot) : undefined;
                     return (
                       <div key={entry.round} className="flex min-h-9 items-center gap-2.5 py-0.5 text-[13px]">
                         {hasGameIcon(type) ? <GameIcon type={type as PuzzleType} size={26} /> : <span className="h-[26px] w-[26px]" />}
                         <span className="min-w-0 flex-1 truncate text-[var(--ap-text-2)]">{puzzleName(type)}</span>
+                        {placing ? (
+                          <>
+                            <span data-round-place className="rs-gain font-normal">
+                              {ordinal(placing.place)} · {entry.score}
+                            </span>
+                            <span className="font-semibold tabular-nums">+{placing.points}</span>
+                          </>
+                        ) : (
                         <span className="font-semibold tabular-nums">{entry.score}</span>
+                        )}
                       </div>
                     );
                   })}

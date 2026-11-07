@@ -252,7 +252,7 @@ const banner = renderToStaticMarkup(
   <DropoutBanner absentNames={["Ben"]} myTotal={220} absentTotal={140} onFinish={async () => {}} />,
 );
 assert.match(banner, /Ben left the game/);
-assert.match(banner, /You 220 · Ben 140/);
+assert.match(banner, /You 220, Ben 140/);
 assert.match(banner, /they score 0/);
 assert.match(banner, /Finish now/);
 

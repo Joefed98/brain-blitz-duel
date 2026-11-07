@@ -218,8 +218,8 @@ for (const type of REMOVED_PUZZLE_TYPES) {
   if (revealed.ok) {
     const summaries = revealed.data.players.map((p) => `${p.playerSlot}:${p.summary}`).join(" | ");
     ok(
-      summaries.includes(`1:${name} · ${STORED_SCORE} points`) &&
-        summaries.includes(`2:${name} · 12 points`),
+      summaries.includes(`1:${name}, ${STORED_SCORE} points`) &&
+        summaries.includes(`2:${name}, 12 points`),
       `${type}: reveal server summaries ${summaries}`,
     );
     ok(revealed.data.correctAnswer === null, `${type}: reveal server sent a correct answer`);

@@ -921,6 +921,49 @@
   }
 }
 
+@layer components {
+  /* ------------------------------------------------------------------ Stars (practice goals) */
+  .jz-stars {
+    --star-size: 12px;
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    gap: 2px;
+  }
+  .jz-stars[data-size="m"] {
+    --star-size: 16px;
+    gap: var(--jz-space-4);
+  }
+  .jz-stars > span {
+    display: block;
+    width: var(--star-size);
+    height: var(--star-size);
+    background: var(--jz-surface-2);
+    clip-path: polygon(50% 0%, 61.8% 35.4%, 100% 38.2%, 69.1% 61.8%, 80.9% 100%, 50% 77%, 19.1% 100%, 30.9% 61.8%, 0% 38.2%, 38.2% 35.4%);
+  }
+  .jz-stars > [data-metal="bronze"][data-on] { background: var(--jz-bronze-metal); }
+  .jz-stars > [data-metal="silver"][data-on] { background: var(--jz-silver-metal); }
+  .jz-stars > [data-metal="gold"][data-on] { background: var(--jz-gold-metal); }
+
+  /* ------------------------------------------------------------------ Progress bar */
+  .jz-progress {
+    display: block;
+    height: 6px;
+    overflow: hidden;
+    border-radius: var(--jz-round);
+    background: var(--jz-surface-2);
+  }
+  .jz-progress > span {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    background: var(--jz-text-2);
+  }
+  .jz-progress[data-done] > span {
+    background: var(--jz-cyan);
+  }
+}
+
 /* The component gallery (/dev-design, development only) shows each state still: hover, pressed and
    focus-visible forced on a copy of the component. */
 [data-jz-state="hover"] { filter: brightness(1.08); }

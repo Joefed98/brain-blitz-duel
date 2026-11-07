@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useLayoutEffect, useRef, type ReactNode, type Ref } from "react";
 
+import { GameMenu } from "./GameMenu";
 import { MuteToggle } from "./MuteToggle";
 import { BOARD_FILL, CATEGORY_NAMES, FrameName, GoalLine, useBoardTray } from "./GameFrame";
 import { AppHeader } from "@/components/app/AppHeader";
@@ -100,21 +101,24 @@ const CONTROL = "button, a, input, textarea, select, [role='button']";
  * game's live round, puzzle or arcade, in practice, a room or the daily, has one 60px header
  * (polish-layout/game-frame.css): the game's name over a dot in its category colour and
  * "{Category} · {label}" (Practice, Round n of N, Daily) on the left, the 48px timer ring centred,
- * the score block, "?" and sound on the right. Puzzles add the goal line under it (GoalLine) and sit
+ * the score block, an empty slot (kept for live scores) and the game menu (GameMenu: sound, music, how to play) on the right. Puzzles add the goal line under it (GoalLine) and sit
  * on the tray; arcade worlds start directly under it.
  */
-export function GameLayout({ label, title, help, progress, score, ping, timer, beforeGame, children, overlay, stageRef, locked = false, held = false }: {
+export function GameLayout({ label, title, onHelp, progress, score, ping, timer, beforeGame, children, overlay, stageRef, locked = false, held = false }: {
   /** The context after the category: "Practice", "Round 2 of 6", "Daily". */
   label: ReactNode;
   title: ReactNode;
-  help: ReactNode;
+  /** Opens the game's help (the round's PuzzleHelp); the game menu's How to play calls it. */
+  onHelp?: () => void;
+  /** @deprecated The "?" button is gone (the game menu's How to play, 6 Nov 2026); pass `onHelp`. Kept so callers compile. */
+  help?: ReactNode;
   /** A room's round pips: in the context line where the header has room for them (game-frame.css). */
   progress?: ReactNode;
   /** The header's score block (FrameScore). */
   score?: ReactNode;
   /**
    * A room's live "finished" ping (FinishedPingStrip), laid over the header's name and context
-   * while it shows; never over the timer, the score, "?", sound or the board.
+   * while it shows; never over the timer, the score, the game menu or the board.
    */
   ping?: ReactNode;
   /** @deprecated The frame's name and context line say the round and game; kept so callers compile. */
@@ -180,9 +184,10 @@ export function GameLayout({ label, title, help, progress, score, ping, timer, b
       <div data-frame-timer data-arcade-timer={arcade ? "" : undefined} className="game-frame-timer">{timer}</div>
       <div data-header-right className="game-frame-right">
         {score}
-        {help}
+        {/* The "?" button's 36 px, left empty (6 Nov 2026) so nothing else moves; it will hold live 1v1 scores. */}
+        <span data-frame-slot aria-hidden="true" className="game-frame-slot" />
         {frame?.topAction}
-        <MuteToggle variant="frame" />
+        <GameMenu type={type} onHelp={onHelp} />
       </div>
     </div>
   );

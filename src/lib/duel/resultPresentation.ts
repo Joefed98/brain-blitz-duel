@@ -1,6 +1,7 @@
 import { BUZZER_MARGIN_MS } from "./buzzer";
 import { usesArcadeClock } from "./registry";
 import type { PuzzleType, RoundResultRow, StoredPuzzleType } from "./types";
+import { ordinal } from "./ordinal";
 import type { Standing } from "./scoring";
 
 /**
@@ -114,4 +115,43 @@ export function summaryWithoutTime(summary: string): string {
     .split(" · ")
     .filter((segment) => !TIME_SEGMENT.test(segment.trim()))
     .join(" · ");
+}
+
+/*
+ * Placings rooms (scoringMode.ts, 6 Nov 2026): the standings, podium and room panel show placing points (and each
+ * round's place) where Total score rooms show the score total. Rows of a Total score room carry no points, so
+ * these return exactly what those screens showed before.
+ */
+
+/** The big figure on a standings or podium row: placing points, else the total score. */
+export function shownTotal(row: Pick<Standing, "total" | "points">): number {
+  return row.points ?? row.total;
+}
+
+/** What the round shown added to it. */
+export function shownRound(row: Pick<Standing, "roundScore" | "points" | "roundPoints">): number {
+  return row.points !== undefined ? (row.roundPoints ?? 0) : row.roundScore;
+}
+
+/** The round column: "+142", or "2nd +7" under Placings. */
+export function shownGain(row: Pick<Standing, "roundScore" | "points" | "roundPoints" | "roundPlace">): string {
+  if (row.points === undefined) return `+${row.roundScore}`;
+  return `${ordinal(row.roundPlace ?? 1)} +${row.roundPoints ?? 0}`;
+}
+
+/** The figure a count-up starts from: the round before's. */
+export function shownCountFrom(row: Pick<Standing, "total" | "roundScore" | "points" | "roundPoints">): number {
+  return Math.max(0, shownTotal(row) - shownRound(row));
+}
+
+/** tieMarks' input for a row (Placings rows add the total score, their first tie-break). */
+export function placedOf(row: Pick<Standing, "slot" | "total" | "points" | "position">): {
+  slot: number;
+  points: number;
+  position: number;
+  score?: number;
+} {
+  return row.points !== undefined
+    ? { slot: row.slot, points: row.points, position: row.position, score: row.total }
+    : { slot: row.slot, points: row.total, position: row.position };
 }

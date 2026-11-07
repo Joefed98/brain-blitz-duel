@@ -27,6 +27,7 @@ import { PLAYER_ICON_ART } from "./playerIcons";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { RoomFooter, RoomMenu } from "./RoomFooter";
 import { RoomSettingsSheet } from "./RoomSettingsSheet";
+import { scoringLabel, type ScoringMode } from "@/lib/duel/scoringMode";
 import { Button } from "@/design/components";
 import { MetaChips } from "@/components/app/MetaChips";
 
@@ -34,7 +35,11 @@ interface RoomLobbyProps {
   /** The room's stored settings (duels.selected_categories: roomSettings.ts, or an older room's categories). */
   storedSettings: unknown;
   /** Host only: stores new settings on the server (rejects with the server's message). */
-  onSettingsChange: (settings: RoomSettings) => Promise<void>;
+  onSettingsChange: (settings: RoomSettings, scoring?: ScoringMode) => Promise<void>;
+  /** The room's scoring (scoringMode.ts; Total score for a room before the migration). */
+  scoring?: ScoringMode;
+  /** True once the room row has the scoring column: the summary names it and the sheet offers it. */
+  scoringChoice?: boolean;
 
   players: DuelPlayerRow[];
   hostUserId: string | null;
@@ -209,6 +214,8 @@ export function RoomLobby({
   players,
   storedSettings,
   onSettingsChange,
+  scoring = "total",
+  scoringChoice = false,
   hostUserId,
   meUserId,
   isHost,
@@ -228,11 +235,11 @@ export function RoomLobby({
   const hostName = players.find((player) => player.user_id === hostUserId)?.display_name;
   const [settingsOpen, setSettingsOpen] = useState(false);
   /** Settings just saved, shown until the room's own row carries them (or a few seconds pass). */
-  const [savedSettings, setSavedSettings] = useState<{ settings: RoomSettings; stored: unknown } | null>(null);
-  const storedKey = JSON.stringify(storedSettings ?? null);
+  const [savedSettings, setSavedSettings] = useState<{ settings: RoomSettings; stored: unknown; scoring: ScoringMode; scoringBefore: ScoringMode } | null>(null);
+  const storedKey = JSON.stringify([storedSettings ?? null, scoring]);
   useEffect(() => {
     if (!savedSettings) return;
-    if (JSON.stringify(savedSettings.stored ?? null) !== storedKey) {
+    if (JSON.stringify([savedSettings.stored ?? null, savedSettings.scoringBefore]) !== storedKey) {
       setSavedSettings(null);
       return;
     }
@@ -240,6 +247,7 @@ export function RoomLobby({
     return () => window.clearTimeout(timer);
   }, [savedSettings, storedKey]);
   const settings = savedSettings?.settings ?? lobbySettings(storedSettings);
+  const scoringShown = savedSettings?.scoring ?? scoring;
   const canEditSettings = isHost && roomSettingsUnlocked();
   const [removing, setRemoving] = useState<number | null>(null);
   const [picking, setPicking] = useState(false);
@@ -286,6 +294,12 @@ export function RoomLobby({
       {/* Under the room code: the room's settings in one line for everyone, the host's Room settings button. */}
       <section aria-label="Room settings" className="-mt-2 flex flex-col items-start gap-2.5">
         <MetaChips data-room-summary facts={settingsFacts(settings)} />
+        {scoringChoice ? (
+          <p data-room-scoring={scoringShown} className="rs-summary -mt-2">
+            Scoring: {scoringLabel(scoringShown)}
+            {scoringShown === "placings" ? ", points by place each round" : null}
+          </p>
+        ) : null}
         {canEditSettings ? (
           <Button
             variant="secondary"
@@ -428,10 +442,11 @@ export function RoomLobby({
       {settingsOpen && canEditSettings ? (
         <RoomSettingsSheet
           initial={settings}
+          scoring={scoringChoice ? scoringShown : undefined}
           onClose={() => setSettingsOpen(false)}
-          onSave={async (next) => {
-            await onSettingsChange(next);
-            setSavedSettings({ settings: next, stored: storedSettings });
+          onSave={async (next, nextScoring) => {
+            await onSettingsChange(next, nextScoring);
+            setSavedSettings({ settings: next, stored: storedSettings, scoring: nextScoring ?? scoring, scoringBefore: scoring });
           }}
         />
       ) : null}

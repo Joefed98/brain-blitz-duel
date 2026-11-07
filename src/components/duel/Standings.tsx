@@ -7,10 +7,10 @@ import { tieMarks } from "@/lib/duel/tieDisplay";
 import type { PuzzleType } from "@/lib/duel/types";
 import type { Standing } from "@/lib/duel/scoring";
 import { TOTAL_ROUNDS } from "@/lib/duel/types";
-import { positionChange, previousStandingOrder } from "@/lib/duel/resultPresentation";
+import { placedOf, positionChange, previousStandingOrder, shownCountFrom, shownGain, shownTotal } from "@/lib/duel/resultPresentation";
 import { isNewLeader } from "@/lib/fx/roomVoices";
 import { queueVoice } from "@/lib/sound";
-import { COUNT_UP_MS, COUNT_UP_SLIDE_MS, countUpFrom } from "@/lib/fx/celebrations";
+import { COUNT_UP_MS, COUNT_UP_SLIDE_MS } from "@/lib/fx/celebrations";
 import {
   useCelebrationScope,
   useCelebrationsOn,
@@ -26,6 +26,7 @@ import { PlayerBadge } from "./PlayerBadge";
 import { CATEGORY_NAMES } from "./GameFrame";
 import { useScrollMore } from "./RoomFooter";
 import { Nameplate } from "@/design/components";
+import { MetaChips } from "@/components/app/MetaChips";
 
 /** Movement since the round before: ▲ green, ▼ red, – grey. */
 export function Arrow({ standing }: { standing: Standing }) {
@@ -136,17 +137,22 @@ export function Standings({ round, totalRounds = TOTAL_ROUNDS, rows, looks, mySl
     if (isNewLeader(rows)) queueVoice("voice.newLeader", 600);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const marks = tieMarks(rows.map((row) => ({ slot: row.slot, points: row.total, position: row.position })));
+  const marks = tieMarks(rows.map(placedOf));
+  const placings = rows.some((row) => row.points !== undefined);
   const listRef = useScrollMore<HTMLUListElement>();
   const compact = isCompactRoom(rows.length);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3 pt-1 text-left animate-phase-in">
-      <header className="rs-head shrink-0">
-        <h1 className="rs-title">Standings</h1>
-        <span className="rs-meta">
-          After round {round} of {totalRounds}
-        </span>
+      <header className="flex shrink-0 flex-col gap-0.5">
+        <div className="rs-head">
+          <h1 className="rs-title">Standings</h1>
+          <span className="rs-meta">
+            After round {round} of {totalRounds}
+          </span>
+        </div>
+        {/* The room's scoring when it isn't the default (copy pass: a chip, no " · " separator). */}
+        {placings ? <MetaChips data-standings-scoring facts={["Placings"]} /> : null}
       </header>
 
       {/* Rows take their content's height from the top; the list scrolls (and fades) if a big room needs it. */}
@@ -168,12 +174,18 @@ export function Standings({ round, totalRounds = TOTAL_ROUNDS, rows, looks, mySl
                 <Medal place={row.position} shared={mark?.shared} />
                 <Arrow standing={row} />
                 <Nameplate look={look} name={row.name} you={isMe} kind="mini" disc={compact ? 24 : 28} />
+                {placings ? (
+                  <span data-round-gain className="rs-gain">
+                    {shownGain(row)}
+                  </span>
+                ) : (
                 <span className="whitespace-nowrap text-[13px] font-semibold tabular-nums text-[var(--ap-text-2)]">
                   +{row.roundScore}
                 </span>
+                )}
                 <AnimatedScore
-                  value={row.total}
-                  {...(celebrate ? { from: countUpFrom(row), durationMs: COUNT_UP_MS, quiet: true, skip: skipped, countSound: true } : {})}
+                  value={shownTotal(row)}
+                  {...(celebrate ? { from: shownCountFrom(row), durationMs: COUNT_UP_MS, quiet: true, skip: skipped, countSound: true } : {})}
                   className="th-score rs-total text-right"
                 />
                 {mark?.note ? <span data-tie-note className="rs-sub rs-tie-note">{mark.note}</span> : null}
