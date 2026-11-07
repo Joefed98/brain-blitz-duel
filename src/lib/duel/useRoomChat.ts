@@ -199,7 +199,7 @@ export function useRoomChat(
         const result = await sendRoomMessageFn({ data: { roomId, text } });
         if (!result.ok) setError(result.message);
       } catch {
-        setError("Message didn't send. Try again.");
+        setError("Message didn’t send. Try again.");
       } finally {
         setSending(false);
       }
@@ -239,7 +239,7 @@ export function useRoomChat(
         setNotice("Thanks — that message has been reported.");
         window.setTimeout(() => setNotice(null), 2500);
       } catch {
-        setNotice("Couldn't send that report.");
+        setNotice("Couldn’t send that report.");
         window.setTimeout(() => setNotice(null), 2500);
       }
     },

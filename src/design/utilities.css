@@ -69,3 +69,61 @@
 .jz-score-s { font-size: 18px; line-height: 22px; }
 .jz-score-m { font-size: 22px; line-height: 26px; }
 .jz-score-l { font-size: 28px; line-height: 32px; }
+
+/* Text emphasis (DESIGN.md section 3): one bright thing per panel. */
+.jz-em-key { color: var(--jz-text); }
+.jz-em-name { color: var(--jz-text-2); }
+.jz-em-detail { color: var(--jz-text-3); }
+
+/* ------------------------------------------------ the pressed state (section 5; design foundation F4) */
+/* Every button in app and game chrome sinks to 97 % over --jz-fast while pressed (DESIGN.md section 5).
+   The `scale` property, not `transform`, so it composes with any transform an element already has, and
+   nothing moves in layout or changes its hit area.
+
+   .jz-press: a component's own class (the shadcn Button, components/ui/button.tsx), its colour
+   transitions included. The older .press utility (styles.css) and its skin overrides do the same with
+   `transform`. */
+@layer components {
+  .jz-press {
+    transition-property: color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, box-shadow, scale;
+    transition-duration: var(--jz-fast);
+    transition-timing-function: var(--jz-ease);
+    -webkit-tap-highlight-color: transparent;
+  }
+  .jz-press:active:not(:disabled) {
+    scale: 0.97;
+  }
+
+  /* Every other button, link-button and role="button" in the chrome: the app's skinned screens and tab
+     pages, the tab bar and rail, the game frame's header, intros, the answer reveal, the help, settings,
+     chat and sound sheets, dialogs and the update overlay. Never inside game art (a reveal's board,
+     data-skin-off; a play area, data-game-arena / data-game-stage) and never twice (.press, .jz-press).
+     An animation rather than a transition, so it never replaces a control's own transitions; the
+     release snaps back. Reduced motion jumps to the pressed size (styles.css). */
+  :where(
+      [data-skin],
+      [data-app-page],
+      [data-app-tabbar],
+      [data-app-rail],
+      [data-game-frame-header],
+      [data-intro-header],
+      .round-instructions,
+      [data-reveal-screen],
+      [data-help-sheet],
+      [data-settings-sheet],
+      [data-room-chat-sheet],
+      [data-sound-panel],
+      [role="dialog"],
+      [data-app-updating]
+    )
+    :where(button, [role="button"], a[href]):not(:disabled, [aria-disabled="true"], .press, .jz-press):not(
+      :is([data-skin-off], [data-game-arena], [data-game-stage]) *
+    ):active {
+    animation: jz-press var(--jz-fast) var(--jz-ease) forwards;
+  }
+}
+@keyframes jz-press {
+  to {
+    scale: 0.97;
+  }
+}

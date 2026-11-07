@@ -562,7 +562,7 @@ console.log(`witness: ${playSeeds.length} courses cleared through the dark by th
   const help = PUZZLE_INSTRUCTIONS.swing!;
   const text = help.how.map((h) => `${h.action} ${h.detail}`).join(" ");
   // The jungle canopy (3 Nov 2026): ledges are tree platforms and the dark is the canopy's deep shade, the same rule.
-  ok(/Platform runs are in deep shade/.test(text) && /lost in the canopy's shade, vines and all/.test(text) && /Land on a platform to light the next part/.test(text) && /Vines in the shade can't be grabbed/.test(text), "the help explains the dark ledge runs (the jungle's deep shade)");
+  ok(/Platform runs are in deep shade/.test(text) && /lost in the canopy’s shade, vines and all/.test(text) && /Land on a platform to light the next part/.test(text) && /Vines in the shade can’t be grabbed/.test(text), "the help explains the dark ledge runs (the jungle's deep shade)");
   ok(/The run lasts 90 seconds/.test(text) && /6 short platform runs/.test(text) && /3 of them with a squeeze/.test(text), "the help says 90 seconds, six ledge (platform) runs and three squeezes");
   const intro = help.how.filter((h) => !h.helpOnly);
   ok(intro.length === 3 && intro.every((h) => `${h.action} ${h.detail}`.length <= 46) && help.goal.length <= 34, "the intro's goal and three lines fit");

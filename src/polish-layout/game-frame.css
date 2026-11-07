@@ -21,7 +21,7 @@
   column-gap: 8px;
   height: 60px;
   flex-shrink: 0;
-  font-family: var(--ap-font);
+  font-family: var(--jz-font);
 }
 /* The arcade column runs edge to edge: the header keeps the 16px screen margin itself. */
 [data-frame="arcade"] > .game-frame-header {
@@ -44,12 +44,15 @@
 .game-frame-name {
   display: block;
   overflow: hidden;
+  /* Set here, not inherited: the intro draws the name as an h1, which the base layer gave the display face (it
+     rendered in Space Grotesk on the intro and Archivo in the live header until F3). */
+  font-family: var(--jz-font);
   font-size: clamp(14px, calc(100cqw / (var(--name-len, 12) * 0.63)), 19px);
-  font-weight: 800;
+  font-weight: var(--jz-weight-bold);
   font-stretch: 110%;
   line-height: 22px;
   letter-spacing: -0.01em;
-  color: #f3f1ec;
+  color: var(--jz-text);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -72,16 +75,16 @@
   align-items: center;
   gap: 6px;
   font-size: 12px;
-  font-weight: 600;
+  font-weight: var(--jz-weight-medium);
   line-height: 16px;
-  color: #a09da6;
+  color: var(--jz-text-3);
   white-space: nowrap;
 }
 .game-frame-dot {
   width: 7px;
   height: 7px;
   flex: none;
-  border-radius: 50%;
+  border-radius: var(--jz-round);
   background: var(--category-accent);
 }
 .game-frame-context-text {
@@ -129,21 +132,28 @@
   height: 48px;
 }
 .game-timer .timer-ring-track {
-  stroke: #26262c;
+  stroke: var(--jz-surface-2);
   stroke-width: 4;
 }
 .game-timer .timer-ring-fill {
   stroke-width: 4;
   stroke-linecap: round;
 }
+/* The last ten seconds: the ring and digits in the app's red (was the page skin's --destructive). */
+.game-timer.fx-timer-critical .timer-ring-fill {
+  stroke: var(--jz-red);
+}
+.game-timer.fx-timer-critical > .game-timer-seconds {
+  color: var(--jz-red);
+}
 .game-timer-seconds {
   position: relative;
-  font-family: var(--ap-font);
+  font-family: var(--jz-font);
   font-size: 15px;
-  font-weight: 800;
+  font-weight: var(--jz-weight-bold);
   font-variant-numeric: tabular-nums;
   line-height: 1;
-  color: #f3f1ec;
+  color: var(--jz-text);
 }
 
 .game-frame-right {
@@ -160,35 +170,36 @@
   flex-direction: column;
   align-items: flex-end;
   justify-content: center;
-  font-family: var(--ap-font);
+  font-family: var(--jz-font);
 }
 .game-frame-score-label {
   font-size: 11px;
-  font-weight: 600;
+  font-weight: var(--jz-weight-medium);
   line-height: 13px;
-  color: #8e8b94;
+  color: var(--jz-text-3);
   white-space: nowrap;
 }
 .game-frame-score-value {
-  font-family: var(--ap-font);
+  font-family: var(--jz-font);
   font-size: 22px;
-  font-weight: 800;
+  font-weight: var(--jz-weight-bold);
+  font-stretch: 105%;
   font-variant-numeric: tabular-nums;
   line-height: 24px;
-  color: #f3f1ec;
+  color: var(--jz-text);
 }
 .game-frame-score-note {
   max-width: 88px;
   overflow: hidden;
   font-size: 12px;
-  font-weight: 600;
+  font-weight: var(--jz-weight-medium);
   line-height: 14px;
-  color: #a09da6;
+  color: var(--jz-text-3);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-/* "?" and sound: 36 × 44, #A09DA6, no chip. Since 6 Nov 2026 the game menu's ⋮ (GameMenu) takes the sound button's
-   place (in the intro header too, below), and the "?" button's 36px stays empty (.game-frame-slot). */
+/* "?" and sound: 36 × 44, the meta grey, no chip. Since 6 Nov 2026 the game menu's ⋮ (GameMenu) takes the sound
+   button's place (in the intro header too, below), and the "?" button's 36px stays empty (.game-frame-slot). */
 .game-frame-right :is([aria-label="Show puzzle instructions"], .game-frame-icon-button) {
   position: relative;
   display: flex;
@@ -198,14 +209,14 @@
   align-items: center;
   justify-content: center;
   border: 0;
-  border-radius: 10px;
+  border-radius: var(--jz-radius);
   background: transparent;
   box-shadow: none;
   padding: 0;
-  font-family: var(--ap-font);
+  font-family: var(--jz-font);
   font-size: 20px;
-  font-weight: 800;
-  color: #a09da6;
+  font-weight: var(--jz-weight-bold);
+  color: var(--jz-text-3);
 }
 .game-frame-right [aria-label="Show puzzle instructions"]::before {
   inset: 0;
@@ -241,6 +252,44 @@
   flex: none;
 }
 
+/* ---------------------------------------------------------------- the intro's and help's text (F3)
+ * PuzzleInstructions, on the intro and in the "?" help: the type roles of DESIGN.md section 3 in Archivo, the labels
+ * in the category colour (section 9), in sentence case (hard rule 6; they used to be the mono face in capitals).
+ * The sizes are the ones they had, so the intro's fit (RoundIntro data-compact) is unchanged.
+ */
+.intro-label {
+  margin: 0;
+  font-family: var(--jz-font);
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: var(--jz-weight-medium);
+  letter-spacing: 0;
+  color: var(--category-accent);
+}
+.intro-goal-text {
+  font-family: var(--jz-font);
+  font-size: 22px;
+  line-height: 1.25;
+  font-weight: var(--jz-weight-bold);
+  letter-spacing: 0;
+  color: var(--jz-text);
+}
+.intro-goal-text-help {
+  font-size: 24px;
+}
+.intro-how-text {
+  font-size: 15px;
+  color: color-mix(in srgb, var(--jz-text) 86%, transparent);
+}
+.intro-how-action {
+  font-weight: var(--jz-weight-bold);
+  color: var(--jz-text);
+}
+.intro-score-text {
+  font-size: 14px;
+  color: color-mix(in srgb, var(--jz-text) 80%, transparent);
+}
+
 /* ---------------------------------------------------------------- the play column */
 
 /* Every live round's header starts right under the notch (no extra top margin). */
@@ -262,7 +311,7 @@
   flex: none;
   flex-direction: column;
   margin-bottom: 12px;
-  font-family: var(--ap-font);
+  font-family: var(--jz-font);
 }
 .game-goal-line[data-goal-bar] {
   height: 28px;
@@ -274,9 +323,9 @@
   justify-content: space-between;
   gap: 12px;
   font-size: 13px;
-  font-weight: 600;
+  font-weight: var(--jz-weight-medium);
   line-height: 18px;
-  color: #a09da6;
+  color: var(--jz-text-3);
   white-space: nowrap;
 }
 .game-goal-text {
@@ -287,7 +336,7 @@
 .game-goal-progress {
   flex: none;
   font-variant-numeric: tabular-nums;
-  color: #d6d3dc;
+  color: var(--jz-text-2);
 }
 .game-goal-bar {
   display: flex;
@@ -298,10 +347,10 @@
 .game-goal-bar > span {
   flex: 1;
   border-radius: 3px;
-  background: #26262c;
+  background: var(--jz-surface-2);
 }
 .game-goal-bar > span[data-current] {
-  background: color-mix(in srgb, var(--category-accent) 35%, #26262c);
+  background: color-mix(in srgb, var(--category-accent) 35%, var(--jz-surface-2));
 }
 .game-goal-bar > span[data-done] {
   background: var(--category-accent);
@@ -311,13 +360,14 @@
 /* ---------------------------------------------------------------- the puzzle background */
 
 [data-puzzle-play] {
-  --frame-deep: color-mix(in srgb, var(--category-accent) 10%, #0d0d0f);
+  /* The base under the category tint is the app's own background (DESIGN.md section 9; F3, 6 Nov 2026). */
+  --frame-deep: color-mix(in srgb, var(--category-accent) 10%, var(--jz-bg));
 }
 [data-puzzle-play] > .screen-background {
   background:
     radial-gradient(130% 45% at 50% 0%, color-mix(in srgb, var(--category-accent) 20%, transparent), transparent 65%),
     radial-gradient(120% 40% at 50% 100%, color-mix(in srgb, var(--category-accent) 14%, transparent), transparent 70%),
-    linear-gradient(180deg, var(--frame-deep) 0%, #0d0d0f 45%, #0d0d0f 60%, var(--frame-deep) 100%);
+    linear-gradient(180deg, var(--frame-deep) 0%, var(--jz-bg) 45%, var(--jz-bg) 60%, var(--frame-deep) 100%);
 }
 /* No pattern or drift: the dot texture and the slow category glow give way to the gradient. */
 [data-puzzle-play] > .screen-background::before,

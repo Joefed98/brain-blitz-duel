@@ -37,7 +37,7 @@ const P = (t: PatternStdType) => PATTERN_STD[t].par ?? 0;
 
 /** The "?" help SCORE text: one line a part (scoreList.ts). */
 export const PATTERN_STD_HELP: Record<PatternStdType, string> = {
-  unblock: help("unblock", "free the gold block", [parLine("unblock", "Moves", "solve it in the fewest moves (par)", P("unblock"))], "the share of the blocks in the gold block's way you clear, more for doing it early; wasted moves take it down"),
+  unblock: help("unblock", "free the gold block", [parLine("unblock", "Moves", "solve it in the fewest moves (par)", P("unblock"))], "the share of the blocks in the gold block’s way you clear, more for doing it early; wasted moves take it down"),
   blockparty: help("blockparty", "fill the board", [{ label: "First time", how: "pieces placed right first time and never moved again", max: BLOCK_STD.firstTime }], `${BLOCK_STD.perPiece} for each piece on its spot in the solution, more for placing it early`),
   iceslide: help("iceslide", "reach the exit", [{ label: "Ice gems", how: "collect the ice gems off the direct route", max: ICE_STD.gems }], "how much closer you got to the exit, plus the gems so far; wasted slides take it down"),
   gravity: help("gravity", "clear all three boards", [{ label: "Stars", how: "collect the stars", max: TOPSY_STD.stars }, parLine("gravity", "Tilts", "clear each board in the fewest tilts (par)", P("gravity"))], "the share of the balls home, more for doing it early; wasted tilts take it down"),

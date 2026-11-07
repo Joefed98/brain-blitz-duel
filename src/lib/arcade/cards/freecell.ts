@@ -119,7 +119,7 @@ function fcSpec(rev: number): StdSpec {
           key: "core", label: "Cards", max: FC_CORE_MAX_V4, of: FC_CORE_UNITS_V4,
           how: "every card home scores, a card in a sorted run on the columns half as much; 25 cards home for all of it",
         },
-        { key: "par", label: "Par moves", max: FC_PAR_MAX_V4, of: 1, how: "finish in the deal's fewest moves (par) for all of it, nothing at one and a half times par" },
+        { key: "par", label: "Par moves", max: FC_PAR_MAX_V4, of: 1, how: "finish in the deal’s fewest moves (par) for all of it, nothing at one and a half times par" },
         { key: "speed", label: "Speed", max: FC_SPEED_MAX_V4, of: 1, how: `finish within ${FC_SPEED_FULL_S_V4} s for all of it, falling to 0 at the buzzer` },
       ],
     };
@@ -134,7 +134,7 @@ function fcSpec(rev: number): StdSpec {
           ? `a straight line: cards home full value, cards in sorted runs on the columns half value; full at ${FC_CORE_UNITS_V3} units (about 20 home and a dozen sorted)`
           : "a straight line: cards home full value, cards in sorted runs on the columns half value; full with all 52 home",
       },
-      { key: "par", label: "Par moves", max: FC_PAR_MAX, of: 1, how: "finished only: full at the deal's par, 0 at twice par" },
+      { key: "par", label: "Par moves", max: FC_PAR_MAX, of: 1, how: "finished only: full at the deal’s par, 0 at twice par" },
       { key: "speed", label: "Speed", max: FC_SPEED_MAX, of: 1, how: `finished only: full by ${FC_SPEED_FULL_S} s, 0 at the buzzer` },
     ],
   };

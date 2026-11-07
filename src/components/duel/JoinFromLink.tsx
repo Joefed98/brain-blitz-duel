@@ -137,7 +137,7 @@ export function JoinFromLink({
       }}
     >
       <div>
-        <p className="rs-meta">You're invited to room</p>
+        <p className="rs-meta">You’re invited to room</p>
         <p className="rs-code mt-2">{roomCode}</p>
         <p className="rs-meta mt-2">
           {preview.playerCount} of {preview.maxPlayers} players

@@ -74,7 +74,7 @@ export const MOMENT_TABLE: readonly MomentRow[] = [
   fx("hover", 6, "perfect", "tight-gate", 45, "Through a tight gate"),
   fx("hover", 7, "clear", "star-chain", 55, "A whole star chain"),
   fx("hover", 8, "pop", "shield", 10, "Shield picked up"),
-  fx("hover", 9, "combo", "centre-line", 35, "Along a tight gate's centre line"),
+  fx("hover", 9, "combo", "centre-line", 35, "Along a tight gate’s centre line"),
   // Breaker
   fx("breaker", 0, "perfect", "power-up", 25, "Power-up caught"),
   fx("breaker", 1, "streak", "bricks", 20, "Bricks streak (every 10)"),
@@ -117,7 +117,7 @@ export const MOMENT_TABLE: readonly MomentRow[] = [
   fx("tripeaks", 1, "perfect", "peak", 40, "A peak top cleared"),
   fx("tripeaks", 2, "final", "cleared", 95, "All 28 peak cards cleared", "finish"),
   fx("pokersquares", 0, "pop", "hand", 20, "A row or column makes a hand"),
-  fx("pokersquares", 1, "final", "target", 70, "The deal's target reached"),
+  fx("pokersquares", 1, "final", "target", 70, "The deal’s target reached"),
   fx("fivehands", 0, "pop", "hand", 20, "A row makes a hand"),
   fx("fivehands", 1, "final", "target", 70, "The full hand points reached"),
   fx("pyramid", 0, "combo", "pyramid-pair", 20, "Two pyramid cards paired"),
@@ -131,16 +131,16 @@ export const MOMENT_TABLE: readonly MomentRow[] = [
   // Blockfall (Retro) and Alley Roll (Sports), 1 Nov 2026
   fx("blockfall", 0, "pop", "line-clear", 10, "Rows cleared"),
   fx("blockfall", 1, "combo", "three-or-four", 50, "Three or four rows at once"),
-  fx("blockfall", 2, "final", "full-lines", 80, "The core's lines reached"),
+  fx("blockfall", 2, "final", "full-lines", 80, "The core’s lines reached"),
   fx("alleyroll", 0, "pop", "ring-points", 10, "A ball in a ring"),
   fx("alleyroll", 1, "streak", "pocket-hit", 50, "A 100 pocket"),
-  fx("alleyroll", 2, "final", "full-points", 80, "The core's ring points reached"),
+  fx("alleyroll", 2, "final", "full-points", 80, "The core’s ring points reached"),
   // Ricochet (ricoRev 2, the ninja wall-climb, 1 Nov 2026; Moon Climb, ricoRev 3: a Flow step and a sky lantern ridden)
   fx("ricochet", 0, "pop", "coin-taken", 5, "Coin taken or Flow step"),
   fx("ricochet", 1, "combo", "lantern-taken", 30, "Lantern taken or ridden"),
   fx("ricochet", 2, "perfect", "scroll-taken", 50, "Scroll taken"),
   fx("ricochet", 3, "streak", "height", 25, "Another 50 m climbed"),
-  fx("ricochet", 4, "final", "full-height", 80, "The core's full height reached"),
+  fx("ricochet", 4, "final", "full-height", 80, "The core’s full height reached"),
   // Rally
   fx("rally", 0, "streak", "long-rally", 35, "Long rally (every 10 returns)"),
   fx("rally", 1, "pop", "gold", 25, "Gold ball returned"),
@@ -217,7 +217,7 @@ export const MOMENT_TABLE: readonly MomentRow[] = [
   fx("junction", 1, "streak", "cleared", 25, "Cars cleared (every 10)"),
   fx("junction", 2, "pop", "new-road", 0, "New road built (info only)"),
   fx("junction", 3, "pop", "bus", 20, "Bus through"),
-  fx("junction", 4, "streak", "new-roads", 20, "New roads' traffic (every 5)"),
+  fx("junction", 4, "streak", "new-roads", 20, "New roads’ traffic (every 5)"),
   // Rainbow Bridge
   fx("inkbridge", 0, "clear", "level", 35, "Level cleared"),
   fx("inkbridge", 1, "perfect", "gold-star", 45, "Coin through the gold star"),
@@ -261,7 +261,7 @@ export const MOMENT_TABLE: readonly MomentRow[] = [
   fx("flip", 8, "streak", "checkpoint", 15, "Checkpoint passed (flipRev 8)"),
   fx("flip", 9, "pop", "saved", 35, "A crash saved by a checkpoint (flipRev 8)", "save"),
   fx("flip", 10, "streak", "speed-zone", 15, "Into a speed zone (flipRev 8)"),
-  fx("flip", 11, "pop", "sweet-spot", 25, "A sweet landing on a roof's sweet spot (flipRev 8)"),
+  fx("flip", 11, "pop", "sweet-spot", 25, "A sweet landing on a roof’s sweet spot (flipRev 8)"),
   // Grappler
   fx("swing", 0, "streak", "distance", 30, "Distance (every 100 m)"),
   fx("swing", 1, "perfect", "star", 25, "Star"),

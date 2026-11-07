@@ -80,7 +80,8 @@
   color: rgba(255, 244, 222, 0.85);
 }
 [data-polish="tendrop"] .td-hud-v3 .hud-pill-value {
-  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-family: var(--jz-font);
+  font-variant-numeric: tabular-nums;
   font-size: 22px;
   line-height: 1;
 }

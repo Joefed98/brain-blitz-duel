@@ -1,12 +1,13 @@
 import type { ReactNode } from "react";
 
+import { Chip, type ChipTone } from "@/design/components/Chip";
 import "@/polish-layout/hud-pills.css";
 
 /**
  * Puzzle polish (3 Nov 2026, Joe's audit; display only): a status line as separate label-and-value pills
  * ("Moves 12" "Par 14"), never one pill with dots inside it. Each item is one pill: an optional quiet label and a
  * bright value (either may be omitted). Falsy items are skipped. The row keeps one line and a fixed 24 px height,
- * empty or not, so nothing moves when values change.
+ * empty or not, so nothing moves when values change. Each pill is the shared Chip's status variant (design foundation F3, 6 Nov 2026).
  */
 export interface HudPillItem {
   label?: ReactNode | undefined;
@@ -24,11 +25,22 @@ export function HudPills({ items, testId, className }: { items: ReadonlyArray<Hu
   return (
     <div data-hud-pills={testId ?? ""} className={`hud-pills${className ? ` ${className}` : ""}`} aria-live="polite">
       {shown.map((p, i) => (
-        <span key={p.id ?? i} className="hud-pill" data-hud-pill={p.id ?? ""} data-tone={p.tone ?? undefined} data-move-limit={p.limit}>
-          {p.label !== undefined ? <span className="hud-pill-label">{p.label}</span> : null}
-          {p.value !== undefined ? <b className="hud-pill-value">{p.value}</b> : null}
-        </span>
+        <Chip
+          variant="status"
+          key={p.id ?? i}
+          className="hud-pill"
+          labelClassName="hud-pill-label"
+          valueClassName="hud-pill-value"
+          label={p.label}
+          value={p.value}
+          tone={p.tone ? CHIP_TONE[p.tone] : undefined}
+          data-hud-pill={p.id ?? ""}
+          data-move-limit={p.limit}
+        />
       ))}
     </div>
   );
 }
+
+/** A pill's tone as the Chip's: a target or par in the category colour, done in cyan, a warning in red. */
+const CHIP_TONE: Record<NonNullable<HudPillItem["tone"]>, ChipTone> = { gold: "accent", good: "good", warn: "warn" };

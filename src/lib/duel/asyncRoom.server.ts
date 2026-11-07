@@ -246,7 +246,7 @@ export async function startAttempt(
   if (existing) return { ok: true, attempt: existing, created: false };
   if (nowMs >= msOf(room.closes_at)) return { ok: false, message: "This challenge has closed." };
   if (nowMs < msOf(room.opens_at))
-    return { ok: false, message: "This challenge hasn't opened yet." };
+    return { ok: false, message: "This challenge hasn’t opened yet." };
   const row: AsyncAttemptRow = {
     id: crypto.randomUUID(),
     room_id: room.id,
@@ -506,7 +506,7 @@ export async function startAsyncRound(
     await refreshAttempt(client, room, attempt, rows, nowMs);
   const mine = rows.find((r) => r.round_number === round);
   if (mine) {
-    if (done(mine)) return { ok: false, message: "You've played that round." };
+    if (done(mine)) return { ok: false, message: "You’ve played that round." };
     return { ok: true, puzzle: pub, startedAt: msOf(mine.started_at) };
   }
   for (let earlier = 1; earlier < round; earlier++)
@@ -538,7 +538,7 @@ export async function startAsyncRound(
       const raced = (await resultsOf(client, attempt.id)).find((r) => r.round_number === round);
       if (raced && !done(raced))
         return { ok: true, puzzle: pub, startedAt: msOf(raced.started_at) };
-      return { ok: false, message: "You've played that round." };
+      return { ok: false, message: "You’ve played that round." };
     }
     throw new Error(error.message);
   }
@@ -590,7 +590,7 @@ export async function submitAsyncAnswer(
 > {
   const rows = await resultsOf(client, attempt.id);
   const row = rows.find((r) => r.round_number === input.round);
-  if (!row) return { ok: false, message: "That round hasn't started." };
+  if (!row) return { ok: false, message: "That round hasn’t started." };
   if (done(row)) return { ok: true, alreadySubmitted: true };
   const pub = room.puzzles_public[input.round - 1];
   if (!pub) return { ok: false, message: "Unknown round." };
@@ -672,7 +672,7 @@ export async function asyncRoundReveal(
   | { ok: false; message: string }
 > {
   const row = (await resultsOf(client, attempt.id)).find((r) => r.round_number === round);
-  if (!done(row)) return { ok: false, message: "That round isn't finished yet." };
+  if (!done(row)) return { ok: false, message: "That round isn’t finished yet." };
   const pub = room.puzzles_public[round - 1];
   if (!pub) return { ok: false, message: "Unknown round." };
   const puzzle = mergePuzzle(pub, (await privateHalf(client, room.id, round)) ?? undefined);

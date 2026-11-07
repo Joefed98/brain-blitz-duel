@@ -118,7 +118,7 @@ section("wiring: the deal, the help, the intro, the standard module, the demo an
   const how = PUZZLE_INSTRUCTIONS.tilt.how.map((h) => `${h.action} ${h.detail}`).join(" ");
   ok(/Par:/.test(how) && /Clean run:/.test(how) && !/gold star/i.test(how) && /maze 4/.test(how), `the HOW lines name par, the clean run and maze 4, and no gold stars: ${how}`);
   const intro = INTRO_SCORE.tilt;
-  ok(intro.length <= 90 && intro.includes("mazes") && intro.includes("beating each maze's time") && intro.includes("a clean run") && !/star/i.test(intro), `the intro (${intro.length} chars): ${intro}`);
+  ok(intro.length <= 90 && intro.includes("mazes") && intro.includes("beating each maze’s time") && intro.includes("a clean run") && !/star/i.test(intro), `the intro (${intro.length} chars): ${intro}`);
   ok(entry.type === "tilt" && entry.field === "tiltRev" && entry.rev === TILT_REV_BIG, "the standard module names the dealt tiltRev 12 (tiltRev 11's parts)");
   ok(entry.parts.reduce((t, p) => t + p.max, 0) === 200 && JSON.stringify(entry.parts.map((p) => [p.key, p.max])) === JSON.stringify([["core", 140], ["par", 24], ["clean", 12], ["speed", 24]]), "the standard module's parts: core 140, par 24, clean 12, speed 24");
   const perfect = entry.perfect() as StdRun[];

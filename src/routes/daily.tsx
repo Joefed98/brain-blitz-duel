@@ -56,7 +56,7 @@ export const Route = createFileRoute("/daily")({
       { title: `${APP_NAME} daily challenge` },
       {
         name: "description",
-        content: `Today's ${APP_NAME} Daily Puzzle and Daily Arcade: the same games for everyone, one go each, and the leaderboards.`,
+        content: `Today’s ${APP_NAME} Daily Puzzle and Daily Arcade: the same games for everyone, one go each, and the leaderboards.`,
       },
       { name: "robots", content: "noindex" },
     ],
@@ -225,7 +225,7 @@ function DailyScreen() {
       if (followup) sendChallengeFollowup("daily", followup);
       setMode({ kind: "run", roomId: started.roomId });
     } catch {
-      setError("Couldn't reach the server. Try again.");
+      setError("Couldn’t reach the server. Try again.");
     } finally {
       setBusy(false);
     }
@@ -332,7 +332,7 @@ function DailyScreen() {
   }
 
   const state = status[kind];
-  const lockedNote = `Finish today's ${DAILY_ROUNDS[kind]} rounds to see the board.`;
+  const lockedNote = `Finish today’s ${DAILY_ROUNDS[kind]} rounds to see the board.`;
   return (
     <PhoneShell skin="play">
       <div data-daily-screen className="flex flex-1 flex-col gap-4">
@@ -356,7 +356,7 @@ function DailyScreen() {
 
         {day === "today" ? (
           <section
-            aria-label={`Today's ${DAILY_TITLE[kind]}`}
+            aria-label={`Today’s ${DAILY_TITLE[kind]}`}
             data-daily-state={state.state}
             className="th-card flex flex-col gap-3 rounded-[18px] border p-4"
           >
