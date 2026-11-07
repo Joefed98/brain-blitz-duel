@@ -8,6 +8,7 @@
  *  - checks.yml's matrix names exactly the fast shards and full-suite.yml's exactly the browser shards; checks.yml
  *    installs no browser; full-suite.yml's "full-suite-passed" needs the shards and passes only on their success
  *    (skipped never counts), and the workflow runs on the ready-to-merge label, on leaving draft, by hand and weekly.
+ *  - checks.yml runs tsc --noEmit over src/ in its own typecheck job (7 Nov 2026).
  *
  *   bun scripts/ci-shards-check.ts
  */
@@ -70,6 +71,7 @@ const same = (a: string[], b: string[]) => a.length === b.length && [...a].sort(
 check(same(matrixOf(fastYml, "checks.yml"), fast), `checks.yml's matrix is the fast shards (${fast.join(", ")})`);
 check(same(matrixOf(fullYml, "full-suite.yml"), browser), `full-suite.yml's matrix is the browser shards (${browser.join(", ")})`);
 check(!/playwright install/.test(fastYml), "checks.yml installs no browser");
+check(/^\s*typecheck:/m.test(fastYml) && /tsc --noEmit -p tsconfig\.json/.test(fastYml), "checks.yml type-checks src/ (tsc --noEmit, its own job)");
 check(/cancel-in-progress:\s*true/.test(fastYml) && /cancel-in-progress:\s*true/.test(fullYml), "both workflows cancel superseded runs");
 check(/full-suite-passed/.test(fullYml) && /needs:\s*\[[^\]]*\bshards\b[^\]]*\]/.test(fullYml.split("full-suite-passed:")[1] ?? ""), "full-suite-passed needs the shards");
 check(/needs\.shards\.result\s*}}"?\s*=\s*"?success/.test(fullYml) || /needs\.shards\.result == 'success'/.test(fullYml), "full-suite-passed passes only on the shards' success");

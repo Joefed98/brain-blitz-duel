@@ -8,6 +8,10 @@
  * one short browser check, plus ~45 s of setup and browser install.
  * Rebalance if one job's time drifts well past the others (each job's summary lists
  * every check's time).
+ * Rebalanced 7 Nov 2026 (docs/audit-nov-2026/build-health.md item 10) on Checks run 42372376743's times: g (805 s of
+ * checks, 137 of its 155 unlisted) and e (641 s) gave ~398 s to a (298 s), b, c (334 s) and f, so every fast shard
+ * is ~485-535 s of checks (a 486, b 507, c 525, d 525, e 532, f 505, g 516) and the workflow's wall time follows
+ * its slowest shard down from ~13.4 to ~9.5 min.
  * Rebalanced 3 Nov 2026: g (the catch-all, every new check) had grown to ~31-33 min while d-f
  * finished in 6-10; ~18 min of its largest unlisted checks (timed on PR #253's run) now sit on
  * c, d, e and f, each aiming at ~12-13 min against the job's 45-minute limit.
@@ -124,6 +128,15 @@ export const SHARDS: Record<string, string[]> = {
   // arcade-self-replay-check's entries are split into parts on separate jobs.
   // ~282 s of checks on run 38608375501's times.
   a: [
+    // From g's catch-all (7 Nov 2026 rebalance, docs/audit-nov-2026/build-health.md item 10; ~188 s on Checks run
+    // 42372376743): g ran 805 s of checks, a 298.
+    "sound-retheme-check.ts",
+    "flip-deal-check.ts",
+    "ink-v14-check.ts",
+    "puzzle-polish-nov-check.ts",
+    "slice-food-check.ts",
+    "tilt-rev12-check.ts",
+    "sound-nov-2026-check.ts",
     // arcade-room-schedule-check in thirds (1 Nov 2026: Grappler swingRev 16's 90 s runs took the whole check to ~4.8 min).
     "arcade-room-schedule-check.ts@1/3",
     "arcade-batch5-check.ts",
@@ -151,6 +164,8 @@ export const SHARDS: Record<string, string[]> = {
   ],
   // ~282 s of checks on run 38608375501's times.
   b: [
+    // From g's catch-all (7 Nov 2026 rebalance; ~10 s on run 42372376743).
+    "arcade-tuning-g3-check.ts",
     // arcade-fx-check in thirds (3 Nov 2026: Curl Champ's, Apex's and Cue Ball's runs took the whole check past 5 min locally).
     "arcade-fx-check.ts@2/3",
     "app-update-check.tsx",
@@ -192,6 +207,14 @@ export const SHARDS: Record<string, string[]> = {
   ],
   // ~282 s of checks on run 38608375501's times.
   c: [
+    // 7 Nov 2026 rebalance (~191 s on run 42372376743): orbit-camera-check from e (e ran 641 s, c 334), the rest
+    // from g's catch-all.
+    "orbit-camera-check.ts",
+    "standings-reveal-check.tsx",
+    "snip-x200-check.ts",
+    "flightpath-hit-check.ts",
+    "standard-attention-check.ts",
+    "swing-slide-check.ts",
     // From g's catch-all (3 Nov 2026 rebalance; ~138 s on PR #253's CI times): g ran ~31 min, d-f 6-10.
     "scoring-bands-check.ts",
     "scoring-rev3-check.ts",
@@ -274,7 +297,6 @@ export const SHARDS: Record<string, string[]> = {
     "ink-line-check.ts",
     "ink-rev3-fix-check.ts",
     "number-batch-check.ts",
-    "orbit-camera-check.ts",
     "orbit-outside-belt-check.ts",
     "pattern-logic-oct14-check.ts",
     "presentation-geometry-check.tsx",
@@ -289,6 +311,8 @@ export const SHARDS: Record<string, string[]> = {
   ],
   // ~282 s of checks on run 38608375501's times.
   f: [
+    // From g's catch-all (7 Nov 2026 rebalance; ~10 s on run 42372376743).
+    "pool-check.ts",
     // From g's catch-all (3 Nov 2026 rebalance; ~336 s on PR #253's CI times): g ran ~31 min, d-f 6-10.
     "arcade-standard-check.ts",
     "cards-check.ts",

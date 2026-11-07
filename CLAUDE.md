@@ -1652,6 +1652,14 @@ outside the repo.
     on each new push while the label is on), when a PR leaves draft, by hand (Actions → Full suite → Run workflow;
     "record arcade baseline" lives here) and weekly on main (Sunday 22:41 UTC) when main changed in the past week. Add the label only when a PR is
     otherwise finished: every push while it is on re-runs the Full suite.
+  - **typecheck (src)** (7 Nov 2026, `docs/audit-nov-2026/build-health.md` item 6): a Checks job beside the shards runs
+    `tsc --noEmit -p tsconfig.json` (src/, ~50 s); Lovable's build strips types without checking them. scripts/ is
+    not type-checked yet. ci-shards-check proves the job is there.
+  - Flake fixes (7 Nov 2026, the audit's item 7; no limit changed): a desktop arcade play over its 60 fps limit is
+    played once more only when /proc shows other processes left the browser under 1.25 cores through the judged
+    play windows (arcade-lowend-check's rule); replay-play-check judges 1× and 2× on the player's own frame clock
+    (ReplayCanvas caps a frame's gap at 100 ms); replay-board-check samples 14 s from the replay panel's first
+    appearance; offline-check waits for the app's own reload onto a new worker before reloading.
   - Which side a check is on is worked out from its source (`.github/ci/browser.ts`: it, or a script it imports or
     spawns, launches Chromium through Playwright), never by hand; a browser check listed in a fast shard runs in
     `play21` instead. ci-shards-check proves every routine check runs exactly once, no browser starts on a push, and
