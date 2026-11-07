@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } fro
 import { AnswerReveal } from "@/components/duel/AnswerReveal";
 import { Dots, WaitingLine } from "@/components/duel/Dots";
 import { GameLayout, PhoneShell, isArcadeScreenType } from "@/components/duel/PhoneShell";
-import { PuzzleHelp, PuzzleHelpButton } from "@/components/duel/PuzzleInstructions";
+import { PuzzleHelp } from "@/components/duel/PuzzleInstructions";
 import { RoundIntro } from "@/components/duel/RoundIntro";
 import { FrameScore } from "@/components/duel/GameFrame";
 import { FinishedPingStrip } from "@/components/duel/FinishedPings";
@@ -553,7 +553,7 @@ export function AsyncRun({
         // A friend challenge counts its rounds like a room; the daily says so.
         label={rivals ? `Round ${step.round} of ${roundCount}` : "Daily"}
         title={puzzleName(shownPuzzle.type)}
-        help={<PuzzleHelpButton onClick={() => setHelpOpen(true)} />}
+        onHelp={() => setHelpOpen(true)}
         score={frameScore}
         timer={
           puzzleShowsTimer(shownPuzzle) ? (
