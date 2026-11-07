@@ -89,7 +89,7 @@ export const PRACTICE_STAMPS = {
   "target": "depthRev=3 puzzleScoreRev=3 speedPar=1",
   "tendrop": "puzzleScoreRev=3 speedPar=1 tenRev=5",
   "tents": "depthRev=2 puzzleScoreRev=3 speedPar=1",
-  "tilegrid": "puzzleScoreRev=3 speedPar=1 tileGridRev=3",
+  "tilegrid": "puzzleScoreRev=3 speedPar=1 tileGridRev=4",
   "tiles": "puzzleScoreRev=3 speedPar=1 tilesRev=6",
   "tilt": "puzzleScoreRev=3 speedPar=1 tiltRev=12",
   "tower": "depthRev=2 puzzleScoreRev=3 speedPar=1",
@@ -101,7 +101,7 @@ export const PRACTICE_STAMPS = {
   "whack": "puzzleScoreRev=3 speedPar=1 whackRev=4",
   "wordfall": "puzzleScoreRev=3 speedPar=1 wordfallRev=3",
   "wordhunt": "puzzleScoreRev=3 speedPar=1 wordHuntRev=4",
-  "wordsearch": "puzzleScoreRev=3 speedPar=1 wordSearchRev=4",
-  "wordslide": "puzzleScoreRev=3 speedPar=1 wordSlideRev=4",
+  "wordsearch": "puzzleScoreRev=3 speedPar=1 wordSearchRev=5",
+  "wordslide": "puzzleScoreRev=3 speedPar=1 wordSlideRev=5",
   "wordsmith": "puzzleScoreRev=3 speedPar=1 wordsmithRev=4",
 } as const;

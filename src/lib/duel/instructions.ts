@@ -8,7 +8,8 @@ import { CODEWORD_STRETCH, TILEGRID_STRETCH_TOPUP, stretchHelp, strikeoutDepthHe
 import { parBonusHelp } from "./parBonusText";
 import { SLIDE_PAR_BONUS_TOPUP } from "./wordSlide";
 import { SW6_SPARE_SWAPS, SWAP_PAR_BONUS_TOPUP } from "./swapword";
-import { STD_ROUNDABOUT, STD_STRIKEOUT, WORD_STANDARD_HELP } from "./standard/word";
+import { STD_ROUNDABOUT, STD_STRIKEOUT, WORD_NOV7_HELP, WORD_STANDARD_HELP } from "./standard/word";
+import { wordNov7Dealt } from "./wordNov7";
 import { preStandardPinned } from "./standard/stamps";
 import { MINES_COUNT, MINES_HIT_COST } from "@/lib/arcade/minesweeper";
 import { MAHJONG_SHUFFLE_COST } from "@/lib/arcade/mahjong";
@@ -378,7 +379,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Red runs", detail: "need fixing.", helpOnly: true },
         { action: "Words are checked", detail: "against a standard British English dictionary.", helpOnly: true },
       ],
-      score: preStandardPinned() ? stretchHelp("tilegrid", TILEGRID_STRETCH_TOPUP) : WORD_STANDARD_HELP.tilegrid,
+      score: preStandardPinned() ? stretchHelp("tilegrid", TILEGRID_STRETCH_TOPUP) : wordNov7Dealt("tilegrid") ? WORD_NOV7_HELP.tilegrid : WORD_STANDARD_HELP.tilegrid,
     },
     balance: {
       goal: "Balance each of the four scales.",
@@ -407,7 +408,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Words are 5 letters.", detail: "Column swipes go around a locked row.", helpOnly: true },
         { action: "Words are checked", detail: "against a standard British English dictionary.", helpOnly: true },
       ],
-      score: preStandardPinned() ? parBonusHelp("wordslide", SLIDE_PAR_BONUS_TOPUP, "moves", "the par moves") : WORD_STANDARD_HELP.wordslide,
+      score: preStandardPinned() ? parBonusHelp("wordslide", SLIDE_PAR_BONUS_TOPUP, "moves", "the par moves") : wordNov7Dealt("wordslide") ? WORD_NOV7_HELP.wordslide : WORD_STANDARD_HELP.wordslide,
     },
     target: {
       goal: "Use the six numbers to make the target.",
@@ -1904,7 +1905,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Each chip shows", detail: "a hidden word’s letter count until you find it; the word then fills it.", helpOnly: true },
         { action: "The bonus word", detail: "fills the gold star chip. Find it before the sixth word: the sixth ends the round.", helpOnly: true },
       ],
-      score: preStandardPinned() ? wordSearchBonusHelp() : WORD_STANDARD_HELP.wordsearch,
+      score: preStandardPinned() ? wordSearchBonusHelp() : wordNov7Dealt("wordsearch") ? WORD_NOV7_HELP.wordsearch : WORD_STANDARD_HELP.wordsearch,
     },
     letterwheel: {
       goal: "Fill the crossword from the letter wheel.",
