@@ -59,7 +59,7 @@ const arcadeRows = [
 ];
 const bottomCss = readFileSync("src/polish-layout/bottom.css", "utf8");
 assert.match(bottomCss, /\[data-arcade-play\] \[data-game-stage\] :is\(\[data-game-controls="pad"\], \[data-game-controls="tools"\]\) \{\s*padding-inline: 4px;\s*\}/, "pad and tools rows keep 4px side margins");
-assert.match(bottomCss, /\[data-arcade-play\] \[data-game-stage\] \[data-game-controls="arrows"\] \{\s*height: 52px;\s*padding-top: 0;\s*padding-bottom: 0;\s*align-items: end;\s*\}/, "Mixed Signals' ArrowPad: one fixed 52px row, both modes bottom-aligned");
+assert.match(bottomCss, /\[data-arcade-play\] \[data-game-stage\] \[data-game-controls="arrows"\] \{\s*height: 52px;\s*padding-top: 0;\s*padding-bottom: 0;\s*align-items: start;\s*\}/, "Mixed Signals' ArrowPad: one fixed 52px row, both modes top-aligned");
 for (const { file, row, button, count, width, tall } of arcadeRows) {
   const source = readFileSync(`src/puzzles/${file}.tsx`, "utf8");
   assert.match(source, row, `${file}: control row`);
