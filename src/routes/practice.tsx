@@ -4,13 +4,13 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 
 import { AnswerReveal } from "@/components/duel/AnswerReveal";
 import { WaitingLine } from "@/components/duel/Dots";
-import { Chip, GameTile, Input, Segmented } from "@/design/components";
+import { Chip, GameTile, Input, Segmented, Stars } from "@/design/components";
 import { GameLayout, PhoneShell, isArcadeScreenType } from "@/components/duel/PhoneShell";
 import { FrameScore } from "@/components/duel/GameFrame";
 import { SteadyOrPlain } from "@/components/duel/SteadyStage";
 import { useCrashContext } from "@/lib/useCrashContext";
 import { useArcadeScreenTickMs } from "@/lib/fx/useArcadeScreenTick";
-import { PuzzleHelp, PuzzleHelpButton } from "@/components/duel/PuzzleInstructions";
+import { PuzzleHelp } from "@/components/duel/PuzzleInstructions";
 
 import { RoundIntro } from "@/components/duel/RoundIntro";
 import { preloadGameData } from "@/lib/duel/gamePreload";
@@ -27,6 +27,7 @@ import { practiceUpdateGate, useUpdateGate } from "@/lib/appUpdate";
 import { APP_BUILD_ID } from "@/lib/appVersion";
 import { DevKeyStatus, SaveDemoButton, useDemoKey } from "@/components/duel/SaveDemoButton";
 import {
+  ACTIVE_PUZZLE_TYPES,
   PUZZLE_REGISTRY,
   RETIRED_PUZZLE_TYPES,
   PREVIEW_PUZZLE_TYPES,
@@ -59,6 +60,8 @@ import { useHomeBed, useScreenMusic } from "@/lib/useScreenMusic";
 import type { SubmitMeta } from "@/puzzles/types";
 import type { MovesView } from "@/lib/duel/moves";
 import { readPracticeBest, recordPracticeBest } from "@/lib/duel/practiceBest";
+import { readGoals, recordPracticeGoals, starLine, starTotal, starsOf, type GoalsRecord } from "@/lib/duel/practiceGoals";
+import { PracticeChallenges } from "@/components/app/PracticeChallenges";
 import { currentPracticeStamp, stampSignature } from "@/lib/duel/practiceStamps";
 import { APP_NAME } from "@/lib/brand";
 import { noteSignatureSubmit, signatureHoldUntil } from "@/lib/fx/signature";
@@ -173,9 +176,20 @@ function useTicker(active: boolean): number {
 /** Offline practice: the games with a run waiting for the server (their rows' best carries the clock). */
 const PendingTypes = createContext<ReadonlySet<PuzzleType>>(new Set());
 
+/** Practice goals: this device's record, read once per draw of the list. */
+const GoalsOnList = createContext<GoalsRecord | null>(null);
+
+/** A row's mastery stars (practiceGoals.ts), named in the row's description with its best. */
+function RowStars({ type }: { type: PuzzleType }) {
+  const record = useContext(GoalsOnList) ?? readGoals();
+  const tier = starsOf(type, readPracticeBest(type, currentPracticeStamp(type)), record);
+  return <Stars tier={tier} label={false} />;
+}
+
 function RowBest({ type }: { type: PuzzleType }) {
   const best = readPracticeBest(type, currentPracticeStamp(type));
   const pending = useContext(PendingTypes).has(type);
+  const tier = starsOf(type, best, useContext(GoalsOnList) ?? readGoals());
   return (
     <span
       id={cardBestId(type)}
@@ -188,6 +202,8 @@ function RowBest({ type }: { type: PuzzleType }) {
       {/* Offline practice: a run of this game is waiting for the server (the best may still change). */}
       {pending ? <PendingClock /> : null}
       {best ?? "–"}
+      {/* The row's stars, for the button's description (RowStars draws them). */}
+      <span className="sr-only">{`, ${tier} of 3 stars`}</span>
     </span>
   );
 }
@@ -302,6 +318,8 @@ function PracticeScreen() {
   const [graded, setGraded] = useState<Graded | null>(null);
   const [deviceBest, setDeviceBest] = useState<number | null>(null);
   const [newBest, setNewBest] = useState(false);
+  /** Practice goals: the star line this run earned ("Silver star earned"), with the new-best moment. */
+  const [earnedStar, setEarnedStar] = useState<string | null>(null);
   const [run, setRun] = useState(0);
   const [helpOpen, setHelpOpen] = useState(false);
   // Offline practice (31 Oct 2026): the pack seed of a run dealt from a saved pack (null: a live deal), the
@@ -375,6 +393,7 @@ function PracticeScreen() {
       if (!exampleMode) notePracticePlayed(next);
       setDeviceBest(readPracticeBest(next, currentPracticeStamp(next)));
       setNewBest(false);
+      setEarnedStar(null);
       setGraded(null);
       setRevealAt(null);
       setPuzzle(null);
@@ -549,6 +568,8 @@ function PracticeScreen() {
         const record = recordPracticeBest(puzzle.type, stampSignature(puzzle), result.score);
         setDeviceBest(record.best);
         setNewBest(record.improved);
+        const reached = recordPracticeGoals(puzzle.type, result.score, extra, record.best);
+        setEarnedStar(starLine(reached));
         // This device's first finished round starts its offline packs (lib/offline/packGrowth.ts), not the app's
         // opening: the top-up runs once the player is back on the list (a round on screen holds it).
         if (notePracticeRoundFinished()) firstPacks.current = true;
@@ -682,6 +703,7 @@ function PracticeScreen() {
           {PUZZLE_REGISTRY[key].name}
         </span>
         {offlineMark(key)}
+        <RowStars type={key} />
         <RowBest type={key} />
       </button>
     );
@@ -727,12 +749,24 @@ function PracticeScreen() {
         }))}
       />
     );
+    // Practice goals: the device's record once for this draw, the stars total over every active game, and the
+    // challenges of this side's games (always shown, so typing a search never moves the box being typed in).
+    const goalsRecord = readGoals();
+    const stars = starTotal(ACTIVE_PUZZLE_TYPES, (key) => readPracticeBest(key, currentPracticeStamp(key as PuzzleType)), goalsRecord);
+    const sideTypes = new Set(ACTIVE_PUZZLE_TYPES.filter((key) => practiceSideOf(key) === side));
     return (
       <PhoneShell tabs="practice" aside={<PageAside panels={["public", "daily", "week"]} />}>
+        <GoalsOnList.Provider value={goalsRecord}>
         <PendingTypes.Provider value={pendingTypes}>
           <div className="ap-stack">
             <div className="flex flex-col gap-3">
               <h1 className="ap-title">Practice</h1>
+              <p data-practice-stars={stars.earned} className="pg-total">
+                <Stars tier={3} label={false} />
+                <span>
+                  <span className="pg-total-earned">{stars.earned}</span> / {stars.total} stars
+                </span>
+              </p>
               <DevKeyStatus status={demoStatus} />
               {desktop ? null : switchRow}
             </div>
@@ -762,6 +796,14 @@ function PracticeScreen() {
                 />
               </label>
             ) : null}
+
+            <PracticeChallenges
+              key={side}
+              types={sideTypes}
+              record={goalsRecord}
+              nameOf={(key) => PUZZLE_REGISTRY[key].name}
+              onPlay={(key) => void load(key)}
+            />
 
             <div data-practice-tools={desktop ? "" : undefined} className="flex flex-col gap-3">
               {desktop ? switchRow : null}
@@ -877,6 +919,7 @@ function PracticeScreen() {
             <p className="ap-faint text-center text-[13px]">Personal bests stay on this device.</p>
           </div>
         </PendingTypes.Provider>
+        </GoalsOnList.Provider>
       </PhoneShell>
     );
   }
@@ -939,6 +982,7 @@ function PracticeScreen() {
           myScore={graded.score}
           myExtra={graded.extra ?? null}
           personalBest={newBest}
+          starLine={earnedStar}
           startedAt={startedAt}
           now={now}
           onPlayAgain={() => void load(type)}
@@ -962,7 +1006,7 @@ function PracticeScreen() {
       <GameLayout
         label="Practice"
         title={puzzleName(puzzle.type)}
-        help={<PuzzleHelpButton onClick={() => setHelpOpen(true)} />}
+        onHelp={() => setHelpOpen(true)}
         // Practice has no live score: the block shows this device's best under today's stamps.
         score={<FrameScore label="Best" value={deviceBest} />}
         timer={

@@ -21,28 +21,28 @@ const DELAY_MS = 600;
  * burst and the spark chime in place of the pill and its cue (reduced motion: the banner fades in,
  * no sparks; the chime still plays).
  */
-export function NewBestMoment() {
+export function NewBestMoment({ starLine = null }: { starLine?: string | null } = {}) {
   // The "New best" voice line (3 Nov 2026, roomVoices.ts): once, after the moment's own sound,
   // never over another voice line (a Perfect on the same reveal goes first). Reduced motion too.
   useEffect(() => {
     queueVoice("voice.newBest", DELAY_MS + 400);
   }, []);
-  return useCelebrationsOn() ? <NewBestCelebration /> : <NewBestPill />;
+  return useCelebrationsOn() ? <NewBestCelebration starLine={starLine} /> : <NewBestPill starLine={starLine} />;
 }
 
-function NewBestCelebration() {
+function NewBestCelebration({ starLine }: { starLine: string | null }) {
   const scope = useCelebrationScope();
   useEffect(() => {
     const timer = window.setTimeout(() => {
-      showBanner(scope, "New best!", { burst: true });
+      showBanner(scope, "New best!", { burst: true, sub: starLine });
       celebrationSound("chime");
     }, DELAY_MS);
     return () => window.clearTimeout(timer);
-  }, [scope]);
+  }, [scope, starLine]);
   return null;
 }
 
-function NewBestPill() {
+function NewBestPill({ starLine }: { starLine: string | null }) {
   const calm = useRef<boolean | null>(null);
   if (calm.current === null) calm.current = prefersReducedMotion() || arcadeReducedEffects();
   useEffect(() => {
@@ -58,6 +58,12 @@ function NewBestPill() {
         style={{ animationDelay: `${DELAY_MS}ms` }}
       >
         New best!
+        {/* Practice goals (6 Nov 2026): a star earned by this run, a short line under the pill's words. */}
+        {starLine ? (
+          <span data-new-best-star="" className="new-best-star">
+            {starLine}
+          </span>
+        ) : null}
       </span>
     </div>
   );

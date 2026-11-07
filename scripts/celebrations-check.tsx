@@ -372,9 +372,9 @@ for (const mineFirst of [true, false]) {
   check(sounds.includes("chime"), "new best has no chime");
   check(!view.host.querySelector("[data-new-best]"), "celebrations on still draw the old pill as well");
   await view.unmount();
-  // AnswerReveal draws NewBestMoment only for practice && personalBest (no new best: nothing).
+  // AnswerReveal draws NewBestMoment only in practice, on a new best or (Practice goals, 6 Nov 2026) a star earned.
   const reveal = readFileSync("src/components/duel/AnswerReveal.tsx", "utf8");
-  check(/\{practice && personalBest && myScore !== null \? <NewBestMoment \/> : null\}/.test(reveal), "the new best moment is not drawn only for a practice new best");
+  check(/\{practice && \(personalBest \|\| starLine\) && myScore !== null \? <NewBestMoment starLine=\{starLine\} \/> : null\}/.test(reveal), "the new best moment is not drawn only in practice on a new best or a star earned");
 }
 
 // 3d. The lobby meter: a join crackles, filling sparks once.
