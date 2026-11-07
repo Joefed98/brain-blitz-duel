@@ -1,8 +1,8 @@
-import { MessageSquare } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { feedbackBase, feedbackUrl } from "@/lib/beta/feedback";
 import { currentUserId } from "@/lib/duel/session";
+import { Icon } from "@/design/components";
 
 /**
  * SEND FEEDBACK: opens the beta's Tally form in a new tab with this device's anonymous id and the app
@@ -31,7 +31,7 @@ export function FeedbackLink({ small = false, row = false }: { small?: boolean; 
     return (
       <a href={href} target="_blank" rel="noopener noreferrer" data-feedback-link="settings" className="jz-row press">
         <span className="jz-row-title flex-1">Send feedback</span>
-        <MessageSquare aria-hidden="true" className="ap-chevron" />
+        <Icon name="chat" size={20} className="ap-chevron" />
       </a>
     );
   if (small)
@@ -43,7 +43,7 @@ export function FeedbackLink({ small = false, row = false }: { small?: boolean; 
         data-feedback-link="small"
         className="press tap-target mx-auto flex items-center justify-center gap-1.5 whitespace-nowrap px-3 text-[13px] font-semibold text-muted-foreground"
       >
-        <MessageSquare aria-hidden="true" className="h-3.5 w-3.5" />
+        <Icon name="chat" size={18} className="-m-0.5" />
         Send feedback
       </a>
     );

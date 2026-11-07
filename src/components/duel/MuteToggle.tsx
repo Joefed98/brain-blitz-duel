@@ -1,9 +1,9 @@
 import { memo, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import { ChevronDown, Music2, Volume2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Slider } from "@/components/ui/slider";
+import { Icon, type IconName } from "@/design/components";
 import {
   effectsVolume,
   isMuted,
@@ -64,12 +64,7 @@ export const MuteToggle = memo(function MuteToggle({ variant }: {
           }}
         >
           <span className="relative flex items-center justify-center">
-            <Volume2 aria-hidden="true" className="h-5 w-5" />
-            {silent && (
-              <svg aria-hidden="true" viewBox="0 0 24 24" className="absolute h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M3 3 21 21" />
-              </svg>
-            )}
+            <Icon name={silent ? "sound-off" : "sound"} size={20} />
           </span>
         </button>
       </div>
@@ -104,7 +99,7 @@ export const MuteToggle = memo(function MuteToggle({ variant }: {
         const muted = effects ? settings.muted : settings.musicMuted;
         const volume = muted ? 0 : settings[channel];
         const label = effects ? "Effects" : "Music";
-        const Icon = effects ? Volume2 : Music2;
+        const icon: IconName = effects ? (muted ? "sound-off" : "sound") : muted ? "music-off" : "music";
         return (
           <Popover
             key={channel}
@@ -130,22 +125,10 @@ export const MuteToggle = memo(function MuteToggle({ variant }: {
                 <span
                   className={`relative flex h-9 w-9 shrink-0 items-center justify-center ${muted ? "text-muted-foreground" : "text-foreground"}`}
                 >
-                  <Icon aria-hidden="true" />
-                  {muted && (
-                    <svg
-                      aria-hidden="true"
-                      viewBox="0 0 24 24"
-                      className="absolute h-4 w-4"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                    >
-                      <path d="M3 3 21 21" />
-                    </svg>
-                  )}
+                  <Icon name={icon} size={18} className="-m-px" />
                 </span>
                 <span className="flex h-9 w-4 shrink-0 items-center justify-center">
-                  <ChevronDown aria-hidden="true" className="h-3 w-3" />
+                  <Icon name="down" size={18} className="-m-px" />
                 </span>
               </Button>
             </PopoverTrigger>
@@ -170,7 +153,7 @@ export const MuteToggle = memo(function MuteToggle({ variant }: {
                 aria-pressed={!muted}
                 onClick={() => (effects ? setMuted(!muted) : setMusicMuted(!muted))}
               >
-                <Icon aria-hidden="true" />
+                <Icon name={icon} size={18} className="-m-px" />
                 {muted ? `Turn on ${label.toLowerCase()}` : `Turn off ${label.toLowerCase()}`}
               </Button>
               <Slider

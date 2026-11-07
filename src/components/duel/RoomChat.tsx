@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Maximize2, MessageCircle, Minimize2, Send, X } from "lucide-react";
+import { Maximize2, Minimize2, Send } from "lucide-react";
 import { fx } from "@/lib/fx";
 import { haptic } from "@/lib/haptics";
 import { playBlip } from "@/lib/sound";
@@ -18,7 +18,7 @@ import type { DuelPlayerRow } from "@/lib/duel/types";
 
 import { PlayerBadge } from "./PlayerBadge";
 import { RoomChatButton, RoomChatSlot, RoomFooter } from "./RoomFooter";
-import { Button as JzButton, Input, Sheet, Toast } from "@/design/components";
+import { Button as JzButton, Icon, Input, Sheet, Toast } from "@/design/components";
 
 interface RoomChatProps {
   chat: RoomChatState;
@@ -342,7 +342,7 @@ export function RoomChat({
             {expanded ? <Minimize2 aria-hidden="true" className="h-4 w-4" /> : <Maximize2 aria-hidden="true" className="h-4 w-4" />}
           </JzButton>
           <JzButton variant="icon" onClick={close} aria-label="Close messages" className="shrink-0">
-            <X aria-hidden="true" />
+            <Icon name="close" size={20} />
           </JzButton>
         </header>
       }
@@ -461,7 +461,7 @@ export function RoomChat({
         <span className="font-display font-semibold text-foreground">{toast.sender_name}</span>{" "}
         <span className="text-muted-foreground">{chatToastText(toast.text)}</span>
       </span>
-      <MessageCircle aria-hidden="true" className="h-4 w-4 shrink-0 text-muted-foreground" />
+      <Icon name="chat" size={18} className="-m-px shrink-0 text-muted-foreground" />
     </Toast>
   ) : null;
   return (

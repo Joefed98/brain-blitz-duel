@@ -1,7 +1,8 @@
 import { createContext, useContext, useEffect, useLayoutEffect, useRef, useState, type ReactNode, type RefObject } from "react";
-import { MessageCircle, MoreHorizontal } from "lucide-react";
+import { MoreHorizontal } from "lucide-react";
 
 import type { RoomChatState } from "@/lib/duel/useRoomChat";
+import { Icon } from "@/design/components";
 
 /**
  * The room footer (Polish batch R, 25 Oct 2026, presentation only): one 68 px row on every room screen,
@@ -36,7 +37,7 @@ export function RoomChatButton({ chat, available = true }: { chat: RoomChatState
       style={available ? undefined : { visibility: "hidden" }}
       className="rs-chat-btn press"
     >
-      <MessageCircle aria-hidden="true" />
+      <Icon name="chat" size={22} />
       {unread > 0 ? (
         <span data-chat-unread={unread} className="rs-chat-unread">
           {unread > 99 ? "99+" : unread}

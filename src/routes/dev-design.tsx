@@ -1,5 +1,5 @@
 import { createFileRoute, notFound } from "@tanstack/react-router";
-import { ChevronRight, Settings } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import { useState, type ReactNode } from "react";
 
 import { PhoneShell } from "@/components/duel/PhoneShell";
@@ -8,6 +8,9 @@ import {
   Chip,
   CodeInput,
   GameTile,
+  Icon,
+  ICON_LABELS,
+  ICON_NAMES,
   Input,
   LiveTag,
   Medal,
@@ -96,7 +99,7 @@ function DevDesign() {
             {STATES.map((state) => (
               <Labelled key={state} label={`icon · ${state}`}>
                 <Button variant="icon" aria-label="Settings" {...stateProps(state)}>
-                  <Settings aria-hidden="true" />
+                  <Icon name="settings" size={20} />
                 </Button>
               </Labelled>
             ))}
@@ -118,6 +121,41 @@ function DevDesign() {
           <Button variant="gold" size={58} block>
             Block gold
           </Button>
+        </Block>
+
+        <Block title="Icon">
+          <p className="jz-body">Every Joulz icon (docs/icons), 24 px, in the text colour, with its label.</p>
+          <div data-dev-icons className="jz-gallery-grid">
+            {ICON_NAMES.map((name) => (
+              <Labelled key={name} label={`${name} · ${ICON_LABELS[name]}`}>
+                <Icon name={name} size={24} />
+              </Labelled>
+            ))}
+          </div>
+          <div className="jz-gallery-grid">
+            {([18, 20, 22, 24] as const).map((size) => (
+              <Labelled key={size} label={`size ${size}`}>
+                <Icon name="play" size={size} />
+              </Labelled>
+            ))}
+          </div>
+          <div className="jz-gallery-grid">
+            <Labelled label="tab · text-3">
+              <Icon name="practice" tone="text-3" />
+            </Labelled>
+            <Labelled label="tab active · gold">
+              <Icon name="practice-on" tone="gold" />
+            </Labelled>
+            <Labelled label="wrong · red">
+              <Icon name="cross" tone="red" />
+            </Labelled>
+            <Labelled label="done · cyan">
+              <Icon name="check" tone="cyan" />
+            </Labelled>
+            <Labelled label="close">
+              <Icon name="close" />
+            </Labelled>
+          </div>
         </Block>
 
         <Block title="Panel and Row">

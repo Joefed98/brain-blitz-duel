@@ -1,4 +1,3 @@
-import { CalendarPlus, Clock, Lock, Users } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 
 import { fetchDuelByCode, fetchPlayers } from "@/lib/duel/api";
@@ -11,7 +10,7 @@ import {
   type PublicGame,
 } from "@/lib/publicSchedule";
 import { pageHidden } from "@/lib/battery";
-import { Button, LiveTag } from "@/design/components";
+import { Button, Icon, LiveTag } from "@/design/components";
 
 /** "Sat 24 Oct · 7:00 pm UK" (UK time). */
 export function publicGameWhen(game: PublicGame): string {
@@ -124,14 +123,14 @@ export function PublicGameNext({
         </p>
       ) : (
         <p data-public-status className="ap-next-status">
-          <Clock aria-hidden="true" />
+          <Icon name="timer" size={18} className="-m-px" />
           <span>{game ? `Lobby opens in ${untilText(game.lobbyAt, now)}` : "Lobby opens ····"}</span>
         </p>
       )}
       <div className="ap-next-actions">
         {open && game ? (
           <Button variant="gold" size={44} block data-public-join onClick={() => onJoin(game.roomCode)}>
-            <Users aria-hidden="true" className="h-4 w-4" /> Join now
+            <Icon name="friends" size={18} className="-m-px" /> Join now
           </Button>
         ) : (
           <>
@@ -144,11 +143,11 @@ export function PublicGameNext({
               // Still named Join now (it becomes it at lobby time); it shows when it opens.
               aria-label={game ? `Join now (opens ${ukTime(game.lobbyAt)})` : "Join now"}
             >
-              <Lock aria-hidden="true" className="h-4 w-4" strokeWidth={2.2} />
+              <Icon name="lock" size={18} className="-m-px" />
               {game ? `Opens ${ukTime(game.lobbyAt)}` : "Opens ····"}
             </Button>
             <Button variant="secondary" size={44} block data-public-calendar onClick={() => game && downloadCalendar(game)}>
-              <CalendarPlus aria-hidden="true" className="h-4 w-4" /> Add to calendar
+              <Icon name="calendar" size={18} className="-m-px" /> Add to calendar
             </Button>
           </>
         )}
@@ -182,7 +181,7 @@ export function PublicGameRow({ game }: { game: PublicGame }) {
         onClick={() => downloadCalendar(game)}
         className="ap-icon-btn press"
       >
-        <CalendarPlus aria-hidden="true" strokeWidth={1.9} />
+        <Icon name="calendar" size={20} />
       </button>
     </div>
   );

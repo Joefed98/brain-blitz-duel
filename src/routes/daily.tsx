@@ -1,5 +1,4 @@
 import { createFileRoute, useRouter } from "@tanstack/react-router";
-import { ChevronLeft } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { FeedbackLink } from "@/components/beta/FeedbackLink";
@@ -45,7 +44,7 @@ import { getStoredName, setStoredName } from "@/lib/duel/session";
 import { unlockAudio } from "@/lib/sound";
 import { APP_NAME } from "@/lib/brand";
 import { OnlineOnly } from "@/components/offline/OnlineOnly";
-import { Button, Input, Segmented, SkeletonPage } from "@/design/components";
+import { Button, Icon, Input, Segmented, SkeletonPage } from "@/design/components";
 
 export const Route = createFileRoute("/daily")({
   ssr: false,
@@ -193,7 +192,7 @@ function DailyScreen() {
       onClick={() => setMode({ kind: "board" })}
       className="press tap-target -ml-2 flex items-center gap-1 px-2 text-[15px] font-semibold text-[var(--ap-link)]"
     >
-      <ChevronLeft aria-hidden="true" className="h-4 w-4" /> Daily
+      <Icon name="back" size={18} className="-m-px" /> Daily
     </button>
   );
 
@@ -309,7 +308,7 @@ function DailyScreen() {
         onClick={back}
         className="press tap-target -ml-2 flex items-center gap-1 px-2 text-[15px] font-semibold text-[var(--ap-link)]"
       >
-        <ChevronLeft aria-hidden="true" className="h-4 w-4" /> Play
+        <Icon name="back" size={18} className="-m-px" /> Play
       </button>
       {status.available ? (
         <span className="rs-pill shrink-0">{closesIn(status.closesAt - now)}</span>

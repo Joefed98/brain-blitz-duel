@@ -1,4 +1,3 @@
-import { Lock } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { Medal } from "@/components/duel/Medal";
@@ -8,6 +7,7 @@ import { ordinal } from "@/lib/duel/ordinal";
 import { tieMarks } from "@/lib/duel/tieDisplay";
 import { youStyle } from "@/components/duel/Standings";
 import { isPlayerColour, isPlayerIcon, type PlayerLook } from "@/lib/duel/playerLook";
+import { Icon } from "@/design/components";
 
 /** A board row's badge: the player's stored colour and icon (an initial on gold without one). */
 function lookOf(colour: number | null, icon: string | null): PlayerLook {
@@ -127,7 +127,7 @@ export function DailyBoard({
           className="jz-panel flex items-center gap-2 px-4 py-5 text-sm text-muted-foreground"
           data-daily-locked
         >
-          <Lock aria-hidden="true" className="h-4 w-4 shrink-0" />
+          <Icon name="lock" size={18} className="-m-px" />
           <span className="min-w-0">{lockedNote}</span>
         </p>
       )}

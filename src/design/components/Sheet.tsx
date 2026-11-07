@@ -1,8 +1,8 @@
-import { X } from "lucide-react";
 import type { CSSProperties, KeyboardEvent, ReactNode } from "react";
 import { Drawer } from "vaul";
 
 import { Button } from "./Button";
+import { Icon } from "./Icon";
 
 /**
  * A bottom sheet (DESIGN.md section 5) on vaul: it follows the finger and a drag down past the
@@ -72,7 +72,7 @@ export function Sheet({
                 <h2>{title}</h2>
               </Drawer.Title>
               <Button variant="icon" onClick={onClose} aria-label={closeLabel ?? `Close ${title.toLowerCase()}`}>
-                <X aria-hidden="true" />
+                <Icon name="close" size={20} />
               </Button>
             </div>
           )}

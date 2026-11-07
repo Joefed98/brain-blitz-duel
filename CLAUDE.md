@@ -1587,6 +1587,16 @@ outside the repo.
   (`scripts/fixtures/hero-bounds-main.json`, `--record=<main checkout>`) and the Medal. The Roofbound, Grappler and
   Moon Climb tiles are re-exported. Shots: `bun scripts/shots/captain-shots.ts [--old=<main checkout>]`,
   `bun scripts/shots/art-gallery-shots.tsx` (`screenshots/art-f5-nov-2026/`); `/dev-design` shows every piece.
+- **Icon swap** (7 Nov 2026; presentation only, no stamps; `DESIGN.md` section 6): the approved Joulz icons
+  (`docs/icons/svg/`, `names.json`, README) drawn by `Icon` in `src/design/components/` (`name`, `size` 18 / 20 / 22 /
+  24, `tone` a token, decorative unless `label`), inlined from `src/design/icons/icons.data.ts` (built by
+  `bun scripts/icons-build.ts`; **re-run it after changing an SVG**), every icon on `/dev-design`. The tab bar and
+  rail (outline in `--jz-text-3`, `-on` in `--jz-gold` when current), headers, the game menu (sound / music / help rows),
+  sheets' ✕, chat, share, calendar, lock, back, search, settings, ticks and the expand carets use it; a 16 px slot
+  keeps its footprint with `-m-px` round an 18 px icon. `lucide-react` stays where the set has no icon yet (list in
+  DESIGN.md) and in game boards. icons-check (~1 s) proves the data file, the drawings, the component and that no
+  replaced stock icon returns to app chrome. celebrations-off.json re-recorded (only svg markup changed). Shots
+  `bun scripts/shots/icon-swap-shots.ts` (`screenshots/icon-swap-nov-2026/`).
 - `src/components/duel/` — room/round screens (PhoneShell, RoundIntro, TimerBar,
   AnswerReveal, ArcadeReveal, WinnerReveal…); `src/components/puzzles/` — shared puzzle
   widgets; `src/lib/fx/` — sound and visual feedback (presentation only).

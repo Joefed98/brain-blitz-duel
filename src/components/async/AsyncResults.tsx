@@ -1,6 +1,5 @@
 import { useEffect, useState, type ReactNode } from "react";
 
-import { ChevronDown } from "lucide-react";
 import { GameIcon } from "@/components/app/GameIcon";
 import { AnswerReveal } from "@/components/duel/AnswerReveal";
 import { WaitingLine } from "@/components/duel/Dots";
@@ -19,7 +18,7 @@ import {
 } from "@/lib/duel/resultPresentation";
 import type { ReplayRound } from "@/lib/replay/replay.server";
 import type { PuzzleType } from "@/lib/duel/types";
-import { Button } from "@/design/components";
+import { Button, Icon } from "@/design/components";
 
 /**
  * An async room's results for the player who has finished it (21 Oct 2026; the daily challenge):
@@ -197,7 +196,7 @@ export function AsyncResults({
                     >
                       {score}
                     </span>
-                    <ChevronDown aria-hidden="true" className={`h-5 w-5 shrink-0 text-[var(--ap-faint)] transition-transform ${expanded ? "rotate-180" : ""}`} />
+                    <Icon name="down" size={20} tone="text-3" className={`shrink-0 transition-transform ${expanded ? "rotate-180" : ""}`} />
                   </span>
                 </button>
                 {expanded ? (

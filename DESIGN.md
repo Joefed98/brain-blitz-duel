@@ -161,6 +161,7 @@ component gallery, `/dev-design` (development builds only).
 | `Nameplate` | strip (standings, lobby), full, mini; the avatar disc (PlayerBadge) inside | `PlayerBadge` layouts |
 | `Medal` | the approved medal art (docs/art) for 1st–3rd, no numbers; the plain number from 4th; a shared place adds an "=" tag; S 22, M 36, L 64 wide | `Medal.tsx`'s placeholder discs (F5) |
 | `TabBar` | phone bar and desktop rail from one list (`TABS`) | the two copies in `AppTabBar` and `AppRail` |
+| `Icon` | the Joulz icons (section 6): `name`, `size` 18 / 20 / 22 / 24, `tone` (`text`, `text-2`, `text-3`, `gold`, `red`, `cyan`), `label` | `lucide-react` in app chrome |
 
 Every interactive component has hover (fine pointer), pressed (scale 0.97, 120 ms) and focus-visible (2 px
 `--jz-gold`, 2 px offset; a clipped component draws its cut on a pseudo-element so the ring is never cut)
@@ -179,9 +180,20 @@ docs/art/svg/ byte for byte. Captain Joulz is canvas art (`src/lib/arcade/hero.r
 
 ## 6. Icons
 
-Until the custom set lands, app chrome uses `lucide-react` at 2 px stroke, 20 or 22 px, square caps. The
-custom set (bolt-based, angled cuts) replaces the tab bar first, then headers and sheets. No emoji in app chrome;
-emoji stay in chat reactions only.
+The Joulz set (`docs/icons/`, approved 7 Nov 2026; rules in `docs/icons/README.md`): 24 × 24, one 2 px stroke,
+round joins and caps, `currentColor`. App chrome draws them through `Icon` (`@/design/components`: `name` from the
+file names, `size` 18, 20, 22 or 24 only, `tone` a `--jz-*` colour, decorative unless given a `label`), inlined
+from `src/design/icons/icons.data.ts` (`bun scripts/icons-build.ts` after changing an SVG; icons-check proves it).
+
+- Tabs: the outline icon in `--jz-text-3`, the `-on` filled icon in `--jz-gold` when current.
+- Wrong is `cross` in `--jz-red`; Close is `close` only (never a wrong mark); a Done tick marking success is
+  `check` in `--jz-cyan`. Profile uses the helmet (`profile`).
+- A slot smaller than 18 px keeps its footprint with a negative margin (`-m-px` round an 18 px icon in a 16 px
+  slot), so swapping an icon never moves the layout.
+- `lucide-react` stays only where the set has no icon yet (forward and room-menu ⋯, send, shuffle, undo, cloud-off
+  and the like) and in game boards; icons-check fails if a replaced stock icon comes back in app chrome.
+
+No emoji in app chrome; emoji stay in chat reactions only.
 
 ---
 

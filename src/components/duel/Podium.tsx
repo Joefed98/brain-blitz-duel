@@ -8,7 +8,6 @@ import type { PodiumAward } from "@/lib/duel/podiumAwards";
 import type { PuzzleType, RoundResultRow, StoredPuzzleType } from "@/lib/duel/types";
 import { tieMarks } from "@/lib/duel/tieDisplay";
 import { GameIcon, hasGameIcon } from "@/components/app/GameIcon";
-import { ChevronDown } from "lucide-react";
 import { playerBreakdown } from "@/lib/duel/scoring";
 import { haptic } from "@/lib/haptics";
 import { playVoice, queueVoice } from "@/lib/sound";
@@ -38,7 +37,7 @@ import { PlayerBadge } from "./PlayerBadge";
 import { PodiumAwards } from "./PodiumAwards";
 import { RoomFooter } from "./RoomFooter";
 import { isCompactRoom, youStyle } from "./Standings";
-import { Button } from "@/design/components";
+import { Button, Icon } from "@/design/components";
 
 /** The steps: flat panels, the top one tallest, each with its medal (Polish batch R: a compact podium). */
 const STEP_HEIGHT = ["h-[46px]", "h-[34px]", "h-[26px]"];
@@ -267,7 +266,7 @@ export function Podium({
                   countSound={celebrate}
                   className="th-score rs-total"
                 />
-                <ChevronDown aria-hidden="true" className={`h-5 w-5 shrink-0 text-[var(--ap-faint)] transition-transform ${open === row.slot ? "rotate-180" : ""}`} />
+                <Icon name="down" size={20} tone="text-3" className={`shrink-0 transition-transform ${open === row.slot ? "rotate-180" : ""}`} />
               </button>
               {open === row.slot && (
                 <div className="border-t border-border px-3.5 py-1.5">
@@ -296,7 +295,7 @@ export function Podium({
               className="press flex min-h-11 w-full items-center justify-center gap-1 text-[13px] font-semibold text-[var(--ap-text-2)]"
             >
               {showAll ? "Show the top three" : `See all ${rows.length} players`}
-              <ChevronDown aria-hidden="true" className={`h-4 w-4 transition-transform ${showAll ? "rotate-180" : ""}`} />
+              <Icon name="down" size={18} className={`-m-px transition-transform ${showAll ? "rotate-180" : ""}`} />
             </button>
           </li>
         ) : null}
