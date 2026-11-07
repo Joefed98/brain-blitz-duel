@@ -1,4 +1,3 @@
-import { Swords } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
 import { ShareResultButton } from "@/components/share/ShareResultButton";
@@ -12,7 +11,7 @@ import { resultCardFile } from "@/lib/share/resultCard";
 import type { RoomShareData, RoomShareTop } from "@/lib/share/roomShare";
 import { APP_URL } from "@/config/appUrl";
 import { sendShareEvent, type ShareRecorder } from "@/lib/share/shareRef";
-import { Button } from "@/design/components";
+import { Button, Icon } from "@/design/components";
 
 
 /** Whether friend challenges are available (the migration applied); null until the server answers. */
@@ -190,7 +189,7 @@ export function RoomChallengeButton({
           <Dots className="bg-primary" />
         ) : (
           <>
-            <Swords aria-hidden="true" className="h-[18px] w-[18px] shrink-0" /> Challenge a friend
+            <Icon name="challenge" size={18} className="shrink-0" /> Challenge a friend
           </>
         )}
       </Button>

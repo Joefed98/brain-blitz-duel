@@ -1,5 +1,4 @@
 import { createFileRoute, useRouter } from "@tanstack/react-router";
-import { Swords } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { ErrorState } from "@/components/app/ErrorState";
@@ -390,7 +389,7 @@ function ChallengeScreen() {
           <>
             <div>
               <p className="th-kicker flex items-center gap-1.5 text-primary">
-                <Swords aria-hidden="true" className="h-4 w-4" /> Challenge {info.code}
+                <Icon name="challenge" size={18} className="-m-px" /> Challenge {info.code}
               </p>
               <h1 className="mt-1 truncate font-display text-2xl font-bold uppercase" data-ellipsis>
                 {info.isCreator

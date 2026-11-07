@@ -1,5 +1,4 @@
 import { createFileRoute, useRouter } from "@tanstack/react-router";
-import { ChevronRight } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
 import { FeedbackLink } from "@/components/beta/FeedbackLink";
@@ -239,7 +238,7 @@ function ProfileScreen() {
                       {step.sub}
                     </span>
                   </span>
-                  <ChevronRight aria-hidden="true" className="ap-chevron" />
+                  <Icon name="chevron-right" size={20} className="ap-chevron" />
                 </button>
               ))}
             </div>

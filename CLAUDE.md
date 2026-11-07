@@ -1629,6 +1629,11 @@ outside the repo.
   DESIGN.md) and in game boards. icons-check (~1 s) proves the data file, the drawings, the component and that no
   replaced stock icon returns to app chrome. celebrations-off.json re-recorded (only svg markup changed). Shots
   `bun scripts/shots/icon-swap-shots.ts` (`screenshots/icon-swap-nov-2026/`).
+- **Icon swap 2** (7 Nov 2026; presentation only, no stamps): the second set (`chevron-right`, `chevron-down`, `more`,
+  `send`, `expand`, `collapse`, `add-home`, `challenge`, `announce`, `rejoin`, `external`, `offline`) replaces lucide's
+  ChevronRight, MoreHorizontal, Send, Maximize2 / Minimize2, SquarePlus, Swords, Megaphone, DoorOpen, ExternalLink and
+  CloudOff in app chrome; every icon keeps its size and position. lucide-react
+  stays for game boards, PendingClock's `Clock3` and Tournaments' empty-state `CalendarDays`.
 - `src/components/duel/` — room/round screens (PhoneShell, RoundIntro, TimerBar,
   AnswerReveal, ArcadeReveal, WinnerReveal…); `src/components/puzzles/` — shared puzzle
   widgets; `src/lib/fx/` — sound and visual feedback (presentation only).

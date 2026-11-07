@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate, useRouter } from "@tanstack/react-router";
-import { CalendarDays, ExternalLink } from "lucide-react";
+import { CalendarDays } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
 import { PhoneShell } from "@/components/duel/PhoneShell";
@@ -21,7 +21,7 @@ import {
 } from "@/lib/publicSchedule";
 import { APP_NAME } from "@/lib/brand";
 import { OnlineOnly } from "@/components/offline/OnlineOnly";
-import { ButtonLink } from "@/design/components";
+import { ButtonLink, Icon } from "@/design/components";
 
 export const Route = createFileRoute("/tournaments")({
   ssr: false,
@@ -126,7 +126,7 @@ function TournamentsScreen() {
                   block
                 >
                   Open the beta Discord
-                  <ExternalLink aria-hidden="true" className="h-4 w-4" />
+                  <Icon name="external" size={18} className="-m-px" />
                 </ButtonLink>
               ) : null}
               <button

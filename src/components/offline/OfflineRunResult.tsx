@@ -1,4 +1,3 @@
-import { CloudOff } from "lucide-react";
 
 import { GameIcon } from "@/components/app/GameIcon";
 import { PUZZLE_REGISTRY } from "@/lib/duel/registry";
@@ -6,7 +5,7 @@ import type { PuzzleType } from "@/lib/duel/types";
 
 import { PendingClock } from "./PendingClock";
 import { useQueuedRun } from "./useOfflinePractice";
-import { Button } from "@/design/components";
+import { Button, Icon } from "@/design/components";
 
 /**
  * The end of a practice run played away from the server (offline practice, 31 Oct 2026), in place of the
@@ -55,7 +54,7 @@ export function OfflineRunResult({
           <span data-offline-note className="ap-meta flex max-w-[300px] flex-col items-center gap-0.5 whitespace-normal">
             {run?.provisional != null ? <span>Provisional score</span> : null}
             <span>
-              <CloudOff aria-hidden="true" className="mr-1 inline h-3.5 w-3.5 align-[-2px]" />
+              <Icon name="offline" size={18} className="mr-1 inline" style={{ width: 14, height: 14, verticalAlign: -2 }} />
               Confirmed when you’re back online
             </span>
           </span>

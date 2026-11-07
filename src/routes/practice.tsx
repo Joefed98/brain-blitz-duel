@@ -1,10 +1,9 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { CloudOff } from "lucide-react";
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 
 import { AnswerReveal } from "@/components/duel/AnswerReveal";
 import { WaitingLine } from "@/components/duel/Dots";
-import { Chip, GameTile, Input, Segmented, Stars } from "@/design/components";
+import { Chip, GameTile, Icon, Input, Segmented, Stars } from "@/design/components";
 import { GameLayout, PhoneShell, isArcadeScreenType } from "@/components/duel/PhoneShell";
 import { FrameScore } from "@/components/duel/GameFrame";
 import { SteadyOrPlain } from "@/components/duel/SteadyStage";
@@ -673,14 +672,14 @@ function PracticeScreen() {
       if (ONLINE_ONLY_TYPES.has(key))
         return (
           <span data-online-only className="of-mark">
-            <CloudOff aria-hidden="true" />
+            <Icon name="offline" size={18} style={{ width: 15, height: 15 }} />
             Online only
           </span>
         );
       if ((offlineStore.counts[key] ?? 0) === 0)
         return (
           <span data-none-saved className="of-mark">
-            <CloudOff aria-hidden="true" />
+            <Icon name="offline" size={18} style={{ width: 15, height: 15 }} />
             None saved
           </span>
         );

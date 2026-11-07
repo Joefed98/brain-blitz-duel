@@ -1,4 +1,3 @@
-import { Send } from "lucide-react";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 
 import { PlayerBadge } from "@/components/duel/PlayerBadge";
@@ -223,7 +222,7 @@ function PanelChat({ chat, myUserId }: { chat: RoomChatState; myUserId: string }
           disabled={!text.trim() || chat.sending}
           className="dk-rail-icon press"
         >
-          <Send aria-hidden="true" className="h-5 w-5" />
+          <Icon name="send" size={20} />
         </button>
       </form>
       {chat.error ? <p className="dk-rp-quiet">{chat.error}</p> : null}

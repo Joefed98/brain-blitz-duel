@@ -1,4 +1,3 @@
-import { ChevronRight } from "lucide-react";
 import { memo, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 
@@ -73,7 +72,7 @@ export const GameMenu = memo(function GameMenu({ type, onHelp }: { type?: Puzzle
                 >
                   <Icon name="help" size={20} tone="text-2" />
                   <span className="jz-row-title flex-1">How to play</span>
-                  <ChevronRight aria-hidden="true" className="h-4 w-4 opacity-60" />
+                  <Icon name="chevron-right" size={18} className="-m-px opacity-60" />
                 </Row>
               ) : null}
             </Panel>

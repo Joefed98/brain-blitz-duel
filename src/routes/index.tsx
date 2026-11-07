@@ -1,11 +1,10 @@
 import { createFileRoute, useNavigate, useRouter } from "@tanstack/react-router";
-import { ChevronRight, DoorOpen } from "lucide-react";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
 import { HomeScreenHint } from "@/components/beta/HomeScreenHint";
 import { TermsScreen } from "@/components/beta/TermsScreen";
 import { Dots } from "@/components/duel/Dots";
-import { Button, CodeInput, GameTile, Input, Panel, SectionHeader } from "@/design/components";
+import { Button, CodeInput, GameTile, Icon, Input, Panel, SectionHeader } from "@/design/components";
 import { PhoneShell } from "@/components/duel/PhoneShell";
 import { PageAside } from "@/components/app/PageAside";
 import { Onboarding } from "@/components/duel/Onboarding";
@@ -425,7 +424,7 @@ function Home() {
             className="jz-panel jz-row press"
           >
             <span className="ap-icon-sq">
-              <DoorOpen aria-hidden="true" />
+              <Icon name="rejoin" size={20} style={{ width: 21, height: 21 }} />
             </span>
             <span className="jz-row-text">
               <span className="jz-row-title">Rejoin your last room</span>
@@ -438,7 +437,7 @@ function Home() {
                     : "Game in progress"}
               </span>
             </span>
-            <ChevronRight aria-hidden="true" className="ap-chevron" />
+            <Icon name="chevron-right" size={20} className="ap-chevron" />
           </button>
           );
         })()}
