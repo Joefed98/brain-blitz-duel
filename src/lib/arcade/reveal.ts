@@ -994,7 +994,7 @@ const BUILDERS: Record<string, Builder> = {
         { label: "Targets", value: `${n(r, "cleared")} / 10` },
         { label: "Resets", value: String(n(r, "resets")) },
         // tenRev 4: tens made by the gold tile.
-        ...("goldTens" in (r as object) ? [{ label: "Gold tiles", value: String(n(r, "goldTens")) }] : []),
+        ...("goldTens" in (r as object) ? [{ label: "Gold tens", value: String(n(r, "goldTens")) }] : []),
       ],
       outcome: done ? "finish" : "time",
     };
