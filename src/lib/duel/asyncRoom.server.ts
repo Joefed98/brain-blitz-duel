@@ -500,7 +500,7 @@ export async function startAsyncRound(
   nowMs: number,
 ): Promise<{ ok: true; puzzle: PuzzleData; startedAt: number } | { ok: false; message: string }> {
   const pub = room.puzzles_public[round - 1];
-  if (!pub || !Number.isInteger(round)) return { ok: false, message: "Unknown round." };
+  if (!pub || !Number.isInteger(round)) return { ok: false, message: "That round doesn’t exist." };
   const rows = await resultsOf(client, attempt.id);
   if (await closeMissedRounds(client, room, attempt, rows, nowMs))
     await refreshAttempt(client, room, attempt, rows, nowMs);
@@ -593,7 +593,7 @@ export async function submitAsyncAnswer(
   if (!row) return { ok: false, message: "That round hasn’t started." };
   if (done(row)) return { ok: true, alreadySubmitted: true };
   const pub = room.puzzles_public[input.round - 1];
-  if (!pub) return { ok: false, message: "Unknown round." };
+  if (!pub) return { ok: false, message: "That round doesn’t exist." };
   const startedAt = msOf(row.started_at);
   if (asyncReceipt(pub, startedAt, nowMs) === "closed") {
     await closeMissedRounds(client, room, attempt, rows, nowMs);
@@ -672,9 +672,9 @@ export async function asyncRoundReveal(
   | { ok: false; message: string }
 > {
   const row = (await resultsOf(client, attempt.id)).find((r) => r.round_number === round);
-  if (!done(row)) return { ok: false, message: "That round isn’t finished yet." };
+  if (!done(row)) return { ok: false, message: "That round isn’t over yet." };
   const pub = room.puzzles_public[round - 1];
-  if (!pub) return { ok: false, message: "Unknown round." };
+  if (!pub) return { ok: false, message: "That round doesn’t exist." };
   const puzzle = mergePuzzle(pub, (await privateHalf(client, room.id, round)) ?? undefined);
   const result = asRoundResult(row!);
   const definition = puzzleDef(puzzle.type);

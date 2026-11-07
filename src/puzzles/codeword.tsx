@@ -276,7 +276,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkMoves, stateKey }
         {note ? (
           <span className="text-destructive">{note}</span>
         ) : solved ? (
-          <span className="text-primary">Cracked!</span>
+          <span className="text-primary">Cracked it</span>
         ) : complete ? (
           <span>Checking…</span>
         ) : actions.length > 0 ? (

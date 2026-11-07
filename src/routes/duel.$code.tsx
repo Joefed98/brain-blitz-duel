@@ -1078,6 +1078,7 @@ function DuelScreen() {
           ready={me.intro_ready_round >= round}
           readyCount={introReadyCount}
           activeCount={waitCount}
+          waitingFor={waitingOn.find((p) => p.player_slot !== mySlot)?.display_name}
           onReady={() => {
             unlockAudio();
             playLock();
@@ -1320,7 +1321,7 @@ function DuelScreen() {
                   Locked
                 </span>
                 <span className="flex items-center gap-2 text-sm text-muted-foreground">
-                  {isMulti ? "Waiting for other players" : "Waiting for opponent"} <Dots />
+                  {isMulti ? "Waiting for other players" : opponent?.display_name ? `Waiting for ${opponent.display_name}` : "Waiting for opponent"} <Dots />
                 </span>
               </div>
             )}

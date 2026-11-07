@@ -77,7 +77,7 @@ export function JoinFromLink({
       await onJoined();
     } catch (err) {
       setBusy(false);
-      setError(err instanceof Error ? err.message : "Something went wrong. Try again.");
+      setError(err instanceof Error ? err.message : "That didn’t work. Try again.");
     }
   };
 
@@ -115,7 +115,7 @@ export function JoinFromLink({
             "You can join the next one if the host plays again from the lobby.",
           ]
         : preview.state === "finished"
-          ? ["This game has finished", "Ask the host to play again, then open the link again."]
+          ? ["This game has finished", "Ask the host to play again, then reopen the link."]
           : ["This room is closed", "The host closed it."];
     return (
       <>
@@ -173,7 +173,7 @@ export function JoinFromLink({
             <Dots className="bg-primary-foreground" />
           </>
         ) : full ? (
-          "Room is full"
+          "Room’s full"
         ) : (
           "Join room"
         )}

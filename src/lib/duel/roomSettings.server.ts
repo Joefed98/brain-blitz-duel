@@ -34,9 +34,9 @@ export async function changeRoomSettings(
   if (room.host_user_id !== userId)
     return { ok: false, message: "Only the host can change the room settings." };
   if (room.status !== "waiting" || room.disbanded_at)
-    return { ok: false, message: "The game has already started." };
+    return { ok: false, message: "This game’s already started." };
   if (!roomSettingsUnlocked())
-    return { ok: false, message: "Room settings are part of Duelz Plus." };
+    return { ok: false, message: "Room settings are part of Joulz Plus." };
   const valid = validateRoomSettings(input);
   if (!valid.ok) return valid;
   // Scoring (scoringMode.ts) is optional: a phone that doesn't send it (the column is missing, or an older
@@ -64,7 +64,7 @@ export async function changeRoomSettings(
     ({ data: written, error: writeError } = await write(false));
   }
   if (writeError) throw new Error(writeError.message);
-  if (!written) return { ok: false, message: "The game has already started." };
+  if (!written) return { ok: false, message: "This game’s already started." };
   console.log(
     `[room-settings] room=${room.room_code} ${encodeRoomSettings(valid.settings).join(",")}${scoring ? ` scoring=${scoring}` : ""}`,
   );

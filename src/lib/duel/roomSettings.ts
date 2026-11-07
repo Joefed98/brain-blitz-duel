@@ -218,13 +218,13 @@ export function validateRoomSettings(
 ): { ok: true; settings: RoomSettings } | { ok: false; message: string } {
   const value = input as { picks?: unknown; rounds?: unknown } | null;
   if (!value || !Array.isArray(value.picks) || value.picks.length === 0)
-    return { ok: false, message: "Choose at least one category." };
+    return { ok: false, message: "Pick at least one category." };
   if (
     value.picks.length > ROOM_PICKS.length ||
     !value.picks.every(isRoomPick) ||
     new Set(value.picks).size !== value.picks.length
   )
-    return { ok: false, message: "Choose valid categories." };
+    return { ok: false, message: "Some of those categories don’t exist." };
   const picks = orderPicks(value.picks);
   if (picks.some((p) => pickTypes(p).length === 0))
     return { ok: false, message: "A category you picked has no games yet." };

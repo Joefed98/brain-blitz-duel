@@ -301,7 +301,7 @@ try {
           finals++;
           if (first?.panel !== "final-board") fails.push(`panel ${first?.panel}, want the final board`);
           const s = shown[shown.length - 1];
-          if (!s?.counter?.includes("Replay not available for this game yet")) fails.push(`no "not available" line ("${s?.counter}")`);
+          if (!s?.counter?.includes("No replay for this game yet")) fails.push(`no "not available" line ("${s?.counter}")`);
           if (!s?.counter?.includes(`${c.score} pts`)) fails.push("no stored score");
           // Some reveals are mostly lines (Exact's pool and value): drawn, at a readable size.
           if (!s?.board || s.board.w < 60 || s.board.h < 40) fails.push(`the final board is not drawn (${JSON.stringify(s?.board)}, inner ${s?.inner})`);

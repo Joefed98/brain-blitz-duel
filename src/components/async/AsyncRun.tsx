@@ -156,7 +156,7 @@ export function AsyncRun({
       if (!next) {
         setStep({
           kind: "error",
-          message: "This challenge couldn’t be loaded. Try again in a moment.",
+          message: "Couldn’t load the challenge. Try again in a moment.",
         });
         return;
       }
@@ -190,7 +190,7 @@ export function AsyncRun({
     } catch {
       setStep({
         kind: "error",
-        message: "Couldn’t reach the server. Check your connection and try again.",
+        message: "Can’t reach us. Check your signal and try again.",
       });
     } finally {
       syncing.current = false;
