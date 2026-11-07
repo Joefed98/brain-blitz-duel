@@ -4,6 +4,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { staleSubmissionNote } from "@/lib/appVersion";
 
 import { type SubmitExtra } from "./grade";
+import { sealPractice, toBase64, unsealPractice } from "./practiceSeal";
 import { mergePuzzle, splitPuzzle } from "./secrets";
 import { PUZZLE_TYPES } from "./registry";
 import type { PuzzleData, PuzzleType } from "./types";
@@ -13,41 +14,15 @@ import type { PuzzleData, PuzzleType } from "./types";
 /*                                                                             */
 /*  No room, players or results. Each graded play adds one practice_plays row  */
 /*  (outcome only, for the beta numbers; betaRecord.server.ts). The answer half of the */
-/*  puzzle travels back to the device sealed (encrypted with a server-only key) */
+/*  puzzle travels back to the device sealed (encrypted with a server-only key, */
+/*  practiceSeal.ts: PRACTICE_SEAL_KEY, else the service-role key)            */
 /*  so it stays unreadable until the practice answer has been graded here.      */
 /* -------------------------------------------------------------------------- */
 
 type Loose = Record<string, unknown>;
 
-async function sealKey(): Promise<CryptoKey> {
-  const secret = process.env["SUPABASE_SERVICE_ROLE_KEY"];
-  // The public URL is no secret: only a dev server (practice in checks) may seal with it.
-  if (!secret && import.meta.env.PROD) throw new Error("Practice is down for a moment. Try again shortly.");
-  const material = secret ?? process.env["SUPABASE_URL"] ?? "";
-  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(material));
-  return crypto.subtle.importKey("raw", digest, "AES-GCM", false, ["encrypt", "decrypt"]);
-}
-
-function toBase64(bytes: Uint8Array): string {
-  let out = "";
-  for (const byte of bytes) out += String.fromCharCode(byte);
-  return btoa(out);
-}
-
-function fromBase64(value: string): Uint8Array<ArrayBuffer> {
-  const raw = atob(value);
-  const bytes = new Uint8Array(new ArrayBuffer(raw.length));
-  for (let i = 0; i < raw.length; i++) bytes[i] = raw.charCodeAt(i);
-  return bytes;
-}
-
 async function seal(payload: unknown): Promise<string> {
-  const iv = crypto.getRandomValues(new Uint8Array(new ArrayBuffer(12)));
-  const data = new TextEncoder().encode(JSON.stringify(payload));
-  const cipher = new Uint8Array(
-    await crypto.subtle.encrypt({ name: "AES-GCM", iv }, await sealKey(), data),
-  );
-  return `${toBase64(iv)}.${toBase64(cipher)}`;
+  return sealPractice(payload);
 }
 
 /** The sealed half minus its intro-example tag. */
@@ -57,14 +32,7 @@ async function unseal(sealed: string): Promise<Loose> {
 }
 
 async function unsealRaw(sealed: string): Promise<Loose> {
-  const [ivPart, cipherPart] = sealed.split(".");
-  if (!ivPart || !cipherPart) throw new Error("That puzzle didn’t load. Try another.");
-  const plain = await crypto.subtle.decrypt(
-    { name: "AES-GCM", iv: fromBase64(ivPart) },
-    await sealKey(),
-    fromBase64(cipherPart),
-  );
-  return JSON.parse(new TextDecoder().decode(plain)) as Loose;
+  return unsealPractice(sealed);
 }
 
 function validType(type: string): PuzzleType {

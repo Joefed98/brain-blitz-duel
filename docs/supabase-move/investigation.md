@@ -109,14 +109,14 @@ here (DNS blocked), and the live database refused REST calls through the network
 | Largest chunks | `generate.server` 9.1 MB (1.5 MB gz), `puzzleBank.server` 4.4 MB, `registry` 4.4 MB, `bastionTank` 1.2 MB, `dictionary.server` 1.0 MB |
 | Static assets | 31 MB (`.output/public`) |
 
-The big chunks are loaded by dynamic `import()` inside handlers (e.g. `practice.functions.ts:93`, `:168`), so a
+The big chunks are loaded by dynamic `import()` inside handlers (e.g. `practice.functions.ts:61`, `:136`), so a
 cold start does not parse all of them.
 
 ### 1.3 Node-only APIs, file system, long work, memory
 
 | Item | Where | Effect |
 |---|---|---|
-| `await import("crypto")` (bare Node name) | `practice.functions.ts:349` (`demoKeyOk`, the dev demo key) | Works on Workers with `nodejs_compat` (today's build), on Vercel (Node) and on Lovable. On Deno it needs `node:crypto`. |
+| `await import("crypto")` (bare Node name) | `practice.functions.ts:317` (`demoKeyOk`, the dev demo key) | Works on Workers with `nodejs_compat` (today's build), on Vercel (Node) and on Lovable. On Deno it needs `node:crypto`. |
 | `await import("node:crypto")` | `cron-auth.ts:16` (generated, imported by nothing) | Unused. |
 | `node:fs`, `node:path`, `node:crypto` | `src/lib/offline/swPlugin.ts:8-10` | **Build time only** (a Vite plugin), never in the server bundle. |
 | `node:child_process` | `vite.config.ts` (`git rev-parse` for the build id) | Build time only; falls back to "build" without git. |
@@ -411,12 +411,13 @@ FROM pg_proc WHERE proname = 'duel_round_ended';
 | `VITE_SUPABASE_URL` | browser client, build time (`client.ts:36`) | `.env` (Lovable) | the new project URL |
 | `VITE_SUPABASE_PUBLISHABLE_KEY` | browser client (`client.ts:38`) | `.env` | the new publishable key |
 | `VITE_SUPABASE_PROJECT_ID` | nothing in `src/` | `.env` | the new ref |
-| `SUPABASE_URL` | `auth-middleware.ts:36`, `client.server.ts:36`, `client.ts:36` (SSR), `introDemo.functions.ts:57`, `practice.functions.ts:26` (dev seal fallback) | `.env` and the Lovable runtime | the new URL |
+| `SUPABASE_URL` | `auth-middleware.ts:36`, `client.server.ts:36`, `client.ts:36` (SSR), `introDemo.functions.ts:57`, `practiceSeal.ts:51` (dev seal fallback) | `.env` and the Lovable runtime | the new URL |
 | `SUPABASE_PUBLISHABLE_KEY` | `auth-middleware.ts:37`, `client.ts:38`, `introDemo.functions.ts:56` | `.env` and the Lovable runtime | the new publishable key |
 | `SUPABASE_ANON_KEY` | `introDemo.functions.ts:56` (fallback only) | not set as far as the repo shows | not needed |
 | `SUPABASE_PROJECT_ID` | nothing in `src/` | `.env` | the new ref |
-| `SUPABASE_SERVICE_ROLE_KEY` | `client.server.ts:37`; **the practice seal key** (`practice.functions.ts:22-29`); the "is there a database?" guards in `terms.functions.ts:15`, `share.functions.ts:33`, `challenge.functions.ts:225` and `practice.functions.ts:165` | Lovable Cloud runtime only | the new project's service-role (or `sb_secret_`) key: Lovable (route A) or the host's secret store (B/C) |
-| `INTRO_DEMO_KEY` | `practice.functions.ts:347` (dev demo saving) | Lovable secret, set by Joe | the same or a new long random value |
+| `SUPABASE_SERVICE_ROLE_KEY` | `client.server.ts:37`; **the practice seal key's fallback** while `PRACTICE_SEAL_KEY` is unset, and the second key unsealing tries (`practiceSeal.ts:49`); the "is there a database?" guards in `terms.functions.ts:15`, `share.functions.ts:33`, `challenge.functions.ts:225` and `practice.functions.ts:133` | Lovable Cloud runtime only | the new project's service-role (or `sb_secret_`) key: Lovable (route A) or the host's secret store (B/C) |
+| `PRACTICE_SEAL_KEY` | `practiceSeal.ts:48`: the key that seals practice's private halves (live practice and offline packs; D5). Unset or empty: the seal falls back to `SUPABASE_SERVICE_ROLE_KEY`, exactly as before. Set: new seals use it, and unsealing still accepts the service-role key, so tokens sealed before it was set keep working until that key changes | not set until Joe sets it (a Lovable Cloud secret) | **the same value**, carried across unchanged, so packs on phones survive the move |
+| `INTRO_DEMO_KEY` | `practice.functions.ts:315` (dev demo saving) | Lovable secret, set by Joe | the same or a new long random value |
 | `LOVABLE_CRON_SECRET`, `LOVABLE_CRON_SECRET_PREVIOUS` | `cron-auth.ts` (imported by nothing) | Lovable-managed | not needed |
 | `LOVABLE_DB_MIGRATION_URL` | `drizzle.config.ts` (Lovable's migration tool) | Lovable-managed | Lovable's concern |
 | `DUELZ_BUILD_ID` | `vite.config.ts` | set by the build itself | unchanged |
@@ -456,14 +457,18 @@ FROM pg_proc WHERE proname = 'duel_round_ended';
   - The host's recent-rooms history (used to avoid repeats) starts again.
   - Device-only records survive, because they are keyed by origin, not user id: practice bests, stars, look,
     streaks and terms agreement.
-  - **Offline practice.** Packs are sealed with a key derived from `SUPABASE_SERVICE_ROLE_KEY`
-    (`practice.functions.ts:22-29`). A new service key means:
+  - **Offline practice.** Packs are sealed with `PRACTICE_SEAL_KEY` when it is set, else with a key derived from
+    `SUPABASE_SERVICE_ROLE_KEY` (`src/lib/duel/practiceSeal.ts`). If `PRACTICE_SEAL_KEY` is set (and carried to the
+    new host unchanged) before the move, nothing below happens to packs sealed after it was set. Otherwise a new
+    service key means:
     - packs already on a phone fail to unseal;
     - a queued run is shown "Couldn't be confirmed" (`src/lib/offline/queue.ts:150`);
     - live practice and new packs are unaffected.
 
-    To avoid that, Joe could set a dedicated `PRACTICE_SEAL_KEY` (a code change, recommended in the security
-    audit #7). With no players it can wait. Note it as an expected one-off.
+    To avoid that, Joe sets `PRACTICE_SEAL_KEY` (the code reads it since D5, 7 Nov 2026; security audit #7).
+    Packs sealed before it was set still open while the old service key is in place, so setting it is safe at any
+    time; only packs sealed before it was set are lost at the move. With no players it can wait. Note it as an
+    expected one-off.
 
 ---
 
@@ -511,7 +516,7 @@ Steps, in order (**[Joe]** = dashboards, keys or Lovable access):
 | 2 | Export what to keep from Lovable Cloud: `unblock_bank` and `intro_demos` as data (`COPY … TO` / CSV from the SQL view, or Cloud's Export), plus, optionally, a full export of everything else as an archive, deleted later if it holds credentials. Run section 3.6's counts and section 4's verification SQL and note the results. | Joe (Claude can write the exact SQL) | 1 h |
 | 3 | Create the Supabase project (London, Pro). Turn anonymous sign-ins on; set the Site URL. Run all 43 `supabase/migrations` in order (`supabase link`, `supabase db push`). Confirm the realtime publication holds the four tables. Compare the schema with `types.ts` (`supabase gen types` should match it apart from formatting). | Joe for keys and the DB password; Claude for the commands and the comparison | 2 h |
 | 4 | Load `unblock_bank` and `intro_demos` exactly as exported (all columns, ids kept, sequence reset). Check row counts and an `md5(string_agg(row::text, '' ORDER BY id))` on both sides. | Joe and Claude | 1 h |
-| 5 | **Rehearsal on a Lovable remix** (if Lovable allows a remix to connect to an external project): connect the remix to the new project, set `SUPABASE_SERVICE_ROLE_KEY` and `INTRO_DEMO_KEY`, publish it on its lovable.app address, and play a 2-phone room, practice, a daily, a challenge, chat and Play again. This proves D1 without touching joulz.uk. | Joe (phones); Claude for a checklist | ½ day |
+| 5 | **Rehearsal on a Lovable remix** (if Lovable allows a remix to connect to an external project): connect the remix to the new project, set `SUPABASE_SERVICE_ROLE_KEY`, `INTRO_DEMO_KEY` and `PRACTICE_SEAL_KEY`, publish it on its lovable.app address, and play a 2-phone room, practice, a daily, a challenge, chat and Play again. This proves D1 without touching joulz.uk. | Joe (phones); Claude for a checklist | ½ day |
 | 6 | Switchover evening (8.2). | Joe | 1–2 h |
 | 7 | Afterwards: a small PR updating `supabase/config.toml`, the docs that name the old project, and the "written but not applied" notes. Keep the Lovable Cloud export for a month, then delete it. | Claude | ½ h |
 
@@ -523,7 +528,7 @@ Total: about 1½ to 2 days of elapsed work, most of it the rehearsal and waiting
 2. Re-run the section 3.6 counts. Re-export `intro_demos` if a demo was recorded since step 2, and reload it.
 3. In Lovable: Cloud → export (kept as the archive), then **Remove Cloud** and connect the new project (or
    whatever path Lovable confirmed under D1). Set the runtime secrets `SUPABASE_SERVICE_ROLE_KEY` and
-   `INTRO_DEMO_KEY` if Lovable doesn't do so itself.
+   `INTRO_DEMO_KEY` if Lovable doesn't do so itself, and keep `PRACTICE_SEAL_KEY` at its existing value.
 4. Check that Lovable's sync commit changes only `.env` values and (maybe) `types.ts` formatting, and that the
    generated `client.ts` still reads `import.meta.env` first and falls back to `process.env` (the guide warns of a
    client overwrite). Merge, and press **Publish**.
@@ -556,7 +561,7 @@ Use this if D1 is "no", or if a guaranteed rollback matters more than the Lovabl
 | # | Step | Effort |
 |---|---|---|
 | 1 | Copy the 93 Lovable-hosted sounds into `public/sounds/`, point `manifest.ts` at them, and update sound-manifest-check. Lovable hosting still serves them, so this is safe to merge first. | ½ day |
-| 2 | A deploy workflow: `bun.lock` registry rewrite, `bun install`, `vite build`, `wrangler deploy` of `.output`, with secrets `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SERVICE_ROLE_KEY` and `INTRO_DEMO_KEY` set by `wrangler secret put` [Joe], and the `VITE_*` values as build env. A paid Workers plan [Joe]. | 1 day |
+| 2 | A deploy workflow: `bun.lock` registry rewrite, `bun install`, `vite build`, `wrangler deploy` of `.output`, with secrets `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `PRACTICE_SEAL_KEY` and `INTRO_DEMO_KEY` set by `wrangler secret put` [Joe], and the `VITE_*` values as build env. A paid Workers plan [Joe]. | 1 day |
 | 3 | Steps 2–4 of route A (the database). | ½ day |
 | 4 | Test on the `*.workers.dev` address: 2 phones, as in 8.2 step 5. Measure startup and the first room start. | ½ day |
 | 5 | Switchover: point joulz.uk at the Worker (custom domain; DNS TTL lowered a day before). Lovable keeps serving the old app on Lovable Cloud. | 1 h |
@@ -582,7 +587,9 @@ rather not use Cloudflare. Route D (Edge Functions) is 5–8 days (section 1.6);
   there are no players), or keep both databases writable (not possible without dual-writing).
 - **D4.** What to carry: `unblock_bank` and `intro_demos` only (recommended), or also an archive dump of the beta
   tables.
-- **D5.** A dedicated `PRACTICE_SEAL_KEY` before or after the move (after is fine; it is a small code change).
+- **D5.** A dedicated `PRACTICE_SEAL_KEY`. **Done in code (7 Nov 2026):** the server reads it and falls back to today's
+  key while it is unset (`src/lib/duel/practiceSeal.ts`, practice-seal-check). Joe sets the value, ideally before
+  the move, and carries the same value to the new host.
 - **D6.** Supabase settings: PITR (paid add-on), the anonymous sign-in rate limit, and Turnstile now or later.
 - **D7.** The two probably-unapplied migrations (`room_16_players`, `room_code_digits`) come with the fresh schema.
   Confirm Joe wants rooms of 16 and digit room codes live from the switch. The app is built to work with or without
