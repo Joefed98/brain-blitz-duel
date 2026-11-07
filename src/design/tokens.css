@@ -67,6 +67,16 @@
   --jz-silver-metal: linear-gradient(165deg, #F3F6FC 0%, #C9D3EA 45%, #98A3BF 100%);
   --jz-bronze-metal: linear-gradient(165deg, #F4CFA6 0%, #D9A066 45%, #A86A34 100%);
   --jz-on-metal: #06080F;
+  /* Results, Joules and places (DESIGN.md section 2 "Results, Joules and places"; 7 Nov 2026). */
+  /* Wins: a tick on green. Losses: a cross on red. Never the colour alone. */
+  --jz-win: #16C35B;
+  --jz-loss: #E5243F;
+  /* Joules: electric lime, always with the small bolt mark; never gold. */
+  --jz-joules: #C6FF3D;
+  /* 1st, 2nd and 3rd written in their medal colour wherever places are listed. */
+  --jz-place-1: #E2C07A;
+  --jz-place-2: #D3DCEF;
+  --jz-place-3: #E2AB76;
   /* The JOULZ wordmark's letters only (DESIGN.md section 2's wordmark: white). */
   --jz-white: #FFFFFF;
 
