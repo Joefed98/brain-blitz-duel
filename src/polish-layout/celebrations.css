@@ -42,6 +42,17 @@
   pointer-events: none;
 }
 .celebration-banner:empty { display: none; }
+/* Practice goals' star line under "New best!" (6 Nov 2026). */
+.celebration-banner[data-sub]::after {
+  content: attr(data-sub);
+  display: block;
+  margin-top: 2px;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-align: center;
+  text-transform: none;
+}
 /* Measures the home-bar inset, so the hero runs just above it. */
 .celebration-inset {
   position: absolute;
@@ -92,4 +103,14 @@
 @keyframes logo-charge-calm {
   from { opacity: 0.4; }
   to { opacity: 1; }
+}
+
+/* Practice goals' star line inside the plain "New best!" pill (celebrations off). */
+.new-best-star {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-align: center;
+  text-transform: none;
 }

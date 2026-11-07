@@ -7,9 +7,10 @@ import { tieMarks } from "@/lib/duel/tieDisplay";
 import type { PuzzleType } from "@/lib/duel/types";
 import type { Standing } from "@/lib/duel/scoring";
 import { TOTAL_ROUNDS } from "@/lib/duel/types";
-import { positionChange, previousStandingOrder } from "@/lib/duel/resultPresentation";
+import { placedOf, positionChange, previousStandingOrder, shownGain, shownTotal } from "@/lib/duel/resultPresentation";
 import { isNewLeader } from "@/lib/fx/roomVoices";
 import { queueVoice } from "@/lib/sound";
+import { haptic } from "@/lib/haptics";
 import { useCelebrationScope, useCelebrationsOn } from "@/components/fx/useCelebration";
 import { useFlipRows } from "@/components/fx/useFlipRows";
 import { useStandingsReveal } from "@/components/fx/useStandingsReveal";
@@ -21,6 +22,7 @@ import { PlayerBadge } from "./PlayerBadge";
 import { CATEGORY_NAMES } from "./GameFrame";
 import { useScrollMore } from "./RoomFooter";
 import { Nameplate } from "@/design/components";
+import { MetaChips } from "@/components/app/MetaChips";
 
 /** Movement since the round before: ▲ green, ▼ red, – grey. */
 export function Arrow({ standing }: { standing: Standing }) {
@@ -67,7 +69,7 @@ export function RoundWinnerCard({ round, extras, looks }: { round: number; extra
       <div className="rs-row min-h-[58px]">
         <PlayerBadge look={looks?.get(first.slot)} name={first.name} size={32} />
         <span className="flex min-w-0 flex-1 flex-col">
-          <span className="rs-sub">{winners.length > 1 ? `Round ${round} · level` : `Round ${round} winner`}</span>
+          <span className="rs-sub">{winners.length > 1 ? `Round ${round}, level` : `Round ${round} winner`}</span>
           <span data-names className="rs-name th-name">{winners.map((w) => w.name).join(", ")}</span>
         </span>
         <span className="flex shrink-0 flex-col items-end">
@@ -86,7 +88,7 @@ export function NextRoundCard({ round, totalRounds, next }: { round: number; tot
       <div className="rs-row min-h-[58px]">
         <GameIcon type={next} size={40} />
         <span className="flex min-w-0 flex-1 flex-col">
-          <span className="rs-sub">{round + 1 >= totalRounds ? "Final round" : `Next · round ${round + 1} of ${totalRounds}`}</span>
+          <span className="rs-sub">{round + 1 >= totalRounds ? "Final round" : `Next, round ${round + 1} of ${totalRounds}`}</span>
           <span className="rs-name">{puzzleName(next)}</span>
         </span>
         <span className="th-pill shrink-0" data-cat={category}>{CATEGORY_NAMES[category]}</span>
@@ -129,17 +131,32 @@ export function Standings({ round, totalRounds = TOTAL_ROUNDS, rows, looks, mySl
     if (isNewLeader(rows)) queueVoice("voice.newLeader", 600);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const marks = tieMarks(rows.map((row) => ({ slot: row.slot, points: row.total, position: row.position })));
+  // Haptics (lib/haptics.ts, 7 Nov 2026): the leader's phone buzzes once as 1st place lands with its gold sweep.
+  const leader = rows.find((row) => row.position === 1);
+  const leaderSweep = celebrate && !!leader && !!reveal.rowState(leader).sweep;
+  const buzzed = useRef(false);
+  useEffect(() => {
+    if (!leaderSweep || buzzed.current || leader?.slot !== mySlot) return;
+    buzzed.current = true;
+    haptic("success");
+  }, [leaderSweep]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const marks = tieMarks(rows.map(placedOf));
+  const placings = rows.some((row) => row.points !== undefined);
   const listRef = useScrollMore<HTMLUListElement>();
   const compact = isCompactRoom(rows.length);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3 pt-1 text-left animate-phase-in">
-      <header className="rs-head shrink-0">
-        <h1 className="rs-title">Standings</h1>
-        <span className="rs-meta">
-          After round {round} of {totalRounds}
-        </span>
+      <header className="flex shrink-0 flex-col gap-0.5">
+        <div className="rs-head">
+          <h1 className="rs-title">Standings</h1>
+          <span className="rs-meta">
+            After round {round} of {totalRounds}
+          </span>
+        </div>
+        {/* The room's scoring when it isn't the default (copy pass: a chip, no " · " separator). */}
+        {placings ? <MetaChips data-standings-scoring facts={["Placings"]} /> : null}
       </header>
 
       {/* Rows take their content's height from the top; the list scrolls (and fades) if a big room needs it. */}
@@ -164,11 +181,17 @@ export function Standings({ round, totalRounds = TOTAL_ROUNDS, rows, looks, mySl
                 <Medal place={row.position} shared={mark?.shared} />
                 <Arrow standing={row} />
                 <Nameplate look={look} name={row.name} you={isMe} kind="mini" disc={compact ? 24 : 28} />
+                {placings ? (
+                  <span data-round-gain className="rs-gain">
+                    {shownGain(row)}
+                  </span>
+                ) : (
                 <span className="whitespace-nowrap text-[13px] font-semibold tabular-nums text-[var(--ap-text-2)]">
                   +{row.roundScore}
                 </span>
+                )}
                 <AnimatedScore
-                  value={row.total}
+                  value={shownTotal(row)}
                   {...(shown ? { from: shown.from, delayMs: shown.delayMs, durationMs: shown.countMs, quiet: true, skip: reveal.skipped } : {})}
                   className="th-score rs-total text-right"
                 />

@@ -111,7 +111,7 @@ export function momentCard(
         weight: momentWeight("stopwatch", id),
         title: "Closest stop",
         value: `${Math.round(closest)} ms`,
-        detail: `Watch ${index + 1} · ${side}`,
+        detail: `Watch ${index + 1}, ${side}`,
       };
     }
     case "wordsmith": {
@@ -129,7 +129,7 @@ export function momentCard(
         weight: momentWeight("wordsmith", id),
         title: pangram ? "Pangram" : "Best word",
         value: best.word.toUpperCase(),
-        detail: `${best.points} points · ${words.length} words`,
+        detail: `${best.points} points, ${words.length} words`,
       };
     }
     case "wordhunt": {
@@ -145,7 +145,7 @@ export function momentCard(
         weight: momentWeight("wordhunt", id),
         title: "Best word",
         value: best.word.toUpperCase(),
-        detail: `${best.points} points · ${words.length} words`,
+        detail: `${best.points} points, ${words.length} words`,
       };
     }
     default:

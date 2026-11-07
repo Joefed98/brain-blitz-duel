@@ -59,8 +59,8 @@ export function DailyBoard({
                 data-daily-rank
               >
                 {me.finished || board.open
-                  ? `You · ${rankLine(me.rank, board.count, ordinal)}`
-                  : "You · Not finished"}
+                  ? `You, ${rankLine(me.rank, board.count, ordinal)}`
+                  : "You, not finished"}
               </span>
             </span>
             <span className="th-score shrink-0 text-3xl tabular-nums text-foreground">

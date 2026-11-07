@@ -155,7 +155,7 @@ export function GameLayout({ label, title, onHelp, progress, score, ping, timer,
     </div>
   );
   const nameLength = typeof title === "string" ? Math.max(6, title.length) : 12;
-  const contextLength = (category ? CATEGORY_NAMES[category].length + 3 : 0) + (typeof label === "string" ? label.length : 12);
+  const contextLength = (category ? CATEGORY_NAMES[category].length + 2 : 0) + (typeof label === "string" ? label.length : 12);
   const header = (
     <div
       data-round-heading
@@ -174,7 +174,7 @@ export function GameLayout({ label, title, onHelp, progress, score, ping, timer,
         <span data-frame-context data-fit={contextLength > 20 ? "short" : undefined} className="game-frame-context">
           <span aria-hidden="true" className="game-frame-dot" />
           <span className="game-frame-context-text">
-            {category ? <span className="game-frame-cat">{CATEGORY_NAMES[category]} · </span> : null}
+            {category ? <span className="game-frame-cat">{CATEGORY_NAMES[category]}, </span> : null}
             {label}
           </span>
           {progress ? <span data-frame-pips className="game-frame-pips">{progress}</span> : null}

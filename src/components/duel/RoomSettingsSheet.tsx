@@ -19,24 +19,30 @@ import {
   type RoomPick,
   type RoomSettings,
 } from "@/lib/duel/roomSettings";
+import { SCORING_MODES, scoringLabel, type ScoringMode } from "@/lib/duel/scoringMode";
 import { Button, Chip, Segmented, Sheet } from "@/design/components";
 
 /**
  * The host's room settings (31 Oct 2026; rules in src/lib/duel/roomSettings.ts): three presets over a grid of
  * eleven colour chips (the six puzzle categories, then the five arcade groups; at least one stays on), the round
  * count as quick buttons 3 / 6 / 9 / 12 over a 3–12 slider (linked both ways, capped at the picks' games with a
- * note), and the room's estimated length, live. Save stores them on the server (setRoomSettingsFn); the ✕ or a
- * tap outside closes without saving.
+ * note), and the room's estimated length, live; then (6 Nov 2026, once the room row has the column) Scoring: Total
+ * score or Placings (scoringMode.ts). Save stores them on the server (setRoomSettingsFn); the ✕ or a tap outside
+ * closes without saving.
  */
 export function RoomSettingsSheet({
   initial,
+  scoring: initialScoring,
   onSave,
   onClose,
 }: {
   initial: RoomSettings;
-  onSave: (settings: RoomSettings) => Promise<void>;
+  /** The room's scoring; absent hides the choice (the room row has no scoring column yet). */
+  scoring?: ScoringMode | undefined;
+  onSave: (settings: RoomSettings, scoring?: ScoringMode) => Promise<void>;
   onClose: () => void;
 }) {
+  const [scoring, setScoring] = useState<ScoringMode | undefined>(initialScoring);
   const [picks, setPicks] = useState<RoomPick[]>(() => orderPicks(initial.picks));
   const [rounds, setRounds] = useState(() => clampRounds(initial.rounds, initial.picks));
   /** The preset last tapped; editing a chip clears it. Opens on the preset the picks match. */
@@ -67,7 +73,7 @@ export function RoomSettingsSheet({
     setSaving(true);
     setError(null);
     try {
-      await onSave({ picks, rounds });
+      await onSave({ picks, rounds }, scoring);
       onClose();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Couldn’t save the settings. Try again.");
@@ -140,7 +146,7 @@ export function RoomSettingsSheet({
             <div className="rs-head">
               <h3 className="ap-group-title">Rounds</h3>
               <span data-room-rounds-value className="rs-meta">
-                {rounds} rounds · about {minutes} min
+                {rounds} rounds, about {minutes} min
               </span>
             </div>
             <Segmented
@@ -172,6 +178,27 @@ export function RoomSettingsSheet({
                 : "3 to 12 rounds, every one a different game."}
             </p>
           </section>
+          {scoring ? (
+            <section aria-label="Scoring" className="flex flex-col gap-2.5">
+              <div className="rs-head">
+                <h3 className="ap-group-title">Scoring</h3>
+              </div>
+              <Segmented
+                label="Scoring"
+                value={scoring}
+                onChange={(mode) => {
+                  setScoring(mode);
+                  setError(null);
+                }}
+                options={SCORING_MODES.map((mode) => ({ value: mode, label: scoringLabel(mode), data: { "data-room-scoring-mode": mode } }))}
+              />
+              <p data-room-scoring-note className="rss-note">
+                {scoring === "placings"
+                  ? "Each round gives points by place. Most points wins; level, the higher total score."
+                  : "Every round's score adds up. Highest total wins."}
+              </p>
+            </section>
+          ) : null}
           {error ? (
             <p role="alert" className="text-[13px] text-warn">
               {error}

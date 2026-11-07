@@ -52,7 +52,7 @@ export function DropoutBanner({
         </p>
         <p className="text-xs text-foreground/80">
           You {myTotal}
-          {absentTotal !== null ? ` · ${who} ${absentTotal}` : ""}. Rounds carry on; they score 0.
+          {absentTotal !== null ? `, ${who} ${absentTotal}` : ""}. Rounds carry on; they score 0.
         </p>
         {error && <p className="text-xs text-warn">{error}</p>}
       </div>

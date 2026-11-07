@@ -12,6 +12,8 @@
  *     round, land in turn, and end on the server's totals in the server's order, every row in place (no
  *     transform left), one soft tick per row before 1st, the bigger hit (countDing) last, 1st's sweep, and no
  *     timer, frame or sound after the end.
+ *  2b. A Placings room (room scoring): the rows count their points, not the total score, from the points before
+ *     the round to the server's points.
  *  3. A tap skips to the final state at once (totals, order, no slide left, no sweep, no later sounds).
  *  4. Reduced motion: the final state from the first render (no waiting rows, no transforms, no count).
  *  5. The CSS: the sweep and the medal drop are held still under reduced motion, the podium's medals drop
@@ -92,7 +94,7 @@ Object.defineProperty((win as unknown as { HTMLElement: { prototype: object } })
 const R = await import("../src/lib/duel/standingsReveal");
 const C = await import("../src/lib/fx/celebrations");
 const { standings } = await import("../src/lib/duel/scoring");
-const { previousStandingOrder } = await import("../src/lib/duel/resultPresentation");
+const { previousStandingOrder, shownCountFrom } = await import("../src/lib/duel/resultPresentation");
 import type { Standing } from "../src/lib/duel/scoring";
 import type { DuelPlayerRow, RoundResultRow } from "../src/lib/duel/types";
 
@@ -292,6 +294,29 @@ for (const { label, rows, left = [] } of CASES) {
   await wait(400);
   check(frames === framesAt, `${label}: ${frames - framesAt} frames requested after the reveal ended`);
   check(sounds.length === soundsAt, `${label}: sounds after the reveal ended`);
+  await view.unmount();
+}
+
+// 2b. A Placings room: the reveal counts points (shownTotal), from the points before the round (shownCountFrom).
+{
+  reduced = false;
+  sounds.length = 0;
+  const n = 8;
+  const players = Array.from({ length: n }, (_, i) => player(i + 1));
+  const results: RoundResultRow[] = [];
+  for (let slot = 1; slot <= n; slot++) {
+    results.push(result(slot, 1, 200 - slot * 9));
+    results.push(result(slot, 2, 40 + ((slot * 37) % 150)));
+  }
+  const rows = standings(players, results, 2, undefined, undefined, "placings");
+  check(rows.every((r) => r.points !== undefined) && rows.some((r) => r.points !== r.total), "Placings room: the rows carry no points apart from their totals");
+  const plan = R.standingsRevealPlan(rows);
+  const view = await mount(rows, rows.at(-1)!.slot);
+  await wait(20);
+  check(JSON.stringify(totals(view.host)) === JSON.stringify(rows.map((r) => String(shownCountFrom(r)))), `Placings room: the first figures are not the points before the round (${totals(view.host).join()})`);
+  await wait(R.STANDINGS_REVEAL_END_MS + 200);
+  check(JSON.stringify(totals(view.host)) === JSON.stringify(rows.map((r) => String(r.points))), `Placings room: ends on ${totals(view.host).join()}, not the server's points ${rows.map((r) => r.points).join()}`);
+  check(plan.steps.flat().length === rows.length, "Placings room: every player does not land");
   await view.unmount();
 }
 

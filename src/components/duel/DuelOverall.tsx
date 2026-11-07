@@ -1,5 +1,6 @@
 import type { PlayerLooks } from "@/lib/duel/playerLook";
 import type { Standing } from "@/lib/duel/scoring";
+import { placedOf, shownGain, shownTotal } from "@/lib/duel/resultPresentation";
 import { tieMarks } from "@/lib/duel/tieDisplay";
 import { TOTAL_ROUNDS } from "@/lib/duel/types";
 import { AnimatedScore } from "./AnimatedScore";
@@ -34,13 +35,15 @@ export function DuelOverall({
   extras,
 }: DuelOverallProps) {
   const ordered = [...rows].sort((a, b) => a.position - b.position || a.slot - b.slot);
-  const marks = tieMarks(ordered.map((row) => ({ slot: row.slot, points: row.total, position: row.position })));
+  const marks = tieMarks(ordered.map(placedOf));
+  const placings = rows.some((row) => row.points !== undefined);
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3 pt-1 text-left animate-phase-in">
       <header className="rs-head shrink-0">
         <h1 className="rs-title">Standings</h1>
         <span className="rs-meta">
           After round {round} of {totalRounds}
+          {placings ? " · Placings" : null}
         </span>
       </header>
       <ul className="rs-list shrink-0">
@@ -67,11 +70,17 @@ export function DuelOverall({
                     </span>
                   </span>
                 </span>
+                {placings ? (
+                  <span data-round-gain className="rs-gain">
+                    {shownGain(row)}
+                  </span>
+                ) : (
                 <span className="whitespace-nowrap text-[13px] font-semibold tabular-nums text-[var(--ap-text-2)]">
                   +{row.roundScore}
                 </span>
+                )}
                 <span className="th-score rs-total text-right text-[26px]">
-                  <AnimatedScore value={row.total} />
+                  <AnimatedScore value={shownTotal(row)} />
                 </span>
                 {mark?.note ? <span data-tie-note className="rs-sub rs-tie-note">{mark.note}</span> : null}
               </div>

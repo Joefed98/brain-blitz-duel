@@ -195,7 +195,7 @@ export function onAppOpen(listener: () => void): () => void {
 
 export type CelebrationRequest =
   | { kind: "burst"; scope: number; x: number; y: number; w: number; count: number }
-  | { kind: "banner"; scope: number; text: string; calm: boolean; burst: boolean }
+  | { kind: "banner"; scope: number; text: string; calm: boolean; burst: boolean; sub?: string }
   | { kind: "heroRun"; scope: number; anchor?: Element | null }
   | { kind: "heroShow"; scope: number; show: "dance" | "grand"; calm: boolean; anchor?: Element | null }
   | { kind: "skip"; scope: number }
@@ -349,10 +349,11 @@ export function sparkBurstOn(scope: number, element: Element | null, options: { 
 }
 
 /** The banner pill (`burst`: sparks off it as it lands); reduced motion fades it in and out, no drop or sparks. */
-export function showBanner(scope: number, text: string, options: { burst?: boolean } = {}): void {
+/** `sub`: a short second line under the text (practice goals: "Silver star earned"). */
+export function showBanner(scope: number, text: string, options: { burst?: boolean; sub?: string | null } = {}): void {
   if (!celebrationsOn()) return;
   const calm = celebrationCalm();
-  send({ kind: "banner", scope, text, calm, burst: Boolean(options.burst) && !calm });
+  send({ kind: "banner", scope, text, calm, burst: Boolean(options.burst) && !calm, ...(options.sub ? { sub: options.sub } : {}) });
 }
 
 /** The hero runs once along the screen's bottom (never under reduced motion). */

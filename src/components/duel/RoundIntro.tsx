@@ -1,4 +1,5 @@
 import { puzzleDef, puzzleName, typeTimeLimitMs, usesArcadeClock } from "@/lib/duel/registry";
+import { starsOf } from "@/lib/duel/practiceGoals";
 import { prepareSwingCourse } from "@/lib/arcade/swing";
 import { prepareInkLevels } from "@/lib/arcade/inkBridge";
 import { mgDeal } from "@/lib/arcade/cards/muggins";
@@ -6,7 +7,7 @@ import { pyDeal } from "@/lib/arcade/cards/pyramid";
 import { INTRO_COUNTDOWN_MS, INTRO_MS, TOTAL_ROUNDS, type PuzzleType } from "@/lib/duel/types";
 import type { Outcome } from "@/lib/duel/scoring";
 import type { PuzzleData } from "@/lib/duel/types";
-import { Button as JzButton } from "@/design/components";
+import { Button as JzButton, Stars } from "@/design/components";
 import { useContext, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { ChevronLeft } from "lucide-react";
 import { fx } from "@/lib/fx";
@@ -256,7 +257,7 @@ export function RoundIntro({
       className="round-intro flex min-h-0 flex-1 flex-col gap-2 overflow-hidden animate-round-in"
     >
       {/* The game frame's 60 px header (Polish batch R): back (practice), the name over the category dot and
-          "{Category} · Practice / Round n of N", the best (practice), the room's "⋯" menu and the game menu (⋮). */}
+          "{Category}, Practice / Round n of N", the best (practice), the room's "⋯" menu and the game menu (⋮). */}
       <div data-intro-header className="intro-header" style={NO_SELECT}>
         {practice && onBack ? (
           <button type="button" onClick={onBack} aria-label="Back" className="intro-back press">
@@ -268,7 +269,7 @@ export function RoundIntro({
           <span className="game-frame-context">
             <span aria-hidden="true" className="game-frame-dot" />
             <span className="game-frame-context-text">
-              {CATEGORY_NAMES[puzzleDef(type).category]} · {practice ? "Practice" : `Round ${round} of ${totalRounds}`}
+              {CATEGORY_NAMES[puzzleDef(type).category]}, {practice ? "Practice" : `Round ${round} of ${totalRounds}`}
             </span>
           </span>
         </div>
@@ -283,6 +284,8 @@ export function RoundIntro({
                   <span className="intro-best-value">{deviceBest}</span>
                 </>
               )}
+              {/* Practice goals: this game's mastery stars (a star once earned is kept: practiceGoals.ts). */}
+              <Stars tier={starsOf(type, deviceBest)} />
             </span>
           ) : null}
           {topAction}

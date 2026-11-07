@@ -426,6 +426,14 @@
     white-space: nowrap;
     color: var(--jz-text-2);
   }
+  /* A standings row's round column ("+142", or "2nd +7" in a Placings room) and the Placings notes. */
+  .rs-gain {
+    white-space: nowrap;
+    font-size: 13px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    color: var(--ap-text-2);
+  }
   .rs-sub {
     overflow: hidden;
     font-size: 12.5px;
@@ -519,12 +527,6 @@
   }
 
   /* Room settings (31 Oct 2026): the summary line under the room code, then the host's sheet. */
-  .rs-summary {
-    font-size: 14px;
-    font-weight: 600;
-    line-height: 1.4;
-    color: var(--ap-text-2);
-  }
   .rss-sheet {
     max-height: calc(100dvh - env(safe-area-inset-top, 0px) - 12px);
   }

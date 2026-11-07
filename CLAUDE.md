@@ -1587,6 +1587,25 @@ outside the repo.
   (`scripts/fixtures/hero-bounds-main.json`, `--record=<main checkout>`) and the Medal. The Roofbound, Grappler and
   Moon Climb tiles are re-exported. Shots: `bun scripts/shots/captain-shots.ts [--old=<main checkout>]`,
   `bun scripts/shots/art-gallery-shots.tsx` (`screenshots/art-f5-nov-2026/`); `/dev-design` shows every piece.
+- **Room scoring choice** (6 Nov 2026; room setup and standings only, no game's rules, scoring, grading or stamps
+  changed; `src/lib/duel/scoringMode.ts`): the room settings sheet's Scoring control, **Total score** (the default,
+  every room before it) or **Placings** (each round gives points by place: 2 players 1, 0; 3: 3, 1, 0; 4: 5, 3, 1, 0;
+  5–8: 10, 7, 5, 4, 3, 2, 1, 0; 9–16: 15, 12, 10, 8, 6, 5, 4, 3, 2, 1, then 0; level round scores share the place and
+  the higher points; most points wins, then the total score, then the existing tie-break time). `standings()`,
+  `duelOutcome`, `podiumAwards` and Play again's saved winner take the mode; Placings rows add `points`,
+  `roundPoints`, `roundPlace` (Total rows are unchanged, field for field and in markup). Stored in `duels.scoring_mode`
+  from `supabase/migrations/20261108120000_room_scoring_mode.sql`, **written but not applied**: until it is, the row
+  has no column, every room reads as Total (`roomScoringMode`), the sheet and the lobby's "Scoring:" line are hidden
+  (`hasScoringColumn`) and the server refuses Placings with a message. Only `changeRoomSettings` writes it (host,
+  lobby); new rooms take the host's last mode. room-scoring-check (~2 s, happy-dom); shots
+  `bun scripts/shots/room-scoring-shots.ts` (`screenshots/room-scoring-nov-2026/`, 390×844).
+- **Practice goals** (6 Nov 2026; device storage and presentation only, no stamps): mastery stars from the practice best
+  (bronze 120, silver 160, gold 190; a star once earned is kept; "21 / 276 stars" under Practice's title, `Stars` on each
+  row and the intro) and challenges (`src/lib/duel/practiceChallenges.ts`: two for each of 20 games, read only from a run's
+  stored score and extra: an arcade standard part's reveal line, a standard puzzle's bonus or speed; `PracticeChallenges`
+  with In progress / New / Done; rewards "Unlocks with your account"), one record under `duelz-practice-goals:v1`
+  (`practiceGoals.ts`), updated by practice and the offline queue; a newly earned star rides the new-best moment as a
+  short line. practice-goals-check (~1 s); shots `bun scripts/shots/practice-goals-shots.ts`.
 - **Broadcast reveal: standings and podium** (7 Nov 2026; presentation only, no stamps, no scoring, timer or server
   change): with celebrations on, Standings (`useStandingsReveal`, plan and order in `src/lib/duel/standingsReveal.ts`)
   draws the rows in the order after the round before with the totals before it, then lands them from last place up to

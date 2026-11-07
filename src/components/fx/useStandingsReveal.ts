@@ -7,7 +7,8 @@ import {
   standingsRevealOrder,
   standingsRevealPlan,
 } from "@/lib/duel/standingsReveal";
-import { celebrationSound, countUpFrom, movedUp, sparkBurstOn } from "@/lib/fx/celebrations";
+import { celebrationSound, movedUp, sparkBurstOn } from "@/lib/fx/celebrations";
+import { shownCountFrom, shownTotal } from "@/lib/duel/resultPresentation";
 import { prefersReducedMotion } from "@/lib/motion";
 
 import { useTapToSkip } from "./useCelebration";
@@ -36,7 +37,7 @@ export interface RevealRowState {
  */
 export function useStandingsReveal(rows: Standing[], { on, scope }: { on: boolean; scope: number }) {
   const animate = useState(() => on && !prefersReducedMotion())[0];
-  const contents = JSON.stringify(rows.map((row) => [row.slot, row.position, row.previousPosition, row.total, row.roundScore]));
+  const contents = JSON.stringify(rows.map((row) => [row.slot, row.position, row.previousPosition, row.total, row.roundScore, row.points, row.roundPoints]));
   const plan = useMemo(() => standingsRevealPlan(rows), [contents]); // eslint-disable-line react-hooks/exhaustive-deps
   const [landed, setLanded] = useState(0);
   const skipped = useTapToSkip(animate, plan.endMs + 100);
@@ -112,7 +113,8 @@ export function useStandingsReveal(rows: Standing[], { on, scope }: { on: boolea
     const isLanded = !animate || done.has(row.slot);
     return {
       state: isLanded ? "landed" : "waiting",
-      from: animate ? countUpFrom(row) : row.total,
+      // Placings rooms count their points, not the total score (room scoring, 6 Nov 2026).
+      from: animate ? shownCountFrom(row) : shownTotal(row),
       delayMs: animate ? (landAt.get(row.slot) ?? 0) : 0,
       countMs: firstStep.has(row.slot) ? REVEAL_FIRST_COUNT_MS : REVEAL_ROW_MS,
       sweep: animate && !skipped && isLanded && firstStep.has(row.slot) && row.position === 1,
