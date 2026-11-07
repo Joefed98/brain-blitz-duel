@@ -63,6 +63,14 @@
   text-transform: none;
   color: var(--ap-text-2);
 }
+/* Text emphasis (DESIGN.md section 3): player names a step below white, so the score beside them is the one
+   bright thing; an award's line under the name is supporting detail. Unlayered, so it beats text-foreground. */
+[data-skin]:not([data-tab-screen]) .th-name:not([data-skin-off] *) {
+  color: var(--jz-text-2);
+}
+[data-skin]:not([data-tab-screen]) [data-award] .th-name + span {
+  color: var(--jz-text-3);
+}
 
 /* The page behind: flat #0D0D0F like the tab pages, the home-bar strip the screen edge's black. */
 [data-skin]:not([data-tab-screen]) > .screen-background {
@@ -416,7 +424,7 @@
     font-weight: 650;
     text-overflow: ellipsis;
     white-space: nowrap;
-    color: var(--ap-text);
+    color: var(--jz-text-2);
   }
   .rs-sub {
     overflow: hidden;
