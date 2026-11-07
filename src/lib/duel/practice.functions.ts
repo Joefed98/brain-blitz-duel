@@ -50,10 +50,22 @@ async function seal(payload: unknown): Promise<string> {
   return `${toBase64(iv)}.${toBase64(cipher)}`;
 }
 
-/** The sealed half minus its intro-example tag. */
+/** The sealed half minus its intro-example tag and the deal's time (practiceReceipt.ts). */
 async function unseal(sealed: string): Promise<Loose> {
-  const { __example: _example, ...priv } = await unsealRaw(sealed);
+  const { __example: _example, __dealtAt: _dealtAt, ...priv } = await unsealRaw(sealed);
   return priv;
+}
+
+/** The deal's sealed time (practiceReceipt.ts), or undefined for a deal sealed without one. */
+function dealtAtOf(raw: Loose): number | undefined {
+  const at = raw["__dealtAt"];
+  return typeof at === "number" && Number.isFinite(at) ? at : undefined;
+}
+
+/** A short digest naming one sealed deal, so a start token can't be carried over to another. */
+async function sealedDigest(sealed: string): Promise<string> {
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(sealed));
+  return toBase64(new Uint8Array(digest));
 }
 
 async function unsealRaw(sealed: string): Promise<Loose> {
@@ -107,7 +119,7 @@ export const practiceGenerateFn = createServerFn({ method: "POST" })
     if (!example) {
       // Slow types come from their precomputed bank; a fresh seed picks the board.
       const { pub, priv } = await dealPractice(type, unblockRow);
-      return { puzzle: pub, sealed: await seal(priv) };
+      return { puzzle: pub, sealed: await seal({ ...priv, __dealtAt: Date.now() }) };
     }
     const { withSeededRandom } = await import("./random");
     const { INTRO_EXAMPLE_ID, INTRO_EXAMPLE_SEED } = await import("./puzzleDemo");
@@ -122,8 +134,33 @@ export const practiceGenerateFn = createServerFn({ method: "POST" })
       ? withSeededRandom(INTRO_EXAMPLE_SEED, () => generatePuzzle(type, { bankSeed: INTRO_EXAMPLE_SEED }))
       : bankedIntroExample(type) ?? withSeededRandom(INTRO_EXAMPLE_SEED, () => type === "wordsmith" ? generateWordsmithExample() : generatePuzzle(type, { unblockRow }));
     const { pub, priv } = splitPuzzle(made);
-    return { puzzle: pub, sealed: await seal({ ...priv, __example: INTRO_EXAMPLE_ID }) };
+    return { puzzle: pub, sealed: await seal({ ...priv, __example: INTRO_EXAMPLE_ID, __dealtAt: Date.now() }) };
   });
+
+/**
+ * The round's clock has started on the phone (practiceReceipt.ts): the server's time, sealed for this deal, sent back
+ * with the answer. Best effort on the phone; the grade bounds the claim without it too.
+ */
+export const practiceStartFn = createServerFn({ method: "POST" })
+  .inputValidator((input: { sealed: string }) => input)
+  .handler(async ({ data }) => {
+    const sealed = String(data.sealed ?? "");
+    await unsealRaw(sealed);
+    return { start: await seal({ __start: Date.now(), __for: await sealedDigest(sealed) }) };
+  });
+
+/** A start token's time when it is valid for this deal, else undefined. */
+async function startAtOf(token: unknown, sealed: string): Promise<number | undefined> {
+  if (typeof token !== "string" || !token) return undefined;
+  try {
+    const raw = await unsealRaw(token);
+    if (raw["__for"] !== (await sealedDigest(sealed))) return undefined;
+    const at = raw["__start"];
+    return typeof at === "number" && Number.isFinite(at) ? at : undefined;
+  } catch {
+    return undefined;
+  }
+}
 
 /** Checks and scores a practice answer, then hands back the full puzzle. */
 export const practiceGradeFn = createServerFn({ method: "POST" })
@@ -138,15 +175,22 @@ export const practiceGradeFn = createServerFn({ method: "POST" })
       clientVersion?: string;
       /** How the round was played (lib/inputType.ts); stored with the practice play, never graded. */
       inputType?: string;
+      /** The start token from practiceStartFn, when the phone got one. */
+      start?: string;
     }) => input,
   )
   .handler(async ({ data }) => {
+    const nowMs = Date.now();
     // Log only: grading never depends on the client's version.
     const staleNote = staleSubmissionNote("practice_grade", data.clientVersion, data.puzzle.type);
     if (staleNote) console.warn(staleNote);
-    const { __example: example, ...priv } = await unsealRaw(data.sealed);
+    const raw = await unsealRaw(data.sealed);
+    const { __example: example, __dealtAt: _dealtAt, ...priv } = raw;
     if (priv["type"] !== data.puzzle.type) throw new Error("That puzzle didn’t load. Try another.");
-    return gradePracticeRun(data, mergePuzzle(data.puzzle, priv), example !== undefined);
+    const puzzle = mergePuzzle(data.puzzle, priv);
+    const { practiceReceiptMsRemaining } = await import("./practiceReceipt");
+    const received = practiceReceiptMsRemaining(puzzle, { dealtAt: dealtAtOf(raw), startAt: await startAtOf(data.start, data.sealed), nowMs });
+    return gradePracticeRun(data, puzzle, example !== undefined, received);
   });
 
 interface PracticeRunInput {
@@ -157,9 +201,12 @@ interface PracticeRunInput {
 }
 
 /** Grades a practice run on its full puzzle (practice's own grading, the same for a live deal and a pack deal). */
-async function gradePracticeRun(data: PracticeRunInput, puzzle: PuzzleData, example: boolean) {
+async function gradePracticeRun(data: PracticeRunInput, puzzle: PuzzleData, example: boolean, received?: number) {
   const { gradeAnswer } = await import("./generate.server");
-  const graded = gradeAnswer(puzzle, data.answer, data.msRemaining, data.extra);
+  const { practiceTrustedMs } = await import("./practiceReceipt");
+  // A live deal: the claim held to the server's receipt as in a room (practiceReceipt.ts); else the length clamp alone.
+  const { ms, received: bound } = practiceTrustedMs(puzzle, data.msRemaining, received);
+  const graded = gradeAnswer(puzzle, data.answer, ms, data.extra, bound);
   // Beta recording (practice_plays): the outcome only, best-effort, never blocks the answer.
   // Skipped where there is no database (local dev servers in checks).
   if (process.env["SUPABASE_SERVICE_ROLE_KEY"]) {
@@ -278,7 +325,7 @@ export const practiceGradeQueuedFn = createServerFn({ method: "POST" })
     } catch {
       return { status: "rejected" as const, reason: "seal" };
     }
-    const { __example: example, __pack: pack, __pub: digest, ...priv } = raw;
+    const { __example: example, __pack: pack, __pub: digest, __dealtAt: _dealtAt, ...priv } = raw;
     if (!data.puzzle || priv["type"] !== data.puzzle.type) return { status: "rejected" as const, reason: "type" };
     if (pack !== undefined && digest !== (await pubDigest(data.puzzle))) return { status: "rejected" as const, reason: "deal" };
     const graded = await gradePracticeRun(data, mergePuzzle(data.puzzle, priv), example !== undefined);
@@ -420,7 +467,7 @@ export const savePuzzleDemoFn = createServerFn({ method: "POST" })
     const raw = await unsealRaw(String(data.sealed ?? ""));
     if (raw["type"] !== type) throw new Error("That puzzle didn’t load. Try another.");
     if (raw["__example"] !== INTRO_EXAMPLE_ID) throw new Error("Only the fixed intro example can be saved.");
-    const { __example: _example, ...priv } = raw;
+    const { __example: _example, __dealtAt: _dealtAt, ...priv } = raw;
     const { pub } = splitPuzzle(mergePuzzle(data.puzzle, priv));
     const log = JSON.parse(text) as { actions: { t: number }[] };
     const lengthMs = Math.max(0, ...log.actions.map((a) => Number(a.t) || 0));
