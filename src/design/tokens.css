@@ -70,6 +70,46 @@
   /* The JOULZ wordmark's letters only (DESIGN.md section 2's wordmark: white). */
   --jz-white: #FFFFFF;
 
+  /* ------------------------------------------------ art metals (Joulz art v1, docs/art/README.md; F5, 6 Nov 2026) */
+  /* Each metal is four stops: gradient A runs top-left to bottom-right, the inner face (gradient B) the reverse.
+     The art components (src/design/art/) read the stops through var(); the ink is the colour drawn on that metal. */
+  --jz-metal-bronze-1: #F6D2AE;
+  --jz-metal-bronze-2: #D49461;
+  --jz-metal-bronze-3: #9A5E30;
+  --jz-metal-bronze-4: #E2AB76;
+  --jz-metal-silver-1: #FFFFFF;
+  --jz-metal-silver-2: #D3DCEF;
+  --jz-metal-silver-3: #97A4C0;
+  --jz-metal-silver-4: #E6ECF8;
+  --jz-metal-gold-1: #FBEDC4;
+  --jz-metal-gold-2: #E6C67E;
+  --jz-metal-gold-3: #D2AC5E;
+  --jz-metal-gold-4: #EED79C;
+  --jz-metal-platinum-1: #F2FCFF;
+  --jz-metal-platinum-2: #AEEAF7;
+  --jz-metal-platinum-3: #62B9CE;
+  --jz-metal-platinum-4: #D6F7FF;
+  --jz-metal-obsidian-1: #4A5680;
+  --jz-metal-obsidian-2: #1E2640;
+  --jz-metal-obsidian-3: #0B0F1C;
+  --jz-metal-obsidian-4: #36406A;
+  --jz-metal-bronze: linear-gradient(165deg, #F6D2AE 0%, #D49461 34%, #9A5E30 70%, #E2AB76 100%);
+  --jz-metal-silver: linear-gradient(165deg, #FFFFFF 0%, #D3DCEF 34%, #97A4C0 70%, #E6ECF8 100%);
+  --jz-metal-gold: linear-gradient(165deg, #FBEDC4 0%, #E6C67E 34%, #D2AC5E 70%, #EED79C 100%);
+  --jz-metal-platinum: linear-gradient(165deg, #F2FCFF 0%, #AEEAF7 34%, #62B9CE 70%, #D6F7FF 100%);
+  --jz-metal-obsidian: linear-gradient(165deg, #4A5680 0%, #1E2640 34%, #0B0F1C 70%, #36406A 100%);
+  --jz-ink-bronze: #2A1608;
+  --jz-ink-silver: #151B2C;
+  --jz-ink-gold: #1A1206;
+  --jz-ink-platinum: #08202A;
+  --jz-ink-obsidian: #E2C07A;
+  /* The warm glow (a radial gradient of this colour, 50 % in the centre to 0), the white sheen band over metal
+     faces, every piece's outline, and the darker gold of cuffs, bands and banner tails. */
+  --jz-glow: #F3D894;
+  --jz-art-sheen: #FFFFFF;
+  --jz-art-edge: #06080F;
+  --jz-art-gold-deep: #9A7A3A;
+
   /* ------------------------------------------------ type (section 3) */
   --jz-font: "Archivo", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --jz-weight-regular: 400;
