@@ -641,3 +641,11 @@ Topsy-Turvy to `gravityRev 6` and Skid to `slideRev 3`: no stars or ice gems, an
 standard's, unchanged. The standard's stamps (`mazeRev 3`, `gravityRev 5`, `slideRev 2`) grade exactly as this page
 describes. The grid puzzles below are shown as Loopline (`fences`), Regions (`fillomino`) and Island Link (`bridges`)
 from 3 Nov 2026.
+
+## Follow-up: Interlock, Slider and Lookout (7 Nov 2026)
+
+`docs/word-scoring-nov-2026.md` (`src/lib/duel/wordNov7.ts`): Interlock `tileGridRev 4` (big words scaled to the
+deal's own maximum, so the dealt solution reaches 200; unfinished tiles counted against the answer grid, less tiles off
+it), Slider `wordSlideRev 5` (unfinished credit from the solver distance to the dealt words, rising with every slide of
+a shortest line) and Lookout `wordSearchRev 5` (the miss penalty taken after the bonus word is added). The Word table
+above describes the stamps before, which grade exactly as it says.

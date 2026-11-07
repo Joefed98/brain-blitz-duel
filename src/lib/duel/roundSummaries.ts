@@ -570,9 +570,10 @@ const tileGridSummary: SummaryBuilder = (result) => {
   const placed = Number(result.extra?.["placed"] ?? result.correct_count ?? 0);
   const valid = Boolean(result.extra?.["valid"] ?? result.is_correct);
   const wordTiles = result.extra?.["wordTiles"];
+  const countedTiles = result.extra?.["countedTiles"];
   // A finish is all fifteen in a valid grid; a shorter grid says what counted (display only).
   return {
-    summary: tileGridResultLine({ placed, valid, wordTiles: typeof wordTiles === "number" ? wordTiles : null }).text,
+    summary: tileGridResultLine({ placed, valid, wordTiles: typeof wordTiles === "number" ? wordTiles : null, countedTiles: typeof countedTiles === "number" ? countedTiles : null }).text,
     detail: [],
   };
 };
