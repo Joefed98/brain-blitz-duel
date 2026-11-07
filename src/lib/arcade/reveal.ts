@@ -1099,14 +1099,17 @@ function rawTotalMapped(r: Run): boolean {
   return Boolean(state && typeof state === "object" && (state.sb || state.tgt));
 }
 
+const REVEAL_STD_HELD = new Set(["flip", "tilt"]);
+
 export function buildArcadeReveal(type: string, run: unknown, score: number): ArcadeRevealData | null {
   const builder = BUILDERS[type];
   if (!builder || !run || typeof run !== "object") return null;
   if (type === "bastion" && (run as Run)["std"] !== true) return null;
   const data = builder(run as Run, score);
   // The arcade scoring standard (arcadeStandard.ts): one line per part (core, then each feature) and the total.
-  // Seven games scored on the standard outside ARCADE_STANDARD (revealStdParts.ts): their live stamps' parts too.
-  const std = arcadeStdParts(type, (run as Run)["state"]) ?? revealStdParts(type, (run as Run)["state"]);
+  // Games scored on the standard outside ARCADE_STANDARD (revealStdParts.ts): their live stamps' parts too. Roofbound
+  // and Tilt keep their band lines until flip-rev11-check, tilt-rev11-check and tilt-rev12-check are updated to match.
+  const std = arcadeStdParts(type, (run as Run)["state"]) ?? (REVEAL_STD_HELD.has(type) ? null : revealStdParts(type, (run as Run)["state"]));
   if (std) return { ...data, lines: stdLines(std, score, Boolean(((run as Run)["state"] as { acted?: number }).acted)) };
   // Oct 2026 score-band rounds: same axis and tiles, breakdown lines from the band rules.
   const state = (run as Run)["state"] as { band?: number; acted?: number } | undefined;
