@@ -6,32 +6,51 @@
  */
 import { APP_NAME } from "@/lib/brand";
 import {
-  GOLD_SHINE_STOPS,
+  BRAND_GOLD,
+  BRAND_INK,
+  cssGradientLine,
   LOGO_BOX,
   LOGO_COLOURS,
+  LOGO_HAIRLINE_PX,
   LOGO_LEAD,
   LOGO_LOWER,
   LOGO_TRAIL,
   LOGO_UPPER,
+  RING_GOLD,
 } from "@/components/brand/logoGeometry";
+import {
+  loadWordmarkFace,
+  WORDMARK_GAP_EM,
+  WORDMARK_LETTER_SPACING_EM,
+  WORDMARK_MARK_EM,
+  WORDMARK_TEXT,
+  wordmarkCanvasFont,
+} from "@/components/brand/wordmark";
 import { arcadeGroupInfo, arcadeGroupOf } from "@/lib/duel/arcadeGroups";
 import { ordinal } from "@/lib/duel/ordinal";
 import { puzzleDef } from "@/lib/duel/registry";
+import { MEDAL_BOX, defs, medal as medalMarkup, resolved, svgDocument, type MedalMetal } from "@/design/art/markup";
 
 import type { RoomShareData } from "./roomShare";
 
 export const CARD_W = 1080;
 export const CARD_H = 1350;
 
-/** The skin's tokens (polish-layout/theme.css). */
-const INK = "#07070A";
+/**
+ * The card's colours. Gold and black are the design tokens (DESIGN.md section 2, design foundation F4;
+ * logoGeometry.ts mirrors them for canvases): the background --jz-bg, gold text --jz-gold, every gold
+ * fill the ring-gold metal --jz-gold-metal (goldFill), text on gold --jz-on-gold. The text greys are the
+ * skin's (polish-layout/theme.css).
+ */
+const INK = BRAND_INK;
+const ON_GOLD = BRAND_INK;
+const GOLD = BRAND_GOLD;
 const TEXT = "#F5F5F7";
 const MUTED = "#BDBDCC";
-const GOLD = "#F2C75C";
-const GOLD_HI = "#FFE7A3";
-const GOLD_LO = "#B9862A";
+/** The wordmark's letters (--jz-white). */
+const WORDMARK_WHITE = "#FFFFFF";
+/** Second and third place's discs; first place is the ring-gold metal. */
 const MEDALS: Record<number, [string, string]> = {
-  1: ["#FFE07A", "#C9971F"],
   2: ["#E4E8EE", "#8E96A3"],
   3: ["#EBA866", "#9A5B22"],
 };
@@ -62,6 +81,7 @@ export async function loadCardFonts(): Promise<void> {
       `600 40px "Archivo"`,
     ].map((f) => document.fonts.load(f).catch(() => [])),
   );
+  await loadWordmarkFace();
 }
 
 type Ctx = CanvasRenderingContext2D;
@@ -91,12 +111,17 @@ export function fitText(c: Ctx, text: string, max: number): string {
   return `${cut.trimEnd()}…`;
 }
 
-function goldFill(c: Ctx, top: number, bottom: number): CanvasGradient {
-  const g = c.createLinearGradient(0, top, 0, bottom);
-  g.addColorStop(0, GOLD_HI);
-  g.addColorStop(0.48, GOLD);
-  g.addColorStop(0.52, "#E2AE3E");
-  g.addColorStop(1, GOLD_LO);
+/** A #rrggbb colour at `alpha`. */
+function withAlpha(hex: string, alpha: number): string {
+  const n = parseInt(hex.slice(1), 16);
+  return `rgb(${(n >> 16) & 255} ${(n >> 8) & 255} ${n & 255} / ${alpha})`;
+}
+
+/** The ring-gold metal (--jz-gold-metal) over the box (x, y, w, h), as the CSS gradient draws it there. */
+function goldFill(c: Ctx, x: number, y: number, w: number, h: number): CanvasGradient {
+  const line = cssGradientLine(RING_GOLD.angle, w, h);
+  const g = c.createLinearGradient(x + line.x1, y + line.y1, x + line.x2, y + line.y2);
+  for (const [offset, colour] of RING_GOLD.stops) g.addColorStop(offset, colour);
   return g;
 }
 
@@ -120,58 +145,95 @@ function bolt(c: Ctx, x: number, y: number, s: number): void {
   c.fill();
 }
 
-/** The app's logo (Prompt R): the inverted mark on a rounded square of the gold shine (logoGeometry.ts). */
-function logoMark(c: Ctx, x: number, y: number, s: number): void {
+/**
+ * The bolt of the one wordmark (design foundation F4, wordmark.ts): the logo mark in flat --jz-gold
+ * (LOGO_COLOURS.gold), `h` px tall with its top-left at (x, y), its speed lines hairlines as LogoMark's.
+ */
+function goldBolt(c: Ctx, x: number, y: number, h: number): void {
+  const look = LOGO_COLOURS.gold;
+  const k = h / LOGO_BOX.h;
   c.save();
   c.shadowBlur = 0;
-  roundRect(c, x, y, s, s, s * 0.225);
-  const shine = c.createLinearGradient(0, y, 0, y + s);
-  for (const [offset, colour] of GOLD_SHINE_STOPS) shine.addColorStop(offset, colour);
-  c.fillStyle = shine;
-  c.fill();
-  const k = (s * 0.58) / LOGO_BOX.h;
-  const ox = x + (s - LOGO_BOX.w * k) / 2;
-  const oy = y + (s - LOGO_BOX.h * k) / 2;
-  const look = LOGO_COLOURS.inverted;
-  const polygon = (points: readonly (readonly [number, number])[], colours: readonly string[]) => {
-    const fill = c.createLinearGradient(0, oy + Math.min(...points.map((p) => p[1])) * k, 0, oy + Math.max(...points.map((p) => p[1])) * k);
-    colours.forEach((colour, i) => fill.addColorStop(i / (colours.length - 1), colour));
-    c.beginPath();
-    points.forEach(([px, py], i) => (i ? c.lineTo(ox + px * k, oy + py * k) : c.moveTo(ox + px * k, oy + py * k)));
+  c.fillStyle = look.upper[0];
+  // Both halves in one path, filled once, so their shared edge leaves no seam.
+  c.beginPath();
+  for (const points of [LOGO_UPPER, LOGO_LOWER]) {
+    points.forEach(([px, py], i) => (i ? c.lineTo(x + px * k, y + py * k) : c.moveTo(x + px * k, y + py * k)));
     c.closePath();
-    c.fillStyle = fill;
-    c.fill();
-  };
-  polygon(LOGO_UPPER, look.upper);
-  polygon(LOGO_LOWER, look.lower);
-  c.lineWidth = k;
+  }
+  c.fill();
+  c.lineWidth = Math.max(LOGO_HAIRLINE_PX * 2, k * 0.6);
   c.lineCap = "round";
   for (const line of [LOGO_TRAIL, LOGO_LEAD]) {
-    const fade = c.createLinearGradient(ox + line.from * k, 0, ox + line.to * k, 0);
-    fade.addColorStop(0, `rgb(13 13 15 / ${look.lineOpacity})`);
-    fade.addColorStop(1, "rgb(13 13 15 / 0)");
+    const fade = c.createLinearGradient(x + line.from * k, 0, x + line.to * k, 0);
+    fade.addColorStop(0, look.line);
+    fade.addColorStop(1, "transparent");
     c.strokeStyle = fade;
+    c.globalAlpha = look.lineOpacity;
     c.beginPath();
-    c.moveTo(ox + line.from * k, oy + line.y * k);
-    c.lineTo(ox + line.to * k, oy + line.y * k);
+    c.moveTo(x + line.from * k, y + line.y * k);
+    c.lineTo(x + line.to * k, y + line.y * k);
     c.stroke();
   }
   c.restore();
 }
 
-function medal(c: Ctx, cx: number, cy: number, r: number, place: number): void {
-  const [hi, lo] = MEDALS[place] ?? ["#3A3D4C", "#2A2C38"];
-  const g = c.createLinearGradient(0, cy - r, 0, cy + r);
-  g.addColorStop(0, hi);
-  g.addColorStop(1, lo);
-  c.fillStyle = g;
+/** The approved medal art for 1st to 3rd (design foundation F5), drawn as images once the card's fonts load. */
+export type CardMedals = ReadonlyMap<number, CanvasImageSource | null>;
+
+/** The medal art (src/design/art, the Medal component's own geometry) as images, the tokens read from the page. */
+export async function loadCardMedals(px: number): Promise<CardMedals> {
+  const out = new Map<number, CanvasImageSource | null>();
+  if (typeof document === "undefined" || typeof Image === "undefined") return out;
+  const style = getComputedStyle(document.documentElement);
+  const metals: [number, MedalMetal][] = [
+    [1, "gold"],
+    [2, "silver"],
+    [3, "bronze"],
+  ];
+  await Promise.all(
+    metals.map(async ([place, metal]) => {
+      const w = px;
+      const h = Math.round((px * MEDAL_BOX.h) / MEDAL_BOX.w);
+      const svg = resolved(svgDocument(MEDAL_BOX, w, h, defs("m") + medalMarkup("m", metal)), (name) => style.getPropertyValue(name));
+      const img = new Image(w, h);
+      img.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+      try {
+        await img.decode();
+        out.set(place, img);
+      } catch {
+        out.set(place, null);
+      }
+    }),
+  );
+  return out;
+}
+
+function medal(c: Ctx, cx: number, cy: number, r: number, place: number, art?: CanvasImageSource | null): void {
+  if (art) {
+    // The art's disc (centre 60, 86 of its 120 × 140 box) on the row's centre, 2r wide.
+    const w = r * 2;
+    const h = (w * MEDAL_BOX.h) / MEDAL_BOX.w;
+    c.drawImage(art, cx - w / 2, cy - (h * 86) / MEDAL_BOX.h, w, h);
+    return;
+  }
+  const disc = MEDALS[place];
+  if (place === 1) {
+    c.fillStyle = goldFill(c, cx - r, cy - r, r * 2, r * 2);
+  } else {
+    const [hi, lo] = disc ?? ["#3A3D4C", "#2A2C38"];
+    const g = c.createLinearGradient(0, cy - r, 0, cy + r);
+    g.addColorStop(0, hi);
+    g.addColorStop(1, lo);
+    c.fillStyle = g;
+  }
   c.beginPath();
   c.arc(cx, cy, r, 0, Math.PI * 2);
   c.fill();
   c.strokeStyle = "rgb(255 255 255 / 0.35)";
   c.lineWidth = 2;
   c.stroke();
-  c.fillStyle = place <= 3 ? "#1A1405" : TEXT;
+  c.fillStyle = place <= 3 ? ON_GOLD : TEXT;
   c.font = `700 ${Math.round(r * 1.05)}px ${MONO}`;
   c.textAlign = "center";
   c.textBaseline = "middle";
@@ -199,7 +261,7 @@ function iconTile(
   c.save();
   roundRect(c, x, y, s, s, s * 0.28);
   c.clip();
-  c.fillStyle = "#000";
+  c.fillStyle = INK;
   c.fillRect(x, y, s, s);
   if (art) {
     c.drawImage(art, x, y, s, s);
@@ -219,7 +281,7 @@ function iconTile(
 export type CardIcons = ReadonlyMap<string, CanvasImageSource | null>;
 
 /** Draws the card on a 1080 × 1350 context. */
-export function drawResultCard(c: Ctx, data: RoomShareData, icons: CardIcons = new Map()): void {
+export function drawResultCard(c: Ctx, data: RoomShareData, icons: CardIcons = new Map(), medals: CardMedals = new Map()): void {
   c.save();
   c.textAlign = "center";
   c.textBaseline = "alphabetic";
@@ -228,35 +290,33 @@ export function drawResultCard(c: Ctx, data: RoomShareData, icons: CardIcons = n
   c.fillStyle = INK;
   c.fillRect(0, 0, CARD_W, CARD_H);
   const glow = c.createRadialGradient(CARD_W / 2, 470, 40, CARD_W / 2, 470, 640);
-  glow.addColorStop(0, "rgb(242 199 92 / 0.22)");
-  glow.addColorStop(0.55, "rgb(242 199 92 / 0.05)");
-  glow.addColorStop(1, "rgb(242 199 92 / 0)");
+  glow.addColorStop(0, withAlpha(GOLD, 0.22));
+  glow.addColorStop(0.55, withAlpha(GOLD, 0.05));
+  glow.addColorStop(1, withAlpha(GOLD, 0));
   c.fillStyle = glow;
   c.fillRect(0, 0, CARD_W, CARD_H);
   roundRect(c, 36, 36, CARD_W - 72, CARD_H - 72, 52);
-  c.strokeStyle = goldFill(c, 36, CARD_H - 36);
+  c.strokeStyle = goldFill(c, 36, 36, CARD_W - 72, CARD_H - 72);
   c.lineWidth = 4;
   c.stroke();
 
-  // The app name: Archivo 800, its last letter gold (the Wordmark), the logo beside it.
-  c.font = `800 112px ${DISPLAY}`;
-  const head = APP_NAME.slice(0, -1);
-  const last = APP_NAME.slice(-1);
-  const headW = c.measureText(head).width;
-  const lastW = c.measureText(last).width;
-  const boltS = 92;
-  const nameW = headW + lastW + 18 + boltS;
-  let x = CARD_W / 2 - nameW / 2;
+  // The one wordmark (wordmark.ts): JOULZ in Archivo 900 at 118 % width, all white, then the gold
+  // bolt as tall as the font size; the pair centred, the bolt centred on the letters.
+  const wordPx = 112;
+  c.font = wordmarkCanvasFont(wordPx);
+  c.letterSpacing = `${(wordPx * WORDMARK_LETTER_SPACING_EM).toFixed(2)}px`;
+  const wordW = c.measureText(WORDMARK_TEXT).width;
+  const boltH = wordPx * WORDMARK_MARK_EM;
+  const markGap = wordPx * WORDMARK_GAP_EM;
+  const boltW = (boltH * LOGO_BOX.w) / LOGO_BOX.h;
+  const baseline = 196;
+  const capH = c.measureText(WORDMARK_TEXT).actualBoundingBoxAscent || wordPx * 0.72;
+  const x = CARD_W / 2 - (wordW + markGap + boltW) / 2;
   c.textAlign = "left";
-  c.fillStyle = TEXT;
-  c.fillText(head, x, 196);
-  c.fillStyle = goldFill(c, 110, 200);
-  c.shadowColor = "rgb(242 199 92 / 0.6)";
-  c.shadowBlur = 24;
-  c.fillText(last, x + headW, 196);
-  x += headW + lastW + 18;
-  logoMark(c, x, 106, boltS);
-  c.shadowBlur = 0;
+  c.fillStyle = WORDMARK_WHITE;
+  c.fillText(WORDMARK_TEXT, x, baseline);
+  c.letterSpacing = "0px";
+  goldBolt(c, x + wordW + markGap, baseline - capH / 2 - boltH / 2, boltH);
   c.textAlign = "center";
 
   c.fillStyle = MUTED;
@@ -268,8 +328,9 @@ export function drawResultCard(c: Ctx, data: RoomShareData, icons: CardIcons = n
   // Place and total.
   const placeText = data.place ? ordinal(data.place).toUpperCase() : "GG";
   c.font = `800 260px ${DISPLAY}`;
-  c.fillStyle = goldFill(c, 330, 520);
-  c.shadowColor = "rgb(242 199 92 / 0.45)";
+  const placeW = c.measureText(placeText).width;
+  c.fillStyle = goldFill(c, CARD_W / 2 - placeW / 2, 330, placeW, 190);
+  c.shadowColor = withAlpha(GOLD, 0.45);
   c.shadowBlur = 40;
   c.fillText(placeText, CARD_W / 2, 520);
   c.shadowBlur = 0;
@@ -295,7 +356,7 @@ export function drawResultCard(c: Ctx, data: RoomShareData, icons: CardIcons = n
   c.stroke();
   data.top.forEach((row, i) => {
     const cy = panelY + 12 + rowH * i + rowH / 2;
-    medal(c, panelX + 66, cy, 32, row.place);
+    medal(c, panelX + 66, cy, 32, row.place, medals.get(row.place));
     c.textBaseline = "middle";
     c.textAlign = "right";
     c.font = `700 50px ${MONO}`;
@@ -347,12 +408,13 @@ export async function resultCardFile(
 ): Promise<File | null> {
   if (typeof document === "undefined") return null;
   await loadCardFonts();
+  const medals = await loadCardMedals(64);
   const canvas = document.createElement("canvas");
   canvas.width = CARD_W;
   canvas.height = CARD_H;
   const c = canvas.getContext("2d");
   if (!c) return null;
-  drawResultCard(c, data, icons);
+  drawResultCard(c, data, icons, medals);
   const blob = await new Promise<Blob | null>((resolve) => {
     try {
       canvas.toBlob((b) => resolve(b), "image/png");

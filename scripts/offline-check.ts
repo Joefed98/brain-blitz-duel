@@ -533,7 +533,7 @@ async function fullPass(browser: Browser): Promise<void> {
   await page.reload();
   await page.locator("[data-practice-switch]").waitFor({ timeout: 30_000 });
   check(await page.locator("[data-offline-banner]").isVisible(), `${tag}: offline banner on Practice`);
-  check((await page.locator("[data-offline-banner]").innerText()).includes("You're offline. Practice still works."), "banner text");
+  check((await page.locator("[data-offline-banner]").innerText()).includes("You’re offline. Practice still works."), "banner text");
   await showPracticeSide(page, "wordsmith");
   check((await page.locator('[data-practice-game="wordsmith"] [data-online-only]').count()) === 1, "Nucleus marked online only");
   await shot(page, `offline-banner-${tag}`);
@@ -643,7 +643,7 @@ async function fullPass(browser: Browser): Promise<void> {
   const meteorBest = Math.max(...runs.filter((r) => r.type === "snake" && r.status === "confirmed" && r.stamp === stampSignature(deal.puzzle)).map((r) => r.score ?? 0));
   check(Number(await page.locator('[data-practice-game="snake"] [data-card-best]').getAttribute("data-card-best")) === meteorBest, "Meteor's best is the server's", String(meteorBest));
   check((await page.locator("[data-pending-clock]").count()) === 0, "pending clocks clear");
-  check((await page.locator("[data-offline-runs] [data-run-status='rejected']").innerText()).includes("Couldn't be confirmed"), "the rejected run shows Couldn't be confirmed");
+  check((await page.locator("[data-offline-runs] [data-run-status='rejected']").innerText()).includes("Couldn’t be confirmed"), "the rejected run shows Couldn't be confirmed");
   check((await page.locator("[data-offline-runs] [data-run-status='confirmed']").count()) === 4, "four confirmed runs listed");
   await shot(page, `confirmed-${tag}`);
   await until(

@@ -36,7 +36,7 @@ export function DropoutBanner({
     try {
       await onFinish();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Couldn't finish yet. Try again.");
+      setError(err instanceof Error ? err.message : "Couldn’t finish yet. Try again.");
       setBusy(false);
     }
   };
@@ -87,7 +87,7 @@ export function LeaveGameButton({ onLeave }: { onLeave: () => Promise<void> }) {
       {confirming && (
         <ConfirmDialog
           title="Leave this game?"
-          body="You can't rejoin this game, and you'll drop off its scoreboard."
+          body="You can’t rejoin this game, and you’ll drop off its scoreboard."
           confirmLabel="Leave"
           onCancel={() => setConfirming(false)}
           onConfirm={() => {

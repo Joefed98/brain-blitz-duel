@@ -40,19 +40,10 @@ function clipped(charge: boolean, clip: string, paths: ReactNode) {
   return charge ? <g className="logo-charge-clip" clipPath={`url(#${clip})`}>{paths}</g> : paths;
 }
 
-function Stops({ colours }: { colours: readonly string[] }) {
-  return (
-    <>
-      {colours.map((colour, i) => (
-        <stop key={i} offset={colours.length === 1 ? 0 : i / (colours.length - 1)} stopColor={colour} />
-      ))}
-    </>
-  );
-}
-
 /**
- * The logo mark (logoGeometry.ts): gold on dark for the app header; `inverted` draws it dark, for
- * use on the gold shine (the app icons and the share card draw that version from the same geometry).
+ * The logo mark (logoGeometry.ts): the bolt in flat --jz-gold on dark (the wordmark; design foundation
+ * F4), its two halves one path so their shared edge leaves no seam; `inverted` draws it black, as the
+ * app icons draw it on the ring-gold metal (scripts/brand-icons.ts, from the same geometry).
  * Every instance has its own gradient ids (useId), so two marks on one page never share them.
  *
  * The speed lines are hairlines at any size (a non-scaling stroke, `lineWidth` screen px): by default
@@ -105,12 +96,6 @@ export function LogoMark({
       className={className}
     >
       <defs>
-        <linearGradient id={`${id}-a`} x1="0" y1="0" x2="0" y2="1">
-          <Stops colours={look.upper} />
-        </linearGradient>
-        <linearGradient id={`${id}-b`} x1="0" y1="0" x2="0" y2="1">
-          <Stops colours={look.lower} />
-        </linearGradient>
         {line("t", LOGO_TRAIL.from, LOGO_TRAIL.to)}
         {line("l", LOGO_LEAD.from, LOGO_LEAD.to)}
         {charge ? (
@@ -124,10 +109,7 @@ export function LogoMark({
       {clipped(
         charge,
         `${id}-cf`,
-        <>
-          <path d={LOGO_PATHS.upper} fill={`url(#${id}-a)`} />
-          <path d={LOGO_PATHS.lower} fill={`url(#${id}-b)`} />
-        </>,
+        <path d={LOGO_PATHS.bolt} fill={look.upper[0]} />,
       )}
       {clipped(
         charge,

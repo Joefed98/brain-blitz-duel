@@ -62,7 +62,7 @@ const SPARKS: { x: number; y: number; s: number; d: number }[] = [
 export const MEASURE_CSS = `
 [data-polish="measure"] { --mj-water: var(--measure-water); --mj-water-top: color-mix(in oklab, var(--measure-water) 62%, white); --mj-water-deep: color-mix(in oklab, var(--measure-water) 72%, #001433); }
 [data-puzzle-surface] [data-polish="measure"] [data-measure-jug][data-puzzle-cell] { box-shadow: none !important; background: transparent !important; border-radius: 0 !important; }
-/* The shared [data-polish] rule sizes the arena to its content; the jugs are fitted to the arena's height, so it must fill instead. */
+/* The shared [data-polish] rule sizes the arena to its content; the jugs are fitted to the arena’s height, so it must fill instead. */
 .game-column [data-polish="measure"][data-play-area] > [data-game-arena] { flex: 1 1 0; max-height: none; }
 [data-polish="measure"] [data-game-arena] { background: radial-gradient(ellipse 70% 55% at 50% 62%, rgba(120, 175, 255, 0.07), transparent 70%); }
 [data-polish="measure"] .mj-glass {
@@ -401,7 +401,7 @@ function IntroExample() {
       />
       <p className="h-5 font-mono text-sm text-primary">{shown.label}</p>
       <p className="max-w-[270px] text-center text-xs text-muted-foreground">
-        Six moves. Every fill, empty and pour counts. Puzzle 4 has no tap: share out what&apos;s
+        Six moves. Every fill, empty and pour counts. Puzzle 4 has no tap: share out what’s
         there.
       </p>
     </div>

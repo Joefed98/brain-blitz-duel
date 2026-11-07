@@ -117,26 +117,40 @@
   align-items: center;
   gap: 6px;
 }
+/* The one wordmark (design foundation F4, src/components/brand/wordmark.ts): JOULZ in Archivo 900 at
+   118 % width, every letter white, then the bolt in --jz-gold. Capitals by CSS (DESIGN.md rule 6). */
 .ap-wordmark-text {
-  font-family: var(--ap-font);
+  font-family: var(--jz-font);
   font-size: 22px;
-  font-weight: 900;
+  font-weight: var(--jz-weight-black);
   font-stretch: 118%;
   letter-spacing: 0.01em;
   line-height: 1;
-  color: #FFFFFF;
+  text-transform: uppercase;
+  color: var(--jz-white);
   white-space: nowrap;
-}
-.ap-wordmark-last {
-  color: var(--ap-gold);
-  background: linear-gradient(180deg, #FFEBA8 0%, #F7BF2F 48%, #C98A0E 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
 }
 .ap-wordmark-mark {
   flex: none;
   display: block;
+}
+/* The update overlay (AppUpdateOverlay): the wordmark over "Updating…", on the page background. */
+.app-update-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--jz-space-16);
+  background: color-mix(in srgb, var(--jz-bg) 94%, transparent);
+}
+.app-update-overlay-line {
+  font-family: var(--jz-font);
+  font-size: 15px;
+  font-weight: var(--jz-weight-medium);
+  color: var(--jz-text-3);
 }
 /* The sound and music controls, as everywhere, in the secondary text colour. */
 .ap-header [data-sound-channel],
@@ -462,18 +476,18 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* Tap feedback (follow-up to #129): every pressable thing on the tab pages sinks to 98 % and lightens a
-   little for about 90 ms while pressed: transform and filter only, so nothing moves in layout; no tap
+/* Tap feedback (follow-up to #129): every pressable thing on the tab pages sinks to 97 % and lightens a
+   little over --jz-fast (120 ms) while pressed: transform and filter only, so nothing moves in layout; no tap
    highlight. Reduced motion keeps the lightening without the scale. The tab bar is outside the page. */
 [data-app-page] .press {
   transition:
-    transform 90ms ease-out,
-    filter 90ms ease-out,
-    opacity 120ms ease-out;
+    transform var(--jz-fast) var(--jz-ease),
+    filter var(--jz-fast) ease-out,
+    opacity var(--jz-fast) ease-out;
   -webkit-tap-highlight-color: transparent;
 }
 [data-app-page] .press:active:not(:disabled) {
-  transform: scale(0.98);
+  transform: scale(0.97);
   filter: brightness(1.12);
 }
 @media (prefers-reduced-motion: reduce) {

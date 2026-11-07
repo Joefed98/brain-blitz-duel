@@ -25,7 +25,7 @@ async function mine(client: any, roomId: string, userId: string) {
   const room = await roomById(client, String(roomId ?? ""));
   if (!room) return { error: "That challenge no longer exists." } as const;
   const attempt = await attemptFor(client, room.id, userId);
-  if (!attempt) return { error: "You haven't started this challenge." } as const;
+  if (!attempt) return { error: "You haven’t started this challenge." } as const;
   return { room, attempt } as const;
 }
 

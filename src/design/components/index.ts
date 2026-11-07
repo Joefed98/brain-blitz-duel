@@ -3,7 +3,7 @@ export { Button, ButtonLink, type ButtonProps, type ButtonSize, type ButtonVaria
 export { Panel, type PanelProps } from "./Panel";
 export { Row, RowText, type RowProps } from "./Row";
 export { SectionHeader } from "./SectionHeader";
-export { Chip, type ChipProps } from "./Chip";
+export { Chip, type ChipProps, type ChipTone, type FilterChipProps, type StatusChipProps } from "./Chip";
 export { Segmented, type SegmentOption } from "./Segmented";
 export { SwitchKnob } from "./Switch";
 export { Input, type InputProps } from "./Input";

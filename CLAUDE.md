@@ -1541,6 +1541,52 @@ outside the repo.
   (not `--jz-bg`; the bottom, fill and play-screen checks compare against it). Checks find buttons by `data-variant`
   (share-check, theme-check's Ready). Happy-dom checks that draw a sheet need `MutationObserver` and `CustomEvent`
   on the global (Radix's focus scope under vaul).
+- **Design foundation F3: game chrome** (6 Nov 2026; presentation only, no stamps; `DESIGN.md` sections 3 and 9):
+  `--font-display`, `--font-body` and `--font-mono` (styles.css) are Archivo (`--jz-font`; `.font-mono` keeps
+  `tabular-nums`); the Google Fonts load is Press Start 2P only (`GOOGLE_FONTS_CSS`, Retro game art). It uses F2's
+  components (Button; Chip's non-interactive `status` variant, a 22 px label-and-value `<span>`, for every HUD pill). The intro (title, Goal / How / Score `.intro-label`
+  and friends, the 3-2-1 `.intro-countdown-number`, Ready as the gold Button in its 52 px row), the frame header, timer
+  ring, HUD pills (`HudPills` renders `Chip variant="status"`) and the answer and arcade reveals (Back / Play again / See breakdown as
+  Buttons, `.reveal-*` type classes, `--reveal-text-2` for secondary text on the gradient) take `--jz-*` tokens; the
+  backdrops' base is `--jz-bg` under the unchanged category tint, and the reveal palette is unchanged. Game art inside
+  the play area is untouched; canvas art that names JetBrains Mono keeps it through a self-hosted `@font-face` for game
+  art only (`src/lib/arcade/gameArtFonts.css`, asked for by `preloadGameArt`; DESIGN.md section 9's exception). Shots:
+  `screenshots/design-f3-nov-2026/`.
+- **Design foundation F4: brand and polish** (6 Nov 2026; presentation only, no stamps; `DESIGN.md`): *one wordmark*
+  (`src/components/brand/wordmark.ts`): APP_NAME in Archivo 900 at 118 %, every letter white (`--jz-white`, capitals by
+  CSS), then the bolt in flat `--jz-gold` (LogoMark; both halves one path, `LOGO_PATHS.bolt`, so no seam), on the
+  header, the share card (a canvas face pinned to 900 / 118 %, `loadWordmarkFace`), the link preview and the update
+  overlay (`AppWordmark still`). The canvases and asset scripts read the brand colours from `logoGeometry.ts`
+  (`BRAND_GOLD`, `BRAND_INK`, `BRAND_TEXT_3`, `RING_GOLD`, `cssGradientLine`), mirrors of the tokens. `bun
+  scripts/brand-icons.ts` draws the app icons (the black bolt on the ring-gold metal, `--jz-gold-metal` at 165°), the
+  solve burst's logo (`public/icon-512.png`: the bolt in the ring-gold metal on `--jz-bg`) and the iPhone launch
+  screens (`APP_SPLASHES`, `public/splash/`, the gold bolt on `--jz-bg`, linked as `apple-touch-startup-image`, not kept
+  offline); `bun scripts/og-image.ts` the link preview; the manifest's background and theme colours and the
+  theme-color meta are `--jz-bg`. The share card's gold and black are the tokens (background `--jz-bg`, gold text
+  `--jz-gold`, gold fills and the first-place disc the ring-gold metal, text on gold `--jz-on-gold`). Copy: player-facing
+  strings use ’ “ ” (the mechanical pass from `docs/design-audit/strings.csv`; the bomb bank's stored rule text and dev
+  messages left alone). Press states: `.jz-press` (`src/design/utilities.css`, on the shadcn Button) and one rule for
+  every other button in app and game chrome sink to 97 % over `--jz-fast` with the `scale` property (never in game
+  art: `data-skin-off`, `data-game-arena`, `data-game-stage`); `.press` and its skin overrides match. brand-assets-check
+  (~1 s) proves the mirrors, the wordmark's sources and every image's size; review images
+  `bun scripts/shots/brand-f4-shots.ts` (`screenshots/brand-f4-nov-2026/`).
+- **Design foundation F5: approved art** (6 Nov 2026; presentation only, no stamps; `docs/art/README.md`, DESIGN.md
+  section 5 "Reward art"): the metals, inks and glow are tokens (`--jz-metal-*`, `--jz-ink-*`, `--jz-glow`,
+  `--jz-art-*`); `src/design/art/` holds Emblem, Trophy, Badge and the medal art, ported line for line from
+  `docs/art/source/gen.py` (`markup.ts`, colours through var()); `Medal` (same name and API) draws the medal art for
+  1st–3rd (no numbers, "=" tag on a shared place, "1st"/"Joint 1st" labels), and the share card draws it as an image
+  (`loadCardMedals`). **Captain Joulz** replaces the hero skin in `src/lib/arcade/hero.renderer.ts`: `drawCaptain` is
+  hero2.py variant '4' in canvas primitives, gold on SVG's objectBoundingBox gradient; the celebrations build the
+  figure from the approved ready, run and win poses (`CAPTAIN_POSES`, captain-poses.json), interpolating joints
+  (victory = win, run = run with limbs trading places, dance = ready ↔ win arms); the games' HeroPose joints are
+  retargeted onto the same body (shoulders and hips from the torso, elbows and knees solved near-straight, helmet by
+  head radius, fists and short boots, the cape as wide as the old one), the small figure (< 40 px) flat gold without
+  fine detail; Moon Climb's ninja gear stays an overlay. Hit boxes, sims, timings, seeds and scores are untouched.
+  art-check (~3 s, no browser) proves the 17 reward SVGs byte for byte, the metals, the poses, the canvas captain
+  against the approved SVGs (pixels), every game pose no bigger than main's figure
+  (`scripts/fixtures/hero-bounds-main.json`, `--record=<main checkout>`) and the Medal. The Roofbound, Grappler and
+  Moon Climb tiles are re-exported. Shots: `bun scripts/shots/captain-shots.ts [--old=<main checkout>]`,
+  `bun scripts/shots/art-gallery-shots.tsx` (`screenshots/art-f5-nov-2026/`); `/dev-design` shows every piece.
 - `src/components/duel/` — room/round screens (PhoneShell, RoundIntro, TimerBar,
   AnswerReveal, ArcadeReveal, WinnerReveal…); `src/components/puzzles/` — shared puzzle
   widgets; `src/lib/fx/` — sound and visual feedback (presentation only).

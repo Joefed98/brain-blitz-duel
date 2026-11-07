@@ -580,10 +580,10 @@ async function playInChallenge(puzzle: PuzzleData, answer: string, claimedMs: nu
     "the Play card shows only while challenges may be available, and collapses when they aren't",
   );
   const daily = readFileSync("src/lib/share/dailyShare.ts", "utf8");
-  check(/I scored \$\{total\} on today's \$\{DAILY_TITLE\[kind\]\} – can you beat it\?/.test(daily), "the daily's share text");
+  check(/I scored \$\{total\} on today’s \$\{DAILY_TITLE\[kind\]\} – can you beat it\?/.test(daily), "the daily's share text");
   const { dailyShareLine } = await import("../src/lib/share/dailyShare");
   const { shareText } = await import("../src/lib/share/shareResult");
-  check(shareText([dailyShareLine("puzzle", 612)], "https://x/daily", "") === "I scored 612 on today's Daily Puzzle – can you beat it? https://x/daily", "the daily's shared text is exactly: I scored 612 on today's Daily Puzzle – can you beat it? <link>");
+  check(shareText([dailyShareLine("puzzle", 612)], "https://x/daily", "") === "I scored 612 on today’s Daily Puzzle – can you beat it? https://x/daily", "the daily's shared text is exactly: I scored 612 on today's Daily Puzzle – can you beat it? <link>");
 }
 
 /* ------------------------------------------------------------ SQL */

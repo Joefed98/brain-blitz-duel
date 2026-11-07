@@ -260,7 +260,7 @@ export function RoomLobby({
     setPending((current) => ({ ...current, ...look }));
     onLookChange(look).catch((error: unknown) => {
       setPending(null);
-      setLookError(error instanceof Error ? error.message : "Couldn't change that. Try again.");
+      setLookError(error instanceof Error ? error.message : "Couldn’t change that. Try again.");
     });
   };
   // The choice stays shown until the room's own row carries it (or a few seconds pass).
@@ -407,7 +407,7 @@ export function RoomLobby({
           </p>
         ) : null}
         {isHost && !canStart ? (
-          <p className="text-[13px] leading-snug text-[var(--ap-text-2)]">Send the link to friends. Start when everyone's in.</p>
+          <p className="text-[13px] leading-snug text-[var(--ap-text-2)]">Send the link to friends. Start when everyone’s in.{/* design-lint-ignore: styles unchanged, curly quotes only (F4) */}</p>
         ) : null}
       </section>
 

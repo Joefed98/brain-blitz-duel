@@ -200,7 +200,7 @@ function ArcadeHighlight({
       className="press shrink-0 rounded border border-primary/60 px-2 py-0.5 font-mono text-[10px] font-bold uppercase text-primary"
       data-replay-watch
     >
-      Watch {name}&apos;s run
+      Watch {name}’s run
     </button>
   );
   if (
