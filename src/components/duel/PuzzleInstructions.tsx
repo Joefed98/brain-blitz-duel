@@ -1,6 +1,7 @@
 import { useEffect, type ReactNode } from "react";
 
 import { Button } from "@/components/ui/button";
+import { Icon } from "@/design/components";
 import { puzzleDef } from "@/lib/duel/registry";
 import { INTRO_SCORE } from "@/lib/duel/introScore";
 import { scoreSentences } from "@/lib/duel/scoreList";
@@ -142,7 +143,7 @@ export function PuzzleHelp({ type, open, onClose }: PuzzleHelpProps) {
             onClick={onClose}
             className="press flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-border bg-background font-display text-xl font-bold leading-none text-foreground"
           >
-            ×
+            <Icon name="close" size={20} />
           </button>
         </div>
         <div data-help-scroll data-scrollable className="help-sheet-scroll min-h-0 flex-1 px-4 pb-4 pt-3">

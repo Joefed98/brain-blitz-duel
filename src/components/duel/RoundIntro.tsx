@@ -7,9 +7,8 @@ import { pyDeal } from "@/lib/arcade/cards/pyramid";
 import { INTRO_COUNTDOWN_MS, INTRO_MS, TOTAL_ROUNDS, type PuzzleType } from "@/lib/duel/types";
 import type { Outcome } from "@/lib/duel/scoring";
 import type { PuzzleData } from "@/lib/duel/types";
-import { Button as JzButton, Stars } from "@/design/components";
+import { Button as JzButton, Icon, Stars } from "@/design/components";
 import { useContext, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
-import { ChevronLeft } from "lucide-react";
 import { fx } from "@/lib/fx";
 import { roundMusicFor } from "@/lib/fx/theme";
 import { prepareBeatTrack, prepareRoundMusic, startMusic, stopMusic, stopMusicIf } from "@/lib/sound";
@@ -261,7 +260,7 @@ export function RoundIntro({
       <div data-intro-header className="intro-header" style={NO_SELECT}>
         {practice && onBack ? (
           <button type="button" onClick={onBack} aria-label="Back" className="intro-back press">
-            <ChevronLeft aria-hidden="true" className="h-6 w-6" />
+            <Icon name="back" size={24} />
           </button>
         ) : null}
         <div className="game-frame-left">

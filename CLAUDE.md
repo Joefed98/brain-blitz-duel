@@ -1619,6 +1619,16 @@ outside the repo.
   unchanged. Celebrations off: both screens exactly as before. standings-reveal-check (~30 s, happy-dom; 2, 10 and 16
   players, ties, left and inactive players, skip, reduced motion, no frames after the end); frames
   `bun scripts/shots/standings-reveal-shots.ts` (`screenshots/standings-reveal-nov-2026/`).
+- **Icon swap** (7 Nov 2026; presentation only, no stamps; `DESIGN.md` section 6): the approved Joulz icons
+  (`docs/icons/svg/`, `names.json`, README) drawn by `Icon` in `src/design/components/` (`name`, `size` 18 / 20 / 22 /
+  24, `tone` a token, decorative unless `label`), inlined from `src/design/icons/icons.data.ts` (built by
+  `bun scripts/icons-build.ts`; **re-run it after changing an SVG**), every icon on `/dev-design`. The tab bar and
+  rail (outline in `--jz-text-3`, `-on` in `--jz-gold` when current), headers, the game menu (sound / music / help rows),
+  sheets' ✕, chat, share, calendar, lock, back, search, settings, ticks and the expand carets use it; a 16 px slot
+  keeps its footprint with `-m-px` round an 18 px icon. `lucide-react` stays where the set has no icon yet (list in
+  DESIGN.md) and in game boards. icons-check (~1 s) proves the data file, the drawings, the component and that no
+  replaced stock icon returns to app chrome. celebrations-off.json re-recorded (only svg markup changed). Shots
+  `bun scripts/shots/icon-swap-shots.ts` (`screenshots/icon-swap-nov-2026/`).
 - `src/components/duel/` — room/round screens (PhoneShell, RoundIntro, TimerBar,
   AnswerReveal, ArcadeReveal, WinnerReveal…); `src/components/puzzles/` — shared puzzle
   widgets; `src/lib/fx/` — sound and visual feedback (presentation only).
@@ -1882,6 +1892,7 @@ grading. See `docs/duelz-scoring-reference.md` section 14.
 4. **Take game counts, names and categories from `main`** (`src/lib/duel/gameNames.ts`, `src/lib/duel/registry.ts`),
    never from memory or an older branch.
 5. **Never loosen or delete an assertion** to get green, and leave `bun.lock` unchanged.
+6. **Never pass a fresh `dangerouslySetInnerHTML` object on render**: keep one `{ __html }` object per markup (a module-level cache or `useMemo`), or React 19 rewrites it on every clock tick (battery-check; icons-check and art-check prove 0 DOM changes on an unchanged re-render).
 
 ## Working process
 

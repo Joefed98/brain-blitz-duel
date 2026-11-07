@@ -1,7 +1,6 @@
-import { X } from "lucide-react";
 
 import { topRoundMax } from "@/lib/duel/roundMax";
-import { Button } from "@/design/components";
+import { Button, Icon } from "@/design/components";
 
 /**
  * The first-time intro as a card at the top of the Play tab (tab pages refresh, 26 Oct 2026; the design
@@ -22,7 +21,7 @@ export function IntroCard({
   return (
     <section aria-labelledby="intro-card-title" data-intro-card className="jz-panel ap-intro">
       <button type="button" aria-label="Close intro" data-intro-close onClick={onClose} className="ap-intro-close ap-icon-btn press">
-        <X aria-hidden="true" strokeWidth={2} />
+        <Icon name="close" size={20} />
       </button>
       <div className="pr-10">
         <p className="ap-kicker">NEW HERE?</p>

@@ -1,4 +1,4 @@
-import { MessageSquare, Send } from "lucide-react";
+import { Send } from "lucide-react";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 
 import { PlayerBadge } from "@/components/duel/PlayerBadge";
@@ -8,7 +8,7 @@ import type { PlayerLooks } from "@/lib/duel/playerLook";
 import { isLiveType, puzzleDef, puzzleName } from "@/lib/duel/registry";
 import type { RoomChatState } from "@/lib/duel/useRoomChat";
 import type { DuelPlayerRow, StoredPuzzleType } from "@/lib/duel/types";
-import { Input } from "@/design/components";
+import { Icon, Input } from "@/design/components";
 
 /**
  * A room's right panel on the computer layout (31 Oct 2026, presentation only; docs/desktop-layout.md):
@@ -174,7 +174,7 @@ export function RoomPanel({
           <PanelChat chat={chat} myUserId={myUserId} />
         ) : (
           <p className="dk-rp-quiet">
-            <MessageSquare aria-hidden="true" className="h-4 w-4" /> Chat opens between rounds
+            <Icon name="chat" size={18} className="-m-px" /> Chat opens between rounds
           </p>
         )}
       </section>

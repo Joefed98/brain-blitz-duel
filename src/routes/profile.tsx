@@ -1,5 +1,5 @@
 import { createFileRoute, useRouter } from "@tanstack/react-router";
-import { Check, ChevronRight, Settings } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
 import { FeedbackLink } from "@/components/beta/FeedbackLink";
@@ -26,7 +26,7 @@ import { ordinal } from "@/lib/duel/ordinal";
 import type { PuzzleType } from "@/lib/duel/types";
 import { ukDay } from "@/lib/publicSchedule";
 import { APP_NAME } from "@/lib/brand";
-import { Button, Input } from "@/design/components";
+import { Button, Icon, Input } from "@/design/components";
 
 export const Route = createFileRoute("/profile")({
   ssr: false,
@@ -146,7 +146,7 @@ function ProfileScreen() {
         <div className="flex items-center justify-between gap-2">
           <h1 className="ap-title">Profile</h1>
           <Button variant="icon" aria-label="Settings" data-open-settings onClick={() => setSettings(true)} className="-mr-2.5">
-            <Settings aria-hidden="true" strokeWidth={1.9} />
+            <Icon name="settings" size={20} />
           </Button>
         </div>
 
@@ -231,7 +231,7 @@ function ProfileScreen() {
                   className="jz-row press"
                 >
                   <span aria-hidden="true" data-done={step.done || undefined} className="ap-check">
-                    {step.done ? <Check strokeWidth={3} /> : null}
+                    {step.done ? <Icon name="check" size={18} /> : null}
                   </span>
                   <span className="jz-row-text">
                     <span className="jz-row-title">{step.title}</span>

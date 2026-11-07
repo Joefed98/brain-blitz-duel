@@ -1,5 +1,4 @@
 import { useRouter } from "@tanstack/react-router";
-import { Search, Settings } from "lucide-react";
 import { useEffect, useState, type FormEvent, type MouseEvent } from "react";
 
 import { AppWordmark } from "@/components/brand/AppWordmark";
@@ -11,7 +10,7 @@ import { goToTab, TAB_PATHS, type AppTab } from "@/components/app/AppTabBar";
 import { getStoredName } from "@/lib/duel/session";
 import { rememberedLook, type PlayerLook } from "@/lib/duel/playerLook";
 import { unlockAudio } from "@/lib/sound";
-import { Input, TabBar } from "@/design/components";
+import { Icon, Input, TabBar } from "@/design/components";
 
 /**
  * The computer layout's left navigation rail (31 Oct 2026, presentation only; docs/desktop-layout.md).
@@ -74,7 +73,7 @@ export function AppRail({
       <div className="dk-rail-foot">
         {compact ? null : (
           <form role="search" onSubmit={search} className="dk-rail-search">
-            <Search aria-hidden="true" className="dk-rail-search-icon" />
+            <Icon name="search" size={18} className="dk-rail-search-icon" />
             <Input
               name="q"
               type="search"
@@ -109,7 +108,7 @@ export function AppRail({
             onClick={() => setSettings(true)}
             className="dk-rail-icon press"
           >
-            <Settings aria-hidden="true" className="h-5 w-5" />
+            <Icon name="settings" size={20} />
           </button>
           {compact ? null : <MuteToggle />}
         </div>

@@ -1,6 +1,7 @@
-import { Share, SquarePlus, X } from "lucide-react";
+import { SquarePlus } from "lucide-react";
 
 import { dismissOfflineInstall } from "@/lib/offline/online";
+import { Icon } from "@/design/components";
 
 /**
  * The Practice tab's Add to Home Screen card for offline play (offline practice, 31 Oct 2026): iPhone Safari
@@ -18,7 +19,7 @@ export function OfflineInstallCard() {
         aria-label="Dismiss"
         className="press absolute right-1 top-1 flex h-11 w-11 items-center justify-center rounded-full text-[var(--ap-faint)]"
       >
-        <X aria-hidden="true" className="h-5 w-5" />
+        <Icon name="close" size={20} />
       </button>
       <div className="flex items-center gap-2.5">
         <SquarePlus aria-hidden="true" className="h-5 w-5 shrink-0 text-muted-foreground" />
@@ -26,7 +27,7 @@ export function OfflineInstallCard() {
       </div>
       <p className="flex flex-wrap items-center gap-x-1 text-[14px] text-muted-foreground">
         <span>Tap</span>
-        <Share aria-label="Share" className="h-4 w-4" />
+        <Icon name="share" size={18} label="Share" className="-m-px" />
         <span className="font-semibold text-foreground">Share</span>
         <span>then</span>
         <span className="font-semibold text-foreground">Add to Home Screen</span>

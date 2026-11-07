@@ -1,6 +1,6 @@
-import { Check, Lock } from "lucide-react";
 import { useMemo, useState } from "react";
 
+import { Icon } from "@/design/components";
 import { Button, GameTile, Progress, SectionHeader, Segmented } from "@/design/components";
 import { challengeState, type ChallengeState, type GoalsRecord } from "@/lib/duel/practiceGoals";
 import { PRACTICE_CHALLENGES } from "@/lib/duel/practiceChallenges";
@@ -107,7 +107,7 @@ function ChallengeRow({ state, name, onPlay }: { state: ChallengeState; name: st
           <span data-challenge-figure className="pc-figure">
             {done ? (
               <>
-                <Check aria-hidden="true" className="pc-icon" />
+                <Icon name="check" size={18} style={{ width: 14, height: 14 }} className="pc-icon" />
                 Done
               </>
             ) : (
@@ -119,7 +119,7 @@ function ChallengeRow({ state, name, onPlay }: { state: ChallengeState; name: st
         {done ? <span data-challenge-unlock className="pc-unlock">Unlocks with your account</span> : null}
       </span>
       <span data-challenge-reward className="pc-reward">
-        <Lock aria-hidden="true" className="pc-icon" />
+        <Icon name="lock" size={18} style={{ width: 14, height: 14 }} className="pc-icon" />
         {challenge.reward}
       </span>
     </div>

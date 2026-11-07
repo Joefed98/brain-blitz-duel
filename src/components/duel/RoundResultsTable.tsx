@@ -12,7 +12,6 @@ import {
 import type { PlayerLooks } from "@/lib/duel/playerLook";
 import type { Standing } from "@/lib/duel/scoring";
 import { roundPlaces, tieMarks } from "@/lib/duel/tieDisplay";
-import { ChevronDown } from "lucide-react";
 import { soundCue } from "@/lib/fx/soundCues";
 import { cueDurationMs, playRoundWon, playVoice } from "@/lib/sound";
 
@@ -22,6 +21,7 @@ import { Medal } from "./Medal";
 import { PlayerBadge } from "./PlayerBadge";
 import { useScrollMore } from "./RoomFooter";
 import { isCompactRoom, youStyle } from "./Standings";
+import { Icon } from "@/design/components";
 
 interface RoundResultsTableProps {
   /** The round and its game, shown as chips ("Round 3", "Gemstone"). */
@@ -152,7 +152,7 @@ export function RoundResultsTable({
                     value={row.roundScore}
                     className="th-score rs-total w-12 text-right"
                   />
-                  <ChevronDown aria-hidden="true" className={`h-5 w-5 shrink-0 text-[var(--ap-faint)] transition-transform ${open ? "rotate-180" : ""}`} />
+                  <Icon name="chevron-down" size={20} tone="text-3" className={`shrink-0 transition-transform ${open ? "rotate-180" : ""}`} />
                 </span>
               </button>
             </li>

@@ -900,6 +900,30 @@
   white-space: nowrap;
 }
 
+/* The Joulz icons (Icon; docs/icons/README.md): size set inline, colour from a token. */
+.jz-icon {
+  flex: none;
+  overflow: visible;
+}
+.jz-icon[data-tone="text"] {
+  color: var(--jz-text);
+}
+.jz-icon[data-tone="text-2"] {
+  color: var(--jz-text-2);
+}
+.jz-icon[data-tone="text-3"] {
+  color: var(--jz-text-3);
+}
+.jz-icon[data-tone="gold"] {
+  color: var(--jz-gold);
+}
+.jz-icon[data-tone="red"] {
+  color: var(--jz-red);
+}
+.jz-icon[data-tone="cyan"] {
+  color: var(--jz-cyan);
+}
+
 /* The search field's magnifier (Input `search`). */
 .jz-input-icon {
   position: absolute;

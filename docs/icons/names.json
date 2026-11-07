@@ -34,5 +34,17 @@
  "check": "Done",
  "cross": "Wrong",
  "up": "Up",
- "down": "Down"
+ "down": "Down",
+ "chevron-right": "Forward",
+ "chevron-down": "Expand row",
+ "more": "More (row menu)",
+ "send": "Send",
+ "expand": "Expand",
+ "collapse": "Collapse",
+ "add-home": "Add to Home Screen",
+ "challenge": "Challenge",
+ "announce": "Announcement",
+ "rejoin": "Rejoin",
+ "external": "External link",
+ "offline": "Offline"
 }
