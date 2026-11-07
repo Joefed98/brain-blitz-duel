@@ -51,7 +51,7 @@ export function YourChallenges({ onOpen }: { onOpen: (code: string) => void }) {
                     {c.code}
                   </span>
                   <span data-ellipsis className="min-w-0 flex-1 truncate text-[13.5px] text-muted-foreground">
-                    {c.roundCount} rounds ·{" "}
+                    {c.roundCount} rounds,{" "}
                     {c.myTotal === null ? "not finished" : `you ${c.myTotal}`}
                   </span>
                   <span className="shrink-0 whitespace-nowrap text-[12.5px] text-muted-foreground">

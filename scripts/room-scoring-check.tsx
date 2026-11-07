@@ -163,7 +163,7 @@ for (const n of [2, 8, 16]) {
   check(t[0]!.slot === 1 && t[1]!.slot === 2 && t[0]!.position === 1 && t[1]!.position === 2, "8 players: level on points and score, the existing time tie-break splits them");
   check(t[2]!.slot === 3 && t[3]!.slot === 8, `8 players: then P3 (12) and P8 (10) (${t.map((r) => r.slot).join(",")})`);
   const marks = tieMarks(t.map(placedOf));
-  check(marks.get(1)!.note === "Level on 15 pts · ahead on time" && marks.get(2)!.note === "Level on 15 pts · behind on time", `8 players: the tie note names points and time (${marks.get(1)!.note})`);
+  check(marks.get(1)!.note === "Level on 15 pts, ahead on time" && marks.get(2)!.note === "Level on 15 pts, behind on time", `8 players: the tie note names points and time (${marks.get(1)!.note})`);
   check(shownTotal(t[0]!) === 15 && shownGain(t[0]!) === "3rd +5", `8 players: the row shows points and the round's place ("${shownGain(t[0]!)}")`);
   // Fully level on everything: shared place.
   const twin = [result(1, 1, 100, 10_000), result(2, 1, 100, 10_000), ...[3, 4, 5, 6, 7, 8].map((s) => result(s, 1, 10))];
@@ -173,7 +173,7 @@ for (const n of [2, 8, 16]) {
   // Level on points, split by score.
   const byScore = [result(1, 1, 100), result(2, 1, 90), result(1, 2, 10), result(2, 2, 120), ...[3, 4, 5, 6, 7, 8].flatMap((s) => [result(s, 1, 0), result(s, 2, 0)])];
   const bs = standings(ps, byScore, 2, undefined, tieFor(2), "placings");
-  check(bs[0]!.slot === 2 && bs[0]!.points === bs[1]!.points && tieMarks(bs.map(placedOf)).get(2)!.note === "Level on 17 pts · ahead on score", `8 players: level on points (17), the higher score (210 to 110) first, noted "on score" (${tieMarks(bs.map(placedOf)).get(2)!.note})`);
+  check(bs[0]!.slot === 2 && bs[0]!.points === bs[1]!.points && tieMarks(bs.map(placedOf)).get(2)!.note === "Level on 17 pts, ahead on score", `8 players: level on points (17), the higher score (210 to 110) first, noted "on score" (${tieMarks(bs.map(placedOf)).get(2)!.note})`);
 }
 
 // Sixteen players: one round, everyone different, then a left player.

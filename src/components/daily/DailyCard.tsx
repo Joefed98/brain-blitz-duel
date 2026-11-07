@@ -1,4 +1,3 @@
-import { Check } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { DailyArcadeTile, DailyPuzzleTile } from "@/components/app/TabIcons";
@@ -15,6 +14,7 @@ import {
   type DailyStatus,
 } from "@/lib/duel/daily";
 import { readPlayCards, writePlayCards } from "@/lib/playCards";
+import { Icon } from "@/design/components";
 
 /**
  * A daily's row (tab pages refresh, 26 Oct 2026): its size and, once played today, "Done" (with this
@@ -24,8 +24,8 @@ import { readPlayCards, writePlayCards } from "@/lib/playCards";
 function rowState(kind: DailyKind, state: DailyState, streak: number): { sub: string; action: string; done: number | null } {
   const size = kind === "puzzle" ? `${DAILY_ROUNDS[kind]} rounds` : `${DAILY_ROUNDS[kind]} games`;
   if (state.state === "play") return { sub: size, action: "Play", done: null };
-  if (state.state === "continue") return { sub: `${size} · started`, action: "Continue", done: null };
-  return { sub: streak >= 2 ? `Done · ${streak}-day streak` : "Done", action: "Done", done: state.total };
+  if (state.state === "continue") return { sub: `${size}, started`, action: "Continue", done: null };
+  return { sub: streak >= 2 ? `Done, ${streak}-day streak` : "Done", action: "Done", done: state.total };
 }
 
 const DAILY_ICON = { puzzle: DailyPuzzleTile, arcade: DailyArcadeTile } as const;
@@ -95,7 +95,7 @@ export function DailyCard({
       <div className="jz-panel">
         {DAILY_KINDS.map((kind) => {
           const { sub, action, done } = rowState(kind, status[kind], streak);
-          const Icon = DAILY_ICON[kind];
+          const Tile = DAILY_ICON[kind];
           return (
             <button
               key={kind}
@@ -106,7 +106,7 @@ export function DailyCard({
               data-icon="tile"
               className="jz-row press"
             >
-              <Icon />
+              <Tile />
               <span className="jz-row-text">
                 <span className="jz-row-title">{DAILY_TITLE[kind]}</span>
                 <span data-ellipsis className="jz-row-sub">
@@ -115,7 +115,7 @@ export function DailyCard({
               </span>
               {done !== null ? (
                 <span data-daily-done className="ap-done-score">
-                  <Check aria-hidden="true" strokeWidth={2.6} />
+                  <Icon name="check" size={18} tone="cyan" className="-m-px" />
                   {done}
                 </span>
               ) : (

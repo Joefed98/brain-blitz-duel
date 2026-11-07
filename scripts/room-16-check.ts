@@ -91,11 +91,11 @@ type SeatRow = { player_slot: number; status: string };
     if (seat.ok) seated.push({ player_slot: seat.slot, status: "active" });
   }
   const seventeenth = seatFor(seated, { max_players: 16 });
-  check(!seventeenth.ok && seventeenth.message === "That room is full (16 players).", `the 17th join: ${JSON.stringify(seventeenth)}`);
+  check(!seventeenth.ok && seventeenth.message === "That room’s full. It’s 16 max.", `the 17th join: ${JSON.stringify(seventeenth)}`);
   // A room made before 16 (stored max_players 10) seats 16 too.
   check(roomCapacity({ max_players: 10 }) === 16 && firstFreeSlot(seated.slice(0, 10), roomCapacity({ max_players: 10 })) === 11, "a room stored with max_players 10 doesn't seat an 11th");
   const old = seatFor(seated, { max_players: 10 });
-  check(!old.ok && old.message === "That room is full (16 players).", `an old room's 17th join: ${JSON.stringify(old)}`);
+  check(!old.ok && old.message === "That room’s full. It’s 16 max.", `an old room's 17th join: ${JSON.stringify(old)}`);
   // A leaver's seat goes to the next join; a left player never counts.
   const left = seated.map((p) => (p.player_slot === 7 ? { ...p, status: "left" } : p));
   const back = seatFor(left, { max_players: 16 });
@@ -263,7 +263,7 @@ for (let room = 0; room < 120; room++) {
   } catch (error) {
     threw = error;
   }
-  check(threw instanceof RoomSeatsError && (threw as RoomSeatsError).seats === 10 && (threw as Error).message === "That room is full (10 players).", `before the migration: the 11th join gave ${String(threw)}`);
+  check(threw instanceof RoomSeatsError && (threw as RoomSeatsError).seats === 10 && (threw as Error).message === "That room’s full. It’s 10 max.", `before the migration: the 11th join gave ${String(threw)}`);
   const changed = await changePlayerLook(client, seated[0]!, { colour: 20 });
   check(!changed.ok, "before the migration: a wheel colour past 9 was accepted in the lobby");
   forgetLookColumns();

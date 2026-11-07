@@ -1,3 +1,4 @@
+import { MetaChips } from "@/components/app/MetaChips";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 
 import {
@@ -11,7 +12,6 @@ import {
 import type { PlayerLooks } from "@/lib/duel/playerLook";
 import type { Standing } from "@/lib/duel/scoring";
 import { roundPlaces, tieMarks } from "@/lib/duel/tieDisplay";
-import { ChevronDown } from "lucide-react";
 import { soundCue } from "@/lib/fx/soundCues";
 import { cueDurationMs, playRoundWon, playVoice } from "@/lib/sound";
 
@@ -21,9 +21,11 @@ import { Medal } from "./Medal";
 import { PlayerBadge } from "./PlayerBadge";
 import { useScrollMore } from "./RoomFooter";
 import { isCompactRoom, youStyle } from "./Standings";
+import { Icon } from "@/design/components";
 
 interface RoundResultsTableProps {
-  roundTitle: string;
+  /** The round and its game, shown as chips ("Round 3", "Gemstone"). */
+  roundTitle: string | readonly string[];
   /** A short best-answer line ("Best: 17 moves"), when the game has one. */
   best?: string | null;
   rows: Standing[];
@@ -89,7 +91,7 @@ export function RoundResultsTable({
           <h1 className="rs-title">{finalRound ? "Final round" : "Round results"}</h1>
           {best && <span className="rs-meta">{best}</span>}
         </div>
-        <p className="rs-sub">{roundTitle}</p>
+        <MetaChips data-round-title facts={typeof roundTitle === "string" ? [roundTitle] : roundTitle} />
       </header>
 
       {highlight}
@@ -135,12 +137,12 @@ export function RoundResultsTable({
                         data-row-line
                         className={`text-[12.5px] leading-tight text-[var(--ap-text-2)] ${open ? "block whitespace-normal" : "block truncate"}`}
                       >
-                        {time ? <span className="tabular-nums">{time} · </span> : null}
+                        {time ? <span className="tabular-nums">{time}, </span> : null}
                         <span data-verdict={verdict} className={`font-bold ${VERDICT_TONE[verdict]}`}>
                           {VERDICT_LABEL[verdict]}
                         </span>
-                        {note ? ` · ${note}` : ""}
-                        {summary ? ` · ${open ? [summary, ...row.detail].join(" · ") : summary}` : ""}
+                        {note ? `, ${note}` : ""}
+                        {summary ? `, ${open ? [summary, ...row.detail].join(" · ") : summary}` : ""}
                       </span>
                     </span>
                   </span>
@@ -150,7 +152,7 @@ export function RoundResultsTable({
                     value={row.roundScore}
                     className="th-score rs-total w-12 text-right"
                   />
-                  <ChevronDown aria-hidden="true" className={`h-5 w-5 shrink-0 text-[var(--ap-faint)] transition-transform ${open ? "rotate-180" : ""}`} />
+                  <Icon name="chevron-down" size={20} tone="text-3" className={`shrink-0 transition-transform ${open ? "rotate-180" : ""}`} />
                 </span>
               </button>
             </li>

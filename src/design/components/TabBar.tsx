@@ -1,5 +1,6 @@
-import { Target, Trophy, UserRound, Zap, type LucideIcon } from "lucide-react";
 import type { MouseEvent } from "react";
+
+import { Icon } from "./Icon";
 
 /**
  * The app's four tabs, from one list (DESIGN.md section 5): the phone's bottom bar (AppTabBar) and the
@@ -7,6 +8,7 @@ import type { MouseEvent } from "react";
  * - `bar`: icon over label, the current tab gold;
  * - `rail`: icon and label in a row (`compact`: the icon alone, its name as the tooltip and label).
  * Navigation (the back behaviour) is the caller's `onOpen`.
+ * Icons (docs/icons/README.md): the tab's outline icon in --jz-text-3, its filled `-on` icon in --jz-gold when current.
  */
 export type AppTab = "play" | "practice" | "tournaments" | "profile";
 
@@ -17,12 +19,16 @@ export const TAB_PATHS: Record<AppTab, "/" | "/practice" | "/tournaments" | "/pr
   profile: "/profile",
 };
 
-export const TABS: readonly { tab: AppTab; label: string; Icon: LucideIcon }[] = [
-  { tab: "play", label: "Play", Icon: Zap },
-  { tab: "practice", label: "Practice", Icon: Target },
-  { tab: "tournaments", label: "Tournaments", Icon: Trophy },
-  { tab: "profile", label: "Profile", Icon: UserRound },
+export const TABS: readonly { tab: AppTab; label: string }[] = [
+  { tab: "play", label: "Play" },
+  { tab: "practice", label: "Practice" },
+  { tab: "tournaments", label: "Tournaments" },
+  { tab: "profile", label: "Profile" },
 ];
+
+function TabIcon({ tab, here }: { tab: AppTab; here: boolean }) {
+  return <Icon name={here ? `${tab}-on` : tab} size={24} tone={here ? "gold" : "text-3"} />;
+}
 
 export function TabBar({
   current,
@@ -37,7 +43,7 @@ export function TabBar({
 }) {
   return (
     <>
-      {TABS.map(({ tab, label, Icon }) => {
+      {TABS.map(({ tab, label }) => {
         const here = tab === current;
         if (variant === "bar")
           return (
@@ -50,7 +56,7 @@ export function TabBar({
               data-jz="tab"
               className="jz-tab min-w-0"
             >
-              <Icon aria-hidden="true" strokeWidth={1.9} />
+              <TabIcon tab={tab} here={here} />
               <span>{label}</span>
             </a>
           );
@@ -66,7 +72,7 @@ export function TabBar({
             data-jz="tab"
             className="dk-rail-tab"
           >
-            <Icon aria-hidden="true" className="h-6 w-6" strokeWidth={1.9} />
+            <TabIcon tab={tab} here={here} />
             {compact ? null : <span>{label}</span>}
           </a>
         );

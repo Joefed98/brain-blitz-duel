@@ -465,8 +465,8 @@ export function PuzzleTimelapse({
         data-timelapse-counter
       >
         {plan.spec.unit} {done} / {plan.total}
-        {plan.min !== null ? ` · ${plan.spec.minLabel} ${plan.min}` : ""}
-        {finished && score !== undefined ? ` · ${score} ${score === 1 ? "pt" : "pts"}` : ""}
+        {plan.min !== null ? `, ${plan.spec.minLabel} ${plan.min}` : ""}
+        {finished && score !== undefined ? `, ${score} ${score === 1 ? "pt" : "pts"}` : ""}
       </span>
       <FitHeight height={height} grow>
         <div
@@ -519,7 +519,7 @@ export function PuzzleFinalBoard({
         className="rounded bg-background/90 px-1.5 py-0.5 font-mono text-[11px] font-bold tabular-nums text-foreground"
         data-replay-unavailable
       >
-        No replay for this game yet · {score} {score === 1 ? "pt" : "pts"}
+        No replay for this game yet, {score} {score === 1 ? "pt" : "pts"}
       </span>
       <FitHeight height={height}>
         <div

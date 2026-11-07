@@ -430,7 +430,7 @@ function Home() {
             <span className="jz-row-text">
               <span className="jz-row-title">Rejoin your last room</span>
               <span data-ellipsis className="jz-row-sub">
-                <span className="tracking-[0.12em] text-foreground">{shown.code}</span> ·{" "}
+                <span className="tracking-[0.12em] text-foreground">{shown.code}</span>,{" "}{/* design-lint-ignore: the room code’s existing tracking; only its separator changed */}
                 {shown.players === 0
                   ? "Checking the room"
                   : shown.lobby

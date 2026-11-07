@@ -37,7 +37,7 @@ export function OfflineRunResult({
           <span data-offline-score className="of-result-score">
             {run?.score}
           </span>
-          <span className="ap-meta">{run?.improved ? "Confirmed · new best" : "Confirmed"}</span>
+          <span className="ap-meta">{run?.improved ? "Confirmed, new best" : "Confirmed"}</span>
         </div>
       ) : status === "rejected" ? (
         <div className="flex flex-col items-center gap-2">

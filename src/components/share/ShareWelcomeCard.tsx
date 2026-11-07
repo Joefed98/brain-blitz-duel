@@ -1,4 +1,3 @@
-import { X } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { APP_NAME } from "@/lib/brand";
@@ -11,7 +10,7 @@ import {
   type ShareRecorder,
   type WelcomeOutcome,
 } from "@/lib/share/shareRef";
-import { Button } from "@/design/components";
+import { Button, Icon } from "@/design/components";
 
 /**
  * The Play tab's one-time welcome for a device that arrived from a shared link and landed on the
@@ -74,7 +73,7 @@ export function ShareWelcomeCard({
         onClick={() => close("dismissed")}
         className="press absolute right-1 top-1 flex h-11 w-11 items-center justify-center rounded-full text-muted-foreground"
       >
-        <X aria-hidden="true" className="h-5 w-5" />
+        <Icon name="close" size={20} />
       </button>
       <div className="pr-9">
         <h2 className="whitespace-nowrap font-display text-lg font-extrabold uppercase leading-tight tracking-[0.02em] text-primary">

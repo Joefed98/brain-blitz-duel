@@ -192,7 +192,7 @@ export function RivalRoundResults({
     <>
       <CategoryPill category={puzzleDef(puzzle.type).category} className="self-start" />
       <RoundResultsTable
-        roundTitle={`Round ${board.round} · ${puzzleName(puzzle.type)}`}
+        roundTitle={[`Round ${board.round}`, puzzleName(puzzle.type)]}
         best={best}
         rows={table}
         times={times}

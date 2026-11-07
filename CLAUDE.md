@@ -1606,6 +1606,29 @@ outside the repo.
   with In progress / New / Done; rewards "Unlocks with your account"), one record under `duelz-practice-goals:v1`
   (`practiceGoals.ts`), updated by practice and the offline queue; a newly earned star rides the new-best moment as a
   short line. practice-goals-check (~1 s); shots `bun scripts/shots/practice-goals-shots.ts`.
+- **Broadcast reveal: standings and podium** (7 Nov 2026; presentation only, no stamps, no scoring, timer or server
+  change): with celebrations on, Standings (`useStandingsReveal`, plan and order in `src/lib/duel/standingsReveal.ts`)
+  draws the rows in the order after the round before with the totals before it, then lands them from last place up to
+  2nd one at a time (each counting up, sliding to its place, its medal, arrow and round points fading in, a soft
+  `countTick`), holds, and lands 1st (every shared 1st together) with a gold light sweep across its row and the bigger
+  hit (`countDing`); the stagger shrinks with the room so everything ends by `STANDINGS_REVEAL_END_MS` (2.3 s) for any
+  size. The list stays in the server's final order in the page (screen readers, checks); rows are placed by
+  transforms. A tap skips to the final state; reduced motion draws it from the first frame; nothing runs after the
+  end (the sweep is a gradient band that rests off the row). Podium: the medals drop bronze, silver, gold
+  (`podium-medal-drop`, room-screens.css), then the sweep crosses the gold block and medal; the Captain's moment is
+  unchanged. Celebrations off: both screens exactly as before. standings-reveal-check (~30 s, happy-dom; 2, 10 and 16
+  players, ties, left and inactive players, skip, reduced motion, no frames after the end); frames
+  `bun scripts/shots/standings-reveal-shots.ts` (`screenshots/standings-reveal-nov-2026/`).
+- **Icon swap** (7 Nov 2026; presentation only, no stamps; `DESIGN.md` section 6): the approved Joulz icons
+  (`docs/icons/svg/`, `names.json`, README) drawn by `Icon` in `src/design/components/` (`name`, `size` 18 / 20 / 22 /
+  24, `tone` a token, decorative unless `label`), inlined from `src/design/icons/icons.data.ts` (built by
+  `bun scripts/icons-build.ts`; **re-run it after changing an SVG**), every icon on `/dev-design`. The tab bar and
+  rail (outline in `--jz-text-3`, `-on` in `--jz-gold` when current), headers, the game menu (sound / music / help rows),
+  sheets' ✕, chat, share, calendar, lock, back, search, settings, ticks and the expand carets use it; a 16 px slot
+  keeps its footprint with `-m-px` round an 18 px icon. `lucide-react` stays where the set has no icon yet (list in
+  DESIGN.md) and in game boards. icons-check (~1 s) proves the data file, the drawings, the component and that no
+  replaced stock icon returns to app chrome. celebrations-off.json re-recorded (only svg markup changed). Shots
+  `bun scripts/shots/icon-swap-shots.ts` (`screenshots/icon-swap-nov-2026/`).
 - `src/components/duel/` — room/round screens (PhoneShell, RoundIntro, TimerBar,
   AnswerReveal, ArcadeReveal, WinnerReveal…); `src/components/puzzles/` — shared puzzle
   widgets; `src/lib/fx/` — sound and visual feedback (presentation only).
@@ -1869,6 +1892,7 @@ grading. See `docs/duelz-scoring-reference.md` section 14.
 4. **Take game counts, names and categories from `main`** (`src/lib/duel/gameNames.ts`, `src/lib/duel/registry.ts`),
    never from memory or an older branch.
 5. **Never loosen or delete an assertion** to get green, and leave `bun.lock` unchanged.
+6. **Never pass a fresh `dangerouslySetInnerHTML` object on render**: keep one `{ __html }` object per markup (a module-level cache or `useMemo`), or React 19 rewrites it on every clock tick (battery-check; icons-check and art-check prove 0 DOM changes on an unchanged re-render).
 
 ## Working process
 

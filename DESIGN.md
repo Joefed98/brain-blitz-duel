@@ -59,12 +59,31 @@ All values live in `src/design/tokens.css` as `--jz-*` custom properties. The ol
 | `--jz-gold-metal` | `linear-gradient(165deg, #FBEDC4 0%, #E6C67E 34%, #D2AC5E 68%, #EED79C 100%)` | Gold buttons, first place, medals |
 | `--jz-gold-ledge` | `#A8843E` | The solid 4 px ledge under a gold button's metal face |
 | `--jz-on-gold` | `#06080F` | Text and icons on gold (9.3:1 at the darkest point) |
-| `--jz-cyan` | `#22E4FF` | Live, info, links, correct, done, "up" movement (replaces the old teal `#2ED3B7`) |
+| `--jz-cyan` | `#22E4FF` | Live, info, links, done, "up" movement (replaces the old teal `#2ED3B7`); never a win or loss |
 | `--jz-cyan-panel` | `#112A3A` | Tinted panel for head-to-head and "next up" moments, and the public game's date tile (its day label in `--jz-cyan`) |
 | `--jz-red` | `#FF3B5C` | LIVE tag, wrong, errors, "down" movement |
 | `--jz-silver` / `--jz-bronze` | `#C9D3EA` / `#D9A066` | Second and third place numerals |
 
 Colour is never the only signal: right and wrong also carry a tick or cross, up and down carry an arrow.
+
+### Results, Joules and places
+
+| Token | Value | Meaning |
+|---|---|---|
+| `--jz-win` | `#16C35B` | Wins: a tick on green |
+| `--jz-loss` | `#E5243F` | Losses: a cross on red |
+| `--jz-joules` | `#C6FF3D` | Joules (electric lime), always with the small bolt mark |
+| `--jz-place-1` | `#E2C07A` | 1st place text |
+| `--jz-place-2` | `#D3DCEF` | 2nd place text |
+| `--jz-place-3` | `#E2AB76` | 3rd place text |
+
+- **Wins and losses are a green tick and a red cross, everywhere.** A win is a tick on `--jz-win`, a loss a cross
+  on `--jz-loss`, never the colour alone and never cyan.
+- **Cyan stays for live and information** (live, info, links, done, "up" movement), not for results.
+- **Joules use electric lime only, never gold.** Every Joules amount is `--jz-joules` and carries the small bolt
+  mark beside it; gold stays for act, you and first place (hard rule 4).
+- **Places 1st to 3rd are written in their medal colour wherever places are listed** (`--jz-place-1`, `-2`, `-3`);
+  4th and below in the normal text colours. The medal art and `--jz-silver` / `--jz-bronze` numerals are unchanged.
 
 The screen edge (`--screen-edge`: below a short page, under the home bar, the gaps round an arcade world) is
 #070709, kept apart from `--jz-bg` (the arcade backdrops fade towards it, and the fill checks tell them apart).
@@ -161,6 +180,7 @@ component gallery, `/dev-design` (development builds only).
 | `Nameplate` | strip (standings, lobby), full, mini; the avatar disc (PlayerBadge) inside | `PlayerBadge` layouts |
 | `Medal` | the approved medal art (docs/art) for 1st–3rd, no numbers; the plain number from 4th; a shared place adds an "=" tag; S 22, M 36, L 64 wide | `Medal.tsx`'s placeholder discs (F5) |
 | `TabBar` | phone bar and desktop rail from one list (`TABS`) | the two copies in `AppTabBar` and `AppRail` |
+| `Icon` | the Joulz icons (section 6): `name`, `size` 18 / 20 / 22 / 24, `tone` (`text`, `text-2`, `text-3`, `gold`, `red`, `cyan`), `label` | `lucide-react` in app chrome |
 
 Every interactive component has hover (fine pointer), pressed (scale 0.97, 120 ms) and focus-visible (2 px
 `--jz-gold`, 2 px offset; a clipped component draws its cut on a pseudo-element so the ring is never cut)
@@ -179,9 +199,20 @@ docs/art/svg/ byte for byte. Captain Joulz is canvas art (`src/lib/arcade/hero.r
 
 ## 6. Icons
 
-Until the custom set lands, app chrome uses `lucide-react` at 2 px stroke, 20 or 22 px, square caps. The
-custom set (bolt-based, angled cuts) replaces the tab bar first, then headers and sheets. No emoji in app chrome;
-emoji stay in chat reactions only.
+The Joulz set (`docs/icons/`, approved 7 Nov 2026; rules in `docs/icons/README.md`): 24 × 24, one 2 px stroke,
+round joins and caps, `currentColor`. App chrome draws them through `Icon` (`@/design/components`: `name` from the
+file names, `size` 18, 20, 22 or 24 only, `tone` a `--jz-*` colour, decorative unless given a `label`), inlined
+from `src/design/icons/icons.data.ts` (`bun scripts/icons-build.ts` after changing an SVG; icons-check proves it).
+
+- Tabs: the outline icon in `--jz-text-3`, the `-on` filled icon in `--jz-gold` when current.
+- Wrong is `cross` in `--jz-red`; Close is `close` only (never a wrong mark); a Done tick marking success is
+  `check` in `--jz-cyan`. Profile uses the helmet (`profile`).
+- A slot smaller than 18 px keeps its footprint with a negative margin (`-m-px` round an 18 px icon in a 16 px
+  slot), so swapping an icon never moves the layout.
+- `lucide-react` stays only where the set has no icon yet (forward and room-menu ⋯, send, shuffle, undo, cloud-off
+  and the like) and in game boards; icons-check fails if a replaced stock icon comes back in app chrome.
+
+No emoji in app chrome; emoji stay in chat reactions only.
 
 ---
 
@@ -259,7 +290,7 @@ All settled 6 Nov 2026:
 
 1. **Background:** navy-black `#06080F` replaces `#0B0B0F`.
 2. **Angled cuts:** primary buttons and feature cards only; rows, chips and inputs use an 8 px radius.
-3. **One cool accent:** cyan `#22E4FF` for live, correct and done; the old teal is retired.
+3. **One cool accent:** cyan `#22E4FF` for live, correct and done; the old teal is retired. (7 Nov 2026: wins and losses moved to `--jz-win` / `--jz-loss`, section 2.)
 4. **Art:** made in-house, no paid commissions. Medals, trophies and rank emblems are drawn as vector (SVG) with
    the gold-metal finish, so they scale, animate and stay consistent. The Joulz Hero is redesigned on the canvas and
    rebuilt in its existing code renderer.

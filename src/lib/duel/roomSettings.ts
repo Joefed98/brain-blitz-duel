@@ -285,10 +285,15 @@ export function picksLine(picks: readonly RoomPick[]): string {
   return orderPicks(picks).map(pickLabel).join(", ");
 }
 
-/** The lobby's summary line: "9 rounds · Logic, Pattern, Retro, Sports · about 15 min". */
-export function settingsSummary(settings: RoomSettings): string {
+/** The lobby's summary facts, shown as chips: "9 rounds", "Logic, Pattern, Retro, Sports", "about 15 min". */
+export function settingsFacts(settings: RoomSettings): [string, string, string] {
   const n = settings.rounds;
-  return `${n} ${n === 1 ? "round" : "rounds"} · ${picksLine(settings.picks)} · about ${estimateRoomMinutes(settings)} min`;
+  return [`${n} ${n === 1 ? "round" : "rounds"}`, picksLine(settings.picks), `about ${estimateRoomMinutes(settings)} min`];
+}
+
+/** The same facts in one line with commas: "6 rounds, Mixed, about 11 min" (the chips' accessible name reads the same). */
+export function settingsSummary(settings: RoomSettings): string {
+  return settingsFacts(settings).join(", ");
 }
 
 /** The colour token behind a pick's chip (the theme's `--category-*` and `--group-*`). */

@@ -243,7 +243,7 @@ export function ArcadeScoreChart({ players, type }: { players: ChartPlayer[]; ty
       {view.hidden > 0 ? (
         // In words, no digits: the chart never shows a number but its scale (room-extras-check).
         <p data-chart-hidden={view.hidden} className="mt-0.5 shrink-0 truncate text-center font-mono text-[13px] font-semibold" style={{ color: TEXT }}>
-          The top eight{scored.length > CHART_TOP ? " and you" : ""} · everyone on the results
+          The top eight{scored.length > CHART_TOP ? " and you" : ""}, everyone on the results
         </p>
       ) : null}
       {pending.length ? (

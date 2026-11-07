@@ -684,7 +684,7 @@ for (const nav of ["none", "refused"] as const) {
     roomCode: "PLAY",
   };
   const label = nextPublicLabel(game as never, Date.UTC(2026, 9, 21, 12));
-  check(/^Next public game · Sat 24 Oct, 7:00 pm$/.test(label), `public game button "${label}"`);
+  check(/^Next public game, Sat 24 Oct, 7:00 pm$/.test(label), `public game button "${label}"`);
   const row = shareEventRow("user-1", {
     event: "arrival_welcome",
     welcome: "public",
@@ -1041,7 +1041,7 @@ else {
       );
       const buttons = probe.items.filter((i) => i.tag === "BUTTON");
       const practice = buttons.find((b) => b.text === "Try a practice game");
-      const pub = buttons.find((b) => b.text.startsWith("Next public game · "));
+      const pub = buttons.find((b) => b.text.startsWith("Next public game, "));
       check(
         !!practice && /\bdata-variant="gold"/.test(practice.cls),
         `${where}: no gold TRY A PRACTICE GAME button`,

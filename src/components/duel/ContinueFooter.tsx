@@ -34,7 +34,7 @@ export function ContinueFooter({
         {continued ? (
           <p className="rs-status h-[52px] whitespace-nowrap">
             <span>
-              {continuedCount} of {waitingCount} ready · {next} in {autoSeconds}s
+              {continuedCount} of {waitingCount} ready, {next} in {autoSeconds}s
             </span>
             <Dots />
           </p>

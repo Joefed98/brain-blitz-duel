@@ -1,5 +1,5 @@
 import { createFileRoute, useRouter } from "@tanstack/react-router";
-import { ChevronLeft, Swords } from "lucide-react";
+import { Swords } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { ErrorState } from "@/components/app/ErrorState";
@@ -47,7 +47,7 @@ import type { PuzzleCategory } from "@/lib/duel/types";
 import { noteLinkArrival } from "@/lib/share/shareRef";
 import { unlockAudio } from "@/lib/sound";
 import { OnlineOnly } from "@/components/offline/OnlineOnly";
-import { Button, Input, SkeletonPage } from "@/design/components";
+import { Button, Icon, Input, SkeletonPage } from "@/design/components";
 
 export const Route = createFileRoute("/challenge")({
   ssr: false,
@@ -118,7 +118,7 @@ function Header({
         onClick={onBack}
         className="press tap-target -ml-2 flex items-center gap-1 px-2 font-display text-xs font-semibold uppercase tracking-widest text-muted-foreground"
       >
-        <ChevronLeft aria-hidden="true" className="h-4 w-4" /> {label}
+        <Icon name="back" size={18} className="-m-px" /> {label}
       </button>
       {right}
     </div>
@@ -284,7 +284,7 @@ function ChallengeScreen() {
             onClick={home}
             className="press tap-target -ml-2 flex items-center gap-1 px-2 font-display text-xs font-semibold uppercase tracking-widest text-muted-foreground"
           >
-            <ChevronLeft aria-hidden="true" className="h-4 w-4" /> Play
+            <Icon name="back" size={18} className="-m-px" /> Play
           </button>
         }
       />

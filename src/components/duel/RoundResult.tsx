@@ -1,3 +1,4 @@
+import { MetaChips } from "@/components/app/MetaChips";
 import { useEffect, useRef, type ReactNode } from "react";
 
 import { PLAYER_COLOURS, type PlayerLook } from "@/lib/duel/playerLook";
@@ -26,13 +27,14 @@ function SummaryLine({ verdict, summary }: { verdict: RoundVerdict; summary: str
       <span data-verdict={verdict} className={`font-bold ${VERDICT_TONE[verdict]}`}>
         {VERDICT_LABEL[verdict]}
       </span>
-      {rest ? ` · ${rest}` : ""}
+      {rest ? `, ${rest}` : ""}
     </p>
   );
 }
 
 interface RoundResultProps {
-  roundTitle: string;
+  /** The round and its game, shown as chips ("Round 3", "Gemstone"). */
+  roundTitle: string | readonly string[];
   /** A short best-answer line ("Best: 17 moves"), when the game has one. */
   best?: string | null;
   myName: string;
@@ -101,7 +103,7 @@ export function RoundResult({
             <h1 className="rs-title">{finalRound ? "Final round" : "Round results"}</h1>
             {best && <span className="rs-meta">{best}</span>}
           </div>
-          <p className="rs-sub">{roundTitle}</p>
+          <MetaChips data-round-title facts={typeof roundTitle === "string" ? [roundTitle] : roundTitle} />
         </header>
 
         {highlight}

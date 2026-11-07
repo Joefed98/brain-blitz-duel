@@ -1,7 +1,8 @@
-import { Share, SquarePlus, X } from "lucide-react";
+import { SquarePlus } from "lucide-react";
 import { useEffect } from "react";
 
 import { HOME_HINT_KEY } from "@/lib/playCards";
+import { Icon } from "@/design/components";
 
 /**
  * The Add to Home Screen hint (22 Oct 2026; the tab screens' panel look, Prompt R): a gentle card on the Play tab, on iPhone Safari only (not
@@ -33,7 +34,7 @@ export function HomeScreenHint({ onDismiss }: { onDismiss: () => void }) {
         aria-label="Dismiss"
         className="press absolute right-1 top-1 flex h-11 w-11 items-center justify-center rounded-full text-[var(--ap-faint)]"
       >
-        <X aria-hidden="true" className="h-5 w-5" />
+        <Icon name="close" size={20} />
       </button>
       <div className="flex items-center gap-2.5">
         <SquarePlus aria-hidden="true" className="h-5 w-5 shrink-0 text-muted-foreground" />
@@ -41,7 +42,7 @@ export function HomeScreenHint({ onDismiss }: { onDismiss: () => void }) {
       </div>
       <p className="flex flex-wrap items-center gap-x-1 text-[14px] text-muted-foreground">
         <span>Tap</span>
-        <Share aria-label="Share" className="h-4 w-4" />
+        <Icon name="share" size={18} label="Share" className="-m-px" />
         <span className="font-semibold text-foreground">Share</span>
         <span>then</span>
         <span className="font-semibold text-foreground">Add to Home Screen</span>

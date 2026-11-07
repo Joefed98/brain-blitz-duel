@@ -146,7 +146,7 @@ export function RoomSettingsSheet({
             <div className="rs-head">
               <h3 className="ap-group-title">Rounds</h3>
               <span data-room-rounds-value className="rs-meta">
-                {rounds} rounds · about {minutes} min
+                {rounds} rounds, about {minutes} min
               </span>
             </div>
             <Segmented

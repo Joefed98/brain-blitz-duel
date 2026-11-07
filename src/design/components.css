@@ -345,6 +345,22 @@
     text-overflow: ellipsis;
     cursor: default;
   }
+  /* Two or three short facts in a header (MetaChips, copy pass 7 Nov 2026): quiet status chips in a wrapping row. */
+  .jz-facts {
+    display: inline-flex;
+    min-width: 0;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--jz-space-4);
+  }
+  .jz-facts > .jz-status {
+    max-width: 100%;
+  }
+  .jz-facts .jz-status-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
   .jz-status-label {
     font-weight: var(--jz-weight-medium);
     color: var(--jz-text-2);
@@ -882,6 +898,30 @@
   overflow: hidden;
   clip: rect(0 0 0 0);
   white-space: nowrap;
+}
+
+/* The Joulz icons (Icon; docs/icons/README.md): size set inline, colour from a token. */
+.jz-icon {
+  flex: none;
+  overflow: visible;
+}
+.jz-icon[data-tone="text"] {
+  color: var(--jz-text);
+}
+.jz-icon[data-tone="text-2"] {
+  color: var(--jz-text-2);
+}
+.jz-icon[data-tone="text-3"] {
+  color: var(--jz-text-3);
+}
+.jz-icon[data-tone="gold"] {
+  color: var(--jz-gold);
+}
+.jz-icon[data-tone="red"] {
+  color: var(--jz-red);
+}
+.jz-icon[data-tone="cyan"] {
+  color: var(--jz-cyan);
 }
 
 /* The search field's magnifier (Input `search`). */

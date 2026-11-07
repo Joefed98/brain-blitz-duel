@@ -15,6 +15,7 @@ export { LiveTag } from "./LiveTag";
 export { GameTile } from "./GameTile";
 export { Nameplate } from "./Nameplate";
 export { Medal } from "./Medal";
+export { Icon, ICON_LABELS, ICON_NAMES, type IconName, type IconSize, type IconTone } from "./Icon";
 export { Stars } from "./Stars";
 export { Progress } from "./Progress";
 export { TabBar, TABS, TAB_PATHS, type AppTab } from "./TabBar";

@@ -16,7 +16,7 @@ import {
 
 import { MAX_PLAYERS, MIN_PLAYERS, type DuelPlayerRow } from "@/lib/duel/types";
 import { roomRoundCount } from "@/lib/duel/selection";
-import { readRoomSettings, roomSettingsUnlocked, settingsSummary, type RoomSettings } from "@/lib/duel/roomSettings";
+import { readRoomSettings, roomSettingsUnlocked, settingsFacts, type RoomSettings } from "@/lib/duel/roomSettings";
 
 import { ChargeMeter } from "@/components/fx/ChargeMeter";
 import { useCelebrationsOn } from "@/components/fx/useCelebration";
@@ -29,6 +29,7 @@ import { RoomFooter, RoomMenu } from "./RoomFooter";
 import { RoomSettingsSheet } from "./RoomSettingsSheet";
 import { scoringLabel, type ScoringMode } from "@/lib/duel/scoringMode";
 import { Button } from "@/design/components";
+import { MetaChips } from "@/components/app/MetaChips";
 
 interface RoomLobbyProps {
   /** The room's stored settings (duels.selected_categories: roomSettings.ts, or an older room's categories). */
@@ -292,13 +293,11 @@ export function RoomLobby({
     <div className="flex w-full flex-1 flex-col gap-5 text-left">
       {/* Under the room code: the room's settings in one line for everyone, the host's Room settings button. */}
       <section aria-label="Room settings" className="-mt-2 flex flex-col items-start gap-2.5">
-        <p data-room-summary className="rs-summary">
-          {settingsSummary(settings)}
-        </p>
+        <MetaChips data-room-summary facts={settingsFacts(settings)} />
         {scoringChoice ? (
           <p data-room-scoring={scoringShown} className="rs-summary -mt-2">
             Scoring: {scoringLabel(scoringShown)}
-            {scoringShown === "placings" ? " · points by place each round" : null}
+            {scoringShown === "placings" ? ", points by place each round" : null}
           </p>
         ) : null}
         {canEditSettings ? (
@@ -349,7 +348,7 @@ export function RoomLobby({
                   <span className="rs-name th-name text-[14px] leading-tight">{player.display_name}</span>
                   {sub ? (
                     <span className="rs-sub truncate text-[12px] leading-tight" data-host-label={isHostRow && !isMe ? "" : undefined}>
-                      {isMe && isHostRow ? "You · Host" : sub}
+                      {isMe && isHostRow ? "You, host" : sub}
                     </span>
                   ) : null}
                 </span>
@@ -433,7 +432,7 @@ export function RoomLobby({
             .reverse()
             .map((entry, index) => (
               <p key={`${entry.date}-${index}`} className="text-[13px] text-[var(--ap-text-2)]">
-                {entry.winner} won{entry.forfeit ? " (others left)" : ""} ·{" "}
+                {entry.winner} won{entry.forfeit ? " (others left)" : ""},{" "}
                 {new Date(entry.date).toLocaleDateString()}
               </p>
             ))}

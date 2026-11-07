@@ -1,5 +1,4 @@
 import { createFileRoute, useRouter } from "@tanstack/react-router";
-import { ChevronLeft } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { FeedbackLink } from "@/components/beta/FeedbackLink";
@@ -45,7 +44,7 @@ import { getStoredName, setStoredName } from "@/lib/duel/session";
 import { unlockAudio } from "@/lib/sound";
 import { APP_NAME } from "@/lib/brand";
 import { OnlineOnly } from "@/components/offline/OnlineOnly";
-import { Button, Input, Segmented, SkeletonPage } from "@/design/components";
+import { Button, Icon, Input, Segmented, SkeletonPage } from "@/design/components";
 
 export const Route = createFileRoute("/daily")({
   ssr: false,
@@ -96,10 +95,10 @@ function closesIn(ms: number): string {
 }
 
 function stateLine(kind: DailyKind, state: DailyState, count: number | null): string {
-  if (state.state === "play") return `${DAILY_ROUNDS[kind]} rounds · one go`;
+  if (state.state === "play") return `${DAILY_ROUNDS[kind]} rounds, one go`;
   if (state.state === "continue")
     return `${state.roundsDone} of ${DAILY_ROUNDS[kind]} rounds played`;
-  return `${state.total} ${state.total === 1 ? "point" : "points"} · ${rankLine(state.rank, count, ordinal)}`;
+  return `${state.total} ${state.total === 1 ? "point" : "points"}, ${rankLine(state.rank, count, ordinal)}`;
 }
 
 /** A neutral segmented control (Polish batch R): the selected segment a light fill, never gold. */
@@ -193,7 +192,7 @@ function DailyScreen() {
       onClick={() => setMode({ kind: "board" })}
       className="press tap-target -ml-2 flex items-center gap-1 px-2 text-[15px] font-semibold text-[var(--ap-link)]"
     >
-      <ChevronLeft aria-hidden="true" className="h-4 w-4" /> Daily
+      <Icon name="back" size={18} className="-m-px" /> Daily
     </button>
   );
 
@@ -309,7 +308,7 @@ function DailyScreen() {
         onClick={back}
         className="press tap-target -ml-2 flex items-center gap-1 px-2 text-[15px] font-semibold text-[var(--ap-link)]"
       >
-        <ChevronLeft aria-hidden="true" className="h-4 w-4" /> Play
+        <Icon name="back" size={18} className="-m-px" /> Play
       </button>
       {status.available ? (
         <span className="rs-pill shrink-0">{closesIn(status.closesAt - now)}</span>
@@ -361,7 +360,7 @@ function DailyScreen() {
             className="th-card flex flex-col gap-3 rounded-[18px] border p-4"
           >
             <div className="flex items-baseline justify-between gap-2">
-              <p className="th-kicker text-primary">Today · {DAILY_TITLE[kind]}</p>
+              <p className="th-kicker text-primary">Today, {DAILY_TITLE[kind]}</p>
               <p className="whitespace-nowrap text-[13px] text-muted-foreground">
                 {stateLine(kind, state, state.state === "done" ? state.count : null)}
               </p>

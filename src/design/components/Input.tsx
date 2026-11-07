@@ -1,5 +1,6 @@
 import { forwardRef, type InputHTMLAttributes } from "react";
-import { Search } from "lucide-react";
+
+import { Icon } from "./Icon";
 
 /**
  * A text field (DESIGN.md section 5): a well, the page colour sunk into its panel with an inset top
@@ -28,7 +29,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
   if (!search) return field;
   return (
     <span className={`relative block${className ? ` ${className}` : ""}`}>
-      <Search aria-hidden="true" className="jz-input-icon" />
+      <Icon name="search" size={20} className="jz-input-icon" />
       {field}
     </span>
   );

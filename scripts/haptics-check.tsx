@@ -513,6 +513,7 @@ const CALL_SITES: Record<string, Record<string, number>> = {
   "components/duel/Podium.tsx": { celebrate: 1 },
   "components/duel/FinalResult.tsx": { celebrate: 1 },
   "components/duel/RoomChat.tsx": { tick: 1 },
+  "components/duel/Standings.tsx": { success: 1 },
 };
 /**
  * gameSounds' feel() calls: the arcade moments (success: goal, home run, pot x2, Blockfall's three or four rows at
