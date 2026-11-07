@@ -24,7 +24,7 @@ export const bangOnDepth: DepthGrader = {
       score: s.score,
       extra: {
         ...(graded.extra ?? {}),
-        depth: { curve: s.curve, centre: s.centre, centreHits: s.centreHits, streak: s.streak, streakWatches: s.streakWatches, bestStreak: s.bestStreak, zone: marks.map((m) => m.zone), dead: marks.map((m) => m.centre), ...(rev >= BANGON_TOPUP_REV ? { centreEach: bangOnCentrePoints(rev), floor: s.floor } : {}) },
+        depth: { curve: s.curve, centre: s.centre, centreHits: s.centreHits, streak: s.streak, streakWatches: s.streakWatches, bestStreak: s.bestStreak, zone: marks.map((m) => m.zone), dead: marks.map((m) => m.centre), ...(rev >= BANGON_TOPUP_REV ? { centreEach: bangOnCentrePoints(rev), floor: s.floor } : {}), ...(s.each ? { each: s.each } : {}) },
       },
     };
   },
