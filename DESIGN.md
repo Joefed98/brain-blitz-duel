@@ -59,12 +59,31 @@ All values live in `src/design/tokens.css` as `--jz-*` custom properties. The ol
 | `--jz-gold-metal` | `linear-gradient(165deg, #FBEDC4 0%, #E6C67E 34%, #D2AC5E 68%, #EED79C 100%)` | Gold buttons, first place, medals |
 | `--jz-gold-ledge` | `#A8843E` | The solid 4 px ledge under a gold button's metal face |
 | `--jz-on-gold` | `#06080F` | Text and icons on gold (9.3:1 at the darkest point) |
-| `--jz-cyan` | `#22E4FF` | Live, info, links, correct, done, "up" movement (replaces the old teal `#2ED3B7`) |
+| `--jz-cyan` | `#22E4FF` | Live, info, links, done, "up" movement (replaces the old teal `#2ED3B7`); never a win or loss |
 | `--jz-cyan-panel` | `#112A3A` | Tinted panel for head-to-head and "next up" moments, and the public game's date tile (its day label in `--jz-cyan`) |
 | `--jz-red` | `#FF3B5C` | LIVE tag, wrong, errors, "down" movement |
 | `--jz-silver` / `--jz-bronze` | `#C9D3EA` / `#D9A066` | Second and third place numerals |
 
 Colour is never the only signal: right and wrong also carry a tick or cross, up and down carry an arrow.
+
+### Results, Joules and places
+
+| Token | Value | Meaning |
+|---|---|---|
+| `--jz-win` | `#16C35B` | Wins: a tick on green |
+| `--jz-loss` | `#E5243F` | Losses: a cross on red |
+| `--jz-joules` | `#C6FF3D` | Joules (electric lime), always with the small bolt mark |
+| `--jz-place-1` | `#E2C07A` | 1st place text |
+| `--jz-place-2` | `#D3DCEF` | 2nd place text |
+| `--jz-place-3` | `#E2AB76` | 3rd place text |
+
+- **Wins and losses are a green tick and a red cross, everywhere.** A win is a tick on `--jz-win`, a loss a cross
+  on `--jz-loss`, never the colour alone and never cyan.
+- **Cyan stays for live and information** (live, info, links, done, "up" movement), not for results.
+- **Joules use electric lime only, never gold.** Every Joules amount is `--jz-joules` and carries the small bolt
+  mark beside it; gold stays for act, you and first place (hard rule 4).
+- **Places 1st to 3rd are written in their medal colour wherever places are listed** (`--jz-place-1`, `-2`, `-3`);
+  4th and below in the normal text colours. The medal art and `--jz-silver` / `--jz-bronze` numerals are unchanged.
 
 The screen edge (`--screen-edge`: below a short page, under the home bar, the gaps round an arcade world) is
 #070709, kept apart from `--jz-bg` (the arcade backdrops fade towards it, and the fill checks tell them apart).
@@ -257,7 +276,7 @@ All settled 6 Nov 2026:
 
 1. **Background:** navy-black `#06080F` replaces `#0B0B0F`.
 2. **Angled cuts:** primary buttons and feature cards only; rows, chips and inputs use an 8 px radius.
-3. **One cool accent:** cyan `#22E4FF` for live, correct and done; the old teal is retired.
+3. **One cool accent:** cyan `#22E4FF` for live, correct and done; the old teal is retired. (7 Nov 2026: wins and losses moved to `--jz-win` / `--jz-loss`, section 2.)
 4. **Art:** made in-house, no paid commissions. Medals, trophies and rank emblems are drawn as vector (SVG) with
    the gold-metal finish, so they scale, animate and stay consistent. The Joulz Hero is redesigned on the canvas and
    rebuilt in its existing code renderer.
