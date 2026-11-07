@@ -16,7 +16,7 @@ import { GameLayout, PhoneShell, RoomPanelSlot, isArcadeScreenType } from "@/com
 import { RoomPanel } from "@/components/duel/RoomPanel";
 import { SteadyOrPlain } from "@/components/duel/SteadyStage";
 import { useDemoKey } from "@/components/duel/SaveDemoButton";
-import { PuzzleHelp, PuzzleHelpButton } from "@/components/duel/PuzzleInstructions";
+import { PuzzleHelp } from "@/components/duel/PuzzleInstructions";
 import { RoundIntro } from "@/components/duel/RoundIntro";
 import { preloadGameData } from "@/lib/duel/gamePreload";
 import { markOnboardingSeen } from "@/lib/onboarding";
@@ -1282,7 +1282,7 @@ function DuelScreen() {
       <GameLayout
         label={`Round ${round} of ${duel.round_count ?? TOTAL_ROUNDS}`}
         title={puzzle ? puzzleName(puzzle.type) : ""}
-        help={<PuzzleHelpButton onClick={() => setHelpOpen(true)} />}
+        onHelp={() => setHelpOpen(true)}
         progress={<RoundPips currentRound={round} outcomes={outcomes} totalRounds={duel.round_count ?? TOTAL_ROUNDS} />}
         score={frameScore}
         ping={pingStrip}
