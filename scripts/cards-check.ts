@@ -487,7 +487,7 @@ const x14 = (total: number) => Math.min(200, Math.floor((total * 7) / 5));
   ok(same === nov3.runs.length && nov3.runs.length === 70, `nov 3: all ${nov3.runs.length} Free Cell rev-3, Five Hands rev-2 and Summit rev-1 runs recorded on main replay to the same score and final state`);
 
   // Free Cell rev 4: the 40-card deal, every rev-4 bank deal's par line at 200, the re-fitted parts.
-  ok(FC_REV === 4 && (generatePuzzle("freecell") as { freecellRev: number }).freecellRev === 4, "freecell: rooms deal freecellRev 4");
+  ok(FC_REV === 5 && (generatePuzzle("freecell") as { freecellRev: number }).freecellRev === 5, "freecell: rooms deal freecellRev 5");
   let all4 = true;
   let deal40 = true;
   for (let i = 0; i < FC_DEALS_V4.length; i++) {
@@ -516,7 +516,7 @@ const x14 = (total: number) => Math.min(200, Math.floor((total * 7) / 5));
   }
 
   // Summit rev 2: the stock par from the bank's pars, every par line clearing with a run of ten at par and 200.
-  ok(TP_REV === 2 && (generatePuzzle("tripeaks") as { tripeaksRev: number }).tripeaksRev === 2, "tripeaks: rooms deal tripeaksRev 2");
+  ok(TP_REV === 3 && (generatePuzzle("tripeaks") as { tripeaksRev: number }).tripeaksRev === 3, "tripeaks: rooms deal tripeaksRev 3");
   ok(TP_STOCK_PARS.length === TP_DEALS.length && TP_STOCK_PARS.every((p) => Number.isInteger(p) && p >= 0 && p <= 23), `tripeaks rev 2: a stock par for each of the ${TP_DEALS.length} bank deals (0–23)`);
   let tp2 = true;
   for (let i = 0; i < TP_DEALS.length; i++) {
