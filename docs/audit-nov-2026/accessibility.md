@@ -46,7 +46,7 @@ Most players affected first. Within the same reach, the cheaper fix comes first.
 
 | # | Area | Finding | Reach | Effort |
 |---|---|---|---|---|
-| 1 | Contrast | Grey and red text on every puzzle answer reveal: 2.4–4.1:1 | All, every puzzle round | S |
+| 1 | Contrast | Grey and red text high on puzzle answer reveals: 2.4–4.1:1 by formula, 3.5–3.7:1 measured on Nucleus | All, puzzle rounds with reveal text lists | S |
 | 2 | Safe areas | Bottom control rows of arcade play screens reach into the 34 px home-bar zone | iPhone, every arcade round | M +checks |
 | 3 | Contrast, colour, SR | Players who left are shown only at 40 % opacity (2.1–3.5:1), with no "Left" text | All, in any room someone leaves | S |
 | 4 | Contrast | The 1v1 round result dims a card to 60 %: 3.2:1 | All 1v1 players, every round | S |
@@ -59,7 +59,7 @@ Most players affected first. Within the same reach, the cheaper fix comes first.
 | 11 | Reduced motion | Intro demos loop until Ready, even with Reduce Motion on, and have no pause | RM every intro (WCAG 2.2.2: all) | S |
 | 12 | Reduced motion | "And the winner is…" throbs at 4 Hz for 4 s | RM, every room's end | S |
 | 13 | Colour alone | Matching by colour alone: Chroma Lines, Bomb Defusal, Colour Flood, Tally, Mixed Signals, Flash; Kakuro's green and red sums | CVD, 7 games | S–L |
-| 14 | Colour alone | Wrong cells shown only in red: Nonogram, Box Six and Kakuro reveals, Regions, Lamplighter, Ascend, Interlock, Strikeout keys; the reject shake under RM | CVD, about 9 games | S each |
+| 14 | Colour alone | Wrong cells shown only in red: Nonogram and Box Six reveals, Regions, Lamplighter, Ascend, Interlock, Strikeout keys; the reject shake under RM | CVD, about 8 games | S each |
 | 15 | SR | Arcade canvases: `aria-label` without `role="img"`, and the HUD and score never in the DOM | SR, 41 arcade and engine games | S, then L |
 | 16 | SR | Grid cell labels hide their content: Box Six digits, Nonogram state, Kakuro clues, Bomb wire colours, Polypotions contents | SR, 5 games | S each |
 | 17 | SR, KB | Fake buttons, pointer-only buttons, drag-only grids, NumberEntry with no name, chat Mute/Report on long-press only | KB, SR, about 30 games | S–L |
@@ -119,11 +119,20 @@ Already right (checked, no action):
 - Muted fails on the top and middle stops for all 104 palettes in `revealPalette.data.ts`.
 - Legacy primary #F5B82E is 4.48:1 on 16 palettes.
 
+**Measured on the screenshots** (pixel samples, 375×667; antialiasing makes these slightly low)
+- Nucleus: "You missed" 3.53:1 and the missed words 3.70:1, grey on the blue gradient.
+- Flash: "Your average" 4.60:1 on its dark card, and the lines under the result 5.3–5.7:1 on the darker brown.
+  These pass.
+- So the failures are the muted and red lines that sit on the **upper, brighter half** of the gradient (word
+  lists, missed words, summary lines above the board). Lines low on the screen pass.
+
 **Affected text**
-- The "Solution" / "Yours" labels: `tileGrid.tsx:364,369`, `fillomino.tsx:432,438`, `tents.tsx:281,295`,
-  `unblock.tsx:126,134`, `bridges.tsx:351,357`, `numberHunt.tsx:443,449`.
-- Lookout's missed words in red and missed bonus word in grey: `wordSearch.tsx:273,280`.
-- Every other muted reveal line.
+- Nucleus' and Forage's missed-word lists.
+- Lookout's missed words in red and its missed bonus word in grey (`wordSearch.tsx:273,280`).
+- Every muted or red reveal line placed high on the reveal.
+- Not affected: the "Solution" / "Yours" column labels (`tileGrid.tsx:364,369` and the other side-by-side
+  reveals). SolutionSwitch hides them in the 16 games it handles (`SolutionSwitch.tsx:10-27`); the switch names
+  the view instead.
 
 **Why no check caught it**
 - theme-check skips `[data-skin-off]` (`theme-check.tsx:143,207`) and elements under any ancestor opacity below
@@ -385,7 +394,6 @@ here is display only.
 |---|---|---|
 | Mosaic (Nonogram) reveal | Wrong cells are a red tint, and the × is deliberately hidden on them (`nonogram.tsx:114-122`) | Hatch or ✗ |
 | Box Six reveal | Wrong digits only `text-destructive` (`miniSudoku.tsx:88`) | Strike-through or a corner ✗ |
-| Kakuro reveal | Wrong digits "in red" (`kakuro.tsx:319-325`) | The same |
 | Regions | Over-size regions are a red tint near the "rose" done shade #c9708f (`fillomino.css:36-57`); givens against entries are white against gold only | A dashed border on bad regions, and replace the rose |
 | Lamplighter | Clashing lamps and beams `bg-destructive` (`lightUp.tsx:137-151`) | ✗ on the lamp, dashed beams |
 | Ascend | A wrong tap turns the disc red (`numberHunt.tsx:89-93`) | A brief ✗ overlay |
@@ -609,4 +617,49 @@ Lower:
 
 ## Evidence (screenshots)
 
-[filled in from the capture run below]
+**The capture**
+- Command, run one game at a time against one dev server:
+
+  ```
+  bun scripts/shots/capture.ts <game> --sizes=390x844,375x667 --phases=intro,play,reveal --tag=a11y
+  ```
+
+- 92 of 92 active games drew intro and play frames at both sizes, and 87 drew a reveal.
+  - No reveal: Tenfall, Mixed Signals, Bonk and Pull! (engine games; the tool's reveal wait doesn't fit them).
+  - Unblock timed out in its driver at both sizes, twice.
+- The frames were not committed (546 PNGs). Re-run the command above to redraw them; it is seeded, so the frames
+  come out the same.
+- The tool emulates no insets, so safe-area findings come from geometry: on 390×844 the home-bar zone is
+  y 810–844.
+
+**What the frames confirmed**
+
+| Finding | What the capture shows |
+|---|---|
+| #2 | Fission at 390×844: the arrow buttons run from about y 752 to 828, so their bottom 18 px are inside the home-bar zone. Every arcade game with a DOM control row ends at y 828 the same way (the one `bottom.css:108` rule). |
+| #1 | Nucleus reveal grey text 3.53–3.70:1 (above). Flash's grey reveal lines pass (4.6–5.7:1), which narrows #1 to text high on the gradient. |
+| #14 (corrected) | Kakuro's wrong digits already carry a line-through (`kakuro.css:76`), so they are not colour alone. Its finished and broken clue sums still are (#13). |
+
+**The tool's reveal contrast readings**
+- They come from `report-a11y.json` per game.
+- Lowest after removing its false readings:
+
+  | Game | Text | Reading |
+  |---|---|---|
+  | Ascend | "Flow: best run…" | 4.34:1 |
+  | Flash | "Your average" | 4.34:1 |
+  | Bang On | "Average error" | 4.34:1 |
+  | Integer Pyramid | number stones | 4.0:1 |
+  | Trail | number stones | 3.32:1 |
+
+- Integer Pyramid and Trail are dark digits on light stones (board art, no fix needed).
+- Removed as false readings, where the tool compared text with the wrong layer: "Play again" on the gold metal
+  (1.02:1 on every arcade reveal), the board digits of Regions, Target, Box Six, Safe Cracker and Counterweight
+  (1.0–1.3:1; the frames show them clear), and Pair Match's ★ (1.06:1).
+- Kakuro's reveal digits sampled at about 2.5:1 (dim gold on #272931) in the 390×844 frame, though its CSS gives
+  them `--primary`. The frame may have caught the solved-runs animation. Worth a look on a phone, not ranked.
+- The smallest reveal text is 10 px: Checkout, Brimful and Pair Match. Everything else is 12 px or more.
+
+**Not proved here**
+- Device behaviour: VoiceOver and TalkBack reading, the iOS home-bar gesture, Reduce Motion on a real phone.
+- These come from code and platform rules. Joe does the phone testing.
