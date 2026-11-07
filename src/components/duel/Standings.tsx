@@ -119,7 +119,8 @@ export function Standings({ round, totalRounds = TOTAL_ROUNDS, rows, looks, mySl
   // motion draws the final state at once. Off: the quick slide and final totals, exactly as before.
   const celebrate = useCelebrationsOn();
   const scope = useCelebrationScope();
-  const reveal = useStandingsReveal(rows, { on: celebrate, scope });
+  // In compact rooms (10+) the player's own row is pinned (sticky): the reveal leaves it in place.
+  const reveal = useStandingsReveal(rows, { on: celebrate, scope, pinned: isCompactRoom(rows.length) ? mySlot : undefined });
   const flip = useFlipRows(rows, { from: celebrate ? rows : previousStandingOrder(rows), slideMs: 300 });
   const displayRows = celebrate ? reveal.displayRows : flip.displayRows;
   const rowRef = celebrate ? reveal.rowRef : flip.rowRef;

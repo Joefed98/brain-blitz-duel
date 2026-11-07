@@ -35,7 +35,7 @@ export interface RevealRowState {
  * Reduced motion: the final state from the first frame, no slides, ticks or sparks. Nothing runs once the
  * last row has landed: no timers, frames or transitions (the sweep rests transparent).
  */
-export function useStandingsReveal(rows: Standing[], { on, scope }: { on: boolean; scope: number }) {
+export function useStandingsReveal(rows: Standing[], { on, scope, pinned }: { on: boolean; scope: number; pinned?: number | undefined }) {
   const animate = useState(() => on && !prefersReducedMotion())[0];
   const contents = JSON.stringify(rows.map((row) => [row.slot, row.position, row.previousPosition, row.total, row.roundScore, row.points, row.roundPoints]));
   const plan = useMemo(() => standingsRevealPlan(rows), [contents]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -93,15 +93,33 @@ export function useStandingsReveal(rows: Standing[], { on, scope }: { on: boolea
   const placed = useRef(false);
   useLayoutEffect(() => {
     if (!animate) return;
+    const instant = skipped || !placed.current;
+    const move = (node: HTMLElement, delta: number) => {
+      node.style.transition = instant ? "none" : `transform ${REVEAL_ROW_MS}ms var(--jz-ease)`;
+      node.style.transform = `translateY(${delta}px)`;
+    };
+    // The player's own pinned row (compact rooms, sticky above the footer) keeps its place and counts up
+    // there: a slide would push it under the footer. The other rows take the remaining places in turn.
+    const pinNode = pinned !== undefined ? nodes.current.get(pinned) : undefined;
+    if (pinNode) {
+      const free = rows
+        .map((row) => nodes.current.get(row.slot))
+        .filter((node): node is HTMLElement => !!node && node !== pinNode)
+        .map((node) => node.offsetTop);
+      const moving = order.filter((row) => row.slot !== pinned).map((row) => nodes.current.get(row.slot)).filter((node): node is HTMLElement => !!node);
+      moving.forEach((node, i) => move(node, (free[i] ?? node.offsetTop) - node.offsetTop));
+      pinNode.style.transition = "none";
+      pinNode.style.transform = "";
+      placed.current = true;
+      return;
+    }
     const drawn = order.map((row) => nodes.current.get(row.slot)).filter((node): node is HTMLElement => !!node);
     if (!drawn.length) return;
     let y = Math.min(...drawn.map((node) => node.offsetTop));
-    const instant = skipped || !placed.current;
     for (const node of drawn) {
       const delta = y - node.offsetTop;
       y += node.offsetHeight;
-      node.style.transition = instant ? "none" : `transform ${REVEAL_ROW_MS}ms var(--jz-ease)`;
-      node.style.transform = `translateY(${delta}px)`;
+      move(node, delta);
     }
     placed.current = true;
   }, [orderKey, skipped]); // eslint-disable-line react-hooks/exhaustive-deps

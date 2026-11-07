@@ -14,6 +14,8 @@
  *     timer, frame or sound after the end.
  *  2b. A Placings room (room scoring): the rows count their points, not the total score, from the points before
  *     the round to the server's points.
+ *  2c. A 16-player room: the player's own pinned row (sticky above the footer) never slides; it keeps its place
+ *     and counts up there, while every other row lands around it.
  *  3. A tap skips to the final state at once (totals, order, no slide left, no sweep, no later sounds).
  *  4. Reduced motion: the final state from the first render (no waiting rows, no transforms, no count).
  *  5. The CSS: the sweep and the medal drop are held still under reduced motion, the podium's medals drop
@@ -213,7 +215,7 @@ check(R.standingsRevealPlan([]).steps.length === 0, "an empty room has a reveal"
 const React = await import("react");
 const { act } = await import("react");
 const { createRoot } = await import("react-dom/client");
-const { Standings } = await import("../src/components/duel/Standings");
+const { Standings, isCompactRoom } = await import("../src/components/duel/Standings");
 
 const sounds = C.celebrationSoundLog();
 C.logCelebrations(true);
@@ -258,7 +260,9 @@ for (const { label, rows, left = [] } of CASES) {
   reduced = false;
   sounds.length = 0;
   const plan = R.standingsRevealPlan(rows);
-  const view = await mount(rows, rows.at(-1)!.slot);
+  // In compact rooms the viewer's own row is pinned and stays put (case 2c), so the compact cases are
+  // watched by a player who isn't in the list (no pinned row): every row's slide is checked here.
+  const view = await mount(rows, isCompactRoom(rows.length) ? 0 : rows.at(-1)!.slot);
   await wait(20);
   const names = Array.from(view.host.querySelectorAll("ul.rs-list > li .th-name")).map((e) => e.textContent);
   check(JSON.stringify(names) === JSON.stringify(rows.map((r) => r.name)), `${label}: the list's page order is not the server's`);
@@ -317,6 +321,34 @@ for (const { label, rows, left = [] } of CASES) {
   await wait(R.STANDINGS_REVEAL_END_MS + 200);
   check(JSON.stringify(totals(view.host)) === JSON.stringify(rows.map((r) => String(r.points))), `Placings room: ends on ${totals(view.host).join()}, not the server's points ${rows.map((r) => r.points).join()}`);
   check(plan.steps.flat().length === rows.length, "Placings room: every player does not land");
+  await view.unmount();
+}
+
+// 2c. A 16-player room: my pinned row keeps its place throughout; the others land around it.
+{
+  reduced = false;
+  const rows = room(16, { tieMiddle: true });
+  const me = rows[11]!; // 12th place, as room-16-check's fixture
+  const plan = R.standingsRevealPlan(rows);
+  const view = await mount(rows, me.slot);
+  const pin = () => view.host.querySelector<HTMLElement>("li[data-pinned]");
+  check(!!pin(), "16 players: no pinned row");
+  let still = true;
+  let unique = true;
+  const samples = [20, ...plan.stepAt.map((t) => t + 60), R.STANDINGS_REVEAL_END_MS + 200];
+  let at = 0;
+  for (const t of samples) {
+    await wait(Math.max(0, t - at));
+    at = t;
+    const li = pin();
+    if (!li || shift(li) !== 0) still = false;
+    const tops = items(view.host).map((el) => el.offsetTop + shift(el));
+    if (new Set(tops).size !== tops.length) unique = false;
+  }
+  check(still, "16 players: my pinned row slides during the reveal");
+  check(unique, "16 players: two rows are drawn in the same place during the reveal");
+  check(pin()?.querySelector(".th-score")?.textContent === String(me.total), `16 players: my pinned row ends on ${pin()?.querySelector(".th-score")?.textContent}, not ${me.total}`);
+  check(JSON.stringify(drawn(view.host, rows)) === JSON.stringify(rows.map((r) => r.slot)), "16 players with a pinned row: not drawn in the server's order at the end");
   await view.unmount();
 }
 
