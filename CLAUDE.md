@@ -162,7 +162,7 @@ outside the repo.
   changes colour/icon in the lobby only; `rematchFn` stores slot colours so Play again keeps them), `PlayerBadge` (initial
   or icon on the colour, beside the name in the lobby, round results, standings, both final screens and chat; never colour
   alone; the winner reveal shows no player). Icons are original line drawings (`src/components/duel/playerIcons.tsx`, no
-  library) behind `PLAYER_ICONS_ENABLED` in `src/lib/brand.ts` (off: initials, no picker). Columns `duel_players.colour`
+  library; always on, the `PLAYER_ICONS_ENABLED` switch removed on 7 Nov 2026). Columns `duel_players.colour`
   / `.icon` come from `supabase/migrations/20261017120000_player_colour_icon.sql`, **written but not applied**: until it is,
   rows have no colour, phones show slot colours with initials and the lobby hides the picker, so publishing first is safe;
   RLS is unchanged (clients only read). Awards (`src/lib/duel/podiumAwards.ts`, `PodiumAwards`): Fastest Finger,
@@ -522,8 +522,8 @@ outside the repo.
   as its own layer hugging the board (`useBoardTray`, `boardBox` in `src/lib/boardBox.ts`) and a 52 px dock. The
   board-size check: `bun scripts/shots/frame-probe.ts --compare=scripts/fixtures/board-sizes-main.json` (every board at
   least main's size at 414×896 and 375×667, the tray within 24 px above and below).
-  Toolkit for the category batches: `.gf-glass`, `.gf-well`, `.gf-glow`, `.gf-alert`, `gameToolkit.ts`,
-  `ArcadeAtmosphere`. Tools: `bun scripts/shots/before-after.ts` (main beside the branch, `screenshots/before-after/`)
+  Toolkit for the category batches: `.gf-glass` and `gameToolkit.ts` (the unused well, glow, alert ring and
+  ArcadeAtmosphere removed 7 Nov 2026). Tools: `bun scripts/shots/before-after.ts` (main beside the branch, `screenshots/before-after/`)
   and `bun scripts/shots/frame-probe.ts` (cut text, tray overflow, dock heights at 414×896 and 375×667).
 - **Polish batch R: room and other screens** (25 Oct 2026; presentation only, no stamps;
   `docs/polish-batches/room-screens.md`, `src/polish-layout/room-screens.css`, the old design-system.md "Room and other
@@ -1251,7 +1251,7 @@ outside the repo.
   homerunRev 3 exception is gone. **Cue Ball** `poolRev 4`: the seed's set (`poolSetFor`), spots or stripes, the same
   for everyone (the sim's ids kept, the art swaps them, `poolShownId`), a YOU'RE STRIPES banner and the HUD's named
   rack; 90 s (`poolRunTicksFor`, the definition's clock 93 s); the core full at 5 of your 7, speed full by 69 s; bank
-  `poolBankV4.server.ts` (the 60 poolRev 3 layouts re-proved at 200 in 90 s on both sets, `pool-bank.ts --rev=4`).
+  `poolBankV3.server.ts` (the 60 poolRev 3 layouts re-proved at 200 in 90 s on both sets, `pool-bank.ts --rev=4`).
   Shots `bun scripts/shots/sports-batch-shots.ts` (`screenshots/sports-batch-nov-2026/`). Intro demos: stills.
 - **Moon Climb and Blockzone** (3 Nov 2026; `docs/arcade-standard/ricochet.md`, `blockfall.md`, each with a new top
   section; display names for `ricochet` and `blockfall`, ids unchanged). **Moon Climb** `ricoRev 3` (`MOON_REV`; its own
@@ -1418,7 +1418,7 @@ outside the repo.
   hit boxes untouched; its effects take the Retro world; sounds from the library (`cross.traffic` → `bastion.drone.mp3`,
   `cross.pastBikes` → `orbit.shootingStar.mp3`, `cross.pastRoadworks` → `hover.slipPast.mp3`; the three road
   recordings deleted). **Orbit moved from Retro to Action** (`arcadeGroups.ts`; a saved room's picks are unchanged, as
-  with High Rise): its HUD is Action's pills (`drawHudPillRow`, `src/lib/arcade/hudPills.renderer.ts`, two rows clear of
+  with High Rise): its HUD is Action's pills (`drawHudTextPillRow`, `src/lib/arcade/hudPill.renderer.ts`, two rows clear of
   SET CHECKPOINT's corner), the fuel meter further in and higher on a framed backing (`ORBIT_FUEL_METER`), and the
   orbitRev 14 still camera frames a planet that would sit cut off under the HUD or the top edge fully in view, or fully
   out of it (`clearTopEdge` in `orbitCamera.ts`, display only). Not done (each needs a new stamp, bands and a re-proved
@@ -1871,8 +1871,7 @@ outside the repo.
 8. Keep display names in `gameNames.ts`; `PuzzleType` ids never change.
 
 **Pinball** (`pinball`, working title, 13 Oct 2026) is a Retro arcade game, **dealt in rooms since 14 Oct 2026**
-(`PINBALL_IN_ROOMS` in `src/lib/arcade/pinball.ts` is `true`; the one switch: the registry, the practice list, the
-active arcade list and the checks all read it). Its rules are
+like any active arcade game (its `PINBALL_IN_ROOMS` switch, always on, was removed on 7 Nov 2026). Its rules are
 `pinRev 1`; `scripts/pinball-check.ts` (~11 s) replays stored rev-1 runs, long runs and fast shots (no tunnelling).
 
 **Junction** (`junction`) is retired to practice since Tuning C (12 Oct 2026): rooms deal the 21

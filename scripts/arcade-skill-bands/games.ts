@@ -111,7 +111,6 @@ import { poolCheckpoint, poolGameFor, POOL_REV } from "../../src/lib/arcade/pool
 import { encodePoolRun, replayPoolRun } from "../../src/lib/duel/pool";
 import { poolBankV2SeedFor } from "../../src/lib/duel/poolBankV2.server";
 import { poolBankV3SeedFor } from "../../src/lib/duel/poolBankV3.server";
-import { poolBankV4SeedFor } from "../../src/lib/duel/poolBankV4.server";
 import { curlingCheckpoint, curlingGameFor, CURLING_REV } from "../../src/lib/arcade/curling";
 import { encodeCurlingRun, replayCurlingRun } from "../../src/lib/duel/curling";
 import { curlingBankSeedFor } from "../../src/lib/duel/curlingBank.server";
@@ -305,7 +304,7 @@ export const GAMES: GameSpec[] = [
     encode: (run) => encodeBullseyeRun(run),
     replay: (seed, raw, rev) => replayBullseyeRun(seed, raw, bullseyeWinds(seed), rev),
   },
-  // Pinball (practice only until PINBALL_IN_ROOMS): born on the bands, so its one revision is both `live` and `next`.
+  // Pinball (dealt in rooms since 14 Oct 2026): born on the bands, so its one revision is both `live` and `next`.
   // pinRev 4 (E4, 25 Oct 2026): the taller table's game and checkpoint (pinball4.ts) through the same replay path.
   simple("pinball", PIN_REV, PIN_REV, pinballGameForAny, pinCheckpointAny, encodePinballRun, replayPinballRun),
   // Cards & Board (30 Oct 2026): born on the arcade scoring standard (one revision each, measured with --rev=now).
@@ -368,7 +367,7 @@ export const GAMES: GameSpec[] = [
   {
     type: "pool",
     live: POOL_REV,
-    seedFor: poolBankV4SeedFor,
+    seedFor: poolBankV3SeedFor,
     // poolRev 2 and 3 measure on their own banks' layouts.
     seedForRev: (n, rev) => (rev === 2 ? poolBankV2SeedFor(n) : rev === 3 ? poolBankV3SeedFor(n) : undefined),
     gameFor: (rev) => poolGameFor(rev),

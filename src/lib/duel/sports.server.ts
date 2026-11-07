@@ -46,7 +46,8 @@ export function generateMinigolf(): MinigolfPuzzleData {
 }
 
 export function generatePool(): PoolPuzzleData {
-  // poolRev 3 (1 Nov 2026) deals from its own proved bank; poolRev 2 and 1 rounds replay on theirs (poolBankV2 / poolBank).
+  // poolRev 4 (3 Nov 2026) deals from poolRev 3's proved bank, every layout re-proved at 200 on poolRev 4
+  // (pool-bank.ts --rev=4, pool-check); poolRev 2 and 1 rounds replay on theirs (poolBankV2 / poolBank).
   return { type: "pool", seed: POOL_BANK_V3[arcadeSeed() % POOL_BANK_V3.length]!, poolRev: POOL_REV };
 }
 

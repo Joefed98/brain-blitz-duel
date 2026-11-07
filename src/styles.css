@@ -1173,38 +1173,6 @@ html,
   }
 }
 
-@keyframes slow-pulse {
-  0%,
-  100% {
-    opacity: 0.35;
-    transform: scale(0.9);
-  }
-  50% {
-    opacity: 1;
-    transform: scale(1.15);
-  }
-}
-
-@utility animate-slow-pulse {
-  animation: slow-pulse 1.8s ease-in-out infinite;
-}
-
-/* --- Home button sheen -------------------------------------------------- */
-
-@keyframes sheen {
-  0%,
-  86% {
-    transform: translateX(-130%) skewX(-18deg);
-  }
-  100% {
-    transform: translateX(230%) skewX(-18deg);
-  }
-}
-
-@utility animate-sheen {
-  animation: sheen 6s linear infinite;
-}
-
 /* --- Invalid input shake ----------------------------------------------- */
 
 @keyframes shake {
@@ -1373,24 +1341,6 @@ html,
   .bt-example-ball { transition: none; }
 }
 
-/* Arcade answer reveal: finish/crash highlight on the final-frame backdrop. */
-@keyframes arcade-reveal-pulse {
-  0% { opacity: 0.9; transform: scale(1); }
-  100% { opacity: 0; transform: scale(2.2); }
-}
-@keyframes arcade-reveal-glow {
-  0%, 100% { opacity: 0.9; }
-  50% { opacity: 0.35; }
-}
-.arcade-reveal-pulse {
-  transform-box: fill-box;
-  transform-origin: center;
-  animation: arcade-reveal-pulse 1.2s ease-out infinite;
-}
-.arcade-reveal-glow {
-  animation: arcade-reveal-glow 1.6s ease-in-out infinite;
-}
-
 /* Round intro: never taller than the viewport inside PhoneShell's unconstrained column
    (pad-safe top/bottom and the 2.75rem top bar), so the sticky READY footer stays on
    screen at 375×667. Nothing scrolls inside .round-intro-content: the demo/example
@@ -1475,8 +1425,6 @@ html,
 @keyframes fx-shake { 0%, 100% { transform: translateX(0); } 20%, 60% { transform: translateX(-4px); } 40%, 80% { transform: translateX(4px); } }
 .animate-pop-in { animation: fx-pop 180ms ease-out; }
 .animate-shake { animation: fx-shake 250ms ease-out; }
-.category-header { border-bottom: 1px solid color-mix(in srgb, var(--category-accent) 35%, transparent); }
-.category-tag { color: var(--category-accent); font-family: var(--font-mono); font-size: 11px; text-transform: uppercase; }
 .round-instructions > div > p:first-child { color: var(--category-accent); }
 @media (prefers-reduced-motion: reduce) {
   .screen-drift { animation: none; }
@@ -1962,10 +1910,8 @@ html[data-reduced-effects] .podium-award-in { animation: none; }
 .replay-board-lapse p { display: none; }
 
 /* Battery saver (31 Oct 2026, lib/battery.ts; Profile → settings, off by default): the endless decorative
-   motion stops (the slow category drift, potion bubbles, the button sheen and soft pulses). */
+   motion stops (the slow category drift and potion bubbles). */
 [data-battery-saver] .screen-drift,
-[data-battery-saver] .potion-bubble,
-[data-battery-saver] .animate-sheen,
-[data-battery-saver] .animate-slow-pulse {
+[data-battery-saver] .potion-bubble {
   animation: none;
 }

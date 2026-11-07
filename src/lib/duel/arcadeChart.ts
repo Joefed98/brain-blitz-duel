@@ -112,7 +112,7 @@ export const CHART_LANE = 30;
 export const CHART_NAME_MAX = 68;
 /** Space kept clear between two markers in one lane, CSS px. */
 export const CHART_GAP = 4;
-/** A name's widest likely advance per character at 13 px semibold (Manrope), CSS px, so short names never ellipsise. */
+/** A name's widest likely advance per character at 13 px semibold (measured on Manrope, the face before F1), CSS px, so short names never ellipsise. */
 const NAME_CHAR_PX = 8.8;
 
 /** A marker's drawn width: badge and name (capped, on its 4 px-padded backing) in a 13 px font; no points figure. */

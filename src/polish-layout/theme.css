@@ -236,21 +236,6 @@
   border-color: rgb(255 255 255 / 0.14);
   background: rgb(255 255 255 / 0.015);
 }
-/* Tournaments' Next up: a large faint trophy behind the card's content. */
-.th-trophy {
-  position: absolute;
-  right: -14px;
-  bottom: -18px;
-  z-index: -1;
-  width: 132px;
-  height: 132px;
-  color: var(--th-gold-text);
-  opacity: 0.07;
-  pointer-events: none;
-}
-.th-card-clip {
-  overflow: hidden;
-}
 
 /* Small uppercase labels: section kickers and category pills. */
 .th-kicker {
@@ -294,55 +279,12 @@
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.02em;
 }
-.th-score-top {
-  color: var(--th-gold-text);
-  text-shadow: 0 0 14px rgb(242 199 92 / 0.35);
-}
 .th-name {
   min-width: 0;
   font-family: var(--th-font-body);
   font-weight: 700;
   letter-spacing: 0;
   text-transform: none;
-}
-
-/* The answer reveal: the correct answer in a green-tinted box, the player's answer in an orange one. */
-.th-answer-correct,
-.th-answer-yours {
-  border-radius: 8px;
-  padding: 1px 8px;
-  margin: -1px 0;
-  font-family: var(--th-font-head);
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-}
-.th-answer-correct {
-  color: var(--th-green-text);
-  background: rgb(34 199 126 / 0.12);
-  box-shadow: inset 0 0 0 1px rgb(34 199 126 / 0.45);
-}
-.th-answer-yours {
-  color: var(--th-orange-text);
-  background: rgb(255 122 47 / 0.12);
-  box-shadow: inset 0 0 0 1px rgb(255 122 47 / 0.45);
-}
-.th-answer-board {
-  border-radius: 12px;
-  box-shadow: inset 0 0 0 1px rgb(34 199 126 / 0.22);
-  background: linear-gradient(180deg, rgb(34 199 126 / 0.05), transparent 40%);
-}
-
-/* The wordmark: the head font at 800, a gold glow on the last letter. */
-[data-skin] .th-wordmark {
-  font-family: var(--th-font-head);
-  font-weight: 800;
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
-}
-[data-skin] .th-wordmark-last {
-  color: var(--th-gold-text);
-  text-shadow: 0 0 10px rgb(242 199 92 / 0.65), 0 0 22px rgb(242 199 92 / 0.35);
 }
 
 /* ------------------------------------------------------------------ the tab bar */

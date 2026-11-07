@@ -77,7 +77,7 @@ try {
         const sheet = document.createElement("div");
         sheet.setAttribute("data-icon-sheet", "");
         sheet.style.cssText =
-          "position:absolute;left:0;top:0;width:100%;min-height:100%;background:#070709;color:#F5F5F7;font:600 11px/1.25 Manrope,system-ui,sans-serif;padding:16px 16px 40px;box-sizing:border-box;z-index:99999";
+          "position:absolute;left:0;top:0;width:100%;min-height:100%;background:#070709;color:#F5F5F7;font:600 11px/1.25 Archivo,system-ui,sans-serif;padding:16px 16px 40px;box-sizing:border-box;z-index:99999";
         const title = document.createElement("div");
         title.textContent = `Game tile icons · ${label}`;
         title.style.cssText = "font:800 16px Saira,system-ui,sans-serif;margin-bottom:4px";
