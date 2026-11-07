@@ -60,6 +60,9 @@ export function PracticeChallenges({
           </span>
         }
       />
+      <p data-challenges-note className="pc-note">
+        Each challenge is completed in a single Practice run.
+      </p>
       <Segmented
         label="Challenges shown"
         radio

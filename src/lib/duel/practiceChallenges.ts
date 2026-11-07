@@ -3,7 +3,7 @@
  * already measures and stores with a graded run. Nothing here changes how a game plays or scores.
  *
  *   part       an arcade game on the arcade scoring standard: one of its parts (the reveal line "<Label>: … → N of M",
- *              extra.reveal.lines, built by the server's replay) reaching `max` in one run;
+ *              extra.reveal.lines, built by the server's replay) reaching `max` in a single run;
  *   bonus      a puzzle on the scoring standard: a finish (extra.parts.kind "finish") whose bonus (par or clean,
  *              extra.parts.efficiency) reaches `max`;
  *   speed      the same finish with its speed points (extra.parts.speed) at `max`: solved by the game's "full by" time;
@@ -80,33 +80,33 @@ export const PRACTICE_CHALLENGES: readonly PracticeChallenge[] = [
   speed("safe", 30, 40),
   bonus("tiles", "par", "Solve it at par", 15),
   speed("tiles", 30, 35),
-  bonus("codeword", "clean", "Crack it without a wrong letter", 10),
+  bonus("codeword", "clean", "Crack it with no mistakes", 10),
   speed("codeword", 60, 40),
   bonus("swapword", "par", "Solve it at par", 30),
   speed("swapword", 60, 20),
   bonus("wordslide", "par", "Solve it at par", 15),
   speed("wordslide", 33, 35),
   // Arcade (each game's standard parts: src/lib/arcade/liveBands.ts LIVE_BANDS std)
-  part("pinball", "joulz", "Max out J-O-U-L-Z in one run", "J-O-U-L-Z", 20),
-  part("pinball", "multiball", "Max out Multiball in one run", "Multiball", 20),
-  part("skyline", "perfects", "Max out Perfect drops in one run", "Perfect drops", 30),
-  part("skyline", "gold", "Max out Gold blocks in one run", "Gold blocks", 20),
-  part("beat", "gold", "Max out Golden notes in one run", "Golden notes", 15),
+  part("pinball", "joulz", "Max out J-O-U-L-Z", "J-O-U-L-Z", 20),
+  part("pinball", "multiball", "Max out Multiball", "Multiball", 20),
+  part("skyline", "perfects", "Max out Perfect drops", "Perfect drops", 30),
+  part("skyline", "gold", "Max out Gold blocks", "Gold blocks", 20),
+  part("beat", "gold", "Max out Golden notes", "Golden notes", 15),
   runs("beat", 150, 3),
   part("bubble", "clear", "Clear the reef", "Reef cleared", 10),
-  part("bubble", "chests", "Max out Chests in one run", "Chests", 30),
+  part("bubble", "chests", "Max out Chests", "Chests", 30),
   part("bintoss", "finish", "Get all ten in", "All ten in", 10),
-  part("bintoss", "hoops", "Max out Hoops in one run", "Hoops", 24),
-  part("bullseye", "dead", "Max out Dead-centre darts in one run", "Dead-centre darts", 20),
+  part("bintoss", "hoops", "Max out Hoops", "Hoops", 24),
+  part("bullseye", "dead", "Max out Dead-centre darts", "Dead-centre darts", 20),
   runs("bullseye", 150, 3),
-  part("homerun", "homers", "Max out Home runs in one run", "Home runs", 40),
-  part("homerun", "streak", "Max out Perfect streak in one run", "Perfect streak", 20),
+  part("homerun", "homers", "Max out Home runs", "Home runs", 40),
+  part("homerun", "streak", "Max out Perfect streak", "Perfect streak", 20),
   part("pool", "black", "Pot the black", "Black", 10),
-  part("pool", "streak", "Max out Pots in a row in one run", "Pots in a row", 30),
-  part("blockfall", "multi", "Max out Multi-line clears in one run", "Multi-line clears", 24),
-  part("blockfall", "low", "Max out Low stack in one run", "Low stack", 16),
+  part("pool", "streak", "Max out Pots in a row", "Pots in a row", 30),
+  part("blockfall", "multi", "Max out Multi-line clears", "Multi-line clears", 24),
+  part("blockfall", "low", "Max out Low stack", "Low stack", 16),
   part("bastion", "drones", "Down all three drones", "Drones", 30),
-  part("bastion", "base", "Finish with the base untouched", "Base intact", 10),
+  part("bastion", "base", "Keep the base untouched", "Base intact", 10),
 ];
 
 /** The challenge's target on its progress bar (the part's or bonus's maximum, or the runs needed). */

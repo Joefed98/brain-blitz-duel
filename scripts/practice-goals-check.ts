@@ -129,7 +129,8 @@ const SPEED_RULES: Partial<Record<PuzzleType, { speed: number; fullByS: number; 
 const textOk = (s: string) => s.length > 0 && s.length <= 44 && !/[·!']|"/.test(s) && /^[A-Z]/.test(s);
 for (const c of PRACTICE_CHALLENGES) {
   check(textOk(c.text), `${c.id}: goal "${c.text}" is one short sentence-case line, no "·", "!" or straight quotes`);
-  check(c.reward.length > 0, `${c.id}: has a reward`);
+  check(c.reward === "Badge", `${c.id}: the reward is a Badge`);
+  check(!/in one run/i.test(c.text), `${c.id}: no "in one run" (the section's note says it once)`);
   const g = c.goal;
   if (g.kind === "part") {
     const live = (LIVE_BANDS as Record<string, { std?: { parts: readonly { label: string; max: number }[] } }>)[c.type]?.std;
@@ -246,6 +247,7 @@ check(/practice && \(personalBest \|\| starLine\) && myScore !== null \? <NewBes
 const intro = readFileSync("src/components/duel/RoundIntro.tsx", "utf8");
 check(/<Stars tier=\{starsOf\(type, deviceBest\)\} \/>/.test(intro), "the intro shows the game's stars");
 const ui = readFileSync("src/components/app/PracticeChallenges.tsx", "utf8");
+check(/Each challenge is completed in a single Practice run\./.test(ui), "the line under the Challenges heading");
 check(/Unlocks with your account/.test(ui) && /"In progress"/.test(ui) && /"New"/.test(ui) && /"Done"/.test(ui), "filters In progress, New, Done; rewards unlock with an account");
 // Nothing outside practice, the queue, the intro, the reveal's moment and the goals UI imports the goals.
 const allowed = new Set(["src/routes/practice.tsx", "src/lib/offline/queue.ts", "src/components/duel/RoundIntro.tsx", "src/components/app/PracticeChallenges.tsx", "src/lib/duel/practiceGoals.ts"]);

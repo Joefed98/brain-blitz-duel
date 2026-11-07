@@ -103,3 +103,11 @@
   height: 14px;
   flex: none;
 }
+
+/* The line under the Challenges heading. */
+.pc-note {
+  margin-top: calc(-1 * var(--jz-space-4));
+  color: var(--jz-text-3);
+  font-size: 14px;
+  line-height: 18px;
+}
