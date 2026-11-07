@@ -61,7 +61,7 @@ Legal text (the beta terms) is left alone; that's for your adviser.
 | 35 | Lobby, Room settings (if Plus is ever on) | `lib/duel/roomSettings.server.ts:37` | Room settings are part of Duelz Plus. | Room settings are part of Joulz Plus. (old name) |
 | 36 | Room settings sheet | `lib/duel/roomSettings.ts:221` | Choose at least one category. | Pick at least one category. (the sheet's own line says "Keep at least one category.") |
 | 37 | Room settings sheet | `lib/duel/roomSettings.ts:227` | Choose valid categories. | Some of those categories don’t exist. |
-| 38 | Room settings (server) | `lib/duel/roomSettings.server.ts` ("Choose at least one category with active games.") | Choose at least one category with active games. | Pick at least one category with games in it. |
+| 38 | Lobby, Start game / Play again | `lib/duel/duel.functions.ts:486`, `:568` | Choose at least one category with active games. / Choose at least one valid category. | Pick at least one category with games in it. / Pick at least one category. |
 | 39 | Lobby colour | `lib/duel/playerLook.server.ts:178` | That colour can’t be stored yet. | That colour isn’t ready yet. Pick another. |
 | 40 | Link join, room full | `lib/duel/types.ts:605` | That room is full (16 players). | That room’s full. 16 is the most. |
 | 41 | Link join button | `components/duel/JoinFromLink.tsx:176` | Room is full | Room’s full |
