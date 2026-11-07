@@ -773,3 +773,77 @@
 .chat-sheet-footer {
   padding-bottom: max(8px, env(safe-area-inset-bottom, 0px));
 }
+
+/* The broadcast reveal (7 Nov 2026; Standings with celebrations on, useStandingsReveal): a row still
+   waiting to land keeps its name and the total before the round, its medal, movement arrow and round
+   points held back (the grid's 1st, 2nd and 4th cells); they fade in as the row lands. 1st place lands
+   with one gold light sweep across its row (rs-sweep), as does the podium's gold block and medal. */
+.rs-row[data-reveal] > div > :is(:nth-child(1), :nth-child(2), :nth-child(4)) {
+  transition: opacity var(--jz-slow) var(--jz-ease);
+}
+.rs-row[data-reveal="waiting"] > div > :is(:nth-child(1), :nth-child(2), :nth-child(4)) {
+  opacity: 0;
+}
+/* While rows still wait, the page's first row (1st place) is drawn lower down: it takes the divider too. */
+.rs-list:has(> .rs-row[data-reveal="waiting"]) > .rs-row:first-child::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 14px;
+  height: 1px;
+  background: var(--ap-divider);
+  pointer-events: none;
+}
+/* The sweep is a band of light moved across a layer the row's own size, so nothing is clipped and it
+   rests off the row (fully transparent) when it ends: no paint after the reveal. */
+.rs-row[data-reveal-sweep]::after,
+[data-podium-step="1"]::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border-radius: inherit;
+  background: linear-gradient(
+    105deg,
+    transparent 38%,
+    color-mix(in srgb, var(--jz-glow) 45%, transparent) 50%,
+    transparent 62%
+  );
+  background-size: 300% 100%;
+  background-position: 100% 0;
+  pointer-events: none;
+  animation: rs-sweep 600ms var(--jz-ease) both;
+}
+[data-podium-step="1"] {
+  position: relative;
+}
+[data-podium-step="1"]::after {
+  animation-delay: 1250ms;
+}
+@keyframes rs-sweep {
+  from { background-position: 100% 0; }
+  to { background-position: 0% 0; }
+}
+/* The podium's medals drop onto their blocks in turn: bronze, silver, then gold. */
+[data-podium-step] > [data-jz="medal"] {
+  animation: podium-medal-drop 380ms var(--jz-ease) both;
+}
+[data-podium-step="3"] > [data-jz="medal"] { animation-delay: 250ms; }
+[data-podium-step="2"] > [data-jz="medal"] { animation-delay: 550ms; }
+[data-podium-step="1"] > [data-jz="medal"] { animation-delay: 850ms; }
+@keyframes podium-medal-drop {
+  from { opacity: 0; transform: translateY(-28px); }
+  70% { opacity: 1; transform: translateY(3px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .rs-row[data-reveal-sweep]::after,
+  [data-podium-step="1"]::after,
+  [data-podium-step] > [data-jz="medal"] {
+    animation: none;
+  }
+  .rs-row[data-reveal="waiting"] > div > :is(:nth-child(1), :nth-child(2), :nth-child(4)) {
+    opacity: 1;
+  }
+}
