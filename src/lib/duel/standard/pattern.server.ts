@@ -22,7 +22,8 @@ import { isTopsy, replayTopsyPuzzle } from "../topsy";
 import { JUMBLED_MOVABLE, jumbledInPlace, replayGradientAnswer } from "../jumbled";
 import { decodeRingTaps, freshOffsets, replayRings, ringColour, ringsApply } from "../rings";
 import { decodeFlowPaths, verifyFlow } from "../flow";
-import { decodeSides } from "../logic";
+import { decodeSides, rotateMask, tileOpenings } from "../logic";
+import { usesPipesPlaced } from "../speedPipesNov7";
 import { gradePipesBoard } from "../logic.server";
 import { decodePipesTaps, pipesAfterTaps } from "../depth4/pipesTaps";
 import { cratesOnTargets, decodePushMoves, replayPush } from "../push";
@@ -471,11 +472,43 @@ const chroma: StandardGame = {
 
 /* ------------------------------------------------------------------ Pipeline (pipes) */
 
+/**
+ * pipesRev 4 (7 Nov 2026, speedPipesNov7.ts): the tiles turned into their solved orientation (the stored solution's
+ * side-set), wherever they are on the board (joined to the source or not), out of the tiles not in it at the deal.
+ * So that random turning earns about nothing, a tile turned out of its solved orientation costs 1, and a tile turned
+ * but left wrong costs 1 ÷ (its other orientations − 1), a half for most tiles: of a tile's three other orientations
+ * one is right and two wrong, so a tile given a random turn is worth 0 on average. A straight's one other orientation
+ * is its solved one, so turning it is always progress. A tile left as dealt counts nothing either way.
+ */
+function pipesPlaced(puzzle: Of<"pipes">, board: readonly { sides: number }[]): { done: number; total: number } {
+  const solution = puzzle.solution ?? [];
+  let total = 0;
+  let net = 0;
+  puzzle.tiles.forEach((tile, i) => {
+    const dealt = tileOpenings(tile);
+    const want = (solution[i] ?? -1) & 15;
+    const now = board[i]?.sides ?? dealt;
+    if (dealt === want) {
+      if (now !== want) net -= 1;
+      return;
+    }
+    total++;
+    if (now === want) net += 1;
+    else if (now !== dealt) {
+      // The tile's other orientations: one is right, the rest wrong (a straight has one other, so it is never here).
+      const others = new Set([1, 2, 3].map((t) => rotateMask(dealt, t)).filter((s) => s !== dealt)).size;
+      net -= others > 1 ? 1 / (others - 1) : 0;
+    }
+  });
+  return { done: Math.max(0, net), total };
+}
+
 /** Tiles connected to the source beyond those connected at the start, out of those that weren't. */
 function pipesConnected(puzzle: Of<"pipes">, answer: string): { done: number; total: number } {
-  const start = gradePipesBoard(puzzle.source, decodeSides(puzzle.tiles, "")).connected;
   const taps = (puzzle.pipesRev ?? 0) >= 1 ? decodePipesTaps(answer, puzzle.tiles.length) : null;
   const board = taps ? pipesAfterTaps(puzzle.tiles, taps) : decodeSides(puzzle.tiles, answer);
+  if (usesPipesPlaced(puzzle) && puzzle.solution?.length === puzzle.tiles.length) return pipesPlaced(puzzle, board);
+  const start = gradePipesBoard(puzzle.source, decodeSides(puzzle.tiles, "")).connected;
   const now = gradePipesBoard(puzzle.source, board).connected;
   return { done: Math.max(0, now - start), total: puzzle.tiles.length - start };
 }

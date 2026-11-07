@@ -10,6 +10,7 @@ import {
   TAP_LOG_PREFIX,
   dealtTapRev,
   TAP_REV_ONE_CURVE,
+  TAP_REV_PER_ITEM,
   tapRevOf,
   decodeTapTimes,
   encodeTapTimes,
@@ -563,7 +564,8 @@ function Reveal({ puzzle, myAnswer, myReactionAvgMs, myExtra }: PuzzleRevealProp
         <p>
           {/* The count alone (4 Nov 2026: "(−973 points)" was the cost before the curve, not points off the score). */}
           False starts: {falseStarts}
-          {times.some((ms) => ms >= REACTION_MISS_MS) ? ` · a miss counts ${REACTION_MISS_MS.toLocaleString("en-GB")} ms` : ""}
+          {/* tapRev 7 (7 Nov 2026): each flash scores on its own, so a miss scores nothing rather than counting as 1,200 ms. */}
+          {times.some((ms) => ms >= REACTION_MISS_MS) ? (tapRevOf(puzzle) >= TAP_REV_PER_ITEM ? " · a missed flash scores 0" : ` · a miss counts ${REACTION_MISS_MS.toLocaleString("en-GB")} ms`) : ""}
         </p>
         {depth ? (
           <p data-flash-steady-reveal="">

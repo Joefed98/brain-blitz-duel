@@ -16,7 +16,7 @@ import { puzzleNotesDealt } from "./puzzleNotes";
 import { PAR_MOVES_MAZE_HELP, STANDARD_ATTENTION_HELP } from "./standard/attentionTexts";
 import { parMovesDealt, parStrictDealt } from "./parMoves";
 import { operatorGapsDealt } from "./operatorGaps";
-import { PATTERN_STD_HELP, parMovesPatternHelp } from "./standard/patternText";
+import { PATTERN_STD_HELP, parMovesPatternHelp, pipesPatternHelp } from "./standard/patternText";
 import { standardNumberHelp } from "./standard/numberText";
 import {
   scoreWordHunt,
@@ -585,7 +585,8 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "No leaks", detail: "at the edges." },
         { action: "Par", detail: "is the fewest taps; the bar’s gold mark shows it." },
       ],
-      score: PATTERN_STD_HELP.pipes,
+      // pipesRev 4 (7 Nov 2026, speedPipesNov7.ts): the tiles turned to fit.
+      score: pipesPatternHelp(),
     },
     sudoku: {
       goal: "Fill the 6 × 6 sudoku grid.",

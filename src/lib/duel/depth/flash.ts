@@ -13,7 +13,7 @@
 import { knots, depthClamp } from "../depth200";
 import { reactionFalseStartCost } from "../scoring";
 import { REACTION_MISS_MS } from "../types";
-import { TAP_REV_DEPTH, TAP_REV_TOPUP } from "../tapLog";
+import { TAP_REV_DEPTH, TAP_REV_PER_ITEM, TAP_REV_TOPUP } from "../tapLog";
 
 export const FLASH_DEPTH_REV = TAP_REV_DEPTH;
 /**
@@ -24,6 +24,12 @@ export const FLASH_DEPTH_REV = TAP_REV_DEPTH;
  */
 export const FLASH_TOPUP_REV = TAP_REV_TOPUP;
 export const FLASH_REV6_CURVE = [[120, 186], [135, 178], [150, 168], [165, 155], [180, 140], [200, 120], [300, 110], [450, 80], [600, 20], [800, 0]] as const;
+/**
+ * 7 Nov 2026 (tapRev 7, speedPipesNov7.ts): each flash scores on FLASH_REV6_CURVE by its own credited reaction (a miss
+ * 0) and the curve part is the average of those points, so half the flashes hit scores about half; the steady hand,
+ * false starts and the floor are tapRev 6's.
+ */
+export const FLASH_PER_ITEM_REV = TAP_REV_PER_ITEM;
 export const FLASH_PARTIAL_PER_HIT = 2;
 export const FLASH_PARTIAL_HIT_MS = 800;
 
@@ -36,7 +42,7 @@ export const FLASH_STEADY_LOOSE_POINTS = 8;
 
 export function usesFlashDepth(puzzle: unknown): boolean {
   const p = puzzle as { type?: string; tapRev?: number } | null;
-  return p?.type === "reaction" && (p.tapRev === FLASH_DEPTH_REV || p.tapRev === FLASH_TOPUP_REV);
+  return p?.type === "reaction" && (p.tapRev === FLASH_DEPTH_REV || p.tapRev === FLASH_TOPUP_REV || p.tapRev === FLASH_PER_ITEM_REV);
 }
 
 /** Fastest to slowest credited reaction, or null while any flash is missed or still to come. */
@@ -57,8 +63,10 @@ export function flashSteadyBonus(times: readonly (number | null)[], falseStarts:
 
 export interface FlashDepthScore {
   score: number;
-  /** The curve's points for the average. */
+  /** The curve's points for the average (tapRev 7: the average of each flash's points). */
   curve: number;
+  /** tapRev 7: each flash's points on the curve (a miss 0). */
+  each?: number[];
   steady: number;
   spread: number | null;
   falseStartCost: number;
@@ -74,10 +82,11 @@ export function scoreFlashDepth(times: readonly (number | null)[], falseStarts: 
   const average = Math.round(total / count);
   const filled = Array.from({ length: count }, (_, i) => times[i] ?? null);
   const topup = tapRev >= FLASH_TOPUP_REV;
-  const curve = knots(topup ? FLASH_REV6_CURVE : FLASH_REV5_CURVE, average);
+  const each = tapRev >= FLASH_PER_ITEM_REV ? filled.map((t) => (t === null || t >= REACTION_MISS_MS ? 0 : knots(FLASH_REV6_CURVE, Math.max(1, t)))) : null;
+  const curve = each ? Math.round(each.reduce((a, b) => a + b, 0) / count) : knots(topup ? FLASH_REV6_CURVE : FLASH_REV5_CURVE, average);
   const steady = flashSteadyBonus(filled, falseStarts);
   const falseStartCost = reactionFalseStartCost(falseStarts, FLASH_DEPTH_REV);
   if (!topup) return { score: depthClamp(curve + steady - falseStartCost), curve, steady, spread: flashSpread(filled), falseStartCost };
   const floor = FLASH_PARTIAL_PER_HIT * filled.filter((t) => t !== null && t < FLASH_PARTIAL_HIT_MS).length;
-  return { score: depthClamp(Math.max(floor, curve + steady - falseStartCost)), curve, steady, spread: flashSpread(filled), falseStartCost, floor };
+  return { score: depthClamp(Math.max(floor, curve + steady - falseStartCost)), curve, steady, spread: flashSpread(filled), falseStartCost, floor, ...(each ? { each } : {}) };
 }
