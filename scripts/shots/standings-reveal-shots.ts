@@ -44,23 +44,41 @@ const { chromium } = await import("playwright");
 const browser = await chromium.launch({ executablePath: CHROMIUM_PATHS.find((p) => p && existsSync(p)) });
 try {
   for (const { key, screen, ready } of SCREENS) {
-    const { context, page } = await openThemeScreen(browser, server.origin, screen, VIEWPORT);
-    // The page is warm (fonts, modules): reload and record the screen from its first frame.
-    const cdp = await context.newCDPSession(page);
+    // Record from the page's first load (the harness's room state is set for that open): the screencast starts
+    // as the page is created and the page notes, on the real clock, when the screen first shows.
     const frames: { t: number; data: string }[] = [];
-    cdp.on("Page.screencastFrame", (frame: { data: string; sessionId: number; metadata: { timestamp?: number } }) => {
-      frames.push({ t: (frame.metadata.timestamp ?? Date.now() / 1000) * 1000, data: frame.data });
-      void cdp.send("Page.screencastFrameAck", { sessionId: frame.sessionId }).catch(() => {});
+    let stop: (() => Promise<void>) | null = null;
+    const { context, page } = await openThemeScreen(browser, server.origin, screen, VIEWPORT, async (ctx) => {
+      await ctx.addInitScript((sel) => {
+        const note = () => {
+          if ((window as unknown as { __shownAt?: number }).__shownAt) return;
+          if (document.querySelector(sel)) (window as unknown as { __shownAt: number }).__shownAt = performance.timeOrigin + performance.now();
+          else requestAnimationFrame(note);
+        };
+        requestAnimationFrame(note);
+      }, ready);
+      ctx.on("page", (p) => {
+        void (async () => {
+          const cdp = await ctx.newCDPSession(p);
+          cdp.on("Page.screencastFrame", (frame: { data: string; sessionId: number; metadata: { timestamp?: number } }) => {
+            frames.push({ t: (frame.metadata.timestamp ?? (performance.timeOrigin + performance.now()) / 1000) * 1000, data: frame.data });
+            void cdp.send("Page.screencastFrameAck", { sessionId: frame.sessionId }).catch(() => {});
+          });
+          await cdp.send("Page.startScreencast", { format: "png", maxWidth: VIEWPORT.w * 2, maxHeight: VIEWPORT.h * 2, everyNthFrame: 1 });
+          stop = async () => void (await cdp.send("Page.stopScreencast").catch(() => {}));
+        })();
+      });
     });
-    await page.reload();
-    await page.waitForSelector(ready, { timeout: 60_000 });
-    const shownAt = Date.now();
-    await cdp.send("Page.startScreencast", { format: "png", maxWidth: VIEWPORT.w * 2, maxHeight: VIEWPORT.h * 2, everyNthFrame: 1 });
-    await page.waitForTimeout(RECORD_MS);
-    await cdp.send("Page.stopScreencast");
+    const shownAt = await page.evaluate(() => (window as unknown as { __shownAt?: number }).__shownAt ?? 0);
+    const left = Math.max(0, shownAt + RECORD_MS - (performance.timeOrigin + performance.now()));
+    await page.waitForTimeout(Math.min(RECORD_MS, left + 200));
+    await (stop as (() => Promise<void>) | null)?.();
     await context.close();
+    const t0 = shownAt || frames[0]!.t;
+    const kept = frames.filter((f) => f.t >= t0 - 50);
+    frames.length = 0;
+    frames.push(...kept);
     if (!frames.length) throw new Error(`${key}: no frames`);
-    const t0 = Math.min(frames[0]!.t, shownAt);
     const dir = `${out}/${key}`;
     rmSync(dir, { recursive: true, force: true });
     mkdirSync(dir, { recursive: true });
