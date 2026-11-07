@@ -201,7 +201,8 @@ const localStorage = {
   check((practice.match(/aria-describedby=\{cardBestId\(key\)\}/g) ?? []).length === 1 && /aria-label=\{PUZZLE_REGISTRY\[key\]\.name\}/.test(practice), "every card's button is named its game and described by its best");
 
   const reveal = readFileSync("src/components/duel/AnswerReveal.tsx", "utf8");
-  check(/\{practice && personalBest && myScore !== null \? <NewBestMoment \/> : null\}/.test(reveal), "the moment shows only in practice, on a new best, once the score is in");
+  // Practice goals (6 Nov 2026, Joe's decision): a run that earns a mastery star plays the same moment with its star line.
+  check(/\{practice && \(personalBest \|\| starLine\) && myScore !== null \? <NewBestMoment starLine=\{starLine\} \/> : null\}/.test(reveal), "the moment shows only in practice, on a new best or a star earned, once the score is in");
   check(/personalBest=\{practice \? false : undefined\}/.test(reveal), "arcade practice gets the same moment, not a second celebration");
   check(/personalBest=\{newBest\}/.test(practice), "practice passes its own verdict");
 

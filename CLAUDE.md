@@ -1599,6 +1599,13 @@ outside the repo.
   (`hasScoringColumn`) and the server refuses Placings with a message. Only `changeRoomSettings` writes it (host,
   lobby); new rooms take the host's last mode. room-scoring-check (~2 s, happy-dom); shots
   `bun scripts/shots/room-scoring-shots.ts` (`screenshots/room-scoring-nov-2026/`, 390×844).
+- **Practice goals** (6 Nov 2026; device storage and presentation only, no stamps): mastery stars from the practice best
+  (bronze 120, silver 160, gold 190; a star once earned is kept; "21 / 276 stars" under Practice's title, `Stars` on each
+  row and the intro) and challenges (`src/lib/duel/practiceChallenges.ts`: two for each of 20 games, read only from a run's
+  stored score and extra: an arcade standard part's reveal line, a standard puzzle's bonus or speed; `PracticeChallenges`
+  with In progress / New / Done; rewards "Unlocks with your account"), one record under `duelz-practice-goals:v1`
+  (`practiceGoals.ts`), updated by practice and the offline queue; a newly earned star rides the new-best moment as a
+  short line. practice-goals-check (~1 s); shots `bun scripts/shots/practice-goals-shots.ts`.
 - `src/components/duel/` — room/round screens (PhoneShell, RoundIntro, TimerBar,
   AnswerReveal, ArcadeReveal, WinnerReveal…); `src/components/puzzles/` — shared puzzle
   widgets; `src/lib/fx/` — sound and visual feedback (presentation only).

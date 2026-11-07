@@ -1,4 +1,5 @@
 import { puzzleDef, puzzleName, typeTimeLimitMs, usesArcadeClock } from "@/lib/duel/registry";
+import { starsOf } from "@/lib/duel/practiceGoals";
 import { prepareSwingCourse } from "@/lib/arcade/swing";
 import { prepareInkLevels } from "@/lib/arcade/inkBridge";
 import { mgDeal } from "@/lib/arcade/cards/muggins";
@@ -6,7 +7,7 @@ import { pyDeal } from "@/lib/arcade/cards/pyramid";
 import { INTRO_COUNTDOWN_MS, INTRO_MS, TOTAL_ROUNDS, type PuzzleType } from "@/lib/duel/types";
 import type { Outcome } from "@/lib/duel/scoring";
 import type { PuzzleData } from "@/lib/duel/types";
-import { Button as JzButton } from "@/design/components";
+import { Button as JzButton, Stars } from "@/design/components";
 import { useContext, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { ChevronLeft } from "lucide-react";
 import { fx } from "@/lib/fx";
@@ -283,6 +284,8 @@ export function RoundIntro({
                   <span className="intro-best-value">{deviceBest}</span>
                 </>
               )}
+              {/* Practice goals: this game's mastery stars (a star once earned is kept: practiceGoals.ts). */}
+              <Stars tier={starsOf(type, deviceBest)} />
             </span>
           ) : null}
           {topAction}
