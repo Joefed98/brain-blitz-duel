@@ -1013,6 +1013,12 @@ const GAMES: Game[] = [
   { key: "slice/food", game: sliceGameFor(12), checkpoint: sliceCheckpoint, mode: "events", rate: 1000, encode: encodeSliceRun, replay: (seed: number, raw: string) => replaySliceRun(seed, raw, 12) },
   // Roofbound flipRev 12 (3 Nov 2026): flipRev 11's game dealt from its proved courses (seeds from the deal).
   { key: "flip/deal", game: flipGameFor(12), checkpoint: flipCheckpoint, mode: "events", rate: 50, encode: encodeFlipRun, replay: (seed: number, raw: string) => replayFlipRun(seed, raw, 12), seedFor: (n: number) => FLIP_DEAL[n % FLIP_DEAL.length]! },
+  // The scoring audit's arcade fixes (Nov 2026; scoring-audit-arcade-check): each keeps the previous stamp's play.
+  { key: "cross/keep", game: crossGameFor(12), checkpoint: crossCheckpoint, mode: "events", rate: 60, encode: encodeCrossRun, replay: (seed: number, raw: string) => replayCrossRun(seed, raw, 12) },
+  { key: "wavefront/keep", game: wavefrontGameFor(13), checkpoint: wavCheckpoint, mode: "events", rate: 300, encode: encodeWavefrontRun, replay: (seed: number, raw: string) => replayWavefrontRun(seed, raw, 13) },
+  { key: "burst/aim", game: burstGameFor(11), checkpoint: burstCheckpoint, mode: "events", rate: 120, encode: encodeBurstRun, replay: (seed: number, raw: string) => replayBurstRun(seed, raw, 11) },
+  { key: "skyline/count", game: skylineGameFor(10), checkpoint: skylineCheckpoint, mode: "taps", rate: 15, encode: encodeSkylineRun, replay: (seed: number, raw: string) => replaySkylineRun(seed, raw, 10) },
+  { key: "slice/line", game: sliceGameFor(13), checkpoint: sliceCheckpoint, mode: "events", rate: 1000, encode: encodeSliceRun, replay: (seed: number, raw: string) => replaySliceRun(seed, raw, 13) },
 ];
 
 /** A random candidate event, often outside the declared range (a finger off the edge). */

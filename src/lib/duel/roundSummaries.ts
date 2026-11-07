@@ -1033,7 +1033,8 @@ const skylineSummary: SummaryBuilder = (result) => {
       ...(result.extra?.["skylineRev"] ? [`Best streak ${Number(result.extra?.["bestStreak"] ?? 0)} in a row`] : []),
       // skylineRev 7: the expansion's gold blocks and height milestones.
       // skylineRev 9 (the arcade scoring standard): five gold blocks a run; milestones no longer score.
-      ...(Number(result.extra?.["skylineRev"] ?? 0) === 9
+      // skylineRev 10 (the scoring audit): rev 9's play and gold blocks.
+      ...(Number(result.extra?.["skylineRev"] ?? 0) === 9 || Number(result.extra?.["skylineRev"] ?? 0) === 10
         ? [`${Number(result.extra?.["golds"] ?? 0)} of 5 gold blocks`]
         : Number(result.extra?.["skylineRev"] ?? 0) >= 7
           ? [`${Number(result.extra?.["golds"] ?? 0)} gold · ${Number(result.extra?.["milestones"] ?? 0)} milestones`]

@@ -5,7 +5,7 @@
  * island), no hit, ten close calls or more and the core past its full figure, replayed through the server. Played: one
  * sideways step (no row) scores 1.
  */
-import { crossCheckpoint, crossGameFor, CROSS_FLOW_STD, CROSS_INPUT_MOVE, CROSS_REV_FLOW, CROSS_REV_STD, type CrossState } from "../../src/lib/arcade/cross";
+import { crossCheckpoint, crossGameFor, CROSS_INPUT_MOVE, CROSS_KEEP_STD, CROSS_REV_FLOW, CROSS_REV_KEEP, type CrossState } from "../../src/lib/arcade/cross";
 import type { ArcadeInputEvent } from "../../src/lib/arcade/engine";
 import { encodeCrossRun, replayCrossRun } from "../../src/lib/duel/cross";
 import { crossCeilingRun } from "../cross-ceiling";
@@ -14,7 +14,7 @@ import type { StdEntry, StdRun } from "./entry";
 
 /** A log played through the phone's sim and then the server replay (the server's score). */
 function serverScore(seed: number, events: ArcadeInputEvent[]): number {
-  const game = crossGameFor(CROSS_REV_FLOW);
+  const game = crossGameFor(CROSS_REV_KEEP);
   const byTick = new Map(events.map((e) => [e.t, e]));
   let state = game.init(seed) as CrossState;
   const checkpoints = [];
@@ -23,19 +23,20 @@ function serverScore(seed: number, events: ArcadeInputEvent[]): number {
     if (state.tick % 300 === 0) checkpoints.push(crossCheckpoint(state));
   }
   const raw = encodeCrossRun({ seed, claimedScore: game.score(state), events, endTick: state.tick, checkpoints });
-  return replayCrossRun(seed, raw, CROSS_REV_FLOW).score;
+  return replayCrossRun(seed, raw, CROSS_REV_KEEP).score;
 }
 
 export const entry: StdEntry = {
   type: "cross",
   field: "crossRev",
-  rev: CROSS_REV_FLOW,
-  before: CROSS_REV_STD,
-  parts: CROSS_FLOW_STD.parts,
-  spec: CROSS_FLOW_STD,
+  // crossRev 12 since Nov 2026 (the scoring audit): crossRev 11's play and parts; the hit that ends the run is free.
+  rev: CROSS_REV_KEEP,
+  before: CROSS_REV_FLOW,
+  parts: CROSS_KEEP_STD.parts,
+  spec: CROSS_KEEP_STD,
   perfect: (): StdRun[] =>
     [0, 7, 61].map((n) => {
-      const r = crossCeilingRun(roomSeed(n), 1, CROSS_REV_FLOW);
+      const r = crossCeilingRun(roomSeed(n), 1, CROSS_REV_KEEP);
       return { label: `oracle seed ${r.seed} (${r.crossings} crossings, no-stop streak ${r.streakPts}, close calls ${r.closeCalls})`, score: r.flagged ? -1 : r.score };
     }),
   played: (): StdRun[] =>

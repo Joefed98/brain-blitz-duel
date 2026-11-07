@@ -152,3 +152,24 @@ Changes are read only on sliceRev 11 states (`s.v11`), so every older revision's
   rare (great to elite medians of one or two dodges), so the line sits at 60.
 - The golden-fruit and ticket parts are shares of what the seed throws, so a perfect run reaches exactly 20 and 10 on
   every seed.
+
+## sliceRev 13: every piece counts (Nov 2026, the scoring audit)
+
+`docs/audit-nov-2026/scoring.md` issue 8: sliceRev 12 scored no food below 48 % of the food cut and no combo below 40
+combo foods, so a weak run that cut 50 of 128 objects scored 1. sliceRev 13 (`SLICE_REV_LINE`) is sliceRev 12's food,
+schedule, deal and play exactly (states add `v13: 1` outside the checksum), with both lines from 0:
+
+- Food: 120 × the share of the food cut (`SLICE_V13_BAND_CURVE`, sliceRev 11's line);
+- Combo: 40 × combo foods ÷ 110, capped at 40.
+
+Golden fruit, tickets, dodges and the chillies' cost are unchanged.
+
+| Level | Weak | Average | Good | Great | Near | Elite | Flawless |
+|---|---|---|---|---|---|---|---|
+| sliceRev 12 | 34 (7–60) | 90 (61–123) | 147 (114–165) | 163 (128–180) | 165 (146–186) | 190 (177–200) | 200 |
+| sliceRev 13 | 92 (67–110) | 125 (109–153) | 166 (140–179) | 177 (151–189) | 178 (161–192) | 190 (180–200) | 200 |
+
+The bands rise and the top tightens (the rule asked for proportion, not the score-band targets); weak and average still
+sit well apart from great and flawless. No run scores less than on sliceRev 12.
+
+The table's medians (p10–p90) are 30 room seeds, measured with `bun scripts/arcade-skill-bands.ts cross wavefront burst skyline slice --rev=now --seeds=30 --levels=all` on main and on this branch.
