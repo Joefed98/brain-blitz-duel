@@ -10,14 +10,9 @@ import { TOTAL_ROUNDS } from "@/lib/duel/types";
 import { positionChange, previousStandingOrder } from "@/lib/duel/resultPresentation";
 import { isNewLeader } from "@/lib/fx/roomVoices";
 import { queueVoice } from "@/lib/sound";
-import { COUNT_UP_MS, COUNT_UP_SLIDE_MS, countUpFrom } from "@/lib/fx/celebrations";
-import {
-  useCelebrationScope,
-  useCelebrationsOn,
-  useCountUpClimbs,
-  useTapToSkip,
-} from "@/components/fx/useCelebration";
+import { useCelebrationScope, useCelebrationsOn } from "@/components/fx/useCelebration";
 import { useFlipRows } from "@/components/fx/useFlipRows";
+import { useStandingsReveal } from "@/components/fx/useStandingsReveal";
 
 import { AnimatedScore } from "./AnimatedScore";
 import { ContinueFooter, type ContinueState } from "./ContinueFooter";
@@ -116,18 +111,16 @@ interface StandingsProps {
 
 /** The ranked table between rounds in a room of three or more. */
 export function Standings({ round, totalRounds = TOTAL_ROUNDS, rows, looks, mySlot, autoSeconds, continueState, extras }: StandingsProps) {
-  // Celebrations (src/lib/fx/celebrations.ts): totals count up from the round before over
-  // COUNT_UP_MS, the rows slide into place more slowly and a climb gets sparks and a zap at its
-  // row; a tap anywhere skips to the final state. Off: today's quick slide and final totals.
+  // The broadcast reveal (7 Nov 2026, src/lib/duel/standingsReveal.ts), with celebrations on: the rows
+  // start in the previous order and land from last place up to 2nd, one at a time, each counting up and
+  // sliding to its place, then 1st with a gold sweep; a tap anywhere skips to the final state; reduced
+  // motion draws the final state at once. Off: the quick slide and final totals, exactly as before.
   const celebrate = useCelebrationsOn();
   const scope = useCelebrationScope();
-  const skipped = useTapToSkip(celebrate);
-  const { displayRows, rowRef, nodes } = useFlipRows(rows, {
-    from: previousStandingOrder(rows),
-    slideMs: celebrate ? COUNT_UP_SLIDE_MS : 300,
-    skip: skipped,
-  });
-  useCountUpClimbs(celebrate, scope, rows, nodes);
+  const reveal = useStandingsReveal(rows, { on: celebrate, scope });
+  const flip = useFlipRows(rows, { from: celebrate ? rows : previousStandingOrder(rows), slideMs: 300 });
+  const displayRows = celebrate ? reveal.displayRows : flip.displayRows;
+  const rowRef = celebrate ? reveal.rowRef : flip.rowRef;
   // "New leader" (3 Nov 2026, roomVoices.ts): once, when first place changed hands this round.
   const leaderCued = useRef(false);
   useEffect(() => {
@@ -155,10 +148,13 @@ export function Standings({ round, totalRounds = TOTAL_ROUNDS, rows, looks, mySl
           const isMe = row.slot === mySlot;
           const mark = marks.get(row.slot);
           const look = looks?.get(row.slot);
+          const shown = celebrate ? reveal.rowState(row) : null;
           return (
             <li
               key={row.slot}
               ref={rowRef(row.slot)}
+              data-reveal={shown && reveal.animate ? shown.state : undefined}
+              data-reveal-sweep={shown?.sweep ? "" : undefined}
               data-you={isMe ? "" : undefined}
               data-pinned={isMe && compact ? "" : undefined}
               style={isMe ? youStyle(look) : undefined}
@@ -173,7 +169,7 @@ export function Standings({ round, totalRounds = TOTAL_ROUNDS, rows, looks, mySl
                 </span>
                 <AnimatedScore
                   value={row.total}
-                  {...(celebrate ? { from: countUpFrom(row), durationMs: COUNT_UP_MS, quiet: true, skip: skipped, countSound: true } : {})}
+                  {...(shown ? { from: shown.from, delayMs: shown.delayMs, durationMs: shown.countMs, quiet: true, skip: reveal.skipped } : {})}
                   className="th-score rs-total text-right"
                 />
                 {mark?.note ? <span data-tie-note className="rs-sub rs-tie-note">{mark.note}</span> : null}

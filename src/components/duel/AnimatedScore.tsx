@@ -8,13 +8,15 @@ import { countUpDing, countUpTick } from "@/lib/fx/celebrations";
  * somewhere else (the podium counts every total up from 0); `quiet` skips the
  * score-pop effect for counts that aren't a newly revealed score; `skip` (the results count-up's
  * tap to skip, src/lib/fx/celebrations.ts) jumps straight to the value; `countSound` (the celebrations'
- * count-up) ticks as the number changes, at most 12 a second, and dings once it lands.
+ * count-up) ticks as the number changes, at most 12 a second, and dings once it lands; `delayMs` holds the
+ * starting number that long before counting (the standings' broadcast reveal lands rows in turn).
  */
 export function AnimatedScore({
   value,
   className,
   from: start,
   durationMs = 450,
+  delayMs = 0,
   quiet = false,
   skip = false,
   countSound = false,
@@ -23,6 +25,7 @@ export function AnimatedScore({
   className?: string;
   from?: number;
   durationMs?: number;
+  delayMs?: number;
   quiet?: boolean;
   skip?: boolean;
   countSound?: boolean;
@@ -38,7 +41,7 @@ export function AnimatedScore({
     if (value > from && !quiet) visualFx("onRevealScore", value - from);
     if (prefersReducedMotion() || skipRef.current) { setDisplay(value); fromRef.current = value; return; }
     const duration = durationMs;
-    const start = performance.now();
+    const start = performance.now() + delayMs;
     let frame = 0;
 
     const step = (time: number) => {
@@ -48,7 +51,7 @@ export function AnimatedScore({
         if (countSound) countUpDing();
         return;
       }
-      const progress = Math.min(1, (time - start) / duration);
+      const progress = Math.max(0, Math.min(1, (time - start) / duration));
       const eased = 1 - Math.pow(1 - progress, 3);
       const next = Math.round(from + (value - from) * eased);
       if (countSound && next !== fromRef.current && progress < 1) countUpTick(time);

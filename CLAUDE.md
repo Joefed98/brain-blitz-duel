@@ -1587,6 +1587,19 @@ outside the repo.
   (`scripts/fixtures/hero-bounds-main.json`, `--record=<main checkout>`) and the Medal. The Roofbound, Grappler and
   Moon Climb tiles are re-exported. Shots: `bun scripts/shots/captain-shots.ts [--old=<main checkout>]`,
   `bun scripts/shots/art-gallery-shots.tsx` (`screenshots/art-f5-nov-2026/`); `/dev-design` shows every piece.
+- **Broadcast reveal: standings and podium** (7 Nov 2026; presentation only, no stamps, no scoring, timer or server
+  change): with celebrations on, Standings (`useStandingsReveal`, plan and order in `src/lib/duel/standingsReveal.ts`)
+  draws the rows in the order after the round before with the totals before it, then lands them from last place up to
+  2nd one at a time (each counting up, sliding to its place, its medal, arrow and round points fading in, a soft
+  `countTick`), holds, and lands 1st (every shared 1st together) with a gold light sweep across its row and the bigger
+  hit (`countDing`); the stagger shrinks with the room so everything ends by `STANDINGS_REVEAL_END_MS` (2.3 s) for any
+  size. The list stays in the server's final order in the page (screen readers, checks); rows are placed by
+  transforms. A tap skips to the final state; reduced motion draws it from the first frame; nothing runs after the
+  end (the sweep is a gradient band that rests off the row). Podium: the medals drop bronze, silver, gold
+  (`podium-medal-drop`, room-screens.css), then the sweep crosses the gold block and medal; the Captain's moment is
+  unchanged. Celebrations off: both screens exactly as before. standings-reveal-check (~30 s, happy-dom; 2, 10 and 16
+  players, ties, left and inactive players, skip, reduced motion, no frames after the end); frames
+  `bun scripts/shots/standings-reveal-shots.ts` (`screenshots/standings-reveal-nov-2026/`).
 - `src/components/duel/` — room/round screens (PhoneShell, RoundIntro, TimerBar,
   AnswerReveal, ArcadeReveal, WinnerReveal…); `src/components/puzzles/` — shared puzzle
   widgets; `src/lib/fx/` — sound and visual feedback (presentation only).
