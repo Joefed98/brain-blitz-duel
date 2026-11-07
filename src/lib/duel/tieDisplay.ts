@@ -21,6 +21,11 @@ export interface Placed {
   slot: number;
   points: number;
   position: number;
+  /**
+   * Placings rooms (scoringMode.ts): `points` are placing points and this is the total score, the first
+   * tie-break, so a row placed apart from one level on points says "on score" when their scores differ.
+   */
+  score?: number;
 }
 
 export function tieMarks(rows: readonly Placed[]): Map<number, TieMark> {
@@ -31,8 +36,11 @@ export function tieMarks(rows: readonly Placed[]): Map<number, TieMark> {
     let note: string | null = null;
     if (level.length > 1 && row.points !== 0) {
       const best = Math.min(...level.map((other) => other.position));
-      const split = level.some((other) => other.position !== row.position);
-      note = `Level on ${row.points}${split ? (row.position === best ? " · ahead on time" : " · behind on time") : ""}`;
+      const apart = level.filter((other) => other.position !== row.position);
+      const split = apart.length > 0;
+      const placings = row.score !== undefined;
+      const by = placings && apart.some((other) => other.score !== row.score) ? "score" : "time";
+      note = `Level on ${row.points}${placings ? " pts" : ""}${split ? (row.position === best ? `, ahead on ${by}` : `, behind on ${by}`) : ""}`;
     }
     out.set(row.slot, { label: `${shared ? "=" : ""}${row.position}`, shared, note });
   }

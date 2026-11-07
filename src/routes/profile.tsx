@@ -319,8 +319,8 @@ function ProfileScreen() {
                       Room {r.code}
                     </span>
                     <span data-ellipsis className="jz-row-sub">
-                      {ukDay(r.at, Date.now())} · {r.players} {r.players === 1 ? "player" : "players"}
-                      {r.place === null ? " · left" : ""}
+                      {ukDay(r.at, Date.now())}, {r.players} {r.players === 1 ? "player" : "players"}
+                      {r.place === null ? ", left" : ""}
                     </span>
                   </span>
                   <span className="ap-points">{r.points.toLocaleString("en-GB")}</span>

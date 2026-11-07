@@ -14,7 +14,7 @@ export function bannerFor(page: BannerPage, now: number): HouseBanner | null {
     return {
       id: `public-${next.roomCode}-${next.startsAt}`,
       title: next.title ?? "Next public game",
-      line: `${publicGameWhen(next)} · ${next.rounds} rounds · room ${next.roomCode}`,
+      line: `${publicGameWhen(next)}, ${next.rounds} rounds, room ${next.roomCode}`,
       action: "See the schedule",
       to: "/tournaments",
     };

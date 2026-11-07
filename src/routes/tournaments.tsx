@@ -196,7 +196,7 @@ function TournamentsScreen() {
                         {title}
                       </span>
                       <span data-ellipsis className="jz-row-sub">
-                        {ukDay(r.at, now)} · {place}
+                        {ukDay(r.at, now)}, {place}
                       </span>
                     </span>
                     <span className="ap-points">{r.points.toLocaleString("en-GB")}</span>

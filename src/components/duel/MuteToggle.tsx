@@ -128,7 +128,7 @@ export const MuteToggle = memo(function MuteToggle({ variant }: {
                   <Icon name={icon} size={18} className="-m-px" />
                 </span>
                 <span className="flex h-9 w-4 shrink-0 items-center justify-center">
-                  <Icon name="down" size={18} className="-m-px" />
+                  <Icon name="chevron-down" size={18} style={{ width: 12, height: 12 }} />
                 </span>
               </Button>
             </PopoverTrigger>

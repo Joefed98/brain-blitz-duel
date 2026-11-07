@@ -1356,3 +1356,23 @@ After Tuesday's game the host taps **Play again** on the final screen, which kee
 for Thursday. If the room is disbanded instead, it keeps the code JULZ (codes are unique and stored rooms
 are never rewritten), so pick a new code in `PUBLIC_ROOM_CODE` (src/config/publicGames.ts, e.g. JLZZ),
 publish, and repeat the steps with it.
+
+## 12. Practice goals: the most played games (6 Nov 2026)
+
+Practice's challenges (`src/lib/duel/practiceChallenges.ts`) start with 20 games picked without play data. This ranks
+practice games by players and plays over the past 30 days, to confirm or change that list. Stars and challenge
+progress live on the device only (`duelz-practice-goals:v1`); nothing about them reaches the server.
+
+**Q12a. Practice plays per game, last 30 days**
+
+```sql
+select game_id,
+       count(distinct user_id) as players,
+       count(*)                as plays
+from public.practice_plays
+where created_at > now() - interval '30 days'
+  and not example
+group by game_id
+order by players desc, plays desc
+limit 30;
+```

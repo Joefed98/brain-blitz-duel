@@ -132,8 +132,8 @@ check(eligibleCount(["cards"]) === pickTypes("cards").length, "eligibleCount cou
 check(clampRounds(12, ["cards"]) === roundCap(["cards"]) && clampRounds(1, ["word"]) === MIN_ROUNDS, "clampRounds holds 3…cap");
 // The estimate grows with rounds and follows the picks' round lengths.
 check(estimateRoomMinutes({ picks: ["word"], rounds: 9 }) > estimateRoomMinutes({ picks: ["word"], rounds: 3 }), "the estimate grows with the rounds");
-check(/^9 rounds · Pattern, Logic, Retro, Sports · about \d+ min$/.test(settingsSummary({ picks: ["logic", "pattern", "retro", "sports"], rounds: 9 })), `summary line: ${settingsSummary({ picks: ["logic", "pattern", "retro", "sports"], rounds: 9 })}`);
-check(/^6 rounds · Mixed · about \d+ min$/.test(settingsSummary(DEFAULT_SETTINGS)), `summary line names a preset: ${settingsSummary(DEFAULT_SETTINGS)}`);
+check(/^9 rounds, Pattern, Logic, Retro, Sports, about \d+ min$/.test(settingsSummary({ picks: ["logic", "pattern", "retro", "sports"], rounds: 9 })), `summary line: ${settingsSummary({ picks: ["logic", "pattern", "retro", "sports"], rounds: 9 })}`);
+check(/^6 rounds, Mixed, about \d+ min$/.test(settingsSummary(DEFAULT_SETTINGS)), `summary line names a preset: ${settingsSummary(DEFAULT_SETTINGS)}`);
 
 /* ------------------------------------------------------------------ 3. validation and the server */
 const bad: [unknown, string][] = [
@@ -417,7 +417,7 @@ for (let k = 0; k < 2; k++)
 check(sliderValue() === 9 && pressedRounds().join() === "9", `sheet: the slider on a quick count highlights its button (slider ${sliderValue()}, buttons ${pressedRounds().join()})`);
 const minutes9 = $("[data-room-rounds-value]")?.textContent ?? "";
 await click($("[data-room-rounds='3']"));
-check(($("[data-room-rounds-value]")?.textContent ?? "") !== minutes9 && /^3 rounds · about \d+ min$/.test($("[data-room-rounds-value]")?.textContent ?? ""), `sheet: the estimate updates live (${minutes9} → ${$("[data-room-rounds-value]")?.textContent})`);
+check(($("[data-room-rounds-value]")?.textContent ?? "") !== minutes9 && /^3 rounds, about \d+ min$/.test($("[data-room-rounds-value]")?.textContent ?? ""), `sheet: the estimate updates live (${minutes9} → ${$("[data-room-rounds-value]")?.textContent})`);
 // The cap: Cards & Board alone.
 await click($("[data-room-rounds='12']"));
 await click($("[data-room-preset='arcade']"));

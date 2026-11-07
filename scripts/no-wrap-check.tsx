@@ -44,7 +44,7 @@ const DRAWS = partOf(
 function wrapProbe() {
   const SINGLE =
     "h1, h2, h3, button, a, label, summary, [role='button'], .th-kicker, .th-pill, .th-name, .th-score, .jz-medal, .font-display, .font-mono, [data-practice-filter], [data-tab], [data-category-pill]";
-  const NOT_JUDGED = "[data-skin-off], .whitespace-normal, .line-clamp-2, [data-wrap-ok]";
+  const NOT_JUDGED = "[data-skin-off], .whitespace-normal, .line-clamp-2, [data-wrap-ok], .sr-only"; // .sr-only: visually hidden, never seen (approved, 7 Nov 2026)
   const visible = (el: Element) => {
     const r = el.getBoundingClientRect();
     if (r.width < 1 || r.height < 1) return false;

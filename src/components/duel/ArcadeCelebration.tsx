@@ -9,7 +9,7 @@ export type CelebrationKind = "full" | "best" | "both";
 const HEADLINES: Record<CelebrationKind, string> = {
   full: "Full clear!",
   best: "New personal best!",
-  both: "Full clear · new best!",
+  both: "Full clear, new best!",
 };
 
 /** Hard caps: one short burst, then the canvas stops drawing. */

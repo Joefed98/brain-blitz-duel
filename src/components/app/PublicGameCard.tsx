@@ -12,18 +12,18 @@ import {
 import { pageHidden } from "@/lib/battery";
 import { Button, Icon, LiveTag } from "@/design/components";
 
-/** "Sat 24 Oct · 7:00 pm UK" (UK time). */
+/** "Sat 24 Oct, 7:00 pm UK" (UK time). */
 export function publicGameWhen(game: PublicGame): string {
   const { weekday, day, month } = ukDateParts(game.startsAt);
-  return `${weekday} ${day} ${month} · ${ukTime(game.startsAt)} UK`;
+  return `${weekday} ${day} ${month}, ${ukTime(game.startsAt)} UK`;
 }
 
-/** "Tonight · 8:00 pm UK · 6 rounds", "Tomorrow · …" or "Thu 29 Oct · …" (UK dates and times). */
+/** "Tonight, 8:00 pm UK, 6 rounds", "Tomorrow, …" or "Thu 29 Oct, …" (UK dates and times). */
 function publicGameLine(game: PublicGame, now: number): string {
   const day = ukDay(game.startsAt, now);
   const time = ukTime(game.startsAt);
   const evening = /pm$/.test(time) && Number(time.split(":")[0]) % 12 >= 5;
-  return `${day === "Today" && evening ? "Tonight" : day} · ${time} UK · ${game.rounds} rounds`;
+  return `${day === "Today" && evening ? "Tonight" : day}, ${time} UK, ${game.rounds} rounds`;
 }
 
 /** "1 h 25 min", "25 min", "under a minute", "2 days" until `ms` from `now`. */
@@ -117,7 +117,7 @@ export function PublicGameNext({
           <LiveTag kind="live" className="shrink-0" />
           <span>
             Lobby open
-            {waiting !== null ? ` · ${waiting} ${waiting === 1 ? "player" : "players"} waiting` : ""} · starts in{" "}
+            {waiting !== null ? `, ${waiting} ${waiting === 1 ? "player" : "players"} waiting` : ""}, starts in{" "}
             {untilText(game.startsAt, now)}
           </span>
         </p>
@@ -171,7 +171,7 @@ export function PublicGameRow({ game }: { game: PublicGame }) {
           {name}
         </span>
         <span data-ellipsis className="jz-row-sub">
-          {parts.day} {parts.month} · {ukTime(game.startsAt)} UK
+          {parts.day} {parts.month}, {ukTime(game.startsAt)} UK
         </span>
       </span>
       <button

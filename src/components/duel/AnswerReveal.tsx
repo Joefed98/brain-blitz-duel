@@ -46,6 +46,7 @@ const REVEAL_SCORE_DELAY_MS = 350;
 import { fx } from "@/lib/fx";
 import { APP_NAME } from "@/lib/brand";
 import { Button } from "@/design/components";
+import { MetaChips } from "@/components/app/MetaChips";
 
 interface AnswerRevealProps {
   round: number;
@@ -72,6 +73,8 @@ interface AnswerRevealProps {
    * the reveal shows the "New best!" moment (NewBestMoment).
    */
   personalBest?: boolean;
+  /** Practice goals: the star this run earned ("Silver star earned"), shown with the new-best moment. */
+  starLine?: string | null;
   /**
    * Celebrations' hero run on a round score of HERO_RUN_SCORE or more (once per round); false for a
    * reveal reopened from a results list (the daily's AsyncResults).
@@ -558,7 +561,7 @@ function RevealPlayers({ players, secondsLeft }: { players: RevealPlayer[]; seco
         ))}
       </span>
       <span className="reveal-meta min-w-0 flex-1 truncate">
-        {finished} of {players.length} finished · results in {secondsLeft}s
+        {finished} of {players.length} finished, results in {secondsLeft}s
       </span>
     </div>
   );
@@ -691,6 +694,7 @@ function LiveAnswerReveal({
   answersReady,
   players,
   personalBest,
+  starLine = null,
   heroRun: heroRunAllowed = true,
   startedAt,
   now,
@@ -788,14 +792,15 @@ function LiveAnswerReveal({
   return (
     <div ref={revealRoot} data-skin="room" data-answer-reveal data-hero-earned={heroSpot ? "" : undefined} className="relative flex min-h-0 flex-1 flex-col gap-2.5 px-3 text-left animate-phase-in">
       {/* Practice's new best (arcade too); rooms keep ArcadeReveal's room-best record. */}
-      {practice && personalBest && myScore !== null ? <NewBestMoment /> : null}
+      {practice && (personalBest || starLine) && myScore !== null ? <NewBestMoment starLine={starLine} /> : null}
       {/* Its own screen (3 Nov 2026): this row is the screen's header (no app top bar), so the sound button sits here. */}
       <div data-reveal-head className="rs-head shrink-0 items-center">
         <span className="reveal-title min-w-0 truncate">{def.name}</span>
         <span className="flex shrink-0 items-center gap-1">
-          <span className="rs-meta">
-            {practice ? (practiceActions ? "Practice" : `Practice · ${secondsLeft}s`) : `Round ${round} of ${totalRounds} · ${secondsLeft}s`}
-          </span>
+          <MetaChips
+            data-reveal-meta
+            facts={practice ? (practiceActions ? ["Practice"] : ["Practice", `${secondsLeft}s`]) : [`Round ${round} of ${totalRounds}`, `${secondsLeft}s`]}
+          />
           <MuteToggle variant="speaker" />
         </span>
       </div>

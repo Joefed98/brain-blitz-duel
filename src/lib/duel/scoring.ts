@@ -1,3 +1,4 @@
+import { roundPlacings, type RoundPlacing, type ScoringMode } from "./scoringMode";
 import { speedBonusCurve } from "./speedPar";
 import { bandCurve, bandOpen } from "../arcade/scoreBands";
 import { finishParts, partialParts, scoreRev1, tryEfficiency, wasteFactor, PUZZLE_SPEED_POINTS, type ScoreParts } from "./puzzleScoreRev";
@@ -335,7 +336,19 @@ export function duelOutcome(
   mySlot: number,
   opponentSlot: number,
   tie?: TieRounds,
+  mode: ScoringMode = "total",
+  rounds?: number,
 ): Outcome {
+  if (mode === "placings") {
+    // Placings (scoringMode.ts): round wins first (1 point each, a level round 1 each), then the total.
+    const through = rounds ?? Math.max(0, ...results.map((r) => r.round_number));
+    const players = [{ slot: mySlot }, { slot: opponentSlot }];
+    const pointsOf = placingPointsThrough(results, players, through);
+    const myPoints = pointsOf.get(mySlot) ?? 0;
+    const theirPoints = pointsOf.get(opponentSlot) ?? 0;
+    if (myPoints > theirPoints) return "win";
+    if (myPoints < theirPoints) return "loss";
+  }
   const mine = totalScore(results, mySlot);
   const theirs = totalScore(results, opponentSlot);
   if (mine > theirs) return "win";
@@ -346,6 +359,24 @@ export function duelOutcome(
   if (myTime < theirTime) return "win";
   if (myTime > theirTime) return "loss";
   return "draw";
+}
+
+/** A two-player Placings room's points (scoringMode.ts) through `rounds`, and what the last round gave each. */
+export function duelPlacings(
+  results: RoundResultRow[],
+  mySlot: number,
+  opponentSlot: number,
+  rounds: number,
+): { mine: number; theirs: number; lastMine: number; lastTheirs: number } {
+  const players = [{ slot: mySlot }, { slot: opponentSlot }];
+  const points = placingPointsThrough(results, players, rounds);
+  const last = rounds >= 1 ? roundPlacingsOf(results, players, rounds) : new Map<number, RoundPlacing>();
+  return {
+    mine: points.get(mySlot) ?? 0,
+    theirs: points.get(opponentSlot) ?? 0,
+    lastMine: last.get(mySlot)?.points ?? 0,
+    lastTheirs: last.get(opponentSlot)?.points ?? 0,
+  };
 }
 
 export function roundBreakdown(results: RoundResultRow[], mySlot: number, opponentSlot: number, rounds = TOTAL_ROUNDS) {
@@ -365,6 +396,13 @@ export function roundBreakdown(results: RoundResultRow[], mySlot: number, oppone
 
 export interface Standing {
   slot: number;
+  /**
+   * Placings rooms only (scoringMode.ts; absent on Total score rooms, which list exactly as before): the
+   * placing points through the round shown, that round's points and the player's place in it.
+   */
+  points?: number;
+  roundPoints?: number;
+  roundPlace?: number;
   name: string;
   status: PlayerStatus;
   /** Running total through the round being shown. */
@@ -381,20 +419,49 @@ export interface Standing {
 }
 
 function rank(
-  rows: { slot: number; total: number; answerMs: number }[],
+  rows: { slot: number; total: number; answerMs: number; points?: number }[],
 ): { slot: number; position: number }[] {
+  // Placings rows rank by points first; Total score rows carry no points, so this is the old order exactly.
+  const level = (a: (typeof rows)[number], b: (typeof rows)[number]) =>
+    (a.points ?? 0) === (b.points ?? 0) && a.total === b.total && a.answerMs === b.answerMs;
   const sorted = [...rows].sort((a, b) =>
-    b.total !== a.total ? b.total - a.total : a.answerMs - b.answerMs,
+    (b.points ?? 0) !== (a.points ?? 0)
+      ? (b.points ?? 0) - (a.points ?? 0)
+      : b.total !== a.total
+        ? b.total - a.total
+        : a.answerMs - b.answerMs,
   );
   const out: { slot: number; position: number }[] = [];
   sorted.forEach((row, index) => {
     const previous = index > 0 ? sorted[index - 1]! : null;
-    const tied =
-      previous && previous.total === row.total && previous.answerMs === row.answerMs
-        ? out[index - 1]!.position
-        : index + 1;
+    const tied = previous && level(previous, row) ? out[index - 1]!.position : index + 1;
     out.push({ slot: row.slot, position: tied });
   });
+  return out;
+}
+
+/** One round's placings among `players` (scoringMode.ts); a player with no answer scored 0. */
+export function roundPlacingsOf(
+  results: readonly RoundResultRow[],
+  players: readonly { slot: number }[],
+  round: number,
+): Map<number, RoundPlacing> {
+  const scores = players.map((p) => ({ slot: p.slot, score: resultFor([...results], p.slot, round)?.score ?? 0 }));
+  return new Map(roundPlacings(scores).map((r) => [r.slot, r]));
+}
+
+/** Each player's placing points over rounds 1…`lastRound`. */
+export function placingPointsThrough(
+  results: readonly RoundResultRow[],
+  players: readonly { slot: number }[],
+  lastRound: number,
+): Map<number, number> {
+  const out = new Map(players.map((p) => [p.slot, 0]));
+  for (let round = 1; round <= lastRound; round++) {
+    for (const [slot, placing] of roundPlacingsOf(results, players, round)) {
+      out.set(slot, (out.get(slot) ?? 0) + placing.points);
+    }
+  }
   return out;
 }
 
@@ -427,12 +494,19 @@ export function standings(
   throughRound: number,
   details: Map<number, { summary: string; detail: string[] }> = new Map(),
   tie?: TieRounds,
+  mode: ScoringMode = "total",
 ): Standing[] {
   const inRoom = players.filter((p) => p.status !== "left");
+  const placings = mode === "placings";
+  const slots = inRoom.map((p) => ({ slot: p.player_slot }));
+  const pointsNow = placings ? placingPointsThrough(results, slots, throughRound) : null;
+  const pointsBefore = placings ? placingPointsThrough(results, slots, throughRound - 1) : null;
+  const roundPlace = placings && throughRound >= 1 ? roundPlacingsOf(results, slots, throughRound) : null;
   const rows = inRoom.map((p) => ({
     slot: p.player_slot,
     total: totalScoreThrough(results, p.player_slot, throughRound),
     answerMs: answerMsThrough(results, p.player_slot, throughRound, tie),
+    ...(pointsNow ? { points: pointsNow.get(p.player_slot) ?? 0 } : {}),
   }));
   const positions = new Map(rank(rows).map((r) => [r.slot, r.position]));
 
@@ -440,6 +514,7 @@ export function standings(
     slot: p.player_slot,
     total: totalScoreThrough(results, p.player_slot, throughRound - 1),
     answerMs: answerMsThrough(results, p.player_slot, throughRound - 1, tie),
+    ...(pointsBefore ? { points: pointsBefore.get(p.player_slot) ?? 0 } : {}),
   }));
   const previous = new Map(rank(previousRows).map((r) => [r.slot, r.position]));
 
@@ -458,6 +533,13 @@ export function standings(
         previousPosition: throughRound > 1 ? (previous.get(p.player_slot) ?? null) : null,
         summary: details.get(p.player_slot)?.summary ?? "No answer",
         detail: details.get(p.player_slot)?.detail ?? [],
+        ...(pointsNow
+          ? {
+              points: pointsNow.get(p.player_slot) ?? 0,
+              roundPoints: roundPlace?.get(p.player_slot)?.points ?? 0,
+              roundPlace: roundPlace?.get(p.player_slot)?.place ?? inRoom.length,
+            }
+          : {}),
       } satisfies Standing;
     })
     .sort((a, b) => a.position - b.position || a.slot - b.slot);

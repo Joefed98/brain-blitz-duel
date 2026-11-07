@@ -32,12 +32,12 @@ const part = (label: string, detail: string, points: number, max: number): StdPa
 const parts = [part("Distance", "412 ft", 110, 130), part("Home runs", "4 of 10", 20, 50), part("Signs", "2 hit", 12, 20)];
 const lines = stdLines(parts, 142);
 const std = revealSummary(lines, 142);
-check(std?.summary === "142 points · distance 110 + bonuses 32", `standard: ${JSON.stringify(std?.summary)}`);
+check(std?.summary === "142 points, distance 110 + bonuses 32", `standard: ${JSON.stringify(std?.summary)}`);
 check(JSON.stringify(std?.rest) === JSON.stringify(lines), "standard: the tap opens every stored line");
 
 // A run held up to 1 for playing: its parts are still read as stored.
 const low = stdLines([part("Distance", "3 ft", 0, 130), part("Home runs", "0 of 10", 0, 50)], 1);
-check(revealSummary(low, 1)?.summary === "1 point · distance 0 + bonuses 0", `at least 1: ${JSON.stringify(revealSummary(low, 1)?.summary)}`);
+check(revealSummary(low, 1)?.summary === "1 point, distance 0 + bonuses 0", `at least 1: ${JSON.stringify(revealSummary(low, 1)?.summary)}`);
 
 // Two parts at least: a one-part list falls back to its first line.
 const one = stdLines([part("Hands", "23 points", 160, 160)], 160);

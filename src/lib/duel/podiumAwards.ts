@@ -25,6 +25,7 @@ import { isGenuinelyClose, nearMissInfo } from "./nearMiss";
 import { ordinal } from "./ordinal";
 import { isPerfectScore, roundMaxFor, scaledToMax } from "./roundMax";
 import { standings, type TieRounds } from "./scoring";
+import type { ScoringMode } from "./scoringMode";
 import type { DuelPlayerRow, PuzzleType, RoundResultRow, StoredPuzzleType } from "./types";
 
 export type AwardId = "fastest" | "perfect" | "comeback" | "close";
@@ -134,12 +135,13 @@ function comeback(
   rounds: readonly AwardRound[],
   finalPlace: ReadonlyMap<number, number>,
   tie: TieRounds,
+  mode: ScoringMode,
 ): Candidate[] {
   if (rounds.length < 2 || players.length < 3) return [];
   // The lowest place each player held after any round before the last (the latest such round).
   const lowest = new Map<number, { place: number; round: number }>();
   for (let round = 1; round < rounds.length; round++)
-    for (const row of standings(players, results, round, new Map(), tie)) {
+    for (const row of standings(players, results, round, new Map(), tie, mode)) {
       const held = lowest.get(row.slot);
       if (!held || row.position >= held.place) lowest.set(row.slot, { place: row.position, round });
     }
@@ -199,16 +201,18 @@ export function podiumAwards(
   results: readonly RoundResultRow[],
   rounds: readonly AwardRound[],
   tie?: TieRounds,
+  /** The room's scoring (scoringMode.ts): the places the podium shows. */
+  mode: ScoringMode = "total",
 ): PodiumAward[] {
   const inRoom = [...players].filter((p) => p.status !== "left").sort((a, b) => a.player_slot - b.player_slot);
   const rows = [...results].sort((a, b) => a.round_number - b.round_number || a.player_slot - b.player_slot);
   if (inRoom.length < 2 || rounds.length === 0) return [];
-  const final = standings(inRoom, rows, rounds.length, new Map(), tie);
+  const final = standings(inRoom, rows, rounds.length, new Map(), tie, mode);
   const finalPlace = new Map(final.map((row) => [row.slot, row.position]));
   const candidates: Record<AwardId, Candidate[]> = {
     perfect: perfect(inRoom, rows, rounds),
     fastest: fastest(inRoom, rows, rounds),
-    comeback: comeback(inRoom, rows, rounds, finalPlace, tie),
+    comeback: comeback(inRoom, rows, rounds, finalPlace, tie, mode),
     close: close(inRoom, rows, rounds),
   };
   const given = new Map<number, number>();

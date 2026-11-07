@@ -141,7 +141,7 @@ function FinalBoardHighlight({ round, px }: { round: ReplayRound; px: number }) 
   if (done) return null;
   return (
     <ReplayFrame
-      heading={`Final board · ${winner.name}`}
+      heading={`Final board, ${winner.name}`}
       onSkip={() => (soundCue(SHARED_CUES.highlightSkip), setDone(true))}
       testId="final-board"
     >
@@ -216,7 +216,7 @@ function ArcadeHighlight({
         heading={
           analysis.status === "loading"
             ? "Loading highlight…"
-            : `${name} took the round · ${gameDisplayName(round.puzzle.type)}`
+            : `${name} took the round, ${gameDisplayName(round.puzzle.type)}`
         }
         action={analysis.status === "ready" ? watch : null}
         testId="highlight-done"
@@ -234,7 +234,7 @@ function ArcadeHighlight({
   }
   return (
     <ReplayFrame
-      heading={`Highlight · ${name}`}
+      heading={`Highlight, ${name}`}
       caption={caption}
       onSkip={() => {
         soundCue(SHARED_CUES.highlightSkip);
@@ -275,7 +275,7 @@ function CardHighlight({ round }: { round: ReplayRound }) {
   if (skipped) return null;
   return (
     <ReplayFrame
-      heading={`Moment · ${winner.name}`}
+      heading={`Moment, ${winner.name}`}
       onSkip={() => (soundCue(SHARED_CUES.highlightSkip), setSkipped(true))}
       testId="card"
     >
@@ -309,7 +309,7 @@ function TimelapseHighlight({
   if (done) return null;
   return (
     <ReplayFrame
-      heading={`Time-lapse · ${winner.name}`}
+      heading={`Time-lapse, ${winner.name}`}
       onSkip={() => (soundCue(SHARED_CUES.highlightSkip), setDone(true))}
       testId="timelapse"
     >

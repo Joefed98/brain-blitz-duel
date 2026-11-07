@@ -24,8 +24,8 @@ import { Icon } from "@/design/components";
 function rowState(kind: DailyKind, state: DailyState, streak: number): { sub: string; action: string; done: number | null } {
   const size = kind === "puzzle" ? `${DAILY_ROUNDS[kind]} rounds` : `${DAILY_ROUNDS[kind]} games`;
   if (state.state === "play") return { sub: size, action: "Play", done: null };
-  if (state.state === "continue") return { sub: `${size} · started`, action: "Continue", done: null };
-  return { sub: streak >= 2 ? `Done · ${streak}-day streak` : "Done", action: "Done", done: state.total };
+  if (state.state === "continue") return { sub: `${size}, started`, action: "Continue", done: null };
+  return { sub: streak >= 2 ? `Done, ${streak}-day streak` : "Done", action: "Done", done: state.total };
 }
 
 const DAILY_ICON = { puzzle: DailyPuzzleTile, arcade: DailyArcadeTile } as const;

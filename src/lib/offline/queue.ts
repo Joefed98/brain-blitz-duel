@@ -11,6 +11,7 @@
 import { APP_BUILD_ID } from "@/lib/appVersion";
 import { splitClientCounters } from "@/lib/arcade/diagnostics";
 import { recordPracticeBest } from "@/lib/duel/practiceBest";
+import { recordPracticeGoals } from "@/lib/duel/practiceGoals";
 import { stampSignature } from "@/lib/duel/practiceStamps";
 import type { SubmitExtra } from "@/lib/duel/grade";
 import type { PuzzleData, PuzzleType } from "@/lib/duel/types";
@@ -84,6 +85,8 @@ export interface GradeResponse {
   reason?: string;
   score?: number;
   isCorrect?: boolean;
+  /** The server's stored extra as JSON text (practice goals read its parts). */
+  extraJson?: string | null;
 }
 
 export interface FlushDeps {
@@ -149,6 +152,14 @@ export function flushQueue(deps: FlushDeps = { ensureSession: defaultSession, gr
         } else {
           const score = Math.max(0, Number(result.score) || 0);
           const best = recordPracticeBest(run.type, run.stamp, score);
+          // Practice goals (stars and challenges) from the server's own grade, as an online run's.
+          let extra: Record<string, unknown> | null = null;
+          try {
+            extra = result.extraJson ? (JSON.parse(result.extraJson) as Record<string, unknown>) : null;
+          } catch {
+            extra = null;
+          }
+          recordPracticeGoals(run.type, score, extra, best.best);
           await update<QueuedRun>("runs", run.id, (r) =>
             r ? { ...r, status: "confirmed", score, isCorrect: result.isCorrect === true, improved: best.improved, resolvedAt: Date.now() } : r,
           );

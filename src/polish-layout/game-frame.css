@@ -92,7 +92,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
-/* A long context ("Attention · Round 2 of 6") drops the category word where the half is narrow; the dot stays. */
+/* A long context ("Attention, Round 2 of 6") drops the category word where the half is narrow; the dot stays. */
 @container (max-width: 160px) {
   .game-frame-context[data-fit="short"] .game-frame-cat {
     display: none;

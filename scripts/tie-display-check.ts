@@ -29,9 +29,9 @@ const marks = tieMarks([
   { slot: 5, points: 195, position: 4 },
   { slot: 6, points: 150, position: 6 },
 ]);
-check(marks.get(1)?.note === "Level on 230 · ahead on time" && marks.get(1)?.label === "1" && !marks.get(1)?.shared, `first of a time-split tie: ${JSON.stringify(marks.get(1))}`);
-check(marks.get(2)?.note === "Level on 230 · behind on time" && marks.get(2)?.label === "2", `second of a time-split tie: ${JSON.stringify(marks.get(2))}`);
-check(marks.get(3)?.note === "Level on 230 · behind on time", `third of a time-split tie: ${JSON.stringify(marks.get(3))}`);
+check(marks.get(1)?.note === "Level on 230, ahead on time" && marks.get(1)?.label === "1" && !marks.get(1)?.shared, `first of a time-split tie: ${JSON.stringify(marks.get(1))}`);
+check(marks.get(2)?.note === "Level on 230, behind on time" && marks.get(2)?.label === "2", `second of a time-split tie: ${JSON.stringify(marks.get(2))}`);
+check(marks.get(3)?.note === "Level on 230, behind on time", `third of a time-split tie: ${JSON.stringify(marks.get(3))}`);
 check(marks.get(4)?.label === "=4" && marks.get(4)?.shared === true && marks.get(4)?.note === "Level on 195", `dead heat: ${JSON.stringify(marks.get(4))}`);
 check(marks.get(5)?.label === "=4" && marks.get(5)?.shared === true, `dead heat (second): ${JSON.stringify(marks.get(5))}`);
 check(marks.get(6)?.note === null && marks.get(6)?.label === "6" && !marks.get(6)?.shared, `alone: ${JSON.stringify(marks.get(6))}`);
@@ -69,7 +69,7 @@ const places = roundPlaces(
 const at = (slot: number) => places.find((p) => p.slot === slot)?.position;
 check(at(2) === 1 && at(1) === 2 && at(3) === 2 && at(4) === 4, `round places ${JSON.stringify(places)}`);
 const roundMarks = tieMarks(places);
-check(roundMarks.get(2)?.note === "Level on 120 · ahead on time" && roundMarks.get(1)?.label === "=2" && roundMarks.get(1)?.note === "Level on 120 · behind on time", "round marks");
+check(roundMarks.get(2)?.note === "Level on 120, ahead on time" && roundMarks.get(1)?.label === "=2" && roundMarks.get(1)?.note === "Level on 120, behind on time", "round marks");
 
 // Real standings(): the marks only describe the positions the ranking already gave.
 const players = [1, 2, 3, 4].map(
@@ -86,7 +86,7 @@ for (const row of table) {
   check(Number(mark.label.replace("=", "")) === row.position, `slot ${row.slot}: label ${mark.label} for position ${row.position}`);
 }
 const quick = table.find((r) => r.slot === 2)!;
-check(quick.position === 1 && tableMarks.get(2)?.note === "Level on 120 · ahead on time", `the quicker of three on 120 is first, ahead on time (${before})`);
+check(quick.position === 1 && tableMarks.get(2)?.note === "Level on 120, ahead on time", `the quicker of three on 120 is first, ahead on time (${before})`);
 check(tableMarks.get(1)?.label === "=2" && tableMarks.get(3)?.label === "=2", `level on points and time share 2nd (${before})`);
 
 for (const f of failures) console.log(`  FAIL ${f}`);
