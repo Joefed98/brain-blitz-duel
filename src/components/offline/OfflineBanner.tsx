@@ -1,4 +1,4 @@
-import { CloudOff } from "lucide-react";
+import { Icon } from "@/design/components";
 
 /**
  * The slim offline banner (offline practice, 31 Oct 2026): in the markup of every page screen, shown by CSS
@@ -8,7 +8,7 @@ import { CloudOff } from "lucide-react";
 export function OfflineBanner() {
   return (
     <div data-offline-banner role="status" className="of-banner">
-      <CloudOff aria-hidden="true" className="h-4 w-4 shrink-0" />
+      <Icon name="offline" size={18} className="-m-px shrink-0" />
       <span>You’re offline. Practice still works.</span>
     </div>
   );

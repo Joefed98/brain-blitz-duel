@@ -1,4 +1,3 @@
-import { SquarePlus } from "lucide-react";
 import { useEffect } from "react";
 
 import { HOME_HINT_KEY } from "@/lib/playCards";
@@ -37,7 +36,7 @@ export function HomeScreenHint({ onDismiss }: { onDismiss: () => void }) {
         <Icon name="close" size={20} />
       </button>
       <div className="flex items-center gap-2.5">
-        <SquarePlus aria-hidden="true" className="h-5 w-5 shrink-0 text-muted-foreground" />
+        <Icon name="add-home" size={20} className="shrink-0 text-muted-foreground" />
         <h2 className="jz-row-title">Add to Home Screen</h2>
       </div>
       <p className="flex flex-wrap items-center gap-x-1 text-[14px] text-muted-foreground">

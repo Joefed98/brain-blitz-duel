@@ -1,6 +1,5 @@
 import { useNavigate } from "@tanstack/react-router";
-import { CloudOff } from "lucide-react";
-import { Button } from "@/design/components";
+import { Button, Icon } from "@/design/components";
 
 /**
  * What an online-only screen shows with no connection (offline practice, 31 Oct 2026): Play, Tournaments,
@@ -11,7 +10,7 @@ export function OfflineState({ body }: { body: string }) {
   return (
     <div data-offline-state className="flex w-full flex-1 flex-col items-center justify-center gap-5 py-6 text-center">
       <span className="rs-error-mark" aria-hidden="true">
-        <CloudOff className="h-7 w-7" />
+        <Icon name="offline" size={24} style={{ width: 28, height: 28 }} />
       </span>
       <div className="flex flex-col gap-2">
         <h1 className="text-[26px] font-extrabold leading-tight text-foreground">You’re offline{/* design-lint-ignore: styles unchanged, curly quotes only (F4) */}</h1>

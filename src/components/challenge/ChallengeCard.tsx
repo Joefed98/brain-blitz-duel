@@ -1,6 +1,6 @@
-import { ChevronRight } from "lucide-react";
 
 import { ChallengeTile } from "@/components/app/TabIcons";
+import { Icon } from "@/design/components";
 
 /**
  * The Play tab's "Challenge a friend" row (22 Oct 2026): opens the create screen. Hidden until
@@ -19,7 +19,7 @@ export function ChallengeCard({ available, onOpen }: { available: boolean; onOpe
             Play a set, then dare them to beat it
           </span>
         </span>
-        <ChevronRight aria-hidden="true" className="ap-chevron" />
+        <Icon name="chevron-right" size={20} className="ap-chevron" />
       </button>
     </div>
   );

@@ -1,10 +1,9 @@
-import { ChevronRight } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { FeedbackLink } from "@/components/beta/FeedbackLink";
 import { OfflineSettingsRow } from "@/components/offline/OfflineSettingsRow";
 import { Slider } from "@/components/ui/slider";
-import { Panel, Row, Segmented, Sheet, SwitchKnob } from "@/design/components";
+import { Icon, Panel, Row, Segmented, Sheet, SwitchKnob } from "@/design/components";
 import { APP_BUILD_ID, buildLabel } from "@/lib/appVersion";
 import { setBatterySaver, useBatterySaver } from "@/lib/battery";
 import { setHapticsOn, useHapticsOn, useHapticsSupported } from "@/lib/haptics";
@@ -126,12 +125,12 @@ export function SettingsSheet({
           />
           <Row as="button" onClick={onHowItWorks}>
             <span className="jz-row-title flex-1">How it works</span>
-            <ChevronRight aria-hidden="true" className="ap-chevron" />
+            <Icon name="chevron-right" size={20} className="ap-chevron" />
           </Row>
           {onTerms ? (
             <Row as="button" data-open-terms onClick={onTerms}>
               <span className="jz-row-title flex-1">Beta terms</span>
-              <ChevronRight aria-hidden="true" className="ap-chevron" />
+              <Icon name="chevron-right" size={20} className="ap-chevron" />
             </Row>
           ) : null}
           <FeedbackLink row />

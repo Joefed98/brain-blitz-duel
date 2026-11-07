@@ -1,5 +1,4 @@
 import { createFileRoute, notFound } from "@tanstack/react-router";
-import { ChevronRight } from "lucide-react";
 import { useState, type ReactNode } from "react";
 
 import { PhoneShell } from "@/components/duel/PhoneShell";
@@ -164,10 +163,10 @@ function DevDesign() {
           <Panel>
             <Row title="Plain row" sub="A second line, cut with an ellipsis when it runs long" />
             <Row as="button" title="Interactive row" sub="Hover, pressed and focus states">
-              <ChevronRight aria-hidden="true" className="ap-chevron" />
+              <Icon name="chevron-right" size={20} className="ap-chevron" />
             </Row>
             <Row as="button" title="Forced focus" data-jz-state="focus">
-              <ChevronRight aria-hidden="true" className="ap-chevron" />
+              <Icon name="chevron-right" size={20} className="ap-chevron" />
             </Row>
             <Row as="button" role="switch" aria-checked={on} aria-label="A switch row" onClick={() => setOn((v) => !v)}>
               <span className="jz-row-title flex-1">A switch row</span>

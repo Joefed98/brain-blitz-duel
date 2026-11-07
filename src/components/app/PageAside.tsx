@@ -1,5 +1,4 @@
 import { useNavigate } from "@tanstack/react-router";
-import { ChevronRight, Megaphone } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { PublicGameNext } from "@/components/app/PublicGameCard";
@@ -12,7 +11,7 @@ import { dailyStreak, readDailyRecord } from "@/lib/duel/dailyRecord";
 import { readRoomHistory } from "@/lib/duel/deviceHistory";
 import { practiceThisWeek } from "@/lib/duel/practiceRecent";
 import { scheduledGames, upcomingGames } from "@/lib/publicSchedule";
-import { Button } from "@/design/components";
+import { Button, Icon } from "@/design/components";
 
 /**
  * The computer layout's page extras (31 Oct 2026, presentation only; docs/desktop-layout.md): the banner
@@ -38,7 +37,7 @@ export function BannerSlot({ page }: { page: BannerPage }) {
   };
   return (
     <aside aria-label="Promotion" data-banner-slot={banner.id} className="dk-banner">
-      <Megaphone aria-hidden="true" className="dk-banner-icon" />
+      <Icon name="announce" size={24} className="dk-banner-icon" style={{ width: 32, height: 32 }} />
       <span className="dk-banner-text">
         <span data-ellipsis className="dk-banner-title">
           {banner.title}
@@ -48,7 +47,7 @@ export function BannerSlot({ page }: { page: BannerPage }) {
         </span>
       </span>
       <Button variant="secondary" onClick={go} className="dk-banner-action">
-        {banner.action} <ChevronRight aria-hidden="true" className="h-4 w-4" />
+        {banner.action} <Icon name="chevron-right" size={18} className="-m-px" />
       </Button>
     </aside>
   );
@@ -84,7 +83,7 @@ function NextPublicPanel() {
               Public games show here and in Tournaments
             </span>
           </span>
-          <ChevronRight aria-hidden="true" className="ap-chevron" />
+          <Icon name="chevron-right" size={20} className="ap-chevron" />
         </button>
       )}
     </section>

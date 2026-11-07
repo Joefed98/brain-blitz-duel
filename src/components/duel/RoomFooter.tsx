@@ -1,5 +1,4 @@
 import { createContext, useContext, useEffect, useLayoutEffect, useRef, useState, type ReactNode, type RefObject } from "react";
-import { MoreHorizontal } from "lucide-react";
 
 import type { RoomChatState } from "@/lib/duel/useRoomChat";
 import { Icon } from "@/design/components";
@@ -72,7 +71,7 @@ export function RoomMenu({ items, label = "Room options" }: { items: RoomMenuIte
         onClick={() => setOpen((v) => !v)}
         className="rs-menu-btn press"
       >
-        <MoreHorizontal aria-hidden="true" className="h-5 w-5" />
+        <Icon name="more" size={20} />
       </button>
       {open ? (
         <div ref={menu} role="menu" className="rs-menu right-0 top-full mt-1">

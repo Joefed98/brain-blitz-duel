@@ -1,6 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Maximize2, Minimize2, Send } from "lucide-react";
 import { fx } from "@/lib/fx";
 import { haptic } from "@/lib/haptics";
 import { playBlip } from "@/lib/sound";
@@ -293,7 +292,7 @@ export function RoomChat({
           title="Send message"
           className="w-11 shrink-0 px-0"
         >
-          <Send aria-hidden="true" className="h-5 w-5" />
+          <Icon name="send" size={20} />
         </JzButton>
       </div>
       <div className="flex shrink-0 items-center justify-between" data-chat-reactions>
@@ -339,7 +338,7 @@ export function RoomChat({
           >
             <span className="truncate font-bold text-foreground">Messages</span>
             <span className="text-xs text-muted-foreground">{screenLabel}</span>
-            {expanded ? <Minimize2 aria-hidden="true" className="h-4 w-4" /> : <Maximize2 aria-hidden="true" className="h-4 w-4" />}
+            {expanded ? <Icon name="collapse" size={18} className="-m-px" /> : <Icon name="expand" size={18} className="-m-px" />}
           </JzButton>
           <JzButton variant="icon" onClick={close} aria-label="Close messages" className="shrink-0">
             <Icon name="close" size={20} />

@@ -44,6 +44,12 @@ html[data-offline-install] [data-offline-install-card] {
   width: 15px;
   height: 15px;
 }
+/* The result screen's 24 px pending clock (the old h-6 w-6 icon's place and colour). */
+.of-clock-lg {
+  display: block;
+  flex: none;
+  color: var(--ap-faint);
+}
 .of-clock {
   display: inline-block;
   width: 14px;

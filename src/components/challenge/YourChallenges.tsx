@@ -1,9 +1,9 @@
-import { ChevronRight } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { challengeEndsIn, challengeResultLine, type ChallengeSummary } from "@/lib/duel/challenge";
 import { myChallenges } from "@/lib/duel/challengeApi";
 import { readChallengeRecord } from "@/lib/duel/challengeRecord";
+import { Icon } from "@/design/components";
 
 /** Friends shown on a challenge's card before "and N more". */
 const SHOWN = 4;
@@ -82,7 +82,7 @@ export function YourChallenges({ onOpen }: { onOpen: (code: string) => void }) {
                   </>
                 )}
               </span>
-              <ChevronRight aria-hidden="true" className="ap-chevron" />
+              <Icon name="chevron-right" size={20} className="ap-chevron" />
             </button>
           </li>
         ))}
