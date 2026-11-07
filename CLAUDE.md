@@ -1700,6 +1700,16 @@ outside the repo.
     limit stands.
   - A new `scripts/*-check.ts` runs automatically (in the catch-all shard); add it to a
     shard in `.github/ci/shards.ts` if it is slow.
+- **Server functions on a real database** (7 Nov 2026, `docs/audit-nov-2026/build-health.md` items 3–4):
+  `scripts/server-fn-harness.ts` runs the app's real `createServerFn` handlers (real `requireSupabaseAuth`, real
+  supabase-js clients) against a local PostgreSQL 16 with every `supabase/migrations` file applied in order, through a
+  small PostgREST / GoTrue stand-in that applies roles, RLS and column grants as Supabase does and refuses any query
+  shape it doesn't serve (`PGRST_HARNESS`). server-functions-check (~5 s, shard `e`) plays create, preview, join,
+  settings, remove, start, every phase, submit (racing duplicates, one row per player, the stored score equal to
+  practice's replay of a real bot log, `input_type`), reveal, continue, finish, Play again, leave and disband, plus chat,
+  the daily, async rooms and a friend challenge; it fails on CI without the PostgreSQL binaries. Add a flow there when a
+  server function changes, and extend the stand-in (never loosen it) when the server code needs a new query shape.
+  `recordInputType` (`inputType.server.ts`) logs `[input-type]` and returns its failures (never fails a submission).
 - Run all (Actions does this; locally only if Joe asks): `bun scripts/run-checks.ts`
   (each `scripts/*-check.ts(x)` in its own `bun` process; 300 s limit, `snip-check.ts` 1,800 s; `--include-optional` adds the deep Orbit
   belt check; `--full` runs full depth; `--json=<path>` saves results; extra args filter

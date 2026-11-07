@@ -256,6 +256,9 @@ export const SHARDS: Record<string, string[]> = {
   e: [
     // From g's catch-all (3 Nov 2026 rebalance; ~231 s on PR #253's CI times): g ran ~31 min, d-f 6-10.
     "daily-check.ts",
+    // server-functions-check (7 Nov 2026, ~5 s): the room, chat, daily, async-room and challenge server functions
+    // run against every migration on a local PostgreSQL (scripts/server-fn-harness.ts), beside the other SQL checks.
+    "server-functions-check.ts",
     "ink-x200-check.ts",
     "depth4-check.ts",
     "room-figures-check.ts",
