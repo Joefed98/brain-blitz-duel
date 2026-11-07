@@ -38,6 +38,11 @@ interface FinalResultProps {
   myTotal: number;
   opponentTotal: number;
   breakdown: { round: number; mine: number; theirs: number }[];
+  /**
+   * Placings rooms (scoringMode.ts): each player's placing points (1 a round won, 1 each for a level round) and
+   * the last round's, shown in place of the totals; the rounds list keeps the scores.
+   */
+  placings?: { mine: number; theirs: number; lastMine: number; lastTheirs: number } | null;
   roundOrder: StoredPuzzleType[];
   busy: boolean;
   onPlayAgain: () => void;
@@ -66,6 +71,7 @@ export function FinalResult({
   myTotal,
   opponentTotal,
   breakdown,
+  placings = null,
   roundOrder,
   busy,
   onPlayAgain,
@@ -129,10 +135,25 @@ export function FinalResult({
       )}
 
       <div className="flex items-start justify-center gap-3">
-        {side(myName, myLook, myColour, myTotal, last?.mine, true)}
-        <span className="pt-14 text-2xl text-muted-foreground">–</span>
-        {side(opponentName, opponentLook, theirColour, opponentTotal, last?.theirs, false)}
+        {placings ? (
+          <>
+            {side(myName, myLook, myColour, placings.mine, placings.lastMine, true)}
+            <span className="pt-14 text-2xl text-muted-foreground">–</span>
+            {side(opponentName, opponentLook, theirColour, placings.theirs, placings.lastTheirs, false)}
+          </>
+        ) : (
+          <>
+            {side(myName, myLook, myColour, myTotal, last?.mine, true)}
+            <span className="pt-14 text-2xl text-muted-foreground">–</span>
+            {side(opponentName, opponentLook, theirColour, opponentTotal, last?.theirs, false)}
+          </>
+        )}
       </div>
+      {placings ? (
+        <p data-scoring-note className="rs-gain -mt-2 text-center">
+          Placings · {myTotal}–{opponentTotal} on score
+        </p>
+      ) : null}
 
       <ul className="rs-list" aria-label="Rounds">
         {breakdown.map((row, i) => {

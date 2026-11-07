@@ -4,6 +4,7 @@
  * totals, the top three's names, the round games and the room code — never an answer, a puzzle, a
  * board or a round's details (share-check proves no answer reaches it).
  */
+import { roomScoringMode } from "@/lib/duel/scoringMode";
 import { APP_NAME } from "@/lib/brand";
 import { gameRecord } from "@/lib/duel/deviceHistory";
 import { ordinal } from "@/lib/duel/ordinal";
@@ -81,6 +82,7 @@ export function roomShareData(input: {
     rounds,
     undefined,
     roomTieRounds(duel.puzzles_public),
+    roomScoringMode(duel),
   );
   const link = roomShareLink(input.origin, duel.room_code);
   return {
