@@ -51,6 +51,11 @@ import { KITS } from "./puzzle-fairness/kits";
 import { SKILLS, hashText, makeRng } from "./puzzle-fairness/kit";
 import { kitBands, median, sentAnswer } from "./standard-lib";
 import { playTenDropPerfect } from "./tendrop-depth-player";
+import { pinPrePartialCredit } from "../src/lib/duel/partialCredit";
+
+// Written for the standard's stamps: the partial-credit fixes of 7 Nov 2026 (partialCredit.ts) deal
+// Exact one stamp above, so new deals here keep the standard's (partial-credit-check proves the new stamps).
+pinPrePartialCredit(true);
 
 let checks = 0;
 const failures: string[] = [];

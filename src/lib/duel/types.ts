@@ -1799,7 +1799,9 @@ export interface TilesPuzzleData {
    * jumbled.ts) = the 5×5 colour gradient with row and column slides; `frame` is then 25 tiles. 4 (27 Oct 2026,
    * Gradient, Joe's phone notes) = the 5×5 board with swaps, locked tiles and the round's own `palette`.
    */
-  tilesRev?: 1 | 2 | 3 | 4;
+  tilesRev?: 1 | 2 | 3 | 4 | 5 | 6 | 7;
+  /** tilesRev 7 (partial-credit fixes, 7 Nov 2026): the most swaps that count (shown during play; jumbled.ts gradientSwapLimit). */
+  swapLimit?: number;
   /** tilesRev 4: the solved board's colours, cell by cell (the round's colour scheme, gradientPalette.ts). */
   palette?: string[];
   /** tilesRev 3: par moves, shown on the phone (the proved minimum + JUMBLED_PAR_SLACK). */

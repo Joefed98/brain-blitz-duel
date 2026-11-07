@@ -10,7 +10,8 @@ import { preStandardPinned } from "./standard/stamps";
 import { PAR_MOVES_MAZE_INTRO, STANDARD_ATTENTION_INTRO } from "./standard/attentionTexts";
 import { parMovesDealt } from "./parMoves";
 import { BANGON_DEPTH_INTRO, FLASH_DEPTH_INTRO } from "./depth/speedTexts";
-import { PAR_MOVES_PATTERN_INTRO, PATTERN_STD_INTRO } from "./standard/patternText";
+import { PAR_MOVES_PATTERN_INTRO, PARTIAL_PATTERN_INTRO, PATTERN_STD_INTRO } from "./standard/patternText";
+import { partialCreditDealt } from "./partialCredit";
 import { standardNumberIntro } from "./standard/numberText";
 import { fillMax, liveRecord } from "./roundMax";
 import type { PuzzleType } from "./types";
@@ -73,7 +74,7 @@ function introScoreTemplates(): Record<PuzzleType, string> {
     stroop: STANDARD_ATTENTION_INTRO.stroop,
 
     // Logic and pattern
-    unblock: PATTERN_STD_INTRO.unblock,
+    unblock: partialCreditDealt() ? PARTIAL_PATTERN_INTRO.unblock : PATTERN_STD_INTRO.unblock,
     lightsout: logicStandardIntro("lightsout"),
     pipes: PATTERN_STD_INTRO.pipes,
     sudoku: logicStandardIntro("sudoku"),
@@ -88,8 +89,8 @@ function introScoreTemplates(): Record<PuzzleType, string> {
     gravity: parMovesDealt() ? PAR_MOVES_PATTERN_INTRO.gravity : PATTERN_STD_INTRO.gravity,
     nonogram: logicStandardIntro("nonogram"),
     flood: logicStandardIntro("flood"),
-    tiles: PATTERN_STD_INTRO.tiles,
-    rings: PATTERN_STD_INTRO.rings,
+    tiles: partialCreditDealt() ? PARTIAL_PATTERN_INTRO.tiles : PATTERN_STD_INTRO.tiles,
+    rings: partialCreditDealt() ? PARTIAL_PATTERN_INTRO.rings : PATTERN_STD_INTRO.rings,
     blockparty: PATTERN_STD_INTRO.blockparty,
     shikaku: logicStandardIntro("shikaku"),
     fences: gridStandardIntro("fences"),

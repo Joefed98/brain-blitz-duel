@@ -340,7 +340,8 @@ tilting home most balls).
 random swapping always finishes the board, in 15–50 s at two swaps a second: it scores about 158 today and 185 under the
 standard (150 + full speed, no par bonus). No scoring rule can hold a finish under 150; only a rule change (a swap limit,
 for instance twice par) would stop it, and the row has none, so it is left for Joe. `standard-pattern-check` reports it
-and proves random swapping gets no par bonus.
+and proves random swapping gets no par bonus. **Fixed on tilesRev 7** (7 Nov 2026, `docs/partial-credit-nov-2026.md`): a
+swap limit of 1.5 × par, so random swapping no longer finishes and scores about 0.
 
 **Kit bands** (`scripts/standard-pattern-check.ts`, 8 room seeds, medians; Topsy-Turvy and Gradient with their own
 bots, since the kits model their older boards; Pipeline's kit answers turned into the tap log its stamp grades):
