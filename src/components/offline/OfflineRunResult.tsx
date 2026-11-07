@@ -48,7 +48,7 @@ export function OfflineRunResult({
       ) : (
         <div className="flex flex-col items-center gap-2">
           <span data-offline-score data-pending={run?.provisional == null || undefined} className="of-result-score inline-flex items-center gap-2">
-            <PendingClock className="h-6 w-6 text-[var(--ap-faint)]" />
+            <PendingClock className="of-clock-lg" px={24} />
             {run?.provisional != null ? run.provisional : "Score pending"}
           </span>
           <span data-offline-note className="ap-meta flex max-w-[300px] flex-col items-center gap-0.5 whitespace-normal">

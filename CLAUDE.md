@@ -1632,8 +1632,9 @@ outside the repo.
 - **Icon swap 2** (7 Nov 2026; presentation only, no stamps): the second set (`chevron-right`, `chevron-down`, `more`,
   `send`, `expand`, `collapse`, `add-home`, `challenge`, `announce`, `rejoin`, `external`, `offline`) replaces lucide's
   ChevronRight, MoreHorizontal, Send, Maximize2 / Minimize2, SquarePlus, Swords, Megaphone, DoorOpen, ExternalLink and
-  CloudOff in app chrome; every icon keeps its size and position. lucide-react
-  stays for game boards, PendingClock's `Clock3` and Tournaments' empty-state `CalendarDays`.
+  CloudOff, and `timer` / `calendar` replace PendingClock's Clock3 and Tournaments' empty-state CalendarDays, in app
+  chrome (icons-check's replaced list holds all 13); every icon keeps its size and position (slots outside 18–24 px
+  set their old size inline; `Icon` passes `data-*` through). lucide-react stays for game boards only.
 - `src/components/duel/` — room/round screens (PhoneShell, RoundIntro, TimerBar,
   AnswerReveal, ArcadeReveal, WinnerReveal…); `src/components/puzzles/` — shared puzzle
   widgets; `src/lib/fx/` — sound and visual feedback (presentation only).

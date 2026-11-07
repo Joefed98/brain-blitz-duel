@@ -68,6 +68,9 @@ const REPLACED = new Set([
   "X", "Search", "Settings", "Share", "Lock", "Check", "ChevronLeft", "ChevronDown", "Volume2", "Music2",
   "MessageSquare", "MessageCircle", "EllipsisVertical", "CalendarPlus", "Clock", "Users", "Zap", "Target",
   "Trophy", "UserRound",
+  // Icon swap 2 (7 Nov 2026).
+  "ChevronRight", "MoreHorizontal", "Send", "Maximize2", "Minimize2", "SquarePlus", "Swords", "Megaphone",
+  "DoorOpen", "ExternalLink", "CloudOff", "Clock3", "CalendarDays",
 ]);
 const GAME_ART = [/^src\/puzzles\//, /^src\/components\/puzzles\//];
 function walk(dir: string, out: string[] = []): string[] {

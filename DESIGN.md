@@ -209,11 +209,11 @@ from `src/design/icons/icons.data.ts` (`bun scripts/icons-build.ts` after changi
   `check` in `--jz-cyan`. Profile uses the helmet (`profile`).
 - A slot smaller than 18 px keeps its footprint with a negative margin (`-m-px` round an 18 px icon in a 16 px
   slot), so swapping an icon never moves the layout.
-- A slot whose size is not 18–24 px (the 32 px banner megaphone, the offline marks at 14, 15 and 28 px, the Rejoin
-  square's 21 px) draws the nearest allowed icon with its old width and height set inline, so it keeps its size.
-- `lucide-react` stays only in game boards and in two app slots the set has no icon for yet: PendingClock's 14 px
-  clock (`Clock3`) and Tournaments' empty-state calendar (`CalendarDays`, 30 px, thin stroke). icons-check fails if
-  a replaced stock icon comes back in app chrome.
+- A slot whose size is not 18–24 px (the 32 px banner megaphone, Tournaments' 30 px empty-state calendar, the
+  offline marks at 14, 15 and 28 px, the 14 px pending clock, the Rejoin square's 21 px) draws the nearest allowed
+  icon with its old width and height set inline, so it keeps its size. `Icon` passes `data-*` attributes through.
+- `lucide-react` stays only in game boards (src/puzzles, src/components/puzzles); app chrome draws no stock icon.
+  icons-check fails if a replaced stock icon comes back in app chrome.
 
 No emoji in app chrome; emoji stay in chat reactions only.
 

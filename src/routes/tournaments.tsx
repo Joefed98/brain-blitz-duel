@@ -1,5 +1,4 @@
 import { createFileRoute, useNavigate, useRouter } from "@tanstack/react-router";
-import { CalendarDays } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
 import { PhoneShell } from "@/components/duel/PhoneShell";
@@ -105,7 +104,7 @@ function TournamentsScreen() {
           // Nothing scheduled (T-TournamentsEmpty): what to do meanwhile; the Discord button only with its link.
           <section aria-label="No public games" data-public-none className="jz-panel ap-empty-card">
             <span aria-hidden="true" className="ap-empty-icon">
-              <CalendarDays strokeWidth={1.7} />
+              <Icon name="calendar" size={24} style={{ width: 30, height: 30 }} />
             </span>
             <h2 data-wrap-ok className="ap-section-title mt-1 whitespace-normal text-[20px]">
               No public games on the calendar

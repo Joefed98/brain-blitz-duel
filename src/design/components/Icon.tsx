@@ -35,6 +35,7 @@ export function Icon({
   label,
   className,
   style,
+  ...data
 }: {
   name: IconName;
   size?: IconSize;
@@ -42,9 +43,12 @@ export function Icon({
   label?: string;
   className?: string;
   style?: CSSProperties;
+  /** Hooks for checks and styles (`data-*` only), set on the svg. */
+  [data: `data-${string}`]: string | boolean | undefined;
 }) {
   return (
     <svg
+      {...data}
       xmlns="http://www.w3.org/2000/svg"
       viewBox="0 0 24 24"
       width={size}
