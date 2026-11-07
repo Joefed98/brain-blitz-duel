@@ -42,7 +42,7 @@ async function mine(client: any, roomId: string, userId: string) {
   if (!found) return { error: "That challenge no longer exists." } as const;
   const { attemptFor } = await import("./asyncRoom.server");
   const attempt = await attemptFor(client, found.room.id, userId);
-  if (!attempt) return { error: "You haven't started this challenge." } as const;
+  if (!attempt) return { error: "You haven’t started this challenge." } as const;
   return { ...found, attempt } as const;
 }
 
@@ -135,7 +135,7 @@ export const startChallengeFn = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const code = challengeCodeFrom(data.code);
-    if (!code) return { ok: false as const, message: "That challenge doesn't exist." };
+    if (!code) return { ok: false as const, message: "That challenge doesn’t exist." };
     const client = await db();
     const { attemptFor } = await import("./asyncRoom.server");
     const { challengeByCode, startChallenge } = await import("./challenge.server");

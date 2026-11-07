@@ -607,7 +607,7 @@ export function GradientIntroExample() {
         <GradientBoard frame={INTRO_AFTER} size={124} palette={INTRO_PALETTE} locks />
       </div>
       <p className="text-center text-xs text-muted-foreground">
-        Tap two tiles to swap them. A tile in its right place locks (dotted) and can't move. Every round has new colours.
+        Tap two tiles to swap them. A tile in its right place locks (dotted) and can’t move. Every round has new colours.
       </p>
     </div>
   );

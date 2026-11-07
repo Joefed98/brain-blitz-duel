@@ -219,7 +219,7 @@ function IntroExample() {
   return (
     <div className="flex w-full flex-col items-center gap-4">
       <p className="text-center text-sm text-muted-foreground">
-        Ten watches, each one trickier. Tap to stop the marker on the zone's centre line.
+        Ten watches, each one trickier. Tap to stop the marker on the zone’s centre line.
       </p>
       <Bar spec={{ centre: 0.62, half: 0.07, sweepMs: 1_100, hidden: false, wrap: false, passes: 2, blind: [[0.26, 0.34]] }} marker={0.58} passesLeft={2} deadCentre streak={2} />
       <p className="text-center text-xs text-muted-foreground">

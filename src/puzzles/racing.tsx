@@ -56,7 +56,7 @@ function IntroExample() {
     <div className="flex w-full flex-col items-center gap-2">
       <canvas ref={ref} width={STILL} height={STILL} aria-hidden="true" style={{ width: STILL, height: STILL, background: RACING_BG, borderRadius: 10 }} />
       <p className="text-center text-xs text-muted-foreground">
-        Five red lights, then go. Thumb stick: up to accelerate, down to brake, left and right to steer. Two laps; the red signs show each corner's speed.
+        Five red lights, then go. Thumb stick: up to accelerate, down to brake, left and right to steer. Two laps; the red signs show each corner’s speed.
       </p>
     </div>
   );

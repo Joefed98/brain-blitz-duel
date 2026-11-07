@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } fro
 import { AnswerReveal } from "@/components/duel/AnswerReveal";
 import { Dots, WaitingLine } from "@/components/duel/Dots";
 import { GameLayout, PhoneShell, isArcadeScreenType } from "@/components/duel/PhoneShell";
-import { PuzzleHelp, PuzzleHelpButton } from "@/components/duel/PuzzleInstructions";
+import { PuzzleHelp } from "@/components/duel/PuzzleInstructions";
 import { RoundIntro } from "@/components/duel/RoundIntro";
 import { FrameScore } from "@/components/duel/GameFrame";
 import { FinishedPingStrip } from "@/components/duel/FinishedPings";
@@ -156,7 +156,7 @@ export function AsyncRun({
       if (!next) {
         setStep({
           kind: "error",
-          message: "This challenge couldn't be loaded. Try again in a moment.",
+          message: "This challenge couldn’t be loaded. Try again in a moment.",
         });
         return;
       }
@@ -190,7 +190,7 @@ export function AsyncRun({
     } catch {
       setStep({
         kind: "error",
-        message: "Couldn't reach the server. Check your connection and try again.",
+        message: "Couldn’t reach the server. Check your connection and try again.",
       });
     } finally {
       syncing.current = false;
@@ -224,7 +224,7 @@ export function AsyncRun({
       } catch {
         setStep({
           kind: "error",
-          message: "Couldn't start the round. Check your connection and try again.",
+          message: "Couldn’t start the round. Check your connection and try again.",
         });
       }
     },
@@ -553,7 +553,7 @@ export function AsyncRun({
         // A friend challenge counts its rounds like a room; the daily says so.
         label={rivals ? `Round ${step.round} of ${roundCount}` : "Daily"}
         title={puzzleName(shownPuzzle.type)}
-        help={<PuzzleHelpButton onClick={() => setHelpOpen(true)} />}
+        onHelp={() => setHelpOpen(true)}
         score={frameScore}
         timer={
           puzzleShowsTimer(shownPuzzle) ? (

@@ -97,7 +97,7 @@ function introScoreTemplates(): Record<PuzzleType, string> {
     bridges: gridStandardIntro("bridges"),
     lightup: logicStandardIntro("lightup"),
     tents: logicStandardIntro("tents"),
-    dig: "Fill the drain with clean water for 100, more if you're quick and use few digs.",
+    dig: "Fill the drain with clean water for 100, more if you’re quick and use few digs.",
 
     // Arcade
     // hoverRev 10 (the arcade scoring standard): the five parts and their maximums.
@@ -145,7 +145,7 @@ function introScoreTemplates(): Record<PuzzleType, string> {
     snip: "Points for fruit fed and leaves; golden apples, few cuts and speed add more. Up to {max}.",
     swing: "Swing along the course; bonuses for pars, gates and clean-swing streaks. Up to {max}.",
     // tiltRev 11 (3 Nov 2026): no gold stars; par times and a clean run.
-    tilt: "Finish the mazes; bonuses for beating each maze's time, a clean run and speed. Up to {max}.",
+    tilt: "Finish the mazes; bonuses for beating each maze’s time, a clean run and speed. Up to {max}.",
     balltrack: "Get marbles home; bonuses for gold marbles, combos and boosted marbles. Up to {max}.",
     swerve: arcadeOpen("each coin you collect"),
     dual: "The longer both runners survive, the more you score. The full minute is {max}.",

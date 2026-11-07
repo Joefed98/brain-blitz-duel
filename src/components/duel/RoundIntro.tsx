@@ -16,7 +16,7 @@ import { preloadGameArt } from "@/lib/arcade/gameArt.renderer";
 import { preloadGameData, useGameDataReady } from "@/lib/duel/gamePreload";
 
 import { CATEGORY_NAMES, FrameName } from "./GameFrame";
-import { MuteToggle } from "./MuteToggle";
+import { GameMenu } from "./GameMenu";
 import { RoomChatSlot } from "./RoomFooter";
 import { Dots } from "./Dots";
 import { arcadeGroupOf } from "@/lib/duel/arcadeGroups";
@@ -256,7 +256,7 @@ export function RoundIntro({
       className="round-intro flex min-h-0 flex-1 flex-col gap-2 overflow-hidden animate-round-in"
     >
       {/* The game frame's 60 px header (Polish batch R): back (practice), the name over the category dot and
-          "{Category} · Practice / Round n of N", the best (practice), the room's "⋯" menu and sound. */}
+          "{Category} · Practice / Round n of N", the best (practice), the room's "⋯" menu and the game menu (⋮). */}
       <div data-intro-header className="intro-header" style={NO_SELECT}>
         {practice && onBack ? (
           <button type="button" onClick={onBack} aria-label="Back" className="intro-back press">
@@ -286,15 +286,12 @@ export function RoundIntro({
             </span>
           ) : null}
           {topAction}
-          <MuteToggle variant="frame" />
+          <GameMenu type={type} />
         </div>
       </div>
       {counting ? (
         <div className="flex flex-1 items-center justify-center" aria-live="polite">
-          <p
-            key={secondsLeft}
-            className="font-mono text-[min(40vh,18rem)] font-bold leading-none text-category-accent animate-countdown-number"
-          >
+          <p key={secondsLeft} className="intro-countdown-number animate-countdown-number">
             {secondsLeft}
           </p>
         </div>
@@ -337,7 +334,7 @@ export function RoundIntro({
           {/* The footer: in a room the chat button, then the auto-start countdown as a ring in the category
               colour, then Ready in gold. */}
           <div className="intro-footer sticky bottom-0 z-10 flex shrink-0 flex-col items-stretch gap-1.5 pt-1">
-            <div className="flex h-[52px] items-center gap-2">
+            <div className="intro-footer-row flex items-center gap-2">
               {chatButton}
               {!counting && onReady && autoStart ? (
                 <AutoStartRing seconds={autoSeconds} total={Math.round((INTRO_MS - INTRO_COUNTDOWN_MS) / 1000)} />
@@ -355,7 +352,7 @@ export function RoundIntro({
 
             {/* The ready count only takes a row when there is someone to wait for. */}
             {activeCount > 1 ? (
-            <p className="flex h-5 items-center justify-center gap-1.5 text-[13px] text-muted-foreground">
+            <p className="intro-ready-count flex h-5 items-center justify-center gap-1.5">
               {ready && twoPlayer && readyCount < activeCount ? (
                 <>
                   Waiting for opponent <Dots />
@@ -403,7 +400,7 @@ function AutoStartRing({ seconds, total }: { seconds: number; total: number }) {
   return (
     <span data-auto-start={seconds} role="timer" aria-label={`Auto-start in ${seconds}s`} className="intro-ring">
       <svg viewBox="0 0 44 44" width="44" height="44" aria-hidden="true">
-        <circle cx="22" cy="22" r={r} fill="none" stroke="#26262C" strokeWidth="3.5" />
+        <circle cx="22" cy="22" r={r} fill="none" className="intro-ring-track" strokeWidth="3.5" />
         <circle
           cx="22"
           cy="22"

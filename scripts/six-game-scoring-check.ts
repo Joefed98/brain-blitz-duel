@@ -149,7 +149,7 @@ for (const type of ["snip", "stroop"] as const) eq(INTRO_SCORE[type].includes("o
 eq(INTRO_SCORE.snip.includes("for 130"), false, "Scrumper intro: a full clear is not a flat 130");
 // The 200-point expansion (snipRev 11): fruit and leaves on six tall courses.
 eq(INTRO_SCORE.snip.includes("fruit fed and leaves"), true, "Scrumper intro points");
-eq(PUZZLE_INSTRUCTIONS.snip.score.includes("Each level's fruit count 18 between them and a leaf 2"), true, "Scrumper help points");
+eq(PUZZLE_INSTRUCTIONS.snip.score.includes("Each level’s fruit count 18 between them and a leaf 2"), true, "Scrumper help points");
 for (const type of ["balltrack", "snip"] as const) eq(/75 s|÷ \d+ s/.test(PUZZLE_INSTRUCTIONS[type].score), false, `${type} help has no seconds divisor`);
 // Oct 2026 score bands for the six games: each formula against an independent straight-line reading of its knots.
 const line = (units: readonly number[], points: readonly number[], a: number) => {

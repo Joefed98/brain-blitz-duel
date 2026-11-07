@@ -201,7 +201,9 @@ const ALL_SCREENS: Screen[] = [
         .first()
         .click();
       await page.locator("[data-game-stage]").first().waitFor({ timeout: 30_000 });
-      await page.getByRole("button", { name: "Show puzzle instructions" }).first().click();
+      // The help is in the game menu since 6 Nov 2026: the ⋮, then How to play.
+      await page.getByRole("button", { name: "Game menu" }).first().click();
+      await page.getByRole("button", { name: "How to play" }).first().click();
       await page.getByRole("button", { name: "Close help" }).first().waitFor({ timeout: 10_000 });
     },
   },
@@ -354,7 +356,7 @@ const HEADER_SIZES: HeaderSize[] = [
   { name: "1024x768", device: phone(1024, 768, 0, 0), w: 1024, h: 768, top: 0, bottom: 0 },
 ];
 /** The longest display name in the bank, drawn as an arcade game's name. */
-const LONGEST_NAME = "Don't Break the Chain";
+const LONGEST_NAME = "Don’t Break the Chain";
 interface HeaderCase {
   name: string;
   type: string;
@@ -372,7 +374,7 @@ const HEADER_CASES: HeaderCase[] = [
   { name: "longest name, final of 7", type: "inkbridge", round: 7, rounds: 7, players: 3, as: LONGEST_NAME, long: "Final round" },
   { name: "Mixed Signals 7 of 7", type: "stroop", round: 7, rounds: 7, players: 2, long: "Final round" },
   { name: "puzzle Box Six 2 of 7", type: "sudoku", round: 2, rounds: 7, players: 2 },
-  { name: "puzzle Don't Break the Chain 6 of 6", type: "chain", round: 6, rounds: 6, players: 3 },
+  { name: "puzzle Don’t Break the Chain 6 of 6", type: "chain", round: 6, rounds: 6, players: 3 },
 ];
 
 function headerRoom(c: HeaderCase, puzzle: PuzzleData) {

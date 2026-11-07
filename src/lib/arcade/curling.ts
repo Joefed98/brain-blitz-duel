@@ -183,7 +183,7 @@ export const CURLING_STD_SPEC_V2: StdSpec = {
   rev: CURLING_REV_V2,
   parts: [
     { key: "core", label: "Stones", max: 120, of: CURLING_STONES, item: "stone", how: `up to ${CURL_STONE_PTS} a stone by how close to the button it comes to rest` },
-    { key: "takeouts", label: "Takeouts", max: CURL_TAKEOUT_PTS, of: 1, item: "takeout", how: "the opponent's stones knocked out of the house, shared evenly" },
+    { key: "takeouts", label: "Takeouts", max: CURL_TAKEOUT_PTS, of: 1, item: "takeout", how: "the opponent’s stones knocked out of the house, shared evenly" },
     { key: "redring", label: "Red ring", max: CURL_RED_PTS, of: CURLING_STONES, item: "stone", how: "3.75 a stone finishing in the 4-foot" },
     { key: "hold", label: "Holding shot", max: CURL_HOLD_PTS, of: 1, item: "shot", how: "finish with your stone nearest the button" },
   ],
@@ -195,7 +195,7 @@ export const CURLING_STD_SPEC_V3: StdSpec = {
   rev: CURLING_REV_V3,
   parts: [
     { key: "core", label: "Stones", max: 120, of: CURLING_STONES, item: "stone", how: `up to ${CURL_STONE_PTS} a stone by how close to the button it comes to rest (none from 3.2 m away)` },
-    { key: "takeouts", label: "Takeouts", max: CURL_TAKEOUT_PTS, of: 1, item: "takeout", how: "the opponent's stones knocked out of the house, shared evenly" },
+    { key: "takeouts", label: "Takeouts", max: CURL_TAKEOUT_PTS, of: 1, item: "takeout", how: "the opponent’s stones knocked out of the house, shared evenly" },
     { key: "redring", label: "Red ring", max: CURL_RED_PTS, of: CURLING_STONES, item: "stone", how: "3.75 a stone finishing in the 4-foot" },
     { key: "hold", label: "Holding shot", max: CURL_HOLD_PTS, of: 1, item: "shot", how: "finish with your stone nearest the button" },
   ],

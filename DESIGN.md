@@ -19,8 +19,8 @@ colours kept on game screens, art drawn in-house (no paid commissions).
    (`text-[13px]`, `rounded-[14px]`, `h-[52px]`, `bg-[#…]`). Use the token or the component.
 2. **Components first.** Use the shared components in `src/design/components/`. Never restyle a raw `<button>`,
    build a new card class, or copy a sheet.
-3. **One font: Archivo.** In app screens and game chrome (intro, frame, reveal). Press Start 2P stays inside Retro
-   game art only. No Space Grotesk, Inter, Saira, Manrope or JetBrains Mono in new work.
+3. **One font: Archivo.** In app screens and game chrome (intro, frame, reveal). Game art inside the play area
+   is the exception (section 9): Press Start 2P for Retro art and JetBrains Mono where canvas art names it. No Space Grotesk, Inter, Saira, Manrope or JetBrains Mono in new work.
 4. **Gold means act, you, or first place.** Nothing else is gold. At most one gold button per screen.
 5. **Gradients only on metal.** Gold buttons, the podium, medals, trophies and rank emblems. No gradient text, no
    glow or sheen on app chrome. Game worlds may glow; the frame around them may not.
@@ -97,6 +97,19 @@ Archivo variable font, self-hosted (weights 400–900, widths 62–125 %).
 
 Weights in use: **400, 600, 800**, plus 900 for the wordmark only. Retire 450, 500, 550, 620, 650, 700 and 750.
 
+### Text emphasis: one bright thing per panel
+
+A panel has one bright thing; everything else steps down, so the eye lands on what matters.
+
+1. **`--jz-text` (white)** only for a panel's headline or its key number (a rating, score, price, or a count that
+   matters).
+2. **`--jz-text-2`** for names and labels: player names, game names, card titles in lists, category labels.
+3. **`--jz-text-3`** for supporting detail: times, counts, hints, captions.
+4. **Colour carries meaning, not brightness:** gold for yours or being won, cyan for live and positive, red for
+   down or wrong (section 2, Accents).
+5. **Cut lines that repeat what the screen already shows.** No " · " separators in meta lines: use a comma or
+   chips.
+
 ---
 
 ## 4. Space and shape
@@ -136,7 +149,7 @@ component gallery, `/dev-design` (development builds only).
 | `Button` / `ButtonLink` | `gold` (the `--jz-gold-metal` face on a solid 4 px `--jz-gold-ledge`, inside the cut-lg; `small` takes cut-sm; no glow, haze or sheen), `secondary` (`--jz-surface` fill, 1.5 px `--jz-surface-2` border, 8 px radius), `quiet` (text only), `icon` (44 × 44); `size` is the height (44, 46, 48, 50, 52 or 58), `block` fills the width | `.th-btn-*`, `.ap-btn-*`, `.rs-btn*` (deleted), shadcn `Button` in app chrome |
 | `Panel` / `Row` | panel (`pad`, `striped`, `tone="cyan"`), row with divider (`as="button"` / `"a"` is interactive; `leading`, `title`, `sub`) | `.th-card`, `.ap-panel` / `.ap-row` (now `.jz-panel` / `.jz-row`), `ui/card` |
 | `SectionHeader` | title + 2 px rule + right-hand meta or link | ad-hoc headers |
-| `Chip` | default, selected (light fill), with category diamond (`cat`), tinted in its category when on (`tint`) | `.th-chip`, `.ap-chip*`, `.rs-cat` (deleted), `CategoryPill` |
+| `Chip` | default, selected (light fill), with category diamond (`cat`), tinted in its category when on (`tint`); `status`: a non-interactive 22 px label-and-value `<span>` for live counts (every HUD pill), with no hover, pressed or focus state, its value toned `accent` / `good` / `warn` | `.th-chip`, `.ap-chip*`, `.rs-cat` (deleted), `CategoryPill`; `.hud-pill`'s own look |
 | `Segmented` | 2–4 options, counts allowed, radio or toggle; `tone="gold"` for a switch that is the way into play (Practice's Puzzles / Arcade) | `.ap-switch`, `.rs-seg` (deleted) |
 | `SwitchKnob` | the knob at the end of a `role="switch"` row (cyan when on) | `.rs-switch` (deleted) |
 | `Input` / `CodeInput` | text, search (44 px); 4-box room code over one real field. Both are wells: `--jz-well` with an inset top shadow, darker than the panel they sit in | `.th-input`, `.ap-input`, the long Tailwind strings (deleted) |
@@ -146,13 +159,22 @@ component gallery, `/dev-design` (development builds only).
 | `LiveTag` | LIVE (red), NEXT (cyan) | the public game's live dot |
 | `GameTile` | S 56, M 100, L full width; with best score and charge bar | Practice rows' icon, Warm up tiles |
 | `Nameplate` | strip (standings, lobby), full, mini; the avatar disc (PlayerBadge) inside | `PlayerBadge` layouts |
-| `Medal` | gold, silver, bronze metal; S 22, M 36, L 64 | `Medal.tsx` (temporary until the art arrives) |
+| `Medal` | the approved medal art (docs/art) for 1st–3rd, no numbers; the plain number from 4th; a shared place adds an "=" tag; S 22, M 36, L 64 wide | `Medal.tsx`'s placeholder discs (F5) |
 | `TabBar` | phone bar and desktop rail from one list (`TABS`) | the two copies in `AppTabBar` and `AppRail` |
 
 Every interactive component has hover (fine pointer), pressed (scale 0.97, 120 ms) and focus-visible (2 px
 `--jz-gold`, 2 px offset; a clipped component draws its cut on a pseudo-element so the ring is never cut)
 states. Minimum target 44 × 44.
 
+
+**Reward art (design foundation F5, 6 Nov 2026).** `src/design/art/` (import from `@/design/art`): `Emblem` (six
+tiers, division diamonds or Lightning's rank; `marker={false}` at the 28 px standings size), `Trophy` (bronze,
+silver, gold, championship), `Badge` (winner, arena, club, founder with the player number as data), and the
+medal art `Medal` draws. Each is inline SVG ported line for line from `docs/art/source/gen.py`
+(`src/design/art/markup.ts`), every colour a token: the five metals' stops `--jz-metal-<metal>-1…4` (plus a CSS
+gradient each), their inks `--jz-ink-<metal>`, `--jz-glow`, `--jz-art-sheen`, `--jz-art-edge` and
+`--jz-art-gold-deep`. `size` is the width; a role="img" label on each. art-check proves the markup is
+docs/art/svg/ byte for byte. Captain Joulz is canvas art (`src/lib/arcade/hero.renderer.ts`, section 9).
 ---
 
 ## 6. Icons
@@ -194,6 +216,10 @@ the only places motion gets theatrical. No bounce easing on app chrome. Reduced 
   tinted backdrop and the arcade reveal's colour gradient all keep their category colour. Only the base underneath
   changes to `--jz-bg`, and fonts and buttons follow these rules.
 - Game art inside the play area is untouched.
+- **Game art is exempt from the one-font rule** (hard rule 3). Canvas and board art keeps the faces it names:
+  Press Start 2P (Retro games, Google Fonts) and JetBrains Mono (self-hosted in `public/fonts`, declared in
+  `src/lib/arcade/gameArtFonts.css` and loaded only while a round's intro is up). Neither may appear in app chrome
+  or game chrome (intro, frame, HUD pills, reveal), which are Archivo.
 - Skins (later) never change sizes, hit areas, motion or contrast against the background.
 
 ---
