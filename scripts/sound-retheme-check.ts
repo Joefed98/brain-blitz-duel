@@ -87,6 +87,12 @@ function readMp3(bytes: Uint8Array): Mp3Info | null {
 
 /** SHA-256 of public/sounds/cross.hop.mp3 on main 48cf4f15, the footstep Rainbow Bridge keeps. */
 const OLD_HOP_SHA = "168172e98f5f7903a708b09cac6d8c2558f86b8f13e463b449152c63d51162f7";
+/**
+ * SHA-256 of that footstep (OLD_HOP_SHA's bytes) lifted to the effects' loudness target by the audio audit's fixes
+ * (7 Nov 2026: it read -42.4 LUFS, 25 dB under its target; scripts/sound-audit-nov-2026/fix.py, the before/after
+ * row in docs/sound-cues/audit-fixes-nov-2026.md). The same sound, only louder.
+ */
+const LEVELLED_HOP_SHA = "7870e7b44dd2a644a86aff54f7a1556fcc66d221809b1220271fb8ef60acc64c";
 
 /* ------------------------------------------------------------- 1. files */
 
@@ -127,11 +133,12 @@ for (const { file, cues, kind } of rows) {
   if (kind === "loop") check(Math.abs(ms - 2000) <= 2, `${file}: the 2 s loop is ${Math.round(ms)} ms`);
   if (kind === "ambience") check(Math.abs(ms - 8000) <= 2, `${file}: the 8 s ambience loop is ${Math.round(ms)} ms`);
 }
-// Rainbow Bridge's cloud bounce kept the old footstep (the same bytes as cross.hop.mp3 on main before this batch).
+// Rainbow Bridge's cloud bounce kept the old footstep (the same bytes as cross.hop.mp3 on main before this batch,
+// OLD_HOP_SHA), since the audio audit's fixes levelled to the effects' target (LEVELLED_HOP_SHA).
 check(manifest["inkbridge.cloudBounce"]?.url === "/sounds/inkbridge.cloudBounce.mp3", "inkbridge.cloudBounce: plays inkbridge.cloudBounce.mp3");
 {
   const sha = createHash("sha256").update(readFileSync("public/sounds/inkbridge.cloudBounce.mp3")).digest("hex");
-  check(sha === OLD_HOP_SHA, "inkbridge.cloudBounce.mp3: not the old cross.hop.mp3 (main 48cf4f15)");
+  check(sha === LEVELLED_HOP_SHA, `inkbridge.cloudBounce.mp3: not the old cross.hop.mp3 (main 48cf4f15, ${OLD_HOP_SHA.slice(0, 8)}) as levelled by the audio audit's fixes`);
 }
 // The slots Joe kept (no new file): unchanged.
 check(manifest["bullseye.thud"]?.url === null && manifest["bullseye.bull"]?.url === null, "bullseye.thud / bullseye.bull: keep their shared sounds");

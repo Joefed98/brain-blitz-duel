@@ -1401,6 +1401,18 @@ outside the repo.
   `bintoss.ambience`, `bullseye.ambience` (`ambienceCue`: effects channel, held off while the music is muted or at zero);
   `bintoss.wind`, `slice.chilli` (sliceRev 12, in place of the fuse), `symscan.eagle` (with the take-off).
   sound-retheme-check (~1 min) proves the files and every cue firing in play through the skill-band bots.
+- **Audio audit fixes** (7 Nov 2026; sound files and decoding only, no stamps; `docs/sound-cues/audit-fixes-nov-2026.md`,
+  from `docs/audit-nov-2026/audio.md`): 205 files in `public/sounds/` re-made by `scripts/sound-audit-nov-2026/fix.py`
+  (deterministic; `measure.py` gives the audit's measures, `table.py` the before/after table): four effect loops re-cut on
+  a crossfade (`swing.lava`, `wavefront.danger`, `racing_idle_loop`, `curling_sweep_loop`; manifest `ms` updated), four
+  beds' last bar crossfaded into their first, every loop and bed encoded with a frame of its own wrap-around audio either
+  side under a widened LAME delay/padding (so MP3 adds no tick at the join), every changed file at -1 dBFS true peak or
+  under, the 40 cut tails faded, 99 loudness outliers levelled to levels-nov-2026.md's targets (judged as the file and as
+  its slots' `volume` plays it; quiet ones only as far as the transparent limiter allows; 31 remain, listed), 102 narrow
+  stereo effects made mono (-11.7 MiB decoded). The app trims every MP3 by its own LAME tag (`src/lib/mp3Gapless.ts`,
+  `decodeExact` in sound.ts, the one decode site), so effects start on time and loops have no gap whether or not the
+  browser reads the tag; our exactly decoded files loop whole (no -60 dB edge trim). mp3-gapless-check (~1 s).
+  **Re-measure with measure.py after changing a file in `public/sounds/`.**
 - **Retro arcade polish** (3 Nov 2026, Joe's audit; display, sound and room grouping only, no stamps;
   `docs/retro-polish-nov-2026.md`): *one Retro HUD* (`retroHud` in `src/lib/arcade/retro.renderer.ts`: the pixel font, the
   main count top left at 14 px, one or two counts top right at 10 px, at most two rows, sizes stepping down to fit, no

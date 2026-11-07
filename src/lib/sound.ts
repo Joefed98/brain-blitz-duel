@@ -19,6 +19,7 @@ import { SOUND_MANIFEST, type SoundId } from "./fx/manifest";
 import { SOUND_CUE_EVENT, type SoundCueDetail } from "./fx/soundCues";
 import { devDisplayAllowed } from "./devDisplay";
 import { onPageVisibility, pageHidden } from "./battery";
+import { gaplessBuffer, readMp3Gapless, type GaplessOutcome } from "./mp3Gapless";
 import {
   changeChannelMuted,
   changeChannelVolume,
@@ -193,12 +194,10 @@ async function preload(): Promise<void> {
         const bytes = await response.arrayBuffer();
         const context = ctx;
         if (!context) return;
-        const decoded = await context.decodeAudioData(bytes);
+        const { buffer: decoded, exact } = await decodeExact(context, url, bytes);
         for (const name of names) {
           buffers.set(name, decoded);
-          // Looping effects trim MP3 padding at the same -60 dB edges as music.
-          if (EFFECT_LOOPS.has(name as SoundId) && /\.mp3$/i.test(url))
-            loopPoints.set(name as SoundId, detectLoopPoints(decoded));
+          if (EFFECT_LOOPS.has(name as SoundId) && /\.mp3$/i.test(url)) setLoopPoints(name as SoundId, url, decoded, exact);
           failedFiles.delete(name);
         }
       } catch (error) {
@@ -1428,6 +1427,36 @@ function detectLoopPoints(buffer: AudioBuffer): { start: number; end: number } {
   return { start: first / buffer.sampleRate, end: (last + 1) / buffer.sampleRate };
 }
 
+/** What this browser's decoder did with the MP3 gapless tag, logged once each with ?dev=1 (mp3Gapless.ts). */
+const gaplessSeen = new Set<GaplessOutcome>();
+
+/**
+ * Decode a file; an MP3 with a LAME/Lavc tag comes back as exactly its sound whether or not the browser reads the tag
+ * (audio audit fix 1, src/lib/mp3Gapless.ts). The tag is read before decoding, which detaches the bytes. `exact`:
+ * the buffer is the file's exact sound.
+ */
+async function decodeExact(context: AudioContext, url: string, bytes: ArrayBuffer): Promise<{ buffer: AudioBuffer; exact: boolean }> {
+  const info = /\.mp3$/i.test(url) ? readMp3Gapless(bytes) : null;
+  const decoded = await context.decodeAudioData(bytes);
+  const { buffer, outcome } = gaplessBuffer(context, decoded, info);
+  if (info && !gaplessSeen.has(outcome)) {
+    gaplessSeen.add(outcome);
+    if (devDisplayAllowed()) console.info(`[sound] MP3 gapless tag: ${outcome} (${url})`);
+  }
+  return { buffer, exact: outcome !== "unknown" };
+}
+
+/**
+ * Loop points. One of our own files (public/sounds) decoded to its exact sound loops whole: its join was cut to loop
+ * there, and the -60 dB edge trim would eat a quiet first few ms (music_bastion, music_cross, music_ricochet lost
+ * 7–8 ms a pass). Anything else (the hosted library, a decode we couldn't place) keeps the edge trim, which also
+ * removes MP3 padding a decoder left in.
+ */
+function setLoopPoints(id: SoundId, url: string, buffer: AudioBuffer, exact: boolean): void {
+  if (exact && url.startsWith("/sounds/")) loopPoints.delete(id);
+  else loopPoints.set(id, detectLoopPoints(buffer));
+}
+
 function loadMusicBuffer(id: SoundId): Promise<void> {
   if (musicBuffers.has(id) || failedFiles.has(id)) return Promise.resolve();
   const existing = musicLoads.get(id);
@@ -1441,10 +1470,10 @@ function loadMusicBuffer(id: SoundId): Promise<void> {
     try {
       const response = await fetch(url);
       if (!response.ok) throw new Error(`${response.status}`);
-      const decoded = await context.decodeAudioData(await response.arrayBuffer());
+      const { buffer: decoded, exact } = await decodeExact(context, url, await response.arrayBuffer());
       // Released while decoding (round moved on): drop it.
       if (musicTokens.get(id) !== token) return;
-      if (/\.mp3$/i.test(url)) loopPoints.set(id, detectLoopPoints(decoded));
+      if (/\.mp3$/i.test(url)) setLoopPoints(id, url, decoded, exact);
       musicBuffers.set(id, decoded);
     } catch (error) {
       // Remembered so a missing bed is not fetched again and again; a new round retries once.
