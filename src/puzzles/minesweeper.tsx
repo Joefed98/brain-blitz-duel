@@ -158,7 +158,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         footer={(send) => {
           sendRef.current = send;
           return (
-            <div data-game-controls="mode" data-home-bar-clear="8" className="grid h-[52px] shrink-0 touch-none select-none grid-cols-2 gap-3" role="group" aria-label="Tap mode">
+            <div data-home-bar-clear="8" data-game-controls="mode" className="grid h-[52px] shrink-0 touch-none select-none grid-cols-2 gap-3" role="group" aria-label="Tap mode">
               {segment(MINES_MODE_REVEAL, "Reveal")}
               {segment(MINES_MODE_FLAG, "Flag")}
             </div>

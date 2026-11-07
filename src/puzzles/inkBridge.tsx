@@ -193,7 +193,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
           </>
         }
       />
-      <div data-game-controls="tools" data-home-bar-clear="4" className="flex h-12 shrink-0 gap-1.5" style={{ position: "relative" }}>
+      <div data-home-bar-clear="4" data-game-controls="tools" className="flex h-12 shrink-0 gap-1.5" style={{ position: "relative" }}>
         {/* Polish A2: the dock's backing, drawn round the row without changing its size or place. */}
         <span aria-hidden="true" className="pointer-events-none absolute -inset-x-1 -inset-y-1 rounded-2xl" style={DOCK_BACKING} />
         {/* DROP AGAIN only while a drop is under way (it ends that drop as a miss); the row keeps its 48 px height. */}
