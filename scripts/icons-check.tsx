@@ -86,6 +86,16 @@ for (const file of walk("src")) {
     check(!REPLACED.has(name), `${file} imports lucide's ${name}: use Icon (docs/icons) instead`);
 }
 
+// 6. An unchanged Icon re-rendered (a room or game clock tick) changes nothing in the DOM.
+{
+  const { createElement, Fragment } = await import("react");
+  const { rerenderMutations } = await import("./rerender-mutations");
+  const mutations = await rerenderMutations((tick) =>
+    createElement(Fragment, null, createElement("span", null, String(tick % 1)), createElement(Icon, { name: "check", size: 20 }), createElement(Icon, { name: "lock", size: 18, tone: "text-3" })),
+  );
+  check(mutations === 0, `an unchanged Icon re-rendered makes ${mutations} DOM change(s): keep one dangerouslySetInnerHTML object per icon`);
+}
+
 if (failures) {
   console.log(`FAIL icons-check: ${failures} failure${failures === 1 ? "" : "s"}`);
   process.exit(1);

@@ -8,6 +8,12 @@ export type IconSize = 18 | 20 | 22 | 24;
 export type IconTone = "inherit" | "text" | "text-2" | "text-3" | "gold" | "red" | "cyan";
 
 export const ICON_NAMES = Object.keys(ICON_BODIES) as IconName[];
+
+/**
+ * One {__html} object per icon, made once: React 19 rewrites dangerouslySetInnerHTML whenever the object
+ * changes, so a fresh one each render redrew every icon on each room or game clock tick (battery-check).
+ */
+const ICON_HTML = Object.fromEntries(ICON_NAMES.map((name) => [name, { __html: ICON_BODIES[name] }])) as Record<IconName, { __html: string }>;
 export { ICON_LABELS };
 
 /**
@@ -49,7 +55,7 @@ export function Icon({
       style={{ width: size, height: size, ...style }}
       focusable="false"
       {...(label ? { role: "img", "aria-label": label } : { "aria-hidden": true })}
-      dangerouslySetInnerHTML={{ __html: ICON_BODIES[name] }}
+      dangerouslySetInnerHTML={ICON_HTML[name]}
     />
   );
 }

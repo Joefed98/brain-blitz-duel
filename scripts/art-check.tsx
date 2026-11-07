@@ -219,6 +219,17 @@ ok(renderToStaticMarkup(<Emblem tier="lightning" rank={37} size={150} />).includ
 ok(renderToStaticMarkup(<Badge kind="founder" player={42} />).includes("#0042"), "the founder badge's number is not data");
 ok(renderToStaticMarkup(<Trophy kind="championship" />).includes("CHAMPION"), "the championship trophy's plate");
 
+// An unchanged ArtSvg re-rendered (a room or game clock tick) changes nothing in the DOM.
+{
+  const { createElement, Fragment } = await import("react");
+  const { rerenderMutations } = await import("./rerender-mutations");
+  const mutations = await rerenderMutations(() =>
+    createElement(Fragment, null, createElement(Medal, { place: 2 }), createElement(Trophy, { kind: "championship" }), createElement(Emblem, { tier: "volt", division: 2 })),
+  );
+  if (mutations === 0) passes++;
+  else fails.push(`an unchanged ArtSvg re-rendered makes ${mutations} DOM change(s): keep one dangerouslySetInnerHTML object per markup`);
+}
+
 if (fails.length) {
   for (const f of fails) console.log(`FAIL ${f}`);
   console.log(`FAIL art-check: ${fails.length} failed, ${passes} passed`);

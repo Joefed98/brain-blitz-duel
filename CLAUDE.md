@@ -1892,6 +1892,7 @@ grading. See `docs/duelz-scoring-reference.md` section 14.
 4. **Take game counts, names and categories from `main`** (`src/lib/duel/gameNames.ts`, `src/lib/duel/registry.ts`),
    never from memory or an older branch.
 5. **Never loosen or delete an assertion** to get green, and leave `bun.lock` unchanged.
+6. **Never pass a fresh `dangerouslySetInnerHTML` object on render**: keep one `{ __html }` object per markup (a module-level cache or `useMemo`), or React 19 rewrites it on every clock tick (battery-check; icons-check and art-check prove 0 DOM changes on an unchanged re-render).
 
 ## Working process
 
