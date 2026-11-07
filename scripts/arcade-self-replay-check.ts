@@ -31,7 +31,6 @@ import { FREEKICK_DEAL_V2 } from "../src/lib/duel/freekickDealV2.server";
 import { FREEKICK_DEAL_V3 } from "../src/lib/duel/freekickDealV3.server";
 import { racingCheckpoint, racingGameFor, RACING_CHECKPOINT_INTERVAL, RACING_REV_2, RACING_REV_3, RACING_REV_STD } from "../src/lib/arcade/racing";
 import { FREEKICK_DEAL_V4 } from "../src/lib/duel/freekickDealV4.server";
-import { racingCheckpoint, racingGameFor, RACING_CHECKPOINT_INTERVAL, RACING_REV_2, RACING_REV_STD } from "../src/lib/arcade/racing";
 import { encodeRacingRun, replayRacingRun } from "../src/lib/duel/racing";
 import { RACING_DEAL } from "../src/lib/duel/racingDeal.server";
 import { RACING_DEAL_V2 } from "../src/lib/duel/racingDealV2.server";
