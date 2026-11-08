@@ -18,7 +18,7 @@ Object.defineProperty(globalThis, "performance", { configurable: true, value: { 
 Object.defineProperty(globalThis, "window", { configurable: true, value: { matchMedia: () => ({ matches: false }), devicePixelRatio: 2 } });
 Object.defineProperty(globalThis, "Path2D", { configurable: true, value: Path2D });
 Object.defineProperty(globalThis, "OffscreenCanvas", { configurable: true, value: class { constructor(w: number, h: number) { return createCanvas(w, h); } } });
-for (const f of ["archivo-var-latin.woff2", "jetbrains-mono-600-700-latin.woff2", "manrope-500-800-latin.woff2"]) {
+for (const f of ["archivo-var-latin.woff2", "jetbrains-mono-600-700-latin.woff2"]) {
   try {
     GlobalFonts.registerFromPath(`public/fonts/${f}`);
   } catch {

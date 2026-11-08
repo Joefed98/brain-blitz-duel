@@ -14,7 +14,7 @@
 import { BT_REV_STD, BT_STD } from "@/lib/arcade/ballTrack";
 import { BRK_REV_STD, BRK_V11_CLEAR_POINTS, BRK_V11_CORE_MAX, BRK_V11_GOLD_MAX, BRK_V11_SPEED_MAX } from "@/lib/arcade/breaker";
 import { BURST_REV_STD, BURST_V10_PARTS } from "@/lib/arcade/burst";
-import { CROSS_FLOW_STD, CROSS_REV_FLOW, CROSS_REV_STD, CROSS_STD } from "@/lib/arcade/cross";
+import { CROSS_FLOW_STD, CROSS_KEEP_STD, CROSS_REV_FLOW, CROSS_REV_KEEP, CROSS_REV_STD, CROSS_STD } from "@/lib/arcade/cross";
 import { FLIP_REV_FLOW, FLIP_REV_STD, FLIP_STD, FLIP_V11 } from "@/lib/arcade/flip";
 import { HOVER_REV_STANDARD, HOVER_STD_CENTRE, HOVER_STD_CHAINS, HOVER_STD_CORE, HOVER_STD_GOLD, HOVER_STD_TIGHT } from "@/lib/arcade/hover";
 import { INK_REV_STD, inkStdSpecFor } from "@/lib/arcade/inkBridge";
@@ -89,7 +89,7 @@ export const BAND_STD_GAMES: Readonly<Record<string, BandStdGame>> = {
     field: "crossRev",
     parts: (rev) =>
       rev >= CROSS_REV_FLOW
-        ? withFinds(fromSpec(CROSS_FLOW_STD), { "No-stop streak": /no-stop streak/i, "Close calls": /close calls?/i })
+        ? withFinds(fromSpec(rev >= CROSS_REV_KEEP ? CROSS_KEEP_STD : CROSS_FLOW_STD), { "No-stop streak": /no-stop streak/i, "Close calls": /close calls?/i })
         : rev >= CROSS_REV_STD
           ? withFinds(fromSpec(CROSS_STD), { Coins: /coins?\b/i, Streak: /^streak\b/i, "Close calls": /close calls?/i })
           : null,
@@ -282,5 +282,5 @@ export function standardPartLabels(puzzle: { type: string } & Record<string, unk
   const spec = ARCADE_STANDARD[puzzle.type]?.spec;
   if (!spec) return [];
   const rev = puzzle[spec.field];
-  return typeof rev === "number" && rev >= spec.rev ? spec.parts.map((p) => p.label) : [];
+  return typeof rev === "number" && rev >= (ARCADE_STANDARD[puzzle.type]?.from ?? spec.rev) ? spec.parts.map((p) => p.label) : [];
 }

@@ -127,6 +127,19 @@ export function stdFinal(sum: number, acted: boolean): number {
   return clampInt(sum, 1, STD_MAX);
 }
 
+/**
+ * The scoring audit's partial-credit rule (Nov 2026, docs/audit-nov-2026/scoring.md issues 2 and 7; crossRev 12,
+ * wavRev 13, burstRev 11): progress made always counts. The life that ends a run is not charged (losing it already
+ * ended the run), and a run's mistakes together never take more than half the core it earned.
+ */
+export function stdLivesCharged(lost: number, outOfLives: boolean): number {
+  return Math.max(0, Math.trunc(lost) - (outOfLives && lost > 0 ? 1 : 0));
+}
+/** The most a run's mistakes may take: half its core, rounded down (see stdLivesCharged). */
+export function stdCappedPenalty(penalty: number, core: number): number {
+  return clampInt(Math.trunc(penalty), 0, Math.max(0, Math.floor(core / 2)));
+}
+
 /* ---- A run's parts as a list (each with what the run did): the reveal's breakdown lines. ---- */
 
 /** One scored part of a run: what it measured, the points it earned and the most it can earn. */

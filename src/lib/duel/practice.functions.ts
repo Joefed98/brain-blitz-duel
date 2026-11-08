@@ -19,64 +19,31 @@ import type { PuzzleData, PuzzleType } from "./types";
 
 type Loose = Record<string, unknown>;
 
-async function sealKey(): Promise<CryptoKey> {
-  const secret = process.env["SUPABASE_SERVICE_ROLE_KEY"];
-  // The public URL is no secret: only a dev server (practice in checks) may seal with it.
-  if (!secret && import.meta.env.PROD) throw new Error("Practice is down for a moment. Try again shortly.");
-  const material = secret ?? process.env["SUPABASE_URL"] ?? "";
-  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(material));
-  return crypto.subtle.importKey("raw", digest, "AES-GCM", false, ["encrypt", "decrypt"]);
+/* The seal and the deal digest live in practiceSeal.server.ts (security fixes H1 and L8); loaded inside handlers only. */
+const sealing = () => import("./practiceSeal.server");
+async function sealDeal(pub: PuzzleData, priv: Loose, tags: Loose = {}): Promise<string> {
+  return (await sealing()).sealDeal(pub, priv, tags);
 }
-
-function toBase64(bytes: Uint8Array): string {
-  let out = "";
-  for (const byte of bytes) out += String.fromCharCode(byte);
-  return btoa(out);
+async function openDeal(sealed: unknown, puzzle: unknown) {
+  return (await sealing()).openDeal(sealed, puzzle);
 }
-
-function fromBase64(value: string): Uint8Array<ArrayBuffer> {
-  const raw = atob(value);
-  const bytes = new Uint8Array(new ArrayBuffer(raw.length));
-  for (let i = 0; i < raw.length; i++) bytes[i] = raw.charCodeAt(i);
-  return bytes;
+async function openDealOrThrow(sealed: unknown, puzzle: unknown) {
+  return (await sealing()).openDealOrThrow(sealed, puzzle);
 }
-
-async function seal(payload: unknown): Promise<string> {
-  const iv = crypto.getRandomValues(new Uint8Array(new ArrayBuffer(12)));
-  const data = new TextEncoder().encode(JSON.stringify(payload));
-  const cipher = new Uint8Array(
-    await crypto.subtle.encrypt({ name: "AES-GCM", iv }, await sealKey(), data),
-  );
-  return `${toBase64(iv)}.${toBase64(cipher)}`;
-}
-
-/** The sealed half minus its intro-example tag and the deal's time (practiceReceipt.ts). */
-async function unseal(sealed: string): Promise<Loose> {
-  const { __example: _example, __dealtAt: _dealtAt, ...priv } = await unsealRaw(sealed);
-  return priv;
-}
-
-/** The deal's sealed time (practiceReceipt.ts), or undefined for a deal sealed without one. */
-function dealtAtOf(raw: Loose): number | undefined {
-  const at = raw["__dealtAt"];
-  return typeof at === "number" && Number.isFinite(at) ? at : undefined;
-}
-
-/** A short digest naming one sealed deal, so a start token can't be carried over to another. */
-async function sealedDigest(sealed: string): Promise<string> {
-  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(sealed));
-  return toBase64(new Uint8Array(digest));
-}
-
 async function unsealRaw(sealed: string): Promise<Loose> {
-  const [ivPart, cipherPart] = sealed.split(".");
-  if (!ivPart || !cipherPart) throw new Error("That puzzle didn’t load. Try another.");
-  const plain = await crypto.subtle.decrypt(
-    { name: "AES-GCM", iv: fromBase64(ivPart) },
-    await sealKey(),
-    fromBase64(cipherPart),
-  );
-  return JSON.parse(new TextDecoder().decode(plain)) as Loose;
+  return (await sealing()).unsealRaw(sealed);
+}
+
+/** M4: practice needs no sign-in, so it is limited per network address (rateLimit.server.ts). */
+const PRACTICE_BUSY = "Practice is busy right now. Try again in a few minutes.";
+async function practiceLimit(kind: "deal" | "pack" | "grade" | "check"): Promise<boolean> {
+  const limits = await import("./rateLimit.server");
+  const limit =
+    kind === "deal" ? limits.IP_PRACTICE_DEAL_LIMIT
+    : kind === "pack" ? limits.IP_PRACTICE_PACK_LIMIT
+    : kind === "grade" ? limits.IP_PRACTICE_GRADE_LIMIT
+    : limits.IP_PRACTICE_CHECK_LIMIT;
+  return limits.withinIpRateLimit(limit);
 }
 
 function validType(type: string): PuzzleType {
@@ -98,6 +65,7 @@ export const practiceGenerateFn = createServerFn({ method: "POST" })
   .inputValidator((input: { type: string; example?: boolean }) => input)
   .handler(async ({ data }) => {
     const type = validType(data.type);
+    if (!(await practiceLimit("deal"))) throw new Error(PRACTICE_BUSY);
     const { generatePuzzle } = await import("./generate.server");
     const example = data.example === true;
     let unblockRow = null;
@@ -119,7 +87,7 @@ export const practiceGenerateFn = createServerFn({ method: "POST" })
     if (!example) {
       // Slow types come from their precomputed bank; a fresh seed picks the board.
       const { pub, priv } = await dealPractice(type, unblockRow);
-      return { puzzle: pub, sealed: await seal({ ...priv, __dealtAt: Date.now() }) };
+      return { puzzle: pub, sealed: await sealDeal(pub, priv, { __dealtAt: Date.now() }) };
     }
     const { withSeededRandom } = await import("./random");
     const { INTRO_EXAMPLE_ID, INTRO_EXAMPLE_SEED } = await import("./puzzleDemo");
@@ -134,7 +102,7 @@ export const practiceGenerateFn = createServerFn({ method: "POST" })
       ? withSeededRandom(INTRO_EXAMPLE_SEED, () => generatePuzzle(type, { bankSeed: INTRO_EXAMPLE_SEED }))
       : bankedIntroExample(type) ?? withSeededRandom(INTRO_EXAMPLE_SEED, () => type === "wordsmith" ? generateWordsmithExample() : generatePuzzle(type, { unblockRow }));
     const { pub, priv } = splitPuzzle(made);
-    return { puzzle: pub, sealed: await seal({ ...priv, __example: INTRO_EXAMPLE_ID, __dealtAt: Date.now() }) };
+    return { puzzle: pub as PuzzleData, sealed: await sealDeal(pub as PuzzleData, priv as Loose, { __example: INTRO_EXAMPLE_ID, __dealtAt: Date.now() }) };
   });
 
 /**
@@ -144,23 +112,8 @@ export const practiceGenerateFn = createServerFn({ method: "POST" })
 export const practiceStartFn = createServerFn({ method: "POST" })
   .inputValidator((input: { sealed: string }) => input)
   .handler(async ({ data }) => {
-    const sealed = String(data.sealed ?? "");
-    await unsealRaw(sealed);
-    return { start: await seal({ __start: Date.now(), __for: await sealedDigest(sealed) }) };
+    return { start: await (await sealing()).sealStart(String(data.sealed ?? "")) };
   });
-
-/** A start token's time when it is valid for this deal, else undefined. */
-async function startAtOf(token: unknown, sealed: string): Promise<number | undefined> {
-  if (typeof token !== "string" || !token) return undefined;
-  try {
-    const raw = await unsealRaw(token);
-    if (raw["__for"] !== (await sealedDigest(sealed))) return undefined;
-    const at = raw["__start"];
-    return typeof at === "number" && Number.isFinite(at) ? at : undefined;
-  } catch {
-    return undefined;
-  }
-}
 
 /** Checks and scores a practice answer, then hands back the full puzzle. */
 export const practiceGradeFn = createServerFn({ method: "POST" })
@@ -184,12 +137,13 @@ export const practiceGradeFn = createServerFn({ method: "POST" })
     // Log only: grading never depends on the client's version.
     const staleNote = staleSubmissionNote("practice_grade", data.clientVersion, data.puzzle.type);
     if (staleNote) console.warn(staleNote);
-    const raw = await unsealRaw(data.sealed);
-    const { __example: example, __dealtAt: _dealtAt, ...priv } = raw;
-    if (priv["type"] !== data.puzzle.type) throw new Error("That puzzle didn’t load. Try another.");
-    const puzzle = mergePuzzle(data.puzzle, priv);
+    if (!(await practiceLimit("grade"))) throw new Error(PRACTICE_BUSY);
+    const { priv, pub, example, dealtAt } = await openDealOrThrow(data.sealed, data.puzzle);
+    const puzzle = mergePuzzle(pub, priv);
+    // The claim held to the server's receipt, as in a room (practiceReceipt.ts).
     const { practiceReceiptMsRemaining } = await import("./practiceReceipt");
-    const received = practiceReceiptMsRemaining(puzzle, { dealtAt: dealtAtOf(raw), startAt: await startAtOf(data.start, data.sealed), nowMs });
+    const startAt = await (await sealing()).startAtFor(data.start, String(data.sealed ?? ""));
+    const received = practiceReceiptMsRemaining(puzzle, { dealtAt, startAt, nowMs });
     return gradePracticeRun(data, puzzle, example !== undefined, received);
   });
 
@@ -249,27 +203,12 @@ async function gradePracticeRun(data: PracticeRunInput, puzzle: PuzzleData, exam
 /*  deal was changed on the phone is rejected, never graded.                   */
 /* -------------------------------------------------------------------------- */
 
-/** Keys sorted, undefined dropped: the same text on the server that dealt and the server that grades. */
-function canonical(value: unknown): string {
-  if (Array.isArray(value)) return `[${value.map((v) => (v === undefined ? "null" : canonical(v))).join(",")}]`;
-  if (value && typeof value === "object") {
-    const entries = Object.entries(value as Loose)
-      .filter(([, v]) => v !== undefined && typeof v !== "function")
-      .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
-    return `{${entries.map(([k, v]) => `${JSON.stringify(k)}:${canonical(v)}`).join(",")}}`;
-  }
-  return JSON.stringify(value ?? null);
-}
-
-async function pubDigest(pub: unknown): Promise<string> {
-  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(canonical(pub)));
-  return toBase64(new Uint8Array(digest));
-}
-
 /** Up to PACK_MAX_DEALS fresh deals for each of up to PACK_MAX_TYPES games (games that fail to deal are left out). */
 export const practicePackFn = createServerFn({ method: "POST" })
   .inputValidator((input: { types: string[]; count?: number }) => input)
   .handler(async ({ data }) => {
+    // Over the limit: no packs this time (the phone tops up again on a later visit).
+    if (!(await practiceLimit("pack"))) return { packs: [] };
     const { PACK_MAX_DEALS, PACK_MAX_TYPES, offlineStatusOf } = await import("@/lib/offline/offlineStatus");
     const count = Math.max(1, Math.min(PACK_MAX_DEALS, Math.floor(Number(data.count) || PACK_MAX_DEALS)));
     const types = [...new Set((Array.isArray(data.types) ? data.types : []).map(String))].slice(0, PACK_MAX_TYPES);
@@ -289,7 +228,7 @@ export const practicePackFn = createServerFn({ method: "POST" })
             unblockRow = await drawUnblockRow(supabaseAdmin);
           }
           const { pub, priv, seed } = await dealPractice(type, unblockRow);
-          deals.push({ id: seed, puzzle: pub, sealed: await seal({ ...priv, __pack: seed, __pub: await pubDigest(pub) }) });
+          deals.push({ id: seed, puzzle: pub, sealed: await sealDeal(pub, priv, { __pack: seed }) });
         }
       } catch (error) {
         console.warn(`[offline] no pack for ${type}: ${String(error)}`);
@@ -319,16 +258,20 @@ export const practiceGradeQueuedFn = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const staleNote = staleSubmissionNote("practice_grade", data.clientVersion, data.puzzle?.type);
     if (staleNote) console.warn(staleNote);
+    // Thrown, not rejected: the phone keeps the run and sends it again later.
+    if (!(await practiceLimit("grade"))) throw new Error(PRACTICE_BUSY);
     let raw: Loose;
     try {
       raw = await unsealRaw(String(data.sealed ?? ""));
     } catch {
       return { status: "rejected" as const, reason: "seal" };
     }
-    const { __example: example, __pack: pack, __pub: digest, __dealtAt: _dealtAt, ...priv } = raw;
-    if (!data.puzzle || priv["type"] !== data.puzzle.type) return { status: "rejected" as const, reason: "type" };
-    if (pack !== undefined && digest !== (await pubDigest(data.puzzle))) return { status: "rejected" as const, reason: "deal" };
-    const graded = await gradePracticeRun(data, mergePuzzle(data.puzzle, priv), example !== undefined);
+    if (!data.puzzle || raw["type"] !== data.puzzle.type) return { status: "rejected" as const, reason: "type" };
+    // Every deal, pack or live, must match the digest it was sealed with (H1): a token from before the digest, or a
+    // changed deal, is rejected, never graded.
+    const opened = await openDeal(data.sealed, data.puzzle);
+    if (!opened) return { status: "rejected" as const, reason: "deal" };
+    const graded = await gradePracticeRun(data, mergePuzzle(opened.pub, opened.priv), opened.example !== undefined);
     return { status: "graded" as const, ...graded };
   });
 
@@ -338,11 +281,12 @@ export const practiceCheckWordFn = createServerFn({ method: "POST" })
     (input: { puzzle: PuzzleData; word: string; found: string[]; path?: number[]; sealed?: string }) => input,
   )
   .handler(async ({ data }) => {
+    if (!(await practiceLimit("check"))) return { valid: false as const, points: 0, word: "", reason: PRACTICE_BUSY };
     const found = Array.isArray(data.found) ? data.found.slice(0, 200).map(String) : [];
     if (data.puzzle.type === "letterwheel") {
-      const priv = await unseal(String(data.sealed ?? ""));
+      const { priv, pub } = await openDealOrThrow(data.sealed, data.puzzle);
       if (priv["type"] !== "letterwheel") throw new Error("That puzzle didn’t load. Try another.");
-      const puzzle = mergePuzzle(data.puzzle, priv);
+      const puzzle = mergePuzzle(pub, priv);
       if (puzzle.type !== "letterwheel") return { valid: false as const, points: 0, word: "" };
       const { checkLetterWheelWord } = await import("./letterWheel");
       const { isWord } = await import("./dictionary.server");
@@ -350,9 +294,9 @@ export const practiceCheckWordFn = createServerFn({ method: "POST" })
       return checkLetterWheelWord(puzzle.words ?? [], word, found, word.length >= 3 && isWord(word));
     }
     if (data.puzzle.type === "wordsearch") {
-      const priv = await unseal(String(data.sealed ?? ""));
+      const { priv, pub } = await openDealOrThrow(data.sealed, data.puzzle);
       if (priv["type"] !== "wordsearch") throw new Error("That puzzle didn’t load. Try another.");
-      const puzzle = mergePuzzle(data.puzzle, priv);
+      const puzzle = mergePuzzle(pub, priv);
       if (puzzle.type !== "wordsearch") return { valid: false as const, points: 0, word: "" };
       const { checkWordSearchPath } = await import("./wordSearch");
       const path = Array.isArray(data.path) ? data.path.slice(0, 16).map(Number) : [];
@@ -384,10 +328,10 @@ export const practiceCheckMovesFn = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const type = data.puzzle?.type;
     if (type !== "strikeout" && type !== "codeword" && type !== "swapword") return null;
-    const priv = await unseal(String(data.sealed ?? ""));
-    if (priv["type"] !== type) throw new Error("That puzzle didn’t load. Try another.");
+    if (!(await practiceLimit("check"))) return null;
+    const { priv, pub } = await openDealOrThrow(data.sealed, data.puzzle);
     const { checkPuzzleMoves } = await import("./moves.server");
-    return checkPuzzleMoves(mergePuzzle(data.puzzle, priv), data.moves);
+    return checkPuzzleMoves(mergePuzzle(pub, priv), data.moves);
   });
 
 async function demoKeyOk(key: unknown): Promise<boolean> {
@@ -399,10 +343,25 @@ async function demoKeyOk(key: unknown): Promise<boolean> {
   return timingSafeEqual(a, b);
 }
 
+/**
+ * Security fix M7 (Nov 2026 audit): demo saves are refused by the server itself in a production build unless the
+ * server sets INTRO_DEMO_SAVES=1 (the client's `dev` flag alone no longer opens them), and guesses at the key are
+ * limited per network address.
+ */
+async function demoSavesAllowed(): Promise<boolean> {
+  const { demoSavesOpen } = await import("./demoSaves.server");
+  return demoSavesOpen(import.meta.env.PROD, process.env["INTRO_DEMO_SAVES"]);
+}
+const DEMO_SAVES_CLOSED = "Demo saving is only available in dev practice.";
+
 /** Whether the ?key= on the URL is the private intro-demo key. */
 export const checkDemoKeyFn = createServerFn({ method: "POST" })
   .inputValidator((input: { key: string }) => input)
-  .handler(async ({ data }) => ({ ok: await demoKeyOk(data.key) }));
+  .handler(async ({ data }) => {
+    const { IP_DEMO_KEY_LIMIT, withinIpRateLimit } = await import("./rateLimit.server");
+    if (!(await withinIpRateLimit(IP_DEMO_KEY_LIMIT))) return { ok: false };
+    return { ok: await demoKeyOk(data.key) };
+  });
 
 /**
  * Dev-only save (?dev=1&key=… practice reveal). Requires the private
@@ -415,7 +374,7 @@ export const saveIntroDemoFn = createServerFn({ method: "POST" })
       input,
   )
   .handler(async ({ data }) => {
-    if (data.dev !== true) throw new Error("Demo saving is only available in dev practice.");
+    if (data.dev !== true || !(await demoSavesAllowed())) throw new Error(DEMO_SAVES_CLOSED);
     if (!(await demoKeyOk(data.key))) throw new Error("Forbidden");
     const { ARCADE_REVEAL_RENDERERS } = await import("@/lib/arcade/revealRenderers");
     const { DEMO_LENGTH_TICKS, DEMO_MAX_CHARS, DEMO_START_TICK, runSeed } = await import(
@@ -425,9 +384,7 @@ export const saveIntroDemoFn = createServerFn({ method: "POST" })
     if (!ARCADE_REVEAL_RENDERERS[type]) throw new Error("Only engine games have intro demos.");
     const run = String(data.answer ?? "");
     if (!run || run.length > DEMO_MAX_CHARS) throw new Error("Run log is empty or too long.");
-    const priv = await unseal(String(data.sealed ?? ""));
-    if (priv["type"] !== type) throw new Error("That puzzle didn’t load. Try another.");
-    const { pub } = splitPuzzle(mergePuzzle(data.puzzle, priv));
+    const { pub } = await openDealOrThrow(data.sealed, data.puzzle);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { error } = await supabaseAdmin.from("intro_demos" as never).upsert(
       {
@@ -455,7 +412,7 @@ export const savePuzzleDemoFn = createServerFn({ method: "POST" })
     (input: { puzzle: PuzzleData; sealed: string; log: unknown; dev: boolean; key: string }) => input,
   )
   .handler(async ({ data }) => {
-    if (data.dev !== true) throw new Error("Demo saving is only available in dev practice.");
+    if (data.dev !== true || !(await demoSavesAllowed())) throw new Error(DEMO_SAVES_CLOSED);
     if (!(await demoKeyOk(data.key))) throw new Error("Forbidden");
     const { ARCADE_REVEAL_RENDERERS } = await import("@/lib/arcade/revealRenderers");
     const { INTRO_EXAMPLE_ID, PUZZLE_DEMO_MAX_CHARS, isPuzzleDemoLog } = await import("./puzzleDemo");
@@ -464,11 +421,8 @@ export const savePuzzleDemoFn = createServerFn({ method: "POST" })
     if (!isPuzzleDemoLog(data.log)) throw new Error("No recorded actions.");
     const text = JSON.stringify(data.log);
     if (text.length > PUZZLE_DEMO_MAX_CHARS) throw new Error("Demo is too long.");
-    const raw = await unsealRaw(String(data.sealed ?? ""));
-    if (raw["type"] !== type) throw new Error("That puzzle didn’t load. Try another.");
-    if (raw["__example"] !== INTRO_EXAMPLE_ID) throw new Error("Only the fixed intro example can be saved.");
-    const { __example: _example, __dealtAt: _dealtAt, ...priv } = raw;
-    const { pub } = splitPuzzle(mergePuzzle(data.puzzle, priv));
+    const { pub, example } = await openDealOrThrow(data.sealed, data.puzzle);
+    if (example !== INTRO_EXAMPLE_ID) throw new Error("Only the fixed intro example can be saved.");
     const log = JSON.parse(text) as { actions: { t: number }[] };
     const lengthMs = Math.max(0, ...log.actions.map((a) => Number(a.t) || 0));
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");

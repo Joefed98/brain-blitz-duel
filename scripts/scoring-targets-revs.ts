@@ -81,7 +81,24 @@ export const STD_REVS: Partial<Record<LiveBandGame, readonly [std: number, play:
  */
 export const DEAL_REVS: Partial<Record<LiveBandGame, readonly [deal: number, game: number]>> = { flip: [12, 11] };
 
+/**
+ * The scoring audit's score-only revisions (Nov 2026, docs/audit-nov-2026/scoring.md): type → [the revision, the
+ * revision whose play it keeps exactly, tick for tick and checksum for checksum]. Spacewalk crossRev 12, Wavefront wavRev
+ * 13 and Fission burstRev 11 don't charge the life that ends the run and cap mistakes at half the core (Fission also
+ * charges wasted beams); High Rise skylineRev 10 counts perfects over the first 61 floors; Slice sliceRev 13 scores its
+ * core and combo on straight lines from 0 (scoring-audit-arcade-check proves each).
+ */
+export const AUDIT_REVS: Partial<Record<LiveBandGame, readonly [rev: number, play: number]>> = {
+  cross: [12, 11],
+  wavefront: [13, 12],
+  burst: [11, 10],
+  skyline: [10, 9],
+  slice: [13, 12],
+};
+
 export function playRevOf(type: string, rev: number | undefined | null): number | undefined | null {
+  const audit = AUDIT_REVS[type as LiveBandGame];
+  if (audit && rev === audit[0]) return playRevOf(type, audit[1]);
   const deal = DEAL_REVS[type as LiveBandGame];
   if (deal && rev === deal[0]) return playRevOf(type, deal[1]);
   const std = STD_REVS[type as LiveBandGame];

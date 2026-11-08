@@ -28,6 +28,7 @@ import {
   encodeGradient,
   encodeJumbled,
   gradientLocked,
+  gradientSwapLimit,
   isGradientSwap,
   replayGradient,
   replayGradientAnswer,
@@ -337,7 +338,10 @@ function GradientSwapStage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDr
   const [selected, setSelected] = useState<number | null>(null);
   const [numbers, setNumbers] = useState(readNumbers);
   const submitted = useRef(false);
-  const replay = useMemo(() => replayGradient(data.frame, swaps), [data.frame, swaps]);
+  // tilesRev 7 (partial-credit fixes, 7 Nov 2026): a swap limit; swaps past it don't happen.
+  const limit = gradientSwapLimit(data);
+  const replay = useMemo(() => replayGradient(data.frame, swaps, undefined, limit), [data.frame, swaps, limit]);
+  const outOfSwaps = limit !== null && replay.moves >= limit && !replay.solved;
   const par = data.par ?? 0;
   const celebrate = useSolveMoment(replay.solved, "tiles.solve");
   const inFrame = useFrameProgress(replay.inPlace, JUMBLED_MOVABLE, "in place");
@@ -356,7 +360,7 @@ function GradientSwapStage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDr
     onSubmit(encodeGradient(swaps));
   }, [now, phaseStartedAt, locked, data.timeLimitMs, swaps, onSubmit]);
 
-  const blocked = locked || submitted.current || replay.solved;
+  const blocked = locked || submitted.current || replay.solved || outOfSwaps;
   const tileAt = (cell: number) => boardRef.current?.querySelector(`[data-cell="${cell}"]`);
 
   const swap = (a: number, b: number) => {
@@ -367,12 +371,13 @@ function GradientSwapStage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDr
       return;
     }
     const next = [...swaps, { a, b }];
-    const after = replayGradient(data.frame, next);
+    const after = replayGradient(data.frame, next, undefined, limit);
     soundCue("tiles.slide");
     if (after.inPlace > replay.inPlace) playLock();
     else playTick(0.6);
     setSwaps(next);
-    if (after.solved) {
+    // Solved, or (tilesRev 7) the last swap of the limit made: the board is final, so it goes in now.
+    if (after.solved || (limit !== null && after.moves >= limit)) {
       submitted.current = true;
       onSubmit(encodeGradient(next));
     }
@@ -426,10 +431,17 @@ function GradientSwapStage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDr
         </div>
       </div>
       {inFrame ? (
-        <FramePills testId="tiles" items={parPills("Swaps", replay.moves, par)} />
+        <FramePills
+          testId="tiles"
+          items={[
+            ...parPills("Swaps", replay.moves, par),
+            limit !== null ? { id: "limit", label: "Left", value: Math.max(0, limit - replay.moves), limit, ...(limit - replay.moves <= 3 ? { tone: "warn" as const } : {}) } : null,
+          ]}
+        />
       ) : (
         <p data-after-arena data-game-controls="status" className="shrink-0 font-mono text-xs uppercase tracking-widest text-muted-foreground">
-          swaps <span className="text-primary">{replay.moves}</span> · par <span className="text-primary">{par}</span>
+          swaps <span className="text-primary">{replay.moves}</span>
+          {limit !== null ? <> of <span className="text-primary">{limit}</span></> : null} · par <span className="text-primary">{par}</span>
         </p>
       )}
       <div data-game-controls="actions" className="flex shrink-0 gap-3 px-2">
@@ -572,7 +584,9 @@ export function GradientReveal({ puzzle, myAnswer, myCorrect, scoreParts }: Puzz
       <p className={`whitespace-normal break-words text-center font-mono text-base font-bold ${myCorrect ? "text-primary" : "text-foreground"}`}>
         {replay.solved
           ? `Solved in ${replay.moves} ${swaps ? "swaps" : "moves"} · par ${par}${data.minMoves ? ` · best ${data.minMoves}` : ""}`
-          : `${replay.inPlace} / ${JUMBLED_MOVABLE} in place · ${Math.round(jumbledProgress(data.frame, replay.frame) * 100)} % rebuilt`}
+          : gradientSwapLimit(data) !== null
+            ? `${replay.inPlace} / ${JUMBLED_MOVABLE} in place${replay.moves >= gradientSwapLimit(data)! ? " · out of swaps" : ""}`
+            : `${replay.inPlace} / ${JUMBLED_MOVABLE} in place · ${Math.round(jumbledProgress(data.frame, replay.frame) * 100)} % rebuilt`}
       </p>
       {parts ? <p className="font-mono text-base text-primary">{parts}</p> : null}
     </div>

@@ -18,7 +18,7 @@ import { POOL_REV } from "@/lib/arcade/pool";
 import { CURLING_REV } from "@/lib/arcade/curling";
 import { CURLING_BANK_V4 } from "./curlingBankV4.server";
 import { MINIGOLF_BANK_V2 } from "./minigolfBankV2.server";
-import { POOL_BANK_V4 } from "./poolBankV4.server";
+import { POOL_BANK_V3 } from "./poolBankV3.server";
 import { ALLEYROLL_REV_DEALT } from "@/lib/arcade/alleyroll";
 import type { AlleyRollPuzzleData, CurlingPuzzleData, FreekickPuzzleData, HomerunPuzzleData, MinigolfPuzzleData, PoolPuzzleData, RacingPuzzleData } from "./types";
 
@@ -46,9 +46,9 @@ export function generateMinigolf(): MinigolfPuzzleData {
 }
 
 export function generatePool(): PoolPuzzleData {
-  // poolRev 4 (3 Nov 2026) deals from its own proved bank (the poolRev 3 layouts re-proved at 200 in 90 s on both sets;
-  // the same seeds, so rounds already dealt are unchanged); poolRev 3, 2 and 1 rounds replay on theirs.
-  return { type: "pool", seed: POOL_BANK_V4[arcadeSeed() % POOL_BANK_V4.length]!, poolRev: POOL_REV };
+  // poolRev 4 (3 Nov 2026) deals from poolRev 3's proved bank, every layout re-proved at 200 on poolRev 4
+  // (pool-bank.ts --rev=4, pool-check); poolRev 2 and 1 rounds replay on theirs (poolBankV2 / poolBank).
+  return { type: "pool", seed: POOL_BANK_V3[arcadeSeed() % POOL_BANK_V3.length]!, poolRev: POOL_REV };
 }
 
 export function generateCurling(): CurlingPuzzleData {

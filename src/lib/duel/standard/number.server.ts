@@ -26,6 +26,8 @@ import type {
   PuzzleType,
 } from "../types";
 import type { StandardGame } from "./grade.server";
+import { PARTIAL_SHARE_POINTS, usesPartialCredit } from "../partialCredit";
+import { solverShare } from "../puzzleProgress";
 import {
   BALLPARK_STD_BULL_MAX,
   BALLPARK_STD_BULL_POINTS,
@@ -103,6 +105,43 @@ export function exactBestDistance(puzzle: TargetNumberPuzzleData, answer: string
   return best;
 }
 
+const neededCache = new Map<string, number>();
+
+/** The fewest numbers of `pool` an exact answer needs (Infinity when none reaches the target). */
+export function exactNumbersNeeded(pool: readonly number[], target: number): number {
+  const key = `${[...pool].sort((a, b) => a - b).join(",")}>${target}`;
+  const hit = neededCache.get(key);
+  if (hit !== undefined) return hit;
+  let need = Infinity;
+  outer: for (let k = 1; k <= pool.length; k++) for (const subset of subsets(pool.length, k)) if (solveTarget(subset.map((i) => pool[i]!), target)) { need = k; break outer; }
+  if (neededCache.size > 2048) neededCache.clear();
+  neededCache.set(key, need);
+  return need;
+}
+
+/**
+ * Exact depthRev 4 (partial-credit fixes, partialCredit.ts): the share of a solution built, 0–1. Each step that merges
+ * two numbers a solution needs brings the count of numbers still needed one closer to one; the share is the best of
+ * the steps on the board (a later step that leaves the target out of reach never takes it back), against the start's
+ * count, less one for each step on the board that brought it no closer (the solver games' waste). A solution of five
+ * numbers is four steps, so each step down one is a quarter.
+ */
+export function exactBuildShare(puzzle: TargetNumberPuzzleData, answer: string): number {
+  const steps = decodeSteps(answer);
+  const start = exactNumbersNeeded(puzzle.tiles, puzzle.target);
+  if (!Number.isFinite(start) || start < 2) return 0;
+  let best = start;
+  let made = 0;
+  for (let k = 1; k <= steps.length; k++) {
+    const replay = replayTargetSteps(puzzle.tiles, puzzle.target, steps.slice(0, k));
+    if (replay.steps.length < k) break;
+    made = k;
+    best = Math.min(best, exactNumbersNeeded(replay.pool, puzzle.target));
+  }
+  // Each step on the board that brought the target no closer cancels one that did (random chains earn about 0).
+  return solverShare(start - 1, start - best, made, 1);
+}
+
 const exact: StandardGame = {
   grade({ puzzle, answer, graded, msLeft, limitMs }) {
     const p = puzzle as TargetNumberPuzzleData;
@@ -113,6 +152,14 @@ const exact: StandardGame = {
       return { finished: true, speed: speedFor("target", msLeft, limitMs), bonus: elegance, measure: "elegance", facts: { tilesUsed: used, minTiles: min } };
     }
     const best = exactBestDistance(p, answer);
+    if (usesPartialCredit(p)) {
+      // The solution built so far or the closeness curve, whichever pays more.
+      const share = exactBuildShare(p, answer);
+      const close = exactCloseCredit(best);
+      const built = PARTIAL_SHARE_POINTS * share;
+      const paidBy = built <= 0 && close <= 0 ? null : built >= close ? "built" : "close";
+      return { finished: false, credit: Math.max(close, built), facts: { bestDistance: best, built: Math.round(share * 100), ...(paidBy ? { paidBy } : {}) } };
+    }
     return { finished: false, credit: exactCloseCredit(best), facts: { bestDistance: best } };
   },
 };

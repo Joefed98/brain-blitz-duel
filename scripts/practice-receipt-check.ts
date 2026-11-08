@@ -105,17 +105,19 @@ ok(games >= 80, `every active game that deals without a database is compared (${
 /* 3. Source. */
 const page = readFileSync("src/routes/practice.tsx", "utf8");
 const fns = readFileSync("src/lib/duel/practice.functions.ts", "utf8");
+const seal = readFileSync("src/lib/duel/practiceSeal.server.ts", "utf8");
 ok(/const beginRound = useCallback\([\s\S]*?practiceStartFn\(\{ data: \{ sealed \} \}\)[\s\S]*?setStage\("puzzle"\)/.test(page), "the phone asks for the start token as the round's clock starts");
 ok((page.match(/beginRound\(\);/g) ?? []).length >= 2, "both ways into the round (Ready and the intro's end) go through beginRound");
 ok(!/setStartedAt\(Date\.now\(\)\);\s*setStage\("puzzle"\)/.test(page.replace(/const beginRound[\s\S]*?\}, \[sealed\]\);/, "")), "no other path starts the round without the token");
 ok(/packSeed\.current === null && sealed/.test(page), "pack runs ask for no token (they are graded on the phone's clock)");
 ok(/\.\.\.\(start \? \{ start \} : \{\}\)/.test(page), "the answer carries the token");
-ok(/__dealtAt: Date\.now\(\)/.test(fns) && (fns.match(/__dealtAt: Date\.now\(\)/g) ?? []).length === 2, "live deals and the intro example are sealed with the deal's time");
-ok(!/__pack: seed, __pub: await pubDigest\(pub\), __dealtAt/.test(fns), "pack deals carry no deal time");
-const unsealDrops = (fns.match(/__dealtAt: _dealtAt/g) ?? []).length;
-ok(unsealDrops >= 4, `every unseal path drops the deal's time (${unsealDrops})`);
-ok(/practiceReceiptMsRemaining\(puzzle, \{ dealtAt: dealtAtOf\(raw\), startAt: await startAtOf\(data\.start, data\.sealed\), nowMs \}\)/.test(fns), "the grade bounds the claim with the deal's time and the token");
-ok(/raw\["__for"\] !== \(await sealedDigest\(sealed\)\)/.test(fns), "a token from another deal is refused");
+ok((fns.match(/__dealtAt: Date\.now\(\)/g) ?? []).length === 2, "live deals and the intro example are sealed with the deal's time");
+ok(!/__pack: seed[^\n]*__dealtAt/.test(fns), "pack deals carry no deal time");
+ok(/__dealtAt: at, \.\.\.priv \} = raw;/.test(seal) && /dealtAt = typeof at === "number"/.test(seal), "openDeal drops the deal's time from the private half and returns it apart");
+ok(!/unsealRaw\([^)]*\)[^\n]*\.\.\.priv/.test(fns), "practice.functions merges no sealed half but openDeal's");
+ok(/practiceReceiptMsRemaining\(puzzle, \{ dealtAt, startAt, nowMs \}\)/.test(fns) && /startAtFor\(data\.start, /.test(fns), "the grade bounds the claim with the deal's time and the token");
+ok(/raw\["__for"\] !== \(await tokenDigest\(sealed\)\)/.test(seal), "a token from another deal is refused");
+ok(/practiceTrustedMs\(puzzle, data\.msRemaining, received\)/.test(fns) && /gradeAnswer\(puzzle, data\.answer, ms, data\.extra, bound\)/.test(fns), "the bounded time and the receipt reach gradeAnswer");
 
 console.log(`practice-receipt-check: ${games} games, ${compared} practice/room comparisons, ${cut} inflated claims cut`);
 if (failures.length) {

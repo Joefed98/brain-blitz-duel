@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from "react";
 
-import { PLAYER_ICONS_ENABLED } from "@/lib/brand";
 import {
   BADGE_GLYPH,
   PLAYER_COLOURS,
@@ -162,39 +161,35 @@ export function LookPicker({
     <div data-look-picker className="th-card flex flex-col gap-2 rounded-xl border border-border bg-card px-3 py-3 text-left">
       <p className="font-display text-xs font-semibold jz-em-name">Your colour</p>
       <ColourWheel selected={look.colour} taken={taken} takenBy={takenBy} onPick={(colour) => onChange({ colour })} />
-      {PLAYER_ICONS_ENABLED && (
-        <>
-          <p className="mt-1 font-display text-xs font-semibold jz-em-name">Your icon</p>
-          <div className="grid grid-cols-6 gap-1" role="radiogroup" aria-label="Your icon">
-            {[null, ...PLAYER_ICON_IDS].map((icon) => {
-              const selected = look.icon === icon;
-              const holder = icon ? takenIconSlots.get(icon) : undefined;
-              const label = icon ? PLAYER_ICON_ART[icon].label : "Your initial";
-              return (
-                <button
-                  key={icon ?? "initial"}
-                  type="button"
-                  role="radio"
-                  aria-checked={selected}
-                  disabled={holder !== undefined}
-                  aria-label={holder !== undefined ? `${label}, taken by ${takenBy(holder)}` : label}
-                  data-look-icon={icon ?? "initial"}
-                  onClick={() => onChange({ icon })}
-                  className="press flex h-11 items-center justify-center rounded-lg disabled:cursor-not-allowed"
-                >
-                  <span
-                    className={`rounded-full ${selected ? "ring-2 ring-foreground ring-offset-2 ring-offset-card" : ""} ${
-                      holder !== undefined ? "opacity-40 grayscale" : ""
-                    }`}
-                  >
-                    <PlayerBadge look={{ colour: look.colour, icon }} name={name} size={32} />
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        </>
-      )}
+      <p className="mt-1 font-display text-xs font-semibold jz-em-name">Your icon</p>
+      <div className="grid grid-cols-6 gap-1" role="radiogroup" aria-label="Your icon">
+        {[null, ...PLAYER_ICON_IDS].map((icon) => {
+          const selected = look.icon === icon;
+          const holder = icon ? takenIconSlots.get(icon) : undefined;
+          const label = icon ? PLAYER_ICON_ART[icon].label : "Your initial";
+          return (
+            <button
+              key={icon ?? "initial"}
+              type="button"
+              role="radio"
+              aria-checked={selected}
+              disabled={holder !== undefined}
+              aria-label={holder !== undefined ? `${label}, taken by ${takenBy(holder)}` : label}
+              data-look-icon={icon ?? "initial"}
+              onClick={() => onChange({ icon })}
+              className="press flex h-11 items-center justify-center rounded-lg disabled:cursor-not-allowed"
+            >
+              <span
+                className={`rounded-full ${selected ? "ring-2 ring-foreground ring-offset-2 ring-offset-card" : ""} ${
+                  holder !== undefined ? "opacity-40 grayscale" : ""
+                }`}
+              >
+                <PlayerBadge look={{ colour: look.colour, icon }} name={name} size={32} />
+              </span>
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -367,7 +362,7 @@ export function RoomLobby({
                     type="button"
                     data-look-toggle
                     aria-expanded={picking}
-                    aria-label={`${player.display_name} (you): change your colour${PLAYER_ICONS_ENABLED ? " and icon" : ""} for this room`}
+                    aria-label={`${player.display_name} (you): change your colour and icon for this room`}
                     onClick={() => setPicking((open) => !open)}
                     className="press flex min-h-11 min-w-0 flex-1 items-center gap-2 text-left"
                   >
@@ -399,7 +394,7 @@ export function RoomLobby({
         </ul>
         {me && canChooseLook && !picking ? (
           <p className="rs-sub text-[13px]" data-look-hint>
-            Tap your name to change your colour{PLAYER_ICONS_ENABLED ? " and icon" : ""} for this room.
+            Tap your name to change your colour and icon for this room.
           </p>
         ) : null}
         {me && picking && canChooseLook && myLook ? (

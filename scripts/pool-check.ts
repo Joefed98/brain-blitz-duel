@@ -16,7 +16,7 @@
  *  - poolRev 3 (1 Nov 2026, what rooms deal; poolBankV3.server.ts, witnesses pool-witness-v3.json): a 25 % harder top
  *    speed, 1.75× the follow, draw and side, a shot touching no ball a foul; poolRev 2 runs recorded on main
  *    (scripts/fixtures/tuning-nov1-legacy.json) replay to the same score and final state;
- *  - poolRev 4 (3 Nov 2026, what rooms deal; poolBankV4.server.ts, witnesses pool-witness-v4.json): the seed's set,
+ *  - poolRev 4 (3 Nov 2026, what rooms deal; dealt from poolBankV3.server.ts, witnesses pool-witness-v4.json): the seed's set,
  *    spots or stripes (the same for everyone, both sets dealt), the sim's ids kept and the art's swapped, every bank
  *    witness 200 on the seed's set and on the other, 90 s, its own full-by time; poolRev 3 runs recorded on main
  *    6326101 (scripts/fixtures/sports-nov3-legacy.json) replay to the same score and final state.
@@ -64,7 +64,6 @@ import { decodePoolRun, encodePoolRun, replayPoolRun } from "../src/lib/duel/poo
 import { POOL_BANK } from "../src/lib/duel/poolBank.server";
 import { POOL_BANK_V2 } from "../src/lib/duel/poolBankV2.server";
 import { POOL_BANK_V3 } from "../src/lib/duel/poolBankV3.server";
-import { POOL_BANK_V4 } from "../src/lib/duel/poolBankV4.server";
 import { generatePool } from "../src/lib/duel/sports.server";
 
 let checks = 0;
@@ -130,16 +129,16 @@ ok(POOL_BANK_V3.length >= 40 && new Set(POOL_BANK_V3).size === POOL_BANK_V3.leng
 }
 for (let i = 0; i < 50; i++) {
   const p = generatePool();
-  ok(POOL_BANK_V4.includes(p.seed) && p.poolRev === POOL_REV, `rooms deal a poolRev 4 bank layout on poolRev 4 (${p.seed})`);
+  ok(POOL_BANK_V3.includes(p.seed) && p.poolRev === POOL_REV, `rooms deal a bank layout (POOL_BANK_V3) on poolRev 4 (${p.seed})`);
 }
 
 /* poolRev 4: the seed's set, 90 s, its bank proved on both sets; poolRev 3 runs recorded on main replay as before. */
 {
-  ok(POOL_BANK_V4.length >= 40 && new Set(POOL_BANK_V4).size === POOL_BANK_V4.length && POOL_BANK_V4.every((sd) => POOL_BANK_V3.includes(sd)), `at least 40 unique poolRev 4 bank layouts, each a poolRev 3 layout (${POOL_BANK_V4.length})`);
+  ok(POOL_BANK_V3.length >= 40 && new Set(POOL_BANK_V3).size === POOL_BANK_V3.length, `at least 40 unique bank layouts dealt on poolRev 4, the poolRev 3 bank (${POOL_BANK_V3.length})`);
   let cleared = 0;
   let both = 0;
   const sets = [0, 0];
-  for (const seed of POOL_BANK_V4) {
+  for (const seed of POOL_BANK_V3) {
     const run = replayPoolRun(seed, witnessV4[String(seed)] ?? "", 4);
     const set = poolSetFor(seed, 4);
     sets[set]! += 1;
@@ -151,8 +150,8 @@ for (let i = 0; i < 50; i++) {
     while (!other.isOver(st)) st = other.step(st, events.get(st.tick + 1) ?? null);
     if (st.set === 1 - set && other.score(st) === 200 && poolCheckpoint(st).checksum === poolCheckpoint(run.state).checksum) both++;
   }
-  ok(cleared === POOL_BANK_V4.length, `every poolRev 4 bank witness clears its table to 200 on the seed's own set through the server replay (${cleared} of ${POOL_BANK_V4.length})`);
-  ok(both === POOL_BANK_V4.length, `every poolRev 4 bank witness also scores 200 with the other set dealt, the same final state (${both} of ${POOL_BANK_V4.length})`);
+  ok(cleared === POOL_BANK_V3.length, `every poolRev 4 bank witness clears its table to 200 on the seed's own set through the server replay (${cleared} of ${POOL_BANK_V3.length})`);
+  ok(both === POOL_BANK_V3.length, `every poolRev 4 bank witness also scores 200 with the other set dealt, the same final state (${both} of ${POOL_BANK_V3.length})`);
   ok(sets[0]! >= 15 && sets[1]! >= 15, `the poolRev 4 bank deals both sets (${sets[0]} spots, ${sets[1]} stripes)`);
   // The set: from the seed alone, about half each, spots on every earlier revision.
   let stripes = 0;
@@ -163,17 +162,17 @@ for (let i = 0; i < 50; i++) {
     stripes += k;
   }
   ok(steady && stripes > 1800 && stripes < 2200, `the set comes from the seed (the same every time; poolRev 3 and earlier always spots); stripes on ${stripes} of 4000 seeds`);
-  ok(poolGameFor(4).init(POOL_BANK_V4[0]!).set === poolSetFor(POOL_BANK_V4[0]!, 4) && poolGameFor(3).init(POOL_BANK_V3[0]!).set === undefined, "poolRev 4's state carries its set; poolRev 3's carries none (its checksum and state unchanged)");
+  ok(poolGameFor(4).init(POOL_BANK_V3[0]!).set === poolSetFor(POOL_BANK_V3[0]!, 4) && poolGameFor(3).init(POOL_BANK_V3[0]!).set === undefined, "poolRev 4's state carries its set; poolRev 3's carries none (its checksum and state unchanged)");
   ok(poolShownId(3, POOL_SET_STRIPES) === 11 && poolShownId(11, POOL_SET_STRIPES) === 3 && poolShownId(POOL_BLACK, POOL_SET_STRIPES) === POOL_BLACK && poolShownId(POOL_CUE, POOL_SET_STRIPES) === POOL_CUE && poolShownId(3, POOL_SET_SPOTS) === 3, "on stripes the art shows your seven as 9–15 and the others as 1–7 (black and cue unchanged)");
   // 90 s: an idle run ends at 5,400 ticks (poolRev 3: 7,200); the black at the buzzer pays no speed.
   for (const [rev, ticks] of [[4, 5400], [3, 7200]] as const) {
     const g = poolGameFor(rev);
-    let idle = g.init(rev === 4 ? POOL_BANK_V4[0]! : POOL_BANK_V3[0]!);
+    let idle = g.init(rev === 4 ? POOL_BANK_V3[0]! : POOL_BANK_V3[0]!);
     while (!idle.over) idle = g.step(idle, null);
     ok(idle.tick === ticks && g.runTicks === ticks && poolRunTicksFor(rev) === ticks, `poolRev ${rev}: the run lasts ${ticks / 60} s (${idle.tick} ticks)`);
   }
   ok(poolFullByS(4) === POOL_FULL_BY_S_V4 && POOL_FULL_BY_S_V4 < 90, `poolRev 4's speed is full by ${POOL_FULL_BY_S_V4} s`);
-  const detail = poolStdParts({ ...poolGameFor(4, POOL_SET_STRIPES).init(POOL_BANK_V4[0]!), spotsDown: 3, acted: 1, over: 1 })![0]!.detail;
+  const detail = poolStdParts({ ...poolGameFor(4, POOL_SET_STRIPES).init(POOL_BANK_V3[0]!), spotsDown: 3, acted: 1, over: 1 })![0]!.detail;
   ok(detail === "3 of 7 stripes", `poolRev 4's core names the set (${detail})`);
   type LegacyRun = { type: string; rev: number; seed: number; label: string; raw: string; score: number; checksum: number; tick: number };
   const fx = JSON.parse(readFileSync(new URL("./fixtures/sports-nov3-legacy.json", import.meta.url), "utf8")) as { runs: LegacyRun[] };
@@ -247,7 +246,7 @@ for (const seed of POOL_BANK) {
    stripes are the other set, whichever the deal shows). */
 for (const REV of [POOL_REV_V1, 2, 3, POOL_REV]) {
 const game = poolGameFor(REV);
-const BANK = REV === 4 ? POOL_BANK_V4 : REV === 3 ? POOL_BANK_V3 : REV === 2 ? POOL_BANK_V2 : POOL_BANK;
+const BANK = REV >= 3 ? POOL_BANK_V3 : REV === 2 ? POOL_BANK_V2 : POOL_BANK;
 const W = REV === 4 ? witnessV4 : REV === 3 ? witnessV3 : REV === 2 ? witnessV2 : witness;
 const tag = `poolRev ${REV}: `;
 const shoot = (s: PoolState, dx: number, dy: number, power: number) => {
