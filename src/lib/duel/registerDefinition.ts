@@ -22,7 +22,7 @@ export function registerDefinition(
   definition: Omit<PuzzleDefinition, "instructions">,
 ): LoadedPuzzleDefinition & Pick<PuzzleDefinition, "roundSummary" | "correctAnswer"> {
   const info = puzzleInfo(type);
-  return {
+  return nameFromCatalogue(info, {
     ...definition,
     theme: info.theme,
     desktop: info.desktop,
@@ -34,7 +34,24 @@ export function registerDefinition(
     instructions: PUZZLE_INSTRUCTIONS[type],
     retired: info.retired,
     revealMs: definition.revealMs ?? info.revealMs,
-  };
+  });
+}
+
+/**
+ * One source for a game's name: the definition reads (and writes) it through its catalogue line, so the full
+ * registry, a game loaded on its own and the catalogue's `puzzleName` always agree, even when a screen harness
+ * renames a game for a layout case (safe-area-harness's longest name).
+ */
+function nameFromCatalogue<T extends { name: string }>(info: GameInfo, definition: T): T {
+  Object.defineProperty(definition, "name", {
+    get: () => info.name,
+    set: (value: string) => {
+      info.name = value;
+    },
+    enumerable: true,
+    configurable: true,
+  });
+  return definition;
 }
 
 const REMOVED_DEFINITIONS = new Map<string, LoadedPuzzleDefinition & Required<Pick<PuzzleDefinition, "roundSummary" | "correctAnswer">>>();

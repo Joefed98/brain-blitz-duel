@@ -237,11 +237,11 @@ export const BASE_REGISTRY: Record<PuzzleType, Omit<PuzzleDefinition, "instructi
 export const PUZZLE_REGISTRY = Object.fromEntries<RegisteredPuzzleDefinition>(
   Object.entries(BASE_REGISTRY).map(([type, definition]) => [
     type,
-    {
-      ...registerDefinition(type as PuzzleType, definition),
+    // Object.assign keeps the definition's name read through its catalogue line (registerDefinition).
+    Object.assign(registerDefinition(type as PuzzleType, definition), {
       roundSummary: ROUND_SUMMARIES[type as PuzzleType],
       correctAnswer: CORRECT_ANSWERS[type as PuzzleType],
-    },
+    }),
   ]),
 ) as Record<PuzzleType, RegisteredPuzzleDefinition>;
 
