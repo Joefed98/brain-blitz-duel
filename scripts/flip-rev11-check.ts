@@ -236,7 +236,7 @@ ok(saved >= 2 && sweetRuns >= 6, `the bot runs include saved crashes (${saved}) 
   // The reveal: one line per part.
   const st = { ...at(3600, 1, 1), sweetGot: 7, combos: 2, bestStreak: 25 };
   const r = buildArcadeReveal("flip", { state: st, survived: true, survivedSeconds: 60, saves: 1, sweets: 3, sweetsTotal: 8, streak: 25, skill: 37, flow: true, std: true, starsTotal: 0 }, v11.score(st));
-  ok(Boolean(r && r.lines.join(" | ") === "60.0 s survived · 1 saved (−20 s) · best streak 25 → 66 | Perfect landings 22 · Double flips 5 · Flow streak 10 +37 | Total → 103" && r.tiles.some((t) => t.label === "Best streak" && t.value === "25") && r.tiles.some((t) => t.label === "Perfect landings" && t.value === "3 / 8") && r.tiles.some((t) => t.label === "Features" && t.value === "+37")), `the reveal states clean time and each feature, and the best streak: ${JSON.stringify(r?.lines)} ${JSON.stringify(r?.tiles)}`);
+  ok(Boolean(r && r.lines.join(" | ") === "Clean time: 40 s clean · 1 crash saved → 66 of 100 | Perfect landings: 3 of 8 perfect landings → 22 of 60 | Double flips: 2 double flips → 5 of 20 | Flow streak: 25 clean jumps in a row → 10 of 20 | Total → 103 of 200" && r.tiles.some((t) => t.label === "Best streak" && t.value === "25") && r.tiles.some((t) => t.label === "Perfect landings" && t.value === "3 / 8") && r.tiles.some((t) => t.label === "Bonuses" && t.value === "+37")), `the reveal states clean time and each feature, and the best streak: ${JSON.stringify(r?.lines)} ${JSON.stringify(r?.tiles)}`);
   ok(v11.score(st) === 66 + 22 + 5 + 10, `one save, 3 perfect landings, 2 double flips, a streak of 25: 66 + 22 + 5 + 10 = 103 (got ${v11.score(st)})`);
 }
 {

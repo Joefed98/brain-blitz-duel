@@ -310,8 +310,8 @@ function symbolScanSummary(result: RoundResultRow, puzzle: PuzzleData): BuiltDet
     : puzzle.stages.map((_, i) => scanStageResult(i, parseSelection(parts[i] ?? ""), puzzle.targets?.[i] ?? []));
   const perfect = results.filter((r) => r.perfect).length;
   return {
-    summary: `${perfect} / 3 grids perfect · ${seconds(elapsedMs(result, puzzle))}`,
-    detail: results.map((r, i) => `Grid ${i + 1}: ${r.found} / ${r.targets} found${r.wrong ? ` · ${r.wrong} wrong` : ""}`),
+    summary: `${perfect} / 3 grids perfect, ${seconds(elapsedMs(result, puzzle))}`,
+    detail: results.map((r, i) => `Grid ${i + 1}: ${r.found} / ${r.targets} found${r.wrong ? `, ${r.wrong} wrong` : ""}`),
   };
 }
 
@@ -326,7 +326,7 @@ function equationSummary(result: RoundResultRow, puzzle: PuzzleData): BuiltDetai
   const correct = puzzle.stages.map((_st, i) =>
     equationVerdict(puzzle, i, parts[i] ?? "") && (tryLimit === null || (tries[i] ?? 0) <= tryLimit));
   return {
-    summary: `${correct.filter(Boolean).length} / ${puzzle.stages.length} equations · ${seconds(elapsedMs(result, puzzle))}`,
+    summary: `${correct.filter(Boolean).length} / ${puzzle.stages.length} equations, ${seconds(elapsedMs(result, puzzle))}`,
     detail: correct.map((ok, i) => {
       const overTries = tryLimit !== null && (tries[i] ?? 0) > tryLimit;
       // gapsRev 1: the equation as filled ("7 + 3 × 2 = 20").
@@ -343,7 +343,7 @@ function countUpSummary(result: RoundResultRow, puzzle: PuzzleData): BuiltDetail
   const counts = usesCountRev2(puzzle) ? puzzle.stages.map(countUpStageTruth) : (puzzle.counts ?? []);
   const exact = counts.filter((c, i) => parseCount(parts[i] ?? "") === c).length;
   return {
-    summary: `${exact} / ${trays} exact · ${seconds(elapsedMs(result, puzzle))}`,
+    summary: `${exact} / ${trays} exact, ${seconds(elapsedMs(result, puzzle))}`,
     detail: counts.map((c, i) => `Count ${i + 1}: ${parts[i] || "—"} (answer ${c})`),
   };
 }
@@ -354,10 +354,10 @@ function singleAnswer(
   return (result, puzzle) => {
     const answer = display(result, puzzle);
     if (!answer)
-      return { summary: `No answer · ${seconds(elapsedMs(result, puzzle))}`, detail: [] };
+      return { summary: `No answer, ${seconds(elapsedMs(result, puzzle))}`, detail: [] };
     const shown = marked(result, answer);
     return {
-      summary: `${shown} · ${seconds(elapsedMs(result, puzzle))}`,
+      summary: `${shown}, ${seconds(elapsedMs(result, puzzle))}`,
       detail: answer.length > 22 ? [shown] : [],
     };
   };
@@ -367,7 +367,7 @@ function stroopSummary(result: RoundResultRow, puzzle: PuzzleData): BuiltDetail 
   const count = result.correct_count ?? 0;
   const total = Number(result.extra?.["total"] ?? 36);
   const wrong = Number(result.extra?.["wrong"] ?? 0);
-  return { summary: `${count} / ${total} · ${wrong} wrong`, detail: [] };
+  return { summary: `${count} / ${total}, ${wrong} wrong`, detail: [] };
 }
 
 function spotDifferenceSummary(result: RoundResultRow, puzzle: PuzzleData): BuiltDetail {
@@ -378,14 +378,14 @@ function spotDifferenceSummary(result: RoundResultRow, puzzle: PuzzleData): Buil
     const found = r.found.reduce((a, b) => a + b, 0);
     const detail = (puzzle.differences ?? []).map((difference, index) => {
       const got = difference.cells.some((cell) => (taps[difference.scene ?? 0] ?? []).includes(cell));
-      return `${index + 1}. Picture ${(difference.scene ?? 0) + 1}: ${difference.label} · ${got ? "✓" : "✗"}`;
+      return `${index + 1}. Picture ${(difference.scene ?? 0) + 1}: ${difference.label}, ${got ? "✓" : "✗"}`;
     });
     // spotRev 2: the hidden seventh difference, never counted in the twelve (depth/doubleTake.ts).
     const bonus = puzzle.bonus;
     const hidden = bonus ? bonus.cells.some((cell) => (taps[bonus.scene ?? 0] ?? []).includes(cell)) : false;
-    if (bonus) detail.push(`★ Picture ${(bonus.scene ?? 0) + 1} hidden: ${bonus.label} · ${hidden ? "✓" : "–"}`);
-    const star = hidden ? " · ★" : "";
-    return { summary: r.finished ? `${found} / ${total} · ${seconds(elapsedMs(result, puzzle))}${star}` : `${found} / ${total}${star}`, detail };
+    if (bonus) detail.push(`★ Picture ${(bonus.scene ?? 0) + 1} hidden: ${bonus.label}, ${hidden ? "✓" : "–"}`);
+    const star = hidden ? ", ★" : "";
+    return { summary: r.finished ? `${found} / ${total}, ${seconds(elapsedMs(result, puzzle))}${star}` : `${found} / ${total}${star}`, detail };
   }
   const count = result.correct_count ?? 0;
   const taps = (result.answer ?? "")
@@ -396,12 +396,12 @@ function spotDifferenceSummary(result: RoundResultRow, puzzle: PuzzleData): Buil
     puzzle.type === "spotdiff"
       ? (puzzle.differences ?? []).map((difference, index) => {
           const got = difference.cells.some((cell) => taps.includes(cell));
-          return `${index + 1}. ${difference.label} · ${got ? "✓" : "✗"}`;
+          return `${index + 1}. ${difference.label}, ${got ? "✓" : "✗"}`;
         })
       : [];
   const summary =
     count >= SPOT_DIFFERENCES
-      ? `${count} / ${SPOT_DIFFERENCES} · ${seconds(elapsedMs(result, puzzle))}`
+      ? `${count} / ${SPOT_DIFFERENCES}, ${seconds(elapsedMs(result, puzzle))}`
       : `${count} / ${SPOT_DIFFERENCES}`;
   return { summary, detail };
 }
@@ -417,9 +417,9 @@ function wordsmithSummary(result: RoundResultRow, puzzle: PuzzleData): BuiltDeta
     summary:
       ((puzzle as { wordsmithRev?: number }).wordsmithRev ?? 0) >= WORDSMITH_REV_CURVE
         ? typeof result.extra?.["pangramBonus"] === "number" && result.extra["pangramBonus"] > 0
-          ? `${points} word points + pangram ${result.extra["pangramBonus"]} → ${result.score} · ${words.length} words`
-          : `${points} word points → ${result.score} · ${words.length} words`
-        : `2.5 × ${points}, rounded down = ${result.score} · ${words.length} words`,
+          ? `${points} word points + pangram ${result.extra["pangramBonus"]} → ${result.score}, ${words.length} words`
+          : `${points} word points → ${result.score}, ${words.length} words`
+        : `2.5 × ${points}, rounded down = ${result.score}, ${words.length} words`,
     detail: words.map((word) => `${word} (${wordsmithPoints(word)})`),
   };
 }
@@ -440,7 +440,7 @@ function numberHuntSummary(result: RoundResultRow, puzzle: PuzzleData): BuiltDet
     const at = result.extra["finishedAtMs"];
     if (result.is_correct || reached >= NUMHUNT_COUNT) {
       const time = typeof at === "number" ? at : elapsedMs(result, puzzle);
-      return { summary: `Finished · ${result.errors ?? 0} errors · ${seconds(time)}`, detail: [] };
+      return { summary: `Finished, ${result.errors ?? 0} errors, ${seconds(time)}`, detail: [] };
     }
     return { summary: `Reached ${reached} of ${NUMHUNT_COUNT}`, detail: [] };
   }
@@ -450,7 +450,7 @@ function numberHuntSummary(result: RoundResultRow, puzzle: PuzzleData): BuiltDet
   const elapsed = Number.parseInt(rawElapsed ?? "", 10);
   if (reached >= NUMHUNT_COUNT) {
     const time = Number.isFinite(elapsed) ? elapsed : elapsedMs(result, puzzle);
-    return { summary: `Finished · ${errors} errors · ${seconds(time)}`, detail: [] };
+    return { summary: `Finished, ${errors} errors, ${seconds(time)}`, detail: [] };
   }
   return { summary: `Reached ${reached} of ${NUMHUNT_COUNT}`, detail: [] };
 }
@@ -468,7 +468,7 @@ function targetSummary(result: RoundResultRow, puzzle: PuzzleData): BuiltDetail 
     const made = madeDistance(puzzle.tiles, puzzle.target, replayTargetSteps(puzzle.tiles, puzzle.target, decodeSteps(result.answer ?? "")));
     if (!Number.isFinite(made)) return { summary: "No number made", detail: steps };
     return {
-      summary: made === 0 ? `${puzzle.target} exact · ${Math.round(elapsedMs(result, puzzle) / 1000)}s` : `Closest made: ${made} away`,
+      summary: made === 0 ? `${puzzle.target} exact, ${Math.round(elapsedMs(result, puzzle) / 1000)}s` : `Closest made: ${made} away`,
       detail: steps,
     };
   }
@@ -476,7 +476,7 @@ function targetSummary(result: RoundResultRow, puzzle: PuzzleData): BuiltDetail 
   return {
     summary:
       away === 0
-        ? `${value} exact · ${Math.round(elapsedMs(result, puzzle) / 1000)}s`
+        ? `${value} exact, ${Math.round(elapsedMs(result, puzzle) / 1000)}s`
         : `${value} (${away} away)`,
     detail: steps,
   };
@@ -500,11 +500,11 @@ const wordHuntSummary: SummaryBuilder = (result, puzzle) => {
     const extras = Number(result.extra?.["extraPoints"] ?? 0);
     const gold = Array.isArray(result.extra?.["goldWords"]) ? (result.extra["goldWords"] as unknown[]).length : 0;
     return {
-      summary: `${points} word points + ${extras} extra → ${result.score} · ${words.length} words${missCut > 0 ? ` · misses −${missCut}%` : ""}`,
+      summary: `${points} word points + ${extras} extra → ${result.score}, ${words.length} words${missCut > 0 ? `, misses −${missCut}%` : ""}`,
       detail: [
         seconds(elapsedMs(result, puzzle)),
         `${gold} through the golden tile`,
-        ...(words.length > 0 ? [words.join(" · ")] : ["No words"]),
+        ...(words.length > 0 ? [words.join(", ")] : ["No words"]),
       ],
     };
   }
@@ -512,11 +512,11 @@ const wordHuntSummary: SummaryBuilder = (result, puzzle) => {
     // wordHuntRev 1 and later score word points on a curve (scoring.ts); only older rounds use × 2.
     summary:
       ((puzzle as { wordHuntRev?: number }).wordHuntRev ?? 0) >= WORDHUNT_REV_CURVE
-        ? `${points} word points → ${result.score} · ${words.length} words${missCut > 0 ? ` · misses −${missCut}%` : ""}`
-        : `${points} points × 2 = ${result.score} · ${words.length} words`,
+        ? `${points} word points → ${result.score}, ${words.length} words${missCut > 0 ? `, misses −${missCut}%` : ""}`
+        : `${points} points × 2 = ${result.score}, ${words.length} words`,
     detail: [
       seconds(elapsedMs(result, puzzle)),
-      ...(words.length > 0 ? [words.join(" · ")] : ["No words"]),
+      ...(words.length > 0 ? [words.join(", ")] : ["No words"]),
     ],
   };
 };
@@ -528,7 +528,7 @@ const unblockSummary: SummaryBuilder = (result, puzzle) => {
   const min = Number(extra["minMoves"] ?? puzzle.minMoves ?? 0);
   if (!result.is_correct) return { summary: "Not solved", detail: [`${moves} moves made`] };
   return {
-    summary: `Solved · ${moves} moves (min ${min}) · ${seconds(elapsedMs(result, puzzle))}`,
+    summary: `Solved, ${moves} moves (min ${min}), ${seconds(elapsedMs(result, puzzle))}`,
     detail: [moves === min ? "Fewest moves possible" : `${moves - min} more than the minimum`],
   };
 };
@@ -545,7 +545,7 @@ const blockPartySummary: SummaryBuilder = (result, puzzle) => {
     };
   }
   return {
-    summary: `Solved · ${seconds(elapsedMs(result, puzzle))}`,
+    summary: `Solved, ${seconds(elapsedMs(result, puzzle))}`,
     detail: ["Every free square covered"],
   };
 };
@@ -561,7 +561,7 @@ const balanceSummary: SummaryBuilder = (result, puzzle) => {
   // balanceRev 2 deals four scales; stored rounds three.
   const total = puzzle.type === "balance" ? balanceScaleCount(puzzle) : 3;
   return {
-    summary: solved === total ? `${total} / ${total} · ${seconds(elapsedMs(result, puzzle))}` : `${solved} / ${total}`,
+    summary: solved === total ? `${total} / ${total}, ${seconds(elapsedMs(result, puzzle))}` : `${solved} / ${total}`,
     detail: [],
   };
 };
@@ -586,7 +586,7 @@ const wordSlideSummary: SummaryBuilder = (result, puzzle) => {
   }
   return {
     summary: result.is_correct
-      ? `Solved · 5 / 5 rows · ${seconds(elapsedMs(result, puzzle))}`
+      ? `Solved, 5 / 5 rows, ${seconds(elapsedMs(result, puzzle))}`
       : `${rows} / 5 rows`,
     detail: [],
   };
@@ -600,7 +600,7 @@ const lightsOutSummary: SummaryBuilder = (result, puzzle) => {
   const left = Number(result.extra?.["lightsLeft"] ?? startOn);
   if (result.is_correct) {
     return {
-      summary: `Solved · ${presses} presses (min ${min}) · ${seconds(elapsedMs(result, puzzle))}`,
+      summary: `Solved, ${presses} presses (min ${min}), ${seconds(elapsedMs(result, puzzle))}`,
       detail: [
         presses === min
           ? "Cleared in the fewest presses"
@@ -609,7 +609,7 @@ const lightsOutSummary: SummaryBuilder = (result, puzzle) => {
     };
   }
   return {
-    summary: `Not solved · ${Math.max(0, startOn - left)} / ${startOn} off`,
+    summary: `Not solved, ${Math.max(0, startOn - left)} / ${startOn} off`,
     detail: [`${presses} press${presses === 1 ? "" : "es"} used`],
   };
 };
@@ -619,7 +619,7 @@ const pipesSummary: SummaryBuilder = (result, puzzle) => {
   const connected = Number(result.extra?.["connected"] ?? 0);
   if (result.is_correct) {
     return {
-      summary: `Solved · ${seconds(elapsedMs(result, puzzle))}`,
+      summary: `Solved, ${seconds(elapsedMs(result, puzzle))}`,
       detail: ["Every pipe connected, no leaks"],
     };
   }
@@ -635,7 +635,7 @@ const sudokuSummary: SummaryBuilder = (result, puzzle) => {
   const total = Number(result.extra?.["total"] ?? puzzle.givens.filter((given) => !given).length);
   if (result.is_correct) {
     return {
-      summary: `Solved · ${seconds(elapsedMs(result, puzzle))}`,
+      summary: `Solved, ${seconds(elapsedMs(result, puzzle))}`,
       detail: [`All ${total} cells filled correctly`],
     };
   }
@@ -651,7 +651,7 @@ const flowSummary: SummaryBuilder = (result, puzzle) => {
   const filled = Number(result.extra?.["filled"] ?? 0);
   if (result.is_correct) {
     return {
-      summary: `Solved · ${seconds(elapsedMs(result, puzzle))}`,
+      summary: `Solved, ${seconds(elapsedMs(result, puzzle))}`,
       detail: ["Every pair joined and every square filled"],
     };
   }
@@ -669,7 +669,7 @@ const slideSummary: SummaryBuilder = (result, puzzle) => {
   const min = Number(result.extra?.["minMoves"] ?? puzzle.minMoves ?? 0);
   if (result.is_correct) {
     return {
-      summary: `Solved · ${moves} move${moves === 1 ? "" : "s"} (min ${min}) · ${seconds(elapsedMs(result, puzzle))}`,
+      summary: `Solved, ${moves} move${moves === 1 ? "" : "s"} (min ${min}), ${seconds(elapsedMs(result, puzzle))}`,
       detail: [
         moves <= min
           ? "Reached the exit in the fewest moves"
@@ -697,7 +697,7 @@ const pushSummary: SummaryBuilder = (result, puzzle) => {
   const home = Number(result.extra?.["cratesHome"] ?? 0);
   if (result.is_correct) {
     return {
-      summary: `Solved · ${pushes} push${pushes === 1 ? "" : "es"} (min ${min}) · ${seconds(elapsedMs(result, puzzle))}`,
+      summary: `Solved, ${pushes} push${pushes === 1 ? "" : "es"} (min ${min}), ${seconds(elapsedMs(result, puzzle))}`,
       detail: [
         pushes <= min ? "Finished in the fewest pushes" : `${pushes - min} more than the minimum`,
       ],
@@ -716,7 +716,7 @@ const laserSummary: SummaryBuilder = (result, puzzle) => {
   const ordinal = fires === 1 ? "1st" : fires === 2 ? "2nd" : "3rd";
   if (result.is_correct) {
     return {
-      summary: `${puzzle.gems.length} / ${puzzle.gems.length} gems · ${ordinal} shot · ${seconds(elapsedMs(result, puzzle))}`,
+      summary: `${puzzle.gems.length} / ${puzzle.gems.length} gems, ${ordinal} shot, ${seconds(elapsedMs(result, puzzle))}`,
       detail: [`All ${puzzle.mirrors + (puzzle.splitterPieces ?? 0)} pieces in place`],
     };
   }
@@ -748,7 +748,7 @@ const towerSummary: SummaryBuilder = (result, puzzle) => {
   const home = Number(result.extra?.["discsHome"] ?? 0);
   if (result.is_correct) {
     return {
-      summary: `Solved · ${moves} moves (min ${min}) · ${seconds(elapsedMs(result, puzzle))}`,
+      summary: `Solved, ${moves} moves (min ${min}), ${seconds(elapsedMs(result, puzzle))}`,
       detail: [moves <= min ? "Built in the fewest moves" : `${moves - min} more than the minimum`],
     };
   }
@@ -767,7 +767,7 @@ const mazeSummary: SummaryBuilder = (result, puzzle) => {
       const steps = Number(result.extra?.["steps"] ?? 0);
       const par = Number(result.extra?.["parSteps"] ?? 0);
       return {
-        summary: `Solved · ${steps} steps (par ${par}) · ${seconds(elapsedMs(result, puzzle))}`,
+        summary: `Solved, ${steps} steps (par ${par}), ${seconds(elapsedMs(result, puzzle))}`,
         detail: [steps <= par ? "Reached the exit with no wasted step" : `${steps - par} steps over par`],
       };
     }
@@ -775,18 +775,18 @@ const mazeSummary: SummaryBuilder = (result, puzzle) => {
   }
   // mazeRev 1 (depth/labyrinth.ts): the stars the trail took, and their stored points on a finish.
   const stars = Array.isArray(result.extra?.["stars"]) ? (result.extra!["stars"] as unknown[]).length : null;
-  const starText = stars === null ? "" : ` · ★ ${stars}/${LAB_STARS}`;
+  const starText = stars === null ? "" : `, ★ ${stars}/${LAB_STARS}`;
   if (result.is_correct) {
     const bonus = Number(result.extra?.["starBonus"] ?? 0);
     return {
-      summary: `Solved · ${seconds(elapsedMs(result, puzzle))}${starText}`,
-      detail: [`${Number(result.extra?.["wasted"] ?? 0)} wasted squares`, ...(stars === null ? [] : [`${stars} of ${LAB_STARS} stars · +${bonus}`])],
+      summary: `Solved, ${seconds(elapsedMs(result, puzzle))}${starText}`,
+      detail: [`${Number(result.extra?.["wasted"] ?? 0)} wasted squares`, ...(stars === null ? [] : [`${stars} of ${LAB_STARS} stars, +${bonus}`])],
     };
   }
   // The scoring standard (mazeRev 3, standard/attention.ts): stars count finished or not, with their stored points.
   if (usesStandard(puzzle)) {
     const bonus = Number(result.extra?.["starBonus"] ?? 0);
-    return { summary: `${progress}%${starText}`, detail: [`${progress}% of the way to the exit`, ...(stars ? [`${stars} of ${LAB_STARS} stars · +${bonus}`] : [])] };
+    return { summary: `${progress}%${starText}`, detail: [`${progress}% of the way to the exit`, ...(stars ? [`${stars} of ${LAB_STARS} stars, +${bonus}`] : [])] };
   }
   return { summary: `${progress}%${starText}`, detail: [`${progress}% of the way to the exit`, ...(stars ? ["Stars count only with a finish"] : [])] };
 };
@@ -798,7 +798,7 @@ const tubesSummary: SummaryBuilder = (result, puzzle) => {
   const sorted = Number(result.extra?.["sorted"] ?? 0);
   if (result.is_correct) {
     return {
-      summary: `Solved · ${moves} moves (min ${min}) · ${seconds(elapsedMs(result, puzzle))}`,
+      summary: `Solved, ${moves} moves (min ${min}), ${seconds(elapsedMs(result, puzzle))}`,
       detail: [
         moves <= min ? "Sorted in the fewest pours" : `${moves - min} more than the minimum`,
       ],
@@ -816,12 +816,12 @@ const safeSummary: SummaryBuilder = (result, puzzle) => {
   const right = Number(result.extra?.["dialsRight"] ?? 0);
   if (result.is_correct) {
     return {
-      summary: `Opened · ${ordinalTry(openedOn)} try · ${seconds(elapsedMs(result, puzzle))}`,
+      summary: `Opened, ${ordinalTry(openedOn)} try, ${seconds(elapsedMs(result, puzzle))}`,
       detail: [openedOn === 1 ? "Opened first time" : `${openedOn} tries used`],
     };
   }
   return {
-    summary: `Locked · ${right} / ${SAFE_DIALS} dials`,
+    summary: `Locked, ${right} / ${SAFE_DIALS} dials`,
     detail: [`${Number(result.extra?.["tries"] ?? 0)} tries used`],
   };
 };
@@ -832,13 +832,13 @@ const bombSummary: SummaryBuilder = (result, puzzle) => {
   const exploded = Boolean(result.extra?.["exploded"]);
   if (result.is_correct) {
     return {
-      summary: `Defused · ${seconds(elapsedMs(result, puzzle))}`,
+      summary: `Defused, ${seconds(elapsedMs(result, puzzle))}`,
       detail: ["Every required action, in an order the rules allow"],
     };
   }
   return {
     summary: exploded
-      ? `Exploded · ${prefix} / ${puzzle.stepCount}`
+      ? `Exploded, ${prefix} / ${puzzle.stepCount}`
       : `${prefix} / ${puzzle.stepCount}`,
     detail: [
       `${prefix} action${prefix === 1 ? "" : "s"} carried out correctly`,
@@ -870,22 +870,22 @@ const gravitySummary: SummaryBuilder = (result, puzzle) => {
     if (usesParMoves(puzzle) && result.is_correct) {
       const par = Number(result.extra?.["parTilts"] ?? 0);
       return {
-        summary: `Cleared · ${tilts} tilts (par ${par}) · ${seconds(elapsedMs(result, puzzle))}`,
+        summary: `Cleared, ${tilts} tilts (par ${par}), ${seconds(elapsedMs(result, puzzle))}`,
         detail: [tilts <= par ? "Cleared in the fewest tilts" : `${tilts - par} tilts over par`],
       };
     }
     return {
       summary: result.is_correct
-        ? `Cleared · ${stars} / ${TOPSY_BOARDS * TOPSY_STARS} stars · ${seconds(elapsedMs(result, puzzle))}`
-        : `${cleared} / ${TOPSY_BOARDS} boards · ${home} / ${TOPSY_BOARDS * TOPSY_BALLS} home`,
-      detail: [`${tilts} tilts made${out ? ` · out of tilts on ${out} board${out === 1 ? "" : "s"}` : ""}`],
+        ? `Cleared, ${stars} / ${TOPSY_BOARDS * TOPSY_STARS} stars, ${seconds(elapsedMs(result, puzzle))}`
+        : `${cleared} / ${TOPSY_BOARDS} boards, ${home} / ${TOPSY_BOARDS * TOPSY_BALLS} home`,
+      detail: [`${tilts} tilts made${out ? `, out of tilts on ${out} board${out === 1 ? "" : "s"}` : ""}`],
     };
   }
   const min = Number(result.extra?.["minMoves"] ?? puzzle.minMoves ?? 0);
   const locked = Number(result.extra?.["locked"] ?? 0);
   if (result.is_correct) {
     return {
-      summary: `Solved · ${tilts} tilts (min ${min}) · ${seconds(elapsedMs(result, puzzle))}`,
+      summary: `Solved, ${tilts} tilts (min ${min}), ${seconds(elapsedMs(result, puzzle))}`,
       detail: [
         tilts <= min ? "Solved in the fewest tilts" : `${tilts - min} more than the minimum`,
       ],
@@ -893,7 +893,7 @@ const gravitySummary: SummaryBuilder = (result, puzzle) => {
   }
   return {
     summary: "Not solved",
-    detail: [`${locked} / 4 balls locked · ${tilts} tilts made`],
+    detail: [`${locked} / 4 balls locked, ${tilts} tilts made`],
   };
 };
 
@@ -911,12 +911,12 @@ const chainSummary: SummaryBuilder = (result, puzzle) => {
           ? `Broken at link ${links + 1} - too slow`
           : "Time ran out";
   return {
-    summary: `${links} / ${rules.length} links · ${seconds(elapsedMs(result, puzzle))}`,
+    summary: `${links} / ${rules.length} links, ${seconds(elapsedMs(result, puzzle))}`,
     detail: [ending, puzzleScoreRevOf(puzzle) >= PUZZLE_SCORE_REV_BANDS && rules.bonus
       ? "Links count as progress; all of them is a finish, quicker for more (score bands)"
       : puzzleScoreRevOf(puzzle) >= PUZZLE_SCORE_REV && rules.bonus
-      ? `110 × links ÷ ${rules.length - 1}, rounded down · all ${rules.length} links = 120 + up to 30 for speed (full with half the time left)`
-      : `${rules.points} per link${rules.bonus ? ", rounded down" : ""} · ${rules.length} links = ${rules.length * rules.points}${rules.bonus ? ` + up to ${rules.bonus} for speed (full with half the time left)` : ""}`],
+      ? `110 × links ÷ ${rules.length - 1}, rounded down, all ${rules.length} links = 120 + up to 30 for speed (full with half the time left)`
+      : `${rules.points} per link${rules.bonus ? ", rounded down" : ""}, ${rules.length} links = ${rules.length * rules.points}${rules.bonus ? ` + up to ${rules.bonus} for speed (full with half the time left)` : ""}`],
   };
 };
 
@@ -927,7 +927,7 @@ const nonogramSummary: SummaryBuilder = (result, puzzle) => {
   const wrong = Number(result.extra?.["wrong"] ?? 0);
   return {
     summary: result.is_correct
-      ? `Solved · ${seconds(elapsedMs(result, puzzle))}`
+      ? `Solved, ${seconds(elapsedMs(result, puzzle))}`
       : `${correct} / ${total} cells`,
     detail: wrong > 0 ? [`${wrong} cell${wrong === 1 ? "" : "s"} filled wrongly`] : [],
   };
@@ -938,7 +938,7 @@ const pairMatchSummary: SummaryBuilder = (result, puzzle) => {
   const pairs = Number(result.extra?.["pairs"] ?? 0);
   const flips = Number(result.extra?.["flips"] ?? 0);
   return {
-    summary: `${pairs} / ${PAIR_PAIRS} · ${flips} flips · ${seconds(elapsedMs(result, puzzle))}`,
+    summary: `${pairs} / ${PAIR_PAIRS}, ${flips} flips, ${seconds(elapsedMs(result, puzzle))}`,
     detail: [result.is_correct ? "Every pair found" : "Board unfinished"],
   };
 };
@@ -950,7 +950,7 @@ const floodSummary: SummaryBuilder = (result, puzzle) => {
   const region = Number(result.extra?.["region"] ?? 0);
   return {
     summary: result.is_correct
-      ? `Solved · ${moves} moves (par ${par}) · ${seconds(elapsedMs(result, puzzle))}`
+      ? `Solved, ${moves} moves (par ${par}), ${seconds(elapsedMs(result, puzzle))}`
       : `${region} / ${FLOOD_CELLS} cells`,
     detail: [result.is_correct && moves <= par ? "Flooded in par" : `${moves} moves made`],
   };
@@ -968,7 +968,7 @@ const tilesSummary: SummaryBuilder = (result, puzzle) => {
     if (progress) return { summary: progress.summary, detail: [...progress.detail, `${moves} moves made`] };
     return {
       summary: result.is_correct
-        ? `Solved · ${moves} moves (par ${par}) · ${seconds(elapsedMs(result, puzzle))}`
+        ? `Solved, ${moves} moves (par ${par}), ${seconds(elapsedMs(result, puzzle))}`
         : `${inPlaceNow} / ${JUMBLED_MOVABLE} in place`,
       detail: [result.is_correct && moves <= par ? "At or under par" : `${moves} moves made`],
     };
@@ -979,7 +979,7 @@ const tilesSummary: SummaryBuilder = (result, puzzle) => {
   if (progress) return { summary: progress.summary, detail: [...progress.detail, `${moves} moves made`] };
   return {
     summary: result.is_correct
-      ? `Solved · ${moves} moves${min ? ` (min ${min})` : ""} · ${seconds(elapsedMs(result, puzzle))}`
+      ? `Solved, ${moves} moves${min ? ` (min ${min})` : ""}, ${seconds(elapsedMs(result, puzzle))}`
       : `${inPlace} / ${tilesLayout(puzzle).count} in place`,
     detail: [
       result.is_correct && min > 0 && moves <= min
@@ -996,13 +996,13 @@ const hoverSummary: SummaryBuilder = (result) => {
   const ended = Number(result.extra?.["endedSeconds"] ?? 0);
   return {
     summary: survived
-      ? `${gates} / ${total} · survived`
-      : `${gates} / ${total} barriers · crashed at ${ended.toFixed(1)}s`,
+      ? `${gates} / ${total}, survived`
+      : `${gates} / ${total} barriers, crashed at ${ended.toFixed(1)}s`,
     // hoverRev 9: the features and the skill points.
     detail: [
       survived ? "Flew the whole run" : "Run ended early",
       // hoverRev 10 (the arcade scoring standard): the parts' points.
-      ...(result.extra?.["corePts"] !== undefined ? [`barriers ${Number(result.extra?.["corePts"] ?? 0)} · chains ${Number(result.extra?.["chainPts"] ?? 0)} · gold ${Number(result.extra?.["goldPts"] ?? 0)} · tight ${Number(result.extra?.["tightPts"] ?? 0)} · centre ${Number(result.extra?.["centreLinePts"] ?? 0)}`] : result.extra?.["tightGates"] !== undefined ? [`${Number(result.extra?.["tightGates"] ?? 0)} tight · ${Number(result.extra?.["starChains"] ?? 0)} chains · centre ${Number(result.extra?.["centrePts"] ?? 0)} · skill +${Number(result.extra?.["skill"] ?? 0)}`] : []),
+      ...(result.extra?.["corePts"] !== undefined ? [`barriers ${Number(result.extra?.["corePts"] ?? 0)}, chains ${Number(result.extra?.["chainPts"] ?? 0)}, gold ${Number(result.extra?.["goldPts"] ?? 0)}, tight ${Number(result.extra?.["tightPts"] ?? 0)}, centre ${Number(result.extra?.["centreLinePts"] ?? 0)}`] : result.extra?.["tightGates"] !== undefined ? [`${Number(result.extra?.["tightGates"] ?? 0)} tight, ${Number(result.extra?.["starChains"] ?? 0)} chains, centre ${Number(result.extra?.["centrePts"] ?? 0)}, skill +${Number(result.extra?.["skill"] ?? 0)}`] : []),
     ],
   };
 };
@@ -1014,8 +1014,8 @@ const swerveSummary: SummaryBuilder = (result) => {
   const ended = Number(result.extra?.["endedSeconds"] ?? 0);
   return {
     summary: survived
-      ? `${coins} / ${total} coins · survived`
-      : `${coins} / ${total} coins · crashed at ${ended.toFixed(1)}s`,
+      ? `${coins} / ${total} coins, survived`
+      : `${coins} / ${total} coins, crashed at ${ended.toFixed(1)}s`,
     detail: [survived ? "Drove the whole run" : "Run ended early"],
   };
 };
@@ -1027,8 +1027,8 @@ const skylineSummary: SummaryBuilder = (result) => {
   const ended = Number(result.extra?.["endedSeconds"] ?? 0);
   return {
     summary: survived
-      ? `${blocks} blocks · ${perfects} perfect · survived`
-      : `${blocks} blocks · missed at ${ended.toFixed(1)}s`,
+      ? `${blocks} blocks, ${perfects} perfect, survived`
+      : `${blocks} blocks, missed at ${ended.toFixed(1)}s`,
     detail: [
       `${perfects} perfect drop${perfects === 1 ? "" : "s"}`,
       ...(result.extra?.["skylineRev"] ? [`Best streak ${Number(result.extra?.["bestStreak"] ?? 0)} in a row`] : []),
@@ -1038,7 +1038,7 @@ const skylineSummary: SummaryBuilder = (result) => {
       ...(Number(result.extra?.["skylineRev"] ?? 0) === 9 || Number(result.extra?.["skylineRev"] ?? 0) === 10
         ? [`${Number(result.extra?.["golds"] ?? 0)} of 5 gold blocks`]
         : Number(result.extra?.["skylineRev"] ?? 0) >= 7
-          ? [`${Number(result.extra?.["golds"] ?? 0)} gold · ${Number(result.extra?.["milestones"] ?? 0)} milestones`]
+          ? [`${Number(result.extra?.["golds"] ?? 0)} gold, ${Number(result.extra?.["milestones"] ?? 0)} milestones`]
           : []),
     ],
   };
@@ -1059,7 +1059,7 @@ const matchupSummary: SummaryBuilder = (result) => {
   const bestLine = Number(result.extra?.["bestLine"] ?? 0);
   const reshuffles = Number(result.extra?.["reshuffles"] ?? 0);
   return {
-    summary: `${raw.toLocaleString("en-GB")} pts → ${result.score} · ${swaps} swaps · best line ${bestLine || "-"}`,
+    summary: `${raw.toLocaleString("en-GB")} pts → ${result.score}, ${swaps} swaps, best line ${bestLine || "-"}`,
     detail: [
       `${swaps} scoring swap${swaps === 1 ? "" : "s"}`,
       ...(reshuffles > 0 ? [`${reshuffles} reshuffled`] : []),
@@ -1070,7 +1070,7 @@ const matchupSummary: SummaryBuilder = (result) => {
 const bullseyeSummary: SummaryBuilder = (result) => {
   const inner = Number(result.extra?.["inner"] ?? 0);
   return {
-    summary: `${result.score} · ${inner} in the gold/red`,
+    summary: `${result.score}, ${inner} in the gold/red`,
     detail: [`${Number(result.extra?.["total"] ?? 0)} ring points`],
   };
 };
@@ -1081,10 +1081,10 @@ const snakeSummary: SummaryBuilder = (result) => {
   const ended = Number(result.extra?.["endedSeconds"] ?? 0);
   return {
     summary: survived
-      ? `${pellets} star${pellets === 1 ? "" : "s"} · survived`
+      ? `${pellets} star${pellets === 1 ? "" : "s"}, survived`
       : result.extra?.["rockHit"] === true
-        ? `${pellets} star${pellets === 1 ? "" : "s"} · hit a rock at ${ended.toFixed(1)}s`
-        : `${pellets} star${pellets === 1 ? "" : "s"} · crashed at ${ended.toFixed(1)}s`,
+        ? `${pellets} star${pellets === 1 ? "" : "s"}, hit a rock at ${ended.toFixed(1)}s`
+        : `${pellets} star${pellets === 1 ? "" : "s"}, crashed at ${ended.toFixed(1)}s`,
     detail: [survived ? "Lasted the whole minute" : "Run ended early"],
   };
 };
@@ -1099,8 +1099,8 @@ const crossSummary: SummaryBuilder = (result) => {
       `${lanes} lane${lanes === 1 ? "" : "s"} crossed in total`,
       // crossRev 9 (x200): coins and the streak.
       // crossRev 11: no coins; the no-stop streak's points.
-      ...(result.extra?.["noStop"] !== undefined ? [`no-stop streak ${Number(result.extra?.["streakPts"] ?? 0)}${Number(result.extra?.["closeCalls"] ?? 0) ? ` · ${Number(result.extra?.["closeCalls"])} close calls` : ""}`] : []),
-      ...(result.extra?.["coins"] !== undefined ? [`${Number(result.extra["coins"])} coin${Number(result.extra["coins"]) === 1 ? "" : "s"} · streak ${Number(result.extra?.["streakPts"] ?? 0)}${Number(result.extra?.["closeCalls"] ?? 0) ? ` · ${Number(result.extra?.["closeCalls"])} close calls` : ""}`] : []),
+      ...(result.extra?.["noStop"] !== undefined ? [`no-stop streak ${Number(result.extra?.["streakPts"] ?? 0)}${Number(result.extra?.["closeCalls"] ?? 0) ? `, ${Number(result.extra?.["closeCalls"])} close calls` : ""}`] : []),
+      ...(result.extra?.["coins"] !== undefined ? [`${Number(result.extra["coins"])} coin${Number(result.extra["coins"]) === 1 ? "" : "s"}, streak ${Number(result.extra?.["streakPts"] ?? 0)}${Number(result.extra?.["closeCalls"] ?? 0) ? `, ${Number(result.extra?.["closeCalls"])} close calls` : ""}`] : []),
     ],
   };
 };
@@ -1112,8 +1112,8 @@ const dualSummary: SummaryBuilder = (result) => {
   const ended = Number(result.extra?.["endedSeconds"] ?? 0);
   return {
     summary: survived
-      ? `Survived 60.0s · ${passed} passed`
-      : `Survived ${ended.toFixed(1)}s · ${passed} passed (${side === 0 ? "left" : "right"} crashed)`,
+      ? `Survived 60.0s, ${passed} passed`
+      : `Survived ${ended.toFixed(1)}s, ${passed} passed (${side === 0 ? "left" : "right"} crashed)`,
     detail: [survived ? "Both runners lasted the minute" : "One runner hit a spike"],
   };
 };
@@ -1124,10 +1124,10 @@ const ricoSummary: SummaryBuilder = (result) => {
     const m = Number(result.extra["metres"] ?? 0);
     const hits = Number(result.extra["hits"] ?? 0);
     return {
-      summary: `${m.toLocaleString("en-GB")} m climbed · ${result.score} ${result.score === 1 ? "point" : "points"}`,
+      summary: `${m.toLocaleString("en-GB")} m climbed, ${result.score} ${result.score === 1 ? "point" : "points"}`,
       detail: [
-        `${Number(result.extra["rides"] ?? 0)} lantern rides · best Flow ×${Number(result.extra["bestFlow"] ?? 0)} · ${Number(result.extra["scrolls"] ?? 0)} scrolls`,
-        `${hits === 1 ? "1 hit" : `${hits} hits`} · ${Number(result.extra["djs"] ?? 0)} double jumps`,
+        `${Number(result.extra["rides"] ?? 0)} lantern rides, best Flow ×${Number(result.extra["bestFlow"] ?? 0)}, ${Number(result.extra["scrolls"] ?? 0)} scrolls`,
+        `${hits === 1 ? "1 hit" : `${hits} hits`}, ${Number(result.extra["djs"] ?? 0)} double jumps`,
       ],
     };
   }
@@ -1136,10 +1136,10 @@ const ricoSummary: SummaryBuilder = (result) => {
     const m = Number(result.extra["metres"] ?? 0);
     const hits = Number(result.extra["hits"] ?? 0);
     return {
-      summary: `${m.toLocaleString("en-GB")} m climbed · ${result.score} ${result.score === 1 ? "point" : "points"}`,
+      summary: `${m.toLocaleString("en-GB")} m climbed, ${result.score} ${result.score === 1 ? "point" : "points"}`,
       detail: [
-        `${Number(result.extra["coins"] ?? 0)} coins · ${Number(result.extra["lanterns"] ?? 0)} lanterns · ${Number(result.extra["scrolls"] ?? 0)} scrolls`,
-        `${hits === 1 ? "1 hit" : `${hits} hits`} · ${Number(result.extra["djs"] ?? 0)} double jumps`,
+        `${Number(result.extra["coins"] ?? 0)} coins, ${Number(result.extra["lanterns"] ?? 0)} lanterns, ${Number(result.extra["scrolls"] ?? 0)} scrolls`,
+        `${hits === 1 ? "1 hit" : `${hits} hits`}, ${Number(result.extra["djs"] ?? 0)} double jumps`,
       ],
     };
   }
@@ -1149,8 +1149,8 @@ const ricoSummary: SummaryBuilder = (result) => {
   const ended = Number(result.extra?.["endedSeconds"] ?? 0);
   return {
     summary: survived
-      ? `${metres.toLocaleString("en-GB")} m climbed · ${result.score} ${result.score === 1 ? "point" : "points"} · survived`
-      : `${metres.toLocaleString("en-GB")} m climbed · ${result.score} ${result.score === 1 ? "point" : "points"} · ${spiked ? "hit a spike" : "slid down"} at ${ended.toFixed(1)}s`,
+      ? `${metres.toLocaleString("en-GB")} m climbed, ${result.score} ${result.score === 1 ? "point" : "points"}, survived`
+      : `${metres.toLocaleString("en-GB")} m climbed, ${result.score} ${result.score === 1 ? "point" : "points"}, ${spiked ? "hit a spike" : "slid down"} at ${ended.toFixed(1)}s`,
     detail: [`${Number(result.extra?.["leaps"] ?? 0)} leaps`],
   };
 };
@@ -1164,15 +1164,15 @@ const breakerSummary: SummaryBuilder = (result) => {
   return {
     summary: cleared
       ? `Cleared at ${ended.toFixed(1)}s`
-      : `${Number(result.extra?.["destroyed"] ?? 80 - left)} / ${Number(result.extra?.["wall"] ?? 80)} bricks · ${hits} hits · ${powerUps} power-up${powerUps === 1 ? "" : "s"}`,
+      : `${Number(result.extra?.["destroyed"] ?? 80 - left)} / ${Number(result.extra?.["wall"] ?? 80)} bricks, ${hits} hits, ${powerUps} power-up${powerUps === 1 ? "" : "s"}`,
     // brkRev 9: the skill points too.
     detail: [
       `${Number(result.extra?.["losses"] ?? 0)} relaunches`,
       // brkRev 11 (the arcade scoring standard): the gold, clear and speed parts.
       ...(result.extra?.["std"] !== undefined
-        ? [`${Number(result.extra?.["goldBroken"] ?? 0)} / ${Number(result.extra?.["goldDealt"] ?? 0)} gold +${Number(result.extra?.["goldPts"] ?? 0)}${cleared ? ` · clear +${Number(result.extra?.["clearPts"] ?? 0)} · speed +${Number(result.extra?.["speedPts"] ?? 0)}` : ""}`]
+        ? [`${Number(result.extra?.["goldBroken"] ?? 0)} / ${Number(result.extra?.["goldDealt"] ?? 0)} gold +${Number(result.extra?.["goldPts"] ?? 0)}${cleared ? `, clear +${Number(result.extra?.["clearPts"] ?? 0)}, speed +${Number(result.extra?.["speedPts"] ?? 0)}` : ""}`]
         : result.extra?.["wall"] !== undefined
-          ? [`${Number(result.extra?.["goldBroken"] ?? 0)} gold · combo ${Number(result.extra?.["comboPts"] ?? 0)} · skill +${Number(result.extra?.["skill"] ?? 0)}`]
+          ? [`${Number(result.extra?.["goldBroken"] ?? 0)} gold, combo ${Number(result.extra?.["comboPts"] ?? 0)}, skill +${Number(result.extra?.["skill"] ?? 0)}`]
           : []),
     ],
   };
@@ -1183,7 +1183,7 @@ const freecellSummary: SummaryBuilder = (result) => {
   const n = (key: string) => Number(result.extra?.[key] ?? 0);
   const done = result.extra?.["finished"] === true;
   return {
-    summary: done ? `All 52 home · ${n("moves")} moves (par ${n("par")})` : `${n("home")} of 52 home · ${n("sorted")} in sorted runs`,
+    summary: done ? `All 52 home, ${n("moves")} moves (par ${n("par")})` : `${n("home")} of 52 home, ${n("sorted")} in sorted runs`,
     detail: [done ? `Finished in ${n("finishSeconds").toFixed(1)} s` : `${n("moves")} moves, par ${n("par")}`],
   };
 };
@@ -1192,7 +1192,7 @@ const tripeaksSummary: SummaryBuilder = (result) => {
   const n = (key: string) => Number(result.extra?.[key] ?? 0);
   const done = result.extra?.["finished"] === true;
   return {
-    summary: `${n("cleared")} of 28 cleared · ${n("peaks")} peak tops · best run ${n("bestRun")}`,
+    summary: `${n("cleared")} of 28 cleared, ${n("peaks")} peak tops, best run ${n("bestRun")}`,
     detail: [done ? `Cleared in ${n("finishSeconds").toFixed(1)} s` : `${n("stockLeft")} stock cards left`],
   };
 };
@@ -1200,7 +1200,7 @@ const tripeaksSummary: SummaryBuilder = (result) => {
 const pokerSquaresSummary: SummaryBuilder = (result) => {
   const n = (key: string) => Number(result.extra?.[key] ?? 0);
   return {
-    summary: `${n("total")} hand points · ${n("made")} of 10 lines`,
+    summary: `${n("total")} hand points, ${n("made")} of 10 lines`,
     detail: [`${n("placed")} of 25 cards placed`],
   };
 };
@@ -1208,7 +1208,7 @@ const pokerSquaresSummary: SummaryBuilder = (result) => {
 const fiveHandsSummary: SummaryBuilder = (result) => {
   const n = (key: string) => Number(result.extra?.[key] ?? 0);
   return {
-    summary: `${n("total")} hand points · ${n("made")} of 5 hands`,
+    summary: `${n("total")} hand points, ${n("made")} of 5 hands`,
     detail: [`${n("placed")} of 20 cards placed`],
   };
 };
@@ -1216,7 +1216,7 @@ const fiveHandsSummary: SummaryBuilder = (result) => {
 const pyramidSummary: SummaryBuilder = (result) => {
   const n = (key: string) => Number(result.extra?.[key] ?? 0);
   return {
-    summary: `${n("removed")} of 28 removed · ${Math.min(10, n("ppPairs"))} of 10 pyramid pairs`,
+    summary: `${n("removed")} of 28 removed, ${Math.min(10, n("ppPairs"))} of 10 pyramid pairs`,
     detail: [result.extra?.["finished"] ? `Cleared in ${n("finishSeconds").toFixed(1)} s` : "Not cleared"],
   };
 };
@@ -1224,7 +1224,7 @@ const pyramidSummary: SummaryBuilder = (result) => {
 const golfSolSummary: SummaryBuilder = (result) => {
   const n = (key: string) => Number(result.extra?.[key] ?? 0);
   return {
-    summary: `${n("cleared")} of 35 cleared · ${Math.min(5, n("runs"))} of 5 runs`,
+    summary: `${n("cleared")} of 35 cleared, ${Math.min(5, n("runs"))} of 5 runs`,
     detail: [result.extra?.["finished"] ? `Cleared in ${n("finishSeconds").toFixed(1)} s` : `${n("stockLeft")} left in the stock`],
   };
 };
@@ -1232,7 +1232,7 @@ const golfSolSummary: SummaryBuilder = (result) => {
 const mugginsSummary: SummaryBuilder = (result) => {
   const n = (key: string) => Number(result.extra?.[key] ?? 0);
   return {
-    summary: `${n("points")} points · ${Math.min(2, n("bigs"))} of 2 big plays`,
+    summary: `${n("points")} points, ${Math.min(2, n("bigs"))} of 2 big plays`,
     detail: [result.extra?.["finished"] ? `Hand cleared in ${n("finishSeconds").toFixed(1)} s` : `${n("handLeft")} tiles left in hand`],
   };
 };
@@ -1240,9 +1240,9 @@ const mugginsSummary: SummaryBuilder = (result) => {
 const blockfallSummary: SummaryBuilder = (result) => {
   const n = (key: string) => Number(result.extra?.[key] ?? 0);
   const multi = n("doubles") + n("triples") + n("quads");
-  const pieces = n("blockfallRev") >= 2 ? ` · ${n("pieces")} pieces` : "";
+  const pieces = n("blockfallRev") >= 2 ? `, ${n("pieces")} pieces` : "";
   return {
-    summary: `${n("lines")} lines${pieces} · ${multi} multi-line clear${multi === 1 ? "" : "s"}`,
+    summary: `${n("lines")} lines${pieces}, ${multi} multi-line clear${multi === 1 ? "" : "s"}`,
     detail: [result.extra?.["toppedOut"] ? "Topped out" : `Stack ${n("height")} high at the buzzer`],
   };
 };
@@ -1252,20 +1252,20 @@ const alleyRollSummary: SummaryBuilder = (result) => {
   return {
     // Ringer (alleyRollRev 2) adds the gold cup; rev 1's rounds read as before.
     summary: n("alleyRollRev") >= 2
-      ? `${n("rings")} ring points · ${n("gold")} gold · ${n("pockets")} pocket${n("pockets") === 1 ? "" : "s"}`
-      : `${n("rings")} ring points · ${n("pockets")} pocket${n("pockets") === 1 ? "" : "s"}`,
-    detail: [`${n("balls")} of 9 balls · ${n("streak")} in a row`],
+      ? `${n("rings")} ring points, ${n("gold")} gold, ${n("pockets")} pocket${n("pockets") === 1 ? "" : "s"}`
+      : `${n("rings")} ring points, ${n("pockets")} pocket${n("pockets") === 1 ? "" : "s"}`,
+    detail: [`${n("balls")} of 9 balls, ${n("streak")} in a row`],
   };
 };
 
 /** Sports (30 Oct 2026): what each part of the arcade standard paid, as the grader stored it. */
 const partsLine = (result: RoundResultRow, keys: [string, string][]): string =>
-  keys.map(([key, label]) => `${label} ${Number(result.extra?.[key] ?? 0)}`).join(" · ");
+  keys.map(([key, label]) => `${label} ${Number(result.extra?.[key] ?? 0)}`).join(", ");
 
 const minigolfSummary: SummaryBuilder = (result) => {
   const n = (key: string) => Number(result.extra?.[key] ?? 0);
   return {
-    summary: `${n("holed")} of 5 holed · ${n("strokes")} strokes · ${n("atPar")} at par or better`,
+    summary: `${n("holed")} of 5 holed, ${n("strokes")} strokes, ${n("atPar")} at par or better`,
     detail: [
       partsLine(result, [["corePts", "Holes"], ["parPts", "Par"], ["underPts", "Under par"], ["speedPts", "Speed"]]),
       ...(n("waters") > 0 ? [`${n("waters")} in the water`] : []),
@@ -1276,7 +1276,7 @@ const minigolfSummary: SummaryBuilder = (result) => {
 const poolSummary: SummaryBuilder = (result) => {
   const n = (key: string) => Number(result.extra?.[key] ?? 0);
   return {
-    summary: `${n("spots")} of 7 spots potted${n("black") ? " · the black" : ""} · best run ${n("streakBest")}`,
+    summary: `${n("spots")} of 7 spots potted${n("black") ? ", the black" : ""}, best run ${n("streakBest")}`,
     detail: [
       partsLine(result, [["corePts", "Spots"], ["blackPts", "Black"], ["streakPts", "Pots in a row"], ["speedPts", "Speed"]]),
       ...(n("fouls") > 0 ? [`${n("fouls")} foul${n("fouls") === 1 ? "" : "s"} −${n("fouls") * 10}`] : []),
@@ -1290,8 +1290,8 @@ const curlingSummary: SummaryBuilder = (result) => {
     // curlRev 4 stores how many stones counted (nearer than every red in the house).
     summary:
       result.extra?.["counted"] != null
-        ? `${n("onButton")} on the button · ${n("counted")} counted · ${n("takeouts")} of ${n("opponents")} taken out`
-        : `${n("onButton")} on the button · ${n("inFourFoot")} in the 4-foot · ${n("takeouts")} of ${n("opponents")} taken out`,
+        ? `${n("onButton")} on the button, ${n("counted")} counted, ${n("takeouts")} of ${n("opponents")} taken out`
+        : `${n("onButton")} on the button, ${n("inFourFoot")} in the 4-foot, ${n("takeouts")} of ${n("opponents")} taken out`,
     detail: [
       partsLine(result, [["corePts", "Stones"], ["takeoutPts", "Takeouts"], ["ringPts", "Red ring"], ["holdPts", "Holding shot"]]),
     ],
@@ -1302,15 +1302,15 @@ const pinballSummary: SummaryBuilder = (result) => {
   const n = (key: string) => Number(result.extra?.[key] ?? 0);
   const left = n("ballsLeft");
   return {
-    summary: `${n("points").toLocaleString("en-GB")} table points · ${n("bumps")} bumper hits · ${n("drops")} targets`,
+    summary: `${n("points").toLocaleString("en-GB")} table points, ${n("bumps")} bumper hits, ${n("drops")} targets`,
     detail: [
       // pinRev 6 (the arcade scoring standard) has no multiplier; it counts J-O-U-L-Z sets and ramp combos instead.
       ...(n("pinRev") >= 6 ? [] : [`Multiplier ×${Math.max(1, n("mult"))}`]),
       // pinRev 4 (the expansion): ramps, multiball, jackpots and skill shots.
       ...(n("pinRev") >= 6
-        ? [`${n("ramps")} ramps · ${n("combos")} combos · ${n("laneSets")} J-O-U-L-Z · ${n("multiballs")} multiball · ${n("jackpots")} jackpots`]
+        ? [`${n("ramps")} ramps, ${n("combos")} combos, ${n("laneSets")} J-O-U-L-Z, ${n("multiballs")} multiball, ${n("jackpots")} jackpots`]
         : n("pinRev") >= 4
-          ? [`${n("ramps")} ramps · ${n("multiballs")} multiball · ${n("jackpots")} jackpots · ${n("skills")} skill shots`]
+          ? [`${n("ramps")} ramps, ${n("multiballs")} multiball, ${n("jackpots")} jackpots, ${n("skills")} skill shots`]
           : []),
       left > 0 ? `Clock ran out with ${left} ball${left === 1 ? "" : "s"} left` : "All three balls drained",
     ],
@@ -1322,7 +1322,7 @@ const minesweeperSummary: SummaryBuilder = (result) => {
   const n = (key: string) => Number(result.extra?.[key] ?? 0);
   const hits = n("hits");
   return {
-    summary: `${n("revealed") - n("opening")} of ${n("safe") - n("opening")} safe squares${result.extra?.["cleared"] === true ? " · cleared" : ""}`,
+    summary: `${n("revealed") - n("opening")} of ${n("safe") - n("opening")} safe squares${result.extra?.["cleared"] === true ? ", cleared" : ""}`,
     detail: [
       hits === 0 ? "No mine hit" : `${hits} mine${hits === 1 ? "" : "s"} hit`,
       result.extra?.["cleared"] === true ? `Cleared in ${n("clearedSeconds").toFixed(1)} s` : "Board not cleared",
@@ -1334,7 +1334,7 @@ const mahjongSummary: SummaryBuilder = (result) => {
   const n = (key: string) => Number(result.extra?.[key] ?? 0);
   const shuffles = n("shuffles");
   return {
-    summary: `${n("pairs")} of 36 pairs${result.extra?.["cleared"] === true ? " · cleared" : ""}`,
+    summary: `${n("pairs")} of 36 pairs${result.extra?.["cleared"] === true ? ", cleared" : ""}`,
     detail: [
       shuffles === 0 ? "No shuffle" : `${shuffles} shuffle${shuffles === 1 ? "" : "s"}`,
       result.extra?.["cleared"] === true ? `Cleared in ${n("clearedSeconds").toFixed(1)} s` : "Board not cleared",
@@ -1369,14 +1369,14 @@ const rallySummary: SummaryBuilder = (result, puzzle) => {
   const pads = `${targetHits} pink pad${targetHits === 1 ? "" : "s"}`;
   const gold =
     rev >= 3
-      ? `${goldHits} gold hit${goldHits === 1 ? "" : "s"} · ${pads}`
+      ? `${goldHits} gold hit${goldHits === 1 ? "" : "s"}, ${pads}`
       : rev === 2
-        ? `${goldHits} gold hit${goldHits === 1 ? "" : "s"} (2.5 each, rounded down) · ${pads} (3 each)`
+        ? `${goldHits} gold hit${goldHits === 1 ? "" : "s"} (2.5 each, rounded down), ${pads} (3 each)`
         : `${goldHits} gold hit${goldHits === 1 ? "" : "s"} (2.5 each, rounded down)`;
   return {
     summary: survived
-      ? `${gold} · ${hits} blue returns · survived`
-      : `${gold} · ${hits} blue returns · lost at ${ended.toFixed(1)}s`,
+      ? `${gold}, ${hits} blue returns, survived`
+      : `${gold}, ${hits} blue returns, lost at ${ended.toFixed(1)}s`,
     detail: [survived ? "Kept the rally alive" : "Lost the ball"],
   };
 };
@@ -1386,7 +1386,7 @@ const steadySummary: SummaryBuilder = (result) => {
   const touches = Number(result.extra?.["touches"] ?? 0);
   const clean = result.extra?.["clean"] === true;
   return {
-    summary: `${metres} m · ${touches} touch${touches === 1 ? "" : "es"}`,
+    summary: `${metres} m, ${touches} touch${touches === 1 ? "" : "es"}`,
     detail: [clean ? "No touches" : `${touches} touch${touches === 1 ? "" : "es"} (−5 each)`],
   };
 };
@@ -1396,7 +1396,7 @@ const sliceSummary: SummaryBuilder = (result) => {
   const total = Number(result.extra?.["totalDiscs"] ?? 0);
   const chillies = Number(result.extra?.["bombsHit"] ?? 0);
   return {
-    summary: `Sliced ${slices} / ${total} · best combo ×${Number(result.extra?.["bestMult"] ?? 1)}`,
+    summary: `Sliced ${slices} / ${total}, best combo ×${Number(result.extra?.["bestMult"] ?? 1)}`,
     detail: [`${chillies} ${chillies === 1 ? "chilli" : "chillies"} cut`],
   };
 };
@@ -1409,12 +1409,12 @@ const bubbleSummary: SummaryBuilder = (result) => {
   return {
     summary: cleared
       ? `Cleared at ${ended.toFixed(1)}s`
-      : `${Number(result.extra?.["bubblesLeft"] ?? 0)} bubbles left · popped ${popped} · dropped ${dropped}`,
+      : `${Number(result.extra?.["bubblesLeft"] ?? 0)} bubbles left, popped ${popped}, dropped ${dropped}`,
     detail: [
       `${Number(result.extra?.["shots"] ?? 0)} shots`,
       // bubbleRev 11 (the arcade scoring standard): the scored features.
       ...(result.extra?.["chests"] !== undefined
-        ? [`${Number(result.extra["chests"])} chests · ${Number(result.extra?.["banks"] ?? 0)} bank shots · ${Number(result.extra?.["combos"] ?? 0)} combos`]
+        ? [`${Number(result.extra["chests"])} chests, ${Number(result.extra?.["banks"] ?? 0)} bank shots, ${Number(result.extra?.["combos"] ?? 0)} combos`]
         : []),
     ],
   };
@@ -1426,12 +1426,12 @@ const beatSummary: SummaryBuilder = (result) => {
   const perfect = Number(result.extra?.["perfect"] ?? 0);
   const misses = Number(result.extra?.["misses"] ?? 0);
   return {
-    summary: `${hits} / ${notes} · ${perfect} perfect · ${misses} miss${misses === 1 ? "" : "es"}`,
+    summary: `${hits} / ${notes}, ${perfect} perfect, ${misses} miss${misses === 1 ? "" : "es"}`,
     detail: [
       `best combo ${Number(result.extra?.["maxCombo"] ?? 0)}`,
       // beatRev 11 (the arcade scoring standard): the features against the song's own counts.
       ...(typeof result.extra?.["accuracy"] === "number"
-        ? [`${Number(result.extra?.["fevers"] ?? 0)} fever${Number(result.extra?.["fevers"] ?? 0) === 1 ? "" : "s"} · golden ${Number(result.extra?.["goldsHit"] ?? 0)} / ${Number(result.extra?.["golds"] ?? 0)} · doubles ${Number(result.extra?.["doublesDone"] ?? 0)} / ${Number(result.extra?.["doubles"] ?? 0)} · best Perfect streak ${Number(result.extra?.["maxStreak"] ?? 0)}`]
+        ? [`${Number(result.extra?.["fevers"] ?? 0)} fever${Number(result.extra?.["fevers"] ?? 0) === 1 ? "" : "s"}, golden ${Number(result.extra?.["goldsHit"] ?? 0)} / ${Number(result.extra?.["golds"] ?? 0)}, doubles ${Number(result.extra?.["doublesDone"] ?? 0)} / ${Number(result.extra?.["doubles"] ?? 0)}, best Perfect streak ${Number(result.extra?.["maxStreak"] ?? 0)}`]
         : []),
     ],
   };
@@ -1444,11 +1444,11 @@ const whackSummary: SummaryBuilder = (result, puzzle) => {
   const empty = Number(result.extra?.["empty"] ?? 0);
   const bombs = Number(result.extra?.["bombs"] ?? 0);
   return {
-    summary: `Hits ${hits} / ${total} · Wrong ${wrong} · Hedgehogs ${bombs} · Empty ${empty}`,
+    summary: `Hits ${hits} / ${total}, Wrong ${wrong}, Hedgehogs ${bombs}, Empty ${empty}`,
     // whackRev 1 lifts that score on the scoring-target curve, so the old formula is shown only for older rounds.
     detail: (puzzle as { whackRev?: number }).whackRev
       ? []
-      : ["135 × share hit · −3 per wrong hat · −5 per hedgehog · −3 per empty tap · +15 for every target"],
+      : ["135 × share hit, −3 per wrong hat, −5 per hedgehog, −3 per empty tap, +15 for every target"],
   };
 };
 
@@ -1470,7 +1470,7 @@ const wordfallSummary: SummaryBuilder = (result) => {
   const best = Array.isArray(result.extra?.["best"]) ? (result.extra["best"] as unknown[]).map(String) : [];
   const overflow = result.extra?.["overflow"] === true;
   return {
-    summary: `${words} word${words === 1 ? "" : "s"} · ${points} / ${par} points`,
+    summary: `${words} word${words === 1 ? "" : "s"}, ${points} / ${par} points`,
     detail: [
       ...(best.length ? [`Best: ${best.slice(0, 3).join(", ")}`] : []),
       ...(overflow ? ["A column overflowed"] : []),
@@ -1493,7 +1493,7 @@ const clayShootSummary: SummaryBuilder = (result, puzzle) => {
   const unit = puzzle.type === "clayshoot" && (puzzle.clayRev ?? 0) >= CLAY_REV_BANDS ? " from the total" : "";
   return {
     summary: `${hits} / ${total} clays`,
-    detail: [`${orange} orange · ${gold} gold · ${shots} shot${shots === 1 ? "" : "s"}${birdTotal > 0 ? ` · ${birds} bird${birds === 1 ? "" : "s"} hit (−${birds * 10}${unit})` : ""}${emptyCost > 0 ? ` · ${empty} empty shot${empty === 1 ? "" : "s"} (−${emptyCost}${unit})` : ""}`],
+    detail: [`${orange} orange, ${gold} gold, ${shots} shot${shots === 1 ? "" : "s"}${birdTotal > 0 ? `, ${birds} bird${birds === 1 ? "" : "s"} hit (−${birds * 10}${unit})` : ""}${emptyCost > 0 ? `, ${empty} empty shot${empty === 1 ? "" : "s"} (−${emptyCost}${unit})` : ""}`],
   };
 };
 
@@ -1503,15 +1503,15 @@ const wavefrontSummary: SummaryBuilder = (result) => {
   const saucers = Number(result.extra?.["saucers"] ?? 0);
   const survived = result.extra?.["survived"] !== false;
   const ended = Number(result.extra?.["endedSeconds"] ?? 0);
-  const head = `Wave ${wave} · ${shapes} ship${shapes === 1 ? "" : "s"} · ${saucers} saucer${saucers === 1 ? "" : "s"}`;
+  const head = `Wave ${wave}, ${shapes} ship${shapes === 1 ? "" : "s"}, ${saucers} saucer${saucers === 1 ? "" : "s"}`;
   // wavRev 2: the run ends early when the boss goes down.
   const bossDown = Number(result.extra?.["bossKilled"] ?? 0) > 0;
   return {
     summary: bossDown
-      ? `Boss destroyed at ${ended.toFixed(1)}s · ${shapes} ships`
-      : survived ? `${head} · survived` : `${head} · destroyed at ${ended.toFixed(1)}s`,
+      ? `Boss destroyed at ${ended.toFixed(1)}s, ${shapes} ships`
+      : survived ? `${head}, survived` : `${head}, destroyed at ${ended.toFixed(1)}s`,
     detail: [
-      `${Number(result.extra?.["wavesCleared"] ?? 0)} waves cleared · ${Number(result.extra?.["armourHits"] ?? 0)} armour hits`,
+      `${Number(result.extra?.["wavesCleared"] ?? 0)} waves cleared, ${Number(result.extra?.["armourHits"] ?? 0)} armour hits`,
     ],
   };
 };
@@ -1527,7 +1527,7 @@ const bastionSummary: SummaryBuilder = (result, puzzle) => {
     const spec = bastionStdSpecFor(puzzle.bastionRev);
     const parts = (spec?.parts ?? []).map((p) => `${p.label} ${Number(result.extra?.[`part_${p.key}`] ?? 0)}/${p.max}`);
     return {
-      summary: fell ? `${kills} tanks · base fell at ${ended.toFixed(1)}s` : `${kills} tanks · base ${base} / 3`,
+      summary: fell ? `${kills} tanks, base fell at ${ended.toFixed(1)}s` : `${kills} tanks, base ${base} / 3`,
       detail: parts,
     };
   }
@@ -1535,9 +1535,9 @@ const bastionSummary: SummaryBuilder = (result, puzzle) => {
   const health = Number(result.extra?.["health"] ?? 0);
   const survived = result.extra?.["survived"] !== false;
   const ended = Number(result.extra?.["endedSeconds"] ?? 0);
-  const head = `${destroyed} destroyed · base ${health} / 5`;
+  const head = `${destroyed} destroyed, base ${health} / 5`;
   return {
-    summary: survived ? `${head} · survived` : `${head} · base fell at ${ended.toFixed(1)}s`,
+    summary: survived ? `${head}, survived` : `${head}, base fell at ${ended.toFixed(1)}s`,
     detail: ["Same waves for everyone"],
   };
 };
@@ -1565,14 +1565,14 @@ const junctionSummary: SummaryBuilder = (result) => {
   const gaveUp = Number(result.extra?.["gaveUp"] ?? 0);
   const survived = result.extra?.["survived"] !== false;
   const ended = Number(result.extra?.["survivedSeconds"] ?? 0);
-  const head = `${cleared} cleared · ${gaveUp} drove off`;
+  const head = `${cleared} cleared, ${gaveUp} drove off`;
   const through = Number(result.extra?.["ambThrough"] ?? 0);
   const stopped = Number(result.extra?.["ambStopped"] ?? 0);
   return {
-    summary: survived ? `${head} · survived` : `${head} · crash at ${ended.toFixed(1)}s`,
+    summary: survived ? `${head}, survived` : `${head}, crash at ${ended.toFixed(1)}s`,
     detail: [
-      `Ambulances: ${through} through · ${stopped} stopped`,
-      ...(result.extra?.["junctionRev"] ? [`${Number(result.extra?.["busCleared"] ?? 0)} buses · ${Number(result.extra?.["diagCleared"] ?? 0)} from the new roads`] : []),
+      `Ambulances: ${through} through, ${stopped} stopped`,
+      ...(result.extra?.["junctionRev"] ? [`${Number(result.extra?.["busCleared"] ?? 0)} buses, ${Number(result.extra?.["diagCleared"] ?? 0)} from the new roads`] : []),
     ],
   };
 };
@@ -1587,7 +1587,7 @@ const inkBridgeSummary: SummaryBuilder = (result, puzzle) => {
     phase = current <= 4 ? " (Standard)" : current <= 8 ? " (Moving Pot)" : " (Live)";
   }
   return {
-    summary: levels >= total ? `All ${total} · ${result.score}` : `Level ${current}${phase} · ${result.score} ${result.score === 1 ? "point" : "points"}`,
+    summary: levels >= total ? `All ${total}, ${result.score}` : `Level ${current}${phase}, ${result.score} ${result.score === 1 ? "point" : "points"}`,
     detail: ["Same levels for everyone"],
   };
 };
@@ -1600,9 +1600,9 @@ const orbitSummary: SummaryBuilder = (result) => {
   const left = Number(result.extra?.["secondsLeft"] ?? 0);
   const head = `${passed} / ${total} planets`;
   if (result.extra?.["finished"] === true)
-    return { summary: `${passed} / ${total} · finished with ${left.toFixed(1)}s left`, detail: ["Same planets for everyone"] };
+    return { summary: `${passed} / ${total}, finished with ${left.toFixed(1)}s left`, detail: ["Same planets for everyone"] };
   return {
-    summary: survived ? `${head} · survived` : `${head} · lost at ${ended.toFixed(1)}s`,
+    summary: survived ? `${head}, survived` : `${head}, lost at ${ended.toFixed(1)}s`,
     detail: ["Same planets for everyone"],
   };
 };
@@ -1612,12 +1612,12 @@ const snipSummary: SummaryBuilder = (result) => {
   const stars = Number(result.extra?.["stars"] ?? 0);
   const levels = Number(result.extra?.["levels"] ?? 0);
   return {
-    summary: `${eaten} apple${eaten === 1 ? "" : "s"} · ${stars} lea${stars === 1 ? "f" : "ves"} · ${result.score ?? 0}`,
+    summary: `${eaten} apple${eaten === 1 ? "" : "s"}, ${stars} lea${stars === 1 ? "f" : "ves"}, ${result.score ?? 0}`,
     detail: [
       `${levels} level${levels === 1 ? "" : "s"} played`,
       // snipRev 11: golden apples, levels at par cuts and under par time.
       ...(Number(result.extra?.["snipRev"] ?? 0) >= 11
-        ? [`${Number(result.extra?.["golden"] ?? 0)} golden · ${Number(result.extra?.["parLevels"] ?? 0)} at par · ${Number(result.extra?.["quickLevels"] ?? 0)} quick`]
+        ? [`${Number(result.extra?.["golden"] ?? 0)} golden, ${Number(result.extra?.["parLevels"] ?? 0)} at par, ${Number(result.extra?.["quickLevels"] ?? 0)} quick`]
         : []),
     ],
   };
@@ -1628,36 +1628,36 @@ const swingSummary: SummaryBuilder = (result) => {
   if (Number(result.extra?.["swingRev"] ?? 0) >= 17) {
     const x = (k: string) => Number(result.extra?.[k] ?? 0);
     return {
-      summary: `${Math.trunc(x("permille") / 10)} % of the course · ${x("restarts")} restart${x("restarts") === 1 ? "" : "s"} · ${result.score ?? 0}`,
-      detail: ["Same course for everyone", `${x("sections")} / ${x("sectionTotal")} stretches · ${x("parsBeaten")} under par · ${x("gates")} gates · streak +${x("streakPts")}`],
+      summary: `${Math.trunc(x("permille") / 10)} % of the course, ${x("restarts")} restart${x("restarts") === 1 ? "" : "s"}, ${result.score ?? 0}`,
+      detail: ["Same course for everyone", `${x("sections")} / ${x("sectionTotal")} stretches, ${x("parsBeaten")} under par, ${x("gates")} gates, streak +${x("streakPts")}`],
     };
   }
   // swingRev 15 (the swinging course) and 16 (its dark ledge runs): the share of the course, restarts, pars and pickups.
   if (Number(result.extra?.["swingRev"] ?? 0) >= 15) {
     const x = (k: string) => Number(result.extra?.[k] ?? 0);
     return {
-      summary: `${Math.trunc(x("permille") / 10)} % of the course · ${x("restarts")} restart${x("restarts") === 1 ? "" : "s"} · ${result.score ?? 0}`,
-      detail: ["Same course for everyone", `${x("sections")} / ${x("sectionTotal")} stretches · ${x("parsBeaten")} under par · ${x("gates")} gates · ${x("gems")} gems · ${x("stars")} stars`],
+      summary: `${Math.trunc(x("permille") / 10)} % of the course, ${x("restarts")} restart${x("restarts") === 1 ? "" : "s"}, ${result.score ?? 0}`,
+      detail: ["Same course for everyone", `${x("sections")} / ${x("sectionTotal")} stretches, ${x("parsBeaten")} under par, ${x("gates")} gates, ${x("gems")} gems, ${x("stars")} stars`],
     };
   }
   // swingRev 14 (the assault course): sections cleared, restarts, pars and pickups.
   if (Number(result.extra?.["swingRev"] ?? 0) >= 14) {
     const x = (k: string) => Number(result.extra?.[k] ?? 0);
     return {
-      summary: `Section ${x("sections")} / ${x("sectionTotal")} · ${x("restarts")} restart${x("restarts") === 1 ? "" : "s"} · ${result.score ?? 0}`,
-      detail: ["Same course for everyone", `${x("parsBeaten")} under par · ${x("gates")} gates · ${x("gems")} gems · ${x("stars")} stars`],
+      summary: `Section ${x("sections")} / ${x("sectionTotal")}, ${x("restarts")} restart${x("restarts") === 1 ? "" : "s"}, ${result.score ?? 0}`,
+      detail: ["Same course for everyone", `${x("parsBeaten")} under par, ${x("gates")} gates, ${x("gems")} gems, ${x("stars")} stars`],
     };
   }
   const metres = Number(result.extra?.["metres"] ?? 0);
   const survived = result.extra?.["survived"] !== false;
   const ended = Number(result.extra?.["survivedSeconds"] ?? 0);
   return {
-    summary: survived ? `${metres} m · survived · ${result.score ?? 0}` : `${metres} m · fell at ${ended.toFixed(1)}s · ${result.score ?? 0}`,
+    summary: survived ? `${metres} m, survived, ${result.score ?? 0}` : `${metres} m, fell at ${ended.toFixed(1)}s, ${result.score ?? 0}`,
     // swingRev 13: the features (gems, gates, sections and pars beaten).
     detail: [
       "Same cavern for everyone",
       ...(Number(result.extra?.["gemTotal"] ?? 0) > 0
-        ? [`${Number(result.extra?.["gems"] ?? 0)} gems · ${Number(result.extra?.["gates"] ?? 0)} gates · ${Number(result.extra?.["sections"] ?? 0)} sections, ${Number(result.extra?.["parsBeaten"] ?? 0)} under par`]
+        ? [`${Number(result.extra?.["gems"] ?? 0)} gems, ${Number(result.extra?.["gates"] ?? 0)} gates, ${Number(result.extra?.["sections"] ?? 0)} sections, ${Number(result.extra?.["parsBeaten"] ?? 0)} under par`]
         : []),
     ],
   };
@@ -1675,10 +1675,10 @@ const tiltSummary: SummaryBuilder = (result) => {
   return {
     summary:
       mazes >= all
-        ? `${all} / ${all} mazes · ${Number(result.extra?.["secondsLeft"] ?? 0).toFixed(1)}s left`
+        ? `${all} / ${all} mazes, ${Number(result.extra?.["secondsLeft"] ?? 0).toFixed(1)}s left`
         : survived
-          ? `${head} · survived`
-          : `${head} · ${result.extra?.["caught"] === true ? "caught by the red ball" : "dark hole"} at ${ended.toFixed(1)}s`,
+          ? `${head}, survived`
+          : `${head}, ${result.extra?.["caught"] === true ? "caught by the red ball" : "dark hole"} at ${ended.toFixed(1)}s`,
     detail: result.extra?.["tiltRev"]
       ? [`${Number(result.extra?.["stars"] ?? 0)} / ${Number(result.extra?.["totalStars"] ?? 0)} stars`, ...(quick > 0 ? [`${Number(result.extra?.["quickStars"] ?? 0)} / ${quick} quick stars`] : []), "Same mazes for everyone"]
       : ["Same mazes for everyone"],
@@ -1690,7 +1690,7 @@ const hotFloorSummary: SummaryBuilder = (result) => {
   const livesLost = Number(result.extra?.["livesLost"] ?? 0);
   const completed = Number(result.extra?.["completedSeconds"] ?? 0);
   return {
-    summary: stages >= 10 ? `10 stages · ${completed.toFixed(1)}s` : `${stages} stages · ${livesLost} ${livesLost === 1 ? "life" : "lives"} lost`,
+    summary: stages >= 10 ? `10 stages, ${completed.toFixed(1)}s` : `${stages} stages, ${livesLost} ${livesLost === 1 ? "life" : "lives"} lost`,
     detail: ["Same floor for everyone"],
   };
 };
@@ -1700,13 +1700,13 @@ const burstSummary: SummaryBuilder = (result) => {
   const hits = Number(result.extra?.["hits"] ?? 0);
   const lost = Number(result.extra?.["livesLost"] ?? 0);
   return {
-    summary: `Wave ${wave} · ${hits} popped · ${lost} ${lost === 1 ? "life" : "lives"} lost · ${result.score}`,
+    summary: `Wave ${wave}, ${hits} popped, ${lost} ${lost === 1 ? "life" : "lives"} lost, ${result.score}`,
     detail: ["Same waves for everyone"],
   };
 };
 
 const shikakuSummary: SummaryBuilder = (result, puzzle) => {
-  if (result.is_correct) return { summary: `Solved · ${seconds(elapsedMs(result, puzzle))}`, detail: [] };
+  if (result.is_correct) return { summary: `Solved, ${seconds(elapsedMs(result, puzzle))}`, detail: [] };
   const progress = progressOf(result, puzzle);
   if (progress) return progress;
   return { summary: `${Number(result.extra?.["covered"] ?? 0)} / ${puzzle.type === "shikaku" ? puzzle.size * puzzle.size : 81} covered`, detail: [] };
@@ -1714,14 +1714,14 @@ const shikakuSummary: SummaryBuilder = (result, puzzle) => {
 
 /** The four grid puzzles born on the standard (1 Nov 2026): solved with the time, else the share placed. */
 const gridSummary: SummaryBuilder = (result, puzzle) => {
-  if (result.is_correct) return { summary: `Solved · ${seconds(elapsedMs(result, puzzle))}`, detail: [] };
+  if (result.is_correct) return { summary: `Solved, ${seconds(elapsedMs(result, puzzle))}`, detail: [] };
   const progress = progressOf(result, puzzle);
   if (progress) return progress;
   return { summary: `${Number(result.extra?.["right"] ?? 0)} / ${Number(result.extra?.["total"] ?? 0)} right`, detail: [] };
 };
 
 const lightUpSummary: SummaryBuilder = (result, puzzle) => {
-  if (result.is_correct) return { summary: `Solved · ${seconds(elapsedMs(result, puzzle))}`, detail: [] };
+  if (result.is_correct) return { summary: `Solved, ${seconds(elapsedMs(result, puzzle))}`, detail: [] };
   const progress = progressOf(result, puzzle);
   if (progress) return progress;
   const lit = Number(result.extra?.["lit"] ?? 0);
@@ -1736,7 +1736,7 @@ const lightUpSummary: SummaryBuilder = (result, puzzle) => {
 const ballTrackSummary: SummaryBuilder = (result, puzzle) => {
   const home = Number(result.extra?.["home"] ?? 0);
   const speed = Number(result.extra?.["speed"] ?? 0);
-  const tail = speed ? ` · +${speed} speed` : "";
+  const tail = speed ? `, +${speed} speed` : "";
   // btRev 7 drops 36 marbles (every earlier course 30).
   const all = (puzzle.type === "balltrack" && puzzle.course.balls.length) || BT_BALLS;
   return { summary: `${home} / ${all} home${tail}`, detail: ["Same track for everyone"] };
@@ -1744,7 +1744,7 @@ const ballTrackSummary: SummaryBuilder = (result, puzzle) => {
 
 const numberPyramidSummary: SummaryBuilder = (result, puzzle) => {
   const completed = Number(result.extra?.["completed"] ?? 0);
-  if (result.is_correct) return { summary: `4 / 4 complete · ${seconds(elapsedMs(result, puzzle))}`, detail: [] };
+  if (result.is_correct) return { summary: `4 / 4 complete, ${seconds(elapsedMs(result, puzzle))}`, detail: [] };
   return { summary: `${completed} / 4 pyramids complete`, detail: [] };
 };
 
@@ -1752,7 +1752,7 @@ const measureSummary: SummaryBuilder = (result, puzzle) => {
   const solved = Number(result.extra?.["solved"] ?? 0);
   const boards = (result.extra?.["boards"] as { solved: boolean; moves: number; minMoves: number }[] | undefined) ?? [];
   const detail = boards.flatMap((b, i) => (b.solved ? [`Puzzle ${i + 1}: ${b.moves} moves (fewest ${b.minMoves})`] : []));
-  if (result.is_correct) return { summary: `4 / 4 solved · ${seconds(elapsedMs(result, puzzle))}`, detail };
+  if (result.is_correct) return { summary: `4 / 4 solved, ${seconds(elapsedMs(result, puzzle))}`, detail };
   return { summary: `${solved} / 4 solved`, detail };
 };
 
@@ -1760,7 +1760,7 @@ const checkoutSummary: SummaryBuilder = (result, puzzle) => {
   const solved = Number(result.extra?.["solved"] ?? 0);
   const fewest = Number(result.extra?.["fewest"] ?? 0);
   const detail = solved ? [`${fewest} in the fewest darts`] : [];
-  if (result.is_correct) return { summary: `5 / 5 checked out · ${seconds(elapsedMs(result, puzzle))}`, detail };
+  if (result.is_correct) return { summary: `5 / 5 checked out, ${seconds(elapsedMs(result, puzzle))}`, detail };
   return { summary: `${solved} / 5 checked out`, detail };
 };
 
@@ -1769,7 +1769,7 @@ const numlineSummary: SummaryBuilder = (result) => {
   const close = Number(result.extra?.["withinFull"] ?? 0);
   // numlineRev 2 counts "close" within 1 %; stored rounds within 2 %.
   const within = Number(result.extra?.["numlineRev"] ?? 1) >= 2 ? "1%" : "2%";
-  return { summary: `${placed} / 15 placed · ${close} within ${within}`, detail: [] };
+  return { summary: `${placed} / 15 placed, ${close} within ${within}`, detail: [] };
 };
 
 const trailSummary: SummaryBuilder = (result) => {
@@ -1786,7 +1786,7 @@ const digSummary: SummaryBuilder = (result) => {
   const detail = [`${dug} digs (min ${min})`];
   const toxic = Number(result.extra?.["toxic"] ?? 0);
   if (toxic) detail.push(`${toxic} toxic`);
-  return { summary: result.is_correct ? `Drained · ${collected} / ${total}` : `${collected} / ${total} clean`, detail };
+  return { summary: result.is_correct ? `Drained, ${collected} / ${total}` : `${collected} / ${total} clean`, detail };
 };
 
 const wordSearchSummary: SummaryBuilder = (result) => {
@@ -1794,7 +1794,7 @@ const wordSearchSummary: SummaryBuilder = (result) => {
   const total = Number(result.extra?.["total"] ?? 6);
   // wordSearchRev 3 (word depth): the hidden bonus word.
   const bonus = result.extra?.["bonusFound"] === true;
-  return { summary: `${found} / ${total} found${bonus ? " · bonus word" : ""}`, detail: [] };
+  return { summary: `${found} / ${total} found${bonus ? ", bonus word" : ""}`, detail: [] };
 };
 
 const letterWheelSummary: SummaryBuilder = (result) => {
@@ -1804,13 +1804,13 @@ const letterWheelSummary: SummaryBuilder = (result) => {
   const misses = Number(result.extra?.["misses"] ?? 0);
   // wheelRev 2 (word depth): bonus words in the jar.
   const jar = Number(result.extra?.["bonusWords"] ?? 0);
-  return { summary: `${slots} / ${total} words${misses > 0 ? ` · ${misses} miss${misses === 1 ? "" : "es"}` : ""}${jar > 0 ? ` · ${jar} in the jar` : ""}`, detail: [] };
+  return { summary: `${slots} / ${total} words${misses > 0 ? `, ${misses} miss${misses === 1 ? "" : "es"}` : ""}${jar > 0 ? `, ${jar} in the jar` : ""}`, detail: [] };
 };
 
 const strikeoutSummary: SummaryBuilder = (result) => {
   const solved = Number(result.extra?.["solvedRows"] ?? 0);
   const strikes = Number(result.extra?.["strikes"] ?? 0);
-  return { summary: `${solved} / 5 words · ${strikes} strike${strikes === 1 ? "" : "s"}`, detail: [] };
+  return { summary: `${solved} / 5 words, ${strikes} strike${strikes === 1 ? "" : "s"}`, detail: [] };
 };
 
 const codewordSummary: SummaryBuilder = (result) => {
@@ -1823,7 +1823,7 @@ const codewordSummary: SummaryBuilder = (result) => {
 const swapwordSummary: SummaryBuilder = (result, puzzle) => {
   const swaps = Number(result.extra?.["swaps"] ?? 0);
   if (result.extra?.["solved"] === true) {
-    return { summary: `Solved · ${swaps} swaps (min ${Number(result.extra?.["minSwaps"] ?? 0)})`, detail: [] };
+    return { summary: `Solved, ${swaps} swaps (min ${Number(result.extra?.["minSwaps"] ?? 0)})`, detail: [] };
   }
   const progress = progressOf(result, puzzle);
   if (progress) return progress;
@@ -1837,10 +1837,10 @@ const tentsSummary: SummaryBuilder = (result, puzzle) => {
   const trees = Number(result.extra?.["trees"] ?? puzzle.trees.length);
   const points = result.score ?? 0;
   if (correct === trees && wrong === 0) {
-    return { summary: `${correct} / ${trees} · ${points}`, detail: [] };
+    return { summary: `${correct} / ${trees}, ${points}`, detail: [] };
   }
   return {
-    summary: `${correct} / ${trees} tents · ${points}`,
+    summary: `${correct} / ${trees} tents, ${points}`,
     detail: wrong ? [`${wrong} tent${wrong === 1 ? "" : "s"} in the wrong place`] : [],
   };
 };
@@ -1852,7 +1852,7 @@ const ringsSummary: SummaryBuilder = (result, puzzle) => {
   const aligned = Number(result.extra?.["aligned"] ?? 0);
   return {
     summary: result.is_correct
-      ? `Solved · ${moves} turns${min ? ` (min ${min})` : ""} · ${seconds(elapsedMs(result, puzzle))}`
+      ? `Solved, ${moves} turns${min ? ` (min ${min})` : ""}, ${seconds(elapsedMs(result, puzzle))}`
       : `${aligned} / ${RINGS_SEGMENTS} spokes`,
     detail: [
       result.is_correct && min > 0 && moves <= min
@@ -1977,21 +1977,21 @@ export const CORRECT_ANSWERS: Record<PuzzleType, AnswerBuilder> = {
   wordsmith: () => null,
   tilegrid: () => null,
   balance: () => null,
-  wordslide: (p) => (p.type === "wordslide" && p.words ? p.words.join(" · ") : null),
+  wordslide: (p) => (p.type === "wordslide" && p.words ? p.words.join(", ") : null),
   target: (p) => (p.type === "target" ? String(p.target) : null),
   reaction: () => null,
   equation: (p) =>
     p.type !== "equation"
       ? null
       : usesOperatorGaps(p)
-        ? p.gapAnswers ? p.stages.map((st, i) => gapStageText(st, p.gapAnswers![i] ?? "")).join(" · ") : null
-        : p.operators ? p.operators.map((ops) => joinOperators(ops)).join(" · ") : null,
+        ? p.gapAnswers ? p.stages.map((st, i) => gapStageText(st, p.gapAnswers![i] ?? "")).join(", ") : null
+        : p.operators ? p.operators.map((ops) => joinOperators(ops)).join(", ") : null,
   stroop: () => null,
-  symscan: (p) => (p.type === "symscan" && p.targets ? p.targets.map((t) => t.length).join(" · ") + " arrows" : null),
+  symscan: (p) => (p.type === "symscan" && p.targets ? p.targets.map((t) => t.length).join(", ") + " arrows" : null),
   numhunt: () => null,
   spotdiff: (p) => (p.type === "spotdiff" ? `${(p.differences ?? []).length} differences` : null),
   stopwatch: () => null,
-  countup: (p) => (p.type === "countup" && p.counts ? p.counts.join(" · ") : null),
+  countup: (p) => (p.type === "countup" && p.counts ? p.counts.join(", ") : null),
   wordhunt: () => null,
   unblock: (p) => (p.type === "unblock" && p.minMoves ? `${p.minMoves} moves` : null),
   blockparty: () => null,
@@ -2073,8 +2073,8 @@ export const CORRECT_ANSWERS: Record<PuzzleType, AnswerBuilder> = {
   balltrack: () => null,
   numpyramid: () => null,
   trail: () => null,
-  measure: (p) => (p.type === "measure" && p.minMoves ? `${p.minMoves.join(" · ")} moves` : null),
-  checkout: (p) => (p.type === "checkout" && p.minDarts ? `${p.minDarts.join(" · ")} darts` : null),
+  measure: (p) => (p.type === "measure" && p.minMoves ? `${p.minMoves.join(", ")} moves` : null),
+  checkout: (p) => (p.type === "checkout" && p.minDarts ? `${p.minDarts.join(", ")} darts` : null),
   numline: () => null,
   dig: () => null,
   wordsearch: () => null,
