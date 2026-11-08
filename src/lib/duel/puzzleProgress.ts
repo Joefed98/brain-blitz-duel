@@ -45,7 +45,7 @@ import { decodeMeasureActions, measureActions, measureApply, measureSolved, spli
 import { decodeStrikeout2, replayStrikeout2, so2Rules, so2Tally, STRIKEOUT_REV2, strikeoutRevOf } from "./strikeout";
 import { isCommonPrefix, isWord } from "./dictionary.server";
 import { decodeSteps, madeDistance, replayTargetSteps } from "./target";
-import { decodeRingTaps, freshOffsets, RING_RESET, RING_TAPS, RING_UNDO, ringsApply, ringsSolved } from "./rings";
+import { decodeRingTaps, freshOffsets, RING_RESET, RING_TAPS, RING_UNDO, ringPatternIndex, ringsApply, ringsSolved } from "./rings";
 import { applyMove, decodeMoves, isSolved as unblockSolved } from "./unblock";
 import { decodePushMoves, movePusher, pushStep } from "./push";
 import { decodeTileMoves, TILES_RESET, TILES_UNDO, tilesLayout, tilesSlide, tilesSolved, type TilesLayout } from "./tiles";
@@ -562,7 +562,10 @@ function ringsProgress(segments: number[][], pattern: number, taps: number[], mi
 
 /** Fewest turns for every displacement of the five rings under a link pattern (cached per pattern). */
 const RING_TABLES = new Map<number, Int16Array>();
-function ringsWordLengths(pattern: number): Int16Array {
+function ringsWordLengths(rawPattern: number): Int16Array {
+  // Security fix H1 (Nov 2026 audit): keyed by the pattern ringsApply really plays (ringPattern folds any number onto
+  // RING_PATTERNS), so the cache holds at most one table a pattern whatever number a request carries. Same table.
+  const pattern = ringPatternIndex(rawPattern);
   const found = RING_TABLES.get(pattern);
   if (found) return found;
   const S = RINGS_SEGMENTS;
@@ -886,10 +889,26 @@ export function clearProgressCaches(): void {
 
 /** Hanoi: every spread's fewest moves to the target peg, by one backward search per peg count and target (cached). */
 const TOWER_TABLES = new Map<string, Uint8Array>();
+/**
+ * Security fix H1 (Nov 2026 audit): the table is pegs^discs bytes, so it is built only for a legal Hanoi board (three
+ * or four pegs, a target among them, at most TOWER_PROGRESS_MAX_DISCS discs; every board ever dealt has 9), and the
+ * cache keeps at most TOWER_TABLE_CAP tables (the legal boards need 7: 3 + 4 targets at 9 discs).
+ */
+export const TOWER_PROGRESS_MAX_DISCS = 10;
+export const TOWER_TABLE_CAP = 8;
+export function towerBoardLegal(pegs: number, target: number, discs: number): boolean {
+  return (pegs === 3 || pegs === 4) && Number.isInteger(target) && target >= 0 && target < pegs &&
+    Number.isInteger(discs) && discs >= 1 && discs <= TOWER_PROGRESS_MAX_DISCS;
+}
+/** How many tables each cache holds (security-fixes-check). */
+export function progressCacheSizes(): { rings: number; unblock: number; push: number; tower: number } {
+  return { rings: RING_TABLES.size, unblock: UNBLOCK_TABLES.size, push: PUSH_TABLES.size, tower: TOWER_TABLES.size };
+}
 function towerTable(pegs: number, target: number, discs: number): Uint8Array {
   const id = `${pegs}:${target}:${discs}`;
   const found = TOWER_TABLES.get(id);
   if (found) return found;
+  if (TOWER_TABLES.size >= TOWER_TABLE_CAP) TOWER_TABLES.clear();
   const size = pegs ** discs;
   const dist = new Uint8Array(size).fill(255);
   // Code: disc d (1 = smallest) on peg digit d−1.
@@ -923,6 +942,8 @@ function towerTable(pegs: number, target: number, discs: number): Uint8Array {
 function towerProgress(start: number[][], targetPeg: number, discs: number, moves: { from: number; to: number }[], minMoves: number): number {
   let pegs: TowerPegs = towerPegsFrom(start);
   const n = pegs.length;
+  // Only a tampered board fails this (no server ever dealt one): no table, no credit.
+  if (!towerBoardLegal(n, targetPeg, discs)) return 0;
   const table = towerTable(n, targetPeg, discs);
   const code = (p: TowerPegs) => {
     let c = 0;
