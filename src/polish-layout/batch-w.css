@@ -1,6 +1,6 @@
 /*
  * Polish batch W (25 Oct 2026, display only): Word and Number puzzles. Imported only from batch W's own
- * games (src/components/puzzles/batchW/). Uses the frame toolkit (.gf-glass, .gf-well, .gf-glow,
+ * games (src/components/puzzles/batchW/). Uses the frame toolkit (.gf-glass,
  * rightMoveFlash / wrongMoveFlash) as it is; this file only adds the pieces the batch shares.
  * Notes: docs/polish-batches/batch-w.md.
  */

@@ -14,6 +14,7 @@ import {
   takenIcons,
 } from "./playerLook";
 import type { DuelPlayerRow } from "./types";
+import { dbError } from "./dbError";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -74,7 +75,7 @@ async function roomPlayers(client: any, roomId: string): Promise<DuelPlayerRow[]
     .select("*")
     .eq("duel_id", roomId)
     .order("player_slot");
-  if (error) throw new Error(error.message);
+  if (error) throw dbError(error, "playerLook");
   return (data ?? []) as DuelPlayerRow[];
 }
 
@@ -131,18 +132,18 @@ export async function insertPlayerWithLook(
       if (slotRefused(error)) throw new RoomSeatsError(SEATS_BEFORE_16);
       if (colourClash(error)) continue;
       if (colourRangeRefused(error)) break; // seat without a stored colour (resolved from the slot)
-      if (error.code !== UNIQUE_VIOLATION) throw new Error(error.message);
+      if (error.code !== UNIQUE_VIOLATION) throw dbError(error, "playerLook");
       return;
     }
     // Still clashing: seat the player without a stored colour (shown as their slot colour).
     const { error } = await client.from("duel_players").insert({ ...row, icon });
     if (slotRefused(error)) throw new RoomSeatsError(SEATS_BEFORE_16);
-    if (error && error.code !== UNIQUE_VIOLATION) throw new Error(error.message);
+    if (error && error.code !== UNIQUE_VIOLATION) throw dbError(error, "playerLook");
     return;
   }
   const { error } = await client.from("duel_players").insert(row);
   if (slotRefused(error)) throw new RoomSeatsError(SEATS_BEFORE_16);
-  if (error && error.code !== UNIQUE_VIOLATION) throw new Error(error.message);
+  if (error && error.code !== UNIQUE_VIOLATION) throw dbError(error, "playerLook");
 }
 
 /**
@@ -176,6 +177,6 @@ export async function changePlayerLook(
   const { error } = await client.from("duel_players").update(update).eq("id", me.id);
   if (colourClash(error)) return { ok: false, message: "Someone else has that colour." };
   if (colourRangeRefused(error)) return { ok: false, message: "That colour isn’t ready yet. Pick another." };
-  if (error) throw new Error(error.message);
+  if (error) throw dbError(error, "playerLook");
   return { ok: true };
 }

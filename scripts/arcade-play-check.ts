@@ -76,9 +76,9 @@
 import { DESKTOP_MODES } from "../src/lib/duel/desktopModes";
 import { spawn, type ChildProcess } from "node:child_process";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { availableParallelism } from "node:os";
 
 import { ACTIVE_ARCADE_GAMES, ARCADE_FX_SPECS, ARCADE_PLAY_VIEWS, ENGINE_FX_SPECS, ENGINE_GAME_WORLDS } from "../src/lib/arcade/arcadeFxGames.renderer";
-import { PINBALL_IN_ROOMS } from "../src/lib/arcade/pinball";
 import { ARENA_SCENE_GAMES } from "../src/lib/arcade/arenaScene.renderer";
 import { ARENA_FILL_CENTRED } from "../src/lib/arcade/arenaFills.renderer";
 import { TD_H, TD_W } from "../src/lib/arcade/tenDrop";
@@ -89,6 +89,7 @@ import { WORDFALL_META } from "../src/lib/arcade/wordfallWords.meta";
 import { freezeClock, gotoRetried, warmUp } from "./browser-load";
 import { BROWSER, DEVICE_INIT, IPHONE11_APP, emulateDevice, type Clip } from "./device-emulation";
 import { showPracticeSide } from "./practice-side-lib";
+import { allowedCoreCount, procCpu } from "./arcade-perf";
 
 const args = process.argv.slice(2);
 const RECORD = args.includes("--record");
@@ -126,9 +127,9 @@ const ENGINE_PLAY_WORLDS: Record<(typeof ENGINE_PLAY_GAMES)[number], { width: nu
 };
 /**
  * New arcade games still practice only (not yet dealt in rooms), played with every rule,
- * the arena-layout proof included: Pinball until PINBALL_IN_ROOMS (then it is in ACTIVE_ARCADE_GAMES).
+ * the arena-layout proof included (none today: Pinball, the last, is in ACTIVE_ARCADE_GAMES since 14 Oct 2026).
  */
-const PRACTICE_PLAY_GAMES: string[] = PINBALL_IN_ROOMS ? [] : ["pinball"];
+const PRACTICE_PLAY_GAMES: string[] = [];
 const ONLY = args.filter((a) => !a.startsWith("--"));
 const BASELINE_PATH = new URL("./fixtures/arcade-play-baseline.json", import.meta.url).pathname;
 const CHROMIUM = process.env.PLAYWRIGHT_CHROMIUM ?? "/opt/pw-browsers/chromium";
@@ -331,6 +332,14 @@ async function main() {
     games = partOf(games, k, n);
     console.log(`part ${k}/${n}: ${games.join(", ")}`);
   }
+  if (DESKTOP) {
+    const bad = desktopCpuProofs();
+    if (bad.length) {
+      for (const b of bad) console.log(`FAIL probe: ${b}`);
+      console.log(`FAIL: the runner CPU probe (${bad.length})`);
+      process.exit(1);
+    }
+  }
   const baseline: Record<string, number> = existsSync(BASELINE_PATH) ? JSON.parse(readFileSync(BASELINE_PATH, "utf8")) : {};
   const { origin, proc } = await startServer();
   const browser = await chromium.launch({ executablePath: CHROMIUM });
@@ -341,7 +350,7 @@ async function main() {
       await warmUp(browser, `${origin}/practice`, (page) =>
         practiceGameButton(page, games[0]!, 180_000).then(() => undefined));
     for (const [index, game] of games.entries()) {
-      const r = DESKTOP ? await desktopPlay(browser, origin, game) : await playOne(browser, origin, game, baseline[game]);
+      const r = DESKTOP ? await desktopPlayJudged(browser, origin, game) : await playOne(browser, origin, game, baseline[game]);
       results.push(r);
       // Progress as each game finishes (the full summary follows at the end).
       console.log(`[${index + 1}/${games.length}] ${r.ok ? "ok  " : "FAIL"} ${game}${r.problems.length ? `: ${r.problems[0]}` : ""}`);
@@ -703,12 +712,69 @@ async function layoutProof(browser: import("playwright").Browser, origin: string
   }
 }
 
+/** Each desktop game's /proc reading through its play windows (desktopPlay fills it). */
+const desktopCpu = new Map<string, { others: number; ms: number }>();
+
+/** A desktop play's only problem is its mean frame time (DESKTOP_FRAME_MS). */
+const onlyFrameTime = (r: Result) => r.problems.length === 1 && r.problems[0]!.startsWith("mean frame ");
+
+/**
+ * The --desktop pass for one game, with the runner's CPU read from /proc (7 Nov 2026, build-health audit: the desktop
+ * frame-time limit failed on two Full suite runs, 18.5 ms against 18.3, and passed on the re-run with no change).
+ * A 2-core CI runner shared with the dev server and this script can itself run short of CPU, so, as in
+ * arcade-lowend-check (Joe's rule there), a mean frame over the limit is put down to the runner only when, through
+ * the play windows whose frame gaps are judged (not the page loads), processes outside the browser left it less than BROWSER_CORES of the machine's cores (runnerShortOfCpu,
+ * proved on synthetic samples in desktopCpuProofs). Such a game is printed with the evidence and played once more,
+ * and that second play is judged on the same limit whatever the runner did; a slow game on a machine with CPU to
+ * spare fails at once, as before. DESKTOP_FRAME_MS is unchanged.
+ */
+async function desktopPlayJudged(browser: import("playwright").Browser, origin: string, game: string): Promise<Result> {
+  const first = await desktopPlay(browser, origin, game);
+  if (first.ok || !onlyFrameTime(first)) return first;
+  const cpu = desktopCpu.get(game);
+  const runner = runnerShortOfCpu(cpu?.ms ? 0 : undefined, cpu?.ms ? cpu.others : undefined, cpu?.ms ?? 0, allowedCoreCount(availableParallelism()));
+  if (!runner.short) {
+    first.problems.push(`the runner had CPU to spare (${runner.why})`);
+    return first;
+  }
+  console.log(`note ${game}: ${first.problems[0]} while ${runner.why}; played once more`);
+  return desktopPlay(browser, origin, game);
+}
+
+/** The browser was short of CPU when other processes left it less than this many cores (arcade-lowend-check's figure). */
+const BROWSER_CORES = 1.25;
+
+/** Whether, between two /proc readings `ms` apart, processes outside the browser left it under BROWSER_CORES. */
+function runnerShortOfCpu(othersBefore: number | undefined, othersAfter: number | undefined, ms: number, cores: number): { short: boolean; why: string } {
+  if (othersBefore === undefined || othersAfter === undefined || ms <= 0) return { short: false, why: "no CPU readings (no /proc)" };
+  const others = (othersAfter - othersBefore) / (ms / 1000);
+  const left = cores - others;
+  return { short: left < BROWSER_CORES, why: `other processes used ${others.toFixed(2)} of ${cores} cores through the play, leaving the browser ${left.toFixed(2)}` };
+}
+
+/** runnerShortOfCpu on synthetic readings: run before any browser starts. */
+function desktopCpuProofs(): string[] {
+  const bad: string[] = [];
+  const at = (coresBusy: number, cores: number) => runnerShortOfCpu(10, 10 + coresBusy * 12, 12_000, cores).short;
+  if (at(0.1, 2)) bad.push("a quiet 2-core runner read as short of CPU");
+  if (at(0.6, 2)) bad.push("a 2-core runner leaving 1.4 cores read as short of CPU");
+  if (!at(1.2, 2)) bad.push("a 2-core runner with 1.2 cores busy elsewhere not read as short of CPU");
+  if (at(2, 4)) bad.push("a 4-core machine leaving 2 cores read as short of CPU");
+  if (runnerShortOfCpu(undefined, 5, 1000, 2).short) bad.push("no readings (no /proc) read as short of CPU");
+  if (!onlyFrameTime({ problems: ["mean frame 18.5 ms on the desktop layout (under 60 fps; limit 18.3 ms)"] } as Result)) bad.push("a frame-time-only failure not recognised");
+  if (onlyFrameTime({ problems: ["mean frame 18.5 ms", "1440x900: page error: x"] } as Result)) bad.push("a failure with a page error taken for frame time only");
+  return bad;
+}
+
 /** The --desktop pass for one game (see DESKTOP). */
 async function desktopPlay(browser: import("playwright").Browser, origin: string, game: string): Promise<Result> {
   const problems: string[] = [];
   const result: Result = { game, ok: false, problems, ticks: 0, timer: [Number.NaN, Number.NaN], meanFrameMs: 0, maxStep: 0, maxStepAt: "" };
   const rand = seeded(game.length * 7919 + 29);
   const gaps: number[] = [];
+  /** CPU-seconds used outside the browser, and the ms, through the play windows (the frame gaps' windows). */
+  const cpu = { others: 0, ms: 0 };
+  desktopCpu.set(game, cpu);
   const wantMode = DESKTOP_MODES[game as keyof typeof DESKTOP_MODES]?.mode;
   for (const [w, h] of DESKTOP_SIZES) {
     const at = `${w}x${h}`;
@@ -765,8 +831,9 @@ async function desktopPlay(browser: import("playwright").Browser, origin: string
         if (c.cssW < 2 || c.cssH < 2) continue;
         if (Math.abs(c.w - Math.round(c.cssW * ratio)) > 2 && Math.abs(c.w - c.cssW * ratio) > 2) problems.push(`${at}: canvas ${c.w}px wide for ${c.cssW}px CSS at pixel ratio ${ratio} (not crisp, or past the cap of 2)`);
       }
-      const startAt = Date.now();
       const box = await page.locator("[data-arcade-play] [data-game-arena]").first().boundingBox();
+      const cpuAt = procCpu();
+      const startAt = Date.now();
       while (Date.now() - startAt < DESKTOP_PLAY_MS) {
         const over = await page.evaluate(() => {
           const log = (window as unknown as { __arcadeLog: { frames: Frame[] } | null }).__arcadeLog;
@@ -786,6 +853,11 @@ async function desktopPlay(browser: import("playwright").Browser, origin: string
           }
         }
         await page.waitForTimeout(150 + Math.floor(rand() * 200));
+      }
+      const cpuEnd = procCpu();
+      if (cpuAt && cpuEnd) {
+        cpu.others += cpuEnd.others - cpuAt.others;
+        cpu.ms += Date.now() - startAt;
       }
       const log = (await page.evaluate(() => (window as unknown as { __arcadeLog: unknown }).__arcadeLog)) as { frames: Frame[]; errors: string[] };
       gaps.push(...((await page.evaluate(() => (window as unknown as { __frameGaps: number[] }).__frameGaps)) ?? []));

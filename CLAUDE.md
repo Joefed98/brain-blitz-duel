@@ -162,7 +162,7 @@ outside the repo.
   changes colour/icon in the lobby only; `rematchFn` stores slot colours so Play again keeps them), `PlayerBadge` (initial
   or icon on the colour, beside the name in the lobby, round results, standings, both final screens and chat; never colour
   alone; the winner reveal shows no player). Icons are original line drawings (`src/components/duel/playerIcons.tsx`, no
-  library) behind `PLAYER_ICONS_ENABLED` in `src/lib/brand.ts` (off: initials, no picker). Columns `duel_players.colour`
+  library; always on, the `PLAYER_ICONS_ENABLED` switch removed on 7 Nov 2026). Columns `duel_players.colour`
   / `.icon` come from `supabase/migrations/20261017120000_player_colour_icon.sql`, **written but not applied**: until it is,
   rows have no colour, phones show slot colours with initials and the lobby hides the picker, so publishing first is safe;
   RLS is unchanged (clients only read). Awards (`src/lib/duel/podiumAwards.ts`, `PodiumAwards`): Fastest Finger,
@@ -522,8 +522,8 @@ outside the repo.
   as its own layer hugging the board (`useBoardTray`, `boardBox` in `src/lib/boardBox.ts`) and a 52 px dock. The
   board-size check: `bun scripts/shots/frame-probe.ts --compare=scripts/fixtures/board-sizes-main.json` (every board at
   least main's size at 414×896 and 375×667, the tray within 24 px above and below).
-  Toolkit for the category batches: `.gf-glass`, `.gf-well`, `.gf-glow`, `.gf-alert`, `gameToolkit.ts`,
-  `ArcadeAtmosphere`. Tools: `bun scripts/shots/before-after.ts` (main beside the branch, `screenshots/before-after/`)
+  Toolkit for the category batches: `.gf-glass` and `gameToolkit.ts` (the unused well, glow, alert ring and
+  ArcadeAtmosphere removed 7 Nov 2026). Tools: `bun scripts/shots/before-after.ts` (main beside the branch, `screenshots/before-after/`)
   and `bun scripts/shots/frame-probe.ts` (cut text, tray overflow, dock heights at 414×896 and 375×667).
 - **Polish batch R: room and other screens** (25 Oct 2026; presentation only, no stamps;
   `docs/polish-batches/room-screens.md`, `src/polish-layout/room-screens.css`, the old design-system.md "Room and other
@@ -1251,7 +1251,7 @@ outside the repo.
   homerunRev 3 exception is gone. **Cue Ball** `poolRev 4`: the seed's set (`poolSetFor`), spots or stripes, the same
   for everyone (the sim's ids kept, the art swaps them, `poolShownId`), a YOU'RE STRIPES banner and the HUD's named
   rack; 90 s (`poolRunTicksFor`, the definition's clock 93 s); the core full at 5 of your 7, speed full by 69 s; bank
-  `poolBankV4.server.ts` (the 60 poolRev 3 layouts re-proved at 200 in 90 s on both sets, `pool-bank.ts --rev=4`).
+  `poolBankV3.server.ts` (the 60 poolRev 3 layouts re-proved at 200 in 90 s on both sets, `pool-bank.ts --rev=4`).
   Shots `bun scripts/shots/sports-batch-shots.ts` (`screenshots/sports-batch-nov-2026/`). Intro demos: stills.
 - **Moon Climb and Blockzone** (3 Nov 2026; `docs/arcade-standard/ricochet.md`, `blockfall.md`, each with a new top
   section; display names for `ricochet` and `blockfall`, ids unchanged). **Moon Climb** `ricoRev 3` (`MOON_REV`; its own
@@ -1418,7 +1418,7 @@ outside the repo.
   hit boxes untouched; its effects take the Retro world; sounds from the library (`cross.traffic` → `bastion.drone.mp3`,
   `cross.pastBikes` → `orbit.shootingStar.mp3`, `cross.pastRoadworks` → `hover.slipPast.mp3`; the three road
   recordings deleted). **Orbit moved from Retro to Action** (`arcadeGroups.ts`; a saved room's picks are unchanged, as
-  with High Rise): its HUD is Action's pills (`drawHudPillRow`, `src/lib/arcade/hudPills.renderer.ts`, two rows clear of
+  with High Rise): its HUD is Action's pills (`drawHudTextPillRow`, `src/lib/arcade/hudPill.renderer.ts`, two rows clear of
   SET CHECKPOINT's corner), the fuel meter further in and higher on a framed backing (`ORBIT_FUEL_METER`), and the
   orbitRev 14 still camera frames a planet that would sit cut off under the HUD or the top edge fully in view, or fully
   out of it (`clearTopEdge` in `orbitCamera.ts`, display only). Not done (each needs a new stamp, bands and a re-proved
@@ -1635,6 +1635,25 @@ outside the repo.
   CloudOff, and `timer` / `calendar` replace PendingClock's Clock3 and Tournaments' empty-state CalendarDays, in app
   chrome (icons-check's replaced list holds all 13); every icon keeps its size and position (slots outside 18–24 px
   set their old size inline; `Icon` passes `data-*` through). lucide-react stays for game boards only.
+- **Security fixes before the Supabase move** (7 Nov 2026; server only, no game's rules, scoring or stamps changed;
+  `docs/audit-nov-2026/security.md`): *H1* every practice token seals a digest of the public half it was dealt with and
+  every practice handler opens it through `openDeal` (`src/lib/duel/practiceSeal.server.ts`), merging only the public
+  fields the phone sent, so a signed-out caller can't grade a board, seed, stamp or clock the server never dealt (a
+  token from before the digest is refused; a queued run from one comes back "Couldn't be confirmed"); Hanoi's table is
+  built only for a legal board (`towerBoardLegal`, at most 10 discs) and kept 8 at most, Rings' cache keyed by the
+  folded pattern. *M2* one name cleaner, `displayName.server.ts` (NFKC, no control / bidi / zero-width characters, 14
+  code points, offensive names checked with look-alikes folded, reserved names Joulz / Duelz / staff words) for room
+  create and join, the daily, challenges and the room-to-challenge copy; chat takes the same strip and `censorChat`.
+  *M4* create buckets fail closed except while `take_rate_limit` is missing; per-address buckets (`withinIpRateLimit`,
+  a hash of cf-connecting-ip, never stored) on practice deals, packs, grades and checks, the demo key and creates;
+  per-user buckets on room and challenge starts and lobby looks. *M5* `src/lib/securityHeaders.ts` on every production
+  response (frame-ancestors self and lovable.dev, nosniff, referrer policy, HSTS over HTTPS; no script CSP yet). *M6* a
+  player who left can't answer, READY, check words or moves, or change their look (`playerHasLeft`). *M7* intro-demo
+  saves in a production build need the server's `INTRO_DEMO_SAVES=1`. *L1* `dbError` (`src/lib/duel/dbError.ts`)
+  logs and returns a plain message; room ids checked as uuids first. *L3* chat's gap and per-room cap as atomic
+  buckets. *L4* room shares up to 16 players, the terms date the server's, beta events limited. *L7* no seeds in logs.
+  *L8* `PRACTICE_SEAL_KEY` (tokens `k2.`), older tokens still open on the service-role key's digest. *L13* a standard
+  puzzle's body cut to its cap before the standard grader (`standardParts`). security-fixes-check (~2 s).
 - **Scoring audit fixes, arcade** (Nov 2026; `docs/audit-nov-2026/scoring.md` issues 2, 5, 7 and 8; each game's page in
   `docs/arcade-standard/` has a new section): five score-only stamps, each the previous stamp's play exactly (states add a
   flag outside the checksum; `AUDIT_REVS` in `scripts/scoring-targets-revs.ts` maps each to its play). Spacewalk `crossRev 12`,
@@ -1664,6 +1683,14 @@ outside the repo.
     on each new push while the label is on), when a PR leaves draft, by hand (Actions → Full suite → Run workflow;
     "record arcade baseline" lives here) and weekly on main (Sunday 22:41 UTC) when main changed in the past week. Add the label only when a PR is
     otherwise finished: every push while it is on re-runs the Full suite.
+  - **typecheck (src)** (7 Nov 2026, `docs/audit-nov-2026/build-health.md` item 6): a Checks job beside the shards runs
+    `tsc --noEmit -p tsconfig.json` (src/, ~50 s); Lovable's build strips types without checking them. scripts/ is
+    not type-checked yet. ci-shards-check proves the job is there.
+  - Flake fixes (7 Nov 2026, the audit's item 7; no limit changed): a desktop arcade play over its 60 fps limit is
+    played once more only when /proc shows other processes left the browser under 1.25 cores through the judged
+    play windows (arcade-lowend-check's rule); replay-play-check judges 1× and 2× on the player's own frame clock
+    (ReplayCanvas caps a frame's gap at 100 ms); replay-board-check samples 14 s from the replay panel's first
+    appearance; offline-check waits for the app's own reload onto a new worker before reloading.
   - Which side a check is on is worked out from its source (`.github/ci/browser.ts`: it, or a script it imports or
     spawns, launches Chromium through Playwright), never by hand; a browser check listed in a fast shard runs in
     `play21` instead. ci-shards-check proves every routine check runs exactly once, no browser starts on a push, and
@@ -1712,6 +1739,16 @@ outside the repo.
     limit stands.
   - A new `scripts/*-check.ts` runs automatically (in the catch-all shard); add it to a
     shard in `.github/ci/shards.ts` if it is slow.
+- **Server functions on a real database** (7 Nov 2026, `docs/audit-nov-2026/build-health.md` items 3–4):
+  `scripts/server-fn-harness.ts` runs the app's real `createServerFn` handlers (real `requireSupabaseAuth`, real
+  supabase-js clients) against a local PostgreSQL 16 with every `supabase/migrations` file applied in order, through a
+  small PostgREST / GoTrue stand-in that applies roles, RLS and column grants as Supabase does and refuses any query
+  shape it doesn't serve (`PGRST_HARNESS`). server-functions-check (~5 s, shard `e`) plays create, preview, join,
+  settings, remove, start, every phase, submit (racing duplicates, one row per player, the stored score equal to
+  practice's replay of a real bot log, `input_type`), reveal, continue, finish, Play again, leave and disband, plus chat,
+  the daily, async rooms and a friend challenge; it fails on CI without the PostgreSQL binaries. Add a flow there when a
+  server function changes, and extend the stand-in (never loosen it) when the server code needs a new query shape.
+  `recordInputType` (`inputType.server.ts`) logs `[input-type]` and returns its failures (never fails a submission).
 - Run all (Actions does this; locally only if Joe asks): `bun scripts/run-checks.ts`
   (each `scripts/*-check.ts(x)` in its own `bun` process; 300 s limit, `snip-check.ts` 1,800 s; `--include-optional` adds the deep Orbit
   belt check; `--full` runs full depth; `--json=<path>` saves results; extra args filter
@@ -1883,8 +1920,7 @@ outside the repo.
 8. Keep display names in `gameNames.ts`; `PuzzleType` ids never change.
 
 **Pinball** (`pinball`, working title, 13 Oct 2026) is a Retro arcade game, **dealt in rooms since 14 Oct 2026**
-(`PINBALL_IN_ROOMS` in `src/lib/arcade/pinball.ts` is `true`; the one switch: the registry, the practice list, the
-active arcade list and the checks all read it). Its rules are
+like any active arcade game (its `PINBALL_IN_ROOMS` switch, always on, was removed on 7 Nov 2026). Its rules are
 `pinRev 1`; `scripts/pinball-check.ts` (~11 s) replays stored rev-1 runs, long runs and fast shots (no tunnelling).
 
 **Junction** (`junction`) is retired to practice since Tuning C (12 Oct 2026): rooms deal the 21

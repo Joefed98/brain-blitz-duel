@@ -27,6 +27,7 @@ import { roundTimeUsedMs, type TieRound } from "./scoring";
 import { tieRoundFor } from "./tieBreak";
 import type { SubmitExtra } from "./grade";
 import type { PuzzleData, RoundResultRow } from "./types";
+import { dbError } from "./dbError";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -112,13 +113,13 @@ export async function roomByKey(client: any, key: string): Promise<AsyncRoomRow 
     .select("*")
     .eq("room_key", key)
     .maybeSingle();
-  if (error) throw new Error(error.message);
+  if (error) throw dbError(error, "asyncRoom");
   return (data as AsyncRoomRow | null) ?? null;
 }
 
 export async function roomById(client: any, id: string): Promise<AsyncRoomRow | null> {
   const { data, error } = await client.from("async_rooms").select("*").eq("id", id).maybeSingle();
-  if (error) throw new Error(error.message);
+  if (error) throw dbError(error, "asyncRoom");
   return (data as AsyncRoomRow | null) ?? null;
 }
 
@@ -163,13 +164,13 @@ export async function createAsyncRoom(
       const existing = await roomByKey(client, input.key);
       if (existing) return existing;
     }
-    throw new Error(error.message);
+    throw dbError(error, "asyncRoom");
   }
   const { error: secretError } = await client.from("async_room_secrets").insert({
     room_id: id,
     puzzles_private: JSON.parse(JSON.stringify(split.map((s) => s.priv))),
   });
-  if (secretError && secretError.code !== UNIQUE_VIOLATION) throw new Error(secretError.message);
+  if (secretError && secretError.code !== UNIQUE_VIOLATION) throw dbError(secretError, "asyncRoom");
   // Beta recording: each round's effective clock and stamps, as rooms store them (best-effort).
   await recordRoundRecordsFor(
     client,
@@ -210,13 +211,13 @@ export async function attemptFor(
     .eq("room_id", roomId)
     .eq("user_id", userId)
     .maybeSingle();
-  if (error) throw new Error(error.message);
+  if (error) throw dbError(error, "asyncRoom");
   return (data as AsyncAttemptRow | null) ?? null;
 }
 
 export async function attemptsIn(client: any, roomId: string): Promise<AsyncAttemptRow[]> {
   const { data, error } = await client.from("async_attempts").select("*").eq("room_id", roomId);
-  if (error) throw new Error(error.message);
+  if (error) throw dbError(error, "asyncRoom");
   return (data ?? []) as AsyncAttemptRow[];
 }
 
@@ -225,7 +226,7 @@ export async function resultsOf(client: any, attemptId: string): Promise<AsyncRe
     .from("async_results")
     .select("*")
     .eq("attempt_id", attemptId);
-  if (error) throw new Error(error.message);
+  if (error) throw dbError(error, "asyncRoom");
   return ((data ?? []) as AsyncResultRow[]).sort((a, b) => a.round_number - b.round_number);
 }
 
@@ -267,7 +268,7 @@ export async function startAttempt(
       const raced = await attemptFor(client, room.id, userId);
       if (raced) return { ok: true, attempt: raced, created: false };
     }
-    throw new Error(error.message);
+    throw dbError(error, "asyncRoom");
   }
   await recordAsyncEvent(client, {
     room_id: room.id,
@@ -310,7 +311,7 @@ export async function importFinishedAttempt(
     round_scores: Array.from({ length: room.round_count }, () => null),
   };
   const { error } = await client.from("async_attempts").insert(attempt);
-  if (error) throw new Error(error.message);
+  if (error) throw dbError(error, "asyncRoom");
   const rows: AsyncResultRow[] = Array.from({ length: room.round_count }, (_, i) => {
     const stored = rounds[i];
     const base = {
@@ -339,7 +340,7 @@ export async function importFinishedAttempt(
         };
   });
   const { error: resultError } = await client.from("async_results").insert(rows);
-  if (resultError) throw new Error(resultError.message);
+  if (resultError) throw dbError(resultError, "asyncRoom");
   return refreshAttempt(client, room, attempt, rows, nowMs, false);
 }
 
@@ -540,7 +541,7 @@ export async function startAsyncRound(
         return { ok: true, puzzle: pub, startedAt: msOf(raced.started_at) };
       return { ok: false, message: "You’ve played that round." };
     }
-    throw new Error(error.message);
+    throw dbError(error, "asyncRoom");
   }
   await recordAsyncEvent(client, {
     room_id: room.id,

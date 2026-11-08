@@ -28,7 +28,7 @@
   :is(.jz-btn, .jz-chip, .jz-seg > button, .jz-tab, .jz-tile[data-interactive]):active:not(:disabled, [aria-disabled="true"]) {
     transform: scale(0.97);
   }
-  :is(.jz-btn, .jz-chip, .jz-seg > button, .jz-row, .jz-tab, .jz-tile, .jz-input, .jz-code, .jz-sheet-close):focus-visible,
+  :is(.jz-btn, .jz-chip, .jz-seg > button, .jz-row, .jz-tab, .jz-tile, .jz-input, .jz-code):focus-visible,
   .jz-code:has(input:focus-visible) {
     outline: 2px solid var(--jz-gold);
     outline-offset: 2px;
