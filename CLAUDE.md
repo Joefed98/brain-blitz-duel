@@ -1635,6 +1635,25 @@ outside the repo.
   CloudOff, and `timer` / `calendar` replace PendingClock's Clock3 and Tournaments' empty-state CalendarDays, in app
   chrome (icons-check's replaced list holds all 13); every icon keeps its size and position (slots outside 18–24 px
   set their old size inline; `Icon` passes `data-*` through). lucide-react stays for game boards only.
+- **Security fixes before the Supabase move** (7 Nov 2026; server only, no game's rules, scoring or stamps changed;
+  `docs/audit-nov-2026/security.md`): *H1* every practice token seals a digest of the public half it was dealt with and
+  every practice handler opens it through `openDeal` (`src/lib/duel/practiceSeal.server.ts`), merging only the public
+  fields the phone sent, so a signed-out caller can't grade a board, seed, stamp or clock the server never dealt (a
+  token from before the digest is refused; a queued run from one comes back "Couldn't be confirmed"); Hanoi's table is
+  built only for a legal board (`towerBoardLegal`, at most 10 discs) and kept 8 at most, Rings' cache keyed by the
+  folded pattern. *M2* one name cleaner, `displayName.server.ts` (NFKC, no control / bidi / zero-width characters, 14
+  code points, offensive names checked with look-alikes folded, reserved names Joulz / Duelz / staff words) for room
+  create and join, the daily, challenges and the room-to-challenge copy; chat takes the same strip and `censorChat`.
+  *M4* create buckets fail closed except while `take_rate_limit` is missing; per-address buckets (`withinIpRateLimit`,
+  a hash of cf-connecting-ip, never stored) on practice deals, packs, grades and checks, the demo key and creates;
+  per-user buckets on room and challenge starts and lobby looks. *M5* `src/lib/securityHeaders.ts` on every production
+  response (frame-ancestors self and lovable.dev, nosniff, referrer policy, HSTS over HTTPS; no script CSP yet). *M6* a
+  player who left can't answer, READY, check words or moves, or change their look (`playerHasLeft`). *M7* intro-demo
+  saves in a production build need the server's `INTRO_DEMO_SAVES=1`. *L1* `dbError` (`src/lib/duel/dbError.ts`)
+  logs and returns a plain message; room ids checked as uuids first. *L3* chat's gap and per-room cap as atomic
+  buckets. *L4* room shares up to 16 players, the terms date the server's, beta events limited. *L7* no seeds in logs.
+  *L8* `PRACTICE_SEAL_KEY` (tokens `k2.`), older tokens still open on the service-role key's digest. *L13* a standard
+  puzzle's body cut to its cap before the standard grader (`standardParts`). security-fixes-check (~2 s).
 - `src/components/duel/` — room/round screens (PhoneShell, RoundIntro, TimerBar,
   AnswerReveal, ArcadeReveal, WinnerReveal…); `src/components/puzzles/` — shared puzzle
   widgets; `src/lib/fx/` — sound and visual feedback (presentation only).

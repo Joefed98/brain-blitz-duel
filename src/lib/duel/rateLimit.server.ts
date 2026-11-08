@@ -7,6 +7,11 @@
  * Fails open: if the migration is not applied yet or the database errors, the
  * call is allowed and a warning logged, so a missing table never blocks play.
  * Never used on a game, answer or scoring path.
+ *
+ * Security fix M4 (Nov 2026 audit): a limit marked `failClosed` (making rooms and challenges, which build puzzles and
+ * draw bank boards) refuses the call on a database error; only a missing counter function (the migration not applied
+ * yet) still lets it through, so publishing before the migration stays safe. Signed-out paths (practice, the intro-demo
+ * key) and the create paths also count per network address (`withinIpRateLimit`), so signing in again doesn't reset them.
  */
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -15,18 +20,64 @@ export interface RateLimit {
   bucket: string;
   max: number;
   windowSeconds: number;
+  /** Refuse on a database error (but not on a missing counter function). */
+  failClosed?: boolean;
 }
 
 /** Creating rooms: 20 an hour per user. */
-export const CREATE_ROOM_LIMIT: RateLimit = { bucket: "create-room", max: 20, windowSeconds: 3600 };
+export const CREATE_ROOM_LIMIT: RateLimit = { bucket: "create-room", max: 20, windowSeconds: 3600, failClosed: true };
 /** Room-code lookups (link preview and join, shared): 60 per 10 minutes, so codes can't be brute-forced. */
 export const ROOM_LOOKUP_LIMIT: RateLimit = { bucket: "room-lookup", max: 60, windowSeconds: 600 };
 /** Starting a daily (21 Oct 2026): 30 per 10 minutes, far above two dailies' worth of retries. */
 export const DAILY_START_LIMIT: RateLimit = { bucket: "daily-start", max: 30, windowSeconds: 600 };
 /** Making friend challenges (22 Oct 2026): 10 an hour, on top of the database count (challenge.server.ts). */
-export const CHALLENGE_CREATE_LIMIT: RateLimit = { bucket: "challenge-create", max: 10, windowSeconds: 3600 };
+export const CHALLENGE_CREATE_LIMIT: RateLimit = { bucket: "challenge-create", max: 10, windowSeconds: 3600, failClosed: true };
 /** Chat reports: 20 per 10 minutes. */
 export const REPORT_LIMIT: RateLimit = { bucket: "report", max: 20, windowSeconds: 600 };
+
+/** Starting a room (dealing every round): 30 an hour per user. */
+export const START_ROOM_LIMIT: RateLimit = { bucket: "start-room", max: 30, windowSeconds: 3600 };
+/** Starting a challenge attempt: 30 per 10 minutes per user. */
+export const CHALLENGE_START_LIMIT: RateLimit = { bucket: "challenge-start", max: 30, windowSeconds: 600 };
+/** Lobby colour and icon changes: 60 per 10 minutes per user. */
+export const PLAYER_LOOK_LIMIT: RateLimit = { bucket: "player-look", max: 60, windowSeconds: 600 };
+/**
+ * Chat (L3): the room's gap and per-room cap as atomic buckets, so parallel sends can't all pass the read-then-insert
+ * checks: one message per gap window, and the room's cap per room (a week's window outlives any room).
+ */
+export function chatGapLimit(gapMs: number): RateLimit {
+  return { bucket: "chat-gap", max: 1, windowSeconds: Math.max(1, Math.ceil(gapMs / 1000)) };
+}
+export function chatRoomLimit(roomId: string, max: number): RateLimit {
+  return { bucket: `chat-room:${String(roomId).slice(0, 64)}`, max, windowSeconds: 7 * 24 * 3600 };
+}
+/** Share and terms beta events (L4): 60 per 10 minutes per user. */
+export const BETA_EVENT_LIMIT: RateLimit = { bucket: "beta-event", max: 60, windowSeconds: 600 };
+
+/* Per network address (M4): generous, since a school or a household shares one address. */
+/** Making rooms from one address: 60 an hour. */
+export const IP_CREATE_ROOM_LIMIT: RateLimit = { bucket: "ip-create-room", max: 60, windowSeconds: 3600, failClosed: true };
+/** Making challenges from one address: 30 an hour. */
+export const IP_CHALLENGE_CREATE_LIMIT: RateLimit = { bucket: "ip-challenge-create", max: 30, windowSeconds: 3600, failClosed: true };
+/** Practice deals (signed out): 400 per 10 minutes. */
+export const IP_PRACTICE_DEAL_LIMIT: RateLimit = { bucket: "ip-practice-deal", max: 400, windowSeconds: 600 };
+/** Practice packs (each up to 60 deals): 20 an hour. */
+export const IP_PRACTICE_PACK_LIMIT: RateLimit = { bucket: "ip-practice-pack", max: 20, windowSeconds: 3600 };
+/** Practice grades, live and queued: 600 per 10 minutes. */
+export const IP_PRACTICE_GRADE_LIMIT: RateLimit = { bucket: "ip-practice-grade", max: 600, windowSeconds: 600 };
+/** Practice word and move checks: 1,500 per 10 minutes. */
+export const IP_PRACTICE_CHECK_LIMIT: RateLimit = { bucket: "ip-practice-check", max: 1500, windowSeconds: 600 };
+/** Intro-demo key guesses (M7): 20 an hour. */
+export const IP_DEMO_KEY_LIMIT: RateLimit = { bucket: "ip-demo-key", max: 20, windowSeconds: 3600 };
+
+/** A counter function that isn't there yet (the migration not applied): PostgREST's PGRST202, Postgres' 42883. */
+export function missingCounter(error: { code?: unknown; message?: unknown } | null | undefined): boolean {
+  if (!error) return false;
+  const code = String(error.code ?? "");
+  const message = String(error.message ?? "");
+  if (code === "PGRST202" || code === "42883" || code === "42P01") return true;
+  return /take_rate_limit|rate_limit_hits/.test(message) && /not find|does not exist/i.test(message);
+}
 
 /** True when the caller is still within the limit (this call counted). */
 export async function withinRateLimit(client: any, userId: string, limit: RateLimit): Promise<boolean> {
@@ -38,12 +89,49 @@ export async function withinRateLimit(client: any, userId: string, limit: RateLi
       p_window_seconds: limit.windowSeconds,
     });
     if (error) {
-      console.warn(`[rate-limit] ${limit.bucket}: ${error.message} (allowed)`);
-      return true;
+      const allow = !limit.failClosed || missingCounter(error);
+      console.warn(`[rate-limit] ${limit.bucket}: ${error.message} (${allow ? "allowed" : "refused"})`);
+      return allow;
     }
     return data !== false;
   } catch (err) {
-    console.warn(`[rate-limit] ${limit.bucket}: ${err instanceof Error ? err.message : String(err)} (allowed)`);
-    return true;
+    const allow = !limit.failClosed;
+    console.warn(`[rate-limit] ${limit.bucket}: ${err instanceof Error ? err.message : String(err)} (${allow ? "allowed" : "refused"})`);
+    return allow;
   }
+}
+
+/**
+ * The caller's network address, as the edge reports it (Cloudflare's cf-connecting-ip first, then the proxy's
+ * forwarded address); null where there is no request (checks) or no address.
+ */
+export async function callerAddress(): Promise<string | null> {
+  try {
+    const { getRequest, getRequestIP } = await import("@tanstack/react-start/server");
+    const headers = getRequest()?.headers;
+    const cf = headers?.get("cf-connecting-ip")?.trim();
+    if (cf) return cf;
+    return getRequestIP({ xForwardedFor: true }) ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/** A uuid-shaped key for a network address (the counter table is keyed by uuid; the address itself is never stored). */
+export async function addressKey(address: string): Promise<string> {
+  const bytes = new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(`duelz-ip:${address}`)));
+  const hex = Array.from(bytes.slice(0, 16), (b) => b.toString(16).padStart(2, "0")).join("");
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20, 32)}`;
+}
+
+/** withinRateLimit keyed on the caller's network address; allowed when there is no address or no database. */
+export async function withinIpRateLimit(limit: RateLimit, client?: any): Promise<boolean> {
+  const address = await callerAddress();
+  if (!address) return true;
+  let db = client;
+  if (!db) {
+    if (!process.env["SUPABASE_SERVICE_ROLE_KEY"]) return true;
+    ({ supabaseAdmin: db } = await import("@/integrations/supabase/client.server"));
+  }
+  return withinRateLimit(db, await addressKey(address), limit);
 }
