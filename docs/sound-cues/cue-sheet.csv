@@ -29,7 +29,7 @@ spotdiff.miss,Double Take,Double Take: A wrong tap (the existing shake) [speed-a
 symscan.mark,Eagle Eye,Eagle Eye: A cell is marked (pop) [speed-attention.md],,5–40 (per move),silent,,200,UI tap,symscan.mark,
 symscan.unmark,Eagle Eye,Eagle Eye: A cell is unmarked [speed-attention.md],,5–40 (per move),silent,,150,UI tap,symscan.unmark,
 stroop.gatePulse,Mixed Signals,"Mixed Signals: A word lands in a gate (white pulse if right, grey if wrong) [speed-attention.md]",,5–40 (per move),silent,,300,game event,stroop.gatePulse,
-tiles.slide,Gradient,A tile changes cell (a slide or an undo) [pattern.md (Jumbled (tiles))],,5–40 (per move),silent,,160,game event,tiles.slide,
+tiles.slide,Gradient,A tile changes cell (a slide or an undo) [pattern.md (Gradient (tiles))],,5–40 (per move),silent,,160,game event,tiles.slide,
 unblock.solve,Gridlock,The solving drop: the gold car revs back and drives out through the exit with speed streaks [pattern.md (Gridlock (unblock))],,0–1,silent,,1160,success sting,unblock.solve,
 push.step,Heave,A walking step [pattern.md (Heave (push))],,5–40 (per move),silent,,120,game event,push.step,
 push.push,Heave,A step that pushes a crate [pattern.md (Heave (push))],,5–40 (per move),silent,,120,game event,push.push,
@@ -93,10 +93,10 @@ countdown_step,App-wide sounds,intro (RoundIntro): Each step of the 3-2-1 (fx.on
 place,App-wide sounds,"Ballpark, Cryptogrid, Swapword, Strikeout: A piece, letter or marker placed (fx.onPlace) [core.md]",,10–40,recorded sound,place,50,UI tap,place,
 move,App-wide sounds,"puzzles with live checks (FeedbackStage), Swapword: A move sent for a live check (fx.onMove) [core.md]",,10–60,recorded sound,move,40,UI tap,move,
 correct,App-wide sounds,"FeedbackStage, reveal verdict, practice result, many puzzles (playCorrect), High Rise perfect drop: A right move, a stage or game solved, a correct verdict [core.md]",,1–20,recorded sound,correct,120,game event,correct,
-wrong,App-wide sounds,"FeedbackStage, reveal verdict, many puzzles (playWrong), arcade crashes in Jaywalk, Swish, Coral Pop: A wrong move or verdict [core.md]",,0–10,recorded sound,wrong,140,fail sting,wrong,
+wrong,App-wide sounds,"FeedbackStage, reveal verdict, many puzzles (playWrong), arcade crashes in Spacewalk, Swish, Coral Pop: A wrong move or verdict [core.md]",,0–10,recorded sound,wrong,140,fail sting,wrong,
 lock,App-wide sounds,"Ready, Start, Submit, chat message (playBlip), several puzzles (playLock): A confirming tap [core.md]",,1–10,recorded sound,lock,90,UI tap,lock,
 tick,App-wide sounds,"Ball Tracker, Don't Break the Chain, Pull!, Ballpark, Tenfall, Bonk, Letterfall (playTick): A small tap [core.md]",,10–60,recorded sound,tick,55,UI tap,tick,
-stage_complete,App-wide sounds,"StageProgress, StageCorrect, Wavefront, Jaywalk, Junction: A stage of a staged game is complete (fx.onStageComplete) [core.md]",,1–4,recorded sound,stage_complete,160,success sting,stage_complete,
+stage_complete,App-wide sounds,"StageProgress, StageCorrect, Wavefront, Spacewalk, Junction: A stage of a staged game is complete (fx.onStageComplete) [core.md]",,1–4,recorded sound,stage_complete,160,success sting,stage_complete,
 complete,App-wide sounds,"arcade run end (arcadeFeedback), Cryptogrid, Swapword, Strikeout: The run or puzzle is complete (fx.onComplete) [core.md]",,1,recorded sound,complete,200,success sting,complete,
 combo,App-wide sounds,arcade games with a combo or cascades (arcadeFeedback): The combo grows (fx.onCombo) [core.md],,0–20,recorded sound,combo,90,game event,combo,
 warning_10,App-wide sounds,TimerBar: 10 s left: the countdown bed (starts part-way in for late joiners) [core.md],,1,recorded sound,warning_10,6000,game event,warning_10,
@@ -416,12 +416,12 @@ whack.hedgehogUp,Bonk,A hedgehog pops up (in place of whack.popUp) [arcade-effec
 whack.emptyTap,Bonk,A tap on an empty hole (−3 points) [arcade-effects.md],Nothing is drawn yet (the score drops by 3),0–10,recorded sound,whack.emptyTap,200,game event,whack.emptyTap,
 whack.finale,Bonk,"Bonk: End of run, local whackGame.score ≥ 120: hard hats fly up as gophers pop out together [speed-attention.md]",,0–1,recorded sound,whack.finale,1100,success sting,whack.finale,public/sounds/whack.finale.mp3 (from done.pops.mp3)
 music.whack,Bonk,Bonk round bed: music_speed_3 (speed bed shared with other games),,loop,recorded sound,music_speed_3 (shared),60000,music,music_speed_whack,
-chain.linkTone,Don't Break the Chain,Don't Break the Chain: A link is tapped: a synthesised tone a semitone higher per link [core.md],,10–40,recorded sound,chain.linkTone,110,game event,chain.linkTone,public/sounds/chain.linkTone.mp3 (from chain.linkTone.mp3)
-chain.breakTone,Don't Break the Chain,Don't Break the Chain: The chain breaks: a falling synthesised sawtooth [core.md],,0–1,recorded sound,chain.breakTone,380,fail sting,chain.breakTone,public/sounds/chain.breakTone.mp3 (from chain.breakTone.mp3)
-chain.finishShine,Don't Break the Chain,"Don't Break the Chain: Chain completed: gold chain glows, shine runs along every link [speed-attention.md]",,0–1,recorded sound,chain.finishShine,1100,success sting,chain.finishShine,public/sounds/chain.finishShine.mp3 (from done.goldPulse.mp3)
-chain.faster,Don't Break the Chain,Don't Break the Chain: The FASTER banner (a speed-up link; not when the REVERSE flash takes the same link) [speed-attention.md],,5–40 (per move),recorded sound,chain.faster,350,game event,chain.faster,
-chain.reverse,Don't Break the Chain,Don't Break the Chain: chainCycleRev 1: the ← REVERSE flash as the reversed board starts [speed-attention.md],,5–40 (per move),recorded sound,chain.reverse,500,game event,chain.reverse,
-music.chain,Don't Break the Chain,Don't Break the Chain round bed: music_speed_2 (speed bed shared with other games),,loop,recorded sound,music_speed_2 (shared),60000,music,music_speed_chain,
+chain.linkTone,Don’t Break the Chain,Don't Break the Chain: A link is tapped: a synthesised tone a semitone higher per link [core.md],,10–40,recorded sound,chain.linkTone,110,game event,chain.linkTone,public/sounds/chain.linkTone.mp3 (from chain.linkTone.mp3)
+chain.breakTone,Don’t Break the Chain,Don't Break the Chain: The chain breaks: a falling synthesised sawtooth [core.md],,0–1,recorded sound,chain.breakTone,380,fail sting,chain.breakTone,public/sounds/chain.breakTone.mp3 (from chain.breakTone.mp3)
+chain.finishShine,Don’t Break the Chain,"Don't Break the Chain: Chain completed: gold chain glows, shine runs along every link [speed-attention.md]",,0–1,recorded sound,chain.finishShine,1100,success sting,chain.finishShine,public/sounds/chain.finishShine.mp3 (from done.goldPulse.mp3)
+chain.faster,Don’t Break the Chain,Don't Break the Chain: The FASTER banner (a speed-up link; not when the REVERSE flash takes the same link) [speed-attention.md],,5–40 (per move),recorded sound,chain.faster,350,game event,chain.faster,
+chain.reverse,Don’t Break the Chain,Don't Break the Chain: chainCycleRev 1: the ← REVERSE flash as the reversed board starts [speed-attention.md],,5–40 (per move),recorded sound,chain.reverse,500,game event,chain.reverse,
+music.chain,Don’t Break the Chain,Don’t Break the Chain round bed: music_speed_2 (speed bed shared with other games),,loop,recorded sound,music_speed_2 (shared),60000,music,music_speed_chain,
 reaction.goldPulse,Flash,"Flash: End of run (every flash settled), local scoreReaction ≥ 120: gold pulse from the centre [speed-attention.md]",,0–1,recorded sound,reaction.goldPulse,1100,UI tap,reaction.goldPulse,public/sounds/reaction.goldPulse.mp3 (from done.goldPulse.mp3)
 music.reaction,Flash,Flash round bed: music_speed_1 (speed bed shared with other games),,loop,recorded sound,music_speed_1 (shared),60000,music,music_speed_reaction,
 clayshoot.claysStreak,Pull!,Every 10th clay [arcade-effects.md],n CLAYS banner,1–3,recorded sound,clayshoot.claysStreak,400,game event,clayshoot.claysStreak,
@@ -466,7 +466,7 @@ music.countup,Tally,Tally round bed: music_attention_1 (attention bed shared wit
 flow.connect,Chroma Lines,A pair is joined and a pulse runs along it (not on the solving join) [pattern.md (Chroma Lines (flow))],,5–40 (per move),recorded sound,flow.connect,460,game event,flow.connect,public/sounds/flow.connect.mp3 (from flow.connect.mp3)
 flow.solve,Chroma Lines,"Each path pulses end to end in its colour, then the board glows [pattern.md (Chroma Lines (flow))]",,0–1,recorded sound,flow.solve,1150,success sting,flow.solve,public/sounds/flow.solve.mp3 (from done.glowSweep.mp3)
 music.flow,Chroma Lines,Chroma Lines round bed: music_logic_2 (pattern bed shared with other games),,loop,recorded sound,music_logic_2 (shared),60000,music,music_pattern_flow,
-tiles.solve,Gradient,"The colour ramp flows across the tiles from 1 to 8, then the gap glows [pattern.md (Jumbled (tiles))]",,0–1,recorded sound,tiles.solve,980,success sting,tiles.solve,public/sounds/tiles.solve.mp3 (from done.glowSweep.mp3)
+tiles.solve,Gradient,"The colour ramp flows across the tiles from 1 to 8, then the gap glows [pattern.md (Gradient (tiles))]",,0–1,recorded sound,tiles.solve,980,success sting,tiles.solve,public/sounds/tiles.solve.mp3 (from done.glowSweep.mp3)
 music.tiles,Gradient,Gradient round bed: music_pattern_1 (pattern bed shared with other games),,loop,recorded sound,music_pattern_1 (shared),60000,music,music_pattern_tiles,
 pz_car_escape,Gridlock,Gridlock: The gold car drives out (solve) [core.md],,0–1,recorded sound,pz_car_escape,2470,game event,pz_car_escape,
 unblock.slide,Gridlock,"A car settles into a new bay (each kept move, each undo, a reset with moves to undo) [pattern.md (Gridlock (unblock))]",,5–40 (per move),recorded sound,unblock.slide,170,game event,unblock.slide,
@@ -992,15 +992,15 @@ beat.start,Tempo,Tempo: The run starts [arcade.md],,1,recorded sound,arc_retro_c
 beat.miss,Tempo,Tempo: A note is missed (left out when it breaks a combo of 10+ and beat.comboLost has a file) [arcade.md],,5–20,recorded sound,beat.miss,150,fail sting,beat.miss,
 beat.note,Tempo,Tempo: A note is hit or a hold starts (pitched by lane; an own file keeps the lane pitch) [arcade.md],,80–150,recorded sound,beat.note,140,game event,beat.note,
 music.beat,Tempo,Tempo (arcade): none: the chart's synthesised beat is the music,,loop,recorded sound,music_beat,60000,music,music_beat,
-pyramid.pair,Thirteen,Pyramid: Two cards adding to 13 removed (pyramid or waste) [arcade.md],,8–14,recorded sound,pyramid.pair,406,game event,pyramid.pair,
-pyramid.king,Thirteen,Pyramid: A King removed alone [arcade.md],,0–4,recorded sound,pyramid.king,329,game event,pyramid.king,
-pyramid.deal,Thirteen,Pyramid: A stock card turned onto the waste [arcade.md],,10–60,recorded sound,pyramid.deal,220,game event,pyramid.deal,
-pyramid.invalid,Thirteen,"Pyramid: A tap refused (a covered card, a pair not adding to 13, an empty stock) [arcade.md]",,0–10,recorded sound,pyramid.invalid,434,game event,pyramid.invalid,
-pyramid.clear,Thirteen,Pyramid: All 28 pyramid cards removed [arcade.md],,0–1,recorded sound,pyramid.clear,1666,game event,pyramid.clear,
-pyramid.shuffle,Thirteen,Pyramid [cards-solitaire.md],,5–40 (per move),recorded sound,pyramid.shuffle,1093,game event,pyramid.shuffle,
-pyramid.select,Thirteen,Pyramid [cards-solitaire.md],,5–40 (per move),recorded sound,pyramid.select,334,UI tap,pyramid.select,
-pyramid.turn,Thirteen,Pyramid [cards-solitaire.md],,5–40 (per move),recorded sound,pyramid.turn,1093,game event,pyramid.turn,
-music.pyramid,Thirteen,"Pyramid: music_pyramid (Free Cell's bed, music_freecell.mp3)",,loop,recorded sound,music_pyramid,47400,music,music_pyramid,
+pyramid.pair,Thirteen,Thirteen: Two cards adding to 13 removed (pyramid or waste) [arcade.md],,8–14,recorded sound,pyramid.pair,406,game event,pyramid.pair,
+pyramid.king,Thirteen,Thirteen: A King removed alone [arcade.md],,0–4,recorded sound,pyramid.king,329,game event,pyramid.king,
+pyramid.deal,Thirteen,Thirteen: A stock card turned onto the waste [arcade.md],,10–60,recorded sound,pyramid.deal,220,game event,pyramid.deal,
+pyramid.invalid,Thirteen,"Thirteen: A tap refused (a covered card, a pair not adding to 13, an empty stock) [arcade.md]",,0–10,recorded sound,pyramid.invalid,434,game event,pyramid.invalid,
+pyramid.clear,Thirteen,Thirteen: All 28 pyramid cards removed [arcade.md],,0–1,recorded sound,pyramid.clear,1666,game event,pyramid.clear,
+pyramid.shuffle,Thirteen,Thirteen [cards-solitaire.md],,5–40 (per move),recorded sound,pyramid.shuffle,1093,game event,pyramid.shuffle,
+pyramid.select,Thirteen,Thirteen [cards-solitaire.md],,5–40 (per move),recorded sound,pyramid.select,334,UI tap,pyramid.select,
+pyramid.turn,Thirteen,Thirteen [cards-solitaire.md],,5–40 (per move),recorded sound,pyramid.turn,1093,game event,pyramid.turn,
+music.pyramid,Thirteen,"Thirteen: music_pyramid (Free Cell's bed, music_freecell.mp3)",,loop,recorded sound,music_pyramid,47400,music,music_pyramid,
 tilt.allMazes,Tilt,All 4 mazes finished [arcade-effects.md],"FULL CLEAR banner, confetti, shake",0–1,recorded sound,tilt.allMazes,1200,game event,tilt.allMazes,
 tilt.pitFall,Tilt,The marble falls into a pit (run over) [arcade-effects.md],The marble drops out of sight,0–1,recorded sound,arc_crash (shared),300,game event,tilt.pitFall,
 tilt.chaserFall,Tilt,The red chaser marble falls into a pit [arcade-effects.md],The chaser drops and vanishes,0–3,recorded sound,tilt.chaserFall,300,game event,tilt.chaserFall,

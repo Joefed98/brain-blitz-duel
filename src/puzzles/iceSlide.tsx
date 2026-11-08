@@ -49,7 +49,7 @@ function IntroExample() {
   return (
     <div className="flex flex-col items-center gap-4">
       <p className="text-sm text-muted-foreground">
-        Swipe to slide the ball. It won’t stop until it hits something. Avoid the holes - fall
+        Swipe to slide the ball. It won’t stop until it hits something. Avoid the holes – fall
         in and you start again. A chevron turns the ball. Portals carry you across the board.
         Cracked ice breaks after you cross it once.
       </p>
@@ -265,7 +265,7 @@ function Stage({
       <FramePills
         testId="iceslide"
         items={[
-          ...(par !== null ? parPills("Moves", replay.moves, par) : [{ id: "moves", label: "Moves", value: replay.moves }]),
+          ...(par !== null ? parPills("Slides", replay.moves, par) : [{ id: "moves", label: "Moves", value: replay.moves }]),
           gems.length ? { id: "gems", label: "Gems", value: `${popCount(gemsShown)} / ${gems.length}` } : null,
           replay.falls > 0 ? { id: "falls", label: replay.falls === 1 ? "Fall" : "Falls", value: replay.falls, tone: "warn" } : null,
         ]}

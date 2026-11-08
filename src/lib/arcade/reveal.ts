@@ -24,6 +24,7 @@ import { fcCardsFor, fcCoreUnitsFor } from "./cards/freecell";
 import { MOON_SCROLLS, MOON_SKY, NINJA_COINS, NINJA_CORE_FULL_M, NINJA_LANTERNS, NINJA_SCROLLS } from "./ricochetNinja";
 import { MG_CORE_FULL } from "./cards/muggins";
 import { arcadeStdParts } from "./standard";
+import { revealStdParts } from "./revealStdParts";
 
 export interface ArcadeRevealTile {
   label: string;
@@ -219,7 +220,7 @@ const BUILDERS: Record<string, Builder> = {
     tiles: [
       { label: (n(r, "fiveHandsRev") || 1) >= 2 ? "Rows with a hand" : "Made hands", value: `${n(r, "made")} / 5` },
       rev >= 3
-        ? { label: "Sixth hand (column)", value: n(r, "column") >= 0 ? `${String((r as Record<string, unknown>)["columnHand"] || "No hand")} +${n(r, "columnPoints")}` : "Not picked" }
+        ? { label: "Bonus column", value: n(r, "column") >= 0 ? `${String((r as Record<string, unknown>)["columnHand"] || "No hand")} +${n(r, "columnPoints")}` : "Not picked" }
         : { label: "Full at", value: String(full) },
       { label: "Placed", value: `${n(r, "placed")} / 20` },
     ],
@@ -459,7 +460,7 @@ const BUILDERS: Record<string, Builder> = {
     // curlRev 4: the stones that counted (nearer than every red in the house) too.
     lines: [((r["state"] as { rev?: number } | undefined)?.rev ?? 1) >= 4 ? `${n(r, "onButton")} of 8 on the button · ${n(r, "counted")} counted → ${s}` : `${n(r, "onButton")} of 8 on the button → ${s}`],
     tiles: [
-      { label: "In the 4-foot", value: `${n(r, "inFourFoot")} / 8` },
+      { label: "In the red ring", value: `${n(r, "inFourFoot")} / 8` },
       { label: "Takeouts", value: `${n(r, "takeouts")} / ${n(r, "opponents")}` },
       { label: "Holding shot", value: b(r, "holding") ? "Yes" : "No" },
     ],
@@ -1012,7 +1013,7 @@ const BUILDERS: Record<string, Builder> = {
         axis: { value: n(r, "correct"), max: n(r, "queue"), label: "Correct" },
         lines: [
           `${n(r, "correct")} / ${n(r, "queue")} correct → ${s}`,
-          done ? `${n(r, "wrong")} wrong · finish ${depth.base} · speed +${depth.stretch}` : `${n(r, "wrong")} wrong · ${Math.max(0, n(r, "net"))} net → ${depth.base} · ${sorted ? "more than 3 wrong" : "not all sorted"}`,
+          done ? `${n(r, "wrong")} wrong · finish ${depth.base} · speed +${depth.stretch}` : `${n(r, "wrong")} wrong, ${Math.max(0, n(r, "net"))} more right than wrong → ${depth.base} · ${sorted ? "more than 3 wrong" : "not all sorted"}`,
           `streak +${depth.streak} (best ${depth.best}) · gold +${depth.gold} (${depth.golds}/${depth.goldWords})`,
         ],
         tiles: [
@@ -1098,13 +1099,17 @@ function rawTotalMapped(r: Run): boolean {
   return Boolean(state && typeof state === "object" && (state.sb || state.tgt));
 }
 
+const REVEAL_STD_HELD = new Set(["flip", "tilt"]);
+
 export function buildArcadeReveal(type: string, run: unknown, score: number): ArcadeRevealData | null {
   const builder = BUILDERS[type];
   if (!builder || !run || typeof run !== "object") return null;
   if (type === "bastion" && (run as Run)["std"] !== true) return null;
   const data = builder(run as Run, score);
   // The arcade scoring standard (arcadeStandard.ts): one line per part (core, then each feature) and the total.
-  const std = arcadeStdParts(type, (run as Run)["state"]);
+  // Games scored on the standard outside ARCADE_STANDARD (revealStdParts.ts): their live stamps' parts too. Roofbound
+  // and Tilt keep their band lines until flip-rev11-check, tilt-rev11-check and tilt-rev12-check are updated to match.
+  const std = arcadeStdParts(type, (run as Run)["state"]) ?? (REVEAL_STD_HELD.has(type) ? null : revealStdParts(type, (run as Run)["state"]));
   if (std) return { ...data, lines: stdLines(std, score, Boolean(((run as Run)["state"] as { acted?: number }).acted)) };
   // Oct 2026 score-band rounds: same axis and tiles, breakdown lines from the band rules.
   const state = (run as Run)["state"] as { band?: number; acted?: number } | undefined;

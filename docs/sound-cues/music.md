@@ -89,7 +89,7 @@ carry; a file in their slot plays under the voice line (voice lines duck music).
 | `music.tripeaks` | Summit | `music_tripeaks` | `music_tripeaks` | 55.7 s loop |
 | `music.pokersquares` | Full House | `music_pokersquares` | `music_pokersquares` | 55.2 s loop |
 | `music.fivehands` | Five Hands | `music_fivehands` (Full House's bed, `music_pokersquares.mp3`) | `music_fivehands` | 55.2 s loop |
-| `music.pyramid` | Pyramid | `music_pyramid` (Free Cell's bed, `music_freecell.mp3`) | `music_pyramid` | 47.4 s loop |
+| `music.pyramid` | Thirteen | `music_pyramid` (Free Cell's bed, `music_freecell.mp3`) | `music_pyramid` | 47.4 s loop |
 | `music.golfsol` | Golf Solitaire | `music_golfsol` (Summit's bed, `music_tripeaks.mp3`) | `music_golfsol` | 55.7 s loop |
 | `music.muggins` | Muggins | `music_muggins` (Mahjong's bed, `music_mahjong.mp3`) | `music_muggins` | 48.0 s loop |
 | `music.blockfall` | Blockzone | `music_blockfall` (`music_blockfall.mp3`, Joe's recording, 3 Nov 2026) | `music_blockfall` | 52.9 s loop |

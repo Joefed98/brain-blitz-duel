@@ -57,6 +57,14 @@ export function nearMissInfo(
     // Orbit: no near-miss line (4 Nov 2026: "40 planets left to reach" beside "0 of 40 planets and 15/16 of the next";
     // its Planets row says exactly how far the run got).
     case "swing": {
+      // swingRev 15+ (the swinging course, ~790 m) scores by stretches, not metres.
+      if ((number("swingRev") ?? 0) >= 15) {
+        const sections = number("sections"),
+          total = number("sectionTotal");
+        if (sections === null || total === null || total <= 0 || sections < 0 || sections >= total) return null;
+        const left = total - sections;
+        return info(`${left} stretch${left === 1 ? "" : "es"} left to clear`, left, total);
+      }
       const metres = number("metres");
       return metres !== null && metres >= 0 && metres < 500
         ? info(`${Math.ceil(500 - metres)} m short of the finish`, 500 - metres, 500, true)
@@ -85,8 +93,11 @@ export function nearMissInfo(
     // stones that ended on the button, not throws left).
     case "tilt":
       return remaining("mazes", 4, "maze", "finish");
-    case "balltrack":
-      return remaining("home", 30, "marble", "bring home");
+    case "balltrack": {
+      // btRev 7+ drops 36 marbles (earlier courses 30): the stored reveal's axis holds the run's own count.
+      const axis = (extra["reveal"] as { axis?: { max?: unknown } } | undefined)?.axis?.max;
+      return remaining("home", typeof axis === "number" && axis > 0 ? axis : 30, "marble", "bring home");
+    }
     case "wordfall": {
       const points = number("points"),
         // wordfallRev 3 (score bands): par scores about 100; the maximum (150) takes WORDFALL_BANDS_FULL_POINTS.
@@ -113,7 +124,10 @@ export function nearMissInfo(
     case "bullseye":
       return extra["finished"] === true ? null : remaining("arrows", 10, "dart", "throw");
     case "breaker": {
-      const left = number("bricksLeft");
+      // brkRev 11+ (the standard): every brick the wall dealt, gold included.
+      const all = number("bricksAll"),
+        broken = number("bricks");
+      const left = all !== null && broken !== null ? all - broken : number("bricksLeft");
       return extra["cleared"] !== true && left !== null && left > 0
         ? info(`${left} brick${left === 1 ? "" : "s"} left to clear`, left, null)
         : null;

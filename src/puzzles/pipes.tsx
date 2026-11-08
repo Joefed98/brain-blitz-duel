@@ -192,7 +192,7 @@ function IntroExample() {
         />
       </div>
       <p className="text-xs text-muted-foreground">
-        All 49 connected = 120 + up to 30 for speed. You have 120 seconds.
+        Connect all 49 to finish. Faster and fewer taps score more. You have 120 seconds.
       </p>
     </div>
   );
@@ -278,7 +278,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "pipes" }: 
         />
         </div>
       </div>
-      {parTurns > 0 ? <FramePills testId="pipes" items={parPills("Turns", taps.length, parTurns, "turns")} /> : null}
+      {parTurns > 0 ? <FramePills testId="pipes" items={parPills("Taps", taps.length, parTurns, "turns")} /> : null}
     </div>
   );
 }

@@ -5,7 +5,7 @@
 > a room panel and each game's desktop mode. The control map below still holds (only Cue Ball is drawn rotated, and
 > it has no direction keys).
 
-Duelz now works in PC and laptop browsers with a mouse, trackpad and keyboard. **Phones and tablets
+Joulz now works in PC and laptop browsers with a mouse, trackpad and keyboard. **Phones and tablets
 are unchanged.** All of this is presentation and input only: no version stamps, no sim, scoring or
 timing changes, and no stored data touched.
 
@@ -93,7 +93,7 @@ reason given. "Practice" marks games retired to practice.
 | High Rise (`skyline`) | Click to drop | Space, ↓ or S drops |
 | Hover (`hover`) | Click to flap | Space, ↑ or W flaps |
 | Home Run (`homerun`) | homerunRev 4 (3 Nov 2026): click a spot on the field before the pitch, then click anywhere to swing as the ring closes on the ball (rev 1–3: drag through the ball; rev 3 also Contact or Power) | Space = swing (homerunRev 4; the spot stays a click); rev 3: C or 1 = Contact, P or 2 = Power, the swing a mouse drag |
-| Jaywalk (`cross`) | Drag-flick up, down, left or right | ← → ↑ ↓ / WASD step |
+| Spacewalk (`cross`; was Jaywalk) | Drag-flick up, down, left or right | ← → ↑ ↓ / WASD step |
 | Meteor (`snake`) | Drag-flick to turn | ← → ↑ ↓ / WASD turn |
 | Orbit (`orbit`) | Click to release; SET CHECKPOINT button | Space releases; C sets a checkpoint (when the button shows) |
 | Pinball (`pinball`) | Hold the left or right half (one flipper at a time) | ← or Z left flipper, → or M right flipper, both at once (existing) |
@@ -183,7 +183,7 @@ reason given. "Practice" marks games retired to practice.
 | Chroma Lines (`flow`) | Drag paths | None: drawing paths is the game |
 | Gridlock (`unblock`) | Drag blocks; Undo / Reset | Z or Backspace = Undo; R = Reset |
 | Heave (`push`) | Drag-flick, or the arrow pad | ← → ↑ ↓ / WASD the pad's arrows; Z or Backspace = Undo; R = Reset |
-| Jumbled (`tiles`) | Click a tile next to the gap | ← → ↑ ↓ / WASD slide the tile on that side of the gap into it; Z or Backspace = Undo; R = Reset |
+| Gradient (`tiles`; Jumbled until 27 Oct 2026) | Click two tiles to swap them, or drag one onto the other (tilesRev 4+; older rounds slid a tile into the gap) | Esc lets go of a picked tile (`DESKTOP_KEYS`); the old slide keys (← → ↑ ↓ / WASD, Z or Backspace = Undo, R = Reset) were for the slide rounds |
 | Lightbender (`laser`) | Click to place/flip, drag to move; tray; Fire | M / S pick mirror / splitter; Enter or Space = Fire; Z or Backspace = Undo; R = Reset |
 | Pipeline (`pipes`) | Click a tile to turn it | None: picking the tile is the game |
 | Skid (`iceslide`) | Drag-flick, or the arrow pad | ← → ↑ ↓ / WASD the pad's arrows; Z or Backspace = Undo; R = Reset |
@@ -229,7 +229,7 @@ Each of these games is left exactly as it is: mouse only, no keys added.
 4. **Mouse versus touch in general.** A mouse is more precise than a thumb for small aimed taps (Pull!,
    Ascend, Don't Break the Chain, Matchmaker) and lets Rally steer by hovering. That is a property of the
    device, not of anything added here, but it matters for real-money play.
-5. **Swipe-direction games** (Meteor, Jaywalk, and Rooftop Run in practice). An arrow key replaces a
+5. **Swipe-direction games** (Meteor, Spacewalk, and Rooftop Run in practice). An arrow key replaces a
    short flick anywhere on the screen. Both reach the sim on the next tick and neither needs aim, so they
    were judged equal and given keys. Say if you'd rather treat them like Bonk.
 

@@ -1,4 +1,4 @@
-# Pyramid, Golf Solitaire and Muggins (1 Nov 2026)
+# Pyramid, Golf Solitaire and Muggins (1 Nov 2026; Pyramid shown as Thirteen since 3 Nov 2026)
 
 Three Cards & Board games born on the arcade scoring standard. No recordings of their own yet: every slot points at an
 existing card or tile recording (batch 6, `batch6-mapping.csv` lists each slot under its file). Undo and Reset play
@@ -7,9 +7,9 @@ renderer effects (`effectCue`).
 
 | Cue | Game | Moment | File | Per run | Length |
 | --- | --- | --- | --- | --- | --- |
-| `pyramid.shuffle` | Pyramid | The run starts | `cards_shuffle.mp3` | 1 | 1093 ms |
-| `pyramid.select` | Pyramid | A card chosen as the first of a pair | `cards_pick.mp3` | 10–30 | 334 ms |
-| `pyramid.turn` | Pyramid | The empty stock turns the waste back over (passes 2 and 3) | `cards_shuffle.mp3` | 0–2 | 1093 ms |
+| `pyramid.shuffle` | Thirteen | The run starts | `cards_shuffle.mp3` | 1 | 1093 ms |
+| `pyramid.select` | Thirteen | A card chosen as the first of a pair | `cards_pick.mp3` | 10–30 | 334 ms |
+| `pyramid.turn` | Thirteen | The empty stock turns the waste back over (passes 2 and 3) | `cards_shuffle.mp3` | 0–2 | 1093 ms |
 | `golfsol.shuffle` | Golf Solitaire | The run starts | `cards_shuffle.mp3` | 1 | 1093 ms |
 | `muggins.shuffle` | Muggins | The run starts | `mahjong_shuffle.mp3` | 1 | 1043 ms |
 

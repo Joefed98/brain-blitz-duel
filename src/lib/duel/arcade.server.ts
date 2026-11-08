@@ -469,7 +469,7 @@ export function generateSwing(): SwingPuzzleData {
     const seed = attempt === 0 ? roomSeed : arcadeSeed();
     if (proveSwingSeed(seed, SWING_REV_TALL)) return { type: "swing", seed, swingRev: SWING_REV_STRICT };
   }
-  throw new Error("Could not verify a safe Grappler course; try again.");
+  throw new Error("Couldn’t build the course. Try again.");
 }
 
 export function generateTilt(): TiltPuzzleData {
