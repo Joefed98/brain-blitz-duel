@@ -94,7 +94,7 @@ export const SHARDS: Record<string, string[]> = {
   // on CI, and every expansion makes the arcade games heavier. @1/3 here, @2/3 on play7, @3/3 on play8.
   // app-shell-check (18 Oct 2026: the four tabs, icons and the public-games card in the real app plus room screens
   // in the harness, ~2 min with its dev server) rides here too.
-  play15: ["arcade-room-practice-check.ts@1/3", "fission-repeat-check.ts", "app-shell-check.ts"],
+  play15: ["arcade-room-practice-check.ts@1/3", "fission-repeat-check.ts", "app-shell-check.ts", "demo-intro-check.ts@6/6"],
   // The page skin (19 Oct 2026): theme-check and no-wrap-check's draws (the daily screens joined 21 Oct 2026: locally
   // theme-check ~2 min, no-wrap-check ~4 min whole). no-wrap-check in sixths since 4 Nov 2026: its thirds reached 281–300 s
   // on CI against the 300 s limit per check (#261's play17); two sixths here, four on play17, the same two jobs.
@@ -103,10 +103,12 @@ export const SHARDS: Record<string, string[]> = {
   // harness, ~1 min with its dev server) rides with no-wrap's other four sixths.
   play17: ["no-wrap-check.tsx@3/6", "no-wrap-check.tsx@4/6", "no-wrap-check.tsx@5/6", "no-wrap-check.tsx@6/6", "share-check.ts"],
   // Prompt D (23 Oct 2026): demo-intro-check (every active game's intro from its first frame to its demo playing,
-  // with and without a demo, as an iPhone 11 home-screen app; ~8 s a game, so in thirds of ~25 games, ~3 min each
-  // with its dev server) and replay-board-check (46 puzzle replays on the room's results screen, ~2 min).
-  play18: ["demo-intro-check.ts@1/3", "demo-intro-check.ts@2/3"],
-  play19: ["demo-intro-check.ts@3/3", "replay-board-check.ts", "arcade-device-bottom-check.ts@4/8"],
+  // with and without a demo, as an iPhone 11 home-screen app; ~8 s a game) and replay-board-check (46 puzzle replays on
+  // the room's results screen, ~2 min). demo-intro-check in sixths since 8 Nov 2026: its thirds took 197–300 s on CI
+  // against the 300 s limit per check and timed out often; four sixths here, the fifth on play19 in the third's place,
+  // the sixth on play15 (the lightest play job, ~7 min).
+  play18: ["demo-intro-check.ts@1/6", "demo-intro-check.ts@2/6", "demo-intro-check.ts@3/6", "demo-intro-check.ts@4/6"],
+  play19: ["demo-intro-check.ts@5/6", "replay-board-check.ts", "arcade-device-bottom-check.ts@4/8"],
   // Offline practice (31 Oct 2026): offline-check builds the app for production, installs the service worker, fills
   // every practice pack, plays three games offline, uploads the queue and swaps in a new build's worker (~5 min).
   // arcade-device-bottom-check's fifth layout part (@5/8, 2 Nov 2026) rides here, the lightest play job (~3.5 min).

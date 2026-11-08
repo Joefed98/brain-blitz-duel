@@ -460,7 +460,7 @@ outside the repo.
   every other puzzle shows the winner's real final board with "Replay not available for this game yet". The arcade reveal's
   snake gives each player a 6 px line in their colour (this player's 8 px, on top), fills the spare height and draws all
   text #F3F1EC at 13 px semibold on a dark backing, never overlapping (still no points figure for anyone).
-  demo-intro-check (`play18`/`play19`, thirds) proves zero shift from the first frame to the demo playing for every game,
+  demo-intro-check (`play18`/`play19`/`play15`, sixths since 8 Nov 2026) proves zero shift from the first frame to the demo playing for every game,
   with and without a demo; replay-board-check (`play19`) plays 46 stored puzzle answers on the room's results screen.
 - **Celebrations** (23 Oct 2026, Prompt P; display, sound and animation only, no version stamps): one switch,
   `FX_CELEBRATIONS` in `src/config/betaConfig.ts` (false: every screen exactly as before, proved against
