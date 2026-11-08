@@ -28,7 +28,6 @@ import { useStageState } from "@/lib/duel/stageState";
 import { HudPills } from "@/components/puzzles/HudPills";
 import { wrongMoveFlash } from "@/lib/fx/gameToolkit";
 import "@/polish-layout/batch-w-target.css";
-import { fastFinishSeconds } from "@/lib/duel/puzzleBandsText";
 import { EXACT_ELEGANT_TILES, usesNumberDepth } from "@/lib/duel/numberDepth";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
@@ -155,7 +154,7 @@ function IntroExample() {
         75 × 6 = 450 · 450 + 10 = 460 · 460 + 2 = 462
       </p>
       <p className="text-center text-xs text-muted-foreground">
-        A hit scores 120 to 150 (150 in about {fastFinishSeconds("target")} s); off by 1 scores 110, less the further off.
+        Hitting it scores 150, with more for speed and for using fewer numbers. Not exact: what you built towards it, or about 120 one away.
       </p>
     </div>
   );

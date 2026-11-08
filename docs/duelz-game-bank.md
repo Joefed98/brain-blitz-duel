@@ -74,7 +74,7 @@ Detail and dates for every item are in `CLAUDE.md`.
 
 | Game (id) | Status | Play | Score (200) | Clock | Revision |
 |---|---|---|---|---|---|
-| Exact (target) | Active | Combine six numbers with + − × ÷ (whole steps only) to make the target. | Finish 150 + speed 35 (30 s) + elegance 15 (fewest numbers); not exact up to 130 by closeness. | 75 s | depthRev 3 |
+| Exact (target) | Active | Combine six numbers with + − × ÷ (whole steps only) to make the target. | Finish 150 + speed 35 (30 s) + elegance 15 (fewest numbers); not exact up to 130: the share of a solution built or closeness, whichever is more. | 75 s | depthRev 4 |
 | Operator (equation) | Active | Four equations worked left to right: gold circles take a sign, teal squares a number from the tray; any true fill counts. | Finish 150 + speed 40 (60 s) + first try 10; unfinished up to 130 (30 an equation). | 90 s | gapsRev 1 (with equationRev 1, depthRev 2) |
 | Counterweight (balance) | Active | Hang kettlebells on notches until each of four scales balances; hangs are limited. | Finish 150 + speed 35 (60 s) + hangs 15; unfinished up to 130 (30 a scale). | 120 s | balanceRev 3, depthRev 2 |
 | Integer Pyramid (numpyramid) | Active | Four pyramids: drag tiles in so each cell is the sum of the two below; two decoys each. | Finish 150 + speed 40 (75 s) + clean pyramids 10; unfinished up to 130. | 120 s | depthRev 2 |
@@ -111,12 +111,12 @@ Detail and dates for every item are in `CLAUDE.md`.
 
 | Game (id) | Status | Play | Score (200) | Clock | Revision |
 |---|---|---|---|---|---|
-| Gridlock (unblock) | Active | Slide blocks along their own direction to free the gold block. | Finish 150 + speed 30 (40 s) + moves 20 (par); unfinished up to 130. | 60 s | unblockRev 2 |
+| Gridlock (unblock) | Active | Slide blocks along their own direction to free the gold block. | Finish 150 + speed 30 (40 s) + moves 20 (par); unfinished up to 130 by the solver distance closed. | 60 s | unblockRev 3 |
 | Tessellate (blockparty) | Active | Rotate and drag pieces to fill the free squares round fixed pegs. | Finish 150 + speed 40 (40 s) + first time 10; unfinished up to 130. | 60 s | blockRev 3 |
 | Skid (iceslide) | Active | Swipe to slide until something stops you; arrows, holes and portals; reach the gold exit. | Finish 150 + speed 30 (30 s) + slides 20 (par, 0 at 1.5 × par); unfinished up to 130. | 90 s | slideRev 4 |
 | Topsy-Turvy (gravity) | Active | Three boards: tilt so every ball rolls into its own colour’s hole. | Finish 150 + speed 30 (32 s) + tilts 20 (par, 0 at 1.5 × par); unfinished up to 130. | 120 s | gravityRev 7 |
-| Gradient (tiles) | Active | Swap tiles to rebuild a colour gradient; a tile home locks. | Finish 150 + speed 35 (30 s) + swaps 15 (par, 0 at twice par); unfinished up to 130. | 120 s | tilesRev 6 |
-| Turntable (rings) | Active | Turn linked rings until every spoke is one colour. | Finish 150 + speed 35 (40 s) + turns 15 (par); unfinished up to 130. | 60 s | ringsRev 3 |
+| Gradient (tiles) | Active | Swap tiles to rebuild a colour gradient; a tile home locks. | Finish 150 + speed 35 (30 s) + swaps 15 (par, 0 at twice par); swap limit 1½ × par rounded up; unfinished up to 130 by the swap-minimum share, less half a swap for each wasted one. | 120 s | tilesRev 7 |
+| Turntable (rings) | Active | Turn linked rings until every spoke is one colour. | Finish 150 + speed 35 (40 s) + turns 15 (par); unfinished up to 130 by the solver distance closed. | 60 s | ringsRev 4 |
 | Lightbender (laser) | Active | Place mirrors and a splitter so one beam lights six gems, avoiding bombs; three FIRE shots. | Finish 150 + speed 40 (15 s) + mirrors 5 + first shot 5; unfinished up to 130 (20 a gem). | 60 s | laserRev 3 (with alogRev 1) |
 | Chroma Lines (flow) | Active | Join every colour pair with paths that fill every square and never cross. | Finish 150 + speed 40 (20 s) + clean lines 10; unfinished up to 130. | 75 s | flowRev 2 |
 | Pipeline (pipes) | Active | Rotate pipe tiles until every pipe joins the source with no leaks. | Finish 150 + speed 40 (60 s) + taps 10 (par); unfinished up to 130. | 120 s | pipesRev 3 |
@@ -126,10 +126,10 @@ Detail and dates for every item are in `CLAUDE.md`.
 
 | Game (id) | Status | Play | Score (200) | Clock | Revision |
 |---|---|---|---|---|---|
-| Blackout (lightsout) | Active | A press flips a light and its neighbours; turn every light off. | Finish 150 + speed 30 (20 s) + par 20; unfinished up to 130. | 75 s | depthRev 2 |
+| Blackout (lightsout) | Active | A press flips a light and its neighbours; turn every light off. | Finish 150 + speed 30 (20 s) + par 20; unfinished up to 130 by the solver distance closed. | 75 s | depthRev 3 |
 | Box Six (sudoku) | Active | 6 × 6 sudoku with 2 × 3 boxes and pencil marks. | Finish 150 + speed 40 (45 s) + clean grid 10; unfinished up to 130; wrong digits left cost 5. | 90 s | sudokuRev 1, depthRev 3 |
-| Hanoi (tower) | Active | Move the ring tower onto the gold post, never a ring on a smaller one. | Finish 150 + speed 40 (45 s) + par 10; unfinished up to 130. | 90 s | depthRev 2 |
-| Polypotions (tubes) | Active | Pour layers until every flask is one colour; pours are limited. | Finish 150 + speed 35 (45 s) + par 15; unfinished up to 130. | 90 s | tubesRev 2, depthRev 2 |
+| Hanoi (tower) | Active | Move the ring tower onto the gold post, never a ring on a smaller one. | Finish 150 + speed 40 (45 s) + par 10; unfinished up to 130 by the solver distance closed. | 90 s | depthRev 3 |
+| Polypotions (tubes) | Active | Pour layers until every flask is one colour; pours are limited. | Finish 150 + speed 35 (45 s) + par 15; unfinished up to 130 by the solver distance closed. | 90 s | tubesRev 2, depthRev 3 |
 | Safe Cracker (safe) | Active | Set four dials to the one code that fits every clue; three tries. | Open 150 + speed 40 (30 s) + first try 10; unfinished up to 130. | 75 s | depthRev 3 |
 | Mosaic (nonogram) | Active | Fill cells so every line matches its runs. | Finish 150 + speed 40 (60 s) + clean picture 10; unfinished up to 130; wrong cells left cost 5. | 120 s | depthRev 2 |
 | Colour Flood (flood) | Active | Repaint your region from the top-left until the board is one colour; moves are limited. | Finish 150 + speed 10 (30 s) + par 40 (6.7 less a move over); unfinished up to 130, 0 out of moves. | 60 s | depthRev 4, floodRev 3 |
@@ -153,11 +153,11 @@ All run on the deterministic engine: 60 ticks a second, integer physics, seeded 
 | Hover (hover) | Tap to rise through 42 barrier gaps; gold gates, star chains, shields; a crash ends the run. | Barriers 120 + star chains 30 + gold stars 20 + tight gates 20 + centre lines 10. | 63 s | hoverRev 10 |
 | Breaker (breaker) | Drag the paddle, tap to fire power-ups; gold bricks take 4 hits. | Bricks 140 + clear 10 + speed 20 + gold bricks 30. | 93 s | brkRev 11 |
 | Rally (rally) | Keep the blue ball in play (losing it ends the run) and hit gold balls back; pink pads and gold targets. | Gold-ball hits 140 (full at 23) + pink pads 30 + gold targets 30. | 63 s | rallyRev 12 |
-| Wavefront (wavefront) | Drag to move, firing on your own, through five waves and two bosses. | Ships, hits and waves 150 + boss destroyed 10 + boss speed 10 + saucers 20 + cannons and weak points 10; a life costs 5. | 93 s | wavRev 12 |
-| Fission (burst) | ◀ ▶ to move, tap to shoot atoms that split, five fixed waves. | Atoms 140 + wave clears 35 + golden atoms 25; a life costs 5. | 93 s | burstRev 10 |
+| Wavefront (wavefront) | Drag to move, firing on your own, through five waves and two bosses. | Ships, hits and waves 150 + boss destroyed 10 + boss speed 10 + saucers 20 + cannons and weak points 10; a life but the last costs 5, lives at most half the ships, hits and waves points. | 93 s | wavRev 13 |
+| Fission (burst) | ◀ ▶ to move, tap to shoot atoms that split, five fixed waves. | Atoms 140 + wave clears 35 + golden atoms 25; a life but the last costs 5; wasted shots beyond one per atom popped (at least 20 free) cost 2; mistakes at most half the atoms points. | 93 s | burstRev 11 |
 | Tempo (beat) | Four-lane rhythm chart: taps, holds, swipes, double taps and FEVER. | Accuracy 130 + fever 25 + golden notes 15 + double taps 15 + perfect streak 15. | 78 s | beatRev 11 |
 | Meteor (snake) | Swipe to steer, eat stars, dodge rocks that land where red shadows warn. | Stars 120 (full at 28) + gold stars 40 + combos 20 + lane rides 10 + warp stars 10. | 63 s | snakeRev 12 |
-| Spacewalk (cross) | Hop across lanes of space traffic, again and again; after a hit you restart at the docking platform. | Rows and crossings 150 + no-stop streak 40 + close calls 10; a hit costs 15. | 63 s | crossRev 11 |
+| Spacewalk (cross) | Hop across lanes of space traffic, again and again; after a hit you restart at the docking platform. | Rows and crossings 150 + no-stop streak 40 + close calls 10; a hit but the last costs 15, hits at most half the rows and crossings points. | 63 s | crossRev 12 |
 | Pinball (pinball) | One fixed table: hold left or right to flip, tap to plunge; ramps, J-O-U-L-Z, locks and multiball. | Table points 130 (full at 61,000) + J-O-U-L-Z 20 + multiball 20 + jackpots 15 + ramp combos 15. | 93 s | pinRev 6 |
 | Blockzone (blockfall) | Falling four-square pieces in a well: drag, tap to turn, drag down to drop faster, flick to drop. | Lines 95 (full at 51) + pieces placed 65 + multi-line clears 24 + low stack 16. | 93 s | blockfallRev 2 |
 
@@ -181,10 +181,10 @@ All run on the deterministic engine: 60 ticks a second, integer physics, seeded 
 |---|---|---|---|---|---|
 | Minefield (minesweeper) | Active | Reveal every safe square from a dealt opening; flag with the switch or a long press; no guessing needed. | Safe squares 150 + no mines hit 20 + speed 30 (50 s); a mine hit costs 5. | 93 s | minesRev 1 |
 | Mahjong Solitaire (mahjong) | Active | Clear the stack in matching pairs of free tiles; Shuffle, free Undo, Reset. | Pairs 150 + no shuffles 20 + speed 30 (65 s); a Shuffle costs 5. | 123 s | mahjongRev 2 |
-| Free Cell (freecell) | Active | 40 cards (Ace to 10) in eight columns of five; build down in alternating colours, home by suit; Undo and Reset. | Cards 60 (full at 25 home) + par moves 50 + speed 90 (32 s). | 123 s | freecellRev 4 |
-| Summit (tripeaks) | Active | Clear three peaks with cards one higher or lower than the discard (Ace and King wrap); stock par shown. | Cards 80 + peak tops 30 + longest run 10 + clear 10 + stock par 20 + speed 50 (20 s). | 63 s | tripeaksRev 2 |
+| Free Cell (freecell) | Active | 40 cards (Ace to 10) in eight columns of five; build down in alternating colours, home by suit; Undo and Reset. | Cards 105 (all 40 home) + par moves 50 (0 at 1.5 × par) + speed 45 (32 s). | 123 s | freecellRev 5 |
+| Summit (tripeaks) | Active | Clear three peaks with cards one higher or lower than the discard (Ace and King wrap); stock par shown. | Cards 105 + peak tops 30 + longest run 10 + clear 10 + stock par 20 + speed 25 (20 s). | 63 s | tripeaksRev 3 |
 | Five Hands (fivehands) | Active | Twenty turns placing your card in five poker-hand rows that fill evenly, then pick one bonus column. | Hand points: rows plus the picked column, × 1.4, capped at 200 (not every deal reaches 200). | 63 s | fiveHandsRev 3 |
-| Thirteen (pyramid) | Active | Remove uncovered pairs adding to 13 (a King alone); one pass through the stock. | Pyramid cards 120 + cleared 10 + speed 50 (20 s) + pyramid pairs 20. | 93 s | pyramidRev 1 |
+| Thirteen (pyramid) | Active | Remove uncovered pairs adding to 13 (a King alone); one pass through the stock. | Pyramid cards 140 + cleared 15 + speed 25 (20 s) + pyramid pairs 20. | 93 s | pyramidRev 2 |
 | Full House (pokersquares) | Retired (1 Nov) | Place 25 cards one at a time so every row and column scores as a poker hand. | Hand points 160 + made hands 40. | 63 s | pokerSquaresRev 2 |
 | Golf Solitaire (golfsol) | Retired (3 Nov) | Play column cards one higher or lower onto the foundation, no wrapping. | Cards cleared 140 + all cleared 20 + speed 20 + runs 20. | 78 s | golfSolRev 1 |
 | Muggins (muggins) | Retired (practice only from launch) | Solo dominoes: score when the open ends add to 5, 10, 15 or 20; a draw is final. | Muggins points 150 + hand cleared 20 + speed 20 + big plays 10. | 93 s | mugginsRev 1 |
@@ -193,12 +193,12 @@ All run on the deterministic engine: 60 ticks a second, integer physics, seeded 
 
 | Game (id) | Play | Score (200) | Clock | Revision |
 |---|---|---|---|---|
-| Slice (slice) | Swipe through flying food; never cut a chilli. | Food 120 + combos 40 + golden fruit 20 + bread tickets 10 + dodges 10; a chilli costs 10. | 63 s | sliceRev 12 |
+| Slice (slice) | Swipe through flying food; never cut a chilli. | Food 120 + combos 40 + golden fruit 20 + bread tickets 10 + dodges 10; a chilli costs 10; food and combos count from the first. | 63 s | sliceRev 13 |
 | Roofbound (flip) | Tap to flip between roof and floor of a cave run, dodging spikes; sweet-spot landings and double flips. | Clean time 100 + perfect landings 60 + double flips 20 + flow streak 20. | 63 s | flipRev 12 |
 | Grappler (swing) | Hold to grab the nearest jungle vine (some slide on rails), let go to fly; dark ledge runs; a pterodactyl chases. | Course 110 (full at 70 % of the way) + pars 40 + gates 10 + clean-swing streak 40. | 93 s | swingRev 17 |
 | Moon Climb (ricochet) | Tap to leap between temple walls, one double jump a leap; ride sky lanterns up. | Height 125 (full at 245 m) + flow 30 + lantern rides 30 + scrolls 15. | 63 s | ricoRev 3 |
 | Iron Wall (bastion) | Drag to aim (the crosshair floats above your thumb), lift to fire at five waves of tanks; reload; shoot three drones. | Armour 110 + weak spots 30 + fast reloads 20 + drones 30 + base intact 10; three base hits end the run. | 63 s | bastionRev 3 |
-| High Rise (skyline) | Tap to drop the sliding block on the tower; perfect drops grow it back. | Floors 140 (full at 61) + perfect drops 30 + perfect streak 10 + gold blocks 20. | 63 s | skylineRev 9 |
+| High Rise (skyline) | Tap to drop the sliding block on the tower; perfect drops grow it back. | Floors 140 (full at 61) + perfect drops 30 (all 30 at 61) + perfect streak 10 + gold blocks 20. | 63 s | skylineRev 10 |
 | Orbit (orbit) | Tap to leave an orbit and fly planet to planet to the sun; fuel drains in flight; one checkpoint. | Planets 130 + speed 20 + stardust 15 + slingshots 12 + asteroid fields 12 + perfect orbits 11. | 93 s | orbitRev 14 |
 
 ### Strategy — 5 active

@@ -206,7 +206,7 @@ export function AsyncResults({
                       <>
                         {reveal.detail.length > 0 ? (
                           <p className="text-[12.5px] text-muted-foreground">
-                            {reveal.detail.join(" · ")}
+                            {reveal.detail.join(", ")}
                           </p>
                         ) : null}
                         {replay ? (

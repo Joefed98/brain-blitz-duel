@@ -295,12 +295,12 @@ section("the reveal and grading");
   const ro = replayTiltRun(o.seed, o.raw, TILT_REV_PAR);
   const rv = buildArcadeReveal("tilt", { ...ro, tiltRev: TILT_REV_PAR }, ro.score)!;
   const text = rv.lines.join(" | ");
-  ok(rv.outcome === "finish" && text.includes("Par 4 / 4 mazes +24") && text.includes("clean 4 / 4 +12") && text.includes("speed +24") && !/star/i.test(text), `the perfect reveal: ${text}`);
+  ok(rv.outcome === "finish" && text.includes("Par: 4 mazes within par → 24 of 24") && text.includes("Clean run: no fall in 4 mazes → 12 of 12") && /Speed: all 4 in [\d.]+ s → 24 of 24/.test(text) && !/star/i.test(text), `the perfect reveal: ${text}`);
   ok(rv.tiles.some((t) => t.label === "Under par" && t.value === "4 / 4") && rv.tiles.some((t) => t.label === "Falls") && !rv.tiles.some((t) => /star/i.test(t.label)), `the reveal's tiles: ${JSON.stringify(rv.tiles)}`);
   const weak = runs.find((x) => x.kind === "random 2")!;
   const rw = replayTiltRun(weak.seed, weak.raw, TILT_REV_PAR);
   const rvw = buildArcadeReveal("tilt", { ...rw, tiltRev: TILT_REV_PAR }, rw.score)!;
-  ok(rvw.lines[0]!.includes("/ 4 mazes × 35") && (rw.parsMet ?? -1) >= 0 && (rw.cleanMazes ?? -1) >= 0, `a partial reveal: ${rvw.lines.join(" | ")}`);
+  ok(/^Mazes: \d of 4 mazes.* of 140$/.test(rvw.lines[0]!) && (rw.parsMet ?? -1) >= 0 && (rw.cleanMazes ?? -1) >= 0, `a partial reveal: ${rvw.lines.join(" | ")}`);
   const grade = readFileSync("src/lib/duel/grade.ts", "utf8");
   ok(/run\.parsMet !== undefined \? \{ parsMet: run\.parsMet, cleanMazes: run\.cleanMazes \}/.test(grade), "grading keeps parsMet and cleanMazes on tiltRev 11 rounds");
 }

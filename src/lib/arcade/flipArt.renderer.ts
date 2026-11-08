@@ -16,7 +16,7 @@ import { drawActionHud } from "./actionHud.renderer";
 import { artHash, reducedMotion } from "./art.renderer";
 import { artCanvas, artContext, type ArtCanvas } from "./cache.renderer";
 import { sceneBelow, sceneFill, sceneSides, type ArenaSceneView } from "./arenaScene.renderer";
-import { drawHero, heroPose, type HeroPose } from "./hero.renderer";
+import { HERO_NO_GROW, ROOFBOUND_HERO_GROW, ROOFBOUND_HERO_HEADROOM_PX, drawHero, heroGrow, heroPose, type HeroPose } from "./hero.renderer";
 
 const FP = 256;
 /** The runner's x in the view: 90, or flipRev 8's FLIP_V8_RUNNER_X (set per frame from the state; display only). */
@@ -476,9 +476,12 @@ function runnerFrame(ctx: CanvasRenderingContext2D, state: FlipState, y: number,
   // flipRev 11/12 (3 Nov 2026, the Action polish): a brighter backing inside the box.
   const flow = !big && Boolean(state.flow);
   ctx.save();
-  // Clip before rotation so tumbling limbs never enlarge the runner's collision box.
+  // Clip before rotation so tumbling limbs never enlarge the runner's collision box (along x, the only way it
+  // collides). Rev 2's grown hero (8 Nov 2026, display only) stands taller than the box, so the clip opens
+  // above and below by the head's reach; across it stays the collision box.
+  const room = big ? ROOFBOUND_HERO_HEADROOM_PX : 0;
   ctx.beginPath();
-  ctx.rect(RUNNER_X - box.half, y - box.h / 2, box.half * 2, box.h);
+  ctx.rect(RUNNER_X - box.half, y - box.h / 2 - room, box.half * 2, box.h + room * 2);
   ctx.clip();
   if ((big || flow) && !(dead && sink === null)) {
     // Rev 2: a soft lamp-lit backing inside the box so the runner stands out from the rock (brighter on flipRev 11/12).
@@ -514,6 +517,8 @@ export function drawRunnerHero(ctx: CanvasRenderingContext2D, state: FlipState, 
   const stride = still || state.flipT > 0 || dead ? 0 : Math.sin(state.tick * 0.5) * 1.5;
   const h = pose;
   h.scale = big ? 1.65 : 1;
+  // Rev 2's runner (the game's own pose, not an icon's) is drawn taller and a little wider (display only, ROOFBOUND_HERO_GROW).
+  if (h === runnerHero) heroGrow(h, big ? ROOFBOUND_HERO_GROW : HERO_NO_GROW);
   h.headX = 0; h.headY = -6.5;
   h.neckX = 0; h.neckY = -3;
   h.hipX = 0; h.hipY = 3;

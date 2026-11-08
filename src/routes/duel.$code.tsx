@@ -456,7 +456,7 @@ function DuelScreen() {
   const finishedPings = useFinishedPings(players, round, mySlot, duel?.status === "in_progress" && phase === "puzzle", stateKey);
   const table = standings(roomPlayers, results, scoredThrough, roundDetails, tieRounds, scoringMode).map((row) => {
     const line = phase === "result" && puzzle ? nearMiss(puzzle.type, resultFor(results, row.slot, round)?.extra) : null;
-    return line ? { ...row, summary: `${row.summary} · ${line}` } : row;
+    return line ? { ...row, summary: `${row.summary}, ${line}` } : row;
   });
   const myStanding = table.find((r) => r.slot === mySlot);
   const opponentStanding = table.find((r) => r.slot === opponentSlot);

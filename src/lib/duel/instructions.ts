@@ -659,7 +659,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Tap a post", detail: "to lift its top ring." },
         { action: "Tap another post", detail: "to drop it there." },
         { action: "Never put a ring", detail: "on a smaller one." },
-        { action: "Perfect solve:", detail: "the fewest moves (Par) scores a bonus." },
+        { action: "Perfect solve:", detail: "the fewest moves (par) scores a bonus." },
         { action: "Colour shows size.", detail: "Each puzzle has 3 or 4 posts.", helpOnly: true },
       ],
       score: logicStandardHelp("tower"),
@@ -816,7 +816,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: `${HOVER_CHAINS} star chains:`, detail: `5 to 7 stars on one flap’s arc between two barriers. Each chain pays up to ${HOVER_STD_CHAINS / HOVER_CHAINS}: ${HOVER_STD_CHAIN_SHARE} shared by its stars, ${HOVER_STD_CHAIN_WHOLE} more for every one of them.`, helpOnly: true },
         { action: `${HOVER_PICKUPS} shield bubbles`, detail: "sit at the same places for everyone. Touch one for a shield: your next crash breaks it instead and you fly on, untouchable for a moment.", helpOnly: true },
         { action: "Two-gap barriers:", detail: "fly through either gap. Sliding barriers move slowly and steadily up and down.", helpOnly: true },
-        { action: "Taller sky:", detail: "the flight area fills your screen, and gaps sit anywhere from near the top to near the bottom. The faint stars behind are scenery only.", helpOnly: true },
+        { action: "Sky:", detail: "the flight area fills your screen, and gaps sit anywhere from near the top to near the bottom. The faint stars behind are scenery only.", helpOnly: true },
         { action: "Everyone flies", detail: `the same course for sixty seconds: ${HOVER_REACHABLE_GATES} barriers in a clean run (the first a wide warm-up gap) and ${HOVER_STARS} gold stars.`, helpOnly: true },
       ],
       // hoverRev 10 (the arcade scoring standard): five parts, each with its maximum, adding up to 200.
@@ -982,7 +982,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Rocks start at length 9:", detail: "one more every 4 stars, up to 11. Stars never appear on a rock.", helpOnly: true },
         { action: "The meteor shower", detail: "comes once, when you reach 20 stars: three red shadows, then three rocks land together 2 s later. With the shower, at most 14 rocks.", helpOnly: true },
         { action: "Hit a wall, your tail or a rock with your head", detail: "and the run ends.", helpOnly: true },
-        { action: "Taller and wider field:", detail: `${SNAKE_V9_COLS} squares across and ${SNAKE_V9_ROWS} down, so stars can be further away.`, helpOnly: true },
+        { action: "Field:", detail: `${SNAKE_V9_COLS} squares across and ${SNAKE_V9_ROWS} down, so stars can be further away.`, helpOnly: true },
         { action: "Everyone gets", detail: "the same stars, and every rock lands on the same square at the same moment.", helpOnly: true },
       ],
       // snakeRev 12 (1 Nov 2026): stars on a straight line to 120, full at 28, a big gold star counting 2; then four fixed
@@ -1014,7 +1014,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       // crossRev 11 (3 Nov 2026): rows and crossings on a straight line to 150, the no-stop streak 40, close calls 10; a hit costs 15.
       // crossRev 12 (Nov 2026, the scoring audit): the hit that ends the run is free; hits take at most half the rows' points.
       score: listFromSpec(CROSS_KEEP_STD, {
-        core: "1 for each row crossed, 2 more for each full crossing",
+        core: "about 2 for each row crossed, and about 4 more for each full crossing",
         streak: `${CROSS_V11_FLOW_EACH} for each crossing without stopping, straight after another`,
         close: "1 for each close call",
       }, [`Each hit costs ${CROSS_V11_HIT_COST}, but the last one just ends the run`, "Hits never take more than half your rows and crossings points"]),
@@ -1301,7 +1301,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "One pass:", detail: "the stock is turned once; a waste card is buried by the next draw, so free its partner in time." },
         { action: "Undo and Reset", detail: "at the bottom take back the last action or go back to the deal; the clock runs on.", helpOnly: true },
         { action: "Pairs of two pyramid cards", detail: "score extra, 2 each, up to ten.", helpOnly: true },
-        { action: "Every deal", detail: "can be cleared with ten pyramid pairs, but only in the right order: look before you pair.", helpOnly: true },
+        { action: "Every deal", detail: "can be cleared with pyramid pairs and Kings alone, but only in the right order: look before you pair.", helpOnly: true },
         { action: "Same deal", detail: "for everyone.", helpOnly: true },
       ],
       score: liveStdHelp("pyramid"),
@@ -1516,12 +1516,12 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       how: [
         { action: "Drag to move;", detail: "you fire on your own." },
         { action: "Shoot glowing carriers;", detail: "catch what they drop." },
-        { action: "Bosses:", detail: "hit weak points dead centre." },
+        { action: "Bosses:", detail: "hit the cannons and the open core." },
         { action: "Red bolts and divers cost a life:", detail: `you have 3. Each life but your last costs ${WAV_STD_LIFE_COST} points; losing the last just ends the run.`, helpOnly: true },
         { action: "The run lasts 90 seconds.", detail: "Each new wave flies in from the top 2 seconds after you clear one. Don’t let a formation reach your line.", helpOnly: true },
         { action: "From wave 3, ships peel off and dive at you,", detail: "then fly back to their place. Shoot them on the way; one that rams you costs a life.", helpOnly: true },
         { action: "Each wave flies its own shape:", detail: `a grid, then a triangle, a circle, a pentagon and an octagon – ${WAV_X_SHAPES} ships each, with six escorts under the shapes. Waves 3 and 4 come down more slowly.`, helpOnly: true },
-        { action: "From wave 2, a grey armoured ship", detail: "sits in the middle of the shape and takes 6-12 hits – every hit counts.", helpOnly: true },
+        { action: "From wave 2, a grey armoured ship", detail: "sits in the middle of the shape and takes 6–12 hits – every hit counts.", helpOnly: true },
         { action: "Power-ups:", detail: `in every wave ${WAV_R11_CARRIERS} ships carry one (they glow green or cyan), the same ships for everyone in a room; shoot one down and its power-up falls from where it was. Spread (green): ${WAV_X_SPREAD_VOLLEYS} volleys with two extra bolts angled out. Shield (cyan): absorbs the next hit (${WAV_X_SHIELD_TICKS / 60} s).`, helpOnly: true },
         { action: "A saucer flies over every 15 seconds:", detail: "shoot it down for points; it drops the purple laser (5 shots that pierce up to 3 enemies).", helpOnly: true },
         { action: "After wave 3 a gunship flies in; after wave 5, the boss.", detail: `The boss comes only once wave 5 is destroyed. Each has two cannons (${WAV_X_CANNON_HP} hits each; a destroyed one stops firing) and a core that opens for half of every ${WAV_X_CORE_PERIOD / 60} s: a hit on the open core counts ${WAV_X_CORE_DAMAGE}. The boss’s bar shows its ${WAV_BOSS_HP} hit points; destroying it ends the run – the sooner after it arrives, the more it scores.`, helpOnly: true },
@@ -1530,10 +1530,10 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       // wavRev 12 (the arcade scoring standard, docs/arcade-standard/wavefront.md): the core and fixed parts, 200 in all.
       // wavRev 13 (Nov 2026, the scoring audit): the life that ends the run is free; lives take at most half the ships' points.
       score: listFromSpec(WAVEFRONT_STD_KEEP, {
-        core: "1 for each ship shot, armour hit and boss hit, 15 for each wave cleared",
+        core: "about half a point for each ship shot, armour hit and gunship hit, and about 8 for each wave cleared (the gunship counts as one)",
         boss: "destroy the boss",
         speed: "destroy it within 20 s of its arrival for all of it, nothing after 40 s",
-        saucers: `${20 / WAV_X_SAUCERS} for each saucer shot down`,
+        saucers: `${20 / WAV_X_SAUCERS} for each saucer shot down, and for every saucer still to come when you destroy the boss`,
         weak: "destroy cannons and hit the boss’s open core",
       }, [`Each life lost costs ${WAV_STD_LIFE_COST}, but losing the last just ends the run`, "Lives never take more than half your ships, hits and waves points", "Power-ups score nothing"]),
     },

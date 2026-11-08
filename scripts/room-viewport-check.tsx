@@ -10,17 +10,16 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { Window } from "happy-dom";
 
 import { PhoneShell } from "../src/components/duel/PhoneShell";
-import { ScoreStrip } from "../src/components/duel/ScoreStrip";
 import { PUZZLE_REGISTRY } from "../src/lib/duel/registry";
 import { wordSearchPuzzle } from "../src/puzzles/wordSearch";
 
 const active = Object.entries(PUZZLE_REGISTRY).filter(([, definition]) => !definition.retired);
 const LOCKED_SHELL = /no-overscroll (?:game-viewport|h-full) overflow-hidden/;
 for (const [width, height] of [[390, 700], [375, 667], [390, 844], [430, 932], [1280, 800]] as const) {
-  const header = <ScoreStrip myName="A long player name" opponentName="Another long player name" myTotal={123} opponentTotal={149} compact />;
   for (const [type] of active) {
+    // As the room, practice and async rounds draw it: a play shell (the game frame's header, no app top bar).
     const markup = renderToStaticMarkup(
-      <PhoneShell constrained gameScreen gameType={type as keyof typeof PUZZLE_REGISTRY} gameHeader={header}>
+      <PhoneShell constrained gameScreen play gameType={type as keyof typeof PUZZLE_REGISTRY}>
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden" />
       </PhoneShell>,
     );
@@ -31,7 +30,7 @@ for (const [width, height] of [[390, 700], [375, 667], [390, 844], [430, 932], [
     assert.doesNotMatch(markup, /100vh|min-h-\[100dvh\]/);
     assert.equal((markup.match(/pad-game-safe/g) ?? []).length, 1, `${type}: one safe-area owner`);
     assert.match(markup, /game-screen/);
-    assert.match(markup, /A long player name/);
+    assert.doesNotMatch(markup, /data-game-topbar/, `${type}: no app top bar on a play screen (the game frame draws the header)`);
     assert.doesNotMatch(markup, /Say something|RoomChat/);
   }
   console.log(`PASS ${width}x${height}: ${active.length} active room play shells, no chat reservation, one shared safe-area owner`);

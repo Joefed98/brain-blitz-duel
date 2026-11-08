@@ -8,7 +8,7 @@ export type CelebrationKind = "full" | "best" | "both";
 
 const HEADLINES: Record<CelebrationKind, string> = {
   full: "Full clear!",
-  best: "New personal best!",
+  best: "New best!",
   both: "Full clear, new best!",
 };
 

@@ -1417,6 +1417,12 @@ outside the repo.
   SHA-256 as its source and pins the served bytes under `levelled` (sound-manifest-check). Many of those beds end on a
   fade or open from silence (listed in the doc, not re-cut). **Re-measure with measure.py after changing a file in
   `public/sounds/`.**
+- **Music level and two volume sliders** (8 Nov 2026, Joe's phone test; sound and presentation only, no stamps): the
+  screen beds' bus `MUSIC_BED_LEVEL` 0.35 → 0.5 and round music lifted by the same `ROUND_MUSIC_LIFT` (0.5 / 0.35,
+  +3.1 dB, capped at a gain of 1; `roundMusicRamp` unchanged; Tempo's beat track unchanged), in `src/lib/sound.ts`, no
+  file re-encoded. The settings sheet and the game menu draw "Sound effects" and "Music" sliders (`VolumeSliders`,
+  `src/components/app/VolumeSliders.tsx`, the shared Slider) under the unchanged on/off switches, in place of the one
+  Volume slider that set both; the stored per-channel values are the ones that slider wrote.
 - **Retro arcade polish** (3 Nov 2026, Joe's audit; display, sound and room grouping only, no stamps;
   `docs/retro-polish-nov-2026.md`): *one Retro HUD* (`retroHud` in `src/lib/arcade/retro.renderer.ts`: the pixel font, the
   main count top left at 14 px, one or two counts top right at 10 px, at most two rows, sizes stepping down to fit, no
@@ -1748,6 +1754,16 @@ outside the repo.
   server keeps one row); the clock's samples end at 3 s and slow ones don't replace a measured clock; a phase still
   due 3 s on re-reads the room (`CATCH_UP_AFTER_MS`). Dev servers get 6× the limits. offline-delta-check (~1 s),
   net-request-check (~15 s), server-functions-check's "results refetch" section.
+- **Captain Joulz drawn larger in Grappler and Roofbound** (8 Nov 2026; display only, no stamps; hit boxes, sims,
+  timings, seeds and scoring unchanged): `HeroPose.growW` / `growH` / `growFeet` (`heroGrow`, `drawGrown` in
+  `hero.renderer.ts`) spread the game's joints before retargeting, so the art grows undistorted. Grappler
+  (`GRAPPLER_HERO_GROW` 1.2 across × 1.12 tall, from the soles, cave and jungle figures): jungle ±8.25 px across (was ±7)
+  in its 10 px circle, 15.25 up (was 12.25), 12.75 down (unchanged, so feet on ledges and over the river sit as before).
+  Roofbound flipRev 2+ (`ROOFBOUND_HERO_GROW` 1.15 × 1.25, from the soles): ±13.75 across (was ±12) inside the 32 × 36 box's
+  ±16 collision edge, 24.25 up (was 17), 17 down; its clip (flipArt `runnerFrame`) opens 7 px above and below
+  (`ROOFBOUND_HERO_HEADROOM_PX`; collision is along x, the clip across is unchanged); flipRev 1 and the game icons are
+  unchanged. Shots `bun scripts/shots/hero-size-shots.ts [--root=<main checkout> --tag=before]`
+  (`screenshots/hero-size-nov-2026/`, 390×844, crops with the hit box outlined).
 - `src/components/duel/` — room/round screens (PhoneShell, RoundIntro, TimerBar,
   AnswerReveal, ArcadeReveal, WinnerReveal…); `src/components/puzzles/` — shared puzzle
   widgets; `src/lib/fx/` — sound and visual feedback (presentation only).
