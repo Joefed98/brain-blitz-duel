@@ -1,4 +1,4 @@
-"""The before/after table for docs/sound-cues/audit-fixes-nov-2026.md, from measure.py's JSON for the originals and the
+"""The before/after table for docs/audit-nov-2026/audio-fixes.md, from measure.py's JSON for the originals and the
 fixed files and fix.py's report. Usage: python3 -I table.py <before.json> <after.json> <report.json> <slots.json>
 
 Loudness is as played: a file made mono reads 3.0 dB lower on ebur128 (one channel) than the same sound as two

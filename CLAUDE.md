@@ -1401,7 +1401,7 @@ outside the repo.
   `bintoss.ambience`, `bullseye.ambience` (`ambienceCue`: effects channel, held off while the music is muted or at zero);
   `bintoss.wind`, `slice.chilli` (sliceRev 12, in place of the fuse), `symscan.eagle` (with the take-off).
   sound-retheme-check (~1 min) proves the files and every cue firing in play through the skill-band bots.
-- **Audio audit fixes** (7 Nov 2026; sound files and decoding only, no stamps; `docs/sound-cues/audit-fixes-nov-2026.md`,
+- **Audio audit fixes** (7 Nov 2026; sound files and decoding only, no stamps; `docs/audit-nov-2026/audio-fixes.md`,
   from `docs/audit-nov-2026/audio.md`): 205 files in `public/sounds/` re-made by `scripts/sound-audit-nov-2026/fix.py`
   (deterministic; `measure.py` gives the audit's measures, `table.py` the before/after table): four effect loops re-cut on
   a crossfade (`swing.lava`, `wavefront.danger`, `racing_idle_loop`, `curling_sweep_loop`; manifest `ms` updated), four

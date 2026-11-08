@@ -1,6 +1,6 @@
 /**
  * mp3-gapless-check (7 Nov 2026, audio audit fix 1; docs/audit-nov-2026/audio.md, src/lib/mp3Gapless.ts,
- * docs/sound-cues/audit-fixes-nov-2026.md).
+ * docs/audit-nov-2026/audio-fixes.md).
  *
  *  1. Every MP3 in public/sounds has a gapless tag the app can read (readMp3Gapless): MPEG Layer III, an Info/Xing
  *     frame count, a LAME/Lavc tag with an encoder delay, a positive exact length; and the tag's CRC-16 holds (an

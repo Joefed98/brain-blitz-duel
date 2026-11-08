@@ -5,7 +5,7 @@ Usage: python3 -I fix.py <originals dir> <out dir> <slots.json> <before.json> <r
 <slots.json> maps each file (no extension) to its manifest slots: {"slots", "vols", "loop", "channel"}.
 <before.json> is measure.py's output for the originals (the audit's numbers).
 
-Per file, in this order (docs/sound-cues/audit-fixes-nov-2026.md has the before/after table):
+Per file, in this order (docs/audit-nov-2026/audio-fixes.md has the before/after table):
 1. Loop joins (fix 4): swing.lava, wavefront.danger, racing_idle_loop and curling_sweep_loop are re-cut so the loop's end
    crossfades into its own opening (equal power; the loop is the crossfade shorter and starts just after it), at the cut
    whose end best matches the opening (waveform correlation, and for curling_sweep_loop the level too).
