@@ -212,8 +212,18 @@ for (const url of urls) {
 
 // 4b. The files copied from Lovable's asset store (assets-archive/lovable-sounds/sources.json): one entry per
 // src/assets/**/*.asset.json, each kept file the size its .asset.json records, with the recorded SHA-256 and an
-// MP3 frame at the start; the manifest's at their /sounds/ URL, the rest in the archive and in no slot.
-type Source = { assetId: string; lovableUrl: string; assetJson: string; size: number; sha256: string; keptAs: string };
+// MP3 frame at the start; the manifest's at their /sounds/ URL, the rest in the archive and in no slot. A copy the audio
+// audit's fixes re-made (8 Nov 2026, scripts/sound-audit-nov-2026/fix.py, docs/audit-nov-2026/audio-fixes.md) keeps the
+// download's size and SHA-256 as its source and is pinned to the exact bytes now kept (`levelled`).
+type Source = {
+  assetId: string;
+  lovableUrl: string;
+  assetJson: string;
+  size: number;
+  sha256: string;
+  keptAs: string;
+  levelled?: { size: number; sha256: string; by: string };
+};
 const sources = JSON.parse(readFileSync(`${ARCHIVE_DIR}sources.json`, "utf8")) as Source[];
 const assetJsons = repoFiles.map((f) => relative(".", f)).filter((f) => /^src\/assets\/.*\.asset\.json$/.test(f));
 const sourceByJson = new Map(sources.map((s) => [s.assetJson, s]));
@@ -234,11 +244,16 @@ for (const file of assetJsons) {
     failures.push(`${file}: kept copy ${s.keptAs} is missing`);
     continue;
   }
-  check(bytes.length === asset.size, `${s.keptAs}: ${bytes.length} bytes, its .asset.json says ${asset.size}`);
+  const want = s.levelled ?? s;
+  check(bytes.length === want.size, `${s.keptAs}: ${bytes.length} bytes, ${s.levelled ? "its levelled copy is" : "its .asset.json says"} ${want.size}`);
   check(
-    createHash("sha256").update(bytes).digest("hex") === s.sha256,
-    `${s.keptAs}: SHA-256 differs from the downloaded copy's`,
+    createHash("sha256").update(bytes).digest("hex") === want.sha256,
+    `${s.keptAs}: SHA-256 differs from the ${s.levelled ? "levelled copy's (sources.json levelled)" : "downloaded copy's"}`,
   );
+  if (s.levelled) {
+    check(s.keptAs.startsWith("public/sounds/"), `${s.keptAs}: only a served copy is levelled`);
+    check(/^scripts\/sound-audit-nov-2026\/fix\.py/.test(s.levelled.by), `${s.keptAs}: levelled by an unknown tool`);
+  }
   const mp3 =
     (bytes[0] === 0x49 && bytes[1] === 0x44 && bytes[2] === 0x33) ||
     (bytes[0] === 0xff && ((bytes[1] ?? 0) & 0xe0) === 0xe0);
