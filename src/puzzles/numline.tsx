@@ -363,10 +363,10 @@ function IntroExample() {
         )}
       </Line>
       <p className="h-5 font-mono text-sm text-primary">
-        {step === 3 ? "Placed: 0.5% off → 8 points" : "Drag, then Place"}
+        {step === 3 ? "Placed: 0.5% off, a bullseye" : "Drag, then Place"}
       </p>
       <p className="max-w-[270px] text-center text-xs text-muted-foreground">
-        Only the ends are labelled. Within 1% of the line scores all 8; 10% off scores 0.
+        Only the ends are labelled. Within 2% scores in full, 15% off scores nothing; within 1% is a bullseye.
       </p>
     </div>
   );

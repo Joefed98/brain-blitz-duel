@@ -1,4 +1,3 @@
-import { PLAYER_ICONS_ENABLED } from "@/lib/brand";
 import { BADGE_GLYPH, PLAYER_COLOURS, playerInitial, type PlayerLook } from "@/lib/duel/playerLook";
 
 import { PlayerIconSvg } from "./playerIcons";
@@ -22,7 +21,7 @@ export function PlayerBadge({
 }) {
   if (!look) return null;
   const colour = PLAYER_COLOURS[look.colour]?.hex ?? PLAYER_COLOURS[0].hex;
-  const icon = PLAYER_ICONS_ENABLED ? look.icon : null;
+  const icon = look.icon;
   return (
     <span
       aria-hidden="true"

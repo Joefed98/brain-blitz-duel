@@ -24,6 +24,9 @@ import { lightUpBulbCounts, shikakuAreas } from "../progressFigures";
 import { tryEfficiency, PUZZLE_EFFICIENCY_POINTS } from "../puzzleScoreRev";
 import { cleanPoints, parPoints, speedPoints } from "./shape";
 import type { StandardContext, StandardGame, StandardInput, StandardResult } from "./grade.server";
+import { PARTIAL_SHARE_POINTS, usesPartialCredit } from "../partialCredit";
+import { rev3Progress } from "../puzzleProgress";
+import { tubesSolverProgress } from "../solverProgress.server";
 import { LOGIC_EARLY_POINTS, LOGIC_SHARE_POINTS, LOGIC_STANDARD, type LogicStandardType, floodSpareMoves } from "./logicRules";
 
 type Of<T extends PuzzleData["type"]> = Extract<PuzzleData, { type: T }>;
@@ -47,6 +50,15 @@ function shareCredit(ctx: StandardContext, done: number, total: number, off = 0)
 function moveWaste(used: number, par: number, zeroAt: number): number {
   if (!(par > 0) || used <= par) return 1;
   return zeroAt > par ? clamp01((zeroAt - used) / (zeroAt - par)) : 0;
+}
+
+/**
+ * Partial-credit fixes (depthRev 3 on Blackout, Hanoi and Polypotions, partialCredit.ts): unfinished is 130 × the
+ * solver-distance share (0–1: the stored minimum closed by the best board stood on, net of wasted moves), which only
+ * rises along the optimal line.
+ */
+function solverCredit(share: number): number {
+  return PARTIAL_SHARE_POINTS * clamp01(share);
 }
 
 /** A par finish. */
@@ -89,6 +101,10 @@ const lightsout: StandardGame = {
       // Every press counts towards par, undone ones too (as the board's Presses line and the depth revision count).
       const presses = actions.filter((c) => c >= 0).length;
       return parFinish("lightsout", input, presses, p.par ?? p.minPresses ?? 0);
+    }
+    if (usesPartialCredit(p)) {
+      const share = rev3Progress({ puzzle: p, answer: input.answer, extra: input.graded.extra, latestMs: input.latestMs }) ?? 0;
+      return { finished: false, credit: solverCredit(share), facts: { progress: Math.round(clamp01(share) * 100) } };
     }
     const start = lightsOnCount(p.lights);
     const off = lightsParts(p, input.answer);
@@ -134,6 +150,10 @@ const tower: StandardGame = {
     const p = input.puzzle as Of<"tower">;
     const t = towerHome(p, input.answer);
     if (input.graded.isCorrect) return parFinish("tower", input, t.moves, p.minMoves);
+    if (usesPartialCredit(p)) {
+      const share = rev3Progress({ puzzle: p, answer: input.answer, extra: input.graded.extra, latestMs: input.latestMs }) ?? 0;
+      return { finished: false, credit: solverCredit(share), facts: { progress: Math.round(clamp01(share) * 100), home: t.home } };
+    }
     return { finished: false, credit: shareCredit(ctx, t.home - t.atStart, p.discs - t.atStart), facts: { home: t.home, homeAtStart: t.atStart } };
   },
 };
@@ -155,6 +175,14 @@ const tubes: StandardGame = {
   grade(input, ctx) {
     const p = input.puzzle as Of<"tubes">;
     if (input.graded.isCorrect) return parFinish("tubes", input, tubesReplay(p, input.answer).moves, p.par ?? p.minMoves ?? 0);
+    if (usesPartialCredit(p)) {
+      // The boards stood on, start first (Undo and Reset included), as grade.ts collects them.
+      const boards = [p.tubes];
+      const replay = tubesSendsUndo(p) ? replayTubeLog(p.tubes, decodeTubeLog(input.answer), tubesPourLimit(p), (b) => boards.push(b)) : replayTubes(p.tubes, decodeTubeMoves(input.answer));
+      if (!tubesSendsUndo(p)) boards.push(replay.tubes);
+      const share = tubesSolverProgress(p, boards, replay.moves);
+      return { finished: false, credit: solverCredit(share), facts: { progress: Math.round(clamp01(share) * 100), corked: tubesShare(p, input.answer).corked } };
+    }
     const s = tubesShare(p, input.answer);
     const par = p.par ?? p.minMoves ?? 0;
     const waste = moveWaste(tubesReplay(p, input.answer).moves, par, tubesPourLimit(p) ?? 2 * par);

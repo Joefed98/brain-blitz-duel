@@ -21,6 +21,10 @@ import { countUpCounts, countUpStageTruth } from "../src/lib/duel/attentionRev";
 import { countUpSceneValid, countUpStageQuestion, countUpVisibleShare, TALLY_ASK_TRAY } from "../src/puzzles/countUp";
 import { PUZZLE_INSTRUCTIONS } from "../src/lib/duel/instructions";
 import type { CountUpPuzzleData, CountUpStage, PuzzleData, WordSlidePuzzleData } from "../src/lib/duel/types";
+import { pinPreWordNov7 } from "../src/lib/duel/wordNov7";
+
+// Written for the notes' stamps: the Word scoring fix (7 Nov 2026, wordNov7.ts) deals Slider one above (word-nov7-check).
+pinPreWordNov7(true);
 
 let fails = 0;
 let passes = 0;

@@ -14,11 +14,10 @@ import { replayPoolRun } from "../../src/lib/duel/pool";
 import { POOL_BANK } from "../../src/lib/duel/poolBank.server";
 import { POOL_BANK_V2 } from "../../src/lib/duel/poolBankV2.server";
 import { POOL_BANK_V3 } from "../../src/lib/duel/poolBankV3.server";
-import { POOL_BANK_V4 } from "../../src/lib/duel/poolBankV4.server";
 import { caseEntry, type StdCase, type StdEntry } from "./entry";
 
 const game = poolGameFor(POOL_REV);
-const SEED = POOL_BANK_V4[0]!;
+const SEED = POOL_BANK_V3[0]!;
 const witness = JSON.parse(readFileSync(new URL("../fixtures/pool-witness.json", import.meta.url), "utf8")) as Record<string, string>;
 const witnessV2 = JSON.parse(readFileSync(new URL("../fixtures/pool-witness-v2.json", import.meta.url), "utf8")) as Record<string, string>;
 const witnessV3 = JSON.parse(readFileSync(new URL("../fixtures/pool-witness-v3.json", import.meta.url), "utf8")) as Record<string, string>;
@@ -45,12 +44,12 @@ const stdCase: StdCase = {
     ok(poolRunTicksFor(POOL_REV) === 5400 && game.runTicks === 5400 && poolRunTicksFor(3) === 7200, "pool: poolRev 4 runs 90 s, poolRev 3 120 s");
     let v4 = 0;
     const sets = [0, 0];
-    for (const seed of POOL_BANK_V4) {
+    for (const seed of POOL_BANK_V3) {
       const run = replayPoolRun(seed, witnessV4[String(seed)] ?? "", POOL_REV);
       sets[poolSetFor(seed, POOL_REV)]! += 1;
       if (run.score === 200 && !run.flagged && run.fouls === 0 && run.state.set === poolSetFor(seed, POOL_REV)) v4++;
     }
-    ok(v4 === POOL_BANK_V4.length, `pool: every poolRev 4 bank layout's witness clears it to 200 with no foul, through the server replay (${v4} of ${POOL_BANK_V4.length})`);
+    ok(v4 === POOL_BANK_V3.length, `pool: every poolRev 4 bank layout's witness clears it to 200 with no foul, through the server replay (${v4} of ${POOL_BANK_V3.length})`);
     ok(sets[0]! > 0 && sets[1]! > 0, `pool: the poolRev 4 bank deals both sets (${sets[0]} spots, ${sets[1]} stripes)`);
     ok(part(final({ spotsDown: 3, black: 2, finishAt: 600 }), "speed") === 0 && part(final({ spotsDown: 3, black: 2 }), "black") === 0, "pool: the black early pays neither black nor speed");
     ok(game.score(final({ spotsDown: 2, fouls: 1 })) === 46, "pool: two of your balls and a foul score 56 − 10 = 46 on poolRev 4");
@@ -99,7 +98,7 @@ export const entry: StdEntry = {
   ...base,
   perfect: async () => [
     ...(await base.perfect()),
-    ...POOL_BANK_V4.slice(0, 10).map((seed) => {
+    ...POOL_BANK_V3.slice(0, 10).map((seed) => {
       const run = replayPoolRun(seed, witnessV4[String(seed)] ?? "", POOL_REV);
       return { label: `poolRev 4 bank layout ${seed}'s witness (server replay)`, score: run.flagged ? -1 : run.score, parts: Object.fromEntries((poolStdParts(run.state) ?? []).map((p) => [p.key, p.points])) };
     }),

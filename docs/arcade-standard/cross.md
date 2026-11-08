@@ -173,3 +173,22 @@ levels is at least 13 points. The spread is wider than crossRev 10's because a h
   single no-stop crossing between stops pays nothing.
 - A hit breaks the no-stop crossing; the clean streak is dropped rather than kept beside it (one streak, simpler).
 - The hit cost is the standard's "mistakes cost what each game says"; it is what brings the weak level into 30–60.
+
+## crossRev 12: progress made always counts (Nov 2026, the scoring audit)
+
+`docs/audit-nov-2026/scoring.md` issue 2: blind forward hops reached a core of 35–43 and three hits (−45) took the run to
+1. crossRev 12 (`CROSS_REV_KEEP`) is crossRev 11's courses, walker, streak and parts exactly (a crossRev 11 log replays tick
+for tick, the same checksum; states add `keep: 1` outside it), with the hits' cost changed:
+
+- the third hit, which ends the run, is not charged: only the hits before it cost 15 each (`stdLivesCharged`);
+- the hits together never take more than half the rows-and-crossings points (`stdCappedPenalty`).
+
+| Level | Weak | Average | Good | Great | Near | Elite | Flawless |
+|---|---|---|---|---|---|---|---|
+| crossRev 11 | 57 (25–105) | 99 (60–143) | 135 (80–156) | 155 (105–183) | 180 (145–200) | 185 (165–200) | 200 (180–200) |
+| crossRev 12 | 72 (40–112) | 106 (75–143) | 135 (95–156) | 155 (119–183) | 180 (150–200) | 185 (165–200) | 200 (180–200) |
+
+Lowest run at each level rises (weak 10 → 28); no run scores less. Proofs: scoring-audit-arcade-check, arcade-standard-check
+(the oracle's 200 on crossRev 12).
+
+The table's medians (p10–p90) are 30 room seeds, measured with `bun scripts/arcade-skill-bands.ts cross wavefront burst skyline slice --rev=now --seeds=30 --levels=all` on main and on this branch.

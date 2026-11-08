@@ -80,3 +80,27 @@ recorded on burstRev 10 (`introDemo.functions.ts`).
 - The quick time is burstRev 9's (1 s + 0.6 s an atom); the zero point is twice it.
 - `arcade-batch3-check`'s intro assertion ("10 more for the 90 s") now asserts the new parts line, since the 10 for
   lasting is gone on the dealt revision.
+
+## burstRev 11: progress counts, aiming counts (Nov 2026, the scoring audit)
+
+`docs/audit-nov-2026/scoring.md` issues 2 and 7: weak runs lost their atoms to the lives' cost (1–4), and standing still
+firing every 5 ticks scored a median of 98, like an average player. burstRev 11 (`BURST_REV_AIM`) is burstRev 10's play and
+parts exactly (states add `aim: 1` and `whiffs` outside the checksum):
+
+- the life that ends the run is not charged; each life lost before it costs 5;
+- a wasted beam is a beam or BURST shot that reaches the ceiling without hitting an atom or golden atom (`whiffs`). A run
+  gets one free for each atom popped, and at least 20 (`BURST_V11_FREE_MISSES`); each beyond costs 2 (`BURST_V11_MISS_COST`).
+  Aimed play (every bot level) wastes fewer beams than it pops atoms, so it pays nothing;
+- lives and wasted beams together never take more than half the atom points.
+
+| Level | Weak | Average | Good | Great | Near | Elite | Flawless |
+|---|---|---|---|---|---|---|---|
+| burstRev 10 | 22 (4–45) | 80 (17–125) | 136 (57–171) | 153 (97–176) | 173 (148–180) | 178 (153–187) | 183 (174–189) |
+| burstRev 11 | 27 (10–50) | 81 (22–130) | 139 (62–171) | 156 (102–176) | 173 (148–180) | 178 (153–187) | 183 (174–189) |
+
+Fire-spam (standing at the start, firing every 5 ticks or every tick): median 98 → 63 and 115 → 67 on 30 seeds, below the
+average player's 81 (scoring-audit-arcade-check proves it on 12 seeds: 103 → 63 against the average bot's 96). The
+reveal's penalty row adds both costs, so the breakdown adds up. 200 stays reachable (the oracle's perfect run, arcade-standard-check).
+Issue 20 (200 on every dealt seed) is not part of this change.
+
+The table's medians (p10–p90) are 30 room seeds, measured with `bun scripts/arcade-skill-bands.ts cross wavefront burst skyline slice --rev=now --seeds=30 --levels=all` on main and on this branch.

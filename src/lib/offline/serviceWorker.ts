@@ -43,19 +43,25 @@ export function installOfflineWorker(): () => void {
   if (!api || !import.meta.env.PROD) return () => {};
   let stopped = false;
   let reloadWanted = false;
+  // A controller change whose worker hasn't told us its build yet (it can be slow to answer while it activates):
+  // asked again on each handover tick until it answers, so the page still reloads onto a newer build.
+  let versionUnknown = false;
   void api.register(SW_URL, { scope: "/", updateViaCache: "none" }).catch(() => {
     /* no worker: the app works online as before */
   });
-  const onControllerChange = async () => {
+  const askVersion = async () => {
     const version = await workerVersion(api.controller);
+    versionUnknown = version === null && !!api.controller;
     if (version && version !== APP_BUILD_ID) reloadWanted = true;
   };
+  const onControllerChange = () => void askVersion();
   api.addEventListener("controllerchange", onControllerChange);
   const tick = async () => {
     if (stopped) return;
     try {
       const reg = await api.getRegistration();
       if (reg?.waiting && safeNow()) reg.waiting.postMessage({ type: "SKIP_WAITING" });
+      if (versionUnknown) await askVersion();
       if (reloadWanted && safeNow()) {
         reloadWanted = false;
         window.location.reload();

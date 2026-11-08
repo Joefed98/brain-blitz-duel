@@ -4,6 +4,7 @@
  * the maximum is the game's own (roundMaxFor).
  */
 import { operatorGapsDealt } from "../operatorGaps";
+import { partialCreditDealt } from "../partialCredit";
 import {
   TD_REV3_FREE_RESETS,
   TD_REV3_RESET_COST,
@@ -63,7 +64,10 @@ export function standardNumberHelp(type: PuzzleType): string {
         finish("make the target exactly"),
         speed(type),
         { label: "Elegance", how: `use the fewest numbers it needs (${EXACT_ELEGANT_TILES} here), ${EXACT_STD_ELEGANCE_PER} less for each number more`, max: EXACT_STD_ELEGANCE },
-        { label: "Not exact", how: `the closer your best number, the more (about ${Math.round(exactCloseCredit(1))} one away, ${Math.round(exactCloseCredit(10))} ten away, nothing far off)`, max: STANDARD_UNFINISHED_CAP },
+        // Partial-credit fixes (7 Nov 2026, depthRev 4): the solution built so far counts too.
+        partialCreditDealt()
+          ? { label: "Not exact", how: `the share of a solution you built (each step that joins two numbers it needs; steps that don’t take it down), or how close your best number came (about ${Math.round(exactCloseCredit(1))} one away), whichever is more`, max: STANDARD_UNFINISHED_CAP }
+          : { label: "Not exact", how: `the closer your best number, the more (about ${Math.round(exactCloseCredit(1))} one away, ${Math.round(exactCloseCredit(10))} ten away, nothing far off)`, max: STANDARD_UNFINISHED_CAP },
       ], { total: max });
     case "equation":
       return scoreList([
@@ -131,7 +135,9 @@ export function standardNumberHelp(type: PuzzleType): string {
 export function standardNumberIntro(type: PuzzleType): string {
   switch (type) {
     case "target":
-      return "Make the target; bonuses for speed and using fewer numbers. Up to {max}.";
+      return partialCreditDealt()
+        ? "Make the target; partway counts. Bonuses for speed and fewer numbers. Up to {max}."
+        : "Make the target; bonuses for speed and using fewer numbers. Up to {max}.";
     case "equation":
       return "Make every equation true; bonuses for speed and right first time. Up to {max}.";
     case "balance":

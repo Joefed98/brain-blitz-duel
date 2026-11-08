@@ -325,7 +325,7 @@ export const MOMENT_TABLE: readonly MomentRow[] = [
   own("stopwatch", "closest", 30, "Closest stop"),
   own("stopwatch", "dead-on", 60, "Stopped within 10 ms"),
   own("wordsmith", "best-word", 30, "Best word"),
-  own("wordsmith", "pangram", 60, "Pangram (every letter)"),
+  own("wordsmith", "pangram", 60, "Every-tile word"),
   own("wordhunt", "best-word", 30, "Best word"),
   own("wordhunt", "long-word", 50, "Seven-letter (or longer) word"),
   // Puzzle time-lapses (stored ordered move lists).

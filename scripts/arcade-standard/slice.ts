@@ -5,7 +5,7 @@
  * (sliceV11Parts), so the score is the one the server would store.
  */
 import {
-  SLICE_REV_FOOD,
+  SLICE_REV_LINE,
   SLICE_V11_COMBO_CAP,
   SLICE_V11_CORE,
   SLICE_V11_DODGE_CAP,
@@ -24,7 +24,8 @@ export const entry: StdEntry = {
   type: "slice",
   field: "sliceRev",
   // sliceRev 12 (3 Nov 2026): bigger, recognisable food; the core from half the food, the combo from 40 foods.
-  rev: SLICE_REV_FOOD,
+  // sliceRev 13 since Nov 2026 (the scoring audit): sliceRev 12's food and play; core and combo from 0.
+  rev: SLICE_REV_LINE,
   parts: [
     { key: "core", label: "Food sliced (share of food thrown)", max: SLICE_V11_CORE },
     { key: "combo", label: "Combo (foods cut while a combo is live, from 40 to 110)", max: SLICE_V11_COMBO_CAP },
@@ -34,7 +35,7 @@ export const entry: StdEntry = {
   ],
   /** A perfect run through the real scoring path: the oracle's log replayed by the server. */
   perfect(): StdRun[] {
-    const { result } = sliceOracleRun(PERFECT_SEED, SLICE_REV_FOOD);
+    const { result } = sliceOracleRun(PERFECT_SEED, SLICE_REV_LINE);
     const p = sliceV11Parts(result.state as SliceState);
     return [{ label: "the oracle run on its seed, server replay", score: result.score, parts: { core: p.core, combo: p.combo, gold: p.gold, tickets: p.tickets, dodges: p.dodges } }];
   },

@@ -19,6 +19,9 @@ import { PUZZLE_EFFICIENCY_POINTS } from "../puzzleScoreRev";
 import type { PuzzleData, PuzzleType } from "../types";
 import type { StandardGame, StandardInput } from "./grade.server";
 import { cleanPoints, parPoints, speedPoints } from "./shape";
+import { usesWordNov7 } from "../wordNov7";
+import { wordSlideDistance, wordSlideStartDistance } from "../wordSlideDistance.server";
+import { TG_CELLS, TG_SIZE } from "../tileGrid";
 import {
   STD_CRYPTOGRID,
   STD_INTERLOCK,
@@ -27,7 +30,9 @@ import {
   STD_SLIDER,
   STD_STRIKEOUT,
   STD_SWAPWORD,
+  STD_WORD_NOV7,
   interlockBigWordPoints,
+  interlockFairBigPoints,
   strikeoutEarlySolvePoints,
   swapwordBlindSwaps,
 } from "./word";
@@ -42,28 +47,71 @@ function interlockWordTiles(puzzle: Extract<PuzzleData, { type: "tilegrid" }>, a
   return judgeTileGrid(decodeTileGrid(answer), puzzle.tray).wordTiles;
 }
 
-/** Big words: each valid run of 5+ letters (6 / 10 / 15 by length), at most 30; nothing for a grid off the tray. */
-function interlockBigWords(puzzle: Extract<PuzzleData, { type: "tilegrid" }>, answer: string): { points: number; words: string[] } {
+/** Big-word points of a grid's valid runs of 5+ letters (6 / 10 / 15 by length), uncapped, and the words. */
+function bigWordSum(cells: readonly string[]): { sum: number; words: string[] } {
+  const words = tileGridRuns([...cells]).filter((r) => r.word.length >= 5 && isWord(r.word)).map((r) => r.word);
+  return { sum: words.reduce((sum, w) => sum + interlockBigWordPoints(w.length), 0), words };
+}
+
+/**
+ * Big words: each valid run of 5+ letters (6 / 10 / 15 by length), at most 30; nothing for a grid off the tray. From
+ * tileGridRev 4 (wordNov7.ts) the points are scaled so the dealt solution's own big words earn the full 30.
+ */
+function interlockBigWords(puzzle: Extract<PuzzleData, { type: "tilegrid" }>, answer: string): { points: number; words: string[]; top?: number } {
   const cells = decodeTileGrid(answer);
   if (!fitsTray(cells, puzzle.tray)) return { points: 0, words: [] };
-  const words = tileGridRuns(cells).filter((r) => r.word.length >= 5 && isWord(r.word)).map((r) => r.word);
-  const points = Math.min(STD_INTERLOCK.bigMax, words.reduce((sum, w) => sum + interlockBigWordPoints(w.length), 0));
-  return { points, words };
+  const { sum, words } = bigWordSum(cells);
+  if (!usesWordNov7(puzzle)) return { points: Math.min(STD_INTERLOCK.bigMax, sum), words };
+  const top = bigWordSum(puzzle.solution ?? []).sum;
+  return { points: interlockFairBigPoints(sum, top), words, top };
+}
+
+/**
+ * tileGridRev 4: tiles placed as in the dealt solution's grid, less those that are not, under the best placing of that
+ * grid on the board (any shift, either way round: its across word down), so building the answer anywhere counts tile
+ * by tile and scattering tiles counts nothing. 0 for a grid off the tray.
+ */
+export function interlockSolutionTiles(puzzle: Extract<PuzzleData, { type: "tilegrid" }>, cells: readonly string[]): number {
+  const sol = puzzle.solution ?? [];
+  if (sol.length !== TG_CELLS || !fitsTray([...cells], puzzle.tray)) return 0;
+  const placed: { r: number; c: number; l: string }[] = [];
+  cells.forEach((l, i) => {
+    if (l) placed.push({ r: Math.floor(i / TG_SIZE), c: i % TG_SIZE, l });
+  });
+  let best = 0;
+  for (const turned of [false, true]) {
+    const at = (r: number, c: number) => (r < 0 || c < 0 || r >= TG_SIZE || c >= TG_SIZE ? "" : turned ? sol[c * TG_SIZE + r]! : sol[r * TG_SIZE + c]!);
+    for (let dr = 1 - TG_SIZE; dr < TG_SIZE; dr++) {
+      for (let dc = 1 - TG_SIZE; dc < TG_SIZE; dc++) {
+        let matched = 0;
+        for (const t of placed) if (at(t.r + dr, t.c + dc) === t.l) matched++;
+        best = Math.max(best, matched - (placed.length - matched));
+      }
+    }
+  }
+  return best;
+}
+
+/** The tiles an unfinished grid is credited for: in a real word or (tileGridRev 4) placed as in the answer, whichever is more. */
+function interlockTiles(puzzle: Extract<PuzzleData, { type: "tilegrid" }>, answer: string): number {
+  const words = interlockWordTiles(puzzle, answer);
+  return usesWordNov7(puzzle) ? Math.max(words, interlockSolutionTiles(puzzle, decodeTileGrid(answer))) : words;
 }
 
 const interlock: StandardGame = {
-  parts: (puzzle, draft) => (puzzle.type === "tilegrid" ? interlockWordTiles(puzzle, draft) : 0),
+  parts: (puzzle, draft) => (puzzle.type === "tilegrid" ? interlockTiles(puzzle, draft) : 0),
   grade(input, ctx) {
     const p = input.puzzle;
     if (p.type !== "tilegrid") return { finished: false, credit: 0 };
     const big = interlockBigWords(p, input.answer);
-    const facts = { bigWords: big.words, bigWordPoints: big.points };
+    const fair = usesWordNov7(p);
+    const facts = { bigWords: big.words, bigWordPoints: fair ? Math.round(big.points) : big.points, ...(fair ? { bigWordTop: big.top ?? 0 } : {}) };
     if (input.graded.isCorrect) {
       return { finished: true, speed: speedOf(input, STD_INTERLOCK.speed, STD_INTERLOCK.fullByS), bonus: big.points, measure: "big words", facts };
     }
-    const tiles = num(input.graded.extra?.["wordTiles"]);
+    const tiles = fair ? interlockTiles(p, input.answer) : num(input.graded.extra?.["wordTiles"]);
     const credit = STD_INTERLOCK.tile * tiles + ctx.early(STD_INTERLOCK.early, tiles) + big.points;
-    return { finished: false, credit, facts };
+    return { finished: false, credit, facts: fair ? { ...facts, countedTiles: tiles } : facts };
   },
 };
 
@@ -74,6 +122,27 @@ function sliderMadeRows(puzzle: Extract<PuzzleData, { type: "wordslide" }>, answ
   const replay = replayWordSlideFor(puzzle, decodeSlideTokens(answer));
   const validRows = WS_MARKED_ROWS.filter((r) => checkWordSlideRow(markedRowWord(replay.grid, r)).valid);
   return wordSlideMadeRows(puzzle.grid, replay.grid, validRows);
+}
+
+/**
+ * wordSlideRev 5: how many free shifts (rows and columns either way, wordSlideDistance.server.ts) closer the board is
+ * to the dealt words than at the start, and that as a share of the start's distance; 0 when no closer.
+ */
+export function sliderCloser(puzzle: Extract<PuzzleData, { type: "wordslide" }>, answer: string): { start: number; closer: number; share: number } {
+  const goal = [...(puzzle.words ?? []).join("")];
+  const start = wordSlideStartDistance(puzzle.grid, goal, puzzle.par) ?? 0;
+  if (start <= 0) return { start, closer: 0, share: 0 };
+  const left = wordSlideDistance(replayWordSlideFor(puzzle, decodeSlideTokens(answer)).grid, goal, start - 1);
+  const closer = left === null ? 0 : start - left;
+  return { start, closer, share: closer / start };
+}
+
+/** wordSlideRev 5: rows the player made into real words other than the dealt word for that row. */
+function sliderOtherRows(puzzle: Extract<PuzzleData, { type: "wordslide" }>, answer: string): number {
+  const grid = replayWordSlideFor(puzzle, decodeSlideTokens(answer)).grid;
+  const words = puzzle.words ?? [];
+  const validRows = WS_MARKED_ROWS.filter((r) => markedRowWord(grid, r) !== words[r] && checkWordSlideRow(markedRowWord(grid, r)).valid);
+  return wordSlideMadeRows(puzzle.grid, grid, validRows);
 }
 
 const slider: StandardGame = {
@@ -91,7 +160,14 @@ const slider: StandardGame = {
       };
     }
     const rows = sliderMadeRows(p, input.answer);
-    return { finished: false, credit: STD_SLIDER.row * rows + ctx.early(STD_SLIDER.early, rows), facts: { madeRows: rows } };
+    if (!usesWordNov7(p)) return { finished: false, credit: STD_SLIDER.row * rows + ctx.early(STD_SLIDER.early, rows), facts: { madeRows: rows } };
+    // wordSlideRev 5 (wordNov7.ts): how much closer the board is to the dealt words, or the rows made into other real
+    // words, whichever is more. The dealt words' rows are already in the distance, so along a shortest line (whose
+    // middle slides break rows) the credit rises with every slide.
+    const closer = sliderCloser(p, input.answer);
+    const other = sliderOtherRows(p, input.answer);
+    const credit = Math.max(STD_WORD_NOV7.closer * closer.share, STD_SLIDER.row * other);
+    return { finished: false, credit, facts: { madeRows: rows, otherWordRows: other, slidesCloser: closer.closer, slidesFromStart: closer.start } };
   },
 };
 
@@ -113,7 +189,10 @@ const lookout: StandardGame = {
     const found = num(extra["found"]);
     const wrong = num(extra["wrong"]);
     const penalty = STD_LOOKOUT.wrongCost * Math.max(0, wrong - STD_LOOKOUT.freeWrong);
-    return { finished: false, credit: Math.max(0, STD_LOOKOUT.word * found + ctx.early(STD_LOOKOUT.early, found) - penalty) + bonus };
+    const words = STD_LOOKOUT.word * found + ctx.early(STD_LOOKOUT.early, found);
+    // wordSearchRev 5 (wordNov7.ts): the penalty comes off the bonus word too, so drags at random never keep it.
+    if (usesWordNov7(input.puzzle)) return { finished: false, credit: Math.max(0, words + bonus - penalty) };
+    return { finished: false, credit: Math.max(0, words - penalty) + bonus };
   },
 };
 
@@ -174,7 +253,7 @@ const strikeout: StandardGame = {
         finished: true,
         speed: speedOf(input, STD_STRIKEOUT.speed, STD_STRIKEOUT.fullByS),
         bonus: earlySolve + strikePoints,
-        measure: "solve bonus",
+        measure: "early solves and strikes",
         facts: { ...facts, strikePoints },
       };
     }

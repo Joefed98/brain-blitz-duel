@@ -165,8 +165,13 @@ const WATCH = `(() => {
   const samples = [];
   window.__replaySamples = samples;
   const started = performance.now();
+  // Samples for 14 s from the replay panel's first appearance (7 Nov 2026, build-health audit): counted from the
+  // page's start, a panel a loaded runner drew a few seconds late had its time-lapse's last frames go unsampled
+  // ("ended on frame 64, want 77" while the page did reach 77). 90 s from the start at most.
+  let panelAt = null;
   const id = setInterval(() => {
     const panel = document.querySelector("[data-replay-panel]");
+    if (panel && panelAt === null) panelAt = performance.now();
     const board = document.querySelector(".replay-board");
     let boardBox = null, inner = 0, html = "";
     if (board) {
@@ -205,7 +210,7 @@ const WATCH = `(() => {
       html,
       continueBottom: cont ? cont.getBoundingClientRect().bottom : null,
     });
-    if (performance.now() - started > 14000) clearInterval(id);
+    if ((panelAt !== null && performance.now() - panelAt > 14000) || performance.now() - started > 90000) clearInterval(id);
   }, 100);
 })();`;
 

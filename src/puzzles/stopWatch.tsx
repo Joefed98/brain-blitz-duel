@@ -10,6 +10,7 @@ import {
   TAP_LOG_PREFIX,
   dealtTapRev,
   TAP_REV_ONE_CURVE,
+  TAP_REV_PER_ITEM,
   tapRevOf,
   decodeTapTimes,
   encodeTapTimes,
@@ -31,7 +32,7 @@ import { wrongMoveFlash } from "@/lib/fx/gameToolkit";
 import { playSound } from "@/lib/sound";
 import { bangOnEarnsGoldFaces, fireBangOnGoldFaces, localBangOnScore } from "@/components/puzzles/stopWatchFx";
 import { roundMaxFor } from "@/lib/duel/roundMax";
-import { BANGON_STREAK_MIN, BANGON_CENTRE_POINTS, BANGON_TOPUP_CENTRE_POINTS, BANGON_TOPUP_STREAK_TOP, bangOnMarks, liveZoneStreak, scoreBangOnDepth, usesBangOnDepth, type WatchMark } from "@/lib/duel/depth/bangOn";
+import { BANGON_PARTIAL_MS, BANGON_PARTIAL_POINTS, BANGON_STREAK_MIN, BANGON_CENTRE_POINTS, BANGON_TOPUP_REV, BANGON_TOPUP_CENTRE_POINTS, BANGON_TOPUP_STREAK_TOP, bangOnMarks, liveZoneStreak, scoreBangOnDepth, usesBangOnDepth, type WatchMark } from "@/lib/duel/depth/bangOn";
 
 import { SpeedRevealList } from "@/components/puzzles/SpeedRevealList";
 import "@/polish-layout/polish-nov3-speedatt.css";
@@ -614,6 +615,8 @@ function Reveal({ puzzle, myAnswer, myExtra }: PuzzleRevealProps) {
   const curve = tapRevOf(puzzle) >= TAP_REV_ONE_CURVE ? { kneeMs: STOPWATCH_REV4_KNEE_MS, zeroMs: STOPWATCH_REV4_ZERO_MS } : stored;
   // Depth (tapRev 5): the server's stored marks and bonus points.
   const depth = usesBangOnDepth(puzzle) ? storedBangOnDepth(myExtra) : null;
+  // tapRev 7 (7 Nov 2026, speedPipesNov7.ts): each watch scored on its own.
+  const perItem = tapRevOf(puzzle) >= TAP_REV_PER_ITEM;
 
   // Puzzle polish (3 Nov 2026): the big average first, then the watches in two tidy columns and the notes under them.
   return (
@@ -633,15 +636,26 @@ function Reveal({ puzzle, myAnswer, myExtra }: PuzzleRevealProps) {
         }))}
       />
       <div className="speed-reveal-notes">
-        {errors.some((ms) => ms >= STOPWATCH_MISS_MS) ? <p>A missed watch counts {STOPWATCH_MISS_MS} ms off</p> : null}
+        {/* tapRev 7 (7 Nov 2026): each watch scores on its own, so a miss scores nothing rather than counting as 500 ms. */}
+        {errors.some((ms) => ms >= STOPWATCH_MISS_MS) ? <p>{perItem ? "A missed watch scores 0" : `A missed watch counts ${STOPWATCH_MISS_MS} ms off`}</p> : null}
         {depth ? (
           <p data-bangon-depth="">
             Dead centre {depth.centreHits} × {depth.centreEach} = +{depth.centre} · zone streak +{depth.streak}
           </p>
         ) : null}
-        {curve && avg > curve.kneeMs ? (
+        {perItem && curve && errors.some((ms) => ms > curve.kneeMs && ms < STOPWATCH_MISS_MS) ? (
+          <p>
+            A stop over {curve.kneeMs} ms off scores less: 0 at {curve.zeroMs} ms.
+          </p>
+        ) : null}
+        {!perItem && curve && avg > curve.kneeMs ? (
           <p>
             Over {curve.kneeMs} ms the score falls faster: 0 at {curve.zeroMs} ms.
+          </p>
+        ) : null}
+        {curve && avg >= curve.zeroMs && tapRevOf(puzzle) >= BANGON_TOPUP_REV && errors.some((ms) => ms <= BANGON_PARTIAL_MS) ? (
+          <p>
+            At least {BANGON_PARTIAL_POINTS} for each watch stopped within {BANGON_PARTIAL_MS} ms.
           </p>
         ) : null}
       </div>

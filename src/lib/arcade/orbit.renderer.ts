@@ -780,7 +780,7 @@ function drawOrbitArtWorld(ctx: CanvasRenderingContext2D, state: OrbitState, siz
   if(capturePlanet)successFrame(ctx,{id:'orbit',tick:state.tick,count:state.captured,enabled:state.captured%5===0,misses:1-state.respawns,colour:ORBIT_GOLD,width:ORBIT_WORLD_W,height:ORBIT_WORLD_H,point:{x:110,y:26,shape:'spark'},hud:{x:14,y:12,text:`Planets ${state.best} / ${ORBIT_TOTAL}`}});
   // Action's pill HUD (3 Nov 2026, Orbit moved to Action): the planets, then the checkpoint, on one row.
   successHud(ctx, "orbit", state.tick, 14, 12, () =>
-    drawHudPillRow(ctx, [{ text: `Planets ${state.best} / ${ORBIT_TOTAL}` }, ...orbitCheckpointPill(state)], 12, 10, ORBIT_WORLD_W - 12),
+    drawHudTextPillRow(ctx, [{ text: `Planets ${state.best} / ${ORBIT_TOTAL}` }, ...orbitCheckpointPill(state)], 12, 10, ORBIT_WORLD_W - 12),
   );
   if (state.tick - state.respawnTick < 45) {
     ctx.globalAlpha = 1 - (state.tick - state.respawnTick) / 45;
@@ -817,10 +817,10 @@ import {
 } from "./orbitCamera";
 import { orbitHoleLive, orbitRev3Game, orbitWorldHFor, orbitXpCounts, ORBIT_FUEL_MAX, ORBIT_DUST_R, ORBIT_HOLE_R, ORBIT_MOON_ASSIST, ORBIT_MOON_R, ORBIT_REV3_BG, ORBIT_REV3_RED, type OrbitRev3State } from "./orbitRev3";
 import { devDisplayAllowed } from "@/lib/devDisplay";
-import { drawHudPillRow, HUD_PILL_H, type HudPill } from "./hudPills.renderer";
+import { drawHudTextPillRow, HUD_TEXT_PILL_H, type HudTextPill } from "./hudPill.renderer";
 
 /** The checkpoint's pill: gold while its one respawn is left, grey once used; none before a checkpoint is set. */
-function orbitCheckpointPill(state: { checkpoint: number; respawns: number }): HudPill[] {
+function orbitCheckpointPill(state: { checkpoint: number; respawns: number }): HudTextPill[] {
   if (state.checkpoint < 0) return [];
   return [state.respawns > 0 ? { text: `Checkpoint ${state.checkpoint}`, colour: ORBIT_GOLD } : { text: "Checkpoint used", colour: "rgba(255,255,255,0.5)" }];
 }
@@ -1155,11 +1155,11 @@ function drawOrbitRev3ArtWorld(ctx: CanvasRenderingContext2D, state: OrbitRev3St
   // corner (ORBIT_XP_ZONE, orbitRev 12+): the planets and the checkpoint, then what the run has taken of the features.
   const hudRight = state.xp ? ORBIT_CAM_VIEW_W - ORBIT_XP_ZONE.w - 8 : ORBIT_CAM_VIEW_W - 12;
   successHud(ctx, "orbit3", state.tick, 14, 12, () =>
-    drawHudPillRow(ctx, [{ text: `Planets ${state.best} / ${ORBIT_TOTAL}` }, ...orbitCheckpointPill(state)], 12, 10, hudRight),
+    drawHudTextPillRow(ctx, [{ text: `Planets ${state.best} / ${ORBIT_TOTAL}` }, ...orbitCheckpointPill(state)], 12, 10, hudRight),
   );
   if (state.xp) {
     const c = orbitXpCounts(state);
-    drawHudPillRow(
+    drawHudTextPillRow(
       ctx,
       [
         { text: `Dust ${c.dust}/${c.dustTotal}`, colour: "#FFE9A8" },
@@ -1168,7 +1168,7 @@ function drawOrbitRev3ArtWorld(ctx: CanvasRenderingContext2D, state: OrbitRev3St
         { text: `Perfect ${c.perfect}`, colour: "#FFE9A8" },
       ],
       12,
-      10 + HUD_PILL_H + 6,
+      10 + HUD_TEXT_PILL_H + 6,
       hudRight,
       13,
     );

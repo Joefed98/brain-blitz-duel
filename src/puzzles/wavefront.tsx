@@ -6,7 +6,7 @@ import {
   wavCheckpoint,
   WAV_BG,
   WAV_CHECKPOINT_INTERVAL,
-  WAV_REV_STD,
+  WAV_REV_KEEP,
   wavDragZoneTop,
   wavefrontWorldHFor,
   WAV_WORLD_W,
@@ -27,9 +27,9 @@ import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./ty
 function IntroExample() {
   return (
     <ArtStill
-      game={wavefrontArtGameFor(WAV_REV_STD)}
+      game={wavefrontArtGameFor(WAV_REV_KEEP)}
       worldW={WAV_WORLD_W}
-      worldH={wavefrontWorldHFor(WAV_REV_STD)}
+      worldH={wavefrontWorldHFor(WAV_REV_KEEP)}
       ticks={150}
       input={null}
       caption="Your ship fires on its own. Shoot the glowing carriers for power-ups, hit the bosses’ weak points."
@@ -114,7 +114,7 @@ export const wavefrontPuzzle: PuzzleDefinition = {
   category: "arcade",
   timeLimitMs: WAVEFRONT_TIME_MS,
   revealMs: 6_000,
-  generate: () => ({ type: "wavefront", seed: 1, wavRev: WAV_REV_STD }) satisfies WavefrontPuzzleData,
+  generate: () => ({ type: "wavefront", seed: 1, wavRev: WAV_REV_KEEP }) satisfies WavefrontPuzzleData,
   check: () => false,
   revealHeading: "Your run",
   IntroExample,

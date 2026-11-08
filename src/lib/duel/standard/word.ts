@@ -23,6 +23,19 @@ export const STD_INTERLOCK = {
 /** Slider (`wordslide`, wordSlideRev 3). */
 export const STD_SLIDER = { row: 24, early: 2, speed: 35, fullByS: 33, par: 15 } as const;
 
+/**
+ * The Word scoring fix (7 Nov 2026, wordNov7.ts): Interlock tileGridRev 4's big words reach `bigMax` with the dealt
+ * solution's own big words; Slider wordSlideRev 5's unfinished credit is `closer` × the share of the start's shifts the
+ * board has come closer to the dealt words, or 24 a row made into another real word, whichever is more (no early extras).
+ */
+export const STD_WORD_NOV7 = { closer: 120 } as const;
+
+/** Interlock tileGridRev 4: big-word points scaled so the deal's own maximum (its solution's big words) gives `bigMax`. */
+export function interlockFairBigPoints(points: number, dealMax: number): number {
+  const top = dealMax > 0 ? dealMax : STD_INTERLOCK.bigMax;
+  return STD_INTERLOCK.bigMax * Math.min(1, Math.max(0, points) / top);
+}
+
 /** Lookout (`wordsearch`, wordSearchRev 4). */
 export const STD_LOOKOUT = { word: 20, early: 1.5, freeWrong: 5, wrongCost: 2, speed: 20, fullByS: 40, bonus: 30 } as const;
 
@@ -138,6 +151,35 @@ export const WORD_STANDARD_HELP = {
     speed: { max: STD_SWAPWORD.speed, fullByS: STD_SWAPWORD.fullByS },
     bonuses: [{ label: "Swaps", how: "solve it in the fewest swaps (par) for all of it, nothing at twice par", max: STD_SWAPWORD.par }],
     unfinished: "the share of tiles you put in place, more for placing them early",
+    total: TOTAL,
+  }),
+} as const;
+
+/**
+ * The "?" help SCORE text for the Word scoring fix's stamps (7 Nov 2026, wordNov7.ts: Interlock tileGridRev 4, Slider
+ * wordSlideRev 5, Lookout wordSearchRev 5), read while rooms deal them. The intro lines are the standard's (still true).
+ */
+export const WORD_NOV7_HELP = {
+  tilegrid: puzzleScoreList({
+    finish: "place all 15 tiles in one connected grid, every run a real word",
+    speed: { max: STD_INTERLOCK.speed, fullByS: STD_INTERLOCK.fullByS },
+    bonuses: [{ label: "Big words", how: "points for each word of 5 letters or more, finished or not; the puzzle's own long words earn all of it", max: STD_INTERLOCK.bigMax }],
+    unfinished: `${STD_INTERLOCK.tile} for each tile in a real word or, if more, for each tile placed as in the answer grid (anywhere on the board) less each tile that is not, more for placing tiles early`,
+    total: TOTAL,
+  }),
+  wordslide: puzzleScoreList({
+    finish: "make all five rows words",
+    speed: { max: STD_SLIDER.speed, fullByS: STD_SLIDER.fullByS },
+    bonuses: [{ label: "Moves", how: "finish within par (shown beside your moves; Undo and Reset count) for all of it, nothing at twice par", max: STD_SLIDER.par }],
+    unfinished: `a share of ${STD_WORD_NOV7.closer} by how many slides closer to the answer words you are than at the start, or, if more, ${STD_SLIDER.row} for each row you make into a different real word`,
+    total: TOTAL,
+  }),
+  wordsearch: puzzleScoreList({
+    finish: "find all six listed words",
+    speed: { max: STD_LOOKOUT.speed, fullByS: STD_LOOKOUT.fullByS },
+    bonuses: [{ label: "Bonus word", how: "find the hidden bonus word before the sixth word (the sixth ends the round), finished or not", fixed: STD_LOOKOUT.bonus }],
+    unfinished: `${STD_LOOKOUT.word} for each word found, more for finding it early`,
+    penalties: [`When not finished, the first ${STD_LOOKOUT.freeWrong} wrong drags are free, then each costs ${STD_LOOKOUT.wrongCost}, taken from the words and the bonus word together`],
     total: TOTAL,
   }),
 } as const;

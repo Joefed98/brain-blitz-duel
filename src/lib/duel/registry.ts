@@ -59,7 +59,6 @@ import { curlingPuzzle } from "@/puzzles/curling";
 import { blockfallPuzzle } from "@/puzzles/blockfall";
 import { alleyRollPuzzle } from "@/puzzles/alleyroll";
 import { removedGameDefinition } from "@/puzzles/removedGame";
-import { PINBALL_IN_ROOMS } from "@/lib/arcade/pinball";
 import { rallyPuzzle } from "@/puzzles/rally";
 import { steadyPuzzle } from "@/puzzles/steady";
 import { slicePuzzle } from "@/puzzles/slice";
@@ -170,8 +169,6 @@ const RETIRED_TYPES = new Set<PuzzleType>([
   // Joe's decision (3 Nov 2026, the Cards & Board batch): Golf Solitaire is practice only; its practice bests and
   // stored rounds replay and grade as before.
   "golfsol",
-  // New (13 Oct 2026): practice only until PINBALL_IN_ROOMS (src/lib/arcade/pinball.ts) is switched on.
-  ...(PINBALL_IN_ROOMS ? [] : (["pinball"] as const)),
 ]);
 
 /** Slack added to every arcade phase beyond its run; never shown to players. */
@@ -363,10 +360,10 @@ export const RETIRED_PUZZLE_TYPES = PUZZLE_TYPES.filter((t) => isRetired(t));
 
 /**
  * New games that rooms do not deal yet, listed on their own in practice (not
- * under Retired): Pinball until PINBALL_IN_ROOMS. They are also in
- * RETIRED_PUZZLE_TYPES, which is what keeps them out of room draws.
+ * under Retired; none today: Pinball was the last, dealt since 14 Oct 2026). They
+ * must also be in RETIRED_PUZZLE_TYPES, which is what keeps them out of room draws.
  */
-export const PREVIEW_PUZZLE_TYPES: PuzzleType[] = PINBALL_IN_ROOMS ? [] : ["pinball"];
+export const PREVIEW_PUZZLE_TYPES: PuzzleType[] = [];
 
 export function puzzleCategories(): PuzzleCategory[] {
   return Array.from(new Set(ACTIVE_PUZZLE_TYPES.map((t) => PUZZLE_REGISTRY[t].category)));

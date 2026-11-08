@@ -136,11 +136,17 @@ export function scoreTileGrid(valid: boolean, placed: number, wordTiles: number,
  * and how many sit in a real word (the stored `wordTiles`), never "valid" in gold. Older rounds
  * without `wordTiles` say whether the grid was valid.
  */
-export function tileGridResultLine(result: { placed: number; valid: boolean; wordTiles?: number | null }): {
+export function tileGridResultLine(result: { placed: number; valid: boolean; wordTiles?: number | null; countedTiles?: number | null }): {
   text: string;
   finish: boolean;
 } {
   const placed = Math.max(0, Math.min(TG_TILES, Math.round(result.placed) || 0));
+  // tileGridRev 4 (wordNov7.ts): an unfinished grid counts tiles in real words or placed as in the answer grid.
+  if (typeof result.countedTiles === "number" && Number.isFinite(result.countedTiles) && placed > 0 && !(placed === TG_TILES && result.valid)) {
+    const counted = Math.max(0, Math.min(placed, Math.round(result.countedTiles)));
+    const head = placed === TG_TILES ? `All ${TG_TILES} placed` : `${placed} of ${TG_TILES} tiles placed`;
+    return { text: `${head} · ${counted === 0 ? "none" : counted} counted`, finish: false };
+  }
   const words =
     typeof result.wordTiles === "number" && Number.isFinite(result.wordTiles)
       ? Math.max(0, Math.min(placed, Math.round(result.wordTiles)))

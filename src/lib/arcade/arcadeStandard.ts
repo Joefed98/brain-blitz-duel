@@ -95,6 +95,24 @@ export function stdSpeed(max: number, value: number, fullAt: number, zeroAt: num
   return Math.floor(max * share);
 }
 
+/**
+ * stdSpeed in whole numbers (7 Nov 2026, scoring audit issue 22; dealt only on the stamps that name it: pyramidRev 2,
+ * tripeaksRev 3, freecellRev 5): floor(max × (value − zeroAt) ÷ (fullAt − zeroAt)) on integers, so no float share can
+ * pay a point less than exact maths. stdSpeed itself stays as it is for every older stamp. Integer inputs expected.
+ */
+export function stdSpeedInt(max: number, value: number, fullAt: number, zeroAt: number): number {
+  const v = Math.trunc(value);
+  const f = Math.trunc(fullAt);
+  const z = Math.trunc(zeroAt);
+  if (f === z) return v === f ? max : 0;
+  // Turn "time taken" lines (fullAt < zeroAt) round so the span is positive.
+  const num = f > z ? v - z : z - v;
+  const den = f > z ? f - z : z - f;
+  if (num >= den) return max;
+  if (num <= 0) return 0;
+  return Math.floor((max * num) / den);
+}
+
 /** The sum of a spec's (or a parts list's) maximums: STD_MAX on every standard game (arcade-standard-check proves it). */
 export function stdSpecMax(spec: StdSpec | readonly { max: number }[]): number {
   const parts = "parts" in spec ? spec.parts : spec;
@@ -107,6 +125,19 @@ export function stdSpecMax(spec: StdSpec | readonly { max: number }[]): number {
 export function stdFinal(sum: number, acted: boolean): number {
   if (!acted) return 0;
   return clampInt(sum, 1, STD_MAX);
+}
+
+/**
+ * The scoring audit's partial-credit rule (Nov 2026, docs/audit-nov-2026/scoring.md issues 2 and 7; crossRev 12,
+ * wavRev 13, burstRev 11): progress made always counts. The life that ends a run is not charged (losing it already
+ * ended the run), and a run's mistakes together never take more than half the core it earned.
+ */
+export function stdLivesCharged(lost: number, outOfLives: boolean): number {
+  return Math.max(0, Math.trunc(lost) - (outOfLives && lost > 0 ? 1 : 0));
+}
+/** The most a run's mistakes may take: half its core, rounded down (see stdLivesCharged). */
+export function stdCappedPenalty(penalty: number, core: number): number {
+  return clampInt(Math.trunc(penalty), 0, Math.max(0, Math.floor(core / 2)));
 }
 
 /* ---- A run's parts as a list (each with what the run did): the reveal's breakdown lines. ---- */

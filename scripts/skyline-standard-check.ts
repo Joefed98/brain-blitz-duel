@@ -120,7 +120,8 @@ ok(scores.every((s) => s >= 1 && s <= 200), "every played rev-9 run scores 1…2
 
 /* 4. What rooms deal. */
 const dealt = generatePuzzle("skyline") as { skylineRev?: number; seed: number };
-ok(dealt.skylineRev === SKYLINE_REV_STD, `rooms deal skylineRev ${dealt.skylineRev}`);
+// The scoring audit (Nov 2026): rooms deal skylineRev 10, skylineRev 9's play with perfect drops counted (scoring-audit-arcade-check).
+ok(dealt.skylineRev === SKYLINE_REV_STD + 1, `rooms deal skylineRev 10, skylineRev 9's play (${dealt.skylineRev})`);
 ok((skylineGameFor(SKYLINE_REV_STD).init(dealt.seed).kinds ?? []).filter((k) => k === SKYLINE_KIND_GOLD).length === 5, "a dealt run has exactly five gold blocks");
 
 if (failures.length) {
