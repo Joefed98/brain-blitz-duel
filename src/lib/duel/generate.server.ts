@@ -23,7 +23,7 @@ import { dealOperatorGaps } from "./operatorGaps.server";
 import { topsyPlainRoutes } from "./topsy.server";
 import { varyTallyTray } from "@/puzzles/countUp";
 import { gradeStandard } from "./standard/grade.server";
-import { splitTimeline } from "./standard/timeline";
+import { splitTimeline, TIMELINE_MAX_CHARS } from "./standard/timeline";
 import { stampMoveLimits } from "./moveLimits.server";
 import { stampTieRev } from "./tieBreak";
 import { dealDepth4 } from "./depth4/deal.server";
@@ -31,7 +31,7 @@ import { dealtDepthRev } from "./wordDepth";
 import { stampTileGridRev } from "./tileGrid";
 import { STRIKEOUT_REV4, STRIKEOUT_REV5, STRIKEOUT_REV_TOPUP } from "./strikeout";
 import { generateBlockParty } from "./blockParty.server";
-import { gradeSubmission, latestTapMs, type Graded, type SubmitExtra } from "./grade";
+import { answerCapFor, gradeSubmission, latestTapMs, type Graded, type SubmitExtra } from "./grade";
 import { newRoomSeed, pickRoundOrder, type RoundSelectionOptions } from "./selection";
 import { drawBankedPuzzle, isBankedType } from "./puzzleBank.server";
 import { puzzleDef } from "./registry";
@@ -336,7 +336,10 @@ export function gradeAnswer(
 ): Graded {
   // On a standard stamp the phone appends a draft timeline (standard/timeline.ts): graded and stored without it.
   const std = usesStandard(puzzle);
-  const { body: answer, timeline } = std ? splitTimeline(sent) : { body: sent, timeline: null };
+  // L13: on a standard stamp the body is cut to the game's answer cap before any grader reads it (and the whole text
+  // to the cap plus the longest timeline decodeTimeline reads), so the standard grader never sees more than the older
+  // path does. Every other puzzle reads `sent` exactly as before.
+  const { body: answer, timeline } = std ? standardParts(puzzle, sent) : { body: sent, timeline: null };
   const graded = withSpeedCurve(puzzleUsesSpeedPar(puzzle), () => {
     if (puzzle.type === "wordsmith") return gradeWordsmith(puzzle, answer, msRemaining);
     if (puzzle.type === "wordhunt") return gradeWordHunt(puzzle, answer, msRemaining);
@@ -350,6 +353,14 @@ export function gradeAnswer(
   // The scoring standard (standard/grade.server.ts): a puzzle on its game's standard stamp scores on the one shape.
   if (std) return gradeStandard({ puzzle, answer, timeline, graded, today, receivedMsRemaining }) ?? depthOrToday();
   return depthOrToday();
+}
+
+/** A standard puzzle's answer body (cut to its cap) and timeline. */
+export function standardParts(puzzle: PuzzleData, sent: string): { body: string; timeline: string | null } {
+  const cap = answerCapFor(puzzle);
+  const capped = typeof sent === "string" ? sent.slice(0, cap + TIMELINE_MAX_CHARS + 64) : "";
+  const split = splitTimeline(capped);
+  return { body: split.body.slice(0, cap), timeline: split.timeline };
 }
 
 /** Today's grade before any depth revision: puzzleScoreRev 3's helper or rev 2's knots over the game's own grade. */
