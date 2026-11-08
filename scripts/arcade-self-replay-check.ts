@@ -188,7 +188,6 @@ import { encodePoolRun, replayPoolRun } from "@/lib/duel/pool";
 import { POOL_BANK } from "@/lib/duel/poolBank.server";
 import { POOL_BANK_V2 } from "@/lib/duel/poolBankV2.server";
 import { POOL_BANK_V3 } from "@/lib/duel/poolBankV3.server";
-import { POOL_BANK_V4 } from "@/lib/duel/poolBankV4.server";
 import { curlingCheckpoint, curlingGameFor, CURLING_REV } from "@/lib/arcade/curling";
 import { encodeCurlingRun, replayCurlingRun } from "@/lib/duel/curling";
 import { CURLING_BANK } from "@/lib/duel/curlingBank.server";
@@ -650,7 +649,7 @@ const GAMES: Game[] = [
   { key: "stroop", game: colourClashRev4Game, checkpoint: clashCheckpoint, mode: "events", rate: 18, encode: encodeColourClashRun, replay: (seed: number, raw: string) => replayColourClashRun(seed, raw, 4) },
   { key: "stroop", game: colourClashRev3Game, checkpoint: clashCheckpoint, mode: "events", rate: 18, encode: encodeColourClashRun, replay: (seed: number, raw: string) => replayColourClashRun(seed, raw, 3) },
   { key: "stroop", game: colourClashGame, checkpoint: clashCheckpoint, mode: "events", rate: 18, encode: encodeColourClashRun, replay: (seed: number, raw: string) => replayColourClashRun(seed, raw, 0) },
-  // Pinball (practice only until PINBALL_IN_ROOMS): held-flipper changes, often both at once.
+  // Pinball (dealt in rooms since 14 Oct 2026): held-flipper changes, often both at once.
   { key: "pinball", game: pinballGameFor(PIN_REV), checkpoint: pinCheckpoint, mode: "events", rate: 120, encode: encodePinballRun, replay: (seed: number, raw: string) => replayPinballRun(seed, raw, PIN_REV) },
   // Letterfall (Word category, engine sim): taps and Enter presses, words checked by the shared list.
   { key: "wordfall", game: wordfallGame, checkpoint: wordfallCheckpoint, mode: "events", rate: 120, encode: encodeWordfallRun, replay: (seed: number, raw: string) => replayWordfallRun(seed, raw) },
@@ -953,7 +952,7 @@ const GAMES: Game[] = [
   // Home Run homerunRev 4 (3 Nov 2026: a spot and a tap) and Cue Ball poolRev 4 (3 Nov 2026: a seeded set, 90 s), appended
   // so every earlier entry keeps its index: random spots and taps; random shots on the poolRev 4 bank's layouts.
   { key: "homerun/v4", interval: HOMERUN_CHECKPOINT_INTERVAL, game: homerunGameFor(HOMERUN_REV_4), checkpoint: homerunCheckpoint, mode: "events", rate: 20, encode: encodeHomerunRun, replay: (seed: number, raw: string) => replayHomerunRun(seed, raw, HOMERUN_REV_4), seedFor: (n: number) => HOMERUN_DEAL_V4[n % HOMERUN_DEAL_V4.length]! },
-  { key: "pool/v4", game: poolGameFor(4), seedFor: (n: number) => POOL_BANK_V4[n % POOL_BANK_V4.length]!, checkpoint: poolCheckpoint, mode: "events", rate: 40, encode: encodePoolRun, replay: (seed: number, raw: string) => replayPoolRun(seed, raw, 4) },
+  { key: "pool/v4", game: poolGameFor(4), seedFor: (n: number) => POOL_BANK_V3[n % POOL_BANK_V3.length]!, checkpoint: poolCheckpoint, mode: "events", rate: 40, encode: encodePoolRun, replay: (seed: number, raw: string) => replayPoolRun(seed, raw, 4) },
   // Iron Wall bastionRev 3 (3 Nov 2026: eased waves 4–5, the 90 ms zone, the drones), appended at the end so every
   // earlier entry keeps its index and stream.
   { key: "bastion/v3", interval: BT2_CHECKPOINT_INTERVAL, game: bastionIronGame, checkpoint: bastionTankCheckpoint, mode: "events", rate: 30, encode: encodeBastionTankRun, replay: (seed: number, raw: string) => replayBastionTankRun(seed, raw, 3) },

@@ -79,7 +79,6 @@ import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { availableParallelism } from "node:os";
 
 import { ACTIVE_ARCADE_GAMES, ARCADE_FX_SPECS, ARCADE_PLAY_VIEWS, ENGINE_FX_SPECS, ENGINE_GAME_WORLDS } from "../src/lib/arcade/arcadeFxGames.renderer";
-import { PINBALL_IN_ROOMS } from "../src/lib/arcade/pinball";
 import { ARENA_SCENE_GAMES } from "../src/lib/arcade/arenaScene.renderer";
 import { ARENA_FILL_CENTRED } from "../src/lib/arcade/arenaFills.renderer";
 import { TD_H, TD_W } from "../src/lib/arcade/tenDrop";
@@ -128,9 +127,9 @@ const ENGINE_PLAY_WORLDS: Record<(typeof ENGINE_PLAY_GAMES)[number], { width: nu
 };
 /**
  * New arcade games still practice only (not yet dealt in rooms), played with every rule,
- * the arena-layout proof included: Pinball until PINBALL_IN_ROOMS (then it is in ACTIVE_ARCADE_GAMES).
+ * the arena-layout proof included (none today: Pinball, the last, is in ACTIVE_ARCADE_GAMES since 14 Oct 2026).
  */
-const PRACTICE_PLAY_GAMES: string[] = PINBALL_IN_ROOMS ? [] : ["pinball"];
+const PRACTICE_PLAY_GAMES: string[] = [];
 const ONLY = args.filter((a) => !a.startsWith("--"));
 const BASELINE_PATH = new URL("./fixtures/arcade-play-baseline.json", import.meta.url).pathname;
 const CHROMIUM = process.env.PLAYWRIGHT_CHROMIUM ?? "/opt/pw-browsers/chromium";

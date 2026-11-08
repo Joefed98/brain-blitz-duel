@@ -23,7 +23,7 @@ class Surface {
 }
 Object.defineProperty(globalThis, "OffscreenCanvas", { configurable: true, value: Surface });
 if (typeof (globalThis as { Path2D?: unknown }).Path2D === "undefined") Object.defineProperty(globalThis, "Path2D", { configurable: true, value: NapiPath2D });
-for (const f of ["archivo-var-latin.woff2", "jetbrains-mono-600-700-latin.woff2", "manrope-500-800-latin.woff2"]) {
+for (const f of ["archivo-var-latin.woff2", "jetbrains-mono-600-700-latin.woff2"]) {
   try {
     GlobalFonts.registerFromPath(`public/fonts/${f}`);
   } catch {

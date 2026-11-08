@@ -490,11 +490,6 @@
     padding-top: 3px;
     padding-bottom: 3px;
   }
-  .rs-scroll[data-compact] > li > button.rs-row-btn {
-    min-height: 42px;
-    padding-top: 2px;
-    padding-bottom: 2px;
-  }
   /* The page scrolls these screens, so the list must not be a scroll container of its own (overflow:
      clip keeps the rounded corners without one), and my row sticks to the page's top and to just above
      the room footer (68 px, its 16 px fade and the home bar). */

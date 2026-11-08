@@ -226,7 +226,8 @@ function withTimeout(promise, ms) {
 
 function offlinePage() {
   const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><meta name="theme-color" content="#0B0B0F"><title>Joulz – offline</title><style>
-html,body{margin:0;height:100%;background:#07070A;color:#F5F5F7;font-family:Manrope,system-ui,-apple-system,sans-serif}
+@font-face{font-family:Archivo;src:url("/fonts/archivo-var-latin.woff2") format("woff2");font-weight:100 900;font-display:swap}
+html,body{margin:0;height:100%;background:#07070A;color:#F5F5F7;font-family:Archivo,system-ui,-apple-system,sans-serif}
 main{box-sizing:border-box;min-height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:calc(env(safe-area-inset-top) + 24px) 24px calc(env(safe-area-inset-bottom) + 24px);text-align:center}
 h1{margin:0;font-size:26px;font-weight:800}p{margin:0;max-width:300px;font-size:15px;line-height:1.4;color:#BDBDCC}
 a{display:inline-flex;align-items:center;justify-content:center;min-height:50px;padding:0 28px;border-radius:14px;background:linear-gradient(180deg,#F7D77E,#E2B23F);color:#151006;font-weight:800;font-size:16px;text-decoration:none}
