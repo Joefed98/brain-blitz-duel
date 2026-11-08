@@ -20,6 +20,7 @@ import {
   practiceCheckMovesFn,
   practiceGenerateFn,
   practiceGradeFn,
+  practiceStartFn,
 } from "@/lib/duel/practice.functions";
 import { orbitDevPlanet } from "@/lib/arcade/orbitDevJump";
 import { practiceUpdateGate, useUpdateGate } from "@/lib/appUpdate";
@@ -324,6 +325,20 @@ function PracticeScreen() {
   // Offline practice (31 Oct 2026): the pack seed of a run dealt from a saved pack (null: a live deal), the
   // run waiting for the server whose result is on screen, and a line for a game that can't be played now.
   const packSeed = useRef<number | null>(null);
+  /** The server's start token for this round (practiceReceipt.ts): asked for as the clock starts, sent with the answer. */
+  const startToken = useRef<Promise<string | null> | null>(null);
+  const beginRound = useCallback(() => {
+    // Live deals only: a pack run is queued and graded later on the phone's own clock.
+    startToken.current =
+      packSeed.current === null && sealed
+        ? practiceStartFn({ data: { sealed } }).then(
+            (r) => r?.start ?? null,
+            () => null,
+          )
+        : null;
+    setStartedAt(Date.now());
+    setStage("puzzle");
+  }, [sealed]);
   const [offlineRunId, setOfflineRunId] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const online = useOnline();
@@ -534,6 +549,9 @@ function PracticeScreen() {
         return;
       }
       let result: Awaited<ReturnType<typeof practiceGradeFn>>;
+      // The start token, if it has come (never waited on for long: the grade bounds the claim without it too).
+      const start = startToken.current ? await withTimeout(startToken.current, 1_500).catch(() => null) : null;
+      startToken.current = null;
       try {
         result = await practiceGradeFn({
           data: {
@@ -541,6 +559,7 @@ function PracticeScreen() {
             sealed,
             answer,
             msRemaining: remaining,
+            ...(start ? { start } : {}),
             clientVersion: APP_BUILD_ID,
             ...inputTypeField(),
             extra: {
@@ -635,9 +654,8 @@ function PracticeScreen() {
   useEffect(() => {
     if (stage !== "intro" || introCancelled.current) return;
     if (now - startedAt < INTRO_MS) return;
-    setStartedAt(Date.now());
-    setStage("puzzle");
-  }, [stage, now, startedAt]);
+    beginRound();
+  }, [stage, now, startedAt, beginRound]);
 
   // Out of time: grade an empty answer, exactly as a room does.
   useEffect(() => {
@@ -958,8 +976,7 @@ function PracticeScreen() {
           onReady={() => {
             if (introCancelled.current) return;
             playLock();
-            setStartedAt(Date.now());
-            setStage("puzzle");
+            beginRound();
           }}
         />
       </PhoneShell>

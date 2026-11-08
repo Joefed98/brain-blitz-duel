@@ -352,10 +352,12 @@ function Reveal({ puzzle, myAnswer, myCorrect, myExtra }: PuzzleRevealProps) {
   const storedPlaced = myExtra?.["placed"];
   const storedValid = myExtra?.["valid"];
   const storedWords = myExtra?.["wordTiles"];
+  const storedCounted = myExtra?.["countedTiles"];
   const line = tileGridResultLine({
     placed: typeof storedPlaced === "number" ? storedPlaced : count,
     valid: typeof storedValid === "boolean" ? storedValid : myCorrect,
     wordTiles: typeof storedWords === "number" ? storedWords : null,
+    countedTiles: typeof storedCounted === "number" ? storedCounted : null,
   });
   return (
     <div data-word-reveal="tilegrid" className="flex min-h-0 w-full flex-1 flex-col items-center justify-start gap-3 overflow-y-auto">

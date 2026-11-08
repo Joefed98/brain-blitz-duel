@@ -459,7 +459,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "maze" }: P
         items={
           par !== null
             ? [
-                { id: "moves", label: "Moves", value: walked, ...(walked > par ? { tone: "warn" as const } : {}) },
+                { id: "moves", label: "Steps", value: walked, ...(walked > par ? { tone: "warn" as const } : {}) },
                 { id: "par", label: "Par", value: par, tone: "gold" },
               ]
             : [

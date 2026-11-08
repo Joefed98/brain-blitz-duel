@@ -8,7 +8,8 @@ import { CODEWORD_STRETCH, TILEGRID_STRETCH_TOPUP, stretchHelp, strikeoutDepthHe
 import { parBonusHelp } from "./parBonusText";
 import { SLIDE_PAR_BONUS_TOPUP } from "./wordSlide";
 import { SW6_SPARE_SWAPS, SWAP_PAR_BONUS_TOPUP } from "./swapword";
-import { STD_ROUNDABOUT, STD_STRIKEOUT, WORD_STANDARD_HELP } from "./standard/word";
+import { STD_ROUNDABOUT, STD_STRIKEOUT, WORD_NOV7_HELP, WORD_STANDARD_HELP } from "./standard/word";
+import { wordNov7Dealt } from "./wordNov7";
 import { preStandardPinned } from "./standard/stamps";
 import { MINES_COUNT, MINES_HIT_COST } from "@/lib/arcade/minesweeper";
 import { MAHJONG_SHUFFLE_COST } from "@/lib/arcade/mahjong";
@@ -16,7 +17,8 @@ import { puzzleNotesDealt } from "./puzzleNotes";
 import { PAR_MOVES_MAZE_HELP, STANDARD_ATTENTION_HELP } from "./standard/attentionTexts";
 import { parMovesDealt, parStrictDealt } from "./parMoves";
 import { operatorGapsDealt } from "./operatorGaps";
-import { PATTERN_STD_HELP, parMovesPatternHelp } from "./standard/patternText";
+import { PARTIAL_PATTERN_HELP, PATTERN_STD_HELP, parMovesPatternHelp, pipesPatternHelp } from "./standard/patternText";
+import { partialCreditDealt } from "./partialCredit";
 import { standardNumberHelp } from "./standard/numberText";
 import {
   scoreWordHunt,
@@ -138,6 +140,7 @@ import {
   WAV_STD_CORE_FULL,
   WAV_STD_LIFE_COST,
   WAVEFRONT_STD,
+  WAVEFRONT_STD_KEEP,
 } from "@/lib/arcade/wavefront";
 import {
   INK_CLOUD_LEVELS,
@@ -189,7 +192,7 @@ import {
   SLICE_V9_VALUE,
   SLICE_V9_GOLDS,
   SLICE_V9_MAX,
-  SLICE_V12_BAND_CURVE, SLICE_V12_COMBO_FROM, SLICE_V12_COMBO_FULL,
+  SLICE_V12_COMBO_FULL,
   SLICE_V11_CHILLI,
   SLICE_V11_CLOSE,
   SLICE_V11_COMBO_CAP,
@@ -227,6 +230,8 @@ import {
   BURST_V10_GOLDEN_PTS,
   BURST_V10_GOLDENS,
   BURST_V10_LIFE_COST,
+  BURST_V11_FREE_MISSES,
+  BURST_V11_MISS_COST,
   BURST_V10_WAVES,
 } from "@/lib/arcade/burst";
 import { liveBandHelp, liveStdHelp as bullseyeStdHelp, liveStdHelp } from "@/lib/arcade/liveBands";
@@ -259,6 +264,7 @@ import {
   CROSS_X_CLOSE_POINTS,
   CROSS_X_COIN_POINTS,
   CROSS_FLOW_STD,
+  CROSS_KEEP_STD,
   CROSS_V11_FLOW_EACH,
   CROSS_V11_FLOW_MAX,
   CROSS_V11_HIT_COST,
@@ -323,6 +329,7 @@ import {
   FLIP_V8_TRAIL_POINTS,
   FLIP_V8_ZONE_POINTS,
   FLIP_V11,
+  FLIP_V11_STREAK_FULL,
   FLIP_V11_SAVE_COST,
 } from "@/lib/arcade/flip";
 import { bandCurve, type BandCurve } from "@/lib/arcade/scoreBands";
@@ -358,7 +365,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Tap letters,", detail: "then Enter. 4+ letters a word." },
         { action: "Use each tile once.", detail: "No plurals." },
         { action: "Shuffle", detail: "is free; the centre stays put." },
-        { action: "Pangram bonus:", detail: `the word using every tile adds ${WORDSMITH_V3_PANGRAM_BONUS}. There’s always one.`, helpOnly: true },
+        { action: "Every-tile word:", detail: `the word using every tile adds ${WORDSMITH_V3_PANGRAM_BONUS}. There’s always one.`, helpOnly: true },
         { action: "Tap a selected letter again", detail: "to remove it. Clear empties the word; Enter checks it.", helpOnly: true },
         { action: "No plurals", detail: "or -s verb forms (FINDS, BOXES); words like GLASS are fine.", helpOnly: true },
         { action: "Words are checked", detail: "against a standard British English dictionary.", helpOnly: true },
@@ -378,7 +385,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Red runs", detail: "need fixing.", helpOnly: true },
         { action: "Words are checked", detail: "against a standard British English dictionary.", helpOnly: true },
       ],
-      score: preStandardPinned() ? stretchHelp("tilegrid", TILEGRID_STRETCH_TOPUP) : WORD_STANDARD_HELP.tilegrid,
+      score: preStandardPinned() ? stretchHelp("tilegrid", TILEGRID_STRETCH_TOPUP) : wordNov7Dealt("tilegrid") ? WORD_NOV7_HELP.tilegrid : WORD_STANDARD_HELP.tilegrid,
     },
     balance: {
       goal: "Balance each of the four scales.",
@@ -407,7 +414,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Words are 5 letters.", detail: "Column swipes go around a locked row.", helpOnly: true },
         { action: "Words are checked", detail: "against a standard British English dictionary.", helpOnly: true },
       ],
-      score: preStandardPinned() ? parBonusHelp("wordslide", SLIDE_PAR_BONUS_TOPUP, "moves", "the par moves") : WORD_STANDARD_HELP.wordslide,
+      score: preStandardPinned() ? parBonusHelp("wordslide", SLIDE_PAR_BONUS_TOPUP, "moves", "the par moves") : wordNov7Dealt("wordslide") ? WORD_NOV7_HELP.wordslide : WORD_STANDARD_HELP.wordslide,
     },
     target: {
       goal: "Use the six numbers to make the target.",
@@ -429,7 +436,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
               { action: "Four equations:", detail: "signs, then numbers, then both. Next skips." },
               { action: "Each tray number", detail: "can be used once; some are decoys. Tap a filled gap to empty it.", helpOnly: true },
               { action: "A true equation", detail: "holds for 1 second, then moves on; the timer keeps running.", helpOnly: true },
-              { action: "The last one", detail: "uses division in a harder mix; every step must stay a whole number. 90 seconds for all four.", helpOnly: true },
+              { action: "The last one", detail: "uses division in a harder mix; every step must stay a whole number, never below 0. 90 seconds for all four.", helpOnly: true },
               { action: "3 tries each:", detail: "every full fill is a try. After the third wrong one the equation locks; tap Next.", helpOnly: true },
             ]
         : [
@@ -513,7 +520,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "From Watch 2:", detail: "blind spots (wider on later watches), some slower sweeps, and two watches run corner to corner.", helpOnly: true },
         { action: "Some targets move:", detail: "stop when they line up. Some watches hide the last third, turn vertical or speed up.", helpOnly: true },
         { action: "The counter drops at the right edge", detail: "from 2 on Watch 1 to 11 on Watch 10.", helpOnly: true },
-        { action: "Watches 8-10 wrap", detail: "from the right edge back to the left.", helpOnly: true },
+        { action: "Watches 8–10 wrap", detail: "from the right edge back to the left.", helpOnly: true },
       ],
       // Depth to 200 (tapRev 5): tapRev 4's curve plus the dead-centre line and the zone streak (depth/speedTexts.ts).
       score: bangOnDepthHelp(),
@@ -555,7 +562,8 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Clear a path", detail: "for the gold block." },
         { action: "Par", detail: "is the fewest moves; the bar’s gold mark shows it." },
       ],
-      score: PATTERN_STD_HELP.unblock,
+      // Partial-credit fixes (7 Nov 2026, partialCredit.ts): the new stamp's unfinished credit.
+      score: partialCreditDealt() ? PARTIAL_PATTERN_HELP.unblock : PATTERN_STD_HELP.unblock,
     },
     blockparty: {
       goal: "Fit every piece into the free squares.",
@@ -583,15 +591,16 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Tap a tile", detail: "to rotate its pipe." },
         { action: "Join every opening", detail: "to another pipe." },
         { action: "No leaks", detail: "at the edges." },
-        { action: "Par", detail: "is the fewest taps; the bar’s gold mark shows it." },
+        { action: "Par", detail: "is the fewest taps, shown beside your taps." },
       ],
-      score: PATTERN_STD_HELP.pipes,
+      // pipesRev 4 (7 Nov 2026, speedPipesNov7.ts): the tiles turned to fit.
+      score: pipesPatternHelp(),
     },
     sudoku: {
       goal: "Fill the 6 × 6 sudoku grid.",
       how: [
         { action: "Tap a cell,", detail: "then a number." },
-        { action: "Use 1-6 once", detail: "in each row, column and box." },
+        { action: "Use 1–6 once", detail: "in each row, column and box." },
         { action: "Pencil marks", detail: "are for notes." },
         { action: "13 to 15 numbers", detail: "are given, and only one grid fits them.", helpOnly: true },
       ],
@@ -700,8 +709,8 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Do the six steps,", detail: "then tap DEFUSE." },
         { action: "One wrong step", detail: "and it explodes." },
         { action: "Clues say", detail: "which step an action is, what comes before or straight after what, and what not to do. “Before” means any time earlier.", helpOnly: true },
-        { action: "Only one order fits", detail: "the clues together allow exactly one six-step sequence, and every clue is needed.", helpOnly: true },
-        { action: "Wires", detail: "are numbered 1-7 from the left.", helpOnly: true },
+        { action: "Only one order fits:", detail: "the clues together allow exactly one six-step sequence, and every clue is needed.", helpOnly: true },
+        { action: "Wires", detail: "are numbered 1–7 from the left.", helpOnly: true },
       ],
       score: logicStandardHelp("bomb"),
     },
@@ -729,9 +738,9 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Tap again", detail: "before the gold ring empties." },
         { action: "After link 20,", detail: "go backwards for 5 links." },
         { action: "The lit charm", detail: "in the preview is the one you need next. Each right tap adds a link; one wrong tap ends the chain.", helpOnly: true },
-        { action: "Keep momentum", detail: "– 3 s for links 1-13, 2.5 s for 14-26, 2 s for 27-40. The first tap is untimed.", helpOnly: true },
+        { action: "Keep momentum", detail: "– 3 s for links 1–13, 2.5 s for 14–26, 2 s for 27–40. The first tap is untimed.", helpOnly: true },
         { action: "Every 5 links", detail: "the board reshuffles with five new charms.", helpOnly: true },
-        { action: "Reverse:", detail: "a banner warns from link 17; links 21-25 run last to first (the arrows point back).", helpOnly: true },
+        { action: "Reverse:", detail: "a banner warns from link 17; links 21–25 run last to first (the arrows point back).", helpOnly: true },
         { action: "Watch for look-alikes:", detail: "right shape, wrong colour.", helpOnly: true },
       ],
       // The scoring standard (chainDepthRev 3): no milestones; standard/attentionTexts.ts.
@@ -776,8 +785,10 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "A tile in its right place", detail: "locks (dotted), as the four corners are." },
         { action: "Every round", detail: "has its own colours, so the board never looks the same twice.", helpOnly: true },
         { action: "Par", detail: "is shown with your swaps; every swap counts.", helpOnly: true },
+        // tilesRev 7 (partial-credit fixes, 7 Nov 2026): a swap limit.
+        ...(partialCreditDealt() ? [{ action: "Swaps are limited:", detail: "the Left counter shows how many remain; out of swaps, the board ends.", helpOnly: true }] : []),
       ],
-      score: PATTERN_STD_HELP.tiles,
+      score: partialCreditDealt() ? PARTIAL_PATTERN_HELP.tiles : PATTERN_STD_HELP.tiles,
     },
     rings: {
       goal: "Turn the rings until every spoke is one colour.",
@@ -789,13 +800,14 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Linked rings", detail: "turn the same way or the opposite way.", helpOnly: true },
         { action: "The selected ring", detail: "glows and the needle touches its edge.", helpOnly: true },
       ],
-      score: PATTERN_STD_HELP.rings,
+      // Partial-credit fixes (7 Nov 2026, partialCredit.ts): the new stamp's unfinished credit.
+      score: partialCreditDealt() ? PARTIAL_PATTERN_HELP.rings : PATTERN_STD_HELP.rings,
     },
     hover: {
       goal: "Fly through the barrier gaps.",
       how: [
         { action: "Tap to hover up;", detail: "let go to drop." },
-        { action: "Gold gates:", detail: "thread them, dead centre for more." },
+        { action: "Tight gates:", detail: "thread them, centre for more." },
         { action: "Star chains:", detail: "sweep them; shields take a crash." },
         { action: "Touch gold stars", detail: "in tight gaps for a bonus. Later barriers have two gaps, or slide.", helpOnly: true },
         { action: "Hit anything", detail: "and the run ends. Gold stars sit near the edge of a gap, so they are risky.", helpOnly: true },
@@ -847,7 +859,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       goal: "Throw into the boardwalk bucket.",
       how: [
         { action: "Drag to aim,", detail: "then let go to throw." },
-        { action: "Wind 1 = a quarter bucket.", detail: "Aim into the flag." },
+        { action: "Wind 1 = a quarter bucket.", detail: "Aim upwind." },
         { action: "Small far bucket:", detail: `+${BINTOSS_V9_FAR}, and its hoop +${BINTOSS_V9_HOOP}.` },
         { action: "Through the hoop, then in:", detail: `+${BINTOSS_V9_HOOP} bonus.`, helpOnly: true },
         {
@@ -864,12 +876,12 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "From throw 7 the bucket slides", detail: "side to side – time your release.", helpOnly: true },
         {
           action: "Hoops:",
-          detail: `on three of throws 2-5 a hoop hangs over the far bucket. Go down through it and into a bucket for ${BINTOSS_V9_HOOP} bonus points. Its gold ends bounce the ball away.`,
+          detail: `on three of throws 2–5 a hoop hangs over the far bucket. Go down through it and into a bucket for ${BINTOSS_V9_HOOP} bonus points. Its gold ends bounce the ball away.`,
           helpOnly: true,
         },
         {
           action: "Spinners:",
-          detail: "on three of throws 6-10 a paddle turns in front of the bucket at a steady speed. Time your throw past it, or lob high over it.",
+          detail: "on three of throws 6–10 a paddle turns in front of the bucket at a steady speed. Time your throw past it, or lob high over it.",
           helpOnly: true,
         },
         { action: "Drag down to the cancel strip", detail: "to put a throw back.", helpOnly: true },
@@ -920,7 +932,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         },
         {
           action: "Balloons:",
-          detail: "on three of darts 3-10 a balloon flies back and forth across the board itself, moving with it: +1 green (slowest), +2 blue (a little faster), +3 purple (fastest). A dart that passes through a balloon pops it and scores its value, then carries on and also scores the ring it lands in.",
+          detail: "on three of darts 3–10 a balloon flies back and forth across the board itself, moving with it: +1 green (slowest), +2 blue (a little faster), +3 purple (fastest). A dart that passes through a balloon pops it and scores its value, then carries on and also scores the ring it lands in.",
           helpOnly: true,
         },
       ],
@@ -992,7 +1004,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Cargo freighters from crossing 2,", detail: "comets from 3, drifting debris from 4.", helpOnly: true },
         { action: "Freighters are long and slow with small gaps:", detail: "time the gap or walk along to it. The small comets are narrow and very fast.", helpOnly: true },
         { action: "Comets race along the glowing plasma lanes;", detail: "debris blocks part of a lane.", helpOnly: true },
-        { action: "Three lives.", detail: `A hit costs ${CROSS_V11_HIT_COST} points and sends you back to the start of this crossing, or to the docking platform once you’ve reached it in that crossing.`, helpOnly: true },
+        { action: "Three lives.", detail: `A hit sends you back to the start of this crossing, or to the docking platform once you’ve reached it in that crossing. Each hit but your last costs ${CROSS_V11_HIT_COST} points; the third just ends the run.`, helpOnly: true },
         { action: "No-stop streak:", detail: `a crossing with no hit where you never stand on the start deck or the docking platform for more than ${CROSS_V11_STOP_TICKS / 60} s at a time is a no-stop crossing (stepping along the deck still counts as standing there; the second’s wait at the start of a crossing doesn’t). Each one straight after another adds ${CROSS_V11_FLOW_EACH}, up to ${CROSS_V11_FLOW_MAX}; a stop or a hit ends the run of them.`, helpOnly: true },
         { action: "Close calls:", detail: `hop into a lane just as a ship has passed your spot (within a tenth of a second) for 1 point, once a lane each crossing, up to 10 a run.`, helpOnly: true },
         { action: "Busier each crossing:", detail: "the first has half the traffic, the next ones more, full traffic by crossing 4 and busier still after it. The first two always leave wide gaps; later traffic is tighter and faster.", helpOnly: true },
@@ -1000,11 +1012,12 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Only the astronaut counts:", detail: "traffic has to touch the figure itself (its arms’ reach), not the space around it.", helpOnly: true },
       ],
       // crossRev 11 (3 Nov 2026): rows and crossings on a straight line to 150, the no-stop streak 40, close calls 10; a hit costs 15.
-      score: listFromSpec(CROSS_FLOW_STD, {
+      // crossRev 12 (Nov 2026, the scoring audit): the hit that ends the run is free; hits take at most half the rows' points.
+      score: listFromSpec(CROSS_KEEP_STD, {
         core: "1 for each row crossed, 2 more for each full crossing",
         streak: `${CROSS_V11_FLOW_EACH} for each crossing without stopping, straight after another`,
         close: "1 for each close call",
-      }, [`Each hit costs ${CROSS_V11_HIT_COST}`]),
+      }, [`Each hit costs ${CROSS_V11_HIT_COST}, but the last one just ends the run`, "Hits never take more than half your rows and crossings points"]),
     },
     dual: {
       goal: "Keep both runners alive.",
@@ -1076,7 +1089,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       how: [
         { action: "Tap a spot", detail: "on the field before the pitch: that’s where you want to hit it." },
         { action: "Tap again as the ring closes", detail: "on the ball: perfect timing sends it to your spot." },
-        { action: "Early pulls it left, late pushes it right,", detail: "and falls short; a fielder catches anything in his circle." },
+        { action: "Early pulls it left, late pushes it right,", detail: "and falls short; a fielder catches anything in their circle." },
         { action: "Hit the lit sign", detail: "for a bonus; keep your perfect swings going." },
         { action: "Your spot:", detail: "a tap on the grass, the stands or a sign, before the pitch is near; it stays where it is until you tap a new one (straightaway centre to start). A tap once the pitch is coming is your swing, wherever you tap.", helpOnly: true },
         { action: "The ring:", detail: "a faint ring closes round the ball as it comes in; tap the moment it meets the ball. Perfect is the exact moment; one frame either side still finds your spot; each frame further off moves the ball about 2.5° and takes some distance off. Too far off is a miss.", helpOnly: true },
@@ -1092,7 +1105,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       goal: "Score ten free kicks past the wall and the keeper.",
       how: [
         { action: "Draw the shot", detail: "from the ball to where it goes; bend the line to curl it round the wall." },
-        { action: "Hold the bar, release in the gold:", detail: "too late flies high, too early comes in low and slow." },
+        { action: "Hold the bar, release in the gold:", detail: "above the gold flies high, below it comes in low and slow." },
         { action: "Curl bonus:", detail: "a goal from a strongly bent shot pays extra." },
         { action: "Gold targets:", detail: "top corners or the bar; the corner rings shrink kick by kick.", helpOnly: true },
         { action: "Redraw the shot", detail: "as often as you like until you press the bar: the marker shows where it goes, dots show the bend. The bar’s needle sweeps up and back, the same speed every time.", helpOnly: true },
@@ -1149,7 +1162,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Tap the table", detail: "to point the cue straight at that spot.", helpOnly: true },
         { action: "The dotted line", detail: "runs to a ghost ball; the short line shows where the object ball goes, the faint one the cue ball’s path.", helpOnly: true },
         { action: "Power:", detail: "the further you pull the cue, the harder the shot; green is soft, red full power.", helpOnly: true },
-        { action: "Spin:", detail: "tap the cue ball, bottom right, and place the red dot anywhere on it: high for top spin (follow), low for back spin (draw, which pulls the cue ball back), left or right for side, which bends the bounce off a cushion.", helpOnly: true },
+        { action: "Spin:", detail: "tap the spin ball, bottom right, and place the red dot anywhere on it: high for top spin (follow), low for back spin (draw, which pulls the cue ball back), left or right for side, which bends the bounce off a cushion.", helpOnly: true },
         { action: "Cue ball potted:", detail: "it comes back to its spot and costs you time.", helpOnly: true },
         { action: "The black too early", detail: "ends your run with no black or speed points.", helpOnly: true },
         { action: "Every layout is proved clearable", detail: "without a miss. The same table and set for everyone.", helpOnly: true },
@@ -1359,7 +1372,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Cut food near a chilli;", detail: "never cut one." },
         { action: "Never cut a chilli:", detail: `it costs ${SLICE_V11_CHILLI} points and ends your combo.`, helpOnly: true },
         { action: "Cut a bottle:", detail: "ketchup, mustard or mayo power-up.", helpOnly: true },
-        { action: "Combo:", detail: `three foods in one swipe start it and each one renews its 10 seconds. Past the first ${SLICE_V12_COMBO_FROM} foods cut while it is live, each adds to the combo’s ${SLICE_V11_COMBO_CAP}, all of it at ${SLICE_V12_COMBO_FULL}.`, helpOnly: true },
+        { action: "Combo:", detail: `three foods in one swipe start it and each one renews its 10 seconds. Every food cut while it is live adds to the combo’s ${SLICE_V11_COMBO_CAP}, all of it at ${SLICE_V12_COMBO_FULL}.`, helpOnly: true },
         { action: "The food:", detail: "bread, watermelons, oranges and apples; the bright red chillies are the ones to miss.", helpOnly: true },
         { action: "Golden fruit:", detail: `the golden apples, ${SLICE_V9_GOLDS} a run, share ${SLICE_V11_GOLD_CAP} points.`, helpOnly: true },
         { action: "Bread tickets:", detail: `${SLICE_V11_TICKET_BREADS} breads cut in a row fill a ticket (other food in between is fine; a bread you miss starts the count again). Tickets share ${SLICE_V11_TICKET_CAP} points.`, helpOnly: true },
@@ -1369,9 +1382,9 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "One finger-down-to-up path counts together", detail: "– curves too, up to the full height of the screen.", helpOnly: true },
       ],
       // sliceRev 12 (3 Nov 2026, docs/arcade-standard/slice.md): the share of food cut on a straight line from half of
-      // it to 120, then the four parts.
+      // it to 120, then the four parts. sliceRev 13 (Nov 2026, the scoring audit): the food and combo lines start at 0.
       score: scoreList([
-        { label: "Food", how: "slice the food thrown up; the first half of it scores nothing, then every piece counts the same", max: SLICE_V11_CORE },
+        { label: "Food", how: "slice the food thrown up; every piece counts the same", max: SLICE_V11_CORE },
         { label: "Combos", how: "slice several foods in one swipe", max: SLICE_V11_COMBO_CAP },
         { label: "Golden fruit", how: "slice the golden fruit", max: SLICE_V11_GOLD_CAP },
         { label: "Bread tickets", how: "slice the bread", max: SLICE_V11_TICKET_CAP },
@@ -1401,7 +1414,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       how: [
         { action: "Tap a lane", detail: "as its note reaches the line." },
         { action: "Hold tails, swipe arrows,", detail: "tap twin dots twice." },
-        { action: "Full meter? Tap it:", detail: "FEVER doubles your notes." },
+        { action: "Full meter? Tap it:", detail: "fever scores a bonus." },
         { action: "Gold notes and Perfect streaks", detail: "score a bonus; five lanes from 40 s.", helpOnly: true },
         { action: "Tail notes:", detail: "hold, let go at the end.", helpOnly: true },
         { action: "Arrow notes:", detail: "swipe that way on the line.", helpOnly: true },
@@ -1466,7 +1479,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       how: [
         { action: "Tap a clay", detail: "to shoot exactly there." },
         { action: "Gold clays", detail: "are faster and worth double." },
-        { action: "Don’t shoot", detail: "the 14-16 white birds." },
+        { action: "Don’t shoot", detail: "the 14–16 white birds." },
         { action: "Unlimited shots,", detail: "no reload.", helpOnly: true },
         { action: "Later on, two fly at once", detail: "– keep watching both edges.", helpOnly: true },
         { action: "Each bird hit", detail: "costs 10.", helpOnly: true },
@@ -1475,7 +1488,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "The hit streak", detail: "grows ×2 from the 5th clay in a row, ×3 from the 10th, ×4 from the 15th; a clay that gets away or a bird ends it.", helpOnly: true },
       ],
       score: scoreList([
-        { label: "Clays", how: "5 for each orange clay, 10 for each gold, 10 more for all 25 with no bird hit", max: bandMapTotal(CLAY_QUICK_HIT_MAP, 150) },
+        { label: "Clays", how: "more for each clay hit, a gold one worth double, and a bonus for all 25 with no bird hit", max: bandMapTotal(CLAY_QUICK_HIT_MAP, 150) },
         { label: "Quick hits", how: "hit each clay within a quarter of a second of its launch (none after about 0.37 s)", max: CLAY_QUICK_POINTS },
         { label: "Doubles", how: `hit both clays of each of the ${CLAY_DOUBLES} doubles, more for quick hits`, max: CLAY_DOUBLE_POINTS * CLAY_DOUBLES },
         { label: "Streak", how: "hit all 25 in one unbroken streak, more for quick hits", max: CLAY_STREAK_POINTS },
@@ -1485,7 +1498,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       goal: "Bonk gophers whose hats match the banner.",
       how: [
         { action: "Tap a gopher", detail: "in the banner’s hat colour." },
-        { action: "The rule flips", detail: "3-5 times: watch the banner." },
+        { action: "The rule flips", detail: "3–5 times: watch the banner." },
         { action: "Never tap", detail: "a hedgehog." },
         { action: "Gophers pop up briefly", detail: "– the window shrinks as the run goes on.", helpOnly: true },
         { action: "Hedgehogs cost 5;", detail: "a wrong-colour hat or an empty burrow costs 3.", helpOnly: true },
@@ -1493,7 +1506,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "The gold combo", detail: "grows ×2 from the 6th right hit in a row, ×3 from the 11th, ×4 from the 16th; a wrong hat, a hedgehog or an empty burrow ends it (a gopher left to sink does not).", helpOnly: true },
       ],
       score: scoreList([
-        { label: "Hits", how: "hit the targets as they pop up; every target hit scores the same, 15 more for hitting them all", max: 150 },
+        { label: "Hits", how: "more for every target hit, 15 more for hitting them all; wrong taps come off this part", max: 150 },
         { label: "Combo", how: `long unbroken runs of very quick hits (none slower than about ${Math.round((WHACK_QUICK_ZERO_TICKS * 1000) / 60)} ms)`, max: WHACK_COMBO_POINTS },
         { label: "Diamonds", how: `${WHACK_DIAMOND_POINTS} for each of the ${WHACK_DIAMONDS} diamonds`, max: WHACK_DIAMOND_POINTS * WHACK_DIAMONDS },
       ], { penalties: ["Each wrong hat or empty tap costs 3 and each hedgehog 5"], total: "{max}" as unknown as number }),
@@ -1504,7 +1517,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Drag to move;", detail: "you fire on your own." },
         { action: "Shoot glowing carriers;", detail: "catch what they drop." },
         { action: "Bosses:", detail: "hit weak points dead centre." },
-        { action: "Red bolts and divers cost a life:", detail: "you have 3.", helpOnly: true },
+        { action: "Red bolts and divers cost a life:", detail: `you have 3. Each life but your last costs ${WAV_STD_LIFE_COST} points; losing the last just ends the run.`, helpOnly: true },
         { action: "The run lasts 90 seconds.", detail: "Each new wave flies in from the top 2 seconds after you clear one. Don’t let a formation reach your line.", helpOnly: true },
         { action: "From wave 3, ships peel off and dive at you,", detail: "then fly back to their place. Shoot them on the way; one that rams you costs a life.", helpOnly: true },
         { action: "Each wave flies its own shape:", detail: `a grid, then a triangle, a circle, a pentagon and an octagon – ${WAV_X_SHAPES} ships each, with six escorts under the shapes. Waves 3 and 4 come down more slowly.`, helpOnly: true },
@@ -1515,13 +1528,14 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Weak points score:", detail: "each cannon you destroy and each boss whose open core you hit (once is enough) – six in a run.", helpOnly: true },
       ],
       // wavRev 12 (the arcade scoring standard, docs/arcade-standard/wavefront.md): the core and fixed parts, 200 in all.
-      score: listFromSpec(WAVEFRONT_STD, {
+      // wavRev 13 (Nov 2026, the scoring audit): the life that ends the run is free; lives take at most half the ships' points.
+      score: listFromSpec(WAVEFRONT_STD_KEEP, {
         core: "1 for each ship shot, armour hit and boss hit, 15 for each wave cleared",
         boss: "destroy the boss",
         speed: "destroy it within 20 s of its arrival for all of it, nothing after 40 s",
         saucers: `${20 / WAV_X_SAUCERS} for each saucer shot down`,
         weak: "destroy cannons and hit the boss’s open core",
-      }, [`Each life lost costs ${WAV_STD_LIFE_COST}`, "Power-ups score nothing"]),
+      }, [`Each life lost costs ${WAV_STD_LIFE_COST}, but losing the last just ends the run`, "Lives never take more than half your ships, hits and waves points", "Power-ups score nothing"]),
     },
     // Iron Wall (id bastion; bastionRev 3, 3 Nov 2026; docs/arcade-standard/bastion.md): the tank-defence shooter.
     bastion: {
@@ -1574,7 +1588,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         core: `every half second you last counts, less ${FLIP_V11_SAVE_COST / 2} s for each crash a checkpoint saves; the whole minute with no crash for all of it`,
         sweets: `${60 / FLIP_V8_SWEETS} for each landing on one of the ${FLIP_V8_SWEETS} sweet spots`,
         doubles: "2.5 for each double flip",
-        flow: "your longest run of clean jumps",
+        flow: `your longest run of clean jumps (${FLIP_V11_STREAK_FULL} in a row for all of it)`,
       }),
     },
     junction: {
@@ -1597,15 +1611,15 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       goal: "Roll the coin into the pot.",
       how: [
         { action: "Draw a line,", detail: "then tap RELEASE to drop." },
-        { action: "Levels 9-10:", detail: "keep drawing as the coin falls." },
+        { action: "Levels 9–10:", detail: "keep drawing as the coin falls." },
         { action: "Ink par:", detail: "pot each level using little ink." },
-        { action: "Levels 1-4", detail: "Draw lines around the white birds, then tap RELEASE to drop the coin into a still pot.", helpOnly: true },
-        { action: "Levels 5-8", detail: "The pot moves. Time the release so the coin rolls in.", helpOnly: true },
-        { action: "Levels 9-10: LIVE", detail: "Draw one line, RELEASE, then keep drawing as the coin falls. Faded strokes commit when you lift your finger; you can’t draw through birds or near the coin.", helpOnly: true },
+        { action: "Levels 1–4:", detail: "draw lines around the white birds, then tap RELEASE to drop the coin into a still pot.", helpOnly: true },
+        { action: "Levels 5–8:", detail: "the pot moves. Time the release so the coin rolls in.", helpOnly: true },
+        { action: "Levels 9–10, live:", detail: "draw one line, RELEASE, then keep drawing as the coin falls. Faded strokes commit when you lift your finger; you can’t draw through birds or near the coin.", helpOnly: true },
         { action: "Ink par:", detail: "the top of the screen shows the ink this level has taken and its par (“Ink 18 · par 54”), and a bar the ink left. Pot the coin using no more ink than the par for the level’s full ink-par points; a little over still pays some, twice the par nothing. Undo gives the ink back.", helpOnly: true },
         { action: "Clovers:", detail: `${INK_V13_CLOVERS} levels in the run have a clover on a harder route, well away from the easy one. Roll the coin through it and into the pot: it counts only once the coin is potted. You never need it to finish a level.`, helpOnly: true },
         { action: "Bounce clouds:", detail: `${INK_CLOUD_LEVELS} levels have a springy cloud that throws the coin back up: pot the coin after a bounce for a trick shot.`, helpOnly: true },
-        { action: "Ink is limited", detail: "Each level has a budget, with a larger shared supply for live levels.", helpOnly: true },
+        { action: "Ink is limited:", detail: "each level has a budget, with a larger shared supply for live levels.", helpOnly: true },
         { action: "A failed drop", detail: "clears your lines: try again until the clock runs out.", helpOnly: true },
       ],
       // inkRev 13 (Nov 2026) and 14 (3 Nov 2026, the same parts with a bigger coin, clovers and birds): levels on a straight
@@ -1625,8 +1639,8 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "◀ ▶ to move,", detail: "tap the arena to shoot up." },
         { action: `${BURST_V10_WAVES} waves:`, detail: `clear each fast for up to +${BURST_V10_CLEAR_PER_WAVE}.` },
         { action: "Golden atom:", detail: `+${BURST_V10_GOLDEN_PTS}, but it hurts like any atom.` },
-        { action: "An atom touching you (golden ones too)", detail: `costs a life and ${BURST_V10_LIFE_COST} points (3 lives).`, helpOnly: true },
-        { action: "Hold ◀ or ▶ to walk; tap anywhere on the arena to fire straight up.", detail: "There is no FIRE button: every tap on the arena is a shot.", helpOnly: true },
+        { action: "An atom touching you (golden ones too)", detail: `costs a life (3 lives). Each life but your last costs ${BURST_V10_LIFE_COST} points; losing the last just ends the run.`, helpOnly: true },
+        { action: "Hold ◀ or ▶ to walk; tap anywhere on the arena to fire straight up.", detail: `There is no FIRE button: every tap on the arena is a shot. A shot that reaches the top without hitting anything is wasted: you get one free for each atom you pop (at least ${BURST_V11_FREE_MISSES}), then each costs ${BURST_V11_MISS_COST}.`, helpOnly: true },
         { action: "Big atoms split into smaller ones;", detail: "the smallest pop.", helpOnly: true },
         { action: `${BURST_V10_WAVES} waves, ${BURST_V10_ATOMS} atoms:`, detail: `counting every piece the splits make. Clear all ${BURST_V10_WAVES} waves and the run is complete.`, helpOnly: true },
         { action: "Wave-clear bonus:", detail: `each wave you clear pays up to ${BURST_V10_CLEAR_PER_WAVE}: the full ${BURST_V10_CLEAR_PER_WAVE} within its quick time (1 s plus 0.6 s for every atom it holds, splits included), then evenly less, down to 0 at twice that. The counter (CLEAR +${BURST_V10_CLEAR_PER_WAVE}) shows what the wave on screen still pays.`, helpOnly: true },
@@ -1634,11 +1648,12 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Power-ups ride on atoms:", detail: "an atom showing a small icon drops that power-up when you split it (the same atoms for everyone). Walk under it to catch it. DOUBLE fires two beams a shot for 8 s; BURST fires three quick short shots a tap for 8 s; FREEZE stops every atom for 3 s. Frozen atoms still hurt if you walk into one. They score nothing themselves.", helpOnly: true },
       ],
       // burstRev 10 (the arcade scoring standard, docs/arcade-standard/burst.md): the atoms on a straight line, wave clears, golden atoms, lives.
+      // burstRev 11 (the scoring audit, Nov 2026): the last life free, wasted shots cost, never more than half the atom points.
       score: scoreList([
         { label: "Atoms", how: `every atom and split piece popped counts the same (${BURST_V10_ATOMS} in the ${BURST_V10_WAVES} waves)`, max: BURST_V10_CORE_MAX },
         { label: "Wave clears", how: `up to ${BURST_V10_CLEAR_PER_WAVE} for each wave, more the quicker you clear it`, max: BURST_V10_CLEAR_MAX },
         { label: "Golden atoms", how: `${BURST_V10_GOLDEN_PTS} for each golden atom`, max: BURST_V10_GOLDEN_MAX },
-      ], { penalties: [`Each life lost costs ${BURST_V10_LIFE_COST}`, "Power-ups score nothing"], total: 200 }),
+      ], { penalties: [`Each life lost before your last costs ${BURST_V10_LIFE_COST}`, `Wasted shots beyond one for each atom popped (at least ${BURST_V11_FREE_MISSES} free) cost ${BURST_V11_MISS_COST} each`, "Lives and wasted shots never take more than half your atom points", "Power-ups score nothing"], total: 200 }),
     },
     orbit: {
       goal: "Fly planet to planet to the sun.",
@@ -1648,7 +1663,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Thread rock gaps;", detail: "let go on the first lap.", helpOnly: true },
         { action: "Fuel:", detail: "drains in flight, refills in orbit." },
         { action: "Checkpoint:", detail: "a crash returns you there.", helpOnly: true },
-        { action: "Black hole:", detail: "fly in, skip 5-6 planets.", helpOnly: true },
+        { action: "Black hole:", detail: "fly in, skip 5–6 planets.", helpOnly: true },
         { action: "You orbit automatically.", detail: "Tap to let go – you fly straight until an orbit catches you: any planet’s orbit you reach, even one you skip ahead to (the planets you pass count as reached).", helpOnly: true },
         { action: "Fuel (bottom right):", detail: `it drains only while you fly between orbits and fills up again the moment an orbit catches you. A jump at any planet in reach lands with fuel to spare; fly off into empty space and it runs out after about ${Math.round(ORBIT_FUEL_MAX / 6) / 10} s, and the run ends (or you go back to your checkpoint).`, helpOnly: true },
         { action: "Set Checkpoint once while orbiting.", detail: "Your next crash returns you there. Without it, or after using it, a crash ends the run. Orbits are belt-safe. On later planets, time arrival and departure through the opening in the outside asteroid ring – it turns once every 12 seconds.", helpOnly: true },
@@ -1668,7 +1683,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         slings: "3 for each slingshot round a moon",
         fields: "4 for each asteroid field crossed",
         perfect: "a little for each perfect orbit",
-      }, ["Running out of fuel ends the run"]),
+      }, ["Running out of fuel ends the run (or sends you back to your checkpoint)"]),
     },
 
     snip: {
@@ -1763,6 +1778,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Tap an edge", detail: "to draw a line; again for ✕, again to clear." },
         { action: "Drag along edges", detail: "to draw several at once." },
         { action: "Each number", detail: "is how many of its four sides the loop uses." },
+        { action: "Undo", detail: "takes back your last move; Reset clears the board.", helpOnly: true },
       ],
       score: gridStandardHelp("fences"),
     },
@@ -1783,8 +1799,9 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       goal: "Join every island so each has its number of bridges.",
       how: [
         { action: "Drag island to island", detail: "to build a bridge; again for two, again to remove." },
-        { action: "Bridges run straight", detail: "never cross, at most two per pair." },
+        { action: "Bridges run straight,", detail: "never cross, and at most two join a pair." },
         { action: "Every island", detail: "must end up connected." },
+        { action: "Undo", detail: "takes back your last move; Reset clears the board.", helpOnly: true },
       ],
       score: gridStandardHelp("bridges"),
     },
@@ -1833,6 +1850,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Outer bull = 25,", detail: "inner bull = 50 (a double).", helpOnly: true },
         { action: "The ring shown", detail: "is a double or a treble.", helpOnly: true },
         { action: "Every board is different.", detail: "Solve the five in any order; a wrong throw only costs time. Undo takes a dart back.", helpOnly: true },
+        { action: "Board 4", detail: "has a gold x4 ring. Board 5 has two minus numbers and must finish in exactly 4 darts.", helpOnly: true },
       ],
       score: standardNumberHelp("checkout"),
     },
@@ -1904,7 +1922,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Each chip shows", detail: "a hidden word’s letter count until you find it; the word then fills it.", helpOnly: true },
         { action: "The bonus word", detail: "fills the gold star chip. Find it before the sixth word: the sixth ends the round.", helpOnly: true },
       ],
-      score: preStandardPinned() ? wordSearchBonusHelp() : WORD_STANDARD_HELP.wordsearch,
+      score: preStandardPinned() ? wordSearchBonusHelp() : wordNov7Dealt("wordsearch") ? WORD_NOV7_HELP.wordsearch : WORD_STANDARD_HELP.wordsearch,
     },
     letterwheel: {
       goal: "Fill the crossword from the letter wheel.",
@@ -1966,7 +1984,8 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "A bulb lights", detail: "its row and column to a wall." },
         { action: "Bulbs", detail: "must never light each other." },
         { action: "A wall’s number", detail: "is how many bulbs touch it." },
-        { action: "A number on a wall", detail: "says exactly how many bulbs touch that wall’s four sides.", helpOnly: true },
+        { action: "Tap a square", detail: "for a bulb; again for a dot, again to clear." },
+        { action: "Dots", detail: "are your notes; they never score.", helpOnly: true },
       ],
       score: logicStandardHelp("lightup"),
     },

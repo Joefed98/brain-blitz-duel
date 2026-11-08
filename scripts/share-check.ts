@@ -475,7 +475,7 @@ for (const nav of ["none", "refused"] as const) {
   );
   const badCode = shareEventRow("user-1", { event: "share_tap", source: "challenge", challengeCode: "I0O1L'", players: 21 });
   check(badCode?.challenge_code === null && badCode.players === null, `a malformed challenge code or count kept: ${JSON.stringify(badCode)}`);
-  check(shareEventRow("user-1", { event: "share_tap", source: "sms", players: 12 })?.source === "room" && shareEventRow("user-1", { event: "share_tap", source: "sms", players: 12 })?.players === null, "an unknown source is not stored as a room's (with a room's limits)");
+  check(shareEventRow("user-1", { event: "share_tap", source: "sms", players: 17 })?.source === "room" && shareEventRow("user-1", { event: "share_tap", source: "sms", players: 17 })?.players === null, "an unknown source is not stored as a room's (with a room's limits)");
   check(shareEventRow("user-1", { event: "share_tap", players: 6 })?.source === "room", "a tap without a source (a phone from before this change) is not a room's");
   const linkArrival = shareEventRow("user-1", { event: "arrival", source: "challenge", challengeCode: "K7QM2X", landing: "home", roomCode: "ABCD" });
   check(

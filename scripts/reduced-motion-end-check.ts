@@ -58,7 +58,6 @@ const EFFECTS: Record<string, string> = {
   "reaction-tap-fade": "the reaction button's tap ripple, reduced-motion version",
   sparkle: "Polypotions' and Hanoi's solve sparkles",
   "potion-rise": "Polypotions' rising bubbles",
-  "arcade-reveal-pulse": "the arcade reveal's pulsing marker ring (the marker itself stays)",
   // Pattern puzzles (src/polish-pattern).
   "bp-peg-ring": "Block Party peg ring flash",
   "bp-shine": "Block Party solve shine (bp-shine-still under reduced motion)",

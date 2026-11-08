@@ -185,6 +185,15 @@ export function solutionProgress(puzzle: PuzzleData, answer: string, extra?: Rec
       // wordSlideRev 4: the last row's swaps (the server's validRows already judged the locked rows).
       const end = replayWordSlide(puzzle.grid, decodeSlideTokens(answer), { swaps: slideSwapsOn(puzzle) }).grid;
       const made = wordSlideMadeRows(puzzle.grid, end, validRows as number[]);
+      // wordSlideRev 5 (wordNov7.ts): the credit is the slides closer to the words, or the rows made into other real
+      // words, whichever counts more.
+      const closer = extra?.["slidesCloser"];
+      const from = extra?.["slidesFromStart"];
+      const other = extra?.["otherWordRows"];
+      if (typeof closer === "number" && typeof from === "number" && typeof other === "number") {
+        if (from > 0 && closer / from >= other / WS_MARKED_ROWS.length) return { text: `${closer}/${from} slides closer`, cost: null };
+        return { text: `${other}/${WS_MARKED_ROWS.length} rows made`, cost: null };
+      }
       return { text: `${made}/${WS_MARKED_ROWS.length} rows made`, cost: null };
     }
     default:

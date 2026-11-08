@@ -444,6 +444,7 @@ function initRev2(seed: number): SkylineState {
 
 export const skylineRev2Game: ArcadeGame<SkylineState> = { ...skylineGame, init: initRev2 };
 export function skylineGameFor(rev?: number | null): ArcadeGame<SkylineState> {
+  if (rev === SKYLINE_REV_COUNT) return skylineCountGame;
   if (rev === SKYLINE_REV_STD) return skylineStdGame;
   if (rev === SKYLINE_REV_LIFT) return skylineLiftGame;
   if (rev === SKYLINE_REV_EXPAND) return skylineExpandGame;
@@ -489,7 +490,7 @@ export const skylineTallGame: ArcadeGame<SkylineState> = { ...skylineBandGame, i
 
 /** The view height (px) a stored round's skylineRev draws in. */
 export function skylineWorldHFor(rev?: number | null): number {
-  if (rev === SKYLINE_REV_EXPAND || rev === SKYLINE_REV_LIFT || rev === SKYLINE_REV_STD) return SKYLINE_SKY_H;
+  if (rev === SKYLINE_REV_EXPAND || rev === SKYLINE_REV_LIFT || rev === SKYLINE_REV_STD || rev === SKYLINE_REV_COUNT) return SKYLINE_SKY_H;
   return rev === SKYLINE_REV_TALL || rev === SKYLINE_REV_TARGET || rev === SKYLINE_REV_STRICT ? SKYLINE_TALL_H : SKYLINE_WORLD_H;
 }
 
@@ -617,6 +618,8 @@ export function skylineKindWidth(kind: number, topW: number): number {
 
 /** skylineRev 7's fields (absent on every older round). */
 export interface SkylineExpandFields {
+  /** skylineRev 10 (the scoring audit): 1 = perfect drops counted up to SKYLINE_V9_FULL_AT, never a share. Outside the checksum. */
+  perfectCount?: number;
   expandRev?: number;
   /** The block-kind schedule (skylineKinds), one per block index. */
   kinds?: number[];
@@ -894,7 +897,10 @@ export function skylineStdParts(state: SkylineState): StdPart[] | null {
   const golds = state.golds ?? 0;
   return [
     stdPart(SKYLINE_STD_SPEC, "core", stdLine(SKYLINE_V9_CORE_MAX, placed, SKYLINE_V9_FULL_AT), `${placed} floor${placed === 1 ? "" : "s"}`),
-    stdPart(SKYLINE_STD_SPEC, "perfects", stdLine(SKYLINE_V9_PERFECTS_MAX, perfects, Math.max(placed, SKYLINE_V9_FULL_AT)), `${perfects} of ${placed} perfect`),
+    // skylineRev 10: perfect drops counted (up to SKYLINE_V9_FULL_AT), so a drop that isn't perfect never lowers the score.
+    state.perfectCount
+      ? stdPart(SKYLINE_STD_SPEC_V10, "perfects", stdLine(SKYLINE_V9_PERFECTS_MAX, Math.min(perfects, SKYLINE_V9_FULL_AT), SKYLINE_V9_FULL_AT), `${perfects} perfect drop${perfects === 1 ? "" : "s"}`)
+      : stdPart(SKYLINE_STD_SPEC, "perfects", stdLine(SKYLINE_V9_PERFECTS_MAX, perfects, Math.max(placed, SKYLINE_V9_FULL_AT)), `${perfects} of ${placed} perfect`),
     stdPart(SKYLINE_STD_SPEC, "streak", Math.min(best, SKYLINE_V9_STREAK_MAX), `best ${best} in a row`),
     stdPart(SKYLINE_STD_SPEC, "gold", stdLine(SKYLINE_V9_GOLD_MAX, golds, SKYLINE_V9_GOLD_COUNT), `${golds} of ${SKYLINE_V9_GOLD_COUNT} gold`),
   ];
@@ -922,4 +928,28 @@ export const skylineStdGame: ArcadeGame<SkylineState> = {
   ...skylineExpandGame,
   init: (seed: number) => ({ ...initExpand(seed), expandRev: SKYLINE_REV_STD, kinds: kindsV9For(seed) }),
   score: scoreStd,
+};
+
+/* ================= Perfect drops counted (skylineRev 10, Nov 2026, the scoring audit) ================= */
+
+/**
+ * skylineRev 10 (docs/arcade-standard/skyline.md "skylineRev 10"; docs/audit-nov-2026/scoring.md issue 5): skylineRev 9's
+ * play and gold blocks exactly (a skylineRev 9 log replays tick for tick, the same checksum; the state keeps
+ * `expandRev: 9`), with the perfect-drops part counted, not shared: 30 × min(perfect drops, SKYLINE_V9_FULL_AT) ÷
+ * SKYLINE_V9_FULL_AT. On rev 9 it was the share of drops that were perfect, so past 61 floors every drop that wasn't
+ * perfect lowered the score (117 floors could score below 60). Now another floor never lowers it. States add
+ * `perfectCount: 1`, outside the checkpoint checksum (playRevOf maps 10 to 9's play).
+ */
+export const SKYLINE_REV_COUNT = 10;
+export const SKYLINE_STD_SPEC_V10: StdSpec = {
+  ...SKYLINE_STD_SPEC,
+  rev: SKYLINE_REV_COUNT,
+  parts: SKYLINE_STD_SPEC.parts.map((p) =>
+    p.key === "perfects" ? { ...p, how: `every perfect drop counts the same, all of it at ${SKYLINE_V9_FULL_AT} perfect drops` } : p,
+  ),
+};
+
+export const skylineCountGame: ArcadeGame<SkylineState> = {
+  ...skylineStdGame,
+  init: (seed: number) => ({ ...skylineStdGame.init(seed), perfectCount: 1 }),
 };

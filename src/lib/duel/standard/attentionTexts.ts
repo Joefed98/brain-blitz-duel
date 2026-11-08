@@ -21,7 +21,6 @@ import { puzzleScoreList, scoreList } from "../scoreList";
 import { PAR_MOVES_STD, PAR_STRICT_FULL_BY_S, parStrictDealt } from "../parMoves";
 import { ASCEND_STD, CHAIN_STD, COUNT_STD, MAZE_STD, PAIR_STD, SCAN_STD, SPOT_STD } from "./attention";
 
-const fmt = (n: number) => (Number.isInteger(n) ? String(n) : n.toFixed(1));
 const TOTAL = "{max}" as unknown as number;
 
 /* ------------------------------------------------------------------ help (one line a part, scoreList.ts) */
@@ -47,15 +46,15 @@ export const STANDARD_ATTENTION_HELP = {
     scoreList([
       { label: "Finish", how: `sort all ${CLASH_QUEUE} words with at most ${CLASH_DEPTH_MAX_WRONG} wrong`, fixed: CLASH_STD_FINISH },
       { label: "Speed", how: `the last word lands within ${CLASH_STD_FULL_BY_TICK / 60} s for all of it, nothing at ${CLASH_REV3_RUN_TICKS / 60} s; each wrong word takes a sixth of it`, max: CLASH_STD_SPEED },
-      { label: "Streak", how: `your longest run of words right in a row (${CLASH_STREAK_FROM + 1} or more)`, max: CLASH_STD_STREAK },
-      { label: "Gold words", how: `${CLASH_STD_GOLD} for each of the ${CLASH_GOLDS} gold words sorted right`, max: CLASH_STD_GOLD * CLASH_GOLDS },
+      { label: "Streak", how: `your longest run of words right in a row (${CLASH_STREAK_FROM + 1} or more), finished or not`, max: CLASH_STD_STREAK },
+      { label: "Gold words", how: `${CLASH_STD_GOLD} for each of the ${CLASH_GOLDS} gold words sorted right, finished or not`, max: CLASH_STD_GOLD * CLASH_GOLDS },
       { label: "Not finished", how: "the words sorted right, less the words sorted wrong", max: CLASH_STD_UNFINISHED_TOP },
     ], { penalties: ["Touching a grey word counts as wrong"], total: TOTAL }),
   symscan: () =>
     puzzleScoreList({
       finish: `find every eagle in all three grids, with at most ${SCAN_STD.finishWrongPerGrid} wrong ones left marked in each`,
       speed: { max: SCAN_STD.speed, fullByS: SCAN_STD.fullByS },
-      bonuses: [{ label: "Clean grids", how: `about ${fmt(SCAN_STD.clean / 3)} for each grid where you never mark a wrong eagle`, max: SCAN_STD.clean }],
+      bonuses: [{ label: "Clean grids", how: "shared by the grids where you never mark a wrong eagle", max: SCAN_STD.clean }],
       unfinished: `up to ${SCAN_STD.perGrid} a grid for the eagles you mark, more for finishing a grid early`,
       penalties: [`When not finished, each wrong eagle left marked costs ${SCAN_STD.wrongCost}`],
       total: TOTAL,

@@ -82,7 +82,7 @@ window with a mouse gets the desktop layout (its narrowest size). PhoneShell mar
   380 × 709 17.7–18.3; **340 × 634 17.3 ms on three runs**. Apex's own phone pass on the same machine averages ~21 ms
   (the phone check's floor is 30 fps).
 - **tall** (every other arcade game: side-on, behind-camera and the top-down Crazy Golf, Orbit, Meteor, Tilt,
-  Jaywalk and Curl Champ, upright): the world scales to the full height of a column up to 640 px; the
+  Spacewalk and Curl Champ, upright): the world scales to the full height of a column up to 640 px; the
   game's own scenery runs out to both sides under a static fade at the rail and panel edges (`data-dk-fade`);
   the HUD stays in the play column.
 - All: canvases sized by their box within the pixel-ratio cap of 2.
@@ -131,7 +131,7 @@ Active games (83): wide 53, rotate 1, tall 29.
 | Topsy-Turvy | `gravity` | Pattern | **wide** |  | puzzle board: re-flows into the wider column |
 | Turntable | `rings` | Pattern | **wide** |  | puzzle board: re-flows into the wider column |
 | Blackout | `lightsout` | Logic | **wide** |  | puzzle board: re-flows into the wider column |
-| Bomb Defusal | `bomb` | Logic | **wide** |  | puzzle board: re-flows into the wider column |
+| Bomb Defusal | `bomb` | Attention | **wide** |  | puzzle board: re-flows into the wider column |
 | Box Six | `sudoku` | Logic | **wide** |  | puzzle board: re-flows into the wider column |
 | Colour Flood | `flood` | Logic | **wide** |  | puzzle board: re-flows into the wider column |
 | Hanoi | `tower` | Logic | **wide** |  | puzzle board: re-flows into the wider column |
@@ -157,14 +157,14 @@ Active games (83): wide 53, rotate 1, tall 29.
 | Free Cell | `freecell` | Arcade · Cards & Board | **wide** |  | card / board layout, no physics world: scaled up in a wide column |
 | Gemstone | `matchup` | Arcade · Strategy | **wide** |  | match-three board, no physics world: scaled up in a wide column |
 | Grappler | `swing` | Arcade · Action | **tall** |  | side-on world: full height, scenery out to both sides |
-| High Rise | `skyline` | Arcade · Strategy | **tall** |  | side-on world: full height, scenery out to both sides |
+| High Rise | `skyline` | Arcade · Action | **tall** |  | side-on world: full height, scenery out to both sides |
 | Home Run | `homerun` | Arcade · Sports | **tall** |  | behind-camera view: full height, scenery out to both sides |
 | Hover | `hover` | Arcade · Retro | **tall** |  | side-on world: full height, scenery out to both sides |
-| Jaywalk | `cross` | Arcade · Retro | **tall** |  | top-down road, kept upright at full height |
+| Spacewalk (was Jaywalk) | `cross` | Arcade · Retro | **tall** |  | top-down space lanes (a road until 3 Nov 2026), kept upright at full height |
 | Mahjong Solitaire | `mahjong` | Arcade · Cards & Board | **wide** |  | card / board layout, no physics world: scaled up in a wide column |
 | Meteor | `snake` | Arcade · Retro | **tall** |  | top-down grid, kept upright at full height |
 | Minefield | `minesweeper` | Arcade · Cards & Board | **wide** |  | card / board layout, no physics world: scaled up in a wide column |
-| Orbit | `orbit` | Arcade · Retro | **tall** |  | top-down space flight, kept upright at full height |
+| Orbit | `orbit` | Arcade · Action | **tall** |  | top-down space flight, kept upright at full height |
 | Pinball | `pinball` | Arcade · Retro | **tall** |  | portrait play with controls at the bottom (paddle, flippers, launcher): kept upright |
 | Rainbow Bridge | `inkbridge` | Arcade · Strategy | **tall** |  | side-on world: full height, scenery out to both sides |
 | Rally | `rally` | Arcade · Retro | **tall** |  | portrait play with controls at the bottom (paddle, flippers, launcher): kept upright |

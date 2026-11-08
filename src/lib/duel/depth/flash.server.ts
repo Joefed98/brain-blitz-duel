@@ -20,7 +20,7 @@ export const flashDepth: DepthGrader = {
     return {
       ...graded,
       score: s.score,
-      extra: { ...(graded.extra ?? {}), depth: { curve: s.curve, steady: s.steady, spread: s.spread, falseStartCost: s.falseStartCost, ...(s.floor !== undefined ? { floor: s.floor } : {}) } },
+      extra: { ...(graded.extra ?? {}), depth: { curve: s.curve, steady: s.steady, spread: s.spread, falseStartCost: s.falseStartCost, ...(s.floor !== undefined ? { floor: s.floor } : {}), ...(s.each ? { each: s.each } : {}) } },
     };
   },
 };

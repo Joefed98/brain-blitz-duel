@@ -313,6 +313,15 @@ async function controllerVersion(page: Page): Promise<string | null> {
   );
 }
 
+/** The registration's workers, the controller and the updater's gate: printed when a takeover times out. */
+async function workerState(page: Page): Promise<string> {
+  return page.evaluate(async () => {
+    const reg = await navigator.serviceWorker.getRegistration();
+    const st = (w: ServiceWorker | null | undefined) => (w ? w.state : "none");
+    return `installing ${st(reg?.installing)}, waiting ${st(reg?.waiting)}, active ${st(reg?.active)}, controller ${navigator.serviceWorker.controller ? "set" : "none"}, url ${location.pathname}`;
+  });
+}
+
 async function until(what: string, test: () => Promise<boolean>, timeoutMs: number, stepMs = 500): Promise<boolean> {
   const end = Date.now() + timeoutMs;
   while (Date.now() < end) {
@@ -490,6 +499,11 @@ async function fullPass(browser: Browser): Promise<void> {
   let navigations = 0;
   page.on("framenavigated", (frame) => {
     if (frame === page.mainFrame()) navigations += 1;
+  });
+  // Full page loads only (framenavigated also counts the app's client-side route changes).
+  let loads = 0;
+  page.on("load", () => {
+    loads += 1;
   });
 
   // 1. Online: the worker installs and the packs fill.
@@ -673,8 +687,16 @@ async function fullPass(browser: Browser): Promise<void> {
   check((await page.locator("[data-arcade-play]").count()) === 1, "the run is still on screen");
   await playPokerSquares(page);
   await page.getByRole("button", { name: "Back", exact: true }).first().waitFor({ timeout: 30_000 });
+  const loadsBeforeBack = loads;
   await page.getByRole("button", { name: "Back", exact: true }).first().click();
-  await until("the new worker takes over on the list", async () => (await controllerVersion(page)) === `${before}${NEXT_SUFFIX}`, 30_000);
+  const tookOver = await until("the new worker takes over on the list", async () => (await controllerVersion(page)) === `${before}${NEXT_SUFFIX}`, 30_000);
+  if (!tookOver) console.log(`  takeover state: ${await workerState(page).catch((e) => `unreadable (${String(e).split("\n")[0]})`)}`);
+  // The page is an older build than the worker that took over, so the app reloads itself onto it at this safe
+  // moment (serviceWorker.ts: controllerchange, then the next 2 s handover tick). Wait for that reload before this
+  // check reloads the page itself: reloading while the app's own reload is in flight aborted it (net::ERR_ABORTED,
+  // "frame was detached"; build-health audit, 7 Nov 2026).
+  if (tookOver)
+    await until("the app reloads itself onto the new worker", async () => loads > loadsBeforeBack, 30_000);
   await page.locator("[data-practice-switch]").waitFor({ timeout: 30_000 });
   check(true, "Practice list after the takeover");
   await ctx.setOffline(true);

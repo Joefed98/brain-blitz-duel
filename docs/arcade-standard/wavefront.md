@@ -123,3 +123,20 @@ the cell's top fifth and the hull below it (`drawExhaust`), the armoured ship an
 UFO inside the saucer's hit box. A ship's colour picks its steel (light, mid or dark gunmetal) and the 3-in-16 tints
 (maroon, navy, dark red) stay (`wavHullTint`). `scripts/wavefront-ships-check.ts` proves the hulls and the UFO on their
 boxes and three distinct silhouettes. The tile shows a Dart, a Bulwark and a Raptor in formation over the fighter's beam.
+
+## wavRev 13: progress made always counts (Nov 2026, the scoring audit)
+
+`docs/audit-nov-2026/scoring.md` issue 2: a slow sweep that shot 30 ships (core 15) and lost all three lives (−15) scored
+1. wavRev 13 (`WAV_REV_KEEP`) is wavRev 12's play and parts exactly (states add `keep: 1` outside the checksum), with the
+lives' cost changed: the life that ends the run is not charged (only lives lost before it cost 5), and lives never take
+more than half the ships, hits and waves points.
+
+| Level | Weak | Average | Good | Great | Near | Elite | Flawless |
+|---|---|---|---|---|---|---|---|
+| wavRev 12 | 137 (108–159) | 155 (130–177) | 173 | 186 | 191 | 194 | 196 (192–200) |
+| wavRev 13 | 140 (113–159) | 155 (135–177) | 173 | 186 | 191 | 194 | 196 (192–200) |
+
+The bots rarely lose lives, so the medians barely move; the change matters for short runs (weak minimum 56 → 61). Issue 11
+(Wavefront's compressed bands) is not part of this change. Proofs: scoring-audit-arcade-check, arcade-standard-check.
+
+The table's medians (p10–p90) are 30 room seeds, measured with `bun scripts/arcade-skill-bands.ts cross wavefront burst skyline slice --rev=now --seeds=30 --levels=all` on main and on this branch.

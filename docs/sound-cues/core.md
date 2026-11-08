@@ -17,10 +17,10 @@ replacement would need to be locked to the chart's ticks, which is more than a f
 | `place` | Ballpark, Cryptogrid, Swapword, Strikeout | A piece, letter or marker placed (`fx.onPlace`) | 10–40 | 50 ms |
 | `move` | puzzles with live checks (FeedbackStage), Swapword | A move sent for a live check (`fx.onMove`) | 10–60 | 40 ms |
 | `correct` | FeedbackStage, reveal verdict, practice result, many puzzles (`playCorrect`), High Rise perfect drop | A right move, a stage or game solved, a correct verdict | 1–20 | 120 ms |
-| `wrong` | FeedbackStage, reveal verdict, many puzzles (`playWrong`), arcade crashes in Jaywalk, Swish, Coral Pop | A wrong move or verdict | 0–10 | 140 ms |
+| `wrong` | FeedbackStage, reveal verdict, many puzzles (`playWrong`), arcade crashes in Spacewalk, Swish, Coral Pop | A wrong move or verdict | 0–10 | 140 ms |
 | `lock` | Ready, Start, Submit, chat message (`playBlip`), several puzzles (`playLock`) | A confirming tap | 1–10 | 90 ms |
 | `tick` | Ball Tracker, Don't Break the Chain, Pull!, Ballpark, Tenfall, Bonk, Letterfall (`playTick`) | A small tap | 10–60 | 55 ms |
-| `stage_complete` | StageProgress, StageCorrect, Wavefront, Jaywalk, Junction | A stage of a staged game is complete (`fx.onStageComplete`) | 1–4 | 160 ms |
+| `stage_complete` | StageProgress, StageCorrect, Wavefront, Spacewalk, Junction | A stage of a staged game is complete (`fx.onStageComplete`) | 1–4 | 160 ms |
 | `complete` | arcade run end (arcadeFeedback), Cryptogrid, Swapword, Strikeout | The run or puzzle is complete (`fx.onComplete`) | 1 | 200 ms |
 | `combo` | arcade games with a combo or cascades (arcadeFeedback) | The combo grows (`fx.onCombo`) | 0–20 | 90 ms |
 | `warning_10` | TimerBar | 10 s left: the countdown bed (starts part-way in for late joiners) | 1 | 10000 ms |

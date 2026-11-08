@@ -15,7 +15,7 @@ import { depthClamp } from "../depth200";
 import { scoreStopWatch } from "../scoring";
 import { markerState, targetCentre } from "../stopWatch";
 import { STOPWATCH_MISS_MS, type StopWatchSpec } from "../types";
-import { TAP_REV_DEPTH, TAP_REV_TOPUP, type WatchResult } from "../tapLog";
+import { TAP_REV_DEPTH, TAP_REV_PER_ITEM, TAP_REV_TOPUP, type WatchResult } from "../tapLog";
 
 export const BANGON_DEPTH_REV = TAP_REV_DEPTH;
 /**
@@ -25,6 +25,12 @@ export const BANGON_DEPTH_REV = TAP_REV_DEPTH;
  * BANGON_PARTIAL_MS (a player who stops some watches close never scores 0).
  */
 export const BANGON_TOPUP_REV = TAP_REV_TOPUP;
+/**
+ * 7 Nov 2026 (tapRev 7, speedPipesNov7.ts): each watch scores on tapRev 4's curve by its own stop (a missed watch 0) and
+ * the curve part is the average of those points, so half the watches stopped well scores about half; the dead centre,
+ * zone streak, their cap and the floor are tapRev 6's.
+ */
+export const BANGON_PER_ITEM_REV = TAP_REV_PER_ITEM;
 export const BANGON_TOPUP_CENTRE_POINTS = 3;
 export const BANGON_TOPUP_FEATURE_MAX = 50;
 /** tapRev 6: the most one watch of a streak adds (the 2nd +2, the 3rd +3, the 4th +4, every later one +5). */
@@ -52,7 +58,7 @@ export function bangOnCentrePoints(tapRev = BANGON_DEPTH_REV): number {
 
 export function usesBangOnDepth(puzzle: unknown): boolean {
   const p = puzzle as { type?: string; tapRev?: number } | null;
-  return p?.type === "stopwatch" && (p.tapRev === BANGON_DEPTH_REV || p.tapRev === BANGON_TOPUP_REV);
+  return p?.type === "stopwatch" && (p.tapRev === BANGON_DEPTH_REV || p.tapRev === BANGON_TOPUP_REV || p.tapRev === BANGON_PER_ITEM_REV);
 }
 
 export interface WatchMark {
@@ -88,8 +94,10 @@ export function liveZoneStreak(marks: readonly WatchMark[]): number {
 
 export interface BangOnDepthScore {
   score: number;
-  /** tapRev 4's curve for the average error. */
+  /** tapRev 4's curve for the average error (tapRev 7: the average of each watch's points). */
   curve: number;
+  /** tapRev 7: each watch's points on the curve (a miss 0). */
+  each?: number[];
   centre: number;
   centreHits: number;
   streak: number;
@@ -108,7 +116,13 @@ export function scoreBangOnDepth(watches: readonly StopWatchSpec[], results: rea
     const d = results[i]?.distance;
     total += d === undefined || d === null ? STOPWATCH_MISS_MS : Math.max(0, Math.min(STOPWATCH_MISS_MS, d));
   }
-  const curve = scoreStopWatch(Math.round(total / count), 4);
+  const each = tapRev >= BANGON_PER_ITEM_REV
+    ? Array.from({ length: count }, (_, i) => {
+        const d = results[i]?.distance;
+        return d === undefined || d === null || d >= STOPWATCH_MISS_MS ? 0 : scoreStopWatch(Math.max(0, d), 4);
+      })
+    : null;
+  const curve = each ? Math.round(each.reduce((a, b) => a + b, 0) / count) : scoreStopWatch(Math.round(total / count), 4);
   const { marks, streakAt } = bangOnMarks(watches, results.slice(0, count));
   const centreHits = marks.filter((m) => m.centre).length;
   const streakWatches = streakAt.filter((n) => n >= BANGON_STREAK_MIN).length;
@@ -119,5 +133,5 @@ export function scoreBangOnDepth(watches: readonly StopWatchSpec[], results: rea
   const close = results.slice(0, count).filter((r) => r.distance !== null && r.distance !== undefined && r.distance <= BANGON_PARTIAL_MS).length;
   const floor = BANGON_PARTIAL_POINTS * close;
   const features = Math.min(BANGON_TOPUP_FEATURE_MAX, centre + streak);
-  return { score: depthClamp(Math.max(floor, curve + features)), curve, centre, centreHits, streak, streakWatches, bestStreak, floor };
+  return { score: depthClamp(Math.max(floor, curve + features)), curve, centre, centreHits, streak, streakWatches, bestStreak, floor, ...(each ? { each } : {}) };
 }

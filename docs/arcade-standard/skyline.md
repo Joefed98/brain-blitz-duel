@@ -119,3 +119,20 @@ floors (rev 8's curve was steep at the bottom); per the standard, no bot number 
   standard score, unflagged, with the extras and the reveal's lines and tiles; rooms deal rev 9 with five golds.
 - `scripts/arcade-standard/skyline.ts` (arcade-standard-check): 200, 1, 0, the straight line, the parts' amounts,
   multiplier and milestones scoring nothing, and the gold schedule over 3,000 seeds.
+
+## skylineRev 10: another floor never lowers the score (Nov 2026, the scoring audit)
+
+`docs/audit-nov-2026/scoring.md` issue 5: the perfect-drops part was the share of drops that were perfect, counted over at
+least 61, while the core stops at 61 floors; past 61 every drop that wasn't perfect lowered the score (elite runs of 117
+and 123 floors scored 176 and 162 against 173 for 60 floors). skylineRev 10 (`SKYLINE_REV_COUNT`) is skylineRev 9's play and
+gold blocks exactly (states keep `expandRev: 9` and add `perfectCount: 1` outside the checksum), with perfect drops
+counted: 30 × min(perfect drops, 61) ÷ 61 (`SKYLINE_STD_SPEC_V10`). Up to 61 floors this is the same number rev 9 gave.
+
+| Level | Weak | Average | Good | Great | Near | Elite | Flawless |
+|---|---|---|---|---|---|---|---|
+| skylineRev 9 | 35 | 44 | 67 | 96 | 162 (120–171) | 170 (144–181) | 198 (194–199) |
+| skylineRev 10 | 35 | 44 | 67 | 96 | 164 (120–177) | 177 (144–191) | 200 (196–200) |
+
+scoring-audit-arcade-check proves the score never falls for another floor (perfect or not) over 0–160 floors.
+
+The table's medians (p10–p90) are 30 room seeds, measured with `bun scripts/arcade-skill-bands.ts cross wavefront burst skyline slice --rev=now --seeds=30 --levels=all` on main and on this branch.

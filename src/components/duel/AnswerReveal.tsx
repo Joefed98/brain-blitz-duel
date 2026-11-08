@@ -1,4 +1,5 @@
 import { scorePartsText, storedScoreParts } from "@/lib/duel/puzzleScoreRev";
+import { partialProgressNote } from "@/lib/duel/partialCredit";
 import { readPracticeBest } from "@/lib/duel/practiceBest";
 import { stampSignature } from "@/lib/duel/practiceStamps";
 import { RevealBreakdown } from "@/components/duel/RevealBreakdown";
@@ -849,6 +850,8 @@ function LiveAnswerReveal({
         {myScore !== null && storedScoreParts(myExtra) && !REVEAL_SHOWS_PARTS.has(puzzle.type) && !(FINISH_ONLY_TYPES.has(puzzle.type) && storedScoreParts(myExtra)!.kind === "partial") ? (
           <p data-reveal-score-line="" className="reveal-score-line shrink-0 text-center">
             {scorePartsText(storedScoreParts(myExtra)!)}
+            {/* Partial-credit fixes (7 Nov 2026): what an unfinished round's credit counted, "45 % of the way". */}
+            {storedScoreParts(myExtra)!.kind === "partial" && partialProgressNote(puzzle, myExtra) ? ` · ${partialProgressNote(puzzle, myExtra)}` : null}
           </p>
         ) : null}
         {practice && myScore !== null ? (

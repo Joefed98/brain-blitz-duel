@@ -13,6 +13,7 @@ import {
   type RoomSettings,
 } from "./roomSettings";
 import { isScoringMode, readScoringMode, type ScoringMode } from "./scoringMode";
+import { dbError } from "./dbError";
 
 export type SettingsChange = { ok: true; settings: RoomSettings } | { ok: false; message: string };
 
@@ -29,7 +30,7 @@ export async function changeRoomSettings(
     .select("id, room_code, host_user_id, status, disbanded_at")
     .eq("id", roomId)
     .maybeSingle();
-  if (error) throw new Error(error.message);
+  if (error) throw dbError(error, "roomSettings");
   if (!room) return { ok: false, message: "That room no longer exists." };
   if (room.host_user_id !== userId)
     return { ok: false, message: "Only the host can change the room settings." };
@@ -63,7 +64,7 @@ export async function changeRoomSettings(
       return { ok: false, message: "Placings scoring isn't available yet." };
     ({ data: written, error: writeError } = await write(false));
   }
-  if (writeError) throw new Error(writeError.message);
+  if (writeError) throw dbError(writeError, "roomSettings");
   if (!written) return { ok: false, message: "This game’s already started." };
   console.log(
     `[room-settings] room=${room.room_code} ${encodeRoomSettings(valid.settings).join(",")}${scoring ? ` scoring=${scoring}` : ""}`,

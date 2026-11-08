@@ -175,8 +175,9 @@ function scriptedRun(seed: number, waits: readonly number[]): ArcadeInputEvent[]
 
 /* 1. Wiring. */
 {
-  ok((generatePuzzle("cross") as any).crossRev === CROSS_REV_FLOW && CROSS_REV_FLOW === CROSS_REV_STD + 1, "rooms deal crossRev 11 (crossRev 10 before 3 Nov 2026)");
-  ok(LIVE_BANDS.cross.rev === CROSS_REV_FLOW && LIVE_BANDS.cross.curve === CROSS_V11_BAND_CURVE, "LIVE_BANDS deals crossRev 11 on its core line");
+  // The scoring audit (Nov 2026): rooms deal crossRev 12, crossRev 11's play and parts (scoring-audit-arcade-check).
+  ok((generatePuzzle("cross") as any).crossRev === CROSS_REV_FLOW + 1 && CROSS_REV_FLOW === CROSS_REV_STD + 1, "rooms deal crossRev 12, crossRev 11's play (crossRev 10 before 3 Nov 2026)");
+  ok(LIVE_BANDS.cross.rev === CROSS_REV_FLOW + 1 && LIVE_BANDS.cross.curve === CROSS_V11_BAND_CURVE, "LIVE_BANDS deals crossRev 12 on crossRev 11's core line");
   ok(bandPoints(CROSS_V11_BAND_CURVE, 0) === 0 && bandPoints(CROSS_V11_BAND_CURVE, CROSS_V11_CORE_FULL) === CROSS_V11_CORE_MAX && bandPoints(CROSS_V11_BAND_CURVE, 38) === 75, "the core line: 0 → 0, 38 → 75, 76 → 150");
   ok(CROSS_FLOW_STD.parts.reduce((a, p) => a + p.max, 0) === 200 && ROUND_MAX.cross === 200, "the parts add up to 200, the round maximum");
   ok(CROSS_FLOW_STD.parts.map((p) => `${p.key}:${p.max}`).join(" ") === "core:150 streak:40 close:10", "parts: core 150, no-stop streak 40, close calls 10");

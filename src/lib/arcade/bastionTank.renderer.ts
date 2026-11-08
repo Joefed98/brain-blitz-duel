@@ -59,7 +59,7 @@ import {
 export const BT2_ART_BG = "#14171D";
 const W = BT2_WORLD_W;
 const H = BT2_WORLD_H;
-const DISPLAY = "'Archivo', 'Saira', system-ui, sans-serif";
+const DISPLAY = "'Archivo', system-ui, sans-serif";
 /** The gun: its breech below the parapet, its muzzle this far along the aim line. */
 const GUN_X = BT2_VP_X;
 const GUN_Y = 660;

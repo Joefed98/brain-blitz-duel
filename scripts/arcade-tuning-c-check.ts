@@ -93,7 +93,6 @@ import { isRetired, puzzleDef, PUZZLE_TYPES, typesInCategory } from "../src/lib/
 import { PUZZLE_INSTRUCTIONS } from "../src/lib/duel/instructions";
 import { encodeTiltRun, replayTiltRun } from "../src/lib/duel/tilt";
 import { playTilt } from "./tilt-bot";
-import { PINBALL_IN_ROOMS } from "../src/lib/arcade/pinball";
 import { playRevOf } from "./scoring-targets-revs";
 
 const ONLY = (process.env.TUNING_C_ONLY ?? "").split(",").filter(Boolean);
@@ -221,11 +220,11 @@ section("New rounds carry the Tuning C stamps; Junction is practice only");
   }
   ok(isRetired("junction"), "Junction is retired (practice only)");
   ok(!typesInCategory("arcade").includes("junction"), "rooms never deal Junction");
-  // 21 since Tuning C; 22 once Pinball (13 Oct, practice only until PINBALL_IN_ROOMS) is switched on;
+  // 21 since Tuning C; 22 with Pinball (dealt since 14 Oct 2026);
   // one fewer since Scrumper retired to practice (27 Oct 2026). Since the new groups (30 Oct 2026) the count reads the
   // registry (sessions add games in parallel): every arcade type registered that is not retired.
   const dealt = PUZZLE_TYPES.filter((t) => puzzleDef(t).category === "arcade" && !isRetired(t)).length;
-  ok(dealt >= 20 + (PINBALL_IN_ROOMS ? 1 : 0), `at least the ${20 + (PINBALL_IN_ROOMS ? 1 : 0)} arcade games dealt before the new groups (${dealt})`);
+  ok(dealt >= 21, `at least the 21 arcade games dealt before the new groups (${dealt})`);
   ok(["minesweeper", "mahjong"].every((t) => typesInCategory("arcade").includes(t as never)), "rooms deal the two Cards & Board games");
   ok(typesInCategory("arcade").length === dealt, `rooms deal ${dealt} arcade games (got ${typesInCategory("arcade").length})`);
   ok(ACTIVE_ARCADE_GAMES.length === dealt && !ACTIVE_ARCADE_GAMES.includes("junction") && "junction" in ARCADE_GAME_WORLDS, `${dealt} active arcade worlds; Junction keeps its world for practice`);

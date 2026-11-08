@@ -169,7 +169,8 @@ section("New rounds carry the Tuning E stamps; one world per stored revision");
   // Expansion E4 (25 Oct 2026) moved High Rise on to skylineRev 7 (e4-expansion-check covers it); its tall world
   // started with skylineRev 4, which stored rounds still play and score on the bands.
   // The arcade scoring standard (29 Oct 2026) moved it on to skylineRev 9 (rev 8's play; skyline-standard-check covers it).
-  ok(generateSkyline().skylineRev === SKYLINE_REV_STD, `skyline: rooms deal skylineRev ${SKYLINE_REV_STD} (the arcade scoring standard, after skylineRev ${SKYLINE_REV_LIFT} and ${SKYLINE_REV_TALL})`);
+  // The scoring audit (Nov 2026): skylineRev 10, skylineRev 9's play with perfect drops counted (scoring-audit-arcade-check).
+  ok(generateSkyline().skylineRev === SKYLINE_REV_STD + 1, `skyline: rooms deal skylineRev ${SKYLINE_REV_STD + 1} (skylineRev ${SKYLINE_REV_STD}'s play, the arcade scoring standard, after skylineRev ${SKYLINE_REV_LIFT} and ${SKYLINE_REV_TALL})`);
   ok(puzzleUsesBands({ type: "skyline", skylineRev: SKYLINE_REV_TALL } as never), `skyline ${SKYLINE_REV_TALL} scores on the bands`);
   for (const [type, field, got, rev] of stamps) {
     ok(got === rev, `${type}: new rounds stamped ${rev} (got ${got})`);

@@ -69,7 +69,8 @@ ok(LIVE_BANDS.snake.curve === SNAKE_V12_BAND_CURVE && LIVE_BANDS.beat.std === BE
 ok(liveStrictRev("snake") === SNAKE_REV_STRICT && liveStrictRev("beat") === BEAT_REV_STRICT, "their score-bands revisions are the ones rooms dealt before (strictRev)");
 // Fission was split out of E2: burstRev 6 stays its score-bands revision on its strict curve; expansion E9 (docs/expansions/e9.md)
 // then moved rooms on to burstRev 8 at 200 (expansion-e9-check covers it).
-ok((generatePuzzle("burst") as any).burstRev === BURST_REV_STD && ROUND_MAX.burst === 200 && liveStrictRev("burst") === BURST_REV_STRICT && BURST_V6_BAND_CURVE.points.at(-1) === 140, "Fission is not E2's: burstRev 6 stays its strict revision (its strict curve, 140 at the top); rooms deal burstRev 10 (the arcade scoring standard, after E9's burstRev 8 and the phone-test notes' 9) at 200");
+// The scoring audit (Nov 2026): rooms deal burstRev 11, burstRev 10's play (scoring-audit-arcade-check).
+ok((generatePuzzle("burst") as any).burstRev === BURST_REV_STD + 1 && ROUND_MAX.burst === 200 && liveStrictRev("burst") === BURST_REV_STRICT && BURST_V6_BAND_CURVE.points.at(-1) === 140, "Fission is not E2's: burstRev 6 stays its strict revision (its strict curve, 140 at the top); rooms deal burstRev 11 (burstRev 10's play, the arcade scoring standard, after E9's burstRev 8 and the phone-test notes' 9) at 200");
 ok(SNAKE_V9_CAPS.gold + SNAKE_V9_CAPS.combo + SNAKE_V9_CAPS.lane + SNAKE_V9_CAPS.warp === 50, "Meteor's caps add to 50");
 ok(BEAT_V9_CAPS.fever + BEAT_V9_CAPS.gold + BEAT_V9_CAPS.double + BEAT_V9_CAPS.streak === 50, "Tempo's caps add to 50");
 
