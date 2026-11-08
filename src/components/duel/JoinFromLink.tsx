@@ -111,7 +111,7 @@ export function JoinFromLink({
     const [title, line] =
       preview.state === "playing"
         ? [
-            "This game has already started",
+            "This game’s already started.",
             "You can join the next one if the host plays again from the lobby.",
           ]
         : preview.state === "finished"

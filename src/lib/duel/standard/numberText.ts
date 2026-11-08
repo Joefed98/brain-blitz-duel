@@ -63,7 +63,7 @@ export function standardNumberHelp(type: PuzzleType): string {
       return scoreList([
         finish("make the target exactly"),
         speed(type),
-        { label: "Elegance", how: `use the fewest numbers it needs (${EXACT_ELEGANT_TILES} here), ${EXACT_STD_ELEGANCE_PER} less for each number more`, max: EXACT_STD_ELEGANCE },
+        { label: "Elegance", how: `use only ${EXACT_ELEGANT_TILES} of the 6 numbers for all of it; all 6 scores ${EXACT_STD_ELEGANCE - EXACT_STD_ELEGANCE_PER}`, max: EXACT_STD_ELEGANCE },
         // Partial-credit fixes (7 Nov 2026, depthRev 4): the solution built so far counts too.
         partialCreditDealt()
           ? { label: "Not exact", how: `the share of a solution you built (each step that joins two numbers it needs; steps that don’t take it down), or how close your best number came (about ${Math.round(exactCloseCredit(1))} one away), whichever is more`, max: STANDARD_UNFINISHED_CAP }

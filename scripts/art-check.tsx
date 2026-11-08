@@ -9,7 +9,9 @@
  *     the art's scale matches docs/art/svg/captain-joulz-{ready,run,win}.svg pixel for pixel but for
  *     anti-aliasing (under 0.5 % of pixels more than 96 levels apart).
  *  4. The games' figures (Grappler's cave and jungle, Moon Climb with its gear) are drawn no further out on any
- *     side than today's figure, recorded on main (scripts/fixtures/hero-bounds-main.json), plus 0.5 px.
+ *     side than today's figure, recorded on main (scripts/fixtures/hero-bounds-main.json), plus 0.5 px; Grappler,
+ *     drawn larger since 8 Nov 2026 and measured at its game's scale, + 0.5 px down, + 3 px across, + 3.5 px up.
+ *     Roofbound's grown runner stays within its box's ±16 px across, 25 px up and 18 px down.
  *  5. The celebration poses keep their contract (feet on the ground, arms up in a V, the run leaving the
  *     ground) and draw without error.
  *  6. Medal: 1st to 3rd render the medal art (no number), 4th on the plain number, a shared place says so.
@@ -110,8 +112,11 @@ for (const pose of ["ready", "run", "win"] as const) {
  * 4. The games' figures are no bigger than the figure they replace. Today's hero already reaches past its body
  * (Grappler's hands to the rope, Moon Climb's glow and headband tails), so each pose's drawn extent (left, right,
  * top, bottom, measured at 4×) is held to the old figure's, recorded on main ca4066ce
- * (scripts/fixtures/hero-bounds-main.json), plus half a pixel. Roofbound clips its runner to its collision box.
- * `--record=<main checkout>` re-measures the old figure.
+ * (scripts/fixtures/hero-bounds-main.json), plus half a pixel. Grappler's figure is measured at its game's drawing
+ * scale (GRAPPLER_HERO_GROW, 8 Nov 2026, approved by Joe): down + 0.5 px as before (it grows from the soles), across
+ * + 3 px, up + 3.5 px. Roofbound clips its runner to its collision box across; its grown rev-2 runner (×1.65,
+ * ROOFBOUND_HERO_GROW) is held to the box's ±16 px across, 25 px up (18 + the 7 px headroom) and 18 px down.
+ * `--record=<main checkout>` re-measures the old figure (main's module has no growth, so it measures main's figure).
  */
 const Z = 4;
 type Ext = [number, number, number, number];
@@ -149,6 +154,8 @@ function measure(m: Mods): Record<string, Ext> {
           handAX: ax * arm, handAY: ny + ay * arm, handBX: ax * (arm - 1) + ay * 2.4, handBY: ny + ay * (arm - 1) - ax * 2.4,
           footAX: -fx, footAY: fy, footBX: fx, footBY: fy, moveX: mx, moveY: my, speed: sp, face, gentle: true,
         });
+        // The game's drawing scale (swing.renderer.ts sets it on both figures); absent on main's module.
+        if (m.H.heroGrow && m.H.GRAPPLER_HERO_GROW) m.H.heroGrow(p, m.H.GRAPPLER_HERO_GROW);
         out[`grappler-${name}-m${mi}-a${a}`] = ink((x) => m.H.drawHero(x, p));
       }
   // Moon Climb through its own drawNinja (the gear overlaid).
@@ -173,12 +180,35 @@ if (record) {
   const old = JSON.parse(readFileSync(FIXTURE, "utf8")) as Record<string, Ext>;
   const now = measure({ H, drawNinja });
   const sides = ["left", "right", "top", "bottom"];
+  // Grappler (drawn larger, 8 Nov 2026): + 3 px across, + 3.5 px up, + 0.5 px down; everything else + 0.5 px.
+  const GRAPPLER_ALLOW = [3, 3, 3.5, 0.5];
   for (const [key, ext] of Object.entries(now)) {
     const was = old[key];
     ok(Boolean(was), `${key}: no recorded extent on main`);
     if (!was) continue;
-    ext.forEach((v, i) => ok(v <= was[i]! + 0.5, `${key}: drawn ${v.toFixed(2)} px to the ${sides[i]}, the old figure ${was[i]!.toFixed(2)} (+0.5 allowed)`));
+    const allow = key.startsWith("grappler-") ? GRAPPLER_ALLOW : [0.5, 0.5, 0.5, 0.5];
+    ext.forEach((v, i) => ok(v <= was[i]! + allow[i]!, `${key}: drawn ${v.toFixed(2)} px to the ${sides[i]}, the old figure ${was[i]!.toFixed(2)} (+${allow[i]} allowed)`));
   }
+}
+
+/* 4b. Roofbound's grown rev-2 runner (flipArt.renderer.ts drawRunnerHero's joints at ×1.65) inside its box across. */
+{
+  const room = H.ROOFBOUND_HERO_HEADROOM_PX;
+  ok(room === 7, `Roofbound's headroom is ${room} px, not the approved 7`);
+  for (const stride of [0, 1.5, -1.5])
+    for (const face of [1, 0, -1]) {
+      const p = Object.assign(H.heroPose(), {
+        headR: 3.4, stick: 2.4, scale: 1.65, headX: 0, headY: -6.5, neckX: 0, neckY: -3, hipX: 0, hipY: 3, shoulderX: 0, shoulderY: -3,
+        handAX: -5, handAY: 2 + stride, handBX: 5, handBY: 1 - stride, footAX: -3 + stride, footAY: 9, footBX: 3 - stride, footBY: 9,
+        moveX: face * 4, moveY: 0, speed: Math.abs(face) * 0.6, face, gentle: true,
+      });
+      H.heroGrow(p, H.ROOFBOUND_HERO_GROW);
+      const [l, r, t, b] = ink((x) => { x.scale(1.65, 1.65); H.drawHero(x, p); });
+      const key = `roofbound-s${stride}-f${face}`;
+      ok(l <= 16 && r <= 16, `${key}: drawn ${l.toFixed(2)} / ${r.toFixed(2)} px across, the box ±16`);
+      ok(t <= 18 + room, `${key}: drawn ${t.toFixed(2)} px up, at most ${18 + room}`);
+      ok(b <= 18, `${key}: drawn ${b.toFixed(2)} px down, at most 18`);
+    }
 }
 
 /* 5. celebration poses */

@@ -70,7 +70,7 @@ export function rivalTable(board: ChallengeRoundBoard, puzzle: PuzzleData | unde
       const line = puzzle
         ? nearMiss(puzzle.type, resultFor(board.results, row.slot, board.round)?.extra)
         : null;
-      return line ? { ...row, summary: `${row.summary} · ${line}` } : row;
+      return line ? { ...row, summary: `${row.summary}, ${line}` } : row;
     },
   );
 }

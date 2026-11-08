@@ -294,7 +294,7 @@ section("the reveal");
   const ro = replayTiltRun(o.seed, o.raw, TILT_REV_BIG);
   const rv = buildArcadeReveal("tilt", { ...ro, tiltRev: TILT_REV_BIG }, ro.score)!;
   const text = rv.lines.join(" | ");
-  ok(rv.outcome === "finish" && text.includes("Par 4 / 4 mazes +24") && text.includes("clean 4 / 4 +12") && text.includes("speed +24"), `the perfect reveal: ${text}`);
+  ok(rv.outcome === "finish" && text.includes("Par: 4 mazes within par → 24 of 24") && text.includes("Clean run: no fall in 4 mazes → 12 of 12") && /Speed: all 4 in [\d.]+ s → 24 of 24/.test(text), `the perfect reveal: ${text}`);
   ok(rv.tiles.some((t) => t.label === "Under par" && t.value === "4 / 4"), `the reveal's tiles: ${JSON.stringify(rv.tiles)}`);
 }
 

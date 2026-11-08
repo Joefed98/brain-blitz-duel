@@ -465,13 +465,15 @@ if (want("snip")) {
 
 /* ============================== 4. Intro and help ============================== */
 section("Intro and \"?\" help");
+// The help line that explains each game's world size (text pass, Nov 2026: Hover's and Meteor's labels dropped "Taller").
+const WORLD_LINE = { skyline: /^Taller view/, snake: /^Field:/, snip: /^Taller courses/, hover: /^Sky:/ } as const;
 for (const type of ["skyline", "snake", "snip", "hover"] as const) {
   if (!want(type)) continue;
   const help = PUZZLE_INSTRUCTIONS[type];
   const intro = help.how.filter((line) => !line.helpOnly);
   ok(intro.length <= 3, `${type}: intro HOW has at most three lines (${intro.length})`);
   for (const line of intro) ok(`${line.action} ${line.detail}`.length <= 46, `${type}: intro HOW line fits one line: ${line.action} ${line.detail}`);
-  ok(help.how.some((line) => line.helpOnly && /^Taller/.test(line.action)), `${type}: the "?" help explains the taller world`);
+  ok(help.how.some((line) => line.helpOnly && WORLD_LINE[type].test(line.action)), `${type}: the "?" help explains the taller world`);
 }
 if (want("snip")) {
   ok(PUZZLE_INSTRUCTIONS.snip.how.some((l) => !l.helpOnly && /crook/i.test(`${l.action} ${l.detail}`)), "Scrumper's intro mentions the crooks");
