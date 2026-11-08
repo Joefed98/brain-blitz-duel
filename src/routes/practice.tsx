@@ -332,7 +332,7 @@ function PracticeScreen() {
     startToken.current =
       packSeed.current === null && sealed
         ? practiceStartFn({ data: { sealed } }).then(
-            (r) => r.start,
+            (r) => r?.start ?? null,
             () => null,
           )
         : null;
