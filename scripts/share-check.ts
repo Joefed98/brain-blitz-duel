@@ -1234,7 +1234,7 @@ else {
           `${where}: not sent to the home: ${JSON.stringify(went)}`,
         );
         check(
-          (await page.locator("text=/has finished|has already started|Join room/i").count()) === 0,
+          (await page.locator("text=/has finished|already started|Join room/i").count()) === 0,
           `${where}: the room's own message showed`,
         );
         check(
