@@ -1733,6 +1733,16 @@ outside the repo.
   off with `pinPrePartialCredit(true)`. Help, intro and the reveal's note ("45 % of the way") describe the new stamps.
   partial-credit-check (~20 s; `scripts/fixtures/partial-credit-legacy.json.gz` recorded on main by
   `scripts/partial-credit-record.ts`); bands `bun scripts/partial-credit-bands.ts [types…] [--seeds=30]`.
+- **Captain Joulz drawn larger in Grappler and Roofbound** (8 Nov 2026; display only, no stamps; hit boxes, sims,
+  timings, seeds and scoring unchanged): `HeroPose.growW` / `growH` / `growFeet` (`heroGrow`, `drawGrown` in
+  `hero.renderer.ts`) spread the game's joints before retargeting, so the art grows undistorted. Grappler
+  (`GRAPPLER_HERO_GROW` 1.2 across × 1.12 tall, from the soles, cave and jungle figures): jungle ±8.25 px across (was ±7)
+  in its 10 px circle, 15.25 up (was 12.25), 12.75 down (unchanged, so feet on ledges and over the river sit as before).
+  Roofbound flipRev 2+ (`ROOFBOUND_HERO_GROW` 1.15 × 1.25, from the soles): ±13.75 across (was ±12) inside the 32 × 36 box's
+  ±16 collision edge, 24.25 up (was 17), 17 down; its clip (flipArt `runnerFrame`) opens 7 px above and below
+  (`ROOFBOUND_HERO_HEADROOM_PX`; collision is along x, the clip across is unchanged); flipRev 1 and the game icons are
+  unchanged. Shots `bun scripts/shots/hero-size-shots.ts [--root=<main checkout> --tag=before]`
+  (`screenshots/hero-size-nov-2026/`, 390×844, crops with the hit box outlined).
 - `src/components/duel/` — room/round screens (PhoneShell, RoundIntro, TimerBar,
   AnswerReveal, ArcadeReveal, WinnerReveal…); `src/components/puzzles/` — shared puzzle
   widgets; `src/lib/fx/` — sound and visual feedback (presentation only).
