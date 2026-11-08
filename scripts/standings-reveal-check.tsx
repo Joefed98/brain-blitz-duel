@@ -267,7 +267,8 @@ for (const { label, rows, left = [] } of CASES) {
   const names = Array.from(view.host.querySelectorAll("ul.rs-list > li .th-name")).map((e) => e.textContent);
   check(JSON.stringify(names) === JSON.stringify(rows.map((r) => r.name)), `${label}: the list's page order is not the server's`);
   check(left.every((slot) => !names.includes(`P${slot}`)), `${label}: a player who left is shown`);
-  if (label.includes("inactive")) check(items(view.host).some((li) => li.className.includes("opacity-40")), `${label}: the inactive player is not shown dimmed`);
+  // A player who left is marked by the "Left" tag at full strength (7 Nov 2026, accessibility audit #3; was opacity-40).
+  if (label.includes("inactive")) check(items(view.host).some((li) => li.hasAttribute("data-left") && li.querySelector("[data-left-tag]")?.textContent === "Left") && items(view.host).every((li) => !li.className.includes("opacity-")), `${label}: the inactive player is not marked with the Left tag at full strength`);
   check(JSON.stringify(drawn(view.host, rows)) === JSON.stringify(previousStandingOrder(rows).map((r) => r.slot)), `${label}: not drawn in the previous order at first (${drawn(view.host, rows).join()})`);
   check(JSON.stringify(totals(view.host)) === JSON.stringify(rows.map((r) => String(C.countUpFrom(r)))), `${label}: the first totals are not the totals before the round (${totals(view.host).join()})`);
   check(items(view.host).every((li) => li.getAttribute("data-reveal") === "waiting"), `${label}: rows have landed before the reveal starts`);

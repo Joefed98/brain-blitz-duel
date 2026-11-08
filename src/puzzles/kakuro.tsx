@@ -109,7 +109,11 @@ export function KakuroBoard({
             onClick={onSelect ? () => onSelect(cell) : undefined}
             className={`kakuro-cell logic-glass-cell press relative flex min-h-0 min-w-0 items-center justify-center ${isSelected ? "kakuro-selected" : inLit ? "kakuro-lit" : ""} ${done && !tones ? "kakuro-done" : ""} ${bad && !tones ? "kakuro-bad" : ""} kakuro-tone-${tone}`}
             style={{ ...place, "--kakuro-i": row + col } as CSSProperties}
-            aria-label={`Row ${row}, column ${col}${value ? `, ${value}` : ""}`}
+            // 7 Nov 2026 (accessibility audit #16): the clue cells are hidden, so each white cell names its run sums
+            // (and whether a run is complete or broken), the digit or its notes.
+            aria-label={`Row ${row}, column ${col}, ${value ? value : marks.length ? `notes ${marks.join(" ")}` : "empty"}${mine
+              .map((i) => `, ${runs[i]!.across ? "across" : "down"} ${runs[i]!.sum}${states[i] === "done" ? " done" : states[i] === "bad" ? " broken" : ""}`)
+              .join("")}`}
             data-kakuro-cell={cell}
           >
             {value ? (

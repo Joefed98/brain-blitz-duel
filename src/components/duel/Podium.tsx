@@ -1,3 +1,4 @@
+import { LeftTag } from "./LeftTag";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 
 import { ordinal } from "@/lib/duel/ordinal";
@@ -220,7 +221,8 @@ export function Podium({
         </h1>
       )}
 
-      <div className="flex items-end gap-2 px-1">
+      {/* The plinths repeat the list under them (and are in the order 2, 1, 3): hidden from screen readers. */}
+      <div className="flex items-end gap-2 px-1" aria-hidden="true">
         <Plinth standing={rows.find((r) => r.position === 2)} place={2} looks={looks} celebrate={celebrate} skip={skipped} shared={sharedAt(2)} />
         <Plinth standing={rows.find((r) => r.position === 1)} place={1} looks={looks} celebrate={celebrate} skip={skipped} shared={sharedAt(1)} />
         <Plinth standing={rows.find((r) => r.position === 3)} place={3} looks={looks} celebrate={celebrate} skip={skipped} shared={sharedAt(3)} />
@@ -244,11 +246,12 @@ export function Podium({
               <button
                 type="button"
                 aria-expanded={open === row.slot}
-                aria-label={`${row.name}: ${shownTotal(row)} ${shownTotal(row) === 1 ? "point" : "points"}. Show round scores`}
+                aria-label={`${mark?.shared ? "Joint " : ""}${ordinal(row.position)}, ${row.name}${isMe ? " (you)" : ""}${row.status === "inactive" ? ", left" : ""}: ${shownTotal(row)} ${shownTotal(row) === 1 ? "point" : "points"}. Show round scores`}
                 onClick={() => setOpen((current) => (current === row.slot ? null : row.slot))}
                 data-you={isMe ? "" : undefined}
                 style={isMe ? youStyle(look) : undefined}
-                className={`flex min-h-12 w-full items-center gap-2.5 py-1 pl-3.5 pr-2 text-left ${row.status === "inactive" ? "opacity-40" : ""}`}
+                data-left={row.status === "inactive" ? "" : undefined}
+                className="flex min-h-12 w-full items-center gap-2.5 py-1 pl-3.5 pr-2 text-left"
               >
                 <Medal place={row.position} shared={mark?.shared} />
                 <PlayerBadge look={look} name={row.name} size={28} />
@@ -256,6 +259,7 @@ export function Podium({
                   <span className="flex min-w-0 items-baseline gap-1">
                     <span className="rs-name th-name">{row.name}</span>
                     {isMe ? <span className="rs-you shrink-0 text-[13px]">(you)</span> : null}
+                    {row.status === "inactive" ? <LeftTag /> : null}
                   </span>
                   {mark?.note ? <span data-tie-note className="rs-sub">{mark.note}</span> : null}
                 </span>

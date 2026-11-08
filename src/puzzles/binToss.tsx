@@ -403,7 +403,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     >
       <ArcadeArenaSlot width={view.w} height={view.h} scene={expand ? binTossArenaSceneV7 : binTossArenaScene} sceneKey={fairSceneKey}>
       <div ref={arenaBox} data-game-arena="canvas" className="relative overflow-hidden">
-      <canvas
+      <canvas role="img"
         ref={canvas}
         className="puzzle-board block h-full w-full"
         style={{ background: BINTOSS_BG }}

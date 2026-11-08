@@ -162,7 +162,6 @@ export const MuteToggle = memo(function MuteToggle({ variant }: {
                 max={100}
                 step={1}
                 value={[Math.round(volume * 100)]}
-                className="h-9"
                 onValueChange={([value]) => {
                   if (value === undefined) return;
                   if (effects) setEffectsVolume(value / 100);

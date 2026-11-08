@@ -183,7 +183,7 @@ export function ReplayCanvas({
   }, [timeline, drawer, plan]);
 
   return (
-    <canvas ref={canvasRef} className="block h-full w-full" aria-label={label} data-replay-canvas />
+    <canvas role="img" ref={canvasRef} className="block h-full w-full" aria-label={label} data-replay-canvas />
   );
 }
 
@@ -216,6 +216,6 @@ export function ReplayStill({
     }
   }, [timeline, drawer, tick]);
   return (
-    <canvas ref={canvasRef} className="block h-full w-full" aria-label={label} data-replay-still />
+    <canvas role="img" ref={canvasRef} className="block h-full w-full" aria-label={label} data-replay-still />
   );
 }

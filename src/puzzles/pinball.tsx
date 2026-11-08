@@ -221,7 +221,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   return (
     <ArcadeArenaSlot width={PIN_WORLD_W} height={pinballWorldHFor(data.pinRev)} scene={pinIsExpanded(data.pinRev) ? pinball4GlowFill : pinballGlowFill} ambient={pinIsExpanded(data.pinRev) ? pinball4Ambient : pinballAmbient} playCentre>
       <div ref={wrap} data-game-arena="canvas" className="relative min-h-0 w-full flex-1 overflow-hidden" style={NO_SCROLL_STYLE}>
-        <canvas
+        <canvas role="img"
           ref={canvas}
           className="puzzle-board block h-full w-full rounded-xl"
           style={{ background: "#000000", ...NO_SCROLL_STYLE }}

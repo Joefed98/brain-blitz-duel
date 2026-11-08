@@ -75,8 +75,8 @@ function steps(type: PuzzleType, p: FullPuzzle): Step[] {
           .split(",")
           .map((action) =>
             action.startsWith("w")
-              ? tap(`button[aria-label="Wire ${Number(action.slice(1)) + 1}"]`)
-              : tap(`button[aria-label="Button ${action.slice(1)}"]`),
+              ? tap(`button[aria-label^="Wire ${Number(action.slice(1)) + 1},"]`)
+              : tap(`button[aria-label^="Button ${action.slice(1)},"]`),
           ),
         tap("button:has-text('Defuse')"),
       ];
@@ -87,7 +87,7 @@ function steps(type: PuzzleType, p: FullPuzzle): Step[] {
         on
           ? [
               hold(
-                `button[aria-label="Row ${Math.floor(cell / size) + 1} column ${(cell % size) + 1}"]`,
+                `button[aria-label^="Row ${Math.floor(cell / size) + 1} column ${(cell % size) + 1},"]`,
               ),
             ]
           : [],

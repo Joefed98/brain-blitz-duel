@@ -296,8 +296,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   };
 
   const footer = (send: (payload: PointerPayload) => void) => (
-    <div data-game-controls="power" className="flex h-[76px] w-full shrink-0 touch-none select-none items-stretch gap-3 px-1">
-      <canvas
+    <div data-home-bar-clear="32" data-game-controls="power" className="flex h-[76px] w-full shrink-0 touch-none select-none items-stretch gap-3 px-1">
+      <canvas role="img"
         ref={panel}
         className="h-full min-w-0 flex-1"
         style={{ touchAction: "none" }}

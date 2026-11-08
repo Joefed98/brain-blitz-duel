@@ -74,6 +74,34 @@ check(style["--reveal-top"] === REVEAL_PALETTE["pinball"]?.[0] && "--reveal-mid"
   check(/\[data-chart-panel\] \{\s*background: none;\s*box-shadow: none;\s*border: 0;/.test(css) && !/data-chart-panel[^>]*bg-\[/.test(readFileSync("src/components/duel/ArcadeReveal.tsx", "utf8")), "the chart sits on the gradient with no panel behind it");
 }
 
+// 3c. A puzzle reveal's own lines (data-skin-off, 7 Nov 2026, accessibility audit #1): grey and red take the reveal's
+//     secondary text and red / warn text a light red (30 % red), each at least 4.5:1 on every stop of every game's gradient and the
+//     fallback (the legacy #9797A1 / #FF4D4D read 2.8 / 2.4:1 on the brightest stops); the board tray has a dark base.
+{
+  const css = readFileSync("src/polish-layout/reveal-screen.css", "utf8");
+  const rule = /\[data-reveal-screen\] \[data-skin-off\] \{([^}]*)\}/.exec(css)?.[1] ?? "";
+  check(/--muted-foreground: var\(--reveal-text-2\);/.test(rule), "reveal skin-off grey is --reveal-text-2");
+  const red = "color-mix(in srgb, var(--jz-red) 30%, var(--jz-text))";
+  check(rule.includes(`--reveal-text-red: ${red};`) && /\[data-reveal-screen\] \[data-skin-off\] :is\(\[class\*="text-destructive"\], \[class\*="text-warn"\]\) \{\s*color: var\(--reveal-text-red\);\s*\}/.test(css), "reveal skin-off red and warn text are a light red (30 % red)");
+  check(/--reveal-text-2: color-mix\(in srgb, var\(--jz-text\) 75%, var\(--jz-text-2\)\);/.test(css), "--reveal-text-2 is the 75 % mix");
+  const tokens = readFileSync("src/design/tokens.css", "utf8");
+  const token = (name: string) => hexToRgb(new RegExp(`--${name}: (#[0-9A-Fa-f]{6});`).exec(tokens)![1]!.toUpperCase());
+  const mix = (a: number[], b: number[], t: number) => a.map((v, i) => v * t + b[i]! * (1 - t));
+  const colours = { grey: mix(token("jz-text"), token("jz-text-2"), 0.75), red: mix(token("jz-red"), token("jz-text"), 0.3) };
+  const lum = (c: number[]) => 1.05 / whiteContrast(c) - 0.05;
+  for (const [name, colour] of Object.entries(colours)) {
+    let worst = { c: Infinity, where: "" };
+    for (const [where, stops] of [...ACTIVE_PUZZLE_TYPES.map((t) => [t, revealPaletteFor(t)] as const), ["fallback", REVEAL_FALLBACK] as const])
+      for (const hex of stops) {
+        const c = (lum(colour) + 0.05) / (lum(hexToRgb(hex)) + 0.05);
+        if (c < worst.c) worst = { c, where: `${where} ${hex}` };
+      }
+    check(worst.c >= 4.5, `reveal ${name} text reads ${worst.c.toFixed(2)}:1 on ${worst.where}, under 4.5:1`);
+    console.log(`reveal ${name} text: worst ${worst.c.toFixed(2)}:1 (${worst.where})`);
+  }
+  check(/\.reveal-tray \{[^}]*background-color: color-mix\(in srgb, var\(--jz-bg\) 72%, transparent\);/.test(readFileSync("src/polish-layout/room-screens.css", "utf8")), "the reveal's board tray has a 72 % dark base");
+}
+
 // 4. Wiring.
 const read = (p: string) => readFileSync(p, "utf8");
 for (const [file, pattern] of [

@@ -333,7 +333,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   return (
     <ArcadeArenaSlot width={BULLSEYE_WORLD_W} height={boxH} scene={lift ? bullseyeArenaSceneV8 : bullseyeArenaScene} sceneKey={fairSceneKey}>
       <div ref={wrap} data-game-arena="canvas" className="relative min-h-0 w-full flex-1 overflow-hidden rounded-xl">
-        <canvas
+        <canvas role="img"
           ref={canvas}
           className="puzzle-board block h-full w-full rounded-xl"
           style={{ background: BULLSEYE_BG }}

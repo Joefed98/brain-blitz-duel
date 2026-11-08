@@ -1,3 +1,4 @@
+import { VerdictLabel } from "@/components/duel/VerdictLabel";
 import { useEffect, useState, type ReactNode } from "react";
 
 import { GameIcon } from "@/components/app/GameIcon";
@@ -10,7 +11,6 @@ import { asyncReveal, type AsyncReveal } from "@/lib/duel/asyncApi";
 import type { AsyncAttemptView } from "@/lib/duel/asyncRoom";
 import { puzzleName } from "@/lib/duel/registry";
 import {
-  VERDICT_LABEL,
   VERDICT_TONE,
   roundVerdict,
   scoreOnlyVerdict,
@@ -183,7 +183,7 @@ export function AsyncResults({
                             data-verdict={verdict}
                             className={`font-bold ${VERDICT_TONE[verdict]}`}
                           >
-                            {round.missed ? "✗" : VERDICT_LABEL[verdict]}
+                            <VerdictLabel verdict={verdict} missed={round.missed} />
                           </span>
                           {summary ? `, ${summary}` : ""}
                         </>

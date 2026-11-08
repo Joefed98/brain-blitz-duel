@@ -1,5 +1,6 @@
 import { useArcadeFrameTiming } from "@/components/puzzles/useArcadeFrameTiming";
 import { useEffect, useRef, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 
 import { appendClientCounters, arcadeCounters } from "@/lib/arcade/diagnostics";
 import { reportArcadeTick, resetArcadeClock } from "@/lib/arcade/clock";
@@ -23,6 +24,7 @@ import { arcadeCanvasRatio } from "@/lib/fx/lowEnd";
 import { useGameKeys } from "@/lib/desktop";
 import { arenaFrame, cancelArenaFrame } from "@/lib/battery";
 import { useDesktopPresentation } from "@/lib/desktopPresentation";
+import { useLiveScore } from "@/components/puzzles/useLiveScore";
 
 /**
  * Checks only (desktop-fairness-check): when a page sets `window.__duelzWorldPoints` to an array, every
@@ -167,6 +169,13 @@ export function ArcadeCanvasStage<S, C>(props: Props<S, C>) {
   const [sceneKey, setSceneKey] = useState<string | number | undefined>(undefined);
   const sceneKeyRef = useRef<string | number | undefined>(undefined);
   useNoTouchScroll(wrap);
+  const liveScore = useLiveScore(() => game.score(state.current), enabled && !props.locked);
+  // The desktop rotate mode turns the world's box (data-arena-rotor, desktop-layout.css): the hidden live score goes
+  // beside it, not inside, so no text sits in the turned world (desktop-layout-check); screen readers hear it the same.
+  const [liveScoreHost, setLiveScoreHost] = useState<HTMLElement | null>(null);
+  useEffect(() => {
+    setLiveScoreHost((wrap.current?.closest("[data-arena-rotor]")?.parentElement as HTMLElement | null) ?? null);
+  });
 
   const propsRef = useRef(props);
   propsRef.current = props;
@@ -411,7 +420,7 @@ export function ArcadeCanvasStage<S, C>(props: Props<S, C>) {
       style={{ ...NO_SCROLL_STYLE, WebkitTouchCallout: "none", ...(props.overlayBelowWorld ? { overflow: "visible" } : null) }}
       onContextMenu={(event) => event.preventDefault()}
     >
-      <canvas
+      <canvas role="img"
         ref={canvas}
         className="puzzle-board block h-full w-full rounded-xl"
         style={{ background: props.background, touchAction: "none" }}
@@ -444,6 +453,8 @@ export function ArcadeCanvasStage<S, C>(props: Props<S, C>) {
         onPointerCancel={release}
       />
       {typeof props.overlay === "function" ? props.overlay(push) : props.overlay}
+      {liveScoreHost ? null : <p ref={liveScore} data-arcade-live-score="" className="sr-only" aria-live="polite" />}
+      {liveScoreHost ? createPortal(<p ref={liveScore} data-arcade-live-score="" className="sr-only" aria-live="polite" />, liveScoreHost) : null}
     </div>
   );
 
