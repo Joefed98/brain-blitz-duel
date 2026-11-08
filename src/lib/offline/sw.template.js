@@ -11,6 +11,8 @@
  *    file is "changed" when it is missing or its kept bytes' SHA-256 differs from CONFIG.mediaHash (3 Nov
  *    2026: before that a redrawn tile or a replaced recording kept its old copy for good, since requests
  *    ignore the ?v= hash and install fetched only missing paths).
+ *    The sounds once hosted by Lovable (CONFIG.lazyMedia, 7 Nov 2026) are not fetched on install: each is
+ *    kept in the media cache once played (the fetch handler), across builds, and dropped when its bytes change.
  *  - Navigations go to the network first (a fresh page whenever there is signal), then to the kept page
  *    for that path, then to a small offline page that points to Practice (rooms, tournaments, the daily
  *    and challenges need a connection).
@@ -37,6 +39,11 @@ self.addEventListener("install", (event) => {
       const have = new Set((await media.keys()).map((r) => new URL(r.url).pathname));
       const stale = await staleMedia(media, CONFIG.media.filter((path) => have.has(path)));
       await addAll(media, CONFIG.media.filter((path) => !have.has(path) || stale.has(path)), false);
+      // Media kept only once played (CONFIG.lazyMedia) is never fetched here; a kept copy whose bytes
+      // changed is dropped, so the next play fetches the new one.
+      const lazy = CONFIG.lazyMedia || [];
+      const staleLazy = await staleMedia(media, lazy.filter((path) => have.has(path)));
+      await Promise.all([...staleLazy].map((path) => media.delete(path)));
       await cacheGoogleFonts();
     })(),
   );
@@ -49,9 +56,9 @@ self.addEventListener("activate", (event) => {
       const keep = await rememberBuild();
       const names = await caches.keys();
       await Promise.all(names.filter((n) => n.startsWith(APP_PREFIX) && !keep.includes(n)).map((n) => caches.delete(n)));
-      // Media this build no longer lists (a removed sound) is dropped.
+      // Media this build no longer lists (a removed sound) is dropped; a played lazy file is kept.
       const media = await caches.open(MEDIA_CACHE);
-      const listed = new Set([...CONFIG.media, BUILD_KEY]);
+      const listed = new Set([...CONFIG.media, ...(CONFIG.lazyMedia || []), BUILD_KEY]);
       await Promise.all(
         (await media.keys()).filter((r) => !listed.has(new URL(r.url).pathname)).map((r) => media.delete(r)),
       );

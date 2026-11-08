@@ -354,6 +354,15 @@ export function gradeRemoved(rawAnswer: string): Graded {
   return { answer, isCorrect: false, score: 0, reactionAvgMs: null, correctCount: null, errors: null, extra: { removed: true }, storedMs: 0 };
 }
 
+/**
+ * The longest answer a puzzle's grade reads (arcade and engine run logs 400,000, tap logs and action logs their own
+ * caps, everything else 4,000). Security fix L13 (Nov 2026 audit): gradeAnswer cuts a standard puzzle's answer body
+ * here before the standard grader sees it, as this file's own path always has.
+ */
+export function answerCapFor(puzzle: PuzzleData): number {
+  return ARCADE_DIAG_KEYS.has(puzzle.type) || puzzle.type === "stroop" ? 400_000 : usesTapLog(puzzle) ? TAP_LOG_ANSWER_CAP : usesActionLog(puzzle) ? ACTION_LOG_ANSWER_CAP : 4_000;
+}
+
 function gradeUnderRev(
   puzzle: PuzzleData,
   rawAnswer: string,

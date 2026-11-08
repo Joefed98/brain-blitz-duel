@@ -10,8 +10,8 @@ generated tone) or *silent*. **How often** is an estimate for a typical round. *
 moment's on-screen length, capped at 6 s for one-shots. **Manifest slot** is the entry in
 `src/lib/fx/manifest.ts` whose `url` a new file goes on.
 
-Recorded files are hosted by Lovable (`/__l5e/assets-v1/<id>/<name>.mp3`) or, when they came in through git,
-kept in `public/sounds/` (`/sounds/<recording>.mp3`), one file per recording: several slots may name the same
+Recorded files are kept in `public/sounds/` (`/sounds/<recording>.mp3`; those once hosted by Lovable were
+copied there on 7 Nov 2026), one file per recording: several slots may name the same
 file. Every file is listed under [Recorded files](#recorded-files). **What it looks like** describes the arcade
 effects ([arcade-effects.md](arcade-effects.md)) so a sound can be written for each.
 

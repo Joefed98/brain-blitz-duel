@@ -62,6 +62,13 @@ export const RING_PATTERNS: RingPattern[] = [
   },
 ];
 
+/** The RING_PATTERNS index ringPattern plays for a stored pattern number (a non-integer stays as it is: no pattern). */
+export function ringPatternIndex(index: number | undefined): number {
+  const raw = index ?? 0;
+  if (!Number.isInteger(raw)) return raw;
+  return ((raw % RING_PATTERNS.length) + RING_PATTERNS.length) % RING_PATTERNS.length;
+}
+
 export function ringPattern(index: number | undefined): RingPattern {
   return RING_PATTERNS[(((index ?? 0) % RING_PATTERNS.length) + RING_PATTERNS.length) % RING_PATTERNS.length]!;
 }
