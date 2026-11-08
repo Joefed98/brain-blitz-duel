@@ -1,5 +1,6 @@
 import { useArcadeFrameTiming } from "@/components/puzzles/useArcadeFrameTiming";
 import { useEffect, useRef, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 
 import { appendClientCounters, arcadeCounters } from "@/lib/arcade/diagnostics";
 import { reportArcadeTick, resetArcadeClock } from "@/lib/arcade/clock";
@@ -169,6 +170,12 @@ export function ArcadeCanvasStage<S, C>(props: Props<S, C>) {
   const sceneKeyRef = useRef<string | number | undefined>(undefined);
   useNoTouchScroll(wrap);
   const liveScore = useLiveScore(() => game.score(state.current), enabled && !props.locked);
+  // The desktop rotate mode turns the world's box (data-arena-rotor, desktop-layout.css): the hidden live score goes
+  // beside it, not inside, so no text sits in the turned world (desktop-layout-check); screen readers hear it the same.
+  const [liveScoreHost, setLiveScoreHost] = useState<HTMLElement | null>(null);
+  useEffect(() => {
+    setLiveScoreHost((wrap.current?.closest("[data-arena-rotor]")?.parentElement as HTMLElement | null) ?? null);
+  });
 
   const propsRef = useRef(props);
   propsRef.current = props;
@@ -446,7 +453,8 @@ export function ArcadeCanvasStage<S, C>(props: Props<S, C>) {
         onPointerCancel={release}
       />
       {typeof props.overlay === "function" ? props.overlay(push) : props.overlay}
-      <p ref={liveScore} data-arcade-live-score="" className="sr-only" aria-live="polite" />
+      {liveScoreHost ? null : <p ref={liveScore} data-arcade-live-score="" className="sr-only" aria-live="polite" />}
+      {liveScoreHost ? createPortal(<p ref={liveScore} data-arcade-live-score="" className="sr-only" aria-live="polite" />, liveScoreHost) : null}
     </div>
   );
 
