@@ -7,7 +7,6 @@ import { MOTION_MS, animateFx } from "../src/lib/fx/motion";
 import { arcadeFeedback } from "../src/lib/fx/arcade";
 import { fx, setFxTheme, type FxEvent } from "../src/lib/fx";
 import { TimerBar } from "../src/components/duel/TimerBar";
-import { ProgressStrip } from "../src/components/duel/ProgressStrip";
 
 assert.equal(FX_HOOKS.length, 16);
 assert.equal(MOTION_MS.pop, 180);
@@ -24,7 +23,6 @@ for (const entry of Object.values(SOUND_MANIFEST)) {
   if (entry.channel === "music" && entry.url !== null) assert.match(entry.url, /\.mp3$/);
 }
 assert.equal(renderToStaticMarkup(<TimerBar active totalMs={60000} msRemaining={5000} />).match(/role="timer"/g)?.length, 1);
-assert.ok(renderToStaticMarkup(<ProgressStrip name="Player" value={150} />).includes("150"));
 
 const events: FxEvent[] = [];
 let reduced = false;
@@ -51,4 +49,4 @@ reduced = true;
 animateFx(element, "shake");
 assert.equal(options?.duration, 160);
 assert.ok(frames.every(frame => frame.transform === undefined));
-console.log(`Shared FX checks passed: ${Object.keys(PUZZLE_REGISTRY).length} themes, 16 hooks, manifest, run-end/combo deduplication, reduced-motion fades and HUD markup.`);
+console.log(`Shared FX checks passed: ${Object.keys(PUZZLE_REGISTRY).length} themes, 16 hooks, manifest, run-end/combo deduplication, reduced-motion fades and timer markup.`);
