@@ -106,7 +106,8 @@ export function Board({
               <button
                 key={popped ? `${index}-${tapped?.key}` : index}
                 type="button"
-                aria-label={`Row ${row + 1} column ${col + 1}`}
+                // 7 Nov 2026 (accessibility audit #16): the cell's state in its name (it was only its place).
+                aria-label={`Row ${row + 1} column ${col + 1}, ${gold ? "filled" : mark === 1 ? "filled" : mark === 2 ? "crossed" : "empty"}${wrong ? ", wrong" : ""}`}
                 onPointerDown={onCell ? () => onCell(index) : undefined}
                 style={{ "--logic-diag": row + col, "--logic-hue": (row * 47 + col * 83) % 360 } as CSSProperties}
                 className={`logic-nono-cell flex items-center justify-center border text-[13px] font-bold ${reveal ? "aspect-square" : ""} ${popped ? (mark === 1 ? "logic-nono-pop" : "logic-nono-tick") : ""} ${

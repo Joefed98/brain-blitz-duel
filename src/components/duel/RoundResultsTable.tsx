@@ -1,8 +1,9 @@
+import { VerdictLabel } from "./VerdictLabel";
+import { LeftTag } from "./LeftTag";
 import { MetaChips } from "@/components/app/MetaChips";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 
 import {
-  VERDICT_LABEL,
   VERDICT_TONE,
   formatElapsed,
   roundResultOrder,
@@ -116,7 +117,8 @@ export function RoundResultsTable({
                 onClick={() => setExpanded((value) => (value === row.slot ? null : row.slot))}
                 data-you={isMe ? "" : undefined}
                 style={isMe ? youStyle(look) : undefined}
-                className={`grid ${compact ? "min-h-[44px] py-1" : "min-h-[52px] py-1.5"} w-full ${finalRound ? "grid-cols-[minmax(0,1fr)_auto]" : "grid-cols-[1.5rem_minmax(0,1fr)_auto]"} items-center gap-x-2 pl-3.5 pr-2 text-left ${row.status === "inactive" ? "opacity-40" : ""}`}
+                className={`grid ${compact ? "min-h-[44px] py-1" : "min-h-[52px] py-1.5"} w-full ${finalRound ? "grid-cols-[minmax(0,1fr)_auto]" : "grid-cols-[1.5rem_minmax(0,1fr)_auto]"} items-center gap-x-2 pl-3.5 pr-2 text-left`} /* design-lint-ignore: the existing values; only the dimming changed (audit #3) */
+                data-left={row.status === "inactive" ? "" : undefined}
               >
                 {/* Last round: no positions, so the overall winner stays hidden until the reveal. */}
                 {!finalRound && mark && <Medal place={Number(mark.label.replace("=", ""))} shared={mark.shared} />}
@@ -127,6 +129,7 @@ export function RoundResultsTable({
                       <span className="flex min-w-0 items-center gap-1.5">
                         <span className="rs-name th-name leading-tight">{row.name}</span>
                         {isMe ? <span className="rs-you shrink-0 text-[13px]">(you)</span> : null}
+                        {row.status === "inactive" ? <LeftTag /> : null}
                         {won && <span className="rs-pill shrink-0">Round won</span>}
                       </span>
                       {/* Under the name, on one line in secondary text: the time used (the buzzer shows the
@@ -139,7 +142,7 @@ export function RoundResultsTable({
                       >
                         {time ? <span className="tabular-nums">{time}, </span> : null}
                         <span data-verdict={verdict} className={`font-bold ${VERDICT_TONE[verdict]}`}>
-                          {VERDICT_LABEL[verdict]}
+                          <VerdictLabel verdict={verdict} />
                         </span>
                         {note ? `, ${note}` : ""}
                         {summary ? `, ${open ? [summary, ...row.detail].join(" · ") : summary}` : ""}

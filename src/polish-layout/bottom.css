@@ -124,13 +124,49 @@ html:has([data-arcade-play]) {
 [data-arcade-play] [data-game-stage] :is([data-game-controls="pad"], [data-game-controls="tools"]) {
   padding-inline: 4px;
 }
-/* Mixed Signals' shared ArrowPad: arrows (44px) and the joystick (52px) bottom-aligned
-   in a fixed 52px row, so both modes end exactly 16px up and the arena never resizes. */
+/* Mixed Signals' shared ArrowPad: arrows (44px) and the joystick (52px) top-aligned
+   in a fixed 52px row (bottom-aligned until 7 Nov 2026: the arrows now stand 8px higher,
+   further from the home bar), so the row ends exactly 16px up and the arena never resizes. */
 [data-arcade-play] [data-game-stage] [data-game-controls="arrows"] {
   height: 52px;
   padding-top: 0;
   padding-bottom: 0;
-  align-items: end;
+  align-items: start;
+}
+/*
+ * The iPhone home-bar zone (7 Nov 2026, accessibility audit #2; display only): iOS reads a touch in the bottom
+ * inset (34 px) as the home and app-switch gestures. Every row keeps its height and place, so the column, the
+ * arena box and the world are exactly as before on every phone; inside the row the buttons stand on a bottom
+ * padding of the inset less the 16 px strip (18 px on a 34 px home bar, 0 with no inset), at most the room the
+ * row has above a 44 px target (data-home-bar-clear="<room>"). The tall buttons (data-home-bar-fill) fill what
+ * is left. Fission's and Cue Ball's 76 px rows clear the zone; Mahjong's and Minefield's 52 px rows and Rainbow
+ * Bridge's 48 px row get 44 px buttons at the row's top and still reach 10 / 14 px into it (Mixed Signals' arrows
+ * likewise, by the top alignment above): listed for a later layout pass.
+ */
+[data-arcade-play] {
+  --home-bar-lift: max(0px, calc(env(safe-area-inset-bottom, 0px) - 16px));
+}
+[data-arcade-play] [data-game-stage] [data-home-bar-clear="32"] {
+  --home-bar-room: 32px;
+}
+[data-arcade-play] [data-game-stage] [data-home-bar-clear="8"] {
+  --home-bar-room: 8px;
+}
+[data-arcade-play] [data-game-stage] [data-home-bar-clear="4"] {
+  --home-bar-room: 4px;
+}
+[data-arcade-play] [data-game-stage] [data-home-bar-clear] {
+  padding-bottom: min(var(--home-bar-room, 0px), var(--home-bar-lift, 0px));
+}
+[data-arcade-play] [data-game-stage] [data-home-bar-clear] [data-home-bar-fill] {
+  height: auto;
+  align-self: stretch;
+}
+/* Cue Ball's 64 px spin ball shrinks with its row (never under 44 px: the row keeps at least 44). */
+[data-arcade-play] [data-game-stage] [data-home-bar-clear] [data-pool-spin] {
+  height: min(64px, 100%);
+  width: auto;
+  aspect-ratio: 1;
 }
 /* The header and its 48px timer ring: polish-layout/game-frame.css (Polish 2). */
 

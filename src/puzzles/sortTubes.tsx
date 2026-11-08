@@ -45,6 +45,13 @@ function ballColour(index: number): string {
   return GLYPH_COLOURS[BALL_COLOURS[index % BALL_COLOURS.length]!];
 }
 
+/** A flask's contents in words, bottom to top (7 Nov 2026, accessibility audit #16: the label was "Flask N" alone). */
+function flaskLabel(index: number, tube: readonly number[], sorted: boolean): string {
+  const layers = tube.map((colour) => BALL_COLOURS[colour % BALL_COLOURS.length]!.toLowerCase());
+  const contents = layers.length ? `${layers.join(", ")} on top` : "empty";
+  return `Flask ${index + 1}: ${contents}${sorted ? ", corked" : ""}`;
+}
+
 /** A faint symbol per liquid colour, as a second cue beside the colour itself. */
 const POTION_SYMBOLS = ["●", "▲", "■", "◆", "★", "✚", "♥", "✦"] as const;
 
@@ -85,7 +92,7 @@ export function Tubes({
             disabled={!onTube}
             variant="ghost"
             onClick={() => onTube?.(index)}
-            aria-label={`Flask ${index + 1}`}
+            aria-label={flaskLabel(index, tube, sorted)}
             className={`flex h-full w-full min-w-0 items-end justify-center rounded-none border-0 p-0 hover:bg-transparent disabled:opacity-100 ${compact ? "" : "min-h-11 min-w-11"}`}
           >
             <span className={`flask logic-flask relative flex h-full w-full shrink-0 flex-col items-center justify-end rounded-b-[14px] rounded-t-md border-2 p-[3px] ${shake === index ? "animate-shake" : ""} ${
@@ -95,7 +102,7 @@ export function Tubes({
             >
               <span aria-hidden="true" className="logic-flask-rim" />
               {sorted && (
-                <span aria-label="Corked" className="pointer-events-none absolute -top-[7px] left-1/2 z-10 -translate-x-1/2">
+                <span aria-hidden="true" className="pointer-events-none absolute -top-[7px] left-1/2 z-10 -translate-x-1/2">
                   <span className="potion-cork logic-cork block h-[9px] w-[60%] min-w-[10px] rounded-[3px]" style={{ background: "linear-gradient(180deg, var(--cork), var(--cork-dark))", width: compact ? 12 : 20 }} />
                   {!compact && <span aria-hidden="true" className="potion-sparkle absolute -right-3 -top-2 text-xs text-primary">✦</span>}
                 </span>

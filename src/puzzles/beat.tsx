@@ -303,7 +303,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         data-game-arena="canvas" className="min-h-0 w-full flex-1 overflow-hidden rounded-xl"
         style={NO_SCROLL_STYLE}
       >
-        <canvas
+        <canvas role="img"
           ref={canvas}
           className="puzzle-board block h-full w-full rounded-xl"
           style={{ ...NO_SCROLL_STYLE, background: BEAT_BG }}

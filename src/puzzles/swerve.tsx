@@ -239,7 +239,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
 
   return (
     <div ref={wrap} className="min-h-0 w-full flex-1 overflow-hidden rounded-xl">
-      <canvas
+      <canvas role="img"
         ref={canvas}
         className="puzzle-board block h-full w-full rounded-xl"
         style={{ background: SWERVE_BG }}

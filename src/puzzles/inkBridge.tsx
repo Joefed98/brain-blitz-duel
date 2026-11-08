@@ -193,12 +193,12 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
           </>
         }
       />
-      <div data-game-controls="tools" className="flex h-12 shrink-0 gap-1.5" style={{ position: "relative" }}>
+      <div data-home-bar-clear="4" data-game-controls="tools" className="flex h-12 shrink-0 gap-1.5" style={{ position: "relative" }}>
         {/* Polish A2: the dock's backing, drawn round the row without changing its size or place. */}
         <span aria-hidden="true" className="pointer-events-none absolute -inset-x-1 -inset-y-1 rounded-2xl" style={DOCK_BACKING} />
         {/* DROP AGAIN only while a drop is under way (it ends that drop as a miss); the row keeps its 48 px height. */}
         {([ [INK_INPUT_UNDO, "UNDO"], [INK_INPUT_RESET, "RESET"], [INK_INPUT_RELEASE, "RELEASE"], [INK_INPUT_DROP_AGAIN, "DROP AGAIN"] ] as const).filter(([k]) => k !== INK_INPUT_DROP_AGAIN || dropping).map(([k, label]) => (
-          <Button key={k} type="button" disabled={locked || (k === INK_INPUT_UNDO && liveDropping)} variant={k === INK_INPUT_RELEASE ? "default" : "outline"} className="h-12 min-w-0 flex-1 rounded-xl px-1 text-xs font-bold" style={k === INK_INPUT_RELEASE ? DOCK_GOLD : DOCK_GLASS} onPointerDown={(e) => {
+          <Button key={k} type="button" data-home-bar-fill="" disabled={locked || (k === INK_INPUT_UNDO && liveDropping)} variant={k === INK_INPUT_RELEASE ? "default" : "outline"} className="h-12 min-w-0 flex-1 rounded-xl px-1 text-xs font-bold" style={k === INK_INPUT_RELEASE ? DOCK_GOLD : DOCK_GLASS} onPointerDown={(e) => {
             e.preventDefault();
             input.current.press(k);
           }}>{label}</Button>
