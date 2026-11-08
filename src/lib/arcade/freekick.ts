@@ -264,7 +264,7 @@ export const FREEKICK_V4_STD_SPEC: StdSpec = {
   field: "freekickRev",
   rev: FREEKICK_REV_4,
   parts: [
-    { key: "core", label: "Goals", max: FREEKICK_V4_CORE_MAX, of: FREEKICK_KICKS, item: "goal", how: "every goal scores, a little more the further from the keeper" },
+    { key: "core", label: "Goals", max: FREEKICK_V4_CORE_MAX, of: FREEKICK_V4_CORE_FULL, item: "goal", how: "every goal scores, a little more the further from the keeper" },
     { key: "targets", label: "Targets", max: FREEKICK_TARGETS_MAX, of: FREEKICK_TARGETS, item: "target", how: `10 for each of the ${FREEKICK_TARGETS} target hoops you score through (they shrink kick by kick)` },
     { key: "curl", label: "Round the wall", max: FREEKICK_V4_WALL_MAX, of: FREEKICK_KICKS, item: "curler", how: "1 for each goal curled round the end of the wall" },
     { key: "bent", label: "Curl bonus", max: FREEKICK_V4_BENT_MAX, of: FREEKICK_KICKS, item: "bender", how: "2 for each goal from a well-bent shot" },

@@ -4,6 +4,7 @@
  * text. "{max}" is the game's round maximum (roundMax.ts); the figures below it are the curves' own.
  */
 import { FLASH_DECOY_FREE_SHARE_PCT } from "../tapLog";
+import { preNov7Pinned } from "../speedPipesNov7";
 import { scoreList } from "../scoreList";
 import { STOPWATCH_REV4_CURVE } from "../scoring";
 import { fastFinishSeconds, rev3Figures } from "../puzzleBandsText";
@@ -15,8 +16,12 @@ const grouped = (n: number) => n.toLocaleString("en-GB");
 
 export function flashDepthHelp(): string {
   const [topMs, topPts] = FLASH_REV6_CURVE[0];
+  // tapRev 7 (7 Nov 2026, speedPipesNov7.ts): each flash scores on its own and the points are averaged.
+  const reactions = preNov7Pinned()
+    ? `the faster your average reaction, the more; ${topMs} ms or faster for all of it (a miss counts as ${grouped(1200)} ms)`
+    : `each flash scores by how fast you react, ${topMs} ms or faster for all of it, a missed flash nothing; your points are the average over the flashes`;
   return scoreList([
-    { label: "Reactions", how: `the faster your average reaction, the more; ${topMs} ms or faster for all of it (a miss counts as ${grouped(1200)} ms)`, max: topPts },
+    { label: "Reactions", how: reactions, max: topPts },
     { label: "Steady hand", how: `hit every flash with no false start and every reaction within ${FLASH_STEADY_TIGHT_MS} ms of the others (${FLASH_STEADY_LOOSE_POINTS} within ${FLASH_STEADY_LOOSE_MS} ms)`, max: FLASH_STEADY_TIGHT_POINTS },
   ], {
     penalties: [
@@ -32,7 +37,12 @@ export const FLASH_DEPTH_INTRO = "React fast to every flash; a bonus for a stead
 
 export function bangOnDepthHelp(): string {
   return scoreList([
-    { label: "Closeness", how: "the closer your average stop, the more (a miss counts as 500 ms)", max: 150 },
+    {
+      label: "Closeness",
+      // tapRev 7 (7 Nov 2026, speedPipesNov7.ts): each watch scores on its own and the points are averaged.
+      how: preNov7Pinned() ? "the closer your average stop, the more (a miss counts as 500 ms)" : "each watch scores by how close you stop it, a missed watch nothing; your points are the average over the ten",
+      max: 150,
+    },
     { label: "Dead centre", how: `${BANGON_TOPUP_CENTRE_POINTS} for each stop on the bright centre line` },
     { label: "Zone streak", how: `watches in a row stopped in the gold zone: 2 for the second, 3 for the third, 4, then ${BANGON_TOPUP_STREAK_TOP} each` },
   ], { penalties: ["Dead centre and the zone streak add up to 50 at most", `At least ${BANGON_PARTIAL_POINTS} for each watch stopped within ${BANGON_PARTIAL_MS} ms`], total: "{max}" as unknown as number });

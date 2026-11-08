@@ -1,6 +1,46 @@
-# Free Cell (`freecell`) on the arcade scoring standard (freecellRev 4, 3 Nov 2026; rev 3 1 Nov 2026; rev 2 31 Oct 2026; rev 1 30 Oct 2026)
+# Free Cell (`freecell`) on the arcade scoring standard (freecellRev 5, 7 Nov 2026; rev 4 3 Nov 2026; rev 3 1 Nov 2026; rev 2 31 Oct 2026; rev 1 30 Oct 2026)
 
-## freecellRev 4 (3 Nov 2026, Joe's Cards & Board batch: what rooms deal)
+## freecellRev 5 (7 Nov 2026, scoring audit issue 6: what rooms deal)
+
+The audit (`docs/audit-nov-2026/scoring.md`, issues 6 and 22) found rev 4 kept 140 of the 200 for a finish (par 50,
+speed 90), and its core stopped rising at 50 units (25 of the 40 cards home), so 39 home scored the same 60 as 25.
+Rev 5 keeps rev 4's deal, bank, pars and play, moves half the speed onto the cards and lets the core rise to the last
+card:
+
+| Part | Max | How |
+| --- | --- | --- |
+| Cards (core) | 105 | `stdLine(105, 2 × home + sorted, 80)`: full with all 40 home (rev 4: 60, full at 50 units) |
+| Par moves | 50 | finished only: full at par, 0 at 1.5 × par (unchanged, now in whole numbers) |
+| Speed | 45 | finished only: full by 32 s, 0 at the buzzer, in whole numbers (`stdSpeedInt`; rev 4: 90 with `stdSpeed`) |
+
+- **Proportional:** a card home adds 2 units (about 2.6 points) right up to the 40th; 39 home scores 102 against 25
+  home's 65. An unfinished position holds 78 units at most (39 home, or 38 home and a sorted pair), so its core is at
+  most 102, below any finish's 105. 95 points (was 140) wait for the finish.
+- **No inversions:** a card going home never lowers the score (it gains 2 units and takes at most 2 from a sorted run);
+  a card taken off a sorted run to a free cell still gives back its half unit, as on every revision.
+- **Whole-number lines (issue 22):** speed `floor(45 × (7200 − t) ÷ 5280)`, par `floor(50 × (3 × par − 2 × moves) ÷ par)`.
+- **200 on every deal:** all 300 bank deals' par lines replay to exactly 200 on rev 5 through the server replay
+  (cards-nov7-check); arcade-standard-check's entry plays five.
+
+Skill bands (`bun scripts/cards-bands.ts freecell --seeds=60 --from=10000`, fresh seeds; the same runs on both stamps):
+
+| Level | Weak | Average | Good | Great | Near-perfect | Elite | Flawless |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| rev 4 median (before) | 40 | 88 | 124 | 150 | 174 | 189 | 200 |
+| **rev 5 median** | **44** | **123** | **147** | **162** | **175** | **189** | **200** |
+| rev 4 p10–p90 | 21–78 | 36–129 | 63–164 | 120–186 | 138–199 | 155–200 | 200 |
+| rev 5 p10–p90 | 23–118 | 39–155 | 106–177 | 142–192 | 144–199 | 158–200 | 200 |
+| finished | 7/60 | 41/60 | 56/60 | 60/60 | 60/60 | 60/60 | 60/60 |
+
+*For Joe:* the average level rises most (88 → 123): two thirds of its runs finish late and slowly, and they now keep
+the 45 points moved off speed. If that is too generous, the next stamp can trim the cards part and give it back to par.
+
+Older stamps replay and score exactly as before: 70 runs recorded on main before the change (Free Cell rev 4, Summit
+rev 2, Thirteen rev 1; `scripts/fixtures/cards-nov7-legacy.json`, `scripts/cards-nov7-legacy-record.ts`) replay to the
+same score, final-state checksum and tick (cards-nov7-check). Checks written for the older stamps can deal them with
+`pinCardsPreShare(true)` (`src/lib/duel/arcade.server.ts`).
+
+## freecellRev 4 (3 Nov 2026, Joe's Cards & Board batch)
 
 - **A smaller deal so a whole game fits the 2-minute round:** Ace to 10 in each suit (40 cards), eight columns of five,
   the same four free cells and four home piles. The deal is the same seeded shuffle as before with the Jacks, Queens and

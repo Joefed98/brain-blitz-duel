@@ -19,7 +19,9 @@ import { dealtTopupRev } from "./depthTopup";
 import { dealStandard, usesStandard } from "./standard/stamps";
 import { dealPuzzleNotes } from "./puzzleNotes";
 import { dealParMoves } from "./parMoves";
+import { dealPipesPlaced } from "./speedPipesNov7";
 import { dealOperatorGaps } from "./operatorGaps.server";
+import { dealWordNov7 } from "./wordNov7";
 import { dealPartialCredit } from "./partialCredit";
 import { topsyPlainRoutes } from "./topsy.server";
 import { varyTallyTray } from "@/puzzles/countUp";
@@ -166,7 +168,8 @@ export function generatePuzzle(type: PuzzleType, context: GenerateContext = {}):
   // Puzzle polish (3 Nov 2026, operatorGaps.ts): Operator's sign, number and mixed gaps one stamp above the standard's.
   // Partial-credit fixes (7 Nov 2026, partialCredit.ts): Blackout, Hanoi, Polypotions, Gridlock, Turntable, Exact and
   // Gradient one stamp above the one dealt before.
-  return dealPartialCredit(dealOperatorGaps(dealParMoves(dealPuzzleNotes(dealStandard(stamped), (p) => (p.type === "countup" ? varyTallyTray(p) : p)), (p) => (p.type === "gravity" ? topsyPlainRoutes(p) : p))));
+  // The Word scoring fix (7 Nov 2026, wordNov7.ts): Interlock, Slider and Lookout one stamp above (Slider above the notes).
+  return dealWordNov7(dealPartialCredit(dealOperatorGaps(dealParMoves(dealPuzzleNotes(dealPipesPlaced(dealStandard(stamped)), (p) => (p.type === "countup" ? varyTallyTray(p) : p)), (p) => (p.type === "gravity" ? topsyPlainRoutes(p) : p)))));
 }
 
 function generateUnstamped(type: PuzzleType, context: GenerateContext): PuzzleData {

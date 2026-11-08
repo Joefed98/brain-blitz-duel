@@ -1,6 +1,43 @@
-# Summit (`tripeaks`) on the arcade scoring standard (tripeaksRev 2, 3 Nov 2026; tripeaksRev 1, 30 Oct 2026)
+# Summit (`tripeaks`) on the arcade scoring standard (tripeaksRev 3, 7 Nov 2026; tripeaksRev 2, 3 Nov 2026; tripeaksRev 1, 30 Oct 2026)
 
-## tripeaksRev 2 (3 Nov 2026, Joe's Cards & Board batch: what rooms deal)
+## tripeaksRev 3 (7 Nov 2026, scoring audit issue 6: what rooms deal)
+
+The audit (`docs/audit-nov-2026/scoring.md`, issues 6 and 22) found 80 of rev 2's 200 locked behind a clear (clear 10,
+stock par 20, speed 50). Rev 3 keeps rev 2's deals, stock pars and play and moves half the speed onto the cards:
+
+| Part | Max | How |
+| --- | --- | --- |
+| Cards cleared | 105 | a straight line over the 28 peak cards (rev 2: 80) |
+| Peak tops | 30 | 10 for each peak top cleared (unchanged) |
+| Longest run | 10 | 1 for each card in the longest run, up to 10 (unchanged) |
+| Clear | 10 | all 28 cleared (unchanged) |
+| Stock par | 20 | cleared only: full at par or fewer stock turns, 0 with the whole stock turned (unchanged, now in whole numbers) |
+| Speed | 25 | cleared only: full by 20 s, 0 at the buzzer, in whole numbers (`stdSpeedInt`; rev 2: 50 with `stdSpeed`) |
+
+- **Proportional:** 55 points (was 80) wait for the clear; each card cleared is worth 105 ÷ 28.
+- **No inversions:** a card cleared never lowers the score; the poorest clear (every card and top, a run of 1, no par
+  or speed: 105 + 30 + 1 + 10 = 146) scores above the best run that misses one (27 cleared, every top, a run of 10:
+  101 + 30 + 10 = 141).
+- **Whole-number lines (issue 22):** speed `floor(25 × (3600 − t) ÷ 2400)` and stock par `floor(20 × (23 − turns) ÷ (23 − par))`.
+- **200 on every deal:** all 300 bank deals' stock-par lines replay to exactly 200 on rev 3 through the server replay
+  (cards-nov7-check).
+
+Skill bands (`bun scripts/cards-bands.ts tripeaks --seeds=60 --from=10000`, fresh seeds; the same runs on both stamps):
+
+| Level | Weak | Average | Good | Great | Near-perfect | Elite | Flawless |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| rev 2 median (before) | 62 | 88 | 128 | 157 | 173 | 181 | 200 |
+| **rev 3 median** | **77** | **110** | **151** | **167** | **177** | **182** | **200** |
+| rev 2 p10–p90 | 50–79 | 70–140 | 85–160 | 87–178 | 165–188 | 172–192 | 200 |
+| rev 3 p10–p90 | 65–99 | 91–163 | 107–177 | 109–187 | 170–192 | 174–194 | 200 |
+| cleared | 0/60 | 9/60 | 30/60 | 37/60 | 57/60 | 57/60 | 60/60 |
+
+Older stamps replay and score exactly as before: 70 runs recorded on main before the change (Free Cell rev 4, Summit
+rev 2, Thirteen rev 1; `scripts/fixtures/cards-nov7-legacy.json`, `scripts/cards-nov7-legacy-record.ts`) replay to the
+same score, final-state checksum and tick (cards-nov7-check). Checks written for the older stamps can deal them with
+`pinCardsPreShare(true)` (`src/lib/duel/arcade.server.ts`).
+
+## tripeaksRev 2 (3 Nov 2026, Joe's Cards & Board batch)
 
 - **Speed was already there** (rev 1: 20 points on a clear, full by 27 s, 0 at the buzzer); rev 2 keeps it, re-weighted.
 - **New feature, Stock par:** each bank deal's par is the fewest stock cards turned by any line that clears all 28 with

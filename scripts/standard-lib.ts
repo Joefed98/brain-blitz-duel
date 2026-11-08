@@ -12,6 +12,33 @@ import type { PuzzleData, PuzzleType } from "../src/lib/duel/types";
 import { LEVELS, SKILLS, hashText, makeRng, type Level, type Step } from "./puzzle-fairness/kit";
 import { KITS } from "./puzzle-fairness/kits";
 import { roomPuzzle } from "./puzzle-fairness/run";
+import { decodeSides, rotateMask, tileOpenings } from "../src/lib/duel/logic";
+import { encodePipesTapAnswer, pipesAfterTaps } from "../src/lib/duel/depth4/pipesTaps";
+
+type Of<T extends PuzzleType> = Extract<PuzzleData, { type: T }>;
+
+/**
+ * Pipeline's kit sends side-sets; from pipesRev 1 the server takes the board from the tap log alone, so each change
+ * becomes the clockwise taps it takes (audit 23h, 7 Nov 2026: the band tool sent no taps, so every Pipeline answer
+ * graded as the dealt board). Other games' steps pass through unchanged.
+ */
+export function asPhoneSends(puzzle: PuzzleData, steps: readonly Step[]): Step[] {
+  if (puzzle.type !== "pipes" || !((puzzle.pipesRev ?? 0) >= 1)) return [...steps];
+  const p = puzzle as Of<"pipes">;
+  let prev = p.tiles.map(tileOpenings);
+  const taps: number[] = [];
+  return steps.map((s) => {
+    const sides = decodeSides(p.tiles, s.answer).map(tileOpenings);
+    sides.forEach((want, cell) => {
+      for (let t = 0; t < 4; t++) if (rotateMask(prev[cell]!, t) === want) {
+        for (let k = 0; k < t; k++) taps.push(cell);
+        break;
+      }
+    });
+    prev = sides;
+    return { answer: encodePipesTapAnswer(pipesAfterTaps(p.tiles, taps), taps), atMs: s.atMs };
+  });
+}
 
 /** The answer a phone sends after these drafts (each at its round-clock ms): the last draft plus its timeline. */
 export function sentAnswer(puzzle: PuzzleData, drafts: readonly { answer: string; atMs: number }[]): string {
@@ -79,11 +106,12 @@ export function kitBands(type: PuzzleType, seeds: readonly number[], deal: (seed
   for (const seed of seeds) {
     const puzzle = deal(seed);
     const limit = puzzleTimeLimitMs(puzzle);
-    out[0]!.scores.push(gradeAnswer(puzzle, kit.nothing(puzzle), 0).score);
-    for (const sp of kit.spam(puzzle, makeRng(hashText(`std:${type}:spam:${seed}`)), limit)) out[1]!.scores.push(gradeAnswer(puzzle, sp.answer, 0).score);
+    const sent = (answer: string) => asPhoneSends(puzzle, [{ answer, atMs: 0 }])[0]!.answer;
+    out[0]!.scores.push(gradeAnswer(puzzle, sent(kit.nothing(puzzle)), 0).score);
+    for (const sp of kit.spam(puzzle, makeRng(hashText(`std:${type}:spam:${seed}`)), limit)) out[1]!.scores.push(gradeAnswer(puzzle, sent(sp.answer), 0).score);
     LEVELS.forEach((level, i) => {
       const play = kit.play(puzzle, makeRng(hashText(`std:${type}:${seed}:${level}`)), SKILLS[level], limit);
-      out[2 + i]!.scores.push(gradeSteps(puzzle, play.steps, play.timed).score);
+      out[2 + i]!.scores.push(gradeSteps(puzzle, asPhoneSends(puzzle, play.steps), play.timed).score);
     });
   }
   return out;

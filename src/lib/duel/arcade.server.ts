@@ -44,9 +44,9 @@ import { CLASH_QUEUE, CLASH_REV_TALL, CLASH_REV_DEPTH, CLASH_REV_TOPUP } from "@
  */
 
 import { randomBelow } from "./random";
-import { FC_REV } from "@/lib/arcade/cards/freecell";
+import { FC_REV, FC_REV_SHORT } from "@/lib/arcade/cards/freecell";
 import { FC_DEALS } from "@/lib/arcade/cards/freecellDeals.data";
-import { TP_REV } from "@/lib/arcade/cards/tripeaks";
+import { TP_REV, TP_REV_PAR } from "@/lib/arcade/cards/tripeaks";
 import { TP_DEALS } from "@/lib/arcade/cards/tripeaksDeals.data";
 import { PS_REV } from "@/lib/arcade/cards/pokerSquares";
 import { FH_REV } from "@/lib/arcade/cards/fiveHands";
@@ -103,14 +103,29 @@ export function arcadeSeed(): number {
 
 /* Cards & Board (30 Oct 2026): the arcade scoring standard from revision 1. */
 
+let cardsPreShare = false;
+/**
+ * Checks written for Free Cell freecellRev 4, Summit tripeaksRev 2 and Thirteen pyramidRev 1 (before the 7 Nov 2026
+ * partial-credit stamps, docs/arcade-standard/freecell.md, tripeaks.md, pyramid.md): deal those stamps as rooms did
+ * before freecellRev 5, tripeaksRev 3 and pyramidRev 2 (returns the previous setting), so they keep proving what they
+ * were written for.
+ */
+export function pinCardsPreShare(on: boolean): boolean {
+  const prev = cardsPreShare;
+  cardsPreShare = on;
+  return prev;
+}
+
 /** FreeCell: a bank deal (its index), proved solvable with a known par. */
 export function generateFreecell(): FreecellPuzzleData {
-  return { type: "freecell", seed: randomBelow(FC_DEALS.length), freecellRev: FC_REV };
+  // freecellRev 5 (7 Nov 2026): rev 4's deal and bank, the core rising to all 40 home.
+  return { type: "freecell", seed: randomBelow(FC_DEALS.length), freecellRev: cardsPreShare ? FC_REV_SHORT : FC_REV };
 }
 
 /** TriPeaks: a bank deal (its index), proved clearable with a run of ten. */
 export function generateTripeaks(): TripeaksPuzzleData {
-  return { type: "tripeaks", seed: randomBelow(TP_DEALS.length), tripeaksRev: TP_REV };
+  // tripeaksRev 3 (7 Nov 2026): rev 2's deals and pars, half the speed moved onto the cards.
+  return { type: "tripeaks", seed: randomBelow(TP_DEALS.length), tripeaksRev: cardsPreShare ? TP_REV_PAR : TP_REV };
 }
 
 /** Poker Squares: any seed; the sim builds the target grid and dealing order from it. */
@@ -125,7 +140,8 @@ export function generateFiveHands(): FiveHandsPuzzleData {
 
 /** Pyramid: any seed; the sim builds the deal with a witness line (ten pyramid pairs) and proves it. */
 export function generatePyramid(): PyramidPuzzleData {
-  return { type: "pyramid", seed: arcadeSeed(), pyramidRev: PY_REV };
+  // pyramidRev 2 (7 Nov 2026): the same deals, half the speed moved onto the cards.
+  return { type: "pyramid", seed: arcadeSeed(), pyramidRev: cardsPreShare ? 1 : PY_REV };
 }
 
 /** Golf Solitaire: a bank deal (its index), cleared by a strong human line and proved with five runs of four. */

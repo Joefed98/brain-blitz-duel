@@ -42,14 +42,14 @@ import { BASTION_REV_DEALT, BASTION_STD_SPEC_V3, BASTION_V3_BAND_CURVE } from ".
 import { HOMERUN_REV_DEALT, HOMERUN_STD_SPEC_DEALT, HOMERUN_V4_BAND_CURVE } from "./homerun";
 import { FREEKICK_REV_DEALT, FREEKICK_V4_STD_SPEC, FREEKICK_V4_BAND_CURVE } from "./freekick";
 import { RACING_REV_DEALT, RACING_V3_BAND_CURVE, RACING_V3_STD_SPEC } from "./racing";
-import { FC_REV, FC_STD_SPEC, FC_V4_BAND_CURVE } from "./cards/freecell";
-import { TP_REV, TP_STD_SPEC, TP_V2_BAND_CURVE } from "./cards/tripeaks";
+import { FC_REV, FC_STD_SPEC, FC_V5_BAND_CURVE } from "./cards/freecell";
+import { TP_REV, TP_STD_SPEC, TP_V3_BAND_CURVE } from "./cards/tripeaks";
 import { PS_REV, PS_STD_SPEC, PS_V2_BAND_CURVE } from "./cards/pokerSquares";
 import { FH_REV, FH_STD_SPEC, FH_V3_BAND_CURVE } from "./cards/fiveHands";
 import { BLOCKFALL_REV_ZONE, BF_ZONE_STD_SPEC, BF_V2_BAND_CURVE } from "./blockfall";
 import { ALLEYROLL_REV_DEALT, AR2_STD_SPEC, AR_V2_BAND_CURVE } from "./alleyroll";
 import { MOON_REV, MOON_STD_SPEC, MOON_V3_BAND_CURVE } from "./ricochetNinja";
-import { PY_REV, PY_STD_SPEC, PY_V1_BAND_CURVE } from "./cards/pyramid";
+import { PY_REV, PY_STD_SPEC, PY_V2_BAND_CURVE } from "./cards/pyramid";
 import { GS_REV, GS_STD_SPEC, GS_V1_BAND_CURVE } from "./cards/golfSol";
 import { MG_REV, MG_STD_SPEC, MG_V1_BAND_CURVE } from "./cards/muggins";
 import { MINIGOLF_REV, MINIGOLF_STD_SPEC } from "./minigolf";
@@ -152,9 +152,11 @@ export const LIVE_BANDS = {
   racing: { field: "racingRev", rev: RACING_REV_DEALT, curve: RACING_V3_BAND_CURVE, std: RACING_V3_STD_SPEC, born: true },
   // Cards & Board (30 Oct 2026): born on the arcade scoring standard at revision 1.
   // freecellRev 4 (3 Nov 2026): the 40-card deal (Ace to 10), cards 60 + par 50 + speed 90.
-  freecell: { field: "freecellRev", rev: FC_REV, curve: FC_V4_BAND_CURVE, std: FC_STD_SPEC, born: true },
+  // freecellRev 5 (7 Nov 2026): cards 105 to all 40 home + par 50 + speed 45.
+  freecell: { field: "freecellRev", rev: FC_REV, curve: FC_V5_BAND_CURVE, std: FC_STD_SPEC, born: true },
   // tripeaksRev 2 (3 Nov 2026): the stock par part, the parts re-fitted.
-  tripeaks: { field: "tripeaksRev", rev: TP_REV, curve: TP_V2_BAND_CURVE, std: TP_STD_SPEC, born: true },
+  // tripeaksRev 3 (7 Nov 2026): cards 105, speed 25 (half the speed moved onto the cards).
+  tripeaks: { field: "tripeaksRev", rev: TP_REV, curve: TP_V3_BAND_CURVE, std: TP_STD_SPEC, born: true },
   // pokerSquaresRev 2 (Full House, 31 Oct 2026): the core full at the elite median.
   pokersquares: { field: "pokerSquaresRev", rev: PS_REV, curve: PS_V2_BAND_CURVE, std: PS_STD_SPEC, born: true },
   // Five Hands (31 Oct 2026): born on the arcade scoring standard at revision 1.
@@ -164,7 +166,7 @@ export const LIVE_BANDS = {
   // Moon Climb (ricoRev 3, 3 Nov 2026): the live stamp, its own parts (height, flow, lantern rides, scrolls).
   ricochet: { field: "ricoRev", rev: MOON_REV, curve: MOON_V3_BAND_CURVE, std: MOON_STD_SPEC, born: true },
   // Pyramid, Golf Solitaire and Muggins (1 Nov 2026): born on the arcade scoring standard.
-  pyramid: { field: "pyramidRev", rev: PY_REV, curve: PY_V1_BAND_CURVE, std: PY_STD_SPEC, born: true },
+  pyramid: { field: "pyramidRev", rev: PY_REV, curve: PY_V2_BAND_CURVE, std: PY_STD_SPEC, born: true },
   golfsol: { field: "golfSolRev", rev: GS_REV, curve: GS_V1_BAND_CURVE, std: GS_STD_SPEC, born: true },
   muggins: { field: "mugginsRev", rev: MG_REV, curve: MG_V1_BAND_CURVE, std: MG_STD_SPEC, born: true },
   // The Sports group (30 Oct 2026): on the arcade scoring standard from their first stamp (the core's straight line, the spec's parts).

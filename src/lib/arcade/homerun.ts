@@ -842,7 +842,7 @@ function stepV4(prev: HomerunState, input: ArcadeInputEvent | null): HomerunStat
   return state;
 }
 
-/** homerunRev 4's parts: distance 120 (full at 330 ft a pitch), home runs 40, bonus signs 20, perfect streak 20. */
+/** homerunRev 4's parts: distance 120 (full at 300 ft a pitch), home runs 40, bonus signs 20, perfect streak 20. */
 export const HOMERUN_V4_CORE_MAX = 120;
 export const HOMERUN_V4_FULL_FEET = 300;
 export const HOMERUN_V4_FULL_AT = HOMERUN_V4_FULL_FEET * HOMERUN_PITCHES;
@@ -864,7 +864,7 @@ export const HOMERUN_STD_SPEC_V4: StdSpec = {
 };
 /** The dealt revision's spec. */
 export const HOMERUN_STD_SPEC_DEALT = HOMERUN_STD_SPEC_V4;
-/** homerunRev 4's core: a straight line to 120 at 3,000 ft. */
+/** homerunRev 4's core: a straight line to 120 at 3,000 ft (300 a pitch). */
 export const HOMERUN_V4_BAND_CURVE = bandCurve([0, HOMERUN_V4_FULL_AT], [0, HOMERUN_V4_CORE_MAX]);
 
 function homerunStdPartsV4(state: HomerunState): StdPart[] {

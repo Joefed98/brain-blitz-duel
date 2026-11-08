@@ -87,8 +87,9 @@ const STANDARD_ROSTER: readonly { type: string; field: string; rev: number; batc
   // Cards & Board (30 Oct 2026): born on the standard at revision 1.
   // Free Cell's rev 2 (Undo and Reset) and Full House's rev 2 (full at the elite median), 31 Oct 2026: still on the standard.
   // Free Cell freecellRev 4 and Summit tripeaksRev 2 (3 Nov 2026, the Cards & Board batch): the 40-card deal; the stock par.
-  { type: "freecell", field: "freecellRev", rev: 4, batch: "Cards" },
-  { type: "tripeaks", field: "tripeaksRev", rev: 2, batch: "Cards" },
+  // Free Cell freecellRev 5, Summit tripeaksRev 3 and Thirteen pyramidRev 2 (7 Nov 2026): partial clears earn in proportion.
+  { type: "freecell", field: "freecellRev", rev: 5, batch: "Cards" },
+  { type: "tripeaks", field: "tripeaksRev", rev: 3, batch: "Cards" },
   { type: "pokersquares", field: "pokerSquaresRev", rev: 2, batch: "Cards" },
   // Five Hands (31 Oct 2026): born on the standard; fiveHandsRev 3 (3 Nov 2026) is NOT_200_ON_EVERY_DEAL's one exception.
   { type: "fivehands", field: "fiveHandsRev", rev: 3, batch: "Cards" },
@@ -96,7 +97,7 @@ const STANDARD_ROSTER: readonly { type: string; field: string; rev: number; batc
   // unstamped); bastionRev 3 (3 Nov 2026) adds the drones and eases waves 4–5.
   { type: "bastion", field: "bastionRev", rev: 3, batch: "Action" },
   // Pyramid, Golf Solitaire and Muggins (1 Nov 2026): born on the standard.
-  { type: "pyramid", field: "pyramidRev", rev: 1, batch: "Cards" },
+  { type: "pyramid", field: "pyramidRev", rev: 2, batch: "Cards" },
   { type: "golfsol", field: "golfSolRev", rev: 1, batch: "Cards" },
   { type: "muggins", field: "mugginsRev", rev: 1, batch: "Cards" },
   // The Sports group (30 Oct 2026): on the standard from their first stamp.
