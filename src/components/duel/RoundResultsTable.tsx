@@ -145,7 +145,7 @@ export function RoundResultsTable({
                           <VerdictLabel verdict={verdict} />
                         </span>
                         {note ? `, ${note}` : ""}
-                        {summary ? `, ${open ? [summary, ...row.detail].join(" · ") : summary}` : ""}
+                        {summary ? `, ${open ? [summary, ...row.detail].join(", ") : summary}` : ""}
                       </span>
                     </span>
                   </span>

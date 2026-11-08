@@ -627,7 +627,7 @@ const BUILDERS: Record<string, Builder> = {
       { label: b(r, "survived") ? "Survived" : "Crashed at", value: b(r, "survived") ? "60 s" : sec(n(r, "survivedSeconds")) },
       { label: "Perfect landings", value: `${n(r, "sweets")} / ${n(r, "sweetsTotal")}` },
       { label: "Best streak", value: String(n(r, "streak")) },
-      { label: "Features", value: `+${n(r, "skill")}` },
+      { label: "Bonuses", value: `+${n(r, "skill")}` },
     ],
     outcome: b(r, "survived") ? "finish" : "crash",
   } : ({
@@ -640,8 +640,8 @@ const BUILDERS: Record<string, Builder> = {
       // flipRev 2 rounds only: stars taken.
       ...(n(r, "starsTotal") > 0 ? [{ label: "Stars", value: `${n(r, "stars")} / ${n(r, "starsTotal")}` }] : []),
       // flipRev 8 rounds only: sweet landings and the skill points.
-      // flipRev 10 (the arcade scoring standard): the features' points under "Features" (no skill pay).
-      ...(n(r, "sweetsTotal") > 0 ? [{ label: "Sweet landings", value: `${n(r, "sweets")} / ${n(r, "sweetsTotal")}` }, { label: b(r, "std") ? "Features" : "Skill", value: `+${n(r, "skill")}` }] : []),
+      // flipRev 10 (the arcade scoring standard): the bonus points under "Bonuses" (no skill pay).
+      ...(n(r, "sweetsTotal") > 0 ? [{ label: "Sweet landings", value: `${n(r, "sweets")} / ${n(r, "sweetsTotal")}` }, { label: b(r, "std") ? "Bonuses" : "Skill", value: `+${n(r, "skill")}` }] : []),
     ],
     outcome: b(r, "survived") ? "finish" : "crash",
   }),
@@ -994,7 +994,7 @@ const BUILDERS: Record<string, Builder> = {
         { label: "Targets", value: `${n(r, "cleared")} / 10` },
         { label: "Resets", value: String(n(r, "resets")) },
         // tenRev 4: tens made by the gold tile.
-        ...("goldTens" in (r as object) ? [{ label: "Gold tens", value: String(n(r, "goldTens")) }] : []),
+        ...("goldTens" in (r as object) ? [{ label: "Gold tiles", value: String(n(r, "goldTens")) }] : []),
       ],
       outcome: done ? "finish" : "time",
     };
@@ -1099,17 +1099,14 @@ function rawTotalMapped(r: Run): boolean {
   return Boolean(state && typeof state === "object" && (state.sb || state.tgt));
 }
 
-const REVEAL_STD_HELD = new Set(["flip", "tilt"]);
-
 export function buildArcadeReveal(type: string, run: unknown, score: number): ArcadeRevealData | null {
   const builder = BUILDERS[type];
   if (!builder || !run || typeof run !== "object") return null;
   if (type === "bastion" && (run as Run)["std"] !== true) return null;
   const data = builder(run as Run, score);
   // The arcade scoring standard (arcadeStandard.ts): one line per part (core, then each feature) and the total.
-  // Games scored on the standard outside ARCADE_STANDARD (revealStdParts.ts): their live stamps' parts too. Roofbound
-  // and Tilt keep their band lines until flip-rev11-check, tilt-rev11-check and tilt-rev12-check are updated to match.
-  const std = arcadeStdParts(type, (run as Run)["state"]) ?? (REVEAL_STD_HELD.has(type) ? null : revealStdParts(type, (run as Run)["state"]));
+  // Games scored on the standard outside ARCADE_STANDARD (revealStdParts.ts): their live stamps' parts too.
+  const std = arcadeStdParts(type, (run as Run)["state"]) ?? revealStdParts(type, (run as Run)["state"]);
   if (std) return { ...data, lines: stdLines(std, score, Boolean(((run as Run)["state"] as { acted?: number }).acted)) };
   // Oct 2026 score-band rounds: same axis and tiles, breakdown lines from the band rules.
   const state = (run as Run)["state"] as { band?: number; acted?: number } | undefined;

@@ -322,7 +322,7 @@ try {
     const before = JSON.stringify(r.selected_categories);
     const plac = await changeRoomSettings(client, "r1", "host", { picks: ["logic"], rounds: 3, scoring: "placings" });
     console.log = quiet;
-    check(!plac.ok && /isn't available yet/.test(plac.message) && JSON.stringify(r.selected_categories) === before, "server, before the migration: Placings is refused with a message and nothing changes");
+    check(!plac.ok && /isn’t available yet/.test(plac.message) && JSON.stringify(r.selected_categories) === before, "server, before the migration: Placings is refused with a message and nothing changes");
     console.log = () => {};
     const none = await changeRoomSettings(client, "r1", "host", settings);
     console.log = quiet;

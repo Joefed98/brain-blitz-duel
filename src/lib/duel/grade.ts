@@ -1651,6 +1651,8 @@ function gradeUnderRev(
         claimedScore: decodeFreecellRun(answer).claimedScore,
         ...(run.reason ? { reason: run.reason } : {}),
       };
+      // The replay result carries no stamp: the reveal reads freecellRev (its deal size) from these fields.
+      revealRun = { ...run, ...extraDetail };
       break;
     }
     case "tripeaks": {
@@ -1680,6 +1682,8 @@ function gradeUnderRev(
         claimedScore: decodeTripeaksRun(answer).claimedScore,
         ...(run.reason ? { reason: run.reason } : {}),
       };
+      // The replay result carries no stamp: the reveal reads tripeaksRev and the stock par from these fields.
+      revealRun = { ...run, ...extraDetail };
       break;
     }
     case "pokersquares": {

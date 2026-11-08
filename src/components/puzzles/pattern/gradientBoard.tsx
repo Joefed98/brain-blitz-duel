@@ -17,6 +17,7 @@ import { useEffect, useMemo, useRef, useState, type CSSProperties, type PointerE
 import { useGridMetrics, usePrefersReducedMotion } from "@/components/puzzles/GridDrag";
 import { useFrameProgress } from "@/components/puzzles/batchP/LiveSummary";
 import { FramePills, parPills } from "@/components/puzzles/pattern/framePills";
+import { HudPills } from "@/components/puzzles/HudPills";
 import { useNoTouchScroll } from "@/components/puzzles/noScroll";
 import { useGameKeys } from "@/lib/desktop";
 import {
@@ -439,10 +440,15 @@ function GradientSwapStage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDr
           ]}
         />
       ) : (
-        <p data-after-arena data-game-controls="status" className="shrink-0 font-mono text-xs uppercase tracking-widest text-muted-foreground">
-          swaps <span className="text-primary">{replay.moves}</span>
-          {limit !== null ? <> of <span className="text-primary">{limit}</span></> : null} · par <span className="text-primary">{par}</span>
-        </p>
+        <div data-after-arena data-game-controls="status" className="shrink-0">
+          <HudPills
+            testId="tiles"
+            items={[
+              ...parPills("Swaps", replay.moves, par),
+              limit !== null ? { id: "limit", label: "Left", value: Math.max(0, limit - replay.moves), limit, ...(limit - replay.moves <= 3 ? { tone: "warn" as const } : {}) } : null,
+            ]}
+          />
+        </div>
       )}
       <div data-game-controls="actions" className="flex shrink-0 gap-3 px-2">
         <button
@@ -530,9 +536,9 @@ function GradientSlideStage({ puzzle, phaseStartedAt, now, locked, onSubmit, onD
       {inFrame ? (
         <FramePills testId="tiles" items={parPills("Moves", replay.moves, par)} />
       ) : (
-        <p data-after-arena data-game-controls="status" className="shrink-0 font-mono text-xs uppercase tracking-widest text-muted-foreground">
-          moves <span className="text-primary">{replay.moves}</span> · par <span className="text-primary">{par}</span>
-        </p>
+        <div data-after-arena data-game-controls="status" className="shrink-0">
+          <HudPills testId="tiles" items={parPills("Moves", replay.moves, par)} />
+        </div>
       )}
       <div data-game-controls="actions" className="flex shrink-0 gap-3 px-2">
         <button
