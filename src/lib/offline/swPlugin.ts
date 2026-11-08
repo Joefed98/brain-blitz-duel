@@ -136,7 +136,13 @@ export function offlineWorkerPlugin(version: string): PluginLike {
         if (bytes !== null) appHashes[`/${fileName}`] = sha256(bytes);
       }
       for (const f of files) if (!MEDIA_DIRS.some((dir) => f.path.startsWith(`/${dir}/`))) appHashes[f.path] = sha256(readFileSync(f.full));
-      workerInput = { version, publicFiles, mediaHashes, lazyMedia: lazyMediaPaths(), appHashes };
+      workerInput = {
+        version,
+        publicFiles,
+        mediaHashes,
+        lazyMedia: lazyMediaPaths(),
+        appHashes,
+      };
       this.emitFile({ type: "asset", fileName: "sw.js", source: offlineWorkerSource({ ...workerInput, bundleFiles: Object.keys(bundle) }) });
     },
     // The worker's app list again from the files actually written (speed fix 1, Nov 2026): Vite drops a
