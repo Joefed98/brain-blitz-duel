@@ -106,75 +106,24 @@ import { kakuroPuzzle } from "@/puzzles/kakuro";
 
 import type { PuzzleDefinition } from "@/puzzles/types";
 
-import {
-  REVEAL_MS,
-  ROUND_MS,
-  type PuzzleCategory,
-  type PuzzleData,
-  type PuzzleType,
-} from "./types";
+import type { PuzzleType } from "./types";
 import { CORRECT_ANSWERS, ROUND_SUMMARIES } from "./roundSummaries";
-import { PUZZLE_INSTRUCTIONS } from "./instructions";
-import { gameTheme, type GameTheme } from "@/lib/fx/theme";
-import { feedbackStage } from "@/components/duel/FeedbackStage";
-import { removedGameName, type RemovedPuzzleType } from "./removedGames";
-import { DESKTOP_MODES, type DesktopModeInfo } from "./desktopModes";
+import { type RemovedPuzzleType } from "./removedGames";
+import { registerDefinition, removedDefinition, type LoadedPuzzleDefinition } from "./registerDefinition";
 
-/** The single registry of puzzle types. Add a new type by adding one entry. */
-type RegisteredPuzzleDefinition = PuzzleDefinition &
-  Required<Pick<PuzzleDefinition, "roundSummary" | "correctAnswer" | "instructions" | "retired">> & {
-    theme: GameTheme;
-    /** How the game is presented on a wide screen (desktopModes.ts; presentation only). */
-    desktop: DesktopModeInfo;
-  };
+/*
+ * The full registry: every game's definition, Stage, Reveal and summaries. Since speed fix 1 (Nov 2026)
+ * only the server and the checks import it; the phone reads `catalogue.ts` (names, categories, clocks)
+ * and loads one game's code at a time through `gameLoader.ts`. Every helper below comes from the
+ * catalogue, so both read the same values (game-catalogue-check).
+ */
+export * from "./catalogue";
 
-const LONG_REVEAL_TYPES = new Set<PuzzleType>([
-  "target",
-  "wordsmith",
-  "wordhunt",
-  "stroop",
-  "spotdiff",
-  "tilegrid",
-]);
+/** The single registry of puzzle types. Add a new type by adding one entry (then run scripts/game-catalogue.ts). */
+type RegisteredPuzzleDefinition = LoadedPuzzleDefinition &
+  Required<Pick<PuzzleDefinition, "roundSummary" | "correctAnswer">>;
 
-/** Always in the room draw. */
-export const CORE_CATEGORIES: PuzzleCategory[] = ["logic", "pattern", "speed", "attention", "word"];
-
-/** Only drawn when the host switches them on in the lobby. */
-export const OPT_IN_CATEGORIES: PuzzleCategory[] = ["number"];
-
-/** The arcade pool: one round at most, and only when the host toggle is on. */
-export const ARCADE_CATEGORY: PuzzleCategory = "arcade";
-
-/** Never drawn in rooms; still playable in practice. */
-const RETIRED_TYPES = new Set<PuzzleType>([
-  "rooftop",
-  "swerve",
-  "dual",
-  "steady",
-  "hotfloor",
-  "dig",
-  // Bastion came back to rooms on 1 Nov 2026 as the tank-defence shooter (bastionRev 2); its unstamped rounds replay as before.
-  // Tuning C (Oct 2026): practice only.
-  "junction",
-  // Scoring report batch 2 (20 Oct 2026): practice only, on its current stamps (wordfallRev 3).
-  "wordfall",
-  // Joe's decision (27 Oct 2026): Scrumper is practice only; stored rounds replay and grade as before.
-  "snip",
-  // Joe's decision (1 Nov 2026): Full House is practice only; stored rounds replay and grade as before.
-  "pokersquares",
-  // Joe's decision (2 Nov 2026): Muggins is practice only at launch (its medians don't rise with skill); stored rounds
-  // replay and grade as before.
-  "muggins",
-  // Joe's decision (3 Nov 2026, the Cards & Board batch): Golf Solitaire is practice only; its practice bests and
-  // stored rounds replay and grade as before.
-  "golfsol",
-]);
-
-/** Slack added to every arcade phase beyond its run; never shown to players. */
-export const ARCADE_PHASE_SLACK_MS = 3000;
-
-const BASE_REGISTRY: Record<PuzzleType, Omit<PuzzleDefinition, "instructions">> = {
+export const BASE_REGISTRY: Record<PuzzleType, Omit<PuzzleDefinition, "instructions">> = {
   wordsmith: wordsmithPuzzle,
   tilegrid: tileGridPuzzle,
   wordslide: wordSlidePuzzle,
@@ -289,160 +238,17 @@ export const PUZZLE_REGISTRY = Object.fromEntries<RegisteredPuzzleDefinition>(
   Object.entries(BASE_REGISTRY).map(([type, definition]) => [
     type,
     {
-      ...definition,
-      theme: gameTheme(type as PuzzleType, definition.category),
-      desktop: DESKTOP_MODES[type as PuzzleType],
-      Stage: feedbackStage(definition.Stage, gameTheme(type as PuzzleType, definition.category), Boolean(definition.arcadeRun || definition.category === "arcade"), {
-        type: type as PuzzleType,
-        arcade: definition.category === "arcade",
-        runMs: definition.category === "arcade" ? definition.timeLimitMs - ARCADE_PHASE_SLACK_MS : null,
-      }),
-      instructions: PUZZLE_INSTRUCTIONS[type as PuzzleType],
-      retired: RETIRED_TYPES.has(type as PuzzleType),
-      revealMs:
-        definition.revealMs ?? (LONG_REVEAL_TYPES.has(type as PuzzleType) ? 8_000 : REVEAL_MS),
+      ...registerDefinition(type as PuzzleType, definition),
       roundSummary: ROUND_SUMMARIES[type as PuzzleType],
       correctAnswer: CORRECT_ANSWERS[type as PuzzleType],
     },
   ]),
 ) as Record<PuzzleType, RegisteredPuzzleDefinition>;
 
-export const PUZZLE_TYPES = Object.keys(PUZZLE_REGISTRY) as PuzzleType[];
-
 /**
  * A type's definition. A deleted game's id (removedGames.ts), still held by
  * stored rounds, gets a read-only stand-in: its name and a notice, never a board.
  */
 export function puzzleDef(type: PuzzleType | RemovedPuzzleType): RegisteredPuzzleDefinition {
-  return PUZZLE_REGISTRY[type as PuzzleType] ?? removedDefinition(type);
-}
-
-const REMOVED_DEFINITIONS = new Map<string, RegisteredPuzzleDefinition>();
-
-function removedDefinition(type: string): RegisteredPuzzleDefinition {
-  let definition = REMOVED_DEFINITIONS.get(type);
-  if (!definition) {
-    const base = removedGameDefinition(type);
-    definition = {
-      ...base,
-      theme: gameTheme(undefined, base.category),
-      desktop: { mode: "wide", why: "deleted game: name and stored score only" },
-      instructions: base.instructions!,
-      retired: true,
-      revealMs: REVEAL_MS,
-      roundSummary: base.roundSummary!,
-      correctAnswer: base.correctAnswer!,
-    };
-    REMOVED_DEFINITIONS.set(type, definition);
-  }
-  return definition;
-}
-
-/** A live type's name, or the name a deleted game had (stored history rows still carry its id). */
-export function puzzleName(type: PuzzleType | RemovedPuzzleType): string {
-  return PUZZLE_REGISTRY[type as PuzzleType]?.name ?? removedGameName(type) ?? type;
-}
-
-/** True for a type the app can still play, reveal and replay; false for deleted ids in stored rounds. */
-export function isLiveType(type: unknown): type is PuzzleType {
-  return typeof type === "string" && Object.prototype.hasOwnProperty.call(PUZZLE_REGISTRY, type);
-}
-
-/** True for types kept only for practice. */
-export function isRetired(type: PuzzleType): boolean {
-  return PUZZLE_REGISTRY[type]?.retired === true;
-}
-
-/** Every type still in rotation. */
-export const ACTIVE_PUZZLE_TYPES = PUZZLE_TYPES.filter((t) => !isRetired(t));
-
-export const RETIRED_PUZZLE_TYPES = PUZZLE_TYPES.filter((t) => isRetired(t));
-
-/**
- * New games that rooms do not deal yet, listed on their own in practice (not
- * under Retired; none today: Pinball was the last, dealt since 14 Oct 2026). They
- * must also be in RETIRED_PUZZLE_TYPES, which is what keeps them out of room draws.
- */
-export const PREVIEW_PUZZLE_TYPES: PuzzleType[] = [];
-
-export function puzzleCategories(): PuzzleCategory[] {
-  return Array.from(new Set(ACTIVE_PUZZLE_TYPES.map((t) => PUZZLE_REGISTRY[t].category)));
-}
-
-/** Non-retired types in a category — what every draw and list reads. */
-export function typesInCategory(category: PuzzleCategory): PuzzleType[] {
-  return ACTIVE_PUZZLE_TYPES.filter((t) => PUZZLE_REGISTRY[t].category === category);
-}
-
-/** Includes retired types; for practice listings only. */
-export function allTypesInCategory(category: PuzzleCategory): PuzzleType[] {
-  return PUZZLE_TYPES.filter((t) => PUZZLE_REGISTRY[t].category === category);
-}
-
-/** Pool sizes per category, retired types excluded. */
-export function categoryPoolSizes(): Record<PuzzleCategory, number> {
-  const out = {} as Record<PuzzleCategory, number>;
-  for (const category of [...CORE_CATEGORIES, ...OPT_IN_CATEGORIES]) {
-    out[category] = typesInCategory(category).length;
-  }
-  return out;
-}
-
-/** The clock length for a puzzle type (30s unless the type says otherwise). */
-export function typeTimeLimitMs(type: PuzzleType): number {
-  return puzzleDef(type).timeLimitMs ?? ROUND_MS;
-}
-
-/**
- * The clock length for a specific puzzle. A puzzle may carry its own limit —
- * Tower's five-disc variant does — which always wins over the type's default.
- */
-export function puzzleTimeLimitMs(puzzle: PuzzleData | undefined): number {
-  if (!puzzle) return ROUND_MS;
-  const own = (puzzle as { timeLimitMs?: number }).timeLimitMs;
-  if (typeof own === "number" && own > 0) return own;
-  return typeTimeLimitMs(puzzle.type);
-}
-
-export function puzzleRevealMs(puzzle: PuzzleData | undefined): number {
-  if (!puzzle) return REVEAL_MS;
-  return puzzleDef(puzzle.type).revealMs ?? REVEAL_MS;
-}
-
-/** Preparation time before a puzzle's clock starts (0 for most types). */
-export function puzzlePrepMs(puzzle: PuzzleData | undefined): number {
-  if (!puzzle) return 0;
-  return puzzleDef(puzzle.type).prepMs?.(puzzle) ?? 0;
-}
-
-/** How long the puzzle phase lasts for this puzzle. */
-export function puzzleDurationMs(puzzle: PuzzleData | undefined): number {
-  if (!puzzle) return ROUND_MS;
-  const def = puzzleDef(puzzle.type);
-  return def.durationMs?.(puzzle) ?? puzzlePrepMs(puzzle) + puzzleTimeLimitMs(puzzle);
-}
-
-/** Arcade-category games plus any other type built on the arcade engine. */
-export function usesArcadeClock(type: PuzzleType): boolean {
-  const def = puzzleDef(type);
-  return def.category === "arcade" || def.arcadeRun === true;
-}
-
-/** For arcade rounds, the run length the clock shows; null for everything else. */
-export function puzzleRunMs(puzzle: PuzzleData | undefined): number | null {
-  if (!puzzle) return null;
-  const def = puzzleDef(puzzle.type);
-  if (!usesArcadeClock(puzzle.type)) return null;
-  return def.timeLimitMs - ARCADE_PHASE_SLACK_MS;
-}
-
-export function puzzleShowsTimer(puzzle: PuzzleData | undefined): boolean {
-  if (!puzzle) return true;
-  return puzzleDef(puzzle.type).showTimer !== false;
-}
-
-/** Live game counts for marketing lines: non-retired core/opt-in types vs arcade types. */
-export function gameCounts(): { puzzle: number; arcade: number } {
-  const puzzle = [...CORE_CATEGORIES, ...OPT_IN_CATEGORIES].reduce((n, c) => n + typesInCategory(c).length, 0);
-  return { puzzle, arcade: typesInCategory(ARCADE_CATEGORY).length };
+  return PUZZLE_REGISTRY[type as PuzzleType] ?? (removedDefinition(type) as RegisteredPuzzleDefinition);
 }

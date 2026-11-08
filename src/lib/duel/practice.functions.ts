@@ -5,7 +5,7 @@ import { staleSubmissionNote } from "@/lib/appVersion";
 
 import { type SubmitExtra } from "./grade";
 import { mergePuzzle, splitPuzzle } from "./secrets";
-import { PUZZLE_TYPES } from "./registry";
+import { PUZZLE_TYPES } from "./catalogue";
 import type { PuzzleData, PuzzleType } from "./types";
 
 /* -------------------------------------------------------------------------- */
@@ -165,7 +165,7 @@ async function gradePracticeRun(data: PracticeRunInput, puzzle: PuzzleData, exam
   // Skipped where there is no database (local dev servers in checks).
   if (process.env["SUPABASE_SERVICE_ROLE_KEY"]) {
     const { practicePlayRow, recordPracticePlay } = await import("./betaRecord.server");
-    const { puzzleTimeLimitMs } = await import("./registry");
+    const { puzzleTimeLimitMs } = await import("./catalogue");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     await recordPracticePlay(supabaseAdmin, (userId) =>
       practicePlayRow({

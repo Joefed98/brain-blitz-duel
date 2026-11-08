@@ -8,7 +8,7 @@ import { normaliseCategories, STANDARD_CATEGORIES } from "./categories";
 import { dealRoomRounds } from "./roomDeal";
 import { encodeRoomSettings, readRoomSettings } from "./roomSettings";
 import type { ScoringMode } from "./scoringMode";
-import { puzzleRevealMs, typesInCategory } from "./registry";
+import { puzzleRevealMs, typesInCategory } from "./catalogue";
 import { puzzleCloseReason } from "./roomClose";
 import { generateRoomCode } from "./puzzles";
 import { linkRoomState } from "./roomLink";
@@ -565,7 +565,7 @@ export const startRoomFn = createServerFn({ method: "POST" })
       });
       if (error) throw dbError(error, "duel");
       // Beta recording (G1 archive): each round's effective limit and stamps, best-effort.
-      const { puzzleTimeLimitMs } = await import("./registry");
+      const { puzzleTimeLimitMs } = await import("./catalogue");
       await recordRoundRecords(
         client,
         room.id,

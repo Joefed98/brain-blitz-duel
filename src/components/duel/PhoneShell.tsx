@@ -8,7 +8,7 @@ import { AppWordmark } from "@/components/brand/AppWordmark";
 import { FxLayer } from "./FxLayer";
 import type { PuzzleType } from "@/lib/duel/types";
 import { revealPaletteStyle } from "@/lib/duel/revealPalette";
-import { puzzleDef } from "@/lib/duel/registry";
+import { puzzleDef } from "@/lib/duel/catalogue";
 import { usePuzzleSurfaces } from "@/components/puzzles/usePuzzleSurfaces";
 import { GameLayoutDevOverlay } from "./GameLayoutDevOverlay";
 import { GameColumnLayout } from "@/components/puzzles/gameColumn";

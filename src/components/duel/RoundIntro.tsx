@@ -1,9 +1,7 @@
-import { puzzleDef, puzzleName, typeTimeLimitMs, usesArcadeClock } from "@/lib/duel/registry";
+import { puzzleDef, puzzleName, typeTimeLimitMs, usesArcadeClock } from "@/lib/duel/catalogue";
+import { useGameDef } from "@/lib/duel/gameLoader";
+import { GameIntroExample } from "@/components/duel/GameParts";
 import { starsOf } from "@/lib/duel/practiceGoals";
-import { prepareSwingCourse } from "@/lib/arcade/swing";
-import { prepareInkLevels } from "@/lib/arcade/inkBridge";
-import { mgDeal } from "@/lib/arcade/cards/muggins";
-import { pyDeal } from "@/lib/arcade/cards/pyramid";
 import { INTRO_COUNTDOWN_MS, INTRO_MS, TOTAL_ROUNDS, type PuzzleType } from "@/lib/duel/types";
 import type { Outcome } from "@/lib/duel/scoring";
 import type { PuzzleData } from "@/lib/duel/types";
@@ -11,9 +9,9 @@ import { Button as JzButton, Icon, Stars } from "@/design/components";
 import { useContext, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { fx } from "@/lib/fx";
 import { roundMusicFor } from "@/lib/fx/theme";
-import { prepareBeatTrack, prepareRoundMusic, startMusic, stopMusic, stopMusicIf } from "@/lib/sound";
-import { preloadGameArt } from "@/lib/arcade/gameArt.renderer";
+import { loadGameSounds, prepareBeatTrack, prepareRoundMusic, startMusic, stopMusic, stopMusicIf } from "@/lib/sound";
 import { preloadGameData, useGameDataReady } from "@/lib/duel/gamePreload";
+import { useGameSoundsReady } from "@/lib/useGameSoundsReady";
 
 import { CATEGORY_NAMES, FrameName } from "./GameFrame";
 import { GameMenu } from "./GameMenu";
@@ -30,6 +28,14 @@ import { goStrike } from "@/lib/fx/celebrations";
 import { useCelebrationsOn } from "@/components/fx/useCelebration";
 import { haptic } from "@/lib/haptics";
 import { useReducedMotion } from "@/lib/motion";
+
+/* Game code arrives with the game (speed fix 1, Nov 2026): these build a deal or load a game's art while the intro
+   is up, fetching that game's sim or art chunk on first use, never with the room screen. */
+const prepareSwingCourse = (seed: number, rev?: number) => void import("@/lib/arcade/swing").then((m) => m.prepareSwingCourse(seed, rev)).catch(() => undefined);
+const prepareInkLevels = (seed: number, rev?: number | null) => void import("@/lib/arcade/inkBridge").then((m) => m.prepareInkLevels(seed, rev)).catch(() => undefined);
+const mgDeal = (seed: number) => void import("@/lib/arcade/cards/muggins").then((m) => m.mgDeal(seed)).catch(() => undefined);
+const pyDeal = (seed: number) => void import("@/lib/arcade/cards/pyramid").then((m) => m.pyDeal(seed)).catch(() => undefined);
+const preloadGameArt = (type: string) => import("@/lib/arcade/gameArt.renderer").then((m) => m.preloadGameArt(type)).catch(() => undefined);
 
 /** The intro ending this close to GO (ms) still gets its GO strike as the round takes over. */
 const GO_STRIKE_GRACE_MS = 600;
@@ -99,7 +105,6 @@ export function RoundIntro({
   const counting = remaining <= INTRO_COUNTDOWN_MS;
   const secondsLeft = Math.max(1, Math.ceil(remaining / 1000));
   const autoSeconds = Math.max(0, Math.ceil((remaining - INTRO_COUNTDOWN_MS) / 1000));
-  const Example = puzzleDef(type).IntroExample;
   const savedPuzzleDemo = usePuzzleDemo(type);
   const puzzleDemo = hasIntroDemo(type) ? null : savedPuzzleDemo;
   // Engine games play their demo once a recorded one is there; until then, and for good when it is
@@ -107,7 +112,8 @@ export function RoundIntro({
   const savedArcadeDemo = useArcadeIntroDemo(type);
   const arcadeDemo = hasIntroDemo(type) && savedArcadeDemo !== "pending" ? savedArcadeDemo : null;
   const reducedMotion = useReducedMotion();
-  const introLine = puzzle ? (puzzleDef(type).introLine?.(puzzle) ?? null) : null;
+  const loadedDef = useGameDef(type);
+  const introLine = puzzle ? (loadedDef?.introLine?.(puzzle) ?? null) : null;
   // Arcade phases carry 3 s of invisible slack; show the run length only.
   // Any puzzle that carries its own stored clock shows it (Bomb v2 90 s, Counterweight balanceRev 2 120 s,
   // Ballpark numlineRev 2 90 s, Double Take spotRev 1 and Tally countRev 2 60 s, Tower's five discs): it is the
@@ -119,6 +125,8 @@ export function RoundIntro({
   const theme = puzzleDef(type).theme;
   // Letterfall's word list: READY stays held until it is installed (normally long before).
   const dataReady = useGameDataReady(type);
+  // The game’s own sounds decoded (speed fix 5), so its first sound is never silent.
+  const soundsReady = useGameSoundsReady(type);
   const countdownCued = useRef("");
   useEffect(() => {
     if (!counting) return;
@@ -207,6 +215,8 @@ export function RoundIntro({
   // demo (which waits for them) and the round itself draw the art from frame one.
   useEffect(() => {
     void preloadGameArt(type);
+    // The game's own sounds (speed fix 5): decoded during the intro, so they play from the round's first moment.
+    loadGameSounds(type);
     // Letterfall's dictionary: fetched as its intro begins, never with the main bundle.
     void preloadGameData(type);
   }, [type]);
@@ -315,7 +325,7 @@ export function RoundIntro({
               beforeScore={
                 <IntroStage
                   key={type}
-                  still={<Example />}
+                  still={<GameIntroExample type={type} />}
                   aspect={arcadeDemo ? introDemoAspect(type, arcadeDemo) : puzzleDemo ? puzzleDemo.log.w / puzzleDemo.log.h : null}
                   // Reduce Motion (7 Nov 2026, accessibility audit #11): a demo loops until Ready with no pause, so
                   // it isn't played; the game's still holds the same box (IntroStage sizes it by the text alone).
@@ -353,7 +363,7 @@ export function RoundIntro({
               <JzButton
                 variant={ready ? "secondary" : "gold"}
                 size={52}
-                disabled={ready || !dataReady}
+                disabled={ready || !dataReady || !soundsReady}
                 onClick={onReady}
                 className="min-w-0 flex-1"
               >

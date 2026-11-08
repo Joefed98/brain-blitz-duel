@@ -1,7 +1,8 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
 import { Button } from "@/components/ui/button";
-import { puzzleDef, puzzleTimeLimitMs } from "@/lib/duel/registry";
+import { puzzleTimeLimitMs } from "@/lib/duel/catalogue";
+import { GameReveal } from "@/components/duel/GameParts";
 import type { PuzzleData } from "@/lib/duel/types";
 import type { MomentCard } from "@/lib/replay/cards";
 import { soundCue, SHARED_CUES } from "@/lib/replay/cues";
@@ -437,7 +438,7 @@ export function PuzzleTimelapse({
   score?: number;
 }) {
   const [frame, setFrame] = useState(0);
-  const Reveal = puzzleDef(puzzle.type).Reveal;
+  const Reveal = GameReveal;
   // Layout effects run before the board's own (passive) effects, so its very first cue is quiet too.
   useLayoutEffect(() => {
     quietForReplay(true);
@@ -505,7 +506,7 @@ export function PuzzleFinalBoard({
   height: number;
   score: number;
 }) {
-  const Reveal = puzzleDef(puzzle.type).Reveal;
+  const Reveal = GameReveal;
   useLayoutEffect(() => {
     quietForReplay(true);
     return () => quietForReplay(false);

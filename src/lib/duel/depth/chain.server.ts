@@ -9,7 +9,7 @@ import { depthClamp, stretchFinishScore } from "../depth200";
 import { decodeChainAnswer, replayChain } from "../chain";
 import { storedScoreParts } from "../puzzleScoreRev";
 import { rev3Efficiency, rev3Unfinished } from "../puzzleScoreRev3";
-import { puzzleTimeLimitMs } from "../registry";
+import { puzzleTimeLimitMs } from "../catalogue";
 import { CHAIN_DEPTH_UNFINISHED_TOP, chainDepthRevOf, chainMilestoneTotal, chainMilestones, chainStretchFor, chainUsesDepth } from "./chain";
 
 export const chainDepth: DepthGrader = {

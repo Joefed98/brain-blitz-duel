@@ -8,7 +8,7 @@
 import type { DepthGrader } from "../depth200.server";
 import { storedScoreParts } from "../puzzleScoreRev";
 import { rev3Finish, rev3Unfinished } from "../puzzleScoreRev3";
-import { puzzleTimeLimitMs } from "../registry";
+import { puzzleTimeLimitMs } from "../catalogue";
 import { depthClamp } from "../depth200";
 import { labStarPoints, usesMazeDepth } from "./labyrinth";
 

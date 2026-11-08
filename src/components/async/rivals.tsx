@@ -9,7 +9,7 @@ import { roundClockMs } from "@/lib/duel/buzzer";
 import type { ChallengePlayer, ChallengeRoster, ChallengeRoundBoard } from "@/lib/duel/challenge";
 import { nearMiss } from "@/lib/duel/nearMiss";
 import { resolvePlayerLooks, type PlayerLooks } from "@/lib/duel/playerLook";
-import { puzzleDef, puzzleName, puzzleTimeLimitMs } from "@/lib/duel/registry";
+import { puzzleDef, puzzleName, puzzleTimeLimitMs } from "@/lib/duel/catalogue";
 import { elapsedMs, scoreOnlyVerdict } from "@/lib/duel/resultPresentation";
 import { resultFor, standings, type Standing } from "@/lib/duel/scoring";
 import type { ArcadeRevealData } from "@/lib/arcade/reveal";

@@ -1,6 +1,6 @@
 import { useEffect, useRef, type ReactNode } from "react";
 
-import { puzzleName } from "@/lib/duel/registry";
+import { puzzleName } from "@/lib/duel/catalogue";
 import type { PuzzleType, StoredPuzzleType } from "@/lib/duel/types";
 import { GameIcon, hasGameIcon } from "@/components/app/GameIcon";
 import type { Outcome } from "@/lib/duel/scoring";

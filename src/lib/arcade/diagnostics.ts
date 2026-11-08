@@ -62,7 +62,10 @@ import { arCheckpoint } from "./alleyroll";
 import type { InputDiag } from "./engine";
 import { devDisplayAllowed } from "../devDisplay";
 
-export type ArcadeCounters = Record<string, number>;
+import type { ArcadeCounters } from "./diagnosticsWire";
+export type { ArcadeCounters } from "./diagnosticsWire";
+export { appendClientCounters, splitClientCounters } from "./diagnosticsWire";
+import { splitClientCounters } from "./diagnosticsWire";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 const SNAPSHOTS: Record<string, (state: any) => object> = {
@@ -133,29 +136,6 @@ export function arcadeCounters(key: string, state: unknown, score: number): Arca
     if (typeof value === "number" && Number.isFinite(value)) out[name] = value;
   }
   return out;
-}
-
-export function appendClientCounters(raw: string, counters: ArcadeCounters): string {
-  const body = Object.entries(counters)
-    .map(([name, value]) => `${name}=${Math.trunc(value)}`)
-    .join(";");
-  return `${raw}~${body}`;
-}
-
-export function splitClientCounters(raw: string): { run: string; counters: ArcadeCounters | null } {
-  const text = String(raw ?? "");
-  const at = text.indexOf("~");
-  if (at < 0) return { run: text, counters: null };
-  const counters: ArcadeCounters = {};
-  for (const pair of text
-    .slice(at + 1)
-    .split(";")
-    .slice(0, 40)) {
-    const [name, value] = pair.split("=");
-    const number = Number.parseInt(value ?? "", 10);
-    if (name && /^[a-zA-Z]{1,24}$/.test(name) && Number.isInteger(number)) counters[name] = number;
-  }
-  return { run: text.slice(0, at), counters };
 }
 
 export interface ArcadeDiag {

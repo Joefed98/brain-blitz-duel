@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef } from "react";
 import { serverNow } from "@/lib/duel/clock";
-import { puzzleDef } from "@/lib/duel/registry";
+import { puzzleDef } from "@/lib/duel/catalogue";
 import {
   ROUND_TITLE_MS,
   ROUND_TITLE_VOICE_MS,

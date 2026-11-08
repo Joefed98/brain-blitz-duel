@@ -4,7 +4,7 @@
  */
 import { decodeTapTimes, replayBangOn, tapRevOf } from "../tapLog";
 import { latestTapMs } from "../grade";
-import { puzzleTimeLimitMs } from "../registry";
+import { puzzleTimeLimitMs } from "../catalogue";
 import { STOPWATCH_ATTEMPTS } from "../types";
 import type { DepthGrader } from "../depth200.server";
 import { BANGON_TOPUP_REV, bangOnCentrePoints, bangOnMarks, scoreBangOnDepth, usesBangOnDepth } from "./bangOn";

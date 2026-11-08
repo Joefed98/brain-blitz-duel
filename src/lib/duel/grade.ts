@@ -160,7 +160,7 @@ import {
 } from "./attentionRev";
 import { scanCorrections, usesScanDepth } from "./depth/eagleEye";
 import { spotBonusFound, usesSpotDepth } from "./depth/doubleTake";
-import { puzzleTimeLimitMs } from "./registry";
+import { puzzleTimeLimitMs } from "./catalogue";
 import { PUZZLE_SCORE_REV, puzzleScoreRevOf, recordParts, scoreRev1, takeScoreParts, wasteFactor, withPuzzleScoreRev } from "./puzzleScoreRev";
 import { isTopsy, replayTopsyPuzzle, scoreTopsy } from "./topsy";
 import { isJumbledGradient, replayGradientAnswer, scoreJumbled } from "./jumbled";

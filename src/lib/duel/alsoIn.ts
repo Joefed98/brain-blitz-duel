@@ -14,7 +14,7 @@
  * The first and only crossover: Pull! (`clayshoot`, Speed) is also in the Sports arcade group.
  */
 import type { ArcadeGroup } from "./arcadeGroups";
-import { PUZZLE_REGISTRY, isRetired } from "./registry";
+import { PUZZLE_REGISTRY, isRetired } from "./catalogue";
 import type { PuzzleCategory, PuzzleType } from "./types";
 
 /** A room pick or Practice section: a puzzle category (not Arcade) or an arcade group. */
