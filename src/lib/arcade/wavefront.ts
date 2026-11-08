@@ -22,7 +22,7 @@ import {
 import { BAND_STRICT_MARK, bandStrictGame, bandStrict, bandCurve, bandInit, bandTargetGame, BAND_TARGET_MARK, bandPoints, bandScoreOf, bandStep, bandTotal, BAND_FINISH_BONUS, type BandFields, type BandParts } from "./scoreBands";
 import { isin, TRIG_ONE } from "./trig";
 import { speedBonusCurve } from "../duel/speedPar";
-import { stdBandParts, stdLine, stdSpeed, stdTotal, type StdBreakdown, type StdSpec } from "./arcadeStandard";
+import { stdBandParts, stdCappedPenalty, stdLine, stdLivesCharged, stdSpeed, stdTotal, type StdBreakdown, type StdSpec } from "./arcadeStandard";
 
 /* ============================== Constants ============================== */
 
@@ -329,6 +329,8 @@ export interface WavState extends BandFields {
    */
   std?: number;
   coresHit?: number;
+  /** wavRev 13 (the scoring audit): 1 = the life that ends the run is not charged, lives take at most half the core. Outside the checksum. */
+  keep?: number;
   /** wavRev 2: ships that rammed the player while diving (destroyed, no points), and divers shot down. */
   rammed?: number;
   diversDown?: number;
@@ -1300,6 +1302,7 @@ const wavefrontGameV2: ArcadeGame<WavState, ArcadeInputEvent | null> = {
 
 /** The game for a stored wavRev (absent = the original 60 s rules). */
 export function wavefrontGameFor(rev?: number | null): ArcadeGame<WavState, ArcadeInputEvent | null> {
+  if (rev === WAV_REV_KEEP) return wavefrontKeepGame;
   if (rev === WAV_REV_STD) return wavefrontStdGame;
   if (rev === WAV_REV_PHONE) return wavefrontPhoneGame;
   if (rev === WAV_REV_EXPAND) return wavefrontExpandGame;
@@ -1482,7 +1485,7 @@ export const wavefrontTallGame: ArcadeGame<WavState, ArcadeInputEvent | null> = 
 
 /** The world height (px) a stored round's wavRev plays in. */
 export function wavefrontWorldHFor(rev?: number | null): number {
-  if (rev === WAV_REV_EXPAND || rev === WAV_REV_PHONE || rev === WAV_REV_STD) return WAV_X_H;
+  if (rev === WAV_REV_EXPAND || rev === WAV_REV_PHONE || rev === WAV_REV_STD || rev === WAV_REV_KEEP) return WAV_X_H;
   return rev === WAV_REV_TALL || rev === WAV_REV_TARGET || rev === WAV_REV_STRICT ? WAV_TALL_H : WAV_WORLD_H;
 }
 
@@ -2443,27 +2446,34 @@ export function wavStdWeakPoints(s: WavState): number {
 export function wavStdScore(s: WavState): StdBreakdown {
   const killed = (s.bossKilled ?? 0) > 0;
   const fight = s.tick - (s.bossAt ?? 0);
+  const core = stdLine(WAV_STD_CORE_MAX, wavStdUnits(s), WAV_STD_CORE_FULL);
+  const lost = Math.max(0, WAV_LIVES - Math.max(0, s.lives));
   return {
-    core: stdLine(WAV_STD_CORE_MAX, wavStdUnits(s), WAV_STD_CORE_FULL),
+    core,
     features: {
       boss: killed ? 10 : 0,
       speed: killed ? stdSpeed(10, fight, WAV_STD_KILL_FULL, WAV_STD_KILL_ZERO) : 0,
       saucers: stdLine(20, wavStdSaucers(s), WAV_X_SAUCERS),
       weak: stdLine(10, wavStdWeakPoints(s), WAV_STD_WEAK_POINTS),
     },
-    penalty: WAV_STD_LIFE_COST * Math.max(0, WAV_LIVES - Math.max(0, s.lives)),
+    // wavRev 13: the life that ends the run is not charged, and lives never take more than half the core.
+    penalty: s.keep ? stdCappedPenalty(WAV_STD_LIFE_COST * stdLivesCharged(lost, s.lives <= 0), core) : WAV_STD_LIFE_COST * lost,
   };
 }
 /** wavRev 12's reveal and band breakdown. */
 export function wavefrontStdParts(state: WavState): BandParts {
   const lost = Math.max(0, WAV_LIVES - Math.max(0, state.lives));
+  const score = wavStdScore(state);
+  const charged = stdLivesCharged(lost, state.lives <= 0);
   return stdBandParts(
-    WAVEFRONT_STD,
-    wavStdScore(state),
+    state.keep ? WAVEFRONT_STD_KEEP : WAVEFRONT_STD,
+    score,
     wavStdUnits(state),
     `${state.wavesCleared} waves · ${state.shapesDown} ships · ${state.armourHits} armour hits · gunship ${Math.min(state.bossDmg ?? 0, WAV_X_MID_HP)}/${WAV_X_MID_HP}`,
     (state.bossKilled ?? 0) > 0,
-    `${lost} ${lost === 1 ? "life" : "lives"} lost`,
+    state.keep
+      ? `${charged} ${charged === 1 ? "life" : "lives"} lost before the last${score.penalty < WAV_STD_LIFE_COST * charged ? " (at most half the ships points)" : ""}`
+      : `${lost} ${lost === 1 ? "life" : "lives"} lost`,
   );
 }
 
@@ -2475,4 +2485,21 @@ export const wavefrontStdGame: ArcadeGame<WavState, ArcadeInputEvent | null> = {
   ...wavefrontGameV2,
   init: initStd,
   step: bandStep(stepX),
+};
+
+/* ================= Progress counts (wavRev 13, Nov 2026, the scoring audit) ================= */
+
+/**
+ * wavRev 13 (docs/arcade-standard/wavefront.md "wavRev 13"; docs/audit-nov-2026/scoring.md issue 2): wavRev 12's play and
+ * parts exactly (a wavRev 12 log replays tick for tick, the same checksum), with the lives' cost changed so progress made
+ * always counts: the life that ends the run is not charged (only lives lost before it cost WAV_STD_LIFE_COST each), and
+ * lives never take more than half the ships-hits-and-waves points (stdCappedPenalty). States add `keep: 1`, outside the
+ * checkpoint checksum (playRevOf maps 13 to 12's, so 11's, play).
+ */
+export const WAV_REV_KEEP = 13;
+export const WAVEFRONT_STD_KEEP: StdSpec = { ...WAVEFRONT_STD, rev: WAV_REV_KEEP };
+
+export const wavefrontKeepGame: ArcadeGame<WavState, ArcadeInputEvent | null> = {
+  ...wavefrontStdGame,
+  init: (seed: number) => ({ ...initStd(seed), keep: 1 }),
 };

@@ -34,6 +34,8 @@ import * as bastion from "./bastion";
 
 export interface ArcadeStdEntry {
   spec: StdSpec | null;
+  /** The first stamp on the standard when the spec names a later one (its parts' labels are the same). */
+  from?: number;
   parts: (state: any) => StdPart[] | null;
 }
 

@@ -34,7 +34,7 @@ import {
   CROSS_SWIPE_PX,
   type CrossState,
   crossWorldHFor,
-  CROSS_REV_FLOW,
+  CROSS_REV_KEEP,
   CROSS_WORLD_W,
 } from "@/lib/arcade/cross";
 import { decodeCrossRun, encodeCrossRun, replayCrossRun } from "@/lib/duel/cross";
@@ -50,9 +50,9 @@ import { arenaFrame, cancelArenaFrame } from "@/lib/battery";
 function IntroExample() {
   return (
     <ArtStill
-      game={crossArtGameFor(CROSS_REV_FLOW)}
+      game={crossArtGameFor(CROSS_REV_KEEP)}
       worldW={CROSS_WORLD_W}
-      worldH={crossWorldHFor(CROSS_REV_FLOW)}
+      worldH={crossWorldHFor(CROSS_REV_KEEP)}
       ticks={60}
       input={null}
       caption="Hop up through the gaps and keep moving. Mind the bikes, buses and cones."
@@ -300,7 +300,7 @@ export const crossPuzzle: PuzzleDefinition = {
   category: "arcade",
   timeLimitMs: (CROSS_RUN_TICKS / TICKS_PER_SECOND) * 1000 + 3000,
   revealMs: 6_000,
-  generate: () => ({ type: "cross", seed: 1, crossRev: CROSS_REV_FLOW }) satisfies CrossPuzzleData,
+  generate: () => ({ type: "cross", seed: 1, crossRev: CROSS_REV_KEEP }) satisfies CrossPuzzleData,
   check: () => false,
   revealHeading: "Your run",
   IntroExample,
