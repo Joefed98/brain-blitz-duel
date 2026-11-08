@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { renderToStaticMarkup } from "react-dom/server";
+import { VolumeSliders } from "../src/components/app/VolumeSliders";
 import { MuteToggle } from "../src/components/duel/MuteToggle";
 import { PUZZLE_REGISTRY } from "../src/lib/duel/registry";
 import { roundMusicFor } from "../src/lib/fx/theme";
@@ -53,6 +54,18 @@ assert.match(
 assert.match(ui, /h-11 w-full/, "the popover's mute switch is 44px tall");
 assert.match(ui, /event.preventDefault\(\)/);
 assert.match(ui, /event.stopPropagation\(\)/);
+// Two volume sliders (8 Nov 2026): Sound effects and Music, each its own slider, in the settings sheet and the game menu.
+const sliders = renderToStaticMarkup(<VolumeSliders />);
+assert.deepEqual(sliders.match(/data-volume-slider="\w+"/g), ['data-volume-slider="effects"', 'data-volume-slider="music"']);
+for (const row of sliders.split("data-volume-slider=").slice(1)) {
+  assert.equal((row.match(/role="slider"/g) ?? []).length, 1, "one slider per volume row");
+}
+assert.match(sliders, /aria-label="Sound effects volume"/);
+assert.match(sliders, /aria-label="Music volume"/);
+for (const file of ["src/components/app/SettingsSheet.tsx", "src/components/duel/GameMenu.tsx"]) {
+  assert.match(readFileSync(file, "utf8"), /<VolumeSliders \/>/, `${file} draws the two volume sliders`);
+}
+assert.doesNotMatch(readFileSync("src/components/app/SettingsSheet.tsx", "utf8"), /aria-label="Volume"/, "no single Volume slider");
 const timer = readFileSync("src/components/duel/TimerBar.tsx", "utf8");
 assert.doesNotMatch(timer, /RoundMusic/, "the timer bar never owns round music");
 for (const file of [
@@ -68,5 +81,5 @@ for (const route of ["src/routes/duel.$code.tsx", "src/routes/practice.tsx"]) {
   assert.match(readFileSync(route, "utf8"), /useRoundMusic\(/, route);
 }
 console.log(
-  "PASS shared 52px sound targets with 44px hit areas, 375/390px header budgets, music mappings, Beat silence, ramps, slider independence, unconditional loading and outside-tap shield.",
+  "PASS shared 52px sound targets with 44px hit areas, 375/390px header budgets, music mappings, Beat silence, ramps, slider independence, two volume sliders, unconditional loading and outside-tap shield.",
 );
