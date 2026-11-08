@@ -743,6 +743,37 @@ export interface HeroPose {
   rigX: number;
   rigY: number;
   rigU: number;
+  /**
+   * Drawing-only enlargement (a game's choice, never read by a sim): the joints are spread by growW across and
+   * growH along the body before retargeting, from the torso's midpoint, or from the soles when `growFeet` (so
+   * the feet stay where the game put them), the head and limbs widened by growW, so the captain is drawn
+   * larger without distortion. 1, 1 draws the joints as given.
+   */
+  growW: number;
+  growH: number;
+  growFeet: boolean;
+}
+
+/** A drawing-only growth: across, along the body, and whether it grows from the soles (see HeroPose.growW). */
+export type HeroGrow = { readonly w: number; readonly h: number; readonly feet: boolean };
+export const HERO_NO_GROW: HeroGrow = { w: 1, h: 1, feet: false };
+/**
+ * Grappler's and Roofbound's drawing scales (8 Nov 2026, display only; hit boxes, sims, timings, seeds, scoring
+ * and stamps unchanged). Grappler grows from its body circle's centre (radius 10 px). Roofbound (its 32 × 36 px
+ * runner, collision along x only) grows from the soles, so the feet stay on the surface: a little wider, still
+ * inside the box's ±16 px, and taller, the head above the box (flipArt.renderer.ts opens its clip that far).
+ */
+export const GRAPPLER_HERO_GROW: HeroGrow = { w: 1.2, h: 1.12, feet: true };
+export const ROOFBOUND_HERO_GROW: HeroGrow = { w: 1.15, h: 1.25, feet: true };
+/** How far (px) the grown Roofbound head reaches past its 36 px box (24.25 up against the box's 18; art-measured, rounded up). */
+export const ROOFBOUND_HERO_HEADROOM_PX = 7;
+
+/** Sets a pose's drawing-only growth (see HeroPose.growW). */
+export function heroGrow(p: HeroPose, g: HeroGrow): HeroPose {
+  p.growW = g.w;
+  p.growH = g.h;
+  p.growFeet = g.feet;
+  return p;
 }
 
 export function heroPose(): HeroPose {
@@ -780,6 +811,9 @@ export function heroPose(): HeroPose {
     rigX: 0,
     rigY: 0,
     rigU: 1,
+    growW: 1,
+    growH: 1,
+    growFeet: false,
   };
 }
 
@@ -965,6 +999,7 @@ export function drawHero(ctx: CanvasRenderingContext2D, p: HeroPose): void {
     return;
   }
   const px = p.detailScale === p.detailScale ? p.detailScale : p.scale;
+  if (p.growW !== 1 || p.growH !== 1) return drawGrown(ctx, p);
   const tall = (Math.max(p.footAY, p.footBY) - (p.headY - p.headR)) * px;
   const kw = retarget(p, p.rig, tall);
   ctx.save();
@@ -972,6 +1007,39 @@ export function drawHero(ctx: CanvasRenderingContext2D, p: HeroPose): void {
   ctx.scale(kw, kw);
   drawCaptain(ctx, p.rig);
   ctx.restore();
+}
+
+/** The grown figure: the pose's joints spread into a scratch pose (no allocation), drawn, the cape's memory kept. */
+const grown = heroPose();
+const GROWN_JOINTS = ["head", "neck", "hip", "shoulder", "handA", "handB", "footA", "footB"] as const;
+function drawGrown(ctx: CanvasRenderingContext2D, p: HeroPose): void {
+  Object.assign(grown, p);
+  const gw = p.growW, gh = p.growH;
+  // Spread along the body (the torso's direction, straight down unless it leans) by gh, across by gw.
+  let dx = p.hipX - p.neckX, dy = p.hipY - p.neckY;
+  const T = Math.hypot(dx, dy);
+  if (T < 1e-6) { dx = 0; dy = 1; } else { dx /= T; dy /= T; }
+  let ox = (p.neckX + p.hipX) / 2, oy = (p.neckY + p.hipY) / 2;
+  if (p.growFeet) {
+    // From the soles: the lower foot's distance along the body from the torso's midpoint.
+    const sole = Math.max((p.footAX - ox) * dx + (p.footAY - oy) * dy, (p.footBX - ox) * dx + (p.footBY - oy) * dy);
+    ox += dx * sole;
+    oy += dy * sole;
+  }
+  for (const j of GROWN_JOINTS) {
+    const kx = `${j}X` as const, ky = `${j}Y` as const;
+    const rx = p[kx] - ox, ry = p[ky] - oy;
+    const along = rx * dx + ry * dy, across = rx * dy - ry * dx;
+    grown[kx] = ox + dx * along * gh + dy * across * gw;
+    grown[ky] = oy + dy * along * gh - dx * across * gw;
+  }
+  grown.headR = p.headR * gw;
+  grown.stick = p.stick * gw;
+  grown.growW = 1;
+  grown.growH = 1;
+  drawHero(ctx, grown);
+  p.capeAngle = grown.capeAngle;
+  p.capeAt = grown.capeAt;
 }
 
 /* ------------------------------------------------------------ celebration poses */

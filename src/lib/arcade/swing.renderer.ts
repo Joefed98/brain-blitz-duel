@@ -62,7 +62,7 @@ import {
 } from "./swing";
 import { artHash, reducedMotion } from "./art.renderer";
 import { arcadeReducedEffects } from "@/lib/fx/lowEnd";
-import { drawHero, heroPose } from "./hero.renderer";
+import { GRAPPLER_HERO_GROW, drawHero, heroGrow, heroPose } from "./hero.renderer";
 import { ANG_PER_RAD } from "./trig";
 import { drawActionHud, type ActionChip } from "./actionHud.renderer";
 import {
@@ -81,7 +81,7 @@ import {
 } from "./swingJungle.renderer";
 
 /** Grappler's hero pose (stick figure joints, 3.4 px head, 2.4 px stick), refilled every frame. */
-const grapplerHero = Object.assign(heroPose(), { headR: 3.4, stick: 2.4 });
+const grapplerHero = heroGrow(Object.assign(heroPose(), { headR: 3.4, stick: 2.4 }), GRAPPLER_HERO_GROW);
 /** The sim's angle units per radian on a rope (swing.ts's SUB × ANG_PER_RAD): om / ROPE_RAD is radians a tick. */
 const ROPE_RAD = 16 * ANG_PER_RAD;
 import { drawGrapplerDragon } from "./grapplerDragon.renderer";
@@ -1620,7 +1620,7 @@ function drawLedgeDim(ctx: CanvasRenderingContext2D, state: SwingState, width: n
 /* ============================ The jungle canopy (swingRev 17) ============================ */
 
 /** The jungle hero's pose: the Joulz hero filling the sim's 10 px body radius (head 4.2, stick 3; ±11 px, inside 2 px). */
-const jungleHero = Object.assign(heroPose(), { headR: 4.2, stick: 3 });
+const jungleHero = heroGrow(Object.assign(heroPose(), { headR: 4.2, stick: 3 }), GRAPPLER_HERO_GROW);
 /** The "PTERODACTYL N m" label's full size (world px); its scale is swingDragonLabelScale's. */
 export const SWING_PTERO_LABEL_PX = 15;
 
