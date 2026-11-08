@@ -13,6 +13,17 @@
  *    ignore the ?v= hash and install fetched only missing paths).
  *    The sounds once hosted by Lovable (CONFIG.lazyMedia, 7 Nov 2026) are not fetched on install: each is
  *    kept in the media cache once played (the fetch handler), across builds, and dropped when its bytes change.
+ *  - What install downloads (8 Nov 2026, the performance audit's item 2). A worker registered as
+ *    "/sw.js?fill=later" (a device that hasn't finished a practice round, or is on Save-Data, a metered or
+ *    2G-class connection, Battery saver, or a room: serviceWorker.ts) downloads nothing on install; nor does any
+ *    install on Save-Data, a metered or 2G-class connection, or while a room, daily or challenge is open. Either
+ *    way it only drops kept media whose bytes changed. The page asks for the download later with a FILL message,
+ *    once offline practice may download (packs.ts offlineDownloadAllowed).
+ *  - A download takes only what changed (fill()): a file this build lists under the same hash as the last
+ *    download (CONFIG.appHash, CONFIG.mediaHash, against MANIFEST_KEY's record) is copied from the cache that
+ *    holds it, or kept where it is, not fetched; a content-hashed bundle file already kept by any build is
+ *    copied. So a new build fetches its changed chunks and the kept pages. Kept media is hashed on the phone
+ *    only when the record doesn't know its bytes (a device from before the record, a file kept once played).
  *  - Navigations go to the network first (a fresh page whenever there is signal), then to the kept page
  *    for that path, then to a small offline page that points to Practice (rooms, tournaments, the daily
  *    and challenges need a connection).
@@ -27,24 +38,24 @@ const APP_PREFIX = "joulz-app-";
 /** How long a navigation waits for the network before the kept page is used (a weak signal underground). */
 const NAV_TIMEOUT_MS = 4000;
 const MEDIA_PREFIXES = ["/sounds/", "/tiles/", "/wordfall/"];
+/** The last download's record (in the media cache): what each kept file's bytes are, and where the app files are. */
+const MANIFEST_KEY = "/__joulz-manifest";
+/** Screens a download never competes with (a live round's sends and its realtime socket). */
+const ROOM_PATHS = ["/duel", "/daily", "/challenge"];
+const SLOW_CONNECTIONS = ["slow-2g", "2g"];
+/** A bundle file named by its content (Vite's "[name]-[hash].ext"): the same name is the same bytes. */
+const IMMUTABLE = /^\/assets\/[^/]+-[A-Za-z0-9_-]{8,}\.[A-Za-z0-9]+$/;
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
     (async () => {
-      const app = await caches.open(APP_CACHE);
+      if (await fillDeferred()) {
+        // Nothing downloaded now; a kept copy whose bytes changed is dropped, so its next use fetches the new one.
+        await dropStaleMedia();
+        return;
+      }
       // Every app file and kept page must be stored, or this build isn't installed (the browser tries again later).
-      await addAll(app, [...CONFIG.app, ...CONFIG.pages], true);
-      // Media is shared between builds: only what this cache lacks is fetched.
-      const media = await caches.open(MEDIA_CACHE);
-      const have = new Set((await media.keys()).map((r) => new URL(r.url).pathname));
-      const stale = await staleMedia(media, CONFIG.media.filter((path) => have.has(path)));
-      await addAll(media, CONFIG.media.filter((path) => !have.has(path) || stale.has(path)), false);
-      // Media kept only once played (CONFIG.lazyMedia) is never fetched here; a kept copy whose bytes
-      // changed is dropped, so the next play fetches the new one.
-      const lazy = CONFIG.lazyMedia || [];
-      const staleLazy = await staleMedia(media, lazy.filter((path) => have.has(path)));
-      await Promise.all([...staleLazy].map((path) => media.delete(path)));
-      await cacheGoogleFonts();
+      await fill(true);
     })(),
   );
 });
@@ -54,11 +65,14 @@ self.addEventListener("activate", (event) => {
     (async () => {
       // The newest two builds' app caches stay (a page still on the previous build loads its own chunks).
       const keep = await rememberBuild();
+      // …and the last downloaded build's, so a build that deferred its download still opens offline on it.
+      const filled = (await readManifest()).filled;
+      if (filled && typeof filled.appCache === "string") keep.push(filled.appCache);
       const names = await caches.keys();
       await Promise.all(names.filter((n) => n.startsWith(APP_PREFIX) && !keep.includes(n)).map((n) => caches.delete(n)));
       // Media this build no longer lists (a removed sound) is dropped; a played lazy file is kept.
       const media = await caches.open(MEDIA_CACHE);
-      const listed = new Set([...CONFIG.media, ...(CONFIG.lazyMedia || []), BUILD_KEY]);
+      const listed = new Set([...CONFIG.media, ...(CONFIG.lazyMedia || []), BUILD_KEY, MANIFEST_KEY]);
       await Promise.all(
         (await media.keys()).filter((r) => !listed.has(new URL(r.url).pathname)).map((r) => media.delete(r)),
       );
@@ -71,6 +85,15 @@ self.addEventListener("message", (event) => {
   const data = event.data || {};
   if (data.type === "SKIP_WAITING") void self.skipWaiting();
   if (data.type === "VERSION" && event.ports && event.ports[0]) event.ports[0].postMessage({ version: CONFIG.version });
+  if (data.type === "FILL") {
+    // The page's go-ahead for the download (serviceWorker.ts requestWorkerFill): this build's files, only what changed.
+    const port = event.ports && event.ports[0];
+    const work = fillOnce().then(
+      (complete) => port && port.postMessage({ type: "FILLED", complete }),
+      () => port && port.postMessage({ type: "FILLED", complete: false }),
+    );
+    if (typeof event.waitUntil === "function") event.waitUntil(work);
+  }
 });
 
 self.addEventListener("fetch", (event) => {
@@ -151,9 +174,11 @@ function stripSearch(href) {
   return url.href;
 }
 
+/** Fetches and stores each path (8 at a time); the paths that failed. Throws when `required` and any failed. */
 async function addAll(cache, paths, required) {
   const queue = paths.slice();
   const failures = [];
+  const failed = new Set();
   const worker = async () => {
     while (queue.length > 0) {
       const path = queue.shift();
@@ -163,11 +188,183 @@ async function addAll(cache, paths, required) {
         await cache.put(path, response);
       } catch (error) {
         failures.push(String(error));
+        failed.add(path);
       }
     }
   };
   await Promise.all(Array.from({ length: 8 }, worker));
   if (required && failures.length > 0) throw new Error(`offline install: ${failures.slice(0, 3).join(", ")}`);
+  return failed;
+}
+
+/** Whether this install downloads nothing now (the page sends FILL later): see the header. */
+async function fillDeferred() {
+  const search = String((self.location && self.location.search) || "");
+  if (/(?:^|[?&])fill=later(?:&|$)/.test(search)) return true;
+  try {
+    const connection = self.navigator && self.navigator.connection;
+    if (
+      connection &&
+      (connection.saveData === true || connection.metered === true || SLOW_CONNECTIONS.includes(String(connection.effectiveType || "")))
+    )
+      return true;
+  } catch {
+    /* no Network Information API: download */
+  }
+  try {
+    if (self.clients && typeof self.clients.matchAll === "function") {
+      const open = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
+      const inRoom = open.some((client) => {
+        const path = new URL(client.url).pathname;
+        return ROOM_PATHS.some((p) => path === p || path.startsWith(`${p}/`));
+      });
+      if (inRoom) return true;
+    }
+  } catch {
+    /* can't tell: download */
+  }
+  return false;
+}
+
+async function readManifest() {
+  try {
+    const hit = await (await caches.open(MEDIA_CACHE)).match(MANIFEST_KEY);
+    const value = hit ? JSON.parse(await hit.text()) : null;
+    return value && typeof value === "object" ? value : {};
+  } catch {
+    return {};
+  }
+}
+
+async function writeManifest(manifest) {
+  try {
+    await (await caches.open(MEDIA_CACHE)).put(MANIFEST_KEY, new Response(JSON.stringify(manifest)));
+  } catch {
+    /* the next download hashes what it can't look up */
+  }
+}
+
+/**
+ * Which kept media is out of date: a kept copy whose recorded bytes (the manifest) differ from this build's hash;
+ * one the record doesn't know is hashed here (the only hashing on the phone).
+ */
+async function mediaState(media, manifest) {
+  const hashes = CONFIG.mediaHash || {};
+  const known = manifest.media && typeof manifest.media === "object" ? manifest.media : {};
+  const have = new Set((await media.keys()).map((r) => new URL(r.url).pathname));
+  const lazy = CONFIG.lazyMedia || [];
+  const unknownKept = [...CONFIG.media, ...lazy].filter((p) => have.has(p) && hashes[p] && !(p in known));
+  const staleUnknown = await staleMedia(media, unknownKept);
+  const isStale = (p) => !!hashes[p] && (p in known ? known[p] !== hashes[p] : staleUnknown.has(p));
+  return { hashes, known, have, lazy, isStale };
+}
+
+/** Drops every kept media copy whose bytes changed (no download) and records the rest. */
+async function dropStaleMedia() {
+  const manifest = await readManifest();
+  const media = await caches.open(MEDIA_CACHE);
+  const { hashes, have, lazy, isStale } = await mediaState(media, manifest);
+  const record = {};
+  for (const path of [...CONFIG.media, ...lazy]) {
+    if (!have.has(path) || !hashes[path]) continue;
+    if (isStale(path)) await media.delete(path);
+    else record[path] = hashes[path];
+  }
+  await writeManifest({ ...manifest, media: record });
+}
+
+/** A copy of `path` from any app cache (a content-named bundle file is the same bytes in every build). */
+async function matchAnyApp(path) {
+  for (const name of await caches.keys()) {
+    if (!name.startsWith(APP_PREFIX)) continue;
+    const hit = await (await caches.open(name)).match(path);
+    if (hit) return hit;
+  }
+  return null;
+}
+
+/**
+ * This build's download, only what changed: app files (required on install) and media, then the record. True
+ * when everything was stored.
+ */
+async function fill(required) {
+  const manifest = await readManifest();
+  const prev = manifest.filled && typeof manifest.filled === "object" ? manifest.filled : null;
+  const appHash = CONFIG.appHash || {};
+  const app = await caches.open(APP_CACHE);
+  const names = await caches.keys();
+  const prevApp = prev && prev.appCache && names.includes(prev.appCache) ? await caches.open(prev.appCache) : null;
+  const prevHashes = (prev && prev.app) || {};
+  const storedApp = {};
+  const fetchApp = [];
+  for (const path of CONFIG.app) {
+    const hash = appHash[path];
+    if (hash && prevHashes[path] === hash && prevApp) {
+      if (prev.appCache === APP_CACHE && (await app.match(path))) {
+        storedApp[path] = hash;
+        continue;
+      }
+      const hit = await prevApp.match(path);
+      if (hit) {
+        await app.put(path, hit);
+        storedApp[path] = hash;
+        continue;
+      }
+    }
+    if (IMMUTABLE.test(path)) {
+      const hit = await matchAnyApp(path);
+      if (hit) {
+        await app.put(path, hit);
+        if (hash) storedApp[path] = hash;
+        continue;
+      }
+    }
+    fetchApp.push(path);
+  }
+  // The kept pages name this build's files: always fetched.
+  const failedApp = await addAll(app, [...fetchApp, ...CONFIG.pages], required);
+  for (const path of fetchApp) if (!failedApp.has(path) && appHash[path]) storedApp[path] = appHash[path];
+
+  // Media is shared between builds: only what's missing or changed is fetched.
+  const media = await caches.open(MEDIA_CACHE);
+  const { hashes, known, have, lazy, isStale } = await mediaState(media, manifest);
+  const failedMedia = await addAll(media, CONFIG.media.filter((p) => !have.has(p) || isStale(p)), false);
+  // Media kept only once played (CONFIG.lazyMedia) is never fetched here; a kept copy whose bytes changed is
+  // dropped, so the next play fetches the new one.
+  const record = {};
+  for (const path of CONFIG.media) {
+    if (!hashes[path]) continue;
+    if (failedMedia.has(path)) {
+      // Still the old bytes where they were known; otherwise unknown (hashed next time).
+      if (have.has(path) && path in known) record[path] = known[path];
+      continue;
+    }
+    record[path] = hashes[path];
+  }
+  for (const path of lazy) {
+    if (!have.has(path) || !hashes[path]) continue;
+    if (isStale(path)) await media.delete(path);
+    else record[path] = hashes[path];
+  }
+  await cacheGoogleFonts();
+  const complete = failedApp.size === 0 && failedMedia.size === 0;
+  await writeManifest({ media: record, filled: { version: CONFIG.version, appCache: APP_CACHE, app: storedApp, complete } });
+  return complete;
+}
+
+let filling = null;
+/** One download at a time; nothing to do when this build's download already completed. */
+function fillOnce() {
+  if (!filling) {
+    filling = (async () => {
+      const manifest = await readManifest();
+      const done = manifest.filled && manifest.filled.version === CONFIG.version && manifest.filled.complete === true;
+      return done ? true : fill(false);
+    })().finally(() => {
+      filling = null;
+    });
+  }
+  return filling;
 }
 
 /** The Google-hosted font families the page asks for (best effort; the self-hosted fonts are app files). */

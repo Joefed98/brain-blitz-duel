@@ -154,6 +154,11 @@ import { Button, SkeletonPage } from "@/design/components";
 const ROOM_TITLE = `Join a ${APP_NAME} room`;
 const ROOM_DESCRIPTION = `You’re invited to a live ${APP_NAME} room. ${APP_TAGLINE}`;
 
+/** A phase still due this long after it fell due reads the room again (a lost realtime event)… */
+const CATCH_UP_AFTER_MS = 3_000;
+/** …at most this often. */
+const CATCH_UP_MS = 4_000;
+
 export const Route = createFileRoute("/duel/$code")({
   ssr: false,
   head: () => ({
@@ -296,6 +301,7 @@ function DuelScreen() {
   const drafts = useRef(createDraftKeeper()).current;
   const lastAdvance = useRef(0);
   const dueSince = useRef(0);
+  const lastCatchUp = useRef(0);
   const [revealed, setRevealed] = useState<{
     round: number;
     tournamentKey: string;
@@ -541,6 +547,13 @@ function DuelScreen() {
       return;
     }
     if (dueSince.current === 0) dueSince.current = now;
+    // Still due well after someone asked (8 Nov 2026, the performance audit's item 6): the step may have
+    // happened with its realtime event lost on a dead socket, which the channel notices only after ~25 s.
+    // Read the room again, at most every CATCH_UP_MS.
+    if (now - dueSince.current > CATCH_UP_AFTER_MS && Date.now() - lastCatchUp.current > CATCH_UP_MS) {
+      lastCatchUp.current = Date.now();
+      void state.refresh().catch(() => {});
+    }
     if (
       phase !== "starting" &&
       phase !== "round_title" &&

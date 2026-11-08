@@ -2,6 +2,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { inputTypeField } from "@/lib/inputType";
 import { APP_BUILD_ID } from "@/lib/appVersion";
 import { trackSubmission } from "@/lib/appUpdate";
+import { POLICIES, abortable, fetchFor, supabaseRead } from "@/lib/net/request";
 
 import {
   advancePhaseFn,
@@ -28,6 +29,7 @@ import {
   type SubmitExtra,
 } from "./duel.functions";
 import type { MovesView } from "./moves";
+import { OwnAnswers, ROOM_RESULT_COLUMNS, type RoomResultRow } from "./roomResults";
 import type { LinkRoomState } from "./roomLink";
 import { ensureSession } from "./session";
 import { rememberLook, rememberedLook, type PlayerLook } from "./playerLook";
@@ -43,35 +45,51 @@ export class DuelError extends Error {}
 /* -------------------------------------------------------------------------- */
 
 export async function fetchDuelByCode(roomCode: string): Promise<DuelRow | null> {
-  const { data, error } = await supabase
-    .from("duels")
-    .select("*")
-    .eq("room_code", roomCode.toUpperCase())
-    .maybeSingle();
+  const { data, error } = await supabaseRead((signal) =>
+    abortable(supabase.from("duels").select("*").eq("room_code", roomCode.toUpperCase()), signal).maybeSingle(),
+  );
   if (error) throw new DuelError(error.message);
   return (data as DuelRow | null) ?? null;
 }
 
 export async function fetchDuelById(duelId: string): Promise<DuelRow | null> {
-  const { data, error } = await supabase.from("duels").select("*").eq("id", duelId).maybeSingle();
+  const { data, error } = await supabaseRead((signal) =>
+    abortable(supabase.from("duels").select("*").eq("id", duelId), signal).maybeSingle(),
+  );
   if (error) throw new DuelError(error.message);
   return (data as DuelRow | null) ?? null;
 }
 
 export async function fetchPlayers(duelId: string): Promise<DuelPlayerRow[]> {
-  const { data, error } = await supabase
-    .from("duel_players")
-    .select("*")
-    .eq("duel_id", duelId)
-    .order("player_slot");
+  const { data, error } = await supabaseRead((signal) =>
+    abortable(supabase.from("duel_players").select("*").eq("duel_id", duelId).order("player_slot"), signal),
+  );
   if (error) throw new DuelError(error.message);
   return (data ?? []) as DuelPlayerRow[];
 }
 
-export async function fetchResults(duelId: string): Promise<RoundResultRow[]> {
-  const { data, error } = await supabase.from("round_results").select("*").eq("duel_id", duelId);
+/** This device's own stored answers, fetched once a row (roomResults.ts). */
+const ownAnswers = new OwnAnswers();
+
+/**
+ * The room's results: every row's scores, verdicts, times and `extra`, without the stored answers (an arcade
+ * run's input log; roomResults.ts), plus `mySlot`'s own answers, each fetched once.
+ */
+export async function fetchResults(duelId: string, mySlot: number | null): Promise<RoundResultRow[]> {
+  const { data, error } = await supabaseRead((signal) =>
+    abortable(supabase.from("round_results").select(ROOM_RESULT_COLUMNS).eq("duel_id", duelId), signal),
+  );
   if (error) throw new DuelError(error.message);
-  return (data ?? []) as RoundResultRow[];
+  const rows = (data ?? []) as unknown as RoomResultRow[];
+  const missing = ownAnswers.missing(rows, mySlot);
+  if (missing.length > 0) {
+    const own = await supabaseRead((signal) =>
+      abortable(supabase.from("round_results").select("id, answer").in("id", missing), signal),
+    );
+    // A failed fetch leaves those answers out this time (the next refetch asks again).
+    if (!own.error) ownAnswers.remember((own.data ?? []) as { id: string; answer: string | null }[]);
+  }
+  return ownAnswers.attach(rows, mySlot);
 }
 
 /* -------------------------------------------------------------------------- */
@@ -136,7 +154,7 @@ export async function disbandRoom(roomId: string): Promise<void> {
 }
 
 export async function checkHostPresence(roomId: string): Promise<void> {
-  await checkHostPresenceFn({ data: { roomId } });
+  await checkHostPresenceFn({ data: { roomId }, fetch: fetchFor(POLICIES.step) });
 }
 
 export async function removePlayer(roomId: string, slot: number): Promise<void> {
@@ -149,7 +167,7 @@ export async function leaveRoom(roomId: string): Promise<void> {
 }
 
 export async function advancePhase(roomId: string, hostNext = false): Promise<void> {
-  await advancePhaseFn({ data: { roomId, hostNext } });
+  await advancePhaseFn({ data: { roomId, hostNext }, fetch: fetchFor(POLICIES.step) });
 }
 
 export async function submitAnswer(params: {
@@ -172,17 +190,19 @@ export async function submitAnswer(params: {
         clientVersion: APP_BUILD_ID,
         ...inputTypeField(),
       },
+      // A send past its limit fails like a dropped one, so the room's sender sends it again (roomSend.ts).
+      fetch: fetchFor(POLICIES.submit),
     }),
   );
 }
 
 /** Tapping READY on the round intro. */
 export async function readyUp(roomId: string, roundNumber: number): Promise<void> {
-  await readyUpFn({ data: { roomId, roundNumber } });
+  await readyUpFn({ data: { roomId, roundNumber }, fetch: fetchFor(POLICIES.step) });
 }
 
 export async function heartbeat(roomId: string): Promise<void> {
-  await heartbeatFn({ data: { roomId } });
+  await heartbeatFn({ data: { roomId }, fetch: fetchFor(POLICIES.heartbeat) });
 }
 
 /** The correct answer for a finished round, fetched only at reveal time. */
@@ -190,7 +210,7 @@ export async function fetchRevealPuzzle(
   duelId: string,
   roundNumber: number,
 ): Promise<RoundRevealData | null> {
-  const result = await revealAnswerFn({ data: { roomId: duelId, roundNumber } });
+  const result = await revealAnswerFn({ data: { roomId: duelId, roundNumber }, fetch: fetchFor(POLICIES.read) });
   return result.ok ? (result.data as RoundRevealData) : null;
 }
 
@@ -204,6 +224,7 @@ export async function checkWord(
 ): Promise<{ valid: boolean; points: number; word: string; reason?: string }> {
   return checkWordFn({
     data: { roomId: duelId, roundNumber, word, found, path: path ?? [] },
+    fetch: fetchFor(POLICIES.read),
   });
 }
 
@@ -213,7 +234,7 @@ export async function checkMoves(
   roundNumber: number,
   moves: string,
 ): Promise<MovesView | null> {
-  return (await checkMovesFn({ data: { roomId: duelId, roundNumber, moves } })) as MovesView | null;
+  return (await checkMovesFn({ data: { roomId: duelId, roundNumber, moves }, fetch: fetchFor(POLICIES.read) })) as MovesView | null;
 }
 
 /** "Continue" on the round results or standings screen. */
@@ -222,7 +243,7 @@ export async function continueOn(
   roundNumber: number,
   phase: "result" | "standings",
 ): Promise<void> {
-  await continueFn({ data: { roomId, roundNumber, phase } });
+  await continueFn({ data: { roomId, roundNumber, phase }, fetch: fetchFor(POLICIES.step) });
 }
 
 /** The last player still in the game ends it as a win. */
@@ -244,7 +265,7 @@ export type RoomPreview =
 /** What a room link says to someone who is not in the room yet. */
 export async function fetchRoomPreview(roomCode: string): Promise<RoomPreview> {
   await ensureSession();
-  return (await roomPreviewFn({ data: { roomCode } })) as RoomPreview;
+  return (await roomPreviewFn({ data: { roomCode }, fetch: fetchFor(POLICIES.read) })) as RoomPreview;
 }
 
 /** Host only: resets this room for another tournament. */

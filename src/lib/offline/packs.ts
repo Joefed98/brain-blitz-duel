@@ -140,14 +140,33 @@ function automatedWithoutPacks(): boolean {
   }
 }
 
+/** Screens offline downloads never compete with: a room's live round, the daily and challenges (8 Nov 2026). */
+const ROOM_PATHS = ["/duel", "/daily", "/challenge"];
+
+export function liveRoomOnScreen(): boolean {
+  try {
+    const path = window.location.pathname;
+    return ROOM_PATHS.some((p) => path === p || path.startsWith(`${p}/`));
+  } catch {
+    return false;
+  }
+}
+
 /**
- * Whether a top-up may run now: online, downloads on, not metered, no Battery saver, Save-Data or 2G-class
- * connection (packGrowth.ts), and no round on screen.
+ * Whether offline practice may download now (its packs and the worker's files): online, downloads on, not
+ * metered, no Battery saver, Save-Data or 2G-class connection (packGrowth.ts), no room, daily or challenge on
+ * screen and no round on screen.
  */
-export function topUpAllowed(): boolean {
+export function offlineDownloadAllowed(): boolean {
   if (automatedWithoutPacks()) return false;
   if (!isOnline() || !offlineDownloadsOn() || meteredConnection() || lightTopUpBlocked()) return false;
+  if (liveRoomOnScreen()) return false;
   return appUpdater()?.gate() !== "hold";
+}
+
+/** Whether a top-up may run now (offlineDownloadAllowed). */
+export function topUpAllowed(): boolean {
+  return offlineDownloadAllowed();
 }
 
 /**

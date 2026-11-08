@@ -1733,6 +1733,21 @@ outside the repo.
   off with `pinPrePartialCredit(true)`. Help, intro and the reveal's note ("45 % of the way") describe the new stamps.
   partial-credit-check (~20 s; `scripts/fixtures/partial-credit-legacy.json.gz` recorded on main by
   `scripts/partial-credit-record.ts`); bands `bun scripts/partial-credit-bands.ts [types…] [--seeds=30]`.
+- **Speed fixes 2, 4 and 6** (8 Nov 2026, `docs/speed-fixes-nov-2026.md`, from `docs/audit-nov-2026/performance.md`;
+  network and device storage only, no stamps). *Offline download*: a device without a finished practice round, or on
+  Save-Data / metered / 2G / Battery saver / a room on screen, registers `/sw.js?fill=later` (`registrationUrl`), whose
+  install downloads nothing; the download comes from the page's FILL message (`requestWorkerFill`, before the packs,
+  under `offlineDownloadAllowed`, which also holds packs while a room, daily or challenge is on screen); any install
+  defers on those connections or with a room open (`fillDeferred`); a download fetches only what changed
+  (`CONFIG.appHash` from swPlugin, the record `/__joulz-manifest`; kept media hashed on the phone only when the record
+  doesn't know it). Devices with `/sw.js` keep it. *Results refetch*: `ROOM_RESULT_COLUMNS` (`roomResults.ts`)
+  leaves out `answer`; this device's own answers come once a row by id (`OwnAnswers`); other players' rows carry
+  `answer: null` (replays fetch their log through their own server calls). *Timeouts* (`src/lib/net/request.ts`):
+  `POLICIES` per call (`fetch: fetchFor(...)` at the call site, `createStart`'s `serverFns.fetch` 30 s default,
+  `supabaseRead` for the room's reads, `abortable`); only reads retry here, the answer is retried by roomSend (the
+  server keeps one row); the clock's samples end at 3 s and slow ones don't replace a measured clock; a phase still
+  due 3 s on re-reads the room (`CATCH_UP_AFTER_MS`). Dev servers get 6× the limits. offline-delta-check (~1 s),
+  net-request-check (~15 s), server-functions-check's "results refetch" section.
 - `src/components/duel/` — room/round screens (PhoneShell, RoundIntro, TimerBar,
   AnswerReveal, ArcadeReveal, WinnerReveal…); `src/components/puzzles/` — shared puzzle
   widgets; `src/lib/fx/` — sound and visual feedback (presentation only).

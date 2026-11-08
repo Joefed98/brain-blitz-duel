@@ -5,11 +5,41 @@
  * is on screen (the app updater's gate is "now": the Practice list, the tab pages), so a run in progress is
  * never interrupted. If the page itself is an older build than the worker that took over, it reloads at
  * that same safe moment.
+ *
+ * What it downloads (8 Nov 2026, the performance audit's item 2): a device registers "/sw.js?fill=later", whose
+ * install downloads nothing, unless offline practice may download now (`fillNow`: a finished practice round, a
+ * connection that isn't Save-Data, metered or 2G-class, no Battery saver, no room on screen); a device that
+ * already has a worker keeps its own address. The download comes later through `requestWorkerFill`, only what
+ * changed since the last one (sw.template.js).
  */
 import { appUpdater } from "@/lib/appUpdate";
 import { APP_BUILD_ID } from "@/lib/appVersion";
 
 export const SW_URL = "/sw.js";
+/** The worker whose install waits for the page's FILL (sw.template.js fillDeferred). */
+export const SW_LATER_URL = "/sw.js?fill=later";
+
+/** Whether a worker's script address is ours (either form). */
+export function isOfflineWorkerUrl(scriptURL: string | null | undefined): boolean {
+  if (!scriptURL) return false;
+  try {
+    return new URL(scriptURL, "https://joulz.invalid").pathname === SW_URL;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * The address to register: an existing worker's own (never switched: a device with the download keeps it, and
+ * one without gets it through FILL), else the full worker when it may download now, else the deferred one.
+ */
+export function registrationUrl(existingScriptURL: string | null | undefined, fillNow: boolean): string {
+  if (isOfflineWorkerUrl(existingScriptURL)) {
+    const url = new URL(existingScriptURL!, "https://joulz.invalid");
+    return `${url.pathname}${url.search}`;
+  }
+  return fillNow ? SW_URL : SW_LATER_URL;
+}
 const HANDOVER_POLL_MS = 2000;
 
 function workerApi(): ServiceWorkerContainer | null {
@@ -38,7 +68,7 @@ export function workerVersion(worker: ServiceWorker | null | undefined, timeoutM
 const safeNow = () => (appUpdater()?.gate() ?? "now") === "now";
 
 /** Registers the worker and keeps watch for a new build's waiting worker. Production only. */
-export function installOfflineWorker(): () => void {
+export function installOfflineWorker(fillNow: () => boolean = () => true): () => void {
   const api = workerApi();
   if (!api || !import.meta.env.PROD) return () => {};
   let stopped = false;
@@ -46,7 +76,11 @@ export function installOfflineWorker(): () => void {
   // A controller change whose worker hasn't told us its build yet (it can be slow to answer while it activates):
   // asked again on each handover tick until it answers, so the page still reloads onto a newer build.
   let versionUnknown = false;
-  void api.register(SW_URL, { scope: "/", updateViaCache: "none" }).catch(() => {
+  void (async () => {
+    const existing = await api.getRegistration().catch(() => undefined);
+    const script = (existing?.active ?? existing?.waiting ?? existing?.installing)?.scriptURL;
+    await api.register(registrationUrl(script, fillNow()), { scope: "/", updateViaCache: "none" });
+  })().catch(() => {
     /* no worker: the app works online as before */
   });
   const askVersion = async () => {
@@ -91,7 +125,7 @@ export async function handOverToNewWorker(waitMs = 8000): Promise<void> {
   }
   if (!api) return;
   const regs = await api.getRegistrations();
-  await Promise.all(regs.filter((r) => !(r.active ?? r.waiting ?? r.installing)?.scriptURL.endsWith(SW_URL)).map((r) => r.unregister()));
+  await Promise.all(regs.filter((r) => !isOfflineWorkerUrl((r.active ?? r.waiting ?? r.installing)?.scriptURL)).map((r) => r.unregister()));
   const reg = await api.getRegistration();
   if (!reg) return;
   await reg.update().catch(() => {});
@@ -105,4 +139,29 @@ export async function handOverToNewWorker(waitMs = 8000): Promise<void> {
   });
   waiting.postMessage({ type: "SKIP_WAITING" });
   await changed;
+}
+
+/**
+ * Asks the worker in control for this build's download (only what changed; nothing when it already has it).
+ * Resolves true when everything is stored, false when something failed (asked again next time), null with no
+ * worker in control or no answer within `timeoutMs`.
+ */
+export function requestWorkerFill(timeoutMs = 120_000): Promise<boolean | null> {
+  const api = workerApi();
+  const worker = api?.controller;
+  if (!worker) return Promise.resolve(null);
+  return new Promise((resolve) => {
+    const channel = new MessageChannel();
+    const timer = setTimeout(() => resolve(null), timeoutMs);
+    channel.port1.onmessage = (event) => {
+      clearTimeout(timer);
+      resolve(event.data?.type === "FILLED" ? event.data.complete === true : null);
+    };
+    try {
+      worker.postMessage({ type: "FILL" }, [channel.port2]);
+    } catch {
+      clearTimeout(timer);
+      resolve(null);
+    }
+  });
 }

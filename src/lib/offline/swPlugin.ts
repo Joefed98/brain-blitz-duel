@@ -15,6 +15,16 @@ interface BundleLike {
   [fileName: string]: unknown;
 }
 
+/** A bundle entry's bytes (a chunk's code or an asset's source), or null. */
+function bundleBytes(entry: unknown): string | Uint8Array | null {
+  const e = entry as { code?: unknown; source?: unknown } | null;
+  if (typeof e?.code === "string") return e.code;
+  if (typeof e?.source === "string" || e?.source instanceof Uint8Array) return e.source;
+  return null;
+}
+
+const sha256 = (bytes: string | Uint8Array) => createHash("sha256").update(bytes).digest("hex");
+
 interface PluginLike {
   name: string;
   apply: "build";
@@ -47,6 +57,11 @@ export function offlineWorkerSource(opts: {
   mediaHashes?: Record<string, string>;
   /** Media kept only once played, never fetched on install (lazyMediaPaths: the sounds once on Lovable). */
   lazyMedia?: string[];
+  /**
+   * Each app file's SHA-256 (hex, by site path): a later build's download copies a file whose hash is unchanged
+   * from the cache that keeps it instead of fetching it (8 Nov 2026).
+   */
+  appHashes?: Record<string, string>;
 }): string {
   const isMedia = (path: string) => MEDIA_DIRS.some((dir) => path.startsWith(`/${dir}/`));
   const publicFiles = opts.publicFiles.filter(keepPublicFile);
@@ -62,6 +77,9 @@ export function offlineWorkerSource(opts: {
     lazyMedia: publicFiles.filter((p) => isMedia(p) && lazy.has(p)).sort(),
     mediaHash: Object.fromEntries(
       publicFiles.filter(isMedia).sort().flatMap((p) => (opts.mediaHashes?.[p] ? [[p, opts.mediaHashes[p]]] : [])),
+    ),
+    appHash: Object.fromEntries(
+      [...new Set(app)].sort().flatMap((p) => (opts.appHashes?.[p] ? [[p, opts.appHashes[p]]] : [])),
     ),
     pages: [...OFFLINE_PAGES],
     googleFonts: GOOGLE_FONTS_CSS,
@@ -106,8 +124,16 @@ export function offlineWorkerPlugin(version: string): PluginLike {
       const mediaHashes = Object.fromEntries(
         files
           .filter((f) => MEDIA_DIRS.some((dir) => f.path.startsWith(`/${dir}/`)))
-          .map((f) => [f.path, createHash("sha256").update(readFileSync(f.full)).digest("hex")]),
+          .map((f) => [f.path, sha256(readFileSync(f.full))]),
       );
+      // App files' hashes: the bundle's own bytes, and the public files' (8 Nov 2026: a new build's download
+      // fetches only what changed).
+      const appHashes: Record<string, string> = {};
+      for (const [fileName, entry] of Object.entries(bundle)) {
+        const bytes = bundleBytes(entry);
+        if (bytes !== null) appHashes[`/${fileName}`] = sha256(bytes);
+      }
+      for (const f of files) if (!MEDIA_DIRS.some((dir) => f.path.startsWith(`/${dir}/`))) appHashes[f.path] = sha256(readFileSync(f.full));
       this.emitFile({
         type: "asset",
         fileName: "sw.js",
@@ -117,6 +143,7 @@ export function offlineWorkerPlugin(version: string): PluginLike {
           publicFiles,
           mediaHashes,
           lazyMedia: lazyMediaPaths(),
+          appHashes,
         }),
       });
     },

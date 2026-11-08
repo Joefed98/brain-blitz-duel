@@ -5,7 +5,17 @@
  * store offset = server_time − (client_time − rtt / 2).
  */
 
+import { POLICIES, fetchFor, withDeadline } from "@/lib/net/request";
+
 import { serverTimeFn } from "./time.functions";
+
+/**
+ * A sample's time limit, ms, and the slowest round trip kept once the clock has been measured (8 Nov 2026, the
+ * performance audit's item 6): a sample's error is up to half its round trip, so a 2 s trip could leave the
+ * clock ~1 s out, close to the room's 1.5 s receipt check. A stalled sample no longer holds the room screen.
+ */
+export const CLOCK_SAMPLE_TIMEOUT_MS = 3_000;
+export const CLOCK_MAX_RTT_MS = 1_000;
 
 /**
  * Re-measured at every round (19 Oct 2026, #115's audit item 7): a device clock that moved after the
@@ -15,7 +25,7 @@ import { serverTimeFn } from "./time.functions";
  * at each new round and whenever the app comes back to the foreground; clock-round-check proves it.
  */
 let deviceNow: () => number = () => Date.now();
-let fetchServerTime: () => Promise<{ now: number }> = () => serverTimeFn();
+let fetchServerTime: () => Promise<{ now: number }> = () => serverTimeFn({ fetch: fetchFor(POLICIES.clock) });
 
 /** Checks only: stand-ins for the device clock and the server's time. */
 export function setClockSourcesForCheck(sources: {
@@ -41,7 +51,7 @@ export function clockOffsetMs(): number {
 async function sample(): Promise<{ offset: number; rtt: number } | null> {
   try {
     const before = deviceNow();
-    const { now } = await fetchServerTime();
+    const { now } = await withDeadline(fetchServerTime(), CLOCK_SAMPLE_TIMEOUT_MS);
     const after = deviceNow();
     if (!Number.isFinite(now)) return null;
     const rtt = after - before;
@@ -61,7 +71,8 @@ export async function calibrateServerClock(): Promise<void> {
       const taken = await sample();
       if (taken && (!best || taken.rtt < best.rtt)) best = taken;
     }
-    if (best) {
+    // A slow trip is kept only when nothing better was ever measured (better than the device's own clock).
+    if (best && (best.rtt <= CLOCK_MAX_RTT_MS || !calibrated)) {
       offsetMs = Math.round(best.offset);
       calibrated = true;
     }
