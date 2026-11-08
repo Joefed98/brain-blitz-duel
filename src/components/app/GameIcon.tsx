@@ -3,7 +3,7 @@ import type { CSSProperties } from "react";
 import { CONCEPT_ICONS, ConceptIcon } from "./gameIcons/conceptIcons";
 import { TILE_SCENES } from "./gameIcons/tileScenes.data";
 import { arcadeGroupOf } from "@/lib/duel/arcadeGroups";
-import { puzzleDef } from "@/lib/duel/registry";
+import { puzzleDef } from "@/lib/duel/catalogue";
 import type { PuzzleType } from "@/lib/duel/types";
 
 /** True when a game has its own icon (a tile scene or, failing that, a line drawing; app-shell-check proves it for the active ones). */

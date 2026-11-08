@@ -290,6 +290,8 @@ const setVisible = (visible: boolean) => {
 
 const sound = await import("../src/lib/sound");
 sound.unlockAudio();
+// Since speed fix 5 the first tap decodes only the shared set; this check plays every slot, so it asks for them all.
+sound.loadAllSounds();
 for (let i = 0; i < 200 && !sound.soundDiagnostics().loaded.includes("homerun.crowd"); i++) await flush();
 check(sound.soundDiagnostics().loaded.includes("homerun.crowd"), "power: the crowd loop's file decodes");
 const live = (url: string) => sources.filter((x) => x.url === url && x.started && !x.stopped);

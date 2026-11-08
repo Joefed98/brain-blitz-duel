@@ -2,7 +2,10 @@ import { useEffect, type ReactNode } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/design/components";
-import { puzzleDef } from "@/lib/duel/registry";
+import { puzzleDef } from "@/lib/duel/catalogue";
+import { PUZZLE_INSTRUCTIONS } from "@/lib/duel/instructions";
+import { removedDefinition } from "@/lib/duel/registerDefinition";
+import { GameIntroExample } from "@/components/duel/GameParts";
 import { INTRO_SCORE } from "@/lib/duel/introScore";
 import { scoreSentences } from "@/lib/duel/scoreList";
 import { soundCue } from "@/lib/fx/soundCues";
@@ -16,7 +19,7 @@ interface PuzzleInstructionsProps {
 }
 
 export function PuzzleInstructions({ type, overlay = false, beforeScore }: PuzzleInstructionsProps) {
-  const instructions = puzzleDef(type).instructions;
+  const instructions = PUZZLE_INSTRUCTIONS[type] ?? removedDefinition(type).instructions;
 
   return (
     <section
@@ -82,10 +85,9 @@ export function scoreParts(text: string | undefined): string[] {
 
 /** Puzzles whose "?" card repeats the intro's worked example. */
 function HelpExample({ type }: { type: PuzzleType }) {
-  const Example = puzzleDef(type).IntroExample;
   return (
     <div className="mt-3 flex justify-center">
-      <Example />
+      <GameIntroExample type={type} />
     </div>
   );
 }

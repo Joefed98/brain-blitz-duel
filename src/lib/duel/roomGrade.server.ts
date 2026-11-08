@@ -13,7 +13,7 @@
  */
 import { gradeAnswer } from "./generate.server";
 import { trustedMsRemaining, type SubmitExtra } from "./grade";
-import { puzzlePrepMs, puzzleTimeLimitMs } from "./registry";
+import { puzzlePrepMs, puzzleTimeLimitMs } from "./catalogue";
 import type { DuelPhase, PuzzleData } from "./types";
 
 export interface RoomReceipt {

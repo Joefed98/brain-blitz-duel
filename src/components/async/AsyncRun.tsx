@@ -9,6 +9,8 @@ import { FrameScore } from "@/components/duel/GameFrame";
 import { FinishedPingStrip } from "@/components/duel/FinishedPings";
 import { ordinal } from "@/lib/duel/ordinal";
 import { SteadyOrPlain } from "@/components/duel/SteadyStage";
+import { GameStage } from "@/components/duel/GameParts";
+import { preloadGame } from "@/lib/duel/gameLoader";
 import { TimerBar } from "@/components/duel/TimerBar";
 import { useCrashContext } from "@/lib/useCrashContext";
 import { arcadeMsRemaining } from "@/lib/arcade/clock";
@@ -34,14 +36,14 @@ import {
   puzzleRunMs,
   puzzleShowsTimer,
   puzzleTimeLimitMs,
-} from "@/lib/duel/registry";
+} from "@/lib/duel/catalogue";
 import { clearStageState, persistStageState } from "@/lib/duel/stageState";
 import { roundMusicRemaining, useRoundMusic } from "@/lib/duel/useRoundMusic";
 import { INTRO_COUNTDOWN_MS, INTRO_MS, type PuzzleData, type PuzzleType } from "@/lib/duel/types";
 import { roundMusicFor } from "@/lib/fx/theme";
 import { noteSignatureSubmit } from "@/lib/fx/signature";
 import { useSignatureVerdict } from "@/lib/fx/useSignature";
-import { holdMusicBed, playLock, releaseRoomMusic, stopWarning10, unlockAudio } from "@/lib/sound";
+import { holdMusicBed, loadGameSounds, loadSoundGroup, playLock, releaseRoomMusic, stopWarning10, unlockAudio } from "@/lib/sound";
 import type { SubmitMeta } from "@/puzzles/types";
 import type { ChallengeRoundBoard } from "@/lib/duel/challenge";
 import { standings } from "@/lib/duel/scoring";
@@ -402,6 +404,23 @@ export function AsyncRun({
   // Round music, owned here as in practice: from the 3-2-1 to the clock or the round's end.
   const introType = step.kind === "intro" || step.kind === "starting" ? step.type : null;
   const musicType = puzzle?.type ?? introType;
+  // Speed fix 1 (gameLoader.ts): this round's game and the next one's are downloaded ahead, never every game.
+  const stepRound = "round" in step ? step.round : 0;
+  const roundTypes = view?.rounds.map((r) => r.type).join(",") ?? "";
+  // The Daily's and challenges' room moments (podium, winner) and voices (speed fix 5, lib/sound.ts).
+  useEffect(() => {
+    loadSoundGroup("room");
+    loadSoundGroup("voice");
+  }, []);
+  useEffect(() => {
+    const types = roundTypes ? (roundTypes.split(",") as PuzzleType[]) : [];
+    const at = Math.max(0, stepRound - 1);
+    preloadGame(types[at]);
+    preloadGame(types[at + 1]);
+    // Their sounds too (speed fix 5): the next round's decode during this one.
+    loadGameSounds(types[at]);
+    loadGameSounds(types[at + 1]);
+  }, [roundTypes, stepRound]);
   const countdownBegun =
     (step.kind === "intro" &&
       step.introAt !== WAITING_INTRO &&
@@ -529,7 +548,7 @@ export function AsyncRun({
 
   if (step.kind !== "puzzle") return null;
   const shownPuzzle = step.puzzle;
-  const Stage = puzzleDef(shownPuzzle.type).Stage;
+  const Stage = GameStage;
   const clockActive = clockStart !== null && server >= clockStart;
   // The frame's score block: my total so far; with earlier players, my place under it and their pings
   // over the header's name and context line.

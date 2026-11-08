@@ -18,7 +18,7 @@
 import type { SolutionLock } from "./asyncRoom";
 import { finishedBeforeBuzzer } from "./buzzer";
 import { normaliseCategories } from "./categories";
-import { puzzlePrepMs, puzzleTimeLimitMs, typesInCategory } from "./registry";
+import { puzzlePrepMs, puzzleTimeLimitMs, typesInCategory } from "./catalogue";
 import { roomRoundCount } from "./selection";
 import { ordinal } from "./ordinal";
 import type { AwardRound } from "./podiumAwards";

@@ -4,7 +4,7 @@
  */
 import { decodeTapTimes, replayFlash, tapRevOf } from "../tapLog";
 import { latestTapMs } from "../grade";
-import { puzzleTimeLimitMs } from "../registry";
+import { puzzleTimeLimitMs } from "../catalogue";
 import type { DepthGrader } from "../depth200.server";
 import { scoreFlashDepth, usesFlashDepth } from "./flash";
 

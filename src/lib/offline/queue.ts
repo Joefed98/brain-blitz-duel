@@ -9,7 +9,7 @@
  * tournament, daily or challenge ever reads this queue.
  */
 import { APP_BUILD_ID } from "@/lib/appVersion";
-import { splitClientCounters } from "@/lib/arcade/diagnostics";
+import { splitClientCounters } from "@/lib/arcade/diagnosticsWire";
 import { recordPracticeBest } from "@/lib/duel/practiceBest";
 import { recordPracticeGoals } from "@/lib/duel/practiceGoals";
 import { stampSignature } from "@/lib/duel/practiceStamps";

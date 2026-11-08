@@ -16,6 +16,8 @@
  */
 
 import { SOUND_MANIFEST, type SoundId } from "./fx/manifest";
+import { PUZZLE_TYPES, puzzleInfo } from "./duel/catalogue";
+import type { PuzzleType } from "./duel/types";
 import { SOUND_CUE_EVENT, type SoundCueDetail } from "./fx/soundCues";
 import { devDisplayAllowed } from "./devDisplay";
 import { onPageVisibility, pageHidden } from "./battery";
@@ -68,13 +70,60 @@ export type Track =
   | "music_reveal"
   | "music_winner";
 
-/** First-tap preload: effects and voice only; music loads on demand per screen/round. */
-function preloadFiles(): [string, string][] {
-  return Object.entries(SOUND_MANIFEST).flatMap(([id, entry]) =>
-    entry.url && entry.channel !== "music" ? [[id, entry.url] as [string, string]] : [],
-  );
-}
 export const SOUND_NAMES = Object.keys(SOUND_MANIFEST) as SoundId[];
+
+/* Sounds when needed (speed fix 5, Nov 2026; docs/audit-nov-2026/performance.md finding 5). Instead of every
+   effect and voice file on the first tap:
+   - the first tap fetches and decodes the small shared set, `core` (UI, the clock's warnings, `shared.*`);
+   - a room loads `room` (its moments: Prepare to Duel, round titles, the winner and podium) and `voice`;
+   - a game starting (loadGameSounds, from its intro and its stage) loads `voice`, the shared arcade (`arc_*`)
+     or puzzle (`pz_*`) sounds its kind uses, and its own slots (named for it, `<gameId>.<event>` or
+     `<gameId>_…`); the games before the last KEPT_GAMES let theirs go (groups stay).
+   At most DECODE_CONCURRENCY files decode at once. A slot asked for before its file is here stays silent (or
+   plays the shared sound it stands in for) and is fetched then, so it plays from its next moment. Music still
+   loads per screen and round. */
+const GAME_IDS: ReadonlySet<string> = new Set<string>(PUZZLE_TYPES);
+/** The game a slot belongs to, or null for a shared slot. */
+export function soundSlotGame(id: string): string | null {
+  const prefix = /^([a-z0-9]+)[._]/.exec(id)?.[1];
+  return prefix && GAME_IDS.has(prefix) ? prefix : null;
+}
+function hasEffectFile(id: SoundId): boolean {
+  const entry = SOUND_MANIFEST[id];
+  return !!entry.url && entry.channel !== "music";
+}
+export type SoundGroup = "core" | "room" | "voice" | "arcade" | "puzzle";
+/** The shared group a slot (that belongs to no one game) loads with. */
+export function soundSlotGroup(id: string): SoundGroup {
+  if (/^arc_/.test(id)) return "arcade";
+  if (/^pz_/.test(id)) return "puzzle";
+  if (/^voice\./.test(id)) return "voice";
+  if (/^(room\.|round\d|prepareToDuel$|finalRound$|gg$|roundTaken$|roundLost$|winnerIs$|winner_|podium_fanfare$|player_joined$)/.test(id)) return "room";
+  return "core";
+}
+/* The slot lists read the manifest when asked (at the tap, a game's start), as the full preload did, so a
+   file set on a slot after this module loaded is still found. */
+/** Every effect and voice slot with a file that belongs to no one game. */
+export function sharedSoundSlots(): SoundId[] {
+  return SOUND_NAMES.filter((id) => hasEffectFile(id) && soundSlotGame(id) === null);
+}
+export const SOUND_GROUPS: readonly SoundGroup[] = ["core", "room", "voice", "arcade", "puzzle"];
+/** A shared group's slots. */
+export function groupSoundSlots(group: SoundGroup): SoundId[] {
+  return sharedSoundSlots().filter((id) => soundSlotGroup(id) === group);
+}
+/** A game's own effect slots (with a file); [] for a game without any. */
+export function gameSoundSlots(type: string): SoundId[] {
+  return SOUND_NAMES.filter((id) => hasEffectFile(id) && soundSlotGame(id) === type);
+}
+/** The files the first tap fetches and decodes (each once, however many slots share it); scripts/perf-budget.ts. */
+export function firstTapSoundUrls(): string[] {
+  return [...new Set(groupSoundSlots("core").map((id) => SOUND_MANIFEST[id].url!))];
+}
+/** Decodes running at once: a handful, so the first tap and a game's intro never stall the page. */
+const DECODE_CONCURRENCY = 5;
+/** Games whose sounds stay decoded: the one starting and the one before it. */
+const KEPT_GAMES = 2;
 
 const FADE_MS = 400;
 /** Effects played through ensureLoop (plus any slot marked `loop` in the manifest). */
@@ -186,35 +235,179 @@ export const onMuteChange = onSoundSettingsChange;
 
 /* ------------------------------------------------------------------ unlock */
 
-async function preload(): Promise<void> {
-  if (!ctx) return;
-  // Several slots may share one recording: fetch and decode each URL once, then give
-  // every slot that names it the same buffer.
-  const byUrl = new Map<string, string[]>();
-  for (const [name, url] of preloadFiles()) {
-    if (buffers.has(name)) continue;
-    byUrl.set(url, [...(byUrl.get(url) ?? []), name]);
-  }
-  await Promise.all(
-    [...byUrl].map(async ([url, names]) => {
+/** Every URL decoded once: shared by every slot naming it, released when no kept slot names it. */
+const urlBuffers = new Map<string, Promise<{ buffer: AudioBuffer; exact: boolean } | null>>();
+const requested = new Set<string>();
+let decodesRunning = 0;
+const decodeQueue: (() => void)[] = [];
+function decodeSlot(): Promise<() => void> {
+  return new Promise((resolve) => {
+    const start = () => {
+      decodesRunning++;
+      resolve(() => {
+        decodesRunning--;
+        decodeQueue.shift()?.();
+      });
+    };
+    if (decodesRunning < DECODE_CONCURRENCY) start();
+    else decodeQueue.push(start);
+  });
+}
+function fetchDecoded(url: string): Promise<{ buffer: AudioBuffer; exact: boolean } | null> {
+  let pending = urlBuffers.get(url);
+  if (!pending) {
+    pending = (async () => {
+      const done = await decodeSlot();
       try {
         const response = await fetch(url);
         if (!response.ok) throw new Error(`${response.status}`);
         const bytes = await response.arrayBuffer();
         const context = ctx;
-        if (!context) return;
-        const { buffer: decoded, exact } = await decodeExact(context, url, bytes);
-        for (const name of names) {
-          buffers.set(name, decoded);
-          if (EFFECT_LOOPS.has(name as SoundId) && /\.mp3$/i.test(url)) setLoopPoints(name as SoundId, url, decoded, exact);
-          failedFiles.delete(name);
-        }
+        if (!context) return null;
+        return await decodeExact(context, url, bytes);
       } catch (error) {
-        for (const name of names) failedFiles.add(name);
         warnOnce(`could not load ${url}`, error);
+        urlBuffers.delete(url);
+        return null;
+      } finally {
+        done();
       }
+    })();
+    urlBuffers.set(url, pending);
+  }
+  return pending;
+}
+
+const soundLoadListeners = new Set<() => void>();
+/** Called whenever a batch of sound files has finished loading (gameSoundsReady may have changed). */
+export function onSoundsLoaded(listener: () => void): () => void {
+  soundLoadListeners.add(listener);
+  return () => soundLoadListeners.delete(listener);
+}
+
+/** The slots a game needs before its first moment: its own, the voices and the shared sounds of its kind. */
+function gameStartSlots(type: string): SoundId[] {
+  const info = puzzleInfo(type as PuzzleType);
+  return [
+    ...gameSoundSlots(type),
+    ...groupSoundSlots("voice"),
+    ...(info.category === "arcade" || info.arcadeRun ? groupSoundSlots("arcade") : []),
+    ...(info.category !== "arcade" ? groupSoundSlots("puzzle") : []),
+  ];
+}
+
+/**
+ * True once every file the game's first moments can play is decoded (or has failed for good), so its first sound is
+ * never silent; also true before the first tap (no sound can play yet). The intro's Ready waits for it.
+ */
+export function gameSoundsReady(type: string | null | undefined): boolean {
+  if (!type || !GAME_IDS.has(type) || !ctx || !unlocked) return true;
+  return gameStartSlots(type).every((id) => buffers.has(id) || failedFiles.has(id));
+}
+
+/** Fetches and decodes these slots' files (each URL once) unless already here. */
+async function loadSlots(names: readonly SoundId[]): Promise<void> {
+  if (!ctx) return;
+  await loadSlotsNow(names);
+  for (const listener of soundLoadListeners) listener();
+}
+async function loadSlotsNow(names: readonly SoundId[]): Promise<void> {
+  await Promise.all(
+    names.map(async (name) => {
+      const url = SOUND_MANIFEST[name]?.url;
+      if (!url || buffers.has(name) || requested.has(name)) return;
+      requested.add(name);
+      const decoded = await fetchDecoded(url);
+      requested.delete(name);
+      if (!decoded) {
+        failedFiles.add(name);
+        return;
+      }
+      // A game released while its files were on their way: drop them again (the next start fetches them).
+      const game = soundSlotGame(name);
+      if (game && !keptGames.includes(game)) return;
+      buffers.set(name, decoded.buffer);
+      if (EFFECT_LOOPS.has(name) && /\.mp3$/i.test(url)) setLoopPoints(name, url, decoded.buffer, decoded.exact);
+      failedFiles.delete(name);
     }),
   );
+}
+
+/** Shared groups asked for so far (core from the first tap); they stay decoded. */
+const wantedGroups = new Set<SoundGroup>(["core"]);
+
+/** First tap: the core set, then any group or game asked for before the tap. */
+async function preload(): Promise<void> {
+  if (!ctx) return;
+  await Promise.all([
+    ...[...wantedGroups].map((group) => loadSlots(groupSoundSlots(group))),
+    ...keptGames.map((game) => loadSlots(gameSoundSlots(game))),
+  ]);
+}
+
+/** Loads a shared group (a room's moments, the voices, the shared arcade or puzzle sounds) and keeps it. */
+export function loadSoundGroup(group: SoundGroup): void {
+  wantedGroups.add(group);
+  if (ctx && unlocked) void loadSlots(groupSoundSlots(group));
+}
+
+/** Games whose sounds are kept, oldest first (the last is the one starting). */
+const keptGames: string[] = [];
+
+/** Drops a game's decoded files, but never one a shared or still-kept slot plays. */
+function releaseGameSounds(game: string): void {
+  const keptUrls = new Set<string>();
+  for (const id of sharedSoundSlots()) keptUrls.add(SOUND_MANIFEST[id].url!);
+  for (const other of keptGames) for (const id of gameSoundSlots(other)) keptUrls.add(SOUND_MANIFEST[id].url!);
+  for (const id of gameSoundSlots(game)) {
+    if (loops.has(id) || playingEffects.has(id)) continue;
+    buffers.delete(id);
+    const url = SOUND_MANIFEST[id].url!;
+    if (!keptUrls.has(url)) urlBuffers.delete(url);
+  }
+}
+
+/**
+ * A game is starting (its intro or its stage): fetch and decode its own sounds now, and let go of the games
+ * before the last KEPT_GAMES. Before the first tap it is remembered and loaded with the shared set.
+ */
+export function loadGameSounds(type: string | null | undefined): void {
+  if (!type || !GAME_IDS.has(type)) return;
+  loadSoundGroup("voice");
+  const info = puzzleInfo(type as PuzzleType);
+  if (info.category === "arcade" || info.arcadeRun) loadSoundGroup("arcade");
+  if (info.category !== "arcade") loadSoundGroup("puzzle");
+  const at = keptGames.indexOf(type);
+  if (at >= 0) keptGames.splice(at, 1);
+  keptGames.push(type);
+  while (!keepEverySound && keptGames.length > KEPT_GAMES) releaseGameSounds(keptGames.shift()!);
+  if (ctx && unlocked) void loadSlots(gameSoundSlots(type));
+}
+
+/**
+ * Checks only: decode every group and every game's own sounds and keep them all (the first tap's full preload
+ * from before speed fix 5), so a check can play any slot right after unlockAudio().
+ */
+let keepEverySound = false;
+export function loadAllSounds(): void {
+  keepEverySound = true;
+  for (const group of SOUND_GROUPS) wantedGroups.add(group);
+  for (const game of GAME_IDS) if (!keptGames.includes(game)) keptGames.push(game);
+  if (ctx && unlocked) void preload();
+}
+
+/** A slot asked for before its file is here: fetched now, so it plays from its next moment. */
+function requestSlot(id: SoundId): void {
+  if (!ctx || !unlocked || buffers.has(id) || failedFiles.has(id) || requested.has(id)) return;
+  const entry = SOUND_MANIFEST[id];
+  if (!entry?.url || entry.channel === "music") return;
+  // A game's own slot means that game is playing: its whole set comes in (and it is kept).
+  const game = soundSlotGame(id);
+  if (game && !keptGames.includes(game)) {
+    loadGameSounds(game);
+    return;
+  }
+  void loadSlots([id]);
 }
 
 /** One sample of silence: the canonical iOS unlock, must run inside a gesture. */
@@ -498,6 +691,11 @@ export function playSound(cue: SoundId, volume = 1, rate = 1, overlap = false): 
   const buffer = buffers.get(cue);
   // Voice lines without a loaded file are skipped silently: never a placeholder beep.
   if (!buffer && entry.channel === "voice") return 0;
+  if (!buffer && entry.url && !failedFiles.has(cue)) {
+    // Its file is on its way (or this game's sounds were not asked for yet): silent this time, fetched now.
+    requestSlot(cue);
+    return 0;
+  }
   duckMusic(buffer ? buffer.duration * 1000 : entry.ms);
   if (!buffer) {
     if (entry.frequency > 0) playTone(entry.frequency * rate, entry.ms, "sine", 0.18 * volume);
@@ -651,7 +849,10 @@ export function ensureLoop(id: SoundId, volume = 0.3, fadeInMs = 400): void {
   }
   if (loops.has(id) || !ready() || !ctx || !effectsGain) return;
   const buffer = buffers.get(id);
-  if (!buffer) return;
+  if (!buffer) {
+    requestSlot(id);
+    return;
+  }
   try {
     const source = ctx.createBufferSource();
     source.buffer = buffer;
@@ -716,10 +917,11 @@ export function stopSound(id: SoundId): void {
 }
 /** True once the slot's own file is set and decoded; a missing or failed file is false. */
 function slotReady(id: string): boolean {
-  return (
-    !!(SOUND_MANIFEST as Record<string, { url: string | null } | undefined>)[id]?.url &&
-    buffers.has(id)
-  );
+  if (!(SOUND_MANIFEST as Record<string, { url: string | null } | undefined>)[id]?.url) return false;
+  if (buffers.has(id)) return true;
+  // Not here yet: the caller plays its shared stand-in this time; the file is fetched for the next.
+  requestSlot(id as SoundId);
+  return false;
 }
 
 /** True once a named cue's own file is set and decoded (the moment will play it, not silence). */

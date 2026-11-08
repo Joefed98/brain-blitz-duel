@@ -23,7 +23,7 @@ import { ROOM_SETTINGS_PLUS_ONLY } from "@/config/betaConfig";
 import { typesAlsoIn } from "./alsoIn";
 import { arcadeGroupInfo, arcadeGroupOf, arcadeGroupTypes, type ArcadeGroup } from "./arcadeGroups";
 import { normaliseCategories } from "./categories";
-import { puzzleDef, typesInCategory } from "./registry";
+import { puzzleDef, typesInCategory } from "./catalogue";
 import { roomRoundCount } from "./selection";
 import type { PuzzleCategory, PuzzleType } from "./types";
 

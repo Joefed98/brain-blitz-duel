@@ -1,7 +1,9 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
 import { Button } from "@/components/ui/button";
-import { puzzleDef, puzzleTimeLimitMs } from "@/lib/duel/registry";
+import { puzzleTimeLimitMs } from "@/lib/duel/catalogue";
+import { GameReveal } from "@/components/duel/GameParts";
+import { useGameDef } from "@/lib/duel/gameLoader";
 import type { PuzzleData } from "@/lib/duel/types";
 import type { MomentCard } from "@/lib/replay/cards";
 import { soundCue, SHARED_CUES } from "@/lib/replay/cues";
@@ -420,7 +422,7 @@ function FitHeight({
  * move list), with a move counter against the minimum. Silent (18 Oct 2026):
  * a puzzle replay plays no sound effects; replay-sound-check proves it.
  */
-export function PuzzleTimelapse({
+function PuzzleTimelapseBoard({
   puzzle,
   plan,
   isCorrect,
@@ -437,7 +439,7 @@ export function PuzzleTimelapse({
   score?: number;
 }) {
   const [frame, setFrame] = useState(0);
-  const Reveal = puzzleDef(puzzle.type).Reveal;
+  const Reveal = GameReveal;
   // Layout effects run before the board's own (passive) effects, so its very first cue is quiet too.
   useLayoutEffect(() => {
     quietForReplay(true);
@@ -492,7 +494,7 @@ export function PuzzleTimelapse({
  * this game yet". Nothing is invented; docs/demo-replay-audit.md lists what each game would need
  * to record.
  */
-export function PuzzleFinalBoard({
+function PuzzleFinalBoardView({
   puzzle,
   answer,
   isCorrect,
@@ -505,7 +507,7 @@ export function PuzzleFinalBoard({
   height: number;
   score: number;
 }) {
-  const Reveal = puzzleDef(puzzle.type).Reveal;
+  const Reveal = GameReveal;
   useLayoutEffect(() => {
     quietForReplay(true);
     return () => quietForReplay(false);
@@ -537,4 +539,23 @@ export function PuzzleFinalBoard({
       </FitHeight>
     </div>
   );
+}
+
+/* The game's own code arrives in its chunk (speed fix 1, gameLoader.ts). A replay panel mounts only once it is
+   here, so FitHeight's first measure sees the board exactly as before the split (a board arriving after the
+   panel let an in-between layout into the time-lapse's grown area and drew Hanoi's board too small), and the
+   time-lapse's clock starts with the board on screen. Until then the panel keeps its height, empty. */
+type TimelapseProps = Parameters<typeof PuzzleTimelapseBoard>[0];
+type FinalBoardProps = Parameters<typeof PuzzleFinalBoardView>[0];
+
+export function PuzzleTimelapse(props: TimelapseProps) {
+  const ready = useGameDef(props.puzzle.type);
+  if (!ready) return <div className="w-full" style={{ height: props.height }} aria-busy="true" />;
+  return <PuzzleTimelapseBoard {...props} />;
+}
+
+export function PuzzleFinalBoard(props: FinalBoardProps) {
+  const ready = useGameDef(props.puzzle.type);
+  if (!ready) return <div className="w-full" style={{ height: props.height }} aria-busy="true" />;
+  return <PuzzleFinalBoardView {...props} />;
 }

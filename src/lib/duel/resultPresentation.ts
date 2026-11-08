@@ -1,5 +1,5 @@
 import { BUZZER_MARGIN_MS } from "./buzzer";
-import { usesArcadeClock } from "./registry";
+import { usesArcadeClock } from "./catalogue";
 import type { PuzzleType, RoundResultRow, StoredPuzzleType } from "./types";
 import { ordinal } from "./ordinal";
 import type { Standing } from "./scoring";

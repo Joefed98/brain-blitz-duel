@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { puzzleDef } from "@/lib/duel/registry";
+import { puzzleDef } from "@/lib/duel/catalogue";
 import { serverNow } from "@/lib/duel/clock";
 import { DUEL_START_MS, DUEL_START_VOICE_MS, duelStartFrame } from "@/lib/duel/startPresentation";
 import type { PuzzleType } from "@/lib/duel/types";

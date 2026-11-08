@@ -9,7 +9,7 @@ import { RoundHighlightView } from "@/components/replay/RoundHighlight";
 import { ReplayBoundary } from "@/components/replay/ReplayBoundary";
 import { asyncReveal, revealLockLine, type AsyncReveal } from "@/lib/duel/asyncApi";
 import type { AsyncAttemptView } from "@/lib/duel/asyncRoom";
-import { puzzleName } from "@/lib/duel/registry";
+import { puzzleName } from "@/lib/duel/catalogue";
 import {
   VERDICT_TONE,
   roundVerdict,

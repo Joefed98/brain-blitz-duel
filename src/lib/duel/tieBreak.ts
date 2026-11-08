@@ -17,7 +17,7 @@
  * original tie-break (30 s minus time left per answered round), so rooms
  * played before rank exactly as they did.
  */
-import { puzzleRunMs, puzzleTimeLimitMs } from "./registry";
+import { puzzleRunMs, puzzleTimeLimitMs } from "./catalogue";
 import type { TieRound } from "./scoring";
 import type { PuzzleData } from "./types";
 

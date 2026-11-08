@@ -1,5 +1,5 @@
 import type { AwardRound } from "./podiumAwards";
-import { isLiveType, puzzleName, puzzleShowsTimer, puzzleTimeLimitMs, usesArcadeClock } from "./registry";
+import { isLiveType, puzzleName, puzzleShowsTimer, puzzleTimeLimitMs, usesArcadeClock } from "./catalogue";
 import type { DuelRow, PuzzleData, StoredPuzzleType } from "./types";
 
 /**
