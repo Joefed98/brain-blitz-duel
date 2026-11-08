@@ -334,6 +334,9 @@ export interface ShareEventRow {
 
 const WELCOME = new Set(["shown", "dismissed", "practice", "public"]);
 
+/** A room's most players (MAX_PLAYERS, 16 since 31 Oct 2026), the most a room share's place and count can be. */
+export const ROOM_SHARE_MAX_PLAYERS = 16;
+
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function whole(value: unknown, min: number, max: number): number | null {
@@ -367,9 +370,10 @@ export function shareEventRow(userId: string, input: Record<string, unknown>): S
       ? input["challengeCode"]
       : null;
   const dailyKind = source === "daily" && (input["dailyKind"] === "puzzle" || input["dailyKind"] === "arcade") ? input["dailyKind"] : null;
-  // A challenge's share carries its place and counts (up to 20 players, 10 rounds).
+  // A challenge's share carries its place and counts (up to 20 players, 10 rounds); a room's up to its 16 seats
+  // (L4: rooms of 11–16 used to store a null place).
   const placed = inRoom || (source === "challenge" && event === "share_tap");
-  const most = room ? 10 : 20;
+  const most = room ? ROOM_SHARE_MAX_PLAYERS : 20;
   return {
     user_id: userId,
     event,
