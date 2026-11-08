@@ -97,3 +97,38 @@ jobs:
             ci-results/
             ci-results-${{ matrix.shard }}.log
           retention-days: 7
+
+  # TypeScript over src/ (7 Nov 2026, docs/audit-nov-2026/build-health.md item 6): Lovable's build (vite) strips types
+  # without checking them, so a type error could reach main. tsconfig.json's include is src/, vite.config.ts and
+  # eslint.config.js; scripts/ is not type-checked yet (item 11). ~50 s, in parallel with the shards.
+  typecheck:
+    name: typecheck (src)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+
+      - uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ runner.os }}-${{ env.BUN_VERSION }}-${{ hashFiles('bun.lock') }}
+          restore-keys: bun-${{ runner.os }}-${{ env.BUN_VERSION }}-
+
+      # The same lockfile workaround as the checks job (bun.lock restored exactly).
+      - name: Install dependencies
+        run: |
+          cp bun.lock "$RUNNER_TEMP/bun.lock.orig"
+          sed -i -E 's#https://europe-west[0-9]+-npm\.pkg\.dev/lovable-core-prod/[^/]+/#https://registry.npmjs.org/#g' bun.lock
+          bun install --frozen-lockfile
+          cp "$RUNNER_TEMP/bun.lock.orig" bun.lock
+          git diff --exit-code -- bun.lock
+
+      - name: tsc --noEmit (src)
+        run: |
+          start=$(date +%s)
+          ./node_modules/.bin/tsc --noEmit -p tsconfig.json
+          echo "> tsc --noEmit over src/: passed in $(( $(date +%s) - start )) s." >> "$GITHUB_STEP_SUMMARY"
