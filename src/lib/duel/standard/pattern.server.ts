@@ -27,6 +27,9 @@ import { gradePipesBoard } from "../logic.server";
 import { decodePipesTaps, pipesAfterTaps } from "../depth4/pipesTaps";
 import { cratesOnTargets, decodePushMoves, replayPush } from "../push";
 import { FLOW_PAIRS, LASER_MAX_FIRES, RINGS_SEGMENTS } from "../types";
+import { GRADIENT_WASTE_WEIGHT, PARTIAL_SHARE_POINTS, usesPartialCredit } from "../partialCredit";
+import { rev3Progress, solverShare } from "../puzzleProgress";
+import { decodeGradient, gradientMinimum, gradientSwapLimit, replayGradient } from "../jumbled";
 
 type Of<T extends PuzzleData["type"]> = Extract<PuzzleData, { type: T }>;
 
@@ -72,6 +75,27 @@ function shareCredit(ctx: StandardContext, done: number, total: number): number 
  */
 function waste(moves: number | null | undefined, minMoves: number | null | undefined): number {
   return wasteFactor(moves ?? 0, minMoves ?? 0);
+}
+
+/**
+ * Partial-credit fixes (7 Nov 2026, partialCredit.ts: Gridlock unblockRev 3, Turntable ringsRev 4): unfinished is 130 ×
+ * the solver-distance share (the stored minimum closed by the best board stood on, net of wasted moves; puzzleProgress.ts).
+ */
+function solverCredit(input: StandardInput): { credit: number; progress: number } {
+  const share = rev3Progress({ puzzle: input.puzzle, answer: input.answer, extra: input.graded.extra, latestMs: input.latestMs }) ?? 0;
+  const v = Number.isFinite(share) ? Math.max(0, Math.min(1, share)) : 0;
+  return { credit: PARTIAL_SHARE_POINTS * v, progress: Math.round(v * 100) };
+}
+
+/**
+ * Gradient tilesRev 7: the swap minimum closed by the best board stood on (gradientMinimum, exact), net of
+ * GRADIENT_WASTE_WEIGHT for each swap that brought the board no closer, as a share of the start's minimum (0–1).
+ */
+export function gradientSolverShare(puzzle: Of<"tiles">, answer: string): number {
+  const min0 = gradientMinimum(puzzle.frame);
+  let best = min0;
+  const replay = replayGradient(puzzle.frame, decodeGradient(answer), (f) => { best = Math.min(best, gradientMinimum(f)); }, gradientSwapLimit(puzzle));
+  return solverShare(min0, min0 - best, replay.moves, GRADIENT_WASTE_WEIGHT);
 }
 
 /** Per-puzzle memo (WeakMap on the stored puzzle object, so nothing outlives a grade's puzzle). */
@@ -175,6 +199,10 @@ const gridlock: StandardGame = {
     if (input.graded.isCorrect) {
       const moves = num(extra, "moves");
       return { finished: true, speed: speed("unblock", input), bonus: par("unblock", moves, p.par ?? p.minMoves), measure: "par" };
+    }
+    if (usesPartialCredit(p)) {
+      const c = solverCredit(input);
+      return { finished: false, credit: c.credit, facts: { progress: c.progress } };
     }
     const { cleared, total } = gridlockCleared(p, input.answer);
     const w = waste(num(extra, "moves"), p.minMoves);
@@ -325,6 +353,10 @@ const gradient: StandardGame = {
   grade(input, ctx) {
     const p = input.puzzle as Of<"tiles">;
     if (input.graded.isCorrect) return { finished: true, speed: speed("tiles", input), bonus: par("tiles", num(input.graded.extra, "moves"), p.par), measure: "par" };
+    if (usesPartialCredit(p)) {
+      const share = gradientSolverShare(p, input.answer);
+      return { finished: false, credit: PARTIAL_SHARE_POINTS * share, facts: { progress: Math.round(share * 100) } };
+    }
     const { placed, total } = gradientPlaced(p, input.answer);
     return { finished: false, credit: shareCredit(ctx, placed, total) };
   },
@@ -365,6 +397,10 @@ const turntable: StandardGame = {
   grade(input, ctx) {
     const p = input.puzzle as Of<"rings">;
     if (input.graded.isCorrect) return { finished: true, speed: speed("rings", input), bonus: par("rings", num(input.graded.extra, "moves"), p.par ?? p.minMoves), measure: "par" };
+    if (usesPartialCredit(p)) {
+      const c = solverCredit(input);
+      return { finished: false, credit: c.credit, facts: { progress: c.progress } };
+    }
     const { done, total } = ringsSolvedSegments(p, input.answer);
     const w = waste(num(input.graded.extra, "moves"), p.minMoves);
     return { finished: false, credit: shareCredit(ctx, done, total) * w, facts: { segmentsPlaced: done, segments: total, waste: w } };

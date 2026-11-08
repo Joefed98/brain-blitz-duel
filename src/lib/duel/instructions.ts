@@ -16,7 +16,8 @@ import { puzzleNotesDealt } from "./puzzleNotes";
 import { PAR_MOVES_MAZE_HELP, STANDARD_ATTENTION_HELP } from "./standard/attentionTexts";
 import { parMovesDealt, parStrictDealt } from "./parMoves";
 import { operatorGapsDealt } from "./operatorGaps";
-import { PATTERN_STD_HELP, parMovesPatternHelp } from "./standard/patternText";
+import { PARTIAL_PATTERN_HELP, PATTERN_STD_HELP, parMovesPatternHelp } from "./standard/patternText";
+import { partialCreditDealt } from "./partialCredit";
 import { standardNumberHelp } from "./standard/numberText";
 import {
   scoreWordHunt,
@@ -559,7 +560,8 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Clear a path", detail: "for the gold block." },
         { action: "Par", detail: "is the fewest moves; the bar’s gold mark shows it." },
       ],
-      score: PATTERN_STD_HELP.unblock,
+      // Partial-credit fixes (7 Nov 2026, partialCredit.ts): the new stamp's unfinished credit.
+      score: partialCreditDealt() ? PARTIAL_PATTERN_HELP.unblock : PATTERN_STD_HELP.unblock,
     },
     blockparty: {
       goal: "Fit every piece into the free squares.",
@@ -780,8 +782,10 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "A tile in its right place", detail: "locks (dotted), as the four corners are." },
         { action: "Every round", detail: "has its own colours, so the board never looks the same twice.", helpOnly: true },
         { action: "Par", detail: "is shown with your swaps; every swap counts.", helpOnly: true },
+        // tilesRev 7 (partial-credit fixes, 7 Nov 2026): a swap limit.
+        ...(partialCreditDealt() ? [{ action: "Swaps are limited:", detail: "the Left counter shows how many remain; out of swaps, the board ends.", helpOnly: true }] : []),
       ],
-      score: PATTERN_STD_HELP.tiles,
+      score: partialCreditDealt() ? PARTIAL_PATTERN_HELP.tiles : PATTERN_STD_HELP.tiles,
     },
     rings: {
       goal: "Turn the rings until every spoke is one colour.",
@@ -793,7 +797,8 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Linked rings", detail: "turn the same way or the opposite way.", helpOnly: true },
         { action: "The selected ring", detail: "glows and the needle touches its edge.", helpOnly: true },
       ],
-      score: PATTERN_STD_HELP.rings,
+      // Partial-credit fixes (7 Nov 2026, partialCredit.ts): the new stamp's unfinished credit.
+      score: partialCreditDealt() ? PARTIAL_PATTERN_HELP.rings : PATTERN_STD_HELP.rings,
     },
     hover: {
       goal: "Fly through the barrier gaps.",

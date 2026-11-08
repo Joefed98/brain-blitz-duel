@@ -20,6 +20,7 @@ import { dealStandard, usesStandard } from "./standard/stamps";
 import { dealPuzzleNotes } from "./puzzleNotes";
 import { dealParMoves } from "./parMoves";
 import { dealOperatorGaps } from "./operatorGaps.server";
+import { dealPartialCredit } from "./partialCredit";
 import { topsyPlainRoutes } from "./topsy.server";
 import { varyTallyTray } from "@/puzzles/countUp";
 import { gradeStandard } from "./standard/grade.server";
@@ -163,7 +164,9 @@ export function generatePuzzle(type: PuzzleType, context: GenerateContext = {}):
   // The puzzle batch of 3 Nov 2026 (parMoves.ts): Labyrinth, Topsy-Turvy and Skid one stamp above the standard's,
   // their collectibles gone.
   // Puzzle polish (3 Nov 2026, operatorGaps.ts): Operator's sign, number and mixed gaps one stamp above the standard's.
-  return dealOperatorGaps(dealParMoves(dealPuzzleNotes(dealStandard(stamped), (p) => (p.type === "countup" ? varyTallyTray(p) : p)), (p) => (p.type === "gravity" ? topsyPlainRoutes(p) : p)));
+  // Partial-credit fixes (7 Nov 2026, partialCredit.ts): Blackout, Hanoi, Polypotions, Gridlock, Turntable, Exact and
+  // Gradient one stamp above the one dealt before.
+  return dealPartialCredit(dealOperatorGaps(dealParMoves(dealPuzzleNotes(dealStandard(stamped), (p) => (p.type === "countup" ? varyTallyTray(p) : p)), (p) => (p.type === "gravity" ? topsyPlainRoutes(p) : p))));
 }
 
 function generateUnstamped(type: PuzzleType, context: GenerateContext): PuzzleData {
