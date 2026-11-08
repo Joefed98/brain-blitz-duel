@@ -61,7 +61,7 @@ export async function changeRoomSettings(
   if (writeError && scoring !== undefined && isMissingScoringColumn(writeError)) {
     // Before the migration: Total score is what every room plays already; Placings can't be stored yet.
     if (scoring === "placings")
-      return { ok: false, message: "Placings scoring isn't available yet." };
+      return { ok: false, message: "Placings scoring isn’t available yet." };
     ({ data: written, error: writeError } = await write(false));
   }
   if (writeError) throw dbError(writeError, "roomSettings");

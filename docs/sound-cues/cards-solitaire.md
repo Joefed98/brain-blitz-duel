@@ -9,7 +9,7 @@ renderer effects (`effectCue`).
 | --- | --- | --- | --- | --- | --- |
 | `pyramid.shuffle` | Thirteen | The run starts | `cards_shuffle.mp3` | 1 | 1093 ms |
 | `pyramid.select` | Thirteen | A card chosen as the first of a pair | `cards_pick.mp3` | 10–30 | 334 ms |
-| `pyramid.turn` | Thirteen | The empty stock turns the waste back over (passes 2 and 3) | `cards_shuffle.mp3` | 0–2 | 1093 ms |
+| `pyramid.turn` | Thirteen | Never fires: one pass through the stock since 3 Nov 2026 (kept for a later rule) | `cards_shuffle.mp3` | 0 | 1093 ms |
 | `golfsol.shuffle` | Golf Solitaire | The run starts | `cards_shuffle.mp3` | 1 | 1093 ms |
 | `muggins.shuffle` | Muggins | The run starts | `mahjong_shuffle.mp3` | 1 | 1043 ms |
 

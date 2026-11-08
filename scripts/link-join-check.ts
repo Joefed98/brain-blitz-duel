@@ -47,7 +47,7 @@ assert.match(
 );
 assert.equal((card.match(/<[iI]nput\b/g) ?? []).length, 1, "only the display name is asked for");
 assert.match(card, /preview\.state !== "lobby"/);
-assert.match(card, /This game has already started/);
+assert.match(card, /This game’s already started\./);
 assert.match(card, /navigate\(\{ to: "\/" \}\)/);
 assert.doesNotMatch(card, /createRoom|startRoom|generate/);
 

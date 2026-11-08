@@ -87,7 +87,7 @@ function IntroExample() {
       </div>
       <Legend pattern={EXAMPLE_PATTERN} />
       <p className="text-center text-xs text-muted-foreground">
-        One turn of ring 2 also turns ring 4 the other way - every spoke is one colour and every strobe dot lights.
+        One turn of ring 2 also turns ring 4 the other way – every spoke is one colour and every strobe dot lights.
       </p>
     </div>
   );
