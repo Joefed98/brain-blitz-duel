@@ -44,10 +44,15 @@ changes.
    (`replay.moment.mp3`, `music_menu.mp3`, `done.glowSweep.mp3`), as the batch's mapping sheet does.
    Batch 1 (#78) saved a copy per slot (228 files for 72 recordings, 5.9 MB); they were folded back to 72
    files (2.7 MB).
-3. **Put it where the existing files are:** upload it to the Lovable project's assets (served at
-   `/__l5e/assets-v1/<id>/<name>.mp3`), or bring it in through git as `public/sounds/<name>.mp3` with the URL
-   `/sounds/<name>.mp3`. The same loader fetches either, and `sound-manifest-check` fails on any audio file
-   in the repo that no slot uses. To give a slot an existing recording (a shared stand-in), set its `url` to
+3. **Put it where the existing files are:** bring it in through git as `public/sounds/<name>.mp3` with the
+   URL `/sounds/<name>.mp3`. Don't upload sounds to the Lovable project's assets (`/__l5e/…`): they are served
+   only while Lovable hosts the app, so `sound-manifest-check` fails on any `/__l5e/` URL in the manifest. The
+   135 recordings that were there were copied into `public/sounds/` under their Lovable filenames on 7 Nov 2026
+   (Route B prep, `docs/supabase-move/investigation.md` section 1.5); the 16 the manifest no longer used are
+   kept, unserved, in `assets-archive/lovable-sounds/`, and `assets-archive/lovable-sounds/sources.json` records
+   every one's Lovable URL, size, SHA-256 and where it is kept (the check proves each copy against it and its
+   `src/assets/**/*.asset.json`). `sound-manifest-check` also fails on any audio file in the repo that no slot
+   uses (the archive excepted). To give a slot an existing recording (a shared stand-in), set its `url` to
    that recording's URL: no copy.
 4. **Set the slot's `url`** in `src/lib/fx/manifest.ts` to that URL, and its `ms` to the file's length
    in milliseconds (used for ducking music before the file has decoded). Several slots naming one URL are

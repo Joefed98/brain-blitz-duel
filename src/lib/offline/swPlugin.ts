@@ -45,6 +45,8 @@ export function offlineWorkerSource(opts: {
   publicFiles: string[];
   /** Each media file's SHA-256 (hex): a kept copy whose bytes differ is fetched again on install. */
   mediaHashes?: Record<string, string>;
+  /** Media kept only once played, never fetched on install (lazyMediaPaths: the sounds once on Lovable). */
+  lazyMedia?: string[];
 }): string {
   const isMedia = (path: string) => MEDIA_DIRS.some((dir) => path.startsWith(`/${dir}/`));
   const publicFiles = opts.publicFiles.filter(keepPublicFile);
@@ -52,10 +54,12 @@ export function offlineWorkerSource(opts: {
     ...opts.bundleFiles.filter((f) => !f.endsWith(".map") && f !== "sw.js").map((f) => `/${f}`),
     ...publicFiles.filter((p) => !isMedia(p)),
   ];
+  const lazy = new Set(opts.lazyMedia ?? []);
   const config = {
     version: opts.version,
     app: [...new Set(app)].sort(),
-    media: publicFiles.filter(isMedia).sort(),
+    media: publicFiles.filter((p) => isMedia(p) && !lazy.has(p)).sort(),
+    lazyMedia: publicFiles.filter((p) => isMedia(p) && lazy.has(p)).sort(),
     mediaHash: Object.fromEntries(
       publicFiles.filter(isMedia).sort().flatMap((p) => (opts.mediaHashes?.[p] ? [[p, opts.mediaHashes[p]]] : [])),
     ),
@@ -64,6 +68,23 @@ export function offlineWorkerSource(opts: {
   };
   const template = readFileSync(new URL("./sw.template.js", import.meta.url), "utf8");
   return template.replace("__OFFLINE_CONFIG__", JSON.stringify(config));
+}
+
+/**
+ * The sounds and music copied from Lovable's asset store into public/sounds/ (7 Nov 2026, Route B prep;
+ * assets-archive/lovable-sounds/sources.json). Served from /__l5e/ they were never part of the install
+ * download, only kept once played; they stay that way (about 67 MB, beyond the 60 MB offline budget if all
+ * were fetched on install), and the media cache keeps a played one across builds.
+ */
+export function lazyMediaPaths(
+  sourcesFile: string | URL = new URL("../../../assets-archive/lovable-sounds/sources.json", import.meta.url),
+): string[] {
+  const sources = JSON.parse(readFileSync(sourcesFile, "utf8")) as { keptAs: string }[];
+  return sources
+    .map((s) => s.keptAs)
+    .filter((p) => p.startsWith("public/"))
+    .map((p) => p.slice("public".length))
+    .sort();
 }
 
 export function offlineWorkerPlugin(version: string): PluginLike {
@@ -90,7 +111,13 @@ export function offlineWorkerPlugin(version: string): PluginLike {
       this.emitFile({
         type: "asset",
         fileName: "sw.js",
-        source: offlineWorkerSource({ version, bundleFiles: Object.keys(bundle), publicFiles, mediaHashes }),
+        source: offlineWorkerSource({
+          version,
+          bundleFiles: Object.keys(bundle),
+          publicFiles,
+          mediaHashes,
+          lazyMedia: lazyMediaPaths(),
+        }),
       });
     },
   };
