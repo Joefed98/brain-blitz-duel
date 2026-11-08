@@ -195,7 +195,7 @@ export function RoomSettingsSheet({
               <p data-room-scoring-note className="rss-note">
                 {scoring === "placings"
                   ? "Each round gives points by place. Most points wins; level, the higher total score."
-                  : "Every round's score adds up. Highest total wins."}
+                  : "Every round’s score adds up. Highest total wins."}
               </p>
             </section>
           ) : null}

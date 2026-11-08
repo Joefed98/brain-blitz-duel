@@ -856,7 +856,7 @@ export const HOMERUN_STD_SPEC_V4: StdSpec = {
   field: "homerunRev",
   rev: HOMERUN_REV_4,
   parts: [
-    { key: "core", label: "Distance", max: HOMERUN_V4_CORE_MAX, of: HOMERUN_V4_FULL_AT, how: `up to ${HOMERUN_V4_CORE_MAX / HOMERUN_PITCHES} a pitch by how far it goes (${HOMERUN_V4_FULL_FEET} ft for all of it); a caught ball scores nothing` },
+    { key: "core", label: "Distance", max: HOMERUN_V4_CORE_MAX, of: HOMERUN_V4_FULL_AT, how: `every foot counts, ${String(HOMERUN_V4_FULL_AT).replace(/\B(?=(\d{3})+$)/g, ",")} ft over the ${HOMERUN_PITCHES} pitches for all of it; a caught ball scores nothing` },
     { key: "homers", label: "Home runs", max: HOMERUN_V4_HOMERS_MAX, of: HOMERUN_PITCHES, item: "home run", how: `${HOMERUN_V4_HOMER_EACH} for each home run` },
     { key: "signs", label: "Bonus signs", max: HOMERUN_V4_BONUS_MAX, of: HOMERUN_PITCHES, item: "bonus sign", how: `${HOMERUN_V4_BONUS_EACH} each time you hit the lit sign` },
     { key: "streak", label: "Perfect streak", max: HOMERUN_V4_STREAK_MAX, of: HOMERUN_PITCHES, item: "perfect swing", how: `${HOMERUN_V4_STREAK_EACH} for each swing in your longest run of perfect swings` },

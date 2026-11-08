@@ -9,7 +9,7 @@ import { scoreList } from "../scoreList";
 import { STOPWATCH_REV4_CURVE } from "../scoring";
 import { fastFinishSeconds, rev3Figures } from "../puzzleBandsText";
 import { FLASH_REV6_CURVE, FLASH_STEADY_LOOSE_MS, FLASH_STEADY_LOOSE_POINTS, FLASH_STEADY_TIGHT_MS, FLASH_STEADY_TIGHT_POINTS } from "./flash";
-import { BANGON_TOPUP_CENTRE_POINTS, BANGON_TOPUP_STREAK_TOP } from "./bangOn";
+import { BANGON_PARTIAL_MS, BANGON_PARTIAL_POINTS, BANGON_TOPUP_CENTRE_POINTS, BANGON_TOPUP_STREAK_TOP } from "./bangOn";
 import { ASCEND_FLOW_GAP_MS, ASCEND_FLOW_MAX, ASCEND_FLOW_STEP, ASCEND_FLOW_TOP } from "./ascend";
 
 const grouped = (n: number) => n.toLocaleString("en-GB");
@@ -27,6 +27,7 @@ export function flashDepthHelp(): string {
     penalties: [
       "Each false start costs 8, then 11 after the second",
       `Tapping more than ${FLASH_DECOY_FREE_SHARE_PCT} % of the decoys slows every reaction; tapping them all scores nothing`,
+      "The total is capped at {max}",
     ],
     total: "{max}" as unknown as number,
   });
@@ -44,7 +45,7 @@ export function bangOnDepthHelp(): string {
     },
     { label: "Dead centre", how: `${BANGON_TOPUP_CENTRE_POINTS} for each stop on the bright centre line` },
     { label: "Zone streak", how: `watches in a row stopped in the gold zone: 2 for the second, 3 for the third, 4, then ${BANGON_TOPUP_STREAK_TOP} each` },
-  ], { penalties: ["Dead centre and the zone streak add up to 50 at most"], total: "{max}" as unknown as number });
+  ], { penalties: ["Dead centre and the zone streak add up to 50 at most", `At least ${BANGON_PARTIAL_POINTS} for each watch stopped within ${BANGON_PARTIAL_MS} ms`], total: "{max}" as unknown as number });
 }
 
 export const BANGON_DEPTH_INTRO = "Stop each watch close to the mark; bonuses for dead centre and zone streaks. Up to {max}.";

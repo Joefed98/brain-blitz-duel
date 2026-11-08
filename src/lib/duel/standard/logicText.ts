@@ -59,7 +59,7 @@ function bonusLine(type: LogicStandardType): ScoreLine | null {
     case "tubes":
       return { label: "Par", how: "solve it in the fewest pours (shown) for all of it, nothing at twice that", max: r.bonus };
     case "flood":
-      return { label: "Par", how: `solve it in the fewest moves (shown) for all of it, ${fmt(r.bonus / FLOOD_STANDARD_SPARE_MOVES)} less for each move over`, max: r.bonus };
+      return { label: "Par", how: `solve it in the fewest moves (shown) for all of it, less for each move over, nothing at par + ${FLOOD_STANDARD_SPARE_MOVES}`, max: r.bonus };
     case "safe":
       return { label: "First try", how: `open it on your first try, ${fmt(r.per ?? 0)} less for each wrong try`, max: r.bonus };
     case "sudoku":

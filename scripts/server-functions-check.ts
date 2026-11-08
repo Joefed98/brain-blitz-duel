@@ -708,7 +708,7 @@ async function runAll(db: LocalDb, rest: RestServer): Promise<void> {
     const { ROOM_EMOJI } = await import("../src/lib/duel/chatConstants");
     const unknown = await call(chat.allowReactionFn, { roomId, emoji: "not-an-emoji" }, tok.ali);
     check(
-      unknown.ok === false && /Unknown reaction/.test(unknown.message),
+      unknown.ok === false && /That reaction doesn.t exist/.test(unknown.message),
       "chat: an unknown reaction is refused",
     );
     const allowed = await call(chat.allowReactionFn, { roomId, emoji: ROOM_EMOJI[0] }, tok.ali);

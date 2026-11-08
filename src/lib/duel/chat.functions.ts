@@ -94,7 +94,7 @@ export const allowReactionFn = createServerFn({ method: "POST" })
   .inputValidator((input: { roomId: string; emoji: string }) => input)
   .handler(async ({ data, context }) => {
     if (!ROOM_EMOJI.includes(data.emoji as (typeof ROOM_EMOJI)[number])) {
-      return { ok: false as const, message: "Unknown reaction." };
+      return { ok: false as const, message: "That reaction doesn’t exist." };
     }
     const sender = await senderRow(context.supabase, data.roomId, context.userId);
     if (!sender || sender.status === "left") {

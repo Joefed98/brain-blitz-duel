@@ -32,7 +32,7 @@ advances. No shared tap hook plays a sound.
 | Mixed Signals | `stroop.gatePulse` | `pz_clash_right` / `pz_clash_wrong` on the same frame |
 | Gridlock | `unblock.solve` | `pz_car_escape`, `lock` 420 ms later |
 | Heave | `push.step`, `push.push` | `move` |
-| Jumbled | `tiles.slide` | `move` (`lock` if it solves) |
+| Gradient (Jumbled until 27 Oct) | `tiles.slide` | `move` (`lock` if it solves) |
 | Lightbender | `laser.place`, `laser.turn`, `laser.fire` | `move` |
 | Lightbender | `laser.gem` | `pz_laser_gem` on the same beam step |
 | Pipeline | `pipes.rotate` | `move` |
