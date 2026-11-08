@@ -20,7 +20,7 @@
  * in-memory stand-in. Every write is keyed on the calling device's own attempt.
  */
 import { mergePuzzle, splitPuzzle } from "./secrets";
-import { asyncReceipt, asyncRoundWindow, type AsyncAttemptView } from "./asyncRoom";
+import { asyncReceipt, asyncRoundWindow, solutionLockKind, type AsyncAttemptView, type SolutionLock } from "./asyncRoom";
 import { recordAsyncEvent, recordRoundRecordsFor, roundRecords } from "./betaRecord.server";
 import { puzzleDef, puzzleTimeLimitMs } from "./registry";
 import { roundTimeUsedMs, type TieRound } from "./scoring";
@@ -652,14 +652,52 @@ export async function submitAsyncAnswer(
 }
 
 /**
- * The reveal of one of the caller's rounds: the full puzzle, their stored result and its summary,
- * only once that result is stored (graded or missed). Never another player's answer.
+ * H2 (asyncRoom.ts SolutionLock): the lock on a round's solution while the room's window is open, or null once it has
+ * closed or when the round has nothing private (arcade runs, the games whose answers are all on screen).
+ */
+export function solutionLockFor(
+  room: Pick<AsyncRoomRow, "kind" | "closes_at">,
+  priv: Record<string, unknown> | null | undefined,
+  nowMs: number,
+): SolutionLock | null {
+  if (!(nowMs < msOf(room.closes_at))) return null;
+  if (!priv || Object.keys(priv).every((key) => key === "type")) return null;
+  return { kind: solutionLockKind(room.kind), unlocksAt: room.closes_at };
+}
+
+/**
+ * A stored result's `extra` while its round's solution is locked: every entry named for a field of the private half is
+ * left out, at any depth (some graders keep the minimum or the par beside the player's own figures: Gradient's and
+ * Skid's `minMoves`, Forage's `par`, Brimful's `boards[].minMoves`), so a result row never carries what the lock
+ * withholds. Everything else is kept.
+ */
+export function lockedExtra(
+  extra: Record<string, unknown> | null,
+  priv: Record<string, unknown> | null | undefined,
+): Record<string, unknown> | null {
+  if (!extra || !priv) return extra;
+  const hidden = new Set(Object.keys(priv).filter((key) => key !== "type"));
+  const cut = (value: unknown): unknown => {
+    if (Array.isArray(value)) return value.map(cut);
+    if (!value || typeof value !== "object") return value;
+    const out: Record<string, unknown> = {};
+    for (const [key, inner] of Object.entries(value as Record<string, unknown>)) if (!hidden.has(key)) out[key] = cut(inner);
+    return out;
+  };
+  return cut(extra) as Record<string, unknown>;
+}
+
+/**
+ * The reveal of one of the caller's rounds: their stored result and its summary, only once that result is stored
+ * (graded or missed), never another player's answer. The full puzzle and the correct answer only once the room's window
+ * has closed (H2); before that the public half, the summary worked out from it alone, and `solutionLock`.
  */
 export async function asyncRoundReveal(
   client: any,
   room: AsyncRoomRow,
   attempt: AsyncAttemptRow,
   round: number,
+  nowMs: number,
 ): Promise<
   | {
       ok: true;
@@ -669,6 +707,7 @@ export async function asyncRoundReveal(
       summary: string;
       detail: string[];
       correctAnswer: string | null;
+      solutionLock: SolutionLock | null;
     }
   | { ok: false; message: string }
 > {
@@ -676,8 +715,12 @@ export async function asyncRoundReveal(
   if (!done(row)) return { ok: false, message: "That round isn’t over yet." };
   const pub = room.puzzles_public[round - 1];
   if (!pub) return { ok: false, message: "That round doesn’t exist." };
-  const puzzle = mergePuzzle(pub, (await privateHalf(client, room.id, round)) ?? undefined);
-  const result = asRoundResult(row!);
+  const priv = await privateHalf(client, room.id, round);
+  const solutionLock = solutionLockFor(room, priv, nowMs);
+  // Locked: the summary and every line below see the public half only, so nothing private can ride out in them.
+  const puzzle = solutionLock ? pub : mergePuzzle(pub, priv ?? undefined);
+  const stored = asRoundResult(row!);
+  const result = solutionLock ? { ...stored, extra: lockedExtra(stored.extra, priv) } : stored;
   const definition = puzzleDef(puzzle.type);
   let summary = row!.missed ? "No answer" : "—";
   let detail: string[] = [];
@@ -685,15 +728,17 @@ export async function asyncRoundReveal(
     try {
       ({ summary, detail } = definition.roundSummary(result, puzzle));
     } catch (err) {
-      console.error(`[async-reveal] summary failed for ${puzzle.type}`, err);
+      // A summary that needs the solution has none while it is locked.
+      if (!solutionLock) console.error(`[async-reveal] summary failed for ${puzzle.type}`, err);
     }
   let correctAnswer: string | null = null;
-  try {
-    correctAnswer = definition.correctAnswer(puzzle);
-  } catch (err) {
-    console.error(`[async-reveal] answer failed for ${puzzle.type}`, err);
-  }
-  return { ok: true, puzzle, result, missed: row!.missed, summary, detail, correctAnswer };
+  if (!solutionLock)
+    try {
+      correctAnswer = definition.correctAnswer(puzzle);
+    } catch (err) {
+      console.error(`[async-reveal] answer failed for ${puzzle.type}`, err);
+    }
+  return { ok: true, puzzle, result, missed: row!.missed, summary, detail, correctAnswer, solutionLock };
 }
 
 /** The live round's public and private halves, only while the caller's own round takes answers. */

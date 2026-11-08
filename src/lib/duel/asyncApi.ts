@@ -2,6 +2,7 @@
  * The phone's side of the async-room and daily calls (21 Oct 2026): each makes sure the device has
  * its anonymous session first, as the room API does (api.ts). Nothing here grades or stores.
  */
+import { solutionLockText, type SolutionLock } from "./asyncRoom";
 import { inputTypeField } from "@/lib/inputType";
 import { APP_BUILD_ID } from "@/lib/appVersion";
 
@@ -96,6 +97,8 @@ export interface AsyncReveal {
   summary: string;
   detail: string[];
   correctAnswer: string | null;
+  /** H2: the solution's lock while the room is open (the puzzle is then its public half only). */
+  solutionLock?: SolutionLock | null;
 }
 
 export async function asyncReveal(
@@ -133,4 +136,9 @@ export async function asyncCheckMoves(
 ): Promise<MovesView | null> {
   await ensureSession();
   return (await asyncCheckMovesFn({ data: { roomId, roundNumber, moves } })) as MovesView | null;
+}
+
+/** The reveal's locked-solution line for an async reveal, or null when the solution is open (H2). */
+export function revealLockLine(reveal: Pick<AsyncReveal, "solutionLock"> | null | undefined): string | null {
+  return reveal?.solutionLock ? solutionLockText(reveal.solutionLock) : null;
 }

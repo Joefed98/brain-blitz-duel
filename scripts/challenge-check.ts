@@ -251,7 +251,7 @@ async function playAll(
   check(JSON.stringify(both) === "[1,2]", `Ali's ping joins at Ali's own recorded time (${JSON.stringify(both)})`);
   check(both.every((s) => typeof s === "number"), "a ping is a slot number, nothing else");
   // No board (no scores, verdicts or summaries) before Jo's own result is stored.
-  const early = await challengeRoundBoard(db.client, room, joAttempt, 1);
+  const early = await challengeRoundBoard(db.client, room, joAttempt, 1, T + 200);
   check(!early.ok, "no round results before the friend's own result for that round is stored");
   const finalEarly = await challengeFinalBoard(db.client, (await challengeByCode(db.client, code))!, joAttempt, T + 200);
   check(!finalEarly.ok, "no final board before the friend has finished");
@@ -259,7 +259,7 @@ async function playAll(
   check(!/total|score|"rows"/i.test(JSON.stringify(infoEarly)), "the link's info carries no one's score");
   await quiet(() => submitAsyncAnswer(db.client, room, joAttempt, { round: 1, answer: "", msRemaining: 20_000 }, T + 100 + 7000));
   check((await challengePings(db.client, room, joAttempt, 1, T + 100 + aliAt)).length === 0, "no pings once the friend's own round is answered");
-  const board = await challengeRoundBoard(db.client, room, joAttempt, 1);
+  const board = await challengeRoundBoard(db.client, room, joAttempt, 1, T + 100 + 7100);
   check(board.ok && board.board.results.every((r) => r.round_number === 1), "after round 1: round 1's results only (nothing from later rounds)");
   if (board.ok) {
     const others = board.board.results.filter((r) => r.player_slot !== board.board.mySlot);
@@ -447,7 +447,7 @@ async function playAll(
     const p1 = await challengePings(db.client, found.room, fa, 1, NOW + 30_000 + samUsed);
     check(p0.length === 0 && JSON.stringify(p1) === "[1]", `a room player's ping lands at their room time (${samUsed} ms) (${JSON.stringify(p1)})`);
     await quiet(() => submitAsyncAnswer(db.client, found.room, fa, { round: 1, answer: "", msRemaining: 0 }, NOW + 30_000 + 400_000));
-    const board = await challengeRoundBoard(db.client, found.room, fa, 1);
+    const board = await challengeRoundBoard(db.client, found.room, fa, 1, NOW + 30_000 + 400_100);
     check(board.ok && !JSON.stringify(board.board.results).includes("ans-") && !JSON.stringify(board.board.results).includes("WORD"), "the room players' answers never reach the friend");
     const unfinished = await quiet(() => createChallengeFromRoom(store({ duels: [{ ...duel, status: "in_progress" }], duel_players: players }).client, "room-dev-0", duelId, NOW));
     check(!unfinished.ok, "a game still being played can't be made into a challenge");

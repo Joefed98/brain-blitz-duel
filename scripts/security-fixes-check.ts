@@ -2,6 +2,8 @@
  * security-fixes-check (7 Nov 2026): the server-side fixes for the findings docs/audit-nov-2026/security.md marks
  * "before the Supabase move". One section per finding; no browser, no database (~2 s).
  *
+ *   H2  a daily's or a challenge's reveal and round board carry no private half and no answer line until the room's
+ *       window closes (asyncRoom.ts SolutionLock); the player's own result comes at once; the reveal shows the lock line.
  *   H1  practice tokens seal a digest of the public half and every handler that merges the phone's public half
  *       opens the token through it (practiceSeal.server.ts); Hanoi's table is built only for a legal board and the
  *       progress caches are bounded.
@@ -41,6 +43,162 @@ function fnText(file: string, name: string): string {
   if (at < 0) return "";
   const next = text.indexOf("\nexport ", at + 10);
   return text.slice(at, next < 0 ? undefined : next);
+}
+
+/* ------------------------------------------------------------------ H2: daily and challenge solutions ---- */
+{
+  const { memoryDb } = await import("./fixtures/memoryDb");
+  const { ensureDailyRoom } = await import("../src/lib/duel/daily.server");
+  const asyncServer = await import("../src/lib/duel/asyncRoom.server");
+  const { createChallenge, challengeByCode, challengeRoundBoard } = await import("../src/lib/duel/challenge.server");
+  const { solutionLockText } = await import("../src/lib/duel/asyncRoom");
+  const { revealLockLine } = await import("../src/lib/duel/asyncApi");
+  const { splitPuzzle } = await import("../src/lib/duel/secrets");
+  const { puzzleTimeLimitMs, puzzlePrepMs } = await import("../src/lib/duel/registry");
+  const UNIQUE = {
+    async_rooms: ["room_key"], async_attempts: ["room_id", "user_id"], async_results: ["attempt_id", "round_number"],
+    async_events: ["attempt_id", "round_number", "event"], async_room_secrets: ["room_id"], challenges: ["code"],
+    challenge_events: ["room_id", "user_id", "event"],
+  };
+  const store = () => memoryDb({ async_rooms: [], async_attempts: [], async_results: [], async_events: [], async_room_secrets: [], challenges: [], challenge_events: [] }, { unique: UNIQUE });
+  const quietly = async <T>(fn: () => Promise<T>): Promise<T> => {
+    const saved = [console.log, console.warn, console.error];
+    console.log = console.warn = console.error = () => {};
+    try {
+      return await fn();
+    } finally {
+      [console.log, console.warn, console.error] = saved;
+    }
+  };
+  const NOW = Date.parse("2026-10-27T12:00:00Z");
+  const privOf = (db: ReturnType<typeof store>, roomId: string, round: number) =>
+    ((db.tables.async_room_secrets!.find((r) => r["room_id"] === roomId) as { puzzles_private: Record<string, unknown>[] }).puzzles_private[round - 1] ?? {});
+  /**
+   * Every field of the private half a response carries, by name or by value (values of six or more characters). The
+   * response's `puzzle` is left out: it is the public half the player was dealt at the round's start (checked apart).
+   */
+  const leaks = (response: unknown, priv: Record<string, unknown>) => {
+    const text = JSON.stringify(response && typeof response === "object" && "puzzle" in response ? { ...(response as object), puzzle: null } : response);
+    return Object.entries(priv).filter(([k, v]) => k !== "type" && (text.includes(`"${k}":`) || (JSON.stringify(v) ?? "").length >= 6 && text.includes(JSON.stringify(v))));
+  };
+  /** A throwaway attempt plays every round with an empty answer, then asks for each round's reveal (and board). */
+  const room_pub = (room: unknown, r: number) => (room as { puzzles_public: unknown[] }).puzzles_public[r - 1];
+  async function sweep(db: ReturnType<typeof store>, room: { id: string; round_count: number; closes_at: string; kind: string }, userId: string, board: boolean) {
+    const { attemptFor } = asyncServer;
+    const attempt = (await attemptFor(db.client, room.id, userId))!;
+    let t = NOW + 1000;
+    let locked = 0, open = 0, leaked: string[] = [], scored = 0;
+    for (let r = 1; r <= room.round_count; r++) {
+      const s = await asyncServer.startAsyncRound(db.client, room as never, attempt, r, t);
+      if (!s.ok) throw new Error(`round ${r}: ${s.message}`);
+      const receive = t + puzzlePrepMs(s.puzzle) + 1000;
+      const sub = await quietly(() => asyncServer.submitAsyncAnswer(db.client, room as never, attempt, { round: r, answer: "", msRemaining: puzzleTimeLimitMs(s.puzzle) - 1000 }, receive));
+      const priv = privOf(db, room.id, r);
+      const hasPriv = Object.keys(priv).some((k) => k !== "type");
+      const reveal = await quietly(() => asyncServer.asyncRoundReveal(db.client, room as never, attempt, r, receive + 10));
+      if (!reveal.ok) throw new Error(`reveal ${r}: ${reveal.message}`);
+      if (reveal.result.score === (sub as { score?: number }).score) scored++;
+      const responses: unknown[] = [reveal];
+      // The reveal's puzzle is exactly the public half while locked (the stored public half, nothing merged in).
+      if (Object.keys(priv).some((k) => k !== "type") && JSON.stringify(reveal.puzzle) !== JSON.stringify(room_pub(room, r))) leaked.push(`round ${r} reveal puzzle is not the public half`);
+      if (board) {
+        const b = await quietly(() => challengeRoundBoard(db.client, room as never, attempt, r, receive + 10));
+        if (!b.ok) throw new Error(`board ${r}: ${b.message}`);
+        // This round's rows here; every earlier round's rows against that round's own private half.
+        responses.push({ ...b.board, results: b.board.results.filter((row) => row.round_number === r) });
+        for (let e = 1; e < r; e++)
+          leaked.push(...leaks(b.board.results.filter((row) => row.round_number === e), privOf(db, room.id, e)).map(([k]) => `board ${r}, round ${e} row .${k}`));
+        if (hasPriv && (b.board.correctAnswer !== null || b.board.solutionLock?.kind !== "challenge")) leaked.push(`board ${r} answer line`);
+      }
+      if (hasPriv) {
+        locked++;
+        responses.forEach((resp, i) => leaked.push(...leaks(resp, priv).map(([k]) => {
+          const text = JSON.stringify(resp);
+          const at = text.indexOf(`"${k}":`);
+          return `round ${r} ${s.puzzle.type}.${k} in ${i === 0 ? "reveal" : "board"} (${at >= 0 ? text.slice(Math.max(0, at - 60), at + 30) : "by value"})`;
+        })));
+        if (reveal.correctAnswer !== null || !reveal.solutionLock || reveal.solutionLock.unlocksAt !== room.closes_at) leaked.push(`round ${r} answer line or lock`);
+      } else {
+        open++;
+        if (reveal.solutionLock !== null) leaked.push(`round ${r} ${s.puzzle.type} locked with nothing private`);
+      }
+      // Once the window closes, the full puzzle and answer come back.
+      const after = await quietly(() => asyncServer.asyncRoundReveal(db.client, room as never, attempt, r, Date.parse(room.closes_at)));
+      if (!after.ok || after.solutionLock !== null || Object.keys(splitPuzzle(after.puzzle).priv).filter((k) => k !== "type").length !== Object.keys(priv).filter((k) => k !== "type").length)
+        leaked.push(`round ${r} not opened after the close`);
+      t = receive + 60_000;
+    }
+    return { locked, open, leaked, scored };
+  }
+
+  // The daily: a throwaway device plays all six rounds with empty answers.
+  const dailyDb = store();
+  const daily = await quietly(() => ensureDailyRoom(dailyDb.client, "puzzle", NOW, "u1"));
+  await asyncServer.startAttempt(dailyDb.client, daily, "throwaway", { name: "Tmp", colour: null, icon: null }, NOW);
+  const d = await sweep(dailyDb, daily, "throwaway", false);
+  check(d.locked >= 3 && d.leaked.length === 0, `H2: the daily's reveals carry no private field or answer before midnight (${d.locked} locked, ${d.open} with nothing private; ${d.leaked.join(", ") || "no leaks"})`);
+  check(d.scored === daily.round_count, `H2: the player's own score comes back at once on every daily round (${d.scored} of ${daily.round_count})`);
+
+  // A challenge: its creator plays every round, round board included.
+  const chDb = store();
+  const made = await quietly(() => createChallenge(chDb.client, "maker", { categories: ["logic", "pattern", "word", "attention"], rounds: 6, who: { name: "Maker", colour: null, icon: null } }, NOW));
+  if (!made.ok) throw new Error(made.message);
+  const found = (await challengeByCode(chDb.client, made.code))!;
+  const c = await sweep(chDb, found.room, "maker", true);
+  check(c.locked >= 3 && c.leaked.length === 0, `H2: a challenge's reveals and round boards carry no private field or answer line before it closes (${c.locked} locked; ${c.leaked.join(", ") || "no leaks"})`);
+  {
+    const { challengeFinalBoard } = await import("../src/lib/duel/challenge.server");
+    const fresh = (await challengeByCode(chDb.client, made.code))!;
+    const maker = (await asyncServer.attemptFor(chDb.client, fresh.room.id, "maker"))!;
+    const finalBoard = await quietly(() => challengeFinalBoard(chDb.client, fresh, maker, NOW + 3_600_000));
+    const finalLeaks = finalBoard.ok
+      ? Array.from({ length: fresh.room.round_count }, (_, i) => i + 1).flatMap((r) =>
+          leaks(finalBoard.board.results.filter((row) => row.round_number === r), privOf(chDb, fresh.room.id, r)).map(([k]) => `round ${r}.${k}`),
+        )
+      : ["no final board"];
+    check(finalLeaks.length === 0, `H2: the challenge's final board carries no private field before it closes (${finalLeaks.join(", ") || "none"})`);
+  }
+
+  // Every active puzzle with a private half: an empty answer's stored extra, cut by lockedExtra, names no private field.
+  {
+    const { ACTIVE_PUZZLE_TYPES } = await import("../src/lib/duel/registry");
+    const { generatePuzzle, gradeAnswer } = await import("../src/lib/duel/generate.server");
+    const named = (value: unknown, keys: Set<string>): string[] => {
+      if (Array.isArray(value)) return value.flatMap((v) => named(v, keys));
+      if (!value || typeof value !== "object") return [];
+      return Object.entries(value as Record<string, unknown>).flatMap(([k, v]) => [...(keys.has(k) ? [k] : []), ...named(v, keys)]);
+    };
+    let typesWithPriv = 0, before = 0;
+    const left: string[] = [];
+    for (const type of ACTIVE_PUZZLE_TYPES) {
+      const full = await quietly(async () => generatePuzzle(type as never));
+      const { priv } = splitPuzzle(full);
+      const keys = new Set(Object.keys(priv).filter((k) => k !== "type"));
+      if (!keys.size) continue;
+      typesWithPriv++;
+      for (const answer of ["", "x"]) {
+        const graded = await quietly(async () => gradeAnswer(full, answer, 30_000));
+        if (named(graded.extra, keys).length) before++;
+        const cut = named(asyncServer.lockedExtra(graded.extra ?? null, priv), keys);
+        if (cut.length) left.push(`${type}: ${cut.join(",")}`);
+      }
+    }
+    console.log(`  H2 sweep: ${typesWithPriv} puzzles with a private half; ${before} raw extras named a private field`);
+    check(typesWithPriv >= 30 && left.length === 0, `H2: on all ${typesWithPriv} active puzzles with a private half, a locked result's extra names no private field (${before} raw extras did; ${left.join("; ") || "none left"})`);
+  }
+
+  // The lock itself.
+  const room = { kind: "daily_puzzle", closes_at: "2026-10-28T00:00:00.000Z" };
+  const close = Date.parse(room.closes_at);
+  check(asyncServer.solutionLockFor(room, { type: "sudoku", solution: [1] }, close - 1)?.kind === "daily" && asyncServer.solutionLockFor(room, { type: "sudoku", solution: [1] }, close) === null, "H2: the lock holds to the close and opens on it");
+  check(asyncServer.solutionLockFor(room, { type: "breaker" }, close - 1) === null && asyncServer.solutionLockFor(room, null, close - 1) === null, "H2: nothing private, no lock (arcade rounds)");
+  check(asyncServer.solutionLockFor({ kind: "challenge", closes_at: room.closes_at }, { type: "sudoku", solution: [1] }, close - 1)?.kind === "challenge", "H2: a challenge's lock is the challenge's");
+  check(solutionLockText({ kind: "daily", unlocksAt: room.closes_at }) === "Solution unlocks at midnight" && solutionLockText({ kind: "challenge", unlocksAt: room.closes_at }) === "Solution unlocks when the challenge closes", "H2: the lock lines read as agreed");
+  check(revealLockLine({ solutionLock: { kind: "daily", unlocksAt: room.closes_at } }) === "Solution unlocks at midnight" && revealLockLine({ solutionLock: null }) === null && revealLockLine(null) === null, "H2: the async screens pass the line only while locked");
+  const reveal = src("src/components/duel/AnswerReveal.tsx");
+  check(/answersReady && solutionLock \? \(\s*<SolutionLocked/.test(reveal) && /answersReady && !solutionLock \? <SolutionSwitch/.test(reveal), "H2: the reveal draws the lock line in the board's place (no board, no Solution / Yours switch)");
+  check(/solutionLock=\{revealLockLine\(reveal\)\}/.test(src("src/components/async/AsyncRun.tsx")) && /solutionLock=\{revealLockLine\(shown\)\}/.test(src("src/components/async/AsyncResults.tsx")), "H2: the daily and challenge reveals (live and from results) pass the lock");
+  check(/Date\.now\(\)/.test(fnText("src/lib/duel/asyncRoom.functions.ts", "asyncRevealFn")) && /Date\.now\(\)/.test(fnText("src/lib/duel/challenge.functions.ts", "challengeRoundBoardFn")), "H2: both calls judge the lock on the server's clock");
 }
 
 /* ------------------------------------------------------------------ H1: practice deals ---- */

@@ -196,7 +196,7 @@ const NOW = at("2026-10-27T12:00:00Z");
   check(!JSON.stringify(view).includes("puzzles") && view.rounds.every((r) => r.startedAt === null && r.score === null), "the attempt view carries no puzzle");
   const early = await startAsyncRound(db.client, r1, attempt, 2, NOW);
   check(!early.ok, "round 2 can't start before round 1 is done");
-  const notYet = await asyncRoundReveal(db.client, r1, attempt, 1);
+  const notYet = await asyncRoundReveal(db.client, r1, attempt, 1, NOW + 1000);
   check(!notYet.ok, "no reveal before the round is played");
   const started = await startAsyncRound(db.client, r1, attempt, 1, NOW + 2000);
   check(started.ok && started.puzzle.type === r1.round_order[0], "round 1 starts and its puzzle arrives");
@@ -212,13 +212,28 @@ const NOW = at("2026-10-27T12:00:00Z");
     const sub = await submitAsyncAnswer(db.client, r1, attempt, { round: 1, answer: "", msRemaining: 1000 }, NOW + 4000);
     const twice = await submitAsyncAnswer(db.client, r1, attempt, { round: 1, answer: "x", msRemaining: 1000 }, NOW + 4100);
     check(sub.ok && !sub.alreadySubmitted && twice.ok && twice.alreadySubmitted === true, "the first stored answer stands");
-    const reveal = await asyncRoundReveal(db.client, r1, attempt, 1);
-    check(reveal.ok && SECRET_FIELDS(reveal.puzzle).every((k) => k in reveal.puzzle), "the reveal (with the private half) opens once the result is stored");
+    // H2 (security fixes, approved by Joe 8 Nov 2026): the reveal opens once the result is stored, but the private half
+    // and the correct answer stay on the server until the day closes; the player's own result comes at once.
+    const reveal = await asyncRoundReveal(db.client, r1, attempt, 1, NOW + 4200);
+    const fullOf = { ...started.puzzle, ...((db.tables.async_room_secrets![0] as { puzzles_private: Record<string, unknown>[] }).puzzles_private[0] ?? {}) } as PuzzleData;
+    const secretKeys = SECRET_FIELDS(fullOf);
+    console.log(`  H2: round 1 is ${started.puzzle.type} with ${secretKeys.length} private fields`);
+    const ownScore = (sub as { score?: number }).score;
+    check(
+      reveal.ok && reveal.result.score === ownScore &&
+        (secretKeys.length > 0
+          ? secretKeys.every((k) => !(k in reveal.puzzle)) && reveal.correctAnswer === null &&
+            reveal.solutionLock?.kind === "daily" && reveal.solutionLock.unlocksAt === r1.closes_at
+          : reveal.solutionLock === null),
+      `before the day closes the reveal carries the player's own result but not the private half or the answer (H2; ${started.puzzle.type}, ${secretKeys.length} private fields)`,
+    );
+    const opened = await asyncRoundReveal(db.client, r1, attempt, 1, Date.parse(r1.closes_at));
+    check(opened.ok && SECRET_FIELDS(opened.puzzle).every((k) => k in opened.puzzle) && opened.solutionLock === null, "the reveal (with the private half) opens once the day has closed");
     check(!(await liveRoundPuzzle(db.client, r1, attempt, 1, NOW + 4200)), "no word checks after the round is answered");
   }
   // Another device's reveal never opens on this one's attempt.
   const other = await attemptFor(db.client, r1.id, "dev-b");
-  check(other !== null && !(await asyncRoundReveal(db.client, r1, other!, 1)).ok, "another device's attempt can't reveal a round it hasn't played");
+  check(other !== null && !(await asyncRoundReveal(db.client, r1, other!, 1, NOW + 4200)).ok, "another device's attempt can't reveal a round it hasn't played");
 
   // Beta events, once each.
   const events = db.tables.async_events!.map((e) => `${e.attempt_id}:${e.round_number}:${e.event}`);

@@ -117,6 +117,7 @@ export const asyncRevealFn = createServerFn({ method: "POST" })
       found.room,
       found.attempt,
       Number(data.roundNumber),
+      Date.now(),
     );
     if (!reveal.ok) return reveal;
     // Serialised as JSON text, as practice's grade is, so the RPC boundary sees plain strings.

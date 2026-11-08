@@ -45,7 +45,7 @@ import { useCelebrationScope, useCelebrationsOn } from "@/components/fx/useCeleb
 const REVEAL_SCORE_DELAY_MS = 350;
 import { fx } from "@/lib/fx";
 import { APP_NAME } from "@/lib/brand";
-import { Button } from "@/design/components";
+import { Button, Icon } from "@/design/components";
 import { MetaChips } from "@/components/app/MetaChips";
 
 interface AnswerRevealProps {
@@ -88,6 +88,22 @@ interface AnswerRevealProps {
    */
   onPlayAgain?: () => void;
   onBack?: () => void;
+  /**
+   * The daily's and a challenge's locked solution (security fix H2, asyncRoom.ts `solutionLockText`): the puzzle is its
+   * public half only, so the board and the answer line give way to this line until the room closes. The player's own
+   * score, score line and breakdown show as always.
+   */
+  solutionLock?: string | null;
+}
+
+/** The locked solution's line in the board's place (H2). */
+function SolutionLocked({ text }: { text: string }) {
+  return (
+    <p data-reveal-solution-locked="" className="jz-panel flex items-center gap-2 px-4 py-5 text-sm text-muted-foreground">
+      <Icon name="lock" size={18} className="-m-px" />
+      <span className="min-w-0">{text}</span>
+    </p>
+  );
 }
 
 /** Practice's two small actions under the reveal: Play again (gold, it plays) and Back to the list. */
@@ -698,6 +714,7 @@ function LiveAnswerReveal({
   heroRun: heroRunAllowed = true,
   startedAt,
   now,
+  solutionLock = null,
   onPlayAgain,
   onBack,
 }: AnswerRevealProps) {
@@ -729,7 +746,7 @@ function LiveAnswerReveal({
     cued.current = round;
     stopMusicExcept("music_reveal", 200);
     // One verdict (none for partial credit), then the score cue 0.35 s later.
-    if (puzzle.type === "bomb" && bombRevealExploded(puzzle, myAnswer)) {
+    if (!solutionLock && puzzle.type === "bomb" && bombRevealExploded(puzzle, myAnswer)) {
       playSound("pz_bomb_explode");
     } else if (myCorrect) {
       fx.onCorrect(undefined, def.theme);
@@ -864,11 +881,13 @@ function LiveAnswerReveal({
         {/* The board keeps its box (flex-1, as before); the tray behind its card hugs what the card draws (useRevealFit). */}
         <div ref={solvedBoard} data-skin-off className="answer-reveal-content relative isolate flex w-full min-h-0 flex-1 flex-col items-center justify-start overflow-x-hidden overflow-y-auto text-base animate-rise-settle">
           <div ref={trayRef} aria-hidden="true" data-reveal-tray className="reveal-tray" />
-          {answersReady ? <SolutionSwitch type={puzzle.type} root={solvedBoard} /> : null}
+          {answersReady && !solutionLock ? <SolutionSwitch type={puzzle.type} root={solvedBoard} /> : null}
           {/* The card: the game's board and every line it draws, measured and scaled as one (useRevealFit). */}
           <div ref={revealCard} data-reveal-card="" className="reveal-card">
           {/* An engine game's own summary line only while its breakdown is folded away (a room's "See breakdown"). */}
-          {answersReady && !(PUZZLE_REVEAL_ENGINE_TYPES.has(puzzle.type) && myScore !== null && (practice || engineOpen)) ? (
+          {answersReady && solutionLock ? (
+            <SolutionLocked text={solutionLock} />
+          ) : answersReady && !(PUZZLE_REVEAL_ENGINE_TYPES.has(puzzle.type) && myScore !== null && (practice || engineOpen)) ? (
             <Reveal
               puzzle={puzzle}
               myAnswer={myAnswer}

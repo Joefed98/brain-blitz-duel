@@ -6,7 +6,7 @@ import { WaitingLine } from "@/components/duel/Dots";
 import { PhoneShell } from "@/components/duel/PhoneShell";
 import { RoundHighlightView } from "@/components/replay/RoundHighlight";
 import { ReplayBoundary } from "@/components/replay/ReplayBoundary";
-import { asyncReveal, type AsyncReveal } from "@/lib/duel/asyncApi";
+import { asyncReveal, revealLockLine, type AsyncReveal } from "@/lib/duel/asyncApi";
 import type { AsyncAttemptView } from "@/lib/duel/asyncRoom";
 import { puzzleName } from "@/lib/duel/registry";
 import {
@@ -92,6 +92,7 @@ export function AsyncResults({
           myMsRemaining={shown.result.ms_remaining}
           myScore={shown.result.score}
           myExtra={shown.result.extra}
+          solutionLock={revealLockLine(shown)}
           heroRun={false}
           startedAt={0}
           now={now}
