@@ -9,6 +9,7 @@
  * they were played on. Each deal is used once: taking it removes it from the pack, and top-ups refill.
  */
 import { appUpdater } from "@/lib/appUpdate";
+import { POLICIES, fetchFor } from "@/lib/net/request";
 import { currentPracticeStamp, stampSignature } from "@/lib/duel/practiceStamps";
 import { recentPracticeTypes } from "@/lib/duel/practiceRecent";
 import { PUZZLE_TYPES } from "@/lib/duel/catalogue";
@@ -122,7 +123,8 @@ export interface TopUpDeps {
 
 async function defaultFetch(types: PuzzleType[], count: number) {
   const { practicePackFn } = await import("@/lib/duel/practice.functions");
-  const { packs } = await practicePackFn({ data: { types, count } });
+  // Background work: its own long limit, never the app's default (lib/net/request.ts).
+  const { packs } = await practicePackFn({ data: { types, count }, fetch: fetchFor(POLICIES.background) });
   return packs as { type: PuzzleType; deals: PackDeal[] }[];
 }
 
@@ -140,14 +142,33 @@ function automatedWithoutPacks(): boolean {
   }
 }
 
+/** Screens offline downloads never compete with: a room's live round, the daily and challenges (8 Nov 2026). */
+const ROOM_PATHS = ["/duel", "/daily", "/challenge"];
+
+export function liveRoomOnScreen(): boolean {
+  try {
+    const path = window.location.pathname;
+    return ROOM_PATHS.some((p) => path === p || path.startsWith(`${p}/`));
+  } catch {
+    return false;
+  }
+}
+
 /**
- * Whether a top-up may run now: online, downloads on, not metered, no Battery saver, Save-Data or 2G-class
- * connection (packGrowth.ts), and no round on screen.
+ * Whether offline practice may download now (its packs and the worker's files): online, downloads on, not
+ * metered, no Battery saver, Save-Data or 2G-class connection (packGrowth.ts), no room, daily or challenge on
+ * screen and no round on screen.
  */
-export function topUpAllowed(): boolean {
+export function offlineDownloadAllowed(): boolean {
   if (automatedWithoutPacks()) return false;
   if (!isOnline() || !offlineDownloadsOn() || meteredConnection() || lightTopUpBlocked()) return false;
+  if (liveRoomOnScreen()) return false;
   return appUpdater()?.gate() !== "hold";
+}
+
+/** Whether a top-up may run now (offlineDownloadAllowed). */
+export function topUpAllowed(): boolean {
+  return offlineDownloadAllowed();
 }
 
 /**

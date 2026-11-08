@@ -2,6 +2,7 @@ import { createStart, createCsrfMiddleware, createMiddleware } from "@tanstack/r
 
 import { renderErrorPage } from "./lib/error-page";
 import { attachSupabaseAuth } from "@/integrations/supabase/auth-attacher";
+import { POLICIES, fetchFor } from "@/lib/net/request";
 
 const errorMiddleware = createMiddleware().server(async ({ next }) => {
   try {
@@ -28,4 +29,7 @@ const csrfMiddleware = createCsrfMiddleware({
 export const startInstance = createStart(() => ({
   functionMiddleware: [attachSupabaseAuth],
   requestMiddleware: [errorMiddleware, csrfMiddleware],
+  // Every server call has a time limit (lib/net/request.ts); a call site's own `fetch` (the room's reads,
+  // steps and answer) sets its own limit and retries.
+  serverFns: { fetch: fetchFor(POLICIES.standard) },
 }));

@@ -657,6 +657,42 @@ async function runAll(db: LocalDb, rest: RestServer): Promise<void> {
     );
   });
 
+  // The room's results refetch (8 Nov 2026, the performance audit's item 4; api.ts fetchResults): the named
+  // columns without the stored answers, then this device's own answers by row id, through a device's own client
+  // (RLS and grants apply), give the same rows as select("*") with only the other players' answers left out.
+  await section("results refetch", async () => {
+    const { ROOM_RESULT_COLUMNS, OwnAnswers } = await import("../src/lib/duel/roomResults");
+    const ali = deviceClient(tok.ali);
+    const all = await ali.from("round_results").select("*").eq("duel_id", roomId);
+    const slim = await ali.from("round_results").select(ROOM_RESULT_COLUMNS).eq("duel_id", roomId);
+    check(!all.error && !slim.error, `results refetch: both reads served (${all.error?.message ?? slim.error?.message ?? "ok"})`);
+    const full = (all.data ?? []) as Record<string, unknown>[];
+    const rows = (slim.data ?? []) as unknown as import("../src/lib/duel/roomResults").RoomResultRow[];
+    check(rows.length === full.length && rows.length === rounds * 2, `results refetch: every row (${rows.length} of ${full.length})`);
+    check(rows.every((r) => !("answer" in r)), "results refetch: no stored answer in the refetch");
+    const own = new OwnAnswers();
+    const missing = own.missing(rows, 1);
+    check(missing.length === rounds, `results refetch: Ali's own ${rounds} answers asked for (${missing.length})`);
+    const mine = await ali.from("round_results").select("id, answer").in("id", missing);
+    check(!mine.error && (mine.data ?? []).length === rounds, `results refetch: own answers served by id (${mine.error?.message ?? (mine.data ?? []).length})`);
+    own.remember((mine.data ?? []) as { id: string; answer: string | null }[]);
+    const attached = own.attach(rows, 1);
+    const byId = new Map(full.map((r) => [r["id"] as string, r]));
+    const same = attached.every((r) => {
+      const f = byId.get(r.id)!;
+      const { input_type: _drop, ...rest } = f;
+      const expect = { ...rest, answer: r.player_slot === 1 ? f["answer"] : null };
+      return JSON.stringify(Object.keys(expect).sort().map((k) => [k, expect[k]])) ===
+        JSON.stringify(Object.keys(r).sort().map((k) => [k, (r as Record<string, unknown>)[k]]));
+    });
+    check(same, "results refetch: the same rows as select(\"*\"), other players' answers null");
+    check(own.missing(rows, 1).length === 0, "results refetch: the next refetch asks for no answer again");
+    const bytes = (v: unknown) => Buffer.byteLength(JSON.stringify(v));
+    console.log(
+      `NOTE results refetch: ${rows.length} rows, select("*") ${bytes(full)} bytes, named columns ${bytes(rows)} bytes, own answers once ${bytes(mine.data)} bytes`,
+    );
+  });
+
   await section("chat", async () => {
     const outsider = await call(chat.sendRoomMessageFn, { roomId, text: "hello" }, tok.dee);
     check(

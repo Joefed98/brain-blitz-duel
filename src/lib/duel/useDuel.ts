@@ -48,6 +48,13 @@ export function useDuel(roomCode: string): DuelState {
   const [results, setResults] = useState<RoundResultRow[]>([]);
   const [userId, setUserId] = useState<string | null>(null);
   const duelIdRef = useRef<string | null>(null);
+  // This device's id and slot: the results refetch fetches only this slot's stored answers (roomResults.ts).
+  const userIdRef = useRef<string | null>(null);
+  const mySlotRef = useRef<number | null>(null);
+  const notePlayers = useCallback((list: DuelPlayerRow[]) => {
+    mySlotRef.current = list.find((p) => p.user_id === userIdRef.current)?.player_slot ?? null;
+    return list;
+  }, []);
   // Battery (31 Oct 2026): 10 a second during a round's phases, 4 between rounds (roomTick.ts).
   const now = useNow(roomTickMs(duel));
 
@@ -59,16 +66,23 @@ export function useDuel(roomCode: string): DuelState {
       return;
     }
     duelIdRef.current = found.id;
-    const [nextPlayers, nextResults] = await Promise.all([
-      fetchPlayers(found.id),
-      fetchResults(found.id),
-    ]);
+    // Both at once when this device's slot is known; otherwise the players first, since the results carry
+    // only this slot's own answers (roomResults.ts).
+    let nextPlayers: DuelPlayerRow[];
+    let nextResults: RoundResultRow[];
+    if (mySlotRef.current !== null) {
+      [nextPlayers, nextResults] = await Promise.all([fetchPlayers(found.id), fetchResults(found.id, mySlotRef.current)]);
+      notePlayers(nextPlayers);
+    } else {
+      nextPlayers = notePlayers(await fetchPlayers(found.id));
+      nextResults = await fetchResults(found.id, mySlotRef.current);
+    }
     setDuel(found);
     setPlayers(nextPlayers);
     setResults(nextResults);
     setNotFound(false);
     setLoading(false);
-  }, [roomCode]);
+  }, [roomCode, notePlayers]);
 
   // This device's anonymous identity has to exist before anything is readable.
   useEffect(() => {
@@ -79,6 +93,7 @@ export function useDuel(roomCode: string): DuelState {
       try {
         const id = await ensureSession();
         if (cancelled) return;
+        userIdRef.current = id;
         setUserId(id);
         await initServerClock();
         if (!cancelled) await load();
@@ -102,11 +117,11 @@ export function useDuel(roomCode: string): DuelState {
     if (!userId) return;
     const players = batched(() => {
       const id = duelIdRef.current;
-      if (id) void fetchPlayers(id).then(setPlayers);
+      if (id) void fetchPlayers(id).then((list) => setPlayers(notePlayers(list)));
     });
     const results = batched(() => {
       const id = duelIdRef.current;
-      if (id) void fetchResults(id).then(setResults);
+      if (id) void fetchResults(id, mySlotRef.current).then(setResults);
     });
     const channel = supabase
       .channel(`duel-${roomCode}`)
@@ -153,7 +168,7 @@ export function useDuel(roomCode: string): DuelState {
     const duelId = duelIdRef.current;
     if (!userId || !duelId || duel?.status !== "in_progress") return;
     let cancelled = false;
-    void fetchResults(duelId).then((rows) => {
+    void fetchResults(duelId, mySlotRef.current).then((rows) => {
       if (!cancelled) setResults(rows);
     });
     return () => {
