@@ -102,7 +102,9 @@ function allowedCpus(): Set<number> | null {
   }
 }
 const CPUS = allowedCpus();
-function procCpu(): { others: number } | null {
+/** How many cores this process (and the browser it starts) may use. */
+export const allowedCoreCount = (fallback: number): number => CPUS?.size ?? fallback;
+export function procCpu(): { others: number } | null {
   try {
     // Busy time on the CPUs this script and the browser may use: user nice system irq softirq steal
     // (everything but idle and iowait; steal is time the VM's host took).

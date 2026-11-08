@@ -45,7 +45,7 @@ import { decodeRingTaps, replayRings } from "./rings";
 import { decodeHoverRun, replayHoverRun } from "./hover";
 import { decodeSwerveRun, replaySwerveRun } from "./swerve";
 import { decodeSkylineRun, replaySkylineRun } from "./skyline";
-import { SKYLINE_REV_EXPAND, SKYLINE_REV_LIFT, SKYLINE_REV_STD } from "@/lib/arcade/skyline";
+import { SKYLINE_REV_COUNT, SKYLINE_REV_EXPAND, SKYLINE_REV_LIFT, SKYLINE_REV_STD } from "@/lib/arcade/skyline";
 import { pinIsExpanded, PIN_REV_STD } from "@/lib/arcade/pinball";
 import { decodeSnakeRun, replaySnakeRun } from "./snake";
 import { snakeStdParts } from "@/lib/arcade/snake";
@@ -352,6 +352,15 @@ export function gradeSubmission(
 export function gradeRemoved(rawAnswer: string): Graded {
   const answer = typeof rawAnswer === "string" ? rawAnswer.slice(0, 4_000) : "";
   return { answer, isCorrect: false, score: 0, reactionAvgMs: null, correctCount: null, errors: null, extra: { removed: true }, storedMs: 0 };
+}
+
+/**
+ * The longest answer a puzzle's grade reads (arcade and engine run logs 400,000, tap logs and action logs their own
+ * caps, everything else 4,000). Security fix L13 (Nov 2026 audit): gradeAnswer cuts a standard puzzle's answer body
+ * here before the standard grader sees it, as this file's own path always has.
+ */
+export function answerCapFor(puzzle: PuzzleData): number {
+  return ARCADE_DIAG_KEYS.has(puzzle.type) || puzzle.type === "stroop" ? 400_000 : usesTapLog(puzzle) ? TAP_LOG_ANSWER_CAP : usesActionLog(puzzle) ? ACTION_LOG_ANSWER_CAP : 4_000;
 }
 
 function gradeUnderRev(
@@ -1233,7 +1242,8 @@ function gradeUnderRev(
         // skylineRev 7+ (the expansion; 8 is its play on a gentler curve): gold blocks landed perfectly, the best streak multiplier, height milestones.
         ...(puzzle.skylineRev === SKYLINE_REV_EXPAND || puzzle.skylineRev === SKYLINE_REV_LIFT ? { golds: run.golds, bestMult: run.bestMult, milestones: run.milestones } : {}),
         // skylineRev 9 (the arcade scoring standard): gold blocks landed perfectly (of 5) and height milestones (no multiplier).
-        ...(puzzle.skylineRev === SKYLINE_REV_STD ? { golds: run.golds, milestones: run.milestones } : {}),
+        // skylineRev 10 (the scoring audit): the same fields (rev 9's play; perfect drops counted, not shared).
+        ...(puzzle.skylineRev === SKYLINE_REV_STD || puzzle.skylineRev === SKYLINE_REV_COUNT ? { golds: run.golds, milestones: run.milestones } : {}),
         survived: run.survived,
         endedSeconds: run.endedSeconds,
         flagged: run.flagged,
@@ -1782,6 +1792,8 @@ function gradeUnderRev(
         claimedScore: decodeFiveHandsRun(answer).claimedScore,
         ...(run.reason ? { reason: run.reason } : {}),
       };
+      // The replay result carries no stamp: the reveal reads the stored fiveHandsRev and column from these fields.
+      revealRun = { ...run, ...extraDetail };
       break;
     }
     // Pyramid (1 Nov 2026): the deal is built from the stored seed and the run replayed; only that scores.
@@ -2461,7 +2473,7 @@ function gradeUnderRev(
         // burstRev 8 (expansion E9): clean waves, golden atoms and the features' points, for the reveal.
         // burstRev 9 (phone-test notes): waves cleared with a time bonus, golden atoms and the features' points.
         // burstRev 10 (the arcade scoring standard): each part's points, golden atoms of the five dealt, and whether all five waves were cleared.
-        ...(run.state.std ? (() => { const p = burstStdParts(run.state); return { quickWaves: run.state.quickWaves ?? 0, goldens: burstGoldenCount(run.state), goldensDealt: BURST_V10_GOLDENS, atoms: p.atoms, core: p.core, clearPts: p.clear, goldPts: p.gold, lifeCost: p.lives, done: run.state.done ?? 0, skill: p.clear + p.gold }; })() : run.state.carry ? { quickWaves: run.state.quickWaves ?? 0, goldens: burstGoldenCount(run.state), skill: burstCarryBonus(run.state).total } : run.state.exp ? { cleanWaves: run.state.cleanWaves ?? 0, goldens: burstGoldenCount(run.state), skill: burstCleanBonus(run.state).total } : {}),
+        ...(run.state.std ? (() => { const p = burstStdParts(run.state); return { quickWaves: run.state.quickWaves ?? 0, goldens: burstGoldenCount(run.state), goldensDealt: BURST_V10_GOLDENS, atoms: p.atoms, core: p.core, clearPts: p.clear, goldPts: p.gold, lifeCost: p.lives, ...(run.state.aim ? { missCost: p.misses, wastedBeams: run.state.whiffs ?? 0 } : {}), done: run.state.done ?? 0, skill: p.clear + p.gold }; })() : run.state.carry ? { quickWaves: run.state.quickWaves ?? 0, goldens: burstGoldenCount(run.state), skill: burstCarryBonus(run.state).total } : run.state.exp ? { cleanWaves: run.state.cleanWaves ?? 0, goldens: burstGoldenCount(run.state), skill: burstCleanBonus(run.state).total } : {}),
         survived: run.survived,
         survivedSeconds: run.survivedSeconds,
         endedSeconds: run.endedSeconds,
@@ -2582,6 +2594,8 @@ function gradeUnderRev(
         claimedScore: decodeSwingRun(answer).claimedScore,
         ...(run.reason ? { reason: run.reason } : {}),
       };
+      // The replay result carries no stamp: the reveal reads swingRev, permille and the parts from these fields.
+      revealRun = { ...run, ...extraDetail };
       break;
     }
     case "tilt": {

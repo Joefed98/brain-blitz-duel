@@ -11,7 +11,7 @@ import { rankOf } from "./cards";
 import { CARD_FONT, drawCard, drawChip, drawFelt, drawSlot, roundRect } from "./cards.renderer";
 import { drawCardButton, inButton, type CardButtonBox } from "./cardButtons.renderer";
 import {
-  PY_CARDS, PY_INPUT_RESET, PY_INPUT_UNDO, PY_PAIR_FULL, PY_STOCK_PILE, PY_WASTE_PILE, pyCardAt, pyFree, pyramidGame, pyRowOf, pyWasteTop, type PyState,
+  PY_CARDS, PY_INPUT_RESET, PY_INPUT_UNDO, PY_PAIR_FULL, PY_STOCK_PILE, PY_WASTE_PILE, pyCardAt, pyFree, pyramidGameFor, pyRowOf, pyWasteTop, type PyState,
 } from "./pyramid";
 
 export const PY_WORLD_W = 414;
@@ -166,8 +166,9 @@ function drawPyramidWorld(ctx: CanvasRenderingContext2D, state: PyState, size: C
 /** The partner rank as the cards show it (1 is an Ace, 11–12 Jack and Queen). */
 const PY_RANK_NAMES = ["", "A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"] as const;
 
-export function pyramidArtGame(view?: PyView): ArcadeGame<PyState, ArcadeInputEvent | null> {
-  return { ...pyramidGame, draw: (ctx, state, size) => drawPyramid(ctx, state, size, view) };
+/** The art game for a stage: the revision's sim with this draw (no stamp: pyramidRev 1). */
+export function pyramidArtGame(view?: PyView, rev?: number | null): ArcadeGame<PyState, ArcadeInputEvent | null> {
+  return { ...pyramidGameFor(rev), draw: (ctx, state, size) => drawPyramid(ctx, state, size, view) };
 }
 
 export const pyramidArt = pyramidArtGame();

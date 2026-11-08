@@ -1,5 +1,5 @@
 /**
- * Pinball (practice only until PINBALL_IN_ROOMS) — rules, swept physics and replay.
+ * Pinball (dealt in rooms since 14 Oct 2026) — rules, swept physics and replay.
  *
  *  1. Stored rounds keep their scores: real pinRev 1 runs (simulated players at
  *     every skill level, scripts/fixtures/pinball-rev1.json) replay through the
@@ -18,8 +18,7 @@
  *     a drain's lost bonuses, lane change, the bank and its reset, bumper points,
  *     the band curve (open, to 150), 0 with no input, 150 reachable through the
  *     server replay.
- *  5. The one switch: rooms deal it only when PINBALL_IN_ROOMS is on; practice
- *     always lists it (under New while it is practice only); the room
+ *  5. Rooms deal it and practice lists it (not under New); the room
  *     generator stamps pinRev 1.
  *  6. Art matches collision: the drawn flipper tip sits within 2 px of the sim's.
  *  7. Multi-touch: two fingers (one on each half) raise both flippers; lifting
@@ -40,7 +39,6 @@ import {
   pinFlipAngle,
   pinFlipTip,
   pinSweep,
-  PINBALL_IN_ROOMS,
   PIN_BALLS,
   PIN_BAND_CURVE,
   PIN_BANK_RESET,
@@ -406,11 +404,12 @@ let replayMs = 0;
 
 /* ------------------------------------------------------------------ 5 */
 {
-  // The one switch: off, rooms never deal Pinball and practice lists it on its own; on, it is an active arcade game.
-  ok(isRetired("pinball") === !PINBALL_IN_ROOMS, `the registry ${PINBALL_IN_ROOMS ? "deals" : "keeps practice only"} Pinball`);
-  ok(typesInCategory("arcade").includes("pinball") === PINBALL_IN_ROOMS && allTypesInCategory("arcade").includes("pinball"), "rooms deal Pinball only when switched on; practice always lists it");
-  ok(PREVIEW_PUZZLE_TYPES.includes("pinball") === !PINBALL_IN_ROOMS, "practice lists Pinball under New while it is practice only");
-  ok(RETIRED_ARCADE_GAMES.includes("pinball") === !PINBALL_IN_ROOMS && ACTIVE_ARCADE_GAMES.includes("pinball") === PINBALL_IN_ROOMS && ACTIVE_ARCADE_GAMES.length === typesInCategory("arcade").length, "the active arcade list follows the switch (with the two Cards & Board games, 30 Oct 2026)");
+  // Rooms deal Pinball (since 14 Oct 2026; the PINBALL_IN_ROOMS switch, always on, was removed on 7 Nov 2026): it is an
+  // active arcade game, never practice only.
+  ok(!isRetired("pinball"), "the registry deals Pinball");
+  ok(typesInCategory("arcade").includes("pinball") && allTypesInCategory("arcade").includes("pinball"), "rooms deal Pinball; practice lists it");
+  ok(!PREVIEW_PUZZLE_TYPES.includes("pinball"), "practice does not list Pinball under New (it is dealt)");
+  ok(!RETIRED_ARCADE_GAMES.includes("pinball") && ACTIVE_ARCADE_GAMES.includes("pinball") && ACTIVE_ARCADE_GAMES.length === typesInCategory("arcade").length, "Pinball is in the active arcade list (with the two Cards & Board games, 30 Oct 2026)");
   const puzzle = generatePuzzle("pinball") as any;
   // pinRev 4 (E4, 25 Oct 2026): the taller table's expansion follows the score-bands pinRev 3 (e4-expansion-check); pinRev 5
   // (27 Oct 2026) plays it for 90 s (pinball-90-check); pinRev 6 (29 Oct 2026) scores pinRev 5's play on the arcade

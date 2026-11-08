@@ -340,7 +340,8 @@ tilting home most balls).
 random swapping always finishes the board, in 15–50 s at two swaps a second: it scores about 158 today and 185 under the
 standard (150 + full speed, no par bonus). No scoring rule can hold a finish under 150; only a rule change (a swap limit,
 for instance twice par) would stop it, and the row has none, so it is left for Joe. `standard-pattern-check` reports it
-and proves random swapping gets no par bonus.
+and proves random swapping gets no par bonus. **Fixed on tilesRev 7** (7 Nov 2026, `docs/partial-credit-nov-2026.md`): a
+swap limit of 1.5 × par, so random swapping no longer finishes and scores about 0.
 
 **Kit bands** (`scripts/standard-pattern-check.ts`, 8 room seeds, medians; Topsy-Turvy and Gradient with their own
 bots, since the kits model their older boards; Pipeline's kit answers turned into the tap log its stamp grades):
@@ -641,3 +642,11 @@ Topsy-Turvy to `gravityRev 6` and Skid to `slideRev 3`: no stars or ice gems, an
 standard's, unchanged. The standard's stamps (`mazeRev 3`, `gravityRev 5`, `slideRev 2`) grade exactly as this page
 describes. The grid puzzles below are shown as Loopline (`fences`), Regions (`fillomino`) and Island Link (`bridges`)
 from 3 Nov 2026.
+
+## Follow-up: Interlock, Slider and Lookout (7 Nov 2026)
+
+`docs/word-scoring-nov-2026.md` (`src/lib/duel/wordNov7.ts`): Interlock `tileGridRev 4` (big words scaled to the
+deal's own maximum, so the dealt solution reaches 200; unfinished tiles counted against the answer grid, less tiles off
+it), Slider `wordSlideRev 5` (unfinished credit from the solver distance to the dealt words, rising with every slide of
+a shortest line) and Lookout `wordSearchRev 5` (the miss penalty taken after the bonus word is added). The Word table
+above describes the stamps before, which grade exactly as it says.

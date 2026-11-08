@@ -123,7 +123,7 @@ export async function ensureDailyRoom(
     recentBankKeys,
   });
   const { opensAt, closesAt } = ukDayWindow(day);
-  console.log(`[daily] ${kind} ${day} seed=${seed} order=${puzzles.map((p) => p.type).join(",")}`);
+  console.log(`[daily] ${kind} ${day} order=${puzzles.map((p) => p.type).join(",")}`);
   return createAsyncRoom(client, {
     kind: DAILY_ROOM_KIND[kind],
     key: dailyRoomKey(kind, day),

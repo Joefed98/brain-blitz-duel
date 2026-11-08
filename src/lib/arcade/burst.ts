@@ -18,7 +18,7 @@ import {
   type CanvasSize,
   type InputRange,
 } from "./engine";
-import { stdFinal } from "./arcadeStandard";
+import { stdCappedPenalty, stdFinal, stdLivesCharged } from "./arcadeStandard";
 import { bandStrictGame, bandStrict, bandRetarget, bandTargetGame, bandCurveOf, bandCurve, bandInit, bandPoints, bandScoreOf, bandStep, bandTotal, BAND_FINISH_BONUS, type BandFields, type BandParts } from "./scoreBands";
 
 /* ============================== Constants ============================== */
@@ -286,6 +286,9 @@ export interface BurstState extends BandFields {
   gUntil?: number;
   /** 1 once every wave is cleared (and the last golden atom gone): the run is complete. */
   done?: number;
+  /** burstRev 11: 1 on burstRev 11 states (the fair-play scoring); beams that hit nothing so far. Outside the checksum. */
+  aim?: number;
+  whiffs?: number;
   tick: number;
   rng: number;
   waves: BurstSpawn[][];
@@ -547,6 +550,8 @@ function step(state: BurstState, input: ArcadeInputEvent | null): BurstState {
     }
     else if (shot.top > ceil) flying.push(shot);
     else if (s.exp && !s.carry) burstBeamDoneV8(s, shot, false);
+    // burstRev 11: a beam (or BURST shot) that reached the ceiling without hitting anything (outside the checksum).
+    else if (s.aim) s.whiffs = (s.whiffs ?? 0) + 1;
   }
   s.shots = flying;
   if (s.exp) burstDropsV8(s, tick);
@@ -849,6 +854,7 @@ const burstGameV2: ArcadeGame<BurstState, ArcadeInputEvent | null> = { ...burstG
 
 /** The game for a stored burstRev (absent = the original drops). */
 export function burstGameFor(rev?: number | null): ArcadeGame<BurstState, ArcadeInputEvent | null> {
+  if (rev === BURST_REV_AIM) return burstAimGame;
   if (rev === BURST_REV_STD) return burstStdGame;
   if (rev === BURST_REV_CARRY) return burstCarryGame;
   if (rev === BURST_REV_CLEAN) return burstCleanGame;
@@ -906,7 +912,7 @@ export const burstTallGame: ArcadeGame<BurstState, ArcadeInputEvent | null> = { 
 
 /** The drawn world's height (the floor, px) a stored round's burstRev plays in. */
 export function burstWorldHFor(rev?: number | null): number {
-  return rev === BURST_REV_STD || rev === BURST_REV_CARRY || rev === BURST_REV_CLEAN || rev === BURST_REV_TALL || rev === BURST_REV_TARGET || rev === BURST_REV_STRICT ? BURST_TALL_H : BURST_FLOOR_Y;
+  return rev === BURST_REV_AIM || rev === BURST_REV_STD || rev === BURST_REV_CARRY || rev === BURST_REV_CLEAN || rev === BURST_REV_TALL || rev === BURST_REV_TARGET || rev === BURST_REV_STRICT ? BURST_TALL_H : BURST_FLOOR_Y;
 }
 
 /* ================= Scoring targets (burstRev 5, 18 Oct 2026) ================= */
@@ -1685,13 +1691,22 @@ function initV10(seed: number): BurstState {
 }
 
 /** burstRev 10's parts: core, wave clears, golden atoms (each at most its maximum) and the lives' cost. */
-export function burstStdParts(state: BurstState): { core: number; clear: number; gold: number; lives: number; atoms: number; total: number } {
+export function burstStdParts(state: BurstState): { core: number; clear: number; gold: number; lives: number; misses: number; atoms: number; total: number } {
   const atoms = burstV10Atoms(state.waves);
   const core = bandPoints(bandCurve([0, atoms], [0, BURST_V10_CORE_MAX]), state.hits);
   const clear = Math.min(BURST_V10_CLEAR_MAX, state.clearPts ?? 0);
   const gold = Math.min(BURST_V10_GOLDEN_MAX, BURST_V10_GOLDEN_PTS * burstGoldenCount(state));
+  if (state.aim) {
+    // burstRev 11: the life that ends the run is not charged, wasted beams cost, and the two together never take
+    // more than half the core (each part's own share first: lives, then wasted beams).
+    const lost = BURST_LIVES - state.lives;
+    const cap = stdCappedPenalty(BURST_V10_LIFE_COST * stdLivesCharged(lost, state.lives <= 0) + burstV11MissCost(state.whiffs ?? 0, state.hits), core);
+    const lives = Math.min(cap, BURST_V10_LIFE_COST * stdLivesCharged(lost, state.lives <= 0));
+    const misses = cap - lives;
+    return { core, clear, gold, lives, misses, atoms, total: core + clear + gold - lives - misses };
+  }
   const lives = BURST_V10_LIFE_COST * (BURST_LIVES - state.lives);
-  return { core, clear, gold, lives, atoms, total: core + clear + gold - lives };
+  return { core, clear, gold, lives, misses: 0, atoms, total: core + clear + gold - lives };
 }
 
 /** burstRev 10's score: the parts' sum, at least 1 for a run with any input (0 without), at most 200. */
@@ -1707,11 +1722,11 @@ export function burstStdBandParts(state: BurstState): BandParts {
     units: state.hits,
     points: p.core,
     bonus: p.clear + p.gold,
-    penalty: p.lives,
+    penalty: p.lives + p.misses,
     finished: state.done === 1,
     text: `${state.hits} of ${p.atoms} atoms`,
     bonusText: `Wave clears ${p.clear} · golden atoms ${p.gold}`,
-    penaltyText: `${lost} ${lost === 1 ? "life" : "lives"} lost × ${BURST_V10_LIFE_COST}`,
+    penaltyText: state.aim ? burstV11PenaltyText(state, p) : `${lost} ${lost === 1 ? "life" : "lives"} lost × ${BURST_V10_LIFE_COST}`,
   };
 }
 
@@ -1719,4 +1734,50 @@ export const burstStdGame: ArcadeGame<BurstState, ArcadeInputEvent | null> = {
   ...burstGame,
   init: initV10,
   score: burstStdScore,
+};
+
+/* ================= Fair play (burstRev 11, Nov 2026, the scoring audit) ================= */
+
+/**
+ * burstRev 11 (docs/arcade-standard/burst.md "burstRev 11"; docs/audit-nov-2026/scoring.md issues 2 and 7): burstRev 10's
+ * play exactly (a burstRev 10 log replays tick for tick, the same checksum) and its parts, with two scoring changes:
+ *
+ *  - The life that ends the run is not charged: only lives lost before it cost BURST_V10_LIFE_COST each.
+ *  - Wasted beams cost: every beam or BURST shot that reaches the ceiling without hitting an atom or a golden atom
+ *    (the state's `whiffs`, counted on burstRev 11 only) beyond one for each atom popped (at least
+ *    BURST_V11_FREE_MISSES) costs BURST_V11_MISS_COST. A player who aims pops more atoms than beams wasted, so pays
+ *    nothing; firing non-stop from one spot wastes far more and no longer scores like a player who aims.
+ *  - Lives and wasted beams together never take more than half the core (stdCappedPenalty): progress made counts.
+ *
+ * States add `aim: 1` and `whiffs`, outside the checkpoint checksum (playRevOf maps 11 to 10's play).
+ */
+export const BURST_REV_AIM = 11;
+/** Wasted beams a run may fire for free: one for each atom popped, and at least this many. */
+export const BURST_V11_FREE_MISSES = 20;
+/** Each wasted beam beyond those costs this many points. */
+export const BURST_V11_MISS_COST = 2;
+
+/** burstRev 11: the wasted beams a run is charged for (beyond one for each atom popped, at least BURST_V11_FREE_MISSES). */
+export function burstV11Charged(whiffs: number, hits: number): number {
+  return Math.max(0, whiffs - Math.max(BURST_V11_FREE_MISSES, hits));
+}
+/** burstRev 11: the points wasted beams cost (before the half-the-core cap). */
+export function burstV11MissCost(whiffs: number, hits: number): number {
+  return BURST_V11_MISS_COST * burstV11Charged(whiffs, hits);
+}
+
+function burstV11PenaltyText(state: BurstState, p: { core: number; lives: number; misses: number }): string {
+  const lost = BURST_LIVES - state.lives;
+  const charged = stdLivesCharged(lost, state.lives <= 0);
+  const extra = burstV11Charged(state.whiffs ?? 0, state.hits);
+  const bits: string[] = [];
+  if (charged > 0) bits.push(`${charged} ${charged === 1 ? "life" : "lives"} lost before the last`);
+  if (extra > 0) bits.push(`${extra} wasted ${extra === 1 ? "beam" : "beams"} beyond one an atom`);
+  const capped = p.lives + p.misses < BURST_V10_LIFE_COST * charged + burstV11MissCost(state.whiffs ?? 0, state.hits);
+  return bits.join(" · ") + (capped ? " (at most half the atom points)" : "");
+}
+
+export const burstAimGame: ArcadeGame<BurstState, ArcadeInputEvent | null> = {
+  ...burstStdGame,
+  init: (seed: number) => ({ ...initV10(seed), aim: 1, whiffs: 0 }),
 };

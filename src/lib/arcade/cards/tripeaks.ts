@@ -16,17 +16,25 @@
  * Stock par, pays a clear that turned the stock at most par times in full, falling evenly to 0 when the whole stock is
  * turned; the parts re-fitted to the skill-band targets (TP_V2_*). The speed part was already there (rev 1: 20, full by
  * 27 s, clears only). Rev 1 runs play and score as before.
+ *
+ * tripeaksRev 3 (7 Nov 2026, scoring audit issue 6; docs/arcade-standard/tripeaks.md): the same deals, pars and play;
+ * the 80 points locked behind a clear (clear 10, stock par 20, speed 50) split a near miss from a clear, so half the
+ * speed moves onto the cards: cards 105 (straight line over the 28), peak tops 30, longest run 10, clear 10, stock par
+ * 20 and speed 25, both in whole-number maths (stdSpeedInt). A clear always scores at least as much as any run that
+ * misses one (27 cleared with every other part full: 101 + 30 + 10 = 141; the poorest clear: 105 + 30 + 1 + 10 = 146).
+ * Rev 1 and 2 runs play and score as before.
  */
 import { inputRange, type ArcadeGame, type ArcadeInputEvent } from "../engine";
-import { stdEach, stdLine, stdPart, stdScore, stdSpeed, stdSum, type StdPart, type StdSpec } from "../arcadeStandard";
+import { stdEach, stdLine, stdPart, stdScore, stdSpeed, stdSpeedInt, stdSum, type StdPart, type StdSpec } from "../arcadeStandard";
 import { bandCurve, type BandParts } from "../scoreBands";
 import { hashInts, rankOf, shuffledDeck } from "./cards";
 import { TP_DEALS } from "./tripeaksDeals.data";
 import { TP_STOCK_PARS } from "./tripeaksStockPar.data";
 
-/** The dealt revision (rev 2: the stock par); rev 1 runs replay on tripeaksGameV1. */
-export const TP_REV = 2;
+/** The dealt revision (rev 3: more of the 200 on the cards); rev 2 runs replay on tripeaksGameV2, rev 1 on V1. */
+export const TP_REV = 3;
 export const TP_REV_PAR = 2;
+export const TP_REV_SHARE = 3;
 export const TP_CARDS = 28;
 export const TP_STOCK = 24;
 /** Input: a tap, `a` the peak card's index (0–27) or TP_STOCK_PILE for the stock. */
@@ -69,7 +77,27 @@ export const TP_V2_SPEED_FULL_S = 20;
 export const TP_STOCK_TURNS = TP_STOCK - 1;
 export const TP_V2_BAND_CURVE = bandCurve([0, TP_CARDS], [0, TP_V2_CORE_MAX]);
 
+/* ---- Scoring (tripeaksRev 3: half the speed moved onto the cards) ---- */
+export const TP_V3_CORE_MAX = 105;
+export const TP_V3_SPEED_MAX = 25;
+export const TP_V3_BAND_CURVE = bandCurve([0, TP_CARDS], [0, TP_V3_CORE_MAX]);
+
+/** tripeaksRev 3's spec (what rooms deal: the help, LIVE_BANDS, the reveal). */
 export const TP_STD_SPEC: StdSpec = {
+  field: "tripeaksRev",
+  rev: TP_REV_SHARE,
+  parts: [
+    { key: "core", label: "Cards cleared", max: TP_V3_CORE_MAX, of: TP_CARDS, item: "card", how: "clear the 28 peak cards, each worth the same" },
+    { key: "peaks", label: "Peak tops", max: TP_V2_PEAK_MAX, of: 3, item: "peak top", how: `${TP_V2_PEAK_EACH} for each peak top cleared` },
+    { key: "run", label: "Longest run", max: TP_V2_RUN_MAX, of: 10, item: "card", how: `${TP_V2_RUN_EACH} for each card in your longest run` },
+    { key: "clear", label: "Clear", max: TP_V2_CLEAR_MAX, of: 1, how: "clear all 28" },
+    { key: "par", label: "Stock par", max: TP_V2_PAR_MAX, of: 1, how: "clear all 28 turning the stock no more than the deal’s par for all of it, nothing if you turned it all" },
+    { key: "speed", label: "Speed", max: TP_V3_SPEED_MAX, of: 1, how: `clear all 28 within ${TP_V2_SPEED_FULL_S} s for all of it, falling to 0 at the buzzer` },
+  ],
+};
+
+/** tripeaksRev 2's spec (stored rounds). */
+export const TP_STD_SPEC_V2: StdSpec = {
   field: "tripeaksRev",
   rev: TP_REV_PAR,
   parts: [
@@ -215,23 +243,34 @@ function step(state: TpState, input: ArcadeInputEvent | null): TpState {
 /* ================================ Scoring ================================ */
 
 /** Stock par's points for a clear (rev 2): full at par or fewer stock turns, even to 0 at the whole stock turned. */
-export function tpStockParPoints(turns: number, par: number): number {
+export function tpStockParPoints(turns: number, par: number, rev = TP_REV_PAR): number {
   if (turns <= par) return TP_V2_PAR_MAX;
-  return stdSpeed(TP_V2_PAR_MAX, turns, par, TP_STOCK_TURNS);
+  return (rev >= TP_REV_SHARE ? stdSpeedInt : stdSpeed)(TP_V2_PAR_MAX, turns, par, TP_STOCK_TURNS);
 }
 
 export function tripeaksStdParts(state: TpState): StdPart[] | null {
   if (!state || !state.std) return null;
   const done = state.ended === 1;
-  if ((state.rev ?? 1) >= TP_REV_PAR) {
+  if ((state.rev ?? 1) >= TP_REV_SHARE) {
     const par = state.stockPar ?? TP_STOCK_TURNS;
     return [
-      stdPart(TP_STD_SPEC, "core", stdLine(TP_V2_CORE_MAX, state.clearedCount, TP_CARDS), `${state.clearedCount} / ${TP_CARDS} cleared`),
+      stdPart(TP_STD_SPEC, "core", stdLine(TP_V3_CORE_MAX, state.clearedCount, TP_CARDS), `${state.clearedCount} / ${TP_CARDS} cleared`),
       stdPart(TP_STD_SPEC, "peaks", stdEach(state.peaks, TP_V2_PEAK_EACH, TP_V2_PEAK_MAX), `${state.peaks} / 3 tops`),
       stdPart(TP_STD_SPEC, "run", stdEach(state.bestRun, TP_V2_RUN_EACH, TP_V2_RUN_MAX), `best run ${state.bestRun}`),
       stdPart(TP_STD_SPEC, "clear", done ? TP_V2_CLEAR_MAX : 0, done ? "all cleared" : "not cleared"),
-      stdPart(TP_STD_SPEC, "par", done ? tpStockParPoints(state.turns, par) : 0, done ? `${state.turns} stock cards, par ${par}` : "not cleared"),
-      stdPart(TP_STD_SPEC, "speed", done ? stdSpeed(TP_V2_SPEED_MAX, state.finishTick, TP_V2_SPEED_FULL_S * 60, TP_RUN_TICKS) : 0, done ? `cleared in ${(state.finishTick / 60).toFixed(1)} s` : "not cleared"),
+      stdPart(TP_STD_SPEC, "par", done ? tpStockParPoints(state.turns, par, TP_REV_SHARE) : 0, done ? `${state.turns} stock cards, par ${par}` : "not cleared"),
+      stdPart(TP_STD_SPEC, "speed", done ? stdSpeedInt(TP_V3_SPEED_MAX, state.finishTick, TP_V2_SPEED_FULL_S * 60, TP_RUN_TICKS) : 0, done ? `cleared in ${(state.finishTick / 60).toFixed(1)} s` : "not cleared"),
+    ];
+  }
+  if ((state.rev ?? 1) >= TP_REV_PAR) {
+    const par = state.stockPar ?? TP_STOCK_TURNS;
+    return [
+      stdPart(TP_STD_SPEC_V2, "core", stdLine(TP_V2_CORE_MAX, state.clearedCount, TP_CARDS), `${state.clearedCount} / ${TP_CARDS} cleared`),
+      stdPart(TP_STD_SPEC_V2, "peaks", stdEach(state.peaks, TP_V2_PEAK_EACH, TP_V2_PEAK_MAX), `${state.peaks} / 3 tops`),
+      stdPart(TP_STD_SPEC_V2, "run", stdEach(state.bestRun, TP_V2_RUN_EACH, TP_V2_RUN_MAX), `best run ${state.bestRun}`),
+      stdPart(TP_STD_SPEC_V2, "clear", done ? TP_V2_CLEAR_MAX : 0, done ? "all cleared" : "not cleared"),
+      stdPart(TP_STD_SPEC_V2, "par", done ? tpStockParPoints(state.turns, par) : 0, done ? `${state.turns} stock cards, par ${par}` : "not cleared"),
+      stdPart(TP_STD_SPEC_V2, "speed", done ? stdSpeed(TP_V2_SPEED_MAX, state.finishTick, TP_V2_SPEED_FULL_S * 60, TP_RUN_TICKS) : 0, done ? `cleared in ${(state.finishTick / 60).toFixed(1)} s` : "not cleared"),
     ];
   }
   return [
@@ -298,6 +337,16 @@ export const tripeaksGameV2: ArcadeGame<TpState, ArcadeInputEvent | null> = {
   },
 };
 
+/** tripeaksRev 3's game: rev 2's deals, pars and play, scored on rev 3's parts. */
+export const tripeaksGameV3: ArcadeGame<TpState, ArcadeInputEvent | null> = {
+  ...tripeaksGame,
+  init: (seed) => {
+    const d = tpDealOf(seed);
+    return tpInitFrom(d.dealSeed, d.index, TP_REV_SHARE, TP_STOCK_PARS[d.index]);
+  },
+};
+
 export function tripeaksGameFor(rev?: number | null): ArcadeGame<TpState, ArcadeInputEvent | null> {
-  return (rev ?? 1) >= TP_REV_PAR ? tripeaksGameV2 : tripeaksGame;
+  const r = rev ?? 1;
+  return r >= TP_REV_SHARE ? tripeaksGameV3 : r >= TP_REV_PAR ? tripeaksGameV2 : tripeaksGame;
 }

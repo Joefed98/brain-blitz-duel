@@ -105,9 +105,10 @@ const fire = (t: number, b = 1): ArcadeInputEvent => ({ t, k: BURST_INPUT_FIRE, 
 
 /* ============================== 1. Dealt ============================== */
 section("Rooms and practice deal burstRev 10");
-ok(generateBurst().burstRev === BURST_REV_STD && (generatePuzzle("burst") as { burstRev?: number }).burstRev === BURST_REV_STD, "rooms deal burstRev 10");
-ok((burstPuzzle.generate() as { burstRev?: number }).burstRev === BURST_REV_STD, "the practice definition deals burstRev 10");
-ok(LIVE_BANDS.burst.rev === BURST_REV_STD && LIVE_BANDS.burst.curve === BURST_V10_BAND_CURVE && roundMaxFor("burst") === 200, "LIVE_BANDS reads burstRev 10's core line; ROUND_MAX 200");
+// The scoring audit (Nov 2026): rooms deal burstRev 11, burstRev 10's play and parts (scoring-audit-arcade-check).
+ok(generateBurst().burstRev === BURST_REV_STD + 1 && (generatePuzzle("burst") as { burstRev?: number }).burstRev === BURST_REV_STD + 1, "rooms deal burstRev 11 (burstRev 10's play)");
+ok((burstPuzzle.generate() as { burstRev?: number }).burstRev === BURST_REV_STD + 1, "the practice definition deals burstRev 11 (burstRev 10's play)");
+ok(LIVE_BANDS.burst.rev === BURST_REV_STD + 1 && LIVE_BANDS.burst.curve === BURST_V10_BAND_CURVE && roundMaxFor("burst") === 200, "LIVE_BANDS reads burstRev 10's core line, dealt as burstRev 11; ROUND_MAX 200");
 ok(burstWorldHFor(BURST_REV_STD) === BURST_TALL_H, "the 390 × 650 world");
 {
   const src = readFileSync("src/lib/duel/introDemo.functions.ts", "utf8");
@@ -314,7 +315,8 @@ section("Scores: the server agrees, the breakdown adds up, skill orders");
 section("A perfect run scores 200");
 {
   const perfect = STANDARD.perfect();
-  ok(STANDARD.id === "burst" && STANDARD.stampKey === "burstRev" && STANDARD.stamp === BURST_REV_STD, "the standard module names burstRev 10");
+  // The scoring audit (Nov 2026): the module names the dealt burstRev 11 (burstRev 10's play and parts).
+  ok(STANDARD.id === "burst" && STANDARD.stampKey === "burstRev" && STANDARD.stamp === BURST_REV_STD + 1, "the standard module names burstRev 11 (burstRev 10's play)");
   ok(STANDARD.parts.reduce((a, p) => a + p.max, 0) === 200, "the parts' maxima add up to 200");
   ok(perfect.score === 200 && STANDARD.parts.every((p) => perfect.parts[p.key] === p.max), `the oracle's run scores 200 through the server replay, every part at its maximum (${JSON.stringify(perfect)})`);
   const { state } = playOracle(1453580015);

@@ -35,9 +35,9 @@ poolRev 3's table, input, physics and fouls, with:
   bank in 90 s, 69.2 s over 30 layouts) and the core is full at **five** of your seven (`POOL_CORE_FULL_V4`, 28 a ball;
   140 at 5, 6 or 7): in 90 s the middle levels pot fewer, and the 6th and 7th still open the black, its speed and the run
   of pots. Black 10 and pots in a row 30 as before; 200 in all.
-- **The bank:** `src/lib/duel/poolBankV4.server.ts`, all 60 poolRev 3 layouts (28 dealt as spots, 32 as stripes): poolRev
-  4 rolls the balls exactly as poolRev 3, so each layout's poolRev 3 witness shots are played again in 90 s and kept when
-  the run scores exactly 200 through the server's replay on the seed's own set **and** with the other set dealt
+- **The bank:** poolRev 3's, `src/lib/duel/poolBankV3.server.ts`, all 60 layouts (28 dealt as spots, 32 as stripes; the
+  separate, identical `poolBankV4.server.ts` was removed on 7 Nov 2026): poolRev 4 rolls the balls exactly as poolRev 3,
+  so each layout's poolRev 3 witness shots are played again in 90 s and must score exactly 200 through the server's replay on the seed's own set **and** with the other set dealt
   (`poolGameFor(4, set)`; the same final state) (`bun scripts/pool-bank.ts --rev=4 [--check]`, witnesses
   `scripts/fixtures/pool-witness-v4.json`; the witnesses finish in 16–24 s).
 - poolRev 3 runs replay unchanged: 16 bot runs recorded on main 6326101 (`scripts/fixtures/sports-nov3-legacy.json`)

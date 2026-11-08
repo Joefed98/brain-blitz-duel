@@ -19,12 +19,11 @@ async function db(): Promise<any> {
 
 /** The name and look a player sets, checked as the daily checks a board name. */
 async function playerFrom(data: { displayName?: unknown; colour?: unknown; icon?: unknown }) {
-  const name = String(data.displayName ?? "")
-    .trim()
-    .slice(0, 14);
+  const { cleanDisplayName, nameRefusal } = await import("./displayName.server");
+  const name = cleanDisplayName(data.displayName);
   if (!name) return { error: "Enter a display name." } as const;
-  const { NAME_REFUSED_MESSAGE, offensiveName } = await import("./boardName.server");
-  if (offensiveName(name)) return { error: NAME_REFUSED_MESSAGE, nameRefused: true } as const;
+  const refusal = nameRefusal(name);
+  if (refusal) return { error: refusal.message, nameRefused: true } as const;
   const { isPlayerColour, isPlayerIcon } = await import("./playerLook");
   return {
     who: {
@@ -76,8 +75,10 @@ export const createChallengeFn = createServerFn({ method: "POST" })
     if ("error" in player)
       return { ok: false as const, message: player.error, nameRefused: "nameRefused" in player };
     const client = await db();
-    const { CHALLENGE_CREATE_LIMIT, withinRateLimit } = await import("./rateLimit.server");
+    const { CHALLENGE_CREATE_LIMIT, IP_CHALLENGE_CREATE_LIMIT, withinIpRateLimit, withinRateLimit } = await import("./rateLimit.server");
     if (!(await withinRateLimit(client, context.userId, CHALLENGE_CREATE_LIMIT)))
+      return { ok: false as const, message: "That’s a lot of tries. Give it a few minutes." };
+    if (!(await withinIpRateLimit(IP_CHALLENGE_CREATE_LIMIT, client)))
       return { ok: false as const, message: "That’s a lot of tries. Give it a few minutes." };
     const { createChallenge } = await import("./challenge.server");
     return createChallenge(
@@ -94,8 +95,10 @@ export const challengeFromRoomFn = createServerFn({ method: "POST" })
   .inputValidator((input: { duelId: string }) => input)
   .handler(async ({ data, context }) => {
     const client = await db();
-    const { CHALLENGE_CREATE_LIMIT, withinRateLimit } = await import("./rateLimit.server");
+    const { CHALLENGE_CREATE_LIMIT, IP_CHALLENGE_CREATE_LIMIT, withinIpRateLimit, withinRateLimit } = await import("./rateLimit.server");
     if (!(await withinRateLimit(client, context.userId, CHALLENGE_CREATE_LIMIT)))
+      return { ok: false as const, message: "That’s a lot of tries. Give it a few minutes." };
+    if (!(await withinIpRateLimit(IP_CHALLENGE_CREATE_LIMIT, client)))
       return { ok: false as const, message: "That’s a lot of tries. Give it a few minutes." };
     const { createChallengeFromRoom } = await import("./challenge.server");
     return createChallengeFromRoom(client, context.userId, String(data.duelId ?? ""), Date.now());
@@ -146,6 +149,9 @@ export const startChallengeFn = createServerFn({ method: "POST" })
     const player = await playerFrom(data);
     if ("error" in player)
       return { ok: false as const, message: player.error, nameRefused: "nameRefused" in player };
+    const { CHALLENGE_START_LIMIT, withinRateLimit } = await import("./rateLimit.server");
+    if (!(await withinRateLimit(client, context.userId, CHALLENGE_START_LIMIT)))
+      return { ok: false as const, message: "That’s a lot of tries. Give it a few minutes." };
     return startChallenge(client, code, context.userId, player.who, Date.now());
   });
 

@@ -117,7 +117,7 @@ for (let i = 0, x = 0x2545f491; i < 200; i++) {
   const py = generatePuzzle("pyramid");
   const gs = generatePuzzle("golfsol");
   const mg = generatePuzzle("muggins");
-  ok(py.type === "pyramid" && py.pyramidRev === 1 && gs.type === "golfsol" && gs.golfSolRev === 1 && gs.seed >= 0 && gs.seed < GS_DEALS.length && mg.type === "muggins" && mg.mugginsRev === 1, "rooms deal pyramidRev 1 (any seed), golfSolRev 1 (a bank index) and mugginsRev 1 (any seed)");
+  ok(py.type === "pyramid" && py.pyramidRev === 2 && gs.type === "golfsol" && gs.golfSolRev === 1 && gs.seed >= 0 && gs.seed < GS_DEALS.length && mg.type === "muggins" && mg.mugginsRev === 1, "rooms deal pyramidRev 2 (any seed), golfSolRev 1 (a bank index) and mugginsRev 1 (any seed)");
 }
 
 /* 3. Rules. */

@@ -40,18 +40,21 @@ import type { StdEntry } from "./arcade-standard/entry";
  */
 const STANDARD_ROSTER: readonly { type: string; field: string; rev: number; batch: string }[] = [
   // sliceRev 12 (3 Nov 2026, the Action polish): bigger food, the core from half the food (slice-food-check).
-  { type: "slice", field: "sliceRev", rev: 12, batch: "A" },
+  // sliceRev 13 (Nov 2026, the scoring audit): sliceRev 12's food and play; core and combo on straight lines from 0.
+  { type: "slice", field: "sliceRev", rev: 13, batch: "A" },
   { type: "breaker", field: "brkRev", rev: 11, batch: "A" },
   // tiltRev 11 (3 Nov 2026): tiltRev 10's mazes with no gold stars, scored on par times and a clean run (tilt-rev11-check).
   // tiltRev 12 (3 Nov 2026): tiltRev 11's parts with bigger marbles and keys, from its proved deal (tilt-rev12-check).
   { type: "tilt", field: "tiltRev", rev: 12, batch: "A" },
-  { type: "burst", field: "burstRev", rev: 10, batch: "A" },
+  // burstRev 11 (Nov 2026, the scoring audit): burstRev 10's play and parts; the last life free, wasted beams cost.
+  { type: "burst", field: "burstRev", rev: 11, batch: "A" },
   // Gemstone deals matchupRev 12 since Nov 2026 (six goals shown at once, six treasures; the same five parts re-weighted).
   { type: "matchup", field: "matchupRev", rev: 12, batch: "A" },
   // snakeRev 12 (1 Nov 2026): snakeRev 11's parts, the core counting a gold star as 2 and full at 28 (snake-rev12-check).
   { type: "snake", field: "snakeRev", rev: 12, batch: "A" },
   { type: "hover", field: "hoverRev", rev: 10, batch: "A" },
-  { type: "skyline", field: "skylineRev", rev: 9, batch: "B" },
+  // skylineRev 10 (Nov 2026, the scoring audit): skylineRev 9's play; perfect drops counted, so more floors never score less.
+  { type: "skyline", field: "skylineRev", rev: 10, batch: "B" },
   { type: "bintoss", field: "binRev", rev: 9, batch: "B" },
   { type: "bullseye", field: "bullRev", rev: 9, batch: "B" },
   { type: "pinball", field: "pinRev", rev: 6, batch: "B" },
@@ -59,8 +62,10 @@ const STANDARD_ROSTER: readonly { type: string; field: string; rev: number; batc
   { type: "bubble", field: "bubbleRev", rev: 11, batch: "B" },
   { type: "beat", field: "beatRev", rev: 11, batch: "B" },
   // crossRev 11 (3 Nov 2026): no coins, the no-stop streak, a hit costs 15 (cross-rev11-check).
-  { type: "cross", field: "crossRev", rev: 11, batch: "C" },
-  { type: "wavefront", field: "wavRev", rev: 12, batch: "C" },
+  // crossRev 12 (Nov 2026, the scoring audit): crossRev 11's play and parts; the hit that ends the run is free.
+  { type: "cross", field: "crossRev", rev: 12, batch: "C" },
+  // wavRev 13 (Nov 2026, the scoring audit): wavRev 12's play and parts; the life that ends the run is free.
+  { type: "wavefront", field: "wavRev", rev: 13, batch: "C" },
   // flipRev 11 (3 Nov 2026): no star pickups; clean time 100, perfect landings 60, double flips 20, flow streak 20 (flip-rev11-check).
   // flipRev 12 (3 Nov 2026): flipRev 11's game dealt only on its proved courses (flip-deal-check).
   { type: "flip", field: "flipRev", rev: 12, batch: "C" },
@@ -82,8 +87,9 @@ const STANDARD_ROSTER: readonly { type: string; field: string; rev: number; batc
   // Cards & Board (30 Oct 2026): born on the standard at revision 1.
   // Free Cell's rev 2 (Undo and Reset) and Full House's rev 2 (full at the elite median), 31 Oct 2026: still on the standard.
   // Free Cell freecellRev 4 and Summit tripeaksRev 2 (3 Nov 2026, the Cards & Board batch): the 40-card deal; the stock par.
-  { type: "freecell", field: "freecellRev", rev: 4, batch: "Cards" },
-  { type: "tripeaks", field: "tripeaksRev", rev: 2, batch: "Cards" },
+  // Free Cell freecellRev 5, Summit tripeaksRev 3 and Thirteen pyramidRev 2 (7 Nov 2026): partial clears earn in proportion.
+  { type: "freecell", field: "freecellRev", rev: 5, batch: "Cards" },
+  { type: "tripeaks", field: "tripeaksRev", rev: 3, batch: "Cards" },
   { type: "pokersquares", field: "pokerSquaresRev", rev: 2, batch: "Cards" },
   // Five Hands (31 Oct 2026): born on the standard; fiveHandsRev 3 (3 Nov 2026) is NOT_200_ON_EVERY_DEAL's one exception.
   { type: "fivehands", field: "fiveHandsRev", rev: 3, batch: "Cards" },
@@ -91,7 +97,7 @@ const STANDARD_ROSTER: readonly { type: string; field: string; rev: number; batc
   // unstamped); bastionRev 3 (3 Nov 2026) adds the drones and eases waves 4–5.
   { type: "bastion", field: "bastionRev", rev: 3, batch: "Action" },
   // Pyramid, Golf Solitaire and Muggins (1 Nov 2026): born on the standard.
-  { type: "pyramid", field: "pyramidRev", rev: 1, batch: "Cards" },
+  { type: "pyramid", field: "pyramidRev", rev: 2, batch: "Cards" },
   { type: "golfsol", field: "golfSolRev", rev: 1, batch: "Cards" },
   { type: "muggins", field: "mugginsRev", rev: 1, batch: "Cards" },
   // The Sports group (30 Oct 2026): on the standard from their first stamp.

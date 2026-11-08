@@ -155,15 +155,15 @@ function Field({
   );
 }
 
-/** Fixed intro example — three gold stars among other shapes, every time. */
+/** Fixed intro example — three pink stars among other shapes, every time (gold is never dealt). */
 const EXAMPLE_SHAPES: CountUpShape[] = [
-  { shape: "star", colour: "GOLD", x: 18, y: 24, size: 30, rotation: 5, layer: 1 },
+  { shape: "star", colour: "PINK", x: 18, y: 24, size: 30, rotation: 5, layer: 1 },
   { shape: "circle", colour: "BLUE", x: 42, y: 18, size: 38, rotation: 0, layer: 2 },
-  { shape: "star", colour: "GOLD", x: 68, y: 34, size: 32, rotation: 20, layer: 3 },
+  { shape: "star", colour: "PINK", x: 68, y: 34, size: 32, rotation: 20, layer: 3 },
   { shape: "triangle", colour: "GREEN", x: 84, y: 20, size: 34, rotation: 18, layer: 4 },
   { shape: "square", colour: "PURPLE", x: 30, y: 58, size: 42, rotation: 32, layer: 5 },
-  { shape: "star", colour: "PINK", x: 54, y: 62, size: 28, rotation: 8, layer: 6 },
-  { shape: "star", colour: "GOLD", x: 78, y: 74, size: 36, rotation: 28, layer: 7 },
+  { shape: "star", colour: "ORANGE", x: 54, y: 62, size: 28, rotation: 8, layer: 6 },
+  { shape: "star", colour: "PINK", x: 78, y: 74, size: 36, rotation: 28, layer: 7 },
   { shape: "circle", colour: "RED", x: 16, y: 80, size: 40, rotation: 0, layer: 8 },
   { shape: "triangle", colour: "BLUE", x: 46, y: 84, size: 32, rotation: 14, layer: 9 },
 ];
@@ -171,7 +171,7 @@ const EXAMPLE_SHAPES: CountUpShape[] = [
 function IntroExample() {
   return (
     <div className="flex w-full flex-col items-center gap-3">
-      <p className="font-display text-base font-bold">How many gold stars?</p>
+      <p className="font-display text-base font-bold">How many pink stars?</p>
       <Field shapes={EXAMPLE_SHAPES} height={140} size={20} cols={8} rows={6} />
       <p className="font-mono text-sm text-muted-foreground">
         answer <span className="font-bold text-primary">3</span>

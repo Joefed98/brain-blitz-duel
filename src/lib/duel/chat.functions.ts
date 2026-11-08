@@ -47,7 +47,9 @@ export const sendRoomMessageFn = createServerFn({ method: "POST" })
       return { ok: false as const, message: "The host has muted you in this room." };
     }
 
-    const text = (data.text ?? "").replace(/\s+/g, " ").trim().slice(0, MESSAGE_MAX_LENGTH);
+    // M2: the names' character strip (no control, bidi or zero-width characters), cut by code point.
+    const { cleanChatText, censorChat } = await import("./displayName.server");
+    const text = cleanChatText(data.text, MESSAGE_MAX_LENGTH);
     if (!text) return { ok: false as const, message: "Type a message first." };
 
     const { data: mine } = await client
@@ -67,13 +69,20 @@ export const sendRoomMessageFn = createServerFn({ method: "POST" })
       return { ok: false as const, message: "Slow down a moment." };
     }
 
-    const { censor } = await import("./profanity.server");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    // L3: the gap and cap above are read-then-insert, so parallel sends got past both; this bucket is atomic.
+    const { chatGapLimit, chatRoomLimit, withinRateLimit } = await import("./rateLimit.server");
+    if (!(await withinRateLimit(supabaseAdmin, context.userId, chatGapLimit(MESSAGE_MIN_GAP_MS)))) {
+      return { ok: false as const, message: "Slow down a moment." };
+    }
+    if (!(await withinRateLimit(supabaseAdmin, context.userId, chatRoomLimit(data.roomId, MESSAGE_MAX_PER_PLAYER)))) {
+      return { ok: false as const, message: "You’ve hit the message limit for this room." };
+    }
     const { error } = await supabaseAdmin.from("room_messages").insert({
       duel_id: data.roomId,
       sender_user_id: context.userId,
       sender_name: sender.display_name,
-      text: censor(text),
+      text: censorChat(text),
     });
     if (error) return { ok: false as const, message: "Message didn’t send. Try again." };
     return { ok: true as const };
@@ -85,7 +94,7 @@ export const allowReactionFn = createServerFn({ method: "POST" })
   .inputValidator((input: { roomId: string; emoji: string }) => input)
   .handler(async ({ data, context }) => {
     if (!ROOM_EMOJI.includes(data.emoji as (typeof ROOM_EMOJI)[number])) {
-      return { ok: false as const, message: "Unknown reaction." };
+      return { ok: false as const, message: "That reaction doesn’t exist." };
     }
     const sender = await senderRow(context.supabase, data.roomId, context.userId);
     if (!sender || sender.status === "left") {

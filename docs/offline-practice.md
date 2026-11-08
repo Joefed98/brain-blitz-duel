@@ -31,6 +31,12 @@ online only. No game's rules, scoring, grading or stamps changed.
 About 16 MB on a phone with every pack full (offline-check reports the browser's own figure): app files ~4.5 MB,
 sounds and music ~8 MB, tile images, fonts and icons ~1.5 MB, ~760 deals ~1 MB. The budget is 60 MB.
 
+The 135 sounds and music copied from Lovable's asset store into `public/sounds/` (7 Nov 2026, Route B prep; listed
+in `assets-archive/lovable-sounds/sources.json`, about 64 MB) are not part of the install download, as when they
+were served from `/__l5e/`: the worker keeps each one in the media cache once it has played, across builds, and
+drops a kept copy whose bytes a build changes, so the next play fetches the new one (`CONFIG.lazyMedia`,
+`lazyMediaPaths()` in `swPlugin.ts`; offline-media-refresh-check proves it).
+
 ## Proof
 
 `offline-check` (headless Chromium on a production build, 414×896 and 375×667, shard `play20`, ~5 min).

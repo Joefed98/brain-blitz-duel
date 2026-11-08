@@ -10,6 +10,7 @@ import {
   TAP_LOG_PREFIX,
   dealtTapRev,
   TAP_REV_ONE_CURVE,
+  TAP_REV_PER_ITEM,
   tapRevOf,
   decodeTapTimes,
   encodeTapTimes,
@@ -124,7 +125,7 @@ function IntroExample() {
   return (
     <div className="flex flex-col items-center gap-4">
       <p className="text-center text-sm text-muted-foreground">
-        The screen stays dark. It turns fully gold five to eight times - tap the instant it does.
+        The screen stays dark. It turns fully gold five to eight times – tap the instant it does.
       </p>
       <div className="flex items-center gap-2">
         <span className="flex h-16 w-20 items-center justify-center rounded-xl border border-border bg-card font-mono text-xs text-muted-foreground">
@@ -563,7 +564,8 @@ function Reveal({ puzzle, myAnswer, myReactionAvgMs, myExtra }: PuzzleRevealProp
         <p>
           {/* The count alone (4 Nov 2026: "(−973 points)" was the cost before the curve, not points off the score). */}
           False starts: {falseStarts}
-          {times.some((ms) => ms >= REACTION_MISS_MS) ? ` · a miss counts ${REACTION_MISS_MS.toLocaleString("en-GB")} ms` : ""}
+          {/* tapRev 7 (7 Nov 2026): each flash scores on its own, so a miss scores nothing rather than counting as 1,200 ms. */}
+          {times.some((ms) => ms >= REACTION_MISS_MS) ? (tapRevOf(puzzle) >= TAP_REV_PER_ITEM ? " · a missed flash scores 0" : ` · a miss counts ${REACTION_MISS_MS.toLocaleString("en-GB")} ms`) : ""}
         </p>
         {depth ? (
           <p data-flash-steady-reveal="">

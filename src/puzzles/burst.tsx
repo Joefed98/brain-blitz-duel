@@ -14,7 +14,7 @@ import {
   BURST_GOLD,
   BURST_INPUT_FIRE,
   BURST_INPUT_MOVE,
-  BURST_REV_STD,
+  BURST_REV_AIM,
   BURST_V8_GOLDENS,
   BURST_V10_GOLDENS,
   burstStdParts,
@@ -165,7 +165,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
         <p className="shrink-0 text-center font-mono text-sm text-muted-foreground">
           {(() => {
             const p = burstStdParts(result.state);
-            return `${result.hits}/${p.atoms} atoms ${p.core} · wave clears ${p.clear} · golden ${burstGoldenCount(result.state)}/${BURST_V10_GOLDENS} ${p.gold}${p.lives ? ` · lives −${p.lives}` : ""}`;
+            return `${result.hits}/${p.atoms} atoms ${p.core} · wave clears ${p.clear} · golden ${burstGoldenCount(result.state)}/${BURST_V10_GOLDENS} ${p.gold}${p.lives ? ` · lives −${p.lives}` : ""}${p.misses ? ` · wasted beams −${p.misses}` : ""}`;
           })()}
         </p>
       ) : result.state.carry ? (
@@ -188,7 +188,7 @@ export const burstPuzzle: PuzzleDefinition = {
   category: "arcade",
   timeLimitMs: BURST_TIME_MS,
   revealMs: 6_000,
-  generate: () => ({ type: "burst", seed: 1, burstRev: BURST_REV_STD }) satisfies BurstPuzzleData,
+  generate: () => ({ type: "burst", seed: 1, burstRev: BURST_REV_AIM }) satisfies BurstPuzzleData,
   check: () => false,
   revealHeading: "Your run",
   IntroExample,

@@ -33,6 +33,11 @@ import { floodMoveLimit } from "../src/lib/duel/moveLimits";
 import { kitBands, median, sentAnswer } from "./standard-lib";
 import { TIMELINE_MARK } from "../src/lib/duel/standard/timeline";
 import { roomPuzzle } from "./puzzle-fairness/run";
+import { pinPrePartialCredit } from "../src/lib/duel/partialCredit";
+
+// Written for the standard's stamps: the partial-credit fixes of 7 Nov 2026 (partialCredit.ts) deal
+// Blackout, Hanoi and Polypotions one stamp above, so new deals here keep the standard's (partial-credit-check proves the new stamps).
+pinPrePartialCredit(true);
 
 const PRINT = process.argv.includes("--print");
 const started = performance.now();
