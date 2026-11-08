@@ -40,8 +40,17 @@ export const POLICIES = {
   heartbeat: { timeoutMs: 5_000, attempts: 1 },
   /** Phase steps, READY and Continue: each phone asks again on its own schedule. */
   step: { timeoutMs: 8_000, attempts: 1 },
-  /** Every other server call (createStart's default): a time limit, no retry. */
-  standard: { timeoutMs: 30_000, attempts: 1 },
+  /**
+   * Every other server call (createStart's default): a time limit, no retry. Generous, so a slow but working
+   * call (a grade or a deal on a busy or cold server) is never cut off; it only ends a request that hangs.
+   */
+  standard: { timeoutMs: 60_000, attempts: 1 },
+  /**
+   * Background work nobody waits on (offline practice's pack deals: up to 10 deals for several games a call,
+   * which a loaded server can take well over a minute to deal). A cut-off call stops the top-up until the next
+   * sync, so its limit only catches a request that will never answer.
+   */
+  background: { timeoutMs: 180_000, attempts: 1 },
 } as const satisfies Record<string, RequestPolicy>;
 
 /** Waits before each retry, ms (the last repeats). */

@@ -123,9 +123,11 @@ for (const name of ["submit", "heartbeat", "step", "standard", "clock"] as const
 }
 check(POLICIES.read.attempts > 1 && RETRY_BACKOFF_MS.every((ms) => ms > 0), "reads retry after a backoff");
 check(
-  Object.values(POLICIES).every((p) => p.timeoutMs >= 3_000 && p.timeoutMs <= 30_000),
-  "every policy's limit is between 3 s and 30 s",
+  Object.values(POLICIES).every((p) => p.timeoutMs >= 3_000 && p.timeoutMs <= 180_000),
+  "every policy's limit is between 3 s and 3 min",
 );
+check(POLICIES.standard.timeoutMs >= 60_000, "the default limit never cuts off a slow but working call (60 s or more)");
+check(POLICIES.background.timeoutMs >= 180_000 && POLICIES.background.attempts === 1, "background work (pack deals) gets 3 minutes, one try");
 
 // 2. The room's answer: a hung send is sent again.
 {
@@ -278,6 +280,10 @@ check(
   check(/serverFns: \{ fetch: fetchFor\(POLICIES\.standard\) \}/.test(start), "start.ts: every server call has a time limit");
   const room = readFileSync("src/routes/duel.$code.tsx", "utf8");
   check(/now - dueSince\.current > CATCH_UP_AFTER_MS[\s\S]{0,120}state\.refresh\(\)/.test(room), "room page: a phase still due re-reads the room");
+  const packsSrc = readFileSync("src/lib/offline/packs.ts", "utf8");
+  check(/practicePackFn\(\{ data: \{ types, count \}, fetch: fetchFor\(POLICIES\.background\) \}\)/.test(packsSrc), "packs.ts: pack deals carry the background policy");
+  const installSrc = readFileSync("src/lib/offline/install.ts", "utf8");
+  check(/void fillWorker\(\)\.catch\(\(\) => \{\}\);\s*return topUpPacks\(\);/.test(installSrc), "install.ts: the packs never wait for the worker's download");
   const clockSrc = readFileSync("src/lib/duel/clock.ts", "utf8");
   check(/serverTimeFn\(\{ fetch: fetchFor\(POLICIES\.clock\) \}\)/.test(clockSrc), "clock.ts: the clock's sample has its policy");
 }

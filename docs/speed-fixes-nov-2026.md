@@ -15,7 +15,8 @@ left for the Supabase move.
 - The download comes later. Each offline sync (3 s after opening, on reconnecting, on returning to the app, every
   5 minutes, and back on the Practice list after the first finished round) sends the worker a `FILL` message when
   offline practice may download (`packs.ts` `offlineDownloadAllowed`, the packs' own rules plus "no room on
-  screen"). The worker downloads, then the packs top up. A second `FILL` does nothing.
+  screen"). The worker downloads while the packs top up; the packs never wait for it. A second `FILL` does
+  nothing.
 - Any install also downloads nothing on Save-Data, a metered or 2G connection, or with a room, daily or
   challenge open (the worker checks its own connection and open windows; `sw.template.js` `fillDeferred`). That
   covers a new build arriving mid-room on a device that already has the download.
@@ -78,7 +79,8 @@ answers the same way however often they arrive are retried here.
 | Phase steps, READY, Continue, host presence | 8 s | none (each phone asks again on its own schedule) |
 | Presence heartbeat | 5 s | none (the next one follows in 4 s) |
 | Clock sample | 3 s | none (three samples; a round trip over 1 s doesn't replace a measured clock) |
-| Every other server call (`createStart` default) | 30 s | none (create, join, start and Play again are never sent twice blindly) |
+| Practice pack deals (background, nobody waits) | 3 min | none |
+| Every other server call (`createStart` default) | 60 s | none (create, join, start and Play again are never sent twice blindly) |
 
 On a dev server every limit is 6 times longer, because a dev server compiles modules on first use.
 

@@ -1742,14 +1742,14 @@ outside the repo.
 - **Speed fixes 2, 4 and 6** (8 Nov 2026, `docs/speed-fixes-nov-2026.md`, from `docs/audit-nov-2026/performance.md`;
   network and device storage only, no stamps). *Offline download*: a device without a finished practice round, or on
   Save-Data / metered / 2G / Battery saver / a room on screen, registers `/sw.js?fill=later` (`registrationUrl`), whose
-  install downloads nothing; the download comes from the page's FILL message (`requestWorkerFill`, before the packs,
+  install downloads nothing; the download comes from the page's FILL message (`requestWorkerFill`, never awaited by the packs,
   under `offlineDownloadAllowed`, which also holds packs while a room, daily or challenge is on screen); any install
   defers on those connections or with a room open (`fillDeferred`); a download fetches only what changed
   (`CONFIG.appHash` from swPlugin, the record `/__joulz-manifest`; kept media hashed on the phone only when the record
   doesn't know it). Devices with `/sw.js` keep it. *Results refetch*: `ROOM_RESULT_COLUMNS` (`roomResults.ts`)
   leaves out `answer`; this device's own answers come once a row by id (`OwnAnswers`); other players' rows carry
   `answer: null` (replays fetch their log through their own server calls). *Timeouts* (`src/lib/net/request.ts`):
-  `POLICIES` per call (`fetch: fetchFor(...)` at the call site, `createStart`'s `serverFns.fetch` 30 s default,
+  `POLICIES` per call (`fetch: fetchFor(...)` at the call site, `createStart`'s `serverFns.fetch` 60 s default, pack deals `POLICIES.background` 3 min,
   `supabaseRead` for the room's reads, `abortable`); only reads retry here, the answer is retried by roomSend (the
   server keeps one row); the clock's samples end at 3 s and slow ones don't replace a measured clock; a phase still
   due 3 s on re-reads the room (`CATCH_UP_AFTER_MS`). Dev servers get 6× the limits. offline-delta-check (~1 s),

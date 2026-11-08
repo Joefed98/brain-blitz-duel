@@ -295,7 +295,7 @@ const swPage = readFileSync("src/lib/offline/serviceWorker.ts", "utf8");
 check(/!isOfflineWorkerUrl\(\(r\.active \?\? r\.waiting \?\? r\.installing\)\?\.scriptURL\)/.test(swPage), "the updater's handover unregisters only other workers");
 const install = readFileSync("src/lib/offline/install.ts", "utf8");
 check(/offlineDownloadAllowed\(\) && practiceStarted\(\)/.test(install), "install: the full worker only after the first finished round, under the download rules");
-check(/fillWorker\(\)[\s\S]*topUpPacks\(\)/.test(install), "sync: the worker's download before the packs");
+check(/fillWorker\(\)[\s\S]*topUpPacks\(\)/.test(install), "sync: the worker's download is asked for with the packs");
 const packs = readFileSync("src/lib/offline/packs.ts", "utf8");
 check(/if \(liveRoomOnScreen\(\)\) return false;/.test(packs), "downloads wait while a room, daily or challenge is on screen");
 

@@ -30,11 +30,16 @@ async function fillWorker(): Promise<void> {
   await requestWorkerFill();
 }
 
-/** Sends the queue, then the worker's download and the packs (each does nothing without a connection). */
+/**
+ * Sends the queue, then asks for the worker's download and tops up the packs (each does nothing without a
+ * connection). The packs never wait for the worker's download: it runs in the worker, and a slow one (a large
+ * first download, a font host that doesn't answer) must not hold the packs back.
+ */
 export function syncOffline(): Promise<void> {
-  return flushQueue()
-    .then(() => fillWorker().catch(() => {}))
-    .then(() => topUpPacks());
+  return flushQueue().then(() => {
+    void fillWorker().catch(() => {});
+    return topUpPacks();
+  });
 }
 
 export function installOfflinePractice(): () => void {

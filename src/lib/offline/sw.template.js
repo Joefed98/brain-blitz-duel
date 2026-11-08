@@ -43,6 +43,8 @@ const MANIFEST_KEY = "/__joulz-manifest";
 /** Screens a download never competes with (a live round's sends and its realtime socket). */
 const ROOM_PATHS = ["/duel", "/daily", "/challenge"];
 const SLOW_CONNECTIONS = ["slow-2g", "2g"];
+/** How long a download waits for the Google-hosted font (best effort). */
+const FONT_TIMEOUT_MS = 10000;
 /** A bundle file named by its content (Vite's "[name]-[hash].ext"): the same name is the same bytes. */
 const IMMUTABLE = /^\/assets\/[^/]+-[A-Za-z0-9_-]{8,}\.[A-Za-z0-9]+$/;
 
@@ -346,7 +348,8 @@ async function fill(required) {
     if (isStale(path)) await media.delete(path);
     else record[path] = hashes[path];
   }
-  await cacheGoogleFonts();
+  // Best effort and bounded: a font host that doesn't answer never holds the download's record back.
+  await withTimeout(cacheGoogleFonts(), FONT_TIMEOUT_MS).catch(() => {});
   const complete = failedApp.size === 0 && failedMedia.size === 0;
   await writeManifest({ media: record, filled: { version: CONFIG.version, appCache: APP_CACHE, app: storedApp, complete } });
   return complete;
