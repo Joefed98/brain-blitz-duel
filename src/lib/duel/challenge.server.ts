@@ -25,8 +25,10 @@ import {
   createAsyncRoom,
   importFinishedAttempt,
   resultsOf,
+  lockedExtra,
   roomById,
   roomByKey,
+  solutionLockFor,
   startAttempt,
   type AsyncAttemptRow,
   type AsyncResultRow,
@@ -607,6 +609,27 @@ function boardRows(
   };
 }
 
+/** The room's private halves, one a round (empty where none is stored). */
+async function privateHalves(client: any, roomId: string): Promise<Record<string, unknown>[]> {
+  const { data: secret } = await client
+    .from("async_room_secrets")
+    .select("puzzles_private")
+    .eq("room_id", roomId)
+    .maybeSingle();
+  return (secret?.puzzles_private ?? []) as Record<string, unknown>[];
+}
+
+/** H2: a board row with its `extra` cut back (lockedExtra) while its round's solution is locked. */
+function lockRow<T extends { round_number: number; extra: Record<string, unknown> | null }>(
+  row: T,
+  room: AsyncRoomRow,
+  privs: readonly Record<string, unknown>[],
+  nowMs: number,
+): T {
+  const priv = privs[row.round_number - 1];
+  return solutionLockFor(room, priv, nowMs) ? { ...row, extra: lockedExtra(row.extra, priv) } : row;
+}
+
 /**
  * A round's leaderboard and standings for the caller, once their own result for it is stored: the
  * earlier players' and the caller's results for that round and the ones before (no answers), and
@@ -617,6 +640,7 @@ export async function challengeRoundBoard(
   room: AsyncRoomRow,
   attempt: AsyncAttemptRow,
   round: number,
+  nowMs: number,
 ): Promise<{ ok: true; board: ChallengeRoundBoard } | Fail> {
   const pub = room.puzzles_public[round - 1];
   if (!pub) return { ok: false, message: "That round doesn’t exist." };
@@ -628,16 +652,15 @@ export async function challengeRoundBoard(
     (a, b) => a.slot - b.slot,
   );
   const { data } = await client.from("async_results").select("*").eq("room_id", room.id);
-  const { rows, full } = boardRows(room, (data ?? []) as AsyncResultRow[], people, attempt, round);
-  const { data: secret } = await client
-    .from("async_room_secrets")
-    .select("puzzles_private")
-    .eq("room_id", room.id)
-    .maybeSingle();
-  const puzzle = mergePuzzle(
-    pub,
-    ((secret?.puzzles_private ?? []) as Record<string, unknown>[])[round - 1],
-  );
+  const privs = await privateHalves(client, room.id);
+  const board = boardRows(room, (data ?? []) as AsyncResultRow[], people, attempt, round);
+  // H2: no row carries a field the lock withholds (some extras keep the minimum or the par).
+  const rows = board.rows.map((row) => lockRow(row, room, privs, nowMs));
+  const full = new Map([...board.full].map(([key, row]) => [key, lockRow(row, room, privs, nowMs)]));
+  const priv = privs[round - 1];
+  // H2: while the challenge is open, every summary and the answer line see the public half only.
+  const solutionLock = solutionLockFor(room, priv, nowMs);
+  const puzzle = solutionLock ? pub : mergePuzzle(pub, priv);
   const definition = puzzleDef(puzzle.type);
   const details: PlayerRoundDetail[] = [];
   for (const person of people) {
@@ -646,16 +669,17 @@ export async function challengeRoundBoard(
     try {
       details.push({ playerSlot: person.slot, ...definition.roundSummary(row, puzzle) });
     } catch (err) {
-      console.error(`[challenge] summary failed for ${puzzle.type}`, err);
+      if (!solutionLock) console.error(`[challenge] summary failed for ${puzzle.type}`, err);
       details.push({ playerSlot: person.slot, summary: "—", detail: [] });
     }
   }
   let correctAnswer: string | null = null;
-  try {
-    correctAnswer = definition.correctAnswer(puzzle);
-  } catch {
-    /* no answer line */
-  }
+  if (!solutionLock)
+    try {
+      correctAnswer = definition.correctAnswer(puzzle);
+    } catch {
+      /* no answer line */
+    }
   const me = people.find((p) => p.id === attempt.id)!;
   return {
     ok: true,
@@ -667,6 +691,7 @@ export async function challengeRoundBoard(
       details,
       tie: roomTieRounds(room.puzzles_public),
       correctAnswer,
+      solutionLock,
     },
   };
 }
@@ -691,13 +716,14 @@ export async function challengeFinalBoard(
     (a) => a.finished_at !== null || a.id === attempt.id || nowMs >= msOf(room.closes_at),
   );
   const { data } = await client.from("async_results").select("*").eq("room_id", room.id);
-  const { rows } = boardRows(
+  const privs = await privateHalves(client, room.id);
+  const rows = boardRows(
     room,
     (data ?? []) as AsyncResultRow[],
     people,
     current,
     room.round_count,
-  );
+  ).rows.map((row) => lockRow(row, room, privs, nowMs));
   // A friend's finish: not the creator, and not a room player whose results were copied in when a
   // room's challenge was made (those attempts are written in the same call, as the room opens).
   const imported = meta.source === "room" && msOf(current.started_at) - msOf(room.opens_at) < 1000;

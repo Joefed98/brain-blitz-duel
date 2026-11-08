@@ -1700,7 +1700,15 @@ outside the repo.
   logs and returns a plain message; room ids checked as uuids first. *L3* chat's gap and per-room cap as atomic
   buckets. *L4* room shares up to 16 players, the terms date the server's, beta events limited. *L7* no seeds in logs.
   *L8* `PRACTICE_SEAL_KEY` (tokens `k2.`), older tokens still open on the service-role key's digest. *L13* a standard
-  puzzle's body cut to its cap before the standard grader (`standardParts`). security-fixes-check (~2 s).
+  puzzle's body cut to its cap before the standard grader (`standardParts`). *H2* (8 Nov 2026, Joe's option (a)): a
+  daily's or challenge's solutions stay on the server until the room's window closes (`SolutionLock` in `asyncRoom.ts`,
+  `solutionLockFor` / `lockedExtra` in `asyncRoom.server.ts`): `asyncRoundReveal` and `challengeRoundBoard` take the
+  server's `nowMs` and, while locked, return the public half only, summaries worked out from it, no answer line, and
+  every result row's `extra` without the private half's field names at any depth (some extras keep `minMoves` or `par`);
+  the final board's rows too; the player's own score and answer come at once; arcade rounds and games with nothing
+  private are never locked. The reveal draws "Solution unlocks at midnight" / "Solution unlocks when the challenge
+  closes" in the board's place (`AnswerReveal` `solutionLock`, `revealLockLine` in `asyncApi.ts`). security-fixes-check
+  (~9 s) sweeps a throwaway daily and challenge attempt and every active puzzle's stored extra.
 - **Scoring audit fixes, arcade** (Nov 2026; `docs/audit-nov-2026/scoring.md` issues 2, 5, 7 and 8; each game's page in
   `docs/arcade-standard/` has a new section): five score-only stamps, each the previous stamp's play exactly (states add a
   flag outside the checksum; `AUDIT_REVS` in `scripts/scoring-targets-revs.ts` maps each to its play). Spacewalk `crossRev 12`,

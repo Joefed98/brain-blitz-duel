@@ -18,6 +18,7 @@ import {
   asyncCheckMoves,
   asyncCheckWord,
   asyncReveal,
+  revealLockLine,
   startAsyncRound,
   submitAsyncAnswer,
   type AsyncReveal,
@@ -517,6 +518,7 @@ export function AsyncRun({
           myMsRemaining={reveal?.result.ms_remaining ?? 0}
           myScore={reveal ? reveal.result.score : null}
           myExtra={reveal?.result.extra ?? null}
+          solutionLock={revealLockLine(reveal)}
           {...(step.board ? { players: rivalRevealPlayers(step.board, looks) } : {})}
           startedAt={step.shownAt}
           now={now}

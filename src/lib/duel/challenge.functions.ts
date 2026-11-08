@@ -193,6 +193,7 @@ export const challengeRoundBoardFn = createServerFn({ method: "POST" })
       found.room,
       found.attempt,
       Number(data.roundNumber),
+      Date.now(),
     );
     // As JSON text, so the RPC boundary sees plain strings (stored extras vary by game).
     return result.ok ? { ok: true as const, json: JSON.stringify(result.board) } : result;

@@ -76,3 +76,27 @@ export interface AsyncAttemptView {
 export function currentAsyncRound(view: Pick<AsyncAttemptView, "rounds">): AsyncRoundView | null {
   return view.rounds.find((round) => round.score === null) ?? null;
 }
+
+/* ------------------------------------------------- the locked solution (H2) ---- */
+
+/**
+ * Security fix H2 (Nov 2026 audit): a daily's or a challenge's solutions stay on the server until the room's window
+ * closes (the daily at UK midnight, a challenge at its window's end), so a throwaway attempt can't collect them for
+ * another. Until then a round's reveal carries the public half only, with this lock; the player still gets their own
+ * score, answer and result at once. Arcade rounds and the other games with nothing private are never locked.
+ */
+export interface SolutionLock {
+  kind: "daily" | "challenge";
+  /** The room's close (ISO): when the solution opens. */
+  unlocksAt: string;
+}
+
+/** Which room a lock belongs to, from the room's kind (`daily_puzzle`, `daily_arcade`, `challenge`). */
+export function solutionLockKind(roomKind: string): SolutionLock["kind"] {
+  return roomKind === "challenge" ? "challenge" : "daily";
+}
+
+/** The line the reveal shows in place of the solution. */
+export function solutionLockText(lock: SolutionLock): string {
+  return lock.kind === "challenge" ? "Solution unlocks when the challenge closes" : "Solution unlocks at midnight";
+}

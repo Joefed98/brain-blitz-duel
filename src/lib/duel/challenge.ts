@@ -15,6 +15,7 @@
  *   only for that round and the ones before it, as a room's do after its round closes. Answers never
  *   leave the server: an earlier player's row reaches the phone as rivalRow() shapes it.
  */
+import type { SolutionLock } from "./asyncRoom";
 import { finishedBeforeBuzzer } from "./buzzer";
 import { normaliseCategories } from "./categories";
 import { puzzlePrepMs, puzzleTimeLimitMs, typesInCategory } from "./registry";
@@ -151,8 +152,10 @@ export interface ChallengeRoundBoard {
   details: PlayerRoundDetail[];
   /** The room tie-break's clocks (null for a room played before the stamp). */
   tie: TieRound[] | null;
-  /** "Best: 17 moves" style answer line for the result header, when short. */
+  /** "Best: 17 moves" style answer line for the result header, when short (null while the solution is locked). */
   correctAnswer: string | null;
+  /** H2: set while the challenge is open and the round has a private half (asyncRoom.ts SolutionLock). */
+  solutionLock?: SolutionLock | null;
 }
 
 /** The final board: every finished attempt (podium, awards, Share). */
