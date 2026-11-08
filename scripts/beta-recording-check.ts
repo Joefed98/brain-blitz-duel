@@ -552,7 +552,7 @@ const grade = practice.slice(
   practice.indexOf("export const practiceCheckWordFn"),
 );
 check(
-  /const graded = gradeAnswer\(puzzle, data\.answer, data\.msRemaining, data\.extra\);[\s\S]*await recordPracticePlay\(supabaseAdmin, \(userId\) =>\s*practicePlayRow\(\{[\s\S]*claimedMsRemaining: data\.msRemaining,[\s\S]*graded,[\s\S]*\}\)[\s\S]*return \{\s*puzzle,\s*isCorrect: graded\.isCorrect,\s*score: graded\.score,/.test(
+  /practiceTrustedMs\(puzzle, data\.msRemaining, received\);\s*const graded = gradeAnswer\(puzzle, data\.answer, ms, data\.extra, bound\);[\s\S]*await recordPracticePlay\(supabaseAdmin, \(userId\) =>\s*practicePlayRow\(\{[\s\S]*claimedMsRemaining: data\.msRemaining,[\s\S]*graded,[\s\S]*\}\)[\s\S]*return \{\s*puzzle,\s*isCorrect: graded\.isCorrect,\s*score: graded\.score,/.test(
     grade,
   ),
   "wiring: practiceGradeFn grades exactly as before, then records the play, then returns the same result",
