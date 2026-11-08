@@ -22,7 +22,7 @@ import {
   SKYLINE_CHECKPOINT_INTERVAL,
   SKYLINE_COLOURS,
   SKYLINE_FLASH,
-  SKYLINE_REV_STD,
+  SKYLINE_REV_COUNT,
   skylineWorldHFor,
   SKYLINE_RUN_TICKS,
   type SkylineState,
@@ -239,7 +239,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   return (
     <ArcadeArenaSlot width={SKYLINE_WORLD_W} height={skylineWorldHFor(data.skylineRev)} scene={skylineRiverFill}>
       <div ref={wrap} data-game-arena="canvas" className="min-h-0 w-full flex-1 overflow-hidden rounded-xl">
-        <canvas
+        <canvas role="img"
           ref={canvas}
           className="puzzle-board block h-full w-full rounded-xl"
           style={{ background: SKYLINE_ART_BG }}
@@ -292,7 +292,7 @@ export const skylinePuzzle: PuzzleDefinition = {
   category: "arcade",
   timeLimitMs: (SKYLINE_RUN_TICKS / TICKS_PER_SECOND) * 1000 + 3000,
   revealMs: 6_000,
-  generate: () => ({ type: "skyline", seed: 1, skylineRev: SKYLINE_REV_STD }) satisfies SkylinePuzzleData,
+  generate: () => ({ type: "skyline", seed: 1, skylineRev: SKYLINE_REV_COUNT }) satisfies SkylinePuzzleData,
   check: () => false,
   revealHeading: "Your run",
   IntroExample,

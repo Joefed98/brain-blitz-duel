@@ -67,7 +67,7 @@ export const BAND_SPECS: Record<string, BandSpec> = {
   burst: { parts: burstBandParts, curve: BURST_BAND_CURVE, kind: "finish" },
   swing: { parts: swingBandParts, curve: SWING_BAND_CURVE, kind: "finish", last: { unit: 1, extra: 5, extras: 10 } },
   bullseye: { parts: bullseyeBandParts, curve: BULLSEYE_BAND_CURVE, kind: "open" },
-  // Practice only until PINBALL_IN_ROOMS; born on the bands (its first revision is band-stamped).
+  // Dealt in rooms since 14 Oct 2026; born on the bands (its first revision is band-stamped).
   pinball: { parts: pinballBandParts, curve: PIN_BAND_CURVE, kind: "open" },
 };
 

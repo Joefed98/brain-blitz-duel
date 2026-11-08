@@ -76,6 +76,8 @@ export interface OpenedDeal {
   pub: PuzzleData;
   example: unknown;
   pack: unknown;
+  /** The server's time when the deal was sealed (practiceReceipt.ts), or undefined for a token sealed without one. */
+  dealtAt: number | undefined;
 }
 
 /** The phone's puzzle with every secret field of its type dropped (null for an unknown type). */
@@ -99,11 +101,37 @@ export async function openDeal(sealed: unknown, puzzle: unknown): Promise<Opened
   } catch {
     return null;
   }
-  const { __example: example, __pack: pack, __pub: digest, ...priv } = raw;
+  const { __example: example, __pack: pack, __pub: digest, __dealtAt: at, ...priv } = raw;
   const pub = publicHalf(puzzle);
   if (!pub || priv["type"] !== pub.type) return null;
   if (typeof digest !== "string" || digest !== (await pubDigest(pub))) return null;
-  return { priv, pub, example, pack };
+  const dealtAt = typeof at === "number" && Number.isFinite(at) ? at : undefined;
+  return { priv, pub, example, pack, dealtAt };
+}
+
+/** A short digest naming one sealed deal, so a start token can't be carried over to another (practiceReceipt.ts). */
+async function tokenDigest(sealed: string): Promise<string> {
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(sealed));
+  return toBase64(new Uint8Array(digest));
+}
+
+/** The round's start token for a deal (practiceReceipt.ts): the server's time, sealed and tied to that deal's token. */
+export async function sealStart(sealed: string): Promise<string> {
+  await unsealRaw(sealed);
+  return seal({ __start: Date.now(), __for: await tokenDigest(sealed) });
+}
+
+/** A start token's time when it is valid for this deal's token, else undefined. */
+export async function startAtFor(token: unknown, sealed: string): Promise<number | undefined> {
+  if (typeof token !== "string" || !token) return undefined;
+  try {
+    const raw = await unsealRaw(token);
+    if (raw["__for"] !== (await tokenDigest(sealed))) return undefined;
+    const at = raw["__start"];
+    return typeof at === "number" && Number.isFinite(at) ? at : undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 /** openDeal for the live calls: a refused token is the usual "didn't load" error. */

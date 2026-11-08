@@ -294,7 +294,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         // edge's black over the fill-ins' starfield (17 Oct 2026), as arcade-device-bottom-check expects.
         style={{ ...NO_SCROLL_STYLE, background: "var(--screen-edge)" }}
       >
-        <canvas
+        <canvas role="img"
           ref={canvas}
           className="puzzle-board block h-full w-full rounded-xl"
           style={{ background: SNAKE_BG }}

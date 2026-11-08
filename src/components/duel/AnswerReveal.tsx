@@ -1,4 +1,5 @@
 import { scorePartsText, storedScoreParts } from "@/lib/duel/puzzleScoreRev";
+import { partialProgressNote } from "@/lib/duel/partialCredit";
 import { readPracticeBest } from "@/lib/duel/practiceBest";
 import { stampSignature } from "@/lib/duel/practiceStamps";
 import { RevealBreakdown } from "@/components/duel/RevealBreakdown";
@@ -604,7 +605,8 @@ export function StoredScore({ score, type }: { score: number | null; type: Puzzl
 /**
  * Solved ✓, partly solved (amber half ring, shown with the stored points), or ✗ for zero.
  * Partial is a stored score above 0 that isn't fully correct; until the score lands an
- * unsolved round shows an empty ring so the mark never flips from ✗ to partial.
+ * unsolved round shows an empty ring so the mark never flips from ✗ to partial. Each mark is an image named in
+ * words (7 Nov 2026, accessibility audit #7): its glyphs were hidden and its wrapper unnamed, so it was silent.
  */
 function Verdict({ correct, score }: { correct: boolean; score: number | null }) {
   if (!correct && score === null) {
@@ -612,7 +614,7 @@ function Verdict({ correct, score }: { correct: boolean; score: number | null })
   }
   if (!correct && score !== null && score > 0) {
     return (
-      <div data-verdict="partial" className="flex flex-col items-center gap-1 animate-pop-in">
+      <div data-verdict="partial" role="img" aria-label="Partly solved" className="flex flex-col items-center gap-1 animate-pop-in">
         <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-2 border-timer-orange text-timer-orange">
           <svg viewBox="0 0 24 24" className="h-7 w-7" aria-hidden="true">
             <circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" strokeWidth="2.4" />
@@ -626,6 +628,8 @@ function Verdict({ correct, score }: { correct: boolean; score: number | null })
   return (
     <div
       data-verdict={correct ? "correct" : "wrong"}
+      role="img"
+      aria-label={correct ? "Solved" : "Not solved"}
       className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-2 animate-pop-in ${
         correct ? "border-category-accent text-category-accent" : "border-warn text-warn"
       }`}
@@ -863,6 +867,8 @@ function LiveAnswerReveal({
         {myScore !== null && storedScoreParts(myExtra) && !REVEAL_SHOWS_PARTS.has(puzzle.type) && !(FINISH_ONLY_TYPES.has(puzzle.type) && storedScoreParts(myExtra)!.kind === "partial") ? (
           <p data-reveal-score-line="" className="reveal-score-line shrink-0 text-center">
             {scorePartsText(storedScoreParts(myExtra)!)}
+            {/* Partial-credit fixes (7 Nov 2026): what an unfinished round's credit counted, "45 % of the way". */}
+            {storedScoreParts(myExtra)!.kind === "partial" && partialProgressNote(puzzle, myExtra) ? ` · ${partialProgressNote(puzzle, myExtra)}` : null}
           </p>
         ) : null}
         {practice && myScore !== null ? (

@@ -68,8 +68,9 @@ const FP = 256;
 /* ============================== 1. Dealt ============================== */
 // Rooms deal burstRev 10 since the arcade scoring standard (29 Oct 2026; burst-standard-check proves it); burstRev 9 is still checked here.
 section("Rooms deal burstRev 10 (was 9)");
-ok(generateBurst().burstRev === BURST_REV_STD, "rooms deal burstRev 10 (was 9)");
-ok(LIVE_BANDS.burst.rev === BURST_REV_STD && roundMaxFor("burst") === 200, "LIVE_BANDS deals burstRev 10 (was 9); ROUND_MAX 200");
+// The scoring audit (Nov 2026): burstRev 11, burstRev 10's play (scoring-audit-arcade-check).
+ok(generateBurst().burstRev === BURST_REV_STD + 1, "rooms deal burstRev 11, burstRev 10's play (was 9)");
+ok(LIVE_BANDS.burst.rev === BURST_REV_STD + 1 && roundMaxFor("burst") === 200, "LIVE_BANDS deals burstRev 11, burstRev 10's play (was 9); ROUND_MAX 200");
 ok(burstWorldHFor(BURST_REV_CARRY) === BURST_TALL_H, "the 390 × 650 world");
 for (let n = 0; n < 4; n++) {
   const seed = spec.seedFor(n);

@@ -102,9 +102,12 @@ export function usePuzzleSurfaces(ref: RefObject<HTMLDivElement | null>, type: s
     const decorate = () => { scheduled = 0; applyPuzzleSurfaces(root, type); };
     const queue = () => { if (!scheduled) scheduled = requestAnimationFrame(decorate); };
     decorate();
-    // Observe React changes only, not the adapter's attributes or style variables.
+    // Observe React changes only, not the adapter's attributes or style variables, and never the frame's timer
+    // ring (7 Nov 2026, battery): it re-keys its ring and seconds once a second and holds nothing this decorates,
+    // so watching it woke a requestAnimationFrame every second on an idle puzzle (battery-check's Box Six flake).
+    const inTimer = (node: Node) => (node instanceof Element ? node : node.parentElement)?.closest(".game-timer") != null;
     const observer = new MutationObserver(records => {
-      if (records.some(r => r.type !== "attributes" || r.attributeName === "class" || r.attributeName === "stroke")) queue();
+      if (records.some(r => !inTimer(r.target) && (r.type !== "attributes" || r.attributeName === "class" || r.attributeName === "stroke"))) queue();
     });
     observer.observe(root, { subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: ["class", "stroke"] });
     const resize = new ResizeObserver(queue);

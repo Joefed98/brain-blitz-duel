@@ -70,7 +70,7 @@ revisions keep their own world in reveals and replays.
 | Tenfall | 360x520 | 375x535 → 370x535 | 390x568 → 390x563 | 390x712 → 390x563 | 414x716 → 414x598 | 430x800 → 430x621 | 1280x668 → 462x668 | 1.083x | 116px | 0px | 149px | 0px | - |
 | Bonk | square | 375x491 → 375x375 | 390x524 → 390x390 | 390x668 → 390x390 | 414x672 → 414x414 | 430x756 → 430x430 | 1280x624 → 624x624 | 390.000x | 159.6px | 139px | 139px | 0px | - |
 | Pull! | 360x680 | 375x565 → 299x565 | 390x598 → 317x598 | 390x742 → 390x737 | 414x746 → 395x746 | 430x830 → 430x812 | 1280x698 → 370x698 | 1.083x | 86px | 0px | 5px | 0px | - |
-| Mixed Signals | 390x650 | 375x531 → 319x531 | 390x564 → 338x564 | 390x708 → 390x650 | 414x712 → 414x690 | 430x796 → 430x717 | 1280x664 → 398x664 | 1.000x | 60px | 0px | 58px | 0px | Mixed Signals' arrows (44px) and joystick (52px), bottom-aligned: 16px |
+| Mixed Signals | 390x650 | 375x531 → 319x531 | 390x564 → 338x564 | 390x708 → 390x650 | 414x712 → 414x690 | 430x796 → 430x717 | 1280x664 → 398x664 | 1.000x | 60px | 0px | 58px | 0px | Mixed Signals' arrows (44px) and joystick (52px), top-aligned: 16px |
 
 ## Arena scenes (15 Oct 2026; screen fill-ins 17 Oct 2026)
 
@@ -188,7 +188,7 @@ than half hidden; Hover's world is cut the same way, its disc at the top).
 | Tenfall | 414x668 → 414x598, 64px | 414x716 → 414x598, 16px | world none |
 | Bonk | 414x624 → 414x414, 64px | 414x672 → 414x414, 16px | world none |
 | Pull! | 414x698 → 370x698, 64px | 414x746 → 395x746, 16px | world 32px |
-| Mixed Signals | 414x664 → 398x664, 64px | 414x712 → 414x690, 16px | world none, Mixed Signals' arrows (44px) and joystick (52px), bottom-aligned 32px |
+| Mixed Signals | 414x664 → 398x664, 64px | 414x712 → 414x690, 16px | world none, Mixed Signals' arrows (44px) and joystick (52px), top-aligned 32px |
 
 ## Before 15 Oct 2026 (arcade games)
 

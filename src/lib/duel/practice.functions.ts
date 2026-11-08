@@ -87,7 +87,7 @@ export const practiceGenerateFn = createServerFn({ method: "POST" })
     if (!example) {
       // Slow types come from their precomputed bank; a fresh seed picks the board.
       const { pub, priv } = await dealPractice(type, unblockRow);
-      return { puzzle: pub, sealed: await sealDeal(pub, priv) };
+      return { puzzle: pub, sealed: await sealDeal(pub, priv, { __dealtAt: Date.now() }) };
     }
     const { withSeededRandom } = await import("./random");
     const { INTRO_EXAMPLE_ID, INTRO_EXAMPLE_SEED } = await import("./puzzleDemo");
@@ -102,7 +102,17 @@ export const practiceGenerateFn = createServerFn({ method: "POST" })
       ? withSeededRandom(INTRO_EXAMPLE_SEED, () => generatePuzzle(type, { bankSeed: INTRO_EXAMPLE_SEED }))
       : bankedIntroExample(type) ?? withSeededRandom(INTRO_EXAMPLE_SEED, () => type === "wordsmith" ? generateWordsmithExample() : generatePuzzle(type, { unblockRow }));
     const { pub, priv } = splitPuzzle(made);
-    return { puzzle: pub as PuzzleData, sealed: await sealDeal(pub as PuzzleData, priv as Loose, { __example: INTRO_EXAMPLE_ID }) };
+    return { puzzle: pub as PuzzleData, sealed: await sealDeal(pub as PuzzleData, priv as Loose, { __example: INTRO_EXAMPLE_ID, __dealtAt: Date.now() }) };
+  });
+
+/**
+ * The round's clock has started on the phone (practiceReceipt.ts): the server's time, sealed for this deal, sent back
+ * with the answer. Best effort on the phone; the grade bounds the claim without it too.
+ */
+export const practiceStartFn = createServerFn({ method: "POST" })
+  .inputValidator((input: { sealed: string }) => input)
+  .handler(async ({ data }) => {
+    return { start: await (await sealing()).sealStart(String(data.sealed ?? "")) };
   });
 
 /** Checks and scores a practice answer, then hands back the full puzzle. */
@@ -118,15 +128,23 @@ export const practiceGradeFn = createServerFn({ method: "POST" })
       clientVersion?: string;
       /** How the round was played (lib/inputType.ts); stored with the practice play, never graded. */
       inputType?: string;
+      /** The start token from practiceStartFn, when the phone got one. */
+      start?: string;
     }) => input,
   )
   .handler(async ({ data }) => {
+    const nowMs = Date.now();
     // Log only: grading never depends on the client's version.
     const staleNote = staleSubmissionNote("practice_grade", data.clientVersion, data.puzzle.type);
     if (staleNote) console.warn(staleNote);
     if (!(await practiceLimit("grade"))) throw new Error(PRACTICE_BUSY);
-    const { priv, pub, example } = await openDealOrThrow(data.sealed, data.puzzle);
-    return gradePracticeRun(data, mergePuzzle(pub, priv), example !== undefined);
+    const { priv, pub, example, dealtAt } = await openDealOrThrow(data.sealed, data.puzzle);
+    const puzzle = mergePuzzle(pub, priv);
+    // The claim held to the server's receipt, as in a room (practiceReceipt.ts).
+    const { practiceReceiptMsRemaining } = await import("./practiceReceipt");
+    const startAt = await (await sealing()).startAtFor(data.start, String(data.sealed ?? ""));
+    const received = practiceReceiptMsRemaining(puzzle, { dealtAt, startAt, nowMs });
+    return gradePracticeRun(data, puzzle, example !== undefined, received);
   });
 
 interface PracticeRunInput {
@@ -137,9 +155,12 @@ interface PracticeRunInput {
 }
 
 /** Grades a practice run on its full puzzle (practice's own grading, the same for a live deal and a pack deal). */
-async function gradePracticeRun(data: PracticeRunInput, puzzle: PuzzleData, example: boolean) {
+async function gradePracticeRun(data: PracticeRunInput, puzzle: PuzzleData, example: boolean, received?: number) {
   const { gradeAnswer } = await import("./generate.server");
-  const graded = gradeAnswer(puzzle, data.answer, data.msRemaining, data.extra);
+  const { practiceTrustedMs } = await import("./practiceReceipt");
+  // A live deal: the claim held to the server's receipt as in a room (practiceReceipt.ts); else the length clamp alone.
+  const { ms, received: bound } = practiceTrustedMs(puzzle, data.msRemaining, received);
+  const graded = gradeAnswer(puzzle, data.answer, ms, data.extra, bound);
   // Beta recording (practice_plays): the outcome only, best-effort, never blocks the answer.
   // Skipped where there is no database (local dev servers in checks).
   if (process.env["SUPABASE_SERVICE_ROLE_KEY"]) {

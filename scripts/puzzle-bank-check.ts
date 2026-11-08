@@ -72,10 +72,14 @@ import { BANK_COUNT, entriesHash, liveIntroExample } from "./puzzle-bank-lib";
 import { dealStandard } from "../src/lib/duel/standard/stamps";
 import type { PuzzleData } from "../src/lib/duel/types";
 import { pinPreParMoves } from "../src/lib/duel/parMoves";
+import { pinPrePartialCredit } from "../src/lib/duel/partialCredit";
 
 // Written for the standard's stamps: the puzzle batch of 3 Nov 2026 (parMoves.ts) deals Skid one stamp above (no ice
 // gems), so banked deals here keep the standard's (puzzle-batch-nov-check proves Skid's banked deals on the new stamp).
 pinPreParMoves(true);
+// Likewise the partial-credit fixes of 7 Nov 2026 (partialCredit.ts) deal Polypotions one stamp above; banked deals here
+// keep the stamps before them (partial-credit-check proves Polypotions on the new stamp).
+pinPrePartialCredit(true);
 
 const self = fileURLToPath(import.meta.url);
 

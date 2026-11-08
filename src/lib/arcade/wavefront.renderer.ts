@@ -44,7 +44,7 @@ import {
   wavShipY,
   wavWorldH,
   WAV_REV_TALL,
-  WAV_REV_TARGET, WAV_REV_STRICT, WAV_REV_EXPAND, WAV_REV_PHONE, WAV_REV_STD,
+  WAV_REV_TARGET, WAV_REV_STRICT, WAV_REV_EXPAND, WAV_REV_PHONE, WAV_REV_STD, WAV_REV_KEEP,
   wavBossW,
   wavCannonX,
   wavCoreOpen,
@@ -1270,7 +1270,10 @@ const wavefrontArtGameExpand = { ...wavefrontGameFor(WAV_REV_EXPAND), draw: draw
 const wavefrontArtGamePhone = { ...wavefrontGameFor(WAV_REV_PHONE), draw: drawWavefrontArt };
 const wavefrontArtGameStd = { ...wavefrontGameFor(WAV_REV_STD), draw: drawWavefrontArt };
 /** The art game for a stored wavRev; one cached object per revision. */
+/** wavRev 13: wavRev 12's play and look (the scoring audit's lives rule). */
+const wavefrontArtGameKeep = { ...wavefrontGameFor(WAV_REV_KEEP), draw: drawWavefrontArt };
 export function wavefrontArtGameFor(rev?: number | null): typeof wavefrontArtGame {
+  if (rev === WAV_REV_KEEP) return wavefrontArtGameKeep;
   if (rev === WAV_REV_STD) return wavefrontArtGameStd;
   if (rev === WAV_REV_PHONE) return wavefrontArtGamePhone;
   if (rev === WAV_REV_EXPAND) return wavefrontArtGameExpand;

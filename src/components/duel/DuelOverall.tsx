@@ -1,3 +1,4 @@
+import { LeftTag } from "./LeftTag";
 import type { PlayerLooks } from "@/lib/duel/playerLook";
 import type { Standing } from "@/lib/duel/scoring";
 import { placedOf, shownGain, shownTotal } from "@/lib/duel/resultPresentation";
@@ -5,6 +6,7 @@ import { tieMarks } from "@/lib/duel/tieDisplay";
 import { TOTAL_ROUNDS } from "@/lib/duel/types";
 import { AnimatedScore } from "./AnimatedScore";
 import { ContinueFooter, type ContinueState } from "./ContinueFooter";
+import { MetaChips } from "@/components/app/MetaChips";
 import { Medal } from "./Medal";
 import { PlayerBadge } from "./PlayerBadge";
 import { Arrow, NextRoundCard, RoundWinnerCard, youStyle, type StandingsExtras } from "./Standings";
@@ -39,12 +41,15 @@ export function DuelOverall({
   const placings = rows.some((row) => row.points !== undefined);
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3 pt-1 text-left animate-phase-in">
-      <header className="rs-head shrink-0">
-        <h1 className="rs-title">Standings</h1>
-        <span className="rs-meta">
-          After round {round} of {totalRounds}
-          {placings ? " · Placings" : null}
-        </span>
+      <header className="flex shrink-0 flex-col gap-0.5">
+        <div className="rs-head">
+          <h1 className="rs-title">Standings</h1>
+          <span className="rs-meta">
+            After round {round} of {totalRounds}
+          </span>
+        </div>
+        {/* The room's scoring when it isn't the default: a chip, as Standings (no " · " separator). */}
+        {placings ? <MetaChips data-standings-scoring facts={["Placings"]} /> : null}
       </header>
       <ul className="rs-list shrink-0">
         {ordered.map((row) => {
@@ -56,7 +61,8 @@ export function DuelOverall({
               key={row.slot}
               data-you={isMe ? "" : undefined}
               style={isMe ? youStyle(look) : undefined}
-              className={`rs-row min-h-[60px] ${row.status === "inactive" ? "opacity-40" : ""}`}
+              data-left={row.status === "inactive" ? "" : undefined}
+              className="rs-row min-h-[60px]" /* design-lint-ignore: the existing values; only the dimming changed (audit #3/#4) */
             >
               <div className="grid w-full grid-cols-[1.5rem_1.375rem_minmax(0,1fr)_auto_3.75rem] items-center gap-x-2">
                 <Medal place={row.position} shared={mark?.shared} />
@@ -67,6 +73,7 @@ export function DuelOverall({
                     <span className="flex min-w-0 items-baseline gap-1">
                       <span className="rs-name th-name">{row.name}</span>
                       {isMe ? <span className="rs-you shrink-0 text-[13px]">(you)</span> : null}
+                      {row.status === "inactive" ? <LeftTag /> : null}
                     </span>
                   </span>
                 </span>

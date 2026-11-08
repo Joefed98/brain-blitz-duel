@@ -194,7 +194,8 @@ for (let n = 0; n < 6; n++) {
   // The arcade scoring standard (29 Oct 2026) moved rooms on to crossRev 10 (crossRev 9's courses, busier crossing by
   // crossing, scored on the standard); arcade-standard-check covers it, and crossRev 9 replays as before here.
   // The no-stop streak (3 Nov 2026) moved them on to crossRev 11 (crossRev 10's courses without coins); cross-rev11-check covers it.
-  ok(generateCross().crossRev === CROSS_REV_FLOW, "rooms deal crossRev 11, the no-stop streak on crossRev 9's world");
+  // The scoring audit (Nov 2026): crossRev 12, crossRev 11's play (scoring-audit-arcade-check).
+  ok(generateCross().crossRev === CROSS_REV_FLOW + 1, "rooms deal crossRev 12 (crossRev 11's play), the no-stop streak on crossRev 9's world");
 }
 
 /* 4. Features through every recorded and fresh run, tick by tick. */

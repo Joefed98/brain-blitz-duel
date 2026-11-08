@@ -1,4 +1,46 @@
-# Pyramid on the arcade scoring standard (pyramidRev 1, 1 Nov 2026)
+# Pyramid on the arcade scoring standard (pyramidRev 2, 7 Nov 2026; pyramidRev 1, 1 Nov 2026)
+
+## pyramidRev 2 (7 Nov 2026, scoring audit issue 6: what rooms deal)
+
+The audit (`docs/audit-nov-2026/scoring.md`, issues 6 and 22) found that rev 1 locked 60 of the 200 behind a clear
+(cleared 10, speed 50), so a near miss and a clear sat far apart: elite bots clear 12 of 20 seeds, and the elite p10 was
+108 against a median of 198. Rev 2 keeps the deals and play and moves half the speed onto the cards:
+
+| Part | Max | How |
+| --- | --- | --- |
+| Pyramid cards | 140 | a straight line over the 28 pyramid cards removed (5 a card; rev 1: 120) |
+| Cleared | 15 | all 28 removed (rev 1: 10) |
+| Speed | 25 | cleared only: full by 20 s, 0 at the buzzer, in whole numbers (`stdSpeedInt`; rev 1: 50 with `stdSpeed`) |
+| Pyramid pairs | 20 | 2 for each pair of two pyramid cards, up to 10 (unchanged) |
+
+- **Proportional:** each card removed is worth 5, clear or not; 40 points (was 60) wait for the clear.
+- **No inversions:** a card removed never lowers the score, and the poorest clear (all 28, at the buzzer, no pyramid
+  pair: 140 + 15 = 155) scores at least the best run that misses one (27 removed and every pair: 135 + 20 = 155). The
+  cleared part is 15 rather than 10 for that reason.
+- **Whole-number speed (issue 22):** `floor(25 × (5400 − t) ÷ 4200)` on integers, never a float share.
+- **200 on every deal:** 460 seeds' witnesses (tuning, fresh and room-style) replay to exactly 200 through the server
+  replay on rev 2 (cards-nov7-check); arcade-standard-check's entry plays six.
+
+Skill bands (`bun scripts/cards-bands.ts pyramid --seeds=60 --from=10000`, fresh seeds; the bots and their clears are
+the same on both stamps):
+
+| Level | Weak | Average | Good | Great | Near-perfect | Elite | Flawless |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| rev 1 median (before) | 91 | 114 | 118 | 175 | 193 | 198 | 200 |
+| **rev 2 median** | **104** | **131** | **135** | **187** | **196** | **199** | **200** |
+| rev 1 p10–p90 | 44–118 | 57–165 | 82–180 | 101–189 | 101–197 | 101–200 | 198–200 |
+| rev 2 p10–p90 | 51–135 | 65–182 | 95–190 | 116–194 | 116–198 | 116–200 | 199–200 |
+| cleared | 0/60 | 14/60 | 23/60 | 30/60 | 37/60 | 40/60 | 60/60 |
+
+The low tail of the top levels (their runs that miss the clear) rises 101 → 116; the medians rise a little everywhere,
+most for the levels that clear only sometimes.
+
+Older stamps replay and score exactly as before: 70 runs recorded on main before the change (Free Cell rev 4, Summit
+rev 2, Thirteen rev 1; `scripts/fixtures/cards-nov7-legacy.json`, `scripts/cards-nov7-legacy-record.ts`) replay to the
+same score, final-state checksum and tick (cards-nov7-check). Checks written for the older stamps can deal them with
+`pinCardsPreShare(true)` (`src/lib/duel/arcade.server.ts`).
+
+## pyramidRev 1 (1 Nov 2026)
 
 Shown as **Thirteen** since 3 Nov 2026 (Joe's Cards & Board batch; display name only, the id stays `pyramid`, no
 gameplay or scoring change).

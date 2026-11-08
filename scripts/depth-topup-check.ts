@@ -30,12 +30,15 @@ import { freshSeeds, measure, STRETCH_ONLY, TOPUP_GAMES, type GameMeasure } from
 import { TOPUP_FIXTURE, type TopupFixture } from "./depth-topup-record";
 import { pinPrePhoneNotes } from "../src/lib/duel/phoneNotes";
 import { pinPreStandard } from "../src/lib/duel/standard/stamps";
+import { pinPreNov7 } from "../src/lib/duel/speedPipesNov7";
 
 // Written for the top-up's stamps (Swapword swapwordRev 5): new deals stay on the stamps before Joe's phone notes (27 Oct 2026) here;
 // phone-notes-check proves the stamps rooms deal now.
 pinPrePhoneNotes(true);
 // …and on the stamps before the scoring standard (27 Oct 2026; standard-attention-check and the other standard checks prove those).
 pinPreStandard(true);
+// …and on Flash and Bang On's tapRev 6 (7 Nov 2026 deals tapRev 7, speedPipesNov7.ts; speed-pipes-nov7-check proves it).
+pinPreNov7(true);
 
 const args = process.argv.slice(2);
 const opt = (name: string) => args.find((a) => a.startsWith(`--${name}=`))?.slice(name.length + 3);

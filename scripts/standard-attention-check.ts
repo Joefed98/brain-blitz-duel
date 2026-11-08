@@ -30,6 +30,7 @@ import { wasteFactor } from "../src/lib/duel/puzzleScoreRev";
 import { MAZE_REV1_DEAD_ZONE } from "../src/lib/duel/scoring";
 import { pinPrePuzzleNotes } from "../src/lib/duel/puzzleNotes";
 import { pinPreParMoves } from "../src/lib/duel/parMoves";
+import { pinPreNov7 } from "../src/lib/duel/speedPipesNov7";
 import { CLASH_QUEUE, CLASH_REV_STANDARD, CLASH_REV_TOPUP, clashCheckpoint, clashStandardScoreOf, colourClashGameFor, type ClashState } from "../src/lib/arcade/colourClash";
 import { replayColourClashRun } from "../src/lib/duel/colourClash";
 import { KITS } from "./puzzle-fairness/kits";
@@ -44,6 +45,8 @@ pinPrePuzzleNotes(true);
 // The puzzle batch of 3 Nov 2026 (parMoves.ts) deals Labyrinth one stamp above the standard's: pinned here too
 // (puzzle-batch-nov-check proves the new stamps).
 pinPreParMoves(true);
+// 7 Nov 2026 (speedPipesNov7.ts) deals Flash and Bang On tapRev 7: pinned to tapRev 6 here (speed-pipes-nov7-check proves it).
+pinPreNov7(true);
 
 const args = process.argv.slice(2);
 const SEEDS = Number(args.find((a) => a.startsWith("--seeds="))?.slice(8) ?? 8);

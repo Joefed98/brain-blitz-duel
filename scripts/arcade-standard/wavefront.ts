@@ -11,8 +11,8 @@ import { ARCADE_INPUT_DRAG, type ArcadeInputEvent } from "../../src/lib/arcade/e
 import {
   wavCheckpoint,
   wavefrontGameFor,
-  WAVEFRONT_STD,
-  WAV_REV_PHONE,
+  WAVEFRONT_STD_KEEP,
+  WAV_REV_KEEP,
   WAV_REV_STD,
   WAV_STD_CORE_FULL,
   WAV_STD_KILL_FULL,
@@ -27,7 +27,7 @@ import { roomSeed } from "../arcade-skill-bands/games";
 import { randomLog } from "../room-identity/wavefront";
 import type { StdEntry, StdRun } from "./entry";
 
-const game = wavefrontGameFor(WAV_REV_STD);
+const game = wavefrontGameFor(WAV_REV_KEEP);
 
 /** A log played on wavRev 12, checkpointed as the phone does, through the server's encode + replay. */
 function serverRun(seed: number, events: ArcadeInputEvent[]): number {
@@ -39,7 +39,7 @@ function serverRun(seed: number, events: ArcadeInputEvent[]): number {
     if (s.tick % 300 === 0) checkpoints.push(wavCheckpoint(s));
   }
   const raw = encodeWavefrontRun({ seed, claimedScore: game.score(s), events, inputs: [], taps: [], endTick: s.tick, checkpoints } as never);
-  const r = replayWavefrontRun(seed, raw, WAV_REV_STD);
+  const r = replayWavefrontRun(seed, raw, WAV_REV_KEEP);
   if (r.flagged) throw new Error(`seed ${seed}: the server replay flagged the run (${r.reason})`);
   return r.score;
 }
@@ -47,14 +47,15 @@ function serverRun(seed: number, events: ArcadeInputEvent[]): number {
 export const entry: StdEntry = {
   type: "wavefront",
   field: "wavRev",
-  rev: WAV_REV_STD,
-  before: WAV_REV_PHONE,
-  parts: WAVEFRONT_STD.parts,
-  spec: WAVEFRONT_STD,
+  // wavRev 13 since Nov 2026 (the scoring audit): wavRev 12's play and parts; the life that ends the run is free.
+  rev: WAV_REV_KEEP,
+  before: WAV_REV_STD,
+  parts: WAVEFRONT_STD_KEEP.parts,
+  spec: WAVEFRONT_STD_KEEP,
   perfect: (): StdRun[] => {
     const data = JSON.parse(gunzipSync(readFileSync("scripts/fixtures/wavefront-std-runs.json.gz")).toString()) as { runs: { n: number; seed: number; raw: string }[] };
     const runs: StdRun[] = data.runs.map((r) => {
-      const res = replayWavefrontRun(r.seed, r.raw, WAV_REV_STD);
+      const res = replayWavefrontRun(r.seed, r.raw, WAV_REV_KEEP);
       const s = res.state as WavState;
       // A clean replay of a run that took everything: no life lost, all five saucers, all four cannons and both cores.
       const clean = !res.flagged && s.lives === 3 && (s.bossKilled ?? 0) === 1 && s.tick - (s.bossAt ?? 0) <= WAV_STD_KILL_FULL && (s.cannonsDown ?? 0) === 4 && s.coresHit === 3;

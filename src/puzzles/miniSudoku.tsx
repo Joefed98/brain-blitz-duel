@@ -87,7 +87,8 @@ export function SudokuGrid({
                   : "bg-card"
             } ${tone === "given" ? "text-foreground" : tone === "wrong" ? "text-destructive" : "text-primary"}`}
             style={{ fontSize: "max(15px, calc(100cqw / 6 * 0.52))", "--logic-row": row, "--logic-box": sudokuBox(cell) } as CSSProperties}
-            aria-label={`Cell ${cell + 1}`}
+            // 7 Nov 2026 (accessibility audit #16): the label said only "Cell N" and replaced the digit.
+            aria-label={`Row ${row + 1} column ${col + 1}, ${value ? value : marks.length ? `notes ${marks.join(" ")}` : "empty"}${tone === "given" ? ", given" : tone === "wrong" ? ", wrong" : ""}`}
           >
             {value ? (
               <span key={value} className={`logic-sudoku-digit ${tone === "given" ? "logic-sudoku-given" : ""} ${placed === cell ? "logic-sudoku-pop" : ""}`}>

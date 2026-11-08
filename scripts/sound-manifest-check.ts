@@ -3,7 +3,9 @@
  *
  * Static: every cue in docs/sound-cues has a manifest slot and every slot a cue;
  * every cue the code dispatches or plays is documented; every file in the
- * manifest is played somewhere; every audio file in the repo is in the manifest;
+ * manifest is played somewhere; every audio file in the repo is in the manifest (but the archive of unused
+ * Lovable recordings, assets-archive/lovable-sounds/); no manifest URL is Lovable-hosted (/__l5e/), and every
+ * file copied from Lovable matches its .asset.json size and recorded SHA-256;
  * docs/sound-cues/cue-sheet.csv matches the manifest (re-run
  * `bun scripts/sound-cue-sheet.ts` after changing either); the screen music hooks
  * are wired.
@@ -16,6 +18,7 @@
  * falls back to today's behaviour (silence, the shared sound, the tone, the shared
  * bed) without throwing or logging an error, and never beeps.
  */
+import { createHash } from "node:crypto";
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 import { SOUND_MANIFEST } from "../src/lib/fx/manifest";
@@ -186,7 +189,12 @@ for (const id of ids) {
 
 // 4. Audio files in the repo: each is a manifest URL; each local manifest URL exists.
 const AUDIO = /\.(mp3|ogg|wav|m4a|aac|flac|opus|webm)$/i;
-const audioFiles = repoFiles.map((f) => relative(".", f)).filter((f) => AUDIO.test(f));
+// The archive of Lovable-hosted recordings the manifest no longer uses (Route B prep, 7 Nov 2026): kept in the
+// repo, never served (outside public/) and never in the manifest.
+const ARCHIVE_DIR = "assets-archive/lovable-sounds/";
+const allAudio = repoFiles.map((f) => relative(".", f)).filter((f) => AUDIO.test(f));
+const archived = allAudio.filter((f) => f.startsWith(ARCHIVE_DIR));
+const audioFiles = allAudio.filter((f) => !f.startsWith(ARCHIVE_DIR));
 const urls = new Set(ids.map((id) => manifest[id]!.url).filter((u): u is string => !!u));
 for (const file of audioFiles) {
   const url = file.startsWith("public/") ? `/${file.slice("public/".length)}` : null;
@@ -196,11 +204,69 @@ for (const file of audioFiles) {
   );
 }
 for (const url of urls) {
-  if (url.startsWith("/__l5e/") || /^https?:/.test(url)) continue;
+  // Every recording is served from public/ (Lovable's asset store, /__l5e/, is gone from the manifest).
+  check(!url.startsWith("/__l5e/"), `manifest URL ${url}: Lovable-hosted, copy it into public/sounds/`);
+  if (/^https?:/.test(url)) continue;
   check(audioFiles.includes(`public${url}`), `manifest URL ${url}: no such file under public/`);
 }
+
+// 4b. The files copied from Lovable's asset store (assets-archive/lovable-sounds/sources.json): one entry per
+// src/assets/**/*.asset.json, each kept file the size its .asset.json records, with the recorded SHA-256 and an
+// MP3 frame at the start; the manifest's at their /sounds/ URL, the rest in the archive and in no slot. A copy the audio
+// audit's fixes re-made (8 Nov 2026, scripts/sound-audit-nov-2026/fix.py, docs/audit-nov-2026/audio-fixes.md) keeps the
+// download's size and SHA-256 as its source and is pinned to the exact bytes now kept (`levelled`).
+type Source = {
+  assetId: string;
+  lovableUrl: string;
+  assetJson: string;
+  size: number;
+  sha256: string;
+  keptAs: string;
+  levelled?: { size: number; sha256: string; by: string };
+};
+const sources = JSON.parse(readFileSync(`${ARCHIVE_DIR}sources.json`, "utf8")) as Source[];
+const assetJsons = repoFiles.map((f) => relative(".", f)).filter((f) => /^src\/assets\/.*\.asset\.json$/.test(f));
+const sourceByJson = new Map(sources.map((s) => [s.assetJson, s]));
+check(sources.length === sourceByJson.size, "sources.json: one entry per .asset.json");
+for (const file of assetJsons) {
+  const asset = JSON.parse(readFileSync(file, "utf8")) as { url: string; size: number; content_type: string };
+  const s = sourceByJson.get(file);
+  if (!s) {
+    failures.push(`${file}: not in ${ARCHIVE_DIR}sources.json`);
+    continue;
+  }
+  check(s.lovableUrl === asset.url && s.size === asset.size, `${file}: sources.json entry differs from it`);
+  check(asset.content_type === "audio/mpeg", `${file}: not audio/mpeg`);
+  let bytes: Buffer | null = null;
+  try {
+    bytes = readFileSync(s.keptAs);
+  } catch {
+    failures.push(`${file}: kept copy ${s.keptAs} is missing`);
+    continue;
+  }
+  const want = s.levelled ?? s;
+  check(bytes.length === want.size, `${s.keptAs}: ${bytes.length} bytes, ${s.levelled ? "its levelled copy is" : "its .asset.json says"} ${want.size}`);
+  check(
+    createHash("sha256").update(bytes).digest("hex") === want.sha256,
+    `${s.keptAs}: SHA-256 differs from the ${s.levelled ? "levelled copy's (sources.json levelled)" : "downloaded copy's"}`,
+  );
+  if (s.levelled) {
+    check(s.keptAs.startsWith("public/sounds/"), `${s.keptAs}: only a served copy is levelled`);
+    check(/^scripts\/sound-audit-nov-2026\/fix\.py/.test(s.levelled.by), `${s.keptAs}: levelled by an unknown tool`);
+  }
+  const mp3 =
+    (bytes[0] === 0x49 && bytes[1] === 0x44 && bytes[2] === 0x33) ||
+    (bytes[0] === 0xff && ((bytes[1] ?? 0) & 0xe0) === 0xe0);
+  check(mp3, `${s.keptAs}: does not start with an MP3 frame or ID3 tag`);
+  const servedAs = s.keptAs.startsWith("public/") ? s.keptAs.slice("public".length) : null;
+  if (servedAs) check(urls.has(servedAs), `${s.keptAs}: copied from Lovable but in no manifest slot`);
+  else check(s.keptAs.startsWith(ARCHIVE_DIR), `${s.keptAs}: kept outside public/sounds/ and the archive`);
+}
+check(sources.length === assetJsons.length, `sources.json has ${sources.length} entries, ${assetJsons.length} .asset.json files`);
+for (const file of archived)
+  check(sources.some((s) => s.keptAs === file), `${file}: archived audio with no sources.json entry`);
 notes.push(
-  `NOTE ${audioFiles.length} audio files in the repo; ${[...urls].filter((u) => u.startsWith("/__l5e/")).length} Lovable-hosted files in the manifest`,
+  `NOTE ${audioFiles.length} audio files served; ${sources.filter((s) => s.keptAs.startsWith("public/")).length} copied from Lovable's asset store, ${archived.length} archived unused`,
 );
 
 // 5. The committed sheet matches the manifest.
@@ -368,13 +434,21 @@ console.warn = (...args: unknown[]) => warns.push(args);
 
 // A file on every slot (the loader reads the manifest when sound.ts loads). Slots are the unset
 // entries, those filled through git (public/sounds) and named cues pointed at another entry's
-// recording; each gets a test file here and is unset again below.
+// recording; each gets a test file here and is unset again below. The base recordings copied from
+// Lovable's asset store (sources.json) are not slots, as when they were served from /__l5e/.
+const fromLovable = new Set(
+  sources.filter((s) => s.keptAs.startsWith("public/")).map((s) => s.keptAs.slice("public".length)),
+);
 const sharesFile = (id: string) =>
   ids.some((other) => other !== id && manifest[other]!.url === manifest[id]!.url);
 const slotIds = ids.filter((id) => {
   const url = manifest[id]!.url;
   if (id === "tension_loop") return false;
-  return url === null || url.startsWith("/sounds/") || (id.includes(".") && sharesFile(id));
+  return (
+    url === null ||
+    (url.startsWith("/sounds/") && !fromLovable.has(url)) ||
+    (id.includes(".") && sharesFile(id))
+  );
 });
 const testUrl = (id: string) => `/sounds/${id}.mp3`;
 for (const id of slotIds) manifest[id]!.url = testUrl(id);

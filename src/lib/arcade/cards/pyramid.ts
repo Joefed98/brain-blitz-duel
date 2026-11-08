@@ -17,13 +17,21 @@
  * over the 28 pyramid cards removed; cleared 10; speed 50 (cleared only: full by 20 s, the flawless pace, 0 at the
  * buzzer), so the players who clear are told apart by how fast; pyramid pairs 20 (2 for each pair of two pyramid cards,
  * up to 10).
+ *
+ * pyramidRev 2 (7 Nov 2026, scoring audit issue 6; docs/arcade-standard/pyramid.md): the same deals and play; the points
+ * locked behind a clear (clear 10 + speed 50) split players who just missed it from those who cleared, so half the speed
+ * moves onto the cards: the core 140 (5 a card), cleared 15, speed 25 (whole-number maths, stdSpeedInt), pyramid pairs
+ * 20. A clear always scores at least as much as any run that misses one (27 removed and every pair: 135 + 20 = 155; a
+ * clear at the buzzer with no pyramid pairs: 140 + 15 = 155). Rev 1 runs play and score as before.
  */
 import { inputRange, rngBelow, type ArcadeGame, type ArcadeInputEvent } from "../engine";
-import { stdEach, stdLine, stdPart, stdScore, stdSpeed, stdSum, type StdPart, type StdSpec } from "../arcadeStandard";
+import { stdEach, stdLine, stdPart, stdScore, stdSpeed, stdSpeedInt, stdSum, type StdPart, type StdSpec } from "../arcadeStandard";
 import { bandCurve, type BandParts } from "../scoreBands";
 import { cardOf, hashInts, rankOf } from "./cards";
 
-export const PY_REV = 1;
+/** The dealt revision (rev 2: more of the 200 on the cards); rev 1 runs replay on pyramidGameV1. */
+export const PY_REV = 2;
+export const PY_REV_SHARE = 2;
 export const PY_CARDS = 28;
 export const PY_STOCK = 24;
 /** One pass through the stock: the waste is never turned back over (Joe, 1 Nov 2026, before pyramidRev 1 shipped). */
@@ -48,14 +56,33 @@ export const PY_PAIR_FULL = 10;
 export const PY_CORE_FULL = PY_CARDS;
 export const PY_V1_BAND_CURVE = bandCurve([0, PY_CORE_FULL], [0, PY_CORE_MAX]);
 
+/* ---- Scoring (pyramidRev 2: half the speed moved onto the cards) ---- */
+export const PY_V2_CORE_MAX = 140;
+export const PY_V2_CLEAR_MAX = 15;
+export const PY_V2_SPEED_MAX = 25;
+export const PY_V2_BAND_CURVE = bandCurve([0, PY_CORE_FULL], [0, PY_V2_CORE_MAX]);
+
 /** Cards cleared towards the core: the pyramid cards removed. */
 export function pyCoreUnits(state: Pick<PyState, "removed">): number {
   return state.removed;
 }
 
+/** pyramidRev 2's spec (what rooms deal: the help, LIVE_BANDS, the reveal). */
 export const PY_STD_SPEC: StdSpec = {
   field: "pyramidRev",
-  rev: PY_REV,
+  rev: PY_REV_SHARE,
+  parts: [
+    { key: "core", label: "Pyramid cards", max: PY_V2_CORE_MAX, of: PY_CORE_FULL, item: "card", how: "remove the 28 pyramid cards, each worth the same" },
+    { key: "clear", label: "Cleared", max: PY_V2_CLEAR_MAX, of: 1, how: "remove all 28" },
+    { key: "speed", label: "Speed", max: PY_V2_SPEED_MAX, of: 1, how: `clear it within ${PY_SPEED_FULL_S} s for all of it, falling to 0 at the buzzer` },
+    { key: "pairs", label: "Pyramid pairs", max: PY_PAIR_MAX, of: PY_PAIR_FULL, item: "pair", how: "2 for each pair made of two pyramid cards" },
+  ],
+};
+
+/** pyramidRev 1's spec (stored rounds). */
+export const PY_STD_SPEC_V1: StdSpec = {
+  field: "pyramidRev",
+  rev: 1,
   parts: [
     { key: "core", label: "Pyramid cards", max: PY_CORE_MAX, of: PY_CORE_FULL, item: "card", how: "remove the 28 pyramid cards, each worth the same" },
     { key: "clear", label: "Cleared", max: PY_CLEAR_MAX, of: 1, how: "remove all 28" },
@@ -418,9 +445,9 @@ export function pyDeal(seed: number): PyDeal {
   return d;
 }
 
-function pyStateOf(deal: PyDeal, seed: number): PyState {
+function pyStateOf(deal: PyDeal, seed: number, rev = 1): PyState {
   const s: PyState = {
-    tick: 0, rev: PY_REV, deal: seed, tab: deal.tab.slice(), gone: new Array<number>(PY_CARDS).fill(0), pile: deal.stock.slice(), pos: 0, pass: 1,
+    tick: 0, rev, deal: seed, tab: deal.tab.slice(), gone: new Array<number>(PY_CARDS).fill(0), pile: deal.stock.slice(), pos: 0, pass: 1,
     sel: -1, removed: 0, ppPairs: 0, pairs: 0, kings: 0, draws: 0, rejects: 0, acted: 0, ended: 0, finishTick: 0,
     hist: [], start: [], undos: 0, resets: 0, lastA: -1, lastB: -1, lastTick: 0, std: 1,
   };
@@ -428,9 +455,9 @@ function pyStateOf(deal: PyDeal, seed: number): PyState {
   return s;
 }
 
-/** The opening state for `seed`. */
-export function pyInit(seed: number): PyState {
-  return pyStateOf(pyDeal(seed), Math.trunc(seed) | 0);
+/** The opening state for `seed` (pyramidRev 1 unless `rev` says otherwise; the deal is the same on every revision). */
+export function pyInit(seed: number, rev = 1): PyState {
+  return pyStateOf(pyDeal(seed), Math.trunc(seed) | 0, rev);
 }
 
 /* ---- Undo and Reset: a position packed as integers ---- */
@@ -535,11 +562,19 @@ function step(state: PyState, input: ArcadeInputEvent | null): PyState {
 export function pyramidStdParts(state: PyState): StdPart[] | null {
   if (!state || !state.std) return null;
   const done = state.ended === 1;
+  if ((state.rev ?? 1) >= PY_REV_SHARE) {
+    return [
+      stdPart(PY_STD_SPEC, "core", stdLine(PY_V2_CORE_MAX, pyCoreUnits(state), PY_CORE_FULL), `${state.removed} / ${PY_CARDS} removed`),
+      stdPart(PY_STD_SPEC, "clear", done ? PY_V2_CLEAR_MAX : 0, done ? "all removed" : "not cleared"),
+      stdPart(PY_STD_SPEC, "speed", done ? stdSpeedInt(PY_V2_SPEED_MAX, state.finishTick, PY_SPEED_FULL_S * 60, PY_RUN_TICKS) : 0, done ? `cleared in ${(state.finishTick / 60).toFixed(1)} s` : "not cleared"),
+      stdPart(PY_STD_SPEC, "pairs", stdEach(state.ppPairs, PY_PAIR_EACH, PY_PAIR_MAX), `${state.ppPairs} pyramid pair${state.ppPairs === 1 ? "" : "s"}`),
+    ];
+  }
   return [
-    stdPart(PY_STD_SPEC, "core", stdLine(PY_CORE_MAX, pyCoreUnits(state), PY_CORE_FULL), `${state.removed} / ${PY_CARDS} removed`),
-    stdPart(PY_STD_SPEC, "clear", done ? PY_CLEAR_MAX : 0, done ? "all removed" : "not cleared"),
-    stdPart(PY_STD_SPEC, "speed", done ? stdSpeed(PY_SPEED_MAX, state.finishTick, PY_SPEED_FULL_S * 60, PY_RUN_TICKS) : 0, done ? `cleared in ${(state.finishTick / 60).toFixed(1)} s` : "not cleared"),
-    stdPart(PY_STD_SPEC, "pairs", stdEach(state.ppPairs, PY_PAIR_EACH, PY_PAIR_MAX), `${state.ppPairs} pyramid pair${state.ppPairs === 1 ? "" : "s"}`),
+    stdPart(PY_STD_SPEC_V1, "core", stdLine(PY_CORE_MAX, pyCoreUnits(state), PY_CORE_FULL), `${state.removed} / ${PY_CARDS} removed`),
+    stdPart(PY_STD_SPEC_V1, "clear", done ? PY_CLEAR_MAX : 0, done ? "all removed" : "not cleared"),
+    stdPart(PY_STD_SPEC_V1, "speed", done ? stdSpeed(PY_SPEED_MAX, state.finishTick, PY_SPEED_FULL_S * 60, PY_RUN_TICKS) : 0, done ? `cleared in ${(state.finishTick / 60).toFixed(1)} s` : "not cleared"),
+    stdPart(PY_STD_SPEC_V1, "pairs", stdEach(state.ppPairs, PY_PAIR_EACH, PY_PAIR_MAX), `${state.ppPairs} pyramid pair${state.ppPairs === 1 ? "" : "s"}`),
   ];
 }
 
@@ -575,7 +610,7 @@ export function pyCheckpoint(state: PyState): PyCheckpoint {
 export const pyramidGame: ArcadeGame<PyState, ArcadeInputEvent | null> = {
   key: "pyramid",
   runTicks: PY_RUN_TICKS,
-  init: pyInit,
+  init: (seed) => pyInit(seed, 1),
   step,
   isOver: (state) => state.ended !== 0,
   score: pyramidScore,
@@ -583,6 +618,12 @@ export const pyramidGame: ArcadeGame<PyState, ArcadeInputEvent | null> = {
   inputRanges: [inputRange(PY_INPUT_TAP, [0, PY_WASTE_PILE]), inputRange(PY_INPUT_UNDO), inputRange(PY_INPUT_RESET)],
 };
 
-export function pyramidGameFor(_rev?: number | null): ArcadeGame<PyState, ArcadeInputEvent | null> {
-  return pyramidGame;
+/** pyramidRev 1's game (the checks and tools that play Pyramid without a stamp mean rev 1). */
+export const pyramidGameV1 = pyramidGame;
+
+/** pyramidRev 2's game: the same deals and play, scored on rev 2's parts. */
+export const pyramidGameV2: ArcadeGame<PyState, ArcadeInputEvent | null> = { ...pyramidGame, init: (seed) => pyInit(seed, PY_REV_SHARE) };
+
+export function pyramidGameFor(rev?: number | null): ArcadeGame<PyState, ArcadeInputEvent | null> {
+  return (rev ?? 1) >= PY_REV_SHARE ? pyramidGameV2 : pyramidGame;
 }

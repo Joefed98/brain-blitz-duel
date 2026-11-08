@@ -210,8 +210,36 @@ assert.match(bottomCss, /html:has\(\[data-arcade-play\]\),\s*html:has\(\[data-ar
 assert.match(bottomCss, /\[data-arcade-play\] > \.screen-background \{\s*display: none;\s*\}/);
 assert.match(bottomCss, /\[data-arcade-play\] \[data-game-stage\] \{\s*row-gap: 8px;\s*\}/);
 assert.match(bottomCss, /\[data-arcade-play\] \.game-column \[data-stage-column\] > \[data-arena-slot\] \+ \* \{\s*margin-top: calc\(8px - var\(--stage-gap\)\);\s*\}/);
-assert.match(bottomCss, /\[data-arcade-play\] \[data-game-stage\] \[data-game-controls="arrows"\] \{\s*height: 52px;\s*padding-top: 0;\s*padding-bottom: 0;\s*align-items: end;\s*\}/);
+assert.match(bottomCss, /\[data-arcade-play\] \[data-game-stage\] \[data-game-controls="arrows"\] \{\s*height: 52px;\s*padding-top: 0;\s*padding-bottom: 0;\s*align-items: start;\s*\}/, "Mixed Signals' arrows top-aligned in their 52px row (bottom-aligned until 7 Nov 2026, accessibility audit #2)");
 assert.doesNotMatch(bottomCss, /padding-bottom: 8px;/, "the 8px arcade bottom is gone");
+// The home-bar zone (7 Nov 2026, accessibility audit #2; display only): each bottom row keeps its height (so the column,
+// box and world above are unchanged, the arena loop below proves them), and its buttons stand on a padding of
+// min(room, inset - 16) inside it. Modelled for a 34px home bar and none; the rows' markup carries the room.
+{
+  assert.match(bottomCss, /\[data-arcade-play\] \{\s*--home-bar-lift: max\(0px, calc\(env\(safe-area-inset-bottom, 0px\) - 16px\)\);\s*\}/, "home-bar lift: the inset less the 16px strip");
+  assert.match(bottomCss, /\[data-arcade-play\] \[data-game-stage\] \[data-home-bar-clear\] \{\s*padding-bottom: min\(var\(--home-bar-room, 0px\), var\(--home-bar-lift, 0px\)\);\s*\}/, "rows pad their buttons up by the lift, at most their room");
+  assert.match(bottomCss, /\[data-home-bar-clear\] \[data-home-bar-fill\] \{\s*height: auto;\s*align-self: stretch;\s*\}/, "tall buttons fill what the padding leaves");
+  const ROWS = [
+    { game: "burst", file: "burst", row: 76, room: 32, button: 76, clears: true },
+    { game: "pool", file: "pool", row: 76, room: 32, button: 76, clears: true },
+    { game: "mahjong", file: "mahjong", row: 52, room: 8, button: 52, clears: false },
+    { game: "minesweeper", file: "minesweeper", row: 52, room: 8, button: 52, clears: false },
+    { game: "inkbridge", file: "inkBridge", row: 48, room: 4, button: 48, clears: false },
+  ];
+  for (const r of ROWS) {
+    const src = readFileSync(`src/puzzles/${r.file}.tsx`, "utf8");
+    assert.ok(src.includes(`data-home-bar-clear="${r.room}"`), `${r.game}: its row declares ${r.room}px of room`);
+    assert.match(bottomCss, new RegExp(`\\[data-home-bar-clear="${r.room}"\\] \\{\\s*--home-bar-room: ${r.room}px;`), `${r.game}: ${r.room}px room rule`);
+    assert.ok(r.row - r.room === 44, `${r.game}: the room leaves exactly a 44px target`);
+    for (const inset of [0, 34]) {
+      const pad = Math.min(r.room, Math.max(0, inset - 16));
+      const buttonH = r.row - pad, buttonBottom = 16 + pad;
+      assert.ok(buttonH >= 44, `${r.game} inset ${inset}: buttons ${buttonH}px, at least 44`);
+      if (inset === 0) assert.ok(pad === 0 && buttonH === r.button, `${r.game}: no inset, the row exactly as before`);
+      if (inset === 34) assert.ok(r.clears ? buttonBottom >= inset : buttonBottom < inset, `${r.game}: buttons end ${buttonBottom}px up (zone ${inset}px)`);
+    }
+  }
+}
 // iOS home-screen apps (15 Oct 2026): laid out in a viewport short by the top inset (WebKit bug 254868), the play
 // screen adds the measured shortfall to its 100dvh height, so the column still ends 16px above the screen's bottom.
 assert.match(bottomCss, /\[data-arcade-play\]\.game-viewport \{\s*height: min\(calc\(100dvh \+ var\(--standalone-short, 0px\)\), var\(--standalone-screen, 100000px\)\);\s*\}/, "the play screen reaches the bottom of the screen in an iOS home-screen app, never past it");
@@ -275,7 +303,7 @@ const ABOVE: Record<string, number> = {
 const BELOW: Record<string, number> = { burst: 8 + 76, inkbridge: 8 + 48, bintoss: 72, stroop: 8 + 52 };
 const BELOW_CONTROLS: Record<string, string> = {
   burst: "Fission's two 76px arrows", inkbridge: "Rainbow Bridge's Undo / Reset / Release / Drop again (48px)", orbit: "Orbit's SET CHECKPOINT (44px row)",
-  bintoss: "Swish's cancel strip (72px)", stroop: "Mixed Signals' arrows (44px) and joystick (52px), bottom-aligned",
+  bintoss: "Swish's cancel strip (72px)", stroop: "Mixed Signals' arrows (44px) and joystick (52px), top-aligned",
 };
 /** Until 15 Oct 2026: arena top, the bottom term and the rows below (OLD_BELOW), 4px side insets. */
 const OLD_TOP = (game: string) => 116 + (game === "snip" ? 40 : 0) + (game === "tilt" ? 40 : 0);

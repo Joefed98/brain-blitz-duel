@@ -218,7 +218,7 @@ export const CURLING_STD_SPEC: StdSpec = {
   field: "curlRev",
   rev: CURLING_REV,
   parts: [
-    { key: "core", label: "Stones", max: CURL_V4_CORE_MAX, of: CURLING_STONES, item: "stone", how: `${CURL_STONE_PTS} for a stone on the button, less further out, if it stops nearer than every red` },
+    { key: "core", label: "Stones", max: CURL_V4_CORE_MAX, of: CURLING_STONES, item: "stone", how: "a stone counts most on the button, less further out and nothing from 1.2 m, and only if it stops nearer than every red; about six on the button for all of it" },
     { key: "takeouts", label: "Takeouts", max: CURL_V4_TAKEOUT_PTS, of: 1, item: "takeout", how: "knock the red stones out of the house" },
     { key: "redring", label: "Red ring", max: CURL_V4_RED_PTS, of: CURLING_STONES, item: "stone", how: "2.5 for each stone that stops in the red ring" },
     { key: "hold", label: "Holding shot", max: CURL_V4_HOLD_PTS, of: 1, item: "shot", how: "finish with your stone nearest the button" },
@@ -628,8 +628,8 @@ export function curlingStdParts(s: CurlingState): StdPart[] | null {
     return [
       stdPart(spec, "core", stdLine(CURL_V4_CORE_MAX, core, CURL_V4_CORE_FULL), `${s.pts.length} thrown, ${counted} counting, ${onButton} on the button`),
       stdPart(spec, "takeouts", stdLine(CURL_V4_TAKEOUT_PTS, out, Math.max(1, s.theirs)), `${out} of ${s.theirs} out of the house`),
-      stdPart(spec, "redring", stdLine(CURL_V4_RED_PTS, red, CURLING_STONES), `${red} in the 4-foot`),
-      stdPart(spec, "hold", holding ? CURL_V4_HOLD_PTS : 0, holding ? "yours is shot stone" : "not holding shot"),
+      stdPart(spec, "redring", stdLine(CURL_V4_RED_PTS, red, CURLING_STONES), `${red} in the red ring`),
+      stdPart(spec, "hold", holding ? CURL_V4_HOLD_PTS : 0, holding ? "yours is nearest the button" : "not nearest the button"),
     ];
   return [
     stdPart(spec, "core", core, `${s.pts.length} thrown, ${onButton} on the button`),

@@ -10,8 +10,8 @@ generated tone) or *silent*. **How often** is an estimate for a typical round. *
 moment's on-screen length, capped at 6 s for one-shots. **Manifest slot** is the entry in
 `src/lib/fx/manifest.ts` whose `url` a new file goes on.
 
-Recorded files are hosted by Lovable (`/__l5e/assets-v1/<id>/<name>.mp3`) or, when they came in through git,
-kept in `public/sounds/` (`/sounds/<recording>.mp3`), one file per recording: several slots may name the same
+Recorded files are kept in `public/sounds/` (`/sounds/<recording>.mp3`; those once hosted by Lovable were
+copied there on 7 Nov 2026), one file per recording: several slots may name the same
 file. Every file is listed under [Recorded files](#recorded-files). **What it looks like** describes the arcade
 effects ([arcade-effects.md](arcade-effects.md)) so a sound can be written for each.
 
@@ -142,7 +142,7 @@ Grouped by game or screen. These are the cues still missing a sound.
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
-| `tiles.slide` | A tile changes cell (a slide or an undo) [pattern.md (Jumbled (tiles))] |  | 5–40 (per move) | silent | none | 160 | game event | `tiles.slide` |
+| `tiles.slide` | A tile changes cell (a slide or an undo) [pattern.md (Gradient (tiles))] |  | 5–40 (per move) | silent | none | 160 | game event | `tiles.slide` |
 
 ### Gridlock
 
@@ -339,7 +339,7 @@ Grouped by game or screen. These are the cues still missing a sound.
 | Ascend | speed | yes | music_speed_2 (shared) | `music_speed_numhunt` |
 | Bang On | speed | yes | music_speed_1 (shared) | `music_speed_stopwatch` |
 | Bonk | speed | yes | music_speed_3 (shared) | `music_speed_whack` |
-| Don't Break the Chain | speed | yes | music_speed_2 (shared) | `music_speed_chain` |
+| Don’t Break the Chain | speed | yes | music_speed_2 (shared) | `music_speed_chain` |
 | Flash | speed | yes | music_speed_1 (shared) | `music_speed_reaction` |
 | Pull! | speed | yes | music_speed_3 (shared) | `music_speed_clayshoot` |
 | Bomb Defusal | attention | yes | music_logic_3 (shared) | `music_attention_bomb` |
@@ -465,10 +465,10 @@ Grouped by game or screen.
 | `place` | Ballpark, Cryptogrid, Swapword, Strikeout: A piece, letter or marker placed (fx.onPlace) [core.md] |  | 10–40 | recorded sound | `place` | 50 | UI tap | `place` |
 | `move` | puzzles with live checks (FeedbackStage), Swapword: A move sent for a live check (fx.onMove) [core.md] |  | 10–60 | recorded sound | `move` | 40 | UI tap | `move` |
 | `correct` | FeedbackStage, reveal verdict, practice result, many puzzles (playCorrect), High Rise perfect drop: A right move, a stage or game solved, a correct verdict [core.md] |  | 1–20 | recorded sound | `correct` | 120 | game event | `correct` |
-| `wrong` | FeedbackStage, reveal verdict, many puzzles (playWrong), arcade crashes in Jaywalk, Swish, Coral Pop: A wrong move or verdict [core.md] |  | 0–10 | recorded sound | `wrong` | 140 | fail sting | `wrong` |
+| `wrong` | FeedbackStage, reveal verdict, many puzzles (playWrong), arcade crashes in Spacewalk, Swish, Coral Pop: A wrong move or verdict [core.md] |  | 0–10 | recorded sound | `wrong` | 140 | fail sting | `wrong` |
 | `lock` | Ready, Start, Submit, chat message (playBlip), several puzzles (playLock): A confirming tap [core.md] |  | 1–10 | recorded sound | `lock` | 90 | UI tap | `lock` |
 | `tick` | Ball Tracker, Don't Break the Chain, Pull!, Ballpark, Tenfall, Bonk, Letterfall (playTick): A small tap [core.md] |  | 10–60 | recorded sound | `tick` | 55 | UI tap | `tick` |
-| `stage_complete` | StageProgress, StageCorrect, Wavefront, Jaywalk, Junction: A stage of a staged game is complete (fx.onStageComplete) [core.md] |  | 1–4 | recorded sound | `stage_complete` | 160 | success sting | `stage_complete` |
+| `stage_complete` | StageProgress, StageCorrect, Wavefront, Spacewalk, Junction: A stage of a staged game is complete (fx.onStageComplete) [core.md] |  | 1–4 | recorded sound | `stage_complete` | 160 | success sting | `stage_complete` |
 | `complete` | arcade run end (arcadeFeedback), Cryptogrid, Swapword, Strikeout: The run or puzzle is complete (fx.onComplete) [core.md] |  | 1 | recorded sound | `complete` | 200 | success sting | `complete` |
 | `combo` | arcade games with a combo or cascades (arcadeFeedback): The combo grows (fx.onCombo) [core.md] |  | 0–20 | recorded sound | `combo` | 90 | game event | `combo` |
 | `warning_10` | TimerBar: 10 s left: the countdown bed (starts part-way in for late joiners) [core.md] |  | 1 | recorded sound | `warning_10` | 6000 | game event | `warning_10` |
@@ -914,7 +914,7 @@ Grouped by game or screen.
 | `whack.finale` | Bonk: End of run, local whackGame.score ≥ 120: hard hats fly up as gophers pop out together [speed-attention.md] |  | 0–1 | recorded sound | `whack.finale` | 1100 | success sting | `whack.finale` |
 | `music.whack` | Bonk round bed: music_speed_3 (speed bed shared with other games) |  | loop | recorded sound | `music_speed_3` (shared) | 60000 | music | `music_speed_whack` |
 
-### Don't Break the Chain
+### Don’t Break the Chain
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
@@ -923,7 +923,7 @@ Grouped by game or screen.
 | `chain.finishShine` | Don't Break the Chain: Chain completed: gold chain glows, shine runs along every link [speed-attention.md] |  | 0–1 | recorded sound | `chain.finishShine` | 1100 | success sting | `chain.finishShine` |
 | `chain.faster` | Don't Break the Chain: The FASTER banner (a speed-up link; not when the REVERSE flash takes the same link) [speed-attention.md] |  | 5–40 (per move) | recorded sound | `chain.faster` | 350 | game event | `chain.faster` |
 | `chain.reverse` | Don't Break the Chain: chainCycleRev 1: the ← REVERSE flash as the reversed board starts [speed-attention.md] |  | 5–40 (per move) | recorded sound | `chain.reverse` | 500 | game event | `chain.reverse` |
-| `music.chain` | Don't Break the Chain round bed: music_speed_2 (speed bed shared with other games) |  | loop | recorded sound | `music_speed_2` (shared) | 60000 | music | `music_speed_chain` |
+| `music.chain` | Don’t Break the Chain round bed: music_speed_2 (speed bed shared with other games) |  | loop | recorded sound | `music_speed_2` (shared) | 60000 | music | `music_speed_chain` |
 
 ### Flash
 
@@ -1023,7 +1023,7 @@ Grouped by game or screen.
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
-| `tiles.solve` | The colour ramp flows across the tiles from 1 to 8, then the gap glows [pattern.md (Jumbled (tiles))] |  | 0–1 | recorded sound | `tiles.solve` | 980 | success sting | `tiles.solve` |
+| `tiles.solve` | The colour ramp flows across the tiles from 1 to 8, then the gap glows [pattern.md (Gradient (tiles))] |  | 0–1 | recorded sound | `tiles.solve` | 980 | success sting | `tiles.solve` |
 | `music.tiles` | Gradient round bed: music_pattern_1 (pattern bed shared with other games) |  | loop | recorded sound | `music_pattern_1` (shared) | 60000 | music | `music_pattern_tiles` |
 
 ### Gridlock
@@ -1859,15 +1859,15 @@ Grouped by game or screen.
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
-| `pyramid.pair` | Pyramid: Two cards adding to 13 removed (pyramid or waste) [arcade.md] |  | 8–14 | recorded sound | `pyramid.pair` | 406 | game event | `pyramid.pair` |
-| `pyramid.king` | Pyramid: A King removed alone [arcade.md] |  | 0–4 | recorded sound | `pyramid.king` | 329 | game event | `pyramid.king` |
-| `pyramid.deal` | Pyramid: A stock card turned onto the waste [arcade.md] |  | 10–60 | recorded sound | `pyramid.deal` | 220 | game event | `pyramid.deal` |
-| `pyramid.invalid` | Pyramid: A tap refused (a covered card, a pair not adding to 13, an empty stock) [arcade.md] |  | 0–10 | recorded sound | `pyramid.invalid` | 434 | game event | `pyramid.invalid` |
-| `pyramid.clear` | Pyramid: All 28 pyramid cards removed [arcade.md] |  | 0–1 | recorded sound | `pyramid.clear` | 1666 | game event | `pyramid.clear` |
-| `pyramid.shuffle` | Pyramid [cards-solitaire.md] |  | 5–40 (per move) | recorded sound | `pyramid.shuffle` | 1093 | game event | `pyramid.shuffle` |
-| `pyramid.select` | Pyramid [cards-solitaire.md] |  | 5–40 (per move) | recorded sound | `pyramid.select` | 334 | UI tap | `pyramid.select` |
-| `pyramid.turn` | Pyramid [cards-solitaire.md] |  | 5–40 (per move) | recorded sound | `pyramid.turn` | 1093 | game event | `pyramid.turn` |
-| `music.pyramid` | Pyramid: music_pyramid (Free Cell's bed, music_freecell.mp3) |  | loop | recorded sound | `music_pyramid` | 47400 | music | `music_pyramid` |
+| `pyramid.pair` | Thirteen: Two cards adding to 13 removed (pyramid or waste) [arcade.md] |  | 8–14 | recorded sound | `pyramid.pair` | 406 | game event | `pyramid.pair` |
+| `pyramid.king` | Thirteen: A King removed alone [arcade.md] |  | 0–4 | recorded sound | `pyramid.king` | 329 | game event | `pyramid.king` |
+| `pyramid.deal` | Thirteen: A stock card turned onto the waste [arcade.md] |  | 10–60 | recorded sound | `pyramid.deal` | 220 | game event | `pyramid.deal` |
+| `pyramid.invalid` | Thirteen: A tap refused (a covered card, a pair not adding to 13, an empty stock) [arcade.md] |  | 0–10 | recorded sound | `pyramid.invalid` | 434 | game event | `pyramid.invalid` |
+| `pyramid.clear` | Thirteen: All 28 pyramid cards removed [arcade.md] |  | 0–1 | recorded sound | `pyramid.clear` | 1666 | game event | `pyramid.clear` |
+| `pyramid.shuffle` | Thirteen [cards-solitaire.md] |  | 5–40 (per move) | recorded sound | `pyramid.shuffle` | 1093 | game event | `pyramid.shuffle` |
+| `pyramid.select` | Thirteen [cards-solitaire.md] |  | 5–40 (per move) | recorded sound | `pyramid.select` | 334 | UI tap | `pyramid.select` |
+| `pyramid.turn` | Thirteen [cards-solitaire.md] |  | 5–40 (per move) | recorded sound | `pyramid.turn` | 1093 | game event | `pyramid.turn` |
+| `music.pyramid` | Thirteen: music_pyramid (Free Cell's bed, music_freecell.mp3) |  | loop | recorded sound | `music_pyramid` | 47400 | music | `music_pyramid` |
 
 ### Tilt
 
@@ -2659,13 +2659,13 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 | `chain.faster` | effects | `chain.faster` | 528 |
 | `pinball.lastBall` | effects | `pinball.lastBall` | 840 |
 | `pinball.gameOver` | effects | `pinball.gameOver` | 1632 |
-| `wavefront.danger` | effects | `wavefront.danger` | 2280 |
+| `wavefront.danger` | effects | `wavefront.danger` | 2151 |
 | `swing.dragonNear` | effects | `swing.dragonNear` | 1104 |
 | `slice.fuse` | effects | `slice.fuse` | 648 |
 | `bubble.rush` | effects | `bubble.rush` | 912 |
 | `whack.hedgehogUp` | effects | `whack.hedgehogUp` | 528 |
 | `clayshoot.birdIn` | effects | `clayshoot.birdIn` | 528 |
-| `swing.lava` | effects | `swing.lava` | 6024 |
+| `swing.lava` | effects | `swing.lava` | 5950 |
 | `swing.jungle` | effects | `swing.jungle` | 8000 |
 | `swing.vineCreak` | effects | `swing.vineCreak` | 480 |
 | `swing.splash` | effects | `swing.splash` | 880 |
@@ -2676,7 +2676,7 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 | `skyline.gustWarn` | effects | `skyline.gustWarn` | 528 |
 | `swing.rockCrumble` | effects | `swing.rockCrumble` | 528 |
 | `inkbridge.coinLand` | effects | `inkbridge.coinLand` | 120 |
-| `inkbridge.coinRoll` | effects | `inkbridge.coinRoll` | 400 |
+| `inkbridge.coinRoll` | effects | `inkbridge.coinRoll` | 3000 |
 | `slice.toss` | effects | `slice.toss` | 528 |
 | `slice.specialIn` | effects | `slice.specialIn` | 300 |
 | `bintoss.throw` | effects | `bintoss.throw` | 528 |
@@ -2728,7 +2728,7 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 | `pool.cushion` | effects | `pool.cushion` | 300 |
 | `curling.release` | effects | `curling.release` | 484 |
 | `curling.slide` | effects | `curling.slide` | 2177 |
-| `curling.sweep` | effects | `curling.sweep` | 1508 |
+| `curling.sweep` | effects | `curling.sweep` | 1013 |
 | `curling.hit` | effects | `curling.hit` | 400 |
 | `curling.board` | effects | `curling.board` | 400 |
 | `curling.applause` | effects | `curling.applause` | 1995 |
@@ -2743,7 +2743,7 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 | `freekick.whistle` | effects | `freekick.whistle` | 683 |
 | `freekick.roar` | effects | `freekick.roar` | 3477 |
 | `freekick.groan` | effects | `freekick.groan` | 1995 |
-| `racing.idle` | effects | `racing.idle` | 2341 |
+| `racing.idle` | effects | `racing.idle` | 2283 |
 | `racing.drive` | effects | `racing.drive` | 2419 |
 | `racing.squeal` | effects | `racing.squeal` | 1197 |
 | `racing.kerb` | effects | `racing.kerb` | 672 |

@@ -36,7 +36,7 @@ Fences → Loopline, Fillomino → Regions, Bridges → Island Link.
 
 The boards, art and rules text are original (generated in the app; no puzzle collection, font or artwork copied).
 
-## Added 1 Nov 2026: Blockfall and Alley Roll (arcade; Blockfall shown as Blockzone since 3 Nov 2026, above)
+## Added 1 Nov 2026: Blockfall and Alley Roll (arcade; Blockfall shown as Blockzone and Alley Roll as Ringer since 3 Nov 2026)
 
 | Shown as | Id | Genre (generic description) | Name chosen to avoid | To check |
 | --- | --- | --- | --- | --- |
@@ -69,7 +69,7 @@ and HUD drawn in code, `src/lib/arcade/bastionTank.renderer.ts`), the wave sched
 (`docs/arcade-standard/bastion.md`) are original; no third-party art, fonts beyond the self-hosted OFL set, or sounds
 beyond the existing library.
 
-## Added 1 Nov 2026: Pyramid, Golf Solitaire and Muggins (Cards & Board)
+## Added 1 Nov 2026: Pyramid, Golf Solitaire and Muggins (Cards & Board; Pyramid shown as Thirteen since 3 Nov 2026, below)
 
 | Shown as | Id | Genre (generic description) | Name chosen to avoid | To check |
 | --- | --- | --- | --- | --- |

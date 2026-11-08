@@ -14,7 +14,7 @@ import {
   BURST_GOLD,
   BURST_INPUT_FIRE,
   BURST_INPUT_MOVE,
-  BURST_REV_STD,
+  BURST_REV_AIM,
   BURST_V8_GOLDENS,
   BURST_V10_GOLDENS,
   burstStdParts,
@@ -140,9 +140,9 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     {/* Two large arrows (76 px tall, half the width each); the arcade play screen puts their bottom 16 px above the visible bottom (15 Oct 2026). */}
     {/* 3 Nov 2026 (Joe's audit; look only): the same 76 px row and tap boxes, drawn slim and translucent in the game's Retro cyan (a thin
         neon frame, a faint fill, the pixel font's arrows) in place of the chunky orange-outlined buttons. */}
-    <div data-game-controls="pad" className="grid h-[76px] shrink-0 touch-none select-none grid-cols-2 items-start gap-4">
-      <ArcadeControlButton type="button" aria-label="Move left" disabled={locked} className="h-[76px] w-full rounded-[10px] border border-[rgba(61,255,224,0.45)] bg-[rgba(61,255,224,0.06)] p-0 font-['Press_Start_2P',ui-monospace,monospace] text-[30px] leading-none text-[#3DFFE0] [text-shadow:0_0_8px_rgba(61,255,224,0.6)] active:border-[rgba(61,255,224,0.85)] active:bg-[rgba(61,255,224,0.18)] before:content-['◀']" onPressStart={holdStart(-1)} onPressEnd={holdEnd} />
-      <ArcadeControlButton type="button" aria-label="Move right" disabled={locked} className="h-[76px] w-full rounded-[10px] border border-[rgba(61,255,224,0.45)] bg-[rgba(61,255,224,0.06)] p-0 font-['Press_Start_2P',ui-monospace,monospace] text-[30px] leading-none text-[#3DFFE0] [text-shadow:0_0_8px_rgba(61,255,224,0.6)] active:border-[rgba(61,255,224,0.85)] active:bg-[rgba(61,255,224,0.18)] before:content-['▶']" onPressStart={holdStart(1)} onPressEnd={holdEnd} />
+    <div data-home-bar-clear="32" data-game-controls="pad" className="grid h-[76px] shrink-0 touch-none select-none grid-cols-2 items-start gap-4">
+      <ArcadeControlButton type="button" data-home-bar-fill="" aria-label="Move left" disabled={locked} className="h-[76px] w-full rounded-[10px] border border-[rgba(61,255,224,0.45)] bg-[rgba(61,255,224,0.06)] p-0 font-['Press_Start_2P',ui-monospace,monospace] text-[30px] leading-none text-[#3DFFE0] [text-shadow:0_0_8px_rgba(61,255,224,0.6)] active:border-[rgba(61,255,224,0.85)] active:bg-[rgba(61,255,224,0.18)] before:content-['◀']" onPressStart={holdStart(-1)} onPressEnd={holdEnd} />
+      <ArcadeControlButton type="button" data-home-bar-fill="" aria-label="Move right" disabled={locked} className="h-[76px] w-full rounded-[10px] border border-[rgba(61,255,224,0.45)] bg-[rgba(61,255,224,0.06)] p-0 font-['Press_Start_2P',ui-monospace,monospace] text-[30px] leading-none text-[#3DFFE0] [text-shadow:0_0_8px_rgba(61,255,224,0.6)] active:border-[rgba(61,255,224,0.85)] active:bg-[rgba(61,255,224,0.18)] before:content-['▶']" onPressStart={holdStart(1)} onPressEnd={holdEnd} />
     </div>
     </div>
   );
@@ -165,7 +165,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
         <p className="shrink-0 text-center font-mono text-sm text-muted-foreground">
           {(() => {
             const p = burstStdParts(result.state);
-            return `${result.hits}/${p.atoms} atoms ${p.core} · wave clears ${p.clear} · golden ${burstGoldenCount(result.state)}/${BURST_V10_GOLDENS} ${p.gold}${p.lives ? ` · lives −${p.lives}` : ""}`;
+            return `${result.hits}/${p.atoms} atoms ${p.core} · wave clears ${p.clear} · golden ${burstGoldenCount(result.state)}/${BURST_V10_GOLDENS} ${p.gold}${p.lives ? ` · lives −${p.lives}` : ""}${p.misses ? ` · wasted beams −${p.misses}` : ""}`;
           })()}
         </p>
       ) : result.state.carry ? (
@@ -188,7 +188,7 @@ export const burstPuzzle: PuzzleDefinition = {
   category: "arcade",
   timeLimitMs: BURST_TIME_MS,
   revealMs: 6_000,
-  generate: () => ({ type: "burst", seed: 1, burstRev: BURST_REV_STD }) satisfies BurstPuzzleData,
+  generate: () => ({ type: "burst", seed: 1, burstRev: BURST_REV_AIM }) satisfies BurstPuzzleData,
   check: () => false,
   revealHeading: "Your run",
   IntroExample,

@@ -32,10 +32,15 @@ export const WINNER_ROLL_END_MS = 5_800;
 /** A podium that appears within this window after the reveal ends gets the crash + shake. */
 export const WINNER_CRASH_GRACE_MS = 3_000;
 
-export function winnerRevealFrame(elapsedMs: number) {
+/**
+ * "And the winner is…": a 250 ms pulse through the drum roll. With Reduce Motion (7 Nov 2026, accessibility
+ * audit #12; the 4 Hz throb ran regardless) the text holds still at full size with a steady glow through the roll.
+ */
+export function winnerRevealFrame(elapsedMs: number, reducedMotion = false) {
   const t = Math.max(0, elapsedMs);
   const opacity = Math.min(1, t / 300);
   if (t < WINNER_ROLL_MS || t >= WINNER_ROLL_END_MS) return { opacity, scale: 1, glow: 0 };
+  if (reducedMotion) return { opacity, scale: 1, glow: 0.45 };
   const p = (t - WINNER_ROLL_MS) / (WINNER_ROLL_END_MS - WINNER_ROLL_MS);
   const amp = 0.015 + 0.035 * p;
   const pulse = (1 - Math.cos(((t - WINNER_ROLL_MS) / 250) * Math.PI * 2)) / 2;

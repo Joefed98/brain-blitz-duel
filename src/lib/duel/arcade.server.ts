@@ -1,10 +1,10 @@
 import { MOON_REV } from "@/lib/arcade/ricochetNinja";
 import { BASTION_REV_DEALT } from "@/lib/arcade/bastionTank";
 import { TEN_DROP_DEPTH_REV } from "@/lib/arcade/tenDrop";
-import { SLICE_REV_TARGET, SLICE_REV_STRICT, SLICE_REV_FOOD, sliceFoodSeedOk } from "@/lib/arcade/slice";
+import { SLICE_REV_TARGET, SLICE_REV_STRICT, SLICE_REV_LINE, sliceFoodSeedOk } from "@/lib/arcade/slice";
 import { FLIP_REV_TARGET, FLIP_REV_STRICT, FLIP_REV_DEAL } from "@/lib/arcade/flip";
 import { flipDealSeed } from "./flipDeal.server";
-import { CROSS_REV_FLOW } from "@/lib/arcade/cross";
+import { CROSS_REV_KEEP } from "@/lib/arcade/cross";
 import { INK_REV_BIG, INK_REV_CLOVER, INK_REV_STD } from "@/lib/arcade/inkBridge";
 import { inkBigDealSeed } from "./inkBigDeal.server";
 import { SNAKE_REV_TARGET, SNAKE_REV_12 } from "@/lib/arcade/snake";
@@ -13,18 +13,18 @@ import { MATCHUP_REV_SIX } from "@/lib/arcade/matchup";
 import { minesBoard, minesSolve, MINES_REV_STD } from "@/lib/arcade/minesweeper";
 import { mahjongBuildClears, MAHJONG_REV_DEALT } from "@/lib/arcade/mahjong";
 import { SNIP_REV_TARGET, SNIP_REV_EXPAND } from "@/lib/arcade/snip";
-import { SKYLINE_REV_TARGET, SKYLINE_REV_STRICT, SKYLINE_REV_STD } from "@/lib/arcade/skyline";
+import { SKYLINE_REV_TARGET, SKYLINE_REV_STRICT, SKYLINE_REV_COUNT } from "@/lib/arcade/skyline";
 import { TILT_REV_BIG } from "@/lib/arcade/tilt";
 import { TILT_DEAL_V12 } from "./tiltDealV12.server";
 import { JUNC_REV_BAND } from "@/lib/arcade/junction";
 import { BINTOSS_REV_TARGET, BINTOSS_REV_STRICT, BINTOSS_REV_STD } from "@/lib/arcade/binToss";
 import { SWING_REV_TALL, SWING_REV_TARGET, SWING_REV_STRICT, SWING_REV_EXPAND, SWING_REV_ASSAULT, SWING_REV_REWORK, SWING_REV_DARK, SWING_REV_SLIDE } from "@/lib/arcade/swing";
-import { BURST_REV_TARGET, BURST_REV_STRICT, BURST_REV_STD } from "@/lib/arcade/burst";
+import { BURST_REV_TARGET, BURST_REV_STRICT, BURST_REV_AIM } from "@/lib/arcade/burst";
 import { BRK_REV_TARGET, BRK_REV_STRICT, BRK_REV_DEEP, BRK_REV_PHONE, BRK_REV_STD } from "@/lib/arcade/breaker";
 import { PIN_REV_TARGET, PIN_REV_STRICT, PIN_REV_EXPAND, PIN_REV_LONG, PIN_REV_STD } from "@/lib/arcade/pinball";
 import { WHACK_REV_DEPTH, WHACK_REV_NOTES } from "@/lib/arcade/whack";
 import { dealtNotesRev } from "./phoneNotes";
-import { WAV_REV_TARGET, WAV_REV_STRICT, WAV_REV_STD } from "@/lib/arcade/wavefront";
+import { WAV_REV_TARGET, WAV_REV_STRICT, WAV_REV_KEEP } from "@/lib/arcade/wavefront";
 import { ORBIT_REV_TARGET, ORBIT_REV_STRICT, ORBIT_REV_STD, ORBIT_REV_FUEL } from "@/lib/arcade/orbit";
 import { RALLY_REV_TARGET, RALLY_REV_STRICT, RALLY_REV_STD } from "@/lib/arcade/rally";
 import { BEAT_REV_TARGET, BEAT_REV_STD } from "@/lib/arcade/beat";
@@ -44,9 +44,9 @@ import { CLASH_QUEUE, CLASH_REV_TALL, CLASH_REV_DEPTH, CLASH_REV_TOPUP } from "@
  */
 
 import { randomBelow } from "./random";
-import { FC_REV } from "@/lib/arcade/cards/freecell";
+import { FC_REV, FC_REV_SHORT } from "@/lib/arcade/cards/freecell";
 import { FC_DEALS } from "@/lib/arcade/cards/freecellDeals.data";
-import { TP_REV } from "@/lib/arcade/cards/tripeaks";
+import { TP_REV, TP_REV_PAR } from "@/lib/arcade/cards/tripeaks";
 import { TP_DEALS } from "@/lib/arcade/cards/tripeaksDeals.data";
 import { PS_REV } from "@/lib/arcade/cards/pokerSquares";
 import { FH_REV } from "@/lib/arcade/cards/fiveHands";
@@ -103,14 +103,29 @@ export function arcadeSeed(): number {
 
 /* Cards & Board (30 Oct 2026): the arcade scoring standard from revision 1. */
 
+let cardsPreShare = false;
+/**
+ * Checks written for Free Cell freecellRev 4, Summit tripeaksRev 2 and Thirteen pyramidRev 1 (before the 7 Nov 2026
+ * partial-credit stamps, docs/arcade-standard/freecell.md, tripeaks.md, pyramid.md): deal those stamps as rooms did
+ * before freecellRev 5, tripeaksRev 3 and pyramidRev 2 (returns the previous setting), so they keep proving what they
+ * were written for.
+ */
+export function pinCardsPreShare(on: boolean): boolean {
+  const prev = cardsPreShare;
+  cardsPreShare = on;
+  return prev;
+}
+
 /** FreeCell: a bank deal (its index), proved solvable with a known par. */
 export function generateFreecell(): FreecellPuzzleData {
-  return { type: "freecell", seed: randomBelow(FC_DEALS.length), freecellRev: FC_REV };
+  // freecellRev 5 (7 Nov 2026): rev 4's deal and bank, the core rising to all 40 home.
+  return { type: "freecell", seed: randomBelow(FC_DEALS.length), freecellRev: cardsPreShare ? FC_REV_SHORT : FC_REV };
 }
 
 /** TriPeaks: a bank deal (its index), proved clearable with a run of ten. */
 export function generateTripeaks(): TripeaksPuzzleData {
-  return { type: "tripeaks", seed: randomBelow(TP_DEALS.length), tripeaksRev: TP_REV };
+  // tripeaksRev 3 (7 Nov 2026): rev 2's deals and pars, half the speed moved onto the cards.
+  return { type: "tripeaks", seed: randomBelow(TP_DEALS.length), tripeaksRev: cardsPreShare ? TP_REV_PAR : TP_REV };
 }
 
 /** Poker Squares: any seed; the sim builds the target grid and dealing order from it. */
@@ -125,7 +140,8 @@ export function generateFiveHands(): FiveHandsPuzzleData {
 
 /** Pyramid: any seed; the sim builds the deal with a witness line (ten pyramid pairs) and proves it. */
 export function generatePyramid(): PyramidPuzzleData {
-  return { type: "pyramid", seed: arcadeSeed(), pyramidRev: PY_REV };
+  // pyramidRev 2 (7 Nov 2026): the same deals, half the speed moved onto the cards.
+  return { type: "pyramid", seed: arcadeSeed(), pyramidRev: cardsPreShare ? 1 : PY_REV };
 }
 
 /** Golf Solitaire: a bank deal (its index), cleared by a strong human line and proved with five runs of four. */
@@ -152,7 +168,8 @@ export function generateSwerve(): SwervePuzzleData {
 
 export function generateSkyline(): SkylinePuzzleData {
   // skylineRev 9: skylineRev 8's play on the arcade scoring standard (29 Oct 2026, docs/arcade-standard/skyline.md).
-  return { type: "skyline", seed: arcadeSeed(), skylineRev: SKYLINE_REV_STD };
+  // skylineRev 10 (Nov 2026, the scoring audit): skylineRev 9's play; perfect drops counted up to 61, so more floors never score less.
+  return { type: "skyline", seed: arcadeSeed(), skylineRev: SKYLINE_REV_COUNT };
 }
 
 export function generateBinToss(): BinTossPuzzleData {
@@ -183,7 +200,8 @@ export function generateSnake(): SnakePuzzleData {
 
 export function generateCross(): CrossPuzzleData {
   // crossRev 11 (3 Nov 2026): crossRev 10's courses without coins, scored with the no-stop streak and a cost a hit.
-  return { type: "cross", seed: arcadeSeed(), crossRev: CROSS_REV_FLOW };
+  // crossRev 12 (Nov 2026, the scoring audit): crossRev 11's play; the hit that ends the run is free, hits capped at half the core.
+  return { type: "cross", seed: arcadeSeed(), crossRev: CROSS_REV_KEEP };
 }
 
 export function generateDual(): DualPuzzleData {
@@ -244,9 +262,11 @@ export function generateSlice(): SlicePuzzleData {
   // sliceRev 11: sliceRev 10's play on the arcade scoring standard (29 Oct 2026, docs/arcade-standard/slice.md).
   // sliceRev 12: sliceRev 11 with bigger, recognisable food and chillies, the core counted above half the food (3 Nov 2026).
   // Its deal re-draws a seed with too few chillies for the five dodges (sliceFoodSeedOk), so every dealt seed reaches 200.
+  // sliceRev 13 (Nov 2026) keeps that deal.
   let seed = arcadeSeed();
   while (!sliceFoodSeedOk(seed)) seed = arcadeSeed();
-  return { type: "slice", seed, sliceRev: SLICE_REV_FOOD };
+  // sliceRev 13 (Nov 2026, the scoring audit): sliceRev 12's food and deal; core and combo on straight lines from 0.
+  return { type: "slice", seed, sliceRev: SLICE_REV_LINE };
 }
 
 export function generateBubble(): BubblePuzzleData {
@@ -283,7 +303,8 @@ export function generateWhack(): WhackPuzzleData {
 export function generateWavefront(): WavefrontPuzzleData {
   // wavRev 11 (Joe's phone notes, 27 Oct 2026): power-ups from carrier ships and saucers, no streak, the mothership after wave 5.
   // wavRev 12 (the arcade scoring standard, 29 Oct 2026): wavRev 11 play scored in fixed parts that total 200.
-  return { type: "wavefront", seed: arcadeSeed(), wavRev: WAV_REV_STD };
+  // wavRev 13 (Nov 2026, the scoring audit): wavRev 12's play; the life that ends the run is free, lives capped at half the core.
+  return { type: "wavefront", seed: arcadeSeed(), wavRev: WAV_REV_KEEP };
 }
 
 export function generateBastion(): BastionPuzzleData {
@@ -349,7 +370,8 @@ export function generateInkBridge(): InkBridgePuzzleData {
 export function generateBurst(): BurstPuzzleData {
   // burstRev 9 (phone-test notes, docs/phone-notes-oct-2026/fission.md): power-ups carried by seeded atoms, a bouncing golden atom, BURST shots, the wave-clear bonus.
   // burstRev 10 (the arcade scoring standard, docs/arcade-standard/burst.md): five waves, the golden atom hurts, straight-line parts to 200.
-  return { type: "burst", seed: arcadeSeed(), burstRev: BURST_REV_STD };
+  // burstRev 11 (the scoring audit, Nov 2026): burstRev 10's play; the last life not charged, wasted beams beyond one an atom cost.
+  return { type: "burst", seed: arcadeSeed(), burstRev: BURST_REV_AIM };
 }
 
 let orbitPreFuel = false;
@@ -463,7 +485,7 @@ export function generateSwing(): SwingPuzzleData {
     const seed = attempt === 0 ? roomSeed : arcadeSeed();
     if (proveSwingSeed(seed, SWING_REV_TALL)) return { type: "swing", seed, swingRev: SWING_REV_STRICT };
   }
-  throw new Error("Could not verify a safe Grappler course; try again.");
+  throw new Error("Couldn’t build the course. Try again.");
 }
 
 export function generateTilt(): TiltPuzzleData {

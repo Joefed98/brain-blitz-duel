@@ -112,7 +112,7 @@ Replay columns describe the room's results-screen highlight and the podium's pla
 | Chroma Lines (`flow`) | Pattern | Not confirmed | Yes | Final board | No: final board only | Demo needs `oct10-polish-b`. Stores final paths only; needs an action log. |
 | Gridlock (`unblock`) | Pattern | Not confirmed | Yes | Time-lapse (solved rounds) | Yes (fixed): moves in order, evenly spaced | Demo needs `oct13-pattern-polish`. Its reveal draws the player's board only for a correct answer. |
 | Heave (`push`) | Pattern | Not confirmed | Yes | Time-lapse (solved rounds) | Yes (fixed): steps in order, evenly spaced | Demo needs `oct13-pattern-polish`. As Gridlock. |
-| Jumbled (`tiles`) | Pattern | Not confirmed | Yes | Final board | No: final board only | Demo needs `oct14-pattern-logic-batch`. Moves are stored in order, but the reveal ignores a part-played list (needs `replay.frame` drawn). |
+| Gradient (`tiles`; Jumbled until 27 Oct 2026) | Pattern | Not confirmed | Yes | Final board | No: final board only | Demo needs `oct14-pattern-logic-batch`. Moves are stored in order, but the reveal ignores a part-played list (needs `replay.frame` drawn). |
 | Lightbender (`laser`) | Pattern | No (stopped unless `splitterPieces 1`) | Yes | Time-lapse (action-log rounds) | Yes (new): every piece and FIRE at its recorded time, scaled | Demo needs `oct10-polish-b` and a movable-piece example. Older answers (no action log) show the final board. |
 | Pipeline (`pipes`) | Pattern | Not confirmed | Yes | Final board | No: final board only | Demo needs `oct13-pattern-polish`. Stores final tiles only; needs an action log. |
 | Skid (`iceslide`) | Pattern | Not confirmed | Yes | Final board | No: final board only | Demo needs `oct13-pattern-polish`. Moves are stored in order, but the reveal ignores a part-played list (needs the ball and paths drawn per prefix). |
@@ -139,7 +139,7 @@ Replay columns describe the room's results-screen highlight and the podium's pla
 | Grappler (`swing`) | Arcade | No (stopped) | n/a: still | Arcade highlight | Yes: the stored run | Demo stopped until recorded on `swingRev 9`+ (tall). |
 | High Rise (`skyline`) | Arcade | Not confirmed | Yes | Arcade highlight | Yes: the stored run | |
 | Hover (`hover`) | Arcade | Not confirmed | Yes | Arcade highlight | Yes: the stored run | |
-| Jaywalk (`cross`) | Arcade | Not confirmed | Yes | Arcade highlight | Yes: the stored run | |
+| Spacewalk (`cross`; Jaywalk until 3 Nov 2026) | Arcade | Not confirmed | Yes | Arcade highlight | Yes: the stored run | |
 | Meteor (`snake`) | Arcade | Not confirmed | Yes | Arcade highlight | Yes: the stored run | |
 | Orbit (`orbit`) | Arcade | No (stopped) | n/a: still | Arcade highlight | Yes: the stored run | Demo stopped until recorded on `orbitRev 8`+ with today's belt period and revision. |
 | Pinball (`pinball`) | Arcade | Not confirmed | Yes | Arcade highlight | Yes: the stored run | |
@@ -164,7 +164,7 @@ demo; a stopped demo's intro shows its still (also proved there, as the no-demo 
   (`alog1:`, `docs/puzzle-action-log.md`) already carries round-clock times; putting a game on it (its
   own stamp, as Lightbender's `alogRev 1`) gives its time-lapse the real rhythm with no other change.
 - **Moves stored, board view missing** (no new recording needed, a Reveal change): Blackout, Skid,
-  Jumbled, Matchmaker, Cryptogrid, Swapword; Ballpark to be proved.
+  Gradient, Matchmaker, Cryptogrid, Swapword; Ballpark to be proved.
 - **Final state only, needs an action log**: Interlock, Counterweight, Integer Pyramid, Trail, Chroma
   Lines, Pipeline, Tessellate, Box Six, Lamplighter, Mosaic, Shikaku, Tents and Trees.
 - **Stored with times, needs a board view per step**: Ascend, Don't Break the Chain (and Flash, Bang
@@ -195,7 +195,7 @@ yet" means the game has never had a demo (its intro shows the still).
 | Wavefront (`wavefront`) | `wavRev 12` | Stopped (`WAV_REV_STD`); the 3 Nov ships are display only, so a `wavRev 12` demo draws them |
 | Moon Climb (`ricochet`) | `ricoRev 3` | None yet (`MOON_REV`; no demo was ever recorded on `ricoRev 2` either) |
 | Blockzone (`blockfall`) | `blockfallRev 2` | None yet (gestures only, 90 s since 3 Nov) |
-| Jaywalk (`cross`) | `crossRev 11` | Stopped (`CROSS_REV_FLOW`) |
+| Spacewalk (`cross`) | `crossRev 11` | Stopped (`CROSS_REV_FLOW`) |
 | Tilt (`tilt`) | `tiltRev 11` | Stopped (`TILT_REV_PAR`) |
 | Roofbound (`flip`) | `flipRev 11` or `12` | Stopped (`FLIP_REV_FLOW`, `FLIP_REV_DEAL`: flipRev 12 is flipRev 11's game, so a demo on either plays) |
 | Curl Champ (`curling`) | `curlRev 4` | None yet (the power bar since 3 Nov) |
