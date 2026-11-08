@@ -234,6 +234,26 @@ export async function resultsOf(client: any, attemptId: string): Promise<AsyncRe
  * The caller's one attempt in a room: created on the first start, the same row ever after (the
  * unique index decides a race). `created` is false when the device had already started.
  */
+/** The colours the first daily migration lets an attempt store (async_attempts.colour CHECK 0–9). */
+export const ASYNC_STORED_COLOUR_MAX = 9;
+const CHECK_VIOLATION = "23514";
+
+/**
+ * Inserts an attempt row. Hotfix (8 Nov 2026, the audit's M8): the colour wheel offers 32 swatches (0–31) since
+ * 31 Oct, but `async_attempts.colour` is CHECK 0–9 until 20261108130000_async_attempt_colours.sql is applied, so a
+ * player with a wheel colour of 10 or more had every daily and challenge start refused ("Can’t reach us"). A colour the
+ * table refuses is stored as none, as rooms do before their own migration (boards then show the player's slot colour).
+ */
+export async function insertAttemptRow(client: any, row: AsyncAttemptRow): Promise<{ error: any; row: AsyncAttemptRow }> {
+  const { error } = await client.from("async_attempts").insert(row);
+  if (error && error.code === CHECK_VIOLATION && row.colour !== null && row.colour > ASYNC_STORED_COLOUR_MAX) {
+    const plain = { ...row, colour: null };
+    const retry = await client.from("async_attempts").insert(plain);
+    return { error: retry.error ?? null, row: plain };
+  }
+  return { error: error ?? null, row };
+}
+
 export async function startAttempt(
   client: any,
   room: AsyncRoomRow,
@@ -262,7 +282,8 @@ export async function startAttempt(
     tie_ms: tieTotal(room, []),
     round_scores: Array.from({ length: room.round_count }, () => null),
   };
-  const { error } = await client.from("async_attempts").insert(row);
+  const inserted = await insertAttemptRow(client, row);
+  const { error } = inserted;
   if (error) {
     if (error.code === UNIQUE_VIOLATION) {
       const raced = await attemptFor(client, room.id, userId);
@@ -279,7 +300,7 @@ export async function startAttempt(
     event: "attempt_started",
     at: row.started_at,
   });
-  return { ok: true, attempt: row, created: true };
+  return { ok: true, attempt: inserted.row, created: true };
 }
 
 /**
@@ -310,7 +331,7 @@ export async function importFinishedAttempt(
     tie_ms: tieTotal(room, []),
     round_scores: Array.from({ length: room.round_count }, () => null),
   };
-  const { error } = await client.from("async_attempts").insert(attempt);
+  const { error } = await insertAttemptRow(client, attempt);
   if (error) throw dbError(error, "asyncRoom");
   const rows: AsyncResultRow[] = Array.from({ length: room.round_count }, (_, i) => {
     const stored = rounds[i];
