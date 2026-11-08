@@ -66,6 +66,7 @@ import {
   type PuzzleCategory,
   type RoundResultRow,
 } from "./types";
+import { dbError, isUuid } from "./dbError";
 
 /** How many of the host's recent rooms feed the repeat-avoiding draw. */
 const RECENT_ROOMS = 3;
@@ -88,9 +89,17 @@ async function db(): Promise<any> {
 
 const UNIQUE_VIOLATION = "23505";
 
-function cleanName(name: string): string {
-  const trimmed = (name ?? "").trim().slice(0, 14);
-  return trimmed.length > 0 ? trimmed : "Player";
+/** M2: the shared name cleaner (displayName.server.ts): NFKC, no control / bidi / zero-width characters, 14 code points. */
+async function cleanName(name: unknown): Promise<string> {
+  const { cleanDisplayName } = await import("./displayName.server");
+  const cleaned = cleanDisplayName(name);
+  return cleaned.length > 0 ? cleaned : "Player";
+}
+
+/** Why a name a player typed can't be used in a room (offensive or reserved), or null. */
+async function roomNameRefusal(name: unknown): Promise<string | null> {
+  const { cleanDisplayName, nameRefusal } = await import("./displayName.server");
+  return nameRefusal(cleanDisplayName(name))?.message ?? null;
 }
 
 function clamp(value: number, min: number, max: number): number {
@@ -103,8 +112,10 @@ function nowIso(): string {
 }
 
 async function getRoom(client: any, roomId: string): Promise<DuelRow> {
+  // L1: an id that can't be a room never reaches the database (whose error text would name the column type).
+  if (!isUuid(roomId)) throw new Error("That room no longer exists.");
   const { data, error } = await client.from("duels").select("*").eq("id", roomId).maybeSingle();
-  if (error) throw new Error(error.message);
+  if (error) throw dbError(error, "duel");
   if (!data) throw new Error("That room no longer exists.");
   return data as DuelRow;
 }
@@ -115,7 +126,7 @@ async function getPlayers(client: any, roomId: string): Promise<DuelPlayerRow[]>
     .select("*")
     .eq("duel_id", roomId)
     .order("player_slot");
-  if (error) throw new Error(error.message);
+  if (error) throw dbError(error, "duel");
   return (data ?? []) as DuelPlayerRow[];
 }
 
@@ -135,6 +146,7 @@ async function requireParticipant(
   roomId: string,
   userId: string,
 ): Promise<DuelPlayerRow> {
+  if (!isUuid(roomId)) throw new Error("You are not part of this room.");
   const { data } = await client
     .from("duel_players")
     .select("*")
@@ -143,6 +155,16 @@ async function requireParticipant(
     .maybeSingle();
   if (!data) throw new Error("You are not part of this room.");
   return data as DuelPlayerRow;
+}
+
+/**
+ * Security fix M6 (Nov 2026 audit): the paths that play or change a room (answers, READY, word and move checks, the
+ * lobby look) refuse a player who left or was removed. Rejoining a room still waiting stays joinRoomFn's job; a
+ * player who only went quiet ("inactive") keeps being brought back by answering.
+ */
+export const LEFT_PLAYER_MESSAGE = "You left this game.";
+export function playerHasLeft(player: Pick<DuelPlayerRow, "status">): boolean {
+  return player.status === "left";
 }
 
 async function privatePuzzles(client: any, roomId: string): Promise<Record<string, unknown>[]> {
@@ -169,7 +191,7 @@ async function insertPlayer(
       duel_id: roomId,
       player_slot: slot,
       user_id: userId,
-      display_name: cleanName(displayName),
+      display_name: await cleanName(displayName),
       status: "active",
     },
     look,
@@ -223,7 +245,7 @@ async function createRoomRow(
 
     if (error) {
       if (error.code === UNIQUE_VIOLATION) continue; // room code collision
-      throw new Error(error.message);
+      throw dbError(error, "duel");
     }
 
     const room = data as DuelRow;
@@ -332,9 +354,13 @@ export const createRoomFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { displayName: string; look?: LookPreference }) => input)
   .handler(async ({ data, context }) => {
+    const refused = await roomNameRefusal(data.displayName);
+    if (refused) throw new Error(refused);
     const client = await db();
-    const { CREATE_ROOM_LIMIT, withinRateLimit } = await import("./rateLimit.server");
+    const { CREATE_ROOM_LIMIT, IP_CREATE_ROOM_LIMIT, withinIpRateLimit, withinRateLimit } = await import("./rateLimit.server");
     if (!(await withinRateLimit(client, context.userId, CREATE_ROOM_LIMIT)))
+      throw new Error("You’ve made a lot of rooms. Try again later.");
+    if (!(await withinIpRateLimit(IP_CREATE_ROOM_LIMIT, client)))
       throw new Error("You’ve made a lot of rooms. Try again later.");
     // Remember the host's room settings from their last room (roomSettings.server.ts: a room from before
     // settings is read as settings, Arcade as its five groups; a first room gets Mixed, 6 rounds).
@@ -404,6 +430,8 @@ export const joinRoomFn = createServerFn({ method: "POST" })
     const { ROOM_LOOKUP_LIMIT, withinRateLimit } = await import("./rateLimit.server");
     if (!(await withinRateLimit(client, context.userId, ROOM_LOOKUP_LIMIT)))
       return { ok: false as const, message: "That’s a lot of tries. Give it a few minutes." };
+    const refused = await roomNameRefusal(data.displayName);
+    if (refused) return { ok: false as const, message: refused };
     const via = joinViaFrom(data.via);
     const code = String(data.roomCode ?? "").trim().toUpperCase().slice(0, 8);
     const { data: found } = await client
@@ -471,6 +499,11 @@ export const startRoomFn = createServerFn({ method: "POST" })
       return { ok: false as const, message: "Only the host can start the game." };
     }
     if (room.status !== "waiting") return { ok: true as const };
+    {
+      const { START_ROOM_LIMIT, withinRateLimit } = await import("./rateLimit.server");
+      if (!(await withinRateLimit(client, context.userId, START_ROOM_LIMIT)))
+        return { ok: false as const, message: "That’s a lot of starts. Give it a few minutes." };
+    }
     const players = present(await getPlayers(client, room.id));
     if (players.length < MIN_PLAYERS) {
       return { ok: false as const, message: "You need at least two players. Rope someone in." };
@@ -502,7 +535,7 @@ export const startRoomFn = createServerFn({ method: "POST" })
       roundOrder: dealt,
     });
     console.log(
-      `[room-selection] room=${room.room_code} seed=${roomSeed} ${stored.legacy ? `categories=${categories.join(",")}` : `settings=${encodeRoomSettings(stored.settings).join(",")}`} recentRooms=${recent.length} order=${roundOrder.join(",")}`,
+      `[room-selection] room=${room.room_code} ${stored.legacy ? `categories=${categories.join(",")}` : `settings=${encodeRoomSettings(stored.settings).join(",")}`} recentRooms=${recent.length} order=${roundOrder.join(",")}`,
     );
 
     const split = puzzles.map(splitPuzzle);
@@ -530,7 +563,7 @@ export const startRoomFn = createServerFn({ method: "POST" })
         duel_id: room.id,
         puzzles_private: JSON.parse(JSON.stringify(split.map((s) => s.priv))),
       });
-      if (error) throw new Error(error.message);
+      if (error) throw dbError(error, "duel");
       // Beta recording (G1 archive): each round's effective limit and stamps, best-effort.
       const { puzzleTimeLimitMs } = await import("./registry");
       await recordRoundRecords(
@@ -613,9 +646,13 @@ export const setPlayerLookFn = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const client = await db();
     const me = await requireParticipant(client, data.roomId, context.userId);
+    if (playerHasLeft(me)) return { ok: false as const, message: LEFT_PLAYER_MESSAGE };
     const room = await getRoom(client, data.roomId);
     if (room.status !== "waiting" || room.disbanded_at)
       return { ok: false as const, message: "Colours can only change in the lobby." };
+    const { PLAYER_LOOK_LIMIT, withinRateLimit } = await import("./rateLimit.server");
+    if (!(await withinRateLimit(client, context.userId, PLAYER_LOOK_LIMIT)))
+      return { ok: false as const, message: "That’s a lot of changes. Give it a minute." };
     return changePlayerLook(client, me, data);
   });
 
@@ -741,7 +778,7 @@ export const advancePhaseFn = createServerFn({ method: "POST" })
         .eq("current_round", round)
         .eq("phase", "starting")
         .eq("phase_started_at", stamp);
-      if (error) throw new Error(error.message);
+      if (error) throw dbError(error, "duel");
       return { ok: true };
     }
 
@@ -756,7 +793,7 @@ export const advancePhaseFn = createServerFn({ method: "POST" })
         .eq("current_round", round)
         .eq("phase", "round_title")
         .eq("phase_started_at", stamp);
-      if (error) throw new Error(error.message);
+      if (error) throw dbError(error, "duel");
       return { ok: true };
     }
 
@@ -854,6 +891,7 @@ export const submitAnswerFn = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const client = await db();
     const player = await requireParticipant(client, data.roomId, context.userId);
+    if (playerHasLeft(player)) return { ok: false as const, message: LEFT_PLAYER_MESSAGE };
     const room = await getRoom(client, data.roomId);
 
     // Log only: grading never depends on the client's version.
@@ -912,7 +950,7 @@ export const submitAnswerFn = createServerFn({ method: "POST" })
       extra,
       score,
     });
-    if (error && error.code !== UNIQUE_VIOLATION) throw new Error(error.message);
+    if (error && error.code !== UNIQUE_VIOLATION) throw dbError(error, "duel");
     // How it was played (touch, mouse, keyboard), beside the stored result; best effort, never graded.
     if (!error) {
       const { recordInputType } = await import("./inputType.server");
@@ -962,6 +1000,7 @@ export const readyUpFn = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const client = await db();
     const player = await requireParticipant(client, data.roomId, context.userId);
+    if (playerHasLeft(player)) return { ok: true as const };
     const room = await getRoom(client, data.roomId);
     const round = clamp(data.roundNumber, 1, MAX_ROUNDS);
     if (room.status !== "in_progress" || room.current_round !== round || room.phase !== "intro") {
@@ -1112,7 +1151,8 @@ export const checkWordFn = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const client = await db();
-    await requireParticipant(client, data.roomId, context.userId);
+    const me = await requireParticipant(client, data.roomId, context.userId);
+    if (playerHasLeft(me)) return { valid: false as const, points: 0, word: "", reason: LEFT_PLAYER_MESSAGE };
     const room = await getRoom(client, data.roomId);
 
     // Only while the puzzle is live: during the reveal a lagging player could
@@ -1175,7 +1215,8 @@ export const checkMovesFn = createServerFn({ method: "POST" })
   .inputValidator((input: { roomId: string; roundNumber: number; moves: string }) => input)
   .handler(async ({ data, context }) => {
     const client = await db();
-    await requireParticipant(client, data.roomId, context.userId);
+    const me = await requireParticipant(client, data.roomId, context.userId);
+    if (playerHasLeft(me)) return null;
     const room = await getRoom(client, data.roomId);
     if (
       room.status !== "in_progress" ||

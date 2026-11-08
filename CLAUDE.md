@@ -1635,6 +1635,25 @@ outside the repo.
   CloudOff, and `timer` / `calendar` replace PendingClock's Clock3 and Tournaments' empty-state CalendarDays, in app
   chrome (icons-check's replaced list holds all 13); every icon keeps its size and position (slots outside 18–24 px
   set their old size inline; `Icon` passes `data-*` through). lucide-react stays for game boards only.
+- **Security fixes before the Supabase move** (7 Nov 2026; server only, no game's rules, scoring or stamps changed;
+  `docs/audit-nov-2026/security.md`): *H1* every practice token seals a digest of the public half it was dealt with and
+  every practice handler opens it through `openDeal` (`src/lib/duel/practiceSeal.server.ts`), merging only the public
+  fields the phone sent, so a signed-out caller can't grade a board, seed, stamp or clock the server never dealt (a
+  token from before the digest is refused; a queued run from one comes back "Couldn't be confirmed"); Hanoi's table is
+  built only for a legal board (`towerBoardLegal`, at most 10 discs) and kept 8 at most, Rings' cache keyed by the
+  folded pattern. *M2* one name cleaner, `displayName.server.ts` (NFKC, no control / bidi / zero-width characters, 14
+  code points, offensive names checked with look-alikes folded, reserved names Joulz / Duelz / staff words) for room
+  create and join, the daily, challenges and the room-to-challenge copy; chat takes the same strip and `censorChat`.
+  *M4* create buckets fail closed except while `take_rate_limit` is missing; per-address buckets (`withinIpRateLimit`,
+  a hash of cf-connecting-ip, never stored) on practice deals, packs, grades and checks, the demo key and creates;
+  per-user buckets on room and challenge starts and lobby looks. *M5* `src/lib/securityHeaders.ts` on every production
+  response (frame-ancestors self and lovable.dev, nosniff, referrer policy, HSTS over HTTPS; no script CSP yet). *M6* a
+  player who left can't answer, READY, check words or moves, or change their look (`playerHasLeft`). *M7* intro-demo
+  saves in a production build need the server's `INTRO_DEMO_SAVES=1`. *L1* `dbError` (`src/lib/duel/dbError.ts`)
+  logs and returns a plain message; room ids checked as uuids first. *L3* chat's gap and per-room cap as atomic
+  buckets. *L4* room shares up to 16 players, the terms date the server's, beta events limited. *L7* no seeds in logs.
+  *L8* `PRACTICE_SEAL_KEY` (tokens `k2.`), older tokens still open on the service-role key's digest. *L13* a standard
+  puzzle's body cut to its cap before the standard grader (`standardParts`). security-fixes-check (~2 s).
 - `src/components/duel/` — room/round screens (PhoneShell, RoundIntro, TimerBar,
   AnswerReveal, ArcadeReveal, WinnerReveal…); `src/components/puzzles/` — shared puzzle
   widgets; `src/lib/fx/` — sound and visual feedback (presentation only).
@@ -1700,6 +1719,16 @@ outside the repo.
     limit stands.
   - A new `scripts/*-check.ts` runs automatically (in the catch-all shard); add it to a
     shard in `.github/ci/shards.ts` if it is slow.
+- **Server functions on a real database** (7 Nov 2026, `docs/audit-nov-2026/build-health.md` items 3–4):
+  `scripts/server-fn-harness.ts` runs the app's real `createServerFn` handlers (real `requireSupabaseAuth`, real
+  supabase-js clients) against a local PostgreSQL 16 with every `supabase/migrations` file applied in order, through a
+  small PostgREST / GoTrue stand-in that applies roles, RLS and column grants as Supabase does and refuses any query
+  shape it doesn't serve (`PGRST_HARNESS`). server-functions-check (~5 s, shard `e`) plays create, preview, join,
+  settings, remove, start, every phase, submit (racing duplicates, one row per player, the stored score equal to
+  practice's replay of a real bot log, `input_type`), reveal, continue, finish, Play again, leave and disband, plus chat,
+  the daily, async rooms and a friend challenge; it fails on CI without the PostgreSQL binaries. Add a flow there when a
+  server function changes, and extend the stand-in (never loosen it) when the server code needs a new query shape.
+  `recordInputType` (`inputType.server.ts`) logs `[input-type]` and returns its failures (never fails a submission).
 - Run all (Actions does this; locally only if Joe asks): `bun scripts/run-checks.ts`
   (each `scripts/*-check.ts(x)` in its own `bun` process; 300 s limit, `snip-check.ts` 1,800 s; `--include-optional` adds the deep Orbit
   belt check; `--full` runs full depth; `--json=<path>` saves results; extra args filter
