@@ -796,7 +796,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       goal: "Fly through the barrier gaps.",
       how: [
         { action: "Tap to hover up;", detail: "let go to drop." },
-        { action: "Tight gates:", detail: "thread them, dead centre for more." },
+        { action: "Tight gates:", detail: "thread them, centre for more." },
         { action: "Star chains:", detail: "sweep them; shields take a crash." },
         { action: "Touch gold stars", detail: "in tight gaps for a bonus. Later barriers have two gaps, or slide.", helpOnly: true },
         { action: "Hit anything", detail: "and the run ends. Gold stars sit near the edge of a gap, so they are risky.", helpOnly: true },
@@ -805,7 +805,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: `${HOVER_CHAINS} star chains:`, detail: `5 to 7 stars on one flap’s arc between two barriers. Each chain pays up to ${HOVER_STD_CHAINS / HOVER_CHAINS}: ${HOVER_STD_CHAIN_SHARE} shared by its stars, ${HOVER_STD_CHAIN_WHOLE} more for every one of them.`, helpOnly: true },
         { action: `${HOVER_PICKUPS} shield bubbles`, detail: "sit at the same places for everyone. Touch one for a shield: your next crash breaks it instead and you fly on, untouchable for a moment.", helpOnly: true },
         { action: "Two-gap barriers:", detail: "fly through either gap. Sliding barriers move slowly and steadily up and down.", helpOnly: true },
-        { action: "Sky:", detail: "the flight area fills your screen, and gaps sit anywhere from near the top to near the bottom. The faint stars behind are scenery only.", helpOnly: true },
+        { action: "Taller sky:", detail: "the flight area fills your screen, and gaps sit anywhere from near the top to near the bottom. The faint stars behind are scenery only.", helpOnly: true },
         { action: "Everyone flies", detail: `the same course for sixty seconds: ${HOVER_REACHABLE_GATES} barriers in a clean run (the first a wide warm-up gap) and ${HOVER_STARS} gold stars.`, helpOnly: true },
       ],
       // hoverRev 10 (the arcade scoring standard): five parts, each with its maximum, adding up to 200.
@@ -848,7 +848,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       goal: "Throw into the boardwalk bucket.",
       how: [
         { action: "Drag to aim,", detail: "then let go to throw." },
-        { action: "Wind 1 = a quarter bucket.", detail: "Aim against the flag." },
+        { action: "Wind 1 = a quarter bucket.", detail: "Aim upwind." },
         { action: "Small far bucket:", detail: `+${BINTOSS_V9_FAR}, and its hoop +${BINTOSS_V9_HOOP}.` },
         { action: "Through the hoop, then in:", detail: `+${BINTOSS_V9_HOOP} bonus.`, helpOnly: true },
         {
@@ -971,7 +971,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Rocks start at length 9:", detail: "one more every 4 stars, up to 11. Stars never appear on a rock.", helpOnly: true },
         { action: "The meteor shower", detail: "comes once, when you reach 20 stars: three red shadows, then three rocks land together 2 s later. With the shower, at most 14 rocks.", helpOnly: true },
         { action: "Hit a wall, your tail or a rock with your head", detail: "and the run ends.", helpOnly: true },
-        { action: "Field:", detail: `${SNAKE_V9_COLS} squares across and ${SNAKE_V9_ROWS} down, so stars can be further away.`, helpOnly: true },
+        { action: "Taller and wider field:", detail: `${SNAKE_V9_COLS} squares across and ${SNAKE_V9_ROWS} down, so stars can be further away.`, helpOnly: true },
         { action: "Everyone gets", detail: "the same stars, and every rock lands on the same square at the same moment.", helpOnly: true },
       ],
       // snakeRev 12 (1 Nov 2026): stars on a straight line to 120, full at 28, a big gold star counting 2; then four fixed
@@ -1402,7 +1402,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       how: [
         { action: "Tap a lane", detail: "as its note reaches the line." },
         { action: "Hold tails, swipe arrows,", detail: "tap twin dots twice." },
-        { action: "Full meter? Tap it:", detail: "each fever you start scores a bonus." },
+        { action: "Full meter? Tap it:", detail: "fever scores a bonus." },
         { action: "Gold notes and Perfect streaks", detail: "score a bonus; five lanes from 40 s.", helpOnly: true },
         { action: "Tail notes:", detail: "hold, let go at the end.", helpOnly: true },
         { action: "Arrow notes:", detail: "swipe that way on the line.", helpOnly: true },
