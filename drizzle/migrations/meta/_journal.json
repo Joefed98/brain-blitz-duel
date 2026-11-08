@@ -92,6 +92,13 @@
       "when": 1794015475214,
       "tag": "0012_room_scoring_mode",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1794165541763,
+      "tag": "0013_async_attempt_colours",
+      "breakpoints": true
     }
   ]
 }
