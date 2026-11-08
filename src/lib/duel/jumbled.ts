@@ -212,12 +212,35 @@ export function gradientSwap(frame: readonly number[], swap: GradientSwap): numb
   return next;
 }
 
-/** The one place a swap list is replayed (phone, server, reveal). Nothing counts after the board is solved. */
-export function replayGradient(start: readonly number[], swaps: readonly GradientSwap[], onFrame?: (frame: number[]) => void): JumbledReplay {
+/**
+ * tilesRev 7 (partial-credit fixes, 7 Nov 2026, partialCredit.ts): a swap limit, par × GRADIENT_LIMIT_PER_PAR rounded
+ * up, stored on the puzzle (`swapLimit`) and shown during play; swaps past it don't happen.
+ */
+export const TILES_REV_LIMIT = 7;
+export const GRADIENT_LIMIT_PER_PAR = 1.5;
+
+/** Gradient's swap limit for a par. */
+export function gradientLimitFor(par: number): number {
+  return Math.max(1, Math.ceil(GRADIENT_LIMIT_PER_PAR * Math.max(1, par)));
+}
+
+/** The swap limit a Gradient round plays with (tilesRev 7+), or null (every older round: no limit). */
+export function gradientSwapLimit(puzzle: { type: string; tilesRev?: number; swapLimit?: number } | null | undefined): number | null {
+  if (!puzzle || puzzle.type !== "tiles" || (puzzle.tilesRev ?? 0) < TILES_REV_LIMIT) return null;
+  const v = puzzle.swapLimit;
+  return typeof v === "number" && Number.isFinite(v) && v > 0 ? Math.floor(v) : null;
+}
+
+/**
+ * The one place a swap list is replayed (phone, server, reveal). Nothing counts after the board is solved, or (tilesRev
+ * 7) once `limit` swaps have been made.
+ */
+export function replayGradient(start: readonly number[], swaps: readonly GradientSwap[], onFrame?: (frame: number[]) => void, limit: number | null = null): JumbledReplay {
   let frame = [...start];
   let moves = 0;
   for (const swap of swaps) {
     if (jumbledSolved(frame)) break;
+    if (limit !== null && moves >= limit) break;
     const next = gradientSwap(frame, swap);
     if (!next) continue;
     frame = next;
@@ -245,7 +268,7 @@ export function gradientMinimum(frame: readonly number[]): number {
 
 /** A stored round's replay, slides (tilesRev 3) or swaps (tilesRev 4). */
 export function replayGradientAnswer(puzzle: TilesPuzzleData, answer: string | null | undefined): JumbledReplay {
-  return isGradientSwap(puzzle) ? replayGradient(puzzle.frame, decodeGradient(answer ?? "")) : replayJumbled(puzzle.frame, decodeJumbled(answer ?? ""));
+  return isGradientSwap(puzzle) ? replayGradient(puzzle.frame, decodeGradient(answer ?? ""), undefined, gradientSwapLimit(puzzle)) : replayJumbled(puzzle.frame, decodeJumbled(answer ?? ""));
 }
 
 /* ------------------------------------------------------------------ the gradient */

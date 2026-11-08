@@ -68,7 +68,7 @@ function brkSlideDestroyed(s: BrkState): number {
   for (const row of s.slide ?? []) for (let c = 0; c < BRK_COLS; c++) if ((s.bricks[row * BRK_COLS + c] ?? 0) <= 0) n += 1;
   return n;
 }
-import { PINBALL_IN_ROOMS, PIN_BUMPERS, PIN_LANE_POSTS, PIN_LANE_SENSOR_Y, PIN_LEFT_WALL, PIN_ORBIT_INNER, PIN_SPINNER_Y, PIN_TARGET_XS, PIN_TARGET_Y, PIN_WORLD_H, PIN_WORLD_W, type PinState } from "./pinball";
+import { PIN_BUMPERS, PIN_LANE_POSTS, PIN_LANE_SENSOR_Y, PIN_LEFT_WALL, PIN_ORBIT_INNER, PIN_SPINNER_Y, PIN_TARGET_XS, PIN_TARGET_Y, PIN_WORLD_H, PIN_WORLD_W, type PinState } from "./pinball";
 import { rallyBonusCount, rallyBonusLife, rallyBonusPtsOf, rallyPaddleY, rallyWorldH,RALLY_V10_H, RALLY_V10_W, RALLY_SPEED_CAP, RALLY_SPEED_START, RALLY_TALL_H, RALLY_WORLD_H, RALLY_WORLD_W, type RallyState } from "./rally";
 import { BEAT_TALL_H, BEAT_WORLD_H, BEAT_WORLD_W, beatHitLineY, beatLaneXOf, beatLanesAt, beatWorldH, type BeatState } from "./beat";
 /** Tempo's last judged lane centre (beatRev 9: in the five-lane section, five lanes). */
@@ -314,11 +314,10 @@ export type ArcadeFxGame = keyof typeof ARCADE_GAME_WORLDS;
 /**
  * Arcade games with a world that rooms do not deal (practice only; registry RETIRED_TYPES):
  * Junction (retired in Tuning C), Scrumper (retired 27 Oct 2026), Full House (retired 1 Nov 2026), Muggins (practice only from
- * launch), Golf Solitaire (retired 3 Nov 2026) and Pinball until PINBALL_IN_ROOMS
- * (pinball.ts) is switched on.
+ * launch) and Golf Solitaire (retired 3 Nov 2026). Pinball was here until rooms began dealing it on 14 Oct 2026.
  */
-export const RETIRED_ARCADE_GAMES: readonly ArcadeFxGame[] = PINBALL_IN_ROOMS ? ["junction", "snip", "pokersquares", "muggins", "golfsol"] : ["junction", "snip", "pokersquares", "muggins", "golfsol", "pinball"];
-/** The active arcade games (rooms deal these; Pinball joined on 14 Oct 2026 with PINBALL_IN_ROOMS on, Scrumper left on 27 Oct 2026, the three Cards & Board games joined on 30 Oct 2026). */
+export const RETIRED_ARCADE_GAMES: readonly ArcadeFxGame[] = ["junction", "snip", "pokersquares", "muggins", "golfsol"];
+/** The active arcade games (rooms deal these; Pinball joined on 14 Oct 2026, Scrumper left on 27 Oct 2026, the three Cards & Board games joined on 30 Oct 2026). */
 export const ACTIVE_ARCADE_GAMES = (Object.keys(ARCADE_GAME_WORLDS) as ArcadeFxGame[]).filter((g) => !RETIRED_ARCADE_GAMES.includes(g));
 
 /**

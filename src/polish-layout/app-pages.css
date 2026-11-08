@@ -264,24 +264,9 @@
   color: var(--ap-text-2);
   white-space: nowrap;
 }
-/* A text link drawn smaller than 44 px: an invisible hit area round it (as .th-hit). */
-.ap-hit {
-  position: relative;
-}
-.ap-hit::after {
-  content: "";
-  position: absolute;
-  top: min(0px, calc(50% - 22px));
-  bottom: min(0px, calc(50% - 22px));
-  left: min(0px, calc(50% - 22px));
-  right: min(0px, calc(50% - 22px));
-}
 
 /* ------------------------------------------------------------------ panels and rows */
 /* Panel and Row (src/design/components, components.css: .jz-panel, .jz-row) since design foundation F2. */
-.ap-pad {
-  padding: 16px;
-}
 .ap-chevron {
   width: 20px;
   height: 20px;
@@ -349,21 +334,6 @@
   font-weight: var(--jz-weight-bold);
   white-space: nowrap;
   clip-path: polygon(var(--jz-cut-sm) 0, 100% 0, 100% calc(100% - var(--jz-cut-sm)), calc(100% - var(--jz-cut-sm)) 100%, 0 100%, 0 var(--jz-cut-sm));
-}
-/* A daily already played today: a grey pill (no shine). */
-.ap-pill-done {
-  display: inline-flex;
-  height: 32px;
-  flex: none;
-  align-items: center;
-  justify-content: center;
-  padding: 0 16px;
-  border-radius: 999px;
-  background: var(--ap-done);
-  color: var(--ap-text-2);
-  font-size: 14px;
-  font-weight: 650;
-  white-space: nowrap;
 }
 /* Practice's chips (tab pages refresh): All games and the seven categories in a 4 × 2 grid, so none is
    cut off at 375 px; each category with its colour dot. */
@@ -469,12 +439,6 @@
   white-space: nowrap;
 }
 
-/* A score that isn't a call to play (Practice bests, Profile, results): bright, heavy, tabular. */
-.ap-score {
-  color: var(--ap-text);
-  font-weight: 800;
-  font-variant-numeric: tabular-nums;
-}
 
 /* Tap feedback (follow-up to #129): every pressable thing on the tab pages sinks to 97 % and lightens a
    little over --jz-fast (120 ms) while pressed: transform and filter only, so nothing moves in layout; no tap

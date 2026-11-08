@@ -21,7 +21,7 @@ import {
 } from "./engine";
 import { BAND_STRICT_MARK, bandStrictGame, bandStrict, bandRetarget, bandTargetGame, bandCurveOf, bandCurve, bandInit, bandPoints, bandScoreOf, bandStep, bandTotal, type BandFields, type BandParts } from "./scoreBands";
 import { roundMaxFor } from "../duel/roundMax";
-import { stdBandParts, stdLine, stdTotal, type StdBreakdown, type StdSpec } from "./arcadeStandard";
+import { stdBandParts, stdCappedPenalty, stdLine, stdLivesCharged, stdTotal, type StdBreakdown, type StdSpec } from "./arcadeStandard";
 
 /* ============================== Constants ============================== */
 
@@ -219,7 +219,7 @@ export function crossRowsOf(state: { wide?: number }): number {
 }
 /** The world height for a stored crossRev (reveals, intros and the arena slot). */
 export function crossWorldHFor(rev?: number | null): number {
-  return rev === CROSS_REV_EXPAND || rev === CROSS_REV_STD || rev === CROSS_REV_FLOW ? CROSS_X_WORLD_H : CROSS_WORLD_H;
+  return rev === CROSS_REV_EXPAND || rev === CROSS_REV_STD || rev === CROSS_REV_FLOW || rev === CROSS_REV_KEEP ? CROSS_X_WORLD_H : CROSS_WORLD_H;
 }
 /** The streak multiplier a crossing completed as the `streak`-th in a row without a hit pays. */
 export function crossMultiplierFor(streak: number): number {
@@ -792,6 +792,8 @@ export interface CrossState extends BandFields {
   flow?: number;
   still?: number;
   stopped?: number;
+  /** crossRev 12 (the scoring audit): 1 = the hit that ends the run is not charged and hits never take more than half the core. Outside the checksum. */
+  keep?: number;
 }
 
 function init(seed: number): CrossState {
@@ -1319,6 +1321,7 @@ const crossRev3Game: ArcadeGame<CrossState, ArcadeInputEvent | null> = {
 
 /** Takes puzzle.crossRev (2 or 3); anything else is the original traffic. */
 export function crossGameFor(rev?: number | null): ArcadeGame<CrossState, ArcadeInputEvent | null> {
+  if (rev === CROSS_REV_KEEP) return crossKeepGame;
   if (rev === CROSS_REV_FLOW) return crossFlowGame;
   if (rev === CROSS_REV_STD) return crossStdGame;
   if (rev === CROSS_REV_EXPAND) return crossExpandGame;
@@ -1650,15 +1653,18 @@ export const CROSS_FLOW_STD: StdSpec = {
 export const CROSS_V11_BAND_CURVE = bandCurve([0, CROSS_V11_CORE_FULL], [0, CROSS_V11_CORE_MAX]);
 
 /** crossRev 11's breakdown on the standard. */
-export function crossFlowScore(state: Pick<CrossState, "crossings" | "reached" | "wide" | "streakPts" | "closeCalls" | "lives">): StdBreakdown {
+export function crossFlowScore(state: Pick<CrossState, "crossings" | "reached" | "wide" | "streakPts" | "closeCalls" | "lives" | "keep">): StdBreakdown {
   const units = crossTotalLanes(state) + 2 * state.crossings;
+  const core = stdLine(CROSS_V11_CORE_MAX, units, CROSS_V11_CORE_FULL);
+  const lost = clampInt(CROSS_LIVES - state.lives, 0, CROSS_LIVES);
   return {
-    core: stdLine(CROSS_V11_CORE_MAX, units, CROSS_V11_CORE_FULL),
+    core,
     features: {
       streak: stdLine(CROSS_V11_FLOW_MAX, Math.trunc((state.streakPts ?? 0) / CROSS_V11_FLOW_EACH), CROSS_V11_FLOW_MAX / CROSS_V11_FLOW_EACH),
       close: stdLine(CROSS_V11_CLOSE_MAX, state.closeCalls ?? 0, CROSS_V11_CLOSE_MAX),
     },
-    penalty: CROSS_V11_HIT_COST * clampInt(CROSS_LIVES - state.lives, 0, CROSS_LIVES),
+    // crossRev 12: the hit that ends the run is not charged, and hits never take more than half the core.
+    penalty: state.keep ? stdCappedPenalty(CROSS_V11_HIT_COST * stdLivesCharged(lost, state.lives <= 0), core) : CROSS_V11_HIT_COST * lost,
   };
 }
 
@@ -1668,7 +1674,9 @@ function crossFlowParts(state: CrossState): BandParts {
   const close = state.closeCalls ?? 0;
   const lost = clampInt(CROSS_LIVES - state.lives, 0, CROSS_LIVES);
   const score = crossFlowScore(state);
-  const parts = stdBandParts(CROSS_FLOW_STD, score, units, `${lanes} rows · ${state.crossings} crossings`, false, lost ? `${lost} hit${lost === 1 ? "" : "s"}` : undefined);
+  const charged = state.keep ? stdLivesCharged(lost, state.lives <= 0) : lost;
+  const hitText = !lost ? undefined : !state.keep ? `${lost} hit${lost === 1 ? "" : "s"}` : `${charged} hit${charged === 1 ? "" : "s"} before the last${score.penalty < CROSS_V11_HIT_COST * charged ? " (at most half the rows and crossings points)" : ""}`;
+  const parts = stdBandParts(state.keep ? CROSS_KEEP_STD : CROSS_FLOW_STD, score, units, `${lanes} rows · ${state.crossings} crossings`, false, hitText);
   const named: string[] = [];
   const pStreak = score.features["streak"] ?? 0;
   const pClose = score.features["close"] ?? 0;
@@ -1709,4 +1717,21 @@ export const crossFlowGame: ArcadeGame<CrossState, ArcadeInputEvent | null> = {
     still: 0,
     stopped: 0,
   }),
+};
+
+/* ================= Progress counts (crossRev 12, Nov 2026, the scoring audit) ================= */
+
+/**
+ * crossRev 12 (docs/arcade-standard/cross.md "crossRev 12"; docs/audit-nov-2026/scoring.md issue 2): crossRev 11's courses,
+ * walker, streak and parts exactly (a crossRev 11 log replays tick for tick, the same checksum), with the hits' cost
+ * changed so progress made always counts: the third hit, which ends the run, is not charged (only the hits before it
+ * cost CROSS_V11_HIT_COST each), and the hits never take more than half the rows-and-crossings points
+ * (stdCappedPenalty). States add `keep: 1`, outside the checkpoint checksum (playRevOf maps 12 to 11's play).
+ */
+export const CROSS_REV_KEEP = 12;
+export const CROSS_KEEP_STD: StdSpec = { ...CROSS_FLOW_STD, rev: CROSS_REV_KEEP };
+
+export const crossKeepGame: ArcadeGame<CrossState, ArcadeInputEvent | null> = {
+  ...crossFlowGame,
+  init: (seed: number) => ({ ...crossFlowGame.init(seed), keep: 1 }),
 };

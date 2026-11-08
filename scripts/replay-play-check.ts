@@ -21,7 +21,7 @@
  *   bun scripts/replay-play-check.ts [game ids…] [--url=http://127.0.0.1:5181]
  */
 import { spawn, type ChildProcess } from "node:child_process";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { gotoRetried, warmUp } from "./browser-load";
 
 const args = process.argv.slice(2);
@@ -74,6 +74,31 @@ async function origin(): Promise<string> {
   throw new Error("dev server did not start");
 }
 
+/** The replay's tick (its seek bar) and how many frame gaps the page's probe loop had recorded at that moment. */
+type Mark = { tick: number; gaps: number };
+const mark = (page: import("playwright").Page): Promise<Mark> =>
+  page.evaluate(() => ({
+    tick: Number((document.querySelector("[data-replay-seek]") as HTMLInputElement).value),
+    gaps: (window as unknown as { __gaps: number[] }).__gaps.length,
+  }));
+/** The longest frame the player counts in full (ReplayCanvas: `Math.min(100, now - lastWall)`). */
+const PLAYER_FRAME_CAP_MS = 100;
+/**
+ * Ticks a second between two marks, on the player's own clock (7 Nov 2026, build-health audit): ReplayCanvas
+ * advances by each frame's gap capped at 100 ms, so a frame a starved CI runner holds for longer loses the rest by
+ * design (no jump after a stall). Judged on the wall clock, a few such frames read as a slow 2x ("87 ticks a
+ * second (120 expected)") though every frame advanced at 2x. Summing the same frames' gaps, capped the same way,
+ * measures the speed the player was set to; the 45-75 and > 90 limits are unchanged.
+ */
+function ratePerSecond(a: Mark, b: Mark, gaps: number[]): number {
+  const ms = gaps.slice(a.gaps, b.gaps).reduce((sum, g) => sum + Math.min(PLAYER_FRAME_CAP_MS, g), 0);
+  return ms > 0 ? ((b.tick - a.tick) * 1000) / ms : 0;
+}
+
+ok(
+  readFileSync(new URL("../src/components/replay/ReplayCanvas.tsx", import.meta.url), "utf8").includes(`Math.min(${PLAYER_FRAME_CAP_MS}, now - lastWall)`),
+  `ReplayCanvas caps a frame's gap at ${PLAYER_FRAME_CAP_MS} ms (the rate checks below measure on that clock)`,
+);
 const { chromium } = await import("playwright");
 const base = await origin();
 const browser = await chromium.launch({ executablePath: CHROMIUM });
@@ -117,17 +142,14 @@ try {
       };
       requestAnimationFrame(loop);
     });
-    const t0 = await page.evaluate(() =>
-      Number((document.querySelector("[data-replay-seek]") as HTMLInputElement).value),
-    );
+    const t0 = await mark(page);
     await page.waitForTimeout(6000);
-    const t1 = await page.evaluate(() =>
-      Number((document.querySelector("[data-replay-seek]") as HTMLInputElement).value),
-    );
+    const t1 = await mark(page);
     const end = lab.endTick;
-    const rate1 = (t1 - t0) / 6;
+    const gapsNow = await page.evaluate(() => (window as unknown as { __gaps: number[] }).__gaps);
+    const rate1 = ratePerSecond(t0, t1, gapsNow);
     ok(
-      t1 >= end || (rate1 > 45 && rate1 < 75),
+      t1.tick >= end || (rate1 > 45 && rate1 < 75),
       `${game}: 1x plays ${rate1.toFixed(0)} ticks a second (60 expected)`,
     );
     const gaps = await page.evaluate(() =>
@@ -149,16 +171,12 @@ try {
     );
     ok(Math.abs(afterSeek - mid) <= 40, `${game}: seek to ${mid} landed on ${afterSeek}`);
     await page.click('[data-replay-speed="2"]');
-    const s0 = await page.evaluate(() =>
-      Number((document.querySelector("[data-replay-seek]") as HTMLInputElement).value),
-    );
+    const s0 = await mark(page);
     await page.waitForTimeout(2000);
-    const s1 = await page.evaluate(() =>
-      Number((document.querySelector("[data-replay-seek]") as HTMLInputElement).value),
-    );
-    const rate2 = (s1 - s0) / 2;
+    const s1 = await mark(page);
+    const rate2 = ratePerSecond(s0, s1, await page.evaluate(() => (window as unknown as { __gaps: number[] }).__gaps));
     ok(
-      s1 >= end || rate2 > 90,
+      s1.tick >= end || rate2 > 90,
       `${game}: 2x plays ${rate2.toFixed(0)} ticks a second (120 expected)`,
     );
     failures.push(...errors.map((e) => `${game}: ${e}`));

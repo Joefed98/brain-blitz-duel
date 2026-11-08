@@ -709,9 +709,9 @@ const BUILDERS: Record<string, Builder> = {
     axis: { value: Math.max(1, n(r, "wave")), max: std || flat ? BURST_V10_WAVES : null, label: "Waves" },
     lines:
       std
-        ? [`${n(r, "hits")} of ${std.atoms} atoms ${std.core} · wave clears ${std.clear} · golden ${std.gold}${std.lives > 0 ? ` · lives −${std.lives}` : ""} → ${s}`]
+        ? [`${n(r, "hits")} of ${std.atoms} atoms ${std.core} · wave clears ${std.clear} · golden ${std.gold}${std.lives > 0 ? ` · lives −${std.lives}` : ""}${std.misses > 0 ? ` · wasted beams −${std.misses}` : ""} → ${s}`]
         : flat
-        ? [`${n(r, "hits")} of ${n(r, "atoms")} atoms ${n(r, "core")} · wave clears ${n(r, "clearPts")} · golden ${n(r, "goldPts")}${n(r, "lifeCost") > 0 ? ` · lives −${n(r, "lifeCost")}` : ""} → ${s}`]
+        ? [`${n(r, "hits")} of ${n(r, "atoms")} atoms ${n(r, "core")} · wave clears ${n(r, "clearPts")} · golden ${n(r, "goldPts")}${n(r, "lifeCost") > 0 ? ` · lives −${n(r, "lifeCost")}` : ""}${n(r, "missCost") > 0 ? ` · wasted beams −${n(r, "missCost")}` : ""} → ${s}`]
         : typeof r["cleanWaves"] === "number" || typeof r["quickWaves"] === "number"
         ? [`${n(r, "hits")} atoms · ${n(r, "livesLost")} lives lost · skill +${n(r, "skill")} → ${s}`]
         : n(r, "burstRev") > 0

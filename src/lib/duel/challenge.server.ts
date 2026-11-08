@@ -35,6 +35,7 @@ import {
 import { asyncReceipt } from "./asyncRoom";
 import { awardRoundsFor } from "./awardRounds";
 import { gameIndexOf, recordChallengeEvent } from "./betaRecord.server";
+import { copiedDisplayName } from "./displayName.server";
 import {
   CHALLENGE_CODE_ALPHABET,
   CHALLENGE_CODE_LENGTH,
@@ -71,6 +72,7 @@ import type {
   RoundResultRow,
   StoredPuzzleType,
 } from "./types";
+import { dbError } from "./dbError";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -156,7 +158,7 @@ export async function challengesMadeLastHour(
     .from("challenges")
     .select("created_at")
     .eq("created_by", userId);
-  if (error) throw new Error(error.message);
+  if (error) throw dbError(error, "challenge");
   return ((data ?? []) as { created_at: string }[]).filter(
     (row) => nowMs - msOf(row.created_at) < 3_600_000,
   ).length;
@@ -208,7 +210,7 @@ async function storeChallenge(
       expires_at: room.closes_at,
     };
     const { error } = await client.from("challenges").insert(meta);
-    if (error) throw new Error(error.message);
+    if (error) throw dbError(error, "challenge");
     return { room, meta };
   }
   throw new Error("Couldn’t find a free challenge code.");
@@ -371,7 +373,8 @@ export async function createChallengeFromRoom(
       stored,
       {
         userId: player.user_id,
-        name: (player.display_name ?? "").trim().slice(0, 14) || "Player",
+        // M2: a room's name copied onto a board strangers see is cleaned and filtered first.
+        name: copiedDisplayName(player.display_name),
         colour: typeof player.colour === "number" ? player.colour : null,
         icon: player.icon ?? null,
       },

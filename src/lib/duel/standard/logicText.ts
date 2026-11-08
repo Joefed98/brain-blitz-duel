@@ -7,6 +7,7 @@
 import { roundMaxFor } from "../roundMax";
 import { puzzleScoreList, type ScoreLine } from "../scoreList";
 import { FLOOD_STANDARD_SPARE_MOVES, LOGIC_STANDARD, type LogicStandardType } from "./logicRules";
+import { partialCreditDealt } from "../partialCredit";
 
 const fmt = (n: number) => String(Math.round(n * 10) / 10);
 
@@ -24,6 +25,20 @@ const UNFINISHED: Record<LogicStandardType, string> = {
   shikaku: "the share of the grid covered by correct rectangles, more for drawing them early, less what wrong ones cover",
   lightup: "the share of bulbs on their solution squares, more for placing them early",
 };
+
+/**
+ * Partial-credit fixes (7 Nov 2026, depthRev 3, partialCredit.ts): Blackout, Hanoi and Polypotions count how close the
+ * best board got to solved (the presses, moves or pours still needed), in proportion, less for wasted ones.
+ */
+const UNFINISHED_PARTIAL: Partial<Record<LogicStandardType, string>> = {
+  lightsout: "how close your best board got to all off, in proportion (the presses still needed); presses that brought it no closer take it down",
+  tower: "how close your best spread got to the whole tower home, in proportion (the moves still needed); moves that brought it no closer take it down",
+  tubes: "how close your best flasks got to sorted, in proportion (the pours still needed); pours that brought them no closer take it down",
+};
+
+function unfinished(type: LogicStandardType): string {
+  return (partialCreditDealt() ? UNFINISHED_PARTIAL[type] : undefined) ?? UNFINISHED[type];
+}
 
 /** Points off for a wrong item left on the board, unfinished. */
 const LEFT: Partial<Record<LogicStandardType, string>> = {
@@ -87,7 +102,7 @@ export function logicStandardHelp(type: LogicStandardType): string {
     finish: FINISH[type][1],
     speed: { max: r.speed, fullByS: r.fullByS, what: type === "safe" ? "open it" : type === "bomb" ? "defuse it" : "finish", note: type === "safe" ? "about half on the second try, none on the third" : undefined },
     bonuses: bonus ? [bonus] : [],
-    unfinished: UNFINISHED[type],
+    unfinished: unfinished(type),
     penalties: left && r.wrongOff ? [`When not finished, each ${left} costs ${r.wrongOff}`] : [],
     total: roundMaxFor(type),
   });
@@ -108,6 +123,13 @@ const INTRO: Record<LogicStandardType, string> = {
   lightup: "Light every square; bonuses for speed and no wrong bulbs.",
 };
 
+/** The intro lines on the partial-credit stamps (depthRev 3): partway counts too. */
+const INTRO_PARTIAL: Partial<Record<LogicStandardType, string>> = {
+  lightsout: "Turn every light off; partway counts. Bonuses for speed and fewest presses.",
+  tower: "Move every ring home; partway counts. Bonuses for speed and fewest moves.",
+  tubes: "Sort every flask; partway counts. Bonuses for speed and fewest pours.",
+};
+
 export function logicStandardIntro(type: LogicStandardType): string {
-  return `${INTRO[type]} Up to ${roundMaxFor(type)}.`;
+  return `${(partialCreditDealt() ? INTRO_PARTIAL[type] : undefined) ?? INTRO[type]} Up to ${roundMaxFor(type)}.`;
 }

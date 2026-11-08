@@ -66,13 +66,13 @@ export const dailyStartFn = createServerFn({ method: "POST" })
     const existing = today ? await attemptFor(client, today.id, context.userId) : null;
     if (today && existing) return { ok: true as const, roomId: today.id, created: false };
 
-    const name = String(data.displayName ?? "")
-      .trim()
-      .slice(0, 14);
+    const { cleanDisplayName, nameRefusal } = await import("./displayName.server");
+    const name = cleanDisplayName(data.displayName);
     if (!name) return { ok: false as const, message: "Enter a display name." };
-    const { NAME_REFUSED_MESSAGE, offensiveName } = await import("./boardName.server");
-    if (offensiveName(name))
-      return { ok: false as const, message: NAME_REFUSED_MESSAGE, nameRefused: true };
+    // offensiveName(name) and the reserved names, on the look-alike-folded name too (M2).
+    const refusal = nameRefusal(name);
+    if (refusal)
+      return { ok: false as const, message: refusal.message, nameRefused: true };
     const { DAILY_START_LIMIT, withinRateLimit } = await import("./rateLimit.server");
     if (!(await withinRateLimit(client, context.userId, DAILY_START_LIMIT)))
       return { ok: false as const, message: "That’s a lot of tries. Give it a few minutes." };
