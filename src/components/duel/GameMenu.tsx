@@ -1,6 +1,7 @@
 import { memo, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 
+import { VolumeSliders } from "@/components/app/VolumeSliders";
 import { Icon, Panel, Row, Sheet, SwitchKnob, type IconName } from "@/design/components";
 import type { PuzzleType } from "@/lib/duel/types";
 import { isMuted, isMusicMuted, onSoundSettingsChange, setMusicMuted, setMuted } from "@/lib/sound";
@@ -10,8 +11,8 @@ import { PuzzleHelp } from "./PuzzleInstructions";
 /**
  * The game menu (6 Nov 2026, presentation only): one ⋮ button in the game frame's header (a live round's GameLayout
  * and the round intro) in place of the separate "?" and sound buttons. It opens a small sheet (drag to dismiss) with
- * Sound effects and Music switches (the same settings and stores as the settings sheet; nothing new is saved) and How
- * to play, which opens the game's existing help. Each row leads with its Joulz icon (sound / sound-off, music /
+ * Sound effects and Music switches and a volume slider each (VolumeSliders, 8 Nov 2026; the same settings and stores
+ * as the settings sheet; nothing new is saved) and How to play, which opens the game's existing help. Each row leads with its Joulz icon (sound / sound-off, music /
  * music-off, help; icon swap, 7 Nov 2026). The button is 36 px wide in the header, where the sound button was,
  * with a 44 × 44 hit area.
  *
@@ -61,6 +62,7 @@ export const GameMenu = memo(function GameMenu({ type, onHelp }: { type?: Puzzle
                 on={!sound.musicMuted}
                 onChange={(on) => setMusicMuted(!on)}
               />
+              <VolumeSliders />
               {showHelp ? (
                 <Row
                   as="button"

@@ -2,22 +2,12 @@ import { useEffect, useState } from "react";
 
 import { FeedbackLink } from "@/components/beta/FeedbackLink";
 import { OfflineSettingsRow } from "@/components/offline/OfflineSettingsRow";
-import { Slider } from "@/components/ui/slider";
+import { VolumeSliders } from "@/components/app/VolumeSliders";
 import { Icon, Panel, Row, Segmented, Sheet, SwitchKnob } from "@/design/components";
 import { APP_BUILD_ID, buildLabel } from "@/lib/appVersion";
 import { setBatterySaver, useBatterySaver } from "@/lib/battery";
 import { setHapticsOn, useHapticsOn, useHapticsSupported } from "@/lib/haptics";
-import {
-  effectsVolume,
-  isMuted,
-  isMusicMuted,
-  musicVolume,
-  onSoundSettingsChange,
-  setEffectsVolume,
-  setMusicMuted,
-  setMusicVolume,
-  setMuted,
-} from "@/lib/sound";
+import { isMuted, isMusicMuted, onSoundSettingsChange, setMusicMuted, setMuted } from "@/lib/sound";
 
 /** The direction-controls choice GridDrag keeps on the device (arrows or joystick). */
 const ARROW_KEY = "duelz-arrow-control";
@@ -32,7 +22,7 @@ function readArrows(): "arrows" | "joystick" {
 
 /**
  * Profile's settings (the gear): the existing device settings in one sheet, nothing new. Sound: a
- * switch each for effects and music and one volume row (both channels; the same settings as every
+ * switch each for effects and music and a volume slider each (VolumeSliders; the same settings as every
  * screen's header MuteToggle); the battery saver (lib/battery.ts); haptics (lib/haptics.ts); direction controls are the arrows/joystick choice the grid games offer in play
  * (GridDrag's own key); "How it works" reopens the first-time intro.
  */
@@ -72,27 +62,11 @@ export function SettingsSheet({
       style={{ paddingBottom: "max(24px, calc(env(safe-area-inset-bottom, 0px) + 16px))" }}
     >
         <div data-scrollable className="flex min-h-0 flex-col gap-4 overflow-y-auto px-4">
-        {/* Tab-page panels of divided rows (Polish batch R): the two sound switches and one volume row. */}
+        {/* Tab-page panels of divided rows (Polish batch R): the two sound switches, then a volume slider for each. */}
         <Panel data-sound-controls="settings">
           <SwitchRow label="Sound effects" on={!sound.muted} onChange={(on) => setMuted(!on)} />
           <SwitchRow label="Music" on={!sound.musicMuted} onChange={(on) => setMusicMuted(!on)} />
-          <div className="jz-row">
-            <span className="jz-row-title w-19 shrink-0">Volume</span>
-            <Slider
-              aria-label="Volume"
-              min={0}
-              max={100}
-              step={5}
-              value={[Math.round(Math.max(sound.effects, sound.music) * 100)]}
-              onValueChange={([value]) => {
-                const v = (value ?? 0) / 100;
-                setEffectsVolume(v);
-                setMusicVolume(v);
-              }}
-              className="min-w-0 flex-1"
-            />
-            <span className="ap-meta w-10 text-right tabular-nums">{Math.round(Math.max(sound.effects, sound.music) * 100)}%</span>
-          </div>
+          <VolumeSliders />
         </Panel>
         <div className="flex flex-col gap-2">
           <span className="ap-group-title">Direction controls</span>
@@ -210,10 +184,9 @@ function SwitchRow({
 
 /** The sound settings, kept current (the same source as the header's MuteToggle). */
 function useSoundSettings() {
-  const [settings, setSettings] = useState({ effects: 1, music: 1, muted: false, musicMuted: false });
+  const [settings, setSettings] = useState({ muted: false, musicMuted: false });
   useEffect(() => {
-    const read = () =>
-      setSettings({ effects: effectsVolume(), music: musicVolume(), muted: isMuted(), musicMuted: isMusicMuted() });
+    const read = () => setSettings({ muted: isMuted(), musicMuted: isMusicMuted() });
     read();
     return onSoundSettingsChange(read);
   }, []);

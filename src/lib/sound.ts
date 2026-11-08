@@ -31,8 +31,17 @@ import {
 const EVENT = SOUND_SETTINGS_EVENT;
 export const DEFAULT_MUSIC_VOLUME = 1;
 export const DEFAULT_EFFECTS_VOLUME = 1;
-/** Preserve the existing music-bed bus level independently of its slider. */
-const MUSIC_BED_LEVEL = 0.35;
+/**
+ * The screen beds' bus level, independent of the Music slider. 0.5 since 8 Nov 2026 (was 0.35, Joe's phone test:
+ * the beds sat under the effects): +3.1 dB, a -18.45 LUFS bed now playing at about -24.5 LUFS (was -27.6) against
+ * the effects' -17.2 LUFS median.
+ */
+const MUSIC_BED_LEVEL = 0.5;
+/**
+ * The same +3.1 dB lift (0.5 / 0.35) for round music, which plays on its own gain straight into the master bus.
+ * roundMusicRamp's levels are unchanged; the lifted gain is capped at 1, so a file never plays above its own level.
+ */
+const ROUND_MUSIC_LIFT = 0.5 / 0.35;
 const FANFARE_GAIN = 0.9 / 0.8;
 
 export type Cue =
@@ -1531,7 +1540,7 @@ let pendingRoundMusic: SoundId | null = null;
 
 function applyRoundLevel(rampSeconds: number): void {
   if (!ctx || !roundTrack) return;
-  const target = isMusicMuted() ? 0 : roundLevel * musicVolume() * entryVolume(roundTrack.id);
+  const target = isMusicMuted() ? 0 : Math.min(1, roundLevel * musicVolume() * ROUND_MUSIC_LIFT) * entryVolume(roundTrack.id);
   const g = roundTrack.gain.gain;
   const t = ctx.currentTime;
   try {
@@ -1718,7 +1727,7 @@ function startRoundTrack(id: SoundId): void {
     const source = loopingSource(id, buffer);
     const gain = ctx.createGain();
     gain.gain.setValueAtTime(
-      isMusicMuted() ? 0 : roundLevel * musicVolume() * entryVolume(id),
+      isMusicMuted() ? 0 : Math.min(1, roundLevel * musicVolume() * ROUND_MUSIC_LIFT) * entryVolume(id),
       ctx.currentTime,
     );
     source.connect(gain).connect(masterGain);
