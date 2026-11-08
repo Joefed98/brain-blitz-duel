@@ -13,7 +13,7 @@
  * Games are listed by registry id. Ids not registered yet (the new Sports and Cards & Board games) are
  * listed so their sessions only need to register the game; every reader skips an id the registry lacks.
  */
-import { PUZZLE_REGISTRY, isRetired } from "./registry";
+import { PUZZLE_REGISTRY, isRetired } from "./catalogue";
 import type { PuzzleType } from "./types";
 
 export type ArcadeGroup = "retro" | "sports" | "cards" | "action" | "strategy";

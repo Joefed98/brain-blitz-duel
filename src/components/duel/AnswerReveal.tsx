@@ -15,7 +15,8 @@ import { PlayerBadge } from "@/components/duel/PlayerBadge";
 import type { ArcadeRevealData } from "@/lib/arcade/reveal";
 import { ARCADE_REVEAL_RENDERERS } from "@/lib/arcade/revealRenderers";
 
-import { puzzleDef, puzzleName, puzzleRevealMs, puzzleTimeLimitMs } from "@/lib/duel/registry";
+import { puzzleDef, puzzleName, puzzleRevealMs, puzzleTimeLimitMs } from "@/lib/duel/catalogue";
+import { GameReveal } from "@/components/duel/GameParts";
 import { boardBox } from "@/lib/boardBox";
 import { isRemovedType } from "@/lib/duel/removedGames";
 import { TOTAL_ROUNDS, type PuzzleData, type PuzzleType } from "@/lib/duel/types";
@@ -729,7 +730,7 @@ function LiveAnswerReveal({
     Math.ceil((puzzleRevealMs(puzzle) - Math.max(0, now - startedAt)) / 1000),
   );
   const def = puzzleDef(puzzle.type);
-  const Reveal = def.Reveal;
+  const Reveal = GameReveal;
   // Puzzle polish (3 Nov 2026): Don't Break the Chain takes the shared verdict row like every other puzzle (it hid the
   // mark and heading before); no puzzle owns the layout now.
   const puzzleOwnsRevealLayout = false as boolean;

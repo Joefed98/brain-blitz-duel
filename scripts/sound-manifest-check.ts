@@ -462,6 +462,8 @@ const { roundMusicFor } = await import("../src/lib/fx/theme");
 const { PUZZLE_REGISTRY } = await import("../src/lib/duel/registry");
 const settle = () => new Promise((resolve) => setTimeout(resolve, 15));
 sound.unlockAudio();
+// Since speed fix 5 the first tap decodes only the shared set; this check plays every slot, so it asks for them all.
+sound.loadAllSounds();
 // Wait for the first-tap preload (effects and voice) to finish.
 const preloadIds = ids.filter((id) => manifest[id]!.url && manifest[id]!.channel !== "music");
 for (let i = 0; i < 400; i++) {

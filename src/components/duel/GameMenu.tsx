@@ -1,4 +1,4 @@
-import { memo, useEffect, useState } from "react";
+import { lazy, memo, Suspense, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 
 import { VolumeSliders } from "@/components/app/VolumeSliders";
@@ -6,7 +6,8 @@ import { Icon, Panel, Row, Sheet, SwitchKnob, type IconName } from "@/design/com
 import type { PuzzleType } from "@/lib/duel/types";
 import { isMuted, isMusicMuted, onSoundSettingsChange, setMusicMuted, setMuted } from "@/lib/sound";
 
-import { PuzzleHelp } from "./PuzzleInstructions";
+// The help copy (instructions.ts) is game code: loaded when the menu's own help first opens, never with the shell.
+const PuzzleHelp = lazy(() => import("./PuzzleInstructions").then((m) => ({ default: m.PuzzleHelp })));
 
 /**
  * The game menu (6 Nov 2026, presentation only): one ⋮ button in the game frame's header (a live round's GameLayout
@@ -84,7 +85,9 @@ export const GameMenu = memo(function GameMenu({ type, onHelp }: { type?: Puzzle
       {!onHelp && type && ownHelp && typeof document !== "undefined"
         ? createPortal(
             <div className="fixed inset-0 z-40">
-              <PuzzleHelp type={type} open onClose={() => setOwnHelp(false)} />
+              <Suspense fallback={null}>
+                <PuzzleHelp type={type} open onClose={() => setOwnHelp(false)} />
+              </Suspense>
             </div>,
             document.body,
           )

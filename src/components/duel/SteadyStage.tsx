@@ -1,7 +1,7 @@
 import { memo, useEffect, useRef, type ComponentType } from "react";
 
 import { capPuzzleFrames, setArenaLocked, useBatterySaver } from "@/lib/battery";
-import { puzzleDef } from "@/lib/duel/registry";
+import { puzzleDef } from "@/lib/duel/catalogue";
 import type { PuzzleStageProps } from "@/puzzles/types";
 
 /**

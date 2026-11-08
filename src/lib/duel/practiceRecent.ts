@@ -2,7 +2,7 @@
  * The games this device last opened in practice, newest first (the Play tab's "Warm up" tiles).
  * Device storage only, like practiceBest.ts; never read by grading or rooms.
  */
-import { isLiveType } from "./registry";
+import { isLiveType } from "./catalogue";
 import type { PuzzleType } from "./types";
 
 const KEY = "duelz-practice-recent:v1";

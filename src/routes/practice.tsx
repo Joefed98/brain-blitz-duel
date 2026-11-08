@@ -7,6 +7,8 @@ import { Chip, GameTile, Icon, Input, Segmented, Stars } from "@/design/componen
 import { GameLayout, PhoneShell, isArcadeScreenType } from "@/components/duel/PhoneShell";
 import { FrameScore } from "@/components/duel/GameFrame";
 import { SteadyOrPlain } from "@/components/duel/SteadyStage";
+import { GameStage } from "@/components/duel/GameParts";
+import { loadGameDef } from "@/lib/duel/gameLoader";
 import { useCrashContext } from "@/lib/useCrashContext";
 import { useArcadeScreenTickMs } from "@/lib/fx/useArcadeScreenTick";
 import { PuzzleHelp } from "@/components/duel/PuzzleInstructions";
@@ -41,7 +43,7 @@ import {
   puzzleRunMs,
   typesInCategory,
   isLiveType,
-} from "@/lib/duel/registry";
+} from "@/lib/duel/catalogue";
 import { clearStageState } from "@/lib/duel/stageState";
 import { DemoRecorder, type PuzzleDemoLog } from "@/lib/duel/puzzleDemo";
 import { hasIntroDemo } from "@/components/duel/IntroDemo";
@@ -419,6 +421,9 @@ function PracticeScreen() {
       setNotice(null);
       setOfflineRunId(null);
       packSeed.current = null;
+      // The game's own code (gameLoader.ts), fetched alongside the deal (the service worker's copy offline), so the
+      // intro and the round draw it from their first frame.
+      const code = loadGameDef(next).catch(() => null);
       // A live deal when there is a connection; else (or when it doesn't come) a deal from the game's saved pack.
       // A slow live deal with no saved deal to fall back on is still waited for: only a failed request (or no
       // connection) ends in the "not saved" notice.
@@ -456,6 +461,7 @@ function PracticeScreen() {
       // The best under the stamps this puzzle was actually dealt with.
       setDeviceBest(readPracticeBest(next, stampSignature(made.puzzle as PuzzleData)));
       setSealed(made.sealed);
+      await code;
       setStartedAt(Date.now());
       setStage("intro");
     },
@@ -1015,7 +1021,7 @@ function PracticeScreen() {
     );
   }
 
-  const StageComponent = puzzleDef(puzzle.type).Stage;
+  const StageComponent = GameStage;
   const clockActive = clockStart !== null && now >= clockStart;
   return (
     <PhoneShell constrained gameScreen play gameType={type}>

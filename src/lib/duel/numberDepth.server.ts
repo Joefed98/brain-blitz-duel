@@ -27,7 +27,7 @@ import {
 import { NUMLINE_REV2_FULL_ERROR } from "./numline";
 import { storedScoreParts, type ScoreParts } from "./puzzleScoreRev";
 import { rev3Game } from "./puzzleScoreRev3";
-import { puzzleTimeLimitMs } from "./registry";
+import { puzzleTimeLimitMs } from "./catalogue";
 import { applyOperation, decodeSteps } from "./target";
 import type { CheckoutPuzzleData, MeasurePuzzleData, PuzzleData, TargetNumberPuzzleData } from "./types";
 

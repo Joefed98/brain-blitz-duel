@@ -5,7 +5,7 @@
  */
 import type { Graded } from "../grade";
 import { parBonusPoints } from "../parBonus";
-import { puzzleTimeLimitMs } from "../registry";
+import { puzzleTimeLimitMs } from "../catalogue";
 import { SWAPWORD_REV_PAR, swapParBonusFor } from "../swapword";
 import { withBonus } from "../wordDepth";
 import type { DepthGrader } from "../wordDepth.server";

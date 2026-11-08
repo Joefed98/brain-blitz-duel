@@ -266,6 +266,8 @@ const EPOCH = Date.now();
 Date.now = () => EPOCH + now;
 const sound = await import("../src/lib/sound");
 sound.unlockAudio();
+// Since speed fix 5 the first tap decodes only the shared set; this check plays every slot, so it asks for them all.
+sound.loadAllSounds();
 sound.installSoundCueBridge();
 const want = [...newCues].filter((c) => manifest[c]?.channel === "effects");
 for (let i = 0; i < 400 && !want.every((id) => sound.soundDiagnostics().loaded.includes(id)); i++) await flush();

@@ -7,7 +7,7 @@ import { puzzleScoreRevOf } from "../puzzleScoreRev";
 import { PUZZLE_SCORE_REV_HELPER } from "../puzzleScoreRev3";
 import { decodeNumberTaps } from "../tapLog";
 import { latestTapMs } from "../grade";
-import { puzzleTimeLimitMs } from "../registry";
+import { puzzleTimeLimitMs } from "../catalogue";
 import { storedScoreParts } from "../puzzleScoreRev";
 import { rev3Efficiency, rev3Finish, rev3Unfinished } from "../puzzleScoreRev3";
 import { rev3EfficiencyOverride, rev3Progress } from "../puzzleProgress";

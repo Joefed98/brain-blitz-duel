@@ -14,7 +14,7 @@
  *
  * scripts/round-time-check.ts and scripts/finished-pings-check.ts prove both.
  */
-import { puzzleRunMs, puzzleTimeLimitMs } from "./registry";
+import { puzzleRunMs, puzzleTimeLimitMs } from "./catalogue";
 import type { DuelPhase, PuzzleData } from "./types";
 
 /** Less than this left on the round's own clock counts as reaching the buzzer. */

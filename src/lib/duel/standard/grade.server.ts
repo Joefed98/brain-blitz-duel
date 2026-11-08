@@ -6,7 +6,7 @@
  */
 import type { Graded } from "../grade";
 import { latestTapMs } from "../grade";
-import { puzzleTimeLimitMs } from "../registry";
+import { puzzleTimeLimitMs } from "../catalogue";
 import type { PuzzleData, PuzzleType } from "../types";
 import { STANDARD_UNFINISHED_CAP, earlyPoints, standardFinish, standardUnfinished, type StandardFinish, type StandardScore } from "./shape";
 import { STANDARD_GAMES } from "./games.server";

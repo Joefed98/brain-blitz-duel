@@ -16,7 +16,7 @@
  * room-late-run-check proves the timings; the server (duel.functions.ts advance, through
  * puzzleCloseReason) and the room page both read roomPuzzleCloseMs.
  */
-import { puzzleDurationMs, usesArcadeClock } from "./registry";
+import { puzzleDurationMs, usesArcadeClock } from "./catalogue";
 import type { PuzzleData } from "./types";
 
 /** Extra time an arcade round's phase waits for a run that is still being played. */

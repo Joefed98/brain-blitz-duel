@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ComponentType } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 
@@ -15,7 +15,8 @@ import {
   type DemoVerdict,
   type PuzzleDemoLog,
 } from "@/lib/duel/puzzleDemo";
-import { puzzleDef } from "@/lib/duel/registry";
+import { useGameDef } from "@/lib/duel/gameLoader";
+import type { PuzzleStageProps } from "@/puzzles/types";
 import { GameKeysOff } from "@/lib/desktop";
 import { clearStageState } from "@/lib/duel/stageState";
 import { hushForDemo, noteRealInput } from "@/lib/sound";
@@ -43,15 +44,26 @@ export function usePuzzleDemo(type: PuzzleType): { puzzle: PuzzleData; log: Puzz
 
 /** Intro slot for non-engine puzzles: the saved demo over the fixed intro example. */
 export function PuzzleIntroDemo({ demo, onReady }: { demo: { puzzle: PuzzleData; log: PuzzleDemoLog }; onReady?: () => void }) {
+  // The game's own chunk (gameLoader.ts): the intro keeps its still until it is here and the demo is ready.
+  const definition = useGameDef(demo.puzzle.type);
   return (
     <div className="flex h-full w-full justify-center">
-      <PuzzleDemoPlayer puzzle={demo.puzzle} log={demo.log} onReady={onReady} />
+      {definition ? <PuzzleDemoPlayer Stage={definition.Stage} puzzle={demo.puzzle} log={demo.log} onReady={onReady} /> : null}
     </div>
   );
 }
 
-function PuzzleDemoPlayer({ puzzle, log, onReady }: { puzzle: PuzzleData; log: PuzzleDemoLog; onReady?: (() => void) | undefined }) {
-  const Stage = puzzleDef(puzzle.type).Stage;
+function PuzzleDemoPlayer({
+  Stage,
+  puzzle,
+  log,
+  onReady,
+}: {
+  Stage: ComponentType<PuzzleStageProps>;
+  puzzle: PuzzleData;
+  log: PuzzleDemoLog;
+  onReady?: (() => void) | undefined;
+}) {
   const events = useMemo(() => expandActions(log.actions), [log]);
   const loopMs = (events.at(-1)?.t ?? 0) + PUZZLE_DEMO_HOLD_MS;
   const boxRef = useRef<HTMLDivElement | null>(null);

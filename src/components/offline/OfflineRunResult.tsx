@@ -1,6 +1,6 @@
 
 import { GameIcon } from "@/components/app/GameIcon";
-import { PUZZLE_REGISTRY } from "@/lib/duel/registry";
+import { PUZZLE_REGISTRY } from "@/lib/duel/catalogue";
 import type { PuzzleType } from "@/lib/duel/types";
 
 import { PendingClock } from "./PendingClock";

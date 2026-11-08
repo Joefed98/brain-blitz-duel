@@ -13,7 +13,7 @@
  */
 
 import { randomBelow, shuffled, weightedPick, withSeededRandom } from "./random";
-import { typesInCategory } from "./registry";
+import { typesInCategory } from "./catalogue";
 import type { PuzzleCategory, PuzzleType, StoredPuzzleType } from "./types";
 import { normaliseCategories } from "./categories";
 

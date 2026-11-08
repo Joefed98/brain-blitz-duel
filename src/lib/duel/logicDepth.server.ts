@@ -6,7 +6,7 @@
  */
 import type { Graded } from "./grade";
 import { depthFinish, depthRevOf, usesDepth, type DepthFinishInput } from "./logicDepth";
-import { puzzleTimeLimitMs } from "./registry";
+import { puzzleTimeLimitMs } from "./catalogue";
 import type { PuzzleData } from "./types";
 
 function num(v: unknown): number | undefined {

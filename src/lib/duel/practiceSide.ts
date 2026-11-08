@@ -2,7 +2,7 @@
  * The Practice tab's Puzzles | Arcade switch (30 Oct 2026): which side this device used last.
  * Device storage only, like practiceRecent.ts; never read by grading or rooms.
  */
-import { PUZZLE_REGISTRY, isRetired } from "./registry";
+import { PUZZLE_REGISTRY, isRetired } from "./catalogue";
 import type { PuzzleType } from "./types";
 
 export type PracticeSide = "puzzles" | "arcade";

@@ -14,7 +14,7 @@
  * as a room's reveal-phase (late) answer, with 0 ms left; once the room's reveal would have ended
  * the round takes no answer and scores 0 ("missed"), as a player with no answer in a room does.
  */
-import { puzzleRevealMs } from "./registry";
+import { puzzleRevealMs } from "./catalogue";
 import { roomPuzzleCloseMs, roomTimeoutMs } from "./roomClose";
 import type { PuzzleData } from "./types";
 
