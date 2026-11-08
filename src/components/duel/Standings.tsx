@@ -2,7 +2,7 @@ import { useEffect, useRef, type CSSProperties } from "react";
 
 import { GameIcon } from "@/components/app/GameIcon";
 import { PLAYER_COLOURS, type PlayerLook, type PlayerLooks } from "@/lib/duel/playerLook";
-import { puzzleDef, puzzleName } from "@/lib/duel/registry";
+import { puzzleDef, puzzleName } from "@/lib/duel/catalogue";
 import { tieMarks } from "@/lib/duel/tieDisplay";
 import type { PuzzleType } from "@/lib/duel/types";
 import type { Standing } from "@/lib/duel/scoring";

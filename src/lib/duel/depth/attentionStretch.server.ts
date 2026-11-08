@@ -11,7 +11,7 @@ import type { DepthGradeInput } from "../depth200.server";
 import { PUZZLE_FINISH_BASE, storedScoreParts, type ScoreParts } from "../puzzleScoreRev";
 import { rev3Efficiency, rev3Game, rev3Unfinished } from "../puzzleScoreRev3";
 import { rev3EfficiencyOverride, rev3Progress } from "../puzzleProgress";
-import { puzzleTimeLimitMs } from "../registry";
+import { puzzleTimeLimitMs } from "../catalogue";
 
 export interface StretchOptions {
   curve: StretchCurve;

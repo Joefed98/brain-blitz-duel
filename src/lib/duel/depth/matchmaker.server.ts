@@ -11,7 +11,7 @@ import { storedScoreParts } from "../puzzleScoreRev";
 import { rev3Efficiency, rev3Finish, rev3Unfinished } from "../puzzleScoreRev3";
 import { rev3Progress } from "../puzzleProgress";
 import { latestTapMs } from "../grade";
-import { puzzleTimeLimitMs } from "../registry";
+import { puzzleTimeLimitMs } from "../catalogue";
 import { pairDepthReplay, pairUsesDepth, splitPairGoldTime } from "./matchmaker";
 
 export const matchmakerDepth: DepthGrader = {

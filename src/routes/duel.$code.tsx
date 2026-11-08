@@ -15,6 +15,8 @@ import { FinalResult } from "@/components/duel/FinalResult";
 import { GameLayout, PhoneShell, RoomPanelSlot, isArcadeScreenType } from "@/components/duel/PhoneShell";
 import { RoomPanel } from "@/components/duel/RoomPanel";
 import { SteadyOrPlain } from "@/components/duel/SteadyStage";
+import { GameStage } from "@/components/duel/GameParts";
+import { preloadGame } from "@/lib/duel/gameLoader";
 import { useDemoKey } from "@/components/duel/SaveDemoButton";
 import { PuzzleHelp } from "@/components/duel/PuzzleInstructions";
 import { RoundIntro } from "@/components/duel/RoundIntro";
@@ -54,6 +56,8 @@ import { TimerBar } from "@/components/duel/TimerBar";
 import { arcadeMsRemaining } from "@/lib/arcade/clock";
 import { prefersReducedMotion } from "@/lib/motion";
 import {
+  loadGameSounds,
+  loadSoundGroup,
   playLock,
   playPlayerJoined,
   playSound,
@@ -124,7 +128,7 @@ import {
   puzzleShowsTimer,
   puzzleTimeLimitMs,
   puzzleRunMs,
-} from "@/lib/duel/registry";
+} from "@/lib/duel/catalogue";
 import {
   INTRO_COUNTDOWN_MS,
   INTRO_MS,
@@ -335,6 +339,23 @@ function DuelScreen() {
   useEffect(() => {
     if (roundOrderKey.split(",").includes("wordfall")) void preloadGameData("wordfall");
   }, [roundOrderKey]);
+  // Speed fix 1 (Nov 2026, gameLoader.ts): the room downloads only the games it plays, the current round's and
+  // the next one's (round 1's from the lobby on), so the next game's code arrives during this round and its
+  // title and intro never wait for it.
+  // A room's own sounds (speed fix 5, lib/sound.ts): its moments and the voices, decoded once it opens.
+  useEffect(() => {
+    loadSoundGroup("room");
+    loadSoundGroup("voice");
+  }, []);
+  useEffect(() => {
+    const order = roundOrderKey ? (roundOrderKey.split(",") as PuzzleType[]) : [];
+    const at = Math.max(0, round - 1);
+    preloadGame(order[at]);
+    preloadGame(order[at + 1]);
+    // Their sounds too (speed fix 5): the next round's decode during this one, so its first sound is never silent.
+    loadGameSounds(order[at]);
+    loadGameSounds(order[at + 1]);
+  }, [roundOrderKey, round]);
 
   /**
    * The round's puzzle never changes once the round starts, so it is held by
@@ -1276,7 +1297,7 @@ function DuelScreen() {
   }
 
   const clockActive = clockStart !== null && now >= clockStart;
-  const Stage = puzzle ? puzzleDef(puzzle.type).Stage : null;
+  const Stage = puzzle ? GameStage : null;
   // Live "finished" pings (finishedPings.ts): over the frame header's name and context line; never
   // the board, the timer or the score.
   const pingStrip = finishedPings.length ? (

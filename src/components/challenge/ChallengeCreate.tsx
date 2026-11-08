@@ -2,7 +2,7 @@ import { useMemo } from "react";
 
 import { CATEGORY_ORDER, PUZZLE_CATEGORIES, STANDARD_CATEGORIES } from "@/lib/duel/categories";
 import { challengeRoundChoices } from "@/lib/duel/challenge";
-import { typesInCategory } from "@/lib/duel/registry";
+import { typesInCategory } from "@/lib/duel/catalogue";
 import type { PuzzleCategory } from "@/lib/duel/types";
 import { Dots } from "@/components/duel/Dots";
 import { Button, Chip, Input, Segmented } from "@/design/components";

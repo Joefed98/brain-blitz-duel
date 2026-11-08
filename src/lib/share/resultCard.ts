@@ -28,7 +28,7 @@ import {
 } from "@/components/brand/wordmark";
 import { arcadeGroupInfo, arcadeGroupOf } from "@/lib/duel/arcadeGroups";
 import { ordinal } from "@/lib/duel/ordinal";
-import { puzzleDef } from "@/lib/duel/registry";
+import { puzzleDef } from "@/lib/duel/catalogue";
 import { MEDAL_BOX, defs, medal as medalMarkup, resolved, svgDocument, type MedalMetal } from "@/design/art/markup";
 
 import type { RoomShareData } from "./roomShare";

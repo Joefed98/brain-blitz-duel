@@ -4,7 +4,7 @@ import { PlayerBadge } from "@/components/duel/PlayerBadge";
 import { arcadeGroupOf } from "@/lib/duel/arcadeGroups";
 import { finishedThisRound } from "@/lib/duel/finishedPings";
 import type { PlayerLooks } from "@/lib/duel/playerLook";
-import { isLiveType, puzzleDef, puzzleName } from "@/lib/duel/registry";
+import { isLiveType, puzzleDef, puzzleName } from "@/lib/duel/catalogue";
 import type { RoomChatState } from "@/lib/duel/useRoomChat";
 import type { DuelPlayerRow, StoredPuzzleType } from "@/lib/duel/types";
 import { Icon, Input } from "@/design/components";

@@ -6,7 +6,7 @@
  * no worker.
  */
 import { createHash } from "node:crypto";
-import { readFileSync, readdirSync, statSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
 import { join, relative, sep } from "node:path";
 
 import { GOOGLE_FONTS_CSS, MEDIA_DIRS, OFFLINE_PAGES, keepPublicFile } from "./assets";
@@ -30,6 +30,7 @@ interface PluginLike {
   apply: "build";
   configResolved(config: { publicDir: string }): void;
   generateBundle(this: { environment?: { name?: string }; emitFile(file: { type: "asset"; fileName: string; source: string }): void }, options: unknown, bundle: BundleLike): void;
+  writeBundle(this: { environment?: { name?: string } }, options: { dir?: string }, bundle: BundleLike): void;
 }
 
 function walk(dir: string): string[] {
@@ -107,6 +108,7 @@ export function lazyMediaPaths(
 
 export function offlineWorkerPlugin(version: string): PluginLike {
   let publicDir = "public";
+  let workerInput: Omit<Parameters<typeof offlineWorkerSource>[0], "bundleFiles"> | null = null;
   return {
     name: "joulz-offline-worker",
     apply: "build",
@@ -134,18 +136,24 @@ export function offlineWorkerPlugin(version: string): PluginLike {
         if (bytes !== null) appHashes[`/${fileName}`] = sha256(bytes);
       }
       for (const f of files) if (!MEDIA_DIRS.some((dir) => f.path.startsWith(`/${dir}/`))) appHashes[f.path] = sha256(readFileSync(f.full));
-      this.emitFile({
-        type: "asset",
-        fileName: "sw.js",
-        source: offlineWorkerSource({
-          version,
-          bundleFiles: Object.keys(bundle),
-          publicFiles,
-          mediaHashes,
-          lazyMedia: lazyMediaPaths(),
-          appHashes,
-        }),
-      });
+      workerInput = {
+        version,
+        publicFiles,
+        mediaHashes,
+        lazyMedia: lazyMediaPaths(),
+        appHashes,
+      };
+      this.emitFile({ type: "asset", fileName: "sw.js", source: offlineWorkerSource({ ...workerInput, bundleFiles: Object.keys(bundle) }) });
+    },
+    // The worker's app list again from the files actually written (speed fix 1, Nov 2026): Vite drops a
+    // CSS-only chunk's empty JS file after this plugin's generateBundle, and once games were their own chunks
+    // a few such files (the polish-nov3 sheets) were listed, so every install failed on their 404s.
+    writeBundle(options, bundle) {
+      const env = this.environment?.name;
+      if ((env && env !== "client") || !workerInput || !options.dir) return;
+      const dir = options.dir;
+      const written = Object.keys(bundle).filter((f) => existsSync(join(dir, f)));
+      writeFileSync(join(dir, "sw.js"), offlineWorkerSource({ ...workerInput, bundleFiles: written }));
     },
   };
 }

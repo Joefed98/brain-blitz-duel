@@ -3,7 +3,7 @@
  * dealt with. Moved out of practice.functions.ts (Nov 2026 security fixes) so security-fixes-check can prove it.
  */
 import { splitPuzzle } from "./secrets";
-import { PUZZLE_TYPES } from "./registry";
+import { PUZZLE_TYPES } from "./catalogue";
 import type { PuzzleData } from "./types";
 
 type Loose = Record<string, unknown>;

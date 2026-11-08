@@ -12,7 +12,7 @@ import { appUpdater } from "@/lib/appUpdate";
 import { POLICIES, fetchFor } from "@/lib/net/request";
 import { currentPracticeStamp, stampSignature } from "@/lib/duel/practiceStamps";
 import { recentPracticeTypes } from "@/lib/duel/practiceRecent";
-import { PUZZLE_TYPES } from "@/lib/duel/registry";
+import { PUZZLE_TYPES } from "@/lib/duel/catalogue";
 import type { PuzzleData, PuzzleType } from "@/lib/duel/types";
 
 import { getAll, putOne, update } from "./db";

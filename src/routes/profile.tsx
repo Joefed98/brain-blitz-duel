@@ -19,7 +19,7 @@ import { ukDayKey } from "@/lib/duel/daily";
 import { rememberLook, rememberedLook, type PlayerLook } from "@/lib/duel/playerLook";
 import { readPracticeBest } from "@/lib/duel/practiceBest";
 import { currentPracticeStamp } from "@/lib/duel/practiceStamps";
-import { ACTIVE_PUZZLE_TYPES, PUZZLE_REGISTRY, gameCounts } from "@/lib/duel/registry";
+import { ACTIVE_PUZZLE_TYPES, PUZZLE_REGISTRY, gameCounts } from "@/lib/duel/catalogue";
 import { getStoredName, setStoredName } from "@/lib/duel/session";
 import { ordinal } from "@/lib/duel/ordinal";
 import type { PuzzleType } from "@/lib/duel/types";

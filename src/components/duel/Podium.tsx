@@ -2,7 +2,7 @@ import { LeftTag } from "./LeftTag";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 
 import { ordinal } from "@/lib/duel/ordinal";
-import { puzzleName } from "@/lib/duel/registry";
+import { puzzleName } from "@/lib/duel/catalogue";
 import type { Standing } from "@/lib/duel/scoring";
 import type { PlayerLooks } from "@/lib/duel/playerLook";
 import type { PodiumAward } from "@/lib/duel/podiumAwards";

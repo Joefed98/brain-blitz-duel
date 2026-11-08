@@ -23,7 +23,7 @@
  * clamp: offline play is timed by the phone alone (docs/offline-practice.md).
  */
 import { trustedMsRemaining } from "./grade";
-import { puzzlePrepMs, puzzleTimeLimitMs } from "./registry";
+import { puzzlePrepMs, puzzleTimeLimitMs } from "./catalogue";
 import { INTRO_MS, type PuzzleData } from "./types";
 
 /**

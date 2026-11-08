@@ -42,7 +42,21 @@ outside the repo.
 ## Where things live
 
 - `src/puzzles/<game>.tsx` — one module per puzzle type (UI + definition), registered in
-  `src/lib/duel/registry.ts` (`RETIRED_TYPES` = practice-only).
+  `src/lib/duel/registry.ts` (`RETIRED_TYPES` = practice-only, now in `catalogue.ts`); **then run
+  `bun scripts/game-catalogue.ts`** (game-catalogue-check fails until the catalogue and loaders match).
+- **Speed fixes 1 and 5** (8 Nov 2026, `docs/speed-fixes-nov-2026.md`; presentation and loading only, no stamps):
+  the phone never imports `registry.ts` (only `*.server.ts` and `puzzles.ts` may; game-catalogue-check). Names,
+  categories, clocks and the timing helpers come from the light `src/lib/duel/catalogue.ts` (data generated into
+  `catalogue.data.ts`); a game's Stage, Reveal and intro example from its own chunk (`gameModules.ts`, generated;
+  `gameLoader.ts` `loadGameDef` / `preloadGame` / `useGameDef`; `components/duel/GameParts.tsx`). Rooms preload the
+  current and next round's game, practice awaits the game's chunk with its deal, the Daily and challenges preload
+  theirs. Sounds (`src/lib/sound.ts`): the first tap decodes only group `core`; rooms load `room` and `voice`; a
+  game's intro and stage call `loadGameSounds(type)` (its own `<gameId>.…` slots plus `voice` and `arc_*` / `pz_*`),
+  the last two games kept, five decodes at once; a slot not yet decoded is silent and fetched; rooms decode the next
+  round's sounds during the current one and the intro's Ready waits for `gameSoundsReady` (sound-on-demand-check).
+  Checks that play every slot call the checks-only `loadAllSounds()` after `unlockAudio()`. `bun
+  scripts/perf-budget.ts` reports the first-screen download (1,519 KB / 419 KB gzip, was 4,651 / 1,397) and the first
+  tap's decoded sound (≈9 MB, was ≈107).
 - `src/lib/duel/` — room flow, generators (`*.server.ts`, server-only), banks
   (`*Bank.server.ts`, built by `scripts/*-bank.ts`), shared rules (`<game>.ts`, imported
   by both phone and server), grading (`grade.ts`), scoring (`scoring.ts`,

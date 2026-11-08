@@ -36,7 +36,7 @@ import { rememberedLook, type PlayerLook } from "@/lib/duel/playerLook";
 import { scheduledGames, upcomingGames, type PublicGame } from "@/lib/publicSchedule";
 import { screenMusic, unlockAudio } from "@/lib/sound";
 import { celebrationSound, celebrationsOn } from "@/lib/fx/celebrations";
-import { PUZZLE_REGISTRY, gameCounts } from "@/lib/duel/registry";
+import { PUZZLE_REGISTRY, gameCounts } from "@/lib/duel/catalogue";
 import type { PuzzleType } from "@/lib/duel/types";
 import { APP_DESCRIPTION, APP_TITLE } from "@/lib/brand";
 import { useHomeBed } from "@/lib/useScreenMusic";

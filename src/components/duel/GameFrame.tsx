@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useLayoutEffect, useRef, useState
 
 import { AnimatedScore } from "./AnimatedScore";
 import { boardBox } from "@/lib/boardBox";
-import { PUZZLE_INSTRUCTIONS } from "@/lib/duel/instructions";
+import { puzzleGoal } from "@/lib/duel/catalogue";
 import type { PuzzleCategory, PuzzleType } from "@/lib/duel/types";
 
 /**
@@ -70,7 +70,7 @@ const SHORT_GOALS: Partial<Record<PuzzleType, string>> = {
 };
 
 export function frameGoal(type: PuzzleType): string {
-  return SHORT_GOALS[type] ?? PUZZLE_INSTRUCTIONS[type]?.goal.replace(/\.$/, "") ?? "";
+  return SHORT_GOALS[type] ?? puzzleGoal(type).replace(/\.$/, "");
 }
 
 /**
