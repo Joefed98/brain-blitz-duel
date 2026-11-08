@@ -1417,6 +1417,12 @@ outside the repo.
   SHA-256 as its source and pins the served bytes under `levelled` (sound-manifest-check). Many of those beds end on a
   fade or open from silence (listed in the doc, not re-cut). **Re-measure with measure.py after changing a file in
   `public/sounds/`.**
+- **Music level and two volume sliders** (8 Nov 2026, Joe's phone test; sound and presentation only, no stamps): the
+  screen beds' bus `MUSIC_BED_LEVEL` 0.35 → 0.5 and round music lifted by the same `ROUND_MUSIC_LIFT` (0.5 / 0.35,
+  +3.1 dB, capped at a gain of 1; `roundMusicRamp` unchanged; Tempo's beat track unchanged), in `src/lib/sound.ts`, no
+  file re-encoded. The settings sheet and the game menu draw "Sound effects" and "Music" sliders (`VolumeSliders`,
+  `src/components/app/VolumeSliders.tsx`, the shared Slider) under the unchanged on/off switches, in place of the one
+  Volume slider that set both; the stored per-channel values are the ones that slider wrote.
 - **Retro arcade polish** (3 Nov 2026, Joe's audit; display, sound and room grouping only, no stamps;
   `docs/retro-polish-nov-2026.md`): *one Retro HUD* (`retroHud` in `src/lib/arcade/retro.renderer.ts`: the pixel font, the
   main count top left at 14 px, one or two counts top right at 10 px, at most two rows, sizes stepping down to fit, no
