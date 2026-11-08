@@ -1017,7 +1017,7 @@ const ENTRIES = {
   "skyline.gustWarn": { channel: "effects", frequency: 0, ms: 528, url: "/sounds/ui.warn.mp3" },
   "swing.rockCrumble": { channel: "effects", frequency: 0, ms: 528, url: "/sounds/cave.stoneCrack.mp3" },
   "inkbridge.coinLand": { channel: "effects", frequency: 0, ms: 120, url: "/sounds/arc_marble_clink.mp3" },
-  "inkbridge.coinRoll": { channel: "effects", frequency: 0, ms: 400, url: "/sounds/arc_marble_roll.mp3", loop: true },
+  "inkbridge.coinRoll": { channel: "effects", frequency: 0, ms: 3000, url: "/sounds/arc_marble_roll.mp3", loop: true },
   "slice.toss": { channel: "effects", frequency: 0, ms: 528, url: "/sounds/arrow.whoosh.mp3", volume: 0.4, gapMs: 250 },
   "slice.specialIn": { channel: "effects", frequency: 0, ms: 300, url: "/sounds/slice.bottleToss.mp3", volume: 0.6 },
   "bintoss.throw": { channel: "effects", frequency: 0, ms: 528, url: "/sounds/arrow.whoosh.mp3" },

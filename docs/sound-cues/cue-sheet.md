@@ -2659,13 +2659,13 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 | `chain.faster` | effects | `chain.faster` | 528 |
 | `pinball.lastBall` | effects | `pinball.lastBall` | 840 |
 | `pinball.gameOver` | effects | `pinball.gameOver` | 1632 |
-| `wavefront.danger` | effects | `wavefront.danger` | 2280 |
+| `wavefront.danger` | effects | `wavefront.danger` | 2151 |
 | `swing.dragonNear` | effects | `swing.dragonNear` | 1104 |
 | `slice.fuse` | effects | `slice.fuse` | 648 |
 | `bubble.rush` | effects | `bubble.rush` | 912 |
 | `whack.hedgehogUp` | effects | `whack.hedgehogUp` | 528 |
 | `clayshoot.birdIn` | effects | `clayshoot.birdIn` | 528 |
-| `swing.lava` | effects | `swing.lava` | 6024 |
+| `swing.lava` | effects | `swing.lava` | 5950 |
 | `swing.jungle` | effects | `swing.jungle` | 8000 |
 | `swing.vineCreak` | effects | `swing.vineCreak` | 480 |
 | `swing.splash` | effects | `swing.splash` | 880 |
@@ -2676,7 +2676,7 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 | `skyline.gustWarn` | effects | `skyline.gustWarn` | 528 |
 | `swing.rockCrumble` | effects | `swing.rockCrumble` | 528 |
 | `inkbridge.coinLand` | effects | `inkbridge.coinLand` | 120 |
-| `inkbridge.coinRoll` | effects | `inkbridge.coinRoll` | 400 |
+| `inkbridge.coinRoll` | effects | `inkbridge.coinRoll` | 3000 |
 | `slice.toss` | effects | `slice.toss` | 528 |
 | `slice.specialIn` | effects | `slice.specialIn` | 300 |
 | `bintoss.throw` | effects | `bintoss.throw` | 528 |
@@ -2728,7 +2728,7 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 | `pool.cushion` | effects | `pool.cushion` | 300 |
 | `curling.release` | effects | `curling.release` | 484 |
 | `curling.slide` | effects | `curling.slide` | 2177 |
-| `curling.sweep` | effects | `curling.sweep` | 1508 |
+| `curling.sweep` | effects | `curling.sweep` | 1013 |
 | `curling.hit` | effects | `curling.hit` | 400 |
 | `curling.board` | effects | `curling.board` | 400 |
 | `curling.applause` | effects | `curling.applause` | 1995 |
@@ -2743,7 +2743,7 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 | `freekick.whistle` | effects | `freekick.whistle` | 683 |
 | `freekick.roar` | effects | `freekick.roar` | 3477 |
 | `freekick.groan` | effects | `freekick.groan` | 1995 |
-| `racing.idle` | effects | `racing.idle` | 2341 |
+| `racing.idle` | effects | `racing.idle` | 2283 |
 | `racing.drive` | effects | `racing.drive` | 2419 |
 | `racing.squeal` | effects | `racing.squeal` | 1197 |
 | `racing.kerb` | effects | `racing.kerb` | 672 |

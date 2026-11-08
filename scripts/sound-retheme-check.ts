@@ -90,7 +90,7 @@ const OLD_HOP_SHA = "168172e98f5f7903a708b09cac6d8c2558f86b8f13e463b449152c63d51
 /**
  * SHA-256 of that footstep (OLD_HOP_SHA's bytes) lifted to the effects' loudness target by the audio audit's fixes
  * (7 Nov 2026: it read -42.4 LUFS, 25 dB under its target; scripts/sound-audit-nov-2026/fix.py, the before/after
- * row in docs/sound-cues/audit-fixes-nov-2026.md). The same sound, only louder.
+ * row in docs/audit-nov-2026/audio-fixes.md). The same sound, only louder.
  */
 const LEVELLED_HOP_SHA = "7870e7b44dd2a644a86aff54f7a1556fcc66d221809b1220271fb8ef60acc64c";
 

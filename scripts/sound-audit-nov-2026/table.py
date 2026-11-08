@@ -1,4 +1,4 @@
-"""The before/after table for docs/sound-cues/audit-fixes-nov-2026.md, from measure.py's JSON for the originals and the
+"""The before/after table for docs/audit-nov-2026/audio-fixes.md, from measure.py's JSON for the originals and the
 fixed files and fix.py's report. Usage: python3 -I table.py <before.json> <after.json> <report.json> <slots.json>
 
 Loudness is as played: a file made mono reads 3.0 dB lower on ebur128 (one channel) than the same sound as two
@@ -23,8 +23,11 @@ def what(ops):
         out.append(f"loop re-cut ({o['crossfade_ms']} ms crossfade)")
     if "bed_crossfade" in ops:
         out.append(f"last bar crossfades into the first ({ops['bed_crossfade']['crossfade_ms']} ms)")
+    if "untagged_edges" in ops:
+        e = ops["untagged_edges"]
+        out.append(f"gapless tag added (untagged: {e.get('lead_ms', 0):g} ms priming / {e.get('tail_ms', 0):g} ms padding cut)")
     if "loudness" in ops:
-        out.append(f"to target {ops['loudness']['target']:g}")
+        out.append(f"to target {ops['loudness']['target']:g}" + (" (blocked by the true peak)" if "blocked" in ops["loudness"] else ""))
     if "true_peak_over_0" in ops:
         out.append("true peak over 0")
     if "level" in ops and ops["level"]["by"].startswith("limiter"):
@@ -35,7 +38,7 @@ def what(ops):
         out.append(f"lifted floor faded ({ops['floor_faded_ms']} ms)")
     if "mono" in ops:
         out.append(f"mono (side {ops['mono']['side_db']:g} dB)")
-    return "; ".join(out)
+    return "; ".join(out) or "re-encoded with the gapless tag"
 
 
 print("| File | Changes | Format | Length ms | True peak dBFS | LUFS as played | Last 10 ms / last sample dBFS | Loop join (step ×, slope ×, level 50 / 400 ms) | Decoded KB at 48 kHz |")

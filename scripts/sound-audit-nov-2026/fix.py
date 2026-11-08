@@ -5,7 +5,7 @@ Usage: python3 -I fix.py <originals dir> <out dir> <slots.json> <before.json> <r
 <slots.json> maps each file (no extension) to its manifest slots: {"slots", "vols", "loop", "channel"}.
 <before.json> is measure.py's output for the originals (the audit's numbers).
 
-Per file, in this order (docs/sound-cues/audit-fixes-nov-2026.md has the before/after table):
+Per file, in this order (docs/audit-nov-2026/audio-fixes.md has the before/after table):
 1. Loop joins (fix 4): swing.lava, wavefront.danger, racing_idle_loop and curling_sweep_loop are re-cut so the loop's end
    crossfades into its own opening (equal power; the loop is the crossfade shorter and starts just after it), at the cut
    whose end best matches the opening (waveform correlation, and for curling_sweep_loop the level too).
@@ -54,7 +54,27 @@ LOOP_RECUT = {"swing.lava": 0.04, "wavefront.danger": 0.04, "racing_idle_loop": 
 # bars of 1.818 s (132 bpm).
 BED_BAR = {"music_ricochet": 60.0294 / 25, "music_cross": 60.0294 / 125 * 4, "music_pool": 49.0965 / 18,
            "music_matchup": 54.5448 / 30}
-LEVEL_BEDS = {"music_menu"}
+# Every file listed is re-encoded even when nothing else changes (the 135 copied from Lovable, 8 Nov 2026: so each
+# carries the gapless tag the app trims by, and the same rules hold for every file the app ships).
+REENCODE_ALL = os.environ.get("REENCODE_ALL") == "1"
+
+
+def untagged_edges(x, sr, loop):
+    """A file with no gapless tag decodes with the encoder's priming in front and its padding behind (near-silence
+    the browser plays). A loop keeps what the app looped (its -60 dBFS edge trim, detectLoopPoints); a one-shot is
+    trimmed to 10 ms before its first sound over -60 dBFS and 20 ms after its last, so it starts on time once tagged."""
+    a = np.abs(x).max(1)
+    idx = np.nonzero(a > SILENCE)[0]
+    if not len(idx):
+        return x, None
+    s, e = idx[0], idx[-1] + 1
+    if not loop:
+        s, e = max(0, s - int(0.010 * sr)), min(len(x), e + int(0.020 * sr))
+    y = x[s:e].copy()
+    if not loop and e < len(x):
+        n = min(int(0.010 * sr), len(y) // 4)
+        y[-n:] = (y[-n:].T * np.linspace(1, 0, n)).T
+    return y, {"lead_ms": round(s / sr * 1000, 1), "tail_ms": round((len(x) - e) / sr * 1000, 1)}
 
 
 def load(p):
@@ -223,22 +243,25 @@ def main():
         s, b = slots[name], before[fn]
         kind = "music" if s["channel"] == "music" else "voice" if s["channel"] == "voice" else "loop" if s["loop"] else "fx"
         x, sr, ch, kbps = load(os.path.join(src, fn))
-        orig = x
         ops = {}
+        if lametag.read(open(os.path.join(src, fn), "rb").read()) is None:
+            x, edges = untagged_edges(x, sr, kind in ("loop", "music"))
+            ops["untagged_edges"] = edges or {}
+        orig = x
         if name in LOOP_RECUT:
             x, ops["loop_recut"] = recut_loop(name, x, sr)
         if name in BED_BAR:
             x, ops["bed_crossfade"] = recut_bed(name, x, sr)
         target, tol = target_for(name, kind, len(x) / sr)
         vol = float(np.median(s["vols"]))
-        cur, tp = ebur(x, sr) if ops else (b["lufs"], b["true_peak"])
+        cur, tp = ebur(x, sr) if ("loop_recut" in ops or "bed_crossfade" in ops) else (b["lufs"], b["true_peak"])
         d_file, d_eff = cur - target, cur + 20 * np.log10(vol) - target
         outlier = (name not in SKIP_LEVEL and abs(d_file) > tol and abs(d_eff) > tol and np.sign(d_file) == np.sign(d_eff)
-                   and (kind != "music" or name in LEVEL_BEDS))
+                   )
         cut_tail = kind == "fx" and b["last10"] > -40
         mono = kind == "fx" and ch == 2 and b.get("side_db", 0) <= MONO_SIDE_DB
         over = b["true_peak"] > 0
-        if not (ops or outlier or cut_tail or mono or over):
+        if not (ops or outlier or cut_tail or mono or over or REENCODE_ALL):
             continue
         # Outliers go to their target; everything else keeps the loudness it had (as played), whatever else is done.
         want = target if outlier else b["lufs"]
@@ -314,11 +337,16 @@ def main():
         if outlier and want > cur and l < b["lufs"] - 0.1 and not (cut_tail or mono or over or "loop_recut" in ops
                                                                     or "bed_crossfade" in ops):
             # A lift was the only change and the true peak (already at the limit, plus the re-encode's overshoot) made
-            # it come out quieter: leave the file as it was.
-            os.remove(dst)
-            skipped[fn] = {"why": "lift blocked by the true peak", "from": round(cur, 1), "would_be": round(l, 1)}
-            print(fn, "skipped", skipped[fn], flush=True)
-            continue
+            # it come out quieter: leave the file as it was, or, when every file is re-encoded, at the level it had.
+            if not REENCODE_ALL:
+                os.remove(dst)
+                skipped[fn] = {"why": "lift blocked by the true peak", "from": round(cur, 1), "would_be": round(l, 1)}
+                print(fn, "skipped", skipped[fn], flush=True)
+                continue
+            ops["loudness"]["blocked"] = "the true peak stops the lift; kept at its level"
+            want = b["lufs"]
+            l, t, notes = finish(x * 10 ** ((want - cur) / 20), dst, 0.0)
+            how = "gain"
         ops.update(notes)
         if mono:
             ops["mono"] = {"side_db": b["side_db"]}

@@ -6,7 +6,7 @@ changed. Measured on main 34272737 with ffmpeg 6 and numpy (scripts kept out of 
 test.
 
 **Fixes applied (7 Nov 2026):** fixes 1–4, 6–8 and 10's `music_menu` for the files in `public/sounds/`, with before and
-after measurements for every file changed, are in `docs/sound-cues/audit-fixes-nov-2026.md`. The figures below are the
+after measurements for every file changed, are in `docs/audit-nov-2026/audio-fixes.md`. The figures below are the
 audit as measured, before them.
 
 ## What was measured
