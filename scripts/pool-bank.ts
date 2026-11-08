@@ -11,12 +11,12 @@
  *  - poolRev 3 (`--rev=3`, what rooms deal since 1 Nov 2026: more power and spin, a miss a foul):
  *    src/lib/duel/poolBankV3.server.ts and scripts/fixtures/pool-witness-v3.json, on poolRev 2's input.
  *
- *  - poolRev 4 (`--rev=4`, what rooms deal since 3 Nov 2026: a seeded set and 90 s): src/lib/duel/poolBankV4.server.ts and
- *    scripts/fixtures/pool-witness-v4.json. poolRev 4 rolls the balls exactly as poolRev 3 (the set only renames them),
- *    so no new search: each poolRev 3 bank layout's witness shots are played again on poolRev 4 and kept when the run
- *    scores exactly 200 through the server's replay (the black down by the full-by time) on the seed's own set and on
- *    the other set too (poolGameFor(4, set)).
- *
+ *  - poolRev 4 (`--rev=4`, what rooms deal since 3 Nov 2026: a seeded set and 90 s): no bank file of its own. Rooms
+ *    deal poolRev 4 from POOL_BANK_V3 (poolRev 4 rolls the balls exactly as poolRev 3; the set only renames them), so
+ *    every poolRev 3 bank layout's witness shots are played again on poolRev 4 and must score exactly 200 through the
+ *    server's replay (the black down by the full-by time) on the seed's own set and on the other set too
+ *    (poolGameFor(4, set)); any that doesn't is a FAIL. Writes scripts/fixtures/pool-witness-v4.json.
+
  *   bun scripts/pool-bank.ts [--rev=2|3|4] [--count=60] [--jobs=4] [--check]
  *
  * --jobs searches candidates in parallel child processes (the result is the same whatever the job count: candidates are
@@ -157,37 +157,25 @@ if (import.meta.main && REV === 4) {
     witness[String(seed)] = raw;
     sets[poolSetFor(seed, 4)]! += 1;
   }
-  const body = `/**
- * Cue Ball poolRev 4's bank (what rooms deal since 3 Nov 2026): ${bank.length} layouts (of the ${POOL_BANK_V3.length} poolRev 3
- * layouts; ${sets[0]} dealt as spots, ${sets[1]} as stripes). poolRev 4 rolls the balls exactly as poolRev 3, so each layout's
- * poolRev 3 witness shots are played again in poolRev 4's 90 s: every witness here (scripts/fixtures/pool-witness-v4.json)
- * scores exactly 200 through the server's replay on poolRev 4, on the seed's own set and on the other set (pool-check).
- * Built by \`bun scripts/pool-bank.ts --rev=4\`. Server-only.
- */
-export const POOL_BANK_V4: readonly number[] = [${bank.join(",")}];
-
-/** The skill-band tool's seed index n → a poolRev 4 bank seed (fresh seeds from 10000 start past the first 30). */
-export function poolBankV4SeedFor(n: number): number {
-  const len = POOL_BANK_V4.length;
-  return n < 10000 ? POOL_BANK_V4[n % len]! : POOL_BANK_V4[30 + ((n - 10000) % (len - 30))]!;
-}
-`;
-  const out = new URL("../src/lib/duel/poolBankV4.server.ts", import.meta.url);
+  const dropped = POOL_BANK_V3.length - bank.length;
   const wOut = new URL("./fixtures/pool-witness-v4.json", import.meta.url);
   const wBody = JSON.stringify(witness) + "\n";
+  if (dropped > 0) {
+    console.log(`FAIL: ${dropped} of the ${POOL_BANK_V3.length} poolRev 3 bank layouts rooms deal on poolRev 4 no longer score 200 there`);
+    process.exit(1);
+  }
   if (CHECK) {
     let same = false;
     try {
-      same = readFileSync(out, "utf8") === body && readFileSync(wOut, "utf8") === wBody;
+      same = readFileSync(wOut, "utf8") === wBody;
     } catch {
       same = false;
     }
-    console.log(same ? "pool bank (poolRev 4): rebuilt byte for byte" : "FAIL: pool bank (poolRev 4) differs from a rebuild");
+    console.log(same ? "pool witnesses (poolRev 4): rebuilt byte for byte" : "FAIL: pool witnesses (poolRev 4) differ from a rebuild");
     process.exit(same ? 0 : 1);
   }
-  writeFileSync(out, body);
   writeFileSync(wOut, wBody);
-  console.log(`pool bank (poolRev 4): ${bank.length} layouts of ${POOL_BANK_V3.length} (${sets[0]} spots, ${sets[1]} stripes)`);
+  console.log(`pool witnesses (poolRev 4): all ${bank.length} poolRev 3 layouts at 200 (${sets[0]} spots, ${sets[1]} stripes)`);
 } else if (import.meta.main && WORKER) {
   const [a, b] = WORKER.split(":").map(Number);
   const out: Tried[] = [];

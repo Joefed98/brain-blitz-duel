@@ -43,6 +43,7 @@ import {
   SLICE_V11_COMBO_CAP,
   SLICE_V11_CORE,
   SLICE_V12_BAND_CURVE,
+  SLICE_V13_BAND_CURVE,
   SLICE_V12_CHILLI_R,
   SLICE_V12_COMBO_FROM,
   SLICE_V12_COMBO_FULL,
@@ -85,15 +86,18 @@ section("2. rooms deal sliceRev 12 on a seed with enough chillies");
 {
   for (let k = 0; k < 40; k++) {
     const p = generatePuzzle("slice" as any) as any;
-    ok(p.type === "slice" && p.sliceRev === SLICE_REV_FOOD && sliceFoodSeedOk(p.seed), `deal ${k}: sliceRev 12 on a seed passing the chilli rule (${p.sliceRev}, ${p.seed})`);
+    // The scoring audit (Nov 2026): sliceRev 13, sliceRev 12's food and deal (scoring-audit-arcade-check).
+    ok(p.type === "slice" && p.sliceRev === SLICE_REV_FOOD + 1 && sliceFoodSeedOk(p.seed), `deal ${k}: sliceRev 13 (sliceRev 12's food) on a seed passing the chilli rule (${p.sliceRev}, ${p.seed})`);
   }
-  ok(LIVE_BANDS.slice.rev === SLICE_REV_FOOD && LIVE_BANDS.slice.curve === SLICE_V12_BAND_CURVE, "LIVE_BANDS reads sliceRev 12 on its own core line");
-  ok(entry.rev === SLICE_REV_FOOD, "the arcade-standard entry is sliceRev 12");
+  // The scoring audit (Nov 2026): rooms deal sliceRev 13, whose food line runs straight from 0 (SLICE_V13_BAND_CURVE).
+  ok(LIVE_BANDS.slice.rev === SLICE_REV_FOOD + 1 && LIVE_BANDS.slice.curve === SLICE_V13_BAND_CURVE, "LIVE_BANDS reads the dealt sliceRev 13 on its own core line");
+  ok(entry.rev === SLICE_REV_FOOD + 1, "the arcade-standard entry is sliceRev 13 (sliceRev 12's food, the scoring audit)");
   const help = PUZZLE_INSTRUCTIONS.slice!;
   const text = help.how.map((h) => `${h.action} ${h.detail}`).join(" ");
   ok(/bread, watermelons, oranges and apples/.test(text) && /golden apples/.test(text) && /bright red chillies/.test(text), "the help names the new food");
   // Text pass (4 Nov 2026): plain words, no "full at N".
-  ok(/the first half of it scores nothing, then every piece counts the same/.test(help.score) && new RegExp(`all of it at ${SLICE_V12_COMBO_FULL}`).test(text), "the help states the core's and the combo's lines");
+  // sliceRev 13 (the scoring audit): both lines start at 0.
+  ok(/slice the food thrown up; every piece counts the same/.test(help.score) && new RegExp(`Every food cut while it is live adds to the combo’s \\d+, all of it at ${SLICE_V12_COMBO_FULL}`).test(text), "the help states the core's and the combo's lines");
   let low = 0;
   for (let n = 0; n < 2000; n++) if (!sliceFoodSeedOk(roomSeed(20000 + n))) low++;
   ok(low > 0 && low < 200, `the chilli rule re-draws a few seeds only (${low} of 2,000 have fewer than ${SLICE_V12_MIN_CHILLIES})`);

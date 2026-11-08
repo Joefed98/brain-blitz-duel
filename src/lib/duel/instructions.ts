@@ -139,6 +139,7 @@ import {
   WAV_STD_CORE_FULL,
   WAV_STD_LIFE_COST,
   WAVEFRONT_STD,
+  WAVEFRONT_STD_KEEP,
 } from "@/lib/arcade/wavefront";
 import {
   INK_CLOUD_LEVELS,
@@ -190,7 +191,7 @@ import {
   SLICE_V9_VALUE,
   SLICE_V9_GOLDS,
   SLICE_V9_MAX,
-  SLICE_V12_BAND_CURVE, SLICE_V12_COMBO_FROM, SLICE_V12_COMBO_FULL,
+  SLICE_V12_COMBO_FULL,
   SLICE_V11_CHILLI,
   SLICE_V11_CLOSE,
   SLICE_V11_COMBO_CAP,
@@ -228,6 +229,8 @@ import {
   BURST_V10_GOLDEN_PTS,
   BURST_V10_GOLDENS,
   BURST_V10_LIFE_COST,
+  BURST_V11_FREE_MISSES,
+  BURST_V11_MISS_COST,
   BURST_V10_WAVES,
 } from "@/lib/arcade/burst";
 import { liveBandHelp, liveStdHelp as bullseyeStdHelp, liveStdHelp } from "@/lib/arcade/liveBands";
@@ -260,6 +263,7 @@ import {
   CROSS_X_CLOSE_POINTS,
   CROSS_X_COIN_POINTS,
   CROSS_FLOW_STD,
+  CROSS_KEEP_STD,
   CROSS_V11_FLOW_EACH,
   CROSS_V11_FLOW_MAX,
   CROSS_V11_HIT_COST,
@@ -997,7 +1001,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Cargo freighters from crossing 2,", detail: "comets from 3, drifting debris from 4.", helpOnly: true },
         { action: "Freighters are long and slow with small gaps:", detail: "time the gap or walk along to it. The small comets are narrow and very fast.", helpOnly: true },
         { action: "Comets race along the glowing plasma lanes;", detail: "debris blocks part of a lane.", helpOnly: true },
-        { action: "Three lives.", detail: `A hit costs ${CROSS_V11_HIT_COST} points and sends you back to the start of this crossing, or to the docking platform once you’ve reached it in that crossing.`, helpOnly: true },
+        { action: "Three lives.", detail: `A hit sends you back to the start of this crossing, or to the docking platform once you’ve reached it in that crossing. Each hit but your last costs ${CROSS_V11_HIT_COST} points; the third just ends the run.`, helpOnly: true },
         { action: "No-stop streak:", detail: `a crossing with no hit where you never stand on the start deck or the docking platform for more than ${CROSS_V11_STOP_TICKS / 60} s at a time is a no-stop crossing (stepping along the deck still counts as standing there; the second’s wait at the start of a crossing doesn’t). Each one straight after another adds ${CROSS_V11_FLOW_EACH}, up to ${CROSS_V11_FLOW_MAX}; a stop or a hit ends the run of them.`, helpOnly: true },
         { action: "Close calls:", detail: `hop into a lane just as a ship has passed your spot (within a tenth of a second) for 1 point, once a lane each crossing, up to 10 a run.`, helpOnly: true },
         { action: "Busier each crossing:", detail: "the first has half the traffic, the next ones more, full traffic by crossing 4 and busier still after it. The first two always leave wide gaps; later traffic is tighter and faster.", helpOnly: true },
@@ -1005,11 +1009,12 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Only the astronaut counts:", detail: "traffic has to touch the figure itself (its arms’ reach), not the space around it.", helpOnly: true },
       ],
       // crossRev 11 (3 Nov 2026): rows and crossings on a straight line to 150, the no-stop streak 40, close calls 10; a hit costs 15.
-      score: listFromSpec(CROSS_FLOW_STD, {
+      // crossRev 12 (Nov 2026, the scoring audit): the hit that ends the run is free; hits take at most half the rows' points.
+      score: listFromSpec(CROSS_KEEP_STD, {
         core: "1 for each row crossed, 2 more for each full crossing",
         streak: `${CROSS_V11_FLOW_EACH} for each crossing without stopping, straight after another`,
         close: "1 for each close call",
-      }, [`Each hit costs ${CROSS_V11_HIT_COST}`]),
+      }, [`Each hit costs ${CROSS_V11_HIT_COST}, but the last one just ends the run`, "Hits never take more than half your rows and crossings points"]),
     },
     dual: {
       goal: "Keep both runners alive.",
@@ -1364,7 +1369,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Cut food near a chilli;", detail: "never cut one." },
         { action: "Never cut a chilli:", detail: `it costs ${SLICE_V11_CHILLI} points and ends your combo.`, helpOnly: true },
         { action: "Cut a bottle:", detail: "ketchup, mustard or mayo power-up.", helpOnly: true },
-        { action: "Combo:", detail: `three foods in one swipe start it and each one renews its 10 seconds. Past the first ${SLICE_V12_COMBO_FROM} foods cut while it is live, each adds to the combo’s ${SLICE_V11_COMBO_CAP}, all of it at ${SLICE_V12_COMBO_FULL}.`, helpOnly: true },
+        { action: "Combo:", detail: `three foods in one swipe start it and each one renews its 10 seconds. Every food cut while it is live adds to the combo’s ${SLICE_V11_COMBO_CAP}, all of it at ${SLICE_V12_COMBO_FULL}.`, helpOnly: true },
         { action: "The food:", detail: "bread, watermelons, oranges and apples; the bright red chillies are the ones to miss.", helpOnly: true },
         { action: "Golden fruit:", detail: `the golden apples, ${SLICE_V9_GOLDS} a run, share ${SLICE_V11_GOLD_CAP} points.`, helpOnly: true },
         { action: "Bread tickets:", detail: `${SLICE_V11_TICKET_BREADS} breads cut in a row fill a ticket (other food in between is fine; a bread you miss starts the count again). Tickets share ${SLICE_V11_TICKET_CAP} points.`, helpOnly: true },
@@ -1374,9 +1379,9 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "One finger-down-to-up path counts together", detail: "– curves too, up to the full height of the screen.", helpOnly: true },
       ],
       // sliceRev 12 (3 Nov 2026, docs/arcade-standard/slice.md): the share of food cut on a straight line from half of
-      // it to 120, then the four parts.
+      // it to 120, then the four parts. sliceRev 13 (Nov 2026, the scoring audit): the food and combo lines start at 0.
       score: scoreList([
-        { label: "Food", how: "slice the food thrown up; the first half of it scores nothing, then every piece counts the same", max: SLICE_V11_CORE },
+        { label: "Food", how: "slice the food thrown up; every piece counts the same", max: SLICE_V11_CORE },
         { label: "Combos", how: "slice several foods in one swipe", max: SLICE_V11_COMBO_CAP },
         { label: "Golden fruit", how: "slice the golden fruit", max: SLICE_V11_GOLD_CAP },
         { label: "Bread tickets", how: "slice the bread", max: SLICE_V11_TICKET_CAP },
@@ -1509,7 +1514,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Drag to move;", detail: "you fire on your own." },
         { action: "Shoot glowing carriers;", detail: "catch what they drop." },
         { action: "Bosses:", detail: "hit weak points dead centre." },
-        { action: "Red bolts and divers cost a life:", detail: "you have 3.", helpOnly: true },
+        { action: "Red bolts and divers cost a life:", detail: `you have 3. Each life but your last costs ${WAV_STD_LIFE_COST} points; losing the last just ends the run.`, helpOnly: true },
         { action: "The run lasts 90 seconds.", detail: "Each new wave flies in from the top 2 seconds after you clear one. Don’t let a formation reach your line.", helpOnly: true },
         { action: "From wave 3, ships peel off and dive at you,", detail: "then fly back to their place. Shoot them on the way; one that rams you costs a life.", helpOnly: true },
         { action: "Each wave flies its own shape:", detail: `a grid, then a triangle, a circle, a pentagon and an octagon – ${WAV_X_SHAPES} ships each, with six escorts under the shapes. Waves 3 and 4 come down more slowly.`, helpOnly: true },
@@ -1520,13 +1525,14 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Weak points score:", detail: "each cannon you destroy and each boss whose open core you hit (once is enough) – six in a run.", helpOnly: true },
       ],
       // wavRev 12 (the arcade scoring standard, docs/arcade-standard/wavefront.md): the core and fixed parts, 200 in all.
-      score: listFromSpec(WAVEFRONT_STD, {
+      // wavRev 13 (Nov 2026, the scoring audit): the life that ends the run is free; lives take at most half the ships' points.
+      score: listFromSpec(WAVEFRONT_STD_KEEP, {
         core: "1 for each ship shot, armour hit and boss hit, 15 for each wave cleared",
         boss: "destroy the boss",
         speed: "destroy it within 20 s of its arrival for all of it, nothing after 40 s",
         saucers: `${20 / WAV_X_SAUCERS} for each saucer shot down`,
         weak: "destroy cannons and hit the boss’s open core",
-      }, [`Each life lost costs ${WAV_STD_LIFE_COST}`, "Power-ups score nothing"]),
+      }, [`Each life lost costs ${WAV_STD_LIFE_COST}, but losing the last just ends the run`, "Lives never take more than half your ships, hits and waves points", "Power-ups score nothing"]),
     },
     // Iron Wall (id bastion; bastionRev 3, 3 Nov 2026; docs/arcade-standard/bastion.md): the tank-defence shooter.
     bastion: {
@@ -1630,8 +1636,8 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "◀ ▶ to move,", detail: "tap the arena to shoot up." },
         { action: `${BURST_V10_WAVES} waves:`, detail: `clear each fast for up to +${BURST_V10_CLEAR_PER_WAVE}.` },
         { action: "Golden atom:", detail: `+${BURST_V10_GOLDEN_PTS}, but it hurts like any atom.` },
-        { action: "An atom touching you (golden ones too)", detail: `costs a life and ${BURST_V10_LIFE_COST} points (3 lives).`, helpOnly: true },
-        { action: "Hold ◀ or ▶ to walk; tap anywhere on the arena to fire straight up.", detail: "There is no FIRE button: every tap on the arena is a shot.", helpOnly: true },
+        { action: "An atom touching you (golden ones too)", detail: `costs a life (3 lives). Each life but your last costs ${BURST_V10_LIFE_COST} points; losing the last just ends the run.`, helpOnly: true },
+        { action: "Hold ◀ or ▶ to walk; tap anywhere on the arena to fire straight up.", detail: `There is no FIRE button: every tap on the arena is a shot. A shot that reaches the top without hitting anything is wasted: you get one free for each atom you pop (at least ${BURST_V11_FREE_MISSES}), then each costs ${BURST_V11_MISS_COST}.`, helpOnly: true },
         { action: "Big atoms split into smaller ones;", detail: "the smallest pop.", helpOnly: true },
         { action: `${BURST_V10_WAVES} waves, ${BURST_V10_ATOMS} atoms:`, detail: `counting every piece the splits make. Clear all ${BURST_V10_WAVES} waves and the run is complete.`, helpOnly: true },
         { action: "Wave-clear bonus:", detail: `each wave you clear pays up to ${BURST_V10_CLEAR_PER_WAVE}: the full ${BURST_V10_CLEAR_PER_WAVE} within its quick time (1 s plus 0.6 s for every atom it holds, splits included), then evenly less, down to 0 at twice that. The counter (CLEAR +${BURST_V10_CLEAR_PER_WAVE}) shows what the wave on screen still pays.`, helpOnly: true },
@@ -1639,11 +1645,12 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Power-ups ride on atoms:", detail: "an atom showing a small icon drops that power-up when you split it (the same atoms for everyone). Walk under it to catch it. DOUBLE fires two beams a shot for 8 s; BURST fires three quick short shots a tap for 8 s; FREEZE stops every atom for 3 s. Frozen atoms still hurt if you walk into one. They score nothing themselves.", helpOnly: true },
       ],
       // burstRev 10 (the arcade scoring standard, docs/arcade-standard/burst.md): the atoms on a straight line, wave clears, golden atoms, lives.
+      // burstRev 11 (the scoring audit, Nov 2026): the last life free, wasted shots cost, never more than half the atom points.
       score: scoreList([
         { label: "Atoms", how: `every atom and split piece popped counts the same (${BURST_V10_ATOMS} in the ${BURST_V10_WAVES} waves)`, max: BURST_V10_CORE_MAX },
         { label: "Wave clears", how: `up to ${BURST_V10_CLEAR_PER_WAVE} for each wave, more the quicker you clear it`, max: BURST_V10_CLEAR_MAX },
         { label: "Golden atoms", how: `${BURST_V10_GOLDEN_PTS} for each golden atom`, max: BURST_V10_GOLDEN_MAX },
-      ], { penalties: [`Each life lost costs ${BURST_V10_LIFE_COST}`, "Power-ups score nothing"], total: 200 }),
+      ], { penalties: [`Each life lost before your last costs ${BURST_V10_LIFE_COST}`, `Wasted shots beyond one for each atom popped (at least ${BURST_V11_FREE_MISSES} free) cost ${BURST_V11_MISS_COST} each`, "Lives and wasted shots never take more than half your atom points", "Power-ups score nothing"], total: 200 }),
     },
     orbit: {
       goal: "Fly planet to planet to the sun.",

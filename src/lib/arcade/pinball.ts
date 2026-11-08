@@ -35,12 +35,6 @@ import {
 import { bandStrict, bandStrictGame, bandRetarget, bandCurveOf, bandTargetGame, bandCurve, bandInit, bandPoints, bandScoreOf, bandStep, bandTotal, type BandFields, type BandParts } from "./scoreBands";
 import { icos, isin, isqrt, TRIG_ONE } from "./trig";
 
-/**
- * THE SWITCH. False: Pinball is practice only (registry RETIRED_TYPES and
- * RETIRED_ARCADE_GAMES list it, so rooms never deal it). Set to true once Joe
- * has played it to let rooms deal it like any other active arcade game.
- */
-export const PINBALL_IN_ROOMS = true;
 
 /* ============================== Constants ============================== */
 

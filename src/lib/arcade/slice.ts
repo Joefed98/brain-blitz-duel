@@ -25,7 +25,7 @@ import {
   type CanvasSize,
   type InputRange,
 } from "./engine";
-import { stdFinal } from "./arcadeStandard";
+import { stdFinal, stdLine } from "./arcadeStandard";
 import { bandStrictGame, bandStrict, bandRetarget, bandTargetGame, bandCurveOf, bandCurve, bandInit, bandPoints, bandScoreOf, bandStep, bandTotal, type BandFields, type BandParts } from "./scoreBands";
 
 /* ============================== Constants ============================== */
@@ -456,6 +456,8 @@ export interface SliceState extends BandFields {
   v11?: number;
   /** sliceRev 12 (SLICE_V12): sliceRev 11 with bigger foods and chillies (SLICE_V12_RADIUS) and the core counted above half the food. Absent on every earlier round. */
   v12?: number;
+  /** sliceRev 13 (the scoring audit): 1 = core and combo on straight lines from 0. Outside the checksum. */
+  v13?: number;
   foodCut?: number;
   foodMissed?: number;
   comboFoods?: number;
@@ -1121,6 +1123,7 @@ const sliceRev2Game: ArcadeGame<SliceState, ArcadeInputEvent | null> = {
 
 /** Takes puzzle.sliceRev; anything else is the original kitchen. */
 export function sliceGameFor(rev?: number | null): ArcadeGame<SliceState, ArcadeInputEvent | null> {
+  if (rev === SLICE_REV_LINE) return sliceLineGame;
   if (rev === SLICE_REV_FOOD) return sliceFoodGame;
   if (rev === SLICE_REV_STANDARD) return sliceStandardGame;
   if (rev === SLICE_REV_BIG) return sliceBigGame;
@@ -1255,13 +1258,13 @@ export const sliceTallGame: ArcadeGame<SliceState, ArcadeInputEvent | null> = {
 
 /** The world height (px) a stored round's sliceRev plays in. */
 export function sliceWorldHFor(rev?: number | null): number {
-  if (rev === SLICE_REV_EXPAND || rev === SLICE_REV_BIG || rev === SLICE_REV_STANDARD || rev === SLICE_REV_FOOD) return SLICE_V9_H;
+  if (rev === SLICE_REV_EXPAND || rev === SLICE_REV_BIG || rev === SLICE_REV_STANDARD || rev === SLICE_REV_FOOD || rev === SLICE_REV_LINE) return SLICE_V9_H;
   return rev === SLICE_REV_TALL || rev === SLICE_REV_TARGET || rev === SLICE_REV_STRICT ? SLICE_TALL_H : SLICE_WORLD_H;
 }
 
 /** The board width (px) a stored round's sliceRev plays on (sliceRev 9's larger board, also sliceRev 10's and 11's, else 390). */
 export function sliceWorldWFor(rev?: number | null): number {
-  return rev === SLICE_REV_EXPAND || rev === SLICE_REV_BIG || rev === SLICE_REV_STANDARD || rev === SLICE_REV_FOOD ? SLICE_V9_W : SLICE_WORLD_W;
+  return rev === SLICE_REV_EXPAND || rev === SLICE_REV_BIG || rev === SLICE_REV_STANDARD || rev === SLICE_REV_FOOD || rev === SLICE_REV_LINE ? SLICE_V9_W : SLICE_WORLD_W;
 }
 
 /* ================= Scoring targets (sliceRev 7, 18 Oct 2026) ================= */
@@ -1727,9 +1730,13 @@ export function sliceV11Parts(state: SliceState): SliceV11Parts {
   const thrown = cut + (state.foodMissed ?? 0);
   const units = thrown > 0 ? Math.floor((1000 * cut) / thrown) : 0;
   // sliceRev 12: the core's straight line starts at SLICE_V12_CORE_FROM per mille (bigger food is easier to cut).
-  const core = state.v12 ? bandPoints(SLICE_V12_BAND_CURVE, units) : bandPoints(SLICE_V11_BAND_CURVE, units);
+  // sliceRev 13 (the scoring audit): the core back on sliceRev 11's straight line from 0 (120 at all the food).
+  const core = state.v13 ? bandPoints(SLICE_V13_BAND_CURVE, units) : state.v12 ? bandPoints(SLICE_V12_BAND_CURVE, units) : bandPoints(SLICE_V11_BAND_CURVE, units);
   // sliceRev 12: the combo on a straight line from SLICE_V12_COMBO_FROM foods (0) to SLICE_V12_COMBO_FULL (40).
-  const combo = state.v12
+  // sliceRev 13: from 0 foods (0) to SLICE_V12_COMBO_FULL (40), so every food cut in a combo counts.
+  const combo = state.v13
+    ? stdLine(SLICE_V11_COMBO_CAP, state.comboFoods ?? 0, SLICE_V12_COMBO_FULL)
+    : state.v12
     ? Math.min(SLICE_V11_COMBO_CAP, Math.floor((SLICE_V11_COMBO_CAP * Math.max(0, (state.comboFoods ?? 0) - SLICE_V12_COMBO_FROM)) / (SLICE_V12_COMBO_FULL - SLICE_V12_COMBO_FROM)))
     : Math.min(SLICE_V11_COMBO_CAP, Math.floor((SLICE_V11_COMBO_POINTS * (state.comboFoods ?? 0)) / SLICE_V11_COMBO_FOODS));
   const dealt = Math.max(1, state.goldDealt ?? SLICE_V9_GOLDS);
@@ -1921,3 +1928,23 @@ export const SLICE_V12_MIN_CHILLIES = 5;
 export function sliceFoodSeedOk(seed: number): boolean {
   return initV12(seed).objects.filter((o) => o.bomb).length >= SLICE_V12_MIN_CHILLIES;
 }
+
+/* ================= Every piece counts (sliceRev 13, Nov 2026, the scoring audit) ================= */
+
+/**
+ * sliceRev 13 (docs/arcade-standard/slice.md "sliceRev 13"; docs/audit-nov-2026/scoring.md issue 8): sliceRev 12's food,
+ * schedule, deal and play exactly (a sliceRev 12 log replays tick for tick, the same checksum), with two straight lines
+ * from 0 in place of sliceRev 12's thresholds, so a run that cuts food always scores for it:
+ *  - Food: 120 × the share of the food thrown that was cut (sliceRev 11's line; sliceRev 12 scored nothing below 48 %).
+ *  - Combo: 40 × foods cut while a combo is live ÷ SLICE_V12_COMBO_FULL (110), capped at 40 (sliceRev 12: nothing below 40).
+ * Golden fruit, tickets, dodges and the chillies' cost are unchanged. States add `v13: 1`, outside the checkpoint
+ * checksum (playRevOf maps 13 to 12's play).
+ */
+export const SLICE_REV_LINE = 13;
+/** sliceRev 13's food line: 120 × the share of the food cut (per mille), straight from 0 (sliceRev 11's line again). */
+export const SLICE_V13_BAND_CURVE = bandCurve([0, 1000], [0, SLICE_V11_CORE]);
+
+export const sliceLineGame: ArcadeGame<SliceState, ArcadeInputEvent | null> = {
+  ...sliceFoodGame,
+  init: (seed: number) => ({ ...initV12(seed), v13: 1 }),
+};

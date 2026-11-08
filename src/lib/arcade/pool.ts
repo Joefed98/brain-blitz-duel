@@ -15,7 +15,7 @@
  * foul: a shot whose cue ball touches no ball at all (the first-ball and stripe fouls are as before, 10 each). Speed's
  * full-by time is its own (poolFullByS(3)). poolRev 1 and 2 play, score and replay exactly as before.
  *
- * poolRev 4 (3 Nov 2026; its own bank, poolBankV4.server.ts): poolRev 3's table, input and physics in 90 s
+ * poolRev 4 (3 Nov 2026; dealt from poolRev 3's bank, poolBankV3.server.ts): poolRev 3's table, input and physics in 90 s
  * (POOL_RUN_S_V4), and the seed decides the player's set, spots or stripes (poolSetFor; the same for everyone in a room).
  * The sim keeps its ball ids (1–7 are the player's seven, 9–15 the other set): on a stripes deal the art and the words
  * swap them (poolShownId), so the player's seven are drawn as stripes 9–15 and the other four as spots. Fouls follow

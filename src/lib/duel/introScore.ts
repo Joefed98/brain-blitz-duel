@@ -111,6 +111,7 @@ function introScoreTemplates(): Record<PuzzleType, string> {
     matchup: "Clear gems; bonuses for treasure, colour goals, ice and big lines. Up to {max}.",
     snake: "Eat stars; bonuses for gold stars, combos, lane rides and warps. Up to {max}.",
     // crossRev 11 (3 Nov 2026): no coins; the no-stop streak; a hit costs 15.
+    // crossRev 12 (Nov 2026): the hit that ends the run is free; hits take at most half the rows' points.
     cross: "Cross again and again; bonuses for no-stop streaks and close calls; hits cost. Up to {max}.",
     breaker: "Break bricks; gold bricks 10 each (30 for all three); a fast clear adds more. Up to {max}.",
     rally: "Hit gold balls back; bonuses for pink pads and gold targets. Up to {max}.",
@@ -141,7 +142,7 @@ function introScoreTemplates(): Record<PuzzleType, string> {
     flip: "Last without crashing; bonuses for landing on sweet spots, double flips, flow. Up to {max}.",
     junction: "Points for each car and bus through, ± for ambulances. Last the minute for 10 more.",
     inkbridge: "Pot every level; bonuses for little ink, trick shots, clovers and speed. Up to {max}.",
-    burst: "Pop the atoms; bonuses for fast wave clears and golden atoms; lives cost. Up to {max}.",
+    burst: "Pop atoms; fast wave clears and golden atoms pay; lives cost, wasted shots too. Up to {max}.",
     orbit: "Reach planets; bonuses for speed, stardust, slingshots, fields and orbits. Up to {max}.",
     snip: "Points for fruit fed and leaves; golden apples, few cuts and speed add more. Up to {max}.",
     swing: "Swing along the course; bonuses for pars, gates and clean-swing streaks. Up to {max}.",

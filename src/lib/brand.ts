@@ -84,9 +84,3 @@ export const APP_SPLASHES = [
  * the home-screen icon are the same logo (arcade-tuning-a-check). The solve burst keeps APP_LOGO_URL.
  */
 export const APP_FLAG_LOGO_URL: string = APP_ICONS.find((icon) => icon.use === "any" && icon.size === 512)!.href;
-/**
- * Player icons (src/components/duel/playerIcons.tsx): the one switch for the whole feature. Off,
- * everyone shows their initial in their colour and the lobby hides the icon picker; stored icons
- * are kept, just not drawn. Colours are not affected.
- */
-export const PLAYER_ICONS_ENABLED = true;

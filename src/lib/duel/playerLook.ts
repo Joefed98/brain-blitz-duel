@@ -1,7 +1,7 @@
 /**
  * Player colours and icons (17 Oct 2026; presentation and room data only). Each player in a room
  * has one of the colour wheel's 32 swatches (ten until 31 Oct 2026), never two the same, and optionally one of sixteen icons
- * (PLAYER_ICONS_ENABLED in src/lib/brand.ts). The server assigns a colour on join and stores it on
+ * (playerIcons.tsx; the always-on PLAYER_ICONS_ENABLED switch was removed on 7 Nov 2026). The server assigns a colour on join and stores it on
  * duel_players.colour (an index into PLAYER_COLOURS) and duel_players.icon (an id from
  * PLAYER_ICON_IDS); a player changes them in the lobby through setPlayerLookFn. Play again keeps
  * them (restart_duel_room never touches either column).
