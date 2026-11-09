@@ -1,7 +1,7 @@
 /**
  * finished-pings-check (17 Oct 2026): live "finished" pings in rooms (presentation and room data
  * only; src/lib/duel/finishedPings.ts, finishedPing.server.ts, FinishedPings.tsx, the
- * 20261017140000 migration).
+ * 20261017140000 migration, its range widened to MAX_ROUNDS by 20261109120000).
  *
  *  1. Pings appear only for players whose answer is stored: random rooms of 2–10 players play
  *     rounds where some submit (through the real markSubmitted, after their round_results row, on an
@@ -33,6 +33,7 @@ import { FinishedPingStrip } from "../src/components/duel/FinishedPings";
 import { clearSubmitted, markSubmitted } from "../src/lib/duel/finishedPing.server";
 import { finishedThisRound, newFinishers, pingText, type FinishedPing } from "../src/lib/duel/finishedPings";
 import { resolvePlayerLooks } from "../src/lib/duel/playerLook";
+import { MAX_ROUNDS } from "../src/lib/duel/roomSettings";
 import type { DuelPlayerRow } from "../src/lib/duel/types";
 
 const failures: string[] = [];
@@ -215,12 +216,24 @@ for (let room = 0; room < 300; room++) {
   const pings = readFileSync("src/components/duel/FinishedPings.tsx", "utf8");
   check(!/score|answer|is_correct|ms_remaining/.test(pings.replace(/\/\*\*[\s\S]*?\*\//g, "")), "the ping component never reads result fields");
 
-  const migrations = readdirSync("supabase/migrations").filter((f) => /submitted_round/.test(f));
-  check(migrations.length === 1, `one submitted_round migration (${migrations})`);
-  const sql = readFileSync(`supabase/migrations/${migrations[0]}`, "utf8").replace(/--.*$/gm, "");
-  check(/ADD COLUMN IF NOT EXISTS submitted_round integer NOT NULL DEFAULT 0/.test(sql), "the migration adds submitted_round (default 0)");
-  check(/CHECK \(submitted_round BETWEEN 0 AND 7\)/.test(sql), "a range check (0–7, MAX_ROUNDS)");
-  check(!/\bGRANT\b|\bPOLICY\b|\bround_results\b|\bscore\b/i.test(sql), "the migration adds no grant or policy and touches no results");
+  // 20261017140000 adds the column; 20261109120000 widened its range from 0–7 to MAX_ROUNDS (12) once room
+  // settings allowed 12 rounds (submitted-round-check proves it on a real database).
+  const migrations = readdirSync("supabase/migrations").filter((f) => /submitted_round/.test(f)).sort();
+  check(
+    migrations.length === 2 &&
+      migrations[0] === "20261017140000_player_submitted_round.sql" &&
+      migrations[1] === "20261109120000_submitted_round_max_rounds.sql",
+    `the submitted_round migrations: the column, then the MAX_ROUNDS range (${migrations})`,
+  );
+  const sqls = migrations.map((f) => readFileSync(`supabase/migrations/${f}`, "utf8").replace(/--.*$/gm, ""));
+  check(/ADD COLUMN IF NOT EXISTS submitted_round integer NOT NULL DEFAULT 0/.test(sqls[0] ?? ""), "the migration adds submitted_round (default 0)");
+  const ranges = sqls.map((sql) => /CHECK \(submitted_round BETWEEN 0 AND (\d+)\)/.exec(sql)?.[1]);
+  check(
+    ranges[0] === "7" && Number(ranges[ranges.length - 1]) === MAX_ROUNDS,
+    `a range check, widened from 0–7 to 0–MAX_ROUNDS (${ranges.join(" → ")}, MAX_ROUNDS ${MAX_ROUNDS})`,
+  );
+  for (const [i, sql] of sqls.entries())
+    check(!/\bGRANT\b|\bPOLICY\b|\bround_results\b|\bscore\b/i.test(sql), `${migrations[i]} adds no grant or policy and touches no results`);
   for (const file of ["src/lib/duel/api.ts", "src/lib/duel/useDuel.ts"]) {
     const text = readFileSync(file, "utf8");
     check(!/from\("duel_players"\)\s*\.(update|insert|upsert|delete)/.test(text), `${file}: clients never write duel_players`);

@@ -198,7 +198,7 @@ outside the repo.
   label on arcade play screens), never the play area, timer or controls; silent; no score, answer or result, ever. It
   reads `duel_players.submitted_round`, written by `submitAnswerFn` after the result row is stored and cleared by
   `rematchFn` (`finishedPing.server.ts`); the column comes from `supabase/migrations/20261017140000_player_submitted_round.sql`,
-  **written but not applied**: until it is, no pings show and nothing else changes. The room answer reveal for arcade
+  **written but not applied**: until it is, no pings show and nothing else changes. Its range was 0–7; `20261109120000_submitted_round_max_rounds.sql` (9 Nov 2026 hotfix, idempotent, safe at any time) widens it to `MAX_ROUNDS` (12), since rounds 8–12 failed the check silently (submitted-round-check: a 12-round room on a local PostgreSQL). The room answer reveal for arcade
   games places every player on one "snake" line that bends round in three rows, 0–50, 51–100 (right to left) and
   101–150, labelled 0, 50, 100 and 150 at the ends and bends (`arcadeChart.ts`, `ArcadeScoreChart`; the only look):
   badges with names, **no points figure for anyone** (your own score is the reveal's big number; exact scores are for
