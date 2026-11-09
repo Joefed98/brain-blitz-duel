@@ -153,6 +153,16 @@ jobs:
           test -f .output/server/index.mjs
           test -f .wrangler/deploy/config.json
 
+      # Workers Logs stay on: `wrangler deploy` sets the Worker's observability from the config, so a config
+      # without it would turn logs off. vite.config.ts (WORKER_OBSERVABILITY) puts it in nitro's wrangler.json.
+      - name: Generated wrangler config keeps Workers Logs on
+        run: |
+          cfg=".wrangler/deploy/$(jq -r .configPath .wrangler/deploy/config.json)"
+          jq -e '.observability.enabled == true and .observability.logs.enabled == true
+                 and .observability.logs.invocation_logs == true and .observability.logs.persist == true' "$cfg" >/dev/null \
+            || { echo "::error::$cfg has no observability with logs on (vite.config.ts WORKER_OBSERVABILITY)"; exit 1; }
+          echo "Workers Logs on in $cfg: $(jq -c .observability "$cfg")"
+
       - name: The build talks to the new project only
         env:
           NEW_URL: ${{ secrets.SUPABASE_URL }}

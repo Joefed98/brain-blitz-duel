@@ -38,7 +38,24 @@ function buildId(): string {
  * published build. The narrow `nitro` type has no `minify`, hence the cast; nothing else about the build changes.
  */
 type NitroOptions = Exclude<NonNullable<Parameters<typeof defineConfig>[0]>["nitro"], boolean | undefined>;
-const SERVER_BUILD = { minify: true } as NitroOptions & { minify: boolean };
+
+/**
+ * Workers Logs (9 Nov 2026): the Worker's logs stay on across deploys. `wrangler deploy` makes the Worker's settings
+ * match its config, so a config without `observability` turned logs back off on every GitHub deploy
+ * (.github/workflows/deploy-cloudflare.yml). Nitro's cloudflare preset merges `cloudflare.wrangler` into the
+ * wrangler.json it generates (.output/server/wrangler.json, found through .wrangler/deploy/config.json), so every
+ * deploy carries logs on, invocation logs on and persisted to the dashboard. No sampling: every request is logged.
+ */
+const WORKER_OBSERVABILITY = {
+  enabled: true,
+  head_sampling_rate: 1,
+  logs: { enabled: true, invocation_logs: true, persist: true, head_sampling_rate: 1 },
+};
+
+const SERVER_BUILD = {
+  minify: true,
+  cloudflare: { wrangler: { observability: WORKER_OBSERVABILITY } },
+} as NitroOptions & { minify: boolean };
 
 export default defineConfig({
   nitro: SERVER_BUILD,
