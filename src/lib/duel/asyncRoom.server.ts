@@ -25,6 +25,8 @@ import { recordAsyncEvent, recordRoundRecordsFor, roundRecords } from "./betaRec
 import { puzzleDef, puzzleTimeLimitMs } from "./registry";
 import { roundTimeUsedMs, type TieRound } from "./scoring";
 import { tieRoundFor } from "./tieBreak";
+import { phaseReceiptOf } from "@/lib/round/receipt";
+import { resultColumns } from "@/lib/round/result";
 import type { SubmitExtra } from "./grade";
 import type { PuzzleData, RoundResultRow } from "./types";
 import { dbError } from "./dbError";
@@ -562,7 +564,11 @@ export async function startAsyncRound(
   return { ok: true, puzzle: pub, startedAt: nowMs };
 }
 
-/** The room's grading of an async answer: gradeRoomAnswer on the player's own round start. */
+/**
+ * The room's grading of an async answer: gradeRoomAnswer on the player's own round start, read as the room phase it
+ * stands for by the round engine (src/lib/round/receipt.ts phaseReceiptOf: in time, the puzzle phase from the stored
+ * start; late, a reveal-phase answer with 0 ms left).
+ */
 export async function gradeAsyncAnswer(
   puzzle: PuzzleData,
   startedAt: number,
@@ -575,14 +581,7 @@ export async function gradeAsyncAnswer(
   const receipt = asyncReceipt(puzzle, startedAt, nowMs);
   return {
     receipt,
-    ...gradeRoomAnswer(
-      puzzle,
-      // In time: the round's own puzzle phase from its stored start; late: a reveal-phase answer (0 ms left).
-      { phase: receipt === "puzzle" ? "puzzle" : "reveal", phaseStartedAt: iso(startedAt), nowMs },
-      answer,
-      msRemaining,
-      extra,
-    ),
+    ...gradeRoomAnswer(puzzle, phaseReceiptOf(puzzle, { startedAt, nowMs }), answer, msRemaining, extra),
   };
 }
 
@@ -624,14 +623,9 @@ export async function submitAsyncAnswer(
   const values = {
     answered: true,
     answered_at: iso(nowMs),
-    answer: graded.answer || null,
-    is_correct: graded.isCorrect,
-    ms_remaining: graded.storedMs,
-    reaction_avg_ms: graded.reactionAvgMs,
-    correct_count: graded.correctCount,
-    errors: graded.errors,
+    // The stored result's columns come from the round engine (src/lib/round/result.ts), the same as a room's.
+    ...resultColumns(graded),
     extra: graded.extra ?? null,
-    score: graded.score,
   };
   const { data } = await updateOpenAsyncResult(client, attempt.id, input.round, values);
   if (!data) return { ok: true, alreadySubmitted: true };
