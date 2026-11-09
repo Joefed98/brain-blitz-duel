@@ -284,6 +284,9 @@ export const SHARDS: Record<string, string[]> = {
     // server-functions-check (7 Nov 2026, ~5 s): the room, chat, daily, async-room and challenge server functions
     // run against every migration on a local PostgreSQL (scripts/server-fn-harness.ts), beside the other SQL checks.
     "server-functions-check.ts",
+    // migrations-check (9 Nov 2026, ~5 s): the automatic migration applier (scripts/migrate.ts) and its
+    // destructive guard on a local PostgreSQL, beside the other SQL checks.
+    "migrations-check.ts",
     "ink-x200-check.ts",
     "depth4-check.ts",
     "room-figures-check.ts",
