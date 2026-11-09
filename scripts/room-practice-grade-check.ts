@@ -251,7 +251,7 @@ src(/const \{ gradeRoomAnswer \} = await import\("\.\/roomGrade\.server"\);/.tes
   const writes: string[] = [];
   for (const file of walk("src")) {
     const text = readFileSync(file, "utf8");
-    if (/\bgradeAnswer\(|\bgradeRoomAnswer\(/.test(text) && !/src\/lib\/duel\/(generate|roomGrade)\.server\.ts$/.test(file)) graders.push(file);
+    if (/\bgradeAnswer\(|\bgradeRoomAnswer\(/.test(text) && !/src\/lib\/duel\/(generate|roomGrade|gradeAnswer)\.server\.ts$/.test(file)) graders.push(file);
     if (/from\("round_results"\)\s*\.(update|delete|upsert)\(/.test(text)) writes.push(file);
   }
   // Async rooms (21 Oct 2026, the daily challenge): asyncRoom.server.ts grades a new answer once, its
