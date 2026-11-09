@@ -16,14 +16,18 @@ Steps:
 
 1. Checks the GitHub secrets exist (names only; required: `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`,
    `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SERVICE_ROLE_KEY`; optional, with a warning:
-   `PRACTICE_SEAL_KEY`, `INTRO_DEMO_KEY`).
+   `PRACTICE_SEAL_KEY`, `INTRO_DEMO_KEY`), and fails the run if any set secret has leading or trailing whitespace
+   or a newline (CR or LF) anywhere, naming the secret, never its value (9 Nov 2026: a stray newline in
+   `SUPABASE_PUBLISHABLE_KEY` broke Realtime on workers.dev while database calls still worked).
 2. Installs with checks.yml's `bun.lock` registry rewrite, then restores the lockfile exactly.
 3. `bun run build` (`vite build`, nitro's `cloudflare-module` preset, as Lovable builds it) with
    `VITE_SUPABASE_URL` / `VITE_SUPABASE_PUBLISHABLE_KEY` from the secrets `SUPABASE_URL` /
    `SUPABASE_PUBLISHABLE_KEY` (and `VITE_SUPABASE_PROJECT_ID` from the URL's ref). Vite's `loadEnv` lets the
    process environment win over `.env`, so this build alone talks to the London project.
 4. A guard fails the run if `.env`'s Lovable URL or publishable key is anywhere in `.output`, or the new URL is
-   missing from the browser bundle.
+   missing from the browser bundle. A second guard requires the publishable key in the browser bundle to be exactly
+   `SUPABASE_PUBLISHABLE_KEY`: every occurrence of the key in `.output` must be a whole string literal (the same
+   quote right before and after), so a key baked with an escaped or real newline, or a missing key, fails the run.
 5. A dry run writes the bundle size to the job summary.
 6. `wrangler deploy --name joulz --compatibility-date 2026-10-15 --secrets-file <temp file>`: the code and the five
    runtime secrets (`SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `PRACTICE_SEAL_KEY`,
