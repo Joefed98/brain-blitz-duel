@@ -17,7 +17,7 @@ export const recordTermsAgreedFn = createServerFn({ method: "POST" })
     // L4: the stored date is the server's, never the phone's (the phone sends this as it agrees).
     const row = termsEventRow(context.userId, { version: data?.version, agreedAt: new Date().toISOString() });
     if (!row) return { ok: false };
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const supabaseAdmin = await (await import("@/lib/data/db.server")).adminDb();
     const { BETA_EVENT_LIMIT, withinRateLimit } = await import("@/lib/duel/rateLimit.server");
     if (!(await withinRateLimit(supabaseAdmin, context.userId, BETA_EVENT_LIMIT))) return { ok: false };
     await recordTermsAgreed(supabaseAdmin, row);

@@ -70,14 +70,12 @@ export const practiceGenerateFn = createServerFn({ method: "POST" })
     const example = data.example === true;
     let unblockRow = null;
     if (type === "unblock") {
-      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const { adminDb } = await import("@/lib/data/db.server");
+      const supabaseAdmin = await adminDb();
       if (example) {
         // The fixed example always uses the bank's first board, without marking it used.
-        const { data: rows } = await supabaseAdmin
-          .from("unblock_bank")
-          .select("id, layout, min_moves, solution")
-          .order("id", { ascending: true })
-          .limit(1);
+        const { readFirstUnblockRows } = await import("@/lib/data/practice.server");
+        const { data: rows } = await readFirstUnblockRows(supabaseAdmin);
         unblockRow = (rows?.[0] as never) ?? null;
       } else {
         const { drawUnblockRow } = await import("./unblock.server");
@@ -168,7 +166,7 @@ async function gradePracticeRun(data: PracticeRunInput, puzzle: PuzzleData, exam
   if (process.env["SUPABASE_SERVICE_ROLE_KEY"]) {
     const { practicePlayRow, recordPracticePlay } = await import("./betaRecord.server");
     const { puzzleTimeLimitMs } = await import("./catalogue");
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const supabaseAdmin = await (await import("@/lib/data/db.server")).adminDb();
     await recordPracticePlay(supabaseAdmin, (userId) =>
       practicePlayRow({
         userId,
@@ -225,7 +223,7 @@ export const practicePackFn = createServerFn({ method: "POST" })
         for (let i = 0; i < count; i++) {
           let unblockRow = null;
           if (type === "unblock") {
-            const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+            const supabaseAdmin = await (await import("@/lib/data/db.server")).adminDb();
             const { drawUnblockRow } = await import("./unblock.server");
             unblockRow = await drawUnblockRow(supabaseAdmin);
           }
@@ -387,19 +385,17 @@ export const saveIntroDemoFn = createServerFn({ method: "POST" })
     const run = String(data.answer ?? "");
     if (!run || run.length > DEMO_MAX_CHARS) throw new Error("Run log is empty or too long.");
     const { pub } = await openDealOrThrow(data.sealed, data.puzzle);
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { error } = await supabaseAdmin.from("intro_demos" as never).upsert(
-      {
-        game_type: type,
-        seed: runSeed(run),
-        puzzle: pub,
-        input_log: { run, ...(type === "orbit" ? { orbitBeltPeriodTicks: ORBIT_BELT_PERIOD_TICKS, orbitBeltRevision: ORBIT_BELT_REVISION } : {}) },
-        start_tick: DEMO_START_TICK,
-        length_ticks: DEMO_LENGTH_TICKS,
-        recorded_at: new Date().toISOString(),
-      } as never,
-      { onConflict: "game_type" },
-    );
+    const { adminDb } = await import("@/lib/data/db.server");
+    const { upsertIntroDemo } = await import("@/lib/data/practice.server");
+    const { error } = await upsertIntroDemo(await adminDb(), {
+      game_type: type,
+      seed: runSeed(run),
+      puzzle: pub,
+      input_log: { run, ...(type === "orbit" ? { orbitBeltPeriodTicks: ORBIT_BELT_PERIOD_TICKS, orbitBeltRevision: ORBIT_BELT_REVISION } : {}) },
+      start_tick: DEMO_START_TICK,
+      length_ticks: DEMO_LENGTH_TICKS,
+      recorded_at: new Date().toISOString(),
+    });
     if (error) throw new Error("Could not save the demo.");
     return { ok: true };
   });
@@ -427,20 +423,18 @@ export const savePuzzleDemoFn = createServerFn({ method: "POST" })
     if (example !== INTRO_EXAMPLE_ID) throw new Error("Only the fixed intro example can be saved.");
     const log = JSON.parse(text) as { actions: { t: number }[] };
     const lengthMs = Math.max(0, ...log.actions.map((a) => Number(a.t) || 0));
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { error } = await supabaseAdmin.from("intro_demos").upsert(
-      {
-        game_type: type,
-        seed: 0,
-        puzzle: pub as never,
-        input_log: log as never,
-        start_tick: 0,
-        length_ticks: Math.round(lengthMs),
-        example_id: INTRO_EXAMPLE_ID,
-        recorded_at: new Date().toISOString(),
-      },
-      { onConflict: "game_type" },
-    );
+    const { adminDb } = await import("@/lib/data/db.server");
+    const { upsertIntroDemo } = await import("@/lib/data/practice.server");
+    const { error } = await upsertIntroDemo(await adminDb(), {
+      game_type: type,
+      seed: 0,
+      puzzle: pub,
+      input_log: log,
+      start_tick: 0,
+      length_ticks: Math.round(lengthMs),
+      example_id: INTRO_EXAMPLE_ID,
+      recorded_at: new Date().toISOString(),
+    });
     if (error) throw new Error("Could not save the demo.");
     return { ok: true };
   });

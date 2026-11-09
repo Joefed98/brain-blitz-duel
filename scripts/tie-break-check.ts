@@ -357,7 +357,8 @@ function rpcWinner(players: DuelPlayerRow[], rows: RoundResultRow[]): { winner: 
   // Wiring: read before the reset, written after it; a forfeit's own record wins.
   const server = readFileSync("src/lib/duel/duel.functions.ts", "utf8");
   const rematch = server.slice(server.indexOf("export const rematchFn"), server.indexOf("export const checkWordFn"));
-  check(/const tieWinner = forfeit\s*\?\s*null\s*:\s*tieWinnerRecord\(room, roomPlayers,[\s\S]*client\.rpc\("restart_duel_room"[\s\S]*recordTieWinnerInHistory\(client, room\.id, tieWinner\)/.test(rematch),
+  check(/const tieWinner = forfeit\s*\?\s*null\s*:\s*tieWinnerRecord\(room, roomPlayers,[\s\S]*restartRoom\(client, room\.id, context\.userId\)[\s\S]*recordTieWinnerInHistory\(client, room\.id, tieWinner\)/.test(rematch) &&
+    /export async function restartRoom\([\s\S]*?client\.rpc\("restart_duel_room"/.test(readFileSync("src/lib/data/rooms.server.ts", "utf8")),
     "saved winner: Play again reads the standings' winner before the reset and records it after (not on a forfeit)");
 }
 

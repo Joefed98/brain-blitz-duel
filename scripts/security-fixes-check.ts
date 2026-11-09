@@ -354,7 +354,8 @@ function fnText(file: string, name: string): string {
     check(left > 0 && left < text.indexOf("getRoom(") , `M6: ${name} refuses a player who left before reading the room`);
   }
   const submit = fnText(df, "submitAnswerFn");
-  check(submit.indexOf("playerHasLeft(") < submit.indexOf('update({ status: "active" })'), "M6: an answer never brings a player who left back (only one who went quiet)");
+  const reactivate = submit.indexOf('setPlayerStatus(client, player.id, "active")');
+  check(reactivate > 0 && submit.indexOf("playerHasLeft(") < reactivate, "M6: an answer never brings a player who left back (only one who went quiet)");
   const { playerHasLeft } = await import("../src/lib/duel/duel.functions");
   check(playerHasLeft({ status: "left" }) && !playerHasLeft({ status: "inactive" }) && !playerHasLeft({ status: "active" }), "M6: left is refused; inactive and active are not");
 }
@@ -382,7 +383,7 @@ function fnText(file: string, name: string): string {
     check(!/throw new Error\(\w+\.message\)/.test(src(`src/lib/duel/${file}`)), `L1: ${file} never throws a database error's own text`);
   const duel = src("src/lib/duel/duel.functions.ts");
   const getRoom = duel.slice(duel.indexOf("async function getRoom"), duel.indexOf("async function getPlayers"));
-  check(getRoom.indexOf("isUuid(roomId)") > 0 && getRoom.indexOf("isUuid(roomId)") < getRoom.indexOf(".from("), "L1: getRoom refuses an id that isn't a uuid before querying");
+  check(getRoom.indexOf("readRoom(client, roomId)") > 0 && getRoom.indexOf("isUuid(roomId)") > 0 && getRoom.indexOf("isUuid(roomId)") < getRoom.indexOf("readRoom(client, roomId)"), "L1: getRoom refuses an id that isn't a uuid before querying");
 }
 
 /* ------------------------------------------------------------------ L3: chat limits ---- */
@@ -404,7 +405,7 @@ function fnText(file: string, name: string): string {
   check(cap.max === MESSAGE_MAX_PER_PLAYER && cap.bucket.includes("room-1") && rl.chatRoomLimit("room-2", 30).bucket !== cap.bucket, "L3: the per-room cap is its own bucket per room");
   const chat = src("src/lib/duel/chat.functions.ts");
   const at = chat.indexOf("chatGapLimit(MESSAGE_MIN_GAP_MS)");
-  check(at > 0 && chat.indexOf("chatRoomLimit(data.roomId, MESSAGE_MAX_PER_PLAYER)") > at && at < chat.indexOf('from("room_messages").insert'), "L3: both buckets are taken before the message is stored");
+  check(at > 0 && chat.indexOf("chatRoomLimit(data.roomId, MESSAGE_MAX_PER_PLAYER)") > at && at < chat.indexOf("insertRoomMessage(supabaseAdmin, {"), "L3: both buckets are taken before the message is stored");
 }
 
 /* ------------------------------------------------------------------ L4: beta events ---- */

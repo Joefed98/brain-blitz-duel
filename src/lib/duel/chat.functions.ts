@@ -6,6 +6,7 @@
 import { createServerFn } from "@tanstack/react-start";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import type { Db } from "@/lib/data/db.server";
 
 import {
   MESSAGE_MAX_LENGTH,
@@ -24,14 +25,16 @@ interface Sender {
 }
 
 /** The caller's player row, or null when they are not in the room. */
-async function senderRow(client: any, roomId: string, userId: string): Promise<Sender | null> {
-  const { data } = await client
-    .from("duel_players")
-    .select("id, display_name, status, muted_by_host, last_reaction_at")
-    .eq("duel_id", roomId)
-    .eq("user_id", userId)
-    .maybeSingle();
-  return (data as Sender | null) ?? null;
+async function senderRow(client: Db, roomId: string, userId: string): Promise<Sender | null> {
+  const { readChatSender } = await import("@/lib/data/players.server");
+  const { data } = await readChatSender(client, roomId, userId);
+  return data ?? null;
+}
+
+/** The service-role client for the writes (src/lib/data/db.server.ts). */
+async function admin(): Promise<Db> {
+  const { adminDb } = await import("@/lib/data/db.server");
+  return adminDb();
 }
 
 export const sendRoomMessageFn = createServerFn({ method: "POST" })
@@ -52,14 +55,9 @@ export const sendRoomMessageFn = createServerFn({ method: "POST" })
     const text = cleanChatText(data.text, MESSAGE_MAX_LENGTH);
     if (!text) return { ok: false as const, message: "Type a message first." };
 
-    const { data: mine } = await client
-      .from("room_messages")
-      .select("created_at")
-      .eq("duel_id", data.roomId)
-      .eq("sender_user_id", context.userId)
-      .order("created_at", { ascending: false })
-      .limit(MESSAGE_MAX_PER_PLAYER);
-    const sent = (mine ?? []) as { created_at: string }[];
+    const { insertRoomMessage, readOwnRecentMessages } = await import("@/lib/data/chat.server");
+    const { data: mine } = await readOwnRecentMessages(client, data.roomId, context.userId, MESSAGE_MAX_PER_PLAYER);
+    const sent = mine ?? [];
 
     if (sent.length >= MESSAGE_MAX_PER_PLAYER) {
       return { ok: false as const, message: "You’ve hit the message limit for this room." };
@@ -69,7 +67,7 @@ export const sendRoomMessageFn = createServerFn({ method: "POST" })
       return { ok: false as const, message: "Slow down a moment." };
     }
 
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const supabaseAdmin = await admin();
     // L3: the gap and cap above are read-then-insert, so parallel sends got past both; this bucket is atomic.
     const { chatGapLimit, chatRoomLimit, withinRateLimit } = await import("./rateLimit.server");
     if (!(await withinRateLimit(supabaseAdmin, context.userId, chatGapLimit(MESSAGE_MIN_GAP_MS)))) {
@@ -78,7 +76,7 @@ export const sendRoomMessageFn = createServerFn({ method: "POST" })
     if (!(await withinRateLimit(supabaseAdmin, context.userId, chatRoomLimit(data.roomId, MESSAGE_MAX_PER_PLAYER)))) {
       return { ok: false as const, message: "You’ve hit the message limit for this room." };
     }
-    const { error } = await supabaseAdmin.from("room_messages").insert({
+    const { error } = await insertRoomMessage(supabaseAdmin, {
       duel_id: data.roomId,
       sender_user_id: context.userId,
       sender_name: sender.display_name,
@@ -110,11 +108,8 @@ export const allowReactionFn = createServerFn({ method: "POST" })
       return { ok: false as const, message: "One reaction a second." };
     }
 
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    await supabaseAdmin
-      .from("duel_players")
-      .update({ last_reaction_at: new Date().toISOString() })
-      .eq("id", sender.id);
+    const { updatePlayer } = await import("@/lib/data/players.server");
+    await updatePlayer(await admin(), sender.id, { last_reaction_at: new Date().toISOString() });
     return { ok: true as const, name: sender.display_name };
   });
 
@@ -125,19 +120,15 @@ export const reportMessageFn = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const sender = await senderRow(context.supabase, data.roomId, context.userId);
     if (!sender) return { ok: false as const, message: "You’re not in this room." };
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const supabaseAdmin = await admin();
+    const { insertRoomReport, readRoomMessageId } = await import("@/lib/data/chat.server");
     // The reported message must be one of this room's (read through the caller's RLS).
-    const { data: message } = await context.supabase
-      .from("room_messages")
-      .select("id")
-      .eq("id", String(data.messageId ?? ""))
-      .eq("duel_id", data.roomId)
-      .maybeSingle();
+    const { data: message } = await readRoomMessageId(context.supabase, data.roomId, String(data.messageId ?? ""));
     if (!message) return { ok: false as const, message: "That message isn’t in this room." };
     const { REPORT_LIMIT, withinRateLimit } = await import("./rateLimit.server");
     if (!(await withinRateLimit(supabaseAdmin, context.userId, REPORT_LIMIT)))
       return { ok: false as const, message: "Thanks, we’ve got your reports." };
-    await supabaseAdmin.from("room_reports").insert({
+    await insertRoomReport(supabaseAdmin, {
       duel_id: data.roomId,
       message_id: data.messageId,
       reporter_user_id: context.userId,
@@ -151,20 +142,13 @@ export const setPlayerMutedFn = createServerFn({ method: "POST" })
   .inputValidator((input: { roomId: string; slot: number; muted: boolean }) => input)
   .handler(async ({ data, context }) => {
     const client = context.supabase;
-    const { data: room } = await client
-      .from("duels")
-      .select("id, host_user_id")
-      .eq("id", data.roomId)
-      .maybeSingle();
+    const { readRoomHost } = await import("@/lib/data/rooms.server");
+    const { data: room } = await readRoomHost(client, data.roomId);
     if (!room) return { ok: false as const, message: "Room not found." };
-    if ((room as { host_user_id: string | null }).host_user_id !== context.userId) {
+    if (room.host_user_id !== context.userId) {
       return { ok: false as const, message: "Only the host can do that." };
     }
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    await supabaseAdmin
-      .from("duel_players")
-      .update({ muted_by_host: data.muted === true })
-      .eq("duel_id", data.roomId)
-      .eq("player_slot", data.slot);
+    const { updatePlayerAtSlot } = await import("@/lib/data/players.server");
+    await updatePlayerAtSlot(await admin(), data.roomId, data.slot, { muted_by_host: data.muted === true });
     return { ok: true as const };
   });

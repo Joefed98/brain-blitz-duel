@@ -75,8 +75,21 @@ import type {
   StoredPuzzleType,
 } from "./types";
 import { dbError } from "./dbError";
+import type { Db } from "@/lib/data/db.server";
+import { readAsyncPrivate, readAsyncRoomResults, readAsyncRoundResults } from "@/lib/data/async.server";
+import {
+  insertChallenge,
+  probeChallenges,
+  readChallengeByCode,
+  readChallengeByRoom,
+  readChallengeFromRoomGame,
+  readChallengesBy,
+  readChallengeTimes,
+} from "@/lib/data/challenges.server";
+import { readPlayers } from "@/lib/data/players.server";
+import { readRoomResults } from "@/lib/data/results.server";
+import { readPrivatePuzzles, readRoom } from "@/lib/data/rooms.server";
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
 
 /** Challenges one device may make in an hour, counted from `challenges` (needs no other migration). */
 export const CHALLENGE_CREATE_PER_HOUR = 10;
@@ -152,23 +165,20 @@ function newCode(): string {
 
 /** How many challenges this device made in the last hour (the database-side half of the rate limit). */
 export async function challengesMadeLastHour(
-  client: any,
+  client: Db,
   userId: string,
   nowMs: number,
 ): Promise<number> {
-  const { data, error } = await client
-    .from("challenges")
-    .select("created_at")
-    .eq("created_by", userId);
+  const { data, error } = await readChallengeTimes(client, userId);
   if (error) throw dbError(error, "challenge");
-  return ((data ?? []) as { created_at: string }[]).filter(
+  return (data ?? []).filter(
     (row) => nowMs - msOf(row.created_at) < 3_600_000,
   ).length;
 }
 
 /** Stores a dealt challenge under a fresh code (a clash with an existing code draws again). */
 async function storeChallenge(
-  client: any,
+  client: Db,
   input: {
     userId: string;
     seed: number;
@@ -211,7 +221,7 @@ async function storeChallenge(
       created_at: iso(input.nowMs),
       expires_at: room.closes_at,
     };
-    const { error } = await client.from("challenges").insert(meta);
+    const { error } = await insertChallenge(client, meta);
     if (error) throw dbError(error, "challenge");
     return { room, meta };
   }
@@ -224,7 +234,7 @@ async function storeChallenge(
  * the name and the per-device rate limit.
  */
 export async function createChallenge(
-  client: any,
+  client: Db,
   userId: string,
   input: { categories: unknown; rounds: unknown; who: Who },
   nowMs: number,
@@ -271,28 +281,23 @@ export async function createChallenge(
  * (a second ask, from anyone in it, gets the same code).
  */
 export async function createChallengeFromRoom(
-  client: any,
+  client: Db,
   userId: string,
   duelId: string,
   nowMs: number,
 ): Promise<{ ok: true; code: string; roomId: string; created: boolean } | Fail> {
-  const { data: duel } = await client.from("duels").select("*").eq("id", duelId).maybeSingle();
+  const { data: duel } = await readRoom(client, duelId);
   if (!duel) return { ok: false, message: "That room no longer exists." };
-  const room = duel as DuelRow;
+  const room: DuelRow = duel;
   if (room.status !== "finished") return { ok: false, message: "Finish the game first." };
-  const { data: playerRows } = await client.from("duel_players").select("*").eq("duel_id", room.id);
+  const { data: playerRows } = await readPlayers(client, room.id, { ordered: false });
   const players = ((playerRows ?? []) as DuelPlayerRow[]).sort(
     (a, b) => a.player_slot - b.player_slot,
   );
   if (!players.some((p) => p.user_id === userId))
     return { ok: false, message: "Only this room’s players can do that." };
   const gameIndex = gameIndexOf(room);
-  const { data: existing } = await client
-    .from("challenges")
-    .select("*")
-    .eq("source_duel_id", room.id)
-    .eq("source_game_index", gameIndex)
-    .maybeSingle();
+  const { data: existing } = await readChallengeFromRoomGame(client, room.id, gameIndex);
   if (existing)
     return {
       ok: true,
@@ -311,18 +316,10 @@ export async function createChallengeFromRoom(
     return { ok: false, message: "This game can’t be turned into a challenge." };
   if ((await challengesMadeLastHour(client, userId, nowMs)) >= CHALLENGE_CREATE_PER_HOUR)
     return { ok: false, message: "That’s a lot of challenges. Try again in a while." };
-  const { data: secretRow } = await client
-    .from("duel_secrets")
-    .select("puzzles_private")
-    .eq("duel_id", room.id)
-    .maybeSingle();
-  const priv = (secretRow?.puzzles_private ?? []) as Record<string, unknown>[];
+  const priv = (await readPrivatePuzzles(client, room.id)).data;
   const puzzles = pub.map((p, i) => mergePuzzle(p, priv[i]));
-  const { data: resultRows } = await client
-    .from("round_results")
-    .select("*")
-    .eq("duel_id", room.id);
-  const results = (resultRows ?? []) as RoundResultRow[];
+  const { data: resultRows } = await readRoomResults(client, room.id);
+  const results: RoundResultRow[] = resultRows ?? [];
   const seed =
     Number((room as unknown as { seed?: number }).seed ?? newRoomSeed()) || newRoomSeed();
 
@@ -400,32 +397,24 @@ export async function createChallengeFromRoom(
 /* -------------------------------------------------------------- lookups */
 
 export async function challengeByCode(
-  client: any,
+  client: Db,
   code: string,
 ): Promise<{ room: AsyncRoomRow; meta: ChallengeRow } | null> {
   const room = await roomByKey(client, challengeRoomKey(code));
   if (!room || room.kind !== CHALLENGE_ROOM_KIND) return null;
-  const { data: meta } = await client
-    .from("challenges")
-    .select("*")
-    .eq("room_id", room.id)
-    .maybeSingle();
+  const { data: meta } = await readChallengeByRoom(client, room.id);
   if (!meta) return null;
-  return { room, meta: meta as ChallengeRow };
+  return { room, meta };
 }
 
 export async function challengeById(
-  client: any,
+  client: Db,
   roomId: string,
 ): Promise<{ room: AsyncRoomRow; meta: ChallengeRow } | null> {
   const room = await roomById(client, roomId);
   if (!room || room.kind !== CHALLENGE_ROOM_KIND) return null;
-  const { data: meta } = await client
-    .from("challenges")
-    .select("*")
-    .eq("room_id", room.id)
-    .maybeSingle();
-  return meta ? { room, meta: meta as ChallengeRow } : null;
+  const { data: meta } = await readChallengeByRoom(client, room.id);
+  return meta ? { room, meta } : null;
 }
 
 /** Every attempt in start order: a player's slot is their place in it (stable as later players join). */
@@ -452,7 +441,7 @@ function earlierThan(all: readonly (AsyncAttemptRow & { slot: number })[], mine:
 
 /** What a challenge link shows this device before playing. */
 export async function challengeInfo(
-  client: any,
+  client: Db,
   code: string,
   userId: string | null,
   nowMs: number,
@@ -491,7 +480,7 @@ export async function challengeInfo(
 
 /** Starts (or continues) this device's one attempt on a challenge: closed after seven days, full at 20. */
 export async function startChallenge(
-  client: any,
+  client: Db,
   code: string,
   userId: string,
   who: Who,
@@ -528,7 +517,7 @@ export async function startChallenge(
 
 /** The earlier players this attempt plays against (fixed at its start), and its own slot. */
 export async function challengeRoster(
-  client: any,
+  client: Db,
   room: AsyncRoomRow,
   attempt: AsyncAttemptRow,
 ): Promise<ChallengeRoster> {
@@ -547,7 +536,7 @@ export async function challengeRoster(
  * start to their answer's receipt; it is released once the caller's own round has run that long.
  */
 export async function challengePings(
-  client: any,
+  client: Db,
   room: AsyncRoomRow,
   attempt: AsyncAttemptRow,
   round: number,
@@ -555,12 +544,8 @@ export async function challengePings(
 ): Promise<number[]> {
   const puzzle = room.puzzles_public[round - 1];
   if (!puzzle) return [];
-  const { data } = await client
-    .from("async_results")
-    .select("*")
-    .eq("room_id", room.id)
-    .eq("round_number", round);
-  const rows = (data ?? []) as AsyncResultRow[];
+  const { data } = await readAsyncRoundResults(client, room.id, round);
+  const rows: AsyncResultRow[] = data ?? [];
   const mine = rows.find((r) => r.attempt_id === attempt.id);
   if (!mine || mine.answered || mine.missed) return [];
   const myStart = msOf(mine.started_at);
@@ -610,13 +595,9 @@ function boardRows(
 }
 
 /** The room's private halves, one a round (empty where none is stored). */
-async function privateHalves(client: any, roomId: string): Promise<Record<string, unknown>[]> {
-  const { data: secret } = await client
-    .from("async_room_secrets")
-    .select("puzzles_private")
-    .eq("room_id", roomId)
-    .maybeSingle();
-  return (secret?.puzzles_private ?? []) as Record<string, unknown>[];
+async function privateHalves(client: Db, roomId: string): Promise<Record<string, unknown>[]> {
+  const { data: secret } = await readAsyncPrivate(client, roomId);
+  return secret ?? [];
 }
 
 /** H2: a board row with its `extra` cut back (lockedExtra) while its round's solution is locked. */
@@ -636,7 +617,7 @@ function lockRow<T extends { round_number: number; extra: Record<string, unknown
  * this round's summaries (what a room's results screen shows).
  */
 export async function challengeRoundBoard(
-  client: any,
+  client: Db,
   room: AsyncRoomRow,
   attempt: AsyncAttemptRow,
   round: number,
@@ -651,9 +632,9 @@ export async function challengeRoundBoard(
   const people = [...earlierThan(all, attempt), all.find((a) => a.id === attempt.id)!].sort(
     (a, b) => a.slot - b.slot,
   );
-  const { data } = await client.from("async_results").select("*").eq("room_id", room.id);
+  const { data } = await readAsyncRoomResults(client, room.id);
   const privs = await privateHalves(client, room.id);
-  const board = boardRows(room, (data ?? []) as AsyncResultRow[], people, attempt, round);
+  const board = boardRows(room, data ?? [], people, attempt, round);
   // H2: no row carries a field the lock withholds (some extras keep the minimum or the par).
   const rows = board.rows.map((row) => lockRow(row, room, privs, nowMs));
   const full = new Map([...board.full].map(([key, row]) => [key, lockRow(row, room, privs, nowMs)]));
@@ -701,7 +682,7 @@ export async function challengeRoundBoard(
  * round scores a podium row opens), no answers. Records the beta count of a friend's finish.
  */
 export async function challengeFinalBoard(
-  client: any,
+  client: Db,
   found: { room: AsyncRoomRow; meta: ChallengeRow },
   attempt: AsyncAttemptRow,
   nowMs: number,
@@ -715,11 +696,11 @@ export async function challengeFinalBoard(
   const people = all.filter(
     (a) => a.finished_at !== null || a.id === attempt.id || nowMs >= msOf(room.closes_at),
   );
-  const { data } = await client.from("async_results").select("*").eq("room_id", room.id);
+  const { data } = await readAsyncRoomResults(client, room.id);
   const privs = await privateHalves(client, room.id);
   const rows = boardRows(
     room,
-    (data ?? []) as AsyncResultRow[],
+    data ?? [],
     people,
     current,
     room.round_count,
@@ -761,23 +742,17 @@ export async function challengeFinalBoard(
  * once they have finished; the creator's own.
  */
 export async function myChallenges(
-  client: any,
+  client: Db,
   userId: string,
   codes: readonly string[],
   nowMs: number,
 ): Promise<ChallengeSummary[]> {
-  const { data } = await client.from("challenges").select("*").eq("created_by", userId);
-  const metas = new Map<string, ChallengeRow>(
-    ((data ?? []) as ChallengeRow[]).map((m) => [m.code, m]),
-  );
+  const { data } = await readChallengesBy(client, userId);
+  const metas = new Map<string, ChallengeRow>((data ?? []).map((m) => [m.code, m]));
   for (const code of codes.slice(0, 20)) {
     if (metas.has(code)) continue;
-    const { data: row } = await client
-      .from("challenges")
-      .select("*")
-      .eq("code", code)
-      .maybeSingle();
-    if (row) metas.set(code, row as ChallengeRow);
+    const { data: row } = await readChallengeByCode(client, code);
+    if (row) metas.set(code, row);
   }
   const list = [...metas.values()]
     .sort((a, b) => msOf(b.created_at) - msOf(a.created_at))
@@ -805,11 +780,7 @@ export async function myChallenges(
 }
 
 /** Whether challenges are available: the migration's table exists (any read error hides them). */
-export async function challengesAvailable(client: any): Promise<boolean> {
-  const probe = await client
-    .from("challenges")
-    .select("room_id")
-    .eq("code", "AAAAAA")
-    .maybeSingle();
+export async function challengesAvailable(client: Db): Promise<boolean> {
+  const probe = await probeChallenges(client);
   return !probe?.error;
 }

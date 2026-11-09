@@ -2,7 +2,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { inputTypeField } from "@/lib/inputType";
 import { APP_BUILD_ID } from "@/lib/appVersion";
 import { trackSubmission } from "@/lib/appUpdate";
-import { POLICIES, abortable, fetchFor, supabaseRead } from "@/lib/net/request";
+import { POLICIES, fetchFor, supabaseRead } from "@/lib/net/request";
+import {
+  readOwnAnswers,
+  readRoomById,
+  readRoomByCode,
+  readRoomPlayers,
+  readRoomResultRows,
+} from "@/lib/data/roomReads";
 
 import {
   advancePhaseFn,
@@ -46,26 +53,22 @@ export class DuelError extends Error {}
 
 export async function fetchDuelByCode(roomCode: string): Promise<DuelRow | null> {
   const { data, error } = await supabaseRead((signal) =>
-    abortable(supabase.from("duels").select("*").eq("room_code", roomCode.toUpperCase()), signal).maybeSingle(),
+    readRoomByCode(supabase, roomCode.toUpperCase(), signal),
   );
   if (error) throw new DuelError(error.message);
-  return (data as DuelRow | null) ?? null;
+  return data ?? null;
 }
 
 export async function fetchDuelById(duelId: string): Promise<DuelRow | null> {
-  const { data, error } = await supabaseRead((signal) =>
-    abortable(supabase.from("duels").select("*").eq("id", duelId), signal).maybeSingle(),
-  );
+  const { data, error } = await supabaseRead((signal) => readRoomById(supabase, duelId, signal));
   if (error) throw new DuelError(error.message);
-  return (data as DuelRow | null) ?? null;
+  return data ?? null;
 }
 
 export async function fetchPlayers(duelId: string): Promise<DuelPlayerRow[]> {
-  const { data, error } = await supabaseRead((signal) =>
-    abortable(supabase.from("duel_players").select("*").eq("duel_id", duelId).order("player_slot"), signal),
-  );
+  const { data, error } = await supabaseRead((signal) => readRoomPlayers(supabase, duelId, signal));
   if (error) throw new DuelError(error.message);
-  return (data ?? []) as DuelPlayerRow[];
+  return data ?? [];
 }
 
 /** This device's own stored answers, fetched once a row (roomResults.ts). */
@@ -77,17 +80,15 @@ const ownAnswers = new OwnAnswers();
  */
 export async function fetchResults(duelId: string, mySlot: number | null): Promise<RoundResultRow[]> {
   const { data, error } = await supabaseRead((signal) =>
-    abortable(supabase.from("round_results").select(ROOM_RESULT_COLUMNS).eq("duel_id", duelId), signal),
+    readRoomResultRows(supabase, duelId, ROOM_RESULT_COLUMNS, signal),
   );
   if (error) throw new DuelError(error.message);
-  const rows = (data ?? []) as unknown as RoomResultRow[];
+  const rows: RoomResultRow[] = data ?? [];
   const missing = ownAnswers.missing(rows, mySlot);
   if (missing.length > 0) {
-    const own = await supabaseRead((signal) =>
-      abortable(supabase.from("round_results").select("id, answer").in("id", missing), signal),
-    );
+    const own = await supabaseRead((signal) => readOwnAnswers(supabase, missing, signal));
     // A failed fetch leaves those answers out this time (the next refetch asks again).
-    if (!own.error) ownAnswers.remember((own.data ?? []) as { id: string; answer: string | null }[]);
+    if (!own.error) ownAnswers.remember(own.data ?? []);
   }
   return ownAnswers.attach(rows, mySlot);
 }

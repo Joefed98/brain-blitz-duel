@@ -15,10 +15,16 @@ import {
 } from "./playerLook";
 import type { DuelPlayerRow } from "./types";
 import { dbError } from "./dbError";
+import { UNIQUE_VIOLATION, type Db } from "@/lib/data/db.server";
+import {
+  insertPlayerRow,
+  probeLookColumns,
+  readPlayers,
+  setAutoColour,
+  updatePlayer,
+  updatePlayerAtSlot,
+} from "@/lib/data/players.server";
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
-const UNIQUE_VIOLATION = "23505";
 const CHECK_VIOLATION = "23514";
 
 /**
@@ -52,9 +58,9 @@ export interface LookPreference {
  * answer is re-checked after a minute, so applying the migration needs no redeploy.
  */
 let lookColumns: { present: boolean; at: number } | null = null;
-export async function hasLookColumns(client: any): Promise<boolean> {
+export async function hasLookColumns(client: Db): Promise<boolean> {
   if (lookColumns && (lookColumns.present || Date.now() - lookColumns.at < 60_000)) return lookColumns.present;
-  const { error } = await client.from("duel_players").select("colour, icon").limit(1);
+  const { error } = await probeLookColumns(client);
   lookColumns = { present: !error, at: Date.now() };
   return lookColumns.present;
 }
@@ -69,14 +75,10 @@ function colourClash(error: { code?: string; message?: string } | null | undefin
   return !!error && error.code === UNIQUE_VIOLATION && /colour/.test(error.message ?? "");
 }
 
-async function roomPlayers(client: any, roomId: string): Promise<DuelPlayerRow[]> {
-  const { data, error } = await client
-    .from("duel_players")
-    .select("*")
-    .eq("duel_id", roomId)
-    .order("player_slot");
+async function roomPlayers(client: Db, roomId: string): Promise<DuelPlayerRow[]> {
+  const { data, error } = await readPlayers(client, roomId);
   if (error) throw dbError(error, "playerLook");
-  return (data ?? []) as DuelPlayerRow[];
+  return data ?? [];
 }
 
 /**
@@ -84,14 +86,14 @@ async function roomPlayers(client: any, roomId: string): Promise<DuelPlayerRow[]
  * existed), so a later choice can't collide with one and Play again keeps them. Pass every row in
  * the room, left players included: that is how phones resolve them.
  */
-export async function persistAutoColours(client: any, players: DuelPlayerRow[]): Promise<void> {
+export async function persistAutoColours(client: Db, players: DuelPlayerRow[]): Promise<void> {
   const looks = resolvePlayerLooks(players);
   for (const player of players) {
     if (isPlayerColour(player.colour)) continue;
     const colour = looks.get(player.player_slot)?.colour;
     if (colour === undefined) continue;
     // A clash here means someone took that colour this instant; the row stays auto.
-    await client.from("duel_players").update({ colour }).eq("id", player.id).is("colour", null);
+    await setAutoColour(client, player.id, colour);
   }
 }
 
@@ -99,10 +101,10 @@ export async function persistAutoColours(client: any, players: DuelPlayerRow[]):
  * Two phones joining at once can both read an icon as free: the one in the lower slot keeps it and
  * the other shows their initial, so a room never shows the same icon twice.
  */
-async function dropSharedIcon(client: any, roomId: string, slot: number, icon: string): Promise<void> {
+async function dropSharedIcon(client: Db, roomId: string, slot: number, icon: string): Promise<void> {
   const players = await roomPlayers(client, roomId);
   if (players.some((p) => p.player_slot < slot && p.icon === icon))
-    await client.from("duel_players").update({ icon: null }).eq("duel_id", roomId).eq("player_slot", slot);
+    await updatePlayerAtSlot(client, roomId, slot, { icon: null });
 }
 
 /**
@@ -112,7 +114,7 @@ async function dropSharedIcon(client: any, roomId: string, slot: number, icon: s
  * fresh read. A duplicate seat (slot or user) is ignored as before.
  */
 export async function insertPlayerWithLook(
-  client: any,
+  client: Db,
   row: Pick<DuelPlayerRow, "duel_id" | "player_slot" | "user_id" | "display_name" | "status">,
   look: LookPreference = {},
 ): Promise<void> {
@@ -124,7 +126,7 @@ export async function insertPlayerWithLook(
       const colour = pickJoinColour(players, row.player_slot, look.colour);
       // A remembered icon someone here already has is dropped (the player shows their initial).
       if (icon && takenIcons(players, row.player_slot).has(icon)) icon = null;
-      const { error } = await client.from("duel_players").insert({ ...row, colour, icon });
+      const { error } = await insertPlayerRow(client, { ...row, colour, icon });
       if (!error) {
         if (icon) await dropSharedIcon(client, row.duel_id, row.player_slot, icon);
         return;
@@ -136,12 +138,12 @@ export async function insertPlayerWithLook(
       return;
     }
     // Still clashing: seat the player without a stored colour (shown as their slot colour).
-    const { error } = await client.from("duel_players").insert({ ...row, icon });
+    const { error } = await insertPlayerRow(client, { ...row, icon });
     if (slotRefused(error)) throw new RoomSeatsError(SEATS_BEFORE_16);
     if (error && error.code !== UNIQUE_VIOLATION) throw dbError(error, "playerLook");
     return;
   }
-  const { error } = await client.from("duel_players").insert(row);
+  const { error } = await insertPlayerRow(client, row);
   if (slotRefused(error)) throw new RoomSeatsError(SEATS_BEFORE_16);
   if (error && error.code !== UNIQUE_VIOLATION) throw dbError(error, "playerLook");
 }
@@ -152,7 +154,7 @@ export async function insertPlayerWithLook(
  * unique index: two taps in the same instant could share one, which is harmless (colours differ).
  */
 export async function changePlayerLook(
-  client: any,
+  client: Db,
   me: DuelPlayerRow,
   input: { colour?: number; icon?: string | null },
 ): Promise<{ ok: true } | { ok: false; message: string }> {
@@ -174,7 +176,7 @@ export async function changePlayerLook(
     if (takenColours(await roomPlayers(client, me.duel_id), me.player_slot).has(update.colour))
       return { ok: false, message: "Someone else has that colour." };
   }
-  const { error } = await client.from("duel_players").update(update).eq("id", me.id);
+  const { error } = await updatePlayer(client, me.id, update);
   if (colourClash(error)) return { ok: false, message: "Someone else has that colour." };
   if (colourRangeRefused(error)) return { ok: false, message: "That colour isn’t ready yet. Pick another." };
   if (error) throw dbError(error, "playerLook");

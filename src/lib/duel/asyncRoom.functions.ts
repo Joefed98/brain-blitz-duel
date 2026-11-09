@@ -1,3 +1,4 @@
+import type { Db } from "@/lib/data/db.server";
 import { createServerFn } from "@tanstack/react-start";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
@@ -12,15 +13,14 @@ import type { PuzzleData } from "./types";
 /*  Each acts only on the caller's own attempt, found by their device id.       */
 /* -------------------------------------------------------------------------- */
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
-async function db(): Promise<any> {
-  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  return supabaseAdmin as any;
+/** The service-role client, typed on the generated schema (src/lib/data/db.server.ts). */
+async function db(): Promise<Db> {
+  const { adminDb } = await import("@/lib/data/db.server");
+  return adminDb();
 }
 
 /** The room and the caller's attempt in it, or a message. */
-async function mine(client: any, roomId: string, userId: string) {
+async function mine(client: Db, roomId: string, userId: string) {
   const { roomById, attemptFor } = await import("./asyncRoom.server");
   const room = await roomById(client, String(roomId ?? ""));
   if (!room) return { error: "That challenge no longer exists." } as const;

@@ -60,6 +60,13 @@ outside the repo.
   Checks that play every slot call the checks-only `loadAllSounds()` after `unlockAudio()`. `bun
   scripts/perf-budget.ts` reports the first-screen download (1,519 KB / 419 KB gzip, was 4,651 / 1,397) and the first
   tap's decoded sound (≈9 MB, was ≈107).
+- **`src/lib/data/` — the typed data layer** (9 Nov 2026, architecture audit B2): every Supabase table read and write
+  and every RPC is a typed function in one module per area (`rooms`, `players`, `results`, `async`, `challenges`,
+  `chat`, `practice`, `beta`, `limits` `.server.ts`; the phone's RLS reads in `roomReads.ts` / `chatReads.ts`; never `*.client.ts`, which the server build refuses),
+  on the generated `Database` type (`Db` in `db.ts`, `adminDb()` the service-role client); no `any` on a client.
+  Grading and rules stay where they were. **Add new queries there, never inline** (realtime channels stay in their
+  hooks). Wiring checks name the data functions (`restartRoom(`, `insertRoundResult(`…) and read the query text in
+  `src/lib/data`; server-functions-check covers every room, chat, async, challenge, replay, share and terms function.
 - `src/lib/duel/` — room flow, generators (`*.server.ts`, server-only), banks
   (`*Bank.server.ts`, built by `scripts/*-bank.ts`), shared rules (`<game>.ts`, imported
   by both phone and server), grading (`grade.ts`), scoring (`scoring.ts`,

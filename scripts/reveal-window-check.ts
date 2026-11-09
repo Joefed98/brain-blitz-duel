@@ -291,7 +291,8 @@ function noAnswerDb(room: Record<string, unknown>, mineIn: boolean) {
     check(/room\.phase !== "puzzle"/.test(body.slice(0, body.indexOf("privatePuzzles("))), `${fn} reads the private solution only in the puzzle phase`);
   }
   const fnsWithSecrets = [...server.matchAll(/export const (\w+Fn)[\s\S]*?(?=export const |$)/g)]
-    .filter((m) => /privatePuzzles\(|duel_secrets/.test(m[0]))
+    // The data layer's readPrivatePuzzles / writePrivatePuzzles (src/lib/data/rooms.server.ts) are duel_secrets.
+    .filter((m) => /privatePuzzles\(|PrivatePuzzles\(|duel_secrets/.test(m[0]))
     .map((m) => m[1]);
   check(JSON.stringify(fnsWithSecrets.sort()) === JSON.stringify(["checkMovesFn", "checkWordFn", "startRoomFn", "submitAnswerFn"]),
     `room server functions touching the private solution: ${fnsWithSecrets.join(", ")}`);

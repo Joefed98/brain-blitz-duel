@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { supabase } from "@/integrations/supabase/client";
+import { readRoomMessages } from "@/lib/data/chatReads";
 import {
   allowReactionFn,
   reportMessageFn,
@@ -95,13 +96,8 @@ export function useRoomChat(
 
   const load = useCallback(async () => {
     if (!roomId) return;
-    const { data } = await supabase
-      .from("room_messages")
-      .select("*")
-      .eq("duel_id", roomId)
-      .order("created_at", { ascending: false })
-      .limit(MESSAGE_HISTORY_LIMIT);
-    const rows = ((data ?? []) as RoomMessageRow[]).slice().reverse();
+    const { data } = await readRoomMessages(supabase, roomId, MESSAGE_HISTORY_LIMIT);
+    const rows = (data ?? []).slice().reverse();
     for (const row of rows) knownIds.current.add(row.id);
     setMessages(rows);
   }, [roomId]);

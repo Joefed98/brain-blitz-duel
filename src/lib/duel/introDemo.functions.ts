@@ -1,3 +1,4 @@
+import type { Database } from "@/integrations/supabase/types";
 import { BASTION_REV_DEALT } from "@/lib/arcade/bastionTank";
 import { DEPTH_DEMO_STOPS, DEPTH_REV, depthRevOf } from "./logicDepth";
 import { SWING_REV_SLIDE } from "@/lib/arcade/swing";
@@ -54,7 +55,8 @@ export const getIntroDemoFn = createServerFn({ method: "GET" })
   .handler(async ({ data }): Promise<IntroDemoRow | null> => {
     const { createClient } = await import("@supabase/supabase-js");
     const key = process.env["SUPABASE_PUBLISHABLE_KEY"] ?? process.env["SUPABASE_ANON_KEY"] ?? "";
-    const client = createClient(process.env["SUPABASE_URL"]!, key, {
+    // A public read with the publishable key (RLS applies), typed on the generated schema.
+    const client = createClient<Database>(process.env["SUPABASE_URL"]!, key, {
       auth: { persistSession: false, autoRefreshToken: false },
       global: {
         fetch: (input, init) => {
@@ -65,16 +67,13 @@ export const getIntroDemoFn = createServerFn({ method: "GET" })
         },
       },
     });
-    const { data: row, error } = await client
-      .from("intro_demos" as never)
-      .select("game_type, seed, puzzle, input_log, start_tick, length_ticks, example_id")
-      .eq("game_type", data.type)
-      .maybeSingle();
+    const { readIntroDemo } = await import("@/lib/data/practice.server");
+    const { data: row, error } = await readIntroDemo(client, data.type);
     if (error) {
       console.error("[intro demo] read failed", error.message);
       return null;
     }
-    const demo = (row as IntroDemoRow | null) ?? null;
+    const demo = (row as unknown as IntroDemoRow | null) ?? null;
     if (data.type === "orbit" && (demo?.input_log.orbitBeltPeriodTicks !== ORBIT_BELT_PERIOD_TICKS || demo?.input_log.orbitBeltRevision !== ORBIT_BELT_REVISION)) return null;
     // Rev3 (scrolling-camera, wider zig-zag world) demos cannot replay as the legacy fixed-camera course, and vice versa.
     if (data.type === "orbit" && demo?.puzzle.type === "orbit" && (demo.puzzle.orbitRev ?? 0) !== ORBIT_REV3 && demo.puzzle.orbitRev !== ORBIT_REV4 && demo.puzzle.orbitRev !== ORBIT_REV_BAND && demo.puzzle.orbitRev !== ORBIT_REV_TUNED && demo.puzzle.orbitRev !== ORBIT_REV_XP && demo.puzzle.orbitRev !== ORBIT_REV_STD && demo.puzzle.orbitRev !== ORBIT_REV_FUEL) return null;

@@ -590,10 +590,13 @@ for (const nav of ["none", "refused"] as const) {
       `generated types name share_events with columns no applied migration makes, or only part of the 22 Oct ones (${columns.join(", ")})`,
     );
   }
-  // The app never relies on the generated types for share_events, the async tables or the challenge
-  // tables: every read and write goes through the server's untyped client (betaRecord.server.ts,
-  // asyncRoom.server.ts, challenge.server.ts take `client: any`), so it works before and after Lovable
-  // regenerates them, and the 22 Oct columns and tables need no regeneration to be written.
+  // The typed data layer (architecture audit B2, approved retarget): share_events, the async tables and the
+  // challenge tables are read and written only through src/lib/data/*.server.ts, typed on the generated types;
+  // the generated types must define every one of them, so a regeneration that dropped one fails the CI typecheck
+  // in that one place instead of breaking a write silently. Before B2 the same writes went through an untyped
+  // client (`client: any`) in the four duel modules below.
+  const TABLES = /(share_events|challenges|challenge_events|async_\w+)/.source;
+  const inDataLayer = (path: string) => /(^|\/)src\/lib\/data\/[^/]+\.server\.ts$/.test(path);
   const typedUse: string[] = [];
   const walk = (dir: string) => {
     for (const entry of readdirSync(dir, { withFileTypes: true })) {
@@ -601,17 +604,96 @@ for (const nav of ["none", "refused"] as const) {
       if (entry.isDirectory()) walk(path);
       else if (/\.(ts|tsx)$/.test(entry.name) && !path.endsWith("integrations/supabase/types.ts")) {
         const text = readFileSync(path, "utf8");
-        if (/(Tables|TablesInsert|TablesUpdate)<\s*["'](share_events|challenges|challenge_events|async_\w+)["']/.test(text) || /Database\[["']public["']\]\[["']Tables["']\]\[["'](share_events|challenges|challenge_events|async_\w+)["']\]/.test(text))
-          typedUse.push(path);
-        // A typed client (supabase from client.ts, or supabaseAdmin not cast to any) reading these tables.
-        if (!/\.server\.ts$/.test(path) && /\.from\(["'](share_events|challenges|challenge_events|async_\w+)["']\)/.test(text)) typedUse.push(path);
+        const typedName =
+          new RegExp(`(Tables|TablesInsert|TablesUpdate)<\\s*["']${TABLES}["']`).test(text) ||
+          new RegExp(`Database\\[["']public["']\\]\\[["']Tables["']\\]\\[["']${TABLES}["']\\]`).test(text);
+        const query = new RegExp(`\\.from\\(["']${TABLES}["']\\)`).test(text);
+        // No phone (non-server) module ever queries these tables, as before.
+        if (!/\.server\.ts$/.test(path) && query) typedUse.push(path);
+        // On the server, their typed names and queries live in the data layer only.
+        else if (!inDataLayer(path) && (typedName || query)) typedUse.push(path);
       }
     }
   };
   walk("src");
-  check(typedUse.length === 0, `code relies on the generated types for share_events, the async or the challenge tables (${typedUse.join(", ")})`);
-  for (const file of ["src/lib/duel/betaRecord.server.ts", "src/lib/duel/challenge.server.ts", "src/lib/duel/asyncRoom.server.ts", "src/lib/duel/daily.server.ts"])
-    check(/client: any/.test(readFileSync(file, "utf8")), `${file} doesn't take the untyped server client`);
+  check(typedUse.length === 0, `code relies on the generated types for share_events, the async or the challenge tables outside src/lib/data (${typedUse.join(", ")})`);
+  const typesSrc = readFileSync("src/integrations/supabase/types.ts", "utf8");
+  const missingTables = ["share_events", "challenges", "challenge_events", "async_rooms", "async_room_secrets", "async_attempts", "async_results", "async_events"]
+    .filter((t) => !new RegExp(`\\n      ${t}: \\{\\n        Row: \\{`).test(typesSrc));
+  check(missingTables.length === 0, `the generated types don't define ${missingTables.join(", ")} (the data layer is typed on them)`);
+
+  // Each duel module takes the typed client and writes through the data layer, in the same order as before.
+  const dataSrc = (f: string) => readFileSync(`src/lib/data/${f}`, "utf8");
+  /** A function's text, from its declaration to the next top-level declaration. */
+  const fnBody = (text: string, name: string) => {
+    const at = text.search(new RegExp(`(export )?(async )?function ${name}\\(`));
+    if (at < 0) return "";
+    const rest = text.slice(at + 1);
+    const end = rest.search(/\n(export |async function |function |const |\/\*\* )/);
+    return text.slice(at, end < 0 ? undefined : at + 1 + end);
+  };
+  /** The data function exists and writes the named table with the named call. */
+  const writes = (file: string, name: string, table: string, call: string) =>
+    new RegExp(`\\.from\\("${table}"\\)[\\s\\S]*?\\.${call}\\(`).test(fnBody(dataSrc(file), name));
+  const typed = (file: string) => {
+    const text = readFileSync(file, "utf8");
+    return !/client: any/.test(text) && /client: Db\b/.test(text);
+  };
+  {
+    const file = "src/lib/duel/betaRecord.server.ts";
+    const text = readFileSync(file, "utf8");
+    const through = (fn: string, data: string) => /bestEffort\(/.test(fnBody(text, fn)) && new RegExp(`\\b${data}\\(client,`).test(fnBody(text, fn));
+    check(
+      typed(file) &&
+        through("recordShareEvent", "insertShareEvent") && writes("beta.server.ts", "insertShareEvent", "share_events", "insert") &&
+        through("recordChallengeEvent", "insertChallengeEvent") && writes("beta.server.ts", "insertChallengeEvent", "challenge_events", "insert") &&
+        through("recordAsyncEvent", "insertAsyncEvent") && writes("beta.server.ts", "insertAsyncEvent", "async_events", "insert") &&
+        through("recordRoundRecordsFor", "writeAsyncRoundRecords") && writes("beta.server.ts", "writeAsyncRoundRecords", "async_room_secrets", "update"),
+      `${file} doesn't take the typed client and record share, challenge and async events and round records through the data layer, best effort`,
+    );
+  }
+  {
+    const file = "src/lib/duel/challenge.server.ts";
+    const text = readFileSync(file, "utf8");
+    const store = fnBody(text, "storeChallenge");
+    const roomAt = store.indexOf("createAsyncRoom(client,");
+    const rowAt = store.indexOf("insertChallenge(client,");
+    check(
+      typed(file) &&
+        roomAt > 0 && rowAt > roomAt && writes("challenges.server.ts", "insertChallenge", "challenges", "insert") &&
+        /probeChallenges\(client\)/.test(fnBody(text, "challengesAvailable")) &&
+        /\.from\("challenges"\)/.test(fnBody(dataSrc("challenges.server.ts"), "probeChallenges")),
+      `${file} doesn't take the typed client and write a challenge's row after its async room through the data layer`,
+    );
+  }
+  {
+    const file = "src/lib/duel/asyncRoom.server.ts";
+    const text = readFileSync(file, "utf8");
+    const create = fnBody(text, "createAsyncRoom");
+    const order = ["insertAsyncRoom(client,", "insertAsyncRoomSecrets(", "recordRoundRecordsFor("].map((c) => create.indexOf(c));
+    const submit = fnBody(text, "submitAsyncAnswer");
+    const storeAt = submit.indexOf("updateOpenAsyncResult(client, attempt.id, input.round, values)");
+    const eventAt = submit.indexOf("recordAsyncEvent(client,", storeAt);
+    check(
+      typed(file) &&
+        order[0]! > 0 && order[1]! > order[0]! && order[2]! > order[1]! &&
+        writes("async.server.ts", "insertAsyncRoom", "async_rooms", "insert") &&
+        writes("async.server.ts", "insertAsyncRoomSecrets", "async_room_secrets", "insert") &&
+        storeAt > 0 && eventAt > storeAt &&
+        /\.eq\("answered", false\)\s*\.eq\("missed", false\)/.test(fnBody(dataSrc("async.server.ts"), "updateOpenAsyncResult")),
+      `${file} doesn't take the typed client, store a room then its secrets then its records, and an answer only while its round is open, through the data layer`,
+    );
+  }
+  {
+    const file = "src/lib/duel/daily.server.ts";
+    const text = readFileSync(file, "utf8");
+    check(
+      typed(file) &&
+        /const probe = await probeAsyncRoomKey\(client, dailyRoomKey\("puzzle", day\)\);\s*if \(probe\?\.error\)/.test(text) &&
+        /\.from\("async_rooms"\)/.test(fnBody(dataSrc("async.server.ts"), "probeAsyncRoomKey")),
+      `${file} doesn't take the typed client and hide the daily when the data layer's async_rooms probe errors`,
+    );
+  }
   for (const file of ["src/lib/duel/share.functions.ts", "src/lib/duel/challenge.functions.ts", "src/lib/duel/daily.functions.ts", "src/lib/duel/asyncRoom.functions.ts"])
     check(!/supabaseAdmin\.from\(/.test(readFileSync(file, "utf8")), `${file} queries through the typed admin client`);
 }

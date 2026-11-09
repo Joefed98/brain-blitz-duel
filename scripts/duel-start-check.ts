@@ -9,6 +9,9 @@ import {
   duelStartFrame,
   roundTitleFrame,
 } from "../src/lib/duel/startPresentation";
+// The block's guarded write is the data layer's moveTimedPhase (src/lib/data/rooms.server.ts): the real function
+// runs on this check's in-memory client below, so the same guards decide the write.
+import { moveTimedPhase } from "../src/lib/data/rooms.server";
 
 const server = readFileSync("src/lib/duel/duel.functions.ts", "utf8");
 const roomSource = readFileSync("src/routes/duel.$code.tsx", "utf8");
@@ -35,7 +38,8 @@ const start = server.indexOf(
 const end = server.indexOf('    if (room.phase === "round_title")', start);
 assert(start > 0 && end > start);
 const body = server.slice(start, end);
-const transition = new Function(
+assert.match(body, /moveTimedPhase\(client, room\.id, round, "starting", stamp, "round_title", titleAt\)/);
+const transitionBlock = new Function(
   "client",
   "room",
   "round",
@@ -43,8 +47,10 @@ const transition = new Function(
   "phaseStart",
   "stamp",
   "DUEL_START_MS",
+  "moveTimedPhase",
   `return (async () => { ${body} })();`,
 );
+const transition = (...args: unknown[]) => transitionBlock(...args, moveTimedPhase);
 const base = {
   id: "test",
   status: "in_progress",
@@ -119,7 +125,8 @@ assert.equal(roundTitleFrame(2850, false).categoryOpacity, 0.5);
 assert.equal(roundTitleFrame(100, true).scale, 1);
 assert.equal(roundTitleFrame(3000, true).titleOpacity, 0);
 const titleBody = server.slice(end, server.indexOf('    if (room.phase === "intro")', end));
-const titleTransition = new Function(
+assert.match(titleBody, /moveTimedPhase\(client, room\.id, round, "round_title", stamp, "intro", introAt\)/);
+const titleTransitionBlock = new Function(
   "client",
   "room",
   "round",
@@ -127,8 +134,10 @@ const titleTransition = new Function(
   "phaseStart",
   "stamp",
   "ROUND_TITLE_MS",
+  "moveTimedPhase",
   `return (async () => { ${titleBody} })();`,
 );
+const titleTransition = (...args: unknown[]) => titleTransitionBlock(...args, moveTimedPhase);
 const titleBase = {
   ...base,
   phase: "round_title",
@@ -166,11 +175,16 @@ await titleTransition(
 );
 assert.equal(stored.phase_started_at, new Date(19000).toISOString());
 assert.doesNotMatch(titleBody, /hostNext|allIntroReady/);
-// The standings → next round write lives with the other guarded phase writes.
-assert.match(
-  readFileSync("src/lib/duel/roomPhase.server.ts", "utf8"),
-  /current_round: round \+ 1,\s+phase: "round_title"/,
-);
+// The standings → next round write lives with the other guarded phase writes (roomPhase.server.ts calls the
+// data layer's startNextRound, src/lib/data/rooms.server.ts, which holds the write).
+assert.match(readFileSync("src/lib/duel/roomPhase.server.ts", "utf8"), /await startNextRound\(client, room\.id, round, startedAt\)/);
+{
+  const rooms = readFileSync("src/lib/data/rooms.server.ts", "utf8");
+  assert.match(
+    rooms.slice(rooms.indexOf("export async function startNextRound")),
+    /^[^]*?current_round: round \+ 1,\s+phase: "round_title"[^]*?\.eq\("current_round", round\)\s*\.eq\("phase", "standings"\)/,
+  );
+}
 assert.match(title, /puzzleDef\(type\)\.category/);
 assert.match(title, /elapsed > ROUND_TITLE_VOICE_CUTOFF_MS\) return/);
 assert.match(title, /prepareRoundMusic/);

@@ -68,6 +68,40 @@ import {
   type RoundResultRow,
 } from "./types";
 import { dbError, isUuid } from "./dbError";
+import { adminDb, asJson, UNIQUE_VIOLATION, type Db } from "@/lib/data/db.server";
+import {
+  claimRoomStart,
+  disbandRoom,
+  disbandStaleRoom,
+  finishAfterWinnerReveal,
+  insertRoom,
+  moveTimedPhase,
+  pullIntroStart,
+  readHostLastCategories,
+  readHostRecentOrders,
+  readHostRecentPuzzles,
+  readPrivatePuzzles,
+  readRoom,
+  readRoomByCode,
+  readRoomPreview,
+  restartRoom,
+  writePrivatePuzzles,
+  writeRoomCategories,
+} from "@/lib/data/rooms.server";
+import {
+  deletePlayerAtSlot,
+  markIntroReady,
+  readPlayer,
+  readPlayers,
+  setPlayerStatus,
+  setPlayerStatusInRoom,
+} from "@/lib/data/players.server";
+import {
+  insertRoundResult,
+  readAnsweredSlots,
+  readRoomResults,
+  readStoredResultId,
+} from "@/lib/data/results.server";
 
 /** How many of the host's recent rooms feed the repeat-avoiding draw. */
 const RECENT_ROOMS = 3;
@@ -81,14 +115,8 @@ const RECENT_BANK_ROOMS = 20;
 /*  simply a duel with two to ten players.                                      */
 /* -------------------------------------------------------------------------- */
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
-async function db(): Promise<any> {
-  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  return supabaseAdmin as any;
-}
-
-const UNIQUE_VIOLATION = "23505";
+/** The service-role client, typed on the generated schema (src/lib/data/db.server.ts). */
+const db = adminDb;
 
 /** M2: the shared name cleaner (displayName.server.ts): NFKC, no control / bidi / zero-width characters, 14 code points. */
 async function cleanName(name: unknown): Promise<string> {
@@ -112,30 +140,26 @@ function nowIso(): string {
   return new Date().toISOString();
 }
 
-async function getRoom(client: any, roomId: string): Promise<DuelRow> {
+async function getRoom(client: Db, roomId: string): Promise<DuelRow> {
   // L1: an id that can't be a room never reaches the database (whose error text would name the column type).
   if (!isUuid(roomId)) throw new Error("That room no longer exists.");
-  const { data, error } = await client.from("duels").select("*").eq("id", roomId).maybeSingle();
+  const { data, error } = await readRoom(client, roomId);
   if (error) throw dbError(error, "duel");
   if (!data) throw new Error("That room no longer exists.");
-  return data as DuelRow;
+  return data;
 }
 
-async function getPlayers(client: any, roomId: string): Promise<DuelPlayerRow[]> {
-  const { data, error } = await client
-    .from("duel_players")
-    .select("*")
-    .eq("duel_id", roomId)
-    .order("player_slot");
+async function getPlayers(client: Db, roomId: string): Promise<DuelPlayerRow[]> {
+  const { data, error } = await readPlayers(client, roomId);
   if (error) throw dbError(error, "duel");
-  return (data ?? []) as DuelPlayerRow[];
+  return data ?? [];
 }
 
 /**
  * The players with each one's last seen from the heartbeat table as well (presence.server.ts, Speed fix 3): for the
  * calls whose rules ask who is still connected (advance, READY, Continue, Finish now).
  */
-async function getPlayersSeen(client: any, roomId: string): Promise<DuelPlayerRow[]> {
+async function getPlayersSeen(client: Db, roomId: string): Promise<DuelPlayerRow[]> {
   return withPresence(client, roomId, await getPlayers(client, roomId));
 }
 
@@ -151,19 +175,14 @@ function activePlayers(players: DuelPlayerRow[]): DuelPlayerRow[] {
 
 /** Throws unless the caller has a player row in this room. */
 async function requireParticipant(
-  client: any,
+  client: Db,
   roomId: string,
   userId: string,
 ): Promise<DuelPlayerRow> {
   if (!isUuid(roomId)) throw new Error("You are not part of this room.");
-  const { data } = await client
-    .from("duel_players")
-    .select("*")
-    .eq("duel_id", roomId)
-    .eq("user_id", userId)
-    .maybeSingle();
+  const { data } = await readPlayer(client, roomId, userId);
   if (!data) throw new Error("You are not part of this room.");
-  return data as DuelPlayerRow;
+  return data;
 }
 
 /**
@@ -176,17 +195,12 @@ export function playerHasLeft(player: Pick<DuelPlayerRow, "status">): boolean {
   return player.status === "left";
 }
 
-async function privatePuzzles(client: any, roomId: string): Promise<Record<string, unknown>[]> {
-  const { data } = await client
-    .from("duel_secrets")
-    .select("puzzles_private")
-    .eq("duel_id", roomId)
-    .maybeSingle();
-  return (data?.puzzles_private ?? []) as Record<string, unknown>[];
+async function privatePuzzles(client: Db, roomId: string): Promise<Record<string, unknown>[]> {
+  return (await readPrivatePuzzles(client, roomId)).data;
 }
 
 async function insertPlayer(
-  client: any,
+  client: Db,
   roomId: string,
   slot: number,
   userId: string,
@@ -212,19 +226,13 @@ async function insertPlayer(
  * the 3-2-1 countdown is left. Guarded on the stamp itself, so a burst of taps
  * shifts the round forward exactly once.
  */
-async function startIntroCountdown(client: any, room: DuelRow, round: number): Promise<void> {
+async function startIntroCountdown(client: Db, room: DuelRow, round: number): Promise<void> {
   const cutoff = new Date(Date.now() - INTRO_WAIT_MS).toISOString();
-  await client
-    .from("duels")
-    .update({ phase_started_at: cutoff })
-    .eq("id", room.id)
-    .eq("current_round", round)
-    .eq("phase", "intro")
-    .gt("phase_started_at", cutoff);
+  await pullIntroStart(client, room.id, round, cutoff);
 }
 
 async function createRoomRow(
-  client: any,
+  client: Db,
   userId: string,
   displayName: string,
   /** The room's stored settings (roomSettings.ts: picks then `rounds:N`), or a legacy category list. */
@@ -234,23 +242,19 @@ async function createRoomRow(
   scoring: ScoringMode = "total",
 ): Promise<DuelRow> {
   for (let attempt = 0; attempt < 8; attempt++) {
-    const { data, error } = await client
-      .from("duels")
-      .insert({
-        room_code: generateRoomCode(),
-        status: "waiting",
-        host_user_id: userId,
-        max_players: MAX_PLAYERS,
-        round_count: TOTAL_ROUNDS,
-        round_order: [],
-        selected_categories: categories,
-        ...(scoring === "placings" ? { scoring_mode: scoring } : {}),
+    const { data, error } = await insertRoom(client, {
+      room_code: generateRoomCode(),
+      status: "waiting",
+      host_user_id: userId,
+      max_players: MAX_PLAYERS,
+      round_count: TOTAL_ROUNDS,
+      round_order: [],
+      selected_categories: categories,
+      ...(scoring === "placings" ? { scoring_mode: scoring } : {}),
 
-        puzzles_public: [],
-        current_round: 0,
-      })
-      .select("*")
-      .single();
+      puzzles_public: [],
+      current_round: 0,
+    });
 
     if (error) {
       if (error.code === UNIQUE_VIOLATION) continue; // room code collision
@@ -269,26 +273,22 @@ async function createRoomRow(
  * How many active players have answered a round. A player who answered and then left still has a
  * row, so counting every row could end the round while an active player was still playing.
  */
-async function activeAnsweredCount(client: any, roomId: string, round: number, players: DuelPlayerRow[]): Promise<number> {
+async function activeAnsweredCount(client: Db, roomId: string, round: number, players: DuelPlayerRow[]): Promise<number> {
   const slots = await answeredSlots(client, roomId, round);
   return activePlayers(players).filter((p) => slots.has(p.player_slot)).length;
 }
 
 /** Slots that answered a round. */
-async function answeredSlots(client: any, roomId: string, round: number): Promise<Set<number>> {
-  const { data } = await client
-    .from("round_results")
-    .select("player_slot")
-    .eq("duel_id", roomId)
-    .eq("round_number", round);
-  return new Set(((data ?? []) as { player_slot: number }[]).map((r) => r.player_slot));
+async function answeredSlots(client: Db, roomId: string, round: number): Promise<Set<number>> {
+  const { data } = await readAnsweredSlots(client, roomId, round);
+  return new Set((data ?? []).map((r) => r.player_slot));
 }
 
 /**
  * A player who has answered nothing for two rounds in a row stops holding the
  * room up. Any later answer puts them straight back to active.
  */
-async function markInactivity(client: any, roomId: string, round: number): Promise<void> {
+async function markInactivity(client: Db, roomId: string, round: number): Promise<void> {
   if (round < INACTIVE_AFTER_MISSED) return;
   const players = activePlayers(await getPlayers(client, roomId));
   if (players.length === 0) return;
@@ -299,7 +299,7 @@ async function markInactivity(client: any, roomId: string, round: number): Promi
   );
   const missing = players.filter((p) => recent.every((slots) => !slots.has(p.player_slot)));
   for (const player of missing) {
-    await client.from("duel_players").update({ status: "inactive" }).eq("id", player.id);
+    await setPlayerStatus(client, player.id, "inactive");
   }
 }
 
@@ -307,21 +307,16 @@ async function markInactivity(client: any, roomId: string, round: number): Promi
  * The round orders of the host's last three tournaments, including this room.
  */
 async function recentRoundOrders(
-  client: any,
+  client: Db,
   room: DuelRow,
   hostUserId: string | null,
 ): Promise<StoredPuzzleType[][]> {
   const orders: StoredPuzzleType[][] = [];
 
   if (hostUserId) {
-    const { data } = await client
-      .from("duels")
-      .select("round_order, tournament_history, status, id, created_at")
-      .eq("host_user_id", hostUserId)
-      .order("created_at", { ascending: false })
-      .limit(15);
+    const { data } = await readHostRecentOrders(client, hostUserId);
     const tournaments: { date: string; order: StoredPuzzleType[] }[] = [];
-    for (const row of (data ?? []) as DuelRow[]) {
+    for (const row of data ?? []) {
       if (row.status === "finished" && row.round_order?.length && !row.disbanded_at)
         tournaments.push({ date: row.phase_started_at ?? row.created_at, order: row.round_order });
       for (const entry of row.tournament_history ?? [])
@@ -337,13 +332,10 @@ async function recentRoundOrders(
 }
 
 /** Banked boards (puzzleBank.server.ts) from the host's recent rooms, so a new room skips them. */
-async function recentBankKeys(client: any, hostUserId: string | null): Promise<Set<string>> {
+async function recentBankKeys(client: Db, hostUserId: string | null): Promise<Set<string>> {
   const keys = new Set<string>();
   if (!hostUserId) return keys;
-  const { data } = await client.from("duels")
-    .select("puzzles_public")
-    .eq("host_user_id", hostUserId)
-    .order("created_at", { ascending: false }).limit(RECENT_BANK_ROOMS);
+  const { data } = await readHostRecentPuzzles(client, hostUserId, RECENT_BANK_ROOMS);
   const { bankKey } = await import("./puzzleBank.server");
   for (const row of data ?? []) {
     if (!Array.isArray(row.puzzles_public)) continue;
@@ -373,13 +365,7 @@ export const createRoomFn = createServerFn({ method: "POST" })
       throw new Error("You’ve made a lot of rooms. Try again later.");
     // Remember the host's room settings from their last room (roomSettings.server.ts: a room from before
     // settings is read as settings, Arcade as its five groups; a first room gets Mixed, 6 rounds).
-    const { data: previous } = await client
-      .from("duels")
-      .select("selected_categories")
-      .eq("host_user_id", context.userId)
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
+    const { data: previous } = await readHostLastCategories(client, context.userId);
     const { rememberedScoring, rememberedSettings } = await import("./roomSettings.server");
     const room = await createRoomRow(
       client,
@@ -405,13 +391,9 @@ export const roomPreviewFn = createServerFn({ method: "POST" })
     if (!(await withinRateLimit(client, context.userId, ROOM_LOOKUP_LIMIT)))
       throw new Error("That’s a lot of codes. Give it a few minutes.");
     const code = String(data.roomCode ?? "").trim().toUpperCase().slice(0, 8);
-    const { data: found } = await client
-      .from("duels")
-      .select("id, status, disbanded_at, max_players")
-      .eq("room_code", code)
-      .maybeSingle();
+    const { data: found } = await readRoomPreview(client, code);
     if (!found) return { found: false as const };
-    const room = found as Pick<DuelRow, "id" | "status" | "disbanded_at" | "max_players">;
+    const room = found;
     const players = present(await getPlayers(client, room.id));
     return {
       found: true as const,
@@ -443,14 +425,10 @@ export const joinRoomFn = createServerFn({ method: "POST" })
     if (refused) return { ok: false as const, message: refused };
     const via = joinViaFrom(data.via);
     const code = String(data.roomCode ?? "").trim().toUpperCase().slice(0, 8);
-    const { data: found } = await client
-      .from("duels")
-      .select("*")
-      .eq("room_code", code)
-      .maybeSingle();
+    const { data: found } = await readRoomByCode(client, code);
     if (!found) return { ok: false as const, message: "No room with that code. Check it with the host." };
 
-    const room = found as DuelRow;
+    const room = found;
     if (room.disbanded_at) return { ok: false as const, message: "This room has been disbanded." };
     const players = await getPlayers(client, room.id);
     const mine = players.find((p) => p.user_id === context.userId);
@@ -459,7 +437,7 @@ export const joinRoomFn = createServerFn({ method: "POST" })
       if (mine.status === "left") {
         if (room.status !== "waiting")
           return { ok: false as const, message: "This game’s already started." };
-        await client.from("duel_players").update({ status: "active" }).eq("id", mine.id);
+        await setPlayerStatus(client, mine.id, "active");
         await recordJoin(client, {
           duel_id: room.id,
           user_id: context.userId,
@@ -550,28 +528,23 @@ export const startRoomFn = createServerFn({ method: "POST" })
     const split = puzzles.map(splitPuzzle);
     const startedAt = nowIso();
 
-    const { data: claimed } = await client
-      .from("duels")
-      .update({
-        round_order: roundOrder,
-        round_count: roundOrder.length,
-        puzzles_public: JSON.parse(JSON.stringify(split.map((s) => s.pub))),
-        status: "in_progress",
-        current_round: 1,
-        phase: "starting",
-        phase_started_at: startedAt,
-        round_started_at: startedAt,
-      })
-      .eq("id", room.id)
-      .eq("status", "waiting")
-      .select("id")
-      .maybeSingle();
+    const { data: claimed } = await claimRoomStart(client, room.id, {
+      round_order: roundOrder,
+      round_count: roundOrder.length,
+      puzzles_public: JSON.parse(JSON.stringify(split.map((s) => s.pub))),
+      status: "in_progress",
+      current_round: 1,
+      phase: "starting",
+      phase_started_at: startedAt,
+      round_started_at: startedAt,
+    });
 
     if (claimed) {
-      const { error } = await client.from("duel_secrets").upsert({
-        duel_id: room.id,
-        puzzles_private: JSON.parse(JSON.stringify(split.map((s) => s.priv))),
-      });
+      const { error } = await writePrivatePuzzles(
+        client,
+        room.id,
+        JSON.parse(JSON.stringify(split.map((s) => s.priv))),
+      );
       if (error) throw dbError(error, "duel");
       // Beta recording (G1 archive): each round's effective limit and stamps, best-effort.
       const { puzzleTimeLimitMs } = await import("./catalogue");
@@ -614,11 +587,7 @@ export const setRoomModesFn = createServerFn({ method: "POST" })
     )
       return { ok: false as const, message: "Pick at least one category." };
     const categories = normaliseCategories(data.categories);
-    await client
-      .from("duels")
-      .update({ selected_categories: categories })
-      .eq("id", room.id)
-      .eq("status", "waiting");
+    await writeRoomCategories(client, room.id, categories);
     console.log(`[room-selection] room=${room.room_code} categories=${categories.join(",")}`);
 
     return { ok: true as const };
@@ -678,12 +647,7 @@ export const removePlayerFn = createServerFn({ method: "POST" })
     if (room.status !== "waiting") {
       return { ok: false as const, message: "This game’s already started." };
     }
-    await client
-      .from("duel_players")
-      .delete()
-      .eq("duel_id", room.id)
-      .eq("player_slot", data.slot)
-      .neq("user_id", context.userId);
+    await deletePlayerAtSlot(client, room.id, data.slot, context.userId);
     return { ok: true as const };
   });
 
@@ -694,17 +658,10 @@ export const leaveRoomFn = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const client = await db();
     const room = await getRoom(client, data.roomId);
-    await client
-      .from("duel_players")
-      .update({ status: "left" })
-      .eq("duel_id", room.id)
-      .eq("user_id", context.userId);
+    await setPlayerStatusInRoom(client, room.id, context.userId, "left");
 
     if (room.host_user_id === context.userId) {
-      await client
-        .from("duels")
-        .update({ disbanded_at: nowIso(), status: "finished" })
-        .eq("id", room.id);
+      await disbandRoom(client, room.id, nowIso());
       if (room.status === "in_progress")
         await recordRoomEvent(client, {
           duel_id: room.id,
@@ -725,10 +682,7 @@ export const disbandRoomFn = createServerFn({ method: "POST" })
     const room = await getRoom(client, data.roomId);
     if (room.host_user_id !== context.userId)
       return { ok: false as const, message: "Only the host can disband this room." };
-    await client
-      .from("duels")
-      .update({ disbanded_at: nowIso(), status: "finished" })
-      .eq("id", room.id);
+    await disbandRoom(client, room.id, nowIso());
     if (room.status === "in_progress")
       await recordRoomEvent(client, {
         duel_id: room.id,
@@ -746,7 +700,7 @@ export const checkHostPresenceFn = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const client = await db();
     await requireParticipant(client, data.roomId, context.userId);
-    await client.rpc("disband_stale_room", { p_room_id: data.roomId });
+    await disbandStaleRoom(client, data.roomId);
     return { ok: true as const };
   });
 
@@ -779,14 +733,7 @@ export const advancePhaseFn = createServerFn({ method: "POST" })
       if (elapsed < DUEL_START_MS) return { ok: true };
       // Fixed deadlines preserve the same title position after reconnects.
       const titleAt = new Date(phaseStart + DUEL_START_MS).toISOString();
-      const { error } = await client
-        .from("duels")
-        .update({ phase: "round_title", phase_started_at: titleAt, round_started_at: titleAt })
-        .eq("id", room.id)
-        .eq("status", "in_progress")
-        .eq("current_round", round)
-        .eq("phase", "starting")
-        .eq("phase_started_at", stamp);
+      const { error } = await moveTimedPhase(client, room.id, round, "starting", stamp, "round_title", titleAt);
       if (error) throw dbError(error, "duel");
       return { ok: true };
     }
@@ -794,14 +741,7 @@ export const advancePhaseFn = createServerFn({ method: "POST" })
     if (room.phase === "round_title") {
       if (elapsed < ROUND_TITLE_MS) return { ok: true };
       const introAt = new Date(phaseStart + ROUND_TITLE_MS).toISOString();
-      const { error } = await client
-        .from("duels")
-        .update({ phase: "intro", phase_started_at: introAt, round_started_at: introAt })
-        .eq("id", room.id)
-        .eq("status", "in_progress")
-        .eq("current_round", round)
-        .eq("phase", "round_title")
-        .eq("phase_started_at", stamp);
+      const { error } = await moveTimedPhase(client, room.id, round, "round_title", stamp, "intro", introAt);
       if (error) throw dbError(error, "duel");
       return { ok: true };
     }
@@ -855,13 +795,7 @@ export const advancePhaseFn = createServerFn({ method: "POST" })
     if (room.phase === "winner_reveal") {
       // Timer-driven only: the host cannot skip the reveal.
       if (elapsed < WINNER_REVEAL_MS) return { ok: true };
-      await client
-        .from("duels")
-        .update({ status: "finished" })
-        .eq("id", room.id)
-        .eq("status", "in_progress")
-        .eq("current_round", round)
-        .eq("phase", "winner_reveal");
+      await finishAfterWinnerReveal(client, room.id, round);
       return { ok: true };
     }
 
@@ -916,13 +850,7 @@ export const submitAnswerFn = createServerFn({ method: "POST" })
       return { ok: false as const, message: "That round is over." };
     }
 
-    const existing = await client
-      .from("round_results")
-      .select("id")
-      .eq("duel_id", room.id)
-      .eq("player_slot", player.player_slot)
-      .eq("round_number", data.roundNumber)
-      .maybeSingle();
+    const existing = await readStoredResultId(client, room.id, player.player_slot, data.roundNumber);
     if (existing.data) return { ok: true as const, alreadySubmitted: true };
 
     const pub = room.puzzles_public[data.roundNumber - 1];
@@ -946,7 +874,7 @@ export const submitAnswerFn = createServerFn({ method: "POST" })
     }
     const { answer, isCorrect, score, reactionAvgMs, correctCount, errors, extra, storedMs } = graded;
 
-    const { error } = await client.from("round_results").insert({
+    const { error } = await insertRoundResult(client, {
       duel_id: room.id,
       player_slot: player.player_slot,
       round_number: data.roundNumber,
@@ -956,7 +884,7 @@ export const submitAnswerFn = createServerFn({ method: "POST" })
       reaction_avg_ms: reactionAvgMs,
       correct_count: correctCount,
       errors,
-      extra,
+      extra: asJson(extra),
       score,
     });
     if (error && error.code !== UNIQUE_VIOLATION) throw dbError(error, "duel");
@@ -971,7 +899,7 @@ export const submitAnswerFn = createServerFn({ method: "POST" })
 
     // Answering again brings a player who had gone quiet back into the room.
     if (player.status !== "active") {
-      await client.from("duel_players").update({ status: "active" }).eq("id", player.id);
+      await setPlayerStatus(client, player.id, "active");
     }
 
     /**
@@ -1016,11 +944,7 @@ export const readyUpFn = createServerFn({ method: "POST" })
       return { ok: true as const };
     }
 
-    await client
-      .from("duel_players")
-      .update({ intro_ready_round: round, status: "active" })
-      .eq("id", player.id)
-      .lt("intro_ready_round", round);
+    await markIntroReady(client, player.id, round);
 
     const players = await getPlayersSeen(client, room.id);
     if (allIntroReady(players, round, Date.now())) await startIntroCountdown(client, room, round);
@@ -1119,7 +1043,7 @@ export const rematchFn = createServerFn({ method: "POST" })
     // A host who left (and forfeited) can't restart: the reset removes left players.
     if (me.status === "left") return { ok: false as const, message: "You left this game." };
     // Read a forfeit's outcome before the reset clears statuses and results.
-    const { data: resultRows } = await client.from("round_results").select("*").eq("duel_id", room.id);
+    const { data: resultRows } = await readRoomResults(client, room.id);
     const roomPlayers = await getPlayers(client, room.id);
     const forfeit = forfeitRecord(room, roomPlayers, (resultRows ?? []) as RoundResultRow[]);
     // tieRev 1 rooms: the saved winner is the standings' winner (tie-break time, not slot).
@@ -1129,10 +1053,7 @@ export const rematchFn = createServerFn({ method: "POST" })
     // Play again keeps everyone's colour: store the ones still shown from the slot first (resolved
     // with the players who left, as every phone shows them; those rows go with the reset).
     if (await hasLookColumns(client)) await persistAutoColours(client, roomPlayers);
-    const { data: restarted, error } = await client.rpc("restart_duel_room", {
-      p_room_id: room.id,
-      p_host_id: context.userId,
-    });
+    const { data: restarted, error } = await restartRoom(client, room.id, context.userId);
     if (error || !restarted) return { ok: false as const, message: "Can’t play again just yet." };
     await clearSubmitted(client, room.id);
     if (forfeit && !(await recordForfeitInHistory(client, room.id, forfeit)))

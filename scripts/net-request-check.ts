@@ -273,8 +273,20 @@ check(POLICIES.background.timeoutMs >= 180_000 && POLICIES.background.attempts =
     const call = api.slice(at, api.indexOf("\n}", at));
     check(at >= 0 && call.includes(`fetch: fetchFor(POLICIES.${policy})`), `api.ts: ${fn} carries the ${policy} policy`);
   }
-  check(/select\(ROOM_RESULT_COLUMNS\)/.test(api) && !/from\("round_results"\)\.select\("\*"\)/.test(api), "api.ts: the results refetch names its columns");
-  check(/select\("id, answer"\)\.in\("id", missing\)/.test(api), "api.ts: own answers by row id");
+  // The reads themselves are the data layer's (src/lib/data/roomReads.ts), called with these arguments.
+  const reads = readFileSync("src/lib/data/roomReads.ts", "utf8");
+  const readBody = (name: string) => reads.slice(reads.indexOf(`export async function ${name}`)).split(/\nexport /)[0];
+  check(
+    /readRoomResultRows\(supabase, duelId, ROOM_RESULT_COLUMNS, signal\)/.test(api) &&
+      /from\("round_results"\)\.select\(columns\)/.test(readBody("readRoomResultRows")) &&
+      !/from\("round_results"\)\.select\("\*"\)/.test(api + reads),
+    "api.ts: the results refetch names its columns",
+  );
+  check(
+    /readOwnAnswers\(supabase, missing, signal\)/.test(api) &&
+      /select\("id, answer"\)\.in\("id", ids\)/.test(readBody("readOwnAnswers")),
+    "api.ts: own answers by row id",
+  );
   check((api.match(/supabaseRead\(/g) ?? []).length >= 5, "api.ts: the room's Supabase reads have a time limit and retries");
   const start = readFileSync("src/start.ts", "utf8");
   check(/serverFns: \{ fetch: fetchFor\(POLICIES\.standard\) \}/.test(start), "start.ts: every server call has a time limit");

@@ -11,7 +11,10 @@ import type { DuelPlayerRow, DuelRow, PuzzleData, RoundResultRow } from "@/lib/d
 import { replayGameClosed, replayRoundClosed, REPLAY_MAX_ANSWER_CHARS } from "./access";
 import { roundWinnerSlot, runnerUpScore } from "./pick";
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
+import type { Db } from "@/lib/data/db.server";
+import { readPlayer, readPlayers } from "@/lib/data/players.server";
+import { readResultsOfRounds } from "@/lib/data/results.server";
+import { readPrivatePuzzles, readRoom } from "@/lib/data/rooms.server";
 /** Plain JSON (round_results.extra), so the server function's result stays serialisable. */
 export type Json = string | number | boolean | null | Json[] | { [key: string]: Json };
 
@@ -39,38 +42,20 @@ export interface ReplayRound {
 
 export type ReplayResponse<T> = { ok: true; data: T } | { ok: false; message: string };
 
-async function load(client: any, roomId: string, userId: string) {
-  const { data: me } = await client
-    .from("duel_players")
-    .select("*")
-    .eq("duel_id", roomId)
-    .eq("user_id", userId)
-    .maybeSingle();
+async function load(client: Db, roomId: string, userId: string) {
+  const { data: me } = await readPlayer(client, roomId, userId);
   if (!me) return null;
-  const { data: room } = await client.from("duels").select("*").eq("id", roomId).maybeSingle();
+  const { data: room } = await readRoom(client, roomId);
   if (!room) return null;
-  return room as DuelRow;
+  return room;
 }
 
-async function buildRounds(client: any, room: DuelRow, rounds: number[]): Promise<ReplayRound[]> {
-  const { data: playerRows } = await client
-    .from("duel_players")
-    .select("*")
-    .eq("duel_id", room.id)
-    .order("player_slot");
-  const players = (playerRows ?? []) as DuelPlayerRow[];
-  const { data: secretRow } = await client
-    .from("duel_secrets")
-    .select("puzzles_private")
-    .eq("duel_id", room.id)
-    .maybeSingle();
-  const secrets = (secretRow?.puzzles_private ?? []) as Record<string, unknown>[];
-  const { data: resultRows } = await client
-    .from("round_results")
-    .select("*")
-    .eq("duel_id", room.id)
-    .in("round_number", rounds);
-  const results = (resultRows ?? []) as RoundResultRow[];
+async function buildRounds(client: Db, room: DuelRow, rounds: number[]): Promise<ReplayRound[]> {
+  const { data: playerRows } = await readPlayers(client, room.id);
+  const players: DuelPlayerRow[] = playerRows ?? [];
+  const secrets = (await readPrivatePuzzles(client, room.id)).data;
+  const { data: resultRows } = await readResultsOfRounds(client, room.id, rounds);
+  const results: RoundResultRow[] = resultRows ?? [];
   const out: ReplayRound[] = [];
   for (const round of rounds) {
     const pub = room.puzzles_public[round - 1];
@@ -109,7 +94,7 @@ async function buildRounds(client: any, room: DuelRow, rounds: number[]): Promis
 
 /** One closed round's replay (the results screen). */
 export async function loadRoundReplay(
-  client: any,
+  client: Db,
   userId: string,
   input: { roomId: string; roundNumber: number },
 ): Promise<ReplayResponse<ReplayRound | null>> {
@@ -123,7 +108,7 @@ export async function loadRoundReplay(
 
 /** Every round of a finished game (the podium's play of the game). */
 export async function loadGameReplays(
-  client: any,
+  client: Db,
   userId: string,
   input: { roomId: string },
 ): Promise<ReplayResponse<ReplayRound[]>> {

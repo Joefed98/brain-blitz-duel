@@ -28,10 +28,21 @@ import { tieRoundFor } from "./tieBreak";
 import type { SubmitExtra } from "./grade";
 import type { PuzzleData, RoundResultRow } from "./types";
 import { dbError } from "./dbError";
-
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
-const UNIQUE_VIOLATION = "23505";
+import { UNIQUE_VIOLATION, type Db, type DbError } from "@/lib/data/db.server";
+import {
+  insertAsyncResults,
+  insertAsyncRoom,
+  insertAsyncRoomSecrets,
+  insertAttempt,
+  readAsyncPrivate,
+  readAsyncRoomById,
+  readAsyncRoomByKey,
+  readAttempt,
+  readAttemptResults,
+  readAttempts,
+  updateAttempt,
+  updateOpenAsyncResult,
+} from "@/lib/data/async.server";
 
 export interface AsyncRoomRow {
   id: string;
@@ -107,20 +118,16 @@ export function asRoundResult(row: AsyncResultRow): RoundResultRow {
 
 /* ------------------------------------------------------------------ rooms */
 
-export async function roomByKey(client: any, key: string): Promise<AsyncRoomRow | null> {
-  const { data, error } = await client
-    .from("async_rooms")
-    .select("*")
-    .eq("room_key", key)
-    .maybeSingle();
+export async function roomByKey(client: Db, key: string): Promise<AsyncRoomRow | null> {
+  const { data, error } = await readAsyncRoomByKey(client, key);
   if (error) throw dbError(error, "asyncRoom");
-  return (data as AsyncRoomRow | null) ?? null;
+  return data ?? null;
 }
 
-export async function roomById(client: any, id: string): Promise<AsyncRoomRow | null> {
-  const { data, error } = await client.from("async_rooms").select("*").eq("id", id).maybeSingle();
+export async function roomById(client: Db, id: string): Promise<AsyncRoomRow | null> {
+  const { data, error } = await readAsyncRoomById(client, id);
   if (error) throw dbError(error, "asyncRoom");
-  return (data as AsyncRoomRow | null) ?? null;
+  return data ?? null;
 }
 
 /**
@@ -129,7 +136,7 @@ export async function roomById(client: any, id: string): Promise<AsyncRoomRow | 
  * before the room is returned to anyone.
  */
 export async function createAsyncRoom(
-  client: any,
+  client: Db,
   input: {
     kind: string;
     key: string;
@@ -158,7 +165,7 @@ export async function createAsyncRoom(
   };
   // Secrets first under the new id would break the foreign key, so the room row goes in, then
   // its secrets; a room without secrets is never played (startAsyncRound needs them).
-  const { error } = await client.from("async_rooms").insert(row);
+  const { error } = await insertAsyncRoom(client, row);
   if (error) {
     if (error.code === UNIQUE_VIOLATION) {
       const existing = await roomByKey(client, input.key);
@@ -166,10 +173,11 @@ export async function createAsyncRoom(
     }
     throw dbError(error, "asyncRoom");
   }
-  const { error: secretError } = await client.from("async_room_secrets").insert({
-    room_id: id,
-    puzzles_private: JSON.parse(JSON.stringify(split.map((s) => s.priv))),
-  });
+  const { error: secretError } = await insertAsyncRoomSecrets(
+    client,
+    id,
+    JSON.parse(JSON.stringify(split.map((s) => s.priv))),
+  );
   if (secretError && secretError.code !== UNIQUE_VIOLATION) throw dbError(secretError, "asyncRoom");
   // Beta recording: each round's effective clock and stamps, as rooms store them (best-effort).
   await recordRoundRecordsFor(
@@ -185,49 +193,36 @@ export async function createAsyncRoom(
 }
 
 async function privateHalf(
-  client: any,
+  client: Db,
   roomId: string,
   round: number,
 ): Promise<Record<string, unknown> | null> {
-  const { data } = await client
-    .from("async_room_secrets")
-    .select("puzzles_private")
-    .eq("room_id", roomId)
-    .maybeSingle();
-  const list = (data?.puzzles_private ?? null) as Record<string, unknown>[] | null;
+  const { data: list } = await readAsyncPrivate(client, roomId);
   return list?.[round - 1] ?? null;
 }
 
 /* --------------------------------------------------------------- attempts */
 
 export async function attemptFor(
-  client: any,
+  client: Db,
   roomId: string,
   userId: string,
 ): Promise<AsyncAttemptRow | null> {
-  const { data, error } = await client
-    .from("async_attempts")
-    .select("*")
-    .eq("room_id", roomId)
-    .eq("user_id", userId)
-    .maybeSingle();
+  const { data, error } = await readAttempt(client, roomId, userId);
   if (error) throw dbError(error, "asyncRoom");
-  return (data as AsyncAttemptRow | null) ?? null;
+  return data ?? null;
 }
 
-export async function attemptsIn(client: any, roomId: string): Promise<AsyncAttemptRow[]> {
-  const { data, error } = await client.from("async_attempts").select("*").eq("room_id", roomId);
+export async function attemptsIn(client: Db, roomId: string): Promise<AsyncAttemptRow[]> {
+  const { data, error } = await readAttempts(client, roomId);
   if (error) throw dbError(error, "asyncRoom");
-  return (data ?? []) as AsyncAttemptRow[];
+  return data ?? [];
 }
 
-export async function resultsOf(client: any, attemptId: string): Promise<AsyncResultRow[]> {
-  const { data, error } = await client
-    .from("async_results")
-    .select("*")
-    .eq("attempt_id", attemptId);
+export async function resultsOf(client: Db, attemptId: string): Promise<AsyncResultRow[]> {
+  const { data, error } = await readAttemptResults(client, attemptId);
   if (error) throw dbError(error, "asyncRoom");
-  return ((data ?? []) as AsyncResultRow[]).sort((a, b) => a.round_number - b.round_number);
+  return (data ?? []).sort((a, b) => a.round_number - b.round_number);
 }
 
 /**
@@ -244,18 +239,21 @@ const CHECK_VIOLATION = "23514";
  * player with a wheel colour of 10 or more had every daily and challenge start refused ("Can’t reach us"). A colour the
  * table refuses is stored as none, as rooms do before their own migration (boards then show the player's slot colour).
  */
-export async function insertAttemptRow(client: any, row: AsyncAttemptRow): Promise<{ error: any; row: AsyncAttemptRow }> {
-  const { error } = await client.from("async_attempts").insert(row);
+export async function insertAttemptRow(
+  client: Db,
+  row: AsyncAttemptRow,
+): Promise<{ error: DbError | null; row: AsyncAttemptRow }> {
+  const { error } = await insertAttempt(client, row);
   if (error && error.code === CHECK_VIOLATION && row.colour !== null && row.colour > ASYNC_STORED_COLOUR_MAX) {
     const plain = { ...row, colour: null };
-    const retry = await client.from("async_attempts").insert(plain);
+    const retry = await insertAttempt(client, plain);
     return { error: retry.error ?? null, row: plain };
   }
   return { error: error ?? null, row };
 }
 
 export async function startAttempt(
-  client: any,
+  client: Db,
   room: AsyncRoomRow,
   userId: string,
   who: { name: string; colour: number | null; icon: string | null },
@@ -311,7 +309,7 @@ export async function startAttempt(
  * a played attempt's are. Records no beta event (nobody played it here).
  */
 export async function importFinishedAttempt(
-  client: any,
+  client: Db,
   room: AsyncRoomRow,
   who: { userId: string; name: string; colour: number | null; icon: string | null },
   rounds: readonly (Omit<AsyncResultRow, "id" | "room_id" | "attempt_id" | "user_id"> | null)[],
@@ -360,7 +358,7 @@ export async function importFinishedAttempt(
           score: 0,
         };
   });
-  const { error: resultError } = await client.from("async_results").insert(rows);
+  const { error: resultError } = await insertAsyncResults(client, rows);
   if (resultError) throw dbError(resultError, "asyncRoom");
   return refreshAttempt(client, room, attempt, rows, nowMs, false);
 }
@@ -383,7 +381,7 @@ const done = (row: AsyncResultRow | undefined) => !!row && (row.answered || row.
 
 /** Recomputes the attempt's board columns from its stored results (the only writer of them). */
 async function refreshAttempt(
-  client: any,
+  client: Db,
   room: AsyncRoomRow,
   attempt: AsyncAttemptRow,
   rows: readonly AsyncResultRow[],
@@ -403,11 +401,7 @@ async function refreshAttempt(
     round_scores: scores,
     finished_at: attempt.finished_at ?? (finished ? iso(nowMs) : null),
   };
-  await client
-    .from("async_attempts")
-    .update(next)
-    .eq("id", attempt.id)
-    .eq("user_id", attempt.user_id);
+  await updateAttempt(client, attempt.id, attempt.user_id, next);
   if (record && finished && !attempt.finished_at)
     await recordAsyncEvent(client, {
       room_id: room.id,
@@ -426,7 +420,7 @@ async function refreshAttempt(
  * answer in a room does (missed), and are recorded as abandoned.
  */
 async function closeMissedRounds(
-  client: any,
+  client: Db,
   room: AsyncRoomRow,
   attempt: AsyncAttemptRow,
   rows: AsyncResultRow[],
@@ -437,21 +431,13 @@ async function closeMissedRounds(
     if (done(row)) continue;
     const puzzle = room.puzzles_public[row.round_number - 1];
     if (asyncReceipt(puzzle, msOf(row.started_at), nowMs) !== "closed") continue;
-    const { data } = await client
-      .from("async_results")
-      .update({
-        missed: true,
-        score: 0,
-        is_correct: false,
-        ms_remaining: 0,
-        extra: { missed: true },
-      })
-      .eq("attempt_id", attempt.id)
-      .eq("round_number", row.round_number)
-      .eq("answered", false)
-      .eq("missed", false)
-      .select()
-      .maybeSingle();
+    const { data } = await updateOpenAsyncResult(client, attempt.id, row.round_number, {
+      missed: true,
+      score: 0,
+      is_correct: false,
+      ms_remaining: 0,
+      extra: { missed: true },
+    });
     if (!data) continue;
     Object.assign(row, {
       missed: true,
@@ -477,7 +463,7 @@ async function closeMissedRounds(
 
 /** The caller's own view of their attempt (missed rounds closed first). */
 export async function attemptView(
-  client: any,
+  client: Db,
   room: AsyncRoomRow,
   attempt: AsyncAttemptRow,
   nowMs: number,
@@ -515,7 +501,7 @@ export async function attemptView(
  * public half only: the puzzle reaches the phone here and nowhere earlier.
  */
 export async function startAsyncRound(
-  client: any,
+  client: Db,
   room: AsyncRoomRow,
   attempt: AsyncAttemptRow,
   round: number,
@@ -554,7 +540,7 @@ export async function startAsyncRound(
     extra: null,
     score: 0,
   };
-  const { error } = await client.from("async_results").insert(row);
+  const { error } = await insertAsyncResults(client, row);
   if (error) {
     if (error.code === UNIQUE_VIOLATION) {
       const raced = (await resultsOf(client, attempt.id)).find((r) => r.round_number === round);
@@ -602,7 +588,7 @@ export async function gradeAsyncAnswer(
 
 /** Grades and stores the caller's answer for a round they started; the first stored answer stands. */
 export async function submitAsyncAnswer(
-  client: any,
+  client: Db,
   room: AsyncRoomRow,
   attempt: AsyncAttemptRow,
   input: { round: number; answer: string; msRemaining: number; extra?: SubmitExtra | undefined },
@@ -647,15 +633,7 @@ export async function submitAsyncAnswer(
     extra: graded.extra ?? null,
     score: graded.score,
   };
-  const { data } = await client
-    .from("async_results")
-    .update(values)
-    .eq("attempt_id", attempt.id)
-    .eq("round_number", input.round)
-    .eq("answered", false)
-    .eq("missed", false)
-    .select()
-    .maybeSingle();
+  const { data } = await updateOpenAsyncResult(client, attempt.id, input.round, values);
   if (!data) return { ok: true, alreadySubmitted: true };
   Object.assign(row, values);
   await recordAsyncEvent(client, {
@@ -714,7 +692,7 @@ export function lockedExtra(
  * has closed (H2); before that the public half, the summary worked out from it alone, and `solutionLock`.
  */
 export async function asyncRoundReveal(
-  client: any,
+  client: Db,
   room: AsyncRoomRow,
   attempt: AsyncAttemptRow,
   round: number,
@@ -764,7 +742,7 @@ export async function asyncRoundReveal(
 
 /** The live round's public and private halves, only while the caller's own round takes answers. */
 export async function liveRoundPuzzle(
-  client: any,
+  client: Db,
   room: AsyncRoomRow,
   attempt: AsyncAttemptRow,
   round: number,
