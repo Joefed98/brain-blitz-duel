@@ -7,10 +7,10 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import type { ReplayResponse, ReplayRound } from "./replay.server";
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-async function db(): Promise<any> {
-  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  return supabaseAdmin as any;
+/** The service-role client, typed on the generated schema (src/lib/data/db.server.ts). */
+async function db() {
+  const { adminDb } = await import("@/lib/data/db.server");
+  return adminDb();
 }
 
 export const roundReplayFn = createServerFn({ method: "POST" })

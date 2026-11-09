@@ -33,8 +33,9 @@ import type {
   RoundRevealData,
 } from "./types";
 import { dbError } from "./dbError";
-
-/* eslint-disable @typescript-eslint/no-explicit-any */
+import type { Db } from "@/lib/data/db.server";
+import { readPrivatePuzzles } from "@/lib/data/rooms.server";
+import { readRoundResults } from "@/lib/data/results.server";
 
 /** The round is over for display: the correct answer may be shown. */
 export function roundHasEnded(room: DuelRow, round: number): boolean {
@@ -52,7 +53,7 @@ export function roundHasEnded(room: DuelRow, round: number): boolean {
 export type RevealResponse = { ok: true; data: RoundRevealData } | { ok: false; message: string };
 
 export async function loadRoundReveal(
-  client: any,
+  client: Db,
   room: DuelRow,
   roundNumber: number,
   mySlot: number,
@@ -62,14 +63,9 @@ export async function loadRoundReveal(
   }
   const pub = room.puzzles_public[roundNumber - 1];
   if (!pub) return { ok: false, message: "That round doesn’t exist." };
-  const { data: resultRows, error } = await client
-    .from("round_results")
-    .select("*")
-    .eq("duel_id", room.id)
-    .eq("round_number", roundNumber)
-    .order("player_slot");
+  const { data: resultRows, error } = await readRoundResults(client, room.id, roundNumber);
   if (error) throw dbError(error, "reveal");
-  const rows = (resultRows ?? []) as RoundResultRow[];
+  const rows: RoundResultRow[] = resultRows ?? [];
   const open = othersAnswersReadable(room, roundNumber);
   // No answer in yet and late answers still accepted: nothing beyond the public
   // puzzle the phone already holds, and the private solution is never read.
@@ -85,12 +81,7 @@ export async function loadRoundReveal(
       },
     };
   }
-  const { data: secretRow } = await client
-    .from("duel_secrets")
-    .select("puzzles_private")
-    .eq("duel_id", room.id)
-    .maybeSingle();
-  const priv = ((secretRow?.puzzles_private ?? []) as Record<string, unknown>[])[roundNumber - 1];
+  const priv = (await readPrivatePuzzles(client, room.id)).data[roundNumber - 1];
   const puzzle = mergePuzzle(pub, priv);
   const shown = open ? rows : rows.filter((row) => row.player_slot === mySlot);
   // A deleted game (removedGames.ts): its name and each stored score, nothing recomputed.

@@ -34,7 +34,7 @@ export const recordShareEventFn = createServerFn({ method: "POST" })
     const { recordShareEvent, shareEventRow } = await import("./betaRecord.server");
     const row = shareEventRow(context.userId, data as unknown as Record<string, unknown>);
     if (!row) return { ok: false };
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const supabaseAdmin = await (await import("@/lib/data/db.server")).adminDb();
     // L4: beta events are rate limited (an analytics flood never reaches the table).
     const { BETA_EVENT_LIMIT, withinRateLimit } = await import("./rateLimit.server");
     if (!(await withinRateLimit(supabaseAdmin, context.userId, BETA_EVENT_LIMIT))) return { ok: false };

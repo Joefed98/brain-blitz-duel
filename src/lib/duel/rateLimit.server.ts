@@ -14,7 +14,8 @@
  * key) and the create paths also count per network address (`withinIpRateLimit`), so signing in again doesn't reset them.
  */
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
+import type { Db } from "@/lib/data/db.server";
+import { takeRateLimit } from "@/lib/data/limits.server";
 
 export interface RateLimit {
   bucket: string;
@@ -80,14 +81,9 @@ export function missingCounter(error: { code?: unknown; message?: unknown } | nu
 }
 
 /** True when the caller is still within the limit (this call counted). */
-export async function withinRateLimit(client: any, userId: string, limit: RateLimit): Promise<boolean> {
+export async function withinRateLimit(client: Db, userId: string, limit: RateLimit): Promise<boolean> {
   try {
-    const { data, error } = await client.rpc("take_rate_limit", {
-      p_user_id: userId,
-      p_bucket: limit.bucket,
-      p_max: limit.max,
-      p_window_seconds: limit.windowSeconds,
-    });
+    const { data, error } = await takeRateLimit(client, userId, limit.bucket, limit.max, limit.windowSeconds);
     if (error) {
       const allow = !limit.failClosed || missingCounter(error);
       console.warn(`[rate-limit] ${limit.bucket}: ${error.message} (${allow ? "allowed" : "refused"})`);
@@ -125,13 +121,14 @@ export async function addressKey(address: string): Promise<string> {
 }
 
 /** withinRateLimit keyed on the caller's network address; allowed when there is no address or no database. */
-export async function withinIpRateLimit(limit: RateLimit, client?: any): Promise<boolean> {
+export async function withinIpRateLimit(limit: RateLimit, client?: Db): Promise<boolean> {
   const address = await callerAddress();
   if (!address) return true;
   let db = client;
   if (!db) {
     if (!process.env["SUPABASE_SERVICE_ROLE_KEY"]) return true;
-    ({ supabaseAdmin: db } = await import("@/integrations/supabase/client.server"));
+    const { adminDb } = await import("@/lib/data/db.server");
+    db = await adminDb();
   }
   return withinRateLimit(db, await addressKey(address), limit);
 }

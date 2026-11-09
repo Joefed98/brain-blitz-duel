@@ -1,3 +1,4 @@
+import type { Db } from "@/lib/data/db.server";
 import { createServerFn } from "@tanstack/react-start";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
@@ -9,11 +10,10 @@ import { isDailyKind, shiftDayKey, ukDayKey, type DailyStatus } from "./daily";
 /*  The rounds themselves go through the async-room calls (asyncRoom.functions). */
 /* -------------------------------------------------------------------------- */
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
-async function db(): Promise<any> {
-  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  return supabaseAdmin as any;
+/** The service-role client, typed on the generated schema (src/lib/data/db.server.ts). */
+async function db(): Promise<Db> {
+  const { adminDb } = await import("@/lib/data/db.server");
+  return adminDb();
 }
 
 /**

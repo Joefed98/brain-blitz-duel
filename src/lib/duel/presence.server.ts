@@ -12,6 +12,15 @@
  * the two columns (`withPresence`), so a room carries on across the switch. Room presentation only: nothing here
  * touches grading, scoring or what a round contains.
  */
+import type { Db } from "@/lib/data/db.server";
+import {
+  readPlayersSeen,
+  readPresence,
+  touchPlayerSeen,
+  upsertPresence,
+  type SeenRow,
+} from "@/lib/data/players.server";
+
 import type { DuelPlayerRow } from "./types";
 
 /** How long a server isolate trusts "no duel_presence table" before asking again (the migration may arrive). */
@@ -50,22 +59,22 @@ function laterIso(a: string | null | undefined, b: string | null | undefined): s
 }
 
 /** The room's rows in duel_presence, or null when there is no such table (the migration not applied). */
-async function presenceRows(client: any, roomId: string): Promise<{ user_id: string; last_seen_at: string }[] | null> {
+async function presenceRows(client: Db, roomId: string): Promise<SeenRow[] | null> {
   const now = Date.now();
   if (presenceKnownMissing(now)) return null;
-  const { data, error } = await client.from("duel_presence").select("user_id, last_seen_at").eq("duel_id", roomId);
+  const { data, error } = await readPresence(client, roomId);
   if (error) {
     if (isMissingTable(error)) notePresenceMissing(now);
     return null;
   }
-  return (data ?? []) as { user_id: string; last_seen_at: string }[];
+  return data ?? [];
 }
 
 /**
  * The players with each one's `last_seen_at` the later of the player row's and its heartbeat row's: what every
  * connectedness rule on the server reads (waitedOn, canFinishNow). Rows are otherwise returned as they are.
  */
-export async function withPresence(client: any, roomId: string, players: DuelPlayerRow[]): Promise<DuelPlayerRow[]> {
+export async function withPresence(client: Db, roomId: string, players: DuelPlayerRow[]): Promise<DuelPlayerRow[]> {
   if (players.length === 0) return players;
   const rows = await presenceRows(client, roomId);
   if (!rows || rows.length === 0) return players;
@@ -83,16 +92,14 @@ export async function withPresence(client: any, roomId: string, players: DuelPla
  * no player row in the room (nothing is stored or returned to an outsider).
  */
 export async function recordHeartbeat(
-  client: any,
+  client: Db,
   roomId: string,
   userId: string,
   nowIso: string,
 ): Promise<RoomSeen | null> {
   const now = Date.now();
   if (!presenceKnownMissing(now)) {
-    const { error } = await client
-      .from("duel_presence")
-      .upsert({ duel_id: roomId, user_id: userId, last_seen_at: nowIso }, { onConflict: "duel_id,user_id" });
+    const { error } = await upsertPresence(client, roomId, userId, nowIso);
     // The heartbeat rows alone: the phone takes the later of these and its own copy of the player rows. Only the
     // room's players can have one (the composite key to duel_players).
     if (!error) return toSeen((await presenceRows(client, roomId)) ?? [{ user_id: userId, last_seen_at: nowIso }]);
@@ -101,15 +108,10 @@ export async function recordHeartbeat(
     if (isMissingTable(error)) notePresenceMissing(now);
     // Any other failure falls through to the player row, which the server reads as well.
   }
-  const { data } = await client
-    .from("duel_players")
-    .update({ last_seen_at: nowIso })
-    .eq("duel_id", roomId)
-    .eq("user_id", userId)
-    .select("id");
-  if (!data || (data as unknown[]).length === 0) return null;
-  const { data: rows } = await client.from("duel_players").select("user_id, last_seen_at").eq("duel_id", roomId);
-  return toSeen((rows ?? []) as { user_id: string; last_seen_at: string }[]);
+  const { data } = await touchPlayerSeen(client, roomId, userId, nowIso);
+  if (!data || data.length === 0) return null;
+  const { data: rows } = await readPlayersSeen(client, roomId);
+  return toSeen(rows ?? []);
 }
 
 function toSeen(rows: { user_id: string; last_seen_at: string }[]): RoomSeen {

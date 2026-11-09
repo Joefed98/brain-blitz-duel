@@ -1,3 +1,4 @@
+import type { Db } from "@/lib/data/db.server";
 import { createServerFn } from "@tanstack/react-start";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
@@ -10,11 +11,10 @@ import { challengeCodeFrom } from "./challenge";
 /*  Rounds themselves go through the async-room calls (asyncRoom.functions).    */
 /* -------------------------------------------------------------------------- */
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
-async function db(): Promise<any> {
-  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  return supabaseAdmin as any;
+/** The service-role client, typed on the generated schema (src/lib/data/db.server.ts). */
+async function db(): Promise<Db> {
+  const { adminDb } = await import("@/lib/data/db.server");
+  return adminDb();
 }
 
 /** The name and look a player sets, checked as the daily checks a board name. */
@@ -35,7 +35,7 @@ async function playerFrom(data: { displayName?: unknown; colour?: unknown; icon?
 }
 
 /** The challenge (by its async room id) and the caller's attempt in it. */
-async function mine(client: any, roomId: string, userId: string) {
+async function mine(client: Db, roomId: string, userId: string) {
   const { challengeById } = await import("./challenge.server");
   const found = await challengeById(client, String(roomId ?? ""));
   if (!found) return { error: "That challenge no longer exists." } as const;

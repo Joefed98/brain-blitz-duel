@@ -5,6 +5,17 @@
  * the room exactly once. Server-only; the client is the service-role
  * Supabase client (or an in-memory stand-in in scripts/*-check.ts).
  */
+import type { Db } from "@/lib/data/db.server";
+import { markContinued, setPlayerStatus } from "@/lib/data/players.server";
+import {
+  claimFinishNow,
+  finishFromStandings,
+  movePhase,
+  readRoomHistory,
+  startNextRound,
+  writeRoomHistory,
+} from "@/lib/data/rooms.server";
+
 import { gameIndexOf, recordRoomEvent } from "./betaRecord.server";
 import { canFinishNow, continueMark, forfeitOutcome, type ContinuePhase } from "./roomFlow";
 import { totalScore } from "./scoring";
@@ -17,8 +28,6 @@ import {
   type TournamentEntry,
 } from "./types";
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
 function nowIso(): string {
   return new Date().toISOString();
 }
@@ -29,20 +38,14 @@ function nowIso(): string {
  * (null to every other), so the beta recording logs each move once.
  */
 export async function setPhase(
-  client: any,
+  client: Db,
   roomId: string,
   round: number,
   from: DuelPhase,
   to: DuelPhase,
 ): Promise<string | null> {
   const at = nowIso();
-  const { data } = await client
-    .from("duels")
-    .update({ phase: to, phase_started_at: at })
-    .eq("id", roomId)
-    .eq("current_round", round)
-    .eq("phase", from)
-    .select("id");
+  const { data } = await movePhase(client, roomId, round, from, to, at);
   return Array.isArray(data) && data.length > 0 ? at : null;
 }
 
@@ -52,7 +55,7 @@ export async function setPhase(
  * → the next round's title (or finished, for older rooms).
  */
 export async function leaveBetweenRoundScreen(
-  client: any,
+  client: Db,
   room: Pick<DuelRow, "id" | "phase" | "round_count"> & Partial<Pick<DuelRow, "tournament_history">>,
   round: number,
 ): Promise<void> {
@@ -75,13 +78,7 @@ export async function leaveBetweenRoundScreen(
   if (room.phase !== "standings") return;
 
   if (lastRound) {
-    const { data: ended } = await client
-      .from("duels")
-      .update({ status: "finished" })
-      .eq("id", room.id)
-      .eq("current_round", round)
-      .eq("phase", "standings")
-      .select("id");
+    const { data: ended } = await finishFromStandings(client, room.id, round);
     // Older rooms end on the last round's standings.
     if (Array.isArray(ended) && ended.length > 0)
       await recordRoomEvent(client, {
@@ -95,32 +92,18 @@ export async function leaveBetweenRoundScreen(
   }
 
   const startedAt = nowIso();
-  await client
-    .from("duels")
-    .update({
-      current_round: round + 1,
-      phase: "round_title",
-      phase_started_at: startedAt,
-      round_started_at: startedAt,
-    })
-    .eq("id", room.id)
-    .eq("current_round", round)
-    .eq("phase", "standings");
+  await startNextRound(client, room.id, round, startedAt);
 }
 
 /** Stores a player's Continue tap; the mark only ever rises. */
 export async function recordContinue(
-  client: any,
+  client: Db,
   playerId: string,
   round: number,
   phase: ContinuePhase,
 ): Promise<void> {
   const mark = continueMark(round, phase);
-  await client
-    .from("duel_players")
-    .update({ ready_round: mark, status: "active", last_seen_at: nowIso() })
-    .eq("id", playerId)
-    .lt("ready_round", mark);
+  await markContinued(client, playerId, mark, nowIso());
 }
 
 /**
@@ -129,7 +112,7 @@ export async function recordContinue(
  * who had gone is stored as left. Round results are never touched.
  */
 export async function finishGame(
-  client: any,
+  client: Db,
   room: Pick<DuelRow, "id" | "status" | "phase" | "current_round" | "disbanded_at"> &
     Partial<Pick<DuelRow, "tournament_history">>,
   players: readonly DuelPlayerRow[],
@@ -141,18 +124,10 @@ export async function finishGame(
   if (!canFinishNow(players, userId, now))
     return { ok: false, message: "Other players are still here." };
 
-  const { data: claimed } = await client
-    .from("duels")
-    .update({ status: "finished" })
-    .eq("id", room.id)
-    .eq("status", "in_progress")
-    .eq("current_round", room.current_round)
-    .eq("phase", room.phase)
-    .select("id")
-    .maybeSingle();
+  const { data: claimed } = await claimFinishNow(client, room.id, room.current_round, room.phase);
   if (!claimed) return { ok: true, finished: false };
   for (const gone of players.filter((p) => p.user_id !== userId && p.status !== "left"))
-    await client.from("duel_players").update({ status: "left" }).eq("id", gone.id);
+    await setPlayerStatus(client, gone.id, "left");
   await recordRoomEvent(client, {
     duel_id: room.id,
     game_index: gameIndexOf(room),
@@ -196,16 +171,12 @@ export function forfeitRecord(
  * back in its lobby); earlier entries and round scores are never changed.
  */
 export async function recordForfeitInHistory(
-  client: any,
+  client: Db,
   roomId: string,
   record: ForfeitRecord,
 ): Promise<boolean> {
-  const { data } = await client
-    .from("duels")
-    .select("tournament_history, status")
-    .eq("id", roomId)
-    .maybeSingle();
-  const history = (data?.tournament_history ?? null) as TournamentEntry[] | null;
+  const { data } = await readRoomHistory(client, roomId);
+  const history = data?.tournament_history ?? null;
   if (!Array.isArray(history) || data?.status !== "waiting") return false;
   if (history.length !== record.historyIndex + 1) return false;
   const entry: TournamentEntry = {
@@ -215,12 +186,9 @@ export async function recordForfeitInHistory(
     forfeit: true,
     forfeited_by: record.forfeitedBy,
   };
-  const { data: written } = await client
-    .from("duels")
-    .update({ tournament_history: [...history.slice(0, record.historyIndex), entry] })
-    .eq("id", roomId)
-    .eq("status", "waiting")
-    .select("id")
-    .maybeSingle();
+  const { data: written } = await writeRoomHistory(client, roomId, [
+    ...history.slice(0, record.historyIndex),
+    entry,
+  ]);
   return !!written;
 }

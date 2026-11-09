@@ -3,6 +3,9 @@
  * minimum move count and its solution stay server-side until the reveal.
  */
 
+import type { Db } from "@/lib/data/db.server";
+import { markUnblockUsed, readLeastUsedUnblockRows } from "@/lib/data/practice.server";
+
 import { pick } from "./random";
 import { occupancy, parseLayout } from "./unblock";
 import { UNBLOCK_BANK } from "./unblockBank.server";
@@ -40,20 +43,12 @@ const UNBLOCK_DRAW_POOL = 100;
  * Picks a layout from the stored bank, avoiding recent ones: only the 100
  * least recently used are candidates, and the pick is stamped as used.
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function drawUnblockRow(client: any): Promise<UnblockBankRow | null> {
+export async function drawUnblockRow(client: Db): Promise<UnblockBankRow | null> {
   try {
-    const { data, error } = await client
-      .from("unblock_bank")
-      .select("id, layout, min_moves, solution")
-      .order("last_used_at", { ascending: true, nullsFirst: true })
-      .limit(UNBLOCK_DRAW_POOL);
+    const { data, error } = await readLeastUsedUnblockRows(client, UNBLOCK_DRAW_POOL);
     if (error || !data?.length) return null;
     const row = pick(data as (UnblockBankRow & { id: number })[]);
-    await client
-      .from("unblock_bank")
-      .update({ last_used_at: new Date().toISOString() })
-      .eq("id", row.id);
+    await markUnblockUsed(client, row.id, new Date().toISOString());
     return row;
   } catch (err) {
     console.error("[unblock] bank draw failed", err);

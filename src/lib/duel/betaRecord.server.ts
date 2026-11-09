@@ -12,14 +12,22 @@
  * slow write is abandoned after RECORD_TIMEOUT_MS.
  */
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
-/** The longest a recording write may hold up the server function it rides on. */
+import {
+  insertAsyncEvent,
+  insertChallengeEvent,
+  insertRoomEvent,
+  insertRoomJoin,
+  insertShareEvent,
+  insertTermsEvent,
+  writeAsyncRoundRecords,
+} from "@/lib/data/beta.server";
+import { UNIQUE_VIOLATION, type Db, type DbError } from "@/lib/data/db.server";
+import { insertPracticePlay } from "@/lib/data/practice.server";
+import { writeRoundRecords } from "@/lib/data/rooms.server";
 import { normaliseInputType } from "@/lib/inputType";
 
+/** The longest a recording write may hold up the server function it rides on. */
 export const RECORD_TIMEOUT_MS = 1_500;
-
-const UNIQUE_VIOLATION = "23505";
 
 /** Which game in the room a row belongs to: the Play again count before it (0 = the first game). */
 export function gameIndexOf(room: { tournament_history?: readonly unknown[] | null }): number {
@@ -29,7 +37,7 @@ export function gameIndexOf(room: { tournament_history?: readonly unknown[] | nu
 /** Runs one recording write; logs and swallows every failure, never waits past the timeout. */
 async function bestEffort(
   label: string,
-  write: () => PromiseLike<{ error?: any } | null | undefined>,
+  write: () => PromiseLike<{ error?: DbError | null } | null | undefined>,
 ) {
   let timer: ReturnType<typeof setTimeout> | undefined;
   try {
@@ -74,9 +82,9 @@ export interface RoomEventRow {
  * One event per (room, game, round, event): a unique index keeps the first, so
  * the several phones and timers that race to move a room record it once.
  */
-export async function recordRoomEvent(client: any, row: RoomEventRow): Promise<void> {
+export async function recordRoomEvent(client: Db, row: RoomEventRow): Promise<void> {
   await bestEffort(`room_events ${row.event} room=${row.duel_id} round=${row.round_number}`, () =>
-    client.from("room_events").insert({ reason: null, ...row }),
+    insertRoomEvent(client, { reason: null, ...row }),
   );
 }
 
@@ -100,9 +108,9 @@ export interface RoomJoinRow {
   rejoin?: boolean;
 }
 
-export async function recordJoin(client: any, row: RoomJoinRow): Promise<void> {
+export async function recordJoin(client: Db, row: RoomJoinRow): Promise<void> {
   await bestEffort(`room_joins room=${row.duel_id} slot=${row.player_slot}`, () =>
-    client.from("room_joins").insert({ rejoin: false, ...row }),
+    insertRoomJoin(client, { rejoin: false, ...row }),
   );
 }
 
@@ -147,15 +155,12 @@ export function roundRecords(
  * A separate best-effort write, so a missing column never fails the start.
  */
 export async function recordRoundRecords(
-  client: any,
+  client: Db,
   duelId: string,
   rounds: readonly RoundRecord[],
 ): Promise<void> {
   await bestEffort(`duel_secrets.round_records room=${duelId}`, () =>
-    client
-      .from("duel_secrets")
-      .update({ round_records: JSON.parse(JSON.stringify(rounds)) })
-      .eq("duel_id", duelId),
+    writeRoundRecords(client, duelId, JSON.parse(JSON.stringify(rounds))),
   );
 }
 
@@ -220,7 +225,7 @@ export function practicePlayRow(input: {
  * best-effort window, so a slow auth lookup can't hold up the graded answer.
  */
 export async function recordPracticePlay(
-  client: any,
+  client: Db,
   makeRow: (userId: string | null) => PracticePlayRow,
   userId?: () => Promise<string | null>,
   inputType?: unknown,
@@ -230,10 +235,10 @@ export async function recordPracticePlay(
     // How it was played (lib/inputType.ts): a database without the column (migration
     // 20261031170000_result_input_type.sql, written but not applied) refuses it, so the row goes again without.
     const typed = normaliseInputType(inputType);
-    if (!typed) return client.from("practice_plays").insert(row);
-    const first = await client.from("practice_plays").insert({ ...row, input_type: typed });
+    if (!typed) return insertPracticePlay(client, row);
+    const first = await insertPracticePlay(client, { ...row, input_type: typed });
     if (first?.error && /input_type/.test(String(first.error.message ?? "") + String(first.error.details ?? ""))) {
-      return client.from("practice_plays").insert(row);
+      return insertPracticePlay(client, row);
     }
     return first;
   });
@@ -244,7 +249,7 @@ export async function recordPracticePlay(
  * attaches to every server call (auth-attacher.ts), or null without one.
  * Practice stays open to callers without a session: this never throws.
  */
-export async function callerUserId(client: any): Promise<string | null> {
+export async function callerUserId(client: Db): Promise<string | null> {
   try {
     const { getRequest } = await import("@tanstack/react-start/server");
     const header = getRequest()?.headers?.get("authorization") ?? "";
@@ -283,22 +288,22 @@ export interface AsyncEventRow {
   at?: string;
 }
 
-export async function recordAsyncEvent(client: any, row: AsyncEventRow): Promise<void> {
+export async function recordAsyncEvent(client: Db, row: AsyncEventRow): Promise<void> {
   await bestEffort(`async_events ${row.event} attempt=${row.attempt_id} round=${row.round_number}`, () =>
-    client.from("async_events").insert({ reason: null, ...row }),
+    insertAsyncEvent(client, { reason: null, ...row }),
   );
 }
 
 /** recordRoundRecords for another table's row (async_room_secrets keyed on room_id), best-effort. */
 export async function recordRoundRecordsFor(
-  client: any,
-  table: string,
-  key: string,
+  client: Db,
+  table: "async_room_secrets",
+  key: "room_id",
   id: string,
   rounds: readonly RoundRecord[],
 ): Promise<void> {
   await bestEffort(`${table}.round_records ${key}=${id}`, () =>
-    client.from(table).update({ round_records: JSON.parse(JSON.stringify(rounds)) }).eq(key, id),
+    writeAsyncRoundRecords(client, id, JSON.parse(JSON.stringify(rounds))),
   );
 }
 
@@ -393,8 +398,8 @@ export function shareEventRow(userId: string, input: Record<string, unknown>): S
 }
 
 /** Writes one share_events row, best-effort (a duplicate arrival is the unique index keeping the first). */
-export async function recordShareEvent(client: any, row: ShareEventRow): Promise<void> {
-  await bestEffort(`share_events ${row.event}`, () => client.from("share_events").insert(row));
+export async function recordShareEvent(client: Db, row: ShareEventRow): Promise<void> {
+  await bestEffort(`share_events ${row.event}`, () => insertShareEvent(client, row));
 }
 
 /* ------------------------------------------------- friend challenges ---- */
@@ -414,9 +419,9 @@ export interface ChallengeEventRow {
   source?: "play" | "room" | null;
 }
 
-export async function recordChallengeEvent(client: any, row: ChallengeEventRow): Promise<void> {
+export async function recordChallengeEvent(client: Db, row: ChallengeEventRow): Promise<void> {
   await bestEffort(`challenge_events ${row.event} code=${row.code ?? "-"}`, () =>
-    client.from("challenge_events").insert({ source: null, ...row }),
+    insertChallengeEvent(client, { source: null, ...row }),
   );
 }
 
@@ -442,6 +447,6 @@ export function termsEventRow(userId: string, input: Record<string, unknown>): T
   return { user_id: userId, terms_version: version as number, agreed_at: new Date(agreedAt).toISOString() };
 }
 
-export async function recordTermsAgreed(client: any, row: TermsEventRow): Promise<void> {
-  await bestEffort(`terms_events v${row.terms_version}`, () => client.from("terms_events").insert(row));
+export async function recordTermsAgreed(client: Db, row: TermsEventRow): Promise<void> {
+  await bestEffort(`terms_events v${row.terms_version}`, () => insertTermsEvent(client, row));
 }

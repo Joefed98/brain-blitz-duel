@@ -42,7 +42,8 @@ import { stampTieRev } from "./tieBreak";
 import type { UnblockBankRow } from "./unblock.server";
 import type { PuzzleData, PuzzleType } from "./types";
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
+import type { Db } from "@/lib/data/db.server";
+import { probeAsyncRoomKey } from "@/lib/data/async.server";
 
 export { DAILY_COUNT_MIN };
 
@@ -83,7 +84,7 @@ export function dealDaily(
 }
 
 export async function dailyRoom(
-  client: any,
+  client: Db,
   kind: DailyKind,
   day: string,
 ): Promise<AsyncRoomRow | null> {
@@ -92,7 +93,7 @@ export async function dailyRoom(
 
 /** Today's room for a daily, dealt and stored now if no one has started it yet. */
 export async function ensureDailyRoom(
-  client: any,
+  client: Db,
   kind: DailyKind,
   nowMs: number,
   createdBy: string | null,
@@ -166,7 +167,7 @@ function ranked(room: AsyncRoomRow, attempts: readonly AsyncAttemptRow[], nowMs:
  * as the players set them; no answers, round scores or times of anyone else ever.
  */
 export async function dailyBoard(
-  client: any,
+  client: Db,
   kind: DailyKind,
   day: string,
   userId: string,
@@ -211,7 +212,7 @@ export async function dailyBoard(
 }
 
 async function stateFor(
-  client: any,
+  client: Db,
   kind: DailyKind,
   day: string,
   userId: string,
@@ -234,7 +235,7 @@ async function stateFor(
 
 /** Both dailies' state for this device today; `available: false` before the migration is applied. */
 export async function dailyStatus(
-  client: any,
+  client: Db,
   userId: string | null,
   nowMs: number,
 ): Promise<DailyStatus> {
@@ -242,11 +243,7 @@ export async function dailyStatus(
   const { closesAt } = ukDayWindow(day);
   const base = { day, closesAt };
   // The tables must exist: any read error (no table yet) hides the daily everywhere.
-  const probe = await client
-    .from("async_rooms")
-    .select("id")
-    .eq("room_key", dailyRoomKey("puzzle", day))
-    .maybeSingle();
+  const probe = await probeAsyncRoomKey(client, dailyRoomKey("puzzle", day));
   if (probe?.error)
     return { available: false, ...base, puzzle: { state: "play" }, arcade: { state: "play" } };
   const { challengesAvailable } = await import("./challenge.server");

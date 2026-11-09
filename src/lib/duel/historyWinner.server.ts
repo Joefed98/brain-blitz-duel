@@ -11,6 +11,9 @@
  * scores are never changed. A forfeited game is recorded by
  * recordForfeitInHistory (roomPhase.server.ts) instead.
  */
+import type { Db } from "@/lib/data/db.server";
+import { readRoomHistory, writeRoomHistory } from "@/lib/data/rooms.server";
+
 import { standings } from "./scoring";
 import { roomScoringMode } from "./scoringMode";
 import { roomTieRounds } from "./tieBreak";
@@ -22,7 +25,6 @@ import {
   type TournamentEntry,
 } from "./types";
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
 
 export interface TieWinnerRecord {
   /** The history length before Play again appends this game's entry. */
@@ -63,27 +65,20 @@ export function tieWinnerRecord(
 
 /** Writes the standings' winner over the entry Play again's reset just appended. */
 export async function recordTieWinnerInHistory(
-  client: any,
+  client: Db,
   roomId: string,
   record: TieWinnerRecord,
 ): Promise<boolean> {
-  const { data } = await client
-    .from("duels")
-    .select("tournament_history, status")
-    .eq("id", roomId)
-    .maybeSingle();
-  const history = (data?.tournament_history ?? null) as TournamentEntry[] | null;
+  const { data } = await readRoomHistory(client, roomId);
+  const history = data?.tournament_history ?? null;
   if (!Array.isArray(history) || data?.status !== "waiting") return false;
   if (history.length !== record.historyIndex + 1) return false;
   const saved = history[record.historyIndex]!;
   if (saved.winner === record.winner && saved.score === record.score) return true;
   const entry: TournamentEntry = { ...saved, winner: record.winner, score: record.score };
-  const { data: written } = await client
-    .from("duels")
-    .update({ tournament_history: [...history.slice(0, record.historyIndex), entry] })
-    .eq("id", roomId)
-    .eq("status", "waiting")
-    .select("id")
-    .maybeSingle();
+  const { data: written } = await writeRoomHistory(client, roomId, [
+    ...history.slice(0, record.historyIndex),
+    entry,
+  ]);
   return !!written;
 }

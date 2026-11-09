@@ -1,3 +1,5 @@
+import type { Db } from "@/lib/data/db.server";
+import { writeInputType, type InputTypeTable } from "@/lib/data/results.server";
 import { normaliseInputType } from "@/lib/inputType";
 
 /** What recording a result's input type came to; never read by grading or scoring. */
@@ -17,8 +19,8 @@ export type InputTypeRecord =
  * 20261031170000_result_input_type.sql, written but not applied) now logs that error on each result.
  */
 export async function recordInputType(
-  client: any, // eslint-disable-line @typescript-eslint/no-explicit-any
-  table: "round_results" | "async_results",
+  client: Db,
+  table: InputTypeTable,
   match: Record<string, string | number>,
   value: unknown,
 ): Promise<InputTypeRecord> {
@@ -34,9 +36,7 @@ export async function recordInputType(
     return { ok: false, inputType, error };
   };
   try {
-    let query = client.from(table).update({ input_type: inputType });
-    for (const [key, v] of Object.entries(match)) query = query.eq(key, v);
-    const { data, error } = (await query.select("id")) ?? {};
+    const { data, error } = await writeInputType(client, table, match, inputType);
     if (error) return failed(String(error.message ?? error.code ?? "update failed"));
     if (!Array.isArray(data) || data.length === 0) return failed("no stored result matched");
     return { ok: true, inputType };
