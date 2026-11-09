@@ -14,6 +14,8 @@
  *   equals practice's grade of the stored answer, input_type written), reveal (refused before the round ends),
  *   continue, the winner reveal and finish, Play again (host only; results cleared, winner archived, players
  *   kept), leave (a leaving host disbands), heartbeat, the stale-host RPC and disband (host only);
+ * - heartbeats (Speed fix 3): stored in duel_presence, outside the realtime publication, the room's last-seen times in
+ *   the reply (members only), the stale-host RPC reading both columns, and the player-row write before the migration;
  * - RLS through a device's own client: no direct writes to rooms or results, no reading duel_secrets;
  * - chat: send (members only, the gap rule), report (read through the caller's RLS), host-only mute, reactions;
  * - the daily: status, start (one attempt per device), board;
@@ -130,6 +132,7 @@ try {
 
 async function runAll(db: LocalDb, rest: RestServer): Promise<void> {
   const duel = await import("../src/lib/duel/duel.functions");
+  const presence = await import("../src/lib/duel/presence.server");
   const chat = await import("../src/lib/duel/chat.functions");
   const daily = await import("../src/lib/duel/daily.functions");
   const asyncFns = await import("../src/lib/duel/asyncRoom.functions");
@@ -805,6 +808,57 @@ async function runAll(db: LocalDb, rest: RestServer): Promise<void> {
       ),
       "play again: the room keeps its settings",
     );
+  });
+
+  /* Speed fix 3 (9 Nov 2026): heartbeats go to duel_presence (no realtime) and come back in the reply. */
+  await section("heartbeat presence", async () => {
+    const seenOf = (user: string) =>
+      q(`SELECT last_seen_at FROM public.duel_players WHERE duel_id = '${roomId}' AND user_id = '${user}'`);
+    check(
+      q(`SELECT count(*) FROM pg_publication_tables WHERE pubname = 'supabase_realtime' AND tablename = 'duel_presence'`) === "0" &&
+        q(`SELECT count(*) FROM pg_publication_tables WHERE pubname = 'supabase_realtime' AND tablename = 'duel_players'`) === "1",
+      "presence: duel_presence is not in the realtime publication (duel_players still is)",
+    );
+    const rowBefore = seenOf(BO);
+    const beat = (await call(duel.heartbeatFn, { roomId }, tok.bo)) as { ok: boolean; seen?: Record<string, string> };
+    check(
+      beat.ok === true && !!beat.seen?.[BO] && !!beat.seen?.[ALI] &&
+        q(`SELECT count(*) FROM public.duel_presence WHERE duel_id = '${roomId}' AND user_id = '${BO}'`) === "1",
+      "heartbeat: stored in duel_presence; the reply carries the room's last-seen times",
+    );
+    check(seenOf(BO) === rowBefore, "heartbeat: the player row (realtime-published) is not written");
+    const outsider = (await call(duel.heartbeatFn, { roomId }, tok.dee)) as { ok: boolean; seen?: unknown };
+    check(
+      outsider.ok === true && outsider.seen === undefined &&
+        q(`SELECT count(*) FROM public.duel_presence WHERE user_id = '${DEE}'`) === "0",
+      "heartbeat: an outsider stores nothing and is told nothing",
+    );
+    const read = await deviceClient(tok.bo).from("duel_presence").select("*");
+    check(!!read.error || (read.data ?? []).length === 0, "presence: a device can't read duel_presence");
+    // The stale-host RPC reads the later of the two columns: an old player row with a fresh heartbeat stays open.
+    const hostRow = seenOf(ALI);
+    q(`UPDATE public.duel_players SET last_seen_at = now() - interval '10 minutes' WHERE duel_id = '${roomId}' AND user_id = '${ALI}'`);
+    await call(duel.heartbeatFn, { roomId }, tok.ali);
+    check(
+      (await call(duel.checkHostPresenceFn, { roomId }, tok.bo)).ok === true && phaseOf().startsWith("waiting"),
+      "host presence: a host seen through duel_presence keeps the room open",
+    );
+    q(`UPDATE public.duel_players SET last_seen_at = '${hostRow}' WHERE duel_id = '${roomId}' AND user_id = '${ALI}'`);
+    // Before the migration (no table): the heartbeat writes the player row as it always did.
+    q(`ALTER TABLE public.duel_presence RENAME TO duel_presence_off`);
+    presence.resetPresenceCache();
+    try {
+      const old = (await call(duel.heartbeatFn, { roomId }, tok.bo)) as { ok: boolean; seen?: Record<string, string> };
+      check(
+        old.ok === true && !!old.seen?.[BO] && seenOf(BO) !== rowBefore,
+        "heartbeat without duel_presence: the player row is written and the reply carries its times",
+      );
+      const out = (await call(duel.heartbeatFn, { roomId }, tok.dee)) as { ok: boolean; seen?: unknown };
+      check(out.ok === true && out.seen === undefined, "heartbeat without duel_presence: an outsider is told nothing");
+    } finally {
+      q(`ALTER TABLE public.duel_presence_off RENAME TO duel_presence`);
+      presence.resetPresenceCache();
+    }
   });
 
   await section("leave/disband", async () => {

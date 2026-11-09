@@ -34,6 +34,7 @@ import {
 import { loadRoundReveal } from "./reveal.server";
 import { finishedBeforeBuzzer } from "./buzzer";
 import { clearSubmitted, markSubmitted } from "./finishedPing.server";
+import { recordHeartbeat, withPresence } from "./presence.server";
 import {
   changePlayerLook,
   hasLookColumns,
@@ -128,6 +129,14 @@ async function getPlayers(client: any, roomId: string): Promise<DuelPlayerRow[]>
     .order("player_slot");
   if (error) throw dbError(error, "duel");
   return (data ?? []) as DuelPlayerRow[];
+}
+
+/**
+ * The players with each one's last seen from the heartbeat table as well (presence.server.ts, Speed fix 3): for the
+ * calls whose rules ask who is still connected (advance, READY, Continue, Finish now).
+ */
+async function getPlayersSeen(client: any, roomId: string): Promise<DuelPlayerRow[]> {
+  return withPresence(client, roomId, await getPlayers(client, roomId));
 }
 
 /** Players still in the room (anyone who has not tapped Leave). */
@@ -763,7 +772,7 @@ export const advancePhaseFn = createServerFn({ method: "POST" })
     const phaseStart = stamp ? Date.parse(stamp) : Date.now();
     const elapsed = Date.now() - phaseStart;
     const puzzle = room.puzzles_public[round - 1];
-    const players = await getPlayers(client, room.id);
+    const players = await getPlayersSeen(client, room.id);
     const waitingOn = activePlayers(players);
 
     if (room.phase === "starting") {
@@ -1013,7 +1022,7 @@ export const readyUpFn = createServerFn({ method: "POST" })
       .eq("id", player.id)
       .lt("intro_ready_round", round);
 
-    const players = await getPlayers(client, room.id);
+    const players = await getPlayersSeen(client, room.id);
     if (allIntroReady(players, round, Date.now())) await startIntroCountdown(client, room, round);
     return { ok: true as const };
   });
@@ -1042,7 +1051,7 @@ export const continueFn = createServerFn({ method: "POST" })
     }
     await recordContinue(client, player.id, round, room.phase);
 
-    const players = await getPlayers(client, room.id);
+    const players = await getPlayersSeen(client, room.id);
     if (allContinued(players, round, room.phase, Date.now()))
       await leaveBetweenRoundScreen(client, room, round);
     return { ok: true as const };
@@ -1061,7 +1070,7 @@ export const finishNowFn = createServerFn({ method: "POST" })
     const client = await db();
     await requireParticipant(client, data.roomId, context.userId);
     const room = await getRoom(client, data.roomId);
-    const players = await getPlayers(client, room.id);
+    const players = await getPlayersSeen(client, room.id);
     const result = await finishGame(client, room, players, context.userId, Date.now());
     if (!result.ok) return { ok: false as const, message: result.message };
     return { ok: true as const };
@@ -1071,13 +1080,12 @@ export const heartbeatFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { roomId: string }) => input)
   .handler(async ({ data, context }) => {
+    // Speed fix 3: the heartbeat no longer reaches every phone through realtime; its reply carries the room's
+    // last-seen times instead (presence.server.ts), and only to a player of the room.
+    if (!isUuid(data.roomId)) return { ok: true as const };
     const client = await db();
-    await client
-      .from("duel_players")
-      .update({ last_seen_at: nowIso() })
-      .eq("duel_id", data.roomId)
-      .eq("user_id", context.userId);
-    return { ok: true };
+    const seen = await recordHeartbeat(client, data.roomId, context.userId, nowIso());
+    return seen ? { ok: true as const, seen } : { ok: true as const };
   });
 
 /**

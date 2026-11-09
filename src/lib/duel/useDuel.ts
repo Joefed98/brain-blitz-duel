@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { batched, usePageHidden } from "@/lib/battery";
 import { useArcadeScreenTickMs } from "@/lib/fx/useArcadeScreenTick";
@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { checkHostPresence, fetchDuelByCode, fetchPlayers, fetchResults, heartbeat } from "./api";
 import { calibrateServerClock, initServerClock, serverNow } from "./clock";
 import { roomTickMs } from "./roomTick";
+import { applyPlayerUpdate, noteSeen, withSeen, type SeenMap } from "./roomSeen";
 import { ensureSession } from "./session";
 import { type DuelPlayerRow, type DuelRow, type RoundResultRow } from "./types";
 
@@ -44,7 +45,20 @@ export function useDuel(roomCode: string): DuelState {
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [duel, setDuel] = useState<DuelRow | null>(null);
-  const [players, setPlayers] = useState<DuelPlayerRow[]>([]);
+  const [rows, setPlayers] = useState<DuelPlayerRow[]>([]);
+  // Speed fix 3 (9 Nov 2026): when each player was last seen, from this phone's heartbeat replies (and, on a database
+  // without duel_presence, the player rows' realtime updates); laid over the rows below (roomSeen.ts).
+  const seenRef = useRef<SeenMap>(new Map());
+  const [seenTick, setSeenTick] = useState(0);
+  const noteRoomSeen = useCallback((record: Record<string, string> | null | undefined) => {
+    if (noteSeen(seenRef.current, record)) setSeenTick((n) => n + 1);
+  }, []);
+  const players = useMemo(() => withSeen(rows, seenRef.current), [rows, seenTick]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    seenRef.current = new Map();
+  }, [roomCode]);
+  const playersRef = useRef<DuelPlayerRow[]>(rows);
+  playersRef.current = rows;
   const [results, setResults] = useState<RoundResultRow[]>([]);
   const [userId, setUserId] = useState<string | null>(null);
   const duelIdRef = useRef<string | null>(null);
@@ -66,6 +80,9 @@ export function useDuel(roomCode: string): DuelState {
       return;
     }
     duelIdRef.current = found.id;
+    // The room's last-seen times come with a heartbeat (no longer with every player row's realtime change), so one is
+    // sent with each full read: back from the background, the rows and the times arrive together.
+    const beat = heartbeat(found.id).catch(() => null);
     // Both at once when this device's slot is known; otherwise the players first, since the results carry
     // only this slot's own answers (roomResults.ts).
     let nextPlayers: DuelPlayerRow[];
@@ -77,12 +94,13 @@ export function useDuel(roomCode: string): DuelState {
       nextPlayers = notePlayers(await fetchPlayers(found.id));
       nextResults = await fetchResults(found.id, mySlotRef.current);
     }
+    noteRoomSeen(await beat);
     setDuel(found);
     setPlayers(nextPlayers);
     setResults(nextResults);
     setNotFound(false);
     setLoading(false);
-  }, [roomCode, notePlayers]);
+  }, [roomCode, notePlayers, noteRoomSeen]);
 
   // This device's anonymous identity has to exist before anything is readable.
   useEffect(() => {
@@ -109,12 +127,16 @@ export function useDuel(roomCode: string): DuelState {
     };
   }, [load]);
 
-  // Realtime: both phones react to duel, player and result changes instantly. Battery (31 Oct 2026):
-  // player and result refetches are batched to at most one a second (every player's 4 s heartbeat is a
-  // duel_players change, so a full room sent several a second); the first change still fetches at once.
+  // Realtime: every phone reacts to room, player and result changes instantly. Battery (31 Oct 2026): player and
+  // result refetches are batched to at most one a second; the first change still fetches at once.
+  // Speed fix 3 (9 Nov 2026; docs/audit-nov-2026/performance.md item 3, security audit L6): the channel is opened once
+  // the room's id is known and subscribes to this room's rows only (`filter`), so Realtime no longer checks every
+  // change in every room against every phone. A player row's update is applied in place (a heartbeat's time alone
+  // redraws nothing); only a new row, or one that can't be applied, reads the list afresh.
   const [live, setLive] = useState(false);
+  const roomId = duel?.id ?? null;
   useEffect(() => {
-    if (!userId) return;
+    if (!userId || !roomId) return;
     const players = batched(() => {
       const id = duelIdRef.current;
       if (id) void fetchPlayers(id).then((list) => setPlayers(notePlayers(list)));
@@ -125,22 +147,34 @@ export function useDuel(roomCode: string): DuelState {
     });
     const channel = supabase
       .channel(`duel-${roomCode}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "duels" }, (payload) => {
+      .on("postgres_changes", { event: "*", schema: "public", table: "duels", filter: `id=eq.${roomId}` }, (payload) => {
         const row = payload.new as DuelRow | undefined;
         if (row?.id && row.id === duelIdRef.current) setDuel(row);
       })
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "duel_players" },
+        { event: "*", schema: "public", table: "duel_players", filter: `duel_id=eq.${roomId}` },
         (payload) => {
           const row = (payload.new ?? payload.old) as DuelPlayerRow | undefined;
           if (!row || row.duel_id !== duelIdRef.current) return;
+          if (payload.eventType === "UPDATE") {
+            const next = applyPlayerUpdate(playersRef.current, payload.new as Partial<DuelPlayerRow>);
+            if (next === "seen") {
+              noteRoomSeen({ [row.user_id]: row.last_seen_at });
+              return;
+            }
+            if (next !== "refetch") {
+              playersRef.current = next;
+              setPlayers(notePlayers(next));
+              return;
+            }
+          }
           players.call();
         },
       )
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "round_results" },
+        { event: "*", schema: "public", table: "round_results", filter: `duel_id=eq.${roomId}` },
         (payload) => {
           const row = (payload.new ?? payload.old) as RoundResultRow | undefined;
           if (!row || row.duel_id !== duelIdRef.current) return;
@@ -160,7 +194,7 @@ export function useDuel(roomCode: string): DuelState {
       setLive(false);
       void supabase.removeChannel(channel);
     };
-  }, [roomCode, userId]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [roomCode, userId, roomId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Other players' answers become readable when a round closes (results screen),
   // with no round_results event to announce them: fetch on every phase change.
@@ -208,8 +242,10 @@ export function useDuel(roomCode: string): DuelState {
   useEffect(() => {
     if (!me || hidden) return;
     const duelId = me.duel_id;
-    void heartbeat(duelId);
-    const id = window.setInterval(() => void heartbeat(duelId), 4000);
+    // Its reply carries the room's last-seen times (Speed fix 3), which is how this phone sees the others.
+    const beat = () => void heartbeat(duelId).then(noteRoomSeen, () => {});
+    beat();
+    const id = window.setInterval(beat, 4000);
     return () => window.clearInterval(id);
   }, [me?.id, hidden]); // eslint-disable-line react-hooks/exhaustive-deps
 

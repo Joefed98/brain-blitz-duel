@@ -72,6 +72,16 @@ Turnstile, which needs a client change.
 The API keys exist in both kinds: legacy `anon` / `service_role`, and the new `publishable` / `secret`. The generated
 clients handle either (investigation section 2.3). No key was copied anywhere.
 
+### 1.4 Later migrations
+
+Applied the same way as 1.2: one Management API request, the file in `BEGIN; … COMMIT;` with its row in
+`supabase_migrations.schema_migrations`. The applier skips every version already recorded.
+
+| Date | File | Result |
+|---|---|---|
+| 9 Nov 2026 | `20261109120000_submitted_round_max_rounds` | applied, no errors. `duel_players_submitted_round_range` is now `CHECK (submitted_round >= 0 AND submitted_round <= 12)`, the only check on the column. The column is unchanged: integer, NOT NULL, default 0. History: 45 rows, the latest `20261109120000`. No stored row changed; the table was empty. |
+| 9 Nov 2026 | `20261109130000_room_presence` | applied, no errors. **`duel_presence`** exists: `duel_id`, `user_id`, `last_seen_at` (timestamptz, NOT NULL, default `now()`), primary key `(duel_id, user_id)`, and a foreign key to `duel_players (duel_id, user_id)` ON DELETE CASCADE. RLS is on with no policies; only `service_role` has privileges (`anon` and `authenticated` have none). It is **not** in `supabase_realtime`, which still holds exactly `duels`, `duel_players`, `round_results` and `room_messages`. **`disband_stale_room`** is replaced: it LEFT JOINs `duel_presence` and tests `greatest(p.last_seen_at, s.last_seen_at)`, the later of the two last-seen times; it stays SECURITY DEFINER and executable by `service_role` only. Behaviour test (four waiting rooms, rolled back afterwards): a stale host with no presence row is disbanded; fresh presence keeps the room; both stale disbands; a fresh `duel_players` time with stale presence keeps the room. A presence row for someone not in the room is refused by the foreign key; deleting the player deletes its presence row. History: 46 rows, the latest `20261109130000`. The test left no rows. |
+
 ---
 
 ## 2. Verification results
@@ -141,13 +151,15 @@ Trigger: `challenge_attempt_cap BEFORE INSERT ON public.async_attempts FOR EACH 
   `duels` was refused 403 (no grant). The test user was then deleted. `auth.users` is back to 0 rows, and every
   public table is empty.
 
-### 2.6 Found while checking (not changed)
+### 2.6 Found while checking, since fixed
 
-- **`duel_players_submitted_round_range` allows 0–7**, from `20261017140000_player_submitted_round`. Rooms have
+- **`duel_players_submitted_round_range` allowed only 0–7**, from `20261017140000_player_submitted_round`. Rooms have
   allowed up to 12 rounds since room settings (31 Oct 2026). `markSubmitted` (`src/lib/duel/finishedPing.server.ts`)
-  is best effort, so in rounds 8–12 the write fails quietly and no "finished" pings show. Submitting and grading are
-  unaffected. This is the same on Lovable Cloud today. Fixing it is a new migration (widen to 0–12, or drop the
-  upper bound) in an app PR. It was left out of this docs-only step.
+  is best effort, so in rounds 8–12 the write failed quietly and no "finished" pings showed. Submitting and grading
+  were unaffected.
+- **Fixed** by `20261109120000_submitted_round_max_rounds` (merged to `main` on 9 Nov 2026), which widens the check
+  to 0–12. It is applied on the new project (section 1.4). On Lovable Cloud it is still to apply, which matters only
+  until the switch.
 
 ---
 
@@ -340,7 +352,11 @@ Step numbers are investigation section 8.1's (route A). This runbook covers its 
 | 4 | Carry over `unblock_bank` and `intro_demos` (section 3 here), and confirm the md5s match. | Joe (export), Claude (load) | **done (section 3.6)** |
 | 5 | Rehearsal on a Lovable remix pointed at the new project: set `SUPABASE_SERVICE_ROLE_KEY` (or the `sb_secret_` key), `INTRO_DEMO_KEY` and `PRACTICE_SEAL_KEY` (the same value as live, if set); then a 2-phone room, practice, a daily, a challenge, chat and Play again. | Joe (phones); Claude for a checklist | open |
 | 6 | Switchover evening (investigation 8.2), with the rollback stance decided first (8.3). | Joe | open |
-| 7 | Follow-up PR: `supabase/config.toml`'s `project_id`, the docs that name the old project, the "written but not applied" notes (CLAUDE.md, `docs/beta-sql.md`), and the `submitted_round` range (2.6). | Claude | open |
+| 7 | Follow-up PR: `supabase/config.toml`'s `project_id`, the docs that name the old project, the "written but not applied" notes (CLAUDE.md, `docs/beta-sql.md`), (the `submitted_round` range is done: 2.6). | Claude | open |
+
+Route B, step 2 (investigation 8.4 row 2): the Cloudflare deploy workflow, `.github/workflows/deploy-cloudflare.yml`,
+deploys `main` to the Worker `joulz` on workers.dev only (no joulz.uk route). Setup, measurements and Joe's dashboard steps:
+`docs/supabase-move/cloudflare-deploy.md`.
 
 Decisions still open for Joe (investigation 8.5): D1 (blocks route A), D2, D3, D4 (only the two tables is the plan
 here), D5 (`PRACTICE_SEAL_KEY` value), D6 (PITR; the 30-an-hour anonymous limit and Turnstile, section 1.3), D7
