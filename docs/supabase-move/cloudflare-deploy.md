@@ -28,7 +28,11 @@ Steps:
    missing from the browser bundle. A second guard requires the publishable key in the browser bundle to be exactly
    `SUPABASE_PUBLISHABLE_KEY`: every occurrence of the key in `.output` must be a whole string literal (the same
    quote right before and after), so a key baked with an escaped or real newline, or a missing key, fails the run.
-5. A dry run writes the bundle size to the job summary.
+5. A guard fails the run unless the generated `wrangler.json` (the one `.wrangler/deploy/config.json` points at) has
+   Workers Logs on: `observability.enabled`, `logs.enabled`, `logs.invocation_logs` and `logs.persist` all true.
+   `wrangler deploy` sets the Worker's observability from its config, so a config without it turned logs off on every
+   deploy; since 9 Nov 2026 `vite.config.ts` (`WORKER_OBSERVABILITY`, through nitro's `cloudflare.wrangler`) adds it,
+   every request logged (`head_sampling_rate` 1). Then a dry run writes the bundle size to the job summary.
 6. `wrangler deploy --name joulz --compatibility-date 2026-10-15 --secrets-file <temp file>`: the code and the five
    runtime secrets (`SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `PRACTICE_SEAL_KEY`,
    `INTRO_DEMO_KEY`) go up as **one version**, so there is no moment without secrets. The temp file is written by
