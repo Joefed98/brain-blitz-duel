@@ -16,6 +16,7 @@
  * an Ascend tap on a number not on the board is kept as a wrong tap. Which taps
  * were made, and when, remain the phone's; what they earn is the server's.
  */
+import { dealPinned, setDealPin } from "./dealEra";
 import { dealtTopupRev } from "./depthTopup";
 import { TAP_REV_PER_ITEM, preNov7Pinned } from "./speedPipesNov7";
 import { watchLifeMs, watchStop } from "./stopWatch";
@@ -76,18 +77,17 @@ export const TAP_REV_TOPUP = 6;
  */
 export { TAP_REV_PER_ITEM };
 
-let preDepthPin = false;
 /**
  * Checks written for the stamps rooms dealt before Depth to 200 (Flash and Bang On tapRev 4, Ascend tapRev 1) pin
  * new puzzles to them, so they keep proving what they were written for; the depth checks prove tapRev 5. Never
  * called by app code.
  */
 export function pinPreDepthTapRev(on: boolean): void {
-  preDepthPin = on;
+  setDealPin("preDepthTapRev", on);
 }
 /** The tapRev new puzzles of a tap-log game are dealt. */
 export function dealtTapRev(type: "reaction" | "stopwatch" | "numhunt"): number {
-  if (!preDepthPin) return type === "numhunt" ? TAP_REV_DEPTH : dealtTopupRev(preNov7Pinned() ? TAP_REV_TOPUP : TAP_REV_PER_ITEM, TAP_REV_DEPTH);
+  if (!dealPinned("preDepthTapRev")) return type === "numhunt" ? TAP_REV_DEPTH : dealtTopupRev(preNov7Pinned() ? TAP_REV_TOPUP : TAP_REV_PER_ITEM, TAP_REV_DEPTH);
   return type === "numhunt" ? TAP_REV : TAP_REV_ONE_CURVE;
 }
 /** Every tap-log answer starts with this, so a summary answer is never misread as taps. */

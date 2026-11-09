@@ -8,21 +8,18 @@
  * Each game deals its new stamp only while nothing older is pinned: a check that pins an earlier stamp (the
  * top-up's, the depth sessions', or this batch's own pin) keeps getting exactly what it was written for.
  */
+import { dealPinned, setDealPin } from "./dealEra";
 import { dealsD5Remodels } from "./d5Remodels";
 import { preTopupPinned } from "./depthTopup";
 import { preDepthPinned } from "./wordDepth";
 
-let pinned = false;
-
 /** Checks written for the stamps before these notes pin new deals to them (returns the previous setting). */
 export function pinPrePhoneNotes(on: boolean): boolean {
-  const prev = pinned;
-  pinned = on;
-  return prev;
+  return setDealPin("prePhoneNotes", on);
 }
 
 export function prePhoneNotesPinned(): boolean {
-  return pinned;
+  return dealPinned("prePhoneNotes");
 }
 
 /**
@@ -31,6 +28,6 @@ export function prePhoneNotesPinned(): boolean {
  * pins an earlier batch (the puzzle top-up, the word depth or the D5 remodels: a world before those is before these).
  */
 export function dealtNotesRev<T>(notesRev: T, liveRev: T, dealt: T = liveRev): T {
-  if (pinned || preTopupPinned() || preDepthPinned() || !dealsD5Remodels() || dealt !== liveRev) return dealt;
+  if (dealPinned("prePhoneNotes") || preTopupPinned() || preDepthPinned() || !dealsD5Remodels() || dealt !== liveRev) return dealt;
   return notesRev;
 }

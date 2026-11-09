@@ -26,6 +26,7 @@
  * live streak; the server grades with numberDepth.server.ts). Floats only in display helpers; scores are
  * rounded integers.
  */
+import { dealPinned, setDealPin } from "./dealEra";
 import { dealtPuzzleScoreRev } from "./puzzleScoreRev";
 import type { PuzzleType } from "./types";
 
@@ -77,18 +78,17 @@ export function depthRevOf(puzzle: unknown): number {
   return typeof rev === "number" && Number.isFinite(rev) ? rev : 0;
 }
 
-let depthPinnedOff = false;
 /**
  * Checks that prove rounds dealt before depthRev 1 (their numbers are puzzleScoreRev 3's 150 shape) pin new
  * puzzles to that shape, as pinDealtPuzzleScoreRev does for older score revisions. Never called by app code.
  */
 export function pinNumberDepth(off: boolean): void {
-  depthPinnedOff = off;
+  setDealPin("numberDepthOff", off);
 }
 
 /** True when new Number puzzles are dealt on the depth stamp (puzzleScoreRev 3 and not pinned by a check). */
 export function numberDepthDealt(): boolean {
-  return !depthPinnedOff && dealtPuzzleScoreRev() >= 3;
+  return !dealPinned("numberDepthOff") && dealtPuzzleScoreRev() >= 3;
 }
 
 /** The depth stamp rooms deal this game today (0: not a depth game). */
