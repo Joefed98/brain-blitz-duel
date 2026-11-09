@@ -141,6 +141,21 @@ const quiet = { log: () => {} };
 const mig = (version: string, name: string, sql: string): Migration => ({ file: `${version}_${name}.sql`, version, name, sql });
 const one = (pg: LocalDb, sql: string) => pg.psql(sql).out;
 
+/** What PUBLIC (any role), anon and authenticated may do with migration_log: nothing ('t' would be a right). */
+const MIGRATION_LOG_PRIVS = ["anon", "authenticated"]
+  .flatMap((role) => [
+    `has_schema_privilege('${role}', 'migration_log', 'USAGE')`,
+    `has_schema_privilege('${role}', 'migration_log', 'CREATE')`,
+    `has_function_privilege('${role}', 'migration_log.note(text, text)', 'EXECUTE')`,
+    `has_table_privilege('${role}', 'migration_log.notes', 'SELECT, INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER')`,
+    `has_sequence_privilege('${role}', 'migration_log.notes_id_seq', 'USAGE, SELECT, UPDATE')`,
+  ])
+  .concat([
+    "(SELECT count(*) > 0 FROM pg_namespace n, aclexplode(coalesce(n.nspacl, acldefault('n', n.nspowner))) a WHERE n.nspname = 'migration_log' AND a.grantee = 0)",
+    "(SELECT count(*) > 0 FROM pg_proc p, aclexplode(coalesce(p.proacl, acldefault('f', p.proowner))) a WHERE p.oid = 'migration_log.note(text, text)'::regprocedure AND a.grantee = 0)",
+  ]);
+const migrationLogLocked = (pg: LocalDb) => one(pg, `SELECT ${MIGRATION_LOG_PRIVS.join(" OR ")};`) === "f";
+
 /* ------------------------------------------------------- 5a. psql's notes */
 
 {
@@ -196,11 +211,35 @@ if (!postgresBin()) {
         "a history row carries the file's name and its SQL",
       );
       check(one(pg, "SELECT to_regclass('public.duel_presence') IS NOT NULL;") === "t", "the latest migration's table exists");
+      check(migrationLogLocked(pg), "after the whole history, PUBLIC, anon and authenticated have no right on migration_log, its table, sequence or note()");
       const again = await applyPending(db, history, quiet);
       check(again.pending.length === 0 && again.refused.length === 0, "a second run has nothing pending (and the guard sees no new file)");
       // The same guard on live would refuse the three old destructive files if the history were empty.
       const fresh = await applyPending({ appliedVersions: async () => new Set(), exec: async () => {} }, history, { dryRun: true, ...quiet });
       check(fresh.refused.length === 3 && fresh.applied.length === 0, "with no history, the guard refuses the three destructive files before anything runs");
+    } finally {
+      pg.stop();
+    }
+  }
+
+  // 3a'. migration_log stays closed even where default privileges would grant everything to anon and authenticated
+  // (as Supabase's do in public): its revokes are explicit, not left to the defaults.
+  {
+    const pg = startLocalDb("migrations-check-", { applyMigrations: false });
+    try {
+      const grants = pg.psql(
+        "ALTER DEFAULT PRIVILEGES GRANT ALL ON TABLES TO anon, authenticated; ALTER DEFAULT PRIVILEGES GRANT ALL ON SEQUENCES TO anon, authenticated; ALTER DEFAULT PRIVILEGES GRANT ALL ON FUNCTIONS TO anon, authenticated; ALTER DEFAULT PRIVILEGES GRANT ALL ON SCHEMAS TO anon, authenticated;",
+      );
+      check(grants.ok, `the wide default privileges are set (${grants.err})`);
+      const helper = history.find((m) => m.name === "migration_log")!;
+      const r = await applyPending(localDb(pg), [helper], quiet);
+      check(r.applied.length === 1, `the migration_log migration applies on its own (${r.failed?.error})`);
+      check(migrationLogLocked(pg), "with wide default privileges, PUBLIC, anon and authenticated still have no right on migration_log");
+      // The test itself bites: a granted right is seen.
+      pg.psql("GRANT EXECUTE ON FUNCTION migration_log.note(text, text) TO anon;");
+      check(!migrationLogLocked(pg), "a granted EXECUTE on note() is detected");
+      pg.psql("REVOKE EXECUTE ON FUNCTION migration_log.note(text, text) FROM anon; GRANT USAGE ON SCHEMA migration_log TO PUBLIC;");
+      check(!migrationLogLocked(pg), "a schema right for PUBLIC is detected");
     } finally {
       pg.stop();
     }

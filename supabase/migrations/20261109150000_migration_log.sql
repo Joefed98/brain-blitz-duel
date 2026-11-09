@@ -9,10 +9,11 @@
 --
 -- It raises the message as RAISE would (so psql and the local run show it as before) and keeps a row, which the
 -- live run reads back after the file and prints under it. The rows of a file that fails roll back with it.
--- Nothing here is exposed to the app: the schema isn't in PostgREST's list, and only the owner can use it.
+-- Nothing here is exposed to the app: the schema isn't in PostgREST's list, and PUBLIC, anon and authenticated get
+-- nothing on it (every right revoked explicitly, so a default privilege can't hand them one); only the owner uses it.
 
 CREATE SCHEMA IF NOT EXISTS migration_log;
-REVOKE ALL ON SCHEMA migration_log FROM PUBLIC;
+REVOKE ALL ON SCHEMA migration_log FROM PUBLIC, anon, authenticated;
 
 CREATE TABLE IF NOT EXISTS migration_log.notes (
   id bigserial PRIMARY KEY,
@@ -20,7 +21,8 @@ CREATE TABLE IF NOT EXISTS migration_log.notes (
   message text NOT NULL,
   noted_at timestamptz NOT NULL DEFAULT now()
 );
-REVOKE ALL ON TABLE migration_log.notes FROM PUBLIC;
+REVOKE ALL ON TABLE migration_log.notes FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON SEQUENCE migration_log.notes_id_seq FROM PUBLIC, anon, authenticated;
 
 CREATE OR REPLACE FUNCTION migration_log.note(level text, message text) RETURNS void
 LANGUAGE plpgsql
@@ -40,4 +42,4 @@ BEGIN
   END IF;
 END
 $$;
-REVOKE ALL ON FUNCTION migration_log.note(text, text) FROM PUBLIC;
+REVOKE ALL ON FUNCTION migration_log.note(text, text) FROM PUBLIC, anon, authenticated;

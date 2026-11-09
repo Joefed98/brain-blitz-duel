@@ -111,7 +111,13 @@ fresh one and not London's (#344's "pg_cron is not available" warning shows ther
   `migration_log.notes`. After each file the live run reads back the rows written since the file started and
   prints them. The rows of a failed file roll back with it, so live shows only the database's error for a
   failed file. Reading the notes never fails a deploy: the file is already committed, so a failed read is a
-  warning. The `migration_log` schema isn't in PostgREST's list and only its owner can use it.
+  warning. The `migration_log` schema isn't in PostgREST's list. Every right on it, its table, its sequence and `note()`
+  is revoked explicitly from PUBLIC, `anon` and `authenticated`, and nothing is granted to them, so only the owner can
+  use it. `migrations-check` 3a proves it after the whole history, and again with default privileges that would
+  grant everything.
+
+  **Rule:** to show a warning or notice in the live deploy log, a migration must call
+  `migration_log.note('warning'|'notice', '...')`, never a plain `RAISE`.
 
 Nothing changes in how a file is applied: the same wrapper and SQL, one transaction a file. `migrations-check`
 section 5 proves it. A test migration's `RAISE WARNING` and `RAISE NOTICE` appear in `migrate.ts --local`'s output.
