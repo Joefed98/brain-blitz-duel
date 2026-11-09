@@ -145,11 +145,20 @@ export async function handOverToNewWorker(waitMs = 8000): Promise<void> {
  * Asks the worker in control for this build's download (only what changed; nothing when it already has it).
  * Resolves true when everything is stored, false when something failed (asked again next time), null with no
  * worker in control or no answer within `timeoutMs`.
+ *
+ * Never while a newer build's worker is installing or waiting (resolves null; the next sync asks the worker that
+ * took over): the old worker would download its own, outgoing build over the new one's record, and while its FILL
+ * runs (an extended message event) Chromium holds the waiting worker's activation, so a handover asked for at
+ * the same safe moment (the first finished round's sync on the Practice list) waited out the whole download
+ * (offline-check, "the new worker takes over on the list", about one run in two; 9 Nov 2026).
  */
-export function requestWorkerFill(timeoutMs = 120_000): Promise<boolean | null> {
+export async function requestWorkerFill(timeoutMs = 120_000): Promise<boolean | null> {
   const api = workerApi();
-  const worker = api?.controller;
-  if (!worker) return Promise.resolve(null);
+  if (!api?.controller) return null;
+  const reg = await api.getRegistration().catch(() => undefined);
+  if (reg?.installing || reg?.waiting) return null;
+  const worker = api.controller;
+  if (!worker) return null;
   return new Promise((resolve) => {
     const channel = new MessageChannel();
     const timer = setTimeout(() => resolve(null), timeoutMs);
