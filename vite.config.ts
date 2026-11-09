@@ -31,7 +31,17 @@ function buildId(): string {
   return id;
 }
 
+/**
+ * Speed fix 7 (9 Nov 2026, docs/audit-nov-2026/performance.md): the server build is minified. Nitro's Cloudflare preset
+ * leaves it unminified (`minify: false`), so a fresh isolate parsed about 26 MB of server JS before its first deal or
+ * answer. Lovable's config passes any other nitro option through, inside its build as outside, so this reaches the
+ * published build. The narrow `nitro` type has no `minify`, hence the cast; nothing else about the build changes.
+ */
+type NitroOptions = Exclude<NonNullable<Parameters<typeof defineConfig>[0]>["nitro"], boolean | undefined>;
+const SERVER_BUILD = { minify: true } as NitroOptions & { minify: boolean };
+
 export default defineConfig({
+  nitro: SERVER_BUILD,
   tanstackStart: {
     // Redirect TanStack Start's bundled server entry to src/server.ts (our SSR error wrapper).
     // nitro/vite builds from this

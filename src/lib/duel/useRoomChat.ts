@@ -118,7 +118,8 @@ export function useRoomChat(
       .channel(`room-chat-${roomId}`, { config: { broadcast: { self: true } } })
       .on(
         "postgres_changes",
-        { event: "INSERT", schema: "public", table: "room_messages" },
+        // This room's messages only (Speed fix 3 / security audit L6): Realtime checks no other room's chat for this phone.
+        { event: "INSERT", schema: "public", table: "room_messages", filter: `duel_id=eq.${roomId}` },
         (payload) => {
           const row = payload.new as RoomMessageRow | undefined;
           if (!row || row.duel_id !== roomId || knownIds.current.has(row.id)) return;
