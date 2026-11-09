@@ -448,6 +448,32 @@ export type Database = {
         }
         Relationships: []
       }
+      duel_presence: {
+        Row: {
+          duel_id: string
+          last_seen_at: string
+          user_id: string
+        }
+        Insert: {
+          duel_id: string
+          last_seen_at?: string
+          user_id: string
+        }
+        Update: {
+          duel_id?: string
+          last_seen_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "duel_presence_player_fkey"
+            columns: ["duel_id", "user_id"]
+            isOneToOne: true
+            referencedRelation: "duel_players"
+            referencedColumns: ["duel_id", "user_id"]
+          },
+        ]
+      }
       duel_secrets: {
         Row: {
           created_at: string
