@@ -251,3 +251,12 @@ signature and calls it.
   - The quick run (fast shard `e`, ~35 s locally) has all 2,000 seeded rooms, every receipt shape for every case, and grades on two room and two async receipts per case (arcade runs: the first stored run of each game, in time).
   - `CHECKS_FULL=1` (Actions → Checks → Run workflow with "full") grades every case under every receipt, every stored arcade run, and 6 practice seeds and 40 room seeds (~2 min).
   - The Full suite holds browser checks only, by its own rule (`.github/ci/browser.ts`), so the full depth runs in Checks, not in the Full suite.
+
+## Follow-ups
+
+- **`withSeededRandom` doesn't reach every generator under bun.** Main's own `dealDaily` dealt differently in two fresh
+  processes inside `withSeededRandom`. The likely cause is that the generators in `src/puzzles` import the random module
+  through the `@/` alias and get their own copy of random.ts, which the seeded hook never sets, so they draw from
+  crypto. The live app is unaffected, since it always draws from crypto, but any check that relies on `withSeededRandom` to
+  fix those games' deals may be weaker than it looks; round-engine-parity-check works around it by seeding
+  `crypto.getRandomValues` and `Math.random` themselves (`scripts/round-engine/deals.ts`). To be fixed in its own session.
