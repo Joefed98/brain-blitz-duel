@@ -1,4 +1,7 @@
-# B6: one round engine (plan, Stage 1)
+# B6: one round engine (plan, Stage 1; as built, Stage 2)
+
+> **Temporary parity check.** `scripts/round-engine/legacy.ts` (main da93f5d's own code), `spans.ts`, `deals.ts` and
+> `round-engine-parity-check` are retired at the start of wave 3, with Joe's approval.
 
 Wave 0 night 2, Session B. Starts from main da93f5d. Nothing in this plan changes what a player sees or how
 anything scores. No stamps, no migrations, no `bun.lock` change.
@@ -213,3 +216,38 @@ process. Main's functions are kept verbatim as a fixture copy in
 1. **Scope:** do the server engine now, and the phone hook (B6b) as its own PR with its check edits listed for approval? Recommended.
 2. **The fixture copy of main's functions** (`scripts/round-engine/legacy.ts`) for the parity check: acceptable? The alternative is recorded fixtures only.
 3. **Practice's no-bound rule** (the raw claim, where rooms clamp to the limit) stays as a named policy, `trust: "practice"`, not unified. `gradeSubmission` clamps to the limit anyway, but a non-number claim and Nucleus / Forage (graded outside `gradeSubmission`) could score differently if unified, so I'd leave it.
+
+## 7. Stage 2: as built (approved by Joe, 9 Nov 2026)
+
+Scope as approved: the server engine only. The phone half (`useRoundSession`) is B6b, a separate PR later, before wave
+3's match screens.
+
+**The engine, `src/lib/round/`:**
+
+| File | What it holds | Who calls it |
+|---|---|---|
+| `window.ts` | `roundWindow`, `windowReceipt` (moved unchanged from `asyncRoom.ts`) | `asyncRoom.ts` re-exports them as `asyncRoundWindow` / `asyncReceipt`, so the Daily, challenges and the phone's `AsyncRun` are unchanged |
+| `receipt.ts` | `RoundReceipt` (`phase`, `start`, `sealed`, `none`), `receiptMsRemaining`, `phaseReceiptOf`, `sealedStartMs`, `PRACTICE_START_SLACK_MS` | `roomGrade.server.ts` (`roomReceiptMsRemaining`), `asyncRoom.server.ts` (`gradeAsyncAnswer`), `practiceReceipt.ts` (its three functions are wrappers) |
+| `trust.ts` | `trustedClaim(…, "room" \| "practice")`: the two named rules, practice's raw claim with no bound kept exactly | `roomGrade.server.ts` `gradeRound`, `practiceReceipt.ts` `practiceTrustedMs` |
+| `result.ts` | `resultColumns(graded)` | `submitAnswerFn` (rooms' insert, `extra: asJson(...)` as before), `submitAsyncAnswer` (its `values`, `extra: ?? null` as before) |
+| `deal.server.ts` | `dealRounds`, `dealOne` (defined in `generate.server.ts` beside `generatePuzzle`, so neither file imports the other) | `buildRoomPuzzles`, `dealDaily`, `dealChallenge`; practice's `dealPractice` |
+| `rank.ts` | re-exports `ranking.ts` and `roundTimeUsedMs` | wave 3; nothing moved |
+| `index.ts` | `RoundMode` and the pure parts | wave 3 |
+
+`roomGrade.server.ts` gains `gradeRound(puzzle, receipt, answer, ms, extra, rule)`. `gradeRoomAnswer` keeps its
+signature and calls it.
+
+**Different from the plan:**
+
+- **`practiceReply` was not added.** beta-recording-check pins practiceGradeFn's literal `return { puzzle, isCorrect: graded.isCorrect, score: graded.score, …`, so practice keeps its return as it is.
+- **No end-to-end re-run of server-fn-harness with main's functions swapped in.** The app's modules can't be swapped without a module mock. Instead:
+  - the parity check compares the row builders themselves, main's against the engine's, on every graded case and on odd grades;
+  - server-functions-check still stores a room, a Daily and a challenge through the real handlers on PostgreSQL and checks the scores, unchanged.
+- **Deals are compared in two fresh processes** (`scripts/round-engine/deals.ts legacy|engine`), with the platform's random sources seeded:
+  - Generators keep caches across calls, so a second deal in one process can draw differently, on main as today.
+  - Under bun, main's own `dealDaily` dealt differently in two processes even inside `withSeededRandom`. The generators reached through the `@/` alias (src/puzzles) apparently read a copy of random.ts that the seeded hook doesn't reach.
+  - That is a check-time property only (the live app draws from crypto anyway) and is left as it is. It is flagged in the report.
+- **Depth:**
+  - The quick run (fast shard `e`, ~35 s locally) has all 2,000 seeded rooms, every receipt shape for every case, and grades on two room and two async receipts per case (arcade runs: the first stored run of each game, in time).
+  - `CHECKS_FULL=1` (Actions → Checks → Run workflow with "full") grades every case under every receipt, every stored arcade run, and 6 practice seeds and 40 room seeds (~2 min).
+  - The Full suite holds browser checks only, by its own rule (`.github/ci/browser.ts`), so the full depth runs in Checks, not in the Full suite.

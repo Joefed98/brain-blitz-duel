@@ -1813,6 +1813,19 @@ outside the repo.
   deal-identity-check (~6 min, quarters on shards b–e) proves every game's deal on 6 seeds, under each pin on 2, the
   explicit options and 16 whole rooms (round order, stamps and each round re-dealt in its context) against main (`scripts/fixtures/deal-identity.json.gz`, recorded on main 318fd42
   by `scripts/deal-identity-record.ts`; Lightbender's `generationMs`, its build time, is left out of the digest).
+- **The round engine** (9 Nov 2026, B6 of `docs/audit-nov-2026/architecture.md`, `docs/round-engine/plan.md`; no deal,
+  timing, grade, score, ranking or screen changed): `src/lib/round/` holds what rooms, async rooms (the Daily,
+  challenges) and practice share about running a round: `dealRounds` / `dealOne` (`deal.server.ts`, defined beside
+  `generatePuzzle`), the window (`window.ts`; `asyncRoundWindow` / `asyncReceipt` re-export it), the receipt
+  (`receipt.ts`: a room's phase, an async round's stored start, practice's seal), the trust rule (`trust.ts`: `room`, and
+  `practice`, which passes a claim with no bound through unchanged), `gradeRound` (in `roomGrade.server.ts`;
+  `gradeRoomAnswer` calls it), the stored columns (`result.ts` `resultColumns`) and the ranking's names (`rank.ts`). Each
+  mode keeps its own flow, guards, events and data-layer writes in its server functions. **Wave 3's rated match plugs in
+  here**; the phone half (`useRoundSession`, B6b) is still to come. round-engine-parity-check (~35 s, shard `e`;
+  `CHECKS_FULL=1` ~2 min) runs main da93f5d's own code (`scripts/round-engine/legacy.ts`, proved byte for byte against
+  git or by stored hashes; temporary, retired at the start of wave 3 with Joe's approval) beside the engine: deals in two
+  fresh processes (`scripts/round-engine/deals.ts`), every receipt shape, grades, stored rows, windows and 2,000 ranked
+  rooms.
 - `src/components/duel/` — room/round screens (PhoneShell, RoundIntro, TimerBar,
   AnswerReveal, ArcadeReveal, WinnerReveal…); `src/components/puzzles/` — shared puzzle
   widgets; `src/lib/fx/` — sound and visual feedback (presentation only).
