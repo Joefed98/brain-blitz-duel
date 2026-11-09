@@ -52,10 +52,10 @@ const WORKER_OBSERVABILITY = {
   logs: { enabled: true, invocation_logs: true, persist: true, head_sampling_rate: 1 },
 };
 
-const SERVER_BUILD = {
-  minify: true,
-  cloudflare: { wrangler: { observability: WORKER_OBSERVABILITY } },
-} as NitroOptions & { minify: boolean };
+const SERVER_BUILD = Object.assign(
+  { minify: true },
+  { cloudflare: { wrangler: { observability: WORKER_OBSERVABILITY } } },
+) as NitroOptions & { minify: boolean };
 
 export default defineConfig({
   nitro: SERVER_BUILD,
