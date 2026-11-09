@@ -1807,6 +1807,10 @@ outside the repo.
   - **typecheck (src)** (7 Nov 2026, `docs/audit-nov-2026/build-health.md` item 6): a Checks job beside the shards runs
     `tsc --noEmit -p tsconfig.json` (src/, ~50 s); Lovable's build strips types without checking them. scripts/ is
     not type-checked yet. ci-shards-check proves the job is there.
+  - **build (production)** (9 Nov 2026): a Checks job beside the shards runs `bun run build`, the Cloudflare deploy's
+    build, on placeholder public Supabase values (no secrets, nothing deployed; ~1 min) and fails on any build error,
+    TanStack Start's import-protection errors included (Lovable's config: client code may not import files under a
+    `server/` directory or `server-only`; `*.server.*` file names are not covered). ci-shards-check proves the job is there.
   - Flake fixes (7 Nov 2026, the audit's item 7; no limit changed): a desktop arcade play over its 60 fps limit is
     played once more only when /proc shows other processes left the browser under 1.25 cores through the judged
     play windows (arcade-lowend-check's rule); replay-play-check judges 1× and 2× on the player's own frame clock

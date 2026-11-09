@@ -132,3 +132,52 @@ jobs:
           start=$(date +%s)
           ./node_modules/.bin/tsc --noEmit -p tsconfig.json
           echo "> tsc --noEmit over src/: passed in $(( $(date +%s) - start )) s." >> "$GITHUB_STEP_SUMMARY"
+
+  # Production build (9 Nov 2026): `bun run build`, the same vite build (nitro cloudflare-module) the Cloudflare
+  # deploy runs, so a build error, TanStack Start's import-protection errors included, fails the PR instead of the
+  # deploy. In build mode Lovable's config makes import protection an error: client code may not import files under
+  # a `server/` directory or the `server-only` specifier (it replaces TanStack's `**/*.server.*` default). The browser
+  # build reads VITE_SUPABASE_URL / VITE_SUPABASE_PUBLISHABLE_KEY; placeholder public values stand in (they win over
+  # .env), so no secret is used and nothing is deployed. ~1 min, in parallel with the shards.
+  build:
+    name: build (production)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+
+      # The deploy builds on Node 22 too.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ runner.os }}-${{ env.BUN_VERSION }}-${{ hashFiles('bun.lock') }}
+          restore-keys: bun-${{ runner.os }}-${{ env.BUN_VERSION }}-
+
+      # The same lockfile workaround as the checks job (bun.lock restored exactly).
+      - name: Install dependencies
+        run: |
+          cp bun.lock "$RUNNER_TEMP/bun.lock.orig"
+          sed -i -E 's#https://europe-west[0-9]+-npm\.pkg\.dev/lovable-core-prod/[^/]+/#https://registry.npmjs.org/#g' bun.lock
+          bun install --frozen-lockfile
+          cp "$RUNNER_TEMP/bun.lock.orig" bun.lock
+          git diff --exit-code -- bun.lock
+
+      - name: bun run build
+        env:
+          VITE_SUPABASE_URL: https://ci-build-placeholder.supabase.co
+          VITE_SUPABASE_PUBLISHABLE_KEY: ci-build-placeholder-publishable-key
+          VITE_SUPABASE_PROJECT_ID: ci-build-placeholder
+        run: |
+          start=$(date +%s)
+          bun run build
+          test -f .output/server/index.mjs
+          test -f .wrangler/deploy/config.json
+          echo "> Production build (bun run build): passed in $(( $(date +%s) - start )) s." >> "$GITHUB_STEP_SUMMARY"
