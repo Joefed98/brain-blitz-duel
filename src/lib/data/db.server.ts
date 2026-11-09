@@ -36,7 +36,25 @@ export const UNIQUE_VIOLATION = "23505";
  */
 export async function adminDb(): Promise<Db> {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  return supabaseAdmin;
+  return (lazyAdmin ??= notThenable(supabaseAdmin));
+}
+
+let lazyAdmin: Db | undefined;
+
+/**
+ * `supabaseAdmin` is a lazy Proxy: its first property read builds the client and throws when the environment has
+ * no Supabase keys (local dev servers in the checks). Resolving a promise with it reads `.then`, which would build
+ * it (and throw) right here, where the code that used to receive it touched it only inside its own try blocks. So
+ * the client goes out through a second Proxy that answers `then` itself and reads everything else through, as
+ * before.
+ */
+function notThenable(client: Db): Db {
+  return new Proxy({} as Db, {
+    get(_, prop) {
+      if (prop === "then") return undefined;
+      return Reflect.get(client, prop, client);
+    },
+  });
 }
 
 /**
