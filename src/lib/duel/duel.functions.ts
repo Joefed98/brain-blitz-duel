@@ -69,6 +69,7 @@ import {
 } from "./types";
 import { dbError, isUuid } from "./dbError";
 import { adminDb, asJson, UNIQUE_VIOLATION, type Db } from "@/lib/data/db.server";
+import { playedMs, recordEvents } from "@/lib/data/events.server";
 import {
   claimRoomStart,
   disbandRoom,
@@ -375,6 +376,7 @@ export const createRoomFn = createServerFn({ method: "POST" })
       data.look ?? {},
       await rememberedScoring(client, context.userId),
     );
+    recordEvents({ event: "room_created", playerId: context.userId, mode: "room", roomId: room.id });
     return { roomId: room.id, roomCode: room.room_code };
   });
 
@@ -446,6 +448,7 @@ export const joinRoomFn = createServerFn({ method: "POST" })
           via,
           rejoin: true,
         });
+        recordEvents({ event: "room_joined", playerId: context.userId, mode: "room", roomId: room.id, props: { via, rejoin: true } });
       }
       return { ok: true as const, roomId: room.id, roomCode: room.room_code };
     }
@@ -465,6 +468,7 @@ export const joinRoomFn = createServerFn({ method: "POST" })
         game_index: gameIndexOf(room),
         via,
       });
+      recordEvents({ event: "room_joined", playerId: context.userId, mode: "room", roomId: room.id, props: { via } });
     } catch (error) {
       // Before the 16-player migration the database still refuses slots past 10 (seatsBefore16). Only insertPlayer
       // throws RoomSeatsError; anything else, recordJoin's included, is rethrown as before.
@@ -561,6 +565,13 @@ export const startRoomFn = createServerFn({ method: "POST" })
         round_number: 0,
         event: "game_started",
         at: startedAt,
+      });
+      recordEvents({
+        event: "room_started",
+        playerId: context.userId,
+        mode: "room",
+        roomId: room.id,
+        props: { players: players.length, rounds: roundOrder.length, game_index: gameIndexOf(room) },
       });
     }
     return { ok: true as const };
@@ -670,6 +681,7 @@ export const leaveRoomFn = createServerFn({ method: "POST" })
           event: "game_ended",
           reason: "host_left",
         });
+      if (room.status === "in_progress") recordEvents({ event: "room_finished", mode: "room", roomId: room.id, props: { reason: "host_left", game_index: gameIndexOf(room) } });
     }
     return { ok: true as const };
   });
@@ -691,6 +703,7 @@ export const disbandRoomFn = createServerFn({ method: "POST" })
         event: "game_ended",
         reason: "disbanded",
       });
+    if (room.status === "in_progress") recordEvents({ event: "room_finished", mode: "room", roomId: room.id, props: { reason: "disbanded", game_index: gameIndexOf(room) } });
     return { ok: true as const };
   });
 
@@ -761,6 +774,17 @@ export const advancePhaseFn = createServerFn({ method: "POST" })
             event: "round_started",
             at,
           });
+        if (at)
+          recordEvents(
+            waitingOn.map((p) => ({
+              event: "game_started" as const,
+              playerId: p.user_id,
+              game: puzzle?.type ?? null,
+              mode: "room" as const,
+              roomId: room.id,
+              props: { round },
+            })),
+          );
       }
       return { ok: true };
     }
@@ -892,6 +916,19 @@ export const submitAnswerFn = createServerFn({ method: "POST" })
     if (!error) {
       const { recordInputType } = await import("./inputType.server");
       await recordInputType(client, "round_results", { duel_id: room.id, player_slot: player.player_slot, round_number: data.roundNumber }, data.inputType);
+      const { puzzleTimeLimitMs } = await import("./catalogue");
+      recordEvents({
+        event: "game_finished",
+        playerId: context.userId,
+        game: puzzle.type,
+        mode: "room",
+        score,
+        completed: isCorrect,
+        durationMs: playedMs(puzzleTimeLimitMs(puzzle), msLeft, extra as Record<string, unknown> | null | undefined),
+        roomId: room.id,
+        inputType: data.inputType,
+        props: { round: data.roundNumber },
+      });
     }
     // The live "finished" ping: only the round number, after the result is stored, and only for a
     // finish before the buzzer (finishedPing.server.ts, buzzer.ts): never a time-out or a late answer.

@@ -77,6 +77,10 @@ export async function queueRun(run: Omit<QueuedRun, "id" | "status" | "attempts"
   };
   await putOne("runs", record);
   emitOfflineChange();
+  // Analytics (lib/analytics/clientEvents.ts): queued with its time and sent once the phone is back online.
+  void import("@/lib/analytics/clientEvents").then(({ trackClientEvent }) =>
+    trackClientEvent("offline_game_played", { game: String(run.puzzle.type) }),
+  );
   return record;
 }
 

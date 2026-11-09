@@ -1,5 +1,5 @@
 import { useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { LogoMark } from "@/components/brand/LogoMark";
 import { roomCodeChars } from "@/lib/duel/roomCode";
@@ -26,6 +26,14 @@ export function ErrorState({
 }) {
   const navigate = useNavigate();
   const [code, setCode] = useState("");
+  // Analytics (lib/analytics/clientEvents.ts): which error screen was shown, as a short code from the path.
+  useEffect(() => {
+    const path = typeof window === "undefined" ? "" : window.location.pathname;
+    const errorCode = path.startsWith("/duel/") ? "room_not_found" : path.startsWith("/challenge") ? "challenge_not_found" : "not_found";
+    void import("@/lib/analytics/clientEvents").then(({ trackClientEvent }) =>
+      trackClientEvent("error_shown", { props: { code: errorCode } }),
+    );
+  }, []);
   const tryCode = () => {
     const clean = code.trim().toUpperCase();
     if (clean.length < 4) return;
