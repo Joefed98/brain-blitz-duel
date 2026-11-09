@@ -1,0 +1,380 @@
+[
+ {
+  "slug": "first-win",
+  "name": "First Win",
+  "group": "competitive",
+  "rarity": "Common",
+  "coins": 0
+ },
+ {
+  "slug": "placed",
+  "name": "Placed",
+  "group": "competitive",
+  "rarity": "Common",
+  "coins": 0
+ },
+ {
+  "slug": "hot-streak",
+  "name": "Hot Streak",
+  "group": "competitive",
+  "rarity": "Rare",
+  "coins": 0
+ },
+ {
+  "slug": "comeback-kid",
+  "name": "Comeback Kid",
+  "group": "competitive",
+  "rarity": "Rare",
+  "coins": 0
+ },
+ {
+  "slug": "clean-sweep",
+  "name": "Clean Sweep",
+  "group": "competitive",
+  "rarity": "Epic",
+  "coins": 0
+ },
+ {
+  "slug": "podium-regular",
+  "name": "Podium Regular",
+  "group": "competitive",
+  "rarity": "Epic",
+  "coins": 0
+ },
+ {
+  "slug": "unstoppable",
+  "name": "Unstoppable",
+  "group": "competitive",
+  "rarity": "Elite",
+  "coins": 0
+ },
+ {
+  "slug": "giant-slayer",
+  "name": "Giant Slayer",
+  "group": "competitive",
+  "rarity": "Elite",
+  "coins": 0
+ },
+ {
+  "slug": "storm-chaser",
+  "name": "Storm Chaser",
+  "group": "competitive",
+  "rarity": "Elite",
+  "coins": 0
+ },
+ {
+  "slug": "lightning-strikes",
+  "name": "Lightning Strikes",
+  "group": "competitive",
+  "rarity": "Legendary",
+  "coins": 250
+ },
+ {
+  "slug": "top-500",
+  "name": "Top 500",
+  "group": "competitive",
+  "rarity": "Legendary",
+  "coins": 250
+ },
+ {
+  "slug": "first-star",
+  "name": "First Star",
+  "group": "mastery",
+  "rarity": "Common",
+  "coins": 0
+ },
+ {
+  "slug": "flawless",
+  "name": "Flawless",
+  "group": "mastery",
+  "rarity": "Rare",
+  "coins": 0
+ },
+ {
+  "slug": "all-rounder",
+  "name": "All-Rounder",
+  "group": "mastery",
+  "rarity": "Rare",
+  "coins": 0
+ },
+ {
+  "slug": "logic-master",
+  "name": "Logic Master",
+  "group": "mastery",
+  "rarity": "Epic",
+  "coins": 0
+ },
+ {
+  "slug": "word-master",
+  "name": "Word Master",
+  "group": "mastery",
+  "rarity": "Epic",
+  "coins": 0
+ },
+ {
+  "slug": "number-master",
+  "name": "Number Master",
+  "group": "mastery",
+  "rarity": "Epic",
+  "coins": 0
+ },
+ {
+  "slug": "pattern-master",
+  "name": "Pattern Master",
+  "group": "mastery",
+  "rarity": "Epic",
+  "coins": 0
+ },
+ {
+  "slug": "speed-master",
+  "name": "Speed Master",
+  "group": "mastery",
+  "rarity": "Epic",
+  "coins": 0
+ },
+ {
+  "slug": "attention-master",
+  "name": "Attention Master",
+  "group": "mastery",
+  "rarity": "Epic",
+  "coins": 0
+ },
+ {
+  "slug": "action-master",
+  "name": "Action Master",
+  "group": "mastery",
+  "rarity": "Epic",
+  "coins": 0
+ },
+ {
+  "slug": "retro-master",
+  "name": "Retro Master",
+  "group": "mastery",
+  "rarity": "Epic",
+  "coins": 0
+ },
+ {
+  "slug": "sports-master",
+  "name": "Sports Master",
+  "group": "mastery",
+  "rarity": "Epic",
+  "coins": 0
+ },
+ {
+  "slug": "cards-master",
+  "name": "Cards Master",
+  "group": "mastery",
+  "rarity": "Epic",
+  "coins": 0
+ },
+ {
+  "slug": "strategy-master",
+  "name": "Strategy Master",
+  "group": "mastery",
+  "rarity": "Epic",
+  "coins": 0
+ },
+ {
+  "slug": "perfectionist",
+  "name": "Perfectionist",
+  "group": "mastery",
+  "rarity": "Elite",
+  "coins": 0
+ },
+ {
+  "slug": "grand-master",
+  "name": "Grand Master",
+  "group": "mastery",
+  "rarity": "Legendary",
+  "coins": 250
+ },
+ {
+  "slug": "daily-habit",
+  "name": "Daily Habit",
+  "group": "daily-and-tournaments",
+  "rarity": "Common",
+  "coins": 0
+ },
+ {
+  "slug": "dedicated",
+  "name": "Dedicated",
+  "group": "daily-and-tournaments",
+  "rarity": "Rare",
+  "coins": 0
+ },
+ {
+  "slug": "daily-top-100",
+  "name": "Daily Top 100",
+  "group": "daily-and-tournaments",
+  "rarity": "Rare",
+  "coins": 0
+ },
+ {
+  "slug": "century",
+  "name": "Century",
+  "group": "daily-and-tournaments",
+  "rarity": "Elite",
+  "coins": 0
+ },
+ {
+  "slug": "daily-champion",
+  "name": "Daily Champion",
+  "group": "daily-and-tournaments",
+  "rarity": "Legendary",
+  "coins": 250
+ },
+ {
+  "slug": "entrant",
+  "name": "Entrant",
+  "group": "daily-and-tournaments",
+  "rarity": "Common",
+  "coins": 0
+ },
+ {
+  "slug": "trophy-hunter",
+  "name": "Trophy Hunter",
+  "group": "daily-and-tournaments",
+  "rarity": "Rare",
+  "coins": 0
+ },
+ {
+  "slug": "arena-ace",
+  "name": "Arena Ace",
+  "group": "daily-and-tournaments",
+  "rarity": "Epic",
+  "coins": 0
+ },
+ {
+  "slug": "champion",
+  "name": "Champion",
+  "group": "daily-and-tournaments",
+  "rarity": "Epic",
+  "coins": 0
+ },
+ {
+  "slug": "arena-champion",
+  "name": "Arena Champion",
+  "group": "daily-and-tournaments",
+  "rarity": "Elite",
+  "coins": 0
+ },
+ {
+  "slug": "score-attack-champion",
+  "name": "Score Attack Champion",
+  "group": "daily-and-tournaments",
+  "rarity": "Elite",
+  "coins": 0
+ },
+ {
+  "slug": "swiss-champion",
+  "name": "Swiss Champion",
+  "group": "daily-and-tournaments",
+  "rarity": "Elite",
+  "coins": 0
+ },
+ {
+  "slug": "knockout-champion",
+  "name": "Knockout Champion",
+  "group": "daily-and-tournaments",
+  "rarity": "Legendary",
+  "coins": 250
+ },
+ {
+  "slug": "serial-winner",
+  "name": "Serial Winner",
+  "group": "daily-and-tournaments",
+  "rarity": "Legendary",
+  "coins": 250
+ },
+ {
+  "slug": "challenger",
+  "name": "Challenger",
+  "group": "challenges",
+  "rarity": "Common",
+  "coins": 0
+ },
+ {
+  "slug": "challenge-seeker",
+  "name": "Challenge Seeker",
+  "group": "challenges",
+  "rarity": "Rare",
+  "coins": 0
+ },
+ {
+  "slug": "challenge-expert",
+  "name": "Challenge Expert",
+  "group": "challenges",
+  "rarity": "Epic",
+  "coins": 0
+ },
+ {
+  "slug": "category-clear",
+  "name": "Category Clear",
+  "group": "challenges",
+  "rarity": "Elite",
+  "coins": 0
+ },
+ {
+  "slug": "completionist",
+  "name": "Completionist",
+  "group": "challenges",
+  "rarity": "Legendary",
+  "coins": 250
+ },
+ {
+  "slug": "revenge",
+  "name": "Revenge",
+  "group": "fun",
+  "rarity": "Common",
+  "coins": 0
+ },
+ {
+  "slug": "photo-finish",
+  "name": "Photo Finish",
+  "group": "fun",
+  "rarity": "Rare",
+  "coins": 0
+ },
+ {
+  "slug": "buzzer-beater",
+  "name": "Buzzer Beater",
+  "group": "fun",
+  "rarity": "Rare",
+  "coins": 0
+ },
+ {
+  "slug": "speed-demon",
+  "name": "Speed Demon",
+  "group": "fun",
+  "rarity": "Epic",
+  "coins": 0
+ },
+ {
+  "slug": "friendly",
+  "name": "Friendly",
+  "group": "social-and-special",
+  "rarity": "Common",
+  "coins": 0
+ },
+ {
+  "slug": "party-host",
+  "name": "Party Host",
+  "group": "social-and-special",
+  "rarity": "Rare",
+  "coins": 0
+ },
+ {
+  "slug": "gem-hunter",
+  "name": "Gem Hunter",
+  "group": "social-and-special",
+  "rarity": "Rare",
+  "coins": 0
+ },
+ {
+  "slug": "founding-player",
+  "name": "Founding Player",
+  "group": "social-and-special",
+  "rarity": "Legendary",
+  "coins": 250
+ }
+]
