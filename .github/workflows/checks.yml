@@ -98,6 +98,30 @@ jobs:
             ci-results-${{ matrix.shard }}.log
           retention-days: 7
 
+  # Database migrations (Wave 0, 9 Nov 2026; docs/supabase-move/migrations-ci.md): the PR's new files through the
+  # destructive guard (changing or deleting a merged one fails), then every file applied to a fresh local
+  # PostgreSQL with scripts/migrate.ts's own transaction-and-history wrapper, as main's deploy applies them to the
+  # London project. Never touches the live database (no secrets here). Node built-ins only, so no bun install.
+  migrations:
+    name: migrations (guard + local PostgreSQL)
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+
+      - name: New migrations pass the destructive guard
+        run: bun scripts/migrate.ts --pr-guard=${{ github.event.pull_request.base.sha }}
+
+      - name: Every migration applies to a fresh local PostgreSQL
+        run: bun scripts/migrate.ts --local
+
   # TypeScript over src/ (7 Nov 2026, docs/audit-nov-2026/build-health.md item 6): Lovable's build (vite) strips types
   # without checking them, so a type error could reach main. tsconfig.json's include is src/, vite.config.ts and
   # eslint.config.js; scripts/ is not type-checked yet (item 11). ~50 s, in parallel with the shards.

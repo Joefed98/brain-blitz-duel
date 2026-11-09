@@ -16,6 +16,8 @@
  * scorer directly, displays) the legacy shape is the default; a display that
  * needs rev 1 reads the stored breakdown (`extra.parts`) or wraps its call.
  */
+import { pinnedPuzzleScoreRev, setPinnedPuzzleScoreRev } from "./dealEra";
+
 export const PUZZLE_SCORE_REV = 1;
 /**
  * The revision new puzzles are dealt (20 Oct 2026): 3, the shared helper
@@ -26,17 +28,16 @@ export const PUZZLE_SCORE_REV = 1;
  */
 export const PUZZLE_SCORE_REV_DEALT = 3;
 
-let dealtOverride: number | null = null;
-/** The puzzleScoreRev new puzzles are stamped with (PUZZLE_SCORE_REV_DEALT unless a check pinned another). */
+/** The puzzleScoreRev new puzzles are stamped with (PUZZLE_SCORE_REV_DEALT unless a check pinned another, dealEra.ts). */
 export function dealtPuzzleScoreRev(): number {
-  return dealtOverride ?? PUZZLE_SCORE_REV_DEALT;
+  return pinnedPuzzleScoreRev() ?? PUZZLE_SCORE_REV_DEALT;
 }
 /**
  * Checks written for the rev-1 shape (their numbers are rev 1's) pin new puzzles to it, so they keep proving what
  * they were written for; scoring-bands-check proves rev 2. Never called by app code.
  */
 export function pinDealtPuzzleScoreRev(rev: number | null): void {
-  dealtOverride = rev;
+  setPinnedPuzzleScoreRev(rev);
 }
 export const PUZZLE_FINISH_BASE = 120;
 export const PUZZLE_UNFINISHED_CAP = 110;

@@ -166,6 +166,8 @@ export const SHARDS: Record<string, string[]> = {
   ],
   // ~282 s of checks on run 38608375501's times.
   b: [
+    // B4's deal identity (9 Nov 2026, docs/audit-nov-2026/architecture.md): every game's deal and each pin against main, ~6 min whole, in quarters.
+    "deal-identity-check.ts@1/4",
     // From g's catch-all (7 Nov 2026 rebalance; ~10 s on run 42372376743).
     "arcade-tuning-g3-check.ts",
     // arcade-fx-check in thirds (3 Nov 2026: Curl Champ's, Apex's and Cue Ball's runs took the whole check past 5 min locally).
@@ -209,6 +211,8 @@ export const SHARDS: Record<string, string[]> = {
   ],
   // ~282 s of checks on run 38608375501's times.
   c: [
+    // B4's deal identity (9 Nov 2026, docs/audit-nov-2026/architecture.md): every game's deal and each pin against main, ~6 min whole, in quarters.
+    "deal-identity-check.ts@2/4",
     // 7 Nov 2026 rebalance (~191 s on run 42372376743): orbit-camera-check from e (e ran 641 s, c 334), the rest
     // from g's catch-all.
     "orbit-camera-check.ts",
@@ -250,6 +254,8 @@ export const SHARDS: Record<string, string[]> = {
   ],
   // ~282 s of checks on run 38608375501's times.
   d: [
+    // B4's deal identity (9 Nov 2026, docs/audit-nov-2026/architecture.md): every game's deal and each pin against main, ~6 min whole, in quarters.
+    "deal-identity-check.ts@3/4",
     // From g's catch-all (3 Nov 2026 rebalance; ~360 s on PR #253's CI times): g ran ~31 min, d-f 6-10.
     "arcade-room-identity-check.ts",
     "flip-rev11-check.ts",
@@ -279,11 +285,16 @@ export const SHARDS: Record<string, string[]> = {
   ],
   // ~282 s of checks on run 38608375501's times.
   e: [
+    // B4's deal identity (9 Nov 2026, docs/audit-nov-2026/architecture.md): every game's deal and each pin against main, ~6 min whole, in quarters.
+    "deal-identity-check.ts@4/4",
     // From g's catch-all (3 Nov 2026 rebalance; ~231 s on PR #253's CI times): g ran ~31 min, d-f 6-10.
     "daily-check.ts",
     // server-functions-check (7 Nov 2026, ~5 s): the room, chat, daily, async-room and challenge server functions
     // run against every migration on a local PostgreSQL (scripts/server-fn-harness.ts), beside the other SQL checks.
     "server-functions-check.ts",
+    // migrations-check (9 Nov 2026, ~5 s): the automatic migration applier (scripts/migrate.ts) and its
+    // destructive guard on a local PostgreSQL, beside the other SQL checks.
+    "migrations-check.ts",
     "ink-x200-check.ts",
     "depth4-check.ts",
     "room-figures-check.ts",

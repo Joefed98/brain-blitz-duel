@@ -85,8 +85,14 @@ export interface LocalDb {
   stop(): void;
 }
 
-/** Starts a throwaway cluster and applies every migration in order. Throws if PostgreSQL can't start. */
-export function startLocalDb(prefix = "server-fn-"): LocalDb {
+/**
+ * Starts a throwaway cluster and applies every migration in order. Throws if PostgreSQL can't start.
+ * `applyMigrations: false` stops after Supabase's setup (the stub), for scripts/migrate.ts's own applier.
+ */
+export function startLocalDb(
+  prefix = "server-fn-",
+  { applyMigrations = true }: { applyMigrations?: boolean } = {},
+): LocalDb {
   const bin = postgresBin();
   if (!bin) throw new Error("no PostgreSQL binaries");
   const dir = mkdtempSync(join(tmpdir(), prefix));
@@ -152,9 +158,11 @@ export function startLocalDb(prefix = "server-fn-"): LocalDb {
     if (!stub.ok) throw new Error(`stub: ${stub.err}`);
     const applied: string[] = [];
     let failed: LocalDb["failed"] = null;
-    for (const file of readdirSync("supabase/migrations")
-      .filter((f) => f.endsWith(".sql"))
-      .sort()) {
+    for (const file of applyMigrations
+      ? readdirSync("supabase/migrations")
+          .filter((f) => f.endsWith(".sql"))
+          .sort()
+      : []) {
       const out = psql(readFileSync(`supabase/migrations/${file}`, "utf8"));
       if (!out.ok) {
         failed = { file, error: out.err.split("\n").find((l) => /ERROR/.test(l)) ?? out.err };

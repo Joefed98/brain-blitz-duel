@@ -4,8 +4,8 @@
  * puzzle exactly as before. generatePuzzle deals the new stamp (`dealStandard`) unless a check pins the world
  * before it (`pinPreStandard`). Shared by phone and server, pure.
  */
+import { dealPinned, setDealPin } from "../dealEra";
 import type { PuzzleData, PuzzleType } from "../types";
-import { rebuildLiveRecords } from "../roundMax";
 import { FLOOD_REV_TIGHT, floodSpareMoves } from "./logicRules";
 import { TILES_REV_FAST } from "./patternRules";
 
@@ -103,19 +103,14 @@ export const STANDARD_STAMPS: Partial<Record<PuzzleType, StandardStamp>> = {
   kakuro: s("kakuroRev", 0),
 };
 
-let pinned = false;
-
 /** Checks written for the stamps before the standard pin new deals to them (returns the previous setting). */
 export function pinPreStandard(on: boolean): boolean {
-  const prev = pinned;
-  pinned = on;
-  // The help and intro texts (liveRecord) describe the stamps dealt: rebuild them for the pinned world.
-  if (prev !== on) rebuildLiveRecords();
-  return prev;
+  // The help and intro texts (liveRecord) follow it: setDealPin rebuilds them (dealEra.ts).
+  return setDealPin("preStandard", on);
 }
 
 export function preStandardPinned(): boolean {
-  return pinned;
+  return dealPinned("preStandard");
 }
 
 function stampOf(puzzle: unknown, key: string): number | null {
@@ -143,7 +138,7 @@ export function standardTimesParts(puzzle: PuzzleData | null | undefined): boole
  */
 export function dealStandard<T extends PuzzleData>(puzzle: T): T {
   const st = STANDARD_STAMPS[puzzle.type];
-  if (!st || pinned) return puzzle;
+  if (!st || dealPinned("preStandard")) return puzzle;
   if (stampOf(puzzle, st.key) !== st.live) return puzzle;
   const stamped = { ...puzzle, [st.key]: st.dealt ?? st.rev } as T;
   return st.deal ? (st.deal(stamped) as T) : stamped;

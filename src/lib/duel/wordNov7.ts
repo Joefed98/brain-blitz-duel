@@ -17,10 +17,10 @@
  * Joe's puzzle notes' for Slider), so a check pinning any earlier world keeps what it pinned, and this batch is not
  * pinned. Shared by phone and server, pure.
  */
+import { dealPinned, setDealPin } from "./dealEra";
 import type { PuzzleData, PuzzleType } from "./types";
 import { preStandardPinned } from "./standard/stamps";
 import { puzzleNotesDealt } from "./puzzleNotes";
-import { rebuildLiveRecords } from "./roundMax";
 
 export const INTERLOCK_REV_FAIR = 4;
 export const SLIDER_REV_FAIR = 5;
@@ -33,24 +33,19 @@ export const WORD_NOV7_STAMPS: Partial<Record<PuzzleType, { key: string; from: n
   wordsearch: { key: "wordSearchRev", from: 4, rev: LOOKOUT_REV_FAIR },
 };
 
-let pinned = false;
-
 /** Checks written for the stamps before this fix pin new deals to them (returns the previous setting). */
 export function pinPreWordNov7(on: boolean): boolean {
-  const prev = pinned;
-  pinned = on;
-  // The help and intro texts (liveRecord) describe the stamps dealt: rebuild them for the pinned world.
-  if (prev !== on) rebuildLiveRecords();
-  return prev;
+  // The help and intro texts (liveRecord) follow it: setDealPin rebuilds them (dealEra.ts).
+  return setDealPin("preWordNov7", on);
 }
 
 export function preWordNov7Pinned(): boolean {
-  return pinned;
+  return dealPinned("preWordNov7");
 }
 
 /** True while new rounds of `type` are dealt this fix's stamp (the help and intro texts describe it). */
 export function wordNov7Dealt(type: "tilegrid" | "wordslide" | "wordsearch"): boolean {
-  if (pinned || preStandardPinned()) return false;
+  if (dealPinned("preWordNov7") || preStandardPinned()) return false;
   return type === "wordslide" ? puzzleNotesDealt() : true;
 }
 
@@ -71,7 +66,7 @@ export function usesWordNov7(puzzle: PuzzleData | null | undefined): boolean {
 /** The stamp a new puzzle is dealt: this fix's when the puzzle carries the stamp before it, unchanged otherwise. */
 export function dealWordNov7<T extends PuzzleData>(puzzle: T): T {
   const st = WORD_NOV7_STAMPS[puzzle.type];
-  if (!st || pinned) return puzzle;
+  if (!st || dealPinned("preWordNov7")) return puzzle;
   if (stampOf(puzzle, st.key) !== st.from) return puzzle;
   return { ...puzzle, [st.key]: st.rev } as T;
 }
