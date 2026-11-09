@@ -13,9 +13,13 @@
  * 4. `migrate.ts --live` against a stand-in for the Management API's query endpoint (backed by the same local
  *    database): it applies pending files, exits non-zero and stops on an error, refuses a destructive file,
  *    refuses missing secrets and a project ref that isn't SUPABASE_URL's, and never prints the token.
+ * 5. Notices and warnings: psql's are read with their DETAIL and HINT lines; `migrate.ts --local` prints a test
+ *    migration's RAISE WARNING and RAISE NOTICE under its file (a failing file's too, before FAILED); `migrate.ts
+ *    --live`, whose API answers rows only, prints what `migration_log.note` kept during each file, as a GitHub
+ *    annotation and in the run summary for a warning.
  */
 
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -25,6 +29,7 @@ import {
   applyPending,
   guardMigration,
   listMigrations,
+  psqlNotes,
   transactionControl,
   wrapMigration,
   type Migration,
@@ -135,6 +140,42 @@ function localDb(pg: LocalDb): MigrationDb {
 const quiet = { log: () => {} };
 const mig = (version: string, name: string, sql: string): Migration => ({ file: `${version}_${name}.sql`, version, name, sql });
 const one = (pg: LocalDb, sql: string) => pg.psql(sql).out;
+
+/* ------------------------------------------------------- 5a. psql's notes */
+
+{
+  const stderr = [
+    "psql:/tmp/x/q3.sql:7: NOTICE:  relation \"t\" already exists, skipping",
+    "psql:/tmp/x/q3.sql:9: WARNING:  kept 3 rows",
+    "DETAIL:  ids 1, 2, 3",
+    "HINT:  see the doc",
+    "CONTEXT:  PL/pgSQL function inline_code_block line 3 at RAISE",
+    "WARNING:  two lines",
+    "second line",
+    "psql:/tmp/x/q3.sql:12: ERROR:  boom",
+  ].join("\n");
+  const notes = psqlNotes(stderr);
+  check(
+    JSON.stringify(notes) ===
+      JSON.stringify([
+        { level: "NOTICE", message: 'relation "t" already exists, skipping' },
+        { level: "WARNING", message: "kept 3 rows (detail: ids 1, 2, 3) (hint: see the doc)" },
+        { level: "WARNING", message: "two lines\nsecond line" },
+      ]),
+    `psql's NOTICE and WARNING lines are read, with DETAIL and HINT, never CONTEXT or ERROR (${JSON.stringify(notes)})`,
+  );
+  check(psqlNotes("").length === 0, "no stderr, no notes");
+  const logged: string[] = [];
+  const r = await applyPending(
+    { appliedVersions: async () => new Set(), exec: async () => [{ level: "WARNING", message: "from the fake" }] },
+    [{ file: "50000000000001_n.sql", version: "50000000000001", name: "n", sql: "SELECT 1;" }],
+    { log: (l) => logged.push(l) },
+  );
+  check(
+    r.notes.length === 1 && r.notes[0]!.file === "50000000000001_n.sql" && logged.some((l) => l.includes("WARNING from 50000000000001_n.sql: from the fake")),
+    `applyPending keeps and prints each file's notes (${logged.join(" | ")})`,
+  );
+}
 
 if (!postgresBin()) {
   check(!process.env.CI, "PostgreSQL binaries are present (required on CI)");
@@ -274,9 +315,107 @@ if (!postgresBin()) {
   }
 }
 
+/* ------------------------------------------- 5b. notes through migrate.ts itself */
+
+if (postgresBin()) {
+  const runScript = async (mode: string, env: Record<string, string>) => {
+    const proc = Bun.spawn(["bun", "scripts/migrate.ts", mode], { stdout: "pipe", stderr: "pipe", env: { ...process.env, ...env } });
+    const [stdout, stderr, status] = await Promise.all([new Response(proc.stdout).text(), new Response(proc.stderr).text(), proc.exited]);
+    return { status, text: `${stdout}${stderr}` };
+  };
+  const WARN_SQL = "DO $$ BEGIN RAISE NOTICE 'mc notice %', 'one'; RAISE WARNING 'mc warning %', 42; END $$;";
+
+  // --local: a test migration's RAISE WARNING and RAISE NOTICE, printed under its file.
+  {
+    const dir = mkdtempSync(join(tmpdir(), "migrations-check-notes-"));
+    const summaryFile = join(dir, "summary.md");
+    try {
+      writeFileSync(join(dir, "50000000000001_quiet.sql"), "CREATE TABLE public.mc_quiet (a int);");
+      writeFileSync(join(dir, "50000000000002_warns.sql"), `CREATE TABLE public.mc_warns (a int);\n${WARN_SQL}`);
+      let r = await runScript("--local", { MIGRATIONS_DIR_OVERRIDE: dir, GITHUB_STEP_SUMMARY: summaryFile });
+      check(r.status === 0 && r.text.includes("WARNING from 50000000000002_warns.sql: mc warning 42"), `--local prints a migration's RAISE WARNING (${r.text})`);
+      check(r.text.includes("NOTICE from 50000000000002_warns.sql: mc notice one"), "--local prints a migration's RAISE NOTICE");
+      check(!/from 50000000000001_quiet\.sql/.test(r.text), "a file that raises nothing prints no notes");
+      check(readFileSync(summaryFile, "utf8").includes("Warning from `50000000000002_warns.sql`: mc warning 42"), "--local's run summary lists the warning");
+      check(!r.text.includes("::warning title="), "--local raises no GitHub annotation (a fresh database isn't London's)");
+      writeFileSync(join(dir, "50000000000003_fails.sql"), "DO $$ BEGIN RAISE WARNING 'mc before the error'; END $$;\nSELECT no_such_function();");
+      r = await runScript("--local", { MIGRATIONS_DIR_OVERRIDE: dir, GITHUB_STEP_SUMMARY: "" });
+      const warnAt = r.text.indexOf("WARNING from 50000000000003_fails.sql: mc before the error");
+      check(r.status !== 0 && warnAt >= 0 && warnAt < r.text.indexOf("FAILED 50000000000003_fails.sql"), `--local prints a failing file's warning before FAILED (${r.text})`);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  }
+
+  // --live: the stand-in answers rows only, as the Management API does; the notes come from migration_log.note.
+  {
+    const pg = startLocalDb("migrations-check-", { applyMigrations: false });
+    const dir = mkdtempSync(join(tmpdir(), "migrations-check-live-notes-"));
+    const summaryFile = join(dir, "..", `${dir.split("/").pop()}-summary.md`);
+    const TOKEN = "sbp_check_token_never_printed_0123456789";
+    const REF = "abcdefghijklmnopqrst";
+    const server = Bun.serve({
+      port: 0,
+      async fetch(req) {
+        if (req.headers.get("authorization") !== `Bearer ${TOKEN}`) return Response.json({ message: "Unauthorized" }, { status: 401 });
+        const { query } = (await req.json()) as { query: string };
+        const out = pg.psql(query);
+        if (!out.ok) return Response.json({ message: out.err.split("\n").find((l) => /ERROR/.test(l)) ?? out.err }, { status: 400 });
+        // Rows only: psql's stderr (the notices) is dropped, as the real endpoint drops them.
+        if (/AS present/.test(query)) return Response.json([{ present: out.out === "t" }]);
+        if (/SELECT version FROM/.test(query)) return Response.json(out.out.split("\n").filter(Boolean).map((version) => ({ version })));
+        if (/AS newest FROM migration_log\.notes/.test(query)) return Response.json([{ newest: Number(out.out) }]);
+        if (/FROM migration_log\.notes WHERE id >/.test(query))
+          return Response.json(
+            out.out.split("\n").filter(Boolean).map((line) => {
+              const [id, level, ...rest] = line.split("|");
+              return { id: Number(id), level, message: rest.join("|") };
+            }),
+          );
+        return Response.json([]);
+      },
+    });
+    const env = {
+      SUPABASE_ACCESS_TOKEN: TOKEN,
+      SUPABASE_PROJECT_REF: REF,
+      SUPABASE_URL: `https://${REF}.supabase.co`,
+      SUPABASE_MANAGEMENT_API: `http://127.0.0.1:${server.port}`,
+      MIGRATIONS_DIR_OVERRIDE: dir,
+      GITHUB_STEP_SUMMARY: summaryFile,
+    };
+    try {
+      const helper = listMigrations().find((m) => m.name === "migration_log");
+      check(!!helper, "the repository has the migration_log migration");
+      writeFileSync(join(dir, helper!.file), helper!.sql);
+      writeFileSync(join(dir, "50000000000011_plain.sql"), WARN_SQL);
+      writeFileSync(
+        join(dir, "50000000000012_noted.sql"),
+        "CREATE TABLE public.mc_noted (a int);\nSELECT migration_log.note('warning', 'mc live warning');\nDO $$ BEGIN PERFORM migration_log.note('notice', format('mc live notice %s', 7)); END $$;",
+      );
+      writeFileSync(join(dir, "50000000000013_after.sql"), "SELECT migration_log.note('warning', 'mc second file');");
+      const r = await runScript("--live", env);
+      check(r.status === 0 && r.text.includes("WARNING from 50000000000012_noted.sql: mc live warning"), `--live prints a migration's warning through migration_log.note (${r.text})`);
+      check(r.text.includes("NOTICE from 50000000000012_noted.sql: mc live notice 7"), "--live prints a noted notice, from plpgsql too");
+      check(r.text.includes("::warning title=50000000000012_noted.sql::mc live warning"), "--live raises a GitHub annotation for the warning");
+      check(readFileSync(summaryFile, "utf8").includes("Warning from `50000000000012_noted.sql`: mc live warning"), "--live's run summary lists the warning");
+      check(
+        r.text.includes("WARNING from 50000000000013_after.sql: mc second file") && !/from 50000000000013_after\.sql: mc live/.test(r.text),
+        "each file prints only the notes it wrote",
+      );
+      check(one(pg, "SELECT count(*) FROM public.mc_noted;") === "0" && one(pg, "SELECT count(*) FROM supabase_migrations.schema_migrations;") === "4", "the noted files applied as any other, with their history");
+      check(!r.text.includes(TOKEN), "the token is never printed");
+    } finally {
+      server.stop(true);
+      pg.stop();
+      rmSync(dir, { recursive: true, force: true });
+      rmSync(summaryFile, { force: true });
+    }
+  }
+}
+
 if (failures.length) {
   for (const f of failures) console.log(`  - ${f}`);
   console.log(`FAIL: ${failures.length} of ${passes + failures.length} checks failed`);
   process.exit(1);
 }
-console.log(`PASS: ${passes} checks (the destructive guard, transaction control, local apply and stop-on-error, migrate.ts --live on a stand-in API)`);
+console.log(`PASS: ${passes} checks (the destructive guard, transaction control, local apply and stop-on-error, migrate.ts --live on a stand-in API, notices and warnings local and live)`);
