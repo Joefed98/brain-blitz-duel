@@ -1,0 +1,210 @@
+{
+ "cardArts": [
+  {
+   "slug": "joulz-navy",
+   "name": "Joulz Navy",
+   "source": "Free",
+   "animated": false
+  },
+  {
+   "slug": "bolt-stripes",
+   "name": "Bolt Stripes",
+   "source": "Free",
+   "animated": false
+  },
+  {
+   "slug": "grid",
+   "name": "Grid",
+   "source": "Free",
+   "animated": false
+  },
+  {
+   "slug": "waves",
+   "name": "Waves",
+   "source": "Free",
+   "animated": false
+  },
+  {
+   "slug": "hexes",
+   "name": "Hexes",
+   "source": "Free",
+   "animated": false
+  },
+  {
+   "slug": "circuit",
+   "name": "Circuit",
+   "source": "Free",
+   "animated": false
+  },
+  {
+   "slug": "dots",
+   "name": "Dots",
+   "source": "Free",
+   "animated": false
+  },
+  {
+   "slug": "sunburst",
+   "name": "Sunburst",
+   "source": "Free",
+   "animated": false
+  },
+  {
+   "slug": "spark",
+   "name": "Spark",
+   "source": "Tier",
+   "animated": false
+  },
+  {
+   "slug": "charge",
+   "name": "Charge",
+   "source": "Tier",
+   "animated": false
+  },
+  {
+   "slug": "volt",
+   "name": "Volt",
+   "source": "Tier",
+   "animated": false
+  },
+  {
+   "slug": "surge",
+   "name": "Surge",
+   "source": "Tier",
+   "animated": false
+  },
+  {
+   "slug": "storm",
+   "name": "Storm",
+   "source": "Tier",
+   "animated": false
+  },
+  {
+   "slug": "lightning",
+   "name": "Lightning",
+   "source": "Tier",
+   "animated": false
+  },
+  {
+   "slug": "top-500",
+   "name": "Top 500",
+   "source": "Tier",
+   "animated": false
+  },
+  {
+   "slug": "crimson",
+   "name": "Crimson",
+   "source": "Rare",
+   "animated": false
+  },
+  {
+   "slug": "royal",
+   "name": "Royal",
+   "source": "Rare",
+   "animated": false
+  },
+  {
+   "slug": "emerald",
+   "name": "Emerald",
+   "source": "Rare",
+   "animated": false
+  },
+  {
+   "slug": "sunset",
+   "name": "Sunset",
+   "source": "Epic",
+   "animated": false
+  },
+  {
+   "slug": "galaxy",
+   "name": "Galaxy",
+   "source": "Epic",
+   "animated": false
+  },
+  {
+   "slug": "lava",
+   "name": "Lava",
+   "source": "Epic",
+   "animated": false
+  },
+  {
+   "slug": "neon-city",
+   "name": "Neon City",
+   "source": "Elite",
+   "animated": false
+  },
+  {
+   "slug": "gold-circuit",
+   "name": "Gold Circuit",
+   "source": "Elite",
+   "animated": false
+  },
+  {
+   "slug": "aurora",
+   "name": "Aurora",
+   "source": "Legendary",
+   "animated": true
+  },
+  {
+   "slug": "diamond-plate",
+   "name": "Diamond Plate",
+   "source": "Legendary",
+   "animated": true
+  },
+  {
+   "slug": "neon-circuit",
+   "name": "Neon Circuit",
+   "source": "Season 1 pass",
+   "animated": false
+  }
+ ],
+ "frames": [
+  {
+   "name": "Plain",
+   "stroke": "#2A3352",
+   "width": 2,
+   "glow": null
+  },
+  {
+   "name": "Bronze",
+   "stroke": "#C98A5A",
+   "width": 3,
+   "glow": null
+  },
+  {
+   "name": "Silver",
+   "stroke": "#C9D3E6",
+   "width": 3,
+   "glow": null
+  },
+  {
+   "name": "Gold",
+   "stroke": "#E2C07A",
+   "width": 3,
+   "glow": null
+  },
+  {
+   "name": "Obsidian",
+   "stroke": "#9B6BFF",
+   "width": 3,
+   "glow": "#9B6BFF"
+  },
+  {
+   "name": "Diamond",
+   "stroke": "url",
+   "width": 4,
+   "glow": "#9FE8FF"
+  },
+  {
+   "name": "Founding",
+   "stroke": "#E2C07A",
+   "width": 4,
+   "glow": "#FFE600"
+  },
+  {
+   "name": "Top 500",
+   "stroke": "#E2C07A",
+   "width": 4,
+   "glow": "#22E4FF"
+  }
+ ]
+}
