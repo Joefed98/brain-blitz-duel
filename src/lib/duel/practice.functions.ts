@@ -111,8 +111,42 @@ export const practiceGenerateFn = createServerFn({ method: "POST" })
 export const practiceStartFn = createServerFn({ method: "POST" })
   .inputValidator((input: { sealed: string }) => input)
   .handler(async ({ data }) => {
-    return { start: await (await sealing()).sealStart(String(data.sealed ?? "")) };
+    const start = await (await sealing()).sealStart(String(data.sealed ?? ""));
+    await recordPracticeEvent("game_started", data.sealed);
+    return { start };
   });
+
+/**
+ * Analytics (src/lib/data/events.server.ts): practice's game_started / game_finished, fire-and-forget. The player is
+ * the caller's anonymous id, read from its token in the background; the game from the sealed deal it played.
+ */
+async function recordPracticeEvent(
+  event: "game_started" | "game_finished",
+  sealed: unknown,
+  finished?: () => Promise<{ score: number; isCorrect: boolean; durationMs: number; inputType?: unknown }>,
+): Promise<void> {
+  try {
+    if (!process.env["SUPABASE_SERVICE_ROLE_KEY"]) return;
+    const outcome = finished ? await finished() : undefined;
+    const raw = await unsealRaw(String(sealed ?? ""));
+    const { recordEvents } = await import("@/lib/data/events.server");
+    const { callerUserId } = await import("./betaRecord.server");
+    const admin = await (await import("@/lib/data/db.server")).adminDb();
+    recordEvents({
+      event,
+      playerId: () => callerUserId(admin),
+      game: typeof raw["type"] === "string" ? raw["type"] : null,
+      mode: "practice",
+      score: outcome?.score ?? null,
+      completed: outcome ? outcome.isCorrect : null,
+      durationMs: outcome?.durationMs ?? null,
+      inputType: outcome?.inputType,
+      props: raw["__example"] !== undefined ? { example: true } : null,
+    });
+  } catch {
+    /* analytics never fails a practice call */
+  }
+}
 
 /** Checks and scores a practice answer, then hands back the full puzzle. */
 export const practiceGradeFn = createServerFn({ method: "POST" })
@@ -143,7 +177,22 @@ export const practiceGradeFn = createServerFn({ method: "POST" })
     const { practiceReceiptMsRemaining } = await import("./practiceReceipt");
     const startAt = await (await sealing()).startAtFor(data.start, String(data.sealed ?? ""));
     const received = practiceReceiptMsRemaining(puzzle, { dealtAt, startAt, nowMs });
-    return gradePracticeRun(data, puzzle, example !== undefined, received);
+    const result = await gradePracticeRun(data, puzzle, example !== undefined, received);
+    await recordPracticeEvent("game_finished", data.sealed, async () => {
+      const { playedMs } = await import("@/lib/data/events.server");
+      const { puzzleTimeLimitMs } = await import("./catalogue");
+      return {
+        score: result.score,
+        isCorrect: result.isCorrect,
+        durationMs: playedMs(
+          puzzleTimeLimitMs(puzzle),
+          result.msRemaining,
+          result.extraJson ? (JSON.parse(result.extraJson) as Record<string, unknown>) : null,
+        ),
+        inputType: data.inputType,
+      };
+    });
+    return result;
   });
 
 interface PracticeRunInput {

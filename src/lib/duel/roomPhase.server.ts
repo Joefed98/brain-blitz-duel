@@ -17,6 +17,7 @@ import {
 } from "@/lib/data/rooms.server";
 
 import { gameIndexOf, recordRoomEvent } from "./betaRecord.server";
+import { recordEvents } from "@/lib/data/events.server";
 import { canFinishNow, continueMark, forfeitOutcome, type ContinuePhase } from "./roomFlow";
 import { totalScore } from "./scoring";
 import {
@@ -73,6 +74,7 @@ export async function leaveBetweenRoundScreen(
         reason: "completed",
         at,
       });
+    if (at && lastRound) recordEvents({ event: "room_finished", mode: "room", roomId: room.id, props: { reason: "completed", game_index: gameIndexOf(room) } });
     return;
   }
   if (room.phase !== "standings") return;
@@ -88,6 +90,7 @@ export async function leaveBetweenRoundScreen(
         event: "game_ended",
         reason: "completed",
       });
+    if (Array.isArray(ended) && ended.length > 0) recordEvents({ event: "room_finished", mode: "room", roomId: room.id, props: { reason: "completed", game_index: gameIndexOf(room) } });
     return;
   }
 
@@ -135,6 +138,7 @@ export async function finishGame(
     event: "game_ended",
     reason: "finish_now",
   });
+  recordEvents({ event: "room_finished", mode: "room", roomId: room.id, props: { reason: "finish_now", game_index: gameIndexOf(room) } });
   return { ok: true, finished: true };
 }
 

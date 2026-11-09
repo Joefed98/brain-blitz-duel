@@ -67,6 +67,17 @@ outside the repo.
   Grading and rules stay where they were. **Add new queries there, never inline** (realtime channels stay in their
   hooks). Wiring checks name the data functions (`restartRoom(`, `insertRoundResult(`…) and read the query text in
   `src/lib/data`; server-functions-check covers every room, chat, async, challenge, replay, share and terms function.
+- **Analytics** (9 Nov 2026, `docs/analytics.md`; recording only, nothing players see): `analytics.events` and the
+  dashboard view `analytics.player_activity` (`supabase/migrations/20261109140000_analytics_events.sql`; schema not
+  exposed to the API, no grants to anon / authenticated, written only through the service-role RPC
+  `record_analytics_events`; 13-month retention by pg_cron where available). **Every write goes through
+  `recordEvents` in `src/lib/data/events.server.ts`** (fire-and-forget: never awaited for a reply, never throws,
+  `waitUntil` on Cloudflare). The server records room, round, daily, challenge and practice moments at the edges of
+  the existing server functions (next to the beta recorder's calls, which are unchanged); the phone sends only
+  `CLIENT_EVENTS` (app opened, share tap, invite opened, error shown, offline game) through `recordClientEventsFn`,
+  queued offline (`src/lib/analytics/clientEvents.ts`). No email, IP, user agent or name is stored.
+  analytics-events-check (~8 s, server-function harness) proves the flows, the client rules, failure isolation,
+  privacy, the view and retention.
 - `src/lib/duel/` — room flow, generators (`*.server.ts`, server-only), banks
   (`*Bank.server.ts`, built by `scripts/*-bank.ts`), shared rules (`<game>.ts`, imported
   by both phone and server), grading (`grade.ts`), scoring (`scoring.ts`,

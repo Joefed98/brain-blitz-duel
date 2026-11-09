@@ -93,6 +93,7 @@ export const asyncSubmitFn = createServerFn({ method: "POST" })
         answer: String(data.answer ?? ""),
         msRemaining: Number(data.msRemaining),
         extra: data.extra,
+        inputType: data.inputType,
       },
       nowMs,
     );

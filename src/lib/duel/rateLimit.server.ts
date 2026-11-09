@@ -54,6 +54,8 @@ export function chatRoomLimit(roomId: string, max: number): RateLimit {
 }
 /** Share and terms beta events (L4): 60 per 10 minutes per user. */
 export const BETA_EVENT_LIMIT: RateLimit = { bucket: "beta-event", max: 60, windowSeconds: 600 };
+/** Analytics events from the phone (recordClientEventsFn): 30 calls of up to 20 events per 10 minutes a device. */
+export const ANALYTICS_CLIENT_LIMIT: RateLimit = { bucket: "analytics-client", max: 30, windowSeconds: 600, failClosed: true };
 
 /* Per network address (M4): generous, since a school or a household shares one address. */
 /** Making rooms from one address: 60 an hour. */

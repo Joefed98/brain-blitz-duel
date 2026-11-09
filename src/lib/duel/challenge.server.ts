@@ -37,6 +37,7 @@ import {
 import { asyncReceipt } from "./asyncRoom";
 import { awardRoundsFor } from "./awardRounds";
 import { gameIndexOf, recordChallengeEvent } from "./betaRecord.server";
+import { recordEvents } from "@/lib/data/events.server";
 import { copiedDisplayName } from "./displayName.server";
 import {
   CHALLENGE_CODE_ALPHABET,
@@ -265,6 +266,7 @@ export async function createChallenge(
     event: "created",
     source: "play",
   });
+  recordEvents({ event: "challenge_created", playerId: userId, mode: "challenge", roomId: room.id, props: { source: "play" } });
   console.log(
     `[challenge] ${meta.code} seed=${seed} order=${puzzles.map((p) => p.type).join(",")}`,
   );
@@ -385,6 +387,7 @@ export async function createChallengeFromRoom(
     event: "created",
     source: "room",
   });
+  recordEvents({ event: "challenge_created", playerId: userId, mode: "challenge", roomId: stored.id, props: { source: "room" } });
   console.log(
     `[challenge] ${meta.code} from room ${room.room_code} game ${gameIndex}: ${imported.length} players`,
   );
