@@ -4,6 +4,11 @@ Read-only investigation, 7 Nov 2026, against `main` at `34272737`. Nothing in th
 hosting was changed. This document is the only file added. It contains no secret values, keys or passwords;
 environment variables are named, never shown.
 
+**Status (9 Nov 2026): the move is done.** joulz.uk runs on Cloudflare Workers (route B, `cloudflare-deploy.md`) with
+Joe's own Supabase project in London; every migration is applied there and later ones apply automatically on merge
+to `main` (`migrations-ci.md`). Lovable Cloud is no longer the live database or host. The text below is the
+investigation as written on 7 Nov.
+
 **Goal.** Move Joulz from Lovable Cloud (Lovable-managed Supabase) to Joe's own Supabase project (London, Pro),
 with no real players yet: every phone started fresh on joulz.uk on 31 Oct 2026 (`docs/domain-move-oct-2026.md`).
 
@@ -158,7 +163,7 @@ reach. **Ask Lovable** (decision D1). Possible answers:
 | Plan | Paid Workers plan ($5/month at the time of writing). The 5.1 MB gzipped bundle is over the free plan's 3 MB limit and inside paid's 10 MB (Cloudflare limits page). |
 | Startup time | Workers allow 1 s of startup per isolate (the current limits page; an older page said 400 ms). The entry is small, and the heavy chunks load lazily. Measure it with `wrangler deploy --dry-run` and a first-request test. |
 | CPU per request | Paid default 30 s (configurable). Room starts and replays need well under 1 s. |
-| **Lovable-hosted sounds** | 93 MP3s exist only in Lovable's asset store: `src/assets/sounds/*.asset.json` hold an `r2_key` and a `/__l5e/assets-v1/…` URL; `src/lib/fx/manifest.ts` references 151 such URLs. None has a copy in `public/sounds/`. Off Lovable hosting these 404, and the sound plays nothing. Download them from joulz.uk while Lovable still serves them, add them under `public/sounds/`, and point the manifest at them. That is one docs-plus-assets PR, with sound-manifest-check updated. |
+| **Lovable-hosted sounds** | 151 recordings existed only in Lovable's asset store (`src/assets/**/*.asset.json` hold an `r2_key` and a `/__l5e/assets-v1/…` URL); the manifest used 135 of them. Off Lovable hosting these would 404. **Done (7 Nov 2026):** the 135 used ones were downloaded from joulz.uk into `public/sounds/` and the manifest points at them; the 16 unused ones are kept, unserved, in `assets-archive/lovable-sounds/` (`sources.json` records every one); sound-manifest-check fails on any `/__l5e/` URL. |
 | Lovable-only extras | `lovable-error-reporting.ts` (used at `__root.tsx:60`) posts to the Lovable editor and does nothing elsewhere. `previewAuthStorage.ts` falls back to `localStorage` off Lovable's preview hosts. Both are harmless. |
 | Deploys | Lovable's Publish button no longer deploys the live site. A GitHub Action (or Cloudflare's Git integration) runs `vite build` plus `wrangler deploy` on `main`, with secrets set by `wrangler secret put` (names in section 5). |
 | Domain | joulz.uk becomes a custom domain on the Worker (DNS at Cloudflare or a CNAME). Lovable keeps serving the old copy until DNS moves, which makes rollback a DNS change. |
@@ -560,7 +565,7 @@ Use this if D1 is "no", or if a guaranteed rollback matters more than the Lovabl
 
 | # | Step | Effort |
 |---|---|---|
-| 1 | Copy the 93 Lovable-hosted sounds into `public/sounds/`, point `manifest.ts` at them, and update sound-manifest-check. Lovable hosting still serves them, so this is safe to merge first. | ½ day |
+| 1 | Copy the 135 Lovable-hosted sounds the manifest uses into `public/sounds/`, point `manifest.ts` at them, and update sound-manifest-check. Lovable hosting still serves them, so this is safe to merge first. | ½ day |
 | 2 | A deploy workflow: `bun.lock` registry rewrite, `bun install`, `vite build`, `wrangler deploy` of `.output`, with secrets `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `PRACTICE_SEAL_KEY` and `INTRO_DEMO_KEY` set by `wrangler secret put` [Joe], and the `VITE_*` values as build env. A paid Workers plan [Joe]. | 1 day |
 | 3 | Steps 2–4 of route A (the database). | ½ day |
 | 4 | Test on the `*.workers.dev` address: 2 phones, as in 8.2 step 5. Measure startup and the first room start. | ½ day |

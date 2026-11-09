@@ -3,6 +3,10 @@
 The app now lives at **https://joulz.uk**, connected in Lovable as the primary domain;
 `playjoulz.com` and the old `brain-blitz-duel.lovable.app` redirect to it.
 
+**Update, 9 Nov 2026:** since the Supabase move joulz.uk runs on Cloudflare Workers with Joe's own Supabase project
+(London), not on Lovable hosting or Lovable Cloud (`docs/supabase-move/`). The Lovable steps below are historical; the
+Site URL and redirect URLs are set on the London project (`docs/supabase-move/runbook.md` 1.3).
+
 ## What changed in the repo
 
 - `src/config/appUrl.ts`: `APP_URL = "https://joulz.uk"`, the one place the address lives

@@ -1,5 +1,10 @@
 # Duelz — Migration Readiness: Lovable Cloud → own Supabase (London) + Edge Functions
 
+> **Status, 9 Nov 2026:** this is a point-in-time report. Since the Supabase move joulz.uk runs on Cloudflare Workers
+> with Joe's own Supabase project (London); every migration in `supabase/migrations/` is applied there and new ones
+> apply automatically on merge to `main` (`docs/supabase-move/`). Where the text below calls a migration "written but
+> not applied" or Lovable Cloud the live database or host, that no longer holds.
+
 Read-only audit, 11 Oct 2026, against `main` at `3c09847`. No app code, schema or data was changed. Every timing here was measured in this audit's cloud container. Timings are not from production.
 
 ## Summary

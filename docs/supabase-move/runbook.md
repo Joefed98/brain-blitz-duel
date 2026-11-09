@@ -376,8 +376,8 @@ Step numbers are investigation section 8.1's (route A). This runbook covers its 
 | 3 | **Set up the new database.** | Claude | **done (this runbook)** |
 | 4 | Carry over `unblock_bank` and `intro_demos` (section 3 here), and confirm the md5s match. | Joe (export), Claude (load) | **done (section 3.6)** |
 | 5 | Rehearsal on a Lovable remix pointed at the new project: set `SUPABASE_SERVICE_ROLE_KEY` (or the `sb_secret_` key), `INTRO_DEMO_KEY` and `PRACTICE_SEAL_KEY` (the same value as live, if set); then a 2-phone room, practice, a daily, a challenge, chat and Play again. | Joe (phones); Claude for a checklist | open |
-| 6 | Switchover evening (investigation 8.2), with the rollback stance decided first (8.3). | Joe | open |
-| 7 | Follow-up PR: `supabase/config.toml`'s `project_id`, the docs that name the old project, the "written but not applied" notes (CLAUDE.md, `docs/beta-sql.md`), (the `submitted_round` range is done: 2.6). | Claude | open |
+| 6 | Switchover evening (investigation 8.2), with the rollback stance decided first (8.3). | Joe | **done**: joulz.uk runs on Cloudflare Workers and this project (route B) |
+| 7 | Follow-up PR: `supabase/config.toml`'s `project_id`, the docs that name the old project, the "written but not applied" notes (CLAUDE.md, `docs/beta-sql.md`), (the `submitted_round` range is done: 2.6). | Claude | **done** (post-move tidy-up PR) |
 
 Route B, step 2 (investigation 8.4 row 2): the Cloudflare deploy workflow, `.github/workflows/deploy-cloudflare.yml`,
 deploys `main` to the Worker `joulz` on workers.dev only (no joulz.uk route). Setup, measurements and Joe's dashboard steps:
@@ -390,7 +390,7 @@ here), D5 (`PRACTICE_SEAL_KEY` value), D6 (PITR; the 30-an-hour anonymous limit 
 Notes for whoever picks this up:
 
 - **Don't re-run the migrations on this project.** They are applied and recorded. A schema change from now on is a
-  new migration file, applied here as on Lovable.
+  new migration file; GitHub applies it here on merge to `main` (`migrations-ci.md`).
 - **Postgres from a cloud session.** This container could reach the database only over the Management API. A machine
   with IPv6 or a working pooler connection can use `supabase db push` / `psql` normally, with the database password.
 - No check, workflow or app file changed; no browser tests were run.

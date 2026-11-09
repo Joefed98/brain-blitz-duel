@@ -1,5 +1,10 @@
 # Pre-beta security audit (16 Oct 2026)
 
+> **Status, 9 Nov 2026:** this is a point-in-time report. Since the Supabase move joulz.uk runs on Cloudflare Workers
+> with Joe's own Supabase project (London); every migration in `supabase/migrations/` is applied there and new ones
+> apply automatically on merge to `main` (`docs/supabase-move/`). Where the text below calls a migration "written but
+> not applied" or Lovable Cloud the live database or host, that no longer holds.
+
 For the open beta on 27 Oct 2026 (100–300 strangers). Read from the repo at `main` 3853213: the 27 migrations in
 `supabase/migrations/`, every `createServerFn` in `src/`, the Supabase clients in `src/integrations/supabase/`, the
 committed `.env`, all 517 commits of git history, and a production client build (`vite build`, `.output/public`).

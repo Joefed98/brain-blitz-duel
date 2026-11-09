@@ -1,6 +1,6 @@
 # Supabase move, step 2 (route B, docs/supabase-move/investigation.md 8.4; docs/supabase-move/cloudflare-deploy.md):
-# build the app and deploy it to the Cloudflare Worker "joulz" on its workers.dev address only. No custom domain
-# and no route: joulz.uk stays on Lovable (Lovable hosting, Lovable Cloud) until the switchover.
+# build the app and deploy it to the Cloudflare Worker "joulz". Since the switchover (9 Nov 2026) joulz.uk is a
+# custom domain on that Worker, set in the Cloudflare dashboard (no route in this file), with Joe's London Supabase.
 #
 # - Every push to main (and Actions → Deploy to Cloudflare → Run workflow) deploys production on workers.dev.
 # - A PR labelled `deploy-preview` uploads a preview version (not deployed) at pr-<n>-joulz.<subdomain>.workers.dev,
@@ -152,6 +152,16 @@ jobs:
           bun run build
           test -f .output/server/index.mjs
           test -f .wrangler/deploy/config.json
+
+      # Workers Logs stay on: `wrangler deploy` sets the Worker's observability from the config, so a config
+      # without it would turn logs off. vite.config.ts (WORKER_OBSERVABILITY) puts it in nitro's wrangler.json.
+      - name: Generated wrangler config keeps Workers Logs on
+        run: |
+          cfg=".wrangler/deploy/$(jq -r .configPath .wrangler/deploy/config.json)"
+          jq -e '.observability.enabled == true and .observability.logs.enabled == true
+                 and .observability.logs.invocation_logs == true and .observability.logs.persist == true' "$cfg" >/dev/null \
+            || { echo "::error::$cfg has no observability with logs on (vite.config.ts WORKER_OBSERVABILITY)"; exit 1; }
+          echo "Workers Logs on in $cfg: $(jq -c .observability "$cfg")"
 
       - name: The build talks to the new project only
         env:

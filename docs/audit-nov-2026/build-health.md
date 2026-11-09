@@ -1,5 +1,10 @@
 # Code audit 4: build health, dependencies and checks
 
+> **Status, 9 Nov 2026:** this is a point-in-time report. Since the Supabase move joulz.uk runs on Cloudflare Workers
+> with Joe's own Supabase project (London); every migration in `supabase/migrations/` is applied there and new ones
+> apply automatically on merge to `main` (`docs/supabase-move/`). Where the text below calls a migration "written but
+> not applied" or Lovable Cloud the live database or host, that no longer holds.
+
 7 Nov 2026, on `main` at 34272737. This is a read-only audit: nothing in the app, the checks or CI changed. No browser
 check was run locally. The evidence comes from:
 
@@ -77,6 +82,10 @@ outside Lovable, so every bump in this section has to go through Lovable (or Joe
 `minimumReleaseAge` guard.
 
 ### 1.2 Unused packages
+
+**Done (9 Nov 2026, post-move tidy-up):** the 33 packages below removed (the Radix list less `react-dialog`, which
+`vaul` depends on and stays a direct dependency, plus the other runtime packages and `drizzle-orm`). `postgres` is kept:
+`scripts/server-fn-harness.ts` imports it.
 
 I grepped `src/`, `scripts/`, `.github/`, `vite.config.ts` and `drizzle.config.ts` for imports of each `package.json`
 entry (and for CSS `@import`s). **None of these is imported anywhere:**

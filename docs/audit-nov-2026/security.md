@@ -1,5 +1,10 @@
 # Code audit 1: security and trust (7 Nov 2026)
 
+> **Status, 9 Nov 2026:** this is a point-in-time report. Since the Supabase move joulz.uk runs on Cloudflare Workers
+> with Joe's own Supabase project (London); every migration in `supabase/migrations/` is applied there and new ones
+> apply automatically on merge to `main` (`docs/supabase-move/`). Where the text below calls a migration "written but
+> not applied" or Lovable Cloud the live database or host, that no longer holds.
+
 Read-only audit of `main` at 34272737, done before accounts, coins and purchases are added. **No code, database or
 setting was changed.** It builds on `docs/security-audit-oct-2026.md` (16 Oct 2026, called "the October audit" below)
 and covers everything added since: async rooms, the daily, friend challenges, offline practice packs, room settings and
