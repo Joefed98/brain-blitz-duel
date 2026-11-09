@@ -154,7 +154,8 @@ Trigger: `challenge_attempt_cap BEFORE INSERT ON public.async_attempts FOR EACH 
 ## 3. Carrying over `unblock_bank` (400 rows) and `intro_demos` (29 rows)
 
 Do this when the switch is near. `intro_demos` changes whenever a demo is recorded, so re-run the export if one is
-recorded after you copy it (investigation 8.2 step 2). The new project's tables are empty now.
+recorded after you copy it (investigation 8.2 step 2). **Done on 9 Nov 2026: see 3.6 for the load and its
+verification.** Sections 3.1–3.5 stay as the procedure for a re-load.
 
 Columns, identical on both sides (same migrations; check with query 3.1 first):
 
@@ -278,18 +279,65 @@ FROM public.intro_demos ORDER BY game_type;
 
 Run these on both sides and compare the lists. Then delete the bad rows on Supabase and re-import only those.
 
+### 3.6 Done: the load of 9 Nov 2026 (move step 4)
+
+Joe ran 3.1 on Lovable and exported both tables to CSV. The files sat in `move-data/` on the `move-data` branch,
+which is not merged and was not copied anywhere else. The Supabase table editor was not used. The rows went in through
+the Management API's SQL endpoint, so the import couldn't change any value.
+
+**The export's shape.** `;` as the separator, quotes only where needed (doubled inside), LF line ends, one header
+row, and the **columns in alphabetical order**: `created_at;id;last_used_at;layout;min_moves;solution` and
+`example_id;game_type;input_log;length_ticks;puzzle;recorded_at;seed;start_tick`. A NULL is an empty, unquoted cell.
+Neither file has a quoted empty cell (`""`), so every empty cell is a NULL. The column checks:
+
+- `unblock_bank`: 400 rows, ids exactly 1–400, no empty cell in any column;
+- `intro_demos`: 29 rows, 29 distinct `game_type`s, every `puzzle` and `input_log` valid JSON, `example_id` empty in 27.
+
+Both match Lovable's NULL check before the load.
+
+**How it was loaded.** The CSVs were parsed by column *name* with Python's `csv` module (`delimiter=';'`). One
+transaction inserted every row with an explicit column list, which keeps every value exactly:
+
+- `id`, `min_moves`, `seed`, `start_tick` and `length_ticks` as integers;
+- text quoted as SQL literals;
+- the timestamps as the exported text cast to `timestamptz`;
+- `puzzle` and `input_log` cast to `jsonb`;
+- an empty cell as `NULL`, never `''`.
+
+The same transaction ran `setval('public.unblock_bank_id_seq', (SELECT max(id) FROM public.unblock_bank))`. Both
+tables were checked empty first.
+
+**Verification** (3.1's queries on the new project, against Lovable's values): every value matched on the first
+load, so no row needed the per-row query or a fix.
+
+| Check | Lovable | New project |
+|---|---|---|
+| `unblock_bank` rows / md5 | 400 / `b43e4622a9bfdfde20c16d030d66d05d` | 400 / `b43e4622a9bfdfde20c16d030d66d05d` ✓ |
+| `intro_demos` rows / md5 | 29 / `262af845d4e7117dc2299e665ba979e2` | 29 / `262af845d4e7117dc2299e665ba979e2` ✓ |
+| `bank_never_used` | 0 | 0 ✓ |
+| `demos_no_example` | 27 | 27 ✓ |
+| `demos_empty_example` | 0 | 0 ✓ |
+| `bank_max_id` | 400 | 400 ✓ |
+| `unblock_bank_id_seq` last_value / is_called | 400 / true | 400 / true ✓ |
+
+**Before the switchover.** Live rooms keep stamping `unblock_bank.last_used_at` on Lovable as Gridlock boards are
+drawn, and new intro demos may be recorded there. If the exact pool matters on the night, re-run 3.1 on Lovable and
+compare the md5s with the table above. If they differ, empty both tables here
+(`TRUNCATE public.unblock_bank, public.intro_demos;`) and load a fresh export the same way. With no players, a slightly
+older `last_used_at` only changes which boards are drawn first.
+
 ---
 
 ## 4. What's left
 
-Step numbers are investigation section 8.1's (route A). This runbook covers its step 3.
+Step numbers are investigation section 8.1's (route A). This runbook covers its steps 3 and 4.
 
 | Step | What | Who | State |
 |---|---|---|---|
 | 1 | D1–D3 questions to Lovable support (server functions get the outside project's keys? can Remove Cloud be undone? can a remix rehearse it?). Agree who holds the branch while Lovable rewrites `.env` and `src/integrations/supabase/`. | Joe | open |
 | 2 | On Lovable Cloud: run the row counts (investigation 3.6) and the live-state SQL (investigation section 4); keep an archive export of everything. | Joe | open |
 | 3 | **Set up the new database.** | Claude | **done (this runbook)** |
-| 4 | Carry over `unblock_bank` and `intro_demos` (section 3 here), and confirm the md5s match. | Joe, Claude if the import needs help | open |
+| 4 | Carry over `unblock_bank` and `intro_demos` (section 3 here), and confirm the md5s match. | Joe (export), Claude (load) | **done (section 3.6)** |
 | 5 | Rehearsal on a Lovable remix pointed at the new project: set `SUPABASE_SERVICE_ROLE_KEY` (or the `sb_secret_` key), `INTRO_DEMO_KEY` and `PRACTICE_SEAL_KEY` (the same value as live, if set); then a 2-phone room, practice, a daily, a challenge, chat and Play again. | Joe (phones); Claude for a checklist | open |
 | 6 | Switchover evening (investigation 8.2), with the rollback stance decided first (8.3). | Joe | open |
 | 7 | Follow-up PR: `supabase/config.toml`'s `project_id`, the docs that name the old project, the "written but not applied" notes (CLAUDE.md, `docs/beta-sql.md`), and the `submitted_round` range (2.6). | Claude | open |
