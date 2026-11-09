@@ -24,8 +24,10 @@ Golf Solitaire (`golfsol`, the Cards & Board batch, retired the same way)). Ever
 least 6 active games (`category-pool-check`). On 14 Oct 2026, 19 retired games and the Memory
 category were deleted; old rooms' rounds of them show only the name and stored score
 (`src/lib/duel/removedGames.ts`, proved by `removed-games-check`). Built in Lovable, synced to this repo.
-Lovable still hosts and publishes the app at https://joulz.uk (the primary domain since 31 Oct 2026; playjoulz.com and the old
-https://brain-blitz-duel.lovable.app redirect to it). Every link the app hands out and every absolute URL in the page head
+Since the Supabase move (9 Nov 2026, `docs/supabase-move/`) https://joulz.uk (the primary domain since 31 Oct 2026; playjoulz.com and the
+old https://brain-blitz-duel.lovable.app redirect to it) runs on Cloudflare Workers (the Worker `joulz`, deployed from `main` by
+`.github/workflows/deploy-cloudflare.yml`) with Joe's own Supabase project in London; Lovable no longer hosts it, and Lovable
+Cloud is not the live database. Every link the app hands out and every absolute URL in the page head
 is built on `APP_URL` (`src/config/appUrl.ts`), never the page's own origin; `docs/domain-move-oct-2026.md` lists the settings
 outside the repo.
 
@@ -34,8 +36,9 @@ outside the repo.
 - TanStack Start (React 19, TanStack Router file routes in `src/routes/`, server
   functions via `createServerFn` in `src/lib/duel/*.functions.ts`), Vite 8, Tailwind 4,
   Radix/shadcn UI (`src/components/ui/`).
-- Lovable Cloud / Supabase for Postgres, realtime and RLS (`src/integrations/supabase/`,
-  `supabase/migrations/`).
+- Supabase (Joe's own project, London) for Postgres, realtime and RLS (`src/integrations/supabase/`,
+  `supabase/migrations/`, applied automatically on merge to `main`: `docs/supabase-move/migrations-ci.md`).
+- Hosting: Cloudflare Workers (nitro's `cloudflare-module` build; `docs/supabase-move/cloudflare-deploy.md`).
 - Bun is the package manager and script runner (`bun.lock`, `bunfig.toml` with a 24 h
   minimum-release-age guard; don't add exclusions without asking Joe).
 
@@ -177,8 +180,8 @@ outside the repo.
   or icon on the colour, beside the name in the lobby, round results, standings, both final screens and chat; never colour
   alone; the winner reveal shows no player). Icons are original line drawings (`src/components/duel/playerIcons.tsx`, no
   library; always on, the `PLAYER_ICONS_ENABLED` switch removed on 7 Nov 2026). Columns `duel_players.colour`
-  / `.icon` come from `supabase/migrations/20261017120000_player_colour_icon.sql`, **written but not applied**: until it is,
-  rows have no colour, phones show slot colours with initials and the lobby hides the picker, so publishing first is safe;
+  / `.icon` come from `supabase/migrations/20261017120000_player_colour_icon.sql`, **applied** (live on Joe's Supabase);
+  on a database without it rows have no colour, phones show slot colours with initials and the lobby hides the picker;
   RLS is unchanged (clients only read). Awards (`src/lib/duel/podiumAwards.ts`, `PodiumAwards`): Fastest Finger,
   Perfectionist, Comeback Kid (≥ 2 places), So Close, each only when earned, non-winners first, fixed tie-break (figure,
   fewer awards, final place, slot), from results every player can read; cue `room.award`, skipped with the animation under
@@ -198,7 +201,7 @@ outside the repo.
   label on arcade play screens), never the play area, timer or controls; silent; no score, answer or result, ever. It
   reads `duel_players.submitted_round`, written by `submitAnswerFn` after the result row is stored and cleared by
   `rematchFn` (`finishedPing.server.ts`); the column comes from `supabase/migrations/20261017140000_player_submitted_round.sql`,
-  **written but not applied**: until it is, no pings show and nothing else changes. Its range was 0–7; `20261109120000_submitted_round_max_rounds.sql` (9 Nov 2026 hotfix, idempotent, safe at any time) widens it to `MAX_ROUNDS` (12), since rounds 8–12 failed the check silently (submitted-round-check: a 12-round room on a local PostgreSQL). The room answer reveal for arcade
+  **applied** (without it no pings show and nothing else changes). Its range was 0–7; `20261109120000_submitted_round_max_rounds.sql` (9 Nov 2026 hotfix, idempotent, applied) widens it to `MAX_ROUNDS` (12), since rounds 8–12 failed the check silently (submitted-round-check: a 12-round room on a local PostgreSQL). The room answer reveal for arcade
   games places every player on one "snake" line that bends round in three rows, 0–50, 51–100 (right to left) and
   101–150, labelled 0, 50, 100 and 150 at the ends and bends (`arcadeChart.ts`, `ArcadeScoreChart`; the only look):
   badges with names, **no points figure for anyone** (your own score is the reveal's big number; exact scores are for
@@ -312,8 +315,8 @@ outside the repo.
   of the Play tab on that visit only (`ShareWelcomeCard`, the only Play tab change; the first-time intro is skipped for it,
   as for a room link): "YOUR FRIEND PLAYED {APP_NAME}", TRY A PRACTICE GAME (Warm up's first game), NEXT PUBLIC GAME: {day
   time} (the Tournaments tab, only when one is scheduled) and a ✕, counted as `arrival_welcome` (`shown`, then `dismissed`,
-  `practice` or `public`). Table `share_events` from `supabase/migrations/20261021120000_beta_share_events.sql`, **written but
-  not applied** (until it is, the writes fail quietly; queries in `docs/beta-sql.md` section 7). share-check (~1 min, `play17`).
+  `practice` or `public`). Table `share_events` from `supabase/migrations/20261021120000_beta_share_events.sql`, **applied**
+  (without it the writes fail quietly; queries in `docs/beta-sql.md` section 7). share-check (~1 min, `play17`).
 - **Desktop browsers** (17 Oct 2026, presentation and input only; `docs/desktop-support.md` has the control map for every
   game): `src/lib/desktop.ts` (`DESKTOP_QUERY`: a mouse or trackpad, hover and a fine pointer, in a window ≥ 1180×560; phones
   and tablets never match), `src/polish-layout/desktop.css` (pages a centred 480 px column; puzzle screens a centred ≤ 560×1000
@@ -371,7 +374,7 @@ outside the repo.
   Daily challenge card (`DailyCard`, hidden until the status call finds the tables), `/daily` (tabs Puzzle / Arcade,
   Today / Yesterday, `DailyBoard`), Profile's Daily row (`dailyRecord.ts`: streak and bests, device only). Beta events in
   `async_events` (`recordAsyncEvent`; docs/beta-sql.md section 8, Q8a–c). Migration
-  `supabase/migrations/20261021130000_async_rooms_daily.sql` is **written but not applied**: until it is, the card is
+  `supabase/migrations/20261021130000_async_rooms_daily.sql` is **applied**: on a database without it the card is
   hidden and nothing else changes. RLS: no client writes at all; clients read only the leaderboard columns of attempts
   on an open board (plus their own row) and the rooms' window columns. daily-check (~15 s; the SQL on a local PostgreSQL
   when installed) proves it; the daily screens are in theme-check and no-wrap-check (`scripts/theme-screens.ts`,
@@ -401,8 +404,8 @@ outside the repo.
   The daily's results and today's board have Share ("I scored 612 on today's Daily Puzzle – can you beat it? <link>",
   `dailyShare.ts`, `shareResult` with `linkPrefix: ""`). Beta: `challenge_events` (created, link_opened,
   friend_finished, followup_room / followup_daily from the device), queries in `docs/beta-sql.md` section 9.
-  Migration `supabase/migrations/20261022120000_friend_challenges.sql` is **written but not applied** (after
-  20261021130000): until it is, the card, the podium button and Your challenges stay hidden. challenge-check (~12 s;
+  Migration `supabase/migrations/20261022120000_friend_challenges.sql` is **applied** (after
+  20261021130000); without it the card, the podium button and Your challenges stay hidden. challenge-check (~12 s;
   the SQL on a local PostgreSQL when installed); the screens are in theme-check and no-wrap-check;
   `bun scripts/shots/challenge-shots.ts` draws the review screenshots (`screenshots/challenge-oct-2026/`).
 - **Play tab without jumps** (22 Oct 2026, presentation and device storage only): the late cards (share welcome,
@@ -430,7 +433,7 @@ outside the repo.
   each kind. *Beta terms* (`/terms`, `TermsScreen`, `lib/beta/terms.ts`): shown once before a device's first room (the
   room link's join, Create and Join), daily or challenge (`TermsGate`; never inside a room the device is already in: its
   lobby, rounds, reveals and results show without them, and its next entry point asks), I AGREE stored as `duelz-terms:v1` with its date and
-  sent once to `terms_events` (`supabase/migrations/20261023120000_beta_terms_events.sql`, **written but not applied**);
+  sent once to `terms_events` (`supabase/migrations/20261023120000_beta_terms_events.sql`, **applied**);
   Profile → settings → Beta terms. The screen harnesses seed an agreement unless `?terms=0`. *Add to Home Screen hint*
   (`HomeScreenHint`): the Play tab's `homescreen` PlaySlot, reserved by the boot script on iPhone Safari outside a
   home-screen app until shown once (`duelz-home-hint:v1`). *Send feedback* (`FeedbackLink`, `lib/beta/feedback.ts`):
@@ -1000,9 +1003,9 @@ outside the repo.
   `bun scripts/shots/room-settings-shots.ts` (`screenshots/room-settings-oct-2026/`).
 - **Rooms of 16 and the colour wheel** (31 Oct 2026, `docs/room-16-oct-2026.md`; presentation and room data only, no
   stamps): `MAX_PLAYERS` 16 (`roomCapacity`, `roomSeats.ts` `seatFor`: the 17th join is refused "That room is full (16
-  players)."); migration `20261031150000_room_16_players.sql` (slots 1–16, colours 0–31, share counts 1–20) is **written
-  but not applied**: until it is, the 11th join is refused as full (10) through `RoomSeatsError` and wheel colours past 9
-  seat as no colour. Lobby players in two columns; round results and standings compact from 11 players with my row pinned
+  players)."); migration `20261031150000_room_16_players.sql` (slots 1–16, colours 0–31, share counts 1–20) is **applied**
+  (on a database without it the 11th join is refused as full (10) through `RoomSeatsError` and wheel colours past 9
+  seat as no colour). Lobby players in two columns; round results and standings compact from 11 players with my row pinned
   (sticky, the list `overflow: clip`); the arcade chart the top 8 plus me from 11 players (`chartShown`); the podium the top three, "Your
   place" and my row (`See all`); the reveal's chart panel never shrinks below its chart (the 375×667 four-part-line
   overlap). Colours: `PLAYER_COLOURS` is a 32-swatch wheel (indices stored, never reorder; 0–9 the October ten), every
@@ -1026,7 +1029,7 @@ outside the repo.
   scenery faded at the edges; Apex's world capped at 340×634 on desktop with its static backdrop, `maxWorldWidth`,
   for 60 fps, and its renderer skips near-grass bands the haze already paints, pixel-identical: racing-render-check). `DesktopControlsHint` shows the keys for 8 s. Every result records its input type
   (`src/lib/inputType.ts` → `input_type` on round_results, async_results, practice_plays, best effort; migration
-  `20261031170000_result_input_type.sql` **written but not applied**; it also redefines `restart_duel_room` so Play
+  `20261031170000_result_input_type.sql` **applied**; it also redefines `restart_duel_room` so Play
   again's archive keeps `input_type`). Checks: desktop-layout-check (thirds,
   `play22`/`play23`), desktop-fairness-check (`play22`), `arcade-play-check --desktop` as arcade-play-desktop-check
   (halves, `play24`/`play25`); desktop-geometry-check proves the new columns. Shots `bun scripts/shots/desktop-layout-shots.ts`.
@@ -1576,8 +1579,7 @@ outside the repo.
   (`EFFECTS`, with reasons).
   *Room codes*: new rooms take four characters from the challenge codes' alphabet (`src/lib/duel/roomCode.ts`,
   no I, L, O, 0 or 1); everything that reads a code accepts four letters or digits, so older codes (JULZ
-  included) keep working; `supabase/migrations/20261107120000_room_code_digits.sql` (**written but not
-  applied**) widens share_events' room-code check; until it is, the beta share event from a room with a digit in its
+  included) keep working; `supabase/migrations/20261107120000_room_code_digits.sql` (**applied**) widens share_events' room-code check; without it the beta share event from a room with a digit in its
   code is refused by the old check (fire-and-forget, so play is unaffected). room-code-check (~1 s).
 - **Design foundation F1: tokens and enforcement** (6 Nov 2026; presentation only, no stamps; `DESIGN.md`): every colour,
   shape, space and motion value lives in `src/design/tokens.css` as `--jz-*` (plus the category accents, arcade group
@@ -1661,7 +1663,7 @@ outside the repo.
   the higher points; most points wins, then the total score, then the existing tie-break time). `standings()`,
   `duelOutcome`, `podiumAwards` and Play again's saved winner take the mode; Placings rows add `points`,
   `roundPoints`, `roundPlace` (Total rows are unchanged, field for field and in markup). Stored in `duels.scoring_mode`
-  from `supabase/migrations/20261108120000_room_scoring_mode.sql`, **written but not applied**: until it is, the row
+  from `supabase/migrations/20261108120000_room_scoring_mode.sql`, **applied**; on a database without it the row
   has no column, every room reads as Total (`roomScoringMode`), the sheet and the lobby's "Scoring:" line are hidden
   (`hasScoringColumn`) and the server refuses Placings with a message. Only `changeRoomSettings` writes it (host,
   lobby); new rooms take the host's last mode. room-scoring-check (~2 s, happy-dom); shots
@@ -1772,8 +1774,8 @@ outside the repo.
   room realtime is per room (`filter` on every `useDuel` and chat subscription, security L6); heartbeats go to
   `duel_presence` (`presence.server.ts`, outside `supabase_realtime`), whose reply carries the room's last-seen times
   for the phone to lay over its rows (`roomSeen.ts`); player updates apply in place; the server reads the later of
-  both columns (`withPresence`, `disband_stale_room`). Migration `20261109130000_room_presence.sql` is **written but
-  not applied** (idempotent; until then the heartbeat writes `duel_players` as before). The server build is minified
+  both columns (`withPresence`, `disband_stale_room`). Migration `20261109130000_room_presence.sql` is **applied**
+  (idempotent; without it the heartbeat writes `duel_players` as before). The server build is minified
   (`nitro: { minify: true }`) and `gradeAnswer` lives in `gradeAnswer.server.ts` (re-exported by generate.server), so
   the first room answer loads 5.8 MB instead of 23.6 MB. room-presence-check (~1 s); server-functions-check's
   "heartbeat presence" section.
@@ -1914,8 +1916,8 @@ outside the repo.
   The approved workaround: back up `bun.lock`, temporarily rewrite those URLs to
   `https://registry.npmjs.org/` (same versions and integrity hashes), run
   `bun install --frozen-lockfile`, then restore `bun.lock` and confirm
-  `git diff -- bun.lock` is empty. **Never commit a changed `bun.lock`**; Lovable builds
-  from it. Joe's cloud environment can do this automatically through a setup script
+  `git diff -- bun.lock` is empty. **Never commit a changed `bun.lock`** unless Joe asks (CI and the
+  Cloudflare deploy install from it with the same rewrite, and Lovable still reads it). Joe's cloud environment can do this automatically through a setup script
   (kept in the environment settings, not in the repo); if `node_modules` is missing at
   session start, the script didn't run, so ask Joe before working around it.
 - **Baseline:** whatever the latest green PR run of the Checks workflow reports (143
@@ -2108,8 +2110,8 @@ grading. See `docs/duelz-scoring-reference.md` section 14.
   say what was verified in code and checks.
 - **Lovable and Claude Code must never edit at the same time.** Agree who holds the
   branch before starting.
-- **Changes reach the live app only after merging to `main` and pressing Publish in
-  Lovable.** Pushing a branch does not deploy.
+- **Changes reach the live app when they merge to `main`**: the Deploy to Cloudflare workflow applies new
+  migrations, builds and deploys. Pushing a branch does not deploy (a `deploy-preview` label uploads a preview only).
 - Lovable syncs `main`: never force-push, rebase, amend or squash pushed commits, and
   keep the branch building.
 - Develop on the session's feature branch; don't open PRs unless asked.

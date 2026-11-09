@@ -1,15 +1,15 @@
 # Beta numbers: SQL (27 Oct – 23 Nov 2026)
 
 SQL to measure the four-week public beta (100–300 strangers on the web app, anonymous device
-identities, no accounts). Every query is read-only and self-contained: paste one into the Lovable
-Cloud / Supabase SQL editor and run it. Nothing here changes a game, sim, score, timing, input, replay,
+identities, no accounts). Every query is read-only and self-contained: paste one into the Supabase SQL
+editor (Joe's London project, the live database since the move on 9 Nov 2026; `docs/supabase-move/`) and run it. Nothing here changes a game, sim, score, timing, input, replay,
 version stamp or stored row.
 
 Written 16 Oct 2026 against `supabase/migrations/` (32 files, latest `20261016130300`). Updated the same
 day for the beta recording (gaps G1–G4, now recorded from the four `2026101613xxxx_beta_*` migrations:
 archived rounds and players, practice plays, game and round events, join methods); those tables are
-not in `src/integrations/supabase/types.ts` until Lovable regenerates it. Updated again the same day for
-the G1 fix-up (`20261016170000_beta_archive_round_records.sql`, not yet applied): archived rounds now
+not in `src/integrations/supabase/types.ts` until it is regenerated. Updated again the same day for
+the G1 fix-up (`20261016170000_beta_archive_round_records.sql`, applied): archived rounds now
 record the time limit they actually used and their version stamps, as `practice_plays` does. Section 5 says how each query
 was run; section 6 lists what the data still doesn't record.
 
@@ -1000,7 +1000,7 @@ PostgreSQL when one is installed.
 | G4 | **Done.** Joined by code or by link. | Q3b, Q3c | `room_joins` (migration `20261016130000`): `host` (`createRoomRow`), `code` / `link` from an optional `via` that the home screen's code boxes and `JoinFromLink` pass to `joinRoomFn` (rejoins in the lobby flagged `rejoin`), and `play_again` for everyone `restart_duel_room` carries into the next game. Older phones send no `via` and are stored as null. A link pasted into the code boxes counts as `code`. |
 | G5 | **A timed-out flag.** Timeout is inferred from `ms_remaining = 0`, which can't separate a buzzer-beater from a timeout, and Flash and Bang On always store 0. | Q4 timeout rate | Add `timedOut: true` to `submitAnswerFn`'s input from the phone's timer effect in `duel.$code.tsx` and store it as `round_results.timed_out boolean` (or in `extra`). Grading ignores it. |
 | G6 | **Time-claim clamps.** When the server clamps a phone's `msRemaining` (more than 1.5 s better than its own estimate) it only logs `console.warn`. | Q6 (a timing-cheat signal) | Store `clamped: true` alongside, e.g. a nullable `round_results.time_clamped boolean` written in `submitAnswerFn` from the `clamped` it already computes. |
-| G7 | **Device first-seen outside `auth`.** `auth.users.created_at` has it, but only roles that can read the `auth` schema see it, and Lovable Cloud may not expose it everywhere. | Q7 | None needed if the SQL editor can read `auth.users`; otherwise a `devices(user_id primary key, first_seen_at default now(), last_seen_at)` table upserted by a tiny server function the root calls once after `ensureSession()`. |
+| G7 | **Device first-seen outside `auth`.** `auth.users.created_at` has it, but only roles that can read the `auth` schema see it, and the SQL editor may not expose it everywhere. | Q7 | None needed if the SQL editor can read `auth.users`; otherwise a `devices(user_id primary key, first_seen_at default now(), last_seen_at)` table upserted by a tiny server function the root calls once after `ensureSession()`. |
 | G8 | **Same person, several devices.** Anonymous ids split a person across browsers and the home-screen app. | Q2, Q3 (undercount returns) | Nothing small: accounts, or a self-chosen link step. Read device numbers as upper bounds for people. |
 
 Not gaps: device id (`user_id`), room id, game id, score, room created time, host (creator) and Play
@@ -1014,8 +1014,8 @@ are before it; the winner reveal's own end (status `finished`) is not a separate
 
 ## 7. The share loop (21 Oct 2026)
 
-`share_events` (migration `20261021120000_beta_share_events.sql`, **written but not applied**; until it
-is, every write fails quietly and the app is unchanged) records the growth loop from the final screen's
+`share_events` (migration `20261021120000_beta_share_events.sql`, **applied**; on a
+database without it every write fails quietly and the app is unchanged) records the growth loop from the final screen's
 Share button (`src/components/share/ShareResultButton.tsx`, `src/lib/share/`). Server-only (RLS on, no
 client grants), written best-effort by `recordShareEventFn` (`src/lib/duel/share.functions.ts` →
 `betaRecord.server.ts` `recordShareEvent`); outcome only, never an answer, puzzle, name or score.
@@ -1094,7 +1094,7 @@ where a.event = 'arrival';
 ```
 
 **Sources (22 Oct 2026).** `share_events.source` (added by `20261022120000_friend_challenges.sql`, also
-**written but not applied**; every earlier row reads `room`) says what was shared or which kind of link an
+**applied**; every earlier row reads `room`) says what was shared or which kind of link an
 arrival came from:
 
 | source | `share_tap` from | `arrival` from | Extra columns |
@@ -1136,8 +1136,8 @@ group by 1 order by 1;
 ## 8. The daily challenge (21 Oct 2026)
 
 The Daily Puzzle and Daily Arcade are async rooms (`supabase/migrations/20261021130000_async_rooms_daily.sql`,
-**written but not applied**; `src/lib/duel/asyncRoom.server.ts`, `daily.server.ts`). Recording starts
-once that migration is applied and the code is published; until then the Play tab hides the daily card.
+**applied**; `src/lib/duel/asyncRoom.server.ts`, `daily.server.ts`). On a database without that migration the
+Play tab hides the daily card.
 
 | Table | One row per | Use |
 |---|---|---|
@@ -1217,9 +1217,9 @@ as written on its test rows.
 ## 9. Friend challenges (22 Oct 2026)
 
 A friend challenge is an async room of kind `challenge` (`room_key` `challenge:<CODE>`) plus one row in
-`challenges` (`supabase/migrations/20261022120000_friend_challenges.sql`, **written but not applied**;
-it builds on section 8's migration). Recording starts once both are applied and the code is published;
-until then the Play tab's "Challenge a friend" card and the podium's button stay hidden.
+`challenges` (`supabase/migrations/20261022120000_friend_challenges.sql`, **applied**;
+it builds on section 8's migration). On a database without both, the Play tab's "Challenge a friend" card
+and the podium's button stay hidden.
 
 | Table | One row per | Use |
 |---|---|---|
@@ -1282,7 +1282,7 @@ Q9a–Q9c as written.
 
 Every device agrees to the beta terms (`/terms`) once, before its first room, daily or challenge. The
 phone keeps the date it tapped I AGREE (`duelz-terms:v1`) and records it once in `terms_events`
-(`supabase/migrations/20261023120000_beta_terms_events.sql`, **written but not applied**: until it is,
+(`supabase/migrations/20261023120000_beta_terms_events.sql`, **applied**; without it
 the write fails quietly and the agreement stays on the device only). One row per device and terms
 version; server-only (RLS on, no client access).
 
@@ -1317,7 +1317,7 @@ src/lib/duel/puzzles.ts), but rooms are only made by a host tapping Create, so t
 once by hand before Tuesday:
 
 1. On the phone that will host, tap **Create a room** and note its code (say `ABCD`).
-2. In Lovable Cloud's SQL editor, give that room the public code (the lobby is empty and nothing has
+2. In the Supabase SQL editor (the London project), give that room the public code (the lobby is empty and nothing has
    been dealt, so no round, result or score is touched):
 
 ```sql

@@ -62,6 +62,8 @@ const UNIQUE: Record<string, string[][]> = {
 };
 const ROOM_TABLES = new Set(["duels", "duel_players", "round_results"]);
 let nextId = 1;
+/** Row ids shaped as Postgres' uuids: the server refuses any room id that isn't one (`isUuid`, security L1). */
+const nextUuid = () => `00000000-0000-4000-8000-${(nextId++).toString(16).padStart(12, "0")}`;
 const metrics = {
   requests: new Map<string, number>(),
   changes: [] as { table: string; at: number; duel: string }[],
@@ -81,7 +83,7 @@ function query(table: string, op: "select" | "update" | "insert" | "upsert" | "d
     bump(`${op} ${table}`);
     const rows = rowsOf();
     if (op === "insert" || op === "upsert") {
-      const list = (Array.isArray(values) ? values : [values!]).map((v) => ({ id: `id${nextId++}`, created_at: new Date().toISOString(), ...v }));
+      const list = (Array.isArray(values) ? values : [values!]).map((v) => ({ id: nextUuid(), created_at: new Date().toISOString(), ...v }));
       const out: Row[] = [];
       for (const row of list) {
         const keys = UNIQUE[table] ?? [];

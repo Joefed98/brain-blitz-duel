@@ -1,5 +1,10 @@
 # Code audit 2: architecture, stale and duplicate code (7 Nov 2026)
 
+> **Status, 9 Nov 2026:** this is a point-in-time report. Since the Supabase move joulz.uk runs on Cloudflare Workers
+> with Joe's own Supabase project (London); every migration in `supabase/migrations/` is applied there and new ones
+> apply automatically on merge to `main` (`docs/supabase-move/`). Where the text below calls a migration "written but
+> not applied" or Lovable Cloud the live database or host, that no longer holds.
+
 Read-only audit of `main` at 34272737, before the competitive layer (data layer, accounts, ratings).
 No code was changed. Nothing here has been removed yet: each item says what proves it safe when it is.
 
@@ -109,6 +114,7 @@ Each item is display, tooling or dead code: no game rule, stamp, score or stored
 - **Proof:** `tsc --noEmit`, theme-check, sound-manifest-check.
 
 ### A9. Unused npm dependencies (Joe / Lovable decision)
+- **Done (9 Nov 2026, post-move tidy-up):** all of the list below removed from `package.json` and `bun.lock`, plus `drizzle-orm`; `@radix-ui/react-dialog` kept.
 - **What:** about 30 runtime deps that no file imports, all shadcn leftovers since the components were cut to button, popover and slider:
   - `@hookform/resolvers`;
   - 20 `@radix-ui/react-*` packages (accordion, alert-dialog, aspect-ratio, avatar, checkbox, collapsible, context-menu, dropdown-menu, hover-card, label, menubar, navigation-menu, progress, radio-group, scroll-area, select, separator, switch, tabs, toggle, toggle-group, tooltip);
