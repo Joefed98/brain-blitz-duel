@@ -67,6 +67,22 @@ export function workerVersion(worker: ServiceWorker | null | undefined, timeoutM
 
 const safeNow = () => (appUpdater()?.gate() ?? "now") === "now";
 
+/**
+ * Tells a waiting worker to take over, with the outgoing worker awake first. Chromium asks the outgoing worker
+ * to stop as soon as it is idle only when it is running at the moment skipWaiting() is handled (the registration's
+ * ActivateWaitingVersionWhenReady: TriggerIdleTerminationAsap for a running active version), and only on the
+ * first skipWaiting() (later calls join the pending one). An outgoing worker that had idled out during a round
+ * and was being started again by the page's own requests just then (a sound, a chunk, a message on the list)
+ * kept its ordinary 30 s idle delay, so anything the page sent it held the takeover off, often for well over
+ * 30 s, and the app's reload onto the new build came long after the list opened (offline-check, "the new worker
+ * takes over on the list", 9 Nov 2026). Waiting for the controller to answer VERSION means it is running when
+ * SKIP_WAITING lands; with no controller there is nothing to wake.
+ */
+async function askToTakeOver(api: ServiceWorkerContainer, waiting: ServiceWorker): Promise<void> {
+  if (api.controller && api.controller !== waiting) await workerVersion(api.controller);
+  waiting.postMessage({ type: "SKIP_WAITING" });
+}
+
 /** Registers the worker and keeps watch for a new build's waiting worker. Production only. */
 export function installOfflineWorker(fillNow: () => boolean = () => true): () => void {
   const api = workerApi();
@@ -94,7 +110,7 @@ export function installOfflineWorker(fillNow: () => boolean = () => true): () =>
     if (stopped) return;
     try {
       const reg = await api.getRegistration();
-      if (reg?.waiting && safeNow()) reg.waiting.postMessage({ type: "SKIP_WAITING" });
+      if (reg?.waiting && safeNow()) await askToTakeOver(api, reg.waiting);
       if (versionUnknown) await askVersion();
       if (reloadWanted && safeNow()) {
         reloadWanted = false;
@@ -137,7 +153,7 @@ export async function handOverToNewWorker(waitMs = 8000): Promise<void> {
     api.addEventListener("controllerchange", () => resolve(), { once: true });
     setTimeout(resolve, 3000);
   });
-  waiting.postMessage({ type: "SKIP_WAITING" });
+  await askToTakeOver(api, waiting);
   await changed;
 }
 
