@@ -387,7 +387,10 @@ check(/DELETE FROM public\.duel_players WHERE duel_id = p_room_id AND status = '
 const functionsSrc = readFileSync("src/lib/duel/duel.functions.ts", "utf8");
 const rematch = functionsSrc.slice(functionsSrc.indexOf("export const rematchFn"), functionsSrc.indexOf("export const checkWordFn"));
 check(
-  rematch.indexOf("persistAutoColours(client, roomPlayers)") > 0 && rematch.indexOf("persistAutoColours") < rematch.indexOf("restart_duel_room"),
+  rematch.indexOf("persistAutoColours(client, roomPlayers)") > 0 &&
+    rematch.indexOf("restartRoom(client, room.id, context.userId)") > 0 &&
+    rematch.indexOf("persistAutoColours") < rematch.indexOf("restartRoom(client, room.id, context.userId)") &&
+    /export async function restartRoom\([\s\S]*?client\.rpc\("restart_duel_room"/.test(readFileSync("src/lib/data/rooms.server.ts", "utf8")),
   "rematchFn no longer stores slot colours (every row, left included) before restart_duel_room",
 );
 

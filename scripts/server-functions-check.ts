@@ -137,6 +137,9 @@ async function runAll(db: LocalDb, rest: RestServer): Promise<void> {
   const daily = await import("../src/lib/duel/daily.functions");
   const asyncFns = await import("../src/lib/duel/asyncRoom.functions");
   const challenge = await import("../src/lib/duel/challenge.functions");
+  const replay = await import("../src/lib/replay/replay.functions");
+  const share = await import("../src/lib/duel/share.functions");
+  const terms = await import("../src/lib/beta/terms.functions");
   const { supabaseAdmin } = await import("../src/integrations/supabase/client.server");
   const { createClient } = await import("@supabase/supabase-js");
   const { mergePuzzle } = await import("../src/lib/duel/secrets");
@@ -657,6 +660,103 @@ async function runAll(db: LocalDb, rest: RestServer): Promise<void> {
         `SELECT count(*) FROM public.room_events WHERE duel_id = '${roomId}' AND event = 'game_ended' AND reason = 'completed'`,
       ) === "1",
       "finish: one game_ended (completed) event",
+    );
+  });
+
+  // The typed data layer (architecture audit B2, src/lib/data): the server functions no other section reaches, each
+  // on the finished room (replays, its challenge) or a second room (modes, Finish now, word and move checks).
+  await section("data layer coverage", async () => {
+    const games = await call(replay.gameReplaysFn, { roomId }, tok.ali);
+    check(
+      games.ok === true && games.data.length >= 1 && games.data.length <= rounds,
+      `replay: a player gets the finished game's replays (${games.ok ? games.data.length : games.message})`,
+    );
+    const one = await call(replay.roundReplayFn, { roomId, roundNumber: 1 }, tok.bo);
+    check(one.ok === true, `replay: a player gets round 1's replay (${one.ok ? "ok" : one.message})`);
+    const outside = await call(replay.gameReplaysFn, { roomId }, tok.dee);
+    check(outside.ok === false, "replay: a device outside the room gets none");
+
+    const fromRoom = await call(challenge.challengeFromRoomFn, { duelId: roomId }, tok.bo);
+    check(
+      fromRoom.ok === true && fromRoom.created === true && /^[A-Z0-9]{6}$/.test(fromRoom.code),
+      `challenge from room: a player makes the finished game's challenge (${JSON.stringify(fromRoom).slice(0, 160)})`,
+    );
+    if (fromRoom.ok) {
+      check(
+        q(`SELECT source || ',' || source_game_index FROM public.challenges WHERE code = '${fromRoom.code}'`) === "room,0",
+        "challenge from room: stored with its source room and game",
+      );
+      check(
+        q(`SELECT count(*) || ',' || count(finished_at) FROM public.async_attempts WHERE room_id = '${fromRoom.roomId}'`) === "2,2",
+        "challenge from room: both players' results copied as finished attempts",
+      );
+      check(
+        q(`SELECT count(*) FROM public.async_results WHERE room_id = '${fromRoom.roomId}'`) === String(rounds * 2),
+        `challenge from room: every stored round copied (${rounds * 2})`,
+      );
+      const again = await call(challenge.challengeFromRoomFn, { duelId: roomId }, tok.ali);
+      check(
+        again.ok === true && again.created === false && again.code === fromRoom.code,
+        "challenge from room: a second ask gets the same challenge",
+      );
+      const pings = await call(challenge.challengePingsFn, { roomId: fromRoom.roomId, roundNumber: 1 }, tok.dee);
+      check(Array.isArray(pings) && pings.length === 0, "challenge pings: a device without an attempt gets none");
+    }
+    const outsider = await call(challenge.challengeFromRoomFn, { duelId: roomId }, tok.dee);
+    check(outsider.ok === false, "challenge from room: a device outside the room is refused");
+    const followup = await call(challenge.challengeFollowupFn, { kind: "room", code: null }, tok.cy);
+    check(followup.ok === true, "challenge follow-up: recorded (best effort)");
+
+    // A second room: Cy hosts, Dee joins.
+    const second = await call(duel.createRoomFn, { displayName: "Cy" }, tok.cy);
+    const joined = await call(duel.joinRoomFn, { roomCode: second.roomCode, displayName: "Dee" }, tok.dee);
+    check(joined.ok === true, "second room: Dee joins Cy's room");
+    const modesGuest = await call(duel.setRoomModesFn, { roomId: second.roomId, categories: ["word"] }, tok.dee);
+    check(modesGuest.ok === false, "modes: a guest can't choose the categories");
+    const modes = await call(duel.setRoomModesFn, { roomId: second.roomId, categories: ["word", "logic"] }, tok.cy);
+    check(
+      modes.ok === true &&
+        q(`SELECT selected_categories::text FROM public.duels WHERE id = '${second.roomId}'`) === '["logic", "word"]',
+      `modes: the host's categories are stored (${q(`SELECT selected_categories::text FROM public.duels WHERE id = '${second.roomId}'`)})`,
+    );
+    const started = await call(duel.startRoomFn, { roomId: second.roomId }, tok.cy);
+    check(started.ok === true, "second room: started");
+    const word = await call(
+      duel.checkWordFn,
+      { roomId: second.roomId, roundNumber: 1, word: "test", found: [] },
+      tok.dee,
+    );
+    check(word.valid === false && word.reason === "That round is over.", "check word: refused outside the puzzle phase");
+    const moves = await call(duel.checkMovesFn, { roomId: second.roomId, roundNumber: 1, moves: "" }, tok.dee);
+    check(moves === null, "check moves: nothing outside the puzzle phase");
+    const notAlone = await call(duel.finishNowFn, { roomId: second.roomId }, tok.cy);
+    check(notAlone.ok === false, "finish now: refused while another player is here");
+    await call(duel.leaveRoomFn, { roomId: second.roomId }, tok.dee);
+    const finished = await call(duel.finishNowFn, { roomId: second.roomId }, tok.cy);
+    check(
+      finished.ok === true &&
+        q(`SELECT status || ',' || phase FROM public.duels WHERE id = '${second.roomId}'`) === "finished,starting",
+      `finish now: the last player here ends the game (${q(`SELECT status || ',' || phase FROM public.duels WHERE id = '${second.roomId}'`)})`,
+    );
+    check(
+      q(`SELECT count(*) FROM public.room_events WHERE duel_id = '${second.roomId}' AND event = 'game_ended' AND reason = 'finish_now'`) === "1",
+      "finish now: one game_ended (finish_now) event",
+    );
+
+    const shared = await call(
+      share.recordShareEventFn,
+      { event: "share_tap", duelId: roomId, gameIndex: 0, roomCode, place: 1, players: 2, rounds, method: "copy" },
+      tok.ali,
+    );
+    check(
+      shared.ok === true &&
+        q(`SELECT count(*) FROM public.share_events WHERE user_id = '${ALI}' AND event = 'share_tap' AND duel_id = '${roomId}'`) === "1",
+      "share: a Share tap is recorded",
+    );
+    const agreed = await call(terms.recordTermsAgreedFn, { version: 1, agreedAt: new Date().toISOString() }, tok.bo);
+    check(
+      agreed.ok === true && q(`SELECT count(*) FROM public.terms_events WHERE user_id = '${BO}'`) === "1",
+      "terms: an agreement is recorded once",
     );
   });
 

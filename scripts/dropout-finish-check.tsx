@@ -241,7 +241,12 @@ const bigLead = [result(1, 1, 60), result(2, 1, 300), result(1, 2, 90), result(1
   assert.match(rematch, /if \(me\.status === "left"\) return \{ ok: false/);
   assert.match(
     rematch,
-    /forfeitRecord\([\s\S]*client\.rpc\("restart_duel_room"[\s\S]*recordForfeitInHistory\(client, room\.id, forfeit\)/,
+    /forfeitRecord\([\s\S]*restartRoom\(client, room\.id, context\.userId\)[\s\S]*recordForfeitInHistory\(client, room\.id, forfeit\)/,
+  );
+  // The data layer's restartRoom is the restart_duel_room RPC (src/lib/data/rooms.server.ts).
+  assert.match(
+    readFileSync("src/lib/data/rooms.server.ts", "utf8"),
+    /export async function restartRoom\([\s\S]*?client\.rpc\("restart_duel_room"/,
   );
   const lobby = readFileSync("src/components/duel/RoomLobby.tsx", "utf8");
   assert.match(lobby, /entry\.forfeit \? " \(others left\)"/);

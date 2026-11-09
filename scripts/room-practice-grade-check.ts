@@ -252,16 +252,28 @@ src(/const \{ gradeRoomAnswer \} = await import\("\.\/roomGrade\.server"\);/.tes
   for (const file of walk("src")) {
     const text = readFileSync(file, "utf8");
     if (/\bgradeAnswer\(|\bgradeRoomAnswer\(/.test(text) && !/src\/lib\/duel\/(generate|roomGrade|gradeAnswer)\.server\.ts$/.test(file)) graders.push(file);
-    if (/from\("round_results"\)\s*\.(update|delete|upsert)\(/.test(text)) writes.push(file);
+    // The one round_results update in the app is the data layer's writeInputType (src/lib/data/results.server.ts),
+    // which sets only input_type beside a stored result (never a score); any other update, delete or upsert counts.
+    if (/from\("round_results"\)\s*\.(?:update(?!\(\{ input_type: inputType \}\))|delete|upsert)\(/.test(text)) writes.push(file);
   }
   // Async rooms (21 Oct 2026, the daily challenge): asyncRoom.server.ts grades a new answer once, its
   // store guarded on the round not yet answered (daily-check proves the first stored answer stands).
   src(
     graders.sort().join(",") === "src/lib/duel/asyncRoom.server.ts,src/lib/duel/duel.functions.ts,src/lib/duel/practice.functions.ts" &&
-      /\.eq\("answered", false\)/.test(readFileSync("src/lib/duel/asyncRoom.server.ts", "utf8")),
+      /updateOpenAsyncResult\(client, attempt\.id, input\.round, values\)/.test(readFileSync("src/lib/duel/asyncRoom.server.ts", "utf8")) &&
+      /export async function updateOpenAsyncResult\([\s\S]*?\.eq\("answered", false\)/.test(readFileSync("src/lib/data/async.server.ts", "utf8")),
     `grading runs only for new answers (found in ${graders.join(", ")})`,
   );
   src(writes.length === 0, `round_results rows are rewritten in ${writes.join(", ")}`);
+  {
+    const results = readFileSync("src/lib/data/results.server.ts", "utf8");
+    const inputType = results.slice(results.indexOf("export async function writeInputType"));
+    src(
+      (results.match(/from\("round_results"\)\s*\.update\(/g) ?? []).length === 1 &&
+        /client\.from\("round_results"\)\.update\(\{ input_type: inputType \}\)/.test(inputType),
+      "the only round_results update is writeInputType's input_type",
+    );
+  }
   const submit = server.slice(server.indexOf("export const submitAnswerFn"), server.indexOf("export const readyUpFn"));
   src(/if \(existing\.data\) return \{ ok: true as const, alreadySubmitted: true \};/.test(submit) && submit.indexOf("existing.data") < submit.indexOf("gradeRoomAnswer("), "a stored answer is never graded again");
   src(/if \(error && error\.code !== UNIQUE_VIOLATION\)/.test(submit), "a second insert never replaces the stored row");

@@ -5,19 +5,18 @@
  *
  * - Server code that writes uses the service-role client, `adminDb()`, which bypasses RLS.
  * - A server function's user client (`context.supabase` from `requireSupabaseAuth`) is the same `Db` type and keeps
- *   RLS; the phone's own reads (`client.ts`) go through `src/lib/data/*.client.ts` and keep RLS too.
+ *   RLS; the phone's own reads (the browser client, `client.ts`) go through `src/lib/data/*.client.ts` and keep RLS too.
  *
  * Only I/O lives here: grading, room rules and presentation stay where they were. A data function issues exactly
  * the query its caller used to (the same filters, order and limits), so the stand-ins the checks use
  * (`scripts/fixtures/memoryDb.ts`, the server-function harness) see the same calls.
  */
 
-import type { SupabaseClient } from "@supabase/supabase-js";
-
 import type { Database, Json, Tables, TablesInsert, TablesUpdate } from "@/integrations/supabase/types";
 
-/** A Supabase client on the generated schema: the service-role client, a server function's user client or the phone's. */
-export type Db = SupabaseClient<Database>;
+import type { Db } from "./db";
+
+export type { Db };
 
 export type { Database, Json, Tables, TablesInsert, TablesUpdate };
 

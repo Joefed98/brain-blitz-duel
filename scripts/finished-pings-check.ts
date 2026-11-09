@@ -195,7 +195,9 @@ for (let room = 0; room < 300; room++) {
 {
   const fns = readFileSync("src/lib/duel/duel.functions.ts", "utf8");
   const submit = fns.slice(fns.indexOf("export const submitAnswerFn"), fns.indexOf("export const readyUpFn"));
-  const insertAt = submit.indexOf('client.from("round_results").insert(');
+  const insertAt = submit.indexOf("insertRoundResult(client, {");
+  const results = readFileSync("src/lib/data/results.server.ts", "utf8");
+  check(/export async function insertRoundResult\([\s\S]*?client\.from\("round_results"\)\.insert\(row\)/.test(results), "insertRoundResult stores the round_results row");
   const errorAt = submit.indexOf("if (error && error.code !== UNIQUE_VIOLATION) throw");
   const markAt = submit.indexOf("await markSubmitted(client, player.id, data.roundNumber)");
   check(insertAt > 0 && errorAt > insertAt && markAt > errorAt, "submitAnswerFn marks only after the result row is stored and its error checked");
@@ -203,7 +205,8 @@ for (let room = 0; room < 300; room++) {
   // 18 Oct 2026: only a finish before the buzzer pings (buzzer.ts; round-time-check proves the rule per game).
   check(/if \(finishedBeforeBuzzer\(puzzle, room\.phase, msLeft\)\) await markSubmitted\(client, player\.id, data\.roundNumber\)/.test(submit), "a time-out, buzzer or late answer can ping (the buzzer gate is missing)");
   const rematch = fns.slice(fns.indexOf("export const rematchFn"));
-  check(rematch.indexOf("await clearSubmitted(client, room.id)") > rematch.indexOf('client.rpc("restart_duel_room"'), "Play again clears the marks after the restart");
+  const restartAt = rematch.indexOf("restartRoom(client, room.id, context.userId)");
+  check(restartAt > 0 && rematch.indexOf("await clearSubmitted(client, room.id)") > restartAt, "Play again clears the marks after the restart");
 
   const route = readFileSync("src/routes/duel.$code.tsx", "utf8");
   check(/useFinishedPings\(players, round, mySlot, duel\?\.status === "in_progress" && phase === "puzzle", stateKey\)/.test(route), "the room pings only in its live puzzle phase");

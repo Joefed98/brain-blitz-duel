@@ -58,7 +58,14 @@ const preview = server.slice(
   server.indexOf("export const roomPreviewFn"),
   server.indexOf("export const joinRoomFn"),
 );
-assert.match(preview, /\.select\("id, status, disbanded_at, max_players"\)/);
+// The preview's read is the data layer's readRoomPreview (src/lib/data/rooms.server.ts), which selects only these.
+assert.match(preview, /readRoomPreview\(client, code\)/);
+{
+  const rooms = readFileSync("src/lib/data/rooms.server.ts", "utf8");
+  const read = rooms.slice(rooms.indexOf("export async function readRoomPreview"), rooms.indexOf("export async function readRoomForSettings"));
+  assert.match(read, /\.select\("id, status, disbanded_at, max_players"\)/);
+  assert.doesNotMatch(read, /display_name|puzzles|secrets|round_results/);
+}
 assert.match(preview, /state: linkRoomState\(room\)/);
 assert.doesNotMatch(preview, /display_name|puzzles|secrets|round_results|requireParticipant/);
 const join = server.slice(

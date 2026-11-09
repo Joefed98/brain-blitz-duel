@@ -275,21 +275,28 @@ check(
   "wiring: the last answer closing the round records 'all_answered'",
 );
 check(
-  submit.indexOf("recordRoomEvent") > submit.indexOf('from("round_results").insert'),
+  submit.indexOf("insertRoundResult(client, {") > 0 &&
+    submit.indexOf("recordRoomEvent") > submit.indexOf("insertRoundResult(client, {"),
   "wiring: the event is written after the answer is stored, never before",
 );
 const start = slice("export const startRoomFn", "export const setRoomModesFn");
 check(
-  /if \(claimed\) \{[\s\S]*duel_secrets[\s\S]*recordRoomEvent\(client, \{[\s\S]*event: "game_started",\s*at: startedAt,/.test(
+  /if \(claimed\) \{[\s\S]*writePrivatePuzzles\([\s\S]*recordRoomEvent\(client, \{[\s\S]*event: "game_started",\s*at: startedAt,/.test(
     start,
   ),
   "wiring: the host's claimed start records game_started at the stored start stamp",
 );
 check(
-  /if \(claimed\) \{[\s\S]*from\("duel_secrets"\)\.upsert[\s\S]*if \(error\) throw[\s\S]*await recordRoundRecords\(\s*client,\s*room\.id,\s*roundRecords\(puzzles[\s\S]*puzzleTimeLimitMs\(/.test(
+  /if \(claimed\) \{[\s\S]*writePrivatePuzzles\([\s\S]*if \(error\) throw[\s\S]*await recordRoundRecords\(\s*client,\s*room\.id,\s*roundRecords\(puzzles[\s\S]*puzzleTimeLimitMs\(/.test(
     start,
   ),
   "wiring: the claimed start stores every dealt round's record (puzzleTimeLimitMs, as practice) after the secrets",
+);
+check(
+  /export async function writePrivatePuzzles\([\s\S]*?client\.from\("duel_secrets"\)\.upsert\(/.test(
+    readFileSync("src/lib/data/rooms.server.ts", "utf8"),
+  ),
+  "wiring: writePrivatePuzzles is the duel_secrets upsert (src/lib/data/rooms.server.ts)",
 );
 const leave = slice("export const leaveRoomFn", "export const disbandRoomFn");
 const disband = slice("export const disbandRoomFn", "export const checkHostPresenceFn");
@@ -330,7 +337,7 @@ check(
   "wiring: a new player's join records its method",
 );
 check(
-  /update\(\{ status: "active" \}\)\.eq\("id", mine\.id\);\s*await recordJoin\(client, \{[\s\S]*rejoin: true,/.test(
+  /setPlayerStatus\(client, mine\.id, "active"\);\s*await recordJoin\(client, \{[\s\S]*rejoin: true,/.test(
     joinFn,
   ),
   "wiring: a lobby rejoin is recorded as a rejoin",
