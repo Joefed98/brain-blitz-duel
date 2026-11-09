@@ -14,9 +14,9 @@
  * standard's graders). A new puzzle gets these stamps only when it was dealt the standard's stamp (so a check pinning
  * any earlier world keeps what it pinned) and this batch is not pinned. Shared by phone and server, pure.
  */
+import { dealPinned, setDealPin } from "./dealEra";
 import type { PuzzleData, PuzzleType } from "./types";
 import { STANDARD_STAMPS, preStandardPinned } from "./standard/stamps";
-import { rebuildLiveRecords } from "./roundMax";
 
 export const MAZE_REV_PAR = 4;
 export const GRAVITY_REV_PAR = 6;
@@ -32,25 +32,19 @@ export const PAR_MOVES_STAMPS: Partial<Record<PuzzleType, { key: string; rev: nu
   iceslide: { key: "slideRev", rev: SLIDE_REV_PAR },
 };
 
-let pinned = false;
-let strictPinned = false;
-
 /** Checks written for the standard's stamps pin new deals to them (returns the previous setting). */
 export function pinPreParMoves(on: boolean): boolean {
-  const prev = pinned;
-  pinned = on;
-  // The help and intro texts (liveRecord) describe the stamps dealt: rebuild them for the pinned world.
-  if (prev !== on) rebuildLiveRecords();
-  return prev;
+  // The help and intro texts (liveRecord) follow it: setDealPin rebuilds them (dealEra.ts).
+  return setDealPin("preParMoves", on);
 }
 
 export function preParMovesPinned(): boolean {
-  return pinned;
+  return dealPinned("preParMoves");
 }
 
 /** True while new Labyrinth, Topsy-Turvy and Skid rounds are dealt this batch's stamps (the help texts describe them). */
 export function parMovesDealt(): boolean {
-  return !pinned && !preStandardPinned();
+  return !dealPinned("preParMoves") && !preStandardPinned();
 }
 
 function stampOf(puzzle: unknown, key: string): number | null {
@@ -92,12 +86,12 @@ function strip<T extends PuzzleData>(puzzle: T): T {
 export function dealParMoves<T extends PuzzleData>(puzzle: T, vary?: (puzzle: T) => T): T {
   const batch = PAR_MOVES_STAMPS[puzzle.type];
   const standard = STANDARD_STAMPS[puzzle.type];
-  if (!batch || !standard || pinned) return puzzle;
+  if (!batch || !standard || dealPinned("preParMoves")) return puzzle;
   if (stampOf(puzzle, batch.key) !== (standard.dealt ?? standard.rev)) return puzzle;
   const stamped = strip({ ...puzzle, [batch.key]: batch.rev } as T);
   const varied = vary ? vary(stamped) : stamped;
   // Puzzle polish (3 Nov 2026): one stamp further, the par stored and shown, speed and par stricter.
-  return strictPinned ? varied : dealParStrict(varied);
+  return dealPinned("preParStrict") ? varied : dealParStrict(varied);
 }
 
 /* ------------------------------------------------------------------ Stricter par (puzzle polish, 3 Nov 2026) */
@@ -136,15 +130,12 @@ export function shownPar(puzzle: PuzzleData | null | undefined): number | null {
 
 /** Checks written for the puzzle batch's stamps (mazeRev 4, gravityRev 6, slideRev 3) pin new deals to them. */
 export function pinPreParStrict(on: boolean): boolean {
-  const prev = strictPinned;
-  strictPinned = on;
-  if (prev !== on) rebuildLiveRecords();
-  return prev;
+  return setDealPin("preParStrict", on);
 }
 
 /** True while new Labyrinth, Topsy-Turvy and Skid rounds are dealt the stricter-par stamps (the help texts describe them). */
 export function parStrictDealt(): boolean {
-  return parMovesDealt() && !strictPinned;
+  return parMovesDealt() && !dealPinned("preParStrict");
 }
 
 /** The stricter "full by" times (s), set from the bots' finish times so near-perfect play (median 35–37 s) no longer ties flawless (18–31 s); the puzzle batch had 40 / 80 / 60. */

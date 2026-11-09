@@ -10,9 +10,9 @@
  * A new puzzle gets these stamps only when it was dealt the standard's stamp (so a check pinning any earlier world
  * keeps what it pinned) and this batch is not pinned. Shared by phone and server, pure.
  */
+import { dealPinned, setDealPin } from "./dealEra";
 import type { PuzzleData, PuzzleType } from "./types";
 import { STANDARD_STAMPS, preStandardPinned } from "./standard/stamps";
-import { rebuildLiveRecords } from "./roundMax";
 
 export const SLIDER_NOTES_REV = 4;
 export const TALLY_NOTES_REV = 6;
@@ -23,24 +23,19 @@ export const PUZZLE_NOTES_STAMPS: Partial<Record<PuzzleType, { key: string; rev:
   countup: { key: "countRev", rev: TALLY_NOTES_REV },
 };
 
-let pinned = false;
-
 /** Checks written for the standard's stamps pin new deals to them (returns the previous setting). */
 export function pinPrePuzzleNotes(on: boolean): boolean {
-  const prev = pinned;
-  pinned = on;
-  // The help texts (liveRecord) describe the stamps dealt: rebuild them for the pinned world.
-  if (prev !== on) rebuildLiveRecords();
-  return prev;
+  // The help and intro texts (liveRecord) follow it: setDealPin rebuilds them (dealEra.ts).
+  return setDealPin("prePuzzleNotes", on);
 }
 
 export function prePuzzleNotesPinned(): boolean {
-  return pinned;
+  return dealPinned("prePuzzleNotes");
 }
 
 /** True while new Slider and Tally rounds are dealt this batch's stamps (the help texts describe them). */
 export function puzzleNotesDealt(): boolean {
-  return !pinned && !preStandardPinned();
+  return !dealPinned("prePuzzleNotes") && !preStandardPinned();
 }
 
 /**
@@ -50,7 +45,7 @@ export function puzzleNotesDealt(): boolean {
 export function dealPuzzleNotes<T extends PuzzleData>(puzzle: T, vary?: (puzzle: T) => T): T {
   const notes = PUZZLE_NOTES_STAMPS[puzzle.type];
   const standard = STANDARD_STAMPS[puzzle.type];
-  if (!notes || !standard || pinned) return puzzle;
+  if (!notes || !standard || dealPinned("prePuzzleNotes")) return puzzle;
   if ((puzzle as unknown as Record<string, unknown>)[notes.key] !== standard.rev) return puzzle;
   const stamped = { ...puzzle, [notes.key]: notes.rev } as T;
   return vary ? vary(stamped) : stamped;

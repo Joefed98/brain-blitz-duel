@@ -12,7 +12,7 @@
  * Every older stamp deals, grades and reads exactly as before. Checks written for the stamps before pin new deals to
  * them with `pinPreNov7(true)`. Shared by phone and server, pure.
  */
-import { rebuildLiveRecords } from "./roundMax";
+import { dealPinned, setDealPin } from "./dealEra";
 
 /** Flash and Bang On: each flash / watch scored on its own, the points averaged. */
 export const TAP_REV_PER_ITEM = 7;
@@ -21,24 +21,19 @@ export const PIPES_REV_STANDARD = 3;
 /** Pipeline: unfinished credit by tiles turned into their solved orientation. */
 export const PIPES_REV_PLACED = 4;
 
-let pinned = false;
-
 /** Checks written for the stamps before 7 Nov 2026 deal them (tapRev 6, pipesRev 3); returns the previous setting. */
 export function pinPreNov7(on: boolean): boolean {
-  const prev = pinned;
-  pinned = on;
-  // The help texts describe the stamps dealt: rebuild them for the pinned world.
-  if (prev !== on) rebuildLiveRecords();
-  return prev;
+  // The help and intro texts (liveRecord) follow it: setDealPin rebuilds them (dealEra.ts).
+  return setDealPin("preNov7", on);
 }
 
 export function preNov7Pinned(): boolean {
-  return pinned;
+  return dealPinned("preNov7");
 }
 
 /** Pipeline: pipesRev 4 over the standard's pipesRev 3 (any other stamp, or with the pin, unchanged). */
 export function dealPipesPlaced<T extends { type: string }>(puzzle: T): T {
-  if (pinned || puzzle.type !== "pipes") return puzzle;
+  if (dealPinned("preNov7") || puzzle.type !== "pipes") return puzzle;
   if ((puzzle as { pipesRev?: number }).pipesRev !== PIPES_REV_STANDARD) return puzzle;
   return { ...puzzle, pipesRev: PIPES_REV_PLACED };
 }

@@ -14,6 +14,7 @@
  * Older stamps never reach this file's scoring (generate.server.ts calls the depth grader only for puzzles that
  * carry their game's depth stamp), so a stored round always scores exactly as before.
  */
+import { dealPinned, setDealPin } from "./dealEra";
 import type { PuzzleType } from "./types";
 
 /** The nine games of this depth session. */
@@ -26,23 +27,22 @@ export const DEPTH_MAX = 200;
 /** Today's maximum, the top of every pre-depth stamp. */
 export const PRE_DEPTH_MAX = 150;
 
-let pinned = false;
 /**
  * Checks written for the pre-depth stamps (their numbers are today's 150 scale) pin new deals of the nine games to
  * the stamp before the depth one, so they keep proving what they were written for. Never called by app code.
  */
 export function pinPreDepth(on: boolean): void {
-  pinned = on;
+  setDealPin("preDepth", on);
 }
 
 /** The stamp new puzzles of a depth game are dealt: `depthRev`, or `preRev` while a check pinned the old one. */
 export function dealtDepthRev<T>(depthRev: T, preRev: T): T {
-  return pinned ? preRev : depthRev;
+  return dealPinned("preDepth") ? preRev : depthRev;
 }
 
 /** True while a check pins new deals to the pre-depth stamps. */
 export function preDepthPinned(): boolean {
-  return pinned;
+  return dealPinned("preDepth");
 }
 
 /* ------------------------------------------------------------------ the stretch finish */

@@ -1,3 +1,4 @@
+import { dealPinned, setDealPin } from "./dealEra";
 import { MOON_REV } from "@/lib/arcade/ricochetNinja";
 import { BASTION_REV_DEALT } from "@/lib/arcade/bastionTank";
 import { TEN_DROP_DEPTH_REV } from "@/lib/arcade/tenDrop";
@@ -103,7 +104,6 @@ export function arcadeSeed(): number {
 
 /* Cards & Board (30 Oct 2026): the arcade scoring standard from revision 1. */
 
-let cardsPreShare = false;
 /**
  * Checks written for Free Cell freecellRev 4, Summit tripeaksRev 2 and Thirteen pyramidRev 1 (before the 7 Nov 2026
  * partial-credit stamps, docs/arcade-standard/freecell.md, tripeaks.md, pyramid.md): deal those stamps as rooms did
@@ -111,21 +111,19 @@ let cardsPreShare = false;
  * were written for.
  */
 export function pinCardsPreShare(on: boolean): boolean {
-  const prev = cardsPreShare;
-  cardsPreShare = on;
-  return prev;
+  return setDealPin("cardsPreShare", on);
 }
 
 /** FreeCell: a bank deal (its index), proved solvable with a known par. */
 export function generateFreecell(): FreecellPuzzleData {
   // freecellRev 5 (7 Nov 2026): rev 4's deal and bank, the core rising to all 40 home.
-  return { type: "freecell", seed: randomBelow(FC_DEALS.length), freecellRev: cardsPreShare ? FC_REV_SHORT : FC_REV };
+  return { type: "freecell", seed: randomBelow(FC_DEALS.length), freecellRev: dealPinned("cardsPreShare") ? FC_REV_SHORT : FC_REV };
 }
 
 /** TriPeaks: a bank deal (its index), proved clearable with a run of ten. */
 export function generateTripeaks(): TripeaksPuzzleData {
   // tripeaksRev 3 (7 Nov 2026): rev 2's deals and pars, half the speed moved onto the cards.
-  return { type: "tripeaks", seed: randomBelow(TP_DEALS.length), tripeaksRev: cardsPreShare ? TP_REV_PAR : TP_REV };
+  return { type: "tripeaks", seed: randomBelow(TP_DEALS.length), tripeaksRev: dealPinned("cardsPreShare") ? TP_REV_PAR : TP_REV };
 }
 
 /** Poker Squares: any seed; the sim builds the target grid and dealing order from it. */
@@ -141,7 +139,7 @@ export function generateFiveHands(): FiveHandsPuzzleData {
 /** Pyramid: any seed; the sim builds the deal with a witness line (ten pyramid pairs) and proves it. */
 export function generatePyramid(): PyramidPuzzleData {
   // pyramidRev 2 (7 Nov 2026): the same deals, half the speed moved onto the cards.
-  return { type: "pyramid", seed: arcadeSeed(), pyramidRev: cardsPreShare ? 1 : PY_REV };
+  return { type: "pyramid", seed: arcadeSeed(), pyramidRev: dealPinned("cardsPreShare") ? 1 : PY_REV };
 }
 
 /** Golf Solitaire: a bank deal (its index), cleared by a strong human line and proved with five runs of four. */
@@ -334,26 +332,20 @@ export function generateJunction(): JunctionPuzzleData {
   return { type: "junction", seed: arcadeSeed(), junctionRev: JUNC_REV_BAND };
 }
 
-let inkPreClover = false;
 /**
  * Checks written for inkRev 12 (the arcade scoring standard) and earlier: deal inkRev 12 as rooms did before inkRev 13
  * (returns the previous setting), so they keep proving what they were written for.
  */
 export function pinInkPreClover(on: boolean): boolean {
-  const prev = inkPreClover;
-  inkPreClover = on;
-  return prev;
+  return setDealPin("inkPreClover", on);
 }
 
-let inkPreBig = false;
 /**
  * Checks written for inkRev 13 (clovers, ink par, more birds): deal inkRev 13 on any seed as rooms did before inkRev 14
  * (returns the previous setting), so they keep proving what they were written for. pinInkPreClover wins over it.
  */
 export function pinInkPreBig(on: boolean): boolean {
-  const prev = inkPreBig;
-  inkPreBig = on;
-  return prev;
+  return setDealPin("inkPreBig", on);
 }
 
 export function generateInkBridge(): InkBridgePuzzleData {
@@ -362,8 +354,8 @@ export function generateInkBridge(): InkBridgePuzzleData {
   // inkRev 13 (Nov 2026, docs/arcade-standard/inkbridge.md): clovers, ink par and more birds; no stars or silver coins.
   // inkRev 14 (3 Nov 2026, "inkRev 14"): inkRev 13's rules and parts with a bigger coin, clovers and birds, dealt from its
   // proved deal (every level proved and the perfect run 200 through the server replay on each seed; inkBigDeal.server.ts).
-  if (inkPreClover) return { type: "inkbridge", seed: arcadeSeed(), inkRev: INK_REV_STD };
-  if (inkPreBig) return { type: "inkbridge", seed: arcadeSeed(), inkRev: INK_REV_CLOVER };
+  if (dealPinned("inkPreClover")) return { type: "inkbridge", seed: arcadeSeed(), inkRev: INK_REV_STD };
+  if (dealPinned("inkPreBig")) return { type: "inkbridge", seed: arcadeSeed(), inkRev: INK_REV_CLOVER };
   return { type: "inkbridge", seed: inkBigDealSeed(arcadeSeed()), inkRev: INK_REV_BIG };
 }
 
@@ -374,22 +366,19 @@ export function generateBurst(): BurstPuzzleData {
   return { type: "burst", seed: arcadeSeed(), burstRev: BURST_REV_AIM };
 }
 
-let orbitPreFuel = false;
 /**
  * Checks written for orbitRev 13 (the arcade scoring standard) and earlier: deal the feature-bank course on orbitRev 13
  * as rooms did before the fuel meter (returns the previous setting), so they keep proving what they were written for.
  */
 export function pinOrbitPreFuel(on: boolean): boolean {
-  const prev = orbitPreFuel;
-  orbitPreFuel = on;
-  return prev;
+  return setDealPin("orbitPreFuel", on);
 }
 
 export function generateOrbit(): OrbitPuzzleData {
   const seed = arcadeSeed();
   // Rev 14 (the fuel meter, 1 Nov 2026, docs/arcade-standard/orbit.md): a course from the fuel bank (zigzag,
   // proved on rev 14's rules: scripts/orbit-fuel-bank.ts), picked by the seed, with its holes and features.
-  const fuel = orbitPreFuel ? null : orbitFuelCourseForSeed(seed);
+  const fuel = dealPinned("orbitPreFuel") ? null : orbitFuelCourseForSeed(seed);
   if (fuel) return { type: "orbit", seed, orbitRev: ORBIT_REV_FUEL, planets: fuel.planets, holes: fuel.holes, extras: fuel.extras };
   // Rev 12 (the expansion to 200, 26 Oct 2026): one of the bank courses with proved holes and features
   // (scripts/orbit-xp-bank.ts), picked by the seed, in the bigger view. Every room deals it while the bank has courses.
@@ -418,48 +407,36 @@ export function generateSnip(): SnipPuzzleData {
  * seed; on-the-spot proving is only a fallback if the bank is empty or unlucky.
  * swingRev 8 (Tuning F) only moves the touch stars, which never steer or end a run, so any input log plays a course the same on rev 7 and rev 8 (swing-rev8-check).
  */
-let swingPreAssault = false;
 /**
  * Checks written for swingRev 13 (the 200 expansion) and earlier: deal the bank courses rooms dealt before the
  * assault course (returns the previous setting), so they keep proving what they were written for.
  */
 export function pinSwingPreAssault(on: boolean): boolean {
-  const prev = swingPreAssault;
-  swingPreAssault = on;
-  return prev;
+  return setDealPin("swingPreAssault", on);
 }
 
-let swingPreRework = false;
 /**
  * Checks written for swingRev 14 (the assault course): deal it as rooms did before the swinging course (returns the
  * previous setting), so they keep proving what they were written for.
  */
 export function pinSwingPreRework(on: boolean): boolean {
-  const prev = swingPreRework;
-  swingPreRework = on;
-  return prev;
+  return setDealPin("swingPreRework", on);
 }
 
-let swingPreDark = false;
 /**
  * Checks written for swingRev 15 (the swinging course): deal it as rooms did before the dark ledge runs (swingRev 16,
  * 1 Nov 2026; returns the previous setting), so they keep proving what they were written for.
  */
 export function pinSwingPreDark(on: boolean): boolean {
-  const prev = swingPreDark;
-  swingPreDark = on;
-  return prev;
+  return setDealPin("swingPreDark", on);
 }
 
-let swingPreSlide = false;
 /**
  * Checks written for swingRev 16 (the dark ledge runs): deal it as rooms did before the sliding hooks and the streak
  * (swingRev 17, 3 Nov 2026; returns the previous setting), so they keep proving what they were written for.
  */
 export function pinSwingPreSlide(on: boolean): boolean {
-  const prev = swingPreSlide;
-  swingPreSlide = on;
-  return prev;
+  return setDealPin("swingPreSlide", on);
 }
 
 export function generateSwing(): SwingPuzzleData {
@@ -467,10 +444,10 @@ export function generateSwing(): SwingPuzzleData {
   // swingRev 17 (the sliding hooks and the streak): from its deal, courses whose oracle run replays to exactly 200
   // (scripts/swing-slide-deal.ts, as Apex's). 16 (the dark ledge runs, 90 s), 15 (the swinging course) and 14 (the
   // assault course): any seed; the course is built and proved from it in the sim.
-  if (!swingPreAssault && !swingPreRework && !swingPreDark && !swingPreSlide) return { type: "swing", seed: swingSlideDealSeed(roomSeed), swingRev: SWING_REV_SLIDE };
-  if (!swingPreAssault && !swingPreRework && !swingPreDark) return { type: "swing", seed: roomSeed, swingRev: SWING_REV_DARK };
-  if (!swingPreAssault && !swingPreRework) return { type: "swing", seed: roomSeed, swingRev: SWING_REV_REWORK };
-  if (!swingPreAssault) return { type: "swing", seed: roomSeed, swingRev: SWING_REV_ASSAULT };
+  if (!dealPinned("swingPreAssault") && !dealPinned("swingPreRework") && !dealPinned("swingPreDark") && !dealPinned("swingPreSlide")) return { type: "swing", seed: swingSlideDealSeed(roomSeed), swingRev: SWING_REV_SLIDE };
+  if (!dealPinned("swingPreAssault") && !dealPinned("swingPreRework") && !dealPinned("swingPreDark")) return { type: "swing", seed: roomSeed, swingRev: SWING_REV_DARK };
+  if (!dealPinned("swingPreAssault") && !dealPinned("swingPreRework")) return { type: "swing", seed: roomSeed, swingRev: SWING_REV_REWORK };
+  if (!dealPinned("swingPreAssault")) return { type: "swing", seed: roomSeed, swingRev: SWING_REV_ASSAULT };
   // swingRev 13 (the 200 expansion): from the bank courses re-proved with every feature (scripts/swing-bank.ts --expand).
   if (SWING_V13_BANK.length > 0) {
     const index = ((roomSeed % SWING_V13_BANK.length) + SWING_V13_BANK.length) % SWING_V13_BANK.length;
