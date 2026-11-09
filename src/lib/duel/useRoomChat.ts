@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { supabase } from "@/integrations/supabase/client";
-import { readRoomMessages } from "@/lib/data/chat.client";
+import { readRoomMessages } from "@/lib/data/chatReads";
 import {
   allowReactionFn,
   reportMessageFn,

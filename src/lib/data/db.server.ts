@@ -5,7 +5,7 @@
  *
  * - Server code that writes uses the service-role client, `adminDb()`, which bypasses RLS.
  * - A server function's user client (`context.supabase` from `requireSupabaseAuth`) is the same `Db` type and keeps
- *   RLS; the phone's own reads (the browser client, `client.ts`) go through `src/lib/data/*.client.ts` and keep RLS too.
+ *   RLS; the phone's own reads (the browser client, `client.ts`) go through `src/lib/data/roomReads.ts` and `chatReads.ts` and keep RLS too.
  *
  * Only I/O lives here: grading, room rules and presentation stay where they were. A data function issues exactly
  * the query its caller used to (the same filters, order and limits), so the stand-ins the checks use

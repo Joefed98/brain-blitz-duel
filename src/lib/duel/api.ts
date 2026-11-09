@@ -9,7 +9,7 @@ import {
   readRoomByCode,
   readRoomPlayers,
   readRoomResultRows,
-} from "@/lib/data/rooms.client";
+} from "@/lib/data/roomReads";
 
 import {
   advancePhaseFn,

@@ -1,6 +1,6 @@
 /**
  * The data layer's client type, shared by the server modules (`*.server.ts`) and the phone's reads
- * (`*.client.ts`). Types only, so a phone module can name it without reaching server code.
+ * (`roomReads.ts`, `chatReads.ts`; never named `*.client.ts`, which the server build refuses). Types only, so a phone module can name it without reaching server code.
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";

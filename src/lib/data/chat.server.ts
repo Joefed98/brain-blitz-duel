@@ -1,7 +1,7 @@
 /**
  * Room chat (`room_messages`, `room_reports`): the server's reads and writes. Server only (architecture audit B2).
  * The caller picks the client: a server function's user client keeps RLS (the room's own messages only), the
- * service-role client writes. The phone's own reads are in chat.client.ts.
+ * service-role client writes. The phone's own reads are in chatReads.ts.
  */
 
 import type { Db } from "./db.server";

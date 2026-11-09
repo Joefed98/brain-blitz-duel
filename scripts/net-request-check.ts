@@ -273,8 +273,8 @@ check(POLICIES.background.timeoutMs >= 180_000 && POLICIES.background.attempts =
     const call = api.slice(at, api.indexOf("\n}", at));
     check(at >= 0 && call.includes(`fetch: fetchFor(POLICIES.${policy})`), `api.ts: ${fn} carries the ${policy} policy`);
   }
-  // The reads themselves are the data layer's (src/lib/data/rooms.client.ts), called with these arguments.
-  const reads = readFileSync("src/lib/data/rooms.client.ts", "utf8");
+  // The reads themselves are the data layer's (src/lib/data/roomReads.ts), called with these arguments.
+  const reads = readFileSync("src/lib/data/roomReads.ts", "utf8");
   const readBody = (name: string) => reads.slice(reads.indexOf(`export async function ${name}`)).split(/\nexport /)[0];
   check(
     /readRoomResultRows\(supabase, duelId, ROOM_RESULT_COLUMNS, signal\)/.test(api) &&

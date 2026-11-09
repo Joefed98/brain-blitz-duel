@@ -59,7 +59,7 @@ outside the repo.
   tap's decoded sound (≈9 MB, was ≈107).
 - **`src/lib/data/` — the typed data layer** (9 Nov 2026, architecture audit B2): every Supabase table read and write
   and every RPC is a typed function in one module per area (`rooms`, `players`, `results`, `async`, `challenges`,
-  `chat`, `practice`, `beta`, `limits` `.server.ts`; the phone's RLS reads in `rooms.client.ts` / `chat.client.ts`),
+  `chat`, `practice`, `beta`, `limits` `.server.ts`; the phone's RLS reads in `roomReads.ts` / `chatReads.ts`; never `*.client.ts`, which the server build refuses),
   on the generated `Database` type (`Db` in `db.ts`, `adminDb()` the service-role client); no `any` on a client.
   Grading and rules stay where they were. **Add new queries there, never inline** (realtime channels stay in their
   hooks). Wiring checks name the data functions (`restartRoom(`, `insertRoundResult(`…) and read the query text in
