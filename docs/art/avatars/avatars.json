@@ -1,0 +1,310 @@
+{
+ "avatars": [
+  {
+   "slug": "captain-joulz",
+   "name": "Captain Joulz",
+   "kind": "helmet",
+   "defaultMain": "#FF6BD6",
+   "accent": "#22E4FF"
+  },
+  {
+   "slug": "gemstone",
+   "name": "Gemstone",
+   "kind": "brilliant",
+   "defaultMain": "#B26BFF",
+   "accent": "#FFFFFF"
+  },
+  {
+   "slug": "hover",
+   "name": "Hover",
+   "kind": "hover",
+   "defaultMain": "#22D3EE",
+   "accent": "#B26BFF"
+  },
+  {
+   "slug": "apex",
+   "name": "Apex",
+   "kind": "car",
+   "defaultMain": "#FF4D4D",
+   "accent": "#22E4FF"
+  },
+  {
+   "slug": "pinball",
+   "name": "Pinball",
+   "kind": "pinball",
+   "defaultMain": "#B5C6DD",
+   "accent": "#E2C07A"
+  },
+  {
+   "slug": "crazy-golf",
+   "name": "Crazy Golf",
+   "kind": "golf",
+   "defaultMain": "#F4F6FB",
+   "accent": "#FF3B5C"
+  },
+  {
+   "slug": "iron-wall",
+   "name": "Iron Wall",
+   "kind": "tank",
+   "defaultMain": "#3DDC84",
+   "accent": "#E2C07A"
+  },
+  {
+   "slug": "wavefront",
+   "name": "Wavefront",
+   "kind": "fighter",
+   "defaultMain": "#6E8BFF",
+   "accent": "#22E4FF"
+  },
+  {
+   "slug": "breaker",
+   "name": "Breaker",
+   "kind": "bricks",
+   "defaultMain": "#FF8A3D",
+   "accent": "#22E4FF"
+  },
+  {
+   "slug": "fission",
+   "name": "Fission",
+   "kind": "atom",
+   "defaultMain": "#22E4FF",
+   "accent": "#FF6BD6"
+  },
+  {
+   "slug": "tempo",
+   "name": "Tempo",
+   "kind": "note",
+   "defaultMain": "#E2C07A",
+   "accent": "#22E4FF"
+  },
+  {
+   "slug": "nucleus",
+   "name": "Nucleus",
+   "kind": "nucleus",
+   "defaultMain": "#6E8BFF",
+   "accent": "#EEF2FF"
+  },
+  {
+   "slug": "blackout",
+   "name": "Blackout",
+   "kind": "bulb",
+   "defaultMain": "#FFE600",
+   "accent": "#06080F"
+  },
+  {
+   "slug": "hanoi",
+   "name": "Hanoi",
+   "kind": "hanoi",
+   "defaultMain": "#2ED3B7",
+   "accent": "#E2C07A"
+  },
+  {
+   "slug": "polypotions",
+   "name": "Polypotions",
+   "kind": "flask",
+   "defaultMain": "#B26BFF",
+   "accent": "#22E4FF"
+  },
+  {
+   "slug": "safe-cracker",
+   "name": "Safe Cracker",
+   "kind": "safe",
+   "defaultMain": "#4D8CFF",
+   "accent": "#E2C07A"
+  },
+  {
+   "slug": "coral-pop",
+   "name": "Coral Pop",
+   "kind": "puffer",
+   "defaultMain": "#FFE600",
+   "accent": "#FF6BD6"
+  },
+  {
+   "slug": "swish",
+   "name": "Swish",
+   "kind": "basketball",
+   "defaultMain": "#FF8A3D",
+   "accent": "#06080F"
+  },
+  {
+   "slug": "flightpath",
+   "name": "Flightpath",
+   "kind": "dart",
+   "defaultMain": "#FF3B5C",
+   "accent": "#22E4FF"
+  },
+  {
+   "slug": "home-run",
+   "name": "Home Run",
+   "kind": "baseball",
+   "defaultMain": "#E5243F",
+   "accent": "#06080F"
+  },
+  {
+   "slug": "cue-ball",
+   "name": "Cue Ball",
+   "kind": "eightball",
+   "defaultMain": "#141A2E",
+   "accent": "#EEF2FF"
+  },
+  {
+   "slug": "blockzone",
+   "name": "Blockzone",
+   "kind": "stack",
+   "defaultMain": "#B26BFF",
+   "accent": "#22E4FF"
+  },
+  {
+   "slug": "spacewalk",
+   "name": "Spacewalk",
+   "kind": "astronaut",
+   "defaultMain": "#E2C07A",
+   "accent": "#22E4FF"
+  },
+  {
+   "slug": "meteor",
+   "name": "Meteor",
+   "kind": "meteor",
+   "defaultMain": "#FF8A3D",
+   "accent": "#FFE600"
+  },
+  {
+   "slug": "moon-climb",
+   "name": "Moon Climb",
+   "kind": "ninja",
+   "defaultMain": "#1E2640",
+   "accent": "#FF3B5C"
+  },
+  {
+   "slug": "curl-champ",
+   "name": "Curl Champ",
+   "kind": "curling",
+   "defaultMain": "#FF3B5C",
+   "accent": "#E2C07A"
+  },
+  {
+   "slug": "top-bins",
+   "name": "Top Bins",
+   "kind": "topbins",
+   "defaultMain": "#141A2E",
+   "accent": "#3DDC84"
+  },
+  {
+   "slug": "lightbender",
+   "name": "Lightbender",
+   "kind": "prism",
+   "defaultMain": "#22E4FF",
+   "accent": "#FFFFFF"
+  },
+  {
+   "slug": "cryptogrid",
+   "name": "Cryptogrid",
+   "kind": "key",
+   "defaultMain": "#E2C07A",
+   "accent": "#22E4FF"
+  },
+  {
+   "slug": "high-rise",
+   "name": "High Rise",
+   "kind": "tower",
+   "defaultMain": "#FFE600",
+   "accent": "#FF8A3D"
+  },
+  {
+   "slug": "rainbow-bridge",
+   "name": "Rainbow Bridge",
+   "kind": "leprechaun",
+   "defaultMain": "#2FB36B",
+   "accent": "#FF8A3D"
+  },
+  {
+   "slug": "orbit",
+   "name": "Orbit",
+   "kind": "orbit",
+   "defaultMain": "#4D8CFF",
+   "accent": "#E2C07A"
+  }
+ ],
+ "gems": {
+  "Amber": {
+   "stars": 10,
+   "stops": [
+    "#FFD08A",
+    "#F29A2E",
+    "#B5651D"
+   ]
+  },
+  "Rose Quartz": {
+   "stars": 20,
+   "stops": [
+    "#FFE0EA",
+    "#F4A6C0",
+    "#C9708F"
+   ]
+  },
+  "Ruby": {
+   "stars": 30,
+   "stops": [
+    "#FF8A9A",
+    "#D7193C",
+    "#7E0A22"
+   ]
+  },
+  "Jade": {
+   "stars": 50,
+   "stops": [
+    "#B8F2C8",
+    "#2FB36B",
+    "#146B3E"
+   ]
+  },
+  "Amethyst": {
+   "stars": 75,
+   "stops": [
+    "#E1C6FF",
+    "#9B59E0",
+    "#5B2A99"
+   ]
+  },
+  "Aquamarine": {
+   "stars": 100,
+   "stops": [
+    "#E2FCFF",
+    "#7FE3F0",
+    "#3AA9BC"
+   ]
+  },
+  "Sapphire": {
+   "stars": 125,
+   "stops": [
+    "#A9C4FF",
+    "#2F5FE0",
+    "#14307E"
+   ]
+  },
+  "Pearl": {
+   "stars": 150,
+   "stops": [
+    "#FFFFFF",
+    "#E9E4F2",
+    "#BFB6D6"
+   ]
+  },
+  "Obsidian": {
+   "stars": 200,
+   "stops": [
+    "#4A5680",
+    "#141A2E",
+    "#06080F"
+   ]
+  },
+  "Diamond": {
+   "stars": 250,
+   "stops": [
+    "#FFFFFF",
+    "#CFF3FF",
+    "#9ADCF2"
+   ]
+  }
+ }
+}
