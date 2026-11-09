@@ -156,6 +156,8 @@ interface PracticeRunInput {
 
 /** Grades a practice run on its full puzzle (practice's own grading, the same for a live deal and a pack deal). */
 async function gradePracticeRun(data: PracticeRunInput, puzzle: PuzzleData, example: boolean, received?: number) {
+  // Speed fix 7: practice keeps reading gradeAnswer through generate.server (its deal loads that chunk anyway), which
+  // also keeps the built generate.server chunk exporting gradeAnswer by name (standard-live-check grades with it).
   const { gradeAnswer } = await import("./generate.server");
   const { practiceTrustedMs } = await import("./practiceReceipt");
   // A live deal: the claim held to the server's receipt as in a room (practiceReceipt.ts); else the length clamp alone.

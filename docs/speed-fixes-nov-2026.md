@@ -185,3 +185,96 @@ On a dev server every limit is 6 times longer, because a dev server compiles mod
 - **Not run here:** offline-check is a browser check, left to the Full suite. Its passes are unchanged by design:
   - a fresh device's worker still controls the page (the deferred worker);
   - a device that has practised registers `/sw.js` and downloads on install, as before.
+
+# Speed fixes 3 and 7 (9 Nov 2026)
+
+Items 3 and 7 of `docs/audit-nov-2026/performance.md`, for the Supabase move. No game's rules, scoring, grading or
+stamps changed; no stored row is rewritten.
+
+## 3. Lighter live rooms
+
+**What changed**
+
+- **Per-room realtime** (also security audit L6). `useDuel` opens its channel once the room's id is known, and each
+  subscription carries a filter: `duels` `id=eq.<id>`, `duel_players` and `round_results` `duel_id=eq.<id>`.
+  `useRoomChat`'s `room_messages` inserts have `duel_id=eq.<id>`. Realtime no longer checks every change in every
+  room against every phone.
+- **Heartbeats off the realtime feed.** `heartbeatFn` writes `duel_presence` (`presence.server.ts`
+  `recordHeartbeat`), a table outside the `supabase_realtime` publication, so a heartbeat reaches no phone. Its reply
+  carries the room's last-seen times (members only), and the phone lays them over its player rows (`roomSeen.ts`
+  `withSeen`). So `isConnected` and every rule built on it read the same times as before, with no refetch. The server
+  reads the later of the two columns (`withPresence`, in advance, READY, Continue and Finish now). The lobby's
+  stale-host RPC does the same.
+- **Player updates in place.** A `duel_players` UPDATE is applied to the list (`applyPlayerUpdate`). If only
+  `last_seen_at` changed (a heartbeat on a database without the table), only the time is noted. A new row, or a
+  payload that lacks a field, reads the list afresh as before.
+- `useDuel`'s full read (`load`) sends a heartbeat alongside it. Back from the background, the rows and the times
+  arrive together.
+
+**Migration** `supabase/migrations/20261109130000_room_presence.sql`, **written but not applied**. It is
+idempotent (applied three times over every migration on a local PostgreSQL 16). Apply it to both the current
+Lovable database and the new project, in either order with publishing. It creates `duel_presence` with a composite
+key to `duel_players (duel_id, user_id)`, ON DELETE CASCADE, so an outsider's heartbeat is refused. RLS is on, no
+client grants, and the table is not published. It also redefines `disband_stale_room` to read
+`greatest(duel_players.last_seen_at, duel_presence.last_seen_at)`. Until it is applied, the heartbeat writes
+`duel_players.last_seen_at` as before. The phones then apply that update in place instead of refetching, and the
+reply carries the times from there. The server rechecks for the table every 5 minutes.
+
+**Volume for a room of 16** *(est., from the code paths)*
+
+| | Before | After, no migration | After, migration applied |
+|---|---|---|---|
+| Player-list refetches from heartbeats | ~16 a second (one a second per phone) | 0 | 0 |
+| Realtime messages from heartbeats | 4 changes a second × 16 phones | the same | 0 |
+| Realtime RLS checks per change | every subscriber in every room | this room's phones only | this room's phones only |
+| Database calls per heartbeat (server) | 1 update | update + 1 read | upsert + 1 read |
+
+## 7. Faster server start
+
+**What changed**
+
+- **Minified server build.** `vite.config.ts` passes `nitro: { minify: true }`. The Cloudflare preset sets
+  `minify: false`, and Lovable's config forwards other nitro options inside its own build too.
+- **The grader apart from the generators.** `gradeAnswer` (and `standardParts`) moved, line for line, to
+  `gradeAnswer.server.ts`. `roomGrade.server.ts` imports it from there, so a room, daily or challenge answer no
+  longer loads `generate.server` and `puzzleBank.server`. `generate.server.ts` re-exports both. Practice still
+  imports `gradeAnswer` through `generate.server` (its deal loads that chunk anyway). This also keeps the built
+  `generate.server` chunk exporting `gradeAnswer` by name, which standard-live-check reads.
+
+**Measured** with Nitro's node-server preset builds of main e4526b6 and this branch, on this container (4 cores).
+Each figure is the median of 7 fresh `node` processes (`import()` of the chunk, then one call). The first answer
+grades the 7 rounds of a room dealt from seed 6100 (empty answers). The first deal is `buildRoomPuzzles` for seed
+6100 with all seven categories. Gzip is level 6 over every server `.mjs`.
+
+| | Before (main) | After |
+|---|---|---|
+| Server JS (Cloudflare preset) | 26.4 MB raw | 13.5 MB raw (node preset, 26.5 → 13.5 MB) |
+| Server JS gzip (node preset) | 5.50 MB | 3.87 MB |
+| What the first answer loads (roomGrade's static closure) | 23.6 MB | 5.8 MB |
+| What the first deal loads (generate.server's closure) | 23.6 MB | 12.1 MB |
+| First answer (import + grade) | 912–1,001 ms (import 878–954) | 498–505 ms (import 452–454) |
+| First deal (import + deal) | 1,267–1,364 ms (import 949–972) | 1,074–1,112 ms (import 741–799) |
+
+A Workers isolate on shared hardware is likely slower in absolute terms. The ratios are what to expect. Grades are
+identical: the built bundle's `gradeAnswer` matches the source on score and verdict for every stored run in
+`replay-runs.json` and for three answers to each round of 40 dealt rooms (1,085 grades, 0 differ). A grade's `extra`
+and a deal's boards vary between two runs of the source itself, so they can't be compared byte for byte.
+
+**Not done (follow-ups):** each bank behind its own `import()` (fix 7.2, needs async deal paths); the grader's
+closure still carries the dictionary (1 MB), a renderer chunk and react-router (the shared registry); Hanoi's bank
+and Gridlock's tables (7.5); practice's first grade still loads the generators.
+
+## Checks (3 and 7)
+
+- **New:** room-presence-check (~1 s): the last-seen view, in-place updates, filtered subscriptions, the
+  unpublished table, the grader's imports and the minify setting.
+- **Extended:** server-functions-check gains a "heartbeat presence" section (8 new assertions, none changed):
+  - duel_presence is unpublished;
+  - the reply carries the times;
+  - the player row is not written;
+  - an outsider stores and learns nothing;
+  - a device can't read the table;
+  - the stale-host RPC reads both columns;
+  - before the migration, the player row is written as before.
+- **Changed with Joe's approval:** room-practice-grade-check line 254's exemption now also names
+  `gradeAnswer.server.ts`, the definition's new home. Its grader list and the async-room guard are unchanged.

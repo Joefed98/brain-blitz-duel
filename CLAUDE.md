@@ -1768,6 +1768,15 @@ outside the repo.
   server keeps one row); the clock's samples end at 3 s and slow ones don't replace a measured clock; a phase still
   due 3 s on re-reads the room (`CATCH_UP_AFTER_MS`). Dev servers get 6× the limits. offline-delta-check (~1 s),
   net-request-check (~15 s), server-functions-check's "results refetch" section.
+- **Speed fixes 3 and 7** (9 Nov 2026, `docs/speed-fixes-nov-2026.md`; room data, network and build only, no stamps):
+  room realtime is per room (`filter` on every `useDuel` and chat subscription, security L6); heartbeats go to
+  `duel_presence` (`presence.server.ts`, outside `supabase_realtime`), whose reply carries the room's last-seen times
+  for the phone to lay over its rows (`roomSeen.ts`); player updates apply in place; the server reads the later of
+  both columns (`withPresence`, `disband_stale_room`). Migration `20261109130000_room_presence.sql` is **written but
+  not applied** (idempotent; until then the heartbeat writes `duel_players` as before). The server build is minified
+  (`nitro: { minify: true }`) and `gradeAnswer` lives in `gradeAnswer.server.ts` (re-exported by generate.server), so
+  the first room answer loads 5.8 MB instead of 23.6 MB. room-presence-check (~1 s); server-functions-check's
+  "heartbeat presence" section.
 - **Captain Joulz drawn larger in Grappler and Roofbound** (8 Nov 2026; display only, no stamps; hit boxes, sims,
   timings, seeds and scoring unchanged): `HeroPose.growW` / `growH` / `growFeet` (`heroGrow`, `drawGrown` in
   `hero.renderer.ts`) spread the game's joints before retargeting, so the art grows undistorted. Grappler

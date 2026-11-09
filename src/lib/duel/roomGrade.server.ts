@@ -11,7 +11,7 @@
  * scored 0 or close to it where practice gave the same play its points. An answer received in the
  * reveal phase arrived after the clock: 0 ms left. No game's scoring changes.
  */
-import { gradeAnswer } from "./generate.server";
+import { gradeAnswer } from "./gradeAnswer.server";
 import { trustedMsRemaining, type SubmitExtra } from "./grade";
 import { puzzlePrepMs, puzzleTimeLimitMs } from "./catalogue";
 import type { DuelPhase, PuzzleData } from "./types";
