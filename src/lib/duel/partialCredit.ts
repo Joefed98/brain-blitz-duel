@@ -20,9 +20,9 @@
  * was dealt the stamp before (so a check pinning an earlier world keeps what it pinned) and this batch is not pinned
  * (`pinPrePartialCredit`). Older rounds replay and score exactly as before. Shared by phone and server, pure.
  */
+import { dealPinned, setDealPin } from "./dealEra";
 import type { PuzzleData, PuzzleType } from "./types";
 import { STANDARD_STAMPS, preStandardPinned } from "./standard/stamps";
-import { rebuildLiveRecords } from "./roundMax";
 import { TILES_REV_LIMIT, gradientLimitFor } from "./jumbled";
 
 export { TILES_REV_LIMIT, gradientLimitFor, gradientSwapLimit, GRADIENT_LIMIT_PER_PAR } from "./jumbled";
@@ -49,20 +49,15 @@ export const PARTIAL_SHARE_POINTS = 130;
 /** Gradient, unfinished: each swap that brought the board no closer cancels this much of one that did. */
 export const GRADIENT_WASTE_WEIGHT = 0.5;
 
-let pinned = false;
-
 /** Checks written for the stamps before this batch pin new deals to them (returns the previous setting). */
 export function pinPrePartialCredit(on: boolean): boolean {
-  const prev = pinned;
-  pinned = on;
-  // The help and intro texts (liveRecord) describe the stamps dealt: rebuild them for the pinned world.
-  if (prev !== on) rebuildLiveRecords();
-  return prev;
+  // The help and intro texts (liveRecord) follow it: setDealPin rebuilds them (dealEra.ts).
+  return setDealPin("prePartialCredit", on);
 }
 
 /** True while new rounds of the seven games are dealt this batch's stamps (the help texts describe them). */
 export function partialCreditDealt(): boolean {
-  return !pinned && !preStandardPinned();
+  return !dealPinned("prePartialCredit") && !preStandardPinned();
 }
 
 function stampOf(puzzle: unknown, key: string): number | null {
@@ -83,7 +78,7 @@ export function usesPartialCredit(puzzle: PuzzleData | null | undefined): boolea
 export function dealPartialCredit<T extends PuzzleData>(puzzle: T): T {
   const batch = PARTIAL_CREDIT_STAMPS[puzzle.type];
   const standard = STANDARD_STAMPS[puzzle.type];
-  if (!batch || !standard || pinned) return puzzle;
+  if (!batch || !standard || dealPinned("prePartialCredit")) return puzzle;
   if (stampOf(puzzle, batch.key) !== (standard.dealt ?? standard.rev)) return puzzle;
   if (puzzle.type === "tiles") return { ...puzzle, [batch.key]: batch.rev, swapLimit: gradientLimitFor(puzzle.par ?? 0) } as T;
   return { ...puzzle, [batch.key]: batch.rev } as T;

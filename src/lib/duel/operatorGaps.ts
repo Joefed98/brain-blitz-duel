@@ -16,27 +16,22 @@
  * comma separated, an empty entry for an empty gap: "7,×,4". Stages, the "|" between them and the try-count suffix are
  * as before (stagedRounds.ts, moveLimits.ts).
  */
+import { dealPinned, setDealPin } from "./dealEra";
 import { evaluateLeftToRight, parseOperators } from "./stagedRounds";
-import { rebuildLiveRecords } from "./roundMax";
 import { preStandardPinned } from "./standard/stamps";
 import type { EquationPuzzleData, EquationStage, Operator, PuzzleData } from "./types";
 
 export const OPERATOR_GAPS_REV = 1;
 
-let pinned = false;
-
 /** Checks written for Operator's standard stamp (signs only) pin new deals to it (returns the previous setting). */
 export function pinPreOperatorGaps(on: boolean): boolean {
-  const prev = pinned;
-  pinned = on;
-  // The help and intro texts (liveRecord) describe the stamp dealt: rebuild them for the pinned world.
-  if (prev !== on) rebuildLiveRecords();
-  return prev;
+  // The help and intro texts (liveRecord) follow it: setDealPin rebuilds them (dealEra.ts).
+  return setDealPin("preOperatorGaps", on);
 }
 
 /** True while new Operator rounds are dealt the gaps stamp (the help and intro describe it). */
 export function operatorGapsDealt(): boolean {
-  return !pinned && !preStandardPinned();
+  return !dealPinned("preOperatorGaps") && !preStandardPinned();
 }
 
 const SIGNS: readonly Operator[] = ["+", "-", "×", "÷"];

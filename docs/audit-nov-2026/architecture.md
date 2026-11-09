@@ -223,6 +223,7 @@ These are where accounts, ratings and the new data layer will plug in. Doing the
 - **Action:** one `placesOf(rows, mode)` used by standings, `duelOutcome`, `rankBoard` and the challenge board, keeping today's tie order exactly.
 - **Effort:** M. **Risk:** medium. The tie order must be byte-identical.
 - **Proof:** room-scoring-check (Total vs Placings), standings-reveal-check, player-looks-check (awards), daily-check, challenge-check, tie-display-check, room-settings-check's legacy digest.
+- **Done (9 Nov 2026):** `src/lib/duel/ranking.ts` (`placesOf`, `compareRank`, `outcomeOf`) behind `standings` (so the podium, awards, async and challenge boards), `duelOutcome` and `rankBoard`; ranking-identity-check proves main's output exactly on 3,000 seeded rooms and 2,000 boards.
 
 ### B4. What a game deals today is spread over six layers and 16 global "pin" switches
 - **What:** `generatePuzzle` (`src/lib/duel/generate.server.ts:166`) composes `dealOperatorGaps(dealParMoves(dealPuzzleNotes(dealStandard(…))))`, on top of `dealDepth4` (`:175`), `dealsD5Remodels()` (`:172`), `dealtDepthRev` / `dealtTopupRev` (`:183`) and `dealtNotesRev`.
@@ -236,6 +237,7 @@ These are where accounts, ratings and the new data layer will plug in. Doing the
   3. Expose `dealtSignature(type)` for practice bests and ratings.
 - **Effort:** L. **Risk:** high (deal identity). Do it game group by game group.
 - **Proof:** standard-legacy-check, phone-notes-check, puzzle-notes-check, puzzle-batch-nov-check, puzzle-polish-nov-check, depth-topup-check, practice-bests-check (it must stay green without re-running `practice-stamps.ts`), standard-live-check (CI).
+- **Done (9 Nov 2026), in part:** the deal is decided in `generatePuzzle` (base stamps, then `DEAL_LAYERS` in order); the 23 pins and the pinned score revision live in `src/lib/duel/dealEra.ts` (the old `pinX` functions are wrappers, so checks keep their effect) with explicit `DealOptions` / `withDealOptions`; `dealtSignature(type)` and `LIVE_DEAL` in `dealSignature.ts` (PRACTICE_STAMPS, proved against the live deal). Not done: the layers still hold their own stamp constants (the table is proved equal to what they deal, not read by them), and checks still call the `pinX` wrappers rather than passing options. deal-identity-check proves every game's deal, each pin and whole rooms against main.
 
 ### B5. Device-only records that accounts must take over
 - **What:** the record a player would expect to follow their account lives in `localStorage` only:

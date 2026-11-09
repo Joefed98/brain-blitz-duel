@@ -13,6 +13,7 @@
 import { ukTimeToUtcMs } from "@/lib/publicSchedule";
 
 import type { PuzzleCategory } from "./types";
+import { placesOf } from "./ranking";
 
 export type DailyKind = "puzzle" | "arcade";
 export const DAILY_KINDS: readonly DailyKind[] = ["puzzle", "arcade"];
@@ -90,28 +91,15 @@ export interface BoardEntry {
 }
 
 /**
- * Ranks a board as the room tie-break does (scoring.ts rank): higher total first, then less time
- * used; players level on both share a place (1, 2, 2, 4). Within a shared place, who finished
- * first is listed first (display only; the place is shared).
+ * Ranks a board on the room's ranking (ranking.ts `placesOf`): higher total first, then less time used; players level
+ * on both share a place (1, 2, 2, 4). Within a shared place, who finished first is listed first (display only; the
+ * place is shared).
  */
 export function rankBoard<T extends BoardEntry>(entries: readonly T[]): (T & { rank: number })[] {
-  const sorted = [...entries].sort(
-    (a, b) =>
-      b.total - a.total ||
-      a.tieMs - b.tieMs ||
-      a.finishedAt - b.finishedAt ||
-      a.id.localeCompare(b.id),
-  );
-  const out: (T & { rank: number })[] = [];
-  sorted.forEach((entry, index) => {
-    const previous = index > 0 ? out[index - 1]! : null;
-    const rank =
-      previous && previous.total === entry.total && previous.tieMs === entry.tieMs
-        ? previous.rank
-        : index + 1;
-    out.push({ ...entry, rank });
-  });
-  return out;
+  return placesOf(
+    entries.map((entry) => ({ entry, total: entry.total, timeMs: entry.tieMs })),
+    (a, b) => a.entry.finishedAt - b.entry.finishedAt || a.entry.id.localeCompare(b.entry.id),
+  ).map(({ row, place }) => ({ ...row.entry, rank: place }));
 }
 
 /** The count shown with a rank: only from DAILY_COUNT_MIN players (null = show the rank alone). */
