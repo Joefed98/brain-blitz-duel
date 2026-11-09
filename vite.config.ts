@@ -46,6 +46,17 @@ export default defineConfig({
     // Redirect TanStack Start's bundled server entry to src/server.ts (our SSR error wrapper).
     // nitro/vite builds from this
     server: { entry: "server" },
+    // Import protection (9 Nov 2026): the phone build refuses any import of a *.server.* file. Lovable's config sets
+    // client.files to ["**/server/**"], which replaces TanStack Start's own default ("**/*.server.*"), so a client
+    // import of e.g. src/lib/duel/registry.server.ts built without complaint. Vite's mergeConfig concatenates these
+    // arrays with Lovable's, so its "**/server/**" and "server-only" stay; they are restated here for the reader.
+    importProtection: {
+      behavior: "error",
+      client: {
+        files: ["**/server/**", "**/*.server.*"],
+        specifiers: ["server-only"],
+      },
+    },
   },
   vite: {
     define: { __DUELZ_BUILD_ID__: JSON.stringify(buildId()) },
