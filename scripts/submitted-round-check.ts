@@ -125,11 +125,14 @@ try {
   };
 
   check(liveMax() === 12, `the applied constraint allows up to 12 (${constraintDef()})`);
+  // Check constraints only (contype 'c'): from PostgreSQL 18 a NOT NULL is also a pg_constraint row
+  // ("NOT NULL submitted_round", contype 'n'), which is the column's NOT NULL, not a second range check.
+  const checks = q(
+    `SELECT coalesce(string_agg(conname || ': ' || pg_get_constraintdef(oid), ' | '), '') FROM pg_constraint WHERE conrelid = 'public.duel_players'::regclass AND contype = 'c' AND pg_get_constraintdef(oid) ILIKE '%submitted_round%'`,
+  );
   check(
-    q(
-      `SELECT count(*) FROM pg_constraint WHERE conrelid = 'public.duel_players'::regclass AND pg_get_constraintdef(oid) ILIKE '%submitted_round%'`,
-    ) === "1",
-    "exactly one check constrains submitted_round",
+    checks.split(" | ").length === 1 && checks.startsWith("duel_players_submitted_round_range: "),
+    `exactly one check constrains submitted_round, the range check (${checks})`,
   );
 
   // Idempotent: applied again, and the original applied after it, change nothing.
