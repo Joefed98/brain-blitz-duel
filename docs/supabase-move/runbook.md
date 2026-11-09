@@ -74,6 +74,10 @@ clients handle either (investigation section 2.3). No key was copied anywhere.
 
 ### 1.4 Later migrations
 
+**From Wave 0 (9 Nov 2026), GitHub applies them**, by the same method, on every push to `main` before the
+Cloudflare deploy: see `migrations-ci.md` (secrets `SUPABASE_ACCESS_TOKEN`, `SUPABASE_PROJECT_REF`). The table below
+records the ones applied by hand before that.
+
 Applied the same way as 1.2: one Management API request, the file in `BEGIN; … COMMIT;` with its row in
 `supabase_migrations.schema_migrations`. The applier skips every version already recorded.
 

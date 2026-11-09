@@ -66,6 +66,8 @@ The heavy chunks (`generate.server` 8.6 MB, `puzzleBank.server` 4.4 MB, `diction
    `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`, `SUPABASE_URL` (the London project's `https://<ref>.supabase.co`),
    `SUPABASE_PUBLISHABLE_KEY` (its publishable or anon key), `SUPABASE_SERVICE_ROLE_KEY` (its service-role or
    `sb_secret_` key), `PRACTICE_SEAL_KEY` (the **same value** as on Lovable, if set there), `INTRO_DEMO_KEY`.
+   Since Wave 0 (9 Nov 2026) also `SUPABASE_ACCESS_TOKEN` and `SUPABASE_PROJECT_REF`, for the migration step
+   that runs right before every production deploy (`migrations-ci.md` has the steps).
 5. **GitHub: the `deploy-preview` label** (Issues → Labels), only if PR previews are wanted.
 
 ## Merging and the first deploy
