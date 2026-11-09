@@ -1,0 +1,193 @@
+# Supabase move, step 2 (route B, docs/supabase-move/investigation.md 8.4; docs/supabase-move/cloudflare-deploy.md):
+# build the app and deploy it to the Cloudflare Worker "joulz" on its workers.dev address only. No custom domain
+# and no route: joulz.uk stays on Lovable (Lovable hosting, Lovable Cloud) until the switchover.
+#
+# - Every push to main (and Actions → Deploy to Cloudflare → Run workflow) deploys production on workers.dev.
+# - A PR labelled `deploy-preview` uploads a preview version (not deployed) at pr-<n>-joulz.<subdomain>.workers.dev,
+#   again on each push while the label is on. It runs on the Worker's secrets, so only same-repo PRs get one.
+#
+# The browser build reads VITE_SUPABASE_URL / VITE_SUPABASE_PUBLISHABLE_KEY. Vite's loadEnv lets the process
+# environment win over .env, so the new London project's values come from the GitHub secrets for this build
+# only; .env (Lovable's values, still serving joulz.uk) is never changed. A guard fails the build if the
+# Lovable project's URL or key reaches the output.
+#
+# Secrets go up with the deployed version (`wrangler deploy --secrets-file`, one atomic version) from a file in
+# the runner's temp dir, written without echo and deleted in the same step. No value is ever printed.
+name: Deploy to Cloudflare
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+  pull_request:
+    types: [labeled, synchronize]
+
+# One production deploy at a time, in order (a newer push queues behind the running one, never cancels it
+# half-way through an upload). Previews: one per PR, a newer push cancels the older.
+concurrency:
+  group: ${{ github.event_name == 'pull_request' && format('deploy-preview-{0}', github.event.pull_request.number) || 'deploy-production' }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+env:
+  BUN_VERSION: "1.4.2"
+  # Pinned (released 26 Oct 2026, past bunfig's 24 h guard). Bump deliberately.
+  WRANGLER_VERSION: "4.153.0"
+  WORKER_NAME: joulz
+  # Pinned so a rebuild of the same commit runs the same runtime (nitro writes the build day otherwise). Must be
+  # no newer than the pinned Wrangler's runtime supports (4.153.0: 2026-10-30). nodejs_compat (from nitro's
+  # wrangler.json) with a date after 2025-04-01 fills process.env from the Worker's secrets.
+  COMPAT_DATE: "2026-10-15"
+  WRANGLER_SEND_METRICS: "false"
+
+jobs:
+  deploy:
+    name: ${{ github.event_name == 'pull_request' && 'preview version' || 'deploy (workers.dev)' }}
+    # Production: main only. Preview: a same-repo PR carrying the deploy-preview label.
+    if: >-
+      (github.event_name != 'pull_request' && github.ref == 'refs/heads/main') ||
+      (github.event_name == 'pull_request' &&
+        github.event.pull_request.head.repo.full_name == github.repository &&
+        contains(github.event.pull_request.labels.*.name, 'deploy-preview'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ runner.os }}-${{ env.BUN_VERSION }}-${{ hashFiles('bun.lock') }}
+          restore-keys: bun-${{ runner.os }}-${{ env.BUN_VERSION }}-
+
+      - name: Required secrets are set
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          PRACTICE_SEAL_KEY: ${{ secrets.PRACTICE_SEAL_KEY }}
+          INTRO_DEMO_KEY: ${{ secrets.INTRO_DEMO_KEY }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          missing=""
+          for n in CLOUDFLARE_API_TOKEN CLOUDFLARE_ACCOUNT_ID SUPABASE_URL SUPABASE_PUBLISHABLE_KEY SUPABASE_SERVICE_ROLE_KEY; do
+            [ -n "${!n}" ] || missing="$missing $n"
+          done
+          if [ -n "$missing" ]; then echo "::error::Missing GitHub secret(s):$missing"; exit 1; fi
+          for n in PRACTICE_SEAL_KEY INTRO_DEMO_KEY; do
+            [ -n "${!n}" ] || echo "::warning::$n is not set; the Worker keeps whatever value it already has (none on a first deploy)."
+          done
+          case "$SUPABASE_URL" in https://*.supabase.co) ;; *) echo "::error::SUPABASE_URL is not an https://<ref>.supabase.co address"; exit 1;; esac
+
+      # Same rewrite as checks.yml: bun.lock pins some packages to Lovable's private npm cache (403 outside
+      # Lovable). Public registry for the install only, then the lockfile restored exactly.
+      - name: Install dependencies
+        run: |
+          cp bun.lock "$RUNNER_TEMP/bun.lock.orig"
+          sed -i -E 's#https://europe-west[0-9]+-npm\.pkg\.dev/lovable-core-prod/[^/]+/#https://registry.npmjs.org/#g' bun.lock
+          bun install --frozen-lockfile
+          cp "$RUNNER_TEMP/bun.lock.orig" bun.lock
+          git diff --exit-code -- bun.lock
+
+      - name: Build (vite build, nitro cloudflare-module)
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
+        run: |
+          # VITE_SUPABASE_PROJECT_ID is read by nothing in src/; set it to the new ref anyway so no Lovable value
+          # is baked into this build.
+          ref="${VITE_SUPABASE_URL#https://}"; ref="${ref%%.*}"
+          export VITE_SUPABASE_PROJECT_ID="$ref"
+          bun run build
+          test -f .output/server/index.mjs
+          test -f .wrangler/deploy/config.json
+
+      - name: The build talks to the new project only
+        env:
+          NEW_URL: ${{ secrets.SUPABASE_URL }}
+        run: |
+          # .env holds Lovable's values (public ones, but never printed here). None may reach the output.
+          old_url=$(sed -n -E 's/^VITE_SUPABASE_URL="?([^"]*)"?$/\1/p' .env)
+          old_key=$(sed -n -E 's/^VITE_SUPABASE_PUBLISHABLE_KEY="?([^"]*)"?$/\1/p' .env)
+          old_host="${old_url#https://}"
+          [ -n "$old_host" ] && [ -n "$old_key" ] || { echo "::error::could not read .env's Lovable values"; exit 1; }
+          if [ "$old_url" = "$NEW_URL" ]; then echo "::error::SUPABASE_URL is the Lovable Cloud project's URL"; exit 1; fi
+          if grep -rqF -- "$old_host" .output || grep -rqF -- "$old_key" .output; then
+            echo "::error::the Lovable Cloud project's URL or key is in the build output"; exit 1
+          fi
+          grep -rqF -- "$NEW_URL" .output/public/assets || { echo "::error::the new project's URL is not in the browser bundle"; exit 1; }
+          echo "Build output names the new project only."
+
+      - name: Bundle size (dry run)
+        run: |
+          npx --yes "wrangler@$WRANGLER_VERSION" deploy --dry-run --name "$WORKER_NAME" \
+            --compatibility-date "$COMPAT_DATE" --outdir "$RUNNER_TEMP/dry" 2>&1 | tee "$RUNNER_TEMP/dry.log" \
+            | grep -E "Total Upload|Total \(|assets directory" || true
+          {
+            echo "### Worker bundle"
+            grep -E "Total Upload|Total \(" "$RUNNER_TEMP/dry.log" | sed 's/[│└┘─]//g; s/^ */- /'
+            echo "- Paid Workers plan limit: 10 MB gzip (free: 3 MB)"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Deploy to workers.dev
+        if: github.event_name != 'pull_request'
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          S_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          S_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
+          S_SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          S_PRACTICE_SEAL_KEY: ${{ secrets.PRACTICE_SEAL_KEY }}
+          S_INTRO_DEMO_KEY: ${{ secrets.INTRO_DEMO_KEY }}
+        run: |
+          set +x
+          umask 077
+          secrets="$RUNNER_TEMP/worker-secrets.json"
+          trap 'rm -f "$secrets"' EXIT
+          # Names only from here on; empty optional values are left out (the Worker keeps its existing one).
+          jq -n '{
+              SUPABASE_URL: env.S_SUPABASE_URL,
+              SUPABASE_PUBLISHABLE_KEY: env.S_SUPABASE_PUBLISHABLE_KEY,
+              SUPABASE_SERVICE_ROLE_KEY: env.S_SUPABASE_SERVICE_ROLE_KEY,
+              PRACTICE_SEAL_KEY: env.S_PRACTICE_SEAL_KEY,
+              INTRO_DEMO_KEY: env.S_INTRO_DEMO_KEY
+            } | with_entries(select(.value != null and .value != ""))' > "$secrets"
+          # No --route and no custom domain: the generated wrangler.json has none, so wrangler serves the Worker
+          # on joulz.<account subdomain>.workers.dev only.
+          npx --yes "wrangler@$WRANGLER_VERSION" deploy --name "$WORKER_NAME" \
+            --compatibility-date "$COMPAT_DATE" --secrets-file "$secrets" \
+            --message "${GITHUB_SHA::10} (${GITHUB_EVENT_NAME})" 2>&1 | tee "$RUNNER_TEMP/deploy.log"
+          {
+            echo "### Deployed"
+            grep -E "Worker Startup Time|Total Upload" "$RUNNER_TEMP/deploy.log" | sed 's/^ */- /'
+            grep -oE "https://[a-z0-9.-]+\.workers\.dev" "$RUNNER_TEMP/deploy.log" | sort -u | sed 's/^/- /'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload preview version
+        if: github.event_name == 'pull_request'
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          # A version that is uploaded, not deployed: production on workers.dev is unchanged. It inherits the
+          # Worker's secrets (none are sent from a PR). Needs one production deploy first.
+          npx --yes "wrangler@$WRANGLER_VERSION" versions upload --name "$WORKER_NAME" \
+            --compatibility-date "$COMPAT_DATE" --preview-alias "pr-$PR" \
+            --message "PR $PR ${GITHUB_SHA::10}" 2>&1 | tee "$RUNNER_TEMP/preview.log"
+          {
+            echo "### Preview version (PR $PR)"
+            grep -E "Worker Startup Time|Version ID" "$RUNNER_TEMP/preview.log" | sed 's/^ */- /'
+            grep -oE "https://[a-z0-9.-]+\.workers\.dev" "$RUNNER_TEMP/preview.log" | sort -u | sed 's/^/- /'
+          } >> "$GITHUB_STEP_SUMMARY"
