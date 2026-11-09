@@ -201,8 +201,13 @@ export async function readyUp(roomId: string, roundNumber: number): Promise<void
   await readyUpFn({ data: { roomId, roundNumber }, fetch: fetchFor(POLICIES.step) });
 }
 
-export async function heartbeat(roomId: string): Promise<void> {
-  await heartbeatFn({ data: { roomId }, fetch: fetchFor(POLICIES.heartbeat) });
+/**
+ * This device's heartbeat. The reply carries the room's last-seen times by user id (presence.server.ts, Speed fix 3),
+ * or none for a device that isn't one of the room's players.
+ */
+export async function heartbeat(roomId: string): Promise<Record<string, string> | null> {
+  const reply = (await heartbeatFn({ data: { roomId }, fetch: fetchFor(POLICIES.heartbeat) })) as { seen?: Record<string, string> };
+  return reply?.seen ?? null;
 }
 
 /** The correct answer for a finished round, fetched only at reveal time. */
