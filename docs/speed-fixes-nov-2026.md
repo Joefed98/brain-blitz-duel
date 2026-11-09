@@ -211,9 +211,8 @@ stamps changed; no stored row is rewritten.
 - `useDuel`'s full read (`load`) sends a heartbeat alongside it. Back from the background, the rows and the times
   arrive together.
 
-**Migration** `supabase/migrations/20261109130000_room_presence.sql`, **written but not applied**. It is
-idempotent (applied three times over every migration on a local PostgreSQL 16). Apply it to both the current
-Lovable database and the new project, in either order with publishing. It creates `duel_presence` with a composite
+**Migration** `supabase/migrations/20261109130000_room_presence.sql`, **applied** (on the London project, by the migrations workflow on merge). It is
+idempotent (applied three times over every migration on a local PostgreSQL 16). It creates `duel_presence` with a composite
 key to `duel_players (duel_id, user_id)`, ON DELETE CASCADE, so an outsider's heartbeat is refused. RLS is on, no
 client grants, and the table is not published. It also redefines `disband_stale_room` to read
 `greatest(duel_players.last_seen_at, duel_presence.last_seen_at)`. Until it is applied, the heartbeat writes

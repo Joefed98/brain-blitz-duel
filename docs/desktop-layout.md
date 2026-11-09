@@ -206,7 +206,7 @@ Retired to practice (12):
   played by touch, mouse or keyboard (or a mix, "mouse+keyboard"); rooms (`round_results`), dailies and
   challenges (`async_results`) and practice (`practice_plays`) store it in `input_type`, best effort, after
   the result itself (`inputType.server.ts`). Grading never reads it. Migration
-  `supabase/migrations/20261031170000_result_input_type.sql` is **written but not applied**: until it is, the
+  `supabase/migrations/20261031170000_result_input_type.sql` is **applied**; on a database without it the
   writes fail quietly and nothing else changes.
 
 ## Checks

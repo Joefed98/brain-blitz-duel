@@ -5,6 +5,10 @@
 on its **workers.dev address only**. joulz.uk is untouched: Lovable keeps serving it on Lovable Cloud until the
 switchover (8.4 row 5). No app code, `.env`, `vite.config.ts` or `bun.lock` changed. This file holds no values.
 
+**Status (9 Nov 2026): switched over.** joulz.uk now runs on this Worker with the London Supabase project; Lovable no
+longer hosts the app and Lovable Cloud is not the live database. The custom domain is set on the Worker in the
+Cloudflare dashboard, not in the workflow. The text below is the setup as written before the switch.
+
 ## What the workflow does
 
 | When | What |

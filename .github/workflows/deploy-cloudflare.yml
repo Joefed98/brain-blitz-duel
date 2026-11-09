@@ -1,6 +1,6 @@
 # Supabase move, step 2 (route B, docs/supabase-move/investigation.md 8.4; docs/supabase-move/cloudflare-deploy.md):
-# build the app and deploy it to the Cloudflare Worker "joulz" on its workers.dev address only. No custom domain
-# and no route: joulz.uk stays on Lovable (Lovable hosting, Lovable Cloud) until the switchover.
+# build the app and deploy it to the Cloudflare Worker "joulz". Since the switchover (9 Nov 2026) joulz.uk is a
+# custom domain on that Worker, set in the Cloudflare dashboard (no route in this file), with Joe's London Supabase.
 #
 # - Every push to main (and Actions → Deploy to Cloudflare → Run workflow) deploys production on workers.dev.
 # - A PR labelled `deploy-preview` uploads a preview version (not deployed) at pr-<n>-joulz.<subdomain>.workers.dev,
