@@ -9,6 +9,8 @@
  *    installs no browser; full-suite.yml's "full-suite-passed" needs the shards and passes only on their success
  *    (skipped never counts), and the workflow runs on the ready-to-merge label, on leaving draft, by hand and weekly.
  *  - checks.yml runs tsc --noEmit over src/ in its own typecheck job (7 Nov 2026).
+ *  - checks.yml runs the production build (`bun run build`, as the Cloudflare deploy) in its own build job, beside
+ *    the shards (needs nothing), on placeholder public Supabase values and no secrets (9 Nov 2026).
  *
  *   bun scripts/ci-shards-check.ts
  */
@@ -72,6 +74,10 @@ check(same(matrixOf(fastYml, "checks.yml"), fast), `checks.yml's matrix is the f
 check(same(matrixOf(fullYml, "full-suite.yml"), browser), `full-suite.yml's matrix is the browser shards (${browser.join(", ")})`);
 check(!/playwright install/.test(fastYml), "checks.yml installs no browser");
 check(/^\s*typecheck:/m.test(fastYml) && /tsc --noEmit -p tsconfig\.json/.test(fastYml), "checks.yml type-checks src/ (tsc --noEmit, its own job)");
+const buildJob = /^  build:\n([\s\S]*?)(?=^  [\w-]+:\n|(?![\s\S]))/m.exec(fastYml)?.[1] ?? "";
+check(/^\s+- name: bun run build\n[\s\S]*?^\s+bun run build$/m.test(buildJob), "checks.yml runs the production build (bun run build, its own job)");
+check(!/^\s+needs:/m.test(buildJob), "the build job runs in parallel with the shards (needs nothing)");
+check(/VITE_SUPABASE_URL:\s*https:\/\/\S+\.supabase\.co/.test(buildJob) && /VITE_SUPABASE_PUBLISHABLE_KEY:\s*\S/.test(buildJob) && !/secrets\./.test(buildJob), "the build job uses placeholder public Supabase values, no secrets");
 check(/cancel-in-progress:\s*true/.test(fastYml) && /cancel-in-progress:\s*true/.test(fullYml), "both workflows cancel superseded runs");
 check(/full-suite-passed/.test(fullYml) && /needs:\s*\[[^\]]*\bshards\b[^\]]*\]/.test(fullYml.split("full-suite-passed:")[1] ?? ""), "full-suite-passed needs the shards");
 check(/needs\.shards\.result\s*}}"?\s*=\s*"?success/.test(fullYml) || /needs\.shards\.result == 'success'/.test(fullYml), "full-suite-passed passes only on the shards' success");
