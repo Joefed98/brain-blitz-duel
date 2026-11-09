@@ -230,7 +230,7 @@ Scope as approved: the server engine only. The phone half (`useRoundSession`) is
 | `receipt.ts` | `RoundReceipt` (`phase`, `start`, `sealed`, `none`), `receiptMsRemaining`, `phaseReceiptOf`, `sealedStartMs`, `PRACTICE_START_SLACK_MS` | `roomGrade.server.ts` (`roomReceiptMsRemaining`), `asyncRoom.server.ts` (`gradeAsyncAnswer`), `practiceReceipt.ts` (its three functions are wrappers) |
 | `trust.ts` | `trustedClaim(…, "room" \| "practice")`: the two named rules, practice's raw claim with no bound kept exactly | `roomGrade.server.ts` `gradeRound`, `practiceReceipt.ts` `practiceTrustedMs` |
 | `result.ts` | `resultColumns(graded)` | `submitAnswerFn` (rooms' insert, `extra: asJson(...)` as before), `submitAsyncAnswer` (its `values`, `extra: ?? null` as before) |
-| `deal.server.ts` | `dealRounds`, `dealOne` (defined in `generate.server.ts` beside `generatePuzzle`, so neither file imports the other) | `buildRoomPuzzles`, `dealDaily`, `dealChallenge`; practice's `dealPractice` |
+| `deal.server.ts` | `dealRounds`, `dealOne` (defined in `generate.server.ts` beside `generatePuzzle`, so neither file imports the other) | `buildRoomPuzzles`, `dealDaily`, `dealChallenge` and practice's `dealPractice` import them from `generate.server.ts` directly. Importing the re-export from app code made the production build's generate.server chunk a shared chunk with mangled export names, which standard-live-check can't read; caught in a local `bun run build` |
 | `rank.ts` | re-exports `ranking.ts` and `roundTimeUsedMs` | wave 3; nothing moved |
 | `index.ts` | `RoundMode` and the pure parts | wave 3 |
 

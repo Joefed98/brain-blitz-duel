@@ -56,7 +56,7 @@ import {
   type ChallengeRoundBoard,
   type ChallengeSummary,
 } from "./challenge";
-import { dealRounds } from "@/lib/round/deal.server";
+import { dealRounds } from "./generate.server";
 import { randomBelow } from "./random";
 import { isLiveType, puzzleDef, puzzlePrepMs, puzzleTimeLimitMs } from "./registry";
 import { mergePuzzle } from "./secrets";

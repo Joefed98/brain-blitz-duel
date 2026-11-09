@@ -36,7 +36,7 @@ import {
   type AsyncAttemptRow,
   type AsyncRoomRow,
 } from "./asyncRoom.server";
-import { dealRounds } from "@/lib/round/deal.server";
+import { dealRounds } from "./generate.server";
 import { pickRoundOrder, newRoomSeed } from "./selection";
 import type { UnblockBankRow } from "./unblock.server";
 import type { PuzzleData, PuzzleType } from "./types";

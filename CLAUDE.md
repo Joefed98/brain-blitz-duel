@@ -1815,8 +1815,8 @@ outside the repo.
   by `scripts/deal-identity-record.ts`; Lightbender's `generationMs`, its build time, is left out of the digest).
 - **The round engine** (9 Nov 2026, B6 of `docs/audit-nov-2026/architecture.md`, `docs/round-engine/plan.md`; no deal,
   timing, grade, score, ranking or screen changed): `src/lib/round/` holds what rooms, async rooms (the Daily,
-  challenges) and practice share about running a round: `dealRounds` / `dealOne` (`deal.server.ts`, defined beside
-  `generatePuzzle`), the window (`window.ts`; `asyncRoundWindow` / `asyncReceipt` re-export it), the receipt
+  challenges) and practice share about running a round: `dealRounds` / `dealOne` (defined beside `generatePuzzle` in generate.server.ts
+  and imported from there: re-exporting them through `deal.server.ts` into app code mangles the built chunk's names), the window (`window.ts`; `asyncRoundWindow` / `asyncReceipt` re-export it), the receipt
   (`receipt.ts`: a room's phase, an async round's stored start, practice's seal), the trust rule (`trust.ts`: `room`, and
   `practice`, which passes a claim with no bound through unchanged), `gradeRound` (in `roomGrade.server.ts`;
   `gradeRoomAnswer` calls it), the stored columns (`result.ts` `resultColumns`) and the ranking's names (`rank.ts`). Each
