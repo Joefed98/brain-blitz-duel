@@ -1,3 +1,4 @@
+import { outcomeOf, placesOf, type Outcome, type RankRow } from "./ranking";
 import { roundPlacings, type RoundPlacing, type ScoringMode } from "./scoringMode";
 import { speedBonusCurve } from "./speedPar";
 import { bandCurve, bandOpen } from "../arcade/scoreBands";
@@ -329,8 +330,9 @@ export function totalAnswerMs(results: RoundResultRow[], slot: number, tie?: Tie
   return answerMsThrough(results, slot, Number.POSITIVE_INFINITY, tie);
 }
 
-export type Outcome = "win" | "loss" | "draw";
+export type { Outcome };
 
+/** A two-player room's result for `mySlot`, on the one ranking (ranking.ts), so it always agrees with the places. */
 export function duelOutcome(
   results: RoundResultRow[],
   mySlot: number,
@@ -339,26 +341,15 @@ export function duelOutcome(
   mode: ScoringMode = "total",
   rounds?: number,
 ): Outcome {
-  if (mode === "placings") {
-    // Placings (scoringMode.ts): round wins first (1 point each, a level round 1 each), then the total.
-    const through = rounds ?? Math.max(0, ...results.map((r) => r.round_number));
-    const players = [{ slot: mySlot }, { slot: opponentSlot }];
-    const pointsOf = placingPointsThrough(results, players, through);
-    const myPoints = pointsOf.get(mySlot) ?? 0;
-    const theirPoints = pointsOf.get(opponentSlot) ?? 0;
-    if (myPoints > theirPoints) return "win";
-    if (myPoints < theirPoints) return "loss";
-  }
-  const mine = totalScore(results, mySlot);
-  const theirs = totalScore(results, opponentSlot);
-  if (mine > theirs) return "win";
-  if (mine < theirs) return "loss";
-
-  const myTime = totalAnswerMs(results, mySlot, tie);
-  const theirTime = totalAnswerMs(results, opponentSlot, tie);
-  if (myTime < theirTime) return "win";
-  if (myTime > theirTime) return "loss";
-  return "draw";
+  // Placings (scoringMode.ts): round wins first (1 point each, a level round 1 each), then the total, then the time.
+  const through = mode === "placings" ? (rounds ?? Math.max(0, ...results.map((r) => r.round_number))) : 0;
+  const pointsOf = mode === "placings" ? placingPointsThrough(results, [{ slot: mySlot }, { slot: opponentSlot }], through) : null;
+  const rowOf = (slot: number): RankRow => ({
+    total: totalScore(results, slot),
+    timeMs: totalAnswerMs(results, slot, tie),
+    ...(pointsOf ? { points: pointsOf.get(slot) ?? 0 } : {}),
+  });
+  return outcomeOf(rowOf(mySlot), rowOf(opponentSlot));
 }
 
 /** A two-player Placings room's points (scoringMode.ts) through `rounds`, and what the last round gave each. */
@@ -418,26 +409,15 @@ export interface Standing {
   detail: string[];
 }
 
+/** A room's places (ranking.ts: points on Placings rooms, then the total, then less time; level rows share a place). */
 function rank(
   rows: { slot: number; total: number; answerMs: number; points?: number }[],
 ): { slot: number; position: number }[] {
   // Placings rows rank by points first; Total score rows carry no points, so this is the old order exactly.
-  const level = (a: (typeof rows)[number], b: (typeof rows)[number]) =>
-    (a.points ?? 0) === (b.points ?? 0) && a.total === b.total && a.answerMs === b.answerMs;
-  const sorted = [...rows].sort((a, b) =>
-    (b.points ?? 0) !== (a.points ?? 0)
-      ? (b.points ?? 0) - (a.points ?? 0)
-      : b.total !== a.total
-        ? b.total - a.total
-        : a.answerMs - b.answerMs,
-  );
-  const out: { slot: number; position: number }[] = [];
-  sorted.forEach((row, index) => {
-    const previous = index > 0 ? sorted[index - 1]! : null;
-    const tied = previous && level(previous, row) ? out[index - 1]!.position : index + 1;
-    out.push({ slot: row.slot, position: tied });
-  });
-  return out;
+  return placesOf(rows.map((row) => ({ ...row, timeMs: row.answerMs }))).map(({ row, place }) => ({
+    slot: row.slot,
+    position: place,
+  }));
 }
 
 /** One round's placings among `players` (scoringMode.ts); a player with no answer scored 0. */

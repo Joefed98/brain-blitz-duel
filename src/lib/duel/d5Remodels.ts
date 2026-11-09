@@ -6,18 +6,16 @@
  * the old deal, so they keep proving what they were written for, exactly as pinDealtPuzzleScoreRev does for score
  * revisions. Never called by app code.
  */
-let legacyDeal = false;
+import { dealPinned, setDealPin } from "./dealEra";
 
 /** Checks only: true deals the previous versions (Topsy-Turvy's bank, gravityRev 2; Jumbled tilesRev 2). Returns the pin it replaced. */
 export function pinD5LegacyDeal(on: boolean): boolean {
-  const before = legacyDeal;
-  legacyDeal = on;
-  return before;
+  return setDealPin("d5LegacyDeal", on);
 }
 
 /** True when new rounds deal the remodels (always, outside a check's pin). */
 export function dealsD5Remodels(): boolean {
-  return !legacyDeal;
+  return !dealPinned("d5LegacyDeal");
 }
 
 /** The remodelled games: their "?" help and intro state the remodels' own scoring (d5-remodels-check proves it). */

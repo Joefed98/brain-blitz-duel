@@ -14,6 +14,7 @@
  * The three banked games (flow, iceslide, blockparty) take the new stamp only when drawn by seed (rooms,
  * practice): their fixed intro examples stay the old stored ones, so the bank checks still prove them.
  */
+import { dealPinned, setDealPin } from "../dealEra";
 import { withSeededRandom } from "../random";
 import { dealtPuzzleScoreRev } from "../puzzleScoreRev";
 import { PUZZLE_SCORE_REV_HELPER } from "../puzzleScoreRev3";
@@ -42,13 +43,12 @@ export interface D4DealContext {
 }
 
 /** Checks that prove the old rules switch the new deal off (scripts/depth4-check.ts). Never called by app code. */
-let off = false;
 export function pinDepth4Off(value: boolean): void {
-  off = value;
+  setDealPin("depth4Off", value);
 }
 
 export function dealDepth4(type: PuzzleType, context: D4DealContext): PuzzleData | null {
-  if (off || !isD4Type(type) || dealtPuzzleScoreRev() < PUZZLE_SCORE_REV_HELPER) return null;
+  if (dealPinned("depth4Off") || !isD4Type(type) || dealtPuzzleScoreRev() < PUZZLE_SCORE_REV_HELPER) return null;
   switch (type) {
     case "unblock": {
       const p = generateUnblock(context.unblockRow);

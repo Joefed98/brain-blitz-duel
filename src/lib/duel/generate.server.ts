@@ -17,6 +17,7 @@ import { dealParMoves } from "./parMoves";
 import { dealPipesPlaced } from "./speedPipesNov7";
 import { dealOperatorGaps } from "./operatorGaps.server";
 import { dealWordNov7 } from "./wordNov7";
+import { withDealOptions, type DealOptions } from "./dealEra";
 import { dealPartialCredit } from "./partialCredit";
 import { topsyPlainRoutes } from "./topsy.server";
 import { varyTallyTray } from "@/puzzles/countUp";
@@ -143,25 +144,48 @@ export interface GenerateContext {
 }
 
 /**
- * Every new puzzle is stamped with the speed-par scoring version and the puzzle
- * score shape (puzzleScoreRev.ts); stored rounds without them keep the legacy
- * curve and shape.
+ * The deal's layers after the base stamps, in the order they apply (B4, docs/audit-nov-2026/architecture.md): each
+ * moves a game's live stamp up for one change and keeps its own code for the older stamps; a check that pins one of
+ * them (dealEra.ts) gets the deal from before that change. Only puzzles on today's score revision reach them.
  */
-export function generatePuzzle(type: PuzzleType, context: GenerateContext = {}): PuzzleData {
+export const DEAL_LAYERS: readonly { name: string; deal: (puzzle: PuzzleData) => PuzzleData }[] = [
+  // The scoring standard (standard/stamps.ts): the game's live stamp moves up by one.
+  { name: "standard", deal: dealStandard },
+  // The Speed / Pipeline fix (7 Nov 2026, speedPipesNov7.ts): Pipeline's placed-tile credit.
+  { name: "pipesPlaced", deal: dealPipesPlaced },
+  // Joe's puzzle notes (28 Oct 2026, puzzleNotes.ts): Slider and Tally one stamp above the standard's.
+  { name: "puzzleNotes", deal: (p) => dealPuzzleNotes(p, (q) => (q.type === "countup" ? varyTallyTray(q) : q)) },
+  // The puzzle batch of 3 Nov 2026 (parMoves.ts): Labyrinth, Topsy-Turvy and Skid one stamp above the standard's,
+  // their collectibles gone.
+  { name: "parMoves", deal: (p) => dealParMoves(p, (q) => (q.type === "gravity" ? topsyPlainRoutes(q) : q)) },
+  // Puzzle polish (3 Nov 2026, operatorGaps.ts): Operator's sign, number and mixed gaps one stamp above the standard's.
+  { name: "operatorGaps", deal: dealOperatorGaps },
+  // Partial-credit fixes (7 Nov 2026, partialCredit.ts): Blackout, Hanoi, Polypotions, Gridlock, Turntable, Exact and
+  // Gradient one stamp above the one dealt before.
+  { name: "partialCredit", deal: dealPartialCredit },
+  // The Word scoring fix (7 Nov 2026, wordNov7.ts): Interlock, Slider and Lookout one stamp above (Slider above the notes).
+  { name: "wordNov7", deal: dealWordNov7 },
+];
+
+/**
+ * The one place a game's deal is decided. Every new puzzle is stamped with the speed-par scoring version and the
+ * puzzle score shape (puzzleScoreRev.ts), then passes through DEAL_LAYERS; stored rounds without the stamps keep the
+ * legacy curve and shape. With nothing pinned (dealEra.ts `activeDealPins`), its version stamps are the game's dealt
+ * signature (dealSignature.ts `dealtSignature`). `options` deals an older era for this call only (checks and tools),
+ * restoring the eras after.
+ */
+export function generatePuzzle(type: PuzzleType, context: GenerateContext = {}, options?: DealOptions): PuzzleData {
+  return withDealOptions(options, () => dealLive(type, context));
+}
+
+function dealLive(type: PuzzleType, context: GenerateContext): PuzzleData {
   // The seven games with a 13 Oct 2026 limit or count-range revision carry their own stamp (moveLimits.ts).
   const made = stampMoveLimits(generateUnstamped(type, context));
   // Number puzzles to 200 (numberDepth.ts) carry depthRev 1 on puzzleScoreRev 3.
   const stamped = stampNumberDepth({ ...(made as object), speedPar: SPEED_PAR_VERSION, puzzleScoreRev: dealtPuzzleScoreRev() } as unknown as PuzzleData);
-  // The scoring standard (standard/stamps.ts): the game's live stamp moves up by one, on today's score revision only.
+  // The layers move stamps up on today's score revision only.
   if (puzzleScoreRevOf(stamped) !== PUZZLE_SCORE_REV_DEALT) return stamped;
-  // Joe's puzzle notes (28 Oct 2026, puzzleNotes.ts): Slider and Tally one stamp above the standard's.
-  // The puzzle batch of 3 Nov 2026 (parMoves.ts): Labyrinth, Topsy-Turvy and Skid one stamp above the standard's,
-  // their collectibles gone.
-  // Puzzle polish (3 Nov 2026, operatorGaps.ts): Operator's sign, number and mixed gaps one stamp above the standard's.
-  // Partial-credit fixes (7 Nov 2026, partialCredit.ts): Blackout, Hanoi, Polypotions, Gridlock, Turntable, Exact and
-  // Gradient one stamp above the one dealt before.
-  // The Word scoring fix (7 Nov 2026, wordNov7.ts): Interlock, Slider and Lookout one stamp above (Slider above the notes).
-  return dealWordNov7(dealPartialCredit(dealOperatorGaps(dealParMoves(dealPuzzleNotes(dealPipesPlaced(dealStandard(stamped)), (p) => (p.type === "countup" ? varyTallyTray(p) : p)), (p) => (p.type === "gravity" ? topsyPlainRoutes(p) : p)))));
+  return DEAL_LAYERS.reduce((puzzle, layer) => layer.deal(puzzle), stamped);
 }
 
 function generateUnstamped(type: PuzzleType, context: GenerateContext): PuzzleData {
