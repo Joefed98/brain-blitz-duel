@@ -353,6 +353,10 @@ Step numbers are investigation section 8.1's (route A). This runbook covers its 
 | 6 | Switchover evening (investigation 8.2), with the rollback stance decided first (8.3). | Joe | open |
 | 7 | Follow-up PR: `supabase/config.toml`'s `project_id`, the docs that name the old project, the "written but not applied" notes (CLAUDE.md, `docs/beta-sql.md`), (the `submitted_round` range is done: 2.6). | Claude | open |
 
+Route B, step 2 (investigation 8.4 row 2): the Cloudflare deploy workflow, `.github/workflows/deploy-cloudflare.yml`,
+deploys `main` to the Worker `joulz` on workers.dev only (no joulz.uk route). Setup, measurements and Joe's dashboard steps:
+`docs/supabase-move/cloudflare-deploy.md`.
+
 Decisions still open for Joe (investigation 8.5): D1 (blocks route A), D2, D3, D4 (only the two tables is the plan
 here), D5 (`PRACTICE_SEAL_KEY` value), D6 (PITR; the 30-an-hour anonymous limit and Turnstile, section 1.3), D7
 (rooms of 16 and digit codes go live with the new schema: they are applied here).
