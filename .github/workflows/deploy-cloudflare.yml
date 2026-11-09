@@ -88,6 +88,23 @@ jobs:
           for n in PRACTICE_SEAL_KEY INTRO_DEMO_KEY; do
             [ -n "${!n}" ] || echo "::warning::$n is not set; the Worker keeps whatever value it already has (none on a first deploy)."
           done
+          # A value pasted with a stray newline or space is still "set", and a newline in SUPABASE_PUBLISHABLE_KEY
+          # broke Realtime on workers.dev (its websocket URL carries the key) while REST calls still worked. Any
+          # leading/trailing whitespace or any CR/LF in a set secret fails the run. Names only, never values.
+          bad=0
+          for n in CLOUDFLARE_API_TOKEN CLOUDFLARE_ACCOUNT_ID SUPABASE_URL SUPABASE_PUBLISHABLE_KEY SUPABASE_SERVICE_ROLE_KEY PRACTICE_SEAL_KEY INTRO_DEMO_KEY; do
+            v="${!n}"
+            [ -n "$v" ] || continue
+            problems=""
+            case "$v" in *$'\n'*|*$'\r'*) problems="$problems, a newline (CR or LF)";; esac
+            [[ "$v" =~ ^[[:space:]] ]] && problems="$problems, leading whitespace"
+            [[ "$v" =~ [[:space:]]$ ]] && problems="$problems, trailing whitespace"
+            if [ -n "$problems" ]; then
+              echo "::error title=Secret $n has stray whitespace::GitHub secret $n contains ${problems#, }. Re-enter it in Settings → Secrets and variables → Actions with no spaces or line breaks before, inside or after the value."
+              bad=1
+            fi
+          done
+          [ "$bad" = 0 ] || exit 1
           case "$SUPABASE_URL" in https://*.supabase.co) ;; *) echo "::error::SUPABASE_URL is not an https://<ref>.supabase.co address"; exit 1;; esac
 
       # Same rewrite as checks.yml: bun.lock pins some packages to Lovable's private npm cache (403 outside
@@ -128,6 +145,45 @@ jobs:
           fi
           grep -rqF -- "$NEW_URL" .output/public/assets || { echo "::error::the new project's URL is not in the browser bundle"; exit 1; }
           echo "Build output names the new project only."
+
+      - name: The browser bundle's publishable key is the secret, exactly
+        env:
+          NEW_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
+        run: |
+          # Vite bakes VITE_SUPABASE_PUBLISHABLE_KEY into the bundle as a string literal. Every occurrence of the
+          # key must be the whole literal: the same quote right before and right after it. A literal holding
+          # anything more (an escaped "\n", a space, a real line break) fails, and so does a bundle without the
+          # key. Counts and file names only; the key is never printed.
+          node - <<'JS'
+          const fs = require("fs"), path = require("path");
+          const key = process.env.NEW_KEY ?? "";
+          const core = key.trim();
+          const fail = (m) => { console.log(`::error title=Publishable key mismatch::${m}`); process.exit(1); };
+          if (!core) fail("SUPABASE_PUBLISHABLE_KEY is empty");
+          if (core !== key) fail("SUPABASE_PUBLISHABLE_KEY has surrounding whitespace (the bundle would carry it)");
+          const files = (dir) => fs.existsSync(dir)
+            ? fs.readdirSync(dir, { recursive: true }).map((f) => path.join(dir, String(f)))
+                .filter((f) => /\.(m?js|cjs|html)$/.test(f) && fs.statSync(f).isFile())
+            : [];
+          const scan = (dir) => {
+            let exact = 0; const inexact = new Set();
+            for (const f of files(dir)) {
+              const text = fs.readFileSync(f, "utf8");
+              for (let i = text.indexOf(core); i !== -1; i = text.indexOf(core, i + 1)) {
+                const before = text[i - 1], after = text[i + core.length];
+                if (`"'\``.includes(before ?? "") && after === before) exact++;
+                else inexact.add(path.relative(".output", f));
+              }
+            }
+            return { exact, inexact: [...inexact] };
+          };
+          const pub = scan(".output/public");
+          const srv = scan(".output/server");
+          if (pub.inexact.length || srv.inexact.length)
+            fail(`the key appears inside a longer string (stray whitespace or newline baked in?) in: ${[...pub.inexact, ...srv.inexact].join(", ")}`);
+          if (pub.exact === 0) fail("the browser bundle does not contain SUPABASE_PUBLISHABLE_KEY as a string of its own");
+          console.log(`Publishable key in the browser bundle matches the secret exactly (${pub.exact} literal(s); server ${srv.exact}).`);
+          JS
 
       - name: Bundle size (dry run)
         run: |
