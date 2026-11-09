@@ -1860,6 +1860,15 @@ outside the repo.
     limit stands.
   - A new `scripts/*-check.ts` runs automatically (in the catch-all shard); add it to a
     shard in `.github/ci/shards.ts` if it is slow.
+- **Migrations from GitHub** (Wave 0, 9 Nov 2026, `docs/supabase-move/migrations-ci.md`): every push to `main`
+  proves all of `supabase/migrations` on a fresh local PostgreSQL, then, right before `wrangler deploy`,
+  `bun scripts/migrate.ts --live` applies the files not yet in the London project's
+  `supabase_migrations.schema_migrations` through the Management API (one transaction a file, its history row first,
+  stopping at the first error, so the deploy doesn't run; secrets `SUPABASE_ACCESS_TOKEN`, `SUPABASE_PROJECT_REF`).
+  New files with DROP TABLE, DROP COLUMN, TRUNCATE or DELETE / UPDATE without WHERE are refused unless they carry
+  `-- destructive: approved by Joe`; a PR may not change or delete a merged migration (only one that failed on
+  main, with `-- edited: not applied live, approved by Joe`). PRs run Checks' `migrations` job (the guard and
+  `--local`) and migrations-check (~5 s, shard `e`). **A schema change is a new file; never edit a merged one.**
 - **Server functions on a real database** (7 Nov 2026, `docs/audit-nov-2026/build-health.md` items 3–4):
   `scripts/server-fn-harness.ts` runs the app's real `createServerFn` handlers (real `requireSupabaseAuth`, real
   supabase-js clients) against a local PostgreSQL 16 with every `supabase/migrations` file applied in order, through a
