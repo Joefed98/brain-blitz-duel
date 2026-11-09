@@ -161,6 +161,27 @@ Trigger: `challenge_attempt_cap BEFORE INSERT ON public.async_attempts FOR EACH 
   to 0–12. It is applied on the new project (section 1.4). On Lovable Cloud it is still to apply, which matters only
   until the switch.
 
+### 2.7 Realtime refused on the workers.dev test (9 Nov 2026, fixed)
+
+- **Symptom:** on joulz.playjoulz.workers.dev (room Z7XH) a phone missed the 3-2-1 countdown and chat arrived late;
+  joulz.uk was smooth.
+- **Cause:** the GitHub secret `SUPABASE_PUBLISHABLE_KEY`, which the deploy bakes into the browser build as
+  `VITE_SUPABASE_PUBLISHABLE_KEY`, had stray whitespace (likely a trailing newline).
+  - Browsers trim header values, so every REST call still worked (200).
+  - In the Realtime WebSocket URL the whitespace became part of the key, so every connection was refused: 401
+    `UNAUTHORIZED_INVALID_API_KEY`, 114 attempts in 11 minutes from both devices.
+  - The phones fell back to the 8 s room poll, which can miss the whole 3 s countdown and delays chat.
+  - Reproduced: the real key plus a newline, space, CRLF or quote gives REST 200 and WebSocket 401.
+- **The project was not at fault.** Realtime settings are the defaults with public channels. An end-to-end test with
+  two anonymous players subscribed as `useDuel` / `useRoomChat` received every change in about 0.25–0.5 s and
+  broadcasts in about 30 ms.
+- **Fix:** Joe re-saved the secret with no whitespace and re-ran the deploy. In the re-test (room 62AM) each device
+  opened one connection (101) and the polling stopped.
+- **Safeguard:** the deploy workflow will reject secrets containing whitespace (its own PR). Until then, paste keys
+  straight from the Supabase dashboard into GitHub's box, with nothing after them.
+- **How to spot it again:** the project logs (Management API `analytics/endpoints/logs`, table `logs`) show
+  `/realtime/v1/websocket` with status 401 and `sb_error_code` `UNAUTHORIZED_INVALID_API_KEY`.
+
 ---
 
 ## 3. Carrying over `unblock_bank` (400 rows) and `intro_demos` (29 rows)
