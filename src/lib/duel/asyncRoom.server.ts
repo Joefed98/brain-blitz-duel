@@ -22,6 +22,7 @@
 import { mergePuzzle, splitPuzzle } from "./secrets";
 import { asyncReceipt, asyncRoundWindow, solutionLockKind, type AsyncAttemptView, type SolutionLock } from "./asyncRoom";
 import { recordAsyncEvent, recordRoundRecordsFor, roundRecords } from "./betaRecord.server";
+import { asyncMode, playedMs, recordEvents } from "@/lib/data/events.server";
 import { puzzleDef, puzzleTimeLimitMs } from "./registry";
 import { roundTimeUsedMs, type TieRound } from "./scoring";
 import { tieRoundFor } from "./tieBreak";
@@ -298,6 +299,8 @@ export async function startAttempt(
     event: "attempt_started",
     at: row.started_at,
   });
+  if (asyncMode(room.kind) === "daily")
+    recordEvents({ event: "daily_started", playerId: userId, mode: "daily", roomId: room.id, props: { kind: room.kind } });
   return { ok: true, attempt: inserted.row, created: true };
 }
 
@@ -411,6 +414,16 @@ async function refreshAttempt(
       round_number: 0,
       event: "attempt_finished",
       at: next.finished_at!,
+    });
+  if (record && finished && !attempt.finished_at)
+    recordEvents({
+      event: asyncMode(room.kind) === "daily" ? "daily_finished" : "challenge_played",
+      playerId: attempt.user_id,
+      mode: asyncMode(room.kind),
+      score: next.total_score,
+      completed: true,
+      roomId: room.id,
+      props: { kind: room.kind, rounds: roundsDone },
     });
   return { ...attempt, ...next };
 }
@@ -559,6 +572,14 @@ export async function startAsyncRound(
     event: "round_started",
     at: row.started_at,
   });
+  recordEvents({
+    event: "game_started",
+    playerId: attempt.user_id,
+    game: pub.type,
+    mode: asyncMode(room.kind),
+    roomId: room.id,
+    props: { round },
+  });
   return { ok: true, puzzle: pub, startedAt: nowMs };
 }
 
@@ -591,7 +612,14 @@ export async function submitAsyncAnswer(
   client: Db,
   room: AsyncRoomRow,
   attempt: AsyncAttemptRow,
-  input: { round: number; answer: string; msRemaining: number; extra?: SubmitExtra | undefined },
+  input: {
+    round: number;
+    answer: string;
+    msRemaining: number;
+    extra?: SubmitExtra | undefined;
+    /** How it was played (lib/inputType.ts), for the analytics event only; never graded. */
+    inputType?: unknown;
+  },
   nowMs: number,
 ): Promise<
   { ok: true; alreadySubmitted?: boolean; score?: number } | { ok: false; message: string }
@@ -645,6 +673,18 @@ export async function submitAsyncAnswer(
     event: "round_finished",
     reason: receipt === "puzzle" && msLeft > 0 ? "answered" : "timeout",
     at: values.answered_at,
+  });
+  recordEvents({
+    event: "game_finished",
+    playerId: attempt.user_id,
+    game: puzzle.type,
+    mode: asyncMode(room.kind),
+    score: graded.score,
+    completed: graded.isCorrect,
+    durationMs: playedMs(puzzleTimeLimitMs(puzzle), msLeft, graded.extra as Record<string, unknown> | null | undefined),
+    roomId: room.id,
+    inputType: input.inputType,
+    props: { round: input.round },
   });
   await refreshAttempt(client, room, attempt, rows, nowMs);
   return { ok: true, score: graded.score };

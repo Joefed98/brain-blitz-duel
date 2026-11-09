@@ -1,0 +1,56 @@
+/**
+ * Our own analytics (9 Nov 2026; docs/analytics.md): the fixed list of events, shared by the phone and the server.
+ * The table is `analytics.events` (supabase/migrations/20261109140000_analytics_events.sql), whose CHECK holds the
+ * same list. The server records most events itself (src/lib/data/events.server.ts); the phone may send only the
+ * five in CLIENT_EVENTS, through recordClientEventsFn (src/lib/analytics/analytics.functions.ts).
+ */
+
+export const ANALYTICS_EVENTS = [
+  "app_opened",
+  "game_started",
+  "game_finished",
+  "room_created",
+  "room_joined",
+  "room_started",
+  "room_finished",
+  "daily_started",
+  "daily_finished",
+  "challenge_created",
+  "challenge_played",
+  "share_tapped",
+  "invite_opened",
+  "error_shown",
+  "offline_game_played",
+] as const;
+export type AnalyticsEventName = (typeof ANALYTICS_EVENTS)[number];
+
+/** The moments only the phone sees. Everything else is recorded by the server and refused from the phone. */
+export const CLIENT_EVENTS = [
+  "app_opened",
+  "share_tapped",
+  "invite_opened",
+  "error_shown",
+  "offline_game_played",
+] as const;
+export type ClientEventName = (typeof CLIENT_EVENTS)[number];
+
+export const ANALYTICS_MODES = ["room", "daily", "challenge", "practice"] as const;
+export type AnalyticsMode = (typeof ANALYTICS_MODES)[number];
+
+/** The most events the phone sends in one call, and the most it keeps queued while offline. */
+export const CLIENT_BATCH_MAX = 20;
+export const CLIENT_QUEUE_MAX = 100;
+
+/** An event queued on the phone may be at most this old when it arrives; older ones are dropped. */
+export const CLIENT_EVENT_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
+
+/** What the phone sends for one event. Never a score, a result or a player id: the server records those. */
+export interface ClientEventInput {
+  event: ClientEventName;
+  /** When it happened on the phone (ms since the epoch); the server's time when missing or out of range. */
+  at?: number;
+  /** A game id, for offline_game_played. */
+  game?: string;
+  /** Small extras: a short error code, a share source, a screen. Strings, numbers and booleans only. */
+  props?: Record<string, string | number | boolean>;
+}

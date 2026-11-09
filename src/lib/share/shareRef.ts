@@ -38,6 +38,17 @@ export type ShareRecorder = (event: ShareEventInput) => void;
 
 /** Sends one event to the server after making sure the device has its session; never throws. */
 export const sendShareEvent: ShareRecorder = (event) => {
+  // Analytics (lib/analytics/clientEvents.ts): a Share tap and an invite link opened, alongside the beta count.
+  if (event.event === "share_tap" || event.event === "arrival")
+    void import("@/lib/analytics/clientEvents").then(({ trackClientEvent }) =>
+      trackClientEvent(event.event === "share_tap" ? "share_tapped" : "invite_opened", {
+        props: {
+          source: event.source ?? "room",
+          ...(event.event === "share_tap" && event.method ? { method: event.method } : {}),
+          ...(event.event === "arrival" && event.landing ? { landing: event.landing } : {}),
+        },
+      }),
+    );
   void (async () => {
     try {
       const { ensureSession } = await import("@/lib/duel/session");

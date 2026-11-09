@@ -59,6 +59,10 @@ function ErrorComponent({ error, reset }: ErrorComponentProps) {
   useEffect(() => {
     reportLovableError(error, { boundary: "tanstack_root_error_component" });
     reportCrash(error);
+    // Analytics: a short code only, never the error's text or stack.
+    void import("../lib/analytics/clientEvents").then(({ trackClientEvent }) =>
+      trackClientEvent("error_shown", { props: { code: "page_error" } }),
+    );
   }, [error]);
 
   return (
@@ -183,6 +187,18 @@ function RootShell({ children }: { children: ReactNode }) {
   );
 }
 
+/** A home-screen app (iOS's navigator.standalone or display-mode standalone), for the app_opened event only. */
+function isStandaloneApp(): boolean {
+  try {
+    return (
+      (navigator as { standalone?: boolean }).standalone === true ||
+      window.matchMedia?.("(display-mode: standalone)").matches === true
+    );
+  } catch {
+    return false;
+  }
+}
+
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
 
@@ -201,6 +217,14 @@ function RootComponent() {
   // Beta count: an arrival from a shared link (?ref=share), once per device (lib/share/shareRef).
   useEffect(() => {
     noteShareArrival(window.location);
+  }, []);
+
+  // Analytics (lib/analytics/clientEvents.ts): one app_opened a page load, sent in the background; also sends
+  // anything queued while offline.
+  useEffect(() => {
+    void import("../lib/analytics/clientEvents").then(({ trackClientEvent }) =>
+      trackClientEvent("app_opened", { props: { standalone: isStandaloneApp() } }),
+    );
   }, []);
 
   // The first tap anywhere unlocks audio (iOS only counts touchend/click).

@@ -1073,6 +1073,7 @@ export type Database = {
         Args: { p_host_id: string; p_room_id: string }
         Returns: boolean
       }
+      record_analytics_events: { Args: { p_events: Json }; Returns: number }
       take_rate_limit: {
         Args: {
           p_bucket: string
