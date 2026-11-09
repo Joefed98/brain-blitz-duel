@@ -90,6 +90,13 @@ self.addEventListener("message", (event) => {
   if (data.type === "FILL") {
     // The page's go-ahead for the download (serviceWorker.ts requestWorkerFill): this build's files, only what changed.
     const port = event.ports && event.ports[0];
+    // Not while a newer build's worker installs or waits: this outgoing build's download would overwrite the new
+    // one's record, and the running FILL holds the waiting worker's activation (serviceWorker.ts requestWorkerFill).
+    const reg = self.registration;
+    if (reg && (reg.installing || reg.waiting)) {
+      if (port) port.postMessage({ type: "FILL_LATER" });
+      return;
+    }
     const work = fillOnce().then(
       (complete) => port && port.postMessage({ type: "FILLED", complete }),
       () => port && port.postMessage({ type: "FILLED", complete: false }),
