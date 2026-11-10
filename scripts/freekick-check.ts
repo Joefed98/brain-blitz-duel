@@ -67,7 +67,7 @@
  * 17. rev 4's parts: Goals 120 (full at FREEKICK_V4_CORE_FULL), Targets 40, Round the wall 10, Curl bonus 20, Five in a
  *     row 10 = 200; the features never cost core; no input 0, a kick that did nothing 1; rooms deal freekickRev 4.
  *
- *   bun scripts/freekick-check.ts
+ *   bun scripts/freekick-check.ts [--part=k/n]   (CI runs it in quarters; CHECKS_FULL=1 for full depth)
  */
 import { execFileSync } from "node:child_process";
 import { recordInput, type ArcadeInputEvent } from "../src/lib/arcade/engine";
@@ -173,6 +173,16 @@ function ok(cond: boolean, label: string): void {
   if (!cond) failures.push(label);
 }
 const FULL = process.env["CHECKS_FULL"] === "1";
+// --part=k/n (10 Nov 2026: at full depth the whole check ran past run-checks' 300 s on CI): the four deal proofs (sections
+// 3, 9, 12, 16) take every n-th seed of their list from the k-th, and each deal-file rebuild is
+// `freekick-deal.ts --check --part=k/n` (every n-th scanned seed re-proved, the file rendered and compared in every part);
+// every other section runs in every part. The n parts together run exactly what one whole run does.
+const PART = process.argv.find((a) => a.startsWith("--part="))?.slice(7);
+const [PART_K, PART_N] = PART ? (PART.split("/").map(Number) as [number, number]) : [1, 1];
+if (!(Number.isInteger(PART_K) && Number.isInteger(PART_N) && PART_N >= 1 && PART_K >= 1 && PART_K <= PART_N)) throw new Error(`bad --part=${PART}`);
+const inPart = (_: number, j: number) => j % PART_N === PART_K - 1;
+/** freekick-deal.ts's rebuild arguments: the whole --check in a whole run, this part's share in a part. */
+const rebuildArgs = (args: string[]) => (PART ? [...args, `--part=${PART}`] : args);
 
 function play(seed: number, events: ArcadeInputEvent[]): { state: FreekickState; cps: FreekickCheckpoint[] } {
   const at = new Map(events.map((e) => [e.t, e]));
@@ -241,7 +251,7 @@ for (const seed of [1, 2, 77, 12345, 987654321]) {
   ok(FREEKICK_DEAL.length === 300, `deal: 300 seeds (${FREEKICK_DEAL.length})`);
   ok(new Set(FREEKICK_DEAL).size === FREEKICK_DEAL.length, "deal: distinct");
   ok(FREEKICK_DEAL.every((s) => Number.isInteger(s) && s > 0 && s < 0x7fffffff), "deal: valid seeds");
-  const idx = FULL ? FREEKICK_DEAL.map((_, i) => i) : Array.from({ length: 24 }, (_, i) => Math.floor((i * FREEKICK_DEAL.length) / 24));
+  const idx = (FULL ? FREEKICK_DEAL.map((_, i) => i) : Array.from({ length: 24 }, (_, i) => Math.floor((i * FREEKICK_DEAL.length) / 24))).filter(inPart);
   let full = 0;
   for (const i of idx) {
     const seed = FREEKICK_DEAL[i]!;
@@ -254,7 +264,7 @@ for (const seed of [1, 2, 77, 12345, 987654321]) {
   console.log(`  deal: ${full}/${idx.length} oracle runs at 200 with every part full`);
   if (FULL) {
     try {
-      execFileSync("bun", ["scripts/freekick-deal.ts", "--check"], { stdio: "pipe" });
+      execFileSync("bun", rebuildArgs(["scripts/freekick-deal.ts", "--check"]), { stdio: "pipe" });
       ok(true, "deal file");
     } catch {
       ok(false, "deal: the file is not what freekick-deal.ts builds");
@@ -468,7 +478,7 @@ function serve2(seed: number, events: ArcadeInputEvent[], rev: number | null = F
   // Rooms dealt freekickRev 2 until 1 Nov 2026; rev 3 is dealt now (section 13), rev 2 still replays on its own.
   ok(FREEKICK_REV_DEALT > FREEKICK_REV_2 && freekickGameFor(FREEKICK_REV_2) === freekickGameV2, "rooms deal a stamp after freekickRev 2, which still replays as rev 2");
   ok(FREEKICK_DEAL_V2.length === 300 && new Set(FREEKICK_DEAL_V2).size === 300, `v2 deal: 300 distinct seeds (${FREEKICK_DEAL_V2.length})`);
-  const idx = FULL ? FREEKICK_DEAL_V2.map((_, i) => i) : Array.from({ length: 24 }, (_, i) => Math.floor((i * FREEKICK_DEAL_V2.length) / 24));
+  const idx = (FULL ? FREEKICK_DEAL_V2.map((_, i) => i) : Array.from({ length: 24 }, (_, i) => Math.floor((i * FREEKICK_DEAL_V2.length) / 24))).filter(inPart);
   let full = 0;
   for (const i of idx) {
     const seed = FREEKICK_DEAL_V2[i]!;
@@ -480,7 +490,7 @@ function serve2(seed: number, events: ArcadeInputEvent[], rev: number | null = F
   console.log(`  v2 deal: ${full}/${idx.length} oracle runs at 200 with every part full`);
   if (FULL) {
     try {
-      execFileSync("bun", ["scripts/freekick-deal.ts", "--rev=2", "--check"], { stdio: "pipe" });
+      execFileSync("bun", rebuildArgs(["scripts/freekick-deal.ts", "--rev=2", "--check"]), { stdio: "pipe" });
       ok(true, "v2 deal file");
     } catch {
       ok(false, "v2 deal: the file is not what freekick-deal.ts --rev=2 builds");
@@ -660,7 +670,7 @@ function stepInputs(seed: number, inputs: { k: number; a?: number; b?: number }[
 /* 12. The rev-3 deal. */
 {
   ok(FREEKICK_DEAL_V3.length === 300 && new Set(FREEKICK_DEAL_V3).size === 300 && FREEKICK_DEAL_V3.every((s) => Number.isInteger(s) && s > 0 && s < 0x7fffffff), `v3 deal: 300 distinct valid seeds (${FREEKICK_DEAL_V3.length})`);
-  const idx = FULL ? FREEKICK_DEAL_V3.map((_, i) => i) : Array.from({ length: 24 }, (_, i) => Math.floor((i * FREEKICK_DEAL_V3.length) / 24));
+  const idx = (FULL ? FREEKICK_DEAL_V3.map((_, i) => i) : Array.from({ length: 24 }, (_, i) => Math.floor((i * FREEKICK_DEAL_V3.length) / 24))).filter(inPart);
   let full = 0;
   for (const i of idx) {
     const seed = FREEKICK_DEAL_V3[i]!;
@@ -672,7 +682,7 @@ function stepInputs(seed: number, inputs: { k: number; a?: number; b?: number }[
   console.log(`  v3 deal: ${full}/${idx.length} oracle runs at 200 with every part full`);
   if (FULL) {
     try {
-      execFileSync("bun", ["scripts/freekick-deal.ts", "--rev=3", "--check"], { stdio: "pipe" });
+      execFileSync("bun", rebuildArgs(["scripts/freekick-deal.ts", "--rev=3", "--check"]), { stdio: "pipe" });
       ok(true, "v3 deal file");
     } catch {
       ok(false, "v3 deal: the file is not what freekick-deal.ts --rev=3 builds");
@@ -809,7 +819,7 @@ function stepInputs4(seed: number, inputs: { k: number; a?: number; b?: number; 
 /* 16. The rev-4 deal. */
 {
   ok(FREEKICK_DEAL_V4.length === 300 && new Set(FREEKICK_DEAL_V4).size === 300 && FREEKICK_DEAL_V4.every((s) => Number.isInteger(s) && s > 0 && s < 0x7fffffff), `v4 deal: 300 distinct valid seeds (${FREEKICK_DEAL_V4.length})`);
-  const idx = FULL ? FREEKICK_DEAL_V4.map((_, i) => i) : Array.from({ length: 24 }, (_, i) => Math.floor((i * FREEKICK_DEAL_V4.length) / 24));
+  const idx = (FULL ? FREEKICK_DEAL_V4.map((_, i) => i) : Array.from({ length: 24 }, (_, i) => Math.floor((i * FREEKICK_DEAL_V4.length) / 24))).filter(inPart);
   let full = 0;
   for (const i of idx) {
     const seed = FREEKICK_DEAL_V4[i]!;
@@ -821,7 +831,7 @@ function stepInputs4(seed: number, inputs: { k: number; a?: number; b?: number; 
   console.log(`  v4 deal: ${full}/${idx.length} oracle runs at 200 with every part full`);
   if (FULL) {
     try {
-      execFileSync("bun", ["scripts/freekick-deal.ts", "--rev=4", "--check"], { stdio: "pipe" });
+      execFileSync("bun", rebuildArgs(["scripts/freekick-deal.ts", "--rev=4", "--check"]), { stdio: "pipe" });
       ok(true, "v4 deal file");
     } catch {
       ok(false, "v4 deal: the file is not what freekick-deal.ts --rev=4 builds");
@@ -852,4 +862,4 @@ if (failures.length) {
   for (const f of failures.slice(0, 30)) console.log(`  - ${f}`);
   process.exit(1);
 }
-console.log(`PASS freekick-check: ${checks} checks (${FULL ? "full" : "quick"} depth)`);
+console.log(`PASS freekick-check: ${checks} checks (${FULL ? "full" : "quick"} depth${PART ? `, part ${PART}` : ""})`);
