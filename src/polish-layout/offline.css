@@ -7,19 +7,25 @@
 [data-offline-banner] {
   display: none;
 }
+/* Wave 1's look (10 Nov 2026, the X1 offline mockup's palette): a toast-like strip, the surface with a 3 px red
+   edge and a red mark, the line in the secondary text colour. Its place and height are as before. */
 html[data-offline] [data-offline-banner] {
   display: flex;
   align-items: center;
   gap: 8px;
   min-height: 32px;
   margin: 0 0 12px;
-  padding: 6px 12px;
-  border-radius: 12px;
-  background: var(--ap-panel, #15141b);
-  color: var(--ap-text-2, #bdbdcc);
+  padding: 6px 12px 6px 9px;
+  border-left: 3px solid var(--jz-red);
+  border-radius: var(--jz-radius);
+  background: var(--jz-surface);
+  color: var(--jz-text-2);
   font-size: 13.5px;
-  font-weight: 600;
+  font-weight: var(--jz-weight-medium);
   line-height: 1.25;
+}
+html[data-offline] [data-offline-banner] > svg {
+  color: var(--jz-red);
 }
 
 [data-offline-install-card] {

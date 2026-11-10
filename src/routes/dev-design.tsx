@@ -6,6 +6,7 @@ import {
   Button,
   Chip,
   CodeInput,
+  EmptyState,
   GameTile,
   Icon,
   ICON_LABELS,
@@ -27,7 +28,7 @@ import {
   Toast,
   type AppTab,
 } from "@/design/components";
-import { Badge, Emblem, Trophy, TROPHY_SIZES, type BadgeKind, type Tier, type TrophyKind } from "@/design/art";
+import { Badge, Captain, Emblem, Trophy, TROPHY_SIZES, type BadgeKind, type Tier, type TrophyKind } from "@/design/art";
 
 /**
  * The component gallery (design foundation F2, DESIGN.md section 5; development only, as /dev-crash: a
@@ -421,6 +422,31 @@ function DevDesign() {
                 <Badge key={kind} kind={kind} player={42} size={48} />
               ))}
             </div>
+          </Labelled>
+        </Block>
+
+        <Block title="Captain Joulz (approved stills)">
+          <div className="jz-gallery-grid">
+            <Captain pose="ready" size={90} />
+            <Captain pose="win" size={90} />
+          </div>
+        </Block>
+
+        <Block title="EmptyState">
+          <Labelled label="Page, cool (an empty list, a missing page)">
+            <EmptyState
+              title="No friends yet"
+              body="Add someone you’ve played, or send your invite link. Friends you add show up here."
+              pose="win"
+              action={{ label: "Add a friend" }}
+              secondary={{ label: "Copy my invite link" }}
+            />
+          </Labelled>
+          <Labelled label="Page, alert (offline, an error)">
+            <EmptyState tone="alert" title="No signal" body="Practice still works offline." action={{ label: "Go to Practice" }} />
+          </Labelled>
+          <Labelled label="Card, in a list's section">
+            <EmptyState layout="card" title="No games yet" body="Your games and results show up here." action={{ label: "Start playing" }} />
           </Labelled>
         </Block>
 

@@ -1,83 +1,84 @@
 import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 
-import { LogoMark } from "@/components/brand/LogoMark";
 import { roomCodeChars } from "@/lib/duel/roomCode";
-import { Button, Input } from "@/design/components";
+import { Button, EmptyState, Input, type EmptyStateAction } from "@/design/components";
 
 /**
- * One layout for the error screens (Polish batch R, 25 Oct 2026, presentation only): the 404 page, a room
- * link whose room is not found and a challenge link that doesn't work. Under the screen's header: a dimmed
- * logo mark in a rounded square, a title, a plain explanation, where it helps a room-code box to try again,
- * then Back to Play (secondary) and one gold action (Create a room, or Make your own challenge).
+ * One layout for the not-found screens (Polish batch R, 25 Oct 2026; wave 1's first impressions, 10 Nov
+ * 2026: docs/mockups/wave-1/X2-NotFound.png): the 404 page, a room link whose room is not found and a
+ * challenge link that doesn't work or has ended. Captain Joulz (EmptyState), a title, one plain line, where
+ * it helps a room-code box to try again, then the gold action and, under it, Back home.
+ *
+ * Records `error_shown` with a short code (never the address or any text): `code`, else one worked out from
+ * the path (room_not_found, challenge_not_found, not_found).
  */
 export function ErrorState({
   title,
   body,
   codeBox = false,
   action,
+  code,
 }: {
   title: string;
   body: string;
   /** A room-code box to try another code (the room's link). */
   codeBox?: boolean;
-  /** The one gold action. */
-  action: { label: string; onClick: () => void };
+  /** The gold action; without one, Back home is the gold action. */
+  action?: { label: string; onClick: () => void };
+  /** The analytics code, when the path doesn't say it (an ended challenge). */
+  code?: string;
 }) {
   const navigate = useNavigate();
-  const [code, setCode] = useState("");
-  // Analytics (lib/analytics/clientEvents.ts): which error screen was shown, as a short code from the path.
+  const [roomCode, setRoomCode] = useState("");
+  // Analytics (lib/analytics/clientEvents.ts): which error screen was shown, as a short code.
   useEffect(() => {
     const path = typeof window === "undefined" ? "" : window.location.pathname;
-    const errorCode = path.startsWith("/duel/") ? "room_not_found" : path.startsWith("/challenge") ? "challenge_not_found" : "not_found";
+    const errorCode =
+      code ?? (path.startsWith("/duel/") ? "room_not_found" : path.startsWith("/challenge") ? "challenge_not_found" : "not_found");
     void import("@/lib/analytics/clientEvents").then(({ trackClientEvent }) =>
       trackClientEvent("error_shown", { props: { code: errorCode } }),
     );
-  }, []);
+  }, [code]);
   const tryCode = () => {
-    const clean = code.trim().toUpperCase();
+    const clean = roomCode.trim().toUpperCase();
     if (clean.length < 4) return;
     void navigate({ to: "/duel/$code", params: { code: clean } });
   };
+  const home: EmptyStateAction = { label: "Back home", onClick: () => void navigate({ to: "/" }), data: { "data-error-home": "" } };
   return (
-    <div data-error-screen className="flex w-full flex-1 flex-col items-center justify-center gap-5 py-6 text-center">
-      <span className="rs-error-mark" aria-hidden="true">
-        <LogoMark width={30} height={39} />
-      </span>
-      <div className="flex flex-col gap-2">
-        <h1 className="text-[26px] font-extrabold leading-tight text-foreground">{title}</h1>
-        <p className="mx-auto max-w-[300px] text-[15px] leading-snug text-[var(--ap-text-2)]">{body}</p>
-      </div>
+    <EmptyState
+      data-error-screen
+      heading={1}
+      pose="ready"
+      tone="cool"
+      title={title}
+      body={body}
+      action={action ?? home}
+      secondary={action ? home : undefined}
+    >
       {codeBox ? (
         <form
-          className="flex w-full max-w-[320px] gap-2"
+          className="jz-empty-form"
           onSubmit={(event) => {
             event.preventDefault();
             tryCode();
           }}
         >
           <Input
-            value={code}
-            onChange={(event) => setCode(roomCodeChars(event.target.value).slice(0, 6))}
+            value={roomCode}
+            onChange={(event) => setRoomCode(roomCodeChars(event.target.value).slice(0, 6))}
             placeholder="Room code"
             aria-label="Room code"
             autoCapitalize="characters"
             autoComplete="off"
             className="min-w-0 flex-1 uppercase tracking-widest"
           />
-          <Button variant="secondary" size={50} type="submit" disabled={code.trim().length < 4} className="w-21">
+          <Button variant="secondary" size={50} type="submit" disabled={roomCode.trim().length < 4} className="w-21">
             Join
           </Button>
         </form>
       ) : null}
-      <div className="flex w-full max-w-[320px] flex-col gap-2.5">
-        <Button variant="secondary" size={50} block onClick={() => void navigate({ to: "/" })}>
-          Back to Play
-        </Button>
-        <Button variant="gold" size={52} block onClick={action.onClick}>
-          {action.label}
-        </Button>
-      </div>
-    </div>
+    </EmptyState>
   );
 }

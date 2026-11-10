@@ -25,7 +25,7 @@ import { ordinal } from "@/lib/duel/ordinal";
 import type { PuzzleType } from "@/lib/duel/types";
 import { ukDay } from "@/lib/publicSchedule";
 import { APP_NAME } from "@/lib/brand";
-import { Button, Icon, Input } from "@/design/components";
+import { Button, EmptyState, Icon, Input } from "@/design/components";
 
 export const Route = createFileRoute("/profile")({
   ssr: false,
@@ -270,6 +270,7 @@ function ProfileScreen() {
           onOpen={(code) =>
             void router.navigate({ to: "/challenge", search: { code }, state: { fromPlayTab: true } as never } as never)
           }
+          onNew={() => void router.navigate({ to: "/challenge", search: {}, state: { fromPlayTab: true } as never } as never)}
         />
 
         {bests.length > 0 ? (
@@ -295,6 +296,23 @@ function ProfileScreen() {
                 </li>
               ))}
             </ul>
+          </section>
+        ) : null}
+
+        {loaded && history.length === 0 ? (
+          // Nothing played in a room yet (wave 1's empty state, E3): where games and results will show.
+          <section aria-label="Recent rooms" className="ap-section">
+            <div className="ap-section-head">
+              <h2 className="ap-section-title">Recent rooms</h2>
+            </div>
+            <EmptyState
+              data-recent-rooms-empty
+              layout="card"
+              gold
+              title="No games yet"
+              body="Your games and results show up here."
+              action={{ label: "Start playing", onClick: () => goToTab(router, "profile", "play") }}
+            />
           </section>
         ) : null}
 
