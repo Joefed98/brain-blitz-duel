@@ -381,6 +381,10 @@ export const createRoomFn = createServerFn({ method: "POST" })
       const { NameRefusedError } = await import("@/lib/names/names.server");
       throw new NameRefusedError(refused);
     }
+    // Safety (10 Nov 2026, docs/moderation.md): a banned player can't make a room.
+    const { roomRefusal } = await import("@/lib/safety/moderation.server");
+    const banned = await roomRefusal(client, context.userId);
+    if (banned) throw new Error(banned);
     const { CREATE_ROOM_LIMIT, IP_CREATE_ROOM_LIMIT, withinIpRateLimit, withinRateLimit } = await import("./rateLimit.server");
     if (!(await withinRateLimit(client, context.userId, CREATE_ROOM_LIMIT)))
       throw new Error("You’ve made a lot of rooms. Try again later.");
@@ -445,6 +449,10 @@ export const joinRoomFn = createServerFn({ method: "POST" })
     const { ROOM_LOOKUP_LIMIT, withinRateLimit } = await import("./rateLimit.server");
     if (!(await withinRateLimit(client, context.userId, ROOM_LOOKUP_LIMIT)))
       return { ok: false as const, message: "That’s a lot of tries. Give it a few minutes." };
+    // Safety (10 Nov 2026, docs/moderation.md): a banned player can't join (or rejoin) a room.
+    const { roomRefusal } = await import("@/lib/safety/moderation.server");
+    const banned = await roomRefusal(client, context.userId);
+    if (banned) return { ok: false as const, message: banned, banned: true as const };
     const accountName = await accountNameOf(client, context.userId);
     const refused = accountName ? null : await roomNameRefusal(data.displayName);
     if (refused) {

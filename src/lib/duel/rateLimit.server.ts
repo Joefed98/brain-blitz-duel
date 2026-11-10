@@ -41,6 +41,9 @@ export const ACCOUNT_LIMIT: RateLimit = { bucket: "account", max: 60, windowSeco
 /** Username availability checks while typing: 120 per 10 minutes per user. */
 export const USERNAME_CHECK_LIMIT: RateLimit = { bucket: "username-check", max: 120, windowSeconds: 600 };
 
+/** Safety calls (10 Nov 2026: the status on open, a warning seen, a forced rename): 60 per 10 minutes per user. */
+export const SAFETY_LIMIT: RateLimit = { bucket: "safety", max: 60, windowSeconds: 600 };
+
 /** Starting a room (dealing every round): 30 an hour per user. */
 export const START_ROOM_LIMIT: RateLimit = { bucket: "start-room", max: 30, windowSeconds: 3600 };
 /** Starting a challenge attempt: 30 per 10 minutes per user. */
@@ -83,6 +86,14 @@ export const IP_PRACTICE_PACK_LIMIT: RateLimit = { bucket: "ip-practice-pack", m
 export const IP_PRACTICE_GRADE_LIMIT: RateLimit = { bucket: "ip-practice-grade", max: 600, windowSeconds: 600 };
 /** Practice word and move checks: 1,500 per 10 minutes. */
 export const IP_PRACTICE_CHECK_LIMIT: RateLimit = { bucket: "ip-practice-check", max: 1500, windowSeconds: 600 };
+/**
+ * New guests from one address (safety, 10 Nov 2026; docs/moderation.md): 200 an hour (Supabase Auth's own anonymous
+ * limit was 30). Guests are made by Supabase Auth, so the count runs in the database, in Auth's Before User Created
+ * hook (`public.before_user_created_guest_limit`, supabase/migrations/20261110150200_new_guest_limit.sql), on the same
+ * `take_rate_limit` and the same `addressKey` hash; moderation-check proves the numbers and the hash match.
+ * `withinNewGuestLimit` is the same count from server code.
+ */
+export const NEW_GUEST_LIMIT: RateLimit = { bucket: "new-guest", max: 200, windowSeconds: 3600 };
 /** Intro-demo key guesses (M7): 20 an hour. */
 export const IP_DEMO_KEY_LIMIT: RateLimit = { bucket: "ip-demo-key", max: 20, windowSeconds: 3600 };
 
@@ -146,6 +157,11 @@ export async function withinIpRateLimit(limit: RateLimit, client?: Db): Promise<
     db = await adminDb();
   }
   return withinRateLimit(db, await addressKey(address), limit);
+}
+
+/** One new guest from `address` counted against NEW_GUEST_LIMIT (the hook's count, from server code and the checks). */
+export async function withinNewGuestLimit(client: Db, address: string): Promise<boolean> {
+  return withinRateLimit(client, await addressKey(address), NEW_GUEST_LIMIT);
 }
 
 /** A uuid-shaped key for an email address (lower-cased; the address itself is never stored in the counter table). */

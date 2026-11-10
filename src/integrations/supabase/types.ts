@@ -832,6 +832,14 @@ export type Database = {
           duel_id: string
           id: string
           message_id: string | null
+          counts: boolean
+          message_text: string | null
+          reason: string | null
+          reported_name: string | null
+          reported_user_id: string | null
+          resolution_note: string | null
+          resolved_at: string | null
+          uk_day: string | null
           reporter_user_id: string
         }
         Insert: {
@@ -839,6 +847,14 @@ export type Database = {
           duel_id: string
           id?: string
           message_id?: string | null
+          counts?: boolean
+          message_text?: string | null
+          reason?: string | null
+          reported_name?: string | null
+          reported_user_id?: string | null
+          resolution_note?: string | null
+          resolved_at?: string | null
+          uk_day?: string | null
           reporter_user_id: string
         }
         Update: {
@@ -846,6 +862,14 @@ export type Database = {
           duel_id?: string
           id?: string
           message_id?: string | null
+          counts?: boolean
+          message_text?: string | null
+          reason?: string | null
+          reported_name?: string | null
+          reported_user_id?: string | null
+          resolution_note?: string | null
+          resolved_at?: string | null
+          uk_day?: string | null
           reporter_user_id?: string
         }
         Relationships: [
@@ -1128,6 +1152,21 @@ export type Database = {
         Returns: string
       }
       guest_progress: { Args: { p_user_id: string }; Returns: Json }
+      file_room_report: {
+        Args: {
+          p_duel_id: string
+          p_message_id: string | null
+          p_message_text: string | null
+          p_reason: string
+          p_reported_name: string | null
+          p_reported_user_id: string | null
+          p_reporter_user_id: string
+        }
+        Returns: Json
+      }
+      moderation_status: { Args: { p_user_id: string }; Returns: Json }
+      moderation_ack: { Args: { p_user_id: string; p_kind: string; p_detail?: Json | null }; Returns: boolean }
+      network_key: { Args: { p_address: string }; Returns: string }
       public_profiles: {
         Args: { p_user_ids: string[] }
         Returns: {

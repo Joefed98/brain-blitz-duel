@@ -1902,6 +1902,27 @@ outside the repo.
   sign-in, token refresh and CORS for a browser. Checks: account-screens-check (~10 s, no browser),
   account-flow-check (Chromium, the whole email-code flow on the dev server against the harness, ~2 min), and
   `ACCOUNT_SCREENS` in `scripts/theme-screens.ts` (theme-check, no-wrap-check).
+- **Safety** (wave 1 train 2, 10 Nov 2026, `docs/moderation.md`; no gameplay, scoring, stamp or room-flow change beyond
+  refusing banned players and muted chat). *Bots*: Turnstile behind `TURNSTILE_SITE_KEY` (`src/config/safetyConfig.ts`,
+  empty = off): guest creation and sign-in emails through Supabase Auth's own captcha (the phone sends `captchaToken`
+  only while on), account sign-up's `completeSignUpFn` verified by our server (`src/lib/safety/turnstile.server.ts`,
+  Worker secret `TURNSTILE_SECRET_KEY`); new guests 200 an hour per network through `take_rate_limit` in Auth's Before
+  User Created hook (`public.before_user_created_guest_limit`, key = `addressKey`'s hash, purged after the hour;
+  `NEW_GUEST_LIMIT`; fails open: no address or a failing count allows the guest and writes a `guest_limit_warning` line
+  with the reason only). Other players' lobby names are buttons (celebrations-off.json re-recorded for that alone). *Chat*: rooms always type through the server's filter; `chatPolicy` (`src/lib/safety/chatPolicy.ts`)
+  answers quick phrases for guests and under-18s where strangers meet (waves 3–4, `quickPhrases.ts`). *Reports*: two
+  taps from a lobby name or a chat message (`ReportSheet`), `reportMessageFn` (reason optional) / `reportPlayerFn`,
+  stored in `room_reports` with context through `insertRoomReport` → `file_room_report`; one per reporter per reported
+  player per UK day counts. *Mute*: three different players' abusive-chat / offensive-name reports within 24 h mute
+  chat and reactions 24 h (server-enforced, `CHAT_MUTED_MESSAGE`). *Joe*: schema `moderation` (unreachable from the
+  API, the service role included): `report_queue`, `warn`, `force_rename`, `ban`, `unban`, `unmute`, `resolve`, every
+  action in `moderation.actions` and a `moderation_action` event; banned players can't make or join rooms or chat
+  (Practice keeps working); notices on open (`SafetyNotices`, skipped under automation unless
+  `window.__DUELZ_ALLOW_SAFETY__`). *Retention*: `moderation.run_retention` (pg_cron `chat-retention`): chat after 90
+  days unless reported, reports and actions after 2 years. Migrations `20261110150000_moderation.sql`,
+  `20261110150100_chat_retention.sql`, `20261110150200_new_guest_limit.sql` (**not applied until merged**). The
+  harness's GoTrue stand-in serves anonymous `POST /signup` with captcha (test secrets) and the hook (`rest.auth`).
+  moderation-check (~5 s, shard `e`, PostgreSQL), moderation-ui-check (~3 s, happy-dom).
 - `src/components/duel/` — room/round screens (PhoneShell, RoundIntro, TimerBar,
   AnswerReveal, ArcadeReveal, WinnerReveal…); `src/components/puzzles/` — shared puzzle
   widgets; `src/lib/fx/` — sound and visual feedback (presentation only).

@@ -414,6 +414,7 @@ export async function requestEmailCode(
   kind: "sign-in" | "sign-up",
   rawEmail: unknown,
   accessToken: string | null,
+  captchaToken: string | null = null,
 ): Promise<EmailCodeOutcome> {
   const email = typeof rawEmail === "string" ? rawEmail.trim() : "";
   if (!email || email.length > EMAIL_MAX || !EMAIL_SHAPE.test(email))
@@ -430,6 +431,7 @@ export async function requestEmailCode(
     const { error } = await sendEmailChangeCode(accessToken, email, AUTH_REDIRECT_URL);
     return authOutcome(error) as EmailCodeOutcome;
   }
-  const { error } = await sendSignInCode(email, AUTH_REDIRECT_URL);
+  const token = typeof captchaToken === "string" && captchaToken.length <= 2048 ? captchaToken : null;
+  const { error } = await sendSignInCode(email, AUTH_REDIRECT_URL, token);
   return authOutcome(error) as EmailCodeOutcome;
 }

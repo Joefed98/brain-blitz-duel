@@ -41,9 +41,13 @@ async function call(path: string, init: RequestInit, redirectTo: string, bearer:
   }
 }
 
-/** Sends the sign-in email (link and code) to an existing account; an unknown email gets nothing ("otp_disabled"). */
-export function sendSignInCode(email: string, redirectTo: string): Promise<{ error: AuthCallError | null }> {
-  return call("/otp", { method: "POST", body: JSON.stringify({ email, create_user: false }) }, redirectTo, null);
+/**
+ * Sends the sign-in email (link and code) to an existing account; an unknown email gets nothing ("otp_disabled").
+ * `captchaToken` (Turnstile, safety 10 Nov 2026) goes where supabase-js puts it, for Auth's captcha protection.
+ */
+export function sendSignInCode(email: string, redirectTo: string, captchaToken: string | null = null): Promise<{ error: AuthCallError | null }> {
+  const body = { email, create_user: false, ...(captchaToken ? { gotrue_meta_security: { captcha_token: captchaToken } } : {}) };
+  return call("/otp", { method: "POST", body: JSON.stringify(body) }, redirectTo, null);
 }
 
 /** Links `email` to the caller's own auth user (its access token) and sends the code ("email_exists" when taken). */

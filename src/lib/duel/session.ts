@@ -19,7 +19,13 @@ export async function ensureSession(): Promise<string> {
   if (existing) return existing;
 
   pending ??= (async () => {
-    const { data: signedIn, error } = await supabase.auth.signInAnonymously();
+    // Safety (10 Nov 2026, docs/moderation.md): with Turnstile on, Supabase Auth's captcha protection checks this
+    // token before it makes the guest. Off (no site key): no token, exactly as before.
+    const { getTurnstileToken, turnstileEnabled } = await import("@/lib/safety/turnstile");
+    const captchaToken = turnstileEnabled() ? await getTurnstileToken("guest") : null;
+    const { data: signedIn, error } = captchaToken
+      ? await supabase.auth.signInAnonymously({ options: { captchaToken } })
+      : await supabase.auth.signInAnonymously();
     if (error || !signedIn.user) {
       pending = null;
       throw new Error("Couldn’t get started on this device. Try again.");

@@ -26,6 +26,8 @@ import { PLAYER_ICON_ART } from "./playerIcons";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { RoomFooter, RoomMenu } from "./RoomFooter";
 import { RoomSettingsSheet } from "./RoomSettingsSheet";
+import { ReportSheet } from "./ReportSheet";
+import type { ReportReason } from "@/lib/safety/reports";
 import { scoringLabel, type ScoringMode } from "@/lib/duel/scoringMode";
 import { Button } from "@/design/components";
 import { MetaChips } from "@/components/app/MetaChips";
@@ -62,6 +64,8 @@ interface RoomLobbyProps {
   canChooseLook: boolean;
   /** Stores my new colour and/or icon; rejects with a message when it can't. */
   onLookChange: (look: Partial<PlayerLook>) => Promise<void>;
+  /** Safety (10 Nov 2026): reports another player by their name (a tap on it, then a reason). */
+  onReport?: (slot: number, reason: ReportReason) => Promise<string | void>;
 }
 
 /** Ring radii as a share of the wheel's radius less half a swatch, outside in. */
@@ -223,7 +227,9 @@ export function RoomLobby({
   allPlayers,
   canChooseLook,
   onLookChange,
+  onReport,
 }: RoomLobbyProps) {
+  const [reporting, setReporting] = useState<DuelPlayerRow | null>(null);
   const canStart = players.length >= MIN_PLAYERS;
   const celebrate = useCelebrationsOn();
   const playersNeeded = MIN_PLAYERS - players.length;
@@ -371,6 +377,13 @@ export function RoomLobby({
                       {picking ? "▴" : "▾"}
                     </span>
                   </button>
+                ) : !isMe && onReport ? (
+                  // Safety (10 Nov 2026): another player's name is a button; a tap opens the report reasons (two taps
+                  // to report). Same classes and text as the span it replaces (Joe's approval, celebrations-off.json
+                  // re-recorded for it); its left alignment comes from room-screens.css.
+                  <button className="flex min-h-11 min-w-0 flex-1 items-center gap-2" onClick={() => setReporting(player)}>
+                    {nameLine}
+                  </button>
                 ) : (
                   <span className="flex min-h-11 min-w-0 flex-1 items-center gap-2">{nameLine}</span>
                 )}
@@ -458,6 +471,14 @@ export function RoomLobby({
           }}
         />
       )}
+
+      {reporting && onReport ? (
+        <ReportSheet
+          name={reporting.display_name}
+          onReport={(reason) => onReport(reporting.player_slot, reason)}
+          onClose={() => setReporting(null)}
+        />
+      ) : null}
 
       {/* The room footer: the chat button, then Start game (gold) or the waiting line. Disband and Leave
           are in the header's "⋯" menu. */}

@@ -69,7 +69,9 @@ type SendOutcome = { ok: true } | { ok: false; reason: string; message: string }
  */
 async function sendSignInEmail(email: string): Promise<SendOutcome> {
   const { requestSignInEmailFn } = await import("@/lib/account/account.functions");
-  return (await requestSignInEmailFn({ data: { email } })) as SendOutcome;
+  // Safety (10 Nov 2026): with Turnstile on, the server passes this to Supabase Auth's captcha check on /otp.
+  const { signInCaptchaToken } = await import("@/lib/account/auth");
+  return (await requestSignInEmailFn({ data: { email, captchaToken: await signInCaptchaToken() } })) as SendOutcome;
 }
 async function sendSignUpEmail(email: string): Promise<SendOutcome> {
   const { requestSignUpEmailFn } = await import("@/lib/account/account.functions");
@@ -276,8 +278,15 @@ export function SignUpFlow({
 
   const finishSignUp = async () => {
     const { completeSignUpFn } = await import("@/lib/account/account.functions");
+    const { signUpTurnstileToken } = await import("@/lib/account/auth");
     const res = (await completeSignUpFn({
-      data: { username: username.trim(), dateOfBirth: dateOfBirth ?? "", colour, country: regionCountry() },
+      data: {
+        username: username.trim(),
+        dateOfBirth: dateOfBirth ?? "",
+        colour,
+        country: regionCountry(),
+        turnstileToken: await signUpTurnstileToken(),
+      },
     })) as AccountView | { ok: false; reason: string; message: string; suggestions?: string[] };
     if ("ok" in res) return refused(res);
     setAccount(res, email.trim() || null);

@@ -7,7 +7,8 @@
  *   2. sendSignUpEmail(email)       links the email to THIS auth user (same id): one email with a magic link and a
  *                                   6-digit code ("existing-account" when the email already has an account)
  *   3. verifyEmailCode(email, code, "sign-up")  or the link opens the app and supabase-js reads the session from it
- *   4. completeSignUpFn({ username, dateOfBirth, colour, country: regionCountry() })
+ *   4. completeSignUpFn({ username, dateOfBirth, colour, country: regionCountry(),
+ *                         turnstileToken: await signUpTurnstileToken() })   (null while Turnstile is off)
  *
  * Sign-in to an existing account on a phone with guest progress:
  *   1. guestProgressFn()            what stays behind on the guest id, for the warning (rememberLeftGuest keeps the id)
@@ -86,11 +87,28 @@ export async function sendSignUpEmail(email: string, client?: Client): Promise<A
 /** Sign-in to an existing account: the magic link and the code (supabase/templates/magic_link.html). Never creates a user. */
 export async function sendSignInEmail(email: string, client?: Client): Promise<AuthOutcome> {
   const c = client ?? (await browserClient());
+  // Safety (10 Nov 2026): with Turnstile on, Supabase Auth's captcha protection checks the token on /otp.
+  const captchaToken = await signInCaptchaToken();
   const { error } = await c.auth.signInWithOtp({
     email: email.trim(),
-    options: { shouldCreateUser: false, emailRedirectTo: AUTH_REDIRECT_URL },
+    options: { shouldCreateUser: false, emailRedirectTo: AUTH_REDIRECT_URL, ...(captchaToken ? { captchaToken } : {}) },
   });
   return authOutcome(error);
+}
+
+/** The Turnstile token for a sign-in email (Supabase Auth's captcha on /otp). Null while Turnstile is off. */
+export async function signInCaptchaToken(): Promise<string | null> {
+  const { getTurnstileToken, turnstileEnabled } = await import("@/lib/safety/turnstile");
+  return turnstileEnabled() ? getTurnstileToken("sign-in") : null;
+}
+
+/**
+ * The Turnstile token completeSignUpFn takes as `turnstileToken` (safety, 10 Nov 2026): fetched right before the call,
+ * since a token is one-use and lasts five minutes. Null while Turnstile is off (the server then doesn't ask).
+ */
+export async function signUpTurnstileToken(): Promise<string | null> {
+  const { getTurnstileToken, turnstileEnabled } = await import("@/lib/safety/turnstile");
+  return turnstileEnabled() ? getTurnstileToken("sign-up") : null;
 }
 
 /**

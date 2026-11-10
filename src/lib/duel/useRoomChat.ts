@@ -5,6 +5,7 @@ import { readRoomMessages } from "@/lib/data/chatReads";
 import {
   allowReactionFn,
   reportMessageFn,
+  reportPlayerFn,
   sendRoomMessageFn,
   setPlayerMutedFn,
 } from "./chat.functions";
@@ -18,6 +19,7 @@ import {
   type RoomMessageRow,
 } from "./chatConstants";
 import { unreadCount } from "./chatNotice";
+import type { ReportReason } from "@/lib/safety/reports";
 import { GUEST_NAME_MAX } from "@/lib/names/username";
 
 const MUTED_KEY = "duelz_muted_players";
@@ -58,7 +60,8 @@ export interface RoomChatState {
   notice: string | null;
   send: (text: string) => Promise<void>;
   react: (emoji: string) => Promise<void>;
-  report: (messageId: string) => Promise<void>;
+  /** Reports a message with a reason (safety, 10 Nov 2026; default abusive chat). */
+  report: (messageId: string, reason?: ReportReason) => Promise<void>;
   mutedUserIds: string[];
   toggleLocalMute: (userId: string) => void;
 }
@@ -230,10 +233,10 @@ export function useRoomChat(
   );
 
   const report = useCallback(
-    async (messageId: string) => {
+    async (messageId: string, reason: ReportReason = "abusive_chat") => {
       if (!roomId) return;
       try {
-        await reportMessageFn({ data: { roomId, messageId } });
+        await reportMessageFn({ data: { roomId, messageId, reason } });
         setNotice("Thanks — that message has been reported.");
         window.setTimeout(() => setNotice(null), 2500);
       } catch {
@@ -276,4 +279,13 @@ export function useRoomChat(
 /** Host control, used from the lobby player cards. */
 export async function setPlayerMuted(roomId: string, slot: number, muted: boolean): Promise<void> {
   await setPlayerMutedFn({ data: { roomId, slot, muted } });
+}
+
+/**
+ * Reports a player by their name (safety, 10 Nov 2026; the lobby's name tap, then a reason). Answers the message to
+ * show (the same thank-you whatever happened).
+ */
+export async function reportPlayer(roomId: string, slot: number, reason: ReportReason): Promise<string> {
+  const result = await reportPlayerFn({ data: { roomId, slot, reason } });
+  return result.message;
 }
