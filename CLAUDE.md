@@ -1964,12 +1964,14 @@ outside the repo.
   card and "Your Joulz Rating arrives with rated play." (`src/components/identity/ProfileCard.tsx`) above the existing
   sections; no rating, mastery stars, practice challenges, badges, titles or trophy cabinet until their waves. A guest's
   Customise opens the save-your-progress sheet (`SaveProgressOffer`, no prompt record or prompt event). *Customise*
-  (`src/routes/customise.tsx`, accounts only): Avatar (32 avatars, 32 colours, 10 gems locked, owned finishes / accessory /
-  special edition), Card (owned card arts, frames, name colours; locked ones say where they come from, shop items hidden
+  (`src/routes/customise.tsx`, accounts only): Avatar (32 avatars, 32 colours, builder rows with a real choice, 10 gems
+  locked, owned finishes / accessory item / special edition), Card (owned card arts, frames, name colours; locked ones say where they come from, shop items hidden
   while the switch is off; rules in `src/lib/identity/customise.ts`), Badges and title (empty until C2); Save goes through
   A1's equip() / setAvatar(), a refusal shows A1's message and leaves the card as it was. **All server access goes through
-  `src/lib/identity/backend.ts`** (A1's seven calls, fitted by `normalise*`; bound in `a1Binding.ts`, which answers null
-  until A1's module is wired in: no coins, and Customise says it opens soon). Events `profile_viewed`, `customise_opened`,
+  `src/lib/identity/backend.ts`** (A1's calls, `{ data }` arguments, fitted by `normalise*`; bound in `a1Binding.ts` to
+  `src/lib/economy/economy.functions.ts`). The avatar builder's accent, feature, accessory and background rows draw only
+  where getAvatarOptions gives an avatar more than one choice (`optionRows`; none today: one accent and background each,
+  no features or accessories in docs/art/avatars). Events `profile_viewed`, `customise_opened`,
   `equip_refused` (slot, reason) through `recordIdentityEventFn` (`IDENTITY_EVENT_LIMIT`), migration
   `20261110200000_analytics_identity_events.sql` (**not applied until merged**; it adds to the list it reads from the
   table). Checks: identity-screens-check (~5 s, happy-dom, A1 stood in by `setIdentityBackend`) and identity-motion-check

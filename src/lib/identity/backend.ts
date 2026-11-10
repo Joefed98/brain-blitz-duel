@@ -3,10 +3,11 @@
  * screen in this session (the Shop shell's coin counter, Profile's card, Customise) reads and writes through here and
  * nowhere else, so A1's exact shapes are fitted in one place (`normalise*` below), and nothing builds a second path.
  *
- * A1's interface: getCatalogue(), getMyWallet(), getMyInventory(), getMyLoadout(), equip(slot, itemId or null),
- * setAvatar(avatarId, colour, gem or null), getPublicCard(playerId). The binding to A1's module lives in
- * `a1Binding.ts` (one import to change when A1 lands); until then `identityBackend()` answers null and the screens
- * show only what needs no server (the guest card, free items, no coins).
+ * A1's interface (src/lib/economy/economy.functions.ts, types in src/lib/data/economy.ts): getCatalogue(),
+ * getMyWallet(), getMyInventory(), getMyLoadout(), getAvatarOptions(), equip({ data: { slot, itemId } }),
+ * setAvatar({ data: { avatarId, colour, accent, feature, accessory, background, gem } }), getPublicCard({ data:
+ * { playerId } }). `a1Binding.ts` is the one place that calls them; if it can't load, `identityBackend()` answers null
+ * and the screens show only what needs no server (the guest card, no coins; Customise says it opens soon).
  *
  * Checks stand in for A1 with `setIdentityBackend(fake)` (scripts/identity-screens-check.tsx).
  */
@@ -107,7 +108,7 @@ export function setIdentityBackend(backend: IdentityBackend | null | undefined):
   loaded = null;
 }
 
-/** A1's functions behind this interface, or null until A1 is bound (a1Binding.ts). */
+/** A1's functions behind this interface (a1Binding.ts), or null if they can't load. */
 export function identityBackend(): Promise<IdentityBackend | null> {
   if (override !== undefined) return Promise.resolve(override);
   loaded ??= import("./a1Binding").then((m) => m.bindA1()).catch(() => null);
