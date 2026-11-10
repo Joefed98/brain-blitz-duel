@@ -58,7 +58,7 @@ const SUPABASE_STUB = `
   CREATE ROLE anon NOLOGIN; CREATE ROLE authenticated NOLOGIN; CREATE ROLE service_role NOLOGIN BYPASSRLS;
   CREATE ROLE authenticator NOINHERIT LOGIN; GRANT anon, authenticated, service_role TO authenticator;
   CREATE SCHEMA auth;
-  CREATE TABLE auth.users (id uuid PRIMARY KEY, created_at timestamptz DEFAULT now(), last_sign_in_at timestamptz, is_anonymous boolean DEFAULT true);
+  CREATE TABLE auth.users (id uuid PRIMARY KEY, created_at timestamptz DEFAULT now(), last_sign_in_at timestamptz, is_anonymous boolean DEFAULT true, email text);
   CREATE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql STABLE AS $$
     SELECT coalesce(nullif(current_setting('request.jwt.claim.sub', true), ''), (nullif(current_setting('request.jwt.claims', true), '')::jsonb ->> 'sub'))::uuid $$;
   CREATE FUNCTION auth.role() RETURNS text LANGUAGE sql STABLE AS $$
@@ -230,6 +230,29 @@ export function userToken(userId: string): string {
   });
 }
 
+/** A permanent account's access token for a new session (accounts, 10 Nov 2026): not anonymous, its own session id. */
+export function accountToken(userId: string, sessionId: string = crypto.randomUUID()): string {
+  const now = Math.floor(Date.now() / 1000);
+  return signJwt({
+    sub: userId,
+    role: "authenticated",
+    aud: "authenticated",
+    is_anonymous: false,
+    iat: now,
+    exp: now + HOUR,
+    session_id: sessionId,
+  });
+}
+
+/** One email the GoTrue stand-in "sent" (accounts): what Supabase would mail, with its 6-digit code. */
+export interface SentMail {
+  to: string;
+  /** The template Supabase would use: email_change (linking an email to a guest) or magic_link (signing in). */
+  template: "email_change" | "magic_link";
+  token: string;
+  userId: string;
+}
+
 /* ------------------------------------------------------- PostgREST stand-in */
 
 // postgres.js (a dev dependency) over the socket.
@@ -280,6 +303,8 @@ type Columns = Map<string, string>;
 
 export interface RestServer {
   url: string;
+  /** Emails the GoTrue stand-in sent (accounts), oldest first. */
+  mail: SentMail[];
   /** Every request served: method, path and status (for diagnosing a failing flow). */
   log: { method: string; path: string; status: number; role: string; error?: string }[];
   stop(): Promise<void>;
@@ -495,9 +520,12 @@ export async function startRestServer(socketDir: string): Promise<RestServer> {
         values.push(
           value === null || value === undefined
             ? null
-            : typeof value === "object"
-              ? JSON.stringify(value)
-              : String(value),
+            : Array.isArray(value) && type.endsWith("[]")
+              ? // PostgREST passes a JSON array to an array argument as that array (accounts' uuid[] argument).
+                `{${value.map((v) => (v === null ? "NULL" : `"${String(v).replace(/["\\]/g, "\\$&")}"`)).join(",")}}`
+              : typeof value === "object"
+                ? JSON.stringify(value)
+                : String(value),
         );
         return `${ident(key)} => $${values.length}::text::${type}`;
       });
@@ -623,34 +651,145 @@ export async function startRestServer(socketDir: string): Promise<RestServer> {
 
   const log: RestServer["log"] = [];
 
-  async function userFor(token: string): Promise<Response> {
-    const claims = verifyJwt(token);
-    if (!claims || typeof claims["sub"] !== "string")
-      return Response.json(
-        { code: 403, error_code: "bad_jwt", msg: "invalid JWT" },
-        { status: 403 },
-      );
-    const rows =
-      await sql`SELECT id, created_at, is_anonymous FROM auth.users WHERE id = ${claims["sub"]}::uuid`;
-    if (rows.length === 0)
-      return Response.json(
-        {
-          code: 403,
-          error_code: "user_not_found",
-          msg: "User from sub claim in JWT does not exist",
-        },
-        { status: 403 },
-      );
-    const row = rows[0] as { id: string; created_at: Date; is_anonymous: boolean };
-    return Response.json({
+  /* GoTrue's account calls (accounts, 10 Nov 2026), as Supabase Auth answers them: linking an email to the anonymous
+     user (PUT /user, then POST /verify type email_change: same id, no longer anonymous), signing in by code (POST /otp,
+     never creating a user when create_user is false, then POST /verify type email), signing out everywhere (POST
+     /logout?scope=global: every session of the user revoked, so /user refuses their tokens) and the admin lookup
+     (GET /admin/users/:id, service role only). Codes are 6 digits, in `mail`. */
+  const mail: SentMail[] = [];
+  const pendingEmail = new Map<string, { email: string; token: string }>();
+  const pendingSignIn = new Map<string, { userId: string; token: string }>();
+  const revokedSessions = new Set<string>();
+  const sessionsOf = new Map<string, Set<string>>();
+  const authError = (status: number, errorCode: string, msg: string) =>
+    Response.json({ code: status, error_code: errorCode, msg }, { status });
+  const sixDigits = () => String(100000 + Math.floor(Math.random() * 900000));
+
+  type AuthRow = { id: string; created_at: Date; is_anonymous: boolean; email: string | null; last_sign_in_at: Date | null };
+  async function authRow(id: string): Promise<AuthRow | null> {
+    if (!/^[0-9a-f-]{36}$/i.test(id)) return null;
+    const rows = await sql`SELECT id, created_at, is_anonymous, email, last_sign_in_at FROM auth.users WHERE id = ${id}::uuid`;
+    return (rows[0] as AuthRow | undefined) ?? null;
+  }
+  function userJson(row: AuthRow) {
+    return {
       id: row.id,
       aud: "authenticated",
       role: "authenticated",
+      email: row.email ?? "",
       is_anonymous: row.is_anonymous,
       created_at: row.created_at,
-      app_metadata: {},
+      last_sign_in_at: row.last_sign_in_at,
+      app_metadata: row.email ? { provider: "email", providers: ["email"] } : {},
       user_metadata: {},
-    });
+      identities: row.email
+        ? [{ id: row.id, user_id: row.id, provider: "email", identity_data: { email: row.email, sub: row.id } }]
+        : [],
+    };
+  }
+  function sessionFor(row: AuthRow) {
+    const sessionId = crypto.randomUUID();
+    if (!sessionsOf.has(row.id)) sessionsOf.set(row.id, new Set());
+    sessionsOf.get(row.id)!.add(sessionId);
+    const access = row.is_anonymous ? userToken(row.id) : accountToken(row.id, sessionId);
+    return {
+      access_token: access,
+      token_type: "bearer",
+      expires_in: HOUR,
+      expires_at: Math.floor(Date.now() / 1000) + HOUR,
+      refresh_token: `refresh-${sessionId}`,
+      user: userJson(row),
+    };
+  }
+  /** The user a bearer token names, or the refusal GoTrue gives (bad token, unknown user, revoked session). */
+  async function bearerUser(token: string): Promise<AuthRow | Response> {
+    const claims = verifyJwt(token);
+    if (!claims || typeof claims["sub"] !== "string") return authError(403, "bad_jwt", "invalid JWT");
+    const sessionId = String(claims["session_id"] ?? claims["sub"]);
+    if (revokedSessions.has(sessionId)) return authError(403, "session_not_found", "Session from session_id claim in JWT does not exist");
+    const row = await authRow(claims["sub"]);
+    if (!row) return authError(403, "user_not_found", "User from sub claim in JWT does not exist");
+    return row;
+  }
+
+  async function userFor(token: string): Promise<Response> {
+    const row = await bearerUser(token);
+    return row instanceof Response ? row : Response.json(userJson(row));
+  }
+
+  async function authRoute(request: Request, url: URL, bearer: string): Promise<Response> {
+    const path = url.pathname.slice("/auth/v1".length);
+    const body = (request.method === "GET" ? {} : await request.json().catch(() => ({}))) as Record<string, unknown>;
+    if (path === "/user" && request.method === "GET") return userFor(bearer);
+    if (path === "/user" && request.method === "PUT") {
+      const row = await bearerUser(bearer);
+      if (row instanceof Response) return row;
+      const email = String(body["email"] ?? "").trim().toLowerCase();
+      if (!email || Object.keys(body).some((k) => !["email", "data", "code_challenge", "code_challenge_method"].includes(k)))
+        return authError(400, "validation_failed", `server-fn harness: unsupported user update ${Object.keys(body).join(",")}`);
+      const taken = await sql`SELECT 1 FROM auth.users WHERE lower(email) = ${email} AND id <> ${row.id}::uuid`;
+      if (taken.length) return authError(422, "email_exists", "A user with this email address has already been registered");
+      const token = sixDigits();
+      pendingEmail.set(row.id, { email, token });
+      mail.push({ to: email, template: "email_change", token, userId: row.id });
+      return Response.json(userJson(row));
+    }
+    if (path === "/otp" && request.method === "POST") {
+      const email = String(body["email"] ?? "").trim().toLowerCase();
+      const rows = await sql`SELECT id FROM auth.users WHERE lower(email) = ${email}`;
+      if (!rows.length) {
+        if (body["create_user"] === false) return authError(422, "otp_disabled", "Signups not allowed for otp");
+        return authError(400, "validation_failed", "server-fn harness: OTP sign-up isn't served (guests link instead)");
+      }
+      const token = sixDigits();
+      const userId = (rows[0] as { id: string }).id;
+      pendingSignIn.set(email, { userId, token });
+      mail.push({ to: email, template: "magic_link", token, userId });
+      return Response.json({});
+    }
+    if (path === "/verify" && request.method === "POST") {
+      const email = String(body["email"] ?? "").trim().toLowerCase();
+      const token = String(body["token"] ?? "");
+      const expired = () => authError(403, "otp_expired", "Token has expired or is invalid");
+      if (body["type"] === "email_change") {
+        const entry = [...pendingEmail].find(([, p]) => p.email === email && p.token === token);
+        if (!entry) return expired();
+        const [userId] = entry;
+        pendingEmail.delete(userId);
+        await sql`UPDATE auth.users SET email = ${email}, is_anonymous = false, last_sign_in_at = now() WHERE id = ${userId}::uuid`;
+        return Response.json(sessionFor((await authRow(userId))!));
+      }
+      if (body["type"] === "email") {
+        const entry = pendingSignIn.get(email);
+        if (!entry || entry.token !== token) return expired();
+        pendingSignIn.delete(email);
+        await sql`UPDATE auth.users SET last_sign_in_at = now() WHERE id = ${entry.userId}::uuid`;
+        return Response.json(sessionFor((await authRow(entry.userId))!));
+      }
+      return authError(400, "validation_failed", `server-fn harness: unsupported verify type ${String(body["type"])}`);
+    }
+    if (path === "/logout" && request.method === "POST") {
+      const claims = verifyJwt(bearer);
+      if (!claims || typeof claims["sub"] !== "string") return authError(403, "bad_jwt", "invalid JWT");
+      const scope = url.searchParams.get("scope") ?? "global";
+      const own = String(claims["session_id"] ?? claims["sub"]);
+      if (scope === "global") {
+        revokedSessions.add(claims["sub"]);
+        for (const id of sessionsOf.get(claims["sub"]) ?? []) revokedSessions.add(id);
+      }
+      revokedSessions.add(own);
+      return new Response(null, { status: 204 });
+    }
+    const admin = /^\/admin\/users\/([0-9a-f-]{36})$/i.exec(path);
+    if (admin && request.method === "GET") {
+      if (verifyJwt(bearer)?.["role"] !== "service_role") return authError(403, "not_admin", "User not allowed");
+      const row = await authRow(admin[1]!);
+      return row ? Response.json(userJson(row)) : authError(404, "user_not_found", "User not found");
+    }
+    return Response.json(
+      { code: "PGRST_HARNESS", message: `server-fn harness: unsupported auth call ${request.method} ${url.pathname}` },
+      { status: 404 },
+    );
   }
 
   const server = Bun.serve({
@@ -659,7 +798,7 @@ export async function startRestServer(socketDir: string): Promise<RestServer> {
     async fetch(request) {
       const url = new URL(request.url);
       const bearer = (request.headers.get("authorization") ?? "").replace(/^Bearer /, "");
-      if (url.pathname === "/auth/v1/user") return userFor(bearer);
+      if (url.pathname.startsWith("/auth/v1/")) return authRoute(request, url, bearer);
       if (!url.pathname.startsWith("/rest/v1/"))
         return Response.json(
           { code: "PGRST_HARNESS", message: `server-fn harness: unsupported path ${url.pathname}` },
@@ -735,6 +874,7 @@ export async function startRestServer(socketDir: string): Promise<RestServer> {
   });
   return {
     url: `http://127.0.0.1:${server.port}`,
+    mail,
     log,
     async stop() {
       server.stop(true);

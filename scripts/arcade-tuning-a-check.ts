@@ -69,6 +69,9 @@ import {
   SWING_ROCK_WARN,
   SWING_ROCK_WARN_V6,
   SWING_STARS,
+  SWING_REV_SPREAD,
+  SWING_SPREAD_WINDOW,
+  swingSpreadAim,
   SWING_STAR_TOUCH,
   type SwingState,
 } from "../src/lib/arcade/swing";
@@ -357,16 +360,34 @@ if (want("swing")) {
   const tuned = swingGameFor(SWING_REV_TUNED);
   const band = swingGameFor(SWING_REV_BAND);
   const seeds = SWING_V4_BANK.slice(0, FULL ? SWING_V4_BANK.length : 12).map((e) => e.seed);
+  // Pinned as recorded (10 Nov 2026, Joe's approval): 66 of the 300 bank courses never met "10 touch stars, at least
+  // 80 px apart in height" on swingRev 6 (the same on 7822b181, the commit that wrote this; quick depth's 12 courses
+  // miss them all). Rev 6 is no longer dealt and replays rebuild its stars from the seed, so they can't be re-drawn:
+  // each is held to its exact recorded count and spread (scripts/fixtures/arcade-tuning-a-swing-v6-stars.json,
+  // scripts/arcade-tuning-a-swing-v6-record.ts), every other course to the rule as before, and swingRev 8 (the fix
+  // for rev 6's stars bunched along the run) to what it promises on every course: 10 touch stars, each within
+  // SWING_SPREAD_WINDOW of its stretch's aim (its heights are not promised: 26 of the 300 are under 80 px apart).
+  const pinnedV6 = new Map(
+    (JSON.parse(readFileSync("scripts/fixtures/arcade-tuning-a-swing-v6-stars.json", "utf8")) as { courses: { seed: number; stars: number; spread: number }[] }).courses.map((c) => [c.seed, c]),
+  );
+  ok(pinnedV6.size === 66 && [...pinnedV6.keys()].every((seed) => SWING_V4_BANK.some((e) => e.seed === seed)), `66 swingRev 6 bank courses pinned as recorded (${pinnedV6.size})`);
+  const spread = swingGameFor(SWING_REV_SPREAD);
   for (const seed of seeds) {
     const a = band.init(seed);
     const b = tuned.init(seed);
+    const pin = pinnedV6.get(seed);
     ok(JSON.stringify(a.anchors) === JSON.stringify(b.anchors) && JSON.stringify(a.jets) === JSON.stringify(b.jets) && a.rng === b.rng, `course ${seed}: same cavern, anchors and lava jets as rev 5`);
-    ok((b.starAnchors ?? []).length === 0 && swingStarTotal(b) === SWING_STARS && swingStarTotal(a) === SWING_STARS, `course ${seed}: ${swingStarTotal(b)} touch stars, as many as rev 5's star anchors`);
+    if (pin) ok((b.starAnchors ?? []).length === 0 && swingStarTotal(b) === pin.stars && swingStarTotal(a) === SWING_STARS, `course ${seed}: ${swingStarTotal(b)} touch stars, exactly as recorded (${pin.stars})`);
+    else ok((b.starAnchors ?? []).length === 0 && swingStarTotal(b) === SWING_STARS && swingStarTotal(a) === SWING_STARS, `course ${seed}: ${swingStarTotal(b)} touch stars, as many as rev 5's star anchors`);
     ok(b.rocks!.every((r, i) => r.trigger === a.rocks![i]!.trigger + SWING_ROCK_LEAD_V6 && r.x === a.rocks![i]!.x), `course ${seed}: stalactites in the same places, crumbling ${SWING_ROCK_LEAD_V6 / FP} px further ahead`);
     ok(b.starSpots!.every(([x]) => b.jets!.every((j) => Math.abs(j.x - x) > SWING_JET_HALF_W + SWING_STAR_TOUCH)), `course ${seed}: no star over a lava jet`);
     ok(b.starSpots!.every(([x, y]) => b.anchors.every((an) => Math.abs(an.x - x) > 30 * FP || Math.abs(an.y - y) > 30 * FP)), `course ${seed}: stars clear of the anchor rings`);
     const ys = b.starSpots!.map(([, y]) => y);
-    ok(Math.max(...ys) - Math.min(...ys) >= 80 * FP, `course ${seed}: stars at varied heights (${Math.round((Math.max(...ys) - Math.min(...ys)) / FP)} px apart)`);
+    if (pin) ok(Math.max(...ys) - Math.min(...ys) === pin.spread, `course ${seed}: stars' heights spread exactly as recorded (${Math.max(...ys) - Math.min(...ys)}, recorded ${pin.spread}, 1/256 px)`);
+    else ok(Math.max(...ys) - Math.min(...ys) >= 80 * FP, `course ${seed}: stars at varied heights (${Math.round((Math.max(...ys) - Math.min(...ys)) / FP)} px apart)`);
+    const c = spread.init(seed);
+    const off = Math.max(...(c.starSpots ?? []).map(([x], k) => Math.abs(x - swingSpreadAim(k))));
+    ok(swingStarTotal(c) === SWING_STARS && off <= SWING_SPREAD_WINDOW, `course ${seed}: swingRev 8 gives ${swingStarTotal(c)} touch stars, each within ${SWING_SPREAD_WINDOW / FP} px of its stretch's aim (furthest ${Math.round(off / FP)} px)`);
   }
   // Touching a star takes it once.
   {

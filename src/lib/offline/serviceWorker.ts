@@ -41,6 +41,10 @@ export function registrationUrl(existingScriptURL: string | null | undefined, fi
   return fillNow ? SW_URL : SW_LATER_URL;
 }
 const HANDOVER_POLL_MS = 2000;
+/** How long a waiting worker may stay waiting after the page asked it to take over before the page reloads. */
+const HANDOVER_STALL_MS = 4000;
+/** sessionStorage: the builds this tab has already reloaded for (one reload per build, never a loop). */
+const STALL_RELOAD_KEY = "joulz-sw-stall-reload";
 
 function workerApi(): ServiceWorkerContainer | null {
   try {
@@ -83,7 +87,44 @@ async function askToTakeOver(api: ServiceWorkerContainer, waiting: ServiceWorker
   waiting.postMessage({ type: "SKIP_WAITING" });
 }
 
-/** Registers the worker and keeps watch for a new build's waiting worker. Production only. */
+/**
+ * Reloads the page once for a waiting worker whose takeover stalled (see `installOfflineWorker`), the first time
+ * for its build in this tab, and only at a safe moment (no round on screen). False when this tab has already reloaded
+ * for it, or has no storage to remember that in (the outgoing worker then stops on its own idle timeout and the
+ * handover completes then), or a round started while the build was asked (the next tick tries again).
+ */
+async function reloadForStalledHandover(waiting: ServiceWorker): Promise<boolean> {
+  const build = (await workerVersion(waiting)) ?? waiting.scriptURL;
+  // Asking the build takes up to 1.5 s: a round may have started meanwhile, so the safe moment is checked again.
+  if (!safeNow()) return false;
+  try {
+    const done = (window.sessionStorage.getItem(STALL_RELOAD_KEY) ?? "").split(" ");
+    if (done.includes(build)) return false;
+    window.sessionStorage.setItem(STALL_RELOAD_KEY, [...done.slice(-3), build].join(" ").trim());
+  } catch {
+    // No storage, so a reload couldn't be remembered: don't risk a loop.
+    return false;
+  }
+  window.location.reload();
+  return true;
+}
+
+/**
+ * Registers the worker and keeps watch for a new build's waiting worker. Production only.
+ *
+ * At the first safe moment a waiting worker is asked once to take over (`askToTakeOver`). Chromium then stops the
+ * outgoing worker as soon as it is idle, and activates the new one once it has stopped. That fast stop is asked for
+ * once only. If a request from the page reaches the outgoing worker in the instant it is stopping (the Practice list
+ * loading its tiles and sounds just after a round), Chromium starts it again to answer, and the restarted worker is
+ * back on its ordinary 30 s idle timeout. The handover then waited until the page had been quiet for 30 s. The
+ * page's own 2 s pings, which asked again on every tick, kept it awake, so the new build never took over while the
+ * page stayed open (offline-check, "the new worker takes over on the list", about one run in thirty on 9–10 Nov 2026;
+ * the DevTools protocol shows the outgoing worker stopped, then starting again in the same millisecond).
+ * So the page asks once per waiting worker, and when that worker is still waiting `HANDOVER_STALL_MS` later at a safe
+ * moment it reloads, once per build in this tab: a navigation makes Chromium ask for the fast stop again, and the
+ * reloaded page comes up on the new worker. A takeover ends in a reload onto the new build at this same safe moment
+ * anyway (`reloadWanted`), so nothing reloads that wouldn't have.
+ */
 export function installOfflineWorker(fillNow: () => boolean = () => true): () => void {
   const api = workerApi();
   if (!api || !import.meta.env.PROD) return () => {};
@@ -106,11 +147,22 @@ export function installOfflineWorker(fillNow: () => boolean = () => true): () =>
   };
   const onControllerChange = () => void askVersion();
   api.addEventListener("controllerchange", onControllerChange);
+  // The waiting worker this page has asked to take over, and when.
+  let asked: ServiceWorker | null = null;
+  let askedAt = 0;
   const tick = async () => {
     if (stopped) return;
     try {
       const reg = await api.getRegistration();
-      if (reg?.waiting && safeNow()) await askToTakeOver(api, reg.waiting);
+      if (reg?.waiting && safeNow()) {
+        if (asked !== reg.waiting) {
+          asked = reg.waiting;
+          askedAt = Date.now();
+          await askToTakeOver(api, reg.waiting);
+        } else if (Date.now() - askedAt >= HANDOVER_STALL_MS && (await reloadForStalledHandover(reg.waiting))) {
+          return;
+        }
+      }
       if (versionUnknown) await askVersion();
       if (reloadWanted && safeNow()) {
         reloadWanted = false;

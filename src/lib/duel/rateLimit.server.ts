@@ -36,6 +36,11 @@ export const CHALLENGE_CREATE_LIMIT: RateLimit = { bucket: "challenge-create", m
 /** Chat reports: 20 per 10 minutes. */
 export const REPORT_LIMIT: RateLimit = { bucket: "report", max: 20, windowSeconds: 600 };
 
+/** Account calls (10 Nov 2026: sign-up, rename, deletion, status): 60 per 10 minutes per user. */
+export const ACCOUNT_LIMIT: RateLimit = { bucket: "account", max: 60, windowSeconds: 600 };
+/** Username availability checks while typing: 120 per 10 minutes per user. */
+export const USERNAME_CHECK_LIMIT: RateLimit = { bucket: "username-check", max: 120, windowSeconds: 600 };
+
 /** Starting a room (dealing every round): 30 an hour per user. */
 export const START_ROOM_LIMIT: RateLimit = { bucket: "start-room", max: 30, windowSeconds: 3600 };
 /** Starting a challenge attempt: 30 per 10 minutes per user. */

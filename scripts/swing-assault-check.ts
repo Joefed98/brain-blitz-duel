@@ -28,6 +28,10 @@
  *
  *   bun scripts/swing-assault-check.ts          (CHECKS_FULL=1: more seeds in 3–5)
  *   bun scripts/swing-assault-check.ts --record (re-records the skill-band runs, a few minutes)
+ *   bun scripts/swing-assault-check.ts --part=k/n (10 Nov 2026: at full depth the whole check took ~340 s on CI, past
+ *     run-checks' 300 s): the sections played in the real sim (3–5's second half, the slow search) take every n-th
+ *     play course from the k-th; everything else runs in every part. The n parts together play exactly the courses
+ *     one whole run does.
  */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { readFileSync, writeFileSync } from "node:fs";
@@ -72,6 +76,9 @@ const FP = 256;
 const RADIUS = 10 * FP;
 const FULL = process.env.CHECKS_FULL === "1" || process.argv.includes("--full");
 const RECORD = process.argv.includes("--record");
+const PART = process.argv.find((a) => a.startsWith("--part="))?.slice(7);
+const [PART_K, PART_N] = PART ? (PART.split("/").map(Number) as [number, number]) : [1, 1];
+if (!(PART_N >= 1 && PART_K >= 1 && PART_K <= PART_N) || (PART && RECORD)) throw new Error(`bad --part=${PART}`);
 const failures: string[] = [];
 let checks = 0;
 const ok = (cond: boolean, label: string) => {
@@ -138,7 +145,7 @@ const seedsOf = (n: number) => Array.from({ length: n }, (_, i) => roomSeed(i));
 
 /* 3–5. Courses, sections played in the real sim, features on lines that clear. */
 const courseSeeds = seedsOf(FULL ? 40 : 6);
-const playSeeds = courseSeeds.slice(0, FULL ? 12 : 2);
+const playSeeds = courseSeeds.slice(0, FULL ? 12 : 2).filter((_, i) => i % PART_N === PART_K - 1);
 let short = 0;
 let sectionsPlayed = 0;
 let worstBeat = Infinity;
@@ -231,7 +238,7 @@ for (const seed of playSeeds) {
   (init.gems ?? []).forEach((_, i) => ok(featureLine.has(`gem${i}`), `${tag}: gem ${i} is taken by a line that clears its section`));
   (init.starSpots ?? []).forEach((_, i) => ok(featureLine.has(`star${i}`), `${tag}: star ${i} is taken by a (reeled-in) line that clears its section`));
 }
-console.log(`courses: ${courseSeeds.length} built, ${sectionsPlayed} sections played in the real sim (fastest beats par by ${worstBeat} ticks or more)`);
+console.log(`courses: ${courseSeeds.length} built, ${sectionsPlayed} sections played${PART ? ` (part ${PART}: ${playSeeds.length} courses)` : ""} in the real sim (fastest beats par by ${worstBeat} ticks or more)`);
 
 /* 6. Rules. */
 {

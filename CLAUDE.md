@@ -1837,6 +1837,33 @@ outside the repo.
   git or by stored hashes; temporary, retired at the start of wave 3 with Joe's approval) beside the engine: deals in two
   fresh processes (`scripts/round-engine/deals.ts`), every receipt shape, grades, stored rows, windows and 2,000 ranked
   rooms.
+- **Accounts backend** (10 Nov 2026, wave 1 train 1, `docs/accounts/README.md`; no gameplay, scoring, stamp or room
+  flow change beyond the name check): an account is a `public.profiles` row on the device's own auth user
+  (`supabase/migrations/20261110120000_accounts_profiles.sql`, **not applied until merged**). Sign-up links an email
+  (`updateUser` + the 6-digit code, `verifyOtp` type `email_change`; Google through `linkIdentity`) to the guest's
+  anonymous user, so the id and every row stay; signing in to an existing account on a phone with guest progress leaves
+  the guest's rows on the guest id (`guestProgressFn` reports them). Server: `src/lib/account/account.server.ts` /
+  `account.functions.ts`; phone plumbing `src/lib/account/auth.ts` (no screens); data `src/lib/data/profiles.server.ts`,
+  `profileReads.ts`. RLS: own row only, updates to `colour` and `country` only; others see `public_profiles(uuid[])`
+  (username, colour, player number, founding); a trigger holds date of birth, player number, founding and creation time
+  (admin functions `accounts.admin_set_date_of_birth`, `accounts.admin_assign_player_one`, dashboard only, logged in
+  `accounts.admin_log`). Player numbers from 2 (`profile_player_number_seq`), founding before 2027-01-26 00:00 UK
+  (`accounts.is_founding`). Under 13: refused, nothing stored (`ageGate.ts` remembers on the phone 7 days); 13–17
+  `accountAgeFlags`. **Names**: one module, `src/lib/names/` (`names.server.ts` checks, `reserved.ts` the one reserved
+  list, `lookalike.ts`, `energyWords.ts`); usernames 3–16 `[A-Za-z0-9_]`, unique ignoring capitals, free change within 7
+  days then every 90, released names held 30 days (`accounts.username_holds`); guest room names (16 code points, the
+  shared `DISPLAY_NAME_MAX`, 14 before) refused on room create and join with three suggestions (`NameRefusedError`).
+  Deletion: hidden at once, signed out everywhere, `accounts.run_daily_cleanup()` (pg_cron `account-cleanup` 03:41 UTC)
+  removes it after 30 days, and guests (and half-finished sign-ups: email, no profile) 13 months after their last
+  activity, through `accounts.forget_user` (rows re-keyed to a random id, names "Deleted player", the account's exact
+  username scrubbed from `duels.tournament_history`, chat deleted, analytics `player_id` cleared); a brake (more than
+  25 accounts or 500 guests due: nothing removed, a `cleanup_braked` line; `run_daily_cleanup(true)` by hand lifts it)
+  and one `accounts.admin_log` line a run (approved by Joe, 10 Nov 2026). Switches
+  `GOOGLE_SIGN_IN_ENABLED` / `APPLE_SIGN_IN_ENABLED` (`src/config/accountConfig.ts`) off. Events `sign_up_started`,
+  `sign_up_completed`, `sign_in`, `sign_out`, `username_changed`, `account_deletion_requested`,
+  `under_thirteen_refused` (`20261110120100_analytics_account_events.sql`). The harness's GoTrue stand-in serves
+  `PUT /user`, `/otp`, `/verify`, `/logout` and `/admin/users/:id` (codes in `rest.mail`). accounts-check (~6 s, shard `e`, no
+  browser).
 - **First impressions** (wave 1, 10 Nov 2026; presentation and device storage only, no stamps, no server change;
   `docs/mockups/wave-1/README.md`): `EmptyState` (`@/design/components`, page and card layouts) with `Captain`
   (`@/design/art`: the approved `captain-joulz-ready` / `-win` SVGs, byte-for-byte copies in `public/art/`) on every
@@ -2143,7 +2170,9 @@ grading. See `docs/duelz-scoring-reference.md` section 14.
 ## Working rules for every session
 
 1. **Before pushing, merge the latest `main` into your branch** and re-run your checks on the merged tree.
-2. **Never rebuild `scripts/fixtures/replay-runs.json` over existing runs** (e.g. a fresh `scripts/replay-fixtures.ts`
+2. **The swingRev 6 star fixture is frozen; re-recording it needs Joe's approval in the session that asks.**
+   (`scripts/fixtures/arcade-tuning-a-swing-v6-stars.json`; `scripts/arcade-tuning-a-swing-v6-record.ts` refuses to
+   overwrite it without `--overwrite-approved`.) **Never rebuild `scripts/fixtures/replay-runs.json` over existing runs** (e.g. a fresh `scripts/replay-fixtures.ts`
    write): keep every stored run and add each new-stamp run once.
 3. **Append new self-replay entries at the end of the list** (`scripts/arcade-self-replay-check.ts`), never mid-list:
    each entry has its own PRNG stream and the `@k/n` parts split by position.

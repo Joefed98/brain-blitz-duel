@@ -21,6 +21,15 @@ export const ANALYTICS_EVENTS = [
   "invite_opened",
   "error_shown",
   "offline_game_played",
+  // Accounts (10 Nov 2026, docs/accounts/README.md): recorded by the server only (src/lib/account/). sign_up_completed
+  // and sign_in carry props.method; under_thirteen_refused never carries a date of birth or an age.
+  "sign_up_started",
+  "sign_up_completed",
+  "sign_in",
+  "sign_out",
+  "username_changed",
+  "account_deletion_requested",
+  "under_thirteen_refused",
 ] as const;
 export type AnalyticsEventName = (typeof ANALYTICS_EVENTS)[number];
 
