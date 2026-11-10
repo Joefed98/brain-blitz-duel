@@ -7,6 +7,11 @@
  *   bun scripts/migrate.ts --pr-guard=<ref>     files added since <ref> through the destructive guard; changed,
  *                                               renamed or deleted older files fail (they are never re-applied)
  *
+ * Notices and warnings each file raises are printed under it (and warnings as GitHub annotations and in the run
+ * summary): --local reads them from psql; --live reads the rows `migration_log.note(level, message)` wrote during the
+ * file (the Management API answers rows only, so a plain RAISE NOTICE / RAISE WARNING never reaches it; see
+ * docs/supabase-move/migrations-ci.md "Notices and warnings").
+ *
  * --live reads SUPABASE_ACCESS_TOKEN and SUPABASE_PROJECT_REF from the environment (and SUPABASE_URL, when set, to
  * prove it names the same project). No value is ever printed. Exits non-zero on any refusal or error, so the
  * deploy step after it doesn't run.
@@ -19,12 +24,16 @@ import {
   HISTORY_SETUP,
   MIGRATIONS_DIR,
   applyOk,
+  MigrationError,
+  NOTES_TABLE,
   applyPending,
   guardMigration,
+  psqlNotes,
   listMigrations,
   transactionControl,
   type ApplyResult,
   type MigrationDb,
+  type MigrationNote,
 } from "./migrate-lib";
 
 const args = process.argv.slice(2);
@@ -37,7 +46,7 @@ function summary(lines: string[]) {
   if (file) appendFileSync(file, `${lines.join("\n")}\n`);
 }
 
-function report(title: string, r: ApplyResult, dryRun = false) {
+function report(title: string, r: ApplyResult, dryRun = false, annotate = false) {
   const lines = [`### ${title}`];
   if (r.refused.length) lines.push(`- **Refused** (nothing applied): ${r.refused.map((x) => `\`${x.file}\``).join(", ")}`);
   else if (r.failed) lines.push(`- **Failed**: \`${r.failed.file}\` (rolled back; later files not tried)`);
@@ -47,6 +56,14 @@ function report(title: string, r: ApplyResult, dryRun = false) {
       `- ${dryRun ? "Would apply" : "Applied"} ${r.pending.length}: ${r.pending.map((m) => `\`${m.file}\``).join(", ")}`,
     );
   for (const f of r.outOfOrder) lines.push(`- Older than the newest recorded version: \`${f}\``);
+  for (const n of r.notes) {
+    // A live warning is an annotation on the deploy run too (the local proof's are printed only: a fresh database
+    // isn't London's); notices stay in the log.
+    if (n.level === "WARNING") {
+      if (annotate) console.log(`::warning title=${n.file}::${n.message.replace(/\r?\n/g, " ")}`);
+      lines.push(`- Warning from \`${n.file}\`: ${n.message}`);
+    }
+  }
   summary(lines);
 }
 
@@ -111,9 +128,36 @@ async function live() {
       return new Set(rows.map((r) => String(r.version)));
     },
     async exec(sql) {
+      // The notes table's newest row before the file, so the rows after it are the file's own.
+      if (lastNote === null) lastNote = (await notesPresent()) ? await newestNote() : 0;
       await query(sql);
+      try {
+        if (!(await notesPresent())) return [];
+        const rows = (await query(
+          `SELECT id, level, message FROM ${NOTES_TABLE} WHERE id > ${lastNote} ORDER BY id`,
+        )) as { id: number | string; level: string; message: string }[];
+        const notes: MigrationNote[] = [];
+        for (const row of rows) {
+          lastNote = Math.max(lastNote, Number(row.id));
+          notes.push({ level: row.level === "WARNING" ? "WARNING" : "NOTICE", message: String(row.message) });
+        }
+        return notes;
+      } catch (err) {
+        // The file is committed by now; failing to read its notes never fails the deploy.
+        console.log(`::warning::Couldn't read the migration notes: ${err instanceof Error ? err.message : String(err)}`);
+        return [];
+      }
     },
   };
+  let lastNote: number | null = null;
+  async function notesPresent(): Promise<boolean> {
+    const rows = (await query(`SELECT to_regclass('${NOTES_TABLE}') IS NOT NULL AS present`)) as { present: boolean }[];
+    return rows[0]?.present === true;
+  }
+  async function newestNote(): Promise<number> {
+    const rows = (await query(`SELECT coalesce(max(id), 0) AS newest FROM ${NOTES_TABLE}`)) as { newest: number | string }[];
+    return Number(rows[0]?.newest ?? 0);
+  }
   const dryRun = flag("dry-run");
   let r: ApplyResult;
   try {
@@ -124,7 +168,7 @@ async function live() {
     summary(["### Database migrations (live)", "- **Couldn't read the migration history**"]);
     process.exit(1);
   }
-  report(`Database migrations (live${dryRun ? ", dry run" : ""})`, r, dryRun);
+  report(`Database migrations (live${dryRun ? ", dry run" : ""})`, r, dryRun, true);
   if (!applyOk(r)) {
     console.log(`::error::Migrations stopped: ${r.failed ? r.failed.file : r.refused.map((x) => x.file).join(", ")}`);
     process.exit(1);
@@ -151,10 +195,13 @@ async function local() {
       },
       async exec(sql) {
         const out = pg.psql(sql);
-        if (!out.ok) throw new Error(out.err.split("\n").find((l) => /ERROR/.test(l)) ?? out.err);
+        const notes = psqlNotes(out.err);
+        if (!out.ok) throw new MigrationError(out.err.split("\n").find((l) => /ERROR/.test(l)) ?? out.err, notes);
+        return notes;
       },
     };
-    const all = listMigrations();
+    // MIGRATIONS_DIR_OVERRIDE is for migrations-check only; CI reads supabase/migrations.
+    const all = listMigrations(process.env.MIGRATIONS_DIR_OVERRIDE || undefined);
     // Every file from scratch, the 2026 history's destructive ones included (all applied live long ago), so the
     // destructive guard is off here; --pr-guard and --live apply it to new files.
     const first = await applyPending(db, all, { guard: false });
