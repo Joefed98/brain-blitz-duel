@@ -14,41 +14,11 @@
  * as a room's reveal-phase (late) answer, with 0 ms left; once the room's reveal would have ended
  * the round takes no answer and scores 0 ("missed"), as a player with no answer in a room does.
  */
-import { puzzleRevealMs } from "./catalogue";
-import { roomPuzzleCloseMs, roomTimeoutMs } from "./roomClose";
-import type { PuzzleData } from "./types";
+import type { RoundWindow } from "@/lib/round/window";
 
-export interface AsyncRoundWindow {
-  /** The phone sends its draft from here (ms, same clock as `startedAt`). */
-  timeoutAt: number;
-  /** Answers from here on are late (graded with 0 ms left). */
-  lateFrom: number;
-  /** The round takes no answer from here on. */
-  closesAt: number;
-}
-
-export function asyncRoundWindow(
-  puzzle: PuzzleData | undefined,
-  startedAt: number,
-): AsyncRoundWindow {
-  const lateFrom = startedAt + roomPuzzleCloseMs(puzzle);
-  return {
-    timeoutAt: startedAt + roomTimeoutMs(puzzle),
-    lateFrom,
-    closesAt: lateFrom + puzzleRevealMs(puzzle),
-  };
-}
-
-/** Whether an answer received at `nowMs` is in time, late, or past the round's close. */
-export function asyncReceipt(
-  puzzle: PuzzleData | undefined,
-  startedAt: number,
-  nowMs: number,
-): "puzzle" | "late" | "closed" {
-  const window = asyncRoundWindow(puzzle, startedAt);
-  if (nowMs >= window.closesAt) return "closed";
-  return nowMs >= window.lateFrom ? "late" : "puzzle";
-}
+/** The round engine's window (src/lib/round/window.ts), under the async room's names. */
+export type AsyncRoundWindow = RoundWindow;
+export { roundWindow as asyncRoundWindow, windowReceipt as asyncReceipt } from "@/lib/round/window";
 
 /** One round as its player sees it (never another player's). */
 export interface AsyncRoundView {

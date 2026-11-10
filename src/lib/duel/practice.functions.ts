@@ -53,10 +53,11 @@ function validType(type: string): PuzzleType {
 
 /** One fresh practice deal of a type (the board picked by a new seed), split into its public and private halves. */
 async function dealPractice(type: PuzzleType, unblockRow: unknown): Promise<{ pub: PuzzleData; priv: Loose; seed: number }> {
-  const { generatePuzzle } = await import("./generate.server");
+  // The round engine's single deal (src/lib/round/deal.server.ts): no tie-break stamp, a fresh bank seed.
+  const { dealOne } = await import("./generate.server");
   const { newRoomSeed } = await import("./selection");
   const seed = newRoomSeed();
-  const { pub, priv } = splitPuzzle(generatePuzzle(type, { unblockRow: unblockRow as never, bankSeed: seed }));
+  const { pub, priv } = splitPuzzle(dealOne(type, { unblockRow: unblockRow as never, bankSeed: seed }));
   return { pub: pub as PuzzleData, priv: priv as Loose, seed };
 }
 

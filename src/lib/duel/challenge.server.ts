@@ -57,13 +57,13 @@ import {
   type ChallengeRoundBoard,
   type ChallengeSummary,
 } from "./challenge";
-import { generatePuzzle } from "./generate.server";
+import { dealRounds } from "./generate.server";
 import { randomBelow } from "./random";
 import { isLiveType, puzzleDef, puzzlePrepMs, puzzleTimeLimitMs } from "./registry";
 import { mergePuzzle } from "./secrets";
 import { newRoomSeed, pickRoundOrder } from "./selection";
 import { isSettingsRoom, readRoomSettings } from "./roomSettings";
-import { roomTieRounds, stampTieRev } from "./tieBreak";
+import { roomTieRounds } from "./tieBreak";
 import type { UnblockBankRow } from "./unblock.server";
 import type {
   DuelPlayerRow,
@@ -149,11 +149,8 @@ export function dealChallenge(input: {
   const roundOrder = challengeRoundOrder(input.categories, input.rounds, input.seed);
   return {
     roundOrder,
-    puzzles: roundOrder.map((type) =>
-      stampTieRev(
-        generatePuzzle(type, { unblockRow: input.unblockRow ?? null, bankSeed: input.seed }),
-      ),
-    ),
+    // The round engine's deal (src/lib/round/deal.server.ts), as a room's start deals its rounds.
+    puzzles: dealRounds(roundOrder, { seed: input.seed, unblockRow: input.unblockRow ?? null }),
   };
 }
 
