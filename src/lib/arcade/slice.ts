@@ -1920,13 +1920,84 @@ export const sliceFoodGame: ArcadeGame<SliceState, ArcadeInputEvent | null> = {
 };
 
 /**
- * sliceRev 12's deal: a seed whose schedule throws at least SLICE_V12_MIN_CHILLIES chillies (about 95 % of seeds), so
- * the five dodges are always on offer and a perfect run reaches 200 (slice-food-check plays the oracle on 1,260 dealt
- * seeds through the server replay; the rare seed with fewer chillies can fall a dodge short).
+ * sliceRev 12's deal: a seed whose schedule throws at least SLICE_V12_MIN_CHILLIES chillies and offers at least
+ * SLICE_V12_MIN_DODGE_CHANCES dodge chances (sliceFoodDodgeChances), so the five dodges are always on offer and a
+ * perfect run reaches 200 (slice-food-check plays the oracle on 1,260 dealt seeds through the server replay).
+ *
+ * The dodge-chance rule (Nov 2026; deal choice only, no stamp: a stored round keeps its seed and replays as before):
+ * five chillies alone missed seeds where a chilli can't be dodged, so a perfect run topped out at 198: one launched
+ * 10 ticks before the buzzer (226449345), or launched while a Frenzy the player starts by cutting the bottle suppresses
+ * it (1709684879, 342034521); a wider scan found one more where the chances bunch round one chilli (1797528955).
+ * Counting the chances directly catches all four and any like them: 0 of the 9,261 scored seeds and of 40,000 fresh
+ * ones fall short of 200 under it, and it re-draws about 7 % of seeds (the chilli count alone: 4.8 %).
  */
 export const SLICE_V12_MIN_CHILLIES = 5;
+/** Dodge chances a dealt seed must offer (9 was the fewest that cleared every short seed scanned; one spare). */
+export const SLICE_V12_MIN_DODGE_CHANCES = 10;
+
+/**
+ * Dodge chances in a sliceRev 12 schedule: the foods (not bottles or what they hold) that, at some tick before the
+ * buzzer while both are on the board, pass with their skin within SLICE_V11_CLOSE − 2 px of the skin of a chilli no
+ * Frenzy can suppress (a chilli launched while a Frenzy bottle is on the board, or within SLICE_FRENZY_TICKS after it
+ * leaves, is left out: cutting the bottle would suppress it). Positions as the sim draws them with no slow-motion or
+ * mayo (the oracle cuts neither). Integer arithmetic only; reads the schedule, never a run.
+ */
+export function sliceFoodDodgeChances(seed: number): number {
+  const s = initV12(seed);
+  const H = sliceWorldH(s);
+  const W = sliceWorldW(s);
+  const track = (o: SliceObject): Map<number, [number, number, number]> => {
+    const out = new Map<number, [number, number, number]>();
+    const r = sliceRadius(o);
+    let seen = false;
+    for (let t = o.launchTick; t <= SLICE_RUN_TICKS; t++) {
+      const p = sliceObjectAt(o, t);
+      if (!p) {
+        if (seen) break;
+        continue;
+      }
+      seen = true;
+      const x = Math.trunc(p.x / 256);
+      const y = Math.trunc(p.y / 256);
+      if (y - r <= H && y + r >= SLICE_HUD_H && x - r <= W && x + r >= 0) out.set(t, [x, y, r]);
+    }
+    return out;
+  };
+  const frenzy: [number, number][] = [];
+  for (const o of s.objects) {
+    if (o.special !== SLICE_SPECIAL_FRENZY) continue;
+    const ticks = [...track(o).keys()];
+    if (ticks.length > 0) frenzy.push([ticks[0]!, ticks[ticks.length - 1]! + SLICE_FRENZY_TICKS]);
+  }
+  const chillies = s.objects
+    .filter((o) => o.bomb && !frenzy.some(([a, b]) => o.launchTick >= a && o.launchTick < b))
+    .map(track);
+  let chances = 0;
+  for (const o of s.objects) {
+    if (o.bomb || o.special) continue;
+    let near = false;
+    for (const [t, [x, y, r]] of track(o)) {
+      for (const c of chillies) {
+        const q = c.get(t);
+        if (!q) continue;
+        const reach = q[2] + r + SLICE_V11_CLOSE - 2;
+        const dx = q[0] - x;
+        const dy = q[1] - y;
+        if (dx * dx + dy * dy <= reach * reach) {
+          near = true;
+          break;
+        }
+      }
+      if (near) break;
+    }
+    if (near) chances++;
+  }
+  return chances;
+}
+
 export function sliceFoodSeedOk(seed: number): boolean {
-  return initV12(seed).objects.filter((o) => o.bomb).length >= SLICE_V12_MIN_CHILLIES;
+  if (initV12(seed).objects.filter((o) => o.bomb).length < SLICE_V12_MIN_CHILLIES) return false;
+  return sliceFoodDodgeChances(seed) >= SLICE_V12_MIN_DODGE_CHANCES;
 }
 
 /* ================= Every piece counts (sliceRev 13, Nov 2026, the scoring audit) ================= */
