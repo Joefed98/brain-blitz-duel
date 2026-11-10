@@ -173,3 +173,29 @@ The bands rise and the top tightens (the rule asked for proportion, not the scor
 sit well apart from great and flawless. No run scores less than on sliceRev 12.
 
 The table's medians (p10–p90) are 30 room seeds, measured with `bun scripts/arcade-skill-bands.ts cross wavefront burst skyline slice --rev=now --seeds=30 --levels=all` on main and on this branch.
+
+## The deal's dodge-chance rule (10 Nov 2026, no stamp)
+
+slice-food-check at full depth found a dealt seed, 226449345, where a perfect run tops out at 198: the dodges part
+(2 each, up to 10) needs five dodges, and the deal's rule only asked for five chillies. One of that seed's five chillies
+launches 10 ticks before the buzzer, so it can never be dodged. A scan of 9,260 seeds through the oracle and the server
+replay found two more of a second kind, 1709684879 and 342034521: a chilli launched while a Frenzy is on is suppressed,
+and the perfect player starts both Frenzies by cutting the bottle. A wider scan found a fourth, 1797528955, whose dodge
+chances bunch round one chilli at the same moment.
+
+`sliceFoodSeedOk` now also asks for at least `SLICE_V12_MIN_DODGE_CHANCES` (10) dodge chances (`sliceFoodDodgeChances`).
+A dodge chance is a food (not a bottle or what it holds) that, before the buzzer and with both on the board, passes with
+its skin within `SLICE_V11_CLOSE` − 2 px of the skin of a chilli that no Frenzy can suppress. A chilli launched while a
+Frenzy bottle is on the board, or within `SLICE_FRENZY_TICKS` after the bottle leaves, isn't counted. The count reads
+only the schedule, with integer arithmetic, in about 4 ms a seed. 9 is the fewest chances that clears every short seed
+found; 10 keeps one spare.
+
+| Seeds | Re-drawn before | Re-drawn after | Dealt below 200 after |
+|---|---|---|---|
+| slice-food-check's full-depth set (1,260) | 58 | 94 | 0 |
+| 9,261 scored (the check's set, 8,000 more and 1797528955) | 443 | 649 | 0 |
+| 40,000 fresh (room seeds 40000–59999 and an LCG stream) | – | 2,748 (6.9 %) | 0 (sliceRev 12 and 13) |
+
+This changes only which seeds new rounds are dealt. Play, schedule and scoring are unchanged, and the stamp stays
+sliceRev 13 (Joe's decision; the brief had asked for a new stamp). A stored round keeps its seed: grading and replay
+(`replaySliceRun(puzzle.seed, …)`) never call the deal rule.
