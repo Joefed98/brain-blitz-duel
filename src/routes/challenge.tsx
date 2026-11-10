@@ -348,13 +348,28 @@ function ChallengeScreen() {
 
   const info = mode.info;
   if (!info.found) {
-    // The shared error layout (Polish batch R): Back to Play, or Make your own challenge.
+    // The shared not-found layout (wave 1, X2): Make your own challenge, or Back home.
     return (
       <PhoneShell skin="play">
         <div data-challenge-screen="landing" className="flex flex-1 flex-col">
           <ErrorState
             title="Challenge not found"
             body="This challenge link doesn’t work. Check it with whoever sent it, or make your own."
+            action={{ label: "Make your own challenge", onClick: () => setCode(null) }}
+          />
+        </div>
+      </PhoneShell>
+    );
+  }
+  if (info.state === "closed") {
+    // An expired link (wave 1, X2): a challenge lasts 7 days; this device never played it.
+    return (
+      <PhoneShell skin="play">
+        <div data-challenge-screen="landing" data-challenge-state="closed" className="flex flex-1 flex-col">
+          <ErrorState
+            title="This challenge has ended"
+            body="Challenges last a week, and this one’s closed. Make your own and send it on."
+            code="challenge_ended"
             action={{ label: "Make your own challenge", onClick: () => setCode(null) }}
           />
         </div>
@@ -412,12 +427,9 @@ function ChallengeScreen() {
                   {info.players} of {info.maxPlayers} played
                 </p>
               </div>
-              {info.state === "closed" || info.state === "full" ? (
-                <p className="text-sm text-muted-foreground">
-                  {info.state === "closed"
-                    ? "This challenge has ended."
-                    : `This challenge is full (${info.maxPlayers} players).`}
-                </p>
+              {info.state === "full" ? (
+                // (An ended link is its own screen above.)
+                <p className="text-sm text-muted-foreground">{`This challenge is full (${info.maxPlayers} players).`}</p>
               ) : (
                 <>
                   {info.state === "play" && editingName ? (
@@ -482,7 +494,7 @@ function ChallengeScreen() {
                 </p>
               ) : null}
             </section>
-            {info.state === "closed" || info.state === "full" ? (
+            {info.state === "full" ? (
               <NewChallengeButton onClick={() => setCode(null)} />
             ) : null}
           </>

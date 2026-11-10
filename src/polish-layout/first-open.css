@@ -1,0 +1,242 @@
+/*
+ * The first-open onboarding (wave 1, first impressions, 10 Nov 2026; docs/mockups/wave-1/O1–O3;
+ * src/components/app/FirstOpen.tsx). Off until wave 3 (src/lib/firstOpen.ts). Tokens only.
+ */
+.fo-root {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  justify-content: center;
+  overflow: hidden;
+  background-color: var(--jz-bg);
+  outline: none;
+}
+/* The stripes behind the top (DESIGN.md section 4: the top of a page). */
+.fo-root::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 60%;
+  background-image: var(--jz-stripes);
+  mask-image: linear-gradient(to bottom, black 70%, transparent);
+  pointer-events: none;
+}
+.fo-column {
+  position: relative;
+  display: flex;
+  width: 100%;
+  max-width: 430px;
+  min-height: 0;
+  flex-direction: column;
+  padding-inline: var(--jz-space-20);
+}
+.fo-top {
+  display: flex;
+  height: 48px;
+  flex: none;
+  align-items: center;
+  justify-content: flex-end;
+}
+.fo-skip {
+  margin-right: -12px;
+  padding: 0 12px;
+  color: var(--jz-text-3);
+  font-size: 16px;
+  font-weight: var(--jz-weight-medium);
+}
+.fo-track {
+  display: flex;
+  min-height: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+  justify-content: center;
+  overflow: hidden;
+  touch-action: pan-y;
+  user-select: none;
+}
+.fo-strip {
+  display: flex;
+  width: 100%;
+  min-height: 0;
+  transition: transform var(--jz-slow) var(--jz-ease);
+}
+.fo-strip[data-dragging] {
+  transition: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .fo-strip {
+    transition: none;
+  }
+}
+.fo-screen {
+  display: flex;
+  width: 100%;
+  flex: none;
+  flex-direction: column;
+  justify-content: center;
+}
+/* The screens off to the side are hidden once the slide has ended (and shown again while a finger drags). */
+.fo-screen[aria-hidden="true"] {
+  visibility: hidden;
+  transition: visibility 0s linear var(--jz-slow);
+}
+.fo-strip[data-dragging] .fo-screen {
+  visibility: visible;
+  transition: none;
+}
+.fo-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--jz-space-12);
+  text-align: center;
+}
+.fo-art {
+  display: flex;
+  margin-bottom: var(--jz-space-8);
+}
+.fo-art > .jz-captain {
+  width: auto;
+  height: 200px;
+}
+.fo-title {
+  max-width: 340px;
+  font-family: var(--jz-font);
+  text-transform: none;
+  letter-spacing: normal;
+  margin: 0;
+  color: var(--jz-text);
+  font-size: 28px;
+  line-height: 32px;
+  font-weight: var(--jz-weight-bold);
+  font-stretch: 112%;
+}
+.fo-sub {
+  margin: 0;
+  max-width: 320px;
+  color: var(--jz-text-2);
+  font-size: 16px;
+  line-height: 23px;
+}
+.fo-how {
+  display: flex;
+  flex-direction: column;
+  gap: var(--jz-space-12);
+}
+.fo-how-title {
+  font-family: var(--jz-font);
+  text-transform: none;
+  letter-spacing: normal;
+  margin: 0 0 var(--jz-space-4);
+  color: var(--jz-text);
+  font-size: 30px;
+  line-height: 32px;
+  font-weight: var(--jz-weight-bold);
+  font-stretch: 112%;
+}
+.fo-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--jz-space-4);
+  padding: var(--jz-space-16);
+}
+.fo-icons {
+  display: flex;
+  height: 44px;
+  align-items: center;
+  gap: var(--jz-space-8);
+  margin-bottom: var(--jz-space-4);
+}
+.fo-cat {
+  width: 36px;
+  height: 36px;
+  border: 3px solid var(--category-accent, var(--jz-line));
+  border-radius: var(--jz-radius);
+}
+.fo-cat[data-cat="word"] { --category-accent: var(--category-word); }
+.fo-cat[data-cat="number"] { --category-accent: var(--category-number); }
+.fo-cat[data-cat="pattern"] { --category-accent: var(--category-pattern); }
+.fo-card-title {
+  font-family: var(--jz-font);
+  text-transform: none;
+  letter-spacing: normal;
+  margin: 0;
+  color: var(--jz-text);
+  font-size: 18px;
+  line-height: 22px;
+  font-weight: var(--jz-weight-bold);
+}
+.fo-card-body {
+  margin: 0;
+  color: var(--jz-text-2);
+  font-size: 15px;
+  line-height: 21px;
+}
+/* As the mockups: the dots sit higher on the last screen, over its two ways to play. */
+.fo-bottom {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--jz-space-16);
+  padding: var(--jz-space-16) 0 var(--jz-space-8);
+}
+.fo-dots {
+  display: flex;
+  gap: var(--jz-space-8);
+}
+.fo-dots > span {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--jz-round);
+  background-color: var(--jz-surface-2);
+}
+.fo-dots > span[data-current] {
+  width: 22px;
+  background-color: var(--jz-gold);
+}
+.fo-quiet {
+  margin-top: -4px;
+  padding: 0 12px;
+  color: var(--jz-text-2);
+  font-size: 16px;
+  font-weight: var(--jz-weight-medium);
+}
+/* Short screens (375×667): smaller art and cards, so every screen fits without scrolling. */
+@media (max-height: 700px) {
+  .fo-art > .jz-captain {
+    height: 150px;
+  }
+  .fo-title {
+    font-size: 24px;
+    line-height: 28px;
+  }
+  .fo-how {
+    gap: var(--jz-space-8);
+  }
+  .fo-card {
+    gap: 2px;
+  }
+  .fo-icons {
+    margin-bottom: 2px;
+  }
+  .fo-bottom {
+    gap: var(--jz-space-12);
+    padding-top: var(--jz-space-12);
+  }
+  .fo-how-title {
+    font-size: 24px;
+    line-height: 28px;
+  }
+  .fo-card {
+    padding: var(--jz-space-12);
+  }
+  .fo-icons {
+    height: 36px;
+  }
+  .fo-card-body {
+    font-size: 14px;
+    line-height: 19px;
+  }
+}

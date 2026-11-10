@@ -1864,6 +1864,20 @@ outside the repo.
   `under_thirteen_refused` (`20261110120100_analytics_account_events.sql`). The harness's GoTrue stand-in serves
   `PUT /user`, `/otp`, `/verify`, `/logout` and `/admin/users/:id` (codes in `rest.mail`). accounts-check (~6 s, shard `e`, no
   browser).
+- **First impressions** (wave 1, 10 Nov 2026; presentation and device storage only, no stamps, no server change;
+  `docs/mockups/wave-1/README.md`): `EmptyState` (`@/design/components`, page and card layouts) with `Captain`
+  (`@/design/art`: the approved `captain-joulz-ready` / `-win` SVGs, byte-for-byte copies in `public/art/`) on every
+  empty list (Profile's Recent rooms and Your challenges, Tournaments' Your results and no public games), the
+  not-found screens (`ErrorState`: the 404, room not found, challenge not found and an ended challenge link,
+  `error_shown` code `challenge_ended`), the offline screen (`OfflineState`, "No signal"; OnlineOnly and the banner's
+  behaviour unchanged) and the error boundary (`RouteErrorScreen` in `src/components/app/AppErrorScreen.tsx`:
+  "That one’s on us", Refresh, Back home, `error_shown` code `page_error` or `chunk_load`, never the error's text).
+  The first-open onboarding (`src/components/app/FirstOpen.tsx`, rules `src/lib/firstOpen.ts`) is behind
+  `FIRST_OPEN_ONBOARDING` in `betaConfig.ts`, **false until wave 3** (off: nothing loads or is stored); on, a phone's
+  first open on a tab page shows three swipeable screens once, Skip on each (`duelz-first-open:v1`). Wave 2's Friends
+  and wave 4's Tournaments reuse `EmptyState`. first-impressions-check (~2 s, happy-dom) and
+  first-impressions-screens-check (headless Chromium, ~4 min: 390×844, 375×667, desktop, iPhone 11 app); the screens
+  are also in theme-check and no-wrap-check (`WAVE1_SCREENS` in `scripts/theme-screens.ts`, appended last).
 - `src/components/duel/` — room/round screens (PhoneShell, RoundIntro, TimerBar,
   AnswerReveal, ArcadeReveal, WinnerReveal…); `src/components/puzzles/` — shared puzzle
   widgets; `src/lib/fx/` — sound and visual feedback (presentation only).

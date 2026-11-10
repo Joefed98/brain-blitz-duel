@@ -119,6 +119,11 @@
   --jz-art-sheen: #FFFFFF;
   --jz-art-edge: #06080F;
   --jz-art-gold-deep: #9A7A3A;
+  /* The soft halo behind Captain Joulz on empty and error screens (wave 1 mockups E1–X3): cool for an empty
+     list or a page that isn't there, warm red when something is wrong (offline, an error). A radial gradient of
+     this colour to transparent. */
+  --jz-halo-cool: color-mix(in srgb, var(--jz-cyan) 13%, transparent);
+  --jz-halo-alert: color-mix(in srgb, var(--jz-red) 11%, transparent);
 
   /* ------------------------------------------------ type (section 3) */
   --jz-font: "Archivo", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;

@@ -65,3 +65,12 @@ export const HERO_GRAND_SCORE = 200;
  * see the settings read-only and the server refuses changes.
  */
 export const ROOM_SETTINGS_PLUS_ONLY = false;
+
+/**
+ * The first-open onboarding (wave 1, 10 Nov 2026; docs/mockups/wave-1/O1–O3; src/lib/firstOpen.ts): three
+ * swipeable screens, Skip on each, shown once on a phone's very first open.
+ *
+ * false (until wave 3, when the rated match they describe exists): nothing shows, nothing is loaded and
+ * nothing is stored. true: a phone's first open on a tab page shows it once.
+ */
+export const FIRST_OPEN_ONBOARDING = false;

@@ -97,12 +97,11 @@ export function JoinFromLink({
 
   if (!preview.found) {
     return (
-      // The shared error layout (Polish batch R): try another code, Back to Play, or Create a room.
+      // The shared not-found layout (wave 1, X2): try another code, or Back home.
       <ErrorState
         title="Room not found"
-        body={`No room exists with the code ${roomCode}. Check the code, or start your own room.`}
+        body={`No room has the code ${roomCode}. Check it with your friend, or try another.`}
         codeBox
-        action={{ label: "Create a room", onClick: () => void navigate({ to: "/" }) }}
       />
     );
   }

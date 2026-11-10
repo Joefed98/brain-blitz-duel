@@ -180,6 +180,7 @@ component gallery, `/dev-design` (development builds only).
 | `Nameplate` | strip (standings, lobby), full, mini; the avatar disc (PlayerBadge) inside | `PlayerBadge` layouts |
 | `Medal` | the approved medal art (docs/art) for 1st–3rd, no numbers; the plain number from 4th; a shared place adds an "=" tag; S 22, M 36, L 64 wide | `Medal.tsx`'s placeholder discs (F5) |
 | `TabBar` | phone bar and desktop rail from one list (`TABS`) | the two copies in `AppTabBar` and `AppRail` |
+| `EmptyState` | `layout="page"` (a whole screen: Captain Joulz over a soft halo, title, one line, the gold action and an optional secondary; `tone="cool"` for an empty list or a missing page, `"alert"` for offline and errors) and `layout="card"` (inside a list's section: the figure small on the left, title, line, one action); `pose` `ready` or `win`; `data-*` pass through (wave 1, 10 Nov 2026; docs/mockups/wave-1/ E1–E3, X1–X3) | the old `ErrorState` mark, `.ap-empty-card`, the ghost-disc results panel |
 | `Icon` | the Joulz icons (section 6): `name`, `size` 18 / 20 / 22 / 24, `tone` (`text`, `text-2`, `text-3`, `gold`, `red`, `cyan`), `label` | `lucide-react` in app chrome |
 
 Every interactive component has hover (fine pointer), pressed (scale 0.97, 120 ms) and focus-visible (2 px
@@ -195,6 +196,9 @@ medal art `Medal` draws. Each is inline SVG ported line for line from `docs/art/
 gradient each), their inks `--jz-ink-<metal>`, `--jz-glow`, `--jz-art-sheen`, `--jz-art-edge` and
 `--jz-art-gold-deep`. `size` is the width; a role="img" label on each. art-check proves the markup is
 docs/art/svg/ byte for byte. Captain Joulz is canvas art (`src/lib/arcade/hero.renderer.ts`, section 9).
+On app screens (empty, error and onboarding screens) Captain Joulz is the approved SVG itself, drawn by `Captain`
+(`@/design/art`, `pose` `ready` or `win`) from byte-for-byte copies in `public/art/` (first-impressions-check); only
+the approved poses exist, so a screen whose mockup shows another pose uses the closest one.
 ---
 
 ## 6. Icons

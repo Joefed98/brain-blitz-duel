@@ -598,21 +598,6 @@
     background: var(--ap-text-2);
   }
 
-  /* The error screens (404, room not found, challenge not found). */
-  .rs-error-mark {
-    display: flex;
-    width: 76px;
-    height: 76px;
-    align-items: center;
-    justify-content: center;
-    border-radius: 22px;
-    background: var(--ap-panel);
-    opacity: 0.85;
-  }
-  .rs-error-mark > svg {
-    opacity: 0.45;
-  }
-
   /* A tie note under a standings row's name: its own line across the row, so it is never cut short. */
   .rs-tie-note {
     grid-column: 3 / -1;
