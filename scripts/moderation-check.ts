@@ -183,7 +183,16 @@ async function pureChecks(): Promise<void> {
     check(new Set(QUICK_PHRASES.map((p) => p.id)).size === QUICK_PHRASES.length, "quick phrases: ids unique");
     check(QUICK_PHRASES.every((p) => p.text.length <= 30 && censorChat(p.text) === p.text), "quick phrases: short, and pass the chat filter unchanged");
     check(["Good game!", "Nice one!", "Rematch?"].every((t) => QUICK_PHRASES.some((p) => p.text === t)), "quick phrases: Good game!, Nice one!, Rematch?");
-    check(QUICK_REACTIONS === ROOM_EMOJI, "quick phrases: the existing reactions");
+    const JOES_LIST = [
+      "Good game!", "Rematch?", "Nice one!", "Unlucky!", "Jeeez!", "How?!", "So close!", "Sheesh!", "That was clutch!",
+      "My thumbs slipped", "Too fast for me!", "I’ll get you next time!", "One more?", "Good luck!", "Let’s go!",
+      "Well played!", "Brain hurts", "Oops!", "Hello!", "Bye!",
+    ];
+    check(
+      JSON.stringify(QUICK_PHRASES.map((p) => p.text)) === JSON.stringify(JOES_LIST),
+      "quick phrases: exactly Joe's 20 (10 Nov 2026), in his order",
+    );
+    check(QUICK_REACTIONS === ROOM_EMOJI && ROOM_EMOJI.length === 6, "quick phrases: the six existing reactions");
     check(quickPhraseText("gg") === "Good game!" && quickPhraseText("hello there") === null, "quick phrases: looked up by id only");
     const room = readFileSync("src/components/duel/RoomChat.tsx", "utf8");
     check(!/quickPhrases/.test(room), "quick phrases: not shown in rooms");

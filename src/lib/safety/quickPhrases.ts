@@ -10,26 +10,27 @@
 import { ROOM_EMOJI } from "@/lib/duel/chatConstants";
 
 export const QUICK_PHRASES = [
+  // Joe's list (10 Nov 2026), in his order. Apostrophes are the house’s typographic ’ (DESIGN.md copy rules).
   { id: "gg", text: "Good game!" },
-  { id: "nice", text: "Nice one!" },
   { id: "rematch", text: "Rematch?" },
-  { id: "good-luck", text: "Good luck!" },
-  { id: "well-played", text: "Well played!" },
+  { id: "nice", text: "Nice one!" },
+  { id: "unlucky", text: "Unlucky!" },
+  { id: "jeeez", text: "Jeeez!" },
+  { id: "how", text: "How?!" },
   { id: "so-close", text: "So close!" },
-  { id: "great-round", text: "Great round!" },
-  { id: "wow", text: "Wow!" },
-  { id: "thanks", text: "Thanks!" },
-  { id: "fun", text: "That was fun!" },
+  { id: "sheesh", text: "Sheesh!" },
+  { id: "clutch", text: "That was clutch!" },
+  { id: "thumbs", text: "My thumbs slipped" },
+  { id: "too-fast", text: "Too fast for me!" },
+  { id: "next-time", text: "I’ll get you next time!" },
   { id: "one-more", text: "One more?" },
-  { id: "ready", text: "Ready!" },
+  { id: "good-luck", text: "Good luck!" },
   { id: "lets-go", text: "Let’s go!" },
-  { id: "close-one", text: "That was a close one!" },
-  { id: "tough", text: "That one was tough!" },
-  { id: "speedy", text: "So fast!" },
-  { id: "next-time", text: "Next time!" },
+  { id: "well-played", text: "Well played!" },
+  { id: "brain-hurts", text: "Brain hurts" },
+  { id: "oops", text: "Oops!" },
   { id: "hello", text: "Hello!" },
   { id: "bye", text: "Bye!" },
-  { id: "oops", text: "Oops!" },
 ] as const;
 
 export type QuickPhraseId = (typeof QUICK_PHRASES)[number]["id"];
