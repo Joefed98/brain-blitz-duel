@@ -331,6 +331,10 @@ export const SHARDS: Record<string, string[]> = {
     // moderation-check (10 Nov 2026, ~20 s): safety (Turnstile, the new-guest limit, reports, the automatic mute, Joe's
     // moderation functions, bans, retention) through the server functions on a local PostgreSQL, beside accounts-check.
     "moderation-check.ts",
+    // economy-check (wave 2 A1, 10 Nov 2026, ~8 s): coins and items (the catalogue against catalogue.json, the coin
+    // ledger and its races, consumables, ownership, equipping, the avatar, Joe's tools) on a local PostgreSQL through
+    // the server-function harness, beside accounts-check.
+    "economy-check.ts",
     // moderation-ui-check (10 Nov 2026, ~3 s, happy-dom): two taps to report from a name and from a message.
     "moderation-ui-check.tsx",
     // account-screens-check (10 Nov 2026, ~10 s): the sign-up screens' rules, the save-progress events' server function

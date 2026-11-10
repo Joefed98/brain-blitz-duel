@@ -59,6 +59,10 @@ events go alongside them.
 | `save_progress_shown` | server | the "Save your progress" sheet or pop-up shown on a result (`props.prompt` sheet / popup, `props.from` room / daily / challenge), through `recordSaveProgressFn` (src/lib/account/saveProgress.functions.ts: these three only, fixed words only, rate limited); added by `20261110130000_analytics_save_progress_events.sql` |
 | `save_progress_tapped` | server | a sign-up way tapped on that sheet or pop-up (`props.method` email / google / apple) |
 | `save_progress_dismissed` | server | "Not now" (or the sheet dragged away) |
+| `coins_credited` | server / database | coins credited to an account (src/lib/economy/economy.server.ts helpers, Joe's economy functions, refunds); props `reason`, `amount` |
+| `coins_spent` | server / database | coins spent (a spend, a shop purchase, a downward admin adjustment); props `reason`, `amount` |
+| `item_granted` | server / database | an item added to an inventory (starter items at sign-up, a purchase, the pass, earned, Joe's grant); props `kind`, `rarity`, `source` |
+| `item_equipped` | server | an item equipped in a loadout slot (not an unequip); props `kind` |
 
 Mode is `room`, `daily`, `challenge` or `practice` (`rated` comes later with its own migration).
 

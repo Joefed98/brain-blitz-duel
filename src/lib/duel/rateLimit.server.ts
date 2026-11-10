@@ -44,6 +44,11 @@ export const USERNAME_CHECK_LIMIT: RateLimit = { bucket: "username-check", max: 
 /** Safety calls (10 Nov 2026: the status on open, a warning seen, a forced rename): 60 per 10 minutes per user. */
 export const SAFETY_LIMIT: RateLimit = { bucket: "safety", max: 60, windowSeconds: 600 };
 
+/** Coins and items (wave 2: the wallet, inventory and loadout reads, equipping, the avatar): 240 per 10 minutes per user. */
+export const ECONOMY_LIMIT: RateLimit = { bucket: "economy", max: 240, windowSeconds: 600 };
+/** Public cards (another player's look, read by profiles, rooms and friends): 600 per 10 minutes per user. */
+export const PUBLIC_CARD_LIMIT: RateLimit = { bucket: "public-card", max: 600, windowSeconds: 600 };
+
 /** Starting a room (dealing every round): 30 an hour per user. */
 export const START_ROOM_LIMIT: RateLimit = { bucket: "start-room", max: 30, windowSeconds: 3600 };
 /** Starting a challenge attempt: 30 per 10 minutes per user. */
