@@ -1878,6 +1878,30 @@ outside the repo.
   and wave 4's Tournaments reuse `EmptyState`. first-impressions-check (~2 s, happy-dom) and
   first-impressions-screens-check (headless Chromium, ~4 min: 390×844, 375×667, desktop, iPhone 11 app); the screens
   are also in theme-check and no-wrap-check (`WAVE1_SCREENS` in `scripts/theme-screens.ts`, appended last).
+- **Sign-up screens** (wave 1 train 2, 10 Nov 2026; `docs/accounts/README.md` "Sign-up screens", mockups S1–S6; no
+  gameplay, scoring, stamp, timing or room-flow change): `/account` (`src/routes/account.tsx`) is a guest's sign-in and
+  sign-up (`SignUpFlow`: sign in, email, inbox with the 6-digit code, username and all 32 colours with a live check and
+  three suggestions, birthday with no age-limit text, welcome with "Founding Player #0042" and the approved badge
+  `public/art/badges/founding-player.svg`, the sign-in warning from `guestProgressFn`, the under-13 message, the
+  deletion cancel offer) or an account's Settings → Account (`AccountSettings`: username and when it may change,
+  email, country, sign out, delete in two steps); Settings' first row opens it. "Save your progress"
+  (rules `src/lib/account/saveProgress.ts`): the sheet after the first finished room, Daily or challenge, the pop-up once
+  after the third if dismissed, never again; never over a round, its intro or reveal, or any result, podium, standings or
+  share screen (Joe's decision): result screens only count the game (`FinishedGameCounter`, the prompt `pending` on the
+  device) and the prompt shows on the next tab page, this visit or the next open (`SaveProgressSlot` in PhoneShell's
+  `tabs`, `takePendingPrompt`); its three events go through
+  `recordSaveProgressFn` (these three only, fixed words, `SAVE_PROGRESS_LIMIT`) after
+  `20261110130000_analytics_save_progress_events.sql` (**not applied until merged**). `AccountGate` is the reusable
+  "needs an account" gate for waves 2 and 4. Names: a signed-in player is seated under their username wherever a name
+  is stored (`accountNameOf`, `src/lib/names/playerName.server.ts`: `insertPlayer`, `dailyStartFn`, the challenge
+  calls), so lobby, standings, results, chat and share cards show it; guest name boxes take `GUEST_NAME_MAX` (16) and a
+  refused name shows its three suggestions as chips. Account emails go only through `requestSignInEmailFn` /
+  `requestSignUpEmailFn` (`requestEmailCode`, `src/lib/data/authEmail.server.ts`): 10 a network every 10 minutes
+  (`IP_ACCOUNT_EMAIL_LIMIT`) and 5 an address every hour (`EMAIL_CODE_LIMIT`) through take_rate_limit, hashed keys
+  only. The server-fn harness's `callServerFn` takes extra request headers (`cf-connecting-ip`). The server-fn harness's GoTrue stand-in also serves anonymous
+  sign-in, token refresh and CORS for a browser. Checks: account-screens-check (~10 s, no browser),
+  account-flow-check (Chromium, the whole email-code flow on the dev server against the harness, ~2 min), and
+  `ACCOUNT_SCREENS` in `scripts/theme-screens.ts` (theme-check, no-wrap-check).
 - `src/components/duel/` — room/round screens (PhoneShell, RoundIntro, TimerBar,
   AnswerReveal, ArcadeReveal, WinnerReveal…); `src/components/puzzles/` — shared puzzle
   widgets; `src/lib/fx/` — sound and visual feedback (presentation only).

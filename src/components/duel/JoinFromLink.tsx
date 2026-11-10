@@ -15,6 +15,9 @@ import { ErrorState } from "@/components/app/ErrorState";
 
 import { Dots, WaitingLine } from "./Dots";
 import { Button, Input, SkeletonPage } from "@/design/components";
+import { GUEST_NAME_MAX } from "@/lib/names/username";
+import { NameSuggestions, reasonFrom, suggestionsFrom } from "@/components/account/AccountParts";
+import { useAccountName } from "@/lib/account/accountApi";
 
 /**
  * Someone opened a room link but isn't in the room. While the room is in its
@@ -62,8 +65,12 @@ export function JoinFromLink({
     else noteShareLobbyArrival(roomCode);
   }, [preview, shared, redirect, navigate, roomCode]);
 
+  // A refused name's three suggestions (names.server.ts); a signed-in player joins under their username.
+  const [suggestions, setSuggestions] = useState<string[]>([]);
+  const accountName = useAccountName();
   const join = async () => {
-    const trimmed = name.trim();
+    setSuggestions([]);
+    const trimmed = (accountName ?? name).trim();
     if (!trimmed) {
       setError("Enter a display name.");
       return;
@@ -77,7 +84,8 @@ export function JoinFromLink({
       await onJoined();
     } catch (err) {
       setBusy(false);
-      setError(err instanceof Error ? err.message : "That didn’t work. Try again.");
+      setSuggestions(suggestionsFrom(err));
+      setError(err instanceof Error ? reasonFrom(err.message) : "That didn’t work. Try again.");
     }
   };
 
@@ -151,14 +159,23 @@ export function JoinFromLink({
         </label>
         <Input
           id="link-name"
-          value={name}
-          autoFocus
-          maxLength={14}
+          value={accountName ?? name}
+          readOnly={accountName !== null}
+          autoFocus={accountName === null}
+          maxLength={GUEST_NAME_MAX}
           placeholder="Your name"
           onChange={(event) => setName(event.target.value)}
         />
       </div>
       {error && <p className="text-sm text-warn">{error}</p>}
+      <NameSuggestions
+        names={suggestions}
+        onPick={(picked) => {
+          setName(picked);
+          setError(null);
+          setSuggestions([]);
+        }}
+      />
       <Button
         variant="gold"
         size={52}

@@ -114,3 +114,35 @@ export const noteSignOutFn = createServerFn({ method: "POST" })
     if (!allowed) return { ok: false };
     return account.noteSignOut(context.userId);
   });
+
+async function bearerToken(): Promise<string | null> {
+  const { getRequest } = await import("@tanstack/react-start/server");
+  const header = getRequest()?.headers?.get("authorization") ?? "";
+  return header.startsWith("Bearer ") ? header.slice(7) : null;
+}
+
+async function emailSetup() {
+  const { adminDb } = await import("@/lib/data/db.server");
+  return { client: await adminDb(), account: await import("./account.server") };
+}
+
+/**
+ * The sign-in email (an existing account only), which is also the lookup that tells the screens sign-in from sign-up
+ * ("no-account"). Rate limited per network and per address through take_rate_limit (requestEmailCode).
+ */
+export const requestSignInEmailFn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { email: string }) => input)
+  .handler(async ({ data }) => {
+    const { client, account } = await emailSetup();
+    return account.requestEmailCode(client, "sign-in", data?.email, null);
+  });
+
+/** The sign-up email: links the address to the caller's own guest and sends its code. Rate limited as sign-in's. */
+export const requestSignUpEmailFn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { email: string }) => input)
+  .handler(async ({ data }) => {
+    const { client, account } = await emailSetup();
+    return account.requestEmailCode(client, "sign-up", data?.email, await bearerToken());
+  });

@@ -28,7 +28,7 @@ import { ensureSession } from "./session";
 
 type Started =
   | { ok: true; code: string; roomId: string }
-  | { ok: false; message: string; nameRefused?: boolean };
+  | { ok: false; message: string; nameRefused?: boolean; suggestions?: string[] };
 
 export async function challengeStatus(): Promise<boolean> {
   // No session is started for this: a visitor who never plays stays signed out.
@@ -64,7 +64,7 @@ export async function startChallenge(
   look: { colour?: number | null; icon?: string | null },
 ): Promise<
   | { ok: true; roomId: string; created: boolean }
-  | { ok: false; message: string; nameRefused?: boolean; full?: boolean; closed?: boolean }
+  | { ok: false; message: string; nameRefused?: boolean; suggestions?: string[]; full?: boolean; closed?: boolean }
 > {
   await ensureSession();
   return (await startChallengeFn({

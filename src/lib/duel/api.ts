@@ -114,7 +114,8 @@ export async function joinRoomByCode(
   const result = await joinRoomFn({
     data: { roomCode, displayName, look: rememberedLook(), ...(via ? { via } : {}) },
   });
-  if (!result.ok) throw new DuelError(result.message);
+  // A refused name carries the backend's three suggestions (names.server.ts) for the screen to offer.
+  if (!result.ok) throw Object.assign(new DuelError(result.message), { suggestions: "suggestions" in result ? result.suggestions : undefined });
   return { roomCode: result.roomCode };
 }
 

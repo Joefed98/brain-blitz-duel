@@ -1,6 +1,7 @@
 import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
+import { FinishedGameCounter } from "@/components/account/SaveProgress";
 import { ErrorState } from "@/components/app/ErrorState";
 import { TermsGate } from "@/components/beta/TermsGate";
 import { AsyncResults } from "@/components/async/AsyncResults";
@@ -47,6 +48,9 @@ import { noteLinkArrival } from "@/lib/share/shareRef";
 import { unlockAudio } from "@/lib/sound";
 import { OnlineOnly } from "@/components/offline/OnlineOnly";
 import { Button, Icon, Input, SkeletonPage } from "@/design/components";
+import { GUEST_NAME_MAX } from "@/lib/names/username";
+import { NameSuggestions } from "@/components/account/AccountParts";
+import { useAccountName } from "@/lib/account/accountApi";
 
 export const Route = createFileRoute("/challenge")({
   ssr: false,
@@ -131,6 +135,14 @@ function ChallengeScreen() {
   const [mode, setMode] = useState<Mode>({ kind: "loading" });
   const [name, setName] = useState("");
   const [editingName, setEditingName] = useState(false);
+  // A refused name's three suggestions; a signed-in player's board name is their username.
+  const [suggestions, setSuggestions] = useState<string[]>([]);
+  const accountName = useAccountName();
+  const pickSuggestion = (picked: string) => {
+    setName(picked);
+    setError(null);
+    setSuggestions([]);
+  };
   const [look, setLook] = useState<PlayerLook>({ colour: 0, icon: null });
   const [categories, setCategories] = useState<PuzzleCategory[]>([...STANDARD_CATEGORIES]);
   const [rounds, setRounds] = useState(6);
@@ -210,7 +222,8 @@ function ChallengeScreen() {
   }, [categories, rounds]);
 
   const checkedName = () => {
-    const trimmed = name.trim();
+    setSuggestions([]);
+    const trimmed = (accountName ?? name).trim();
     if (!trimmed) {
       setEditingName(true);
       setError("Enter a display name.");
@@ -230,6 +243,7 @@ function ChallengeScreen() {
       if (!made.ok) {
         setError(made.message);
         if (made.nameRefused) setEditingName(true);
+        setSuggestions(made.suggestions ?? []);
         return;
       }
       setStoredName(trimmed);
@@ -259,6 +273,7 @@ function ChallengeScreen() {
       if (!started.ok) {
         setError(started.message);
         if (started.nameRefused) setEditingName(true);
+        setSuggestions(started.suggestions ?? []);
         return;
       }
       setStoredName(trimmed);
@@ -326,13 +341,13 @@ function ChallengeScreen() {
             </p>
           </div>
           <ChallengeCreate
-            name={name}
-            editingName={editingName}
+            name={accountName ?? name}
+            editingName={editingName && !accountName}
             onName={(next) => {
               setError(null);
               setName(next);
             }}
-            onEditName={() => setEditingName(true)}
+            onEditName={accountName ? undefined : () => setEditingName(true)}
             categories={categories}
             onCategories={setCategories}
             rounds={rounds}
@@ -341,6 +356,7 @@ function ChallengeScreen() {
             error={error}
             onCreate={() => void create()}
           />
+          <NameSuggestions names={suggestions} onPick={pickSuggestion} />
         </div>
       </PhoneShell>
     );
@@ -432,7 +448,7 @@ function ChallengeScreen() {
                 <p className="text-sm text-muted-foreground">{`This challenge is full (${info.maxPlayers} players).`}</p>
               ) : (
                 <>
-                  {info.state === "play" && editingName ? (
+                  {info.state === "play" && editingName && !accountName ? (
                     <div className="flex flex-col gap-1.5">
                       <label
                         htmlFor="challenge-play-name"
@@ -443,7 +459,7 @@ function ChallengeScreen() {
                       <Input
                         id="challenge-play-name"
                         value={name}
-                        maxLength={14}
+                        maxLength={GUEST_NAME_MAX}
                         placeholder="Your name"
                         autoComplete="nickname"
                         onChange={(e) => {
@@ -455,15 +471,17 @@ function ChallengeScreen() {
                   ) : info.state === "play" ? (
                     <p className="flex items-center gap-2 text-sm text-muted-foreground">
                       <span className="min-w-0 truncate">
-                        Playing as <span className="th-name text-foreground">{name}</span>
+                        Playing as <span className="th-name text-foreground">{accountName ?? name}</span>
                       </span>
-                      <button
-                        type="button"
-                        onClick={() => setEditingName(true)}
-                        className="press tap-target shrink-0 px-2 font-display text-xs font-semibold uppercase tracking-widest text-primary"
-                      >
-                        Change name
-                      </button>
+                      {accountName ? null : (
+                        <button
+                          type="button"
+                          onClick={() => setEditingName(true)}
+                          className="press tap-target shrink-0 px-2 font-display text-xs font-semibold uppercase tracking-widest text-primary"
+                        >
+                          Change name
+                        </button>
+                      )}
                     </p>
                   ) : (
                     <p className="text-sm text-muted-foreground">
@@ -493,6 +511,7 @@ function ChallengeScreen() {
                   {error}
                 </p>
               ) : null}
+              <NameSuggestions names={suggestions} onPick={pickSuggestion} />
             </section>
             {info.state === "full" ? (
               <NewChallengeButton onClick={() => setCode(null)} />
@@ -571,6 +590,8 @@ function ChallengeDone({
   if (!board || board.players.length < 2) {
     if (!view) return null;
     return (
+      <>
+      <FinishedGameCounter gameKey={`challenge:${mode.code}`} from="challenge" />
       <AsyncResults
         roomId={mode.roomId}
         view={view}
@@ -592,6 +613,7 @@ function ChallengeDone({
           </div>
         }
       />
+      </>
     );
   }
 
@@ -602,6 +624,7 @@ function ChallengeDone({
     .map((r) => ({ place: r.position, name: r.name, total: r.total }));
   return (
     <PhoneShell skin="room">
+      <FinishedGameCounter gameKey={`challenge:${board.code}`} from="challenge" />
       <div data-challenge-screen="podium" className="contents">
         <Podium
           rows={rows}

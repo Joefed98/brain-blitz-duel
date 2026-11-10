@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AccountRouteImport } from './routes/account'
 import { Route as ChallengeRouteImport } from './routes/challenge'
 import { Route as DailyRouteImport } from './routes/daily'
 import { Route as DevCrashRouteImport } from './routes/dev-crash'
@@ -24,6 +25,11 @@ import { Route as DuelCodeRouteImport } from './routes/duel.$code'
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AccountRoute = AccountRouteImport.update({
+  id: '/account',
+  path: '/account',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ChallengeRoute = ChallengeRouteImport.update({
@@ -79,6 +85,7 @@ const DuelCodeRoute = DuelCodeRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/account': typeof AccountRoute
   '/challenge': typeof ChallengeRoute
   '/daily': typeof DailyRoute
   '/dev-crash': typeof DevCrashRoute
@@ -92,6 +99,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/account': typeof AccountRoute
   '/challenge': typeof ChallengeRoute
   '/daily': typeof DailyRoute
   '/dev-crash': typeof DevCrashRoute
@@ -106,6 +114,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/account': typeof AccountRoute
   '/challenge': typeof ChallengeRoute
   '/daily': typeof DailyRoute
   '/dev-crash': typeof DevCrashRoute
@@ -121,6 +130,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/account'
     | '/challenge'
     | '/daily'
     | '/dev-crash'
@@ -134,6 +144,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/account'
     | '/challenge'
     | '/daily'
     | '/dev-crash'
@@ -147,6 +158,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/account'
     | '/challenge'
     | '/daily'
     | '/dev-crash'
@@ -161,6 +173,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AccountRoute: typeof AccountRoute
   ChallengeRoute: typeof ChallengeRoute
   DailyRoute: typeof DailyRoute
   DevCrashRoute: typeof DevCrashRoute
@@ -180,6 +193,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/account': {
+      id: '/account'
+      path: '/account'
+      fullPath: '/account'
+      preLoaderRoute: typeof AccountRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/challenge': {
@@ -257,6 +277,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AccountRoute: AccountRoute,
   ChallengeRoute: ChallengeRoute,
   DailyRoute: DailyRoute,
   DevCrashRoute: DevCrashRoute,

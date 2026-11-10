@@ -15,6 +15,7 @@ import { GameColumnLayout } from "@/components/puzzles/gameColumn";
 import { usePuzzleHaptics } from "@/components/puzzles/usePuzzleHaptics";
 import { usePuzzleRejections } from "@/components/puzzles/usePuzzleRejections";
 import { AppTabBar, type AppTab } from "@/components/app/AppTabBar";
+import { SaveProgressSlot } from "@/components/account/SaveProgressSlot";
 import type { ThemeSkin } from "@/lib/theme";
 import { OfflineBanner } from "@/components/offline/OfflineBanner";
 import { AppRail } from "@/components/app/AppRail";
@@ -508,6 +509,8 @@ export function PhoneShell({ children, reveal = false, bare = false, constrained
       {panel}
       {desktop && framePlay && gameType ? <DesktopControlsHint type={gameType} /> : null}
       {tabs && !gameScreen && !desktop ? <AppTabBar current={tabs} /> : null}
+      {/* "Save your progress" shows only here, on the tab pages (src/components/account/SaveProgressSlot.tsx). */}
+      {tabs && !gameScreen ? <SaveProgressSlot /> : null}
       <FxLayer theme={theme} />
     </div>
   );

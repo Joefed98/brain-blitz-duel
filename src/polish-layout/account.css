@@ -1,0 +1,360 @@
+/*
+ * The account screens (wave 1 sign-up screens, 10 Nov 2026; docs/mockups/wave-1/ S1–S6): sign in, email, inbox,
+ * username and colour, birthday, welcome, the guest-progress warning, the under-13 message, Settings → Account,
+ * the save-your-progress sheet and pop-up, and the "needs an account" gate. Tokens only (DESIGN.md).
+ */
+
+.acct-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--jz-space-20);
+  min-height: 100dvh;
+  padding: calc(env(safe-area-inset-top, 0px) + var(--jz-space-8)) var(--jz-page-pad)
+    calc(env(safe-area-inset-bottom, 0px) + var(--jz-space-24));
+  background: var(--jz-bg);
+  color: var(--jz-text);
+}
+.acct-page[data-striped] {
+  background: var(--jz-stripes), var(--jz-bg);
+  background-size: auto 360px, auto;
+  background-repeat: repeat-x, no-repeat;
+}
+
+.acct-head {
+  display: grid;
+  grid-template-columns: 44px 1fr 44px;
+  align-items: center;
+  min-height: 48px;
+}
+.acct-head-title {
+  text-align: center;
+  color: var(--jz-text-2);
+  font-size: 16px;
+  line-height: 20px;
+  font-weight: var(--jz-weight-medium);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.acct-steps {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--jz-space-4);
+}
+.acct-steps > span {
+  height: 4px;
+  border-radius: var(--jz-round);
+  background: var(--jz-surface-2);
+}
+.acct-steps > span[data-on] {
+  background: var(--jz-gold);
+}
+
+.acct-h1 {
+  font-size: 30px;
+  line-height: 34px;
+  font-weight: var(--jz-weight-bold);
+  font-stretch: 112%;
+  color: var(--jz-text);
+}
+.acct-lede {
+  color: var(--jz-text-2);
+  font-size: 15px;
+  line-height: 21px;
+}
+.acct-hint {
+  color: var(--jz-text-3);
+  font-size: 14px;
+  line-height: 18px;
+}
+.acct-label {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--jz-space-8);
+  color: var(--jz-text-2);
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: var(--jz-weight-medium);
+}
+.acct-label > span:last-child {
+  color: var(--jz-text-3);
+  font-weight: var(--jz-weight-regular);
+}
+.acct-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--jz-space-8);
+}
+.acct-error {
+  color: var(--jz-red);
+  font-size: 14px;
+  line-height: 18px;
+}
+.acct-ok {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--jz-space-4);
+  color: var(--jz-cyan);
+  font-size: 14px;
+  line-height: 18px;
+  font-weight: var(--jz-weight-medium);
+}
+.acct-grow {
+  flex: 1 1 auto;
+}
+.acct-centre {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: var(--jz-space-12);
+}
+.acct-actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--jz-space-12);
+}
+.acct-small {
+  color: var(--jz-text-3);
+  font-size: 14px;
+  line-height: 20px;
+  text-align: center;
+}
+
+/* The username box's live state sits inside the field's right edge. */
+.acct-input-wrap {
+  position: relative;
+}
+.acct-input-wrap > .acct-input-state {
+  position: absolute;
+  right: var(--jz-space-12);
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+.acct-input-wrap > .jz-input {
+  padding-right: 120px;
+}
+
+.acct-suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--jz-space-8);
+}
+
+/* All 32 colours: 8 across. */
+.acct-colours {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: var(--jz-space-8);
+}
+.acct-colour {
+  position: relative;
+  aspect-ratio: 1;
+  min-width: 0;
+  min-height: 32px;
+  border-radius: var(--jz-round);
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+}
+.acct-colour[aria-checked="true"] {
+  box-shadow: 0 0 0 3px var(--jz-bg), 0 0 0 5px var(--jz-gold);
+}
+/* A 44 px target round a dot smaller than it. */
+.acct-colour::after {
+  content: "";
+  position: absolute;
+  inset: -6px;
+}
+
+.acct-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--jz-space-12);
+  padding: var(--jz-space-16);
+  background: var(--jz-stripes), var(--jz-surface);
+  border: 2px solid var(--jz-gold);
+}
+.acct-card-name {
+  font-size: 22px;
+  line-height: 26px;
+  font-weight: var(--jz-weight-bold);
+  font-stretch: 108%;
+  color: var(--jz-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.acct-card-sub {
+  color: var(--jz-gold);
+  font-size: 14px;
+  line-height: 18px;
+  font-weight: var(--jz-weight-medium);
+}
+
+.acct-dob {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1.4fr;
+  gap: var(--jz-space-12);
+}
+.acct-select {
+  width: 100%;
+  height: 50px;
+  padding: 0 var(--jz-space-12);
+  border-radius: var(--jz-radius);
+  border: 1.5px solid var(--jz-surface-2);
+  background: var(--jz-well);
+  box-shadow: var(--jz-well-shadow);
+  color: var(--jz-text);
+  font: inherit;
+  font-size: 18px;
+  font-weight: var(--jz-weight-bold);
+  appearance: none;
+  text-align: center;
+}
+.acct-select:focus-visible {
+  outline: 2px solid var(--jz-gold);
+  outline-offset: 2px;
+}
+
+.acct-mail-disc {
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  border-radius: var(--jz-round);
+  background: var(--jz-cyan-panel);
+  color: var(--jz-cyan);
+}
+.acct-code {
+  letter-spacing: 0.4em;
+  text-align: center;
+  font-size: 22px;
+  font-weight: var(--jz-weight-bold);
+  font-variant-numeric: tabular-nums;
+}
+.acct-linkrow {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--jz-space-8) var(--jz-space-20);
+}
+
+.acct-kicker {
+  color: var(--jz-cyan);
+  font-size: 16px;
+  line-height: 20px;
+  font-weight: var(--jz-weight-medium);
+}
+.acct-founder {
+  width: 40px;
+  height: 40px;
+  flex: none;
+}
+.acct-number {
+  font-weight: var(--jz-weight-bold);
+  font-variant-numeric: tabular-nums;
+  color: var(--jz-text);
+}
+
+/* The save-your-progress sheet's list (S1). */
+.acct-perks {
+  display: flex;
+  flex-direction: column;
+  gap: var(--jz-space-12);
+  padding: 0 var(--jz-space-20);
+}
+.acct-perk {
+  display: flex;
+  align-items: center;
+  gap: var(--jz-space-16);
+  color: var(--jz-text-2);
+  font-size: 15px;
+  line-height: 21px;
+}
+.acct-perk > span:first-child {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  flex: none;
+  border-radius: var(--jz-radius);
+  background: var(--jz-surface);
+  color: var(--jz-gold);
+}
+.acct-sheet-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--jz-space-16);
+  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + var(--jz-space-16));
+}
+.acct-sheet-body > .acct-actions {
+  padding: 0 var(--jz-space-20);
+}
+.acct-sheet-lede {
+  padding: 0 var(--jz-space-20);
+  color: var(--jz-text-2);
+  font-size: 15px;
+  line-height: 21px;
+}
+
+/* The pop-up after the third game: a small card at the bottom, over the result. */
+.acct-popup {
+  position: fixed;
+  left: var(--jz-space-16);
+  right: var(--jz-space-16);
+  bottom: calc(env(safe-area-inset-bottom, 0px) + var(--jz-space-16));
+  z-index: 60;
+  max-width: 448px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--jz-space-12);
+  padding: var(--jz-space-16);
+  border-radius: var(--jz-radius);
+  border: 1.5px solid var(--jz-surface-2);
+  background: var(--jz-bg-raised);
+  box-shadow: var(--jz-shadow-sheet);
+}
+.acct-popup-row {
+  display: flex;
+  gap: var(--jz-space-8);
+}
+.acct-popup-row > * {
+  flex: 1 1 0;
+}
+
+/* Settings → Account */
+.acct-row-value {
+  color: var(--jz-text);
+  font-weight: var(--jz-weight-medium);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.acct-danger {
+  color: var(--jz-red);
+}
+.acct-confirm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--jz-space-12);
+  padding: var(--jz-space-16);
+  border-radius: var(--jz-radius);
+  background: var(--jz-surface);
+  border: 1.5px solid var(--jz-surface-2);
+}
+
+/* The terms link inside the sign-in line: a 44 px hit area round the word. */
+.acct-inline-link {
+  position: relative;
+  color: var(--jz-text-2);
+  text-decoration: underline;
+}
+.acct-inline-link::after {
+  content: "";
+  position: absolute;
+  inset: -15px -6px;
+}

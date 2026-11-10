@@ -1,6 +1,7 @@
 import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { FinishedGameCounter } from "@/components/account/SaveProgress";
 import { FeedbackLink } from "@/components/beta/FeedbackLink";
 import { TermsGate } from "@/components/beta/TermsGate";
 import { AsyncResults } from "@/components/async/AsyncResults";
@@ -45,6 +46,9 @@ import { unlockAudio } from "@/lib/sound";
 import { APP_NAME } from "@/lib/brand";
 import { OnlineOnly } from "@/components/offline/OnlineOnly";
 import { Button, Icon, Input, Segmented, SkeletonPage } from "@/design/components";
+import { GUEST_NAME_MAX } from "@/lib/names/username";
+import { NameSuggestions } from "@/components/account/AccountParts";
+import { useAccountName } from "@/lib/account/accountApi";
 
 export const Route = createFileRoute("/daily")({
   ssr: false,
@@ -136,6 +140,9 @@ function DailyScreen() {
   const [streakShown, setStreakShown] = useState<number | null>(null);
   const [name, setName] = useState("");
   const [editingName, setEditingName] = useState(false);
+  // A refused name's three suggestions; a signed-in player's board name is their username.
+  const [suggestions, setSuggestions] = useState<string[]>([]);
+  const accountName = useAccountName();
   const [look, setLook] = useState<PlayerLook>({ colour: 0, icon: null });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -198,7 +205,8 @@ function DailyScreen() {
 
   const play = async () => {
     unlockAudio();
-    const trimmed = name.trim();
+    setSuggestions([]);
+    const trimmed = (accountName ?? name).trim();
     if (!trimmed) {
       setEditingName(true);
       setError("Enter a display name.");
@@ -211,6 +219,7 @@ function DailyScreen() {
       if (!started.ok) {
         setError(started.message);
         if (started.nameRefused) setEditingName(true);
+        setSuggestions(started.suggestions ?? []);
         return;
       }
       setStoredName(trimmed);
@@ -274,6 +283,7 @@ function DailyScreen() {
     return (
       <>
       {streakShown !== null ? <StreakCelebration days={streakShown} onDone={() => setStreakShown(null)} /> : null}
+      {mode.view.finished ? <FinishedGameCounter gameKey={`daily:${mode.roomId}`} from="daily" /> : null}
       <AsyncResults
         roomId={mode.roomId}
         view={mode.view}
@@ -365,7 +375,7 @@ function DailyScreen() {
                 {stateLine(kind, state, state.state === "done" ? state.count : null)}
               </p>
             </div>
-            {state.state === "play" && editingName ? (
+            {state.state === "play" && editingName && !accountName ? (
               <div className="flex flex-col gap-1.5">
                 <label htmlFor="daily-name" className="th-kicker text-muted-foreground">
                   Name on the leaderboard
@@ -373,7 +383,7 @@ function DailyScreen() {
                 <Input
                   id="daily-name"
                   value={name}
-                  maxLength={14}
+                  maxLength={GUEST_NAME_MAX}
                   placeholder="Your name"
                   autoComplete="nickname"
                   onChange={(e) => {
@@ -385,15 +395,15 @@ function DailyScreen() {
             ) : state.state === "play" ? (
               <p className="flex items-center gap-2 text-sm text-muted-foreground">
                 <span className="min-w-0 truncate">
-                  Playing as <span className="th-name text-foreground">{name}</span>
+                  Playing as <span className="th-name text-foreground">{accountName ?? name}</span>
                 </span>
-                <button
+                {accountName ? null : <button
                   type="button"
                   onClick={() => setEditingName(true)}
                   className="press tap-target shrink-0 px-2 text-sm font-semibold text-[var(--ap-link)]"
                 >
                   Change name
-                </button>
+                </button>}
               </p>
             ) : null}
             {state.state === "done" ? (
@@ -429,6 +439,14 @@ function DailyScreen() {
                 {error}
               </p>
             ) : null}
+            <NameSuggestions
+              names={suggestions}
+              onPick={(picked) => {
+                setName(picked);
+                setError(null);
+                setSuggestions([]);
+              }}
+            />
           </section>
         ) : null}
 

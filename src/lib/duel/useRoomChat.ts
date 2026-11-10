@@ -18,6 +18,7 @@ import {
   type RoomMessageRow,
 } from "./chatConstants";
 import { unreadCount } from "./chatNotice";
+import { GUEST_NAME_MAX } from "@/lib/names/username";
 
 const MUTED_KEY = "duelz_muted_players";
 
@@ -138,7 +139,7 @@ export function useRoomChat(
         const bubble: FloatingReaction = {
           id: `${data.userId}-${now}-${Math.random().toString(36).slice(2, 7)}`,
           emoji: data.emoji,
-          name: String(data.name ?? "Player").slice(0, 14),
+          name: String(data.name ?? "Player").slice(0, GUEST_NAME_MAX),
           userId: data.userId,
           at: now,
         };

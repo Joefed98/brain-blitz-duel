@@ -59,6 +59,14 @@ export function chatRoomLimit(roomId: string, max: number): RateLimit {
 }
 /** Share and terms beta events (L4): 60 per 10 minutes per user. */
 export const BETA_EVENT_LIMIT: RateLimit = { bucket: "beta-event", max: 60, windowSeconds: 600 };
+/**
+ * Account emails (the sign-up screens): every sign-in lookup or sign-up code request counts once per network (so
+ * nobody can test many addresses to find who plays) and once per email address (so nobody can flood an inbox).
+ */
+export const IP_ACCOUNT_EMAIL_LIMIT: RateLimit = { bucket: "ip-account-email", max: 10, windowSeconds: 600, failClosed: true };
+export const EMAIL_CODE_LIMIT: RateLimit = { bucket: "email-code", max: 5, windowSeconds: 3600, failClosed: true };
+/** The save-your-progress prompt's three events (saveProgress.functions.ts): a handful a game at most. */
+export const SAVE_PROGRESS_LIMIT: RateLimit = { bucket: "save-progress", max: 20, windowSeconds: 600, failClosed: true };
 /** Analytics events from the phone (recordClientEventsFn): 30 calls of up to 20 events per 10 minutes a device. */
 export const ANALYTICS_CLIENT_LIMIT: RateLimit = { bucket: "analytics-client", max: 30, windowSeconds: 600, failClosed: true };
 
@@ -138,4 +146,18 @@ export async function withinIpRateLimit(limit: RateLimit, client?: Db): Promise<
     db = await adminDb();
   }
   return withinRateLimit(db, await addressKey(address), limit);
+}
+
+/** A uuid-shaped key for an email address (lower-cased; the address itself is never stored in the counter table). */
+export async function emailKey(email: string): Promise<string> {
+  const bytes = new Uint8Array(
+    await crypto.subtle.digest("SHA-256", new TextEncoder().encode(`duelz-email:${email.trim().toLowerCase()}`)),
+  );
+  const hex = Array.from(bytes.slice(0, 16), (b) => b.toString(16).padStart(2, "0")).join("");
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20, 32)}`;
+}
+
+/** withinRateLimit keyed on an email address (EMAIL_CODE_LIMIT). */
+export async function withinEmailRateLimit(client: Db, email: string, limit: RateLimit): Promise<boolean> {
+  return withinRateLimit(client, await emailKey(email), limit);
 }
