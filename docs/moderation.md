@@ -87,6 +87,12 @@ What Joe sets (Supabase dashboard):
 
 Until the hook is set nothing changes (Supabase's 30 stays).
 
+**It fails open** (Joe, 10 Nov 2026): with no address in Auth's payload, or when the count can't be taken (any
+error), the guest is made and one warning line is written: `moderation.actions`, action `guest_limit_warning`, by
+`system`, detail `{"reason": "no_address"}` or `{"reason": "limit_error", "sqlstate": "…"}` (never an address, a key
+or a user id). Only a network over 200 in the hour is refused. To look:
+`SELECT at, detail FROM moderation.actions WHERE action = 'guest_limit_warning' ORDER BY at DESC;`
+
 ## 2. Chat rules
 
 - **Rooms count as friends**: everyone in a room types, guests and under-18s included. Every message goes through the
@@ -185,7 +191,7 @@ lines too, and their state row goes (a trigger on `auth.users`).
 - room chat messages older than 90 days are deleted, except a message a report points at (kept with the report);
 - reports and moderation action lines are deleted 2 years after they were made (a report's message then goes on the
   next run);
-- one `retention` line a run with the counts.
+- one `retention` line every run with the counts, zeros included (`{"actions": 0, "reports": 0, "messages": 0}` on a quiet day), as `accounts.run_daily_cleanup` does.
 
 Check it's scheduled: `SELECT jobname, schedule, command FROM cron.job;` should list `chat-retention` (`17 4 * * *`)
 and `new-guest-purge` (`7 * * * *`). Run it by hand: `SELECT moderation.run_retention();`.

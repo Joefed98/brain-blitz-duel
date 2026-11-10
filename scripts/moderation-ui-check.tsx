@@ -85,11 +85,16 @@ const looks = resolvePlayerLooks(players);
       }),
     );
   });
-  // The name chip: the span round the badge and name (the lobby's markup is unchanged; it only listens for taps).
+  // The name chip round the badge and name: a button for other players (a tap reports them), my own the look toggle.
   const nameOf = (slot: number) =>
     ($(`[data-lobby-player='${slot}'] .rs-name`)?.parentElement?.parentElement as HTMLElement | null | undefined) ?? null;
   check(!!nameOf(1) && !!nameOf(3), "lobby: the name chips drawn");
-  check($$("[data-report-name]").length === 0 && $$("[data-lobby-player] button").length === 1, "lobby: the markup is unchanged (only my own chip is a button)");
+  const chip = (slot: number) => $(`[data-lobby-player='${slot}'] > button:not([data-look-toggle])`);
+  check(!!chip(2) && !!chip(3) && !chip(1), "lobby: other players' names are buttons; my own is my look toggle");
+  check(
+    [2, 3].every((s) => chip(s)?.getAttribute("class") === "flex min-h-11 min-w-0 flex-1 items-center gap-2" && chip(s) === nameOf(s)),
+    "lobby: the name button keeps the span's classes and holds the name",
+  );
   await tap($("[data-look-toggle]"));
   check(!$("[data-report-sheet]") && !!$("[data-lobby-picker]"), "lobby: tapping my own name opens my look, never a report");
   await tap(nameOf(2));
@@ -146,7 +151,31 @@ const looks = resolvePlayerLooks(players);
 
 /* ---------------------------------------------------------------- the wiring */
 {
-  const { readFileSync } = await import("node:fs");
+  const { readFileSync, readdirSync, statSync } = await import("node:fs");
+  const { join } = await import("node:path");
+  // Turnstile on sign-up: every call of completeSignUpFn in the app (the sign-up screens) passes a fresh token, so
+  // the switch can be turned on without a screen change. Comments don't count as calls.
+  const files: string[] = [];
+  const walk = (dir: string) => {
+    for (const name of readdirSync(dir)) {
+      const path = join(dir, name);
+      if (statSync(path).isDirectory()) walk(path);
+      else if (/\.(ts|tsx)$/.test(name)) files.push(path);
+    }
+  };
+  walk("src");
+  const calls: { file: string; call: string }[] = [];
+  for (const file of files) {
+    if (file.endsWith("account.functions.ts")) continue;
+    const code = readFileSync(file, "utf8").replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:])\/\/.*$/gm, "$1");
+    for (const m of code.matchAll(/completeSignUpFn\(\s*\{\s*data:\s*\{[\s\S]*?\}\s*\}\s*\)/g)) calls.push({ file, call: m[0] });
+    for (const m of code.matchAll(/completeSignUpFn\s*\(/g)) {
+      if (!calls.some((c) => c.file === file && code.indexOf(c.call) === m.index)) calls.push({ file, call: code.slice(m.index, m.index + 80) });
+    }
+  }
+  const missing = calls.filter((c) => !/turnstileToken:\s*await signUpTurnstileToken\(\)/.test(c.call));
+  check(missing.length === 0, `sign-up: every completeSignUpFn call passes turnstileToken: await signUpTurnstileToken() (${missing.map((c) => c.file).join(", ") || `${calls.length} call(s)`})`);
+  if (calls.length === 0) console.log("  NOTE no completeSignUpFn call in src/ yet (the sign-up screens): nothing to wire");
   const route = readFileSync("src/routes/duel.$code.tsx", "utf8");
   check(/onReport=\{\(slot, reason\) => reportPlayer\(duel\.id, slot, reason\)\}/.test(route), "wiring: the room's lobby reports through reportPlayerFn");
   const hook = readFileSync("src/lib/duel/useRoomChat.ts", "utf8");

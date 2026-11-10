@@ -24,8 +24,28 @@ $$;
 REVOKE ALL ON FUNCTION public.network_key(text) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.network_key(text) TO service_role;
 
+-- A warning line in moderation.actions when the hook can't count (Joe's choice, 10 Nov 2026: fail open). Only the
+-- reason and the Postgres error code: never an address, a key or a user id. Never raises.
+CREATE OR REPLACE FUNCTION public.guest_limit_warning(p_reason text, p_sqlstate text DEFAULT NULL)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, moderation
+AS $$
+BEGIN
+  INSERT INTO moderation.actions (action, user_id, report_id, detail, by_role)
+  VALUES ('guest_limit_warning', NULL, NULL,
+          jsonb_strip_nulls(jsonb_build_object('reason', p_reason, 'sqlstate', p_sqlstate)), 'system');
+EXCEPTION WHEN OTHERS THEN
+  NULL;
+END;
+$$;
+REVOKE ALL ON FUNCTION public.guest_limit_warning(text, text) FROM PUBLIC, anon, authenticated, service_role;
+
 -- Supabase Auth's Before User Created hook. Allows ({}) or refuses with a 429 and a plain message. Counts only
--- anonymous users (guests); a user the payload marks as not anonymous passes. No address: allowed.
+-- anonymous users (guests); a user the payload marks as not anonymous passes. It fails open: with no address in the
+-- payload, or when the count can't be taken (any error), the sign-up is allowed and a warning line written
+-- (guest_limit_warning: 'no_address' or 'limit_error'). Only over the limit is a guest refused.
 CREATE OR REPLACE FUNCTION public.before_user_created_guest_limit(event jsonb)
 RETURNS jsonb
 LANGUAGE plpgsql
@@ -35,14 +55,26 @@ AS $$
 DECLARE
   c_max constant integer := 200;
   c_window constant integer := 3600;
-  v_address text := nullif(trim(event -> 'metadata' ->> 'ip_address'), '');
+  v_address text;
+  v_within boolean;
 BEGIN
-  IF v_address IS NULL OR (event -> 'user' ->> 'is_anonymous') = 'false' THEN
+  BEGIN
+    IF (event -> 'user' ->> 'is_anonymous') = 'false' THEN
+      RETURN '{}'::jsonb;
+    END IF;
+    v_address := nullif(trim(event -> 'metadata' ->> 'ip_address'), '');
+    IF v_address IS NULL THEN
+      PERFORM public.guest_limit_warning('no_address');
+      RETURN '{}'::jsonb;
+    END IF;
+    DELETE FROM public.rate_limit_hits
+     WHERE bucket = 'new-guest' AND window_start < now() - make_interval(secs => c_window);
+    v_within := public.take_rate_limit(public.network_key(v_address), 'new-guest', c_max, c_window);
+  EXCEPTION WHEN OTHERS THEN
+    PERFORM public.guest_limit_warning('limit_error', SQLSTATE);
     RETURN '{}'::jsonb;
-  END IF;
-  DELETE FROM public.rate_limit_hits
-   WHERE bucket = 'new-guest' AND window_start < now() - make_interval(secs => c_window);
-  IF public.take_rate_limit(public.network_key(v_address), 'new-guest', c_max, c_window) THEN
+  END;
+  IF v_within IS DISTINCT FROM false THEN
     RETURN '{}'::jsonb;
   END IF;
   RETURN jsonb_build_object('error', jsonb_build_object(

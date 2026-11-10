@@ -1884,7 +1884,8 @@ outside the repo.
   only while on), account sign-up's `completeSignUpFn` verified by our server (`src/lib/safety/turnstile.server.ts`,
   Worker secret `TURNSTILE_SECRET_KEY`); new guests 200 an hour per network through `take_rate_limit` in Auth's Before
   User Created hook (`public.before_user_created_guest_limit`, key = `addressKey`'s hash, purged after the hour;
-  `NEW_GUEST_LIMIT`). *Chat*: rooms always type through the server's filter; `chatPolicy` (`src/lib/safety/chatPolicy.ts`)
+  `NEW_GUEST_LIMIT`; fails open: no address or a failing count allows the guest and writes a `guest_limit_warning` line
+  with the reason only). Other players' lobby names are buttons (celebrations-off.json re-recorded for that alone). *Chat*: rooms always type through the server's filter; `chatPolicy` (`src/lib/safety/chatPolicy.ts`)
   answers quick phrases for guests and under-18s where strangers meet (waves 3–4, `quickPhrases.ts`). *Reports*: two
   taps from a lobby name or a chat message (`ReportSheet`), `reportMessageFn` (reason optional) / `reportPlayerFn`,
   stored in `room_reports` with context through `insertRoomReport` → `file_room_report`; one per reporter per reported

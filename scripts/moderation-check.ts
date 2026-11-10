@@ -334,6 +334,23 @@ async function databaseChecks(db: LocalDb, rest: RestServer): Promise<void> {
     const again = await anonClient(ip).auth.signInAnonymously();
     check(!again.error, "new guests: the network may make guests again after the hour");
     check(q(`SELECT public.before_user_created_guest_limit('{"metadata":{"ip_address":"${ip}"},"user":{"is_anonymous":false}}'::jsonb)::text`) === "{}", "new guests: a user that isn't a guest isn't counted");
+
+    // Fail open (Joe, 10 Nov 2026): no address, or a count that can't be taken, allows the sign-up with a warning line.
+    const warnings = () => q(`SELECT coalesce(string_agg(concat_ws('|', detail::text, user_id IS NULL, report_id IS NULL, by_role), ';' ORDER BY id), '') FROM moderation.actions WHERE action = 'guest_limit_warning'`);
+    const rowsBefore = q(`SELECT count(*) FROM public.rate_limit_hits WHERE bucket = 'new-guest'`);
+    const noAddress = await createClient(rest.url, ANON_KEY, { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } }).auth.signInAnonymously();
+    check(!noAddress.error && !!noAddress.data.user?.id, "new guests: no address in the hook's payload: the sign-up is allowed");
+    check(warnings() === '{"reason": "no_address"}|t|t|system', `new guests: no address writes one warning line, reason only (${warnings()})`);
+    check(q(`SELECT count(*) FROM public.rate_limit_hits WHERE bucket = 'new-guest'`) === rowsBefore, "new guests: no address counts nothing");
+    q(`ALTER TABLE public.rate_limit_hits ADD CONSTRAINT moderation_check_fail CHECK (bucket <> 'new-guest') NOT VALID`);
+    const broken = await anonClient("203.0.113.50").auth.signInAnonymously();
+    q(`ALTER TABLE public.rate_limit_hits DROP CONSTRAINT moderation_check_fail`);
+    check(!broken.error && !!broken.data.user?.id, "new guests: the limit's count failing: the sign-up is allowed");
+    const lines = warnings().split(";");
+    check(lines.length === 2 && lines[1] === '{"reason": "limit_error", "sqlstate": "23514"}|t|t|system', `new guests: a failing count writes a warning line, reason and error code only (${lines[1]})`);
+    check(!/203\.0\.113|198\.51\.100/.test(warnings()) && !warnings().includes(await addressKey("203.0.113.50")), "new guests: the warning lines hold no address or key");
+    const stillOver = await anonClient(ip).auth.signInAnonymously();
+    check(!stillOver.error, "new guests: after a failure the limit carries on counting (that network's hour started again above)");
     rest.auth.beforeUserCreated = null;
   });
 
@@ -537,7 +554,8 @@ async function databaseChecks(db: LocalDb, rest: RestServer): Promise<void> {
     check(["auto_mute", "ban", "force_rename", "rename_done", "rename_temp_name", "resolve", "unban", "unmute", "warn", "warning_seen"].every((a) => actions.split(",").includes(a)), `log: every action (${actions})`);
     check(q(`SELECT count(*) FROM moderation.actions WHERE at IS NULL OR by_role IS NULL OR action IS NULL`) === "0" && q(`SELECT DISTINCT by_role FROM moderation.actions WHERE action = 'ban'`) === "postgres", "log: who, what and when (Joe's calls as the dashboard's role)");
     const ev = await events("moderation_action");
-    const logged = Number(q(`SELECT count(*) FROM moderation.actions`));
+    // The new-guest hook's warning lines are not moderation actions (no event).
+    const logged = Number(q(`SELECT count(*) FROM moderation.actions WHERE action <> 'guest_limit_warning'`));
     check(ev.split(";").length === logged && ev.split(";").every((e) => /^\{"type": "[a-z_]+"\}\|$/.test(e)), `analytics: moderation_action, the type only, one per action (${ev.split(";").length} of ${logged})`);
   });
 
@@ -573,6 +591,14 @@ async function databaseChecks(db: LocalDb, rest: RestServer): Promise<void> {
     check(!exists(oldPlain) && exists(oldReported) && exists(recent), `retention: chat older than 90 days deleted, a reported one kept (${out})`);
     check(q(`SELECT count(*) FROM public.room_reports WHERE id = '${oldReport}'`) === "0" && q(`SELECT count(*) FROM moderation.actions WHERE action = 'old_line'`) === "0", "retention: reports and actions deleted after 2 years");
     check(q(`SELECT count(*) FROM moderation.actions WHERE action = 'retention' AND by_role = 'system'`) === "1", "retention: one log line a run");
+    check(q(`SELECT detail::text FROM moderation.actions WHERE action = 'retention'`) === out, "retention: the line holds the run's counts");
+    const quiet = q(`SELECT moderation.run_retention()::text`);
+    check(
+      quiet === '{"actions": 0, "reports": 0, "messages": 0}' &&
+        q(`SELECT count(*) FROM moderation.actions WHERE action = 'retention'`) === "2" &&
+        q(`SELECT detail::text FROM moderation.actions WHERE action = 'retention' ORDER BY id DESC LIMIT 1`) === quiet,
+      `retention: a run with nothing to delete still writes its line, zeros included (${quiet})`,
+    );
     const sql = readFileSync("supabase/migrations/20261110150100_chat_retention.sql", "utf8");
     check(/cron\.schedule\('chat-retention', '17 4 \* \* \*'/.test(sql) && /migration_log\.note\('warning'/.test(sql), "retention: scheduled daily by pg_cron, warnings through migration_log.note");
   });

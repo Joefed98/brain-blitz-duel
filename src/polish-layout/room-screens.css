@@ -483,6 +483,11 @@
   .rs-cell[data-you] {
     box-shadow: inset 3px 0 0 var(--you, var(--ap-text-2));
   }
+  /* Another player's name chip is a button (safety, 10 Nov 2026: a tap reports them); keep it laid out as the span
+     it replaced (a button centres its text by default). */
+  .rs-cell > button {
+    text-align: left;
+  }
   /* Big rooms (9+ players): compact rows, and my own row pinned in view while the list scrolls
      (sticky to the list's top and bottom, so it never leaves it). The pinned row is opaque. */
   .rs-scroll[data-compact] .rs-row {

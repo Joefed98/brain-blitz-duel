@@ -377,15 +377,15 @@ export function RoomLobby({
                       {picking ? "▴" : "▾"}
                     </span>
                   </button>
-                ) : (
-                  // Safety (10 Nov 2026): a tap on another player's name opens the report reasons (two taps to report).
-                  // A click handler only, so the lobby's markup is unchanged (celebrations-off.json records it).
-                  <span
-                    className="flex min-h-11 min-w-0 flex-1 items-center gap-2"
-                    onClick={!isMe && onReport ? () => setReporting(player) : undefined}
-                  >
+                ) : !isMe && onReport ? (
+                  // Safety (10 Nov 2026): another player's name is a button; a tap opens the report reasons (two taps
+                  // to report). Same classes and text as the span it replaces (Joe's approval, celebrations-off.json
+                  // re-recorded for it); its left alignment comes from room-screens.css.
+                  <button className="flex min-h-11 min-w-0 flex-1 items-center gap-2" onClick={() => setReporting(player)}>
                     {nameLine}
-                  </span>
+                  </button>
+                ) : (
+                  <span className="flex min-h-11 min-w-0 flex-1 items-center gap-2">{nameLine}</span>
                 )}
                 {isHost && !isMe && (
                   <RoomMenu

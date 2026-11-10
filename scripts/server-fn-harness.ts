@@ -759,9 +759,15 @@ export async function startRestServer(socketDir: string): Promise<RestServer> {
       }
       const id = crypto.randomUUID();
       if (authSettings.beforeUserCreated) {
-        const ip = (request.headers.get("x-forwarded-for") ?? "").split(",")[0]!.trim() || "127.0.0.1";
+        // The caller's address from X-Forwarded-For; with none, the payload has no ip_address (the fail-open case).
+        const ip = (request.headers.get("x-forwarded-for") ?? "").split(",")[0]!.trim();
         const event = {
-          metadata: { uuid: crypto.randomUUID(), time: new Date().toISOString(), name: "before-user-created", ip_address: ip },
+          metadata: {
+            uuid: crypto.randomUUID(),
+            time: new Date().toISOString(),
+            name: "before-user-created",
+            ...(ip ? { ip_address: ip } : {}),
+          },
           user: { id, aud: "authenticated", role: "authenticated", is_anonymous: true, app_metadata: {}, user_metadata: {} },
         };
         const rows = await sql.unsafe(`SELECT public.${ident(authSettings.beforeUserCreated)}($1::text::jsonb) AS out`, [JSON.stringify(event)]);
