@@ -207,8 +207,16 @@ async function pureChecks(): Promise<void> {
 
   await section("turnstile (server)", async () => {
     const { verifyTurnstile, turnstileOn, TURNSTILE_VERIFY_URL } = await import("../src/lib/safety/turnstile.server");
-    const { TURNSTILE_SITE_KEY } = await import("../src/config/safetyConfig");
-    check(TURNSTILE_SITE_KEY === "", "turnstile: the site key is empty until Joe adds it (switch off)");
+    const { TURNSTILE_SITE_KEY, isTurnstileTestSiteKey } = await import("../src/config/safetyConfig");
+    check(
+      TURNSTILE_SITE_KEY === "0x4AAAAAAF7p4429yWwcQSDR" && !isTurnstileTestSiteKey(TURNSTILE_SITE_KEY),
+      "turnstile: the site key is Joe's widget key, not one of Cloudflare's test keys",
+    );
+    check(
+      ["1x00000000000000000000AA", "2x00000000000000000000AB", "1x00000000000000000000BB", "2x00000000000000000000BB", "3x00000000000000000000FF"].every(isTurnstileTestSiteKey) &&
+        !isTurnstileTestSiteKey("") && !isTurnstileTestSiteKey("0x4AAAAAAF7p4429yWwcQSDR"),
+      "turnstile: Cloudflare's published test site keys are recognised as test keys, the live key is not",
+    );
     let asked = 0;
     const stand: typeof fetch = (async (_url: unknown, init?: RequestInit) => {
       asked++;
@@ -247,9 +255,53 @@ async function pureChecks(): Promise<void> {
     check(/captchaToken \? \{ captchaToken \} : \{\}/.test(auth), "turnstile: sign-in emails send the token only while on");
   });
 
-  await section("turnstile (phone, off)", async () => {
+  await section("turnstile (phone)", async () => {
     const { getTurnstileToken, turnstileEnabled } = await import("../src/lib/safety/turnstile");
-    check(!turnstileEnabled() && (await getTurnstileToken("guest")) === null, "turnstile: off on the phone: no token, no script");
+    const { Window } = await import("happy-dom");
+    const keys = ["window", "document", "navigator"] as const;
+    const saved = keys.map((k) => Object.getOwnPropertyDescriptor(globalThis, k));
+    /** Runs `body` on a phone page: `webdriver` as automation reports it, `override` the check's stand-in key. */
+    const onPhone = async <T,>(webdriver: boolean, override: string | undefined, body: (rendered: string[]) => Promise<T>) => {
+      const win = new Window({ url: "https://joulz.uk/" });
+      Object.defineProperty(win.navigator, "webdriver", { configurable: true, get: () => webdriver });
+      if (override !== undefined) (win as unknown as Record<string, unknown>)["__DUELZ_TURNSTILE_SITE_KEY__"] = override;
+      const rendered: string[] = [];
+      // A stand-in for Cloudflare's script (already loaded): renders hand back a token for the key asked.
+      (win as unknown as Record<string, unknown>)["turnstile"] = {
+        render: (_el: unknown, o: { sitekey: string; callback: (t: string) => void }) => {
+          rendered.push(o.sitekey);
+          setTimeout(() => o.callback(`token-for-${o.sitekey}`), 0);
+          return "w1";
+        },
+        remove: () => {},
+      };
+      for (const k of keys) Object.defineProperty(globalThis, k, { configurable: true, writable: true, value: (win as unknown as Record<string, unknown>)[k] });
+      try {
+        return await body(rendered);
+      } finally {
+        keys.forEach((k, i) => (saved[i] ? Object.defineProperty(globalThis, k, saved[i]!) : delete (globalThis as Record<string, unknown>)[k]));
+        await win.happyDOM.close();
+      }
+    };
+    await onPhone(true, undefined, async (rendered) => {
+      const token = await getTurnstileToken("guest");
+      check(!turnstileEnabled() && token === null && rendered.length === 0, "turnstile: under automation with no test key: off on the phone, no token, no widget");
+    });
+    await onPhone(true, "0x4AAAAAAF7p4429yWwcQSDR", async (rendered) => {
+      const token = await getTurnstileToken("guest");
+      check(!turnstileEnabled() && token === null && rendered.length === 0, "turnstile: under automation a live-key override is ignored (test keys only)");
+    });
+    await onPhone(true, "1x00000000000000000000BB", async (rendered) => {
+      const token = await getTurnstileToken("sign-in");
+      check(turnstileEnabled() && token === "token-for-1x00000000000000000000BB" && rendered.join() === "1x00000000000000000000BB", "turnstile: under automation a check's test key turns it on with that key");
+    });
+    await onPhone(false, undefined, async (rendered) => {
+      const token = await getTurnstileToken("guest");
+      check(
+        turnstileEnabled() && token === "token-for-0x4AAAAAAF7p4429yWwcQSDR" && rendered.join() === "0x4AAAAAAF7p4429yWwcQSDR",
+        "turnstile: a real (non-automated) phone with the key set requests a token from the live widget",
+      );
+    });
   });
 
   await section("report words", async () => {
