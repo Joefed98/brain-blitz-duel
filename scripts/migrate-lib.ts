@@ -219,6 +219,12 @@ function shorten(stmt: string): string {
 export const HISTORY_SETUP = `CREATE SCHEMA IF NOT EXISTS supabase_migrations;
 CREATE TABLE IF NOT EXISTS supabase_migrations.schema_migrations (version text NOT NULL PRIMARY KEY, statements text[], name text);`;
 
+/**
+ * Where `migration_log.note(level, message)` (migration 20261110120000_migration_log.sql) keeps a migration's notes:
+ * the live run reads back the rows written during each file, since the Management API doesn't return notices.
+ */
+export const NOTES_TABLE = "migration_log.notes";
+
 /** A dollar-quote tag that doesn't occur in the text. */
 function dollar(text: string): string {
   for (let n = 0; ; n++) {
@@ -239,11 +245,52 @@ export function wrapMigration(m: Migration): string {
   ].join("\n");
 }
 
+/** A notice or warning a migration raised (RAISE NOTICE / RAISE WARNING, or `migration_log.note`). */
+export interface MigrationNote {
+  level: "NOTICE" | "WARNING";
+  message: string;
+}
+
+/** A failed run's error, with the notes the file raised before it failed (when the database could report them). */
+export class MigrationError extends Error {
+  constructor(
+    message: string,
+    readonly notes: MigrationNote[] = [],
+  ) {
+    super(message);
+  }
+}
+
 export interface MigrationDb {
   /** Versions already recorded in supabase_migrations.schema_migrations (the table made first if missing). */
   appliedVersions(): Promise<Set<string>>;
-  /** Runs SQL; rejects with the database's error message. */
-  exec(sql: string): Promise<void>;
+  /**
+   * Runs SQL; rejects with the database's error message (a `MigrationError` carries the notes raised before it).
+   * Resolves with the notices and warnings the SQL raised, when the database reports them.
+   */
+  exec(sql: string): Promise<MigrationNote[] | void>;
+}
+
+/**
+ * The NOTICE and WARNING messages in psql's stderr (`psql:<file>:<line>: WARNING:  text`, or without the prefix),
+ * each with its DETAIL and HINT lines; CONTEXT lines (where in plpgsql it was raised) are left out.
+ */
+export function psqlNotes(stderr: string): MigrationNote[] {
+  const notes: MigrationNote[] = [];
+  let last: MigrationNote | null = null;
+  for (const line of stderr.split("\n")) {
+    const m = /^(?:psql:.*?:\d+: )?(NOTICE|WARNING|DETAIL|HINT|CONTEXT|ERROR|[A-Z]+):\s+(.*)$/.exec(line);
+    if (!m) {
+      // A message's own later lines (RAISE with a newline in its text).
+      if (last && line && !/^psql:/.test(line)) last.message += `\n${line}`;
+      continue;
+    }
+    const [, kind, text] = m as unknown as [string, string, string];
+    if (kind === "NOTICE" || kind === "WARNING") notes.push((last = { level: kind, message: text }));
+    else if ((kind === "DETAIL" || kind === "HINT") && last) last.message += ` (${kind.toLowerCase()}: ${text})`;
+    else last = null;
+  }
+  return notes;
 }
 
 export interface ApplyResult {
@@ -255,6 +302,8 @@ export interface ApplyResult {
   failed: { file: string; error: string } | null;
   /** Pending files older than the newest applied one (applied all the same, in order). */
   outOfOrder: string[];
+  /** The notices and warnings each file raised, in order (a failed file's too, where the database reported them). */
+  notes: (MigrationNote & { file: string })[];
 }
 
 /** Every pending file's refusal reasons (empty when it may run). */
@@ -286,7 +335,7 @@ export async function applyPending(
   const pending = migrations.filter((m) => !done.has(m.version));
   const newest = [...done].sort().at(-1) ?? "";
   const outOfOrder = pending.filter((m) => m.version < newest).map((m) => m.file);
-  const result: ApplyResult = { pending, applied: [], refused: [], failed: null, outOfOrder };
+  const result: ApplyResult = { pending, applied: [], refused: [], failed: null, outOfOrder, notes: [] };
   log(`${done.size} migration(s) recorded; ${pending.length} pending.`);
   for (const f of outOfOrder)
     log(`WARNING ${f} is older than the newest recorded version (${newest}); applying it in file order.`);
@@ -306,9 +355,16 @@ export async function applyPending(
       log(`would apply ${m.file}`);
       continue;
     }
+    const noted = (notes: MigrationNote[] | void) => {
+      for (const n of notes ?? []) {
+        result.notes.push({ file: m.file, ...n });
+        log(`  ${n.level} from ${m.file}: ${n.message}`);
+      }
+    };
     try {
-      await db.exec(wrapMigration(m));
+      noted(await db.exec(wrapMigration(m)));
     } catch (err) {
+      if (err instanceof MigrationError) noted(err.notes);
       result.failed = { file: m.file, error: err instanceof Error ? err.message : String(err) };
       log(`FAILED ${m.file} (rolled back; nothing after it was tried): ${result.failed.error}`);
       return result;

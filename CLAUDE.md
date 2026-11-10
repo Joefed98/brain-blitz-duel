@@ -1922,7 +1922,13 @@ outside the repo.
   New files with DROP TABLE, DROP COLUMN, TRUNCATE or DELETE / UPDATE without WHERE are refused unless they carry
   `-- destructive: approved by Joe`; a PR may not change or delete a merged migration (only one that failed on
   main, with `-- edited: not applied live, approved by Joe`). PRs run Checks' `migrations` job (the guard and
-  `--local`) and migrations-check (~5 s, shard `e`). **A schema change is a new file; never edit a merged one.**
+  `--local`) and migrations-check (~5 s, shard `e`). **A schema change is a new file; never edit a merged one.** Notices and warnings (9 Nov 2026): each file's are printed under it (`WARNING from <file>: …`;
+  warnings in the run summary, and as annotations on the live run): `--local` reads psql's, and `--live` reads the rows
+  `migration_log.note(level, message)` kept during the file (`20261109150000_migration_log.sql`; the Management API
+  returns no notices, so a plain RAISE never reaches the deploy log). migrations-check section 5 proves both paths.
+  **To show a warning or notice in the live deploy log, a migration must call `migration_log.note('warning'|'notice',
+  '...')`, never a plain RAISE** (a plain RAISE shows only in the local run). PUBLIC, anon and authenticated have no right
+  on the `migration_log` schema, its table or `note()` (migrations-check 3a).
 - **Server functions on a real database** (7 Nov 2026, `docs/audit-nov-2026/build-health.md` items 3–4):
   `scripts/server-fn-harness.ts` runs the app's real `createServerFn` handlers (real `requireSupabaseAuth`, real
   supabase-js clients) against a local PostgreSQL 16 with every `supabase/migrations` file applied in order, through a
