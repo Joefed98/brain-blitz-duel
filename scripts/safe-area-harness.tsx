@@ -33,7 +33,6 @@ import { CelebrationLayer } from "@/components/fx/CelebrationLayer";
 import { NotFoundPage, RouteErrorScreen } from "@/components/app/AppErrorScreen";
 import { FirstOpen } from "@/components/app/FirstOpen";
 import { AccountSettings } from "@/components/account/AccountSettings";
-import { SaveProgressPrompt } from "@/components/account/SaveProgress";
 import { SignUpFlow } from "@/components/account/SignUpFlow";
 import { celebrationsOn } from "@/lib/fx/celebrations";
 
@@ -458,13 +457,15 @@ for (const [type, name] of Object.entries(H.names ?? {}))
   (puzzleDef(type as never) as { name: string }).name = name;
 
 const mode = new URLSearchParams(location.search).get("mode");
-// The save-your-progress record (src/lib/account/saveProgress.ts) a check starts from: none (the sheet after a first
-// finished game) or its own (the pop-up after the third).
+// The save-your-progress record (src/lib/account/saveProgress.ts) a check starts from: a first finished game's sheet
+// due (the default) or its own (the pop-up after the third), shown on the tab page.
 if (mode === "saveprogress")
   try {
     const record = (window as unknown as { __harnessSaveProgress?: unknown }).__harnessSaveProgress;
-    if (record) localStorage.setItem("duelz-save-progress:v1", JSON.stringify(record));
-    else localStorage.removeItem("duelz-save-progress:v1");
+    localStorage.setItem(
+      "duelz-save-progress:v1",
+      JSON.stringify(record ?? { finished: 1, keys: ["room:harness:1"], sheet: "none", popup: "none", pending: "sheet", pendingFrom: "room" }),
+    );
   } catch {
     /* ignore */
   }
@@ -480,14 +481,10 @@ const ROOT_SCREENS: Record<string, () => JSX.Element> = {
     if (settings) return <AccountSettings account={settings} onBack={() => undefined} />;
     return <SignUpFlow start="signin" account={{ kind: "guest", userId: null }} onDone={() => undefined} />;
   },
+  // The prompt due on the next tab page (seeded below): Profile draws it through PhoneShell's SaveProgressSlot.
   saveprogress: () => {
     const Profile = ProfileRoute.options.component as () => JSX.Element;
-    return (
-      <>
-        <Profile />
-        <SaveProgressPrompt gameKey="room:harness:1" from="room" />
-      </>
-    );
+    return <Profile />;
   },
 };
 const Screen = ROOT_SCREENS[mode ?? ""] ?? (

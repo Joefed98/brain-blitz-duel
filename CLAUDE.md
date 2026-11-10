@@ -1885,8 +1885,11 @@ outside the repo.
   `public/art/badges/founding-player.svg`, the sign-in warning from `guestProgressFn`, the under-13 message, the
   deletion cancel offer) or an account's Settings → Account (`AccountSettings`: username and when it may change,
   email, country, sign out, delete in two steps); Settings' first row opens it. "Save your progress"
-  (`SaveProgressPrompt`, rules `src/lib/account/saveProgress.ts`): the sheet on the result of the first finished room,
-  Daily or challenge, the pop-up once after the third if dismissed, never again; its three events go through
+  (rules `src/lib/account/saveProgress.ts`): the sheet after the first finished room, Daily or challenge, the pop-up once
+  after the third if dismissed, never again; never over a round, its intro or reveal, or any result, podium, standings or
+  share screen (Joe's decision): result screens only count the game (`FinishedGameCounter`, the prompt `pending` on the
+  device) and the prompt shows on the next tab page, this visit or the next open (`SaveProgressSlot` in PhoneShell's
+  `tabs`, `takePendingPrompt`); its three events go through
   `recordSaveProgressFn` (these three only, fixed words, `SAVE_PROGRESS_LIMIT`) after
   `20261110130000_analytics_save_progress_events.sql` (**not applied until merged**). `AccountGate` is the reusable
   "needs an account" gate for waves 2 and 4. Names: a signed-in player is seated under their username wherever a name

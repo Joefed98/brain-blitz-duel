@@ -2,10 +2,15 @@
  * "Save your progress" (10 Nov 2026, wave 1 sign-up screens; docs/accounts/README.md "Sign-up screens"): when the
  * phone offers a guest an account. Never before the first finished game:
  *
- * - the sheet on the result after the player's first finished game (a finished room, Daily or challenge);
+ * - the sheet after the player's first finished game (a finished room, Daily or challenge);
  * - if they answered "Not now" (or left the sheet unanswered), a small pop-up once more after their third finished
  *   game, then never again unprompted;
  * - nothing once they tapped a way to sign up, or once the device holds an account.
+ *
+ * Where (Joe's decision, 10 Nov 2026): never over a round, its intro or reveal, or any result, podium, standings or
+ * share screen. A finished game's result screen only counts the game (`noteFinishedGame`), which marks the prompt it
+ * calls for as due (`pending`); the prompt shows the next time the player lands on a tab page (Play, Practice,
+ * Tournaments, Profile: PhoneShell's `tabs`), this visit or the next open (`takePendingPrompt`).
  *
  * Device storage only (`duelz-save-progress:v1`); a game counts once, by its key (a room's id and game, a Daily's
  * room, a challenge's code). The three analytics events go through recordSaveProgressFn
@@ -34,9 +39,12 @@ export interface SaveProgressRecord {
   keys: string[];
   sheet: "none" | "shown" | "dismissed" | "tapped";
   popup: "none" | "shown" | "dismissed" | "tapped";
+  /** A prompt due on the next tab page, and where the game that made it due was played. */
+  pending: SaveProgressPrompt | null;
+  pendingFrom: SaveProgressFrom | null;
 }
 
-export const EMPTY_SAVE_PROGRESS: SaveProgressRecord = { finished: 0, keys: [], sheet: "none", popup: "none" };
+export const EMPTY_SAVE_PROGRESS: SaveProgressRecord = { finished: 0, keys: [], sheet: "none", popup: "none", pending: null, pendingFrom: null };
 
 const KEY_KEEP = 20;
 const STATES = new Set(["none", "shown", "dismissed", "tapped"]);
@@ -59,6 +67,8 @@ export function readSaveProgress(): SaveProgressRecord {
       keys: Array.isArray(p.keys) ? p.keys.filter((k): k is string => typeof k === "string").slice(-KEY_KEEP) : [],
       sheet: STATES.has(p.sheet as string) ? (p.sheet as SaveProgressRecord["sheet"]) : "none",
       popup: STATES.has(p.popup as string) ? (p.popup as SaveProgressRecord["popup"]) : "none",
+      pending: (SAVE_PROGRESS_PROMPTS as readonly string[]).includes(p.pending as string) ? (p.pending as SaveProgressPrompt) : null,
+      pendingFrom: (SAVE_PROGRESS_FROM as readonly string[]).includes(p.pendingFrom as string) ? (p.pendingFrom as SaveProgressFrom) : null,
     };
   } catch {
     return { ...EMPTY_SAVE_PROGRESS, keys: [] };
@@ -89,18 +99,39 @@ export function countFinishedGame(record: SaveProgressRecord, gameKey: string): 
 }
 
 /**
- * A finished game's result screen calls this once: counts the game and answers which prompt to show (null for an
- * account, or when nothing is due). The prompt is marked shown at once, so it never shows twice.
+ * A finished game's result screen calls this once: it counts the game and marks the prompt it calls for as due on the
+ * next tab page (null for an account, or when nothing is due). Nothing is drawn on the result screen.
  */
-export function noteFinishedGame(gameKey: string, opts: { signedIn: boolean }): SaveProgressPrompt | null {
+export function noteFinishedGame(gameKey: string, opts: { signedIn: boolean; from?: SaveProgressFrom }): SaveProgressPrompt | null {
   const counted = countFinishedGame(readSaveProgress(), gameKey);
   if (opts.signedIn) {
-    write(counted);
+    write({ ...counted, pending: null, pendingFrom: null });
     return null;
   }
   const prompt = promptFor(counted);
-  write(prompt ? { ...counted, [prompt]: "shown" } : counted);
+  write(prompt ? { ...counted, pending: prompt, pendingFrom: opts.from ?? counted.pendingFrom } : counted);
   return prompt;
+}
+
+/** Whether a prompt is due (read synchronously by the tab pages' shell, which loads the prompt only then). */
+export function hasPendingPrompt(): boolean {
+  return readSaveProgress().pending !== null;
+}
+
+/**
+ * A tab page takes the due prompt once: it is marked shown at once (so it never shows twice) and handed over with
+ * where its game was played. An account clears it and gets nothing.
+ */
+export function takePendingPrompt(opts: { signedIn: boolean }): { prompt: SaveProgressPrompt; from: SaveProgressFrom | null } | null {
+  const record = readSaveProgress();
+  const prompt = record.pending;
+  if (!prompt) return null;
+  if (opts.signedIn || promptFor(record) !== prompt) {
+    write({ ...record, pending: null, pendingFrom: null });
+    return null;
+  }
+  write({ ...record, [prompt]: "shown", pending: null, pendingFrom: null });
+  return { prompt, from: record.pendingFrom };
 }
 
 /** The player's answer to a prompt. */

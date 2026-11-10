@@ -1,7 +1,7 @@
 import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { SaveProgressPrompt } from "@/components/account/SaveProgress";
+import { FinishedGameCounter } from "@/components/account/SaveProgress";
 import { FeedbackLink } from "@/components/beta/FeedbackLink";
 import { TermsGate } from "@/components/beta/TermsGate";
 import { AsyncResults } from "@/components/async/AsyncResults";
@@ -283,7 +283,7 @@ function DailyScreen() {
     return (
       <>
       {streakShown !== null ? <StreakCelebration days={streakShown} onDone={() => setStreakShown(null)} /> : null}
-      {mode.view.finished ? <SaveProgressPrompt gameKey={`daily:${mode.roomId}`} from="daily" /> : null}
+      {mode.view.finished ? <FinishedGameCounter gameKey={`daily:${mode.roomId}`} from="daily" /> : null}
       <AsyncResults
         roomId={mode.roomId}
         view={mode.view}

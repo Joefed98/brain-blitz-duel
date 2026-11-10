@@ -4,7 +4,8 @@
  * (scripts/server-fn-harness.ts's PostgREST / GoTrue stand-in, which the browser calls as it calls Supabase). Emails
  * aren't sent: the stand-in keeps each one's 6-digit code, which the check types in as a player would.
  *
- * 1. Sign-up at 390×844: a guest plays (creates a room as "Guesty"), opens the account screens, enters an email no
+ * 1. Sign-up at 390×844: a guest plays (creates a room as "Guesty"); a finished game draws no prompt over the room,
+ *    the sheet shows on the next tab page (Profile), once, and Not now closes it; the guest opens the account screens, enters an email no
  *    account has, picks a username (a reserved one refused with three suggestions; then "Available"), a colour and a
  *    birthday, types a wrong code (refused) then the right one, and lands on Welcome with "Founding Player #0002". The
  *    auth user is the same id, so the earlier room is theirs; the profile holds the username, colour and country; the
@@ -220,6 +221,26 @@ async function flows(browser: Browser, origin: string, db: LocalDb, rest: RestSe
     check(!!guest, "the guest has a device session");
     const guestRoom = q(`SELECT duel_id FROM public.duel_players WHERE user_id = '${guest}' AND display_name = 'Guesty' LIMIT 1`);
     check(guestRoom.length > 0, "the guest played: their room row holds the name they typed");
+
+    // "Save your progress" (Joe's decision): a finished game only makes it due; nothing opens over the room's
+    // screens; it shows on the next tab page, once, and Not now closes it.
+    await page.evaluate(async () => {
+      const sp = await import("/src/lib/account/saveProgress.ts");
+      sp.noteFinishedGame("room:flow:0", { signedIn: false, from: "room" });
+    });
+    await page.waitForTimeout(1500);
+    check((await page.locator("[data-save-progress]").count()) === 0, "a finished game draws no prompt over the room's screens");
+    await page.goto(`${origin}/profile`, { waitUntil: "load" });
+    const sheet = await page.locator("[data-save-progress='sheet']").waitFor({ timeout: 60_000 }).then(() => true, () => false);
+    check(sheet, "the sheet shows on the next tab page (Profile)");
+    if (SHOTS) writeFileSync(`${SHOTS}/save-progress-on-profile-390x844.png`, await page.screenshot());
+    await page.locator("[data-save-progress-dismiss]").first().click();
+    await page.locator("[data-save-progress]").waitFor({ state: "detached", timeout: 15_000 }).catch(() => undefined);
+    check((await page.locator("[data-save-progress]").count()) === 0, "Not now closes it");
+    await page.goto(`${origin}/`, { waitUntil: "load" });
+    await ready(page, "[data-app-tabbar]");
+    await page.waitForTimeout(1500);
+    check((await page.locator("[data-save-progress]").count()) === 0, "it shows once: the next tab page has nothing");
 
     await page.goto(`${origin}/account?start=email&from=/`, { waitUntil: "load" });
     await screen(page, "sign-up email (390x844)", "email");

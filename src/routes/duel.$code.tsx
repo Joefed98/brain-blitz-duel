@@ -12,7 +12,7 @@ import { DropoutBanner, LeaveGameButton } from "@/components/duel/DropoutBanner"
 import { JoinFromLink } from "@/components/duel/JoinFromLink";
 import { CategoryPill } from "@/components/app/CategoryPill";
 import { FinalResult } from "@/components/duel/FinalResult";
-import { SaveProgressPrompt } from "@/components/account/SaveProgress";
+import { FinishedGameCounter } from "@/components/account/SaveProgress";
 import { roomGameKey } from "@/lib/account/saveProgress";
 import { GameLayout, PhoneShell, RoomPanelSlot, isArcadeScreenType } from "@/components/duel/PhoneShell";
 import { RoomPanel } from "@/components/duel/RoomPanel";
@@ -1045,7 +1045,7 @@ function DuelScreen() {
             />
             </RoomChatSlot.Provider>
             <RoomChat chat={chat} myUserId={me.user_id} players={players} looks={looks} available={chatAvailable} screenLabel={chatLabel} bar={false} />
-            <SaveProgressPrompt gameKey={roomGameKey(duel)} from="room" />
+            <FinishedGameCounter gameKey={roomGameKey(duel)} from="room" />
           </PhoneShell>
         </div>
       );
@@ -1088,7 +1088,7 @@ function DuelScreen() {
           />
           </RoomChatSlot.Provider>
           <RoomChat chat={chat} myUserId={me.user_id} players={players} looks={looks} available={chatAvailable} screenLabel={chatLabel} bar={false} />
-          <SaveProgressPrompt gameKey={roomGameKey(duel)} from="room" />
+          <FinishedGameCounter gameKey={roomGameKey(duel)} from="room" />
         </PhoneShell>
       </div>
     );

@@ -7,7 +7,9 @@
  * What it proves:
  * - "Save your progress": never before the first finished game; the sheet after the first; nothing on the second;
  *   after "Not now", the pop-up once after the third, then never again; nothing once a way to sign up was tapped; a
- *   game counted once by its key; nothing for an account;
+ *   game counted once by its key; nothing for an account; and where (Joe's decision): a result screen only counts the
+ *   game and marks the prompt due, the next tab page (or the next open's) takes it once, and only the tab pages' slot
+ *   in PhoneShell ever draws it;
  * - recordSaveProgressFn: accepts exactly save_progress_shown / _tapped / _dismissed with fixed-word props (stored in
  *   analytics.events with the player's id and nothing personal), refuses every other event name, free text and
  *   unknown fields (writing nothing), and is rate limited per user through take_rate_limit;
@@ -137,36 +139,74 @@ async function pureChecks(): Promise<void> {
   await section("save progress: when", async () => {
     const sp = await import("../src/lib/account/saveProgress");
     const fresh = () => memory.delete(sp.SAVE_PROGRESS_KEY);
+    const guest = { signedIn: false };
     fresh();
-    check(sp.promptFor(sp.readSaveProgress()) === null, "never before the first finished game (a new phone holds no prompt)");
-    check(sp.noteFinishedGame("room:a:0", { signedIn: false }) === "sheet", "the sheet after the first finished game");
-    check(sp.noteFinishedGame("room:a:0", { signedIn: false }) === null && sp.readSaveProgress().finished === 1, "the same game counts once (a reload of the result)");
+    check(sp.promptFor(sp.readSaveProgress()) === null && sp.takePendingPrompt(guest) === null, "never before the first finished game (a new phone holds no prompt)");
+    check(sp.noteFinishedGame("room:a:0", { signedIn: false, from: "room" }) === "sheet", "the first finished game makes the sheet due");
+    const afterResult = sp.readSaveProgress();
+    check(afterResult.pending === "sheet" && afterResult.sheet === "none", "on the result screen it is only due: nothing is shown there");
+    sp.noteFinishedGame("room:a:0", { signedIn: false, from: "room" });
+    check(sp.readSaveProgress().finished === 1, "the same game counts once (a reload of the result)");
+    // The app closed on the result and opened again: the record is the device's, so the next tab page still has it.
+    const taken = sp.takePendingPrompt(guest);
+    check(taken?.prompt === "sheet" && taken.from === "room", `the next tab page takes the sheet, with where the game was (${JSON.stringify(taken)})`);
+    check(sp.takePendingPrompt(guest) === null && sp.readSaveProgress().sheet === "shown", "taken once: the next tab page shows nothing");
     sp.answerPrompt("sheet", "dismissed");
-    check(sp.noteFinishedGame("daily:d1", { signedIn: false }) === null, "after Not now: nothing on the second game");
-    check(sp.noteFinishedGame("challenge:K7QM2X", { signedIn: false }) === "popup", "after Not now: the pop-up after the third game");
+    check(sp.noteFinishedGame("daily:d1", { signedIn: false, from: "daily" }) === null && sp.takePendingPrompt(guest) === null, "after Not now: nothing on the second game");
+    check(sp.noteFinishedGame("challenge:K7QM2X", { signedIn: false, from: "challenge" }) === "popup", "after Not now: the third game makes the pop-up due");
+    const popup = sp.takePendingPrompt(guest);
+    check(popup?.prompt === "popup" && popup.from === "challenge", "the pop-up waits for the next tab page as the sheet does");
     sp.answerPrompt("popup", "dismissed");
-    const later = ["room:b:0", "room:b:1", "daily:d2", "daily:d3", "room:c:0", "challenge:X"].map((k) => sp.noteFinishedGame(k, { signedIn: false }));
-    check(later.every((p) => p === null), `never again unprompted after the pop-up (${later.join(",")})`);
+    const later = ["room:b:0", "room:b:1", "daily:d2", "daily:d3", "room:c:0", "challenge:X"].map((k) => sp.noteFinishedGame(k, guest));
+    check(later.every((p) => p === null) && sp.takePendingPrompt(guest) === null, `never again unprompted after the pop-up (${later.join(",")})`);
 
     fresh();
-    sp.noteFinishedGame("room:a:0", { signedIn: false });
+    sp.noteFinishedGame("room:a:0", guest);
+    sp.takePendingPrompt(guest);
     sp.answerPrompt("sheet", "tapped");
-    const afterTap = ["r1", "r2", "r3", "r4"].map((k) => sp.noteFinishedGame(k, { signedIn: false }));
-    check(afterTap.every((p) => p === null), "a tap on a sign-up way: no pop-up later");
+    const afterTap = ["r1", "r2", "r3", "r4"].map((k) => sp.noteFinishedGame(k, guest));
+    check(afterTap.every((p) => p === null) && sp.takePendingPrompt(guest) === null, "a tap on a sign-up way: no pop-up later");
 
     fresh();
-    sp.noteFinishedGame("room:a:0", { signedIn: false });
-    const unanswered = [sp.noteFinishedGame("r2", { signedIn: false }), sp.noteFinishedGame("r3", { signedIn: false })];
+    sp.noteFinishedGame("room:a:0", guest);
+    sp.takePendingPrompt(guest);
+    const unanswered = [sp.noteFinishedGame("r2", guest), sp.noteFinishedGame("r3", guest)];
     check(unanswered.join() === ",popup", "a sheet left unanswered counts as Not now: the pop-up after the third");
 
     fresh();
+    sp.noteFinishedGame("room:a:0", guest);
+    check(sp.takePendingPrompt({ signedIn: true }) === null && sp.readSaveProgress().pending === null, "a guest who signs in before the next tab page is never asked");
+
+    fresh();
     const signedIn = ["r1", "r2", "r3"].map((k) => sp.noteFinishedGame(k, { signedIn: true }));
-    check(signedIn.every((p) => p === null) && sp.readSaveProgress().finished === 3, "an account is never asked (its games still count)");
+    check(signedIn.every((p) => p === null) && sp.readSaveProgress().finished === 3 && !sp.hasPendingPrompt(), "an account is never asked (its games still count)");
     check(
       sp.roomGameKey({ id: "d", tournament_history: [] }) !== sp.roomGameKey({ id: "d", tournament_history: [{}] }),
       "a room's Play again is a new game (its key counts the games before)",
     );
     fresh();
+  });
+
+  await section("save progress: where", async () => {
+    // Joe's decision: never over a round, its intro or reveal, or any result, podium, standings or share screen.
+    const results = ["src/routes/duel.$code.tsx", "src/routes/daily.tsx", "src/routes/challenge.tsx"];
+    check(
+      results.every((f) => {
+        const src = readFileSync(f, "utf8");
+        return /<FinishedGameCounter /.test(src) && !/<SaveProgressPrompt/.test(src) && !/SaveProgressSlot/.test(src);
+      }),
+      "result screens (room podium and final, Daily results, challenge results) only count the game",
+    );
+    const sp = readFileSync("src/components/account/SaveProgress.tsx", "utf8");
+    const counter = sp.slice(sp.indexOf("export function FinishedGameCounter"), sp.indexOf("export function SaveProgressPrompt"));
+    check(/return null;\n\}/.test(counter) && !/<Sheet|acct-popup/.test(counter), "the counter draws nothing");
+    const users = walk("src").filter((f) => /\.tsx$/.test(f) && /<SaveProgressSlot|<SaveProgressPrompt/.test(readFileSync(f, "utf8")));
+    check(
+      JSON.stringify(users.sort()) === JSON.stringify(["src/components/account/SaveProgressSlot.tsx", "src/components/duel/PhoneShell.tsx"].sort()),
+      `the prompt is drawn only by the tab pages' slot (${users.join(", ")})`,
+    );
+    const shell = readFileSync("src/components/duel/PhoneShell.tsx", "utf8");
+    check(/\{tabs && !gameScreen \? <SaveProgressSlot \/> : null\}/.test(shell), "PhoneShell draws the slot on tab pages only (tabs, never a game screen)");
   });
 
   await section("save progress: the event rule", async () => {

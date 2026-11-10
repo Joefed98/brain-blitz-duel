@@ -336,7 +336,7 @@ export const ACCOUNT_SCREENS = (): ThemeScreen[] => {
       mode: "saveprogress",
       plain: true,
       waitMs: 2000,
-      globals: { __harnessSaveProgress: { finished: 2, keys: [], sheet: "dismissed", popup: "none" } },
+      globals: { __harnessSaveProgress: { finished: 3, keys: [], sheet: "dismissed", popup: "none", pending: "popup", pendingFrom: "daily" } },
     },
   ];
 };

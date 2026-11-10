@@ -91,7 +91,7 @@ call the backend above and decide nothing themselves.
 | The route: sign-in and sign-up for a guest, Settings → Account for an account | `src/routes/account.tsx` (`/account?from=<path>&start=email`) |
 | Sign in (S2), email (S3), inbox with the 6-digit code (S3b), username and colour (S4), birthday (S5), welcome (S6), the sign-in warning, the under-13 message, the deletion cancel offer | `src/components/account/SignUpFlow.tsx` |
 | Settings → Account: username (and when it may change next), email, country picker, sign out, delete account (two steps) | `src/components/account/AccountSettings.tsx` |
-| "Save your progress": the sheet after the first finished game, the pop-up once after the third if dismissed | `src/components/account/SaveProgress.tsx`, rules `src/lib/account/saveProgress.ts` |
+| "Save your progress": the sheet after the first finished game, the pop-up once after the third if dismissed; shown only on the tab pages | `src/components/account/SaveProgress.tsx` (`FinishedGameCounter` on result screens, `SaveProgressPrompt`), `SaveProgressSlot.tsx` (PhoneShell's tab pages), rules `src/lib/account/saveProgress.ts` |
 | The "needs an account" gate for wave 2 (friends, shop) and wave 4 (tournaments) | `src/components/account/AccountGate.tsx` (`<AccountGate what="add friends">…</AccountGate>`) |
 | The phone's account state (`useAccount`, `useAccountName`, sign out) | `src/lib/account/accountApi.ts` |
 | The prompt's three events (server function) | `src/lib/account/saveProgress.functions.ts`, migration `20261110130000_analytics_save_progress_events.sql` |
@@ -118,6 +118,12 @@ The order of the calls:
 - **Under 13**: the kind message ("You can keep playing as a guest"), `rememberAgeRefusal()`; while it holds, a new
   sign-up goes straight to that message (sign-in to an existing account still works).
 - **The link instead of the code**: the inbox listens for the session changing on this phone and carries on.
+- **Where "Save your progress" shows** (Joe's decision, 10 Nov 2026): never over a round, its intro or reveal, or any
+  result, podium, standings or share screen. A finished game's result screen only counts the game
+  (`FinishedGameCounter` → `noteFinishedGame`, which marks the prompt due as `pending` on the device); the prompt shows
+  the next time the player lands on a tab page (Play, Practice, Tournaments, Profile: PhoneShell's `tabs` draws
+  `SaveProgressSlot`, which takes it once with `takePendingPrompt`), this visit or, if the app was closed on the result,
+  the next open. The pop-up after the third game follows the same rule. A guest who signs in first is never asked.
 - **Names**: a signed-in player's name boxes show their username with no way to type another, and the server seats
   them under it whatever is sent; guests type up to 16 characters and a refused name shows the plain reason with the
   three suggestions as chips.

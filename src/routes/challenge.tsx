@@ -1,7 +1,7 @@
 import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-import { SaveProgressPrompt } from "@/components/account/SaveProgress";
+import { FinishedGameCounter } from "@/components/account/SaveProgress";
 import { ErrorState } from "@/components/app/ErrorState";
 import { TermsGate } from "@/components/beta/TermsGate";
 import { AsyncResults } from "@/components/async/AsyncResults";
@@ -591,7 +591,7 @@ function ChallengeDone({
     if (!view) return null;
     return (
       <>
-      <SaveProgressPrompt gameKey={`challenge:${mode.code}`} from="challenge" />
+      <FinishedGameCounter gameKey={`challenge:${mode.code}`} from="challenge" />
       <AsyncResults
         roomId={mode.roomId}
         view={view}
@@ -624,7 +624,7 @@ function ChallengeDone({
     .map((r) => ({ place: r.position, name: r.name, total: r.total }));
   return (
     <PhoneShell skin="room">
-      <SaveProgressPrompt gameKey={`challenge:${board.code}`} from="challenge" />
+      <FinishedGameCounter gameKey={`challenge:${board.code}`} from="challenge" />
       <div data-challenge-screen="podium" className="contents">
         <Podium
           rows={rows}

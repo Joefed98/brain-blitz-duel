@@ -1,8 +1,9 @@
 /**
- * "Save your progress" (wave 1 sign-up screens; docs/mockups/wave-1/ S1 and its README): mounted on the result of a
- * finished room, Daily or challenge. The rules are saveProgress.ts: the sheet after the first finished game, a small
- * pop-up once more after the third if the sheet was answered "Not now", never before the first game, never for an
- * account. The list is only what's real today (games, bests, stars and challenges on every phone); ratings,
+ * "Save your progress" (wave 1 sign-up screens; docs/mockups/wave-1/ S1 and its README). The rules are
+ * saveProgress.ts: the sheet after the first finished game, a small pop-up once more after the third if the sheet was
+ * answered "Not now", never before the first game, never for an account. A result screen only counts the game
+ * (FinishedGameCounter); the prompt shows on the next tab page (SaveProgressPrompt through PhoneShell's
+ * SaveProgressSlot). The list is only what's real today (games, bests, stars and challenges on every phone); ratings,
  * placement and coins join it as waves 2 and 3 land.
  */
 import { useNavigate } from "@tanstack/react-router";
@@ -11,7 +12,7 @@ import { useEffect, useState } from "react";
 import { Button, Icon, Sheet } from "@/design/components";
 import { APPLE_SIGN_IN_ENABLED, GOOGLE_SIGN_IN_ENABLED } from "@/config/accountConfig";
 import { recordSaveProgress, useAccount } from "@/lib/account/accountApi";
-import { answerPrompt, noteFinishedGame, type SaveProgressFrom, type SaveProgressMethod, type SaveProgressPrompt } from "@/lib/account/saveProgress";
+import { answerPrompt, noteFinishedGame, takePendingPrompt, type SaveProgressFrom, type SaveProgressMethod, type SaveProgressPrompt } from "@/lib/account/saveProgress";
 
 const PERKS = [
   { icon: "practice", text: "Your games and results, on every phone" },
@@ -19,46 +20,59 @@ const PERKS = [
   { icon: "challenge", text: "Your challenges and Daily streak" },
 ] as const;
 
-/** How long the result is on screen before the game counts and a prompt shows. */
-export const SHOW_AFTER_MS = 1200;
-
 /** Where the sign-up should come back to: the screen the player is on. */
 function here(): string {
   if (typeof window === "undefined") return "/";
   return `${window.location.pathname}${window.location.search}`;
 }
 
-export function SaveProgressPrompt({ gameKey, from }: { gameKey: string; from: SaveProgressFrom }) {
+/**
+ * Mounted on a finished game's result screen: counts the game once the account's kind is known and marks a prompt as
+ * due on the next tab page (saveProgress.ts). It draws nothing: no prompt ever opens over a result, podium,
+ * standings, reveal or share screen.
+ */
+export function FinishedGameCounter({ gameKey, from }: { gameKey: string; from: SaveProgressFrom }) {
   const account = useAccount();
-  const navigate = useNavigate();
-  const [prompt, setPrompt] = useState<SaveProgressPrompt | null>(null);
-
   useEffect(() => {
     if (account.kind === "unknown" || !gameKey) return;
-    // The result lands first (its medals, totals and the Captain's moment), then the game is counted and the
-    // prompt, if one is due, slides up. Leaving the result sooner counts nothing.
-    const timer = setTimeout(() => {
-      const due = noteFinishedGame(gameKey, { signedIn: account.kind === "account" });
-      if (!due) return;
-      setPrompt(due);
-      recordSaveProgress("save_progress_shown", { prompt: due, from });
-    }, SHOW_AFTER_MS);
-    return () => clearTimeout(timer);
+    noteFinishedGame(gameKey, { signedIn: account.kind === "account", from });
     // Counted once per game: the account's kind settles once.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [account.kind === "unknown", gameKey]);
+  return null;
+}
 
-  if (!prompt) return null;
+/**
+ * Mounted by the tab pages' shell (SaveProgressSlot) when a prompt is due: takes it once and shows the sheet or the
+ * pop-up there, on Play, Practice, Tournaments or Profile, never anywhere else.
+ */
+export function SaveProgressPrompt() {
+  const account = useAccount();
+  const navigate = useNavigate();
+  const [due, setDue] = useState<{ prompt: SaveProgressPrompt; from: SaveProgressFrom | null } | null>(null);
+
+  useEffect(() => {
+    if (account.kind === "unknown") return;
+    const taken = takePendingPrompt({ signedIn: account.kind === "account" });
+    if (!taken) return;
+    setDue(taken);
+    recordSaveProgress("save_progress_shown", { prompt: taken.prompt, ...(taken.from ? { from: taken.from } : {}) });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [account.kind === "unknown"]);
+
+  if (!due) return null;
+  const { prompt } = due;
+  const from = due.from ?? undefined;
 
   const dismiss = () => {
     answerPrompt(prompt, "dismissed");
-    recordSaveProgress("save_progress_dismissed", { prompt, from });
-    setPrompt(null);
+    recordSaveProgress("save_progress_dismissed", { prompt, ...(from ? { from } : {}) });
+    setDue(null);
   };
   const tap = (method: SaveProgressMethod) => {
     answerPrompt(prompt, "tapped");
-    recordSaveProgress("save_progress_tapped", { prompt, from, method });
-    setPrompt(null);
+    recordSaveProgress("save_progress_tapped", { prompt, method, ...(from ? { from } : {}) });
+    setDue(null);
     void navigate({ to: "/account", search: { from: here(), start: method === "email" ? "email" : "signin" } });
   };
 
