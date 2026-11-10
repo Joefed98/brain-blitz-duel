@@ -22,17 +22,19 @@
  * live deals whose answer could not be sent) reach the server long after they were played, so they keep the length
  * clamp: offline play is timed by the phone alone (docs/offline-practice.md).
  */
-import { trustedMsRemaining } from "./grade";
-import { puzzlePrepMs, puzzleTimeLimitMs } from "./catalogue";
-import { INTRO_MS, type PuzzleData } from "./types";
+import type { PuzzleData } from "./types";
+import { PRACTICE_START_SLACK_MS, receiptMsRemaining, sealedStartMs } from "@/lib/round/receipt";
+import { trustedClaim } from "@/lib/round/trust";
 
 /**
  * How long after the intro's own start a start token is still taken at face value (the deal's download and the
  * intro's first paint). A phone can always leave the token out, so the bound without one (`dealtAt + INTRO_MS`) is
  * the real limit; the token only spares an honest run on a slow connection, and this slack is all it can add.
+ * The round engine holds it (src/lib/round/receipt.ts).
  */
-export const PRACTICE_START_SLACK_MS = 5_000;
+export { PRACTICE_START_SLACK_MS };
 
+/** Practice's receipt: the round engine's `sealed` receipt (src/lib/round/receipt.ts). */
 export interface PracticeReceipt {
   /** Server ms when the deal was sealed; undefined for a deal sealed before the bound. */
   dealtAt?: number | undefined;
@@ -44,27 +46,21 @@ export interface PracticeReceipt {
 
 /** The server's start for the round's clock (before prep), or undefined when the deal carries no `dealtAt`. */
 export function practiceStartMs(receipt: PracticeReceipt): number | undefined {
-  const { dealtAt, startAt } = receipt;
-  if (dealtAt === undefined || !Number.isFinite(dealtAt)) return undefined;
-  const latest = dealtAt + INTRO_MS + PRACTICE_START_SLACK_MS;
-  if (startAt !== undefined && Number.isFinite(startAt) && startAt >= dealtAt) return Math.min(startAt, latest);
-  return dealtAt + INTRO_MS;
+  return sealedStartMs(receipt);
 }
 
 /** The server's own time left when the answer arrived (the room's receiptMsRemaining), or undefined with no bound. */
 export function practiceReceiptMsRemaining(puzzle: PuzzleData, receipt: PracticeReceipt): number | undefined {
-  const start = practiceStartMs(receipt);
-  if (start === undefined) return undefined;
-  return puzzleTimeLimitMs(puzzle) - (receipt.nowMs - start - puzzlePrepMs(puzzle));
+  return receiptMsRemaining(puzzle, { mode: "sealed", dealtAt: receipt.dealtAt, startAt: receipt.startAt, nowMs: receipt.nowMs });
 }
 
 /**
  * The time left practice grades with: the claim held to the receipt as in a room (trustedMsRemaining, the same
  * allowance) when the deal carries the server's figures, else the claim as it is (gradeAnswer holds it to the round's
- * length, as before). `received` is passed on to gradeAnswer, which holds tap and action logs to it as a room's are.
+ * length, as before): the round engine's "practice" trust rule (src/lib/round/trust.ts). `received` is passed on to
+ * gradeAnswer, which holds tap and action logs to it as a room's are.
  */
 export function practiceTrustedMs(puzzle: PuzzleData, claimedMs: number, received: number | undefined): { ms: number; clamped: boolean; received: number | undefined } {
-  if (received === undefined) return { ms: claimedMs, clamped: false, received: undefined };
-  const { ms, clamped } = trustedMsRemaining(claimedMs, received, puzzleTimeLimitMs(puzzle));
+  const { ms, clamped } = trustedClaim(puzzle, claimedMs, received, "practice");
   return { ms, clamped, received };
 }
