@@ -30,6 +30,8 @@ import { Route as DailyRoute } from "@/routes/daily";
 import { Route as ChallengeRoute } from "@/routes/challenge";
 import { Route as TermsRoute } from "@/routes/terms";
 import { CelebrationLayer } from "@/components/fx/CelebrationLayer";
+import { NotFoundPage, RouteErrorScreen } from "@/components/app/AppErrorScreen";
+import { FirstOpen } from "@/components/app/FirstOpen";
 import { celebrationsOn } from "@/lib/fx/celebrations";
 
 interface Verdict {
@@ -445,7 +447,13 @@ for (const [type, name] of Object.entries(H.names ?? {}))
   (puzzleDef(type as never) as { name: string }).name = name;
 
 const mode = new URLSearchParams(location.search).get("mode");
-const Screen = (
+// Wave 1's root screens (src/components/app/AppErrorScreen.tsx, FirstOpen.tsx), drawn as the root route draws them.
+const ROOT_SCREENS: Record<string, () => JSX.Element> = {
+  notfound: () => <NotFoundPage />,
+  error: () => <RouteErrorScreen error={new Error("harness")} onRefresh={() => undefined} />,
+  firstopen: () => <FirstOpen onDone={() => undefined} onPlay={() => undefined} onFriends={() => undefined} />,
+};
+const Screen = ROOT_SCREENS[mode ?? ""] ?? (
   mode === "room"
     ? DuelRoute
     : mode === "home"

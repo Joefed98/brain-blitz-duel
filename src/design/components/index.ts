@@ -19,3 +19,4 @@ export { Icon, ICON_LABELS, ICON_NAMES, type IconName, type IconSize, type IconT
 export { Stars } from "./Stars";
 export { Progress } from "./Progress";
 export { TabBar, TABS, TAB_PATHS, type AppTab } from "./TabBar";
+export { EmptyState, type EmptyStateAction, type EmptyStateProps } from "./EmptyState";

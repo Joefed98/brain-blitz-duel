@@ -4,12 +4,11 @@ import {
   Outlet,
   Link,
   createRootRouteWithContext,
-  useNavigate,
   useRouter,
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
-import { useEffect, useState, type ReactNode } from "react";
+import { lazy, Suspense, useEffect, useRef, useState, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
@@ -24,75 +23,41 @@ import { installAppUpdater } from "../lib/appUpdate";
 import { reportCrash, startCrashReporting } from "../lib/crashReporting";
 import { THEME_FONTS } from "../lib/theme";
 import { AppUpdateOverlay } from "../components/app/AppUpdateOverlay";
-import { ErrorState } from "../components/app/ErrorState";
-import { AppWordmark } from "../components/brand/AppWordmark";
+import { NotFoundPage, RouteErrorScreen } from "../components/app/AppErrorScreen";
 import { CelebrationLayer } from "../components/fx/CelebrationLayer";
 import { celebrationsOn } from "../lib/fx/celebrations";
 import { GOOGLE_FONTS_CSS } from "../lib/offline/assets";
 import { installOfflinePractice } from "../lib/offline/install";
 import { OFFLINE_BOOT } from "../lib/offline/online";
+import { decideFirstOpen } from "../lib/firstOpen";
 
-/** The 404 page: the shared error layout (ErrorState, Polish batch R) on the room screens' shell. */
+/** The first-open onboarding (lib/firstOpen.ts), loaded only on the open that shows it. */
+const FirstOpen = lazy(() => import("../components/app/FirstOpen"));
+
+/** The 404 page (wave 1, X2): AppErrorScreen.tsx's NotFoundPage on its own light page frame. */
 function NotFoundComponent() {
-  const navigate = useNavigate();
-  return (
-    // PhoneShell's page frame, drawn light (the root route never loads the game registry PhoneShell needs).
-    <div data-skin="room" className="relative min-h-[100dvh] w-full bg-background">
-      <div aria-hidden="true" className="screen-background" />
-      <div data-shell-column="page" className="relative mx-auto flex min-h-[100dvh] w-full max-w-[430px] flex-col pad-safe">
-        <header className="ap-header">
-          <AppWordmark />
-        </header>
-        <ErrorState
-          title="Nothing here"
-          body={`This page isn’t part of ${APP_NAME}, or it has moved. Head back to Play, or start a room.`}
-          action={{ label: "Create a room", onClick: () => void navigate({ to: "/" }) }}
-        />
-      </div>
-    </div>
-  );
+  return <NotFoundPage />;
 }
 
+/**
+ * The error boundary (wave 1, X3): reports the error as before, and shows "That one’s on us" (RouteErrorScreen,
+ * which records `error_shown` with a short code, never the error's text or stack).
+ */
 function ErrorComponent({ error, reset }: ErrorComponentProps) {
   console.error(error);
   const router = useRouter();
   useEffect(() => {
     reportLovableError(error, { boundary: "tanstack_root_error_component" });
     reportCrash(error);
-    // Analytics: a short code only, never the error's text or stack.
-    void import("../lib/analytics/clientEvents").then(({ trackClientEvent }) =>
-      trackClientEvent("error_shown", { props: { code: "page_error" } }),
-    );
   }, [error]);
-
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4">
-      <div className="max-w-md text-center">
-        <h1 className="text-xl font-semibold tracking-tight text-foreground">
-          This page didn’t load
-        </h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          That one’s on us. Refresh, or head back home.
-        </p>
-        <div className="mt-6 flex flex-wrap justify-center gap-2">
-          <button
-            onClick={() => {
-              router.invalidate();
-              reset();
-            }}
-            className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-          >
-            Try again
-          </button>
-          <a
-            href="/"
-            className="inline-flex items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent"
-          >
-            Go home
-          </a>
-        </div>
-      </div>
-    </div>
+    <RouteErrorScreen
+      error={error}
+      onRefresh={() => {
+        router.invalidate();
+        reset();
+      }}
+    />
   );
 }
 
@@ -248,12 +213,37 @@ function RootComponent() {
   const [celebrate, setCelebrate] = useState(false);
   useEffect(() => setCelebrate(celebrationsOn()), []);
 
+  // The first-open onboarding (lib/firstOpen.ts; off until wave 3): decided on the first render in the
+  // browser, before any page marks the first-time intro seen, then shown after hydration.
+  const firstOpenWanted = useRef<boolean | null>(null);
+  if (firstOpenWanted.current === null && typeof window !== "undefined")
+    firstOpenWanted.current = decideFirstOpen(window.location);
+  const [firstOpen, setFirstOpen] = useState(false);
+  useEffect(() => {
+    if (firstOpenWanted.current) setFirstOpen(true);
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
       {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
       <Outlet />
       <AppUpdateOverlay />
       {celebrate ? <CelebrationLayer /> : null}
+      {firstOpen ? (
+        <Suspense fallback={null}>
+          <FirstOpen
+            onDone={() => setFirstOpen(false)}
+            onPlay={() => {
+              // Until the rated match exists (wave 3): the first warm-up game in Practice.
+              void import("../lib/duel/practiceRecent").then(({ warmUpTypes }) => {
+                const first = warmUpTypes([])[0];
+                void router.navigate({ to: "/practice", search: (first ? { game: first } : {}) as never });
+              });
+            }}
+            onFriends={() => void router.navigate({ to: "/" })}
+          />
+        </Suspense>
+      ) : null}
     </QueryClientProvider>
   );
 }

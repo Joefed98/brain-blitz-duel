@@ -1004,3 +1004,183 @@
   font-size: 12px;
   font-weight: var(--jz-weight-medium);
 }
+
+/* ------------------------------------------------------------------ EmptyState (wave 1, first impressions)
+   docs/mockups/wave-1/ E1–E3 and X1–X3: Captain Joulz over a soft halo, a title, one plain line, the action. */
+@layer components {
+  .jz-empty {
+    display: flex;
+    width: 100%;
+    flex: 1 1 auto;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--jz-space-20);
+    padding: var(--jz-space-24) 0;
+    text-align: center;
+  }
+  .jz-empty-art {
+    position: relative;
+    display: flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: 200px;
+    height: 176px;
+  }
+  /* The halo: a radial wash behind the figure, cool or red. */
+  .jz-empty-art::before {
+    content: "";
+    position: absolute;
+    inset: -12px 0;
+    border-radius: var(--jz-round);
+    background: radial-gradient(closest-side, var(--jz-halo-cool), transparent);
+  }
+  .jz-empty[data-tone="alert"] .jz-empty-art::before {
+    background: radial-gradient(closest-side, var(--jz-halo-alert), transparent);
+  }
+  .jz-empty-art > .jz-captain {
+    position: relative;
+    width: 120px;
+    height: 160px;
+  }
+  .jz-empty-text {
+    display: flex;
+    max-width: 320px;
+    flex-direction: column;
+    gap: var(--jz-space-8);
+  }
+  /* (0,2,0): over the page skin's uppercase headings ([data-skin] h1–h3). Sentence case, Archivo. */
+  .jz-empty .jz-empty-title {
+    margin: 0;
+    font-family: var(--jz-font);
+    text-transform: none;
+    letter-spacing: normal;
+    color: var(--jz-text);
+    font-size: 28px;
+    line-height: 32px;
+    font-weight: var(--jz-weight-bold);
+    font-stretch: 112%;
+  }
+  .jz-empty-body {
+    margin: 0;
+    color: var(--jz-text-2);
+    font-size: 16px;
+    line-height: 23px;
+  }
+  .jz-empty-actions {
+    display: flex;
+    width: 100%;
+    max-width: 330px;
+    flex-direction: column;
+    gap: var(--jz-space-12);
+  }
+  /* A field and its button between the line and the actions (the room-not-found code box). */
+  .jz-empty-form {
+    display: flex;
+    width: 100%;
+    max-width: 330px;
+    gap: var(--jz-space-8);
+  }
+  /* Short screens (375×667 and the like): a smaller figure, so the action stays well above the fold. */
+  @media (max-height: 700px) {
+    .jz-empty {
+      gap: var(--jz-space-16);
+      padding: var(--jz-space-16) 0;
+    }
+    .jz-empty-art {
+      height: 136px;
+    }
+    .jz-empty-art > .jz-captain {
+      width: 90px;
+      height: 120px;
+    }
+    .jz-empty .jz-empty-title {
+      font-size: 24px;
+      line-height: 28px;
+    }
+  }
+
+  /* The root route's own page frame (its not-found and error screens; AppErrorScreen.tsx): PhoneShell's page
+     column, drawn without it. */
+  .jz-root-page {
+    position: relative;
+    width: 100%;
+    min-height: 100dvh;
+    background-color: var(--jz-bg);
+  }
+  .jz-root-column {
+    position: relative;
+    display: flex;
+    width: 100%;
+    max-width: 430px;
+    min-height: 100dvh;
+    flex-direction: column;
+    margin-inline: auto;
+  }
+
+  /* The card (E2): inside a list's section. */
+  .jz-empty-card {
+    display: flex;
+    align-items: center;
+    gap: var(--jz-space-16);
+    padding: var(--jz-space-16);
+  }
+  .jz-empty-card-art {
+    position: relative;
+    display: flex;
+    flex: none;
+    width: 76px;
+    height: 100px;
+    align-items: center;
+    justify-content: center;
+  }
+  .jz-empty-card-art::before {
+    content: "";
+    position: absolute;
+    inset: -6px;
+    border-radius: var(--jz-round);
+    background: radial-gradient(closest-side, var(--jz-halo-cool), transparent);
+  }
+  .jz-empty-card[data-tone="alert"] .jz-empty-card-art::before {
+    background: radial-gradient(closest-side, var(--jz-halo-alert), transparent);
+  }
+  .jz-empty-card-art > .jz-captain {
+    position: relative;
+    width: 72px;
+    height: 96px;
+  }
+  .jz-empty-card-text {
+    display: flex;
+    min-width: 0;
+    flex: 1 1 auto;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--jz-space-4);
+    text-align: left;
+  }
+  .jz-empty-card .jz-empty-card-title {
+    margin: 0;
+    font-family: var(--jz-font);
+    text-transform: none;
+    letter-spacing: normal;
+    color: var(--jz-text);
+    font-size: 17px;
+    line-height: 22px;
+    font-weight: var(--jz-weight-bold);
+    font-stretch: 105%;
+  }
+  .jz-empty-card-body {
+    margin: 0;
+    color: var(--jz-text-2);
+    font-size: 14px;
+    line-height: 20px;
+  }
+  .jz-empty-card-actions {
+    display: flex;
+    width: 100%;
+    flex-wrap: wrap;
+    gap: var(--jz-space-8);
+    margin-top: var(--jz-space-8);
+  }
+}
