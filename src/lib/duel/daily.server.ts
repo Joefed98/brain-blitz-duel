@@ -36,9 +36,8 @@ import {
   type AsyncAttemptRow,
   type AsyncRoomRow,
 } from "./asyncRoom.server";
-import { generatePuzzle } from "./generate.server";
+import { dealRounds } from "./generate.server";
 import { pickRoundOrder, newRoomSeed } from "./selection";
-import { stampTieRev } from "./tieBreak";
 import type { UnblockBankRow } from "./unblock.server";
 import type { PuzzleData, PuzzleType } from "./types";
 
@@ -71,15 +70,12 @@ export function dealDaily(
   const roundOrder = dailyRoundOrder(kind, input.seed, input.recent ?? []);
   return {
     roundOrder,
-    puzzles: roundOrder.map((type) =>
-      stampTieRev(
-        generatePuzzle(type, {
-          unblockRow: input.unblockRow ?? null,
-          bankSeed: input.seed,
-          recentBankKeys: input.recentBankKeys,
-        }),
-      ),
-    ),
+    // The round engine's deal (src/lib/round/deal.server.ts), as a room's start deals its rounds.
+    puzzles: dealRounds(roundOrder, {
+      seed: input.seed,
+      unblockRow: input.unblockRow ?? null,
+      recentBankKeys: input.recentBankKeys,
+    }),
   };
 }
 
