@@ -297,6 +297,13 @@ async function databaseChecks(db: LocalDb, rest: RestServer): Promise<void> {
     check(Number(q(`SELECT count(*) FROM inventory_items WHERE user_id = '${ANA}' AND how = 'starter' AND ledger_id IS NULL`)) === 9, "sign-up: granted as starter, no coins");
     check((await events("item_granted", ANA)) === 9, "sign-up: one item_granted event per starter item");
 
+    // The starter grant fires on account creation only: one trigger, AFTER INSERT on public.profiles, nowhere else.
+    const triggers = q(`SELECT string_agg(tgrelid::regclass::text || ':' || tgtype::text, ',') FROM pg_trigger WHERE tgfoid = 'economy.on_new_profile()'::regprocedure`);
+    check(triggers === "profiles:5", `the starter grant is one AFTER INSERT row trigger on public.profiles (${triggers})`);
+    check(q(`SELECT count(*) FROM pg_trigger t JOIN pg_proc p ON p.oid = t.tgfoid JOIN pg_namespace n ON n.oid = p.pronamespace WHERE t.tgrelid = 'auth.users'::regclass AND n.nspname = 'economy'`) === "0", "no economy trigger on auth.users (a new guest gets nothing)");
+    const guestProfile = q(`SELECT public.create_profile('${CAT}', 'Cat_Guest', 1::smallint, DATE '1990-01-01', NULL)`);
+    check(guestProfile === "guest" && owned(CAT) === "" && balance(CAT) === -1 && q(`SELECT count(*) FROM loadouts WHERE user_id = '${CAT}'`) === "0", "a guest can't make a profile, so gets no starter items, wallet or loadout");
+
     // An account that existed before the economy: its economy rows taken away by hand, then the seed migration again.
     q(`SELECT public.create_profile('${BEN}', 'Ben_Before', 2::smallint, DATE '1990-01-01', NULL)`);
     q(`DELETE FROM loadouts WHERE user_id = '${BEN}'; DELETE FROM inventory_items WHERE user_id = '${BEN}'; DELETE FROM coin_wallets WHERE user_id = '${BEN}';`);
