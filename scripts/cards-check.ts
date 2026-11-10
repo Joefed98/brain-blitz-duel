@@ -32,7 +32,12 @@
  *     dealt as it is, and 12 decks' exact bests through the server replay at min(200, floor(hand points × 1.4)). `CHECKS_FULL=1`
  *     also rebuilds the 40-card bank (freecell-bank.ts --rev=4 --check).
  *
- *   bun scripts/cards-check.ts
+ *   bun scripts/cards-check.ts [--part=k/4]
+ *
+ * `--part=k/4` (10 Nov 2026: at full depth the whole check took ~540 s on CI, past run-checks' 300 s): part 1 runs
+ * sections 1–4 and 6–8, and the four parts share section 5's bank rebuilds (`freecell-bank.ts --check --part=j/4`,
+ * `tripeaks-bank.ts --check --part=j/3` and the 40-card bank whole), each about 150 s at full depth. The four parts
+ * together run every assertion of one whole run; at quick depth parts 2–4 have nothing to do.
  */
 import { spawnSync } from "node:child_process";
 import { cardOf, NO_CARD, rankOf as rankOfCard, suitOf as suitOfCard } from "../src/lib/arcade/cards/cards";
@@ -68,6 +73,21 @@ import { stdSpeed as stdSpeedOf } from "../src/lib/arcade/arcadeStandard";
 import type { ArcadeInputEvent } from "../src/lib/arcade/engine";
 
 console.error = () => {};
+const PART = process.argv.find((a) => a.startsWith("--part="))?.slice(7);
+const [PART_K, PART_N] = PART ? (PART.split("/").map(Number) as [number, number]) : [0, 0];
+if (PART && !(PART_N === 4 && PART_K >= 1 && PART_K <= 4)) throw new Error(`bad --part=${PART} (cards-check runs in quarters: --part=k/4)`);
+/** Section 5's bank rebuilds by part; a whole run makes the three whole rebuilds as before. */
+const BANK_JOBS: Record<number, [string, string[], string][]> = {
+  1: [["freecell-bank", ["--check", "--rev=4"], "freecell-bank --rev=4: the 40-card bank rebuilds byte for byte"], ["freecell-bank", ["--check", "--part=1/4"], "freecell-bank: rebuilds byte for byte (deal seeds part 1/4)"]],
+  2: [["freecell-bank", ["--check", "--part=2/4"], "freecell-bank: rebuilds byte for byte (deal seeds part 2/4)"], ["tripeaks-bank", ["--check", "--part=1/3"], "tripeaks-bank: rebuilds byte for byte (deal seeds part 1/3)"]],
+  3: [["freecell-bank", ["--check", "--part=3/4"], "freecell-bank: rebuilds byte for byte (deal seeds part 3/4)"], ["tripeaks-bank", ["--check", "--part=2/3"], "tripeaks-bank: rebuilds byte for byte (deal seeds part 2/3)"]],
+  4: [["freecell-bank", ["--check", "--part=4/4"], "freecell-bank: rebuilds byte for byte (deal seeds part 4/4)"], ["tripeaks-bank", ["--check", "--part=3/3"], "tripeaks-bank: rebuilds byte for byte (deal seeds part 3/3)"]],
+  0: [
+    ["freecell-bank", ["--check"], "freecell-bank: rebuilds byte for byte"],
+    ["tripeaks-bank", ["--check"], "tripeaks-bank: rebuilds byte for byte"],
+    ["freecell-bank", ["--check", "--rev=4"], "freecell-bank --rev=4: the 40-card bank rebuilds byte for byte"],
+  ],
+};
 let checks = 0;
 const failures: string[] = [];
 const ok = (cond: boolean, label: string) => {
@@ -75,6 +95,8 @@ const ok = (cond: boolean, label: string) => {
   if (!cond) failures.push(label);
 };
 
+// Sections 1–4 and 6–8 run in a whole run and in part 1 (block-scoped, nothing in them is used after).
+if (PART_K <= 1) {
 /* 1. Every dealt seed reaches 200. */
 let fcAll = true;
 for (let i = 0; i < FC_DEALS.length; i++) {
@@ -625,15 +647,14 @@ for (const [name, game] of [["freecell", freecellGame], ["tripeaks", tripeaksGam
   while (!g.isOver(s)) s = g.step(s, null);
   ok(g.score(s) === 0, `${name}: a run with no input scores 0`);
 }
+}
 
-/* 5. Full depth: the banks rebuild byte for byte. */
+/* 5. Full depth: the banks rebuild byte for byte (in a part, its share of every bank's deal seeds). */
 if (process.env.CHECKS_FULL === "1") {
-  for (const bank of ["freecell-bank", "tripeaks-bank"]) {
-    const r = spawnSync("bun", [`scripts/${bank}.ts`, "--check"], { encoding: "utf8" });
-    ok(r.status === 0, `${bank}: rebuilds byte for byte`);
+  for (const [bank, args, label] of BANK_JOBS[PART_K]!) {
+    const r = spawnSync("bun", [`scripts/${bank}.ts`, ...args], { encoding: "utf8" });
+    ok(r.status === 0, label);
   }
-  const v4 = spawnSync("bun", ["scripts/freecell-bank.ts", "--check", "--rev=4"], { encoding: "utf8" });
-  ok(v4.status === 0, "freecell-bank --rev=4: the 40-card bank rebuilds byte for byte");
   // Summit's stock pars take about 25 minutes on one core to rebuild, past run-checks' limit: their own command,
   // `bun scripts/tripeaks-stock-par.ts --check`, re-proves every one (section 8 re-proves eight here).
 }
@@ -643,4 +664,8 @@ if (failures.length) {
   for (const f of failures.slice(0, 40)) console.log(`  - ${f}`);
   process.exit(1);
 }
-console.log(`PASS cards-check: ${checks} checks — ${FC_DEALS_V4.length} 40-card Free Cell deals (rev 4) and ${TP_DEALS.length} Summit stock-par lines (rev 2) at 200; 70 runs as on main 3 Nov; ${FC_DEALS.length} Free Cell deals (rev 1 and 2), ${TP_DEALS.length} Summit deals, 200 Full House seeds (rev 1 and 2) and 460 Five Hands seeds reach 200 through the server replay; 48 rev-1 runs as on main; undo, reset, rules, determinism, idle 0`);
+if (PART_K > 1) {
+  console.log(`PASS cards-check part ${PART}: ${checks} checks — section 5's bank rebuilds (${process.env.CHECKS_FULL === "1" ? BANK_JOBS[PART_K]!.map(([, args]) => args.join(" ")).join("; ") : "full depth only"}); part 1 runs the rest`);
+  process.exit(0);
+}
+console.log(`PASS cards-check${PART ? ` part ${PART}` : ""}: ${checks} checks — ${FC_DEALS_V4.length} 40-card Free Cell deals (rev 4) and ${TP_DEALS.length} Summit stock-par lines (rev 2) at 200; 70 runs as on main 3 Nov; ${FC_DEALS.length} Free Cell deals (rev 1 and 2), ${TP_DEALS.length} Summit deals, 200 Full House seeds (rev 1 and 2) and 460 Five Hands seeds reach 200 through the server replay; 48 rev-1 runs as on main; undo, reset, rules, determinism, idle 0`);

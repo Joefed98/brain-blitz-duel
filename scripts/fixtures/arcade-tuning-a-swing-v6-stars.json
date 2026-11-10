@@ -1,0 +1,336 @@
+{
+ "note": "swingRev 6 courses whose touch stars never met '10 stars, at least 80 px apart' (the same on 7822b181, 12 Oct 2026); arcade-tuning-a-check holds each to exactly these figures (Joe's approval, 10 Nov 2026). spread is in 1/256 px.",
+ "recordedOn": "7822b181 and 10 Nov 2026 main, identical",
+ "courses": [
+  {
+   "seed": 130750476,
+   "stars": 10,
+   "spread": 17991
+  },
+  {
+   "seed": 1791192742,
+   "stars": 9,
+   "spread": 33917
+  },
+  {
+   "seed": 1025926281,
+   "stars": 10,
+   "spread": 15701
+  },
+  {
+   "seed": 1280877509,
+   "stars": 10,
+   "spread": 17261
+  },
+  {
+   "seed": 1335857730,
+   "stars": 10,
+   "spread": 14858
+  },
+  {
+   "seed": 1635217928,
+   "stars": 10,
+   "spread": 16582
+  },
+  {
+   "seed": 1894979787,
+   "stars": 10,
+   "spread": 18121
+  },
+  {
+   "seed": 2025009996,
+   "stars": 10,
+   "spread": 20059
+  },
+  {
+   "seed": 1275108123,
+   "stars": 10,
+   "spread": 18437
+  },
+  {
+   "seed": 2104669983,
+   "stars": 9,
+   "spread": 37164
+  },
+  {
+   "seed": 550156994,
+   "stars": 10,
+   "spread": 16250
+  },
+  {
+   "seed": 805833329,
+   "stars": 10,
+   "spread": 19908
+  },
+  {
+   "seed": 1129077032,
+   "stars": 10,
+   "spread": 19971
+  },
+  {
+   "seed": 582837681,
+   "stars": 10,
+   "spread": 15808
+  },
+  {
+   "seed": 976281204,
+   "stars": 10,
+   "spread": 14182
+  },
+  {
+   "seed": 935243249,
+   "stars": 9,
+   "spread": 25029
+  },
+  {
+   "seed": 2044773253,
+   "stars": 10,
+   "spread": 19978
+  },
+  {
+   "seed": 566153345,
+   "stars": 10,
+   "spread": 15820
+  },
+  {
+   "seed": 511169513,
+   "stars": 10,
+   "spread": 13510
+  },
+  {
+   "seed": 1734603059,
+   "stars": 9,
+   "spread": 30108
+  },
+  {
+   "seed": 1235018623,
+   "stars": 10,
+   "spread": 14206
+  },
+  {
+   "seed": 1118602389,
+   "stars": 9,
+   "spread": 27952
+  },
+  {
+   "seed": 2125899350,
+   "stars": 10,
+   "spread": 20009
+  },
+  {
+   "seed": 695589800,
+   "stars": 10,
+   "spread": 18154
+  },
+  {
+   "seed": 40614279,
+   "stars": 10,
+   "spread": 17148
+  },
+  {
+   "seed": 634410757,
+   "stars": 10,
+   "spread": 16201
+  },
+  {
+   "seed": 1118783314,
+   "stars": 10,
+   "spread": 15423
+  },
+  {
+   "seed": 674054734,
+   "stars": 10,
+   "spread": 19114
+  },
+  {
+   "seed": 1649346417,
+   "stars": 10,
+   "spread": 17019
+  },
+  {
+   "seed": 2067249793,
+   "stars": 10,
+   "spread": 18082
+  },
+  {
+   "seed": 1005259825,
+   "stars": 9,
+   "spread": 24061
+  },
+  {
+   "seed": 290279602,
+   "stars": 10,
+   "spread": 18963
+  },
+  {
+   "seed": 296484088,
+   "stars": 10,
+   "spread": 15448
+  },
+  {
+   "seed": 1607559248,
+   "stars": 9,
+   "spread": 29151
+  },
+  {
+   "seed": 1458857738,
+   "stars": 10,
+   "spread": 17826
+  },
+  {
+   "seed": 887472118,
+   "stars": 10,
+   "spread": 20069
+  },
+  {
+   "seed": 2006093235,
+   "stars": 10,
+   "spread": 19600
+  },
+  {
+   "seed": 481283361,
+   "stars": 10,
+   "spread": 19829
+  },
+  {
+   "seed": 122116088,
+   "stars": 10,
+   "spread": 17708
+  },
+  {
+   "seed": 412879282,
+   "stars": 10,
+   "spread": 17921
+  },
+  {
+   "seed": 47616309,
+   "stars": 10,
+   "spread": 11325
+  },
+  {
+   "seed": 20339830,
+   "stars": 10,
+   "spread": 16829
+  },
+  {
+   "seed": 1847663961,
+   "stars": 10,
+   "spread": 18067
+  },
+  {
+   "seed": 1274686785,
+   "stars": 10,
+   "spread": 17343
+  },
+  {
+   "seed": 1444469132,
+   "stars": 10,
+   "spread": 19635
+  },
+  {
+   "seed": 245921288,
+   "stars": 10,
+   "spread": 15924
+  },
+  {
+   "seed": 163551734,
+   "stars": 10,
+   "spread": 20336
+  },
+  {
+   "seed": 807557284,
+   "stars": 10,
+   "spread": 18236
+  },
+  {
+   "seed": 813296805,
+   "stars": 10,
+   "spread": 10266
+  },
+  {
+   "seed": 452821132,
+   "stars": 10,
+   "spread": 17330
+  },
+  {
+   "seed": 1047799720,
+   "stars": 10,
+   "spread": 16319
+  },
+  {
+   "seed": 975095734,
+   "stars": 9,
+   "spread": 28267
+  },
+  {
+   "seed": 1425506483,
+   "stars": 10,
+   "spread": 9895
+  },
+  {
+   "seed": 1303758283,
+   "stars": 10,
+   "spread": 16533
+  },
+  {
+   "seed": 580943493,
+   "stars": 10,
+   "spread": 19548
+  },
+  {
+   "seed": 1459189475,
+   "stars": 10,
+   "spread": 19846
+  },
+  {
+   "seed": 1215152932,
+   "stars": 10,
+   "spread": 15825
+  },
+  {
+   "seed": 974571457,
+   "stars": 10,
+   "spread": 18820
+  },
+  {
+   "seed": 36111231,
+   "stars": 9,
+   "spread": 34030
+  },
+  {
+   "seed": 1845983402,
+   "stars": 10,
+   "spread": 14742
+  },
+  {
+   "seed": 1646014074,
+   "stars": 10,
+   "spread": 19703
+  },
+  {
+   "seed": 485051314,
+   "stars": 10,
+   "spread": 13247
+  },
+  {
+   "seed": 1512593031,
+   "stars": 10,
+   "spread": 14681
+  },
+  {
+   "seed": 1523668303,
+   "stars": 10,
+   "spread": 19672
+  },
+  {
+   "seed": 941127108,
+   "stars": 10,
+   "spread": 19429
+  },
+  {
+   "seed": 1918576590,
+   "stars": 10,
+   "spread": 11031
+  }
+ ]
+}
