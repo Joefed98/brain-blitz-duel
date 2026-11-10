@@ -13,16 +13,21 @@ import { cachedAccount, useAccount, type PhoneAccount } from "@/lib/account/acco
 /**
  * Checks only: the switch forced on or off. A check's page sets `window.__DUELZ_SHOP_TAB__` (true / false) before the
  * app starts, as with the first-open onboarding's override; a dev server started with `VITE_DUELZ_SHOP_TAB=on` turns
- * it on for every page it serves, so the existing tab checks can run with five tabs. Production builds never read
- * the variable (import.meta.env.DEV is false there).
+ * it on for every page it serves, so the existing tab checks can run with five tabs.
+ *
+ * Never in production: a production build replaces `import.meta.env.PROD` with true, so this returns null before
+ * reading either and the build drops the rest; nobody can turn the Shop on from the browser console on joulz.uk.
+ * (Under bun, the happy-dom checks, PROD is undefined, so the window override works there; a Vite dev server has
+ * PROD false.)
  */
 export function shopOverride(): boolean | null {
+  // Plain import.meta.env.PROD so Vite replaces it with true in a production build (as speedFx.ts does with DEV).
+  if (import.meta.env.PROD) return null;
   if (typeof window !== "undefined") {
     const o = (window as unknown as { __DUELZ_SHOP_TAB__?: unknown }).__DUELZ_SHOP_TAB__;
     if (o === true || o === false) return o;
   }
-  const env = (import.meta as unknown as { env?: Record<string, unknown> }).env;
-  if (env?.["DEV"] === true && env["VITE_DUELZ_SHOP_TAB"] === "on") return true;
+  if (import.meta.env.DEV === true && import.meta.env["VITE_DUELZ_SHOP_TAB"] === "on") return true;
   return null;
 }
 

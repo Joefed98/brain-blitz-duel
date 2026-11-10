@@ -280,6 +280,12 @@ for (const [who, n, want] of [
   }
   setForced(undefined);
   check(shopSwitch.shopOverride() === null, "the check-only override is off unless a check sets it");
+  // Production ignores both overrides: the function's first statement returns null when Vite's PROD (replaced with
+  // true in a production build, so the rest is dropped; the built bundle names neither override).
+  const switchSource = readFileSync("src/lib/identity/shopSwitch.ts", "utf8");
+  const body = switchSource.slice(switchSource.indexOf("export function shopOverride"));
+  const firstStatement = body.slice(body.indexOf("{") + 1).split("\n").map((l) => l.trim()).find((l) => l && !l.startsWith("//"));
+  check(firstStatement === "if (import.meta.env.PROD) return null;", `the override returns null in a production build before reading anything (${firstStatement})`);
 }
 
 /* ------------------------------------------------------------------ 2. the coin counter */
