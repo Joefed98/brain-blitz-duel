@@ -89,17 +89,24 @@ with the stays-behind warning.
 - `accounts.run_daily_cleanup()` runs at 03:41 UTC (pg_cron job `account-cleanup`). It removes, through
   `accounts.forget_user(id)`:
   - accounts 30 days after the request;
-  - guests (anonymous users with no profile) 13 months after their last game (the latest of their rooms, joins, Daily
-    and challenge attempts, practice plays, presence, sign-in and creation). Never an account.
+  - guests 13 months after their last activity (the latest of their rooms, joins, Daily and challenge attempts,
+    practice plays, presence, sign-in and creation): anonymous users with no profile, and half-finished sign-ups (a
+    confirmed email but no profile) by the same rule. Never an account (a user with a profile).
+- **The brake**: if more than 25 accounts or more than 500 guests are due in one run, it removes nothing, writes a
+  `cleanup_braked` warning line to `accounts.admin_log` (with the counts due) and stops. Once Joe has looked,
+  `SELECT accounts.run_daily_cleanup(true);` by hand lifts the brake for that one run.
+- **The run log**: every run writes exactly one `accounts.admin_log` line, `cleanup` (or `cleanup_braked`), with the
+  counts removed, zero included.
 - What `forget_user` does: every row that names the user gets one fresh random id instead (NOT NULL columns:
   `duel_players`, `duels.host_user_id`, the archives, `room_joins`, `room_reports.reporter_user_id`, `async_attempts`,
   `async_results`, `async_rooms.created_by`, `challenges.created_by`, `challenge_events`, `share_events`,
   `terms_events`) or none (nullable: `practice_plays`, `async_events`); names they chose in rooms and on boards
   become "Deleted player"; their chat messages, rate-limit counters, presence rows, admin-log entries and profile are
-  deleted; `analytics.events.player_id` is cleared; their username is held 30 days for nobody; then the auth user is
-  deleted. Results are kept, so other players' room histories still add up.
+  deleted; `analytics.events.player_id` is cleared; an account's exact username is replaced by "Deleted player" in
+  rooms' stored winners (`duels.tournament_history`; names guests typed are left); their username is held 30 days for
+  nobody; then the auth user is deleted. Results are kept, so other players' room histories still add up.
 - The migrations guard does not flag any of this (the deletes and updates are inside function bodies, each with a
-  WHERE). It is still deliberately destructive at run time: see "To flag" in the PR.
+  WHERE). It is deliberately destructive at run time; Joe approved it on 10 Nov 2026 with the brake and the run log.
 
 ## What Joe sets in the dashboards
 
@@ -163,4 +170,10 @@ SELECT at, action, user_id, detail FROM accounts.admin_log ORDER BY at DESC;
 
 -- Run the clean-up now (it also runs daily); answers how many accounts and guests it removed.
 SELECT accounts.run_daily_cleanup();
+
+-- After a braked run, once you've looked at what is due: lift the brake for this one run.
+SELECT accounts.run_daily_cleanup(true);
+
+-- The clean-up's own lines (one a run).
+SELECT at, action, detail FROM accounts.admin_log WHERE action IN ('cleanup', 'cleanup_braked') ORDER BY at DESC;
 ```

@@ -1854,8 +1854,11 @@ outside the repo.
   days then every 90, released names held 30 days (`accounts.username_holds`); guest room names (16 code points, the
   shared `DISPLAY_NAME_MAX`, 14 before) refused on room create and join with three suggestions (`NameRefusedError`).
   Deletion: hidden at once, signed out everywhere, `accounts.run_daily_cleanup()` (pg_cron `account-cleanup` 03:41 UTC)
-  removes it after 30 days, and guests 13 months after their last game, through `accounts.forget_user` (rows re-keyed
-  to a random id, names "Deleted player", chat deleted, analytics `player_id` cleared). Switches
+  removes it after 30 days, and guests (and half-finished sign-ups: email, no profile) 13 months after their last
+  activity, through `accounts.forget_user` (rows re-keyed to a random id, names "Deleted player", the account's exact
+  username scrubbed from `duels.tournament_history`, chat deleted, analytics `player_id` cleared); a brake (more than
+  25 accounts or 500 guests due: nothing removed, a `cleanup_braked` line; `run_daily_cleanup(true)` by hand lifts it)
+  and one `accounts.admin_log` line a run (approved by Joe, 10 Nov 2026). Switches
   `GOOGLE_SIGN_IN_ENABLED` / `APPLE_SIGN_IN_ENABLED` (`src/config/accountConfig.ts`) off. Events `sign_up_started`,
   `sign_up_completed`, `sign_in`, `sign_out`, `username_changed`, `account_deletion_requested`,
   `under_thirteen_refused` (`20261110120100_analytics_account_events.sql`). The harness's GoTrue stand-in serves

@@ -16,7 +16,9 @@
 --     service-role functions here.
 --
 -- The daily clean-up (accounts.run_daily_cleanup, pg_cron 03:41 UTC) removes accounts 30 days after deletion was
--- requested and guests 13 months after their last game. It deletes and rewrites rows only inside function bodies,
+-- requested and guests (and half-finished sign-ups) 13 months after their last activity, with a brake (more than 25
+-- accounts or 500 guests due: nothing removed, a warning logged) and one admin_log line a run. Approved by Joe on
+-- 10 Nov 2026 as deliberately destructive at run time. It deletes and rewrites rows only inside function bodies,
 -- each statement with a WHERE; see the README's "Daily clean-up" for exactly what it touches.
 
 /* ------------------------------------------------------------------ schema for the private parts */
@@ -413,6 +415,7 @@ AS $$
 DECLARE
   t uuid := gen_random_uuid();
   v_key text;
+  v_username text;
 BEGIN
   IF NOT EXISTS (SELECT 1 FROM auth.users WHERE id = p_user_id) THEN
     RETURN false;
@@ -443,8 +446,20 @@ BEGIN
   IF to_regclass('analytics.events') IS NOT NULL THEN
     EXECUTE 'UPDATE analytics.events SET player_id = NULL WHERE player_id = $1' USING p_user_id;
   END IF;
-  -- The account: its name held 30 days for nobody, its admin log entries and profile removed, then the auth user.
-  SELECT username_key INTO v_key FROM public.profiles WHERE user_id = p_user_id;
+  -- The account: its exact username scrubbed from rooms' stored winners (duels.tournament_history: names typed by
+  -- guests are left alone), its name held 30 days for nobody, its admin log entries and profile removed, then the
+  -- auth user.
+  SELECT username_key, username INTO v_key, v_username FROM public.profiles WHERE user_id = p_user_id;
+  IF v_username IS NOT NULL THEN
+    UPDATE public.duels d
+       SET tournament_history = (
+             SELECT coalesce(jsonb_agg(CASE WHEN jsonb_typeof(e) = 'object' AND e ->> 'winner' = v_username
+                                            THEN jsonb_set(e, '{winner}', '"Deleted player"') ELSE e END ORDER BY ord),
+                             '[]'::jsonb)
+               FROM jsonb_array_elements(d.tournament_history) WITH ORDINALITY AS x(e, ord))
+     WHERE jsonb_typeof(d.tournament_history) = 'array'
+       AND d.tournament_history @> jsonb_build_array(jsonb_build_object('winner', v_username));
+  END IF;
   IF v_key IS NOT NULL THEN
     INSERT INTO accounts.username_holds (username_key, user_id, released_at, held_until)
     VALUES (v_key, NULL, now(), now() + interval '30 days')
@@ -474,8 +489,9 @@ AS $$
 $$;
 REVOKE ALL ON FUNCTION accounts.accounts_due(integer) FROM PUBLIC, anon, authenticated, service_role;
 
--- Guests (anonymous auth users with no profile) whose last game, and last sign-in, were 13 or more months ago.
--- Never an account: a user with a profile, or a permanent (non-anonymous) auth user, is never returned.
+-- Guests whose last activity was 13 or more months ago: anonymous auth users with no profile, and half-finished
+-- sign-ups (a confirmed email but no profile), by the same rule (the latest of creation, sign-in, rooms, joins, Daily
+-- and challenge attempts, practice plays and presence). Never an account: a user with a profile is never returned.
 CREATE OR REPLACE FUNCTION accounts.guests_due(p_limit integer)
 RETURNS SETOF uuid
 LANGUAGE sql
@@ -485,8 +501,7 @@ SET search_path = public
 AS $$
   SELECT u.id
     FROM auth.users u
-   WHERE u.is_anonymous IS TRUE
-     AND NOT EXISTS (SELECT 1 FROM public.profiles p WHERE p.user_id = u.id)
+   WHERE NOT EXISTS (SELECT 1 FROM public.profiles p WHERE p.user_id = u.id)
      AND greatest(u.created_at, u.last_sign_in_at,
            (SELECT max(greatest(dp.joined_at, dp.last_seen_at)) FROM public.duel_players dp WHERE dp.user_id = u.id),
            (SELECT max(rj.joined_at) FROM public.room_joins rj WHERE rj.user_id = u.id),
@@ -499,31 +514,54 @@ AS $$
 $$;
 REVOKE ALL ON FUNCTION accounts.guests_due(integer) FROM PUBLIC, anon, authenticated, service_role;
 
--- The daily job: up to p_limit accounts and p_limit guests a run, then expired username holds. Answers the counts.
-CREATE OR REPLACE FUNCTION accounts.run_daily_cleanup(p_limit integer DEFAULT 500)
+-- The daily job. A brake first: when more than 25 accounts or more than 500 guests are due, it removes nothing,
+-- writes a warning line to accounts.admin_log ('cleanup_braked', with the counts due) and stops, for Joe to look
+-- (run it by hand once satisfied: accounts.run_daily_cleanup(true) lifts the brake for that one run). Otherwise it
+-- removes them and releases expired username holds. Every run writes exactly one admin_log line ('cleanup' or
+-- 'cleanup_braked') with the counts removed, zero included. Answers the same counts.
+CREATE OR REPLACE FUNCTION accounts.run_daily_cleanup(p_override_brake boolean DEFAULT false)
 RETURNS jsonb
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = public, accounts
 AS $$
 DECLARE
+  c_max_accounts constant integer := 25;
+  c_max_guests constant integer := 500;
   v_id uuid;
+  due_accounts integer;
+  due_guests integer;
   n_accounts integer := 0;
   n_guests integer := 0;
   n_holds integer := 0;
+  v_out jsonb;
 BEGIN
-  FOR v_id IN SELECT accounts.accounts_due(p_limit) LOOP
+  SELECT count(*) INTO due_accounts FROM accounts.accounts_due(c_max_accounts + 1);
+  SELECT count(*) INTO due_guests FROM accounts.guests_due(c_max_guests + 1);
+  IF NOT p_override_brake AND (due_accounts > c_max_accounts OR due_guests > c_max_guests) THEN
+    v_out := jsonb_build_object(
+      'braked', true, 'accounts', 0, 'guests', 0, 'holds_released', 0,
+      'due_accounts', due_accounts, 'due_guests', due_guests,
+      'warning', format('clean-up braked: more than %s accounts or %s guests due (counted up to one over); nothing removed',
+                        c_max_accounts, c_max_guests));
+    INSERT INTO accounts.admin_log (action, user_id, detail) VALUES ('cleanup_braked', NULL, v_out);
+    RETURN v_out;
+  END IF;
+  FOR v_id IN SELECT accounts.accounts_due(CASE WHEN p_override_brake THEN 100000 ELSE c_max_accounts END) LOOP
     IF accounts.forget_user(v_id) THEN n_accounts := n_accounts + 1; END IF;
   END LOOP;
-  FOR v_id IN SELECT accounts.guests_due(p_limit) LOOP
+  FOR v_id IN SELECT accounts.guests_due(CASE WHEN p_override_brake THEN 1000000 ELSE c_max_guests END) LOOP
     IF accounts.forget_user(v_id) THEN n_guests := n_guests + 1; END IF;
   END LOOP;
   DELETE FROM accounts.username_holds WHERE held_until <= now();
   GET DIAGNOSTICS n_holds = ROW_COUNT;
-  RETURN jsonb_build_object('accounts', n_accounts, 'guests', n_guests, 'holds_released', n_holds);
+  v_out := jsonb_build_object('braked', false, 'accounts', n_accounts, 'guests', n_guests, 'holds_released', n_holds,
+                              'override', p_override_brake);
+  INSERT INTO accounts.admin_log (action, user_id, detail) VALUES ('cleanup', NULL, v_out);
+  RETURN v_out;
 END;
 $$;
-REVOKE ALL ON FUNCTION accounts.run_daily_cleanup(integer) FROM PUBLIC, anon, authenticated, service_role;
+REVOKE ALL ON FUNCTION accounts.run_daily_cleanup(boolean) FROM PUBLIC, anon, authenticated, service_role;
 
 -- pg_cron where the database offers it (Supabase does), as the analytics retention job. Without it this only notes a
 -- warning in the deploy log (migration_log.note), so the from-scratch proof still applies.

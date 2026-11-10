@@ -540,7 +540,7 @@ async function databaseChecks(db: LocalDb, rest: RestServer): Promise<void> {
     q(`UPDATE public.profiles SET date_of_birth = DATE '2001-01-01', player_number = 99, founding = false WHERE user_id = '${HAL}'`);
     check(q(`SELECT date_of_birth || ',' || player_number || ',' || founding FROM public.profiles WHERE user_id = '${HAL}'`) === "1992-03-04,3,true", "guard: even the service role can't change a date of birth, number or flag outside the admin functions");
     for (const role of ["anon", "authenticated", "service_role"])
-      check(q(`SELECT has_function_privilege('${role}', 'accounts.admin_set_date_of_birth(text,date,text)', 'EXECUTE')::text || has_function_privilege('${role}', 'accounts.admin_assign_player_one(text)', 'EXECUTE')::text || has_function_privilege('${role}', 'accounts.run_daily_cleanup(integer)', 'EXECUTE')::text`) === "falsefalsefalse", `admin: ${role} can't run the admin functions or the clean-up`);
+      check(q(`SELECT has_function_privilege('${role}', 'accounts.admin_set_date_of_birth(text,date,text)', 'EXECUTE')::text || has_function_privilege('${role}', 'accounts.admin_assign_player_one(text)', 'EXECUTE')::text || has_function_privilege('${role}', 'accounts.run_daily_cleanup(boolean)', 'EXECUTE')::text`) === "falsefalsefalse", `admin: ${role} can't run the admin functions or the clean-up`);
   });
 
   /* ------------------------------------------------------------- row level security */
@@ -631,6 +631,9 @@ async function databaseChecks(db: LocalDb, rest: RestServer): Promise<void> {
     const eventsBefore = Number(q(`SELECT count(*) FROM analytics.events`));
     const totalsBefore = roomTotals();
     const boardBefore = await call(challenge.challengeFinalFn, { roomId: challengeRoomId }, tok.bo);
+    // Rooms' stored winners: her exact username is scrubbed; guests' typed names (even "Gia", or another casing) stay.
+    q(`UPDATE public.duels SET tournament_history = '[{"winner":"Gia_One","score":120},{"winner":"Gia","score":90},{"winner":"gia_one","score":80},{"winner":"Bo","score":70}]'::jsonb WHERE id = '${roomId}'`);
+    q(`UPDATE public.duels SET tournament_history = '[{"winner":"Gia_One","score":50}]'::jsonb WHERE id <> '${roomId}' AND host_user_id = '${BO}'`);
     q(`UPDATE public.profiles SET deletion_requested_at = now() - interval '29 days' WHERE user_id = '${GIA}'`);
     q(`SELECT accounts.run_daily_cleanup()`);
     check(q(`SELECT count(*) FROM public.profiles WHERE user_id = '${GIA}'`) === "1", "clean-up: not before 30 days");
@@ -653,6 +656,15 @@ async function databaseChecks(db: LocalDb, rest: RestServer): Promise<void> {
       pa.results.length > 0 && scoresOf(pa) === scoresOf(pb) && pa.players.map((p) => p.name).join() === "Deleted player,Bo" && pb.players.map((p) => p.name).join() === "Gia,Bo",
       `purge: Bo's challenge board keeps every score, Gia shown as Deleted player (${pa.players.map((p) => p.name).join()})`,
     );
+    check(
+      q(`SELECT tournament_history::text FROM public.duels WHERE id = '${roomId}'`) ===
+        '[{"score": 120, "winner": "Deleted player"}, {"score": 90, "winner": "Gia"}, {"score": 80, "winner": "gia_one"}, {"score": 70, "winner": "Bo"}]',
+      `purge: her exact username is scrubbed from the room's stored winners, typed guest names left (${q(`SELECT tournament_history::text FROM public.duels WHERE id = '${roomId}'`)})`,
+    );
+    check(
+      q(`SELECT count(*) FROM public.duels WHERE tournament_history @> '[{"winner":"Gia_One"}]'::jsonb`) === "0",
+      "purge: no room anywhere keeps her username as a winner",
+    );
     check(q(`SELECT user_id IS NULL FROM accounts.username_holds WHERE username_key = 'gia_one'`) === "t", "purge: her username is held 30 days for nobody");
     const retake = await call(account.checkUsernameFn, { username: "Gia_One" }, halToken);
     check(retake.ok === false && retake.reason === "held", "purge: nobody takes her name for 30 days");
@@ -668,11 +680,64 @@ async function databaseChecks(db: LocalDb, rest: RestServer): Promise<void> {
        UPDATE public.practice_plays SET created_at = now() - interval '14 months' WHERE user_id IN ('${KIM}', '${LEE}');
        DELETE FROM public.duel_presence WHERE user_id IN ('${KIM}', '${LEE}');`);
     q(`UPDATE auth.users SET created_at = now() - interval '15 months' WHERE id = '${IVY}'`);
+    // Half-finished sign-ups: a confirmed email, no profile. One last active 14 months ago, one last week.
+    const OLD_HALF = uid(18);
+    const NEW_HALF = uid(19);
+    q(`INSERT INTO auth.users (id, is_anonymous, email, created_at, last_sign_in_at) VALUES
+         ('${OLD_HALF}', false, 'old-half@example.com', now() - interval '15 months', now() - interval '14 months'),
+         ('${NEW_HALF}', false, 'new-half@example.com', now() - interval '15 months', now() - interval '7 days')`);
     const ran = JSON.parse(q(`SELECT accounts.run_daily_cleanup()`));
-    check(ran.guests === 1 && q(`SELECT count(*) FROM auth.users WHERE id = '${KIM}'`) === "0", `guests: removed 13 months after their last game (${JSON.stringify(ran)})`);
+    check(ran.guests === 2 && q(`SELECT count(*) FROM auth.users WHERE id = '${KIM}'`) === "0", `guests: removed 13 months after their last game (${JSON.stringify(ran)})`);
+    check(q(`SELECT count(*) FROM auth.users WHERE id = '${OLD_HALF}'`) === "0", "half-finished: a confirmed email with no profile, 13 months idle, is removed");
+    check(q(`SELECT count(*) FROM auth.users WHERE id = '${NEW_HALF}'`) === "1", "half-finished: one signed in last week stays (the same last-activity rule)");
     check(q(`SELECT count(*) FROM public.practice_plays WHERE user_id = '${KIM}'`) === "0" && Number(q(`SELECT count(*) FROM public.practice_plays WHERE user_id IS NULL`)) >= 2, "guests: their results detached, not deleted");
     check(q(`SELECT count(*) FROM auth.users WHERE id = '${IVY}'`) === "1", "guests: one who played recently stays (an old sign-up date alone doesn't count)");
     check(q(`SELECT count(*) FROM auth.users WHERE id = '${LEE}'`) === "1" && q(`SELECT count(*) FROM public.profiles WHERE user_id = '${LEE}'`) === "1", "guests: an account is never touched, however long since its last game");
     check(q(`SELECT count(*) FROM auth.users WHERE id = '${BO}'`) === "1", "guests: an active guest stays");
+  });
+
+  /* ------------------------------------------------------------- the brake and the run log */
+  await section("brake", async () => {
+    const logLines = () => Number(q(`SELECT count(*) FROM accounts.admin_log WHERE action IN ('cleanup', 'cleanup_braked')`));
+    const lastLine = () => q(`SELECT action || '|' || detail::text FROM accounts.admin_log WHERE action IN ('cleanup', 'cleanup_braked') ORDER BY id DESC LIMIT 1`);
+    const users = () => Number(q(`SELECT count(*) FROM auth.users`));
+    // A run with nothing due still writes its line, with zeros.
+    let before = logLines();
+    const idle = JSON.parse(q(`SELECT accounts.run_daily_cleanup()`));
+    const idleLine = lastLine();
+    check(idle.accounts === 0 && idle.guests === 0 && logLines() === before + 1 && idleLine.startsWith("cleanup|") && /"accounts": 0/.test(idleLine) && /"guests": 0/.test(idleLine), `log: a run with nothing due writes one line with zero counts (${idleLine})`);
+
+    // 26 accounts due: the brake.
+    q(`INSERT INTO auth.users (id, is_anonymous, email) SELECT ('00000000-0000-4000-9000-' || lpad(n::text, 12, '0'))::uuid, false, 'bulk' || n || '@example.com' FROM generate_series(1, 26) n;
+       INSERT INTO public.profiles (user_id, username, username_key, colour, date_of_birth) SELECT ('00000000-0000-4000-9000-' || lpad(n::text, 12, '0'))::uuid, 'Bulk_' || n, 'bulk_' || n, 0, DATE '1990-01-01' FROM generate_series(1, 26) n;
+       UPDATE public.profiles SET deletion_requested_at = now() - interval '31 days' WHERE username_key LIKE 'bulk\_%';`);
+    let n = users();
+    before = logLines();
+    const braked = JSON.parse(q(`SELECT accounts.run_daily_cleanup()`));
+    const brakeLine = lastLine();
+    check(braked.braked === true && braked.accounts === 0 && braked.due_accounts === 26 && users() === n, `brake: 26 accounts due removes nothing (${JSON.stringify(braked)})`);
+    check(logLines() === before + 1 && brakeLine.startsWith("cleanup_braked|") && /braked: more than 25 accounts/.test(brakeLine), `brake: one warning line in admin_log (${brakeLine.slice(0, 160)})`);
+    // 25 due: the run goes ahead.
+    q(`UPDATE public.profiles SET deletion_requested_at = NULL WHERE username_key = 'bulk_26'`);
+    before = logLines();
+    const ran25 = JSON.parse(q(`SELECT accounts.run_daily_cleanup()`));
+    check(ran25.braked === false && ran25.accounts === 25 && users() === n - 25 && logLines() === before + 1 && lastLine().startsWith("cleanup|") && /"accounts": 25/.test(lastLine()), `brake: 25 accounts due are removed, logged with the count (${JSON.stringify(ran25)})`);
+    check(q(`SELECT count(*) FROM public.profiles WHERE username_key = 'bulk_26'`) === "1", "brake: an account not due stays");
+
+    // 501 guests due: the brake; 500: removed.
+    q(`INSERT INTO auth.users (id, created_at, last_sign_in_at) SELECT ('00000000-0000-4000-a000-' || lpad(n::text, 12, '0'))::uuid, now() - interval '15 months', now() - interval '14 months' FROM generate_series(1, 501) n`);
+    n = users();
+    before = logLines();
+    const brakedGuests = JSON.parse(q(`SELECT accounts.run_daily_cleanup()`));
+    check(brakedGuests.braked === true && brakedGuests.due_guests === 501 && users() === n && logLines() === before + 1 && lastLine().startsWith("cleanup_braked|"), `brake: 501 guests due removes nothing, one warning line (${JSON.stringify(brakedGuests)})`);
+    q(`UPDATE auth.users SET last_sign_in_at = now() WHERE id = '00000000-0000-4000-a000-000000000501'`);
+    before = logLines();
+    const ran500 = JSON.parse(q(`SELECT accounts.run_daily_cleanup()`));
+    check(ran500.braked === false && ran500.guests === 500 && users() === n - 500 && logLines() === before + 1 && /"guests": 500/.test(lastLine()), `brake: 500 guests due are removed, logged with the count (${JSON.stringify(ran500)})`);
+    // Joe's hand override lifts the brake for one run.
+    q(`INSERT INTO auth.users (id, created_at, last_sign_in_at) SELECT ('00000000-0000-4000-b000-' || lpad(n::text, 12, '0'))::uuid, now() - interval '15 months', now() - interval '14 months' FROM generate_series(1, 501) n`);
+    const override = JSON.parse(q(`SELECT accounts.run_daily_cleanup(true)`));
+    check(override.braked === false && override.guests === 501 && /"override": true/.test(lastLine()), "brake: run_daily_cleanup(true) by hand lifts it for one run, logged");
+    check(q(`SELECT count(*) FROM accounts.admin_log WHERE action IN ('cleanup', 'cleanup_braked') AND user_id IS NOT NULL`) === "0", "log: run lines name nobody");
   });
 }
