@@ -298,6 +298,9 @@ export const SHARDS: Record<string, string[]> = {
     // migrations-check (9 Nov 2026, ~5 s): the automatic migration applier (scripts/migrate.ts) and its
     // destructive guard on a local PostgreSQL, beside the other SQL checks.
     "migrations-check.ts",
+    // accounts-check (10 Nov 2026, ~6 s): the accounts backend through the server functions, supabase-js Auth calls and
+    // every migration on a local PostgreSQL (the server-function harness), beside the other SQL checks.
+    "accounts-check.ts",
     "ink-x200-check.ts",
     "depth4-check.ts",
     "room-figures-check.ts",

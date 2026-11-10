@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark light">
+<title>Sign in to Joulz</title>
+</head>
+<body style="margin:0;padding:0;background:#07070A;">
+<!-- Joulz account email: signing in. Plain, branded, no images or tracking. Supabase fills in the 6-digit code
+     and the magic link. Pasted into Supabase: Authentication → Emails → Templates → Magic link. -->
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#07070A;">
+  <tr>
+    <td align="center" style="padding:32px 16px;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;background:#111116;border-radius:12px;">
+        <tr>
+          <td style="padding:28px 28px 8px 28px;font-family:Archivo,Arial,Helvetica,sans-serif;font-weight:900;font-size:26px;letter-spacing:0.5px;color:#F5F5F7;">
+            JOUL<span style="color:#F2C75C;">Z</span>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:8px 28px 0 28px;font-family:Archivo,Arial,Helvetica,sans-serif;font-size:17px;line-height:1.5;color:#F5F5F7;">
+            Here’s your sign-in for Joulz.
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:20px 28px 4px 28px;font-family:Archivo,Arial,Helvetica,sans-serif;font-size:15px;color:#BDBDCC;">
+            Your code
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:0 28px 8px 28px;font-family:'Courier New',Courier,monospace;font-size:34px;font-weight:700;letter-spacing:8px;color:#F2C75C;">
+            {{ .Token }}
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:4px 28px 20px 28px;font-family:Archivo,Arial,Helvetica,sans-serif;font-size:15px;line-height:1.5;color:#BDBDCC;">
+            Type it into Joulz. On an iPhone home-screen app, the code is the easiest way.
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:0 28px 24px 28px;">
+            <a href="{{ .ConfirmationURL }}" style="display:inline-block;background:#F2C75C;color:#07070A;font-family:Archivo,Arial,Helvetica,sans-serif;font-weight:800;font-size:16px;text-decoration:none;padding:14px 22px;border-radius:8px;">Sign in to Joulz</a>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:0 28px 28px 28px;font-family:Archivo,Arial,Helvetica,sans-serif;font-size:13px;line-height:1.5;color:#8E8E9C;">
+            The code and the button work once and stop working after an hour. If you didn’t ask for this, ignore this email: nothing changes.
+            Questions? Reply, or write to support@joulz.uk.
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>
+</body>
+</html>
