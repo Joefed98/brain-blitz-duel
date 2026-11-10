@@ -81,6 +81,40 @@ with the stays-behind warning.
 - **What other players see**: `public.public_profiles(uuid[])`: username, colour, player number, founding. Never a date
   of birth, a country or a status. An account waiting for deletion shows as "Deleted player" at once.
 
+## Sign-up screens (wave 1, train 2, session 3)
+
+The screens that turn a guest into a signed-in player (docs/mockups/wave-1/ S1–S6 and that folder's README). They
+call the backend above and decide nothing themselves.
+
+| Piece | File |
+| --- | --- |
+| The route: sign-in and sign-up for a guest, Settings → Account for an account | `src/routes/account.tsx` (`/account?from=<path>&start=email`) |
+| Sign in (S2), email (S3), inbox with the 6-digit code (S3b), username and colour (S4), birthday (S5), welcome (S6), the sign-in warning, the under-13 message, the deletion cancel offer | `src/components/account/SignUpFlow.tsx` |
+| Settings → Account: username (and when it may change next), email, country picker, sign out, delete account (two steps) | `src/components/account/AccountSettings.tsx` |
+| "Save your progress": the sheet after the first finished game, the pop-up once after the third if dismissed | `src/components/account/SaveProgress.tsx`, rules `src/lib/account/saveProgress.ts` |
+| The "needs an account" gate for wave 2 (friends, shop) and wave 4 (tournaments) | `src/components/account/AccountGate.tsx` (`<AccountGate what="add friends">…</AccountGate>`) |
+| The phone's account state (`useAccount`, `useAccountName`, sign out) | `src/lib/account/accountApi.ts` |
+| The prompt's three events (server function) | `src/lib/account/saveProgress.functions.ts`, migration `20261110130000_analytics_save_progress_events.sql` |
+| Usernames in rooms, Dailies and challenges | `src/lib/names/playerName.server.ts` (`accountNameOf`), read by `insertPlayer`, `dailyStartFn` and the challenge calls |
+| Styles | `src/polish-layout/account.css` |
+| Checks | `scripts/account-screens-check.ts` (no browser), `scripts/account-flow-check.ts` (Chromium, the whole email-code flow), the screens in `scripts/theme-screens.ts` `ACCOUNT_SCREENS` (theme-check, no-wrap-check) |
+
+The order of the calls:
+
+- **New player**: S3 sends `sendSignInEmail` first (it never creates a user); "no account" means a new player, so S4
+  and S5 come next, then `startSignUpFn` (the age gate, before any email is sent), then `sendSignUpEmail`, S3b, and
+  `completeSignUpFn` (country from `regionCountry()`), then S6. The birthday screen never mentions an age limit.
+- **Existing account**: S3's `sendSignInEmail` succeeds, so it is a sign-in: when this phone's guest has progress
+  (`guestProgressFn`) the warning lists what stays behind (Cancel / Continue); then the code, `noteSignInFn`,
+  `rememberLeftGuest`. An account waiting for deletion is offered "Keep my account" (`cancelAccountDeletionFn`).
+- **Under 13**: the kind message ("You can keep playing as a guest"), `rememberAgeRefusal()`; while it holds, a new
+  sign-up goes straight to that message (sign-in to an existing account still works).
+- **The link instead of the code**: the inbox listens for the session changing on this phone and carries on.
+- **Names**: a signed-in player's name boxes show their username with no way to type another, and the server seats
+  them under it whatever is sent; guests type up to 16 characters and a refused name shows the plain reason with the
+  three suggestions as chips.
+- Google and Apple buttons show only while `GOOGLE_SIGN_IN_ENABLED` / `APPLE_SIGN_IN_ENABLED` are on.
+
 ## Delete account and the daily clean-up
 
 - `requestAccountDeletionFn`: sets `deletion_requested_at` (the profile is hidden at once) and signs the player out

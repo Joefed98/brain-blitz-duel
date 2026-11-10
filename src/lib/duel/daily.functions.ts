@@ -67,12 +67,17 @@ export const dailyStartFn = createServerFn({ method: "POST" })
     if (today && existing) return { ok: true as const, roomId: today.id, created: false };
 
     const { cleanDisplayName, nameRefusal } = await import("./displayName.server");
-    const name = cleanDisplayName(data.displayName);
+    // A signed-in player's board name is their username (playerName.server.ts); a guest's typed name is checked.
+    const { accountNameOf } = await import("@/lib/names/playerName.server");
+    const name = (await accountNameOf(client, context.userId)) ?? cleanDisplayName(data.displayName);
     if (!name) return { ok: false as const, message: "Enter a display name." };
     // offensiveName(name) and the reserved names, on the look-alike-folded name too (M2).
     const refusal = nameRefusal(name);
-    if (refusal)
-      return { ok: false as const, message: refusal.message, nameRefused: true };
+    if (refusal) {
+      const { refusalWithSuggestions } = await import("@/lib/names/names.server");
+      const { suggestions } = await refusalWithSuggestions("guest", refusal.reason);
+      return { ok: false as const, message: refusal.message, nameRefused: true, suggestions };
+    }
     const { DAILY_START_LIMIT, withinRateLimit } = await import("./rateLimit.server");
     if (!(await withinRateLimit(client, context.userId, DAILY_START_LIMIT)))
       return { ok: false as const, message: "That’s a lot of tries. Give it a few minutes." };

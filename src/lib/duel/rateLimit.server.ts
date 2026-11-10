@@ -59,6 +59,8 @@ export function chatRoomLimit(roomId: string, max: number): RateLimit {
 }
 /** Share and terms beta events (L4): 60 per 10 minutes per user. */
 export const BETA_EVENT_LIMIT: RateLimit = { bucket: "beta-event", max: 60, windowSeconds: 600 };
+/** The save-your-progress prompt's three events (saveProgress.functions.ts): a handful a game at most. */
+export const SAVE_PROGRESS_LIMIT: RateLimit = { bucket: "save-progress", max: 20, windowSeconds: 600, failClosed: true };
 /** Analytics events from the phone (recordClientEventsFn): 30 calls of up to 20 events per 10 minutes a device. */
 export const ANALYTICS_CLIENT_LIMIT: RateLimit = { bucket: "analytics-client", max: 30, windowSeconds: 600, failClosed: true };
 

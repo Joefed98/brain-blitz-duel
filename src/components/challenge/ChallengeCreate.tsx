@@ -6,6 +6,7 @@ import { typesInCategory } from "@/lib/duel/catalogue";
 import type { PuzzleCategory } from "@/lib/duel/types";
 import { Dots } from "@/components/duel/Dots";
 import { Button, Chip, Input, Segmented } from "@/design/components";
+import { GUEST_NAME_MAX } from "@/lib/names/username";
 
 /** The lobby's presets (RoomLobby), each with its line. */
 const PRESETS: { label: string; values: readonly PuzzleCategory[] }[] = [
@@ -38,7 +39,8 @@ export function ChallengeCreate({
   name: string;
   editingName: boolean;
   onName: (name: string) => void;
-  onEditName: () => void;
+  /** Left out for a signed-in player, whose board name is their username. */
+  onEditName?: (() => void) | undefined;
   categories: PuzzleCategory[];
   onCategories: (next: PuzzleCategory[]) => void;
   rounds: number;
@@ -62,7 +64,7 @@ export function ChallengeCreate({
             <Input
               id="challenge-name"
               value={name}
-              maxLength={14}
+              maxLength={GUEST_NAME_MAX}
               placeholder="Your name"
               autoComplete="nickname"
               onChange={(e) => onName(e.target.value)}
@@ -73,13 +75,15 @@ export function ChallengeCreate({
             <span className="min-w-0 truncate">
               Playing as <span className="th-name text-foreground">{name}</span>
             </span>
-            <button
-              type="button"
-              onClick={onEditName}
-              className="press tap-target shrink-0 px-2 font-display text-xs font-semibold uppercase tracking-widest text-primary"
-            >
-              Change name
-            </button>
+            {onEditName ? (
+              <button
+                type="button"
+                onClick={onEditName}
+                className="press tap-target shrink-0 px-2 font-display text-xs font-semibold uppercase tracking-widest text-primary"
+              >
+                Change name
+              </button>
+            ) : null}
           </p>
         )}
 

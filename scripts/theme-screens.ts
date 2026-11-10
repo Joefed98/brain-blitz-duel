@@ -168,7 +168,7 @@ export const room =
 
 export interface ThemeScreen {
   name: string;
-  mode: "home" | "practice" | "tournaments" | "profile" | "room" | "daily" | "challenge" | "terms" | "notfound" | "error" | "firstopen";
+  mode: "home" | "practice" | "tournaments" | "profile" | "room" | "daily" | "challenge" | "terms" | "notfound" | "error" | "firstopen" | "account" | "saveprogress";
   /** Window globals set before the page loads (wave 1: `__harnessPreview`, a room link's preview). */
   globals?: Record<string, unknown>;
   /** false: a brand-new device, with no room history, practice bests or public games (wave 1's empty states). */
@@ -281,6 +281,66 @@ export function ROOM_16_SCREENS(): ThemeScreen[] {
  * the not-found screens, the offline screen, the error boundary and the first-open onboarding's three screens
  * (off until wave 3; drawn here directly). Appended last, so every earlier screen keeps its place in the parts.
  */
+/** A signed-in player's account, as the account screens draw it (wave 1 sign-up screens). */
+export const ACCOUNT_FIXTURE = {
+  kind: "account" as const,
+  userId: "00000000-0000-4000-8000-000000000042",
+  username: "TheInventor",
+  colour: 4,
+  playerNumber: 42,
+  founding: true,
+  country: "GB",
+  createdAt: "2026-11-10T12:00:00.000Z",
+  status: "active",
+  isUnder18: false,
+  deletion: null,
+  rename: { kind: "free" as const },
+  email: "inventor@example.com",
+};
+
+/**
+ * The account screens (wave 1 sign-up screens, docs/mockups/wave-1/ S1–S6): every step of the sign-up through the
+ * check-only window.__DUELZ_ACCOUNT_FIXTURE__, Settings → Account, and the save-your-progress sheet and pop-up.
+ * Appended last, so the screens before them keep their places in split checks.
+ */
+export const ACCOUNT_SCREENS = (): ThemeScreen[] => {
+  const flow = (name: string, fixture: Record<string, unknown>, extra: Partial<ThemeScreen> = {}): ThemeScreen => ({
+    name: `account, ${name}`,
+    mode: "account",
+    plain: true,
+    globals: { __DUELZ_ACCOUNT_FIXTURE__: fixture },
+    ...extra,
+  });
+  const card = { email: "inventor@example.com", username: "TheInventor", colour: 4, dob: { d: "14", m: "3", y: "1998" } };
+  return [
+    flow("sign in", { step: "signin" }),
+    flow("email", { step: "email", email: "inventor@example.com" }),
+    flow("inbox", { step: "inbox", ...card }),
+    flow("username", { step: "username", ...card }),
+    flow("username refused", { step: "username", ...card, username: "admin" }),
+    flow("birthday", { step: "birthday", ...card }),
+    flow("under 13", { step: "under13" }),
+    flow("sign-in warning", { step: "warn", email: "inventor@example.com", progress: { rooms: 3, dailies: 2, challenges: 1, practice: 14 } }),
+    flow("welcome", { step: "welcome", done: ACCOUNT_FIXTURE }),
+    flow("welcome, player number", { step: "welcome", done: { ...ACCOUNT_FIXTURE, founding: false, playerNumber: 1287 } }),
+    flow("deletion pending", { step: "deleting", done: { ...ACCOUNT_FIXTURE, deletion: { requestedAt: "2026-11-01T12:00:00.000Z", purgeAt: "2026-12-01T12:00:00.000Z" } } }),
+    flow("settings", {}, { globals: { __harnessAccount: ACCOUNT_FIXTURE } }),
+    {
+      name: "account, save progress sheet",
+      mode: "saveprogress",
+      plain: true,
+      waitMs: 2000,
+    },
+    {
+      name: "account, save progress pop-up",
+      mode: "saveprogress",
+      plain: true,
+      waitMs: 2000,
+      globals: { __harnessSaveProgress: { finished: 2, keys: [], sheet: "dismissed", popup: "none" } },
+    },
+  ];
+};
+
 export const WAVE1_SCREENS = (): ThemeScreen[] => [
   { name: "profile, new player, empty states", mode: "profile", records: false },
   { name: "tournaments, nothing played, empty states", mode: "tournaments", records: false },
@@ -510,6 +570,7 @@ export const THEME_SCREENS: ThemeScreen[] = [
   },
   ...ROOM_16_SCREENS(),
   ...WAVE1_SCREENS(),
+  ...ACCOUNT_SCREENS(),
 ];
 
 export interface ThemeViewport {

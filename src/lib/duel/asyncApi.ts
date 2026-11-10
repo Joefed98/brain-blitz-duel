@@ -33,7 +33,7 @@ export async function startDaily(
   look: { colour?: number | null; icon?: string | null },
 ): Promise<
   | { ok: true; roomId: string; created: boolean }
-  | { ok: false; message: string; nameRefused?: boolean }
+  | { ok: false; message: string; nameRefused?: boolean; suggestions?: string[] }
 > {
   await ensureSession();
   return (await dailyStartFn({

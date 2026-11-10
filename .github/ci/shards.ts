@@ -313,6 +313,9 @@ export const SHARDS: Record<string, string[]> = {
     // accounts-check (10 Nov 2026, ~6 s): the accounts backend through the server functions, supabase-js Auth calls and
     // every migration on a local PostgreSQL (the server-function harness), beside the other SQL checks.
     "accounts-check.ts",
+    // account-screens-check (10 Nov 2026, ~10 s): the sign-up screens' rules, the save-progress events' server function
+    // and usernames in rooms, Dailies and challenges, through the server-function harness, beside accounts-check.
+    "account-screens-check.ts",
     "ink-x200-check.ts",
     "depth4-check.ts",
     "room-figures-check.ts",

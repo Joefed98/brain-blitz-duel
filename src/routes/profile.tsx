@@ -26,6 +26,8 @@ import type { PuzzleType } from "@/lib/duel/types";
 import { ukDay } from "@/lib/publicSchedule";
 import { APP_NAME } from "@/lib/brand";
 import { Button, EmptyState, Icon, Input } from "@/design/components";
+import { GUEST_NAME_MAX } from "@/lib/names/username";
+import { useAccountName } from "@/lib/account/accountApi";
 
 export const Route = createFileRoute("/profile")({
   ssr: false,
@@ -86,7 +88,9 @@ function ProfileScreen() {
     setLoaded(true);
   }, []);
   const stats = useMemo(() => roomStats(history), [history]);
-  const shownName = name.trim() || "Player";
+  // A signed-in player is shown by their username (changed in Settings → Account), a guest by the name typed.
+  const accountName = useAccountName();
+  const shownName = accountName ?? (name.trim() || "Player");
   // What this device has done (its own records): the Get started steps tick off from these, and a
   // section with nothing in it yet isn't drawn (a new player sees no zeros).
   const steps = [
@@ -107,8 +111,9 @@ function ProfileScreen() {
         </label>
         <Input
           id="profile-name"
-          value={name}
-          maxLength={14}
+          value={accountName ?? name}
+          readOnly={accountName !== null}
+          maxLength={GUEST_NAME_MAX}
           placeholder="Your name"
           onChange={(e) => {
             setName(e.target.value);

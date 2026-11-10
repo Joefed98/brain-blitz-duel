@@ -41,6 +41,9 @@ import type { PuzzleType } from "@/lib/duel/types";
 import { APP_DESCRIPTION, APP_TITLE } from "@/lib/brand";
 import { useHomeBed } from "@/lib/useScreenMusic";
 import { OnlineOnly } from "@/components/offline/OnlineOnly";
+import { GUEST_NAME_MAX } from "@/lib/names/username";
+import { NameSuggestions, reasonFrom, suggestionsFrom } from "@/components/account/AccountParts";
+import { useAccountName } from "@/lib/account/accountApi";
 
 const GAME_COUNTS = gameCounts();
 /** Every game rooms deal (the Warm up's "All 72 games"). */
@@ -141,6 +144,9 @@ function Home() {
   const [editingName, setEditingName] = useState(false);
   const [code, setCode] = useState("");
   const [error, setError] = useState<string | null>(null);
+  // A refused name's three suggestions (names.server.ts); a signed-in player plays under their username.
+  const [suggestions, setSuggestions] = useState<string[]>([]);
+  const accountName = useAccountName();
   const [shake, setShake] = useState(0);
   const [busy, setBusy] = useState<"create" | "join" | null>(null);
   const nameRef = useRef<HTMLInputElement | null>(null);
@@ -231,7 +237,8 @@ function Home() {
 
   const start = async (mode: "create" | "join") => {
     unlockAudio();
-    const trimmed = name.trim();
+    setSuggestions([]);
+    const trimmed = (accountName ?? name).trim();
     if (trimmed.length === 0) {
       setEditingName(true);
       fail("Enter a display name.");
@@ -259,7 +266,10 @@ function Home() {
       await navigate({ to: "/duel/$code", params: { code: duel.roomCode } });
     } catch (err) {
       setBusy(null);
-      fail(err instanceof Error ? err.message : "That didn’t work. Try again.");
+      const picks = suggestionsFrom(err);
+      setSuggestions(picks);
+      if (picks.length) setEditingName(true);
+      fail(err instanceof Error ? reasonFrom(err.message) : "That didn’t work. Try again.");
     }
   };
 
@@ -317,14 +327,14 @@ function Home() {
         <Panel as="section" pad aria-label="Quick play" className="flex flex-col gap-3">
           {/* Its height is set before the first paint from whether a name is stored (app-shell.css), so
               the name loading after mount never moves anything. */}
-          <div data-name-row data-editing={mounted ? String(editingName) : undefined}>
-          {editingName ? (
+          <div data-name-row data-editing={mounted ? String(editingName && !accountName) : undefined}>
+          {editingName && !accountName ? (
             <Input
               id="name"
               aria-label="Display name"
               ref={nameRef}
               value={name}
-              maxLength={14}
+              maxLength={GUEST_NAME_MAX}
               placeholder="Your name"
               autoComplete="nickname"
               onChange={(e) => {
@@ -334,11 +344,11 @@ function Home() {
             />
           ) : (
             <p className="flex h-11 items-center justify-between gap-2.5 text-muted-foreground jz-body">
-              <PlayerBadge look={look} name={name} size={28} />
+              <PlayerBadge look={look} name={accountName ?? name} size={28} />
               <span className="min-w-0 flex-1 truncate">
-                Playing as <span className="th-name font-semibold jz-em-name">{name}</span>
+                Playing as <span className="th-name font-semibold jz-em-name">{accountName ?? name}</span>
               </span>
-              <button
+              {accountName ? null : <button
                 type="button"
                 onClick={() => {
                   setEditingName(true);
@@ -347,7 +357,7 @@ function Home() {
                 className="ap-link press h-11 shrink-0 px-1"
               >
                 Change
-              </button>
+              </button>}
             </p>
           )}
           </div>
@@ -405,6 +415,14 @@ function Home() {
               {error}
             </p>
           )}
+          <NameSuggestions
+            names={suggestions}
+            onPick={(picked) => {
+              setName(picked);
+              setError(null);
+              setSuggestions([]);
+            }}
+          />
         </Panel>
 
         <PlaySlot id="homescreen" state={homeHint}>

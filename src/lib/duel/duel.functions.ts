@@ -120,6 +120,12 @@ const RECENT_BANK_ROOMS = 20;
 /** The service-role client, typed on the generated schema (src/lib/data/db.server.ts). */
 const db = adminDb;
 
+/** A signed-in player's username, or null for a guest (src/lib/names/playerName.server.ts). */
+async function accountNameOf(client: Db, userId: string): Promise<string | null> {
+  const { accountNameOf: lookup } = await import("@/lib/names/playerName.server");
+  return lookup(client, userId);
+}
+
 /** M2: the shared name cleaner (displayName.server.ts): NFKC, no control / bidi / zero-width characters, 16 code points. */
 async function cleanName(name: unknown): Promise<string> {
   const { cleanDisplayName } = await import("./displayName.server");
@@ -224,7 +230,9 @@ async function insertPlayer(
       duel_id: roomId,
       player_slot: slot,
       user_id: userId,
-      display_name: await cleanName(displayName),
+      // A signed-in player is seated under their username whatever was typed (playerName.server.ts); a guest
+      // under the name they typed. Lobby, standings, results, chat and share cards read this one stored name.
+      display_name: (await accountNameOf(client, userId)) ?? (await cleanName(displayName)),
       status: "active",
     },
     look,
@@ -365,12 +373,14 @@ export const createRoomFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { displayName: string; look?: LookPreference }) => input)
   .handler(async ({ data, context }) => {
-    const refused = await roomNameRefusal(data.displayName);
+    const client = await db();
+    // A signed-in player's rooms show their username (insertPlayer); only a guest's typed name is checked.
+    const accountName = await accountNameOf(client, context.userId);
+    const refused = accountName ? null : await roomNameRefusal(data.displayName);
     if (refused) {
       const { NameRefusedError } = await import("@/lib/names/names.server");
       throw new NameRefusedError(refused);
     }
-    const client = await db();
     const { CREATE_ROOM_LIMIT, IP_CREATE_ROOM_LIMIT, withinIpRateLimit, withinRateLimit } = await import("./rateLimit.server");
     if (!(await withinRateLimit(client, context.userId, CREATE_ROOM_LIMIT)))
       throw new Error("You’ve made a lot of rooms. Try again later.");
@@ -435,7 +445,8 @@ export const joinRoomFn = createServerFn({ method: "POST" })
     const { ROOM_LOOKUP_LIMIT, withinRateLimit } = await import("./rateLimit.server");
     if (!(await withinRateLimit(client, context.userId, ROOM_LOOKUP_LIMIT)))
       return { ok: false as const, message: "That’s a lot of tries. Give it a few minutes." };
-    const refused = await roomNameRefusal(data.displayName);
+    const accountName = await accountNameOf(client, context.userId);
+    const refused = accountName ? null : await roomNameRefusal(data.displayName);
     if (refused) {
       const { NameRefusedError } = await import("@/lib/names/names.server");
       return { ok: false as const, message: new NameRefusedError(refused).message, suggestions: refused.suggestions };
