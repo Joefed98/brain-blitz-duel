@@ -305,6 +305,16 @@ async function databaseChecks(db: LocalDb, rest: RestServer): Promise<void> {
     check(again.ok && !/ERROR/.test(again.err), `backfill: the seed migration applies again (${again.err.slice(0, 120)})`);
     check(owned(BEN) === STARTERS && balance(BEN) === 0 && q(`SELECT count(*) FROM loadouts WHERE user_id = '${BEN}'`) === "1", "backfill: an existing account gets its wallet, loadout and starter items");
     check(Number(q(`SELECT count(*) FROM catalogue_items`)) === 110, "backfill: applying it again adds no item");
+    const accounts = q(`SELECT count(*) FROM profiles`);
+    check(
+      again.err.includes(`economy backfill: ${accounts} accounts; 9 starter inventory rows inserted, 1 wallets and 1 loadouts created`),
+      `backfill: the deploy log notes the counts (migration_log.note) (${(again.err.match(/economy backfill:[^\n]*/) ?? ["none"])[0]})`,
+    );
+    const third = db.psql(readFileSync("supabase/migrations/20261110160100_economy_catalogue.sql", "utf8"));
+    check(
+      third.err.includes(`economy backfill: ${accounts} accounts; 0 starter inventory rows inserted, 0 wallets and 0 loadouts created`),
+      "backfill: a second run reports 0 inserted",
+    );
     const core = db.psql(readFileSync("supabase/migrations/20261110160000_economy.sql", "utf8"));
     check(core.ok && !/ERROR/.test(core.err), `the core migration applies again (idempotent) (${core.err.slice(0, 120)})`);
     check(

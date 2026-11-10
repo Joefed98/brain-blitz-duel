@@ -83,14 +83,31 @@ INSERT INTO public.avatar_options (avatar_id, kind, option_id, is_default, sort_
 ${avatarRows}
 ON CONFLICT (avatar_id, kind, option_id) DO NOTHING;
 
--- Every existing account: a wallet (0 coins), a loadout (the default avatar) and the starter items.
-INSERT INTO public.coin_wallets (user_id) SELECT user_id FROM public.profiles ON CONFLICT (user_id) DO NOTHING;
-INSERT INTO public.loadouts (user_id) SELECT user_id FROM public.profiles ON CONFLICT (user_id) DO NOTHING;
-INSERT INTO public.inventory_items (user_id, item_id, how)
-SELECT p.user_id, c.id, 'starter'
-  FROM public.profiles p CROSS JOIN public.catalogue_items c
- WHERE c.source = 'free-starter'
-ON CONFLICT (user_id, item_id) DO NOTHING;
+-- Every existing account: a wallet (0 coins), a loadout (the default avatar) and the starter items. The counts go to
+-- the deploy log through migration_log.note (the Management API returns no plain notices); a second run reports 0.
+DO $backfill$
+DECLARE
+  n_accounts integer;
+  n_wallets integer;
+  n_loadouts integer;
+  n_items integer;
+BEGIN
+  SELECT count(*) INTO n_accounts FROM public.profiles;
+  INSERT INTO public.coin_wallets (user_id) SELECT user_id FROM public.profiles ON CONFLICT (user_id) DO NOTHING;
+  GET DIAGNOSTICS n_wallets = ROW_COUNT;
+  INSERT INTO public.loadouts (user_id) SELECT user_id FROM public.profiles ON CONFLICT (user_id) DO NOTHING;
+  GET DIAGNOSTICS n_loadouts = ROW_COUNT;
+  INSERT INTO public.inventory_items (user_id, item_id, how)
+  SELECT p.user_id, c.id, 'starter'
+    FROM public.profiles p CROSS JOIN public.catalogue_items c
+   WHERE c.source = 'free-starter'
+  ON CONFLICT (user_id, item_id) DO NOTHING;
+  GET DIAGNOSTICS n_items = ROW_COUNT;
+  PERFORM migration_log.note('notice', format(
+    'economy backfill: %s accounts; %s starter inventory rows inserted, %s wallets and %s loadouts created',
+    n_accounts, n_items, n_wallets, n_loadouts));
+END
+$backfill$;
 `;
 }
 
