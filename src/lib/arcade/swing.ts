@@ -2643,6 +2643,12 @@ interface V14Built {
   fastest: number;
   /** swingRev 15's witness (recorded only; nothing in the build reads it): each release's pass index and the grab's flight tick after it (-1: a landing). */
   plan: [number, number][];
+  /**
+   * The route that times `fastest` (10 Nov 2026), in `plan`'s shape: the grab variant and release behind it. swingRev
+   * 15 and 16 record it as their witness (only their checks read it); swingRev 17 keeps `plan`, since its sliding hooks
+   * are phased from that route. Recorded only: no draw, course, par or state depends on it.
+   */
+  fastPlan?: [number, number][];
 }
 
 /**
@@ -2771,15 +2777,19 @@ function v14Section(c: V14Course, from: SwingLedge, kind: number, k: number, dra
   if (planned.length < 4) return pop();
   // Fair: grabs two ticks either side, and releases a tick either side of the planned one, still have a landing.
   let fastest = r1 + g0 + Math.min(...planned.map(([r, t]) => r + t));
+  const quick = planned.reduce((p, q) => (q[0] + q[1] < p[0] + p[1] ? q : p));
+  let fastPlan: [number, number][] = [[r1, g0], [quick[0], -1]];
   for (const [dr, dg] of [[0, -2], [0, 2], [-1, 0], [1, 0]] as const) {
     const pass = grabbed(r1 + dr, g0 + dg);
     const got = pass ? landings(pass) : [];
     if (got.length < 2) return pop();
-    fastest = Math.min(fastest, r1 + dr + g0 + dg + Math.min(...got.map(([r, t]) => r + t)));
+    const best = got.reduce((p, q) => (q[0] + q[1] < p[0] + p[1] ? q : p));
+    const ticks = r1 + dr + g0 + dg + best[0] + best[1];
+    if (ticks < fastest) fastPlan = [[r1 + dr, g0 + dg], [best[0], -1]];
+    fastest = Math.min(fastest, ticks);
   }
-  const quick = planned.reduce((p, q) => (q[0] + q[1] < p[0] + p[1] ? q : p));
   c.anchors.length = n0;
-  return { hooks: [a, b], to, sq, lands: [], fastest, plan: [[r1, g0], [quick[0], -1]] };
+  return { hooks: [a, b], to, sq, lands: [], fastest, plan: [[r1, g0], [quick[0], -1]], fastPlan };
 }
 
 const v14Cache = new Map<number, SwingState>();
@@ -3733,7 +3743,8 @@ function buildV15(draw: (n: number) => number, shape: V15Shape): { state: SwingS
         if (made.sq) squeezes.push(made.sq);
         ledges.push({ ...made.to, section: sections.length + 1 });
         sections.push({ kind, hook0, hooks: made.hooks.length, sq: made.sq ? squeezes.length - 1 : -1, par: SWING_V14_PAR_WALK + made.fastest + SWING_V14_PAR_MARGIN, from: fromIndex, to: ledges.length - 1, x0: from.x, x1: made.to.x });
-        plan.push(made.plan);
+        // swingRev 15/16's witness is the route that times the par; swingRev 17's sliders are phased from made.plan.
+        plan.push(shape.slide ? made.plan : (made.fastPlan ?? made.plan));
       }
       arrive = null;
       // A squeeze run whose squeeze found no shape in any of its sections is built again.

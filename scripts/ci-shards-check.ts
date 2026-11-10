@@ -11,6 +11,8 @@
  *  - checks.yml runs tsc --noEmit over src/ in its own typecheck job (7 Nov 2026).
  *  - checks.yml runs the production build (`bun run build`, as the Cloudflare deploy) in its own build job, beside
  *    the shards (needs nothing), on placeholder public Supabase values and no secrets (9 Nov 2026).
+ *  - checks-full-weekly.yml (10 Nov 2026) runs the fast shards at full depth (CHECKS_FULL=1) on a schedule, never on a
+ *    pull request and with no browser, and its report job (full-depth-report.ts) runs whatever the shards did.
  *
  *   bun scripts/ci-shards-check.ts
  */
@@ -64,6 +66,7 @@ check(!isBrowserCheck("replay-check.ts") && !isBrowserCheck("link-preview-check.
 /* 3. The workflows. */
 const fastYml = readFileSync(".github/workflows/checks.yml", "utf8");
 const fullYml = readFileSync(".github/workflows/full-suite.yml", "utf8");
+const weeklyYml = readFileSync(".github/workflows/checks-full-weekly.yml", "utf8");
 const matrixOf = (yml: string, name: string) => {
   const m = /shard:\s*\[([^\]]*)\]/.exec(yml);
   check(!!m, `${name} has a shard matrix`);
@@ -83,6 +86,10 @@ check(/full-suite-passed/.test(fullYml) && /needs:\s*\[[^\]]*\bshards\b[^\]]*\]/
 check(/needs\.shards\.result\s*}}"?\s*=\s*"?success/.test(fullYml) || /needs\.shards\.result == 'success'/.test(fullYml), "full-suite-passed passes only on the shards' success");
 check(/ready-to-merge/.test(fullYml) && /ready_for_review/.test(fullYml) && /workflow_dispatch/.test(fullYml) && /schedule:/.test(fullYml), "full-suite.yml runs on the label, leaving draft, by hand and weekly");
 check(/labeled/.test(fullYml) && /synchronize/.test(fullYml), "full-suite.yml re-runs on new pushes while labelled");
+// The weekly full-depth run on main (10 Nov 2026): the fast shards at CHECKS_FULL=1, never on a PR, one report job.
+check(same(matrixOf(weeklyYml, "checks-full-weekly.yml"), fast), `checks-full-weekly.yml's matrix is the fast shards (${fast.join(", ")})`);
+check(/schedule:/.test(weeklyYml) && /CHECKS_FULL:\s*"1"/.test(weeklyYml) && !/pull_request/.test(weeklyYml) && !/playwright install/.test(weeklyYml), "checks-full-weekly.yml runs the fast shards at full depth on a schedule, never on a pull request, installing no browser");
+check(/full-depth-report\.ts/.test(weeklyYml) && /if: always\(\) && needs\.weekly/.test(weeklyYml), "checks-full-weekly.yml's report job lists every full-depth failure whatever the shards did");
 
 if (failures.length) {
   console.log(`FAIL: ${failures.length} of ${passes + failures.length} checks`);

@@ -23,7 +23,11 @@
  *  7. The sputter (display only): a run that ends dry animates for 0.6 s on the same ended state and the stage holds
  *     its submit that long; nothing else holds.
  *
- *   bun scripts/orbit-fuel-check.ts
+ *   bun scripts/orbit-fuel-check.ts [--part=k/n]
+ *
+ * `--part=k/n` (10 Nov 2026: at full depth the whole check took ~400 s on CI, past run-checks' 300 s): section 2's
+ * planet rebuilds take every n-th course from the k-th (the first two at quick depth, every one at full); everything
+ * else runs in every part (a few seconds). The n parts together rebuild exactly the courses one whole run does.
  */
 import { readFileSync } from "node:fs";
 import type { ArcadeInputEvent } from "../src/lib/arcade/engine";
@@ -73,6 +77,9 @@ function ok(cond: boolean, label: string): void {
   }
 }
 const FULL = process.env.CHECKS_FULL === "1";
+const PART = process.argv.find((a) => a.startsWith("--part="))?.slice(7);
+const [PART_K, PART_N] = PART ? (PART.split("/").map(Number) as [number, number]) : [1, 1];
+if (!(PART_N >= 1 && PART_K >= 1 && PART_K <= PART_N)) throw new Error(`bad --part=${PART}`);
 const ev = (t: number, k: number): ArcadeInputEvent => ({ t, k, a: 0, b: 0, c: 0, d: 0 });
 const startOf = (e: OrbitFuelBankEntry) => initFuelFrom(decodeRev3Planets(e.planets), ORBIT_REV3_WORLD_W, decodeOrbitHoles(e.holes), decodeOrbitExtras(e.extras));
 const step = (s: OrbitRev3State, input: ArcadeInputEvent | null = null) => orbitRev3Game.step(s, input) as OrbitRev3State;
@@ -125,13 +132,13 @@ const step = (s: OrbitRev3State, input: ArcadeInputEvent | null = null) => orbit
   ok(perfect === ORBIT_FUEL_BANK.length, `every course's witness replays through the server to 200 on orbitRev 14 with every feature and 2+ black holes (${perfect} / ${ORBIT_FUEL_BANK.length}; perfect orbits ≥ ${minPerfect}, slowest sun at tick ${slowest})`);
   ok(slowest <= orbitRev3Game.runTicks / 2, "every witness reaches the sun with half the run left (full speed)");
   ok(spare === ORBIT_FUEL_BANK.length, `every witness flight lands with at least ${ORBIT_FUEL_MAX - ORBIT_FUEL_HOP_MAX} fuel to spare (least ${minFuel} of ${ORBIT_FUEL_MAX})`);
-  const rebuild = FULL ? ORBIT_FUEL_BANK : ORBIT_FUEL_BANK.slice(0, 2);
+  const rebuild = (FULL ? ORBIT_FUEL_BANK : ORBIT_FUEL_BANK.slice(0, 2)).filter((_, i) => i % PART_N === PART_K - 1);
   let rebuilt = 0;
   for (const e of rebuild) {
     const planets = buildFuelCourseRaw(e.build);
     if (JSON.stringify(e.planets) === JSON.stringify(encodeRev3Planets(planets))) rebuilt++;
   }
-  ok(rebuilt === rebuild.length, `each course's planets rebuild from its stored build seed (${rebuilt} / ${rebuild.length}${FULL ? "" : ", CHECKS_FULL=1 for all"})`);
+  ok(rebuilt === rebuild.length, `each course's planets rebuild from its stored build seed (${rebuilt} / ${rebuild.length}${PART ? `, part ${PART}` : ""}${FULL ? "" : ", CHECKS_FULL=1 for all"})`);
 }
 
 /* 3. The rules. */

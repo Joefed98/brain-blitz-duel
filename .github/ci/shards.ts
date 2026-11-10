@@ -163,6 +163,9 @@ export const SHARDS: Record<string, string[]> = {
     "puzzle-bank-check.ts@3/4",
     // The puzzle top-up (26 Oct 2026): legacy grades, deals and the bar on 40 fresh seeds, ~95 s whole locally, in halves.
     "depth-topup-check.ts@1/2",
+    // Full-depth split (10 Nov 2026): at CHECKS_FULL=1 these ran ~340 s (swing-assault), ~540 s (cards) and ~400 s
+    // (orbit-fuel) whole on CI, past run-checks' 300 s; each part is well under 200 s, the parts together the whole check.
+    "cards-check.ts@2/4",
   ],
   // ~282 s of checks on run 38608375501's times.
   b: [
@@ -208,6 +211,9 @@ export const SHARDS: Record<string, string[]> = {
     "tuning-b-check.ts",
     "word-game-tuning-check.ts",
     "arcade-self-replay-check.ts@2/2",
+    // Full-depth split (10 Nov 2026): at CHECKS_FULL=1 these ran ~340 s (swing-assault), ~540 s (cards) and ~400 s
+    // (orbit-fuel) whole on CI, past run-checks' 300 s; each part is well under 200 s, the parts together the whole check.
+    "swing-assault-check.ts@2/3",
   ],
   // ~282 s of checks on run 38608375501's times.
   c: [
@@ -251,6 +257,10 @@ export const SHARDS: Record<string, string[]> = {
     "tubes-safe-bomb-check.ts",
     "whack-check.ts",
     "puzzle-bank-check.ts@1/4",
+    // Full-depth split (10 Nov 2026): at CHECKS_FULL=1 these ran ~340 s (swing-assault), ~540 s (cards) and ~400 s
+    // (orbit-fuel) whole on CI, past run-checks' 300 s; each part is well under 200 s, the parts together the whole check.
+    "swing-assault-check.ts@3/3",
+    "orbit-fuel-check.ts@1/3",
   ],
   // ~282 s of checks on run 38608375501's times.
   d: [
@@ -262,7 +272,9 @@ export const SHARDS: Record<string, string[]> = {
     "room-practice-grade-check.ts",
     "racing-render-check.ts",
     "cross-rev11-check.ts",
-    "swing-assault-check.ts",
+    // Full-depth split (10 Nov 2026): at CHECKS_FULL=1 these ran ~340 s (swing-assault), ~540 s (cards) and ~400 s
+    // (orbit-fuel) whole on CI, past run-checks' 300 s; each part is well under 200 s, the parts together the whole check.
+    "swing-assault-check.ts@1/3",
     "arcade-tuning-f-check.ts",
     "arcade-tuning-f2-check.ts",
     "beat-hold-check.tsx",
@@ -327,6 +339,10 @@ export const SHARDS: Record<string, string[]> = {
     "word-polish-check.ts",
     "wordfall-check.ts",
     "puzzle-bank-check.ts@4/4",
+    // Full-depth split (10 Nov 2026): at CHECKS_FULL=1 these ran ~340 s (swing-assault), ~540 s (cards) and ~400 s
+    // (orbit-fuel) whole on CI, past run-checks' 300 s; each part is well under 200 s, the parts together the whole check.
+    "cards-check.ts@3/4",
+    "orbit-fuel-check.ts@2/3",
   ],
   // ~282 s of checks on run 38608375501's times.
   f: [
@@ -334,7 +350,9 @@ export const SHARDS: Record<string, string[]> = {
     "pool-check.ts",
     // From g's catch-all (3 Nov 2026 rebalance; ~336 s on PR #253's CI times): g ran ~31 min, d-f 6-10.
     "arcade-standard-check.ts",
-    "cards-check.ts",
+    // Full-depth split (10 Nov 2026): at CHECKS_FULL=1 these ran ~340 s (swing-assault), ~540 s (cards) and ~400 s
+    // (orbit-fuel) whole on CI, past run-checks' 300 s; each part is well under 200 s, the parts together the whole check.
+    "cards-check.ts@1/4",
     "cross-x200-check.ts",
     "fillomino-check.ts",
     "bintoss-standard-check.ts",
@@ -385,6 +403,10 @@ export const SHARDS: Record<string, string[]> = {
     "stopwatch-chain-check.ts",
     "swing-rev8-check.ts",
     "timing-check.ts",
+    // Full-depth split (10 Nov 2026): at CHECKS_FULL=1 these ran ~340 s (swing-assault), ~540 s (cards) and ~400 s
+    // (orbit-fuel) whole on CI, past run-checks' 300 s; each part is well under 200 s, the parts together the whole check.
+    "cards-check.ts@4/4",
+    "orbit-fuel-check.ts@3/3",
   ],
 };
 

@@ -1,0 +1,124 @@
+# Full-depth Checks on main, weekly (10 Nov 2026). Pull requests run the slow checks at quick depth (checks.yml), so a
+# check that only fails at full depth (CHECKS_FULL=1: every bank course, seed and rebuild) could sit on main unseen.
+# This runs the same fast shards a-g as checks.yml's manual "full" run, on main, every Sunday night UK time, and its
+# last job ("full-depth report") lists every check that failed or timed out, with an error annotation each, and fails
+# the run. It changes nothing else: checks.yml, full-suite.yml and the deploy are untouched, and it never runs on a PR.
+# Like full-suite.yml's weekly run, a scheduled run is skipped when main had no commits in the past week (the result
+# would be last week's); Actions → Full-depth checks (weekly) → Run workflow runs it on demand, on any branch.
+name: Full-depth checks (weekly)
+
+on:
+  schedule:
+    # Sunday 22:07 UTC: 22:07 in winter (GMT), 23:07 in summer (BST). On the default branch (main).
+    - cron: "7 22 * * 0"
+  workflow_dispatch:
+
+concurrency:
+  group: checks-full-weekly-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  BUN_VERSION: "1.4.2"
+
+jobs:
+  # Scheduled runs only: run when main had commits in the past week (plus an hour; an unchanged main was already checked).
+  weekly:
+    runs-on: ubuntu-latest
+    outputs:
+      run: ${{ steps.c.outputs.run }}
+    steps:
+      - id: c
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [ "${{ github.event_name }}" != "schedule" ]; then echo "run=true" >> "$GITHUB_OUTPUT"; exit 0; fi
+          since=$(date -u -d '169 hours ago' +%Y-%m-%dT%H:%M:%SZ)
+          n=$(gh api "repos/${{ github.repository }}/commits?sha=${{ github.event.repository.default_branch }}&since=$since&per_page=1" --jq 'length')
+          echo "commits to main since $since: $n"
+          if [ "$n" -gt 0 ]; then echo "run=true" >> "$GITHUB_OUTPUT"; else
+            echo "run=false" >> "$GITHUB_OUTPUT"
+            echo "> main had no commits since $since: last week's full-depth run stands; nothing run." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+  checks:
+    name: full depth (${{ matrix.shard }})
+    needs: [weekly]
+    if: needs.weekly.outputs.run == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        # Keys must be the fast shards of .github/ci/shards.ts (ci-shards-check compares them).
+        shard: [a, b, c, d, e, f, g]
+    env:
+      CHECKS_FULL: "1"
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+
+      - uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ runner.os }}-${{ env.BUN_VERSION }}-${{ hashFiles('bun.lock') }}
+          restore-keys: bun-${{ runner.os }}-${{ env.BUN_VERSION }}-
+
+      # The same lockfile workaround as checks.yml (bun.lock restored exactly).
+      - name: Install dependencies
+        run: |
+          cp bun.lock "$RUNNER_TEMP/bun.lock.orig"
+          sed -i -E 's#https://europe-west[0-9]+-npm\.pkg\.dev/lovable-core-prod/[^/]+/#https://registry.npmjs.org/#g' bun.lock
+          bun install --frozen-lockfile
+          cp "$RUNNER_TEMP/bun.lock.orig" bun.lock
+          git diff --exit-code -- bun.lock
+
+      - name: Run checks at full depth (${{ matrix.shard }})
+        run: bun .github/ci/run-shard.ts ${{ matrix.shard }} 2>&1 | tee ci-results-${{ matrix.shard }}.log
+        shell: bash # -eo pipefail: a failing runner fails the step through tee
+
+      - name: Upload results
+        if: always()
+        uses: actions/upload-artifact@v5
+        with:
+          name: full-depth-results-${{ matrix.shard }}
+          path: ci-results/${{ matrix.shard }}.json
+          if-no-files-found: ignore
+          retention-days: 30
+
+      - name: Upload logs
+        if: failure()
+        uses: actions/upload-artifact@v5
+        with:
+          name: check-logs-${{ matrix.shard }}
+          path: |
+            ci-results/
+            ci-results-${{ matrix.shard }}.log
+          retention-days: 30
+
+  # One table of every full-depth failure across the shards; fails the run if there is any.
+  report:
+    name: full-depth report
+    needs: [weekly, checks]
+    if: always() && needs.weekly.outputs.run == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+
+      - uses: actions/download-artifact@v5
+        with:
+          pattern: full-depth-results-*
+          path: full-depth-results
+
+      - name: Report
+        run: bun .github/ci/full-depth-report.ts full-depth-results

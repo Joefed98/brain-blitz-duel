@@ -2129,7 +2129,9 @@ grading. See `docs/duelz-scoring-reference.md` section 14.
 ## Working rules for every session
 
 1. **Before pushing, merge the latest `main` into your branch** and re-run your checks on the merged tree.
-2. **Never rebuild `scripts/fixtures/replay-runs.json` over existing runs** (e.g. a fresh `scripts/replay-fixtures.ts`
+2. **The swingRev 6 star fixture is frozen; re-recording it needs Joe's approval in the session that asks.**
+   (`scripts/fixtures/arcade-tuning-a-swing-v6-stars.json`; `scripts/arcade-tuning-a-swing-v6-record.ts` refuses to
+   overwrite it without `--overwrite-approved`.) **Never rebuild `scripts/fixtures/replay-runs.json` over existing runs** (e.g. a fresh `scripts/replay-fixtures.ts`
    write): keep every stored run and add each new-stamp run once.
 3. **Append new self-replay entries at the end of the list** (`scripts/arcade-self-replay-check.ts`), never mid-list:
    each entry has its own PRNG stream and the `@k/n` parts split by position.
