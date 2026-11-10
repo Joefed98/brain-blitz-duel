@@ -10,6 +10,22 @@ import { useEffect, useState } from "react";
 import { SHOP_PREVIEW_PLAYERS, SHOP_TAB_ENABLED } from "@/config/shopConfig";
 import { cachedAccount, useAccount, type PhoneAccount } from "@/lib/account/accountApi";
 
+/**
+ * Checks only: the switch forced on or off. A check's page sets `window.__DUELZ_SHOP_TAB__` (true / false) before the
+ * app starts, as with the first-open onboarding's override; a dev server started with `VITE_DUELZ_SHOP_TAB=on` turns
+ * it on for every page it serves, so the existing tab checks can run with five tabs. Production builds never read
+ * the variable (import.meta.env.DEV is false there).
+ */
+export function shopOverride(): boolean | null {
+  if (typeof window !== "undefined") {
+    const o = (window as unknown as { __DUELZ_SHOP_TAB__?: unknown }).__DUELZ_SHOP_TAB__;
+    if (o === true || o === false) return o;
+  }
+  const env = (import.meta as unknown as { env?: Record<string, unknown> }).env;
+  if (env?.["DEV"] === true && env["VITE_DUELZ_SHOP_TAB"] === "on") return true;
+  return null;
+}
+
 /** Pure: the switch, the preview list and who this is (a player number, or null for a guest). */
 export function shopOnFor(
   playerNumber: number | null,
@@ -31,6 +47,8 @@ export function useShopOn(): boolean {
   useEffect(() => {
     setCached(cachedAccount()?.playerNumber ?? null);
   }, []);
+  const forced = shopOverride();
+  if (forced !== null) return forced;
   if (SHOP_TAB_ENABLED) return true;
   if (account.kind === "unknown") return shopOnFor(cached);
   return shopOnFor(playerNumberOf(account));

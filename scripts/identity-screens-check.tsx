@@ -4,7 +4,9 @@
  *
  *  1. The Shop switch: off (as shipped) the tab bar is today's four for a guest and for any account but the
  *     preview list's (#0001), which gets five (Play, Practice, Tournaments, Shop, Profile); switched on, five for
- *     everyone (shopOnFor with the switch on; TabBar with `shop`).
+ *     everyone (shopOnFor with the switch on; TabBar with `shop`). On every bottom-bar screen (the real PhoneShell on
+ *     Play, Practice, Tournaments, Profile and, where it's on, Shop) and on the desktop rail, in both states (the
+ *     switch on through the check-only window.__DUELZ_SHOP_TAB__).
  *  2. The coin counter: an account the Shop is on for sees A1's balance ("1,240") and a tap opens Shop > Coins; it is
  *     absent for a guest and for an account the switch is off for.
  *  3. The card: every card art, frame and name colour in the catalogue (docs/art/wave-2/catalogue.json) renders
@@ -40,7 +42,8 @@ const check = (ok: boolean, message: string) => {
 
 /* ------------------------------------------------------------------ the page */
 const { Window } = await import("happy-dom");
-const win = new Window({ url: "https://joulz.uk/" });
+// A phone: the bottom bar (the desktop layout draws the rail instead).
+const win = new Window({ url: "https://joulz.uk/", width: 390, height: 844 });
 for (const key of ["window", "document", "navigator", "HTMLElement", "Element", "Node", "Event", "KeyboardEvent", "PointerEvent", "MouseEvent", "HTMLButtonElement", "HTMLAnchorElement", "SVGElement", "getComputedStyle", "matchMedia", "requestAnimationFrame", "cancelAnimationFrame", "localStorage", "sessionStorage", "MutationObserver", "CustomEvent", "location", "history", "scrollTo", "DOMParser"] as const) {
   const value = (win as unknown as Record<string, unknown>)[key];
   const bind = typeof value === "function" && !/^[A-Z]/.test(key);
@@ -240,6 +243,43 @@ for (const [who, n, want] of [
   check(tabLabels() === "Play,Practice,Tournaments,Shop,Profile", "switch on: five tabs, Shop before Profile");
   check($("[data-tab='shop']")?.getAttribute("aria-current") === "page", "switch on: the Shop tab shows as current on /shop");
   act(() => root.unmount());
+}
+
+/* ------------------------------------------------------------------ 1b. every bottom-bar screen, both states */
+{
+  // The real shell (PhoneShell `tabs`) on each tab page; the desktop rail draws the same list (TabBar `rail`).
+  const { PhoneShell } = await import("../src/components/duel/PhoneShell");
+  const { AppRail } = await import("../src/components/app/AppRail");
+  const setForced = (v: boolean | undefined) => ((window as unknown as { __DUELZ_SHOP_TAB__?: boolean }).__DUELZ_SHOP_TAB__ = v);
+  const FOUR = "Play,Practice,Tournaments,Profile";
+  const FIVE = "Play,Practice,Tournaments,Shop,Profile";
+  const pages = ["play", "practice", "tournaments", "profile", "shop"] as const;
+  const states = [
+    { name: "switch off, a guest", n: null, forced: undefined, want: FOUR },
+    { name: "switch off, account #0002", n: 2, forced: undefined, want: FOUR },
+    { name: "switch off, preview #0001", n: 1, forced: undefined, want: FIVE },
+    { name: "switch on, a guest", n: null, forced: true, want: FIVE },
+    { name: "switch on, account #0002", n: 2, forced: true, want: FIVE },
+  ] as const;
+  for (const state of states) {
+    setForced(state.forced);
+    await signIn(state.n);
+    for (const page of pages) {
+      // The Shop page has a bottom bar only where the Shop is on (elsewhere /shop sends the player to Play).
+      if (page === "shop" && state.want === FOUR) continue;
+      const { root } = await mount(() => React.createElement(PhoneShell, { tabs: page, children: React.createElement("p", null, page) }), page === "play" ? "/" : `/${page}`);
+      const bars = $$("[data-app-tabbar]").length;
+      check(bars === 1 && tabLabels() === state.want, `${state.name}, ${page}: one bottom bar with ${state.want} (${bars} bar, ${tabLabels()})`);
+      check($("[data-app-tabbar] [aria-current='page']")?.getAttribute("data-tab") === page, `${state.name}, ${page}: its own tab is current`);
+      act(() => root.unmount());
+    }
+    const { root } = await mount(() => React.createElement(AppRail, { current: "play" }), "/");
+    const rail = $$("[data-rail-tab]").map((a) => a.getAttribute("data-rail-tab")).join(",");
+    check(rail === state.want.toLowerCase(), `${state.name}: the desktop rail has the same tabs (${rail})`);
+    act(() => root.unmount());
+  }
+  setForced(undefined);
+  check(shopSwitch.shopOverride() === null, "the check-only override is off unless a check sets it");
 }
 
 /* ------------------------------------------------------------------ 2. the coin counter */
