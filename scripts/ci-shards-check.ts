@@ -11,6 +11,7 @@
  *  - checks.yml runs tsc --noEmit over src/ in its own typecheck job (7 Nov 2026).
  *  - checks.yml runs the production build (`bun run build`, as the Cloudflare deploy) in its own build job, beside
  *    the shards (needs nothing), on placeholder public Supabase values and no secrets (9 Nov 2026).
+ *  - The checks split for full depth (FULL_DEPTH_SPLITS in shards.ts, 10 Nov 2026) are listed as exactly their parts.
  *  - checks-full-weekly.yml (10 Nov 2026) runs the fast shards at full depth (CHECKS_FULL=1) on a schedule, never on a
  *    pull request and with no browser, and its report job (full-depth-report.ts) runs whatever the shards did.
  *
@@ -20,7 +21,8 @@ import { readFileSync } from "node:fs";
 
 import { allCheckFiles, isBrowserCheck } from "../.github/ci/browser";
 import { base, shardPlan } from "../.github/ci/plan";
-import { BROWSER_CATCH_ALL, CATCH_ALL, CI_SKIP, OPTIONAL, SHARDS, isBrowserShard } from "../.github/ci/shards";
+import { BROWSER_CATCH_ALL, CATCH_ALL, CI_SKIP, FULL_DEPTH_SPLITS, OPTIONAL, SHARDS, isBrowserShard } from "../.github/ci/shards";
+import { readFileSync as readSource } from "node:fs";
 
 const failures: string[] = [];
 let passes = 0;
@@ -52,6 +54,15 @@ for (const f of routine) {
   }
 }
 for (const [entry, where] of runs) check(where.length === 1, `${entry} runs in one shard, not ${where.join(", ")}`);
+
+/* 1b. The checks split for full depth (FULL_DEPTH_SPLITS): listed in SHARDS as exactly their n parts, never whole. */
+const listed = Object.values(SHARDS).flat();
+for (const [f, n] of Object.entries(FULL_DEPTH_SPLITS)) {
+  check(routine.includes(f), `full-depth split ${f} is a routine check`);
+  const mine = listed.filter((e) => base(e) === f);
+  check(mine.length === n && Array.from({ length: n }, (_, i) => `${f}@${i + 1}/${n}`).every((e) => mine.includes(e)), `full-depth split ${f}: listed as its ${n} parts (${mine.join(", ") || "not listed"})`);
+  check(/--part=/.test(readSource(`scripts/${f}`, "utf8")), `full-depth split ${f} takes --part`);
+}
 
 /* 2. Browser checks only in the full suite, and only browser checks there. */
 for (const s of fast)
