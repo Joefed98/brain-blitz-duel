@@ -85,6 +85,46 @@ The deploy stops and nothing is recorded for that file. Fix it in a new PR:
 After the merge, the next push to `main` applies it. To retry without a new commit, use Actions → Deploy to
 Cloudflare → Run workflow on `main`.
 
+### Notices and warnings
+
+Every notice and warning a file raises is printed under it in the job log, as `WARNING from <file>: <message>`
+or `NOTICE from <file>: <message>`. Warnings are also listed in the run summary. On the live run (the deploy) each
+warning is a GitHub annotation on the run as well; the local proof only prints them, since its database is a
+fresh one and not London's (#344's "pg_cron is not available" warning shows there on every run).
+
+- **Local** (PRs, and `main` before the build): psql reports every `RAISE NOTICE` and `RAISE WARNING`, plus
+  PostgreSQL's own notices ("… already exists, skipping"), with their DETAIL and HINT lines. A failing file's
+  warnings are printed before its FAILED line.
+- **Live** (the London project): the Management API's query endpoint returns rows only. A plain `RAISE` never
+  reaches it, so it can't show in the deploy log. (Supabase's SQL editor uses the same endpoint and doesn't show
+  them either. I couldn't test the endpoint from the session, because `api.supabase.com` is blocked there.)
+  A migration that wants a message in the deploy log calls the helper from
+  `20261109150000_migration_log.sql` at the same level:
+
+  ```sql
+  SELECT migration_log.note('warning', 'kept 3 rows with no owner');
+  -- inside DO or plpgsql:
+  PERFORM migration_log.note('notice', format('%s rows moved', n));
+  ```
+
+  It raises the message as `RAISE` would, so the local run shows it the same way. It also keeps a row in
+  `migration_log.notes`. After each file the live run reads back the rows written since the file started and
+  prints them. The rows of a failed file roll back with it, so live shows only the database's error for a
+  failed file. Reading the notes never fails a deploy: the file is already committed, so a failed read is a
+  warning. The `migration_log` schema isn't in PostgREST's list. Every right on it, its table, its sequence and `note()`
+  is revoked explicitly from PUBLIC, `anon` and `authenticated`, and nothing is granted to them, so only the owner can
+  use it. `migrations-check` 3a proves it after the whole history, and again with default privileges that would
+  grant everything.
+
+  **Rule:** to show a warning or notice in the live deploy log, a migration must call
+  `migration_log.note('warning'|'notice', '...')`, never a plain `RAISE`.
+
+Nothing changes in how a file is applied: the same wrapper and SQL, one transaction a file. `migrations-check`
+section 5 proves it. A test migration's `RAISE WARNING` and `RAISE NOTICE` appear in `migrate.ts --local`'s output.
+A failing file's warning comes before FAILED. `migrate.ts --live`, against a stand-in that drops notices as the
+API does, prints `migration_log.note`'s warning and notice under the right file, with the annotation and the
+summary line.
+
 ## Secrets Joe must add
 
 Add both of these **before merging this PR**. Without them, every push to `main` fails at "Required secrets are set"
