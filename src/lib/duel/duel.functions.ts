@@ -120,17 +120,25 @@ const RECENT_BANK_ROOMS = 20;
 /** The service-role client, typed on the generated schema (src/lib/data/db.server.ts). */
 const db = adminDb;
 
-/** M2: the shared name cleaner (displayName.server.ts): NFKC, no control / bidi / zero-width characters, 14 code points. */
+/** M2: the shared name cleaner (displayName.server.ts): NFKC, no control / bidi / zero-width characters, 16 code points. */
 async function cleanName(name: unknown): Promise<string> {
   const { cleanDisplayName } = await import("./displayName.server");
   const cleaned = cleanDisplayName(name);
   return cleaned.length > 0 ? cleaned : "Player";
 }
 
-/** Why a name a player typed can't be used in a room (offensive or reserved), or null. */
-async function roomNameRefusal(name: unknown): Promise<string | null> {
-  const { cleanDisplayName, nameRefusal } = await import("./displayName.server");
-  return nameRefusal(cleanDisplayName(name))?.message ?? null;
+/**
+ * Why a name a player typed can't be used in a room (offensive or reserved: the shared guest-name check,
+ * src/lib/names/names.server.ts, on the name cleanDisplayName(name) stores), with three suggestions, or null.
+ */
+async function roomNameRefusal(
+  name: unknown,
+): Promise<import("@/lib/names/names.server").NameRefusalInfo | null> {
+  const { cleanDisplayName } = await import("./displayName.server");
+  const { checkGuestName, refusalWithSuggestions } = await import("@/lib/names/names.server");
+  const checked = checkGuestName(cleanDisplayName(name));
+  if (checked.ok) return null;
+  return refusalWithSuggestions("guest", checked.reason);
 }
 
 function clamp(value: number, min: number, max: number): number {
@@ -358,7 +366,10 @@ export const createRoomFn = createServerFn({ method: "POST" })
   .inputValidator((input: { displayName: string; look?: LookPreference }) => input)
   .handler(async ({ data, context }) => {
     const refused = await roomNameRefusal(data.displayName);
-    if (refused) throw new Error(refused);
+    if (refused) {
+      const { NameRefusedError } = await import("@/lib/names/names.server");
+      throw new NameRefusedError(refused);
+    }
     const client = await db();
     const { CREATE_ROOM_LIMIT, IP_CREATE_ROOM_LIMIT, withinIpRateLimit, withinRateLimit } = await import("./rateLimit.server");
     if (!(await withinRateLimit(client, context.userId, CREATE_ROOM_LIMIT)))
@@ -425,7 +436,10 @@ export const joinRoomFn = createServerFn({ method: "POST" })
     if (!(await withinRateLimit(client, context.userId, ROOM_LOOKUP_LIMIT)))
       return { ok: false as const, message: "That’s a lot of tries. Give it a few minutes." };
     const refused = await roomNameRefusal(data.displayName);
-    if (refused) return { ok: false as const, message: refused };
+    if (refused) {
+      const { NameRefusedError } = await import("@/lib/names/names.server");
+      return { ok: false as const, message: new NameRefusedError(refused).message, suggestions: refused.suggestions };
+    }
     const via = joinViaFrom(data.via);
     const code = String(data.roomCode ?? "").trim().toUpperCase().slice(0, 8);
     const { data: found } = await readRoomByCode(client, code);
