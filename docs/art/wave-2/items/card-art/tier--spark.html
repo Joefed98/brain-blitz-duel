@@ -1,0 +1,61 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Spark (card-art)</title>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&amp;family=Silkscreen:wght@400;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#06080F}
+a{color:#22E4FF}a:hover{color:#7FF0FF}
+.cut{clip-path:polygon(14px 0,100% 0,100% calc(100% - 14px),calc(100% - 14px) 100%,0 100%,0 14px)}
+.cutsm{clip-path:polygon(8px 0,100% 0,100% calc(100% - 8px),calc(100% - 8px) 100%,0 100%,0 8px)}
+/* VSANIM */
+.a-top{animation:jzInR .55s cubic-bezier(.2,.8,.2,1) both}
+.a-bot{animation:jzInL .55s .08s cubic-bezier(.2,.8,.2,1) both}
+.a-rail{transform-origin:50% 50%;animation:jzRail .4s .45s cubic-bezier(.2,.8,.2,1) both}
+.a-vs{animation:jzSlam .45s .75s cubic-bezier(.2,1.4,.4,1) both}
+.a-fade1{animation:jzFade .3s .9s ease-out both}.a-fade2{animation:jzFade .3s 1.05s ease-out both}.a-fade3{animation:jzFade .3s 1.2s ease-out both}
+@keyframes jzInR{from{transform:translateX(120%);opacity:0}to{transform:none;opacity:1}}
+@keyframes jzInL{from{transform:translateX(-120%);opacity:0}to{transform:none;opacity:1}}
+@keyframes jzRail{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+@keyframes jzSlam{0%{transform:scale(2.4);opacity:0}60%{transform:scale(.92);opacity:1}100%{transform:scale(1);opacity:1}}
+@keyframes jzFade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion: reduce){.a-top,.a-bot,.a-rail,.a-vs,.a-fade1,.a-fade2,.a-fade3{animation:none}}
+.stripes{background-image:repeating-linear-gradient(-55deg,rgba(238,242,255,0.035) 0 2px,transparent 2px 10px)}
+.lg-run{stroke-dasharray:16 520;animation:lgRun 3.2s linear infinite}
+.lg-run2{animation-delay:-1.1s}.lg-run3{animation-delay:-2.2s}
+@keyframes lgRun{from{stroke-dashoffset:536}to{stroke-dashoffset:0}}
+.lg-glow{animation:lgGlow 2.4s ease-in-out infinite}
+@keyframes lgGlow{0%,100%{opacity:.8}50%{opacity:1}}
+.lg-sweep{animation:lgSweep 4.5s ease-in-out infinite}
+@keyframes lgSweep{0%{transform:translateX(-180px)}55%,100%{transform:translateX(440px)}}
+.lg-tw{animation:lgTw 2.6s ease-in-out infinite}.lg-tw2{animation-delay:-.9s}.lg-tw3{animation-delay:-1.7s}
+@keyframes lgTw{0%,100%{opacity:.25}50%{opacity:1}}
+.lg-drift{animation:lgDrift 7s ease-in-out infinite alternate}.lg-drift2{animation-delay:-2.5s}.lg-drift3{animation-delay:-5s}
+@keyframes lgDrift{from{transform:translateX(-14px)}to{transform:translateX(14px)}}
+@media (prefers-reduced-motion: reduce){.lg-run,.lg-glow,.lg-sweep,.lg-tw,.lg-drift{animation:none}.lg-run{stroke-dasharray:none;opacity:0}}
+.lg-frame{stroke-dasharray:36 780;animation:lgFrame 4.5s linear infinite}
+@keyframes lgFrame{from{stroke-dashoffset:816}to{stroke-dashoffset:0}}
+@media (prefers-reduced-motion: reduce){.lg-frame{animation:none;opacity:0}}
+.lg-iri{animation:lgIri 8s linear infinite}
+@keyframes lgIri{to{filter:hue-rotate(360deg)}}
+@media (prefers-reduced-motion: reduce){.lg-iri{animation:none}}
+.nc-prism{animation:ncFlow 3.5s linear infinite}
+.nc-flux{animation:ncFlow 5s linear infinite,ncPulse 2.4s ease-in-out infinite}
+@keyframes ncFlow{to{background-position:200% 0}}
+@keyframes ncPulse{0%,100%{opacity:.88}50%{opacity:1}}
+@media (prefers-reduced-motion: reduce){.nc-prism,.nc-flux{animation:none}}
+.nc-flux{animation:ncFlicker 3s linear infinite}
+@keyframes ncFlicker{0%,100%{text-shadow:0 0 2px #FFF,0 0 8px #22E4FF,0 0 16px #FF3DCB,0 1px 2px #000}8%{text-shadow:0 0 2px #FFF,0 0 4px #22E4FF,0 0 6px #FF3DCB,0 1px 2px #000;opacity:.85}10%{text-shadow:0 0 3px #FFF,0 0 12px #22E4FF,0 0 22px #FF3DCB,0 1px 2px #000;opacity:1}46%{text-shadow:0 0 2px #FFF,0 0 10px #FF3DCB,0 0 18px #22E4FF,0 1px 2px #000}54%{opacity:.9}56%{opacity:1}}
+@media (prefers-reduced-motion: reduce){.nc-flux{animation:none}}
+.lg-zap{animation:lgZap 1.7s steps(1) infinite}.lg-zap2{animation-delay:-.6s}.lg-zap3{animation-delay:-1.1s}
+@keyframes lgZap{0%{opacity:0}12%{opacity:1}18%{opacity:0}46%{opacity:1}50%{opacity:0}78%{opacity:.8}84%{opacity:0}100%{opacity:0}}
+.lg-sway{transform-box:view-box;transform-origin:150px -8px;animation:lgSway 4s ease-in-out infinite alternate}
+@keyframes lgSway{from{transform:rotate(-14deg)}to{transform:rotate(14deg)}}
+@media (prefers-reduced-motion: reduce){.lg-zap{animation:none;opacity:0}.lg-sway{animation:none}}
+.nc-sheen{animation:ncSheen 4.2s linear infinite}
+@keyframes ncSheen{0%{transform:translateX(-110px)}55%,100%{transform:translateX(410px)}}
+.nc-node{animation:ncNode 4.2s linear infinite}
+@keyframes ncNode{0%,14%,100%{fill:#06080F;stroke:#FF3DCB}4%{fill:#FFE3F6;stroke:#FFFFFF}}
+@media (prefers-reduced-motion: reduce){.nc-sheen{animation:none;opacity:0}.nc-node{animation:none}}
+
+body{margin:0;padding:24px;background:#06080F;color:#EEF2FF;font-family:'Archivo',system-ui,sans-serif}</style></head>
+<body><!-- Joulz wave 2 art: Spark. Source: canvas board "card-art-and-frames". Motion stops under prefers-reduced-motion. -->
+<div style="position: relative; width: 300px; height: 112px" data-item="8"><svg width="300" height="112" viewBox="0 0 300 112" role="img" aria-label="Player card" style=" display: block"><defs><linearGradient id="pc9rb" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#22E4FF"></stop><stop offset="0.35" stop-color="#B98CFF"></stop><stop offset="0.65" stop-color="#FF8FD6"></stop><stop offset="1" stop-color="#9FE8FF"></stop></linearGradient><clipPath id="pc9c"><rect width="300" height="112" rx="10"></rect></clipPath></defs><g clip-path="url(#pc9c)"><defs><linearGradient id="pc9g" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#0B0F1C"></stop><stop offset="1" stop-color="#FF8A3D" stop-opacity="0.35"></stop></linearGradient><radialGradient id="pc9r" cx="0.8" cy="0.5" r="0.6"><stop offset="0" stop-color="#FF8A3D" stop-opacity="0.10"></stop><stop offset="1" stop-color="#FF8A3D" stop-opacity="0"></stop></radialGradient><linearGradient id="pc9i" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#22E4FF"></stop><stop offset="0.4" stop-color="#B98CFF"></stop><stop offset="0.7" stop-color="#FF8FD6"></stop><stop offset="1" stop-color="#E2C07A"></stop></linearGradient></defs><rect width="300" height="112" fill="url(#pc9g)"></rect><rect width="300" height="112" fill="url(#pc9r)"></rect><path d="M210 8 180 64h22l-8 46 38 -62h-24z" fill="#FF8A3D" opacity="0.45"></path><rect width="300" height="112" fill="#06080F" opacity="0.15"></rect></g><rect x="1.0" y="1.0" width="298" height="110" rx="10" fill="none" stroke="#2A3352" stroke-width="2"></rect></svg><div style="position: absolute; left: 14px; top: 0; bottom: 0; display: flex; align-items: center; gap: 12px"><svg width="58" height="58" viewBox="0 0 100 100" role="img" aria-label="car" style="overflow: visible"><defs><clipPath id="av9c"><circle cx="50" cy="50" r="48"></circle></clipPath><linearGradient id="av9m" x1="0" y1="0" x2="0.35" y2="1"><stop offset="0" stop-color="#FF9090"></stop><stop offset="0.5" stop-color="#FF4D4D"></stop><stop offset="1" stop-color="#B73737"></stop></linearGradient></defs><circle cx="50" cy="50" r="48" fill="#1E2640"></circle><g clip-path="url(#av9c)"><g opacity="0.42"><rect width="100" height="100" fill="#2E7D3A"></rect><path d="M-10 70 L60 -10 L110 -10 L40 110 Z" fill="#3A3F4F"></path><path d="M25 50 60 6" stroke="#FFFFFF" stroke-width="3" stroke-dasharray="8 7"></path><path d="M-6 66 l7 -8" stroke="#FFFFFF" stroke-width="5"></path><path d="M1 58 l7 -8" stroke="#E5243F" stroke-width="5"></path><path d="M8 50 l7 -8" stroke="#FFFFFF" stroke-width="5"></path><path d="M15 42 l7 -8" stroke="#E5243F" stroke-width="5"></path><path d="M22 34 l7 -8" stroke="#FFFFFF" stroke-width="5"></path><path d="M29 26 l7 -8" stroke="#E5243F" stroke-width="5"></path><path d="M36 18 l7 -8" stroke="#FFFFFF" stroke-width="5"></path><path d="M43 10 l7 -8" stroke="#E5243F" stroke-width="5"></path><path d="M50 2 l7 -8" stroke="#FFFFFF" stroke-width="5"></path><path d="M57 -6 l7 -8" stroke="#E5243F" stroke-width="5"></path></g><rect width="100" height="100" fill="#06080F" opacity="0.35"></rect><circle cx="50" cy="52" r="38" fill="#06080F" opacity="0.25"></circle><path d="M26 34h48" stroke="#06080F" stroke-width="5" stroke-linecap="round"></path><path d="M26 34h48" stroke="#22E4FF" stroke-width="2.5" stroke-linecap="round"></path><path d="M34 35v8M66 35v8" stroke="#06080F" stroke-width="2.5"></path><rect x="14" y="62" width="13" height="14" rx="3" fill="#06080F"></rect><rect x="73" y="62" width="13" height="14" rx="3" fill="#06080F"></rect><path d="M36 42h28l6 12H30z" fill="url(#av9m)" stroke="#06080F" stroke-width="2.5" stroke-linejoin="round"></path><path d="M38.5 45h23l3.5 8H35z" fill="#22E4FF"></path><path d="M16 64c0-6 4-10 10-10h48c6 0 10 4 10 10v6H16z" fill="url(#av9m)" stroke="#06080F" stroke-width="3" stroke-linejoin="round"></path><path d="M21 60l9 2M79 60l-9 2" stroke="#FFF6C2" stroke-width="3" stroke-linecap="round"></path><path d="M40 60h20l-2 6H42z" fill="#06080F"></path><path d="M43 62h14" stroke="#22E4FF" stroke-opacity="0.6" stroke-width="1.2"></path><path d="M14 71h72" stroke="#06080F" stroke-width="3" stroke-linecap="round"></path><path d="M28 54l-6-3M72 54l6-3" stroke="#06080F" stroke-width="2.5" stroke-linecap="round"></path></g></svg><span style="display: flex; flex-direction: column; gap: 1px"><span style="font-weight: 800; font-size: 18px; color: #FFFFFF; text-shadow: 0 1px 3px #000">SkyRacer</span><span style="font-weight: 700; font-size: 12px; color: #E2C07A; text-shadow: 0 1px 3px #000">S1 Spark</span><span style="display: inline-flex; align-items: center; gap: 8px; margin-top: 3px; padding: 3px 9px 3px 8px; border-radius: 999px; background: rgba(6,8,15,0.72); border: 1px solid rgba(255,255,255,0.12); align-self: flex-start"><span style="font-weight: 800; font-size: 13px; color: #FF8A3D">Spark III</span><span style="width: 1px; height: 12px; background: rgba(255,255,255,0.25)"></span><span style="font-weight: 900; font-size: 15px; color: #FFFFFF; font-variant-numeric: tabular-nums; letter-spacing: 0.01em">612</span></span></span></div></div>
+</body></html>
