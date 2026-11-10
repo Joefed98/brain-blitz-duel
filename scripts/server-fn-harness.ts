@@ -684,6 +684,8 @@ export async function startRestServer(socketDir: string): Promise<RestServer> {
   const pendingSignIn = new Map<string, { userId: string; token: string }>();
   const revokedSessions = new Set<string>();
   const sessionsOf = new Map<string, Set<string>>();
+  /** Which user each session (refresh token) belongs to (the browser flow refreshes; account-flow-check). */
+  const userOfSession = new Map<string, string>();
   const authError = (status: number, errorCode: string, msg: string) =>
     Response.json({ code: status, error_code: errorCode, msg }, { status });
   const sixDigits = () => String(100000 + Math.floor(Math.random() * 900000));
@@ -714,6 +716,7 @@ export async function startRestServer(socketDir: string): Promise<RestServer> {
     const sessionId = crypto.randomUUID();
     if (!sessionsOf.has(row.id)) sessionsOf.set(row.id, new Set());
     sessionsOf.get(row.id)!.add(sessionId);
+    userOfSession.set(sessionId, row.id);
     const access = row.is_anonymous ? userToken(row.id) : accountToken(row.id, sessionId);
     return {
       access_token: access,
@@ -778,6 +781,23 @@ export async function startRestServer(socketDir: string): Promise<RestServer> {
       return Response.json(sessionFor((await authRow(id))!));
     }
     if (path === "/user" && request.method === "GET") return userFor(bearer);
+    /* A phone's anonymous sign-in (session.ts ensureSession: signInAnonymously posts /signup with no email) and
+       its refresh (POST /token?grant_type=refresh_token), for account-flow-check's browser (10 Nov 2026, the
+       sign-up screens). A sign-up with an email isn't served (guests link one instead). */
+    if (path === "/signup" && request.method === "POST") {
+      if (body["email"] || body["phone"] || body["password"])
+        return authError(400, "validation_failed", "server-fn harness: only anonymous sign-ups are served");
+      const id = crypto.randomUUID();
+      await sql`INSERT INTO auth.users (id, is_anonymous, last_sign_in_at) VALUES (${id}::uuid, true, now())`;
+      return Response.json(sessionFor((await authRow(id))!));
+    }
+    if (path === "/token" && request.method === "POST" && url.searchParams.get("grant_type") === "refresh_token") {
+      const sessionId = String(body["refresh_token"] ?? "").replace(/^refresh-/, "");
+      const userId = userOfSession.get(sessionId);
+      if (!userId || revokedSessions.has(sessionId)) return authError(400, "refresh_token_not_found", "Invalid Refresh Token: Refresh Token Not Found");
+      const row = await authRow(userId);
+      return row ? Response.json(sessionFor(row)) : authError(400, "user_not_found", "User not found");
+    }
     if (path === "/user" && request.method === "PUT") {
       const row = await bearerUser(bearer);
       if (row instanceof Response) return row;
@@ -792,6 +812,14 @@ export async function startRestServer(socketDir: string): Promise<RestServer> {
       return Response.json(userJson(row));
     }
     if (path === "/otp" && request.method === "POST") {
+      // Captcha protection covers /otp too (safety, 10 Nov 2026), checked before the address is looked at.
+      if (authSettings.captchaSecret) {
+        const meta = (body["gotrue_meta_security"] ?? {}) as Record<string, unknown>;
+        const captcha = String(meta["captcha_token"] ?? "");
+        if (!captcha) return authError(400, "captcha_failed", "captcha protection: request disallowed (no captcha response)");
+        if (!turnstileTestVerify(authSettings.captchaSecret, captcha).success)
+          return authError(400, "captcha_failed", "captcha protection: request disallowed (invalid-input-response)");
+      }
       const email = String(body["email"] ?? "").trim().toLowerCase();
       const rows = await sql`SELECT id FROM auth.users WHERE lower(email) = ${email}`;
       if (!rows.length) {
@@ -849,10 +877,28 @@ export async function startRestServer(socketDir: string): Promise<RestServer> {
     );
   }
 
+  /* A browser page on another origin (account-flow-check's dev server) calls this server as it calls Supabase:
+     answered with Supabase's permissive CORS headers, preflights included. Non-browser callers ignore them. */
+  const CORS = {
+    "access-control-allow-origin": "*",
+    "access-control-allow-methods": "GET, POST, PUT, PATCH, DELETE, OPTIONS",
+    "access-control-allow-headers": "authorization, apikey, content-type, prefer, accept, accept-profile, content-profile, range, x-client-info, x-supabase-api-version",
+    "access-control-expose-headers": "content-range, x-supabase-api-version",
+  };
+  const withCors = (response: Response): Response => {
+    for (const [k, v] of Object.entries(CORS)) response.headers.set(k, v);
+    return response;
+  };
   const server = Bun.serve({
     port: 0,
     hostname: "127.0.0.1",
     async fetch(request) {
+      if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: CORS });
+      return withCors(await serve(request));
+    },
+  });
+  async function serve(request: Request): Promise<Response> {
+    {
       const url = new URL(request.url);
       const bearer = (request.headers.get("authorization") ?? "").replace(/^Bearer /, "");
       if (url.pathname.startsWith("/auth/v1/")) return authRoute(request, url, bearer);
@@ -927,8 +973,8 @@ export async function startRestServer(socketDir: string): Promise<RestServer> {
           { status },
         );
       }
-    },
-  });
+    }
+  }
   return {
     url: `http://127.0.0.1:${server.port}`,
     mail,
@@ -990,6 +1036,8 @@ export async function callServerFn<T = any>(
   fn: unknown,
   data: unknown,
   token: string | null,
+  /** Extra request headers (account-screens-check: `cf-connecting-ip`, the caller's network as Cloudflare names it). */
+  extraHeaders: Record<string, string> = {},
 ): Promise<T> {
   const { requestHandler } = await import("@tanstack/react-start/server");
   const { runWithStartContext } = await import("@tanstack/start-storage-context");
@@ -1002,6 +1050,7 @@ export async function callServerFn<T = any>(
     );
   const headers: Record<string, string> = { "content-type": "application/json" };
   if (token) headers["authorization"] = `Bearer ${token}`;
+  Object.assign(headers, extraHeaders);
   let out: { result: unknown; error: unknown } | undefined;
   let thrown: unknown;
   const handler = requestHandler(async (request: Request) => {

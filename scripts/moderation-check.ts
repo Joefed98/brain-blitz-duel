@@ -382,6 +382,34 @@ async function databaseChecks(db: LocalDb, rest: RestServer): Promise<void> {
     check(offMade.username === "LouPlays", "sign-up: switch off: made without a token, as today");
   });
 
+  await section("events check after every migration", async () => {
+    // The moderation migration rewrites events_event_check after the save-progress one: it must keep every event.
+    const { ANALYTICS_EVENTS } = await import("../src/lib/analytics/events");
+    const def = q(`SELECT pg_get_constraintdef(oid) FROM pg_constraint WHERE conname = 'events_event_check' AND conrelid = 'analytics.events'::regclass`);
+    const missing = ANALYTICS_EVENTS.filter((e) => !def.includes(`'${e}'`));
+    check(missing.length === 0, `events: the final events_event_check allows every ANALYTICS_EVENTS entry (missing: ${missing.join(", ") || "none"})`);
+  });
+
+  await section("turnstile: sign-in email (server-sent)", async () => {
+    // The sign-up screens send the sign-in email from the server (requestSignInEmailFn → POST /otp), so the phone's
+    // token must reach Auth's captcha check through it.
+    const mailTo = () => rest.mail.filter((m) => m.to === "kay@example.com").length;
+    const send = (captchaToken: string | null, ip: string) =>
+      call(accountFns.requestSignInEmailFn, { email: "kay@example.com", captchaToken }, tok["ian"]!, { "cf-connecting-ip": ip });
+    const before = mailTo();
+    const off = await send(null, "203.0.113.71");
+    check(off.ok === true && mailTo() === before + 1, `sign-in: captcha off: sent without a token, as today (${JSON.stringify(off)})`);
+    rest.auth.captchaSecret = TURNSTILE_TEST_SECRETS.pass;
+    const none = await send(null, "203.0.113.72");
+    check(none.ok === false && mailTo() === before + 1, "sign-in: captcha on, no token: Auth refuses, no email");
+    const passed = await send("XXXX.DUMMY.TOKEN.XXXX", "203.0.113.73");
+    check(passed.ok === true && mailTo() === before + 2, `sign-in: always-pass secret: the token reaches Auth, the email is sent (${JSON.stringify(passed)})`);
+    rest.auth.captchaSecret = TURNSTILE_TEST_SECRETS.fail;
+    const failed = await send("XXXX.DUMMY.TOKEN.XXXX", "203.0.113.74");
+    check(failed.ok === false && mailTo() === before + 2, "sign-in: always-fail secret: refused, no email");
+    rest.auth.captchaSecret = null;
+  });
+
   /* ---------------------------------------------------------------- a room */
   const made = await call(duel.createRoomFn, { displayName: "Ana" }, tok["ana"]!);
   const roomId = made.roomId as string;

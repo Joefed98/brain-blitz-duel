@@ -175,7 +175,19 @@ const looks = resolvePlayerLooks(players);
   }
   const missing = calls.filter((c) => !/turnstileToken:\s*await signUpTurnstileToken\(\)/.test(c.call));
   check(missing.length === 0, `sign-up: every completeSignUpFn call passes turnstileToken: await signUpTurnstileToken() (${missing.map((c) => c.file).join(", ") || `${calls.length} call(s)`})`);
-  if (calls.length === 0) console.log("  NOTE no completeSignUpFn call in src/ yet (the sign-up screens): nothing to wire");
+  check(calls.some((c) => c.file.endsWith("SignUpFlow.tsx")), `sign-up: the sign-up screens' completeSignUpFn call is among them (${calls.length} call(s))`);
+  // The sign-in email is sent by the server (requestSignInEmailFn → Auth's /otp, which captcha protection covers):
+  // every call passes the phone's fresh token.
+  const signIns: string[] = [];
+  for (const file of files) {
+    if (file.endsWith("account.functions.ts")) continue;
+    const code = readFileSync(file, "utf8").replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:])\/\/.*$/gm, "$1");
+    for (const m of code.matchAll(/requestSignInEmailFn\(\s*\{\s*data:\s*\{[^}]*\}\s*\}\s*\)/g)) signIns.push(m[0]);
+  }
+  check(
+    signIns.length >= 1 && signIns.every((c) => /captchaToken:\s*await signInCaptchaToken\(\)/.test(c)),
+    `sign-in: every requestSignInEmailFn call passes captchaToken: await signInCaptchaToken() (${signIns.length} call(s))`,
+  );
   const route = readFileSync("src/routes/duel.$code.tsx", "utf8");
   check(/onReport=\{\(slot, reason\) => reportPlayer\(duel\.id, slot, reason\)\}/.test(route), "wiring: the room's lobby reports through reportPlayerFn");
   const hook = readFileSync("src/lib/duel/useRoomChat.ts", "utf8");

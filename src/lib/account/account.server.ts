@@ -389,3 +389,49 @@ export async function accountAgeFlags(
   if (!dob) return { account: false, isUnder18: null };
   return { account: true, isUnder18: isUnder18(dob, nowMs) };
 }
+
+/* ------------------------------------------------------------------ account emails, rate limited */
+
+/** The longest email address accepted (RFC 5321's path limit). */
+const EMAIL_MAX = 254;
+const EMAIL_SHAPE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+export type EmailCodeOutcome =
+  | { ok: true }
+  | { ok: false; reason: "existing-account" | "no-account" | "rate-limited" | "invalid" | "expired" | "bad-code" | "off" | "error"; message: string };
+
+const TOO_MANY = "Too many tries. Wait a few minutes and try again.";
+
+/**
+ * Sends a sign-in email (`kind` "sign-in": an existing account only; "no-account" tells the screens it's a new player)
+ * or a sign-up email (`kind` "sign-up": links the address to the caller's own guest user, with its access token), after
+ * two limits through take_rate_limit: IP_ACCOUNT_EMAIL_LIMIT per network (every lookup counts, found or not) and
+ * EMAIL_CODE_LIMIT per address (every request for that address counts, from any network). Over either limit nothing is
+ * sent and nothing is looked up.
+ */
+export async function requestEmailCode(
+  client: Db,
+  kind: "sign-in" | "sign-up",
+  rawEmail: unknown,
+  accessToken: string | null,
+  captchaToken: string | null = null,
+): Promise<EmailCodeOutcome> {
+  const email = typeof rawEmail === "string" ? rawEmail.trim() : "";
+  if (!email || email.length > EMAIL_MAX || !EMAIL_SHAPE.test(email))
+    return { ok: false, reason: "invalid", message: "Enter your email address." };
+  const { EMAIL_CODE_LIMIT, IP_ACCOUNT_EMAIL_LIMIT, withinEmailRateLimit, withinIpRateLimit } = await import(
+    "@/lib/duel/rateLimit.server"
+  );
+  if (!(await withinIpRateLimit(IP_ACCOUNT_EMAIL_LIMIT, client))) return { ok: false, reason: "rate-limited", message: TOO_MANY };
+  if (!(await withinEmailRateLimit(client, email, EMAIL_CODE_LIMIT))) return { ok: false, reason: "rate-limited", message: TOO_MANY };
+  const { AUTH_REDIRECT_URL, authOutcome } = await import("./auth");
+  const { sendEmailChangeCode, sendSignInCode } = await import("@/lib/data/authEmail.server");
+  if (kind === "sign-up") {
+    if (!accessToken) return { ok: false, reason: "error", message: ERROR_MESSAGE };
+    const { error } = await sendEmailChangeCode(accessToken, email, AUTH_REDIRECT_URL);
+    return authOutcome(error) as EmailCodeOutcome;
+  }
+  const token = typeof captchaToken === "string" && captchaToken.length <= 2048 ? captchaToken : null;
+  const { error } = await sendSignInCode(email, AUTH_REDIRECT_URL, token);
+  return authOutcome(error) as EmailCodeOutcome;
+}

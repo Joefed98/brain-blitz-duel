@@ -333,6 +333,9 @@ export const SHARDS: Record<string, string[]> = {
     "moderation-check.ts",
     // moderation-ui-check (10 Nov 2026, ~3 s, happy-dom): two taps to report from a name and from a message.
     "moderation-ui-check.tsx",
+    // account-screens-check (10 Nov 2026, ~10 s): the sign-up screens' rules, the save-progress events' server function
+    // and usernames in rooms, Dailies and challenges, through the server-function harness, beside accounts-check.
+    "account-screens-check.ts",
     "ink-x200-check.ts",
     "depth4-check.ts",
     "room-figures-check.ts",

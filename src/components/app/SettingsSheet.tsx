@@ -1,5 +1,8 @@
 import { useEffect, useState } from "react";
 
+import { useNavigate } from "@tanstack/react-router";
+
+import { useAccount } from "@/lib/account/accountApi";
 import { FeedbackLink } from "@/components/beta/FeedbackLink";
 import { OfflineSettingsRow } from "@/components/offline/OfflineSettingsRow";
 import { VolumeSliders } from "@/components/app/VolumeSliders";
@@ -62,6 +65,10 @@ export function SettingsSheet({
       style={{ paddingBottom: "max(24px, calc(env(safe-area-inset-bottom, 0px) + 16px))" }}
     >
         <div data-scrollable className="flex min-h-0 flex-col gap-4 overflow-y-auto px-4">
+        {/* Account (wave 1 sign-up screens): a guest signs in here; an account opens Settings → Account. */}
+        <Panel>
+          <AccountRow onOpen={onClose} />
+        </Panel>
         {/* Tab-page panels of divided rows (Polish batch R): the two sound switches, then a volume slider for each. */}
         <Panel data-sound-controls="settings">
           <SwitchRow label="Sound effects" on={!sound.muted} onChange={(on) => setMuted(!on)} />
@@ -191,4 +198,26 @@ function useSoundSettings() {
     return onSoundSettingsChange(read);
   }, []);
   return settings;
+}
+
+/** Settings' first row: "Account" with the username, or "Sign in" with what an account keeps. */
+function AccountRow({ onOpen }: { onOpen: () => void }) {
+  const account = useAccount();
+  const navigate = useNavigate();
+  const signedIn = account.kind === "account";
+  return (
+    <Row
+      as="button"
+      data-open-account
+      onClick={() => {
+        onOpen();
+        const from = `${window.location.pathname}${window.location.search}`;
+        void navigate({ to: "/account", search: { from } });
+      }}
+      title={signedIn ? "Account" : "Sign in"}
+      sub={signedIn ? account.username : "Save your progress on every phone"}
+    >
+      <Icon name="chevron-right" size={20} className="ap-chevron" />
+    </Row>
+  );
 }

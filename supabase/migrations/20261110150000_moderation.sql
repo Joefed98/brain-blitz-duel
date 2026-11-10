@@ -105,6 +105,7 @@ BEGIN
       'error_shown', 'offline_game_played',
       'sign_up_started', 'sign_up_completed', 'sign_in', 'sign_out', 'username_changed', 'account_deletion_requested',
       'under_thirteen_refused',
+      'save_progress_shown', 'save_progress_tapped', 'save_progress_dismissed',
       'report_sent', 'chat_muted', 'moderation_action'
     )) NOT VALID;
     ALTER TABLE analytics.events VALIDATE CONSTRAINT events_event_check;

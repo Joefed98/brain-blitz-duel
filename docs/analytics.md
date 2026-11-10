@@ -56,6 +56,9 @@ events go alongside them.
 | `report_sent` | server | a player reports a message or a name (docs/moderation.md); props `reason` only, never the message or who was reported |
 | `chat_muted` | server | the automatic mute starts (three players' reports within 24 hours); the muted player, nothing more |
 | `moderation_action` | database | every moderation action (Joe's functions, the automatic mute, the server's steps, retention excluded); props `type` only, no player |
+| `save_progress_shown` | server | the "Save your progress" sheet or pop-up shown on a result (`props.prompt` sheet / popup, `props.from` room / daily / challenge), through `recordSaveProgressFn` (src/lib/account/saveProgress.functions.ts: these three only, fixed words only, rate limited); added by `20261110130000_analytics_save_progress_events.sql` |
+| `save_progress_tapped` | server | a sign-up way tapped on that sheet or pop-up (`props.method` email / google / apple) |
+| `save_progress_dismissed` | server | "Not now" (or the sheet dragged away) |
 
 Mode is `room`, `daily`, `challenge` or `practice` (`rated` comes later with its own migration).
 

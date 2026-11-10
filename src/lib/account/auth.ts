@@ -96,7 +96,8 @@ export async function sendSignInEmail(email: string, client?: Client): Promise<A
   return authOutcome(error);
 }
 
-async function signInCaptchaToken(): Promise<string | null> {
+/** The Turnstile token for a sign-in email (Supabase Auth's captcha on /otp). Null while Turnstile is off. */
+export async function signInCaptchaToken(): Promise<string | null> {
   const { getTurnstileToken, turnstileEnabled } = await import("@/lib/safety/turnstile");
   return turnstileEnabled() ? getTurnstileToken("sign-in") : null;
 }

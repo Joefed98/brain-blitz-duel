@@ -18,12 +18,18 @@ async function db(): Promise<Db> {
 }
 
 /** The name and look a player sets, checked as the daily checks a board name. */
-async function playerFrom(data: { displayName?: unknown; colour?: unknown; icon?: unknown }) {
+async function playerFrom(data: { displayName?: unknown; colour?: unknown; icon?: unknown }, userId: string) {
   const { cleanDisplayName, nameRefusal } = await import("./displayName.server");
-  const name = cleanDisplayName(data.displayName);
+  // A signed-in player's board name is their username (playerName.server.ts); a guest's typed name is checked.
+  const { accountNameOf } = await import("@/lib/names/playerName.server");
+  const name = (await accountNameOf(await db(), userId)) ?? cleanDisplayName(data.displayName);
   if (!name) return { error: "Enter a display name." } as const;
   const refusal = nameRefusal(name);
-  if (refusal) return { error: refusal.message, nameRefused: true } as const;
+  if (refusal) {
+    const { refusalWithSuggestions } = await import("@/lib/names/names.server");
+    const { suggestions } = await refusalWithSuggestions("guest", refusal.reason);
+    return { error: refusal.message, nameRefused: true, suggestions } as const;
+  }
   const { isPlayerColour, isPlayerIcon } = await import("./playerLook");
   return {
     who: {
@@ -71,9 +77,9 @@ export const createChallengeFn = createServerFn({ method: "POST" })
     }) => input,
   )
   .handler(async ({ data, context }) => {
-    const player = await playerFrom(data);
+    const player = await playerFrom(data, context.userId);
     if ("error" in player)
-      return { ok: false as const, message: player.error, nameRefused: "nameRefused" in player };
+      return { ok: false as const, message: player.error, nameRefused: "nameRefused" in player, suggestions: "suggestions" in player ? player.suggestions : undefined };
     const client = await db();
     const { CHALLENGE_CREATE_LIMIT, IP_CHALLENGE_CREATE_LIMIT, withinIpRateLimit, withinRateLimit } = await import("./rateLimit.server");
     if (!(await withinRateLimit(client, context.userId, CHALLENGE_CREATE_LIMIT)))
@@ -146,9 +152,9 @@ export const startChallengeFn = createServerFn({ method: "POST" })
     const found = await challengeByCode(client, code);
     if (found && (await attemptFor(client, found.room.id, context.userId)))
       return { ok: true as const, roomId: found.room.id, created: false };
-    const player = await playerFrom(data);
+    const player = await playerFrom(data, context.userId);
     if ("error" in player)
-      return { ok: false as const, message: player.error, nameRefused: "nameRefused" in player };
+      return { ok: false as const, message: player.error, nameRefused: "nameRefused" in player, suggestions: "suggestions" in player ? player.suggestions : undefined };
     const { CHALLENGE_START_LIMIT, withinRateLimit } = await import("./rateLimit.server");
     if (!(await withinRateLimit(client, context.userId, CHALLENGE_START_LIMIT)))
       return { ok: false as const, message: "That’s a lot of tries. Give it a few minutes." };

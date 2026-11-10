@@ -35,6 +35,11 @@ export const ANALYTICS_EVENTS = [
   "report_sent",
   "chat_muted",
   "moderation_action",
+  // Save your progress (10 Nov 2026, the sign-up screens): recorded by the server only, through recordSaveProgressFn
+  // (src/lib/account/saveProgress.functions.ts), which accepts these three and nothing else.
+  "save_progress_shown",
+  "save_progress_tapped",
+  "save_progress_dismissed",
 ] as const;
 export type AnalyticsEventName = (typeof ANALYTICS_EVENTS)[number];
 

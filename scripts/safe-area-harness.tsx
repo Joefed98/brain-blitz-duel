@@ -32,6 +32,8 @@ import { Route as TermsRoute } from "@/routes/terms";
 import { CelebrationLayer } from "@/components/fx/CelebrationLayer";
 import { NotFoundPage, RouteErrorScreen } from "@/components/app/AppErrorScreen";
 import { FirstOpen } from "@/components/app/FirstOpen";
+import { AccountSettings } from "@/components/account/AccountSettings";
+import { SignUpFlow } from "@/components/account/SignUpFlow";
 import { celebrationsOn } from "@/lib/fx/celebrations";
 
 interface Verdict {
@@ -374,7 +376,15 @@ async function recordShareEventFn({ data }: { data: unknown }) {
   return { ok: true };
 }
 
+/** The account screens' username check (wave 1 sign-up screens): "admin" is refused with three suggestions. */
+async function checkUsernameFn({ data }: { data: { username: string } }) {
+  if (data.username.toLowerCase() === "admin")
+    return { ok: false, reason: "reserved", message: "That name is reserved. Try another.", suggestions: ["Swift_Volt", "Bright_Spark_42", "Neon_Comet"] };
+  return { ok: true, username: data.username };
+}
+
 const IMPLEMENTATIONS: Record<string, unknown> = {
+  checkUsernameFn,
   getIntroDemoFn,
   roundReplayFn,
   challengeStatusFn,
@@ -447,11 +457,35 @@ for (const [type, name] of Object.entries(H.names ?? {}))
   (puzzleDef(type as never) as { name: string }).name = name;
 
 const mode = new URLSearchParams(location.search).get("mode");
+// The save-your-progress record (src/lib/account/saveProgress.ts) a check starts from: a first finished game's sheet
+// due (the default) or its own (the pop-up after the third), shown on the tab page.
+if (mode === "saveprogress")
+  try {
+    const record = (window as unknown as { __harnessSaveProgress?: unknown }).__harnessSaveProgress;
+    localStorage.setItem(
+      "duelz-save-progress:v1",
+      JSON.stringify(record ?? { finished: 1, keys: ["room:harness:1"], sheet: "none", popup: "none", pending: "sheet", pendingFrom: "room" }),
+    );
+  } catch {
+    /* ignore */
+  }
 // Wave 1's root screens (src/components/app/AppErrorScreen.tsx, FirstOpen.tsx), drawn as the root route draws them.
 const ROOT_SCREENS: Record<string, () => JSX.Element> = {
   notfound: () => <NotFoundPage />,
   error: () => <RouteErrorScreen error={new Error("harness")} onRefresh={() => undefined} />,
   firstopen: () => <FirstOpen onDone={() => undefined} onPlay={() => undefined} onFriends={() => undefined} />,
+  // The account screens (wave 1 sign-up screens): a step of the sign-up through window.__DUELZ_ACCOUNT_FIXTURE__,
+  // Settings → Account from window.__harnessAccount, or the save-your-progress sheet / pop-up over Profile.
+  account: () => {
+    const settings = (window as unknown as { __harnessAccount?: Parameters<typeof AccountSettings>[0]["account"] }).__harnessAccount;
+    if (settings) return <AccountSettings account={settings} onBack={() => undefined} />;
+    return <SignUpFlow start="signin" account={{ kind: "guest", userId: null }} onDone={() => undefined} />;
+  },
+  // The prompt due on the next tab page (seeded below): Profile draws it through PhoneShell's SaveProgressSlot.
+  saveprogress: () => {
+    const Profile = ProfileRoute.options.component as () => JSX.Element;
+    return <Profile />;
+  },
 };
 const Screen = ROOT_SCREENS[mode ?? ""] ?? (
   mode === "room"
