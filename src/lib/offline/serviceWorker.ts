@@ -89,11 +89,14 @@ async function askToTakeOver(api: ServiceWorkerContainer, waiting: ServiceWorker
 
 /**
  * Reloads the page once for a waiting worker whose takeover stalled (see `installOfflineWorker`), the first time
- * for its build in this tab. False when this tab has already reloaded for it: the outgoing worker then stops on its
- * own idle timeout and the handover completes then.
+ * for its build in this tab, and only at a safe moment (no round on screen). False when this tab has already reloaded
+ * for it, or has no storage to remember that in (the outgoing worker then stops on its own idle timeout and the
+ * handover completes then), or a round started while the build was asked (the next tick tries again).
  */
 async function reloadForStalledHandover(waiting: ServiceWorker): Promise<boolean> {
   const build = (await workerVersion(waiting)) ?? waiting.scriptURL;
+  // Asking the build takes up to 1.5 s: a round may have started meanwhile, so the safe moment is checked again.
+  if (!safeNow()) return false;
   try {
     const done = (window.sessionStorage.getItem(STALL_RELOAD_KEY) ?? "").split(" ");
     if (done.includes(build)) return false;
