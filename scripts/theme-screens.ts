@@ -168,7 +168,11 @@ export const room =
 
 export interface ThemeScreen {
   name: string;
-  mode: "home" | "practice" | "tournaments" | "profile" | "room" | "daily" | "challenge" | "terms";
+  mode: "home" | "practice" | "tournaments" | "profile" | "room" | "daily" | "challenge" | "terms" | "notfound" | "error" | "firstopen";
+  /** Window globals set before the page loads (wave 1: `__harnessPreview`, a room link's preview). */
+  globals?: Record<string, unknown>;
+  /** false: a brand-new device, with no room history, practice bests or public games (wave 1's empty states). */
+  records?: false;
   /** The browser's user agent (the Add to Home Screen hint shows on iPhone Safari only). */
   userAgent?: string;
   /** Stand-in beta values (src/config/betaConfig.ts) through window.__DUELZ_BETA_CONFIG__. */
@@ -271,6 +275,82 @@ export function ROOM_16_SCREENS(): ThemeScreen[] {
     { name: "podium, 16 players", mode: "room", room: room("finished", "result", { players: 16, rounds: 6, meAt: 12 }), waitMs: 3000 },
   ];
 }
+
+/**
+ * Wave 1's first impressions (10 Nov 2026; docs/mockups/wave-1/): the empty states on a brand-new device,
+ * the not-found screens, the offline screen, the error boundary and the first-open onboarding's three screens
+ * (off until wave 3; drawn here directly). Appended last, so every earlier screen keeps its place in the parts.
+ */
+export const WAVE1_SCREENS = (): ThemeScreen[] => [
+  { name: "profile, new player, empty states", mode: "profile", records: false },
+  { name: "tournaments, nothing played, empty states", mode: "tournaments", records: false },
+  { name: "not found", mode: "notfound" },
+  {
+    name: "room not found",
+    mode: "room",
+    room: room("waiting", "starting", { join: true }),
+    globals: { __harnessPreview: { found: false } },
+  },
+  {
+    name: "challenge not found",
+    mode: "challenge",
+    challenge: () => {
+      const data = challengeFixture("landing");
+      return { ...data, challenge: { ...data.challenge, info: { found: false } } };
+    },
+    search: { code: CHALLENGE_CODE },
+  },
+  {
+    name: "challenge ended",
+    mode: "challenge",
+    challenge: () => {
+      const data = challengeFixture("landing");
+      const info = data.challenge.info;
+      return { ...data, challenge: { ...data.challenge, info: info.found ? { ...info, state: "closed" as const } : info } };
+    },
+    search: { code: CHALLENGE_CODE },
+  },
+  {
+    name: "offline, play",
+    mode: "home",
+    plain: true,
+    go: async (page) => {
+      // The app's offline worker keeps every public file (Captain Joulz's pictures included); the harness has
+      // none, so the pictures are fetched while online, as the worker would have kept them.
+      await page.evaluate(() =>
+        Promise.all(
+          ["/art/captain-joulz-ready.svg", "/art/captain-joulz-win.svg"].map(
+            (src) =>
+              new Promise<void>((resolve) => {
+                const img = new Image();
+                img.onload = img.onerror = () => resolve();
+                img.src = src;
+                (window as unknown as { __keptArt?: HTMLImageElement[] }).__keptArt = [
+                  ...((window as unknown as { __keptArt?: HTMLImageElement[] }).__keptArt ?? []),
+                  img,
+                ];
+              }),
+          ),
+        ),
+      );
+      // The real OnlineOnly (live on Play) follows the browser's connection.
+      await page.context().setOffline(true);
+      await page.locator("[data-offline-state]").waitFor({ timeout: 10_000 });
+    },
+  },
+  { name: "error boundary", mode: "error", plain: true },
+  ...[1, 2, 3].map(
+    (n): ThemeScreen => ({
+      name: `first open, screen ${n}`,
+      mode: "firstopen",
+      plain: true,
+      go: async (page) => {
+        for (let i = 1; i < n; i++) await page.locator("[data-first-open-next]").click();
+        await page.waitForTimeout(450);
+      },
+    }),
+  ),
+];
 
 export const THEME_SCREENS: ThemeScreen[] = [
   { name: "play", mode: "home", daily: () => dailyFixture().after, challenge: () => challengeFixture("create") },
@@ -429,6 +509,7 @@ export const THEME_SCREENS: ThemeScreen[] = [
     waitMs: 3000,
   },
   ...ROOM_16_SCREENS(),
+  ...WAVE1_SCREENS(),
 ];
 
 export interface ThemeViewport {
@@ -449,9 +530,11 @@ export const VIEWPORTS: ThemeViewport[] = [
 ];
 
 /** The device's own records: a public game today, room history and practice bests. */
-function deviceInit(seed: { onboarding: string; bests: [string, number][] }) {
+function deviceInit(seed: { records: boolean; onboarding: string; bests: [string, number][] }) {
   try {
     localStorage.setItem(seed.onboarding, "1");
+    // A brand-new device (wave 1's empty states): no room history, bests or public games.
+    if (!seed.records) return;
     const now = Date.now();
     const day = (offset: number) => {
       const d = new Date(now + offset * 86_400_000);
@@ -572,7 +655,12 @@ export async function openThemeScreen(
       search: screen.search ?? {},
     },
   );
+  if (screen.globals)
+    await context.addInitScript((globals) => {
+      Object.assign(window, globals);
+    }, screen.globals);
   await context.addInitScript(deviceInit, {
+    records: screen.records !== false,
     onboarding: ONBOARDING_KEY,
     bests: BEST_TYPES.map(
       (t, i) =>

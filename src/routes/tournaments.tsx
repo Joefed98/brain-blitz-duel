@@ -20,7 +20,7 @@ import {
 } from "@/lib/publicSchedule";
 import { APP_NAME } from "@/lib/brand";
 import { OnlineOnly } from "@/components/offline/OnlineOnly";
-import { ButtonLink, Icon } from "@/design/components";
+import { EmptyState } from "@/design/components";
 
 export const Route = createFileRoute("/tournaments")({
   ssr: false,
@@ -101,41 +101,21 @@ function TournamentsScreen() {
             </div>
           </section>
         ) : (
-          // Nothing scheduled (T-TournamentsEmpty): what to do meanwhile; the Discord button only with its link.
-          <section aria-label="No public games" data-public-none className="jz-panel ap-empty-card">
-            <span aria-hidden="true" className="ap-empty-icon">
-              <Icon name="calendar" size={24} style={{ width: 30, height: 30 }} />
-            </span>
-            <h2 data-wrap-ok className="ap-section-title mt-1 whitespace-normal text-[20px]">
-              No public games on the calendar
-            </h2>
-            <p className="max-w-[300px] text-[15px] leading-[1.45] text-[var(--ap-text-2)]">
-              {discord ? "New dates are posted in the beta Discord. " : "New dates are posted here. "}
-              Until then, start a room with friends or sharpen up in Practice.
-            </p>
-            <div className="mt-1.5 flex w-full flex-col gap-2">
-              {discord ? (
-                <ButtonLink
-                  href={discord}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  data-discord-link
-                  variant="secondary"
-                  size={48}
-                  block
-                >
-                  Open the beta Discord
-                  <Icon name="external" size={18} className="-m-px" />
-                </ButtonLink>
-              ) : null}
-              <button
-                type="button"
-                onClick={() => goToTab(router, "tournaments", "practice")}
-                className="ap-link press tap-target h-11 w-full"
-              >
-                Go to Practice
-              </button>
-            </div>
+          // Nothing scheduled (T-TournamentsEmpty; wave 1's empty-state card, E2): what to do meanwhile; the
+          // Discord button only with its link.
+          <section aria-label="No public games" className="ap-section">
+            <EmptyState
+              data-public-none
+              layout="card"
+              title="No public games on the calendar"
+              body={`${discord ? "New dates are posted in the beta Discord." : "New dates are posted here."} Until then, start a room with friends or sharpen up in Practice.`}
+              action={
+                discord
+                  ? { label: "Open the beta Discord", href: discord, external: true, data: { "data-discord-link": "" } }
+                  : { label: "Go to Practice", onClick: () => goToTab(router, "tournaments", "practice") }
+              }
+              secondary={discord ? { label: "Go to Practice", onClick: () => goToTab(router, "tournaments", "practice") } : undefined}
+            />
           </section>
         )}
 
@@ -164,16 +144,14 @@ function TournamentsScreen() {
             ) : null}
           </div>
           {results.length === 0 ? (
-            <div data-public-results-empty className="jz-panel flex items-center gap-3.5 p-4">
-              <span aria-hidden="true" className="ap-ghost-discs">
-                <span />
-                <span />
-                <span />
-              </span>
-              <p className="min-w-0 flex-1 text-[14px] leading-[1.4] text-[var(--ap-text-2)]">
-                Play a public game and your place, medal and points land here.
-              </p>
-            </div>
+            // Wave 1's empty-state card (E3's words for a results list): the button goes to playing.
+            <EmptyState
+              data-public-results-empty
+              layout="card"
+              title="No results yet"
+              body="Play a public game and your place, medal and points land here."
+              action={{ label: "Play with friends", onClick: () => goToTab(router, "tournaments", "play") }}
+            />
           ) : (
             <ul className="jz-panel">
               {results.map((r) => {

@@ -3,23 +3,28 @@ import { useEffect, useState } from "react";
 import { challengeEndsIn, challengeResultLine, type ChallengeSummary } from "@/lib/duel/challenge";
 import { myChallenges } from "@/lib/duel/challengeApi";
 import { readChallengeRecord } from "@/lib/duel/challengeRecord";
-import { Icon } from "@/design/components";
+import { EmptyState, Icon } from "@/design/components";
 
 /** Friends shown on a challenge's card before "and N more". */
 const SHOWN = 4;
 
 /**
  * Profile's "Your challenges" (22 Oct 2026): the challenges this device made or sent (device storage)
- * with each friend's result from the server ("Sam beat you 612–580"). Hidden until challenges are
- * available, and while the device has none.
+ * with each friend's result from the server ("Sam beat you 612–580"). A device that has made or sent none
+ * sees the empty state (wave 1, 10 Nov 2026: Captain Joulz, one line, Challenge a friend); a server error
+ * (e.g. before the migration) hides the section.
  */
-export function YourChallenges({ onOpen }: { onOpen: (code: string) => void }) {
+export function YourChallenges({ onOpen, onNew }: { onOpen: (code: string) => void; onNew?: () => void }) {
   const [list, setList] = useState<ChallengeSummary[] | null>(null);
+  const [none, setNone] = useState(false);
   useEffect(() => {
     // Only a device that has made or sent a challenge asks the server (an error, e.g. before the
     // migration, hides the section).
     const codes = readChallengeRecord().mine.map((m) => m.code);
-    if (!codes.length) return;
+    if (!codes.length) {
+      setNone(true);
+      return;
+    }
     let live = true;
     void myChallenges(codes).then(
       (next) => live && setList(next),
@@ -29,6 +34,21 @@ export function YourChallenges({ onOpen }: { onOpen: (code: string) => void }) {
       live = false;
     };
   }, []);
+  if (none && onNew)
+    return (
+      <section aria-label="Your challenges" className="ap-section">
+        <div className="ap-section-head">
+          <h2 className="ap-section-title">Your challenges</h2>
+        </div>
+        <EmptyState
+          data-your-challenges-empty
+          layout="card"
+          title="No challenges yet"
+          body="Challenge a friend and their scores show up here."
+          action={{ label: "Challenge a friend", onClick: onNew }}
+        />
+      </section>
+    );
   if (!list || list.length === 0) return null;
   const now = Date.now();
   return (
