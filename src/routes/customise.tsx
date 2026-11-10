@@ -1,0 +1,403 @@
+import { createFileRoute, useRouter } from "@tanstack/react-router";
+import { useEffect, useMemo, useRef, useState } from "react";
+
+import { Coin } from "@/components/app/CoinCounter";
+import { PhoneShell } from "@/components/duel/PhoneShell";
+import { lookFromLoadout } from "@/components/identity/ProfileCard";
+import { Button, Chip, EmptyState, Icon, Segmented, Skeleton } from "@/design/components";
+import { Avatar, AVATARS, CardPiece, GEMS, NamePiece, PlayerCard, type CardLook } from "@/design/identity";
+import { useAccount } from "@/lib/account/accountApi";
+import { APP_NAME } from "@/lib/brand";
+import { PLAYER_COLOURS } from "@/lib/duel/playerLook";
+import { NO_CHOICES, optionRows, type AvatarChoice, type AvatarOptionKind, type LoadoutSlot } from "@/lib/identity/backend";
+import { ownedOfKind, RARITY_LABEL, slotItems } from "@/lib/identity/customise";
+import { saveAvatar, saveSlot, useMyIdentity } from "@/lib/identity/identityApi";
+import { recordIdentityEvent } from "@/lib/identity/identityEvents";
+import { useShopOn } from "@/lib/identity/shopSwitch";
+
+/**
+ * Customise (wave 2, session A2; mockups docs/art/wave-2/screens/customise-1-avatar, -2-card-and-frame,
+ * -3-badges-and-title): the live card at the top, then Avatar, Card, Badges and title, and Save.
+ *
+ * - Avatar: the 32 game avatars and the 32 colours, all free; the avatar builder's accent, feature, accessory and
+ *   background (A1's getAvatarOptions) only where an avatar has more than one choice (none do yet: the art has one
+ *   accent and background each and no features or accessories); the ten gem colours locked until C1 adds the unlocks
+ *   (no star counts); avatar finishes, the accessory item (Neon Bolt) and the special-edition avatar list owned items
+ *   only.
+ * - Card: card arts, frames and name colours. Owned ones can be chosen (the 8 free card arts and Plain from the
+ *   start); the rest show locked with where they come from (catalogue), shop items hidden while the Shop is off.
+ * - Badges and title: the three badge slots and the title slot, empty until C2 fills them.
+ *
+ * Save sends each change through A1's equip() and setAvatar(); a refusal shows its plain message and puts that part
+ * of the card back as it was (and records equip_refused by slot and reason). Accounts only: a guest is sent to
+ * Profile, whose Customise opens the save-your-progress sheet.
+ */
+export const Route = createFileRoute("/customise")({
+  ssr: false,
+  head: () => ({
+    meta: [{ title: `${APP_NAME} customise` }, { name: "robots", content: "noindex" }],
+  }),
+  component: CustomiseScreen,
+});
+
+type Tab = "avatar" | "card" | "badges";
+type CardSlot = "card-art" | "frame" | "name-colour";
+const CARD_SLOTS: readonly CardSlot[] = ["card-art", "frame", "name-colour"];
+const AVATAR_SLOTS: readonly { kind: LoadoutSlot; label: string; empty: string }[] = [
+  { kind: "avatar-finish", label: "Finish", empty: "No finishes yet. Finishes you own show here." },
+  { kind: "avatar-accessory", label: "Accessory", empty: "No accessories yet. Accessories you own show here." },
+  { kind: "avatar-special-edition", label: "Special edition", empty: "No special editions yet. They come from the pass." },
+];
+const FIRST_AVATARS = 7;
+
+function sameAvatar(a: AvatarChoice | null, b: AvatarChoice | null): boolean {
+  return (
+    (a?.id ?? null) === (b?.id ?? null) &&
+    (a?.colour ?? null) === (b?.colour ?? null) &&
+    (a?.gem ?? null) === (b?.gem ?? null) &&
+    JSON.stringify(a?.choices ?? NO_CHOICES) === JSON.stringify(b?.choices ?? NO_CHOICES)
+  );
+}
+
+const OPTION_LABEL: Record<AvatarOptionKind, string> = { accent: "Accent colour", feature: "Feature", accessory: "Accessory", background: "Background" };
+/** An option id as words ("storm-crown" → "Storm crown"); the art names them when it draws them. */
+const optionName = (id: string) => {
+  const words = id.replace(/^[a-z0-9-]+\./, "").replace(/[-_]+/g, " ").trim();
+  return words.charAt(0).toUpperCase() + words.slice(1);
+};
+
+function CustomiseScreen() {
+  const router = useRouter();
+  const account = useAccount();
+  const identity = useMyIdentity();
+  const shopOn = useShopOn();
+  const [tab, setTab] = useState<Tab>("avatar");
+  const [allAvatars, setAllAvatars] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const signedIn = account.kind === "account" ? account : null;
+
+  // Guests can't customise: Profile's Customise offers them the save-your-progress sheet instead.
+  useEffect(() => {
+    if (account.kind !== "unknown" && account.kind !== "account") void router.navigate({ to: "/profile", replace: true });
+  }, [account.kind, router]);
+
+  const opened = useRef(false);
+  useEffect(() => {
+    if (!signedIn || opened.current) return;
+    opened.current = true;
+    recordIdentityEvent({ event: "customise_opened" });
+  }, [signedIn]);
+
+  // The saved look (A1's loadout) and the draft the player is building on it.
+  const saved = useMemo(() => {
+    const look = lookFromLoadout(identity.loadout, signedIn?.colour ?? 0);
+    const avatar: AvatarChoice = identity.loadout?.avatar ?? { id: "captain-joulz", colour: signedIn?.colour ?? 0, gem: null, choices: { ...NO_CHOICES } };
+    const slots: Partial<Record<LoadoutSlot, string | null>> = {
+      ...identity.loadout?.slots,
+      "card-art": look.cardArt,
+      frame: look.frame,
+      "name-colour": look.nameColour,
+    };
+    return { avatar, slots };
+  }, [identity.loadout, signedIn?.colour]);
+  const [draftAvatar, setDraftAvatar] = useState<AvatarChoice | null>(null);
+  const [draftSlots, setDraftSlots] = useState<Partial<Record<LoadoutSlot, string | null>>>({});
+  const avatar = draftAvatar ?? saved.avatar;
+  const slotValue = (slot: LoadoutSlot): string | null => (slot in draftSlots ? draftSlots[slot]! : (saved.slots[slot] ?? null));
+  const look: CardLook = {
+    cardArt: slotValue("card-art"),
+    frame: slotValue("frame"),
+    nameColour: slotValue("name-colour"),
+    avatar,
+  };
+  const changedSlots = (Object.keys(draftSlots) as LoadoutSlot[]).filter((slot) => (draftSlots[slot] ?? null) !== (saved.slots[slot] ?? null));
+  const avatarChanged = draftAvatar !== null && !sameAvatar(draftAvatar, saved.avatar);
+  const dirty = changedSlots.length > 0 || avatarChanged;
+
+  const pick = (slot: LoadoutSlot, id: string | null) => {
+    setMessage(null);
+    setDraftSlots((d) => ({ ...d, [slot]: id }));
+  };
+  const pickAvatar = (change: Partial<AvatarChoice>) => {
+    setMessage(null);
+    setDraftAvatar({ ...avatar, ...change });
+  };
+
+  const save = async () => {
+    if (!dirty || saving) return;
+    setSaving(true);
+    setMessage(null);
+    const refusals: string[] = [];
+    for (const slot of changedSlots) {
+      const answer = await saveSlot(slot, draftSlots[slot] ?? null);
+      if (!answer.ok) {
+        refusals.push(answer.message);
+        recordIdentityEvent({ event: "equip_refused", slot, reason: answer.reason });
+      }
+    }
+    if (avatarChanged && draftAvatar) {
+      const answer = await saveAvatar(draftAvatar);
+      if (!answer.ok) {
+        refusals.push(answer.message);
+        recordIdentityEvent({ event: "equip_refused", slot: "avatar", reason: answer.reason });
+      }
+    }
+    // Saved parts now come from the loadout A1 answered with; refused parts go back to what was saved (the draft is
+    // dropped either way, so the card shows exactly the saved look).
+    setDraftSlots({});
+    setDraftAvatar(null);
+    setSaving(false);
+    if (refusals.length) setMessage([...new Set(refusals)].join(" "));
+  };
+
+  const coins = identity.coins;
+  const name = signedIn?.username ?? "";
+
+  return (
+    <PhoneShell skin="profile" bare>
+      <div className="cz-page" data-customise={signedIn ? (identity.live ? "ready" : "not-ready") : "loading"}>
+        <header className="cz-head">
+          <span className="cz-head-title">
+            <Button variant="icon" aria-label="Back" onClick={() => router.history.back()} className="-ml-2.5">
+              <Icon name="back" size={22} />
+            </Button>
+            <h1>Customise</h1>
+          </span>
+          {shopOn && coins !== null ? (
+            <span className="jz-coins" data-coin-counter="customise" aria-label={`${coins.toLocaleString("en-GB")} coins`}>
+              <Coin />
+              <span className="jz-coins-value">{coins.toLocaleString("en-GB")}</span>
+            </span>
+          ) : null}
+        </header>
+
+        {!signedIn ? (
+          <Skeleton kind="card" />
+        ) : (
+          <>
+            <PlayerCard look={look} name={name} playerNumber={signedIn.playerNumber} label="Your card, as it will look" />
+            <Segmented<Tab>
+              label="Customise"
+              radio
+              value={tab}
+              onChange={setTab}
+              options={[
+                { value: "avatar", label: "Avatar", data: { "data-customise-tab": "avatar" } },
+                { value: "card", label: "Card", data: { "data-customise-tab": "card" } },
+                { value: "badges", label: "Badges and title", data: { "data-customise-tab": "badges" } },
+              ]}
+            />
+            {message ? (
+              <p role="alert" className="cz-message" data-customise-message>
+                {message}
+              </p>
+            ) : null}
+            {!identity.live ? (
+              <EmptyState layout="card" tone="cool" title="Customise opens soon" body="Your card’s looks can’t be saved yet." data-customise-soon="" />
+            ) : tab === "avatar" ? (
+              <>
+                <section className="cz-section" aria-label="Avatar">
+                  <span className="cz-label">Avatar</span>
+                  <div role="radiogroup" aria-label="Avatar" className="cz-avatars">
+                    {(allAvatars ? AVATARS : AVATARS.slice(0, FIRST_AVATARS)).map((a) => (
+                      <button
+                        key={a.id}
+                        type="button"
+                        role="radio"
+                        aria-checked={avatar.id === a.id}
+                        data-avatar-choice={a.id}
+                        onClick={() => pickAvatar({ id: a.id, choices: { ...NO_CHOICES } })}
+                        className="cz-avatar press"
+                      >
+                        <Avatar look={{ id: a.id, colour: avatar.colour, gem: avatar.gem }} size={52} />
+                        <span>{a.name}</span>
+                      </button>
+                    ))}
+                    {allAvatars ? null : (
+                      <button type="button" onClick={() => setAllAvatars(true)} className="cz-avatar press" data-avatars-all>
+                        <span className="ap-best">+{AVATARS.length - FIRST_AVATARS}</span>
+                        <span>All {AVATARS.length}</span>
+                      </button>
+                    )}
+                  </div>
+                </section>
+                <section className="cz-section" aria-label="Gem colours">
+                  <span className="cz-label-row">
+                    <span className="cz-label">Gem colours</span>
+                    <span className="cz-meta">Earned with mastery stars</span>
+                  </span>
+                  <div className="cz-gems" data-gems-locked>
+                    {GEMS.map((g) => (
+                      <span key={g.id} className="cz-gem" data-gem={g.id} aria-label={`${g.name}, locked`} role="img">
+                        <span style={{ ["--sw" as string]: `linear-gradient(160deg, ${g.stops.join(", ")})` }}>
+                          <Icon name="lock" size={18} tone="text" />
+                        </span>
+                        <span>{g.name}</span>
+                      </span>
+                    ))}
+                  </div>
+                </section>
+                <section className="cz-section" aria-label="Main colour">
+                  <span className="cz-label">Main colour</span>
+                  <div role="radiogroup" aria-label="Main colour" className="cz-swatches">
+                    {PLAYER_COLOURS.map((c, i) => (
+                      <button
+                        key={c.name}
+                        type="button"
+                        role="radio"
+                        aria-checked={avatar.colour === i && !avatar.gem}
+                        aria-label={c.name}
+                        data-colour-choice={i}
+                        onClick={() => pickAvatar({ colour: i, gem: null })}
+                        className="cz-swatch press"
+                      >
+                        <span style={{ ["--sw" as string]: `var(--jz-player-${i})` }} />
+                      </button>
+                    ))}
+                  </div>
+                </section>
+                {/* The avatar builder's own options (getAvatarOptions): a row only where there is a real choice (more than one). */}
+                {optionRows(identity.avatarOptions, avatar.id).map((row) => {
+                  const chosen = avatar.choices?.[row.kind] ?? row.default;
+                  return (
+                    <section key={row.kind} className="cz-section" aria-label={OPTION_LABEL[row.kind]} data-avatar-option={row.kind}>
+                      <span className="cz-label">{OPTION_LABEL[row.kind]}</span>
+                      <div role="radiogroup" aria-label={OPTION_LABEL[row.kind]} className="flex flex-wrap gap-2">
+                        {row.options.map((option) => (
+                          <Chip
+                            key={option}
+                            role="radio"
+                            selected={chosen === option}
+                            data-option-choice={option}
+                            onClick={() => pickAvatar({ choices: { ...NO_CHOICES, ...avatar.choices, [row.kind]: option } })}
+                          >
+                            {optionName(option)}
+                          </Chip>
+                        ))}
+                      </div>
+                    </section>
+                  );
+                })}
+                {AVATAR_SLOTS.map(({ kind, label, empty }) => {
+                  const mine = ownedOfKind(identity.catalogue, kind, identity.owned);
+                  return (
+                    <section key={kind} className="cz-section" aria-label={label} data-avatar-slot={kind}>
+                      <span className="cz-label">{label}</span>
+                      {mine.length ? (
+                        <div className="flex flex-wrap gap-2">
+                          <Chip selected={slotValue(kind) === null} onClick={() => pick(kind, null)}>
+                            None
+                          </Chip>
+                          {mine.map((item) => (
+                            <Chip key={item.id} selected={slotValue(kind) === item.id} onClick={() => pick(kind, item.id)} data-item={item.id}>
+                              {item.name}
+                            </Chip>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="cz-empty" data-slot-empty>
+                          {empty}
+                        </p>
+                      )}
+                    </section>
+                  );
+                })}
+              </>
+            ) : tab === "card" ? (
+              CARD_SLOTS.map((slot) => {
+                const rows = slotItems(identity.catalogue, slot, identity.owned, shopOn);
+                const label = slot === "card-art" ? "Card art" : slot === "frame" ? "Frame" : "Name colour";
+                return (
+                  <section key={slot} className="cz-section" aria-label={label} data-card-slot={slot}>
+                    <span className="cz-label">{label}</span>
+                    <div role="radiogroup" aria-label={label} className="cz-items">
+                      {slot === "name-colour" ? (
+                        <button
+                          type="button"
+                          role="radio"
+                          aria-checked={slotValue(slot) === null}
+                          data-item-choice="plain"
+                          onClick={() => pick(slot, null)}
+                          className="cz-item press"
+                        >
+                          <NamePiece id={null} name={name} />
+                          <span className="cz-item-name">Plain</span>
+                          <span className="cz-item-sub">
+                            <span>{slotValue(slot) === null ? "Equipped" : "Owned"}</span>
+                          </span>
+                        </button>
+                      ) : null}
+                      {rows.map(({ item, owned, from }) => {
+                        const on = slotValue(slot) === item.id;
+                        return (
+                          <button
+                            key={item.id}
+                            type="button"
+                            role="radio"
+                            aria-checked={on}
+                            aria-disabled={!owned || undefined}
+                            data-item-choice={item.id}
+                            data-locked={owned ? undefined : ""}
+                            onClick={() => (owned ? pick(slot, item.id) : undefined)}
+                            className="cz-item press"
+                          >
+                            {item.rarity ? (
+                              <span className="cz-rarity" data-rarity={item.rarity}>
+                                {RARITY_LABEL[item.rarity]}
+                              </span>
+                            ) : null}
+                            {slot === "name-colour" ? <NamePiece id={item.id} name={name} /> : <CardPiece id={item.id} />}
+                            <span className="cz-item-name">{item.name}</span>
+                            <span className="cz-item-sub">
+                              {owned ? (
+                                <span>{on ? "Equipped" : "Owned"}</span>
+                              ) : (
+                                <>
+                                  <Icon name="lock" size={18} tone="text-3" className="-m-px" />
+                                  <span>{from}</span>
+                                </>
+                              )}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </section>
+                );
+              })
+            ) : (
+              <>
+                <section className="cz-section" aria-label="Badges" data-badge-slots>
+                  <span className="cz-label-row">
+                    <span className="cz-label">Show up to 3 on your card</span>
+                    <span className="cz-meta">0 of 3 chosen</span>
+                  </span>
+                  <div className="cz-slots">
+                    {[1, 2, 3].map((n) => (
+                      <span key={n} className="cz-slot" data-badge-slot={n}>
+                        Empty
+                      </span>
+                    ))}
+                  </div>
+                  <p className="cz-empty">Badges you earn show here.</p>
+                </section>
+                <section className="cz-section" aria-label="Title" data-title-slot>
+                  <span className="cz-label">Title, shown under your name</span>
+                  <p className="cz-empty">Titles you earn show here.</p>
+                </section>
+              </>
+            )}
+          </>
+        )}
+      </div>
+      {signedIn && identity.live ? (
+        <div className="cz-footer">
+          <Button variant="gold" size={52} block disabled={!dirty || saving} onClick={() => void save()} data-customise-save>
+            {saving ? "Saving…" : "Save"}
+          </Button>
+        </div>
+      ) : null}
+    </PhoneShell>
+  );
+}

@@ -6,8 +6,10 @@ import { LogoMark } from "@/components/brand/LogoMark";
 import { MuteToggle } from "@/components/duel/MuteToggle";
 import { PlayerBadge } from "@/components/duel/PlayerBadge";
 import { SettingsSheet } from "@/components/app/SettingsSheet";
+import { CoinCounter } from "@/components/app/CoinCounter";
 import { goToTab, TAB_PATHS, type AppTab } from "@/components/app/AppTabBar";
 import { getStoredName } from "@/lib/duel/session";
+import { useShopOn } from "@/lib/identity/shopSwitch";
 import { rememberedLook, type PlayerLook } from "@/lib/duel/playerLook";
 import { unlockAudio } from "@/lib/sound";
 import { Icon, Input, TabBar } from "@/design/components";
@@ -29,6 +31,7 @@ export function AppRail({
   compact?: boolean;
 }) {
   const router = useRouter();
+  const shop = useShopOn();
   const [settings, setSettings] = useState(false);
   const [name, setName] = useState("");
   const [look, setLook] = useState<PlayerLook>({ colour: 0, icon: null });
@@ -68,7 +71,7 @@ export function AppRail({
         {compact ? <LogoMark width={26} height={34} /> : <AppWordmark />}
       </a>
       <div className="dk-rail-tabs">
-        <TabBar variant="rail" current={current} compact={compact} onOpen={open} />
+        <TabBar variant="rail" current={current} compact={compact} shop={shop} onOpen={open} />
       </div>
       <div className="dk-rail-foot">
         {compact ? null : (
@@ -99,6 +102,7 @@ export function AppRail({
             </span>
           )}
         </a>
+        {compact ? null : <CoinCounter place="rail" />}
         <div className="dk-rail-tools">
           <button
             type="button"

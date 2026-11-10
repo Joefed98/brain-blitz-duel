@@ -12,12 +12,14 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AccountRouteImport } from './routes/account'
 import { Route as ChallengeRouteImport } from './routes/challenge'
+import { Route as CustomiseRouteImport } from './routes/customise'
 import { Route as DailyRouteImport } from './routes/daily'
 import { Route as DevCrashRouteImport } from './routes/dev-crash'
 import { Route as DevDesignRouteImport } from './routes/dev-design'
 import { Route as PracticeRouteImport } from './routes/practice'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as ReplayLabRouteImport } from './routes/replay-lab'
+import { Route as ShopRouteImport } from './routes/shop'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as TournamentsRouteImport } from './routes/tournaments'
 import { Route as DuelCodeRouteImport } from './routes/duel.$code'
@@ -35,6 +37,11 @@ const AccountRoute = AccountRouteImport.update({
 const ChallengeRoute = ChallengeRouteImport.update({
   id: '/challenge',
   path: '/challenge',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CustomiseRoute = CustomiseRouteImport.update({
+  id: '/customise',
+  path: '/customise',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DailyRoute = DailyRouteImport.update({
@@ -67,6 +74,11 @@ const ReplayLabRoute = ReplayLabRouteImport.update({
   path: '/replay-lab',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ShopRoute = ShopRouteImport.update({
+  id: '/shop',
+  path: '/shop',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const TermsRoute = TermsRouteImport.update({
   id: '/terms',
   path: '/terms',
@@ -87,12 +99,14 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/account': typeof AccountRoute
   '/challenge': typeof ChallengeRoute
+  '/customise': typeof CustomiseRoute
   '/daily': typeof DailyRoute
   '/dev-crash': typeof DevCrashRoute
   '/dev-design': typeof DevDesignRoute
   '/practice': typeof PracticeRoute
   '/profile': typeof ProfileRoute
   '/replay-lab': typeof ReplayLabRoute
+  '/shop': typeof ShopRoute
   '/terms': typeof TermsRoute
   '/tournaments': typeof TournamentsRoute
   '/duel/$code': typeof DuelCodeRoute
@@ -101,12 +115,14 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/account': typeof AccountRoute
   '/challenge': typeof ChallengeRoute
+  '/customise': typeof CustomiseRoute
   '/daily': typeof DailyRoute
   '/dev-crash': typeof DevCrashRoute
   '/dev-design': typeof DevDesignRoute
   '/practice': typeof PracticeRoute
   '/profile': typeof ProfileRoute
   '/replay-lab': typeof ReplayLabRoute
+  '/shop': typeof ShopRoute
   '/terms': typeof TermsRoute
   '/tournaments': typeof TournamentsRoute
   '/duel/$code': typeof DuelCodeRoute
@@ -116,12 +132,14 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/account': typeof AccountRoute
   '/challenge': typeof ChallengeRoute
+  '/customise': typeof CustomiseRoute
   '/daily': typeof DailyRoute
   '/dev-crash': typeof DevCrashRoute
   '/dev-design': typeof DevDesignRoute
   '/practice': typeof PracticeRoute
   '/profile': typeof ProfileRoute
   '/replay-lab': typeof ReplayLabRoute
+  '/shop': typeof ShopRoute
   '/terms': typeof TermsRoute
   '/tournaments': typeof TournamentsRoute
   '/duel/$code': typeof DuelCodeRoute
@@ -132,12 +150,14 @@ export interface FileRouteTypes {
     | '/'
     | '/account'
     | '/challenge'
+    | '/customise'
     | '/daily'
     | '/dev-crash'
     | '/dev-design'
     | '/practice'
     | '/profile'
     | '/replay-lab'
+    | '/shop'
     | '/terms'
     | '/tournaments'
     | '/duel/$code'
@@ -146,12 +166,14 @@ export interface FileRouteTypes {
     | '/'
     | '/account'
     | '/challenge'
+    | '/customise'
     | '/daily'
     | '/dev-crash'
     | '/dev-design'
     | '/practice'
     | '/profile'
     | '/replay-lab'
+    | '/shop'
     | '/terms'
     | '/tournaments'
     | '/duel/$code'
@@ -160,12 +182,14 @@ export interface FileRouteTypes {
     | '/'
     | '/account'
     | '/challenge'
+    | '/customise'
     | '/daily'
     | '/dev-crash'
     | '/dev-design'
     | '/practice'
     | '/profile'
     | '/replay-lab'
+    | '/shop'
     | '/terms'
     | '/tournaments'
     | '/duel/$code'
@@ -175,12 +199,14 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AccountRoute: typeof AccountRoute
   ChallengeRoute: typeof ChallengeRoute
+  CustomiseRoute: typeof CustomiseRoute
   DailyRoute: typeof DailyRoute
   DevCrashRoute: typeof DevCrashRoute
   DevDesignRoute: typeof DevDesignRoute
   PracticeRoute: typeof PracticeRoute
   ProfileRoute: typeof ProfileRoute
   ReplayLabRoute: typeof ReplayLabRoute
+  ShopRoute: typeof ShopRoute
   TermsRoute: typeof TermsRoute
   TournamentsRoute: typeof TournamentsRoute
   DuelCodeRoute: typeof DuelCodeRoute
@@ -207,6 +233,13 @@ declare module '@tanstack/react-router' {
       path: '/challenge'
       fullPath: '/challenge'
       preLoaderRoute: typeof ChallengeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/customise': {
+      id: '/customise'
+      path: '/customise'
+      fullPath: '/customise'
+      preLoaderRoute: typeof CustomiseRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/daily': {
@@ -251,6 +284,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ReplayLabRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/shop': {
+      id: '/shop'
+      path: '/shop'
+      fullPath: '/shop'
+      preLoaderRoute: typeof ShopRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/terms': {
       id: '/terms'
       path: '/terms'
@@ -279,12 +319,14 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AccountRoute: AccountRoute,
   ChallengeRoute: ChallengeRoute,
+  CustomiseRoute: CustomiseRoute,
   DailyRoute: DailyRoute,
   DevCrashRoute: DevCrashRoute,
   DevDesignRoute: DevDesignRoute,
   PracticeRoute: PracticeRoute,
   ProfileRoute: ProfileRoute,
   ReplayLabRoute: ReplayLabRoute,
+  ShopRoute: ShopRoute,
   TermsRoute: TermsRoute,
   TournamentsRoute: TournamentsRoute,
   DuelCodeRoute: DuelCodeRoute,

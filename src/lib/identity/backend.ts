@@ -1,0 +1,194 @@
+/**
+ * The identity screens' one way to the coins-and-items server (wave 2, train A; Session A1 provides it). Every
+ * screen in this session (the Shop shell's coin counter, Profile's card, Customise) reads and writes through here and
+ * nowhere else, so A1's exact shapes are fitted in one place (`normalise*` below), and nothing builds a second path.
+ *
+ * A1's interface: getCatalogue(), getMyWallet(), getMyInventory(), getMyLoadout(), equip(slot, itemId or null),
+ * setAvatar(avatarId, colour, gem or null), getPublicCard(playerId). The binding to A1's module lives in
+ * `a1Binding.ts` (one import to change when A1 lands); until then `identityBackend()` answers null and the screens
+ * show only what needs no server (the guest card, free items, no coins).
+ *
+ * Checks stand in for A1 with `setIdentityBackend(fake)` (scripts/identity-screens-check.tsx).
+ */
+
+/** The rarity ladder (docs/art/wave-2/README.md): Common bronze, Rare silver, Epic gold, Elite obsidian, Legendary diamond. */
+export type Rarity = "common" | "rare" | "epic" | "elite" | "legendary";
+
+/** Where an item comes from (catalogue.json `source`). */
+export type ItemSource =
+  | "free-starter"
+  | "shop"
+  | "pass-free"
+  | "pass-premium"
+  | "earned-season-peak-tier"
+  | "earned-founding-player"
+  | "earned-top-500"
+  | string;
+
+export interface CatalogueItem {
+  id: string;
+  name: string;
+  /** card-art, frame, name-colour, avatar-finish, avatar-accessory, avatar-special-edition, … */
+  kind: string;
+  rarity: Rarity | null;
+  source: ItemSource;
+  passLevel: number | null;
+  shopPrice: number | null;
+  animated: boolean;
+}
+
+/** The slots Customise equips (A1's `equip(slot, …)`). */
+export type LoadoutSlot = "card-art" | "frame" | "name-colour" | "avatar-finish" | "avatar-accessory" | "avatar-special-edition";
+export const LOADOUT_SLOTS: readonly LoadoutSlot[] = [
+  "card-art",
+  "frame",
+  "name-colour",
+  "avatar-finish",
+  "avatar-accessory",
+  "avatar-special-edition",
+];
+
+/** The avatar builder's own options (A1's AvatarChoices), separate from the catalogue's avatar items. */
+export const AVATAR_OPTION_KINDS = ["accent", "feature", "accessory", "background"] as const;
+export type AvatarOptionKind = (typeof AVATAR_OPTION_KINDS)[number];
+export type AvatarOptionChoices = Record<AvatarOptionKind, string | null>;
+export const NO_CHOICES: AvatarOptionChoices = { accent: null, feature: null, accessory: null, background: null };
+
+export interface AvatarChoice {
+  /** One of the 32 game avatars (docs/art/avatars, its slug). */
+  id: string;
+  /** An index into the 32 player colours. */
+  colour: number;
+  /** A gem colour's id, or null (gems unlock with C1). */
+  gem: string | null;
+  /** The builder's options (null: the avatar's default). */
+  choices?: AvatarOptionChoices;
+}
+
+export interface Loadout {
+  slots: Partial<Record<LoadoutSlot, string | null>>;
+  avatar: AvatarChoice | null;
+  /** Gems this account may use (none until C1). */
+  unlockedGems?: string[];
+}
+
+/** getAvatarOptions: each avatar's options per kind. */
+export type AvatarOptions = Record<string, Partial<Record<AvatarOptionKind, { options: string[]; default: string | null }>>>;
+
+/** What another player's card shows (A1's getPublicCard). */
+export interface PublicCard {
+  username: string;
+  playerNumber: number;
+  founding: boolean;
+  loadout: Loadout;
+}
+
+export type Refusal = { ok: false; reason: string; message: string };
+export type Saved = { ok: true; loadout: Loadout | null };
+
+/** A1's interface, as the screens use it. */
+export interface IdentityBackend {
+  getCatalogue(): Promise<CatalogueItem[]>;
+  getMyWallet(): Promise<{ coins: number } | null>;
+  getMyInventory(): Promise<string[]>;
+  getMyLoadout(): Promise<Loadout | null>;
+  getAvatarOptions(): Promise<AvatarOptions>;
+  equip(slot: LoadoutSlot, itemId: string | null): Promise<Saved | Refusal>;
+  setAvatar(choice: AvatarChoice): Promise<Saved | Refusal>;
+  getPublicCard(playerId: string): Promise<PublicCard | null>;
+}
+
+let override: IdentityBackend | null | undefined;
+let loaded: Promise<IdentityBackend | null> | null = null;
+
+/** Checks only: stands in for A1 (null: no backend). */
+export function setIdentityBackend(backend: IdentityBackend | null | undefined): void {
+  override = backend;
+  loaded = null;
+}
+
+/** A1's functions behind this interface, or null until A1 is bound (a1Binding.ts). */
+export function identityBackend(): Promise<IdentityBackend | null> {
+  if (override !== undefined) return Promise.resolve(override);
+  loaded ??= import("./a1Binding").then((m) => m.bindA1()).catch(() => null);
+  return loaded;
+}
+
+/* ------------------------------------------------------------------ fitting A1's answers */
+
+const RARITIES = new Set<Rarity>(["common", "rare", "epic", "elite", "legendary"]);
+
+function num(v: unknown): number | null {
+  return typeof v === "number" && Number.isFinite(v) ? v : null;
+}
+
+/** One catalogue record, from A1's row (camelCase or the catalogue's snake_case). */
+export function normaliseItem(raw: unknown): CatalogueItem | null {
+  if (!raw || typeof raw !== "object") return null;
+  const r = raw as Record<string, unknown>;
+  if (typeof r["id"] !== "string" || typeof r["kind"] !== "string") return null;
+  const rarity = typeof r["rarity"] === "string" ? (r["rarity"].toLowerCase() as Rarity) : null;
+  return {
+    id: r["id"],
+    name: typeof r["name"] === "string" ? r["name"] : r["id"],
+    kind: r["kind"],
+    rarity: rarity && RARITIES.has(rarity) ? rarity : null,
+    source: typeof r["source"] === "string" ? r["source"] : "shop",
+    passLevel: num(r["passLevel"] ?? r["pass_level"]),
+    shopPrice: num(r["priceCoins"] ?? r["shopPrice"] ?? r["shop_price_coins"]),
+    animated: r["animated"] === true,
+  };
+}
+
+/**
+ * A loadout, from A1's answer: `slots` by name, the avatar as `avatarId`, `colour`, `gem` and `avatar` (the builder's
+ * choices) at the top level (src/lib/data/economy.ts Loadout); a nested `avatar: { id, colour, gem }` is read too.
+ */
+export function normaliseLoadout(raw: unknown): Loadout | null {
+  if (!raw || typeof raw !== "object") return null;
+  const r = raw as Record<string, unknown>;
+  const slotsRaw = (r["slots"] && typeof r["slots"] === "object" ? r["slots"] : r) as Record<string, unknown>;
+  const slots: Loadout["slots"] = {};
+  for (const slot of LOADOUT_SLOTS) {
+    const v = slotsRaw[slot];
+    if (typeof v === "string" || v === null) slots[slot] = v;
+  }
+  const nested = r["avatar"] && typeof r["avatar"] === "object" ? (r["avatar"] as Record<string, unknown>) : null;
+  const id = typeof r["avatarId"] === "string" ? r["avatarId"] : typeof nested?.["id"] === "string" ? (nested["id"] as string) : null;
+  const choices: AvatarOptionChoices = { ...NO_CHOICES };
+  for (const kind of AVATAR_OPTION_KINDS) {
+    const v = nested?.[kind];
+    if (typeof v === "string") choices[kind] = v;
+  }
+  const avatar = id
+    ? {
+        id,
+        colour: num(r["colour"]) ?? num(nested?.["colour"]) ?? 0,
+        gem: typeof r["gem"] === "string" ? r["gem"] : typeof nested?.["gem"] === "string" ? (nested["gem"] as string) : null,
+        choices,
+      }
+    : null;
+  const unlocked = Array.isArray(r["unlockedGems"]) ? (r["unlockedGems"] as unknown[]).filter((g): g is string => typeof g === "string") : [];
+  return { slots, avatar, unlockedGems: unlocked };
+}
+
+/** The option rows worth drawing for an avatar: only kinds with more than one choice (never an empty or single picker). */
+export function optionRows(options: AvatarOptions, avatarId: string): { kind: AvatarOptionKind; options: string[]; default: string | null }[] {
+  const mine = options[avatarId] ?? {};
+  return AVATAR_OPTION_KINDS.flatMap((kind) => {
+    const row = mine[kind];
+    return row && Array.isArray(row.options) && row.options.length > 1 ? [{ kind, options: row.options, default: row.default ?? null }] : [];
+  });
+}
+
+/** A refusal's plain message (A1's own when it sends one). */
+export function refusalOf(raw: unknown): Refusal | null {
+  if (!raw || typeof raw !== "object") return null;
+  const r = raw as Record<string, unknown>;
+  if (r["ok"] !== false) return null;
+  return {
+    ok: false,
+    reason: typeof r["reason"] === "string" && /^[a-z0-9_]{1,40}$/.test(r["reason"]) ? r["reason"] : "refused",
+    message: typeof r["message"] === "string" && r["message"] ? r["message"] : "That didn’t save. Try again.",
+  };
+}

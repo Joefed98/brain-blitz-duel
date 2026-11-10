@@ -92,8 +92,14 @@ export function SaveProgressPrompt() {
       </div>
     );
 
+  return <SaveProgressSheet onDismiss={dismiss} onTap={tap} />;
+}
+
+/** The sheet itself (S1): the prompt above, and anywhere a guest asks for something an account keeps. */
+function SaveProgressSheet({ onDismiss, onTap }: { onDismiss: () => void; onTap: (method: SaveProgressMethod) => void }) {
+  const tap = onTap;
   return (
-    <Sheet open onClose={dismiss} title="Save your progress" closeLabel="Not now" data={{ "data-save-progress": "sheet" }}>
+    <Sheet open onClose={onDismiss} title="Save your progress" closeLabel="Not now" data={{ "data-save-progress": "sheet" }}>
       <div className="acct-sheet-body">
         <p className="acct-sheet-lede">Make an account to keep what you’ve played.</p>
         <ul className="acct-perks">
@@ -120,11 +126,28 @@ export function SaveProgressPrompt() {
           <Button variant="gold" size={52} block onClick={() => tap("email")} data-save-progress-tap>
             <Icon name="send" size={20} /> Continue with email
           </Button>
-          <Button variant="quiet" size={48} block onClick={dismiss} data-save-progress-dismiss>
+          <Button variant="quiet" size={48} block onClick={onDismiss} data-save-progress-dismiss>
             Not now
           </Button>
         </div>
       </div>
     </Sheet>
+  );
+}
+
+/**
+ * The same sheet, opened by a guest's own tap (Profile's Customise, wave 2): it touches no prompt record and sends
+ * none of the prompt's events (it isn't the after-the-game prompt). Shown on a tab page only, never over a result.
+ */
+export function SaveProgressOffer({ onClose }: { onClose: () => void }) {
+  const navigate = useNavigate();
+  return (
+    <SaveProgressSheet
+      onDismiss={onClose}
+      onTap={(method) => {
+        onClose();
+        void navigate({ to: "/account", search: { from: here(), start: method === "email" ? "email" : "signin" } });
+      }}
+    />
   );
 }

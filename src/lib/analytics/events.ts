@@ -47,6 +47,12 @@ export const ANALYTICS_EVENTS = [
   "coins_spent",
   "item_granted",
   "item_equipped",
+  // Identity screens (wave 2, session A2): recorded by the server only, through recordIdentityEventFn
+  // (src/lib/identity/identityEvents.functions.ts), which accepts these three with fixed-word props and nothing else.
+  // equip_refused carries props.slot and props.reason (A1's refusal type). A1 records item_equipped itself.
+  "profile_viewed",
+  "customise_opened",
+  "equip_refused",
 ] as const;
 export type AnalyticsEventName = (typeof ANALYTICS_EVENTS)[number];
 

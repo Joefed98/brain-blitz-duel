@@ -1,0 +1,354 @@
+/*
+ * Wave 2, session A2: the coin counter, the Shop shell, Profile's card and Customise (mockups in
+ * docs/art/wave-2/screens/). Tokens only (DESIGN.md). The player card's own art and layout are generated from the
+ * item sources (src/design/identity/playerCardArt.data.ts) and injected once by PlayerCard.
+ */
+
+/* ------------------------------------------------------------------ header and coin counter */
+.ap-header-tools {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: var(--jz-space-8);
+}
+.jz-coins {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  gap: var(--jz-space-8);
+  padding: 0 var(--jz-space-12);
+  border: 1.5px solid var(--jz-surface-2);
+  border-radius: var(--jz-round);
+  background: var(--jz-surface);
+  color: var(--jz-text);
+  font-family: var(--jz-font);
+  font-size: 15px;
+  font-weight: var(--jz-weight-bold);
+  font-variant-numeric: tabular-nums;
+  -webkit-tap-highlight-color: transparent;
+}
+[data-app-rail] .jz-coins {
+  align-self: flex-start;
+}
+.jz-coin {
+  flex: none;
+}
+.jz-coin-face {
+  fill: var(--jz-gold);
+}
+.jz-coin-ring {
+  fill: none;
+  stroke: var(--jz-gold-ledge);
+  stroke-width: 1.2;
+}
+.jz-coin-bolt {
+  fill: var(--jz-on-gold);
+}
+
+/* ------------------------------------------------------------------ the Shop shell */
+.shop-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--jz-space-12);
+}
+.shop-soon {
+  display: flex;
+  flex-direction: column;
+  gap: var(--jz-space-12);
+}
+
+/* ------------------------------------------------------------------ Profile */
+.id-card-block {
+  display: flex;
+  flex-direction: column;
+  gap: var(--jz-space-12);
+}
+.id-card-actions {
+  display: flex;
+  gap: var(--jz-space-12);
+}
+.id-card-actions > * {
+  flex: 1;
+}
+.id-rating-note {
+  display: flex;
+  align-items: center;
+  gap: var(--jz-space-12);
+  padding: var(--jz-space-16);
+  color: var(--jz-text-2);
+  font-size: 14px;
+  line-height: 18px;
+}
+
+/* ------------------------------------------------------------------ Customise */
+.cz-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--jz-space-20);
+  padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px));
+}
+.cz-head {
+  display: flex;
+  height: 48px;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--jz-space-8);
+}
+.cz-head-title {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: var(--jz-space-4);
+}
+.cz-head h1 {
+  margin: 0;
+  color: var(--jz-text);
+  font-size: 22px;
+  font-weight: var(--jz-weight-bold);
+  line-height: 24px;
+}
+.cz-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--jz-space-12);
+}
+.cz-label-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--jz-space-12);
+}
+.cz-label {
+  color: var(--jz-text-2);
+  font-size: 14px;
+  font-weight: var(--jz-weight-medium);
+  line-height: 18px;
+}
+.cz-meta {
+  color: var(--jz-text-3);
+  font-size: 13px;
+  line-height: 16px;
+  text-align: right;
+}
+.cz-empty {
+  margin: 0;
+  color: var(--jz-text-3);
+  font-size: 14px;
+  line-height: 18px;
+}
+.cz-avatars {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--jz-space-8);
+}
+.cz-avatar {
+  display: flex;
+  min-height: 44px;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--jz-space-4);
+  padding: var(--jz-space-8) var(--jz-space-4);
+  border: 1.5px solid transparent;
+  border-radius: var(--jz-radius);
+  background: none;
+  color: var(--jz-text-2);
+  font-family: var(--jz-font);
+  font-size: 12px;
+  font-weight: var(--jz-weight-medium);
+  line-height: 16px;
+}
+.cz-avatar > span:last-child {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cz-avatar[aria-checked="true"] {
+  border-color: var(--jz-gold);
+  background: var(--jz-surface);
+  color: var(--jz-text);
+}
+.cz-swatches {
+  display: grid;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  gap: var(--jz-space-8);
+}
+.cz-swatch {
+  display: flex;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: none;
+  background: none;
+}
+.cz-swatch > span {
+  display: block;
+  width: 34px;
+  height: 34px;
+  border: 2px solid transparent;
+  border-radius: var(--jz-round);
+  background: var(--sw);
+}
+.cz-swatch[aria-checked="true"] > span {
+  border-color: var(--jz-text);
+  box-shadow: 0 0 0 2px var(--jz-bg);
+}
+.cz-gems {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: var(--jz-space-8);
+}
+.cz-gem {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--jz-space-4);
+  color: var(--jz-text-3);
+  font-size: 12px;
+  line-height: 16px;
+}
+.cz-gem > span:first-child {
+  display: flex;
+  width: 34px;
+  height: 34px;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--jz-round);
+  background: var(--sw);
+  opacity: 0.55;
+}
+.cz-items {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--jz-space-12);
+}
+.cz-item {
+  display: flex;
+  min-width: 0;
+  min-height: 44px;
+  flex-direction: column;
+  gap: var(--jz-space-8);
+  padding: var(--jz-space-12);
+  border: 1.5px solid var(--jz-surface-2);
+  border-radius: var(--jz-radius);
+  background: var(--jz-surface);
+  color: var(--jz-text-2);
+  font-family: var(--jz-font);
+  text-align: left;
+}
+.cz-item[aria-checked="true"] {
+  border-color: var(--jz-gold);
+}
+.cz-item[data-locked] {
+  opacity: 0.8;
+}
+.cz-item-name {
+  overflow: hidden;
+  color: var(--jz-text);
+  font-size: 15px;
+  font-weight: var(--jz-weight-medium);
+  line-height: 20px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cz-item-sub {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: var(--jz-space-4);
+  overflow: hidden;
+  color: var(--jz-text-3);
+  font-size: 13px;
+  line-height: 16px;
+  white-space: nowrap;
+}
+.cz-item-sub > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cz-item[aria-checked="true"] .cz-item-sub {
+  color: var(--jz-cyan);
+}
+.cz-item-preview {
+  display: block;
+  overflow: visible;
+}
+.cz-name-preview {
+  display: flex;
+  height: 40px;
+  align-items: center;
+  padding: 0 var(--jz-space-8);
+  border-radius: var(--jz-radius);
+  background: var(--jz-bg);
+}
+.cz-rarity {
+  align-self: flex-start;
+  padding: 0 var(--jz-space-8);
+  border: 1px solid var(--jz-surface-2);
+  border-radius: var(--jz-radius);
+  color: var(--jz-text-2);
+  font-size: 12px;
+  font-weight: var(--jz-weight-medium);
+  line-height: 20px;
+}
+.cz-rarity[data-rarity="common"] {
+  border-color: var(--jz-bronze);
+  color: var(--jz-bronze);
+}
+.cz-rarity[data-rarity="rare"] {
+  border-color: var(--jz-silver);
+  color: var(--jz-silver);
+}
+.cz-rarity[data-rarity="epic"] {
+  border-color: var(--jz-gold);
+  color: var(--jz-gold);
+}
+.cz-rarity[data-rarity="elite"] {
+  border-color: var(--jz-metal-obsidian-4);
+  color: var(--jz-text);
+}
+.cz-rarity[data-rarity="legendary"] {
+  border-color: var(--jz-metal-platinum-2);
+  color: var(--jz-metal-platinum-2);
+}
+.cz-slots {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--jz-space-12);
+}
+.cz-slot {
+  display: flex;
+  min-height: 96px;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px dashed var(--jz-surface-2);
+  border-radius: var(--jz-radius);
+  color: var(--jz-text-3);
+  font-size: 13px;
+}
+.cz-message {
+  margin: 0;
+  padding: var(--jz-space-12);
+  border-left: 3px solid var(--jz-red);
+  border-radius: var(--jz-radius);
+  background: var(--jz-surface);
+  color: var(--jz-text);
+  font-size: 14px;
+  line-height: 18px;
+}
+.cz-footer {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 30;
+  padding: var(--jz-space-12) var(--jz-page-pad) calc(var(--jz-space-12) + env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid var(--jz-line);
+  background: var(--jz-bg-raised);
+}
+.cz-footer > * {
+  max-width: 430px;
+  margin-inline: auto;
+}
