@@ -196,7 +196,7 @@ export function AccountSettings({ account, onBack }: { account: AccountView & { 
         <section className="acct-field">
           <SectionHeader title="Country" />
           <label htmlFor="account-country" className="acct-label">
-            <span>Shown on leaderboards later</span>
+            <span>Set from your phone’s region. Only you see it.</span>
             <span>{countrySaved ? "Saved" : ""}</span>
           </label>
           <select id="account-country" className="acct-select" value={country} onChange={(e) => void saveCountry(e.target.value)}>
