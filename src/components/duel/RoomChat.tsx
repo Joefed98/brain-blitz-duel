@@ -17,6 +17,7 @@ import type { DuelPlayerRow } from "@/lib/duel/types";
 
 import { PlayerBadge } from "./PlayerBadge";
 import { RoomChatButton, RoomChatSlot, RoomFooter } from "./RoomFooter";
+import { ReportReasons } from "./ReportSheet";
 import { Button as JzButton, Icon, Input, Sheet, Toast } from "@/design/components";
 
 interface RoomChatProps {
@@ -121,6 +122,10 @@ function MessageRow({
       onContextMenu={(event) => {
         event.preventDefault();
         onLongPress();
+      }}
+      // Safety (10 Nov 2026): a tap opens the same menu (mute, or a report reason: two taps to report).
+      onClick={() => {
+        if (!mine) onLongPress();
       }}
       className="px-1 py-1 text-left text-sm leading-snug"
     >
@@ -413,17 +418,15 @@ export function RoomChat({
             ? `Unmute ${menuFor.sender_name}`
             : `Mute ${menuFor.sender_name}`}
         </JzButton>
-        <JzButton
-          variant="quiet"
-          block
-          onClick={() => {
-            void chat.report(menuFor.id);
-            setMenuFor(null);
-          }}
-          className="justify-start text-warn"
-        >
-          Report
-        </JzButton>
+        {/* Safety (10 Nov 2026): the second tap is the reason (offensive name, abusive chat, cheating). */}
+        {menuFor.sender_user_id !== myUserId ? (
+          <ReportReasons
+            onPick={(reason) => {
+              void chat.report(menuFor.id, reason);
+              setMenuFor(null);
+            }}
+          />
+        ) : null}
         <JzButton
           variant="quiet"
           block

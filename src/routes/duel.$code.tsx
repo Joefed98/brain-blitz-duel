@@ -119,7 +119,7 @@ import { hasScoringColumn, roomScoringMode } from "@/lib/duel/scoringMode";
 import { useDuel } from "@/lib/duel/useDuel";
 import { roundClockMs } from "@/lib/duel/buzzer";
 import { showRoundChatDot } from "@/lib/duel/chatNotice";
-import { setPlayerMuted, useRoomChat } from "@/lib/duel/useRoomChat";
+import { reportPlayer, setPlayerMuted, useRoomChat } from "@/lib/duel/useRoomChat";
 import {
   puzzleDef,
   puzzleName,
@@ -984,6 +984,7 @@ function DuelScreen() {
             allPlayers={players}
             canChooseLook={lookColumnsPresent(players)}
             onLookChange={(look) => setPlayerLook(duel.id, look)}
+            onReport={(slot, reason) => reportPlayer(duel.id, slot, reason)}
           />
           {confirmDisband && (
             <ConfirmDialog

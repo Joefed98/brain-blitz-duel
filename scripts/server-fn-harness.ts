@@ -307,7 +307,30 @@ export interface RestServer {
   mail: SentMail[];
   /** Every request served: method, path and status (for diagnosing a failing flow). */
   log: { method: string; path: string; status: number; role: string; error?: string }[];
+  /**
+   * Supabase Auth's settings for anonymous sign-in (safety, 10 Nov 2026), off by default as on a fresh project:
+   * `captchaSecret` turns on captcha protection (Cloudflare's published test secrets only: 1x… passes, 2x… and 3x…
+   * fail, as Cloudflare's siteverify answers for them); `beforeUserCreated` names the public Postgres function set as
+   * the Before User Created hook (called with GoTrue's payload: metadata.ip_address from X-Forwarded-For).
+   */
+  auth: { captchaSecret: string | null; beforeUserCreated: string | null };
   stop(): Promise<void>;
+}
+
+/** Cloudflare Turnstile's published test secret keys and what siteverify answers for any token with each. */
+export const TURNSTILE_TEST_SECRETS = {
+  pass: "1x0000000000000000000000000000000AA",
+  fail: "2x0000000000000000000000000000000AA",
+  spent: "3x0000000000000000000000000000000AA",
+} as const;
+
+/** siteverify as Cloudflare answers it for the test secrets (a token is required; anything works with a test secret). */
+export function turnstileTestVerify(secret: string, token: string): { success: boolean; "error-codes": string[] } {
+  if (!token) return { success: false, "error-codes": ["missing-input-response"] };
+  if (secret === TURNSTILE_TEST_SECRETS.pass) return { success: true, "error-codes": [] };
+  if (secret === TURNSTILE_TEST_SECRETS.fail) return { success: false, "error-codes": ["invalid-input-response"] };
+  if (secret === TURNSTILE_TEST_SECRETS.spent) return { success: false, "error-codes": ["timeout-or-duplicate"] };
+  throw new Error("server-fn harness: only Cloudflare's test secrets are served");
 }
 
 export async function startRestServer(socketDir: string): Promise<RestServer> {
@@ -717,9 +740,37 @@ export async function startRestServer(socketDir: string): Promise<RestServer> {
     return row instanceof Response ? row : Response.json(userJson(row));
   }
 
+  const authSettings: RestServer["auth"] = { captchaSecret: null, beforeUserCreated: null };
+
   async function authRoute(request: Request, url: URL, bearer: string): Promise<Response> {
     const path = url.pathname.slice("/auth/v1".length);
     const body = (request.method === "GET" ? {} : await request.json().catch(() => ({}))) as Record<string, unknown>;
+    /* Anonymous sign-in (safety, 10 Nov 2026), as GoTrue serves POST /signup with no email or phone: captcha first
+       (gotrue_meta_security.captcha_token), then the Before User Created hook, then the user and its session. */
+    if (path === "/signup" && request.method === "POST") {
+      if (body["email"] || body["phone"] || body["password"])
+        return authError(400, "validation_failed", "server-fn harness: only anonymous sign-up is served");
+      const meta = (body["gotrue_meta_security"] ?? {}) as Record<string, unknown>;
+      if (authSettings.captchaSecret) {
+        const token = String(meta["captcha_token"] ?? "");
+        if (!token) return authError(400, "captcha_failed", "captcha protection: request disallowed (no captcha response)");
+        if (!turnstileTestVerify(authSettings.captchaSecret, token).success)
+          return authError(400, "captcha_failed", "captcha protection: request disallowed (invalid-input-response)");
+      }
+      const id = crypto.randomUUID();
+      if (authSettings.beforeUserCreated) {
+        const ip = (request.headers.get("x-forwarded-for") ?? "").split(",")[0]!.trim() || "127.0.0.1";
+        const event = {
+          metadata: { uuid: crypto.randomUUID(), time: new Date().toISOString(), name: "before-user-created", ip_address: ip },
+          user: { id, aud: "authenticated", role: "authenticated", is_anonymous: true, app_metadata: {}, user_metadata: {} },
+        };
+        const rows = await sql.unsafe(`SELECT public.${ident(authSettings.beforeUserCreated)}($1::text::jsonb) AS out`, [JSON.stringify(event)]);
+        const out = (rows[0] as { out: { error?: { http_code?: number; message?: string } } } | undefined)?.out ?? {};
+        if (out.error) return authError(out.error.http_code ?? 400, "hook_rejected", out.error.message ?? "rejected by hook");
+      }
+      await sql`INSERT INTO auth.users (id, is_anonymous, last_sign_in_at) VALUES (${id}::uuid, true, now())`;
+      return Response.json(sessionFor((await authRow(id))!));
+    }
     if (path === "/user" && request.method === "GET") return userFor(bearer);
     if (path === "/user" && request.method === "PUT") {
       const row = await bearerUser(bearer);
@@ -876,6 +927,7 @@ export async function startRestServer(socketDir: string): Promise<RestServer> {
     url: `http://127.0.0.1:${server.port}`,
     mail,
     log,
+    auth: authSettings,
     async stop() {
       server.stop(true);
       await sql.end({ timeout: 2 });

@@ -49,10 +49,23 @@ export const startSignUpFn = createServerFn({ method: "POST" })
 /** Completes sign-up once the email (or Google) is confirmed on this device's auth user: the profile is created. */
 export const completeSignUpFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { username: string; dateOfBirth: string; colour: number; country?: string | null }) => input)
+  .inputValidator(
+    (input: {
+      username: string;
+      dateOfBirth: string;
+      colour: number;
+      country?: string | null;
+      /** Safety (10 Nov 2026): auth.ts signUpTurnstileToken(); checked only while Turnstile is on. */
+      turnstileToken?: string | null;
+    }) => input,
+  )
   .handler(async ({ data, context }) => {
     const { client, allowed, account } = await setup(context.userId, "account");
     if (!allowed) return BUSY;
+    const { TURNSTILE_REFUSED_MESSAGE, verifyTurnstile } = await import("@/lib/safety/turnstile.server");
+    const { callerAddress } = await import("@/lib/duel/rateLimit.server");
+    if (!(await verifyTurnstile(data?.turnstileToken, { remoteIp: await callerAddress() })))
+      return { ok: false as const, reason: "turnstile" as const, message: TURNSTILE_REFUSED_MESSAGE };
     return account.completeSignUp(client, context.userId, data ?? {}, Date.now());
   });
 

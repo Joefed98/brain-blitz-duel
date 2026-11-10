@@ -49,6 +49,10 @@ export const sendRoomMessageFn = createServerFn({ method: "POST" })
     if (sender.muted_by_host) {
       return { ok: false as const, message: "The host has muted you in this room." };
     }
+    // Safety (10 Nov 2026, docs/moderation.md): a banned player can't chat; a player muted by reports sees why.
+    const { chatRefusal } = await import("@/lib/safety/moderation.server");
+    const refusedChat = await chatRefusal(await admin(), context.userId);
+    if (refusedChat) return { ok: false as const, message: refusedChat, muted: true as const };
 
     // M2: the names' character strip (no control, bidi or zero-width characters), cut by code point.
     const { cleanChatText, censorChat } = await import("./displayName.server");
@@ -101,6 +105,9 @@ export const allowReactionFn = createServerFn({ method: "POST" })
     if (sender.muted_by_host) {
       return { ok: false as const, message: "The host has muted you in this room." };
     }
+    const { chatRefusal } = await import("@/lib/safety/moderation.server");
+    const refusedChat = await chatRefusal(await admin(), context.userId);
+    if (refusedChat) return { ok: false as const, message: refusedChat };
     if (
       sender.last_reaction_at &&
       Date.now() - new Date(sender.last_reaction_at).getTime() < REACTION_MIN_GAP_MS
@@ -113,28 +120,81 @@ export const allowReactionFn = createServerFn({ method: "POST" })
     return { ok: true as const, name: sender.display_name };
   });
 
-/** Files a report against one message. No moderation UI beyond a thank-you. */
+/**
+ * Files a report against one message (safety, 10 Nov 2026: with a reason, default abusive chat; docs/moderation.md).
+ * The report keeps the message's text and its sender's name as they were. The reported player is never told who
+ * reported them, or that they were reported.
+ */
 export const reportMessageFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { roomId: string; messageId: string }) => input)
+  .inputValidator((input: { roomId: string; messageId: string; reason?: string }) => input)
   .handler(async ({ data, context }) => {
     const sender = await senderRow(context.supabase, data.roomId, context.userId);
     if (!sender) return { ok: false as const, message: "You’re not in this room." };
+    const { isReportReason, REPORT_THANKS } = await import("@/lib/safety/reports");
+    const reason = data.reason === undefined ? "abusive_chat" : data.reason;
+    if (!isReportReason(reason)) return { ok: false as const, message: "Pick a reason." };
     const supabaseAdmin = await admin();
-    const { insertRoomReport, readRoomMessageId } = await import("@/lib/data/chat.server");
+    const { insertRoomReport, readRoomMessageForReport } = await import("@/lib/data/chat.server");
     // The reported message must be one of this room's (read through the caller's RLS).
-    const { data: message } = await readRoomMessageId(context.supabase, data.roomId, String(data.messageId ?? ""));
+    const { data: message } = await readRoomMessageForReport(context.supabase, data.roomId, String(data.messageId ?? ""));
     if (!message) return { ok: false as const, message: "That message isn’t in this room." };
     const { REPORT_LIMIT, withinRateLimit } = await import("./rateLimit.server");
     if (!(await withinRateLimit(supabaseAdmin, context.userId, REPORT_LIMIT)))
-      return { ok: false as const, message: "Thanks, we’ve got your reports." };
-    await insertRoomReport(supabaseAdmin, {
+      return { ok: false as const, message: REPORT_THANKS };
+    const { data: filed } = await insertRoomReport(supabaseAdmin, {
       duel_id: data.roomId,
-      message_id: data.messageId,
+      message_id: message.id,
       reporter_user_id: context.userId,
+      reported_user_id: message.sender_user_id,
+      reason,
+      message_text: message.text,
+      reported_name: message.sender_name,
     });
-    return { ok: true as const };
+    await noteReport(data.roomId, context.userId, message.sender_user_id, reason, filed?.muted === true);
+    return { ok: true as const, message: REPORT_THANKS };
   });
+
+/**
+ * Files a report against a player in the room by their name (lobby, results, chat), with a reason. The report keeps
+ * the name they had when reported. A player can't report themselves.
+ */
+export const reportPlayerFn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { roomId: string; slot: number; reason: string }) => input)
+  .handler(async ({ data, context }) => {
+    const reporter = await senderRow(context.supabase, data.roomId, context.userId);
+    if (!reporter) return { ok: false as const, message: "You’re not in this room." };
+    const { isReportReason, REPORT_THANKS } = await import("@/lib/safety/reports");
+    if (!isReportReason(data.reason)) return { ok: false as const, message: "Pick a reason." };
+    const supabaseAdmin = await admin();
+    const { readPlayers } = await import("@/lib/data/players.server");
+    const { data: players } = await readPlayers(supabaseAdmin, data.roomId);
+    const reported = (players ?? []).find((p) => p.player_slot === Number(data.slot));
+    if (!reported) return { ok: false as const, message: "That player isn’t in this room." };
+    if (reported.user_id === context.userId) return { ok: false as const, message: "You can’t report yourself." };
+    const { REPORT_LIMIT, withinRateLimit } = await import("./rateLimit.server");
+    if (!(await withinRateLimit(supabaseAdmin, context.userId, REPORT_LIMIT)))
+      return { ok: false as const, message: REPORT_THANKS };
+    const { insertRoomReport } = await import("@/lib/data/chat.server");
+    const { data: filed } = await insertRoomReport(supabaseAdmin, {
+      duel_id: data.roomId,
+      message_id: null,
+      reporter_user_id: context.userId,
+      reported_user_id: reported.user_id,
+      reason: data.reason,
+      reported_name: reported.display_name,
+    });
+    await noteReport(data.roomId, context.userId, reported.user_id, data.reason, filed?.muted === true);
+    return { ok: true as const, message: REPORT_THANKS };
+  });
+
+/** The analytics for a report: report_sent (the reason only, never the message) and, when it started one, chat_muted. */
+async function noteReport(roomId: string, reporterId: string, reportedId: string, reason: string, muted: boolean): Promise<void> {
+  const { recordEvents } = await import("@/lib/data/events.server");
+  recordEvents({ event: "report_sent", playerId: reporterId, mode: "room", roomId, props: { reason } });
+  if (muted) recordEvents({ event: "chat_muted", playerId: reportedId, mode: "room", roomId });
+}
 
 /** Host only: mutes or unmutes one player's chat and reactions for everyone. */
 export const setPlayerMutedFn = createServerFn({ method: "POST" })

@@ -313,6 +313,11 @@ export const SHARDS: Record<string, string[]> = {
     // accounts-check (10 Nov 2026, ~6 s): the accounts backend through the server functions, supabase-js Auth calls and
     // every migration on a local PostgreSQL (the server-function harness), beside the other SQL checks.
     "accounts-check.ts",
+    // moderation-check (10 Nov 2026, ~20 s): safety (Turnstile, the new-guest limit, reports, the automatic mute, Joe's
+    // moderation functions, bans, retention) through the server functions on a local PostgreSQL, beside accounts-check.
+    "moderation-check.ts",
+    // moderation-ui-check (10 Nov 2026, ~3 s, happy-dom): two taps to report from a name and from a message.
+    "moderation-ui-check.tsx",
     "ink-x200-check.ts",
     "depth4-check.ts",
     "room-figures-check.ts",

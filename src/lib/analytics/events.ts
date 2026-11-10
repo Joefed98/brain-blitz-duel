@@ -30,6 +30,11 @@ export const ANALYTICS_EVENTS = [
   "username_changed",
   "account_deletion_requested",
   "under_thirteen_refused",
+  // Safety (10 Nov 2026, docs/moderation.md): report_sent carries props.reason only (never the message or who was
+  // reported), chat_muted nothing more, moderation_action props.type only (written by the moderation functions).
+  "report_sent",
+  "chat_muted",
+  "moderation_action",
 ] as const;
 export type AnalyticsEventName = (typeof ANALYTICS_EVENTS)[number];
 
