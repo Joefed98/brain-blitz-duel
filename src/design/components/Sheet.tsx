@@ -26,6 +26,7 @@ export function Sheet({
   header,
   repositionInputs,
   onKeyDown,
+  ownLayers,
 }: {
   open?: boolean;
   onClose: () => void;
@@ -45,7 +46,16 @@ export function Sheet({
   /** vaul's keyboard handling; off where the sheet places itself over the keyboard (the chat). */
   repositionInputs?: boolean;
   onKeyDown?: (event: KeyboardEvent<HTMLDivElement>) => void;
+  /**
+   * A selector for layers drawn outside the sheet that belong to it (the chat's message menu). A modal sheet turns
+   * pointer events off outside itself and closes on a tap outside; such a layer sets `pointer-events: auto`, and a
+   * tap inside it doesn't close the sheet.
+   */
+  ownLayers?: string;
 }) {
+  const keepOpen = (event: { target: EventTarget | null; preventDefault: () => void }) => {
+    if (ownLayers && event.target instanceof Element && event.target.closest(ownLayers)) event.preventDefault();
+  };
   return (
     <Drawer.Root open={open} onOpenChange={(next) => (next ? undefined : onClose())} repositionInputs={repositionInputs ?? true}>
       <Drawer.Portal>
@@ -59,6 +69,7 @@ export function Sheet({
           className={`jz-sheet${className ? ` ${className}` : ""}`}
           style={style}
           onKeyDown={onKeyDown}
+          {...(ownLayers ? { onPointerDownOutside: keepOpen, onInteractOutside: keepOpen } : {})}
         >
           <div aria-hidden="true" className="jz-sheet-grab" />
           {header ? (

@@ -60,8 +60,11 @@ export interface RoomChatState {
   notice: string | null;
   send: (text: string) => Promise<void>;
   react: (emoji: string) => Promise<void>;
-  /** Reports a message with a reason (safety, 10 Nov 2026; default abusive chat). */
-  report: (messageId: string, reason?: ReportReason) => Promise<void>;
+  /**
+   * Reports a message with a reason (safety, 10 Nov 2026; default abusive chat). Answers the server's message (the
+   * thank-you, or why it couldn't be filed); rejects when it couldn't be sent. The menu shows the answer.
+   */
+  report: (messageId: string, reason?: ReportReason) => Promise<string | void>;
   mutedUserIds: string[];
   toggleLocalMute: (userId: string) => void;
 }
@@ -235,14 +238,8 @@ export function useRoomChat(
   const report = useCallback(
     async (messageId: string, reason: ReportReason = "abusive_chat") => {
       if (!roomId) return;
-      try {
-        await reportMessageFn({ data: { roomId, messageId, reason } });
-        setNotice("Thanks — that message has been reported.");
-        window.setTimeout(() => setNotice(null), 2500);
-      } catch {
-        setNotice("Couldn’t send that report.");
-        window.setTimeout(() => setNotice(null), 2500);
-      }
+      const result = (await reportMessageFn({ data: { roomId, messageId, reason } })) as { message?: unknown } | null;
+      return typeof result?.message === "string" ? result.message : undefined;
     },
     [roomId],
   );

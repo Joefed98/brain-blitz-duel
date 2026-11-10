@@ -1922,7 +1922,11 @@ outside the repo.
   days unless reported, reports and actions after 2 years. Migrations `20261110150000_moderation.sql`,
   `20261110150100_chat_retention.sql`, `20261110150200_new_guest_limit.sql` (**not applied until merged**). The
   harness's GoTrue stand-in serves anonymous `POST /signup` with captcha (test secrets) and the hook (`rest.auth`).
-  moderation-check (~5 s, shard `e`, PostgreSQL), moderation-ui-check (~3 s, happy-dom).
+  moderation-check (~5 s, shard `e`, PostgreSQL), moderation-ui-check (~3 s, happy-dom). The chat's message menu is drawn
+  beside the chat sheet, a modal that turns pointer events off outside itself: the menu sets `pointer-events: auto`
+  and the sheet's `ownLayers` keeps a tap there from closing it (fix-up after Joe's iPhone test: the reasons did nothing);
+  chat-report-check (headless Chromium, ~2 min, `play21`) reports a message with a touch tap and a mouse click at
+  390×844 and 375×667 through to a stored `room_reports` row.
 - `src/components/duel/` — room/round screens (PhoneShell, RoundIntro, TimerBar,
   AnswerReveal, ArcadeReveal, WinnerReveal…); `src/components/puzzles/` — shared puzzle
   widgets; `src/lib/fx/` — sound and visual feedback (presentation only).

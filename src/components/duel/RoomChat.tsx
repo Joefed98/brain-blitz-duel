@@ -18,6 +18,7 @@ import type { DuelPlayerRow } from "@/lib/duel/types";
 import { PlayerBadge } from "./PlayerBadge";
 import { RoomChatButton, RoomChatSlot, RoomFooter } from "./RoomFooter";
 import { ReportReasons } from "./ReportSheet";
+import { REPORT_THANKS } from "@/lib/safety/reports";
 import { Button as JzButton, Icon, Input, Sheet, Toast } from "@/design/components";
 
 interface RoomChatProps {
@@ -154,6 +155,19 @@ export function RoomChat({
   };
   const [text, setText] = useState("");
   const [menuFor, setMenuFor] = useState<RoomMessageRow | null>(null);
+  // Safety (10 Nov 2026): after a reason is tapped the menu shows the thank-you (as the lobby's ReportSheet does)
+  // and closes after 1.5 s.
+  const [reported, setReported] = useState<string | null>(null);
+  const closeTimer = useRef<number | null>(null);
+  const openMenu = (message: RoomMessageRow | null) => {
+    if (closeTimer.current) window.clearTimeout(closeTimer.current);
+    closeTimer.current = null;
+    setReported(null);
+    setMenuFor(message);
+  };
+  useEffect(() => () => {
+    if (closeTimer.current) window.clearTimeout(closeTimer.current);
+  }, []);
   const [expanded, setExpanded] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [viewport, setViewport] = useState<{ height: number; bottom: number } | null>(null);
@@ -323,6 +337,7 @@ export function RoomChat({
       title="Room messages"
       skin="room"
       repositionInputs={false}
+      ownLayers="[data-chat-message-menu]"
       data={{ "data-room-chat-sheet": "", "data-expanded": String(expanded) }}
       className="min-h-0 overflow-hidden"
       style={{
@@ -373,7 +388,7 @@ export function RoomChat({
                 message={message}
                 mine={message.sender_user_id === myUserId}
                 look={lookOf(message.sender_user_id)}
-                onLongPress={() => setMenuFor(message)}
+                onLongPress={() => openMenu(message)}
               />
             ))}
           </ul>
@@ -395,8 +410,12 @@ export function RoomChat({
   );
   const menu = menuFor ? (
     <div
+      data-chat-message-menu
       className="fixed inset-0 z-[60] flex items-end justify-center bg-background/70 p-4"
-      onClick={() => setMenuFor(null)}
+      // The chat sheet is a modal: it turns pointer events off outside itself, so the menu (drawn beside it) turns
+      // them back on, and the sheet's ownLayers keeps a tap here from closing it (iOS: the reasons did nothing).
+      style={{ pointerEvents: "auto" }}
+      onClick={() => openMenu(null)}
     >
       <div
         className="w-full max-w-[400px] rounded-md border border-border bg-card p-2"
@@ -405,12 +424,13 @@ export function RoomChat({
         <p className="px-3 py-2 text-center font-mono text-[11px] uppercase text-muted-foreground">
           {menuFor.sender_name}
         </p>
+        {reported ? null : (
         <JzButton
           variant="quiet"
           block
           onClick={() => {
             chat.toggleLocalMute(menuFor.sender_user_id);
-            setMenuFor(null);
+            openMenu(null);
           }}
           className="justify-start text-foreground"
         >
@@ -418,23 +438,33 @@ export function RoomChat({
             ? `Unmute ${menuFor.sender_name}`
             : `Mute ${menuFor.sender_name}`}
         </JzButton>
+        )}
         {/* Safety (10 Nov 2026): the second tap is the reason (offensive name, abusive chat, cheating). */}
-        {menuFor.sender_user_id !== myUserId ? (
+        {reported ? (
+          <p role="status" data-report-thanks className="px-3 py-3 text-center text-sm text-foreground">
+            {reported}
+          </p>
+        ) : menuFor.sender_user_id !== myUserId ? (
           <ReportReasons
             onPick={(reason) => {
-              void chat.report(menuFor.id, reason);
-              setMenuFor(null);
+              setReported(REPORT_THANKS);
+              void chat
+                .report(menuFor.id, reason)
+                .then((message) => {
+                  if (typeof message === "string" && message) setReported(message);
+                })
+                .catch(() => setReported("Couldn’t send that report."))
+                .finally(() => {
+                  closeTimer.current = window.setTimeout(() => openMenu(null), 1500);
+                });
             }}
           />
         ) : null}
-        <JzButton
-          variant="quiet"
-          block
-          onClick={() => setMenuFor(null)}
-          className="justify-start"
-        >
-          Cancel
-        </JzButton>
+        {reported ? null : (
+          <JzButton variant="quiet" block data-chat-menu-cancel onClick={() => openMenu(null)} className="justify-start">
+            Cancel
+          </JzButton>
+        )}
       </div>
     </div>
   ) : null;

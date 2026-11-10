@@ -108,6 +108,10 @@ or a user id). Only a network over 200 in the hour is refused. To look:
 
 - **Two taps**: tap another player's name in the lobby, or a chat message (a long press still works), then a reason:
   offensive name, abusive chat or cheating. The same plain thank-you whatever happens.
+  Both show the thank-you in the panel and close it 1.5 s later. The chat's message menu sits beside the chat sheet,
+  a modal that turns pointer events off outside itself, so the menu turns them back on and the sheet's `ownLayers`
+  keeps a tap there from closing it (fix-up, 10 Nov 2026: on Joe's iPhone the reasons did nothing).
+  chat-report-check proves it in Chromium with touch taps and mouse clicks.
 - **Stored** in `public.room_reports` (the existing table, new columns): the room, the message id and its text, the
   reported player and their name at the time, the reason, the UK day, whether it counts, resolution. Filed through
   `insertRoomReport` (`chat.server.ts`) → `public.file_room_report`.
