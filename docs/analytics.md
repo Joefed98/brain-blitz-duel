@@ -46,6 +46,13 @@ events go alongside them.
 | `invite_opened` | phone | `sendShareEvent`, with the beta `arrival` (a shared room, daily or challenge link; `props.source`, `landing`) |
 | `error_shown` | phone | `ErrorState` (`not_found`, `room_not_found`, `challenge_not_found`) and the root error boundary (`page_error`); a short code only, never a message or stack |
 | `offline_game_played` | phone | `queueRun` (offline/queue.ts): a run played from a pack or with no connection, queued with its own time |
+| `sign_up_started` | server | `startSignUp` (src/lib/account/account.server.ts): sign-up's first step passed, before any email (`props.method`); added by `20261110120100_analytics_account_events.sql` |
+| `sign_up_completed` | server | `completeSignUp`: the profile created (`props.method`: email, google, apple) |
+| `sign_in` | server | `noteSignIn`, called by the phone after verifying a sign-in (`props.method`) |
+| `sign_out` | server | `noteSignOut`, called by the phone just before it signs out |
+| `username_changed` | server | `changeUsername` (`props.kind`: free or limited; a forced rename records none) |
+| `account_deletion_requested` | server | `requestAccountDeletion`, the first request only |
+| `under_thirteen_refused` | server | a date of birth under 13 at sign-up; never a date of birth or an age (named without digits: the event check reads names as `[a-z_]+`) |
 
 Mode is `room`, `daily`, `challenge` or `practice` (`rated` comes later with its own migration).
 

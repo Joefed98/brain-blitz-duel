@@ -659,6 +659,54 @@ export type Database = {
         }
         Relationships: []
       }
+      profiles: {
+        Row: {
+          colour: number
+          country: string | null
+          created_at: string
+          date_of_birth: string
+          deletion_requested_at: string | null
+          founding: boolean
+          free_change_used: boolean
+          player_number: number
+          status: string
+          user_id: string
+          username: string
+          username_changed_at: string | null
+          username_key: string
+        }
+        Insert: {
+          colour: number
+          country?: string | null
+          created_at?: string
+          date_of_birth: string
+          deletion_requested_at?: string | null
+          founding?: boolean
+          free_change_used?: boolean
+          player_number?: number
+          status?: string
+          user_id: string
+          username: string
+          username_changed_at?: string | null
+          username_key: string
+        }
+        Update: {
+          colour?: number
+          country?: string | null
+          created_at?: string
+          date_of_birth?: string
+          deletion_requested_at?: string | null
+          founding?: boolean
+          free_change_used?: boolean
+          player_number?: number
+          status?: string
+          user_id?: string
+          username?: string
+          username_changed_at?: string | null
+          username_key?: string
+        }
+        Relationships: []
+      }
       rate_limit_hits: {
         Row: {
           bucket: string
@@ -1069,6 +1117,38 @@ export type Database = {
       }
       is_duel_participant: { Args: { _duel_id: string }; Returns: boolean }
       my_duel_slot: { Args: { _duel_id: string }; Returns: number }
+      create_profile: {
+        Args: {
+          p_colour: number
+          p_country: string | null
+          p_date_of_birth: string
+          p_user_id: string
+          p_username: string
+        }
+        Returns: string
+      }
+      guest_progress: { Args: { p_user_id: string }; Returns: Json }
+      public_profiles: {
+        Args: { p_user_ids: string[] }
+        Returns: {
+          colour: number | null
+          founding: boolean
+          player_number: number | null
+          user_id: string
+          username: string
+        }[]
+      }
+      rename_profile: {
+        Args: {
+          p_expected_changed_at: string | null
+          p_kind: string
+          p_note?: string | null
+          p_user_id: string
+          p_username: string
+        }
+        Returns: string
+      }
+      username_status: { Args: { p_user_id: string; p_username: string }; Returns: string }
       restart_duel_room: {
         Args: { p_host_id: string; p_room_id: string }
         Returns: boolean
