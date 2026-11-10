@@ -15,6 +15,8 @@
  * - names everywhere: a signed-in player's rooms (create and join), Daily board and challenge board carry their
  *   username whatever name is typed; the room's standings show it; a guest's refused name comes back with the plain
  *   reason and three suggestions (room join and create, Daily, challenge); every guest name box takes 16 characters;
+ * - account emails: the sign-in lookup and the sign-up code go through the server, 10 a network every 10 minutes and
+ *   5 an address every hour through take_rate_limit (hashed keys only); over either limit nothing is looked up or sent;
  * - the Google and Apple buttons sit behind their switches, which are off;
  * - the phone's account copy never holds an email, a date of birth or a country.
  *
@@ -126,7 +128,7 @@ if (failures.length) {
   console.log("FAIL");
   process.exit(1);
 }
-console.log("PASS: save-your-progress timing and events, usernames in rooms, Dailies and challenges, name refusals with suggestions, 16-character name boxes, sign-in switches.");
+console.log("PASS: save-your-progress timing and events, account emails rate limited per network (10 in 10 min) and per address (5 an hour), usernames in rooms, Dailies and challenges, name refusals with suggestions, 16-character name boxes, sign-in switches.");
 process.exit(0);
 
 /* =================================================================== pure rules */
@@ -398,5 +400,72 @@ async function databaseChecks(db: LocalDb, rest: RestServer): Promise<void> {
     check(chName === "Amy_Plays", `challenge: the board shows her username (${chName || JSON.stringify(made)})`);
     const chRefused = await call(challenge.createChallengeFn, { categories: ["logic"], rounds: 3, displayName: "Joulz Official" }, tok.dan);
     check(chRefused.ok === false && chRefused.suggestions?.length === 3, "challenge: a guest's refused name comes back with three suggestions");
+  });
+
+  /* ------------------------------------------------------------- account emails: per network and per address */
+  await section("account emails: rate limits", async () => {
+    const { IP_ACCOUNT_EMAIL_LIMIT, EMAIL_CODE_LIMIT } = await import("../src/lib/duel/rateLimit.server");
+    check(
+      IP_ACCOUNT_EMAIL_LIMIT.max === 10 && IP_ACCOUNT_EMAIL_LIMIT.windowSeconds === 600 && IP_ACCOUNT_EMAIL_LIMIT.failClosed === true,
+      "per network: 10 lookups or codes a 10 minutes, fail closed",
+    );
+    check(EMAIL_CODE_LIMIT.max === 5 && EMAIL_CODE_LIMIT.windowSeconds === 3600 && EMAIL_CODE_LIMIT.failClosed === true, "per address: 5 codes an hour, fail closed");
+    const from = (ip: string) => ({ "cf-connecting-ip": ip });
+    const signIn = (email: string, ip: string, token = tok.dan) => call(account.requestSignInEmailFn, { email }, token, from(ip));
+    const signUp = (email: string, ip: string, token: string) => call(account.requestSignUpEmailFn, { email }, token, from(ip));
+    const mailTo = (to: string) => rest.mail.filter((m) => m.to === to).length;
+
+    // One network trying many addresses: 10 answers, then nothing, found or not.
+    const answers: string[] = [];
+    for (let i = 0; i < IP_ACCOUNT_EMAIL_LIMIT.max; i++) {
+      const r = await signIn(`probe${i}@example.com`, "203.0.113.7");
+      answers.push(r.ok ? "sent" : r.reason);
+    }
+    check(answers.every((a) => a === "no-account"), `per network: the first 10 lookups answer (${answers.join(",")})`);
+    const amyBefore = mailTo("amy@example.com");
+    const over = await signIn("amy@example.com", "203.0.113.7");
+    check(over.ok === false && over.reason === "rate-limited" && !/account/i.test(over.message), `per network: the 11th is refused without saying whether the address plays (${JSON.stringify(over)})`);
+    check(mailTo("amy@example.com") === amyBefore, "per network: a refused lookup sends nothing");
+    const other = await signIn("probe0@example.com", "203.0.113.8");
+    check(other.ok === false && other.reason === "no-account", "per network: another network still gets its answer");
+
+    // Sign-up codes count against the same network bucket.
+    const mixIp = "203.0.113.9";
+    for (let i = 0; i < IP_ACCOUNT_EMAIL_LIMIT.max - 1; i++) await signIn(`mix${i}@example.com`, mixIp);
+    q(`INSERT INTO auth.users (id) VALUES ('${uid(37)}') ON CONFLICT DO NOTHING`);
+    const fin = await signUp("finn@example.com", mixIp, userToken(uid(37)));
+    check(fin.ok === true && mailTo("finn@example.com") === 1, `a sign-up code is sent through the server (${JSON.stringify(fin)})`);
+    const mixOver = await signIn("mix-last@example.com", mixIp);
+    check(mixOver.ok === false && mixOver.reason === "rate-limited", "per network: sign-up codes and lookups share the 10");
+
+    // One address from many networks: 5 codes an hour, then none (sign-in and sign-up count together).
+    const before = mailTo("amy@example.com");
+    const sent: string[] = [];
+    for (let i = 0; i < EMAIL_CODE_LIMIT.max; i++) {
+      const r = await signIn("AMY@example.com ", `198.51.100.${i + 1}`);
+      sent.push(r.ok ? "sent" : r.reason);
+    }
+    check(sent.every((r) => r === "sent") && mailTo("amy@example.com") === before + EMAIL_CODE_LIMIT.max, `per address: 5 codes from 5 networks (capitals and spaces the same address) (${sent.join(",")})`);
+    const flood = await signIn("amy@example.com", "198.51.100.99");
+    check(flood.ok === false && flood.reason === "rate-limited" && mailTo("amy@example.com") === before + EMAIL_CODE_LIMIT.max, "per address: the 6th code in the hour is refused and not sent");
+    const finCodes: string[] = [];
+    for (let i = 0; i < EMAIL_CODE_LIMIT.max; i++) {
+      const r = await (i % 2 ? signIn("finn@example.com", `192.0.2.${i + 1}`) : signUp("finn@example.com", `192.0.2.${i + 1}`, userToken(uid(37))));
+      finCodes.push(r.ok ? "sent" : r.reason);
+    }
+    check(finCodes[finCodes.length - 1] === "rate-limited" && mailTo("finn@example.com") <= EMAIL_CODE_LIMIT.max, `per address: sign-up and sign-in requests share the 5 (${finCodes.join(",")}, ${mailTo("finn@example.com")} sent)`);
+
+    // What's stored: hashed keys only, never an address or an email.
+    const keys = q(`SELECT string_agg(user_id::text || ':' || bucket, ' ') FROM public.rate_limit_hits WHERE bucket IN ('ip-account-email', 'email-code')`);
+    check(/ip-account-email/.test(keys) && /email-code/.test(keys) && !/@|example|203\.0|198\.51/.test(keys), "the counters hold hashed keys only");
+    const invalid = await signIn("not-an-email", "203.0.113.50");
+    check(invalid.ok === false && invalid.reason === "invalid", "a malformed address is refused before any lookup");
+
+    // The screens never call Supabase Auth's send endpoints themselves.
+    const flow = readFileSync("src/components/account/SignUpFlow.tsx", "utf8");
+    check(
+      /requestSignInEmailFn/.test(flow) && /requestSignUpEmailFn/.test(flow) && !/import\("@\/lib\/account\/auth"\)[^\n]*\n[^\n]*send(SignIn|SignUp)Email/.test(flow) && !/auth\.send(SignIn|SignUp)Email/.test(flow),
+      "the sign-up screens send every account email through the rate-limited server functions",
+    );
   });
 }

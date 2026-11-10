@@ -1892,7 +1892,10 @@ outside the repo.
   "needs an account" gate for waves 2 and 4. Names: a signed-in player is seated under their username wherever a name
   is stored (`accountNameOf`, `src/lib/names/playerName.server.ts`: `insertPlayer`, `dailyStartFn`, the challenge
   calls), so lobby, standings, results, chat and share cards show it; guest name boxes take `GUEST_NAME_MAX` (16) and a
-  refused name shows its three suggestions as chips. The server-fn harness's GoTrue stand-in also serves anonymous
+  refused name shows its three suggestions as chips. Account emails go only through `requestSignInEmailFn` /
+  `requestSignUpEmailFn` (`requestEmailCode`, `src/lib/data/authEmail.server.ts`): 10 a network every 10 minutes
+  (`IP_ACCOUNT_EMAIL_LIMIT`) and 5 an address every hour (`EMAIL_CODE_LIMIT`) through take_rate_limit, hashed keys
+  only. The server-fn harness's `callServerFn` takes extra request headers (`cf-connecting-ip`). The server-fn harness's GoTrue stand-in also serves anonymous
   sign-in, token refresh and CORS for a browser. Checks: account-screens-check (~10 s, no browser),
   account-flow-check (Chromium, the whole email-code flow on the dev server against the harness, ~2 min), and
   `ACCOUNT_SCREENS` in `scripts/theme-screens.ts` (theme-check, no-wrap-check).

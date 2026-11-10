@@ -101,10 +101,18 @@ call the backend above and decide nothing themselves.
 
 The order of the calls:
 
-- **New player**: S3 sends `sendSignInEmail` first (it never creates a user); "no account" means a new player, so S4
-  and S5 come next, then `startSignUpFn` (the age gate, before any email is sent), then `sendSignUpEmail`, S3b, and
+- **Account emails are rate limited.** The screens never call Supabase Auth's send endpoints themselves: the sign-in
+  lookup and the sign-up code go through `requestSignInEmailFn` / `requestSignUpEmailFn` (account.functions.ts →
+  `requestEmailCode` in account.server.ts → `src/lib/data/authEmail.server.ts`), which first take two
+  `take_rate_limit` buckets: `IP_ACCOUNT_EMAIL_LIMIT`, 10 a network every 10 minutes (every lookup counts, found or
+  not, and sign-up codes share it), and `EMAIL_CODE_LIMIT`, 5 an address every hour from any network (sign-in and
+  sign-up together). Over either, nothing is looked up or sent ("Too many tries…"). Keys are hashes of the network
+  address and the lower-cased email; neither is stored. account-screens-check proves both. Supabase's own Auth rate
+  limits (step 4 below) still apply to anyone calling Auth directly with the public key, so keep them set.
+- **New player**: S3 asks for a sign-in email first (it never creates a user); "no account" means a new player, so S4
+  and S5 come next, then `startSignUpFn` (the age gate, before any email is sent), then the sign-up email, S3b, and
   `completeSignUpFn` (country from `regionCountry()`), then S6. The birthday screen never mentions an age limit.
-- **Existing account**: S3's `sendSignInEmail` succeeds, so it is a sign-in: when this phone's guest has progress
+- **Existing account**: S3's sign-in email is sent, so it is a sign-in: when this phone's guest has progress
   (`guestProgressFn`) the warning lists what stays behind (Cancel / Continue); then the code, `noteSignInFn`,
   `rememberLeftGuest`. An account waiting for deletion is offered "Keep my account" (`cancelAccountDeletionFn`).
 - **Under 13**: the kind message ("You can keep playing as a guest"), `rememberAgeRefusal()`; while it holds, a new

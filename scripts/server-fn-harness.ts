@@ -970,6 +970,8 @@ export async function callServerFn<T = any>(
   fn: unknown,
   data: unknown,
   token: string | null,
+  /** Extra request headers (account-screens-check: `cf-connecting-ip`, the caller's network as Cloudflare names it). */
+  extraHeaders: Record<string, string> = {},
 ): Promise<T> {
   const { requestHandler } = await import("@tanstack/react-start/server");
   const { runWithStartContext } = await import("@tanstack/start-storage-context");
@@ -982,6 +984,7 @@ export async function callServerFn<T = any>(
     );
   const headers: Record<string, string> = { "content-type": "application/json" };
   if (token) headers["authorization"] = `Bearer ${token}`;
+  Object.assign(headers, extraHeaders);
   let out: { result: unknown; error: unknown } | undefined;
   let thrown: unknown;
   const handler = requestHandler(async (request: Request) => {

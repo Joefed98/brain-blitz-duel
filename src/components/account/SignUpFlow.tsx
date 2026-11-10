@@ -2,10 +2,10 @@
  * Turning a guest into a signed-in player (wave 1 sign-up screens, 10 Nov 2026; docs/mockups/wave-1/ S2–S6 and their
  * README; docs/accounts/README.md for the server's order). Every rule is the backend's: this only calls it.
  *
- *   S2 Sign in ─ email ─▶ S3 email ─ Send ─▶ sendSignInEmail (never creates a user)
+ *   S2 Sign in ─ email ─▶ S3 email ─ Send ─▶ requestSignInEmailFn (never creates a user)
  *      ├ an account exists: the guest-progress warning when this phone has some (Cancel / Continue) ─▶ S3b inbox
  *      └ no account: a new player ─▶ S4 username and colour ─▶ S5 birthday ─▶ startSignUpFn (the age gate: under 13
- *        refused with nothing stored, remembered on the phone) ─▶ sendSignUpEmail (links the email to this guest)
+ *        refused with nothing stored, remembered on the phone) ─▶ requestSignUpEmailFn (links the email to this guest)
  *        ─▶ S3b inbox (link or 6-digit code) ─▶ completeSignUpFn ─▶ S6 welcome
  *
  * A phone holding a refusal (ageGate.ts) sees the kind message again instead of the username step. A device signed
@@ -60,6 +60,21 @@ interface GuestProgressView {
 }
 
 const RESEND_AFTER_S = 60;
+
+type SendOutcome = { ok: true } | { ok: false; reason: string; message: string };
+
+/**
+ * The account emails go through the server (account.functions.ts), which holds them to the per-network and
+ * per-address limits before Supabase Auth sends anything; the phone never calls Auth's send endpoints itself.
+ */
+async function sendSignInEmail(email: string): Promise<SendOutcome> {
+  const { requestSignInEmailFn } = await import("@/lib/account/account.functions");
+  return (await requestSignInEmailFn({ data: { email } })) as SendOutcome;
+}
+async function sendSignUpEmail(email: string): Promise<SendOutcome> {
+  const { requestSignUpEmailFn } = await import("@/lib/account/account.functions");
+  return (await requestSignUpEmailFn({ data: { email } })) as SendOutcome;
+}
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
@@ -151,7 +166,8 @@ export function SignUpFlow({
     setBusy(true);
     setError(null);
     try {
-      const { sendSignInEmail } = await import("@/lib/account/auth");
+      const { ensureSession } = await import("@/lib/duel/session");
+      await ensureSession();
       const sent = await sendSignInEmail(address);
       if (sent.ok) {
         // An account already has this email: signing in. Warn first when this phone's guest has progress.
@@ -219,7 +235,6 @@ export function SignUpFlow({
         | { ok: true }
         | { ok: false; reason: string; message: string; suggestions?: string[] };
       if (!started.ok) return refused(started);
-      const { sendSignUpEmail } = await import("@/lib/account/auth");
       const sent = await sendSignUpEmail(email.trim());
       if (sent.ok) {
         setMode("sign-up");
@@ -228,7 +243,6 @@ export function SignUpFlow({
       }
       if (sent.reason === "existing-account") {
         // Someone made an account with this email meanwhile: sign in to it instead.
-        const { sendSignInEmail } = await import("@/lib/account/auth");
         const again = await sendSignInEmail(email.trim());
         if (!again.ok) return setError(again.message);
         setMode("sign-in");
@@ -481,8 +495,7 @@ export function SignUpFlow({
           onCode={(code) => void submitCode(code)}
           onResend={async () => {
             setError(null);
-            const auth = await import("@/lib/account/auth");
-            const res = mode === "sign-up" ? await auth.sendSignUpEmail(email.trim()) : await auth.sendSignInEmail(email.trim());
+            const res = mode === "sign-up" ? await sendSignUpEmail(email.trim()) : await sendSignInEmail(email.trim());
             if (!res.ok) setError(res.message);
           }}
           onDifferent={() => {
