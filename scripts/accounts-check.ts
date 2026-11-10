@@ -541,6 +541,8 @@ async function databaseChecks(db: LocalDb, rest: RestServer): Promise<void> {
     check(q(`SELECT date_of_birth || ',' || player_number || ',' || founding FROM public.profiles WHERE user_id = '${HAL}'`) === "1992-03-04,3,true", "guard: even the service role can't change a date of birth, number or flag outside the admin functions");
     for (const role of ["anon", "authenticated", "service_role"])
       check(q(`SELECT has_function_privilege('${role}', 'accounts.admin_set_date_of_birth(text,date,text)', 'EXECUTE')::text || has_function_privilege('${role}', 'accounts.admin_assign_player_one(text)', 'EXECUTE')::text || has_function_privilege('${role}', 'accounts.run_daily_cleanup(boolean)', 'EXECUTE')::text`) === "falsefalsefalse", `admin: ${role} can't run the admin functions or the clean-up`);
+    for (const role of ["anon", "authenticated", "service_role"])
+      check(q(`SELECT has_function_privilege('${role}', 'accounts.forget_user(uuid)', 'EXECUTE')::text || has_function_privilege('${role}', 'accounts.accounts_due(integer)', 'EXECUTE')::text || has_function_privilege('${role}', 'accounts.guests_due(integer)', 'EXECUTE')::text`) === "falsefalsefalse", `admin: ${role} can't run the clean-up's parts (forget_user, accounts_due, guests_due)`);
   });
 
   /* ------------------------------------------------------------- row level security */
