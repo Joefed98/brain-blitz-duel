@@ -6,6 +6,7 @@ import { staleSubmissionNote } from "@/lib/appVersion";
 import { type SubmitExtra } from "./grade";
 import { normaliseCategories, STANDARD_CATEGORIES } from "./categories";
 import { dealRoomRounds } from "./roomDeal";
+import { resultColumns } from "@/lib/round/result";
 import { encodeRoomSettings, readRoomSettings } from "./roomSettings";
 import type { ScoringMode } from "./scoringMode";
 import { puzzleRevealMs, typesInCategory } from "./catalogue";
@@ -896,20 +897,13 @@ export const submitAnswerFn = createServerFn({ method: "POST" })
         `submit_answer: time claim ${data.msRemaining}ms beyond server ${Math.round(serverMs)}ms (room ${room.id}, round ${data.roundNumber})`,
       );
     }
-    const { answer, isCorrect, score, reactionAvgMs, correctCount, errors, extra, storedMs } = graded;
-
+    // The stored result's columns come from the round engine (src/lib/round/result.ts), the same as an async round's.
     const { error } = await insertRoundResult(client, {
       duel_id: room.id,
       player_slot: player.player_slot,
       round_number: data.roundNumber,
-      answer: answer || null,
-      is_correct: isCorrect,
-      ms_remaining: storedMs,
-      reaction_avg_ms: reactionAvgMs,
-      correct_count: correctCount,
-      errors,
-      extra: asJson(extra),
-      score,
+      ...resultColumns(graded),
+      extra: asJson(graded.extra),
     });
     if (error && error.code !== UNIQUE_VIOLATION) throw dbError(error, "duel");
     // How it was played (touch, mouse, keyboard), beside the stored result; best effort, never graded.
@@ -922,9 +916,9 @@ export const submitAnswerFn = createServerFn({ method: "POST" })
         playerId: context.userId,
         game: puzzle.type,
         mode: "room",
-        score,
-        completed: isCorrect,
-        durationMs: playedMs(puzzleTimeLimitMs(puzzle), msLeft, extra as Record<string, unknown> | null | undefined),
+        score: graded.score,
+        completed: graded.isCorrect,
+        durationMs: playedMs(puzzleTimeLimitMs(puzzle), msLeft, graded.extra as Record<string, unknown> | null | undefined),
         roomId: room.id,
         inputType: data.inputType,
         props: { round: data.roundNumber },

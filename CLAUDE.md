@@ -1824,6 +1824,19 @@ outside the repo.
   deal-identity-check (~6 min, quarters on shards b–e) proves every game's deal on 6 seeds, under each pin on 2, the
   explicit options and 16 whole rooms (round order, stamps and each round re-dealt in its context) against main (`scripts/fixtures/deal-identity.json.gz`, recorded on main 318fd42
   by `scripts/deal-identity-record.ts`; Lightbender's `generationMs`, its build time, is left out of the digest).
+- **The round engine** (9 Nov 2026, B6 of `docs/audit-nov-2026/architecture.md`, `docs/round-engine/plan.md`; no deal,
+  timing, grade, score, ranking or screen changed): `src/lib/round/` holds what rooms, async rooms (the Daily,
+  challenges) and practice share about running a round: `dealRounds` / `dealOne` (defined beside `generatePuzzle` in generate.server.ts
+  and imported from there: re-exporting them through `deal.server.ts` into app code mangles the built chunk's names), the window (`window.ts`; `asyncRoundWindow` / `asyncReceipt` re-export it), the receipt
+  (`receipt.ts`: a room's phase, an async round's stored start, practice's seal), the trust rule (`trust.ts`: `room`, and
+  `practice`, which passes a claim with no bound through unchanged), `gradeRound` (in `roomGrade.server.ts`;
+  `gradeRoomAnswer` calls it), the stored columns (`result.ts` `resultColumns`) and the ranking's names (`rank.ts`). Each
+  mode keeps its own flow, guards, events and data-layer writes in its server functions. **Wave 3's rated match plugs in
+  here**; the phone half (`useRoundSession`, B6b) is still to come. round-engine-parity-check (~35 s, shard `e`;
+  `CHECKS_FULL=1` ~2 min) runs main da93f5d's own code (`scripts/round-engine/legacy.ts`, proved byte for byte against
+  git or by stored hashes; temporary, retired at the start of wave 3 with Joe's approval) beside the engine: deals in two
+  fresh processes (`scripts/round-engine/deals.ts`), every receipt shape, grades, stored rows, windows and 2,000 ranked
+  rooms.
 - `src/components/duel/` — room/round screens (PhoneShell, RoundIntro, TimerBar,
   AnswerReveal, ArcadeReveal, WinnerReveal…); `src/components/puzzles/` — shared puzzle
   widgets; `src/lib/fx/` — sound and visual feedback (presentation only).
@@ -1909,7 +1922,13 @@ outside the repo.
   New files with DROP TABLE, DROP COLUMN, TRUNCATE or DELETE / UPDATE without WHERE are refused unless they carry
   `-- destructive: approved by Joe`; a PR may not change or delete a merged migration (only one that failed on
   main, with `-- edited: not applied live, approved by Joe`). PRs run Checks' `migrations` job (the guard and
-  `--local`) and migrations-check (~5 s, shard `e`). **A schema change is a new file; never edit a merged one.**
+  `--local`) and migrations-check (~5 s, shard `e`). **A schema change is a new file; never edit a merged one.** Notices and warnings (9 Nov 2026): each file's are printed under it (`WARNING from <file>: …`;
+  warnings in the run summary, and as annotations on the live run): `--local` reads psql's, and `--live` reads the rows
+  `migration_log.note(level, message)` kept during the file (`20261109150000_migration_log.sql`; the Management API
+  returns no notices, so a plain RAISE never reaches the deploy log). migrations-check section 5 proves both paths.
+  **To show a warning or notice in the live deploy log, a migration must call `migration_log.note('warning'|'notice',
+  '...')`, never a plain RAISE** (a plain RAISE shows only in the local run). PUBLIC, anon and authenticated have no right
+  on the `migration_log` schema, its table or `note()` (migrations-check 3a).
 - **Server functions on a real database** (7 Nov 2026, `docs/audit-nov-2026/build-health.md` items 3–4):
   `scripts/server-fn-harness.ts` runs the app's real `createServerFn` handlers (real `requireSupabaseAuth`, real
   supabase-js clients) against a local PostgreSQL 16 with every `supabase/migrations` file applied in order, through a

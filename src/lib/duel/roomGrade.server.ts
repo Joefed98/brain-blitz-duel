@@ -12,26 +12,40 @@
  * reveal phase arrived after the clock: 0 ms left. No game's scoring changes.
  */
 import { gradeAnswer } from "./gradeAnswer.server";
-import { trustedMsRemaining, type SubmitExtra } from "./grade";
-import { puzzlePrepMs, puzzleTimeLimitMs } from "./catalogue";
-import type { DuelPhase, PuzzleData } from "./types";
+import type { SubmitExtra } from "./grade";
+import { puzzleTimeLimitMs } from "./catalogue";
+import type { PuzzleData } from "./types";
+import { receiptMsRemaining, type PhaseReceipt, type RoundReceipt } from "@/lib/round/receipt";
+import { trustedClaim, type TrustRule } from "@/lib/round/trust";
 
-export interface RoomReceipt {
-  /** The room's phase when the answer arrived ("puzzle", or "reveal" for a late one). */
-  phase: DuelPhase;
-  /** The room's phase_started_at (round_started_at when missing). */
-  phaseStartedAt: string | null;
-  /** Server time the answer arrived (ms). */
-  nowMs: number;
-}
+/** A room's receipt (the round engine's `phase` receipt, src/lib/round/receipt.ts). */
+export type RoomReceipt = PhaseReceipt;
 
 /** The server's own figure for the time left when the answer arrived; undefined with no stamp. */
 export function roomReceiptMsRemaining(puzzle: PuzzleData, receipt: RoomReceipt): number | undefined {
+  return receiptMsRemaining(puzzle, { mode: "phase", ...receipt });
+}
+
+/**
+ * The round engine's grade (B6, docs/round-engine/plan.md): the receipt (src/lib/round/receipt.ts) bounds the claim
+ * under the mode's trust rule (src/lib/round/trust.ts), then the one grader. Rooms and async rounds grade here through
+ * gradeRoomAnswer; practice grades with the same receipt and its own trust rule through generate.server's gradeAnswer
+ * (practice.functions.ts).
+ */
+export function gradeRound(
+  puzzle: PuzzleData,
+  receipt: RoundReceipt,
+  answer: string,
+  msRemaining: number,
+  extra?: SubmitExtra,
+  rule: TrustRule = "room",
+) {
   const limitMs = puzzleTimeLimitMs(puzzle);
-  if (receipt.phase !== "puzzle") return 0;
-  const startedAt = Date.parse(receipt.phaseStartedAt ?? "");
-  if (!Number.isFinite(startedAt)) return undefined;
-  return limitMs - (receipt.nowMs - startedAt - puzzlePrepMs(puzzle));
+  const received = receiptMsRemaining(puzzle, receipt);
+  // The player's own measurement stands unless it is impossible for the clock.
+  const { ms, clamped } = trustedClaim(puzzle, msRemaining, received, rule);
+  // msLeft: the time left the grade used (display and pings only: buzzer.ts).
+  return { graded: gradeAnswer(puzzle, answer, ms, extra, received), clamped, serverMs: received ?? limitMs, msLeft: ms };
 }
 
 export function gradeRoomAnswer(
@@ -41,10 +55,5 @@ export function gradeRoomAnswer(
   msRemaining: number,
   extra?: SubmitExtra,
 ) {
-  const limitMs = puzzleTimeLimitMs(puzzle);
-  const received = roomReceiptMsRemaining(puzzle, receipt);
-  // The player's own measurement stands unless it is impossible for the clock.
-  const { ms, clamped } = trustedMsRemaining(msRemaining, received ?? limitMs, limitMs);
-  // msLeft: the time left the grade used (display and pings only: buzzer.ts).
-  return { graded: gradeAnswer(puzzle, answer, ms, extra, received), clamped, serverMs: received ?? limitMs, msLeft: ms };
+  return gradeRound(puzzle, { mode: "phase", phase: receipt.phase, phaseStartedAt: receipt.phaseStartedAt, nowMs: receipt.nowMs }, answer, msRemaining, extra);
 }

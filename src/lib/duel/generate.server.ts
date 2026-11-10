@@ -333,16 +333,43 @@ export function buildRoomPuzzles(
     roundOrder,
     // Every room puzzle carries the tie-break stamp (tieBreak.ts), so a room's
     // rounds are all on the new tie-break clock or, for older rooms, none are.
-    puzzles: roundOrder.map((type) =>
-      stampTieRev(
-        generatePuzzle(type, {
-          unblockRow: options.unblockRow ?? null,
-          bankSeed: seed,
-          recentBankKeys: options.recentBankKeys,
-        }),
-      ),
-    ),
+    puzzles: dealRounds(roundOrder, {
+      seed,
+      unblockRow: options.unblockRow ?? null,
+      recentBankKeys: options.recentBankKeys,
+    }),
   };
+}
+
+/** What the round engine deals a set of rounds from (B6, docs/round-engine/plan.md). */
+export interface RoundDealContext {
+  /** The room's seed: it picks every banked board and seeds the seeded generators. */
+  seed: number;
+  unblockRow?: UnblockBankRow | null | undefined;
+  recentBankKeys?: ReadonlySet<string> | undefined;
+}
+
+/**
+ * The round engine's deal (B6): a set of rounds of these types on one seed, each through the one deal decider
+ * (`generatePuzzle`) and stamped with the tie-break (tieBreak.ts). Rooms (buildRoomPuzzles), the Daily (dealDaily) and
+ * friend challenges (dealChallenge) each pick their own order and deal it here; src/lib/round/deal.server.ts
+ * re-exports it. round-engine-parity-check proves it deals what the three loops it replaced dealt.
+ */
+export function dealRounds(order: readonly PuzzleType[], context: RoundDealContext): PuzzleData[] {
+  return order.map((type) =>
+    stampTieRev(
+      generatePuzzle(type, {
+        unblockRow: context.unblockRow ?? null,
+        bankSeed: context.seed,
+        recentBankKeys: context.recentBankKeys,
+      }),
+    ),
+  );
+}
+
+/** The round engine's single deal (B6): one round of a type, with no tie-break stamp (practice). */
+export function dealOne(type: PuzzleType, context: GenerateContext): PuzzleData {
+  return generatePuzzle(type, context);
 }
 
 // Grading lives in gradeAnswer.server.ts (Speed fix 7), so the first answer never loads the generators below.
