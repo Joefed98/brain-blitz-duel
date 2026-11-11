@@ -23,7 +23,9 @@
  *   back ends it; frozen matches and the standings job don't use it up; a cap's drop isn't a floor fall;
  * - short matches: a best of 3, 5 or 7 stops once decided (2–0 weighs exactly one match, a 2–1 about half; a game after
  *   the decision, or an undecided short match, is refused);
- * - a flagged recorded run moves nobody's rating (the match still pays the live player's Joules);
+ * - a run the server flagged (its stored grade's extra.flagged, live or recorded, or a recorded run flagged as a whole):
+ *   the match moves nobody's rating and counts for nobody's placement, streaks or badges; the flagged player gets no
+ *   Joules, the others theirs; it is logged once in moderation.rated_flags for Joe (rated_flag_queue / _resolve);
  * - Joules through D2's hook (creditRatedMatchJoules) under the stored key, once, at D2's own amounts, only where the
  *   pass is open; the rated week the weekly R challenges count;
  * - guests: the switch lets them play rated (placement included) only once rated play is on for everyone; a guest's
@@ -447,6 +449,41 @@ await section("flagged runs move nobody's rating", async () => {
   const bad = duel(mid(), A, B, [[150, 100], [150, 100]]);
   bad.players[1] = { playerId: B, side: "recorded", run: { runId: "r", ownerId: B, source: "rated", flagged: "yes" as never } };
   check(!mt.checkMatch(bad, T0).ok, "a flag that isn't true or false is refused");
+  // The server's own flag, from the stored grade (extra.flagged === true): a flagged live player.
+  const live = duel(mid(), A, B, [[150, 100], [100, 150], [150, 120]]);
+  live.games[1]!.gradeExtras = { [A]: { flagged: true, flagReason: "desync" }, [B]: { flagged: false } };
+  const lo = mt.applyMatch(live, T0, pres(), ctx0());
+  check(lo.players.every((p) => !p.change.moved && p.change.frozen === "flagged_run" && !p.counted && p.profile.placementPlayed === 0 && p.profile.wins === 0 && p.profile.winStreak === 0), "a flagged live player: the match moves nobody's rating and counts for nobody's placement, streaks or badges");
+  check(lo.players[0]!.change.joules === 0 && lo.players[1]!.change.joules === 100 && lo.players[0]!.change.flagged && !lo.players[1]!.change.flagged, "the flagged player gets no Joules; the other player still gets theirs");
+  check(lo.flags.length === 1 && lo.flags[0]!.playerId === A && lo.flags[0]!.gameIdx === 1 && lo.flags[0]!.game === live.games[1]!.type && lo.flags[0]!.reason === "desync", "the flag carries the player, game and reason for the review log");
+  // A flagged recorded run, from its stored grade.
+  const rec = duel(mid(), A, B, [[150, 100], [150, 100]]);
+  rec.players[1] = { playerId: B, side: "recorded", run: { runId: "run-g", ownerId: B, source: "rated" } };
+  rec.games[0]!.gradeExtras = { [B]: { flagged: true } };
+  const ro = mt.applyMatch(rec, T0, pres(), ctx0());
+  check(ro.players.every((p) => !p.change.moved) && ro.players[0]!.change.joules === 150 && ro.players[1]!.change.joules === 0 && ro.flags[0]!.reason === "server_replay", "a flagged recorded run (its stored grade): nobody moves; the live player still earns 150");
+  check(mt.matchFlags(m).length === 0 && (() => {
+    const whole = duel(mid(), A, B, [[150, 100], [150, 100]]);
+    whole.players[1] = { playerId: B, side: "recorded", run: { runId: "run-w", ownerId: B, source: "rated", flagged: true } };
+    const f = mt.matchFlags(whole);
+    return f.length === 1 && f[0]!.gameIdx === null && f[0]!.reason === "recorded_run_flagged";
+  })(), "the recorded-run backstop: a run flagged as a whole is logged once, with no game");
+  check(mt.gradeFlagReason({ flagged: "true" }) === null && mt.gradeFlagReason({ flagged: 1 }) === null && mt.gradeFlagReason(null) === null && mt.gradeFlagReason({ flagged: true, flagReason: "<script>" }) === "server_replay", "only the server's own boolean flags a run; an odd reason falls back to server_replay");
+  const stray = duel(mid(), A, B, [[150, 100], [150, 100]]);
+  stray.games[0]!.gradeExtras = { [uid(99)]: { flagged: true } };
+  check((mt.checkMatch(stray, T0) as { reason?: string }).reason === "bad_games", "grade extras for someone not in the match are refused");
+  // 4 players, one flagged: nobody moves; the flagged one alone loses the Joules.
+  const ids4 = [uid(41), uid(42), uid(43), uid(44)];
+  const four: Result = {
+    matchId: mid(),
+    format: { kind: "placings", players: 4 },
+    choice: "puzzles",
+    players: ids4.map((playerId) => ({ playerId, side: "live" as const })),
+    games: [{ ...game(PUZZLE_TYPE, Object.fromEntries(ids4.map((id, i) => [id, 190 - 20 * i]))), gradeExtras: { [ids4[2]!]: { flagged: true } } }],
+    placings: Object.fromEntries(ids4.map((id, i) => [id, i + 1])),
+  };
+  const fo = mt.applyMatch(four, T0, Object.fromEntries(ids4.map((id) => [id, pre({ puzzles: settledAt(1000) })])), ctx0());
+  check(fo.players.every((p) => !p.change.moved && !p.counted) && fo.players.map((p) => p.change.joules).join() === "225,150,0,150", `4 players, one flagged: nobody moves, only the flagged player loses the Joules (${fo.players.map((p) => p.change.joules).join(", ")})`);
 });
 
 await section("the tier floor grace", async () => {
@@ -966,6 +1003,28 @@ async function databaseChecks(db: LocalDb, rest: RestServer): Promise<void> {
     check(q(`SELECT amount FROM pass_joules WHERE source_key = '${joules.ratedJoulesKey(long.matchId, A)}'`) === "225" && q(`SELECT amount FROM pass_joules WHERE source_key = '${joules.ratedJoulesKey(long.matchId, B)}'`) === "150", "a best of 5: 225 and 150");
     const fk = q(`SELECT count(*) FROM pass_joules WHERE source_key LIKE 'rated_match:${flagged.matchId}:%'`);
     check(fk === "1", "against a flagged run the live player still earns the match's Joules (the run's owner none)");
+    // A flagged live player, on the database: nobody moves, no placement, the log entry, Joules for the other only.
+    const D = uid(139);
+    q(`SELECT shop.add_tester('Rated_139', 'ratings-check')`); // a pass tester, so the missing Joules are the flag's doing
+    const before = { b: rating(B), d: rating(D) };
+    const fl = duel(mid(), D, B, [[150, 100], [150, 100]]);
+    fl.games[0]!.gradeExtras = { [D]: { flagged: true, flagReason: "replay_mismatch" } };
+    const flo = await record(fl);
+    check(flo.ok && rating(B) === before.b && rating(D) === before.d && q(`SELECT coalesce((SELECT placement_played::text FROM rated_profiles WHERE player_id = '${D}'), 'none')`) !== "1", "a flagged live player's match: nobody's rating moves, no placement match counted");
+    check(hasBadge(D, "first-win") === 0, "a flagged win earns no badge (not even First Win)");
+    check(q(`SELECT count(*) FROM pass_joules WHERE source_key = '${joules.ratedJoulesKey(fl.matchId, D)}'`) === "0" && q(`SELECT amount FROM pass_joules WHERE source_key = '${joules.ratedJoulesKey(fl.matchId, B)}'`) === "100", "the flagged player is credited no Joules; the other player their 100");
+    const queue = q(`SELECT string_agg(match_id || '|' || player_id || '|' || game || '|' || game_idx || '|' || reason, ',') FROM moderation.rated_flag_queue()`);
+    check(queue.includes(`${fl.matchId}|${D}|${fl.games[0]!.type}|0|replay_mismatch`), `the match is logged for Joe's review: match id, player, game, reason (moderation.rated_flag_queue)`);
+    check(q(`SELECT count(*) FROM moderation.rated_flag_queue() WHERE match_id = '${flagged.matchId}' AND player_id = '${B}' AND game_idx IS NULL AND reason = 'recorded_run_flagged'`) === "1", "the flagged recorded run (the backstop) is logged too");
+    const unflagged = duel(mid(), D, B, [[150, 100], [150, 100]]);
+    const uo = await record(unflagged);
+    check(uo.ok && uo.players[0]!.joules === 150 && q(`SELECT amount FROM pass_joules WHERE source_key = '${joules.ratedJoulesKey(unflagged.matchId, D)}'`) === "150" && rating(D) !== before.d, "control: the same player's next, unflagged match moves and pays as usual");
+    await record(fl);
+    check(q(`SELECT count(*) FROM moderation.rated_flags WHERE match_id = '${fl.matchId}'`) === "1", "recording the match again logs nothing more");
+    const fid = q(`SELECT id FROM moderation.rated_flags WHERE match_id = '${fl.matchId}'`);
+    check(/note/.test(db.psql(`SELECT moderation.rated_flag_resolve(${fid}, '')`).err) && q(`SELECT moderation.rated_flag_resolve(${fid}, 'checked: desync on a slow phone')`) === "resolved" && !q(`SELECT coalesce(string_agg(match_id::text, ','), '') FROM moderation.rated_flag_queue()`).includes(fl.matchId) && q(`SELECT count(*) FROM moderation.rated_flag_queue(true) WHERE match_id = '${fl.matchId}' AND resolved_note LIKE 'checked%'`) === "1", "Joe resolves one with a note: it leaves the open queue (kept with the note in the full list)");
+    const privs = q(`SELECT has_table_privilege('service_role', 'moderation.rated_flags', 'SELECT')::text || has_table_privilege('authenticated', 'moderation.rated_flags', 'SELECT')::text || has_function_privilege('service_role', 'moderation.rated_flag_queue(boolean)', 'EXECUTE')::text || has_function_privilege('anon', 'moderation.rated_flag_resolve(bigint, text)', 'EXECUTE')::text`);
+    check(privs === "falsefalsefalsefalse", "the review log is unreachable from the API (the service role included): only the match's own transaction writes it");
     const notTester = duel(mid(), C, uid(crowd++), [[150, 100], [150, 100]]);
     const outC = await record(notTester);
     check(outC.ok && outC.players[0]!.joules === 150 && q(`SELECT count(*) FROM pass_joules WHERE user_id = '${C}'`) === "0", "an account the pass isn't open to (not a tester) is credited nothing, its amount still stored");

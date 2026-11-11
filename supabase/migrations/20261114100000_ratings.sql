@@ -13,7 +13,9 @@
 --     rated_run_uses (every use of a recorded run, by UK day: W3b enforces 5 a day, recorded here);
 --   * public.rated_standings and rated_standings_meta (ranks, shares and the caps' grace, from the standings job);
 --   * the service-role functions rated_state, rated_apply_match, rated_recompute_standings, rated_set_tiers,
---     rated_tier_counts and rated_badge_facts.
+--     rated_tier_counts and rated_badge_facts;
+--   * moderation.rated_flags (rated matches with a run the server flagged, for Joe's review) and Joe's
+--     moderation.rated_flag_queue() / rated_flag_resolve(id, note).
 --
 -- Who can write: nobody through the API. anon and authenticated have no right on any of these tables or functions;
 -- the service role reads the tables and writes only through rated_apply_match / rated_set_tiers /
@@ -159,6 +161,28 @@ BEGIN
 END
 $own$;
 
+/* ------------------------------------------------------------------ flagged runs, for Joe's review */
+
+-- A rated match with a run the server's grading or anti-cheat flagged (a stored grade's extra.flagged, or a recorded
+-- run flagged as a whole): one row per flagged player and game. The match moved nobody's rating. In the moderation
+-- schema beside report_queue (unreachable from the API, the service role included); written only by
+-- public.rated_apply_match in the match's own transaction; Joe lists them with moderation.rated_flag_queue() and closes
+-- one with moderation.rated_flag_resolve(id, note).
+CREATE TABLE IF NOT EXISTS moderation.rated_flags (
+  id bigserial PRIMARY KEY,
+  match_id uuid NOT NULL REFERENCES public.rated_matches(match_id) ON DELETE CASCADE,
+  player_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  game_idx smallint CHECK (game_idx >= 0),
+  game text,
+  reason text NOT NULL CHECK (char_length(reason) BETWEEN 1 AND 40),
+  flagged_at timestamptz NOT NULL DEFAULT now(),
+  resolved_at timestamptz,
+  resolved_note text,
+  CONSTRAINT rated_flags_once UNIQUE NULLS NOT DISTINCT (match_id, player_id, game_idx)
+);
+REVOKE ALL ON moderation.rated_flags FROM PUBLIC, anon, authenticated, service_role;
+REVOKE ALL ON SEQUENCE moderation.rated_flags_id_seq FROM PUBLIC, anon, authenticated, service_role;
+
 /* ------------------------------------------------------------------ helpers */
 
 CREATE OR REPLACE FUNCTION public.rated_ms(p timestamptz)
@@ -262,7 +286,7 @@ GRANT EXECUTE ON FUNCTION public.rated_tier_counts() TO service_role;
 --    profiles: [{player_id, expect (0 = new), row: {...}}], ratings: [{player_id, key, expect, rating, rd, volatility, matches, last_ms}],
 --    players: [{player_id, side, run_id, run_source, result, place, counted, moved, frozen, joules, puzzles_games, arcade_games, changes}],
 --    games: [{idx, type, pool, category, version, signature, scores}],
---    pairs: [{a, b, expect}], run_uses: [{run_id, owner_id, moved}]}
+--    pairs: [{a, b, expect}], run_uses: [{run_id, owner_id, moved}], flags: [{player_id, game_idx, game, reason}]}
 -- Answers {status: recorded} | {status: duplicate, outcome} (the match id was already stored: nothing changes) |
 -- {status: stale} (a row changed since it was read: nothing stored; the server reads again and retries).
 CREATE OR REPLACE FUNCTION public.rated_apply_match(p jsonb)
@@ -367,6 +391,10 @@ BEGIN
     INSERT INTO rated_run_uses (run_id, match_id, owner_id, uk_day, moved)
     SELECT e ->> 'run_id', v_match, (e ->> 'owner_id')::uuid, v_day, (e ->> 'moved')::boolean
       FROM jsonb_array_elements(coalesce(p -> 'run_uses', '[]'::jsonb)) AS e;
+
+    INSERT INTO moderation.rated_flags (match_id, player_id, game_idx, game, reason, flagged_at)
+    SELECT v_match, (e ->> 'player_id')::uuid, (e ->> 'game_idx')::smallint, e ->> 'game', e ->> 'reason', v_at
+      FROM jsonb_array_elements(coalesce(p -> 'flags', '[]'::jsonb)) AS e;
   EXCEPTION
     WHEN SQLSTATE 'RS001' THEN
       RETURN jsonb_build_object('status', 'stale');
@@ -504,3 +532,46 @@ END;
 $$;
 REVOKE ALL ON FUNCTION public.rated_set_tiers(jsonb) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.rated_set_tiers(jsonb) TO service_role;
+
+/* ------------------------------------------------------------------ Joe's review of flagged rated matches */
+
+-- The flagged rated matches still open (or all, with p_all), newest first: match id, player (username or "guest"),
+-- game, reason, when, and the match's format and choice.
+CREATE OR REPLACE FUNCTION moderation.rated_flag_queue(p_all boolean DEFAULT false)
+RETURNS TABLE (id bigint, match_id uuid, player_id uuid, player text, game text, game_idx smallint, reason text,
+               flagged_at timestamptz, format jsonb, choice text, resolved_at timestamptz, resolved_note text)
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public, moderation
+AS $$
+  SELECT f.id, f.match_id, f.player_id, coalesce(pr.username, 'guest'), f.game, f.game_idx, f.reason, f.flagged_at,
+         m.format, m.choice, f.resolved_at, f.resolved_note
+    FROM moderation.rated_flags f
+    JOIN public.rated_matches m USING (match_id)
+    LEFT JOIN public.profiles pr ON pr.user_id = f.player_id
+   WHERE p_all OR f.resolved_at IS NULL
+   ORDER BY f.flagged_at DESC, f.id DESC;
+$$;
+REVOKE ALL ON FUNCTION moderation.rated_flag_queue(boolean) FROM PUBLIC, anon, authenticated, service_role;
+
+-- Closes one flag with a note (the match's ratings stay unmoved: a flag is never undone into a rating change).
+CREATE OR REPLACE FUNCTION moderation.rated_flag_resolve(p_id bigint, p_note text)
+RETURNS text
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, moderation
+AS $$
+BEGIN
+  IF p_note IS NULL OR length(trim(p_note)) = 0 THEN
+    RAISE EXCEPTION 'moderation: a note is required';
+  END IF;
+  UPDATE moderation.rated_flags SET resolved_at = now(), resolved_note = left(trim(p_note), 500)
+   WHERE id = p_id AND resolved_at IS NULL;
+  IF NOT FOUND THEN
+    RETURN 'not_open';
+  END IF;
+  RETURN 'resolved';
+END;
+$$;
+REVOKE ALL ON FUNCTION moderation.rated_flag_resolve(bigint, text) FROM PUBLIC, anon, authenticated, service_role;

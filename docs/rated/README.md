@@ -151,9 +151,18 @@ wins in a row, categories won in (games won in matches won).
 - **Short matches.** A best of 3, 5 or 7 stops once decided (W3b): each game is its own weighted result, so a 2–0 is two
   games (exactly one match's weight) and a 2–1 three (about half the move); a game after the decision, or a match that
   stops short undecided, is refused (`bad_games`). A match whose games all ran with no winner (a drawn decider) is a draw.
-- **Flagged runs.** A recorded run sent with `run.flagged: true` moves nobody's rating in that match: not its owner, not
-  the live player (`frozen: "flagged_run"` on every row). It counts for no placement, streak or badge; the live player
-  still earns its Joules; the use is recorded as not moving.
+- **Flagged runs** (Joe's rule, 11 Nov 2026). A run is flagged only by the server's own grading and anti-cheat, never by
+  anything the phone sends: the ratings engine reads the flag itself from each game's stored grade, `gradeExtras`
+  (`extra.flagged === true`, set by the server replay on a failed check, a mismatch or a desync; `extra.flagReason`
+  when given, else `server_replay`). A recorded run sent with `run.flagged: true` is a backstop (W3b never records a
+  flagged run). If any run in the match is flagged, live or recorded: the match moves nobody's rating
+  (`frozen: "flagged_run"` on every row), counts for nobody's placement, streaks or badges, and the flagged player gets
+  no Joules (the others still get theirs). Each flag is logged for Joe's review in **`moderation.rated_flags`**, a
+  service-only table in the moderation schema beside `report_queue` (unreachable from the API, the service role
+  included), written in the match's own transaction, once per player and game: match id, player, game, reason. Joe
+  lists them with `SELECT * FROM moderation.rated_flag_queue()` (open ones; `(true)` for all, with the username or
+  "guest", the format and choice) and closes one with `moderation.rated_flag_resolve(id, 'note')`. Not in
+  `report_queue` itself: that list is room reports (a room, a reporter, a message), so wave 1's view is unchanged.
 - **The tier floor grace** (`shownTierFor` in `tiers.ts`, `FLOOR_GRACE_MATCHES` 3; the approved ladder's "Three matches of
   grace at every tier's floor"). When the Joulz Rating falls below the floor of the tier shown, the tier is kept (at
   its III division, with the points back to the floor and `floorGrace.matchesLeft`) through 3 more rated matches; still

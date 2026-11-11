@@ -2114,7 +2114,7 @@ outside the repo.
   badges are earnable (29 earnable, 25 waiting). Joules are credited through D2's `creditRatedMatchJoules` under the
   stored `ratedJoulesKey`; `RATED_PLAY_FOR_EVERYONE` (`src/config/ratedConfig.ts`, false) is the switch W3b and D2's
   weekly draw share (R challenges only while on, progress from `rated_week_matches`). A 1v1 stops once decided (each
-  game weighted); a flagged recorded run moves nobody; the tier floor grace keeps a tier 3 more matches below its floor
+  game weighted); a run the server flagged (a game's stored grade `extra.flagged`, live or recorded) moves nobody, counts for nothing, pays the flagged player no Joules and is logged in `moderation.rated_flags` (Joe: `moderation.rated_flag_queue()`); the tier floor grace keeps a tier 3 more matches below its floor
   (`shownTierFor`). ratings-check (~10 s, shard `e`, PostgreSQL).
 - `src/components/duel/` — room/round screens (PhoneShell, RoundIntro, TimerBar,
   AnswerReveal, ArcadeReveal, WinnerReveal…); `src/components/puzzles/` — shared puzzle
