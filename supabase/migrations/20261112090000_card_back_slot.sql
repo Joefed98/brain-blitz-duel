@@ -5,7 +5,7 @@
 -- game-skin.free-cell.holo-foil → card-back.holo-foil, game-skin.free-cell.neon-card-back → card-back.neon. Names,
 -- rarities, sources, prices and pass levels are unchanged; docs/art/wave-2/catalogue.json says the same.
 --
--- Anyone who owns one keeps it (same how, time and spend line) and anyone who had it equipped has it in the new slot.
+-- Anyone who owns one keeps it (the same inventory row, moved in place: same how, time and spend line) and anyone who had it equipped has it in the new slot.
 -- The old ids are recorded in public.catalogue_renamed, and a trigger keeps them from ever being inserted again (so
 -- the seed migration, 20261110160100, applied again adds nothing). Idempotent: a second run changes nothing.
 
@@ -35,6 +35,7 @@ DECLARE
   n_equipped integer := 0;
   k integer;
 BEGIN
+  CREATE TEMP TABLE IF NOT EXISTS card_back_equipped (old_id text, user_id uuid, equipped_at timestamptz) ON COMMIT DROP;
   FOR r IN SELECT * FROM (VALUES
       ('game-skin.free-cell.royal-damask', 'card-back.royal-damask', 'items/card-back/royal-damask'),
       ('game-skin.free-cell.holo-foil', 'card-back.holo-foil', 'items/card-back/holo-foil'),
@@ -50,20 +51,22 @@ BEGIN
     ON CONFLICT (id) DO NOTHING;
     GET DIAGNOSTICS k = ROW_COUNT;
     n_items := n_items + k;
-    -- Owners keep it, as it was acquired.
-    INSERT INTO public.inventory_items (user_id, item_id, how, acquired_at, ledger_id)
-    SELECT user_id, r.new_id, how, acquired_at, ledger_id FROM public.inventory_items WHERE item_id = r.old_id
-    ON CONFLICT (user_id, item_id) DO NOTHING;
+    -- Equipped: remembered, then cleared (the slot row points at the inventory row being moved).
+    INSERT INTO card_back_equipped SELECT r.old_id, user_id, equipped_at FROM public.loadout_slots WHERE item_id = r.old_id;
+    DELETE FROM public.loadout_slots WHERE item_id = r.old_id;
+    -- Owners keep it, moved in place: the same row, so its how, time and spend line (a purchase's unique ledger_id)
+    -- stay exactly as they were. Anyone already holding the new id keeps that row instead.
+    DELETE FROM public.inventory_items o WHERE o.item_id = r.old_id
+      AND EXISTS (SELECT 1 FROM public.inventory_items n WHERE n.user_id = o.user_id AND n.item_id = r.new_id);
+    UPDATE public.inventory_items SET item_id = r.new_id WHERE item_id = r.old_id;
     GET DIAGNOSTICS k = ROW_COUNT;
     n_owned := n_owned + k;
     -- Equipped: into the card-back slot (an account had at most one Free Cell skin equipped).
     INSERT INTO public.loadout_slots (user_id, slot, item_id, equipped_at)
-    SELECT user_id, 'card-back', r.new_id, equipped_at FROM public.loadout_slots WHERE item_id = r.old_id
+    SELECT user_id, 'card-back', r.new_id, equipped_at FROM card_back_equipped WHERE old_id = r.old_id
     ON CONFLICT (user_id, slot) DO NOTHING;
     GET DIAGNOSTICS k = ROW_COUNT;
     n_equipped := n_equipped + k;
-    DELETE FROM public.loadout_slots WHERE item_id = r.old_id;
-    DELETE FROM public.inventory_items WHERE item_id = r.old_id;
     IF EXISTS (SELECT 1 FROM public.catalogue_items WHERE id = r.new_id) THEN
       INSERT INTO public.catalogue_renamed (old_id, new_id) VALUES (r.old_id, r.new_id) ON CONFLICT (old_id) DO NOTHING;
       DELETE FROM public.catalogue_items WHERE id = r.old_id;

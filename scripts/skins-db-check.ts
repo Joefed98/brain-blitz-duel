@@ -3,12 +3,14 @@
  * migrations on a local PostgreSQL 16 with every migration applied in order, and the ghost-looks server function
  * through the server-function harness.
  *
- *   1. Card backs (20261111140000_card_back_slot.sql): an account that owned and equipped a Free Cell back before the
- *      migration owns the card back after it (same how) and has it in the `card-back` slot; the old ids are gone from
+ *   1. Card backs (20261112090000_card_back_slot.sql): accounts that got a Free Cell back before the migration (placed
+ *      directly, granted by Joe's tool, bought with coins and equipped through A1's functions) own the card back after
+ *      it (same how and spend line) and have it in the `card-back` slot; a sweep of every table finds no row still
+ *      naming an old id outside the rename table and append-only history; refunding the old purchase still works; the old ids are gone from
  *      the catalogue, inventories and loadouts, recorded in catalogue_renamed, and can never be inserted again (the old
  *      seed applied again adds nothing); a second run of the migration changes nothing; the catalogue's card backs
  *      match catalogue.json field for field.
- *   2. Result looks (20261111140100_result_looks.sql): a room result and a Daily result store the owner's equipped
+ *   2. Result looks (20261112090100_result_looks.sql): a room result and a Daily result store the owner's equipped
  *      look for the round's game (skin, theme, and on Full House the card back), read by the database from the
  *      loadout; a guest, an account with nothing equipped and a game without skins store NULL; every other column is
  *      exactly what was inserted (score, answer, time, extra: the look never touches a score). Clients can't call the
@@ -55,8 +57,9 @@ console.error = () => {};
 const ANA = "00000000-0000-4000-8000-0000000000a1"; // owns and equips Neon card back before the move, plus skins
 const BEN = "00000000-0000-4000-8000-0000000000b2"; // an account with nothing equipped
 const CAT = "00000000-0000-4000-8000-0000000000c3"; // a guest
-const DEV = "00000000-0000-4000-8000-0000000000d4"; // owns Royal Damask (not equipped), not in the room
-const CARD_BACK_MIGRATION = "20261111140000_card_back_slot.sql";
+const DEV = "00000000-0000-4000-8000-0000000000d4"; // granted Royal Damask by Joe's tool (not equipped), not in the room
+const EVA = "00000000-0000-4000-8000-0000000000e5"; // bought Holo Foil with coins and equipped it, both through A1's functions
+const CARD_BACK_MIGRATION = "20261112090000_card_back_slot.sql";
 
 if (!postgresBin()) {
   if (process.env["CI"]) check(false, "the PostgreSQL 16 binaries are needed (CI has them)");
@@ -83,16 +86,25 @@ try {
 
   // Accounts before the move.
   q(`INSERT INTO auth.users (id, is_anonymous, email) VALUES
-       ('${ANA}', false, 'ana@example.com'), ('${BEN}', false, 'ben@example.com'), ('${CAT}', true, NULL), ('${DEV}', false, 'dev@example.com');
+       ('${ANA}', false, 'ana@example.com'), ('${BEN}', false, 'ben@example.com'), ('${CAT}', true, NULL), ('${DEV}', false, 'dev@example.com'), ('${EVA}', false, 'eva@example.com');
      INSERT INTO public.profiles (user_id, username, username_key, colour, date_of_birth) VALUES
-       ('${ANA}', 'Ana_1', 'ana_1', 3, DATE '1990-01-01'), ('${BEN}', 'Ben_2', 'ben_2', 4, DATE '1990-01-01'), ('${DEV}', 'Dev_4', 'dev_4', 5, DATE '1990-01-01');`);
+       ('${ANA}', 'Ana_1', 'ana_1', 3, DATE '1990-01-01'), ('${BEN}', 'Ben_2', 'ben_2', 4, DATE '1990-01-01'), ('${DEV}', 'Dev_4', 'dev_4', 5, DATE '1990-01-01'), ('${EVA}', 'Eva_5', 'eva_5', 6, DATE '1990-01-01');`);
   const oldSlot = q(`SELECT slot FROM public.catalogue_items WHERE id = 'game-skin.free-cell.neon-card-back'`);
   check(oldSlot !== "", "before the move the catalogue holds the Free Cell backs");
   const keep = "name, rarity, source, pass_level, price_coins, bundle, animated, exclusive, exclusive_forever, note, sort_order";
   const oldRows = q(`SELECT string_agg((to_jsonb(c) - 'id')::text, E'\\n' ORDER BY c.id) FROM (SELECT id, ${keep} FROM public.catalogue_items WHERE id LIKE 'game-skin.free-cell.%' ) c`);
-  q(`INSERT INTO public.inventory_items (user_id, item_id, how) VALUES
-       ('${ANA}', 'game-skin.free-cell.neon-card-back', 'pass'), ('${DEV}', 'game-skin.free-cell.royal-damask', 'grant');
+  // Every way a row can point at a catalogue id before the move: a pass item placed directly, Joe's grant tool (a test
+  // item, logged), a shop purchase with coins (a spend line naming the item, the inventory row tied to it) and A1's equip.
+  q(`INSERT INTO public.inventory_items (user_id, item_id, how) VALUES ('${ANA}', 'game-skin.free-cell.neon-card-back', 'pass');
      INSERT INTO public.loadout_slots (user_id, slot, item_id) VALUES ('${ANA}', '${oldSlot}', 'game-skin.free-cell.neon-card-back');`);
+  check(q(`SELECT economy.grant_item('Dev_4', 'game-skin.free-cell.royal-damask', 'check: a test item')`) === "granted", "before the move: Joe's tool grants a Free Cell back");
+  q(`SELECT public.economy_credit('${EVA}', 2000, 'admin_adjustment', 'admin', 'check', 'skins-db-check-credit')`);
+  const bought = q(`SELECT public.economy_purchase_item('${EVA}', 'game-skin.free-cell.holo-foil', 'skins-db-check-buy')::text`);
+  check(/"ok"|"bought"|"owned"|status/.test(bought) && q(`SELECT count(*) FROM public.inventory_items WHERE user_id = '${EVA}' AND item_id = 'game-skin.free-cell.holo-foil' AND ledger_id IS NOT NULL`) === "1", `before the move: a Free Cell back bought with coins (${bought})`);
+  const equipped = q(`SELECT public.economy_equip('${EVA}', '${oldSlot}', 'game-skin.free-cell.holo-foil')`);
+  check(q(`SELECT item_id FROM public.loadout_slots WHERE user_id = '${EVA}' AND slot = '${oldSlot}'`) === "game-skin.free-cell.holo-foil", `before the move: the bought back equipped through economy_equip (${equipped})`);
+  const evaLine = q(`SELECT ledger_id FROM public.inventory_items WHERE user_id = '${EVA}' AND item_id = 'game-skin.free-cell.holo-foil'`);
+  const evaBalance = q(`SELECT balance FROM public.coin_wallets WHERE user_id = '${EVA}'`);
 
   const after = all.filter((f) => f >= CARD_BACK_MIGRATION);
   failed = "";
@@ -107,6 +119,26 @@ try {
   check(q(`SELECT how FROM public.inventory_items WHERE user_id = '${DEV}' AND item_id = 'card-back.royal-damask'`) === "grant", "an owner of Royal Damask owns card-back.royal-damask");
   check(q(`SELECT item_id FROM public.loadout_slots WHERE user_id = '${ANA}' AND slot = 'card-back'`) === "card-back.neon", "an equipped Free Cell back is equipped in the card-back slot");
   check(q(`SELECT count(*) FROM public.loadout_slots WHERE user_id = '${DEV}'  AND slot = 'card-back'`) === "0", "an owned but unequipped back stays unequipped");
+  check(q(`SELECT how || ' ' || ledger_id FROM public.inventory_items WHERE user_id = '${EVA}' AND item_id = 'card-back.holo-foil'`) === `shop ${evaLine}`, "a back bought with coins is owned as card-back.holo-foil, tied to the same spend line");
+  check(q(`SELECT item_id FROM public.loadout_slots WHERE user_id = '${EVA}' AND slot = 'card-back'`) === "card-back.holo-foil" && q(`SELECT count(*) FROM public.loadout_slots WHERE user_id = '${EVA}' AND slot = '${oldSlot}'`) === "0", "a back equipped through economy_equip sits in the card-back slot, the old slot empty");
+  check(q(`SELECT balance FROM public.coin_wallets WHERE user_id = '${EVA}'`) === evaBalance, "the move charges and refunds nothing");
+  // The sweep: no row anywhere still points at an old id, except the rename table itself and append-only history
+  // (the coin ledger's spend line, Joe's admin log and analytics events record what happened under the id of the time;
+  // nothing reads them to find an item: a refund goes by the line's id).
+  const HISTORY = new Set(["public.catalogue_renamed.old_id", "public.coin_ledger.ref_id", "public.coin_ledger.idempotency_key", "economy.admin_log.detail", "analytics.events.props"]);
+  const cols = q(`SELECT string_agg(table_schema || '.' || table_name || '.' || column_name, ',') FROM information_schema.columns c
+                   JOIN information_schema.tables t USING (table_schema, table_name)
+                  WHERE t.table_type = 'BASE TABLE' AND table_schema NOT IN ('pg_catalog', 'information_schema', 'pg_toast')
+                    AND data_type IN ('text', 'character varying', 'jsonb', 'json', 'ARRAY')`).split(",");
+  const found: string[] = [];
+  for (const col of cols) {
+    const [schema, table, column] = col.split(".");
+    const n = q(`SELECT count(*) FROM "${schema}"."${table}" WHERE "${column}"::text LIKE '%game-skin.free-cell.%'`);
+    if (n !== "0") found.push(`${col} (${n})`);
+  }
+  const stray = found.filter((f) => !HISTORY.has(f.split(" ")[0]!));
+  check(cols.length > 50 && stray.length === 0, `no table points at an old id after the move (swept ${cols.length} columns; history kept: ${found.filter((f) => HISTORY.has(f.split(" ")[0]!)).join(", ") || "none"}${stray.length ? `; STRAY: ${stray.join(", ")}` : ""})`);
+  check(found.some((f) => f.startsWith("public.coin_ledger.ref_id")), "the sweep sees the purchase's spend line (it would see a stray row)");
   check(q(`SELECT count(*) FROM public.catalogue_items WHERE id LIKE 'game-skin.free-cell.%'`) === "0" && q(`SELECT count(*) FROM public.inventory_items WHERE item_id LIKE 'game-skin.free-cell.%'`) === "0" && q(`SELECT count(*) FROM public.loadout_slots WHERE item_id LIKE 'game-skin.free-cell.%'`) === "0", "the old ids are gone from the catalogue, inventories and loadouts");
   check(q(`SELECT string_agg(old_id || '>' || new_id, ',' ORDER BY old_id) FROM public.catalogue_renamed`) === "game-skin.free-cell.holo-foil>card-back.holo-foil,game-skin.free-cell.neon-card-back>card-back.neon,game-skin.free-cell.royal-damask>card-back.royal-damask", "the renames are recorded old → new");
   const total = q(`SELECT count(*) FROM public.catalogue_items`);
@@ -114,7 +146,7 @@ try {
   const again = apply("20261110160100_economy_catalogue.sql");
   check(again.ok && q(`SELECT count(*) FROM public.catalogue_items`) === "110" && q(`SELECT count(*) FROM public.catalogue_items WHERE id LIKE 'game-skin.free-cell.%'`) === "0", "the old seed applied again adds nothing (no old id comes back)");
   const rerun = apply(CARD_BACK_MIGRATION);
-  check(rerun.ok && q(`SELECT count(*) FROM public.inventory_items WHERE item_id LIKE 'card-back.%'`) === "2" && q(`SELECT count(*) FROM public.loadout_slots WHERE slot = 'card-back'`) === "1", "a second run of the card-back migration changes nothing");
+  check(rerun.ok && q(`SELECT count(*) FROM public.inventory_items WHERE item_id LIKE 'card-back.%'`) === "3" && q(`SELECT count(*) FROM public.loadout_slots WHERE slot = 'card-back'`) === "2", "a second run of the card-back migration changes nothing");
   // Old ids in name order (holo-foil, neon-card-back, royal-damask) map to the new ids in the same order.
   const newRows = q(`SELECT string_agg((to_jsonb(c) - 'id')::text, E'\\n' ORDER BY c.id) FROM (SELECT id, ${keep} FROM public.catalogue_items WHERE id LIKE 'card-back.%' ) c`);
   check(oldRows !== "" && newRows === oldRows, "the card backs keep every field of the old items (name, rarity, source, pass level, price, bundle, animation, exclusivity, note, order)");
@@ -122,6 +154,9 @@ try {
     "card-back.holo-foil card-back card-back - items/card-back/holo-foil.png items/card-back/holo-foil.html,card-back.neon card-back card-back - items/card-back/neon.png items/card-back/neon.html,card-back.royal-damask card-back card-back - items/card-back/royal-damask.png items/card-back/royal-damask.html", "the card backs are kind and slot card-back, of no game, with their art under items/card-back/");
   const cat = JSON.parse(readFileSync("docs/art/wave-2/catalogue.json", "utf8")) as { items: { id: string; kind: string; png: string; html: string }[] };
   check(JSON.stringify(cat.items.filter((i) => i.kind === "card-back").map((i) => [i.id, i.png, i.html]).sort()) === JSON.stringify(q(`SELECT string_agg(id || '|' || png_path || '|' || html_path, ',' ORDER BY id) FROM public.catalogue_items WHERE kind = 'card-back'`).split(",").map((r) => r.split("|"))), "catalogue.json and the table agree on the card backs");
+  // A refund of the old purchase line still finds and removes the renamed item (it goes by the line, not the id).
+  const refund = q(`SELECT public.economy_refund('${EVA}', ${evaLine})::text`);
+  check(q(`SELECT count(*) FROM public.inventory_items WHERE user_id = '${EVA}' AND item_id = 'card-back.holo-foil'`) === "0" && q(`SELECT count(*) FROM public.loadout_slots WHERE user_id = '${EVA}' AND slot = 'card-back'`) === "0" && q(`SELECT balance FROM public.coin_wallets WHERE user_id = '${EVA}'`) === "2000", `refunding the pre-move purchase removes card-back.holo-foil and its slot and returns the coins (${refund})`);
   for (const role of ["anon", "authenticated"]) {
     const tried = db.psql(`SET ROLE ${role}; SELECT public.result_look_for('${ANA}', 'pool');`);
     check(!tried.ok, `${role} can't call result_look_for`);

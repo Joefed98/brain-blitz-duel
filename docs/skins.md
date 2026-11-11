@@ -73,10 +73,12 @@ card back, catalogue kind and slot `card-back`, drawn wherever a game shows a fa
 | `game-skin.free-cell.holo-foil` | `card-back.holo-foil` | Holo Foil | shop, Elite, 1,600 |
 | `game-skin.free-cell.neon-card-back` | `card-back.neon` | Neon card back | premium pass, level 4 |
 
-`supabase/migrations/20261111140000_card_back_slot.sql` adds the kind, moves the catalogue rows (every other field
-unchanged), owners (same `how`, time and spend line) and equipped slots, records the old ids in
+`supabase/migrations/20261112090000_card_back_slot.sql` adds the kind, moves the catalogue rows (every other field
+unchanged), owners (each inventory row moved in place, so its `how`, time and spend line stay) and equipped slots, records the old ids in
 `public.catalogue_renamed`, and a trigger keeps an old id from ever being inserted again (the seed migration applied
-again adds nothing). The art moved to `docs/art/wave-2/items/card-back/`; catalogue.json and the art README say the same.
+again adds nothing). Append-only history keeps the id of its time: a purchase's coin-ledger line (`ref_id`) and
+Joe's admin log; nothing reads them to find an item (a refund goes by the line's id, and still removes the renamed
+item). `skins-db-check` sweeps every table for an old id after the move. The art moved to `docs/art/wave-2/items/card-back/`; catalogue.json and the art README say the same.
 Free Cell keeps no slot (`slots.ts`).
 
 **Other games with face-down cards** (for a later extension; not built): Five Hands (the deck behind Next card,
@@ -90,7 +92,7 @@ draws a face-down card (`scripts/shots/tile-scenes/arcade.tsx:475`), but tiles a
 
 Each result remembers the look its player had equipped (Joe, 11 Nov 2026), so a replay shows the player's real skin:
 
-- **Stored by the database.** `supabase/migrations/20261111140100_result_looks.sql` adds `look jsonb` to
+- **Stored by the database.** `supabase/migrations/20261112090100_result_looks.sql` adds `look jsonb` to
   `round_results` and `async_results`, filled by BEFORE INSERT triggers from the player's loadout (only owned items can
   sit there) for the round's game: `{skin, world, back}` with absent keys for the default, NULL for a guest, nothing
   equipped or a game without skins. A look sent with a row is overwritten; the trigger can never fail an insert. No

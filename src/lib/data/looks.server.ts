@@ -1,7 +1,7 @@
 /**
  * The looks players play in (wave 2, E1; docs/skins.md "Replays and ghosts"): display only. Server only; one call each.
  * The looks are the database's own read of each owner's equipped items (public.room_game_looks,
- * supabase/migrations/20261111140100_result_looks.sql), never anything a phone sent.
+ * supabase/migrations/20261112090100_result_looks.sql), never anything a phone sent.
  */
 import type { Db } from "./db.server";
 import type { Result } from "./rooms.server";

@@ -46,7 +46,7 @@ the reads answer `{ busy: true }` and the changes `reason: "busy"`.
 `avatar-accessory`, `celebration`, `podium-entrance`, `tile-style`; `game-skin:<game>` and `world-theme:<game>` for each
 skinnable game (`racing`, `minigolf`, `pool`, `curling`, `pokersquares`, `freekick`); `card-back`, the account's one card
 back (kind `card-back`, drawn on Full House's face-down deck; it replaced the three Free Cell skins on 11 Nov 2026,
-`20261111140000_card_back_slot.sql`, old ids in `public.catalogue_renamed`); and the reaction set,
+`20261112090000_card_back_slot.sql`, old ids in `public.catalogue_renamed`); and the reaction set,
 `reaction-1` to `reaction-4` (`REACTION_SLOTS`, the one limit). Each item's `slot` in the catalogue says where it goes;
 a reaction fits any reaction slot, and one item sits in one slot at a time. Defaults: `card-art.joulz-navy` and
 `frame.plain`; the rest default to nothing. Badges and title slots come in C2.

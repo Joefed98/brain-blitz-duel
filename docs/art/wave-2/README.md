@@ -195,7 +195,7 @@ One `card-back` slot for the account, not a game's skin (Joe's decision, 11 Nov 
 deck (the strip behind Next card, and the whole back while the next card is dragged). Drawn first as Free Cell items
 (`game-skin.free-cell.*`, items/game-skin/free-cell--*), but a Free Cell deal is all face up, so they moved here; the
 board picture (`boards/game-skins.png`) still shows them under Free Cell. The rename migration is
-`supabase/migrations/20261111140000_card_back_slot.sql`; the old ids can never be inserted again.
+`supabase/migrations/20261112090000_card_back_slot.sql`; the old ids can never be inserted again.
 
 | Name | ID | Rarity | Source | Pass level | Shop price (coins) | Notes | Files |
 |---|---|---|---|---|---|---|---|
