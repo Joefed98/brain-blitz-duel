@@ -2053,6 +2053,26 @@ outside the repo.
   and falls short for all 261, speed goals against the grader, the facts, coins and roles on PostgreSQL) and
   practice-challenge-fit-check (headless Chromium: every goal whole at 320 and 375 px). **A retune that moves a goal's
   number fails practice-goals-check: change the goal's text and number in the data file and re-run the doc script.**
+- **Rated matchmaking** (wave 3 W3b, 11 Nov 2026, `docs/rated/matchmaking-interface.md`; no gameplay, scoring, stamp or
+  deal change): the queue (same format and choice only; ±50 widening by 50 every 2 s to ±200, a recorded run from 8 s;
+  placement straight to a beginner's run), live and recorded rated matches as ordinary rooms the server makes already
+  started (Classic, `dealRoomRounds` from the room picks; a recorded match copies the run's own stored puzzles), the
+  opponent's score hidden for each game's final 20 % (on the server), settling once into W3a's `recordRatedMatch`
+  (`ratingsAdapter.server.ts`; unbound until W3a's `ratings.server.ts` lands), rematch within 8 s, wave 1's stranger
+  chat in rated rooms. Rules `src/lib/rated/matchmaking.ts`, flow `rated.server.ts`, functions `rated.functions.ts`,
+  data `src/lib/data/rated.server.ts`, tables `mm_*` (`20261114200000_matchmaking.sql`). Switches: `RATED_PLAY_FOR_EVERYONE`
+  (`src/config/ratedConfig.ts`, testers on `shop.testers` only while false; true opens it to everyone, guests included
+  with no sign-up, seated under a generated energy name with a Guest tag, `guestName.server.ts`, never a typed name) and
+  the formats / choices in
+  `src/config/matchmakingConfig.ts` (only bo3 with Mixed, All puzzles, All arcade on). Recorded runs: nearest rating,
+  14 days, same version, format and choice, never your own, never the same owner twice running, 5 uses a UK day;
+  never a run the replay flagged; the room / Daily / Practice fallback only when no rated run is near (each counted
+  Practice play's deal is kept 15 days in `mm_practice_deals`, purged by the Worker's Cron Trigger
+  `rated:practice-deals-purge`; a stitched Practice run is aged by its oldest game); arcade and engine games play back on a timeline from the
+  server's replay, puzzles show the score only at the game's end. Best of N stops once decided (a majority of games
+  won, W3a's rule; `ratedMatchClinched` in advancePhaseFn), and such a match leaves no recorded run. W3a's ratings bind
+  on first use (`ratingsReady`). `accounts.forget_user` removes a deleted account's runs (trigger
+  `mm_forget_removed_user`). Checks: rated-matchmaking-check, rated-server-check.
 - **The shop** (wave 2 train D, session D1, 11 Nov 2026, `docs/economy/shop.md`; no gameplay, scoring, stamp or timing
   change; nothing in it helps anyone win): testers only while `SHOP_TAB_ENABLED` is off, from ONE list, `shop.testers`
   (Joe's `shop.add_tester` / `remove_tester` / `list_testers`, logged in `shop.admin_log`; #0001 added by the migration

@@ -360,6 +360,11 @@ export const SHARDS: Record<string, string[]> = {
     // account-screens-check (10 Nov 2026, ~10 s): the sign-up screens' rules, the save-progress events' server function
     // and usernames in rooms, Dailies and challenges, through the server-function harness, beside accounts-check.
     "account-screens-check.ts",
+    // rated-server-check (wave 3 W3b, 11 Nov 2026, ~5 s): rated matchmaking end to end (the queue, live and recorded
+    // matches, the hidden finish, settling once, rematch, rated chat, events) on a local PostgreSQL through the
+    // server-function harness, beside accounts-check; rated-matchmaking-check (~1 s) proves the pure rules.
+    "rated-server-check.ts",
+    "rated-matchmaking-check.ts",
     // practice-challenges-check (wave 2 C1b, 11 Nov 2026, ~40 s): the challenge catalogue's checker on real graded runs,
     // speed goals against the grader, the six stored facts, coins once per account and guests paid on sign-up on a local
     // PostgreSQL through the server-function harness, beside accounts-check.

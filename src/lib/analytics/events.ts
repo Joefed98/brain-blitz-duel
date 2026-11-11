@@ -88,6 +88,14 @@ export const ANALYTICS_EVENTS = [
   "rated_match_finished",
   "placement_finished",
   "tier_changed",
+  // Rated matchmaking (wave 3, W3b; docs/rated/matchmaking-interface.md): recorded by the server only
+  // (src/lib/rated/rated.server.ts). queue_joined carries props.format and props.choice; match_found props.kind
+  // (live | recorded), props.waited_s, props.format and props.choice; rematch_requested and rematch_accepted
+  // props.format.
+  "queue_joined",
+  "match_found",
+  "rematch_requested",
+  "rematch_accepted",
   // The rated match screens (wave 3, session W3c): recorded by the server only, through recordRatedEventFn
   // (src/lib/rated/ratedEvents.functions.ts), which accepts these five with fixed-word props and nothing else.
   "play_card_tapped",

@@ -1280,6 +1280,267 @@ export type Database = {
         }
         Relationships: []
       }
+      mm_match_players: {
+        Row: {
+          match_id: string
+          placement: boolean
+          rating_before: number
+          rematch_at: string | null
+          slot: number
+          user_id: string
+        }
+        Insert: {
+          match_id: string
+          placement?: boolean
+          rating_before: number
+          rematch_at?: string | null
+          slot: number
+          user_id: string
+        }
+        Update: {
+          match_id?: string
+          placement?: boolean
+          rating_before?: number
+          rematch_at?: string | null
+          slot?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
+      mm_matches: {
+        Row: {
+          choice: string
+          created_at: string
+          duel_id: string | null
+          finished_at: string | null
+          format: string
+          game_mode: string
+          id: string
+          kind: string
+          recorded_at: string | null
+          recorded_fallback: boolean | null
+          recorded_games: Json | null
+          recorded_key: string | null
+          recorded_look: Json | null
+          recorded_owner: string | null
+          recorded_owner_rating: number | null
+          recorded_source: string | null
+          rematch_match_id: string | null
+          rematch_of: string | null
+          result: Json | null
+          settled_at: string | null
+          status: string
+        }
+        Insert: {
+          choice: string
+          created_at?: string
+          duel_id?: string | null
+          finished_at?: string | null
+          format: string
+          game_mode?: string
+          id: string
+          kind: string
+          recorded_at?: string | null
+          recorded_fallback?: boolean | null
+          recorded_games?: Json | null
+          recorded_key?: string | null
+          recorded_look?: Json | null
+          recorded_owner?: string | null
+          recorded_owner_rating?: number | null
+          recorded_source?: string | null
+          rematch_match_id?: string | null
+          rematch_of?: string | null
+          result?: Json | null
+          settled_at?: string | null
+          status?: string
+        }
+        Update: {
+          choice?: string
+          created_at?: string
+          duel_id?: string | null
+          finished_at?: string | null
+          format?: string
+          game_mode?: string
+          id?: string
+          kind?: string
+          recorded_at?: string | null
+          recorded_fallback?: boolean | null
+          recorded_games?: Json | null
+          recorded_key?: string | null
+          recorded_look?: Json | null
+          recorded_owner?: string | null
+          recorded_owner_rating?: number | null
+          recorded_source?: string | null
+          rematch_match_id?: string | null
+          rematch_of?: string | null
+          result?: Json | null
+          settled_at?: string | null
+          status?: string
+        }
+        Relationships: []
+      }
+      mm_practice_deals: {
+        Row: {
+          answer: string | null
+          extra: Json | null
+          flagged: boolean
+          game: string
+          ms_remaining: number
+          play_id: number
+          puzzle: Json
+          reaction_avg_ms: number | null
+          recorded_at: string
+          score: number
+          user_id: string
+        }
+        Insert: {
+          answer?: string | null
+          extra?: Json | null
+          flagged?: boolean
+          game: string
+          ms_remaining: number
+          play_id: number
+          puzzle: Json
+          reaction_avg_ms?: number | null
+          recorded_at?: string
+          score: number
+          user_id: string
+        }
+        Update: {
+          answer?: string | null
+          extra?: Json | null
+          flagged?: boolean
+          game?: string
+          ms_remaining?: number
+          play_id?: number
+          puzzle?: Json
+          reaction_avg_ms?: number | null
+          recorded_at?: string
+          score?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
+      mm_progress: {
+        Row: {
+          at: string
+          match_id: string
+          round_number: number
+          score: number
+          user_id: string
+        }
+        Insert: {
+          at?: string
+          match_id: string
+          round_number: number
+          score: number
+          user_id: string
+        }
+        Update: {
+          at?: string
+          match_id?: string
+          round_number?: number
+          score?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
+      mm_queue: {
+        Row: {
+          choice: string
+          format: string
+          joined_at: string
+          match_id: string | null
+          placement: boolean
+          rating: number
+          user_id: string
+        }
+        Insert: {
+          choice: string
+          format: string
+          joined_at?: string
+          match_id?: string | null
+          placement?: boolean
+          rating: number
+          user_id: string
+        }
+        Update: {
+          choice?: string
+          format?: string
+          joined_at?: string
+          match_id?: string | null
+          placement?: boolean
+          rating?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
+      mm_run_uses: {
+        Row: {
+          id: number
+          match_id: string
+          run_key: string
+          used_at: string
+          viewer_id: string
+        }
+        Insert: {
+          id?: never
+          match_id: string
+          run_key: string
+          used_at?: string
+          viewer_id: string
+        }
+        Update: {
+          id?: never
+          match_id?: string
+          run_key?: string
+          used_at?: string
+          viewer_id?: string
+        }
+        Relationships: []
+      }
+      mm_runs: {
+        Row: {
+          choice: string
+          duel_id: string
+          format: string
+          games: Json
+          key: string
+          look: Json | null
+          match_id: string
+          owner_id: string
+          owner_rating: number
+          recorded_at: string
+          slot: number
+        }
+        Insert: {
+          choice: string
+          duel_id: string
+          format: string
+          games: Json
+          key: string
+          look?: Json | null
+          match_id: string
+          owner_id: string
+          owner_rating: number
+          recorded_at?: string
+          slot: number
+        }
+        Update: {
+          choice?: string
+          duel_id?: string
+          format?: string
+          games?: Json
+          key?: string
+          look?: Json | null
+          match_id?: string
+          owner_id?: string
+          owner_rating?: number
+          recorded_at?: string
+          slot?: number
+        }
+        Relationships: []
+      }
       rate_limit_hits: {
         Row: {
           bucket: string
@@ -1923,6 +2184,16 @@ export type Database = {
       shop_test_pack: { Args: { p_key: string; p_pack: string; p_user_id: string }; Returns: Json }
       async_board_open: { Args: { p_room_id: string }; Returns: boolean }
       disband_stale_room: { Args: { p_room_id: string }; Returns: boolean }
+      mm_purge_practice_deals: { Args: Record<PropertyKey, never>; Returns: number }
+      mm_is_tester: { Args: { p_user_id: string }; Returns: boolean }
+      mm_queue_claim: {
+        Args: { p_choice: string; p_format: string; p_match: string; p_users: string[] }
+        Returns: boolean
+      }
+      mm_run_use: {
+        Args: { p_day_start: string; p_key: string; p_match: string; p_max: number; p_viewer: string }
+        Returns: boolean
+      }
       duel_round_ended: {
         Args: { _duel_id: string; _round: number }
         Returns: boolean
