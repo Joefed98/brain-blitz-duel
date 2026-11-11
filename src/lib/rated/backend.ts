@@ -42,8 +42,8 @@ export function formatOf(bestOf: BestOf): RatedFormat {
 
 /* ------------------------------------------------------------------ the player's standing */
 
-/** A placement match's result as this device saw it (null: played, result not known here). */
-export type PlacementResult = "won" | "lost" | "drawn" | null;
+/** A placement match's result (W3a's placement results, the same on every device). */
+export type PlacementResult = "won" | "lost" | "drawn";
 
 /** One side's (Puzzles' or Arcade's) rating; null while hidden (placement) or never played. */
 export interface SideRating {
@@ -121,8 +121,8 @@ export interface RatedMatch {
   me: RatedPlayer;
   them: RatedPlayer;
   source: OpponentSource;
-  /** The two players' record against each other before this match, when the server has it (null: not shown). */
-  headToHead: { won: number; lost: number } | null;
+  /** The two players' record against each other before this match (W3b's ratedHeadToHeadFn; null: not shown). */
+  headToHead: { won: number; lost: number; drawn?: number } | null;
   /** The placement match this is (1 to 5), else null. */
   placement: number | null;
 }
@@ -210,6 +210,8 @@ export interface RatedBackend {
   /** The existing friend challenge flow, from this match's games: a challenge code to share. */
   challenge(matchId: string): Promise<{ ok: true; code: string } | Refused>;
   ladder(): Promise<TierLadderRung[] | null>;
+  /** The rated match a room is (W3b's ratedRoomFn), for one of its players; null for an ordinary room. */
+  roomMatch(roomId: string): Promise<{ matchId: string; format: RatedFormat } | null>;
   opponentScore(matchId: string): Promise<OpponentScoreView | null>;
   /** Display only: this player's live score in the current game, shown to a live opponent. */
   progress(matchId: string, round: number, score: number): Promise<void>;

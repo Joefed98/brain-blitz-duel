@@ -25,7 +25,7 @@ import { useGameKeys } from "@/lib/desktop";
 import { arenaFrame, cancelArenaFrame } from "@/lib/battery";
 import { useDesktopPresentation } from "@/lib/desktopPresentation";
 import { useLiveScore } from "@/components/puzzles/useLiveScore";
-import { liveScoreWanted, publishLiveScore } from "@/lib/rated/ratedRoom";
+import { liveScoreWanted, publishLiveScore } from "@/lib/rated/liveScore";
 
 /**
  * Checks only (desktop-fairness-check): when a page sets `window.__duelzWorldPoints` to an array, every
@@ -172,7 +172,7 @@ export function ArcadeCanvasStage<S, C>(props: Props<S, C>) {
   useNoTouchScroll(wrap);
   const liveScore = useLiveScore(() => game.score(state.current), enabled && !props.locked);
   // A rated room's header (wave 3, W3c) shows this run's own running score: published once a second, only while a rated
-  // header asks for it (src/lib/rated/ratedRoom.ts). Display only: it reads the sim's score and never writes to it.
+  // header asks for it (src/lib/rated/liveScore.ts). Display only: it reads the sim's score and never writes to it.
   useEffect(() => {
     if (!enabled) return;
     const tick = () => {

@@ -28,7 +28,7 @@
  *
  *   bun scripts/rated-screens-check.tsx
  */
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 
 const failures: string[] = [];
 let checks = 0;
@@ -199,6 +199,7 @@ const standIn = {
     return { ok: true as const, code: "ABC234" };
   },
   ladder: async () => tierLadder(SHARES),
+  roomMatch: async (roomId: string) => (roomId === "room-rated" ? { matchId: "m-from-server", format: "bo3" as const } : null),
   opponentScore: async () => ({ round: 1, score: 88, hidden: false, finished: false }),
   progress: async () => {},
 };
@@ -301,11 +302,28 @@ async function mount(ui: () => React.ReactElement, path = "/") {
   check(bind.frozenLineOf({ moved: true, frozen: null, flagged: false }) === null, "moved: no line");
   check(bind.nearMissOf([{ type: "flow", myScore: 176, theirScore: 0 }, { type: "racing", myScore: 100, theirScore: 0 }], (t) => (t === "flow" ? 188 : 160))?.offBest === 12, "near miss: the closest game within 15 of its best");
   check(bind.nearMissOf([{ type: "flow", myScore: 190, theirScore: 0 }], () => 188) === null, "near miss: none above the best");
-  const standing = bind.standingOf(
-    { playerId: "u", placement: { played: 2, of: 5, done: false, label: "Placement 3 of 5" }, joulz: null, tier: null, pools: null, categories: null },
-    "u-test",
-  );
-  check(standing.state === "placement" && standing.results.length === 2 && standing.results.every((r) => r === null), "placement: two played, results not known on this device");
+  // W3a's placement results (817c18a0), out of order on purpose: the boxes follow n, a tick, a cross, a dash.
+  const w3aResults = [
+    { n: 3, matchId: "c", result: "draw" as const, at: "2026-11-11T12:03:00Z" },
+    { n: 1, matchId: "a", result: "win" as const, at: "2026-11-11T12:01:00Z" },
+    { n: 2, matchId: "b", result: "loss" as const, at: "2026-11-11T12:02:00Z" },
+  ];
+  const standing = bind.standingOf({
+    playerId: "u",
+    placement: { played: 3, of: 5, done: false, label: "Placement 4 of 5", results: w3aResults },
+    joulz: null,
+    tier: null,
+    pools: null,
+    categories: null,
+  });
+  check(standing.state === "placement" && standing.results.join() === "won,lost,drawn", `placement: W3a's results in order on every device (${standing.state === "placement" ? standing.results.join() : "placed"})`);
+  check(bind.placementBoxesOf(undefined).length === 0 && bind.placementBoxesOf([]).length === 0, "placement: none played, no boxes filled");
+  // W3b's head-to-head (0916a5be): wins, losses and draws from the caller's side as the VS line.
+  const h2h = bind.headToHeadOf({ wins: 3, losses: 1, draws: 1, played: 5 });
+  check(h2h.won === 3 && h2h.lost === 1 && h2h.drawn === 1 && rules.headToHeadLine(h2h, "Sam") === "You lead 3–1", "head to head: W3b's record, you lead");
+  check(rules.headToHeadLine(bind.headToHeadOf({ wins: 0, losses: 0, draws: 0, played: 0 }), "Sam") === "First meeting", "head to head: never played, first meeting");
+  check(rules.headToHeadLine(bind.headToHeadOf({ wins: 1, losses: 1, draws: 2, played: 4 }), "Sam") === "Level 1–1", "head to head: level");
+  check(rules.headToHeadLine(bind.headToHeadOf({ wins: 0, losses: 0, draws: 1, played: 1 }), "Sam") === "Level 0–0", "head to head: only a draw is a meeting, level");
   check(bind.DELETED_PLAYER === "Deleted player", "forgotten accounts show as Deleted player");
 }
 
@@ -441,7 +459,12 @@ for (const source of [{ kind: "live" }, { kind: "recorded", label: "Recorded run
   check($$("[data-vs-side] [data-jz='emblem']").length === 2, `VS ${source.kind}: both tier emblems`);
   const pills = $$("[data-vs-side] [data-card-pill]").map((p) => (p.textContent ?? "").trim()).join(" | ");
   check(pills === "Volt II1,296 | Volt II1,278", `VS: each card shows tier and rating (${pills})`);
-  check(!$("[data-head-to-head]"), "VS: no record line while the server keeps none (W3a and W3b keep no head-to-head)");
+  check(!$("[data-head-to-head]"), "VS: no record line when there is no record to show (a recorded run)");
+  if (source.kind === "live") {
+    const withRecord = await render(React.createElement(VsScreen, { match: { ...MATCH, headToHead: { won: 3, lost: 1, drawn: 0 } }, nowMs: Date.now() }));
+    check(text("[data-head-to-head]") === "You lead 3–1", "VS live: your record against each other (W3b's ratedHeadToHeadFn)");
+    withRecord.unmount();
+  }
   check(JSON.stringify(sent[0]) === JSON.stringify({ event: "vs_shown", source: source.kind }), `vs_shown ${source.kind}`);
   root.unmount();
 }
@@ -708,6 +731,12 @@ const profileUi = () => React.createElement(ProfileCard, { guestName: "Player", 
 
 /* ------------------------------------------------------------------ 8. the binding's screens (11 Nov 2026) */
 {
+  const bind = await import("../src/lib/rated/w3Binding");
+  const w3aResultsAll = [
+    { n: 2, matchId: "b", result: "loss" as const, at: "2026-11-11T12:02:00Z" },
+    { n: 1, matchId: "a", result: "win" as const, at: "2026-11-11T12:01:00Z" },
+    { n: 3, matchId: "c", result: "draw" as const, at: "2026-11-11T12:03:00Z" },
+  ];
   // Joe's result lines: W3a's reason a match moved nothing.
   for (const [frozen, line] of [
     ["under_review", "This match is under review, so ratings didn’t change."],
@@ -751,24 +780,43 @@ const profileUi = () => React.createElement(ProfileCard, { guestName: "Player", 
   root.unmount();
 
   const room = readFileSync("src/routes/duel.$code.tsx", "utf8");
-  check(room.includes("const ratedMatchId = useRatedRoom(roomCode);") && /ratedMatchId && !isMulti \? \(\s*\/\/[^\n]*\n\s*<RatedRoomScore/.test(room), "the room route: the rated header only for a rated match");
+  check(room.includes("const ratedMatchId = useRatedRoom(roomCode, duel?.id ?? null);") && /ratedMatchId && !isMulti \? \(\s*\/\/[^\n]*\n\s*<RatedRoomScore/.test(room), "the room route: the rated header only for a rated match");
   check(/if \(duel\.status === "finished" && ratedMatchId\) \{\s*return <RatedRoomHandOff/.test(room), "the room route: a finished rated room hands over to the result");
   const ratedRoom = await import("../src/lib/rated/ratedRoom");
   check(ratedRoom.ratedMatchForRoom("ZZZZ") === null, "an ordinary room is never rated");
   ratedRoom.noteRatedRoom("ab2c", "m1");
   check(ratedRoom.ratedMatchForRoom("AB2C") === "m1", "a room opened from VS is the rated match's");
 
-  // Placement boxes: a match played on another device shows as played, never a guessed tick or cross.
+  // Placement boxes from W3a's results: a tick on green, a cross on red, a dash for a draw.
   const parts = await import("../src/components/rated/RatedParts");
-  root = await render(React.createElement(parts.PlacementBoxes, { results: ["won", null, "lost"] }));
-  check($$("[data-placement-boxes] li").map((b) => b.getAttribute("data-box")).join() === "won,played,lost,next,later", "placement boxes: played elsewhere shows as played");
+  root = await render(React.createElement(parts.PlacementBoxes, { results: bind.placementBoxesOf(w3aResultsAll) }));
+  check($$("[data-placement-boxes] li").map((b) => b.getAttribute("data-box")).join() === "won,lost,drawn,next,later", "placement boxes: W3a's results drawn on every device");
   root.unmount();
-  const rec = await import("../src/lib/rated/placementRecord");
-  rec.clearPlacementRecord("u-rec");
-  rec.notePlacementResult("u-rec", "a", "won");
-  rec.notePlacementResult("u-rec", "a", "lost");
-  rec.notePlacementResult("u-rec", "b", "lost");
-  check(rec.placementResults("u-rec", 3).join() === ",won,lost", "the device's placement record: once per match, laid on the latest");
+  check(!existsSync("src/lib/rated/placementRecord.ts"), "no device-only placement record any more (W3a's results instead)");
+  // Game code publishes the live score through an import-free module, so it reaches nothing rated (economy-neutral-check).
+  check(!/^import /m.test(readFileSync("src/lib/rated/liveScore.ts", "utf8")), "liveScore.ts imports nothing");
+  check(
+    readFileSync("src/components/puzzles/ArcadeCanvasStage.tsx", "utf8").includes('from "@/lib/rated/liveScore"') &&
+      !readFileSync("src/components/puzzles/ArcadeCanvasStage.tsx", "utf8").includes("@/lib/rated/ratedRoom"),
+    "the arcade stage reaches only the live-score store, never the rated lookup",
+  );
+
+  // The room's rated match from W3b's ratedRoomFn (0916a5be): any tab, device or reload gets the header back.
+  const { useRatedRoom } = ratedRoom;
+  const seen: (string | null)[] = [];
+  const Probe = ({ code, roomId }: { code: string; roomId: string | null }) => {
+    seen.push(useRatedRoom(code, roomId));
+    return null;
+  };
+  root = await render(React.createElement(Probe, { code: "QR7T", roomId: "room-rated" }));
+  await settle(60);
+  check(seen[seen.length - 1] === "m-from-server" && ratedRoom.ratedMatchForRoom("QR7T") === "m-from-server", "a rated room opened elsewhere: W3b names its match, remembered for this tab");
+  root.unmount();
+  seen.length = 0;
+  root = await render(React.createElement(Probe, { code: "ZZ9Z", roomId: "room-plain" }));
+  await settle(60);
+  check(seen.every((x) => x === null) && ratedRoom.ratedMatchForRoom("ZZ9Z") === null, "an ordinary room: W3b answers null, nothing changes");
+  root.unmount();
 
   // A guest's first rated match: the save-your-progress prompt, "Save your rating and stars", on the next tab page.
   const sp = await import("../src/lib/account/saveProgress");

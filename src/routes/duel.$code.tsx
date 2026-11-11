@@ -282,7 +282,7 @@ function DuelScreen() {
   const state = useDuel(roomCode);
   const { duel, players, results, me, opponent, roomPlayers, isMulti, isHost, now } = state;
   // A rated match (wave 3, W3b's room; W3c's screens): null for every ordinary room, which is then exactly as before.
-  const ratedMatchId = useRatedRoom(roomCode);
+  const ratedMatchId = useRatedRoom(roomCode, duel?.id ?? null);
   // A new version reloads only between rounds and lands back here (lib/appUpdate).
   useUpdateGate(
     roomUpdateGate({

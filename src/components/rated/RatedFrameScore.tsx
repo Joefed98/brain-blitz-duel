@@ -14,7 +14,7 @@ import { useEffect, useRef, useState } from "react";
 import { AnimatedScore } from "@/components/duel/AnimatedScore";
 import type { CardLook } from "@/design/identity";
 import { backendNow } from "@/lib/rated/ratedApi";
-import { readLiveScore, wantLiveScore } from "@/lib/rated/ratedRoom";
+import { readLiveScore, wantLiveScore } from "@/lib/rated/liveScore";
 import type { RatedMatch } from "@/lib/rated/backend";
 import { opponentScoreHidden } from "@/lib/rated/rules";
 

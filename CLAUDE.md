@@ -2185,9 +2185,12 @@ outside the repo.
   (`RatedHome`, only for players W3b says rated play is open to: testers, then everyone with
   RATED_PLAY_FOR_EVERYONE), the picker (switched-on options only), `/rated` (searching, VS, then W3b's room on the room
   route; `?match=` the result and the reveal), `/tiers`, the card pill's tier and rating once placed, Profile's
-  `ProfileRating`. The room route marks a rated room from sessionStorage (`ratedRoom.ts`): its header is
-  `RatedRoomScore` (no other layout change; an arcade stage publishes its running score once a second only while it is
-  asked), and the finished room hands over to `/rated?match=` after W3b's winner reveal. Guests show under W3b's energy
+  `ProfileRating`. The room route knows a rated room from this tab's note or, in any other tab, device or reload, W3b's
+  `ratedRoomFn` (`useRatedRoom`, `ratedRoom.ts`): its header is `RatedRoomScore` (no other layout change; an arcade
+  stage publishes its running score once a second only while it is asked, through the import-free `liveScore.ts`), and
+  the finished room hands over to `/rated?match=` after W3b's winner reveal. The placement boxes are W3a's own
+  per-match results (`placementBoxesOf`), the VS record W3b's `ratedHeadToHeadFn` (live opponents only), and `/rated`
+  picks its screens by W3b's format (`formatScreens.tsx`; W3d fills the 4- and 8-player row). Guests show under W3b's energy
   name with a Guest tag; a guest's finished rated match counts for the save-your-progress prompt ("Save your rating and
   stars", `SAVE_PROGRESS_FROM` "rated"). Under automation the real binding stays off unless a page sets
   `window.__DUELZ_ALLOW_RATED__` (ignored in production). Events play_card_tapped, vs_shown, result_viewed,
