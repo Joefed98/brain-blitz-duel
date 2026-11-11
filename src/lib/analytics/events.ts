@@ -63,6 +63,12 @@ export const ANALYTICS_EVENTS = [
   // badges.server.ts and the backfill). badge_earned carries props.badge and props.rarity, title_equipped props.title.
   "badge_earned",
   "title_equipped",
+  // Friends (wave 2, session B1; docs/friends.md): recorded by the server only (src/lib/friends/friends.server.ts).
+  // friend_request_sent and friend_added carry props.via (search or link); never a name or the other player's id.
+  "friend_request_sent",
+  "friend_added",
+  "friend_removed",
+  "friend_blocked",
 ] as const;
 export type AnalyticsEventName = (typeof ANALYTICS_EVENTS)[number];
 

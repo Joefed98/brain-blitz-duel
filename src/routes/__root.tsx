@@ -26,6 +26,7 @@ import { AppUpdateOverlay } from "../components/app/AppUpdateOverlay";
 import { NotFoundPage, RouteErrorScreen } from "../components/app/AppErrorScreen";
 import { CelebrationLayer } from "../components/fx/CelebrationLayer";
 import { SafetyNotices } from "../components/safety/SafetyNotices";
+import { FriendsPresence } from "../components/friends/FriendsPresence";
 import { celebrationsOn } from "../lib/fx/celebrations";
 import { GOOGLE_FONTS_CSS } from "../lib/offline/assets";
 import { installOfflinePractice } from "../lib/offline/install";
@@ -245,6 +246,7 @@ function RootComponent() {
       {celebrate ? <CelebrationLayer /> : null}
       {/* Safety (10 Nov 2026, docs/moderation.md): a warning, ban or forced rename on open; nothing otherwise. */}
       <SafetyNotices />
+      <FriendsPresence />
       {firstOpen ? (
         <Suspense fallback={null}>
           <FirstOpen
