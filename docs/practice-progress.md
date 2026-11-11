@@ -29,7 +29,21 @@ every device. No gameplay, scoring, grading, stamp or timing changed.
   `duelz-practice-fresh:v1`. Nothing else on the device is touched. From then on, device stars and bests are never read
   or shown. The challenge code still records its ticks on the device, starting again from zero, until C1b replaces it.
 - **The note.** Practice shows "Stars and challenges have had a refresh. Everything you earn now is saved to your
-  account." once per player. The server records it as seen (`practice_refresh_notes`), so it shows once on any device.
+  account." once per player, and only to players who existed before the fresh start (`practice_refresh_note_due`; a
+  brand-new player has nothing that was refreshed). The server records it as seen (`practice_refresh_notes`), so it
+  shows once on any device.
+
+## The offline copy and the footer (Joe, 11 Nov 2026)
+
+- **Display-only copy.** The phone keeps the server's last answer (`src/lib/practice/progressCache.ts`,
+  `duelz-practice-view:v1`, under the session's auth id). It is shown only when Practice opens before the server has
+  answered, for example offline after a restart, and the next server answer replaces it. It is written only from the
+  server's answers (the progress read and a counted run's own `progress`), never sent to the server and never read by
+  grading. Another player's copy is never shown. progress-cache-check proves it.
+- **Footer.** Accounts see "Stars and bests are saved to your account." Guests see "Save your progress to keep your
+  stars on any phone"; "Save your progress" opens the existing save-your-progress sheet.
+- **Pack limit.** Practice packs are limited to 100 an hour per network (`IP_PRACTICE_PACK_LIMIT`, 20 until
+  11 Nov 2026). At 20, a new phone's first top-up (16 calls) held back its next visit within the hour.
 
 ## Storage (`supabase/migrations/20261111101500_practice_progress.sql`)
 

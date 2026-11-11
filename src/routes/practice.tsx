@@ -62,6 +62,8 @@ import { useHomeBed, useScreenMusic } from "@/lib/useScreenMusic";
 import type { SubmitMeta } from "@/puzzles/types";
 import type { MovesView } from "@/lib/duel/moves";
 import { readGoals, recordPracticeGoals, type GoalsRecord } from "@/lib/duel/practiceGoals";
+import { SaveProgressOffer } from "@/components/account/SaveProgress";
+import { cachedAccount, useAccount } from "@/lib/account/accountApi";
 import {
   bestOf,
   levelStarsOf,
@@ -193,6 +195,27 @@ const PendingTypes = createContext<ReadonlySet<PuzzleType>>(new Set());
 
 /** Practice goals: this device's challenge record (C1b moves challenges to the account), read once per draw of the list. */
 const GoalsOnList = createContext<GoalsRecord | null>(null);
+
+/**
+ * The list's last line: an account's stars and bests are saved to it; a guest is offered the save-your-progress
+ * sheet (SaveProgressOffer, as Profile's Customise does), since a guest's progress stays with this phone's guest.
+ */
+function PracticeFooter() {
+  const account = useAccount();
+  const [offer, setOffer] = useState(false);
+  // Before the account is known: the device's cached account (an account's line from the first paint).
+  const isAccount = account.kind === "account" || (account.kind === "unknown" && cachedAccount() !== null);
+  if (isAccount) return <p className="ap-faint jz-meta text-center">Stars and bests are saved to your account.</p>;
+  return (
+    <p data-practice-save-progress className="ap-faint jz-meta text-center">
+      <button type="button" onClick={() => setOffer(true)} className="ap-link press -my-3 inline-flex h-11 items-center align-middle">
+        Save your progress
+      </button>{" "}
+      to keep your stars on any phone
+      {offer ? <SaveProgressOffer onClose={() => setOffer(false)} /> : null}
+    </p>
+  );
+}
 
 /** The player's practice progress from the server (useProgress.ts): every row's stars and best. */
 const ProgressOnList = createContext<PracticeProgressView | null>(null);
@@ -972,7 +995,7 @@ function PracticeScreen() {
               </details>
             )}
 
-            <p className="ap-faint jz-meta text-center">Stars and bests are saved to your account.</p>
+            <PracticeFooter />
           </div>
         </PendingTypes.Provider>
         </GoalsOnList.Provider>

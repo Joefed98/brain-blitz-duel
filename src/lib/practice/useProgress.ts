@@ -1,14 +1,17 @@
 /**
- * The phone's copy of its player's practice progress (wave 2 C1a; docs/practice-progress.md), in memory only: read
- * from the server (getMyPracticeProgressFn) once per player per visit, again when the player changes (signing in,
- * out, or to another account), and updated in place by each graded run's own answer (`applyPracticeRun`). Nothing is
- * kept in device storage, so another phone signed in to the same account shows exactly the same stars and bests.
+ * The phone's copy of its player's practice progress (wave 2 C1a; docs/practice-progress.md): read from the server
+ * (getMyPracticeProgressFn) once per player per visit, again when the player changes (signing in, out, or to another
+ * account), and updated in place by each graded run's own answer (`applyPracticeRun`), so another phone signed in to
+ * the same account shows exactly the same stars and bests. The server's last answer is also kept as a display-only
+ * copy (progressCache.ts) under the session's auth id, shown only until the server answers (Practice opened offline
+ * after a restart); it is never sent anywhere or trusted.
  */
 import { useEffect, useState } from "react";
 
 import { useAccount } from "@/lib/account/accountApi";
 
 import { clearDeviceProgressOnce } from "./deviceFreshStart";
+import { readShownProgress, saveShownProgress } from "./progressCache";
 import { EMPTY_PROGRESS, withRun, type PracticeProgressView, type PracticeRunProgress } from "./progress";
 
 let current: PracticeProgressView | null = null;
@@ -19,6 +22,31 @@ const listeners = new Set<(v: PracticeProgressView | null) => void>();
 function publish(next: PracticeProgressView | null): void {
   current = next;
   for (const fn of listeners) fn(next);
+}
+
+/** The signed-in session's auth id (read from the device's own session, so it answers offline too), or null. */
+async function sessionUserId(): Promise<string | null> {
+  try {
+    const { supabase } = await import("@/integrations/supabase/client");
+    const { data } = await supabase.auth.getSession();
+    return data.session?.user?.id ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/** Keeps the server's answer as the display-only copy (progressCache.ts). Only the server's answers come here. */
+function keepFromServer(view: PracticeProgressView): void {
+  void sessionUserId().then((id) => {
+    if (id) saveShownProgress(id, view);
+  });
+}
+
+/** Before the server answers: the display-only copy of its last answer for this session's player, if any. */
+export async function seedFromCopy(): Promise<void> {
+  const id = await sessionUserId();
+  const copy = readShownProgress(id);
+  if (copy && !current) publish(copy);
 }
 
 /** The progress now (null until the server has answered). */
@@ -36,6 +64,7 @@ export function refreshPracticeProgress(player: string | null = currentFor): Pro
       if (currentFor !== player) return;
       if ("busy" in answer) return;
       publish(answer);
+      keepFromServer(answer);
     } catch {
       /* offline or signed out: keep what is shown */
     }
@@ -47,7 +76,9 @@ export function refreshPracticeProgress(player: string | null = currentFor): Pro
 /** Lays one graded run's answer over the progress shown (the grade's own `progress`). */
 export function applyPracticeRun(type: string, run: PracticeRunProgress | null | undefined): void {
   if (!run || !run.counted) return;
-  publish(withRun(current ?? EMPTY_PROGRESS, type, run));
+  const next = withRun(current ?? EMPTY_PROGRESS, type, run);
+  publish(next);
+  keepFromServer(next);
 }
 
 /**
@@ -74,6 +105,7 @@ export function usePracticeProgress(): PracticeProgressView | null {
     clearDeviceProgressOnce();
     listeners.add(setView);
     setView(current);
+    if (!current) void seedFromCopy();
     return () => {
       listeners.delete(setView);
     };

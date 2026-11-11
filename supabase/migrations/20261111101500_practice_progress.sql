@@ -13,7 +13,7 @@
 --     (175 or more on Easy, Classic or Hard; Expert's crown comes in wave 3.5 and is never a star) with the score that
 --     earned it. A star once earned is kept.
 --   * public.practice_refresh_notes: the player has seen Practice's one-time "Stars and challenges have had a
---     refresh" note.
+--     refresh" note. It is due only to players who existed before the fresh start (practice_refresh_note_due).
 --   * Gem colours (public.gem_unlocks, A1's table) unlock on the star total: Amber 10, Rose Quartz 20, Ruby 30, Jade 50,
 --     Amethyst 75, Aquamarine 100, Sapphire 125, Pearl 150, Obsidian 200, Diamond 250; never removed. Gems need an
 --     account (gem_unlocks keys on profiles): a guest's stars unlock them when the guest signs up (the profile trigger).
@@ -258,6 +258,23 @@ END
 $$;
 REVOKE ALL ON FUNCTION public.practice_mark_refresh_note_seen(uuid) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.practice_mark_refresh_note_seen(uuid) TO service_role;
+
+-- Whether Practice's one-time refresh note is due: the player existed before the fresh start (a brand-new player has
+-- nothing that was refreshed) and hasn't seen it.
+CREATE OR REPLACE FUNCTION public.practice_refresh_note_due(p_user_id uuid)
+RETURNS boolean
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM auth.users u, public.practice_progress_start s
+     WHERE u.id = p_user_id AND s.id AND u.created_at < s.fresh_start_at
+       AND NOT EXISTS (SELECT 1 FROM public.practice_refresh_notes n WHERE n.user_id = p_user_id));
+$$;
+REVOKE ALL ON FUNCTION public.practice_refresh_note_due(uuid) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.practice_refresh_note_due(uuid) TO service_role;
 
 /* ------------------------------------------------------------------ analytics */
 

@@ -87,6 +87,7 @@ const GUEST = uid(42); // a guest who later signs up
 const OTHER = uid(43); // a guest on a second device
 const EXPERT = uid(44); // a guest for the level rules
 const FRESH = uid(45); // a guest with a play from before the fresh start
+const OLD = uid(46); // an account from before the fresh start (the refresh note)
 
 /** The master plan's gem thresholds, written out here, independent of the code. */
 const NEEDS: [string, number][] = [
@@ -149,6 +150,9 @@ async function pureChecks(): Promise<void> {
     const { ACTIVE_PUZZLE_TYPES } = await import("../src/lib/duel/registry");
     const { GEM_IDS } = await import("../src/lib/economy/slots");
     check(rules.STAR_SCORE === 175, "a star needs 175");
+    // The pack limit (Joe's decision, 11 Nov 2026: 100 an hour per network, was 20).
+    const { IP_PRACTICE_PACK_LIMIT } = await import("../src/lib/duel/rateLimit.server");
+    check(IP_PRACTICE_PACK_LIMIT.max === 100 && IP_PRACTICE_PACK_LIMIT.windowSeconds === 3600 && IP_PRACTICE_PACK_LIMIT.bucket === "ip-practice-pack", "practice packs: 100 an hour per network");
     check(rules.earnsStar(175) && !rules.earnsStar(174) && rules.earnsStar(200) && !rules.earnsStar(Number.NaN), "175 earns the star, 174 doesn't");
     check(rules.earnsStar(175, "easy") && rules.earnsStar(175, "hard") && !rules.earnsStar(200, "expert"), "stars on Easy, Classic and Hard; Expert's 175+ is a crown, never a star");
     check(rules.DEALT_LEVEL === "classic" && rules.levelOf(null) === "classic" && rules.levelOf(undefined) === "classic" && rules.levelOf("nonsense") === "classic" && rules.levelOf("hard") === "hard", "a run with no level is Classic");
@@ -413,13 +417,18 @@ async function databaseChecks(db: LocalDb): Promise<void> {
 
   /* ---------------------------------------------------- 7. the note */
   await section("note", async () => {
-    const tok = userToken(OTHER);
-    check((await call(progressFns.getMyPracticeProgressFn, {}, tok)).noteSeen === false, "the note is unseen");
-    check((await call(progressFns.markPracticeRefreshNoteSeenFn, {}, tok)).ok === true, "marked seen");
-    check((await call(progressFns.getMyPracticeProgressFn, {}, tok)).noteSeen === true, "then seen");
-    check(q(`SELECT public.practice_mark_refresh_note_seen('${OTHER}')`) === "f", "once only");
-    await call(progressFns.markPracticeRefreshNoteSeenFn, {}, accA);
-    check((await call(progressFns.getMyPracticeProgressFn, {}, accB)).noteSeen === true, "seen on one phone is seen on the account's other phone");
+    // Only players who existed before the fresh start get the note (Joe, 11 Nov 2026); ACC and OTHER are new since.
+    check((await call(progressFns.getMyPracticeProgressFn, {}, userToken(OTHER))).noteSeen === true, "a player new since the fresh start never gets the note");
+    check((await call(progressFns.getMyPracticeProgressFn, {}, accA)).noteSeen === true, "nor does a new account");
+    q(`INSERT INTO auth.users (id, is_anonymous, email, created_at) VALUES ('${OLD}', false, 'old@example.com', (SELECT fresh_start_at FROM public.practice_progress_start) - interval '30 days')`);
+    const oldA = accountToken(OLD);
+    const oldB = accountToken(OLD);
+    check((await call(progressFns.getMyPracticeProgressFn, {}, oldA)).noteSeen === false, "a player from before the fresh start has the note due");
+    check((await call(progressFns.markPracticeRefreshNoteSeenFn, {}, oldA)).ok === true, "marked seen");
+    check((await call(progressFns.getMyPracticeProgressFn, {}, oldA)).noteSeen === true, "then seen");
+    check(q(`SELECT public.practice_mark_refresh_note_seen('${OLD}')`) === "f", "once only");
+    check((await call(progressFns.getMyPracticeProgressFn, {}, oldB)).noteSeen === true, "seen on one phone is seen on the account's other phone");
+    check(!db.psql(`SET ROLE authenticated; SELECT public.practice_refresh_note_due('${OLD}');`).ok, "clients can't ask whether it is due");
   });
 
   /* ---------------------------------------------------- 8. who can write */
