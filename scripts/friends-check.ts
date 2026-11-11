@@ -719,6 +719,61 @@ async function databaseChecks(db: LocalDb, rest: RestServer): Promise<void> {
     check(refused(`INSERT INTO friend_events (recipient_id, actor_id, kind) VALUES ('${ADA}', '${TEE}', 'message')`) !== "", "only the four kinds");
   });
 
+  /* ------------------------------------------------------------- cards (Joe's phone check, 11 Nov 2026) */
+  await section("cards", async () => {
+    // FILL(0), one of CAP's 200 friends, wears a real look: the gold frame, Bolt Stripes, an avatar in colour 7 and
+    // the Friendly badge on the card.
+    q(`SELECT economy.grant_item('${FILL(0)}', 'frame.gold', 'friends-check')`);
+    check(q(`SELECT public.economy_equip('${FILL(0)}', 'frame', 'frame.gold')`) === "equipped", "cards: the gold frame equipped");
+    check(q(`SELECT public.economy_equip('${FILL(0)}', 'card-art', 'card-art.bolt-stripes')`) === "equipped", "cards: Bolt Stripes equipped");
+    const avatarSet = q(`SELECT public.economy_set_avatar('${FILL(0)}', 'pinball', 7::smallint, NULL, NULL, NULL, NULL, NULL)`);
+    check(avatarSet === "set", `cards: the avatar set (${avatarSet})`);
+    q(`SELECT public.badge_award('${FILL(0)}', 'friendly', '{}'::jsonb)`);
+    check(q(`SELECT public.badge_set_card('${FILL(0)}', ARRAY['friendly'])`) === "set", "cards: Friendly on the card");
+
+    // One call answers the whole list: the cards are read 100 at a time (200 friends: 2 reads each), never one a friend.
+    const before = rest!.log.length;
+    const view = await call(fns.friendsOverviewFn, undefined, tok.cap);
+    const reads = rest!.log.slice(before).map((e) => e.path.split("?")[0]);
+    const cardReads = reads.filter((p) => p.endsWith("/rpc/economy_public_cards")).length;
+    const badgeReads = reads.filter((p) => p.endsWith("/rpc/badge_public_cards")).length;
+    const friends = view.ok ? view.overview.friends : [];
+    const listed = view.ok ? new Set([...view.overview.friends, ...view.overview.incoming, ...view.overview.invites, ...view.overview.challenges].map((f) => f.id)).size : 0;
+    const batches = Math.ceil(listed / 100);
+    check(listed > 200 && cardReads === batches && badgeReads === batches, `cards: ${listed} listed players' cards in ${batches} + ${batches} batched reads, not one a player (${cardReads} + ${badgeReads})`);
+    check(friends.length === 200 && friends.every((f) => !!f.look), `cards: every friend on the list carries their card (${friends.filter((f) => f.look).length} of ${friends.length})`);
+    const dressed = friends.find((f) => f.id === FILL(0))?.look;
+    check(
+      !!dressed && dressed.frame === "frame.gold" && dressed.cardArt === "card-art.bolt-stripes" && dressed.avatar.id === "pinball" && dressed.avatar.colour === 7 && JSON.stringify(dressed.badges) === '["friendly"]' && dressed.title === "rookie",
+      `cards: a friend's row has their own frame, card art, avatar and colour (${JSON.stringify(dressed)})`,
+    );
+    const plain = friends.find((f) => f.id === FILL(1))?.look;
+    check(!!plain && plain.frame === "frame.plain" && plain.avatar.id === "captain-joulz" && plain.badges.length === 0, `cards: an undressed friend has the starter card (${JSON.stringify(plain)})`);
+
+    // A friend's profile: the full card (look, title, badges, player number).
+    const prof = await call(fns.friendProfileFn, { playerId: FILL(0) }, tok.cap);
+    const pc = prof.ok ? prof.profile.card : null;
+    check(!!pc && pc.look?.frame === "frame.gold" && pc.look.avatar.id === "pinball" && pc.look.avatar.colour === 7 && pc.look.badges[0] === "friendly" && pc.look.title === "rookie" && pc.playerNumber > 0, `cards: a friend's profile carries the full card (${JSON.stringify(pc)})`);
+
+    // Blocked players show no card: neither on the blocked list nor on their profile.
+    await call(fns.friendBlockFn, { playerId: FILL(1) }, tok.cap);
+    const blockedProf = await call(fns.friendProfileFn, { playerId: FILL(1) }, tok.cap);
+    check(blockedProf.ok && blockedProf.profile.relation === "blocked" && !blockedProf.profile.card.look, "cards: a blocked player's profile has no card");
+    const after = await call(fns.friendsOverviewFn, undefined, tok.cap);
+    const blockedRow = after.ok ? (after.overview.blocked.find((b) => b.id === FILL(1)) as Record<string, unknown> | undefined) : undefined;
+    check(!!blockedRow && !("look" in blockedRow), "cards: the blocked list carries no card");
+    const theirSide = await call(fns.friendProfileFn, { playerId: CAP }, accountToken(FILL(1)));
+    check(!theirSide.ok, "cards: the blocked player can't open the blocker's profile (no card)");
+
+    // Guests: the friends calls refuse them, so no card is ever sent to or for a guest.
+    const guestView = await call(fns.friendsOverviewFn, undefined, userToken(uid(97)));
+    check(!guestView.ok && guestView.reason === "account", "cards: a guest gets no list (and so no cards)");
+    // The cards' read leaves out a guest (no profile) and an unknown id.
+    const { cardLooksFor } = await import("../src/lib/friends/friends.server");
+    const looks = await cardLooksFor(createClient(rest!.url, SERVICE_KEY, { auth: { persistSession: false, autoRefreshToken: false } }) as never, [uid(97), "00000000-0000-4000-8000-00000000dead", FILL(0)]);
+    check(looks.size === 1 && looks.has(FILL(0)), `cards: a guest and an unknown id have no card (${[...looks.keys()].join(",")})`);
+  });
+
   await section("account removal", async () => {
     const before = Number(q(`SELECT count(*) FROM friendships WHERE user_low = '${GUS}' OR user_high = '${GUS}'`)) + Number(q(`SELECT count(*) FROM friend_requests WHERE from_user_id = '${GUS}' OR to_user_id = '${GUS}'`));
     check(before > 0, "the removed account had friends rows");

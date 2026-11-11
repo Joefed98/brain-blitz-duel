@@ -173,6 +173,27 @@ export function normaliseLoadout(raw: unknown): Loadout | null {
   return { slots, avatar, unlockedGems: unlocked };
 }
 
+/**
+ * Another player's card, from A1's getPublicCard: its flat shape (`username`, `playerNumber`, `founding`, `avatarId`,
+ * `colour`, `gem`, `avatar` choices, `cardArt`, `frame`, `nameColour`) read into a loadout. Until 11 Nov 2026 this
+ * answer was passed on as it came, so `loadout` was missing and a friend's profile drew the default card (Joe's phone
+ * check). A guest's default card (`account: false`) reads as null: guests show their colour and initial.
+ */
+export function normalisePublicCard(raw: unknown): PublicCard | null {
+  if (!raw || typeof raw !== "object") return null;
+  const r = raw as Record<string, unknown>;
+  if (r["account"] === false || typeof r["username"] !== "string") return null;
+  const loadout = normaliseLoadout({
+    slots: { "card-art": r["cardArt"] ?? null, frame: r["frame"] ?? null, "name-colour": r["nameColour"] ?? null },
+    avatarId: r["avatarId"],
+    colour: r["colour"],
+    gem: r["gem"],
+    avatar: r["avatar"],
+  });
+  if (!loadout) return null;
+  return { username: r["username"], playerNumber: num(r["playerNumber"]) ?? 0, founding: r["founding"] === true, loadout };
+}
+
 /** The option rows worth drawing for an avatar: only kinds with more than one choice (never an empty or single picker). */
 export function optionRows(options: AvatarOptions, avatarId: string): { kind: AvatarOptionKind; options: string[]; default: string | null }[] {
   const mine = options[avatarId] ?? {};

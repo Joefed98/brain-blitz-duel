@@ -51,6 +51,20 @@ export function playerIdOk(value: unknown): value is string {
   return typeof value === "string" && UUID_RE.test(value);
 }
 
+/**
+ * A player's card as the friends screens draw it (Joe, 11 Nov 2026: a player's card, avatar and frame show wherever
+ * they appear): their card art, frame, name colour, avatar in its colour, title and up to three badges, read on the
+ * server for the whole list at once (`cardLooksFor` in friends.server.ts). Accounts only; never a blocked player.
+ */
+export interface FriendLook {
+  cardArt: string;
+  frame: string;
+  nameColour: string | null;
+  avatar: { id: string; colour: number; gem: string | null };
+  title: string;
+  badges: string[];
+}
+
 /** Why a friends call was refused; the words go to the screen as they are. */
 export type FriendsRefusalReason =
   | "busy"
