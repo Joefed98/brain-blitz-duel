@@ -53,6 +53,18 @@ export const ANALYTICS_EVENTS = [
   "profile_viewed",
   "customise_opened",
   "equip_refused",
+  // Phone notifications (wave 2 train B, session B2, docs/push-notifications.md): recorded by the server only.
+  // notification_opt_in carries props.answer (accepted|declined) and props.moment, notification_sent props.event and
+  // props.devices, notification_opened props.event (src/lib/push/).
+  "notification_opt_in",
+  "notification_sent",
+  "notification_opened",
+  // Friends (wave 2, session B1; docs/friends.md): recorded by the server only (src/lib/friends/friends.server.ts).
+  // friend_request_sent and friend_added carry props.via (search or link); never a name or the other player's id.
+  "friend_request_sent",
+  "friend_added",
+  "friend_removed",
+  "friend_blocked",
   // Badges and titles (wave 2, session C2; docs/badges/README.md): recorded by the server only (src/lib/badges/
   // badges.server.ts and the backfill). badge_earned carries props.badge and props.rarity, title_equipped props.title.
   "badge_earned",

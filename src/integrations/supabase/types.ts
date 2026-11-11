@@ -467,6 +467,75 @@ export type Database = {
         }
         Relationships: []
       }
+      notification_log: {
+        Row: {
+          counts_cap: boolean
+          dedupe_key: string | null
+          event: string
+          id: number
+          sent_at: string
+          user_id: string
+        }
+        Insert: {
+          counts_cap: boolean
+          dedupe_key?: string | null
+          event: string
+          id?: number
+          sent_at?: string
+          user_id: string
+        }
+        Update: {
+          counts_cap?: boolean
+          dedupe_key?: string | null
+          event?: string
+          id?: number
+          sent_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      notification_settings: {
+        Row: {
+          asked_at: string | null
+          daily_streak: boolean
+          declined_at: string | null
+          enabled: boolean
+          friend_accepted: boolean
+          friend_challenge: boolean
+          friend_request: boolean
+          room_invite: boolean
+          tournament_starting: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          asked_at?: string | null
+          daily_streak?: boolean
+          declined_at?: string | null
+          enabled?: boolean
+          friend_accepted?: boolean
+          friend_challenge?: boolean
+          friend_request?: boolean
+          room_invite?: boolean
+          tournament_starting?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          asked_at?: string | null
+          daily_streak?: boolean
+          declined_at?: string | null
+          enabled?: boolean
+          friend_accepted?: boolean
+          friend_challenge?: boolean
+          friend_request?: boolean
+          room_invite?: boolean
+          tournament_starting?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       avatar_options: {
         Row: {
           avatar_id: string
@@ -1283,6 +1352,57 @@ export type Database = {
         }
         Relationships: []
       }
+      push_friend_deliveries: {
+        Row: {
+          claimed_at: string
+          event_id: number
+        }
+        Insert: {
+          claimed_at?: string
+          event_id: number
+        }
+        Update: {
+          claimed_at?: string
+          event_id?: number
+        }
+        Relationships: []
+      }
+      push_subscriptions: {
+        Row: {
+          auth: string
+          created_at: string
+          endpoint: string
+          id: string
+          last_seen_at: string
+          p256dh: string
+          platform: string | null
+          time_zone: string
+          user_id: string
+        }
+        Insert: {
+          auth: string
+          created_at?: string
+          endpoint: string
+          id?: string
+          last_seen_at?: string
+          p256dh: string
+          platform?: string | null
+          time_zone?: string
+          user_id: string
+        }
+        Update: {
+          auth?: string
+          created_at?: string
+          endpoint?: string
+          id?: string
+          last_seen_at?: string
+          p256dh?: string
+          platform?: string | null
+          time_zone?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       rate_limit_hits: {
         Row: {
           bucket: string
@@ -1845,7 +1965,7 @@ export type Database = {
       guest_progress: { Args: { p_user_id: string }; Returns: Json }
       file_room_report: {
         Args: {
-          p_duel_id: string
+          p_duel_id: string | null
           p_message_id: string | null
           p_message_text: string | null
           p_reason: string
@@ -1855,6 +1975,24 @@ export type Database = {
         }
         Returns: Json
       }
+      friends_search: { Args: { p_user: string; p_query: string; p_limit: number }; Returns: Json }
+      friends_send_request: { Args: { p_from: string; p_to: string; p_via: string; p_cap: number }; Returns: Json }
+      friends_respond: { Args: { p_user: string; p_request: string; p_accept: boolean; p_cap: number }; Returns: Json }
+      friends_remove: { Args: { p_user: string; p_friend: string }; Returns: boolean }
+      friends_block: { Args: { p_user: string; p_target: string }; Returns: Json }
+      friends_unblock: { Args: { p_user: string; p_target: string }; Returns: boolean }
+      friends_invite_token: { Args: { p_user: string; p_token: string; p_reset: boolean }; Returns: string | null }
+      friends_link_owner: { Args: { p_token: string }; Returns: Json }
+      friends_set_show_online: { Args: { p_user: string; p_show: boolean | null }; Returns: boolean }
+      friends_presence_beat: { Args: { p_user: string; p_activity: string }; Returns: boolean }
+      friends_room_invite: { Args: { p_from: string; p_to: string }; Returns: Json }
+      friends_challenge_send: { Args: { p_from: string; p_to: string; p_code: string }; Returns: Json }
+      friends_are_friends: { Args: { p_a: string; p_b: string }; Returns: boolean }
+      friends_count: { Args: { p_user: string }; Returns: number }
+      friends_head_to_head: { Args: { p_a: string; p_b: string }; Returns: Json }
+      friends_overview: { Args: { p_user: string; p_cap: number }; Returns: Json }
+      friends_waiting: { Args: { p_user: string }; Returns: number }
+      friends_profile: { Args: { p_viewer: string; p_target: string }; Returns: Json }
       moderation_status: { Args: { p_user_id: string }; Returns: Json }
       moderation_ack: { Args: { p_user_id: string; p_kind: string; p_detail?: Json | null }; Returns: boolean }
       network_key: { Args: { p_address: string }; Returns: string }
@@ -1866,6 +2004,36 @@ export type Database = {
           player_number: number | null
           user_id: string
           username: string
+        }[]
+      }
+      push_claim_friend_events: {
+        Args: { p_limit: number; p_since: string }
+        Returns: {
+          actor_id: string
+          created_at: string
+          id: number
+          kind: string
+          payload: Json
+          recipient_id: string
+        }[]
+      }
+      push_log_retention: { Args: Record<PropertyKey, never>; Returns: number }
+      push_reserve: {
+        Args: {
+          p_cap: number
+          p_counts_cap: boolean
+          p_dedupe_key: string | null
+          p_event: string
+          p_since: string
+          p_user_id: string
+        }
+        Returns: string
+      }
+      push_streak_candidates: {
+        Args: { p_day: string }
+        Returns: {
+          time_zone: string | null
+          user_id: string
         }[]
       }
       rename_profile: {

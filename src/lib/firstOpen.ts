@@ -17,6 +17,7 @@
  */
 import { FIRST_OPEN_ONBOARDING } from "@/config/betaConfig";
 import { onboardingSeen } from "@/lib/onboarding";
+import { checkOverride } from "@/lib/checkOverride";
 
 export const FIRST_OPEN_KEY = "duelz-first-open:v1";
 
@@ -27,10 +28,8 @@ let seenInMemory = false;
 
 /** Is the onboarding switched on (the config, or a check's own page)? */
 export function firstOpenOn(): boolean {
-  if (typeof window !== "undefined") {
-    const override = (window as unknown as { __DUELZ_FIRST_OPEN__?: unknown }).__DUELZ_FIRST_OPEN__;
-    if (typeof override === "boolean") return override;
-  }
+  const override = checkOverride("__DUELZ_FIRST_OPEN__");
+  if (typeof override === "boolean") return override;
   return FIRST_OPEN_ONBOARDING;
 }
 
