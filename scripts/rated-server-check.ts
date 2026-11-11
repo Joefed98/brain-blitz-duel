@@ -418,9 +418,19 @@ async function runAll(db: LocalDb): Promise<void> {
     // Placement: straight to a beginner's recorded run, never the live queue.
     q(`DELETE FROM public.mm_run_uses`);
     const tp = Date.now();
+    // A placed player (Evie) is searching too, at the same rating band once widened: never paired with Pally.
+    q(`DELETE FROM public.mm_queue WHERE user_id = '${EVE}'`);
+    RATING[EVE] = 1000;
+    await rated.joinQueue(client, EVE, { format: "bo3", choice: "mixed" }, tp);
     await rated.joinQueue(client, PAL, { format: "bo3", choice: "mixed" }, tp);
-    const pl = await rated.pollQueue(client, PAL, tp + 100);
-    check(pl.state === "found" && pl.match.kind === "recorded", "placement: a recorded run at once");
+    const evePoll = await rated.pollQueue(client, EVE, tp + 7_000);
+    check(evePoll.state === "searching", "a placed player is never paired live with a placement player");
+    await rated.leaveQueue(client, EVE);
+    RATING[EVE] = 1500;
+    const early = await rated.pollQueue(client, PAL, tp + 100);
+    check(early.state === "searching", "placement alone: still searching before 8 s (a placement partner could still come)");
+    const pl = await rated.pollQueue(client, PAL, tp + 8_000);
+    check(pl.state === "found" && pl.match.kind === "recorded", "placement alone: a recorded run at 8 s");
     if (pl.state === "found") {
       const rating = q(`SELECT coalesce(recorded_owner_rating, -1) FROM public.mm_matches WHERE id = '${pl.match.matchId}'`);
       check(Number(rating) <= 1000, `placement: a beginner's run (owner rating ${rating})`);
@@ -515,8 +525,8 @@ async function runAll(db: LocalDb): Promise<void> {
     const t = Date.now();
     const joined = await rated.joinQueue(client, GUEST, typedName, t, everyone);
     check(joined.ok === true, "a guest queues with no sign-up and no name");
-    const found = await rated.pollQueue(client, GUEST, t + 100);
-    check(found.state === "found" && found.match.kind === "recorded", "a guest in placement plays a recorded run first");
+    const found = await rated.pollQueue(client, GUEST, t + 8_000);
+    check(found.state === "found" && found.match.kind === "recorded", "a guest in placement with nobody else in placement searching: a beginner's recorded run at 8 s");
     if (found.state === "found") {
       const seated = q(`SELECT display_name FROM public.duel_players WHERE duel_id = '${found.match.roomId}' AND user_id = '${GUEST}'`);
       check(seated === guestEnergyName(GUEST) && /^[A-Z][a-z]+ [A-Z][a-z]+ \d{1,2}$/.test(seated) && seated !== "Gus",
@@ -608,15 +618,16 @@ async function runAll(db: LocalDb): Promise<void> {
     const { ratingsReady } = await import("../src/lib/rated/ratingsAdapter.server");
     await ratingsReady();
     if (q(`SELECT count(*) FROM public.pass_seasons WHERE id = 'test'`) !== "0") q(`SELECT pass.start_test_season('rated-server-check')`);
-    // New players are in placement on W3a's engine (they play recorded runs), so the live match is made directly, as a
-    // pairing would make it; it settles through the real engine like any other.
+    // Both are new, so in placement on W3a's real engine; both searching at the same time, they are matched live with
+    // each other through the real queue (Joe, 11 Nov 2026).
     const t = Date.now();
-    const matchId = crypto.randomUUID();
-    const entry = (userId: string) => ({ userId, format: "bo3" as const, choice: "mixed" as const, rating: 1000, joinedAtMs: t, placement: false });
-    await rated.createLiveMatch(client, { matchId, format: "bo3", choice: "mixed", players: [entry(F1), entry(F2)], rematchOf: null }, t);
-    const view = await rated.matchView(client, matchId, F1, t);
-    const p = view ? { state: "found" as const, match: view } : { state: "idle" as const };
-    check(p.state === "found" && p.match.kind === "live", "a live rated match for Flaggy and Fairy");
+    const j1 = await rated.joinQueue(client, F1, { format: "bo3", choice: "mixed" }, t);
+    const j2 = await rated.joinQueue(client, F2, { format: "bo3", choice: "mixed" }, t);
+    const placementBoth = q(`SELECT string_agg(placement::text, ',' ORDER BY user_id) FROM public.mm_queue WHERE user_id IN ('${F1}', '${F2}')`);
+    check(j1.ok && j2.ok && placementBoth === "true,true", `both queue in placement on W3a's real engine (${placementBoth})`);
+    const p = await rated.pollQueue(client, F1, t + 100);
+    await rated.pollQueue(client, F2, t + 200);
+    check(p.state === "found" && p.match.kind === "live" && p.match.players.every((x) => x.placement), "two placement players are matched live with each other through the real queue");
     if (p.state !== "found") return;
     const r = p.match.roomId!;
     q(`INSERT INTO public.round_results (duel_id, player_slot, round_number, score, ms_remaining, is_correct, answer, extra) VALUES
