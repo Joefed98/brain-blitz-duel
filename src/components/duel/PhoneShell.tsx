@@ -16,6 +16,7 @@ import { usePuzzleHaptics } from "@/components/puzzles/usePuzzleHaptics";
 import { usePuzzleRejections } from "@/components/puzzles/usePuzzleRejections";
 import { AppTabBar, type AppTab } from "@/components/app/AppTabBar";
 import { SaveProgressSlot } from "@/components/account/SaveProgressSlot";
+import { NotificationAskSlot } from "@/components/push/NotificationAskSlot";
 import { BadgeMoment } from "@/components/badges/BadgeMoment";
 import type { ThemeSkin } from "@/lib/theme";
 import { OfflineBanner } from "@/components/offline/OfflineBanner";
@@ -512,6 +513,8 @@ export function PhoneShell({ children, reveal = false, bare = false, constrained
       {tabs && !gameScreen && !desktop ? <AppTabBar current={tabs} /> : null}
       {/* "Save your progress" shows only here, on the tab pages (src/components/account/SaveProgressSlot.tsx). */}
       {tabs && !gameScreen ? <SaveProgressSlot /> : null}
+      {/* The notification ask (B2): the tab pages only, accounts only, nothing while the switch is off. */}
+      {tabs && !gameScreen ? <NotificationAskSlot /> : null}
       {/* The badge-earned moment, also tab pages only (src/components/badges/BadgeMoment.tsx). */}
       {tabs && !gameScreen ? <BadgeMoment /> : null}
       <FxLayer theme={theme} />

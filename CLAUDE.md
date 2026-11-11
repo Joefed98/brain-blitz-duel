@@ -2025,6 +2025,26 @@ outside the repo.
   Migration `20261111101500_practice_progress.sql` (**not applied until merged**). practice-progress-check (~15 s,
   PostgreSQL, no browser); offline-check's production server runs on the server-fn harness's PostgreSQL and REST
   stand-in (each browser context its own guest and network address), proving only confirmed runs count.
+- **Phone notifications** (wave 2 train B, session B2, 11 Nov 2026, `docs/push-notifications.md`; no gameplay, scoring,
+  stamp, timing or room-flow change): standard web push with Joulz's own VAPID keys, no package (RFC 8291 / 8292 in
+  WebCrypto, `src/lib/push/webPush.server.ts`). **Off until Joe sets `PUSH_PUBLIC_KEY`** (`src/config/pushConfig.ts`) and the
+  Worker secret `VAPID_PRIVATE_KEY`: nothing asks, subscribes or sends, and no settings panel shows. Six events
+  (`PUSH_EVENTS` in `src/lib/push/rules.ts`), decided and sent only in `notify.server.ts`: friend request, friend accepted,
+  friend challenge and room invite from B1's `friend_events` (`dispatchFriendEvents`, each claimed once through
+  `push_claim_friend_events`; run right after B1's change, `notifySoon` in friends.server.ts, and every 5 minutes),
+  tournament starting (exists; nothing sends it until wave 4) and the Daily streak reminder (19:00–20:59 UK, C2's
+  `dailyStreakFor` streak ≥ 1 with today's Daily not played). Schedules are the Worker's own **Cron Triggers**: nitro
+  scheduled tasks in `vite.config.ts` (`src/lib/push/tasks/`, `*/5 * * * *` friend sweep, `41 * * * *` reminder), written
+  into wrangler.json's `triggers.crons` by the build. A switch per event under a master switch (Settings → Notifications),
+  at most 3 a day (room invites apart), none 22:00–08:00 on the device's clock (its IANA zone, sent on subscribe and each
+  open) except a fresh room invite; held-back ones are dropped. The ask: never on first open, at a useful moment
+  (`notePushMoment`: a friend request sent or waiting, a finished Daily), on the next tab page (`NotificationAskSlot`), 30
+  days after a decline; an iPhone in Safari gets the Home Screen how-to. Accounts only (rows hang off `profiles`); sign-out
+  removes the device (`forgetPushOnSignOut`), a 404/410 from the push service removes it, a deletion request removes all.
+  The `push` / `notificationclick` listeners (`src/lib/push/sw.push.js`) are appended to the offline worker by swPlugin; the
+  offline worker itself is unchanged. Migration `20261112060000_push_notifications.sql` (after C2's and B1's; **not applied
+  until merged**). Events `notification_opt_in`, `notification_sent`, `notification_opened`. push-notifications-check (~5 s,
+  shard `e`).
 - **Practice challenges** (wave 2 train C, session C1b, 11 Nov 2026; `docs/challenges/catalogue.md`, the live catalogue,
   written by `bun scripts/challenge-catalogue-doc.ts [--check]`; no gameplay, scoring, stamp, timing or deal change): 261
   challenges over the 92 active games in one data file, `src/lib/duel/practiceChallenges.data.ts` (217 Classic live;
@@ -2053,6 +2073,22 @@ outside the repo.
   and falls short for all 261, speed goals against the grader, the facts, coins and roles on PostgreSQL) and
   practice-challenge-fit-check (headless Chromium: every goal whole at 320 and 375 px). **A retune that moves a goal's
   number fails practice-goals-check: change the goal's text and number in the data file and re-run the doc script.**
+- **Friends** (wave 2 train B, session B1, 11 Nov 2026, `docs/friends.md`; no gameplay, scoring, stamp or room-flow
+  change beyond Invite to room): accounts only (`/friends`, `src/routes/friends.tsx`, screens
+  `src/components/friends/FriendsScreens.tsx`; Profile's Friends button carries the waiting-requests badge, a guest gets
+  the save-your-progress sheet). Migration `20261111230000_friends.sql` (**not applied until merged**): friendships,
+  requests (phones never read a status, so a decline is never told), blocks, invite links, "Show when I'm online"
+  (null = on for adults, off for under-18s), presence (the app's heartbeat, `FriendsPresence` in the root, accounts
+  only) and `friend_events`, the outbox B2 turns into phone notifications (`friend_request_received`,
+  `friend_request_accepted`, `friend_challenge_received`, `room_invite_received`); every rule also in SQL on
+  service-role functions (`friends_*`), through `src/lib/data/friends.server.ts` and `src/lib/friends/friends.server.ts`.
+  Search is for adults and never returns an under-18 account; invite links work for everyone (a guest goes through
+  sign-up first, the token kept as `duelz-friend-invite:v1`). Block removes the friendship and stops requests, invites,
+  challenges, search, profiles and status both ways. Reports from a profile go through wave 1's `file_room_report` with
+  no room (`room_reports.duel_id` now nullable). Limits: 20 requests an hour, 200 friends. Chat: `chatPolicy(context,
+  player, { friends: true })` types for friends, under-18s included; strangers unchanged. Analytics `friend_request_sent`,
+  `friend_added`, `friend_removed`, `friend_blocked` (`20261111230100_analytics_friend_events.sql`). friends-check (~5 s,
+  PostgreSQL, shard `e`), friends-ui-check (~3 s, happy-dom).
 - `src/components/duel/` — room/round screens (PhoneShell, RoundIntro, TimerBar,
   AnswerReveal, ArcadeReveal, WinnerReveal…); `src/components/puzzles/` — shared puzzle
   widgets; `src/lib/fx/` — sound and visual feedback (presentation only).
