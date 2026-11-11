@@ -179,7 +179,7 @@ await section("source rules", async () => {
   const body = fn.slice(fn.indexOf("{") + 1, fn.indexOf("\n}"));
   const prodAt = body.indexOf("if (import.meta.env.PROD) return true;");
   const flagAt = body.indexOf("__DUELZ_ALLOW_TOURNAMENTS__");
-  check(prodAt > 0 && flagAt > prodAt && (api.match(/__DUELZ_ALLOW_TOURNAMENTS__/g) ?? []).length === 3, "the check-only switch window.__DUELZ_ALLOW_TOURNAMENTS__ is read only after a production build has answered (import.meta.env.PROD)");
+  check(prodAt > 0 && flagAt > prodAt && body.includes('checkOverride<boolean>("__DUELZ_ALLOW_TOURNAMENTS__")') && (api.match(/__DUELZ_ALLOW_TOURNAMENTS__/g) ?? []).length === 2, "the check-only switch window.__DUELZ_ALLOW_TOURNAMENTS__ is read only after a production build has answered (import.meta.env.PROD), and only through checkOverride");
   const { TOURNAMENT_CRON } = await import("../src/lib/tournaments/tasks/tournamentsTick.server");
   const vite = readFileSync("vite.config.ts", "utf8");
   check(vite.includes(`"${TOURNAMENT_CRON}": ["tournaments:tick"]`) && vite.includes(`"tournaments:tick": { handler:`), "vite.config.ts schedules the tournaments' tick every 5 minutes");

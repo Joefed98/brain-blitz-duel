@@ -16,6 +16,7 @@ export type CheckOverrideName =
   | "__DUELZ_ALLOW_CHALLENGES__"
   | "__DUELZ_ALLOW_PRESENCE__"
   | "__DUELZ_ALLOW_SAFETY__"
+  | "__DUELZ_ALLOW_TOURNAMENTS__"
   | "__DUELZ_BANNERS__"
   | "__DUELZ_BETA_CONFIG__"
   | "__DUELZ_CELEBRATION_LOG__"
