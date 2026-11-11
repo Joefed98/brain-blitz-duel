@@ -327,6 +327,9 @@ export async function requestAccountDeletion(
     const out = await signOutEverywhere(client, accessToken);
     if (out.error) console.warn(`[account] sign out everywhere: ${out.error.message}`);
   }
+  // Signed out everywhere, so no device keeps notifications (B2; docs/push-notifications.md).
+  const { removeAllSubscriptions } = await import("@/lib/push/push.server");
+  await removeAllSubscriptions(client, userId);
   return { ok: true, purgeAt: new Date(Date.parse(requestedAt) + DELETION_GRACE_DAYS * DAY_MS).toISOString() };
 }
 

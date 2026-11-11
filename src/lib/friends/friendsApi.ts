@@ -5,6 +5,7 @@
  */
 import { useEffect, useState } from "react";
 
+import { pushPublicKey } from "@/config/pushConfig";
 import type { FriendCard, FriendProfile, Overview, SearchHit } from "@/lib/data/friends.server";
 import type { ReportReason } from "@/lib/safety/reports";
 
@@ -44,9 +45,9 @@ export const friendsApi = {
   search: (query: string) =>
     call(async () => (await fns()).friendSearchFn({ data: { query } }) as Promise<Answer<{ results: SearchHit[] }>>),
   request: (playerId: string) =>
-    call(async () => (await fns()).friendRequestFn({ data: { playerId } }) as Promise<Answer<{ outcome: string }>>),
+    askAfter(call(async () => (await fns()).friendRequestFn({ data: { playerId } }) as Promise<Answer<{ outcome: string }>>)),
   requestByLink: (token: string) =>
-    call(async () => (await fns()).friendLinkRequestFn({ data: { token } }) as Promise<Answer<{ outcome: string; owner: FriendCard }>>),
+    askAfter(call(async () => (await fns()).friendLinkRequestFn({ data: { token } }) as Promise<Answer<{ outcome: string; owner: FriendCard }>>)),
   respond: (requestId: string, accept: boolean) =>
     call(async () => (await fns()).friendRespondFn({ data: { requestId, accept } }) as Promise<Answer<{ outcome: string }>>),
   remove: (playerId: string) =>
@@ -69,6 +70,21 @@ export const friendsApi = {
     call(async () => (await fns()).friendShowOnlineFn({ data: { show } }) as Promise<Answer<{ showOnline: boolean }>>),
 };
 
+/* ------------------------------------------------------------------ phone notifications' ask (B2) */
+
+/** Marks the notification ask due (pushClient.ts; nothing while the push switch is off). Accounts only call these. */
+function notePushMomentSoon(moment: "friend_request_sent" | "friend_request_received"): void {
+  if (!pushPublicKey()) return;
+  void import("@/lib/push/pushClient").then((m) => m.notePushMoment(moment, true)).catch(() => {});
+}
+
+/** A request that went out is a useful moment to offer notifications. */
+async function askAfter<T extends Answer<{ outcome: string }>>(answer: Promise<T>): Promise<T> {
+  const out = await answer;
+  if (out.ok && (out as { outcome?: string }).outcome === "sent") notePushMomentSoon("friend_request_sent");
+  return out;
+}
+
 /* ------------------------------------------------------------------ the badge */
 
 /** How many friend requests wait for this account (0 for a guest, and until the server answers). */
@@ -81,6 +97,8 @@ export function useWaitingRequests(enabled: boolean): number {
       try {
         const n = await (await fns()).friendsWaitingFn();
         if (live && typeof n === "number") setCount(n);
+        // A request waiting is a useful moment to offer notifications (B2), shown on the next tab page.
+        if (typeof n === "number" && n > 0) notePushMomentSoon("friend_request_received");
       } catch {
         /* no badge */
       }

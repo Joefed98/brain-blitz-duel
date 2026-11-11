@@ -23,6 +23,7 @@ export type CheckOverrideName =
   | "__DUELZ_FIRST_OPEN__"
   | "__DUELZ_IDENTITY_EVENTS__"
   | "__DUELZ_PUBLIC_GAMES__"
+  | "__DUELZ_PUSH_PUBLIC_KEY__"
   | "__DUELZ_TURNSTILE_SITE_KEY__";
 
 export function checkOverride<T = unknown>(name: CheckOverrideName): T | undefined {
