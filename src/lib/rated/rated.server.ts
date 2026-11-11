@@ -969,24 +969,19 @@ export async function settleMatch(client: Db, matchId: string, nowMs: number): P
     const { data: priv } = await readPrivatePuzzles(client, room.id);
     const pubs = Array.isArray(room.puzzles_public) ? (room.puzzles_public as unknown as PuzzleData[]) : [];
     const puzzles = pubs.map((p, i) => mergePuzzle(p, priv?.[i]));
-    if (FORMAT_PLAYERS[match.format as RatedFormat] > 2) {
-      // W3d: 4 and 8 players settle on placings straight into W3a's recordRatedMatch (W3a's own result type).
-      const { settleMultiMatch, multiSettlement } = await import("./multi/multiQueue.server");
-      const multi = await settleMultiMatch({ match, players: players ?? [], puzzles, results: results ?? [], finishedAt });
-      if (!multi.outcome.ok) throw new Error(multi.outcome.message);
-      const settlement = multiSettlement(match, players ?? [], puzzles, results ?? [], finishedAt, multi);
-      await markSettled(client, matchId, asJson(settlement), nowIso(nowMs));
-      await storeRatedRuns(client, match, players ?? [], puzzles, results ?? []);
-      return { state: "settled", result: settlement };
-    }
+    // W3d: a 4- or 8-player match is settled on its placings (multiSettlement); then every match takes the same path.
+    const multi = FORMAT_PLAYERS[match.format as RatedFormat] > 2 ? await import("./multi/multiQueue.server") : null;
     // The games played: every dealt game, or fewer when the match stopped as soon as it was won (matchClinched).
     const played = puzzles.slice(0, Math.max(1, Math.min(puzzles.length, room.current_round)));
-    const result = buildMatchResult({ match: { ...match, finished_at: finishedAt }, players: players ?? [], puzzles: played, results: results ?? [], finishedAt });
+    const result = multi
+      ? multi.multiSettlement({ match, players: players ?? [], puzzles, results: results ?? [], finishedAt })
+      : buildMatchResult({ match: { ...match, finished_at: finishedAt }, players: players ?? [], puzzles: played, results: results ?? [], finishedAt });
     // W3a's recordRatedMatch, once per match (idempotent on the id): a passing failure throws and the settle retries.
     const forRatings = toRatingsResult(result);
     if (forRatings) result.ratings = await (await ratingsReady()).recordRatedMatch(forRatings);
     await markSettled(client, matchId, asJson(result), nowIso(nowMs));
     await storeRatedRuns(client, match, players ?? [], puzzles, results ?? []);
+    if (multi) multi.recordMultiFinished(result);
     return { state: "settled", result };
   } catch (error) {
     await releaseSettle(client, matchId);

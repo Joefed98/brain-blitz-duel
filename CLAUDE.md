@@ -2140,12 +2140,12 @@ outside the repo.
   stamp, timing or deal change; rooms untouched): **off at launch** on W3b's switches (`RATED_FORMATS_ON.ffa4` / `.ffa8`
   in `src/config/matchmakingConfig.ts`), refused by the server while off (`joinMultiQueue` / `assertMultiOn`). Rules
   `src/lib/rated/multi/rules.ts`: 15 s for live players, then recorded runs in every empty seat, never a player twice;
-  placing points 10, 7, 5, 4, 3, 2, 1, 0 (8) and 5, 3, 1, 0 (4), final placings by points then total score. W3a's
-  `recordRatedMatch` gets a `placings` match (`multiRatedResult`) and applies the pairwise rule, Joules (1.5 × best of 3)
-  and badges; `bindRatedMulti` (`contracts.ts`) connects W3a's and W3b's server functions. Screens
-  `src/components/rated/multi/MultiScreens.tsx` (mockups 08–10; the podium entrance only in the podium's box, none under
-  reduced motion). A flagged run (a stored grade's `extra.flagged`, passed as W3a's `gradeExtras`) moves nobody, counts
-  for nothing and pays its player no Joules (W3a's rule). Events `multiplayer_match_started` / `_finished`
+  placing points 10, 7, 5, 4, 3, 2, 1, 0 (8) and 5, 3, 1, 0 (4), final placings by points then total score. Grouped in W3b's
+  queue (`pollMultiQueue`) and settled on the 1v1's own path: `multiSettlement` (stored scores, stored server grades,
+  placings), then W3b's `toRatingsResult` (a `placings` match with `gradeExtras`) and W3a's `finishRatedMatch` through
+  `ratingsReady()` (the pairwise rule, Joules 1.5 × best of 3, badges; a flagged run moves nobody and pays its player no
+  Joules). Screens `src/components/rated/multi/MultiScreens.tsx` (mockups 08–10; the podium entrance only in the
+  podium's box, none under reduced motion). Events `multiplayer_match_started` / `_finished`
   (`20261114400000_analytics_multiplayer_events.sql`, **not applied until merged**). rated-multi-check (~2 s),
   rated-multi-server-check (~15 s, shard `e`, PostgreSQL: 4 and 8 players, flagged runs on W3a's real engine).
 - `src/components/duel/` — room/round screens (PhoneShell, RoundIntro, TimerBar,

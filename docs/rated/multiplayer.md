@@ -26,24 +26,25 @@ switching one on is a deliberate change to that line (Joe's call, recorded with 
 
 ## Connected to W3b and W3a
 
-- **W3b's queue** (`src/lib/rated/rated.server.ts`, three marked hooks): `joinQueue` refuses 4 and 8 players during
+- **W3b's queue** (`src/lib/rated/rated.server.ts`, marked hooks): `joinQueue` refuses 4 and 8 players during
   placement; `pollQueue` hands an ffa searcher to `pollMultiQueue` (`src/lib/rated/multi/multiQueue.server.ts`), which
   groups players with W3b's own pairing rule between every two of them (`groupFor` in `queue.ts`: the same format and
-  choice, never placement, the band widening as for 1v1), claims them atomically (`mm_queue_claim`) and makes the
-  match with W3b's `createLiveMatch` (an ordinary started room, the same deals for everyone); `settleMatch` hands a
-  finished ffa match to `settleMultiMatch`, which builds W3a's placings result (`multiRatedResult`) from the stored
-  scores and stores every player's run (the source for recorded seats).
-- **W3a**: a finished 4- or 8-player match reaches W3a's `recordRatedMatch` through W3b's adapter
-  (`src/lib/rated/ratingsAdapter.server.ts` `ratings()`, the one place the match engine calls the ratings), with W3a's own
-  `RatedMatchResult` (`multiRatedResult`: format `placings`, every game's stored scores and dealt version, the final
-  placings). It is live once W3b's BIND line binds W3a (`bindW3aRatings`); rated-multi-server-check already plays a match
-  through W3a's real engine that way (places 1–4, Joules 225 / 150 / 150 / 150, a repeat is W3a's duplicate). The
-  settlement W3b's result screens read (`RatedSettlement`) carries `placings` and W3a's answer.
-- **Flagged runs** (Joe, 11 Nov 2026; built in W3a's engine): the settle passes every game's stored grade `extra` per
-  player as W3a's `gradeExtras` (`MultiGame.extras`), so a run the server flagged (`extra.flagged`) anywhere in a 4- or
-  8-player match moves nobody's rating, counts for nobody's placement, streaks or badges (Podium Regular included), is
-  logged in `moderation.rated_flags`, and pays the flagged player no Joules while the others keep theirs.
-  rated-multi-server-check proves it for 4 and 8 players on W3a's real engine.
+  choice, never placement, the band widening as for 1v1), claims them atomically (`mm_queue_claim`) and makes the match
+  with W3b's `createLiveMatch` (an ordinary started room, the same deals for everyone).
+- **Settling: one path for every match.** W3b's `settleMatch` builds a 4- or 8-player match's `RatedSettlement` with
+  `multiSettlement` (each player's stored scores and stored server grades, `extras`, and the final placings from the
+  stored scores), then takes the 1v1's own lines: W3b's `toRatingsResult` (which, for a settlement with `placings`,
+  sends W3a a `placings` match with every game's scores and `gradeExtras` for every player), W3a's
+  `finishRatedMatch` through `ratingsReady()` (ratings, Joules through D2's pass, C2's badges), `markSettled` and the
+  stored runs (every player's run, the source for recorded seats), then `multiplayer_match_finished`
+  (`recordMultiFinished`). W3a applies the pairwise rule and pays 1.5 × best of 3 (first place the win).
+- **Flagged runs** (Joe, 11 Nov 2026; built in W3a's engine): a run the server flagged (`extra.flagged` in its stored
+  grade) anywhere in a 4- or 8-player match moves nobody's rating, counts for nobody's placement, streaks or competitive
+  badges (Podium Regular included), is logged in `moderation.rated_flags`, and pays the flagged player no Joules while
+  the others keep theirs. rated-multi-server-check proves it for 4 and 8 players on W3a's real `finishRatedMatch`.
+  **Open (C2 / W3a):** C2's `badge_facts` reads every room's stored results, rated rooms and flagged matches included,
+  so an unflagged 200 in a flagged rated match still earns Flawless (a mastery badge, not a competitive one; 1v1 alike).
+  The check prints it as a NOTE.
 - **Recorded seats (parked until 4 and 8 players are switched on; Joe will ask W3b then):** a 1v1 against a recorded run deals that run's stored puzzles. A 4- or
   8-player match has one set of deals, so its recorded seats must be the other players of one earlier match on the same
   deals (every settled ffa match now stores all its players' runs, `rated:<match>:<user>`). W3b's recorded match holds

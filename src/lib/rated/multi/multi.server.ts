@@ -2,18 +2,18 @@
  * Rated 4- and 8-player matches on the server (wave 3, session W3d; docs/rated/multiplayer.md). Server only.
  *
  * - The switches are W3b's: `RATED_FORMATS_ON.ffa4` / `.ffa8` in src/config/matchmakingConfig.ts, off at launch. While a
- *   size is off, `joinMultiQueue`, `fillMatch` and `finishMultiMatch` refuse it whatever a phone sends.
+ *   size is off, `joinMultiQueue` and `fillMatch` refuse it whatever a phone sends (W3b's `ratedOptionRefusal` too).
  * - `fillMatch`: after FILL_WAIT_MS, recorded runs in every empty seat (rules.ts `fillPlan`); records
  *   `multiplayer_match_started` once the match is full.
- * - `finishMultiMatch`: the final placings from the stored game scores, handed to W3a's recordRatedMatch as a
- *   `placings` match (W3a applies the pairwise rule, pays Joules through D2 and awards badges), and
- *   `multiplayer_match_finished` for each live player.
+ * - Settling: W3b's settleMatch, the same path as a 1v1 (multiQueue.server.ts `multiSettlement`, then W3b's
+ *   toRatingsResult and W3a's finishRatedMatch through ratingsReady(), which applies the pairwise rule, pays Joules
+ *   through D2 and awards badges); `multiplayer_match_finished` for each live player (`recordMultiFinished`).
  *
  * No game's deal, timing, grading or score is touched: the games are W3b's rated room (dealt and graded by the round
  * engine as every room); this module only reads the stored scores.
  */
 import { RATED_FORMATS_ON } from "@/config/matchmakingConfig";
-import type { RatedCategory, RatedChoice, RatedGame, RatedMatchOutcome, RatedMatchPlayer, RatedMatchResult, RatedPool } from "@/lib/data/ratings";
+import type { RatedChoice } from "@/lib/data/ratings";
 import type { AnalyticsEvent } from "@/lib/data/events.server";
 
 import { ratedMultiBackend, type RatedMultiBackend } from "./contracts";
@@ -123,109 +123,4 @@ export async function fillMatch(
     });
   }
   return plan;
-}
-
-/** One game of the match as the room stored it: what W3a needs (its pool and category from the type, server side). */
-export interface MultiGame {
-  type: string;
-  pool: RatedPool;
-  category: RatedCategory;
-  signature: string;
-  /** Each seat's stored score (a seat with no result: 0). */
-  scores: readonly { seatId: string; score: number }[];
-  /**
-   * Each seat's stored grade `extra` for this game, exactly as the server's grading stored it. W3a reads the server's own
-   * flag from it (`extra.flagged === true`, set by the replay and anti-cheat, never by the phone): a flagged run anywhere
-   * in the match moves nobody's rating, counts for nobody's placement, streaks or badges, pays the flagged player no
-   * Joules and is logged for review (moderation.rated_flags).
-   */
-  extras?: readonly { seatId: string; extra: Record<string, unknown> | null }[];
-}
-
-/** The result W3a's recordRatedMatch takes for a 4- or 8-player match. */
-export function multiRatedResult(input: {
-  matchId: string;
-  size: MultiSize;
-  choice: RatedChoice;
-  seats: readonly MultiSeat[];
-  games: readonly MultiGame[];
-  placings: readonly StandingRow[];
-  finishedAt?: string;
-}): RatedMatchResult {
-  const bySeat = new Map(input.seats.map((s) => [s.seatId, s]));
-  const players: RatedMatchPlayer[] = input.seats.map((s) =>
-    s.recorded && s.run
-      ? { playerId: s.playerId, side: "recorded", run: { runId: s.run.runId, ownerId: s.playerId, source: s.run.source } }
-      : { playerId: s.playerId, side: "live" },
-  );
-  return {
-    matchId: input.matchId,
-    format: { kind: "placings", players: input.size },
-    choice: input.choice,
-    players,
-    games: input.games.map((g) => {
-      const scores: Record<string, number> = {};
-      for (const s of input.seats) scores[s.playerId] = 0;
-      for (const r of g.scores) {
-        const seat = bySeat.get(r.seatId);
-        if (seat) scores[seat.playerId] = Math.max(0, Math.round(r.score));
-      }
-      const game: RatedGame = { type: g.type, pool: g.pool, category: g.category, version: "classic" as const, signature: g.signature, scores };
-      if (g.extras?.length) {
-        const gradeExtras: Record<string, Record<string, unknown> | null> = {};
-        for (const s of input.seats) gradeExtras[s.playerId] = null;
-        for (const e of g.extras) {
-          const seat = bySeat.get(e.seatId);
-          if (seat) gradeExtras[seat.playerId] = e.extra && typeof e.extra === "object" && !Array.isArray(e.extra) ? e.extra : null;
-        }
-        game.gradeExtras = gradeExtras;
-      }
-      return game;
-    }),
-    placings: Object.fromEntries(input.placings.map((p) => [bySeat.get(p.seatId)!.playerId, p.place])),
-    ...(input.finishedAt ? { finishedAt: input.finishedAt } : {}),
-  };
-}
-
-export interface MultiFinish {
-  placings: StandingRow[];
-  outcome: RatedMatchOutcome;
-}
-
-/**
- * The end of a match: placings from the stored scores of every game, W3a's recordRatedMatch (ratings, Joules, badges,
- * all W3a's), and one `multiplayer_match_finished` per live player.
- */
-export async function finishMultiMatch(
-  input: {
-    matchId: string;
-    size: MultiSize;
-    choice: RatedChoice;
-    seats: readonly MultiSeat[];
-    games: readonly MultiGame[];
-    finishedAt?: string;
-  },
-  deps: MultiDeps = {},
-): Promise<MultiFinish> {
-  assertMultiOn(input.size, deps.switches);
-  const backend = deps.backend === undefined ? ratedMultiBackend() : deps.backend;
-  if (!backend) throw new Error(RATED_MULTI_NOT_READY_MESSAGE);
-  const seatIds = input.seats.map((s) => s.seatId);
-  const placings = finalPlacings(input.size, seatIds, input.games.map((g) => g.scores));
-  const outcome = await backend.recordRatedMatch(multiRatedResult({ ...input, placings }));
-  if (outcome.ok && outcome.status === "recorded") {
-    const record = deps.record ?? (await defaultRecord());
-    const bySeat = new Map(input.seats.map((s) => [s.seatId, s]));
-    record(
-      placings
-        .map((p) => ({ seat: bySeat.get(p.seatId)!, place: p.place }))
-        .filter((p) => !p.seat.recorded)
-        .map((p) => ({
-          event: "multiplayer_match_finished" as const,
-          playerId: p.seat.playerId,
-          props: { size: input.size, placing: p.place },
-        })),
-    );
-  }
-  return { placings, outcome };
 }

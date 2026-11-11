@@ -11,13 +11,13 @@
  */
 import { claimQueue, readWaiting, type RatedMatchPlayerRow, type RatedMatchRow } from "@/lib/data/rated.server";
 import type { Db } from "@/lib/data/db.server";
+import { recordEvents } from "@/lib/data/events.server";
 import { FORMAT_PLAYERS, RATED_GAME_MODE, bandFor, gameVersionOf, isRatedChoice, isRatedFormat, type QueueEntry } from "@/lib/rated/matchmaking";
 import type { RatedSettlement } from "@/lib/rated/ratingsAdapter.server";
 import type { PuzzleData, RoundResultRow } from "@/lib/duel/types";
 
-import { finishMultiMatch, type MultiFinish } from "./multi.server";
-import { groupFor, ratedPoolOf } from "./queue";
-import { isMultiSize, type MultiSeat } from "./rules";
+import { groupFor } from "./queue";
+import { finalPlacings, isMultiSize, type GameScore } from "./rules";
 
 type Poll = { state: "searching"; waitedMs: number; band: number } | { state: "matched" };
 
@@ -53,82 +53,56 @@ export async function pollMultiQueue(
 }
 
 /**
- * W3b's settleMatch for an ffa match: the seats from the match's players, every game's stored scores by slot, the final
- * placings, W3a's recordRatedMatch (through finishMultiMatch) and the finish events. A match that started while its
- * size was on is always finished, whatever the switch says now.
+ * W3b's settlement for a 4- or 8-player match (its `RatedSettlement`, what the result screens read): each player's
+ * stored scores and stored server grades (`extras`, W3a's gradeExtras: the server's own flag, `extra.flagged`) by slot,
+ * and the final placings from the stored scores (rules.ts `finalPlacings`: points, then total score, level shared).
+ * W3b's settleMatch then takes the same path as a 1v1: `toRatingsResult` (which reads the placings), W3a's
+ * finishRatedMatch through `ratingsReady()`, markSettled and the stored runs. A match that started while its size was
+ * on is always settled, whatever the switch says now.
  */
-export async function settleMultiMatch(input: {
+export function multiSettlement(input: {
   match: RatedMatchRow;
   players: RatedMatchPlayerRow[];
   puzzles: PuzzleData[];
   results: RoundResultRow[];
   finishedAt: string;
-}): Promise<MultiFinish> {
+}): RatedSettlement {
   const size = FORMAT_PLAYERS[input.match.format as QueueEntry["format"]];
-  if (!isMultiSize(size) || !isRatedChoice(input.match.choice) || !["mixed", "puzzles", "arcade"].includes(input.match.choice))
-    throw new Error("Not a 4- or 8-player match.");
-  // W3a's result carries player ids, never names.
-  const seats: MultiSeat[] = input.players.map((p) => ({ seatId: `slot:${p.slot}`, playerId: p.user_id, name: "", recorded: false }));
-  const games = input.puzzles.map((puzzle, i) => ({
-    type: puzzle.type,
-    ...ratedPoolOf(puzzle.type),
-    signature: gameVersionOf(puzzle),
-    scores: input.players.map((p) => ({
-      seatId: `slot:${p.slot}`,
-      score: input.results.find((r) => r.player_slot === p.slot && r.round_number === i + 1)?.score ?? 0,
-    })),
-    // The stored grade extras, so W3a sees the server's own flag (extra.flagged) on any run.
-    extras: input.players.map((p) => {
-      const extra = input.results.find((r) => r.player_slot === p.slot && r.round_number === i + 1)?.extra;
-      return { seatId: `slot:${p.slot}`, extra: extra && typeof extra === "object" && !Array.isArray(extra) ? (extra as Record<string, unknown>) : null };
-    }),
-  }));
-  // W3a is reached through W3b's adapter, the one place the match engine calls the ratings (ratingsAdapter.server.ts
-  // `ratingsReady()`, which binds W3a's engine), so W3a's recordRatedMatch is bound once for 1v1 and 4 and 8 players.
-  const { ratingsReady } = await import("@/lib/rated/ratingsAdapter.server");
-  const backend = await ratingsReady();
-  return finishMultiMatch(
-    { matchId: input.match.id, size, choice: input.match.choice as "mixed" | "puzzles" | "arcade", seats, games, finishedAt: input.finishedAt },
-    {
-      switches: { ffa4: true, ffa8: true },
-      backend: {
-        enqueue: async () => {
-          throw new Error("not used when settling");
-        },
-        recordedCandidates: async () => [],
-        recordRatedMatch: (result) => backend.recordRatedMatch(result),
-      },
-    },
-  );
-}
-
-/** W3b's `RatedSettlement` for a 4- or 8-player match (what its result screens read): each player's stored scores, the placings and W3a's answer. */
-export function multiSettlement(
-  match: RatedMatchRow,
-  players: RatedMatchPlayerRow[],
-  puzzles: PuzzleData[],
-  results: RoundResultRow[],
-  finishedAt: string,
-  multi: MultiFinish,
-): RatedSettlement {
-  const scoresOf = (slot: number) => puzzles.map((_, i) => results.find((r) => r.player_slot === slot && r.round_number === i + 1)?.score ?? 0);
-  const placeOf = new Map(multi.placings.map((p) => [p.seatId, p.place]));
+  if (!isMultiSize(size) || !isRatedChoice(input.match.choice)) throw new Error("Not a 4- or 8-player match.");
+  const rowOf = (slot: number, i: number) => input.results.find((r) => r.player_slot === slot && r.round_number === i + 1);
+  const seatOf = (slot: number) => `slot:${slot}`;
+  const games: GameScore[][] = input.puzzles.map((_, i) => input.players.map((p) => ({ seatId: seatOf(p.slot), score: rowOf(p.slot, i)?.score ?? 0 })));
+  const placings = finalPlacings(size, input.players.map((p) => seatOf(p.slot)), games);
+  const placeOf = new Map(placings.map((p) => [p.seatId, p.place]));
   return {
-    matchId: match.id,
-    format: match.format as RatedSettlement["format"],
-    choice: match.choice as RatedSettlement["choice"],
+    matchId: input.match.id,
+    format: input.match.format as RatedSettlement["format"],
+    choice: input.match.choice as RatedSettlement["choice"],
     gameMode: RATED_GAME_MODE,
     kind: "live",
-    rematchOf: match.rematch_of,
-    finishedAt,
-    players: players.map((p) => {
-      const scores = scoresOf(p.slot);
-      return { userId: p.user_id, slot: p.slot, ratingBefore: p.rating_before, placement: p.placement, scores, timesMs: scores.map(() => 0), gamesWon: 0, total: scores.reduce((a, b) => a + b, 0) };
+    rematchOf: input.match.rematch_of,
+    finishedAt: input.finishedAt,
+    players: input.players.map((p) => {
+      const scores = input.puzzles.map((_, i) => rowOf(p.slot, i)?.score ?? 0);
+      const extras = input.puzzles.map((_, i) => {
+        const extra = rowOf(p.slot, i)?.extra;
+        return extra && typeof extra === "object" && !Array.isArray(extra) ? (extra as Record<string, unknown>) : null;
+      });
+      return { userId: p.user_id, slot: p.slot, ratingBefore: p.rating_before, placement: p.placement, scores, timesMs: scores.map(() => 0), extras, gamesWon: 0, total: scores.reduce((a, b) => a + b, 0) };
     }),
-    games: puzzles.map((p) => ({ type: p.type, signature: gameVersionOf(p), winner: "draw" as const })),
+    games: input.puzzles.map((p) => ({ type: p.type, signature: gameVersionOf(p), winner: "draw" as const })),
     winner: "draw",
     recorded: null,
-    ratings: multi.outcome,
-    placings: Object.fromEntries(players.map((p) => [p.user_id, placeOf.get(`slot:${p.slot}`) ?? players.length])),
+    ratings: null,
+    placings: Object.fromEntries(input.players.map((p) => [p.user_id, placeOf.get(seatOf(p.slot)) ?? input.players.length])),
   };
+}
+
+/** One `multiplayer_match_finished` per live player once W3a has recorded the match (not on a duplicate). */
+export function recordMultiFinished(s: RatedSettlement): void {
+  if (!s.placings || !s.ratings?.ok || s.ratings.status !== "recorded") return;
+  const size = FORMAT_PLAYERS[s.format];
+  recordEvents(
+    s.players.map((p) => ({ event: "multiplayer_match_finished" as const, playerId: p.userId, props: { size, placing: s.placings![p.userId] ?? s.players.length } })),
+  );
 }

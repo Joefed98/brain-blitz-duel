@@ -4,10 +4,6 @@
  * between every two players of the group, so the band widens exactly as it does for 1v1.
  */
 import { canPair, type QueueEntry } from "@/lib/rated/matchmaking";
-import type { RatedCategory, RatedPool } from "@/lib/data/ratings";
-import { arcadeGroupOf } from "@/lib/duel/arcadeGroups";
-import { puzzleInfo } from "@/lib/duel/catalogue";
-import type { PuzzleType } from "@/lib/duel/types";
 
 /**
  * A group of `size` for `me` among the waiting, or null. Others are taken nearest rating to `me` first, then the
@@ -30,11 +26,4 @@ export function groupFor(me: QueueEntry, waiting: readonly QueueEntry[], size: n
     if (group.every((g) => canPair(g, e, nowMs))) group.push(e);
   }
   return group.length === size ? group : null;
-}
-
-/** The pool and category W3a works out from a game's type (its check refuses a mismatch). */
-export function ratedPoolOf(type: string): { pool: RatedPool; category: RatedCategory } {
-  const group = arcadeGroupOf(type);
-  if (group) return { pool: "arcade", category: group };
-  return { pool: "puzzles", category: puzzleInfo(type as PuzzleType).category as RatedCategory };
 }

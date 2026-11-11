@@ -148,6 +148,36 @@ export function ratingsFormat(format: RatedFormat): RatedMatchResult["format"] {
 /** W3a's result for a settled 1v1 (null when W3a can't take it: a single-category choice, or an unknown game). */
 export function toRatingsResult(s: RatedSettlement): RatedMatchResult | null {
   if (s.choice !== "mixed" && s.choice !== "puzzles" && s.choice !== "arcade") return null;
+  // W3d: a 4- or 8-player match (its settlement carries the placings): every seat live, each game's stored scores and
+  // stored server grades for every player, and the final placings (W3a applies the pairwise rule).
+  if (s.placings) {
+    if (s.players.length < 3) return null;
+    const multiGames: RatedGame[] = [];
+    for (let i = 0; i < s.games.length; i++) {
+      const g = s.games[i]!;
+      const pc = poolAndCategory(g.type);
+      if (!pc) return null;
+      multiGames.push({
+        type: g.type,
+        pool: pc.pool,
+        category: pc.category,
+        version: "classic",
+        signature: g.signature,
+        scores: Object.fromEntries(s.players.map((p) => [p.userId, p.scores[i] ?? 0])),
+        gradeExtras: Object.fromEntries(s.players.map((p) => [p.userId, p.extras?.[i] ?? null])),
+      });
+    }
+    return {
+      matchId: s.matchId,
+      format: ratingsFormat(s.format),
+      choice: s.choice,
+      players: s.players.map((p) => ({ playerId: p.userId, side: "live" as const })),
+      games: multiGames,
+      placings: { ...s.placings },
+      rematchOf: s.rematchOf,
+      finishedAt: s.finishedAt,
+    };
+  }
   const live = s.players[0];
   if (!live) return null;
   const other = s.recorded

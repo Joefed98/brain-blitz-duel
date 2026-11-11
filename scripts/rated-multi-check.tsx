@@ -11,7 +11,8 @@
  *  4. The rating rule: every pair once, a win for the better place, a draw for a shared one, weight 1 / (size − 1);
  *     on a reference Elo, a 4- or 8-player match moves a rating about as much as one 1v1. Recorded seats unrated.
  *  5. Joules: 1.5 times the best-of-3 amounts, live players only; Podium Regular counts live top-3 finishes.
- *  6. finishMultiMatch on a stand-in backend: the placings, the pairs, the Joules keys, the analytics events.
+ *  6. Settling through W3b's own path: multiSettlement's placings, stored scores and stored server grades, and W3b's
+ *     toRatingsResult building W3a's placings match from it (every game's gradeExtras for every player).
  *  7. The screens (happy-dom): filling, standings and final; the placings drawn on the first render with the entrance,
  *     the entrance only inside the podium, none under reduced motion; no motion of the screens' own.
  *  8. Analytics: the two events in ANALYTICS_EVENTS, the migration in W3d's range adding (not replacing) them.
@@ -26,13 +27,10 @@ import type { RatedMultiBackend } from "../src/lib/rated/multi/contracts";
 import {
   assertMultiOn,
   fillMatch,
-  finishMultiMatch,
   joinMultiQueue,
-  multiRatedResult,
   multiSizeOn,
   multiSizesOn,
   RatedMultiOffError,
-  type MultiGame,
 } from "../src/lib/rated/multi/multi.server";
 import {
   BEST_OF_3_JOULES,
@@ -71,10 +69,8 @@ const rng = (seed: number) => () => ((seed = (seed * 1103515245 + 12345) >>> 0) 
 const ON = { ffa4: true, ffa8: true };
 const OFF = { ffa4: false, ffa8: false };
 
-function stubBackend(log: string[] = []): RatedMultiBackend & { matches: RatedMatchResult[] } {
-  const matches: RatedMatchResult[] = [];
+function stubBackend(log: string[] = []): RatedMultiBackend {
   return {
-    matches,
     async enqueue(input) {
       log.push(`enqueue:${input.size}:${input.choice}`);
       return { joinedAtMs: 1 };
@@ -89,32 +85,6 @@ function stubBackend(log: string[] = []): RatedMultiBackend & { matches: RatedMa
         { playerId: "r3", name: "Raj", dealKeys: ["d1", "d2", "d3"], runId: "r3" },
         { playerId: "r4", name: "Kai", dealKeys: ["d1", "d2", "d3"], runId: "r4" },
       ];
-    },
-    async recordRatedMatch(match): Promise<RatedMatchOutcome> {
-      const duplicate = matches.some((m) => m.matchId === match.matchId);
-      if (!duplicate) matches.push(match);
-      return {
-        ok: true,
-        status: duplicate ? "duplicate" : "recorded",
-        matchId: match.matchId,
-        players: match.players.map((p) => {
-          const place = match.placings?.[p.playerId] ?? null;
-          return {
-            playerId: p.playerId,
-            side: p.side,
-            moved: p.side === "live",
-            frozen: p.side === "live" ? null : ("recorded_unrated_source" as const),
-            changes: [],
-            joulz: { before: 1200, after: 1200 + (place ? 10 - place : 0) },
-            placement: { played: 5, of: 5 as const, done: true, label: null, justFinished: false },
-            tier: { before: null, after: null },
-            result: place === 1 ? ("win" as const) : ("loss" as const),
-            place,
-            joules: p.side === "live" ? (place === 1 ? 225 : 150) : 0,
-            badges: [],
-          };
-        }),
-      };
     },
   };
 }
@@ -148,13 +118,6 @@ for (const size of [4, 8] as const) {
     fillThrew = e instanceof RatedMultiOffError;
   }
   check(fillThrew, `server: filling a ${size}-player match is refused while off`);
-  let finishThrew = false;
-  try {
-    await finishMultiMatch({ matchId: "m", size, choice: "mixed", seats: [], games: [] }, { backend: stubBackend() });
-  } catch (e) {
-    finishThrew = e instanceof RatedMultiOffError;
-  }
-  check(finishThrew, `server: finishing a ${size}-player match is refused while off`);
   const on = await joinMultiQueue({ playerId: "u1", size, choice: "mixed" }, { switches: ON, backend: null });
   check(!on.ok && on.reason === "not_ready", `server: ${size} on with nothing bound is "not ready"`);
   const log2: string[] = [];
@@ -330,34 +293,36 @@ check(countsForPodiumRegular(liveSeat, 3) && !countsForPodiumRegular(liveSeat, 4
   check(eq(started?.props, { size: 8, live_seats: 5, recorded_seats: 3 }), "events: multiplayer_match_started carries size, live and recorded seats");
   const waiting = await fillMatch({ matchId: "m2", size: 4, choice: "mixed", live: live(2), waitedMs: 3000, dealKeys: deals }, { switches: ON, backend, record });
   check(waiting.kind === "wait" && events.filter((e) => e.event === "multiplayer_match_started").length === 1, "events: no start event while still filling");
-  const seats = plan.seats;
-  const games: MultiGame[] = [0, 1, 2].map((g) => ({
-    type: ["gridlock", "hover", "blackout"][g]!,
-    pool: g === 1 ? ("arcade" as const) : ("puzzles" as const),
-    category: g === 1 ? ("retro" as const) : ("logic" as const),
-    signature: `sig${g}`,
-    scores: seats.map((s, i) => ({ seatId: s.seatId, score: ((i + g) % 8) * 20 })),
-  }));
-  const out = await finishMultiMatch({ matchId: "m1", size: 8, choice: "mixed", seats, games }, { switches: ON, backend, record });
-  const m = backend.matches[0]!;
-  check(!!m && eq(m.format, { kind: "placings", players: 8 }) && m.choice === "mixed", "server finish: W3a gets a placings match of 8");
-  check(!!m && Object.keys(m.placings ?? {}).length === 8 && out.placings.every((p) => m.placings![seats.find((s) => s.seatId === p.seatId)!.playerId] === p.place), "server finish: W3a's placings are the final placings, by player");
-  check(!!m && m.players.filter((p) => p.side === "recorded").length === 3 && m.players.every((p) => p.side === "live" || (p.run.ownerId === p.playerId && p.run.source === "rated")), "server finish: recorded seats go to W3a as recorded runs owned by their player");
-  check(!!m && m.games.length === 3 && m.games.every((g) => g.version === "classic" && Object.keys(g.scores).length === 8), "server finish: every game with every player's stored score");
-  check(out.outcome.ok && out.outcome.players.filter((p) => p.side === "live").every((p) => p.joules === (p.place === 1 ? 225 : 150)), "server finish: Joules come from W3a's outcome (1.5× best of 3, live players only)");
-  const fin = events.filter((e) => e.event === "multiplayer_match_finished");
-  check(fin.length === 5 && fin.every((e) => e.props?.size === 8 && typeof e.props?.placing === "number" && typeof e.playerId === "string"), "events: multiplayer_match_finished for each live player with size and placing");
-  const again = await finishMultiMatch({ matchId: "m1", size: 8, choice: "mixed", seats, games }, { switches: ON, backend, record });
-  check(again.outcome.ok && again.outcome.status === "duplicate" && events.filter((e) => e.event === "multiplayer_match_finished").length === 5, "server finish: a repeat is W3a's duplicate and records no second finish event");
-  const direct = multiRatedResult({ matchId: "m3", size: 4, choice: "arcade", seats: seats.slice(0, 4), games: games.map((g) => ({ ...g, scores: g.scores.slice(0, 4) })), placings: finalPlacings(4, seats.slice(0, 4).map((s) => s.seatId), games.map((g) => g.scores.slice(0, 4))) });
-  check(eq(direct.format, { kind: "placings", players: 4 }) && Object.values(direct.placings ?? {}).sort().join() === "1,2,3,4", "result: a 4-player match's placings 1–4");
+  // Settling a finished 8-player room through W3b's own path: multiSettlement, then W3b's toRatingsResult.
+  const { multiSettlement } = await import("../src/lib/rated/multi/multiQueue.server");
+  const { toRatingsResult } = await import("../src/lib/rated/ratingsAdapter.server");
+  const users = Array.from({ length: 8 }, (_, i) => `00000000-0000-4000-8000-0000000000${String(i + 10)}`);
+  const players = users.map((u, i) => ({ match_id: "m1", user_id: u, slot: i + 1, rating_before: 1200, placement: false })) as never[];
+  const puzzles = [{ type: "unblock" }, { type: "hover" }, { type: "lightsout" }] as never[];
+  const scoreAt = (slot: number, g: number) => ((slot - 1 + g) % 8) * 20;
+  const results = [0, 1, 2].flatMap((g) =>
+    users.map((_, i) => ({ player_slot: i + 1, round_number: g + 1, score: scoreAt(i + 1, g), extra: i === 4 && g === 1 ? { flagged: true, flagReason: "replay_mismatch" } : { part: 1 } })),
+  ) as never[];
+  const match = { id: "00000000-0000-4000-8000-000000000999", format: "ffa8", choice: "mixed", rematch_of: null } as never;
+  const settled = multiSettlement({ match, players, puzzles, results, finishedAt: "2026-11-11T12:00:00.000Z" });
+  const expected = finalPlacings(8, users.map((_, i) => `slot:${i + 1}`), [0, 1, 2].map((g) => users.map((_, i) => ({ seatId: `slot:${i + 1}`, score: scoreAt(i + 1, g) }))));
+  check(users.every((u, i) => settled.placings?.[u] === expected.find((p) => p.seatId === `slot:${i + 1}`)?.place), "settle: the settlement's placings are the final placings (points, then total score)");
+  check(settled.players.every((p) => p.scores.length === 3 && p.extras.length === 3) && settled.players[4]!.extras[1]?.["flagged"] === true, "settle: every player's stored scores and stored server grades by game");
+  check(settled.ratings === null && settled.kind === "live" && settled.recorded === null, "settle: W3a's answer comes from the shared path (none yet)");
+  const forW3a = toRatingsResult(settled);
+  check(!!forW3a && eq(forW3a.format, { kind: "placings", players: 8 }) && forW3a.choice === "mixed", "W3b's toRatingsResult: a placings match of 8");
+  check(!!forW3a && forW3a.players.length === 8 && forW3a.players.every((p) => p.side === "live"), "W3b's toRatingsResult: every seat live");
+  check(!!forW3a && eq(forW3a.placings, settled.placings), "W3b's toRatingsResult: the placings, by player");
+  check(!!forW3a && forW3a.games.length === 3 && forW3a.games.every((g, gi) => Object.keys(g.scores).length === 8 && users.every((u, i) => g.scores[u] === scoreAt(i + 1, gi))), "W3b's toRatingsResult: every game with every player's stored score");
+  check(!!forW3a && forW3a.games.every((g) => Object.keys(g.gradeExtras ?? {}).length === 8) && forW3a.games[1]!.gradeExtras![users[4]!]?.["flagged"] === true && forW3a.games[0]!.gradeExtras![users[4]!]?.["flagged"] === undefined, "W3b's toRatingsResult: every game's stored server grades as gradeExtras (the flag where the server set it)");
+  check(!!forW3a && eq(forW3a.games.map((g) => [g.pool, g.category]), [["puzzles", "pattern"], ["arcade", "retro"], ["puzzles", "logic"]]), "W3b's toRatingsResult: W3a's pool and category for each game");
   const fromW3b = fromW3bCandidate({ key: "room:d:2", source: "room", ownerId: "o1", games: [{ type: "gridlock", signature: "s" }] }, "Mia", (_g, i) => `d${i + 1}`);
   check(eq(fromW3bCandidate.length, 3) && fromW3b.playerId === "o1" && fromW3b.runId === "room:d:2" && fromW3b.source === "room" && eq(fromW3b.dealKeys, ["d1"]), "filling: a W3b recorded run becomes a seat candidate (owner, key, source, deals)");
 }
 
 /* ------------------------------------------------------------------ 6b. grouping in W3b's queue */
 {
-  const { groupFor, ratedPoolOf } = await import("../src/lib/rated/multi/queue");
+  const { groupFor } = await import("../src/lib/rated/multi/queue");
   const e = (userId: string, rating: number, joinedAtMs = 0, over: Record<string, unknown> = {}) =>
     ({ userId, format: "ffa4" as const, choice: "mixed" as const, rating, joinedAtMs, placement: false, ...over });
   const me = e("a", 1000);
@@ -372,10 +337,9 @@ check(countsForPodiumRegular(liveSeat, 3) && !countsForPodiumRegular(liveSeat, 4
   check(groupFor(me, [e("a", 1000), e("b", 1000), e("c", 1000)], 4, 100) === null, "grouping: never a player twice");
   const wide = groupFor(e("a", 1000), [e("b", 1150), e("c", 850)], 3, 10_000);
   check(wide === null, "grouping: every pair within the band, not only each player against me (850 v 1150)");
-  check(eq(ratedPoolOf("gridlock"), { pool: "puzzles", category: "pattern" }) && eq(ratedPoolOf("hover"), { pool: "arcade", category: "retro" }), "W3a's pool and category from a game's type");
   const w3b = readFileSync("src/lib/rated/rated.server.ts", "utf8");
   check(/FORMAT_PLAYERS\[me\.format\] > 2[\s\S]{0,200}pollMultiQueue/.test(w3b), "W3b's pollQueue hands 4 and 8 players to pollMultiQueue");
-  check(/FORMAT_PLAYERS\[match\.format as RatedFormat\] > 2[\s\S]{0,300}settleMultiMatch/.test(w3b), "W3b's settleMatch hands 4 and 8 players to settleMultiMatch");
+  check(/multi\.multiSettlement\(/.test(w3b) && /const forRatings = toRatingsResult\(result\);\s*if \(forRatings\) result\.ratings = await \(await ratingsReady\(\)\)\.recordRatedMatch\(forRatings\);/.test(w3b) && !/settleMultiMatch|finishMultiMatch/.test(w3b), "W3b's settleMatch settles 4 and 8 players on the 1v1's own path (toRatingsResult, ratingsReady), no parallel one");
   check(/rating\.placement && FORMAT_PLAYERS\[format\] > 2/.test(w3b), "W3b's joinQueue refuses 4 and 8 players during placement");
 }
 

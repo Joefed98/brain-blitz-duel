@@ -1,15 +1,13 @@
 /**
- * What rated 4- and 8-player matches need from W3a (ratings) and W3b (matchmaking): typed ports on their published
- * contracts (docs/rated/ratings-interface.md, docs/rated/matchmaking-interface.md). The result and outcome types are
- * W3a's own (`src/lib/data/ratings.ts`). Their server functions (W3a's `recordRatedMatch(client, result)` in
- * src/lib/rated/ratings.server.ts; W3b's queue in src/lib/rated/rated.server.ts) were not on their draft branches
- * yet (11 Nov 2026), so the binding is one call, `bindRatedMulti`, made when they land; until then every call is
- * "not ready" (and the server refuses both sizes anyway while W3b's ffa4 / ffa8 switches are off).
+ * The ports a 4- or 8-player match still needs from W3b's queue that W3b doesn't offer yet: a join for ffa4 / ffa8 by
+ * this module's own call, and recorded runs on one match's deals (parked until 4 and 8 players are switched on; Joe
+ * will ask W3b to support several recorded seats then). Ratings are never reached from here: every match, 1v1 or
+ * 4 and 8 players, settles through W3b's settleMatch and W3a's finishRatedMatch (ratingsAdapter.server.ts
+ * `ratingsReady()`). Until bound, every call is "not ready" (and the server refuses both sizes anyway while W3b's
+ * ffa4 / ffa8 switches are off).
  *
  * Kept free of server imports so checks can stand a backend in.
  */
-import type { RatedMatchOutcome, RatedMatchResult } from "@/lib/data/ratings";
-
 import type { MultiSize, RecordedCandidate } from "./rules";
 
 export interface QueueTicket {
@@ -21,8 +19,6 @@ export interface RatedMultiBackend {
   enqueue(input: { playerId: string; size: MultiSize; choice: string }): Promise<QueueTicket>;
   /** W3b: recorded runs for this match's deals, best first in its widening order (fromW3bCandidate). */
   recordedCandidates(input: { size: MultiSize; choice: string; dealKeys: readonly string[]; exclude: readonly string[] }): Promise<RecordedCandidate[]>;
-  /** W3a's recordRatedMatch (the service-role client bound in): idempotent on matchId. */
-  recordRatedMatch(result: RatedMatchResult): Promise<RatedMatchOutcome>;
 }
 
 let bound: RatedMultiBackend | null = null;
