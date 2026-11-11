@@ -440,7 +440,7 @@ function arenaPlayerOf(row: ArenaPlayerRow): ArenaPlayer {
 
 /** The rating an Arena pairs by: W3a's (through W3b's adapter) for the Arena's format, else the starting rating. */
 async function arenaRating(userId: string): Promise<number> {
-  const { ratings } = await import("@/lib/rated/ratings.server");
+  const { ratings } = await import("@/lib/rated/ratingsAdapter.server");
   try {
     const r = await ratings().matchRating(userId, { format: ARENA_FORMAT, choice: ARENA_CHOICE });
     if (r && Number.isFinite(r.rating)) return Math.round(r.rating);

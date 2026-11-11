@@ -4,7 +4,8 @@
  * a deal, a grade, a score or a stamp: rated matches are ordinary rooms dealt from the room picks with today's live
  * stamps ("Classic"), and every result is the server's own grading.
  */
-import { RATED_CHOICES_ON, RATED_FORMATS_ON, RATED_PLAY_FOR_EVERYONE } from "@/config/ratedConfig";
+import { RATED_CHOICES_ON, RATED_FORMATS_ON } from "@/config/matchmakingConfig";
+import { RATED_PLAY_FOR_EVERYONE } from "@/config/ratedConfig";
 import { stampSignature, dealtSignature } from "@/lib/duel/dealSignature";
 import {
   ARCADE_PICKS,
@@ -65,9 +66,19 @@ export function ratedOptionRefusal(format: unknown, choice: unknown, switches: R
   return null;
 }
 
-/** Whether rated play is open to this player: everyone once Joe flips the switch, testers until then. */
+/** Whether rated play is open to this tester (or not): everyone once Joe flips the switch, testers until then. */
 export function ratedPlayOpenFor(isTester: boolean, switches: RatedSwitches = RATED_SWITCHES): boolean {
   return switches.forEveryone || isTester;
+}
+
+/**
+ * Who may queue: with RATED_PLAY_FOR_EVERYONE on, everyone, guests included (a new player taps Play and plays with no
+ * sign-up, placement first; their ratings carry to their account when they sign up, the same player id). While it is
+ * off, only accounts on the tester list.
+ */
+export function ratedAccessFor(player: { account: boolean; tester: boolean }, switches: RatedSwitches = RATED_SWITCHES): boolean {
+  if (switches.forEveryone) return true;
+  return player.account && player.tester;
 }
 
 /** What the phone may offer (only what is switched on). */
@@ -131,6 +142,8 @@ export interface QueueEntry {
   joinedAtMs: number;
   /** Still in placement (W3a): starts against recorded runs from beginners, never the live queue. */
   placement: boolean;
+  /** A guest's room name (an account plays under its username). */
+  displayName?: string | null;
 }
 
 /**
@@ -186,6 +199,8 @@ export interface RecordedGame {
   finishMs: number | null;
   /** The server-made timeline (timeline.server.ts), null when the game has none. Its last point is `score`. */
   timeline: ScoreTimeline | null;
+  /** The server's replay flagged the stored run (its `extra.flagged`): the whole run is never played against. */
+  flagged?: boolean;
 }
 
 /** A run that could be played against. */
@@ -235,6 +250,7 @@ export function recordedRefusal(c: RecordedCandidate, ctx: RecordedContext): str
   if (ctx.lastOwnerId && c.ownerId === ctx.lastOwnerId) return "same_owner_twice";
   if (ctx.nowMs - c.recordedAtMs > RECORDED_WINDOW_MS || c.recordedAtMs > ctx.nowMs) return "too_old";
   if (c.usesToday >= RECORDED_DAILY_USES) return "used_up";
+  if (c.games.some((g) => g.flagged === true)) return "flagged";
   if (c.games.length !== games) return "wrong_length";
   if (c.source === "rated" && (c.format !== ctx.format || c.choice !== ctx.choice)) return "other_format";
   if (!c.games.every((g) => typeFitsChoice(g.type, ctx.choice))) return "other_choice";
@@ -358,10 +374,9 @@ export interface GameScores {
 
 export type Side = "a" | "b" | "draw";
 
-/** A game's winner: the higher score, then less time used; level on both is a drawn game. */
+/** A game's winner: the higher score; a level score is a drawn game (W3a's rule, so the shown result and the rating agree). */
 export function gameWinner(g: GameScores): Side {
   if (g.a !== g.b) return g.a > g.b ? "a" : "b";
-  if (g.aTimeMs !== g.bTimeMs) return g.aTimeMs < g.bTimeMs ? "a" : "b";
   return "draw";
 }
 
@@ -373,7 +388,7 @@ export interface MatchOutcome {
   winner: Side;
 }
 
-/** Best of N: the most games won; level on games, the higher total; then less time; then a draw. */
+/** Best of N: the most games won; level on games, the higher total; then less time used in all; then a draw. */
 export function matchOutcome(games: readonly GameScores[]): MatchOutcome {
   let winsA = 0;
   let winsB = 0;
@@ -395,6 +410,17 @@ export function matchOutcome(games: readonly GameScores[]): MatchOutcome {
   else if (totalA !== totalB) winner = totalA > totalB ? "a" : "b";
   else if (timeA !== timeB) winner = timeA < timeB ? "a" : "b";
   return { winsA, winsB, totalA, totalB, winner };
+}
+
+/**
+ * Best of N stops as soon as one side can't be caught: its lead in games won is more than the games left (a 2–0 in a
+ * best of 3; 3–0 or 3–1 in a best of 5). A lead equal to the games left can still be levelled, and level on games the
+ * total decides, so play goes on.
+ */
+export function matchClinched(games: readonly GameScores[], totalGames: number): boolean {
+  const { winsA, winsB } = matchOutcome(games);
+  const left = Math.max(0, totalGames - games.length);
+  return Math.abs(winsA - winsB) > left;
 }
 
 /* ------------------------------------------------------------------ rematch */

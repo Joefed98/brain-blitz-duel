@@ -2134,6 +2134,23 @@ outside the repo.
   `pass_level_reached`, `reward_claimed`, `weekly_challenge_completed` (`20261113100100_analytics_pass_events.sql`).
   Migrations `20261113100000_season_pass.sql`, `20261113100100`, `20261113100200` (**not applied until merged**). pass-check
   (~25 s, shard `e`, PostgreSQL), pass-screens-check (~3 s, happy-dom); economy-neutral-check also covers the pass modules.
+- **Rated matchmaking** (wave 3 W3b, 11 Nov 2026, `docs/rated/matchmaking-interface.md`; no gameplay, scoring, stamp or
+  deal change): the queue (same format and choice only; ±50 widening by 50 every 2 s to ±200, a recorded run from 8 s;
+  placement straight to a beginner's run), live and recorded rated matches as ordinary rooms the server makes already
+  started (Classic, `dealRoomRounds` from the room picks; a recorded match copies the run's own stored puzzles), the
+  opponent's score hidden for each game's final 20 % (on the server), settling once into W3a's `recordRatedMatch`
+  (`ratingsAdapter.server.ts`; unbound until W3a's `ratings.server.ts` lands), rematch within 8 s, wave 1's stranger
+  chat in rated rooms. Rules `src/lib/rated/matchmaking.ts`, flow `rated.server.ts`, functions `rated.functions.ts`,
+  data `src/lib/data/rated.server.ts`, tables `mm_*` (`20261114200000_matchmaking.sql`). Switches: `RATED_PLAY_FOR_EVERYONE`
+  (`src/config/ratedConfig.ts`, testers on `shop.testers` only while false; true opens it to everyone, guests included
+  with no sign-up) and the formats / choices in
+  `src/config/matchmakingConfig.ts` (only bo3 with Mixed, All puzzles, All arcade on). Recorded runs: nearest rating,
+  14 days, same version, format and choice, never your own, never the same owner twice running, 5 uses a UK day;
+  never a run the replay flagged; the room / Daily / Practice fallback only when no rated run is near (each counted
+  Practice play's deal is kept 15 days in `mm_practice_deals`); arcade and engine games play back on a timeline from the
+  server's replay, puzzles show the score only at the game's end. Best of N stops once one side can't be caught
+  (`ratedMatchClinched` in advancePhaseFn). `accounts.forget_user` removes a deleted account's runs (trigger
+  `mm_forget_removed_user`). Checks: rated-matchmaking-check, rated-server-check.
 - `src/components/duel/` — room/round screens (PhoneShell, RoundIntro, TimerBar,
   AnswerReveal, ArcadeReveal, WinnerReveal…); `src/components/puzzles/` — shared puzzle
   widgets; `src/lib/fx/` — sound and visual feedback (presentation only).

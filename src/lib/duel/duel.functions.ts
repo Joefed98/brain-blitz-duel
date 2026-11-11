@@ -864,6 +864,15 @@ export const advancePhaseFn = createServerFn({ method: "POST" })
     // every connected active player has tapped Continue.
     if (!betweenScreenDue(room.phase, elapsed, players, round, Date.now(), hostNext))
       return { ok: true };
+    // A rated match (wave 3, W3b) stops as soon as it is won (2–0 in a best of 3): its result screen leads to the
+    // winner reveal as a last round's does. Every ordinary room answers false and moves on exactly as before.
+    if (room.phase === "result") {
+      const { ratedMatchClinched } = await import("@/lib/rated/rated.server");
+      if (await ratedMatchClinched(client, room, round)) {
+        await leaveBetweenRoundScreen(client, { ...room, round_count: round }, round);
+        return { ok: true };
+      }
+    }
     await leaveBetweenRoundScreen(client, room, round);
     return { ok: true };
   });
