@@ -32,7 +32,7 @@ knip found 47 unimported files under `src/`. rg confirms no import, glob or stri
 | `src/hooks/use-mobile.tsx` | Only `ui/sidebar.tsx` (itself unused) imports it | knip: unused file; rg `use-mobile` | safe (with sidebar) |
 | `src/components/puzzles/BarOverlay.tsx` | A controls bar over a letterboxed arcade canvas; replaced by `ArcadeArenaSlot` (15 Oct play screen) | knip: unused file; rg `BarOverlay`: only the file itself, no doc mention | safe |
 | `src/puzzles/words.ts` | Old shared word banks (`SEVEN`…) from before the SCOWL dictionary (`dictionary.server.ts`, `commonWords.server.ts`) | knip: unused file; rg for `puzzles/words` / `./words` imports: none | check first (word lists; confirm no retired generator wants them) |
-| `src/integrations/supabase/cron-auth.ts` | Header says "automatically generated" by Lovable; no cron route uses it | knip: unused file; mentioned in `docs/security-audit-oct-2026.md`, `docs/migration-readiness-oct-2026.md` | keep (Lovable-generated) |
+| `src/integrations/supabase/cron-auth.ts` | Header says "automatically generated" by Lovable; no cron route uses it | knip: unused file; mentioned in `docs/migration-readiness-oct-2026.md` | keep (Lovable-generated) |
 
 ## 2. Unused exports
 

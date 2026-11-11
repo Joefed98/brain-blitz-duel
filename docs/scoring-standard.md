@@ -51,7 +51,7 @@ The timeline also shows the history behind final-state answers (wrong digits ent
 removed), so the clean bonuses can count them. A timeline that does not rebuild the answer it came with is ignored: no
 early extras and no history-based clean bonus (the safe default; an honest phone always sends it). The times are the
 phone's word, as every tap time is (held to the round and to the server's receipt time); a modified phone could claim
-earlier parts or hide a mistake, worth at most the early extras and a clean bonus (docs/security-audit-oct-2026.md).
+earlier parts or hide a mistake, worth at most the early extras and a clean bonus.
 
 ## The games
 
