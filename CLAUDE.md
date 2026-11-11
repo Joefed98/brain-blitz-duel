@@ -1975,6 +1975,27 @@ outside the repo.
   `20261110200000_analytics_identity_events.sql` (**applied**; it adds to the list it reads from the
   table). Checks: identity-screens-check (~5 s, happy-dom, A1 stood in by `setIdentityBackend`) and identity-motion-check
   (headless Chromium: every item against its approved PNG, no animation under reduced motion).
+- **Badges, titles and the account rewards** (wave 2 train C, session C2, 11 Nov 2026, `docs/badges/README.md`; no
+  gameplay, scoring, stamp or timing change): the 54 badges and their rules are Joe's approved catalogue,
+  **`docs/badges/catalogue.md`**, in one list, `src/lib/badges/catalogue.ts` (with the 32 titles; seeded by
+  `20261111220000_badges_titles.sql`, after C1a's `20261111101500` and C1b's `20261111130000`, **not applied until
+  merged**). Each is `earnable` (16: a rule in
+  `rules.server.ts` read from stored facts, `public.badge_facts` plus the Daily record, or Friendly, which B1 awards
+  through `badge_award`; First Star, All-Rounder and Gem Hunter read C1a's stars and gems, also checked from C1a's
+  `onCounted` hook; the challenge badges count C1b's completed challenges) or `waits` (38: rated play, all stars,
+  Hard challenges, Daily boards, tournaments); only earnable ones can be awarded (`badge_award`, idempotent, a
+  Legendary's 250 coins once, key `badge_reward:<slug>`). Practice counts only from C1a's fresh start
+  (`practice_progress_start`). `settleAccountRewards` pays the 1,000-coin sign-up reward (key
+  `signup_reward:<user id>`) and a Founding Player's badge, 250 and Founding frame, from `syncMyBadges` (after sign-up
+  and on tab pages, retried on the next tab page after a failure, awaited by the coin counter; never inside
+  `completeSignUpFn`); the migration backfills existing accounts under the same keys. One title (Rookie by default)
+  and up to three earned badges on the card (`PlayerCard` `title` / `badges`); Profile's collection shows every badge
+  with its rule and, locked, its progress ("4 of 7 days"); the badge-earned moment is drawn only on tab pages. The
+  Daily streak is the server's (`dailyStreak.ts`, `dailyStreak.server.ts`, the device rule exactly; streak freezes used
+  automatically for a covered gap, `daily_streak_freezes`), read by Profile, the Play tab, the aside and the Daily
+  screens (`useDailyRecord`, the device's record until the server answers). Events `badge_earned`, `title_equipped`.
+  badges-check (~15 s, shard `e`, PostgreSQL), badges-screens-check (~5 s, happy-dom). **A new badge rule**: a
+  migration flipping its row, the catalogue and catalogue.md lines, a `BADGE_RULES` entry and an earn / miss test.
 - **Stars and bests on accounts** (wave 2 train C, session C1a, 11 Nov 2026, `docs/practice-progress.md`; no gameplay,
   scoring, grading, stamp or timing change): every graded practice run's row in `practice_plays` also stores the
   server's own graded extra as `breakdown` (the same shape round_results.extra holds) and its `level` (NULL = Classic;

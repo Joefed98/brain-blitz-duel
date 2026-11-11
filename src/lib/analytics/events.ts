@@ -53,6 +53,10 @@ export const ANALYTICS_EVENTS = [
   "profile_viewed",
   "customise_opened",
   "equip_refused",
+  // Badges and titles (wave 2, session C2; docs/badges/README.md): recorded by the server only (src/lib/badges/
+  // badges.server.ts and the backfill). badge_earned carries props.badge and props.rarity, title_equipped props.title.
+  "badge_earned",
+  "title_equipped",
   // Practice progress (wave 2 C1a, docs/practice-progress.md): recorded by the server only, when a graded practice run
   // is counted (src/lib/practice/progress.server.ts). best_set and star_earned carry the game and props.level,
   // gem_unlocked props.gem.

@@ -28,6 +28,7 @@ import { currentUserId, getStoredName, setStoredName } from "@/lib/duel/session"
 import { ROOM_CODE_LENGTH, codeFromInput } from "@/lib/duel/roomLink";
 import { readLastRoom } from "@/lib/duel/deviceHistory";
 import { recentPracticeTypes, warmUpTypes } from "@/lib/duel/practiceRecent";
+import { useDailyRecord } from "@/lib/badges/badgesApi";
 import { bestOf } from "@/lib/practice/progress";
 import { usePracticeProgress } from "@/lib/practice/useProgress";
 import { dailyStreak, readDailyRecord } from "@/lib/duel/dailyRecord";
@@ -160,6 +161,8 @@ function Home() {
   // Warm up's bests: the account's (the server's, useProgress.ts), shown once they have come.
   const progress = usePracticeProgress();
   const [streak, setStreak] = useState(0);
+  // The streak on the account (src/lib/badges/badgesApi.ts): the server's once it answers, the device's until then.
+  const dailyView = useDailyRecord();
   // The beta terms come before the first room (lib/beta/terms.ts): Create or Join waits for I AGREE.
   const [termsFor, setTermsFor] = useState<"create" | "join" | null>(null);
   // The Add to Home Screen hint (iPhone Safari, first visit; reserved before the first paint, playCards.ts).
@@ -487,7 +490,7 @@ function Home() {
         <PlaySlot id="daily" state={slotState(daily.settled, !!daily.status?.available)}>
         <DailyCard
           status={dailyShown}
-          streak={streak}
+          streak={dailyView?.source === "server" ? dailyView.streak : streak}
           onOpen={(kind) => {
             unlockAudio();
             void router.navigate({

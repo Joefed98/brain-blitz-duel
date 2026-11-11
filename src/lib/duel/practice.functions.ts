@@ -245,6 +245,10 @@ async function gradePracticeRun(data: PracticeRunInput, puzzle: PuzzleData, exam
           progress = runProgressOf(outcome);
           void recordProgressEvents(outcome, userId);
           if (outcome.counted) counted = { userId, playId };
+          // C2: a new star or gem can earn First Star, All-Rounder or Gem Hunter at once (never awaited: the grade
+          // answers first; the badge's moment shows on the next tab page, and a tab page's sync catches any miss).
+          if (outcome.star_earned || (outcome.gems_unlocked?.length ?? 0) > 0)
+            void import("@/lib/badges/badges.server").then((b) => b.evaluateBadges(supabaseAdmin, userId)).catch(() => {});
         },
       },
     );

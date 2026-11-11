@@ -15,6 +15,7 @@ import { SettingsSheet } from "@/components/app/SettingsSheet";
 import { YourChallenges } from "@/components/challenge/YourChallenges";
 import { ProfileChallenges } from "@/components/app/ProfileChallenges";
 import { readRoomHistory, roomStats, type RoomRecord } from "@/lib/duel/deviceHistory";
+import { useDailyRecord } from "@/lib/badges/badgesApi";
 import { dailyStreak, readDailyRecord, type DailyRecord } from "@/lib/duel/dailyRecord";
 import { ukDayKey } from "@/lib/duel/daily";
 import { rememberLook, rememberedLook, type PlayerLook } from "@/lib/duel/playerLook";
@@ -30,6 +31,7 @@ import { APP_NAME } from "@/lib/brand";
 import { Button, EmptyState, Icon, Input } from "@/design/components";
 import { GUEST_NAME_MAX } from "@/lib/names/username";
 import { useAccountName } from "@/lib/account/accountApi";
+import { BadgeCollection } from "@/components/badges/BadgeCollection";
 import { ProfileCard } from "@/components/identity/ProfileCard";
 
 export const Route = createFileRoute("/profile")({
@@ -68,6 +70,13 @@ function ProfileScreen() {
   const [history, setHistory] = useState<RoomRecord[]>([]);
   const [daily, setDaily] = useState<DailyRecord | null>(null);
   const [loaded, setLoaded] = useState(false);
+  const dailyView = useDailyRecord();
+  const dailyShown =
+    dailyView?.source === "server"
+      ? dailyView
+      : daily
+        ? { days: daily.days, best: daily.best, streak: dailyStreak(daily.days, ukDayKey(Date.now())) }
+        : null;
 
   useEffect(() => {
     setName(getStoredName());
@@ -156,6 +165,8 @@ function ProfileScreen() {
 
         {/* Wave 2: the player card, Customise and the Joulz Rating's line (src/components/identity/ProfileCard.tsx). */}
         <ProfileCard guestName={shownName} guestColour={loaded ? look.colour : null} />
+        {/* Wave 2 C2: every badge, earned and locked with its rule (accounts, once the server answers). */}
+        <BadgeCollection />
 
         {fresh ? (
           // A new player (T-ProfileNew): the badge in their colour, what it is, and Choose your look.
@@ -253,17 +264,18 @@ function ProfileScreen() {
           </section>
         ) : null}
 
-        {/* The daily challenge on this device (dailyRecord.ts): the streak of UK days played and best totals. */}
-        {daily && daily.days.length > 0 ? (
+        {/* The daily challenge (badgesApi.ts useDailyRecord): the streak of UK days played and best totals, worked
+            out on the server from the Dailies it stores (the same on every device); this device's record until it answers. */}
+        {dailyShown && dailyShown.days.length > 0 ? (
           <section aria-label="Daily" data-profile-daily className="ap-section">
             <div className="ap-section-head">
               <h2 className="ap-section-title">Daily</h2>
             </div>
             <div className="jz-panel ap-stats">
               {[
-                { label: "Day streak", value: dailyStreak(daily.days, ukDayKey(Date.now())) },
-                { label: "Best puzzle", value: daily.best.puzzle ?? null },
-                { label: "Best arcade", value: daily.best.arcade ?? null },
+                { label: "Day streak", value: dailyShown.streak },
+                { label: "Best puzzle", value: dailyShown.best.puzzle ?? null },
+                { label: "Best arcade", value: dailyShown.best.arcade ?? null },
               ].map((stat) => (
                 <span key={stat.label} data-profile-daily-stat={stat.label} className="ap-stat">
                   <span className="ap-stat-value">{stat.value === null ? "–" : stat.value.toLocaleString("en-GB")}</span>

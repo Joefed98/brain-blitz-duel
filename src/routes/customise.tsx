@@ -15,6 +15,8 @@ import { ownedOfKind, RARITY_LABEL, slotItems } from "@/lib/identity/customise";
 import { saveAvatar, saveSlot, useMyIdentity } from "@/lib/identity/identityApi";
 import { recordIdentityEvent } from "@/lib/identity/identityEvents";
 import { useShopOn } from "@/lib/identity/shopSwitch";
+import { saveCardBadges, saveTitle, useMyBadges } from "@/lib/badges/badgesApi";
+import { BADGE_BY_SLUG, CARD_BADGE_SLOTS, TITLES, badgeArtUrl, badgeHowLine, titleName, titlesUnlocked } from "@/lib/badges/catalogue";
 
 /**
  * Customise (wave 2, session A2; mockups docs/art/wave-2/screens/customise-1-avatar, -2-card-and-frame,
@@ -27,7 +29,9 @@ import { useShopOn } from "@/lib/identity/shopSwitch";
  *   only.
  * - Card: card arts, frames and name colours. Owned ones can be chosen (the 8 free card arts and Plain from the
  *   start); the rest show locked with where they come from (catalogue), shop items hidden while the Shop is off.
- * - Badges and title: the three badge slots and the title slot, empty until C2 fills them.
+ * - Badges and title (C2): up to three earned badges for the card, in the order picked, and one title from those
+ *   unlocked (Rookie for everyone; badge titles with their badge; locked ones show which badge unlocks them). Only
+ *   earned badges and unlocked titles can be chosen; the server checks again (badges.functions.ts).
  *
  * Save sends each change through A1's equip() and setAvatar(); a refusal shows its plain message and puts that part
  * of the card back as it was (and records equip_refused by slot and reason). Accounts only: a guest is sent to
@@ -103,6 +107,15 @@ function CustomiseScreen() {
     return { avatar, slots };
   }, [identity.loadout, signedIn?.colour]);
   const [draftAvatar, setDraftAvatar] = useState<AvatarChoice | null>(null);
+  // C2: the card's badges and the title (badgesApi.ts), and the drafts on them.
+  const myBadges = useMyBadges();
+  const mine = myBadges.badges?.account ? myBadges.badges : null;
+  const [draftCard, setDraftCard] = useState<string[] | null>(null);
+  const [draftTitle, setDraftTitle] = useState<string | null>(null);
+  const cardBadges = draftCard ?? mine?.card ?? [];
+  const title = draftTitle ?? mine?.title ?? "rookie";
+  const cardChanged = draftCard !== null && draftCard.join() !== (mine?.card ?? []).join();
+  const titleChanged = draftTitle !== null && draftTitle !== (mine?.title ?? "rookie");
   const [draftSlots, setDraftSlots] = useState<Partial<Record<LoadoutSlot, string | null>>>({});
   const avatar = draftAvatar ?? saved.avatar;
   const slotValue = (slot: LoadoutSlot): string | null => (slot in draftSlots ? draftSlots[slot]! : (saved.slots[slot] ?? null));
@@ -114,7 +127,7 @@ function CustomiseScreen() {
   };
   const changedSlots = (Object.keys(draftSlots) as LoadoutSlot[]).filter((slot) => (draftSlots[slot] ?? null) !== (saved.slots[slot] ?? null));
   const avatarChanged = draftAvatar !== null && !sameAvatar(draftAvatar, saved.avatar);
-  const dirty = changedSlots.length > 0 || avatarChanged;
+  const dirty = changedSlots.length > 0 || avatarChanged || cardChanged || titleChanged;
 
   const pick = (slot: LoadoutSlot, id: string | null) => {
     setMessage(null);
@@ -146,6 +159,16 @@ function CustomiseScreen() {
         recordIdentityEvent({ event: "equip_refused", slot: "avatar", reason: answer.reason });
       }
     }
+    if (cardChanged && draftCard) {
+      const answer = await saveCardBadges(draftCard);
+      if (!answer.ok) refusals.push(answer.message);
+    }
+    if (titleChanged && draftTitle) {
+      const answer = await saveTitle(draftTitle);
+      if (!answer.ok) refusals.push(answer.message);
+    }
+    setDraftCard(null);
+    setDraftTitle(null);
     // Saved parts now come from the loadout A1 answered with; refused parts go back to what was saved (the draft is
     // dropped either way, so the card shows exactly the saved look).
     setDraftSlots({});
@@ -179,7 +202,14 @@ function CustomiseScreen() {
           <Skeleton kind="card" />
         ) : (
           <>
-            <PlayerCard look={look} name={name} playerNumber={signedIn.playerNumber} label="Your card, as it will look" />
+            <PlayerCard
+              look={look}
+              name={name}
+              playerNumber={signedIn.playerNumber}
+              title={mine ? titleName(title) : null}
+              badges={mine ? cardBadges : undefined}
+              label="Your card, as it will look"
+            />
             <Segmented<Tab>
               label="Customise"
               radio
@@ -395,26 +425,20 @@ function CustomiseScreen() {
                 );
               })
             ) : (
-              <>
-                <section className="cz-section" aria-label="Badges" data-badge-slots>
-                  <span className="cz-label-row">
-                    <span className="cz-label">Show up to 3 on your card</span>
-                    <span className="cz-meta">0 of 3 chosen</span>
-                  </span>
-                  <div className="cz-slots">
-                    {[1, 2, 3].map((n) => (
-                      <span key={n} className="cz-slot" data-badge-slot={n}>
-                        Empty
-                      </span>
-                    ))}
-                  </div>
-                  <p className="cz-empty">Badges you earn show here.</p>
-                </section>
-                <section className="cz-section" aria-label="Title" data-title-slot>
-                  <span className="cz-label">Title, shown under your name</span>
-                  <p className="cz-empty">Titles you earn show here.</p>
-                </section>
-              </>
+              <BadgesAndTitle
+                mine={mine}
+                live={myBadges.live}
+                card={cardBadges}
+                title={title}
+                onCard={(next) => {
+                  setMessage(null);
+                  setDraftCard(next);
+                }}
+                onTitle={(next) => {
+                  setMessage(null);
+                  setDraftTitle(next);
+                }}
+              />
             )}
           </>
         )}
@@ -427,5 +451,102 @@ function CustomiseScreen() {
         </div>
       ) : null}
     </PhoneShell>
+  );
+}
+
+/** Customise's third tab (C2; mockup docs/art/wave-2/screens/customise-3-badges-and-title.png). */
+function BadgesAndTitle({
+  mine,
+  live,
+  card,
+  title,
+  onCard,
+  onTitle,
+}: {
+  mine: { earned: { slug: string; number: number | null }[] } | null;
+  live: boolean;
+  card: string[];
+  title: string;
+  onCard: (next: string[]) => void;
+  onTitle: (next: string) => void;
+}) {
+  if (!live || !mine) {
+    return <EmptyState layout="card" tone="cool" title="Badges are loading" body="Your badges and titles show here." data-badges-soon="" />;
+  }
+  const earned = mine.earned.filter((b) => BADGE_BY_SLUG.has(b.slug));
+  const unlocked = new Set(titlesUnlocked(new Set(earned.map((b) => b.slug))).map((t) => t.id));
+  const toggle = (slug: string) => {
+    if (card.includes(slug)) onCard(card.filter((s) => s !== slug));
+    else if (card.length < CARD_BADGE_SLOTS) onCard([...card, slug]);
+  };
+  return (
+    <>
+      <section className="cz-section" aria-label="Badges" data-badge-slots>
+        <span className="cz-label-row">
+          <span className="cz-label">Show up to 3 on your card</span>
+          <span className="cz-meta" data-badges-chosen>
+            {card.length} of {CARD_BADGE_SLOTS} chosen
+          </span>
+        </span>
+        {earned.length ? (
+          <div className="bd-grid" role="group" aria-label="Your badges">
+            {earned.map((b) => {
+              const def = BADGE_BY_SLUG.get(b.slug)!;
+              const on = card.includes(b.slug);
+              const full = !on && card.length >= CARD_BADGE_SLOTS;
+              return (
+                <button
+                  key={b.slug}
+                  type="button"
+                  aria-pressed={on}
+                  aria-disabled={full || undefined}
+                  data-badge-choice={b.slug}
+                  onClick={() => toggle(b.slug)}
+                  className="bd-tile press"
+                >
+                  <img src={badgeArtUrl(b.slug)} alt="" width={56} height={56} draggable={false} />
+                  <span className="bd-name">{def.name}</span>
+                  <span className="bd-how">{b.number !== null ? `#${String(b.number).padStart(4, "0")}` : on ? "On your card" : "Earned"}</span>
+                </button>
+              );
+            })}
+          </div>
+        ) : (
+          <p className="cz-empty" data-badges-empty>
+            Badges you earn show here. See them all on your Profile.
+          </p>
+        )}
+      </section>
+      <section className="cz-section" aria-label="Title" data-title-slot>
+        <span className="cz-label">Title, shown under your name</span>
+        <div role="radiogroup" aria-label="Title" className="bd-titles">
+          {TITLES.filter((t) => t.kind === "starter" || t.kind === "badge").map((t) => {
+            const open = unlocked.has(t.id);
+            const badge = t.badge ? BADGE_BY_SLUG.get(t.badge) : undefined;
+            const how = t.kind === "starter" ? "Everyone starts here" : open ? `${badge?.name ?? ""} badge` : badge ? `${badge.name} badge: ${badgeHowLine(badge)}` : "";
+            return (
+              <button
+                key={t.id}
+                type="button"
+                role="radio"
+                aria-checked={title === t.id}
+                aria-disabled={!open || undefined}
+                data-title-choice={t.id}
+                data-locked={open ? undefined : ""}
+                onClick={() => (open ? onTitle(t.id) : undefined)}
+                className="bd-title press"
+              >
+                <span className="bd-radio" aria-hidden="true" />
+                <span className="bd-title-text">
+                  <span className="bd-title-name">{t.name}</span>
+                  <span className="bd-title-how">{how}</span>
+                </span>
+                {open ? null : <Icon name="lock" size={18} tone="text-3" />}
+              </button>
+            );
+          })}
+        </div>
+      </section>
+    </>
   );
 }
