@@ -234,6 +234,7 @@ export async function recordRatedMatch(client: Db, input: unknown, nowMs: number
         return { a, b, expect: pairCounts[k] ?? 0 };
       }),
       run_uses: after.runUses.map((u) => ({ run_id: u.runId, owner_id: u.ownerId, moved: u.moved })),
+      flags: after.flags.map((f) => ({ player_id: f.playerId, game_idx: f.gameIdx, game: f.game, reason: f.reason })),
     };
     const { data: applied, error: aErr } = await applyRatedMatch(client, payload as unknown as Json);
     if (aErr || !applied) return refuse("error");

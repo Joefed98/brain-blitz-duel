@@ -29,8 +29,9 @@ matchmaking that imports `recordRatedMatch` stays clear of economy-neutral-check
 | `matchId` | uuid; **idempotent**: the same id again answers `status: "duplicate"` with the stored changes, moving nothing |
 | `format` | `{ kind: "duel", bestOf: 3 \| 5 \| 7 }` or `{ kind: "placings", players: 4 \| 8 }` |
 | `choice` | `"mixed"`, `"puzzles"` (All puzzles) or `"arcade"` (All arcade) |
-| `players` | `{ playerId, side: "live" }` or `{ playerId, side: "recorded", run: { runId, ownerId, source, flagged? } }`; `ownerId` must be `playerId`; `source` is `"rated" \| "room" \| "daily" \| "practice"`; `flagged: true` = the match moves nobody's rating |
+| `players` | `{ playerId, side: "live" }` or `{ playerId, side: "recorded", run: { runId, ownerId, source, flagged? } }`; `ownerId` must be `playerId`; `source` is `"rated" \| "room" \| "daily" \| "practice"`; `flagged: true` is a backstop (a run flagged as a whole) |
 | `games` | in the order played; a 1v1 stops once decided (2–0, 2–1 in a best of 3; a game after the decision or an undecided short match is `bad_games`): `{ type, pool, category, version: "classic", signature, scores: { [playerId]: number } }`; `pool` and `category` must be what the server works out from `type` (else `pool_mismatch`); every player has a score |
+| `games[].gradeExtras` | optional, **the server's stored grade `extra` for each player in this game** (keyed by playerId), passed as stored: the engine reads the server's flag from it (`extra.flagged === true`, reason `extra.flagReason` or `server_replay`). Any flag: nobody's rating moves, nothing counts for placement, streaks or badges, the flagged player gets no Joules, and the flag is logged in `moderation.rated_flags` for Joe (`moderation.rated_flag_queue()`) |
 | `placings` | 4 and 8 players only: `{ [playerId]: place }`, 1 = first, level players share a place |
 | `rematchOf` | optional: the match this one is a rematch of (Revenge) |
 | `finishedAt` | optional ISO time; the server's now when left out (the UK day of the 4th-match rule is taken from it) |
@@ -58,7 +59,7 @@ What it does, in one transaction per match (retried on a concurrent change to an
 
 `RatedPlayerChange`: `playerId`, `side`, `moved`, `frozen` (`same_opponent_today` | `recorded_unrated_source` |
 `recorded_daily_limit` | `flagged_run` | null), `changes` (each rating moved: `key`, `before`, `after`, `delta`, `rdBefore`,
-`rdAfter`), `joulz` (before / after, null in placement), `placement` (`played`, `of: 5`, `done`, `label`,
+`rdAfter`), `flagged` (this player's run was flagged), `joulz` (before / after, null in placement), `placement` (`played`, `of: 5`, `done`, `label`,
 `justFinished`: show the reveal), `tier` (before / after `TierView`, null in placement), `result` (`win` / `loss` /
 `draw`; first place is a win), `place` (4 and 8 players), `joules`, `badges` (competitive badges newly awarded).
 
