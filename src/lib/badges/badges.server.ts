@@ -30,6 +30,7 @@ import {
 import type { Db } from "@/lib/data/db.server";
 import { recordEvents } from "@/lib/data/events.server";
 import { readProfile } from "@/lib/data/profiles.server";
+import { readRatedBadgeFacts, type RatedBadgeFactsRow } from "@/lib/data/ratings.server";
 import { ACTIVE_PUZZLE_TYPES, ARCADE_CATEGORY, PUZZLE_TYPES, puzzleInfo, typeTimeLimitMs } from "@/lib/duel/catalogue";
 import { longestDailyStreak } from "@/lib/duel/dailyStreak";
 import { dailyRecordFor } from "@/lib/duel/dailyStreak.server";
@@ -37,7 +38,7 @@ import { creditCoins, grantItem } from "@/lib/economy/economy.server";
 
 import { readPassTitles } from "@/lib/data/pass.server";
 import { BADGE_BY_SLUG, CARD_BADGE_SLOTS, STARTER_TITLE, TITLE_BY_ID } from "./catalogue";
-import { badgeProgress, badgesEarnedBy, type BadgeFacts } from "./rules.server";
+import { badgeProgress, badgesEarnedBy, NO_RATED_FACTS, type BadgeFacts, type RatedFacts } from "./rules.server";
 import type { BadgeChangeResult, BadgeRefusal, CardBadges, EarnedBadge, MyBadges } from "./types";
 
 export const SIGNUP_REWARD_COINS = 1000;
@@ -111,16 +112,38 @@ export function puzzleLimits(): Record<string, number> {
   return (puzzleLimitsCache = out);
 }
 
+/** rated_badge_facts' answer as the rules read it (missing numbers 0). */
+export function ratedFactsOf(row: RatedBadgeFactsRow | null): RatedFacts {
+  if (!row) return NO_RATED_FACTS;
+  const n = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : 0);
+  return {
+    wins: n(row.wins),
+    winStreak: n(row.winStreak),
+    bestWinStreak: n(row.bestWinStreak),
+    placementPlayed: n(row.placementPlayed),
+    comebacks: n(row.comebacks),
+    cleanSweeps: n(row.cleanSweeps),
+    podiums: n(row.podiums),
+    giantSlayers: n(row.giantSlayers),
+    revenges: n(row.revenges),
+    photoFinishes: n(row.photoFinishes),
+    peakTier: row.peakTier ?? null,
+    top500Ever: row.top500Ever === true,
+  };
+}
+
 /** The facts the rules read, from what is stored (null for a guest). */
 export async function factsFor(client: Db, userId: string, nowMs: number = Date.now()): Promise<BadgeFacts | null> {
   const { data: profile, error } = await readProfile(client, userId);
   if (error) throw new Error(`badges: ${error.message}`);
   if (!profile) return null;
-  const [{ data: stored, error: fErr }, daily] = await Promise.all([
+  const [{ data: stored, error: fErr }, daily, { data: rated, error: rErr }] = await Promise.all([
     readBadgeFacts(client, { userId, puzzleLimits: puzzleLimits() }),
     dailyRecordFor(client, userId, nowMs),
+    readRatedBadgeFacts(client, userId),
   ]);
   if (fErr || !stored) throw new Error(`badges: ${fErr?.message ?? "no facts"}`);
+  if (rErr) throw new Error(`badges: ${rErr.message}`);
   return {
     founding: profile.founding,
     playerNumber: profile.player_number,
@@ -134,6 +157,7 @@ export async function factsFor(client: Db, userId: string, nowMs: number = Date.
     stars: Number(stored.stars) || 0,
     starredGames: (Array.isArray(stored.starGames) ? stored.starGames : []).filter((g) => ACTIVE_GAMES.has(g)).length,
     gems: Number(stored.gems) || 0,
+    rated: ratedFactsOf(rated),
   };
 }
 

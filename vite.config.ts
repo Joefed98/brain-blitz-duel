@@ -61,7 +61,6 @@ const WORKER_OBSERVABILITY = {
  * do nothing while the push keys aren't set.
  */
 const PUSH_TASKS = {
-  experimental: { tasks: true },
   tasks: {
     "push:friend-sweep": { handler: fileURLToPath(new URL("./src/lib/push/tasks/friendSweep.task.ts", import.meta.url)) },
     "push:daily-reminder": { handler: fileURLToPath(new URL("./src/lib/push/tasks/dailyReminder.task.ts", import.meta.url)) },
@@ -75,10 +74,36 @@ const PUSH_TASKS = {
   },
 };
 
+ * Rated play's Cron Trigger (wave 3 W3a, docs/rated/README.md "The standings job"): a nitro scheduled task, as B2's push
+ * tasks are. Nitro's Cloudflare preset writes each schedule into the generated wrangler.json's `triggers.crons`, so
+ * `wrangler deploy` sets the Worker's Cron Triggers, and the Worker's `scheduled` handler runs the task for the cron
+ * that fired. UTC, kept in step with RATED_CRONS (src/lib/rated/tasks/ratedTasks.server.ts; ratings-check compares).
+ */
+const RATED_TASKS = {
+  tasks: {
+    "rated:standings": { handler: fileURLToPath(new URL("./src/lib/rated/tasks/standings.task.ts", import.meta.url)) },
+  },
+  scheduledTasks: {
+    "23 * * * *": ["rated:standings"],
+  },
+};
+
+type TaskSet = { tasks: Record<string, { handler: string }>; scheduledTasks: Record<string, string[]> };
+/** Every task set's tasks and schedules in one nitro option (a later set adds to, never replaces, an earlier one's). */
+function nitroTasks(...sets: TaskSet[]) {
+  const tasks: TaskSet["tasks"] = {};
+  const scheduledTasks: TaskSet["scheduledTasks"] = {};
+  for (const set of sets) {
+    Object.assign(tasks, set.tasks);
+    for (const [cron, names] of Object.entries(set.scheduledTasks)) scheduledTasks[cron] = [...(scheduledTasks[cron] ?? []), ...names];
+  }
+  return { experimental: { tasks: true }, tasks, scheduledTasks };
+}
+
 const SERVER_BUILD = Object.assign(
   { minify: true },
   { cloudflare: { wrangler: { observability: WORKER_OBSERVABILITY } } },
-  PUSH_TASKS,
+  nitroTasks(PUSH_TASKS, RATED_TASKS),
 ) as NitroOptions & { minify: boolean };
 
 export default defineConfig({

@@ -67,6 +67,9 @@ events go alongside them.
 | `notification_sent` | server | a phone notification sent (src/lib/push/notify.server.ts, after the switches, quiet hours and the cap); props `event` (one of the six) and `devices` |
 | `notification_opened` | server | the app opened from a notification's tap (`?notif=<event>`, `notePushOpenedFn`); props `event` |
 | `challenge_completed` | server | a server-graded Practice run completed a practice challenge (src/lib/challenges/challenges.server.ts); `game`, mode `practice`, props `challenge` (its id), `level`, `coins` (paid with it; 0 for a guest, whose coins are paid on becoming an account) |
+| `rated_match_finished` | server | a rated match was recorded (src/lib/rated/ratings.server.ts), one per live player; props `format` (bo3 / bo5 / bo7 / 4p / 8p), `choice` (mixed / puzzles / arcade), `result` (win / loss / draw), `opponent` (live / recorded) |
+| `placement_finished` | server | a player's 5th placement match was recorded; props `tier` (the tier revealed) |
+| `tier_changed` | server | a placed player's shown tier changed, after a match or in the standings job; props `from`, `to` (tier ids) |
 | `swiss_round_paired` | server | a Category Cup round's pairings were made (W4c, src/lib/tournaments/eventsFlow.server.ts); props `round`, `players` (the round's players, byes included) |
 | `knockout_match_played` | server | a Joulz Championship match was played and settled (W4c; never a walkover); `room_id`, props `round` |
 
