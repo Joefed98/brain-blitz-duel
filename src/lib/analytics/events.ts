@@ -59,6 +59,10 @@ export const ANALYTICS_EVENTS = [
   "star_earned",
   "best_set",
   "gem_unlocked",
+  // Practice challenges (wave 2 C1b, docs/challenges/catalogue.md): recorded by the server only
+  // (src/lib/challenges/challenges.server.ts) when a graded Practice run completes one. game is the game, props.challenge
+  // the challenge id, props.level its level, props.coins the coins paid with it (0 for a guest, paid on becoming an account).
+  "challenge_completed",
 ] as const;
 export type AnalyticsEventName = (typeof ANALYTICS_EVENTS)[number];
 

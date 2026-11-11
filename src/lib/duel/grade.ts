@@ -82,9 +82,10 @@ import { clayChargesEmptyShots, clayEmptyShotCost, clayEmptyShots } from "@/lib/
 import { decodeWavefrontRun, replayWavefrontRun } from "./wavefront";
 import { decodeBastionRun, decodeBastionTankRun, isBastionTank, replayBastionRun, replayBastionTankRun } from "./bastion";
 import { decodeRooftopRun, replayRooftopRun } from "./rooftop";
+import { SLICE_V9_GOLDS } from "@/lib/arcade/slice";
 import { decodeFlipRun, replayFlipRun } from "./flip";
 import {
-  decodeFiveHandsRun, decodeFreecellRun, decodePokerSquaresRun, decodeTripeaksRun, replayFiveHandsRun, replayFreecellRun, replayPokerSquaresRun, replayTripeaksRun,
+  decodeFiveHandsRun, decodeFreecellRun, fiveHandsBestColumnPoints, decodePokerSquaresRun, decodeTripeaksRun, replayFiveHandsRun, replayFreecellRun, replayPokerSquaresRun, replayTripeaksRun,
   decodeGolfSolRun, decodeMugginsRun, decodePyramidRun, replayGolfSolRun, replayMugginsRun, replayPyramidRun,
 } from "./cards";
 import { decodeBlockfallRun, replayBlockfallRun } from "./blockfall";
@@ -1272,6 +1273,8 @@ function gradeUnderRev(
         ...(puzzle.snakeRev ? { snakeRev: puzzle.snakeRev, rocks: run.rocks, rocksDodged: run.rocksDodged, rockHit: run.rockHit } : {}),
         // snakeRev 11 (the arcade scoring standard): each part's points (core, gold, combo, lane, warp).
         ...(run.state.std ? { meteorParts: snakeStdParts(run.state) } : {}),
+        // Practice challenges (wave 2 C1b, display data only): gold stars eaten against gold stars dealt (snakeRev 12).
+        ...(run.state.gold2 ? { goldStars: run.state.goldsEaten ?? 0, goldStarsDealt: (run.state.golds ?? []).length } : {}),
         length: run.length,
         survived: run.survived,
         endedSeconds: run.endedSeconds,
@@ -1786,6 +1789,8 @@ function gradeUnderRev(
         placed: run.placed,
         // fiveHandsRev 3: the bonus column picked (−1 none) and its hand; total includes its points.
         ...((puzzle.fiveHandsRev ?? 1) >= 3 ? { column: run.column, columnPoints: run.columnPoints, columnHand: run.columnHand } : {}),
+        // Practice challenges (wave 2 C1b, display data only): the best column on the run's table (null until every row is complete).
+        ...((puzzle.fiveHandsRev ?? 1) >= 3 ? { bestColumnPoints: fiveHandsBestColumnPoints(run.state) } : {}),
         finished: run.finished,
         endedSeconds: run.endedSeconds,
         flagged: run.flagged,
@@ -2026,6 +2031,8 @@ function gradeUnderRev(
         bonuses: run.bonuses,
         bombsHit: run.bombsHit,
         ...(run.mayoOn ? { mayo: run.mayo } : {}),
+        // Practice challenges (wave 2 C1b, display data only): golden fruit sliced against golden fruit dealt (sliceRev 11+).
+        ...(run.state.v11 ? { goldenSliced: run.state.golds ?? 0, goldenDealt: run.state.goldDealt ?? SLICE_V9_GOLDS } : {}),
         finished: run.finished,
         endedSeconds: run.endedSeconds,
         flagged: run.flagged,

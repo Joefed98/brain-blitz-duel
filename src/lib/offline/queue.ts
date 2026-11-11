@@ -13,6 +13,7 @@ import { splitClientCounters } from "@/lib/arcade/diagnosticsWire";
 import { practiceRunRecord, type PracticeRunProgress } from "@/lib/practice/progress";
 import { applyPracticeRun } from "@/lib/practice/useProgress";
 import { recordPracticeGoals } from "@/lib/duel/practiceGoals";
+import { queueChallengeMoments } from "@/lib/challenges/challengesClient";
 import { stampSignature } from "@/lib/duel/practiceStamps";
 import type { SubmitExtra } from "@/lib/duel/grade";
 import type { PuzzleData, PuzzleType } from "@/lib/duel/types";
@@ -169,6 +170,8 @@ export function flushQueue(deps: FlushDeps = { ensureSession: defaultSession, gr
             extra = null;
           }
           recordPracticeGoals(run.type, score, extra, best.best);
+          // Practice challenges (wave 2 C1b): the ones the server completed on this synced run, for the list's moment.
+          queueChallengeMoments((result as { challenges?: unknown }).challenges);
           await update<QueuedRun>("runs", run.id, (r) =>
             r ? { ...r, status: "confirmed", score, isCorrect: result.isCorrect === true, improved: best.improved, resolvedAt: Date.now() } : r,
           );

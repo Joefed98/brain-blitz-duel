@@ -13,6 +13,7 @@ import { GameIcon } from "@/components/app/GameIcon";
 import { PlaceDisc } from "@/components/app/TabIcons";
 import { SettingsSheet } from "@/components/app/SettingsSheet";
 import { YourChallenges } from "@/components/challenge/YourChallenges";
+import { ProfileChallenges } from "@/components/app/ProfileChallenges";
 import { readRoomHistory, roomStats, type RoomRecord } from "@/lib/duel/deviceHistory";
 import { dailyStreak, readDailyRecord, type DailyRecord } from "@/lib/duel/dailyRecord";
 import { ukDayKey } from "@/lib/duel/daily";
@@ -324,6 +325,9 @@ function ProfileScreen() {
             </ul>
           </section>
         ) : null}
+
+        {/* Practice challenges (wave 2 C1b): the count done and the next few closest. */}
+        <ProfileChallenges onOpen={() => goToTab(router, "profile", "practice")} />
 
         {loaded && history.length === 0 ? (
           // Nothing played in a room yet (wave 1's empty state, E3): where games and results will show.

@@ -345,6 +345,10 @@ export const SHARDS: Record<string, string[]> = {
     // account-screens-check (10 Nov 2026, ~10 s): the sign-up screens' rules, the save-progress events' server function
     // and usernames in rooms, Dailies and challenges, through the server-function harness, beside accounts-check.
     "account-screens-check.ts",
+    // practice-challenges-check (wave 2 C1b, 11 Nov 2026, ~40 s): the challenge catalogue's checker on real graded runs,
+    // speed goals against the grader, the six stored facts, coins once per account and guests paid on sign-up on a local
+    // PostgreSQL through the server-function harness, beside accounts-check.
+    "practice-challenges-check.ts",
     "ink-x200-check.ts",
     "depth4-check.ts",
     "room-figures-check.ts",

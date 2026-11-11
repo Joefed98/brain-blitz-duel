@@ -13,7 +13,7 @@ import {
   psCheckpoint, psTotals, pokerSquaresGameFor, PS_CHECKPOINT_INTERVAL, PS_CHECKPOINT_KEYS, type PsCheckpoint, type PsState,
 } from "@/lib/arcade/cards/pokerSquares";
 import {
-  fhCheckpoint, fhPickedHand, fhTotals, fiveHandsGameFor, FH_CHECKPOINT_INTERVAL, FH_CHECKPOINT_KEYS, type FhCheckpoint, type FhState,
+  fhCheckpoint, fhColumn, fhPickedHand, fhRowHand, fhTotals, FH_ROWS, FH_SLOTS, fiveHandsGameFor, FH_CHECKPOINT_INTERVAL, FH_CHECKPOINT_KEYS, type FhCheckpoint, type FhState,
 } from "@/lib/arcade/cards/fiveHands";
 import {
   pyCheckpoint, pyramidGameFor, PY_CHECKPOINT_INTERVAL, PY_CHECKPOINT_KEYS, type PyCheckpoint, type PyState,
@@ -149,6 +149,18 @@ export function replayFiveHandsRun(seed: number, raw: string, rev?: number | nul
   const t = fhTotals(s.rows, s.rev);
   const col = fhPickedHand(s);
   return { ...r, total: t.total + col.points, made: t.made, placed: s.turn, finished: s.ended === 1, column: col.column, columnPoints: col.points, columnHand: col.name };
+}
+
+/**
+ * fiveHandsRev 3: the most a bonus column could add on this table (each of the five columns' hands, the best one), or
+ * null until every row is complete (the pick needs them all). Display data for practice challenges (wave 2 C1b): read
+ * from the final state, never part of the score.
+ */
+export function fiveHandsBestColumnPoints(s: Pick<FhState, "rows" | "rev">): number | null {
+  if (s.rows.length < FH_ROWS || s.rows.some((row) => row.length < FH_SLOTS)) return null;
+  let best = 0;
+  for (let k = 0; k < FH_SLOTS; k++) best = Math.max(best, fhRowHand(fhColumn(s.rows, k), s.rev).points);
+  return best;
 }
 
 export interface PyramidResult extends FlatReplay<PyState, PyCheckpoint> {

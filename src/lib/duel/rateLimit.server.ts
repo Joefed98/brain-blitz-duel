@@ -47,6 +47,8 @@ export const SAFETY_LIMIT: RateLimit = { bucket: "safety", max: 60, windowSecond
 /** Coins and items (wave 2: the wallet, inventory and loadout reads, equipping, the avatar): 240 per 10 minutes per user. */
 export const ECONOMY_LIMIT: RateLimit = { bucket: "economy", max: 240, windowSeconds: 600 };
 /** Public cards (another player's look, read by profiles, rooms and friends): 600 per 10 minutes per user. */
+/** Practice challenges' list (wave 2 C1b): 120 reads per 10 minutes per user. */
+export const CHALLENGES_LIMIT: RateLimit = { bucket: "challenges", max: 120, windowSeconds: 600 };
 export const PUBLIC_CARD_LIMIT: RateLimit = { bucket: "public-card", max: 600, windowSeconds: 600 };
 /** Practice progress reads and the one-time note (wave 2 C1a), per player. */
 export const PRACTICE_PROGRESS_LIMIT: RateLimit = { bucket: "practice-progress", max: 240, windowSeconds: 600 };

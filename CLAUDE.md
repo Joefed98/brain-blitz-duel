@@ -2004,6 +2004,34 @@ outside the repo.
   Migration `20261111101500_practice_progress.sql` (**not applied until merged**). practice-progress-check (~15 s,
   PostgreSQL, no browser); offline-check's production server runs on the server-fn harness's PostgreSQL and REST
   stand-in (each browser context its own guest and network address), proving only confirmed runs count.
+- **Practice challenges** (wave 2 train C, session C1b, 11 Nov 2026; `docs/challenges/catalogue.md`, the live catalogue,
+  written by `bun scripts/challenge-catalogue-doc.ts [--check]`; no gameplay, scoring, stamp, timing or deal change): 261
+  challenges over the 92 active games in one data file, `src/lib/duel/practiceChallenges.data.ts` (217 Classic live;
+  30 Hard and 14 Expert switched off until wave 3.5 deals levels, `LIVE_CHALLENGE_LEVELS`). The one checker,
+  `evaluateChallenge` (`practiceChallenges.ts`), reads only the server's graded result (score, isCorrect, reactionAvgMs,
+  the stored extra, its reveal lines and tiles); `src/lib/challenges/challenges.server.ts` runs it in practice's
+  grading on each play C1a counts (`gradePracticeRun`'s `onCounted`, online and synced offline runs, read back from
+  the play's stored `breakdown` and `level` by `readPracticePlayBreakdown`; never the intro example, a flagged run, a
+  play before the fresh start, rooms, the Daily or friend challenges) and stores each player's best value and completion in `public.practice_challenge_progress` (guests too),
+  written only by the service-role `challenge_record` / `challenge_pay_due` / `challenge_first_run`
+  (`supabase/migrations/20261111130000_practice_challenges.sql`, **not applied until merged**; data layer
+  `src/lib/data/practiceChallenges.server.ts`). 17 Classic pay 100 coins (13 Hard 100 and 9 Expert 250 once live)
+  through A1's ledger, reason `challenge_reward`, key `challenge_reward:<id>`, once per account, and only on the player's
+  first graded run of that deal (`public.practice_challenge_deals`, the sealed token's SHA-256, `challenge_first_run`;
+  a retry can still complete challenges that pay nothing; no key fails closed); a guest's are paid at sign-up
+  (`completeSignUpFn`), or the next graded run or list read. The other 222 show no reward; the list says "Every
+  challenge counts towards your Challenger badges." (Joe, 11 Nov 2026). The list (`PracticeChallenges`, done from the server
+  alone, `getMyChallengesFn`, `useServerChallenges`), Profile's section (`ProfileChallenges`) and the small completion
+  moment (`ChallengeMoments`, queued on the device, drawn only on the Practice list, never over a round, reveal or
+  result). Six stored facts (display data only, grade.ts): Heave `goldHome` and Spacewalk `closeCalls`, `noStop` /
+  `streakPts` were already stored; added Slice `goldenSliced` / `goldenDealt` (sliceRev 11+), Meteor `goldStars` /
+  `goldStarsDealt` (snakeRev 12) and Five Hands `bestColumnPoints` (fiveHandsRev 3, `fiveHandsBestColumnPoints` in
+  cards.ts). Event `challenge_completed`. Checks: practice-goals-check (the catalogue, and section 7: every number in
+  every goal against the live game, `scripts/practice-challenge-numbers.ts`), practice-challenges-check (~40 s, shard
+  `e`: real graded runs `scripts/fixtures/practice-challenges-runs.json.gz` by `practice-challenges-record.ts`, meets
+  and falls short for all 261, speed goals against the grader, the facts, coins and roles on PostgreSQL) and
+  practice-challenge-fit-check (headless Chromium: every goal whole at 320 and 375 px). **A retune that moves a goal's
+  number fails practice-goals-check: change the goal's text and number in the data file and re-run the doc script.**
 - `src/components/duel/` — room/round screens (PhoneShell, RoundIntro, TimerBar,
   AnswerReveal, ArcadeReveal, WinnerReveal…); `src/components/puzzles/` — shared puzzle
   widgets; `src/lib/fx/` — sound and visual feedback (presentation only).
