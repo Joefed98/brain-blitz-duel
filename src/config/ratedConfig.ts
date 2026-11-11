@@ -7,3 +7,8 @@
  * The format and choice switches are W3b's own: src/config/matchmakingConfig.ts.
  */
 export const RATED_PLAY_FOR_EVERYONE = false;
+
+/** Whether the weekly draw may include challenges marked R (W3a). */
+export function ratedChallengesDrawable(): boolean {
+  return RATED_PLAY_FOR_EVERYONE;
+}

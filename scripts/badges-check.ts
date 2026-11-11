@@ -11,8 +11,8 @@
  * - the catalogue is Joe's approved one (docs/badges/catalogue.md's table, every rule shown, none "announced soon");
  *   each earnable badge has a rule here or is awarded elsewhere (Friendly, B1), each rule a test that earns it and one
  *   that just misses (pure, and on stored rooms, Dailies, challenges and gems through public.badge_facts); no badge
- *   that waits (rated play, all stars, Hard challenges, Daily boards, tournaments, C1a's stars, C1b's challenges) can
- *   be awarded; locked counted badges carry their progress;
+ *   that waits (all stars, Hard challenges, Daily boards, tournaments) can be awarded; rated play's 13 are earnable
+ *   (wave 3 W3a; ratings-check earns them through real matches); locked counted badges carry their progress;
  * - awards are idempotent; a Legendary pays 250 once; the sign-up reward pays 1,000 once, at sign-up and after the
  *   backfill, whichever comes first; the backfill pays every existing account and every Founding Player (badge with
  *   number, 250, the Founding frame) and a second run adds nothing;
@@ -159,13 +159,15 @@ async function pureChecks(): Promise<void> {
     });
     check(tableRows.length === 54 && mdDiff.length === 0, `docs/badges/catalogue.md's table is the catalogue, rule for rule (${mdDiff.map((d) => d.slug).join(", ") || "none differ"})`);
     const now = cat.BADGES.filter((b) => b.status === "earnable").map((b) => b.slug).sort().join();
-    check(now === "all-rounder,buzzer-beater,century,challenge-expert,challenge-seeker,challenger,daily-habit,dedicated,first-star,flawless,founding-player,friendly,gem-hunter,party-host,perfectionist,speed-demon", `earnable now: every badge the approved catalogue says is now (${now})`);
+    // Approved by Joe in the wave 3 W3a brief (11 Nov 2026): rated play's 13 badges are earnable now (16 earnable → 29).
+    check(now === "all-rounder,buzzer-beater,century,challenge-expert,challenge-seeker,challenger,clean-sweep,comeback-kid,daily-habit,dedicated,first-star,first-win,flawless,founding-player,friendly,gem-hunter,giant-slayer,hot-streak,lightning-strikes,party-host,perfectionist,photo-finish,placed,podium-regular,revenge,speed-demon,storm-chaser,top-500,unstoppable", `earnable now: every badge the approved catalogue says is now (${now})`);
     const wait = (w: string) => cat.BADGES.filter((b) => b.waitsFor === w).map((b) => b.slug).sort().join();
     check(wait("mastery-stars") === "" && wait("practice-challenges") === "", "nothing parked: C1a's three and C1b's three wired");
     const { ACTIVE_PUZZLE_TYPES } = await import("../src/lib/duel/catalogue");
     const ar = cat.BADGE_BY_SLUG.get("all-rounder")!;
     check(ar.target?.need === ACTIVE_PUZZLE_TYPES.length && ar.target.live === true, `All-Rounder counts every active game, from the live list (${ar.target?.need})`);
-    check(cat.BADGES.filter((b) => b.waitsFor === "rated-play").length === 13 && cat.BADGES.filter((b) => b.waitsFor === "tournaments").length === 9 && cat.BADGES.filter((b) => b.waitsFor === "all-stars").length === 12 && wait("daily-boards") === "daily-champion,daily-top-100" && wait("hard-challenges") === "category-clear,completionist", "the waves' badges wait as approved (rated play 13, tournaments 9, all stars 12, Daily boards 2, Hard challenges 2)");
+    // Approved by Joe in the wave 3 W3a brief (11 Nov 2026): rated play's 13 no longer wait (rated play 13 → 0).
+    check(cat.BADGES.filter((b) => b.waitsFor === "rated-play").length === 0 && cat.BADGES.filter((b) => b.waitsFor === "tournaments").length === 9 && cat.BADGES.filter((b) => b.waitsFor === "all-stars").length === 12 && wait("daily-boards") === "daily-champion,daily-top-100" && wait("hard-challenges") === "category-clear,completionist", "the waves' badges wait as approved (rated play 0 since W3a, tournaments 9, all stars 12, Daily boards 2, Hard challenges 2)");
     check(cat.badgeProgressLine(cat.BADGE_BY_SLUG.get("daily-habit")!, 4) === "4 of 7 days" && cat.badgeProgressLine(cat.BADGE_BY_SLUG.get("perfectionist")!, 30) === "25 of 25 games" && cat.badgeProgressLine(cat.BADGE_BY_SLUG.get("flawless")!, 0) === null, "progress reads “4 of 7 days”, capped at the count, only on counted badges");
     const svgs = readdirSync("docs/art/badges/svg").filter((f) => f.endsWith(".svg"));
     const same = svgs.filter((f) => readFileSync(`docs/art/badges/svg/${f}`).equals(readFileSync(`public/art/badges/${f}`)));
@@ -187,7 +189,9 @@ async function pureChecks(): Promise<void> {
     const checked = earnable.filter((s) => !rules.AWARDED_ELSEWHERE.includes(s));
     check(checked.every((s) => rules.BADGE_RULES[s]) && Object.keys(rules.BADGE_RULES).every((s) => checked.includes(s)), "a rule for every earnable badge the server checks, and only those");
     check(rules.AWARDED_ELSEWHERE.join() === "friendly" && earnable.includes("friendly") && !rules.BADGE_RULES["friendly"], "Friendly is earnable but awarded by B1 (no rule here)");
-    const none: rules.BadgeFacts = { founding: false, playerNumber: 43, games200: 0, buzzerFinishes: 0, fastFinishes: 0, bestDailyStreak: 0, dailyStreak: 0, hostedRooms: 0, challengesDone: 0, stars: 0, starredGames: 0, gems: 0 };
+    const none: rules.BadgeFacts = { founding: false, playerNumber: 43, games200: 0, buzzerFinishes: 0, fastFinishes: 0, bestDailyStreak: 0, dailyStreak: 0, hostedRooms: 0, challengesDone: 0, stars: 0, starredGames: 0, gems: 0, rated: rules.NO_RATED_FACTS };
+    // Rated play's facts (wave 3 W3a): the earn / miss pair's rated part, over no rated record.
+    const r = (part: Partial<rules.RatedFacts>): Partial<rules.BadgeFacts> => ({ rated: { ...rules.NO_RATED_FACTS, ...part } });
     const { ACTIVE_PUZZLE_TYPES: ACTIVE } = await import("../src/lib/duel/catalogue");
     // Each rule: the facts that just earn it, and the same facts one short.
     const earns: Record<string, [Partial<rules.BadgeFacts>, Partial<rules.BadgeFacts>]> = {
@@ -206,6 +210,20 @@ async function pureChecks(): Promise<void> {
       challenger: [{ challengesDone: 10 }, { challengesDone: 9 }],
       "challenge-seeker": [{ challengesDone: 50 }, { challengesDone: 49 }],
       "challenge-expert": [{ challengesDone: 100 }, { challengesDone: 99 }],
+      // Rated play (wave 3 W3a, 11 Nov 2026).
+      "first-win": [r({ wins: 1 }), r({ wins: 0, placementPlayed: 5 })],
+      placed: [r({ placementPlayed: 5 }), r({ placementPlayed: 4 })],
+      "hot-streak": [r({ bestWinStreak: 5 }), r({ bestWinStreak: 4, winStreak: 4, wins: 40 })],
+      "comeback-kid": [r({ comebacks: 1 }), r({ comebacks: 0, wins: 9 })],
+      "clean-sweep": [r({ cleanSweeps: 1 }), r({ cleanSweeps: 0, wins: 9 })],
+      "podium-regular": [r({ podiums: 25 }), r({ podiums: 24 })],
+      unstoppable: [r({ bestWinStreak: 10 }), r({ bestWinStreak: 9, winStreak: 9 })],
+      "giant-slayer": [r({ giantSlayers: 1 }), r({ giantSlayers: 0, wins: 30 })],
+      "storm-chaser": [r({ peakTier: "storm" }), r({ peakTier: "surge" })],
+      "lightning-strikes": [r({ peakTier: "top500" }), r({ peakTier: "storm" })],
+      "top-500": [r({ top500Ever: true, peakTier: "top500" }), r({ peakTier: "lightning" })],
+      revenge: [r({ revenges: 1 }), r({ revenges: 0, wins: 3 })],
+      "photo-finish": [r({ photoFinishes: 1 }), r({ photoFinishes: 0, wins: 3 })],
     };
     for (const slug of checked) {
       const pair = earns[slug];
@@ -387,7 +405,8 @@ async function databaseChecks(db: LocalDb, rest: RestServer): Promise<void> {
     const award = (badge: string) => JSON.parse(q(`SELECT public.badge_award('${EVE}', '${badge}', '{}'::jsonb)::text`)) as { status: string };
     const waiting = cat.BADGES.filter((b) => b.status !== "earnable");
     const refusedAll = waiting.every((b) => award(b.slug).status === "not_earnable");
-    check(refusedAll && waiting.length === 38 && Number(q(`SELECT count(*) FROM player_badges WHERE user_id = '${EVE}'`)) === 0, `none of the ${waiting.length} badges that wait can be awarded`);
+    // Approved by Joe in the wave 3 W3a brief (11 Nov 2026): 38 waiting → 25 (rated play's 13 earnable).
+    check(refusedAll && waiting.length === 25 && Number(q(`SELECT count(*) FROM player_badges WHERE user_id = '${EVE}'`)) === 0, `none of the ${waiting.length} badges that wait can be awarded`);
     const friendly = JSON.parse(q(`SELECT public.badge_award('${EVE}', 'friendly', '{}'::jsonb)::text`)) as { status: string };
     check(friendly.status === "awarded" && balance(EVE) === 1000, "Friendly can be awarded through badge_award (B1's path), no coins (Common)");
     q(`DELETE FROM player_badges WHERE user_id = '${EVE}' AND badge = 'friendly'`);

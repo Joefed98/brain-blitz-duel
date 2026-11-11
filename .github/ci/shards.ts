@@ -338,6 +338,10 @@ export const SHARDS: Record<string, string[]> = {
     // badges-check (wave 2 C2, 11 Nov 2026, ~10 s): badges, titles, the sign-up and founding rewards, the backfill and the
     // Daily streak on the account, on a local PostgreSQL through the server-function harness, beside economy-check.
     "badges-check.ts",
+    // ratings-check (wave 3 W3a, 14 Nov 2026, ~10 s): the ratings engine (the Glicko-2 targets on simulated players,
+    // placement, tiers and caps, recorded runs, the 4th-match rule, Joules, the competitive badges) on a local
+    // PostgreSQL through the server-function harness, beside badges-check.
+    "ratings-check.ts",
     // practice-progress-check (wave 2 C1a, 11 Nov 2026, ~15 s): practice stars, bests and gems on the account (the stored
     // breakdown against a room's, 175 / 174, the fresh start, gems, two devices, roles) on a local PostgreSQL.
     "practice-progress-check.ts",

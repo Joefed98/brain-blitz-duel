@@ -5,18 +5,22 @@ the code: the types are `src/lib/data/ratings.ts`, the server's functions `src/l
 rules `src/lib/rated/`, the constants `src/lib/rated/glicko.config.ts`. How it works and why: `docs/rated/README.md`.
 
 Every rating is the server's. The phone never sends a rating, a result or a change; it reads them through the four
-server functions in `src/lib/rated/ratings.functions.ts`.
+server functions in `src/lib/rated/ratings.functions.ts`. Status: built and checked (`scripts/ratings-check.ts`).
 
-## Server only: `recordRatedMatch(client, result)`
+## Server only: `finishRatedMatch(client, result)` / `recordRatedMatch(client, result)`
 
 ```ts
-import { recordRatedMatch } from "@/lib/rated/ratings.server";
-const outcome: RatedMatchOutcome = await recordRatedMatch(adminDb(), result);
+import { finishRatedMatch } from "@/lib/rated/rewards.server";
+const outcome: RatedMatchOutcome = await finishRatedMatch(await adminDb(), result);
 ```
 
-Called by the match engine (W3b) once a rated match has finished, with the service-role client. Not a server
-function: no `*.functions.ts` exports it, and the database functions it calls are executable by the service role
-only (`ratings-check` proves both).
+The match engine (W3b) calls **`finishRatedMatch`** once a rated match has finished, with the service-role client:
+it is `recordRatedMatch` (`src/lib/rated/ratings.server.ts`: ratings, placement, tiers, history, events, Joules
+amounts) followed by the competitive badges each live player's record now earns (each player's `badges`). The two
+are split so the ratings engine itself reaches no economy module (a Legendary badge pays coins): code named as
+matchmaking that imports `recordRatedMatch` stays clear of economy-neutral-check. Neither is a server function: no
+`*.functions.ts` names them, and the database functions they call are executable by the service role only
+(`ratings-check` proves both). An optional third argument, `nowMs`, is the server's time (checks only).
 
 `result: RatedMatchResult`:
 
@@ -39,9 +43,9 @@ What it does, in one transaction per match (retried on a concurrent change to an
    about as much as one 1v1 (W3d's rule).
 2. **Weights.** Each game weighs `GAME_WEIGHT` (½: a best-of-3 won 2–0 weighs one match) in its pool for All puzzles
    / All arcade, half that for Mixed; its category's rating moves at the full game weight.
-3. **Who moves.** Live players fully. A recorded run's owner at most half (`RECORDED_OWNER_FACTOR`), only when the
+3. **Who moves.** Live players fully. A recorded run's owner exactly half (`RECORDED_OWNER_FACTOR`), only when the
    run came from a rated game, and not past `RUN_USES_PER_DAY` (5) uses of that run in a UK day (W3b enforces the 5;
-   every use is recorded here, `countRunUsesToday`). Room, Daily and Practice runs never move their owner. From the
+   every use is recorded here, in `rated_run_uses`, read back by `rated_state`'s `runs`). Room, Daily and Practice runs never move their owner. From the
    4th rated match between the same two live players in a UK day, the match plays but neither moves against the other
    (`frozen: "same_opponent_today"`).
 4. **Glicko-2** per rating (`src/lib/rated/glicko2.ts`), with the match as the rating period, the RD floor schedule,
@@ -73,10 +77,13 @@ A pool or category is `{ status: "not_played" }` ("Not played yet", never counte
 
 ## Pure (phone and server, `src/lib/rated/tiers.ts`)
 
-- `tierFor(rating, standing?)` → `TierView`. `standing` = `{ ratedPlayers, rank, topShare, grace }` from the
-  standings; without it (or under 1,000 rated players) the tier goes by rating alone. Labels: "Volt II", "Top 500 #37";
+- `tierFor(rating, standing?)` → `TierView`. `standing: TierStanding` = `{ capsActive, stormOk, top500Ok, rank, share }`
+  from the standings job (`capsActive` once there are 1,000 rated players; `stormOk` / `top500Ok` in the share or
+  within its 3-day grace); without it, or with the caps not active, the tier goes by rating alone. Labels: "Volt II", "Top 500 #37";
   `heldBack.label` "Storm-rated, top 4%"; `next` the next step up and the points to it.
-- `TIER_LADDER` (the thresholds), `tierFromRating(rating)` (rating alone).
+- `TIER_DEFS` (the thresholds), `tierFromRating(rating)` (rating alone), `tierLadder(shares)`, `tierRank(tier)`.
+- `src/lib/rated/match.ts`: `gamePool(type)`, `gameCategory(type)` (the server's pool and category for a game),
+  `placementOf(played)`, `joulzRating(pools, recentGames)`.
 
 ## For D2 (Joules) and the weekly challenges
 
@@ -89,5 +96,12 @@ A pool or category is `{ status: "not_played" }` ("Not played yet", never counte
 
 ## Analytics (`src/lib/data/events.server.ts`)
 
-`rated_match_finished` (props `format`, `choice`, `result`, `side`: live / recorded), `placement_finished` (`tier`),
-`tier_changed` (`from`, `to`).
+`rated_match_finished` (one per live player; props `format`: bo3 / bo5 / bo7 / 4p / 8p, `choice`, `result`,
+`opponent`: live / recorded), `placement_finished` (`tier`), `tier_changed` (`from`, `to`; after a match or from the
+standings job).
+
+## The standings job
+
+`runStandingsAndBadges(client)` (`rewards.server.ts`; `runStandingsJob` in `ratings.server.ts` without the badges),
+hourly at :23 UTC on a Cloudflare Cron Trigger (`src/lib/rated/tasks/standings.task.ts`, `vite.config.ts`
+`RATED_TASKS`). Answers `{ ratedPlayers, capsActive, changed: [{ playerId, from, to }] }`.
