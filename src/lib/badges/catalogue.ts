@@ -8,7 +8,7 @@
  * locked counted badge its progress ("4 of 7 days"). `status`:
  *   - earnable: the server checks its rule now (src/lib/badges/rules.server.ts), or another session awards it through
  *               badge_award (Friendly, B1);
- *   - waits:    it needs something not built yet (`waitsFor`): rated play (wave 3), all three stars or Hard and Expert
+ *   - waits:    it needs something not built yet (`waitsFor`): all three stars or Hard and Expert
  *               challenges (wave 3.5), Daily leaderboards and tournaments (wave 4), or C1a's stars and C1b's challenges.
  * Only `earnable` badges can be awarded (the database refuses the rest).
  *
@@ -92,7 +92,6 @@ const D = "daily-and-tournaments";
 const H = "challenges";
 const F = "fun";
 const S = "social-and-special";
-const R: BadgeWait = "rated-play";
 const T: BadgeWait = "tournaments";
 /** Every active game (All-Rounder's count; from the light catalogue, so a new game moves it). */
 const ACTIVE_GAME_COUNT = ACTIVE_PUZZLE_TYPES.length;
@@ -103,17 +102,19 @@ const ACTIVE_GAME_COUNT = ACTIVE_PUZZLE_TYPES.length;
  * challenges) lift when those land and their rules are wired.
  */
 const ROWS: readonly Row[] = [
-  ["first-win", "First Win", C, "common", R, "Win your first rated match."],
-  ["placed", "Placed", C, "common", R, "Finish your 5 placement matches.", [5, "matches"]],
-  ["hot-streak", "Hot Streak", C, "rare", R, "Win 5 rated matches in a row.", [5, "wins"]],
-  ["comeback-kid", "Comeback Kid", C, "rare", R, "Win a best of 3 or 5 after losing the first game."],
-  ["clean-sweep", "Clean Sweep", C, "epic", R, "Win a best of 5 without dropping a game."],
-  ["podium-regular", "Podium Regular", C, "epic", R, "Finish top 3 in 25 four- or eight-player matches.", [25, "matches"]],
-  ["unstoppable", "Unstoppable", C, "elite", R, "Win 10 rated matches in a row.", [10, "wins"]],
-  ["giant-slayer", "Giant Slayer", C, "elite", R, "Beat a player rated at least 300 above you."],
-  ["storm-chaser", "Storm Chaser", C, "elite", R, "Reach Storm."],
-  ["lightning-strikes", "Lightning Strikes", C, "legendary", R, "Reach Lightning."],
-  ["top-500", "Top 500", C, "legendary", R, "Be ranked in the Top 500 at any point."],
+  // Rated play's 13 (the 11 competitive, Revenge and Photo Finish): earnable since wave 3 W3a (11 Nov 2026, Joe's
+  // approval in the W3a brief), checked from the server's rated record (rated_badge_facts).
+  ["first-win", "First Win", C, "common", null, "Win your first rated match."],
+  ["placed", "Placed", C, "common", null, "Finish your 5 placement matches.", [5, "matches"]],
+  ["hot-streak", "Hot Streak", C, "rare", null, "Win 5 rated matches in a row.", [5, "wins"]],
+  ["comeback-kid", "Comeback Kid", C, "rare", null, "Win a best of 3 or 5 after losing the first game."],
+  ["clean-sweep", "Clean Sweep", C, "epic", null, "Win a best of 5 without dropping a game."],
+  ["podium-regular", "Podium Regular", C, "epic", null, "Finish top 3 in 25 four- or eight-player matches.", [25, "matches"]],
+  ["unstoppable", "Unstoppable", C, "elite", null, "Win 10 rated matches in a row.", [10, "wins"]],
+  ["giant-slayer", "Giant Slayer", C, "elite", null, "Beat a player rated at least 300 above you."],
+  ["storm-chaser", "Storm Chaser", C, "elite", null, "Reach Storm."],
+  ["lightning-strikes", "Lightning Strikes", C, "legendary", null, "Reach Lightning."],
+  ["top-500", "Top 500", C, "legendary", null, "Be ranked in the Top 500 at any point."],
   // From C1a's stored stars and gems (public.practice_progress, gem_unlocks), wired 11 Nov 2026.
   ["first-star", "First Star", M, "common", null, "Earn your first mastery star."],
   ["flawless", "Flawless", M, "rare", null, "Score 200 in any game."],
@@ -153,8 +154,8 @@ const ROWS: readonly Row[] = [
   ["challenge-expert", "Challenge Expert", H, "epic", null, "Complete 100 Practice challenges.", [100, "challenges"]],
   ["category-clear", "Category Clear", H, "elite", "hard-challenges", "Complete every challenge in one category."],
   ["completionist", "Completionist", H, "legendary", "hard-challenges", "Complete every Practice challenge."],
-  ["revenge", "Revenge", F, "common", R, "Win the rematch after losing to the same player."],
-  ["photo-finish", "Photo Finish", F, "rare", R, "Win a rated match by 1 point or less."],
+  ["revenge", "Revenge", F, "common", null, "Win the rematch after losing to the same player."],
+  ["photo-finish", "Photo Finish", F, "rare", null, "Win a rated match by 1 point or less."],
   ["buzzer-beater", "Buzzer Beater", F, "rare", null, "Finish a puzzle with under 1 second left."],
   ["speed-demon", "Speed Demon", F, "epic", null, "Finish a puzzle in under a third of its time, 10 times.", [10, "times"]],
   // Earnable now, but awarded by B1 (friends) through badge_award, not by a rule here (Joe, 11 Nov 2026).

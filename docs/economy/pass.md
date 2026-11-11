@@ -152,8 +152,12 @@ in the order the play happened, under a lock on the account, so two reads never 
 ## Weekly challenges (`weekly.ts`)
 
 - Three every Monday at midnight UK, the same for everyone: Easy 500, Medium 750, Hard 1,250 Joules; they expire the
-  next Monday. Drawn from the economy doc's pool of 45, leaving out every R challenge (rated play, wave 3) and those
-  needing tournaments (Score Attack, Arena: wave 4): 13 Easy, 10 Medium and 10 Hard drawable. Each tier walks a seeded
+  next Monday. Drawn from the economy doc's pool of 45, leaving out those needing tournaments (Score Attack, Arena:
+  wave 4) and, while rated play is off for everyone, every R challenge (wave 3 W3a, 11 Nov 2026, Joe's approval:
+  `drawable` reads `RATED_PLAY_FOR_EVERYONE` through `ratedChallengesDrawable()`; `drawableWith(c, ratedOn)` for the
+  checks): 13 Easy, 10 Medium and 10 Hard drawable now, the nine R ones (3 / 3 / 3) joining when it is on. R challenges
+  count the week's counted rated matches (`public.rated_week_matches`: played, won, games won in a category, a best of
+  3 won 2–0, wins in a row, categories won in). Each tier walks a seeded
   order of its drawable challenges (one full cycle before any repeats) and takes the first whose category the week
   doesn't already have, so each week's three are in three different categories.
 - The week's picks are recorded the first time anyone's pass reads the week (`public.pass_weeks`, never changed), so
