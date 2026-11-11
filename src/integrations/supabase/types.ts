@@ -14,6 +14,336 @@ export type Database = {
   }
   public: {
     Tables: {
+      catalogue_items: {
+        Row: {
+          animated: boolean
+          bundle: string | null
+          created_at: string
+          exclusive: boolean
+          exclusive_forever: boolean
+          game: string | null
+          game_type: string | null
+          html_path: string | null
+          id: string
+          kind: string
+          name: string
+          note: string | null
+          pass_level: number | null
+          png_path: string | null
+          price_coins: number | null
+          rarity: string | null
+          slot: string
+          sort_order: number
+          source: string
+        }
+        Insert: {
+          animated: boolean
+          bundle?: string | null
+          created_at?: string
+          exclusive: boolean
+          exclusive_forever?: boolean
+          game?: string | null
+          game_type?: string | null
+          html_path?: string | null
+          id: string
+          kind: string
+          name: string
+          note?: string | null
+          pass_level?: number | null
+          png_path?: string | null
+          price_coins?: number | null
+          rarity?: string | null
+          slot: string
+          sort_order?: number
+          source: string
+        }
+        Update: {
+          animated?: boolean
+          bundle?: string | null
+          created_at?: string
+          exclusive?: boolean
+          exclusive_forever?: boolean
+          game?: string | null
+          game_type?: string | null
+          html_path?: string | null
+          id?: string
+          kind?: string
+          name?: string
+          note?: string | null
+          pass_level?: number | null
+          png_path?: string | null
+          price_coins?: number | null
+          rarity?: string | null
+          slot?: string
+          sort_order?: number
+          source?: string
+        }
+        Relationships: []
+      }
+      coin_ledger: {
+        Row: {
+          amount: number
+          balance_after: number
+          created_at: string
+          id: number
+          idempotency_key: string
+          reason: string
+          ref_id: string | null
+          ref_kind: string | null
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          balance_after: number
+          created_at?: string
+          id?: number
+          idempotency_key: string
+          reason: string
+          ref_id?: string | null
+          ref_kind?: string | null
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          balance_after?: number
+          created_at?: string
+          id?: number
+          idempotency_key?: string
+          reason?: string
+          ref_id?: string | null
+          ref_kind?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      coin_wallets: {
+        Row: {
+          balance: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          balance?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          balance?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      consumable_balances: {
+        Row: {
+          count: number
+          kind: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          count?: number
+          kind: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          count?: number
+          kind?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      consumable_kinds: {
+        Row: {
+          kind: string
+          name: string
+        }
+        Insert: {
+          kind: string
+          name: string
+        }
+        Update: {
+          kind?: string
+          name?: string
+        }
+        Relationships: []
+      }
+      consumable_ledger: {
+        Row: {
+          amount: number
+          count_after: number
+          created_at: string
+          id: number
+          idempotency_key: string
+          kind: string
+          reason: string
+          ref_id: string | null
+          ref_kind: string | null
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          count_after: number
+          created_at?: string
+          id?: number
+          idempotency_key: string
+          kind: string
+          reason: string
+          ref_id?: string | null
+          ref_kind?: string | null
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          count_after?: number
+          created_at?: string
+          id?: number
+          idempotency_key?: string
+          kind?: string
+          reason?: string
+          ref_id?: string | null
+          ref_kind?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      economy_reasons: {
+        Row: {
+          note: string | null
+          reason: string
+        }
+        Insert: {
+          note?: string | null
+          reason: string
+        }
+        Update: {
+          note?: string | null
+          reason?: string
+        }
+        Relationships: []
+      }
+      gem_unlocks: {
+        Row: {
+          gem: string
+          unlocked_at: string
+          user_id: string
+        }
+        Insert: {
+          gem: string
+          unlocked_at?: string
+          user_id: string
+        }
+        Update: {
+          gem?: string
+          unlocked_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      inventory_items: {
+        Row: {
+          acquired_at: string
+          how: string
+          item_id: string
+          ledger_id: number | null
+          user_id: string
+        }
+        Insert: {
+          acquired_at?: string
+          how: string
+          item_id: string
+          ledger_id?: number | null
+          user_id: string
+        }
+        Update: {
+          acquired_at?: string
+          how?: string
+          item_id?: string
+          ledger_id?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      loadout_slots: {
+        Row: {
+          equipped_at: string
+          item_id: string
+          slot: string
+          user_id: string
+        }
+        Insert: {
+          equipped_at?: string
+          item_id: string
+          slot: string
+          user_id: string
+        }
+        Update: {
+          equipped_at?: string
+          item_id?: string
+          slot?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      loadouts: {
+        Row: {
+          accent: string | null
+          accessory: string | null
+          avatar_id: string
+          background: string | null
+          feature: string | null
+          gem: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          accent?: string | null
+          accessory?: string | null
+          avatar_id?: string
+          background?: string | null
+          feature?: string | null
+          gem?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          accent?: string | null
+          accessory?: string | null
+          avatar_id?: string
+          background?: string | null
+          feature?: string | null
+          gem?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      avatar_options: {
+        Row: {
+          avatar_id: string
+          is_default: boolean
+          kind: string
+          option_id: string
+          sort_order: number
+        }
+        Insert: {
+          avatar_id: string
+          is_default?: boolean
+          kind: string
+          option_id: string
+          sort_order?: number
+        }
+        Update: {
+          avatar_id?: string
+          is_default?: boolean
+          kind?: string
+          option_id?: string
+          sort_order?: number
+        }
+        Relationships: []
+      }
       async_attempts: {
         Row: {
           colour: number | null
@@ -1130,9 +1460,84 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      catalogue_shop: {
+        Row: {
+          animated: boolean | null
+          bundle: string | null
+          created_at: string | null
+          exclusive: boolean | null
+          exclusive_forever: boolean | null
+          game: string | null
+          game_type: string | null
+          html_path: string | null
+          id: string | null
+          kind: string | null
+          name: string | null
+          note: string | null
+          pass_level: number | null
+          png_path: string | null
+          price_coins: number | null
+          rarity: string | null
+          slot: string | null
+          sort_order: number | null
+          source: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
+      economy_credit: {
+        Args: { p_amount: number; p_key: string; p_reason: string; p_ref_id: string | null; p_ref_kind: string | null; p_user_id: string }
+        Returns: Json
+      }
+      economy_spend: {
+        Args: { p_amount: number; p_key: string; p_reason: string; p_ref_id: string | null; p_ref_kind: string | null; p_user_id: string }
+        Returns: Json
+      }
+      economy_refund: { Args: { p_line_id: number; p_user_id: string }; Returns: Json }
+      economy_purchase_item: { Args: { p_item_id: string; p_key: string; p_user_id: string }; Returns: Json }
+      economy_grant_item: { Args: { p_how: string; p_item_id: string; p_user_id: string }; Returns: string }
+      economy_grant_consumable: {
+        Args: { p_amount: number; p_key: string; p_kind: string; p_reason: string; p_ref_id: string | null; p_ref_kind: string | null; p_user_id: string }
+        Returns: Json
+      }
+      economy_use_consumable: {
+        Args: { p_amount: number; p_key: string; p_kind: string; p_reason: string; p_ref_id: string | null; p_ref_kind: string | null; p_user_id: string }
+        Returns: Json
+      }
+      economy_equip: { Args: { p_item_id: string | null; p_slot: string; p_user_id: string }; Returns: string }
+      economy_set_avatar: {
+        Args: {
+          p_accent: string | null
+          p_accessory: string | null
+          p_avatar_id: string
+          p_background: string | null
+          p_colour: number
+          p_feature: string | null
+          p_gem: string | null
+          p_user_id: string
+        }
+        Returns: string
+      }
+      economy_public_cards: {
+        Args: { p_user_ids: string[] }
+        Returns: {
+          accent: string | null
+          accessory: string | null
+          avatar_id: string
+          background: string | null
+          card_art: string | null
+          feature: string | null
+          colour: number
+          founding: boolean
+          frame: string | null
+          gem: string | null
+          name_colour: string | null
+          player_number: number
+          user_id: string
+          username: string
+        }[]
+      }
       async_board_open: { Args: { p_room_id: string }; Returns: boolean }
       disband_stale_room: { Args: { p_room_id: string }; Returns: boolean }
       duel_round_ended: {

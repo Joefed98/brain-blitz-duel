@@ -1927,6 +1927,25 @@ outside the repo.
   and the sheet's `ownLayers` keeps a tap there from closing it (fix-up after Joe's iPhone test: the reasons did nothing);
   chat-report-check (headless Chromium, ~2 min, `play21`) reports a message with a touch tap and a mouse click at
   390×844 and 375×667 through to a stored `room_reports` row.
+- **Coins and items** (wave 2 train A, session A1, 10 Nov 2026, `docs/economy/README.md`; no gameplay, scoring, stamp
+  or room-flow change; nothing paid, nothing shown): `public.catalogue_items` seeded from `docs/art/wave-2/catalogue.json`
+  verbatim (110 items; `bun scripts/economy-catalogue-sql.ts` wrote `20261110160100_economy_catalogue.sql`; the table
+  enforces shop-only prices by rarity, Legendary animated, exclusive = not from the shop; `public.catalogue_shop` is the one
+  shop query), `public.coin_ledger` + `coin_wallets` (append-only lines, idempotency keys, the wallet locked per change so
+  spends can't race below zero), consumables (`streak_freeze`, `ticket_score_attack`, `ticket_category_cup`), inventory,
+  loadouts (`src/lib/economy/slots.ts` is the one slot config: 4 reaction slots) and the avatar builder's options
+  (`public.avatar_options`: only each avatar's accent and scene background exist in docs/art/avatars/; features and
+  accessories await Joe's lists). Accounts only; every new profile gets the 8 free card arts and the Plain frame (a trigger;
+  existing accounts backfilled). No API role writes any of it: the server goes through the service-role `economy_*`
+  functions (helpers `creditCoins`, `spendCoins`, `purchaseItem`, `grantItem`… in `src/lib/economy/economy.server.ts`,
+  for later sessions), the phone through `economy.functions.ts` (`getCatalogue`, `getAvatarOptions`, `getMyWallet`,
+  `getMyInventory`, `getMyLoadout`, `equip`, `setAvatar`, `getPublicCard`; types `src/lib/data/economy.ts`). Joe's tools
+  in the unreachable `economy` schema (`grant_coins`, `adjust_coins`, `grant_item`, `remove_item`, `grant_consumable`,
+  `account_summary`, logged in `economy.admin_log`). **A new reason is an INSERT into `public.economy_reasons` in a new
+  migration.** Events `coins_credited`, `coins_spent`, `item_granted`, `item_equipped`. Migrations
+  `20261110160000_economy.sql`, `20261110160100_economy_catalogue.sql` (**not applied until merged**). economy-check
+  (~8 s, shard `e`, PostgreSQL), economy-neutral-check (~1 s: no scoring, grading, replay, matchmaking or timing code
+  reaches an economy module).
 - `src/components/duel/` — room/round screens (PhoneShell, RoundIntro, TimerBar,
   AnswerReveal, ArcadeReveal, WinnerReveal…); `src/components/puzzles/` — shared puzzle
   widgets; `src/lib/fx/` — sound and visual feedback (presentation only).

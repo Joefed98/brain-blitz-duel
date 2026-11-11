@@ -40,6 +40,13 @@ export const ANALYTICS_EVENTS = [
   "save_progress_shown",
   "save_progress_tapped",
   "save_progress_dismissed",
+  // Coins and items (10 Nov 2026, docs/economy/README.md): recorded by the server only (src/lib/economy/economy.server.ts
+  // and the economy admin functions). coins_credited and coins_spent carry props.reason and props.amount,
+  // item_granted props.kind, props.rarity and props.source, item_equipped props.kind.
+  "coins_credited",
+  "coins_spent",
+  "item_granted",
+  "item_equipped",
 ] as const;
 export type AnalyticsEventName = (typeof ANALYTICS_EVENTS)[number];
 
