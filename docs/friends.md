@@ -91,3 +91,14 @@ still waiting; challenges still open and not yet played). B2 owns sending, deliv
 Through `recordEvents` (src/lib/data/events.server.ts): `friend_request_sent` (props.via search|link, only when a
 request is stored), `friend_added` (props.via), `friend_removed`, `friend_blocked`. Never a name or the other
 player's id.
+
+## The Friendly badge
+
+C2's catalogue has Friendly ("Add 5 friends", Common, no coins) as earnable but awarded here. `awardFriendly` in
+`src/lib/friends/friends.server.ts` calls C2's `awardBadge` (`public.badge_award`) for each player in a newly made
+friendship who now has 5 or more friends (`public.friends_count`), on an accepted request and on a mutual request,
+and once more when a player with 5 or more opens their Friends list (a catch-up if an award ever failed). badge_award
+awards a badge once (a repeat answers "owned"), so the badge and its `badge_earned` event are never doubled; the
+stored detail carries the count it was earned at. `badge_facts` is not touched. friends-check's "friendly badge"
+section proves: none at 4, earned at the fifth (either side), never twice (a sixth friend, the list opened, removed
+and re-added), no coins.

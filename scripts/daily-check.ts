@@ -563,8 +563,10 @@ else {
     check(!dup.ok && /async_attempts_once|duplicate/.test(dup.err), "SQL: one attempt per device per room (unique index)");
     // A (unfinished today) sees only their own row today; yesterday (closed) everything.
     check(lines(as(A, `SELECT display_name FROM public.async_attempts WHERE room_id = '${OPEN}' ORDER BY 1`)) === "Ali", "SQL: before finishing, a device reads only its own attempt on today's board");
-    check(lines(as(B, `SELECT display_name FROM public.async_attempts WHERE room_id = '${OPEN}' ORDER BY 1`)) === "Ali\nBo", "SQL: after finishing, a device reads today's board");
-    check(lines(as(A, `SELECT display_name FROM public.async_attempts WHERE room_id = '${CLOSED}' ORDER BY 1`)) === "Ali\nBo", "SQL: a closed day's board is readable");
+    // Changed with Joe's approval, 11 Nov 2026: other players' attempts are read only once finished (Ali's is not).
+    check(lines(as(B, `SELECT display_name FROM public.async_attempts WHERE room_id = '${OPEN}' ORDER BY 1`)) === "Bo", "SQL: after finishing, a device reads today's board (finished attempts and its own)");
+    // Changed with Joe's approval, 11 Nov 2026: other players' attempts are read only once finished (Bo's is not).
+    check(lines(as(A, `SELECT display_name FROM public.async_attempts WHERE room_id = '${CLOSED}' ORDER BY 1`)) === "Ali", "SQL: a closed day's board is readable (finished attempts and its own)");
     const cols = as(B, `SELECT display_name, total_score, tie_ms, round_scores, colour, icon, finished_at, rounds_done FROM public.async_attempts LIMIT 1`);
     check(cols.ok, `SQL: the leaderboard columns are readable (${cols.err})`);
     const uid = as(B, `SELECT user_id FROM public.async_attempts LIMIT 1`);

@@ -1958,23 +1958,24 @@ export type Database = {
         }
         Returns: Json
       }
-      friends_are_friends: { Args: { p_a: string; p_b: string }; Returns: boolean }
-      friends_block: { Args: { p_user: string; p_target: string }; Returns: Json }
-      friends_challenge_send: { Args: { p_from: string; p_to: string; p_code: string }; Returns: Json }
-      friends_head_to_head: { Args: { p_a: string; p_b: string }; Returns: Json }
-      friends_invite_token: { Args: { p_user: string; p_token: string; p_reset: boolean }; Returns: string | null }
-      friends_link_owner: { Args: { p_token: string }; Returns: Json }
-      friends_overview: { Args: { p_user: string; p_cap: number }; Returns: Json }
-      friends_presence_beat: { Args: { p_user: string; p_activity: string }; Returns: boolean }
-      friends_profile: { Args: { p_viewer: string; p_target: string }; Returns: Json }
-      friends_remove: { Args: { p_user: string; p_friend: string }; Returns: boolean }
-      friends_respond: { Args: { p_user: string; p_request: string; p_accept: boolean; p_cap: number }; Returns: Json }
-      friends_room_invite: { Args: { p_from: string; p_to: string }; Returns: Json }
       friends_search: { Args: { p_user: string; p_query: string; p_limit: number }; Returns: Json }
       friends_send_request: { Args: { p_from: string; p_to: string; p_via: string; p_cap: number }; Returns: Json }
-      friends_set_show_online: { Args: { p_user: string; p_show: boolean | null }; Returns: boolean }
+      friends_respond: { Args: { p_user: string; p_request: string; p_accept: boolean; p_cap: number }; Returns: Json }
+      friends_remove: { Args: { p_user: string; p_friend: string }; Returns: boolean }
+      friends_block: { Args: { p_user: string; p_target: string }; Returns: Json }
       friends_unblock: { Args: { p_user: string; p_target: string }; Returns: boolean }
+      friends_invite_token: { Args: { p_user: string; p_token: string; p_reset: boolean }; Returns: string | null }
+      friends_link_owner: { Args: { p_token: string }; Returns: Json }
+      friends_set_show_online: { Args: { p_user: string; p_show: boolean | null }; Returns: boolean }
+      friends_presence_beat: { Args: { p_user: string; p_activity: string }; Returns: boolean }
+      friends_room_invite: { Args: { p_from: string; p_to: string }; Returns: Json }
+      friends_challenge_send: { Args: { p_from: string; p_to: string; p_code: string }; Returns: Json }
+      friends_are_friends: { Args: { p_a: string; p_b: string }; Returns: boolean }
+      friends_count: { Args: { p_user: string }; Returns: number }
+      friends_head_to_head: { Args: { p_a: string; p_b: string }; Returns: Json }
+      friends_overview: { Args: { p_user: string; p_cap: number }; Returns: Json }
       friends_waiting: { Args: { p_user: string }; Returns: number }
+      friends_profile: { Args: { p_viewer: string; p_target: string }; Returns: Json }
       moderation_status: { Args: { p_user_id: string }; Returns: Json }
       moderation_ack: { Args: { p_user_id: string; p_kind: string; p_detail?: Json | null }; Returns: boolean }
       network_key: { Args: { p_address: string }; Returns: string }

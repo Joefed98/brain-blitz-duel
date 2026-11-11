@@ -226,8 +226,11 @@ export const myChallengesFn = createServerFn({ method: "POST" })
     const codes = (Array.isArray(data.codes) ? data.codes : [])
       .map(challengeCodeFrom)
       .filter((c): c is string => !!c);
+    const client = await db();
+    const { CHALLENGE_LIST_LIMIT, withinRateLimit } = await import("./rateLimit.server");
+    if (!(await withinRateLimit(client, context.userId, CHALLENGE_LIST_LIMIT))) return [];
     const { myChallenges } = await import("./challenge.server");
-    return myChallenges(await db(), context.userId, codes, Date.now());
+    return myChallenges(client, context.userId, codes, Date.now());
   });
 
 /** A friend's first room or daily after finishing a challenge (beta, once per device and kind). */

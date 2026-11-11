@@ -8,6 +8,7 @@
 import { useSyncExternalStore } from "react";
 
 import { supabase } from "@/integrations/supabase/client";
+import { MAX_PLAYERS } from "./types";
 
 export interface RaceGhost {
   name: string;
@@ -34,9 +35,20 @@ const seen = new Map<string, RaceGhost & { at: number }>();
 let list: RaceGhost[] = [];
 const listeners = new Set<() => void>();
 
+/** A ghost's key is its player's room slot, 1 to MAX_PLAYERS; anything else is not a car of this room. */
+export function isGhostKey(key: unknown): key is string {
+  return typeof key === "string" && /^[1-9][0-9]?$/.test(key) && Number(key) <= MAX_PLAYERS;
+}
+
+/** Ghosts not heard from for GHOST_STALE_MS are forgotten; at most one per other seat is ever held. */
+export function pruneGhosts<T extends { at: number }>(map: Map<string, T>, now: number): void {
+  for (const [key, g] of map) if (now - g.at >= GHOST_STALE_MS) map.delete(key);
+}
+
 function publish(): void {
   const now = Date.now();
-  list = [...seen.entries()].filter(([, g]) => now - g.at < GHOST_STALE_MS).map(([, g]) => ({ name: g.name, colour: g.colour, s: g.s, x: g.x }));
+  pruneGhosts(seen, now);
+  list = [...seen.values()].map((g) => ({ name: g.name, colour: g.colour, s: g.s, x: g.x }));
   for (const l of listeners) l();
 }
 
@@ -50,8 +62,9 @@ export function startRaceGhosts(roomId: string, round: number, player: Me): () =
       .channel(`race-ghosts-${tag}`, { config: { broadcast: { self: false } } })
       .on("broadcast", { event: "car" }, ({ payload }) => {
         const p = payload as Partial<RaceGhost> & { key?: string } | undefined;
-        if (!p || typeof p.key !== "string" || p.key === me?.key) return;
+        if (!p || !isGhostKey(p.key) || p.key === me?.key) return;
         if (!Number.isFinite(p.s) || !Number.isFinite(p.x)) return;
+        if (!seen.has(p.key) && seen.size >= MAX_PLAYERS - 1) return;
         seen.set(p.key, { name: String(p.name ?? "").slice(0, 24), colour: String(p.colour ?? "#C9CCD6").slice(0, 16), s: Number(p.s), x: Number(p.x), at: Date.now() });
         publish();
       });

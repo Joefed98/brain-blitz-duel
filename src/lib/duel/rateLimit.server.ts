@@ -57,6 +57,10 @@ export const PRACTICE_PROGRESS_LIMIT: RateLimit = { bucket: "practice-progress",
 export const START_ROOM_LIMIT: RateLimit = { bucket: "start-room", max: 30, windowSeconds: 3600 };
 /** Starting a challenge attempt: 30 per 10 minutes per user. */
 export const CHALLENGE_START_LIMIT: RateLimit = { bucket: "challenge-start", max: 30, windowSeconds: 600 };
+/** Profile's challenge list: 60 per 10 minutes per user. */
+export const CHALLENGE_LIST_LIMIT: RateLimit = { bucket: "challenge-list", max: 60, windowSeconds: 600 };
+/** A room round's live word and move checks: 1,500 per 10 minutes per user (as practice's per address). */
+export const ROOM_CHECK_LIMIT: RateLimit = { bucket: "room-check", max: 1500, windowSeconds: 600 };
 /** Lobby colour and icon changes: 60 per 10 minutes per user. */
 export const PLAYER_LOOK_LIMIT: RateLimit = { bucket: "player-look", max: 60, windowSeconds: 600 };
 /**
