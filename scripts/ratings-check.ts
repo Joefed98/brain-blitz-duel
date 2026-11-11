@@ -1,5 +1,5 @@
 /**
- * ratings-check (wave 3, session W3a, 14 Nov 2026; docs/rated/README.md, docs/rated/ratings-interface.md): the
+ * ratings-check (wave 3, session W3a, 11 Nov 2026; docs/rated/README.md, docs/rated/ratings-interface.md): the
  * ratings engine, pure and on a local PostgreSQL 16 with every migration applied (scripts/server-fn-harness.ts).
  *
  * What it proves:

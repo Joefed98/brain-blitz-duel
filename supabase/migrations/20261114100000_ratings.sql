@@ -1,4 +1,4 @@
--- Ratings (wave 3, session W3a, the ratings engine; 14 Nov 2026; docs/rated/README.md, docs/rated/ratings-interface.md).
+-- Ratings (wave 3, session W3a, the ratings engine; 11 Nov 2026; docs/rated/README.md, docs/rated/ratings-interface.md).
 -- Additive and idempotent: new tables and functions only. No existing table, column or row is changed.
 --
 -- What it adds:

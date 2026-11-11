@@ -210,7 +210,7 @@ async function pureChecks(): Promise<void> {
       challenger: [{ challengesDone: 10 }, { challengesDone: 9 }],
       "challenge-seeker": [{ challengesDone: 50 }, { challengesDone: 49 }],
       "challenge-expert": [{ challengesDone: 100 }, { challengesDone: 99 }],
-      // Rated play (wave 3 W3a, 14 Nov 2026).
+      // Rated play (wave 3 W3a, 11 Nov 2026).
       "first-win": [r({ wins: 1 }), r({ wins: 0, placementPlayed: 5 })],
       placed: [r({ placementPlayed: 5 }), r({ placementPlayed: 4 })],
       "hot-streak": [r({ bestWinStreak: 5 }), r({ bestWinStreak: 4, winStreak: 4, wins: 40 })],

@@ -109,7 +109,7 @@ const reached = (tier: TierId): BadgeRule => ({
 });
 
 export const BADGE_RULES: Readonly<Record<string, BadgeRule>> = {
-  // Rated play (docs/badges/catalogue.md; earnable since wave 3 W3a, 14 Nov 2026).
+  // Rated play (docs/badges/catalogue.md; earnable since wave 3 W3a, 11 Nov 2026).
   "first-win": rated(1, (r) => r.wins),
   placed: rated(5, (r) => r.placementPlayed),
   "hot-streak": { earned: (f) => (f.rated ?? NO_RATED_FACTS).bestWinStreak >= 5, progress: (f) => (f.rated ?? NO_RATED_FACTS).winStreak },

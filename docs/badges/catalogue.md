@@ -23,7 +23,7 @@ Mix: 8 Common, 12 Rare, 17 Epic, 9 Elite, 8 Legendary; each Legendary pays 250 c
 
 ## In the app
 
-**Rated play (14 Nov 2026, wave 3 W3a, Joe's approval in the W3a brief):** the 13 badges the approved text says wait for
+**Rated play (11 Nov 2026, wave 3 W3a, Joe's approval in the W3a brief):** the 13 badges the approved text says wait for
 wave 3's rated play (the 11 competitive, Revenge and Photo Finish) are earnable, from the server's rated record
 (`public.rated_badge_facts`, kept by the ratings engine; `docs/rated/README.md` "Badges" has each rule's reading).
 29 earnable, 25 waiting.

@@ -2053,7 +2053,7 @@ outside the repo.
   and falls short for all 261, speed goals against the grader, the facts, coins and roles on PostgreSQL) and
   practice-challenge-fit-check (headless Chromium: every goal whole at 320 and 375 px). **A retune that moves a goal's
   number fails practice-goals-check: change the goal's text and number in the data file and re-run the doc script.**
-- **The ratings engine** (wave 3 W3a, 14 Nov 2026, `docs/rated/README.md`, the contract `docs/rated/ratings-interface.md`;
+- **The ratings engine** (wave 3 W3a, 11 Nov 2026, `docs/rated/README.md`, the contract `docs/rated/ratings-interface.md`;
   no gameplay, scoring, stamp or deal change): Glicko-2 (`src/lib/rated/glicko2.ts`, one rating period per match,
   weighted games, an RD floor schedule and time away; **every constant in `glicko.config.ts` beside its target**,
   proved on simulated players by ratings-check) for Puzzles, Arcade and the 11 categories (the server's own

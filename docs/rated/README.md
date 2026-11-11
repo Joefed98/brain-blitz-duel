@@ -1,6 +1,6 @@
 # Rated play: the ratings engine (wave 3, session W3a)
 
-14 Nov 2026. The server decides every rating: Glicko-2 for Puzzles, Arcade and the 11 categories, the Joulz Rating,
+11 Nov 2026. The server decides every rating: Glicko-2 for Puzzles, Arcade and the 11 categories, the Joulz Rating,
 placement, tiers and their caps, keyed on each game's dealt signature, with nothing trusted from the phone. The
 contract W3b, W3c and W3d build on is **`docs/rated/ratings-interface.md`**. No gameplay, scoring, stamp or deal
 changed: the engine reads finished matches' stored scores.

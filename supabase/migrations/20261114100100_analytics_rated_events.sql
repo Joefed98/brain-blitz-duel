@@ -1,4 +1,4 @@
--- Rated play's analytics events (wave 3, session W3a; 14 Nov 2026; docs/rated/README.md). Additive: adds
+-- Rated play's analytics events (wave 3, session W3a; 11 Nov 2026; docs/rated/README.md). Additive: adds
 -- rated_match_finished, placement_finished and tier_changed to analytics.events' list. The list is read from the
 -- constraint as it stands (as C2's migration did), so events other migrations added are kept whatever the order.
 -- src/lib/analytics/events.ts ANALYTICS_EVENTS holds the same list.

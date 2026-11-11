@@ -102,7 +102,7 @@ const ACTIVE_GAME_COUNT = ACTIVE_PUZZLE_TYPES.length;
  * challenges) lift when those land and their rules are wired.
  */
 const ROWS: readonly Row[] = [
-  // Rated play's 13 (the 11 competitive, Revenge and Photo Finish): earnable since wave 3 W3a (14 Nov 2026, Joe's
+  // Rated play's 13 (the 11 competitive, Revenge and Photo Finish): earnable since wave 3 W3a (11 Nov 2026, Joe's
   // approval in the W3a brief), checked from the server's rated record (rated_badge_facts).
   ["first-win", "First Win", C, "common", null, "Win your first rated match."],
   ["placed", "Placed", C, "common", null, "Finish your 5 placement matches.", [5, "matches"]],

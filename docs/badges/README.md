@@ -30,7 +30,7 @@ Every badge's rule is Joe's approved catalogue (**`docs/badges/catalogue.md`**, 
 code to its table). Every badge shows its rule; a locked badge the server counts shows its progress ("4 of 7 days").
 Each badge has a `status`:
 
-- **earnable** (29; 16 until wave 3 W3a made rated play's 13 earnable, 14 Nov 2026): the server checks its rule now from what it stores (`rules.server.ts`, facts from
+- **earnable** (29; 16 until wave 3 W3a made rated play's 13 earnable, 11 Nov 2026): the server checks its rule now from what it stores (`rules.server.ts`, facts from
   `public.badge_facts`, the Daily record and the profile), or another session awards it through `badge_award`:
   - Flawless (a 200 in any game), Perfectionist (200 in 25 different games);
   - Daily Habit, Dedicated, Century (7 / 30 / 100 days in a row: the longest run in the server's Daily history, a
