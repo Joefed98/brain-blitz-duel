@@ -53,6 +53,12 @@ export const ANALYTICS_EVENTS = [
   "profile_viewed",
   "customise_opened",
   "equip_refused",
+  // Friends (wave 2, session B1; docs/friends.md): recorded by the server only (src/lib/friends/friends.server.ts).
+  // friend_request_sent and friend_added carry props.via (search or link); never a name or the other player's id.
+  "friend_request_sent",
+  "friend_added",
+  "friend_removed",
+  "friend_blocked",
   // Badges and titles (wave 2, session C2; docs/badges/README.md): recorded by the server only (src/lib/badges/
   // badges.server.ts and the backfill). badge_earned carries props.badge and props.rarity, title_equipped props.title.
   "badge_earned",

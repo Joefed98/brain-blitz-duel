@@ -348,6 +348,11 @@ export const SHARDS: Record<string, string[]> = {
     // account-screens-check (10 Nov 2026, ~10 s): the sign-up screens' rules, the save-progress events' server function
     // and usernames in rooms, Dailies and challenges, through the server-function harness, beside accounts-check.
     "account-screens-check.ts",
+    // friends-check (wave 2 B1, 11 Nov 2026, ~5 s): friends (search's age rules, invite links, requests, accept,
+    // decline, remove, block, status, invites, challenges, the limits and cap, RLS, B2's events) on a local PostgreSQL
+    // through the server-function harness, beside accounts-check; friends-ui-check (~3 s, happy-dom) the screens.
+    "friends-check.ts",
+    "friends-ui-check.tsx",
     // practice-challenges-check (wave 2 C1b, 11 Nov 2026, ~40 s): the challenge catalogue's checker on real graded runs,
     // speed goals against the grader, the six stored facts, coins once per account and guests paid on sign-up on a local
     // PostgreSQL through the server-function harness, beside accounts-check.

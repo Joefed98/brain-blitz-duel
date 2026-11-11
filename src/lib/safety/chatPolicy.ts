@@ -7,12 +7,17 @@
  * - Where strangers meet (rated matches, wave 3; tournaments, wave 4): under-18s and guests get quick phrases only;
  *   adults with an account type.
  *
+ * - Friends (wave 2 B1, docs/friends.md): friends type to each other wherever they meet, under-18s included, as rooms
+ *   already do. The caller says so with `{ friends: true }` after asking the server whether every other player in the
+ *   chat is the player's friend (src/lib/friends/friends.server.ts `areFriends`); the "friends" context is a chat of
+ *   friends only. Strangers' contexts are unchanged.
+ *
  * Rooms call nothing new today (they always type). Waves 3 and 4 call `chatPolicy` with their context. The server
  * must enforce the answer (a phone only shows it).
  */
 
 /** Where the chat is. */
-export type ChatContext = "room" | "rated" | "tournament";
+export type ChatContext = "room" | "rated" | "tournament" | "friends";
 
 /** What the policy needs to know about the player (from accountAgeFlags / the profile on the server). */
 export interface ChatPlayer {
@@ -25,11 +30,19 @@ export interface ChatPlayer {
 export type ChatMode = "type" | "quick_phrases";
 
 /** Contexts where everyone has chosen to play together (friends): free typing for all. */
-export const FRIEND_CONTEXTS: readonly ChatContext[] = ["room"];
+export const FRIEND_CONTEXTS: readonly ChatContext[] = ["room", "friends"];
+
+/** What the caller knows about who the player is chatting with. */
+export interface ChatCompany {
+  /** Everyone else in this chat is the player's friend (the server checked; a block ends a friendship). */
+  friends?: boolean;
+}
 
 /** Whether `player` types freely or picks quick phrases in `context`. */
-export function chatPolicy(context: ChatContext, player: ChatPlayer): ChatMode {
+export function chatPolicy(context: ChatContext, player: ChatPlayer, company: ChatCompany = {}): ChatMode {
   if (FRIEND_CONTEXTS.includes(context)) return "type";
+  // Guests have no friends (accounts only), so a guest never types here on the strength of this.
+  if (company.friends === true && !player.isGuest) return "type";
   if (player.isGuest) return "quick_phrases";
   if (player.isUnder18 !== false) return "quick_phrases";
   return "type";
