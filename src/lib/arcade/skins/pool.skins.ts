@@ -15,7 +15,7 @@ const FONT = "'Archivo', system-ui, sans-serif";
 const px = (u: number) => u / 256;
 const BLACK = 8;
 
-export type PoolBallKind = "pixel" | "galaxy" | "neon" | "neontable";
+export type PoolBallKind = "pixel" | "galaxy" | "neon" | "neon8" | "neontable";
 
 /** The neon colour of each ball (Neon ball set and the Neon Table): the art's cue cyan, pink 8 and gold 5, the rest in their own hue. */
 export const POOL_NEON: Readonly<Record<number, string>> = {
@@ -27,6 +27,20 @@ export const POOL_NEON: Readonly<Record<number, string>> = {
   6: "#3DFF9A",
   7: "#FF7A3D",
   8: "#FF3DCB",
+};
+/**
+ * The same neon set on the default green cloth: the art's hues lifted until each reaches the contrast check's 3:1
+ * against every shade of the cloth (#1F6B45 the lightest); the art's cyan, gold, yellow and green already do.
+ */
+export const POOL_NEON_ON_CLOTH: Readonly<Record<number, string>> = {
+  1: "#FFF06A",
+  2: "#99B8FF",
+  3: "#FF96A2",
+  4: "#C9A6FF",
+  5: "#F2C14E",
+  6: "#3DFF9A",
+  7: "#FFA066",
+  8: "#FF8FE0",
 };
 const NEON_BODY = "#0A0820";
 const CYAN = "#22E4FF";
@@ -54,7 +68,7 @@ export function poolBallKind(look: GameLook, id: number): PoolBallKind | null {
     case "game-skin.cue-ball.neon-ball-set":
       return "neon";
     case "game-skin.cue-ball.neon-8-ball":
-      if (id === BLACK) return "neon";
+      if (id === BLACK) return "neon8";
       break;
   }
   return look.world ? "neontable" : null;
@@ -86,7 +100,16 @@ function highlight(ctx: CanvasRenderingContext2D, x: number, y: number, r: numbe
 }
 
 /** A neon ring ball: the dark body, its neon rim (2 of 19) and a faint halo just inside the draw radius. */
-function neonBall(ctx: CanvasRenderingContext2D, id: number, x: number, y: number, r: number, turn: number, tableBalls: boolean): void {
+/** A ball's neon colour: Neon 8-ball's cyan 8, else the set's (the art's on the Neon Table's dark cloth, lifted on green). */
+export function poolNeonColour(kind: PoolBallKind, id: number, darkCloth: boolean): string {
+  if (id === POOL_CUE) return CYAN;
+  if (kind === "neon8") return CYAN;
+  if (kind === "neontable" && id === BLACK) return "#FFFFFF";
+  return (darkCloth ? POOL_NEON : POOL_NEON_ON_CLOTH)[hueOf(id)]!;
+}
+
+function neonBall(ctx: CanvasRenderingContext2D, kind: PoolBallKind, id: number, x: number, y: number, r: number, turn: number, darkCloth: boolean): void {
+  const tableBalls = kind === "neontable";
   const cue = id === POOL_CUE;
   const stripe = id >= 9;
   if (cue && tableBalls) {
@@ -102,7 +125,7 @@ function neonBall(ctx: CanvasRenderingContext2D, id: number, x: number, y: numbe
     return;
   }
   const black = id === BLACK && tableBalls;
-  const neon = cue ? CYAN : black ? "#FFFFFF" : POOL_NEON[hueOf(id)]!;
+  const neon = poolNeonColour(kind, id, darkCloth);
   const lw = Math.max(1, (r * 2.5) / 11);
   ctx.save();
   ctx.beginPath();
@@ -225,7 +248,9 @@ const DIGITS: Readonly<Record<string, readonly string[]>> = {
   "9": ["111", "101", "111", "001", "111"],
 };
 
-function pixelBall(ctx: CanvasRenderingContext2D, id: number, x: number, y: number, r: number, turn: number): void {
+function pixelBall(ctx: CanvasRenderingContext2D, id: number, x: number, y: number, rDraw: number, turn: number): void {
+  // The 10 × 10 grid's farthest corner (row 1's ends) sits 4√2 cells out: scaled so it stays inside the draw radius.
+  const r = rDraw / ((4 * Math.SQRT2) / 5);
   const p = (r * 2) / 10;
   const x0 = x - r;
   const y0 = y - r;
@@ -243,7 +268,7 @@ function pixelBall(ctx: CanvasRenderingContext2D, id: number, x: number, y: numb
   }
   ctx.fillStyle = "rgba(255,255,255,0.6)";
   ctx.fillRect(x0 + 1 * p, y0 + 2 * p, p, p);
-  if (cue || r < 7) return;
+  if (cue || rDraw < 7) return;
   const text = String(id);
   const u = text.length === 1 ? p * 0.7 : p * 0.5;
   const w = text.length * 3 * u + (text.length - 1) * u;
@@ -260,10 +285,10 @@ function pixelBall(ctx: CanvasRenderingContext2D, id: number, x: number, y: numb
 }
 
 /** One ball's face under a skin or the theme (r: its draw radius). */
-export function paintPoolSkinBall(ctx: CanvasRenderingContext2D, kind: PoolBallKind, id: number, x: number, y: number, r: number, turn: number): void {
+export function paintPoolSkinBall(ctx: CanvasRenderingContext2D, kind: PoolBallKind, id: number, x: number, y: number, r: number, turn: number, darkCloth: boolean): void {
   if (kind === "pixel") pixelBall(ctx, id, x, y, r, turn);
   else if (kind === "galaxy") galaxyBall(ctx, id, x, y, r, turn);
-  else neonBall(ctx, id, x, y, r, turn, kind === "neontable");
+  else neonBall(ctx, kind, id, x, y, r, turn, darkCloth);
 }
 
 /* ============================== The Neon Table ============================== */
@@ -411,7 +436,7 @@ export function poolContrast(look: GameLook): ContrastPair[] {
     else if (kind === "pixel") colours = id === POOL_CUE ? ["#F5F5F0"] : [PIXEL[hueOf(id)]!, "#FFFFFF", "#F5F5F0"];
     else if (kind === "galaxy") colours = id === POOL_CUE ? ["#E8E4FF"] : id === BLACK ? ["#F2C14E"] : ["#FF8FD6", "#FFFFFF"];
     else if (kind === "neontable" && id === POOL_CUE) colours = ["#E8FFFF"];
-    else colours = [id === POOL_CUE ? CYAN : kind === "neontable" && id === BLACK ? "#FFFFFF" : POOL_NEON[hueOf(id)]!];
+    else colours = [poolNeonColour(kind, id, !!look.world)];
     out.push({ object: id === POOL_CUE ? "cue ball" : `ball ${id}`, colours, backgrounds: bg });
   }
   return out;

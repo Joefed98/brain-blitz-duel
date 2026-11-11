@@ -201,7 +201,7 @@ export function neonCourseScene(ctx: CanvasRenderingContext2D, view: ArenaSceneV
 /** What each Crazy Golf look must keep visible: the ball on the turf. */
 export function minigolfContrast(look: GameLook): ContrastPair[] {
   const art = minigolfBallArt(look);
-  const colours = art ? BALL_ART_COLOURS[art] : look.world ? [NEON_COURSE.ball] : ["#FFFFFF", "#E4E7EA"];
+  const colours = art ? [...BALL_ART_COLOURS[art], "#06080F"] : look.world ? [NEON_COURSE.ball] : ["#FFFFFF", "#E4E7EA"];
   const backgrounds = look.world ? [NEON_COURSE.turf] : ["#2F7A3A", "#2A6F35"];
   return [{ object: "ball", colours, backgrounds }];
 }

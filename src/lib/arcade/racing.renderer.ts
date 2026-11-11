@@ -1610,3 +1610,13 @@ export function paintRacingTile(ctx: CanvasRenderingContext2D, size: number): vo
   drawWorld(ctx, state, L);
   ctx.restore();
 }
+
+/** The player's car alone in a look (checks: a paint stays inside the default car's outline). */
+export function paintRacingCarIn(look: GameLook, ctx: Ctx2D, cx: number, bottom: number, w: number, braking: boolean): void {
+  useLook(look);
+  try {
+    paintRacingCar(ctx, cx, bottom, w, braking);
+  } finally {
+    useLook(NO_LOOK);
+  }
+}

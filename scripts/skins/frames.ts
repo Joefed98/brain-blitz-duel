@@ -109,6 +109,12 @@ export async function drawFrames(game: SkinGame, look: Look): Promise<Frame[]> {
         }
       }
       out.push(scene(`scene-r${rev}`, C.CURLING_W, v.h, 1, (ctx, view) => (has ? R.curlingScene(ctx, view, rev, look) : R.curlingScene(ctx, view, rev))));
+      // With a look only (skins-check: the player's own stone waiting on the hog line while aiming; not in main's list).
+      if (has) {
+        const s0 = run<Parameters<typeof R.drawCurling>[1]>(C.curlingGameFor(rev) as unknown as Idle, 2, 0);
+        const aim = { broomX: 20, broomY: 0, turn: 1, startX: 0, weight: 500 } as unknown as Parameters<typeof R.drawCurling>[2];
+        out.push(paint(`aim-r${rev}`, C.CURLING_W, v.h, 1, (ctx) => R.drawCurling(ctx, s0, aim, look)));
+      }
     }
   } else if (game === "racing") {
     const R = await import("../../src/lib/arcade/racing.renderer");

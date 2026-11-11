@@ -345,7 +345,7 @@ function drawTable(ctx: CanvasRenderingContext2D): void {
 function paintBall(ctx: CanvasRenderingContext2D, id: number, x: number, y: number, r: number): void {
   const skinned = poolBallKind(L, id);
   if (skinned) {
-    paintPoolSkinBall(ctx, skinned, id, x, y, r, numberTurn);
+    paintPoolSkinBall(ctx, skinned, id, x, y, r, numberTurn, !!L.world);
     return;
   }
   const colour = poolBallColour(id);

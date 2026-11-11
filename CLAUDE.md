@@ -1976,6 +1976,19 @@ outside the repo.
   `20261110200000_analytics_identity_events.sql` (**not applied until merged**; it adds to the list it reads from the
   table). Checks: identity-screens-check (~5 s, happy-dom, A1 stood in by `setIdentityBackend`) and identity-motion-check
   (headless Chromium: every item against its approved PNG, no animation under reduced motion).
+- **Game skins and world themes** (wave 2 E1, 11 Nov 2026, `docs/skins.md`; display only, no stamps, no gameplay,
+  deal or scoring change): the 23 skins and 4 world themes of `docs/art/wave-2/items/game-skin/` and `world-theme/` in
+  Cue Ball, Crazy Golf, Curl Champ, Apex, Top Bins, Free Cell and Full House. `src/lib/arcade/skins/` (`look.ts`:
+  `GameLook`, `NO_LOOK`, the ids, `skinTime()` still under Reduce Motion, the 3:1 contrast helpers; one `<game>.skins.ts`
+  each, `ballArt.ts` for the round balls). Each renderer takes an optional look on its public draw calls for the length
+  of the call only, so replays, reveals, demos, tiles and ghosts draw the default; scenes come from `…SceneFor(look)`.
+  The live stages alone pass the player's own equipped look (`src/lib/skins/equipped.ts` `useGameLookRef`, fed by
+  `src/lib/identity/gameLooks.ts` from A1's loadout through the identity backend's `gameLooks`). Free Cell deals face up,
+  so its card backs never show in play (open question for Joe). Checks: skins-default-check (56 frames identical to
+  digests recorded on main before the hook, `scripts/fixtures/skins-default-frames.json`, never re-record), skins-check
+  (catalogue, renders, contrast, sizes, Reduce Motion, ownership), skins-replay-check (28 recorded runs in every look,
+  identical scores; `scripts/fixtures/skins-replay-runs.json`). **A change to one of these renderers must keep
+  skins-default-check green; a new skin goes in look.ts's ids and its game's `.skins.ts`.**
 - `src/components/duel/` — room/round screens (PhoneShell, RoundIntro, TimerBar,
   AnswerReveal, ArcadeReveal, WinnerReveal…); `src/components/puzzles/` — shared puzzle
   widgets; `src/lib/fx/` — sound and visual feedback (presentation only).

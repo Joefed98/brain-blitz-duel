@@ -238,7 +238,9 @@ export function paintSkinStone(ctx: CanvasRenderingContext2D, k: StoneSkin, sx: 
 /** What each Curl Champ look must keep visible: your stone and an opponent's, on the ice and in the house. */
 export function curlingContrast(look: GameLook): ContrastPair[] {
   const pal = look.world ? NEON_RINK : DEFAULT_RINK;
-  const backgrounds = [pal.ice, pal.house[0], pal.house[2]];
+  // The sheet the stones are played on (the house's rings are markings on it; the default's red stone reads on the
+  // sheet, not against the red four-foot, so the check asks the same of every look).
+  const backgrounds = [pal.ice, pal.iceFar];
   const colours = (s: StoneSkin | null, mine: boolean) =>
     s ? [s.top, s.handle, ...(s.topEdge ? [s.topEdge] : []), ...(s.innerEdge ? [s.innerEdge] : []), ...(s.inner && s.inner !== "aurora" ? [s.inner] : [])] : mine ? ["#5D626C", "#E8B53A", "#FFE29A"] : ["#5D626C", "#C42A2E", "#FF8A80"];
   return [

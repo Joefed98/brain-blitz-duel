@@ -19,5 +19,5 @@ export function freekickBallArt(look: GameLook): BallArt | null {
 /** What each Top Bins look must keep visible: the ball on the grass and against the night stands behind the goal. */
 export function freekickContrast(look: GameLook): ContrastPair[] {
   const art = freekickBallArt(look);
-  return [{ object: "ball", colours: art ? BALL_ART_COLOURS[art] : ["#FFFFFF", "#E4E7EC"], backgrounds: ["#2D7A3A", "#1E5A2C", "#0B0F18"] }];
+  return [{ object: "ball", colours: art ? [...BALL_ART_COLOURS[art], "#06080F"] : ["#FFFFFF", "#E4E7EC"], backgrounds: ["#2D7A3A", "#1E5A2C", "#0B0F18"] }];
 }

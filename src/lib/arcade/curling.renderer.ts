@@ -888,3 +888,13 @@ export function curlingScene(ctx: CanvasRenderingContext2D, view: ArenaSceneView
 export const CURLING_BG = "#05070C";
 
 export type { CanvasSize };
+
+/** One stone alone at a sheet point in a look (checks: a skin stays inside the default stone's outline). */
+export function paintCurlingStoneIn(look: GameLook, ctx: CanvasRenderingContext2D, x: number, y: number, mine: boolean, rev: number): void {
+  L = look;
+  try {
+    stone(ctx, x, y, mine, 1, false, curlViewFor(rev));
+  } finally {
+    L = NO_LOOK;
+  }
+}

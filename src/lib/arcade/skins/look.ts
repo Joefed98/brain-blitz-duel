@@ -133,3 +133,6 @@ export interface ContrastPair {
 export function bestContrast(pair: ContrastPair): number {
   return Math.min(...pair.backgrounds.map((bg) => Math.max(...pair.colours.map((c) => contrastRatio(c, bg)))));
 }
+
+/** The looks that move (the catalogue's animated items, every one a Legendary): still under Reduce Motion. */
+export const ANIMATED_LOOKS: readonly string[] = ["game-skin.apex.molten-gold", "world-theme.apex.neon-night", "world-theme.crazy-golf.neon-course"];

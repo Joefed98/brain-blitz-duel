@@ -233,11 +233,13 @@ export function carPaintMarks(ctx: CanvasRenderingContext2D, paint: CarPaint, cx
   }
   ctx.restore();
   if (paint === "neon") {
+    // The pink edge and its glow inside the body's outline (the stroke clipped to the body, so nothing grows the car).
     ctx.save();
+    ctx.clip();
     ctx.shadowColor = "#FF3DCB";
     ctx.shadowBlur = Math.min(6, w * 0.05);
     ctx.strokeStyle = "#FF3DCB";
-    ctx.lineWidth = Math.max(0.8, w * 0.02);
+    ctx.lineWidth = Math.max(1.6, w * 0.04);
     ctx.stroke();
     ctx.restore();
   }
@@ -247,7 +249,8 @@ export function carPaintMarks(ctx: CanvasRenderingContext2D, paint: CarPaint, cx
 export function carGoldSparkles(ctx: CanvasRenderingContext2D, cx: number, top: number, w: number, h: number, t: number): void {
   ctx.save();
   ctx.fillStyle = "#FFF3C4";
-  const spots: [number, number, number][] = [[-0.44, 0.0, 0], [0.42, 0.06, 0.9], [-0.4, 0.8, 1.7], [0.38, 0.86, 0], [0.02, -0.12, 0.9]];
+  // Inside the car's own box (the default car's outline), never beyond it.
+  const spots: [number, number, number][] = [[-0.4, 0.14, 0], [0.4, 0.16, 0.9], [-0.36, 0.8, 1.7], [0.34, 0.84, 0], [0.02, 0.14, 0.9]];
   for (const [dx, dy, phase] of spots) {
     ctx.globalAlpha = t === 0 ? 1 : 0.625 - 0.375 * Math.cos((((t + phase) % 2.6) / 2.6) * Math.PI * 2);
     const x = cx + dx * w;
