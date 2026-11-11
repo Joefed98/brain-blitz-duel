@@ -2,6 +2,7 @@ import { HOUSE_BANNERS, type BannerPage, type HouseBanner } from "@/config/banne
 import { ukDayKey } from "@/lib/duel/daily";
 import { publicGameWhen } from "@/components/app/PublicGameCard";
 import { scheduledGames, upcomingGames } from "@/lib/publicSchedule";
+import { checkOverride } from "@/lib/checkOverride";
 
 /**
  * What the desktop banner slot shows on a page now (src/config/banners.ts): the next public game first
@@ -19,10 +20,7 @@ export function bannerFor(page: BannerPage, now: number): HouseBanner | null {
       to: "/tournaments",
     };
   }
-  const injected =
-    typeof window !== "undefined"
-      ? (window as unknown as { __DUELZ_BANNERS__?: HouseBanner[] }).__DUELZ_BANNERS__
-      : undefined;
+  const injected = checkOverride<HouseBanner[]>("__DUELZ_BANNERS__");
   const list = Array.isArray(injected) ? injected : HOUSE_BANNERS;
   const today = ukDayKey(now);
   return (
