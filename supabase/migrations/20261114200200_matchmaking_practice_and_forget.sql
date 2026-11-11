@@ -25,6 +25,8 @@ CREATE TABLE IF NOT EXISTS public.mm_practice_deals (
   reaction_avg_ms integer,
   -- The server replay's flag on the grade (a flagged run is never played against).
   flagged boolean NOT NULL DEFAULT false,
+  -- The server's stored grade extra (as practice_plays.breakdown holds it), handed to the ratings engine.
+  extra jsonb,
   recorded_at timestamptz NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS mm_practice_deals_recent ON public.mm_practice_deals (recorded_at DESC);

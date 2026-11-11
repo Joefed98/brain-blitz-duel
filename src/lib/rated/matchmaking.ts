@@ -140,18 +140,24 @@ export interface QueueEntry {
   /** The rating the match will move (W3a's matchRating: a single-category choice blends that category's in). */
   rating: number;
   joinedAtMs: number;
-  /** Still in placement (W3a): starts against recorded runs from beginners, never the live queue. */
+  /**
+   * Still in placement (W3a). Joe, 11 Nov 2026: two placement players searching at the same time may be matched live
+   * with each other (the normal widening); a placed player never with a placement player; otherwise at 8 s a beginner's
+   * recorded run.
+   */
   placement: boolean;
 }
 
 /**
  * Whether two waiting players can be paired now: the same format and the same choice, two different players,
- * neither in placement, and ratings within the wider of their two bands (the longer waiter has widened further).
+ * both in placement or both placed (never one of each), and ratings within the wider of their two bands (the longer
+ * waiter has widened further).
  */
 export function canPair(a: QueueEntry, b: QueueEntry, nowMs: number): boolean {
   if (a.userId === b.userId) return false;
   if (a.format !== b.format || a.choice !== b.choice) return false;
-  if (a.placement || b.placement) return false;
+  // Placement only with placement, placed only with placed (Joe, 11 Nov 2026).
+  if (a.placement !== b.placement) return false;
   const band = Math.max(bandFor(nowMs - a.joinedAtMs), bandFor(nowMs - b.joinedAtMs));
   return Math.abs(a.rating - b.rating) <= band;
 }

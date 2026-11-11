@@ -7,7 +7,7 @@ import { createServerFn } from "@tanstack/react-start";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
-import type { OpponentScore, QueuePoll, RatedMatchView, RatedStatus, RematchOutcome, JoinOutcome, SettleOutcome } from "./rated.server";
+import type { OpponentScore, QueuePoll, RatedMatchView, RatedStatus, RematchOutcome, JoinOutcome, PublicSettleOutcome } from "./rated.server";
 
 async function setup(userId: string, poll: boolean) {
   const { adminDb } = await import("@/lib/data/db.server");
@@ -90,13 +90,14 @@ export const ratedProgressFn = createServerFn({ method: "POST" })
 export const ratedSettleFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { matchId: string }) => input)
-  .handler(async ({ data, context }): Promise<SettleOutcome> => {
+  .handler(async ({ data, context }): Promise<PublicSettleOutcome> => {
     const id = idOf(data.matchId);
     if (!id) return { state: "missing" };
     const { client, rated } = await setup(context.userId, false);
     const view = await rated.matchView(client, id, context.userId, Date.now());
     if (!view) return { state: "missing" };
-    return rated.settleMatch(client, id, Date.now());
+    // The phone never gets the stored grades the ratings engine was handed.
+    return rated.publicSettleOutcome(await rated.settleMatch(client, id, Date.now()));
   });
 
 export const ratedRematchFn = createServerFn({ method: "POST" })
