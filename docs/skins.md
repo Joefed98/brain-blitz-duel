@@ -124,7 +124,17 @@ Each result remembers the look its player had equipped (Joe, 11 Nov 2026), so a 
 
 ## Checks and tools
 
-- `skins-default-check` (~5 s), `skins-check` (~25 s; with Full House's deck: no back draws main's 16 deck frames
+- **Main drawn live** (Joe, 11 Nov 2026): the canvas library rasterises differently by CPU (Skia picks its path by
+  CPU), so digests recorded in one container don't hold on GitHub's runners. skins-default-check and skins-check's deck
+  test draw main's own renderers in the same run on the same machine (`scripts/skins/base.ts`): main is the merge base
+  of the branch head (the PR's head commit on CI) and main; a shallow checkout fetches the head and main at depth 64
+  (deepened ×4 up to 4,096 until git names the merge base; no tags, never the full history; only objects and
+  `refs/remotes/origin/main` are added); the base's `src/`, `tsconfig.json` and `package.json` are extracted (git
+  archive, ~25 MB) to a temp folder and drawn there, cached for the second check. Any pixel difference fails. The stored
+  digests stay untouched as this container's record, asserted too whenever main draws them exactly (here: all 61
+  frames and 16 deck frames); elsewhere a NOTE says the rasteriser differs. It adds one fetch and ~4 s of drawing per
+  run (`SKINS_BASE=<sha>` names the commit by hand).
+- `skins-default-check` (~10 s), `skins-check` (~25 s; with Full House's deck: no back draws main's 16 deck frames
   exactly, `scripts/fixtures/skins-deck-frames.json`, recorded on main af70c5f by `scripts/skins/record-deck.ts`; each
   back changes every deck frame inside the deck card's box; the card-back slot's ownership; stored and replay looks),
   `skins-replay-check` (~45 s; every look, card backs included), `skins-db-check` (~10 s, PostgreSQL: the card-back

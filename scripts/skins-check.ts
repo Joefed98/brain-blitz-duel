@@ -6,9 +6,10 @@
  *      exactly the catalogue's animated items.
  *   2. Renders: every look draws every frame of scripts/skins/frames.ts (each game's states through the live stage's
  *      draw and its scene, oldest and dealt stamps) without an error, and differs from the default (the look is drawn).
- *      Full House's deck (scripts/skins/deck-frames.ts): with no back it draws main's pixels exactly
- *      (scripts/fixtures/skins-deck-frames.json, recorded on main), and each card back changes every deck frame, each
- *      its own, inside the default back's box.
+ *      Full House's deck (scripts/skins/deck-frames.ts): with no back it draws main's pixels exactly (main's own
+ *      renderer drawn live in the same run, scripts/skins/base.ts; and scripts/fixtures/skins-deck-frames.json,
+ *      recorded on main, wherever main draws those digests), and each card back changes every deck frame, each its
+ *      own, inside the default back's box.
  *   3. Contrast: every look's objects (the ball, stone, car, card back or card face) reach 3:1 against the background
  *      they are played on (WCAG non-text contrast), as the default does.
  *   4. Sizes: a skinned ball paints nothing outside the default ball's draw radius; a skinned stone and car paint inside
@@ -219,12 +220,26 @@ for (const g of SKIN_GAMES.filter(L.isSkinnableGame)) {
 // Full House's deck: the card back's one place.
 {
   const { deckFrames } = await import("./skins/deck-frames");
-  const fixture = JSON.parse(readFileSync("scripts/fixtures/skins-deck-frames.json", "utf8")) as { frames: Record<string, string> };
-  const want = new Map(Object.entries(fixture.frames));
+  // Main's deck, drawn live on this machine by main's own renderer (scripts/skins/base.ts: the merge base, fetched if
+  // missing). The stored digests (scripts/fixtures/skins-deck-frames.json, recorded on main, never re-recorded) are
+  // this container's record, also asserted when main draws them here exactly; elsewhere the rasteriser differs by CPU.
+  const stored = new Map(Object.entries((JSON.parse(readFileSync("scripts/fixtures/skins-deck-frames.json", "utf8")) as { frames: Record<string, string> }).frames));
+  const { baseDigests, baseLine } = await import("./skins/base");
+  let live: Map<string, string> | null = null;
+  try {
+    const b = baseDigests();
+    console.log(`  ${baseLine(b)}`);
+    live = new Map(Object.entries(b.deck));
+  } catch (e) {
+    check(false, `pokersquares deck: main's renderer could not be drawn (${e instanceof Error ? e.message : String(e)})`);
+  }
+  const storedHere = !!live && live.size === stored.size && [...stored].every(([n, d]) => live!.get(n) === d);
+  if (live) console.log(storedHere ? "  ok main's live deck frames are the stored digests exactly: checked against both" : "  NOTE main's deck draws differently on this machine than where the stored digests were recorded: checked against main live only");
+  const want = live ?? stored;
   for (const [label, look] of [["no look argument", undefined], ["the default look", L.NO_LOOK]] as const) {
     const got = await deckFrames(process.cwd(), look);
-    const bad = got.filter((f) => want.get(f.name) !== f.digest).map((f) => f.name);
-    check(got.length === want.size && bad.length === 0, `pokersquares deck, ${label}: main's ${want.size} deck frames exactly${bad.length ? ` (differ: ${bad.join(", ")})` : ""}`);
+    const bad = got.filter((f) => want.get(f.name) !== f.digest || (storedHere && stored.get(f.name) !== f.digest)).map((f) => f.name);
+    check(got.length === want.size && got.length === stored.size && bad.length === 0, `pokersquares deck, ${label}: main's ${want.size} deck frames exactly${bad.length ? ` (differ: ${bad.join(", ")})` : ""}`);
   }
   const plain = await deckFrames(process.cwd(), L.NO_LOOK);
   // The deck's back is drawn at the deck's place: the alpha box of what a back changes, against the default's back box.
