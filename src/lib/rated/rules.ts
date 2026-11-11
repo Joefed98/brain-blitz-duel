@@ -99,9 +99,9 @@ export function bestOfLabel(n: BestOf): string {
 /* ------------------------------------------------------------------ VS (mockup 04) */
 
 /** "First meeting", "You lead 3–1", "Sam leads 2–1", "Level 2–2"; null when the server has no record to show. */
-export function headToHeadLine(h: { won: number; lost: number } | null, them: string): string | null {
+export function headToHeadLine(h: { won: number; lost: number; drawn?: number } | null, them: string): string | null {
   if (!h) return null;
-  if (h.won + h.lost === 0) return "First meeting";
+  if (h.won + h.lost + (h.drawn ?? 0) === 0) return "First meeting";
   if (h.won > h.lost) return `You lead ${h.won}–${h.lost}`;
   if (h.lost > h.won) return `${them} leads ${h.lost}–${h.won}`;
   return `Level ${h.won}–${h.lost}`;

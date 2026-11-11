@@ -17,12 +17,13 @@
  */
 import type { CardLook } from "@/design/identity";
 import { DEFAULT_LOOK } from "@/design/identity";
-import type { PlayerRatings, PoolView, RatedPlayerChange, TierLadderRung } from "@/lib/data/ratings";
+import type { PlacementResult as W3aPlacementResult, PlayerRatings, PoolView, RatedPlayerChange, TierLadderRung } from "@/lib/data/ratings";
 import { RATED_CATEGORIES } from "@/lib/data/ratings";
 import type { Loadout } from "@/lib/identity/backend";
 
 import type {
   BestOf,
+  PlacementResult,
   CategoryRating,
   FrozenLine,
   MatchSize,
@@ -37,7 +38,6 @@ import type {
   SideRating,
 } from "./backend";
 import { RECORDED_AFTER_MS, REMATCH_WINDOW_MS, type RatedFormat } from "./matchmaking";
-import { clearPlacementRecord, notePlacementResult, placementResults } from "./placementRecord";
 import { betterThan, type RankView } from "./tierDisplay";
 
 /** The name accounts.forget_user leaves on a removed account's seats and runs. */
@@ -71,12 +71,19 @@ export function sideOf(p: PoolView | null | undefined): SideRating {
   return p && p.status === "rated" ? { rating: p.rating, matches: p.matches } : { rating: null, matches: 0 };
 }
 
+/** W3a's placement results (in order, 1 first) as the boxes draw them: a win a tick, a loss a cross, a draw a dash. */
+export function placementBoxesOf(results: readonly W3aPlacementResult[] | undefined): PlacementResult[] {
+  return [...(results ?? [])]
+    .sort((a, b) => a.n - b.n)
+    .map((r) => (r.result === "win" ? "won" : r.result === "loss" ? "lost" : "drawn"));
+}
+
 /** W3a's ratings as the player's standing. */
-export function standingOf(r: PlayerRatings, userId: string): RatedStatus["standing"] {
+export function standingOf(r: PlayerRatings): RatedStatus["standing"] {
   if (!r.placement.done || r.joulz === null || !r.tier)
     return {
       state: "placement",
-      results: placementResults(userId, r.placement.played),
+      results: placementBoxesOf(r.placement.results),
       puzzles: { rating: null, matches: 0 },
       arcade: { rating: null, matches: 0 },
     };
@@ -100,6 +107,11 @@ export function frozenLineOf(change: Pick<RatedPlayerChange, "frozen" | "flagged
   if (change.frozen === "flagged_run" || change.flagged) return "under_review";
   if (change.frozen === "same_opponent_today") return "same_opponent_today";
   return null;
+}
+
+/** W3b's head-to-head (wins, losses, draws from the caller's side) as the VS line's record. */
+export function headToHeadOf(h: { wins: number; losses: number; draws: number; played: number }): { won: number; lost: number; drawn: number } {
+  return { won: h.wins, lost: h.losses, drawn: h.draws };
 }
 
 /** The game closest to the player's practice best, 1 to NEAR_MISS_MAX below it (C1a's bests, Classic). */
@@ -189,9 +201,15 @@ export async function bindW3(): Promise<RatedBackend> {
       me: meCard,
       them: themCard,
       source: view.kind === "recorded" && view.recorded ? { kind: "recorded", label: view.recorded.label } : { kind: "live" },
-      headToHead: null,
+      // W3b's record against a live opponent (recorded runs never count: their owner never played you).
+      headToHead: view.kind === "live" && themCard.userId ? await headToHeadWith(themCard.userId) : null,
       placement: mine?.placement && mineR ? Math.min(5, mineR.placement.played + 1) : null,
     };
+  }
+
+  async function headToHeadWith(opponentId: string): Promise<RatedMatch["headToHead"]> {
+    const h = await rated.ratedHeadToHeadFn({ data: { opponentId } }).catch(() => null);
+    return h ? headToHeadOf(h) : null;
   }
 
   async function ladder(): Promise<TierLadderRung[] | null> {
@@ -208,8 +226,7 @@ export async function bindW3(): Promise<RatedBackend> {
       if (!r) return null;
       const account = accountNow().kind === "unknown" ? await refreshAccount() : accountNow();
       const guest = !s.account;
-      const standing = standingOf(r, me);
-      if (standing.state === "placed") clearPlacementRecord(me);
+      const standing = standingOf(r);
       const name = account.kind === "account" ? account.username : "Guest";
       const card = await cardFor(me, name, guest, standing.state === "placed" ? standing.rank : null);
       const bestOf = s.options.formats.map((f) => BEST_OF[f]).filter((n): n is BestOf => n !== undefined);
@@ -273,8 +290,8 @@ export async function bindW3(): Promise<RatedBackend> {
       const change = s.ratings && s.ratings.ok ? (s.ratings.players.find((p) => p.playerId === me) ?? null) : null;
 
       const placing = change ? !change.placement.done || change.placement.justFinished : match.placement !== null;
-      if (placing) notePlacementResult(me, matchId, outcome);
-      const placementSoFar = placing && change ? placementResults(me, change.placement.played) : null;
+      // W3a's own results for every placement match so far, this one included (the same on every device).
+      const placementSoFar = placing && change ? placementBoxesOf(change.placement.results) : null;
 
       const moveOf = (key: "puzzles" | "arcade") => {
         const c = change?.changes.find((x) => x.key === key);
@@ -293,7 +310,7 @@ export async function bindW3(): Promise<RatedBackend> {
       let reveal: RatedResult["reveal"] = null;
       if (change?.placement.justFinished && change.tier.after && change.joulz.after !== null) {
         const [now, rungs] = await Promise.all([myRatings(), ladder().catch(() => null)]);
-        const known = placementSoFar?.filter((x) => x !== null) ?? [];
+        const known = placementSoFar ?? [];
         const all = known.length === 5;
         reveal = {
           rank: { ...change.tier.after, rating: change.joulz.after },
@@ -345,6 +362,11 @@ export async function bindW3(): Promise<RatedBackend> {
     },
 
     ladder,
+
+    async roomMatch(roomId) {
+      const info = await rated.ratedRoomFn({ data: { roomId } }).catch(() => null);
+      return info ? { matchId: info.matchId, format: info.format } : null;
+    },
 
     async opponentScore(matchId): Promise<OpponentScoreView | null> {
       const r = await rated.ratedOpponentScoreFn({ data: { matchId } });

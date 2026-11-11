@@ -1975,6 +1975,23 @@ outside the repo.
   `20261110200000_analytics_identity_events.sql` (**applied**; it adds to the list it reads from the
   table). Checks: identity-screens-check (~5 s, happy-dom, A1 stood in by `setIdentityBackend`) and identity-motion-check
   (headless Chromium: every item against its approved PNG, no animation under reduced motion).
+- **Friends** (wave 2 train B, session B1, 11 Nov 2026, `docs/friends.md`; no gameplay, scoring, stamp or room-flow
+  change beyond Invite to room): accounts only (`/friends`, `src/routes/friends.tsx`, screens
+  `src/components/friends/FriendsScreens.tsx`; Profile's Friends button carries the waiting-requests badge, a guest gets
+  the save-your-progress sheet). Migration `20261111230000_friends.sql` (**not applied until merged**): friendships,
+  requests (phones never read a status, so a decline is never told), blocks, invite links, "Show when I'm online"
+  (null = on for adults, off for under-18s), presence (the app's heartbeat, `FriendsPresence` in the root, accounts
+  only) and `friend_events`, the outbox B2 turns into phone notifications (`friend_request_received`,
+  `friend_request_accepted`, `friend_challenge_received`, `room_invite_received`); every rule also in SQL on
+  service-role functions (`friends_*`), through `src/lib/data/friends.server.ts` and `src/lib/friends/friends.server.ts`.
+  Search is for adults and never returns an under-18 account; invite links work for everyone (a guest goes through
+  sign-up first, the token kept as `duelz-friend-invite:v1`). Block removes the friendship and stops requests, invites,
+  challenges, search, profiles and status both ways. Reports from a profile go through wave 1's `file_room_report` with
+  no room (`room_reports.duel_id` now nullable). Limits: 20 requests an hour, 200 friends. Chat: `chatPolicy(context,
+  player, { friends: true })` types for friends, under-18s included; strangers unchanged. Analytics `friend_request_sent`,
+  `friend_added`, `friend_removed`, `friend_blocked` (`20261111230100_analytics_friend_events.sql`). The Friendly badge
+  (5 friends) through C2's `awardBadge` when a friendship is made (`awardFriendly`). friends-check (~5 s,
+  PostgreSQL, shard `e`), friends-ui-check (~3 s, happy-dom).
 - **Game skins and world themes** (wave 2 E1, 11 Nov 2026, `docs/skins.md`; display only, no stamps, no gameplay,
   deal or scoring change): the 20 game skins, 3 card backs and 4 world themes of `docs/art/wave-2/items/game-skin/`,
   `card-back/` and `world-theme/` in Cue Ball, Crazy Golf, Curl Champ, Apex, Top Bins and Full House (Free Cell has no
@@ -2183,9 +2200,12 @@ outside the repo.
   (`RatedHome`, only for players W3b says rated play is open to: testers, then everyone with
   RATED_PLAY_FOR_EVERYONE), the picker (switched-on options only), `/rated` (searching, VS, then W3b's room on the room
   route; `?match=` the result and the reveal), `/tiers`, the card pill's tier and rating once placed, Profile's
-  `ProfileRating`. The room route marks a rated room from sessionStorage (`ratedRoom.ts`): its header is
-  `RatedRoomScore` (no other layout change; an arcade stage publishes its running score once a second only while it is
-  asked), and the finished room hands over to `/rated?match=` after W3b's winner reveal. Guests show under W3b's energy
+  `ProfileRating`. The room route knows a rated room from this tab's note or, in any other tab, device or reload, W3b's
+  `ratedRoomFn` (`useRatedRoom`, `ratedRoom.ts`): its header is `RatedRoomScore` (no other layout change; an arcade
+  stage publishes its running score once a second only while it is asked, through the import-free `liveScore.ts`), and
+  the finished room hands over to `/rated?match=` after W3b's winner reveal. The placement boxes are W3a's own
+  per-match results (`placementBoxesOf`), the VS record W3b's `ratedHeadToHeadFn` (live opponents only), and `/rated`
+  picks its screens by W3b's format (`formatScreens.tsx`; W3d fills the 4- and 8-player row). Guests show under W3b's energy
   name with a Guest tag; a guest's finished rated match counts for the save-your-progress prompt ("Save your rating and
   stars", `SAVE_PROGRESS_FROM` "rated"). Under automation the real binding stays off unless a page sets
   `window.__DUELZ_ALLOW_RATED__` (ignored in production). Events play_card_tapped, vs_shown, result_viewed,
