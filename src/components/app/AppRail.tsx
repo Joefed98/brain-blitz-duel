@@ -10,6 +10,7 @@ import { CoinCounter } from "@/components/app/CoinCounter";
 import { goToTab, TAB_PATHS, type AppTab } from "@/components/app/AppTabBar";
 import { getStoredName } from "@/lib/duel/session";
 import { useShopOn } from "@/lib/identity/shopSwitch";
+import { shopDotFor, useShopStatus } from "@/lib/shop/shopStatus";
 import { rememberedLook, type PlayerLook } from "@/lib/duel/playerLook";
 import { unlockAudio } from "@/lib/sound";
 import { Icon, Input, TabBar } from "@/design/components";
@@ -32,6 +33,7 @@ export function AppRail({
 }) {
   const router = useRouter();
   const shop = useShopOn();
+  const shopDot = shopDotFor(useShopStatus()) && shop && current !== "shop";
   const [settings, setSettings] = useState(false);
   const [name, setName] = useState("");
   const [look, setLook] = useState<PlayerLook>({ colour: 0, icon: null });
@@ -71,7 +73,7 @@ export function AppRail({
         {compact ? <LogoMark width={26} height={34} /> : <AppWordmark />}
       </a>
       <div className="dk-rail-tabs">
-        <TabBar variant="rail" current={current} compact={compact} shop={shop} onOpen={open} />
+        <TabBar variant="rail" current={current} compact={compact} shop={shop} shopDot={shopDot} onOpen={open} />
       </div>
       <div className="dk-rail-foot">
         {compact ? null : (

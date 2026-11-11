@@ -19,6 +19,18 @@
  *   stores each game's dealt signature, and can't be reached from the phone: no server function exports it and anon
  *   and authenticated can't run a rated function or read or write a rated table;
  * - Joules: 150 / 100 for a best of 3, 1.5× for best of 5 or 7 and 4 or 8 players, stored once per player;
+ * - the tier floor grace: below the tier's floor the tier is kept through 3 more rated matches, then drops; climbing
+ *   back ends it; frozen matches and the standings job don't use it up; a cap's drop isn't a floor fall;
+ * - short matches: a best of 3, 5 or 7 stops once decided (2–0 weighs exactly one match, a 2–1 about half; a game after
+ *   the decision, or an undecided short match, is refused);
+ * - a run the server flagged (its stored grade's extra.flagged, live or recorded, or a recorded run flagged as a whole):
+ *   the match moves nobody's rating and counts for nobody's placement, streaks or badges; the flagged player gets no
+ *   Joules, the others theirs; it is logged once in moderation.rated_flags for Joe (rated_flag_queue / _resolve);
+ * - Joules through D2's hook (creditRatedMatchJoules) under the stored key, once, at D2's own amounts, only where the
+ *   pass is open; the rated week the weekly R challenges count;
+ * - guests: the switch lets them play rated (placement included) only once rated play is on for everyone; a guest's
+ *   placement, ratings, tier and history survive sign-up unchanged (wave 1's linking keeps the player id), placement
+ *   part-way carries over, and the account's first badge sync awards what the guest's rated record earned;
  * - each competitive badge (First Win, Placed, Hot Streak, Comeback Kid, Clean Sweep, Podium Regular, Unstoppable,
  *   Giant Slayer, Storm Chaser, Lightning Strikes, Top 500, Revenge, Photo Finish) awarded by a real match, once, and
  *   not by the match just short of it;
@@ -35,6 +47,8 @@ import { dirname, join, relative, resolve } from "node:path";
 import {
   accountToken,
   ANON_KEY,
+  callServerFn,
+  installServerFnPlugin,
   postgresBin,
   SERVICE_KEY,
   startLocalDb,
@@ -287,7 +301,7 @@ await section("weights, pools and categories", async () => {
   const noVersion = duel(mid(), A, B, [[1, 0]]);
   (noVersion.games[0] as { version: string }).version = "hard";
   check((mt.checkMatch(noVersion, T0) as { reason?: string }).reason === "bad_games", "every rated game deals Classic for now (another version is refused)");
-  check((mt.checkMatch({ ...duel(mid(), A, B, [[1, 0]]), finishedAt: new Date(T0 + 3_600_000).toISOString() }, T0) as { reason?: string }).reason === "bad_match", "a finish time in the future is refused");
+  check((mt.checkMatch({ ...duel(mid(), A, B, [[1, 0], [1, 0]]), finishedAt: new Date(T0 + 3_600_000).toISOString() }, T0) as { reason?: string }).reason === "bad_match", "a finish time in the future is refused");
   // The 11 categories: every active game maps to one, by its kind.
   const cats = new Set(catalogue.ACTIVE_PUZZLE_TYPES.map((t) => mt.gameCategory(t)));
   check(!cats.has(null) && cats.size === 11, `every active game has one of the 11 category ratings (${[...cats].sort().join(", ")})`);
@@ -391,9 +405,119 @@ await section("placement and tiers", async () => {
   check(ladderRungs.length === 7 && ladderRungs[0]!.tier === "top500" && ladderRungs[2]!.cap === "and top 3%" && ladderRungs[6]!.from === 100 && ladderRungs[6]!.to === 699, "the ladder: Top 500 first, Storm's cap, Spark 100–699");
 });
 
+await section("short matches: a best of 3, 5 or 7 stops once decided", async () => {
+  const A = uid(31);
+  const B = uid(32);
+  const pres = () => ({ [A]: pre({ puzzles: settledAt(1000), logic: settledAt(1000) }), [B]: pre({ puzzles: settledAt(1000), logic: settledAt(1000) }) });
+  const ok = (m: Result) => mt.checkMatch(m, T0).ok;
+  const bo = (n: 3 | 5 | 7, games: [number, number][]) => ({ ...duel(mid(), A, B, games), format: { kind: "duel" as const, bestOf: n } });
+  check(ok(bo(3, [[1, 0], [1, 0]])) && ok(bo(3, [[1, 0], [0, 1], [1, 0]])), "a best of 3 ends at 2–0 or 2–1");
+  check(ok(bo(5, [[1, 0], [1, 0], [1, 0]])) && ok(bo(5, [[0, 1], [1, 0], [1, 0], [1, 0]])) && ok(bo(7, [[1, 0], [1, 0], [1, 0], [1, 0]])), "a best of 5 at 3–0 or 3–1, a best of 7 at 4–0");
+  check(!ok(bo(3, [[1, 0], [1, 0], [1, 0]])) && !ok(bo(5, [[1, 0], [1, 0], [1, 0], [0, 1]])), "a game after the match was decided is refused");
+  check(!ok(bo(3, [[1, 0]])) && !ok(bo(7, [[1, 0], [1, 0], [1, 0]])), "a match that stops short undecided is refused");
+  check(ok(bo(3, [[1, 0], [0, 1], [5, 5]])), "all its games played with no winner (a drawn decider): accepted as a draw");
+  const d = (m: Result) => mt.applyMatch(m, T0, pres(), ctx0()).players[0]!.change.changes.find((c) => c.key === "puzzles")!.delta;
+  const one = gl.glickoUpdate(settledAt(1000), [{ opponentRating: 1000, opponentRd: 60, score: 1, weight: 1 }], T0).rating - 1000;
+  const w20 = d(bo(3, [[1, 0], [1, 0]]));
+  check(Math.abs(w20 - one) < 1e-9, `a best of 3 won 2–0 (two games) weighs exactly one match (${w20.toFixed(3)} = ${one.toFixed(3)})`);
+  const w21 = d(bo(3, [[1, 0], [0, 1], [1, 0]]));
+  check(w21 > 0.35 * w20 && w21 < 0.65 * w20, `a 2–1 (three games) moves about half a 2–0 (${w21.toFixed(2)})`);
+  const w30 = d(bo(5, [[1, 0], [1, 0], [1, 0]]));
+  const w31 = d(bo(5, [[0, 1], [1, 0], [1, 0], [1, 0]]));
+  check(w30 > w20 && w30 < 1.6 * w20 && w31 > 0 && w31 < w30, `a best of 5: 3–0 moves a little more than a 2–0 (${w30.toFixed(2)}), 3–1 less (${w31.toFixed(2)})`);
+  const w40 = d(bo(7, [[1, 0], [1, 0], [1, 0], [1, 0]]));
+  check(w40 > w30, `a best of 7 at 4–0 more again (${w40.toFixed(2)}): longer matches carry more evidence, never more than their games`);
+  const loss = mt.applyMatch(bo(3, [[0, 1], [0, 1]]), T0, pres(), ctx0()).players[0]!.change;
+  check(loss.result === "loss" && Math.abs(loss.changes.find((c) => c.key === "puzzles")!.delta + w20) < 1e-9, "0–2 is the mirror of 2–0");
+});
+
+await section("flagged runs move nobody's rating", async () => {
+  const A = uid(33);
+  const B = uid(34);
+  const pres = () => ({ [A]: pre({ puzzles: settledAt(1000), logic: settledAt(1000) }), [B]: pre({ puzzles: settledAt(1000), logic: settledAt(1000) }) });
+  for (const won of [true, false]) {
+    const m = duel(mid(), A, B, won ? [[150, 100], [150, 100]] : [[100, 150], [100, 150]]);
+    m.players[1] = { playerId: B, side: "recorded", run: { runId: "run-flag", ownerId: B, source: "rated", flagged: true } };
+    const out = mt.applyMatch(m, T0, pres(), ctx0());
+    check(out.players.every((p) => !p.change.moved && p.change.changes.length === 0 && p.change.frozen === "flagged_run"), `against a flagged run (${won ? "won" : "lost"}): neither the live player nor the run's owner moves`);
+    check(!out.players[0]!.counted && out.players[0]!.profile.placementPlayed === 0 && out.players[0]!.profile.wins === 0, "it counts for no placement match, win or streak");
+    check(out.players[0]!.change.joules > 0 && out.runUses[0]!.moved === false, "the live player still earns the match's Joules; the use is recorded as not moving");
+  }
+  const m = duel(mid(), A, B, [[150, 100], [150, 100]]);
+  m.players[1] = { playerId: B, side: "recorded", run: { runId: "run-ok", ownerId: B, source: "rated", flagged: false } };
+  check(mt.applyMatch(m, T0, pres(), ctx0()).players.every((p) => p.change.moved), "an unflagged run moves as before");
+  const bad = duel(mid(), A, B, [[150, 100], [150, 100]]);
+  bad.players[1] = { playerId: B, side: "recorded", run: { runId: "r", ownerId: B, source: "rated", flagged: "yes" as never } };
+  check(!mt.checkMatch(bad, T0).ok, "a flag that isn't true or false is refused");
+  // The server's own flag, from the stored grade (extra.flagged === true): a flagged live player.
+  const live = duel(mid(), A, B, [[150, 100], [100, 150], [150, 120]]);
+  live.games[1]!.gradeExtras = { [A]: { flagged: true, flagReason: "desync" }, [B]: { flagged: false } };
+  const lo = mt.applyMatch(live, T0, pres(), ctx0());
+  check(lo.players.every((p) => !p.change.moved && p.change.frozen === "flagged_run" && !p.counted && p.profile.placementPlayed === 0 && p.profile.wins === 0 && p.profile.winStreak === 0), "a flagged live player: the match moves nobody's rating and counts for nobody's placement, streaks or badges");
+  check(lo.players[0]!.change.joules === 0 && lo.players[1]!.change.joules === 100 && lo.players[0]!.change.flagged && !lo.players[1]!.change.flagged, "the flagged player gets no Joules; the other player still gets theirs");
+  check(lo.flags.length === 1 && lo.flags[0]!.playerId === A && lo.flags[0]!.gameIdx === 1 && lo.flags[0]!.game === live.games[1]!.type && lo.flags[0]!.reason === "desync", "the flag carries the player, game and reason for the review log");
+  // A flagged recorded run, from its stored grade.
+  const rec = duel(mid(), A, B, [[150, 100], [150, 100]]);
+  rec.players[1] = { playerId: B, side: "recorded", run: { runId: "run-g", ownerId: B, source: "rated" } };
+  rec.games[0]!.gradeExtras = { [B]: { flagged: true } };
+  const ro = mt.applyMatch(rec, T0, pres(), ctx0());
+  check(ro.players.every((p) => !p.change.moved) && ro.players[0]!.change.joules === 150 && ro.players[1]!.change.joules === 0 && ro.flags[0]!.reason === "server_replay", "a flagged recorded run (its stored grade): nobody moves; the live player still earns 150");
+  check(mt.matchFlags(m).length === 0 && (() => {
+    const whole = duel(mid(), A, B, [[150, 100], [150, 100]]);
+    whole.players[1] = { playerId: B, side: "recorded", run: { runId: "run-w", ownerId: B, source: "rated", flagged: true } };
+    const f = mt.matchFlags(whole);
+    return f.length === 1 && f[0]!.gameIdx === null && f[0]!.reason === "recorded_run_flagged";
+  })(), "the recorded-run backstop: a run flagged as a whole is logged once, with no game");
+  check(mt.gradeFlagReason({ flagged: "true" }) === null && mt.gradeFlagReason({ flagged: 1 }) === null && mt.gradeFlagReason(null) === null && mt.gradeFlagReason({ flagged: true, flagReason: "<script>" }) === "server_replay", "only the server's own boolean flags a run; an odd reason falls back to server_replay");
+  const stray = duel(mid(), A, B, [[150, 100], [150, 100]]);
+  stray.games[0]!.gradeExtras = { [uid(99)]: { flagged: true } };
+  check((mt.checkMatch(stray, T0) as { reason?: string }).reason === "bad_games", "grade extras for someone not in the match are refused");
+  // 4 players, one flagged: nobody moves; the flagged one alone loses the Joules.
+  const ids4 = [uid(41), uid(42), uid(43), uid(44)];
+  const four: Result = {
+    matchId: mid(),
+    format: { kind: "placings", players: 4 },
+    choice: "puzzles",
+    players: ids4.map((playerId) => ({ playerId, side: "live" as const })),
+    games: [{ ...game(PUZZLE_TYPE, Object.fromEntries(ids4.map((id, i) => [id, 190 - 20 * i]))), gradeExtras: { [ids4[2]!]: { flagged: true } } }],
+    placings: Object.fromEntries(ids4.map((id, i) => [id, i + 1])),
+  };
+  const fo = mt.applyMatch(four, T0, Object.fromEntries(ids4.map((id) => [id, pre({ puzzles: settledAt(1000) })])), ctx0());
+  check(fo.players.every((p) => !p.change.moved && !p.counted) && fo.players.map((p) => p.change.joules).join() === "225,150,0,150", `4 players, one flagged: nobody moves, only the flagged player loses the Joules (${fo.players.map((p) => p.change.joules).join(", ")})`);
+});
+
+await section("the tier floor grace", async () => {
+  const st = (tier: string | null, floorGrace: number | null) => ({ tier: tier as never, floorGrace });
+  // Volt's floor is 1,100.
+  let prev = st("volt", null);
+  const seq: string[] = [];
+  for (let i = 0; i < 4; i++) {
+    const out = tiers.shownTierFor(prev, 1060, null, true);
+    seq.push(`${out.view.label}${out.view.floorGrace ? `(${out.view.floorGrace.matchesLeft})` : ""}`);
+    prev = st(out.view.tier, out.floorGrace);
+  }
+  check(seq.join(", ") === "Volt III(3), Volt III(2), Volt III(1), Charge I", `a rating below the floor keeps the tier for 3 more rated matches, then drops (${seq.join(", ")})`);
+  const fallen = tiers.shownTierFor(st("volt", null), 1060, null, true);
+  const back = tiers.shownTierFor(st("volt", fallen.floorGrace), 1130, null, true);
+  check(back.view.label === "Volt III" && back.floorGrace === null && back.view.floorGrace === null, "back at or above the floor: the grace ends");
+  const again = tiers.shownTierFor(st("volt", back.floorGrace), 1090, null, true);
+  check(again.view.floorGrace?.matchesLeft === 3, "a later fall starts a fresh grace of 3");
+  check(tiers.shownTierFor(st("volt", 1), 1060, null, false).floorGrace === 1, "a match that didn't count (frozen) doesn't advance the grace");
+  check(tiers.shownTierFor(st("volt", null), 1060, null, true).view.next?.label === "Volt III" && tiers.shownTierFor(st("volt", null), 1060, null, true).view.next?.pointsToGo === 40, "kept, it shows the points back to the floor (40 to Volt III)");
+  check(tiers.shownTierFor(st("volt", null), 1260, null, true).view.label === "Volt II", "inside the tier, divisions follow the rating (no grace)");
+  check(tiers.shownTierFor(st("surge", null), 1060, null, true).view.label === "Surge III", "a fall of more than one tier keeps the tier shown too");
+  check(tiers.shownTierFor(st("top500", null), 2350, null, true).view.label === "Lightning III", "Top 500 falling below 2,400 holds Lightning");
+  const capped = tiers.shownTierFor(st("storm", null), 1950, { capsActive: true, stormOk: false, top500Ok: false, rank: 50, share: 0.045 }, true);
+  check(capped.view.label === "Surge I" && capped.floorGrace === null && capped.view.heldBack !== null, "a drop by the cap isn't a floor fall (the cap's 3-day grace applies instead)");
+  check(tiers.shownTierFor(st(null, null), 1060, null, true).view.label === "Charge I", "the placement reveal shows the rating's tier (no grace)");
+  check(tiers.FLOOR_GRACE_MATCHES === 3, "three matches of grace");
+});
+
 await section("config, switch and schedule", async () => {
   const { RATED_PLAY_FOR_EVERYONE, ratedChallengesDrawable } = await import("../src/config/ratedConfig");
   check(RATED_PLAY_FOR_EVERYONE === false && ratedChallengesDrawable() === false, "rated play is off for everyone, so no R challenge can be drawn");
+  const { guestsMayPlayRated } = await import("../src/config/ratedConfig");
+  check(guestsMayPlayRated() === RATED_PLAY_FOR_EVERYONE && guestsMayPlayRated() === false, "guests may play rated (placement included) exactly when rated play is on for everyone: not yet");
   const src = readFileSync("src/config/ratedConfig.ts", "utf8");
   check(!/window|__DUELZ|import\.meta/.test(src.replace(/\/\*[\s\S]*?\*\//g, "")), "the switch is a plain constant (no window override for a production build to ignore)");
   check(joules.ratedMatchJoules({ kind: "duel", bestOf: 3 }, "win") === 150 && joules.ratedMatchJoules({ kind: "duel", bestOf: 3 }, "loss") === 100 && joules.ratedMatchJoules({ kind: "duel", bestOf: 5 }, "win") === 225 && joules.ratedMatchJoules({ kind: "duel", bestOf: 7 }, "loss") === 150 && joules.ratedMatchJoules({ kind: "duel", bestOf: 3 }, "draw") === 100, "Joules: 150 / 100 a best of 3, 225 / 150 a best of 5 or 7, a draw as a loss");
@@ -442,9 +566,10 @@ await section("phone and economy reach", async () => {
     return seen;
   };
   const engine = ["ratings.server.ts", "match.ts", "glicko2.ts", "tiers.ts", "joules.ts", "glicko.config.ts"].map((f) => join(SRC, "lib/rated", f));
-  const leaks = [...reach(engine)].filter((p) => /src\/lib\/economy\/|src\/lib\/data\/economy|src\/lib\/badges\//.test(p));
-  check(leaks.length === 0, `the ratings engine reaches no economy or badge module (${leaks.map((p) => relative(".", p)).join(", ") || "none"})`);
-  check([...reach([join(SRC, "lib/rated/rewards.server.ts")])].some((p) => /src\/lib\/badges\/badges\.server\.ts$/.test(p)), "control: finishRatedMatch reaches the badges");
+  const leaks = [...reach(engine)].filter((p) => /src\/lib\/economy\/|src\/lib\/data\/economy|src\/lib\/badges\/|src\/lib\/pass\/|src\/lib\/data\/pass/.test(p));
+  check(leaks.length === 0, `the ratings engine reaches no economy, pass or badge module (${leaks.map((p) => relative(".", p)).join(", ") || "none"})`);
+  const rewards = [...reach([join(SRC, "lib/rated/rewards.server.ts")])];
+  check(rewards.some((p) => /src\/lib\/badges\/badges\.server\.ts$/.test(p)) && rewards.some((p) => /src\/lib\/pass\/pass\.server\.ts$/.test(p)), "control: finishRatedMatch reaches the badges and D2's pass");
 });
 
 /* ================================================================== database */
@@ -470,6 +595,7 @@ try {
   process.env["SUPABASE_URL"] = rest.url;
   process.env["SUPABASE_PUBLISHABLE_KEY"] = ANON_KEY;
   process.env["SUPABASE_SERVICE_ROLE_KEY"] = SERVICE_KEY;
+  await installServerFnPlugin();
   await databaseChecks(db, rest);
 } catch (err) {
   check(false, `harness: ${err instanceof Error ? err.message : String(err)}`);
@@ -664,7 +790,7 @@ async function databaseChecks(db: LocalDb, rest: RestServer): Promise<void> {
     check(hasBadge(W, "unstoppable") === 1, "Unstoppable: 10 in a row");
     // Comeback Kid: a best of 3 won after losing the first game; a best of 7 doesn't count.
     const S = uid(123);
-    await record({ ...duel(mid(), S, uid(crowd++), [[150, 100], [100, 150], [150, 100], [150, 100]]), format: { kind: "duel", bestOf: 7 } });
+    await record({ ...duel(mid(), S, uid(crowd++), [[100, 150], [150, 100], [150, 100], [150, 100], [150, 100]]), format: { kind: "duel", bestOf: 7 } });
     check(hasBadge(S, "comeback-kid") === 0, "Comeback Kid: not from a best of 7");
     await record(duel(mid(), S, uid(crowd++), [[100, 150], [150, 100], [150, 100]]));
     check(hasBadge(S, "comeback-kid") === 1, "Comeback Kid: won a best of 3 after losing the first game");
@@ -748,6 +874,174 @@ async function databaseChecks(db: LocalDb, rest: RestServer): Promise<void> {
     const guest = uid(1500);
     const g = await record(duel(mid(), guest, uid(crowd++), [[150, 100], [150, 100]]));
     check(g.ok && g.players[0]!.badges.length === 0 && Number(q(`SELECT count(*) FROM player_badges WHERE user_id = '${guest}'`)) === 0, "a guest's rated win records a rating but no badge (badges are for accounts)");
+  });
+
+  await section("a guest's placement and rating survive sign-up", async () => {
+    const account = await import("../src/lib/account/account.functions");
+    const badgeFns = await import("../src/lib/badges/badges.functions");
+    const ratingFns = await import("../src/lib/rated/ratings.functions");
+    const auth = await import("../src/lib/account/auth");
+    const GA = uid(3000); // placed as a guest
+    const GB = uid(3001); // three placement matches as a guest, two after signing up
+    q(`INSERT INTO auth.users (id, is_anonymous) VALUES ('${GA}', true), ('${GB}', true)`);
+    const snapshot = (id: string) =>
+      q(`SELECT json_build_object(
+           'ratings', (SELECT json_agg(json_build_object('key', key, 'rating', rating, 'rd', rd, 'volatility', volatility, 'matches', matches, 'version', version) ORDER BY key) FROM rated_ratings WHERE player_id = '${id}'),
+           'profile', (SELECT to_jsonb(p) - 'updated_at' FROM rated_profiles p WHERE player_id = '${id}'),
+           'history', (SELECT count(*) FROM rated_match_players WHERE player_id = '${id}'))::text`);
+    const signUp = async (id: string, email: string, username: string) => {
+      const phone = createClient(rest.url, ANON_KEY, { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } });
+      await phone.auth.setSession({ access_token: userToken(id), refresh_token: "refresh-harness" });
+      const sent = await auth.sendSignUpEmail(email, phone);
+      const mail = [...rest.mail].reverse().find((m) => m.to === email);
+      const verified = await auth.verifyEmailCode(email, mail?.token ?? "", "sign-up", phone);
+      const token = (await phone.auth.getSession()).data.session?.access_token ?? "";
+      const made = await callServerFn(account.completeSignUpFn, { username, dateOfBirth: "1994-03-02", colour: 6, country: "GB" }, token);
+      return { ok: sent.ok && verified.ok && verified.userId === id && made?.kind === "account" && made.userId === id, token };
+    };
+
+    // A guest plays placement and one more match, all as a guest.
+    for (let i = 0; i < 5; i++) await record(duel(mid(), GA, uid(crowd++), [[150, 100], [150, 100]]));
+    await record(duel(mid(), GA, uid(crowd++), [[100, 150], [150, 100], [150, 120]], { choice: "arcade" }));
+    const guestView = await callServerFn(ratingFns.getMyRatingsFn, undefined, userToken(GA));
+    check(guestView?.placement?.done === true && typeof guestView.joulz === "number" && !!guestView.tier, `a guest plays placement: placed, rated and tiered as a guest (${guestView?.joulz}, ${guestView?.tier?.label})`);
+    check(q(`SELECT count(*) FROM player_badges WHERE user_id = '${GA}'`) === "0", "a guest holds no badges");
+    const before = snapshot(GA);
+    // Signs up: wave 1's linking (the email code on the same user), then the account.
+    const up = await signUp(GA, "guest-a@example.com", "Guest_Rated_A");
+    check(up.ok, "the guest signs up on the same player id (email linked, account made)");
+    check(q(`SELECT is_anonymous::text FROM auth.users WHERE id = '${GA}'`) === "false", "the player is an account now");
+    check(snapshot(GA) === before, "every rating, the placement, the record and the match history are exactly as before sign-up");
+    const accountView = await callServerFn(ratingFns.getMyRatingsFn, undefined, up.token);
+    check(JSON.stringify(accountView) === JSON.stringify(guestView), `the account sees the guest's ratings, placement and tier unchanged (${accountView?.joulz}, ${accountView?.tier?.label})`);
+    const synced = await callServerFn(badgeFns.syncMyBadges, undefined, up.token);
+    const slugs = (synced?.earned ?? []).map((b: { slug: string }) => b.slug);
+    check(slugs.includes("first-win") && slugs.includes("placed"), `the account's first sync awards what the guest's rated record earned (${slugs.filter((s: string) => rs.RATED_BADGES.includes(s)).join(", ")})`);
+    // The account plays on from the guest's rating.
+    const ra = rating(GA);
+    const next = await record(duel(mid(), GA, uid(crowd++), [[150, 100], [150, 100]]));
+    check(next.ok && next.players[0]!.changes.find((c) => c.key === "puzzles")!.before === ra && !next.players[0]!.placement.justFinished, "the account's next match moves on from the guest's rating (no new placement)");
+
+    // Part-way through placement: the count carries over.
+    for (let i = 0; i < 3; i++) await record(duel(mid(), GB, uid(crowd++), [[150, 100], [150, 100]]));
+    const beforeB = snapshot(GB);
+    const upB = await signUp(GB, "guest-b@example.com", "Guest_Rated_B");
+    check(upB.ok && snapshot(GB) === beforeB, "a guest 3 matches into placement signs up with everything unchanged");
+    const midway = await callServerFn(ratingFns.placementStatusFn, undefined, upB.token);
+    check(midway?.played === 3 && midway.label === "Placement 4 of 5", `placement carries over: “${midway?.label}”`);
+    await record(duel(mid(), GB, uid(crowd++), [[150, 100], [150, 100]]));
+    const fifth = await record(duel(mid(), GB, uid(crowd++), [[150, 100], [150, 100]]));
+    const me = fifth.ok ? fifth.players.find((p) => p.playerId === GB)! : null;
+    check(!!me && me.placement.justFinished && me.tier.after !== null && rating(GB) > 1000 && Number(q(`SELECT matches FROM rated_ratings WHERE player_id = '${GB}' AND key = 'puzzles'`)) === 5, "the account's 2 matches finish the guest's placement: 5 in all, the reveal once");
+    check((await events("placement_finished", GB)) === 1, "placement_finished once, on the account");
+  });
+
+  await section("the tier floor grace through real matches", async () => {
+    const V = uid(136);
+    await place(V);
+    const setRating = (id: string, r: number, tier: string) =>
+      q(`UPDATE rated_ratings SET rating = ${r} WHERE player_id = '${id}' AND key = 'puzzles';
+         UPDATE rated_profiles SET joulz = ${r}, shown_tier = '${tier}', floor_grace = NULL WHERE player_id = '${id}'`);
+    setRating(V, 1105, "volt");
+    const seen: string[] = [];
+    for (let i = 0; i < 4; i++) {
+      const out = await record(duel(mid(), V, uid(crowd++), [[100, 150], [100, 150]]));
+      const me = out.ok ? out.players[0]! : null;
+      seen.push(`${me?.tier.after?.label}${me?.tier.after?.floorGrace ? `(${me.tier.after.floorGrace.matchesLeft})` : ""}`);
+      if (i === 1) {
+        const view = await rs.getMyRatings(admin, V, clock);
+        check(view.tier?.label === "Volt III" && view.tier.floorGrace?.matchesLeft === 2 && (view.joulz ?? 9999) < 1100, `in the grace, the player's ratings show the kept tier (${view.tier?.label}, ${view.tier?.floorGrace?.matchesLeft} left, rating ${view.joulz})`);
+      }
+    }
+    check(seen.slice(0, 3).join(", ") === "Volt III(3), Volt III(2), Volt III(1)" && !seen[3]!.startsWith("Volt"), `four losses below Volt's floor: kept for 3 more matches, then dropped (${seen.join(", ")})`);
+    check(q(`SELECT coalesce(floor_grace::text, 'none') FROM rated_profiles WHERE player_id = '${V}'`) === "none", "the grace's count is cleared once dropped");
+    const changes = await events("tier_changed", V);
+    const tcProps = q(`SELECT coalesce(string_agg(props::text, ' ; '), '') FROM analytics.events WHERE event = 'tier_changed' AND player_id = '${V}'`);
+    check(changes === 1 && /"from": "volt"/.test(tcProps), `tier_changed once, at the drop, not during the grace (${tcProps})`);
+    // Back above the floor during the grace: it ends.
+    const W = uid(137);
+    await place(W);
+    setRating(W, 1105, "volt");
+    await record(duel(mid(), W, uid(crowd++), [[100, 150], [100, 150]]));
+    check(q(`SELECT floor_grace FROM rated_profiles WHERE player_id = '${W}'`) === "0", "a fall starts the grace (stored)");
+    q(`UPDATE rated_ratings SET rating = 1120 WHERE player_id = '${W}' AND key = 'puzzles'`);
+    const up = await record(duel(mid(), W, uid(crowd++), [[150, 100], [150, 100]]));
+    check(up.ok && up.players[0]!.tier.after?.tier === "volt" && up.players[0]!.tier.after.floorGrace === null && q(`SELECT coalesce(floor_grace::text, 'none') FROM rated_profiles WHERE player_id = '${W}'`) === "none", "climbing back above the floor ends the grace");
+    // A frozen (4th same-opponent) match doesn't use it up.
+    const X = uid(138);
+    await place(X);
+    setRating(X, 1105, "volt");
+    const F = uid(crowd++);
+    for (let i = 0; i < 3; i++) await record(duel(mid(), X, F, [[100, 150], [100, 150]]));
+    const grace3 = q(`SELECT floor_grace FROM rated_profiles WHERE player_id = '${X}'`);
+    await record(duel(mid(), X, F, [[100, 150], [100, 150]]));
+    check(grace3 === "2" && q(`SELECT floor_grace FROM rated_profiles WHERE player_id = '${X}'`) === "2" && q(`SELECT shown_tier FROM rated_profiles WHERE player_id = '${X}'`) === "volt", "a 4th match against the same player (frozen) leaves the grace where it was");
+  });
+
+  await section("flagged runs, Joules through D2's hook, the rated week", async () => {
+    const A = uid(133);
+    const B = uid(134);
+    const C = uid(135); // an account who isn't a pass tester
+    q(`SELECT shop.add_tester('Rated_133', 'ratings-check'); SELECT shop.add_tester('Rated_134', 'ratings-check')`);
+    q(`SELECT pass.set_season_dates('s1', '2026-11-01T00:00:00Z', NULL, 'ratings-check: Season 1 open for testers')`);
+    const ra = rating(A);
+    const flagged = duel(mid(), A, B, [[150, 100], [150, 100]]);
+    flagged.players[1] = { playerId: B, side: "recorded", run: { runId: "run-flagged", ownerId: B, source: "rated", flagged: true } };
+    await record(flagged);
+    check(rating(A) === ra && q(`SELECT string_agg(frozen, ',' ORDER BY side) FROM rated_match_players WHERE match_id = '${flagged.matchId}'`) === "flagged_run,flagged_run", "on the database: a flagged run's match moves nobody, both rows say why");
+    const m = duel(mid(), A, B, [[150, 100], [100, 150], [150, 149]]);
+    await record(m);
+    const key = (id: string) => joules.ratedJoulesKey(m.matchId, id);
+    const credited = (id: string) => q(`SELECT coalesce(string_agg(source_key || '=' || amount, ','), '') FROM pass_joules WHERE user_id = '${id}' AND kind = 'rated' AND source_key LIKE 'rated_match:${m.matchId}:%'`);
+    check(credited(A) === `${key(A)}=150` && credited(B) === `${key(B)}=100`, `each live player's Joules credited through D2's hook under the stored key (${credited(A)}; ${credited(B)})`);
+    await record(m);
+    await record(m);
+    check(Number(q(`SELECT count(*) FROM pass_joules WHERE source_key IN ('${key(A)}', '${key(B)}')`)) === 2, "a duplicate finishRatedMatch credits nothing more (one line each)");
+    check(q(`SELECT string_agg(amount::text, ',') FROM pass_joules p JOIN rated_match_players r ON p.source_key = 'rated_match:' || r.match_id || ':' || r.player_id WHERE r.match_id = '${m.matchId}'`).split(",").sort().join() === q(`SELECT string_agg(joules::text, ',') FROM rated_match_players WHERE match_id = '${m.matchId}'`).split(",").sort().join(), "the credited amounts are the stored ones");
+    const long = { ...duel(mid(), A, B, [[150, 100], [150, 100], [150, 100]]), format: { kind: "duel" as const, bestOf: 5 as const } };
+    await record(long);
+    check(q(`SELECT amount FROM pass_joules WHERE source_key = '${joules.ratedJoulesKey(long.matchId, A)}'`) === "225" && q(`SELECT amount FROM pass_joules WHERE source_key = '${joules.ratedJoulesKey(long.matchId, B)}'`) === "150", "a best of 5: 225 and 150");
+    const fk = q(`SELECT count(*) FROM pass_joules WHERE source_key LIKE 'rated_match:${flagged.matchId}:%'`);
+    check(fk === "1", "against a flagged run the live player still earns the match's Joules (the run's owner none)");
+    // A flagged live player, on the database: nobody moves, no placement, the log entry, Joules for the other only.
+    const D = uid(139);
+    q(`SELECT shop.add_tester('Rated_139', 'ratings-check')`); // a pass tester, so the missing Joules are the flag's doing
+    const before = { b: rating(B), d: rating(D) };
+    const fl = duel(mid(), D, B, [[150, 100], [150, 100]]);
+    fl.games[0]!.gradeExtras = { [D]: { flagged: true, flagReason: "replay_mismatch" } };
+    const flo = await record(fl);
+    check(flo.ok && rating(B) === before.b && rating(D) === before.d && q(`SELECT coalesce((SELECT placement_played::text FROM rated_profiles WHERE player_id = '${D}'), 'none')`) !== "1", "a flagged live player's match: nobody's rating moves, no placement match counted");
+    check(hasBadge(D, "first-win") === 0, "a flagged win earns no badge (not even First Win)");
+    check(q(`SELECT count(*) FROM pass_joules WHERE source_key = '${joules.ratedJoulesKey(fl.matchId, D)}'`) === "0" && q(`SELECT amount FROM pass_joules WHERE source_key = '${joules.ratedJoulesKey(fl.matchId, B)}'`) === "100", "the flagged player is credited no Joules; the other player their 100");
+    const queue = q(`SELECT string_agg(match_id || '|' || player_id || '|' || game || '|' || game_idx || '|' || reason, ',') FROM moderation.rated_flag_queue()`);
+    check(queue.includes(`${fl.matchId}|${D}|${fl.games[0]!.type}|0|replay_mismatch`), `the match is logged for Joe's review: match id, player, game, reason (moderation.rated_flag_queue)`);
+    check(q(`SELECT count(*) FROM moderation.rated_flag_queue() WHERE match_id = '${flagged.matchId}' AND player_id = '${B}' AND game_idx IS NULL AND reason = 'recorded_run_flagged'`) === "1", "the flagged recorded run (the backstop) is logged too");
+    const unflagged = duel(mid(), D, B, [[150, 100], [150, 100]]);
+    const uo = await record(unflagged);
+    check(uo.ok && uo.players[0]!.joules === 150 && q(`SELECT amount FROM pass_joules WHERE source_key = '${joules.ratedJoulesKey(unflagged.matchId, D)}'`) === "150" && rating(D) !== before.d, "control: the same player's next, unflagged match moves and pays as usual");
+    await record(fl);
+    check(q(`SELECT count(*) FROM moderation.rated_flags WHERE match_id = '${fl.matchId}'`) === "1", "recording the match again logs nothing more");
+    const fid = q(`SELECT id FROM moderation.rated_flags WHERE match_id = '${fl.matchId}'`);
+    check(/note/.test(db.psql(`SELECT moderation.rated_flag_resolve(${fid}, '')`).err) && q(`SELECT moderation.rated_flag_resolve(${fid}, 'checked: desync on a slow phone')`) === "resolved" && !q(`SELECT coalesce(string_agg(match_id::text, ','), '') FROM moderation.rated_flag_queue()`).includes(fl.matchId) && q(`SELECT count(*) FROM moderation.rated_flag_queue(true) WHERE match_id = '${fl.matchId}' AND resolved_note LIKE 'checked%'`) === "1", "Joe resolves one with a note: it leaves the open queue (kept with the note in the full list)");
+    const privs = q(`SELECT has_table_privilege('service_role', 'moderation.rated_flags', 'SELECT')::text || has_table_privilege('authenticated', 'moderation.rated_flags', 'SELECT')::text || has_function_privilege('service_role', 'moderation.rated_flag_queue(boolean)', 'EXECUTE')::text || has_function_privilege('anon', 'moderation.rated_flag_resolve(bigint, text)', 'EXECUTE')::text`);
+    check(privs === "falsefalsefalsefalse", "the review log is unreachable from the API (the service role included): only the match's own transaction writes it");
+    const notTester = duel(mid(), C, uid(crowd++), [[150, 100], [150, 100]]);
+    const outC = await record(notTester);
+    check(outC.ok && outC.players[0]!.joules === 150 && q(`SELECT count(*) FROM pass_joules WHERE user_id = '${C}'`) === "0", "an account the pass isn't open to (not a tester) is credited nothing, its amount still stored");
+    const amounts: [import("../src/lib/data/ratings").RatedFormat, "win" | "loss" | "draw"][] = [[{ kind: "duel", bestOf: 3 }, "win"], [{ kind: "duel", bestOf: 3 }, "loss"], [{ kind: "duel", bestOf: 5 }, "win"], [{ kind: "duel", bestOf: 7 }, "draw"], [{ kind: "placings", players: 4 }, "win"], [{ kind: "placings", players: 8 }, "loss"]];
+    const pj = await import("../src/lib/pass/joules");
+    check(amounts.every(([f, r]) => joules.ratedMatchJoules(f, r) === pj.ratedMatchJoules({ won: r === "win", long: !(f.kind === "duel" && f.bestOf === 3) })), "the stored amounts are D2's own (ratedMatchJoules in src/lib/pass/joules.ts) for every format and result");
+    // The rated week (the weekly R challenges' progress).
+    const { readRatedWeekMatches } = await import("../src/lib/data/ratings.server");
+    const wk = await readRatedWeekMatches(admin, A, "2026-11-01T00:00:00Z", new Date(clock + 60_000).toISOString());
+    const last = wk.data[wk.data.length - 2];
+    check(!wk.error && wk.data.length === 2 && wk.data.every((x) => x.result === "win"), `the rated week: the counted matches only (the flagged one left out) (${wk.data.length})`);
+    check(last?.bestOf === 3 && last.games.map((g) => g.won).join() === "true,false,true" && last.games.every((g) => g.category === "logic"), "each game's category and whether this player won it");
+    const weekly = await import("../src/lib/pass/weekly");
+    const act = { games: [], stars: [], practiceChallenges: 0, playedBefore: new Set<string>(), rated: wk.data.map((x) => ({ ...x, games: x.games.map((g) => ({ category: g.category as never, won: g.won })) })) };
+    check(weekly.progressOf(weekly.WEEKLY_BY_ID.get("e12")!, act).done === 2 && weekly.progressOf(weekly.WEEKLY_BY_ID.get("m9")!, act).done === 3, "the weekly R challenges count them (Win 2 rated matches: 2; Logic games won: 3)");
+    const anon = client(ANON_KEY, accountToken(A));
+    check(!!(await anon.rpc("rated_week_matches", { p_user_id: A, p_from: "2026-01-01", p_to: "2027-01-01" })).error, "the phone can't read rated_week_matches");
   });
 
   await section("standings: caps from 1,000 players, the 3-day grace, Top 500", async () => {

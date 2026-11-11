@@ -67,6 +67,21 @@ export const ANALYTICS_EVENTS = [
   // (src/lib/challenges/challenges.server.ts) when a graded Practice run completes one. game is the game, props.challenge
   // the challenge id, props.level its level, props.coins the coins paid with it (0 for a guest, paid on becoming an account).
   "challenge_completed",
+  // The shop (wave 2, session D1; docs/economy/shop.md): recorded by the server only (src/lib/shop/shop.server.ts).
+  // shop_viewed props.section, item_bought props.coins, props.item and props.rarity, bundle_bought props.bundle,
+  // props.coins and props.items, pack_bought props.pack, props.coins and props.test, wishlist_added props.item.
+  "shop_viewed",
+  "item_bought",
+  "bundle_bought",
+  "pack_bought",
+  "wishlist_added",
+  // The Season pass (wave 2, session D2; docs/economy/pass.md): recorded by the server only (src/lib/pass/pass.server.ts).
+  // pass_bought props.season and props.test, pass_level_reached props.season and props.level, reward_claimed
+  // props.season, props.track, props.level and props.kind, weekly_challenge_completed props.tier and props.challenge.
+  "pass_bought",
+  "pass_level_reached",
+  "reward_claimed",
+  "weekly_challenge_completed",
   // Rated 4- and 8-player matches (wave 3, session W3d; docs/rated/multiplayer.md): recorded by the server only
   // (src/lib/rated/multi/multi.server.ts). multiplayer_match_started carries props.size, props.live_seats and
   // props.recorded_seats (once a match, no player); multiplayer_match_finished props.size and props.placing (one a live

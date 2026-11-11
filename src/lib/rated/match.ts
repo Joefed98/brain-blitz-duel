@@ -44,7 +44,7 @@ import {
 } from "./glicko.config";
 import { glickoUpdate, idleDays, newGlickoState, rdAfterIdle, type GlickoResult, type GlickoState } from "./glicko2";
 import { ratedMatchJoules } from "./joules";
-import { tierFor, tierRank, type TierStanding } from "./tiers";
+import { shownTierFor, tierRank, type TierStanding } from "./tiers";
 
 /* ------------------------------------------------------------------ the server's pool and category for a game */
 
@@ -93,6 +93,7 @@ export function checkMatch(input: unknown, nowMs: number): Checked {
       const r = p.run;
       if (!r || typeof r.runId !== "string" || !r.runId || r.runId.length > 80 || r.ownerId !== p.playerId) return { ok: false, reason: "bad_players" };
       if (!(RUN_SOURCES as readonly string[]).includes(r.source)) return { ok: false, reason: "bad_players" };
+      if (r.flagged !== undefined && typeof r.flagged !== "boolean") return { ok: false, reason: "bad_players" };
     } else if (p.side !== "live") return { ok: false, reason: "bad_players" };
   }
   if (!players.some((p) => p.side === "live")) return { ok: false, reason: "bad_players" };
@@ -108,9 +109,28 @@ export function checkMatch(input: unknown, nowMs: number): Checked {
     if (!g.scores || typeof g.scores !== "object") return { ok: false, reason: "bad_games" };
     for (const id of ids) if (!finite(g.scores[id])) return { ok: false, reason: "bad_games" };
     if (Object.keys(g.scores).some((k) => !ids.has(k))) return { ok: false, reason: "bad_games" };
+    if (g.gradeExtras !== undefined && g.gradeExtras !== null) {
+      if (typeof g.gradeExtras !== "object" || Object.keys(g.gradeExtras).some((k) => !ids.has(k))) return { ok: false, reason: "bad_games" };
+      if (Object.values(g.gradeExtras).some((x) => x !== null && (typeof x !== "object" || Array.isArray(x)))) return { ok: false, reason: "bad_games" };
+    }
     if (gamePool(g.type) !== g.pool || gameCategory(g.type) !== g.category) return { ok: false, reason: "pool_mismatch" };
     if (m.choice === "puzzles" && g.pool !== "puzzles") return { ok: false, reason: "pool_mismatch" };
     if (m.choice === "arcade" && g.pool !== "arcade") return { ok: false, reason: "pool_mismatch" };
+  }
+  if (f.kind === "duel") {
+    // A best of 3, 5 or 7 stops once decided (W3b): no game after one player reached the wins needed, and a match that
+    // ends short of `bestOf` games must be decided (2–0 and 2–1 in a best of 3; a drawn game counts for nobody).
+    const need = Math.floor(f.bestOf / 2) + 1;
+    const [a, b] = [...ids] as [string, string];
+    let wa = 0;
+    let wb = 0;
+    for (let i = 0; i < games.length; i++) {
+      if (wa >= need || wb >= need) return { ok: false, reason: "bad_games" };
+      const g = (games as RatedGame[])[i]!;
+      if (g.scores[a]! > g.scores[b]!) wa++;
+      else if (g.scores[a]! < g.scores[b]!) wb++;
+    }
+    if (wa < need && wb < need && games.length < f.bestOf) return { ok: false, reason: "bad_games" };
   }
   if (f.kind === "placings") {
     const pl = m.placings;
@@ -152,6 +172,8 @@ export interface RatedProfileState {
   /** The Joulz Rating (null until placement is done). */
   joulz: number | null;
   shownTier: TierId | null;
+  /** The tier floor grace's count (matches played below the shown tier's floor since the fall), null when not in it. */
+  floorGrace: number | null;
   peakTier: TierId | null;
   top500Ever: boolean;
 }
@@ -171,6 +193,7 @@ export function newProfileState(): RatedProfileState {
     photoFinishes: 0,
     joulz: null,
     shownTier: null,
+    floorGrace: null,
     peakTier: null,
     top500Ever: false,
   };
@@ -196,6 +219,41 @@ export interface MatchContext {
 
 export const pairKey = (a: string, b: string) => (a < b ? `${a}:${b}` : `${b}:${a}`);
 
+/** One flag for Joe's review: whose run, in which game, why. */
+export interface RatedFlag {
+  playerId: string;
+  /** The game's index in the match (null for a recorded run flagged as a whole). */
+  gameIdx: number | null;
+  game: string | null;
+  reason: string;
+}
+
+/**
+ * The server's own flag in a stored grade: `extra.flagged === true` (the server replay's check, mismatch or desync, as
+ * beta recording and practice progress read it). The reason: `extra.flagReason` when the grader gave one (fixed words,
+ * cut to 40), else "server_replay".
+ */
+export function gradeFlagReason(extra: Record<string, unknown> | null | undefined): string | null {
+  if (!extra || extra["flagged"] !== true) return null;
+  const r = extra["flagReason"];
+  return typeof r === "string" && /^[a-z0-9_ -]{1,40}$/i.test(r) ? r : "server_replay";
+}
+
+/** Every flag in a match: each game's stored grades, and recorded runs flagged as a whole (the backstop). */
+export function matchFlags(match: RatedMatchResult): RatedFlag[] {
+  const out: RatedFlag[] = [];
+  match.games.forEach((g, idx) => {
+    for (const p of match.players) {
+      const reason = gradeFlagReason(g.gradeExtras?.[p.playerId]);
+      if (reason) out.push({ playerId: p.playerId, gameIdx: idx, game: g.type, reason });
+    }
+  });
+  for (const p of match.players)
+    if (p.side === "recorded" && p.run.flagged === true && !out.some((f) => f.playerId === p.playerId))
+      out.push({ playerId: p.playerId, gameIdx: null, game: null, reason: "recorded_run_flagged" });
+  return out;
+}
+
 export interface PlayerAfter {
   playerId: string;
   profile: RatedProfileState;
@@ -216,6 +274,8 @@ export interface MatchAfter {
   pairs: string[];
   /** Recorded runs used, and whether each moved its owner. */
   runUses: { runId: string; ownerId: string; moved: boolean }[];
+  /** The server's flags in this match (logged for Joe's review); any one moves nobody's rating. */
+  flags: RatedFlag[];
 }
 
 /* ------------------------------------------------------------------ the Joulz Rating */
@@ -269,12 +329,22 @@ export function applyMatch(match: RatedMatchResult, finishedMs: number, pre: Rec
   const duel = match.format.kind === "duel";
   const sides: Record<string, Side> = {};
   const runUses: MatchAfter["runUses"] = [];
+  // Any run flagged by the server, live or recorded: the match moves nobody's rating, counts for nobody's placement,
+  // streaks or badges, and the flagged player earns no Joules (Joe, 11 Nov 2026).
+  const flags = matchFlags(match);
+  const flagged = flags.length > 0;
+  const flaggedIds = new Set(flags.map((f) => f.playerId));
   for (const p of match.players) {
-    if (p.side === "live") sides[p.playerId] = { p, live: true, factor: 1, frozenWhy: null };
+    if (p.side === "live") sides[p.playerId] = { p, live: true, factor: flagged ? 0 : 1, frozenWhy: flagged ? "flagged_run" : null };
     else {
       const used = ctx.runUsesToday[p.run.runId] ?? 0;
-      const why: FrozenReason | null =
-        p.run.source !== "rated" ? "recorded_unrated_source" : used >= RUN_USES_PER_DAY ? "recorded_daily_limit" : null;
+      const why: FrozenReason | null = flagged
+        ? "flagged_run"
+        : p.run.source !== "rated"
+          ? "recorded_unrated_source"
+          : used >= RUN_USES_PER_DAY
+            ? "recorded_daily_limit"
+            : null;
       sides[p.playerId] = { p, live: false, factor: why ? 0 : RECORDED_OWNER_FACTOR, frozenWhy: why };
       runUses.push({ runId: p.run.runId, ownerId: p.playerId, moved: !why });
     }
@@ -355,7 +425,7 @@ export function applyMatch(match: RatedMatchResult, finishedMs: number, pre: Rec
     }
     const opponents = ids.filter((x) => x !== id);
     const frozenAll = side.live && opponents.every((o) => !comparable(id, o));
-    const counted = side.live && !frozenAll;
+    const counted = side.live && !frozenAll && !flagged;
     const result = resultOf(id);
     const place = duel ? null : match.placings![id]!;
 
@@ -402,8 +472,12 @@ export function applyMatch(match: RatedMatchResult, finishedMs: number, pre: Rec
     const joulzBefore = placedBefore ? (p0.joulz ?? joulzRating({ puzzles: before.ratings.puzzles, arcade: before.ratings.arcade }, before.recentGames)) : null;
     const joulzAfter = placedAfter ? joulzRating({ puzzles: ratings.puzzles, arcade: ratings.arcade }, recent) : null;
     p1.joulz = joulzAfter;
-    const tierBefore: TierView | null = joulzBefore === null ? null : tierFor(joulzBefore, before.standing);
-    const tierAfter: TierView | null = joulzAfter === null ? null : tierFor(joulzAfter, before.standing);
+    // The tier shown, through the tier floor grace (tiers.ts shownTierFor; a counted match advances it).
+    const prevShown = { tier: p0.shownTier, floorGrace: p0.floorGrace };
+    const tierBefore: TierView | null = joulzBefore === null ? null : shownTierFor(prevShown, joulzBefore, before.standing, false).view;
+    const shownAfter = joulzAfter === null ? null : shownTierFor(placedBefore ? prevShown : { tier: null, floorGrace: null }, joulzAfter, before.standing, counted);
+    const tierAfter: TierView | null = shownAfter?.view ?? null;
+    p1.floorGrace = shownAfter?.floorGrace ?? null;
     if (tierAfter) {
       p1.shownTier = tierAfter.tier;
       if (!p0.peakTier || tierRank(tierAfter.tier) > tierRank(p0.peakTier)) p1.peakTier = tierAfter.tier;
@@ -420,10 +494,11 @@ export function applyMatch(match: RatedMatchResult, finishedMs: number, pre: Rec
       tier: { before: tierBefore, after: tierAfter },
       result,
       place,
-      joules: side.live ? ratedMatchJoules(match.format, result) : 0,
+      joules: side.live && !flaggedIds.has(id) ? ratedMatchJoules(match.format, result) : 0,
+      flagged: flaggedIds.has(id),
       badges: [],
     };
     return { playerId: id, profile: p1, ratings, moved, change, games: counted ? { ...games } : { puzzles: 0, arcade: 0 }, counted };
   });
-  return { ukDay, players, pairs, runUses };
+  return { ukDay, players, pairs, runUses, flags };
 }
