@@ -1979,7 +1979,7 @@ outside the repo.
 - **Friends** (wave 2 train B, session B1, 11 Nov 2026, `docs/friends.md`; no gameplay, scoring, stamp or room-flow
   change beyond Invite to room): accounts only (`/friends`, `src/routes/friends.tsx`, screens
   `src/components/friends/FriendsScreens.tsx`; Profile's Friends button carries the waiting-requests badge, a guest gets
-  the save-your-progress sheet). Migration `20261111180000_friends.sql` (**not applied until merged**): friendships,
+  the save-your-progress sheet). Migration `20261111230000_friends.sql` (**not applied until merged**): friendships,
   requests (phones never read a status, so a decline is never told), blocks, invite links, "Show when I'm online"
   (null = on for adults, off for under-18s), presence (the app's heartbeat, `FriendsPresence` in the root, accounts
   only) and `friend_events`, the outbox B2 turns into phone notifications (`friend_request_received`,
@@ -1990,7 +1990,7 @@ outside the repo.
   challenges, search, profiles and status both ways. Reports from a profile go through wave 1's `file_room_report` with
   no room (`room_reports.duel_id` now nullable). Limits: 20 requests an hour, 200 friends. Chat: `chatPolicy(context,
   player, { friends: true })` types for friends, under-18s included; strangers unchanged. Analytics `friend_request_sent`,
-  `friend_added`, `friend_removed`, `friend_blocked` (`20261111180100_analytics_friend_events.sql`). friends-check (~5 s,
+  `friend_added`, `friend_removed`, `friend_blocked` (`20261111230100_analytics_friend_events.sql`). friends-check (~5 s,
   PostgreSQL, shard `e`), friends-ui-check (~3 s, happy-dom).
 - `src/components/duel/` — room/round screens (PhoneShell, RoundIntro, TimerBar,
   AnswerReveal, ArcadeReveal, WinnerReveal…); `src/components/puzzles/` — shared puzzle
