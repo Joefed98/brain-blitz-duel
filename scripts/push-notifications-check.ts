@@ -345,6 +345,44 @@ async function phoneChecks(): Promise<void> {
     delete g["Notification"];
   });
 
+  await section("no game code from sign-out or friends", async () => {
+    // economy-neutral-check walks imports (static, dynamic, re-exports) and fails when the pass's or the economy's code
+    // reaches grading, scoring, ranking or dealing. accountApi (sign-out) and B1's friend calls load push code, so the
+    // push modules they reach must reach none of it: the same walk, from those modules.
+    const { existsSync, readFileSync, statSync } = await import("node:fs");
+    const { dirname, join, relative, resolve } = await import("node:path");
+    const SRC = resolve("src");
+    const RE = /(?:import|export)\s[^'"`;]*?from\s*["']([^"']+)["']|import\s*["']([^"']+)["']|import\(\s*["']([^"']+)["']\s*\)/g;
+    const resolveSpec = (from: string, spec: string) => {
+      const base = spec.startsWith("@/") ? join(SRC, spec.slice(2)) : spec.startsWith(".") ? resolve(dirname(from), spec) : null;
+      if (!base) return null;
+      for (const ext of ["", ".ts", ".tsx", "/index.ts", "/index.tsx"]) if (existsSync(base + ext) && statSync(base + ext).isFile()) return base + ext;
+      return null;
+    };
+    const GAME = /src\/lib\/duel\/(grade|scoring|ranking|generate)/;
+    const roots = ["src/lib/account/accountApi.ts", "src/lib/push/pushDevice.ts", "src/lib/push/pushClient.ts", "src/lib/push/notify.server.ts", "src/lib/push/push.functions.ts", "src/lib/friends/friendsApi.ts"];
+    for (const root of roots.filter((r) => existsSync(r))) {
+      const from = new Map<string, string | null>([[resolve(root), null]]);
+      const queue = [resolve(root)];
+      let hit: string | null = null;
+      while (queue.length && !hit) {
+        const file = queue.shift()!;
+        for (const m of readFileSync(file, "utf8").matchAll(RE)) {
+          const next = resolveSpec(file, m[1] ?? m[2] ?? m[3]!);
+          if (!next || from.has(next)) continue;
+          from.set(next, file);
+          if (GAME.test(relative(".", next))) { hit = next; break; }
+          queue.push(next);
+        }
+      }
+      const chain: string[] = [];
+      for (let c: string | null | undefined = hit; c; c = from.get(c)) chain.unshift(relative(".", c));
+      check(!hit, `${root} reaches no grading, scoring, ranking or dealing code${hit ? ` (${chain.join(" → ")})` : ""}`);
+    }
+    const account = readFileSync("src/lib/account/accountApi.ts", "utf8");
+    check(account.includes('import("@/lib/push/pushDevice")') && !account.includes("push/pushClient"), "sign-out loads pushDevice (forgetPushOnSignOut), never the push client");
+  });
+
   await section("override ignored in production", async () => {
     const { readFileSync } = await import("node:fs");
     // The function's first statement returns the setting when Vite's PROD is true (a production build), before the
@@ -384,7 +422,7 @@ const ACCOUNTS = { ANA, BEN, DAN, ELI, FAY, GUS, HAL, IVY, JAY, KIM, LEO };
 
 async function databaseChecks(db: LocalDb, rest: RestServer): Promise<void> {
   const fns = await import("../src/lib/push/push.functions");
-  const notify = await import("../src/lib/push/notify.server");
+  const notify = { ...(await import("../src/lib/push/notify.server")), ...(await import("../src/lib/push/streakReminder.server")) };
   const web = await import("../src/lib/push/webPush.server");
   const account = await import("../src/lib/account/account.functions");
   const { flushAnalytics } = await import("../src/lib/data/events.server");

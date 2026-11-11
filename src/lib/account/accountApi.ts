@@ -147,7 +147,7 @@ export function useAccountName(): string | null {
 export async function signOutAccount(): Promise<void> {
   // Phone notifications (B2): this device's subscription goes first, while the session can still remove it.
   try {
-    const { forgetPushOnSignOut } = await import("@/lib/push/pushClient");
+    const { forgetPushOnSignOut } = await import("@/lib/push/pushDevice");
     await forgetPushOnSignOut();
   } catch {
     /* best effort */

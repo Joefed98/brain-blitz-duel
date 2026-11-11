@@ -11,7 +11,8 @@
 import { adminDb } from "@/lib/data/db.server";
 import { flushAnalytics } from "@/lib/data/events.server";
 
-import { dispatchFriendEvents, runDailyStreakReminders } from "../notify.server";
+import { dispatchFriendEvents } from "../notify.server";
+import { runDailyStreakReminders } from "../streakReminder.server";
 
 /** The Cron Triggers' schedules (UTC), as nitro writes them into wrangler.json (vite.config.ts). */
 export const PUSH_CRONS = {
