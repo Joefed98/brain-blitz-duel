@@ -53,6 +53,12 @@ export const ANALYTICS_EVENTS = [
   "profile_viewed",
   "customise_opened",
   "equip_refused",
+  // Rated 4- and 8-player matches (wave 3, session W3d; docs/rated/multiplayer.md): recorded by the server only
+  // (src/lib/rated/multi/multi.server.ts). multiplayer_match_started carries props.size, props.live_seats and
+  // props.recorded_seats (once a match, no player); multiplayer_match_finished props.size and props.placing (one a live
+  // player).
+  "multiplayer_match_started",
+  "multiplayer_match_finished",
 ] as const;
 export type AnalyticsEventName = (typeof ANALYTICS_EVENTS)[number];
 

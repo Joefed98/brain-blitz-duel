@@ -1975,6 +1975,15 @@ outside the repo.
   `20261110200000_analytics_identity_events.sql` (**not applied until merged**; it adds to the list it reads from the
   table). Checks: identity-screens-check (~5 s, happy-dom, A1 stood in by `setIdentityBackend`) and identity-motion-check
   (headless Chromium: every item against its approved PNG, no animation under reduced motion).
+- **Rated 4- and 8-player matches** (wave 3, session W3d, 11 Nov 2026, `docs/rated/multiplayer.md`; no gameplay, scoring,
+  stamp, timing or deal change; rooms untouched): **off at launch**, one switch a size (`src/config/ratedMultiConfig.ts`),
+  refused by the server while off (`joinMultiQueue` / `assertMultiOn`). Rules `src/lib/rated/multi/rules.ts`: 15 s for live
+  players, then recorded runs in every empty seat, never a player twice; placing points 10, 7, 5, 4, 3, 2, 1, 0 (8) and
+  5, 3, 1, 0 (4), final placings by points then total score; ratings every pair once, weight 1 / (size − 1), recorded
+  seats unrated; Joules 1.5 × best of 3 (225 top half, 150 below). W3a / W3b plug in through `bindRatedMulti`
+  (`contracts.ts`). Screens `src/components/rated/multi/MultiScreens.tsx` (mockups 08–10; the podium entrance only in the
+  podium's box, none under reduced motion). Events `multiplayer_match_started` / `_finished`
+  (`20261114400000_analytics_multiplayer_events.sql`, **not applied until merged**). rated-multi-check (~2 s).
 - `src/components/duel/` — room/round screens (PhoneShell, RoundIntro, TimerBar,
   AnswerReveal, ArcadeReveal, WinnerReveal…); `src/components/puzzles/` — shared puzzle
   widgets; `src/lib/fx/` — sound and visual feedback (presentation only).
