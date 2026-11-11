@@ -54,7 +54,8 @@ export type RatedMatchPlayer =
       /** The run's owner (whose rating may move, at most half as much as live, only for a rated run). */
       playerId: string;
       side: "recorded";
-      run: { runId: string; ownerId: string; source: RunSource };
+      /** `flagged`: the run is flagged (e.g. under review): the match moves nobody's rating. */
+      run: { runId: string; ownerId: string; source: RunSource; flagged?: boolean };
     };
 
 /** One game of the match, as the match engine stored it. */
@@ -119,6 +120,11 @@ export interface TierView {
   next: { label: string; at: number; pointsToGo: number } | null;
   /** Held back by a cap: what the rating alone reaches, e.g. "Storm-rated, top 4%". */
   heldBack: { ratedTier: TierId; label: string } | null;
+  /**
+   * The tier floor grace: the rating is below this tier's floor and the tier is kept for `matchesLeft` more rated
+   * matches (shown at the tier's III division) before dropping; null when not in it.
+   */
+  floorGrace: { matchesLeft: number } | null;
 }
 
 export interface PlacementStatus {
@@ -154,7 +160,7 @@ export type RatedRefusal =
   | "error";
 
 /** Why a player's ratings didn't move. */
-export type FrozenReason = "same_opponent_today" | "recorded_unrated_source" | "recorded_daily_limit";
+export type FrozenReason = "same_opponent_today" | "recorded_unrated_source" | "recorded_daily_limit" | "flagged_run";
 
 export interface RatingChange {
   key: RatingKey;

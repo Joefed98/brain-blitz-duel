@@ -3,7 +3,10 @@ import type { MouseEvent } from "react";
 
 import { TabBar, TAB_PATHS, type AppTab } from "@/design/components/TabBar";
 
+import { PassLevelNotice } from "@/components/pass/PassLevelNotice";
+import { ShopBackNotice } from "@/components/shop/ShopBackNotice";
 import { useShopOn } from "@/lib/identity/shopSwitch";
+import { shopDotFor, useShopStatus } from "@/lib/shop/shopStatus";
 import { unlockAudio } from "@/lib/sound";
 
 /**
@@ -43,6 +46,8 @@ export function goToTab(
 export function AppTabBar({ current }: { current: AppTab }) {
   const router = useRouter();
   const shop = useShopOn();
+  const status = useShopStatus();
+  const dot = shop && current !== "shop" && shopDotFor(status);
   const open = (tab: AppTab) => (event: MouseEvent<HTMLAnchorElement>) => {
     if (event.metaKey || event.ctrlKey || event.shiftKey || event.button !== 0) return;
     event.preventDefault();
@@ -56,8 +61,11 @@ export function AppTabBar({ current }: { current: AppTab }) {
   return (
     <nav aria-label="Main" data-app-tabbar className="app-tabbar">
       <div className="app-tabbar-row">
-        <TabBar variant="bar" current={current} shop={shop} onOpen={open} />
+        <TabBar variant="bar" current={current} shop={shop} shopDot={dot} onOpen={open} />
       </div>
+      {shop && current !== "shop" ? <ShopBackNotice status={status} onOpen={() => goToTab(router, current, "shop")} /> : null}
+      {/* The pass's level-up notice (wave 2 D2): tab pages only, where the Shop (and so the pass) is on. */}
+      {shop ? <PassLevelNotice onOpen={() => void router.navigate({ to: "/shop", search: { part: "pass" } })} /> : null}
     </nav>
   );
 }

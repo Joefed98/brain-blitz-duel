@@ -73,6 +73,10 @@
   --jz-loss: #E5243F;
   /* Joules: electric lime, always with the small bolt mark; never gold. */
   --jz-joules: #C6FF3D;
+  /* Shop rarities (wave 2, D1; docs/art/wave-2/README.md's ladder): Epic gold, Elite violet edge, Legendary diamond. */
+  --jz-rarity-epic: #E2C07A;
+  --jz-rarity-elite: #A99BFF;
+  --jz-rarity-legendary: #AEEAF7;
   /* 1st, 2nd and 3rd written in their medal colour wherever places are listed. */
   --jz-place-1: #E2C07A;
   --jz-place-2: #D3DCEF;

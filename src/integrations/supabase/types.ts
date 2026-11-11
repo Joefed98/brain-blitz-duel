@@ -1911,6 +1911,72 @@ export type Database = {
         }
         Relationships: []
       }
+      shop_days: {
+        Row: { backups: Json; created_at: string; day: string; items: string[]; rarities: string[] }
+        Insert: { backups?: Json; created_at?: string; day: string; items: string[]; rarities: string[] }
+        Update: { backups?: Json; created_at?: string; day?: string; items?: string[]; rarities?: string[] }
+        Relationships: []
+      }
+      shop_weeks: {
+        Row: { bundle_id: string; created_at: string; full_price: number; items: string[]; name: string; price: number; week_start: string }
+        Insert: { bundle_id: string; created_at?: string; full_price: number; items: string[]; name: string; price: number; week_start: string }
+        Update: { bundle_id?: string; created_at?: string; full_price?: number; items?: string[]; name?: string; price?: number; week_start?: string }
+        Relationships: []
+      }
+      pass_seasons: {
+        Row: { created_at: string; ends_at: string | null; id: string; kind: string; name: string; reset_at: string | null; starts_at: string | null; updated_at: string }
+        Insert: { created_at?: string; ends_at?: string | null; id: string; kind: string; name: string; reset_at?: string | null; starts_at?: string | null; updated_at?: string }
+        Update: { created_at?: string, ends_at?: string | null, id?: string, kind?: string, name?: string, reset_at?: string | null, starts_at?: string | null, updated_at?: string }
+        Relationships: []
+      }
+      pass_member_resets: {
+        Row: { reset_at: string; season_id: string; user_id: string }
+        Insert: { reset_at: string; season_id: string; user_id: string }
+        Update: { reset_at?: string, season_id?: string, user_id?: string }
+        Relationships: []
+      }
+      pass_joules: {
+        Row: { amount: number; at: string; base: number; created_at: string; epoch: number; id: number; kind: string; season_id: string; source_key: string; uk_day: string; user_id: string }
+        Insert: { amount: number; at: string; base: number; created_at?: string; epoch: number; id?: number; kind: string; season_id: string; source_key: string; uk_day: string; user_id: string }
+        Update: { amount?: number, at?: string, base?: number, created_at?: string, epoch?: number, id?: number, kind?: string, season_id?: string, source_key?: string, uk_day?: string, user_id?: string }
+        Relationships: []
+      }
+      pass_members: {
+        Row: { created_at: string; epoch: number; level_reached: number; level_seen: number; season_id: string; user_id: string }
+        Insert: { created_at?: string; epoch: number; level_reached?: number; level_seen?: number; season_id: string; user_id: string }
+        Update: { created_at?: string, epoch?: number, level_reached?: number, level_seen?: number, season_id?: string, user_id?: string }
+        Relationships: []
+      }
+      pass_premium: {
+        Row: { grant_key: string; granted_at: string; removed_at: string | null; removed_note: string | null; season_id: string; source: string; user_id: string }
+        Insert: { grant_key: string; granted_at?: string; removed_at?: string | null; removed_note?: string | null; season_id: string; source: string; user_id: string }
+        Update: { grant_key?: string, granted_at?: string, removed_at?: string | null, removed_note?: string | null, season_id?: string, source?: string, user_id?: string }
+        Relationships: []
+      }
+      pass_claims: {
+        Row: { claimed_at: string; epoch: number; level: number; reward: Json; season_id: string; track: string; user_id: string }
+        Insert: { claimed_at?: string; epoch: number; level: number; reward: Json; season_id: string; track: string; user_id: string }
+        Update: { claimed_at?: string, epoch?: number, level?: number, reward?: Json, season_id?: string, track?: string, user_id?: string }
+        Relationships: []
+      }
+      pass_title_unlocks: {
+        Row: { season_id: string; title_id: string; unlocked_at: string; user_id: string }
+        Insert: { season_id: string; title_id: string; unlocked_at?: string; user_id: string }
+        Update: { season_id?: string, title_id?: string, unlocked_at?: string, user_id?: string }
+        Relationships: []
+      }
+      pass_weeks: {
+        Row: { created_at: string; easy: string; hard: string; medium: string; week_start: string }
+        Insert: { created_at?: string; easy: string; hard: string; medium: string; week_start: string }
+        Update: { created_at?: string, easy?: string, hard?: string, medium?: string, week_start?: string }
+        Relationships: []
+      }
+      shop_wishlist: {
+        Row: { created_at: string; item_id: string; user_id: string }
+        Insert: { created_at?: string; item_id: string; user_id: string }
+        Update: { created_at?: string; item_id?: string; user_id?: string }
+        Relationships: []
+      }
       terms_events: {
         Row: {
           agreed_at: string
@@ -1990,6 +2056,24 @@ export type Database = {
       }
     }
     Functions: {
+      // Ratings (wave 3, W3a; supabase/migrations/20261114100000_ratings.sql): service role only.
+      rated_state: {
+        Args: {
+          p_match_id: string | null
+          p_players: string[]
+          p_day: string
+          p_since: string
+          p_run_ids: string[]
+          p_rematch_of: string | null
+        }
+        Returns: Json
+      }
+      rated_apply_match: { Args: { p: Json }; Returns: Json }
+      rated_badge_facts: { Args: { p_user_id: string }; Returns: Json }
+      rated_tier_counts: { Args: Record<PropertyKey, never>; Returns: Json }
+      rated_recompute_standings: { Args: { p_now: string }; Returns: Json }
+      rated_set_tiers: { Args: { p: Json }; Returns: number }
+      rated_week_matches: { Args: { p_user_id: string; p_from: string; p_to: string }; Returns: Json }
       badge_award: { Args: { p_badge: string; p_detail: Json; p_user_id: string }; Returns: Json }
       badge_set_card: { Args: { p_badges: string[]; p_user_id: string }; Returns: string }
       badge_set_title: { Args: { p_title: string | null; p_user_id: string }; Returns: string }
@@ -2068,6 +2152,36 @@ export type Database = {
           username: string
         }[]
       }
+      shop_record_days: { Args: { p_days: Json }; Returns: number }
+      shop_record_week: {
+        Args: { p_bundle_id: string; p_items: string[]; p_name: string; p_price: number; p_week: string }
+        Returns: undefined
+      }
+      pass_credit_joules: { Args: { p_epoch: number; p_rows: Json; p_season: string; p_user_id: string }; Returns: Json }
+      pass_state: { Args: { p_epoch: number; p_season: string; p_user_id: string }; Returns: Json }
+      pass_joules_since: { Args: { p_epoch: number; p_season: string; p_since: string; p_user_id: string }; Returns: number }
+      pass_member_reset: { Args: { p_season: string; p_user_id: string }; Returns: string | null }
+      pass_note_level: {
+        Args: { p_epoch: number; p_level: number; p_season: string; p_seen: boolean; p_user_id: string }
+        Returns: number | null
+      }
+      pass_record_claim: {
+        Args: { p_epoch: number; p_level: number; p_reward: Json; p_season: string; p_track: string; p_user_id: string }
+        Returns: string
+      }
+      pass_grant_premium: { Args: { p_key: string; p_season: string; p_source: string; p_user_id: string }; Returns: string }
+      pass_unlock_title: { Args: { p_season: string; p_title: string; p_user_id: string }; Returns: string }
+      pass_titles_of: { Args: { p_user_id: string }; Returns: string[] }
+      pass_record_week: { Args: { p_easy: string; p_hard: string; p_medium: string; p_week: string }; Returns: undefined }
+      pass_activity: { Args: { p_from: string; p_to: string; p_user_id: string }; Returns: Json }
+      pass_games_before: { Args: { p_before: string; p_user_id: string }; Returns: string[] }
+      shop_is_tester: { Args: { p_user_id: string }; Returns: boolean }
+      shop_wishlist_set: { Args: { p_item_id: string; p_on: boolean; p_user_id: string }; Returns: string }
+      shop_purchase_bundle: {
+        Args: { p_bundle_id: string; p_items: string[]; p_key: string; p_prices: number[]; p_user_id: string; p_week: string }
+        Returns: Json
+      }
+      shop_test_pack: { Args: { p_key: string; p_pack: string; p_user_id: string }; Returns: Json }
       async_board_open: { Args: { p_room_id: string }; Returns: boolean }
       disband_stale_room: { Args: { p_room_id: string }; Returns: boolean }
       mm_purge_practice_deals: { Args: Record<PropertyKey, never>; Returns: number }
