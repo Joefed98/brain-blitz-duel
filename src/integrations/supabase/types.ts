@@ -2922,6 +2922,8 @@ export type Database = {
       tournament_arena_void: { Args: { p_duel: string }; Returns: boolean }
       tournament_arena_settle: { Args: { p_duel: string; p_winner: string; p_a_score: number; p_b_score: number; p_games: Json }; Returns: Json }
       tournament_finish: { Args: { p_event: string; p_rows: Json }; Returns: boolean }
+      tournament_flag: { Args: { p_event: string; p_player: string; p_source: string; p_source_id: string; p_game_idx: number; p_game: string; p_reason: string }; Returns: boolean }
+      tournament_flagged_players: { Args: { p_event: string }; Returns: string[] }
       tournament_pay_prize: { Args: { p_event: string; p_user_id: string; p_place: number; p_coins: number; p_medal: string | null; p_title: string | null }; Returns: Json }
     }
     Enums: {

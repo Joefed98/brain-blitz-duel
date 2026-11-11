@@ -2171,6 +2171,26 @@ outside the repo.
   server's replay, puzzles show the score only at the game's end. Best of N stops once one side can't be caught
   (`ratedMatchClinched` in advancePhaseFn). `accounts.forget_user` removes a deleted account's runs (trigger
   `mm_forget_removed_user`). Checks: rated-matchmaking-check, rated-server-check.
+- **Tournaments: the hub, the Arena and the daily Score Attack** (wave 4 W4b, 11 Nov 2026, `docs/tournaments/README.md`,
+  contract for W4c `docs/tournaments/interface.md`; no gameplay, scoring, stamp, rating or deal change): switches,
+  schedule and prizes in `src/config/tournamentConfig.ts` (`TOURNAMENTS_FOR_EVERYONE` false: D1's testers only; the
+  Arena at 13:00 and 20:00 UK, a 45-minute window, 4 entrants to start; Score Attack daily, 50 coins or a ticket, 5
+  games of a rotating featured pick; Category Cup and Championship off). Pure rules `src/lib/tournaments/rules.ts`
+  (schedule, points 2 a win and 4 from a third win in a row, standings, the prize table and the small-field
+  safeguard, the server's flag), flow `tournaments.server.ts`, functions `tournaments.functions.ts`, phone
+  `tournamentsApi.ts` (the check-only `window.__DUELZ_ALLOW_TOURNAMENTS__` never read in production), data
+  `src/lib/data/tournaments.server.ts`, screens `src/components/tournaments/`, routes `/tournament?id=` and
+  `/tournament-rules?kind=`. Arena duels are ordinary best-of-3 rooms from W3b's `createDealtMatchRoom` (a plain
+  extraction of `createLiveMatch`), paired by W3b's `bestPartner` on the adapter's rating, **never rated matches**;
+  Score Attack is an async room of kind `score_attack` on the Daily's engine (analytics mode `tournament`). Entry and
+  refunds through A1's ledger and consumables in one transaction; prizes paid once (`tournament_prize` lines); trophies
+  in Profile's cabinet (only real ones); the seven tournament badges earnable (awarded here through `badge_award`);
+  Joules through D2's `creditTournamentJoules`; reminders through B2's `notifyTournamentStarting` (Cron Trigger
+  `tournaments:tick`, `2-59/5 * * * *`). Flagged runs (server's `extra.flagged` only): no points, score, place, prize,
+  trophy, badge or Joules, logged in `moderation.tournament_flags` beside W3a's `rated_flags`, "Your result is under
+  review." Migrations `20261115200000_tournaments.sql`, `20261115200100_tournament_badges.sql`,
+  `20261115200200_analytics_tournament_events.sql` (**not applied until merged**). Events `tournament_entered`,
+  `tournament_finished`, `prize_paid`. tournaments-check (~40 s, PostgreSQL, shard `e`), tournaments-screens-check (~2 s).
 - **The Category Cup and the Joulz Championship** (wave 4 W4c, 11 Nov 2026, `docs/tournaments/events.md`; no gameplay,
   scoring, stamp, rating or deal change): on W4b's tournaments, **switched off at launch** (`TOURNAMENT_KINDS_ON`
   `category_cup` / `championship` in `src/config/tournamentConfig.ts`). Each event is a W4b `tournament_events` row

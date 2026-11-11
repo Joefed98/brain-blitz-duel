@@ -10,7 +10,7 @@ import { AccountHead } from "@/components/account/AccountParts";
 import { PhoneShell } from "@/components/duel/PhoneShell";
 import { Button, EmptyState, Icon, LiveTag, Panel, Row, SectionHeader, SkeletonPage } from "@/design/components";
 import { ukTime } from "@/lib/publicSchedule";
-import { KIND_LABEL, placeLabel } from "@/lib/tournaments/rules";
+import { KIND_LABEL, placeLabel, UNDER_REVIEW_LINE } from "@/lib/tournaments/rules";
 import { countdown, entryLabel, tournamentsBackend, useTournamentEvent } from "@/lib/tournaments/tournamentsApi";
 import type { ArenaBoard, ArenaPoll, EntryOption, ScoreAttackBoard, TournamentEventView } from "@/lib/tournaments/types";
 
@@ -177,6 +177,11 @@ function ArenaLive({ ev, now }: { ev: TournamentEventView; now: number }) {
           </span>
         </div>
         <p className="tn-rule">Win 2 points a duel. After two wins in a row, each win counts double.</p>
+        {board?.underReview ? (
+          <p className="tn-rule" data-under-review>
+            {UNDER_REVIEW_LINE}
+          </p>
+        ) : null}
         {state === "searching" ? (
           <div className="tn-actions">
             <p className="tn-meta" role="status">
@@ -233,7 +238,11 @@ function ScoreAttackPlay({ ev, onPlay }: { ev: TournamentEventView; onPlay: () =
   return (
     <div className="ap-stack" data-score-attack>
       <Panel pad>
-        {done ? (
+        {board?.underReview ? (
+          <p className="tn-rule" data-under-review>
+            {UNDER_REVIEW_LINE}
+          </p>
+        ) : done ? (
           <>
             <h3 className="tn-card-title">{`Your total: ${me!.total.toLocaleString("en-GB")}`}</h3>
             <p className="tn-meta">{me!.place ? `${ordinal(me!.place)} of ${board!.count} so far` : "Places show once the board opens."}</p>
@@ -391,6 +400,11 @@ export function TournamentEventScreen({
             <p className="tn-meta">{ev.status === "finished" ? "This one has finished." : ev.startsAt > now ? "Entry opens a day before it starts." : "Entry has closed."}</p>
           </Panel>
         )}
+        {ev.underReview ? (
+          <p className="tn-rule" role="status" data-under-review>
+            {UNDER_REVIEW_LINE}
+          </p>
+        ) : null}
         {message ? (
           <p className="tn-meta" role="status" data-tournament-message>
             {message}

@@ -11,7 +11,8 @@
 --   * public.tournament_arena_queue / _duels / _players: the Arena's searchers, its best-of-3 duels (each an ordinary
 --     room on W3b's engine; never a rated match, so no rating moves) and its live standings;
 --   * public.tournament_results, public.tournament_prizes, public.tournament_trophies: final places, the coins paid
---     (once each, logged) and the trophies.
+--     (once each, logged) and the trophies;
+--   * moderation.tournament_flags: runs the server's grading flagged, for Joe's review (beside W3a's rated_flags).
 --
 -- Who can reach what: nobody writes these tables through the API (no INSERT, UPDATE or DELETE for anon, authenticated
 -- or service_role); the server (service role) writes only through the public.tournament_* functions below; a signed-in
@@ -654,6 +655,108 @@ GRANT EXECUTE ON FUNCTION public.tournament_arena_void(uuid) TO service_role;
 GRANT EXECUTE ON FUNCTION public.tournament_arena_settle(uuid, text, integer, integer, jsonb) TO service_role;
 GRANT EXECUTE ON FUNCTION public.tournament_finish(text, jsonb) TO service_role;
 GRANT EXECUTE ON FUNCTION public.tournament_pay_prize(text, uuid, integer, integer, text, text) TO service_role;
+
+/* ------------------------------------------------------------------ flagged runs, for Joe's review */
+
+-- A tournament run the server's grading or anti-cheat flagged (a stored grade's extra.flagged: an Arena duel's
+-- round_results or a Score Attack's async_results): one row per player, source and game. The flagged player earns no
+-- Arena points or Score Attack score in that event, so no place, prize, trophy, badge or Joules (Joe, 11 Nov 2026).
+-- Beside W3a's moderation.rated_flags in the moderation schema (unreachable from the API, the service role included),
+-- in the same shape; rated_flags points at rated matches, which tournaments never are, so tournaments keep their own.
+-- Written only by public.tournament_flag; Joe lists them with moderation.tournament_flag_queue() and closes one with
+-- moderation.tournament_flag_resolve(id, note).
+CREATE TABLE IF NOT EXISTS moderation.tournament_flags (
+  id bigserial PRIMARY KEY,
+  event_id text NOT NULL REFERENCES public.tournament_events (id) ON DELETE CASCADE,
+  player_id uuid NOT NULL REFERENCES auth.users (id) ON DELETE CASCADE,
+  source text NOT NULL CHECK (source IN ('arena_duel', 'score_attack')),
+  source_id text NOT NULL,
+  game_idx smallint CHECK (game_idx >= 0),
+  game text,
+  reason text NOT NULL CHECK (char_length(reason) BETWEEN 1 AND 40),
+  flagged_at timestamptz NOT NULL DEFAULT now(),
+  resolved_at timestamptz,
+  resolved_note text,
+  CONSTRAINT tournament_flags_once UNIQUE NULLS NOT DISTINCT (event_id, player_id, source_id, game_idx)
+);
+REVOKE ALL ON moderation.tournament_flags FROM PUBLIC, anon, authenticated, service_role;
+REVOKE ALL ON SEQUENCE moderation.tournament_flags_id_seq FROM PUBLIC, anon, authenticated, service_role;
+
+-- Logs one flag once (the server's own, from a stored grade). Answers whether this call logged it.
+CREATE OR REPLACE FUNCTION public.tournament_flag(
+  p_event text, p_player uuid, p_source text, p_source_id text, p_game_idx integer, p_game text, p_reason text)
+RETURNS boolean
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, moderation
+AS $$
+DECLARE
+  v_n integer;
+BEGIN
+  INSERT INTO moderation.tournament_flags (event_id, player_id, source, source_id, game_idx, game, reason)
+  VALUES (p_event, p_player, p_source, p_source_id, p_game_idx, left(p_game, 40), left(coalesce(nullif(p_reason, ''), 'server_replay'), 40))
+  ON CONFLICT ON CONSTRAINT tournament_flags_once DO NOTHING;
+  GET DIAGNOSTICS v_n = ROW_COUNT;
+  RETURN v_n = 1;
+END;
+$$;
+
+-- The players with a flagged run in an event (open or closed: a flag is never undone into a place or a prize).
+CREATE OR REPLACE FUNCTION public.tournament_flagged_players(p_event text)
+RETURNS uuid[]
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public, moderation
+AS $$
+  SELECT coalesce(array_agg(DISTINCT player_id), ARRAY[]::uuid[]) FROM moderation.tournament_flags WHERE event_id = p_event;
+$$;
+
+REVOKE ALL ON FUNCTION public.tournament_flag(text, uuid, text, text, integer, text, text) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.tournament_flagged_players(text) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.tournament_flag(text, uuid, text, text, integer, text, text) TO service_role;
+GRANT EXECUTE ON FUNCTION public.tournament_flagged_players(text) TO service_role;
+
+-- The flagged tournament runs still open (or all, with p_all), newest first, with the username (or "guest").
+--   SELECT * FROM moderation.tournament_flag_queue();
+CREATE OR REPLACE FUNCTION moderation.tournament_flag_queue(p_all boolean DEFAULT false)
+RETURNS TABLE (id bigint, event_id text, player_id uuid, player text, source text, source_id text, game text,
+               game_idx smallint, reason text, flagged_at timestamptz, resolved_at timestamptz, resolved_note text)
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public, moderation
+AS $$
+  SELECT f.id, f.event_id, f.player_id, coalesce(pr.username, 'guest'), f.source, f.source_id, f.game, f.game_idx,
+         f.reason, f.flagged_at, f.resolved_at, f.resolved_note
+    FROM moderation.tournament_flags f
+    LEFT JOIN public.profiles pr ON pr.user_id = f.player_id
+   WHERE p_all OR f.resolved_at IS NULL
+   ORDER BY f.flagged_at DESC, f.id DESC;
+$$;
+REVOKE ALL ON FUNCTION moderation.tournament_flag_queue(boolean) FROM PUBLIC, anon, authenticated, service_role;
+
+-- Closes one flag with a note (the event's places stay as they were: a flag is never undone into a prize).
+--   SELECT moderation.tournament_flag_resolve(12, 'checked: a real desync, no action');
+CREATE OR REPLACE FUNCTION moderation.tournament_flag_resolve(p_id bigint, p_note text)
+RETURNS text
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, moderation
+AS $$
+BEGIN
+  IF p_note IS NULL OR length(trim(p_note)) = 0 THEN
+    RAISE EXCEPTION 'moderation: a note is required';
+  END IF;
+  UPDATE moderation.tournament_flags SET resolved_at = now(), resolved_note = left(trim(p_note), 500)
+   WHERE id = p_id AND resolved_at IS NULL;
+  IF NOT FOUND THEN
+    RETURN 'not_open';
+  END IF;
+  RETURN 'resolved';
+END;
+$$;
+REVOKE ALL ON FUNCTION moderation.tournament_flag_resolve(bigint, text) FROM PUBLIC, anon, authenticated, service_role;
 
 /* ------------------------------------------------------------------ Joe's tools (Supabase SQL editor) */
 

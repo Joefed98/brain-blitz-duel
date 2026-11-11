@@ -11,7 +11,7 @@ import { Trophy } from "@/design/art";
 import { ukDateParts, ukTime } from "@/lib/publicSchedule";
 import { ukDayKey } from "@/lib/duel/daily";
 import { ordinal } from "@/lib/duel/ordinal";
-import { KIND_LABEL, placeLabel } from "@/lib/tournaments/rules";
+import { KIND_LABEL, placeLabel, UNDER_REVIEW_LINE } from "@/lib/tournaments/rules";
 import { entryLabel } from "@/lib/tournaments/tournamentsApi";
 import type { EntryView, TournamentEventView, TournamentHub, TrophyView } from "@/lib/tournaments/types";
 
@@ -133,7 +133,9 @@ function ScheduleRow({ ev, hub, onOpen, onRemind }: { ev: TournamentEventView; h
 
 function EntryRow({ entry, now }: { entry: EntryView; now: number }) {
   const when = dayLabel(entry.startsAt, now);
-  const sub = entry.refunded
+  const sub = entry.underReview
+    ? `${when}, ${UNDER_REVIEW_LINE.toLowerCase().replace(/\.$/, "")}`
+    : entry.refunded
     ? `${when}, called off, entry refunded`
     : entry.place !== null
       ? `${ordinal(entry.place)}, ${when}`

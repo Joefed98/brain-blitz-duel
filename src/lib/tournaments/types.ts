@@ -29,6 +29,8 @@ export interface EntryView {
   /** Final place once the event has finished (null: not ranked, or not finished). */
   place: number | null;
   prizeCoins: number;
+  /** A run the server flagged in this event: under review. */
+  underReview: boolean;
 }
 
 export interface TournamentEventView {
@@ -56,6 +58,8 @@ export interface TournamentEventView {
   cancelReason: string | null;
   /** Score Attack: the number of games. */
   rounds: number | null;
+  /** The caller has a run the server flagged in this event (no place, prize, trophy or badge; under review). */
+  underReview: boolean;
 }
 
 export interface TrophyView {
@@ -124,6 +128,8 @@ export interface ArenaBoard {
   players: number;
   rows: ArenaBoardRow[];
   me: ArenaBoardRow | null;
+  /** The caller has a run the server flagged in this Arena: no points, the result under review. */
+  underReview: boolean;
 }
 
 export interface ScoreAttackBoardRow {
@@ -140,4 +146,6 @@ export interface ScoreAttackBoard {
   count: number;
   rows: ScoreAttackBoardRow[];
   me: { place: number | null; total: number; finished: boolean; roundsDone: number } | null;
+  /** The caller's attempt has a round the server flagged: no score, the result under review. */
+  underReview: boolean;
 }

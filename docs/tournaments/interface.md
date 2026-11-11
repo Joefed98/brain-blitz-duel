@@ -4,7 +4,7 @@ The contract between W4b (the Tournaments hub, the Arena, the daily Score Attack
 Swiss, and the Joulz Championship, Knockout, both behind switches), and any later session that reads tournament
 results (D2's weekly tournament challenges, leaderboards, the trophy cabinet).
 
-Status: **draft, kept current on the W4b PR.** Last change: 11 Nov 2026. W4b merges second in the wave 4 train.
+Status: **kept current on the W4b PR.** Last change: 11 Nov 2026 (W3b's renames: `ratingsAdapter.server.ts`, `mm_` tables; flagged runs). W4b merges second in the wave 4 train.
 
 Tournaments never change ratings: nothing under `src/lib/tournaments/` imports `recordRatedMatch` or writes a rated
 table (tournaments-check proves it), and the economy-neutral rule holds (nothing here is read by grading, scoring,
@@ -64,6 +64,7 @@ Every one takes the signed-in caller (`requireSupabaseAuth`); a guest (no profil
 | `arenaBoardFn` | `{ eventId }` | `ArenaBoard`: the live leaderboard (every entrant who has played, with `points`, `wins`, `streak`, `played`), `me`, `endsAt`. |
 | `scoreAttackStartFn` | `{ eventId }` | `{ ok: true, roomId }` for the caller's one attempt (entrants only); the rounds then go through the Daily's async-room calls (`asyncRoundStartFn`, `asyncSubmitFn`, `asyncRevealFn`) as the Daily does. |
 | `scoreAttackBoardFn` | `{ eventId }` | The board (the Daily's rules: open once your attempt has finished or the day has closed). |
+| `myTrophiesFn` | — | `TrophyView[]`: the caller's trophies (Profile's cabinet). |
 
 ## 4. Shapes (`src/lib/tournaments/types.ts`)
 
@@ -71,8 +72,9 @@ Every one takes the signed-in caller (`requireSupabaseAuth`); a guest (no profil
   `status` (`scheduled`, `live`, `finished`, `cancelled`), `entrants`, `entryOptions` (each `{ entry, coins }` the
   caller may use now, with `affordable`), `prizes` (`PrizeLine[]`: place label, coins, trophy, the entrants needed),
   `mine` (the caller's `EntryView` or null), `reminded`, `rulesDraft: true`, `cancelledNext` (a cancelled Arena: the
-  next one's start).
-- `EntryView`: `eventId`, `entry`, `coins`, `enteredAt`, `refunded`, `place` (when finished), `prizeCoins`.
+  next one's start), `underReview` (the caller has a run the server flagged in this event).
+- `EntryView`: `eventId`, `entry`, `coins`, `enteredAt`, `refunded`, `place` (when finished), `prizeCoins`, `underReview`.
+- `ArenaBoard` and `ScoreAttackBoard` carry `underReview` for the caller (a flagged player is off the board).
 - `ArenaDuelView`: `duelId`, `roomCode`, `opponent` (`userId`, `name`), `status`.
 - `PrizeLine`: `{ from, to, coins, trophy: "gold" | "silver" | "bronze" | null, minEntrants }`.
 - `TrophyView`: `eventId`, `kind`, `medal`, `title`, `place`, `awardedAt`.
@@ -99,12 +101,14 @@ board is read through the server.
 Functions (service role only): `tournament_ensure_event`, `tournament_enter`, `tournament_cancel`,
 `tournament_set_status`, `tournament_remind`, `tournament_arena_join`, `tournament_arena_leave`,
 `tournament_arena_pair`, `tournament_arena_set_room`, `tournament_arena_settle`, `tournament_finish`,
-`tournament_pay_prize`, `tournament_award_trophy`, `tournament_mark_reminded`. Joe's tools in the `tournaments`
+`tournament_pay_prize`, `tournament_arena_void`, `tournament_mark_reminded`, `tournament_flag`,
+`tournament_flagged_players`. Flags for Joe's review: `moderation.tournament_flags` (beside W3a's `rated_flags`),
+`moderation.tournament_flag_queue()`, `moderation.tournament_flag_resolve(id, note)`. Joe's tools in the `tournaments`
 schema (unreachable from the API): `tournaments.cancel_event(id, note)` (refunds every entry), `tournaments.summary(id)`.
 
 **For W4c**: a Swiss or Knockout event is a row of its own kind in `tournament_events`; entry, refunds, reminders,
 results, prizes and trophies are kind-agnostic (`tournament_enter`, `tournament_finish`, `tournament_pay_prize`,
-`tournament_award_trophy`). Add your own pairing tables beside the Arena's; reuse `arenaDuelRoom` (a best-of-3 room
+`tournament_pay_prize`, which pays the trophy too). Add your own pairing tables beside the Arena's; reuse `arenaDuelRoom` (a best-of-3 room
 on W3b's engine that never touches ratings) for each Swiss round or Knockout tie.
 
 ## 6. Entry
@@ -143,3 +147,11 @@ Joules through D2's `creditTournamentJoules`: each settled Arena duel 100 to eac
 
 `tournament_entered` (props `kind`, `entry`), `tournament_finished` (props `kind`, `place`), `prize_paid` (props
 `kind`, `place`, `coins`). Mode `tournament` on the Score Attack's game events.
+
+## 9. Flagged runs
+
+Only the server's own flag counts: a stored grade's `extra.flagged === true` (`serverFlag` in `rules.ts`). A player
+with a flagged run in an event earns nothing there (no points, score, place, prize, trophy, badge or Joules); in a
+duel the opponent's result stands as a win (`flaggedDuelWinner`). Each flag is logged once through
+`tournament_flag`; `readFlaggedPlayers(eventId)` answers who. W4c: log your rounds' flags the same way and leave
+flagged players out of your standings.

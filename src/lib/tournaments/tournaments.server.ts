@@ -43,6 +43,8 @@ import {
   readResults,
   readTrophies,
   remindRpc,
+  flagRpc,
+  readFlaggedPlayers,
   setEventRoom,
   setEventStatus,
   type ArenaDuelRow,
@@ -57,6 +59,8 @@ import {
   ARENA_ACE_STREAK,
   arenaStandings,
   entryCoins,
+  flaggedDuelWinner,
+  serverFlag,
   entryOpen,
   entryOptionsFor,
   isEntryType,
@@ -210,6 +214,7 @@ async function eventView(
   const status: EventStatus = row ? statusOf(row.status) : "scheduled";
   const mineRow = row && input.account ? (await readEntry(client, ev.id, userId)).data : null;
   const reminded = row && input.account ? (await readReminder(client, ev.id, userId)).data === true : false;
+  const underReview = mineRow && row && row.status !== "scheduled" ? (await readFlaggedPlayers(client, ev.id)).data.includes(userId) : false;
   const options: EntryOption[] = entryOptionsFor(ev.kind, input.switches).map((entry) => {
     const coins = entry === "coins" ? entryCoins(ev.kind) : 0;
     const ticket = TICKET_KIND[entry];
@@ -233,12 +238,13 @@ async function eventView(
     entryOpen: open,
     entryOptions: options,
     prizes: prizeLines(ev.kind),
-    mine: mineRow ? entryViewOf(mineRow, ev, row, null, 0) : null,
+    mine: mineRow ? entryViewOf(mineRow, ev, row, null, 0, underReview) : null,
     reminded,
     rulesDraft: true,
     cancelledNext: status === "cancelled" && ev.kind === "arena" ? nextArenaAfter(ev.startsAt, input.switches) : null,
     cancelReason: row?.cancel_reason ?? null,
     rounds: ev.kind === "score_attack" ? SCORE_ATTACK_ROUNDS : null,
+    underReview,
   };
 }
 
@@ -248,6 +254,7 @@ function entryViewOf(
   row: TournamentEventRow | null,
   place: number | null,
   prizeCoins: number,
+  underReview = false,
 ): EntryView {
   return {
     eventId: entry.event_id,
@@ -261,6 +268,7 @@ function entryViewOf(
     status: row ? statusOf(row.status) : "scheduled",
     place,
     prizeCoins,
+    underReview,
   };
 }
 
@@ -339,7 +347,9 @@ export async function myEntries(client: Db, userId: string, switches: Tournament
   for (const entry of entries) {
     const ev = scheduleOf({ id: entry.event_id }, switches);
     if (!ev) continue;
-    out.push(entryViewOf(entry, ev, rows.get(entry.event_id) ?? null, places.get(entry.event_id) ?? null, paid.get(entry.event_id) ?? 0));
+    const row = rows.get(entry.event_id) ?? null;
+    const review = row && row.status !== "scheduled" ? (await readFlaggedPlayers(client, entry.event_id)).data.includes(userId) : false;
+    out.push(entryViewOf(entry, ev, row, places.get(entry.event_id) ?? null, paid.get(entry.event_id) ?? 0, review));
   }
   return out;
 }
@@ -537,9 +547,11 @@ export async function settleArenaDuel(client: Db, duel: ArenaDuelRow, nowMs: num
   const games = arenaGames(puzzles, results ?? []);
   const { matchOutcome } = await import("@/lib/rated/matchmaking");
   const outcome = matchOutcome(games);
+  // Flagged runs (Joe, 11 Nov 2026): only the server's own flag on the stored grades, logged for Joe's review.
+  const flagged = await logDuelFlags(client, duel, puzzles, results ?? []);
   const { data, error } = await arenaSettleRpc(client, {
     duelId: duel.id,
-    winner: outcome.winner,
+    winner: flaggedDuelWinner(outcome.winner, flagged.has(duel.a_user), flagged.has(duel.b_user)),
     aScore: outcome.totalA,
     bScore: outcome.totalB,
     games: asJson(games),
@@ -547,7 +559,7 @@ export async function settleArenaDuel(client: Db, duel: ArenaDuelRow, nowMs: num
   if (error || !data) throw new Error(`tournaments: ${error?.message ?? "no answer"}`);
   if (data.status === "settled") {
     const { creditTournamentJoules } = await import("@/lib/pass/pass.server");
-    for (const user of [duel.a_user, duel.b_user]) {
+    for (const user of [duel.a_user, duel.b_user].filter((u) => !flagged.has(u))) {
       try {
         await creditTournamentJoules(client, { userId: user, eventId: `arena:${duel.event_id}:${duel.id}`, kind: "arena_duel", atMs: nowMs });
       } catch (err) {
@@ -558,9 +570,34 @@ export async function settleArenaDuel(client: Db, duel: ArenaDuelRow, nowMs: num
       [duel.a_user, data.a_streak],
       [duel.b_user, data.b_streak],
     ];
-    for (const [user, streak] of streaks) if ((streak ?? 0) >= ARENA_ACE_STREAK) await award(client, user, "arena-ace", { event: duel.event_id });
+    const everFlagged = new Set((await readFlaggedPlayers(client, duel.event_id)).data);
+    for (const [user, streak] of streaks)
+      if ((streak ?? 0) >= ARENA_ACE_STREAK && !everFlagged.has(user)) await award(client, user, "arena-ace", { event: duel.event_id });
   }
   return "settled";
+}
+
+/** Logs the server's flags on a duel's stored grades (once each); answers the flagged players. */
+async function logDuelFlags(client: Db, duel: ArenaDuelRow, puzzles: readonly PuzzleData[], results: readonly RoundResultRow[]): Promise<Set<string>> {
+  const out = new Set<string>();
+  for (const r of results) {
+    const reason = serverFlag(r.extra);
+    if (!reason) continue;
+    const user = r.player_slot === 1 ? duel.a_user : r.player_slot === 2 ? duel.b_user : null;
+    if (!user) continue;
+    out.add(user);
+    const { error } = await flagRpc(client, {
+      eventId: duel.event_id,
+      playerId: user,
+      source: "arena_duel",
+      sourceId: duel.id,
+      gameIdx: r.round_number - 1,
+      game: puzzles[r.round_number - 1]?.type ?? "",
+      reason,
+    });
+    if (error) throw new Error(`tournaments: ${error.message}`);
+  }
+  return out;
 }
 
 /** Each game's scores and times on slot 1 (a) and slot 2 (b), as W3b's buildMatchResult reads them. */
@@ -668,7 +705,9 @@ export async function arenaBoard(client: Db, userId: string, eventId: unknown, n
   if (!row || row.kind !== "arena") return null;
   const current = await advanceEvent(client, row, nowMs);
   const { data: players } = await readArenaPlayers(client, id);
-  const ranked = arenaStandings(players.map(arenaPlayerOf));
+  // A player with a flagged run earns no points in this Arena: off the board, their own result under review.
+  const flagged = new Set((await readFlaggedPlayers(client, id)).data);
+  const ranked = arenaStandings(players.filter((p) => !flagged.has(p.user_id)).map(arenaPlayerOf));
   const names = await Promise.all(ranked.slice(0, 50).map((p) => accountName(client, p.userId)));
   const rowOf = (p: ArenaPlayer & { place: number }, name: string | null): ArenaBoardRow => ({
     place: p.place,
@@ -689,6 +728,7 @@ export async function arenaBoard(client: Db, userId: string, eventId: unknown, n
     players: ranked.length,
     rows,
     me: mine ? rows.find((r) => r.isMe) ?? rowOf(mine, await accountName(client, userId)) : null,
+    underReview: flagged.has(userId),
   };
 }
 
@@ -714,7 +754,9 @@ async function finishArena(client: Db, row: TournamentEventRow, nowMs: number): 
     if ((await settleArenaDuel(client, duel, nowMs, { voidUnfinished: late })) === "playing") open++;
   if (open > 0) return; // duels started in the window play to their end
   const { data: players } = await readArenaPlayers(client, row.id);
-  const ranked = arenaStandings(players.map(arenaPlayerOf));
+  // Flagged runs: no place, so no prize, trophy or badge (Joe, 11 Nov 2026).
+  const flagged = new Set((await readFlaggedPlayers(client, row.id)).data);
+  const ranked = arenaStandings(players.filter((p) => !flagged.has(p.user_id)).map(arenaPlayerOf));
   const { data: finished } = await finishRpc(
     client,
     row.id,
@@ -807,9 +849,33 @@ async function scoreAttackRanking(client: Db, row: TournamentEventRow, nowMs: nu
   for (const a of attempts) current.push(closed && !a.finished_at ? (await attemptView(client, room, a, nowMs)).attempt : a);
   const { data: entries } = await (await import("@/lib/data/tournaments.server")).readEntries(client, row.id);
   const entered = new Set(entries.filter((e) => !e.refunded_at).map((e) => e.user_id));
-  const counted = current.filter((a) => entered.has(a.user_id) && (closed || a.finished_at));
+  const inPlay = current.filter((a) => entered.has(a.user_id) && (closed || a.finished_at));
+  // Flagged runs (Joe, 11 Nov 2026): an attempt with a round the server's grading flagged scores nothing here, so no
+  // place, prize, trophy, badge or Joules; each flag is logged once for Joe's review.
+  const flagged = new Set((await readFlaggedPlayers(client, row.id)).data);
+  const { resultsOf } = await import("@/lib/duel/asyncRoom.server");
+  for (const a of inPlay) {
+    if (flagged.has(a.user_id)) continue;
+    for (const r of await resultsOf(client, a.id)) {
+      const reason = serverFlag(r.extra);
+      if (!reason) continue;
+      flagged.add(a.user_id);
+      const { error } = await flagRpc(client, {
+        eventId: row.id,
+        playerId: a.user_id,
+        source: "score_attack",
+        sourceId: a.id,
+        gameIdx: r.round_number - 1,
+        game: room.round_order[r.round_number - 1] ?? "",
+        reason,
+      });
+      if (error) throw new Error(`tournaments: ${error.message}`);
+    }
+  }
+  const counted = inPlay.filter((a) => !flagged.has(a.user_id));
   return {
     room,
+    flagged,
     attempts: current,
     standings: scoreAttackStandings(
       counted.map((a) => ({
@@ -831,7 +897,7 @@ export async function scoreAttackBoard(client: Db, userId: string, eventId: unkn
   const stored = (await readEvent(client, id)).data;
   if (!stored || stored.kind !== "score_attack") return null;
   const row = await advanceEvent(client, stored, nowMs);
-  const { attempts, standings } = await scoreAttackRanking(client, row, nowMs);
+  const { attempts, standings, flagged } = await scoreAttackRanking(client, row, nowMs);
   const mine = attempts.find((a) => a.user_id === userId) ?? null;
   const closed = nowMs >= msOf(row.ends_at);
   const open = closed || !!mine?.finished_at;
@@ -841,12 +907,16 @@ export async function scoreAttackBoard(client: Db, userId: string, eventId: unkn
     open,
     count: standings.length,
     rows: open ? standings.slice(0, 50).map((s) => ({ place: s.place, name: s.name, total: s.total, isMe: s.userId === userId })) : [],
-    me: mine ? { place: open ? placeOf : null, total: mine.total_score, finished: !!mine.finished_at, roundsDone: mine.rounds_done } : null,
+    // A flagged attempt: no score here (its total isn't shown), its result under review.
+    me: mine
+      ? { place: open ? placeOf : null, total: flagged.has(userId) ? 0 : mine.total_score, finished: !!mine.finished_at, roundsDone: mine.rounds_done }
+      : null,
+    underReview: flagged.has(userId),
   };
 }
 
 async function finishScoreAttack(client: Db, row: TournamentEventRow, nowMs: number): Promise<void> {
-  const { attempts, standings } = await scoreAttackRanking(client, row, nowMs);
+  const { attempts, standings, flagged } = await scoreAttackRanking(client, row, nowMs);
   const { data: finished } = await finishRpc(
     client,
     row.id,
@@ -854,7 +924,7 @@ async function finishScoreAttack(client: Db, row: TournamentEventRow, nowMs: num
   );
   // Joules for finishing a Score Attack (150), once per account and event (D2's key).
   const { creditTournamentJoules } = await import("@/lib/pass/pass.server");
-  for (const a of attempts.filter((x) => x.finished_at))
+  for (const a of attempts.filter((x) => x.finished_at && !flagged.has(x.user_id)))
     try {
       await creditTournamentJoules(client, { userId: a.user_id, eventId: row.id, kind: "finished", atMs: msOf(a.finished_at) });
     } catch (err) {
