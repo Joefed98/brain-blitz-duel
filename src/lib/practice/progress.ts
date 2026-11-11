@@ -22,7 +22,10 @@ export interface PracticeProgressView {
   stars: number;
   /** Gem colours unlocked (accounts only; a guest's unlock when they sign up). */
   gems: string[];
-  /** Whether Practice's one-time refresh note has been seen. */
+  /**
+   * True when Practice's one-time refresh note has nothing to show: seen already, or the player is new since the
+   * fresh start (only players who existed before it get the note).
+   */
   noteSeen: boolean;
   /** The fresh start's moment (ISO), or null on a database without it. */
   freshStartAt: string | null;

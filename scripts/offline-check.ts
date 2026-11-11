@@ -248,7 +248,7 @@ interface AuthLog {
 async function stubAuth(ctx: BrowserContext, log: AuthLog, userId: string = crypto.randomUUID()): Promise<void> {
   db!.psql(`INSERT INTO auth.users (id, is_anonymous) VALUES ('${userId}', true) ON CONFLICT DO NOTHING`);
   // Each context is its own phone on its own network (the address Cloudflare passes live, rateLimit.server.ts): with a
-  // real database the per-address limits count, and the passes would otherwise share 127.0.0.1's (IP_PRACTICE_PACK_LIMIT).
+  // real database the per-address limits count, and each pass is its own phone (IP_PRACTICE_PACK_LIMIT is per network).
   await ctx.setExtraHTTPHeaders({ "cf-connecting-ip": `203.0.113.${(nextAddress += 1)}` });
   await ctx.route("**/auth/v1/**", (route) => {
     const url = route.request().url();
@@ -483,10 +483,8 @@ async function lazyPass(browser: Browser): Promise<void> {
     check(level === "1", `${tag}: the next visit's target grows`, `level ${level}`);
     check(packCalls() > 0, `${tag}: the pack requests are seen`, `${packCalls()} pack calls`);
     report.push(`${tag}: server deals: 0 on app open; ${dealsIn(packs)} (${PACK_FIRST_DEALS} a game, ${packs.length} games) after the first finished round, over ${packCalls()} calls; until 4 Nov 2026 ${packs.length * PACK_MAX_DEALS} (${PACK_MAX_DEALS} a game), starting 3 s after the app opened`);
-    // The next visit: the target grows to PACK_FIRST_DEALS + PACK_GROWTH_STEP. A real next visit is a later app open:
-    // the test database's pack counter for this network is emptied, standing in for that time (the first visit's 16
-    // calls and the second's would otherwise share one hour of IP_PRACTICE_PACK_LIMIT's 20).
-    dbq("DELETE FROM public.rate_limit_hits WHERE bucket = 'ip-practice-pack'");
+    // The next visit: the target grows to PACK_FIRST_DEALS + PACK_GROWTH_STEP (both visits' calls fit one hour of
+    // IP_PRACTICE_PACK_LIMIT, 100 since 11 Nov 2026).
     await page.reload();
     const grown = PACK_FIRST_DEALS + PACK_GROWTH_STEP;
     const second = await until(
@@ -696,6 +694,8 @@ async function fullPass(browser: Browser): Promise<void> {
   await page.reload();
   await page.locator("[data-practice-switch]").waitFor({ timeout: 30_000 });
   await showPracticeSide(page, "snake");
+  // Changed with Joe's approval, 11 Nov 2026 (wave 2 C1a): bests are the account's per game and level, so the old-stamp run counts too; was
+  // `r.status === "confirmed" && r.stamp === stampSignature(deal.puzzle)` (the check line and message unchanged).
   const meteorBest = Math.max(...runs.filter((r) => r.type === "snake" && r.status === "confirmed").map((r) => r.score ?? 0));
   check(Number(await page.locator('[data-practice-game="snake"] [data-card-best]').getAttribute("data-card-best")) === meteorBest, "Meteor's best is the server's", String(meteorBest));
   // Only confirmed runs count: the server counted exactly the four it graded (never the rejected one), and its best

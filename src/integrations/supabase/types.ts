@@ -1623,6 +1623,7 @@ export type Database = {
       }
       practice_record_play: { Args: { p_play_id: number }; Returns: Json }
       practice_mark_refresh_note_seen: { Args: { p_user_id: string }; Returns: boolean }
+      practice_refresh_note_due: { Args: { p_user_id: string }; Returns: boolean }
       practice_star_total: { Args: { p_user_id: string }; Returns: number }
       practice_sync_gems: { Args: { p_user_id: string }; Returns: string[] }
       practice_gems_for: { Args: { p_stars: number }; Returns: string[] }

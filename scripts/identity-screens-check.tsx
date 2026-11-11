@@ -444,7 +444,9 @@ for (const [who, n, shows] of [
   await click($("[data-avatars-all]"));
   check($$("[data-avatar-choice]").length === 32, `32 avatars (${$$("[data-avatar-choice]").length})`);
   check($$("[data-colour-choice]").length === 32, `32 colours (${$$("[data-colour-choice]").length})`);
-  // Wave 2 C1a (11 Nov 2026, Joe's approval in the session): each locked gem shows the stars it needs (the master plan's thresholds).
+  // Wave 2 C1a: each locked gem shows the stars it needs (the master plan's thresholds).
+  // Changed with Joe's approval, 11 Nov 2026 (wave 2 C1a): was $$("[data-gems-locked] [data-gem]").length === 10 && !(…textContent…).match(/\d/),
+  // "the 10 gems show locked, with no star counts".
   {
     const NEEDS: Record<string, number> = { amber: 10, "rose-quartz": 20, ruby: 30, jade: 50, amethyst: 75, aquamarine: 100, sapphire: 125, pearl: 150, obsidian: 200, diamond: 250 };
     const gems = $$("[data-gems-locked] [data-gem]");
@@ -578,10 +580,11 @@ for (const [who, n, shows] of [
 /* ------------------------------------------------------------------ 6. Profile has only real data */
 {
   const source = readFileSync("src/routes/profile.tsx", "utf8") + readFileSync("src/components/identity/ProfileCard.tsx", "utf8");
+  // Changed with Joe's approval, 11 Nov 2026 (wave 2 C1a): "Mastery stars" taken out of this list (the section now exists; the check below proves it).
   for (const word of ["Strongest categories", "Trophy cabinet", "Puzzles and Arcade", "Season peak", "matches"]) {
     check(!source.includes(`>${word}<`) && !source.includes(`"${word}"`), `Profile draws no "${word}" section yet`);
   }
-  // Wave 2 C1a (11 Nov 2026, Joe's approval in the session): the Mastery stars section shows the server's total out of 276.
+  // Changed with Joe's approval, 11 Nov 2026 (wave 2 C1a): the Mastery stars section shows the server's total out of 276.
   {
     const { starTotalLine } = await import("../src/lib/practice/progress");
     const view = { games: {}, stars: 21, gems: [], noteSeen: true, freshStartAt: null };

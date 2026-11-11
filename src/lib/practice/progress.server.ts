@@ -8,7 +8,7 @@ import type { Db } from "@/lib/data/db.server";
 import {
   readFreshStartAt,
   readPracticeProgress,
-  readRefreshNoteSeen,
+  readRefreshNoteDue,
   type PracticeRecordOutcome,
 } from "@/lib/data/practiceProgress.server";
 
@@ -20,7 +20,7 @@ export async function progressFor(client: Db, userId: string): Promise<PracticeP
   const [rows, gems, seen, start] = await Promise.all([
     readPracticeProgress(client, userId),
     readGemUnlocks(client, userId),
-    readRefreshNoteSeen(client, userId),
+    readRefreshNoteDue(client, userId),
     readFreshStartAt(client),
   ]);
   if (rows.error) throw new Error("Couldn’t load your practice progress.");
@@ -36,7 +36,8 @@ export async function progressFor(client: Db, userId: string): Promise<PracticeP
     games,
     stars,
     gems: gems.error ? [] : gems.data,
-    noteSeen: seen.error ? true : seen.data,
+    // Nothing to show unless the note is due (a player from before the fresh start who hasn't seen it).
+    noteSeen: seen.error ? true : !seen.data,
     freshStartAt: start.data,
   };
 }

@@ -60,10 +60,10 @@ export async function readPracticeProgress(client: Db, userId: string): Promise<
   return { data: (data as PracticeProgressRow[] | null) ?? [], error };
 }
 
-/** Whether the player has seen Practice's one-time refresh note. */
-export async function readRefreshNoteSeen(client: Db, userId: string): Promise<Result<boolean>> {
-  const { data, error } = await client.from("practice_refresh_notes").select("user_id").eq("user_id", userId).maybeSingle();
-  return { data: Boolean(data), error };
+/** Whether the note is due: the player existed before the fresh start and hasn't seen it. */
+export async function readRefreshNoteDue(client: Db, userId: string): Promise<Result<boolean>> {
+  const { data, error } = await client.rpc("practice_refresh_note_due", { p_user_id: userId });
+  return { data: data === true, error };
 }
 
 /** Records that the player has seen the note (true when this call recorded it). */
