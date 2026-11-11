@@ -2060,7 +2060,9 @@ outside the repo.
   `gamePool` / `gameCategory`; Mixed at half weight), the Joulz Rating (90 days of games), 5 placement matches with
   every rating hidden, tiers and caps (`tiers.ts`: Storm's top 3% and Top 500 from 1,000 rated players, 3 days' grace,
   hourly Cron Trigger `rated:standings` in `vite.config.ts`'s `RATED_TASKS`), recorded runs (owner exactly half, rated
-  runs only, 5 uses a day) and the 4th-match rule per UK day. The match engine calls `finishRatedMatch`
+  runs only, 5 uses a day) and the 4th-match rule per UK day. Guests play rated (placement included) once rated play is
+  on for everyone (`guestsMayPlayRated`); their ratings sit on their player id, so sign-up keeps them (ratings-check
+  proves it through wave 1's linking). The match engine calls `finishRatedMatch`
   (`rewards.server.ts`: `recordRatedMatch`, idempotent per match id, then C2's badges); the phone only reads
   (`ratings.functions.ts`). Migrations `20261114100000_ratings.sql`, `…100100_analytics_rated_events.sql`,
   `…100200_rated_badges_earnable.sql` (**not applied until merged**); no API role writes a rated table. Rated play's 13

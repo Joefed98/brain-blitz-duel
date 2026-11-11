@@ -19,6 +19,9 @@
  *   stores each game's dealt signature, and can't be reached from the phone: no server function exports it and anon
  *   and authenticated can't run a rated function or read or write a rated table;
  * - Joules: 150 / 100 for a best of 3, 1.5× for best of 5 or 7 and 4 or 8 players, stored once per player;
+ * - guests: the switch lets them play rated (placement included) only once rated play is on for everyone; a guest's
+ *   placement, ratings, tier and history survive sign-up unchanged (wave 1's linking keeps the player id), placement
+ *   part-way carries over, and the account's first badge sync awards what the guest's rated record earned;
  * - each competitive badge (First Win, Placed, Hot Streak, Comeback Kid, Clean Sweep, Podium Regular, Unstoppable,
  *   Giant Slayer, Storm Chaser, Lightning Strikes, Top 500, Revenge, Photo Finish) awarded by a real match, once, and
  *   not by the match just short of it;
@@ -35,6 +38,8 @@ import { dirname, join, relative, resolve } from "node:path";
 import {
   accountToken,
   ANON_KEY,
+  callServerFn,
+  installServerFnPlugin,
   postgresBin,
   SERVICE_KEY,
   startLocalDb,
@@ -394,6 +399,8 @@ await section("placement and tiers", async () => {
 await section("config, switch and schedule", async () => {
   const { RATED_PLAY_FOR_EVERYONE, ratedChallengesDrawable } = await import("../src/config/ratedConfig");
   check(RATED_PLAY_FOR_EVERYONE === false && ratedChallengesDrawable() === false, "rated play is off for everyone, so no R challenge can be drawn");
+  const { guestsMayPlayRated } = await import("../src/config/ratedConfig");
+  check(guestsMayPlayRated() === RATED_PLAY_FOR_EVERYONE && guestsMayPlayRated() === false, "guests may play rated (placement included) exactly when rated play is on for everyone: not yet");
   const src = readFileSync("src/config/ratedConfig.ts", "utf8");
   check(!/window|__DUELZ|import\.meta/.test(src.replace(/\/\*[\s\S]*?\*\//g, "")), "the switch is a plain constant (no window override for a production build to ignore)");
   check(joules.ratedMatchJoules({ kind: "duel", bestOf: 3 }, "win") === 150 && joules.ratedMatchJoules({ kind: "duel", bestOf: 3 }, "loss") === 100 && joules.ratedMatchJoules({ kind: "duel", bestOf: 5 }, "win") === 225 && joules.ratedMatchJoules({ kind: "duel", bestOf: 7 }, "loss") === 150 && joules.ratedMatchJoules({ kind: "duel", bestOf: 3 }, "draw") === 100, "Joules: 150 / 100 a best of 3, 225 / 150 a best of 5 or 7, a draw as a loss");
@@ -470,6 +477,7 @@ try {
   process.env["SUPABASE_URL"] = rest.url;
   process.env["SUPABASE_PUBLISHABLE_KEY"] = ANON_KEY;
   process.env["SUPABASE_SERVICE_ROLE_KEY"] = SERVICE_KEY;
+  await installServerFnPlugin();
   await databaseChecks(db, rest);
 } catch (err) {
   check(false, `harness: ${err instanceof Error ? err.message : String(err)}`);
@@ -748,6 +756,66 @@ async function databaseChecks(db: LocalDb, rest: RestServer): Promise<void> {
     const guest = uid(1500);
     const g = await record(duel(mid(), guest, uid(crowd++), [[150, 100], [150, 100]]));
     check(g.ok && g.players[0]!.badges.length === 0 && Number(q(`SELECT count(*) FROM player_badges WHERE user_id = '${guest}'`)) === 0, "a guest's rated win records a rating but no badge (badges are for accounts)");
+  });
+
+  await section("a guest's placement and rating survive sign-up", async () => {
+    const account = await import("../src/lib/account/account.functions");
+    const badgeFns = await import("../src/lib/badges/badges.functions");
+    const ratingFns = await import("../src/lib/rated/ratings.functions");
+    const auth = await import("../src/lib/account/auth");
+    const GA = uid(3000); // placed as a guest
+    const GB = uid(3001); // three placement matches as a guest, two after signing up
+    q(`INSERT INTO auth.users (id, is_anonymous) VALUES ('${GA}', true), ('${GB}', true)`);
+    const snapshot = (id: string) =>
+      q(`SELECT json_build_object(
+           'ratings', (SELECT json_agg(json_build_object('key', key, 'rating', rating, 'rd', rd, 'volatility', volatility, 'matches', matches, 'version', version) ORDER BY key) FROM rated_ratings WHERE player_id = '${id}'),
+           'profile', (SELECT to_jsonb(p) - 'updated_at' FROM rated_profiles p WHERE player_id = '${id}'),
+           'history', (SELECT count(*) FROM rated_match_players WHERE player_id = '${id}'))::text`);
+    const signUp = async (id: string, email: string, username: string) => {
+      const phone = createClient(rest.url, ANON_KEY, { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } });
+      await phone.auth.setSession({ access_token: userToken(id), refresh_token: "refresh-harness" });
+      const sent = await auth.sendSignUpEmail(email, phone);
+      const mail = [...rest.mail].reverse().find((m) => m.to === email);
+      const verified = await auth.verifyEmailCode(email, mail?.token ?? "", "sign-up", phone);
+      const token = (await phone.auth.getSession()).data.session?.access_token ?? "";
+      const made = await callServerFn(account.completeSignUpFn, { username, dateOfBirth: "1994-03-02", colour: 6, country: "GB" }, token);
+      return { ok: sent.ok && verified.ok && verified.userId === id && made?.kind === "account" && made.userId === id, token };
+    };
+
+    // A guest plays placement and one more match, all as a guest.
+    for (let i = 0; i < 5; i++) await record(duel(mid(), GA, uid(crowd++), [[150, 100], [150, 100]]));
+    await record(duel(mid(), GA, uid(crowd++), [[100, 150], [150, 100], [150, 120]], { choice: "arcade" }));
+    const guestView = await callServerFn(ratingFns.getMyRatingsFn, undefined, userToken(GA));
+    check(guestView?.placement?.done === true && typeof guestView.joulz === "number" && !!guestView.tier, `a guest plays placement: placed, rated and tiered as a guest (${guestView?.joulz}, ${guestView?.tier?.label})`);
+    check(q(`SELECT count(*) FROM player_badges WHERE user_id = '${GA}'`) === "0", "a guest holds no badges");
+    const before = snapshot(GA);
+    // Signs up: wave 1's linking (the email code on the same user), then the account.
+    const up = await signUp(GA, "guest-a@example.com", "Guest_Rated_A");
+    check(up.ok, "the guest signs up on the same player id (email linked, account made)");
+    check(q(`SELECT is_anonymous::text FROM auth.users WHERE id = '${GA}'`) === "false", "the player is an account now");
+    check(snapshot(GA) === before, "every rating, the placement, the record and the match history are exactly as before sign-up");
+    const accountView = await callServerFn(ratingFns.getMyRatingsFn, undefined, up.token);
+    check(JSON.stringify(accountView) === JSON.stringify(guestView), `the account sees the guest's ratings, placement and tier unchanged (${accountView?.joulz}, ${accountView?.tier?.label})`);
+    const synced = await callServerFn(badgeFns.syncMyBadges, undefined, up.token);
+    const slugs = (synced?.earned ?? []).map((b: { slug: string }) => b.slug);
+    check(slugs.includes("first-win") && slugs.includes("placed"), `the account's first sync awards what the guest's rated record earned (${slugs.filter((s: string) => rs.RATED_BADGES.includes(s)).join(", ")})`);
+    // The account plays on from the guest's rating.
+    const ra = rating(GA);
+    const next = await record(duel(mid(), GA, uid(crowd++), [[150, 100], [150, 100]]));
+    check(next.ok && next.players[0]!.changes.find((c) => c.key === "puzzles")!.before === ra && !next.players[0]!.placement.justFinished, "the account's next match moves on from the guest's rating (no new placement)");
+
+    // Part-way through placement: the count carries over.
+    for (let i = 0; i < 3; i++) await record(duel(mid(), GB, uid(crowd++), [[150, 100], [150, 100]]));
+    const beforeB = snapshot(GB);
+    const upB = await signUp(GB, "guest-b@example.com", "Guest_Rated_B");
+    check(upB.ok && snapshot(GB) === beforeB, "a guest 3 matches into placement signs up with everything unchanged");
+    const midway = await callServerFn(ratingFns.placementStatusFn, undefined, upB.token);
+    check(midway?.played === 3 && midway.label === "Placement 4 of 5", `placement carries over: “${midway?.label}”`);
+    await record(duel(mid(), GB, uid(crowd++), [[150, 100], [150, 100]]));
+    const fifth = await record(duel(mid(), GB, uid(crowd++), [[150, 100], [150, 100]]));
+    const me = fifth.ok ? fifth.players.find((p) => p.playerId === GB)! : null;
+    check(!!me && me.placement.justFinished && me.tier.after !== null && rating(GB) > 1000 && Number(q(`SELECT matches FROM rated_ratings WHERE player_id = '${GB}' AND key = 'puzzles'`)) === 5, "the account's 2 matches finish the guest's placement: 5 in all, the reveal once");
+    check((await events("placement_finished", GB)) === 1, "placement_finished once, on the account");
   });
 
   await section("standings: caps from 1,000 players, the 3-day grace, Top 500", async () => {

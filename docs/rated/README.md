@@ -75,6 +75,16 @@ Glicko-1's c²), because Glicko-2's volatility alone doesn't reach "about 25 aft
   British Summer Time is followed); from the 4th, the pair's results are dropped (the match plays, pays Joules and
   counts for the day, but moves nothing and counts for no placement, streak or badge).
 
+## Guests (Joe, 11 Nov 2026)
+
+Guests play rated matches once rated play is on for everyone, placement included (`guestsMayPlayRated()` in
+`src/config/ratedConfig.ts`, the match engine's gate; until then neither guests nor anyone else queue). Every rated
+row is keyed on the player's own id (the auth user), guest or account alike, so nothing moves at sign-up: wave 1's
+linking confirms the email on the same user, and the account has the guest's placement (finished or part-way), every
+rating, the tier and the match history exactly as they were. Guests hold no badges; the account's first badge sync
+awards what the guest's rated record earned (First Win, Placed …). ratings-check signs two guests up through the real
+linking flow (one placed, one 3 matches in) and proves it.
+
 ## Placement, the Joulz Rating and tiers
 
 - **Placement:** 5 rated matches that counted (any mix of puzzles and arcade). Until then every rating is hidden

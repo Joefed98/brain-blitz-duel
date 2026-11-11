@@ -85,6 +85,13 @@ A pool or category is `{ status: "not_played" }` ("Not played yet", never counte
 - `src/lib/rated/match.ts`: `gamePool(type)`, `gameCategory(type)` (the server's pool and category for a game),
   `placementOf(played)`, `joulzRating(pools, recentGames)`.
 
+## Guests
+
+Guests play rated matches (placement included) once rated play is on for everyone: W3b gates a guest's queue on
+`guestsMayPlayRated()` (`src/config/ratedConfig.ts`). `recordRatedMatch` takes a guest's `playerId` (their auth user id)
+like an account's; the ratings carry to the account at sign-up unchanged, because wave 1's linking keeps the same id.
+Guests earn no badges (C2's are for accounts); the account's first badge sync awards what its rated record earned.
+
 ## For D2 (Joules) and the weekly challenges
 
 - `ratedMatchJoules(format, result)` (`src/lib/rated/joules.ts`): best of 3, 150 a win and 100 a loss; best of 5 or 7,
