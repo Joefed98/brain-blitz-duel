@@ -11,7 +11,7 @@
  *
  * Presentation and device storage only: never imported by grading, rooms or the server.
  */
-import { PRACTICE_CHALLENGES, challengeTarget, challengeValueOf, type PracticeChallenge } from "./practiceChallenges";
+import { PRACTICE_CHALLENGES, challengeLive, challengeTarget, challengeValueOf, type PracticeChallenge } from "./practiceChallenges";
 
 export const PRACTICE_GOALS_KEY = "duelz-practice-goals:v1";
 
@@ -147,6 +147,8 @@ export function recordPracticeGoals(
   const completed: PracticeChallenge[] = [];
   for (const challenge of PRACTICE_CHALLENGES) {
     if (challenge.type !== type) continue;
+    // Hard and Expert challenges wait for their levels (wave 3.5): nothing is kept for them yet.
+    if (!challengeLive(challenge)) continue;
     const got = challengeValueOf(challenge.goal, score, extra);
     const prev = record.challenges[challenge.id] ?? { value: 0 };
     if (prev.done) continue;

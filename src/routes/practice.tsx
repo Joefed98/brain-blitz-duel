@@ -63,7 +63,8 @@ import type { SubmitMeta } from "@/puzzles/types";
 import type { MovesView } from "@/lib/duel/moves";
 import { readPracticeBest, recordPracticeBest } from "@/lib/duel/practiceBest";
 import { readGoals, recordPracticeGoals, starLine, starTotal, starsOf, type GoalsRecord } from "@/lib/duel/practiceGoals";
-import { PracticeChallenges } from "@/components/app/PracticeChallenges";
+import { ChallengeMoments, PracticeChallenges } from "@/components/app/PracticeChallenges";
+import { queueChallengeMoments, useServerChallenges } from "@/lib/challenges/challengesClient";
 import { currentPracticeStamp, stampSignature } from "@/lib/duel/practiceStamps";
 import { APP_NAME } from "@/lib/brand";
 import { noteSignatureSubmit, signatureHoldUntil } from "@/lib/fx/signature";
@@ -322,6 +323,8 @@ function PracticeScreen() {
   const [newBest, setNewBest] = useState(false);
   /** Practice goals: the star line this run earned ("Silver star earned"), with the new-best moment. */
   const [earnedStar, setEarnedStar] = useState<string | null>(null);
+  // Practice challenges (wave 2 C1b): the server's progress, asked again each time the list comes back.
+  const serverChallenges = useServerChallenges(stage === "list");
   const [run, setRun] = useState(0);
   const [helpOpen, setHelpOpen] = useState(false);
   // Offline practice (31 Oct 2026): the pack seed of a run dealt from a saved pack (null: a live deal), the
@@ -594,6 +597,8 @@ function PracticeScreen() {
         setNewBest(record.improved);
         const reached = recordPracticeGoals(puzzle.type, result.score, extra, record.best);
         setEarnedStar(starLine(reached));
+        // The challenges the server completed on this run: their moment waits for the list (never over the reveal).
+        queueChallengeMoments((result as { challenges?: unknown }).challenges);
         // This device's first finished round starts its offline packs (lib/offline/packGrowth.ts), not the app's
         // opening: the top-up runs once the player is back on the list (a round on screen holds it).
         if (notePracticeRoundFinished()) firstPacks.current = true;
@@ -820,10 +825,12 @@ function PracticeScreen() {
               </label>
             ) : null}
 
+            <ChallengeMoments />
             <PracticeChallenges
               key={side}
               types={sideTypes}
               record={goalsRecord}
+              server={serverChallenges}
               nameOf={(key) => PUZZLE_REGISTRY[key].name}
               onPlay={(key) => void load(key)}
             />
