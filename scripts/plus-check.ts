@@ -6,6 +6,11 @@
  * What it proves:
  * - membership months: month n starts n calendar months after the start (UTC), clamped to the month's end;
  * - nothing that scores, grades, replays, matches or times reaches Plus's or the cosmetics' modules (import graph);
+ * - the Plus migration's copies of C2's badge_facts and D2's pass_activity are exactly their latest earlier text plus
+ *   the archive condition, and no later definition drops it (scripts/plus-copies.ts);
+ * - test rewards: a test membership's coins and freezes carry reason plus_test_monthly, and plus.remove_test_rewards
+ *   takes them all back in one call (one account or everyone), once, logged;
+ * - archive plays are marked archive: true in game_started and daily_archive_played, keeping the daily mode;
  * - the database: no API role reaches Plus's tables or functions, and the `plus` schema not even the service role;
  *   non-testers and guests are refused by every Plus function; a tester's test purchase starts Plus marked as a test
  *   (plus_bought, test true); the monthly perks (200 coins, reason plus_monthly; 2 streak freezes) are paid once per
@@ -161,6 +166,27 @@ function neutralityChecks(): void {
   check(![...access].some((p) => /^src\/lib\/economy\//.test(rel(p))), "the early-access question reaches no economy module");
 }
 
+/* ------------------------------------------------------------------ the copied functions */
+
+/**
+ * C2's badge_facts and D2's pass_activity are re-made in the Plus migration from copies (Joe, 13 Nov 2026): each copy
+ * must be exactly the latest earlier definition plus the archive condition, and anything defined later must keep the
+ * condition (scripts/plus-copies.ts).
+ */
+async function copiesChecks(): Promise<void> {
+  const copies = await import("./plus-copies");
+  const problems = copies.copiesReport();
+  check(problems.length === 0, `the copied badge_facts and pass_activity are their sources plus the archive condition${problems.length ? `: ${problems.join(" | ")}` : ""}`);
+  // The comparison catches a one-line change in the source (as C2 or D2 changing their function would make).
+  for (const c of copies.COPIED) {
+    const want = copies.expectedCopy(c);
+    if ("error" in want) continue;
+    const changed = want.text.replace("SELECT", "SELECT  ");
+    check(copies.heldCopy(c) !== changed && copies.heldCopy(c) === want.text, `${c.name}: a changed source would be caught`);
+    check(want.text.split(c.condition.trim()).length === 2, `${c.name}: the copy adds the condition exactly once`);
+  }
+}
+
 /* ------------------------------------------------------------------ the database */
 
 async function databaseChecks(db: LocalDb, rest: RestServer): Promise<void> {
@@ -190,8 +216,9 @@ async function databaseChecks(db: LocalDb, rest: RestServer): Promise<void> {
     await flushAnalytics();
     return Number(q(`SELECT count(*) FROM analytics.events WHERE event = '${event}'${player ? ` AND player_id = '${player}'` : ""}`));
   };
-  const plusCoins = (id: string) => Number(q(`SELECT coalesce(sum(amount), 0) FROM coin_ledger WHERE user_id = '${id}' AND reason = 'plus_monthly'`));
-  const plusFreezes = (id: string) => Number(q(`SELECT coalesce(sum(amount), 0) FROM consumable_ledger WHERE user_id = '${id}' AND reason = 'plus_monthly'`));
+  // A test membership's monthly rewards carry reason plus_test_monthly (Joe, 13 Nov 2026: marked as test rewards).
+  const plusCoins = (id: string) => Number(q(`SELECT coalesce(sum(amount), 0) FROM coin_ledger WHERE user_id = '${id}' AND reason = 'plus_test_monthly'`));
+  const plusFreezes = (id: string) => Number(q(`SELECT coalesce(sum(amount), 0) FROM consumable_ledger WHERE user_id = '${id}' AND reason = 'plus_test_monthly'`));
   const tok = { joe: accountToken(JOE), kim: accountToken(KIM), mia: accountToken(MIA), ned: userToken(NED) };
   const deviceDb = (token: string | null) =>
     createClient(rest.url, ANON_KEY, {
@@ -265,7 +292,9 @@ async function databaseChecks(db: LocalDb, rest: RestServer): Promise<void> {
     check(plusCoins(JOE) === 400 && plusFreezes(JOE) === 4, "month 1: another 200 coins and 2 freezes");
     await Promise.all([1, 2, 3, 4].map(() => plus.plusStatus(admin, JOE, monthStartMs(started, 3) + DAY)));
     check(plusCoins(JOE) === 800 && plusFreezes(JOE) === 8, "months 2 and 3 caught up once, however many ask at once");
-    check(q(`SELECT count(*) FROM coin_ledger WHERE user_id = '${JOE}' AND reason = 'plus_monthly'`) === "4", "one coin line a month");
+    check(q(`SELECT count(*) FROM coin_ledger WHERE user_id = '${JOE}' AND reason = 'plus_test_monthly'`) === "4", "one coin line a month");
+    check(q(`SELECT count(*) FROM coin_ledger WHERE reason = 'plus_monthly'`) === "0" && q(`SELECT count(*) FROM consumable_ledger WHERE reason = 'plus_monthly'`) === "0", "a test membership's rewards are all marked as test rewards (never plus_monthly)");
+    check(q(`SELECT count(*) FROM analytics.events WHERE event = 'plus_perk_granted' AND player_id = '${JOE}' AND props ->> 'test' = 'true'`) === "8", "plus_perk_granted says they were test rewards");
     check(q(`SELECT count(*) FROM plus_perk_grants WHERE user_id = '${JOE}'`) === "8", "one perk record a month for each perk");
     check((await events("plus_perk_granted", JOE)) === 8, `plus_perk_granted once per line written (${await events("plus_perk_granted", JOE)})`);
     // D2's function bound: the premium pass once per month.
@@ -342,10 +371,16 @@ async function databaseChecks(db: LocalDb, rest: RestServer): Promise<void> {
     check(again.ok === true && again.roomId === started.roomId && again.created === false, "starting again continues the same replay");
     check((await events("daily_archive_played", JOE)) === 1, "daily_archive_played once");
     check((await events("daily_started", JOE)) === 0, "never a daily_started");
+    check(q(`SELECT props ->> 'archive' FROM analytics.events WHERE event = 'daily_archive_played' AND player_id = '${JOE}'`) === "true", "daily_archive_played is marked archive: true");
     // Play a round and store a 200 (the round engine's own path, then the score set as a top run would).
     const attempt = await engine.attemptFor(admin, started.roomId, JOE);
     const r1 = await engine.startAsyncRound(admin, room!, attempt!, 1, Date.now());
     check(r1.ok, "the replay's first round starts");
+    await flushAnalytics();
+    check(
+      q(`SELECT count(*) FROM analytics.events WHERE event = 'game_started' AND player_id = '${JOE}' AND mode = 'daily' AND props ->> 'archive' = 'true'`) === "1",
+      "the replay's game_started keeps the daily mode and is marked archive: true",
+    );
     q(`UPDATE async_results SET answered = true, answered_at = now(), score = 200, is_correct = true, ms_remaining = 500 WHERE room_id = '${started.roomId}' AND user_id = '${JOE}' AND round_number = 1`);
     const board = await daily.dailyBoard(admin, "arcade", yesterday, JOE, Date.now());
     check(board.me === null && !board.rows.some((r) => r.name === "Joe_Plus"), "never on that day's board");
@@ -357,6 +392,11 @@ async function databaseChecks(db: LocalDb, rest: RestServer): Promise<void> {
     const kr = await engine.startAsyncRound(admin, source, ks.ok ? ks.attempt : attempt!, 1, yMs + 1000);
     check(kr.ok, "the control's round starts");
     q(`UPDATE async_results SET answered = true, answered_at = now(), score = 200, is_correct = true, ms_remaining = 500 WHERE room_id = '${source.id}' AND user_id = '${KIM}' AND round_number = 1`);
+    await flushAnalytics();
+    check(
+      q(`SELECT count(*) FROM analytics.events WHERE event = 'game_started' AND player_id = '${KIM}' AND (props ->> 'archive') IS NULL`) === "1",
+      "control: a real Daily's game_started has no archive mark",
+    );
     const kfacts = JSON.parse(q(`SELECT public.badge_facts('${KIM}', '{}'::jsonb)::text`)) as { games200: number };
     check(kfacts.games200 === 1, "control: a 200 on a real Daily does count");
     const joules = (id: string) => q(`SELECT public.pass_activity('${id}', now() - interval '3 days', now() + interval '1 day')::text`);
@@ -387,6 +427,30 @@ async function databaseChecks(db: LocalDb, rest: RestServer): Promise<void> {
     check(s1.premiumPass && s2.premiumPass, "the premium pass reaches a member through D2's function");
     check(q(`SELECT source || ':' || count(*) OVER () FROM pass_premium WHERE user_id = '${MIA}'`) === "plus:1", "one premium track, source plus");
     check((await events("pass_bought", MIA)) === 1, "D2 records its pass_bought once");
+  });
+
+  await section("taking test rewards back", async () => {
+    // Joe's one call (13 Nov 2026): every coin and streak freeze a test membership paid, for one account or all.
+    const joeCoins = plusCoins(JOE);
+    const joeFreezes = plusFreezes(JOE);
+    const wallet = (id: string) => Number(q(`SELECT coalesce((SELECT balance FROM coin_wallets WHERE user_id = '${id}'), 0)`));
+    const freezes = (id: string) => Number(q(`SELECT coalesce((SELECT count FROM consumable_balances WHERE user_id = '${id}' AND kind = 'streak_freeze'), 0)`));
+    const before = { coins: wallet(JOE), freezes: freezes(JOE) };
+    check(/note/.test(refused(`SELECT plus.remove_test_rewards('')`)), "a note is required");
+    const lines = Number(q(`SELECT count(*) FROM coin_ledger WHERE user_id = '${JOE}' AND reason = 'plus_test_monthly'`));
+    const one = JSON.parse(q(`SELECT plus.remove_test_rewards('clean one tester', 'Joe_Plus')::text`)) as Record<string, number>;
+    check(one["coins"] === joeCoins && one["freezes"] === joeFreezes && one["coin_lines"] === lines && one["freeze_lines"] === lines && lines === 5, `one account's test rewards taken back (${JSON.stringify(one)})`);
+    check(wallet(JOE) === before.coins - joeCoins && freezes(JOE) === before.freezes - joeFreezes, "its balances drop by exactly those");
+    check(q(`SELECT count(*) FROM coin_ledger WHERE user_id = '${JOE}' AND reason = 'plus_test_removed'`) === String(lines), "a removal line per test line (never an edited balance)");
+    const again = JSON.parse(q(`SELECT plus.remove_test_rewards('again', 'Joe_Plus')::text`)) as Record<string, number>;
+    check(again["coins"] === 0 && again["freezes"] === 0, "twice: nothing more is taken");
+    const miaHad = plusCoins(MIA);
+    const all = JSON.parse(q(`SELECT plus.remove_test_rewards('clean every tester before launch')::text`)) as Record<string, number>;
+    check(miaHad > 0 && all["coins"] === miaHad, `one call for everyone takes the rest (${JSON.stringify(all)})`);
+    check(q(`SELECT count(*) FROM coin_ledger l WHERE reason = 'plus_test_monthly' AND NOT EXISTS (SELECT 1 FROM coin_ledger x WHERE x.idempotency_key = 'plus_test_removed:' || l.id)`) === "0", "no test reward left anywhere");
+    check(q(`SELECT count(*) FROM plus.admin_log WHERE action = 'remove_test_rewards'`) === "3", "each call logged");
+    for (const role of ["anon", "authenticated", "service_role"])
+      check(!!refused(`SET LOCAL ROLE ${role}; SELECT plus.remove_test_rewards('x')`), `remove_test_rewards: not reachable as ${role}`);
   });
 
   await section("the public cosmetics and reactions", async () => {
@@ -420,6 +484,7 @@ async function databaseChecks(db: LocalDb, rest: RestServer): Promise<void> {
 
 await pureChecks();
 neutralityChecks();
+await copiesChecks();
 
 let db: LocalDb | null = null;
 let rest: RestServer | null = null;

@@ -38,8 +38,9 @@ Test purchases only until real payments exist. Plus is visible to the shop's tes
 
 - **Test purchase** (Shop › Plus, testers only): monthly or yearly, no payment, stored with `test = true`.
 - **Perks now**, granted per membership month (month n starts n calendar months after the start, UTC, clamped to the
-  month's end), the first time the server is asked in that month and for any months missed: 200 coins (reason
-  `plus_monthly`, key `plus_monthly:<membership>:<month>`), 2 streak freezes (key `plus_freezes:<membership>:<month>`),
+  month's end), the first time the server is asked in that month and for any months missed: 200 coins (key
+  `plus_monthly:<membership>:<month>`), 2 streak freezes (key `plus_freezes:<membership>:<month>`), both with reason
+  `plus_monthly`, or `plus_test_monthly` for a test membership (test rewards, like D1's and D2's),
   and the current season's premium pass through D2's function (see below). The ledgers' keys make every month pay once.
 - **Daily archive** (`/daily-archive`): any past Daily Puzzle or Daily Arcade of the last 30 days, replayed in its own
   async room (kind `daily_archive`) with that day's stored rounds. Unrated: never on a board, never in the streak
@@ -49,9 +50,16 @@ Test purchases only until real payments exist. Plus is visible to the shop's tes
   that UK day (the practice deal and offline packs refuse it; the list hides it). Nothing is marked.
 - **PLUS chip**: an optional gold chip under the profile card, off by default; others see it through
   `cosmetics_public` only while its owner has Plus and turned it on.
-- **Later, not now**: full stats and rating history, the weekly report and drills, replay review and ghost races
-  (listed on the offer, marked "Arrives with rated play"). **Never in Plus**: anything that affects scores, ratings or
+- **Not on the offer yet**: full stats and rating history, the weekly report and drills, replay review and ghost races
+  are planned for the polish stage; each is added to the offer (`PLUS_PERKS`) only when it is built. **Never in Plus**: anything that affects scores, ratings or
   matchmaking (plus-check walks the import graph).
+
+### The copied functions
+
+The Plus migration re-makes C2's `badge_facts` and D2's `pass_activity` with one added condition each.
+`bun scripts/plus-copies.ts` proves each copy is exactly the function's latest earlier definition plus the condition,
+and that no later migration defines it again without the condition (plus-check runs it); `--write` rebuilds both copies
+from the current text while the Plus migration is unmerged.
 
 ### The premium pass (D2)
 
@@ -72,7 +80,13 @@ SELECT plus.clear_early_access('blockfall', 'open to everyone now');
 SELECT at, by_role, action, user_id, detail, note FROM plus.admin_log ORDER BY at DESC;
 ```
 
-Coins and freezes a test membership granted stay when it ends; take coins back with `economy.adjust_coins`.
+Coins and freezes a test membership paid stay when it ends. Take every test reward back in one call (one account or
+everyone; each line once, as much as the account still holds; reason `plus_test_removed`):
+
+```sql
+SELECT plus.remove_test_rewards('clean test balances before launch');
+SELECT plus.remove_test_rewards('one tester', 'TheirUsername');
+```
 
 ### Switching Plus on for everyone
 
@@ -83,7 +97,9 @@ and "Coming soon" until real payments exist.
 ## Analytics
 
 `plus_bought` (props.plan, props.test), `plus_perk_granted` (props.perk coins | freezes, props.month, props.amount),
-`daily_archive_played` (props.kind, props.day); migration `20261113200100_analytics_plus_events.sql` adds them to the
+`daily_archive_played` (props.kind, props.day). Archive plays keep the daily mode and are marked `archive: true` in
+their `daily_archive_played`, `game_started` and `game_finished` details, so they count apart from real Daily games
+(and never record `daily_started` / `daily_finished`); plus_perk_granted carries `test`. Migration `20261113200100_analytics_plus_events.sql` adds them to the
 list as it stands.
 
 ## Migrations
