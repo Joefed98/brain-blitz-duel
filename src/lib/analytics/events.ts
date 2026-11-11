@@ -59,6 +59,12 @@ export const ANALYTICS_EVENTS = [
   "notification_opt_in",
   "notification_sent",
   "notification_opened",
+  // Friends (wave 2, session B1; docs/friends.md): recorded by the server only (src/lib/friends/friends.server.ts).
+  // friend_request_sent and friend_added carry props.via (search or link); never a name or the other player's id.
+  "friend_request_sent",
+  "friend_added",
+  "friend_removed",
+  "friend_blocked",
   // Badges and titles (wave 2, session C2; docs/badges/README.md): recorded by the server only (src/lib/badges/
   // badges.server.ts and the backfill). badge_earned carries props.badge and props.rarity, title_equipped props.title.
   "badge_earned",
@@ -69,12 +75,6 @@ export const ANALYTICS_EVENTS = [
   "star_earned",
   "best_set",
   "gem_unlocked",
-  // Friends (wave 2, session B1; docs/friends.md): recorded by the server only (src/lib/friends/friends.server.ts).
-  // friend_request_sent and friend_added carry props.via (search or link); never a name or the other player's id.
-  "friend_request_sent",
-  "friend_added",
-  "friend_removed",
-  "friend_blocked",
   // Practice challenges (wave 2 C1b, docs/challenges/catalogue.md): recorded by the server only
   // (src/lib/challenges/challenges.server.ts) when a graded Practice run completes one. game is the game, props.challenge
   // the challenge id, props.level its level, props.coins the coins paid with it (0 for a guest, paid on becoming an account).

@@ -294,6 +294,57 @@ async function databaseChecks(db: LocalDb, rest: RestServer): Promise<void> {
     check(found.ok && found.results[0]?.relation === "friends", "search shows 'Already friends'");
   });
 
+  /* ------------------------------------------------------------- the Friendly badge (C2's badge_award) */
+  await section("friendly badge", async () => {
+    const pal = (i: number) => uid(3000 + i);
+    q(`INSERT INTO auth.users (id, is_anonymous, email) SELECT ('00000000-0000-4000-8000-' || lpad((3000 + i)::text, 12, '0'))::uuid, false, 'p' || i || '@example.com' FROM generate_series(0, 7) i`);
+    for (let i = 0; i <= 7; i++) q(`SELECT public.create_profile('${pal(i)}', 'Pal_${i}', 2::smallint, DATE '1985-01-01', NULL)`);
+    const tokOf = (i: number) => accountToken(pal(i));
+    const hub = pal(0);
+    const has = (id: string) => Number(q(`SELECT count(*) FROM player_badges WHERE user_id = '${id}' AND badge = 'friendly'`));
+    const befriend = async (i: number) => {
+      const sent = await call(fns.friendRequestFn, { playerId: pal(i) }, tokOf(0));
+      const view = await call(fns.friendsOverviewFn, undefined, tokOf(i));
+      const req = view.ok ? view.overview.incoming.find((r: { id: string }) => r.id === hub) : null;
+      const acc = await call(fns.friendRespondFn, { requestId: req?.requestId, accept: true }, tokOf(i));
+      return sent.ok && acc.ok && acc.outcome === "accepted";
+    };
+    let ok = true;
+    for (let i = 1; i <= 4; i++) ok = (await befriend(i)) && ok;
+    check(ok && q(`SELECT friends.friend_count('${hub}')`) === "4", "Friendly: four friends made");
+    check(has(hub) === 0, "Friendly: not at 4 friends");
+    await call(fns.friendsOverviewFn, undefined, tokOf(0));
+    check(has(hub) === 0, "Friendly: opening the list at 4 friends awards nothing");
+    check(await befriend(5), "Friendly: the fifth friend accepted");
+    check(has(hub) === 1, "Friendly: earned at the fifth friend (accepted by the other player)");
+    check([1, 2, 3, 4, 5].every((i) => has(pal(i)) === 0), "Friendly: the friends with fewer than 5 don't earn it");
+    check(q(`SELECT detail ->> 'friends' FROM player_badges WHERE user_id = '${hub}' AND badge = 'friendly'`) === "5", "Friendly: stored with the count it was earned at");
+    check((await events("badge_earned", hub)) === 1 && q(`SELECT props ->> 'badge' FROM analytics.events WHERE event = 'badge_earned' AND player_id = '${hub}'`) === "friendly", "Friendly: badge_earned recorded once");
+    // Idempotent: a sixth friend (through a mutual request), opening the list, removing and re-adding.
+    await call(fns.friendRequestFn, { playerId: hub }, tokOf(6));
+    const mutual = await call(fns.friendRequestFn, { playerId: pal(6) }, tokOf(0));
+    check(mutual.ok && mutual.outcome === "accepted", "Friendly: a sixth friend through a mutual request");
+    await call(fns.friendsOverviewFn, undefined, tokOf(0));
+    await call(fns.friendRemoveFn, { playerId: pal(6) }, tokOf(0));
+    await call(fns.friendRemoveFn, { playerId: pal(5) }, tokOf(0));
+    check(await befriend(5), "Friendly: back to five after removing and re-adding");
+    check(has(hub) === 1 && (await events("badge_earned", hub)) === 1, "Friendly: never awarded twice (sixth friend, list opened, removed and re-added)");
+    check(Number(q(`SELECT count(*) FROM coin_ledger WHERE user_id = '${hub}' AND reason = 'badge_reward'`)) === 0, "Friendly: no coins (Common)");
+    // The accepting side earns it too: Pal_7 reaches five by accepting.
+    for (const i of [1, 2, 3, 4]) {
+      await call(fns.friendRequestFn, { playerId: pal(7) }, tokOf(i));
+      const view = await call(fns.friendsOverviewFn, undefined, tokOf(7));
+      const req = view.ok ? view.overview.incoming.find((r: { id: string }) => r.id === pal(i)) : null;
+      await call(fns.friendRespondFn, { requestId: req?.requestId, accept: true }, tokOf(7));
+    }
+    check(has(pal(7)) === 0 && q(`SELECT friends.friend_count('${pal(7)}')`) === "4", "Friendly: the accepting side at 4, not yet");
+    await call(fns.friendRequestFn, { playerId: pal(7) }, tokOf(0));
+    const v7 = await call(fns.friendsOverviewFn, undefined, tokOf(7));
+    const r7 = v7.ok ? v7.overview.incoming.find((r: { id: string }) => r.id === hub) : null;
+    await call(fns.friendRespondFn, { requestId: r7?.requestId, accept: true }, tokOf(7));
+    check(has(pal(7)) === 1, "Friendly: the player who accepts their fifth friend earns it too");
+  });
+
   /* ------------------------------------------------------------- invite links */
   let bobToken = "";
   await section("invite links", async () => {

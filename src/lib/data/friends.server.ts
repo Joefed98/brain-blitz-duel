@@ -189,6 +189,12 @@ export async function sendChallenge(client: Db, from: string, to: string, code: 
   return { data: jsonAs<ChallengeSendAnswer>(data), error };
 }
 
+/** How many friends a player has (the Friendly badge's count). */
+export async function readFriendCount(client: Db, userId: string): Promise<Result<number>> {
+  const { data, error } = await client.rpc("friends_count", { p_user: userId });
+  return { data: typeof data === "number" ? data : 0, error };
+}
+
 /** Whether two players are friends (and neither has blocked the other). */
 export async function readAreFriends(client: Db, a: string, b: string): Promise<Result<boolean>> {
   const { data, error } = await client.rpc("friends_are_friends", { p_a: a, p_b: b });

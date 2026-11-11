@@ -207,6 +207,8 @@ async function requireParticipant(
  * player who only went quiet ("inactive") keeps being brought back by answering.
  */
 export const LEFT_PLAYER_MESSAGE = "You left this game.";
+/** A word check refused for going past the room-check bucket (ROOM_CHECK_LIMIT): far above any real round. */
+export const ROOM_CHECK_BUSY_MESSAGE = "Slow down a moment.";
 export function playerHasLeft(player: Pick<DuelPlayerRow, "status">): boolean {
   return player.status === "left";
 }
@@ -1167,7 +1169,12 @@ export const checkWordFn = createServerFn({ method: "POST" })
     const client = await db();
     const me = await requireParticipant(client, data.roomId, context.userId);
     if (playerHasLeft(me)) return { valid: false as const, points: 0, word: "", reason: LEFT_PLAYER_MESSAGE };
-    const room = await getRoom(client, data.roomId);
+    const { ROOM_CHECK_LIMIT, withinRateLimit } = await import("./rateLimit.server");
+    const [allowed, room] = await Promise.all([
+      withinRateLimit(client, context.userId, ROOM_CHECK_LIMIT),
+      getRoom(client, data.roomId),
+    ]);
+    if (!allowed) return { valid: false as const, points: 0, word: "", reason: ROOM_CHECK_BUSY_MESSAGE };
 
     // Only while the puzzle is live: during the reveal a lagging player could
     // otherwise keep probing the private solution before sending a late answer.
@@ -1231,7 +1238,12 @@ export const checkMovesFn = createServerFn({ method: "POST" })
     const client = await db();
     const me = await requireParticipant(client, data.roomId, context.userId);
     if (playerHasLeft(me)) return null;
-    const room = await getRoom(client, data.roomId);
+    const { ROOM_CHECK_LIMIT, withinRateLimit } = await import("./rateLimit.server");
+    const [allowed, room] = await Promise.all([
+      withinRateLimit(client, context.userId, ROOM_CHECK_LIMIT),
+      getRoom(client, data.roomId),
+    ]);
+    if (!allowed) return null;
     if (
       room.status !== "in_progress" ||
       room.current_round !== data.roundNumber ||

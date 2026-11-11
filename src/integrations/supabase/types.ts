@@ -2665,6 +2665,7 @@ export type Database = {
       friends_room_invite: { Args: { p_from: string; p_to: string }; Returns: Json }
       friends_challenge_send: { Args: { p_from: string; p_to: string; p_code: string }; Returns: Json }
       friends_are_friends: { Args: { p_a: string; p_b: string }; Returns: boolean }
+      friends_count: { Args: { p_user: string }; Returns: number }
       friends_head_to_head: { Args: { p_a: string; p_b: string }; Returns: Json }
       friends_overview: { Args: { p_user: string; p_cap: number }; Returns: Json }
       friends_waiting: { Args: { p_user: string }; Returns: number }
