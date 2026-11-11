@@ -248,7 +248,7 @@ export interface FinishedRoomSource {
   room: Pick<Tables<"duels">, "id" | "puzzles_public" | "phase_started_at">;
   privatePuzzles: Record<string, unknown>[];
   players: Pick<Tables<"duel_players">, "player_slot" | "user_id" | "display_name">[];
-  results: (Pick<Tables<"round_results">, "player_slot" | "round_number" | "score" | "ms_remaining" | "reaction_avg_ms" | "answer"> & { look: Json | null })[];
+  results: (Pick<Tables<"round_results">, "player_slot" | "round_number" | "score" | "ms_remaining" | "reaction_avg_ms" | "answer" | "extra"> & { look: Json | null })[];
 }
 
 /** E1's stored look on a result row (wave 2, the `look` column; null before E1's migration or for none). */
@@ -293,7 +293,7 @@ export async function readFinishedRoomSource(client: Db, roomId: string): Promis
       players: players ?? [],
       results: (results ?? []).map((r) => ({
         player_slot: r.player_slot, round_number: r.round_number, score: r.score, ms_remaining: r.ms_remaining,
-        reaction_avg_ms: r.reaction_avg_ms, answer: r.answer, look: lookOf(r),
+        reaction_avg_ms: r.reaction_avg_ms, answer: r.answer, extra: r.extra, look: lookOf(r),
       })),
     },
     error: e1 ?? e2 ?? e3 ?? null,
@@ -305,7 +305,7 @@ export interface DailyAttemptSource {
   attempt: Pick<Tables<"async_attempts">, "id" | "user_id" | "display_name" | "finished_at">;
   room: Pick<Tables<"async_rooms">, "id" | "kind" | "puzzles_public">;
   privatePuzzles: Record<string, unknown>[];
-  results: (Pick<Tables<"async_results">, "round_number" | "score" | "ms_remaining" | "reaction_avg_ms" | "answer" | "answered"> & { look: Json | null })[];
+  results: (Pick<Tables<"async_results">, "round_number" | "score" | "ms_remaining" | "reaction_avg_ms" | "answer" | "answered" | "extra"> & { look: Json | null })[];
 }
 
 /** Daily attempts finished since `sinceIso`, newest first (never challenges). */
@@ -348,7 +348,7 @@ export async function readDailyAttemptSource(client: Db, attemptId: string): Pro
       privatePuzzles: priv,
       results: (results ?? []).map((r) => ({
         round_number: r.round_number, score: r.score, ms_remaining: r.ms_remaining, reaction_avg_ms: r.reaction_avg_ms,
-        answer: r.answer, answered: r.answered, look: lookOf(r),
+        answer: r.answer, answered: r.answered, extra: r.extra, look: lookOf(r),
       })),
     },
     error: e2 ?? e3 ?? null,
@@ -364,4 +364,34 @@ export async function releaseClaim(client: Db, userId: string, matchId: string):
 export async function readRatedRun(client: Db, key: string): Promise<Result<RatedRunRow | null>> {
   const { data, error } = await client.from("mm_runs").select("*").eq("key", key).maybeSingle();
   return { data, error };
+}
+
+/* ------------------------------------------------------------------ practice deals (Practice as a recorded-run source) */
+
+export type PracticeDealRow = Tables<"mm_practice_deals">;
+
+/** Stores a counted Practice play's deal (once per play). */
+export async function insertPracticeDeal(client: Db, row: TablesInsert<"mm_practice_deals">): Promise<Result<null>> {
+  const { error } = await client.from("mm_practice_deals").upsert(row, { onConflict: "play_id", ignoreDuplicates: true });
+  return { data: null, error };
+}
+
+/** Practice deals since `sinceIso`, newest first, never the viewer's own and never flagged. */
+export async function readRecentPracticeDeals(client: Db, sinceIso: string, viewerId: string, limit: number): Promise<Result<PracticeDealRow[]>> {
+  const { data, error } = await client
+    .from("mm_practice_deals")
+    .select("*")
+    .gte("recorded_at", sinceIso)
+    .neq("user_id", viewerId)
+    .eq("flagged", false)
+    .order("recorded_at", { ascending: false })
+    .limit(limit);
+  return { data: data ?? [], error };
+}
+
+/** Which of these users have asked to delete their account (hidden at once, removed after 30 days). */
+export async function readDeletionRequested(client: Db, userIds: string[]): Promise<Result<Set<string>>> {
+  if (!userIds.length) return { data: new Set(), error: null };
+  const { data, error } = await client.from("profiles").select("user_id, deletion_requested_at").in("user_id", userIds);
+  return { data: new Set((data ?? []).filter((r) => r.deletion_requested_at !== null).map((r) => r.user_id)), error };
 }

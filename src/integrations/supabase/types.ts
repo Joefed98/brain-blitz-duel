@@ -1379,6 +1379,45 @@ export type Database = {
         }
         Relationships: []
       }
+      mm_practice_deals: {
+        Row: {
+          answer: string | null
+          flagged: boolean
+          game: string
+          ms_remaining: number
+          play_id: number
+          puzzle: Json
+          reaction_avg_ms: number | null
+          recorded_at: string
+          score: number
+          user_id: string
+        }
+        Insert: {
+          answer?: string | null
+          flagged?: boolean
+          game: string
+          ms_remaining: number
+          play_id: number
+          puzzle: Json
+          reaction_avg_ms?: number | null
+          recorded_at?: string
+          score: number
+          user_id: string
+        }
+        Update: {
+          answer?: string | null
+          flagged?: boolean
+          game?: string
+          ms_remaining?: number
+          play_id?: number
+          puzzle?: Json
+          reaction_avg_ms?: number | null
+          recorded_at?: string
+          score?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       mm_progress: {
         Row: {
           at: string
@@ -1409,6 +1448,7 @@ export type Database = {
           format: string
           joined_at: string
           match_id: string | null
+          display_name: string | null
           placement: boolean
           rating: number
           user_id: string
@@ -1416,6 +1456,7 @@ export type Database = {
         Insert: {
           choice: string
           format: string
+          display_name?: string | null
           joined_at?: string
           match_id?: string | null
           placement?: boolean
@@ -1425,6 +1466,7 @@ export type Database = {
         Update: {
           choice?: string
           format?: string
+          display_name?: string | null
           joined_at?: string
           match_id?: string | null
           placement?: boolean
@@ -2028,6 +2070,7 @@ export type Database = {
       }
       async_board_open: { Args: { p_room_id: string }; Returns: boolean }
       disband_stale_room: { Args: { p_room_id: string }; Returns: boolean }
+      mm_purge_practice_deals: { Args: Record<PropertyKey, never>; Returns: number }
       mm_is_tester: { Args: { p_user_id: string }; Returns: boolean }
       mm_queue_claim: {
         Args: { p_choice: string; p_format: string; p_match: string; p_users: string[] }

@@ -195,6 +195,28 @@ function check(ok: boolean, label: string): void {
   check(opponentScoreHidden(72_000, 90_000) && !opponentScoreHidden(71_999, 90_000), "hidden finish: 20 % of each game's own time");
 }
 
+/* ------------------------------------------------------------------ guests, flagged runs, early finish (Joe, 11 Nov) */
+{
+  const { ratedAccessFor, matchClinched } = await import("../src/lib/rated/matchmaking");
+  const everyone: RatedSwitches = { ...RATED_SWITCHES, forEveryone: true };
+  check(!ratedAccessFor({ account: false, tester: false }) && !ratedAccessFor({ account: false, tester: true }) && !ratedAccessFor({ account: true, tester: false }) && ratedAccessFor({ account: true, tester: true }),
+    "access: while testers-only, only accounts on the tester list (never a guest)");
+  check(ratedAccessFor({ account: false, tester: false }, everyone) && ratedAccessFor({ account: true, tester: false }, everyone), "access: with rated play for everyone, guests and accounts alike");
+  const now = Date.UTC(2026, 10, 20, 12);
+  const g = (type: string, flagged = false): RecordedGame => ({ type, signature: `v:${type}`, score: 100, finishMs: 1000, timeline: null, flagged });
+  const run: RecordedCandidate = { key: "f", source: "room", ownerId: "o", ownerRating: null, format: null, choice: null, games: [g("flood"), g("breaker", true), g("reaction")], recordedAtMs: now - 1000, usesToday: 0 };
+  const ctx: RecordedContext = { viewerId: "me", rating: 1000, format: "bo3", choice: "mixed", lastOwnerId: null, nowMs: now, liveSignature: (t) => `v:${t}` };
+  check(recordedRefusal(run, ctx) === "flagged", "recorded: a run with a game the server's replay flagged is never used");
+  check(chooseRecordedRun([run, { ...run, key: "r", source: "rated", format: "bo3", choice: "mixed", ownerRating: 1000 }], ctx, 1000) === null, "recorded: flagged runs are never chosen, rated or fallback");
+  check(recordedRefusal({ ...run, games: [g("flood"), g("breaker"), g("reaction")] }, ctx) === null, "recorded: the same run unflagged is eligible");
+  const W = (a: number, b: number) => ({ a, b, aTimeMs: 1, bTimeMs: 1 });
+  check(matchClinched([W(150, 100), W(140, 90)], 3) && !matchClinched([W(150, 100)], 3) && !matchClinched([W(150, 100), W(90, 140)], 3), "early finish: best of 3 stops at 2–0, never at 1–0 or 1–1");
+  check(!matchClinched([W(150, 100), W(100, 100)], 3), "early finish: 1–0 with a drawn game still goes to game 3 (it can be levelled)");
+  check(matchClinched([W(2, 1), W(2, 1), W(2, 1)], 5) && !matchClinched([W(2, 1), W(2, 1), W(1, 2)], 5) && matchClinched([W(2, 1), W(2, 1), W(1, 2), W(2, 1)], 5), "early finish: best of 5 stops at 3–0 and 3–1, not 2–1");
+  check(matchClinched([W(1, 2), W(1, 2), W(1, 2), W(1, 2)], 7) && !matchClinched([W(1, 2), W(1, 2), W(1, 2)], 7), "early finish: best of 7 stops at 0–4, not 0–3");
+  check(!matchClinched([W(2, 1), W(1, 2), W(1, 1)], 3), "early finish: level on games after every game isn't a clinch (the total decides at the end)");
+}
+
 /* ------------------------------------------------------------------ result and rematch */
 {
   const o = matchOutcome([

@@ -43,7 +43,9 @@ import {
   readQueueEntry,
   readRatedMatch,
   readRatedRoomIds,
+  readDeletionRequested,
   readRatedRun,
+  readRecentPracticeDeals,
   readRatedRuns,
   readRunUses,
   readWaiting,
@@ -68,6 +70,7 @@ import {
   gameWinner,
   isRatedChoice,
   isRatedFormat,
+  matchClinched,
   matchOutcome,
   matchSettings,
   openOptions,
@@ -75,7 +78,7 @@ import {
   RATED_GAME_MODE,
   RATED_SWITCHES,
   ratedOptionRefusal,
-  ratedPlayOpenFor,
+  ratedAccessFor,
   RECORDED_DAILY_USES,
   RECORDED_WINDOW_MS,
   recordedAgeLabel,
@@ -96,10 +99,11 @@ import {
 } from "./matchmaking";
 import { ratings, toRatingsResult, type RatedSettlement, type SettledPlayer } from "./ratingsAdapter.server";
 import { scoreTimeline } from "./timeline.server";
+import { gradeFlagged } from "./practiceDeals.server";
 
 /* ------------------------------------------------------------------ shapes the phone gets */
 
-export type RatedRefusalReason = "account" | "closed" | "option" | "banned" | "rate_limit" | "no_rating" | "in_match";
+export type RatedRefusalReason = "account" | "closed" | "name" | "option" | "banned" | "rate_limit" | "no_rating" | "in_match";
 
 export interface RatedStatus {
   account: boolean;
@@ -165,6 +169,8 @@ interface SourceRound {
   reactionAvgMs: number | null;
   answer: string | null;
   look: Json | null;
+  /** The server's replay flagged this stored result (`extra.flagged`): the run is never played against. */
+  flagged: boolean;
 }
 
 interface SourceRun {
@@ -188,10 +194,12 @@ async function hasAccount(client: Db, userId: string): Promise<{ account: boolea
   return { account: name !== null, name };
 }
 
-async function isOpenTo(client: Db, userId: string, switches: RatedSwitches): Promise<boolean> {
-  if (switches.forEveryone) return true;
+/** Who may queue (ratedAccessFor): everyone, guests included, once RATED_PLAY_FOR_EVERYONE is on; testers until then. */
+async function isOpenTo(client: Db, userId: string, account: boolean, switches: RatedSwitches): Promise<boolean> {
+  if (switches.forEveryone) return ratedAccessFor({ account, tester: false }, switches);
+  if (!account) return false;
   const { data } = await readIsRatedTester(client, userId);
-  return ratedPlayOpenFor(data === true, switches);
+  return ratedAccessFor({ account, tester: data === true }, switches);
 }
 
 function recordedTiming(puzzle: PuzzleData, msRemaining: number, reactionAvgMs: number | null): { timeMs: number; finishMs: number | null; limitMs: number } {
@@ -213,6 +221,7 @@ function toRecordedGame(round: SourceRound, withTimeline: boolean): StoredRecord
     timeline,
     timeMs,
     limitMs,
+    flagged: round.flagged,
   };
 }
 
@@ -220,7 +229,7 @@ function toRecordedGame(round: SourceRound, withTimeline: boolean): StoredRecord
 
 export async function ratedStatus(client: Db, userId: string, switches: RatedSwitches = RATED_SWITCHES): Promise<RatedStatus> {
   const { account } = await hasAccount(client, userId);
-  const open = account && (await isOpenTo(client, userId, switches));
+  const open = await isOpenTo(client, userId, account, switches);
   const { data: entry } = await readQueueEntry(client, userId);
   const { data: openIds } = await readOpenMatchIds(client, userId);
   return {
@@ -240,13 +249,27 @@ export type JoinOutcome = { ok: true; joinedAtMs: number } | { ok: false; reason
 export async function joinQueue(
   client: Db,
   userId: string,
-  input: { format: unknown; choice: unknown },
+  input: { format: unknown; choice: unknown; displayName?: unknown },
   nowMs: number,
   switches: RatedSwitches = RATED_SWITCHES,
 ): Promise<JoinOutcome> {
   const { account } = await hasAccount(client, userId);
-  if (!account) return { ok: false, reason: "account", message: "Rated play needs an account." };
-  if (!(await isOpenTo(client, userId, switches))) return { ok: false, reason: "closed", message: "Rated play isn’t open yet." };
+  if (!(await isOpenTo(client, userId, account, switches))) {
+    // While rated play is testers-only a guest is told it needs an account (testers are accounts).
+    if (!account) return { ok: false, reason: "account", message: "Rated play needs an account for now." };
+    return { ok: false, reason: "closed", message: "Rated play isn’t open yet." };
+  }
+  // A guest plays under the room name they type, checked as a room's guest name (an account under its username).
+  let guestName: string | null = null;
+  if (!account) {
+    const { cleanDisplayName } = await import("@/lib/duel/displayName.server");
+    const { checkGuestName } = await import("@/lib/names/names.server");
+    const cleaned = cleanDisplayName(input.displayName);
+    if (!cleaned) return { ok: false, reason: "name", message: "Pick a name to play under." };
+    const checked = checkGuestName(cleaned);
+    if (!checked.ok) return { ok: false, reason: "name", message: "That name can’t be used. Try another." };
+    guestName = cleaned;
+  }
   const refusal = ratedOptionRefusal(input.format, input.choice, switches);
   if (refusal) return { ok: false, reason: "option", message: refusal };
   const format = input.format as RatedFormat;
@@ -271,6 +294,7 @@ export async function joinQueue(
     choice,
     rating: Math.round(rating.rating),
     placement: rating.placement,
+    display_name: guestName,
     joined_at: nowIso(nowMs),
   });
   if (error) throw new Error("Couldn’t start the search. Give it another go.");
@@ -284,7 +308,10 @@ export async function leaveQueue(client: Db, userId: string): Promise<void> {
 
 function entryOf(row: RatedQueueRow): QueueEntry | null {
   if (!isRatedFormat(row.format) || !isRatedChoice(row.choice)) return null;
-  return { userId: row.user_id, format: row.format, choice: row.choice, rating: row.rating, joinedAtMs: msOf(row.joined_at), placement: row.placement };
+  return {
+    userId: row.user_id, format: row.format, choice: row.choice, rating: row.rating, joinedAtMs: msOf(row.joined_at),
+    placement: row.placement, displayName: row.display_name,
+  };
 }
 
 function foundEvent(userId: string, entry: QueueEntry, kind: "live" | "recorded", nowMs: number): void {
@@ -334,6 +361,8 @@ export async function pollQueue(client: Db, userId: string, nowMs: number): Prom
 interface NewRoomPlayer {
   userId: string;
   slot: number;
+  /** A guest's room name; an account is seated under its username. */
+  displayName?: string | null;
 }
 
 /** An ordinary room, already started, holding exactly these puzzles and players (the rooms engine runs it from here). */
@@ -369,7 +398,7 @@ async function createStartedRoom(
         duel_id: room.id,
         player_slot: p.slot,
         user_id: p.userId,
-        display_name: (await accountNameOf(client, p.userId)) ?? "Player",
+        display_name: (await accountNameOf(client, p.userId)) ?? p.displayName ?? "Player",
         status: "active",
       });
     }
@@ -416,7 +445,7 @@ export async function createLiveMatch(
     recentBankKeys: new Set(),
     roundOrder: types,
   });
-  const players = input.players.map((p, i) => ({ userId: p.userId, slot: i + 1 }));
+  const players = input.players.map((p, i) => ({ userId: p.userId, slot: i + 1, displayName: p.displayName ?? null }));
   const room = await createStartedRoom(client, { players, puzzles, picks: settings.picks }, nowMs);
   const { error } = await insertRatedMatch(client, {
     id: input.matchId,
@@ -506,6 +535,7 @@ async function fallbackCandidates(client: Db, me: QueueEntry, sinceIso: string):
           reactionAvgMs: result.reaction_avg_ms,
           answer: result.answer,
           look: result.look,
+          flagged: gradeFlagged(result.extra),
         });
       }
       const run = sourceRunOf(
@@ -532,6 +562,7 @@ async function fallbackCandidates(client: Db, me: QueueEntry, sinceIso: string):
         reactionAvgMs: result.reaction_avg_ms,
         answer: result.answer,
         look: result.look,
+        flagged: gradeFlagged(result.extra),
       });
     }
     const run = sourceRunOf(
@@ -539,6 +570,52 @@ async function fallbackCandidates(client: Db, me: QueueEntry, sinceIso: string):
       rounds,
       me,
     );
+    if (run) out.push(run);
+  }
+  out.push(...(await practiceCandidates(client, me, sinceIso)));
+  return out;
+}
+
+/** How many recent Practice deals the fallback looks through. */
+const PRACTICE_SCAN = 400;
+
+/**
+ * Practice runs (from C1a's fresh start, stored by practiceDeals.server.ts): one owner's newest graded plays of
+ * different games that fit the choice, the format's count of them, as one run. Flagged plays are never stored as usable.
+ */
+async function practiceCandidates(client: Db, me: QueueEntry, sinceIso: string): Promise<SourceRun[]> {
+  const { data: deals } = await readRecentPracticeDeals(client, sinceIso, me.userId, PRACTICE_SCAN);
+  const byOwner = new Map<string, typeof deals>();
+  for (const d of deals ?? []) {
+    const list = byOwner.get(d.user_id) ?? [];
+    list.push(d);
+    byOwner.set(d.user_id, list);
+  }
+  const out: SourceRun[] = [];
+  const need = FORMAT_GAMES[me.format];
+  for (const [ownerId, plays] of byOwner) {
+    const seen = new Set<string>();
+    const picked: SourceRound[] = [];
+    let ids: number[] = [];
+    let newest = 0;
+    for (const d of plays ?? []) {
+      if (picked.length >= need || d.flagged || seen.has(d.game) || !typeFitsChoice(d.game, me.choice)) continue;
+      seen.add(d.game);
+      ids.push(d.play_id);
+      newest = Math.max(newest, msOf(d.recorded_at));
+      picked.push({
+        puzzle: d.puzzle as unknown as PuzzleData,
+        score: d.score,
+        msRemaining: d.ms_remaining,
+        reactionAvgMs: d.reaction_avg_ms,
+        answer: d.answer,
+        look: null,
+        flagged: d.flagged,
+      });
+    }
+    if (picked.length !== need) continue;
+    ids = [...ids].sort((a, b) => a - b);
+    const run = sourceRunOf({ key: `practice:${ownerId}:${ids.join("-")}`, source: "practice", ownerId, recordedAtMs: newest, ownerName: "" }, picked, me);
     if (run) out.push(run);
   }
   return out;
@@ -561,8 +638,11 @@ async function ratedRunRounds(client: Db, key: string, me: QueueEntry): Promise<
       reactionAvgMs: result?.reaction_avg_ms ?? null,
       answer: result?.answer ?? null,
       look: result?.look ?? null,
+      flagged: gradeFlagged(result?.extra),
     });
   }
+  // Never a flagged run (storeRatedRuns keeps none; this is the guard).
+  if (rounds.some((r) => r.flagged)) return null;
   const ownerName = src.players.find((p) => p.player_slot === run.slot)?.display_name ?? "Player";
   return { rounds, ownerName };
 }
@@ -586,22 +666,22 @@ export async function makeRecordedMatch(client: Db, me: QueueEntry, nowMs: numbe
     nowMs,
     beginnerMax: me.placement ? backend.beginnerMax : null,
   };
-  // A run whose owner has since deleted their account (or asked to) is never shown: chosen again without it.
-  const { accountNameOf } = await import("@/lib/names/playerName.server");
-  let candidates = pool.map((r) => r.candidate);
-  let picked = chooseRecordedRun(candidates, ctx, backend.startingRating);
-  for (let tries = 0; picked && tries < 8; tries++) {
-    const owner = picked.candidate;
-    const live = owner.source === "rated" ? (await accountNameOf(client, owner.ownerId)) !== null : !DELETED_NAMES.has(pool.find((r) => r.candidate.key === owner.key)?.ownerName ?? "");
-    if (live) break;
-    candidates = candidates.filter((c) => c.ownerId !== owner.ownerId);
-    picked = chooseRecordedRun(candidates, ctx, backend.startingRating);
-  }
+  // Never a run of an account whose deletion was asked for (hidden at once; accounts.forget_user removes its stored
+  // runs after 30 days, the mm_forget_removed_user trigger), nor a room or Daily row already forgotten.
+  const { data: deleting } = await readDeletionRequested(client, [...new Set(pool.map((r) => r.candidate.ownerId))]);
+  const candidates = pool
+    .filter((r) => !deleting?.has(r.candidate.ownerId) && !DELETED_NAMES.has(r.ownerName))
+    .map((r) => r.candidate);
+  const picked = chooseRecordedRun(candidates, ctx, backend.startingRating);
   if (!picked) return false;
   const chosen = picked;
   const run = pool.find((r) => r.candidate.key === chosen.candidate.key)!;
   let rounds = run.rounds;
   let ownerName = run.ownerName;
+  if (run.candidate.source === "practice") {
+    const { accountNameOf } = await import("@/lib/names/playerName.server");
+    ownerName = (await accountNameOf(client, run.candidate.ownerId)) ?? "Player";
+  }
   if (run.candidate.source === "rated") {
     const read = await ratedRunRounds(client, run.candidate.key, me);
     if (!read) return false;
@@ -622,7 +702,7 @@ export async function makeRecordedMatch(client: Db, me: QueueEntry, nowMs: numbe
       ? (run.candidate.games as StoredRecordedGame[])
       : rounds.map((r) => toRecordedGame(r, true));
   const stored: StoredRecorded = { ownerName, games, looks: rounds.map((r) => r.look) };
-  const room = await createStartedRoom(client, { players: [{ userId: me.userId, slot: 1 }], puzzles: rounds.map((r) => r.puzzle), picks: matchSettings(me.format, me.choice).picks }, nowMs);
+  const room = await createStartedRoom(client, { players: [{ userId: me.userId, slot: 1, displayName: me.displayName ?? null }], puzzles: rounds.map((r) => r.puzzle), picks: matchSettings(me.format, me.choice).picks }, nowMs);
   const { error } = await insertRatedMatch(client, {
     id: matchId,
     format: me.format,
@@ -846,7 +926,9 @@ export async function settleMatch(client: Db, matchId: string, nowMs: number): P
     const { data: priv } = await readPrivatePuzzles(client, room.id);
     const pubs = Array.isArray(room.puzzles_public) ? (room.puzzles_public as unknown as PuzzleData[]) : [];
     const puzzles = pubs.map((p, i) => mergePuzzle(p, priv?.[i]));
-    const result = buildMatchResult({ match: { ...match, finished_at: finishedAt }, players: players ?? [], puzzles, results: results ?? [], finishedAt });
+    // The games played: every dealt game, or fewer when the match stopped as soon as it was won (matchClinched).
+    const played = puzzles.slice(0, Math.max(1, Math.min(puzzles.length, room.current_round)));
+    const result = buildMatchResult({ match: { ...match, finished_at: finishedAt }, players: players ?? [], puzzles: played, results: results ?? [], finishedAt });
     // W3a's recordRatedMatch, once per match (idempotent on the id): a passing failure throws and the settle retries.
     const forRatings = toRatingsResult(result);
     if (forRatings) result.ratings = await ratings().recordRatedMatch(forRatings);
@@ -868,9 +950,13 @@ async function storeRatedRuns(client: Db, match: RatedMatchRow, players: RatedMa
     for (let i = 0; i < puzzles.length; i++) {
       const row = results.find((r) => r.player_slot === p.slot && r.round_number === i + 1);
       if (!row) break;
-      rounds.push({ puzzle: puzzles[i]!, score: row.score, msRemaining: row.ms_remaining, reactionAvgMs: row.reaction_avg_ms, answer: row.answer, look: (row as { look?: Json | null }).look ?? null });
+      rounds.push({
+        puzzle: puzzles[i]!, score: row.score, msRemaining: row.ms_remaining, reactionAvgMs: row.reaction_avg_ms, answer: row.answer,
+        look: (row as { look?: Json | null }).look ?? null, flagged: gradeFlagged(row.extra),
+      });
     }
-    if (rounds.length !== puzzles.length) continue;
+    // Only a run of every dealt game (a match stopped early, 2–0, leaves none), and never one the replay flagged.
+    if (rounds.length !== puzzles.length || rounds.some((r) => r.flagged)) continue;
     rows.push({
       key: `rated:${match.id}:${p.user_id}`,
       owner_id: p.user_id,
@@ -939,6 +1025,40 @@ export async function requestRematch(client: Db, userId: string, matchId: string
   const { data: again } = await readRatedMatch(client, matchId);
   const view = again?.rematch_match_id ? await matchView(client, again.rematch_match_id, userId, nowMs) : null;
   return view ? { state: "agreed", match: view } : { state: "waiting" };
+}
+
+/**
+ * Whether a rated room's match is won once game `round` has its result (best of N stops as soon as one side can't be
+ * caught, matchClinched). False for every ordinary room, and on any read failure (play simply goes on).
+ */
+export async function ratedMatchClinched(client: Db, room: { id: string; round_count: number; puzzles_public: unknown }, round: number): Promise<boolean> {
+  try {
+    const { readMatchByRoom } = await import("@/lib/data/rated.server");
+    const { data: match } = await readMatchByRoom(client, room.id);
+    if (!match || round >= room.round_count) return false;
+    const pubs = Array.isArray(room.puzzles_public) ? (room.puzzles_public as unknown as PuzzleData[]) : [];
+    const { data: results } = await readRoomResults(client, room.id);
+    const rows = results ?? [];
+    const recorded = match.kind === "recorded" ? storedRecorded(match) : null;
+    const games: GameScores[] = [];
+    for (let i = 0; i < round; i++) {
+      const puzzle = pubs[i];
+      if (!puzzle) return false;
+      const tie = tieRoundFor(puzzle);
+      const a = rows.find((r) => r.player_slot === 1 && r.round_number === i + 1);
+      const b = recorded ? undefined : rows.find((r) => r.player_slot === 2 && r.round_number === i + 1);
+      const rec = recorded?.games[i];
+      games.push({
+        a: a?.score ?? 0,
+        b: recorded ? (rec?.score ?? 0) : (b?.score ?? 0),
+        aTimeMs: roundTimeUsedMs(a, tie),
+        bTimeMs: recorded ? (rec?.timeMs ?? tie.limitMs) : roundTimeUsedMs(b, tie),
+      });
+    }
+    return matchClinched(games, room.round_count);
+  } catch {
+    return false;
+  }
 }
 
 /** A rated room (Play again and settings are refused there). */

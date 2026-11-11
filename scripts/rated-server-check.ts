@@ -71,6 +71,12 @@ const GUEST = uid(6); // no profile
 const NOTEST = uid(7); // an account, not a tester
 const PAL = uid(8); // in placement
 const EVE = uid(9);
+const PRA = uid(10); // practice runs
+const VIE = uid(11); // plays against them
+const X1 = uid(12);
+const X2 = uid(13);
+const Z1 = uid(14);
+const Z2 = uid(15);
 
 let db: LocalDb | null = null;
 let rest: RestServer | null = null;
@@ -129,22 +135,27 @@ async function runAll(db: LocalDb): Promise<void> {
   const call = callServerFn;
 
   // Users, accounts (KID 15 today), and the tester list (D1's shop.testers, made here when D1 isn't merged in).
-  q(`INSERT INTO auth.users (id) VALUES ${[ALI, BO, CY, DEE, KID, GUEST, NOTEST, PAL, EVE].map((u) => `('${u}')`).join(", ")}`);
+  q(`INSERT INTO auth.users (id) VALUES ${[ALI, BO, CY, DEE, KID, GUEST, NOTEST, PAL, EVE, PRA, VIE, X1, X2, Z1, Z2].map((u) => `('${u}')`).join(", ")}`);
   const profile = (id: string, name: string, n: number, dob: string) =>
     `('${id}', '${name}', '${name.toLowerCase()}', ${n % 32}, DATE '${dob}', ${n + 10})`;
   q(`SET session_replication_role = replica; INSERT INTO public.profiles (user_id, username, username_key, colour, date_of_birth, player_number) VALUES
     ${profile(ALI, "Ali", 1, "1990-01-01")}, ${profile(BO, "Bo_B", 2, "1991-01-01")}, ${profile(CY, "Cyan", 3, "1992-01-01")},
     ${profile(DEE, "Dee_D", 4, "1993-01-01")}, ${profile(KID, "Kiddo", 5, "2011-06-01")}, ${profile(NOTEST, "Nota", 7, "1994-01-01")},
-    ${profile(PAL, "Pally", 8, "1995-01-01")}, ${profile(EVE, "Evie", 9, "1996-01-01")}`);
+    ${profile(PAL, "Pally", 8, "1995-01-01")}, ${profile(EVE, "Evie", 9, "1996-01-01")}, ${profile(PRA, "Practo", 10, "1990-02-02")},
+    ${profile(VIE, "Viewer", 11, "1990-03-03")}, ${profile(X1, "Xavi", 12, "1990-04-04")}, ${profile(X2, "Xeno", 13, "1990-05-05")},
+    ${profile(Z1, "Zara", 14, "1990-06-06")}, ${profile(Z2, "Zeke", 15, "1990-07-07")}`);
   if (q(`SELECT to_regclass('shop.testers') IS NULL`) === "t")
     q(`CREATE SCHEMA IF NOT EXISTS shop; CREATE TABLE shop.testers (user_id uuid PRIMARY KEY, note text NOT NULL DEFAULT '')`);
-  q(`INSERT INTO shop.testers (user_id, note) SELECT u, 'rated-server-check' FROM unnest(ARRAY['${ALI}','${BO}','${CY}','${DEE}','${KID}','${PAL}','${EVE}']::uuid[]) AS u ON CONFLICT DO NOTHING`);
+  q(`INSERT INTO shop.testers (user_id, note) SELECT u, 'rated-server-check' FROM unnest(ARRAY['${ALI}','${BO}','${CY}','${DEE}','${KID}','${PAL}','${EVE}','${PRA}','${VIE}','${X1}','${X2}','${Z1}','${Z2}']::uuid[]) AS u ON CONFLICT DO NOTHING`);
 
   // W3a stand-in: fixed ratings, every recordRatedMatch call kept.
-  const RATING: Record<string, number> = { [ALI]: 1000, [BO]: 1120, [CY]: 1100, [DEE]: 900, [KID]: 1000, [PAL]: 1000, [EVE]: 1500 };
+  const RATING: Record<string, number> = {
+    [ALI]: 1000, [BO]: 1120, [CY]: 1100, [DEE]: 900, [KID]: 1000, [PAL]: 1000, [EVE]: 1500, [PRA]: 1000, [VIE]: 1000,
+    [X1]: 3000, [X2]: 3000, [Z1]: 4000, [Z2]: 4000, [GUEST]: 1000,
+  };
   const recordedCalls: import("../src/lib/data/ratings").RatedMatchResult[] = [];
   setRatingsBackend({
-    matchRating: async (userId) => (RATING[userId] === undefined ? null : { rating: RATING[userId]!, placement: userId === PAL }),
+    matchRating: async (userId) => (RATING[userId] === undefined ? null : { rating: RATING[userId]!, placement: userId === PAL || userId === GUEST }),
     recordRatedMatch: async (result) => {
       await new Promise((r) => setTimeout(r, 20));
       recordedCalls.push(result);
@@ -238,7 +249,7 @@ async function runAll(db: LocalDb): Promise<void> {
     q(`INSERT INTO public.round_results (duel_id, player_slot, round_number, score, ms_remaining, is_correct, answer) VALUES
        ('${liveRoomId}', 2, 1, 140, 1000, true, 'x'), ('${liveRoomId}', 1, 2, 150, 2000, true, 'x'), ('${liveRoomId}', 2, 2, 60, 2000, true, 'x'),
        ('${liveRoomId}', 1, 3, 120, 3000, true, 'x'), ('${liveRoomId}', 2, 3, 110, 3000, true, 'x')`);
-    q(`UPDATE public.duels SET status = 'finished', phase = 'finished', phase_started_at = now() WHERE id = '${liveRoomId}'`);
+    q(`UPDATE public.duels SET status = 'finished', phase = 'finished', current_round = round_count, phase_started_at = now() WHERE id = '${liveRoomId}'`);
     const results = await Promise.all([1, 2, 3, 4, 5].map(() => rated.settleMatch(client, liveMatchId, Date.now())));
     const viaFn = await call(fns.ratedSettleFn, { matchId: liveMatchId }, userToken(BO));
     check(callFor(liveMatchId).length === 1, `recordRatedMatch called exactly once (${recordedCalls.length})`);
@@ -279,7 +290,7 @@ async function runAll(db: LocalDb): Promise<void> {
     if (both.state !== "agreed") return;
     // Finish the rematch at once and settle it: it is a rated match like any other (W3a counts it).
     const rid = both.match.roomId!;
-    q(`UPDATE public.duels SET status = 'finished', phase = 'finished', phase_started_at = now() - interval '20 seconds' WHERE id = '${rid}'`);
+    q(`UPDATE public.duels SET status = 'finished', phase = 'finished', current_round = round_count, phase_started_at = now() - interval '20 seconds' WHERE id = '${rid}'`);
     const s = await rated.settleMatch(client, both.match.matchId, Date.now());
     check(s.state === "settled" && s.result.rematchOf === liveMatchId && callFor(both.match.matchId)[0]?.rematchOf === liveMatchId,
       "the rematch settles through recordRatedMatch with rematchOf (W3a's 4-a-day rule counts it like any other)");
@@ -311,7 +322,7 @@ async function runAll(db: LocalDb): Promise<void> {
     const allowed = g0.timeline ? g0.timeline.filter(([ms]) => ms <= 3_500).map(([, s]) => s) : [];
     check(view !== null && (g0.timeline ? view.score === null || allowed.includes(view.score!) || view.score === 0 : view.score === null), "playback shows only what the run had reached (nothing without a timeline)");
     // Finish it; the owner of the last recorded opponent is skipped next time.
-    q(`UPDATE public.duels SET status = 'finished', phase = 'finished', phase_started_at = now() WHERE id = '${m.roomId}'`);
+    q(`UPDATE public.duels SET status = 'finished', phase = 'finished', current_round = round_count, phase_started_at = now() WHERE id = '${m.roomId}'`);
     const s = await rated.settleMatch(client, m.matchId, Date.now());
     const rec = callFor(m.matchId)[0]?.players[1];
     check(s.state === "settled" && s.result.kind === "recorded" && rec?.side === "recorded" && rec.run.source === "rated" && rec.run.runId === key && rec.run.ownerId === rec.playerId,
@@ -321,7 +332,7 @@ async function runAll(db: LocalDb): Promise<void> {
     const second = await rated.pollQueue(client, CY, t + 28_500);
     check(second.state === "found" && second.match.kind === "recorded" && second.match.recorded!.ownerId !== firstOwner, "never the same player twice in a row");
     if (second.state === "found") {
-      q(`UPDATE public.duels SET status = 'finished', phase = 'finished', phase_started_at = now() WHERE id = '${second.match.roomId}'`);
+      q(`UPDATE public.duels SET status = 'finished', phase = 'finished', current_round = round_count, phase_started_at = now() WHERE id = '${second.match.roomId}'`);
       await rated.settleMatch(client, second.match.matchId, Date.now());
     }
     // The 5-a-day cap: every rated run used up today, then no rated run can be chosen.
@@ -330,6 +341,36 @@ async function runAll(db: LocalDb): Promise<void> {
     const capped = await rated.pollQueue(client, EVE, t + 48_100);
     check(capped.state === "searching", "a run used 5 times today is not played against again (none left: still searching)");
     await rated.leaveQueue(client, EVE);
+  });
+
+  await section("practice runs as a fallback", async () => {
+    // Three graded Practice plays by Practo, through the real practice functions: each counted play's deal is stored.
+    const practice = await import("../src/lib/duel/practice.functions");
+    const { dealRoomRounds } = await import("../src/lib/duel/roomDeal");
+    const { matchSettings } = await import("../src/lib/rated/matchmaking");
+    const types = dealRoomRounds(matchSettings("bo3", "puzzles"), { seed: 4242 }).types;
+    for (const type of types) {
+      const dealt = await call(practice.practiceGenerateFn, { type }, userToken(PRA));
+      await call(practice.practiceGradeFn, { puzzle: dealt.puzzle, sealed: dealt.sealed, answer: "", msRemaining: 1_000 }, userToken(PRA));
+    }
+    for (let i = 0; i < 50 && q(`SELECT count(*) FROM public.mm_practice_deals WHERE user_id = '${PRA}'`) !== "3"; i++) await new Promise((r) => setTimeout(r, 100));
+    check(q(`SELECT count(*) FROM public.mm_practice_deals WHERE user_id = '${PRA}'`) === "3", "each graded practice play's deal is stored by the server");
+    check(q(`SELECT count(*) FROM public.mm_practice_deals d JOIN public.practice_plays p ON p.id = d.play_id WHERE d.user_id = '${PRA}'`) === "3", "keyed on its practice_plays row");
+    // No rated run fits All puzzles (every rated run is Mixed) and no ordinary room has finished: Practice is the fallback.
+    const t = Date.now();
+    await rated.joinQueue(client, VIE, { format: "bo3", choice: "puzzles" }, t);
+    const found = await rated.pollQueue(client, VIE, t + 8_000);
+    check(found.state === "found" && found.match.kind === "recorded" && found.match.recorded?.fallback === true, "a Practice run is played against as the fallback");
+    if (found.state !== "found") return;
+    check(q(`SELECT recorded_source FROM public.mm_matches WHERE id = '${found.match.matchId}'`) === "practice" && found.match.recorded?.ownerId === PRA, "its source is practice and its owner the player who played it");
+    const { splitPuzzle } = await import("../src/lib/duel/secrets");
+    const dealsByType = new Map((JSON.parse(q(`SELECT jsonb_agg(puzzle) FROM public.mm_practice_deals WHERE user_id = '${PRA}'`)) as { type: string }[]).map((p) => [p.type, p]));
+    const roomPubs = JSON.parse(q(`SELECT puzzles_public FROM public.duels WHERE id = '${found.match.roomId}'`)) as { type: string }[];
+    check(roomPubs.length === 3 && roomPubs.every((p) => JSON.stringify(p) === JSON.stringify(splitPuzzle(dealsByType.get(p.type) as never).pub)), "the live player is dealt exactly the practice plays' puzzles");
+    q(`UPDATE public.duels SET status = 'finished', phase = 'finished', current_round = round_count, phase_started_at = now() WHERE id = '${found.match.roomId}'`);
+    const s = await rated.settleMatch(client, found.match.matchId, Date.now());
+    const sent = callFor(found.match.matchId)[0]?.players[1];
+    check(s.state === "settled" && sent?.side === "recorded" && sent.run.source === "practice", "W3a gets it as a practice run (its owner never moves)");
   });
 
   await section("fallback and placement", async () => {
@@ -341,7 +382,7 @@ async function runAll(db: LocalDb): Promise<void> {
     check(started.ok === true, "an ordinary puzzles room starts");
     q(`INSERT INTO public.round_results (duel_id, player_slot, round_number, score, ms_remaining, is_correct, answer)
        SELECT '${made.roomId}', s, r, 100 + r, 1500, true, 'x' FROM generate_series(1, 2) s, generate_series(1, 6) r`);
-    q(`UPDATE public.duels SET status = 'finished', phase = 'finished', phase_started_at = now() WHERE id = '${made.roomId}'`);
+    q(`UPDATE public.duels SET status = 'finished', phase = 'finished', current_round = round_count, phase_started_at = now() WHERE id = '${made.roomId}'`);
     const t = Date.now();
     await rated.joinQueue(client, KID, { format: "bo3", choice: "puzzles" }, t);
     const fb = await rated.pollQueue(client, KID, t + 8_000);
@@ -357,7 +398,7 @@ async function runAll(db: LocalDb): Promise<void> {
       const phrase = await call(chat.sendRoomMessageFn, { roomId: fb.match.roomId, text: "gg" }, userToken(KID));
       check(free.ok === false && phrase.ok === true, "rated chat: an under-18's free text refused, a quick phrase sent");
       check(q(`SELECT string_agg(text, '|') FROM public.room_messages WHERE duel_id = '${fb.match.roomId}'`) === "Good game!", "rated chat: the phrase is stored as its text");
-      q(`UPDATE public.duels SET status = 'finished', phase = 'finished', phase_started_at = now() WHERE id = '${fb.match.roomId}'`);
+      q(`UPDATE public.duels SET status = 'finished', phase = 'finished', current_round = round_count, phase_started_at = now() WHERE id = '${fb.match.roomId}'`);
       const s = await rated.settleMatch(client, fb.match.matchId, Date.now());
       const fbRec = callFor(fb.match.matchId)[0]?.players[1];
       check(s.state === "settled" && s.result.recorded?.fallback === true && fbRec?.side === "recorded" && fbRec.run.source === "room" && fbRec.playerId === DEE,
@@ -375,10 +416,129 @@ async function runAll(db: LocalDb): Promise<void> {
     }
   });
 
+  await section("flagged runs", async () => {
+    // Dee's and Eve's room runs both fit All puzzles; Dee's first game is flagged by the replay: only Eve's can be used.
+    const room = q(`SELECT duel_id FROM public.duel_players WHERE user_id = '${DEE}' LIMIT 1`);
+    q(`UPDATE public.round_results SET extra = '{"flagged": true}'::jsonb WHERE duel_id = '${room}' AND player_slot = 1 AND round_number = 1`);
+    q(`DELETE FROM public.mm_run_uses`);
+    q(`DELETE FROM public.mm_practice_deals WHERE user_id = '${PRA}'`);
+    const keys: string[] = [];
+    for (const viewer of [CY, BO]) {
+      const t = Date.now();
+      await rated.settleOpenMatches(client, viewer, t);
+      await rated.joinQueue(client, viewer, { format: "bo3", choice: "puzzles" }, t);
+      const found = await rated.pollQueue(client, viewer, t + 8_000);
+      if (found.state === "found") {
+        keys.push(q(`SELECT recorded_key FROM public.mm_matches WHERE id = '${found.match.matchId}'`));
+        q(`UPDATE public.duels SET status = 'finished', phase = 'finished', current_round = round_count, phase_started_at = now() WHERE id = '${found.match.roomId}'`);
+        await rated.settleMatch(client, found.match.matchId, Date.now());
+      } else keys.push("none");
+    }
+    check(keys.length === 2 && keys.every((k) => k !== `room:${room}:1`), `a room run with a flagged game is never played against (${keys.join(", ")})`);
+    // A practice deal the replay flagged is stored as flagged and never chosen.
+    q(`INSERT INTO public.mm_practice_deals (play_id, user_id, game, puzzle, answer, score, ms_remaining, flagged)
+       SELECT 900000 + n, '${PRA}', p->>'type', p, '', 10, 0, true FROM (SELECT puzzles_public -> (n - 1) AS p, n FROM public.duels, generate_series(1, 3) AS n WHERE id = '${room}') x`);
+    q(`UPDATE public.round_results SET extra = '{"flagged": true}'::jsonb WHERE duel_id = '${room}'`);
+    const t = Date.now();
+    await rated.joinQueue(client, KID, { format: "bo3", choice: "puzzles" }, t);
+    const none = await rated.pollQueue(client, KID, t + 8_000);
+    check(none.state === "searching", "flagged practice deals and flagged room runs are never chosen (nothing left: still searching)");
+    await rated.leaveQueue(client, KID);
+  });
+
+  await section("early finish and flagged rated runs", async () => {
+    const t = Date.now();
+    const pair = async (a: string, b: string) => {
+      await rated.joinQueue(client, a, { format: "bo3", choice: "mixed" }, t);
+      await rated.joinQueue(client, b, { format: "bo3", choice: "mixed" }, t);
+      const p = await rated.pollQueue(client, a, t + 100);
+      await rated.pollQueue(client, b, t + 200);
+      return p.state === "found" ? p.match : null;
+    };
+    const play = async (roomId: string, round: number, a: number, b: number, token: string, flagB = false) => {
+      q(`INSERT INTO public.round_results (duel_id, player_slot, round_number, score, ms_remaining, is_correct, answer, extra) VALUES
+         ('${roomId}', 1, ${round}, ${a}, 1000, true, 'x', NULL), ('${roomId}', 2, ${round}, ${b}, 1000, true, 'x', ${flagB ? `'{"flagged": true}'::jsonb` : "NULL"})`);
+      q(`UPDATE public.duels SET current_round = ${round}, phase = 'result', phase_started_at = now() - interval '5 minutes' WHERE id = '${roomId}'`);
+      await call(duel.advancePhaseFn, { roomId }, token);
+      return q(`SELECT phase FROM public.duels WHERE id = '${roomId}'`);
+    };
+    const z = await pair(Z1, Z2);
+    check(z !== null, "a live best of 3 (Zara v Zeke)");
+    if (z) {
+      const r = z.roomId!;
+      check((await play(r, 1, 150, 100, userToken(Z1))) === "standings", "1–0: play goes on to game 2");
+      check((await play(r, 2, 140, 90, userToken(Z1))) === "winner_reveal", "2–0: the match stops at once (the winner reveal, game 3 never played)");
+      q(`UPDATE public.duels SET phase_started_at = now() - interval '5 minutes' WHERE id = '${r}'`);
+      await call(duel.advancePhaseFn, { roomId: r }, userToken(Z1));
+      check(q(`SELECT status || ',' || current_round FROM public.duels WHERE id = '${r}'`) === "finished,2", "the room finishes after game 2");
+      const s = await rated.settleMatch(client, z.matchId, Date.now());
+      const sent = callFor(z.matchId)[0];
+      check(s.state === "settled" && s.result.games.length === 2 && s.result.players[0]!.gamesWon === 2 && sent?.games.length === 2, "settled on the two games played; W3a gets those two");
+      check(q(`SELECT count(*) FROM public.mm_runs WHERE match_id = '${z.matchId}'`) === "0", "a match stopped early leaves no run (a recorded run needs every game)");
+    }
+    const x = await pair(X1, X2);
+    check(x !== null, "a live best of 3 (Xavi v Xeno)");
+    if (x) {
+      const r = x.roomId!;
+      check((await play(r, 1, 150, 100, userToken(X1))) === "standings" && (await play(r, 2, 90, 140, userToken(X1))) === "standings", "1–1: play goes on to game 3");
+      check((await play(r, 3, 120, 110, userToken(X1), true)) === "winner_reveal", "game 3 is the last as before");
+      q(`UPDATE public.duels SET status = 'finished', phase = 'finished', current_round = round_count, phase_started_at = now() WHERE id = '${r}'`);
+      const s = await rated.settleMatch(client, x.matchId, Date.now());
+      check(s.state === "settled" && s.result.games.length === 3, "a full best of 3 settles on three games");
+      check(q(`SELECT string_agg(owner_id::text, ',') FROM public.mm_runs WHERE match_id = '${x.matchId}'`) === X1, "a rated run with a game the replay flagged is never stored (only Xavi's run joins the pool)");
+    }
+  });
+
+  await section("guests", async () => {
+    const { RATED_SWITCHES } = await import("../src/lib/rated/matchmaking");
+    const everyone = { ...RATED_SWITCHES, forEveryone: true };
+    const off = await rated.joinQueue(client, GUEST, { format: "bo3", choice: "mixed", displayName: "Gus" }, Date.now());
+    check(off.ok === false && off.reason === "account", "while rated play is testers-only, a guest can't queue");
+    const noName = await rated.joinQueue(client, GUEST, { format: "bo3", choice: "mixed" }, Date.now(), everyone);
+    check(noName.ok === false && noName.reason === "name", "a guest needs a room name");
+    const status = await rated.ratedStatus(client, GUEST, everyone);
+    check(status.open === true && status.account === false, "with rated play for everyone, open to a guest");
+    q(`DELETE FROM public.mm_run_uses`);
+    const t = Date.now();
+    const joined = await rated.joinQueue(client, GUEST, { format: "bo3", choice: "mixed", displayName: "Gus" }, t, everyone);
+    check(joined.ok === true, "a guest queues with no sign-up");
+    const found = await rated.pollQueue(client, GUEST, t + 100);
+    check(found.state === "found" && found.match.kind === "recorded", "a guest in placement plays a recorded run first");
+    if (found.state === "found") {
+      check(q(`SELECT display_name FROM public.duel_players WHERE duel_id = '${found.match.roomId}' AND user_id = '${GUEST}'`) === "Gus", "seated under the name they typed");
+      const typed = await call(chat.sendRoomMessageFn, { roomId: found.match.roomId, text: "hi there" }, userToken(GUEST));
+      check(typed.ok === false, "a guest sends quick phrases only in a rated room");
+      // Signing up keeps the same player id (wave 1's linking): the match, and so W3a's ratings, stay theirs.
+      q(`SET session_replication_role = replica; INSERT INTO public.profiles (user_id, username, username_key, colour, date_of_birth, player_number) VALUES ('${GUEST}', 'GusNow', 'gusnow', 3, DATE '1999-09-09', 99)`);
+      const after = await rated.ratedStatus(client, GUEST, everyone);
+      check(after.account === true && after.activeMatchId === found.match.matchId, "after sign-up the same player still holds the match (ratings key on the same id)");
+    }
+  });
+
   await section("adult chat", async () => {
     if (!liveRoomId) return;
     const typed = await call(chat.sendRoomMessageFn, { roomId: liveRoomId, text: "good game mate" }, userToken(ALI));
     check(typed.ok === true, "rated chat: an adult with an account types");
+  });
+
+  await section("forget_user removes a deleted account's runs", async () => {
+    const before = Number(q(`SELECT count(*) FROM public.mm_runs WHERE owner_id = '${X1}'`));
+    q(`INSERT INTO public.mm_practice_deals (play_id, user_id, game, puzzle, answer, score, ms_remaining) VALUES (950001, '${X1}', 'flood', '{"type":"flood"}', '', 1, 0)`);
+    q(`INSERT INTO public.mm_run_uses (run_key, viewer_id, match_id) VALUES ('rated:00000000-0000-4000-8000-0000000000aa:${X1}', '${X1}', gen_random_uuid())`);
+    check(before === 1, "Xavi has a stored rated run");
+    q(`SELECT accounts.forget_user('${X1}')`);
+    check(q(`SELECT count(*) FROM public.mm_runs WHERE owner_id = '${X1}'`) === "0", "forget_user removes their stored rated runs");
+    check(q(`SELECT count(*) FROM public.mm_practice_deals WHERE user_id = '${X1}'`) === "0", "and their stored practice deals");
+    check(q(`SELECT count(*) FROM public.mm_match_players WHERE user_id = '${X1}'`) === "0" && q(`SELECT count(*) FROM public.mm_run_uses WHERE viewer_id = '${X1}' OR position('${X1}' IN run_key) > 0`) === "0", "and nothing else names them (seats and uses re-keyed)");
+    check(q(`SELECT count(*) FROM public.mm_match_players mp JOIN public.mm_matches m ON m.id = mp.match_id WHERE m.duel_id = (SELECT duel_id FROM public.mm_matches WHERE id IN (SELECT match_id FROM public.mm_match_players WHERE user_id = '${X2}') ORDER BY created_at DESC LIMIT 1)`) === "2", "their opponent's match keeps both seats");
+    // An owner of a recorded opponent: the match keeps its shape under a fresh id and "Deleted player".
+    const owner = q(`SELECT recorded_owner FROM public.mm_matches WHERE recorded_source = 'rated' AND recorded_owner IN ('${ALI}', '${BO}') LIMIT 1`);
+    if (owner) {
+      q(`SELECT accounts.forget_user('${owner}')`);
+      check(q(`SELECT count(*) FROM public.mm_matches WHERE recorded_owner = '${owner}' OR position('${owner}' IN coalesce(recorded_key, '')) > 0`) === "0" && q(`SELECT count(*) FROM public.mm_runs WHERE owner_id = '${owner}'`) === "0",
+        "a recorded opponent's account removed: their runs go, matches played against them are re-keyed");
+      check(q(`SELECT count(*) FROM public.mm_matches WHERE recorded_games->>'ownerName' = 'Deleted player'`) !== "0", "shown as Deleted player");
+    } else check(false, "a rated recorded owner to forget");
   });
 
   await section("rate limit", async () => {
