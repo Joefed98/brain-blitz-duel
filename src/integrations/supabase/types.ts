@@ -1650,6 +1650,24 @@ export type Database = {
         }
         Relationships: []
       }
+      shop_days: {
+        Row: { backups: Json; created_at: string; day: string; items: string[]; rarities: string[] }
+        Insert: { backups?: Json; created_at?: string; day: string; items: string[]; rarities: string[] }
+        Update: { backups?: Json; created_at?: string; day?: string; items?: string[]; rarities?: string[] }
+        Relationships: []
+      }
+      shop_weeks: {
+        Row: { bundle_id: string; created_at: string; full_price: number; items: string[]; name: string; price: number; week_start: string }
+        Insert: { bundle_id: string; created_at?: string; full_price: number; items: string[]; name: string; price: number; week_start: string }
+        Update: { bundle_id?: string; created_at?: string; full_price?: number; items?: string[]; name?: string; price?: number; week_start?: string }
+        Relationships: []
+      }
+      shop_wishlist: {
+        Row: { created_at: string; item_id: string; user_id: string }
+        Insert: { created_at?: string; item_id: string; user_id: string }
+        Update: { created_at?: string; item_id?: string; user_id?: string }
+        Relationships: []
+      }
       terms_events: {
         Row: {
           agreed_at: string
@@ -1807,6 +1825,18 @@ export type Database = {
           username: string
         }[]
       }
+      shop_record_days: { Args: { p_days: Json }; Returns: number }
+      shop_record_week: {
+        Args: { p_bundle_id: string; p_items: string[]; p_name: string; p_price: number; p_week: string }
+        Returns: undefined
+      }
+      shop_is_tester: { Args: { p_user_id: string }; Returns: boolean }
+      shop_wishlist_set: { Args: { p_item_id: string; p_on: boolean; p_user_id: string }; Returns: string }
+      shop_purchase_bundle: {
+        Args: { p_bundle_id: string; p_items: string[]; p_key: string; p_prices: number[]; p_user_id: string; p_week: string }
+        Returns: Json
+      }
+      shop_test_pack: { Args: { p_key: string; p_pack: string; p_user_id: string }; Returns: Json }
       async_board_open: { Args: { p_room_id: string }; Returns: boolean }
       disband_stale_room: { Args: { p_room_id: string }; Returns: boolean }
       duel_round_ended: {

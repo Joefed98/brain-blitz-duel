@@ -1,0 +1,401 @@
+/*
+ * Wave 2, session D1: the shop (mockup docs/art/wave-2/screens/shop.png). Tokens only (DESIGN.md). Item pictures are
+ * the approved stills (public/shop/<id>.webp); rarity edges follow the ladder: Epic gold, Elite violet, Legendary
+ * diamond.
+ */
+
+.shop-front {
+  display: flex;
+  flex-direction: column;
+  gap: var(--jz-space-16);
+}
+.shop-balance {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--jz-space-8);
+  color: var(--jz-text);
+  font-size: 22px;
+  font-weight: var(--jz-weight-bold);
+  font-variant-numeric: tabular-nums;
+}
+.shop-said {
+  margin: 0;
+  color: var(--jz-text-2);
+  font-size: 14px;
+}
+.shop-loading {
+  display: flex;
+  flex-direction: column;
+  gap: var(--jz-space-12);
+}
+.shop-note {
+  margin: 0;
+  color: var(--jz-text-3);
+  font-size: 13px;
+  line-height: 1.4;
+}
+.shop-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--jz-space-12);
+}
+.shop-section-head {
+  display: flex;
+  align-items: center;
+  gap: var(--jz-space-12);
+}
+.shop-section-title {
+  margin: 0;
+  color: var(--jz-text);
+  font-size: 20px;
+  font-weight: var(--jz-weight-bold);
+}
+.shop-section-rule {
+  flex: 1;
+  height: 1px;
+  background: var(--jz-line);
+}
+
+/* ------------------------------------------------------------------ the bundle */
+.shop-bundle {
+  display: flex;
+  flex-direction: column;
+  gap: var(--jz-space-12);
+  padding: var(--jz-space-20);
+  border: 1.5px solid var(--jz-gold);
+  background:
+    repeating-linear-gradient(135deg, var(--jz-sheen) 0 2px, transparent 2px 14px),
+    var(--jz-cyan-panel);
+}
+.shop-bundle-kicker {
+  margin: 0;
+  color: var(--jz-cyan);
+  font-size: 13px;
+  font-weight: var(--jz-weight-medium);
+}
+.shop-bundle-title {
+  margin: 0;
+  color: var(--jz-text);
+  font-size: 26px;
+  font-weight: var(--jz-weight-bold);
+}
+.shop-bundle-art {
+  display: flex;
+  gap: var(--jz-space-8);
+}
+.shop-bundle-art .shop-art {
+  width: calc((100% - 2 * var(--jz-space-8)) / 3);
+  border-radius: var(--jz-radius);
+}
+.shop-bundle-blurb {
+  margin: 0;
+  color: var(--jz-text-2);
+  font-size: 14px;
+  line-height: 1.45;
+}
+.shop-bundle-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--jz-space-12);
+}
+.shop-bundle-price {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--jz-space-8);
+  color: var(--jz-text);
+  font-variant-numeric: tabular-nums;
+}
+.shop-bundle-price .jz-coin {
+  align-self: center;
+}
+.shop-bundle-now {
+  font-size: 20px;
+  font-weight: var(--jz-weight-bold);
+}
+.shop-bundle-was {
+  color: var(--jz-text-3);
+  font-size: 14px;
+}
+.shop-bundle-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--jz-space-8);
+  margin: var(--jz-space-12) 0 0;
+  padding: 0;
+  list-style: none;
+}
+.shop-bundle-row {
+  display: flex;
+  align-items: center;
+  gap: var(--jz-space-12);
+  min-height: 56px;
+}
+.shop-bundle-thumb {
+  width: 72px;
+  flex: none;
+  border-radius: var(--jz-radius);
+}
+.shop-bundle-row-text {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--jz-space-4);
+}
+
+/* ------------------------------------------------------------------ item cards */
+.shop-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--jz-space-12);
+}
+.shop-item {
+  --shop-edge: var(--jz-rarity-epic);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--jz-space-8);
+  padding: var(--jz-space-12);
+  border-top: 3px solid var(--shop-edge);
+  border-radius: var(--jz-radius-tile);
+  background: var(--jz-surface);
+}
+.shop-item[data-rarity="elite"] {
+  --shop-edge: var(--jz-rarity-elite);
+}
+.shop-item[data-rarity="legendary"] {
+  --shop-edge: var(--jz-rarity-legendary);
+}
+.shop-item-face {
+  display: flex;
+  flex-direction: column;
+  gap: var(--jz-space-4);
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.shop-item-face:disabled {
+  cursor: default;
+}
+.shop-item-art {
+  position: relative;
+  display: block;
+  overflow: hidden;
+  border-radius: var(--jz-radius);
+  background: var(--jz-bg);
+  aspect-ratio: 4 / 3;
+}
+.shop-item-art .shop-art {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.shop-art {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+.shop-art-empty {
+  aspect-ratio: 4 / 3;
+  background: var(--jz-surface-2);
+}
+.shop-rarity {
+  position: absolute;
+  top: var(--jz-space-8);
+  left: var(--jz-space-8);
+  padding: 2px var(--jz-space-8);
+  border: 1.5px solid var(--jz-rarity-epic);
+  border-radius: var(--jz-radius);
+  background: var(--jz-bg);
+  color: var(--jz-rarity-epic);
+  font-size: 12px;
+  font-weight: var(--jz-weight-bold);
+}
+.shop-rarity[data-rarity="elite"] {
+  border-color: var(--jz-rarity-elite);
+  color: var(--jz-rarity-elite);
+}
+.shop-rarity[data-rarity="legendary"] {
+  border-color: var(--jz-rarity-legendary);
+  color: var(--jz-rarity-legendary);
+}
+.shop-bundle-row .shop-rarity {
+  position: static;
+}
+.shop-item-name {
+  overflow: hidden;
+  color: var(--jz-text);
+  font-size: 16px;
+  font-weight: var(--jz-weight-bold);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.shop-item-kind {
+  overflow: hidden;
+  color: var(--jz-text-3);
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.shop-heart {
+  position: absolute;
+  top: var(--jz-space-12);
+  right: var(--jz-space-12);
+  display: grid;
+  width: 44px;
+  height: 44px;
+  place-items: center;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--jz-text);
+  cursor: pointer;
+}
+.shop-heart-icon {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+}
+.shop-heart-icon[data-on] {
+  fill: var(--jz-red);
+  stroke: var(--jz-red);
+}
+.shop-item-price {
+  display: flex;
+  min-height: 44px;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--jz-space-8);
+}
+.shop-coins {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--jz-space-8);
+  color: var(--jz-text);
+  font-size: 17px;
+  font-weight: var(--jz-weight-bold);
+  font-variant-numeric: tabular-nums;
+}
+.shop-owned {
+  margin: 0;
+  color: var(--jz-text-2);
+  font-size: 14px;
+  font-weight: var(--jz-weight-medium);
+}
+
+/* ------------------------------------------------------------------ coin packs */
+.shop-packs {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.shop-pack {
+  display: flex;
+  min-height: 72px;
+  align-items: center;
+  gap: var(--jz-space-16);
+  padding: var(--jz-space-12) var(--jz-space-16);
+  border-top: 1px solid var(--jz-line);
+}
+.shop-pack:first-child {
+  border-top: 0;
+}
+.shop-pack-text {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--jz-space-4);
+}
+.shop-pack-coins {
+  color: var(--jz-text);
+  font-size: 18px;
+  font-weight: var(--jz-weight-bold);
+}
+.shop-pack-name {
+  color: var(--jz-text-2);
+  font-size: 13px;
+}
+.shop-pack-price {
+  color: var(--jz-text-2);
+  font-size: 16px;
+  font-weight: var(--jz-weight-bold);
+}
+
+/* ------------------------------------------------------------------ the confirmation */
+.shop-confirm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--jz-space-8);
+}
+.shop-confirm-what {
+  margin: 0;
+  color: var(--jz-text-2);
+  font-size: 14px;
+}
+.shop-confirm-line {
+  margin: 0;
+  color: var(--jz-text);
+  font-size: 18px;
+  font-weight: var(--jz-weight-bold);
+}
+.shop-confirm-error {
+  margin: var(--jz-space-12) 0 0;
+  color: var(--jz-red);
+  font-size: 14px;
+}
+.shop-confirm-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--jz-space-12);
+}
+.shop-confirm-actions > .shop-bundle-price {
+  margin-right: auto;
+}
+
+/* ------------------------------------------------------------------ the tab's dot and the wishlist notice */
+[data-tab="shop"],
+[data-rail-tab="shop"] {
+  position: relative;
+}
+.jz-tab-dot {
+  position: absolute;
+  top: 6px;
+  left: calc(50% + 10px);
+  width: 8px;
+  height: 8px;
+  border-radius: var(--jz-round);
+  background: var(--jz-red);
+}
+.shop-back-toast {
+  position: fixed;
+  right: var(--jz-space-16);
+  bottom: calc(56px + env(safe-area-inset-bottom, 0px) + var(--jz-space-12));
+  left: var(--jz-space-16);
+  z-index: 40;
+  text-align: left;
+}
+
+/* ------------------------------------------------------------------ the shop's sheets (body and footer padded) */
+.shop-sheet > :not(.jz-sheet-grab, .jz-sheet-head) {
+  padding-right: var(--jz-space-20);
+  padding-left: var(--jz-space-20);
+}
+.shop-sheet > :last-child {
+  padding-top: var(--jz-space-16);
+  padding-bottom: calc(var(--jz-space-16) + env(safe-area-inset-bottom, 0px));
+}
+.shop-sheet .shop-bundle-list {
+  overflow-y: auto;
+}
