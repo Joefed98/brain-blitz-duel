@@ -2329,7 +2329,9 @@ export type Database = {
         Row: {
           best_streak: number
           draws: number
+          best_game_streak: number
           event_id: string
+          game_streak: number
           last_win_at: string | null
           losses: number
           played: number
@@ -2342,7 +2344,9 @@ export type Database = {
         Insert: {
           best_streak?: number
           draws?: number
+          best_game_streak?: number
           event_id: string
+          game_streak?: number
           last_win_at?: string | null
           losses?: number
           played?: number
@@ -2355,7 +2359,9 @@ export type Database = {
         Update: {
           best_streak?: number
           draws?: number
+          best_game_streak?: number
           event_id?: string
+          game_streak?: number
           last_win_at?: string | null
           losses?: number
           played?: number

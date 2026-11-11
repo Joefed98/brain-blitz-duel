@@ -32,11 +32,13 @@ Every day at 1 pm and 8 pm UK, free, accounts only. For the 45-minute window eac
 is paired with another searching entrant by rating through W3b's pairing (`bestPartner`: the nearest rating within
 the widening band, then the longest wait; from 12 s, the nearest however far; the opponent just played is passed
 over while anyone else waits, for 20 s). Each duel is a best of 3 on W3b's room engine (`createDealtMatchRoom`, a
-plain extraction of W3b's `createLiveMatch`), Mixed, Classic: an ordinary room, never a rated match, so no rating
+plain extraction of W3b's `createLiveMatch`), Mixed, Classic, stopping once won (2–0), as a rated best of 3 does
+(`arenaDuelClinched`, W3b's `matchClinched`): an ordinary room, never a rated match, so no rating
 moves (tournaments-check proves no `mm_matches` row and no `recordRatedMatch` call). Play again is refused in its
 room; chat follows the stranger rules (`chatPolicy("tournament", …)`: under-18s and guests pick quick phrases).
 
-Points: 2 a win; after 2 wins in a row each win counts double (4) until the streak breaks; a loss or a draw scores
+The pairing rating is W3a's (`ratingsReady()` binds the real engine; read only: an Arena never calls
+`recordRatedMatch` or `finishRatedMatch`). Points: 2 a win; after 2 wins in a row each win counts double (4) until the streak breaks; a loss or a draw scores
 nothing and breaks it. Standings: points, then duel wins, then the total score, then who got there first. A live
 leaderboard on the event page. A duel still playing 30 minutes after the window closes is void.
 
@@ -63,8 +65,8 @@ key `tournament_prize:<event>:<user>`) and one `tournament_prizes` row, in one t
 Trophies show in Profile's trophy cabinet (F5's trophy art as the placeholder until the canvas art is drawn); the
 cabinet isn't drawn without a trophy.
 
-Badges through C2's `badge_award`: Entrant (a place in any tournament), Trophy Hunter (any trophy), Arena Ace (a duel
-win making 8 in a row in one Arena), Champion (a gold trophy), Arena Champion, Score Attack Champion (gold in that
+Badges through C2's `badge_award`: Entrant (a place in any tournament), Trophy Hunter (any trophy), Arena Ace (8 games won in a row in one Arena, counted
+across duels: four straight 2–0 duels earn it; a game lost or drawn breaks the run; Joe, 11 Nov 2026), Champion (a gold trophy), Arena Champion, Score Attack Champion (gold in that
 kind), Serial Winner (10 gold trophies). Joules through D2's `creditTournamentJoules`: 100 to each player of a
 settled Arena duel, 150 for finishing a Score Attack.
 
@@ -94,11 +96,14 @@ SELECT moderation.tournament_flag_resolve(12, 'checked: a real desync, no action
 
 ## The tick
 
-A Cron Trigger every 5 minutes (`2-59/5 * * * *`, task `tournaments:tick`) stores the coming day's events, moves
+A Cron Trigger every 5 minutes (task `tournaments:tick` on B2's own `*/5 * * * *` trigger: one Cron Trigger runs
+both) stores the coming day's events, moves
 every open event on (start, call off and refund, finish and pay) and sends reminders through B2's
 `notifyTournamentStarting`: an Arena 10 minutes before it starts, a Score Attack at noon UK on its day, once per
 account and event, to entrants and anyone who tapped the bell. Every read of an event also moves it on, so the cron
-is a safety net. (Cloudflare's free plan allows 5 Cron Triggers; with B2's two this makes three.)
+is a safety net. Cloudflare's free plan allows 5 Cron Triggers; the built wrangler.json has four distinct expressions
+(`*/5 * * * *` push friend sweep and the tournaments' tick, `41 * * * *` the Daily reminder, `23 * * * *` W3a's
+standings, `37 4 * * *` W3b's practice-deals purge).
 
 ## The rules pages
 

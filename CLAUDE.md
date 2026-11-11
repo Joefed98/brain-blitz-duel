@@ -2165,8 +2165,9 @@ outside the repo.
   Score Attack is an async room of kind `score_attack` on the Daily's engine (analytics mode `tournament`). Entry and
   refunds through A1's ledger and consumables in one transaction; prizes paid once (`tournament_prize` lines); trophies
   in Profile's cabinet (only real ones); the seven tournament badges earnable (awarded here through `badge_award`);
-  Joules through D2's `creditTournamentJoules`; reminders through B2's `notifyTournamentStarting` (Cron Trigger
-  `tournaments:tick`, `2-59/5 * * * *`). Flagged runs (server's `extra.flagged` only): no points, score, place, prize,
+  Joules through D2's `creditTournamentJoules`; reminders through B2's `notifyTournamentStarting` (task
+  `tournaments:tick` on B2's `*/5 * * * *` Cron Trigger). Duels stop once won (2–0, `arenaDuelClinched`); the pairing
+  rating is W3a's real engine (`ratingsReady`, read only). Arena Ace: 8 games won in a row in one Arena, across duels. Flagged runs (server's `extra.flagged` only): no points, score, place, prize,
   trophy, badge or Joules, logged in `moderation.tournament_flags` beside W3a's `rated_flags`, "Your result is under
   review." Migrations `20261115200000_tournaments.sql`, `20261115200100_tournament_badges.sql`,
   `20261115200200_analytics_tournament_events.sql` (**not applied until merged**). Events `tournament_entered`,

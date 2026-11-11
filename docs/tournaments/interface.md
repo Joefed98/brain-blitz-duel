@@ -21,7 +21,7 @@ replay, timing or the deal).
 | `src/lib/tournaments/tournaments.functions.ts` | The server functions the phone calls (section 3). |
 | `src/lib/tournaments/tournamentsApi.ts` | The phone's store (backend stand-in for checks: `setTournamentsBackend`). |
 | `src/lib/data/tournaments.server.ts` | Every tournament table read and write (typed, no `any`). |
-| `src/lib/tournaments/tasks/` | The Cron Trigger task: `tournaments:tick` every 5 minutes (`2-59/5 * * * *`): starts, cancels, finishes and pays events, sends reminders. Every read of an event also advances it, so the cron is a safety net. |
+| `src/lib/tournaments/tasks/` | The Cron Trigger task: `tournaments:tick` every 5 minutes (on B2's `*/5 * * * *` trigger): starts, cancels, finishes and pays events, sends reminders. Every read of an event also advances it, so the cron is a safety net. |
 | `supabase/migrations/20261115200000_tournaments.sql` | The tables and functions. |
 | `supabase/migrations/20261115200100_tournament_badges.sql` | The seven tournament badges move from waiting to earnable. |
 | `supabase/migrations/20261115200200_analytics_tournament_events.sql` | The three events and the `tournament` mode. |
@@ -93,7 +93,7 @@ board is read through the server.
 | `tournament_reminders` | `event_id`, `user_id`, `asked_at`, `notified_at`. |
 | `tournament_arena_queue` | The Arena's searchers: `event_id`, `user_id`, `rating`, `joined_at`, `last_opponent`. |
 | `tournament_arena_duels` | Each duel: `id`, `event_id`, `a_user`, `b_user`, `duel_id` (the room), `status` (`playing`, `settled`, `void`), `winner` (`a`, `b`, `draw`), points each side earned, `games` (each game's scores and winner), `created_at`, `settled_at`. |
-| `tournament_arena_players` | The live standings: `points`, `wins`, `losses`, `draws`, `streak`, `best_streak`, `played`, `score_total`, `last_win_at`. |
+| `tournament_arena_players` | The live standings: `points`, `wins`, `losses`, `draws`, `streak`, `best_streak`, `game_streak`, `best_game_streak` (games won in a row, across duels), `played`, `score_total`, `last_win_at`. |
 | `tournament_results` | Final places when an event finishes: `place`, `points` (Arena) or `total` / `tie_ms` (Score Attack). |
 | `tournament_prizes` | One per prize paid: `place`, `coins`, `ledger_id`, `paid_at`. |
 | `tournament_trophies` | One per account and event: `kind`, `medal`, `place`, `title`, `awarded_at`. |
@@ -137,7 +137,7 @@ rule. Coins through `economy_credit` (reason `tournament_prize`, key `tournament
 also writes a `tournament_prizes` row, so it pays once and is logged.
 
 Badges through C2's `badge_award` (idempotent): Entrant (a ranked finish in any tournament), Trophy Hunter (any
-trophy), Arena Ace (8 duel wins in a row in one Arena), Champion (a gold trophy), Arena Champion, Score Attack
+trophy), Arena Ace (8 games won in a row in one Arena, across duels; `applyArenaGames`, the database's `best_game_streak`), Champion (a gold trophy), Arena Champion, Score Attack
 Champion (gold in that kind), Serial Winner (10 gold trophies).
 
 Joules through D2's `creditTournamentJoules`: each settled Arena duel 100 to each player (`eventId`

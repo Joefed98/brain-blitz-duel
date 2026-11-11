@@ -33,6 +33,9 @@ export interface SettleAnswer {
   b_points: number;
   a_streak?: number;
   b_streak?: number;
+  /** Each player's best run of games won in a row in this Arena, after this duel. */
+  a_best_game_streak?: number;
+  b_best_game_streak?: number;
 }
 export interface PrizeAnswer {
   status: "paid" | "duplicate" | "no_account" | "not_finished" | string;

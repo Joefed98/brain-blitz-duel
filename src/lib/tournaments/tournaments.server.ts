@@ -450,14 +450,16 @@ function arenaPlayerOf(row: ArenaPlayerRow): ArenaPlayer {
 
 /** The rating an Arena pairs by: W3a's (through W3b's adapter) for the Arena's format, else the starting rating. */
 async function arenaRating(userId: string): Promise<number> {
-  const { ratings } = await import("@/lib/rated/ratingsAdapter.server");
+  // W3a's engine, bound on first use (ratingsReady); read only: an Arena duel never records a rated match.
+  const { ratingsReady } = await import("@/lib/rated/ratingsAdapter.server");
+  const backend = await ratingsReady();
   try {
-    const r = await ratings().matchRating(userId, { format: ARENA_FORMAT, choice: ARENA_CHOICE });
+    const r = await backend.matchRating(userId, { format: ARENA_FORMAT, choice: ARENA_CHOICE });
     if (r && Number.isFinite(r.rating)) return Math.round(r.rating);
   } catch {
-    // no ratings bound: everyone starts level
+    // no ratings: everyone starts level
   }
-  return ratings().startingRating;
+  return backend.startingRating;
 }
 
 interface Searcher {
@@ -560,9 +562,10 @@ export async function settleArenaDuel(client: Db, duel: ArenaDuelRow, nowMs: num
         console.error("[tournaments] arena Joules", err instanceof Error ? err.message : err);
       }
     }
+    // Arena Ace (Joe, 11 Nov 2026): 8 games won in a row in this Arena, across duels (the database keeps the run).
     const streaks: [string, number | undefined][] = [
-      [duel.a_user, data.a_streak],
-      [duel.b_user, data.b_streak],
+      [duel.a_user, data.a_best_game_streak],
+      [duel.b_user, data.b_best_game_streak],
     ];
     const everFlagged = new Set((await readFlaggedPlayers(client, duel.event_id)).data);
     for (const [user, streak] of streaks)
@@ -596,7 +599,9 @@ async function logDuelFlags(client: Db, duel: ArenaDuelRow, puzzles: readonly Pu
 
 /** Each game's scores and times on slot 1 (a) and slot 2 (b), as W3b's buildMatchResult reads them. */
 export function arenaGames(puzzles: readonly PuzzleData[], results: readonly RoundResultRow[]): { a: number; b: number; aTimeMs: number; bTimeMs: number }[] {
-  return puzzles.map((puzzle, i) => {
+  // Only the games played: a duel stops once won (2–0), so a game no one answered past the last result isn't a game.
+  const played = results.reduce((n, r) => Math.max(n, r.round_number), 0);
+  return puzzles.slice(0, played).map((puzzle, i) => {
     const ra = results.find((r) => r.player_slot === 1 && r.round_number === i + 1);
     const rb = results.find((r) => r.player_slot === 2 && r.round_number === i + 1);
     return { a: ra?.score ?? 0, b: rb?.score ?? 0, aTimeMs: timeUsed(ra, puzzle), bTimeMs: timeUsed(rb, puzzle) };
@@ -724,6 +729,25 @@ export async function arenaBoard(client: Db, userId: string, eventId: unknown, n
     me: mine ? rows.find((r) => r.isMe) ?? rowOf(mine, await accountName(client, userId)) : null,
     underReview: flagged.has(userId),
   };
+}
+
+/**
+ * Whether an Arena duel's room is won once game `round` has its result: the duel stops at 2–0, as W3b's rated best of 3
+ * does (`matchClinched`). False for every other room and on any read failure (play simply goes on).
+ */
+export async function arenaDuelClinched(client: Db, room: { id: string; round_count: number; puzzles_public: unknown }, round: number): Promise<boolean> {
+  try {
+    if (round >= room.round_count || !(await isTournamentRoom(client, room.id))) return false;
+    await loadTimeHelper();
+    const { readRoomResults } = await import("@/lib/data/results.server");
+    const { data: results } = await readRoomResults(client, room.id);
+    const pubs = Array.isArray(room.puzzles_public) ? (room.puzzles_public as unknown as PuzzleData[]) : [];
+    const { matchClinched } = await import("@/lib/rated/matchmaking");
+    const games = arenaGames(pubs.slice(0, round), (results ?? []).filter((r) => r.round_number <= round));
+    return games.length === round && matchClinched(games, room.round_count);
+  } catch {
+    return false;
+  }
 }
 
 /** A room that is an Arena duel (Play again is refused there; chat follows the stranger rules). */
