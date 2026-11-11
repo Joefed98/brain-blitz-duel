@@ -57,7 +57,8 @@ import {
 } from "@/lib/data/tournamentEvents.server";
 import { readRoom, readPrivatePuzzles } from "@/lib/data/rooms.server";
 import { readRoomResults } from "@/lib/data/results.server";
-import { readPublicProfiles } from "@/lib/data/profiles.server";
+import { playerStrips } from "@/lib/identity/playerStrip.server";
+import { deletedStrip, type PlayerStripLook } from "@/lib/identity/playerStrip";
 import { mergePuzzle } from "@/lib/duel/secrets";
 import { tieRoundFor } from "@/lib/duel/tieBreak";
 import { roundTimeUsedMs } from "@/lib/duel/scoring";
@@ -537,6 +538,8 @@ async function awardExtras(client: Db, event: TournamentEventRow, nowMs: number)
 export interface BigStandingRow {
   place: number;
   name: string;
+  /** The nameplate strip (avatar, colour, frame, username); the place and points are drawn outside it. */
+  player: PlayerStripLook;
   me: boolean;
   /** "3–1" (wins–losses), "3–1–1" with draws. */
   record: string;
@@ -549,6 +552,8 @@ export interface BigBracketMatch {
   slot: number;
   nameA: string | null;
   nameB: string | null;
+  playerA: PlayerStripLook | null;
+  playerB: PlayerStripLook | null;
   gamesA: number | null;
   gamesB: number | null;
   winner: "a" | "b" | null;
@@ -560,6 +565,7 @@ export interface BigBracketMatch {
 export interface BigMyMatch {
   roundLabel: string;
   opponent: string | null;
+  opponentPlayer: PlayerStripLook | null;
   opponentRecord: string | null;
   myRecord: string | null;
   bye: boolean;
@@ -584,20 +590,17 @@ export interface BigEventView {
   bracket: BigBracketMatch[];
 }
 
-const DELETED = "Deleted player";
-
-async function namesOf(client: Db, ids: readonly string[]): Promise<Map<string, string>> {
-  const out = new Map<string, string>();
-  const list = [...new Set(ids)];
-  for (let i = 0; i < list.length; i += 100) {
-    const { data } = await readPublicProfiles(client, list.slice(i, i + 100));
-    for (const p of data ?? []) out.set(p.user_id, p.username);
-  }
-  return out;
+/**
+ * Every player on the page as a nameplate strip, in one batch of A1's public cards (Joe, 11 Nov 2026). Event pages
+ * are seen by the event's own entrants, who meet in its rooms by username, so nobody is hidden there; the hall of
+ * fame is open to anyone, so an under-18 winner shows as "Hidden player".
+ */
+async function stripsOf(client: Db, ids: readonly string[], nowMs: number, hideUnder18 = false): Promise<Map<string, PlayerStripLook>> {
+  return playerStrips(client, ids, { nowMs, hideUnder18 });
 }
 
 /** The round, the caller's match, the standings or the bracket (null before the start, or not one of W4c's events). */
-export async function bigEventView(client: Db, eventId: string, userId: string): Promise<BigEventView | null> {
+export async function bigEventView(client: Db, eventId: string, userId: string, nowMs = Date.now()): Promise<BigEventView | null> {
   const parsed = parseBigEventId(eventId);
   if (!parsed) return null;
   const kind = parsed.kind;
@@ -605,8 +608,9 @@ export async function bigEventView(client: Db, eventId: string, userId: string):
   if (!rounds) return null;
   const { data: seeds } = await readSeeds(client, eventId);
   const { data: matches } = await readMatches(client, eventId);
-  const names = await namesOf(client, seeds.map((s) => s.user_id));
-  const nameOf = (id: string | null) => (id ? (names.get(id) ?? DELETED) : null);
+  const strips = await stripsOf(client, seeds.map((s) => s.user_id), nowMs);
+  const stripOf = (id: string | null): PlayerStripLook | null => (id ? (strips.get(id) ?? deletedStrip()) : null);
+  const nameOf = (id: string | null) => stripOf(id)?.name ?? null;
   const flagged = flaggedPlayers(matches);
 
   const recordOf = new Map<string, string>();
@@ -616,7 +620,7 @@ export async function bigEventView(client: Db, eventId: string, userId: string):
     for (const r of table) recordOf.set(r.id, r.draws ? `${r.wins + r.byes}–${r.losses}–${r.draws}` : `${r.wins + r.byes}–${r.losses}`);
     standings = table
       .filter((r) => !flagged.has(r.id))
-      .map((r, i) => ({ place: i + 1, name: nameOf(r.id)!, me: r.id === userId, record: recordOf.get(r.id)!, points: pointsText(r.points2) }));
+      .map((r, i) => ({ place: i + 1, name: nameOf(r.id)!, player: stripOf(r.id)!, me: r.id === userId, record: recordOf.get(r.id)!, points: pointsText(r.points2) }));
   }
   const bracket: BigBracketMatch[] =
     kind === "championship"
@@ -626,6 +630,8 @@ export async function bigEventView(client: Db, eventId: string, userId: string):
           slot: m.slot,
           nameA: nameOf(m.player_a),
           nameB: nameOf(m.player_b),
+          playerA: stripOf(m.player_a),
+          playerB: stripOf(m.player_b),
           gamesA: m.games_a,
           gamesB: m.games_b,
           winner: m.status === "settled" && m.winner ? (m.winner === m.player_a ? "a" : "b") : null,
@@ -650,6 +656,7 @@ export async function bigEventView(client: Db, eventId: string, userId: string):
             : roundName(rounds.bracket_size ?? 2, mine.round)
           : `Round ${mine.round} of ${rounds.rounds_total}`,
       opponent: nameOf(opp),
+      opponentPlayer: stripOf(opp),
       opponentRecord: opp ? (recordOf.get(opp) ?? null) : null,
       myRecord: recordOf.get(userId) ?? null,
       bye: !opp,
@@ -685,13 +692,17 @@ export interface HallOfFameEntry {
   month: string;
   label: string;
   name: string;
+  player: PlayerStripLook;
 }
 
 /** Every Championship winner, newest month first. */
-export async function hallOfFame(client: Db): Promise<HallOfFameEntry[]> {
+export async function hallOfFame(client: Db, nowMs = Date.now()): Promise<HallOfFameEntry[]> {
   const { data } = await readHallOfFame(client);
-  const names = await namesOf(client, data.map((r) => r.user_id));
-  return data.map((r) => ({ month: r.month, label: monthLabel(r.month), name: names.get(r.user_id) ?? DELETED }));
+  const strips = await stripsOf(client, data.map((r) => r.user_id), nowMs, true);
+  return data.map((r) => {
+    const player = strips.get(r.user_id) ?? deletedStrip();
+    return { month: r.month, label: monthLabel(r.month), name: player.name, player };
+  });
 }
 
 /** Whether a room is a Category Cup or Championship match (W4b's isTournamentRoom asks this too). */

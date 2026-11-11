@@ -372,3 +372,45 @@ button.cz-gem {
   color: var(--jz-text-2);
   font: inherit;
 }
+
+/* The nameplate strip (src/design/identity/PlayerStrip.tsx): the player card's name area at row height. Its card art
+   and frame stay inside the strip; rows draw places and scores outside it. */
+.pcard.pstrip {
+  display: block;
+  width: 100%;
+  max-width: 260px;
+  height: 40px;
+  aspect-ratio: auto;
+  container-type: normal;
+  overflow: hidden;
+  border-radius: var(--jz-radius);
+}
+.pstrip .pcard-in {
+  --pc-u: 0.86px;
+}
+.pstrip .pcard-row {
+  left: var(--jz-space-8);
+  right: var(--jz-space-8);
+  gap: var(--jz-space-8);
+}
+.pstrip .pcard-av {
+  width: 30px;
+  height: 30px;
+}
+.pstrip .pcard-initial {
+  font-size: 15px;
+}
+.pcard.pstrip-plain {
+  height: auto;
+  min-height: 24px;
+}
+.pstrip-plain .pcard-in {
+  position: static;
+}
+.pstrip-plain .pcard-row {
+  position: static;
+}
+.pstrip-plain .pcard-name[data-plain] {
+  color: var(--jz-text);
+  text-shadow: none;
+}

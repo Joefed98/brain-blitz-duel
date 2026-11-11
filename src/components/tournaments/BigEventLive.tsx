@@ -12,6 +12,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 
 import { Button, LiveTag, Panel, Row, SectionHeader } from "@/design/components";
+import { PlayerStrip } from "@/design/identity/PlayerStrip";
 import { roundName } from "@/lib/tournaments/knockout";
 import { tournamentsAutomated } from "@/lib/tournaments/tournamentsApi";
 import type { BigBracketMatch, BigEventView, HallOfFameEntry } from "@/lib/tournaments/eventsFlow.server";
@@ -107,8 +108,8 @@ function MyMatch({ view, now }: { view: BigEventView; now: number }) {
           <Row title="A bye this round" sub="It counts as a win. Back next round." />
         ) : (
           <Row
-            title={`You${m.myRecord ? ` ${m.myRecord}` : ""} v ${m.opponent ?? "?"}${m.opponentRecord ? ` ${m.opponentRecord}` : ""}`}
-            sub={m.state === "done" ? (m.result === "won" ? "You won" : m.result === "lost" ? "You lost" : "Drawn") : "Best of 3"}
+            title={m.opponentPlayer ? <PlayerStrip player={m.opponentPlayer} /> : `v ${m.opponent ?? "?"}`}
+            sub={`${m.myRecord ? `You ${m.myRecord}` : "You"}${m.opponentRecord ? ` v ${m.opponentRecord}` : ""} · ${m.state === "done" ? (m.result === "won" ? "You won" : m.result === "lost" ? "You lost" : "Drawn") : "Best of 3"}`}
           />
         )}
       </Panel>
@@ -127,16 +128,32 @@ function Standings({ view }: { view: BigEventView }) {
       <SectionHeader title="Standings" right={<span className="tn-meta">{`${view.field} players`}</span>} />
       <Panel>
         {view.standings.map((s) => (
-          <Row key={`${s.place}-${s.name}`} data-standing={s.place} data-me={s.me ? "" : undefined} className={s.me ? "tn-me" : undefined} title={`${s.place}. ${s.me ? "You" : s.name}`} sub={`${s.record} · ${s.points} pts`} />
+          <Row
+            key={`${s.place}-${s.name}`}
+            data-standing={s.place}
+            data-me={s.me ? "" : undefined}
+            className={s.me ? "tn-me" : undefined}
+            leading={<span className="tn-place" data-place="">{s.place}</span>}
+            title={<PlayerStrip player={s.player} you={s.me} />}
+            sub={`${s.record} · ${s.points} pts`}
+          />
         ))}
       </Panel>
     </section>
   );
 }
 
-function sideName(m: BigBracketMatch, side: "a" | "b"): string {
-  const name = side === "a" ? m.nameA : m.nameB;
-  return name ?? (m.walkover ? "Bye" : "–");
+/** One side of a bracket match: its strip, then the tick and the games won outside it. */
+function Side({ m, side }: { m: BigBracketMatch; side: "a" | "b" }) {
+  const player = side === "a" ? m.playerA : m.playerB;
+  const games = side === "a" ? m.gamesA : m.gamesB;
+  const won = m.winner === side;
+  return (
+    <span className="tn-side" data-side={side}>
+      {player ? <PlayerStrip player={player} /> : <span className="tn-meta">{m.walkover ? "Bye" : "–"}</span>}
+      <span className="tn-side-score" data-side-score="">{`${won ? "✓ " : ""}${games ?? ""}`.trim()}</span>
+    </span>
+  );
 }
 
 function Bracket({ view }: { view: BigEventView }) {
@@ -157,8 +174,13 @@ function Bracket({ view }: { view: BigEventView }) {
                   data-bracket-match={`${m.stage}-${m.round}-${m.slot}`}
                   data-me={m.me ? "" : undefined}
                   className={m.me ? "tn-me" : undefined}
-                  title={`${m.winner === "a" ? "✓ " : ""}${sideName(m, "a")} ${m.gamesA ?? ""}`.trim()}
-                  sub={`${m.stage === "third_place" ? "Third place · " : ""}${m.winner === "b" ? "✓ " : ""}${sideName(m, "b")} ${m.gamesB ?? ""}`.trim()}
+                  title={<Side m={m} side="a" />}
+                  sub={
+                    <>
+                      {m.stage === "third_place" ? <span className="tn-meta">Third place</span> : null}
+                      <Side m={m} side="b" />
+                    </>
+                  }
                 >
                   {m.live ? <LiveTag /> : null}
                 </Row>
@@ -199,7 +221,7 @@ function HallOfFameOn() {
       <SectionHeader title="Hall of fame" />
       <Panel>
         {rows.map((r) => (
-          <Row key={r.month} data-hall-row={r.month} title={r.name} sub={`Joulz Champion, ${r.label}`} />
+          <Row key={r.month} data-hall-row={r.month} title={<PlayerStrip player={r.player} />} sub={`Joulz Champion, ${r.label}`} />
         ))}
       </Panel>
     </section>

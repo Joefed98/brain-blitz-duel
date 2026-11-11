@@ -104,6 +104,15 @@ answer nothing (`bigEventFn` goes through W4b's `eventFor`; `hallOfFameFn` reads
 - **Ratings**: never changed. A tournament room is never a rated match; nothing here calls the ratings.
 - **Rooms**: W4b's `isTournamentRoom` counts W4c's match rooms, so Play again is refused there ("Your next match opens when the round does.", `BIG_EVENT_PLAY_AGAIN_LINE`) and chat follows wave 1's
   stranger rules (guests and under-18s pick quick phrases).
+- **Players' strips** (Joe, 11 Nov 2026: a player's card, avatar and frame show wherever they appear): every
+  standings, bracket, your-match and hall-of-fame row draws the player as the nameplate strip from A2's player card
+  (`PlayerStrip`, `src/design/identity/PlayerStrip.tsx`: avatar in their colour, card art and frame behind the name
+  area only, the username in its name colour); places, records, points, ticks and games sit outside it. The strips
+  come with the page's one call (`bigEventFn`, `hallOfFameFn`), built server side in one batch of A1's public cards
+  (`playerStrips`, `src/lib/identity/playerStrip.server.ts`). Event pages are seen by the event's own entrants, who
+  meet in its rooms by username, so nobody is hidden there; the hall of fame is open to anyone, so an under-18 winner
+  shows as "Hidden player" with no colour, avatar or cosmetics; a deleted account as "Deleted player"; a guest (none
+  enter these events) would keep colour and initial. player-strips-check (happy-dom, ~2 s).
 - **Hall of fame**: every Championship winner by month, newest first, on the Tournaments tab while the Championship is
   on (a deleted account shows as "Deleted player").
 

@@ -203,3 +203,26 @@ ul.tn-how {
   font-weight: var(--jz-weight-medium);
   color: var(--jz-text-2);
 }
+
+/* Rows with nameplate strips (W4c): the place, ticks and games sit outside the strip, never on its cosmetics. */
+.tn-place {
+  flex: none;
+  min-width: 28px;
+  font-size: 16px;
+  font-weight: var(--jz-weight-medium);
+  font-variant-numeric: tabular-nums;
+  color: var(--jz-text);
+  text-align: center;
+}
+.tn-side {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: var(--jz-space-8);
+}
+.tn-side-score {
+  flex: none;
+  font-size: 15px;
+  font-variant-numeric: tabular-nums;
+  color: var(--jz-text);
+}
