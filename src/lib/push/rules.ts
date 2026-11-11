@@ -3,10 +3,13 @@
  * server. Pure: no I/O, no clock of its own (every function takes the time it judges).
  *
  * The six events of the master plan, each with its own switch under the player's master switch:
- *  - friend_request, friend_accepted, friend_challenge: sent when B1's friends code calls notify.server.ts;
- *  - room_invite: a friend inviting you to their room (exempt from the daily cap, and from quiet hours while fresh);
+ *  - friend_request, friend_accepted, friend_challenge: from B1's recorded friend events (notify.server.ts
+ *    dispatchFriendEvents);
+ *  - room_invite: a friend inviting you to their room, also from B1's events (exempt from the daily cap, and from quiet
+ *    hours while fresh);
  *  - tournament_starting: the type exists so the setting can be shown; nothing sends it until wave 4;
- *  - daily_streak: the evening reminder (UK time), only to a player with a live streak who hasn't played today's Daily.
+ *  - daily_streak: the evening reminder (UK time), only to a player with a live streak (train C's, on the account) who
+ *    hasn't played today's Daily.
  *
  * Limits: at most DAILY_CAP a day (the player's own day) apart from room invites; nothing between QUIET_FROM_HOUR and
  * QUIET_TO_HOUR in the player's time zone except a room invite a friend has just sent (within INVITE_FRESH_MS).

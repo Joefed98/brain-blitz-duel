@@ -1980,19 +1980,22 @@ outside the repo.
   stamp, timing or room-flow change): standard web push with Joulz's own VAPID keys, no package (RFC 8291 / 8292 in
   WebCrypto, `src/lib/push/webPush.server.ts`). **Off until Joe sets `PUSH_PUBLIC_KEY`** (`src/config/pushConfig.ts`) and the
   Worker secret `VAPID_PRIVATE_KEY`: nothing asks, subscribes or sends, and no settings panel shows. Six events
-  (`PUSH_EVENTS` in `src/lib/push/rules.ts`): friend request, friend accepted, friend challenge, room invite (B1 calls
-  `notifyFriendRequest` / `notifyFriendAccepted` / `notifyFriendChallenge` / `notifyRoomInvite` in `notify.server.ts`, the one
-  place a notification is decided and sent), tournament starting (exists; nothing sends it until wave 4) and the Daily streak
-  reminder (`POST /api/push/daily-reminder`, `PUSH_CRON_SECRET`, run by `.github/workflows/push-reminder.yml` twice each evening;
-  only 19:00–20:59 UK, a live streak, today's Daily not played; `push_streak_candidates` reads the Daily's attempts until C2's
-  server streak). A switch per event under a master switch (Settings → Notifications), at most 3 a day (room invites apart),
-  none 22:00–08:00 on the device's clock except a fresh room invite; held-back ones are dropped. The ask: never on first open,
-  at a useful moment (`notePushMoment`; a finished Daily, B1's friend moments), on the next tab page (`NotificationAskSlot`),
-  30 days after a decline; an iPhone in Safari gets the Home Screen how-to. Accounts only (rows hang off `profiles`); sign-out
+  (`PUSH_EVENTS` in `src/lib/push/rules.ts`), decided and sent only in `notify.server.ts`: friend request, friend accepted,
+  friend challenge and room invite from B1's `friend_events` (`dispatchFriendEvents`, each claimed once through
+  `push_claim_friend_events`; run right after B1's change, `notifySoon` in friends.server.ts, and every 5 minutes),
+  tournament starting (exists; nothing sends it until wave 4) and the Daily streak reminder (19:00–20:59 UK, C2's
+  `dailyStreakFor` streak ≥ 1 with today's Daily not played). Schedules are the Worker's own **Cron Triggers**: nitro
+  scheduled tasks in `vite.config.ts` (`src/lib/push/tasks/`, `*/5 * * * *` friend sweep, `41 * * * *` reminder), written
+  into wrangler.json's `triggers.crons` by the build. A switch per event under a master switch (Settings → Notifications),
+  at most 3 a day (room invites apart), none 22:00–08:00 on the device's clock (its IANA zone, sent on subscribe and each
+  open) except a fresh room invite; held-back ones are dropped. The ask: never on first open, at a useful moment
+  (`notePushMoment`: a friend request sent or waiting, a finished Daily), on the next tab page (`NotificationAskSlot`), 30
+  days after a decline; an iPhone in Safari gets the Home Screen how-to. Accounts only (rows hang off `profiles`); sign-out
   removes the device (`forgetPushOnSignOut`), a 404/410 from the push service removes it, a deletion request removes all.
   The `push` / `notificationclick` listeners (`src/lib/push/sw.push.js`) are appended to the offline worker by swPlugin; the
-  offline worker itself is unchanged. Migration `20261111120000_push_notifications.sql` (**not applied until merged**).
-  Events `notification_opt_in`, `notification_sent`, `notification_opened`. push-notifications-check (~5 s, shard `e`).
+  offline worker itself is unchanged. Migration `20261111200000_push_notifications.sql` (after C2's and B1's; **not applied
+  until merged**). Events `notification_opt_in`, `notification_sent`, `notification_opened`. push-notifications-check (~5 s,
+  shard `e`).
 - **Badges, titles and the account rewards** (wave 2 train C, session C2, 11 Nov 2026, `docs/badges/README.md`; no
   gameplay, scoring, stamp or timing change): the 54 badges of `docs/art/badges/badges.json` and the 32 titles in one
   list, `src/lib/badges/catalogue.ts` (seeded by `20261111120000_badges_titles.sql`, **not applied until merged**),

@@ -192,9 +192,11 @@ async function send(
   switch (data.result) {
     case "sent":
       if (data.created) recordEvents({ event: "friend_request_sent", playerId: userId, props: { via } });
+      if (data.created) notifySoon(client);
       return { ok: true, outcome: "sent", friend: null };
     case "accepted":
       recordEvents({ event: "friend_added", playerId: userId, props: { via } });
+      notifySoon(client);
       return { ok: true, outcome: "accepted", friend: null };
     case "friends":
       return { ok: true, outcome: "friends", friend: null };
@@ -248,6 +250,7 @@ export async function respond(
   if (data.result === "missing") return { ok: true, outcome: "gone" };
   if (data.result === "cap" || data.result === "their_cap") return refusal(data.result);
   if (data.result === "accepted") recordEvents({ event: "friend_added", playerId: userId, props: { via: data.via ?? "link" } });
+  if (data.result === "accepted") notifySoon(client);
   return { ok: true, outcome: data.result };
 }
 
@@ -316,6 +319,7 @@ export async function inviteFriendToRoom(client: Db, userId: string, friendId: u
   const { data, error } = await inviteToRoom(client, userId, friendId);
   if (error || !data) return refusal("error");
   if (data.result !== "sent") return refusal(data.result);
+  notifySoon(client);
   return { ok: true, code: data.code ?? "" };
 }
 
@@ -334,6 +338,7 @@ export async function sendChallenge(
   const { data, error } = await sendChallengeData(client, userId, friendId, code.toUpperCase());
   if (error || !data) return refusal("error");
   if (data.result !== "sent") return refusal(data.result);
+  notifySoon(client);
   return { ok: true, sent: true };
 }
 
@@ -367,4 +372,13 @@ export async function areFriends(client: Db, a: string, b: string): Promise<bool
   if (!playerIdOk(a) || !playerIdOk(b) || a === b) return false;
   const { data, error } = await readAreFriends(client, a, b);
   return !error && data;
+}
+
+/**
+ * Phone notifications (B2): the friend event this change recorded (public.friend_events) is sent in the background
+ * (src/lib/push/notify.server.ts dispatchFriendEvents; the Cron Trigger's five-minute sweep catches anything missed).
+ * Never awaited, never throws; nothing while the push keys aren't set.
+ */
+function notifySoon(client: Db): void {
+  void import("@/lib/push/notify.server").then((m) => m.dispatchFriendEventsSoon(client)).catch(() => {});
 }

@@ -190,6 +190,12 @@ export function outcomeOf(status: number): PushOutcome {
   return "failed";
 }
 
+/** Checks only: the push service every send uses when its caller gives none (a stand-in, never the network). */
+let fetchForChecks: typeof fetch | null = null;
+export function setPushFetchForChecks(stand: typeof fetch | null): void {
+  fetchForChecks = stand;
+}
+
 /** Sends one encrypted message. Never throws: a network error or a refusal is "failed". */
 export async function sendPush(
   target: PushTarget,
@@ -216,7 +222,7 @@ export async function sendPush(
       urgency: opts.urgency ?? "normal",
     };
     if (opts.topic && /^[A-Za-z0-9_-]{1,32}$/.test(opts.topic)) headers["topic"] = opts.topic;
-    const response = await (opts.fetchImpl ?? fetch)(target.endpoint, { method: "POST", headers, body: buf(body) });
+    const response = await (opts.fetchImpl ?? fetchForChecks ?? fetch)(target.endpoint, { method: "POST", headers, body: buf(body) });
     return { outcome: outcomeOf(response.status), status: response.status };
   } catch {
     return { outcome: "failed", status: 0 };

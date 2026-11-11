@@ -14,15 +14,18 @@
 
 import type { Db } from "@/lib/data/db.server";
 import { recordEvents } from "@/lib/data/events.server";
+import { readPublicProfiles } from "@/lib/data/profiles.server";
 import {
+  claimFriendEvents,
   deleteGoneSubscription,
   readNotificationSettings,
-  readPlayedDaily,
   readPushSubscriptions,
   readStreakCandidates,
   reserveNotification,
+  type FriendEventRow,
 } from "@/lib/data/push.server";
 import { ukDayKey } from "@/lib/duel/daily";
+import { dailyStreakFor } from "@/lib/duel/dailyStreak.server";
 
 import { messageFor, type MessageInput } from "./messages";
 import {
@@ -170,11 +173,17 @@ export interface ReminderRun {
 }
 
 /**
- * The Daily streak reminder for today (UK): run by the scheduler (the /api/push/daily-reminder route) in the evening.
- * Only inside STREAK_REMINDER_UK_HOURS; once per player per UK day (the log's key); only to players with a live
- * streak who haven't started today's Daily (checked again right before each send); quiet hours on their own clock.
+ * The Daily streak reminder for today (UK): run by the Worker's Cron Trigger every hour (the push task in
+ * src/lib/push/tasks/), so it acts only inside STREAK_REMINDER_UK_HOURS (19:00–20:59 UK, GMT or BST). Once per player per
+ * UK day (the log's key). push_streak_candidates narrows to accounts with a device and the reminder on who started a
+ * Daily in the last 60 days and none today; then train C's own streak (dailyStreakFor, the account's Daily history
+ * with streak freezes) decides: only a live streak (1 or more) with today's Daily not played is reminded. Quiet hours
+ * on the player's own clock.
  */
-export async function runDailyStreakReminders(client: Db, opts: NotifyOptions & { limit?: number } = {}): Promise<ReminderRun> {
+export async function runDailyStreakReminders(
+  client: Db,
+  opts: NotifyOptions & { limit?: number; streakOf?: typeof dailyStreakFor } = {},
+): Promise<ReminderRun> {
   const nowMs = opts.nowMs ?? Date.now();
   const day = ukDayKey(nowMs);
   const run: ReminderRun = { day, inWindow: false, candidates: 0, outcomes: {} };
@@ -193,15 +202,127 @@ export async function runDailyStreakReminders(client: Db, opts: NotifyOptions & 
   }
   const people = list.data.slice(0, opts.limit ?? 5000);
   run.candidates = people.length;
+  const streakOf = opts.streakOf ?? dailyStreakFor;
   for (const person of people) {
     let outcome: NotifyOutcome;
     if (inQuietHours(nowMs, safeTimeZone(person.time_zone))) outcome = "quiet";
     else {
-      const played = await readPlayedDaily(client, person.user_id, day);
-      if (played.data !== false) outcome = played.error ? "failed" : "off";
-      else outcome = await notify(client, person.user_id, "daily_streak", {}, { ...opts, keys, nowMs, dedupeKey: `daily_streak:${day}` });
+      let facts: { streak: number; playedToday: boolean } | null = null;
+      try {
+        facts = await streakOf(client, person.user_id, nowMs);
+      } catch (err) {
+        warn(`daily_streak: streak: ${err instanceof Error ? err.message : String(err)}`);
+      }
+      if (!facts) outcome = "failed";
+      else if (facts.playedToday || facts.streak < 1) outcome = "off";
+      else
+        outcome = await notify(client, person.user_id, "daily_streak", { streak: facts.streak }, { ...opts, keys, nowMs, dedupeKey: `daily_streak:${day}` });
     }
     run.outcomes[outcome] = (run.outcomes[outcome] ?? 0) + 1;
   }
   return run;
+}
+
+/* ------------------------------------------------------------------ B1's friend events */
+
+/** How far back a dispatch looks for unsent friend events, and how long a room invite stays worth sending. */
+export const FRIEND_EVENT_LOOKBACK_MS = 60 * 60_000;
+export const ROOM_INVITE_SEND_WITHIN_MS = 10 * 60_000;
+
+const FRIEND_EVENT_TO_PUSH: Record<string, PushEvent> = {
+  friend_request_received: "friend_request",
+  friend_request_accepted: "friend_accepted",
+  friend_challenge_received: "friend_challenge",
+  room_invite_received: "room_invite",
+};
+
+export interface FriendDispatch {
+  claimed: number;
+  outcomes: Partial<Record<NotifyOutcome | "stale" | "unknown", number>>;
+}
+
+/**
+ * Turns B1's recorded friend events (public.friend_events: friend_request_received, friend_request_accepted,
+ * friend_challenge_received, room_invite_received) into notifications. Each event is claimed once
+ * (push_claim_friend_events), so the request's own dispatch (friends.server.ts, right after the change) and the
+ * five-minute sweep (the Cron Trigger) never both send it. The friend's username comes from public_profiles. A room
+ * invite older than ROOM_INVITE_SEND_WITHIN_MS isn't sent (the lobby has likely moved on). Never throws.
+ */
+export async function dispatchFriendEvents(client: Db, opts: NotifyOptions & { limit?: number } = {}): Promise<FriendDispatch> {
+  const out: FriendDispatch = { claimed: 0, outcomes: {} };
+  try {
+    const keys = opts.keys === undefined ? vapidKeys() : opts.keys;
+    // Off: nothing is claimed, so the events stay for when it comes on (the lookback then bounds what is sent).
+    if (!keys) {
+      out.outcomes.disabled = 1;
+      return out;
+    }
+    const nowMs = opts.nowMs ?? Date.now();
+    const claimed = await claimFriendEvents(client, new Date(nowMs - FRIEND_EVENT_LOOKBACK_MS).toISOString(), opts.limit ?? 200);
+    if (claimed.error) {
+      warn(`friend events: ${claimed.error.message}`);
+      out.outcomes.failed = 1;
+      return out;
+    }
+    out.claimed = claimed.data.length;
+    if (!claimed.data.length) return out;
+    const names = await readPublicProfiles(client, [...new Set(claimed.data.map((e) => e.actor_id))]);
+    const nameOf = new Map((names.data ?? []).map((p) => [p.user_id, p.username]));
+    for (const event of claimed.data) {
+      const outcome = await sendFriendEvent(client, event, nameOf.get(event.actor_id) ?? null, { ...opts, keys, nowMs });
+      out.outcomes[outcome] = (out.outcomes[outcome] ?? 0) + 1;
+    }
+  } catch (err) {
+    warn(`friend events: ${err instanceof Error ? err.message : String(err)}`);
+    out.outcomes.failed = (out.outcomes.failed ?? 0) + 1;
+  }
+  return out;
+}
+
+async function sendFriendEvent(
+  client: Db,
+  event: FriendEventRow,
+  actorName: string | null,
+  opts: NotifyOptions & { nowMs: number },
+): Promise<NotifyOutcome | "stale" | "unknown"> {
+  const push = FRIEND_EVENT_TO_PUSH[event.kind];
+  if (!push) return "unknown";
+  const from = actorName ?? "A friend";
+  const code = typeof event.payload?.code === "string" ? event.payload.code : "";
+  const at = Date.parse(event.created_at);
+  switch (push) {
+    case "friend_request":
+      return notifyFriendRequest(client, event.recipient_id, from, opts);
+    case "friend_accepted":
+      return notifyFriendAccepted(client, event.recipient_id, from, opts);
+    case "friend_challenge":
+      return code ? notifyFriendChallenge(client, event.recipient_id, from, code, opts) : "unknown";
+    case "room_invite":
+      if (!code) return "unknown";
+      if (!Number.isFinite(at) || opts.nowMs - at > ROOM_INVITE_SEND_WITHIN_MS) return "stale";
+      return notifyRoomInvite(client, event.recipient_id, from, code, { ...opts, causedAtMs: at });
+    default:
+      return "unknown";
+  }
+}
+
+/**
+ * The request's own dispatch, after a B1 change that may have recorded a friend event: in the background (Cloudflare's
+ * waitUntil where there is one), never awaited by the response, never throwing. Does nothing while the keys aren't set.
+ */
+export function dispatchFriendEventsSoon(client: Db): void {
+  if (!vapidKeys()) return;
+  const task = dispatchFriendEvents(client).then(
+    () => undefined,
+    () => undefined,
+  );
+  void (async () => {
+    try {
+      const { getRequest } = await import("@tanstack/react-start/server");
+      const request = getRequest() as (Request & { waitUntil?: (p: Promise<unknown>) => void }) | undefined;
+      request?.waitUntil?.(task);
+    } catch {
+      /* no request context: the task still runs */
+    }
+  })();
 }

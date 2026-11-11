@@ -1247,6 +1247,21 @@ export type Database = {
         }
         Relationships: []
       }
+      push_friend_deliveries: {
+        Row: {
+          claimed_at: string
+          event_id: number
+        }
+        Insert: {
+          claimed_at?: string
+          event_id: number
+        }
+        Update: {
+          claimed_at?: string
+          event_id?: number
+        }
+        Relationships: []
+      }
       push_subscriptions: {
         Row: {
           auth: string
@@ -1859,9 +1874,16 @@ export type Database = {
         }[]
       }
       push_log_retention: { Args: Record<PropertyKey, never>; Returns: number }
-      push_played_daily: {
-        Args: { p_day: string; p_user_id: string }
-        Returns: boolean
+      push_claim_friend_events: {
+        Args: { p_limit: number; p_since: string }
+        Returns: {
+          actor_id: string
+          created_at: string
+          id: number
+          kind: string
+          payload: Json
+          recipient_id: string
+        }[]
       }
       push_reserve: {
         Args: {

@@ -1,6 +1,7 @@
 -- Phone notifications (wave 2 train B, session B2; 11 Nov 2026; docs/push-notifications.md). Additive and idempotent:
--- three new tables, three service-role functions, a retention job and three analytics events; no existing row, table,
--- column or policy is changed.
+-- four new tables, four service-role functions, a retention job and three analytics events; no existing row, table,
+-- column or policy is changed. Needs train C's public.daily_history (20261111120000_badges_titles.sql) and train B1's
+-- public.friend_events (20261111180000_friends.sql), both earlier.
 --
 --  public.push_subscriptions   one row per account and device (a browser's push subscription). Accounts only: the row
 --                               hangs off public.profiles, so a guest can't have one and an account's removal takes
@@ -10,6 +11,8 @@
 --                               and when the player declined. A player may read, add and change their own row.
 --  public.notification_log      one row per notification sent (the daily cap, the streak reminder's once a day);
 --                               service role only. Kept 30 days (pg_cron job `push-log-retention`).
+--  public.push_friend_deliveries which of B1's friend events have been taken for a notification (each sent at most
+--                               once); service role only.
 --
 -- Every function is for the service role only (anon and authenticated can't call them).
 
@@ -133,12 +136,12 @@ $$;
 REVOKE ALL ON FUNCTION public.push_reserve(uuid, text, boolean, timestamptz, integer, text) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.push_reserve(uuid, text, boolean, timestamptz, integer, text) TO service_role;
 
--- Who gets the Daily streak reminder for UK day p_day: an account with a device, notifications and the reminder on (no
--- settings row: the defaults, on), a live streak (it played a Daily on the day before) and no Daily started on p_day,
--- not yet reminded for p_day. With each, its newest device's time zone (the caller applies quiet hours).
---
--- The streak and "played today's Daily" are read from the Daily's own attempts (async_attempts on the day's
--- daily_puzzle / daily_arcade rooms) until train C's server-side streak lands; then only this body changes.
+-- Who may get the Daily streak reminder for UK day p_day: an account (not being deleted) with a device, notifications
+-- and the reminder on (no settings row: the defaults, on), a Daily started in the 60 days before p_day and none on
+-- p_day, not yet reminded for p_day; with each, its newest device's time zone. Read from train C's Daily history
+-- (public.daily_history, the starts the account's streak is worked out from). This is only the narrowing: the server
+-- then asks C2's dailyStreakFor (src/lib/duel/dailyStreak.server.ts) for the streak itself, freezes included, and
+-- reminds only a live streak with today's Daily not played (src/lib/push/notify.server.ts).
 CREATE OR REPLACE FUNCTION public.push_streak_candidates(p_day date)
 RETURNS TABLE (user_id uuid, time_zone text)
 LANGUAGE sql
@@ -152,14 +155,8 @@ AS $$
    WHERE p.deletion_requested_at IS NULL
      AND EXISTS (SELECT 1 FROM public.push_subscriptions s WHERE s.user_id = p.user_id)
      AND coalesce(ns.enabled, true) AND coalesce(ns.daily_streak, true)
-     AND EXISTS (
-       SELECT 1 FROM public.async_attempts a JOIN public.async_rooms r ON r.id = a.room_id
-        WHERE a.user_id = p.user_id AND r.kind IN ('daily_puzzle', 'daily_arcade') AND r.day = p_day - 1
-     )
-     AND NOT EXISTS (
-       SELECT 1 FROM public.async_attempts a JOIN public.async_rooms r ON r.id = a.room_id
-        WHERE a.user_id = p.user_id AND r.kind IN ('daily_puzzle', 'daily_arcade') AND r.day = p_day
-     )
+     AND EXISTS (SELECT 1 FROM public.daily_history(p.user_id) h WHERE h.day < p_day AND h.day >= p_day - 60)
+     AND NOT EXISTS (SELECT 1 FROM public.daily_history(p.user_id) h WHERE h.day = p_day)
      AND NOT EXISTS (
        SELECT 1 FROM public.notification_log l
         WHERE l.user_id = p.user_id AND l.dedupe_key = 'daily_streak:' || p_day::text
@@ -169,20 +166,41 @@ $$;
 REVOKE ALL ON FUNCTION public.push_streak_candidates(date) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.push_streak_candidates(date) TO service_role;
 
--- Whether a player started any Daily on UK day p_day (the reminder's last look before sending).
-CREATE OR REPLACE FUNCTION public.push_played_daily(p_user_id uuid, p_day date)
-RETURNS boolean
+/* ------------------------------------------------------------------ friend events (train B1's outbox) */
+
+-- Which of B1's public.friend_events have been taken for a notification: one row per event, claimed once (so the
+-- request's own dispatch and the five-minute sweep never both send it). Goes with its event.
+CREATE TABLE IF NOT EXISTS public.push_friend_deliveries (
+  event_id bigint PRIMARY KEY REFERENCES public.friend_events (id) ON DELETE CASCADE,
+  claimed_at timestamptz NOT NULL DEFAULT now()
+);
+ALTER TABLE public.push_friend_deliveries ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON public.push_friend_deliveries FROM PUBLIC, anon, authenticated;
+GRANT ALL ON public.push_friend_deliveries TO service_role;
+
+-- Claims up to p_limit friend events made since p_since (all recipients, oldest first) that no one has claimed, and
+-- returns them. Atomic: two dispatches at once never return the same event.
+CREATE OR REPLACE FUNCTION public.push_claim_friend_events(p_since timestamptz, p_limit integer)
+RETURNS TABLE (id bigint, recipient_id uuid, actor_id uuid, kind text, payload jsonb, created_at timestamptz)
 LANGUAGE sql
-STABLE
 SET search_path = public
 AS $$
-  SELECT EXISTS (
-    SELECT 1 FROM public.async_attempts a JOIN public.async_rooms r ON r.id = a.room_id
-     WHERE a.user_id = p_user_id AND r.kind IN ('daily_puzzle', 'daily_arcade') AND r.day = p_day
+  WITH c AS (
+    INSERT INTO public.push_friend_deliveries (event_id)
+    SELECT e.id FROM public.friend_events e
+     WHERE e.created_at >= p_since
+       AND NOT EXISTS (SELECT 1 FROM public.push_friend_deliveries d WHERE d.event_id = e.id)
+     ORDER BY e.id
+     LIMIT greatest(0, least(p_limit, 500))
+    ON CONFLICT (event_id) DO NOTHING
+    RETURNING event_id
   )
+  SELECT e.id, e.recipient_id, e.actor_id, e.kind, e.payload, e.created_at
+    FROM public.friend_events e JOIN c ON c.event_id = e.id
+   ORDER BY e.id
 $$;
-REVOKE ALL ON FUNCTION public.push_played_daily(uuid, date) FROM PUBLIC, anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.push_played_daily(uuid, date) TO service_role;
+REVOKE ALL ON FUNCTION public.push_claim_friend_events(timestamptz, integer) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.push_claim_friend_events(timestamptz, integer) TO service_role;
 
 -- The log's retention: rows older than 30 days (the cap looks back one day, the reminder's key one).
 CREATE OR REPLACE FUNCTION public.push_log_retention() RETURNS integer
@@ -194,6 +212,7 @@ DECLARE
 BEGIN
   DELETE FROM public.notification_log WHERE sent_at < now() - interval '30 days';
   GET DIAGNOSTICS n = ROW_COUNT;
+  DELETE FROM public.push_friend_deliveries WHERE claimed_at < now() - interval '30 days';
   RETURN n;
 END
 $$;

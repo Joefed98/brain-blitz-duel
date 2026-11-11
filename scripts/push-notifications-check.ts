@@ -358,6 +358,11 @@ const FAY = uid(46); // played today
 const GUS = uid(47); // Tokyo (quiet at the UK evening)
 const HAL = uid(48); // reminder switched off
 const IVY = uid(49); // deletion
+const JAY = uid(50); // a Daily five days ago: no live streak
+const KIM = uid(51); // receives a real friend request (B1)
+const LEO = uid(52); // sends it
+
+const ACCOUNTS = { ANA, BEN, DAN, ELI, FAY, GUS, HAL, IVY, JAY, KIM, LEO };
 
 async function databaseChecks(db: LocalDb, rest: RestServer): Promise<void> {
   const fns = await import("../src/lib/push/push.functions");
@@ -389,7 +394,7 @@ async function databaseChecks(db: LocalDb, rest: RestServer): Promise<void> {
   };
   const subs = (id: string) => Number(q(`SELECT count(*) FROM push_subscriptions WHERE user_id = '${id}'`));
   const tok: Record<string, string> = {};
-  for (const [name, id] of Object.entries({ ANA, BEN, DAN, ELI, FAY, GUS, HAL, IVY })) tok[name] = accountToken(id);
+  for (const [name, id] of Object.entries(ACCOUNTS)) tok[name] = accountToken(id);
   tok["CAT"] = userToken(CAT);
 
   // The keys, as the Worker would have them (the public setting stands in through VAPID_PUBLIC_KEY).
@@ -412,9 +417,9 @@ async function databaseChecks(db: LocalDb, rest: RestServer): Promise<void> {
     return call(fns.savePushSubscriptionFn, { endpoint: device.endpoint, keys: { p256dh: device.p256dh, auth: device.auth }, timeZone }, tok[who]!);
   };
 
-  for (const [name, id] of Object.entries({ ANA, BEN, DAN, ELI, FAY, GUS, HAL, IVY }))
+  for (const [name, id] of Object.entries(ACCOUNTS))
     q(`SELECT public.create_profile('${id}', '${name.charAt(0)}${name.slice(1).toLowerCase()}_Push', 3::smallint, DATE '1990-01-01', NULL)`);
-  check(Number(q(`SELECT count(*) FROM profiles WHERE user_id IN ('${ANA}','${BEN}','${DAN}','${ELI}','${FAY}','${GUS}','${HAL}','${IVY}')`)) === 8, "eight accounts made");
+  check(Number(q(`SELECT count(*) FROM profiles WHERE user_id IN (${Object.values(ACCOUNTS).map((id) => `'${id}'`).join(",")})`)) === 11, "eleven accounts made");
 
   /* ------------------------------------------------------------- switch off */
   await section("switch off", async () => {
@@ -547,45 +552,133 @@ async function databaseChecks(db: LocalDb, rest: RestServer): Promise<void> {
   });
 
   /* ------------------------------------------------------------- the streak reminder */
-  await section("streak reminder", async () => {
+  await section("streak reminder (C2's Daily streak)", async () => {
+    const { dailyStreakFor } = await import("../src/lib/duel/dailyStreak.server");
     const day = "2026-11-11";
     const room = (kind: string, d: string) =>
       q(`INSERT INTO async_rooms (kind, room_key, day, seed, round_count, opens_at, closes_at) VALUES ('${kind}', '${kind}:${d}', DATE '${d}', 1, 3, TIMESTAMPTZ '${d} 00:00Z', TIMESTAMPTZ '${d} 00:00Z' + interval '1 day') RETURNING id`).split("\n")[0]!.trim();
+    const d9 = room("daily_puzzle", "2026-11-09");
     const yPuzzle = room("daily_puzzle", "2026-11-10");
     const yArcade = room("daily_arcade", "2026-11-10");
     const tPuzzle = room("daily_puzzle", day);
+    const d6 = room("daily_puzzle", "2026-11-06");
     const attempt = (roomId: string, user: string) => q(`INSERT INTO async_attempts (room_id, user_id, display_name) VALUES ('${roomId}', '${user}', 'P')`);
-    for (const who of ["ELI", "FAY", "HAL"]) await register(who, makeDevice(who.toLowerCase()));
-    attempt(yPuzzle, ANA); // live streak, not today → reminded
+    for (const who of ["ELI", "FAY", "HAL", "JAY"]) await register(who, makeDevice(who.toLowerCase()));
+    attempt(d9, ANA);
+    attempt(yPuzzle, ANA); // a two-day streak, not played today → reminded
     attempt(yArcade, FAY);
     attempt(tPuzzle, FAY); // played today → not
     attempt(yPuzzle, GUS); // Tokyo: quiet at the UK evening
     attempt(yPuzzle, HAL); // reminder switched off
     attempt(yPuzzle, CAT); // a guest → never
-    // ELI: no Daily yesterday → no streak, not reminded.
+    attempt(d6, JAY); // five days ago only: C2's streak is 0 → not reminded
+    // ELI: no Daily at all → not a candidate.
     await call(fns.setPushSettingsFn, { daily_streak: false }, tok["HAL"]!);
 
-    clock = Date.UTC(2026, 10, 11, 17, 37); // 17:37 UK: outside the window
+    clock = Date.UTC(2026, 10, 11, 19, 41);
+    const anaStreak = await dailyStreakFor(admin, ANA, clock);
+    const jayStreak = await dailyStreakFor(admin, JAY, clock);
+    const fayStreak = await dailyStreakFor(admin, FAY, clock);
+    check(anaStreak.streak === 2 && !anaStreak.playedToday && jayStreak.streak === 0 && fayStreak.playedToday, `C2's streak on the account: Ana 2 not played today, Jay 0, Fay played today (${JSON.stringify([anaStreak, jayStreak, fayStreak])})`);
+
+    clock = Date.UTC(2026, 10, 11, 17, 41); // 17:41 UK: outside the window
     const early = await notify.runDailyStreakReminders(admin, opts());
     check(!early.inWindow && early.candidates === 0 && Number(q(`SELECT count(*) FROM notification_log`)) === 0, "outside 19:00–20:59 UK: nothing looked at, nothing sent");
-    clock = Date.UTC(2026, 10, 11, 19, 37); // 19:37 UK (GMT)
+    clock = Date.UTC(2026, 10, 11, 19, 41); // 19:41 UK (GMT)
     const n = service.delivered.length;
     const run = await notify.runDailyStreakReminders(admin, opts());
     const reminded = q(`SELECT string_agg(user_id::text, ',' ORDER BY user_id) FROM notification_log WHERE event = 'daily_streak'`);
-    check(run.inWindow && run.day === day && reminded === ANA, `in the window: only the player with a live streak who hasn't played today is reminded (${reminded})`);
-    check(run.outcomes.sent === 1 && run.outcomes.quiet === 1 && run.candidates === 2, `Gus (Tokyo, 04:37) is skipped for quiet hours; Fay, Hal, Eli and the guest aren't candidates (${JSON.stringify(run)})`);
-    check(service.delivered.slice(n).every((g) => g.payload?.event === "daily_streak" && g.payload.url === "/daily" && g.vapidOk), "the reminder opens the Daily");
+    check(run.inWindow && run.day === day && reminded === ANA, `in the window: only the live streak with today's Daily not played is reminded (${reminded})`);
+    check(run.outcomes.sent === 1 && run.outcomes.quiet === 1 && run.outcomes.off === 1 && run.candidates === 3, `candidates Ana, Gus and Jay; Gus (Tokyo, 04:41) quiet, Jay's streak 0; Fay, Hal, Eli and the guest not candidates (${JSON.stringify(run)})`);
+    const got = service.delivered.slice(n);
+    check(got.length === 1 && got[0]!.endpoint === devices.find((d) => d.endpoint.includes("ana-phone"))!.endpoint, "a real streak leads to a notification on the player's device");
+    check(got.every((g) => g.payload?.event === "daily_streak" && g.payload.url === "/daily" && g.vapidOk && g.payload.body?.includes(`${anaStreak.streak} days`)), `the reminder opens the Daily and states C2's streak (${got[0]?.payload?.body})`);
     const again = await notify.runDailyStreakReminders(admin, opts());
-    check((again.outcomes.sent ?? 0) === 0 && Number(q(`SELECT count(*) FROM notification_log WHERE event = 'daily_streak'`)) === 1, "the second evening run: nobody reminded twice");
+    check((again.outcomes.sent ?? 0) === 0 && Number(q(`SELECT count(*) FROM notification_log WHERE event = 'daily_streak'`)) === 1, "the next hourly run in the window: nobody reminded twice");
     q(`DELETE FROM notification_log WHERE event = 'daily_streak'`);
     attempt(tPuzzle, ANA);
     const afterPlay = await notify.runDailyStreakReminders(admin, opts());
-    check((afterPlay.outcomes.sent ?? 0) === 0, "once Ana starts today's Daily: no reminder");
-    clock = Date.UTC(2026, 6, 15, 18, 37); // a BST evening: 19:37 UK
+    check((afterPlay.outcomes.sent ?? 0) === 0 && afterPlay.candidates === 2, "once Ana starts today's Daily: no reminder");
+    // The hourly Cron Trigger (:41 UTC) lands in the 19:00–20:59 UK window twice a day in GMT and in BST.
+    const inWindow = (y: number, m: number, d: number) =>
+      Array.from({ length: 24 }, (_, h) => Date.UTC(y, m, d, h, 41)).filter((t) => [19, 20].includes(Number(new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/London", hour: "2-digit", hourCycle: "h23" }).format(t)))).length;
+    check(inWindow(2026, 10, 11) === 2 && inWindow(2026, 6, 15) === 2, "the hourly :41 Cron Trigger lands in the window twice a day (GMT and BST)");
+    clock = Date.UTC(2026, 6, 15, 18, 41); // a BST evening: 19:41 UK
     const bst = await notify.runDailyStreakReminders(admin, opts());
-    check(bst.inWindow && bst.day === "2026-07-15", "in BST the 18:37 UTC run is the one in the window");
+    check(bst.inWindow && bst.day === "2026-07-15", "in BST the 18:41 UTC run is in the window");
     clock = Date.UTC(2026, 10, 11, 12);
     q(`DELETE FROM notification_log`);
+  });
+
+  /* ------------------------------------------------------------- B1's friend events */
+  await section("friend events (B1)", async () => {
+    const friends = await import("../src/lib/friends/friends.functions");
+    const { rules } = { rules: await import("../src/lib/push/rules") };
+    web.setPushFetchForChecks(service.fetchImpl);
+    // B1's own calls dispatch at the real time: give the devices a time zone where it's daytime now.
+    const zones = ["Europe/London", "America/New_York", "America/Los_Angeles", "Pacific/Honolulu", "Asia/Tokyo", "Australia/Sydney", "Asia/Kolkata", "Asia/Dubai", "Pacific/Auckland", "America/Sao_Paulo"];
+    const zone = zones.find((z) => { const h = rules.localHour(Date.now(), z); return h >= 9 && h <= 19; }) ?? "Europe/London";
+    const kim = makeDevice("kim");
+    const leo = makeDevice("leo");
+    await register("KIM", kim, zone);
+    await register("LEO", leo, zone);
+    const waitFor = async (pred: (d: Delivery) => boolean) => {
+      for (let i = 0; i < 60; i++) {
+        const hit = service.delivered.find(pred);
+        if (hit) return hit;
+        await new Promise((r) => setTimeout(r, 50));
+      }
+      return null;
+    };
+    const count = (endpoint: string, event: string) => service.delivered.filter((d) => d.endpoint === endpoint && d.payload?.event === event).length;
+
+    const sent = await call(friends.friendRequestFn, { playerId: KIM }, tok["LEO"]!);
+    check(sent?.ok === true && sent.outcome === "sent", `B1: Leo sends Kim a real friend request (${JSON.stringify(sent).slice(0, 80)})`);
+    check(q(`SELECT count(*) FROM friend_events WHERE recipient_id = '${KIM}' AND kind = 'friend_request_received'`) === "1", "B1 recorded friend_request_received");
+    const req = await waitFor((d) => d.endpoint === kim.endpoint && d.payload?.event === "friend_request");
+    check(!!req && req.vapidOk && req.payload!.body === "Leo_Push wants to be friends on Joulz.", `a real friend request leads to a notification on Kim's phone, at once (${req?.payload?.body})`);
+    const requestId = q(`SELECT id FROM friend_requests WHERE from_user_id = '${LEO}' AND to_user_id = '${KIM}'`);
+    const accepted = await call(friends.friendRespondFn, { requestId, accept: true }, tok["KIM"]!);
+    const acc = await waitFor((d) => d.endpoint === leo.endpoint && d.payload?.event === "friend_accepted");
+    check(accepted?.ok === true && !!acc && acc.payload!.body === "You and Kim_Push are now friends.", `Kim accepts: Leo's phone gets friend accepted (${acc?.payload?.body})`);
+
+    const nowIso = new Date().toISOString();
+    q(`INSERT INTO friend_events (recipient_id, actor_id, kind, payload, created_at) VALUES
+      ('${KIM}', '${LEO}', 'room_invite_received', '{"code":"AB2C","roomId":"00000000-0000-4000-8000-000000000999"}', '${nowIso}'),
+      ('${KIM}', '${LEO}', 'friend_challenge_received', '{"code":"QW3RTY"}', '${nowIso}'),
+      ('${KIM}', '${LEO}', 'room_invite_received', '{"code":"OLD2"}', now() - interval '20 minutes')`);
+    const swept = await notify.dispatchFriendEvents(admin, { fetchImpl: service.fetchImpl });
+    check(swept.claimed === 3 && swept.outcomes.sent === 2 && swept.outcomes.stale === 1, `the sweep sends B1's room invite and challenge; a 20-minute-old invite isn't sent (${JSON.stringify(swept)})`);
+    check(service.delivered.some((d) => d.endpoint === kim.endpoint && d.payload?.url === "/duel/AB2C") && service.delivered.some((d) => d.endpoint === kim.endpoint && d.payload?.url === "/challenge?code=QW3RTY"), "room_invite_received opens the room, friend_challenge_received the challenge");
+    const twice = await notify.dispatchFriendEvents(admin, { fetchImpl: service.fetchImpl });
+    check(twice.claimed === 0 && count(kim.endpoint, "friend_request") === 1 && count(leo.endpoint, "friend_accepted") === 1 && count(kim.endpoint, "room_invite") === 1, "each friend event is sent once (the request's dispatch and the sweep never both)");
+
+    keysOff();
+    q(`INSERT INTO friend_events (recipient_id, actor_id, kind, payload) VALUES ('${KIM}', '${LEO}', 'friend_challenge_received', '{"code":"ZX9PLM"}')`);
+    const off = await notify.dispatchFriendEvents(admin, { fetchImpl: service.fetchImpl });
+    check(off.claimed === 0 && off.outcomes.disabled === 1 && q(`SELECT count(*) FROM push_friend_deliveries d JOIN friend_events e ON e.id = d.event_id WHERE e.payload->>'code' = 'ZX9PLM'`) === "0", "keys off: nothing is claimed or sent");
+    keysOn();
+    const on = await notify.dispatchFriendEvents(admin, { fetchImpl: service.fetchImpl });
+    check(on.claimed === 1 && on.outcomes.sent === 1, "keys back on: the waiting event is sent");
+
+    await call(fns.setPushSettingsFn, { friend_request: false }, tok["KIM"]!);
+    const before = count(kim.endpoint, "friend_request");
+    const fromEli = await call(friends.friendRequestFn, { playerId: KIM }, tok["ELI"]!);
+    await new Promise((r) => setTimeout(r, 400));
+    const late = await notify.dispatchFriendEvents(admin, { fetchImpl: service.fetchImpl });
+    check(fromEli?.ok === true && count(kim.endpoint, "friend_request") === before && late.claimed === 0, "Kim's friend-request switch off: Eli's real request sends nothing (claimed, not sent)");
+    web.setPushFetchForChecks(null);
+    q(`DELETE FROM notification_log`);
+  });
+
+  /* ------------------------------------------------------------- the Cron Triggers */
+  await section("Cron Triggers", async () => {
+    const { readFileSync, existsSync } = await import("node:fs");
+    const { PUSH_CRONS } = await import("../src/lib/push/tasks/pushTasks.server");
+    const vite = readFileSync("vite.config.ts", "utf8");
+    check(vite.includes(`"${PUSH_CRONS.friendSweep}": ["push:friend-sweep"]`) && vite.includes(`"${PUSH_CRONS.dailyReminder}": ["push:daily-reminder"]`) && /experimental: \{ tasks: true \}/.test(vite), "vite.config.ts schedules both push tasks (nitro writes them into wrangler.json's triggers.crons)");
+    check(existsSync("src/lib/push/tasks/friendSweep.task.ts") && existsSync("src/lib/push/tasks/dailyReminder.task.ts"), "both task files exist");
+    check(!existsSync(".github/workflows/push-reminder.yml") && !existsSync("src/routes/api/push/daily-reminder.ts") && !readFileSync(".github/workflows/deploy-cloudflare.yml", "utf8").includes("PUSH_CRON_SECRET"), "no GitHub schedule, HTTP route or scheduler secret");
   });
 
   /* ------------------------------------------------------------- the ask and opened */
@@ -629,9 +722,9 @@ async function databaseChecks(db: LocalDb, rest: RestServer): Promise<void> {
     check(!!logRead.error || (logRead.data ?? []).length === 0, "the log is the server's only");
     const reachable: string[] = [];
     for (const role of ["anon", "authenticated"]) {
-      for (const f of ["push_reserve(uuid,text,boolean,timestamp with time zone,integer,text)", "push_streak_candidates(date)", "push_played_daily(uuid,date)", "push_log_retention()"])
+      for (const f of ["push_reserve(uuid,text,boolean,timestamp with time zone,integer,text)", "push_streak_candidates(date)", "push_claim_friend_events(timestamp with time zone,integer)", "push_log_retention()"])
         if (q(`SELECT has_function_privilege('${role}', 'public.${f}', 'EXECUTE')`) === "t") reachable.push(`${role} ${f}`);
-      for (const t of ["notification_log"]) if (q(`SELECT has_table_privilege('${role}', 'public.${t}', 'SELECT')`) === "t") reachable.push(`${role} ${t}`);
+      for (const t of ["notification_log", "push_friend_deliveries"]) if (q(`SELECT has_table_privilege('${role}', 'public.${t}', 'SELECT')`) === "t") reachable.push(`${role} ${t}`);
       if (q(`SELECT has_table_privilege('${role}', 'public.push_subscriptions', 'INSERT')`) === "t") reachable.push(`${role} insert subscriptions`);
     }
     check(reachable.length === 0, `functions and the log are for the service role only${reachable.length ? ` (${reachable.join("; ")})` : ""}`);
@@ -666,7 +759,7 @@ try {
   process.env["SUPABASE_URL"] = rest.url;
   process.env["SUPABASE_PUBLISHABLE_KEY"] = ANON_KEY;
   process.env["SUPABASE_SERVICE_ROLE_KEY"] = SERVICE_KEY;
-  const people = [ANA, BEN, DAN, ELI, FAY, GUS, HAL, IVY].map((id) => `('${id}', false, '${id.slice(-4)}@example.com')`).join(", ");
+  const people = Object.values(ACCOUNTS).map((id) => `('${id}', false, '${id.slice(-4)}@example.com')`).join(", ");
   db.psql(`INSERT INTO auth.users (id, is_anonymous, email) VALUES ${people}, ('${CAT}', true, NULL)`);
   await installServerFnPlugin();
   await databaseChecks(db, rest);

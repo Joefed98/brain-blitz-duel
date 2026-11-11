@@ -1,6 +1,6 @@
 /**
  * Phone notifications' data (wave 2 train B, session B2; docs/push-notifications.md): push subscriptions, the
- * notification settings, the send log and the reminder's candidates (supabase/migrations/20261111120000_push_notifications.sql).
+ * notification settings, the send log and the reminder's candidates (supabase/migrations/20261111200000_push_notifications.sql).
  * Server only; each function issues exactly one call, on the client it is given (the service role from push.server.ts).
  */
 
@@ -128,8 +128,18 @@ export async function readStreakCandidates(client: Db, day: string): Promise<Res
   return { data: (data as { user_id: string; time_zone: string | null }[] | null) ?? [], error };
 }
 
-/** Whether a player started any Daily on a UK day. */
-export async function readPlayedDaily(client: Db, userId: string, day: string): Promise<Result<boolean | null>> {
-  const { data, error } = await client.rpc("push_played_daily", { p_user_id: userId, p_day: day });
-  return { data: typeof data === "boolean" ? data : null, error };
+/** One of B1's friend events (public.friend_events), claimed for a notification. */
+export interface FriendEventRow {
+  id: number;
+  recipient_id: string;
+  actor_id: string;
+  kind: string;
+  payload: { code?: unknown; roomId?: unknown; requestId?: unknown } | null;
+  created_at: string;
+}
+
+/** Claims the friend events made since `sinceIso` that no dispatch has taken yet (each is returned once, ever). */
+export async function claimFriendEvents(client: Db, sinceIso: string, limit: number): Promise<Result<FriendEventRow[]>> {
+  const { data, error } = await client.rpc("push_claim_friend_events", { p_since: sinceIso, p_limit: limit });
+  return { data: (data as FriendEventRow[] | null) ?? [], error };
 }
