@@ -1,3 +1,5 @@
+import { checkOverride } from "@/lib/checkOverride";
+
 /**
  * Phone notifications (wave 2 train B, session B2, 11 Nov 2026; docs/push-notifications.md).
  *
@@ -14,7 +16,7 @@ export const PUSH_SUBJECT = "https://joulz.uk";
 
 /**
  * Whether notifications are on for the phone: the public key is set. Checks stand in through
- * window.__DUELZ_PUSH_PUBLIC_KEY__, but never in production: a production build replaces `import.meta.env.PROD` with true,
+ * window.__DUELZ_PUSH_PUBLIC_KEY__ (read through checkOverride, src/lib/checkOverride.ts), but never in production: a production build replaces `import.meta.env.PROD` with true,
  * so the first statement returns the setting before any override is read, and the rest is dropped from the bundle (as
  * shopSwitch.ts and badgesApi.ts do). push-notifications-check fails if that guard moves. Under automation
  * (navigator.webdriver, the browser checks) notifications are off unless a check sets the override.
@@ -23,7 +25,7 @@ export function pushPublicKey(): string {
   // Plain import.meta.env.PROD so Vite replaces it with true in a production build.
   if (import.meta.env.PROD) return PUSH_PUBLIC_KEY;
   if (typeof window !== "undefined") {
-    const override = (window as unknown as { __DUELZ_PUSH_PUBLIC_KEY__?: unknown }).__DUELZ_PUSH_PUBLIC_KEY__;
+    const override = checkOverride("__DUELZ_PUSH_PUBLIC_KEY__");
     const automated = typeof navigator !== "undefined" && navigator.webdriver === true;
     if (typeof override === "string") return override;
     if (automated) return "";
