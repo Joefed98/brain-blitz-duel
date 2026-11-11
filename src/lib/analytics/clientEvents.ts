@@ -13,6 +13,7 @@ import {
   type ClientEventInput,
   type ClientEventName,
 } from "./events";
+import { checkOverride } from "@/lib/checkOverride";
 
 const QUEUE_KEY = "duelz-analytics-queue:v1";
 /** How long after the last queued event the batch goes (so a burst is one call). */
@@ -59,7 +60,7 @@ function automated(): boolean {
     return (
       typeof navigator !== "undefined" &&
       navigator.webdriver === true &&
-      (window as { __DUELZ_ALLOW_ANALYTICS__?: boolean }).__DUELZ_ALLOW_ANALYTICS__ !== true
+      checkOverride("__DUELZ_ALLOW_ANALYTICS__") !== true
     );
   } catch {
     return false;
