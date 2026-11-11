@@ -1,8 +1,8 @@
 /**
  * rated-multi-server-check (wave 3, W3d; docs/rated/multiplayer.md): a 4-player rated match end to end through W3b's real
  * queue, rooms and settling (src/lib/rated/rated.server.ts with W3d's hooks), against a local PostgreSQL 16 with every
- * migration applied (scripts/server-fn-harness.ts). W3a's ratings are stood in (W3b's `setRatingsBackend` for the queue's
- * rating, the same stand-in, through W3b's adapter, gets the placings result). No browser (~10 s).
+ * migration applied (scripts/server-fn-harness.ts). W3a's ratings are stood in through W3b's `setRatingsBackend`, then a
+ * second match settles on W3a's real recordRatedMatch (bindW3aRatings). No browser (~10 s).
  *
  * It proves: ffa4 off is refused by the server; a placement player can't queue for 4 or 8; four testers within the band
  * make one live match (one ordinary started room, all four seated, the same deals, nobody else); three never start one
@@ -58,6 +58,10 @@ const E = uid(25); // in placement
 const F = uid(26);
 const G = uid(27);
 const H = uid(28);
+const I = uid(31);
+const J = uid(32);
+const K = uid(33);
+const L = uid(34);
 
 let db: LocalDb | null = null;
 let rest: RestServer | null = null;
@@ -112,7 +116,7 @@ async function runAll(db: LocalDb): Promise<void> {
   type W3aResult = import("../src/lib/data/ratings").RatedMatchResult;
   const client = await adminDb();
 
-  const ALL = [A, B, C, D, E, F, G, H];
+  const ALL = [A, B, C, D, E, F, G, H, I, J, K, L];
   q(`INSERT INTO auth.users (id) VALUES ${ALL.map((u) => `('${u}')`).join(", ")}`);
   q(`SET session_replication_role = replica; INSERT INTO public.profiles (user_id, username, username_key, colour, date_of_birth, player_number) VALUES
     ${ALL.map((u, i) => `('${u}', 'Multi${i}', 'multi${i}', ${i}, DATE '1990-01-01', ${i + 40})`).join(", ")}`);
@@ -120,7 +124,7 @@ async function runAll(db: LocalDb): Promise<void> {
     q(`CREATE SCHEMA IF NOT EXISTS shop; CREATE TABLE shop.testers (user_id uuid PRIMARY KEY, note text NOT NULL DEFAULT '')`);
   q(`INSERT INTO shop.testers (user_id, note) SELECT u, 'rated-multi-server-check' FROM unnest(ARRAY[${ALL.map((u) => `'${u}'`).join(",")}]::uuid[]) AS u ON CONFLICT DO NOTHING`);
 
-  const RATING: Record<string, number> = { [A]: 1000, [B]: 1010, [C]: 1020, [D]: 1030, [E]: 1000, [F]: 1500, [G]: 1510, [H]: 1520 };
+  const RATING: Record<string, number> = { [A]: 1000, [B]: 1010, [C]: 1020, [D]: 1030, [E]: 1000, [F]: 1500, [G]: 1510, [H]: 1520, [I]: 1200, [J]: 1200, [K]: 1200, [L]: 1200 };
   const sent: W3aResult[] = [];
   setRatingsBackend({
     matchRating: async (userId) => (RATING[userId] === undefined ? null : { rating: RATING[userId]!, placement: userId === E }),
@@ -209,12 +213,55 @@ async function runAll(db: LocalDb): Promise<void> {
     check(again.state === "settled" && sent.length === 1, "a later settle sends nothing more");
   });
 
+  await section("W3a's real recordRatedMatch", async () => {
+    // The queue's rating stays the stand-in (W3a puts new players in placement, which can't queue for 4 or 8); the
+    // settle runs W3a's real engine through W3b's own binding (bindW3aRatings), as the BIND line will.
+    const w3a = await import("../src/lib/rated/ratings.server");
+    const { bindW3aRatings } = await import("../src/lib/rated/ratingsAdapter.server");
+    const real = bindW3aRatings(w3a, adminDb, 1500);
+    setRatingsBackend({
+      matchRating: async (userId) => (RATING[userId] === undefined ? null : { rating: RATING[userId]!, placement: false }),
+      recordRatedMatch: real.recordRatedMatch,
+      startingRating: 1500,
+      beginnerMax: 1500,
+    });
+    const t = Date.now();
+    for (const u of [I, J, K, L]) await rated.joinQueue(client, u, { format: "ffa4", choice: "mixed" }, t, ON);
+    const found = await rated.pollQueue(client, I, t + 200);
+    check(found.state === "found", "a second 4-player match");
+    if (found.state !== "found") return;
+    const id = found.match.matchId;
+    const room = found.match.roomId!;
+    // Slot order I, J, K, L. Game scores give placings 1, 2, 3, 4 by slot.
+    const rows = [0, 1, 2].flatMap((r) => [200, 150, 100, 50].map((sc, i) => `('${room}', ${i + 1}, ${r + 1}, ${sc}, 1000, true, 'x')`));
+    q(`INSERT INTO public.round_results (duel_id, player_slot, round_number, score, ms_remaining, is_correct, answer) VALUES ${rows.join(", ")}`);
+    q(`UPDATE public.duels SET status = 'finished', phase = 'finished', phase_started_at = now() WHERE id = '${room}'`);
+    const out = await rated.settleMatch(client, id, Date.now());
+    const outcome = out.state === "settled" ? out.result.ratings : null;
+    check(out.state === "settled" && outcome?.ok === true && outcome.status === "recorded", `W3a records the placings match (${outcome && !outcome.ok ? outcome.reason + ": " + outcome.message : out.state})`);
+    if (!outcome?.ok) return;
+    const slotUser = q(`SELECT string_agg(user_id::text, ',' ORDER BY player_slot) FROM public.duel_players WHERE duel_id = '${room}'`).split(",");
+    const byUser = new Map(outcome.players.map((p) => [p.playerId, p]));
+    check(JSON.stringify(slotUser.map((u) => byUser.get(u)?.place)) === "[1,2,3,4]", "W3a's places are the final placings");
+    check(JSON.stringify(slotUser.map((u) => byUser.get(u)?.joules)) === "[225,150,150,150]", "W3a's Joules: 1.5 × best of 3, first place the win");
+    check(byUser.get(slotUser[0]!)?.result === "win" && byUser.get(slotUser[3]!)?.result === "loss", "first is a win, last a loss");
+    const again = await w3a.recordRatedMatch(await adminDb(), (await import("../src/lib/rated/multi/multi.server")).multiRatedResult({
+      matchId: id,
+      size: 4,
+      choice: "mixed",
+      seats: slotUser.map((u, i) => ({ seatId: `slot:${i + 1}`, playerId: u, name: "", recorded: false })),
+      games: [],
+      placings: [],
+    }));
+    check(again.ok === false || again.status === "duplicate", "the same match again moves nothing");
+  });
+
   await section("events", async () => {
     await flushAnalytics();
     const count = (e: string) => Number(q(`SELECT count(*) FROM analytics.events WHERE event = '${e}'`));
-    check(count("multiplayer_match_started") === 1, "multiplayer_match_started once");
-    check(q(`SELECT props->>'size' || ',' || (props->>'live_seats') || ',' || (props->>'recorded_seats') FROM analytics.events WHERE event = 'multiplayer_match_started'`) === "4,4,0", "with size 4, 4 live seats, 0 recorded");
-    check(count("multiplayer_match_finished") === 4, "multiplayer_match_finished for each of the four");
-    check(q(`SELECT string_agg(props->>'placing', ',' ORDER BY (props->>'placing')::int) FROM analytics.events WHERE event = 'multiplayer_match_finished'`) === "1,2,3,3", "with each placing");
+    check(count("multiplayer_match_started") === 2, "multiplayer_match_started once a match (two matches)");
+    check(q(`SELECT string_agg(DISTINCT props->>'size' || ',' || (props->>'live_seats') || ',' || (props->>'recorded_seats'), ';') FROM analytics.events WHERE event = 'multiplayer_match_started'`) === "4,4,0", "with size 4, 4 live seats, 0 recorded");
+    check(count("multiplayer_match_finished") === 8, "multiplayer_match_finished for each of the four, both matches");
+    check(q(`SELECT string_agg(props->>'placing', ',' ORDER BY (props->>'placing')::int) FROM analytics.events WHERE event = 'multiplayer_match_finished'`) === "1,1,2,2,3,3,3,4", "with each placing");
   });
 }

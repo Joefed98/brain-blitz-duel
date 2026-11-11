@@ -33,10 +33,13 @@ switching one on is a deliberate change to that line (Joe's call, recorded with 
   match with W3b's `createLiveMatch` (an ordinary started room, the same deals for everyone); `settleMatch` hands a
   finished ffa match to `settleMultiMatch`, which builds W3a's placings result (`multiRatedResult`) from the stored
   scores and stores every player's run (the source for recorded seats).
-- **W3a**: the result is W3a's `RatedMatchResult` (`src/lib/data/ratings.ts`); W3a's `recordRatedMatch(adminDb(),
-  result)` wasn't on its draft branch yet (11 Nov 2026, types only), so `bindRatedMulti` (`contracts.ts`) connects it
-  when it lands; until then settling an ffa match retries later (and the switches are off).
-- **Recorded seats (parked; question for W3b):** a 1v1 against a recorded run deals that run's stored puzzles. A 4- or
+- **W3a**: a finished 4- or 8-player match reaches W3a's `recordRatedMatch` through W3b's adapter
+  (`src/lib/rated/ratingsAdapter.server.ts` `ratings()`, the one place the match engine calls the ratings), with W3a's own
+  `RatedMatchResult` (`multiRatedResult`: format `placings`, every game's stored scores and dealt version, the final
+  placings). It is live once W3b's BIND line binds W3a (`bindW3aRatings`); rated-multi-server-check already plays a match
+  through W3a's real engine that way (places 1–4, Joules 225 / 150 / 150 / 150, a repeat is W3a's duplicate). The
+  settlement W3b's result screens read (`RatedSettlement`) carries `placings` and W3a's answer.
+- **Recorded seats (parked until 4 and 8 players are switched on; Joe will ask W3b then):** a 1v1 against a recorded run deals that run's stored puzzles. A 4- or
   8-player match has one set of deals, so its recorded seats must be the other players of one earlier match on the same
   deals (every settled ffa match now stores all its players' runs, `rated:<match>:<user>`). W3b's recorded match holds
   one recorded owner (`mm_matches.recorded_owner`), so seating several needs W3b's tables and playback to carry more
