@@ -320,10 +320,11 @@ function postgresBin(): string | null {
   check(devFn(page)("__DUELZ_FIRST_OPEN__") === true, "6: on a dev server the checks' stand-ins still work");
 
   // Every window.__DUELZ_…__ read in src goes through checkOverride, but the three switches that are off for players
-  // by their own rule (auditInput: dev only; shopSwitch: its own PROD test; packs: only under navigator.webdriver).
+  // by their own rule (auditInput: dev only; shopSwitch and badgesApi: their own PROD test; packs: only under navigator.webdriver).
   const OWN_RULE: Record<string, RegExp> = {
     "src/lib/arcade/auditInput.ts": /if \(!import\.meta\.env\.DEV \|\| typeof window === "undefined"\) return null;/,
     "src/lib/identity/shopSwitch.ts": /if \(import\.meta\.env\.PROD\) return null;/,
+    "src/lib/badges/badgesApi.ts": /navigator\.webdriver !== true\) return false;\n\s*if \(import\.meta\.env\.PROD\) return true;/,
     "src/lib/offline/packs.ts": /navigator\.webdriver === true && \(window as \{ __DUELZ_ALLOW_PACKS__\?: boolean \}\)\.__DUELZ_ALLOW_PACKS__ !== true/,
   };
   const direct: string[] = [];

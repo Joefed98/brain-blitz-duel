@@ -4,18 +4,21 @@
  * replaces `import.meta.env.PROD` with true there, so `checkOverride` returns undefined before touching `window`.
  * Under bun (the happy-dom checks) and on a dev server PROD is not true, so the checks keep working.
  *
- * Two switches stay outside this helper, each already off for real players: `__DUELZ_AUDIT_INPUT__` (dev builds
- * only, auditInput.ts) and `__DUELZ_SHOP_TAB__` (its own PROD test, shopSwitch.ts). `__DUELZ_ALLOW_PACKS__`
+ * Three switches stay outside this helper, each already off for real players: `__DUELZ_AUDIT_INPUT__` (dev builds
+ * only, auditInput.ts), `__DUELZ_SHOP_TAB__` (its own PROD test, shopSwitch.ts) and `__DUELZ_ALLOW_BADGES__` (its own
+ * PROD test after the navigator.webdriver one, badgesApi.ts). `__DUELZ_ALLOW_PACKS__`
  * (packs.ts) is read only while `navigator.webdriver` is true and only lets an automated browser behave as a
  * player's does (offline-check runs it on a production build).
  */
 export type CheckOverrideName =
   | "__DUELZ_ACCOUNT_FIXTURE__"
   | "__DUELZ_ALLOW_ANALYTICS__"
+  | "__DUELZ_ALLOW_CHALLENGES__"
   | "__DUELZ_ALLOW_SAFETY__"
   | "__DUELZ_BANNERS__"
   | "__DUELZ_BETA_CONFIG__"
   | "__DUELZ_CELEBRATION_LOG__"
+  | "__DUELZ_CHALLENGES__"
   | "__DUELZ_FIRST_OPEN__"
   | "__DUELZ_IDENTITY_EVENTS__"
   | "__DUELZ_PUBLIC_GAMES__"
