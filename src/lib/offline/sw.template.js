@@ -147,7 +147,9 @@ async function cacheFirst(request, cacheName, ignoreSearch) {
   const hit = await caches.match(request, { ignoreSearch });
   if (hit) return hit;
   const response = await fetch(request);
-  if (response && (response.ok || response.type === "opaque")) {
+  // Same-origin app files are kept by path: one with a query string is served but not kept (the cache stays bounded).
+  const keep = cacheName !== APP_CACHE || ignoreSearch || new URL(request.url).search === "";
+  if (keep && response && (response.ok || response.type === "opaque")) {
     const copy = response.clone();
     void caches.open(cacheName).then((cache) => cache.put(ignoreSearch ? stripSearch(request.url) : request, copy)).catch(() => {});
   }
