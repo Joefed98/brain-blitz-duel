@@ -61,10 +61,26 @@ import { roundMusicRemaining, useRoundMusic } from "@/lib/duel/useRoundMusic";
 import { useHomeBed, useScreenMusic } from "@/lib/useScreenMusic";
 import type { SubmitMeta } from "@/puzzles/types";
 import type { MovesView } from "@/lib/duel/moves";
-import { readPracticeBest, recordPracticeBest } from "@/lib/duel/practiceBest";
-import { readGoals, recordPracticeGoals, starLine, starTotal, starsOf, type GoalsRecord } from "@/lib/duel/practiceGoals";
-import { PracticeChallenges } from "@/components/app/PracticeChallenges";
-import { currentPracticeStamp, stampSignature } from "@/lib/duel/practiceStamps";
+import { readGoals, recordPracticeGoals, type GoalsRecord } from "@/lib/duel/practiceGoals";
+import { SaveProgressOffer } from "@/components/account/SaveProgress";
+import { cachedAccount, useAccount } from "@/lib/account/accountApi";
+import {
+  bestOf,
+  levelStarsOf,
+  practiceRunRecord,
+  runStarLine,
+  starCountOf,
+  type PracticeProgressView,
+} from "@/lib/practice/progress";
+import { PRACTICE_REFRESH_NOTE, STAR_TOTAL_MAX, levelOf } from "@/lib/practice/progressRules";
+import {
+  applyPracticeRun,
+  notePracticeRefreshSeen,
+  practiceProgressNow,
+  usePracticeProgress,
+} from "@/lib/practice/useProgress";
+import { ChallengeMoments, PracticeChallenges } from "@/components/app/PracticeChallenges";
+import { queueChallengeMoments, useServerChallenges } from "@/lib/challenges/challengesClient";
 import { APP_NAME } from "@/lib/brand";
 import { noteSignatureSubmit, signatureHoldUntil } from "@/lib/fx/signature";
 import { useSignatureVerdict } from "@/lib/fx/useSignature";
@@ -178,20 +194,42 @@ function useTicker(active: boolean): number {
 /** Offline practice: the games with a run waiting for the server (their rows' best carries the clock). */
 const PendingTypes = createContext<ReadonlySet<PuzzleType>>(new Set());
 
-/** Practice goals: this device's record, read once per draw of the list. */
+/** Practice goals: this device's challenge record (C1b moves challenges to the account), read once per draw of the list. */
 const GoalsOnList = createContext<GoalsRecord | null>(null);
 
-/** A row's mastery stars (practiceGoals.ts), named in the row's description with its best. */
+/**
+ * The list's last line: an account's stars and bests are saved to it; a guest is offered the save-your-progress
+ * sheet (SaveProgressOffer, as Profile's Customise does), since a guest's progress stays with this phone's guest.
+ */
+function PracticeFooter() {
+  const account = useAccount();
+  const [offer, setOffer] = useState(false);
+  // Before the account is known: the device's cached account (an account's line from the first paint).
+  const isAccount = account.kind === "account" || (account.kind === "unknown" && cachedAccount() !== null);
+  if (isAccount) return <p className="ap-faint jz-meta text-center">Stars and bests are saved to your account.</p>;
+  return (
+    <p data-practice-save-progress className="ap-faint jz-meta text-center">
+      <button type="button" onClick={() => setOffer(true)} className="ap-link press -my-3 inline-flex h-11 items-center align-middle">
+        Save your progress
+      </button>{" "}
+      to keep your stars on any phone
+      {offer ? <SaveProgressOffer onClose={() => setOffer(false)} /> : null}
+    </p>
+  );
+}
+
+/** The player's practice progress from the server (useProgress.ts): every row's stars and best. */
+const ProgressOnList = createContext<PracticeProgressView | null>(null);
+
+/** A row's stars, one per level (Easy, Classic, Hard), named in the row's description with its best. */
 function RowStars({ type }: { type: PuzzleType }) {
-  const record = useContext(GoalsOnList) ?? readGoals();
-  const tier = starsOf(type, readPracticeBest(type, currentPracticeStamp(type)), record);
-  return <Stars tier={tier} label={false} />;
+  return <Stars levels={levelStarsOf(useContext(ProgressOnList), type)} label={false} />;
 }
 
 function RowBest({ type }: { type: PuzzleType }) {
-  const best = readPracticeBest(type, currentPracticeStamp(type));
+  const best = bestOf(useContext(ProgressOnList), type);
   const pending = useContext(PendingTypes).has(type);
-  const tier = starsOf(type, best, useContext(GoalsOnList) ?? readGoals());
+  const tier = starCountOf(useContext(ProgressOnList), type);
   return (
     <span
       id={cardBestId(type)}
@@ -320,8 +358,19 @@ function PracticeScreen() {
   const [graded, setGraded] = useState<Graded | null>(null);
   const [deviceBest, setDeviceBest] = useState<number | null>(null);
   const [newBest, setNewBest] = useState(false);
+  // Practice progress (wave 2 C1a): the account's stars and bests, from the server.
+  const progressView = usePracticeProgress();
+  // The one-time refresh note: shown once on the list, then remembered on the server.
+  const noteShown = useRef(false);
+  useEffect(() => {
+    if (stage !== "list" || !progressView || progressView.noteSeen || noteShown.current) return;
+    noteShown.current = true;
+    notePracticeRefreshSeen();
+  }, [stage, progressView]);
   /** Practice goals: the star line this run earned ("Silver star earned"), with the new-best moment. */
   const [earnedStar, setEarnedStar] = useState<string | null>(null);
+  // Practice challenges (wave 2 C1b): the server's progress, asked again each time the list comes back.
+  const serverChallenges = useServerChallenges(stage === "list");
   const [run, setRun] = useState(0);
   const [helpOpen, setHelpOpen] = useState(false);
   // Offline practice (31 Oct 2026): the pack seed of a run dealt from a saved pack (null: a live deal), the
@@ -407,7 +456,7 @@ function PracticeScreen() {
       });
       setType(next);
       if (!exampleMode) notePracticePlayed(next);
-      setDeviceBest(readPracticeBest(next, currentPracticeStamp(next)));
+      setDeviceBest(bestOf(practiceProgressNow(), next));
       setNewBest(false);
       setEarnedStar(null);
       setGraded(null);
@@ -458,8 +507,8 @@ function PracticeScreen() {
         return;
       }
       setPuzzle(made.puzzle as PuzzleData);
-      // The best under the stamps this puzzle was actually dealt with.
-      setDeviceBest(readPracticeBest(next, stampSignature(made.puzzle as PuzzleData)));
+      // The account's best on the level this puzzle was dealt on (Classic until wave 3.5).
+      setDeviceBest(bestOf(practiceProgressNow(), next, levelOf((made.puzzle as { level?: unknown }).level)));
       setSealed(made.sealed);
       await code;
       setStartedAt(Date.now());
@@ -589,11 +638,16 @@ function PracticeScreen() {
       }
       setGraded({ ...(rest as Graded), extra });
       if (!wasExample) {
-        const record = recordPracticeBest(puzzle.type, stampSignature(puzzle), result.score);
+        // Stars and bests are the server's (the grade's own `progress`, counted on the account); intro examples never count.
+        const record = practiceRunRecord(result.progress, deviceBest);
+        applyPracticeRun(puzzle.type, result.progress);
         setDeviceBest(record.best);
         setNewBest(record.improved);
-        const reached = recordPracticeGoals(puzzle.type, result.score, extra, record.best);
-        setEarnedStar(starLine(reached));
+        // The device's challenge record (the list reads the server's progress, which wins wherever it has a row).
+        recordPracticeGoals(puzzle.type, result.score, extra, record.best);
+        setEarnedStar(runStarLine(result.progress));
+        // The challenges the server completed on this run: their moment waits for the list (never over the reveal).
+        queueChallengeMoments((result as { challenges?: unknown }).challenges);
         // This device's first finished round starts its offline packs (lib/offline/packGrowth.ts), not the app's
         // opening: the top-up runs once the player is back on the list (a round on screen holds it).
         if (notePracticeRoundFinished()) firstPacks.current = true;
@@ -608,7 +662,7 @@ function PracticeScreen() {
       setStartedAt(Date.now());
       setStage("reveal");
     },
-    [puzzle, sealed, clockDeadline, timeLimitMs, stopRecording, stateKey],
+    [puzzle, sealed, clockDeadline, timeLimitMs, stopRecording, stateKey, deviceBest],
   );
 
   const holding = stage === "puzzle" && revealAt !== null;
@@ -772,24 +826,31 @@ function PracticeScreen() {
         }))}
       />
     );
-    // Practice goals: the device's record once for this draw, the stars total over every active game, and the
+    // Practice goals: the account's star total (the server's), the device's challenge record once for this draw, and the
     // challenges of this side's games (always shown, so typing a search never moves the box being typed in).
     const goalsRecord = readGoals();
-    const stars = starTotal(ACTIVE_PUZZLE_TYPES, (key) => readPracticeBest(key, currentPracticeStamp(key as PuzzleType)), goalsRecord);
+    const stars = { earned: progressView?.stars ?? 0, total: STAR_TOTAL_MAX };
     const sideTypes = new Set(ACTIVE_PUZZLE_TYPES.filter((key) => practiceSideOf(key) === side));
     return (
       <PhoneShell tabs="practice" aside={<PageAside panels={["public", "daily", "week"]} />}>
+        <ProgressOnList.Provider value={progressView}>
         <GoalsOnList.Provider value={goalsRecord}>
         <PendingTypes.Provider value={pendingTypes}>
           <div className="ap-stack">
             <div className="flex flex-col gap-3">
               <h1 className="ap-title">Practice</h1>
               <p data-practice-stars={stars.earned} className="pg-total">
-                <Stars tier={3} label={false} />
+                <Stars levels={{ easy: true, classic: true, hard: true }} label={false} />
                 <span>
                   <span className="pg-total-earned">{stars.earned}</span> / {stars.total} stars
                 </span>
               </p>
+              {/* The fresh start (10 Nov 2026): a one-time note, once per player (the server remembers it). */}
+              {progressView && !progressView.noteSeen ? (
+                <p role="status" data-practice-refresh-note className="jz-panel ap-empty">
+                  {PRACTICE_REFRESH_NOTE}
+                </p>
+              ) : null}
               <DevKeyStatus status={demoStatus} />
               {desktop ? null : switchRow}
             </div>
@@ -820,10 +881,12 @@ function PracticeScreen() {
               </label>
             ) : null}
 
+            <ChallengeMoments />
             <PracticeChallenges
               key={side}
               types={sideTypes}
               record={goalsRecord}
+              server={serverChallenges}
               nameOf={(key) => PUZZLE_REGISTRY[key].name}
               onPlay={(key) => void load(key)}
             />
@@ -883,7 +946,7 @@ function PracticeScreen() {
                 <h2 className="ap-section-title">Recently played</h2>
                 <div className="jz-panel ap-game-strip">
                   {recentRows.map((key) => {
-                    const best = readPracticeBest(key, currentPracticeStamp(key));
+                    const best = bestOf(progressView, key);
                     return (
                       <button
                         key={key}
@@ -939,10 +1002,11 @@ function PracticeScreen() {
               </details>
             )}
 
-            <p className="ap-faint text-center text-[13px]">Personal bests stay on this device.</p>
+            <PracticeFooter />
           </div>
         </PendingTypes.Provider>
         </GoalsOnList.Provider>
+        </ProgressOnList.Provider>
       </PhoneShell>
     );
   }
