@@ -38,6 +38,7 @@ import {
   UsernameState,
   useUsernameCheck,
 } from "./AccountParts";
+import { checkOverride } from "@/lib/checkOverride";
 
 export type FlowStep =
   | "signin"
@@ -111,8 +112,7 @@ interface FlowFixture {
   welcomeBack?: boolean;
 }
 function flowFixture(): FlowFixture {
-  if (typeof window === "undefined") return {};
-  return (window as unknown as { __DUELZ_ACCOUNT_FIXTURE__?: FlowFixture }).__DUELZ_ACCOUNT_FIXTURE__ ?? {};
+  return checkOverride<FlowFixture>("__DUELZ_ACCOUNT_FIXTURE__") ?? {};
 }
 
 export function SignUpFlow({
