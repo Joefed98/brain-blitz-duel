@@ -144,6 +144,18 @@ export interface PlacementStatus {
   done: boolean;
   /** "Placement 1 of 5" (the next one to play), or null once done. */
   label: string | null;
+  /** Each placement match played so far, in order (1 first): the five placement boxes' tick or cross. */
+  results: PlacementResult[];
+}
+
+/** One placement match, as stored when it was recorded (rated_match_players.placement_no). */
+export interface PlacementResult {
+  /** 1–5. */
+  n: number;
+  matchId: string;
+  result: "win" | "loss" | "draw";
+  /** When it finished (ISO). */
+  at: string;
 }
 
 /** A player's ratings as the phone sees them. During placement every rating is hidden (null / not shown). */

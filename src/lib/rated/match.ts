@@ -10,6 +10,7 @@
 
 import type {
   FrozenReason,
+  PlacementResult,
   PlacementStatus,
   RatedCategory,
   RatedChoice,
@@ -204,6 +205,8 @@ export interface PlayerPre {
   ratings: Partial<Record<RatingKey, GlickoState>>;
   /** Live rated games in the last JOULZ_WINDOW_DAYS before this match, by pool. */
   recentGames: Record<RatedPool, number>;
+  /** The placement matches stored so far, in order (rated_match_players.placement_no). */
+  placementResults?: PlacementResult[];
   standing: TierStanding | null;
 }
 
@@ -265,6 +268,8 @@ export interface PlayerAfter {
   games: Record<RatedPool, number>;
   /** Whether the match counted for this player (live and not frozen against everyone). */
   counted: boolean;
+  /** Which placement match this was (1–5), stored on the player's match row; null when it wasn't one. */
+  placementNo: number | null;
 }
 
 export interface MatchAfter {
@@ -299,10 +304,16 @@ export const JOULZ_WINDOW_MS = JOULZ_WINDOW_DAYS * 86_400_000;
 
 /* ------------------------------------------------------------------ placement */
 
-export function placementOf(played: number): PlacementStatus {
+export function placementOf(played: number, results: readonly PlacementResult[] = []): PlacementStatus {
   const p = Math.min(PLACEMENT_MATCHES, Math.max(0, played));
   const done = p >= PLACEMENT_MATCHES;
-  return { played: p, of: PLACEMENT_MATCHES, done, label: done ? null : `Placement ${p + 1} of ${PLACEMENT_MATCHES}` };
+  return {
+    played: p,
+    of: PLACEMENT_MATCHES,
+    done,
+    label: done ? null : `Placement ${p + 1} of ${PLACEMENT_MATCHES}`,
+    results: [...results].sort((a, b) => a.n - b.n).slice(0, PLACEMENT_MATCHES),
+  };
 }
 
 export function isProvisional(state: GlickoState): boolean {
@@ -468,6 +479,12 @@ export function applyMatch(match: RatedMatchResult, finishedMs: number, pre: Rec
       arcade: before.recentGames.arcade + (counted ? games.arcade : 0),
     };
     const placedAfter = placementOf(p1.placementPlayed).done;
+    // A placement match: a counted match played while placement wasn't done (its number stored on the match row).
+    const placementNo = counted && !placedBefore ? p0.placementPlayed + 1 : null;
+    const placementResultsAfter: PlacementResult[] = [
+      ...(before.placementResults ?? []),
+      ...(placementNo !== null ? [{ n: placementNo, matchId: match.matchId, result, at: new Date(finishedMs).toISOString() }] : []),
+    ];
     // Before: the Joulz Rating as last stored (what the player was shown); after: worked out from the new ratings.
     const joulzBefore = placedBefore ? (p0.joulz ?? joulzRating({ puzzles: before.ratings.puzzles, arcade: before.ratings.arcade }, before.recentGames)) : null;
     const joulzAfter = placedAfter ? joulzRating({ puzzles: ratings.puzzles, arcade: ratings.arcade }, recent) : null;
@@ -490,7 +507,7 @@ export function applyMatch(match: RatedMatchResult, finishedMs: number, pre: Rec
       frozen: side.frozenWhy ?? (frozenAll ? "same_opponent_today" : null),
       changes,
       joulz: { before: joulzBefore, after: joulzAfter },
-      placement: { ...placementOf(p1.placementPlayed), justFinished: !placedBefore && placedAfter },
+      placement: { ...placementOf(p1.placementPlayed, placementResultsAfter), justFinished: !placedBefore && placedAfter },
       tier: { before: tierBefore, after: tierAfter },
       result,
       place,
@@ -498,7 +515,7 @@ export function applyMatch(match: RatedMatchResult, finishedMs: number, pre: Rec
       flagged: flaggedIds.has(id),
       badges: [],
     };
-    return { playerId: id, profile: p1, ratings, moved, change, games: counted ? { ...games } : { puzzles: 0, arcade: 0 }, counted };
+    return { playerId: id, profile: p1, ratings, moved, change, games: counted ? { ...games } : { puzzles: 0, arcade: 0 }, counted, placementNo };
   });
   return { ukDay, players, pairs, runUses, flags };
 }

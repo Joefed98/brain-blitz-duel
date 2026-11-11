@@ -73,6 +73,8 @@ export interface RatedStateRows {
   meta: RatedStandingsMeta | null;
   standings: RatedStandingRow[];
   rematch: { player_id: string; side: "live" | "recorded"; result: "win" | "loss" | "draw" }[];
+  /** Each player's stored placement matches (placement_no 1–5). */
+  placements: { player_id: string; n: number; match_id: string; result: "win" | "loss" | "draw"; finished_ms: number }[];
 }
 
 const arr = <T>(v: unknown): T[] => (Array.isArray(v) ? (v as T[]) : []);
@@ -89,6 +91,7 @@ export function parseRatedState(data: unknown): RatedStateRows {
     meta: (o["meta"] as RatedStandingsMeta | null | undefined) ?? null,
     standings: arr<RatedStandingRow>(o["standings"]),
     rematch: arr(o["rematch"]),
+    placements: arr(o["placements"]),
   };
 }
 

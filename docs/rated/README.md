@@ -89,7 +89,11 @@ linking flow (one placed, one 3 matches in) and proves it.
 
 - **Placement:** 5 rated matches that counted (any mix of puzzles and arcade). Until then every rating is hidden
   ("Placement 1 of 5"); the 5th's change has `placement.justFinished` (the reveal) and `placement_finished` is
-  recorded. A pool never played shows "Not played yet" and never counts against you.
+  recorded. A pool never played shows "Not played yet" and never counts against you. Each placement match's result
+  (won, lost or drawn) is stored on the player's match row as `placement_no` 1–5 (one each, a unique index), and
+  `placementStatus()` / `getMyRatings()` return them in order with the match id and time (`placement.results`), so the
+  five placement boxes show the same tick or cross on any device. A match that didn't count (frozen, flagged) is no
+  placement match.
 - **The Joulz Rating:** Puzzles and Arcade weighted by the share of the player's live rated games in each over the last
   90 days; equal weight with no recent play; a pool never played left out. Worked out after each match (stored) and by
   the standings job (the window moves with the days); the phone's reads work it out live.
