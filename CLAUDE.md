@@ -1976,6 +1976,23 @@ outside the repo.
   `20261110200000_analytics_identity_events.sql` (**not applied until merged**; it adds to the list it reads from the
   table). Checks: identity-screens-check (~5 s, happy-dom, A1 stood in by `setIdentityBackend`) and identity-motion-check
   (headless Chromium: every item against its approved PNG, no animation under reduced motion).
+- **Phone notifications** (wave 2 train B, session B2, 11 Nov 2026, `docs/push-notifications.md`; no gameplay, scoring,
+  stamp, timing or room-flow change): standard web push with Joulz's own VAPID keys, no package (RFC 8291 / 8292 in
+  WebCrypto, `src/lib/push/webPush.server.ts`). **Off until Joe sets `PUSH_PUBLIC_KEY`** (`src/config/pushConfig.ts`) and the
+  Worker secret `VAPID_PRIVATE_KEY`: nothing asks, subscribes or sends, and no settings panel shows. Six events
+  (`PUSH_EVENTS` in `src/lib/push/rules.ts`): friend request, friend accepted, friend challenge, room invite (B1 calls
+  `notifyFriendRequest` / `notifyFriendAccepted` / `notifyFriendChallenge` / `notifyRoomInvite` in `notify.server.ts`, the one
+  place a notification is decided and sent), tournament starting (exists; nothing sends it until wave 4) and the Daily streak
+  reminder (`POST /api/push/daily-reminder`, `PUSH_CRON_SECRET`, run by `.github/workflows/push-reminder.yml` twice each evening;
+  only 19:00–20:59 UK, a live streak, today's Daily not played; `push_streak_candidates` reads the Daily's attempts until C2's
+  server streak). A switch per event under a master switch (Settings → Notifications), at most 3 a day (room invites apart),
+  none 22:00–08:00 on the device's clock except a fresh room invite; held-back ones are dropped. The ask: never on first open,
+  at a useful moment (`notePushMoment`; a finished Daily, B1's friend moments), on the next tab page (`NotificationAskSlot`),
+  30 days after a decline; an iPhone in Safari gets the Home Screen how-to. Accounts only (rows hang off `profiles`); sign-out
+  removes the device (`forgetPushOnSignOut`), a 404/410 from the push service removes it, a deletion request removes all.
+  The `push` / `notificationclick` listeners (`src/lib/push/sw.push.js`) are appended to the offline worker by swPlugin; the
+  offline worker itself is unchanged. Migration `20261111120000_push_notifications.sql` (**not applied until merged**).
+  Events `notification_opt_in`, `notification_sent`, `notification_opened`. push-notifications-check (~5 s, shard `e`).
 - `src/components/duel/` — room/round screens (PhoneShell, RoundIntro, TimerBar,
   AnswerReveal, ArcadeReveal, WinnerReveal…); `src/components/puzzles/` — shared puzzle
   widgets; `src/lib/fx/` — sound and visual feedback (presentation only).

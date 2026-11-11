@@ -1,0 +1,41 @@
+# The evening Daily streak reminder (phone notifications, wave 2 B2, 11 Nov 2026; docs/push-notifications.md).
+# Calls the Worker's POST /api/push/daily-reminder with the PUSH_CRON_SECRET key, twice each evening (18:37 and 19:37
+# UTC), so one call lands between 19:00 and 20:59 UK time in both GMT and BST; the Worker does nothing outside that
+# window and reminds each player at most once a UK day, so the second call (or a late GitHub run) never doubles up.
+# Without the secret it does nothing. About 60 Actions minutes a month.
+name: Push reminder
+
+on:
+  schedule:
+    - cron: "37 18 * * *"
+    - cron: "37 19 * * *"
+  workflow_dispatch: {}
+
+permissions: {}
+
+concurrency:
+  group: push-reminder
+  cancel-in-progress: false
+
+jobs:
+  remind:
+    if: github.repository == 'Joefed98/brain-blitz-duel'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Send the Daily streak reminder
+        env:
+          PUSH_CRON_SECRET: ${{ secrets.PUSH_CRON_SECRET }}
+          APP_URL: https://joulz.uk
+        run: |
+          set +x
+          if [ -z "$PUSH_CRON_SECRET" ]; then
+            echo "::notice::PUSH_CRON_SECRET is not set: phone notifications are off, nothing to send."
+            exit 0
+          fi
+          code=$(curl -sS -o "$RUNNER_TEMP/out.json" -w '%{http_code}' --max-time 240 -X POST \
+            -H "authorization: Bearer $PUSH_CRON_SECRET" "$APP_URL/api/push/daily-reminder")
+          echo "HTTP $code"
+          # Counts only (the day, whether it was in the window, how many were reminded); never who.
+          cat "$RUNNER_TEMP/out.json"; echo
+          [ "$code" = 200 ] || { echo "::error::The reminder route answered $code"; exit 1; }

@@ -53,6 +53,12 @@ export const ANALYTICS_EVENTS = [
   "profile_viewed",
   "customise_opened",
   "equip_refused",
+  // Phone notifications (wave 2 train B, session B2, docs/push-notifications.md): recorded by the server only.
+  // notification_opt_in carries props.answer (accepted|declined) and props.moment, notification_sent props.event and
+  // props.devices, notification_opened props.event (src/lib/push/).
+  "notification_opt_in",
+  "notification_sent",
+  "notification_opened",
 ] as const;
 export type AnalyticsEventName = (typeof ANALYTICS_EVENTS)[number];
 

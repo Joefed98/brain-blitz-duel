@@ -23,6 +23,7 @@ import { Route as ShopRouteImport } from './routes/shop'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as TournamentsRouteImport } from './routes/tournaments'
 import { Route as DuelCodeRouteImport } from './routes/duel.$code'
+import { Route as ApiPushDailyReminderRouteImport } from './routes/api/push/daily-reminder'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -94,6 +95,11 @@ const DuelCodeRoute = DuelCodeRouteImport.update({
   path: '/duel/$code',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPushDailyReminderRoute = ApiPushDailyReminderRouteImport.update({
+  id: '/api/push/daily-reminder',
+  path: '/api/push/daily-reminder',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -110,6 +116,7 @@ export interface FileRoutesByFullPath {
   '/terms': typeof TermsRoute
   '/tournaments': typeof TournamentsRoute
   '/duel/$code': typeof DuelCodeRoute
+  '/api/push/daily-reminder': typeof ApiPushDailyReminderRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -126,6 +133,7 @@ export interface FileRoutesByTo {
   '/terms': typeof TermsRoute
   '/tournaments': typeof TournamentsRoute
   '/duel/$code': typeof DuelCodeRoute
+  '/api/push/daily-reminder': typeof ApiPushDailyReminderRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -143,6 +151,7 @@ export interface FileRoutesById {
   '/terms': typeof TermsRoute
   '/tournaments': typeof TournamentsRoute
   '/duel/$code': typeof DuelCodeRoute
+  '/api/push/daily-reminder': typeof ApiPushDailyReminderRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -161,6 +170,7 @@ export interface FileRouteTypes {
     | '/terms'
     | '/tournaments'
     | '/duel/$code'
+    | '/api/push/daily-reminder'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -177,6 +187,7 @@ export interface FileRouteTypes {
     | '/terms'
     | '/tournaments'
     | '/duel/$code'
+    | '/api/push/daily-reminder'
   id:
     | '__root__'
     | '/'
@@ -193,6 +204,7 @@ export interface FileRouteTypes {
     | '/terms'
     | '/tournaments'
     | '/duel/$code'
+    | '/api/push/daily-reminder'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -210,6 +222,7 @@ export interface RootRouteChildren {
   TermsRoute: typeof TermsRoute
   TournamentsRoute: typeof TournamentsRoute
   DuelCodeRoute: typeof DuelCodeRoute
+  ApiPushDailyReminderRoute: typeof ApiPushDailyReminderRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -312,6 +325,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DuelCodeRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/push/daily-reminder': {
+      id: '/api/push/daily-reminder'
+      path: '/api/push/daily-reminder'
+      fullPath: '/api/push/daily-reminder'
+      preLoaderRoute: typeof ApiPushDailyReminderRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -330,6 +350,7 @@ const rootRouteChildren: RootRouteChildren = {
   TermsRoute: TermsRoute,
   TournamentsRoute: TournamentsRoute,
   DuelCodeRoute: DuelCodeRoute,
+  ApiPushDailyReminderRoute: ApiPushDailyReminderRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

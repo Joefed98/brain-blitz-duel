@@ -5,6 +5,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { useAccount } from "@/lib/account/accountApi";
 import { FeedbackLink } from "@/components/beta/FeedbackLink";
 import { OfflineSettingsRow } from "@/components/offline/OfflineSettingsRow";
+import { NotificationSettings } from "@/components/push/NotificationSettings";
 import { VolumeSliders } from "@/components/app/VolumeSliders";
 import { Icon, Panel, Row, Segmented, Sheet, SwitchKnob } from "@/design/components";
 import { APP_BUILD_ID, buildLabel } from "@/lib/appVersion";
@@ -69,6 +70,8 @@ export function SettingsSheet({
         <Panel>
           <AccountRow onOpen={onClose} />
         </Panel>
+        {/* Phone notifications (B2): every switch in one place; nothing while the switch is off or for a guest. */}
+        <NotificationSettings />
         {/* Tab-page panels of divided rows (Polish batch R): the two sound switches, then a volume slider for each. */}
         <Panel data-sound-controls="settings">
           <SwitchRow label="Sound effects" on={!sound.muted} onChange={(on) => setMuted(!on)} />

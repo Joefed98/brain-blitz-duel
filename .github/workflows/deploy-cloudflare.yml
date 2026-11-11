@@ -85,6 +85,8 @@ jobs:
           PRACTICE_SEAL_KEY: ${{ secrets.PRACTICE_SEAL_KEY }}
           INTRO_DEMO_KEY: ${{ secrets.INTRO_DEMO_KEY }}
           TURNSTILE_SECRET_KEY: ${{ secrets.TURNSTILE_SECRET_KEY }}
+          VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
+          PUSH_CRON_SECRET: ${{ secrets.PUSH_CRON_SECRET }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
@@ -99,14 +101,14 @@ jobs:
             [ -n "${!n}" ] || missing="$missing $n"
           done
           if [ -n "$missing" ]; then echo "::error::Missing GitHub secret(s):$missing"; exit 1; fi
-          for n in PRACTICE_SEAL_KEY INTRO_DEMO_KEY TURNSTILE_SECRET_KEY; do
+          for n in PRACTICE_SEAL_KEY INTRO_DEMO_KEY TURNSTILE_SECRET_KEY VAPID_PRIVATE_KEY PUSH_CRON_SECRET; do
             [ -n "${!n}" ] || echo "::warning::$n is not set; the Worker keeps whatever value it already has (none on a first deploy)."
           done
           # A value pasted with a stray newline or space is still "set", and a newline in SUPABASE_PUBLISHABLE_KEY
           # broke Realtime on workers.dev (its websocket URL carries the key) while REST calls still worked. Any
           # leading/trailing whitespace or any CR/LF in a set secret fails the run. Names only, never values.
           bad=0
-          for n in CLOUDFLARE_API_TOKEN CLOUDFLARE_ACCOUNT_ID SUPABASE_URL SUPABASE_PUBLISHABLE_KEY SUPABASE_SERVICE_ROLE_KEY PRACTICE_SEAL_KEY INTRO_DEMO_KEY TURNSTILE_SECRET_KEY SUPABASE_ACCESS_TOKEN SUPABASE_PROJECT_REF; do
+          for n in CLOUDFLARE_API_TOKEN CLOUDFLARE_ACCOUNT_ID SUPABASE_URL SUPABASE_PUBLISHABLE_KEY SUPABASE_SERVICE_ROLE_KEY PRACTICE_SEAL_KEY INTRO_DEMO_KEY TURNSTILE_SECRET_KEY VAPID_PRIVATE_KEY PUSH_CRON_SECRET SUPABASE_ACCESS_TOKEN SUPABASE_PROJECT_REF; do
             v="${!n}"
             [ -n "$v" ] || continue
             problems=""
@@ -253,6 +255,10 @@ jobs:
           S_INTRO_DEMO_KEY: ${{ secrets.INTRO_DEMO_KEY }}
           # Optional (safety, 10 Nov 2026, docs/moderation.md): the Turnstile secret for the account-creation check.
           S_TURNSTILE_SECRET_KEY: ${{ secrets.TURNSTILE_SECRET_KEY }}
+          # Optional (phone notifications, 11 Nov 2026, docs/push-notifications.md): the VAPID private key that signs
+          # pushes, and the key the evening reminder's scheduler (push-reminder.yml) calls the Worker with.
+          S_VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
+          S_PUSH_CRON_SECRET: ${{ secrets.PUSH_CRON_SECRET }}
         run: |
           set +x
           umask 077
@@ -265,7 +271,9 @@ jobs:
               SUPABASE_SERVICE_ROLE_KEY: env.S_SUPABASE_SERVICE_ROLE_KEY,
               PRACTICE_SEAL_KEY: env.S_PRACTICE_SEAL_KEY,
               INTRO_DEMO_KEY: env.S_INTRO_DEMO_KEY,
-              TURNSTILE_SECRET_KEY: env.S_TURNSTILE_SECRET_KEY
+              TURNSTILE_SECRET_KEY: env.S_TURNSTILE_SECRET_KEY,
+              VAPID_PRIVATE_KEY: env.S_VAPID_PRIVATE_KEY,
+              PUSH_CRON_SECRET: env.S_PUSH_CRON_SECRET
             } | with_entries(select(.value != null and .value != ""))' > "$secrets"
           # No --route and no custom domain: the generated wrangler.json has none, so wrangler serves the Worker
           # on joulz.<account subdomain>.workers.dev only.

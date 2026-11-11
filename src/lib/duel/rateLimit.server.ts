@@ -77,6 +77,8 @@ export const EMAIL_CODE_LIMIT: RateLimit = { bucket: "email-code", max: 5, windo
 export const SAVE_PROGRESS_LIMIT: RateLimit = { bucket: "save-progress", max: 20, windowSeconds: 600, failClosed: true };
 /** The identity screens' three events (identityEvents.functions.ts): a profile view, Customise, a refused equip. */
 export const IDENTITY_EVENT_LIMIT: RateLimit = { bucket: "identity-events", max: 40, windowSeconds: 600, failClosed: true };
+/** Phone notifications (push.functions.ts): saving or removing a device, the switches, the ask, an open. */
+export const PUSH_LIMIT: RateLimit = { bucket: "push", max: 40, windowSeconds: 600, failClosed: true };
 /** Analytics events from the phone (recordClientEventsFn): 30 calls of up to 20 events per 10 minutes a device. */
 export const ANALYTICS_CLIENT_LIMIT: RateLimit = { bucket: "analytics-client", max: 30, windowSeconds: 600, failClosed: true };
 
