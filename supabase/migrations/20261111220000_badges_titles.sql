@@ -76,9 +76,9 @@ INSERT INTO public.badges (slug, name, grp, rarity, coins, status, waits_for, ru
   ('storm-chaser', 'Storm Chaser', 'competitive', 'elite', 0, 'waits', 'rated-play', 'Reach Storm.', NULL, NULL, 9),
   ('lightning-strikes', 'Lightning Strikes', 'competitive', 'legendary', 250, 'waits', 'rated-play', 'Reach Lightning.', NULL, NULL, 10),
   ('top-500', 'Top 500', 'competitive', 'legendary', 250, 'waits', 'rated-play', 'Be ranked in the Top 500 at any point.', NULL, NULL, 11),
-  ('first-star', 'First Star', 'mastery', 'common', 0, 'waits', 'mastery-stars', 'Earn your first mastery star.', NULL, NULL, 12),
+  ('first-star', 'First Star', 'mastery', 'common', 0, 'earnable', NULL, 'Earn your first mastery star.', NULL, NULL, 12),
   ('flawless', 'Flawless', 'mastery', 'rare', 0, 'earnable', NULL, 'Score 200 in any game.', NULL, NULL, 13),
-  ('all-rounder', 'All-Rounder', 'mastery', 'rare', 0, 'waits', 'mastery-stars', 'Earn at least one star in every game.', NULL, NULL, 14),
+  ('all-rounder', 'All-Rounder', 'mastery', 'rare', 0, 'earnable', NULL, 'Earn at least one star in every game.', NULL, NULL, 14),
   ('logic-master', 'Logic Master', 'mastery', 'epic', 0, 'waits', 'all-stars', 'Earn all three stars in every Logic game.', NULL, NULL, 15),
   ('word-master', 'Word Master', 'mastery', 'epic', 0, 'waits', 'all-stars', 'Earn all three stars in every Word game.', NULL, NULL, 16),
   ('number-master', 'Number Master', 'mastery', 'epic', 0, 'waits', 'all-stars', 'Earn all three stars in every Number game.', NULL, NULL, 17),
@@ -117,7 +117,7 @@ INSERT INTO public.badges (slug, name, grp, rarity, coins, status, waits_for, ru
   ('speed-demon', 'Speed Demon', 'fun', 'epic', 0, 'earnable', NULL, 'Finish a puzzle in under a third of its time, 10 times.', 10, 'times', 50),
   ('friendly', 'Friendly', 'social-and-special', 'common', 0, 'earnable', NULL, 'Add 5 friends.', 5, 'friends', 51),
   ('party-host', 'Party Host', 'social-and-special', 'rare', 0, 'earnable', NULL, 'Host 25 rooms with at least 3 players.', 25, 'rooms', 52),
-  ('gem-hunter', 'Gem Hunter', 'social-and-special', 'rare', 0, 'waits', 'mastery-stars', 'Unlock your first gem colour.', NULL, NULL, 53),
+  ('gem-hunter', 'Gem Hunter', 'social-and-special', 'rare', 0, 'earnable', NULL, 'Unlock your first gem colour.', NULL, NULL, 53),
   ('founding-player', 'Founding Player', 'social-and-special', 'legendary', 250, 'earnable', NULL, 'Make an account before 26 January 2027.', NULL, NULL, 54)
 ON CONFLICT (slug) DO NOTHING;
 
@@ -456,17 +456,20 @@ GRANT EXECUTE ON FUNCTION public.daily_history(uuid) TO service_role;
 
 -- What the badge rules read from the results the server already stores (src/lib/badges/rules.server.ts), for one
 -- player: rooms (the game on now and Play again's archive), the Daily and challenges (not the results a challenge
--- copied from the player's own room), and Practice only from p_practice_since (C1a's fresh start; null: none).
+-- copied from the player's own room), and Practice only from C1a's fresh start (public.practice_progress_start; this
+-- file runs after C1a's 20261111101500_practice_progress.sql and C1b's 20261111130000_practice_challenges.sql).
 -- p_puzzle_limits maps every puzzle (non-arcade) type to its clock in ms (the server's catalogue); a stored clock
--- (time_limit_ms) wins. Answers {games200, buzzer, speedDemon, hosted3, challenges}:
+-- (time_limit_ms) wins. Answers {games200, buzzer, speedDemon, hosted3, challenges, stars, starGames}:
 --   games200   different games scored 200 in;
 --   buzzer     puzzles finished (is_correct) with 1–999 ms left;
 --   speedDemon puzzles finished with more than two thirds of their clock left (in under a third of their time);
 --   hosted3    room games this player hosts (duels.host_user_id) that at least 3 players played;
---   challenges Practice challenges completed (C1b's public.practice_challenge_progress, completed_at set; this file
---              runs after C1b's 20261111130000_practice_challenges.sql).
+--   challenges Practice challenges completed (C1b's public.practice_challenge_progress, completed_at set);
+--   gems       gem colours unlocked (C1a writes public.gem_unlocks from the star total);
+--   stars      mastery stars (C1a's public.practice_progress rows with star_at, Easy / Classic / Hard);
+--   starGames  the games with at least one star (for All-Rounder, against the active games).
 -- Service role only.
-CREATE OR REPLACE FUNCTION public.badge_facts(p_user_id uuid, p_puzzle_limits jsonb, p_practice_since timestamptz)
+CREATE OR REPLACE FUNCTION public.badge_facts(p_user_id uuid, p_puzzle_limits jsonb)
 RETURNS jsonb
 LANGUAGE sql
 STABLE
@@ -496,7 +499,8 @@ AS $$
     UNION ALL
     SELECT pp.game_id, pp.score, pp.is_correct, pp.ms_remaining, pp.time_limit_ms
       FROM public.practice_plays pp
-     WHERE p_practice_since IS NOT NULL AND pp.user_id = p_user_id AND pp.created_at >= p_practice_since
+     WHERE pp.user_id = p_user_id
+       AND pp.created_at >= (SELECT s.fresh_start_at FROM public.practice_progress_start s LIMIT 1)
        AND NOT pp.example AND NOT pp.flagged
   ),
   puzzles AS (
@@ -523,11 +527,17 @@ AS $$
     'speedDemon', (SELECT count(*) FROM puzzles WHERE is_correct AND lim > 0 AND ms_remaining::bigint * 3 > lim::bigint * 2),
     'hosted3', (SELECT count(*) FROM hosted),
     'challenges', (SELECT count(*) FROM public.practice_challenge_progress
-                    WHERE user_id = p_user_id AND completed_at IS NOT NULL)
+                    WHERE user_id = p_user_id AND completed_at IS NOT NULL),
+    'stars', (SELECT count(*) FROM public.practice_progress
+               WHERE user_id = p_user_id AND star_at IS NOT NULL AND level IN ('easy', 'classic', 'hard')),
+    'starGames', coalesce((SELECT jsonb_agg(DISTINCT game_id) FROM public.practice_progress
+                            WHERE user_id = p_user_id AND star_at IS NOT NULL AND level IN ('easy', 'classic', 'hard')),
+                          '[]'::jsonb),
+    'gems', (SELECT count(*) FROM public.gem_unlocks WHERE user_id = p_user_id)
   );
 $$;
-REVOKE ALL ON FUNCTION public.badge_facts(uuid, jsonb, timestamptz) FROM PUBLIC, anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.badge_facts(uuid, jsonb, timestamptz) TO service_role;
+REVOKE ALL ON FUNCTION public.badge_facts(uuid, jsonb) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.badge_facts(uuid, jsonb) TO service_role;
 
 /* ------------------------------------------------------------------ the backfill */
 

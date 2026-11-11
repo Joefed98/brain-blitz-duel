@@ -23,9 +23,9 @@ Mix: 8 Common, 12 Rare, 17 Epic, 9 Elite, 8 Legendary; each Legendary pays 250 c
 
 ## In the app
 
-"Now" badges marked "Arrives with mastery stars" (First Star, All-Rounder, Gem Hunter) are built against C1a, which
-hadn't opened its PR when this was written: they turn on with C1a. The three challenge badges count C1b's stored
-completions (`docs/badges/README.md`).
+The "now" badges built on C1a and C1b read their stored data: First Star, All-Rounder and Gem Hunter C1a's stars and
+gems (All-Rounder's count is every active game, so it follows the game list), the three challenge badges C1b's
+completed challenges (`docs/badges/README.md`).
 
 | Slug | Badge | Group | Rarity | Rule shown | Count | When |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -40,9 +40,9 @@ completions (`docs/badges/README.md`).
 | `storm-chaser` | Storm Chaser | Competitive | Elite | Reach Storm. | – | Arrives with rated play |
 | `lightning-strikes` | Lightning Strikes | Competitive | Legendary | Reach Lightning. | – | Arrives with rated play |
 | `top-500` | Top 500 | Competitive | Legendary | Be ranked in the Top 500 at any point. | – | Arrives with rated play |
-| `first-star` | First Star | Mastery | Common | Earn your first mastery star. | – | Arrives with mastery stars |
+| `first-star` | First Star | Mastery | Common | Earn your first mastery star. | – | now |
 | `flawless` | Flawless | Mastery | Rare | Score 200 in any game. | – | now |
-| `all-rounder` | All-Rounder | Mastery | Rare | Earn at least one star in every game. | – | Arrives with mastery stars |
+| `all-rounder` | All-Rounder | Mastery | Rare | Earn at least one star in every game. | 92 games | now |
 | `logic-master` | Logic Master | Mastery | Epic | Earn all three stars in every Logic game. | – | Arrives with all three stars per game |
 | `word-master` | Word Master | Mastery | Epic | Earn all three stars in every Word game. | – | Arrives with all three stars per game |
 | `number-master` | Number Master | Mastery | Epic | Earn all three stars in every Number game. | – | Arrives with all three stars per game |
@@ -81,5 +81,5 @@ completions (`docs/badges/README.md`).
 | `speed-demon` | Speed Demon | Fun | Epic | Finish a puzzle in under a third of its time, 10 times. | 10 times | now |
 | `friendly` | Friendly | Social and special | Common | Add 5 friends. | 5 friends | now (B1 awards) |
 | `party-host` | Party Host | Social and special | Rare | Host 25 rooms with at least 3 players. | 25 rooms | now |
-| `gem-hunter` | Gem Hunter | Social and special | Rare | Unlock your first gem colour. | – | Arrives with mastery stars |
+| `gem-hunter` | Gem Hunter | Social and special | Rare | Unlock your first gem colour. | – | now |
 | `founding-player` | Founding Player | Social and special | Legendary | Make an account before 26 January 2027. | – | now |

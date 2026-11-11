@@ -77,16 +77,18 @@ export interface BadgeFactsRow {
   speedDemon: number;
   hosted3: number;
   challenges: number;
+  stars: number;
+  starGames: string[];
+  gems: number;
 }
 
 export async function readBadgeFacts(
   client: Db,
-  input: { userId: string; puzzleLimits: Record<string, number>; practiceSince: string | null },
+  input: { userId: string; puzzleLimits: Record<string, number> },
 ): Promise<Result<BadgeFactsRow | null>> {
   const { data, error } = await client.rpc("badge_facts", {
     p_user_id: input.userId,
     p_puzzle_limits: input.puzzleLimits as Json,
-    p_practice_since: input.practiceSince,
   });
   return { data: (data as unknown as BadgeFactsRow | null) ?? null, error };
 }

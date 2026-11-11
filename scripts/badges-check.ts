@@ -159,9 +159,12 @@ async function pureChecks(): Promise<void> {
     });
     check(tableRows.length === 54 && mdDiff.length === 0, `docs/badges/catalogue.md's table is the catalogue, rule for rule (${mdDiff.map((d) => d.slug).join(", ") || "none differ"})`);
     const now = cat.BADGES.filter((b) => b.status === "earnable").map((b) => b.slug).sort().join();
-    check(now === "buzzer-beater,century,challenge-expert,challenge-seeker,challenger,daily-habit,dedicated,flawless,founding-player,friendly,party-host,perfectionist,speed-demon", `earnable now: the approved list less C1a's (${now})`);
+    check(now === "all-rounder,buzzer-beater,century,challenge-expert,challenge-seeker,challenger,daily-habit,dedicated,first-star,flawless,founding-player,friendly,gem-hunter,party-host,perfectionist,speed-demon", `earnable now: every badge the approved catalogue says is now (${now})`);
     const wait = (w: string) => cat.BADGES.filter((b) => b.waitsFor === w).map((b) => b.slug).sort().join();
-    check(wait("mastery-stars") === "all-rounder,first-star,gem-hunter" && wait("practice-challenges") === "", "parked on C1a (First Star, All-Rounder, Gem Hunter); C1b's three wired");
+    check(wait("mastery-stars") === "" && wait("practice-challenges") === "", "nothing parked: C1a's three and C1b's three wired");
+    const { ACTIVE_PUZZLE_TYPES } = await import("../src/lib/duel/catalogue");
+    const ar = cat.BADGE_BY_SLUG.get("all-rounder")!;
+    check(ar.target?.need === ACTIVE_PUZZLE_TYPES.length && ar.target.live === true, `All-Rounder counts every active game, from the live list (${ar.target?.need})`);
     check(cat.BADGES.filter((b) => b.waitsFor === "rated-play").length === 13 && cat.BADGES.filter((b) => b.waitsFor === "tournaments").length === 9 && cat.BADGES.filter((b) => b.waitsFor === "all-stars").length === 12 && wait("daily-boards") === "daily-champion,daily-top-100" && wait("hard-challenges") === "category-clear,completionist", "the waves' badges wait as approved (rated play 13, tournaments 9, all stars 12, Daily boards 2, Hard challenges 2)");
     check(cat.badgeProgressLine(cat.BADGE_BY_SLUG.get("daily-habit")!, 4) === "4 of 7 days" && cat.badgeProgressLine(cat.BADGE_BY_SLUG.get("perfectionist")!, 30) === "25 of 25 games" && cat.badgeProgressLine(cat.BADGE_BY_SLUG.get("flawless")!, 0) === null, "progress reads “4 of 7 days”, capped at the count, only on counted badges");
     const svgs = readdirSync("docs/art/badges/svg").filter((f) => f.endsWith(".svg"));
@@ -184,8 +187,8 @@ async function pureChecks(): Promise<void> {
     const checked = earnable.filter((s) => !rules.AWARDED_ELSEWHERE.includes(s));
     check(checked.every((s) => rules.BADGE_RULES[s]) && Object.keys(rules.BADGE_RULES).every((s) => checked.includes(s)), "a rule for every earnable badge the server checks, and only those");
     check(rules.AWARDED_ELSEWHERE.join() === "friendly" && earnable.includes("friendly") && !rules.BADGE_RULES["friendly"], "Friendly is earnable but awarded by B1 (no rule here)");
-    check(rules.PRACTICE_SINCE === null, "Practice runs don't count until C1a's fresh start sets PRACTICE_SINCE");
-    const none: rules.BadgeFacts = { founding: false, playerNumber: 43, games200: 0, buzzerFinishes: 0, fastFinishes: 0, bestDailyStreak: 0, dailyStreak: 0, hostedRooms: 0, challengesDone: 0 };
+    const none: rules.BadgeFacts = { founding: false, playerNumber: 43, games200: 0, buzzerFinishes: 0, fastFinishes: 0, bestDailyStreak: 0, dailyStreak: 0, hostedRooms: 0, challengesDone: 0, stars: 0, starredGames: 0, gems: 0 };
+    const { ACTIVE_PUZZLE_TYPES: ACTIVE } = await import("../src/lib/duel/catalogue");
     // Each rule: the facts that just earn it, and the same facts one short.
     const earns: Record<string, [Partial<rules.BadgeFacts>, Partial<rules.BadgeFacts>]> = {
       "founding-player": [{ founding: true, playerNumber: 42 }, { founding: false }],
@@ -197,6 +200,9 @@ async function pureChecks(): Promise<void> {
       "buzzer-beater": [{ buzzerFinishes: 1 }, { buzzerFinishes: 0 }],
       "speed-demon": [{ fastFinishes: 10 }, { fastFinishes: 9 }],
       "party-host": [{ hostedRooms: 25 }, { hostedRooms: 24 }],
+      "first-star": [{ stars: 1 }, { stars: 0 }],
+      "all-rounder": [{ starredGames: ACTIVE.length, stars: ACTIVE.length }, { starredGames: ACTIVE.length - 1, stars: 200 }],
+      "gem-hunter": [{ gems: 1 }, { gems: 0 }],
       challenger: [{ challengesDone: 10 }, { challengesDone: 9 }],
       "challenge-seeker": [{ challengesDone: 50 }, { challengesDone: 49 }],
       "challenge-expert": [{ challengesDone: 100 }, { challengesDone: 99 }],
@@ -309,7 +315,7 @@ async function databaseChecks(db: LocalDb, rest: RestServer): Promise<void> {
     const rows = JSON.parse(q(`SELECT json_agg(b ORDER BY sort_order) FROM badges b`)) as Record<string, unknown>[];
     const diff = cat.BADGES.filter((b, i) => {
       const r = rows[i];
-      return !r || r["slug"] !== b.slug || r["name"] !== b.name || r["grp"] !== b.group || r["rarity"] !== b.rarity || r["coins"] !== b.coins || r["status"] !== b.status || r["waits_for"] !== b.waitsFor || r["rule"] !== b.rule || r["target_need"] !== (b.target?.need ?? null) || r["target_unit"] !== (b.target?.unit ?? null);
+      return !r || r["slug"] !== b.slug || r["name"] !== b.name || r["grp"] !== b.group || r["rarity"] !== b.rarity || r["coins"] !== b.coins || r["status"] !== b.status || r["waits_for"] !== b.waitsFor || r["rule"] !== b.rule || r["target_need"] !== (b.target && !b.target.live ? b.target.need : null) || r["target_unit"] !== (b.target && !b.target.live ? b.target.unit : null);
     });
     const noRule = db.psql(`BEGIN; INSERT INTO badges (slug, name, grp, rarity, coins, status, sort_order) VALUES ('x-z', 'X', 'fun', 'common', 0, 'earnable', 998); ROLLBACK;`);
     check(/ERROR/.test(noRule.err), "the table refuses a badge with no rule");
@@ -381,7 +387,7 @@ async function databaseChecks(db: LocalDb, rest: RestServer): Promise<void> {
     const award = (badge: string) => JSON.parse(q(`SELECT public.badge_award('${EVE}', '${badge}', '{}'::jsonb)::text`)) as { status: string };
     const waiting = cat.BADGES.filter((b) => b.status !== "earnable");
     const refusedAll = waiting.every((b) => award(b.slug).status === "not_earnable");
-    check(refusedAll && waiting.length === 41 && Number(q(`SELECT count(*) FROM player_badges WHERE user_id = '${EVE}'`)) === 0, `none of the ${waiting.length} badges that wait can be awarded`);
+    check(refusedAll && waiting.length === 38 && Number(q(`SELECT count(*) FROM player_badges WHERE user_id = '${EVE}'`)) === 0, `none of the ${waiting.length} badges that wait can be awarded`);
     const friendly = JSON.parse(q(`SELECT public.badge_award('${EVE}', 'friendly', '{}'::jsonb)::text`)) as { status: string };
     check(friendly.status === "awarded" && balance(EVE) === 1000, "Friendly can be awarded through badge_award (B1's path), no coins (Common)");
     q(`DELETE FROM player_badges WHERE user_id = '${EVE}' AND badge = 'friendly'`);
@@ -577,7 +583,45 @@ async function databaseChecks(db: LocalDb, rest: RestServer): Promise<void> {
     record(99, true);
     await sync(tokFay);
     check(has("challenge-expert"), "Challenge Expert: 100");
-    check(!has("gem-hunter") && JSON.parse(q(`SELECT public.badge_award('${FAY}', 'gem-hunter', '{}'::jsonb)::text`)).status === "not_earnable", "Gem Hunter is parked until C1a (can't be awarded)");
+
+    // First Star, All-Rounder and Gem Hunter: C1a's stored stars (public.practice_progress) and gems (gem_unlocks).
+    const { ACTIVE_PUZZLE_TYPES: ACTIVE_TYPES, RETIRED_PUZZLE_TYPES } = await import("../src/lib/duel/catalogue");
+    const star = (game: string, level = "classic") =>
+      q(`INSERT INTO practice_progress (user_id, game_id, level, best_score, star_at, star_score)
+         VALUES ('${FAY}', '${game}', '${level}', 180, now(), 180) ON CONFLICT DO NOTHING`);
+    q(`INSERT INTO practice_progress (user_id, game_id, level, best_score) VALUES ('${FAY}', '${ACTIVE_TYPES[0]}', 'classic', 174)`);
+    q(`INSERT INTO practice_progress (user_id, game_id, level, best_score) VALUES ('${FAY}', '${ACTIVE_TYPES[1]}', 'expert', 190)`);
+    mine = await sync(tokFay);
+    check(!has("first-star") && mine?.progress?.["all-rounder"] === 0, "First Star just missed: a best of 174, and Expert's 190 (a crown, never a star)");
+    q(`DELETE FROM practice_progress WHERE user_id = '${FAY}'`);
+    star(ACTIVE_TYPES[0]!);
+    mine = await sync(tokFay);
+    check(has("first-star") && !has("all-rounder") && mine?.progress?.["all-rounder"] === 1, "First Star: the first star; All-Rounder at 1");
+    for (const t of ACTIVE_TYPES.slice(1, -1)) star(t, t.length % 2 ? "classic" : "hard");
+    star(ACTIVE_TYPES[1]!, "easy"); // a second star in one game counts that game once
+    if (RETIRED_PUZZLE_TYPES[0]) star(RETIRED_PUZZLE_TYPES[0]); // a retired game's star isn't an active game's
+    mine = await sync(tokFay);
+    check(!has("all-rounder") && mine?.progress?.["all-rounder"] === ACTIVE_TYPES.length - 1, `All-Rounder just missed: every active game but one (${mine?.progress?.["all-rounder"]} of ${ACTIVE_TYPES.length})`);
+    star(ACTIVE_TYPES[ACTIVE_TYPES.length - 1]!);
+    await sync(tokFay);
+    check(has("all-rounder"), `All-Rounder: a star in all ${ACTIVE_TYPES.length} active games`);
+    check(!has("gem-hunter"), "Gem Hunter just missed: no gem yet");
+    q(`INSERT INTO gem_unlocks (user_id, gem) VALUES ('${FAY}', 'amber')`);
+    await sync(tokFay);
+    check(has("gem-hunter"), "Gem Hunter: the first gem colour");
+
+    // Practice counts only from C1a's fresh start: a 200 graded before it never counts, one after it does.
+    const freshAt = q(`SELECT fresh_start_at FROM practice_progress_start`);
+    const gil = accountToken(GIL);
+    const play = (game: string, score: number, at: string) =>
+      q(`INSERT INTO practice_plays (user_id, game_id, score, is_correct, ms_remaining, time_limit_ms, duration_ms, revision, example, flagged, timed_out, created_at)
+         VALUES ('${GIL}', '${game}', ${score}, true, 0, 60000, 60000, '{}'::jsonb, false, false, false, ${at})`);
+    play(ACTIVE_TYPES[0]!, 200, `TIMESTAMPTZ '${freshAt}' - interval '1 hour'`);
+    await sync(gil);
+    check(!hasBadge(GIL, "flawless"), "a Practice 200 from before C1a's fresh start doesn't count");
+    play(ACTIVE_TYPES[0]!, 200, `TIMESTAMPTZ '${freshAt}' + interval '1 minute'`);
+    await sync(gil);
+    check(hasBadge(GIL, "flawless"), "a Practice 200 after the fresh start counts (Flawless)");
 
     // Daily Habit: 6 days in a row just misses, 7 earns (the longest run, from the server's history).
     const today = ukDayKey(Date.now());

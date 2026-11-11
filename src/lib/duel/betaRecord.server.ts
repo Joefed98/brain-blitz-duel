@@ -23,6 +23,11 @@ import {
 } from "@/lib/data/beta.server";
 import { UNIQUE_VIOLATION, type Db, type DbError } from "@/lib/data/db.server";
 import { insertPracticePlay } from "@/lib/data/practice.server";
+import {
+  countPracticePlay,
+  insertPracticePlayWithBreakdown,
+  type PracticeRecordOutcome,
+} from "@/lib/data/practiceProgress.server";
 import { writeRoundRecords } from "@/lib/data/rooms.server";
 import { normaliseInputType } from "@/lib/inputType";
 
@@ -229,9 +234,16 @@ export async function recordPracticePlay(
   makeRow: (userId: string | null) => PracticePlayRow,
   userId?: () => Promise<string | null>,
   inputType?: unknown,
+  progress?: PracticeProgressInput,
 ): Promise<void> {
   await bestEffort("practice_plays", async () => {
     const row = makeRow(await (userId ?? (() => callerUserId(client)))());
+    // Practice progress (wave 2 C1a): the row carries the server's breakdown and level, and is then counted towards
+    // its player's stars and bests (practice_record_play). A database without those columns gets the plain row below.
+    if (progress) {
+      const stored = await insertWithProgress(client, row, progress, normaliseInputType(inputType));
+      if (stored) return stored;
+    }
     // How it was played (lib/inputType.ts): a database without the column (migration
     // 20261031170000_result_input_type.sql, written but not applied) refuses it, so the row goes again without.
     const typed = normaliseInputType(inputType);
@@ -242,6 +254,38 @@ export async function recordPracticePlay(
     }
     return first;
   });
+}
+
+/** What a practice grade adds to its row: the breakdown its grading produced, its level, and who hears the count. */
+export interface PracticeProgressInput {
+  /** The graded extra, exactly as a room stores it in round_results.extra (null when the grade had none). */
+  breakdown: Record<string, unknown> | null;
+  /** The run's level (Classic until wave 3.5). */
+  level: string;
+  /** Called once the play is counted (or refused) towards progress, with the player it was counted for. */
+  onCounted?: (outcome: PracticeRecordOutcome, userId: string) => void;
+}
+
+/**
+ * Writes the row with its breakdown and level, then counts it. Answers null when the database has no breakdown
+ * column (the caller writes the plain row instead); any other answer is the insert's own.
+ */
+async function insertWithProgress(
+  client: Db,
+  row: PracticePlayRow,
+  progress: PracticeProgressInput,
+  typed: string | null,
+): Promise<{ error?: DbError | null } | null> {
+  const full = { ...row, breakdown: progress.breakdown, level: progress.level };
+  let inserted = await insertPracticePlayWithBreakdown(client, typed ? { ...full, input_type: typed } : full);
+  const said = (e: DbError | null | undefined, word: string) =>
+    !!e && new RegExp(word).test(String(e.message ?? "") + String(e.details ?? ""));
+  if (typed && said(inserted.error, "input_type")) inserted = await insertPracticePlayWithBreakdown(client, full);
+  if (said(inserted.error, "breakdown|level")) return null;
+  if (inserted.error || inserted.data === null || !row.user_id) return { error: inserted.error };
+  const counted = await countPracticePlay(client, inserted.data);
+  if (counted.data && progress.onCounted) progress.onCounted(counted.data, row.user_id);
+  return { error: counted.error };
 }
 
 /**

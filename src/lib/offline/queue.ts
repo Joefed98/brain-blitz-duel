@@ -10,7 +10,8 @@
  */
 import { APP_BUILD_ID } from "@/lib/appVersion";
 import { splitClientCounters } from "@/lib/arcade/diagnosticsWire";
-import { recordPracticeBest } from "@/lib/duel/practiceBest";
+import { practiceRunRecord, type PracticeRunProgress } from "@/lib/practice/progress";
+import { applyPracticeRun } from "@/lib/practice/useProgress";
 import { recordPracticeGoals } from "@/lib/duel/practiceGoals";
 import { queueChallengeMoments } from "@/lib/challenges/challengesClient";
 import { stampSignature } from "@/lib/duel/practiceStamps";
@@ -92,6 +93,8 @@ export interface GradeResponse {
   isCorrect?: boolean;
   /** The server's stored extra as JSON text (practice goals read its parts). */
   extraJson?: string | null;
+  /** What the run did to the account's stars and bests once the server counted it (wave 2 C1a). */
+  progress?: PracticeRunProgress | null;
 }
 
 export interface FlushDeps {
@@ -156,8 +159,10 @@ export function flushQueue(deps: FlushDeps = { ensureSession: defaultSession, gr
           await update<QueuedRun>("runs", run.id, (r) => (r ? { ...r, status: "rejected", reason: result.reason ?? "rejected", resolvedAt: Date.now() } : r));
         } else {
           const score = Math.max(0, Number(result.score) || 0);
-          const best = recordPracticeBest(run.type, run.stamp, score);
-          // Practice goals (stars and challenges) from the server's own grade, as an online run's.
+          // Stars and bests count only now, once the server has graded the run (its own `progress`).
+          const best = practiceRunRecord(result.progress, null);
+          applyPracticeRun(run.type, result.progress);
+          // Practice challenges from the server's own grade, as an online run's (device ticks until C1b).
           let extra: Record<string, unknown> | null = null;
           try {
             extra = result.extraJson ? (JSON.parse(result.extraJson) as Record<string, unknown>) : null;

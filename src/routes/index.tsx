@@ -28,9 +28,9 @@ import { currentUserId, getStoredName, setStoredName } from "@/lib/duel/session"
 import { ROOM_CODE_LENGTH, codeFromInput } from "@/lib/duel/roomLink";
 import { readLastRoom } from "@/lib/duel/deviceHistory";
 import { recentPracticeTypes, warmUpTypes } from "@/lib/duel/practiceRecent";
-import { readPracticeBest } from "@/lib/duel/practiceBest";
-import { currentPracticeStamp } from "@/lib/duel/practiceStamps";
 import { useDailyRecord } from "@/lib/badges/badgesApi";
+import { bestOf } from "@/lib/practice/progress";
+import { usePracticeProgress } from "@/lib/practice/useProgress";
 import { dailyStreak, readDailyRecord } from "@/lib/duel/dailyRecord";
 import { ukDayKey } from "@/lib/duel/daily";
 import { rememberedLook, type PlayerLook } from "@/lib/duel/playerLook";
@@ -158,7 +158,8 @@ function Home() {
   const [introCard, setIntroCard] = useState<"pending" | "show" | "hide">("pending");
   // This device's look (the name row's badge), Warm up's bests and the daily streak: device storage.
   const [look, setLook] = useState<PlayerLook>({ colour: 0, icon: null });
-  const [bests, setBests] = useState<Partial<Record<PuzzleType, number>>>({});
+  // Warm up's bests: the account's (the server's, useProgress.ts), shown once they have come.
+  const progress = usePracticeProgress();
   const [streak, setStreak] = useState(0);
   // The streak on the account (src/lib/badges/badgesApi.ts): the server's once it answers, the device's until then.
   const dailyView = useDailyRecord();
@@ -186,14 +187,6 @@ function Home() {
     setRecent(types);
     const remembered = rememberedLook();
     setLook({ colour: remembered.colour ?? 0, icon: remembered.icon ?? null });
-    setBests(
-      Object.fromEntries(
-        types.flatMap((type) => {
-          const best = readPracticeBest(type, currentPracticeStamp(type));
-          return best === null ? [] : [[type, best]];
-        }),
-      ),
-    );
     const record = readDailyRecord();
     setStreak(dailyStreak(record.days, ukDayKey(Date.now())));
     setGames(scheduledGames());
@@ -550,12 +543,12 @@ function Home() {
                 <span aria-hidden="true" className="ap-strip-name">
                   {PUZZLE_REGISTRY[type].name}
                 </span>
-                <span aria-hidden="true" data-warm-best={bests[type] ?? ""} data-none={bests[type] === undefined || undefined} className="ap-strip-best">
-                  {bests[type] === undefined ? (
+                <span aria-hidden="true" data-warm-best={bestOf(progress, type) ?? ""} data-none={bestOf(progress, type) === null || undefined} className="ap-strip-best">
+                  {bestOf(progress, type) === null ? (
                     "Not played"
                   ) : (
                     <>
-                      Best <b>{bests[type]}</b>
+                      Best <b>{bestOf(progress, type)}</b>
                     </>
                   )}
                 </span>

@@ -5,6 +5,8 @@ import { staleSubmissionNote } from "@/lib/appVersion";
 
 import { type SubmitExtra } from "./grade";
 import { mergePuzzle, splitPuzzle } from "./secrets";
+import type { PracticeRunProgress } from "@/lib/practice/progress";
+import { levelOf } from "@/lib/practice/progressRules";
 import { PUZZLE_TYPES } from "./catalogue";
 import type { PuzzleData, PuzzleType } from "./types";
 
@@ -211,10 +213,14 @@ async function gradePracticeRun(data: PracticeRunInput, puzzle: PuzzleData, exam
   // A live deal: the claim held to the server's receipt as in a room (practiceReceipt.ts); else the length clamp alone.
   const { ms, received: bound } = practiceTrustedMs(puzzle, data.msRemaining, received);
   const graded = gradeAnswer(puzzle, data.answer, ms, data.extra, bound);
+  // Practice progress (wave 2 C1a): the row also stores the grade's breakdown and level, and is counted towards the
+  // player's stars and bests on the server (never the intro example; see the migration for what never counts).
+  let progress: PracticeRunProgress | null = null;
   // Beta recording (practice_plays): the outcome only, best-effort, never blocks the answer.
   // Skipped where there is no database (local dev servers in checks).
   if (process.env["SUPABASE_SERVICE_ROLE_KEY"]) {
     const { practicePlayRow, recordPracticePlay } = await import("./betaRecord.server");
+    const { runProgressOf, recordProgressEvents } = await import("@/lib/practice/progress.server");
     const { puzzleTimeLimitMs } = await import("./catalogue");
     const supabaseAdmin = await (await import("@/lib/data/db.server")).adminDb();
     await recordPracticePlay(supabaseAdmin, (userId) =>
@@ -228,6 +234,18 @@ async function gradePracticeRun(data: PracticeRunInput, puzzle: PuzzleData, exam
       }),
       undefined,
       data.inputType,
+      {
+        breakdown: graded.extra ?? null,
+        level: levelOf((puzzle as unknown as Loose)["level"]),
+        onCounted: (outcome, userId) => {
+          progress = runProgressOf(outcome);
+          void recordProgressEvents(outcome, userId);
+          // C2: a new star or gem can earn First Star, All-Rounder or Gem Hunter at once (never awaited: the grade
+          // answers first; the badge's moment shows on the next tab page, and a tab page's sync catches any miss).
+          if (outcome.star_earned || (outcome.gems_unlocked?.length ?? 0) > 0)
+            void import("@/lib/badges/badges.server").then((b) => b.evaluateBadges(supabaseAdmin, userId)).catch(() => {});
+        },
+      },
     );
   }
   // Practice challenges (wave 2 C1b): the server's checker on this graded run (never the intro example's fixed board).
@@ -243,6 +261,8 @@ async function gradePracticeRun(data: PracticeRunInput, puzzle: PuzzleData, exam
     extraJson: graded.extra ? JSON.stringify(graded.extra) : null,
     // The challenges this run completed ({ id, coins, paid }); the phone shows its small moment from these alone.
     challenges,
+    // What the run did to the player's stars and bests (null when it couldn't be counted: no database or player).
+    progress: progress as PracticeRunProgress | null,
   };
 }
 
