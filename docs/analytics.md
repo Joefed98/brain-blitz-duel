@@ -63,6 +63,7 @@ events go alongside them.
 | `coins_spent` | server / database | coins spent (a spend, a shop purchase, a downward admin adjustment); props `reason`, `amount` |
 | `item_granted` | server / database | an item added to an inventory (starter items at sign-up, a purchase, the pass, earned, Joe's grant); props `kind`, `rarity`, `source` |
 | `item_equipped` | server | an item equipped in a loadout slot (not an unequip); props `kind` |
+| `challenge_completed` | server | a server-graded Practice run completed a practice challenge (src/lib/challenges/challenges.server.ts); `game`, mode `practice`, props `challenge` (its id), `level`, `coins` (paid with it; 0 for a guest, whose coins are paid on becoming an account) |
 
 Mode is `room`, `daily`, `challenge` or `practice` (`rated` comes later with its own migration).
 
