@@ -19,6 +19,9 @@
  * Collision geometry the player can see is drawn to the sim's sizes: the ball 0.11 m, the posts and bar 0.12 m, the
  * wall players' bodies 0.55 m apart and 1.85 m tall (+ the jump), the hoop 0.55 m.
  */
+import { NO_LOOK, type GameLook } from "./skins/look";
+import { paintBallArt } from "./skins/ballArt";
+import { freekickBallArt } from "./skins/freekick.skins";
 import type { CanvasSize } from "./engine";
 import {
   FK_AIM,
@@ -1493,12 +1496,33 @@ function drawBall(ctx: CanvasRenderingContext2D, cam: FkCamera, state: FreekickS
     ctx.ellipse(sh.x, sh.y, (FK_BALL_R / M) * sh.s * 1.2, (FK_BALL_R / M) * sh.s * 0.4, 0, 0, Math.PI * 2);
     ctx.fill();
   }
-  if (q) paintBall(ctx, q.x, q.y, Math.max(1.2, (FK_BALL_R / M) * q.s), f ? (f.t * (0.25 + Math.abs(f.b) / 220)) * Math.sign(f.b || 1) : 0.4);
+  if (!q) return;
+  const r = Math.max(1.2, (FK_BALL_R / M) * q.s);
+  const spin = f ? (f.t * (0.25 + Math.abs(f.b) / 220)) * Math.sign(f.b || 1) : 0.4;
+  // The player's football (wave 2 skins): the same ball, the same size, in its skin.
+  const art = freekickBallArt(FK_LOOK);
+  if (art) paintBallArt(ctx, art, q.x, q.y, r, spin);
+  else paintBall(ctx, q.x, q.y, r, spin);
+}
+
+/** The look this draw uses (wave 2 skins): set by a looked art game's draw for its length, the default otherwise. */
+let FK_LOOK: GameLook = NO_LOOK;
+
+/** Draws `fn` in a look (the live stage's, the player's own football). */
+export function withFreekickLook<T>(look: GameLook, fn: () => T): T {
+  FK_LOOK = look;
+  try {
+    return fn();
+  } finally {
+    FK_LOOK = NO_LOOK;
+  }
 }
 
 /** The play and reveal art for a stamp (the sim's game with the art's draw). */
-export function freekickArtGameFor(rev?: number | null) {
-  return { ...freekickGameFor(rev), draw: drawFreekickArt };
+export function freekickArtGameFor(rev?: number | null, look: GameLook = NO_LOOK) {
+  if (!look.skin && !look.world) return { ...freekickGameFor(rev), draw: drawFreekickArt };
+  const draw = (ctx: CanvasRenderingContext2D, state: FreekickState, size: CanvasSize) => withFreekickLook(look, () => drawFreekickArt(ctx, state, size));
+  return { ...freekickGameFor(rev), draw };
 }
 /** The art game on freekickRev 1 (its draw follows each state's own stamp, so it draws any revision). */
 export const freekickArtGame = freekickArtGameFor(1);

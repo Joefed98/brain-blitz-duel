@@ -591,6 +591,7 @@ export type Database = {
           extra: Json | null
           id: string
           input_type: string | null
+          look: Json | null
           is_correct: boolean
           missed: boolean
           ms_remaining: number
@@ -611,6 +612,7 @@ export type Database = {
           extra?: Json | null
           id?: string
           input_type?: string | null
+          look?: Json | null
           is_correct?: boolean
           missed?: boolean
           ms_remaining?: number
@@ -631,6 +633,7 @@ export type Database = {
           extra?: Json | null
           id?: string
           input_type?: string | null
+          look?: Json | null
           is_correct?: boolean
           missed?: boolean
           ms_remaining?: number
@@ -1852,6 +1855,7 @@ export type Database = {
           extra: Json | null
           id: string
           input_type: string | null
+          look: Json | null
           is_correct: boolean
           ms_remaining: number
           player_slot: number
@@ -1868,6 +1872,7 @@ export type Database = {
           extra?: Json | null
           id?: string
           input_type?: string | null
+          look?: Json | null
           is_correct?: boolean
           ms_remaining?: number
           player_slot: number
@@ -1884,6 +1889,7 @@ export type Database = {
           extra?: Json | null
           id?: string
           input_type?: string | null
+          look?: Json | null
           is_correct?: boolean
           ms_remaining?: number
           player_slot?: number
@@ -2755,6 +2761,17 @@ export type Database = {
       tournament_flag: { Args: { p_event: string; p_player: string; p_source: string; p_source_id: string; p_game_idx: number; p_game: string; p_reason: string }; Returns: boolean }
       tournament_flagged_players: { Args: { p_event: string }; Returns: string[] }
       tournament_pay_prize: { Args: { p_event: string; p_user_id: string; p_place: number; p_coins: number; p_medal: string | null; p_title: string | null }; Returns: Json }
+      result_look_for: {
+        Args: { p_game: string; p_user_id: string }
+        Returns: Json
+      }
+      room_game_looks: {
+        Args: { p_duel_id: string; p_game: string }
+        Returns: {
+          look: Json | null
+          player_slot: number
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never

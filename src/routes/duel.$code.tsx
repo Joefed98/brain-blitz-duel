@@ -146,7 +146,7 @@ import {
 import type { SubmitMeta } from "@/puzzles/types";
 import { nearMiss } from "@/lib/duel/nearMiss";
 import { lookColumnsPresent, PLAYER_COLOURS, resolvePlayerLooks } from "@/lib/duel/playerLook";
-import { startRaceGhosts } from "@/lib/duel/raceGhosts";
+import { setRaceGhostSkins, startRaceGhosts } from "@/lib/duel/raceGhosts";
 import { podiumAwards } from "@/lib/duel/podiumAwards";
 import { awardRoundsFor } from "@/lib/duel/awardRounds";
 import { roomInvite } from "@/lib/duel/roomLink";
@@ -477,6 +477,20 @@ function DuelScreen() {
     return startRaceGhosts(duel.id, ghostRound, { key: String(mySlot), name: me.display_name, colour });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ghostRound, duel?.id, mySlot]);
+  // Each ghost wears its own player's car paint (wave 2 skins, display only): read once a round from the server, which
+  // reads each owner's loadout (src/lib/identity/roomLooks.functions.ts); a failure leaves the default paint.
+  useEffect(() => {
+    if (ghostRound === null || !duel) return;
+    let live = true;
+    void import("@/lib/identity/roomLooks.functions").then(({ fetchRoomGameLooks }) =>
+      fetchRoomGameLooks(duel.id, "racing").then((looks) => {
+        if (live) setRaceGhostSkins(Object.fromEntries(Object.entries(looks).map(([slot, look]) => [slot, look.skin])));
+      }),
+    );
+    return () => {
+      live = false;
+    };
+  }, [ghostRound, duel?.id]);
   const finishedPings = useFinishedPings(players, round, mySlot, duel?.status === "in_progress" && phase === "puzzle", stateKey);
   const table = standings(roomPlayers, results, scoredThrough, roundDetails, tieRounds, scoringMode).map((row) => {
     const line = phase === "result" && puzzle ? nearMiss(puzzle.type, resultFor(results, row.slot, round)?.extra) : null;
