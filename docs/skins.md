@@ -36,8 +36,9 @@ changed, and nothing here is read by a sim, a grader, a replay or a deal.
   coins-and-items code (economy-neutral-check walks `src/puzzles`).
 - **Motion.** The animated looks are the catalogue's animated items, all Legendaries: Molten Gold (a shine sweeps the
   car, sparkles twinkle), Neon Night (the kerbs chase cyan and pink, the stars twinkle) and Neon Course (the cup's ring
-  pulses; its windmill turns only as the sim's own sails do). They read `skinTime()`, which is 0 (the PNG's still)
-  under `prefers-reduced-motion`.
+  pulses; its windmill turns only as the sim's own sails do). They read `skinTime()` (`motion.renderer.ts`, the only
+  place that reads `prefers-reduced-motion`: game code under `src/lib/arcade` may not read the screen), which is 0 (the
+  PNG's still) under it.
 
 ## What each look draws
 

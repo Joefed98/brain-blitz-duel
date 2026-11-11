@@ -5,7 +5,8 @@
 import { createCanvas } from "@napi-rs/canvas";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { drawFrames, SKIN_GAMES, type SkinGame } from "./frames";
-import { GAME_SKIN_IDS, NO_LOOK, WORLD_THEME_IDS, setSkinReducedMotion } from "../../src/lib/arcade/skins/look";
+import { GAME_SKIN_IDS, NO_LOOK, WORLD_THEME_IDS } from "../../src/lib/arcade/skins/look";
+import { setSkinReducedMotion } from "../../src/lib/arcade/skins/motion.renderer";
 
 const out = process.argv.find((a) => a.startsWith("--out="))?.slice(6) ?? ".shots/skins";
 const only = process.argv.find((a) => a.startsWith("--only="))?.slice(7);

@@ -1979,7 +1979,8 @@ outside the repo.
   deal or scoring change): the 20 game skins, 3 card backs and 4 world themes of `docs/art/wave-2/items/game-skin/`,
   `card-back/` and `world-theme/` in Cue Ball, Crazy Golf, Curl Champ, Apex, Top Bins and Full House (Free Cell has no
   skins: its deal is face up). `src/lib/arcade/skins/` (`look.ts`:
-  `GameLook`, `NO_LOOK`, the ids, `skinTime()` still under Reduce Motion, the 3:1 contrast helpers; one `<game>.skins.ts`
+  `GameLook`, `NO_LOOK`, the ids, the 3:1 contrast helpers; `motion.renderer.ts`: `skinTime()`, still under Reduce
+  Motion, the only Reduce Motion read; one `<game>.skins.ts`
   each, `ballArt.ts` for the round balls). Each renderer takes an optional look on its public draw calls for the length
   of the call only, so replays, reveals, demos, tiles and ghosts draw the default; scenes come from `…SceneFor(look)`.
   The live stages alone pass the player's own equipped look (`src/lib/skins/equipped.ts` `useGameLookRef`, fed by

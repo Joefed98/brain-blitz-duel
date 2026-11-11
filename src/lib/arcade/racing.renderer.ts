@@ -20,7 +20,8 @@
 import { arcadeReducedEffects } from "@/lib/fx/lowEnd";
 import { arcadeFx, ARCADE_FX_DISPLAY_FONT } from "./arcadeFx.renderer";
 import { RACING_FX } from "./sportsFx.renderer";
-import { lookKey, NO_LOOK, skinReducedMotion, skinTime, type GameLook } from "./skins/look";
+import { lookKey, NO_LOOK, type GameLook } from "./skins/look";
+import { skinReducedMotion, skinTime } from "./skins/motion.renderer";
 import {
   carGoldSparkles,
   carPaintBody,
