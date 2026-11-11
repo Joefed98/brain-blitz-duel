@@ -52,6 +52,10 @@ import { GUEST_NAME_MAX } from "@/lib/names/username";
 import { NameSuggestions } from "@/components/account/AccountParts";
 import { useAccountName } from "@/lib/account/accountApi";
 
+/** The streak on these counted and freeze-covered days (the server's rule, no new freezes used). */
+const dailyStreak = (played: string[], frozen: string[], today: string): number =>
+  dailyStreakWithFreezes({ played, frozen, today, freezes: 0 }).streak;
+
 export const Route = createFileRoute("/daily")({
   ssr: false,
   validateSearch: (search: Record<string, unknown>): { kind?: DailyKind } =>
@@ -235,7 +239,7 @@ function DailyScreen() {
         noteDailyPlayed(status.day);
         const frozen = dailyView?.source === "server" ? dailyView.frozenDays : [];
         streakReached.current = firstToday
-          ? streakMilestone(dailyStreakWithFreezes({ played: [...known, status.day], frozen, today: status.day, freezes: 0 }).streak)
+          ? streakMilestone(dailyStreak([...known, status.day], frozen, status.day))
           : null;
         void refreshDailyRecord();
       }
