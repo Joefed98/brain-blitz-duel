@@ -491,28 +491,65 @@ async function runAll(db: LocalDb): Promise<void> {
 
   await section("guests", async () => {
     const { RATED_SWITCHES } = await import("../src/lib/rated/matchmaking");
+    const { guestEnergyName } = await import("../src/lib/rated/guestName.server");
     const everyone = { ...RATED_SWITCHES, forEveryone: true };
-    const off = await rated.joinQueue(client, GUEST, { format: "bo3", choice: "mixed", displayName: "Gus" }, Date.now());
+    // A phone that still sends a typed name: it is ignored (rated play never takes a guest's typed name).
+    const typedName = { format: "bo3", choice: "mixed", displayName: "Gus" } as { format: string; choice: string };
+    const off = await rated.joinQueue(client, GUEST, typedName, Date.now());
     check(off.ok === false && off.reason === "account", "while rated play is testers-only, a guest can't queue");
-    const noName = await rated.joinQueue(client, GUEST, { format: "bo3", choice: "mixed" }, Date.now(), everyone);
-    check(noName.ok === false && noName.reason === "name", "a guest needs a room name");
     const status = await rated.ratedStatus(client, GUEST, everyone);
     check(status.open === true && status.account === false, "with rated play for everyone, open to a guest");
+    check(q(`SELECT count(*) FROM information_schema.columns WHERE table_name = 'mm_queue' AND column_name = 'display_name'`) === "0", "the queue keeps no guest name (no column)");
     q(`DELETE FROM public.mm_run_uses`);
     const t = Date.now();
-    const joined = await rated.joinQueue(client, GUEST, { format: "bo3", choice: "mixed", displayName: "Gus" }, t, everyone);
-    check(joined.ok === true, "a guest queues with no sign-up");
+    const joined = await rated.joinQueue(client, GUEST, typedName, t, everyone);
+    check(joined.ok === true, "a guest queues with no sign-up and no name");
     const found = await rated.pollQueue(client, GUEST, t + 100);
     check(found.state === "found" && found.match.kind === "recorded", "a guest in placement plays a recorded run first");
     if (found.state === "found") {
-      check(q(`SELECT display_name FROM public.duel_players WHERE duel_id = '${found.match.roomId}' AND user_id = '${GUEST}'`) === "Gus", "seated under the name they typed");
+      const seated = q(`SELECT display_name FROM public.duel_players WHERE duel_id = '${found.match.roomId}' AND user_id = '${GUEST}'`);
+      check(seated === guestEnergyName(GUEST) && /^[A-Z][a-z]+ [A-Z][a-z]+ \d{1,2}$/.test(seated) && seated !== "Gus",
+        `seated under their generated energy name, never the typed one (${seated})`);
+      const me = found.match.players.find((p) => p.userId === GUEST);
+      check(me?.guest === true && me.displayName === seated, "the match view tags them Guest");
       const typed = await call(chat.sendRoomMessageFn, { roomId: found.match.roomId, text: "hi there" }, userToken(GUEST));
       check(typed.ok === false, "a guest sends quick phrases only in a rated room");
+      q(`UPDATE public.duels SET status = 'finished', phase = 'finished', current_round = round_count, phase_started_at = now() WHERE id = '${found.match.roomId}'`);
+      await rated.settleMatch(client, found.match.matchId, Date.now());
+      // A guest's run played against: their energy name and Guest tag, never a typed name. A Practice run stitched from
+      // three plays an hour, three hours and two hours old is labelled with its oldest game's age.
+      const dee = q(`SELECT duel_id FROM public.duel_players WHERE user_id = '${DEE}' LIMIT 1`);
+      q(`DELETE FROM public.mm_practice_deals`);
+      q(`DELETE FROM public.mm_run_uses`);
+      q(`INSERT INTO public.mm_practice_deals (play_id, user_id, game, puzzle, answer, score, ms_remaining, recorded_at)
+         SELECT 990000 + n, '${GUEST}', d.puzzles_public -> (n - 1) ->> 'type', (d.puzzles_public -> (n - 1)) || coalesce(s.puzzles_private -> (n - 1), '{}'::jsonb),
+                '', 50, 1000, now() - make_interval(hours => (ARRAY[1, 3, 2])[n])
+           FROM public.duels d JOIN public.duel_secrets s ON s.duel_id = d.id, generate_series(1, 3) AS n WHERE d.id = '${dee}'`);
+      const t2 = Date.now();
+      await rated.settleOpenMatches(client, VIE, t2);
+      await rated.joinQueue(client, VIE, { format: "bo3", choice: "puzzles" }, t2);
+      const vs = await rated.pollQueue(client, VIE, t2 + 8_000);
+      check(vs.state === "found" && vs.match.recorded?.ownerId === GUEST && vs.match.recorded.ownerGuest === true && vs.match.recorded.ownerName === guestEnergyName(GUEST),
+        `a guest's recorded run shows their energy name with a Guest tag (${vs.state === "found" ? vs.match.recorded?.ownerName : vs.state})`);
+      if (vs.state === "found") {
+        const ageH = (Date.now() - (vs.match.recorded?.recordedAtMs ?? 0)) / 3_600_000;
+        check(vs.match.recorded?.label === "Recorded run · 3 h ago" && ageH > 2.9 && ageH < 3.1, `a stitched Practice run is labelled with its oldest game's age (${vs.match.recorded?.label})`);
+      }
       // Signing up keeps the same player id (wave 1's linking): the match, and so W3a's ratings, stay theirs.
       q(`SET session_replication_role = replica; INSERT INTO public.profiles (user_id, username, username_key, colour, date_of_birth, player_number) VALUES ('${GUEST}', 'GusNow', 'gusnow', 3, DATE '1999-09-09', 99)`);
-      const after = await rated.ratedStatus(client, GUEST, everyone);
-      check(after.account === true && after.activeMatchId === found.match.matchId, "after sign-up the same player still holds the match (ratings key on the same id)");
+      const mine = q(`SELECT count(*) FROM public.mm_match_players WHERE user_id = '${GUEST}'`);
+      check(mine === "1", "after sign-up the same player still holds their match (ratings key on the same id)");
     }
+  });
+
+  await section("the practice deals purge (Cron Trigger)", async () => {
+    const { runPracticeDealsPurge } = await import("../src/lib/rated/tasks/matchmakingTasks.server");
+    q(`INSERT INTO public.mm_practice_deals (play_id, user_id, game, puzzle, answer, score, ms_remaining, recorded_at) VALUES
+       (970001, '${PRA}', 'flood', '{"type":"flood"}', '', 1, 0, now() - interval '16 days'),
+       (970002, '${PRA}', 'flood', '{"type":"flood"}', '', 1, 0, now() - interval '14 days')`);
+    const out = await runPracticeDealsPurge();
+    check(out.result.removed === 1 && q(`SELECT string_agg(play_id::text, ',') FROM public.mm_practice_deals WHERE play_id BETWEEN 970000 AND 979999`) === "970002",
+      "the Worker's purge task removes deals older than 15 days and keeps the rest (no pg_cron needed)");
   });
 
   await section("adult chat", async () => {
@@ -539,6 +576,17 @@ async function runAll(db: LocalDb): Promise<void> {
         "a recorded opponent's account removed: their runs go, matches played against them are re-keyed");
       check(q(`SELECT count(*) FROM public.mm_matches WHERE recorded_games->>'ownerName' = 'Deleted player'`) !== "0", "shown as Deleted player");
     } else check(false, "a rated recorded owner to forget");
+  });
+
+  await section("W3a bound for real", async () => {
+    // Without a stand-in, ratingsReady() binds W3a's own ratings.server.ts on this database.
+    setRatingsBackend(null);
+    const { ratingsReady } = await import("../src/lib/rated/ratingsAdapter.server");
+    const { START_RATING } = await import("../src/lib/rated/glicko.config");
+    const real = await ratingsReady();
+    const r = await real.matchRating(CY, { format: "bo3", choice: "mixed" });
+    check(real.startingRating === START_RATING && r !== null && r.placement === true && r.rating === START_RATING,
+      `W3a's ratings bind on first use: a new player is in placement at the starting rating (${JSON.stringify(r)})`);
   });
 
   await section("rate limit", async () => {

@@ -259,7 +259,11 @@ badgesApi.setBadgesBackend({
   const lit = tiles.filter((t) => !t.hasAttribute("data-locked"));
   check(lit.length === 1 && lit[0]!.getAttribute("data-badge") === "founding-player" && /#0042/.test(lit[0]!.textContent ?? ""), "the earned badge is lit with its number");
   check(tiles.filter((t) => t.hasAttribute("data-locked")).every((t) => ($(`[data-badge='${t.getAttribute("data-badge")}'] [data-badge-how]`)?.textContent ?? "").trim().length > 0), "every locked badge says how it is earned (no hidden badges)");
-  check(/Arrives with tournaments/.test($("[data-badge='knockout-champion']")?.textContent ?? ""), "a tournament badge says it arrives with tournaments");
+  // Joe's approval, 11 Nov 2026 (W4c): Knockout Champion is earnable, so the waiting example is Grand Master (it waits
+  // past all of wave 4), and Knockout Champion's tile shows its rule.
+  check(/Arrives with all three stars per game/.test($("[data-badge='grand-master']")?.textContent ?? ""), "a waiting badge says what it arrives with (Grand Master: all three stars per game)");
+  // Joe's approval, 11 Nov 2026 (W4c): new.
+  check(/Win a Knockout final\./.test($("[data-badge='knockout-champion']")?.textContent ?? "") && !/Arrives with/.test($("[data-badge='knockout-champion']")?.textContent ?? ""), "Knockout Champion's tile shows its rule (earnable, nothing to wait for)");
   check($("[data-badge-count]")?.textContent === "1 of 54", `the count (${$("[data-badge-count]")?.textContent})`);
   check($("[data-badge='daily-habit'] [data-badge-progress]")?.textContent === "4 of 7 days", `a locked counted badge shows progress (${$("[data-badge='daily-habit'] [data-badge-progress]")?.textContent})`);
   check($("[data-badge='perfectionist'] [data-badge-progress]")?.textContent === "3 of 25 games" && !$("[data-badge='flawless'] [data-badge-progress]") && !$("[data-badge='founding-player'] [data-badge-progress]"), "progress only on counted badges, never on an earned one");

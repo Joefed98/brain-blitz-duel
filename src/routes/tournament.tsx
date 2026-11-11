@@ -44,7 +44,7 @@ function TournamentPage() {
       <TournamentEventScreen
         eventId={id ?? ""}
         onBack={back}
-        onRules={(kind) => void router.navigate({ to: "/tournament-rules", search: { kind: kind === "score_attack" ? "score_attack" : "arena" } })}
+        onRules={(kind) => void router.navigate({ to: "/tournament-rules", search: { kind: kind === "score_attack" || kind === "category_cup" || kind === "championship" ? kind : "arena" } })}
         onPlayScoreAttack={(roomId, title) => setRun({ roomId, title })}
       />
     </OnlineOnly>

@@ -169,6 +169,12 @@ export function nextArenaAfter(afterMs: number, switches: TournamentSwitches = T
  */
 export async function advanceEvent(client: Db, row: TournamentEventRow, nowMs: number): Promise<TournamentEventRow> {
   let current = row;
+  // The Category Cup and the Joulz Championship (W4c) run their own rounds (src/lib/tournaments/eventsFlow.server.ts).
+  if (current.kind === "category_cup" || current.kind === "championship") {
+    const { advanceBigEvent } = await import("./eventsFlow.server");
+    await advanceBigEvent(client, current, nowMs);
+    return (await readEvent(client, current.id)).data ?? current;
+  }
   const startsAt = msOf(current.starts_at);
   const endsAt = msOf(current.ends_at);
   if (current.status === "scheduled" && nowMs >= startsAt) {
@@ -730,7 +736,10 @@ export async function arenaBoard(client: Db, userId: string, eventId: unknown, n
 export async function isTournamentRoom(client: Db, roomId: string): Promise<boolean> {
   try {
     const { data } = await readArenaDuelByRoom(client, roomId);
-    return data !== null && data !== undefined;
+    if (data !== null && data !== undefined) return true;
+    // A Category Cup or Championship match (W4c).
+    const { isBigEventRoom } = await import("./eventsFlow.server");
+    return isBigEventRoom(client, roomId);
   } catch {
     return false; // a database without the tournament tables: no tournament rooms
   }
@@ -993,7 +1002,8 @@ export interface TickRun {
 
 /** When an event's reminder goes out. */
 export function reminderDueAt(ev: Pick<ScheduledEvent, "kind" | "startsAt">): number {
-  return ev.kind === "arena" ? ev.startsAt - ARENA_REMIND_LEAD_MS : ev.startsAt + SCORE_ATTACK_REMIND_AFTER_MS;
+  // The Arena, the Category Cup and the Joulz Championship (W4c): before the start; the all-day Score Attack: midday.
+  return ev.kind === "score_attack" ? ev.startsAt + SCORE_ATTACK_REMIND_AFTER_MS : ev.startsAt - ARENA_REMIND_LEAD_MS;
 }
 
 /**

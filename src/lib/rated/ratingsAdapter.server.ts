@@ -6,10 +6,9 @@
  * `RatedMatchResult` (src/lib/data/ratings.ts), built by `toRatingsResult`. The queue's rating comes from W3a's
  * `getMyRatings` (`matchRatingFrom`).
  *
- * Binding: until W3a's src/lib/rated/ratings.server.ts (getMyRatings, recordRatedMatch) is merged in, nothing is bound
- * (`UNBOUND_RATINGS`): the queue refuses "Rated play isn't ready yet", so no match is ever made or settled. Once it is,
- * `ratings()` binds it (`bindW3aRatings`, the one line marked BIND below); checks bind their own stand-in with
- * `setRatingsBackend`.
+ * Binding: `ratingsReady()` binds W3a's src/lib/rated/ratings.server.ts (getMyRatings, recordRatedMatch) on the
+ * service-role client the first time rated play needs it (`bindW3aRatings`, W3a's START_RATING as the starting
+ * rating and the beginners' bound); checks bind their own stand-in first with `setRatingsBackend`, which wins.
  */
 import type { PlayerRatings, RatedGame, RatedMatchOutcome, RatedMatchResult, RatedPool } from "@/lib/data/ratings";
 import { RATED_CATEGORIES, type RatedCategory } from "@/lib/data/ratings";
@@ -93,9 +92,24 @@ export function setRatingsBackend(next: RatingsBackend | null): void {
   backend = next;
 }
 
+/** The bound backend, or UNBOUND_RATINGS before `ratingsReady()` has bound one. */
 export function ratings(): RatingsBackend {
-  // BIND (when W3a's ratings.server.ts is in): backend ??= bindW3aRatings(w3a, adminDb, W3A_STARTING_RATING);
   return backend ?? UNBOUND_RATINGS;
+}
+
+/** The backend, binding W3a's ratings on first use (a stand-in set by a check is kept). */
+export async function ratingsReady(): Promise<RatingsBackend> {
+  if (backend) return backend;
+  try {
+    const w3a = await import("./ratings.server");
+    const { START_RATING } = await import("./glicko.config");
+    const { adminDb } = await import("@/lib/data/db.server");
+    backend ??= bindW3aRatings(w3a, adminDb, START_RATING);
+  } catch (error) {
+    console.error("[rated] W3a's ratings couldn't be bound", error instanceof Error ? error.message : error);
+    return UNBOUND_RATINGS;
+  }
+  return backend;
 }
 
 /* ------------------------------------------------------------------ W3a's shapes */

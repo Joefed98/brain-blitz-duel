@@ -2089,6 +2089,26 @@ outside the repo.
   player, { friends: true })` types for friends, under-18s included; strangers unchanged. Analytics `friend_request_sent`,
   `friend_added`, `friend_removed`, `friend_blocked` (`20261111230100_analytics_friend_events.sql`). friends-check (~5 s,
   PostgreSQL, shard `e`), friends-ui-check (~3 s, happy-dom).
+- **Rated matchmaking** (wave 3 W3b, 11 Nov 2026, `docs/rated/matchmaking-interface.md`; no gameplay, scoring, stamp or
+  deal change): the queue (same format and choice only; ±50 widening by 50 every 2 s to ±200, a recorded run from 8 s;
+  placement straight to a beginner's run), live and recorded rated matches as ordinary rooms the server makes already
+  started (Classic, `dealRoomRounds` from the room picks; a recorded match copies the run's own stored puzzles), the
+  opponent's score hidden for each game's final 20 % (on the server), settling once into W3a's `recordRatedMatch`
+  (`ratingsAdapter.server.ts`; unbound until W3a's `ratings.server.ts` lands), rematch within 8 s, wave 1's stranger
+  chat in rated rooms. Rules `src/lib/rated/matchmaking.ts`, flow `rated.server.ts`, functions `rated.functions.ts`,
+  data `src/lib/data/rated.server.ts`, tables `mm_*` (`20261114200000_matchmaking.sql`). Switches: `RATED_PLAY_FOR_EVERYONE`
+  (`src/config/ratedConfig.ts`, testers on `shop.testers` only while false; true opens it to everyone, guests included
+  with no sign-up, seated under a generated energy name with a Guest tag, `guestName.server.ts`, never a typed name) and
+  the formats / choices in
+  `src/config/matchmakingConfig.ts` (only bo3 with Mixed, All puzzles, All arcade on). Recorded runs: nearest rating,
+  14 days, same version, format and choice, never your own, never the same owner twice running, 5 uses a UK day;
+  never a run the replay flagged; the room / Daily / Practice fallback only when no rated run is near (each counted
+  Practice play's deal is kept 15 days in `mm_practice_deals`, purged by the Worker's Cron Trigger
+  `rated:practice-deals-purge`; a stitched Practice run is aged by its oldest game); arcade and engine games play back on a timeline from the
+  server's replay, puzzles show the score only at the game's end. Best of N stops once decided (a majority of games
+  won, W3a's rule; `ratedMatchClinched` in advancePhaseFn), and such a match leaves no recorded run. W3a's ratings bind
+  on first use (`ratingsReady`). `accounts.forget_user` removes a deleted account's runs (trigger
+  `mm_forget_removed_user`). Checks: rated-matchmaking-check, rated-server-check.
 - **The shop** (wave 2 train D, session D1, 11 Nov 2026, `docs/economy/shop.md`; no gameplay, scoring, stamp or timing
   change; nothing in it helps anyone win): testers only while `SHOP_TAB_ENABLED` is off, from ONE list, `shop.testers`
   (Joe's `shop.add_tester` / `remove_tester` / `list_testers`, logged in `shop.admin_log`; #0001 added by the migration
@@ -2206,6 +2226,41 @@ outside the repo.
   review." Migrations `20261115200000_tournaments.sql`, `20261115200100_tournament_badges.sql`,
   `20261115200200_analytics_tournament_events.sql` (**not applied until merged**). Events `tournament_entered`,
   `tournament_finished`, `prize_paid`. tournaments-check (~40 s, PostgreSQL, shard `e`), tournaments-screens-check (~2 s).
+- **The Category Cup and the Joulz Championship** (wave 4 W4c, 11 Nov 2026, `docs/tournaments/events.md`; no gameplay,
+  scoring, stamp, rating or deal change): on W4b's tournaments, **switched off at launch** (`TOURNAMENT_KINDS_ON`
+  `category_cup` / `championship` in `src/config/tournamentConfig.ts`). Each event is a W4b `tournament_events` row
+  (`category_cup:<Saturday>:1900`, `championship:<YYYY-MM>`, scheduled by `eventRules.ts` through W4b's `rules.ts`),
+  entered, refunded, finished and paid through W4b's functions; W4b's `advanceEvent` hands them to `advanceBigEvent`
+  (`eventsFlow.server.ts`). The cup: Saturdays 7 pm UK, the 11 categories in turn, 150 coins or a Category Cup ticket,
+  16 entrants or called off and refunded, 5–7 best-of-3 rounds by field size, paired by score group with no rematch
+  (`swiss.ts`), tie-breaks points, Buchholz, head-to-head, total score, entry order; 3,000 / 1,800 (8+) / 900 (12+) /
+  300 (4th–8th). The Championship: the last Sunday, the month's top 64 Score Attack players (best 10 daily totals,
+  `monthStandings`), a seeded bracket with byes and a third-place match (`knockout.ts`); 10,000 + the animated
+  Championship frame (`frame.championship`, `docs/art/wave-4/catalogue.json`, placeholder art) + the hall of fame /
+  5,000 / 2,500 / 1,000 / 500 (5th–8th). Swiss Champion and Knockout Champion now earnable (Joe's approval, 11 Nov 2026);
+  150 Joules through D2. A run the server flags (`extra.flagged`) loses its match and earns no place or prize, logged in
+  `moderation.tournament_flags`. Matches are W3b's dealt match rooms, never rated. Own tables `tournament_rounds`,
+  `_seeds`, `_matches`, `_awards`, `_hall_of_fame` (`20261115300000_tournament_events.sql`,
+  `20261115300100_analytics_tournament_events.sql`, **not applied until merged**); events `swiss_round_paired`,
+  `knockout_match_played`. tournament-events-check (~6 s, pure), tournament-events-server-check (~15 s, shard `e`).
+- **The ratings engine** (wave 3 W3a, 11 Nov 2026, `docs/rated/README.md`, the contract `docs/rated/ratings-interface.md`;
+  no gameplay, scoring, stamp or deal change): Glicko-2 (`src/lib/rated/glicko2.ts`, one rating period per match,
+  weighted games, an RD floor schedule and time away; **every constant in `glicko.config.ts` beside its target**,
+  proved on simulated players by ratings-check) for Puzzles, Arcade and the 11 categories (the server's own
+  `gamePool` / `gameCategory`; Mixed at half weight), the Joulz Rating (90 days of games), 5 placement matches with
+  every rating hidden, tiers and caps (`tiers.ts`: Storm's top 3% and Top 500 from 1,000 rated players, 3 days' grace,
+  hourly Cron Trigger `rated:standings` in `vite.config.ts`'s `RATED_TASKS`), recorded runs (owner exactly half, rated
+  runs only, 5 uses a day) and the 4th-match rule per UK day. Guests play rated (placement included) once rated play is
+  on for everyone (`guestsMayPlayRated`); their ratings sit on their player id, so sign-up keeps them (ratings-check
+  proves it through wave 1's linking). The match engine calls `finishRatedMatch`
+  (`rewards.server.ts`: `recordRatedMatch`, idempotent per match id, then C2's badges); the phone only reads
+  (`ratings.functions.ts`). Migrations `20261114100000_ratings.sql`, `…100100_analytics_rated_events.sql`,
+  `…100200_rated_badges_earnable.sql`, `…100300_rated_week_matches.sql` (**not applied until merged**); no API role writes a rated table. Rated play's 13
+  badges are earnable (29 earnable, 25 waiting). Joules are credited through D2's `creditRatedMatchJoules` under the
+  stored `ratedJoulesKey`; `RATED_PLAY_FOR_EVERYONE` (`src/config/ratedConfig.ts`, false) is the switch W3b and D2's
+  weekly draw share (R challenges only while on, progress from `rated_week_matches`). A 1v1 stops once decided (each
+  game weighted); a run the server flagged (a game's stored grade `extra.flagged`, live or recorded) moves nobody, counts for nothing, pays the flagged player no Joules and is logged in `moderation.rated_flags` (Joe: `moderation.rated_flag_queue()`); the tier floor grace keeps a tier 3 more matches below its floor
+  (`shownTierFor`). ratings-check (~10 s, shard `e`, PostgreSQL).
 - `src/components/duel/` — room/round screens (PhoneShell, RoundIntro, TimerBar,
   AnswerReveal, ArcadeReveal, WinnerReveal…); `src/components/puzzles/` — shared puzzle
   widgets; `src/lib/fx/` — sound and visual feedback (presentation only).

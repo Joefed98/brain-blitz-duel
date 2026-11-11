@@ -79,14 +79,6 @@ export const ANALYTICS_EVENTS = [
   // (src/lib/challenges/challenges.server.ts) when a graded Practice run completes one. game is the game, props.challenge
   // the challenge id, props.level its level, props.coins the coins paid with it (0 for a guest, paid on becoming an account).
   "challenge_completed",
-  // Rated matchmaking (wave 3, W3b; docs/rated/matchmaking-interface.md): recorded by the server only
-  // (src/lib/rated/rated.server.ts). queue_joined carries props.format and props.choice; match_found props.kind
-  // (live | recorded), props.waited_s, props.format and props.choice; rematch_requested and rematch_accepted
-  // props.format.
-  "queue_joined",
-  "match_found",
-  "rematch_requested",
-  "rematch_accepted",
   // The shop (wave 2, session D1; docs/economy/shop.md): recorded by the server only (src/lib/shop/shop.server.ts).
   // shop_viewed props.section, item_bought props.coins, props.item and props.rarity, bundle_bought props.bundle,
   // props.coins and props.items, pack_bought props.pack, props.coins and props.test, wishlist_added props.item.
@@ -114,12 +106,25 @@ export const ANALYTICS_EVENTS = [
   // props.tier and props.season.
   "season_ended",
   "season_reward_granted",
+  // Rated matchmaking (wave 3, W3b; docs/rated/matchmaking-interface.md): recorded by the server only
+  // (src/lib/rated/rated.server.ts). queue_joined carries props.format and props.choice; match_found props.kind
+  // (live | recorded), props.waited_s, props.format and props.choice; rematch_requested and rematch_accepted
+  // props.format.
+  "queue_joined",
+  "match_found",
+  "rematch_requested",
+  "rematch_accepted",
   // Tournaments (wave 4, W4b; docs/tournaments/interface.md section 8): recorded by the server only
   // (src/lib/tournaments/tournaments.server.ts). tournament_entered props.kind and props.entry; tournament_finished
   // props.kind and props.place; prize_paid props.kind, props.place and props.coins.
   "tournament_entered",
   "tournament_finished",
   "prize_paid",
+  // The Category Cup and the Joulz Championship (wave 4, W4c; docs/tournaments/events.md): recorded by the server only
+  // (src/lib/tournaments/eventsFlow.server.ts). swiss_round_paired carries props.round and props.players (the round's
+  // players, byes included); knockout_match_played props.round (played matches only, never a walkover).
+  "swiss_round_paired",
+  "knockout_match_played",
 ] as const;
 export type AnalyticsEventName = (typeof ANALYTICS_EVENTS)[number];
 

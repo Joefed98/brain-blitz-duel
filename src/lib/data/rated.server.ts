@@ -395,3 +395,9 @@ export async function readDeletionRequested(client: Db, userIds: string[]): Prom
   const { data, error } = await client.from("profiles").select("user_id, deletion_requested_at").in("user_id", userIds);
   return { data: new Set((data ?? []).filter((r) => r.deletion_requested_at !== null).map((r) => r.user_id)), error };
 }
+
+/** Removes Practice deals older than 15 days (public.mm_purge_practice_deals); answers how many went. */
+export async function purgePracticeDeals(client: Db): Promise<Result<number>> {
+  const { data, error } = await client.rpc("mm_purge_practice_deals");
+  return { data: typeof data === "number" ? data : 0, error };
+}

@@ -138,15 +138,16 @@ const ROWS: readonly Row[] = [
   ["century", "Century", D, "elite", null, "Play the Daily 100 days in a row.", [100, "days"]],
   ["daily-champion", "Daily Champion", D, "legendary", "daily-boards", "Finish first on a Daily board."],
   // Awarded by the tournaments (wave 4, W4b) through badge_award, earnable since 11 Nov 2026 (Joe's approval in the W4b
-  // prompt); Swiss Champion and Knockout Champion keep waiting for W4c.
+  // prompt); Swiss Champion and Knockout Champion by the Category Cup and the Joulz Championship (W4c; Joe's approval,
+  // 11 Nov 2026).
   ["entrant", "Entrant", D, "common", null, "Play your first tournament."],
   ["trophy-hunter", "Trophy Hunter", D, "rare", null, "Finish top 3 in any tournament."],
   ["arena-ace", "Arena Ace", D, "epic", null, "Win 8 games in a row in one Arena."],
   ["champion", "Champion", D, "epic", null, "Win your first tournament."],
   ["arena-champion", "Arena Champion", D, "elite", null, "Win an Arena."],
   ["score-attack-champion", "Score Attack Champion", D, "elite", null, "Win a Score Attack."],
-  ["swiss-champion", "Swiss Champion", D, "elite", T, "Win a Swiss tournament."],
-  ["knockout-champion", "Knockout Champion", D, "legendary", T, "Win a Knockout final."],
+  ["swiss-champion", "Swiss Champion", D, "elite", null, "Win a Swiss tournament."],
+  ["knockout-champion", "Knockout Champion", D, "legendary", null, "Win a Knockout final."],
   ["serial-winner", "Serial Winner", D, "legendary", null, "Win 10 tournaments.", [10, "tournaments"]],
   // From C1b's stored completions (public.practice_challenge_progress), wired 11 Nov 2026.
   ["challenger", "Challenger", H, "common", null, "Complete 10 Practice challenges.", [10, "challenges"]],

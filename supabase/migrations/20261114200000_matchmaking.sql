@@ -26,8 +26,6 @@ CREATE TABLE IF NOT EXISTS public.mm_queue (
     'pattern', 'logic', 'retro', 'sports', 'cards', 'action', 'strategy')),
   rating integer NOT NULL,
   placement boolean NOT NULL DEFAULT false,
-  -- A guest's room name (checked as a room's guest name); an account plays under its username.
-  display_name text CHECK (display_name IS NULL OR char_length(display_name) BETWEEN 1 AND 16),
   joined_at timestamptz NOT NULL DEFAULT now(),
   -- Set once, by mm_queue_claim, when the player is put in a match.
   match_id uuid
