@@ -197,6 +197,8 @@ export const practiceGradeFn = createServerFn({ method: "POST" })
 
 interface PracticeRunInput {
   answer: string;
+  /** The sealed deal (its digest keys the coin challenges' first-run rule). */
+  sealed?: string;
   msRemaining: number;
   extra?: SubmitExtra;
   inputType?: string;
@@ -231,7 +233,7 @@ async function gradePracticeRun(data: PracticeRunInput, puzzle: PuzzleData, exam
     );
   }
   // Practice challenges (wave 2 C1b): the server's checker on this graded run (never the intro example's fixed board).
-  const challenges = example ? [] : await practiceChallengesFor(puzzle.type, graded);
+  const challenges = example ? [] : await practiceChallengesFor(puzzle.type, graded, data.sealed ?? "");
   return {
     puzzle,
     isCorrect: graded.isCorrect,
@@ -253,6 +255,7 @@ async function gradePracticeRun(data: PracticeRunInput, puzzle: PuzzleData, exam
 async function practiceChallengesFor(
   type: string,
   graded: { score: number; isCorrect: boolean; reactionAvgMs: number | null; extra?: Record<string, unknown> | null },
+  sealed: string,
 ): Promise<{ id: string; coins: number; paid: boolean }[]> {
   if (!process.env["SUPABASE_SERVICE_ROLE_KEY"]) return [];
   try {
@@ -260,13 +263,14 @@ async function practiceChallengesFor(
     const { callerUserId } = await import("./betaRecord.server");
     const userId = await callerUserId(admin);
     if (!userId) return [];
-    const { checkPracticeChallenges } = await import("@/lib/challenges/challenges.server");
-    return await checkPracticeChallenges(admin, userId, type, {
-      score: graded.score,
-      isCorrect: graded.isCorrect,
-      reactionAvgMs: graded.reactionAvgMs,
-      extra: graded.extra ?? null,
-    });
+    const { challengeDealKey, checkPracticeChallenges } = await import("@/lib/challenges/challenges.server");
+    return await checkPracticeChallenges(
+      admin,
+      userId,
+      type,
+      { score: graded.score, isCorrect: graded.isCorrect, reactionAvgMs: graded.reactionAvgMs, extra: graded.extra ?? null },
+      await challengeDealKey(String(sealed ?? "")),
+    );
   } catch (err) {
     console.warn(`[challenges] not checked: ${err instanceof Error ? err.message : String(err)}`);
     return [];

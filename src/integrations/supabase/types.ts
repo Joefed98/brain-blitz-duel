@@ -938,6 +938,12 @@ export type Database = {
         }
         Relationships: []
       }
+      practice_challenge_deals: {
+        Row: { deal_key: string; graded_at: string; user_id: string }
+        Insert: { deal_key: string; graded_at?: string; user_id: string }
+        Update: { deal_key?: string; graded_at?: string; user_id?: string }
+        Relationships: []
+      }
       practice_challenge_progress: {
         Row: {
           best: number
@@ -1527,6 +1533,7 @@ export type Database = {
         Returns: Json
       }
       challenge_pay_due: { Args: { p_user_id: string }; Returns: Json }
+      challenge_first_run: { Args: { p_deal_key: string; p_user_id: string }; Returns: boolean }
       economy_credit: {
         Args: { p_amount: number; p_key: string; p_reason: string; p_ref_id: string | null; p_ref_kind: string | null; p_user_id: string }
         Returns: Json

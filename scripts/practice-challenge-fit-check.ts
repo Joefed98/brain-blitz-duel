@@ -41,7 +41,7 @@ const rows = sorted
   <span style="width:44px;height:44px;flex:none;border-radius:10px;background:#222"></span>
   <span class="pc-body"><span class="pc-name">Integer Pyramid · ${esc(c.name)}</span><span class="pc-goal">${esc(c.text)}</span>
   <span class="pc-bar"><span class="pc-progress" style="height:6px;background:#333"></span><span class="pc-figure">999 / 999</span></span></span>
-  <span class="pc-reward">${c.coins ? `<span style="width:14px;height:14px;display:inline-block;background:#E2C07A;border-radius:50%"></span>+${c.coins}` : `<span class="pc-icon"></span>Badge`}</span>
+  ${c.coins ? `<span class="pc-reward"><span style="width:14px;height:14px;display:inline-block;background:#E2C07A;border-radius:50%"></span>+${c.coins}</span>` : ""}
 </div>`,
   )
   .join("\n");
@@ -71,9 +71,9 @@ try {
     const report = await page.evaluate(() =>
       [...document.querySelectorAll<HTMLElement>(".pc-row")].map((row) => {
         const goal = row.querySelector<HTMLElement>(".pc-goal")!;
-        const reward = row.querySelector<HTMLElement>(".pc-reward")!;
+        const reward = row.querySelector<HTMLElement>(".pc-reward");
         const g = goal.getBoundingClientRect();
-        const r = reward.getBoundingClientRect();
+        const r = reward ? reward.getBoundingClientRect() : null;
         const cs = getComputedStyle(goal);
         const lineH = parseFloat(cs.lineHeight);
         return {
@@ -81,7 +81,8 @@ try {
           overflow: goal.scrollWidth > goal.clientWidth + 0.5,
           clipped: cs.textOverflow === "ellipsis" || cs.whiteSpace === "nowrap" || cs.overflow === "hidden",
           lines: Math.round(g.height / lineH),
-          overlaps: g.right > r.left + 0.5 && g.bottom > r.top && g.top < r.bottom,
+          overlaps: r ? g.right > r.left + 0.5 && g.bottom > r.top && g.top < r.bottom : false,
+          rewardShown: Boolean(reward),
           pageOverflow: document.documentElement.scrollWidth > window.innerWidth,
           wide: [...row.querySelectorAll<HTMLElement>("*")].filter((e) => e.getBoundingClientRect().right > window.innerWidth + 0.5).map((e) => e.className).join(" "),
         };
@@ -92,6 +93,7 @@ try {
       check(!r.overflow && !r.clipped, `${width} px: ${r.id}'s goal is shown whole (no overflow, ellipsis or clipping)`);
       check(r.lines >= 1 && r.lines <= 3, `${width} px: ${r.id}'s goal takes ${r.lines} line(s), at most 3`);
       check(!r.overlaps, `${width} px: ${r.id}'s reward doesn't overlap its goal`);
+      check(r.rewardShown === (PRACTICE_CHALLENGES.find((c) => c.id === r.id)!.coins > 0), `${width} px: ${r.id} shows a reward only if it pays coins`);
     }
     check(!report.some((r) => r.pageOverflow), `${width} px: no horizontal page scroll${report.find((r) => r.wide) ? ` (${report.find((r) => r.wide)!.id}: ${report.find((r) => r.wide)!.wide})` : ""}`);
     const worst = report.find((r) => r.id === longest.id)!;

@@ -1984,11 +1984,14 @@ outside the repo.
   the stored extra, its reveal lines and tiles); `src/lib/challenges/challenges.server.ts` runs it in practice's
   grading (`gradePracticeRun`, online and synced offline runs; never the intro example, rooms, the Daily or friend
   challenges) and stores each player's best value and completion in `public.practice_challenge_progress` (guests too),
-  written only by the service-role `challenge_record` / `challenge_pay_due`
+  written only by the service-role `challenge_record` / `challenge_pay_due` / `challenge_first_run`
   (`supabase/migrations/20261111130000_practice_challenges.sql`, **not applied until merged**; data layer
   `src/lib/data/practiceChallenges.server.ts`). 17 Classic pay 100 coins (13 Hard 100 and 9 Expert 250 once live)
-  through A1's ledger, reason `challenge_reward`, key `challenge_reward:<id>`, once per account; a guest's are paid at
-  sign-up (`completeSignUpFn`), or the next graded run or list read. The list (`PracticeChallenges`, done from the server
+  through A1's ledger, reason `challenge_reward`, key `challenge_reward:<id>`, once per account, and only on the player's
+  first graded run of that deal (`public.practice_challenge_deals`, the sealed token's SHA-256, `challenge_first_run`;
+  a retry can still complete challenges that pay nothing; no key fails closed); a guest's are paid at sign-up
+  (`completeSignUpFn`), or the next graded run or list read. The other 222 show no reward; the list says "Every
+  challenge counts towards your Challenger badges." (Joe, 11 Nov 2026). The list (`PracticeChallenges`, done from the server
   alone, `getMyChallengesFn`, `useServerChallenges`), Profile's section (`ProfileChallenges`) and the small completion
   moment (`ChallengeMoments`, queued on the device, drawn only on the Practice list, never over a round, reveal or
   result). Six stored facts (display data only, grade.ts): Heave `goldHome` and Spacewalk `closeCalls`, `noStop` /
