@@ -84,6 +84,7 @@ const shopSwitch = await import("../src/lib/identity/shopSwitch");
 const shopConfig = await import("../src/config/shopConfig");
 const { AppTabBar } = await import("../src/components/app/AppTabBar");
 const { CoinCounter } = await import("../src/components/app/CoinCounter");
+const { AppHeader } = await import("../src/components/app/AppHeader");
 const { TabBar } = await import("../src/design/components/TabBar");
 const { PlayerCard } = await import("../src/design/identity");
 const art = await import("../src/design/identity/playerCardArt.data");
@@ -312,6 +313,27 @@ for (const [who, n, shows] of [
 {
   const header = readFileSync("src/components/app/AppHeader.tsx", "utf8");
   check(/<CoinCounter \/>/.test(header), "the tab pages’ header draws the coin counter");
+}
+
+/* The header: without the counter its markup is exactly the old one (the wordmark and the sound button, no wrapper),
+   which celebrations-off.json pins; with it, the counter and the sound button sit in one group. */
+for (const [who, n, shows] of [
+  ["a guest", null, false],
+  ["account #0002 (switch off for it)", 2, false],
+  ["Joe’s account #0001", 1, true],
+] as const) {
+  await signIn(n);
+  const { root } = await mount(() => React.createElement(AppHeader), "/");
+  await settle(80);
+  const header = $("[data-app-header]");
+  const children = header ? [...header.children].map((c) => (c as unknown as HTMLElement).className || c.tagName) : [];
+  if (shows) check(!!header?.querySelector(".ap-header-tools [data-coin-counter]"), `header, ${who}: the counter beside the sound button`);
+  else
+    check(
+      !!header && header.children.length === 2 && !header.querySelector(".ap-header-tools, [data-coin-counter]"),
+      `header, ${who}: the old markup, the wordmark and the sound button only (${children.join(" | ")})`,
+    );
+  act(() => root.unmount());
 }
 
 /* ------------------------------------------------------------------ 3. the card */

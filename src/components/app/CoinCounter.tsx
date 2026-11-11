@@ -20,12 +20,18 @@ export function Coin({ size = 18 }: { size?: number }) {
  * Guests never see it, and nobody sees it while the Shop switch is off for them (src/config/shopConfig.ts). Nothing
  * is drawn until the balance is known (never a made-up 0).
  */
-export function CoinCounter({ place = "header" }: { place?: "header" | "rail" }) {
-  const router = useRouter();
+/** The balance the counter shows, or null when it draws nothing (a guest, the Shop off, the balance not known yet). */
+export function useCoinCount(): number | null {
   const shop = useShopOn();
   const account = useAccount();
   const { coins } = useMyIdentity();
-  if (!shop || account.kind !== "account" || coins === null) return null;
+  return shop && account.kind === "account" ? coins : null;
+}
+
+export function CoinCounter({ place = "header" }: { place?: "header" | "rail" }) {
+  const router = useRouter();
+  const coins = useCoinCount();
+  if (coins === null) return null;
   const shown = coins.toLocaleString("en-GB");
   return (
     <button
