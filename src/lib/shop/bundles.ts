@@ -41,7 +41,10 @@ export const BUNDLE_MIN_OFF = 0.2;
 /** …and at most this. */
 export const BUNDLE_MAX_OFF = 0.3;
 
-/** Season 1's first eight weeks (proposed for Joe's approval): small, medium, large, then round again. */
+/**
+ * Season 1's first eight weeks, approved by Joe on 11 Nov 2026: small, medium, large, then round again. Week 2's two
+ * Free Cell card backs may move with E1's decision; if so, week 2 changes here.
+ */
 export const BUNDLES: readonly BundleDef[] = [
   {
     id: "frozen-lake",

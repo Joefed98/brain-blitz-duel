@@ -1,4 +1,4 @@
-# Season 1 Monday bundles (proposed, for Joe's approval)
+# Season 1 Monday bundles (approved by Joe, 11 Nov 2026)
 
 Wave 2, session D1, 11 Nov 2026. One themed bundle every Monday (UK; the day the weekly challenges reset), cycling
 small, medium and large, always 20–30 % off the items' separate prices. Each week's items can also be bought one by
@@ -32,7 +32,11 @@ Every one of the 52 shop items is in one of the eight weeks except the Aurora an
 Gold Apex skin and the Lightning Core finish (Legendaries left for the daily shop and later large bundles). No item is
 in two bundles.
 
-Points for Joe:
+Joe's decisions (11 Nov 2026): the eight weeks approved as listed; small bundles at 3,100 (the 20–30 % rule kept);
+Hologram with two Legendaries; Frozen Lake with three items. Week 2 includes two Free Cell card backs (Royal Damask,
+Holo Foil) whose placement is still being decided with E1; if it changes, week 2 is adjusted here and in `BUNDLES`.
+
+The points as raised:
 
 - **Hologram has two Legendaries.** A large bundle at 10,000 needs 12,500–14,285 of items separately; with one
   Legendary that takes five Elites and three Epics, and after weeks 1–5 too few Elites are left. The alternative is a
