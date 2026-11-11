@@ -840,7 +840,7 @@ const profileUi = () => React.createElement(ProfileCard, { guestName: "Player", 
   check(["bo3", "bo5", "bo7"].every((f) => fs.formatKind(f as never) === "duel") && ["ffa4", "ffa8"].every((f) => fs.formatKind(f as never) === "placings"), "formats: bo3/5/7 a 1v1, ffa4/8 placings");
   const duel = fs.screensFor("bo3");
   check(duel?.Search === screens.Searching && duel?.Result === screens.MatchResult && duel?.vs === true, "a 1v1: Searching, VS and MatchResult");
-  // Changed 11 Nov 2026 with Joe's approval (W3d session: "fill that slot"): W3d has filled the placings row, so the
+  // Updated by W3d (11 Nov 2026): the 4/8 slot is now filled, per W3c's design, so the
   // former `screensFor("ffa8") === null` now reads W3d's three screens and no VS.
   const multi = await import("../src/components/rated/multi/MultiFormat");
   const placings = fs.screensFor("ffa8");
