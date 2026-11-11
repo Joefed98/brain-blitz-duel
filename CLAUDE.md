@@ -1,7 +1,7 @@
 # CLAUDE.md — Duelz
 
 Guide for Claude Code sessions. Read `docs/` first (master plan, game bank, scoring
-reference, anti-cheat) and **`DESIGN.md` (repo root) for every screen's look**: the `--jz-*` tokens in
+reference) and **`DESIGN.md` (repo root) for every screen's look**: the `--jz-*` tokens in
 `src/design/tokens.css`, the gold rule, one font (Archivo), type roles, cuts and radii, motion, components
 and `scripts/design-lint.ts`; follow it for any screen change (it replaced `docs/design-system.md` on 6 Nov
 2026), then the `AGENTS.md` files (root, `scripts/`, `src/lib/arcade/`,
@@ -296,7 +296,7 @@ outside the repo.
   stamps (2); the rev-1 curves are `WORDSMITH_REV_CURVE` / `WORDHUNT_REV_CURVE`. Help (`instructions.ts`) and intro
   (`introScore.ts`) texts state the new stamps; Nucleus' and Forage's found words (and Forage's misses) are stage state
   (`useStageState`), so a room reload keeps them. Known exceptions: Tenfall's average 97 (raw shape, to revisit with
-  beta data); Forage's misses are reported by the phone (`docs/security-audit-oct-2026.md`). scoring-batch2-check (~10 s,
+  beta data); Forage's misses are reported by the phone. scoring-batch2-check (~10 s,
   `scripts/fixtures/scoring-batch2-runs.json.gz`, `--record` to re-record).
 - **Puzzle helper, `puzzleScoreRev 3`** (20 Oct 2026, batch 1 of `docs/scoring-report-oct-2026.md`; results, misses
   and decisions in `docs/scoring-rev3-oct-2026.md`): every finish puzzle scores unfinished = min(110, 110 × progress ÷
@@ -1122,10 +1122,9 @@ outside the repo.
   ArcadeCanvasStage's new `hover`, click fires, R reloads, Space taps). Score: Armour 140 (straight line of 63 HP), Weak
   spots 30, Fast reloads 20, Base intact 10. Oracle `scripts/bastion-oracle.ts` (200 on every seed tried), bots
   `scripts/arcade-skill-bands/bots/bastion.ts`; bastion-check (~10 s). No intro demo yet (the still shows; an original
-  demo stays stopped). IP notes in `docs/ip-names.md`.
+  demo stays stopped).
 - **Iron Wall and Wavefront's ships** (3 Nov 2026; `docs/arcade-standard/bastion.md` "bastionRev 3: Iron Wall"):
-  Bastion is shown as **Iron Wall** (`gameNames.ts`; id `bastion` unchanged; "Bastion" dropped as a trademark risk,
-  `docs/ip-names.md`). Rooms deal `bastionRev 3` (`BASTION_REV_IRON`, `bastionIronGame`, `bastionTankGameFor(rev)`;
+  Bastion is shown as **Iron Wall** (`gameNames.ts`; id `bastion` unchanged; "Bastion" dropped as a trademark risk). Rooms deal `bastionRev 3` (`BASTION_REV_IRON`, `bastionIronGame`, `bastionTankGameFor(rev)`;
   `replayBastionTankRun(seed, raw, rev)`): rev 2's plan with waves 4–5 eased (pace 80 / 104 %, were 100 / 134;
   `BT3_WAVE_PACE`), a 90 ms green zone (`BT3_ZONE_W` 45 ‰), and three drones a run on a fixed seeded path from their own
   stream of the seed (`bastionDrones`: one in each of three windows, straight across the sky at 4 px a tick, a 24 × 10
@@ -1155,7 +1154,7 @@ outside the repo.
   flick or the HOLD, TURN, DROP pads under the well; lines 140 (full at 33, the elite median) + multi-line clears 40
   (4 / 8 / 12) + a low stack 20; rooms deal a seed from its proved deal (`blockfallDeal.server.ts`, built by
   `bun scripts/blockfall-deal.ts`, the oracle `scripts/blockfall-oracle.ts` on the shared planner
-  `scripts/blockfall/planner.ts`). Our own look and name (`docs/ip-names.md`). **Alley Roll** (`alleyroll`,
+  `scripts/blockfall/planner.ts`). Our own look and name. **Alley Roll** (`alleyroll`,
   Sports, nine balls or 60 s; sim `src/lib/arcade/alleyroll.ts`): a sloping lane, a ramp and a board of 10–50 rings
   with two 100 pockets; slide to line up, swipe up (speed = power, angle = direction); integer physics with no wind and
   no seed (every room the same lane); ring points 150 (full at 540, the elite median) + pockets 30 + hot streak 20.
@@ -1172,7 +1171,7 @@ outside the repo.
   placed *less* the wrong ones, so guessing never pays; the verdict and progress for summaries and reveals come from
   `gridPuzzles.ts`. Kits `scripts/puzzle-fairness/kits-<game>.ts`, checks `scripts/<game>-check.ts`, script helpers
   `scripts/grid-puzzles-lib.ts`; standard-live-check plays all four and grades a room round of each on the production
-  build. Names for the solicitor's review in `docs/ip-names.md`; intro demos not yet recorded (stills).
+  build. Intro demos not yet recorded (stills).
 - **Ricochet, the ninja wall-climb** (1 Nov 2026, `ricoRev` 2; `docs/arcade-standard/ricochet.md`): back from retirement in
   the Action group under its own id. The ninja is the Joulz hero (`drawHero`) in ninja gear on a 26 × 52 px body box
   that matches the drawing. Sim `src/lib/arcade/ricochetNinja.ts` (two temple walls, tap to leap, a second tap
@@ -1223,7 +1222,7 @@ outside the repo.
   cards-solitaire-check (~6 s) proves 460 seeds each (all 300 Golf deals) at 200 through the server replay, the rules,
   undo, reset and the final draw; bands `bun scripts/cards-bands.ts pyramid golfsol muggins --from=10000` (each page has
   before → after). Sounds reuse the card and tile recordings (`docs/sound-cues/cards-solitaire.md` lists the slots
-  wanting their own, a domino clack first). Names for the solicitor: `docs/ip-names.md` (the single IP list). Intro
+  wanting their own, a domino clack first). Intro
   stills only.
 - **Grappler and Rainbow Bridge batch** (3 Nov 2026; `docs/arcade-standard/swing.md` "swingRev 17",
   `inkbridge.md` "inkRev 13"). **Grappler** `swingRev 17` (`SWING_REV_SLIDE`, the state's `slide`): no gems or stars;
@@ -1722,8 +1721,8 @@ outside the repo.
   CloudOff, and `timer` / `calendar` replace PendingClock's Clock3 and Tournaments' empty-state CalendarDays, in app
   chrome (icons-check's replaced list holds all 13); every icon keeps its size and position (slots outside 18–24 px
   set their old size inline; `Icon` passes `data-*` through). lucide-react stays for game boards only.
-- **Security fixes before the Supabase move** (7 Nov 2026; server only, no game's rules, scoring or stamps changed;
-  `docs/audit-nov-2026/security.md`): *H1* every practice token seals a digest of the public half it was dealt with and
+- **Security fixes before the Supabase move** (7 Nov 2026; server only, no game's rules, scoring or stamps changed):
+  *H1* every practice token seals a digest of the public half it was dealt with and
   every practice handler opens it through `openDeal` (`src/lib/duel/practiceSeal.server.ts`), merging only the public
   fields the phone sent, so a signed-out caller can't grade a board, seed, stamp or clock the server never dealt (a
   token from before the digest is refused; a queued run from one comes back "Couldn't be confirmed"); Hanoi's table is

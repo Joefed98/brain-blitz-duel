@@ -490,7 +490,7 @@ shape (8 of 10 targets = 97); see the decisions in the PR.
   as a known exception, to revisit with beta data (harder targets would be a gameplay stamp).
 - **Forage's misses are reported by the phone** (a known trust limit). The server re-walks every `!cells` path, so a
   phone can't invent a miss, but a modified phone can leave its misses out and keep a random-tracing score. An honest
-  phone always sends them. Listed in `docs/security-audit-oct-2026.md` as needing server-side counting before ranked
+  phone always sends them. Listed in the October security audit as needing server-side counting before ranked
   play.
 
 Checks: scoring-batch2-check (~10 s) proves the stamps, every rule above, 915 stored runs on the new stamps
