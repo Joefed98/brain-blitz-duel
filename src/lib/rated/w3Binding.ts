@@ -115,6 +115,27 @@ export function headToHeadOf(h: { wins: number; losses: number; draws: number; p
 }
 
 /** The game closest to the player's practice best, 1 to NEAR_MISS_MAX below it (C1a's bests, Classic). */
+/**
+ * Challenge on the result (Joe, 11 Nov 2026): only when the opponent is an actual friend (B1's friendships). Never for
+ * a recorded run, a guest on either side, a deleted player or anyone B1 doesn't answer "friends" for.
+ */
+export function challengeAllowed(
+  match: Pick<RatedMatch, "source"> & { me: Pick<RatedPlayer, "guest">; them: Pick<RatedPlayer, "userId" | "guest" | "deleted"> },
+  relation: string | null,
+): boolean {
+  if (match.source.kind !== "live") return false;
+  if (match.me.guest || match.them.guest || match.them.deleted || !match.them.userId) return false;
+  return relation === "friends";
+}
+
+/** B1's relation to the opponent (its friend profile), asked only when nothing else rules Challenge out. */
+export async function friendRelation(match: RatedMatch): Promise<string | null> {
+  if (!challengeAllowed(match, "friends") || !match.them.userId) return null;
+  const { friendsApi } = await import("@/lib/friends/friendsApi");
+  const answer = await friendsApi.profile(match.them.userId).catch(() => null);
+  return answer && answer.ok ? answer.profile.relation : null;
+}
+
 export const NEAR_MISS_MAX = 15;
 export function nearMissOf(games: readonly RatedGame[], bestOf: (type: string) => number | null): { type: string; offBest: number } | null {
   let pick: { type: string; offBest: number } | null = null;
@@ -340,8 +361,8 @@ export async function bindW3(): Promise<RatedBackend> {
         // C1a's stars are earned by Practice runs only: a rated game earns none, so there is never one to show here.
         star: null,
         nearMiss,
-        // Friends (B1) aren't on main yet: nobody is a friend, so Challenge doesn't show.
-        friend: false,
+        // B1's friendships: Challenge shows only for a live opponent who is a friend (challengeAllowed).
+        friend: challengeAllowed(match, await friendRelation(match)),
         rematchUntil: s.kind === "live" && Number.isFinite(finishedMs) ? new Date(finishedMs + REMATCH_WINDOW_MS).toISOString() : null,
         moved: change?.changes.map((c) => c.key) ?? [],
       } satisfies RatedResult;
@@ -356,9 +377,17 @@ export async function bindW3(): Promise<RatedBackend> {
     async challenge(matchId) {
       const v = await rated.ratedMatchFn({ data: { matchId } });
       if (!v?.roomId) return { ok: false, message: "That match can’t be sent as a challenge." };
+      // Asked again here: only a friend (a live opponent B1 calls a friend) is ever sent one.
+      const match = await toMatch(v);
+      if (!challengeAllowed(match, await friendRelation(match)) || !match.them.userId)
+        return { ok: false, message: "You can challenge friends only." };
+      // The existing friend challenge flow: the room's games as a challenge, sent to the friend (B1's sendChallenge).
       const { challengeFromRoom } = await import("@/lib/duel/challengeApi");
       const made = await challengeFromRoom(v.roomId);
-      return made.ok ? { ok: true, code: made.code } : { ok: false, message: made.message };
+      if (!made.ok) return { ok: false, message: made.message };
+      const { friendsApi } = await import("@/lib/friends/friendsApi");
+      await friendsApi.challenge(match.them.userId, made.code).catch(() => null);
+      return { ok: true, code: made.code };
     },
 
     ladder,

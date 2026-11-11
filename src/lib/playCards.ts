@@ -22,6 +22,10 @@ import { PUBLIC_GAMES, type PublicGameConfig } from "@/config/publicGames";
 import type { DailyStatus } from "@/lib/duel/daily";
 import { scheduledGames } from "@/lib/publicSchedule";
 
+// The iPhone Safari test lives in its own module (no game imports), so the push client can use it too (B2).
+import { IPHONE_UA, NOT_SAFARI_UA, iphoneSafari, type BootDevice } from "./iphoneSafari";
+export { IPHONE_UA, NOT_SAFARI_UA, iphoneSafari, type BootDevice };
+
 export const PLAY_CARDS_KEY = "duelz-play-cards:v1";
 /** The keys the boot script reads (kept in step with session.ts, deviceHistory.ts and shareRef.ts by the check). */
 export const NAME_KEY = "duelz_display_name";
@@ -31,13 +35,6 @@ export const ARRIVAL_KEY = "duelz-share-arrival:v1";
 export const ONBOARDING_SEEN_KEY = "duelz_onboarding_seen";
 /** The Add to Home Screen hint's once-per-device flag (lib/beta/homeScreenHint.ts). */
 export const HOME_HINT_KEY = "duelz-home-hint:v1";
-/**
- * iPhone Safari itself: an iPhone, Safari's "Version/…" token, and none of the other browsers or in-app
- * views that also say Safari (Chrome, Firefox, Edge, Opera, Google, DuckDuckGo, Facebook, Instagram…),
- * which can't add to the home screen the same way. The boot script spells the same two patterns.
- */
-export const IPHONE_UA = /iPhone|iPod/;
-export const NOT_SAFARI_UA = /CriOS|FxiOS|EdgiOS|OPiOS|OPT\/|GSA\/|DuckDuckGo|FBAN|FBAV|Instagram|Line\/|Snapchat|YaBrowser|Mercury/;
 
 /**
  * The Next public game card's height on the Play tab (px, 414 wide) for a device with no height of its
@@ -52,17 +49,6 @@ export const PUBLIC_CARD_STARTS: [number, number][] = publicCardStarts(PUBLIC_GA
 
 export type PlaySlotId = "daily" | "challenge" | "rejoin" | "welcome" | "homescreen" | "intro";
 
-/** What the boot script reads of the browser for the home-screen hint (window.navigator, matchMedia). */
-export interface BootDevice {
-  ua: string;
-  /** Already a home-screen app (navigator.standalone, or display-mode: standalone). */
-  standalone: boolean;
-}
-
-/** True on iPhone Safari outside a home-screen app: where the Add to Home Screen hint may show. */
-export function iphoneSafari(device: BootDevice | null): boolean {
-  return !!device && !device.standalone && IPHONE_UA.test(device.ua) && /Safari\//.test(device.ua) && /Version\//.test(device.ua) && !NOT_SAFARI_UA.test(device.ua);
-}
 
 export interface CachedRejoin {
   code: string;

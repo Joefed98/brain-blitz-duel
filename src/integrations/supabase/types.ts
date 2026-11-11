@@ -56,6 +56,126 @@ export type Database = {
         }
         Relationships: []
       }
+      notification_log: {
+        Row: {
+          counts_cap: boolean
+          dedupe_key: string | null
+          event: string
+          id: number
+          sent_at: string
+          user_id: string
+        }
+        Insert: {
+          counts_cap: boolean
+          dedupe_key?: string | null
+          event: string
+          id?: number
+          sent_at?: string
+          user_id: string
+        }
+        Update: {
+          counts_cap?: boolean
+          dedupe_key?: string | null
+          event?: string
+          id?: number
+          sent_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      notification_settings: {
+        Row: {
+          asked_at: string | null
+          daily_streak: boolean
+          declined_at: string | null
+          enabled: boolean
+          friend_accepted: boolean
+          friend_challenge: boolean
+          friend_request: boolean
+          room_invite: boolean
+          tournament_starting: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          asked_at?: string | null
+          daily_streak?: boolean
+          declined_at?: string | null
+          enabled?: boolean
+          friend_accepted?: boolean
+          friend_challenge?: boolean
+          friend_request?: boolean
+          room_invite?: boolean
+          tournament_starting?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          asked_at?: string | null
+          daily_streak?: boolean
+          declined_at?: string | null
+          enabled?: boolean
+          friend_accepted?: boolean
+          friend_challenge?: boolean
+          friend_request?: boolean
+          room_invite?: boolean
+          tournament_starting?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      push_friend_deliveries: {
+        Row: {
+          claimed_at: string
+          event_id: number
+        }
+        Insert: {
+          claimed_at?: string
+          event_id: number
+        }
+        Update: {
+          claimed_at?: string
+          event_id?: number
+        }
+        Relationships: []
+      }
+      push_subscriptions: {
+        Row: {
+          auth: string
+          created_at: string
+          endpoint: string
+          id: string
+          last_seen_at: string
+          p256dh: string
+          platform: string | null
+          time_zone: string
+          user_id: string
+        }
+        Insert: {
+          auth: string
+          created_at?: string
+          endpoint: string
+          id?: string
+          last_seen_at?: string
+          p256dh: string
+          platform?: string | null
+          time_zone?: string
+          user_id: string
+        }
+        Update: {
+          auth?: string
+          created_at?: string
+          endpoint?: string
+          id?: string
+          last_seen_at?: string
+          p256dh?: string
+          platform?: string | null
+          time_zone?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       titles: {
         Row: {
           badge: string | null
@@ -2062,6 +2182,36 @@ export type Database = {
       }
     }
     Functions: {
+      push_claim_friend_events: {
+        Args: { p_limit: number; p_since: string }
+        Returns: {
+          actor_id: string
+          created_at: string
+          id: number
+          kind: string
+          payload: Json
+          recipient_id: string
+        }[]
+      }
+      push_log_retention: { Args: Record<PropertyKey, never>; Returns: number }
+      push_reserve: {
+        Args: {
+          p_cap: number
+          p_counts_cap: boolean
+          p_dedupe_key: string | null
+          p_event: string
+          p_since: string
+          p_user_id: string
+        }
+        Returns: string
+      }
+      push_streak_candidates: {
+        Args: { p_day: string }
+        Returns: {
+          time_zone: string | null
+          user_id: string
+        }[]
+      }
       result_look_for: {
         Args: { p_game: string; p_user_id: string }
         Returns: Json

@@ -1975,6 +1975,26 @@ outside the repo.
   `20261110200000_analytics_identity_events.sql` (**applied**; it adds to the list it reads from the
   table). Checks: identity-screens-check (~5 s, happy-dom, A1 stood in by `setIdentityBackend`) and identity-motion-check
   (headless Chromium: every item against its approved PNG, no animation under reduced motion).
+- **Phone notifications** (wave 2 train B, session B2, 11 Nov 2026, `docs/push-notifications.md`; no gameplay, scoring,
+  stamp, timing or room-flow change): standard web push with Joulz's own VAPID keys, no package (RFC 8291 / 8292 in
+  WebCrypto, `src/lib/push/webPush.server.ts`). **Off until Joe sets `PUSH_PUBLIC_KEY`** (`src/config/pushConfig.ts`) and the
+  Worker secret `VAPID_PRIVATE_KEY`: nothing asks, subscribes or sends, and no settings panel shows. Six events
+  (`PUSH_EVENTS` in `src/lib/push/rules.ts`), decided and sent only in `notify.server.ts`: friend request, friend accepted,
+  friend challenge and room invite from B1's `friend_events` (`dispatchFriendEvents`, each claimed once through
+  `push_claim_friend_events`; run right after B1's change, `notifySoon` in friends.server.ts, and every 5 minutes),
+  tournament starting (exists; nothing sends it until wave 4) and the Daily streak reminder (19:00–20:59 UK, C2's
+  `dailyStreakFor` streak ≥ 1 with today's Daily not played). Schedules are the Worker's own **Cron Triggers**: nitro
+  scheduled tasks in `vite.config.ts` (`src/lib/push/tasks/`, `*/5 * * * *` friend sweep, `41 * * * *` reminder), written
+  into wrangler.json's `triggers.crons` by the build. A switch per event under a master switch (Settings → Notifications),
+  at most 3 a day (room invites apart), none 22:00–08:00 on the device's clock (its IANA zone, sent on subscribe and each
+  open) except a fresh room invite; held-back ones are dropped. The ask: never on first open, at a useful moment
+  (`notePushMoment`: a friend request sent or waiting, a finished Daily), on the next tab page (`NotificationAskSlot`), 30
+  days after a decline; an iPhone in Safari gets the Home Screen how-to. Accounts only (rows hang off `profiles`); sign-out
+  removes the device (`forgetPushOnSignOut`), a 404/410 from the push service removes it, a deletion request removes all.
+  The `push` / `notificationclick` listeners (`src/lib/push/sw.push.js`) are appended to the offline worker by swPlugin; the
+  offline worker itself is unchanged. Migration `20261112060000_push_notifications.sql` (after C2's and B1's; **not applied
+  until merged**). Events `notification_opt_in`, `notification_sent`, `notification_opened`. push-notifications-check (~5 s,
+  shard `e`).
 - **Friends** (wave 2 train B, session B1, 11 Nov 2026, `docs/friends.md`; no gameplay, scoring, stamp or room-flow
   change beyond Invite to room): accounts only (`/friends`, `src/routes/friends.tsx`, screens
   `src/components/friends/FriendsScreens.tsx`; Profile's Friends button carries the waiting-requests badge, a guest gets
@@ -2205,7 +2225,11 @@ outside the repo.
   stage publishes its running score once a second only while it is asked, through the import-free `liveScore.ts`), and
   the finished room hands over to `/rated?match=` after W3b's winner reveal. The placement boxes are W3a's own
   per-match results (`placementBoxesOf`), the VS record W3b's `ratedHeadToHeadFn` (live opponents only), and `/rated`
-  picks its screens by W3b's format (`formatScreens.tsx`; W3d fills the 4- and 8-player row). Guests show under W3b's energy
+  picks its screens by W3b's format (`formatScreens.tsx`; W3d fills the 4- and 8-player row): Search is given the format,
+  and a rated 4- or 8-player room draws the slot's Between in place of its round result and standings (`RatedBetween`,
+  with the time until the next game, `msUntilNextGame` in `between.ts`; the format noted beside the match in
+  `ratedRoom.ts`). Challenge on the result only for a live opponent B1 calls a friend (`challengeAllowed`, asked again
+  before it is made and sent through B1's `friendsApi.challenge`); never a recorded run, a guest or a non-friend. Guests show under W3b's energy
   name with a Guest tag; a guest's finished rated match counts for the save-your-progress prompt ("Save your rating and
   stars", `SAVE_PROGRESS_FROM` "rated"). Under automation the real binding stays off unless a page sets
   `window.__DUELZ_ALLOW_RATED__` (ignored in production). Events play_card_tapped, vs_shown, result_viewed,

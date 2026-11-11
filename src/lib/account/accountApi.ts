@@ -146,6 +146,13 @@ export function useAccountName(): string | null {
 
 /** Signs this device out: the event first (best effort), then the session; the next call makes a fresh guest. */
 export async function signOutAccount(): Promise<void> {
+  // Phone notifications (B2): this device's subscription goes first, while the session can still remove it.
+  try {
+    const { forgetPushOnSignOut } = await import("@/lib/push/pushDevice");
+    await forgetPushOnSignOut();
+  } catch {
+    /* best effort */
+  }
   try {
     const { noteSignOutFn } = await import("./account.functions");
     await noteSignOutFn();

@@ -338,6 +338,10 @@ export const SHARDS: Record<string, string[]> = {
     // skins-db-check (wave 2 E1, 11 Nov 2026, ~10 s): the card-back move and the result looks' triggers on a local
     // PostgreSQL, and the ghost-looks server function, beside economy-check.
     "skins-db-check.ts",
+    // push-notifications-check (wave 2 B2, 11 Nov 2026, ~5 s): phone notifications (RFC 8291 / VAPID, the six events,
+    // the cap and quiet hours, the streak reminder, subscriptions, RLS, the service worker's push listeners) on a local
+    // PostgreSQL through the server-function harness, beside economy-check.
+    "push-notifications-check.ts",
     // badges-check (wave 2 C2, 11 Nov 2026, ~10 s): badges, titles, the sign-up and founding rewards, the backfill and the
     // Daily streak on the account, on a local PostgreSQL through the server-function harness, beside economy-check.
     "badges-check.ts",

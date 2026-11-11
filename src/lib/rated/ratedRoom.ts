@@ -8,9 +8,14 @@
  * The live arcade score for the header is its own import-free module (liveScore.ts), so game code that publishes it
  * reaches nothing rated, economic or pass-related (economy-neutral-check).
  */
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+
+import type { RatedFormat } from "./matchmaking";
 
 const KEY = "duelz-rated-room:v1:";
+/** The match's W3b format, beside its id (so a 4- or 8-player room draws its Between screen). */
+const FORMAT_KEY = "duelz-rated-room-format:v1:";
+const FORMATS: readonly RatedFormat[] = ["bo3", "bo5", "bo7", "ffa4", "ffa8"];
 
 function store(): Storage | null {
   try {
@@ -21,9 +26,10 @@ function store(): Storage | null {
 }
 
 /** Notes that the room `code` plays rated match `matchId` (before opening it). */
-export function noteRatedRoom(code: string, matchId: string): void {
+export function noteRatedRoom(code: string, matchId: string, format?: RatedFormat): void {
   try {
     store()?.setItem(KEY + code.toUpperCase(), matchId);
+    if (format) store()?.setItem(FORMAT_KEY + code.toUpperCase(), format);
   } catch {
     /* storage blocked */
   }
@@ -37,6 +43,22 @@ export function ratedMatchForRoom(code: string | null | undefined): string | nul
   } catch {
     return null;
   }
+}
+
+/** The rated match's W3b format for the room `code`, if this tab knows it (noted with the match id). */
+export function ratedFormatForRoom(code: string | null | undefined): RatedFormat | null {
+  if (!code) return null;
+  try {
+    const f = store()?.getItem(FORMAT_KEY + code.toUpperCase()) ?? null;
+    return f && (FORMATS as readonly string[]).includes(f) ? (f as RatedFormat) : null;
+  } catch {
+    return null;
+  }
+}
+
+/** The room's rated format once its match is known (null for an ordinary room). */
+export function useRatedRoomFormat(code: string | null | undefined, matchId: string | null): RatedFormat | null {
+  return useMemo(() => (matchId ? ratedFormatForRoom(code) : null), [code, matchId]);
 }
 
 /**
@@ -55,7 +77,7 @@ export function useRatedRoom(code: string | null | undefined, roomId?: string | 
       const backend = await ratedBackend();
       const found = backend ? await backend.roomMatch(roomId).catch(() => null) : null;
       if (!live || !found) return;
-      noteRatedRoom(code, found.matchId);
+      noteRatedRoom(code, found.matchId, found.format);
       setId(found.matchId);
     })();
     return () => {
