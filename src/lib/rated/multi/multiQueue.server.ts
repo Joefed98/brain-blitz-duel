@@ -11,7 +11,8 @@
  */
 import { claimQueue, readWaiting, type RatedMatchPlayerRow, type RatedMatchRow } from "@/lib/data/rated.server";
 import type { Db } from "@/lib/data/db.server";
-import { FORMAT_PLAYERS, bandFor, gameVersionOf, isRatedChoice, isRatedFormat, type QueueEntry } from "@/lib/rated/matchmaking";
+import { FORMAT_PLAYERS, RATED_GAME_MODE, bandFor, gameVersionOf, isRatedChoice, isRatedFormat, type QueueEntry } from "@/lib/rated/matchmaking";
+import type { RatedSettlement } from "@/lib/rated/ratingsAdapter.server";
 import type { PuzzleData, RoundResultRow } from "@/lib/duel/types";
 
 import { finishMultiMatch, type MultiFinish } from "./multi.server";
@@ -77,8 +78,51 @@ export async function settleMultiMatch(input: {
       score: input.results.find((r) => r.player_slot === p.slot && r.round_number === i + 1)?.score ?? 0,
     })),
   }));
+  // W3a is reached through W3b's adapter, the one place the match engine calls the ratings (ratingsAdapter.server.ts
+  // `ratings()`), so W3a's recordRatedMatch is bound once for 1v1 and for 4 and 8 players alike.
+  const { ratings } = await import("@/lib/rated/ratingsAdapter.server");
   return finishMultiMatch(
     { matchId: input.match.id, size, choice: input.match.choice as "mixed" | "puzzles" | "arcade", seats, games, finishedAt: input.finishedAt },
-    { switches: { ffa4: true, ffa8: true } },
+    {
+      switches: { ffa4: true, ffa8: true },
+      backend: {
+        enqueue: async () => {
+          throw new Error("not used when settling");
+        },
+        recordedCandidates: async () => [],
+        recordRatedMatch: (result) => ratings().recordRatedMatch(result),
+      },
+    },
   );
+}
+
+/** W3b's `RatedSettlement` for a 4- or 8-player match (what its result screens read): each player's stored scores, the placings and W3a's answer. */
+export function multiSettlement(
+  match: RatedMatchRow,
+  players: RatedMatchPlayerRow[],
+  puzzles: PuzzleData[],
+  results: RoundResultRow[],
+  finishedAt: string,
+  multi: MultiFinish,
+): RatedSettlement {
+  const scoresOf = (slot: number) => puzzles.map((_, i) => results.find((r) => r.player_slot === slot && r.round_number === i + 1)?.score ?? 0);
+  const placeOf = new Map(multi.placings.map((p) => [p.seatId, p.place]));
+  return {
+    matchId: match.id,
+    format: match.format as RatedSettlement["format"],
+    choice: match.choice as RatedSettlement["choice"],
+    gameMode: RATED_GAME_MODE,
+    kind: "live",
+    rematchOf: match.rematch_of,
+    finishedAt,
+    players: players.map((p) => {
+      const scores = scoresOf(p.slot);
+      return { userId: p.user_id, slot: p.slot, ratingBefore: p.rating_before, placement: p.placement, scores, timesMs: scores.map(() => 0), gamesWon: 0, total: scores.reduce((a, b) => a + b, 0) };
+    }),
+    games: puzzles.map((p) => ({ type: p.type, signature: gameVersionOf(p), winner: "draw" as const })),
+    winner: "draw",
+    recorded: null,
+    ratings: multi.outcome,
+    placings: Object.fromEntries(players.map((p) => [p.user_id, placeOf.get(`slot:${p.slot}`) ?? players.length])),
+  };
 }

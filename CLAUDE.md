@@ -2068,7 +2068,7 @@ outside the repo.
   server's replay, puzzles show the score only at the game's end. Checks: rated-matchmaking-check, rated-server-check.
 - **Rated 4- and 8-player matches** (wave 3, session W3d, 11 Nov 2026, `docs/rated/multiplayer.md`; no gameplay, scoring,
   stamp, timing or deal change; rooms untouched): **off at launch** on W3b's switches (`RATED_FORMATS_ON.ffa4` / `.ffa8`
-  in `src/config/ratedConfig.ts`), refused by the server while off (`joinMultiQueue` / `assertMultiOn`). Rules
+  in `src/config/matchmakingConfig.ts`), refused by the server while off (`joinMultiQueue` / `assertMultiOn`). Rules
   `src/lib/rated/multi/rules.ts`: 15 s for live players, then recorded runs in every empty seat, never a player twice;
   placing points 10, 7, 5, 4, 3, 2, 1, 0 (8) and 5, 3, 1, 0 (4), final placings by points then total score. W3a's
   `recordRatedMatch` gets a `placings` match (`multiRatedResult`) and applies the pairwise rule, Joules (1.5 × best of 3)

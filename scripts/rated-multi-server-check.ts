@@ -2,7 +2,7 @@
  * rated-multi-server-check (wave 3, W3d; docs/rated/multiplayer.md): a 4-player rated match end to end through W3b's real
  * queue, rooms and settling (src/lib/rated/rated.server.ts with W3d's hooks), against a local PostgreSQL 16 with every
  * migration applied (scripts/server-fn-harness.ts). W3a's ratings are stood in (W3b's `setRatingsBackend` for the queue's
- * rating, W3d's `bindRatedMulti` for the placings result). No browser (~10 s).
+ * rating, the same stand-in, through W3b's adapter, gets the placings result). No browser (~10 s).
  *
  * It proves: ffa4 off is refused by the server; a placement player can't queue for 4 or 8; four testers within the band
  * make one live match (one ordinary started room, all four seated, the same deals, nobody else); three never start one
@@ -106,8 +106,7 @@ async function runAll(db: LocalDb): Promise<void> {
   };
   const rated = await import("../src/lib/rated/rated.server");
   const { RATED_SWITCHES } = await import("../src/lib/rated/matchmaking");
-  const { setRatingsBackend } = await import("../src/lib/rated/ratings.server");
-  const { bindRatedMulti } = await import("../src/lib/rated/multi/contracts");
+  const { setRatingsBackend } = await import("../src/lib/rated/ratingsAdapter.server");
   const { adminDb } = await import("../src/lib/data/db.server");
   const { flushAnalytics } = await import("../src/lib/data/events.server");
   type W3aResult = import("../src/lib/data/ratings").RatedMatchResult;
@@ -122,24 +121,18 @@ async function runAll(db: LocalDb): Promise<void> {
   q(`INSERT INTO shop.testers (user_id, note) SELECT u, 'rated-multi-server-check' FROM unnest(ARRAY[${ALL.map((u) => `'${u}'`).join(",")}]::uuid[]) AS u ON CONFLICT DO NOTHING`);
 
   const RATING: Record<string, number> = { [A]: 1000, [B]: 1010, [C]: 1020, [D]: 1030, [E]: 1000, [F]: 1500, [G]: 1510, [H]: 1520 };
+  const sent: W3aResult[] = [];
   setRatingsBackend({
     matchRating: async (userId) => (RATING[userId] === undefined ? null : { rating: RATING[userId]!, placement: userId === E }),
-    recordRatedMatch: async () => {
-      throw new Error("a 4-player match must not reach the 1v1 result");
-    },
-    startingRating: 1000,
-    beginnerMax: 1000,
-  });
-  const sent: W3aResult[] = [];
-  bindRatedMulti({
-    enqueue: async () => ({ joinedAtMs: Date.now() }),
-    recordedCandidates: async () => [],
+    // W3a's recordRatedMatch stand-in, reached through W3b's adapter for 4 and 8 players too.
     recordRatedMatch: async (result) => {
       await new Promise((r) => setTimeout(r, 20));
       const duplicate = sent.some((s) => s.matchId === result.matchId);
       if (!duplicate) sent.push(result);
       return { ok: true, status: duplicate ? "duplicate" : "recorded", matchId: result.matchId, players: [] };
     },
+    startingRating: 1000,
+    beginnerMax: 1000,
   });
   const ON = { ...RATED_SWITCHES, formats: { ...RATED_SWITCHES.formats, ffa4: true } };
   const T0 = Date.now();
@@ -153,7 +146,7 @@ async function runAll(db: LocalDb): Promise<void> {
     check(eight.ok === false && eight.reason === "option", "ffa8 stays off when only ffa4 is on");
     const placement = await rated.joinQueue(client, E, { format: "ffa4", choice: "mixed" }, T0, ON);
     check(placement.ok === false && placement.reason === "option", "a placement player can't queue for 4 players");
-    check(q(`SELECT count(*) FROM public.rated_queue`) === "0", "nothing queued by a refused join");
+    check(q(`SELECT count(*) FROM public.mm_queue`) === "0", "nothing queued by a refused join");
   });
 
   await section("filling", async () => {
@@ -176,12 +169,12 @@ async function runAll(db: LocalDb): Promise<void> {
       const p = await rated.pollQueue(client, u, T0 + 600);
       check(p.state === "found" && p.match.matchId === matchId, `player ${u.slice(-2)} finds the same match`);
     }
-    check(q(`SELECT count(*) FROM public.rated_matches`) === "1" && q(`SELECT count(*) FROM public.rated_queue`) === "0", "one match; every search cleared");
+    check(q(`SELECT count(*) FROM public.mm_matches`) === "1" && q(`SELECT count(*) FROM public.mm_queue`) === "0", "one match; every search cleared");
     const seated = q(`SELECT count(*) FROM public.duel_players WHERE duel_id = '${roomId}'`);
     check(seated === "4", `all four seated in one room, the same deals (${seated})`);
     const room = q(`SELECT status || ',' || round_count FROM public.duels WHERE id = '${roomId}'`);
     check(room === "in_progress,3", `an ordinary started room of three games (${room})`);
-    check(q(`SELECT format FROM public.rated_matches WHERE id = '${matchId}'`) === "ffa4", "the match is stored as ffa4");
+    check(q(`SELECT format FROM public.mm_matches WHERE id = '${matchId}'`) === "ffa4", "the match is stored as ffa4");
   });
 
   await section("settling", async () => {
@@ -197,7 +190,7 @@ async function runAll(db: LocalDb): Promise<void> {
     const rows = scores.flatMap((g, r) => g.map((s, i) => `('${roomId}', ${i + 1}, ${r + 1}, ${s}, 1000, true, 'x')`));
     q(`INSERT INTO public.round_results (duel_id, player_slot, round_number, score, ms_remaining, is_correct, answer) VALUES ${rows.join(", ")}`);
     q(`UPDATE public.duels SET status = 'finished', phase = 'finished', phase_started_at = now() WHERE id = '${roomId}'`);
-    await Promise.all([1, 2, 3, 4].map(() => rated.settleMatch(client, matchId, Date.now())));
+    const settles = await Promise.all([1, 2, 3, 4].map(() => rated.settleMatch(client, matchId, Date.now())));
     check(sent.length === 1, `W3a's recordRatedMatch sent once (${sent.length})`);
     const r = sent[0];
     check(!!r && r.format.kind === "placings" && r.format.kind === "placings" && r.format.players === 4, "a placings match of 4");
@@ -207,8 +200,11 @@ async function runAll(db: LocalDb): Promise<void> {
     check(JSON.stringify(places) === "[2,1,3,3]", `the final placings by points then total score, level shared (${JSON.stringify(places)})`);
     check(!!r && r.games.length === 3 && r.games.every((g) => Object.keys(g.scores).length === 4 && g.version === "classic"), "every game with every player's stored score");
     check(!!r && r.players.every((p) => p.side === "live"), "every seat live");
-    check(q(`SELECT status FROM public.rated_matches WHERE id = '${matchId}'`) === "settled", "the match is settled");
-    check(q(`SELECT count(*) FROM public.rated_runs WHERE match_id = '${matchId}'`) === "4", "all four runs join the recorded-run pool (the source for recorded seats)");
+    check(q(`SELECT status FROM public.mm_matches WHERE id = '${matchId}'`) === "settled", "the match is settled");
+    check(q(`SELECT count(*) FROM public.mm_runs WHERE match_id = '${matchId}'`) === "4", "all four runs join the recorded-run pool (the source for recorded seats)");
+    const settled = settles.find((x) => x.state === "settled");
+    check(settled?.state === "settled" && settled.result.ratings?.ok === true && JSON.stringify(slotUser.map((u) => settled.result.placings?.[u])) === "[2,1,3,3]", "W3b's settlement carries the placings and W3a's answer (for the result screens)");
+    check(settled?.state === "settled" && settled.result.players.length === 4 && settled.result.players.every((p) => p.scores.length === 3), "the settlement has every player's stored scores");
     const again = await rated.settleMatch(client, matchId, Date.now());
     check(again.state === "settled" && sent.length === 1, "a later settle sends nothing more");
   });

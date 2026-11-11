@@ -65,6 +65,8 @@ export interface RatedSettlement {
   } | null;
   /** W3a's answer (null when nothing was bound to record it). */
   ratings: RatedMatchOutcome | null;
+  /** W3d: a 4- or 8-player match's final places by user id (1 = first, level players share); `winner` is then "draw". */
+  placings?: Record<string, number>;
 }
 
 export interface RatingsBackend {

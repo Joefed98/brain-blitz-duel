@@ -6,7 +6,7 @@ win where they differ).
 
 ## Switching a size on
 
-W3b's switches, `src/config/ratedConfig.ts`: set `RATED_FORMATS_ON.ffa4` (4 players) and/or `.ffa8` (8 players) to
+W3b's switches, `src/config/matchmakingConfig.ts`: set `RATED_FORMATS_ON.ffa4` (4 players) and/or `.ffa8` (8 players) to
 `true` and merge (rated play itself also needs `RATED_PLAY_FOR_EVERYONE`, or the player on the tester list). Off, the
 picker doesn't show the size (`ratedMultiSizesFn`, W3b's `openOptions`) and the server refuses a queue request, filling
 and finishing for it (`joinMultiQueue`, `assertMultiOn` in `src/lib/rated/multi/multi.server.ts`; W3b's
@@ -29,7 +29,7 @@ switching one on is a deliberate change to that line (Joe's call, recorded with 
 - **W3b's queue** (`src/lib/rated/rated.server.ts`, three marked hooks): `joinQueue` refuses 4 and 8 players during
   placement; `pollQueue` hands an ffa searcher to `pollMultiQueue` (`src/lib/rated/multi/multiQueue.server.ts`), which
   groups players with W3b's own pairing rule between every two of them (`groupFor` in `queue.ts`: the same format and
-  choice, never placement, the band widening as for 1v1), claims them atomically (`rated_queue_claim`) and makes the
+  choice, never placement, the band widening as for 1v1), claims them atomically (`mm_queue_claim`) and makes the
   match with W3b's `createLiveMatch` (an ordinary started room, the same deals for everyone); `settleMatch` hands a
   finished ffa match to `settleMultiMatch`, which builds W3a's placings result (`multiRatedResult`) from the stored
   scores and stores every player's run (the source for recorded seats).
@@ -39,7 +39,7 @@ switching one on is a deliberate change to that line (Joe's call, recorded with 
 - **Recorded seats (parked; question for W3b):** a 1v1 against a recorded run deals that run's stored puzzles. A 4- or
   8-player match has one set of deals, so its recorded seats must be the other players of one earlier match on the same
   deals (every settled ffa match now stores all its players' runs, `rated:<match>:<user>`). W3b's recorded match holds
-  one recorded owner (`rated_matches.recorded_owner`), so seating several needs W3b's tables and playback to carry more
+  one recorded owner (`mm_matches.recorded_owner`), so seating several needs W3b's tables and playback to carry more
   than one. Until then a short group keeps searching, after 15 s too. The rule for choosing them is ready
   (`fillPlan`, `fromW3bCandidate`, rated-multi-check).
 

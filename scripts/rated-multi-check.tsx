@@ -20,7 +20,7 @@
 import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 
-import { RATED_FORMATS_ON } from "../src/config/ratedConfig";
+import { RATED_FORMATS_ON } from "../src/config/matchmakingConfig";
 import type { RatedMatchOutcome, RatedMatchResult } from "../src/lib/data/ratings";
 import type { RatedMultiBackend } from "../src/lib/rated/multi/contracts";
 import {
@@ -169,7 +169,7 @@ for (const junk of [2, 3, 5, 16, "8", null, undefined]) {
 }
 const fnSource = readFileSync("src/lib/rated/multi/multi.functions.ts", "utf8");
 check(/requireSupabaseAuth/.test(fnSource) && /joinMultiQueue\(\{ playerId: context\.userId/.test(fnSource), "server: the phone's call goes through joinMultiQueue with the signed-in user");
-check(!/window\.__/.test(readFileSync("src/lib/rated/multi/multi.server.ts", "utf8") + fnSource + readFileSync("src/config/ratedConfig.ts", "utf8")), "switches: no window override anywhere (nothing a browser can turn on)");
+check(!/window\.__/.test(readFileSync("src/lib/rated/multi/multi.server.ts", "utf8") + fnSource + readFileSync("src/config/matchmakingConfig.ts", "utf8") + readFileSync("src/config/ratedConfig.ts", "utf8")), "switches: no window override anywhere (nothing a browser can turn on)");
 check(/RATED_FORMATS_ON/.test(readFileSync("src/lib/rated/multi/multi.server.ts", "utf8")), "switches: the server gate reads W3b's RATED_FORMATS_ON");
 
 /* ------------------------------------------------------------------ 2. filling */

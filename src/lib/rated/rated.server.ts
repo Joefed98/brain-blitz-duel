@@ -857,12 +857,13 @@ export async function settleMatch(client: Db, matchId: string, nowMs: number): P
     const puzzles = pubs.map((p, i) => mergePuzzle(p, priv?.[i]));
     if (FORMAT_PLAYERS[match.format as RatedFormat] > 2) {
       // W3d: 4 and 8 players settle on placings straight into W3a's recordRatedMatch (W3a's own result type).
-      const { settleMultiMatch } = await import("./multi/multiQueue.server");
+      const { settleMultiMatch, multiSettlement } = await import("./multi/multiQueue.server");
       const multi = await settleMultiMatch({ match, players: players ?? [], puzzles, results: results ?? [], finishedAt });
       if (!multi.outcome.ok) throw new Error(multi.outcome.message);
-      await markSettled(client, matchId, asJson({ placings: multi.placings, outcome: multi.outcome }), nowIso(nowMs));
+      const settlement = multiSettlement(match, players ?? [], puzzles, results ?? [], finishedAt, multi);
+      await markSettled(client, matchId, asJson(settlement), nowIso(nowMs));
       await storeRatedRuns(client, match, players ?? [], puzzles, results ?? []);
-      return { state: "settled", result: { matchId, format: match.format as RatedFormat, choice: match.choice as RatedChoice, placings: multi.placings } as unknown as RatedMatchResult };
+      return { state: "settled", result: settlement };
     }
     const result = buildMatchResult({ match: { ...match, finished_at: finishedAt }, players: players ?? [], puzzles, results: results ?? [], finishedAt });
     // W3a's recordRatedMatch, once per match (idempotent on the id): a passing failure throws and the settle retries.

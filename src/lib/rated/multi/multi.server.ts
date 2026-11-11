@@ -1,7 +1,7 @@
 /**
  * Rated 4- and 8-player matches on the server (wave 3, session W3d; docs/rated/multiplayer.md). Server only.
  *
- * - The switches are W3b's: `RATED_FORMATS_ON.ffa4` / `.ffa8` in src/config/ratedConfig.ts, off at launch. While a
+ * - The switches are W3b's: `RATED_FORMATS_ON.ffa4` / `.ffa8` in src/config/matchmakingConfig.ts, off at launch. While a
  *   size is off, `joinMultiQueue`, `fillMatch` and `finishMultiMatch` refuse it whatever a phone sends.
  * - `fillMatch`: after FILL_WAIT_MS, recorded runs in every empty seat (rules.ts `fillPlan`); records
  *   `multiplayer_match_started` once the match is full.
@@ -12,7 +12,7 @@
  * No game's deal, timing, grading or score is touched: the games are W3b's rated room (dealt and graded by the round
  * engine as every room); this module only reads the stored scores.
  */
-import { RATED_FORMATS_ON } from "@/config/ratedConfig";
+import { RATED_FORMATS_ON } from "@/config/matchmakingConfig";
 import type { RatedCategory, RatedChoice, RatedMatchOutcome, RatedMatchPlayer, RatedMatchResult, RatedPool } from "@/lib/data/ratings";
 import type { AnalyticsEvent } from "@/lib/data/events.server";
 
