@@ -1839,7 +1839,7 @@ outside the repo.
   rooms.
 - **Accounts backend** (10 Nov 2026, wave 1 train 1, `docs/accounts/README.md`; no gameplay, scoring, stamp or room
   flow change beyond the name check): an account is a `public.profiles` row on the device's own auth user
-  (`supabase/migrations/20261110120000_accounts_profiles.sql`, **not applied until merged**). Sign-up links an email
+  (`supabase/migrations/20261110120000_accounts_profiles.sql`, **applied**). Sign-up links an email
   (`updateUser` + the 6-digit code, `verifyOtp` type `email_change`; Google through `linkIdentity`) to the guest's
   anonymous user, so the id and every row stay; signing in to an existing account on a phone with guest progress leaves
   the guest's rows on the guest id (`guestProgressFn` reports them). Server: `src/lib/account/account.server.ts` /
@@ -1891,7 +1891,7 @@ outside the repo.
   device) and the prompt shows on the next tab page, this visit or the next open (`SaveProgressSlot` in PhoneShell's
   `tabs`, `takePendingPrompt`); its three events go through
   `recordSaveProgressFn` (these three only, fixed words, `SAVE_PROGRESS_LIMIT`) after
-  `20261110130000_analytics_save_progress_events.sql` (**not applied until merged**). `AccountGate` is the reusable
+  `20261110130000_analytics_save_progress_events.sql` (**applied**). `AccountGate` is the reusable
   "needs an account" gate for waves 2 and 4. Names: a signed-in player is seated under their username wherever a name
   is stored (`accountNameOf`, `src/lib/names/playerName.server.ts`: `insertPlayer`, `dailyStartFn`, the challenge
   calls), so lobby, standings, results, chat and share cards show it; guest name boxes take `GUEST_NAME_MAX` (16) and a
@@ -1920,7 +1920,7 @@ outside the repo.
   (Practice keeps working); notices on open (`SafetyNotices`, skipped under automation unless
   `window.__DUELZ_ALLOW_SAFETY__`). *Retention*: `moderation.run_retention` (pg_cron `chat-retention`): chat after 90
   days unless reported, reports and actions after 2 years. Migrations `20261110150000_moderation.sql`,
-  `20261110150100_chat_retention.sql`, `20261110150200_new_guest_limit.sql` (**not applied until merged**). The
+  `20261110150100_chat_retention.sql`, `20261110150200_new_guest_limit.sql` (**applied**). The
   harness's GoTrue stand-in serves anonymous `POST /signup` with captcha (test secrets) and the hook (`rest.auth`).
   moderation-check (~5 s, shard `e`, PostgreSQL), moderation-ui-check (~3 s, happy-dom). The chat's message menu is drawn
   beside the chat sheet, a modal that turns pointer events off outside itself: the menu sets `pointer-events: auto`
@@ -1943,7 +1943,7 @@ outside the repo.
   in the unreachable `economy` schema (`grant_coins`, `adjust_coins`, `grant_item`, `remove_item`, `grant_consumable`,
   `account_summary`, logged in `economy.admin_log`). **A new reason is an INSERT into `public.economy_reasons` in a new
   migration.** Events `coins_credited`, `coins_spent`, `item_granted`, `item_equipped`. Migrations
-  `20261110160000_economy.sql`, `20261110160100_economy_catalogue.sql` (**not applied until merged**). economy-check
+  `20261110160000_economy.sql`, `20261110160100_economy_catalogue.sql` (**applied**). economy-check
   (~8 s, shard `e`, PostgreSQL), economy-neutral-check (~1 s: no scoring, grading, replay, matchmaking or timing code
   reaches an economy module).
 - **Navigation and identity screens** (wave 2 train A, session A2, 10 Nov 2026; presentation, device storage and
@@ -1973,17 +1973,42 @@ outside the repo.
   where getAvatarOptions gives an avatar more than one choice (`optionRows`; none today: one accent and background each,
   no features or accessories in docs/art/avatars). Events `profile_viewed`, `customise_opened`,
   `equip_refused` (slot, reason) through `recordIdentityEventFn` (`IDENTITY_EVENT_LIMIT`), migration
-  `20261110200000_analytics_identity_events.sql` (**not applied until merged**; it adds to the list it reads from the
+  `20261110200000_analytics_identity_events.sql` (**applied**; it adds to the list it reads from the
   table). Checks: identity-screens-check (~5 s, happy-dom, A1 stood in by `setIdentityBackend`) and identity-motion-check
   (headless Chromium: every item against its approved PNG, no animation under reduced motion).
+- **Stars and bests on accounts** (wave 2 train C, session C1a, 11 Nov 2026, `docs/practice-progress.md`; no gameplay,
+  scoring, grading, stamp or timing change): every graded practice run's row in `practice_plays` also stores the
+  server's own graded extra as `breakdown` (the same shape round_results.extra holds) and its `level` (NULL = Classic;
+  every run is Classic until wave 3.5), written in `gradePracticeRun` through `recordPracticePlay`'s progress input
+  (`insertPracticePlayWithBreakdown`), then counted once by `public.practice_record_play(play id)` into
+  `public.practice_progress` (per player, game and level: the best, and the star for 175+ on Easy, Classic or Hard;
+  Expert's crown is wave 3.5; a star once earned is kept). Never counted: the intro example, a run the server replay
+  flagged, a play with no player and any run graded before the fresh start (`public.practice_progress_start`, the
+  migration's own moment; nothing is deleted). Rules in `src/lib/practice/progressRules.ts` (`STAR_SCORE` 175,
+  `STAR_TOTAL_MAX` 276, `GEM_THRESHOLDS`: Amber 10 … Diamond 250, the same in the migration). Gems: the star total
+  unlocks A1's `gem_unlocks` (accounts only; a guest's stars unlock them on sign-up through the profile trigger), so
+  setAvatar accepts unlocked gems and refuses locked ones; Customise's picker shows "Unlocks at N stars" on locked
+  ones. The grade answers `progress` (`PracticeRunProgress`); the phone reads the player's view through
+  `getMyPracticeProgressFn` (`src/lib/practice/progress.functions.ts`) into memory only (`useProgress.ts`, refetched
+  when the player changes), so Practice's rows and total, the intro, the reveal's best and "Star earned", Profile's
+  Mastery stars and Practice bests and the Play tab's Warm up are the same on every device; offline runs count once
+  `practiceGradeQueuedFn` grades them. The device's old bests and goals record are cleared once (`deviceFreshStart.ts`,
+  `duelz-practice-fresh:v1`); the old 120 / 160 / 190 module (`practiceGoals.ts`) stays, unused for stars; the
+  challenge ticks stay on the device until C1b. A one-time note ("Stars and challenges have had a refresh…", once
+  per player, `public.practice_refresh_notes`). Events `star_earned`, `best_set` (game, props.level) and
+  `gem_unlocked` (props.gem), no mode. No API role writes any of it, the service role included (only the functions).
+  Migration `20261111101500_practice_progress.sql` (**not applied until merged**). practice-progress-check (~15 s,
+  PostgreSQL, no browser); offline-check's production server runs on the server-fn harness's PostgreSQL and REST
+  stand-in (each browser context its own guest and network address), proving only confirmed runs count.
 - **Practice challenges** (wave 2 train C, session C1b, 11 Nov 2026; `docs/challenges/catalogue.md`, the live catalogue,
   written by `bun scripts/challenge-catalogue-doc.ts [--check]`; no gameplay, scoring, stamp, timing or deal change): 261
   challenges over the 92 active games in one data file, `src/lib/duel/practiceChallenges.data.ts` (217 Classic live;
   30 Hard and 14 Expert switched off until wave 3.5 deals levels, `LIVE_CHALLENGE_LEVELS`). The one checker,
   `evaluateChallenge` (`practiceChallenges.ts`), reads only the server's graded result (score, isCorrect, reactionAvgMs,
   the stored extra, its reveal lines and tiles); `src/lib/challenges/challenges.server.ts` runs it in practice's
-  grading (`gradePracticeRun`, online and synced offline runs; never the intro example, rooms, the Daily or friend
-  challenges) and stores each player's best value and completion in `public.practice_challenge_progress` (guests too),
+  grading on each play C1a counts (`gradePracticeRun`'s `onCounted`, online and synced offline runs, read back from
+  the play's stored `breakdown` and `level` by `readPracticePlayBreakdown`; never the intro example, a flagged run, a
+  play before the fresh start, rooms, the Daily or friend challenges) and stores each player's best value and completion in `public.practice_challenge_progress` (guests too),
   written only by the service-role `challenge_record` / `challenge_pay_due` / `challenge_first_run`
   (`supabase/migrations/20261111130000_practice_challenges.sql`, **not applied until merged**; data layer
   `src/lib/data/practiceChallenges.server.ts`). 17 Classic pay 100 coins (13 Hard 100 and 9 Expert 250 once live)

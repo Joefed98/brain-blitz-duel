@@ -346,14 +346,15 @@ blocked = false;
 /* ------------------------------------------------------------------ 6. wiring */
 const practice = readFileSync("src/routes/practice.tsx", "utf8");
 check(/recordPracticeGoals\(puzzle\.type, result\.score, extra, record\.best\)/.test(practice), "practice records every graded run's goals from the server's score and extra");
-check(/starLine=\{earnedStar\}/.test(practice) && /setEarnedStar\(starLine\(reached\)\)/.test(practice), "the reveal gets the run's star line");
+// Wave 2 C1a (11 Nov 2026, Joe's approval in the session): the star line is the server's (175+ on Classic).
+check(/starLine=\{earnedStar\}/.test(practice) && /setEarnedStar\(runStarLine\(result\.progress\)\)/.test(practice), "the reveal gets the run's star line");
 check(/<RowStars type=\{key\} \/>/.test(practice) && /data-practice-stars/.test(practice) && /<PracticeChallenges/.test(practice), "rows, the total and the Challenges section are drawn");
 const queue = readFileSync("src/lib/offline/queue.ts", "utf8");
 check(/recordPracticeGoals\(run\.type, score, extra, best\.best\)/.test(queue), "the offline queue records confirmed runs' goals");
 const reveal = readFileSync("src/components/duel/AnswerReveal.tsx", "utf8");
 check(/practice && \(personalBest \|\| starLine\) && myScore !== null \? <NewBestMoment starLine=\{starLine\} \/>/.test(reveal), "the new-best moment plays with the star line, practice only");
 const intro = readFileSync("src/components/duel/RoundIntro.tsx", "utf8");
-check(/<Stars tier=\{starsOf\(type, deviceBest\)\} \/>/.test(intro), "the intro shows the game's stars");
+check(/<Stars levels=\{levelStarsOf\(practiceProgressNow\(\), type\)\} \/>/.test(intro), "the intro shows the game's stars");
 const ui = readFileSync("src/components/app/PracticeChallenges.tsx", "utf8");
 check(/Each challenge is completed in a single Practice run\./.test(ui), "the line under the Challenges heading");
 check(/Unlocks with your account/.test(ui) && /"In progress"/.test(ui) && /"New"/.test(ui) && /"Done"/.test(ui), "filters In progress, New, Done; rewards unlock with an account");

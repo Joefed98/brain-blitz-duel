@@ -26,6 +26,12 @@
  *
  * Also proves the online-only list is exactly the games whose stage asks the server during play.
  *
+ * Practice bests are the account's (wave 2 C1a, 11 Nov 2026, Joe's approval): the production server runs on the
+ * server-function harness's local PostgreSQL and REST / GoTrue stand-in (scripts/server-fn-harness.ts, every
+ * migration applied), each browser context signed in as its own guest with a token the stand-in accepts, so the
+ * server counts graded runs as it does live; the check proves only confirmed runs count and a queued, unsynced run
+ * never shows as the best. Needs the PostgreSQL 16 binaries (preinstalled on GitHub's runners).
+ *
  *   bun scripts/offline-check.ts [--no-build] [--shots=<dir>]
  */
 import { spawn, spawnSync, type ChildProcess } from "node:child_process";
@@ -43,6 +49,7 @@ import type { PuzzleData, PuzzleType } from "../src/lib/duel/types";
 import { ONLINE_ONLY_TYPES, PACK_MAX_DEALS } from "../src/lib/offline/offlineStatus";
 import { PACK_FIRST_DEALS, PACK_GROWTH_STEP, PACK_LEVEL_KEY } from "../src/lib/offline/packGrowth";
 import { showPracticeSide } from "./practice-side-lib";
+import { ANON_KEY, SERVICE_KEY, postgresBin, startLocalDb, startRestServer, userToken, type LocalDb, type RestServer } from "./server-fn-harness";
 
 const args = process.argv.slice(2);
 const NO_BUILD = args.includes("--no-build");
@@ -52,11 +59,23 @@ const OUT = ".output";
 const SERVER_PORT = 4393;
 const PROXY_PORT = 4394;
 const ORIGIN = `http://127.0.0.1:${PROXY_PORT}`;
-const SEAL_SECRET = "offline-check";
+/** The server's service-role key (the harness's), which practice seals are keyed on when no PRACTICE_SEAL_KEY is set. */
+const SEAL_SECRET = SERVICE_KEY;
 /** Games whose packs need the database (Unblock draws its boards from a table): no pack where a check runs. */
 const NEEDS_DATABASE = new Set<PuzzleType>(["unblock"]);
 /** The offline storage budget (MB). */
 const BUDGET_MB = 60;
+/** The harness's database and REST / GoTrue stand-in the production server runs on (started before it). */
+let db: LocalDb | null = null;
+let rest: RestServer | null = null;
+/** The last test network address handed to a context (stubAuth: one per phone, from 203.0.113.0/24, TEST-NET-3). */
+let nextAddress = 0;
+/** The full pass's guest (its practice_plays and practice_progress rows are read back). */
+const FULL_USER = "00000000-0000-4000-8000-0000000000f1";
+function dbq(sql: string): string {
+  const out = db!.psql(sql);
+  return out.ok ? out.out.trim() : `error: ${out.err.slice(0, 120)}`;
+}
 /** A pack level whose target is PACK_MAX_DEALS (packGrowth.ts: 3, 5, 7, 9, 10). */
 const FULL_LEVEL = Math.ceil((PACK_MAX_DEALS - PACK_FIRST_DEALS) / PACK_GROWTH_STEP);
 
@@ -118,7 +137,18 @@ function build(): void {
 async function startServer(): Promise<ChildProcess> {
   const proc = spawn("node", [`${OUT}/server/index.mjs`], {
     stdio: "ignore",
-    env: { ...process.env, PORT: String(SERVER_PORT), HOST: "127.0.0.1", NITRO_PORT: String(SERVER_PORT), NITRO_HOST: "127.0.0.1", SUPABASE_SERVICE_ROLE_KEY: SEAL_SECRET },
+    env: {
+      ...process.env,
+      PORT: String(SERVER_PORT),
+      HOST: "127.0.0.1",
+      NITRO_PORT: String(SERVER_PORT),
+      NITRO_HOST: "127.0.0.1",
+      SUPABASE_SERVICE_ROLE_KEY: SEAL_SECRET,
+      // The harness's database (practice progress, wave 2 C1a): the server reads and writes it as it would live.
+      SUPABASE_URL: rest!.url,
+      SUPABASE_PUBLISHABLE_KEY: ANON_KEY,
+      PRACTICE_SEAL_KEY: "",
+    },
   });
   for (let i = 0; i < 60; i++) {
     try {
@@ -211,15 +241,21 @@ interface AuthLog {
   refreshes: number[];
 }
 
-/** Supabase's auth endpoints answered here (no project is reachable from a check): an anonymous session. */
-async function stubAuth(ctx: BrowserContext, log: AuthLog): Promise<void> {
+/**
+ * Supabase's auth endpoints answered here (no project is reachable from a check): an anonymous session for its own
+ * guest (`userId`, a fresh one per context unless named), signed so the harness's stand-in accepts it on the server.
+ */
+async function stubAuth(ctx: BrowserContext, log: AuthLog, userId: string = crypto.randomUUID()): Promise<void> {
+  db!.psql(`INSERT INTO auth.users (id, is_anonymous) VALUES ('${userId}', true) ON CONFLICT DO NOTHING`);
+  // Each context is its own phone on its own network (the address Cloudflare passes live, rateLimit.server.ts): with a
+  // real database the per-address limits count, and the passes would otherwise share 127.0.0.1's (IP_PRACTICE_PACK_LIMIT).
+  await ctx.setExtraHTTPHeaders({ "cf-connecting-ip": `203.0.113.${(nextAddress += 1)}` });
   await ctx.route("**/auth/v1/**", (route) => {
     const url = route.request().url();
     if (url.includes("grant_type=refresh_token")) log.refreshes.push(Date.now());
     else if (url.includes("/signup")) log.signups.push(Date.now());
     const now = Math.floor(Date.now() / 1000);
-    const part = (o: object) => Buffer.from(JSON.stringify(o)).toString("base64url");
-    const token = `${part({ alg: "HS256", typ: "JWT" })}.${part({ sub: "offline-check", exp: now + 3600, role: "authenticated", aud: "authenticated" })}.c2ln`;
+    const token = userToken(userId);
     return route.fulfill({
       status: 200,
       contentType: "application/json",
@@ -229,7 +265,7 @@ async function stubAuth(ctx: BrowserContext, log: AuthLog): Promise<void> {
         expires_in: 3600,
         expires_at: now + 3600,
         refresh_token: `r-${Date.now()}`,
-        user: { id: "offline-check", aud: "authenticated", role: "authenticated", is_anonymous: true, app_metadata: {}, user_metadata: {} },
+        user: { id: userId, aud: "authenticated", role: "authenticated", is_anonymous: true, app_metadata: {}, user_metadata: {} },
       }),
     });
   });
@@ -447,7 +483,10 @@ async function lazyPass(browser: Browser): Promise<void> {
     check(level === "1", `${tag}: the next visit's target grows`, `level ${level}`);
     check(packCalls() > 0, `${tag}: the pack requests are seen`, `${packCalls()} pack calls`);
     report.push(`${tag}: server deals: 0 on app open; ${dealsIn(packs)} (${PACK_FIRST_DEALS} a game, ${packs.length} games) after the first finished round, over ${packCalls()} calls; until 4 Nov 2026 ${packs.length * PACK_MAX_DEALS} (${PACK_MAX_DEALS} a game), starting 3 s after the app opened`);
-    // The next visit: the target grows to PACK_FIRST_DEALS + PACK_GROWTH_STEP.
+    // The next visit: the target grows to PACK_FIRST_DEALS + PACK_GROWTH_STEP. A real next visit is a later app open:
+    // the test database's pack counter for this network is emptied, standing in for that time (the first visit's 16
+    // calls and the second's would otherwise share one hour of IP_PRACTICE_PACK_LIMIT's 20).
+    dbq("DELETE FROM public.rate_limit_hits WHERE bucket = 'ip-practice-pack'");
     await page.reload();
     const grown = PACK_FIRST_DEALS + PACK_GROWTH_STEP;
     const second = await until(
@@ -487,7 +526,7 @@ async function fullPass(browser: Browser): Promise<void> {
   // Automated browsers top up packs only on request (topUpAllowed in src/lib/offline/packs.ts): this check opts in.
   // A device that has already started practising, at the full pack target (packGrowth.ts): packs as before.
   await ctx.addInitScript(allowPacks, { started: true, level: FULL_LEVEL });
-  await stubAuth(ctx, auth);
+  await stubAuth(ctx, auth, FULL_USER);
   const page = await ctx.newPage();
   const errors: string[] = [];
   page.on("pageerror", (e) => errors.push(String(e).slice(0, 200)));
@@ -592,6 +631,9 @@ async function fullPass(browser: Browser): Promise<void> {
   check(runs.every((r) => r.answer.length > 0 && r.sealed && r.packSeed !== null && r.playedAt > 0), "each queued run holds its game, stamp, pack seed, input log and time played");
   check((await page.locator("[data-offline-runs] [data-run-status='queued']").count()) === 5, "Played offline lists the five runs as pending");
   check((await page.locator('[data-card-best][data-pending], [data-none][data-pending]').count()) > 0 || (await page.locator("[data-pending] [data-pending-clock]").count()) > 0, "pending clock on a game's best");
+  // Practice progress (wave 2 C1a): a queued, unsynced run never shows as the best, and nothing is counted yet.
+  check((await page.locator('[data-practice-game="snake"] [data-card-best]').count()) === 0, "a queued, unsynced run never shows as the best");
+  check(dbq(`SELECT count(*) FROM public.practice_progress WHERE user_id = '${FULL_USER}'`) === "0", "nothing is counted while the runs wait on the phone");
 
   // 2b. The online-only screens, still offline.
   await page.locator('[data-tab="play"], a[href="/"]').first().click();
@@ -654,8 +696,21 @@ async function fullPass(browser: Browser): Promise<void> {
   await page.reload();
   await page.locator("[data-practice-switch]").waitFor({ timeout: 30_000 });
   await showPracticeSide(page, "snake");
-  const meteorBest = Math.max(...runs.filter((r) => r.type === "snake" && r.status === "confirmed" && r.stamp === stampSignature(deal.puzzle)).map((r) => r.score ?? 0));
+  const meteorBest = Math.max(...runs.filter((r) => r.type === "snake" && r.status === "confirmed").map((r) => r.score ?? 0));
   check(Number(await page.locator('[data-practice-game="snake"] [data-card-best]').getAttribute("data-card-best")) === meteorBest, "Meteor's best is the server's", String(meteorBest));
+  // Only confirmed runs count: the server counted exactly the four it graded (never the rejected one), and its best
+  // is the best of them.
+  const confirmed = runs.filter((r) => r.status === "confirmed");
+  check(
+    dbq(`SELECT count(*) FROM public.practice_plays WHERE user_id = '${FULL_USER}'`) === String(confirmed.length) &&
+      dbq(`SELECT count(*) FROM public.practice_plays WHERE user_id = '${FULL_USER}' AND progress_counted_at IS NOT NULL`) === String(confirmed.length),
+    "only the confirmed runs are graded and counted",
+    `${dbq(`SELECT count(*) FROM public.practice_plays WHERE user_id = '${FULL_USER}'`)} plays for ${confirmed.length} confirmed`,
+  );
+  check(
+    dbq(`SELECT best_score FROM public.practice_progress WHERE user_id = '${FULL_USER}' AND game_id = 'snake' AND level = 'classic'`) === String(meteorBest),
+    "the server's Meteor best is the best confirmed run",
+  );
   check((await page.locator("[data-pending-clock]").count()) === 0, "pending clocks clear");
   check((await page.locator("[data-offline-runs] [data-run-status='rejected']").innerText()).includes("Couldn’t be confirmed"), "the rejected run shows Couldn't be confirmed");
   check((await page.locator("[data-offline-runs] [data-run-status='confirmed']").count()) === 4, "four confirmed runs listed");
@@ -783,6 +838,10 @@ async function smallPass(browser: Browser): Promise<void> {
 let server: ChildProcess | null = null;
 let proxy: { stop: () => void } | null = null;
 try {
+  if (!postgresBin()) throw new Error("no PostgreSQL binaries: the production server needs the harness's database");
+  db = startLocalDb("offline-check-");
+  if (db.failed) throw new Error(`migrations: ${db.failed.file}: ${db.failed.error}`);
+  rest = await startRestServer(db.socketDir);
   if (!NO_BUILD || !existsSync(`${OUT}/public/sw.js`)) build();
   server = await startServer();
   proxy = startProxy();
@@ -800,6 +859,8 @@ try {
 } finally {
   proxy?.stop();
   server?.kill();
+  await rest?.stop();
+  db?.stop();
 }
 
 for (const name of passes) console.log(`PASS ${name}`);

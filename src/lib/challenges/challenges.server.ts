@@ -1,8 +1,9 @@
 /**
  * The practice challenges' server side (wave 2 C1b; docs/challenges/catalogue.md). The one checker is
  * `evaluateChallenge` (src/lib/duel/practiceChallenges.ts), called here on the server's own graded result of a
- * Practice run (online, or an offline run once it is synced and graded), never on anything the phone says. Rooms, the
- * Daily and friend challenges never count.
+ * Practice run (online, or an offline run once it is synced and graded), never on anything the phone says: the play
+ * C1a's practice_record_play counted, read back from its stored breakdown and level (gradePracticeRun's onCounted,
+ * docs/practice-progress.md). Rooms, the Daily and friend challenges never count.
  *
  * Each challenge's best value and its completion are kept in public.practice_challenge_progress (one row per player and
  * challenge, written only by the service-role functions). Coins (100 or 250) are paid through A1's ledger, reason

@@ -18,8 +18,9 @@ import { readRoomHistory, roomStats, type RoomRecord } from "@/lib/duel/deviceHi
 import { dailyStreak, readDailyRecord, type DailyRecord } from "@/lib/duel/dailyRecord";
 import { ukDayKey } from "@/lib/duel/daily";
 import { rememberLook, rememberedLook, type PlayerLook } from "@/lib/duel/playerLook";
-import { readPracticeBest } from "@/lib/duel/practiceBest";
-import { currentPracticeStamp } from "@/lib/duel/practiceStamps";
+import { bestOf, starTotalLine } from "@/lib/practice/progress";
+import { GEM_THRESHOLDS, nextGem } from "@/lib/practice/progressRules";
+import { usePracticeProgress } from "@/lib/practice/useProgress";
 import { ACTIVE_PUZZLE_TYPES, PUZZLE_REGISTRY, gameCounts } from "@/lib/duel/catalogue";
 import { getStoredName, setStoredName } from "@/lib/duel/session";
 import { ordinal } from "@/lib/duel/ordinal";
@@ -38,7 +39,7 @@ export const Route = createFileRoute("/profile")({
       { title: `${APP_NAME} profile` },
       {
         name: "description",
-        content: `Your ${APP_NAME} look, rooms and practice bests on this device.`,
+        content: `Your ${APP_NAME} look, rooms, practice stars and bests.`,
       },
       { name: "robots", content: "noindex" },
     ],
@@ -65,7 +66,6 @@ function ProfileScreen() {
   const [settings, setSettings] = useState(false);
   const [intro, setIntro] = useState(false);
   const [history, setHistory] = useState<RoomRecord[]>([]);
-  const [bests, setBests] = useState<{ type: PuzzleType; best: number }[]>([]);
   const [daily, setDaily] = useState<DailyRecord | null>(null);
   const [loaded, setLoaded] = useState(false);
 
@@ -75,20 +75,18 @@ function ProfileScreen() {
     setLook({ colour: remembered.colour ?? 0, icon: remembered.icon ?? null });
     setHistory(readRoomHistory());
     setDaily(readDailyRecord());
-    setBests(
-      ACTIVE_PUZZLE_TYPES.map((type) => ({
-        type,
-        best: readPracticeBest(type, currentPracticeStamp(type)),
-      }))
-        .filter((row): row is { type: PuzzleType; best: number } => row.best !== null)
-        .sort(
-          (a, b) =>
-            b.best - a.best ||
-            PUZZLE_REGISTRY[a.type].name.localeCompare(PUZZLE_REGISTRY[b.type].name),
-        ),
-    );
     setLoaded(true);
   }, []);
+  // Practice stars and bests are the account's (the server's: useProgress.ts), the same on every device.
+  const progress = usePracticeProgress();
+  const bests = useMemo(
+    () =>
+      ACTIVE_PUZZLE_TYPES.map((type) => ({ type, best: bestOf(progress, type) }))
+        .filter((row): row is { type: PuzzleType; best: number } => row.best !== null)
+        .sort((a, b) => b.best - a.best || PUZZLE_REGISTRY[a.type].name.localeCompare(PUZZLE_REGISTRY[b.type].name)),
+    [progress],
+  );
+  const upNext = progress ? nextGem(progress.stars) : null;
   const stats = useMemo(() => roomStats(history), [history]);
   // A signed-in player is shown by their username (changed in Settings → Account), a guest by the name typed.
   const accountName = useAccountName();
@@ -282,6 +280,25 @@ function ProfileScreen() {
           }
           onNew={() => void router.navigate({ to: "/challenge", search: {}, state: { fromPlayTab: true } as never } as never)}
         />
+
+        {/* Mastery (wave 2 C1a): the account's star total out of 276 and the next gem colour it unlocks. */}
+        {progress ? (
+          <section aria-label="Mastery stars" data-profile-mastery={progress.stars} className="ap-section">
+            <div className="ap-section-head">
+              <h2 className="ap-section-title">Mastery stars</h2>
+            </div>
+            <div className="jz-panel jz-row" data-icon="none">
+              <span data-ellipsis className="jz-row-title min-w-0 flex-1">
+                {starTotalLine(progress)}
+              </span>
+              <span data-profile-next-gem className="ap-meta">
+                {upNext
+                  ? `${upNext.name} at ${upNext.stars}`
+                  : `All ${GEM_THRESHOLDS.length} gems unlocked`}
+              </span>
+            </div>
+          </section>
+        ) : null}
 
         {bests.length > 0 ? (
           <section aria-label="Practice bests" className="ap-section">
