@@ -28,6 +28,7 @@ import { APP_NAME } from "@/lib/brand";
 import { Button, EmptyState, Icon, Input } from "@/design/components";
 import { GUEST_NAME_MAX } from "@/lib/names/username";
 import { useAccountName } from "@/lib/account/accountApi";
+import { ProfileCard } from "@/components/identity/ProfileCard";
 
 export const Route = createFileRoute("/profile")({
   ssr: false,
@@ -153,6 +154,9 @@ function ProfileScreen() {
             <Icon name="settings" size={20} />
           </Button>
         </div>
+
+        {/* Wave 2: the player card, Customise and the Joulz Rating's line (src/components/identity/ProfileCard.tsx). */}
+        <ProfileCard guestName={shownName} guestColour={loaded ? look.colour : null} />
 
         {fresh ? (
           // A new player (T-ProfileNew): the badge in their colour, what it is, and Choose your look.

@@ -51,7 +51,7 @@ interface PhoneShellProps {
    */
   play?: boolean;
   /**
-   * One of the app shell's four tab screens (Play, Practice's list, Tournaments, Profile): the
+   * One of the app shell's tab screens (Play, Practice's list, Tournaments, Profile; and the Shop with its switch on): the
    * bottom tab bar is drawn and the page leaves room for it. Never set on a room or game screen.
    */
   tabs?: AppTab;
@@ -500,7 +500,7 @@ export function PhoneShell({ children, reveal = false, bare = false, constrained
         )}
         {/* Offline practice: the slim banner, drawn only while <html data-offline> is set (never on a game screen). */}
         {gameScreen ? null : <OfflineBanner />}
-        {desktop && tabPage && tabs !== "profile" ? <BannerSlot page={tabs as "play" | "practice" | "tournaments"} /> : null}
+        {desktop && tabPage && tabs !== "profile" && tabs !== "shop" ? <BannerSlot page={tabs as "play" | "practice" | "tournaments"} /> : null}
         <DesktopPresentation.Provider value={presentation}>
           {framePlay ? <GameFrameShell.Provider value={{ type: gameType, arcade: arcadeScreen, topAction }}>{children}</GameFrameShell.Provider> : children}
         </DesktopPresentation.Provider>

@@ -1946,6 +1946,36 @@ outside the repo.
   `20261110160000_economy.sql`, `20261110160100_economy_catalogue.sql` (**not applied until merged**). economy-check
   (~8 s, shard `e`, PostgreSQL), economy-neutral-check (~1 s: no scoring, grading, replay, matchmaking or timing code
   reaches an economy module).
+- **Navigation and identity screens** (wave 2 train A, session A2, 10 Nov 2026; presentation, device storage and
+  analytics only, no gameplay, scoring, stamp or room-flow change): *Five tabs*: `TABS` (`src/design/components/TabBar.tsx`)
+  is Play · Practice · Tournaments · Shop · Profile; `tabsFor(shop)` draws the Shop only where the **Shop switch** is on
+  (`src/config/shopConfig.ts`: `SHOP_TAB_ENABLED` false until train D; `SHOP_PREVIEW_PLAYERS` [1], Joe's #0001, sees it
+  meanwhile; `useShopOn` in `src/lib/identity/shopSwitch.ts`, from the cached account at first paint); everyone else keeps
+  today's four tabs (app-shell-check's four-tab assertions hold). `/shop` (`src/routes/shop.tsx`): Shop · Pass · Plus, the
+  Shop part's Featured · Daily · Coins, each a calm "opening soon" card (no prices, items or countdown); a device the
+  switch is off for is sent to Play. The header's coin counter (`CoinCounter`, also the desktop rail) shows an account's
+  getMyWallet() balance where the switch is on, a tap opening Shop > Coins; never for guests. *The player card*
+  (`src/design/identity/`, `PlayerCard`): the card art, frame and name colour drawn from the approved item sources
+  (`docs/art/wave-2/items`) cut by `bun scripts/player-card-art.ts [--check]` into `playerCardArt.data.ts` (with the 32
+  avatars from `docs/art/avatars/svg`, their main colour a template; Silkscreen self-hosted for Electric Orange); the pill
+  shows the player number (#0001) or "Guest" until wave 3's rating; guests keep colour plus initial; new accounts start as
+  Captain Joulz in their colour; ids unique per card; every motion stops under prefers-reduced-motion (the sources' own
+  rules, scoped `.pcard`). **Re-run player-card-art.ts after an item's source changes.** *Profile*: the card, Customise
+  card and "Your Joulz Rating arrives with rated play." (`src/components/identity/ProfileCard.tsx`) above the existing
+  sections; no rating, mastery stars, practice challenges, badges, titles or trophy cabinet until their waves. A guest's
+  Customise opens the save-your-progress sheet (`SaveProgressOffer`, no prompt record or prompt event). *Customise*
+  (`src/routes/customise.tsx`, accounts only): Avatar (32 avatars, 32 colours, builder rows with a real choice, 10 gems
+  locked, owned finishes / accessory item / special edition), Card (owned card arts, frames, name colours; locked ones say where they come from, shop items hidden
+  while the switch is off; rules in `src/lib/identity/customise.ts`), Badges and title (empty until C2); Save goes through
+  A1's equip() / setAvatar(), a refusal shows A1's message and leaves the card as it was. **All server access goes through
+  `src/lib/identity/backend.ts`** (A1's calls, `{ data }` arguments, fitted by `normalise*`; bound in `a1Binding.ts` to
+  `src/lib/economy/economy.functions.ts`). The avatar builder's accent, feature, accessory and background rows draw only
+  where getAvatarOptions gives an avatar more than one choice (`optionRows`; none today: one accent and background each,
+  no features or accessories in docs/art/avatars). Events `profile_viewed`, `customise_opened`,
+  `equip_refused` (slot, reason) through `recordIdentityEventFn` (`IDENTITY_EVENT_LIMIT`), migration
+  `20261110200000_analytics_identity_events.sql` (**not applied until merged**; it adds to the list it reads from the
+  table). Checks: identity-screens-check (~5 s, happy-dom, A1 stood in by `setIdentityBackend`) and identity-motion-check
+  (headless Chromium: every item against its approved PNG, no animation under reduced motion).
 - `src/components/duel/` — room/round screens (PhoneShell, RoundIntro, TimerBar,
   AnswerReveal, ArcadeReveal, WinnerReveal…); `src/components/puzzles/` — shared puzzle
   widgets; `src/lib/fx/` — sound and visual feedback (presentation only).

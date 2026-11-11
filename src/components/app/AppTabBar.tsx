@@ -3,11 +3,12 @@ import type { MouseEvent } from "react";
 
 import { TabBar, TAB_PATHS, type AppTab } from "@/design/components/TabBar";
 
+import { useShopOn } from "@/lib/identity/shopSwitch";
 import { unlockAudio } from "@/lib/sound";
 
 /**
  * The app shell's bottom tab bar (18 Oct 2026, presentation only): Play, Practice, Tournaments and
- * Profile. Drawn by PhoneShell's `tabs` on those four screens only (the practice list, never a
+ * Profile (wave 2: and Shop before Profile, where the Shop switch is on: src/config/shopConfig.ts). Drawn by PhoneShell's `tabs` on those four screens only (the practice list, never a
  * practice round); the lobby, rounds, results, podium and every game have no tab bar.
  *
  * Back: the Play tab is the root. A tab opened from Play is pushed (marked fromPlayTab), tabs
@@ -41,6 +42,7 @@ export function goToTab(
 
 export function AppTabBar({ current }: { current: AppTab }) {
   const router = useRouter();
+  const shop = useShopOn();
   const open = (tab: AppTab) => (event: MouseEvent<HTMLAnchorElement>) => {
     if (event.metaKey || event.ctrlKey || event.shiftKey || event.button !== 0) return;
     event.preventDefault();
@@ -54,7 +56,7 @@ export function AppTabBar({ current }: { current: AppTab }) {
   return (
     <nav aria-label="Main" data-app-tabbar className="app-tabbar">
       <div className="app-tabbar-row">
-        <TabBar variant="bar" current={current} onOpen={open} />
+        <TabBar variant="bar" current={current} shop={shop} onOpen={open} />
       </div>
     </nav>
   );

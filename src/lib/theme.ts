@@ -20,4 +20,4 @@ export const THEME_FAMILIES = { head: APP_PAGE_FAMILY, body: APP_PAGE_FAMILY, mo
  * A skinned screen's background glows (data-skin): each tab screen its own, the room's screens
  * one quieter set.
  */
-export type ThemeSkin = "play" | "practice" | "tournaments" | "profile" | "room";
+export type ThemeSkin = "play" | "practice" | "tournaments" | "shop" | "profile" | "room";
