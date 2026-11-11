@@ -1,46 +1,48 @@
 /**
- * The rated match screens' one way to the server (wave 3, session W3c). Every rated screen (Home's rank panel and
- * Play card, the picker, searching, VS, the live header, the result, placement, the reveal, the tier ladder, Profile's
- * rating panels) reads through here and nowhere else, so the ratings work's and matchmaking's exact shapes are fitted
- * in one place.
+ * The rated match screens' one way to the server (wave 3, session W3c). Every rated screen (Home's rank panel and Play
+ * card, the picker, searching, VS, the live header in the room, the result, placement, the reveal, the tier ladder,
+ * Profile's rating panels) reads through here, so W3a's and W3b's shapes are fitted in one place: `w3Binding.ts` turns
+ * their server functions into this interface.
  *
- * PROVISIONAL CONTRACT. The ratings session (W3a, docs/rated/ratings-interface.md) and the matchmaking session (W3b,
- * docs/rated/matchmaking-interface.md) own the real interfaces; neither had opened its PR when this was written. These
- * types are what the screens need, drawn from the approved mockups (docs/mockups/wave-3/). When those PRs land, a
- * binding module (`w3Binding.ts`, beside this file, as A2's a1Binding.ts does for A1) adapts their functions to
- * `RatedBackend`; until then `ratedBackend()` answers null, so rated play stays hidden for everyone and Home is today's.
+ * - W3a (docs/rated/ratings-interface.md): getMyRatingsFn, getRatingsForFn, getTierLadderFn; each match's
+ *   `RatedPlayerChange` (on W3b's settlement) for the rating moved, why it didn't (`frozen`), placement and Joules.
+ * - W3b (docs/rated/matchmaking-interface.md): ratedStatusFn, ratedQueueJoinFn / PollFn / LeaveFn, ratedMatchFn,
+ *   ratedOpponentScoreFn, ratedProgressFn, ratedSettleFn, ratedRematchFn. A match is an ordinary room on the existing
+ *   room route.
+ * - The cards: A2's getPublicCard (look), C2's getCardBadges (badges, title).
  *
  * Checks stand in for the server with `setRatedBackend(fake)` (scripts/rated-screens-check.tsx).
  */
-import type { ReactNode } from "react";
-
 import type { CardLook } from "@/design/identity";
-import type { PuzzleType } from "@/lib/duel/types";
+import type { RatingKey, TierLadderRung } from "@/lib/data/ratings";
+import type { RatedChoice, RatedFormat } from "@/lib/rated/matchmaking";
 
-import type { RankView } from "./tiers";
+import type { RankView } from "./tierDisplay";
 
 /* ------------------------------------------------------------------ what can be picked */
 
-/**
- * A pick: Mixed, All puzzles, All arcade, or one category / arcade group as `cat:<id>` (a puzzle category id or an
- * arcade group id). Which are offered is matchmaking's switches (W3b); the picker draws only those.
- */
-export type RatedPick = "mixed" | "puzzles" | "arcade" | `cat:${string}`;
+/** A pick is W3b's choice id: mixed, puzzles, arcade, or one category / arcade group. */
+export type RatedPick = RatedChoice;
 export type BestOf = 3 | 5 | 7;
 export type MatchSize = 2 | 4 | 8;
 
-/** What is switched on (W3b). Launch: Mixed, All puzzles and All arcade, best of 3, 1v1. */
+/** What is switched on (W3b's `openOptions`). Launch: Mixed, All puzzles and All arcade, best of 3. */
 export interface RatedOptions {
   picks: readonly RatedPick[];
   bestOf: readonly BestOf[];
   sizes: readonly MatchSize[];
 }
 
+export function formatOf(bestOf: BestOf): RatedFormat {
+  return bestOf === 3 ? "bo3" : bestOf === 5 ? "bo5" : "bo7";
+}
+
 /* ------------------------------------------------------------------ the player's standing */
 
-export type PlacementResult = "won" | "lost";
+/** A placement match's result as this device saw it (null: played, result not known here). */
+export type PlacementResult = "won" | "lost" | "drawn" | null;
 
-/** One side's (Puzzles' or Arcade's) rating; null while hidden (placement) or before a match of that side. */
+/** One side's (Puzzles' or Arcade's) rating; null while hidden (placement) or never played. */
 export interface SideRating {
   rating: number | null;
   matches: number;
@@ -48,7 +50,7 @@ export interface SideRating {
 
 /** One category's or arcade group's rating (Profile's strongest categories, the picker's figures). */
 export interface CategoryRating {
-  pick: `cat:${string}`;
+  pick: RatedPick;
   rating: number;
   matches: number;
 }
@@ -56,7 +58,7 @@ export interface CategoryRating {
 export type RatedStanding =
   | {
       state: "placement";
-      /** The placement matches played so far, in order (0 to 4 of them). */
+      /** One entry per placement match played (0 to 4), in order. */
       results: readonly PlacementResult[];
       puzzles: SideRating;
       arcade: SideRating;
@@ -67,48 +69,56 @@ export type RatedStanding =
       puzzles: SideRating;
       arcade: SideRating;
       categories: readonly CategoryRating[];
-      won: number;
-      lost: number;
     };
 
 export interface RatedStatus {
-  /** Whether rated play is open to this player (W3b's switch, testers only at first). */
+  /** Whether rated play is open to this player (W3b: testers only, or everyone once RATED_PLAY_FOR_EVERYONE is on). */
   open: boolean;
+  /** No account: the player plays under their generated energy name with a Guest tag. */
+  guest: boolean;
   /** The player's own card as rated screens draw it (rank null during placement). */
   me: RatedPlayer;
   options: RatedOptions;
-  /** The current season, when there is one. */
+  /** The current season (D2's pass), when there is one. */
   season: { name: string; daysLeft: number } | null;
   standing: RatedStanding;
-  /** The pick the player last played (the Play card's default), when it's still switched on. */
-  lastPick: RatedPick | null;
+  /** A match this player is in (W3b's activeMatchId), to go back to. */
+  activeMatchId: string | null;
 }
 
 /* ------------------------------------------------------------------ a match */
 
 export interface RatedPlayer {
+  /** The auth user id (null for a run's owner whose account is gone). */
+  userId: string | null;
+  /** The username, a guest's energy name, or "Deleted player". */
   username: string;
-  playerNumber: number;
+  playerNumber: number | null;
   look: CardLook;
-  /** The equipped title (C2), or null. */
+  /** The equipped title's name (C2), or null. */
   title: string | null;
-  /** Null while the player is in placement. */
+  /** The card's badges (C2's slugs, up to 3). */
+  badges: readonly string[];
+  /** Null while in placement (or no rating to show). */
   rank: RankView | null;
+  guest: boolean;
+  deleted: boolean;
 }
 
 /** Live: both playing now. Recorded: a real player's stored run, always labelled, with its real age. */
-export type OpponentSource = { kind: "live" } | { kind: "recorded"; recordedAt: string };
+export type OpponentSource = { kind: "live" } | { kind: "recorded"; label: string };
 
 export interface RatedMatch {
   id: string;
   pick: RatedPick;
   bestOf: BestOf;
+  roomCode: string | null;
   me: RatedPlayer;
   them: RatedPlayer;
   source: OpponentSource;
-  /** The two players' record against each other before this match. */
-  headToHead: { won: number; lost: number };
-  /** 1 to 5 during placement, else null. */
+  /** The two players' record against each other before this match, when the server has it (null: not shown). */
+  headToHead: { won: number; lost: number } | null;
+  /** The placement match this is (1 to 5), else null. */
   placement: number | null;
 }
 
@@ -116,12 +126,12 @@ export interface RatedMatch {
 export interface SearchProgress {
   elapsedMs: number;
   range: number;
-  /** When a recorded run takes over (mockup 03: 8 s). */
+  /** When a recorded run takes over (W3b's RECORDED_AFTER_MS, 8 s). */
   recordedAfterMs: number;
 }
 
 export interface RatedGame {
-  type: PuzzleType;
+  type: string;
   myScore: number;
   theirScore: number;
 }
@@ -131,79 +141,100 @@ export interface RatingMove {
   change: number;
 }
 
+/** Why a match moved no ratings (W3a's `frozen`), as the result says it. */
+export type FrozenLine = "under_review" | "same_opponent_today";
+
 export interface RatedResult {
   match: RatedMatch;
   games: readonly RatedGame[];
   /** Games won by each side (a level game counts for neither). */
   myGames: number;
   theirGames: number;
-  won: boolean;
-  /** Null during placement (the rating is hidden until the reveal). */
+  outcome: "won" | "lost" | "drawn";
+  /** Null during placement (the rating is hidden until the reveal) and when nothing moved. */
   rating: { after: RankView; change: number; puzzles: RatingMove | null; arcade: RatingMove | null } | null;
-  /** Placement's results so far including this match, while in placement. */
+  /** Why no rating moved, from W3a's answer. */
+  frozen: FrozenLine | null;
+  /** Placement's results including this match, while in placement. */
   placementResults: readonly PlacementResult[] | null;
   /** After the 5th placement match: the reveal. */
   reveal: {
     rank: RankView;
-    /** "Better than N% of players" from the ladder's real counts; null when the server has too few players to say. */
+    /** "Better than N% of players" from the ladder's real shares; null when there are none yet. */
     betterThan: number | null;
     puzzles: SideRating;
     arcade: SideRating;
-    won: number;
-    lost: number;
+    won: number | null;
+    lost: number | null;
   } | null;
-  /** Joules earned for the season pass (D2), with the pass level reached, or null. */
+  /** Joules this match paid (W3a's amount, credited by D2), with the pass level when known. */
   joules: { amount: number; passLevel: number | null } | null;
-  /** A practice star earned in this match (C1a: 175+ in a game), or null. */
-  star: { type: PuzzleType } | null;
-  /** The game closest to the player's best, when within reach (DESIGN.md: "12 off your best on Chroma Lines"). */
-  nearMiss: { type: PuzzleType; offBest: number } | null;
+  /** A practice star earned in this match (C1a: only Practice runs earn one today), or null. */
+  star: { type: string } | null;
+  /** The game closest to the player's practice best, when within reach. */
+  nearMiss: { type: string; offBest: number } | null;
   /** Whether the opponent is the player's friend (Challenge shows only then). */
   friend: boolean;
-  /** Until when a rematch can be offered (8 s after the result), or null when it can't (a recorded run). */
+  /** Until when a rematch can be asked for (live matches, 8 s from the end), or null. */
   rematchUntil: string | null;
-}
-
-/** Each tier's share of placed players and the Top 500's count, from the server's real counts. */
-export interface LadderCounts {
-  /** Percent of placed players in each tier (null when too few to say). */
-  shares: Partial<Record<RankView["tier"], number>> | null;
-  /** Players holding a Top 500 place (up to 500). */
-  top500: number;
+  /** Rating keys that moved, for checks and the reveal. */
+  moved: readonly RatingKey[];
 }
 
 export type Refused = { ok: false; message: string };
+export type RematchAnswer = { state: "waiting" } | { state: "agreed"; match: RatedMatch } | { state: "closed" };
+
+/** The live header's opponent score (W3b's ratedOpponentScoreFn). */
+export interface OpponentScoreView {
+  round: number;
+  score: number | null;
+  hidden: boolean;
+  finished: boolean;
+}
 
 /** The rated server, as the screens use it. */
 export interface RatedBackend {
   status(): Promise<RatedStatus | null>;
-  /** Searches; `progress` is called as the range widens; resolves with the match, or null when cancelled. */
+  /** Searches; `progress` is called as the range widens; resolves with the match, a refusal, or null when cancelled. */
   search(pick: RatedPick, bestOf: BestOf, progress: (p: SearchProgress) => void, signal: AbortSignal): Promise<RatedMatch | Refused | null>;
+  /** A match by id (the room route's rated header and result). */
+  match(matchId: string): Promise<RatedMatch | null>;
+  /** The result once settled; null while the match is still playing. */
   result(matchId: string): Promise<RatedResult | null>;
-  rematch(matchId: string): Promise<RatedMatch | Refused | null>;
+  rematch(matchId: string): Promise<RematchAnswer>;
   /** The existing friend challenge flow, from this match's games: a challenge code to share. */
   challenge(matchId: string): Promise<{ ok: true; code: string } | Refused>;
-  ladder(): Promise<LadderCounts | null>;
-  /**
-   * The live games of a match (mockups 05 and 06): the round runner the ratings work binds (the shared round engine's
-   * rated mode), with RatedFrameScore (src/components/rated/RatedFrameScore.tsx) as each game's header score and no
-   * other layout change. `done` is called when the last game's result is in.
-   */
-  renderGame(match: RatedMatch, done: () => void): ReactNode;
+  ladder(): Promise<TierLadderRung[] | null>;
+  opponentScore(matchId: string): Promise<OpponentScoreView | null>;
+  /** Display only: this player's live score in the current game, shown to a live opponent. */
+  progress(matchId: string, round: number, score: number): Promise<void>;
 }
 
 let override: RatedBackend | null | undefined;
 
-/** Checks only: stands in for the rated server (null: none). */
+/** Checks only: stands in for the rated server (null: none; undefined: the real binding). */
 export function setRatedBackend(backend: RatedBackend | null | undefined): void {
   override = backend;
 }
 
+let bound: Promise<RatedBackend | null> | null = null;
+
 /**
- * The rated server, or null. Null until the W3a / W3b binding lands (see the header): every rated screen then stays
- * hidden and Home, Profile and the card are exactly as before.
+ * Under automation (navigator.webdriver: the browser and happy-dom checks) the real binding stays off unless the page
+ * allows it (`window.__DUELZ_ALLOW_RATED__`), as offline packs and safety notices do, so no existing check gains a
+ * rated server call; a check stands in with setRatedBackend or the page override instead.
  */
+function automatedWithoutRated(): boolean {
+  if (typeof navigator === "undefined" || !navigator.webdriver) return false;
+  // The check-only allow switch is ignored in a production build (Vite replaces PROD with true).
+  if (import.meta.env.PROD) return true;
+  return !(typeof window !== "undefined" && (window as unknown as { __DUELZ_ALLOW_RATED__?: boolean }).__DUELZ_ALLOW_RATED__);
+}
+
+/** The rated server: W3a's and W3b's functions through w3Binding.ts (null if they can't load). */
 export function ratedBackend(): Promise<RatedBackend | null> {
   if (override !== undefined) return Promise.resolve(override);
-  return Promise.resolve(null);
+  if (automatedWithoutRated()) return Promise.resolve(null);
+  bound ??= import("./w3Binding").then((m) => m.bindW3()).catch(() => null);
+  return bound;
 }

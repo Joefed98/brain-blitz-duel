@@ -445,7 +445,7 @@ for (const [who, n, shows] of [
         look: { cardArt: null, frame: null, nameColour: null, avatar: null },
         name: "TheInventor",
         playerNumber: 42,
-        rank: { tier: "volt", division: 2, rating: 1278, top500: null },
+        rank: { tier: "volt", label: "Volt II", rating: 1278 },
       }),
     ),
   );
@@ -670,11 +670,14 @@ for (const [who, n, shows] of [
 
   const ratedMod = await import("../src/lib/rated/backend");
   const ratedApi = await import("../src/lib/rated/ratedApi");
-  const VOLT = { tier: "volt", division: 2, rating: 1278, top500: null, heldBack: null } as const;
+  // W3a's TierView for 1,278 (tierFor), as W3a answers it.
+  const { tierFor } = await import("../src/lib/rated/tiers");
+  const VOLT = { ...tierFor(1278), rating: 1278 };
   ratedMod.setRatedBackend({
     status: async () => ({
       open: true,
-      me: { username: "TheInventor", playerNumber: 1, look: { cardArt: null, frame: null, nameColour: null, avatar: null }, title: null, rank: VOLT },
+      guest: false,
+      me: { userId: "u-1", username: "TheInventor", playerNumber: 1, look: { cardArt: null, frame: null, nameColour: null, avatar: null }, title: null, badges: [], rank: VOLT, guest: false, deleted: false },
       options: { picks: ["mixed"], bestOf: [3], sizes: [2] },
       season: null,
       standing: {
@@ -683,20 +686,20 @@ for (const [who, n, shows] of [
         puzzles: { rating: 1296, matches: 4 },
         arcade: { rating: null, matches: 0 },
         categories: [
-          { pick: "cat:word", rating: 1312, matches: 2 },
-          { pick: "cat:retro", rating: 1500, matches: 0 },
+          { pick: "word", rating: 1312, matches: 2 },
+          { pick: "retro", rating: 1500, matches: 0 },
         ],
-        won: 3,
-        lost: 1,
       },
-      lastPick: null,
+      activeMatchId: null,
     }),
     search: async () => null,
     result: async () => null,
-    rematch: async () => null,
+    rematch: async () => ({ state: "closed" as const }),
     challenge: async () => ({ ok: false, message: "no" }),
+    match: async () => null,
     ladder: async () => null,
-    renderGame: () => null,
+    opponentScore: async () => null,
+    progress: async () => {},
   });
   ratedApi.resetRated();
   const placed = await mount(() => React.createElement(ProfileCard, { guestName: "Player", guestColour: 0 }), "/profile");
@@ -705,7 +708,7 @@ for (const [who, n, shows] of [
   check(shown("[data-profile-rating] [data-joulz-rating]") === "1,278", "placed: the Joulz Rating is the server's");
   check(shown("[data-profile-rating] [data-side='puzzles'] .rt-side-value") === "1,296", "placed: Puzzles is the server's");
   check(shown("[data-profile-rating] [data-side='arcade'] .rt-side-value") === "Not played yet", "placed: Arcade with no rated match draws no figure");
-  check($$("[data-strongest-row]").map((r) => r.getAttribute("data-strongest-row")).join() === "cat:word", "placed: strongest categories only those with rated matches");
+  check($$("[data-strongest-row]").map((r) => r.getAttribute("data-strongest-row")).join() === "word", "placed: strongest categories only those with rated matches");
   check(shown("[data-profile-card] [data-card-pill] .pcard-pill-value") === "1,278", "placed: the card's pill shows the rating");
   check(!/Trophy cabinet|Season peak/i.test(document.body.textContent ?? ""), "placed: no trophy cabinet or season peak (wave 4)");
   act(() => placed.root.unmount());

@@ -1,33 +1,23 @@
 /**
- * The tier ladder (wave 3, session W3c; mockup 14): your rating and the bar to the next division, then every tier from
- * Top 500 down to Spark with its range and division floors, each tier's share of players from the server's real
- * counts (no column when the server has too few players to say), where you are, and the rules: placement, Storm's and
- * Top 500's caps, the grace at a tier's floor, and the season's rewards.
+ * The tier ladder (wave 3, session W3c; mockup 14): your rating and the bar to the next division, then W3a's ladder
+ * (getTierLadder: every tier from Top 500 down to Spark with its range, division floors, cap and the live share of
+ * rated players, `share` null until the standings have run), where you are, and the rules: placement, Storm's and Top
+ * 500's caps with their grace, the grace at a tier's floor, and the season's rewards. The figures in the rules come
+ * from W3a's constants (src/lib/rated/tiers.ts).
  */
 import { Emblem } from "@/design/art";
 import { Icon, Panel } from "@/design/components";
-import type { LadderCounts } from "@/lib/rated/backend";
-import {
-  CAP_DAYS,
-  GRACE_MATCHES,
-  PLACEMENT_MATCHES,
-  rankLabel,
-  ratingText,
-  STORM_TOP_SHARE,
-  TIER_NAMES,
-  tierFloorsText,
-  tierRange,
-  TIERS,
-  TOP_COUNT,
-  type RankView,
-} from "@/lib/rated/tiers";
+import type { TierLadderRung } from "@/lib/data/ratings";
+import { CAP_GRACE_DAYS, FLOOR_GRACE_MATCHES, STORM_TOP_SHARE, TOP_500 } from "@/lib/rated/tiers";
+import { emblemTier, PLACEMENT_MATCHES, ratingText, rungFloors, rungRange, shareText, type RankView } from "@/lib/rated/tierDisplay";
 
 import { DivisionBarView, RankEmblem } from "./RatedParts";
 
-export function TierLadder({ rank, counts }: { rank: RankView | null; counts: LadderCounts | null }) {
-  const rows = [...TIERS].reverse();
-  const share = (t: (typeof TIERS)[number]) => counts?.shares?.[t];
-  const atTop = rank?.top500 !== null && rank?.top500 !== undefined;
+const STORM_PCT = Math.round(STORM_TOP_SHARE * 100);
+
+export function TierLadder({ rank, rungs }: { rank: RankView | null; rungs: readonly TierLadderRung[] }) {
+  const shares = rungs.some((r) => r.share !== null);
+  const youAt = rank ? (rank.tier === "top500" ? "top500" : rank.tier) : null;
   return (
     <div className="rt-ladder" data-tier-ladder>
       {rank ? (
@@ -50,38 +40,35 @@ export function TierLadder({ rank, counts }: { rank: RankView | null; counts: La
       <Panel className="rt-ladder-table">
         <div className="rt-games-head">
           <span>Tier</span>
-          {counts ? <span>Players</span> : null}
+          {shares ? <span>Players</span> : null}
         </div>
         <ul>
-          <li className="jz-row rt-tier" data-tier-row="top500" data-you={atTop ? "" : undefined}>
-            <Emblem tier="lightning" rank={rank?.top500 ?? undefined} size={56} marker={false} label="Top 500" />
-            <span className="rt-tier-text">
-              <span className="rt-tier-name">
-                Top 500{atTop ? <span className="rt-tier-you">You, {rankLabel(rank!)}</span> : null}
-              </span>
-              <span className="rt-tier-range">Lightning, and ranked 1 to {TOP_COUNT}</span>
-              <span className="rt-tier-floors">Numbered: Top 500 #1 to #{TOP_COUNT}</span>
-            </span>
-            {counts ? <span className="rt-tier-share">{ratingText(counts.top500)} players</span> : null}
-          </li>
-          {rows.map((t) => {
-            const here = rank !== null && !atTop && rank.tier === t;
-            const s = share(t);
+          {rungs.map((r) => {
+            const here = youAt === r.tier;
             return (
-              <li key={t} className="jz-row rt-tier" data-tier-row={t} data-you={here ? "" : undefined}>
-                <Emblem tier={t} size={56} marker={false} />
+              <li key={r.tier} className="jz-row rt-tier" data-tier-row={r.tier} data-you={here ? "" : undefined}>
+                <Emblem
+                  tier={emblemTier(r.tier)}
+                  rank={r.tier === "top500" && here ? (rank?.rank ?? undefined) : undefined}
+                  size={56}
+                  marker={false}
+                  label={r.name}
+                />
                 <span className="rt-tier-text">
                   <span className="rt-tier-name">
-                    {TIER_NAMES[t]}
-                    {here ? <span className="rt-tier-you">You, {rankLabel(rank!)}</span> : null}
+                    {r.name}
+                    {here && rank ? <span className="rt-tier-you">You, {rank.label}</span> : null}
                   </span>
                   <span className="rt-tier-range">
-                    {tierRange(t)}
-                    {t === "storm" ? `, and top ${STORM_TOP_SHARE}%` : ""}
+                    {r.tier === "top500" ? r.cap : `${rungRange(r)}${r.cap ? `, ${r.cap}` : ""}`}
                   </span>
-                  <span className="rt-tier-floors">{tierFloorsText(t)}</span>
+                  <span className="rt-tier-floors">{r.tier === "top500" ? `Numbered: Top 500 #1 to #${TOP_500}` : rungFloors(r)}</span>
                 </span>
-                {counts ? <span className="rt-tier-share">{s !== undefined && s !== null ? `${s}%` : "–"}</span> : null}
+                {shares ? (
+                  <span className="rt-tier-share" data-tier-share>
+                    {r.share !== null ? shareText(r.share) : "–"}
+                  </span>
+                ) : null}
               </li>
             );
           })}
@@ -99,17 +86,23 @@ export function TierLadder({ rank, counts }: { rank: RankView | null; counts: La
         <li data-cap-rule>
           <Icon name="lock" size={22} tone="text-3" />
           <span>
-            Storm and Top 500 must be held: drop out of the top {STORM_TOP_SHARE}% or the top {TOP_COUNT} for {CAP_DAYS} days and
-            you move down. {GRACE_MATCHES} matches of grace at every tier’s floor.
+            Storm and Top 500 must be held: drop out of the top {STORM_PCT}% or the top {TOP_500} for {CAP_GRACE_DAYS} days and
+            you move down. {FLOOR_GRACE_MATCHES} matches of grace at every tier’s floor.
           </span>
         </li>
         {rank?.heldBack ? (
-          <li data-held-back={rank.heldBack}>
+          <li data-held-back>
             <Icon name="lock" size={22} tone="gold" />
             <span>
-              {rank.heldBack === "storm"
-                ? `Your rating reaches Storm. You’ll move up once you’re in the top ${STORM_TOP_SHARE}%.`
-                : `Your rating reaches Top 500. You’ll get a number once you hold a top ${TOP_COUNT} place.`}
+              {rank.heldBack.label}: you’ll move up once you hold the place {rank.heldBack.ratedTier === "top500" ? `in the top ${TOP_500}` : `in the top ${STORM_PCT}%`}.
+            </span>
+          </li>
+        ) : null}
+        {rank?.floorGrace ? (
+          <li data-floor-grace>
+            <Icon name="lock" size={22} tone="gold" />
+            <span>
+              Below {rank.label}’s floor: kept for {rank.floorGrace.matchesLeft} more {rank.floorGrace.matchesLeft === 1 ? "match" : "matches"}.
             </span>
           </li>
         ) : null}

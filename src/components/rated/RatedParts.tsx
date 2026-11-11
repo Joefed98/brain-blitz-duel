@@ -9,21 +9,23 @@ import { GameIcon } from "@/components/app/GameIcon";
 import { Emblem } from "@/design/art";
 import { Icon } from "@/design/components";
 import { Avatar, DEFAULT_AVATAR, type CardLook } from "@/design/identity";
+import { JoulesBolt as PassJoulesBolt } from "@/components/pass/JoulesBolt";
 import { puzzleName } from "@/lib/duel/catalogue";
+import type { PuzzleType } from "@/lib/duel/types";
 import type { PlacementResult, RatedGame, RatedPick, SideRating } from "@/lib/rated/backend";
 import { isArcadePick } from "@/lib/rated/rules";
-import { divisionBar, ratingText, rankLabel, PLACEMENT_MATCHES, type RankView } from "@/lib/rated/tiers";
+import { divisionBar, emblemDivision, emblemTier, PLACEMENT_MATCHES, ratingText, type RankView } from "@/lib/rated/tierDisplay";
 
 /** The tier emblem for a standing (Lightning shows its Top 500 number when it has one). */
 export function RankEmblem({ rank, size, marker = false }: { rank: RankView; size: number; marker?: boolean }) {
   return (
     <Emblem
-      tier={rank.tier}
-      division={rank.tier === "lightning" ? undefined : rank.division}
-      rank={rank.top500 ?? undefined}
+      tier={emblemTier(rank.tier)}
+      division={emblemTier(rank.tier) === "lightning" ? undefined : emblemDivision(rank)}
+      rank={rank.rank ?? undefined}
       size={size}
       marker={marker}
-      label={rankLabel(rank)}
+      label={rank.label}
     />
   );
 }
@@ -37,21 +39,26 @@ export function UnplacedEmblem() {
   );
 }
 
-/** The five placement boxes (mockups 11 and 12): a tick on green for a win, a cross on red for a loss, the next one gold. */
+/**
+ * The five placement boxes (mockups 11 and 12): a tick on green for a win, a cross on red for a loss, the next one gold.
+ * A match played whose result this device doesn't know (played elsewhere; W3a keeps only the count) is a plain
+ * "played" box with its number, never a guessed tick or cross; a drawn match shows a dash.
+ */
 export function PlacementBoxes({ results }: { results: readonly PlacementResult[] }) {
   return (
     <ol className="rt-boxes" aria-label={`Placement, ${results.length} of ${PLACEMENT_MATCHES} played`} data-placement-boxes>
       {Array.from({ length: PLACEMENT_MATCHES }, (_, i) => {
-        const r = results[i];
+        const played = i < results.length;
+        const r = played ? (results[i] ?? "played") : null;
         const next = i === results.length;
         return (
           <li
             key={i}
             className="rt-box"
             data-box={r ?? (next ? "next" : "later")}
-            aria-label={r === "won" ? `Match ${i + 1}: won` : r === "lost" ? `Match ${i + 1}: lost` : `Match ${i + 1}`}
+            aria-label={r === "won" ? `Match ${i + 1}: won` : r === "lost" ? `Match ${i + 1}: lost` : r === "drawn" ? `Match ${i + 1}: drawn` : r ? `Match ${i + 1}: played` : `Match ${i + 1}`}
           >
-            {r === "won" ? <Icon name="check" size={24} /> : r === "lost" ? <Icon name="cross" size={24} /> : <span aria-hidden="true">{i + 1}</span>}
+            {r === "won" ? <Icon name="check" size={24} /> : r === "lost" ? <Icon name="cross" size={24} /> : <span aria-hidden="true">{r === "drawn" ? "–" : i + 1}</span>}
           </li>
         );
       })}
@@ -81,16 +88,15 @@ export function DivisionBarView({ rank, labels = true }: { rank: RankView; label
 
 /** The Puzzles / Arcade tile (mockups 01, 11, 13): the icon, the label and the rating, or what stands in for it. */
 export function SideTile({ side, rating, hidden = false, sub }: { side: "puzzles" | "arcade"; rating: SideRating; hidden?: boolean; sub?: ReactNode }) {
+  // During placement every rating is hidden (W3a shows none, played or not): "Hidden".
   const value = hidden
-    ? rating.matches > 0
-      ? "Hidden"
-      : "Not played yet"
+    ? "Hidden"
     : rating.rating !== null
       ? ratingText(rating.rating)
       : "Not played yet";
   const figure = !hidden && rating.rating !== null;
   return (
-    <div className="rt-side" data-side={side} data-side-value={figure ? "rating" : hidden && rating.matches > 0 ? "hidden" : "none"}>
+    <div className="rt-side" data-side={side} data-side-value={figure ? "rating" : hidden ? "hidden" : "none"}>
       <span className="rt-side-icon" aria-hidden="true">
         <SideIcon side={side} />
       </span>
@@ -137,11 +143,11 @@ export function PickMark({ pick }: { pick: RatedPick }) {
         ? ["word", "logic"]
         : pick === "arcade"
           ? ["retro", "action"]
-          : [pick.slice(4)];
+          : [pick];
   return (
     <span className="rt-pick-mark" data-count={tones.length} aria-hidden="true">
       {tones.map((t) => (
-        <span key={t} className="rt-diamond" data-tone={t} data-arcade={isArcadePick(`cat:${t}`) ? "" : undefined} />
+        <span key={t} className="rt-diamond" data-tone={t} data-arcade={isArcadePick(t as RatedPick) ? "" : undefined} />
       ))}
     </span>
   );
@@ -153,9 +159,9 @@ export function GameRow({ game, them, showVerdict = true }: { game: RatedGame; t
   const lost = game.myScore < game.theirScore;
   return (
     <li className="jz-row rt-game" data-game-row={game.type} data-outcome={won ? "won" : lost ? "lost" : "level"}>
-      <GameIcon type={game.type} size={44} />
+      <GameIcon type={game.type as PuzzleType} size={44} />
       <span className="rt-game-text">
-        <span className="rt-game-name">{puzzleName(game.type)}</span>
+        <span className="rt-game-name">{puzzleName(game.type as PuzzleType)}</span>
         {showVerdict ? (
           <span className="rt-verdict" data-verdict={won ? "won" : lost ? "lost" : "level"}>
             {won ? <Icon name="check" size={18} /> : lost ? <Icon name="cross" size={18} /> : null}
@@ -174,31 +180,28 @@ export function GameRow({ game, them, showVerdict = true }: { game: RatedGame; t
   );
 }
 
-/** The small Joules bolt (DESIGN.md: every Joules amount in electric lime with the bolt beside it). */
-export function JoulesBolt({ size = 20 }: { size?: number }) {
-  return (
-    <svg className="rt-joules-bolt" width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" fill="none">
-      <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" />
-      <path d="M13 5.5 8 13h3.5l-1 5.5 5-7.5H12z" fill="currentColor" />
-    </svg>
-  );
+/** D2's Joules bolt (src/components/pass/JoulesBolt.tsx), the one bolt every Joules amount wears. */
+export function JoulesBolt({ size = 16 }: { size?: number }) {
+  return <PassJoulesBolt size={size} />;
 }
 
 /**
- * The Joules line (D2's style: the small lime line with its bolt): "+120 Joules" and the pass level when given. `tile`
+ * The Joules line in D2's style (D2's `.joules-line` and bolt, src/components/pass/): the amount W3a's answer says this
+ * match paid (credited by D2's pass under ratedJoulesKey); D2's own JoulesLine asks the pass for Joules since a time, which
+ * a rated result doesn't need: the match's own amount is exact: "+120 Joules" and the pass level when given. `tile`
  * draws the result's tile (mockup 07): the bolt, "+120" in lime, then "Joules, pass level 13".
  */
 export function JoulesLine({ amount, passLevel, tile = false }: { amount: number; passLevel: number | null; tile?: boolean }) {
   if (tile)
     return (
-      <p className="rt-joules rt-joules-tile" data-joules-line>
+      <p className="joules-line rt-joules rt-joules-tile" data-joules-line={amount}>
         <JoulesBolt size={24} />
         <span className="rt-joules-amount">+{ratingText(amount)}</span>
         <span className="rt-joules-level">Joules{passLevel !== null ? `, pass level ${passLevel}` : ""}</span>
       </p>
     );
   return (
-    <p className="rt-joules" data-joules-line>
+    <p className="joules-line" data-joules-line={amount}>
       <JoulesBolt />
       <span className="rt-joules-amount">+{ratingText(amount)} Joules</span>
       {passLevel !== null ? <span className="rt-joules-level">, pass level {passLevel}</span> : null}

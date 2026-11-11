@@ -1076,3 +1076,35 @@
     transition: none;
   }
 }
+
+/* ------------------------------------------------------------------ binding follow-ups (W3a / W3b) */
+/* The Guest tag beside a guest's generated energy name (W3b: rated play is where strangers meet). */
+.rt-guest-tag {
+  display: inline-block;
+  margin-left: var(--jz-space-8);
+  padding: 0 var(--jz-space-8);
+  border-radius: var(--jz-round);
+  background: var(--jz-surface-2);
+  color: var(--jz-text-2);
+  font-size: 12px;
+  font-weight: var(--jz-weight-medium);
+  line-height: 18px;
+  vertical-align: middle;
+}
+/* Why a match moved no ratings (W3a's frozen reason; Joe, 11 Nov 2026). */
+.rt-frozen {
+  margin: 0;
+  padding: var(--jz-space-12) var(--jz-space-16);
+  border-radius: var(--jz-radius);
+  background: var(--jz-surface);
+  color: var(--jz-text-2);
+  font-size: 15px;
+  line-height: 21px;
+}
+/* A placement match played elsewhere: its number, no tick or cross. */
+.rt-box[data-box="played"],
+.rt-box[data-box="drawn"] {
+  border: 2px solid var(--jz-surface-2);
+  background: transparent;
+  color: var(--jz-text-2);
+}

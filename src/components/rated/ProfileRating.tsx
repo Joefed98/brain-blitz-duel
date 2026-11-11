@@ -11,7 +11,7 @@ import { Panel, Row, SectionHeader } from "@/design/components";
 import type { RatedStatus } from "@/lib/rated/backend";
 import { recordRatedEvent } from "@/lib/rated/ratedEvents";
 import { pickLabel, placementHomeLine } from "@/lib/rated/rules";
-import { PLACEMENT_MATCHES, rankLabel, ratingText } from "@/lib/rated/tiers";
+import { PLACEMENT_MATCHES, ratingText } from "@/lib/rated/tierDisplay";
 
 import { DivisionBarView, PickMark, PlacementBoxes, RankEmblem, SideTile } from "./RatedParts";
 
@@ -55,7 +55,7 @@ export function ProfileRating({ status }: { status: RatedStatus }) {
               {ratingText(s.rank.rating)}
             </span>
           </span>
-          <span className="rt-profile-tier">{rankLabel(s.rank)}</span>
+          <span className="rt-profile-tier">{s.rank.label}</span>
         </button>
         <DivisionBarView rank={s.rank} />
         <div className="rt-sides">

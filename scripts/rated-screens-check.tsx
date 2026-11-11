@@ -1,6 +1,8 @@
 /**
- * rated-screens-check (wave 3, session W3c; happy-dom, ~5 s): the rated match screens against a stand-in for the
- * ratings and matchmaking server (setRatedBackend), in every state.
+ * rated-screens-check (wave 3, session W3c; happy-dom, ~5 s): the rated match screens against a stand-in for W3a's and
+ * W3b's server (setRatedBackend) in their real shapes (W3a's TierView and ladder, W3b's options), in every state; section
+ * 8 covers the binding: W3a's frozen reasons as Joe's result lines, guest and deleted opponents, C2's badges, the room
+ * header, the placement record and a guest's save-your-progress prompt.
  *
  *  1. The rules: the hidden finish at exactly 20 % of each game's time; the picker's switched-on options only; the
  *     default pick; a recorded run's real age; the head-to-head line; the bar to the next division (mockup figures:
@@ -72,7 +74,7 @@ const identityApi = await import("../src/lib/identity/identityApi");
 const ratedBackendMod = await import("../src/lib/rated/backend");
 const ratedApi = await import("../src/lib/rated/ratedApi");
 const rules = await import("../src/lib/rated/rules");
-const tiers = await import("../src/lib/rated/tiers");
+const tiers = await import("../src/lib/rated/tierDisplay");
 const { RatedHome } = await import("../src/components/rated/RatedHome");
 const { Searching, VsScreen, MatchResult, PlacementReveal } = await import("../src/components/rated/RatedMatchScreens");
 const { RatedFrameScore } = await import("../src/components/rated/RatedFrameScore");
@@ -83,7 +85,8 @@ const { PlayerCard } = await import("../src/design/identity");
 type RatedStatus = import("../src/lib/rated/backend").RatedStatus;
 type RatedResult = import("../src/lib/rated/backend").RatedResult;
 type RatedMatch = import("../src/lib/rated/backend").RatedMatch;
-type RankView = import("../src/lib/rated/tiers").RankView;
+type RankView = import("../src/lib/rated/tierDisplay").RankView;
+type RatedPlayer = import("../src/lib/rated/backend").RatedPlayer;
 
 const $ = (sel: string) => document.querySelector(sel) as unknown as HTMLElement | null;
 const $$ = (sel: string) => [...document.querySelectorAll(sel)] as unknown as HTMLElement[];
@@ -93,43 +96,57 @@ const settle = async (ms = 30) => act(async () => void (await new Promise((r) =>
 
 identityBackend.setIdentityBackend(null);
 
-/* ------------------------------------------------------------------ the stand-in */
+/* ------------------------------------------------------------------ the stand-in (the real shapes: W3a's TierView, W3b's options) */
+const { tierFor, tierLadder } = await import("../src/lib/rated/tiers");
+const rankAt = (rating: number, standing: Parameters<typeof tierFor>[1] = null): RankView => ({ ...tierFor(rating, standing), rating });
 const LOOK = { cardArt: "card-art.joulz-navy", frame: "frame.plain", nameColour: null, avatar: { id: "captain-joulz", colour: 4, gem: null } };
-const VOLT2: RankView = { tier: "volt", division: 2, rating: 1278, top500: null, heldBack: null };
-const ME_PLACED = { username: "TheInventor", playerNumber: 42, look: LOOK, title: "Founding Player", rank: VOLT2 };
-const SAM = { username: "Sam", playerNumber: 7, look: { ...LOOK, avatar: { id: "captain-joulz", colour: 1, gem: null } }, title: "Arena Champion", rank: { tier: "volt", division: 2, rating: 1296, top500: null, heldBack: null } as RankView };
-const LAUNCH = { picks: ["mixed", "puzzles", "arcade"], bestOf: [3], sizes: [2] } as const;
+const VOLT2: RankView = rankAt(1278);
+const player = (over: Partial<RatedPlayer>): RatedPlayer => ({
+  userId: "u-5",
+  username: "TheInventor",
+  playerNumber: 42,
+  look: LOOK,
+  title: "Founding Player",
+  badges: [],
+  rank: VOLT2,
+  guest: false,
+  deleted: false,
+  ...over,
+});
+const ME_PLACED = player({});
+const SAM = player({ userId: "u-7", username: "Sam", playerNumber: 7, look: { ...LOOK, avatar: { id: "captain-joulz", colour: 1, gem: null } }, title: "Arena Champion", badges: ["founding-player"], rank: rankAt(1296) });
+const LAUNCH = { picks: ["mixed", "puzzles", "arcade"], bestOf: [3], sizes: [2] } as RatedStatus["options"];
+const SHARES = { top500: 0.0005, lightning: 0.005, storm: 0.03, surge: 0.12, volt: 0.34, charge: 0.32, spark: 0.18 };
 
 function placedStatus(over: Partial<RatedStatus> = {}): RatedStatus {
   return {
     open: true,
+    guest: false,
     me: ME_PLACED,
     options: LAUNCH,
-    season: { name: "Season 1", daysLeft: 34 },
+    season: null,
     standing: {
       state: "placed",
       rank: VOLT2,
       puzzles: { rating: 1296, matches: 12 },
       arcade: { rating: 1231, matches: 9 },
       categories: [
-        { pick: "cat:pattern", rating: 1350, matches: 4 },
-        { pick: "cat:word", rating: 1312, matches: 3 },
-        { pick: "cat:logic", rating: 1288, matches: 2 },
-        { pick: "cat:retro", rating: 1400, matches: 0 },
-        { pick: "cat:speed", rating: 1198, matches: 1 },
+        { pick: "pattern", rating: 1350, matches: 4 },
+        { pick: "word", rating: 1312, matches: 3 },
+        { pick: "logic", rating: 1288, matches: 2 },
+        { pick: "retro", rating: 1400, matches: 0 },
+        { pick: "speed", rating: 1198, matches: 1 },
       ],
-      won: 12,
-      lost: 9,
     },
-    lastPick: null,
+    activeMatchId: null,
     ...over,
   };
 }
-function placementStatus(results: ("won" | "lost")[]): RatedStatus {
+function placementStatus(results: ("won" | "lost" | null)[]): RatedStatus {
   return {
     ...placedStatus(),
     me: { ...ME_PLACED, rank: null },
-    standing: { state: "placement", results, puzzles: { rating: null, matches: results.length > 0 ? 2 : 0 }, arcade: { rating: null, matches: 0 } },
+    standing: { state: "placement", results, puzzles: { rating: null, matches: 0 }, arcade: { rating: null, matches: 0 } },
   };
 }
 
@@ -139,10 +156,11 @@ const MATCH: RatedMatch = {
   id: "m1",
   pick: "mixed",
   bestOf: 3,
+  roomCode: "AB2C",
   me: ME_PLACED,
   them: SAM,
   source: { kind: "live" },
-  headToHead: { won: 3, lost: 1 },
+  headToHead: null,
   placement: null,
 };
 function result(over: Partial<RatedResult> = {}): RatedResult {
@@ -155,30 +173,35 @@ function result(over: Partial<RatedResult> = {}): RatedResult {
     ],
     myGames: 2,
     theirGames: 1,
-    won: true,
-    rating: { after: { ...VOLT2, rating: 1285 }, change: 7, puzzles: { rating: 1303, change: 7 }, arcade: { rating: 1238, change: 7 } },
+    outcome: "won",
+    rating: { after: rankAt(1285), change: 7, puzzles: { rating: 1303, change: 7 }, arcade: { rating: 1238, change: 7 } },
+    frozen: null,
     placementResults: null,
     reveal: null,
-    joules: { amount: 120, passLevel: 13 },
-    star: { type: "wordsearch" },
+    joules: { amount: 150, passLevel: 13 },
+    star: null,
     nearMiss: { type: "flow", offBest: 12 },
     friend: false,
     rematchUntil: new Date(Date.now() + 8000).toISOString(),
+    moved: ["puzzles", "arcade"],
     ...over,
   };
 }
-ratedBackendMod.setRatedBackend({
+const standIn = {
   status: async () => status,
   search: async () => MATCH,
+  match: async () => MATCH,
   result: async () => result(),
-  rematch: async () => MATCH,
-  challenge: async (id) => {
+  rematch: async () => ({ state: "agreed" as const, match: MATCH }),
+  challenge: async (id: string) => {
     calls.push(`challenge ${id}`);
-    return { ok: true, code: "ABC234" };
+    return { ok: true as const, code: "ABC234" };
   },
-  ladder: async () => ({ shares: { lightning: 0.5, storm: 3, surge: 12, volt: 34, charge: 32, spark: 18 }, top500: 500 }),
-  renderGame: () => null,
-});
+  ladder: async () => tierLadder(SHARES),
+  opponentScore: async () => ({ round: 1, score: 88, hidden: false, finished: false }),
+  progress: async () => {},
+};
+ratedBackendMod.setRatedBackend(standIn);
 
 const ACCOUNT = (playerNumber: number) =>
   ({
@@ -232,44 +255,63 @@ async function mount(ui: () => React.ReactElement, path = "/") {
 
 /* ------------------------------------------------------------------ 1. the rules */
 {
+  // The hidden finish is W3b's one rule (matchmaking.ts), re-exported: elapsed ≥ 80 % of the game's time.
   const { opponentScoreHidden, HIDDEN_FINISH_SHARE } = rules;
-  check(HIDDEN_FINISH_SHARE === 0.2, "the hidden finish is the final 20 %");
-  check(opponentScoreHidden(12_000, 60_000), "60 s game: hidden at exactly 12 s left (20 %)");
-  check(!opponentScoreHidden(12_001, 60_000), "60 s game: shown at 12.001 s left");
-  check(opponentScoreHidden(0, 60_000) && opponentScoreHidden(5_000, 60_000), "hidden to the buzzer");
+  const mm = await import("../src/lib/rated/matchmaking");
+  check(HIDDEN_FINISH_SHARE === 0.2 && opponentScoreHidden === mm.opponentScoreHidden, "the hidden finish is W3b's rule, the final 20 %");
+  check(opponentScoreHidden(48_000, 60_000), "60 s game: hidden at exactly 12 s left (20 %)");
+  check(!opponentScoreHidden(47_999, 60_000), "60 s game: shown at 12.001 s left");
+  check(opponentScoreHidden(60_000, 60_000), "hidden to the buzzer");
   check(!opponentScoreHidden(30_000, 60_000), "shown at half time");
-  check(opponentScoreHidden(18_000, 90_000) && !opponentScoreHidden(18_001, 90_000), "90 s game: exactly 18 s");
-  check(opponentScoreHidden(18_600, 93_000) && !opponentScoreHidden(18_601, 93_000), "93 s game: exactly 18.6 s");
-  check(!opponentScoreHidden(0, 0) && !opponentScoreHidden(0, -1), "a game with no clock never hides");
+  let inexact = 0;
+  for (let limit = 5; limit <= 300_000; limit += 5) if (!opponentScoreHidden(limit - limit / 5, limit) || opponentScoreHidden(limit - limit / 5 - 1, limit)) inexact++;
+  check(inexact === 0, `exactly at 20 % for every game length to 300 s (${inexact} off)`);
 
   check(rules.shownPicks(LAUNCH).join() === "mixed,puzzles,arcade", "launch picks: Mixed, All puzzles, All arcade");
-  check(rules.shownPicks({ picks: ["arcade", "cat:word", "nonsense" as never], bestOf: [3], sizes: [2] }).join() === "arcade,cat:word", "only switched-on picks, in order; an unknown one is left out");
+  check(rules.shownPicks({ picks: ["arcade", "word", "nonsense" as never], bestOf: [3], sizes: [2] }).join() === "arcade,word", "only switched-on picks, in order; an unknown one is left out");
   check(rules.shownBestOf({ picks: [], bestOf: [7, 3], sizes: [] }).join() === "3,7", "best-of options: only those on");
   check(rules.defaultPick(LAUNCH, null) === "mixed", "default pick: Mixed");
   check(rules.defaultPick(LAUNCH, "arcade") === "arcade", "default pick: the last one played when still on");
-  check(rules.defaultPick(LAUNCH, "cat:word") === "mixed", "default pick: never a switched-off last pick");
-  const now = Date.parse("2026-11-11T12:00:00Z");
-  check(rules.recordedAgo("2026-11-11T10:00:00Z", now) === "Recorded run, 2 h ago", "recorded run: its real age, 2 h");
-  check(rules.recordedAgo("2026-11-11T11:55:00Z", now) === "Recorded run, 5 min ago", "recorded run: 5 min");
-  check(rules.recordedAgo("2026-11-10T11:00:00Z", now) === "Recorded run, 1 day ago", "recorded run: 1 day");
-  check(rules.headToHeadLine({ won: 0, lost: 0 }, "Sam") === "First meeting", "head to head: first meeting");
+  check(rules.defaultPick(LAUNCH, "word") === "mixed", "default pick: never a switched-off last pick");
+  check(rules.headToHeadLine(null, "Sam") === null, "head to head: nothing without the server's record");
   check(rules.headToHeadLine({ won: 3, lost: 1 }, "Sam") === "You lead 3–1", "head to head: you lead");
-  check(rules.headToHeadLine({ won: 1, lost: 2 }, "Sam") === "Sam leads 2–1", "head to head: they lead");
+  check(rules.FROZEN_LINES.under_review === "This match is under review, so ratings didn’t change.", "the review line (Joe, 11 Nov 2026)");
+  check(rules.FROZEN_LINES.same_opponent_today === "Ratings don’t change from your 4th match against the same player in a day.", "the 4th-match line (Joe, 11 Nov 2026)");
 
   const bar = tiers.divisionBar(VOLT2);
-  check(bar.here === "Volt II" && bar.next === "122 to Volt I" && bar.toNext === 122, `1,278: Volt II, 122 to Volt I (${bar.here}, ${bar.next})`);
+  check(bar.here === "Volt II" && bar.next === "122 to Volt I", `1,278 (W3a's tierFor): Volt II, 122 to Volt I (${bar.here}, ${bar.next})`);
   check(Math.abs(bar.fraction - 28 / 150) < 1e-9, "the bar fills across the division");
-  check(tiers.divisionBar({ tier: "volt", division: 1, rating: 1450, top500: null, heldBack: null }).next === "50 to Surge III", "Volt I: on to Surge III");
-  check(tiers.divisionBar({ tier: "surge", division: 1, rating: 1980, top500: null, heldBack: "storm" }).next === "Storm needs the top 3%", "held back from Storm: the cap, not points");
-  check(tiers.divisionBar({ tier: "lightning", division: 1, rating: 2800, top500: 37, heldBack: null }).next === "Top division", "Lightning I: the top");
-  check(tiers.rankLabel({ tier: "lightning", division: 1, top500: 37 }) === "Top 500 #37", "Top 500's number");
-  check(tiers.tierRange("volt") === "1,100 to 1,499" && tiers.tierRange("lightning") === "2,400 and up", "tier ranges");
+  check(tiers.divisionBar(rankAt(1450)).next === "50 to Surge III", "Volt I: on to Surge III");
+  const held = rankAt(1980, { capsActive: true, stormOk: false, top500Ok: false, rank: 400, share: 0.04 });
+  check(held.label === "Surge I" && tiers.divisionBar(held).next === "Storm-rated, top 4%", `held back from Storm: W3a's words (${tiers.divisionBar(held).next})`);
+  const top = rankAt(2800, { capsActive: true, stormOk: true, top500Ok: true, rank: 37, share: 0.001 });
+  check(top.label === "Top 500 #37" && tiers.divisionBar(top).next === "Top division", "Top 500: numbered, the top");
+  check(tiers.divisionBar({ ...rankAt(1080), tier: "volt", division: "III", label: "Volt III", floorGrace: { matchesLeft: 2 } }).next === "Kept for 2 more matches", "the floor grace");
+  const rungs = tierLadder(SHARES);
+  check(tiers.rungRange(rungs.find((r) => r.tier === "volt")!) === "1,100 to 1,499" && tiers.rungRange(rungs.find((r) => r.tier === "lightning")!) === "2,400 and up", "ranges from W3a's ladder");
+  check(tiers.betterThan("volt", rungs) === 50, `better than: the tiers below from real shares (${tiers.betterThan("volt", rungs)})`);
+  check(tiers.betterThan("volt", tierLadder()) === null, "better than: nothing without shares");
+
+  // The binding's pure parts.
+  const bind = await import("../src/lib/rated/w3Binding");
+  check(bind.frozenLineOf({ moved: false, frozen: "flagged_run", flagged: false }) === "under_review", "W3a flagged_run: under review");
+  check(bind.frozenLineOf({ moved: false, frozen: null, flagged: true }) === "under_review", "a flagged run: under review");
+  check(bind.frozenLineOf({ moved: false, frozen: "same_opponent_today", flagged: false }) === "same_opponent_today", "W3a same_opponent_today: the 4th-match line");
+  check(bind.frozenLineOf({ moved: true, frozen: null, flagged: false }) === null, "moved: no line");
+  check(bind.nearMissOf([{ type: "flow", myScore: 176, theirScore: 0 }, { type: "racing", myScore: 100, theirScore: 0 }], (t) => (t === "flow" ? 188 : 160))?.offBest === 12, "near miss: the closest game within 15 of its best");
+  check(bind.nearMissOf([{ type: "flow", myScore: 190, theirScore: 0 }], () => 188) === null, "near miss: none above the best");
+  const standing = bind.standingOf(
+    { playerId: "u", placement: { played: 2, of: 5, done: false, label: "Placement 3 of 5" }, joulz: null, tier: null, pools: null, categories: null },
+    "u-test",
+  );
+  check(standing.state === "placement" && standing.results.length === 2 && standing.results.every((r) => r === null), "placement: two played, results not known on this device");
+  check(bind.DELETED_PLAYER === "Deleted player", "forgotten accounts show as Deleted player");
 }
 
 /* ------------------------------------------------------------------ 2. Home */
 const homeUi = () => React.createElement(RatedHome);
 for (const [who, n, st] of [
-  ["a guest", null, placedStatus()],
+  ["a guest while rated play is testers only (W3b: not open)", null, { ...placedStatus(), open: false }],
   ["a non-tester (rated play not open)", 3, { ...placedStatus(), open: false }],
   ["an account with no rated server", 3, null],
 ] as const) {
@@ -281,26 +323,25 @@ for (const [who, n, st] of [
   root.unmount();
 }
 {
-  // No server at all (setRatedBackend undefined → the unbound default): nothing.
+  // Under automation the real binding stays off (no existing check gains a server call); none at all: nothing.
   ratedBackendMod.setRatedBackend(undefined);
-  check((await ratedBackendMod.ratedBackend()) === null, "unbound: no rated server until W3a and W3b land");
+  check((await ratedBackendMod.ratedBackend()) === null, "under automation the real binding stays off unless allowed");
   await signIn(5);
   const { root } = await mount(homeUi);
-  check(document.body.innerHTML === "<div></div>", "unbound: Home draws nothing rated");
+  check(document.body.innerHTML === "<div></div>", "no server: Home draws nothing rated");
   root.unmount();
 }
-ratedBackendMod.setRatedBackend({
-  status: async () => status,
-  search: async () => MATCH,
-  result: async () => result(),
-  rematch: async () => MATCH,
-  challenge: async (id) => {
-    calls.push(`challenge ${id}`);
-    return { ok: true, code: "ABC234" };
-  },
-  ladder: async () => ({ shares: { lightning: 0.5, storm: 3, surge: 12, volt: 34, charge: 32, spark: 18 }, top500: 500 }),
-  renderGame: () => null,
-});
+ratedBackendMod.setRatedBackend(standIn);
+{
+  // A guest once rated play is for everyone: their energy name with a Guest tag.
+  status = placementStatus([]);
+  status = { ...status, guest: true, me: { ...status.me, username: "Swift Volt 48", guest: true, userId: "g-1", playerNumber: null, title: null } };
+  await signIn(null);
+  const { root } = await mount(homeUi);
+  check(/Swift Volt 48/.test(text("[data-rank-panel] .rt-rank-name")) && text("[data-guest-tag]") === "Guest", "a guest: the energy name and a Guest tag");
+  check(text("[data-rated-play-button]") === "Play placement 1", "a guest plays placement first");
+  root.unmount();
+}
 for (let played = 0; played <= 4; played++) {
   const results = (["won", "won", "lost", "won", "lost"] as const).slice(0, played);
   status = placementStatus([...results]);
@@ -326,7 +367,7 @@ for (let played = 0; played <= 4; played++) {
   check(!!$("[data-rank-panel] [data-jz='emblem'][data-tier='volt']"), "placed: the Volt emblem");
   check(text("[data-side='puzzles'] .rt-side-value") === "1,296" && text("[data-side='arcade'] .rt-side-value") === "1,231", "placed: Puzzles and Arcade");
   check(text("[data-rank-panel] [data-bar-next]") === "122 to Volt I", "placed: the bar to the next division");
-  check(/Season 1, 34 days left/.test(document.body.textContent ?? ""), "placed: the season line");
+  check(!$("[data-season-line]"), "placed: no season line without a Season pass (D2) to read it from");
   // The picker: launch set only.
   check(!$("[data-rated-play] [data-jz='segmented']"), "launch: no 1v1 or Best of 3 control (one option each)");
   check(text("[data-current-pick]") === "Mixed", "launch: Mixed by default");
@@ -351,7 +392,7 @@ for (let played = 0; played <= 4; played++) {
 }
 {
   // A wider switch: exactly its options, and the best-of control with its two.
-  status = placedStatus({ options: { picks: ["mixed", "cat:word", "cat:retro"], bestOf: [3, 5], sizes: [2] } });
+  status = placedStatus({ options: { picks: ["mixed", "word", "retro"], bestOf: [3, 5], sizes: [2] } });
   await signIn(5);
   const { root } = await mount(homeUi);
   const seg = $$("[data-best-of-option]").map((b) => b.getAttribute("data-best-of-option")).join();
@@ -359,8 +400,8 @@ for (let played = 0; played <= 4; played++) {
   await click($("[data-open-picker]"));
   await settle(60);
   const opts = $$("[data-pick-option]").map((b) => b.getAttribute("data-pick-option")).join();
-  check(opts === "mixed,cat:word,cat:retro", `a wider switch: exactly its picks (${opts})`);
-  check(text("[data-pick-option='cat:word'] .rt-option-rating") === "1,312", "a category shows its own rating");
+  check(opts === "mixed,word,retro", `a wider switch: exactly its picks (${opts})`);
+  check(text("[data-pick-option='word'] .rt-option-rating") === "1,312", "a category shows its own rating");
   root.unmount();
   // 1v1 switched off: no Play card (the 4- and 8-player screens are a later session's).
   status = placedStatus({ options: { picks: ["mixed"], bestOf: [3], sizes: [8] } });
@@ -387,19 +428,19 @@ async function render(el: React.ReactElement) {
   check(calls.includes("cancel"), "searching: Cancel");
   root.unmount();
 }
-for (const source of [{ kind: "live" }, { kind: "recorded", recordedAt: new Date(Date.now() - 2 * 3600_000 - 60_000).toISOString() }] as const) {
+for (const source of [{ kind: "live" }, { kind: "recorded", label: "Recorded run · 2 h ago" }] as const) {
   sent.length = 0;
   const root = await render(React.createElement(VsScreen, { match: { ...MATCH, source }, nowMs: Date.now() }));
   check($("[data-rated-screen='vs']")?.getAttribute("data-source") === source.kind, `VS ${source.kind}`);
   check(
-    source.kind === "live" ? !!$("[data-vs-tag='live'] [data-jz='live-tag']") : text("[data-vs-tag='recorded']") === "Recorded run, 2 h ago",
+    source.kind === "live" ? !!$("[data-vs-tag='live'] [data-jz='live-tag']") : text("[data-vs-tag='recorded']") === "Recorded run · 2 h ago",
     `VS ${source.kind}: the tag (${text("[data-vs-tag]")})`,
   );
   check($$("[data-vs-side] [data-player-card]").length === 2, `VS ${source.kind}: both player cards`);
   check($$("[data-vs-side] [data-jz='emblem']").length === 2, `VS ${source.kind}: both tier emblems`);
   const pills = $$("[data-vs-side] [data-card-pill]").map((p) => (p.textContent ?? "").trim()).join(" | ");
   check(pills === "Volt II1,296 | Volt II1,278", `VS: each card shows tier and rating (${pills})`);
-  check(text("[data-head-to-head]") === "You lead 3–1", "VS: your record against each other");
+  check(!$("[data-head-to-head]"), "VS: no record line while the server keeps none (W3a and W3b keep no head-to-head)");
   check(JSON.stringify(sent[0]) === JSON.stringify({ event: "vs_shown", source: source.kind }), `vs_shown ${source.kind}`);
   root.unmount();
 }
@@ -451,8 +492,8 @@ const resultEl = (r: RatedResult, extra: Record<string, unknown> = {}) =>
   const rows = $$("[data-game-row]").map((r) => `${r.getAttribute("data-game-row")}:${r.getAttribute("data-outcome")}`).join();
   check(rows === "wordsearch:won,racing:lost,flow:won", `result: each game won or lost (${rows})`);
   check($$("[data-verdict='won'] [data-icon='check'], [data-verdict='won'] svg").length >= 2 && $$("[data-verdict='lost'] svg").length === 1, "result: a tick for a win, a cross for a loss");
-  check(/\+120 ?Joules, pass level 13/.test(text("[data-joules-line]")), "result: the Joules line");
-  check(/Star on Lookout/.test(text("[data-earned='star']")), "result: the star earned (C1a's 175+ star, no bronze/silver/gold)");
+  check(/\+150 ?Joules, pass level 13/.test(text("[data-joules-line]")) && !!$(".joules-line .joules-bolt"), "result: the Joules line in D2's style, with D2's bolt");
+  check(!$("[data-earned='star']"), "result: no star tile (C1a's stars come from Practice runs only)");
   check(!/Silver|Bronze|Gold star/.test(document.body.textContent ?? ""), "result: no old medal stars");
   check(text("[data-near-miss]") === "Chroma Lines: 12 off your best", `result: the near miss (${text("[data-near-miss]")})`);
   check(/^Rematch, [78] s$/.test(text("[data-rematch]")), `result: Rematch with its 8 s (${text("[data-rematch]")})`);
@@ -472,7 +513,7 @@ const resultEl = (r: RatedResult, extra: Record<string, unknown> = {}) =>
 }
 {
   sent.length = 0;
-  const lost = result({ won: false, myGames: 1, theirGames: 2, rating: { after: { ...VOLT2, rating: 1268 }, change: -10, puzzles: null, arcade: { rating: 1221, change: -10 } }, star: null, nearMiss: null, joules: null });
+  const lost = result({ outcome: "lost", myGames: 1, theirGames: 2, rating: { after: rankAt(1268), change: -10, puzzles: null, arcade: { rating: 1221, change: -10 } }, star: null, nearMiss: null, joules: null });
   const root = await render(resultEl(lost));
   check(text(".rt-result-title") === "Sam wins" && text("[data-match-score]") === "1–2", "a loss: Sam wins 1–2");
   check(text("[data-rating-panel] [data-change='down']").includes("−10"), "a loss: the change down, with its arrow");
@@ -489,13 +530,13 @@ const resultEl = (r: RatedResult, extra: Record<string, unknown> = {}) =>
   check(!$("[data-rating-panel]") && !$("[data-joulz-rating]"), "placement result: no rating");
   check(/Strong start\. One more and your rating and tier are revealed\./.test(document.body.textContent ?? ""), "placement result: the line");
   check(text("[data-next-match]") === "Play placement 5", "placement result: Play placement 5");
-  check(/\+120 Joules/.test(text("[data-joules-line]")), "placement result: the Joules line");
+  check(/\+120 Joules/.test(text("[data-joules-line]")) && !!$(".joules-line .joules-bolt"), "placement result: the Joules line, D2's style");
   check(JSON.stringify(sent[0]) === '{"event":"result_viewed","outcome":"won","placement":true}', "result_viewed placement");
   root.unmount();
 }
 {
   calls.length = 0;
-  const reveal = { rank: { tier: "volt", division: 3, rating: 1214, top500: null, heldBack: null } as RankView, betterThan: 62, puzzles: { rating: 1236, matches: 3 }, arcade: { rating: 1180, matches: 2 }, won: 4, lost: 1 };
+  const reveal = { rank: rankAt(1214), betterThan: 62, puzzles: { rating: 1236, matches: 3 }, arcade: { rating: 1180, matches: 2 }, won: 4, lost: 1 };
   const fifth = result({ rating: null, placementResults: ["won", "won", "lost", "won", "won"], reveal });
   let root = await render(resultEl(fifth));
   check(text("[data-reveal-open]") === "Reveal my tier", "the 5th placement result: on to the reveal");
@@ -518,25 +559,25 @@ const resultEl = (r: RatedResult, extra: Record<string, unknown> = {}) =>
 
 /* ------------------------------------------------------------------ the tier ladder */
 {
-  const counts = { shares: { lightning: 0.5, storm: 3, surge: 12, volt: 34, charge: 32, spark: 18 }, top500: 500 };
-  let root = await render(React.createElement(TierLadder, { rank: VOLT2, counts }));
+  const counts = tierLadder(SHARES);
+  let root = await render(React.createElement(TierLadder, { rank: VOLT2, rungs: counts }));
   const rows = $$("[data-tier-row]").map((r) => r.getAttribute("data-tier-row")).join();
   check(rows === "top500,lightning,storm,surge,volt,charge,spark", `the ladder: every tier, top down (${rows})`);
   check($$("[data-tier-row][data-you]").map((r) => r.getAttribute("data-tier-row")).join() === "volt" && /You, Volt II/.test(text("[data-tier-row='volt']")), "the ladder: where you are");
   check(/1,100 to 1,499/.test(text("[data-tier-row='volt']")) && /III 1,100, II 1,250, I 1,400/.test(text("[data-tier-row='volt']")), "the ladder: ranges and division floors");
   check(/and top 3%/.test(text("[data-tier-row='storm']")) && /ranked 1 to 500/.test(text("[data-tier-row='top500']")), "the ladder: Storm's and Top 500's conditions");
   check(/Storm and Top 500 must be held: drop out of the top 3% or the top 500 for 3 days/.test(text("[data-cap-rule]")), "the ladder: the caps explained");
-  check(text("[data-tier-row='volt'] .rt-tier-share") === "34%" && text("[data-tier-row='top500'] .rt-tier-share") === "500 players", "the ladder: shares from the server's counts");
+  check(text("[data-tier-row='volt'] .rt-tier-share") === "34%" && text("[data-tier-row='lightning'] .rt-tier-share") === "0.5%", "the ladder: shares from W3a's getTierLadder");
   check(text("[data-ladder-you] [data-bar-next]") === "122 to Volt I", "the ladder: your bar");
   root.unmount();
-  root = await render(React.createElement(TierLadder, { rank: { tier: "surge", division: 1, rating: 1960, top500: null, heldBack: "storm" }, counts: null }));
-  check(!!$("[data-held-back='storm']") && /once you’re in the top 3%/.test(text("[data-held-back]")), "held back by Storm's cap: said plainly");
+  root = await render(React.createElement(TierLadder, { rank: rankAt(1960, { capsActive: true, stormOk: false, top500Ok: false, rank: 300, share: 0.04 }), rungs: tierLadder() }));
+  check(!!$("[data-held-back]") && /Storm-rated, top 4%: you’ll move up once you hold the place in the top 3%/.test(text("[data-held-back]")), `held back by Storm's cap: said plainly (${text("[data-held-back]")})`);
   check(!$(".rt-tier-share") && !/Players/.test(text(".rt-games-head")), "no counts: no Players column");
   root.unmount();
-  root = await render(React.createElement(TierLadder, { rank: { tier: "lightning", division: 1, rating: 2810, top500: 37, heldBack: null }, counts }));
+  root = await render(React.createElement(TierLadder, { rank: rankAt(2810, { capsActive: true, stormOk: true, top500Ok: true, rank: 37, share: 0.001 }), rungs: counts }));
   check($$("[data-you]").map((r) => r.getAttribute("data-tier-row")).join() === "top500" && /Top 500 #37/.test(text("[data-tier-row='top500']")), "a Top 500 place: marked there, numbered");
   root.unmount();
-  root = await render(React.createElement(TierLadder, { rank: null, counts }));
+  root = await render(React.createElement(TierLadder, { rank: null, rungs: counts }));
   check($("[data-ladder-you]")?.getAttribute("data-ladder-you") === "placement" && !$("[data-you]"), "in placement: no place marked");
   root.unmount();
 }
@@ -549,7 +590,7 @@ const resultEl = (r: RatedResult, extra: Record<string, unknown> = {}) =>
       null,
       React.createElement(PlayerCard, { look: LOOK, name: "A", playerNumber: 42 }),
       React.createElement(PlayerCard, { look: LOOK, name: "B", playerNumber: 42, rank: VOLT2 }),
-      React.createElement(PlayerCard, { look: LOOK, name: "C", playerNumber: 42, rank: { tier: "lightning", division: 1, rating: 2810, top500: 37, heldBack: null } }),
+      React.createElement(PlayerCard, { look: LOOK, name: "C", playerNumber: 42, rank: rankAt(2810, { capsActive: true, stormOk: true, top500Ok: true, rank: 37, share: 0.001 }) }),
       React.createElement(PlayerCard, { look: LOOK, name: "D", playerNumber: null, guest: true, rank: VOLT2 }),
     ),
   );
@@ -562,7 +603,7 @@ const resultEl = (r: RatedResult, extra: Record<string, unknown> = {}) =>
   const css = readFileSync("src/design/identity/playerCardArt.data.ts", "utf8");
   check(/\.pcard-pill-value\{[^}]*font-weight:900[^}]*color:#FFFFFF[^}]*font-variant-numeric:tabular-nums/.test(css), "the rating in bold white even-width digits");
   const tokens = readFileSync("src/design/tokens.css", "utf8");
-  check(tiers.TIERS.every((t) => new RegExp(`--jz-tier-${t}:`).test(tokens)), "every tier has its colour token");
+  check(["spark", "charge", "volt", "surge", "storm", "lightning"].every((t) => new RegExp(`--jz-tier-${t}:`).test(tokens)), "every tier has its colour token");
   root.unmount();
 }
 const profileUi = () => React.createElement(ProfileCard, { guestName: "Player", guestColour: 0 });
@@ -576,7 +617,7 @@ const profileUi = () => React.createElement(ProfileCard, { guestName: "Player", 
   check(text("[data-profile-rating] [data-side='puzzles'] .rt-side-value") === "1,296" && /12 matches/.test(text("[data-profile-rating] [data-side='puzzles']")), "Profile: Puzzles from real data");
   check(text("[data-profile-rating] [data-side='arcade'] .rt-side-value") === "1,231", "Profile: Arcade from real data");
   const strongest = $$("[data-strongest-row]").map((r) => r.getAttribute("data-strongest-row")).join();
-  check(strongest === "cat:pattern,cat:word,cat:logic", `Profile: strongest categories from rated matches only, the best three (${strongest})`);
+  check(strongest === "pattern,word,logic", `Profile: strongest categories from rated matches only, the best three (${strongest})`);
   check(!$("[data-rating-note]"), "Profile: A2's note gives way to the real rating");
   check(!/Trophy cabinet|Season peak/i.test(document.body.textContent ?? ""), "Profile: no trophy cabinet or season peak (wave 4)");
   sent.length = 0;
@@ -585,7 +626,7 @@ const profileUi = () => React.createElement(ProfileCard, { guestName: "Player", 
   root.unmount();
 }
 {
-  status = placedStatus({ standing: { ...(placedStatus().standing as Extract<RatedStatus["standing"], { state: "placed" }>), categories: [{ pick: "cat:word", rating: 1300, matches: 0 }] } });
+  status = placedStatus({ standing: { ...(placedStatus().standing as Extract<RatedStatus["standing"], { state: "placed" }>), categories: [{ pick: "word", rating: 1300, matches: 0 }] } });
   await signIn(5);
   const { root } = await mount(profileUi, "/profile");
   await settle(60);
@@ -662,6 +703,84 @@ const profileUi = () => React.createElement(ProfileCard, { guestName: "Player", 
   check(ratedApi.ratedOverride() === null, "the override is off unless a check's page sets it");
   const home = readFileSync("src/routes/index.tsx", "utf8");
   check(/<RatedHome \/>/.test(home) && /if \(!status\) return null;/.test(readFileSync("src/components/rated/RatedHome.tsx", "utf8")), "Home draws RatedHome, which is nothing for anyone rated play isn't open to");
+}
+
+/* ------------------------------------------------------------------ 8. the binding's screens (11 Nov 2026) */
+{
+  // Joe's result lines: W3a's reason a match moved nothing.
+  for (const [frozen, line] of [
+    ["under_review", "This match is under review, so ratings didn’t change."],
+    ["same_opponent_today", "Ratings don’t change from your 4th match against the same player in a day."],
+  ] as const) {
+    const root = await render(resultEl(result({ frozen, rating: null })));
+    check(text("[data-frozen]") === line && !$("[data-rating-panel]"), `a frozen match (${frozen}): the line, no rating change`);
+    root.unmount();
+  }
+  const moved = await render(resultEl(result()));
+  check(!$("[data-frozen]"), "a match that moved ratings: no frozen line");
+  moved.unmount();
+
+  // Opponents: a guest under their energy name with the Guest tag; a forgotten account as "Deleted player".
+  const guest = player({ userId: "g-9", username: "Swift Volt 48", playerNumber: null, title: null, rank: null, guest: true });
+  let root = await render(React.createElement(VsScreen, { match: { ...MATCH, them: guest }, nowMs: Date.now() }));
+  check(/Swift Volt 48/.test(text("[data-vs-side='them'] [data-card-name]")) && text("[data-vs-side='them'] [data-card-pill]") === "Guest", "a guest opponent: the energy name, Guest on the card");
+  check(text("[data-vs-side='them'] .rt-vs-tier") === "Guest", "a guest opponent: Guest under the emblem");
+  root.unmount();
+  const gone = player({ userId: null, username: "Deleted player", playerNumber: null, title: null, rank: null, deleted: true });
+  root = await render(React.createElement(VsScreen, { match: { ...MATCH, them: gone, source: { kind: "recorded", label: "Recorded run · 3 days ago" } }, nowMs: Date.now() }));
+  check(text("[data-vs-side='them'] [data-card-name]") === "Deleted player" && !$("[data-vs-side='them'] [data-card-rank]"), "a forgotten account: Deleted player, no rank");
+  root.unmount();
+
+  // C2's badges on the cards.
+  root = await render(React.createElement(VsScreen, { match: MATCH, nowMs: Date.now() }));
+  check($("[data-vs-side='them'] [data-card-badges]")?.getAttribute("data-card-badges") === "founding-player", "C2's badges on the opponent's card");
+  root.unmount();
+
+  // The room's header: W3b's opponent score, hidden when the server says so.
+  const { RatedRoomScore } = await import("../src/components/rated/RatedFrameScore");
+  standIn.opponentScore = async () => ({ round: 2, score: 140, hidden: true, finished: false });
+  root = await render(React.createElement(RatedRoomScore, { matchId: "m1", round: 2, storedScore: 151, leftMs: 30_000, limitMs: 60_000, active: false }));
+  await settle(80);
+  check($("[data-frame-score]")?.getAttribute("data-rated-score") === "hidden" && /151/.test(text("[data-score-row='me']")), "the room header: the server's hidden flag, your stored score");
+  root.unmount();
+  standIn.opponentScore = async () => ({ round: 2, score: 140, hidden: false, finished: false });
+  root = await render(React.createElement(RatedRoomScore, { matchId: "m1", round: 2, storedScore: null, leftMs: 30_000, limitMs: 60_000, active: false }));
+  await settle(80);
+  check(/140/.test(text("[data-score-row='them']")) && /Sam/.test(text("[data-score-row='them']")), "the room header: the opponent's live score and name");
+  root.unmount();
+
+  const room = readFileSync("src/routes/duel.$code.tsx", "utf8");
+  check(room.includes("const ratedMatchId = useRatedRoom(roomCode);") && /ratedMatchId && !isMulti \? \(\s*\/\/[^\n]*\n\s*<RatedRoomScore/.test(room), "the room route: the rated header only for a rated match");
+  check(/if \(duel\.status === "finished" && ratedMatchId\) \{\s*return <RatedRoomHandOff/.test(room), "the room route: a finished rated room hands over to the result");
+  const ratedRoom = await import("../src/lib/rated/ratedRoom");
+  check(ratedRoom.ratedMatchForRoom("ZZZZ") === null, "an ordinary room is never rated");
+  ratedRoom.noteRatedRoom("ab2c", "m1");
+  check(ratedRoom.ratedMatchForRoom("AB2C") === "m1", "a room opened from VS is the rated match's");
+
+  // Placement boxes: a match played on another device shows as played, never a guessed tick or cross.
+  const parts = await import("../src/components/rated/RatedParts");
+  root = await render(React.createElement(parts.PlacementBoxes, { results: ["won", null, "lost"] }));
+  check($$("[data-placement-boxes] li").map((b) => b.getAttribute("data-box")).join() === "won,played,lost,next,later", "placement boxes: played elsewhere shows as played");
+  root.unmount();
+  const rec = await import("../src/lib/rated/placementRecord");
+  rec.clearPlacementRecord("u-rec");
+  rec.notePlacementResult("u-rec", "a", "won");
+  rec.notePlacementResult("u-rec", "a", "lost");
+  rec.notePlacementResult("u-rec", "b", "lost");
+  check(rec.placementResults("u-rec", 3).join() === ",won,lost", "the device's placement record: once per match, laid on the latest");
+
+  // A guest's first rated match: the save-your-progress prompt, "Save your rating and stars", on the next tab page.
+  const sp = await import("../src/lib/account/saveProgress");
+  localStorage.removeItem(sp.SAVE_PROGRESS_KEY);
+  await signIn(null);
+  const { FinishedGameCounter } = await import("../src/components/account/SaveProgress");
+  root = await render(React.createElement(FinishedGameCounter, { gameKey: "rated:m9", from: "rated" }));
+  await settle(40);
+  const rec2 = sp.readSaveProgress();
+  check(rec2.finished === 1 && rec2.pending === "sheet" && rec2.pendingFrom === "rated", `a guest's rated match counts and makes the prompt due (${JSON.stringify(rec2)})`);
+  root.unmount();
+  check(readFileSync("src/routes/rated.tsx", "utf8").includes('<FinishedGameCounter gameKey={`rated:${result.match.id}`} from="rated" />'), "counted from the rated result, as rooms and the Daily do (the prompt shows on a tab page, never here)");
+  check(readFileSync("src/components/account/SaveProgress.tsx", "utf8").includes('from === "rated" ? "Save your rating and stars"'), "the sheet says “Save your rating and stars” after a rated match");
 }
 
 check(consoleErrors.length === 0, `no console errors (${consoleErrors.slice(0, 3).join(" | ")})`);

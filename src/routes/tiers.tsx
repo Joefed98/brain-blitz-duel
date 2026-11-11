@@ -5,7 +5,8 @@ import { PhoneShell } from "@/components/duel/PhoneShell";
 import { TierLadder } from "@/components/rated/TierLadder";
 import { Button, Icon, SkeletonPage } from "@/design/components";
 import { APP_NAME } from "@/lib/brand";
-import type { LadderCounts } from "@/lib/rated/backend";
+import type { TierLadderRung } from "@/lib/data/ratings";
+import { tierLadder } from "@/lib/rated/tiers";
 import { backendNow, useRatedStatus } from "@/lib/rated/ratedApi";
 import { useAccount } from "@/lib/account/accountApi";
 
@@ -26,7 +27,8 @@ function TiersScreen() {
   const router = useRouter();
   const account = useAccount();
   const status = useRatedStatus();
-  const [counts, setCounts] = useState<LadderCounts | null>(null);
+  // W3a's ladder (getTierLadder); until it answers, the same rungs with no shares (tierLadder()).
+  const [rungs, setRungs] = useState<TierLadderRung[]>(() => tierLadder());
   const [waited, setWaited] = useState(false);
   const asked = useRef(false);
 
@@ -42,7 +44,10 @@ function TiersScreen() {
   useEffect(() => {
     if (!status || asked.current) return;
     asked.current = true;
-    void backendNow().then(async (b) => setCounts(b ? await b.ladder().catch(() => null) : null));
+    void backendNow().then(async (b) => {
+      const live = b ? await b.ladder().catch(() => null) : null;
+      if (live) setRungs(live);
+    });
   }, [status]);
 
   return (
@@ -57,7 +62,7 @@ function TiersScreen() {
           </span>
         </header>
         {status ? (
-          <TierLadder rank={status.standing.state === "placed" ? status.standing.rank : null} counts={counts} />
+          <TierLadder rank={status.standing.state === "placed" ? status.standing.rank : null} rungs={rungs} />
         ) : (
           <SkeletonPage label="Loading the tiers" />
         )}

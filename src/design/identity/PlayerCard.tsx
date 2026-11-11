@@ -19,7 +19,7 @@
 import { useId, useMemo } from "react";
 
 import { PLAYER_COLOURS } from "@/lib/duel/playerLook";
-import { rankLabel, ratingText, tierColour, type RankView } from "@/lib/rated/tiers";
+import { ratingText, tierColour, type RankView } from "@/lib/rated/tierDisplay";
 
 import { avatarMarkup, DEFAULT_AVATAR } from "./avatars";
 import { CARD_ARTS, CARD_CHROME_CSS, CARD_MOTION_CSS, FRAMES, NAME_COLOURS } from "./playerCardArt.data";
@@ -97,7 +97,7 @@ export function PlayerCard({
    * The player's rated standing once placed (wave 3): the pill then shows the tier and division in the tier colour and
    * the rating. Null (before placement, or no rated play): the player number as before. Never for a guest.
    */
-  rank?: Pick<RankView, "tier" | "division" | "rating" | "top500"> | null;
+  rank?: Pick<RankView, "tier" | "label" | "rating"> | null;
   /** The card's accessible name (defaults to "{name}'s card"). */
   label?: string | undefined;
   className?: string;
@@ -166,7 +166,7 @@ export function PlayerCard({
             {ranked ? (
               <span data-card-pill="" data-card-rank={ranked.tier} className="pcard-pill">
                 <span className="pcard-pill-label" style={{ color: tierColour(ranked.tier) }}>
-                  {rankLabel(ranked)}
+                  {ranked.label}
                 </span>
                 <span className="pcard-pill-value">{ratingText(ranked.rating)}</span>
               </span>

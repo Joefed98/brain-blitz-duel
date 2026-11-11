@@ -26,6 +26,7 @@ export function ratedOverride(): RatedBackend | null {
 }
 
 let current: RatedStatus | null = null;
+let whoFor: string | null = null;
 let loading: Promise<RatedStatus | null> | null = null;
 const listeners = new Set<(s: RatedStatus | null) => void>();
 
@@ -63,21 +64,29 @@ export function refreshRated(): Promise<RatedStatus | null> {
 /** Checks only: forget the shared status (between mounts). */
 export function resetRated(): void {
   current = null;
+  whoFor = null;
   loading = null;
 }
 
 /**
- * Rated play's status for a signed-in device, or null (a guest, rated play not open to this player, not known yet).
- * Rated play needs an account: a guest is never asked.
+ * Rated play's status for this device, or null (rated play not open to this player, not known yet). An account or a
+ * guest: W3b answers whether it is open (testers only at first; guests too once RATED_PLAY_FOR_EVERYONE is on). An
+ * incomplete sign-up is never asked.
  */
 export function useRatedStatus(): RatedStatus | null {
   const account = useAccount();
-  const isAccount = account.kind === "account";
-  const [state, setState] = useState<RatedStatus | null>(isAccount ? current : null);
+  const known = account.kind === "account" || account.kind === "guest";
+  const who = account.kind === "account" ? account.userId : account.kind === "guest" ? `guest:${account.userId ?? ""}` : null;
+  const [state, setState] = useState<RatedStatus | null>(known ? current : null);
   useEffect(() => {
-    if (!isAccount) {
+    if (!known) {
       setState(null);
       return;
+    }
+    if (whoFor !== who) {
+      whoFor = who;
+      current = null;
+      loading = null;
     }
     listeners.add(setState);
     if (current) setState(current);
@@ -85,6 +94,6 @@ export function useRatedStatus(): RatedStatus | null {
     return () => {
       listeners.delete(setState);
     };
-  }, [isAccount]);
-  return isAccount ? state : null;
+  }, [known, who]);
+  return known ? state : null;
 }

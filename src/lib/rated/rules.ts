@@ -5,27 +5,21 @@
  * Nothing here decides a result, a rating or a match: the server does (backend.ts).
  */
 import { ARCADE_GROUPS } from "@/lib/duel/arcadeGroups";
+import { RATED_CHOICES } from "./matchmaking";
 import { puzzleName } from "@/lib/duel/catalogue";
 import type { PuzzleType } from "@/lib/duel/types";
 
 import type { BestOf, MatchSize, PlacementResult, RatedOptions, RatedPick } from "./backend";
-import { PLACEMENT_MATCHES } from "./tiers";
+import { PLACEMENT_MATCHES } from "./tierDisplay";
 
 /* ------------------------------------------------------------------ the hidden finish (mockup 06) */
 
-/** The final share of each game's time in which the opponent's score is hidden: 20 %. */
-export const HIDDEN_FINISH_SHARE = 0.2;
-
 /**
- * Whether the opponent's score is hidden: from the moment 20 % of the game's time is left (exactly 20 % hides it),
- * until the game's result reveals it. Integer arithmetic, so the boundary is exact: hidden when left × 5 ≤ limit.
- * A game with no clock (limit ≤ 0) never hides.
+ * The hidden finish is W3b's rule (src/lib/rated/matchmaking.ts): the opponent's score is hidden from the moment 20 %
+ * of the game's time is left (`elapsedMs >= limitMs × 0.8`) until the game's result; the server hides it too
+ * (ratedOpponentScoreFn). One rule, re-exported here for the screens.
  */
-export function opponentScoreHidden(leftMs: number, limitMs: number): boolean {
-  if (!(limitMs > 0)) return false;
-  const left = Math.max(0, Math.round(leftMs));
-  return left * 5 <= Math.round(limitMs);
-}
+export { HIDDEN_FINISH_SHARE, opponentScoreHidden } from "./matchmaking";
 
 /* ------------------------------------------------------------------ the picker (mockup 02, launch set) */
 
@@ -42,8 +36,7 @@ export function pickLabel(pick: RatedPick): string {
   if (pick === "mixed") return "Mixed";
   if (pick === "puzzles") return "All puzzles";
   if (pick === "arcade") return "All arcade";
-  const id = pick.slice(4);
-  return PUZZLE_CATEGORY_LABELS[id] ?? ARCADE_GROUPS.find((g) => g.id === id)?.label ?? id;
+  return PUZZLE_CATEGORY_LABELS[pick] ?? ARCADE_GROUPS.find((g) => g.id === pick)?.label ?? pick;
 }
 
 /** The line under a pick on the Play card and in the picker. */
@@ -64,18 +57,11 @@ export function pickMoves(pick: RatedPick): string {
 
 export function isArcadePick(pick: RatedPick): boolean {
   if (pick === "arcade") return true;
-  if (!pick.startsWith("cat:")) return false;
-  return ARCADE_GROUPS.some((g) => g.id === pick.slice(4));
+  return ARCADE_GROUPS.some((g) => g.id === pick);
 }
 
-/** The order the picker lists picks in (mockup 02): Mixed, All puzzles, All arcade, then categories. */
-const PICK_ORDER: readonly RatedPick[] = [
-  "mixed",
-  "puzzles",
-  "arcade",
-  ...(Object.keys(PUZZLE_CATEGORY_LABELS).map((c) => `cat:${c}` as const)),
-  ...ARCADE_GROUPS.map((g) => `cat:${g.id}` as const),
-];
+/** The order the picker lists picks in (mockup 02): Mixed, All puzzles, All arcade, then categories (W3b's order). */
+const PICK_ORDER: readonly RatedPick[] = RATED_CHOICES;
 
 /**
  * The picks the picker shows: only what is switched on, in the mockup's order, never anything else (a pick the
@@ -112,22 +98,9 @@ export function bestOfLabel(n: BestOf): string {
 
 /* ------------------------------------------------------------------ VS (mockup 04) */
 
-/** "Recorded run, 2 h ago" from the run's real time (DESIGN.md: commas, no " · "). */
-export function recordedAgo(recordedAt: string, nowMs: number): string {
-  const at = Date.parse(recordedAt);
-  if (!Number.isFinite(at)) return "Recorded run";
-  const s = Math.max(0, Math.floor((nowMs - at) / 1000));
-  if (s < 60) return "Recorded run, just now";
-  const m = Math.floor(s / 60);
-  if (m < 60) return `Recorded run, ${m} min ago`;
-  const h = Math.floor(m / 60);
-  if (h < 24) return `Recorded run, ${h} h ago`;
-  const d = Math.floor(h / 24);
-  return `Recorded run, ${d} ${d === 1 ? "day" : "days"} ago`;
-}
-
-/** "First meeting", "You lead 3–1", "Sam leads 2–1", "Level 2–2". */
-export function headToHeadLine(h: { won: number; lost: number }, them: string): string {
+/** "First meeting", "You lead 3–1", "Sam leads 2–1", "Level 2–2"; null when the server has no record to show. */
+export function headToHeadLine(h: { won: number; lost: number } | null, them: string): string | null {
+  if (!h) return null;
   if (h.won + h.lost === 0) return "First meeting";
   if (h.won > h.lost) return `You lead ${h.won}–${h.lost}`;
   if (h.lost > h.won) return `${them} leads ${h.lost}–${h.won}`;
@@ -169,8 +142,8 @@ export function wonLostText(won: number, lost: number): string {
 /* ------------------------------------------------------------------ the result (mockup 07) */
 
 /** "Chroma Lines: 12 off your best" (DESIGN.md section 10's words). */
-export function nearMissText(n: { type: PuzzleType; offBest: number }): { game: string; line: string } {
-  return { game: puzzleName(n.type), line: `${n.offBest} off your best` };
+export function nearMissText(n: { type: string; offBest: number }): { game: string; line: string } {
+  return { game: puzzleName(n.type as PuzzleType), line: `${n.offBest} off your best` };
 }
 
 /** The seconds left on the rematch offer (8 s after the result), at `nowMs`. */
@@ -183,3 +156,11 @@ export function rematchSecondsLeft(until: string | null, nowMs: number): number 
 
 /** The rematch offer's length (mockup 07). */
 export const REMATCH_SECONDS = 8;
+
+/* ------------------------------------------------------------------ why a match moved no ratings (Joe, 11 Nov 2026) */
+
+/** The result's line when W3a's answer says nothing moved, by its reason. */
+export const FROZEN_LINES = {
+  under_review: "This match is under review, so ratings didn’t change.",
+  same_opponent_today: "Ratings don’t change from your 4th match against the same player in a day.",
+} as const;

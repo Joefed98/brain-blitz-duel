@@ -37,31 +37,35 @@ const { CARD_CHROME_CSS } = await import("../../src/design/identity/playerCardAr
 
 type RatedStatus = import("../../src/lib/rated/backend").RatedStatus;
 type RatedResult = import("../../src/lib/rated/backend").RatedResult;
-type RankView = import("../../src/lib/rated/tiers").RankView;
+type RankView = import("../../src/lib/rated/tierDisplay").RankView;
 
 const LOOK = { cardArt: "card-art.joulz-navy", frame: "frame.plain", nameColour: null, avatar: { id: "captain-joulz", colour: 4, gem: null } };
-const VOLT2: RankView = { tier: "volt", division: 2, rating: 1278, top500: null, heldBack: null };
-const ME = { username: "TheInventor", playerNumber: 42, look: LOOK, title: "Founding Player", rank: VOLT2 };
-const SAM = { username: "Sam", playerNumber: 7, look: { ...LOOK, frame: "frame.neon-circuit", avatar: { id: "captain-joulz", colour: 1, gem: null } }, title: "Arena Champion", rank: { ...VOLT2, rating: 1296 } };
+const { tierFor, tierLadder } = await import("../../src/lib/rated/tiers");
+const rankAt = (r: number, s: Parameters<typeof tierFor>[1] = null): RankView => ({ ...tierFor(r, s), rating: r });
+const VOLT2: RankView = rankAt(1278);
+const ME = { userId: "u-5", username: "TheInventor", playerNumber: 42, look: LOOK, title: "Founding Player", badges: ["founding-player"], rank: VOLT2, guest: false, deleted: false };
+const SAM = { userId: "u-7", username: "Sam", playerNumber: 7, look: { ...LOOK, frame: "frame.neon-circuit", avatar: { id: "captain-joulz", colour: 1, gem: null } }, title: "Arena Champion", badges: [], rank: rankAt(1296), guest: false, deleted: false };
+const SHARES = { top500: 0.0005, lightning: 0.005, storm: 0.03, surge: 0.12, volt: 0.34, charge: 0.32, spark: 0.18 };
 const placed: RatedStatus = {
   open: true,
+  guest: false,
   me: ME,
   options: { picks: ["mixed", "puzzles", "arcade"], bestOf: [3], sizes: [2] },
-  season: { name: "Season 1", daysLeft: 34 },
+  season: null,
   standing: {
     state: "placed",
     rank: VOLT2,
     puzzles: { rating: 1296, matches: 12 },
     arcade: { rating: 1231, matches: 9 },
     categories: [
-      { pick: "cat:pattern", rating: 1350, matches: 4 },
-      { pick: "cat:word", rating: 1312, matches: 3 },
-      { pick: "cat:retro", rating: 1176, matches: 2 },
+      { pick: "pattern", rating: 1350, matches: 4 },
+      { pick: "word", rating: 1312, matches: 3 },
+      { pick: "retro", rating: 1176, matches: 2 },
     ],
     won: 12,
     lost: 9,
   },
-  lastPick: null,
+  activeMatchId: null,
 };
 const placing: RatedStatus = {
   ...placed,
@@ -78,8 +82,10 @@ const result: RatedResult = {
   ],
   myGames: 2,
   theirGames: 1,
-  won: true,
-  rating: { after: { ...VOLT2, rating: 1285 }, change: 7, puzzles: { rating: 1303, change: 7 }, arcade: { rating: 1238, change: 7 } },
+  outcome: "won",
+  frozen: null,
+  moved: ["puzzles", "arcade"],
+  rating: { after: rankAt(1285), change: 7, puzzles: { rating: 1303, change: 7 }, arcade: { rating: 1238, change: 7 } },
   placementResults: null,
   reveal: null,
   joules: { amount: 120, passLevel: 13 },
@@ -96,7 +102,7 @@ const screens: [string, () => React.ReactElement][] = [
   ["02-picker", () => React.createElement(RatedPicker, { status: placed, value: "mixed", onPick: noop, onClose: noop })],
   ["03-searching", () => React.createElement(Searching, { me: ME, pickText: "Mixed, best of 3", progress: { elapsedMs: 4000, range: 60, recordedAfterMs: 8000 }, onCancel: noop })],
   ["04-vs-live", () => React.createElement(VsScreen, { match, nowMs: Date.now() })],
-  ["04-vs-recorded", () => React.createElement(VsScreen, { match: { ...match, source: { kind: "recorded", recordedAt: new Date(Date.now() - 2 * 3600_000).toISOString() } }, nowMs: Date.now() })],
+  ["04-vs-recorded", () => React.createElement(VsScreen, { match: { ...match, source: { kind: "recorded", label: "Recorded run · 2 h ago" } }, nowMs: Date.now() })],
   [
     "05-06-header",
     () =>
@@ -113,7 +119,7 @@ const screens: [string, () => React.ReactElement][] = [
     "07-result-lost",
     () =>
       React.createElement(MatchResult, {
-        result: { ...result, won: false, myGames: 1, theirGames: 2, rating: { after: { ...VOLT2, rating: 1268 }, change: -10, puzzles: { rating: 1286, change: -10 }, arcade: null }, star: null, nearMiss: null, friend: false },
+        result: { ...result, outcome: "lost", myGames: 1, theirGames: 2, rating: { after: rankAt(1268), change: -10, puzzles: { rating: 1286, change: -10 }, arcade: null }, star: null, nearMiss: null, friend: false },
         nowMs: Date.now(),
         onNext: noop,
         onRematch: noop,
@@ -140,13 +146,13 @@ const screens: [string, () => React.ReactElement][] = [
     "13-reveal",
     () =>
       React.createElement(PlacementReveal, {
-        reveal: { rank: { tier: "volt", division: 3, rating: 1214, top500: null, heldBack: null }, betterThan: 62, puzzles: { rating: 1236, matches: 3 }, arcade: { rating: 1180, matches: 2 }, won: 4, lost: 1 },
+        reveal: { rank: rankAt(1214), betterThan: 62, puzzles: { rating: 1236, matches: 3 }, arcade: { rating: 1180, matches: 2 }, won: 4, lost: 1 },
         onNext: noop,
         onTiers: noop,
       }),
   ],
-  ["14-tiers", () => React.createElement(TierLadder, { rank: VOLT2, counts: { shares: { lightning: 0.5, storm: 3, surge: 12, volt: 34, charge: 32, spark: 18 }, top500: 500 } })],
-  ["14-tiers-held-back", () => React.createElement(TierLadder, { rank: { tier: "surge", division: 1, rating: 1960, top500: null, heldBack: "storm" }, counts: null })],
+  ["14-tiers", () => React.createElement(TierLadder, { rank: VOLT2, rungs: tierLadder(SHARES) })],
+  ["14-tiers-held-back", () => React.createElement(TierLadder, { rank: rankAt(1960, { capsActive: true, stormOk: false, top500Ok: false, rank: 300, share: 0.04 }), rungs: tierLadder() })],
   ["profile-placed", () => React.createElement(ProfileRating, { status: placed })],
 ];
 

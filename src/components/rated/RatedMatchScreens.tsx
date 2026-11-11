@@ -6,7 +6,7 @@
  *   Cancel.
  * - VS (04): both player cards slam in from opposite sides (theirs from the right, yours from the left), each pill
  *   with tier and rating (or the player number during placement), the tier emblems, your record against each other,
- *   and the Live tag or "Recorded run, 2 h ago" from the run's real time. The slam plays the room's flash sound.
+ *   and the Live tag or W3b's "Recorded run · 2 h ago" from the run's real time. The slam plays the room's flash sound.
  * - The result (07): you win or lose and the score, the Joulz Rating change with the bar to the next division,
  *   Puzzles and Arcade's changes, each game won or lost, the Joules line, a star earned (C1a's 175+ star), a near-miss
  *   line, then Next match, Rematch (8 s) and Challenge (friends only, through the existing friend challenge flow).
@@ -32,11 +32,13 @@ import {
   nearMissText,
   pickLabel,
   placementResultLine,
-  recordedAgo,
   rematchSecondsLeft,
   wonLostText,
 } from "@/lib/rated/rules";
-import { changeText, divisionBar, PLACEMENT_MATCHES, rankLabel, ratingText } from "@/lib/rated/tiers";
+import { changeText, divisionBar, PLACEMENT_MATCHES, ratingText } from "@/lib/rated/tierDisplay";
+import { FROZEN_LINES } from "@/lib/rated/rules";
+import { usePass } from "@/lib/pass/passApi";
+import type { PuzzleType } from "@/lib/duel/types";
 
 import { DivisionBarView, GameRow, JoulesLine, MatchChips, PlacementBoxes, RankEmblem, SideTile, UnplacedEmblem } from "./RatedParts";
 
@@ -48,7 +50,9 @@ export function RatedCard({ player, label }: { player: RatedPlayer; label?: stri
       name={player.username}
       playerNumber={player.playerNumber}
       title={player.title}
-      rank={player.rank}
+      badges={player.badges}
+      rank={player.guest || player.deleted ? null : player.rank}
+      guest={player.guest}
       label={label}
     />
   );
@@ -123,7 +127,10 @@ export function VsScreen({ match, nowMs }: { match: RatedMatch; nowMs: number })
     const t = window.setTimeout(() => playCueSlot("room.prepare.flash"), 750);
     return () => window.clearTimeout(t);
   }, [match.source.kind]);
-  const recorded = match.source.kind === "recorded" ? recordedAgo(match.source.recordedAt, nowMs) : null;
+  // W3b's own label from the run's real time ("Recorded run · 2 h ago", recordedAgeLabel).
+  const recorded = match.source.kind === "recorded" ? match.source.label : null;
+  void nowMs;
+  const record = headToHeadLine(match.headToHead, match.them.username);
   return (
     <div className="rt-screen rt-vs" data-rated-screen="vs" data-source={match.source.kind}>
       <div className="rt-vs-top">
@@ -145,9 +152,11 @@ export function VsScreen({ match, nowMs }: { match: RatedMatch; nowMs: number })
         <span className="rt-vs-line" />
       </div>
       <VsSide player={match.me} side="me" />
-      <p className="rt-vs-record" data-head-to-head>
-        {headToHeadLine(match.headToHead, match.them.username)}
-      </p>
+      {record ? (
+        <p className="rt-vs-record" data-head-to-head>
+          {record}
+        </p>
+      ) : null}
     </div>
   );
 }
@@ -160,7 +169,7 @@ function VsSide({ player, side }: { player: RatedPlayer; side: "me" | "them" }) 
       </div>
       <span className="rt-vs-emblem">
         {player.rank ? <RankEmblem rank={player.rank} size={48} /> : <UnplacedEmblem />}
-        <span className="rt-vs-tier">{player.rank ? rankLabel(player.rank) : "Placement"}</span>
+        <span className="rt-vs-tier">{player.deleted ? "" : player.guest ? "Guest" : player.rank ? player.rank.label : "Placement"}</span>
       </span>
     </div>
   );
@@ -192,17 +201,19 @@ export function MatchResult({
   useEffect(() => {
     if (sent.current) return;
     sent.current = true;
-    recordRatedEvent({ event: "result_viewed", outcome: result.won ? "won" : "lost", placement: placing });
-  }, [result.won, placing]);
+    recordRatedEvent({ event: "result_viewed", outcome: result.outcome === "won" ? "won" : "lost", placement: placing });
+  }, [result.outcome, placing]);
+  const pass = usePass();
+  const passLevel = pass.state === "open" ? pass.view.level : null;
   const them = match.them.username;
   const rematchLeft = rematchSecondsLeft(result.rematchUntil, nowMs);
   const nextPlacement = placing && result.placementResults!.length < PLACEMENT_MATCHES ? result.placementResults!.length + 1 : null;
 
   return (
-    <div className="rt-screen rt-result" data-rated-screen={placing ? "placement-result" : "result"} data-outcome={result.won ? "won" : "lost"}>
+    <div className="rt-screen rt-result" data-rated-screen={placing ? "placement-result" : "result"} data-outcome={result.outcome}>
       <header className="rt-result-head jz-stripes">
         <MatchChips items={[pickLabel(match.pick), bestOfLabel(match.bestOf), `v ${them}`]} />
-        <h1 className="jz-display rt-result-title">{result.won ? "You win" : `${them} wins`}</h1>
+        <h1 className="jz-display rt-result-title">{result.outcome === "won" ? "You win" : result.outcome === "drawn" ? "A draw" : `${them} wins`}</h1>
         <p className="rt-result-score" aria-label={`${result.myGames} games to ${result.theirGames}`} data-match-score>
           {result.myGames}–{result.theirGames}
         </p>
@@ -253,6 +264,12 @@ export function MatchResult({
         </Panel>
       ) : null}
 
+      {result.frozen ? (
+        <p className="rt-frozen" data-frozen={result.frozen}>
+          {FROZEN_LINES[result.frozen]}
+        </p>
+      ) : null}
+
       <Panel className="rt-games">
         {!placing ? (
           <div className="rt-games-head">
@@ -273,13 +290,13 @@ export function MatchResult({
         <div className="rt-earned">
           {result.joules ? (
             <Panel pad className="rt-earned-tile" data-earned="joules">
-              <JoulesLine amount={result.joules.amount} passLevel={result.joules.passLevel} tile />
+              <JoulesLine amount={result.joules.amount} passLevel={result.joules.passLevel ?? passLevel} tile />
             </Panel>
           ) : null}
           {result.star ? (
             <Panel pad className="rt-earned-tile" data-earned="star">
               <Icon name="star" size={22} tone="gold" />
-              <span className="rt-star-text">Star on {puzzleName(result.star.type)}</span>
+              <span className="rt-star-text">Star on {puzzleName(result.star.type as PuzzleType)}</span>
             </Panel>
           ) : null}
         </div>
@@ -396,12 +413,14 @@ export function PlacementReveal({
   return (
     <div className="rt-screen rt-reveal" data-rated-screen="reveal" data-tier={reveal.rank.tier}>
       <div className="rt-reveal-rays" aria-hidden="true" />
-      <p className="rt-reveal-done">Placement complete, {wonLostText(reveal.won, reveal.lost)}</p>
+      <p className="rt-reveal-done">
+        {reveal.won !== null && reveal.lost !== null ? `Placement complete, ${wonLostText(reveal.won, reveal.lost)}` : "Placement complete"}
+      </p>
       <div className="rt-reveal-emblem">
         <RankEmblem rank={reveal.rank} size={176} />
       </div>
       <h1 className="jz-display rt-reveal-title" data-reveal-tier>
-        You’re {rankLabel(reveal.rank)}
+        You’re {reveal.rank.label}
       </h1>
       {reveal.betterThan !== null ? (
         <p className="rt-reveal-better" data-better-than>

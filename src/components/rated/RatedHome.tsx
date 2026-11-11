@@ -31,9 +31,27 @@ import {
   shownSizes,
   wonLostText,
 } from "@/lib/rated/rules";
-import { PLACEMENT_MATCHES, ratingText } from "@/lib/rated/tiers";
+import { PLACEMENT_MATCHES, ratingText } from "@/lib/rated/tierDisplay";
+import { usePass } from "@/lib/pass/passApi";
 
 import { DivisionBarView, PickMark, PlacementBoxes, RankEmblem, SideTile, UnplacedEmblem } from "./RatedParts";
+
+const LAST_PICK_KEY = "duelz-rated-pick:v1";
+/** The pick this device last played (a convenience; the picker still offers only what is switched on). */
+function lastPick(): RatedPick | null {
+  try {
+    return (typeof localStorage === "undefined" ? null : (localStorage.getItem(LAST_PICK_KEY) as RatedPick | null)) ?? null;
+  } catch {
+    return null;
+  }
+}
+function rememberPick(pick: RatedPick): void {
+  try {
+    localStorage.setItem(LAST_PICK_KEY, pick);
+  } catch {
+    /* storage blocked */
+  }
+}
 
 /** Home's rated block, or nothing for anyone rated play isn't open to. */
 export function RatedHome() {
@@ -58,15 +76,28 @@ function RankPanel({ status }: { status: RatedStatus }) {
   const name = status.me.username;
   const s = status.standing;
   const avatar = <Avatar look={status.me.look.avatar ?? DEFAULT_AVATAR} size={52} />;
+  // The season line from D2's pass (accounts with a pass; nothing otherwise).
+  const pass = usePass();
+  const season = pass.state === "open" && pass.view.season.daysLeft !== null && !pass.view.season.ended ? pass.view.season : null;
+  const guestTag = status.guest ? (
+    <span className="rt-guest-tag" data-guest-tag>
+      Guest
+    </span>
+  ) : null;
 
   if (s.state === "placement") {
     const won = s.results.filter((r) => r === "won").length;
+    const lost = s.results.filter((r) => r === "lost").length;
+    const known = s.results.every((r) => r !== null);
     return (
       <Panel as="section" pad aria-label="Placement" className="rt-rank" data-rank-panel="placement">
         <div className="rt-rank-head">
           {avatar}
           <span className="rt-rank-who">
-            <span className="rt-rank-name">{name}</span>
+            <span className="rt-rank-name">
+              {name}
+              {guestTag}
+            </span>
             <span className="rt-rank-sub">Placement matches</span>
           </span>
           <UnplacedEmblem />
@@ -75,7 +106,7 @@ function RankPanel({ status }: { status: RatedStatus }) {
           <span className="rt-rank-of" data-placement-of>
             {s.results.length} of {PLACEMENT_MATCHES}
           </span>
-          {s.results.length > 0 ? <span className="rt-rank-wl">{wonLostText(won, s.results.length - won)}</span> : null}
+          {s.results.length > 0 && known ? <span className="rt-rank-wl">{wonLostText(won, lost)}</span> : null}
         </div>
         <PlacementBoxes results={s.results} />
         <p className="rt-rank-line">{placementHomeLine(s.results.length)}</p>
@@ -92,10 +123,13 @@ function RankPanel({ status }: { status: RatedStatus }) {
       <div className="rt-rank-head">
         {avatar}
         <span className="rt-rank-who">
-          <span className="rt-rank-name">{name}</span>
-          {status.season ? (
-            <span className="rt-rank-sub">
-              {status.season.name}, {status.season.daysLeft} {status.season.daysLeft === 1 ? "day" : "days"} left
+          <span className="rt-rank-name">
+            {name}
+            {guestTag}
+          </span>
+          {season ? (
+            <span className="rt-rank-sub" data-season-line>
+              {season.name}, {season.daysLeft} {season.daysLeft === 1 ? "day" : "days"} left
             </span>
           ) : null}
         </span>
@@ -133,7 +167,7 @@ function PlayCard({ status }: { status: RatedStatus }) {
   const navigate = useNavigate();
   const picks = shownPicks(status.options);
   const bests = shownBestOf(status.options);
-  const [pick, setPick] = useState<RatedPick | null>(() => defaultPick(status.options, status.lastPick));
+  const [pick, setPick] = useState<RatedPick | null>(() => defaultPick(status.options, lastPick()));
   const [bestOf, setBestOf] = useState<BestOf | null>(bests.includes(3) ? 3 : (bests[0] ?? null));
   const [picker, setPicker] = useState(false);
   const placing = status.standing.state === "placement";
@@ -142,6 +176,7 @@ function PlayCard({ status }: { status: RatedStatus }) {
 
   const play = () => {
     recordRatedEvent({ event: "play_card_tapped", pick: pickProp(pick), placement: placing });
+    rememberPick(pick);
     void navigate({ to: "/rated" as never, search: { pick, bestOf } as never });
   };
 
@@ -212,12 +247,12 @@ export function RatedPicker({
     if (!placed) return null;
     if (p === "puzzles") return placed.puzzles.rating;
     if (p === "arcade") return placed.arcade.rating;
-    if (p.startsWith("cat:")) return placed.categories.find((c) => c.pick === p)?.rating ?? null;
+    return placed.categories.find((c) => c.pick === p)?.rating ?? null;
     return null;
   };
   const wide = picks.filter((p) => p === "mixed");
   const sides = picks.filter((p) => p === "puzzles" || p === "arcade");
-  const cats = picks.filter((p) => p.startsWith("cat:"));
+  const cats = picks.filter((p) => p !== "mixed" && p !== "puzzles" && p !== "arcade");
   const option = (p: RatedPick, big = false) => {
     const r = ratingOf(p);
     return (
