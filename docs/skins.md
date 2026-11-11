@@ -82,5 +82,9 @@ changed, and nothing here is read by a sim, a grader, a replay or a deal.
 
 - `skins-default-check` (~5 s), `skins-check` (~25 s), `skins-replay-check` (~45 s); no browser.
 - `bun scripts/skins/preview.ts <game…> [--out=<dir>] [--only=<frame>]`: review frames of every look.
+- `bun scripts/skins/compare-art.ts [--out=<dir>]`: each ball, stone, card back and felt painted by the game's own
+  painter at its swatch's size over the approved PNG, compared inside the object; the car paints and world themes by
+  palette. Sheets: `screenshots/skins-nov-2026/skins-vs-art.png` (approved PNG | our painter | difference) and
+  `world-themes-vs-art.png` (the theme board beside the game's frame).
 - `bun scripts/skins/record-default.ts` (the default digests, recorded on main before the hook; never re-record) and
   `bun scripts/skins/record-runs.ts` (the replay runs).

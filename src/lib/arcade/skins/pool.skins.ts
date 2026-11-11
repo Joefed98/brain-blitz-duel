@@ -126,7 +126,8 @@ function neonBall(ctx: CanvasRenderingContext2D, kind: PoolBallKind, id: number,
   }
   const black = id === BLACK && tableBalls;
   const neon = poolNeonColour(kind, id, darkCloth);
-  const lw = Math.max(1, (r * 2.5) / 11);
+  // The rim: the skins' 2 of 19 (cue-ball--neon-8-ball / --neon-ball-set), the Neon Table's own balls 2.5 of 11.
+  const lw = Math.max(1, tableBalls ? (r * 2.5) / 11 : (r * 2) / 19);
   ctx.save();
   ctx.beginPath();
   ctx.arc(x, y, r, 0, Math.PI * 2);
@@ -140,14 +141,17 @@ function neonBall(ctx: CanvasRenderingContext2D, kind: PoolBallKind, id: number,
     ctx.globalAlpha = 1;
   }
   ctx.restore();
-  // The halo, then the rim (inside the radius, so the art stays inside the ball's draw circle).
+  // The rim, inside the radius (the source's glow falls outside the ball, past its draw circle, so it isn't drawn;
+  // the Neon Table's balls keep a faint inner halo for it).
   ctx.strokeStyle = neon;
-  ctx.globalAlpha = 0.35;
-  ctx.lineWidth = lw * 1.6;
-  ctx.beginPath();
-  ctx.arc(x, y, r - lw * 0.8, 0, Math.PI * 2);
-  ctx.stroke();
-  ctx.globalAlpha = 1;
+  if (tableBalls) {
+    ctx.globalAlpha = 0.35;
+    ctx.lineWidth = lw * 1.6;
+    ctx.beginPath();
+    ctx.arc(x, y, r - lw * 0.8, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+  }
   ctx.lineWidth = lw;
   ctx.beginPath();
   ctx.arc(x, y, r - lw / 2, 0, Math.PI * 2);
