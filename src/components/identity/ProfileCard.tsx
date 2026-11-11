@@ -20,6 +20,7 @@ import { SaveProgressOffer } from "@/components/account/SaveProgress";
 import { Button, Icon } from "@/design/components";
 import { DEFAULT_LOOK, PlayerCard, type CardLook } from "@/design/identity";
 import { cachedAccount, useAccount, type AccountCard } from "@/lib/account/accountApi";
+import { useWaitingRequests } from "@/lib/friends/friendsApi";
 import { useMyBadges } from "@/lib/badges/badgesApi";
 import { titleName } from "@/lib/badges/catalogue";
 import { useMyIdentity } from "@/lib/identity/identityApi";
@@ -68,6 +69,14 @@ export function ProfileCard({ guestName, guestColour }: { guestName: string; gue
     ? lookFromLoadout(identity.loadout, signedIn?.colour ?? fromCache?.colour ?? null)
     : lookFromLoadout(null, guestColour);
 
+  // Friends (wave 2 B1): accounts only; the badge counts requests waiting (in-app only). A guest gets the
+  // save-your-progress sheet, as Customise.
+  const waiting = useWaitingRequests(Boolean(signedIn));
+  const friends = () => {
+    if (isAccount) void router.navigate({ to: "/friends", state: { fromPlayTab: true } as never } as never);
+    else setOffer(true);
+  };
+
   const customise = () => {
     if (isAccount) void router.navigate({ to: "/customise", state: { fromPlayTab: true } as never } as never);
     else setOffer(true);
@@ -87,6 +96,14 @@ export function ProfileCard({ guestName, guestColour }: { guestName: string; gue
       />
       <Button variant="secondary" size={48} block onClick={customise} data-customise-open>
         Customise card
+      </Button>
+      <Button variant="secondary" size={48} block onClick={friends} data-friends-open aria-label={waiting ? `Friends, ${waiting} waiting` : "Friends"}>
+        <Icon name="friends" size={20} /> Friends
+        {waiting ? (
+          <span className="fr-tab-badge" data-friends-waiting={waiting} aria-hidden="true">
+            {waiting > 99 ? "99+" : waiting}
+          </span>
+        ) : null}
       </Button>
       {isAccount && rated ? (
         <ProfileRating status={rated} />
