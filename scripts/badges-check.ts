@@ -198,7 +198,7 @@ async function pureChecks(): Promise<void> {
     check(rules.AWARDED_ELSEWHERE.join() === ["friendly", ...TOURNAMENT_AWARDED, ...EVENT_AWARDED].join() && earnable.includes("friendly") && !rules.BADGE_RULES["friendly"], "Friendly is earnable but awarded by B1 (no rule here)");
     check(TOURNAMENT_AWARDED.every((s) => earnable.includes(s) && !rules.BADGE_RULES[s]), "the seven tournament badges are earnable and awarded by the tournaments code (no rule here)");
     check(EVENT_AWARDED.every((s) => earnable.includes(s) && !rules.BADGE_RULES[s]), "Swiss Champion and Knockout Champion are earnable, awarded by the tournament events (no rule here)");
-    const none: rules.BadgeFacts = { founding: false, playerNumber: 43, games200: 0, buzzerFinishes: 0, fastFinishes: 0, bestDailyStreak: 0, dailyStreak: 0, hostedRooms: 0, challengesDone: 0, stars: 0, starredGames: 0, gems: 0 };
+    const none: rules.BadgeFacts = { founding: false, playerNumber: 43, games200: 0, buzzerFinishes: 0, fastFinishes: 0, bestDailyStreak: 0, dailyStreak: 0, hostedRooms: 0, challengesDone: 0, stars: 0, starredGames: 0, gems: 0, rated: rules.NO_RATED_FACTS };
     // Rated play's facts (wave 3 W3a): the earn / miss pair's rated part, over no rated record.
     const r = (part: Partial<rules.RatedFacts>): Partial<rules.BadgeFacts> => ({ rated: { ...rules.NO_RATED_FACTS, ...part } });
     const { ACTIVE_PUZZLE_TYPES: ACTIVE } = await import("../src/lib/duel/catalogue");
