@@ -357,6 +357,9 @@ export const SHARDS: Record<string, string[]> = {
     // server-function harness, beside accounts-check; rated-matchmaking-check (~1 s) proves the pure rules.
     "rated-server-check.ts",
     "rated-matchmaking-check.ts",
+    // rated-multi-server-check (wave 3 W3d, 11 Nov 2026, ~10 s): a 4-player rated match through W3b's queue, rooms and
+    // settling on a local PostgreSQL through the server-function harness; rated-multi-check (~2 s) the rules and screens.
+    "rated-multi-server-check.ts",
     "ink-x200-check.ts",
     "depth4-check.ts",
     "room-figures-check.ts",

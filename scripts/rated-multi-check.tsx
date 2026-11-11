@@ -355,6 +355,30 @@ check(countsForPodiumRegular(liveSeat, 3) && !countsForPodiumRegular(liveSeat, 4
   check(eq(fromW3bCandidate.length, 3) && fromW3b.playerId === "o1" && fromW3b.runId === "room:d:2" && fromW3b.source === "room" && eq(fromW3b.dealKeys, ["d1"]), "filling: a W3b recorded run becomes a seat candidate (owner, key, source, deals)");
 }
 
+/* ------------------------------------------------------------------ 6b. grouping in W3b's queue */
+{
+  const { groupFor, ratedPoolOf } = await import("../src/lib/rated/multi/queue");
+  const e = (userId: string, rating: number, joinedAtMs = 0, over: Record<string, unknown> = {}) =>
+    ({ userId, format: "ffa4" as const, choice: "mixed" as const, rating, joinedAtMs, placement: false, ...over });
+  const me = e("a", 1000);
+  const near = [e("b", 1020), e("c", 1040), e("d", 990), e("x", 1300)];
+  const g = groupFor(me, near, 4, 100);
+  check(eq(g?.map((x) => x.userId), ["a", "d", "b", "c"]), "grouping: the nearest ratings first, all within the band");
+  check(groupFor(me, [e("b", 1020), e("c", 1040)], 4, 100) === null, "grouping: three players make no 4-player group");
+  check(groupFor(me, [e("b", 1020), e("c", 1110), e("d", 990)], 4, 100) === null, "grouping: one outside ±50 at the start, no group");
+  check(groupFor(me, [e("b", 1020), e("c", 1090), e("d", 990)], 4, 2_100) !== null, "grouping: the band widens as W3b's (±100 from 2 s)");
+  check(groupFor(me, [e("b", 1000), e("c", 1000, 0, { choice: "puzzles" }), e("d", 1000)], 4, 100) === null, "grouping: never across choices");
+  check(groupFor(me, [e("b", 1000), e("c", 1000, 0, { placement: true }), e("d", 1000)], 4, 100) === null, "grouping: never a placement player");
+  check(groupFor(me, [e("a", 1000), e("b", 1000), e("c", 1000)], 4, 100) === null, "grouping: never a player twice");
+  const wide = groupFor(e("a", 1000), [e("b", 1150), e("c", 850)], 3, 10_000);
+  check(wide === null, "grouping: every pair within the band, not only each player against me (850 v 1150)");
+  check(eq(ratedPoolOf("gridlock"), { pool: "puzzles", category: "pattern" }) && eq(ratedPoolOf("hover"), { pool: "arcade", category: "retro" }), "W3a's pool and category from a game's type");
+  const w3b = readFileSync("src/lib/rated/rated.server.ts", "utf8");
+  check(/FORMAT_PLAYERS\[me\.format\] > 2[\s\S]{0,200}pollMultiQueue/.test(w3b), "W3b's pollQueue hands 4 and 8 players to pollMultiQueue");
+  check(/FORMAT_PLAYERS\[match\.format as RatedFormat\] > 2[\s\S]{0,300}settleMultiMatch/.test(w3b), "W3b's settleMatch hands 4 and 8 players to settleMultiMatch");
+  check(/rating\.placement && FORMAT_PLAYERS\[format\] > 2/.test(w3b), "W3b's joinQueue refuses 4 and 8 players during placement");
+}
+
 /* ------------------------------------------------------------------ 7. screens */
 {
   const { Window } = await import("happy-dom");

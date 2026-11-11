@@ -24,18 +24,24 @@ switching one on is a deliberate change to that line (Joe's call, recorded with 
 | Joules | W3a's outcome: 1.5 × best of 3, first place the win (225), everyone else 150; live players only; D2's pass credits it. |
 | Podium Regular | A live finish in places 1–3 counts (C2's `podium-regular`, 25 needed), awarded through W3a's outcome. |
 
-## Contracts (`src/lib/rated/multi/contracts.ts`)
+## Connected to W3b and W3a
 
-On W3a's `docs/rated/ratings-interface.md` (its types, `src/lib/data/ratings.ts`: `RatedMatchResult`,
-`RatedMatchOutcome`) and W3b's `docs/rated/matchmaking-interface.md` (`RATED_FORMATS_ON`, `RecordedCandidate` through
-`fromW3bCandidate`). Their server functions weren't on their draft branches yet (11 Nov 2026), so `bindRatedMulti`
-connects W3a's `recordRatedMatch(adminDb(), result)` and W3b's ffa queue join and recorded-run list when they land;
-until then every call is "not ready" (and refused anyway while the switches are off).
-
-**Open question for W3b:** a 1v1 against a recorded run deals that run's own stored puzzles. A 4- or 8-player match
-has one set of deals, so every recorded seat must have runs on exactly those deals (`fillPlan` takes a candidate only
-when its deal keys cover the match's). The natural source is the other players of one earlier match or room on the
-same deals; W3b's `recordedCandidates` for ffa needs to offer runs that way.
+- **W3b's queue** (`src/lib/rated/rated.server.ts`, three marked hooks): `joinQueue` refuses 4 and 8 players during
+  placement; `pollQueue` hands an ffa searcher to `pollMultiQueue` (`src/lib/rated/multi/multiQueue.server.ts`), which
+  groups players with W3b's own pairing rule between every two of them (`groupFor` in `queue.ts`: the same format and
+  choice, never placement, the band widening as for 1v1), claims them atomically (`rated_queue_claim`) and makes the
+  match with W3b's `createLiveMatch` (an ordinary started room, the same deals for everyone); `settleMatch` hands a
+  finished ffa match to `settleMultiMatch`, which builds W3a's placings result (`multiRatedResult`) from the stored
+  scores and stores every player's run (the source for recorded seats).
+- **W3a**: the result is W3a's `RatedMatchResult` (`src/lib/data/ratings.ts`); W3a's `recordRatedMatch(adminDb(),
+  result)` wasn't on its draft branch yet (11 Nov 2026, types only), so `bindRatedMulti` (`contracts.ts`) connects it
+  when it lands; until then settling an ffa match retries later (and the switches are off).
+- **Recorded seats (parked; question for W3b):** a 1v1 against a recorded run deals that run's stored puzzles. A 4- or
+  8-player match has one set of deals, so its recorded seats must be the other players of one earlier match on the same
+  deals (every settled ffa match now stores all its players' runs, `rated:<match>:<user>`). W3b's recorded match holds
+  one recorded owner (`rated_matches.recorded_owner`), so seating several needs W3b's tables and playback to carry more
+  than one. Until then a short group keeps searching, after 15 s too. The rule for choosing them is ready
+  (`fillPlan`, `fromW3bCandidate`, rated-multi-check).
 
 ## Screens (`src/components/rated/multi/MultiScreens.tsx`, `src/polish-layout/rated-multi.css`)
 

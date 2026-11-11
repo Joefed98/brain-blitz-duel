@@ -265,6 +265,9 @@ export async function joinQueue(
   if (openIds?.length) return { ok: false, reason: "in_match", message: "You’re already in a match." };
   const rating = await ratings().matchRating(userId, { format, choice });
   if (!rating) return { ok: false, reason: "no_rating", message: "Rated play isn’t ready yet." };
+  // W3d: 4 and 8 players are for placed players (placement plays recorded 1v1 runs first).
+  if (rating.placement && FORMAT_PLAYERS[format] > 2)
+    return { ok: false, reason: "option", message: "Finish your placement matches first." };
   const { error } = await writeQueueEntry(client, {
     user_id: userId,
     format,
@@ -309,6 +312,12 @@ export async function pollQueue(client: Db, userId: string, nowMs: number): Prom
     return { state: "found", match: view };
   }
   const waitedMs = nowMs - me.joinedAtMs;
+  // W3d: 4 and 8 players group through src/lib/rated/multi/multiQueue.server.ts (W3b's own pairing rule, createLiveMatch).
+  if (FORMAT_PLAYERS[me.format] > 2) {
+    const { pollMultiQueue } = await import("./multi/multiQueue.server");
+    const step = await pollMultiQueue(client, me, nowMs, (input) => createLiveMatch(client, input, nowMs));
+    return step.state === "matched" ? pollQueue(client, userId, nowMs) : step;
+  }
   if (!me.placement) {
     const { data: rows } = await readWaiting(client, me.format, me.choice);
     const waiting = (rows ?? []).map(entryOf).filter((e): e is QueueEntry => e !== null);
@@ -846,6 +855,15 @@ export async function settleMatch(client: Db, matchId: string, nowMs: number): P
     const { data: priv } = await readPrivatePuzzles(client, room.id);
     const pubs = Array.isArray(room.puzzles_public) ? (room.puzzles_public as unknown as PuzzleData[]) : [];
     const puzzles = pubs.map((p, i) => mergePuzzle(p, priv?.[i]));
+    if (FORMAT_PLAYERS[match.format as RatedFormat] > 2) {
+      // W3d: 4 and 8 players settle on placings straight into W3a's recordRatedMatch (W3a's own result type).
+      const { settleMultiMatch } = await import("./multi/multiQueue.server");
+      const multi = await settleMultiMatch({ match, players: players ?? [], puzzles, results: results ?? [], finishedAt });
+      if (!multi.outcome.ok) throw new Error(multi.outcome.message);
+      await markSettled(client, matchId, asJson({ placings: multi.placings, outcome: multi.outcome }), nowIso(nowMs));
+      await storeRatedRuns(client, match, players ?? [], puzzles, results ?? []);
+      return { state: "settled", result: { matchId, format: match.format as RatedFormat, choice: match.choice as RatedChoice, placings: multi.placings } as unknown as RatedMatchResult };
+    }
     const result = buildMatchResult({ match: { ...match, finished_at: finishedAt }, players: players ?? [], puzzles, results: results ?? [], finishedAt });
     await ratings().recordRatedMatch(result);
     await markSettled(client, matchId, asJson(result), nowIso(nowMs));
