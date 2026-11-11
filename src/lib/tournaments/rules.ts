@@ -301,8 +301,37 @@ export function arenaStandings<T extends ArenaPlayer>(players: readonly T[]): (T
     .map((p, i) => ({ ...p, place: i + 1 }));
 }
 
-/** Arena Ace: 8 duel wins in a row in one Arena. */
+/**
+ * Arena Ace: 8 games won in a row in one Arena (Joe, 11 Nov 2026): individual games, counted across the player's duels in
+ * that Arena (four straight 2–0 duels earn it); a game lost or drawn breaks the run.
+ */
 export const ARENA_ACE_STREAK = 8;
+
+/** One played game's winner: the higher score, then less time used; level on both a drawn game (W3b's gameWinner). */
+export function arenaGameWinner(g: { a: number; b: number; aTimeMs: number; bTimeMs: number }): "a" | "b" | "draw" {
+  if (g.a !== g.b) return g.a > g.b ? "a" : "b";
+  if (g.aTimeMs !== g.bTimeMs) return g.aTimeMs < g.bTimeMs ? "a" : "b";
+  return "draw";
+}
+
+/**
+ * A player's run of games won in a row after one duel's played games (their side `me`): each game won extends it, a game
+ * lost or drawn breaks it. The database's tournament_arena_settle does exactly this; tournaments-check compares.
+ */
+export function applyArenaGames(
+  run: { gameStreak: number; bestGameStreak: number },
+  games: readonly { a: number; b: number; aTimeMs: number; bTimeMs: number }[],
+  me: "a" | "b",
+): { gameStreak: number; bestGameStreak: number } {
+  let { gameStreak, bestGameStreak } = run;
+  for (const g of games) {
+    if (arenaGameWinner(g) === me) {
+      gameStreak++;
+      bestGameStreak = Math.max(bestGameStreak, gameStreak);
+    } else gameStreak = 0;
+  }
+  return { gameStreak, bestGameStreak };
+}
 
 /** Serial Winner: 10 tournament wins. */
 export const SERIAL_WINNER_WINS = 10;

@@ -872,6 +872,12 @@ export const advancePhaseFn = createServerFn({ method: "POST" })
         await leaveBetweenRoundScreen(client, { ...room, round_count: round }, round);
         return { ok: true };
       }
+      // An Arena duel (wave 4, W4b) stops the same way once won; every other room answers false.
+      const { arenaDuelClinched } = await import("@/lib/tournaments/tournaments.server");
+      if (await arenaDuelClinched(client, room, round)) {
+        await leaveBetweenRoundScreen(client, { ...room, round_count: round }, round);
+        return { ok: true };
+      }
     }
     await leaveBetweenRoundScreen(client, room, round);
     return { ok: true };
