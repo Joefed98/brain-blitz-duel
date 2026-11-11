@@ -8,6 +8,7 @@ import { useEffect, useState } from "react";
 import type { FriendCard, FriendProfile, Overview, SearchHit } from "@/lib/data/friends.server";
 import type { ReportReason } from "@/lib/safety/reports";
 
+import { checkOverride } from "@/lib/checkOverride";
 import { PENDING_INVITE_KEY, PRESENCE_BEAT_MS, inviteTokenFrom, refusal, type FriendsRefusal } from "./friends";
 
 export type { FriendCard, FriendProfile, Overview, SearchHit };
@@ -141,8 +142,7 @@ export function clearPendingInvite(): void {
  */
 export function startPresence(isAccount: () => boolean, activity: () => "app" | "practice"): () => void {
   if (typeof window === "undefined") return () => {};
-  const w = window as unknown as { __DUELZ_ALLOW_PRESENCE__?: boolean };
-  if (navigator.webdriver && !w.__DUELZ_ALLOW_PRESENCE__) return () => {};
+  if (navigator.webdriver && checkOverride<boolean>("__DUELZ_ALLOW_PRESENCE__") !== true) return () => {};
   let timer: number | undefined;
   const beat = async () => {
     if (document.visibilityState !== "visible" || !isAccount()) return;
