@@ -2,7 +2,7 @@
  * rated-multi-server-check (wave 3, W3d; docs/rated/multiplayer.md): a 4-player rated match end to end through W3b's real
  * queue, rooms and settling (src/lib/rated/rated.server.ts with W3d's hooks), against a local PostgreSQL 16 with every
  * migration applied (scripts/server-fn-harness.ts). W3a's ratings are stood in through W3b's `setRatingsBackend`, then a
- * second match settles on W3a's real recordRatedMatch (bindW3aRatings). No browser (~10 s).
+ * second match settles on W3a's real finishRatedMatch, bound as W3b's ratingsReady() binds it. No browser (~15 s).
  *
  * It proves: ffa4 off is refused by the server; a placement player can't queue for 4 or 8; four testers within the band
  * make one live match (one ordinary started room, all four seated, the same deals, nobody else); three never start one
@@ -220,10 +220,12 @@ async function runAll(db: LocalDb): Promise<void> {
 
   await section("W3a's real recordRatedMatch", async () => {
     // The queue's rating stays the stand-in (W3a puts new players in placement, which can't queue for 4 or 8); the
-    // settle runs W3a's real engine through W3b's own binding (bindW3aRatings), as the BIND line will.
+    // settle runs W3a's real engine exactly as W3b's ratingsReady() binds it for every match: getMyRatings, and
+    // finishRatedMatch (recordRatedMatch, then the Joules through D2's pass and C2's badges).
     const w3a = await import("../src/lib/rated/ratings.server");
+    const { finishRatedMatch } = await import("../src/lib/rated/rewards.server");
     const { bindW3aRatings } = await import("../src/lib/rated/ratingsAdapter.server");
-    const real = bindW3aRatings(w3a, adminDb, 1500);
+    const real = bindW3aRatings({ getMyRatings: w3a.getMyRatings, recordRatedMatch: finishRatedMatch }, adminDb, 1500);
     setRatingsBackend({
       matchRating: async (userId) => (RATING[userId] === undefined ? null : { rating: RATING[userId]!, placement: false }),
       recordRatedMatch: real.recordRatedMatch,
@@ -324,7 +326,7 @@ async function runAll(db: LocalDb): Promise<void> {
     check(outcome.players.length === size && outcome.players.every((p) => !p.moved && p.changes.length === 0 && p.frozen === "flagged_run"), `${label}: nobody's rating moves (every player frozen "flagged_run")`);
     check(ratingsOf(users) === before.ratings, `${label}: every stored rating unchanged`);
     check(profileOf(users) === before.profiles, `${label}: placement, matches, wins, streaks and podiums unchanged for everyone (${before.profiles.slice(0, 120)} → ${profileOf(users).slice(0, 120)})`);
-    check(outcome.players.every((p) => p.badges.length === 0) && (!hasBadgeTable || badgesOf(users) === before.badges), `${label}: no badges for anyone (Podium Regular included)`);
+    check(outcome.players.every((p) => p.badges.length === 0) && (!hasBadgeTable || badgesOf(users) === before.badges), `${label}: no badges for anyone (Podium Regular included) (${before.badges} → ${hasBadgeTable ? q(`SELECT string_agg(badge, ',') FROM public.player_badges WHERE user_id = ANY(ARRAY[${users.map((u) => `'${u}'`).join(",")}]::uuid[])`) : ""})`);
     const counted = q(`SELECT string_agg(DISTINCT counted::text || ',' || moved::text || ',' || coalesce(frozen, '-'), ';') FROM public.rated_match_players WHERE match_id = '${id}'`);
     check(counted === "false,false,flagged_run", `${label}: every player's row stored as not counted, not moved, frozen flagged_run (${counted})`);
     check(byUser.get(flaggedUser)?.flagged === true && byUser.get(flaggedUser)?.joules === 0, `${label}: the flagged player gets no Joules`);
