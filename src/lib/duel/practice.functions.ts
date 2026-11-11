@@ -199,6 +199,8 @@ export const practiceGradeFn = createServerFn({ method: "POST" })
 
 interface PracticeRunInput {
   answer: string;
+  /** The sealed deal (its digest keys the coin challenges' first-run rule). */
+  sealed?: string;
   msRemaining: number;
   extra?: SubmitExtra;
   inputType?: string;
@@ -216,6 +218,8 @@ async function gradePracticeRun(data: PracticeRunInput, puzzle: PuzzleData, exam
   // Practice progress (wave 2 C1a): the row also stores the grade's breakdown and level, and is counted towards the
   // player's stars and bests on the server (never the intro example; see the migration for what never counts).
   let progress: PracticeRunProgress | null = null;
+  // The counted play (its player and stored row), once practice_record_play has counted it.
+  let counted: CountedPlay | null = null;
   // Beta recording (practice_plays): the outcome only, best-effort, never blocks the answer.
   // Skipped where there is no database (local dev servers in checks).
   if (process.env["SUPABASE_SERVICE_ROLE_KEY"]) {
@@ -237,9 +241,10 @@ async function gradePracticeRun(data: PracticeRunInput, puzzle: PuzzleData, exam
       {
         breakdown: graded.extra ?? null,
         level: levelOf((puzzle as unknown as Loose)["level"]),
-        onCounted: (outcome, userId) => {
+        onCounted: (outcome, userId, playId) => {
           progress = runProgressOf(outcome);
           void recordProgressEvents(outcome, userId);
+          if (outcome.counted) counted = { userId, playId };
           // C2: a new star or gem can earn First Star, All-Rounder or Gem Hunter at once (never awaited: the grade
           // answers first; the badge's moment shows on the next tab page, and a tab page's sync catches any miss).
           if (outcome.star_earned || (outcome.gems_unlocked?.length ?? 0) > 0)
@@ -248,8 +253,10 @@ async function gradePracticeRun(data: PracticeRunInput, puzzle: PuzzleData, exam
       },
     );
   }
-  // Practice challenges (wave 2 C1b): the server's checker on this graded run (never the intro example's fixed board).
-  const challenges = example ? [] : await practiceChallengesFor(puzzle.type, graded);
+  // Practice challenges (wave 2 C1b): the server's checker on a play C1a counted (never the intro example, a flagged
+  // run, a play with no player or one graded before the fresh start), read from that play's stored breakdown.
+  const countedPlay = counted as CountedPlay | null;
+  const challenges = countedPlay && !example ? await practiceChallengesFor(countedPlay, graded, data.sealed ?? "") : [];
   return {
     puzzle,
     isCorrect: graded.isCorrect,
@@ -259,34 +266,53 @@ async function gradePracticeRun(data: PracticeRunInput, puzzle: PuzzleData, exam
     answer: graded.answer,
     // Serialised as JSON text so the RPC boundary sees a plain string.
     extraJson: graded.extra ? JSON.stringify(graded.extra) : null,
-    // The challenges this run completed ({ id, coins, paid }); the phone shows its small moment from these alone.
-    challenges,
     // What the run did to the player's stars and bests (null when it couldn't be counted: no database or player).
     progress: progress as PracticeRunProgress | null,
+    // The challenges this run completed ({ id, coins, paid }); the phone shows its small moment from these alone.
+    challenges,
   };
 }
 
+/** A play C1a's practice_record_play counted: its player and its practice_plays row. */
+interface CountedPlay {
+  userId: string;
+  playId: number;
+}
+
 /**
- * Checks a graded Practice run against its game's challenges (src/lib/challenges/challenges.server.ts) for the caller.
- * Never fails the grade: no database, no caller id or any error gives no completions.
+ * Checks a counted Practice play against its game's challenges (src/lib/challenges/challenges.server.ts): the play's
+ * stored breakdown, score and level (C1a's practice_plays row), with the grade's correctness and reaction time, which
+ * the row doesn't keep. Never fails the grade: a missing row or any error gives no completions.
  */
 async function practiceChallengesFor(
-  type: string,
-  graded: { score: number; isCorrect: boolean; reactionAvgMs: number | null; extra?: Record<string, unknown> | null },
+  play: CountedPlay,
+  graded: { isCorrect: boolean; reactionAvgMs: number | null },
+  sealed: string,
 ): Promise<{ id: string; coins: number; paid: boolean }[]> {
-  if (!process.env["SUPABASE_SERVICE_ROLE_KEY"]) return [];
   try {
     const admin = await (await import("@/lib/data/db.server")).adminDb();
-    const { callerUserId } = await import("./betaRecord.server");
-    const userId = await callerUserId(admin);
-    if (!userId) return [];
-    const { checkPracticeChallenges } = await import("@/lib/challenges/challenges.server");
-    return await checkPracticeChallenges(admin, userId, type, {
-      score: graded.score,
-      isCorrect: graded.isCorrect,
-      reactionAvgMs: graded.reactionAvgMs,
-      extra: graded.extra ?? null,
-    });
+    const { readPracticePlayBreakdown } = await import("@/lib/data/practiceProgress.server");
+    const stored = await readPracticePlayBreakdown(admin, play.playId);
+    if (stored.error || !stored.data || stored.data.user_id !== play.userId) {
+      console.warn(`[challenges] not checked: ${stored.error?.message ?? "no stored play"}`);
+      return [];
+    }
+    const row = stored.data;
+    // The catalogue has Classic, Hard and Expert challenges only: an Easy run (wave 3.5) completes none.
+    const level = levelOf(row.level);
+    if (level === "easy") return [];
+    const breakdown = row.breakdown && typeof row.breakdown === "object" && !Array.isArray(row.breakdown)
+      ? (row.breakdown as Record<string, unknown>)
+      : null;
+    const { challengeDealKey, checkPracticeChallenges } = await import("@/lib/challenges/challenges.server");
+    return await checkPracticeChallenges(
+      admin,
+      play.userId,
+      row.game_id,
+      { score: row.score, isCorrect: graded.isCorrect, reactionAvgMs: graded.reactionAvgMs, extra: breakdown },
+      await challengeDealKey(String(sealed ?? "")),
+      level,
+    );
   } catch (err) {
     console.warn(`[challenges] not checked: ${err instanceof Error ? err.message : String(err)}`);
     return [];

@@ -262,8 +262,11 @@ export interface PracticeProgressInput {
   breakdown: Record<string, unknown> | null;
   /** The run's level (Classic until wave 3.5). */
   level: string;
-  /** Called once the play is counted (or refused) towards progress, with the player it was counted for. */
-  onCounted?: (outcome: PracticeRecordOutcome, userId: string) => void;
+  /**
+   * Called once the play is counted (or refused) towards progress, with the player it was counted for and the stored
+   * play's id (practice challenges, wave 2 C1b, read its stored breakdown by it).
+   */
+  onCounted?: (outcome: PracticeRecordOutcome, userId: string, playId: number) => void;
 }
 
 /**
@@ -284,7 +287,7 @@ async function insertWithProgress(
   if (said(inserted.error, "breakdown|level")) return null;
   if (inserted.error || inserted.data === null || !row.user_id) return { error: inserted.error };
   const counted = await countPracticePlay(client, inserted.data);
-  if (counted.data && progress.onCounted) progress.onCounted(counted.data, row.user_id);
+  if (counted.data && progress.onCounted) progress.onCounted(counted.data, row.user_id, inserted.data);
   return { error: counted.error };
 }
 

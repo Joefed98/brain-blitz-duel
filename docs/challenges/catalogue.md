@@ -213,7 +213,7 @@ challenges never count. How the checks read a run:
 |---|---|---|---|---|:-:|---|
 | Clean start | Catch every flash with no false starts. | Classic | Clean | `falseStarts` = 0, `misses` = 0, `taps` ≥ 1 |  | `reaction.clean-start` |
 | Quarter second | Average under 250 ms. | Classic | Speed | `reactionAvgMs` < 250 |  | `reaction.quarter-second` |
-| Steady hand | Catch every flash, no false starts, all within 50 ms. | Classic | Max-out | `depth.steady` ≥ 15 |  | `reaction.steady-hand` |
+| Steady hand | Catch all, no false starts, slowest within 50 ms of fastest. | Classic | Max-out | `depth.steady` ≥ 15 |  | `reaction.steady-hand` |
 | Greased lightning | Average under 180 ms with no false starts on Hard. | Hard | Speed | `reactionAvgMs` < 180, `falseStarts` = 0, `misses` = 0 | ● | `reaction.greased-lightning` |
 
 #### Bang On (`stopwatch`)
@@ -331,7 +331,7 @@ challenges never count. How the checks read a run:
 | Name | Goal | Level | Style | Check | Coin | Id |
 |---|---|---|---|---|:-:|---|
 | Locked in | Place all 15 tiles. | Classic | Finish | finish |  | `tilegrid.locked-in` |
-| Big words | Finish with long words as good as the puzzle’s own. | Classic | Max-out | finish, `bigWordPoints` ≥ 30 |  | `tilegrid.big-words` |
+| Big words | Finish with 5+ letter words scoring at least the solution’s. | Classic | Max-out | finish, `bigWordPoints` ≥ 30 |  | `tilegrid.big-words` |
 
 #### Slider (`wordslide`)
 
@@ -353,7 +353,7 @@ challenges never count. How the checks read a run:
 | Name | Goal | Level | Style | Check | Coin | Id |
 |---|---|---|---|---|:-:|---|
 | Jar of five | Drop five bonus words in the jar. | Classic | Target | `bonusWords` ≥ 5 |  | `letterwheel.jar-of-five` |
-| Jar full | Fill the crossword with the bonus jar full to the brim. | Classic | Max-out | finish, `jarPoints` ≥ 30 |  | `letterwheel.jar-full` |
+| Jar full | Finish with the jar full; a bonus word adds 1 to 4 drops. | Classic | Max-out | finish, `jarPoints` ≥ 30 |  | `letterwheel.jar-full` |
 | Dizzy | Fill the crossword within 40 s. | Classic | Speed | finish, `parts.speed` ≥ 20 (by 40 s) |  | `letterwheel.dizzy` |
 
 #### Strikeout (`strikeout`)
@@ -544,7 +544,7 @@ challenges never count. How the checks read a run:
 |---|---|---|---|---|:-:|---|
 | Unscathed | Make four crossings without a hit. | Classic | Clean | `crossings` ≥ 4, `livesLost` = 0 |  | `cross.unscathed` |
 | Near miss | Make ten close calls. | Classic | Target | `closeCalls` ≥ 10 |  | `cross.near-miss` |
-| Keep moving | Follow a no-stop crossing with another, four times. | Classic | Streak | `streakPts` ≥ 40 | ● | `cross.keep-moving` |
+| Keep moving | Make four no-stop crossings, each after a no-stop one. | Classic | Streak | `streakPts` ≥ 40 | ● | `cross.keep-moving` |
 
 #### Hover (`hover`)
 
@@ -591,7 +591,7 @@ challenges never count. How the checks read a run:
 | Name | Goal | Level | Style | Check | Coin | Id |
 |---|---|---|---|---|:-:|---|
 | Pocket rocket | Land in both 100 pockets. | Classic | Full set | line “Pocket hits” = 10 of 10 |  | `alleyroll.pocket-rocket` |
-| Hot hand | Follow a ball of 30 or more with another, five times. | Classic | Streak | line “Roll streak” = 20 of 20 |  | `alleyroll.hot-hand` |
+| Hot hand | Roll five 30+ balls, each straight after another 30+ ball. | Classic | Streak | line “Roll streak” = 20 of 20 |  | `alleyroll.hot-hand` |
 | Gold cup final | Land in the gold cup three times on Hard. | Hard | Full set | line “Gold cup” = 30 of 30 |  | `alleyroll.gold-cup-final` |
 
 #### Swish (`bintoss`)
@@ -607,7 +607,7 @@ challenges never count. How the checks read a run:
 | Name | Goal | Level | Style | Check | Coin | Id |
 |---|---|---|---|---|:-:|---|
 | On a roll | Throw four golds in a row. | Classic | Streak | line “Bull streaks” ≥ 6 |  | `bullseye.on-a-roll` |
-| Dead centre | Hit dead centre with every dart that has one. | Classic | Max-out | line “Dead-centre darts” = 20 of 20 |  | `bullseye.dead` |
+| Dead centre | Hit the dead-centre ring on every board with a 10 in the middle. | Classic | Max-out | line “Dead-centre darts” = 20 of 20 |  | `bullseye.dead` |
 | One hundred and twelve | Score 112 with your ten darts. | Classic | Max-out | line “Dart total” = 150 of 150 |  | `bullseye.one-hundred-and-twelve` |
 
 #### Crazy Golf (`minigolf`)
@@ -711,7 +711,7 @@ challenges never count. How the checks read a run:
 
 | Name | Goal | Level | Style | Check | Coin | Id |
 |---|---|---|---|---|:-:|---|
-| Combo breaker | Land ten marbles home, each third or later in a row. | Classic | Combo | line “Combos” ≥ 10 |  | `balltrack.combo-breaker` |
+| Combo breaker | Get ten combos: marbles home from the third in a row onwards. | Classic | Combo | line “Combos” ≥ 10 |  | `balltrack.combo-breaker` |
 | Golden marbles | Send all six gold marbles home. | Classic | Full set | line “Gold marbles” = 25 of 25 |  | `balltrack.golden-marbles` |
 | Lost no marbles | Send all 36 marbles home. | Classic | Max-out | line “Marbles home” = 140 of 140 | ● | `balltrack.lost-no-marbles` |
 

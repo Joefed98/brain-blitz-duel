@@ -620,6 +620,7 @@ function PracticeScreen() {
         applyPracticeRun(puzzle.type, result.progress);
         setDeviceBest(record.best);
         setNewBest(record.improved);
+        // The device's challenge record (the list reads the server's progress, which wins wherever it has a row).
         recordPracticeGoals(puzzle.type, result.score, extra, record.best);
         setEarnedStar(runStarLine(result.progress));
         // The challenges the server completed on this run: their moment waits for the list (never over the reveal).

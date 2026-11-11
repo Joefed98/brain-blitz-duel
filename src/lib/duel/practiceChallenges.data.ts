@@ -5,7 +5,8 @@
  * live game by practice-goals-check (scripts/practice-challenge-numbers.ts): a retune that moves one fails it.
  *
  * Levels: only Classic is live in wave 2 (LIVE_CHALLENGE_LEVELS); the Hard and Expert ones wait for wave 3.5's levels.
- * Coins: 17 Classic challenges pay 100 (live now); 13 Hard pay 100 and 9 Expert 250 once their level is live.
+ * Coins: 17 Classic challenges pay 100 (live now); 13 Hard pay 100 and 9 Expert 250 once their level is live. The
+ * other 222 pay nothing and show no reward (every one counts towards the Challenger badges, C2).
  *
  * Kinds (the shapes the first 40 used, kept for them and for every challenge that fits one exactly):
  *   part   an arcade standard part (ARCADE_STANDARD) at its maximum, read from the stored reveal line;
@@ -73,7 +74,7 @@ export interface PracticeChallenge {
   style: ChallengeStyle;
   /** Coins paid once per account on completion (0: none). */
   coins: 0 | 100 | 250;
-  /** What completing it earns, in words ("100 coins", or "Badge" where no coins are paid). */
+  /** What completing it earns, in words ("100 coins"), or "" where it pays nothing (Joe, 11 Nov 2026: no reward shown). */
   reward: string;
   goal: ChallengeGoal;
 }
@@ -101,7 +102,7 @@ function ch(
 ): PracticeChallenge {
   const level = LEVEL[lv];
   const coins = (coin ? (level === "expert" ? 250 : 100) : 0) as 0 | 100 | 250;
-  return { id: id ?? `${type}.${slug(name)}`, type, name, text, level, style, coins, reward: coins ? `${coins} coins` : "Badge", goal };
+  return { id: id ?? `${type}.${slug(name)}`, type, name, text, level, style, coins, reward: coins ? `${coins} coins` : "", goal };
 }
 
 const part = (label: string, max: number): ChallengeGoal => ({ kind: "part", label, max });
@@ -217,7 +218,7 @@ export const CATALOGUE: readonly PracticeChallenge[] = [
   // Flash (reaction): reactions 186 + steady hand 15, capped at 200.
   ch("reaction", "Clean start", "Catch every flash with no false starts.", "C", "clean", false, all(f("falseStarts", "eq", 0), f("misses", "eq", 0), f("taps", "gte", 1))),
   ch("reaction", "Quarter second", "Average under 250 ms.", "C", "speed", false, all({ c: "avgMs", op: "lt", v: 250 })),
-  ch("reaction", "Steady hand", "Catch every flash, no false starts, all within 50 ms.", "C", "maxout", false, all(f("depth.steady", "gte", 15))),
+  ch("reaction", "Steady hand", "Catch all, no false starts, slowest within 50 ms of fastest.", "C", "maxout", false, all(f("depth.steady", "gte", 15))),
   ch("reaction", "Greased lightning", "Average under 180 ms with no false starts on Hard.", "H", "speed", true, all({ c: "avgMs", op: "lt", v: 180 }, f("falseStarts", "eq", 0), f("misses", "eq", 0))),
   // Bang On (stopwatch): closeness 150 + dead centre and zone streak up to 50.
   ch("stopwatch", "In the zone", "Stop all ten watches in the gold zone.", "C", "fullset", false, all({ c: "all", path: "depth.zone" }, len("depth.zone", "eq", 10))),
@@ -279,7 +280,7 @@ export const CATALOGUE: readonly PracticeChallenge[] = [
   ch("wordhunt", "Forager supreme", "Score 170 or more on Hard.", "H", "bigscore", true, score(170)),
   // Interlock (tilegrid): 150 + speed 20 (33 s) + big words 30.
   ch("tilegrid", "Locked in", "Place all 15 tiles.", "C", "finish", false, all(FIN)),
-  ch("tilegrid", "Big words", "Finish with long words as good as the puzzle’s own.", "C", "maxout", false, all(FIN, f("bigWordPoints", "gte", 30))),
+  ch("tilegrid", "Big words", "Finish with 5+ letter words scoring at least the solution’s.", "C", "maxout", false, all(FIN, f("bigWordPoints", "gte", 30))),
   // Slider (wordslide): 150 + speed 35 (33 s) + moves 15 (par).
   ch("wordslide", "Slick", "Make all five words in par moves.", "C", "par", false, bonus(15), "wordslide.par"),
   ch("wordslide", "Slide rule", "Make all five words within 33 s.", "C", "speed", false, speed(35, 33), "wordslide.speed"),
@@ -289,7 +290,7 @@ export const CATALOGUE: readonly PracticeChallenge[] = [
   ch("wordsearch", "Crow’s nest", "Score 200 on Hard.", "H", "perfect", true, score(200)),
   // Roundabout (letterwheel): 150 + speed 20 (40 s) + bonus jar 30.
   ch("letterwheel", "Jar of five", "Drop five bonus words in the jar.", "C", "target", false, all(f("bonusWords", "gte", 5))),
-  ch("letterwheel", "Jar full", "Fill the crossword with the bonus jar full to the brim.", "C", "maxout", false, all(FIN, f("jarPoints", "gte", 30))),
+  ch("letterwheel", "Jar full", "Finish with the jar full; a bonus word adds 1 to 4 drops.", "C", "maxout", false, all(FIN, f("jarPoints", "gte", 30))),
   ch("letterwheel", "Dizzy", "Fill the crossword within 40 s.", "C", "speed", false, speed(20, 40)),
   // Strikeout (strikeout): 150 + speed 20 (40 s) + early solves 20 + strikes left 10.
   ch("strikeout", "Five for five", "Solve all five words.", "C", "finish", false, all(FIN)),
@@ -390,7 +391,7 @@ export const CATALOGUE: readonly PracticeChallenge[] = [
   // Spacewalk (cross): rows and crossings 150 + no-stop streak 40 + close calls 10.
   ch("cross", "Unscathed", "Make four crossings without a hit.", "C", "clean", false, all(f("crossings", "gte", 4), f("livesLost", "eq", 0))),
   ch("cross", "Near miss", "Make ten close calls.", "C", "target", false, all(f("closeCalls", "gte", 10))),
-  ch("cross", "Keep moving", "Follow a no-stop crossing with another, four times.", "C", "streak", true, all(f("streakPts", "gte", 40))),
+  ch("cross", "Keep moving", "Make four no-stop crossings, each after a no-stop one.", "C", "streak", true, all(f("streakPts", "gte", 40))),
   // Hover (hover): barriers 120 + star chains 30 + gold stars 20 + tight gates 20 + centre lines 10.
   ch("hover", "Tight squeeze", "Thread all five tight gates.", "C", "fullset", false, all(f("tightGates", "gte", 5))),
   ch("hover", "Chain gang", "Complete all five star chains.", "C", "fullset", false, all(f("chainPts", "gte", 30))),
@@ -415,7 +416,7 @@ export const CATALOGUE: readonly PracticeChallenge[] = [
   /* ================================================================ Sports */
   // Ringer (alleyroll): ring points 140 + gold cup 30 + roll streak 20 + pocket hits 10.
   ch("alleyroll", "Pocket rocket", "Land in both 100 pockets.", "C", "fullset", false, part("Pocket hits", 10)),
-  ch("alleyroll", "Hot hand", "Follow a ball of 30 or more with another, five times.", "C", "streak", false, part("Roll streak", 20)),
+  ch("alleyroll", "Hot hand", "Roll five 30+ balls, each straight after another 30+ ball.", "C", "streak", false, part("Roll streak", 20)),
   ch("alleyroll", "Gold cup final", "Land in the gold cup three times on Hard.", "H", "fullset", false, part("Gold cup", 30)),
   // Swish (bintoss): buckets 130 + far buckets 36 + hoops 24 + all ten in 10.
   ch("bintoss", "Hoop dreams", "Throw through all three hoops.", "C", "fullset", false, part("Hoops", 24), "bintoss.hoops"),
@@ -423,7 +424,7 @@ export const CATALOGUE: readonly PracticeChallenge[] = [
   ch("bintoss", "Long range", "Hit the far bucket on all six chances.", "C", "maxout", true, part("Far buckets", 36)),
   // Flightpath (bullseye): dart total 150 + bull streaks 30 + dead-centre darts 20.
   ch("bullseye", "On a roll", "Throw four golds in a row.", "C", "streak", false, all(line("Bull streaks", "gte", 6))),
-  ch("bullseye", "Dead centre", "Hit dead centre with every dart that has one.", "C", "maxout", false, part("Dead-centre darts", 20), "bullseye.dead"),
+  ch("bullseye", "Dead centre", "Hit the dead-centre ring on every board with a 10 in the middle.", "C", "maxout", false, part("Dead-centre darts", 20), "bullseye.dead"),
   ch("bullseye", "One hundred and twelve", "Score 112 with your ten darts.", "C", "maxout", false, part("Dart total", 150)),
   // Crazy Golf (minigolf): holes 120 + par 40 + under par 20 + speed 20 (53 s).
   ch("minigolf", "Birdie", "Hole one under par.", "C", "par", false, all(line("Under par", "gte", 4))),
@@ -479,7 +480,7 @@ export const CATALOGUE: readonly PracticeChallenge[] = [
 
   /* ================================================================ Strategy */
   // Ball Tracker (balltrack): marbles home 140 + gold marbles 25 + combos 20 + boosted marbles 15.
-  ch("balltrack", "Combo breaker", "Land ten marbles home, each third or later in a row.", "C", "combo", false, all(line("Combos", "gte", 10))),
+  ch("balltrack", "Combo breaker", "Get ten combos: marbles home from the third in a row onwards.", "C", "combo", false, all(line("Combos", "gte", 10))),
   ch("balltrack", "Golden marbles", "Send all six gold marbles home.", "C", "fullset", false, all(full("Gold marbles", 25))),
   ch("balltrack", "Lost no marbles", "Send all 36 marbles home.", "C", "maxout", true, all(full("Marbles home", 140))),
   // Coral Pop (bubble): bubbles 120 + reef cleared 10 + speed 10 + chests 30 + bank shots 15 + combos 15.

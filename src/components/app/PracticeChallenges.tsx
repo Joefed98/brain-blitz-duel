@@ -88,6 +88,9 @@ export function PracticeChallenges({
       <p data-challenges-note className="pc-note">
         Each challenge is completed in a single Practice run.
       </p>
+      <p data-challenges-badges className="pc-note">
+        Every challenge counts towards your Challenger badges.
+      </p>
       <Segmented
         label="Challenges shown"
         radio
@@ -145,18 +148,12 @@ function ChallengeRow({ state, name, onPlay, account }: { state: ChallengeState;
         {/* A guest's coins wait for an account: a completed coin challenge says so. */}
         {done && challenge.coins > 0 && !account ? <span data-challenge-unlock className="pc-unlock">Unlocks with your account</span> : null}
       </span>
-      <span data-challenge-reward data-coins={challenge.coins || undefined} className="pc-reward">
-        {challenge.coins > 0 ? (
-          <>
-            <Coin size={14} />+{challenge.coins}
-          </>
-        ) : (
-          <>
-            <Icon name="lock" size={18} style={{ width: 14, height: 14 }} className="pc-icon" />
-            {challenge.reward}
-          </>
-        )}
-      </span>
+      {/* Only coin challenges show a reward (Joe, 11 Nov 2026): the rest pay nothing and show none. */}
+      {challenge.coins > 0 ? (
+        <span data-challenge-reward data-coins={challenge.coins} className="pc-reward">
+          <Coin size={14} />+{challenge.coins}
+        </span>
+      ) : null}
     </div>
   );
 }

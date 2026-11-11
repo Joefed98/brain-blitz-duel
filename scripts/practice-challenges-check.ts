@@ -16,7 +16,8 @@
  *     extra, and grade.ts adds them as keys only (scores are unchanged: the games' own checks replay every fixture).
  *  5. The database (a local PostgreSQL 16 with every migration, the server-function harness): a graded Practice run
  *     through practiceGradeFn completes challenges for its caller; coins pay once per challenge per account (twice
- *     run, raced five at once); a guest's completions are kept unpaid and paid once on sign-up (completeSignUpFn);
+ *     run, raced five at once); coin challenges only on a deal's first graded run (retries complete only the ones that
+ *     pay nothing, a missing key fails closed, five grades of one deal at once give one first run); a guest's completions are kept unpaid and paid once on sign-up (completeSignUpFn);
  *     anon and authenticated can't insert, update or delete progress rows or call the writers; a player reads only
  *     their own rows; challenge_completed and coins_credited are recorded.
  *  6. The completion moment never covers a result: it is drawn only on the Practice list (`stage === "list"`), never
@@ -485,25 +486,25 @@ async function databaseChecks(db: LocalDb, rest: RestServer): Promise<void> {
     const speed = ch("laser.speed-of-light");
     check(speed.coins === 100 && speed.level === "classic", "Speed of light: Classic, 100 coins");
     const run = meetRun(speed);
-    const first = await server.checkPracticeChallenges(admin, ACC, "laser", run);
+    const first = await server.checkPracticeChallenges(admin, ACC, "laser", run, dealKey());
     check(first.some((x) => x.id === speed.id && x.coins === 100 && x.paid), `a completing run pays its 100 coins (${JSON.stringify(first)})`);
     check(balance(ACC) === 100 && ledger(ACC) === `100:challenge_reward:challenge_reward:${speed.id}`, `one ledger line, reason challenge_reward (${ledger(ACC)})`);
-    const again = await server.checkPracticeChallenges(admin, ACC, "laser", run);
+    const again = await server.checkPracticeChallenges(admin, ACC, "laser", run, dealKey());
     check(!again.some((x) => x.id === speed.id) && balance(ACC) === 100, "the same challenge again pays nothing");
     await Promise.all(Array.from({ length: 5 }, () => server.payPendingChallengeRewards(admin, ACC)));
     check(balance(ACC) === 100, "five payouts raced at once pay nothing more");
     // Five completions raced for another challenge: one completion, one payment.
     const bulls = ch("numline.fifteen-bulls");
-    const raced = await Promise.all(Array.from({ length: 5 }, () => server.checkPracticeChallenges(admin, ACC, "numline", meetRun(bulls))));
+    const raced = await Promise.all(Array.from({ length: 5 }, () => server.checkPracticeChallenges(admin, ACC, "numline", meetRun(bulls), dealKey())));
     check(raced.flat().filter((x) => x.id === bulls.id).length === 1 && balance(ACC) === 200, `five runs at once complete it once and pay 100 once (balance ${balance(ACC)})`);
     check(q(`SELECT count(*) FROM coin_ledger WHERE user_id = '${ACC}' AND reason = 'challenge_reward'`) === "2", "two challenge_reward lines in all");
     // A challenge without coins completes without a line.
     const par = ch("lightsout.par");
-    const r = await server.checkPracticeChallenges(admin, ACC, "lightsout", meetRun(par));
+    const r = await server.checkPracticeChallenges(admin, ACC, "lightsout", meetRun(par), dealKey());
     check(r.some((x) => x.id === par.id && x.coins === 0) && balance(ACC) === 200, "a challenge without coins completes and pays nothing");
     // Hard and Expert: never complete before wave 3.5, so never pay.
     const hard = ch("tents.glamping");
-    const h = await server.checkPracticeChallenges(admin, ACC, "tents", meetRun(hard));
+    const h = await server.checkPracticeChallenges(admin, ACC, "tents", meetRun(hard), dealKey());
     check(!h.some((x) => x.id === hard.id) && q(`SELECT count(*) FROM practice_challenge_progress WHERE user_id = '${ACC}' AND challenge_id = '${hard.id}' AND completed_at IS NOT NULL`) === "0", "a Hard challenge (with coins) doesn't complete or pay");
     const completions = Number(q(`SELECT count(*) FROM practice_challenge_progress WHERE user_id = '${ACC}' AND completed_at IS NOT NULL`));
     check(completions >= 3 && (await events("challenge_completed", ACC)) === completions, `challenge_completed recorded once per completion (${completions})`);
@@ -513,10 +514,48 @@ async function databaseChecks(db: LocalDb, rest: RestServer): Promise<void> {
     check((await events("coins_credited", ACC)) === 2, "coins_credited once per payment");
   });
 
+  await section("coins only on a deal's first graded run", async () => {
+    // Joe, 11 Nov 2026: a coin challenge pays only on a player's first graded run of that deal; a retry of the same
+    // deal can still complete challenges that pay nothing.
+    const RET = uid(44);
+    q(`INSERT INTO auth.users (id, is_anonymous, email) VALUES ('${RET}', false, 'ret@example.com')`);
+    q(`SELECT public.create_profile('${RET}', 'Ret_Chal', 6::smallint, DATE '1990-01-01', 'GB')`);
+    const coin = ch("clayshoot.dead-eye");
+    const free = ch("clayshoot.bird-lover");
+    check(coin.coins === 100 && free.coins === 0, "Dead eye pays 100, Bird lover nothing");
+    const deal = dealKey();
+    // The first run of the deal falls short of both; the retry of the same deal meets both.
+    const short = meetRun(free);
+    apply(short, { c: "field", path: "birdHits", op: "eq", v: 0 }, "clayshoot", false);
+    const first = await server.checkPracticeChallenges(admin, RET, "clayshoot", short, deal);
+    check(!first.some((x) => x.id === coin.id || x.id === free.id), `the deal's first run completes neither (${JSON.stringify(first)})`);
+    const both = meetRun(coin);
+    for (const cond of condsOf(free)) apply(both, cond, "clayshoot", true);
+    const retry = await server.checkPracticeChallenges(admin, RET, "clayshoot", both, deal);
+    check(retry.some((x) => x.id === free.id) && !retry.some((x) => x.id === coin.id), `a retry of the same deal completes the challenge that pays nothing, not the coin one (${retry.map((x) => x.id).join(", ")})`);
+    check(balance(RET) === 0 && q(`SELECT count(*) FROM coin_ledger WHERE user_id = '${RET}'`) === "0", "and pays no coins");
+    check(q(`SELECT completed_at IS NULL FROM practice_challenge_progress WHERE user_id = '${RET}' AND challenge_id = '${coin.id}'`) === "t", "the coin challenge stays not done (its best value kept)");
+    // A run with no deal key counts as a retry (fails closed).
+    const none = await server.checkPracticeChallenges(admin, RET, "clayshoot", meetRun(coin), null);
+    check(!none.some((x) => x.id === coin.id) && balance(RET) === 0, "a run with no deal key never completes a coin challenge");
+    // A fresh deal's first run completes it and pays once.
+    const fresh = await server.checkPracticeChallenges(admin, RET, "clayshoot", meetRun(coin), dealKey());
+    check(fresh.some((x) => x.id === coin.id && x.paid) && balance(RET) === 100, "a new deal's first run completes it and pays 100");
+    // Two grades of one new deal at once: exactly one is its first run.
+    const raceKey = dealKey();
+    const firsts = await Promise.all(Array.from({ length: 5 }, async () => (await admin.rpc("challenge_first_run", { p_user_id: RET, p_deal_key: raceKey })).data));
+    check(firsts.filter((x) => x === true).length === 1, `five grades of one deal at once: exactly one first run (${firsts.join(",")})`);
+    check(q(`SELECT count(*) FROM practice_challenge_deals WHERE user_id = '${RET}' AND deal_key = '${raceKey}'`) === "1", "one row for the deal");
+    check((await admin.rpc("challenge_first_run", { p_user_id: RET, p_deal_key: "not-a-digest" })).data === false, "a malformed key is never a first run");
+    // The key is the sealed deal's SHA-256.
+    check((await server.challengeDealKey("abc")) === "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad", "the deal key is the SHA-256 of the sealed token");
+    check((await server.challengeDealKey("")) === null, "no sealed token, no key");
+  });
+
   await section("guest paid on becoming an account", async () => {
     const encore = ch("beat.score180");
     const run = meetRun(encore);
-    const done = await server.checkPracticeChallenges(admin, GUE, "beat", run);
+    const done = await server.checkPracticeChallenges(admin, GUE, "beat", run, dealKey());
     check(done.some((x) => x.id === encore.id && x.coins === 100 && !x.paid), `a guest's completion is kept, its coins waiting (${JSON.stringify(done)})`);
     check(q(`SELECT count(*) FROM practice_challenge_progress WHERE user_id = '${GUE}' AND completed_at IS NOT NULL AND paid_at IS NULL AND coins = 100`) === "1", "stored completed and unpaid");
     check(q(`SELECT count(*) FROM coin_ledger WHERE user_id = '${GUE}'`) === "0", "no ledger line for a guest");
@@ -547,6 +586,12 @@ async function databaseChecks(db: LocalDb, rest: RestServer): Promise<void> {
       check(Boolean(rec.error), `${who} can't call challenge_record`);
       const pay = await c.rpc("challenge_pay_due", { p_user_id: ACC });
       check(Boolean(pay.error), `${who} can't call challenge_pay_due`);
+      const fr = await c.rpc("challenge_first_run", { p_user_id: OTH, p_deal_key: "0".repeat(64) });
+      check(Boolean(fr.error), `${who} can't call challenge_first_run`);
+      const dr = await c.from("practice_challenge_deals").select("deal_key");
+      check(Boolean(dr.error) || (dr.data ?? []).length === 0, `${who} reads no deal rows`);
+      const di = await c.from("practice_challenge_deals").insert({ user_id: OTH, deal_key: "1".repeat(64) });
+      check(Boolean(di.error), `${who} can't insert a deal row`);
     }
     check(q(`SELECT count(*) FROM practice_challenge_progress WHERE user_id = '${OTH}'`) === "0" && balance(OTH) === 0, "nothing was written for the other account, and no coins");
     check(balance(ACC) === 200, "nor taken from anyone");
@@ -579,11 +624,39 @@ async function databaseChecks(db: LocalDb, rest: RestServer): Promise<void> {
     const ids = (graded.challenges ?? []).map((x: any) => x.id);
     check(ids.length > 0 && ids.every((id: string) => id.startsWith("lightsout.")), `the graded run comes back with its completions (${ids.join(", ")})`);
     for (const id of ids) check(q(`SELECT count(*) FROM practice_challenge_progress WHERE user_id = '${OTH}' AND challenge_id = '${id}' AND completed_at IS NOT NULL`) === "1", `${id} stored completed for the caller`);
+    // C1a's interface (docs/practice-progress.md): the challenges ran on the play practice_record_play counted, read
+    // from its stored breakdown.
+    check(q(`SELECT count(*) FROM practice_plays WHERE user_id = '${OTH}' AND game_id = 'lightsout' AND progress_counted_at IS NOT NULL AND breakdown IS NOT NULL`) === "1", "the run's play is stored with its breakdown and counted");
+    // The same deal graded again: noted once, by its sealed token's digest; the retry completes no coin challenge.
+    const key = await server.challengeDealKey(dealt.sealed);
+    check(q(`SELECT count(*) FROM practice_challenge_deals WHERE user_id = '${OTH}' AND deal_key = '${key}'`) === "1", "the graded deal is noted by its sealed token's digest");
+    const again = await callServerFn(practice.practiceGradeFn, { puzzle: dealt.puzzle, sealed: dealt.sealed, answer: last.answer, msRemaining: puzzleTimeLimitMs(full) - 1000, start }, token);
+    check(again.isCorrect === true && (again.challenges ?? []).every((x: any) => x.coins === 0), "a retry of the same deal completes no coin challenge");
+    check(q(`SELECT count(*) FROM practice_challenge_deals WHERE user_id = '${OTH}' AND deal_key = '${key}'`) === "1", "still one row for the deal");
     // The phone's word counts for nothing: a run graded as a fail completes nothing, whatever it claims.
     const dealt2 = await callServerFn(practice.practiceGenerateFn, { type: "lightsout" }, accountToken(ACC));
     const g2 = await callServerFn(practice.practiceGradeFn, { puzzle: dealt2.puzzle, sealed: dealt2.sealed, answer: "", msRemaining: 59_000, extra: { reactionAvgMs: 1, correctCount: 99 } as any }, accountToken(ACC));
     check((g2.challenges ?? []).length === 0, "an empty answer completes nothing, whatever the phone claims");
+    // A play C1a doesn't count (graded before the fresh start) completes nothing, even a finish.
+    const startAt = q(`SELECT fresh_start_at FROM practice_progress_start`);
+    q(`UPDATE practice_progress_start SET fresh_start_at = now() + interval '1 day'`);
+    try {
+      const dealt3 = await callServerFn(practice.practiceGenerateFn, { type: "lightsout" }, token);
+      const full3 = { ...dealt3.puzzle, ...(await unsealForChecks(dealt3.sealed)) };
+      const play3 = (KITS as any).lightsout.play(full3, makeRng(hashText("e2e-uncounted")), SKILLS.near, puzzleTimeLimitMs(full3));
+      const g3 = await callServerFn(practice.practiceGradeFn, { puzzle: dealt3.puzzle, sealed: dealt3.sealed, answer: play3.steps[play3.steps.length - 1].answer, msRemaining: puzzleTimeLimitMs(full3) - 1000 }, token);
+      check(g3.isCorrect === true && g3.progress?.counted !== true && (g3.challenges ?? []).length === 0, "a finish C1a doesn't count completes nothing");
+    } finally {
+      q(`UPDATE practice_progress_start SET fresh_start_at = '${startAt}'`);
+    }
   });
+}
+
+/** A fresh deal key (a 64-hex digest, as challengeDealKey makes). */
+function dealKey(): string {
+  const g = globalThis as unknown as { __dealSeq?: number };
+  g.__dealSeq = (g.__dealSeq ?? 0) + 1;
+  return g.__dealSeq.toString(16).padStart(64, "0");
 }
 
 /** Whether a statement is refused for a database role. */
