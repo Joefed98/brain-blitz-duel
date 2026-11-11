@@ -1996,21 +1996,49 @@ outside the repo.
   offline worker itself is unchanged. Migration `20261111200000_push_notifications.sql` (after C2's and B1's; **not applied
   until merged**). Events `notification_opt_in`, `notification_sent`, `notification_opened`. push-notifications-check (~5 s,
   shard `e`).
+- **Practice challenges** (wave 2 train C, session C1b, 11 Nov 2026; `docs/challenges/catalogue.md`, the live catalogue,
+  written by `bun scripts/challenge-catalogue-doc.ts [--check]`; no gameplay, scoring, stamp, timing or deal change): 261
+  challenges over the 92 active games in one data file, `src/lib/duel/practiceChallenges.data.ts` (217 Classic live;
+  30 Hard and 14 Expert switched off until wave 3.5 deals levels, `LIVE_CHALLENGE_LEVELS`). The one checker,
+  `evaluateChallenge` (`practiceChallenges.ts`), reads only the server's graded result (score, isCorrect, reactionAvgMs,
+  the stored extra, its reveal lines and tiles); `src/lib/challenges/challenges.server.ts` runs it in practice's
+  grading (`gradePracticeRun`, online and synced offline runs; never the intro example, rooms, the Daily or friend
+  challenges) and stores each player's best value and completion in `public.practice_challenge_progress` (guests too),
+  written only by the service-role `challenge_record` / `challenge_pay_due`
+  (`supabase/migrations/20261111130000_practice_challenges.sql`, **not applied until merged**; data layer
+  `src/lib/data/practiceChallenges.server.ts`). 17 Classic pay 100 coins (13 Hard 100 and 9 Expert 250 once live)
+  through A1's ledger, reason `challenge_reward`, key `challenge_reward:<id>`, once per account; a guest's are paid at
+  sign-up (`completeSignUpFn`), or the next graded run or list read. The list (`PracticeChallenges`, done from the server
+  alone, `getMyChallengesFn`, `useServerChallenges`), Profile's section (`ProfileChallenges`) and the small completion
+  moment (`ChallengeMoments`, queued on the device, drawn only on the Practice list, never over a round, reveal or
+  result). Six stored facts (display data only, grade.ts): Heave `goldHome` and Spacewalk `closeCalls`, `noStop` /
+  `streakPts` were already stored; added Slice `goldenSliced` / `goldenDealt` (sliceRev 11+), Meteor `goldStars` /
+  `goldStarsDealt` (snakeRev 12) and Five Hands `bestColumnPoints` (fiveHandsRev 3, `fiveHandsBestColumnPoints` in
+  cards.ts). Event `challenge_completed`. Checks: practice-goals-check (the catalogue, and section 7: every number in
+  every goal against the live game, `scripts/practice-challenge-numbers.ts`), practice-challenges-check (~40 s, shard
+  `e`: real graded runs `scripts/fixtures/practice-challenges-runs.json.gz` by `practice-challenges-record.ts`, meets
+  and falls short for all 261, speed goals against the grader, the facts, coins and roles on PostgreSQL) and
+  practice-challenge-fit-check (headless Chromium: every goal whole at 320 and 375 px). **A retune that moves a goal's
+  number fails practice-goals-check: change the goal's text and number in the data file and re-run the doc script.**
 - **Badges, titles and the account rewards** (wave 2 train C, session C2, 11 Nov 2026, `docs/badges/README.md`; no
-  gameplay, scoring, stamp or timing change): the 54 badges of `docs/art/badges/badges.json` and the 32 titles in one
-  list, `src/lib/badges/catalogue.ts` (seeded by `20261111120000_badges_titles.sql`, **not applied until merged**),
-  each `earnable` (rule in `rules.server.ts`; today only Founding Player), `waits` (rated play, tournaments, mastery
-  stars, practice challenges) or `rule_pending` (no rule in the approved files: 22); only earnable ones can be awarded
-  (`badge_award`, idempotent, a Legendary's 250 coins once, key `badge_reward:<slug>`). `settleAccountRewards` pays the
-  1,000-coin sign-up reward (key `signup_reward:<user id>`) and a Founding Player's badge, 250 and Founding frame, from
-  `syncMyBadges` (after sign-up and on tab pages, never inside `completeSignUpFn`); the migration backfills existing
-  accounts under the same keys. One title (Rookie by default) and up to three earned badges on the card (`PlayerCard`
-  `title` / `badges`); Profile's collection shows every badge, locked ones with how; the badge-earned moment is drawn
-  only on tab pages. The Daily streak is the server's (`dailyStreak.ts`, `dailyStreak.server.ts`, the device rule
-  exactly; streak freezes used automatically for a covered gap, `daily_streak_freezes`), read by Profile, the Play
-  tab, the aside and the Daily screens (`useDailyRecord`, the device's record until the server answers). Events
-  `badge_earned`, `title_equipped`. badges-check (~10 s, shard `e`, PostgreSQL), badges-screens-check (~5 s, happy-dom).
-  **A new badge rule**: a migration flipping its row, the catalogue line, a `BADGE_RULES` entry and an earn / miss test.
+  gameplay, scoring, stamp or timing change): the 54 badges and their rules are Joe's approved catalogue,
+  **`docs/badges/catalogue.md`**, in one list, `src/lib/badges/catalogue.ts` (with the 32 titles; seeded by
+  `20261111220000_badges_titles.sql`, after C1b's `20261111130000`, **not applied until merged**). Each is `earnable` (13: a rule in
+  `rules.server.ts` read from stored facts, `public.badge_facts` plus the Daily record, or Friendly, which B1 awards
+  through `badge_award`; the challenge badges count C1b's completed challenges) or `waits` (41: rated play, all stars,
+  Hard challenges, Daily boards, tournaments, and C1a's First Star, All-Rounder and Gem Hunter until C1a lands); only earnable ones can be awarded (`badge_award`, idempotent, a
+  Legendary's 250 coins once, key `badge_reward:<slug>`). Practice counts only from C1a's fresh start
+  (`PRACTICE_SINCE`, null until then). `settleAccountRewards` pays the 1,000-coin sign-up reward (key
+  `signup_reward:<user id>`) and a Founding Player's badge, 250 and Founding frame, from `syncMyBadges` (after sign-up
+  and on tab pages, retried on the next tab page after a failure, awaited by the coin counter; never inside
+  `completeSignUpFn`); the migration backfills existing accounts under the same keys. One title (Rookie by default)
+  and up to three earned badges on the card (`PlayerCard` `title` / `badges`); Profile's collection shows every badge
+  with its rule and, locked, its progress ("4 of 7 days"); the badge-earned moment is drawn only on tab pages. The
+  Daily streak is the server's (`dailyStreak.ts`, `dailyStreak.server.ts`, the device rule exactly; streak freezes used
+  automatically for a covered gap, `daily_streak_freezes`), read by Profile, the Play tab, the aside and the Daily
+  screens (`useDailyRecord`, the device's record until the server answers). Events `badge_earned`, `title_equipped`.
+  badges-check (~15 s, shard `e`, PostgreSQL), badges-screens-check (~5 s, happy-dom). **A new badge rule**: a
+  migration flipping its row, the catalogue and catalogue.md lines, a `BADGE_RULES` entry and an earn / miss test.
 - **Friends** (wave 2 train B, session B1, 11 Nov 2026, `docs/friends.md`; no gameplay, scoring, stamp or room-flow
   change beyond Invite to room): accounts only (`/friends`, `src/routes/friends.tsx`, screens
   `src/components/friends/FriendsScreens.tsx`; Profile's Friends button carries the waiting-requests badge, a guest gets

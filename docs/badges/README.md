@@ -8,7 +8,7 @@ nothing here is read by scoring, grading, replay, matchmaking or timing code (ec
 
 | Piece | File |
 | --- | --- |
-| Migration: tables, functions, the reason `streak_freeze_used`, the two events, the backfill | `supabase/migrations/20261111120000_badges_titles.sql` |
+| Migration: tables, functions, the reason `streak_freeze_used`, the two events, the backfill | `supabase/migrations/20261111220000_badges_titles.sql` |
 | The 54 badges and the titles (phone and server; the migration seeds the same rows) | `src/lib/badges/catalogue.ts` |
 | Each earnable badge's rule | `src/lib/badges/rules.server.ts` |
 | Rewards, awards, equipping (server) | `src/lib/badges/badges.server.ts` |
@@ -26,34 +26,41 @@ nothing here is read by scoring, grading, replay, matchmaking or timing code (ec
 8 Common, 12 Rare, 17 Epic, 9 Elite, 8 Legendary, from `docs/art/badges/badges.json`. Earned, never bought; no hidden
 badges: Profile lists every one, a locked one with how it is earned. A card shows up to three.
 
+Every badge's rule is Joe's approved catalogue (**`docs/badges/catalogue.md`**, 11 Nov 2026; badges-check holds the
+code to its table). Every badge shows its rule; a locked badge the server counts shows its progress ("4 of 7 days").
 Each badge has a `status`:
 
-- **earnable**: its rule is in `rules.server.ts` and the server checks it from what is stored. Today only **Founding
-  Player** (an account made before 26 January 2027 00:00 UK time; it carries the player number).
-- **waits**: needs something not built yet. Shown locked with "Arrives with …"; the database refuses to award it.
-  - rated play (wave 3): Storm Chaser, Lightning Strikes, Top 500;
-  - mastery stars (C1a): First Star, All-Rounder, the 11 category masters, Grand Master;
-  - practice challenges (C1b): Challenger, Challenge Seeker, Challenge Expert, Category Clear, Completionist;
+- **earnable** (13): the server checks its rule now from what it stores (`rules.server.ts`, facts from
+  `public.badge_facts`, the Daily record and the profile), or another session awards it through `badge_award`:
+  - Flawless (a 200 in any game), Perfectionist (200 in 25 different games);
+  - Daily Habit, Dedicated, Century (7 / 30 / 100 days in a row: the longest run in the server's Daily history, a
+    freeze-covered day joining a run without adding to it; progress shows today's streak);
+  - Buzzer Beater (a puzzle finished, `is_correct`, with 1–999 ms left), Speed Demon (10 puzzles finished with more
+    than two thirds of the clock left; the clock is the stored `time_limit_ms` where kept, else the type's);
+  - Party Host (25 room games hosted, `duels.host_user_id`, that at least 3 players played: on now or in Play again's
+    archive);
+  - Challenger, Challenge Seeker, Challenge Expert (10 / 50 / 100 Practice challenges completed: C1b's
+    `public.practice_challenge_progress` rows with `completed_at` set; Practice challenges only exist in Practice);
+  - Founding Player (as before);
+  - Friendly (5 friends): earnable, but **B1 awards it** through `badge_award` (`AWARDED_ELSEWHERE`); no rule here.
+
+  "Any game / any mode" counts rooms (the game on now and the archive), the Daily and challenges (not the results a
+  challenge copied from the player's own room), and Practice only from C1a's fresh start (`PRACTICE_SINCE` in
+  `rules.server.ts`, null until C1a sets it). Puzzle means a non-arcade game.
+- **waits** (41): the database refuses to award it; shown with "Arrives with …":
+  - rated play (wave 3): the 11 competitive badges, Revenge, Photo Finish;
+  - all three stars per game (wave 3.5): the 11 category masters, Grand Master;
+  - Hard and Expert challenges (wave 3.5): Category Clear, Completionist;
+  - Daily leaderboards (wave 4): Daily Top 100, Daily Champion;
   - tournaments (wave 4): Entrant, Trophy Hunter, Arena Ace, Champion, Arena Champion, Score Attack Champion, Swiss
-    Champion, Knockout Champion, Serial Winner.
-- **rule_pending**: the approved files give no rule. Shown locked with "How to earn this is announced soon."; can't be
-  awarded. First Win, Placed, Hot Streak, Comeback Kid, Clean Sweep, Podium Regular, Unstoppable, Giant Slayer,
-  Flawless, Perfectionist, Daily Habit, Dedicated, Daily Top 100, Century, Daily Champion, Revenge, Photo Finish, Buzzer
-  Beater, Speed Demon, Friendly, Party Host, Gem Hunter.
+    Champion, Knockout Champion, Serial Winner;
+  - **parked on C1a**, which hadn't opened a PR when this was built: First Star, All-Rounder and Gem Hunter (Joe:
+    wired to C1a's own star and gem tables once its PR is open, each with an earn / miss test).
 
-### Rules
-
-`docs/art/badges/README.md` says "see the Badge catalogue doc for how each is earned"; that document is not in the
-repository, and neither the master plan nor the economy doc has the rules. So every rule but Founding Player's is
-waiting for Joe. The art's engraved numbers (Daily Habit 7, Dedicated 30, Century 100, Challenger 10, Challenge Seeker
-50, Challenge Expert 100, Perfectionist 25, Serial Winner 10, Flawless 200, Top 500) hint at counts but not at what is
-counted, so none was guessed. The mockup (`customise-3-badges-and-title.png`) shows an older list ("200 Club", "All 40
-badges"), not these 54.
-
-**To make a badge earnable** once its rule is agreed: a new migration updates its row (`status = 'earnable'`, `rule`),
-the same change in `catalogue.ts`, a rule in `BADGE_RULES` reading new `BadgeFacts` (gathered in `badges.server.ts`
-`factsFor`, through `src/lib/data/`), and in `badges-check` a test that earns it and one that just misses. Practice
-badges count only runs from C1a's fresh start; room, Daily and challenge badges may count what the server already stores.
+**To make a badge earnable** later: a new migration updates its row (`status = 'earnable'`, `waits_for = NULL`), the
+same change in `catalogue.ts` and `catalogue.md`, a rule in `BADGE_RULES` reading new `BadgeFacts` (gathered in
+`badges.server.ts` `factsFor`, through `src/lib/data/`), and in `badges-check` a test that earns it and one that just
+misses.
 
 ### Awarding
 
@@ -84,6 +91,12 @@ Both are paid by `settleAccountRewards`, called by `syncMyBadges`: right after s
 page. They are not paid inside `completeSignUpFn` itself (economy-check proves a new account's wallet starts at 0 there).
 The migration backfills every existing account (Joe's #0001 included) under the same keys, so neither path can pay
 twice; its counts go to the deploy log (`badges backfill: N accounts; …`).
+
+**They can't be missed, and land before the coin counter is seen.** A sync that fails or is refused clears the
+phone's `loading`, so the next tab page tries again (`refreshBadges`), and every tab page draws `BadgeMoment`, whose
+`useMyBadges` starts a sync whenever none has answered (and again a minute after the last). The coin counter's read
+(`refreshIdentity`) first waits for `rewardsSettled()` (up to 4 s), so a new account's first balance already holds the
+1,000. The server's idempotency keys make every retry safe.
 
 ## The Daily streak on the account (Joe's decision, 10 Nov 2026)
 

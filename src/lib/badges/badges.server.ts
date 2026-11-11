@@ -7,7 +7,8 @@
  *   creditCoins) and, for a Founding Player, the badge with their number (its 250 coins, key badge_reward:
  *   founding-player) and the Founding frame. Idempotent: the keys (and the badge's primary key) pay once, also after the
  *   migration's backfill, which uses the same keys.
- * - syncBadges: settles, checks every earnable badge's rule (rules.server.ts) and awards what is earned.
+ * - syncBadges: settles, checks every earnable badge's rule (rules.server.ts) against the stored facts (factsFor:
+ *   public.badge_facts, the Daily record, the profile), awards what is earned and answers progress on counted badges.
  * - setCardBadges / setTitle: only earned badges and unlocked titles (the database refuses the rest too).
  *
  * Events (src/lib/data/events.server.ts): badge_earned (badge, rarity), title_equipped (title), and A1's
@@ -20,6 +21,7 @@ import {
   badgeAwardRpc,
   markBadgesSeenRpc,
   readBadgePublicCards,
+  readBadgeFacts,
   readPlayerBadges,
   setCardBadgesRpc,
   setTitleRpc,
@@ -28,10 +30,13 @@ import {
 import type { Db } from "@/lib/data/db.server";
 import { recordEvents } from "@/lib/data/events.server";
 import { readProfile } from "@/lib/data/profiles.server";
+import { ARCADE_CATEGORY, PUZZLE_TYPES, puzzleInfo, typeTimeLimitMs } from "@/lib/duel/catalogue";
+import { longestDailyStreak } from "@/lib/duel/dailyStreak";
+import { dailyRecordFor } from "@/lib/duel/dailyStreak.server";
 import { creditCoins, grantItem } from "@/lib/economy/economy.server";
 
 import { BADGE_BY_SLUG, CARD_BADGE_SLOTS, STARTER_TITLE, TITLE_BY_ID } from "./catalogue";
-import { badgesEarnedBy, type BadgeFacts } from "./rules.server";
+import { badgeProgress, badgesEarnedBy, PRACTICE_SINCE, type BadgeFacts } from "./rules.server";
 import type { BadgeChangeResult, BadgeRefusal, CardBadges, EarnedBadge, MyBadges } from "./types";
 
 export const SIGNUP_REWARD_COINS = 1000;
@@ -95,27 +100,55 @@ export async function settleAccountRewards(client: Db, userId: string): Promise<
   return { account: true, signup: paid.status, founding: profile.founding };
 }
 
-/** The facts the rules read, from what is stored. */
-async function factsFor(client: Db, userId: string): Promise<BadgeFacts | null> {
+/** Every puzzle (non-arcade) type's clock in ms, for badge_facts (Buzzer Beater, Speed Demon). */
+let puzzleLimitsCache: Record<string, number> | null = null;
+export function puzzleLimits(): Record<string, number> {
+  if (puzzleLimitsCache) return puzzleLimitsCache;
+  const out: Record<string, number> = {};
+  for (const type of PUZZLE_TYPES) if (puzzleInfo(type).category !== ARCADE_CATEGORY) out[type] = typeTimeLimitMs(type);
+  return (puzzleLimitsCache = out);
+}
+
+/** The facts the rules read, from what is stored (null for a guest). */
+export async function factsFor(client: Db, userId: string, nowMs: number = Date.now()): Promise<BadgeFacts | null> {
   const { data: profile, error } = await readProfile(client, userId);
   if (error) throw new Error(`badges: ${error.message}`);
   if (!profile) return null;
-  return { founding: profile.founding, playerNumber: profile.player_number };
+  const [{ data: stored, error: fErr }, daily] = await Promise.all([
+    readBadgeFacts(client, { userId, puzzleLimits: puzzleLimits(), practiceSince: PRACTICE_SINCE }),
+    dailyRecordFor(client, userId, nowMs),
+  ]);
+  if (fErr || !stored) throw new Error(`badges: ${fErr?.message ?? "no facts"}`);
+  return {
+    founding: profile.founding,
+    playerNumber: profile.player_number,
+    games200: Number(stored.games200) || 0,
+    buzzerFinishes: Number(stored.buzzer) || 0,
+    fastFinishes: Number(stored.speedDemon) || 0,
+    bestDailyStreak: longestDailyStreak(daily.days, daily.frozenDays),
+    dailyStreak: daily.streak,
+    hostedRooms: Number(stored.hosted3) || 0,
+    challengesDone: Number(stored.challenges) || 0,
+  };
 }
 
-/** Checks every earnable badge's rule and awards those earned (idempotent). Answers the slugs newly awarded. */
-export async function evaluateBadges(client: Db, userId: string): Promise<string[]> {
-  const facts = await factsFor(client, userId);
-  if (!facts) return [];
+/** Checks every earnable badge's rule and awards those earned (idempotent). Answers the slugs newly awarded and the progress. */
+export async function evaluateBadges(
+  client: Db,
+  userId: string,
+  nowMs: number = Date.now(),
+): Promise<{ awarded: string[]; progress: Record<string, number> }> {
+  const facts = await factsFor(client, userId, nowMs);
+  if (!facts) return { awarded: [], progress: {} };
   const awarded: string[] = [];
   for (const { slug, detail } of badgesEarnedBy(facts)) {
     if ((await awardBadge(client, userId, slug, detail)) === "awarded") awarded.push(slug);
   }
-  return awarded;
+  return { awarded, progress: badgeProgress(facts) };
 }
 
 /** The account's badges, card and title (a guest: account false). */
-export async function myBadges(client: Db, userId: string): Promise<MyBadges> {
+export async function myBadges(client: Db, userId: string, progress: Record<string, number> = {}): Promise<MyBadges> {
   const [{ data: profile, error: pErr }, { data: rows, error: bErr }, { data: cards, error: cErr }] = await Promise.all([
     readProfile(client, userId),
     readPlayerBadges(client, userId),
@@ -137,6 +170,7 @@ export async function myBadges(client: Db, userId: string): Promise<MyBadges> {
     card: card?.badges ?? [],
     title: card?.title && TITLE_BY_ID.has(card.title) ? card.title : STARTER_TITLE,
     unseen: earned.filter((b) => !b.seen).map((b) => b.slug),
+    progress,
   };
 }
 
@@ -144,8 +178,8 @@ export async function myBadges(client: Db, userId: string): Promise<MyBadges> {
 export async function syncBadges(client: Db, userId: string): Promise<MyBadges> {
   const settled = await settleAccountRewards(client, userId);
   if (!settled.account) return { account: false };
-  await evaluateBadges(client, userId);
-  return myBadges(client, userId);
+  const { progress } = await evaluateBadges(client, userId);
+  return myBadges(client, userId, progress);
 }
 
 /** Puts up to three earned badges on the card, in order. */

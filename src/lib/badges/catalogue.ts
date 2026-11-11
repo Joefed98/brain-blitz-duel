@@ -1,16 +1,15 @@
 /**
  * Badges and titles (wave 2, train C, session C2; docs/badges/README.md). The one list, shared by the phone and the
  * server: the 54 permanent badges of docs/art/badges/badges.json (slug, name, group, rarity, coins, in that order)
- * and the titles. The database seeds the same rows (supabase/migrations/20261111120000_badges_titles.sql;
- * badges-check proves table and list match, and both match badges.json).
+ * and the titles. The database seeds the same rows (supabase/migrations/20261111220000_badges_titles.sql;
+ * badges-check proves table and list match, and both match badges.json and docs/badges/catalogue.md).
  *
- * Earned, never bought; no hidden badges: a locked badge shows how it is earned (`rule`). Where the approved files
- * give no rule, `rule` is null and the badge can't be earned until Joe supplies it (the screens say so, never a
- * guessed rule). `status`:
- *   - earnable:     its rule is checked by the server now (src/lib/badges/rules.server.ts);
- *   - waits:        it needs something not built yet (`waitsFor`): rated play (wave 3), tournaments (wave 4),
- *                   mastery stars (C1a) or practice challenges (C1b);
- *   - rule_pending: no rule in the approved files yet.
+ * Earned, never bought; no hidden badges: every badge shows its rule (Joe's approved catalogue, 11 Nov 2026), and a
+ * locked counted badge its progress ("4 of 7 days"). `status`:
+ *   - earnable: the server checks its rule now (src/lib/badges/rules.server.ts), or another session awards it through
+ *               badge_award (Friendly, B1);
+ *   - waits:    it needs something not built yet (`waitsFor`): rated play (wave 3), all three stars or Hard and Expert
+ *               challenges (wave 3.5), Daily leaderboards and tournaments (wave 4), or C1a's stars and C1b's challenges.
  * Only `earnable` badges can be awarded (the database refuses the rest).
  *
  * Presentation and account data only: nothing here is read by scoring, grading, replay, matchmaking or timing.
@@ -44,18 +43,26 @@ export const LEGENDARY_BADGE_COINS = 250;
 /** The most badges a card shows. */
 export const CARD_BADGE_SLOTS = 3;
 
-export type BadgeStatus = "earnable" | "waits" | "rule_pending";
-export type BadgeWait = "rated-play" | "tournaments" | "mastery-stars" | "practice-challenges";
+export type BadgeStatus = "earnable" | "waits";
+export type BadgeWait =
+  | "rated-play"
+  | "all-stars"
+  | "hard-challenges"
+  | "daily-boards"
+  | "tournaments"
+  | "mastery-stars"
+  | "practice-challenges";
 
+/** What a badge that can't be earned yet is waiting for (shown under its rule). */
 export const BADGE_WAIT_LABEL: Record<BadgeWait, string> = {
   "rated-play": "Arrives with rated play",
+  "all-stars": "Arrives with all three stars per game",
+  "hard-challenges": "Arrives with Hard and Expert challenges",
+  "daily-boards": "Arrives with Daily leaderboards",
   tournaments: "Arrives with tournaments",
   "mastery-stars": "Arrives with mastery stars",
-  "practice-challenges": "Arrives with practice challenges",
+  "practice-challenges": "Arrives with Practice challenges",
 };
-
-/** What a locked badge without a rule says (never a guessed rule). */
-export const RULE_PENDING_TEXT = "How to earn this is announced soon.";
 
 export interface BadgeDef {
   slug: string;
@@ -66,11 +73,13 @@ export interface BadgeDef {
   coins: number;
   status: BadgeStatus;
   waitsFor: BadgeWait | null;
-  /** How it is earned, in plain words; null while the approved files give none. */
-  rule: string | null;
+  /** How it is earned, in plain words (docs/badges/catalogue.md, Joe's approved catalogue of 11 Nov 2026). */
+  rule: string;
+  /** For a badge earned by a count: the count, and the unit progress is shown in ("4 of 7 days"). */
+  target: { need: number; unit: string } | null;
 }
 
-type Row = [slug: string, name: string, group: BadgeGroup, rarity: BadgeRarity, status: BadgeStatus, waitsFor: BadgeWait | null, rule: string | null];
+type Row = [slug: string, name: string, group: BadgeGroup, rarity: BadgeRarity, wait: BadgeWait | null, rule: string, target?: [number, string]];
 
 const C = "competitive";
 const M = "mastery";
@@ -78,75 +87,84 @@ const D = "daily-and-tournaments";
 const H = "challenges";
 const F = "fun";
 const S = "social-and-special";
-const P: BadgeStatus = "rule_pending";
+const R: BadgeWait = "rated-play";
+const T: BadgeWait = "tournaments";
 
-/** badges.json's order. Rules: only those the approved files state (see docs/badges/README.md "Rules"). */
+/**
+ * badges.json's order. Rules from docs/badges/catalogue.md (Joe, 11 Nov 2026). `wait` null: the server checks it now
+ * (rules.server.ts), or, for Friendly, B1 awards it through badge_award. Waits on C1a / C1b (mastery stars, Practice
+ * challenges) lift when those land and their rules are wired.
+ */
 const ROWS: readonly Row[] = [
-  ["first-win", "First Win", C, "common", P, null, null],
-  ["placed", "Placed", C, "common", P, null, null],
-  ["hot-streak", "Hot Streak", C, "rare", P, null, null],
-  ["comeback-kid", "Comeback Kid", C, "rare", P, null, null],
-  ["clean-sweep", "Clean Sweep", C, "epic", P, null, null],
-  ["podium-regular", "Podium Regular", C, "epic", P, null, null],
-  ["unstoppable", "Unstoppable", C, "elite", P, null, null],
-  ["giant-slayer", "Giant Slayer", C, "elite", P, null, null],
-  ["storm-chaser", "Storm Chaser", C, "elite", "waits", "rated-play", null],
-  ["lightning-strikes", "Lightning Strikes", C, "legendary", "waits", "rated-play", null],
-  ["top-500", "Top 500", C, "legendary", "waits", "rated-play", null],
-  ["first-star", "First Star", M, "common", "waits", "mastery-stars", null],
-  ["flawless", "Flawless", M, "rare", P, null, null],
-  ["all-rounder", "All-Rounder", M, "rare", "waits", "mastery-stars", null],
-  ["logic-master", "Logic Master", M, "epic", "waits", "mastery-stars", null],
-  ["word-master", "Word Master", M, "epic", "waits", "mastery-stars", null],
-  ["number-master", "Number Master", M, "epic", "waits", "mastery-stars", null],
-  ["pattern-master", "Pattern Master", M, "epic", "waits", "mastery-stars", null],
-  ["speed-master", "Speed Master", M, "epic", "waits", "mastery-stars", null],
-  ["attention-master", "Attention Master", M, "epic", "waits", "mastery-stars", null],
-  ["action-master", "Action Master", M, "epic", "waits", "mastery-stars", null],
-  ["retro-master", "Retro Master", M, "epic", "waits", "mastery-stars", null],
-  ["sports-master", "Sports Master", M, "epic", "waits", "mastery-stars", null],
-  ["cards-master", "Cards Master", M, "epic", "waits", "mastery-stars", null],
-  ["strategy-master", "Strategy Master", M, "epic", "waits", "mastery-stars", null],
-  ["perfectionist", "Perfectionist", M, "elite", P, null, null],
-  ["grand-master", "Grand Master", M, "legendary", "waits", "mastery-stars", null],
-  ["daily-habit", "Daily Habit", D, "common", P, null, null],
-  ["dedicated", "Dedicated", D, "rare", P, null, null],
-  ["daily-top-100", "Daily Top 100", D, "rare", P, null, null],
-  ["century", "Century", D, "elite", P, null, null],
-  ["daily-champion", "Daily Champion", D, "legendary", P, null, null],
-  ["entrant", "Entrant", D, "common", "waits", "tournaments", null],
-  ["trophy-hunter", "Trophy Hunter", D, "rare", "waits", "tournaments", null],
-  ["arena-ace", "Arena Ace", D, "epic", "waits", "tournaments", null],
-  ["champion", "Champion", D, "epic", "waits", "tournaments", null],
-  ["arena-champion", "Arena Champion", D, "elite", "waits", "tournaments", null],
-  ["score-attack-champion", "Score Attack Champion", D, "elite", "waits", "tournaments", null],
-  ["swiss-champion", "Swiss Champion", D, "elite", "waits", "tournaments", null],
-  ["knockout-champion", "Knockout Champion", D, "legendary", "waits", "tournaments", null],
-  ["serial-winner", "Serial Winner", D, "legendary", "waits", "tournaments", null],
-  ["challenger", "Challenger", H, "common", "waits", "practice-challenges", null],
-  ["challenge-seeker", "Challenge Seeker", H, "rare", "waits", "practice-challenges", null],
-  ["challenge-expert", "Challenge Expert", H, "epic", "waits", "practice-challenges", null],
-  ["category-clear", "Category Clear", H, "elite", "waits", "practice-challenges", null],
-  ["completionist", "Completionist", H, "legendary", "waits", "practice-challenges", null],
-  ["revenge", "Revenge", F, "common", P, null, null],
-  ["photo-finish", "Photo Finish", F, "rare", P, null, null],
-  ["buzzer-beater", "Buzzer Beater", F, "rare", P, null, null],
-  ["speed-demon", "Speed Demon", F, "epic", P, null, null],
-  ["friendly", "Friendly", S, "common", P, null, null],
-  ["party-host", "Party Host", S, "rare", P, null, null],
-  ["gem-hunter", "Gem Hunter", S, "rare", P, null, null],
-  ["founding-player", "Founding Player", S, "legendary", "earnable", null, "Make an account before 26 January 2027."],
+  ["first-win", "First Win", C, "common", R, "Win your first rated match."],
+  ["placed", "Placed", C, "common", R, "Finish your 5 placement matches.", [5, "matches"]],
+  ["hot-streak", "Hot Streak", C, "rare", R, "Win 5 rated matches in a row.", [5, "wins"]],
+  ["comeback-kid", "Comeback Kid", C, "rare", R, "Win a best of 3 or 5 after losing the first game."],
+  ["clean-sweep", "Clean Sweep", C, "epic", R, "Win a best of 5 without dropping a game."],
+  ["podium-regular", "Podium Regular", C, "epic", R, "Finish top 3 in 25 four- or eight-player matches.", [25, "matches"]],
+  ["unstoppable", "Unstoppable", C, "elite", R, "Win 10 rated matches in a row.", [10, "wins"]],
+  ["giant-slayer", "Giant Slayer", C, "elite", R, "Beat a player rated at least 300 above you."],
+  ["storm-chaser", "Storm Chaser", C, "elite", R, "Reach Storm."],
+  ["lightning-strikes", "Lightning Strikes", C, "legendary", R, "Reach Lightning."],
+  ["top-500", "Top 500", C, "legendary", R, "Be ranked in the Top 500 at any point."],
+  ["first-star", "First Star", M, "common", "mastery-stars", "Earn your first mastery star."],
+  ["flawless", "Flawless", M, "rare", null, "Score 200 in any game."],
+  ["all-rounder", "All-Rounder", M, "rare", "mastery-stars", "Earn at least one star in every game."],
+  ["logic-master", "Logic Master", M, "epic", "all-stars", "Earn all three stars in every Logic game."],
+  ["word-master", "Word Master", M, "epic", "all-stars", "Earn all three stars in every Word game."],
+  ["number-master", "Number Master", M, "epic", "all-stars", "Earn all three stars in every Number game."],
+  ["pattern-master", "Pattern Master", M, "epic", "all-stars", "Earn all three stars in every Pattern game."],
+  ["speed-master", "Speed Master", M, "epic", "all-stars", "Earn all three stars in every Speed game."],
+  ["attention-master", "Attention Master", M, "epic", "all-stars", "Earn all three stars in every Attention game."],
+  ["action-master", "Action Master", M, "epic", "all-stars", "Earn all three stars in every Action game."],
+  ["retro-master", "Retro Master", M, "epic", "all-stars", "Earn all three stars in every Retro game."],
+  ["sports-master", "Sports Master", M, "epic", "all-stars", "Earn all three stars in every Sports game."],
+  ["cards-master", "Cards Master", M, "epic", "all-stars", "Earn all three stars in every Cards & Board game."],
+  ["strategy-master", "Strategy Master", M, "epic", "all-stars", "Earn all three stars in every Strategy game."],
+  ["perfectionist", "Perfectionist", M, "elite", null, "Score 200 in 25 different games.", [25, "games"]],
+  ["grand-master", "Grand Master", M, "legendary", "all-stars", "Earn all three stars in every game."],
+  ["daily-habit", "Daily Habit", D, "common", null, "Play the Daily 7 days in a row.", [7, "days"]],
+  ["dedicated", "Dedicated", D, "rare", null, "Play the Daily 30 days in a row.", [30, "days"]],
+  ["daily-top-100", "Daily Top 100", D, "rare", "daily-boards", "Finish in the top 100 of a Daily board."],
+  ["century", "Century", D, "elite", null, "Play the Daily 100 days in a row.", [100, "days"]],
+  ["daily-champion", "Daily Champion", D, "legendary", "daily-boards", "Finish first on a Daily board."],
+  ["entrant", "Entrant", D, "common", T, "Play your first tournament."],
+  ["trophy-hunter", "Trophy Hunter", D, "rare", T, "Finish top 3 in any tournament."],
+  ["arena-ace", "Arena Ace", D, "epic", T, "Win 8 games in a row in one Arena."],
+  ["champion", "Champion", D, "epic", T, "Win your first tournament."],
+  ["arena-champion", "Arena Champion", D, "elite", T, "Win an Arena."],
+  ["score-attack-champion", "Score Attack Champion", D, "elite", T, "Win a Score Attack."],
+  ["swiss-champion", "Swiss Champion", D, "elite", T, "Win a Swiss tournament."],
+  ["knockout-champion", "Knockout Champion", D, "legendary", T, "Win a Knockout final."],
+  ["serial-winner", "Serial Winner", D, "legendary", T, "Win 10 tournaments.", [10, "tournaments"]],
+  // From C1b's stored completions (public.practice_challenge_progress), wired 11 Nov 2026.
+  ["challenger", "Challenger", H, "common", null, "Complete 10 Practice challenges.", [10, "challenges"]],
+  ["challenge-seeker", "Challenge Seeker", H, "rare", null, "Complete 50 Practice challenges.", [50, "challenges"]],
+  ["challenge-expert", "Challenge Expert", H, "epic", null, "Complete 100 Practice challenges.", [100, "challenges"]],
+  ["category-clear", "Category Clear", H, "elite", "hard-challenges", "Complete every challenge in one category."],
+  ["completionist", "Completionist", H, "legendary", "hard-challenges", "Complete every Practice challenge."],
+  ["revenge", "Revenge", F, "common", R, "Win the rematch after losing to the same player."],
+  ["photo-finish", "Photo Finish", F, "rare", R, "Win a rated match by 1 point or less."],
+  ["buzzer-beater", "Buzzer Beater", F, "rare", null, "Finish a puzzle with under 1 second left."],
+  ["speed-demon", "Speed Demon", F, "epic", null, "Finish a puzzle in under a third of its time, 10 times.", [10, "times"]],
+  // Earnable now, but awarded by B1 (friends) through badge_award, not by a rule here (Joe, 11 Nov 2026).
+  ["friendly", "Friendly", S, "common", null, "Add 5 friends.", [5, "friends"]],
+  ["party-host", "Party Host", S, "rare", null, "Host 25 rooms with at least 3 players.", [25, "rooms"]],
+  // Parked until C1a's gem table (Joe, 11 Nov 2026), with First Star and All-Rounder.
+  ["gem-hunter", "Gem Hunter", S, "rare", "mastery-stars", "Unlock your first gem colour."],
+  ["founding-player", "Founding Player", S, "legendary", null, "Make an account before 26 January 2027."],
 ];
 
-export const BADGES: readonly BadgeDef[] = ROWS.map(([slug, name, group, rarity, status, waitsFor, rule]) => ({
+export const BADGES: readonly BadgeDef[] = ROWS.map(([slug, name, group, rarity, wait, rule, target]) => ({
   slug,
   name,
   group,
   rarity,
   coins: rarity === "legendary" ? LEGENDARY_BADGE_COINS : 0,
-  status,
-  waitsFor,
+  status: wait ? "waits" : "earnable",
+  waitsFor: wait,
   rule,
+  target: target ? { need: target[0], unit: target[1] } : null,
 }));
 
 export const BADGE_BY_SLUG: ReadonlyMap<string, BadgeDef> = new Map(BADGES.map((b) => [b.slug, b]));
@@ -155,11 +173,16 @@ export function badgeDef(slug: string): BadgeDef | undefined {
   return BADGE_BY_SLUG.get(slug);
 }
 
-/** The line under a locked badge: its rule, what it waits for, or that its rule is coming. */
+/** The line under a locked badge: its rule, and what it waits for when it can't be earned yet. */
 export function badgeHowLine(badge: BadgeDef): string {
-  if (badge.rule) return badge.status === "waits" && badge.waitsFor ? `${badge.rule} ${BADGE_WAIT_LABEL[badge.waitsFor]}.` : badge.rule;
-  if (badge.status === "waits" && badge.waitsFor) return `${BADGE_WAIT_LABEL[badge.waitsFor]}.`;
-  return RULE_PENDING_TEXT;
+  return badge.status === "waits" && badge.waitsFor ? `${badge.rule} ${BADGE_WAIT_LABEL[badge.waitsFor]}.` : badge.rule;
+}
+
+/** "4 of 7 days" for a counted badge (have capped at need), or null. */
+export function badgeProgressLine(badge: BadgeDef, have: number | undefined): string | null {
+  if (!badge.target || have === undefined) return null;
+  const n = Math.max(0, Math.min(badge.target.need, Math.floor(have)));
+  return `${n} of ${badge.target.need} ${badge.target.unit}`;
 }
 
 /** Each badge's art (docs/art/badges/svg, copied byte for byte to public/art/badges/). */

@@ -20,10 +20,12 @@ export type Database = {
           grp: string
           name: string
           rarity: string
-          rule: string | null
+          rule: string
           slug: string
           sort_order: number
           status: string
+          target_need: number | null
+          target_unit: string | null
           waits_for: string | null
         }
         Insert: {
@@ -31,10 +33,12 @@ export type Database = {
           grp: string
           name: string
           rarity: string
-          rule?: string | null
+          rule: string
           slug: string
           sort_order: number
           status: string
+          target_need?: number | null
+          target_unit?: string | null
           waits_for?: string | null
         }
         Update: {
@@ -42,10 +46,12 @@ export type Database = {
           grp?: string
           name?: string
           rarity?: string
-          rule?: string | null
+          rule?: string
           slug?: string
           sort_order?: number
           status?: string
+          target_need?: number | null
+          target_unit?: string | null
           waits_for?: string | null
         }
         Relationships: []
@@ -1079,6 +1085,42 @@ export type Database = {
         }
         Relationships: []
       }
+      practice_challenge_progress: {
+        Row: {
+          best: number
+          challenge_id: string
+          coins: number
+          completed_at: string | null
+          game_id: string
+          ledger_id: number | null
+          paid_at: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          best?: number
+          challenge_id: string
+          coins?: number
+          completed_at?: string | null
+          game_id: string
+          ledger_id?: number | null
+          paid_at?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          best?: number
+          challenge_id?: string
+          coins?: number
+          completed_at?: string | null
+          game_id?: string
+          ledger_id?: number | null
+          paid_at?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       practice_plays: {
         Row: {
           created_at: string
@@ -1756,10 +1798,16 @@ export type Database = {
         Returns: { badges: string[]; founding_number: number | null; title: string | null; user_id: string }[]
       }
       daily_streak_freeze: { Args: { p_day: string; p_user_id: string }; Returns: Json }
+      badge_facts: { Args: { p_practice_since: string | null; p_puzzle_limits: Json; p_user_id: string }; Returns: Json }
       daily_history: {
         Args: { p_user_id: string }
         Returns: { day: string; finished: boolean; kind: string; total: number }[]
       }
+      challenge_record: {
+        Args: { p_challenge_id: string; p_coins: number; p_game_id: string; p_met: boolean; p_user_id: string; p_value: number }
+        Returns: Json
+      }
+      challenge_pay_due: { Args: { p_user_id: string }; Returns: Json }
       economy_credit: {
         Args: { p_amount: number; p_key: string; p_reason: string; p_ref_id: string | null; p_ref_kind: string | null; p_user_id: string }
         Returns: Json

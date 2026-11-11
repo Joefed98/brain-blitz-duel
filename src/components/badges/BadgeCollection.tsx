@@ -1,6 +1,7 @@
 /**
  * Profile's badge collection (wave 2, train C, session C2): all 54 badges in their six groups, earned ones lit with
- * their rarity (and the Founding Player's number), locked ones dimmed with how they are earned. No hidden badges.
+ * their rarity (and the Founding Player's number), locked ones dimmed with their rule and, for a counted badge the
+ * server checks, progress ("4 of 7 days"). No hidden badges.
  * Accounts only, once the server has answered (a guest has no badges; nothing is drawn until there is data).
  */
 import {
@@ -10,6 +11,7 @@ import {
   BADGES,
   badgeArtUrl,
   badgeHowLine,
+  badgeProgressLine,
 } from "@/lib/badges/catalogue";
 import { useMyBadges } from "@/lib/badges/badgesApi";
 
@@ -39,6 +41,11 @@ export function BadgeCollection() {
                   <span className="bd-how" data-badge-how>
                     {mine ? (mine.number !== null ? `Earned · #${String(mine.number).padStart(4, "0")}` : "Earned") : badgeHowLine(b)}
                   </span>
+                  {!mine && badgeProgressLine(b, badges.progress[b.slug]) ? (
+                    <span className="bd-progress" data-badge-progress>
+                      {badgeProgressLine(b, badges.progress[b.slug])}
+                    </span>
+                  ) : null}
                 </li>
               );
             })}
