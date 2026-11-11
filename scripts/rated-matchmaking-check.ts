@@ -215,6 +215,48 @@ function check(ok: boolean, label: string): void {
   check(matchClinched([W(2, 1), W(2, 1), W(2, 1)], 5) && !matchClinched([W(2, 1), W(2, 1), W(1, 2)], 5) && matchClinched([W(2, 1), W(2, 1), W(1, 2), W(2, 1)], 5), "early finish: best of 5 stops at 3–0 and 3–1, not 2–1");
   check(matchClinched([W(1, 2), W(1, 2), W(1, 2), W(1, 2)], 7) && !matchClinched([W(1, 2), W(1, 2), W(1, 2)], 7), "early finish: best of 7 stops at 0–4, not 0–3");
   check(!matchClinched([W(2, 1), W(1, 2), W(1, 1)], 3), "early finish: level on games after every game isn't a clinch (the total decides at the end)");
+  check(!matchClinched([W(2, 1), W(2, 1), W(1, 1), W(1, 1)], 5), "early finish: a best of 5 at 2–0 with two drawn games plays game 5 (a drawn game counts for nobody, W3a's rule)");
+  {
+    // The room's stop agrees with W3a's own check of a match (src/lib/rated/match.ts checkMatch): for every sequence of
+    // win / draw / loss in a best of 3, 5 and 7 the room actually plays, W3a takes the match exactly when the room ends
+    // it there (decided, or every game played), through the very result toRatingsResult builds.
+    const { checkMatch } = await import("../src/lib/rated/match");
+    const { toRatingsResult } = await import("../src/lib/rated/ratingsAdapter.server");
+    const A = "00000000-0000-4000-8000-0000000000a1";
+    const B = "00000000-0000-4000-8000-0000000000b2";
+    const types = dealRoomRounds(matchSettings("bo7", "puzzles"), { seed: 77 }).types as string[];
+    let agree = true;
+    let tried = 0;
+    for (const [fmt, n] of [["bo3", 3], ["bo5", 5], ["bo7", 7]] as const) {
+      let seqs: number[][] = [[]];
+      const all: number[][] = [];
+      for (let len = 1; len <= n; len++) {
+        seqs = seqs.flatMap((q) => [1, 0, -1].map((r) => [...q, r]));
+        all.push(...seqs);
+      }
+      for (const seq of all) {
+        const games = seq.map((r) => W(r === 1 ? 2 : 1, r === -1 ? 2 : 1));
+        if (seq.slice(0, -1).some((_, i) => matchClinched(games.slice(0, i + 1), n))) continue; // stopped earlier: never played
+        const roomEnds = matchClinched(games, n) || seq.length === n;
+        const settlement = {
+          matchId: "00000000-0000-4000-8000-00000000c0de", format: fmt, choice: "puzzles" as const, gameMode: "classic" as const,
+          kind: "live" as const, rematchOf: null, finishedAt: new Date(now).toISOString(),
+          players: [
+            { userId: A, slot: 1, ratingBefore: 1000, placement: false, scores: games.map((g) => g.a), timesMs: games.map(() => 1), gamesWon: 0, total: 0 },
+            { userId: B, slot: 2, ratingBefore: 1000, placement: false, scores: games.map((g) => g.b), timesMs: games.map(() => 1), gamesWon: 0, total: 0 },
+          ],
+          games: games.map((_, i) => ({ type: types[i]!, signature: "", winner: "draw" as const })),
+          winner: "draw" as const, recorded: null, ratings: null,
+        };
+        const sent = toRatingsResult(settlement);
+        const taken = sent !== null && checkMatch(sent, now).ok;
+        tried++;
+        if (taken !== roomEnds) agree = false;
+      }
+    }
+    check(agree && tried > 100, `early finish: W3a's checkMatch takes the match exactly where the room ends it (${tried} sequences, best of 3, 5 and 7)`);
+  }
+
 }
 
 /* ------------------------------------------------------------------ result and rematch */
@@ -274,6 +316,25 @@ function check(ok: boolean, label: string): void {
     players: [], games: [], winner: "draw" as const, recorded: null, ratings: null,
   };
   check(toRatingsResult(settlement) === null, "W3a: a single-category choice isn't sent (W3a takes Mixed, All puzzles, All arcade)");
+}
+
+/* ------------------------------------------------------------------ guest names and the Cron Trigger */
+{
+  const { guestEnergyName } = await import("../src/lib/rated/guestName.server");
+  const { checkGuestName } = await import("../src/lib/names/names.server");
+  const ids = Array.from({ length: 200 }, (_, i) => `00000000-0000-4000-8000-${String(i).padStart(12, "0")}`);
+  const names = ids.map(guestEnergyName);
+  check(names.every((n, i) => n === guestEnergyName(ids[i]!)), "guest names: the same player always gets the same name");
+  check(names.every((n) => /^[A-Z][a-z]+ [A-Z][a-z]+ \d{1,2}$/.test(n) && checkGuestName(n).ok), `guest names: "Swift Volt 48" style and never refused (${names[0]})`);
+  check(new Set(names).size > 150, `guest names: varied across players (${new Set(names).size} of 200)`);
+  const { readFileSync } = await import("node:fs");
+  const vite = readFileSync("vite.config.ts", "utf8");
+  const { MATCHMAKING_CRONS } = await import("../src/lib/rated/tasks/matchmakingTasks.server");
+  const cron = MATCHMAKING_CRONS["rated:practice-deals-purge"];
+  check(vite.includes(`"${cron}": ["rated:practice-deals-purge"]`) && /withTasks\(nitroTasks\(RATED_TASKS\), MATCHMAKING_TASKS\)/.test(vite) && vite.includes("practiceDealsPurge.task.ts"),
+    `the purge's Cron Trigger is scheduled in vite.config.ts (${cron} UTC), in step with MATCHMAKING_CRONS`);
+  const task = readFileSync("src/lib/rated/tasks/practiceDealsPurge.task.ts", "utf8");
+  check(/runPracticeDealsPurge\(\)/.test(task) && /"rated:practice-deals-purge"/.test(task), "the task runs the purge under its scheduled name");
 }
 
 console.log(`rated-matchmaking-check: ${passes} passed, ${failures.length} failed`);

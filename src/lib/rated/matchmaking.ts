@@ -142,8 +142,6 @@ export interface QueueEntry {
   joinedAtMs: number;
   /** Still in placement (W3a): starts against recorded runs from beginners, never the live queue. */
   placement: boolean;
-  /** A guest's room name (an account plays under its username). */
-  displayName?: string | null;
 }
 
 /**
@@ -413,14 +411,15 @@ export function matchOutcome(games: readonly GameScores[]): MatchOutcome {
 }
 
 /**
- * Best of N stops as soon as one side can't be caught: its lead in games won is more than the games left (a 2–0 in a
- * best of 3; 3–0 or 3–1 in a best of 5). A lead equal to the games left can still be levelled, and level on games the
- * total decides, so play goes on.
+ * Best of N stops as soon as it is decided: one side has won a majority of the games (2 of 3, 3 of 5, 4 of 7), so it
+ * can't be caught (2–0 or 2–1 in a best of 3; 3–0 or 3–1 in a best of 5). A drawn game counts for nobody, so a best
+ * of 5 at 2–0 with two drawn games still plays game 5. This is W3a's rule (src/lib/rated/match.ts: a game after the
+ * decision, or a short match that isn't decided, is refused), so the room and the rating always agree.
  */
 export function matchClinched(games: readonly GameScores[], totalGames: number): boolean {
   const { winsA, winsB } = matchOutcome(games);
-  const left = Math.max(0, totalGames - games.length);
-  return Math.abs(winsA - winsB) > left;
+  const need = Math.floor(totalGames / 2) + 1;
+  return winsA >= need || winsB >= need;
 }
 
 /* ------------------------------------------------------------------ rematch */

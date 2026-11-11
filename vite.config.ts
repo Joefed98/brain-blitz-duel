@@ -100,6 +100,20 @@ const TOURNAMENT_TASKS = {
   },
 };
 
+/**
+ * Matchmaking's Cron Trigger (wave 3 W3b, docs/rated/matchmaking-interface.md): the 15-day purge of mm_practice_deals,
+ * run by the Worker so it happens with or without pg_cron. UTC, kept in step with MATCHMAKING_CRONS
+ * (src/lib/rated/tasks/matchmakingTasks.server.ts; rated-matchmaking-check compares).
+ */
+const MATCHMAKING_TASKS = {
+  tasks: {
+    "rated:practice-deals-purge": { handler: fileURLToPath(new URL("./src/lib/rated/tasks/practiceDealsPurge.task.ts", import.meta.url)) },
+  },
+  scheduledTasks: {
+    "37 4 * * *": ["rated:practice-deals-purge"],
+  },
+};
+
 type TaskSet = { tasks: Record<string, { handler: string }>; scheduledTasks: Record<string, string[]> };
 /** Every task set's tasks and schedules in one nitro option (a later set adds to, never replaces, an earlier one's). */
 function nitroTasks(...sets: TaskSet[]) {
@@ -112,10 +126,18 @@ function nitroTasks(...sets: TaskSet[]) {
   return { experimental: { tasks: true }, tasks, scheduledTasks };
 }
 
+/** Adds more task sets to a nitroTasks option (their tasks and schedules join, never replace, the ones already there). */
+function withTasks(base: ReturnType<typeof nitroTasks>, ...sets: TaskSet[]) {
+  const more = nitroTasks(...sets);
+  const scheduledTasks = { ...base.scheduledTasks };
+  for (const [cron, names] of Object.entries(more.scheduledTasks)) scheduledTasks[cron] = [...(scheduledTasks[cron] ?? []), ...names];
+  return { ...base, tasks: { ...base.tasks, ...more.tasks }, scheduledTasks };
+}
+
 const SERVER_BUILD = Object.assign(
   { minify: true },
   { cloudflare: { wrangler: { observability: WORKER_OBSERVABILITY } } },
-  nitroTasks(PUSH_TASKS, RATED_TASKS, TOURNAMENT_TASKS),
+  withTasks(withTasks(nitroTasks(RATED_TASKS), MATCHMAKING_TASKS), PUSH_TASKS, TOURNAMENT_TASKS),
 ) as NitroOptions & { minify: boolean };
 
 export default defineConfig({

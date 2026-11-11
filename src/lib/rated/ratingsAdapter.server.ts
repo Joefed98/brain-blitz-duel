@@ -6,10 +6,9 @@
  * `RatedMatchResult` (src/lib/data/ratings.ts), built by `toRatingsResult`. The queue's rating comes from W3a's
  * `getMyRatings` (`matchRatingFrom`).
  *
- * Binding: until W3a's src/lib/rated/ratings.server.ts (getMyRatings, recordRatedMatch) is merged in, nothing is bound
- * (`UNBOUND_RATINGS`): the queue refuses "Rated play isn't ready yet", so no match is ever made or settled. Once it is,
- * `ratings()` binds it (`bindW3aRatings`, the one line marked BIND below); checks bind their own stand-in with
- * `setRatingsBackend`.
+ * Binding: `ratingsReady()` binds W3a's src/lib/rated/ratings.server.ts (getMyRatings, recordRatedMatch) on the
+ * service-role client the first time rated play needs it (`bindW3aRatings`, W3a's START_RATING as the starting
+ * rating and the beginners' bound); checks bind their own stand-in first with `setRatingsBackend`, which wins.
  */
 import type { PlayerRatings, RatedGame, RatedMatchOutcome, RatedMatchResult, RatedPool } from "@/lib/data/ratings";
 import { RATED_CATEGORIES, type RatedCategory } from "@/lib/data/ratings";
@@ -37,6 +36,8 @@ export interface SettledPlayer {
   scores: number[];
   /** Time used in each game (the room tie-break's, roundTimeUsedMs). */
   timesMs: number[];
+  /** The server's stored grade `extra` in each game (null for no stored result): W3a's gradeExtras. */
+  extras: (Record<string, unknown> | null)[];
   gamesWon: number;
   total: number;
 }
@@ -62,6 +63,8 @@ export interface RatedSettlement {
     fallback: boolean;
     scores: number[];
     timesMs: number[];
+    /** The run's stored grade `extra` in each game. */
+    extras: (Record<string, unknown> | null)[];
   } | null;
   /** W3a's answer (null when nothing was bound to record it). */
   ratings: RatedMatchOutcome | null;
@@ -93,9 +96,28 @@ export function setRatingsBackend(next: RatingsBackend | null): void {
   backend = next;
 }
 
+/** The bound backend, or UNBOUND_RATINGS before `ratingsReady()` has bound one. */
 export function ratings(): RatingsBackend {
-  // BIND (when W3a's ratings.server.ts is in): backend ??= bindW3aRatings(w3a, adminDb, W3A_STARTING_RATING);
   return backend ?? UNBOUND_RATINGS;
+}
+
+/** The backend, binding W3a's ratings on first use (a stand-in set by a check is kept). */
+export async function ratingsReady(): Promise<RatingsBackend> {
+  if (backend) return backend;
+  try {
+    // getMyRatings from W3a's ratings, and finishRatedMatch from its rewards: recordRatedMatch, then the Joules through
+    // D2's hook and C2's badges (W3a's interface: the match engine calls finishRatedMatch).
+    const { getMyRatings } = await import("./ratings.server");
+    const { finishRatedMatch } = await import("./rewards.server");
+    const w3a: W3aRatings = { getMyRatings, recordRatedMatch: finishRatedMatch };
+    const { START_RATING } = await import("./glicko.config");
+    const { adminDb } = await import("@/lib/data/db.server");
+    backend ??= bindW3aRatings(w3a, adminDb, START_RATING);
+  } catch (error) {
+    console.error("[rated] W3a's ratings couldn't be bound", error instanceof Error ? error.message : error);
+    return UNBOUND_RATINGS;
+  }
+  return backend;
 }
 
 /* ------------------------------------------------------------------ W3a's shapes */
@@ -127,9 +149,9 @@ export function toRatingsResult(s: RatedSettlement): RatedMatchResult | null {
   const live = s.players[0];
   if (!live) return null;
   const other = s.recorded
-    ? { playerId: s.recorded.ownerId, scores: s.recorded.scores }
+    ? { playerId: s.recorded.ownerId, scores: s.recorded.scores, extras: s.recorded.extras }
     : s.players[1]
-      ? { playerId: s.players[1].userId, scores: s.players[1].scores }
+      ? { playerId: s.players[1].userId, scores: s.players[1].scores, extras: s.players[1].extras }
       : null;
   if (!other) return null;
   const games: RatedGame[] = [];
@@ -144,6 +166,8 @@ export function toRatingsResult(s: RatedSettlement): RatedMatchResult | null {
       version: "classic",
       signature: g.signature,
       scores: { [live.userId]: live.scores[i] ?? 0, [other.playerId]: other.scores[i] ?? 0 },
+      // Each player's stored server grade for the game, as stored (W3a reads the server's flag from it).
+      gradeExtras: { [live.userId]: live.extras?.[i] ?? null, [other.playerId]: other.extras?.[i] ?? null },
     });
   }
   return {

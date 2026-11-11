@@ -6,7 +6,9 @@
 --    example, a flagged run or a play from before the fresh start), written by the server alone
 --    (src/lib/duel/practice.functions.ts → src/lib/rated/practiceDeals.server.ts), so Practice runs from now on can be
 --    recorded-run fallbacks beside rooms and the Daily. Kept 15 days (recorded runs come from the last 14):
---    public.mm_purge_practice_deals, daily by pg_cron where available (`mm-practice-deals`).
+--    public.mm_purge_practice_deals, run daily by the Worker's Cron Trigger (`rated:practice-deals-purge`, 04:37 UTC,
+--    vite.config.ts MATCHMAKING_TASKS), so it runs whether or not this database has pg_cron, and also by pg_cron
+--    where available (`mm-practice-deals`); the purge is idempotent.
 -- 2. A deleted account's stored runs are removed, not just skipped: when accounts.forget_user removes the auth user,
 --    the trigger below deletes their rated runs, practice deals, search and live progress, and re-keys what other
 --    players' matches keep (their seat in a match, the runs played against, the uses) to one fresh random id.
@@ -23,6 +25,8 @@ CREATE TABLE IF NOT EXISTS public.mm_practice_deals (
   reaction_avg_ms integer,
   -- The server replay's flag on the grade (a flagged run is never played against).
   flagged boolean NOT NULL DEFAULT false,
+  -- The server's stored grade extra (as practice_plays.breakdown holds it), handed to the ratings engine.
+  extra jsonb,
   recorded_at timestamptz NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS mm_practice_deals_recent ON public.mm_practice_deals (recorded_at DESC);
@@ -56,10 +60,10 @@ BEGIN
       CREATE EXTENSION IF NOT EXISTS pg_cron WITH SCHEMA pg_catalog;
       PERFORM cron.schedule('mm-practice-deals', '29 4 * * *', 'SELECT public.mm_purge_practice_deals()');
     EXCEPTION WHEN OTHERS THEN
-      PERFORM migration_log.note('warning', format('practice deals purge not scheduled (pg_cron: %s); see docs/rated/matchmaking-interface.md', SQLERRM));
+      PERFORM migration_log.note('warning', format('practice deals purge not scheduled in pg_cron (%s); the Worker''s Cron Trigger still runs it; see docs/rated/matchmaking-interface.md', SQLERRM));
     END;
   ELSE
-    PERFORM migration_log.note('warning', 'practice deals purge not scheduled: pg_cron is not available on this database; see docs/rated/matchmaking-interface.md');
+    PERFORM migration_log.note('warning', 'practice deals purge: pg_cron is not available on this database; the Worker''s Cron Trigger runs it instead; see docs/rated/matchmaking-interface.md');
   END IF;
 END
 $cron$;
