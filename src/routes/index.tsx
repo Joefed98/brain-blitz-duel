@@ -45,6 +45,8 @@ import { OnlineOnly } from "@/components/offline/OnlineOnly";
 import { GUEST_NAME_MAX } from "@/lib/names/username";
 import { NameSuggestions, reasonFrom, suggestionsFrom } from "@/components/account/AccountParts";
 import { useAccountName } from "@/lib/account/accountApi";
+import { PassHomeCard } from "@/components/pass/PassHomeCard";
+import { useShopOn } from "@/lib/identity/shopSwitch";
 
 const GAME_COUNTS = gameCounts();
 /** Every game rooms deal (the Warm up's "All 72 games"). */
@@ -141,6 +143,7 @@ const slotState = (settled: boolean, show: boolean) => (!settled ? "pending" : s
 function Home() {
   const navigate = useNavigate();
   const router = useRouter();
+  const shopOn = useShopOn();
   const [name, setName] = useState("");
   const [editingName, setEditingName] = useState(false);
   const [code, setCode] = useState("");
@@ -556,6 +559,9 @@ function Home() {
             ))}
           </div>
         </section>
+
+        {/* The Season pass's progress card (wave 2 D2): where the pass is on (testers until Season 1), last on the page. */}
+        <PassHomeCard eligible={shopOn} />
 
         <div className="flex justify-center pb-1">
           <button

@@ -54,7 +54,11 @@ export type RatedMatchPlayer =
       /** The run's owner (whose rating may move, at most half as much as live, only for a rated run). */
       playerId: string;
       side: "recorded";
-      run: { runId: string; ownerId: string; source: RunSource };
+      /**
+       * `flagged`: the run's stored grade was flagged by the server (a backstop: W3b never records a flagged run). The
+       * match then moves nobody's rating, as for any flag in `gradeExtras`.
+       */
+      run: { runId: string; ownerId: string; source: RunSource; flagged?: boolean };
     };
 
 /** One game of the match, as the match engine stored it. */
@@ -69,6 +73,13 @@ export interface RatedGame {
   signature: string;
   /** Each player's stored score for this game (the server's grade), keyed by playerId. */
   scores: Record<string, number>;
+  /**
+   * Each player's stored grade `extra` for this game, exactly as the server's grading stored it (keyed by playerId;
+   * null or missing for none). The ratings engine reads the server's own flag from it (`extra.flagged === true`, set by
+   * the server replay and anti-cheat, never by anything the phone sends): a flagged run anywhere in the match moves
+   * nobody's rating.
+   */
+  gradeExtras?: Record<string, Record<string, unknown> | null>;
 }
 
 /** A finished rated match, from the match engine (W3b) on the server. */
@@ -119,6 +130,11 @@ export interface TierView {
   next: { label: string; at: number; pointsToGo: number } | null;
   /** Held back by a cap: what the rating alone reaches, e.g. "Storm-rated, top 4%". */
   heldBack: { ratedTier: TierId; label: string } | null;
+  /**
+   * The tier floor grace: the rating is below this tier's floor and the tier is kept for `matchesLeft` more rated
+   * matches (shown at the tier's III division) before dropping; null when not in it.
+   */
+  floorGrace: { matchesLeft: number } | null;
 }
 
 export interface PlacementStatus {
@@ -153,8 +169,8 @@ export type RatedRefusal =
   | "busy"
   | "error";
 
-/** Why a player's ratings didn't move. */
-export type FrozenReason = "same_opponent_today" | "recorded_unrated_source" | "recorded_daily_limit";
+/** Why a player's ratings didn't move. `flagged_run`: a run in the match (anyone's) was flagged by the server. */
+export type FrozenReason = "same_opponent_today" | "recorded_unrated_source" | "recorded_daily_limit" | "flagged_run";
 
 export interface RatingChange {
   key: RatingKey;
@@ -179,8 +195,10 @@ export interface RatedPlayerChange {
   /** "win" | "loss" | "draw" for a 1v1; the place for 4 and 8 players ("win" for first). */
   result: "win" | "loss" | "draw";
   place: number | null;
-  /** Joules this match pays (live players only; credited by D2's pass under ratedJoulesKey). */
+  /** Joules this match pays (live players only, never a flagged player; credited by D2's pass under ratedJoulesKey). */
   joules: number;
+  /** This player's run was flagged by the server in this match (the match logged for review). */
+  flagged: boolean;
   /** Competitive badges newly awarded. */
   badges: string[];
 }

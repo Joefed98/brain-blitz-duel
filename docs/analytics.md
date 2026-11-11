@@ -66,6 +66,9 @@ events go alongside them.
 | `challenge_completed` | server | a server-graded Practice run completed a practice challenge (src/lib/challenges/challenges.server.ts); `game`, mode `practice`, props `challenge` (its id), `level`, `coins` (paid with it; 0 for a guest, whose coins are paid on becoming an account) |
 | `leaderboard_viewed` | server | a rating board opened (src/lib/leaderboards/leaderboards.server.ts; the first page only, not further pages); props `board` (joulz, puzzles, arcade or a category), `scope` (global, country, friends), `period` (season, peak) |
 | `daily_board_viewed` | server | a Daily top 100 opened (src/lib/leaderboards/leaderboards.server.ts); props `kind` (puzzle, arcade), `day` (YYYY-MM-DD) |
+| `rated_match_finished` | server | a rated match was recorded (src/lib/rated/ratings.server.ts), one per live player; props `format` (bo3 / bo5 / bo7 / 4p / 8p), `choice` (mixed / puzzles / arcade), `result` (win / loss / draw), `opponent` (live / recorded) |
+| `placement_finished` | server | a player's 5th placement match was recorded; props `tier` (the tier revealed) |
+| `tier_changed` | server | a placed player's shown tier changed, after a match or in the standings job; props `from`, `to` (tier ids) |
 
 Mode is `room`, `daily`, `challenge` or `practice` (`rated` comes later with its own migration).
 
