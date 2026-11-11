@@ -53,6 +53,13 @@ export const ANALYTICS_EVENTS = [
   "profile_viewed",
   "customise_opened",
   "equip_refused",
+  // The rated match screens (wave 3, session W3c): recorded by the server only, through recordRatedEventFn
+  // (src/lib/rated/ratedEvents.functions.ts), which accepts these five with fixed-word props and nothing else.
+  "play_card_tapped",
+  "vs_shown",
+  "result_viewed",
+  "next_match_tapped",
+  "tier_ladder_viewed",
 ] as const;
 export type AnalyticsEventName = (typeof ANALYTICS_EVENTS)[number];
 

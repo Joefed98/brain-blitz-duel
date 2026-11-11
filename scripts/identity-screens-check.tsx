@@ -12,7 +12,8 @@
  *  3. The card: every card art, frame and name colour in the catalogue (docs/art/wave-2/catalogue.json) renders
  *     with no error and draws its own art (the item's markup, ids made unique per card); the sample player isn't
  *     part of any item; the Founding frame carries the card's own player number; the pill shows the player number
- *     (or "Guest") and never a rating; the art data is what scripts/player-card-art.ts builds; every animated
+ *     (or "Guest") before placement and the tier and rating after (Joe's approval, 11 Nov 2026, wave 3 W3c); the art
+ *     data is what scripts/player-card-art.ts builds; every animated
  *     class the items use has a prefers-reduced-motion rule stopping it (the browser half is
  *     identity-motion-check).
  *  4. Customise: equipping a card art, a frame and a name colour updates the preview and, once saved, Profile's
@@ -20,8 +21,9 @@
  *     records equip_refused with the slot and the reason; customise_opened and profile_viewed are recorded.
  *     Locked items say where they come from; shop items are hidden while the Shop is off for the player.
  *  5. Guests: Profile's Customise opens the save-your-progress sheet, and /customise sends a guest to Profile.
- *  6. Profile shows no section without real data: no rating figure, no Puzzles and Arcade, strongest categories,
- *     trophy cabinet, mastery stars or practice challenges; the Joulz Rating says it arrives with rated play.
+ *  6. Profile shows no section without real data: no trophy cabinet, season peak, mastery stars or practice
+ *     challenges; the Joulz Rating, Puzzles and Arcade and strongest categories show only the rated server's real
+ *     figures (Joe's approval, 11 Nov 2026, wave 3 W3c: these replace A2's "arrives with rated play" assertion).
  *  7. The analytics rules (acceptIdentityEvent): the three events only, fixed words only; the list in
  *     ANALYTICS_EVENTS; the migration adds them to the table's list without writing the list out.
  *
@@ -386,13 +388,34 @@ for (const [who, n, shows] of [
   const ids = $$("[data-player-card] [id]").map((el) => el.getAttribute("id"));
   check(new Set(ids).size === ids.length, `ids are unique across ${cards.length} cards on one page (${ids.length - new Set(ids).size} repeated)`);
   check(($('[data-frame="frame.founding"]')?.innerHTML ?? "").includes("FOUNDER #0042"), "the Founding frame carries the card’s own player number");
+  // Joe's approval, 11 Nov 2026 (wave 3, W3c): the pill shows the player number before placement and the tier and
+  // rating after (was: the pill never shows a rating). These cards have no rated standing: before placement. The
+  // after-placement half is below, on a card given a standing.
   const pills = [...new Set($$("[data-card-pill]").map((p) => p.textContent))];
-  check(pills.length === 1 && pills[0] === "#0042", `the pill shows the player number, no tier or rating (${pills.join(", ")})`);
-  check(!document.body.textContent?.match(/rating|Storm|Volt|\b\d,\d{3}\b/i), "no card shows a rating or tier");
+  check(pills.length === 1 && pills[0] === "#0042", `before placement the pill shows the player number, no tier or rating (${pills.join(", ")})`);
+  check(!document.body.textContent?.match(/rating|Storm|Volt|\b\d,\d{3}\b/i), "before placement no card shows a rating or tier");
   // Every name colour keeps a dark edge (a black shadow or a dark stroke in its own style).
   const edgeless = Object.entries(art.NAME_COLOURS).filter(([, v]) => !/#000|rgba\(0,0,0|#06080F|rgba\(6,8,15|#0A1550|#1A2F9A|#C24E00/i.test(JSON.stringify(v.style)));
   check(edgeless.length === 0, `every name colour keeps a dark edge (${edgeless.map(([k]) => k).join(", ") || "all"})`);
   act(() => root.unmount());
+
+  // After placement (Joe's approval, 11 Nov 2026, wave 3 W3c): the tier and division, then the rating.
+  document.body.innerHTML = "<div id=placed></div>";
+  const placedRoot = createRoot(document.getElementById("placed") as unknown as Element);
+  await act(async () =>
+    placedRoot.render(
+      React.createElement(PlayerCard, {
+        look: { cardArt: null, frame: null, nameColour: null, avatar: null },
+        name: "TheInventor",
+        playerNumber: 42,
+        rank: { tier: "volt", division: 2, rating: 1278, top500: null },
+      }),
+    ),
+  );
+  check($("[data-card-pill] .pcard-pill-label")?.textContent === "Volt II", "after placement the pill shows the tier and division");
+  check($("[data-card-pill] .pcard-pill-value")?.textContent === "1,278", "after placement the pill shows the rating");
+  check(!($("[data-card-pill]")?.textContent ?? "").includes("#0042"), "after placement the pill no longer shows the player number");
+  act(() => placedRoot.unmount());
 
   // Guest card.
   document.body.innerHTML = "<div id=g></div>";
@@ -569,16 +592,65 @@ for (const [who, n, shows] of [
 /* ------------------------------------------------------------------ 6. Profile has only real data */
 {
   const source = readFileSync("src/routes/profile.tsx", "utf8") + readFileSync("src/components/identity/ProfileCard.tsx", "utf8");
-  for (const word of ["Strongest categories", "Trophy cabinet", "Mastery stars", "Puzzles and Arcade", "Season peak", "matches"]) {
+  // Joe's approval, 11 Nov 2026 (wave 3, W3c): "Puzzles and Arcade", "Strongest categories" and "matches" removed from
+  // this list (they come with rated play, from real data only, checked below); "Trophy cabinet" and "Season peak" stay.
+  for (const word of ["Trophy cabinet", "Mastery stars", "Season peak"]) {
     check(!source.includes(`>${word}<`) && !source.includes(`"${word}"`), `Profile draws no "${word}" section yet`);
   }
   await signIn(1);
   const { root } = await mount(() => React.createElement(ProfileCard, { guestName: "Player", guestColour: 0 }), "/profile");
   await settle(60);
   const text = $("[data-profile-card]")?.textContent ?? "";
-  check(/Your Joulz Rating arrives with rated play\./.test(text), "the Joulz Rating says it arrives with rated play");
+  // Joe's approval, 11 Nov 2026 (wave 3, W3c): A2's "Your Joulz Rating arrives with rated play" assertion is replaced by
+  // these: with no rated standing nothing rated is drawn and no figure but the player number; with the rated server's
+  // standing, exactly its figures and nothing without data.
+  check(!$("[data-profile-rating]") && !$("[data-strongest]"), "no rated standing: no Joulz Rating, Puzzles and Arcade or strongest categories");
   check(!/\d/.test(text.replace("#0001", "")), `no figure on Profile’s card but the player number (${text})`);
   act(() => root.unmount());
+
+  const ratedMod = await import("../src/lib/rated/backend");
+  const ratedApi = await import("../src/lib/rated/ratedApi");
+  const VOLT = { tier: "volt", division: 2, rating: 1278, top500: null, heldBack: null } as const;
+  ratedMod.setRatedBackend({
+    status: async () => ({
+      open: true,
+      me: { username: "TheInventor", playerNumber: 1, look: { cardArt: null, frame: null, nameColour: null, avatar: null }, title: null, rank: VOLT },
+      options: { picks: ["mixed"], bestOf: [3], sizes: [2] },
+      season: null,
+      standing: {
+        state: "placed",
+        rank: VOLT,
+        puzzles: { rating: 1296, matches: 4 },
+        arcade: { rating: null, matches: 0 },
+        categories: [
+          { pick: "cat:word", rating: 1312, matches: 2 },
+          { pick: "cat:retro", rating: 1500, matches: 0 },
+        ],
+        won: 3,
+        lost: 1,
+      },
+      lastPick: null,
+    }),
+    search: async () => null,
+    result: async () => null,
+    rematch: async () => null,
+    challenge: async () => ({ ok: false, message: "no" }),
+    ladder: async () => null,
+    renderGame: () => null,
+  });
+  ratedApi.resetRated();
+  const placed = await mount(() => React.createElement(ProfileCard, { guestName: "Player", guestColour: 0 }), "/profile");
+  await settle(80);
+  const shown = (sel: string) => ($(sel)?.textContent ?? "").replace(/\s+/g, " ").trim();
+  check(shown("[data-profile-rating] [data-joulz-rating]") === "1,278", "placed: the Joulz Rating is the server's");
+  check(shown("[data-profile-rating] [data-side='puzzles'] .rt-side-value") === "1,296", "placed: Puzzles is the server's");
+  check(shown("[data-profile-rating] [data-side='arcade'] .rt-side-value") === "Not played yet", "placed: Arcade with no rated match draws no figure");
+  check($$("[data-strongest-row]").map((r) => r.getAttribute("data-strongest-row")).join() === "cat:word", "placed: strongest categories only those with rated matches");
+  check(shown("[data-profile-card] [data-card-pill] .pcard-pill-value") === "1,278", "placed: the card's pill shows the rating");
+  check(!/Trophy cabinet|Season peak/i.test(document.body.textContent ?? ""), "placed: no trophy cabinet or season peak (wave 4)");
+  act(() => placed.root.unmount());
+  ratedMod.setRatedBackend(undefined);
+  ratedApi.resetRated();
 }
 
 /* ------------------------------------------------------------------ 7. analytics */
