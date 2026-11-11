@@ -2200,11 +2200,13 @@ outside the repo.
   16 entrants or called off and refunded, 5–7 best-of-3 rounds by field size, paired by score group with no rematch
   (`swiss.ts`), tie-breaks points, Buchholz, head-to-head, total score, entry order; 3,000 / 1,800 (8+) / 900 (12+) /
   300 (4th–8th). The Championship: the last Sunday, the month's top 64 Score Attack players (best 10 daily totals,
-  `monthStandings`), a seeded bracket with byes and a third-place match (`knockout.ts`); 10,000 + the animated
+  then more days played, then the better best daily place, `monthStandings`; held only with 16+ qualifiers, else
+  "Not held this month", `not_held`, nothing paid or refunded; Joe, 11 Nov 2026), a seeded bracket with byes and a
+  third-place match (`knockout.ts`); 10,000 + the animated
   Championship frame (`frame.championship`, `docs/art/wave-4/catalogue.json`, placeholder art) + the hall of fame /
   5,000 / 2,500 / 1,000 / 500 (5th–8th). Swiss Champion and Knockout Champion now earnable (Joe's approval, 11 Nov 2026);
   150 Joules through D2. A run the server flags (`extra.flagged`) loses its match and earns no place or prize, logged in
-  `moderation.tournament_flags`. Matches are W3b's dealt match rooms, never rated. Own tables `tournament_rounds`,
+  `moderation.tournament_flags`. Matches are W3b's dealt match rooms, never rated; Play again there answers "Your next match opens when the round does.". Own tables `tournament_rounds`,
   `_seeds`, `_matches`, `_awards`, `_hall_of_fame` (`20261115300000_tournament_events.sql`,
   `20261115300100_analytics_tournament_events.sql`, **not applied until merged**); events `swiss_round_paired`,
   `knockout_match_played`. tournament-events-check (~6 s, pure), tournament-events-server-check (~15 s, shard `e`).

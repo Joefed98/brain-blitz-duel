@@ -68,8 +68,8 @@ answer nothing (`bigEventFn` goes through W4b's `eventFor`; `hallOfFameFn` reads
   (`tournament_results`), each player's best 10 daily totals that month added up, then more days played, then the
   better best daily place (`monthStandings`). Accounts only; guests, repeats and banned players are skipped and the
   next one takes the place; seeded in that order; entered free by the server (W4b's entry, so the count, reminders and
-  results work as for any event). Nobody can enter it themselves. Fewer than 2: called off (`no_qualifiers`).
-- **Bracket**: the smallest power of two holding the qualifiers (2–64), seeds in the standard order (1 v 64, 32 v 33,
+  results work as for any event). Nobody can enter it themselves. It is held only with at least 16 qualifiers (Joe, 11 Nov 2026): with fewer it isn't held that month (`not_held`; nobody has paid, so nothing is refunded), and the Tournaments tab and the event page say "Not held this month". The rules page states the qualification and the minimum.
+- **Bracket**: the smallest power of two holding the qualifiers (16–64), seeds in the standard order (1 v 64, 32 v 33,
   …; 1 and 2 meet only in the final). With fewer than 64, the top seeds get byes.
 - **Matches**: best of 3; a level match goes to the most games won, then the higher total, then less time, then the
   higher seed. The semi-final losers play for 3rd; the final is live.
@@ -102,7 +102,7 @@ answer nothing (`bigEventFn` goes through W4b's `eventFor`; `hallOfFameFn` reads
   way leaves `tournament_rounds.awarded_at` unset and the next pays only what isn't logged.
 - **Joules**: 150 for finishing, through D2's `creditTournamentJoules` (kind `finished`), once per event and account.
 - **Ratings**: never changed. A tournament room is never a rated match; nothing here calls the ratings.
-- **Rooms**: W4b's `isTournamentRoom` counts W4c's match rooms, so Play again is refused there and chat follows wave 1's
+- **Rooms**: W4b's `isTournamentRoom` counts W4c's match rooms, so Play again is refused there ("Your next match opens when the round does.", `BIG_EVENT_PLAY_AGAIN_LINE`) and chat follows wave 1's
   stranger rules (guests and under-18s pick quick phrases).
 - **Hall of fame**: every Championship winner by month, newest first, on the Tournaments tab while the Championship is
   on (a deleted account shows as "Deleted player").

@@ -21,10 +21,11 @@
  * - the Knockout: qualifiers from the month's Score Attack standings (guests and repeats skipped, 64 at most, seeded in
  *   order, entered free by the server), byes to the top seeds, a level match to the higher seed, the semi losers'
  *   third-place match (a flagged side losing it and placing nowhere), the final; prizes 10,000 / 5,000 / 2,500 / 500,
- *   the Knockout Champion badge (with its 250), the Championship frame and the hall of fame, paid once and logged; no
- *   qualifiers calls it off; `knockout_match_played` per played match (never a walkover);
- * - a real match room: both players seated, never a rated match, Play again refused, quick phrases only for an under-18
- *   in its chat; no rated match ever made;
+ *   the Knockout Champion badge (with its 250), the Championship frame and the hall of fame, paid once and logged;
+ *   15 qualifiers: not held (nobody entered or paid), 16: held (Joe, 11 Nov 2026); `knockout_match_played` per played
+ *   match (never a walkover);
+ * - real match rooms: both players seated, never a rated match, Play again refused with the event's own line, quick
+ *   phrases only for an under-18 in its chat; no rated match ever made;
  * - the analytics migration keeps every event allowed before.
  */
 import {
@@ -40,6 +41,7 @@ import {
   type LocalDb,
   type RestServer,
 } from "./server-fn-harness";
+import { BIG_EVENT_PLAY_AGAIN_LINE } from "../src/lib/tournaments/eventRules";
 
 let passes = 0;
 const failures: string[] = [];
@@ -348,37 +350,55 @@ async function runAll(db: LocalDb): Promise<void> {
   });
 
   /* ------------------------------------------------------------------ the Championship */
+  /** Ends every playing match of a round, the higher seed winning (side a is slot 1), except where `aWins` says. */
+  const playRound = (id: string, round: number, aWins?: (m: ReturnType<typeof matchesOf>[number]) => boolean) => {
+    for (const m of matchesOf(id).filter((x) => x.round === round && x.status === "playing" && x.duel_id)) {
+      const a = aWins ? aWins(m) : (m.seed_a ?? 99) < (m.seed_b ?? 99);
+      finish(m.duel_id!, a ? [150, 150, 150] : [10, 10, 10], a ? [10, 10, 10] : [150, 150, 150]);
+    }
+  };
+
   await section("knockout", async () => {
     const id = "championship:2027-03";
     const day = Date.parse("2027-03-28T18:00:00Z"); // the last Sunday, 7 pm BST
-    const A = Q.slice(0, 5);
-    top = [GUEST, A[0]!, A[1]!, A[0]!, A[2]!, A[3]!, A[4]!];
+    const A = Q.slice(0, 17);
+    top = [GUEST, A[0]!, A[1]!, A[0]!, ...A.slice(2)];
     await ensure(id);
     const refused = await enter(A[0]!, id, "free", day - 3_600_000);
     check(refused.ok === false && refused.reason === "bad_entry", "the Championship can't be entered");
     await advance(id, day);
     const rr = roundsRow(id)!;
-    check(eventRow(id)["status"] === "live" && rr["field"] === 5 && rr["bracket_size"] === 8 && rr["rounds_total"] === 3, `qualifiers from Score Attack: 5 accounts (the guest and a repeat skipped), a bracket of 8 (${rr["field"]}, ${rr["bracket_size"]})`);
-    check(q(`SELECT string_agg(seed::text, ',' ORDER BY seed) FROM tournament_seeds WHERE event_id = '${id}'`) === "1,2,3,4,5" && q(`SELECT user_id FROM tournament_seeds WHERE event_id = '${id}' AND seed = 1`) === A[0], "seeded in Score Attack order");
-    check(q(`SELECT count(*) FROM tournament_entries WHERE event_id = '${id}' AND entry = 'free' AND coins = 0`) === "5" && q(`SELECT entrants FROM tournament_events WHERE id = '${id}'`) === "5", "the qualifiers are entered free by the server");
+    check(eventRow(id)["status"] === "live" && rr["field"] === 17 && rr["bracket_size"] === 32 && rr["rounds_total"] === 5, `qualifiers from Score Attack: 17 accounts (the guest and a repeat skipped), a bracket of 32 (${rr["field"]}, ${rr["bracket_size"]}, ${rr["rounds_total"]})`);
+    check(q(`SELECT string_agg(seed::text, ',' ORDER BY seed) FROM tournament_seeds WHERE event_id = '${id}'`) === Array.from({ length: 17 }, (_, i) => i + 1).join(",") && q(`SELECT user_id FROM tournament_seeds WHERE event_id = '${id}' AND seed = 1`) === A[0], "seeded in Score Attack order");
+    check(q(`SELECT count(*) FROM tournament_entries WHERE event_id = '${id}' AND entry = 'free' AND coins = 0`) === "17" && q(`SELECT entrants FROM tournament_events WHERE id = '${id}'`) === "17", "the qualifiers are entered free by the server");
     const r1 = matchesOf(id).filter((m) => m.round === 1);
-    check(r1.filter((m) => m.walkover).length === 3 && r1.filter((m) => m.walkover).every((m) => [1, 2, 3].includes(m.seed_a ?? m.seed_b ?? 0)), "byes: seeds 1, 2 and 3 go through without playing");
+    const byes = r1.filter((m) => m.walkover && (m.seed_a ?? m.seed_b) !== null);
+    check(r1.length === 16 && byes.length === 15 && byes.every((m) => (m.seed_a ?? m.seed_b ?? 99) <= 15), `byes: seeds 1–15 go through without playing (${byes.length})`);
     const played = r1.find((m) => !m.walkover)!;
-    check(played.seed_a === 4 && played.seed_b === 5 && played.status === "playing", "4 v 5 is played");
+    check(played.seed_a === 16 && played.seed_b === 17 && played.status === "playing", "16 v 17 is played");
     finish(played.duel_id!, [100, 100, 100], [100, 100, 100]);
-    await advance(id, day + 10_000);
-    check(matchesOf(id).find((m) => m.round === 1 && !m.walkover)!.winner === A[3], "a level match goes to the higher seed (4)");
-    await advance(id, day + 80_000);
-    const semis = matchesOf(id).filter((m) => m.round === 2);
-    check(semis.length === 2 && semis.every((m) => m.status === "playing"), "the semi-finals, a minute later");
-    const semiOf = (s: number) => semis.find((m) => m.seed_a === s || m.seed_b === s)!;
-    const s1 = semiOf(1); // 4 beats 1
-    finish(s1.duel_id!, s1.seed_a === 1 ? [10, 10, 10] : [150, 150, 150], s1.seed_a === 1 ? [150, 150, 150] : [10, 10, 10]);
-    const s2 = semiOf(2); // 2 beats 3
-    finish(s2.duel_id!, s2.seed_a === 2 ? [150, 150, 150] : [10, 10, 10], s2.seed_a === 2 ? [10, 10, 10] : [150, 150, 150]);
-    await advance(id, day + 90_000);
-    await advance(id, day + 160_000);
-    const last = matchesOf(id).filter((m) => m.round === 3);
+    let t = day + 10_000;
+    await advance(id, t);
+    check(matchesOf(id).find((m) => m.round === 1 && !m.walkover)!.winner === A[15], "a level match goes to the higher seed (16)");
+    // Rounds 2 (last 16) and 3 (quarter-finals): the higher seed wins each.
+    for (const round of [2, 3]) {
+      t += 70_000;
+      await advance(id, t);
+      check(matchesOf(id).filter((m) => m.round === round).every((m) => m.status === "playing"), `round ${round}'s rooms, a minute after the round before settles`);
+      playRound(id, round);
+      t += 10_000;
+      await advance(id, t);
+    }
+    t += 70_000;
+    await advance(id, t);
+    const semis = matchesOf(id).filter((m) => m.round === 4);
+    check(semis.length === 2 && semis.every((m) => m.status === "playing") && semis.map((m) => `${m.seed_a}v${m.seed_b}`).sort().join() === "1v4,2v3", `the semi-finals: 1 v 4 and 2 v 3 (${semis.map((m) => `${m.seed_a}v${m.seed_b}`).join(", ")})`);
+    playRound(id, 4, (m) => m.seed_a === 2); // 4 beats 1, 2 beats 3
+    t += 10_000;
+    await advance(id, t);
+    t += 70_000;
+    await advance(id, t);
+    const last = matchesOf(id).filter((m) => m.round === 5);
     const final = last.find((m) => m.stage === "knockout")!;
     const third = last.find((m) => m.stage === "third_place")!;
     check(!!final && !!third && [final.seed_a, final.seed_b].sort().join() === "2,4" && [third.seed_a, third.seed_b].sort().join() === "1,3", "the final (2 v 4) and the semi losers' third-place match (1 v 3)");
@@ -386,23 +406,26 @@ async function runAll(db: LocalDb): Promise<void> {
     // Seed 1 wins the third-place match on the board, but its run is flagged: seed 3 takes it, seed 1 places nowhere.
     const seed1Slot: 1 | 2 = third.seed_a === 1 ? 1 : 2;
     finish(third.duel_id!, seed1Slot === 1 ? [150, 150, 150] : [0, 0, 0], seed1Slot === 1 ? [0, 0, 0] : [150, 150, 150], seed1Slot);
-    await advance(id, day + 170_000);
+    t += 10_000;
+    await advance(id, t);
     check(eventRow(id)["status"] === "finished" && typeof roundsRow(id)?.["awarded_at"] === "string", "the Championship finishes and pays");
     const place = (u: string) => q(`SELECT coalesce((SELECT place::text FROM tournament_results WHERE event_id = '${id}' AND user_id = '${u}'), 'none')`);
-    check(place(A[1]!) === "1" && place(A[3]!) === "2" && place(A[2]!) === "3" && place(A[0]!) === "none" && place(A[4]!) === "5", `places: final winner 1st, loser 2nd, the third-place match's unflagged side 3rd, the flagged one none, the quarter-final loser 5th (${A.map(place).join(" ")})`);
-    check(balance(A[1]!) === 1000 + 10000 + 250 && balance(A[3]!) === 6000 && balance(A[2]!) === 3500 && balance(A[0]!) === 1000 && balance(A[4]!) === 1500, `prizes: 10,000 (+250 for the Legendary badge) / 5,000 / 2,500 / 500, none to the flagged (${A.map((u) => balance(u)).join(" ")})`);
+    const places = A.map(place);
+    check(places.join(" ") === ["none", "1", "3", "2", "5", "5", "5", "5", "9", "9", "9", "9", "9", "9", "9", "9", "17"].join(" "), `places: final winner 1st, loser 2nd, the third-place match's unflagged side 3rd, the flagged one none, quarter-final losers 5th, earlier losers 9th and 17th (${places.join(" ")})`);
+    const balances = A.map((u) => balance(u));
+    check(balances.join(" ") === [1000, 11250, 3500, 6000, 1500, 1500, 1500, 1500, ...Array(9).fill(1000)].join(" "), `prizes: 10,000 (+250 for the Legendary badge) / 5,000 / 2,500 / 500 for 5th–8th, none to the flagged or below 8th (${balances.join(" ")})`);
     check(q(`SELECT count(*) FROM player_badges WHERE badge = 'knockout-champion' AND user_id = '${A[1]}'`) === "1", "the Knockout Champion badge to the winner");
     check(q(`SELECT how FROM inventory_items WHERE user_id = '${A[1]}' AND item_id = 'frame.championship'`) === "earned", "the animated Championship frame to the winner");
     check(q(`SELECT user_id FROM tournament_hall_of_fame WHERE month = '2027-03'`) === A[1], "the winner joins the hall of fame");
     check(q(`SELECT string_agg(medal, ',' ORDER BY place) FROM tournament_trophies WHERE event_id = '${id}'`) === "gold,silver,bronze", "trophies to 1st–3rd");
     check(q(`SELECT count(*) FROM moderation.tournament_flags WHERE event_id = '${id}' AND player_id = '${A[0]}'`) === "1", "the flagged run is logged for review");
-    await advance(id, day + 200_000);
+    await advance(id, t + 30_000);
     check(balance(A[1]!) === 11250 && q(`SELECT count(*) FROM inventory_items WHERE item_id = 'frame.championship'`) === "1" && q(`SELECT count(*) FROM tournament_awards WHERE event_id = '${id}' AND kind = 'frame'`) === "1", "paid once, and logged");
     await flushAnalytics();
-    const played5 = q(`SELECT count(*) FROM analytics.events WHERE event = 'knockout_match_played'`);
-    check(played5 === "5", `knockout_match_played for each played match, never a walkover (${played5})`);
+    const playedN = q(`SELECT count(*) FROM analytics.events WHERE event = 'knockout_match_played'`);
+    check(playedN === "17", `knockout_match_played for each played match (1 + 8 + 4 + 2 + 2), never a walkover (${playedN})`);
     const v = await flow.bigEventView(client, id, A[1]!);
-    check(v?.bracket.length === 8 && v.bracket.some((b) => b.stage === "third_place"), "the live part draws the bracket and the third-place match");
+    check(v?.bracket.length === 32 && v.bracket.some((b) => b.stage === "third_place"), `the live part draws the bracket and the third-place match (${v?.bracket.length})`);
   });
 
   await section("qualification", async () => {
@@ -414,35 +437,62 @@ async function runAll(db: LocalDb): Promise<void> {
     const r1 = matchesOf(id).filter((m) => m.round === 1);
     check(rr["field"] === 64 && rr["bracket_size"] === 64 && rr["rounds_total"] === 6 && r1.length === 32 && r1.every((m) => !m.walkover), "the top 64 qualify: a full bracket of 32 first-round matches, no byes");
     check(q(`SELECT count(*) FROM tournament_seeds WHERE event_id = '${id}' AND user_id IN ('${Q[64]}', '${Q[65]}')`) === "0", "the 65th and 66th don't qualify");
-    top = [];
+    // 15 qualifiers (Joe, 11 Nov 2026): not held that month; nobody entered or paid, so nothing to refund.
     const may = "championship:2027-05";
+    const fifteen = Q.slice(20, 35);
+    top = [GUEST, ...fifteen];
     await ensure(may);
     await advance(may, Date.parse("2027-05-30T18:00:00Z"));
-    check(eventRow(may)["status"] === "cancelled" && eventRow(may)["cancel_reason"] === "no_qualifiers", "no qualifiers: called off");
+    check(eventRow(may)["status"] === "cancelled" && eventRow(may)["cancel_reason"] === "not_held", `15 qualifiers: not held (${eventRow(may)["status"]}, ${eventRow(may)["cancel_reason"]})`);
+    check(q(`SELECT count(*) FROM tournament_entries WHERE event_id = '${may}'`) === "0" && q(`SELECT count(*) FROM tournament_seeds WHERE event_id = '${may}'`) === "0" && roundsRow(may) === null && fifteen.every((u) => balance(u) === 1000), "nobody entered, seeded or paid; nothing refunded");
+    const view = await server.eventFor(client, fifteen[0]!, may, Date.parse("2027-05-30T18:01:00Z"), ON);
+    check(view?.cancelReason === "not_held", "the Tournaments tab is told it wasn't held");
+    // 16 qualifiers: held, a full bracket of 16.
+    const aug = "championship:2027-08";
+    top = Q.slice(20, 36);
+    await ensure(aug);
+    await advance(aug, Date.parse("2027-08-29T18:00:00Z"));
+    const ra = roundsRow(aug);
+    check(eventRow(aug)["status"] === "live" && ra?.["field"] === 16 && ra["bracket_size"] === 16 && matchesOf(aug).filter((m) => m.round === 1).every((m) => !m.walkover), "16 qualifiers: held, a bracket of 16 with no byes");
   });
 
   await section("real room", async () => {
     flow.setBigRoomMaker(null); // W3b's real dealt match room
     const id = "championship:2027-06";
     const day = Date.parse("2027-06-27T18:00:00Z");
-    const [x, kid] = [Q[68]!, KID];
-    top = [x, kid];
+    const x = Q[68]!;
+    const kid = KID;
+    const rest = Q.slice(50, 64);
+    top = [x, kid, ...rest];
     await ensure(id);
     await advance(id, day);
-    const final = matchesOf(id)[0]!;
-    check(roundsRow(id)?.["bracket_size"] === 2 && final.status === "playing" && !!final.duel_id, "two qualifiers: a live final in a real started room");
-    const room = JSON.parse(q(`SELECT row_to_json(d) FROM duels d WHERE id = '${final.duel_id}'`)) as { status: string; round_count: number; host_user_id: string };
-    const seated = q(`SELECT string_agg(user_id::text || ':' || player_slot, ',' ORDER BY player_slot) FROM duel_players WHERE duel_id = '${final.duel_id}'`);
-    check(room.status === "in_progress" && room.round_count === 3 && seated === `${x}:1,${kid}:2`, `the room: started, three games, both players seated (${room.status}, ${seated})`);
-    check(q(`SELECT count(*) FROM mm_matches WHERE duel_id = '${final.duel_id}'`) === "0", "never a rated match");
-    const kidChat = await tournamentChatText(client, final.duel_id!, kid, "hello there", Date.now());
-    const adultChat = await tournamentChatText(client, final.duel_id!, x, "hello there", Date.now());
+    const r1 = matchesOf(id).filter((m) => m.round === 1);
+    check(roundsRow(id)?.["bracket_size"] === 16 && r1.length === 8 && r1.every((m) => m.status === "playing" && !!m.duel_id), "16 qualifiers: eight first-round matches in real started rooms");
+    const mine = r1.find((m) => m.player_a === x)!;
+    const kids = r1.find((m) => m.player_a === kid)!;
+    const room = JSON.parse(q(`SELECT row_to_json(d) FROM duels d WHERE id = '${mine.duel_id}'`)) as { status: string; round_count: number; host_user_id: string };
+    const seated = q(`SELECT string_agg(user_id::text || ':' || player_slot, ',' ORDER BY player_slot) FROM duel_players WHERE duel_id = '${mine.duel_id}'`);
+    check(room.status === "in_progress" && room.round_count === 3 && seated === `${x}:1,${rest[13]}:2`, `the room: started, three games, seed 1 v seed 16 seated (${room.status}, ${seated})`);
+    check(q(`SELECT count(*) FROM mm_matches WHERE duel_id IN (${r1.map((m) => `'${m.duel_id}'`).join(", ")})`) === "0", "never a rated match");
+    const kidChat = await tournamentChatText(client, kids.duel_id!, kid, "hello there", Date.now());
+    const adultChat = await tournamentChatText(client, mine.duel_id!, x, "hello there", Date.now());
     check(kidChat?.ok === false && adultChat?.ok === true, "chat: quick phrases only for an under-18, an adult types");
-    finish(final.duel_id!, [150, 150, 10], [10, 10, 150]);
-    const again = await callServerFn(duel.rematchFn, { roomId: final.duel_id }, accountToken(room.host_user_id));
-    check(again?.ok === false, `Play again is refused in a tournament room (${JSON.stringify(again).slice(0, 80)})`);
-    await advance(id, day + 60_000);
-    check(eventRow(id)["status"] === "finished" && q(`SELECT user_id FROM tournament_hall_of_fame WHERE month = '2027-06'`) === x, "settled from the room's own grading: the winner takes the final");
+    playRound(id, 1);
+    const again = await callServerFn(duel.rematchFn, { roomId: mine.duel_id }, accountToken(room.host_user_id));
+    check(again?.ok === false && again.message === BIG_EVENT_PLAY_AGAIN_LINE, `Play again is refused in a Championship room, with the event's own line (${JSON.stringify(again).slice(0, 90)})`);
+    check(BIG_EVENT_PLAY_AGAIN_LINE === "Your next match opens when the round does.", "the line for a Cup or Championship room");
+    let t = day + 10_000;
+    await advance(id, t);
+    check(matchesOf(id).filter((m) => m.round === 1).every((m) => m.status === "settled" && m.winner === m.player_a), "settled from the rooms' own grading: each higher seed through");
+    flow.setBigRoomMaker(makeRoom); // the later rounds on stand-in rooms
+    for (const round of [2, 3, 4]) {
+      t += 70_000;
+      await advance(id, t);
+      playRound(id, round);
+      t += 10_000;
+      await advance(id, t);
+    }
+    check(eventRow(id)["status"] === "finished" && q(`SELECT user_id FROM tournament_hall_of_fame WHERE month = '2027-06'`) === x, "the winner takes the final");
     const hall = await flow.hallOfFame(client);
     check(hall.length === 2 && hall[0]!.month === "2027-06" && hall[1]!.month === "2027-03" && hall[0]!.label === "June 2027" && hall[0]!.name.startsWith("Player_"), `the hall of fame: every winner by month, newest first (${hall.map((h) => `${h.month} ${h.name}`).join("; ")})`);
     check(q(`SELECT count(*) FROM rated_matches`) === "0" && q(`SELECT count(*) FROM mm_matches`) === "0", "no rated match ever made (W3a's ratings and W3b's matches both empty)");

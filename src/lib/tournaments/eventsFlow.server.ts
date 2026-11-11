@@ -68,6 +68,7 @@ import { serverFlag, UNDER_REVIEW_LINE } from "./rules";
 import {
   CHAMPIONSHIP_FRAME,
   CHAMPIONSHIP_MIN_QUALIFIERS,
+  CHAMPIONSHIP_NOT_HELD,
   CHAMPIONSHIP_QUALIFIERS,
   CUP_MIN_ENTRANTS,
   isBigKind,
@@ -178,7 +179,8 @@ async function startBigEvent(client: Db, row: TournamentEventRow, nowMs: number)
       players.push(userId);
     }
     if (players.length < CHAMPIONSHIP_MIN_QUALIFIERS) {
-      await cancelEventRpc(client, row.id, "no_qualifiers");
+      // Not held this month: nobody was entered or paid, so W4b's cancel refunds nothing.
+      await cancelEventRpc(client, row.id, CHAMPIONSHIP_NOT_HELD);
       return;
     }
     // Qualifiers are entered by the server, free (W4b's entry: the count, the reminder, the results' account).

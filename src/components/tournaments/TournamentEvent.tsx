@@ -16,7 +16,7 @@ import type { ArenaBoard, ArenaPoll, EntryOption, ScoreAttackBoard, TournamentEv
 
 import { dayLabel, inMinutes } from "./TournamentHub";
 import { BigEventLive } from "./BigEventLive";
-import { bigHowItWorks, CUP_MIN_ENTRANTS, isBigKind } from "@/lib/tournaments/eventRules";
+import { bigHowItWorks, CHAMPIONSHIP_NOT_HELD, CHAMPIONSHIP_NOT_HELD_LINE, CUP_MIN_ENTRANTS, isBigKind } from "@/lib/tournaments/eventRules";
 
 /** The plain "how it works" lines per kind (the full rules page has the rest). */
 export function howItWorks(ev: Pick<TournamentEventView, "kind" | "rounds" | "pickLabel">): string[] {
@@ -366,12 +366,12 @@ export function TournamentEventScreen({
 
         {ev.status === "cancelled" ? (
           <Panel pad data-tournament-cancelled>
-            <h3 className="tn-card-title">Called off this time</h3>
+            <h3 className="tn-card-title">{ev.cancelReason === CHAMPIONSHIP_NOT_HELD ? "Not held this month" : "Called off this time"}</h3>
             <p className="tn-meta">
               {ev.cancelReason === "too_few" && ev.kind === "category_cup"
                 ? `It needs ${CUP_MIN_ENTRANTS} players to start, and not quite enough came. Every entry has been refunded in full.`
-                : ev.cancelReason === "no_qualifiers"
-                  ? "Not enough players qualified from this month’s Score Attacks."
+                : ev.cancelReason === CHAMPIONSHIP_NOT_HELD
+                  ? CHAMPIONSHIP_NOT_HELD_LINE
                   : ev.cancelReason === "too_few"
                 ? `It needs 4 players to start, and not quite enough came. Thanks for turning up.${ev.cancelledNext ? ` The next Arena is ${dayLabel(ev.cancelledNext, now).toLowerCase()} at ${ukTime(ev.cancelledNext)}.` : ""}`
                 : "Every entry has been refunded in full."}

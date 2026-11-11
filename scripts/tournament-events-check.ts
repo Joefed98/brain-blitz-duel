@@ -324,6 +324,11 @@ function prng(seed: number) {
   check(order.join() === "top,many,tie2,tie1" && rules.MONTH_BEST_DAYS === 10, `the best 10 daily totals count, then more days played breaks a level sum (${order.join(", ")})`);
   const sameDays = rules.monthStandings([r("p", 300, 4), r("q", 300, 2)]);
   check(sameDays.join() === "q,p", "then the better best daily place");
+  // Joe, 11 Nov 2026: the qualification on the rules page; held only with at least 16 qualifiers.
+  const champRules = rules.CHAMPIONSHIP_RULES.join(" ");
+  check(champRules.includes("best 10 daily Score Attack totals") && champRules.includes("more days played") && champRules.includes("better best daily place"), "the rules page states the monthly qualification");
+  check(rules.CHAMPIONSHIP_MIN_QUALIFIERS === 16 && rules.CHAMPIONSHIP_NOT_HELD === "not_held" && champRules.includes("at least 16 qualifiers") && champRules.includes("nothing to refund"), "held only with at least 16 qualifiers, said on the rules page");
+  check(rules.BIG_EVENT_PLAY_AGAIN_LINE === "Your next match opens when the round does.", "Play again's line in a Cup or Championship room");
 }
 
 /* ------------------------------------------------------------------ schedule (W4b's ids) */
