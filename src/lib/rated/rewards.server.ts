@@ -53,7 +53,9 @@ export async function finishRatedMatch(client: Db, result: unknown, nowMs: numbe
     await creditJoules(client, { userId: p.playerId, matchId: outcome.matchId, won: p.result === "win", long, atMs, key: ratedJoulesKey(outcome.matchId, p.playerId) });
   }
   for (const p of outcome.players) {
-    if (p.side !== "live") continue;
+    // Live players only (a recorded run's owner gets nothing from it; the live player's match counts), and never a
+    // match with a run the server flagged: it counts for nothing (Joe's rule, W3a).
+    if (p.side !== "live" || p.frozen === "flagged_run") continue;
     await noteSeason(client, () =>
       import("@/lib/seasons/seasons.server").then((s) =>
         s.noteRatedMatchInSeason(client, {

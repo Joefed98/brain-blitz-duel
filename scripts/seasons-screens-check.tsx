@@ -60,7 +60,7 @@ setAccount(
 
 const entry = (tier: SeasonHistoryEntry["tier"], seen = false, season = "s1"): SeasonHistoryEntry => ({
   season, name: "Neon Circuit", test: false, mark: "S1", tier, peakLabel: `${rules.SEASON_TIER_NAMES[tier]} II`, ratedMatches: 14,
-  frame: rules.season1Reward(tier).frame, title: rules.season1Reward(tier).title.id, grantedAt: "2027-03-23T00:00:00.000Z", seen,
+  frame: rules.season1Reward(tier).frame, cardArt: rules.season1Reward(tier).cardArt, title: rules.season1Reward(tier).title.id, grantedAt: "2027-03-23T00:00:00.000Z", seen,
 });
 let seenCalls: string[] = [];
 let badgesUnseen: string[] = [];
@@ -94,7 +94,7 @@ async function mount(el: React.ReactElement) {
   let root = await mount(React.createElement(SeasonNotice));
   const notice = $("[data-season-notice]");
   check(notice?.getAttribute("data-season-notice") === "s1", "a reward not yet shown draws the notice");
-  check(/Season 1 is over · Peak Storm/.test(notice?.textContent ?? "") && /S1 Storm emblem, frame and the title S1 Storm/.test(notice?.textContent ?? ""), `its words (${notice?.textContent})`);
+  check(/Season 1 is over · Peak Storm/.test(notice?.textContent ?? "") && /S1 Storm emblem, frame, card art and the title S1 Storm/.test(notice?.textContent ?? ""), `its words (${notice?.textContent})`);
   check(!!notice?.querySelector('[data-season-emblem="storm"][data-season-mark="S1"]'), "with the S1 Storm emblem");
   await act(async () => notice!.click());
   await settle(40);
@@ -115,7 +115,7 @@ async function mount(el: React.ReactElement) {
 
   for (const t of rules.SEASON_TIERS) {
     const l = seasonNoticeLines(entry(t));
-    check(l.kicker === `Season 1 is over · Peak ${rules.SEASON_TIER_NAMES[t]}` && l.body === `You earned the S1 ${rules.SEASON_TIER_NAMES[t]} emblem, frame and the title S1 ${rules.SEASON_TIER_NAMES[t]}.`, `${t}: ${l.body}`);
+    check(l.kicker === `Season 1 is over · Peak ${rules.SEASON_TIER_NAMES[t]}` && l.body === `You earned the S1 ${rules.SEASON_TIER_NAMES[t]} emblem, frame, card art and the title S1 ${rules.SEASON_TIER_NAMES[t]}.`, `${t}: ${l.body}`);
   }
 }
 
@@ -135,6 +135,28 @@ async function mount(el: React.ReactElement) {
   check(!$("[data-profile-seasons]"), "no section without a season played");
   root.unmount();
 
+  // W4b's trophy cabinet holds the season emblems: one per season reward, beside the tournament trophies; nothing
+  // without either (the cabinet reads the account's own history through useMySeasons; `seasons` stands in here).
+  {
+    const { TrophyCabinet } = await import("../src/components/tournaments/TournamentHub");
+    const { renderToStaticMarkup } = await import("react-dom/server");
+    const none = renderToStaticMarkup(React.createElement(TrophyCabinet, { trophies: [], seasons: [] }));
+    const two = renderToStaticMarkup(React.createElement(TrophyCabinet, { trophies: [], seasons: [entry("storm", true), entry("top500", true, "s2")] }));
+    const withTrophy = renderToStaticMarkup(
+      React.createElement(TrophyCabinet, {
+        trophies: [{ eventId: "arena:2026-11-20:1300", kind: "arena", medal: "gold", title: "Lunchtime Arena, 1st", place: 1, awardedAt: 0 }],
+        seasons: [entry("volt", true)],
+      } as never),
+    );
+    check(none === "", "no cabinet without a trophy or a season emblem");
+    check(
+      /data-trophy-cabinet/.test(two) && (two.match(/data-season-trophy="/g) ?? []).length === 2 && /data-season-emblem="storm"/.test(two) && /data-season-emblem="top500"/.test(two),
+      "the cabinet shows each season emblem (the tier's shield with its mark)",
+    );
+    check((withTrophy.match(/data-trophy="/g) ?? []).length === 1 && (withTrophy.match(/data-season-trophy="/g) ?? []).length === 1, "beside the tournament trophies");
+    const profile = readFileSync("src/routes/profile.tsx", "utf8");
+    check(/<TrophyCabinet trophies=\{trophies\} \/>/.test(profile), "Profile draws the cabinet (it reads the account's season history itself)");
+  }
   root = await mount(React.createElement(SeasonTrophies, { history: rules.SEASON_TIERS.map((t) => entry(t)) }));
   const trophies = [...document.querySelectorAll("[data-season-emblem]")].map((e) => (e as unknown as HTMLElement).getAttribute("data-season-emblem"));
   check(trophies.join() === rules.SEASON_TIERS.join(), `every tier's emblem for the trophy cabinet (${trophies.join()})`);

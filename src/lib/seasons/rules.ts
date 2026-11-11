@@ -102,6 +102,8 @@ export interface SeasonReward {
   emblem: { tier: TierId; mark: string };
   /** The catalogue's frame (frame.s1-storm). */
   frame: string;
+  /** The tier's card art (card-art.tier.storm; Joe, 11 Nov 2026), kept forever once owned. */
+  cardArt: string;
   /** public.titles id and name ("s1-storm", "S1 Storm"). */
   title: { id: string; name: string };
 }
@@ -112,6 +114,7 @@ export function season1Reward(tier: TierId): SeasonReward {
     tier,
     emblem: { tier, mark: "S1" },
     frame: `frame.s1-${SUFFIX(tier)}`,
+    cardArt: `card-art.tier.${SUFFIX(tier)}`,
     title: { id: `s1-${SUFFIX(tier)}`, name: `S1 ${SEASON_TIER_NAMES[tier]}` },
   };
 }

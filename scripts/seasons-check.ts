@@ -189,9 +189,8 @@ async function pureChecks(): Promise<void> {
 
   await section("every tier's reward", async () => {
     const cat = await import("../src/lib/badges/catalogue");
-    const items = (JSON.parse(readFileSync("docs/art/wave-2/catalogue.json", "utf8")) as {
-      items: { id: string; kind: string; source: string; animated: boolean; exclusive_forever: boolean; html: string; png: string }[];
-    }).items;
+    const { catalogueItems } = await import("./catalogue-files");
+    const items = catalogueItems<{ id: string; kind: string; source: string; animated: boolean; exclusive_forever: boolean; html: string; png: string }>();
     const names = rules.SEASON_TIERS.map((t) => rules.season1Reward(t).title.name).join(", ");
     check(names === "S1 Spark, S1 Charge, S1 Volt, S1 Surge, S1 Storm, S1 Lightning, S1 Top 500", `the seven titles (${names})`);
     check(cat.SEASON_TITLE_DEFS.map((t) => `${t.id}:${t.name}:${t.kind}`).join() === rules.SEASON_1_TITLES.map((t) => `${t.id}:${t.name}:season`).join(), "C2's title list holds the seven season titles");
@@ -202,7 +201,8 @@ async function pureChecks(): Promise<void> {
       rules.SEASON_TIERS.every((t, i) => frames[i]!.animated === rules.ANIMATED_SEASON_TIERS.includes(t)),
       "animated for Storm, Lightning and Top 500 only",
     );
-    check(items.slice(-7).map((i) => i.id).join() === rules.SEASON_1_FRAMES.join(), "they are catalogue.json's last seven, in tier order");
+    const wave4 = (JSON.parse(readFileSync("docs/art/wave-4/catalogue.json", "utf8")) as { items: { id: string }[] }).items;
+    check(wave4.slice(-7).map((i) => i.id).join() === rules.SEASON_1_FRAMES.join(), "they are the wave-4 catalogue's last seven, after W4c's Championship frame, in tier order");
     check(frames.every((f) => f!.html.startsWith("placeholders/") && f!.png.startsWith("placeholders/")), "placeholder art until drawn, kept apart from the approved items");
     const placeholders = Bun.spawnSync(["bun", "scripts/season-frame-placeholders.ts", "--check"]);
     check(placeholders.exitCode === 0, "the placeholder sources are what scripts/season-frame-placeholders.ts writes");
@@ -259,6 +259,7 @@ async function databaseChecks(d: LocalDb): Promise<void> {
     return !out.ok || /ERROR/.test(out.err);
   };
   const events = (event: string) => Number(q(`SELECT count(*) FROM analytics.events WHERE event = '${event}'`));
+  const ownsHow = (id: string, item: string) => q(`SELECT coalesce((SELECT how FROM inventory_items WHERE user_id = '${id}' AND item_id = '${item}'), '-')`);
   const owns = (id: string, item: string) => q(`SELECT count(*) FROM inventory_items WHERE user_id = '${id}' AND item_id = '${item}' AND how = 'earned'`) === "1";
   const note = (u: string, match: number, ago: string, tier: Tier | null, label: string | null, done: boolean) =>
     q(`SELECT public.season_note_rated_match('${u}', '${uid(900000 + match)}', now() - interval '${ago}', ${tier ? `'${tier}'` : "NULL"}, ${label ? `'${label}'` : "NULL"}, ${done})`);
@@ -373,6 +374,9 @@ async function databaseChecks(d: LocalDb): Promise<void> {
   await section("the test season, end to end", async () => {
     // Run 1, as testers would. The ratings engine's reset is taken away for this run, to prove a close without it
     // records the reset as waiting, and that running the close again completes it.
+    // Tess already owns her peak tier's card art (given by Joe): the reward gives nothing more, and taking the test rewards
+    // back leaves it.
+    q(`SELECT economy.add_item('${TESTER}', 'card-art.tier.lightning', 'grant')`);
     q(`ALTER FUNCTION ${RESET_FN} RENAME TO ratings_season_reset_off`);
     const first = JSON.parse(q(`SELECT pass.close_test_season('trying the season end')`)) as Record<string, unknown>;
     check(first["first_close"] === true && first["players_rewarded"] === 1, `closing the test season rewards the one tester who qualified (${JSON.stringify(first)})`);
@@ -381,6 +385,9 @@ async function databaseChecks(d: LocalDb): Promise<void> {
     check(tr === "lightning:S1:frame.s1-lightning:s1-lightning:true", `Tess earns the S1 Lightning emblem, frame and title, marked test (${tr})`);
     check(q(`SELECT count(*) FROM season_rewards WHERE user_id = '${TESTER2}'`) === "0", "Tess Two (6 matches) earns nothing");
     check(owns(TESTER, "frame.s1-lightning"), "the frame is in Tess's inventory, earned");
+    check(q(`SELECT card_art || ':' || array_to_string(granted_items, ',') FROM season_rewards WHERE user_id = '${TESTER}'`) === "card-art.tier.lightning:frame.s1-lightning",
+      "her tier's card art is her reward too, but already owned: nothing more is added");
+    check(ownsHow(TESTER, "card-art.tier.lightning") === "grant", "the card art she owned stays as it was");
     check(q(`SELECT count(*) FROM season_rewards WHERE season_id = 's1'`) === "0", "Season 1's players are untouched");
 
     q(`ALTER FUNCTION public.ratings_season_reset_off(text, timestamptz, boolean) RENAME TO ratings_season_reset`);
@@ -419,11 +426,31 @@ async function databaseChecks(d: LocalDb): Promise<void> {
     check(set?.ok === true, `Tess equips S1 Lightning (${JSON.stringify(set).slice(0, 120)})`);
     const mine = await call(badgeFns.getMyBadges, undefined, accountToken(TESTER));
     check(mine?.account === true && mine.seasonTitles?.join() === "s1-lightning", "Customise lists her season title");
+    // D2's pass titles still work beside the season rule: unlocked equips, locked doesn't; an ungranted season title doesn't.
+    q(`INSERT INTO pass_title_unlocks (user_id, title_id, season_id) VALUES ('${TESTER}', 'neon-rider', 'test')`);
+    check((await call(badgeFns.setMyTitle, { title: "neon-rider" }, accountToken(TESTER)))?.ok === true, "an unlocked pass title (Neon Rider) still equips");
+    check((await call(badgeFns.setMyTitle, { title: "circuit-breaker" }, accountToken(TESTER)))?.ok === false, "a pass title not unlocked (Circuit Breaker) is still refused");
+    check((await call(badgeFns.setMyTitle, { title: "s1-storm" }, accountToken(TESTER)))?.ok === false, "a season title not granted (S1 Storm) is refused");
+    check((await call(badgeFns.setMyTitle, { title: "s1-lightning" }, accountToken(TESTER)))?.ok === true, "and her own season title equips again");
+    {
+      const body = (file: string) => {
+        const t = readFileSync(file, "utf8");
+        const a = t.indexOf("CREATE OR REPLACE FUNCTION public.badge_set_title");
+        return t.slice(a, t.indexOf("\n$$;", a));
+      };
+      const d2 = body("supabase/migrations/20261113100200_pass_titles_test_rewards.sql");
+      const mine = body("supabase/migrations/20261115400000_seasons.sql");
+      const seasonRule = `  IF v_title.kind = 'season' AND NOT EXISTS (\n       SELECT 1 FROM public.season_rewards\n        WHERE user_id = p_user_id AND title_id = v_title.id AND removed_at IS NULL) THEN`;
+      check(mine === d2.replace("  IF v_title.kind = 'season' THEN", seasonRule), "badge_set_title is D2's latest text exactly, plus the season-title rule");
+      const later = readdirSync("supabase/migrations").filter((f) => f > "20261115400000_seasons.sql" && readFileSync(join("supabase/migrations", f), "utf8").includes("FUNCTION public.badge_set_title"));
+      check(later.length === 0, `no later migration redefines badge_set_title (${later.join(", ") || "none"})`);
+    }
 
     // The testers' rewards taken back before launch.
     const removed = JSON.parse(q(`SELECT pass.remove_test_season_tier_rewards('clean-up before launch')`)) as Record<string, number>;
-    check(removed["rewards"] === 1 && removed["frames"] === 1 && removed["titles_unequipped"] === 1, `taking the test rewards back: reward, frame and title (${JSON.stringify(removed)})`);
+    check(removed["rewards"] === 1 && removed["items"] === 1 && removed["titles_unequipped"] === 1, `taking the test rewards back: reward, the frame it added and title (${JSON.stringify(removed)})`);
     check(!owns(TESTER, "frame.s1-lightning") && q(`SELECT count(*) FROM card_titles WHERE user_id = '${TESTER}'`) === "0", "Tess's frame is gone and her card is back to Rookie");
+    check(ownsHow(TESTER, "card-art.tier.lightning") === "grant", "the card art she owned before is kept");
     check((await call(badgeFns.setMyTitle, { title: "s1-lightning" }, accountToken(TESTER)))?.ok === false, "and the title can't be equipped again");
     check(q(`SELECT count(*) FROM season_rewards WHERE user_id = '${TESTER}'`) === "1", "the reward row is kept, marked removed (never deleted)");
 
@@ -452,12 +479,16 @@ async function databaseChecks(d: LocalDb): Promise<void> {
     );
     for (const [i, t] of PEAKS.entries()) {
       const want = rules.season1Reward(t);
-      const row = q(`SELECT mark || ':' || frame_item || ':' || title_id FROM season_rewards WHERE user_id = '${PEAK_PLAYERS[i]}' AND season_id = 's1'`);
-      check(row === `S1:${want.frame}:${want.title.id}` && owns(PEAK_PLAYERS[i]!, want.frame), `${rules.SEASON_TIER_NAMES[t]}: the S1 emblem, ${want.frame} and the title ${want.title.name}`);
+      const row = q(`SELECT mark || ':' || frame_item || ':' || card_art || ':' || title_id FROM season_rewards WHERE user_id = '${PEAK_PLAYERS[i]}' AND season_id = 's1'`);
+      check(
+        row === `S1:${want.frame}:${want.cardArt}:${want.title.id}` && owns(PEAK_PLAYERS[i]!, want.frame) && owns(PEAK_PLAYERS[i]!, want.cardArt),
+        `${rules.SEASON_TIER_NAMES[t]}: the S1 emblem, ${want.frame}, ${want.cardArt} and the title ${want.title.name}`,
+      );
       check(q(`SELECT name FROM titles WHERE id = '${want.title.id}' AND kind = 'season'`) === want.title.name, `${want.title.name} is a season title`);
     }
     check(q(`SELECT count(*) FROM season_rewards WHERE user_id IN ('${NINE}', '${NOPLACE}', '${IDLE}') AND season_id = 's1'`) === "0", "9 matches, no placement, or 2 matches: nothing");
     check(!owns(CAPPED, "frame.s1-storm") && owns(CAPPED, "frame.s1-surge"), "the cap-held player gets Surge's frame, not Storm's");
+    check(!owns(CAPPED, "card-art.tier.storm") && owns(CAPPED, "card-art.tier.surge"), "and Surge's card art");
     const inventoryBefore = q(`SELECT count(*) FROM inventory_items`);
     const again = JSON.parse(q(`SELECT pass.close_season('s1', 'again, to be sure')`)) as Record<string, unknown>;
     check(again["rewarded_now"] === 0 && q(`SELECT count(*) FROM inventory_items`) === inventoryBefore && q(`SELECT count(*) FROM season_rewards WHERE season_id = 's1'`) === "8", "closing it again grants nothing twice");
@@ -536,6 +567,39 @@ async function databaseChecks(d: LocalDb): Promise<void> {
       `the season peak so far, from the engine's own tier (${JSON.stringify(cur)})`,
     );
     const standing = await seasons.noteTierInSeason(admin, { userId: pVolt, at: new Date().toISOString(), tier: "top500", tierLabel: "Top 500 #3" });
+    // What counts towards the 10: a live player's match against a recorded run counts for them (the run's owner gets
+    // nothing from it); a match with a run the server flagged counts for nobody.
+    const pCharge = PEAK_PLAYERS[1]!;
+    const before2 = (u: string) => Number(q(`SELECT count(*) FROM season_rated_matches WHERE season_id = 's2' AND user_id = '${u}' AND kind = 'match'`));
+    const [stormN, voltN, chargeN] = [before2(pStorm), before2(pVolt), before2(pCharge)];
+    const recorded = await finishRatedMatch(admin, {
+      matchId: "20000000-0000-4000-8000-000000000011",
+      format: { kind: "duel", bestOf: 3 },
+      choice: "puzzles",
+      players: [{ playerId: pStorm, side: "live" }, { playerId: pVolt, side: "recorded", run: { runId: "run-volt-1", ownerId: pVolt, source: "rated" } }],
+      games: [game(180, 120, pVolt), game(170, 130, pVolt)],
+      finishedAt: new Date(Date.now() - 20_000).toISOString(),
+    });
+    check(recorded.ok && before2(pStorm) === stormN + 1 && before2(pVolt) === voltN, `a match against a recorded run counts for the live player, not the run's owner (${JSON.stringify(recorded).slice(0, 100)})`);
+    const flaggedLive = await finishRatedMatch(admin, {
+      matchId: "20000000-0000-4000-8000-000000000012",
+      format: { kind: "duel", bestOf: 3 },
+      choice: "puzzles",
+      players: [{ playerId: pStorm, side: "live" }, { playerId: pCharge, side: "live" }],
+      games: [{ ...game(180, 120, pCharge), gradeExtras: { [pCharge]: { flagged: true } } }, game(170, 130, pCharge)],
+      finishedAt: new Date(Date.now() - 15_000).toISOString(),
+    } as never);
+    const me12 = flaggedLive.ok ? flaggedLive.players.find((p) => p.playerId === pStorm) : undefined;
+    check(me12?.frozen === "flagged_run" && before2(pStorm) === stormN + 1 && before2(pCharge) === chargeN, `a match with a flagged run counts for nobody (${me12?.frozen})`);
+    const flaggedRun = await finishRatedMatch(admin, {
+      matchId: "20000000-0000-4000-8000-000000000013",
+      format: { kind: "duel", bestOf: 3 },
+      choice: "puzzles",
+      players: [{ playerId: pStorm, side: "live" }, { playerId: pVolt, side: "recorded", run: { runId: "run-volt-2", ownerId: pVolt, source: "rated", flagged: true } }],
+      games: [game(180, 120, pVolt), game(170, 130, pVolt)],
+      finishedAt: new Date(Date.now() - 10_000).toISOString(),
+    });
+    check(flaggedRun.ok && before2(pStorm) === stormN + 1 && before2(pVolt) === voltN, "a match against a flagged recorded run counts for nobody either");
     check(standing === "noted" && q(`SELECT peak_tier || ':' || rated_matches FROM public.season_standing('${pVolt}', 's2', (SELECT starts_at FROM pass_seasons WHERE id = 's2'))`) === "top500:3",
       "a tier the standings job gives counts for the peak, never as a match");
     const idle = await call(fns.getMySeasonsFn, undefined, accountToken(PEAK_PLAYERS[0]!));

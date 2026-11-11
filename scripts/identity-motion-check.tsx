@@ -37,10 +37,14 @@ const check = (ok: boolean, message: string) => {
   }
 };
 
-type Raw = { id: string; kind: string; png: string };
+type Raw = { id: string; kind: string; png: string | null; dir: string };
 const only = process.argv.find((a) => a.startsWith("--only="))?.slice(7);
-const items = (JSON.parse(readFileSync("docs/art/wave-2/catalogue.json", "utf8")) as { items: Raw[] }).items.filter((r) =>
-  ["card-art", "frame", "name-colour"].includes(r.kind) && (!only || r.id === only),
+// Both catalogue files (wave 2's, then wave 4's W4d Season 1 frames), each still relative to its own file. W4c's
+// Championship frame has no still yet (placeholder art until drawn): there is nothing to compare it with, and
+// identity-screens-check proves it draws the Plain frame's card.
+const { catalogueItems } = await import("./catalogue-files");
+const items = catalogueItems<Raw>().filter((r) =>
+  ["card-art", "frame", "name-colour"].includes(r.kind) && r.png !== null && (!only || r.id === only),
 );
 
 const card = (r: Raw) =>
@@ -89,7 +93,7 @@ try {
     await page.evaluate(() => document.fonts.ready);
     await page.waitForTimeout(50);
     const box = (await page.locator("[data-player-card]").boundingBox())!;
-    const png = await loadImage(readFileSync(join("docs/art/wave-2", r.png)));
+    const png = await loadImage(readFileSync(join(r.dir, r.png!)));
     // The still's margin round the card (wider for glowing frames): try every offset that fits, keep the best.
     const pad = 40;
     const mine = await loadImage(await page.screenshot({ clip: { x: box.x - pad, y: box.y - pad, width: 300 + 2 * pad, height: 112 + 2 * pad } }));

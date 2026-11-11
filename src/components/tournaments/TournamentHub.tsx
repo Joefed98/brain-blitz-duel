@@ -8,6 +8,10 @@ import { Fragment } from "react";
 
 import { Button, Icon, LiveTag, Panel, Row, SectionHeader } from "@/design/components";
 import { Trophy } from "@/design/art";
+import { SeasonEmblem } from "@/components/seasons/SeasonSection";
+import { SEASON_TIER_NAMES } from "@/lib/seasons/rules";
+import { useMySeasons } from "@/lib/seasons/seasonsApi";
+import type { SeasonHistoryEntry } from "@/lib/seasons/types";
 import { ukDateParts, ukTime } from "@/lib/publicSchedule";
 import { ukDayKey } from "@/lib/duel/daily";
 import { ordinal } from "@/lib/duel/ordinal";
@@ -217,13 +221,27 @@ const TROPHY_KIND = { gold: "gold", silver: "silver", bronze: "bronze" } as cons
  * The trophy cabinet (Profile): only real trophies, newest first; nothing at all for a player with none. The trophy
  * art is F5's placeholder until the canvas art is drawn.
  */
-export function TrophyCabinet({ trophies }: { trophies: readonly TrophyView[] }) {
-  if (!trophies.length) return null;
+/**
+ * The trophy cabinet: the account's tournament trophies and (wave 4 W4d, docs/seasons/README.md) its season emblems, one
+ * per season reward granted (the tier's emblem with the season's mark), both from the server; nothing without either.
+ * `seasons` stands in for the server's season history (checks); by default it is the account's own (useMySeasons).
+ */
+export function TrophyCabinet({ trophies, seasons }: { trophies: readonly TrophyView[]; seasons?: readonly SeasonHistoryEntry[] }) {
+  const mine = useMySeasons();
+  const emblems = seasons ?? (mine.live && mine.seasons?.account ? mine.seasons.history : []);
+  if (!trophies.length && !emblems.length) return null;
   return (
     <section aria-label="Trophy cabinet" className="ap-section" data-trophy-cabinet>
-      <SectionHeader title="Trophy cabinet" right={<span className="ap-meta">{trophies.length}</span>} />
+      <SectionHeader title="Trophy cabinet" right={<span className="ap-meta">{trophies.length + emblems.length}</span>} />
       <Panel pad>
         <ul className="tn-trophies">
+          {emblems.map((h, i) => (
+            <li key={`season:${h.season}:${h.grantedAt}:${i}`} className="tn-trophy" data-season-trophy={h.tier}>
+              <SeasonEmblem tier={h.tier} mark={h.mark} size={48} />
+              <span className="tn-trophy-title">{h.test ? `${h.name} (test)` : h.name}</span>
+              <span className="tn-meta">{`Peak ${SEASON_TIER_NAMES[h.tier]}`}</span>
+            </li>
+          ))}
           {trophies.map((t) => (
             <li key={t.eventId} className="tn-trophy" data-trophy={t.medal}>
               <Trophy kind={TROPHY_KIND[t.medal]} size={56} label={`${t.medal} trophy`} />

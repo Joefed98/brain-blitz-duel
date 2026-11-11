@@ -28,6 +28,8 @@ export interface SeasonHistoryEntry {
   peakLabel: string;
   ratedMatches: number;
   frame: string | null;
+  /** The tier's card art (card-art.tier.<tier>). */
+  cardArt: string | null;
   title: string | null;
   grantedAt: string;
   /** The in-app notice has been shown. */

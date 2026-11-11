@@ -1,6 +1,6 @@
 /**
  * The season reward notice (wave 4, session W4d; docs/seasons/README.md): after a season's end, "Season 1 is over"
- * with the peak tier and what it earned (the emblem, the frame and the title). Drawn only by PhoneShell on the tab
+ * with the peak tier and what it earned (the emblem, the frame, the card art and the title). Drawn only by PhoneShell on the tab
  * pages, like the badge-earned moment, so it never covers a round, its intro or reveal, or any result, podium,
  * standings or share screen; it waits while a badge moment is due. One season at a time; a tap closes it, and it is
  * marked shown either way. Accounts only; nothing is drawn while there is nothing new.
@@ -22,6 +22,7 @@ export function seasonNoticeLines(h: SeasonHistoryEntry): { kicker: string; body
   const name = h.mark === "S1" ? "Season 1" : h.name || h.mark;
   const parts = [`${h.mark} ${SEASON_TIER_NAMES[h.tier]} emblem`];
   if (h.frame) parts.push("frame");
+  if (h.cardArt) parts.push("card art");
   if (h.title) parts.push(`the title ${season1Reward(h.tier).title.name.replace(/^S1/, h.mark)}`);
   const list = parts.length > 1 ? `${parts.slice(0, -1).join(", ")} and ${parts[parts.length - 1]}` : parts[0]!;
   return { kicker: `${name} is over · Peak ${SEASON_TIER_NAMES[h.tier]}`, body: `You earned the ${list}.` };

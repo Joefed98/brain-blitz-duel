@@ -1,6 +1,6 @@
 /**
  * The seven Season 1 card frames' PLACEHOLDER art (wave 4 W4d, docs/seasons/README.md), until the real frames are
- * drawn. Writes docs/art/wave-2/placeholders/frame/s1-<tier>.html (the Silver frame's source with its border swapped
+ * drawn. Writes docs/art/wave-4/placeholders/frame/s1-<tier>.html (the Silver frame's source with its border swapped
  * for a double border in the tier's metal and a "SEASON 1" plate; Storm, Lightning and Top 500 glow with the art board's
  * own `lg-glow` motion, which stops under prefers-reduced-motion) and each one's still, s1-<tier>.png, a 2× screenshot
  * of the source with the exporter's 16 px margin, reduced motion on (as the approved stills are).
@@ -15,7 +15,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 const ROOT = join(import.meta.dir, "..");
-const OUT = join(ROOT, "docs/art/wave-2/placeholders/frame");
+const OUT = join(ROOT, "docs/art/wave-4/placeholders/frame");
 const TEMPLATE = join(ROOT, "docs/art/wave-2/items/frame/silver.html");
 
 export const SEASON_FRAME_TIERS = [

@@ -61,6 +61,7 @@ export function shapeSeasonView(raw: unknown): { current: CurrentSeason | null; 
       peakLabel: str(h["peak_label"]) ?? "",
       ratedMatches: num(h["rated_matches"]),
       frame: str(h["frame"]),
+      cardArt: str(h["card_art"]),
       title: str(h["title"]),
       grantedAt: str(h["granted_at"]) ?? "",
       seen: h["seen"] === true,

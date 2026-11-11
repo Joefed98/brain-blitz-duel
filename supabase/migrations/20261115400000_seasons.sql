@@ -1,6 +1,6 @@
 -- Seasons for ratings: the season end, the reset and the peak-tier rewards (Wave 4, session W4d; 15 Nov 2026;
 -- docs/seasons/README.md). Additive and idempotent: new tables and functions, seven rows added to public.titles,
--- seven rows added to public.catalogue_items (the Season 1 frames, catalogue.json's last seven), two rows of season
+-- seven rows added to public.catalogue_items (the Season 1 frames, docs/art/wave-4/catalogue.json), two rows of season
 -- reward sets, and C2 / D2's public.badge_set_title redefined with one rule more (a season title once granted). No
 -- existing row or column is changed.
 --
@@ -16,7 +16,7 @@
 --   * public.season_closes: each season (and test-season run, keyed by its start) closed, with how many players were
 --     rewarded and whether the ratings were reset.
 --   * public.season_rewards: each player's reward for a season: the peak tier actually held (a cap-held
---     "Storm-rated" player's peak is Surge), the season emblem's mark ("S1"), the frame and the title. Granted once.
+--     "Storm-rated" player's peak is Surge), the season emblem's mark ("S1"), the frame, the tier card art and the title. Granted once.
 --   * public.season_placement_resets: who was reset at a season's end, so their next placement is 3 matches.
 --   * public.season_reward_sets: what each season pays (Season 1 and the testers' season: "S1", frame.s1-<tier>,
 --     the title s1-<tier>); a season without a set records the peak and the emblem's mark only.
@@ -51,21 +51,24 @@ CREATE TABLE IF NOT EXISTS public.season_reward_sets (
   -- The emblem's mark ("S1") and the start of each tier's frame and title id.
   mark text NOT NULL CHECK (mark ~ '^S[0-9]{1,3}$'),
   frame_prefix text CHECK (frame_prefix IS NULL OR frame_prefix ~ '^frame\.[a-z0-9-]+-$'),
+  -- The tier's card art (Joe, 11 Nov 2026): A1's seven card-art.tier.<tier> items, the same every season.
+  card_art_prefix text CHECK (card_art_prefix IS NULL OR card_art_prefix ~ '^card-art\.[a-z0-9-]+\.$'),
   title_prefix text CHECK (title_prefix IS NULL OR title_prefix ~ '^[a-z0-9-]+-$')
 );
 
-INSERT INTO public.season_reward_sets (season_id, mark, frame_prefix, title_prefix) VALUES
-  ('s1', 'S1', 'frame.s1-', 's1-'),
+INSERT INTO public.season_reward_sets (season_id, mark, frame_prefix, card_art_prefix, title_prefix) VALUES
+  ('s1', 'S1', 'frame.s1-', 'card-art.tier.', 's1-'),
   -- The testers' season pays Season 1's rewards, so the whole path can be tried before Season 1.
-  ('test', 'S1', 'frame.s1-', 's1-')
+  ('test', 'S1', 'frame.s1-', 'card-art.tier.', 's1-')
 ON CONFLICT (season_id) DO NOTHING;
 
--- The seven Season 1 frames (catalogue.json's last seven, placeholder art until drawn; earned, never sold).
+-- The seven Season 1 frames (docs/art/wave-4/catalogue.json, after W4c's Championship frame at 111; placeholder art until
+-- drawn; earned, never sold).
 INSERT INTO public.catalogue_items (id, name, kind, slot, rarity, source, pass_level, price_coins, bundle, animated,
                                    exclusive, exclusive_forever, note, png_path, html_path, sort_order)
 SELECT v.id, v.name, 'frame', 'frame', NULL, 'earned-season-peak-tier', NULL, NULL, NULL, v.animated, true, true,
        'placeholder art until drawn', 'placeholders/frame/' || v.file || '.png', 'placeholders/frame/' || v.file || '.html',
-       110 + v.n
+       111 + v.n
   FROM (VALUES
     ('frame.s1-spark', 'Season 1 Spark', false, 's1-spark', 1),
     ('frame.s1-charge', 'Season 1 Charge', false, 's1-charge', 2),
@@ -129,6 +132,11 @@ CREATE TABLE IF NOT EXISTS public.season_rewards (
   rated_matches integer NOT NULL CHECK (rated_matches >= 10),
   mark text NOT NULL CHECK (mark ~ '^[A-Z0-9]{1,4}$'),
   frame_item text REFERENCES public.catalogue_items (id),
+  -- The tier's card art (card-art.tier.<tier>), kept forever once owned.
+  card_art text REFERENCES public.catalogue_items (id),
+  -- The items this reward actually added to the inventory (an item already owned isn't listed), so a test reward taken
+  -- back removes only what it gave.
+  granted_items text[] NOT NULL DEFAULT ARRAY[]::text[],
   title_id text REFERENCES public.titles (id),
   test boolean NOT NULL,
   granted_at timestamptz NOT NULL DEFAULT now(),
@@ -409,7 +417,7 @@ GRANT EXECUTE ON FUNCTION public.season_placement_for(uuid) TO service_role;
 /* ------------------------------------------------------------------ closing a season (rewards, then the reset) */
 
 -- The whole close for one season run, idempotent: rewards first (each player who finished placement and played 10 or
--- more rated matches in it, from the peak tier actually held: the emblem's mark, the frame, the title, each once), then
+-- more rated matches in it, from the peak tier actually held: the emblem's mark, the frame, the card art, the title, each once), then
 -- the reset. Run again, it grants nothing more and only completes a reset left waiting. Only Joe's functions call it.
 CREATE OR REPLACE FUNCTION pass.season_close_run(p_season text)
 RETURNS jsonb
@@ -424,6 +432,9 @@ DECLARE
   r record;
   v_suffix text;
   v_frame text;
+  v_card text;
+  v_item text;
+  v_added text[];
   v_title text;
   v_granted integer := 0;
   v_rewarded integer;
@@ -452,17 +463,26 @@ BEGIN
       v_suffix := replace(r.peak_tier, 'top500', 'top-500');
       v_frame := CASE WHEN v_set.frame_prefix IS NULL THEN NULL ELSE v_set.frame_prefix || v_suffix END;
       v_title := CASE WHEN v_set.title_prefix IS NULL THEN NULL ELSE v_set.title_prefix || v_suffix END;
+      v_card := CASE WHEN v_set.card_art_prefix IS NULL THEN NULL ELSE v_set.card_art_prefix || v_suffix END;
       INSERT INTO public.season_rewards (season_id, season_start, user_id, tier, peak_label, rated_matches, mark,
-                                         frame_item, title_id, test)
+                                         frame_item, card_art, title_id, test)
       VALUES (p_season, v_row.starts_at, r.user_id, r.peak_tier, r.peak_label, r.rated_matches,
-              coalesce(v_set.mark, upper(left(regexp_replace(p_season, '[^a-z0-9]', '', 'g'), 4))), v_frame, v_title, v_row.kind = 'test')
+              coalesce(v_set.mark, upper(left(regexp_replace(p_season, '[^a-z0-9]', '', 'g'), 4))), v_frame, v_card,
+              v_title, v_row.kind = 'test')
       ON CONFLICT DO NOTHING;
       IF FOUND THEN
         v_granted := v_granted + 1;
-        IF v_frame IS NOT NULL AND economy.add_item(r.user_id, v_frame, 'earned') = 'granted' THEN
-          PERFORM economy.note_event('item_granted', r.user_id,
-            jsonb_build_object('kind', 'frame', 'rarity', NULL, 'source', 'earned-season-peak-tier'));
-        END IF;
+        -- The frame and the card art, each once: an item already owned stays as it is (nothing more).
+        v_added := ARRAY[]::text[];
+        FOREACH v_item IN ARRAY array_remove(ARRAY[v_frame, v_card], NULL) LOOP
+          IF economy.add_item(r.user_id, v_item, 'earned') = 'granted' THEN
+            v_added := v_added || v_item;
+            PERFORM economy.note_event('item_granted', r.user_id,
+              jsonb_build_object('kind', split_part(v_item, '.', 1), 'rarity', NULL, 'source', 'earned-season-peak-tier'));
+          END IF;
+        END LOOP;
+        UPDATE public.season_rewards SET granted_items = v_added
+         WHERE season_id = p_season AND season_start = v_row.starts_at AND user_id = r.user_id;
         PERFORM economy.note_event('season_reward_granted', r.user_id, jsonb_build_object('tier', r.peak_tier, 'season', p_season));
       END IF;
     END LOOP;
@@ -555,7 +575,8 @@ $$;
 REVOKE ALL ON FUNCTION pass.season_report(text) FROM PUBLIC, anon, authenticated, service_role;
 
 -- Joe: takes back the tier rewards the testers' season paid (all testers, or one): each reward marked removed (never
--- deleted), its frame removed unless a real season's reward also gave it, its title off the card (back to Rookie).
+-- deleted), the frame and card art it added removed unless another reward still gives them (an item the tester owned
+-- before stays), its title off the card (back to Rookie).
 -- Ratings already reset stay reset. Running it again takes nothing more.
 --   SELECT pass.remove_test_season_tier_rewards('clean-up before launch');
 --   SELECT pass.remove_test_season_tier_rewards('clean-up', 'TheirUsername');
@@ -569,7 +590,8 @@ DECLARE
   v_user uuid := CASE WHEN p_player IS NULL THEN NULL ELSE economy.account(p_player) END;
   r record;
   v_rewards integer := 0;
-  v_frames integer := 0;
+  v_items integer := 0;
+  v_item text;
   v_titles integer := 0;
   v_n integer;
 BEGIN
@@ -579,13 +601,16 @@ BEGIN
     UPDATE public.season_rewards SET removed_at = now(), removed_note = p_note
      WHERE season_id = r.season_id AND season_start = r.season_start AND user_id = r.user_id;
     v_rewards := v_rewards + 1;
-    IF r.frame_item IS NOT NULL AND NOT EXISTS (
-         SELECT 1 FROM public.season_rewards x
-          WHERE x.user_id = r.user_id AND x.frame_item = r.frame_item AND NOT x.test AND x.removed_at IS NULL) THEN
-      DELETE FROM public.inventory_items WHERE user_id = r.user_id AND item_id = r.frame_item AND how = 'earned';
-      GET DIAGNOSTICS v_n = ROW_COUNT;
-      v_frames := v_frames + v_n;
-    END IF;
+    -- Only what this reward added (an item the player already owned stays), and never one another reward still gives.
+    FOREACH v_item IN ARRAY r.granted_items LOOP
+      IF NOT EXISTS (
+           SELECT 1 FROM public.season_rewards x
+            WHERE x.user_id = r.user_id AND x.removed_at IS NULL AND (x.frame_item = v_item OR x.card_art = v_item)) THEN
+        DELETE FROM public.inventory_items WHERE user_id = r.user_id AND item_id = v_item AND how = 'earned';
+        GET DIAGNOSTICS v_n = ROW_COUNT;
+        v_items := v_items + v_n;
+      END IF;
+    END LOOP;
     IF r.title_id IS NOT NULL AND NOT EXISTS (
          SELECT 1 FROM public.season_rewards x
           WHERE x.user_id = r.user_id AND x.title_id = r.title_id AND x.removed_at IS NULL) THEN
@@ -594,7 +619,7 @@ BEGIN
       v_titles := v_titles + v_n;
     END IF;
   END LOOP;
-  RETURN jsonb_build_object('rewards', v_rewards, 'frames', v_frames, 'titles_unequipped', v_titles);
+  RETURN jsonb_build_object('rewards', v_rewards, 'items', v_items, 'titles_unequipped', v_titles);
 END;
 $$;
 REVOKE ALL ON FUNCTION pass.remove_test_season_tier_rewards(text, text) FROM PUBLIC, anon, authenticated, service_role;
@@ -622,7 +647,7 @@ AS $$
                   LEFT JOIN public.season_reward_sets rs ON rs.season_id = cur.season_id, st),
     'history', (SELECT coalesce(jsonb_agg(jsonb_build_object(
                   'season', w.season_id, 'name', ps.name, 'test', w.test, 'mark', w.mark, 'tier', w.tier,
-                  'peak_label', w.peak_label, 'rated_matches', w.rated_matches, 'frame', w.frame_item,
+                  'peak_label', w.peak_label, 'rated_matches', w.rated_matches, 'frame', w.frame_item, 'card_art', w.card_art,
                   'title', w.title_id, 'granted_at', w.granted_at, 'seen', w.seen_at IS NOT NULL)
                   ORDER BY w.granted_at), '[]'::jsonb)
                   FROM public.season_rewards w JOIN public.pass_seasons ps ON ps.id = w.season_id
