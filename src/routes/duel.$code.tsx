@@ -408,7 +408,7 @@ function DuelScreen() {
         duel.phase === "reveal" ||
         duel.phase === "winner_reveal")
     );
-  const chat = useRoomChat(duel?.id ?? null, me?.user_id ?? null, chatActive);
+  const chat = useRoomChat(duel?.id ?? null, me?.user_id ?? null, chatActive, players);
   useEffect(() => {
     if (!chatActive) chat.setSheetOpen(false);
   }, [chatActive]); // eslint-disable-line react-hooks/exhaustive-deps

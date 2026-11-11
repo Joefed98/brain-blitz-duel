@@ -4,16 +4,13 @@
  * __DUELZ_PUBLIC_GAMES__); the app never sets it.
  */
 import * as config from "@/config/betaConfig";
+import { checkOverride } from "@/lib/checkOverride";
 
 export type BetaKey = "SENTRY_DSN" | "TALLY_URL" | "CONTACT_EMAIL" | "DISCORD_URL";
 
 export function betaValue(key: BetaKey): string {
-  if (typeof window !== "undefined") {
-    const override = (
-      window as unknown as { __DUELZ_BETA_CONFIG__?: Partial<Record<BetaKey, unknown>> }
-    ).__DUELZ_BETA_CONFIG__;
-    const value = override?.[key];
-    if (typeof value === "string") return value.trim();
-  }
+  const override = checkOverride<Partial<Record<BetaKey, unknown>>>("__DUELZ_BETA_CONFIG__");
+  const value = override?.[key];
+  if (typeof value === "string") return value.trim();
   return config[key].trim();
 }
