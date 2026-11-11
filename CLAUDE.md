@@ -2168,7 +2168,10 @@ outside the repo.
   placings), then W3b's `toRatingsResult` (a `placings` match with `gradeExtras`) and W3a's `finishRatedMatch` through
   `ratingsReady()` (the pairwise rule, Joules 1.5 × best of 3, badges; a flagged run moves nobody and pays its player no
   Joules). Screens `src/components/rated/multi/MultiScreens.tsx` (mockups 08–10; the podium entrance only in the
-  podium's box, none under reduced motion). Events `multiplayer_match_started` / `_finished`
+  podium's box, none under reduced motion), in W3c's format slot (`formatScreens.tsx`'s placings row: `MultiSearch`,
+  `MultiBetween`, `MultiResult` in `multi/MultiFormat.tsx`, no VS) on W3c's `RatedParts` (MatchChips, JoulesLine,
+  RankEmblem, RatedCard, PlayerDot); every seat read through `src/lib/rated/multi/multiView.ts` behind W3c's
+  `ratedBackend()` gate. Events `multiplayer_match_started` / `_finished`
   (`20261114400000_analytics_multiplayer_events.sql`, **not applied until merged**). rated-multi-check (~2 s),
   rated-multi-server-check (~15 s, shard `e`, PostgreSQL: 4 and 8 players, flagged runs on W3a's real engine).
 - **The rated match screens** (wave 3, session W3c, 11 Nov 2026; docs/mockups/wave-3/; no gameplay, scoring, stamp,

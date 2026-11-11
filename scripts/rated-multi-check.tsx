@@ -15,6 +15,8 @@
  *     toRatingsResult building W3a's placings match from it (every game's gradeExtras for every player).
  *  7. The screens (happy-dom): filling, standings and final; the placings drawn on the first render with the entrance,
  *     the entrance only inside the podium, none under reduced motion; no motion of the screens' own.
+ *     7b. W3c's format slot: filling, standings and final fitted to W3c's props, read through multiView.ts, drawn with
+ *     W3c's MatchChips, JoulesLine, RankEmblem, RatedCard and PlayerDot.
  *  8. Analytics: the two events in ANALYTICS_EVENTS, the migration in W3d's range adding (not replacing) them.
  *  9. Rooms untouched: no room or practice code imports the rated multiplayer modules; the rooms' Placings table as before.
  */

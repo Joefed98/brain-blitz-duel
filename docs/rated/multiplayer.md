@@ -72,12 +72,20 @@ decorative) and not at all under reduced motion. No motion of the screens' own.
 
 rated-multi-check (~2 s, no browser).
 
-## Fitting W3c's match flow (#380, read at edc630d7)
+## In W3c's match flow (#380, merged at dc89d06d)
 
-W3c's route (`src/routes/rated.tsx`) runs waiting → searching → VS → game → result → placement reveal, 1v1 only (no
-`ffa4` / `ffa8` or placings yet). Its branch was built on a provisional backend and doesn't yet hold W3a `fd84b5bc` or
-W3b `ff28eb01` (its own `tiers.ts` collides with W3a's, and an identity-screens-check assertion conflicts), so it is
-not merged here until W3c integrates them. When it is: a 4- or 8-player format takes `MultiFilling` in place of
-Searching, `MultiStandings` between games and `MultiFinal` in place of MatchResult; the screens take W3c's shared
-`RatedParts` (`JoulesLine` with the pass level, `RankEmblem` for the seats' emblem slot, `MatchChips`, `RatedCard` /
-`PlayerDot` for avatars) in place of their own Joules line and chips.
+W3c's `/rated` route picks its screens by W3b's format (`screensFor`, `src/components/rated/formatScreens.tsx`); the
+placings row is W3d's, fitted to W3c's props in `src/components/rated/multi/MultiFormat.tsx`, with no VS (the filling
+screen leads straight into the games):
+
+| W3c's slot | W3d's screen | Reads |
+|---|---|---|
+| `Search` (in place of Searching) | `MultiSearch` → `MultiFilling` | W3c's `me` (its `RatedCard` over the seats, `RankEmblem`), the search progress's clock, Cancel as Leave queue; the size from the route's pick text ("Mixed, 8 players"). W3b claims a group at once, so the seats fill in one step. |
+| `Between` (between games) | `MultiBetween` → `MultiStandings` | `multiView.ts` `standings(matchId)`: W3b's match view (names, guest tags) and the room's own results and games (the phone's RLS reads, `roomReads.ts`, as the room's round results screen). No clock unless one is given. |
+| `Result` (in place of MatchResult) | `MultiResult` → `MultiFinal` | Your rating change and Joules (with the pass level) from W3c's `RatedResult`; every seat, the placings and each moved player's change and tier from `multiView.ts` `final(matchId)`: W3b's public settlement (stored scores, stored placings, W3a's answer) and match view. |
+
+The screens draw W3c's shared parts (`RatedParts`): `MatchChips`, `JoulesLine` with the pass level, `RankEmblem` for a
+seat's tier, `RatedCard` for your card and `PlayerDot` for avatars (a guest keeps colour and initial). `multiView.ts`'s
+real binding sits behind W3c's `ratedBackend()` gate (off under automation unless the page allows it); its check port
+(`setMultiViewPort`) is ignored in a production build. rated-multi-check section 7b proves the slot, the builders and the
+three screens through W3c's props.
