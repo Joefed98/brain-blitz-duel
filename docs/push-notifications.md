@@ -12,7 +12,7 @@ switch off nothing asks, nothing subscribes, Settings shows no Notifications pan
 | `friend_accepted` | B1 records `friend_request_accepted` (a request you sent is accepted) | Profile |
 | `friend_challenge` | B1 records `friend_challenge_received` (a friend sends you their challenge) | the challenge |
 | `room_invite` | B1 records `room_invite_received` (a friend invites you to their lobby) | the room |
-| `tournament_starting` | a tournament you entered or asked to be reminded of starts (`notifyTournamentStarting`). **Nothing in the app calls it until wave 4** (push-notifications-check fails if anything does) | Tournaments |
+| `tournament_starting` | a tournament you entered or asked to be reminded of starts (`notifyTournamentStarting`). **Called only by the tournaments module (wave 4, W4b: reminders for an entered or reminded event)** (push-notifications-check fails if anything else does) | Tournaments |
 | `daily_streak` | the evening reminder, 19:00–20:59 UK time, only with a live Daily streak (train C's, on the account) and today's Daily not played | the Daily |
 
 Limits (`src/lib/push/rules.ts`):

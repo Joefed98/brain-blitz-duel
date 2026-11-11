@@ -158,7 +158,7 @@ export const notifyFriendChallenge = (client: Db, toUserId: string, fromName: st
 export const notifyRoomInvite = (client: Db, toUserId: string, fromName: string, code: string, opts: NotifyOptions = {}) =>
   notify(client, toUserId, "room_invite", { from: fromName, code }, { causedAtMs: opts.causedAtMs ?? opts.nowMs ?? Date.now(), ...opts });
 
-/** Wave 4: a tournament `toUserId` entered or asked to be reminded of is starting. Nothing calls this yet. */
+/** Wave 4: a tournament `toUserId` entered or asked to be reminded of is starting (called by src/lib/tournaments/tournaments.server.ts). */
 export const notifyTournamentStarting = (client: Db, toUserId: string, title: string, tournamentId: string, opts?: NotifyOptions) =>
   notify(client, toUserId, "tournament_starting", { title }, { dedupeKey: `tournament:${tournamentId.slice(0, 64)}`, ...opts });
 
