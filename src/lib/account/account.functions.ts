@@ -66,7 +66,17 @@ export const completeSignUpFn = createServerFn({ method: "POST" })
     const { callerAddress } = await import("@/lib/duel/rateLimit.server");
     if (!(await verifyTurnstile(data?.turnstileToken, { remoteIp: await callerAddress() })))
       return { ok: false as const, reason: "turnstile" as const, message: TURNSTILE_REFUSED_MESSAGE };
-    return account.completeSignUp(client, context.userId, data ?? {}, Date.now());
+    const result = await account.completeSignUp(client, context.userId, data ?? {}, Date.now());
+    // Practice challenges (wave 2 C1b): a guest's completed challenges pay their coins now that it is an account.
+    if (!("ok" in result && result.ok === false)) {
+      try {
+        const { payPendingChallengeRewards } = await import("@/lib/challenges/challenges.server");
+        await payPendingChallengeRewards(client, context.userId);
+      } catch (err) {
+        console.warn(`[challenges] sign-up payout: ${err instanceof Error ? err.message : String(err)}`);
+      }
+    }
+    return result;
   });
 
 /** Changes the username within its limits. */
