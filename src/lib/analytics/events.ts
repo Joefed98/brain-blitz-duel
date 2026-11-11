@@ -59,6 +59,10 @@ export const ANALYTICS_EVENTS = [
   "notification_opt_in",
   "notification_sent",
   "notification_opened",
+  // Badges and titles (wave 2, session C2; docs/badges/README.md): recorded by the server only (src/lib/badges/
+  // badges.server.ts and the backfill). badge_earned carries props.badge and props.rarity, title_equipped props.title.
+  "badge_earned",
+  "title_equipped",
 ] as const;
 export type AnalyticsEventName = (typeof ANALYTICS_EVENTS)[number];
 

@@ -1993,6 +1993,21 @@ outside the repo.
   The `push` / `notificationclick` listeners (`src/lib/push/sw.push.js`) are appended to the offline worker by swPlugin; the
   offline worker itself is unchanged. Migration `20261111120000_push_notifications.sql` (**not applied until merged**).
   Events `notification_opt_in`, `notification_sent`, `notification_opened`. push-notifications-check (~5 s, shard `e`).
+- **Badges, titles and the account rewards** (wave 2 train C, session C2, 11 Nov 2026, `docs/badges/README.md`; no
+  gameplay, scoring, stamp or timing change): the 54 badges of `docs/art/badges/badges.json` and the 32 titles in one
+  list, `src/lib/badges/catalogue.ts` (seeded by `20261111120000_badges_titles.sql`, **not applied until merged**),
+  each `earnable` (rule in `rules.server.ts`; today only Founding Player), `waits` (rated play, tournaments, mastery
+  stars, practice challenges) or `rule_pending` (no rule in the approved files: 22); only earnable ones can be awarded
+  (`badge_award`, idempotent, a Legendary's 250 coins once, key `badge_reward:<slug>`). `settleAccountRewards` pays the
+  1,000-coin sign-up reward (key `signup_reward:<user id>`) and a Founding Player's badge, 250 and Founding frame, from
+  `syncMyBadges` (after sign-up and on tab pages, never inside `completeSignUpFn`); the migration backfills existing
+  accounts under the same keys. One title (Rookie by default) and up to three earned badges on the card (`PlayerCard`
+  `title` / `badges`); Profile's collection shows every badge, locked ones with how; the badge-earned moment is drawn
+  only on tab pages. The Daily streak is the server's (`dailyStreak.ts`, `dailyStreak.server.ts`, the device rule
+  exactly; streak freezes used automatically for a covered gap, `daily_streak_freezes`), read by Profile, the Play
+  tab, the aside and the Daily screens (`useDailyRecord`, the device's record until the server answers). Events
+  `badge_earned`, `title_equipped`. badges-check (~10 s, shard `e`, PostgreSQL), badges-screens-check (~5 s, happy-dom).
+  **A new badge rule**: a migration flipping its row, the catalogue line, a `BADGE_RULES` entry and an earn / miss test.
 - `src/components/duel/` — room/round screens (PhoneShell, RoundIntro, TimerBar,
   AnswerReveal, ArcadeReveal, WinnerReveal…); `src/components/puzzles/` — shared puzzle
   widgets; `src/lib/fx/` — sound and visual feedback (presentation only).

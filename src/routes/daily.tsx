@@ -28,7 +28,9 @@ import {
   type DailyState,
   type DailyStatus,
 } from "@/lib/duel/daily";
-import { dailyStreak, noteDailyFinished, noteDailyPlayed, readDailyRecord } from "@/lib/duel/dailyRecord";
+import { refreshDailyRecord, useDailyRecord } from "@/lib/badges/badgesApi";
+import { noteDailyFinished, noteDailyPlayed, readDailyRecord } from "@/lib/duel/dailyRecord";
+import { dailyStreakWithFreezes } from "@/lib/duel/dailyStreak";
 import {
   BANNER_HOLD_MS,
   BANNER_IN_MS,
@@ -138,6 +140,8 @@ function DailyScreen() {
   /** Celebrations: the streak milestone today's first daily reached, shown on its results. */
   const streakReached = useRef<number | null>(null);
   const [streakShown, setStreakShown] = useState<number | null>(null);
+  /** The Daily record on the account (badgesApi.ts): the server's streak and days once it answers. */
+  const dailyView = useDailyRecord();
   const [name, setName] = useState("");
   const [editingName, setEditingName] = useState(false);
   // A refused name's three suggestions; a signed-in player's board name is their username.
@@ -224,9 +228,16 @@ function DailyScreen() {
       }
       setStoredName(trimmed);
       if (status) {
-        const firstToday = !readDailyRecord().days.includes(status.day);
+        // The streak on the account (badgesApi.ts): the server's days when it has answered (it wins), else this
+        // device's; the server re-reads after the start so every screen shows the new streak.
+        const known = dailyView?.source === "server" ? dailyView.days : readDailyRecord().days;
+        const firstToday = !known.includes(status.day);
         noteDailyPlayed(status.day);
-        streakReached.current = firstToday ? streakMilestone(dailyStreak(readDailyRecord().days, status.day)) : null;
+        const frozen = dailyView?.source === "server" ? dailyView.frozenDays : [];
+        streakReached.current = firstToday
+          ? streakMilestone(dailyStreakWithFreezes({ played: [...known, status.day], frozen, today: status.day, freezes: 0 }).streak)
+          : null;
+        void refreshDailyRecord();
       }
       // Beta: a device's first daily after finishing a friend's challenge (challengeRecord.ts).
       const followup = takeChallengeFollowup("daily");

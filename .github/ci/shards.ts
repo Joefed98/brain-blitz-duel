@@ -339,6 +339,9 @@ export const SHARDS: Record<string, string[]> = {
     // the cap and quiet hours, the streak reminder, subscriptions, RLS, the service worker's push listeners) on a local
     // PostgreSQL through the server-function harness, beside economy-check.
     "push-notifications-check.ts",
+    // badges-check (wave 2 C2, 11 Nov 2026, ~10 s): badges, titles, the sign-up and founding rewards, the backfill and the
+    // Daily streak on the account, on a local PostgreSQL through the server-function harness, beside economy-check.
+    "badges-check.ts",
     // moderation-ui-check (10 Nov 2026, ~3 s, happy-dom): two taps to report from a name and from a message.
     "moderation-ui-check.tsx",
     // account-screens-check (10 Nov 2026, ~10 s): the sign-up screens' rules, the save-progress events' server function
