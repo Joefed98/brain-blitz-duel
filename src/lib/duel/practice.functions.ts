@@ -230,6 +230,8 @@ async function gradePracticeRun(data: PracticeRunInput, puzzle: PuzzleData, exam
       data.inputType,
     );
   }
+  // Practice challenges (wave 2 C1b): the server's checker on this graded run (never the intro example's fixed board).
+  const challenges = example ? [] : await practiceChallengesFor(puzzle.type, graded);
   return {
     puzzle,
     isCorrect: graded.isCorrect,
@@ -239,7 +241,36 @@ async function gradePracticeRun(data: PracticeRunInput, puzzle: PuzzleData, exam
     answer: graded.answer,
     // Serialised as JSON text so the RPC boundary sees a plain string.
     extraJson: graded.extra ? JSON.stringify(graded.extra) : null,
+    // The challenges this run completed ({ id, coins, paid }); the phone shows its small moment from these alone.
+    challenges,
   };
+}
+
+/**
+ * Checks a graded Practice run against its game's challenges (src/lib/challenges/challenges.server.ts) for the caller.
+ * Never fails the grade: no database, no caller id or any error gives no completions.
+ */
+async function practiceChallengesFor(
+  type: string,
+  graded: { score: number; isCorrect: boolean; reactionAvgMs: number | null; extra?: Record<string, unknown> | null },
+): Promise<{ id: string; coins: number; paid: boolean }[]> {
+  if (!process.env["SUPABASE_SERVICE_ROLE_KEY"]) return [];
+  try {
+    const admin = await (await import("@/lib/data/db.server")).adminDb();
+    const { callerUserId } = await import("./betaRecord.server");
+    const userId = await callerUserId(admin);
+    if (!userId) return [];
+    const { checkPracticeChallenges } = await import("@/lib/challenges/challenges.server");
+    return await checkPracticeChallenges(admin, userId, type, {
+      score: graded.score,
+      isCorrect: graded.isCorrect,
+      reactionAvgMs: graded.reactionAvgMs,
+      extra: graded.extra ?? null,
+    });
+  } catch (err) {
+    console.warn(`[challenges] not checked: ${err instanceof Error ? err.message : String(err)}`);
+    return [];
+  }
 }
 
 /* -------------------------------------------------------------------------- */
