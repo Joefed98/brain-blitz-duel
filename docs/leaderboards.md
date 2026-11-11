@@ -35,36 +35,42 @@ No gameplay, scoring, stamp, rating or deal change.
 
 ## How boards refresh
 
-`public.leaderboard_refresh()` runs from pg_cron (`leaderboards-refresh`, every 5 minutes; the migration leaves a
-`migration_log` warning where pg_cron isn't available). One run at a time (advisory lock). Boards are never computed
-per request: a request reads the stored snapshot and applies privacy for the caller.
+`public.leaderboard_refresh()` runs from two schedules, every 5 minutes each: pg_cron's `leaderboards-refresh` job (the
+migration leaves a `migration_log` warning where pg_cron isn't available) and the Worker's Cron Trigger
+`leaderboards:refresh` (`*/5 * * * *`, `LEADERBOARD_TASKS` in `vite.config.ts`, `src/lib/leaderboards/tasks/`, as W3a's
+`rated:standings`), so the boards refresh with or without pg_cron. Running it twice does no harm: one run at a time
+(an advisory lock; a run that finds it taken does nothing), and a run writes the same boards from the same stored data
+(leaderboards-check runs the Worker task twice at once and again, and finds every board exactly as after one run).
+Boards are never computed per request: a request reads the stored snapshot and applies privacy for the caller.
 
 - Ratings: each run writes a new generation of `leaderboard_rating_rows` (global rank, country rank, display
   position) from `leaderboards.rating_source()`; the newest complete generation is read, the one before is kept for
   reads in flight, older ones are removed.
 - Daily: every board not yet final is recomputed into `daily_board_entries`; final boards are left alone.
 
-## W3a's ratings: the one binding
+## W3a's ratings: the binding
 
-W3a's ratings engine isn't on any branch yet (its branch has the interface only), so the rating boards read
-`leaderboards.rating_source()`, which answers no rows until it is bound; the boards say "No ratings yet". Binding is one
-new migration:
+The rating boards read W3a's engine (#373) through one function, `leaderboards.rating_source()`, bound to W3a's tables by
+`20261115100300_leaderboards_rating_source.sql`:
 
-```sql
-CREATE OR REPLACE FUNCTION leaderboards.rating_source()
-RETURNS TABLE (player_id uuid, board text, season_rating integer, peak_rating integer, tier text)
-LANGUAGE sql STABLE AS $$ SELECT … FROM <W3a's tables> $$;
-```
+- **Joulz Rating**: `rated_profiles.joulz` (the stored Joulz Rating, kept current by every match and the hourly
+  standings job) and its tier `rated_profiles.shown_tier` (`top500` gives "Top 500 #n" with the board's rank);
+- **Puzzles, Arcade and the 11 categories**: `rated_ratings.rating`;
+- every value rounded as W3a shows it; level shown ratings share a place, as W3a's standings do;
+- **this season** is the current rating (W3a has no seasons yet); **all-time peak** is the highest after any stored
+  match (`rated_match_players.changes` for a pool or category that moved, `rated_matches.outcome`'s Joulz `after`), or
+  the current one if higher;
+- players still in placement are left out (W3a hides their ratings); a guest who plays rated has a rating but no
+  username, so is never on a board.
 
-One row per player and board (`joulz`, `puzzles`, `arcade` or a category id from `RATED_CATEGORIES`): this season's
-rating (NULL when not rated this season), the all-time peak (NULL when never rated), and for `joulz` W3a's tier id
-(`top500` marks the Top 500, from W3a's caps). Leave out players still in placement (every rating hidden). The checks
-stand a source in to prove the boards.
+leaderboards-check records matches through W3a's own `recordRatedMatch` and proves the boards equal its stored, rounded
+ratings and what `getRatingsFor` answers, and the peak.
 
 ## Where it lives
 
 - SQL: `supabase/migrations/20261115100000_leaderboards.sql` (tables, functions, schedule),
-  `20261115100100_daily_board_badges.sql` (the two badge rows to earnable), `20261115100200_analytics_leaderboard_events.sql`.
+  `20261115100100_daily_board_badges.sql` (the two badge rows to earnable), `20261115100200_analytics_leaderboard_events.sql`,
+  `20261115100300_leaderboards_rating_source.sql` (the binding to W3a).
   Nothing is readable or writable by anon or authenticated; the server calls the service-role functions.
 - Data: `src/lib/data/leaderboards.server.ts`. Rules: `src/lib/leaderboards/boards.ts` (shared),
   `leaderboards.server.ts`, `leaderboards.functions.ts` (`ratingBoardFn`, `dailyBoardFn`, `boardVisibilityFn`,
@@ -72,4 +78,7 @@ stand a source in to prove the boards.
 - Screens: `src/routes/leaderboards.tsx`, `src/routes/daily-board.tsx`, `src/components/leaderboards/`,
   `src/polish-layout/leaderboards.css`.
 - Events: `leaderboard_viewed` (board, scope, period; first page only), `daily_board_viewed` (kind, day).
-- Checks: leaderboards-check (PostgreSQL, ~25 s, shard `e`), leaderboards-ui-check (happy-dom, ~2 s).
+- Cron: `src/lib/leaderboards/tasks/refresh.task.ts`, `refreshTask.server.ts` (`LEADERBOARD_CRONS`).
+- Checks: leaderboards-check (PostgreSQL, ~30 s, shard `e`), leaderboards-ui-check (happy-dom, ~2 s); the screens in
+  theme-check and no-wrap-check (`LEADERBOARD_SCREENS` in `scripts/theme-screens.ts`, answers from
+  `scripts/leaderboards-fixture.ts`).

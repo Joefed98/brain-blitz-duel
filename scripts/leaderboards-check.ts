@@ -21,7 +21,12 @@
  * - boards are read-only to players: anon and authenticated can't read or write any leaderboard table or call any of
  *   its functions; the schema is closed;
  * - the two analytics events (leaderboard_viewed once per board opened, daily_board_viewed) with fixed-word props;
- * - the Top 500 emblem is mockup 03's 28 px art.
+ * - the Top 500 emblem is mockup 03's 28 px art;
+ * - the binding to W3a's real engine (20261115100300): matches recorded by recordRatedMatch show on the Joulz, Puzzles
+ *   and Logic boards with W3a's stored, rounded ratings (and what getRatingsFor answers), the peak from the stored
+ *   history, placed accounts only (a rated guest never shows);
+ * - the Worker's Cron Trigger (every 5 minutes, beside pg_cron's job): the schedule agrees with vite.config.ts, and two
+ *   runs at once and a third leave every board exactly as one run does.
  *
  * Needs the PostgreSQL 16 binaries (preinstalled on GitHub's runners). Without them it fails on CI and prints a NOTE
  * locally. No browser.
@@ -258,6 +263,83 @@ async function databaseChecks(db: LocalDb, rest: RestServer): Promise<void> {
     check(writes.every((w) => !!w.error), "a phone can't write a board, change a setting directly, call a board function or refresh");
   });
 
+  const board = (token: string, input: Record<string, unknown>) => call(fns.ratingBoardFn, input, token);
+
+  await section("not ready before the first refresh", async () => {
+    const a = await board(tok.view, { board: "joulz", scope: "global", period: "season" });
+    check(a.ok && a.page.ready === false && a.page.rows.length === 0, "before any refresh the board says not ready");
+  });
+
+  /* ---------------------------------------------------------------- W3a's real engine */
+  // The binding (20261115100300_leaderboards_rating_source.sql) on matches recorded by W3a's own recordRatedMatch.
+  await section("the boards read W3a's real ratings", async () => {
+    const rs = await import("../src/lib/rated/ratings.server");
+    const mt = await import("../src/lib/rated/match");
+    const catalogue = await import("../src/lib/duel/catalogue");
+    const { dealtSignature } = await import("../src/lib/duel/dealSignature");
+    const { createClient: typed } = await import("@supabase/supabase-js");
+    const admin = typed<import("../src/integrations/supabase/types").Database>(rest.url, SERVICE_KEY, {
+      auth: { persistSession: false, autoRefreshToken: false, storage: undefined },
+    });
+    type Result = import("../src/lib/data/ratings").RatedMatchResult;
+    const LOGIC = catalogue.ACTIVE_PUZZLE_TYPES.find((t) => mt.gamePool(t) === "puzzles" && mt.gameCategory(t) === "logic")!;
+    const game = (a: string, b: string, x: number, y: number): Result["games"][number] => ({
+      type: LOGIC, pool: mt.gamePool(LOGIC)!, category: mt.gameCategory(LOGIC)!, version: "classic", signature: dealtSignature(LOGIC), scores: { [a]: x, [b]: y },
+    });
+    let seq = 0;
+    const duel = (a: string, b: string, aWins: boolean): Result => ({
+      matchId: `20000000-0000-4000-8000-${String(++seq).padStart(12, "0")}`,
+      format: { kind: "duel", bestOf: 3 },
+      choice: "puzzles",
+      players: [{ playerId: a, side: "live" }, { playerId: b, side: "live" }],
+      games: [aWins ? game(a, b, 150, 100) : game(a, b, 100, 150), aWins ? game(a, b, 150, 100) : game(a, b, 100, 150)],
+    });
+    const R = [40, 41, 42, 43, 44, 45].map(uid);
+    const RG = uid(46); // a guest who plays rated: never on a board (no username to show)
+    q(`INSERT INTO auth.users (id, is_anonymous, email) VALUES ${R.map((id, i) => `('${id}', false, 'rated${i}@example.com')`).join(", ")}, ('${RG}', true, NULL)`);
+    R.forEach((id, i) => q(`SELECT public.create_profile('${id}', 'Rated_${i}', ${i}::smallint, DATE '1990-01-01', 'GB')`));
+    let at = Date.UTC(2026, 10, 16, 12);
+    const joulzAfter = new Map<string, number[]>();
+    const play = async (a: string, b: string, aWins: boolean) => {
+      // A new UK day for every match, so the 4th-match rule never freezes a pair.
+      at += 86_400_000;
+      const out = await rs.recordRatedMatch(admin, duel(a, b, aWins), at);
+      if (!out.ok) throw new Error(`recordRatedMatch: ${out.reason} ${out.message}`);
+      for (const p of out.players) if (p.joulz.after !== null) joulzAfter.set(p.playerId, [...(joulzAfter.get(p.playerId) ?? []), p.joulz.after]);
+    };
+    // A round robin: everyone's 5 placement matches (the lower index wins), then the guest's, then Rated_0 loses four.
+    for (let i = 0; i < R.length; i++) for (let j = i + 1; j < R.length; j++) await play(R[i]!, R[j]!, true);
+    for (const id of R.slice(0, 5)) await play(RG, id, false);
+    for (const id of R.slice(1, 5)) await play(R[0]!, id, false);
+    q(`SELECT public.leaderboard_refresh()`);
+    const views = await Promise.all([...R, RG].map((id) => rs.getRatingsFor(admin, id)));
+    const placed = R.filter((_, i) => views[i]?.placement.done);
+    check(placed.length === R.length && views[R.length]?.placement.done === true, `every player finished placement through the real engine (${placed.length} of ${R.length} accounts)`);
+    const a = await board(tok.view, { board: "joulz", scope: "global", period: "season" });
+    const rows = a.page.rows as Row[];
+    check(a.ok && rows.length === R.length, `the Joulz board has the six placed accounts and not the guest (${rows.length})`);
+    const stored = new Map(q(`SELECT player_id || ':' || round(joulz) FROM rated_profiles WHERE joulz IS NOT NULL`).split("\n").map((l) => { const [id, v] = l.split(":"); return [id!, Number(v)]; }));
+    const byName = (name: string) => rows.find((r) => r.name === name);
+    check(R.every((id, i) => byName(`Rated_${i}`)?.value === stored.get(id)), "each row's value is W3a's stored Joulz Rating, rounded as W3a shows it");
+    check(R.every((id, i) => Math.abs((byName(`Rated_${i}`)?.value ?? 0) - (views[i]?.joulz ?? -999)) <= 1), "and agrees with what W3a answers the player (getRatingsFor)");
+    check(rows.every((r, i) => i === 0 || rows[i - 1]!.value >= r.value) && rows.every((r) => r.rank === 1 + rows.filter((o) => o.value > r.value).length), "ordered by rating, level ratings sharing a place");
+    const peak = await board(tok.view, { board: "joulz", scope: "global", period: "peak" });
+    const p0 = (peak.page.rows as Row[]).find((r) => r.name === "Rated_0");
+    const want0 = Math.round(Math.max(stored.get(R[0]!) ?? 0, ...(joulzAfter.get(R[0]!) ?? [])));
+    check(!!p0 && p0.value === want0 && p0.value > (byName("Rated_0")?.value ?? 0), `the all-time peak is the highest Joulz Rating after any stored match (Rated_0: ${p0?.value} peak against ${byName("Rated_0")?.value} now)`);
+    const logic = await board(tok.view, { board: "logic", scope: "global", period: "season" });
+    const lr = logic.page.rows as Row[];
+    const logicStored = new Map(q(`SELECT player_id || ':' || round(rating) FROM rated_ratings WHERE key = 'logic'`).split("\n").map((l) => { const [id, v] = l.split(":"); return [id!, Number(v)]; }));
+    check(lr.length === R.length && R.every((id, i) => lr.find((r) => r.name === `Rated_${i}`)?.value === logicStored.get(id)), "the Logic board is W3a's Logic rating");
+    check(R.every((id, i) => { const v = views[i]?.categories?.logic; return v?.status === "rated" && lr.find((r) => r.name === `Rated_${i}`)?.value === v.rating; }), "and is what W3a shows each player for Logic");
+    const pz = await board(tok.view, { board: "puzzles", scope: "global", period: "season" });
+    check((pz.page.rows as Row[]).length === R.length && (await board(tok.view, { board: "arcade", scope: "global", period: "season" })).page.rows.length === 0, "the Puzzles board has them; nobody has an Arcade rating yet");
+    const tiers = new Set(q(`SELECT coalesce(shown_tier, '') FROM rated_profiles`).split("\n"));
+    check(!tiers.has("top500") && rows.every((r) => r.top500 === undefined), "no Top 500 numbers below W3a's 1,000-player cap");
+    // Clean up, so the stood-in source below starts from an empty board.
+    q(`SELECT public.leaderboard_refresh()`);
+  });
+
   /* ---------------------------------------------------------------- rating boards */
   // W3a's ratings, stood in: one row per player and board, this season and the all-time peak.
   q(`CREATE TABLE public.lb_check_source (player_id uuid, board text, season_rating integer, peak_rating integer, tier text);
@@ -280,13 +362,6 @@ async function databaseChecks(db: LocalDb, rest: RestServer): Promise<void> {
   q(`INSERT INTO lb_check_source SELECT ('00000000-0000-4000-8000-' || lpad((1000 + i)::text, 12, '0'))::uuid, 'joulz', 2000 + (i % 300), 2000 + (i % 300), 'storm' FROM generate_series(0, ${FILLERS - 1}) i`);
   q(`INSERT INTO lb_check_source VALUES ('${CEE}', 'logic', 1900, 1900, NULL), ('${VIEW}', 'logic', 1800, 1900, NULL), ('${TEEN}', 'logic', 2100, 2100, NULL), ('${BEE}', 'puzzles', 2000, 2000, NULL)`);
   q(`UPDATE profiles SET deletion_requested_at = now() WHERE user_id = '${GONE}'`);
-
-  const board = (token: string, input: Record<string, unknown>) => call(fns.ratingBoardFn, input, token);
-
-  await section("not ready before the first refresh", async () => {
-    const a = await board(tok.view, { board: "joulz", scope: "global", period: "season" });
-    check(a.ok && a.page.ready === false && a.page.rows.length === 0, "before any refresh the board says not ready");
-  });
 
   q(`SELECT public.leaderboard_refresh()`);
 
@@ -439,7 +514,7 @@ async function databaseChecks(db: LocalDb, rest: RestServer): Promise<void> {
   addAttempts(D2, [{ user: BEE, total: 900, tie: 200_000 }, { user: VIEW, total: 800, tie: 200_000 }], "2026-11-02");
   q(`SELECT public.leaderboard_refresh()`);
 
-  const daily = (token: string, input: Record<string, unknown>) => call(fns.dailyBoardFn, input, token);
+  const daily = (token: string, input: Record<string, unknown>) => call(fns.dailyTopBoardFn, input, token);
 
   await section("the Daily top 100", async () => {
     const a = await daily(tok.view, { kind: "puzzle", day: "2026-11-01", scope: "top100" });
@@ -513,6 +588,35 @@ async function databaseChecks(db: LocalDb, rest: RestServer): Promise<void> {
     check(q(`SELECT final FROM daily_boards WHERE room_id = '${room}'`) === "f", "a board isn't final until 30 minutes after its day closes (late rounds finish)");
     q(`SELECT public.leaderboard_refresh_daily(TIMESTAMPTZ '${closes}' + interval '31 minutes')`);
     check(q(`SELECT final || ':' || players FROM daily_boards WHERE room_id = '${room}'`) === "true:2", "then it is frozen with its field");
+  });
+
+  /* ---------------------------------------------------------------- the Cron Trigger */
+  await section("the Worker's Cron Trigger: every 5 minutes, harmless twice", async () => {
+    const vite = readFileSync("vite.config.ts", "utf8");
+    const { LEADERBOARD_CRONS, runLeaderboardRefreshTask } = await import("../src/lib/leaderboards/tasks/refreshTask.server");
+    const cron = LEADERBOARD_CRONS["leaderboards:refresh"];
+    check(
+      cron === "*/5 * * * *" &&
+        vite.includes(`"${cron}": ["leaderboards:refresh"]`) &&
+        vite.includes('"leaderboards:refresh": { handler: fileURLToPath(new URL("./src/lib/leaderboards/tasks/refresh.task.ts"') &&
+        vite.includes("nitroTasks(LEADERBOARD_TASKS)") &&
+        vite.includes("nitroTasks(RATED_TASKS)"),
+      `the Cron Trigger: "${cron}" runs leaderboards:refresh beside W3a's rated:standings (vite.config.ts and LEADERBOARD_CRONS agree)`,
+    );
+    const digest = () =>
+      q(`SELECT md5(coalesce((SELECT string_agg(board || period || player_id || ':' || value || ':' || global_rank || ':' || position || ':' || coalesce(country_rank, 0) || coalesce(tier, ''), ',' ORDER BY board, period, player_id)
+                                FROM leaderboard_rating_rows WHERE generation = (SELECT max(id) FROM leaderboard_generations WHERE complete)), '') ||
+                    coalesce((SELECT string_agg(room_id || ':' || attempt_id || ':' || rank || ':' || position || ':' || coalesce(player_id::text, '-'), ',' ORDER BY room_id, attempt_id) FROM daily_board_entries), '') ||
+                    coalesce((SELECT string_agg(room_id || ':' || players || ':' || final, ',' ORDER BY room_id) FROM daily_boards), ''))`);
+    const before = digest();
+    const both = await Promise.all([runLeaderboardRefreshTask(), runLeaderboardRefreshTask()]);
+    check(both.every((r) => (r.result as { ok?: boolean }).ok === true), "two runs at once both finish without an error");
+    const twice = digest();
+    await runLeaderboardRefreshTask();
+    check(before === twice && twice === digest(), "running the refresh twice (at once, then again) leaves every board exactly as one run does");
+    check(Number(q(`SELECT count(*) FROM leaderboard_generations`)) <= 2 && q(`SELECT bool_and(complete) FROM leaderboard_generations`) === "t", "no half-written or piled-up generations");
+    const lockHeld = q(`BEGIN; SELECT pg_advisory_xact_lock(hashtext('joulz-leaderboards-refresh')); SELECT 1; COMMIT;`);
+    check(lockHeld.length > 0 && JSON.parse(q(`SELECT public.leaderboard_refresh()::text`)).skipped !== true, "the lock is released after each run");
   });
 
   /* ---------------------------------------------------------------- the Daily badges */

@@ -68,6 +68,20 @@ const RATED_TASKS = {
   },
 };
 
+/**
+ * The leaderboards' Cron Trigger (wave 4 W4a, docs/leaderboards.md "How boards refresh"): the same refresh as pg_cron's
+ * job, every 5 minutes, so boards refresh where pg_cron isn't available; running twice does no harm (an advisory lock).
+ * Kept in step with LEADERBOARD_CRONS (src/lib/leaderboards/tasks/refreshTask.server.ts; leaderboards-check compares).
+ */
+const LEADERBOARD_TASKS = {
+  tasks: {
+    "leaderboards:refresh": { handler: fileURLToPath(new URL("./src/lib/leaderboards/tasks/refresh.task.ts", import.meta.url)) },
+  },
+  scheduledTasks: {
+    "*/5 * * * *": ["leaderboards:refresh"],
+  },
+};
+
 type TaskSet = { tasks: Record<string, { handler: string }>; scheduledTasks: Record<string, string[]> };
 /** Every task set's tasks and schedules in one nitro option (a later set adds to, never replaces, an earlier one's). */
 function nitroTasks(...sets: TaskSet[]) {
@@ -80,10 +94,15 @@ function nitroTasks(...sets: TaskSet[]) {
   return { experimental: { tasks: true }, tasks, scheduledTasks };
 }
 
+/** Several nitroTasks() options as one (each set's tasks kept; schedules on the same cron add up). */
+function mergeNitroTasks(...opts: ReturnType<typeof nitroTasks>[]) {
+  return nitroTasks(...opts.map((o) => ({ tasks: o.tasks, scheduledTasks: o.scheduledTasks })));
+}
+
 const SERVER_BUILD = Object.assign(
   { minify: true },
   { cloudflare: { wrangler: { observability: WORKER_OBSERVABILITY } } },
-  nitroTasks(RATED_TASKS),
+  mergeNitroTasks(nitroTasks(RATED_TASKS), nitroTasks(LEADERBOARD_TASKS)),
 ) as NitroOptions & { minify: boolean };
 
 export default defineConfig({

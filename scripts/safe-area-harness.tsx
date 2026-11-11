@@ -34,6 +34,10 @@ import { NotFoundPage, RouteErrorScreen } from "@/components/app/AppErrorScreen"
 import { FirstOpen } from "@/components/app/FirstOpen";
 import { AccountSettings } from "@/components/account/AccountSettings";
 import { SignUpFlow } from "@/components/account/SignUpFlow";
+import { PhoneShell } from "@/components/duel/PhoneShell";
+import { DailyBoardScreen, RatingBoardsScreen } from "@/components/leaderboards/LeaderboardScreens";
+import { ukDayKey } from "@/lib/duel/daily";
+import type { HarnessBoards } from "./leaderboards-fixture";
 import { celebrationsOn } from "@/lib/fx/celebrations";
 
 interface Verdict {
@@ -383,7 +387,27 @@ async function checkUsernameFn({ data }: { data: { username: string } }) {
   return { ok: true, username: data.username };
 }
 
+/* The leaderboards (leaderboards.functions.ts, wave 4 W4a) from window.__harnessBoards (scripts/leaderboards-fixture.ts). */
+const boards = () => (window as unknown as { __harnessBoards?: HarnessBoards }).__harnessBoards;
+async function ratingBoardFn({ data }: { data: { board: string } }) {
+  const b = boards();
+  if (!b) return { ok: false, reason: "error", message: "We couldn’t load the board. Try again in a moment." };
+  return { ok: true, page: data.board === "joulz" || data.board === "puzzles" || data.board === "arcade" ? b.rating : b.category };
+}
+async function dailyTopBoardFn({ data }: { data: { day?: string } }) {
+  const b = boards();
+  if (!b) return { ok: false, reason: "error", message: "We couldn’t load the board. Try again in a moment." };
+  return { ok: true, page: { ...b.daily, day: data.day ?? b.daily.day } };
+}
+async function boardVisibilityFn() {
+  const b = boards();
+  return b ? { ok: true, visibility: b.visibility } : { ok: false, reason: "account", message: "" };
+}
+
 const IMPLEMENTATIONS: Record<string, unknown> = {
+  ratingBoardFn,
+  dailyTopBoardFn,
+  boardVisibilityFn,
   checkUsernameFn,
   getIntroDemoFn,
   roundReplayFn,
@@ -480,6 +504,28 @@ const ROOT_SCREENS: Record<string, () => JSX.Element> = {
     const settings = (window as unknown as { __harnessAccount?: Parameters<typeof AccountSettings>[0]["account"] }).__harnessAccount;
     if (settings) return <AccountSettings account={settings} onBack={() => undefined} />;
     return <SignUpFlow start="signin" account={{ kind: "guest", userId: null }} onDone={() => undefined} />;
+  },
+  // The leaderboards (wave 4 W4a): the screens as their routes draw them, for an account (a guest with
+  // window.__harnessBoardsGuest), the day from ?day= (today's UK day otherwise).
+  leaderboards: () => (
+    <PhoneShell skin="profile" bare>
+      <RatingBoardsScreen onBack={() => undefined} isAccount={!(window as unknown as { __harnessBoardsGuest?: boolean }).__harnessBoardsGuest} />
+    </PhoneShell>
+  ),
+  dailyboard: () => {
+    const today = ukDayKey(Date.now());
+    const day = new URLSearchParams(location.search).get("day");
+    return (
+      <PhoneShell skin="profile" bare>
+        <DailyBoardScreen
+          onBack={() => undefined}
+          isAccount={!(window as unknown as { __harnessBoardsGuest?: boolean }).__harnessBoardsGuest}
+          kind="puzzle"
+          day={day}
+          today={today}
+        />
+      </PhoneShell>
+    );
   },
   // The prompt due on the next tab page (seeded below): Profile draws it through PhoneShell's SaveProgressSlot.
   saveprogress: () => {

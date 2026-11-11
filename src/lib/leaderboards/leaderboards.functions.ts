@@ -4,7 +4,7 @@
  * guests included), never an id the phone names.
  *
  *   ratingBoardFn({ board, scope, period, offset })   a rating board page (Joulz Rating, Puzzles, Arcade, a category)
- *   dailyBoardFn({ kind, day, scope })                a Daily top 100 (or friends), today's or an earlier day's
+ *   dailyTopBoardFn({ kind, day, scope })                a Daily top 100 (or friends), today's or an earlier day's
  *   boardVisibilityFn()                               "Show me on leaderboards" (accounts)
  *   setBoardVisibilityFn({ show })                    true, false, or null for the default
  *
@@ -28,7 +28,7 @@ export const ratingBoardFn = createServerFn({ method: "POST" })
     return boards.ratingBoard(client, context.userId, data);
   });
 
-export const dailyBoardFn = createServerFn({ method: "POST" })
+export const dailyTopBoardFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { kind: string; day?: string; scope?: string }) => input)
   .handler(async ({ data, context }) => {

@@ -199,7 +199,7 @@ export function CategoryBoards({ isAccount, initial = "logic" }: { isAccount: bo
   }, [category]);
   return (
     <div className="lb-categories" data-category-boards={category}>
-      <div className="lb-chips lb-chips-scroll" role="group" aria-label="Category">
+      <div className="lb-chips lb-chips-scroll" role="group" aria-label="Category" data-scroll-x>
         {RATED_CATEGORIES.map((c) => (
           <Chip key={c} cat={c} selected={category === c} onClick={() => setCategory(c)} data-category={c}>
             {CATEGORY_BOARD_LABEL[c]}

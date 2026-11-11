@@ -113,7 +113,7 @@ setLeaderboardFunctionsForChecks({
     if (data["scope"] === "friends") return { ok: true, page: { ready: true, rows: [row(1, 2918, "Sam", { isFriend: true }), row(2, 1278, "Me_Here", { isMe: true })], me: row(2, 1278, "Me_Here", { isMe: true }), total: 2 } };
     return { ok: true, page: ratingPage(data) };
   }) as never,
-  dailyBoardFn: (async ({ data }: { data: Record<string, unknown> }) => {
+  dailyTopBoardFn: (async ({ data }: { data: Record<string, unknown> }) => {
     calls.push({ fn: "daily", data });
     return { ok: true, page: dailyPage(data) };
   }) as never,
