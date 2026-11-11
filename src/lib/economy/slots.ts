@@ -196,5 +196,8 @@ export const ECONOMY_REASONS = [
   // The shop (wave 2, session D1; supabase/migrations/20261112120000_shop.sql).
   "test_purchase",
   "test_purchase_removed",
+  // Joulz Plus (wave 2 E2; supabase/migrations/20261113200000_joulz_plus.sql): a test membership's monthly rewards.
+  "plus_test_monthly",
+  "plus_test_removed",
 ] as const;
 export type EconomyReason = (typeof ECONOMY_REASONS)[number];

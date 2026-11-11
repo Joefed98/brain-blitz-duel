@@ -7,7 +7,8 @@
  *   plus.remove_test_purchase. Recorded as plus_bought (props.plan, props.test).
  * - The perks of each membership month, granted the first time the server is asked in that month (and any months
  *   missed before it): 200 coins (reason plus_monthly, key plus_monthly:<membership>:<month>), 2 streak freezes (key
- *   plus_freezes:<membership>:<month>) and the current season's premium pass through D2's function
+ *   plus_freezes:<membership>:<month>; a test membership's carry reason plus_test_monthly instead) and the current
+ *   season's premium pass through D2's function
  *   (passBinding.server.ts). The ledgers' keys make each month pay once whatever races; plus_perk_granted is recorded
  *   only for a line the ledger actually wrote.
  * - The PLUS chip (off by default), the Daily archive (archive.server.ts) and early access (a game marked in
@@ -92,13 +93,15 @@ export async function grantDuePerks(
   const { data: noted } = await readGrantedMonths(client, membership.id);
   const done = new Set(noted.map((g) => `${g.perk}:${g.month}`));
   let premiumPass = done.has(`premium_pass:${months.at(-1) ?? 0}`);
+  // A test membership's rewards are marked as such (plus_test_monthly), so Joe can take them all back before launch.
+  const reason = membership.test ? "plus_test_monthly" : "plus_monthly";
   for (const month of months) {
     const ref = { kind: "plus", id: membership.id };
     if (!done.has(`coins:${month}`)) {
       const paid = await creditCoins(client, {
         userId,
         amount: PLUS_MONTHLY_COINS,
-        reason: "plus_monthly",
+        reason,
         ref,
         key: `plus_monthly:${membership.id}:${month}`,
       });
@@ -106,7 +109,7 @@ export async function grantDuePerks(
         await noteGrant(client, { membershipId: membership.id, month, perk: "coins", detail: { amount: PLUS_MONTHLY_COINS } });
         // The ledger's line is the truth: the event goes with the call that wrote it, never a racing duplicate.
         if (paid.status === "credited")
-          recordEvents({ event: "plus_perk_granted", playerId: userId, props: { perk: "coins", month, amount: PLUS_MONTHLY_COINS } });
+          recordEvents({ event: "plus_perk_granted", playerId: userId, props: { perk: "coins", month, amount: PLUS_MONTHLY_COINS, test: membership.test } });
       }
     }
     if (!done.has(`freezes:${month}`)) {
@@ -114,14 +117,14 @@ export async function grantDuePerks(
         userId,
         kind: "streak_freeze",
         amount: PLUS_MONTHLY_FREEZES,
-        reason: "plus_monthly",
+        reason,
         ref,
         key: `plus_freezes:${membership.id}:${month}`,
       });
       if (given.status === "granted" || given.status === "duplicate") {
         await noteGrant(client, { membershipId: membership.id, month, perk: "freezes", detail: { count: PLUS_MONTHLY_FREEZES } });
         if (given.status === "granted")
-          recordEvents({ event: "plus_perk_granted", playerId: userId, props: { perk: "freezes", month, amount: PLUS_MONTHLY_FREEZES } });
+          recordEvents({ event: "plus_perk_granted", playerId: userId, props: { perk: "freezes", month, amount: PLUS_MONTHLY_FREEZES, test: membership.test } });
       }
     }
   }

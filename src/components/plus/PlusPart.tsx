@@ -4,8 +4,8 @@
  *
  * Until real payments exist the only way in is a tester's "Test purchase" (no payment, marked as a test, removable by
  * Joe). Plus shows only where it is open (the shop's testers until PLUS_FOR_EVERYONE is on); anyone else keeps the
- * calm "Joulz Plus is coming" card. The perks that arrive later (full stats, the weekly report and drills, replay
- * review and ghost races, from wave 3) are listed in the board's words but marked as coming, never sold as here now.
+ * calm "Joulz Plus is coming" card. Only the perks Plus gives now are listed (PLUS_PERKS); the later ones are added
+ * when each is built.
  */
 import { useRouter } from "@tanstack/react-router";
 import { useState } from "react";
@@ -19,23 +19,23 @@ type Plan = "monthly" | "yearly";
 
 type IconName = Parameters<typeof Icon>[0]["name"];
 
-/** The board's perks, in its order; `later` ones aren't part of Plus yet. */
-export const PLUS_PERKS: readonly { icon: IconName; title: string; sub: string; later?: true }[] = [
+/**
+ * The perks Plus gives now, in the board's order. Full stats, the weekly report and drills, replay review and ghost
+ * races are planned for the polish stage and are added here only when each is built (Joe, 13 Nov 2026).
+ */
+export const PLUS_PERKS: readonly { icon: IconName; title: string; sub: string }[] = [
   { icon: "rewards", title: "Premium pass, every season", sub: "Every Neon Circuit reward and every season after" },
   { icon: "shop", title: `${PLUS_MONTHLY_COINS} coins every month`, sub: "Spend them in the shop" },
   { icon: "streak", title: `${PLUS_MONTHLY_FREEZES} streak freezes a month`, sub: "Keep your Daily streak on busy days" },
   { icon: "calendar", title: "Daily archive", sub: "Play any past Daily, just for fun" },
   { icon: "star", title: "Early access", sub: "New games in Practice before everyone else" },
-  { icon: "leaderboard", title: "Full stats and rating history", sub: "Arrives with rated play", later: true },
-  { icon: "filter", title: "Weekly report and drills", sub: "Arrives with rated play", later: true },
-  { icon: "play", title: "Ghost races and replay review", sub: "Arrives with rated play", later: true },
 ];
 
 function Perks() {
   return (
     <ul className="plus-perks" data-plus-perks>
       {PLUS_PERKS.map((perk) => (
-        <li key={perk.title} className="plus-perk" data-later={perk.later ? "" : undefined}>
+        <li key={perk.title} className="plus-perk">
           <span className="plus-perk-icon">
             <Icon name={perk.icon} size={20} />
           </span>

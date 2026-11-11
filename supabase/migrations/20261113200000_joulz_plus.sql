@@ -26,6 +26,16 @@
 CREATE SCHEMA IF NOT EXISTS plus;
 REVOKE ALL ON SCHEMA plus FROM PUBLIC, anon, authenticated, service_role;
 
+/* ------------------------------------------------------------------ the reasons a test membership pays and takes back */
+
+-- A real membership's monthly coins and freezes carry reason plus_monthly (A1's). A TEST membership's carry
+-- plus_test_monthly, so they can be told apart and taken back before launch (plus.remove_test_rewards), as D1's test
+-- coin packs are (test_purchase / test_purchase_removed).
+INSERT INTO public.economy_reasons (reason, note) VALUES
+  ('plus_test_monthly', 'a test Joulz Plus membership''s monthly coins or streak freezes (removable with plus.remove_test_rewards)'),
+  ('plus_test_removed', 'test Joulz Plus rewards taken back by Joe (plus.remove_test_rewards)')
+ON CONFLICT (reason) DO NOTHING;
+
 /* ------------------------------------------------------------------ the Daily archive's room kind */
 
 DO $kind$
@@ -543,7 +553,7 @@ END;
 $$;
 REVOKE ALL ON FUNCTION plus.start_test(text, text, text) FROM PUBLIC, anon, authenticated, service_role;
 
--- Ends a test membership (the coins and freezes it granted stay; take coins back with economy.adjust_coins).
+-- Ends a test membership (the coins and freezes it granted stay; take them back with plus.remove_test_rewards).
 --   SELECT plus.remove_test_purchase('TheirUsername', 'testing finished');
 CREATE OR REPLACE FUNCTION plus.remove_test_purchase(p_player text, p_note text)
 RETURNS text
@@ -616,3 +626,66 @@ BEGIN
 END;
 $$;
 REVOKE ALL ON FUNCTION plus.clear_early_access(text, text) FROM PUBLIC, anon, authenticated, service_role;
+
+-- Takes back every coin and streak freeze a TEST membership paid (reason plus_test_monthly), for every account or one
+-- (p_player: a username or user id), in one call: each line is taken back once (key plus_test_removed:<line id>),
+-- as much as the account still holds (a balance already spent below it gives what is left; the line is then done).
+-- Memberships are not ended (plus.remove_test_purchase does that). Answers the lines and amounts taken.
+--   SELECT plus.remove_test_rewards('clean test balances before launch');
+--   SELECT plus.remove_test_rewards('one tester', 'TheirUsername');
+CREATE OR REPLACE FUNCTION plus.remove_test_rewards(p_note text, p_player text DEFAULT NULL)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, plus, economy
+AS $$
+DECLARE
+  v_only uuid := CASE WHEN p_player IS NULL THEN NULL ELSE economy.account(p_player) END;
+  v_log bigint;
+  r record;
+  v_have integer;
+  v_take integer;
+  v jsonb;
+  v_coin_lines integer := 0;
+  v_coins integer := 0;
+  v_freeze_lines integer := 0;
+  v_freezes integer := 0;
+BEGIN
+  v_log := plus.log('remove_test_rewards', v_only, NULL, p_note);
+  FOR r IN SELECT l.id, l.user_id, l.amount FROM public.coin_ledger l
+            WHERE l.reason = 'plus_test_monthly' AND l.amount > 0 AND (v_only IS NULL OR l.user_id = v_only)
+              AND NOT EXISTS (SELECT 1 FROM public.coin_ledger x WHERE x.user_id = l.user_id
+                                AND x.idempotency_key = 'plus_test_removed:' || l.id)
+            ORDER BY l.id LOOP
+    SELECT balance INTO v_have FROM public.coin_wallets WHERE user_id = r.user_id;
+    v_take := least(r.amount, coalesce(v_have, 0));
+    IF v_take > 0 THEN
+      v := economy.post_coins(r.user_id, -v_take, 'plus_test_removed', 'ledger', r.id::text, 'plus_test_removed:' || r.id);
+      IF v ->> 'status' = 'ok' THEN
+        v_coin_lines := v_coin_lines + 1;
+        v_coins := v_coins + v_take;
+        PERFORM economy.note_event('coins_spent', r.user_id, jsonb_build_object('reason', 'plus_test_removed', 'amount', v_take));
+      END IF;
+    END IF;
+  END LOOP;
+  FOR r IN SELECT l.id, l.user_id, l.kind, l.amount FROM public.consumable_ledger l
+            WHERE l.reason = 'plus_test_monthly' AND l.amount > 0 AND (v_only IS NULL OR l.user_id = v_only)
+              AND NOT EXISTS (SELECT 1 FROM public.consumable_ledger x WHERE x.user_id = l.user_id
+                                AND x.idempotency_key = 'plus_test_removed:' || l.id)
+            ORDER BY l.id LOOP
+    SELECT count INTO v_have FROM public.consumable_balances WHERE user_id = r.user_id AND kind = r.kind;
+    v_take := least(r.amount, coalesce(v_have, 0));
+    IF v_take > 0 THEN
+      v := economy.post_consumable(r.user_id, r.kind, -v_take, 'plus_test_removed', 'ledger', r.id::text, 'plus_test_removed:' || r.id);
+      IF v ->> 'status' = 'ok' THEN
+        v_freeze_lines := v_freeze_lines + 1;
+        v_freezes := v_freezes + v_take;
+      END IF;
+    END IF;
+  END LOOP;
+  v := jsonb_build_object('coin_lines', v_coin_lines, 'coins', v_coins, 'freeze_lines', v_freeze_lines, 'freezes', v_freezes);
+  UPDATE plus.admin_log SET detail = v WHERE id = v_log;
+  RETURN v;
+END;
+$$;
+REVOKE ALL ON FUNCTION plus.remove_test_rewards(text, text) FROM PUBLIC, anon, authenticated, service_role;

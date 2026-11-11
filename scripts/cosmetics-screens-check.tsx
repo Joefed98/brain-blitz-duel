@@ -3,7 +3,7 @@
  * Joulz Plus, against stand-ins for the server (setPlusFns, setCosmeticsFetcher, setIdentityBackend).
  *
  *  1. The Shop's Plus part: a non-tester (Plus not open) keeps the calm "Joulz Plus is coming" card; a tester sees the
- *     offer (monthly and yearly, the perks, the later ones marked as coming) with "Test purchase" and its test note;
+ *     offer (monthly and yearly, the five perks Plus gives now and no later ones) with "Test purchase" and its test note;
  *     the test purchase asks the server with the chosen plan and the member view follows; a member sees the PLUS
  *     chip switch (off) and the Daily archive; switched on for everyone, a non-tester sees "Coming soon", never a
  *     test purchase. The switch ships off.
@@ -148,7 +148,8 @@ view = await mount(() => React.createElement(PlusPart, { soon: SOON }));
 check(!!$("[data-plus-offer]"), "a tester sees the Joulz Plus offer");
 check(/£3\.99/.test($('[data-plus-plan="monthly"]')?.textContent ?? "") && /£34\.99/.test($('[data-plus-plan="yearly"]')?.textContent ?? "") && /Save 27%/.test($('[data-plus-plan="yearly"]')?.textContent ?? ""), "monthly £3.99 and yearly £34.99 (save 27%)");
 const perks = $$("[data-plus-perks] li");
-check(perks.length === 8 && perks.filter((p) => p.hasAttribute("data-later")).length === 3, "the board's perks, the three later ones marked as coming");
+check(perks.length === 5, `the five perks Plus gives now (${perks.length})`);
+check(!/stats|rating history|weekly report|drills|replay|ghost/i.test($("[data-plus-offer]")?.textContent ?? ""), "no later perk on the offer (stats, report and drills, replay review, ghost races)");
 check(/200 coins every month/.test($("[data-plus-perks]")?.textContent ?? "") && /2 streak freezes a month/.test($("[data-plus-perks]")?.textContent ?? ""), "200 coins and 2 streak freezes a month");
 check(/no payment is taken/.test($("[data-plus-test-note]")?.textContent ?? ""), "the test purchase says it is a test, with no payment");
 await click($('[data-plus-plan="monthly"]'));

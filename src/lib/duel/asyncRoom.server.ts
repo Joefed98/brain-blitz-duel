@@ -581,7 +581,8 @@ export async function startAsyncRound(
     game: pub.type,
     mode: asyncMode(room.kind),
     roomId: room.id,
-    props: { round },
+    // A Daily archive replay (Plus) keeps the daily mode and is marked, so it is counted apart from real Daily games.
+    props: isArchiveKind(room.kind) ? { round, archive: true } : { round },
   });
   return { ok: true, puzzle: pub, startedAt: nowMs };
 }
@@ -679,7 +680,7 @@ export async function submitAsyncAnswer(
     durationMs: playedMs(puzzleTimeLimitMs(puzzle), msLeft, graded.extra as Record<string, unknown> | null | undefined),
     roomId: room.id,
     inputType: input.inputType,
-    props: { round: input.round },
+    props: isArchiveKind(room.kind) ? { round: input.round, archive: true } : { round: input.round },
   });
   await refreshAttempt(client, room, attempt, rows, nowMs);
   return { ok: true, score: graded.score };

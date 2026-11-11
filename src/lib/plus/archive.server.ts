@@ -103,6 +103,6 @@ export async function startArchive(
   const started = await startAttempt(client, room, input.userId, { name: input.name, colour: null, icon: null }, nowMs);
   if (!started.ok) return started;
   if (started.created)
-    recordEvents({ event: "daily_archive_played", playerId: input.userId, props: { kind: DAILY_ROOM_KIND[kind], day } });
+    recordEvents({ event: "daily_archive_played", playerId: input.userId, props: { kind: DAILY_ROOM_KIND[kind], day, archive: true } });
   return { ok: true, roomId: room.id, created: started.created };
 }

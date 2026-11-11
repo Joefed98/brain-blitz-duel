@@ -231,10 +231,6 @@
   font-size: 13px;
   color: var(--jz-text-2);
 }
-.plus-perk[data-later] .plus-perk-title,
-.plus-perk[data-later] .plus-perk-sub {
-  color: var(--jz-text-3);
-}
 .plus-test-note,
 .plus-small-print {
   margin: 0;
