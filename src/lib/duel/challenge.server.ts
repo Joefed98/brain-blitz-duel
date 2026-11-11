@@ -77,7 +77,7 @@ import type {
 } from "./types";
 import { dbError } from "./dbError";
 import type { Db } from "@/lib/data/db.server";
-import { readAsyncPrivate, readAsyncRoomResults, readAsyncRoundResults } from "@/lib/data/async.server";
+import { readAsyncPrivate, readAsyncRoomResults, readAsyncRoundResults, readAttempt } from "@/lib/data/async.server";
 import {
   insertChallenge,
   probeChallenges,
@@ -752,7 +752,10 @@ export async function myChallenges(
   for (const code of codes.slice(0, 20)) {
     if (metas.has(code)) continue;
     const { data: row } = await readChallengeByCode(client, code);
-    if (row) metas.set(code, row);
+    if (!row) continue;
+    // A code the caller didn't make is listed only when the caller has an attempt in it.
+    const { data: attempt } = await readAttempt(client, row.room_id, userId);
+    if (attempt) metas.set(code, row);
   }
   const list = [...metas.values()]
     .sort((a, b) => msOf(b.created_at) - msOf(a.created_at))
