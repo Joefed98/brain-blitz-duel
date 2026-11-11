@@ -1,56 +1,56 @@
 /**
- * Rated matchmaking's tables (wave 3, W3b; supabase/migrations/20261114200000_rated_matchmaking.sql): the queue,
+ * Rated matchmaking's tables (wave 3, W3b; supabase/migrations/20261114200000_matchmaking.sql): the queue,
  * matches and their players, rated runs, run uses and live progress, plus the reads of rooms and the Daily that the
  * recorded-run fallback needs. Server only (service role); no phone reads any of it.
  */
 import type { Db, Json, Tables, TablesInsert } from "./db.server";
 import type { Result } from "./rooms.server";
 
-export type RatedQueueRow = Tables<"rated_queue">;
-export type RatedMatchRow = Tables<"rated_matches">;
-export type RatedMatchPlayerRow = Tables<"rated_match_players">;
-export type RatedRunRow = Tables<"rated_runs">;
-export type RatedProgressRow = Tables<"rated_progress">;
+export type RatedQueueRow = Tables<"mm_queue">;
+export type RatedMatchRow = Tables<"mm_matches">;
+export type RatedMatchPlayerRow = Tables<"mm_match_players">;
+export type RatedRunRow = Tables<"mm_runs">;
+export type RatedProgressRow = Tables<"mm_progress">;
 
 /* ------------------------------------------------------------------ testers */
 
-/** On D1's tester list (shop.testers, read through public.rated_is_tester; false before D1's migration). */
+/** On D1's tester list (shop.testers, read through public.mm_is_tester; false before D1's migration). */
 export async function readIsRatedTester(client: Db, userId: string): Promise<Result<boolean>> {
-  const { data, error } = await client.rpc("rated_is_tester", { p_user_id: userId });
+  const { data, error } = await client.rpc("mm_is_tester", { p_user_id: userId });
   return { data: data === true, error };
 }
 
 /* ------------------------------------------------------------------ queue */
 
 export async function readQueueEntry(client: Db, userId: string): Promise<Result<RatedQueueRow | null>> {
-  const { data, error } = await client.from("rated_queue").select("*").eq("user_id", userId).maybeSingle();
+  const { data, error } = await client.from("mm_queue").select("*").eq("user_id", userId).maybeSingle();
   return { data, error };
 }
 
 /** Starts (or restarts) a search: replaces a waiting entry, never one a match has claimed. */
-export async function writeQueueEntry(client: Db, row: TablesInsert<"rated_queue">): Promise<Result<null>> {
-  const { error: cleared } = await client.from("rated_queue").delete().eq("user_id", row.user_id).is("match_id", null);
+export async function writeQueueEntry(client: Db, row: TablesInsert<"mm_queue">): Promise<Result<null>> {
+  const { error: cleared } = await client.from("mm_queue").delete().eq("user_id", row.user_id).is("match_id", null);
   if (cleared) return { data: null, error: cleared };
-  const { error } = await client.from("rated_queue").insert(row);
+  const { error } = await client.from("mm_queue").insert(row);
   return { data: null, error };
 }
 
 /** Ends a search that no match has claimed. */
 export async function deleteWaitingEntry(client: Db, userId: string): Promise<Result<null>> {
-  const { error } = await client.from("rated_queue").delete().eq("user_id", userId).is("match_id", null);
+  const { error } = await client.from("mm_queue").delete().eq("user_id", userId).is("match_id", null);
   return { data: null, error };
 }
 
 /** Clears a claimed entry once its player has been told about the match. */
 export async function deleteClaimedEntry(client: Db, userId: string, matchId: string): Promise<Result<null>> {
-  const { error } = await client.from("rated_queue").delete().eq("user_id", userId).eq("match_id", matchId);
+  const { error } = await client.from("mm_queue").delete().eq("user_id", userId).eq("match_id", matchId);
   return { data: null, error };
 }
 
 /** Everyone still waiting for this format and choice, oldest first. */
 export async function readWaiting(client: Db, format: string, choice: string): Promise<Result<RatedQueueRow[]>> {
   const { data, error } = await client
-    .from("rated_queue")
+    .from("mm_queue")
     .select("*")
     .eq("format", format)
     .eq("choice", choice)
@@ -60,12 +60,12 @@ export async function readWaiting(client: Db, format: string, choice: string): P
   return { data: data ?? [], error };
 }
 
-/** Puts every listed searcher in `matchId`, or none (public.rated_queue_claim). */
+/** Puts every listed searcher in `matchId`, or none (public.mm_queue_claim). */
 export async function claimQueue(
   client: Db,
   input: { users: string[]; matchId: string; format: string; choice: string },
 ): Promise<Result<boolean>> {
-  const { data, error } = await client.rpc("rated_queue_claim", {
+  const { data, error } = await client.rpc("mm_queue_claim", {
     p_users: input.users,
     p_match: input.matchId,
     p_format: input.format,
@@ -76,29 +76,29 @@ export async function claimQueue(
 
 /* ------------------------------------------------------------------ matches */
 
-export async function insertRatedMatch(client: Db, row: TablesInsert<"rated_matches">): Promise<Result<null>> {
-  const { error } = await client.from("rated_matches").insert(row);
+export async function insertRatedMatch(client: Db, row: TablesInsert<"mm_matches">): Promise<Result<null>> {
+  const { error } = await client.from("mm_matches").insert(row);
   return { data: null, error };
 }
 
-export async function insertMatchPlayers(client: Db, rows: TablesInsert<"rated_match_players">[]): Promise<Result<null>> {
-  const { error } = await client.from("rated_match_players").insert(rows);
+export async function insertMatchPlayers(client: Db, rows: TablesInsert<"mm_match_players">[]): Promise<Result<null>> {
+  const { error } = await client.from("mm_match_players").insert(rows);
   return { data: null, error };
 }
 
 export async function readRatedMatch(client: Db, matchId: string): Promise<Result<RatedMatchRow | null>> {
-  const { data, error } = await client.from("rated_matches").select("*").eq("id", matchId).maybeSingle();
+  const { data, error } = await client.from("mm_matches").select("*").eq("id", matchId).maybeSingle();
   return { data, error };
 }
 
 export async function readMatchByRoom(client: Db, roomId: string): Promise<Result<RatedMatchRow | null>> {
-  const { data, error } = await client.from("rated_matches").select("*").eq("duel_id", roomId).maybeSingle();
+  const { data, error } = await client.from("mm_matches").select("*").eq("duel_id", roomId).maybeSingle();
   return { data, error };
 }
 
 export async function readMatchPlayers(client: Db, matchId: string): Promise<Result<RatedMatchPlayerRow[]>> {
   const { data, error } = await client
-    .from("rated_match_players")
+    .from("mm_match_players")
     .select("*")
     .eq("match_id", matchId)
     .order("slot", { ascending: true });
@@ -107,10 +107,10 @@ export async function readMatchPlayers(client: Db, matchId: string): Promise<Res
 
 /** The player's matches still playing (at most a few). */
 export async function readOpenMatchIds(client: Db, userId: string): Promise<Result<string[]>> {
-  const { data: mine, error } = await client.from("rated_match_players").select("match_id").eq("user_id", userId);
+  const { data: mine, error } = await client.from("mm_match_players").select("match_id").eq("user_id", userId);
   if (error || !mine?.length) return { data: [], error };
   const { data, error: e2 } = await client
-    .from("rated_matches")
+    .from("mm_matches")
     .select("id")
     .in("id", mine.map((m) => m.match_id))
     .in("status", ["playing", "settling"]);
@@ -119,10 +119,10 @@ export async function readOpenMatchIds(client: Db, userId: string): Promise<Resu
 
 /** The owner of the viewer's most recent recorded opponent. */
 export async function readLastRecordedOwner(client: Db, viewerId: string): Promise<Result<string | null>> {
-  const { data: mine, error } = await client.from("rated_match_players").select("match_id").eq("user_id", viewerId);
+  const { data: mine, error } = await client.from("mm_match_players").select("match_id").eq("user_id", viewerId);
   if (error || !mine?.length) return { data: null, error };
   const { data, error: e2 } = await client
-    .from("rated_matches")
+    .from("mm_matches")
     .select("recorded_owner, created_at")
     .in("id", mine.map((m) => m.match_id))
     .eq("kind", "recorded")
@@ -134,7 +134,7 @@ export async function readLastRecordedOwner(client: Db, viewerId: string): Promi
 /** Claims a match for settling (playing → settling); true for exactly one caller. */
 export async function claimSettle(client: Db, matchId: string, finishedAt: string): Promise<Result<boolean>> {
   const { data, error } = await client
-    .from("rated_matches")
+    .from("mm_matches")
     .update({ status: "settling", finished_at: finishedAt })
     .eq("id", matchId)
     .eq("status", "playing")
@@ -145,7 +145,7 @@ export async function claimSettle(client: Db, matchId: string, finishedAt: strin
 /** The settle went through: the result is stored and the match settled. */
 export async function markSettled(client: Db, matchId: string, result: Json, at: string): Promise<Result<null>> {
   const { error } = await client
-    .from("rated_matches")
+    .from("mm_matches")
     .update({ status: "settled", result, settled_at: at })
     .eq("id", matchId)
     .eq("status", "settling");
@@ -154,14 +154,14 @@ export async function markSettled(client: Db, matchId: string, result: Json, at:
 
 /** The settle failed before W3a stored anything: back to playing so the next call retries. */
 export async function releaseSettle(client: Db, matchId: string): Promise<Result<null>> {
-  const { error } = await client.from("rated_matches").update({ status: "playing" }).eq("id", matchId).eq("status", "settling");
+  const { error } = await client.from("mm_matches").update({ status: "playing" }).eq("id", matchId).eq("status", "settling");
   return { data: null, error };
 }
 
 /** A player's rematch accept (the first one stands). */
 export async function writeRematchAccept(client: Db, matchId: string, userId: string, at: string): Promise<Result<null>> {
   const { error } = await client
-    .from("rated_match_players")
+    .from("mm_match_players")
     .update({ rematch_at: at })
     .eq("match_id", matchId)
     .eq("user_id", userId)
@@ -172,7 +172,7 @@ export async function writeRematchAccept(client: Db, matchId: string, userId: st
 /** Claims the rematch's id on the old match; true for exactly one caller. */
 export async function claimRematch(client: Db, matchId: string, rematchId: string): Promise<Result<boolean>> {
   const { data, error } = await client
-    .from("rated_matches")
+    .from("mm_matches")
     .update({ rematch_match_id: rematchId })
     .eq("id", matchId)
     .is("rematch_match_id", null)
@@ -182,16 +182,16 @@ export async function claimRematch(client: Db, matchId: string, rematchId: strin
 
 /* ------------------------------------------------------------------ runs and uses */
 
-export async function insertRatedRuns(client: Db, rows: TablesInsert<"rated_runs">[]): Promise<Result<null>> {
+export async function insertRatedRuns(client: Db, rows: TablesInsert<"mm_runs">[]): Promise<Result<null>> {
   if (!rows.length) return { data: null, error: null };
-  const { error } = await client.from("rated_runs").upsert(rows, { onConflict: "key", ignoreDuplicates: true });
+  const { error } = await client.from("mm_runs").upsert(rows, { onConflict: "key", ignoreDuplicates: true });
   return { data: null, error };
 }
 
 /** Rated runs of this format and choice since `sinceIso`, newest first. */
 export async function readRatedRuns(client: Db, format: string, choice: string, sinceIso: string): Promise<Result<RatedRunRow[]>> {
   const { data, error } = await client
-    .from("rated_runs")
+    .from("mm_runs")
     .select("*")
     .eq("format", format)
     .eq("choice", choice)
@@ -206,7 +206,7 @@ export async function readRunUses(client: Db, keys: string[], dayStartIso: strin
   const counts = new Map<string, number>();
   if (!keys.length) return { data: counts, error: null };
   const { data, error } = await client
-    .from("rated_run_uses")
+    .from("mm_run_uses")
     .select("run_key")
     .in("run_key", keys)
     .gte("used_at", dayStartIso);
@@ -214,12 +214,12 @@ export async function readRunUses(client: Db, keys: string[], dayStartIso: strin
   return { data: counts, error };
 }
 
-/** Counts one use of a run unless it already has `max` today (public.rated_run_use). */
+/** Counts one use of a run unless it already has `max` today (public.mm_run_use). */
 export async function useRun(
   client: Db,
   input: { key: string; viewerId: string; matchId: string; dayStartIso: string; max: number },
 ): Promise<Result<boolean>> {
-  const { data, error } = await client.rpc("rated_run_use", {
+  const { data, error } = await client.rpc("mm_run_use", {
     p_key: input.key,
     p_viewer: input.viewerId,
     p_match: input.matchId,
@@ -231,13 +231,13 @@ export async function useRun(
 
 /* ------------------------------------------------------------------ live progress (display only) */
 
-export async function writeProgress(client: Db, row: TablesInsert<"rated_progress">): Promise<Result<null>> {
-  const { error } = await client.from("rated_progress").upsert(row, { onConflict: "match_id,user_id" });
+export async function writeProgress(client: Db, row: TablesInsert<"mm_progress">): Promise<Result<null>> {
+  const { error } = await client.from("mm_progress").upsert(row, { onConflict: "match_id,user_id" });
   return { data: null, error };
 }
 
 export async function readProgress(client: Db, matchId: string): Promise<Result<RatedProgressRow[]>> {
-  const { data, error } = await client.from("rated_progress").select("*").eq("match_id", matchId);
+  const { data, error } = await client.from("mm_progress").select("*").eq("match_id", matchId);
   return { data: data ?? [], error };
 }
 
@@ -272,7 +272,7 @@ export async function readFinishedRoomIds(client: Db, sinceIso: string, limit: n
 /** Which of these rooms are rated matches' rooms. */
 export async function readRatedRoomIds(client: Db, roomIds: string[]): Promise<Result<Set<string>>> {
   if (!roomIds.length) return { data: new Set(), error: null };
-  const { data, error } = await client.from("rated_matches").select("duel_id").in("duel_id", roomIds);
+  const { data, error } = await client.from("mm_matches").select("duel_id").in("duel_id", roomIds);
   return { data: new Set((data ?? []).map((r) => r.duel_id).filter((id): id is string => !!id)), error };
 }
 
@@ -357,11 +357,11 @@ export async function readDailyAttemptSource(client: Db, attemptId: string): Pro
 
 /** Undoes a claim no match was made for (a recorded run that couldn't be taken after all). */
 export async function releaseClaim(client: Db, userId: string, matchId: string): Promise<Result<null>> {
-  const { error } = await client.from("rated_queue").update({ match_id: null }).eq("user_id", userId).eq("match_id", matchId);
+  const { error } = await client.from("mm_queue").update({ match_id: null }).eq("user_id", userId).eq("match_id", matchId);
   return { data: null, error };
 }
 
 export async function readRatedRun(client: Db, key: string): Promise<Result<RatedRunRow | null>> {
-  const { data, error } = await client.from("rated_runs").select("*").eq("key", key).maybeSingle();
+  const { data, error } = await client.from("mm_runs").select("*").eq("key", key).maybeSingle();
   return { data, error };
 }

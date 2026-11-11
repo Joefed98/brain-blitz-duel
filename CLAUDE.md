@@ -2053,6 +2053,19 @@ outside the repo.
   and falls short for all 261, speed goals against the grader, the facts, coins and roles on PostgreSQL) and
   practice-challenge-fit-check (headless Chromium: every goal whole at 320 and 375 px). **A retune that moves a goal's
   number fails practice-goals-check: change the goal's text and number in the data file and re-run the doc script.**
+- **Rated matchmaking** (wave 3 W3b, 11 Nov 2026, `docs/rated/matchmaking-interface.md`; no gameplay, scoring, stamp or
+  deal change): the queue (same format and choice only; ±50 widening by 50 every 2 s to ±200, a recorded run from 8 s;
+  placement straight to a beginner's run), live and recorded rated matches as ordinary rooms the server makes already
+  started (Classic, `dealRoomRounds` from the room picks; a recorded match copies the run's own stored puzzles), the
+  opponent's score hidden for each game's final 20 % (on the server), settling once into W3a's `recordRatedMatch`
+  (`ratingsAdapter.server.ts`; unbound until W3a's `ratings.server.ts` lands), rematch within 8 s, wave 1's stranger
+  chat in rated rooms. Rules `src/lib/rated/matchmaking.ts`, flow `rated.server.ts`, functions `rated.functions.ts`,
+  data `src/lib/data/rated.server.ts`, tables `mm_*` (`20261114200000_matchmaking.sql`). Switches: `RATED_PLAY_FOR_EVERYONE`
+  (`src/config/ratedConfig.ts`, testers on `shop.testers` only while false) and the formats / choices in
+  `src/config/matchmakingConfig.ts` (only bo3 with Mixed, All puzzles, All arcade on). Recorded runs: nearest rating,
+  14 days, same version, format and choice, never your own, never the same owner twice running, 5 uses a UK day;
+  the room / Daily fallback only when no rated run is near; arcade and engine games play back on a timeline from the
+  server's replay, puzzles show the score only at the game's end. Checks: rated-matchmaking-check, rated-server-check.
 - **Rated 4- and 8-player matches** (wave 3, session W3d, 11 Nov 2026, `docs/rated/multiplayer.md`; no gameplay, scoring,
   stamp, timing or deal change; rooms untouched): **off at launch** on W3b's switches (`RATED_FORMATS_ON.ffa4` / `.ffa8`
   in `src/config/ratedConfig.ts`), refused by the server while off (`joinMultiQueue` / `assertMultiOn`). Rules

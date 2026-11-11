@@ -48,7 +48,8 @@ import {
   type RecordedGame,
   type RatedSwitches,
 } from "../src/lib/rated/matchmaking";
-import { RATED_CHOICES_ON, RATED_FORMATS_ON, RATED_PLAY_FOR_EVERYONE } from "../src/config/ratedConfig";
+import { RATED_CHOICES_ON, RATED_FORMATS_ON } from "../src/config/matchmakingConfig";
+import { RATED_PLAY_FOR_EVERYONE } from "../src/config/ratedConfig";
 import { ratedChatMessage, QUICK_PHRASES_ONLY_MESSAGE } from "../src/lib/rated/ratedChat.server";
 import { chatPolicy } from "../src/lib/safety/chatPolicy";
 import { dealRoomRounds } from "../src/lib/duel/roomDeal";
@@ -199,9 +200,11 @@ function check(ok: boolean, label: string): void {
   const o = matchOutcome([
     { a: 150, b: 120, aTimeMs: 30_000, bTimeMs: 20_000 },
     { a: 90, b: 140, aTimeMs: 30_000, bTimeMs: 20_000 },
-    { a: 100, b: 100, aTimeMs: 25_000, bTimeMs: 26_000 },
+    { a: 120, b: 100, aTimeMs: 25_000, bTimeMs: 26_000 },
   ]);
-  check(o.winsA === 2 && o.winsB === 1 && o.winner === "a", "result: games won (a level score goes to less time used)");
+  check(o.winsA === 2 && o.winsB === 1 && o.winner === "a", "result: games won");
+  const drawn = matchOutcome([{ a: 100, b: 100, aTimeMs: 1_000, bTimeMs: 9_000 }]);
+  check(drawn.winsA === 0 && drawn.winsB === 0, "result: a level score is a drawn game (W3a's rule), whatever the time");
   const level = matchOutcome([
     { a: 150, b: 100, aTimeMs: 1, bTimeMs: 1 },
     { a: 100, b: 140, aTimeMs: 1, bTimeMs: 1 },
@@ -209,6 +212,7 @@ function check(ok: boolean, label: string): void {
   ]);
   check(level.winsA === 1 && level.winsB === 1 && level.winner === "a", "result: level on games, the higher total");
   check(matchOutcome([{ a: 1, b: 1, aTimeMs: 1, bTimeMs: 1 }]).winner === "draw", "result: level on everything, a draw");
+  check(matchOutcome([{ a: 1, b: 1, aTimeMs: 1, bTimeMs: 2 }]).winner === "a", "result: level on games and total, less time used");
   const end = 1_000_000;
   check(REMATCH_WINDOW_MS === 8_000 && rematchOpen(end, end + 8_000) && !rematchOpen(end, end + 8_001) && !rematchOpen(end, end - 1), "rematch: open for 8 s after the match");
   check(rematchAgreed(end, [end + 1_000, end + 7_900]) && !rematchAgreed(end, [end + 1_000, end + 8_500]) && !rematchAgreed(end, [end + 1_000, null]) && !rematchAgreed(end, [end + 1]), "rematch: both accept within 8 s");
@@ -224,6 +228,30 @@ function check(ok: boolean, label: string): void {
   check(byId.ok && byId.text === "Good game!" && byText.ok && byText.text === "Good game!", "chat: a quick phrase goes (by id or exact text)");
   const adult = ratedChatMessage("type", "nice one mate");
   check(adult.ok && adult.text === "nice one mate", "chat: adults with an account type");
+}
+
+/* ------------------------------------------------------------------ W3a's shapes */
+{
+  const { matchRatingFrom, poolAndCategory, ratingsFormat, toRatingsResult } = await import("../src/lib/rated/ratingsAdapter.server");
+  const rated = (rating: number) => ({ status: "rated" as const, rating, rd: 80, matches: 9, provisional: false });
+  const base = {
+    playerId: "p",
+    placement: { played: 5, of: 5 as const, done: true, label: null },
+    joulz: 1340,
+    tier: null,
+    pools: { puzzles: rated(1300), arcade: { status: "not_played" as const } },
+    categories: null,
+  };
+  check(matchRatingFrom(base, "puzzles", 1500).rating === 1300 && matchRatingFrom(base, "arcade", 1500).rating === 1500 && matchRatingFrom(base, "mixed", 1500).rating === 1340, "W3a: the rating the match moves (pool; unrated = the starting rating; Mixed the Joulz Rating)");
+  check(matchRatingFrom({ ...base, placement: { played: 2, of: 5, done: false, label: "Placement 3 of 5" }, joulz: null, pools: null }, "mixed", 1500).placement === true, "W3a: placement read from placement.done");
+  check(poolAndCategory("flood")?.pool === "puzzles" && poolAndCategory("breaker")?.pool === "arcade" && poolAndCategory("breaker")?.category === "retro" && poolAndCategory("nope") === null, "W3a: pool and category from the game");
+  const fmt = ratingsFormat("bo3");
+  check(fmt.kind === "duel" && fmt.bestOf === 3, "W3a: best of 3 is { duel, bestOf 3 }");
+  const settlement = {
+    matchId: "m", format: "bo3" as const, choice: "word" as const, gameMode: "classic" as const, kind: "live" as const, rematchOf: null, finishedAt: "2026-11-11T00:00:00Z",
+    players: [], games: [], winner: "draw" as const, recorded: null, ratings: null,
+  };
+  check(toRatingsResult(settlement) === null, "W3a: a single-category choice isn't sent (W3a takes Mixed, All puzzles, All arcade)");
 }
 
 console.log(`rated-matchmaking-check: ${passes} passed, ${failures.length} failed`);

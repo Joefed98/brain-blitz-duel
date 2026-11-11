@@ -94,7 +94,7 @@ import {
   type RecordedGame,
   type RecordedSource,
 } from "./matchmaking";
-import { ratings, type RatedMatchResult, type RatedResultPlayer } from "./ratings.server";
+import { ratings, toRatingsResult, type RatedSettlement, type SettledPlayer } from "./ratingsAdapter.server";
 import { scoreTimeline } from "./timeline.server";
 
 /* ------------------------------------------------------------------ shapes the phone gets */
@@ -774,7 +774,7 @@ export function buildMatchResult(input: {
   puzzles: PuzzleData[];
   results: RoundResultRow[];
   finishedAt: string;
-}): RatedMatchResult {
+}): RatedSettlement {
   const { match, players, puzzles, results } = input;
   const sideOf = (slot: number) => {
     const scores: number[] = [];
@@ -794,7 +794,7 @@ export function buildMatchResult(input: {
   const games: GameScores[] = puzzles.map((_, i) => ({ a: a.scores[i] ?? 0, b: b.scores[i] ?? 0, aTimeMs: a.timesMs[i] ?? 0, bTimeMs: b.timesMs[i] ?? 0 }));
   const outcome = matchOutcome(games);
   const sides = [a, b];
-  const resultPlayers: RatedResultPlayer[] = players.map((p, i) => {
+  const resultPlayers: SettledPlayer[] = players.map((p, i) => {
     const side = sides[i] ?? sideOf(p.slot);
     return {
       userId: p.user_id,
@@ -816,7 +816,7 @@ export function buildMatchResult(input: {
     rematchOf: match.rematch_of,
     finishedAt: input.finishedAt,
     players: resultPlayers,
-    games: puzzles.map((p, i) => ({ type: p.type, winner: gameWinner(games[i]!) })),
+    games: puzzles.map((p, i) => ({ type: p.type, signature: gameVersionOf(p), winner: gameWinner(games[i]!) })),
     winner: outcome.winner,
     recorded:
       recorded && match.recorded_owner && match.recorded_key && match.recorded_source
@@ -827,19 +827,19 @@ export function buildMatchResult(input: {
             fallback: match.recorded_fallback === true,
             scores: b.scores,
             timesMs: b.timesMs,
-            ownerMoves: false,
           }
         : null,
+    ratings: null,
   };
 }
 
-export type SettleOutcome = { state: "playing" } | { state: "settled"; result: RatedMatchResult } | { state: "missing" };
+export type SettleOutcome = { state: "playing" } | { state: "settled"; result: RatedSettlement } | { state: "missing" };
 
 /** Settles a finished match once: builds the result, calls W3a's recordRatedMatch, stores the players' runs. */
 export async function settleMatch(client: Db, matchId: string, nowMs: number): Promise<SettleOutcome> {
   const { data: match } = await readRatedMatch(client, matchId);
   if (!match) return { state: "missing" };
-  if (match.status === "settled" && match.result) return { state: "settled", result: match.result as unknown as RatedMatchResult };
+  if (match.status === "settled" && match.result) return { state: "settled", result: match.result as unknown as RatedSettlement };
   if (!match.duel_id) return { state: "missing" };
   const { data: room } = await readRoom(client, match.duel_id);
   if (!room) return { state: "missing" };
@@ -865,7 +865,9 @@ export async function settleMatch(client: Db, matchId: string, nowMs: number): P
       return { state: "settled", result: { matchId, format: match.format as RatedFormat, choice: match.choice as RatedChoice, placings: multi.placings } as unknown as RatedMatchResult };
     }
     const result = buildMatchResult({ match: { ...match, finished_at: finishedAt }, players: players ?? [], puzzles, results: results ?? [], finishedAt });
-    await ratings().recordRatedMatch(result);
+    // W3a's recordRatedMatch, once per match (idempotent on the id): a passing failure throws and the settle retries.
+    const forRatings = toRatingsResult(result);
+    if (forRatings) result.ratings = await ratings().recordRatedMatch(forRatings);
     await markSettled(client, matchId, asJson(result), nowIso(nowMs));
     await storeRatedRuns(client, match, players ?? [], puzzles, results ?? []);
     return { state: "settled", result };
