@@ -36,10 +36,18 @@ export function setBadgesBackend(backend: BadgesBackend | null): void {
   resetBadges();
 }
 
-function automated(): boolean {
+/**
+ * Whether this is a browser under automation that hasn't asked for badges (the repo's browser checks). The check-only
+ * switch window.__DUELZ_ALLOW_BADGES__ is read only outside production: a production build replaces the plain
+ * `import.meta.env.PROD` with true (as shopSwitch.ts does), so on joulz.uk the switch is never read. Either way it can
+ * only let an automated browser call the player's own badge functions, which the server checks; for a real player
+ * (navigator.webdriver false) it never changed anything.
+ */
+export function automated(): boolean {
   if (typeof window === "undefined") return true;
-  const w = window as { __DUELZ_ALLOW_BADGES__?: boolean };
-  return typeof navigator !== "undefined" && navigator.webdriver === true && w.__DUELZ_ALLOW_BADGES__ !== true;
+  if (typeof navigator === "undefined" || navigator.webdriver !== true) return false;
+  if (import.meta.env.PROD) return true;
+  return (window as { __DUELZ_ALLOW_BADGES__?: boolean }).__DUELZ_ALLOW_BADGES__ !== true;
 }
 
 async function backend(): Promise<BadgesBackend | null> {
