@@ -16,7 +16,8 @@
  *      exactly what was inserted (score, answer, time, extra: the look never touches a score). Clients can't call the
  *      look functions.
  *   3. Ghosts: roomGameLooksFn gives a room's players their looks for the game, refuses (empty) a caller who is not in
- *      the room, a game without skins and a malformed room id, and leaves out players who left.
+ *      the room, a game without skins and a malformed room id, and leaves out players who left. Play again's archive
+ *      (20261112090200_archive_result_look.sql) keeps each result's look.
  *
  *   bun scripts/skins-db-check.ts      (~10 s, no browser; needs the PostgreSQL 16 binaries, as CI has)
  */
@@ -218,6 +219,14 @@ try {
   check(Object.keys(await ask(userToken(BEN), "not-a-room", "racing")).length === 0, "a malformed room id gets nothing");
   q(`UPDATE public.duel_players SET status = 'left' WHERE duel_id = '${ROOM}' AND player_slot = 1`);
   check(Object.keys(await ask(userToken(BEN), ROOM, "racing")).length === 0, "a player who left shows no ghost look");
+
+  // Play again: the archive keeps each result's look (20261112090200_archive_result_look.sql), restart_duel_room as it was.
+  const looksBefore = q(`SELECT string_agg(id || '=' || coalesce(look::text, 'NULL'), ',' ORDER BY id) FROM public.round_results WHERE duel_id = '${ROOM}'`);
+  q(`UPDATE public.duels SET status = 'finished', host_user_id = '${BEN}' WHERE id = '${ROOM}'`);
+  check(q(`SELECT public.restart_duel_room('${ROOM}', '${BEN}')`) === "t", "Play again runs on the room");
+  const archived = q(`SELECT string_agg(id || '=' || coalesce(look::text, 'NULL'), ',' ORDER BY id) FROM public.round_results_archive WHERE duel_id = '${ROOM}'`);
+  check(looksBefore !== "" && archived === looksBefore && /galaxy-set/.test(archived), "the archive keeps every result's look, the same as the result row's");
+  check(q(`SELECT count(*) FROM public.round_results WHERE duel_id = '${ROOM}'`) === "0", "the results themselves are cleared as before");
 } catch (err) {
   check(false, `harness: ${err instanceof Error ? err.message : String(err)}`);
 } finally {

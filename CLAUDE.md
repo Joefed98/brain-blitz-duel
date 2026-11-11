@@ -1989,7 +1989,8 @@ outside the repo.
   `CARD_BACK_GAMES`), drawn on Full House's deck behind Next card; migration `20261112090000_card_back_slot.sql` moved
   the three Free Cell skins with their owners and loadouts (old ids in `public.catalogue_renamed`, never re-inserted).
   *Replays and ghosts*: each result stores its player's equipped look (`round_results.look`, `async_results.look`,
-  filled by database triggers from the loadout, never by the phone; `20261112090100_result_looks.sql`); replays draw
+  filled by database triggers from the loadout, never by the phone; `20261112090100_result_looks.sql`; Play again's
+  archive keeps it, `20261112090200_archive_result_look.sql`); replays draw
   the player's skin and back in the viewer's own world (`lookFromStored`, `playerLookIn`), Apex's ghosts their owners'
   paints (`roomGameLooksFn` → `room_game_looks`, `setRaceGhostSkins`). Nothing grades, scores, ranks or deals from a
   look. Checks: skins-default-check (56 frames identical to digests recorded on main before the hook,

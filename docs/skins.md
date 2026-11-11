@@ -96,7 +96,8 @@ Each result remembers the look its player had equipped (Joe, 11 Nov 2026), so a 
   `round_results` and `async_results`, filled by BEFORE INSERT triggers from the player's loadout (only owned items can
   sit there) for the round's game: `{skin, world, back}` with absent keys for the default, NULL for a guest, nothing
   equipped or a game without skins. A look sent with a row is overwritten; the trigger can never fail an insert. No
-  phone call changed, and nothing reads `look` to grade, score, rank, time or deal. Play again's archive keeps no look.
+  phone call changed, and nothing reads `look` to grade, score, rank, time or deal. Play again's archive keeps each result's look (`20261112090200_archive_result_look.sql`: the
+  archive's `look` column, filled by a trigger from the result row being archived; `restart_duel_room` unchanged).
 - **Replays** (play of the game, round highlights, the Daily's and challenges' reveals): the winner's stored look
   (`replay.server.ts` `ReplayWinner.look`, `asyncRoundReveal`'s `look`) through `lookFromStored`, drawn as
   `playerLookIn(player, viewer)`: the player's skin and card back, the viewer's own world theme (the scenery is always
