@@ -1976,6 +1976,25 @@ outside the repo.
   `20261110200000_analytics_identity_events.sql` (**not applied until merged**; it adds to the list it reads from the
   table). Checks: identity-screens-check (~5 s, happy-dom, A1 stood in by `setIdentityBackend`) and identity-motion-check
   (headless Chromium: every item against its approved PNG, no animation under reduced motion).
+- **The shop** (wave 2 train D, session D1, 11 Nov 2026, `docs/economy/shop.md`; no gameplay, scoring, stamp or timing
+  change; nothing in it helps anyone win): testers only while `SHOP_TAB_ENABLED` is off (`shop.testers`, Joe's
+  `shop.add_tester` / `remove_tester` / `list_testers`, logged in `shop.admin_log`; #0001 added by the migration; every
+  shop function refuses anyone else, `shopAccess` in `src/lib/shop/shop.server.ts`). The daily shop
+  (`src/lib/shop/dailyShop.ts`, pure): four items a day chosen once at midnight UK and recorded in `public.shop_days`
+  (slots Epic, Epic, Elite, Epic/Elite/Legendary; a Legendary two days a week; nothing within 7 days; shop items only;
+  owners see the day's next unowned item). The Monday bundle: `src/lib/shop/bundles.ts` is the schedule as data
+  (`BUNDLES`, `BUNDLE_SCHEDULE_START`: set it to Season 1's first Monday at launch; proposal
+  `docs/economy/bundles-season-1.md`), recorded in `public.shop_weeks`, bought all or nothing through
+  `public.shop_purchase_bundle` (one spend line per item). Items through A1's `economy_purchase_item`, each confirmation
+  with a request id (the same purchase pays once). Coin prices only on cards; the £ value once, on the confirmation
+  (`confirmLine` in `packs.ts`, the Starter pack's rate). Coin packs: tester "Test purchase" credits with reason
+  `test_purchase` (`shop.remove_test_purchase` adds a reversing line); packs for 18+ on the web (`packAllowed`). The
+  wishlist (`public.shop_wishlist`): an item hearted before and back today gets a notice (`ShopBackNotice`) and the Shop
+  tab's only dot (`TabBar` `shopDot`). Item pictures `public/shop/<id>.webp` from `bun scripts/shop-previews.ts`
+  (**re-run after an item's art changes**). Events `shop_viewed`, `item_bought`, `bundle_bought`, `pack_bought`,
+  `wishlist_added`. Migrations `20261111120000_shop.sql`, `20261111120100_analytics_shop_events.sql` (**not applied
+  until merged**). shop-check (~15 s, shard `e`, PostgreSQL); shots `bun scripts/shots/shop-shots.ts`
+  (`screenshots/shop-nov-2026/`).
 - `src/components/duel/` — room/round screens (PhoneShell, RoundIntro, TimerBar,
   AnswerReveal, ArcadeReveal, WinnerReveal…); `src/components/puzzles/` — shared puzzle
   widgets; `src/lib/fx/` — sound and visual feedback (presentation only).

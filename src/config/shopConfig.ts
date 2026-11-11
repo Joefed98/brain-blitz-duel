@@ -11,6 +11,10 @@
 export const SHOP_TAB_ENABLED = false;
 
 /**
+ * Wave 2 D1: the real list of who sees the Shop while the switch is off is the tester list Joe manages in the
+ * database (shop.add_tester / shop.remove_tester / shop.list_testers; docs/economy/shop.md), which the server checks
+ * on every shop call and the phone reads through shopStatusFn. This static list still shows the tab at first paint.
+ *
  * Accounts that see the Shop while the switch is off, by player number (#0001 is Joe's, given by
  * accounts.admin_assign_player_one). Signed-in accounts only: a guest never matches.
  */

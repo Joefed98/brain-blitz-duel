@@ -191,5 +191,8 @@ export const ECONOMY_REASONS = [
   "pack_purchase",
   "refund",
   "admin_adjustment",
+  // The shop (wave 2, session D1; supabase/migrations/20261111120000_shop.sql).
+  "test_purchase",
+  "test_purchase_removed",
 ] as const;
 export type EconomyReason = (typeof ECONOMY_REASONS)[number];

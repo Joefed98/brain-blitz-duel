@@ -335,6 +335,10 @@ export const SHARDS: Record<string, string[]> = {
     // ledger and its races, consumables, ownership, equipping, the avatar, Joe's tools) on a local PostgreSQL through
     // the server-function harness, beside accounts-check.
     "economy-check.ts",
+    // shop-check (wave 2 D1, 11 Nov 2026, ~15 s): the daily shop over a simulated two years, the Monday bundles, coin
+    // packs and the £ line, then buying, bundles, test packs, the wishlist and the tester list on a local PostgreSQL
+    // through the server-function harness, beside economy-check.
+    "shop-check.ts",
     // moderation-ui-check (10 Nov 2026, ~3 s, happy-dom): two taps to report from a name and from a message.
     "moderation-ui-check.tsx",
     // account-screens-check (10 Nov 2026, ~10 s): the sign-up screens' rules, the save-progress events' server function

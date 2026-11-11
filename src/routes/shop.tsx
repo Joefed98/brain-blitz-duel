@@ -2,16 +2,18 @@ import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { useEffect } from "react";
 
 import { PhoneShell } from "@/components/duel/PhoneShell";
+import { ShopFront } from "@/components/shop/ShopFront";
 import { EmptyState, Segmented } from "@/design/components";
 import { useAccount } from "@/lib/account/accountApi";
 import { APP_NAME } from "@/lib/brand";
 import { useShopOn } from "@/lib/identity/shopSwitch";
+import { shopStatusSettled, useShopStatus } from "@/lib/shop/shopStatus";
 import { useHomeBed } from "@/lib/useScreenMusic";
 
 /**
  * The Shop tab (wave 2, session A2; mockup docs/art/wave-2/screens/shop.png): a Shop · Pass · Plus switch at the
- * top; the Shop part keeps Featured, Daily and Coins. In this session every part shows a calm "opening soon" state
- * (no prices, no items, no countdown); the shop itself arrives with train D.
+ * top; the Shop part keeps Featured, Daily and Coins. Session D1 fills the Shop part (ShopFront: this week's bundle,
+ * today's four, the coin packs); Pass and Plus keep their calm "coming" state.
  *
  * Behind the Shop switch (src/config/shopConfig.ts): a device the switch is off for is sent to Play.
  */
@@ -33,6 +35,8 @@ export const Route = createFileRoute("/shop")({
 });
 
 /** What each part and section says while the Shop is opening (calm, no prices, no dates). */
+export type { Section as ShopSection };
+
 export const SOON: Record<Part | Section, { title: string; body: string }> = {
   featured: { title: "Opening soon", body: "This week’s bundle and featured items will show here." },
   daily: { title: "Opening soon", body: "New items every day at midnight, once the shop opens." },
@@ -48,9 +52,11 @@ function ShopScreen() {
   const search = Route.useSearch();
   const account = useAccount();
   const shopOn = useShopOn();
+  const status = useShopStatus();
   const part: Part = search.part ?? "shop";
   const section: Section = search.section ?? "featured";
-  const known = account.kind !== "unknown";
+  // Known: the account, and for an account the server's tester answer (a tester not in the preview list waits for it).
+  const known = account.kind !== "unknown" && shopStatusSettled(account as { kind: string; userId?: string | null }, status);
 
   // Only where the switch is on: anyone else lands on Play, as before the Shop.
   useEffect(() => {
@@ -79,25 +85,22 @@ function ShopScreen() {
               { value: "plus", label: "Plus", data: { "data-shop-part": "plus" } },
             ]}
           />
-          <div className="shop-head">
-            <h1 className="ap-title">{part === "shop" ? "Shop" : part === "pass" ? "Pass" : "Plus"}</h1>
-          </div>
           {part === "shop" ? (
-            <Segmented<Section>
-              label="Shop sections"
-              radio
-              value={section}
-              onChange={(value) => go({ part: "shop", section: value })}
-              options={[
-                { value: "featured", label: "Featured", data: { "data-shop-section": "featured" } },
-                { value: "daily", label: "Daily", data: { "data-shop-section": "daily" } },
-                { value: "coins", label: "Coins", data: { "data-shop-section": "coins" } },
-              ]}
+            <ShopFront
+              section={section}
+              onSection={(value) => go({ part: "shop", section: value })}
+              onGetCoins={() => go({ part: "shop", section: "coins" })}
             />
-          ) : null}
-          <div className="shop-soon" data-shop-soon={part === "shop" ? section : part}>
-            <EmptyState layout="card" tone="cool" title={soon.title} body={soon.body} />
-          </div>
+          ) : (
+            <>
+              <div className="shop-head">
+                <h1 className="ap-title">{part === "pass" ? "Pass" : "Plus"}</h1>
+              </div>
+              <div className="shop-soon" data-shop-soon={part}>
+                <EmptyState layout="card" tone="cool" title={soon.title} body={soon.body} />
+              </div>
+            </>
+          )}
         </div>
       ) : null}
     </PhoneShell>

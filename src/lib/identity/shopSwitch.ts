@@ -9,6 +9,7 @@ import { useEffect, useState } from "react";
 
 import { SHOP_PREVIEW_PLAYERS, SHOP_TAB_ENABLED } from "@/config/shopConfig";
 import { cachedAccount, useAccount, type PhoneAccount } from "@/lib/account/accountApi";
+import { cachedTester, useShopStatus } from "@/lib/shop/shopStatus";
 
 /**
  * Checks only: the switch forced on or off. A check's page sets `window.__DUELZ_SHOP_TAB__` (true / false) before the
@@ -45,9 +46,14 @@ export function playerNumberOf(account: PhoneAccount): number | null {
   return account.kind === "account" ? account.playerNumber : null;
 }
 
-/** The Shop switch for this device: the cached account until the server answers. */
+/**
+ * The Shop switch for this device: the cached account until the server answers. Wave 2 D1: the shop's tester list
+ * (shop.testers, Joe's admin functions) opens it too, from the server's shop status (cached on the device per player
+ * number, so a tester's tab is there at first paint). The server refuses every shop call from anyone else.
+ */
 export function useShopOn(): boolean {
   const account = useAccount();
+  const status = useShopStatus();
   const [cached, setCached] = useState<number | null>(null);
   useEffect(() => {
     setCached(cachedAccount()?.playerNumber ?? null);
@@ -55,6 +61,7 @@ export function useShopOn(): boolean {
   const forced = shopOverride();
   if (forced !== null) return forced;
   if (SHOP_TAB_ENABLED) return true;
-  if (account.kind === "unknown") return shopOnFor(cached);
-  return shopOnFor(playerNumberOf(account));
+  if (account.kind === "unknown") return shopOnFor(cached) || cachedTester(cached);
+  const n = playerNumberOf(account);
+  return shopOnFor(n) || (n !== null && (status.tester || cachedTester(n)));
 }
