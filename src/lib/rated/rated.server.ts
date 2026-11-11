@@ -326,7 +326,7 @@ function foundEvent(userId: string, entry: QueueEntry, kind: "live" | "recorded"
   });
 }
 
-/** One poll of a searcher: pair them live, or from 8 s (placement: at once) give them a recorded run. */
+/** One poll of a searcher: pair them live (placement with placement, placed with placed), or from 8 s give them a recorded run (a beginner's for placement). */
 export async function pollQueue(client: Db, userId: string, nowMs: number): Promise<QueuePoll> {
   const { data: row } = await readQueueEntry(client, userId);
   if (!row) return { state: "idle" };
@@ -340,7 +340,8 @@ export async function pollQueue(client: Db, userId: string, nowMs: number): Prom
     return { state: "found", match: view };
   }
   const waitedMs = nowMs - me.joinedAtMs;
-  if (!me.placement) {
+  // Placement players pair live with other placement players, placed with placed (canPair), within the same widening.
+  {
     const { data: rows } = await readWaiting(client, me.format, me.choice);
     const waiting = (rows ?? []).map(entryOf).filter((e): e is QueueEntry => e !== null);
     const partner = FORMAT_PLAYERS[me.format] === 2 ? bestPartner(me, waiting, nowMs) : null;
@@ -353,7 +354,8 @@ export async function pollQueue(client: Db, userId: string, nowMs: number): Prom
       }
     }
   }
-  if (me.placement || recordedDue(waitedMs)) {
+  // From 8 s with no live partner: a recorded run (for a placement player, a beginner's).
+  if (recordedDue(waitedMs)) {
     const made = await makeRecordedMatch(client, me, nowMs);
     if (made) return pollQueue(client, userId, nowMs);
   }
