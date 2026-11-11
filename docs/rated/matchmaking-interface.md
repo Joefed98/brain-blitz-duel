@@ -71,6 +71,8 @@ is the phone's (W3c: `FinishedGameCounter` / `takePendingPrompt`, as rooms and t
 | `ratedProgressFn` | `{ matchId, round, score }` | Display only: the caller's live score this game (the phone's own running score), shown to a live opponent. Accepted only during that game's puzzle phase. Never read to grade, rank or rate. |
 | `ratedSettleFn` | `{ matchId }` | `SettleOutcome`: `{ state: "playing" }` until the room is finished, then `{ state: "settled", result: RatedSettlement }`. Idempotent; W3a's `recordRatedMatch` is called exactly once per match whoever calls this. Also run by the player's next queue join. |
 | `ratedRematchFn` | `{ matchId }` | `{ state: "waiting" }`, `{ state: "agreed", match }` or `{ state: "closed" }`. Live matches only; both players within 8 s of the match's end (`REMATCH_WINDOW_MS`, from the room's finish). The rematch is a new rated match with `rematchOf`, counted by W3a like any other (its 4th-match rule). Records `rematch_requested` per player, `rematch_accepted` once. |
+| `ratedHeadToHeadFn` | `{ opponentId }` | `HeadToHead`: `{ wins, losses, draws, played }`, the caller's rated record against that player, for W3c's VS screen ("your record against each other"). Counts settled **live** rated matches between the two only, by the stored winner from the caller's side; recorded runs are left out (the run's owner never played the caller), and so is any match with a flagged run (it moved nobody's rating). A match still playing doesn't count yet. Against yourself, or a malformed id: all zero. |
+| `ratedRoomFn` | `{ roomId }` | `RatedRoomInfo \| null`: from a room id, the rated match it is: `{ matchId, format, choice, kind, totalGames, status }` (`totalGames` the dealt N; a best of N may stop sooner once decided). So a rated room opened in another tab, on another device or after a reload still draws the rated header and polls `ratedOpponentScoreFn` with `matchId` for the hidden finish. null for an ordinary room, a malformed id, or a caller who isn't one of the match's players (nothing about another player's match is given away). |
 
 ## 4. The queue
 
@@ -182,4 +184,7 @@ live / recorded, `waited_s`, `format`, `choice`), `rematch_requested` (`format`)
 - `rated-matchmaking-check` (~1 s, shard `e`): the pure rules (switches, deal, bands, pairing, recorded-run choice,
   playback, hidden finish, result, rematch, rated chat, W3a's shapes).
 - `rated-server-check` (~5 s, shard `e`, PostgreSQL): the whole flow through the real server functions and code on a
-  local database with every migration, W3a stood in.
+  local database with every migration, W3a stood in. Its "head to head and a room's match (W3c)" section proves the
+  record from both sides (wins as slot 1 and slot 2, a loss, a draw), that recorded, unfinished, flagged and
+  other-opponent matches are left out (the flagged one also through the real queue's settled match), and that
+  `ratedRoomFn` answers a live and a recorded match's room for its players and null for anyone else or an ordinary room.
