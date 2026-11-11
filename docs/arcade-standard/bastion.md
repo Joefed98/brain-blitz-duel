@@ -20,7 +20,7 @@ the Action HUD's chips (WAVE and DRONES left, BASE right).
 
 
 Shown as **Iron Wall** since 3 Nov 2026 (display name only, `gameNames.ts`; the id `bastion` and every stored round,
-best and history stay; "Bastion" was dropped as a trademark risk, `docs/ip-names.md`). Rooms deal **bastionRev 3**
+best and history stay; "Bastion" was dropped as a trademark risk). Rooms deal **bastionRev 3**
 (section "bastionRev 3: Iron Wall" below); rev 2 and the original unstamped Bastion replay and score exactly as before.
 
 ## bastionRev 3: Iron Wall (3 Nov 2026)

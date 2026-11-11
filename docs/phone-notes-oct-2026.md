@@ -43,7 +43,7 @@ nothing older is pinned, so a check that pins an earlier stamp (the top-up's, a 
   once on the server and stored on the puzzle (`palette`), so a room's players see the same board.
 - **Matchmaker's 30 s.** The flip list carries no times, so a pairRev 2 answer adds the round-clock time of the gold
   match (`<flips>@<ms>`, from the phone's synced clock as Flash and Bang On's tap logs are); the server holds it to the
-  answer's receipt time. Like Forage's misses, the time is the phone's word (`docs/security-audit-oct-2026.md`). A
+  answer's receipt time. Like Forage's misses, the time is the phone's word. A
   gold match after 30 s scores nothing (no taper), as the note reads. A small "gold 23s" countdown shows on the status
   line while the window is open.
 - **Topsy-Turvy.** The sim already stopped a rolling ball against another rolling ball; what passed "through" was a ball

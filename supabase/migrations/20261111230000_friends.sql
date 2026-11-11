@@ -718,6 +718,18 @@ $$;
 REVOKE ALL ON FUNCTION public.friends_challenge_send(uuid, uuid, text) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.friends_challenge_send(uuid, uuid, text) TO service_role;
 
+-- How many friends a player has (the Friendly badge's count: Add 5 friends; awarded through C2's public.badge_award by
+-- src/lib/friends/friends.server.ts when a friendship is made).
+CREATE OR REPLACE FUNCTION public.friends_count(p_user uuid)
+RETURNS integer
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public, friends
+AS $$ SELECT friends.friend_count(p_user) $$;
+REVOKE ALL ON FUNCTION public.friends_count(uuid) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.friends_count(uuid) TO service_role;
+
 -- Whether two players are friends (for the chat policy and later waves: friends type to each other everywhere).
 CREATE OR REPLACE FUNCTION public.friends_are_friends(p_a uuid, p_b uuid)
 RETURNS boolean

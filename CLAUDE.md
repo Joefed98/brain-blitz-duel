@@ -1,7 +1,7 @@
 # CLAUDE.md — Duelz
 
 Guide for Claude Code sessions. Read `docs/` first (master plan, game bank, scoring
-reference, anti-cheat) and **`DESIGN.md` (repo root) for every screen's look**: the `--jz-*` tokens in
+reference) and **`DESIGN.md` (repo root) for every screen's look**: the `--jz-*` tokens in
 `src/design/tokens.css`, the gold rule, one font (Archivo), type roles, cuts and radii, motion, components
 and `scripts/design-lint.ts`; follow it for any screen change (it replaced `docs/design-system.md` on 6 Nov
 2026), then the `AGENTS.md` files (root, `scripts/`, `src/lib/arcade/`,
@@ -296,7 +296,7 @@ outside the repo.
   stamps (2); the rev-1 curves are `WORDSMITH_REV_CURVE` / `WORDHUNT_REV_CURVE`. Help (`instructions.ts`) and intro
   (`introScore.ts`) texts state the new stamps; Nucleus' and Forage's found words (and Forage's misses) are stage state
   (`useStageState`), so a room reload keeps them. Known exceptions: Tenfall's average 97 (raw shape, to revisit with
-  beta data); Forage's misses are reported by the phone (`docs/security-audit-oct-2026.md`). scoring-batch2-check (~10 s,
+  beta data); Forage's misses are reported by the phone. scoring-batch2-check (~10 s,
   `scripts/fixtures/scoring-batch2-runs.json.gz`, `--record` to re-record).
 - **Puzzle helper, `puzzleScoreRev 3`** (20 Oct 2026, batch 1 of `docs/scoring-report-oct-2026.md`; results, misses
   and decisions in `docs/scoring-rev3-oct-2026.md`): every finish puzzle scores unfinished = min(110, 110 × progress ÷
@@ -1122,10 +1122,9 @@ outside the repo.
   ArcadeCanvasStage's new `hover`, click fires, R reloads, Space taps). Score: Armour 140 (straight line of 63 HP), Weak
   spots 30, Fast reloads 20, Base intact 10. Oracle `scripts/bastion-oracle.ts` (200 on every seed tried), bots
   `scripts/arcade-skill-bands/bots/bastion.ts`; bastion-check (~10 s). No intro demo yet (the still shows; an original
-  demo stays stopped). IP notes in `docs/ip-names.md`.
+  demo stays stopped).
 - **Iron Wall and Wavefront's ships** (3 Nov 2026; `docs/arcade-standard/bastion.md` "bastionRev 3: Iron Wall"):
-  Bastion is shown as **Iron Wall** (`gameNames.ts`; id `bastion` unchanged; "Bastion" dropped as a trademark risk,
-  `docs/ip-names.md`). Rooms deal `bastionRev 3` (`BASTION_REV_IRON`, `bastionIronGame`, `bastionTankGameFor(rev)`;
+  Bastion is shown as **Iron Wall** (`gameNames.ts`; id `bastion` unchanged; "Bastion" dropped as a trademark risk). Rooms deal `bastionRev 3` (`BASTION_REV_IRON`, `bastionIronGame`, `bastionTankGameFor(rev)`;
   `replayBastionTankRun(seed, raw, rev)`): rev 2's plan with waves 4–5 eased (pace 80 / 104 %, were 100 / 134;
   `BT3_WAVE_PACE`), a 90 ms green zone (`BT3_ZONE_W` 45 ‰), and three drones a run on a fixed seeded path from their own
   stream of the seed (`bastionDrones`: one in each of three windows, straight across the sky at 4 px a tick, a 24 × 10
@@ -1155,7 +1154,7 @@ outside the repo.
   flick or the HOLD, TURN, DROP pads under the well; lines 140 (full at 33, the elite median) + multi-line clears 40
   (4 / 8 / 12) + a low stack 20; rooms deal a seed from its proved deal (`blockfallDeal.server.ts`, built by
   `bun scripts/blockfall-deal.ts`, the oracle `scripts/blockfall-oracle.ts` on the shared planner
-  `scripts/blockfall/planner.ts`). Our own look and name (`docs/ip-names.md`). **Alley Roll** (`alleyroll`,
+  `scripts/blockfall/planner.ts`). Our own look and name. **Alley Roll** (`alleyroll`,
   Sports, nine balls or 60 s; sim `src/lib/arcade/alleyroll.ts`): a sloping lane, a ramp and a board of 10–50 rings
   with two 100 pockets; slide to line up, swipe up (speed = power, angle = direction); integer physics with no wind and
   no seed (every room the same lane); ring points 150 (full at 540, the elite median) + pockets 30 + hot streak 20.
@@ -1172,7 +1171,7 @@ outside the repo.
   placed *less* the wrong ones, so guessing never pays; the verdict and progress for summaries and reveals come from
   `gridPuzzles.ts`. Kits `scripts/puzzle-fairness/kits-<game>.ts`, checks `scripts/<game>-check.ts`, script helpers
   `scripts/grid-puzzles-lib.ts`; standard-live-check plays all four and grades a room round of each on the production
-  build. Names for the solicitor's review in `docs/ip-names.md`; intro demos not yet recorded (stills).
+  build. Intro demos not yet recorded (stills).
 - **Ricochet, the ninja wall-climb** (1 Nov 2026, `ricoRev` 2; `docs/arcade-standard/ricochet.md`): back from retirement in
   the Action group under its own id. The ninja is the Joulz hero (`drawHero`) in ninja gear on a 26 × 52 px body box
   that matches the drawing. Sim `src/lib/arcade/ricochetNinja.ts` (two temple walls, tap to leap, a second tap
@@ -1223,7 +1222,7 @@ outside the repo.
   cards-solitaire-check (~6 s) proves 460 seeds each (all 300 Golf deals) at 200 through the server replay, the rules,
   undo, reset and the final draw; bands `bun scripts/cards-bands.ts pyramid golfsol muggins --from=10000` (each page has
   before → after). Sounds reuse the card and tile recordings (`docs/sound-cues/cards-solitaire.md` lists the slots
-  wanting their own, a domino clack first). Names for the solicitor: `docs/ip-names.md` (the single IP list). Intro
+  wanting their own, a domino clack first). Intro
   stills only.
 - **Grappler and Rainbow Bridge batch** (3 Nov 2026; `docs/arcade-standard/swing.md` "swingRev 17",
   `inkbridge.md` "inkRev 13"). **Grappler** `swingRev 17` (`SWING_REV_SLIDE`, the state's `slide`): no gems or stars;
@@ -1722,8 +1721,8 @@ outside the repo.
   CloudOff, and `timer` / `calendar` replace PendingClock's Clock3 and Tournaments' empty-state CalendarDays, in app
   chrome (icons-check's replaced list holds all 13); every icon keeps its size and position (slots outside 18–24 px
   set their old size inline; `Icon` passes `data-*` through). lucide-react stays for game boards only.
-- **Security fixes before the Supabase move** (7 Nov 2026; server only, no game's rules, scoring or stamps changed;
-  `docs/audit-nov-2026/security.md`): *H1* every practice token seals a digest of the public half it was dealt with and
+- **Security fixes before the Supabase move** (7 Nov 2026; server only, no game's rules, scoring or stamps changed):
+  *H1* every practice token seals a digest of the public half it was dealt with and
   every practice handler opens it through `openDeal` (`src/lib/duel/practiceSeal.server.ts`), merging only the public
   fields the phone sent, so a signed-out caller can't grade a board, seed, stamp or clock the server never dealt (a
   token from before the digest is refused; a queued run from one comes back "Couldn't be confirmed"); Hanoi's table is
@@ -1839,7 +1838,7 @@ outside the repo.
   rooms.
 - **Accounts backend** (10 Nov 2026, wave 1 train 1, `docs/accounts/README.md`; no gameplay, scoring, stamp or room
   flow change beyond the name check): an account is a `public.profiles` row on the device's own auth user
-  (`supabase/migrations/20261110120000_accounts_profiles.sql`, **not applied until merged**). Sign-up links an email
+  (`supabase/migrations/20261110120000_accounts_profiles.sql`, **applied**). Sign-up links an email
   (`updateUser` + the 6-digit code, `verifyOtp` type `email_change`; Google through `linkIdentity`) to the guest's
   anonymous user, so the id and every row stay; signing in to an existing account on a phone with guest progress leaves
   the guest's rows on the guest id (`guestProgressFn` reports them). Server: `src/lib/account/account.server.ts` /
@@ -1891,7 +1890,7 @@ outside the repo.
   device) and the prompt shows on the next tab page, this visit or the next open (`SaveProgressSlot` in PhoneShell's
   `tabs`, `takePendingPrompt`); its three events go through
   `recordSaveProgressFn` (these three only, fixed words, `SAVE_PROGRESS_LIMIT`) after
-  `20261110130000_analytics_save_progress_events.sql` (**not applied until merged**). `AccountGate` is the reusable
+  `20261110130000_analytics_save_progress_events.sql` (**applied**). `AccountGate` is the reusable
   "needs an account" gate for waves 2 and 4. Names: a signed-in player is seated under their username wherever a name
   is stored (`accountNameOf`, `src/lib/names/playerName.server.ts`: `insertPlayer`, `dailyStartFn`, the challenge
   calls), so lobby, standings, results, chat and share cards show it; guest name boxes take `GUEST_NAME_MAX` (16) and a
@@ -1920,7 +1919,7 @@ outside the repo.
   (Practice keeps working); notices on open (`SafetyNotices`, skipped under automation unless
   `window.__DUELZ_ALLOW_SAFETY__`). *Retention*: `moderation.run_retention` (pg_cron `chat-retention`): chat after 90
   days unless reported, reports and actions after 2 years. Migrations `20261110150000_moderation.sql`,
-  `20261110150100_chat_retention.sql`, `20261110150200_new_guest_limit.sql` (**not applied until merged**). The
+  `20261110150100_chat_retention.sql`, `20261110150200_new_guest_limit.sql` (**applied**). The
   harness's GoTrue stand-in serves anonymous `POST /signup` with captcha (test secrets) and the hook (`rest.auth`).
   moderation-check (~5 s, shard `e`, PostgreSQL), moderation-ui-check (~3 s, happy-dom). The chat's message menu is drawn
   beside the chat sheet, a modal that turns pointer events off outside itself: the menu sets `pointer-events: auto`
@@ -1943,7 +1942,7 @@ outside the repo.
   in the unreachable `economy` schema (`grant_coins`, `adjust_coins`, `grant_item`, `remove_item`, `grant_consumable`,
   `account_summary`, logged in `economy.admin_log`). **A new reason is an INSERT into `public.economy_reasons` in a new
   migration.** Events `coins_credited`, `coins_spent`, `item_granted`, `item_equipped`. Migrations
-  `20261110160000_economy.sql`, `20261110160100_economy_catalogue.sql` (**not applied until merged**). economy-check
+  `20261110160000_economy.sql`, `20261110160100_economy_catalogue.sql` (**applied**). economy-check
   (~8 s, shard `e`, PostgreSQL), economy-neutral-check (~1 s: no scoring, grading, replay, matchmaking or timing code
   reaches an economy module).
 - **Navigation and identity screens** (wave 2 train A, session A2, 10 Nov 2026; presentation, device storage and
@@ -1973,7 +1972,7 @@ outside the repo.
   where getAvatarOptions gives an avatar more than one choice (`optionRows`; none today: one accent and background each,
   no features or accessories in docs/art/avatars). Events `profile_viewed`, `customise_opened`,
   `equip_refused` (slot, reason) through `recordIdentityEventFn` (`IDENTITY_EVENT_LIMIT`), migration
-  `20261110200000_analytics_identity_events.sql` (**not applied until merged**; it adds to the list it reads from the
+  `20261110200000_analytics_identity_events.sql` (**applied**; it adds to the list it reads from the
   table). Checks: identity-screens-check (~5 s, happy-dom, A1 stood in by `setIdentityBackend`) and identity-motion-check
   (headless Chromium: every item against its approved PNG, no animation under reduced motion).
 - **Friends** (wave 2 train B, session B1, 11 Nov 2026, `docs/friends.md`; no gameplay, scoring, stamp or room-flow
@@ -1990,8 +1989,87 @@ outside the repo.
   challenges, search, profiles and status both ways. Reports from a profile go through wave 1's `file_room_report` with
   no room (`room_reports.duel_id` now nullable). Limits: 20 requests an hour, 200 friends. Chat: `chatPolicy(context,
   player, { friends: true })` types for friends, under-18s included; strangers unchanged. Analytics `friend_request_sent`,
-  `friend_added`, `friend_removed`, `friend_blocked` (`20261111230100_analytics_friend_events.sql`). friends-check (~5 s,
+  `friend_added`, `friend_removed`, `friend_blocked` (`20261111230100_analytics_friend_events.sql`). The Friendly badge
+  (5 friends) through C2's `awardBadge` when a friendship is made (`awardFriendly`). friends-check (~5 s,
   PostgreSQL, shard `e`), friends-ui-check (~3 s, happy-dom).
+- **Badges, titles and the account rewards** (wave 2 train C, session C2, 11 Nov 2026, `docs/badges/README.md`; no
+  gameplay, scoring, stamp or timing change): the 54 badges and their rules are Joe's approved catalogue,
+  **`docs/badges/catalogue.md`**, in one list, `src/lib/badges/catalogue.ts` (with the 32 titles; seeded by
+  `20261111220000_badges_titles.sql`, after C1a's `20261111101500` and C1b's `20261111130000`, **not applied until
+  merged**). Each is `earnable` (16: a rule in
+  `rules.server.ts` read from stored facts, `public.badge_facts` plus the Daily record, or Friendly, which B1 awards
+  through `badge_award`; First Star, All-Rounder and Gem Hunter read C1a's stars and gems, also checked from C1a's
+  `onCounted` hook; the challenge badges count C1b's completed challenges) or `waits` (38: rated play, all stars,
+  Hard challenges, Daily boards, tournaments); only earnable ones can be awarded (`badge_award`, idempotent, a
+  Legendary's 250 coins once, key `badge_reward:<slug>`). Practice counts only from C1a's fresh start
+  (`practice_progress_start`). `settleAccountRewards` pays the 1,000-coin sign-up reward (key
+  `signup_reward:<user id>`) and a Founding Player's badge, 250 and Founding frame, from `syncMyBadges` (after sign-up
+  and on tab pages, retried on the next tab page after a failure, awaited by the coin counter; never inside
+  `completeSignUpFn`); the migration backfills existing accounts under the same keys. One title (Rookie by default)
+  and up to three earned badges on the card (`PlayerCard` `title` / `badges`); Profile's collection shows every badge
+  with its rule and, locked, its progress ("4 of 7 days"); the badge-earned moment is drawn only on tab pages. The
+  Daily streak is the server's (`dailyStreak.ts`, `dailyStreak.server.ts`, the device rule exactly; streak freezes used
+  automatically for a covered gap, `daily_streak_freezes`), read by Profile, the Play tab, the aside and the Daily
+  screens (`useDailyRecord`, the device's record until the server answers). Events `badge_earned`, `title_equipped`.
+  badges-check (~15 s, shard `e`, PostgreSQL), badges-screens-check (~5 s, happy-dom). **A new badge rule**: a
+  migration flipping its row, the catalogue and catalogue.md lines, a `BADGE_RULES` entry and an earn / miss test.
+- **Stars and bests on accounts** (wave 2 train C, session C1a, 11 Nov 2026, `docs/practice-progress.md`; no gameplay,
+  scoring, grading, stamp or timing change): every graded practice run's row in `practice_plays` also stores the
+  server's own graded extra as `breakdown` (the same shape round_results.extra holds) and its `level` (NULL = Classic;
+  every run is Classic until wave 3.5), written in `gradePracticeRun` through `recordPracticePlay`'s progress input
+  (`insertPracticePlayWithBreakdown`), then counted once by `public.practice_record_play(play id)` into
+  `public.practice_progress` (per player, game and level: the best, and the star for 175+ on Easy, Classic or Hard;
+  Expert's crown is wave 3.5; a star once earned is kept). Never counted: the intro example, a run the server replay
+  flagged, a play with no player and any run graded before the fresh start (`public.practice_progress_start`, the
+  migration's own moment; nothing is deleted). Rules in `src/lib/practice/progressRules.ts` (`STAR_SCORE` 175,
+  `STAR_TOTAL_MAX` 276, `GEM_THRESHOLDS`: Amber 10 … Diamond 250, the same in the migration). Gems: the star total
+  unlocks A1's `gem_unlocks` (accounts only; a guest's stars unlock them on sign-up through the profile trigger), so
+  setAvatar accepts unlocked gems and refuses locked ones; Customise's picker shows "Unlocks at N stars" on locked
+  ones. The grade answers `progress` (`PracticeRunProgress`); the phone reads the player's view through
+  `getMyPracticeProgressFn` (`src/lib/practice/progress.functions.ts`) into memory only (`useProgress.ts`, refetched
+  when the player changes), so Practice's rows and total, the intro, the reveal's best and "Star earned", Profile's
+  Mastery stars and Practice bests and the Play tab's Warm up are the same on every device; offline runs count once
+  `practiceGradeQueuedFn` grades them. The device's old bests and goals record are cleared once (`deviceFreshStart.ts`,
+  `duelz-practice-fresh:v1`); the old 120 / 160 / 190 module (`practiceGoals.ts`) stays, unused for stars; the
+  challenge ticks stay on the device until C1b. A one-time note ("Stars and challenges have had a refresh…", once
+  per player and only to players who existed before the fresh start, `practice_refresh_note_due`). Practice's footer:
+  accounts "Stars and bests are saved to your account.", guests "Save your progress to keep your stars on any phone"
+  (the save-your-progress sheet). A display-only copy of the server's last answer (`progressCache.ts`,
+  `duelz-practice-view:v1`, under the session's auth id) shows stars and bests when Practice opens offline after a
+  restart, until the server answers; never sent or trusted (progress-cache-check). Practice packs: 100 an hour per
+  network (`IP_PRACTICE_PACK_LIMIT`, 20 before 11 Nov 2026). Events `star_earned`, `best_set` (game, props.level) and
+  `gem_unlocked` (props.gem), no mode. No API role writes any of it, the service role included (only the functions).
+  Migration `20261111101500_practice_progress.sql` (**not applied until merged**). practice-progress-check (~15 s,
+  PostgreSQL, no browser); offline-check's production server runs on the server-fn harness's PostgreSQL and REST
+  stand-in (each browser context its own guest and network address), proving only confirmed runs count.
+- **Practice challenges** (wave 2 train C, session C1b, 11 Nov 2026; `docs/challenges/catalogue.md`, the live catalogue,
+  written by `bun scripts/challenge-catalogue-doc.ts [--check]`; no gameplay, scoring, stamp, timing or deal change): 261
+  challenges over the 92 active games in one data file, `src/lib/duel/practiceChallenges.data.ts` (217 Classic live;
+  30 Hard and 14 Expert switched off until wave 3.5 deals levels, `LIVE_CHALLENGE_LEVELS`). The one checker,
+  `evaluateChallenge` (`practiceChallenges.ts`), reads only the server's graded result (score, isCorrect, reactionAvgMs,
+  the stored extra, its reveal lines and tiles); `src/lib/challenges/challenges.server.ts` runs it in practice's
+  grading on each play C1a counts (`gradePracticeRun`'s `onCounted`, online and synced offline runs, read back from
+  the play's stored `breakdown` and `level` by `readPracticePlayBreakdown`; never the intro example, a flagged run, a
+  play before the fresh start, rooms, the Daily or friend challenges) and stores each player's best value and completion in `public.practice_challenge_progress` (guests too),
+  written only by the service-role `challenge_record` / `challenge_pay_due` / `challenge_first_run`
+  (`supabase/migrations/20261111130000_practice_challenges.sql`, **not applied until merged**; data layer
+  `src/lib/data/practiceChallenges.server.ts`). 17 Classic pay 100 coins (13 Hard 100 and 9 Expert 250 once live)
+  through A1's ledger, reason `challenge_reward`, key `challenge_reward:<id>`, once per account, and only on the player's
+  first graded run of that deal (`public.practice_challenge_deals`, the sealed token's SHA-256, `challenge_first_run`;
+  a retry can still complete challenges that pay nothing; no key fails closed); a guest's are paid at sign-up
+  (`completeSignUpFn`), or the next graded run or list read. The other 222 show no reward; the list says "Every
+  challenge counts towards your Challenger badges." (Joe, 11 Nov 2026). The list (`PracticeChallenges`, done from the server
+  alone, `getMyChallengesFn`, `useServerChallenges`), Profile's section (`ProfileChallenges`) and the small completion
+  moment (`ChallengeMoments`, queued on the device, drawn only on the Practice list, never over a round, reveal or
+  result). Six stored facts (display data only, grade.ts): Heave `goldHome` and Spacewalk `closeCalls`, `noStop` /
+  `streakPts` were already stored; added Slice `goldenSliced` / `goldenDealt` (sliceRev 11+), Meteor `goldStars` /
+  `goldStarsDealt` (snakeRev 12) and Five Hands `bestColumnPoints` (fiveHandsRev 3, `fiveHandsBestColumnPoints` in
+  cards.ts). Event `challenge_completed`. Checks: practice-goals-check (the catalogue, and section 7: every number in
+  every goal against the live game, `scripts/practice-challenge-numbers.ts`), practice-challenges-check (~40 s, shard
+  `e`: real graded runs `scripts/fixtures/practice-challenges-runs.json.gz` by `practice-challenges-record.ts`, meets
+  and falls short for all 261, speed goals against the grader, the facts, coins and roles on PostgreSQL) and
+  practice-challenge-fit-check (headless Chromium: every goal whole at 320 and 375 px). **A retune that moves a goal's
+  number fails practice-goals-check: change the goal's text and number in the data file and re-run the doc script.**
 - `src/components/duel/` — room/round screens (PhoneShell, RoundIntro, TimerBar,
   AnswerReveal, ArcadeReveal, WinnerReveal…); `src/components/puzzles/` — shared puzzle
   widgets; `src/lib/fx/` — sound and visual feedback (presentation only).

@@ -1,7 +1,8 @@
 import { scorePartsText, storedScoreParts } from "@/lib/duel/puzzleScoreRev";
 import { partialProgressNote } from "@/lib/duel/partialCredit";
-import { readPracticeBest } from "@/lib/duel/practiceBest";
-import { stampSignature } from "@/lib/duel/practiceStamps";
+import { bestOf } from "@/lib/practice/progress";
+import { levelOf } from "@/lib/practice/progressRules";
+import { practiceProgressNow } from "@/lib/practice/useProgress";
 import { RevealBreakdown } from "@/components/duel/RevealBreakdown";
 import { SolutionSwitch } from "@/components/duel/SolutionSwitch";
 import { devDiagnosticsOn, type ArcadeDiag } from "@/lib/arcade/diagnostics";
@@ -773,11 +774,12 @@ function LiveAnswerReveal({
   const revealRoot = useRef<HTMLDivElement>(null);
   /** The hero's reserved strip (above the score), shown only when this score earns a hero moment. */
   const heroSpot = celebrate && heroRunAllowed && heroRunEarned(myScore);
-  // Practice: this device's best for the game under today's stamps (read once the score has landed and been recorded).
+  // Practice: the account's best for the game on its level (the server's; read once the score has landed and been counted).
   const [best, setBest] = useState<number | null>(null);
   useEffect(() => {
     if (!practice || myScore === null) return;
-    const id = window.setTimeout(() => setBest(readPracticeBest(puzzle.type, stampSignature(puzzle))), 0);
+    const level = levelOf((puzzle as { level?: unknown }).level);
+    const id = window.setTimeout(() => setBest(bestOf(practiceProgressNow(), puzzle.type, level)), 0);
     return () => window.clearTimeout(id);
   }, [practice, myScore, puzzle]);
   useEffect(() => {

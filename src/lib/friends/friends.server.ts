@@ -27,6 +27,7 @@ import {
   readAreFriends,
   readFriendProfile,
   readOverview,
+  readFriendCount,
   readWaitingCount,
   removeFriendship,
   respondToRequest,
@@ -45,6 +46,7 @@ import { UNIQUE_VIOLATION } from "@/lib/data/db.server";
 import { withinRateLimit, type RateLimit } from "@/lib/duel/rateLimit.server";
 import { REPORT_LIMIT } from "@/lib/duel/rateLimit.server";
 import { isReportReason, REPORT_THANKS } from "@/lib/safety/reports";
+import { awardBadge } from "@/lib/badges/badges.server";
 
 import {
   FRIENDS_CAP,
@@ -90,6 +92,26 @@ export const FRIEND_LIMITS = {
 type Ok<T> = { ok: true } & T;
 export type Answer<T> = Ok<T> | FriendsRefusal;
 
+/** The Friendly badge (C2's catalogue: "Add 5 friends", Common): earned at this many friends. */
+export const FRIENDLY_AT = 5;
+
+/**
+ * Awards Friendly to each player who now has 5 or more friends, through C2's badge_award (which awards a badge once:
+ * a second call answers "owned" and records nothing). Called whenever a friendship is made (both players) and when a
+ * player opens their list (a catch-up if an award ever failed). Never fails the call it rides on.
+ */
+export async function awardFriendly(client: Db, userIds: readonly string[]): Promise<void> {
+  for (const userId of userIds) {
+    try {
+      const { data: count, error } = await readFriendCount(client, userId);
+      if (error || count < FRIENDLY_AT) continue;
+      await awardBadge(client, userId, "friendly", { friends: count });
+    } catch (err) {
+      console.warn(`[friends] friendly badge: ${err instanceof Error ? err.message : String(err)}`);
+    }
+  }
+}
+
 /** The caller's account and age, or a refusal (a guest). */
 async function caller(client: Db, userId: string): Promise<{ isUnder18: boolean } | FriendsRefusal> {
   const flags = await accountAgeFlags(client, userId, Date.now());
@@ -110,6 +132,7 @@ export async function overview(client: Db, userId: string): Promise<Answer<{ ove
   if (!(await limited(client, userId, FRIEND_READ_LIMIT))) return refusal("busy");
   const { data, error } = await readOverview(client, userId, FRIENDS_CAP);
   if (error || !data) return refusal(error ? "error" : "account");
+  if (data.count >= FRIENDLY_AT) await awardFriendly(client, [userId]);
   return { ok: true, overview: data };
 }
 
@@ -195,6 +218,7 @@ async function send(
       return { ok: true, outcome: "sent", friend: null };
     case "accepted":
       recordEvents({ event: "friend_added", playerId: userId, props: { via } });
+      await awardFriendly(client, [userId, to]);
       return { ok: true, outcome: "accepted", friend: null };
     case "friends":
       return { ok: true, outcome: "friends", friend: null };
@@ -247,7 +271,10 @@ export async function respond(
   if (error || !data) return refusal("error");
   if (data.result === "missing") return { ok: true, outcome: "gone" };
   if (data.result === "cap" || data.result === "their_cap") return refusal(data.result);
-  if (data.result === "accepted") recordEvents({ event: "friend_added", playerId: userId, props: { via: data.via ?? "link" } });
+  if (data.result === "accepted") {
+    recordEvents({ event: "friend_added", playerId: userId, props: { via: data.via ?? "link" } });
+    await awardFriendly(client, data.friend ? [userId, data.friend] : [userId]);
+  }
   return { ok: true, outcome: data.result };
 }
 

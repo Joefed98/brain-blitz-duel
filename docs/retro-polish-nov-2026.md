@@ -52,7 +52,7 @@ the reveal's number, as on the other Retro games.
 
 ## 3. Spacewalk (was Jaywalk)
 
-Display name only for `cross` (`gameNames.ts`; `docs/ip-names.md`). `src/lib/arcade/spacewalk.renderer.ts` paints every
+Display name only for `cross` (`gameNames.ts`). `src/lib/arcade/spacewalk.renderer.ts` paints every
 revision: deep space round the board, station decks for the kerbs, dark space lanes with beacon dots, magenta plasma
 lanes for the cyclist and motorbike lanes, an amber freight lane, the docking platform for crossRev 9's island; cars are
 small ships, buses long cargo freighters, bikes and motorbikes comets, cones and barriers drifting debris (live, inside
