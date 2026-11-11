@@ -2055,7 +2055,7 @@ outside the repo.
   number fails practice-goals-check: change the goal's text and number in the data file and re-run the doc script.**
 - **Rated matchmaking** (wave 3 W3b, 11 Nov 2026, `docs/rated/matchmaking-interface.md`; no gameplay, scoring, stamp or
   deal change): the queue (same format and choice only; ±50 widening by 50 every 2 s to ±200, a recorded run from 8 s;
-  placement straight to a beginner's run), live and recorded rated matches as ordinary rooms the server makes already
+  placement players live only with placement players, else a beginner's run at 8 s), live and recorded rated matches as ordinary rooms the server makes already
   started (Classic, `dealRoomRounds` from the room picks; a recorded match copies the run's own stored puzzles), the
   opponent's score hidden for each game's final 20 % (on the server), settling once into W3a's `recordRatedMatch`
   (`ratingsAdapter.server.ts`; unbound until W3a's `ratings.server.ts` lands), rematch within 8 s, wave 1's stranger

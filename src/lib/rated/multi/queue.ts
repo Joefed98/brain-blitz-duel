@@ -1,6 +1,6 @@
 /**
  * Grouping a 4- or 8-player match out of W3b's queue (wave 3, W3d). Pure; W3b's own pairing rule (`canPair`: the same
- * format and choice, two different players, neither in placement, ratings within the wider of their bands) holds
+ * format and choice, two different players, placement only with placement, ratings within the wider of their bands) holds
  * between every two players of the group, so the band widens exactly as it does for 1v1.
  */
 import { canPair, type QueueEntry } from "@/lib/rated/matchmaking";

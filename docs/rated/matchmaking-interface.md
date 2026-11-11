@@ -64,7 +64,7 @@ is the phone's (W3c: `FinishedGameCounter` / `takePendingPrompt`, as rooms and t
 |---|---|---|
 | `ratedStatusFn` | — | `RatedStatus`: `account`, `open` (testers / everyone), `options` (what is on, empty when closed), `searching` (the caller's queue entry), `activeMatchId`. |
 | `ratedQueueJoinFn` | `{ format, choice }` | `{ ok: true, joinedAtMs }` or `{ ok: false, reason, message }`, `reason` one of `account`, `closed`, `option`, `banned`, `rate_limit` (`RATED_QUEUE_LIMIT`, 30 in 10 min), `no_rating` (W3a not bound), `in_match`. Settles the caller's finished matches first. Records `queue_joined`. |
-| `ratedQueuePollFn` | — | `QueuePoll`: `{ state: "idle" }`, `{ state: "searching", waitedMs, band }` or `{ state: "found", match }` (or `{ busy: true }` past `RATED_POLL_LIMIT`). Call about once a second while searching. Each poll tries to pair the caller (section 4) and, from 8 s (placement: at once), makes a recorded match. Records `match_found`. |
+| `ratedQueuePollFn` | — | `QueuePoll`: `{ state: "idle" }`, `{ state: "searching", waitedMs, band }` or `{ state: "found", match }` (or `{ busy: true }` past `RATED_POLL_LIMIT`). Call about once a second while searching. Each poll tries to pair the caller (section 4) and, from 8 s, makes a recorded match (a beginner's run for a placement player). Records `match_found`. |
 | `ratedQueueLeaveFn` | — | `{ ok: true }` (a searcher already claimed by a match stays in it; the next poll finds it). |
 | `ratedMatchFn` | `{ matchId }` | `RatedMatchView` (section 5), for the match's players only (null otherwise). |
 | `ratedOpponentScoreFn` | `{ matchId }` | `OpponentScore` for the room's current game: `{ round, score, finished, hidden }`. `score` is null before the game starts, while hidden (the final 20 %), and for a recorded game without a timeline until the game's result; from the reveal on it is the stored score. Poll about once a second during a game. |
@@ -82,8 +82,10 @@ is the phone's (W3c: `FinishedGameCounter` / `takePendingPrompt`, as rooms and t
 - The rating is the one the match will move (`matchRatingFrom` on W3a's `getMyRatings`): All puzzles the puzzles pool,
   All arcade the arcade pool, Mixed the Joulz Rating (else the two pools' mean), a single category half its own rating
   and half its pool's; an unrated pool counts as W3a's starting rating.
-- Placement players (`placement.done` false) never enter the live queue: their first poll makes a recorded match
-  against a beginner's run (owner rating at most `beginnerMax`, or unrated).
+- Placement players (`placement.done` false; Joe, 11 Nov 2026): two placement players searching at the same time are
+  matched live with each other, within the same widening; a placed player is never matched live with a placement player
+  (`canPair`: both placement or both placed). A placement player with no placement partner by 8 s gets a recorded run
+  from a beginner (owner rating at most `beginnerMax`, or unrated).
 - Pairing is atomic: `public.mm_queue_claim(users, match, format, choice)` puts every listed searcher in one match or
   none. W3d passes 4 or 8 users (the 1v1 poll pairs only when `FORMAT_PLAYERS[format]` is 2).
 
