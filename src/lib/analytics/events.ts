@@ -67,6 +67,12 @@ export const ANALYTICS_EVENTS = [
   // (src/lib/challenges/challenges.server.ts) when a graded Practice run completes one. game is the game, props.challenge
   // the challenge id, props.level its level, props.coins the coins paid with it (0 for a guest, paid on becoming an account).
   "challenge_completed",
+  // Friends (wave 2, session B1; docs/friends.md): recorded by the server only (src/lib/friends/friends.server.ts).
+  // friend_request_sent and friend_added carry props.via (search or link); never a name or the other player's id.
+  "friend_request_sent",
+  "friend_added",
+  "friend_removed",
+  "friend_blocked",
 ] as const;
 export type AnalyticsEventName = (typeof ANALYTICS_EVENTS)[number];
 

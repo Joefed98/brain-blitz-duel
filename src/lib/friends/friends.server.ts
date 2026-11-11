@@ -1,0 +1,370 @@
+/**
+ * Friends: the server's rules (wave 2 B1, 11 Nov 2026; docs/friends.md). Every call names the caller by their auth user
+ * id (from requireSupabaseAuth, never from the phone), checks it has an account, applies the limits, then calls one
+ * function in src/lib/data/friends.server.ts. The SQL checks the same rules again.
+ *
+ * - Accounts only. A guest gets `account` from everything but `linkOwner` (a guest opening a link sees whose it is).
+ * - Search is for adults (18+) and never returns an under-18 account; under-18s can't search. Invite links work for
+ *   everyone.
+ * - A decline is never told to the sender; a request to a player who has blocked the caller answers "sent" and stores
+ *   nothing.
+ * - Analytics (src/lib/data/events.server.ts): friend_request_sent (props.via), friend_added (props.via),
+ *   friend_removed, friend_blocked. The events for phone notifications (B2) are written by the SQL into
+ *   public.friend_events: friend_request_received, friend_request_accepted, friend_challenge_received,
+ *   room_invite_received.
+ */
+
+import { accountAgeFlags } from "@/lib/account/account.server";
+import type { Db } from "@/lib/data/db.server";
+import { recordEvents } from "@/lib/data/events.server";
+import {
+  blockPlayer,
+  inviteToken,
+  inviteToRoom,
+  insertPlayerReport,
+  linkOwner as readLinkOwner,
+  presenceBeat,
+  readAreFriends,
+  readFriendProfile,
+  readOverview,
+  readWaitingCount,
+  removeFriendship,
+  respondToRequest,
+  searchPlayers,
+  sendChallenge as sendChallengeData,
+  sendFriendRequest,
+  setShowOnline as writeShowOnline,
+  unblockPlayer,
+  type FriendCard,
+  type FriendProfile,
+  type Overview,
+  type RequestVia,
+  type SearchHit,
+} from "@/lib/data/friends.server";
+import { UNIQUE_VIOLATION } from "@/lib/data/db.server";
+import { withinRateLimit, type RateLimit } from "@/lib/duel/rateLimit.server";
+import { REPORT_LIMIT } from "@/lib/duel/rateLimit.server";
+import { isReportReason, REPORT_THANKS } from "@/lib/safety/reports";
+
+import {
+  FRIENDS_CAP,
+  INVITE_TOKEN_ALPHABET,
+  INVITE_TOKEN_LENGTH,
+  inviteLink,
+  inviteTokenFrom,
+  playerIdOk,
+  refusal,
+  SEARCH_RESULTS,
+  searchQueryOk,
+  type FriendsRefusal,
+} from "./friends";
+
+/* ------------------------------------------------------------------ limits (per user) */
+
+/** Friend requests sent (search or link): 20 an hour. */
+export const FRIEND_REQUEST_LIMIT: RateLimit = { bucket: "friend-request", max: 20, windowSeconds: 3600, failClosed: true };
+/** Username searches: 60 per 10 minutes. */
+export const FRIEND_SEARCH_LIMIT: RateLimit = { bucket: "friend-search", max: 60, windowSeconds: 600 };
+/** Invite link resets: 5 a day. */
+export const FRIEND_LINK_RESET_LIMIT: RateLimit = { bucket: "friend-link-reset", max: 5, windowSeconds: 86_400, failClosed: true };
+/** Room invites and challenges sent to friends: 30 an hour. */
+export const FRIEND_INVITE_LIMIT: RateLimit = { bucket: "friend-invite", max: 30, windowSeconds: 3600, failClosed: true };
+/** Accept, decline, remove, block, unblock, the setting: 120 per 10 minutes. */
+export const FRIEND_ACTION_LIMIT: RateLimit = { bucket: "friend-action", max: 120, windowSeconds: 600 };
+/** Reads (the list, a profile, the badge, a link's owner, the caller's link): 600 per 10 minutes. */
+export const FRIEND_READ_LIMIT: RateLimit = { bucket: "friend-read", max: 600, windowSeconds: 600 };
+/** The app's heartbeat (one a minute while open): 30 per 10 minutes. */
+export const FRIEND_PRESENCE_LIMIT: RateLimit = { bucket: "friend-presence", max: 30, windowSeconds: 600 };
+
+/** Every limit, for the checks and the docs. */
+export const FRIEND_LIMITS = {
+  request: FRIEND_REQUEST_LIMIT,
+  search: FRIEND_SEARCH_LIMIT,
+  linkReset: FRIEND_LINK_RESET_LIMIT,
+  invite: FRIEND_INVITE_LIMIT,
+  action: FRIEND_ACTION_LIMIT,
+  read: FRIEND_READ_LIMIT,
+  presence: FRIEND_PRESENCE_LIMIT,
+} as const;
+
+type Ok<T> = { ok: true } & T;
+export type Answer<T> = Ok<T> | FriendsRefusal;
+
+/** The caller's account and age, or a refusal (a guest). */
+async function caller(client: Db, userId: string): Promise<{ isUnder18: boolean } | FriendsRefusal> {
+  const flags = await accountAgeFlags(client, userId, Date.now());
+  if (!flags.account) return refusal("account");
+  return { isUnder18: flags.isUnder18 !== false };
+}
+
+async function limited(client: Db, userId: string, limit: RateLimit): Promise<boolean> {
+  return withinRateLimit(client, userId, limit);
+}
+
+/* ------------------------------------------------------------------ reads */
+
+/** The Friends list (friends with status, requests, invites, challenges, blocked, the setting). */
+export async function overview(client: Db, userId: string): Promise<Answer<{ overview: Overview }>> {
+  const who = await caller(client, userId);
+  if ("ok" in who) return who;
+  if (!(await limited(client, userId, FRIEND_READ_LIMIT))) return refusal("busy");
+  const { data, error } = await readOverview(client, userId, FRIENDS_CAP);
+  if (error || !data) return refusal(error ? "error" : "account");
+  return { ok: true, overview: data };
+}
+
+/** How many requests wait for the caller (0 for a guest: the badge never shows for them). */
+export async function waitingCount(client: Db, userId: string): Promise<number> {
+  if (!(await limited(client, userId, FRIEND_READ_LIMIT))) return 0;
+  const { data } = await readWaitingCount(client, userId);
+  return data;
+}
+
+/** Another player's profile as the caller sees it; not found when there's nothing to show (or they blocked the caller). */
+export async function profile(client: Db, userId: string, target: unknown): Promise<Answer<{ profile: FriendProfile }>> {
+  if (!playerIdOk(target)) return refusal("not_found");
+  const who = await caller(client, userId);
+  if ("ok" in who) return who;
+  if (!(await limited(client, userId, FRIEND_READ_LIMIT))) return refusal("busy");
+  const { data, error } = await readFriendProfile(client, userId, target);
+  if (error) return refusal("error");
+  if (!data) return refusal("not_found");
+  return { ok: true, profile: data };
+}
+
+/** Search by username: adults only, and never an under-18 account. */
+export async function search(client: Db, userId: string, query: unknown): Promise<Answer<{ results: SearchHit[] }>> {
+  const who = await caller(client, userId);
+  if ("ok" in who) return who;
+  if (who.isUnder18) return refusal("under18");
+  if (!searchQueryOk(query)) return refusal("query");
+  if (!(await limited(client, userId, FRIEND_SEARCH_LIMIT))) return refusal("busy");
+  const { data, error } = await searchPlayers(client, userId, query, SEARCH_RESULTS);
+  if (error) return refusal("error");
+  return { ok: true, results: data };
+}
+
+/** Whose invite link a token is (open to guests: the link's landing says who asked). */
+export async function linkOwner(client: Db, userId: string, token: unknown): Promise<Answer<{ owner: FriendCard | null }>> {
+  const clean = inviteTokenFrom(token);
+  if (!clean) return { ok: true, owner: null };
+  if (!(await limited(client, userId, FRIEND_READ_LIMIT))) return refusal("busy");
+  const { data, error } = await readLinkOwner(client, clean);
+  if (error) return refusal("error");
+  return { ok: true, owner: data };
+}
+
+function newToken(): string {
+  const bytes = new Uint8Array(INVITE_TOKEN_LENGTH);
+  crypto.getRandomValues(bytes);
+  let out = "";
+  for (const b of bytes) out += INVITE_TOKEN_ALPHABET[b % INVITE_TOKEN_ALPHABET.length];
+  return out;
+}
+
+/** The caller's invite link (made on first ask); `reset` retires the old one and makes another. */
+export async function myLink(client: Db, userId: string, reset: boolean): Promise<Answer<{ token: string; link: string }>> {
+  const who = await caller(client, userId);
+  if ("ok" in who) return who;
+  if (!(await limited(client, userId, reset ? FRIEND_LINK_RESET_LIMIT : FRIEND_READ_LIMIT))) return refusal("busy");
+  for (let attempt = 0; attempt < 4; attempt++) {
+    const { data, error } = await inviteToken(client, { userId, token: newToken(), reset });
+    if (error?.code === UNIQUE_VIOLATION) continue;
+    if (error || !data) return refusal(error ? "error" : "account");
+    return { ok: true, token: data, link: inviteLink(data) };
+  }
+  return refusal("error");
+}
+
+/* ------------------------------------------------------------------ requests */
+
+export type SendOutcome = "sent" | "accepted" | "friends";
+
+async function send(
+  client: Db,
+  userId: string,
+  to: string,
+  via: RequestVia,
+): Promise<Answer<{ outcome: SendOutcome; friend: FriendCard | null }>> {
+  if (!(await limited(client, userId, FRIEND_REQUEST_LIMIT))) return refusal("busy");
+  const { data, error } = await sendFriendRequest(client, { from: userId, to, via, cap: FRIENDS_CAP });
+  if (error || !data) return refusal("error");
+  switch (data.result) {
+    case "sent":
+      if (data.created) recordEvents({ event: "friend_request_sent", playerId: userId, props: { via } });
+      return { ok: true, outcome: "sent", friend: null };
+    case "accepted":
+      recordEvents({ event: "friend_added", playerId: userId, props: { via } });
+      return { ok: true, outcome: "accepted", friend: null };
+    case "friends":
+      return { ok: true, outcome: "friends", friend: null };
+    case "not_account":
+      return refusal("account");
+    default:
+      return refusal(data.result);
+  }
+}
+
+/** A request to a player found by search (both adults; the SQL checks it again). */
+export async function requestById(client: Db, userId: string, target: unknown): Promise<Answer<{ outcome: SendOutcome }>> {
+  const who = await caller(client, userId);
+  if ("ok" in who) return who;
+  if (who.isUnder18) return refusal("under18");
+  if (!playerIdOk(target)) return refusal("not_found");
+  return send(client, userId, target, "search");
+}
+
+/** A request through someone's invite link (works for everyone, under-18s included). */
+export async function requestByLink(
+  client: Db,
+  userId: string,
+  token: unknown,
+): Promise<Answer<{ outcome: SendOutcome; owner: FriendCard }>> {
+  const who = await caller(client, userId);
+  if ("ok" in who) return who;
+  const clean = inviteTokenFrom(token);
+  if (!clean) return refusal("not_found");
+  const { data: owner, error } = await readLinkOwner(client, clean);
+  if (error) return refusal("error");
+  if (!owner) return refusal("not_found");
+  if (owner.id === userId) return refusal("self");
+  const sent = await send(client, userId, owner.id, "link");
+  return sent.ok ? { ok: true, outcome: sent.outcome, owner } : sent;
+}
+
+/** Accepts or declines a request sent to the caller. A decline tells nobody. */
+export async function respond(
+  client: Db,
+  userId: string,
+  requestId: unknown,
+  accept: unknown,
+): Promise<Answer<{ outcome: "accepted" | "declined" | "gone" }>> {
+  const who = await caller(client, userId);
+  if ("ok" in who) return who;
+  if (!playerIdOk(requestId) || typeof accept !== "boolean") return refusal("not_found");
+  if (!(await limited(client, userId, FRIEND_ACTION_LIMIT))) return refusal("busy");
+  const { data, error } = await respondToRequest(client, { userId, requestId, accept, cap: FRIENDS_CAP });
+  if (error || !data) return refusal("error");
+  if (data.result === "missing") return { ok: true, outcome: "gone" };
+  if (data.result === "cap" || data.result === "their_cap") return refusal(data.result);
+  if (data.result === "accepted") recordEvents({ event: "friend_added", playerId: userId, props: { via: data.via ?? "link" } });
+  return { ok: true, outcome: data.result };
+}
+
+/** Removes a friend. Silent: they aren't told. */
+export async function remove(client: Db, userId: string, friendId: unknown): Promise<Answer<{ removed: boolean }>> {
+  const who = await caller(client, userId);
+  if ("ok" in who) return who;
+  if (!playerIdOk(friendId)) return refusal("not_found");
+  if (!(await limited(client, userId, FRIEND_ACTION_LIMIT))) return refusal("busy");
+  const { data, error } = await removeFriendship(client, userId, friendId);
+  if (error) return refusal("error");
+  if (data) recordEvents({ event: "friend_removed", playerId: userId });
+  return { ok: true, removed: data };
+}
+
+/** Blocks a player: no requests, invites, challenges or status either way, and the friendship goes. */
+export async function block(client: Db, userId: string, target: unknown): Promise<Answer<{ removed: boolean }>> {
+  const who = await caller(client, userId);
+  if ("ok" in who) return who;
+  if (!playerIdOk(target)) return refusal("not_found");
+  if (!(await limited(client, userId, FRIEND_ACTION_LIMIT))) return refusal("busy");
+  const { data, error } = await blockPlayer(client, userId, target);
+  if (error || !data) return refusal("error");
+  if (data.result !== "blocked") return refusal(data.result);
+  if (data.created) recordEvents({ event: "friend_blocked", playerId: userId });
+  return { ok: true, removed: data.removed };
+}
+
+export async function unblock(client: Db, userId: string, target: unknown): Promise<Answer<{ unblocked: boolean }>> {
+  const who = await caller(client, userId);
+  if ("ok" in who) return who;
+  if (!playerIdOk(target)) return refusal("not_found");
+  if (!(await limited(client, userId, FRIEND_ACTION_LIMIT))) return refusal("busy");
+  const { data, error } = await unblockPlayer(client, userId, target);
+  if (error) return refusal("error");
+  return { ok: true, unblocked: data };
+}
+
+/** A report from a player's profile, through wave 1's flow (the same counting, mute and review list). */
+export async function report(client: Db, userId: string, target: unknown, reason: unknown): Promise<Answer<{ message: string }>> {
+  const who = await caller(client, userId);
+  if ("ok" in who) return who;
+  if (!playerIdOk(target) || target === userId || !isReportReason(reason)) return refusal("not_found");
+  if (!(await withinRateLimit(client, userId, REPORT_LIMIT))) return refusal("busy");
+  const shown = await readFriendProfile(client, userId, target);
+  if (shown.error) return refusal("error");
+  const { error } = await insertPlayerReport(client, {
+    reporterId: userId,
+    reportedId: target,
+    reason,
+    reportedName: shown.data?.card.username ?? null,
+  });
+  if (error) return refusal("error");
+  recordEvents({ event: "report_sent", playerId: userId, props: { reason } });
+  return { ok: true, message: REPORT_THANKS };
+}
+
+/* ------------------------------------------------------------------ playing together */
+
+/** Invites a friend to the caller's open lobby (found by the server). */
+export async function inviteFriendToRoom(client: Db, userId: string, friendId: unknown): Promise<Answer<{ code: string }>> {
+  const who = await caller(client, userId);
+  if ("ok" in who) return who;
+  if (!playerIdOk(friendId)) return refusal("not_friends");
+  if (!(await limited(client, userId, FRIEND_INVITE_LIMIT))) return refusal("busy");
+  const { data, error } = await inviteToRoom(client, userId, friendId);
+  if (error || !data) return refusal("error");
+  if (data.result !== "sent") return refusal(data.result);
+  return { ok: true, code: data.code ?? "" };
+}
+
+/** Sends the caller's own open challenge (the existing friend challenge flow) to a friend. */
+export async function sendChallenge(
+  client: Db,
+  userId: string,
+  friendId: unknown,
+  code: unknown,
+): Promise<Answer<{ sent: true }>> {
+  const who = await caller(client, userId);
+  if ("ok" in who) return who;
+  if (!playerIdOk(friendId)) return refusal("not_friends");
+  if (typeof code !== "string" || !/^[A-Za-z0-9]{6}$/.test(code)) return refusal("not_found");
+  if (!(await limited(client, userId, FRIEND_INVITE_LIMIT))) return refusal("busy");
+  const { data, error } = await sendChallengeData(client, userId, friendId, code.toUpperCase());
+  if (error || !data) return refusal("error");
+  if (data.result !== "sent") return refusal(data.result);
+  return { ok: true, sent: true };
+}
+
+/* ------------------------------------------------------------------ status */
+
+/** "Show when I'm online": true, false or null (back to the default: on for adults, off for under-18s). */
+export async function setShowOnline(client: Db, userId: string, show: unknown): Promise<Answer<{ showOnline: boolean }>> {
+  const who = await caller(client, userId);
+  if ("ok" in who) return who;
+  if (show !== null && typeof show !== "boolean") return refusal("error");
+  if (!(await limited(client, userId, FRIEND_ACTION_LIMIT))) return refusal("busy");
+  const { error } = await writeShowOnline(client, userId, show);
+  if (error) return refusal("error");
+  return { ok: true, showOnline: show ?? !who.isUnder18 };
+}
+
+/** The app's heartbeat (accounts only; a guest's is ignored). */
+export async function beat(client: Db, userId: string, activity: unknown): Promise<{ ok: boolean }> {
+  const kind = activity === "practice" ? "practice" : "app";
+  if (!(await limited(client, userId, FRIEND_PRESENCE_LIMIT))) return { ok: false };
+  const { data } = await presenceBeat(client, userId, kind);
+  return { ok: data };
+}
+
+/**
+ * Whether two players are friends, for the chat policy (src/lib/safety/chatPolicy.ts `chatPolicy(context, player,
+ * { friends })`): waves 3 and 4 ask this before letting friends type to each other where strangers otherwise get
+ * quick phrases. A failure answers false (the stricter policy).
+ */
+export async function areFriends(client: Db, a: string, b: string): Promise<boolean> {
+  if (!playerIdOk(a) || !playerIdOk(b) || a === b) return false;
+  const { data, error } = await readAreFriends(client, a, b);
+  return !error && data;
+}
