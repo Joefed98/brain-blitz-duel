@@ -3,6 +3,7 @@
  * each; no browser (~5 s, plus a local PostgreSQL pass when the binaries are installed).
  *
  *   1. Async rooms: phones read the daily rooms' window columns only; a challenge's room is never listed directly.
+ *      Async attempts: a phone reads its own, and other players' only once finished.
  *   2. Profile's challenge list answers only for challenges the caller made or has an attempt in, under its own
  *      per-user bucket.
  *   3. Room reactions are shown only from players in the room's own list (named from it), never from someone who
@@ -44,6 +45,8 @@ const migrations = readdirSync("supabase/migrations").filter((f) => f.endsWith("
   const sql = src(`supabase/migrations/${MIGRATION}`);
   check(/CREATE POLICY async_rooms_read ON public\.async_rooms FOR SELECT TO authenticated\s+USING \(kind IN \('daily_puzzle', 'daily_arcade'\)\)/.test(sql), "1: the policy lets phones read the daily kinds only");
   check(!/\b(DROP TABLE|DROP COLUMN|TRUNCATE|DELETE FROM|UPDATE\s)/i.test(sql) && !/GRANT\s+(INSERT|UPDATE|DELETE|ALL)[^;]*TO\s+(anon|authenticated)/i.test(sql), "1: the migration touches no data and grants phones no write");
+  const att = src("supabase/migrations/20261114500100_async_attempts_read_finished.sql");
+  check(/USING \(user_id = auth\.uid\(\) OR \(finished_at IS NOT NULL AND public\.async_board_open\(room_id\)\)\)/.test(att), "1: other players' attempts are readable only once finished");
   const later = migrations.filter((f) => f > MIGRATION && /async_rooms_read/.test(src(`supabase/migrations/${f}`)));
   check(later.length === 0 || later.every((f) => /kind IN \('daily_puzzle', 'daily_arcade'\)/.test(src(`supabase/migrations/${f}`))), `1: no later migration widens the policy again (${later.join(", ") || "none"})`);
   // Nothing in the app reads the async tables with a phone's token: only the server's data layer does.
@@ -127,6 +130,16 @@ function postgresBin(): string | null {
       check(windowCols.ok, "1 SQL: the daily rooms' window columns stay readable");
       const puzzles = as(`SELECT puzzles_public FROM public.async_rooms LIMIT 1`);
       check(!puzzles.ok && /permission denied/.test(puzzles.err), "1 SQL: no room's puzzles are readable");
+      const att = psql(`
+        INSERT INTO public.async_attempts (room_id, user_id, display_name, finished_at) VALUES
+          ('10000000-0000-0000-0000-000000000001', 'a0000000-0000-0000-0000-00000000000a', 'Me', now()),
+          ('10000000-0000-0000-0000-000000000001', 'b0000000-0000-0000-0000-00000000000b', 'Done', now()),
+          ('10000000-0000-0000-0000-000000000001', 'c0000000-0000-0000-0000-00000000000c', 'Playing', NULL);`);
+      check(att.ok, `1 SQL: test attempts set up (${att.err})`);
+      const board = as(`SELECT string_agg(display_name, ',' ORDER BY display_name) FROM public.async_attempts`);
+      check(board.ok && last(board) === "Done,Me", `1 SQL: a phone reads its own attempt and finished ones, never one still playing (${last(board) || board.err})`);
+      const playing = psql(`SET ROLE authenticated; SELECT set_config('request.jwt.claim.sub', 'c0000000-0000-0000-0000-00000000000c', false); SELECT string_agg(display_name, ',' ORDER BY display_name) FROM public.async_attempts`);
+      check(playing.ok && last(playing) === "Playing", `1 SQL: a phone still playing reads only its own attempt (${last(playing) || playing.err})`);
       const anon = psql(`SET ROLE anon; SELECT count(*) FROM public.async_rooms`);
       check(!anon.ok, "1 SQL: a signed-out client reads nothing");
     } catch (err) {
