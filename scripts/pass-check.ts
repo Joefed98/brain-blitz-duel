@@ -8,7 +8,8 @@
  *   by level: 30 free and 60 premium rewards, 1,000 and 1,500 coins, the tickets, freezes, titles and 40 items;
  * - levels: 1,000 Joules a level, 60 levels; the soft cap and the day limits (pure and in the database's own
  *   arithmetic, across a UK day boundary in winter and in summer time);
- * - over a simulated year of Mondays: one Easy, one Medium and one Hard every week, never an R or tournament challenge,
+ * - over a simulated year of Mondays: one Easy, one Medium and one Hard every week, never a tournament challenge and
+ *   an R challenge only while rated play is on for everyone (wave 3 W3a, 11 Nov 2026, Joe's approval),
  *   three different categories each week and many over the year, the same picks however asked; the pool is the doc's 45;
  * - every Joules source pays the right amount once per stored event (rooms live and after Play again's archive, the
  *   Daily Puzzle and Arcade, friend challenges with the first five a day, copied room attempts left out, Practice 20 up
@@ -25,6 +26,7 @@
  * CI and prints a NOTE locally. No browser.
  */
 
+import { RATED_PLAY_FOR_EVERYONE } from "../src/config/ratedConfig";
 import { readFileSync } from "node:fs";
 
 import {
@@ -242,7 +244,8 @@ async function pureChecks(): Promise<void> {
   for (let w = 0; w < 52; w++) {
     const set = wk.weeklySetFor(monday);
     const three = [set.easy, set.medium, set.hard].map((id) => wk.WEEKLY_BY_ID.get(id)!);
-    if (three[0]?.tier !== "easy" || three[1]?.tier !== "medium" || three[2]?.tier !== "hard" || three.some((c) => !wk.drawable(c))) bad++;
+    // Approved by Joe for wave 3 W3a (11 Nov 2026): R challenges are drawable only while RATED_PLAY_FOR_EVERYONE is on.
+    if (three[0]?.tier !== "easy" || three[1]?.tier !== "medium" || three[2]?.tier !== "hard" || three.some((c) => !wk.drawable(c) || (c.rule.k === "rated" && !RATED_PLAY_FOR_EVERYONE))) bad++;
     if (new Set(three.map((c) => c.tag)).size !== 3) notDistinct++;
     three.forEach((c) => {
       tags.add(c.tag);
@@ -252,10 +255,28 @@ async function pureChecks(): Promise<void> {
     if (JSON.stringify(again) !== JSON.stringify(set)) bad++;
     monday = wk.nextWeek(monday);
   }
-  check(bad === 0, "52 Mondays: one Easy, one Medium, one Hard, never an R or tournament challenge, the same picks however asked");
+  // Approved by Joe for wave 3 W3a (11 Nov 2026): "never an R challenge" now holds only while rated play is off for everyone.
+  check(bad === 0, `52 Mondays: one Easy, one Medium, one Hard, never a tournament challenge, an R challenge only with rated play on for everyone (on: ${RATED_PLAY_FOR_EVERYONE}), the same picks however asked`);
   check(notDistinct === 0, "every week's three are in three different categories");
   check(tags.size >= 12 && ids.size === wk.WEEKLY_POOL.filter(wk.drawable).length, `over the year the sets spread: ${tags.size} categories, all ${ids.size} drawable challenges used`);
-  check(wk.WEEKLY_POOL.filter(wk.drawable).every((c) => c.rule.k !== "rated" && !/rated|friend/i.test(c.text)), "no drawn challenge needs rated play or friends");
+  // Approved by Joe for wave 3 W3a (11 Nov 2026): no drawn challenge needs rated play while it is off for everyone (R ones
+  // once it is on); none ever needs friends.
+  check(wk.WEEKLY_POOL.filter((c) => wk.drawableWith(c, false)).every((c) => c.rule.k !== "rated" && !/rated|friend/i.test(c.text)), "with rated play off, no drawn challenge needs rated play or friends");
+  check(wk.WEEKLY_POOL.filter((c) => wk.drawable(c)).every((c) => (RATED_PLAY_FOR_EVERYONE || c.rule.k !== "rated") && !/friend/i.test(c.text)), "today's draw follows the switch (no R challenge while RATED_PLAY_FOR_EVERYONE is off), and none needs friends");
+  // Rated play on for everyone (wave 3 W3a): the nine R challenges join the draw; tournaments still never.
+  const rated = wk.WEEKLY_POOL.filter((c) => c.rule.k === "rated");
+  check(rated.length === 9 && rated.every((c) => wk.drawableWith(c, true) && !wk.drawableWith(c, false)), "the nine R challenges are drawable exactly when rated play is on");
+  check(wk.WEEKLY_POOL.filter((c) => c.rule.k === "tournament").every((c) => !wk.drawableWith(c, true)), "tournament challenges are never drawable (wave 4)");
+  let onBad = 0;
+  const onIds = new Set<string>();
+  for (let w = 0, m = firstMonday; w < 104; w++, m = wk.nextWeek(m)) {
+    const set = wk.weeklySetFor(m, wk.WEEKLY_POOL, true);
+    const three = [set.easy, set.medium, set.hard].map((id) => wk.WEEKLY_BY_ID.get(id)!);
+    if (three.some((c) => c.rule.k === "tournament") || new Set(three.map((c) => c.tag)).size !== 3) onBad++;
+    if (JSON.stringify(wk.weeklySetFor(m, wk.WEEKLY_POOL, true)) !== JSON.stringify(set)) onBad++;
+    three.forEach((c) => onIds.add(c.id));
+  }
+  check(onBad === 0 && rated.every((c) => onIds.has(c.id)), `with rated play on, two years of Mondays draw every R challenge, never a tournament one, three categories a week (${[...onIds].filter((id) => rated.some((c) => c.id === id)).length} of 9)`);
 
   /* ------------------------------------------------------------- progress (pure) */
   const g = (mode: string, game: string, category: string | null, score: number, day: string) => ({ mode, game, category, score, day }) as never;
@@ -276,6 +297,26 @@ async function pureChecks(): Promise<void> {
   check(p("e1").done === 2 && p("e10").done === 1 && p("e4").done === 6 && p("e5").done === 4, "progress: Daily days, both Dailies on a day, games, categories");
   check(p("e6").done === 2 && p("m3").done === 1 && p("m5").done === 1 && p("m6").done === 1 && p("h4").done === 1, "progress: a new game's plays, distinct games, the Daily scores");
   check(p("m2").done === 1 && p("h2").done === 1 && p("m7").done === 1 && p("e13").done === 2, "progress: stars (distinct), Practice challenges, Practice games");
+  // R challenges (wave 3 W3a): from the week's counted rated matches, in the order finished.
+  const rm = (result: "win" | "loss" | "draw", bestOf: number | null, games: [string | null, boolean][]) => ({ result, bestOf, games: games.map(([category, won]) => ({ category, won })) }) as never;
+  const ract = {
+    ...act,
+    rated: [
+      rm("win", 3, [["logic", true], ["sports", true]]),
+      rm("win", 3, [["logic", true], ["word", false], ["sports", true]]),
+      rm("loss", 3, [["logic", false], ["sports", false]]),
+      rm("win", 5, [["retro", true], ["logic", true], ["number", true]]),
+      rm("win", null, [["sports", true]]),
+      rm("win", 3, [["speed", true], ["logic", false], ["attention", true]]),
+    ],
+  };
+  const pr = (id: string) => wk.progressOf(wk.WEEKLY_BY_ID.get(id)!, ract);
+  check(pr("e3").done === 5 && pr("e3").need === 5 && pr("e12").done === 2 && pr("m4").done === 4 && pr("h3").done === 5, "R progress: matches played (capped at the need) and won");
+  check(pr("m1").done === 3 && pr("m9").done === 3, "R progress: Sports and Logic games won in rated matches");
+  check(pr("m12").done === 1, "R progress: a best of 3 won 2–0 (a 2–1 and a best of 5 don't count)");
+  check(pr("h5").done === 3, "R progress: the longest run of wins in a row (a loss breaks it)");
+  check(pr("h10").done === 4, "R progress: different categories won in, in matches won");
+  check(wk.progressOf(wk.WEEKLY_BY_ID.get("e3")!, act).done === 0, "R progress: no rated matches, nothing done");
 }
 
 /* =================================================================== the database */

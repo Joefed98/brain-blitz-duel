@@ -2098,6 +2098,24 @@ outside the repo.
   `pass_level_reached`, `reward_claimed`, `weekly_challenge_completed` (`20261113100100_analytics_pass_events.sql`).
   Migrations `20261113100000_season_pass.sql`, `20261113100100`, `20261113100200` (**not applied until merged**). pass-check
   (~25 s, shard `e`, PostgreSQL), pass-screens-check (~3 s, happy-dom); economy-neutral-check also covers the pass modules.
+- **The ratings engine** (wave 3 W3a, 11 Nov 2026, `docs/rated/README.md`, the contract `docs/rated/ratings-interface.md`;
+  no gameplay, scoring, stamp or deal change): Glicko-2 (`src/lib/rated/glicko2.ts`, one rating period per match,
+  weighted games, an RD floor schedule and time away; **every constant in `glicko.config.ts` beside its target**,
+  proved on simulated players by ratings-check) for Puzzles, Arcade and the 11 categories (the server's own
+  `gamePool` / `gameCategory`; Mixed at half weight), the Joulz Rating (90 days of games), 5 placement matches with
+  every rating hidden, tiers and caps (`tiers.ts`: Storm's top 3% and Top 500 from 1,000 rated players, 3 days' grace,
+  hourly Cron Trigger `rated:standings` in `vite.config.ts`'s `RATED_TASKS`), recorded runs (owner exactly half, rated
+  runs only, 5 uses a day) and the 4th-match rule per UK day. Guests play rated (placement included) once rated play is
+  on for everyone (`guestsMayPlayRated`); their ratings sit on their player id, so sign-up keeps them (ratings-check
+  proves it through wave 1's linking). The match engine calls `finishRatedMatch`
+  (`rewards.server.ts`: `recordRatedMatch`, idempotent per match id, then C2's badges); the phone only reads
+  (`ratings.functions.ts`). Migrations `20261114100000_ratings.sql`, `…100100_analytics_rated_events.sql`,
+  `…100200_rated_badges_earnable.sql`, `…100300_rated_week_matches.sql` (**not applied until merged**); no API role writes a rated table. Rated play's 13
+  badges are earnable (29 earnable, 25 waiting). Joules are credited through D2's `creditRatedMatchJoules` under the
+  stored `ratedJoulesKey`; `RATED_PLAY_FOR_EVERYONE` (`src/config/ratedConfig.ts`, false) is the switch W3b and D2's
+  weekly draw share (R challenges only while on, progress from `rated_week_matches`). A 1v1 stops once decided (each
+  game weighted); a run the server flagged (a game's stored grade `extra.flagged`, live or recorded) moves nobody, counts for nothing, pays the flagged player no Joules and is logged in `moderation.rated_flags` (Joe: `moderation.rated_flag_queue()`); the tier floor grace keeps a tier 3 more matches below its floor
+  (`shownTierFor`). ratings-check (~10 s, shard `e`, PostgreSQL).
 - `src/components/duel/` — room/round screens (PhoneShell, RoundIntro, TimerBar,
   AnswerReveal, ArcadeReveal, WinnerReveal…); `src/components/puzzles/` — shared puzzle
   widgets; `src/lib/fx/` — sound and visual feedback (presentation only).
