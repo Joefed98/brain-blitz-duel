@@ -103,6 +103,7 @@ export function tierFor(rating: number, standing?: TierStanding | null): TierVie
     rank: null,
     next: nextStep(rating),
     heldBack: null,
+    floorGrace: null,
   });
   if (!standing || !standing.capsActive || tierRank(base.tier) < tierRank("storm")) return plain();
   if (!standing.stormOk) {
@@ -115,11 +116,59 @@ export function tierFor(rating: number, standing?: TierStanding | null): TierVie
       rank: null,
       next: null,
       heldBack: { ratedTier: base.tier, label: `${name(base.tier)}-rated${share}` },
+      floorGrace: null,
     };
   }
   if (base.tier === "lightning" && standing.top500Ok && standing.rank !== null)
-    return { tier: "top500", division: null, label: `Top 500 #${standing.rank}`, rank: standing.rank, next: null, heldBack: null };
+    return { tier: "top500", division: null, label: `Top 500 #${standing.rank}`, rank: standing.rank, next: null, heldBack: null, floorGrace: null };
   return plain();
+}
+
+/* ------------------------------------------------------------------ the tier floor grace */
+
+/**
+ * The tier floor grace (the approved tier ladder: "Three matches of grace at every tier's floor"; Joe, 11 Nov 2026).
+ * When the rating falls below the floor of the tier shown, the player keeps that tier (at its III division) through
+ * FLOOR_GRACE_MATCHES more rated matches; still below after the last of them, the tier drops to what the rating gives.
+ * Back at or above the floor, the grace ends. Only matches that counted advance it (a match frozen by the 4th-match
+ * rule doesn't); the standings job can start it (a 90-day window moving) but never advances it. A drop by a cap
+ * (Storm's top 3%, Top 500's rank) isn't a floor: the cap's own 3-day grace applies. Top 500 falling below 2,400 holds
+ * Lightning.
+ */
+export const FLOOR_GRACE_MATCHES = 3;
+
+/** The tier shown last and the grace's count (matches played below the floor since the fall; null when not in it). */
+export interface ShownTierState {
+  tier: TierId | null;
+  floorGrace: number | null;
+}
+
+export function shownTierFor(
+  prev: ShownTierState,
+  rating: number,
+  standing: TierStanding | null | undefined,
+  /** This is a counted rated match (it advances the grace). */
+  advance: boolean,
+): { view: TierView; floorGrace: number | null } {
+  const view = tierFor(rating, standing);
+  if (!prev.tier || view.heldBack) return { view, floorGrace: null };
+  const kept: Exclude<TierId, "top500"> = prev.tier === "top500" ? "lightning" : prev.tier;
+  if (tierRank(tierFromRating(rating).tier) >= tierRank(kept)) return { view, floorGrace: null };
+  const g = prev.floorGrace === null ? 0 : prev.floorGrace + (advance ? 1 : 0);
+  if (g >= FLOOR_GRACE_MATCHES) return { view, floorGrace: null };
+  const floor = TIER_DEFS.find((d) => d.tier === kept)!.at[0];
+  return {
+    view: {
+      tier: kept,
+      division: "III",
+      label: `${TIER_NAME[kept]} III`,
+      rank: null,
+      next: { label: `${TIER_NAME[kept]} III`, at: floor, pointsToGo: Math.max(0, floor - Math.round(rating)) },
+      heldBack: null,
+      floorGrace: { matchesLeft: FLOOR_GRACE_MATCHES - g },
+    },
+    floorGrace: g,
+  };
 }
 
 /** The ladder's rungs, top first (shares filled in by the server from the standings). */

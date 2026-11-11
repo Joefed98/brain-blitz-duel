@@ -57,7 +57,7 @@ import {
   type PlayerPre,
   type RatedProfileState,
 } from "./match";
-import { tierFor, tierLadder, tierRank, type TierStanding } from "./tiers";
+import { shownTierFor, tierLadder, tierRank, type TierStanding } from "./tiers";
 import { ukDayKey } from "@/lib/duel/daily";
 
 const MESSAGES: Record<RatedRefusal, string> = {
@@ -100,6 +100,7 @@ function profileFrom(rows: RatedStateRows, id: string): { state: RatedProfileSta
       photoFinishes: r.photo_finishes,
       joulz: r.joulz,
       shownTier: r.shown_tier,
+      floorGrace: r.floor_grace ?? null,
       peakTier: r.peak_tier,
       top500Ever: r.top500_ever,
     },
@@ -302,7 +303,7 @@ function ratingsView(rows: RatedStateRows, id: string): PlayerRatings {
     playerId: id,
     placement,
     joulz: joulz === null ? null : Math.round(joulz),
-    tier: joulz === null ? null : tierFor(joulz, standingFrom(rows, id)),
+    tier: joulz === null ? null : shownTierFor({ tier: state.shownTier, floorGrace: state.floorGrace }, joulz, standingFrom(rows, id), false).view,
     pools,
     categories,
   };
@@ -370,16 +371,20 @@ export async function runStandingsJob(client: Db, nowMs: number = Date.now()): P
   const changed: StandingsJobResult["changed"] = [];
   const peaks = await peakTiers(client, data.players.map((p) => p.player_id), nowMs);
   for (const p of data.players) {
-    const view = tierFor(p.joulz, { capsActive: data.caps_active, stormOk: p.storm_ok, top500Ok: p.top500_ok, rank: p.rank, share: p.share });
-    if (view.tier === p.shown_tier) continue;
+    const standing = { capsActive: data.caps_active, stormOk: p.storm_ok, top500Ok: p.top500_ok, rank: p.rank, share: p.share };
+    // The job never advances the tier floor grace (only counted matches do); a moving window can start it.
+    const shown = shownTierFor({ tier: p.shown_tier, floorGrace: p.floor_grace ?? null }, p.joulz, standing, false);
+    const view = shown.view;
+    if (view.tier === p.shown_tier && shown.floorGrace === (p.floor_grace ?? null)) continue;
     const peak = peaks[p.player_id] ?? null;
     writes.push({
       player_id: p.player_id,
       shown_tier: view.tier,
+      floor_grace: shown.floorGrace,
       peak_tier: !peak || tierRank(view.tier) > tierRank(peak) ? view.tier : peak,
       top500_ever: view.tier === "top500",
     });
-    changed.push({ playerId: p.player_id, from: p.shown_tier, to: view.tier });
+    if (view.tier !== p.shown_tier) changed.push({ playerId: p.player_id, from: p.shown_tier, to: view.tier });
   }
   for (let i = 0; i < writes.length; i += 500) {
     const { error: wErr } = await setRatedTiers(client, writes.slice(i, i + 500));

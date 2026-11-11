@@ -20,7 +20,7 @@ changed: the engine reads finished matches' stored scores.
 | The Cron Trigger | `src/lib/rated/tasks/` and `vite.config.ts` (`RATED_TASKS`) |
 | Types | `src/lib/data/ratings.ts`; database calls `src/lib/data/ratings.server.ts` |
 | The switch shared with W3b and the weekly challenges | `src/config/ratedConfig.ts` (`RATED_PLAY_FOR_EVERYONE`, false) |
-| Migrations | `20261114100000_ratings.sql`, `20261114100100_analytics_rated_events.sql`, `20261114100200_rated_badges_earnable.sql` |
+| Migrations | `20261114100000_ratings.sql`, `20261114100100_analytics_rated_events.sql`, `20261114100200_rated_badges_earnable.sql`, `20261114100300_rated_week_matches.sql` |
 | Check | `scripts/ratings-check.ts` (shard `e`, ~10 s, PostgreSQL) |
 
 ## Glicko-2 and its targets
@@ -133,11 +133,35 @@ sync on every tab page. Each is awarded once by `badge_award` (a Legendary's 250
 
 ## Joules and the weekly challenges
 
-D2 (the Season pass) has no code on main yet. Each live player's Joules for the match (`ratedMatchJoules`: 150 a win
-and 100 a loss for a best of 3, 1.5 times that for a best of 5 or 7 and for 4 or 8 players) is in the outcome and
-stored on `rated_match_players.joules`; D2's pass credits it under `ratedJoulesKey(matchId, playerId)`, once.
-`ratedChallengesDrawable()` (the switch `RATED_PLAY_FOR_EVERYONE`, shared with W3b) is what the weekly draw reads for
-challenges marked R: none before it is on.
+Each live player's Joules for the match (150 a win and 100 a loss for a best of 3, 1.5 times that for a best of 5 or 7
+and for 4 or 8 players; D2's own `ratedMatchJoules`, ratings-check compares) are in the outcome and stored on
+`rated_match_players.joules`. `finishRatedMatch` credits them through D2's hook (`creditRatedMatchJoules`,
+`src/lib/pass/pass.server.ts`) under the stored key `ratedJoulesKey(matchId, playerId)` (`rated_match:<match>:<player>`),
+so they pay once however often it runs (also on a duplicate, which finishes a credit that failed). D2's hook pays only
+where the pass is open (its testers until `PASS_FOR_EVERYONE`) and applies the day's soft cap; a credit's failure never
+fails the match.
+
+Weekly challenges marked R are drawn only while `RATED_PLAY_FOR_EVERYONE` is on (D2's `drawable`, through
+`ratedChallengesDrawable()`; Joe's approval, 11 Nov 2026). Their progress counts the week's counted rated matches
+(`public.rated_week_matches`, `readRatedWeekMatches`): matches played, won, games won in a category, a best of 3 won 2–0,
+wins in a row, categories won in (games won in matches won).
+
+## Short matches, flagged runs and the tier floor grace (Joe, 11 Nov 2026)
+
+- **Short matches.** A best of 3, 5 or 7 stops once decided (W3b): each game is its own weighted result, so a 2–0 is two
+  games (exactly one match's weight) and a 2–1 three (about half the move); a game after the decision, or a match that
+  stops short undecided, is refused (`bad_games`). A match whose games all ran with no winner (a drawn decider) is a draw.
+- **Flagged runs.** A recorded run sent with `run.flagged: true` moves nobody's rating in that match: not its owner, not
+  the live player (`frozen: "flagged_run"` on every row). It counts for no placement, streak or badge; the live player
+  still earns its Joules; the use is recorded as not moving.
+- **The tier floor grace** (`shownTierFor` in `tiers.ts`, `FLOOR_GRACE_MATCHES` 3; the approved ladder's "Three matches of
+  grace at every tier's floor"). When the Joulz Rating falls below the floor of the tier shown, the tier is kept (at
+  its III division, with the points back to the floor and `floorGrace.matchesLeft`) through 3 more rated matches; still
+  below after the last of them, it drops to the rating's tier. Back at or above the floor, the grace ends; a later fall
+  starts a fresh one. Only counted matches advance it (a frozen 4th match doesn't); the standings job can start it (the
+  90-day window moving) but never advances it. A drop by a cap isn't a floor fall (the cap's 3-day grace applies). Top
+  500 falling below 2,400 holds Lightning. Stored as `rated_profiles.floor_grace` (0–2, null when not in it);
+  `tier_changed` fires at the drop, not during the grace.
 
 ## Who can write
 

@@ -29,8 +29,8 @@ matchmaking that imports `recordRatedMatch` stays clear of economy-neutral-check
 | `matchId` | uuid; **idempotent**: the same id again answers `status: "duplicate"` with the stored changes, moving nothing |
 | `format` | `{ kind: "duel", bestOf: 3 \| 5 \| 7 }` or `{ kind: "placings", players: 4 \| 8 }` |
 | `choice` | `"mixed"`, `"puzzles"` (All puzzles) or `"arcade"` (All arcade) |
-| `players` | `{ playerId, side: "live" }` or `{ playerId, side: "recorded", run: { runId, ownerId, source } }`; `ownerId` must be `playerId`; `source` is `"rated" \| "room" \| "daily" \| "practice"` |
-| `games` | in the order played: `{ type, pool, category, version: "classic", signature, scores: { [playerId]: number } }`; `pool` and `category` must be what the server works out from `type` (else `pool_mismatch`); every player has a score |
+| `players` | `{ playerId, side: "live" }` or `{ playerId, side: "recorded", run: { runId, ownerId, source, flagged? } }`; `ownerId` must be `playerId`; `source` is `"rated" \| "room" \| "daily" \| "practice"`; `flagged: true` = the match moves nobody's rating |
+| `games` | in the order played; a 1v1 stops once decided (2–0, 2–1 in a best of 3; a game after the decision or an undecided short match is `bad_games`): `{ type, pool, category, version: "classic", signature, scores: { [playerId]: number } }`; `pool` and `category` must be what the server works out from `type` (else `pool_mismatch`); every player has a score |
 | `placings` | 4 and 8 players only: `{ [playerId]: place }`, 1 = first, level players share a place |
 | `rematchOf` | optional: the match this one is a rematch of (Revenge) |
 | `finishedAt` | optional ISO time; the server's now when left out (the UK day of the 4th-match rule is taken from it) |
@@ -57,7 +57,7 @@ What it does, in one transaction per match (retried on a concurrent change to an
 `bad_placings`, `pool_mismatch`, `busy`, `error` (nothing stored).
 
 `RatedPlayerChange`: `playerId`, `side`, `moved`, `frozen` (`same_opponent_today` | `recorded_unrated_source` |
-`recorded_daily_limit` | null), `changes` (each rating moved: `key`, `before`, `after`, `delta`, `rdBefore`,
+`recorded_daily_limit` | `flagged_run` | null), `changes` (each rating moved: `key`, `before`, `after`, `delta`, `rdBefore`,
 `rdAfter`), `joulz` (before / after, null in placement), `placement` (`played`, `of: 5`, `done`, `label`,
 `justFinished`: show the reveal), `tier` (before / after `TierView`, null in placement), `result` (`win` / `loss` /
 `draw`; first place is a win), `place` (4 and 8 players), `joules`, `badges` (competitive badges newly awarded).
@@ -77,7 +77,10 @@ A pool or category is `{ status: "not_played" }` ("Not played yet", never counte
 
 ## Pure (phone and server, `src/lib/rated/tiers.ts`)
 
-- `tierFor(rating, standing?)` → `TierView`. `standing: TierStanding` = `{ capsActive, stormOk, top500Ok, rank, share }`
+- `shownTierFor(prev, rating, standing, advance)` → `{ view, floorGrace }`: the tier shown, through the tier floor
+  grace (kept 3 more counted matches below the floor; `view.floorGrace.matchesLeft`). Every `TierView` the server
+  answers comes from it.
+- `tierFor(rating, standing?)` → `TierView` (no grace). `standing: TierStanding` = `{ capsActive, stormOk, top500Ok, rank, share }`
   from the standings job (`capsActive` once there are 1,000 rated players; `stormOk` / `top500Ok` in the share or
   within its 3-day grace); without it, or with the caps not active, the tier goes by rating alone. Labels: "Volt II", "Top 500 #37";
   `heldBack.label` "Storm-rated, top 4%"; `next` the next step up and the points to it.
@@ -95,11 +98,13 @@ Guests earn no badges (C2's are for accounts); the account's first badge sync aw
 ## For D2 (Joules) and the weekly challenges
 
 - `ratedMatchJoules(format, result)` (`src/lib/rated/joules.ts`): best of 3, 150 a win and 100 a loss; best of 5 or 7,
-  and 4 or 8 players, 1.5 times that. Each live player's amount is stored on their row of the match
-  (`rated_match_players.joules`) and in the outcome; D2's pass credits it under `ratedJoulesKey(matchId, playerId)`
-  (`rated_match:<match>:<player>`), so it pays once. Recorded runs' owners earn none.
+  and 4 or 8 players, 1.5 times that (D2's own amounts). Each live player's amount is stored on their row of the match
+  (`rated_match_players.joules`) and in the outcome, and credited through D2's hook under `ratedJoulesKey(matchId, playerId)`
+  (`rated_match:<match>:<player>`): `finishRatedMatch` calls D2's `creditRatedMatchJoules` with it, so it pays once.
+  Recorded runs' owners earn none.
 - `RATED_PLAY_FOR_EVERYONE` (`src/config/ratedConfig.ts`, false): the one switch W3b and the weekly challenges share;
-  `ratedChallengesDrawable()` answers it, and R challenges are drawn only while it is on.
+  `ratedChallengesDrawable()` answers it, and D2's weekly draw takes R challenges only while it is on; their progress
+  reads `readRatedWeekMatches` (`public.rated_week_matches`).
 
 ## Analytics (`src/lib/data/events.server.ts`)
 

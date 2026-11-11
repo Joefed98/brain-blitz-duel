@@ -24,6 +24,8 @@ export type MyBadges =
       unseen: string[];
       /** Progress on counted badges the server checks (slug → count so far; "4 of 7 days"). */
       progress: Record<string, number>;
+      /** The Season pass titles unlocked (Neon Rider, Circuit Breaker; wave 2 D2), equippable. */
+      passTitles?: string[];
     }
   | { account: false };
 

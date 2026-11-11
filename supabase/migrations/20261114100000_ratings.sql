@@ -39,6 +39,8 @@ CREATE TABLE IF NOT EXISTS public.rated_profiles (
   photo_finishes integer NOT NULL DEFAULT 0 CHECK (photo_finishes >= 0),
   joulz double precision CHECK (joulz IS NULL OR joulz >= 100),
   shown_tier text CHECK (shown_tier IN ('spark', 'charge', 'volt', 'surge', 'storm', 'lightning', 'top500')),
+  -- The tier floor grace: matches played below the shown tier's floor since the fall (0–2), NULL when not in it.
+  floor_grace smallint CHECK (floor_grace BETWEEN 0 AND 2),
   peak_tier text CHECK (peak_tier IN ('spark', 'charge', 'volt', 'surge', 'storm', 'lightning', 'top500')),
   top500_ever boolean NOT NULL DEFAULT false,
   last_match_at timestamptz,
@@ -81,7 +83,7 @@ CREATE TABLE IF NOT EXISTS public.rated_match_players (
   place smallint CHECK (place BETWEEN 1 AND 8),
   counted boolean NOT NULL,
   moved boolean NOT NULL,
-  frozen text CHECK (frozen IN ('same_opponent_today', 'recorded_unrated_source', 'recorded_daily_limit')),
+  frozen text CHECK (frozen IN ('same_opponent_today', 'recorded_unrated_source', 'recorded_daily_limit', 'flagged_run')),
   joules integer NOT NULL DEFAULT 0 CHECK (joules >= 0),
   puzzles_games smallint NOT NULL DEFAULT 0 CHECK (puzzles_games >= 0),
   arcade_games smallint NOT NULL DEFAULT 0 CHECK (arcade_games >= 0),
@@ -308,6 +310,7 @@ BEGIN
         photo_finishes = (r ->> 'photoFinishes')::int,
         joulz = (r ->> 'joulz')::double precision,
         shown_tier = r ->> 'shownTier',
+        floor_grace = (r ->> 'floorGrace')::smallint,
         peak_tier = r ->> 'peakTier',
         top500_ever = (r ->> 'top500Ever')::boolean,
         last_match_at = CASE WHEN (x ->> 'counted')::boolean THEN v_at ELSE last_match_at END,
@@ -457,7 +460,7 @@ BEGIN
 
   SELECT coalesce(jsonb_agg(jsonb_build_object(
            'player_id', s.player_id, 'joulz', s.joulz, 'rank', s.rank, 'share', s.share, 'storm_ok', s.storm_ok,
-           'top500_ok', s.top500_ok, 'shown_tier', p.shown_tier) ORDER BY s.rank), '[]'::jsonb)
+           'top500_ok', s.top500_ok, 'shown_tier', p.shown_tier, 'floor_grace', p.floor_grace) ORDER BY s.rank), '[]'::jsonb)
     INTO v_out
     FROM rated_standings s
     JOIN rated_profiles p USING (player_id)
@@ -472,7 +475,8 @@ $$;
 REVOKE ALL ON FUNCTION public.rated_recompute_standings(timestamptz) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.rated_recompute_standings(timestamptz) TO service_role;
 
--- Stores the tiers the server worked out after the standings job: [{player_id, shown_tier, peak_tier, top500_ever}].
+-- Stores the tiers the server worked out after the standings job: [{player_id, shown_tier, floor_grace, peak_tier,
+-- top500_ever}].
 -- Only ever raises the peak and sets top500_ever (never clears it). Answers the number of rows changed.
 CREATE OR REPLACE FUNCTION public.rated_set_tiers(p jsonb)
 RETURNS integer
@@ -486,6 +490,7 @@ DECLARE
 BEGIN
   UPDATE rated_profiles r SET
     shown_tier = e ->> 'shown_tier',
+    floor_grace = (e ->> 'floor_grace')::smallint,
     peak_tier = CASE WHEN coalesce(array_position(tiers, e ->> 'peak_tier'), 0) > coalesce(array_position(tiers, r.peak_tier), 0)
                      THEN e ->> 'peak_tier' ELSE r.peak_tier END,
     top500_ever = r.top500_ever OR coalesce((e ->> 'top500_ever')::boolean, false),

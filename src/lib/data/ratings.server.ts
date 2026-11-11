@@ -28,6 +28,8 @@ export interface RatedProfileRow {
   photo_finishes: number;
   joulz: number | null;
   shown_tier: TierId | null;
+  /** The tier floor grace's count (null when not in it). */
+  floor_grace: number | null;
   peak_tier: TierId | null;
   top500_ever: boolean;
   last_match_ms: number | null;
@@ -150,7 +152,7 @@ export async function readRatedTierCounts(client: Db): Promise<Result<Partial<Re
 export interface StandingsRun {
   rated_players: number;
   caps_active: boolean;
-  players: (RatedStandingRow & { shown_tier: TierId | null })[];
+  players: (RatedStandingRow & { shown_tier: TierId | null; floor_grace: number | null })[];
 }
 
 export async function recomputeRatedStandings(client: Db, nowIso: string): Promise<Result<StandingsRun | null>> {
@@ -161,6 +163,7 @@ export async function recomputeRatedStandings(client: Db, nowIso: string): Promi
 export interface TierWrite {
   player_id: string;
   shown_tier: TierId;
+  floor_grace: number | null;
   peak_tier: TierId | null;
   top500_ever: boolean;
 }
@@ -168,4 +171,17 @@ export interface TierWrite {
 export async function setRatedTiers(client: Db, rows: readonly TierWrite[]): Promise<Result<number>> {
   const { data, error } = await client.rpc("rated_set_tiers", { p: rows as unknown as Json });
   return { data: typeof data === "number" ? data : 0, error: error as DbError | null };
+}
+
+/** One rated match that counted for a player (rated_week_matches; the weekly R challenges). */
+export interface RatedWeekMatchRow {
+  result: "win" | "loss" | "draw";
+  bestOf: number | null;
+  games: { category: string | null; won: boolean }[];
+}
+
+/** A player's counted rated matches finished in [from, to), in the order finished. */
+export async function readRatedWeekMatches(client: Db, userId: string, fromIso: string, toIso: string): Promise<Result<RatedWeekMatchRow[]>> {
+  const { data, error } = await client.rpc("rated_week_matches", { p_user_id: userId, p_from: fromIso, p_to: toIso });
+  return { data: Array.isArray(data) ? (data as unknown as RatedWeekMatchRow[]) : [], error };
 }

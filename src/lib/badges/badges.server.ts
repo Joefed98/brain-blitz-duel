@@ -36,6 +36,7 @@ import { longestDailyStreak } from "@/lib/duel/dailyStreak";
 import { dailyRecordFor } from "@/lib/duel/dailyStreak.server";
 import { creditCoins, grantItem } from "@/lib/economy/economy.server";
 
+import { readPassTitles } from "@/lib/data/pass.server";
 import { BADGE_BY_SLUG, CARD_BADGE_SLOTS, STARTER_TITLE, TITLE_BY_ID } from "./catalogue";
 import { badgeProgress, badgesEarnedBy, NO_RATED_FACTS, type BadgeFacts, type RatedFacts } from "./rules.server";
 import type { BadgeChangeResult, BadgeRefusal, CardBadges, EarnedBadge, MyBadges } from "./types";
@@ -177,12 +178,13 @@ export async function evaluateBadges(
 
 /** The account's badges, card and title (a guest: account false). */
 export async function myBadges(client: Db, userId: string, progress: Record<string, number> = {}): Promise<MyBadges> {
-  const [{ data: profile, error: pErr }, { data: rows, error: bErr }, { data: cards, error: cErr }] = await Promise.all([
+  const [{ data: profile, error: pErr }, { data: rows, error: bErr }, { data: cards, error: cErr }, { data: passTitles, error: tErr }] = await Promise.all([
     readProfile(client, userId),
     readPlayerBadges(client, userId),
     readBadgePublicCards(client, [userId]),
+    readPassTitles(client, userId),
   ]);
-  if (pErr || bErr || cErr) throw new Error(`badges: ${(pErr ?? bErr ?? cErr)!.message}`);
+  if (pErr || bErr || cErr || tErr) throw new Error(`badges: ${(pErr ?? bErr ?? cErr ?? tErr)!.message}`);
   if (!profile) return { account: false };
   const earned: EarnedBadge[] = rows
     .filter((r) => BADGE_BY_SLUG.has(r.badge))
@@ -199,6 +201,7 @@ export async function myBadges(client: Db, userId: string, progress: Record<stri
     title: card?.title && TITLE_BY_ID.has(card.title) ? card.title : STARTER_TITLE,
     unseen: earned.filter((b) => !b.seen).map((b) => b.slug),
     progress,
+    passTitles,
   };
 }
 

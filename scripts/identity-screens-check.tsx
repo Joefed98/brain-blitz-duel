@@ -2,8 +2,9 @@
  * identity-screens-check (wave 2, session A2; happy-dom, ~5 s): the five-tab bar, the coin counter, the player card,
  * Profile's card and Customise, against a stand-in for Session A1's interface (setIdentityBackend).
  *
- *  1. The Shop switch: off (as shipped) the tab bar is today's four for a guest and for any account but the
- *     preview list's (#0001), which gets five (Play, Practice, Tournaments, Shop, Profile); switched on, five for
+ *  1. The Shop switch: off (as shipped) the tab bar is today's four for a guest and for any account not on the shop's
+ *     tester list (shop.testers, the one list; #0001 is on it), which gets five (Play, Practice, Tournaments, Shop,
+ *     Profile), and the tab follows the list as a tester is added and removed; switched on, five for
  *     everyone (shopOnFor with the switch on; TabBar with `shop`). On every bottom-bar screen (the real PhoneShell on
  *     Play, Practice, Tournaments, Profile and, where it's on, Shop) and on the desktop rail, in both states (the
  *     switch on through the check-only window.__DUELZ_SHOP_TAB__).
@@ -82,6 +83,7 @@ const backendMod = await import("../src/lib/identity/backend");
 const identityApi = await import("../src/lib/identity/identityApi");
 const shopSwitch = await import("../src/lib/identity/shopSwitch");
 const shopConfig = await import("../src/config/shopConfig");
+const shopStatus = await import("../src/lib/shop/shopStatus");
 const { AppTabBar } = await import("../src/components/app/AppTabBar");
 const { CoinCounter } = await import("../src/components/app/CoinCounter");
 const { AppHeader } = await import("../src/components/app/AppHeader");
@@ -168,9 +170,22 @@ const ACCOUNT = (playerNumber: number, username = "TheInventor") =>
     rename: { free: true } as never,
   }) as const;
 
+/*
+ * The shop's tester list (shop.testers, the one list; wave 2 D1) as the server answers it: a stand-in for
+ * shopStatusFn, as setIdentityBackend stands in for A1. The shop migration puts #0001 on it.
+ */
+const TESTERS = new Set<number>([1]);
+shopStatus.setShopStatusSource(async ({ playerNumber }) => ({ open: TESTERS.has(playerNumber), tester: TESTERS.has(playerNumber), back: [], day: null }));
+
 /** Publishes the account state the screens read (a guest through the module's own sign-out publish path). */
 async function signIn(playerNumber: number | null) {
   identityApi.resetIdentity();
+  shopStatus.resetShopStatus();
+  try {
+    localStorage.removeItem("duelz-shop-tester:v1");
+  } catch {
+    /* none kept */
+  }
   if (playerNumber === null) {
     const mod = await import("../src/lib/account/accountApi");
     // A guest: the module's own guest state (no server call): refreshAccount with no session answers guest.
@@ -214,8 +229,30 @@ const tabLabels = () => $$("[data-app-tabbar] a").map((a) => (a.textContent ?? "
 
 /* ------------------------------------------------------------------ 1. the switch */
 check(shopConfig.SHOP_TAB_ENABLED === false, "the Shop switch ships off (SHOP_TAB_ENABLED false until train D)");
-check(shopConfig.SHOP_PREVIEW_PLAYERS.length === 1 && shopConfig.SHOP_PREVIEW_PLAYERS[0] === 1, "the preview list is Joe’s account alone (#0001)");
-check(shopSwitch.shopOnFor(1) && !shopSwitch.shopOnFor(2) && !shopSwitch.shopOnFor(null) && !shopSwitch.shopOnFor(0), "off: on for #0001 only, never a guest");
+check(
+  !("SHOP_PREVIEW_PLAYERS" in shopConfig) &&
+    /INSERT INTO shop\.testers[\s\S]*WHERE player_number = 1/.test(readFileSync("supabase/migrations/20261112120000_shop.sql", "utf8")),
+  "one list: no static preview list in the app; the shop migration puts Joe’s account (#0001) on shop.testers",
+);
+{
+  const off = (testers: number[]) => ({ enabled: false, testers });
+  check(
+    shopSwitch.shopOnFor(1, off([1])) && !shopSwitch.shopOnFor(2, off([1])) && !shopSwitch.shopOnFor(null, off([1])) && !shopSwitch.shopOnFor(0, off([0, 1])) &&
+      shopSwitch.shopOnFor(2, off([1, 2])) && !shopSwitch.shopOnFor(1, off([2])) && !shopSwitch.shopOnFor(1, off([])),
+    "off: on for the accounts on the tester list only, never a guest; a tester added is on, one removed is off",
+  );
+  // The tab follows the list: #0002 added to shop.testers gets five tabs, taken off it gets four again.
+  for (const [step, on] of [["added", true], ["removed", false]] as const) {
+    if (on) TESTERS.add(2);
+    else TESTERS.delete(2);
+    await signIn(2);
+    const { root } = await mount(() => React.createElement(AppTabBar, { current: "play" }), "/");
+    await settle(40);
+    const want = on ? "Play,Practice,Tournaments,Shop,Profile" : "Play,Practice,Tournaments,Profile";
+    check(tabLabels() === want, `#0002 ${step} on shop.testers: tabs ${want} (got ${tabLabels()})`);
+    act(() => root.unmount());
+  }
+}
 check(
   shopSwitch.shopOnFor(null, { enabled: true, preview: [] }) && shopSwitch.shopOnFor(7, { enabled: true, preview: [] }),
   "on: on for every account and guest",

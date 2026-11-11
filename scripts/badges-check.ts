@@ -339,7 +339,8 @@ async function databaseChecks(db: LocalDb, rest: RestServer): Promise<void> {
     check(/ERROR/.test(noRule.err), "the table refuses a badge with no rule");
     check(rows.length === 54 && diff.length === 0, `public.badges is the catalogue, row for row (${diff.map((d) => d.slug).join(", ") || "none differ"})`);
     const titles = JSON.parse(q(`SELECT json_agg(t ORDER BY sort_order) FROM titles t`)) as Record<string, unknown>[];
-    check(titles.length === 32 && cat.TITLES.every((t, i) => titles[i]?.["id"] === t.id && titles[i]?.["name"] === t.name && titles[i]?.["badge"] === t.badge), "public.titles is the title list, row for row");
+    // 32 → 34: Neon Rider and Circuit Breaker, the Season pass's titles, follow the brief's 32 (approved by Joe, 11 Nov 2026).
+    check(titles.length === 34 && cat.TITLES.every((t, i) => titles[i]?.["id"] === t.id && titles[i]?.["name"] === t.name && titles[i]?.["badge"] === t.badge), "public.titles is the title list, row for row");
     const refusedRow = db.psql(`BEGIN; INSERT INTO badges (slug, name, grp, rarity, coins, status, rule, sort_order) VALUES ('x-y', 'X', 'fun', 'legendary', 0, 'earnable', 'A rule.', 999); ROLLBACK;`);
     check(/ERROR/.test(refusedRow.err), "the table refuses a Legendary that doesn't pay 250");
   });
@@ -379,7 +380,8 @@ async function databaseChecks(db: LocalDb, rest: RestServer): Promise<void> {
     check(balance(BEN) === 1250 && lines(BEN, "signup_reward") === 1, "after the backfill, Ben's sync pays nothing more");
     const third = db.psql(readFileSync(MIGRATION, "utf8"));
     check(third.err.includes(`badges backfill: ${accounts} accounts; 0 sign-up rewards paid, 0 Founding Player badges, 0 badge rewards paid, 0 Founding frames granted`), "a second run pays nothing");
-    check(Number(q(`SELECT count(*) FROM badges`)) === 54 && Number(q(`SELECT count(*) FROM titles`)) === 32, "and adds no badge or title row");
+    // 32 → 34: the two Season pass titles (approved by Joe, 11 Nov 2026).
+    check(Number(q(`SELECT count(*) FROM badges`)) === 54 && Number(q(`SELECT count(*) FROM titles`)) === 34, "and adds no badge or title row");
   });
 
   await section("founding cutoff", async () => {

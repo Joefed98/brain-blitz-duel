@@ -264,7 +264,17 @@ export const TITLES: readonly TitleDef[] = TITLE_ROWS.map(([id, name, badge]) =>
   badge,
 }));
 
-export const TITLE_BY_ID: ReadonlyMap<string, TitleDef> = new Map(TITLES.map((t) => [t.id, t]));
+/**
+ * The Season 1 pass's titles (wave 2 D2, docs/economy/pass.md): unlocked by claiming them on the pass (free level 40,
+ * premium level 55; public.pass_title_unlocks) and equippable once unlocked. Kept apart from TITLES (the brief's 32);
+ * public.titles holds them after the 32 (supabase/migrations/20261113100200_pass_titles.sql).
+ */
+export const PASS_TITLE_DEFS: readonly TitleDef[] = [
+  { id: "neon-rider", name: "Neon Rider", kind: "pass", badge: null },
+  { id: "circuit-breaker", name: "Circuit Breaker", kind: "pass", badge: null },
+];
+
+export const TITLE_BY_ID: ReadonlyMap<string, TitleDef> = new Map([...TITLES, ...PASS_TITLE_DEFS].map((t) => [t.id, t]));
 
 /** The titles a set of earned badges unlocks (Rookie always first). */
 export function titlesUnlocked(earned: ReadonlySet<string>): TitleDef[] {
