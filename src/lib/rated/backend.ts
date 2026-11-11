@@ -13,6 +13,7 @@
  *
  * Checks stand in for the server with `setRatedBackend(fake)` (scripts/rated-screens-check.tsx).
  */
+import { checkOverride } from "@/lib/checkOverride";
 import type { CardLook } from "@/design/identity";
 import type { RatingKey, TierLadderRung } from "@/lib/data/ratings";
 import type { RatedChoice, RatedFormat } from "@/lib/rated/matchmaking";
@@ -29,6 +30,8 @@ export type MatchSize = 2 | 4 | 8;
 /** What is switched on (W3b's `openOptions`). Launch: Mixed, All puzzles and All arcade, best of 3. */
 export interface RatedOptions {
   picks: readonly RatedPick[];
+  /** W3b's switched-on formats (bo3, bo5, bo7, ffa4, ffa8); `bestOf` and `sizes` are read from them. */
+  formats: readonly RatedFormat[];
   bestOf: readonly BestOf[];
   sizes: readonly MatchSize[];
 }
@@ -111,6 +114,8 @@ export type OpponentSource = { kind: "live" } | { kind: "recorded"; label: strin
 export interface RatedMatch {
   id: string;
   pick: RatedPick;
+  /** W3b's format (the route picks its screens by it: formatScreens.tsx). */
+  format: RatedFormat;
   bestOf: BestOf;
   roomCode: string | null;
   me: RatedPlayer;
@@ -196,7 +201,7 @@ export interface OpponentScoreView {
 export interface RatedBackend {
   status(): Promise<RatedStatus | null>;
   /** Searches; `progress` is called as the range widens; resolves with the match, a refusal, or null when cancelled. */
-  search(pick: RatedPick, bestOf: BestOf, progress: (p: SearchProgress) => void, signal: AbortSignal): Promise<RatedMatch | Refused | null>;
+  search(pick: RatedPick, format: RatedFormat, progress: (p: SearchProgress) => void, signal: AbortSignal): Promise<RatedMatch | Refused | null>;
   /** A match by id (the room route's rated header and result). */
   match(matchId: string): Promise<RatedMatch | null>;
   /** The result once settled; null while the match is still playing. */
@@ -226,9 +231,9 @@ let bound: Promise<RatedBackend | null> | null = null;
  */
 function automatedWithoutRated(): boolean {
   if (typeof navigator === "undefined" || !navigator.webdriver) return false;
-  // The check-only allow switch is ignored in a production build (Vite replaces PROD with true).
+  // The check-only allow switch is ignored in a production build (Vite replaces PROD with true; checkOverride too).
   if (import.meta.env.PROD) return true;
-  return !(typeof window !== "undefined" && (window as unknown as { __DUELZ_ALLOW_RATED__?: boolean }).__DUELZ_ALLOW_RATED__);
+  return checkOverride<boolean>("__DUELZ_ALLOW_RATED__") !== true;
 }
 
 /** The rated server: W3a's and W3b's functions through w3Binding.ts (null if they can't load). */

@@ -9,6 +9,8 @@
  * - next_match_tapped: no props;
  * - tier_ladder_viewed: props.from "home" | "result" | "reveal" | "profile".
  */
+import { checkOverride } from "@/lib/checkOverride";
+
 export const RATED_EVENTS = ["play_card_tapped", "vs_shown", "result_viewed", "next_match_tapped", "tier_ladder_viewed"] as const;
 export type RatedEventName = (typeof RATED_EVENTS)[number];
 
@@ -72,13 +74,13 @@ export function pickProp(pick: string): string {
 /** Records one in the background (never under automation unless a check allows it); nothing waits for it. */
 export function recordRatedEvent(input: RatedEventInput): void {
   if (typeof window === "undefined") return;
-  const w = window as unknown as { __DUELZ_ALLOW_ANALYTICS__?: boolean; __DUELZ_RATED_EVENTS__?: unknown[] };
-  // Checks read what would be sent.
-  if (Array.isArray(w.__DUELZ_RATED_EVENTS__)) {
-    w.__DUELZ_RATED_EVENTS__.push(input);
+  // Checks read what would be sent (never in a production build: checkOverride answers nothing there).
+  const log = checkOverride<unknown[]>("__DUELZ_RATED_EVENTS__");
+  if (Array.isArray(log)) {
+    log.push(input);
     return;
   }
-  if (typeof navigator !== "undefined" && navigator.webdriver && !w.__DUELZ_ALLOW_ANALYTICS__) return;
+  if (typeof navigator !== "undefined" && navigator.webdriver && checkOverride<boolean>("__DUELZ_ALLOW_ANALYTICS__") !== true) return;
   void (async () => {
     try {
       const { recordRatedEventFn } = await import("./ratedEvents.functions");

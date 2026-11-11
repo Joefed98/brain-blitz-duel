@@ -9,6 +9,7 @@
 import { useEffect, useState } from "react";
 
 import { useAccount } from "@/lib/account/accountApi";
+import { checkOverride } from "@/lib/checkOverride";
 
 import { ratedBackend, setRatedBackend, type RatedBackend, type RatedStatus } from "./backend";
 
@@ -20,8 +21,7 @@ import { ratedBackend, setRatedBackend, type RatedBackend, type RatedStatus } fr
  */
 export function ratedOverride(): RatedBackend | null {
   if (import.meta.env.PROD) return null;
-  if (typeof window === "undefined") return null;
-  const o = (window as unknown as { __DUELZ_RATED_BACKEND__?: unknown }).__DUELZ_RATED_BACKEND__;
+  const o = checkOverride<unknown>("__DUELZ_RATED_BACKEND__");
   return o && typeof o === "object" && typeof (o as RatedBackend).status === "function" ? (o as RatedBackend) : null;
 }
 

@@ -14,7 +14,10 @@ export type CheckOverrideName =
   | "__DUELZ_ACCOUNT_FIXTURE__"
   | "__DUELZ_ALLOW_ANALYTICS__"
   | "__DUELZ_ALLOW_CHALLENGES__"
+  | "__DUELZ_ALLOW_PASS__"
+  | "__DUELZ_ALLOW_RATED__"
   | "__DUELZ_ALLOW_SAFETY__"
+  | "__DUELZ_ALLOW_SHOP__"
   | "__DUELZ_BANNERS__"
   | "__DUELZ_BETA_CONFIG__"
   | "__DUELZ_CELEBRATION_LOG__"
@@ -22,6 +25,8 @@ export type CheckOverrideName =
   | "__DUELZ_FIRST_OPEN__"
   | "__DUELZ_IDENTITY_EVENTS__"
   | "__DUELZ_PUBLIC_GAMES__"
+  | "__DUELZ_RATED_BACKEND__"
+  | "__DUELZ_RATED_EVENTS__"
   | "__DUELZ_TURNSTILE_SITE_KEY__";
 
 export function checkOverride<T = unknown>(name: CheckOverrideName): T | undefined {

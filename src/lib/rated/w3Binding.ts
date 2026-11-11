@@ -36,7 +36,6 @@ import type {
   RematchAnswer,
   SideRating,
 } from "./backend";
-import { formatOf } from "./backend";
 import { RECORDED_AFTER_MS, REMATCH_WINDOW_MS, type RatedFormat } from "./matchmaking";
 import { clearPlacementRecord, notePlacementResult, placementResults } from "./placementRecord";
 import { betterThan, type RankView } from "./tierDisplay";
@@ -184,6 +183,7 @@ export async function bindW3(): Promise<RatedBackend> {
     return {
       id: view.matchId,
       pick: view.choice,
+      format: view.format,
       bestOf: BEST_OF[view.format] ?? 3,
       roomCode: view.roomCode,
       me: meCard,
@@ -218,15 +218,15 @@ export async function bindW3(): Promise<RatedBackend> {
         open: true,
         guest,
         me: card,
-        options: { picks: s.options.choices, bestOf, sizes },
+        options: { picks: s.options.choices, formats: s.options.formats, bestOf, sizes },
         season: null,
         standing,
         activeMatchId: s.activeMatchId,
       } satisfies RatedStatus;
     },
 
-    async search(pick, bestOf, progress, signal) {
-      const joined = await rated.ratedQueueJoinFn({ data: { format: formatOf(bestOf), choice: pick } });
+    async search(pick, format, progress, signal) {
+      const joined = await rated.ratedQueueJoinFn({ data: { format, choice: pick } });
       if (!joined.ok) {
         if (joined.reason === "in_match") {
           const s = await rated.ratedStatusFn();

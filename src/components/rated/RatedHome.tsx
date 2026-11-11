@@ -16,7 +16,7 @@ import { useState } from "react";
 
 import { Button, Icon, Panel, Segmented, Sheet } from "@/design/components";
 import { Avatar, DEFAULT_AVATAR } from "@/design/identity";
-import type { BestOf, RatedPick, RatedStatus } from "@/lib/rated/backend";
+import { formatOf, type BestOf, type RatedPick, type RatedStatus } from "@/lib/rated/backend";
 import { useRatedStatus } from "@/lib/rated/ratedApi";
 import { pickProp, recordRatedEvent } from "@/lib/rated/ratedEvents";
 import {
@@ -177,7 +177,7 @@ function PlayCard({ status }: { status: RatedStatus }) {
   const play = () => {
     recordRatedEvent({ event: "play_card_tapped", pick: pickProp(pick), placement: placing });
     rememberPick(pick);
-    void navigate({ to: "/rated" as never, search: { pick, bestOf } as never });
+    void navigate({ to: "/rated" as never, search: { pick, format: formatOf(bestOf) } as never });
   };
 
   return (

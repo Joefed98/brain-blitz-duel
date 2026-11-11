@@ -8,6 +8,7 @@
  * The dot shows until the shop is opened that day; each item's notice shows once per day it is back
  * (`duelz-shop-seen:v1`).
  */
+import { checkOverride } from "@/lib/checkOverride";
 import { useEffect, useState } from "react";
 
 import { useAccount } from "@/lib/account/accountApi";
@@ -126,7 +127,8 @@ function writeSeen(seen: Seen): void {
 
 function automationBlocked(): boolean {
   if (typeof navigator === "undefined" || !navigator.webdriver) return false;
-  return !(window as unknown as { __DUELZ_ALLOW_SHOP__?: boolean }).__DUELZ_ALLOW_SHOP__;
+  // Through checkOverride (main #375): the allow switch is ignored in a production build.
+  return checkOverride<boolean>("__DUELZ_ALLOW_SHOP__") !== true;
 }
 
 /** Asks the server (once per app open per account); a failure leaves the cached answer. */

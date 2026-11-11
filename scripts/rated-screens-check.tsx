@@ -115,7 +115,7 @@ const player = (over: Partial<RatedPlayer>): RatedPlayer => ({
 });
 const ME_PLACED = player({});
 const SAM = player({ userId: "u-7", username: "Sam", playerNumber: 7, look: { ...LOOK, avatar: { id: "captain-joulz", colour: 1, gem: null } }, title: "Arena Champion", badges: ["founding-player"], rank: rankAt(1296) });
-const LAUNCH = { picks: ["mixed", "puzzles", "arcade"], bestOf: [3], sizes: [2] } as RatedStatus["options"];
+const LAUNCH = { picks: ["mixed", "puzzles", "arcade"], formats: ["bo3"], bestOf: [3], sizes: [2] } as RatedStatus["options"];
 const SHARES = { top500: 0.0005, lightning: 0.005, storm: 0.03, surge: 0.12, volt: 0.34, charge: 0.32, spark: 0.18 };
 
 function placedStatus(over: Partial<RatedStatus> = {}): RatedStatus {
@@ -155,6 +155,7 @@ const calls: string[] = [];
 const MATCH: RatedMatch = {
   id: "m1",
   pick: "mixed",
+  format: "bo3",
   bestOf: 3,
   roomCode: "AB2C",
   me: ME_PLACED,
@@ -384,7 +385,7 @@ for (let played = 0; played <= 4; played++) {
   sent.length = 0;
   await click($("[data-rated-play-button]"));
   check(JSON.stringify(sent[0]) === '{"event":"play_card_tapped","pick":"arcade","placement":false}', `play_card_tapped (${JSON.stringify(sent[0])})`);
-  check(went.some((w) => w.to === "/rated" && w.search?.["pick"] === "arcade" && w.search?.["bestOf"] === 3), `Play opens /rated with the pick (${JSON.stringify(went)})`);
+  check(went.some((w) => w.to === "/rated" && w.search?.["pick"] === "arcade" && w.search?.["format"] === "bo3"), `Play opens /rated with the pick and W3b's format (${JSON.stringify(went)})`);
   sent.length = 0;
   await click($("[data-rank-panel] [data-open-tiers]"));
   check(JSON.stringify(sent[0]) === '{"event":"tier_ladder_viewed","from":"home"}' && went.some((w) => w.to === "/tiers"), "the rating opens the tiers (tier_ladder_viewed from home)");
@@ -392,7 +393,7 @@ for (let played = 0; played <= 4; played++) {
 }
 {
   // A wider switch: exactly its options, and the best-of control with its two.
-  status = placedStatus({ options: { picks: ["mixed", "word", "retro"], bestOf: [3, 5], sizes: [2] } });
+  status = placedStatus({ options: { picks: ["mixed", "word", "retro"], formats: ["bo3", "bo5"], bestOf: [3, 5], sizes: [2] } });
   await signIn(5);
   const { root } = await mount(homeUi);
   const seg = $$("[data-best-of-option]").map((b) => b.getAttribute("data-best-of-option")).join();
@@ -404,7 +405,7 @@ for (let played = 0; played <= 4; played++) {
   check(text("[data-pick-option='word'] .rt-option-rating") === "1,312", "a category shows its own rating");
   root.unmount();
   // 1v1 switched off: no Play card (the 4- and 8-player screens are a later session's).
-  status = placedStatus({ options: { picks: ["mixed"], bestOf: [3], sizes: [8] } });
+  status = placedStatus({ options: { picks: ["mixed"], formats: ["ffa8"], bestOf: [], sizes: [8] } });
   await signIn(5);
   const r2 = await mount(homeUi);
   check(!$("[data-rated-play]") && !!$("[data-rank-panel]"), "1v1 off: the rank panel but no Play card");
@@ -781,6 +782,22 @@ const profileUi = () => React.createElement(ProfileCard, { guestName: "Player", 
   root.unmount();
   check(readFileSync("src/routes/rated.tsx", "utf8").includes('<FinishedGameCounter gameKey={`rated:${result.match.id}`} from="rated" />'), "counted from the rated result, as rooms and the Daily do (the prompt shows on a tab page, never here)");
   check(readFileSync("src/components/account/SaveProgress.tsx", "utf8").includes('from === "rated" ? "Save your rating and stars"'), "the sheet says “Save your rating and stars” after a rated match");
+}
+
+
+/* ------------------------------------------------------------------ 9. the route's format switch (W3d plugs in here) */
+{
+  const fs = await import("../src/components/rated/formatScreens");
+  const screens = await import("../src/components/rated/RatedMatchScreens");
+  check(["bo3", "bo5", "bo7"].every((f) => fs.formatKind(f as never) === "duel") && ["ffa4", "ffa8"].every((f) => fs.formatKind(f as never) === "placings"), "formats: bo3/5/7 a 1v1, ffa4/8 placings");
+  const duel = fs.screensFor("bo3");
+  check(duel?.Search === screens.Searching && duel?.Result === screens.MatchResult && duel?.vs === true, "a 1v1: Searching, VS and MatchResult");
+  check(fs.screensFor("ffa8") === null, "4 and 8 players: no screens until W3d fills the placings row (the route refuses such a link)");
+  const route = readFileSync("src/routes/rated.tsx", "utf8");
+  check(route.includes("screensFor(search.format)") && route.includes("screensFor(result.match.format)?.Result") && !route.includes("<MatchResult") && !route.includes("<Searching"), "the route picks its screens by format only");
+  const rated = await import("../src/routes/rated");
+  const validate = (rated.Route.options as unknown as { validateSearch: (s: Record<string, unknown>) => { format?: string } }).validateSearch;
+  check(validate({ format: "bo5" }).format === "bo5" && validate({ bestOf: 3 }).format === "bo3" && validate({ format: "nonsense" }).format === undefined, "the route reads W3b's format (an older bestOf link as bo3)");
 }
 
 check(consoleErrors.length === 0, `no console errors (${consoleErrors.slice(0, 3).join(" | ")})`);
