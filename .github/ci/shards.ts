@@ -338,11 +338,23 @@ export const SHARDS: Record<string, string[]> = {
     // skins-db-check (wave 2 E1, 11 Nov 2026, ~10 s): the card-back move and the result looks' triggers on a local
     // PostgreSQL, and the ghost-looks server function, beside economy-check.
     "skins-db-check.ts",
+    // badges-check (wave 2 C2, 11 Nov 2026, ~10 s): badges, titles, the sign-up and founding rewards, the backfill and the
+    // Daily streak on the account, on a local PostgreSQL through the server-function harness, beside economy-check.
+    "badges-check.ts",
+    // practice-progress-check (wave 2 C1a, 11 Nov 2026, ~15 s): practice stars, bests and gems on the account (the stored
+    // breakdown against a room's, 175 / 174, the fresh start, gems, two devices, roles) on a local PostgreSQL.
+    "practice-progress-check.ts",
+    // progress-cache-check (wave 2 C1a, 11 Nov 2026, ~1 s): the display-only copy of the server's last practice progress.
+    "progress-cache-check.ts",
     // moderation-ui-check (10 Nov 2026, ~3 s, happy-dom): two taps to report from a name and from a message.
     "moderation-ui-check.tsx",
     // account-screens-check (10 Nov 2026, ~10 s): the sign-up screens' rules, the save-progress events' server function
     // and usernames in rooms, Dailies and challenges, through the server-function harness, beside accounts-check.
     "account-screens-check.ts",
+    // practice-challenges-check (wave 2 C1b, 11 Nov 2026, ~40 s): the challenge catalogue's checker on real graded runs,
+    // speed goals against the grader, the six stored facts, coins once per account and guests paid on sign-up on a local
+    // PostgreSQL through the server-function harness, beside accounts-check.
+    "practice-challenges-check.ts",
     "ink-x200-check.ts",
     "depth4-check.ts",
     "room-figures-check.ts",
