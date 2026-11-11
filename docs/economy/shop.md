@@ -9,8 +9,8 @@ anyone win: no file under `src/lib/shop` is read by scoring, grading, replay, ma
 
 | Piece | File |
 | --- | --- |
-| Migration: testers and Joe's log, recorded days and weeks, the wishlist, the bundle purchase, test packs, Joe's functions | `supabase/migrations/20261111120000_shop.sql` |
-| Migration: the five analytics events | `supabase/migrations/20261111120100_analytics_shop_events.sql` |
+| Migration: testers and Joe's log, recorded days and weeks, the wishlist, the bundle purchase, test packs, Joe's functions | `supabase/migrations/20261112120000_shop.sql` |
+| Migration: the five analytics events | `supabase/migrations/20261112120100_analytics_shop_events.sql` |
 | The daily shop's picks (pure) | `src/lib/shop/dailyShop.ts` |
 | The Monday bundles: the schedule as data | `src/lib/shop/bundles.ts` (proposal: `docs/economy/bundles-season-1.md`) |
 | Coin packs, the £ line, the age rule | `src/lib/shop/packs.ts` |
@@ -22,14 +22,17 @@ anyone win: no file under `src/lib/shop` is read by scoring, grading, replay, ma
 | Screens | `src/routes/shop.tsx` (A2's shell), `src/components/shop/*`, `src/polish-layout/shop.css` |
 | Item pictures | `public/shop/<id>.webp` and `src/lib/shop/shopPreviews.data.ts`, from `bun scripts/shop-previews.ts` |
 | Check | `scripts/shop-check.ts` (shard `e`, ~15 s, PostgreSQL) |
-| Review screenshots (a tool) | `bun scripts/shots/shop-shots.ts` (`screenshots/shop-nov-2026/`) |
+| Review screenshots (a tool) | `bun scripts/shots/shop-shots.ts` (`docs/economy/shop-screenshots/`) |
 
 ## Who sees it
 
-- **Testers only, for now.** `SHOP_TAB_ENABLED` (`src/config/shopConfig.ts`) stays false. A2's preview list
-  (`SHOP_PREVIEW_PLAYERS`, #0001) still shows the tab; the real list is `shop.testers`, which Joe manages (below), and
-  the migration adds #0001 to it. The phone asks `shopStatusFn` once per app open and keeps the answer per player
-  number (`duelz-shop-tester:v1`), so a tester's fifth tab is there at first paint.
+- **Testers only, for now: one list.** `SHOP_TAB_ENABLED` (`src/config/shopConfig.ts`) stays false. `shop.testers` is
+  the only list (A2's static preview list is gone): Joe manages it (below), the migration puts #0001 on it, and a
+  trigger (`shop.on_player_one`) adds any account that becomes #0001 later. A tester Joe adds both sees the Shop tab and
+  can use it: the phone asks `shopStatusFn` once per app open, shows the tab from the answer (`useShopOn` →
+  `shopOnFor` with `knownTesters()`), and keeps it per player number (`duelz-shop-tester:v1`) so the fifth tab is
+  there at first paint next time. A tester removed loses the tab on their next app open (the server refuses their
+  shop calls at once).
 - **The server decides.** Every shop function (`getShopFn`, `buyItemFn`, `buyBundleFn`, `testPackFn`, `wishlistFn`,
   `shopStatusFn`) checks `shopAccess`: an account in `shop.testers`, or any account once the switch is on. Anyone else
   gets "not_tester" and nothing changes. Test purchases are testers only even with the switch on, and the database's

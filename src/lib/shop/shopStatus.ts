@@ -26,7 +26,44 @@ export interface PhoneShopStatus {
 }
 
 let current: PhoneShopStatus = { tester: false, back: [], day: null, for: null };
+/** The player number `current` answers for. */
+let currentNumber: number | null = null;
 let askedFor: string | null = null;
+
+/** What answers the status: the server's shopStatusFn, or a check's stand-in for it (setShopStatusSource). */
+type StatusSource = (account: { userId: string; playerNumber: number }) => Promise<ShopStatus>;
+let source: StatusSource | null = null;
+
+/**
+ * Checks only: a stand-in for the server's answer (the tester list), as setIdentityBackend stands in for A1. Set, it
+ * is asked even under automation; null goes back to the server.
+ */
+export function setShopStatusSource(fn: StatusSource | null): void {
+  source = fn;
+}
+
+/** Checks only: forget this app open's answer, so the next account (or the same one) asks again. */
+export function resetShopStatus(): void {
+  askedFor = null;
+  currentNumber = null;
+  publish({ tester: false, back: [], day: null, for: null });
+}
+
+/**
+ * The player numbers this device knows are on the tester list: this account's answer from the server (this app open)
+ * or, until it arrives, the answer kept from the last one. Removed from the list, the next answer takes it away.
+ */
+export function knownTesters(): number[] {
+  if (currentNumber !== null && current.for !== null) return current.tester ? [currentNumber] : [];
+  try {
+    const raw = store()?.getItem(TESTER_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw) as { n?: unknown; tester?: unknown };
+    return typeof parsed.n === "number" && parsed.tester === true ? [parsed.n] : [];
+  } catch {
+    return [];
+  }
+}
 const listeners = new Set<(s: PhoneShopStatus) => void>();
 
 function store(): Storage | null {
@@ -97,18 +134,34 @@ export async function refreshShopStatus(userId: string, playerNumber: number, fo
   if (typeof window === "undefined") return;
   if (!force && askedFor === userId) return;
   askedFor = userId;
-  if (automationBlocked()) {
+  const answered = (status: ShopStatus) => {
+    writeTester(playerNumber, status.tester);
+    currentNumber = playerNumber;
+    publish({ tester: status.tester, back: status.back, day: status.day, for: userId });
+  };
+  const unanswered = () => {
+    currentNumber = null;
     publish({ tester: cachedTester(playerNumber), back: [], day: null, for: userId });
+  };
+  if (source) {
+    try {
+      answered(await source({ userId, playerNumber }));
+    } catch {
+      askedFor = null;
+      unanswered();
+    }
+    return;
+  }
+  if (automationBlocked()) {
+    unanswered();
     return;
   }
   try {
     const { shopStatusFn } = await import("./shop.functions");
-    const status = (await shopStatusFn()) as ShopStatus;
-    writeTester(playerNumber, status.tester);
-    publish({ tester: status.tester, back: status.back, day: status.day, for: userId });
+    answered((await shopStatusFn()) as ShopStatus);
   } catch {
     askedFor = null;
-    publish({ tester: cachedTester(playerNumber), back: [], day: null, for: userId });
+    unanswered();
   }
 }
 

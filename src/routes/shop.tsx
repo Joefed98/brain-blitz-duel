@@ -55,7 +55,7 @@ function ShopScreen() {
   const status = useShopStatus();
   const part: Part = search.part ?? "shop";
   const section: Section = search.section ?? "featured";
-  // Known: the account, and for an account the server's tester answer (a tester not in the preview list waits for it).
+  // Known: the account, and for an account the server's tester answer (a tester waits for it before anyone is sent away).
   const known = account.kind !== "unknown" && shopStatusSettled(account as { kind: string; userId?: string | null }, status);
 
   // Only where the switch is on: anyone else lands on Play, as before the Shop.

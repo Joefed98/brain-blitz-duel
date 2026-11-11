@@ -4,8 +4,9 @@
 -- written only through A1's own functions (economy.post_coins, the inventory insert they already make).
 --
 -- What it holds:
---   * shop.testers: the accounts that see the shop while it is closed to everyone (Joe manages it: shop.add_tester,
---     shop.remove_tester, shop.list_testers; every change logged in shop.admin_log). Player #0001 is added here;
+--   * shop.testers: the ONE list of accounts that see the shop (its tab and its functions) while it is closed to
+--     everyone (Joe manages it: shop.add_tester, shop.remove_tester, shop.list_testers; every change logged in
+--     shop.admin_log). Player #0001 is added here and whenever an account becomes #0001;
 --   * public.shop_days: each day's four items (and the day's backups per rarity), chosen once by the server at
 --     midnight UK time and never changed, so any day can be checked later;
 --   * public.shop_weeks: each week's Monday bundle as it was offered (items, price, separate price);
@@ -74,10 +75,31 @@ END;
 $$;
 REVOKE ALL ON FUNCTION shop.log(text, uuid, jsonb, text) FROM PUBLIC, anon, authenticated, service_role;
 
--- Joe's account (#0001, given by accounts.admin_assign_player_one) is the first tester, as A2's preview list had it.
+-- Joe's account (#0001, given by accounts.admin_assign_player_one) is on the list: now if it exists, and whenever an
+-- account becomes #0001 later (the trigger below). shop.testers is the ONE list of who sees the shop while it is closed
+-- to everyone; the app has no other (src/config/shopConfig.ts).
 INSERT INTO shop.testers (user_id, note)
-SELECT user_id, 'player #0001 (A2''s Shop preview list)' FROM public.profiles WHERE player_number = 1
+SELECT user_id, 'player #0001 (Joe)' FROM public.profiles WHERE player_number = 1
 ON CONFLICT (user_id) DO NOTHING;
+
+CREATE OR REPLACE FUNCTION shop.on_player_one()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, shop
+AS $$
+BEGIN
+  IF NEW.player_number = 1 THEN
+    INSERT INTO shop.testers (user_id, note) VALUES (NEW.user_id, 'player #0001 (Joe)')
+    ON CONFLICT (user_id) DO NOTHING;
+  END IF;
+  RETURN NEW;
+END;
+$$;
+REVOKE ALL ON FUNCTION shop.on_player_one() FROM PUBLIC, anon, authenticated, service_role;
+DROP TRIGGER IF EXISTS shop_player_one_tester ON public.profiles;
+CREATE TRIGGER shop_player_one_tester AFTER INSERT OR UPDATE OF player_number ON public.profiles
+  FOR EACH ROW WHEN (NEW.player_number = 1) EXECUTE FUNCTION shop.on_player_one();
 
 /* ------------------------------------------------------------------ the recorded days and weeks */
 

@@ -251,6 +251,33 @@ async function pureChecks(): Promise<void> {
     const priceOf = (id: string) => PRICE.get(id) ?? null;
     const part = bundles.bundlePriceFor(first, new Set(["card-art.frost"]), priceOf);
     check(part !== null && part.items.length === 2 && part.price === 1980 && part.full === 2600, `part-owned: the rest at the same share off (${JSON.stringify(part)})`);
+    // Every owned subset of every bundle: the price is the bundle's less the owned items' share (rounded down to 10),
+    // the discount on what is left stays 20–30 %, it only ever falls as more is owned, and only the unowned are sold.
+    let subsets = 0;
+    const bad: string[] = [];
+    for (const b of bundles.BUNDLES) {
+      const all = bundles.fullPrice(b.items, priceOf);
+      for (let mask = 0; mask < 1 << b.items.length; mask++) {
+        const owned = new Set(b.items.filter((_, i) => mask & (1 << i)));
+        const got = bundles.bundlePriceFor(b, owned, priceOf);
+        subsets++;
+        if (owned.size === b.items.length) {
+          if (got !== null) bad.push(`${b.id} all owned`);
+          continue;
+        }
+        const left = bundles.fullPrice(b.items.filter((id) => !owned.has(id)), priceOf);
+        const want = owned.size === 0 ? b.price : Math.max(10, Math.floor((b.price - (b.price * (all - left)) / all) / 10) * 10);
+        const off = 1 - got!.price / left;
+        if (!got || got.price !== want || got.full !== left || got.items.some((id) => owned.has(id))) bad.push(`${b.id}/${mask}: ${got?.price} ≠ ${want}`);
+        else if (off < bundles.BUNDLE_MIN_OFF - 1e-9 || off > bundles.BUNDLE_MAX_OFF + 1e-9) bad.push(`${b.id}/${mask}: ${(off * 100).toFixed(1)} % off`);
+        for (let j = 0; j < b.items.length; j++) {
+          if (mask & (1 << j)) continue;
+          const more = bundles.bundlePriceFor(b, new Set([...owned, b.items[j]!]), priceOf);
+          if (more && more.price > got!.price) bad.push(`${b.id}/${mask}+${j}: rises`);
+        }
+      }
+    }
+    check(bad.length === 0, `part-owned bundles: ${subsets} owned subsets priced at the bundle less the owned share, 20–30 % off, never rising (${bad.slice(0, 3).join("; ") || "all hold"})`);
     check(bundles.bundlePriceFor(first, new Set(first.items), priceOf) === null, "all owned: nothing to buy");
   });
 
@@ -348,7 +375,11 @@ async function databaseChecks(db: LocalDb, rest: RestServer): Promise<void> {
     check(q(`SELECT shop.remove_tester('Kim_Plain', 'not a tester after all')`) === "removed", "remove_tester");
     check(q(`SELECT shop.remove_tester('Kim_Plain', 'twice')`) === "not_a_tester", "remove_tester again: not_a_tester");
     check(q(`SELECT string_agg(username, ',' ORDER BY username) FROM shop.list_testers()`) === "Joe_Shop,Leo_Teen,Mia_Shop", "list_testers lists the three");
-    check(Number(q(`SELECT count(*) FROM shop.admin_log WHERE action IN ('add_tester', 'remove_tester')`)) === 7, "every tester change is logged");
+    // The one list: an account that becomes #0001 is put on it (shop.on_player_one), however it got there.
+    q(`SELECT shop.remove_tester('Joe_Shop', 'check the #0001 trigger')`);
+    q(`SELECT accounts.admin_assign_player_one('Joe_Shop')`);
+    check(q(`SELECT player_number FROM profiles WHERE user_id = '${JOE}'`) === "1" && q(`SELECT count(*) FROM shop.testers WHERE user_id = '${JOE}'`) === "1", "an account that becomes #0001 is put on shop.testers");
+    check(Number(q(`SELECT count(*) FROM shop.admin_log WHERE action IN ('add_tester', 'remove_tester')`)) === 8, "every tester change is logged");
     check(q(`SELECT count(*) FROM shop.admin_log WHERE by_role IS NULL OR note = ''`) === "0", "each log line has who and why");
     check(/note/.test(refused(`SELECT shop.add_tester('Kim_Plain', '')`)), "a note is required");
     check(/guests|no account/.test(refused(`SELECT shop.add_tester('${NED}', 'a guest')`)), "a guest can't be a tester");
@@ -490,13 +521,26 @@ async function databaseChecks(db: LocalDb, rest: RestServer): Promise<void> {
     const again = await call(fns.buyBundleFn, { requestId: req() }, tok.leo);
     check(!again.ok && again.reason === "owned", "a bundle you own can't be bought again");
     // Part-owned: Joe owns at most one; buy one bundle item singly, then the bundle at the reduced price.
-    const single = def.items.find((id) => !owns(JOE, id))!;
+    // Every bundle item that isn't one of today's four: still on sale on its own this week, at its full price.
+    const v1 = await call(fns.getShopFn, {}, tok.joe);
+    const todayIds = (v1.today as { id: string }[]).map((c) => c.id);
+    const single = def.items.find((id) => !owns(JOE, id) && !todayIds.includes(id)) ?? def.items.find((id) => !owns(JOE, id))!;
+    const fullBefore = balance(JOE);
     const one = await call(fns.buyItemFn, { itemId: single, requestId: req() }, tok.joe);
-    check(one.ok, "a bundle item can be bought on its own this week at full price");
+    check(one.ok && owns(JOE, single) && balance(JOE) === fullBefore - PRICE.get(single)!, `a bundle item can be bought on its own this week at its full price (${single}, ${PRICE.get(single)})`);
     const before = balance(JOE);
     const v2 = await call(fns.getShopFn, {}, tok.joe);
+    const ownedNow = new Set(def.items.filter((id) => owns(JOE, id)));
+    const { bundlePriceFor } = await import("../src/lib/shop/bundles");
+    const expectedPart = bundlePriceFor(def, ownedNow, (id) => PRICE.get(id) ?? null)!;
+    const ownedFull = def.items.filter((id) => ownedNow.has(id)).reduce((a, id) => a + PRICE.get(id)!, 0);
+    const allFull = def.items.reduce((a, id) => a + PRICE.get(id)!, 0);
+    check(
+      v2.bundle.price === expectedPart.price && v2.bundle.price === Math.floor((def.price - (def.price * ownedFull) / allFull) / 10) * 10,
+      `part-owned bundle: the price less the owned items' share (${v2.bundle.price} = ${def.price} − ${def.price} × ${ownedFull}/${allFull}, rounded down to 10)`,
+    );
     const part = await call(fns.buyBundleFn, { requestId: req() }, tok.joe);
-    check(part.ok && v2.bundle.price < def.price && balance(JOE) === before - v2.bundle.price, `part-owned bundle: the rest for ${v2.bundle.price}`);
+    check(part.ok && balance(JOE) === before - v2.bundle.price && def.items.every((id) => owns(JOE, id)), `part-owned bundle: bought for ${v2.bundle.price}, every item now owned`);
     check(ledgerSum(JOE) === balance(JOE) && ledgerSum(LEO) === balance(LEO), "balances are the lines' sum");
     check(refused(`SELECT shop_purchase_bundle('${MIA}', '${mondayOf(today)}', '${def.id}', ARRAY['${def.items[0]}'], ARRAY[1], 'cheap')`) === "" &&
       JSON.parse(q(`SELECT shop_purchase_bundle('${MIA}', '${mondayOf(today)}', '${def.id}', ARRAY['${def.items[0]}'], ARRAY[1], 'cheap')`)).status === "bad_price",

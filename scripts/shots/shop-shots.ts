@@ -4,7 +4,7 @@
  * Featured, Daily, Coins, the bundle sheet, a confirmation, the bought state, and an under-18 tester's Coins. A tool,
  * not a check (shop-check proves the rules).
  *
- *   bun scripts/shots/shop-shots.ts [--out=screenshots/shop-nov-2026] [--sizes=390x844,375x667]
+ *   bun scripts/shots/shop-shots.ts [--out=docs/economy/shop-screenshots] [--sizes=390x844,375x667]
  */
 import { spawn, type ChildProcess } from "node:child_process";
 import { existsSync, mkdirSync } from "node:fs";
@@ -13,7 +13,7 @@ import type { Browser, Page } from "playwright";
 
 import { ANON_KEY, postgresBin, SERVICE_KEY, startLocalDb, startRestServer, type LocalDb, type RestServer } from "../server-fn-harness";
 
-const OUT = process.argv.find((a) => a.startsWith("--out="))?.slice(6) ?? "screenshots/shop-nov-2026";
+const OUT = process.argv.find((a) => a.startsWith("--out="))?.slice(6) ?? "docs/economy/shop-screenshots";
 const SIZES = (process.argv.find((a) => a.startsWith("--sizes="))?.slice(8) ?? "390x844,375x667").split(",").map((s) => s.split("x").map(Number) as [number, number]);
 const CHROMIUM = [process.env["PLAYWRIGHT_CHROMIUM"], "/opt/pw-browsers/chromium", "/usr/bin/chromium"].find(
   (p): p is string => Boolean(p && existsSync(p)),

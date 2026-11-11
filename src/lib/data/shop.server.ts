@@ -1,5 +1,5 @@
 /**
- * The shop's data (wave 2, session D1; docs/economy/shop.md; supabase/migrations/20261111120000_shop.sql): the
+ * The shop's data (wave 2, session D1; docs/economy/shop.md; supabase/migrations/20261112120000_shop.sql): the
  * recorded days and weeks, the wishlist, testers, and the shop's own database functions (a bundle's purchase, a
  * tester's test pack). Server only; each function issues exactly one call. A single item is bought through A1's
  * economy_purchase_item (economy.server.ts).
