@@ -20,10 +20,12 @@ export type Database = {
           grp: string
           name: string
           rarity: string
-          rule: string | null
+          rule: string
           slug: string
           sort_order: number
           status: string
+          target_need: number | null
+          target_unit: string | null
           waits_for: string | null
         }
         Insert: {
@@ -31,10 +33,12 @@ export type Database = {
           grp: string
           name: string
           rarity: string
-          rule?: string | null
+          rule: string
           slug: string
           sort_order: number
           status: string
+          target_need?: number | null
+          target_unit?: string | null
           waits_for?: string | null
         }
         Update: {
@@ -42,10 +46,12 @@ export type Database = {
           grp?: string
           name?: string
           rarity?: string
-          rule?: string | null
+          rule?: string
           slug?: string
           sort_order?: number
           status?: string
+          target_need?: number | null
+          target_unit?: string | null
           waits_for?: string | null
         }
         Relationships: []
@@ -1636,6 +1642,7 @@ export type Database = {
         Returns: { badges: string[]; founding_number: number | null; title: string | null; user_id: string }[]
       }
       daily_streak_freeze: { Args: { p_day: string; p_user_id: string }; Returns: Json }
+      badge_facts: { Args: { p_practice_since: string | null; p_puzzle_limits: Json; p_user_id: string }; Returns: Json }
       daily_history: {
         Args: { p_user_id: string }
         Returns: { day: string; finished: boolean; kind: string; total: number }[]

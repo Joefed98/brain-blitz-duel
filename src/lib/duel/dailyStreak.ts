@@ -72,6 +72,29 @@ export function dailyStreakWithFreezes(input: StreakInput): StreakAnswer {
   return { streak, freezeDays: freezeDays.sort(), playedToday };
 }
 
+/**
+ * The longest run of consecutive counted UK days ever (the streak badges: "play the Daily 7 days in a row"). A day a
+ * freeze covered keeps a run going without adding to it, exactly as in the current streak.
+ */
+export function longestDailyStreak(played: readonly string[], frozen: readonly string[] = []): number {
+  const counted = new Set(played);
+  const covered = new Set(frozen);
+  let best = 0;
+  for (const start of new Set([...counted, ...covered])) {
+    // Only count from a run's first day (counted or covered): the day before is neither.
+    const before = shiftDayKey(start, -1);
+    if (counted.has(before) || covered.has(before)) continue;
+    let run = 0;
+    let day = start;
+    while (counted.has(day) || covered.has(day)) {
+      if (counted.has(day)) run++;
+      day = shiftDayKey(day, 1);
+    }
+    best = Math.max(best, run);
+  }
+  return best;
+}
+
 /** Best finished totals per kind from the server's Daily history (dailyRecord's `best`). */
 export function dailyBests(rows: readonly { kind: string; finished: boolean; total: number }[]): Partial<Record<"puzzle" | "arcade", number>> {
   const best: Partial<Record<"puzzle" | "arcade", number>> = {};

@@ -181,3 +181,9 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+.bd-progress {
+  color: var(--jz-cyan);
+  font-size: 13px;
+  font-weight: var(--jz-weight-medium);
+  line-height: 17px;
+}

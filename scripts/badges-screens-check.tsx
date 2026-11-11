@@ -222,6 +222,7 @@ const view = () => ({
   card: state.card,
   title: state.title,
   unseen: state.earned.filter((e) => !e.seen).map((e) => e.slug),
+  progress: { "daily-habit": 4, perfectionist: 3, flawless: 0 } as Record<string, number>,
 });
 badgesApi.setBadgesBackend({
   sync: async () => view(),
@@ -260,6 +261,10 @@ badgesApi.setBadgesBackend({
   check(tiles.filter((t) => t.hasAttribute("data-locked")).every((t) => ($(`[data-badge='${t.getAttribute("data-badge")}'] [data-badge-how]`)?.textContent ?? "").trim().length > 0), "every locked badge says how it is earned (no hidden badges)");
   check(/Arrives with tournaments/.test($("[data-badge='knockout-champion']")?.textContent ?? ""), "a tournament badge says it arrives with tournaments");
   check($("[data-badge-count]")?.textContent === "1 of 54", `the count (${$("[data-badge-count]")?.textContent})`);
+  check($("[data-badge='daily-habit'] [data-badge-progress]")?.textContent === "4 of 7 days", `a locked counted badge shows progress (${$("[data-badge='daily-habit'] [data-badge-progress]")?.textContent})`);
+  check($("[data-badge='perfectionist'] [data-badge-progress]")?.textContent === "3 of 25 games" && !$("[data-badge='flawless'] [data-badge-progress]") && !$("[data-badge='founding-player'] [data-badge-progress]"), "progress only on counted badges, never on an earned one");
+  check(/Play the Daily 7 days in a row\./.test($("[data-badge='daily-habit']")?.textContent ?? ""), "the rule is shown");
+  check(!/announced soon/i.test(document.body.textContent ?? ""), "no badge says “announced soon”");
   await act(async () => root.unmount());
 
   await signIn(null);

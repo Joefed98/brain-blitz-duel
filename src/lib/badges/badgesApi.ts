@@ -70,6 +70,9 @@ export interface BadgesState {
 const EMPTY: BadgesState = { live: false, badges: null };
 let current: BadgesState = EMPTY;
 let loading: Promise<BadgesState> | null = null;
+/** When the last sync answered; a tab page opened after SYNC_AGAIN_MS syncs again (new badges, progress). */
+let syncedAt = 0;
+export const SYNC_AGAIN_MS = 60_000;
 const listeners = new Set<(v: BadgesState) => void>();
 
 function publish(next: BadgesState): BadgesState {
@@ -78,23 +81,39 @@ function publish(next: BadgesState): BadgesState {
   return next;
 }
 
-/** Syncs with the server (settles rewards, awards earned badges) and publishes the answer. */
+/**
+ * Syncs with the server (settles the rewards every account is owed, awards earned badges) and publishes the answer.
+ * A sync that fails or is refused clears `loading`, so the next tab page tries again: the sign-up coins can't be
+ * missed for want of one good answer (the server's keys keep a retry from ever paying twice).
+ */
 export function refreshBadges(): Promise<BadgesState> {
-  loading = (async () => {
+  const run = (async () => {
     const b = await backend();
     if (!b) return publish(EMPTY);
     try {
       const answer = await b.sync();
-      if (!answer || "busy" in answer) return publish(current.live ? current : EMPTY);
-      const next = publish({ live: true, badges: answer });
-      // The rewards may have moved the coin balance: let the coin counter re-read it.
-      void import("@/lib/identity/identityApi").then((m) => m.refreshIdentity()).catch(() => {});
-      return next;
+      if (!answer || "busy" in answer) {
+        loading = null;
+        return publish(current.live ? current : EMPTY);
+      }
+      syncedAt = Date.now();
+      return publish({ live: true, badges: answer });
     } catch {
-      return publish(EMPTY);
+      loading = null;
+      return publish(current.live ? current : EMPTY);
     }
   })();
-  return loading;
+  loading = run;
+  return run;
+}
+
+/**
+ * Waits (at most `ms`) for the rewards to be settled before the coin counter reads the balance, so a new account's
+ * sign-up coins are in the first balance it shows. Starts a sync if none has run.
+ */
+export async function rewardsSettled(ms = 4000): Promise<void> {
+  const settled = loading ?? refreshBadges();
+  await Promise.race([settled.catch(() => undefined), new Promise((r) => setTimeout(r, ms))]);
 }
 
 /** The signed-in account's badges (EMPTY for a guest or before the account is known). */
@@ -105,7 +124,7 @@ export function useMyBadges(): BadgesState {
   useEffect(() => {
     if (!isAccount) return;
     listeners.add(setState);
-    if (!loading) void refreshBadges();
+    if (!loading || (syncedAt > 0 && Date.now() - syncedAt > SYNC_AGAIN_MS)) void refreshBadges();
     else setState(current);
     return () => {
       listeners.delete(setState);
@@ -116,13 +135,17 @@ export function useMyBadges(): BadgesState {
 
 export function resetBadges(): void {
   loading = null;
+  syncedAt = 0;
   publish(EMPTY);
   dailyLoading = null;
   publishDaily(null);
 }
 
 function applyChange(answer: BadgeChangeResult): BadgeChangeResult {
-  if (answer.ok) publish({ live: true, badges: answer.badges });
+  if (!answer.ok) return answer;
+  // A save answers no progress (only a sync works it out): keep what the last sync said.
+  const kept = current.badges?.account ? current.badges.progress : {};
+  publish({ live: true, badges: answer.badges.account ? { ...answer.badges, progress: { ...kept, ...answer.badges.progress } } : answer.badges });
   return answer;
 }
 

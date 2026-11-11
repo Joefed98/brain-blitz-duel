@@ -1,6 +1,6 @@
 /**
  * Badges, titles and the Daily streak's data (wave 2, train C, session C2; docs/badges/README.md;
- * supabase/migrations/20261111120000_badges_titles.sql). Server only; each function issues exactly one call. Every
+ * supabase/migrations/20261111220000_badges_titles.sql). Server only; each function issues exactly one call. Every
  * write is one of the database's own functions (public.badge_* and public.daily_streak_freeze): no table here is
  * writable by any API role, the service role included.
  */
@@ -68,6 +68,27 @@ export async function readBadgePublicCards(client: Db, userIds: readonly string[
 export async function readDailyHistory(client: Db, userId: string): Promise<Result<DailyHistoryRow[]>> {
   const { data, error } = await client.rpc("daily_history", { p_user_id: userId });
   return { data: (data as DailyHistoryRow[] | null) ?? [], error };
+}
+
+/** What the badge rules read from stored results (public.badge_facts). */
+export interface BadgeFactsRow {
+  games200: number;
+  buzzer: number;
+  speedDemon: number;
+  hosted3: number;
+  gems: number;
+}
+
+export async function readBadgeFacts(
+  client: Db,
+  input: { userId: string; puzzleLimits: Record<string, number>; practiceSince: string | null },
+): Promise<Result<BadgeFactsRow | null>> {
+  const { data, error } = await client.rpc("badge_facts", {
+    p_user_id: input.userId,
+    p_puzzle_limits: input.puzzleLimits as Json,
+    p_practice_since: input.practiceSince,
+  });
+  return { data: (data as unknown as BadgeFactsRow | null) ?? null, error };
 }
 
 /** The UK days a streak freeze covered for this player. */

@@ -8,8 +8,11 @@
  * - the catalogue: the 54 badges are docs/art/badges/badges.json's (slug, name, group, rarity, coins, order), 8 / 12 /
  *   17 / 9 / 8 by rarity, every Legendary pays 250; the art in public/art/badges is the approved SVGs byte for byte;
  *   the titles are the brief's 32 (Rookie and 31 badge titles), each tied to a real badge; the database's rows match;
- * - each earnable badge has a rule (and nothing else does), with a test that earns it and one that just misses; no
- *   badge that waits (rated play, tournaments, mastery stars, practice challenges) or has no rule can be awarded;
+ * - the catalogue is Joe's approved one (docs/badges/catalogue.md's table, every rule shown, none "announced soon");
+ *   each earnable badge has a rule here or is awarded elsewhere (Friendly, B1), each rule a test that earns it and one
+ *   that just misses (pure, and on stored rooms, Dailies, challenges and gems through public.badge_facts); no badge
+ *   that waits (rated play, all stars, Hard challenges, Daily boards, tournaments, C1a's stars, C1b's challenges) can
+ *   be awarded; locked counted badges carry their progress;
  * - awards are idempotent; a Legendary pays 250 once; the sign-up reward pays 1,000 once, at sign-up and after the
  *   backfill, whichever comes first; the backfill pays every existing account and every Founding Player (badge with
  *   number, 250, the Founding frame) and a second run adds nothing;
@@ -74,7 +77,7 @@ const restore = () => {
   console.error = quietError;
 };
 
-const MIGRATION = "supabase/migrations/20261111120000_badges_titles.sql";
+const MIGRATION = "supabase/migrations/20261111220000_badges_titles.sql";
 const uid = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
 const ANA = uid(31); // signs up through completeSignUpFn (a Founding Player)
 const BEN = uid(32); // an account from before the migration (backfill)
@@ -82,6 +85,8 @@ const CAT = uid(33); // a guest
 const DOT = uid(34); // made at 23:59 on 25 Jan 2027 UK time
 const EVE = uid(35); // made at 00:00 on 26 Jan 2027 UK time
 const GUS = uid(36); // a guest on a second device
+const FAY = uid(37); // plays rooms, Dailies and a challenge (the stored-facts badges)
+const GIL = uid(38); // a second room host, one game short
 
 let db: LocalDb | null = null;
 let rest: RestServer | null = null;
@@ -108,7 +113,8 @@ try {
   process.env["SUPABASE_SERVICE_ROLE_KEY"] = SERVICE_KEY;
   db.psql(`INSERT INTO auth.users (id, is_anonymous, email) VALUES
     ('${ANA}', false, 'ana@example.com'), ('${BEN}', false, 'ben@example.com'), ('${CAT}', true, NULL),
-    ('${DOT}', false, 'dot@example.com'), ('${EVE}', false, 'eve@example.com'), ('${GUS}', true, NULL)`);
+    ('${DOT}', false, 'dot@example.com'), ('${EVE}', false, 'eve@example.com'), ('${GUS}', true, NULL),
+    ('${FAY}', false, 'fay@example.com'), ('${GIL}', false, 'gil@example.com')`);
   await installServerFnPlugin();
   await databaseChecks(db, rest);
 } catch (err) {
@@ -143,8 +149,21 @@ async function pureChecks(): Promise<void> {
     check(by("common") === 8 && by("rare") === 12 && by("epic") === 17 && by("elite") === 9 && by("legendary") === 8, "8 Common, 12 Rare, 17 Epic, 9 Elite, 8 Legendary");
     check(cat.BADGES.every((b) => b.coins === (b.rarity === "legendary" ? 250 : 0)), "every Legendary pays 250 coins, nothing else pays");
     check(cat.BADGES.every((b) => (b.status === "waits") === (b.waitsFor !== null)), "a badge waits exactly when it names what for");
-    check(cat.BADGES.every((b) => b.status !== "earnable" || b.rule), "every earnable badge states its rule");
-    check(cat.BADGES.every((b) => cat.badgeHowLine(b).length > 0), "every badge has a line saying how it is earned (no hidden badges)");
+    check(cat.BADGES.every((b) => b.rule.length > 5 && b.rule.endsWith(".")), "every badge has its rule (no hidden badges)");
+    check(cat.BADGES.every((b) => !/announced soon/i.test(cat.badgeHowLine(b))), "no badge says “announced soon”");
+    const md = readFileSync("docs/badges/catalogue.md", "utf8");
+    const tableRows = md.split("\n").filter((l) => l.startsWith("| `"));
+    const mdDiff = cat.BADGES.filter((b, i) => {
+      const cells = (tableRows[i] ?? "").split("|").map((c) => c.trim());
+      return cells[1] !== `\`${b.slug}\`` || cells[2] !== b.name || cells[5] !== b.rule || cells[6] !== (b.target ? `${b.target.need} ${b.target.unit}` : "–") || (cells[7] === "now" || cells[7] === "now (B1 awards)") !== (b.status === "earnable");
+    });
+    check(tableRows.length === 54 && mdDiff.length === 0, `docs/badges/catalogue.md's table is the catalogue, rule for rule (${mdDiff.map((d) => d.slug).join(", ") || "none differ"})`);
+    const now = cat.BADGES.filter((b) => b.status === "earnable").map((b) => b.slug).sort().join();
+    check(now === "buzzer-beater,century,daily-habit,dedicated,flawless,founding-player,friendly,gem-hunter,party-host,perfectionist,speed-demon", `earnable now: the approved list less C1a's and C1b's (${now})`);
+    const wait = (w: string) => cat.BADGES.filter((b) => b.waitsFor === w).map((b) => b.slug).sort().join();
+    check(wait("mastery-stars") === "all-rounder,first-star" && wait("practice-challenges") === "challenge-expert,challenge-seeker,challenger", "parked on C1a (First Star, All-Rounder) and C1b (Challenger, Seeker, Expert)");
+    check(cat.BADGES.filter((b) => b.waitsFor === "rated-play").length === 13 && cat.BADGES.filter((b) => b.waitsFor === "tournaments").length === 9 && cat.BADGES.filter((b) => b.waitsFor === "all-stars").length === 12 && wait("daily-boards") === "daily-champion,daily-top-100" && wait("hard-challenges") === "category-clear,completionist", "the waves' badges wait as approved (rated play 13, tournaments 9, all stars 12, Daily boards 2, Hard challenges 2)");
+    check(cat.badgeProgressLine(cat.BADGE_BY_SLUG.get("daily-habit")!, 4) === "4 of 7 days" && cat.badgeProgressLine(cat.BADGE_BY_SLUG.get("perfectionist")!, 30) === "25 of 25 games" && cat.badgeProgressLine(cat.BADGE_BY_SLUG.get("flawless")!, 0) === null, "progress reads “4 of 7 days”, capped at the count, only on counted badges");
     const svgs = readdirSync("docs/art/badges/svg").filter((f) => f.endsWith(".svg"));
     const same = svgs.filter((f) => readFileSync(`docs/art/badges/svg/${f}`).equals(readFileSync(`public/art/badges/${f}`)));
     check(svgs.length === 54 && same.length === 54 && cat.BADGES.every((b) => svgs.includes(`${b.slug}.svg`)), `public/art/badges is the 54 approved SVGs byte for byte (${same.length})`);
@@ -162,22 +181,34 @@ async function pureChecks(): Promise<void> {
     const cat = await import("../src/lib/badges/catalogue");
     const rules = await import("../src/lib/badges/rules.server");
     const earnable = cat.BADGES.filter((b) => b.status === "earnable").map((b) => b.slug);
-    check(earnable.every((s) => rules.BADGE_RULES[s]) && Object.keys(rules.BADGE_RULES).every((s) => earnable.includes(s)), "a rule for every earnable badge, and only those");
-    // Each rule: a test that earns it and one that just misses.
-    const earns: Record<string, [rules.BadgeFacts, rules.BadgeFacts]> = {
-      "founding-player": [
-        { founding: true, playerNumber: 42 },
-        { founding: false, playerNumber: 43 },
-      ],
+    const checked = earnable.filter((s) => !rules.AWARDED_ELSEWHERE.includes(s));
+    check(checked.every((s) => rules.BADGE_RULES[s]) && Object.keys(rules.BADGE_RULES).every((s) => checked.includes(s)), "a rule for every earnable badge the server checks, and only those");
+    check(rules.AWARDED_ELSEWHERE.join() === "friendly" && earnable.includes("friendly") && !rules.BADGE_RULES["friendly"], "Friendly is earnable but awarded by B1 (no rule here)");
+    check(rules.PRACTICE_SINCE === null, "Practice runs don't count until C1a's fresh start sets PRACTICE_SINCE");
+    const none: rules.BadgeFacts = { founding: false, playerNumber: 43, games200: 0, buzzerFinishes: 0, fastFinishes: 0, bestDailyStreak: 0, dailyStreak: 0, hostedRooms: 0, gems: 0 };
+    // Each rule: the facts that just earn it, and the same facts one short.
+    const earns: Record<string, [Partial<rules.BadgeFacts>, Partial<rules.BadgeFacts>]> = {
+      "founding-player": [{ founding: true, playerNumber: 42 }, { founding: false }],
+      flawless: [{ games200: 1 }, { games200: 0 }],
+      perfectionist: [{ games200: 25 }, { games200: 24 }],
+      "daily-habit": [{ bestDailyStreak: 7 }, { bestDailyStreak: 6, dailyStreak: 6 }],
+      dedicated: [{ bestDailyStreak: 30 }, { bestDailyStreak: 29 }],
+      century: [{ bestDailyStreak: 100 }, { bestDailyStreak: 99 }],
+      "buzzer-beater": [{ buzzerFinishes: 1 }, { buzzerFinishes: 0 }],
+      "speed-demon": [{ fastFinishes: 10 }, { fastFinishes: 9 }],
+      "party-host": [{ hostedRooms: 25 }, { hostedRooms: 24 }],
+      "gem-hunter": [{ gems: 1 }, { gems: 0 }],
     };
-    for (const slug of earnable) {
+    for (const slug of checked) {
       const pair = earns[slug];
       check(Boolean(pair), `${slug}: has an earn / miss test`);
       if (!pair) continue;
-      check(rules.badgesEarnedBy(pair[0]).some((b) => b.slug === slug), `${slug}: earned`);
-      check(!rules.badgesEarnedBy(pair[1]).some((b) => b.slug === slug), `${slug}: just missed`);
+      check(rules.badgesEarnedBy({ ...none, ...pair[0] }).some((b) => b.slug === slug), `${slug}: earned`);
+      check(!rules.badgesEarnedBy({ ...none, ...pair[1] }).some((b) => b.slug === slug), `${slug}: just missed`);
     }
-    check(rules.badgesEarnedBy({ founding: true, playerNumber: 42 }).find((b) => b.slug === "founding-player")?.detail["number"] === 42, "the Founding Player badge carries the number");
+    check(rules.badgesEarnedBy({ ...none, founding: true, playerNumber: 42 }).find((b) => b.slug === "founding-player")?.detail["number"] === 42, "the Founding Player badge carries the number");
+    const prog = rules.badgeProgress({ ...none, dailyStreak: 4, bestDailyStreak: 6, games200: 3, hostedRooms: 11, fastFinishes: 2 });
+    check(prog["daily-habit"] === 4 && prog["perfectionist"] === 3 && prog["party-host"] === 11 && prog["speed-demon"] === 2, "progress: today's streak for the streak badges, counts for the rest");
   });
 
   await section("daily streak rule", async () => {
@@ -207,6 +238,11 @@ async function pureChecks(): Promise<void> {
       if (s(days).streak === dailyStreak(days, T)) same++;
     }
     check(same === 2000, `without freezes the server's streak is the device rule's on 2,000 histories (${same})`);
+    const { longestDailyStreak } = await import("../src/lib/duel/dailyStreak");
+    const run = (from: number, n: number) => Array.from({ length: n }, (_, k) => d(from + k));
+    check(longestDailyStreak([...run(20, 7), ...run(2, 3)]) === 7, "the longest run counts, not today's (7 earlier, 3 now)");
+    check(longestDailyStreak([...run(20, 3), ...run(24, 3)]) === 3 && longestDailyStreak([...run(20, 3), ...run(24, 3)], [d(23)]) === 6, "a covered day joins two runs without adding to them");
+    check(longestDailyStreak([...run(10, 6)], [d(16)]) === 6 && longestDailyStreak([], []) === 0, "a covered day at a run's end adds nothing");
   });
 
   await section("moment placement", async () => {
@@ -260,12 +296,14 @@ async function databaseChecks(db: LocalDb, rest: RestServer): Promise<void> {
     const rows = JSON.parse(q(`SELECT json_agg(b ORDER BY sort_order) FROM badges b`)) as Record<string, unknown>[];
     const diff = cat.BADGES.filter((b, i) => {
       const r = rows[i];
-      return !r || r["slug"] !== b.slug || r["name"] !== b.name || r["grp"] !== b.group || r["rarity"] !== b.rarity || r["coins"] !== b.coins || r["status"] !== b.status || r["waits_for"] !== b.waitsFor || r["rule"] !== b.rule;
+      return !r || r["slug"] !== b.slug || r["name"] !== b.name || r["grp"] !== b.group || r["rarity"] !== b.rarity || r["coins"] !== b.coins || r["status"] !== b.status || r["waits_for"] !== b.waitsFor || r["rule"] !== b.rule || r["target_need"] !== (b.target?.need ?? null) || r["target_unit"] !== (b.target?.unit ?? null);
     });
+    const noRule = db.psql(`BEGIN; INSERT INTO badges (slug, name, grp, rarity, coins, status, sort_order) VALUES ('x-z', 'X', 'fun', 'common', 0, 'earnable', 998); ROLLBACK;`);
+    check(/ERROR/.test(noRule.err), "the table refuses a badge with no rule");
     check(rows.length === 54 && diff.length === 0, `public.badges is the catalogue, row for row (${diff.map((d) => d.slug).join(", ") || "none differ"})`);
     const titles = JSON.parse(q(`SELECT json_agg(t ORDER BY sort_order) FROM titles t`)) as Record<string, unknown>[];
     check(titles.length === 32 && cat.TITLES.every((t, i) => titles[i]?.["id"] === t.id && titles[i]?.["name"] === t.name && titles[i]?.["badge"] === t.badge), "public.titles is the title list, row for row");
-    const refusedRow = db.psql(`BEGIN; INSERT INTO badges (slug, name, grp, rarity, coins, status, sort_order) VALUES ('x-y', 'X', 'fun', 'legendary', 0, 'rule_pending', 999); ROLLBACK;`);
+    const refusedRow = db.psql(`BEGIN; INSERT INTO badges (slug, name, grp, rarity, coins, status, rule, sort_order) VALUES ('x-y', 'X', 'fun', 'legendary', 0, 'earnable', 'A rule.', 999); ROLLBACK;`);
     check(/ERROR/.test(refusedRow.err), "the table refuses a Legendary that doesn't pay 250");
   });
 
@@ -330,7 +368,10 @@ async function databaseChecks(db: LocalDb, rest: RestServer): Promise<void> {
     const award = (badge: string) => JSON.parse(q(`SELECT public.badge_award('${EVE}', '${badge}', '{}'::jsonb)::text`)) as { status: string };
     const waiting = cat.BADGES.filter((b) => b.status !== "earnable");
     const refusedAll = waiting.every((b) => award(b.slug).status === "not_earnable");
-    check(refusedAll && Number(q(`SELECT count(*) FROM player_badges WHERE user_id = '${EVE}'`)) === 0, `none of the ${waiting.length} badges that wait or have no rule can be awarded`);
+    check(refusedAll && waiting.length === 43 && Number(q(`SELECT count(*) FROM player_badges WHERE user_id = '${EVE}'`)) === 0, `none of the ${waiting.length} badges that wait can be awarded`);
+    const friendly = JSON.parse(q(`SELECT public.badge_award('${EVE}', 'friendly', '{}'::jsonb)::text`)) as { status: string };
+    check(friendly.status === "awarded" && balance(EVE) === 1000, "Friendly can be awarded through badge_award (B1's path), no coins (Common)");
+    q(`DELETE FROM player_badges WHERE user_id = '${EVE}' AND badge = 'friendly'`);
     check(award("no-such-badge").status === "unknown_badge", "an unknown badge is refused");
     const guest = JSON.parse(q(`SELECT public.badge_award('${CAT}', 'founding-player', '{}'::jsonb)::text`)) as { status: string };
     check(guest.status === "no_account", "a guest can't be awarded a badge");
@@ -395,6 +436,134 @@ async function databaseChecks(db: LocalDb, rest: RestServer): Promise<void> {
     const own = await deviceDb(tok.ana).from("player_badges").select("user_id");
     const rows = (own.data ?? []) as { user_id: string }[];
     check(!own.error && rows.length > 0 && rows.every((r) => r.user_id === ANA), "a player reads only their own badges");
+  });
+
+  await section("stored facts: 200s, buzzer, fast finishes, rooms hosted, gems, Daily streaks", async () => {
+    q(`SELECT public.create_profile('${FAY}', 'Fay_Facts', 6::smallint, DATE '1990-01-01', NULL)`);
+    q(`SELECT public.create_profile('${GIL}', 'Gil_Host', 7::smallint, DATE '1990-01-01', NULL)`);
+    const has = (b: string) => hasBadge(FAY, b);
+    const sync = async (tok: string) => call(fns.syncMyBadges, undefined, tok);
+    const tokFay = accountToken(FAY);
+    let n = 0;
+    const room = (host: string, order: string[]) => {
+      const id = uid(7000 + ++n);
+      q(`INSERT INTO public.duels (id, room_code, host_user_id, status, round_order) VALUES ('${id}', 'F${String(n).padStart(3, "0")}', '${host}', 'finished', '${JSON.stringify(order)}'::jsonb)`);
+      return id;
+    };
+    const seat = (duel: string, slot: number, user: string) =>
+      q(`INSERT INTO public.duel_players (duel_id, player_slot, user_id, display_name) VALUES ('${duel}', ${slot}, '${user}', 'P${slot}')`);
+    const result = (duel: string, slot: number, round: number, score: number, correct: boolean, ms: number) =>
+      q(`INSERT INTO public.round_results (duel_id, player_slot, round_number, score, is_correct, ms_remaining) VALUES ('${duel}', ${slot}, ${round}, ${score}, ${correct}, ${ms})`);
+    const archived = (duel: string, gameIndex: number, slot: number, user: string, game: string, score: number, correct: boolean, ms: number, limit: number | null) =>
+      q(`INSERT INTO public.round_results_archive (id, duel_id, game_index, player_slot, user_id, round_number, game_id, score, is_correct, ms_remaining, time_limit_ms, submitted_at)
+         VALUES (gen_random_uuid(), '${duel}', ${gameIndex}, ${slot}, '${user}', 1, '${game}', ${score}, ${correct}, ${ms}, ${limit === null ? "NULL" : limit}, now())`);
+
+    // A Daily round finished at the buzzer's edge (Buzzer Beater): 999 ms left counts, 0 ms (after the buzzer) doesn't.
+    const limits = (await import("../src/lib/badges/badges.server")).puzzleLimits();
+    const puzzleType = Object.keys(limits).find((t) => t === "gridlock") ?? Object.keys(limits)[0]!;
+    const arcadeType = "pinball";
+    check(limits[arcadeType] === undefined && limits[puzzleType]! > 0, `puzzle clocks for every puzzle, none for an arcade game (${puzzleType} ${limits[puzzleType]} ms)`);
+    const asyncRoom = (order: string[]) => {
+      const id = uid(7500 + ++n);
+      q(`INSERT INTO async_rooms (id, kind, room_key, day, seed, round_order, round_count, opens_at, closes_at) VALUES
+         ('${id}', 'daily_puzzle', 'daily_puzzle:f${n}', DATE '2026-11-01', 1, '${JSON.stringify(order)}'::jsonb, ${order.length}, now(), now() + interval '1 day')`);
+      const att = q(`INSERT INTO async_attempts (room_id, user_id, display_name) VALUES ('${id}', '${FAY}', 'F') RETURNING id`).split("\n")[0]!.trim();
+      return { id, att };
+    };
+    const asyncResult = (r: { id: string; att: string }, round: number, score: number, correct: boolean, ms: number) =>
+      q(`INSERT INTO async_results (room_id, attempt_id, user_id, round_number, started_at, answered, is_correct, ms_remaining, score)
+         VALUES ('${r.id}', '${r.att}', '${FAY}', ${round}, now(), true, ${correct}, ${ms}, ${score})`);
+    const a1 = asyncRoom([puzzleType, puzzleType, arcadeType]);
+    asyncResult(a1, 1, 120, true, 0);
+    asyncResult(a1, 2, 130, false, 500);
+    asyncResult(a1, 3, 150, true, 500);
+    await sync(tokFay);
+    check(!has("buzzer-beater"), "Buzzer Beater just missed: 0 ms left (after the buzzer), an unfinished puzzle and an arcade run don't count");
+    const a2 = asyncRoom([puzzleType]);
+    asyncResult(a2, 1, 125, true, 999);
+    await sync(tokFay);
+    check(has("buzzer-beater"), "Buzzer Beater: a puzzle finished with 999 ms left");
+
+    // Speed Demon: 10 finishes in under a third of the clock (more than two thirds left), from rooms and the archive.
+    const lim = limits[puzzleType]!;
+    const fast = Math.floor((lim * 2) / 3) + 1;
+    const r1 = room(FAY, Array(9).fill(puzzleType));
+    seat(r1, 1, FAY);
+    for (let i = 1; i <= 8; i++) result(r1, 1, i, 150, true, fast);
+    result(r1, 1, 9, 150, true, Math.floor((lim * 2) / 3)); // exactly a third used: not under
+    archived(r1, 0, 1, FAY, arcadeType, 150, true, 59_000, 60_000); // an arcade run: never a puzzle finish
+    let mine = await sync(tokFay);
+    check(!has("speed-demon") && mine?.progress?.["speed-demon"] === 8, `Speed Demon just missed at 8 (exactly a third doesn't count) (${mine?.progress?.["speed-demon"]})`);
+    archived(r1, 0, 1, FAY, puzzleType, 150, true, fast, null);
+    archived(r1, 1, 1, FAY, puzzleType, 150, true, 40_000, 45_000); // a stored clock wins
+    mine = await sync(tokFay);
+    check(has("speed-demon"), `Speed Demon: the 10th fast finish, from the archive (${mine?.progress?.["speed-demon"]})`);
+
+    // Flawless and Perfectionist: 200s in different games (rooms, archive, Daily).
+    check(!has("flawless"), "Flawless just missed: no 200 yet (150 is the most so far)");
+    const types = Object.keys(limits).slice(0, 25);
+    archived(r1, 2, 1, FAY, types[0]!, 200, true, 0, null);
+    mine = await sync(tokFay);
+    check(has("flawless") && !has("perfectionist") && mine?.progress?.["perfectionist"] === 1, "Flawless: a 200; Perfectionist at 1 of 25");
+    for (const t of types.slice(1, 24)) archived(r1, 2, 1, FAY, t, 200, true, 0, null);
+    archived(r1, 3, 1, FAY, types[0]!, 200, true, 0, null); // the same game again: still one game
+    mine = await sync(tokFay);
+    check(!has("perfectionist") && mine?.progress?.["perfectionist"] === 24, `Perfectionist just missed at 24 different games (${mine?.progress?.["perfectionist"]})`);
+    archived(r1, 3, 1, FAY, types[24]!, 201, true, 0, null);
+    await sync(tokFay);
+    check(has("perfectionist"), "Perfectionist: 25 different games at 200");
+
+    // Results a challenge copied from Fay's own room don't count again.
+    const c = asyncRoom([puzzleType]);
+    q(`INSERT INTO challenges (code, room_id, created_by, round_count, selected_categories, source, source_duel_id, expires_at) VALUES
+       ('FAYCPY', '${c.id}', '${FAY}', 1, '{}', 'room', '${r1}', now() + interval '7 days')`);
+    const before = (await sync(tokFay))?.progress?.["speed-demon"];
+    asyncResult(c, 1, 150, true, fast);
+    const after = (await sync(tokFay))?.progress?.["speed-demon"];
+    check(before === after, `a challenge's copy of the player's own room isn't counted twice (${before} → ${after})`);
+
+    // Party Host: 25 room games hosted with 3+ players (rooms on now and the archive); 2 players never count.
+    let rooms = 0;
+    const hostGame = (host: string, players: number, archive: boolean) => {
+      const r = room(host, [puzzleType]);
+      for (let s2 = 1; s2 <= players; s2++) {
+        if (archive) archived(r, 0, s2, s2 === 1 ? host : FAY, puzzleType, 10, false, 0, null);
+        else result(r, s2, 1, 10, false, 0);
+      }
+      rooms++;
+    };
+    for (let i = 0; i < 12; i++) hostGame(GIL, 3, false);
+    for (let i = 0; i < 12; i++) hostGame(GIL, 4, true);
+    hostGame(GIL, 2, false);
+    const g1 = await sync(accountToken(GIL));
+    check(!hasBadge(GIL, "party-host") && g1?.progress?.["party-host"] === 24, `Party Host just missed: 24 games with 3+ (and one of 2) (${g1?.progress?.["party-host"]})`);
+    hostGame(GIL, 3, true);
+    await sync(accountToken(GIL));
+    check(hasBadge(GIL, "party-host"), `Party Host: the 25th (${rooms} hosted in all)`);
+
+    // Gem Hunter: a gem unlock (C1a writes them).
+    check(!has("gem-hunter"), "Gem Hunter just missed: no gem");
+    q(`INSERT INTO gem_unlocks (user_id, gem) VALUES ('${FAY}', (SELECT gem FROM (VALUES ('ruby')) v(gem)))`);
+    await sync(tokFay);
+    check(has("gem-hunter"), "Gem Hunter: the first gem unlocked");
+
+    // Daily Habit: 6 days in a row just misses, 7 earns (the longest run, from the server's history).
+    const today = ukDayKey(Date.now());
+    const dailyOn = (user: string, back: number) => {
+      const id = uid(8000 + ++n);
+      const d = shiftDayKey(today, -back);
+      q(`INSERT INTO async_rooms (id, kind, room_key, day, seed, round_count, opens_at, closes_at) VALUES
+         ('${id}', 'daily_arcade', 'daily_arcade:${d}:${n}', DATE '${d}', 1, 1, now(), now() + interval '1 day')`);
+      q(`INSERT INTO async_attempts (room_id, user_id, display_name) VALUES ('${id}', '${user}', 'P')`);
+    };
+    for (let k = 10; k < 16; k++) dailyOn(GIL, k);
+    for (let k = 0; k < 2; k++) dailyOn(GIL, k);
+    const g2 = await sync(accountToken(GIL));
+    check(!hasBadge(GIL, "daily-habit") && g2?.progress?.["daily-habit"] === 2, `Daily Habit just missed: 6 days in a row; progress shows today's streak (${g2?.progress?.["daily-habit"]})`);
+    dailyOn(GIL, 16);
+    await sync(accountToken(GIL));
+    check(hasBadge(GIL, "daily-habit") && !hasBadge(GIL, "dedicated"), "Daily Habit: 7 in a row (an earlier run counts); Dedicated not yet");
+    check(Number(q(`SELECT count(*) FROM player_badges WHERE user_id = '${FAY}' AND badge IN ('daily-habit', 'dedicated', 'century')`)) === 0, "a player with no Dailies has no streak badge");
   });
 
   await section("daily streak on the account", async () => {
