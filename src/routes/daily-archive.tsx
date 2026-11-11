@@ -77,9 +77,9 @@ function ArchiveScreen() {
   };
 
   const back = (
-    <button type="button" onClick={() => setMode({ kind: "list" })} className="press tap-target -ml-2 flex items-center gap-1 px-2 text-[15px] font-semibold text-[var(--ap-link)]">
+    <Button variant="quiet" size={44} onClick={() => setMode({ kind: "list" })}>
       <Icon name="back" size={18} className="-m-px" /> Archive
-    </button>
+    </Button>
   );
 
   if (mode.kind === "run")
@@ -110,12 +110,12 @@ function ArchiveScreen() {
     <PhoneShell skin="play">
       <div data-daily-archive className="flex flex-1 flex-col gap-4">
         <div className="flex items-center justify-between gap-2">
-          <button type="button" onClick={() => router.history.back()} className="press tap-target -ml-2 flex items-center gap-1 px-2 text-[15px] font-semibold text-[var(--ap-link)]">
+          <Button variant="quiet" size={44} onClick={() => router.history.back()}>
             <Icon name="back" size={18} className="-m-px" /> Plus
-          </button>
+          </Button>
         </div>
         <div>
-          <h1 className="ap-title text-[28px]">Daily archive</h1>
+          <h1 className="ap-title">Daily archive</h1>
           <p className="mt-1 text-sm text-muted-foreground">Play any past Daily, just for fun. Unrated: never on a board or your streak.</p>
         </div>
         {refused ? (

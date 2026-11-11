@@ -3,7 +3,7 @@
 
 /* Retro Arcade's emotes draw in Silkscreen (OFL, self-hosted with the card's Electric Orange). */
 @font-face {
-  font-family: "Silkscreen";
+  font-family: "Silkscreen"; /* design-lint-ignore: Retro Arcade emote art (game art face, OFL) */
   font-style: normal;
   font-weight: 700;
   font-display: swap;

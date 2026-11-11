@@ -613,7 +613,7 @@ function ExtrasSections({
           ))}
         </div>
       ) : (
-        <p className="cz-empty" data-slot-empty>
+        <p className="cz-empty" data-extra-empty>
           {empty}
         </p>
       )}
@@ -654,7 +654,7 @@ function ExtrasSections({
             ) : null}
           </>
         ) : (
-          <p className="cz-empty" data-slot-empty>
+          <p className="cz-empty" data-extra-empty>
             No reactions yet. Reactions you own show here, to send in rooms.
           </p>
         )}
