@@ -7,6 +7,7 @@ import { useClock } from "@/components/app/useClock";
 import type { BannerPage, HouseBanner } from "@/config/banners";
 import { bannerFor } from "@/lib/banners";
 import { ukDayKey } from "@/lib/duel/daily";
+import { useDailyRecord } from "@/lib/badges/badgesApi";
 import { dailyStreak, readDailyRecord } from "@/lib/duel/dailyRecord";
 import { readRoomHistory } from "@/lib/duel/deviceHistory";
 import { practiceThisWeek } from "@/lib/duel/practiceRecent";
@@ -95,12 +96,14 @@ function DailyPanel() {
   const { status } = useDailyStatus();
   const [streak, setStreak] = useState(0);
   useEffect(() => setStreak(dailyStreak(readDailyRecord().days, ukDayKey(Date.now()))), []);
+  // The streak on the account (badgesApi.ts): the server's once it answers.
+  const dailyView = useDailyRecord();
   if (!status?.available) return null;
   return (
     <div data-aside-panel="daily">
       <DailyCard
         status={status}
-        streak={streak}
+        streak={dailyView?.source === "server" ? dailyView.streak : streak}
         onOpen={(kind) => void navigate({ to: "/daily", search: { kind } as never })}
       />
     </div>
@@ -124,11 +127,12 @@ function WeekPanel() {
       streak: dailyStreak(readDailyRecord().days, ukDayKey(Date.now())),
     });
   }, []);
+  const dailyView = useDailyRecord();
   const cells: [string, number | null][] = [
     ["Rooms", week?.rooms ?? null],
     ["Wins", week?.wins ?? null],
     ["Practice", week?.practice ?? null],
-    ["Daily streak", week?.streak ?? null],
+    ["Daily streak", dailyView?.source === "server" ? dailyView.streak : (week?.streak ?? null)],
   ];
   return (
     <section aria-label="Your week" data-aside-panel="week" className="ap-section">

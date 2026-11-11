@@ -30,6 +30,7 @@ import { readLastRoom } from "@/lib/duel/deviceHistory";
 import { recentPracticeTypes, warmUpTypes } from "@/lib/duel/practiceRecent";
 import { readPracticeBest } from "@/lib/duel/practiceBest";
 import { currentPracticeStamp } from "@/lib/duel/practiceStamps";
+import { useDailyRecord } from "@/lib/badges/badgesApi";
 import { dailyStreak, readDailyRecord } from "@/lib/duel/dailyRecord";
 import { ukDayKey } from "@/lib/duel/daily";
 import { rememberedLook, type PlayerLook } from "@/lib/duel/playerLook";
@@ -159,6 +160,8 @@ function Home() {
   const [look, setLook] = useState<PlayerLook>({ colour: 0, icon: null });
   const [bests, setBests] = useState<Partial<Record<PuzzleType, number>>>({});
   const [streak, setStreak] = useState(0);
+  // The streak on the account (src/lib/badges/badgesApi.ts): the server's once it answers, the device's until then.
+  const dailyView = useDailyRecord();
   // The beta terms come before the first room (lib/beta/terms.ts): Create or Join waits for I AGREE.
   const [termsFor, setTermsFor] = useState<"create" | "join" | null>(null);
   // The Add to Home Screen hint (iPhone Safari, first visit; reserved before the first paint, playCards.ts).
@@ -494,7 +497,7 @@ function Home() {
         <PlaySlot id="daily" state={slotState(daily.settled, !!daily.status?.available)}>
         <DailyCard
           status={dailyShown}
-          streak={streak}
+          streak={dailyView?.source === "server" ? dailyView.streak : streak}
           onOpen={(kind) => {
             unlockAudio();
             void router.navigate({

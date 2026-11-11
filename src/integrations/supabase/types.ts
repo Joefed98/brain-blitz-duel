@@ -14,6 +14,147 @@ export type Database = {
   }
   public: {
     Tables: {
+      badges: {
+        Row: {
+          coins: number
+          grp: string
+          name: string
+          rarity: string
+          rule: string | null
+          slug: string
+          sort_order: number
+          status: string
+          waits_for: string | null
+        }
+        Insert: {
+          coins: number
+          grp: string
+          name: string
+          rarity: string
+          rule?: string | null
+          slug: string
+          sort_order: number
+          status: string
+          waits_for?: string | null
+        }
+        Update: {
+          coins?: number
+          grp?: string
+          name?: string
+          rarity?: string
+          rule?: string | null
+          slug?: string
+          sort_order?: number
+          status?: string
+          waits_for?: string | null
+        }
+        Relationships: []
+      }
+      titles: {
+        Row: {
+          badge: string | null
+          id: string
+          kind: string
+          name: string
+          sort_order: number
+        }
+        Insert: {
+          badge?: string | null
+          id: string
+          kind: string
+          name: string
+          sort_order: number
+        }
+        Update: {
+          badge?: string | null
+          id?: string
+          kind?: string
+          name?: string
+          sort_order?: number
+        }
+        Relationships: []
+      }
+      player_badges: {
+        Row: {
+          badge: string
+          detail: Json
+          earned_at: string
+          seen_at: string | null
+          user_id: string
+        }
+        Insert: {
+          badge: string
+          detail?: Json
+          earned_at?: string
+          seen_at?: string | null
+          user_id: string
+        }
+        Update: {
+          badge?: string
+          detail?: Json
+          earned_at?: string
+          seen_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      card_badges: {
+        Row: {
+          badge: string
+          position: number
+          user_id: string
+        }
+        Insert: {
+          badge: string
+          position: number
+          user_id: string
+        }
+        Update: {
+          badge?: string
+          position?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
+      card_titles: {
+        Row: {
+          equipped_at: string
+          title: string
+          user_id: string
+        }
+        Insert: {
+          equipped_at?: string
+          title: string
+          user_id: string
+        }
+        Update: {
+          equipped_at?: string
+          title?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      daily_streak_freezes: {
+        Row: {
+          consumable_line: number | null
+          day: string
+          used_at: string
+          user_id: string
+        }
+        Insert: {
+          consumable_line?: number | null
+          day: string
+          used_at?: string
+          user_id: string
+        }
+        Update: {
+          consumable_line?: number | null
+          day?: string
+          used_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       catalogue_items: {
         Row: {
           animated: boolean
@@ -1486,6 +1627,19 @@ export type Database = {
       }
     }
     Functions: {
+      badge_award: { Args: { p_badge: string; p_detail: Json; p_user_id: string }; Returns: Json }
+      badge_set_card: { Args: { p_badges: string[]; p_user_id: string }; Returns: string }
+      badge_set_title: { Args: { p_title: string | null; p_user_id: string }; Returns: string }
+      badge_mark_seen: { Args: { p_badges: string[]; p_user_id: string }; Returns: number }
+      badge_public_cards: {
+        Args: { p_user_ids: string[] }
+        Returns: { badges: string[]; founding_number: number | null; title: string | null; user_id: string }[]
+      }
+      daily_streak_freeze: { Args: { p_day: string; p_user_id: string }; Returns: Json }
+      daily_history: {
+        Args: { p_user_id: string }
+        Returns: { day: string; finished: boolean; kind: string; total: number }[]
+      }
       economy_credit: {
         Args: { p_amount: number; p_key: string; p_reason: string; p_ref_id: string | null; p_ref_kind: string | null; p_user_id: string }
         Returns: Json
