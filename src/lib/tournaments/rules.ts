@@ -357,3 +357,32 @@ export function placeLabel(from: number, to: number): string {
 
 /** The Arena minimum, for screens. */
 export const arenaMinEntrants = () => ARENA_MIN_ENTRANTS;
+
+/* ------------------------------------------------------------------ flagged runs (Joe, 11 Nov 2026) */
+
+/**
+ * The server's own flag on a stored grade (round_results.extra / async_results.extra): `extra.flagged === true`, set
+ * by the server replay on a failed check, a mismatch or a desync (the same rule W3a's ratings read). The reason is
+ * `extra.flagReason` when given, else "server_replay". Anything else, including whatever the phone sent, is no flag.
+ */
+export function serverFlag(extra: unknown): string | null {
+  if (!extra || typeof extra !== "object" || Array.isArray(extra)) return null;
+  const e = extra as Record<string, unknown>;
+  if (e["flagged"] !== true) return null;
+  const reason = typeof e["flagReason"] === "string" && e["flagReason"].trim() ? e["flagReason"].trim().slice(0, 40) : "server_replay";
+  return reason;
+}
+
+/**
+ * A duel with a flagged run: the flagged player earns nothing (no points, the streak broken), and the opponent's
+ * result stands as a win; both flagged: nobody earns anything. Unflagged duels keep their result.
+ */
+export function flaggedDuelWinner(winner: "a" | "b" | "draw", aFlagged: boolean, bFlagged: boolean): "a" | "b" | "draw" {
+  if (aFlagged && bFlagged) return "draw";
+  if (aFlagged) return "b";
+  if (bFlagged) return "a";
+  return winner;
+}
+
+/** The plain line a player with a flagged run sees. */
+export const UNDER_REVIEW_LINE = "Your result is under review.";

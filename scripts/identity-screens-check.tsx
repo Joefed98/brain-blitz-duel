@@ -618,8 +618,26 @@ for (const [who, n, shows] of [
 {
   const source = readFileSync("src/routes/profile.tsx", "utf8") + readFileSync("src/components/identity/ProfileCard.tsx", "utf8");
   // Changed with Joe's approval, 11 Nov 2026 (wave 2 C1a): "Mastery stars" taken out of this list (the section now exists; the check below proves it).
-  for (const word of ["Strongest categories", "Trophy cabinet", "Puzzles and Arcade", "Season peak", "matches"]) {
+  // Changed with Joe's approval, 11 Nov 2026 (wave 4 W4b): "Trophy cabinet" taken out of this list; the check below
+  // proves Profile's cabinet shows only real trophies (the account's own, from the server) and nothing without one.
+  for (const word of ["Strongest categories", "Puzzles and Arcade", "Season peak", "matches"]) {
     check(!source.includes(`>${word}<`) && !source.includes(`"${word}"`), `Profile draws no "${word}" section yet`);
+  }
+  {
+    const { TrophyCabinet } = await import("../src/components/tournaments/TournamentHub");
+    const { renderToStaticMarkup } = await import("react-dom/server");
+    const none = renderToStaticMarkup(React.createElement(TrophyCabinet, { trophies: [] }));
+    const one = renderToStaticMarkup(
+      React.createElement(TrophyCabinet, {
+        trophies: [{ eventId: "arena:2026-11-20:1300", kind: "arena", medal: "gold", title: "Lunchtime Arena, 1st", place: 1, awardedAt: 0 }],
+      }),
+    );
+    check(
+      none === "" &&
+        /data-trophy-cabinet/.test(one) && (one.match(/data-trophy="/g) ?? []).length === 1 &&
+        /const trophies = useMyTrophies\(accountName !== null\);/.test(source) && /<TrophyCabinet trophies=\{trophies\} \/>/.test(source),
+      "Profile's trophy cabinet shows only real trophies: the account's own from the server, one per trophy, nothing without one",
+    );
   }
   // Changed with Joe's approval, 11 Nov 2026 (wave 2 C1a): the Mastery stars section shows the server's total out of 276.
   {

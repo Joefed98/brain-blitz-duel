@@ -374,6 +374,11 @@ export const SHARDS: Record<string, string[]> = {
     // server-function harness, beside accounts-check; rated-matchmaking-check (~1 s) proves the pure rules.
     "rated-server-check.ts",
     "rated-matchmaking-check.ts",
+    // tournaments-check (wave 4 W4b, 11 Nov 2026, ~30 s): the schedule, the Arena's points, streak and pairing, Score
+    // Attack, entry and refunds, prizes with the safeguard, trophies and badges once, never a rating, on a local
+    // PostgreSQL through the server-function harness; tournaments-screens-check (~2 s) the hub's screens.
+    "tournaments-check.ts",
+    "tournaments-screens-check.tsx",
     "ink-x200-check.ts",
     "depth4-check.ts",
     "room-figures-check.ts",

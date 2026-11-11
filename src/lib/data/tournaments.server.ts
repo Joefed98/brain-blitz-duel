@@ -304,3 +304,28 @@ export async function readGoldCount(client: Db, userId: string): Promise<Result<
   const { data, error } = await client.from("tournament_trophies").select("event_id").eq("user_id", userId).eq("medal", "gold");
   return { data: (data ?? []).length, error };
 }
+
+/* ------------------------------------------------------------------ flagged runs (Joe's review) */
+
+/** Logs one of the server's own flags once (moderation.tournament_flags, through public.tournament_flag). */
+export async function flagRpc(
+  client: Db,
+  input: { eventId: string; playerId: string; source: "arena_duel" | "score_attack"; sourceId: string; gameIdx: number; game: string; reason: string },
+): Promise<Result<boolean>> {
+  const { data, error } = await client.rpc("tournament_flag", {
+    p_event: input.eventId,
+    p_player: input.playerId,
+    p_source: input.source,
+    p_source_id: input.sourceId,
+    p_game_idx: input.gameIdx,
+    p_game: input.game,
+    p_reason: input.reason,
+  });
+  return { data: data === true, error };
+}
+
+/** The players with a flagged run in an event. */
+export async function readFlaggedPlayers(client: Db, eventId: string): Promise<Result<string[]>> {
+  const { data, error } = await client.rpc("tournament_flagged_players", { p_event: eventId });
+  return { data: Array.isArray(data) ? data.filter((x): x is string => typeof x === "string") : [], error };
+}
