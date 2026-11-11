@@ -12,7 +12,9 @@
  * - a recorded run moves its owner at most half as much as live, only from a rated game, and not past 5 uses a day;
  *   room, Daily and Practice runs never move their owner; the 4th rated match between two live players in a UK day
  *   plays but moves nothing, and the count starts again at UK midnight;
- * - placement hides every rating for exactly 5 matches, then reveals the tier once; tiers and divisions at every
+ * - placement hides every rating for exactly 5 matches, then reveals the tier once; each placement match's result
+ *   (won, lost or drawn, with its match id and time) is stored and returned in order by placementStatus and
+ *   getMyRatings on any device; tiers and divisions at every
  *   threshold; caps count only from 1,000 rated players; Storm's top 3% and Top 500's rank with the 3-day grace;
  *   "Storm-rated, top 4%";
  * - recordRatedMatch is idempotent (also racing), never loses a concurrent update, refuses a game in the wrong pool,
@@ -767,6 +769,52 @@ async function databaseChecks(db: LocalDb, rest: RestServer): Promise<void> {
   const place = async (id: string, n = 5) => {
     for (let i = 0; i < n; i++) await record(duel(mid(), id, uid(crowd++), [[150, 100], [150, 100]]));
   };
+
+  await section("placement results: each box's result, stored, in order, on any device", async () => {
+    const P = uid(141);
+    const fns = await import("../src/lib/rated/ratings.functions");
+    const recorded: Result[] = [];
+    const play = async (m: Result) => {
+      recorded.push(m);
+      return record(m);
+    };
+    const one = await play(duel(mid(), P, uid(crowd++), [[150, 100], [150, 100]]));
+    check(one.ok && one.players[0]!.placement.results.map((r) => r.result).join() === "win", "after placement match 1 the change carries its box (win)");
+    await play(duel(mid(), P, uid(crowd++), [[100, 150], [100, 150]]));
+    const flaggedM = duel(mid(), P, uid(crowd++), [[150, 100], [150, 100]]);
+    flaggedM.games[0]!.gradeExtras = { [P]: { flagged: true } };
+    await play(flaggedM);
+    await play(duel(mid(), P, uid(crowd++), [[150, 100], [100, 150], [120, 120]]));
+    const owner = uid(crowd++);
+    const vsRun = duel(mid(), P, owner, [[150, 100], [150, 100]]);
+    vsRun.players[1] = { playerId: owner, side: "recorded", run: { runId: "run-place", ownerId: owner, source: "room" } };
+    await play(vsRun);
+    const last = await play(duel(mid(), P, uid(crowd++), [[100, 150], [100, 150]]));
+    await play(duel(mid(), P, uid(crowd++), [[150, 100], [150, 100]]));
+    const want = [recorded[0]!, recorded[1]!, recorded[3]!, recorded[4]!, recorded[5]!];
+    const st = await rs.placementStatus(admin, P, clock);
+    check(st.done && st.results.length === 5 && st.results.map((r) => r.n).join() === "1,2,3,4,5", `placementStatus: five results, in order (${st.results.map((r) => r.n).join(",")})`);
+    check(st.results.map((r) => r.result).join() === "win,loss,draw,win,loss", `each box's result: won, lost or drawn (${st.results.map((r) => r.result).join(", ")})`);
+    check(st.results.every((r, i) => r.matchId === want[i]!.matchId), "each with its match id (the flagged match left out: it was no placement match)");
+    const times = st.results.map((r) => Date.parse(r.at));
+    check(times.every((t, i) => Number.isFinite(t) && (i === 0 || t > times[i - 1]!)), "and when it finished, in order");
+    check(last.ok && last.players[0]!.placement.justFinished && last.players[0]!.placement.results.map((r) => r.result).join() === "win,loss,draw,win,loss", "the 5th match's change carries all five boxes (for the reveal)");
+    check(q(`SELECT count(*) FROM rated_match_players WHERE player_id = '${P}' AND placement_no IS NOT NULL`) === "5", "a 6th or 7th match stores no placement result");
+    const view = await rs.getMyRatings(admin, P, clock);
+    check(JSON.stringify(view.placement.results) === JSON.stringify(st.results), "getMyRatings returns the same results");
+    const other = await callServerFn(fns.placementStatusFn, undefined, userToken(P));
+    const mine = await callServerFn(fns.getMyRatingsFn, undefined, userToken(P));
+    check(JSON.stringify(other?.results) === JSON.stringify(st.results) && JSON.stringify(mine?.placement?.results) === JSON.stringify(st.results), "on another device (a fresh session through the server functions): the same five boxes");
+    const mid3 = await rs.placementStatus(admin, uid(110), clock);
+    check(mid3.results.length === 5 && mid3.results.every((r) => r.result === "win"), "the earlier placed player's boxes are all wins, as played");
+    const dup = db.psql(`INSERT INTO rated_match_players (match_id, player_id, side, result, counted, moved, placement_no, finished_at) VALUES ('${recorded[6]!.matchId}', '${uid(1999)}', 'live', 'win', true, true, 1, now()), ('${recorded[6]!.matchId}', '${uid(1998)}', 'live', 'win', true, true, 1, now())`);
+    check(dup.ok, "two players may each have their own placement 1");
+    const twice = db.psql(`INSERT INTO rated_match_players (match_id, player_id, side, result, counted, moved, placement_no, finished_at) VALUES ('${recorded[5]!.matchId}', '${uid(1999)}', 'live', 'win', true, true, 1, now())`);
+    check(/duplicate|unique/i.test(twice.err), "the database refuses a second placement 1 for the same player");
+    q(`DELETE FROM rated_match_players WHERE player_id IN ('${uid(1999)}', '${uid(1998)}')`);
+    const fresh = await rs.placementStatus(admin, uid(199), clock);
+    check(fresh.results.length === 0, "a player who never played: no boxes");
+  });
 
   await section("competitive badges, each once", async () => {
     const W = uid(121);

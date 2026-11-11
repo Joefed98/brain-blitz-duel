@@ -7,6 +7,8 @@
  *   2. AFTER that PR is live, Supabase's captcha protection is switched on with the same secret.
  * The order matters: with Supabase's captcha on and no site key here, phones can't make new guests.
  */
+import { checkOverride } from "@/lib/checkOverride";
+
 export const TURNSTILE_SITE_KEY = "0x4AAAAAAF7p4429yWwcQSDR";
 
 /**
@@ -24,7 +26,7 @@ export function isTurnstileTestSiteKey(key: string): boolean {
  */
 export function turnstileSiteKey(): string {
   if (typeof window !== "undefined") {
-    const override = (window as unknown as { __DUELZ_TURNSTILE_SITE_KEY__?: unknown }).__DUELZ_TURNSTILE_SITE_KEY__;
+    const override = checkOverride("__DUELZ_TURNSTILE_SITE_KEY__");
     const automated = typeof navigator !== "undefined" && navigator.webdriver === true;
     if (automated) return typeof override === "string" && isTurnstileTestSiteKey(override) ? override : "";
     if (typeof override === "string") return override;

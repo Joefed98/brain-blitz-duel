@@ -60,7 +60,7 @@ What it does, in one transaction per match (retried on a concurrent change to an
 `RatedPlayerChange`: `playerId`, `side`, `moved`, `frozen` (`same_opponent_today` | `recorded_unrated_source` |
 `recorded_daily_limit` | `flagged_run` | null), `changes` (each rating moved: `key`, `before`, `after`, `delta`, `rdBefore`,
 `rdAfter`), `flagged` (this player's run was flagged), `joulz` (before / after, null in placement), `placement` (`played`, `of: 5`, `done`, `label`,
-`justFinished`: show the reveal), `tier` (before / after `TierView`, null in placement), `result` (`win` / `loss` /
+`results` (the boxes so far, this match's included), `justFinished`: show the reveal), `tier` (before / after `TierView`, null in placement), `result` (`win` / `loss` /
 `draw`; first place is a win), `place` (4 and 8 players), `joules`, `badges` (competitive badges newly awarded).
 
 ## Read by the phone (server functions, `src/lib/rated/ratings.functions.ts`)
@@ -69,7 +69,7 @@ What it does, in one transaction per match (retried on a concurrent change to an
 | --- | --- |
 | `getMyRatingsFn()` → `getMyRatings(client, userId)` | `PlayerRatings` for the signed-in device |
 | `getRatingsForFn({ playerId })` → `getRatingsFor(client, playerId)` | another player's `PlayerRatings` (the same hiding) |
-| `placementStatusFn()` → `placementStatus(client, userId)` | `PlacementStatus`: `{ played, of: 5, done, label }` ("Placement 1 of 5") |
+| `placementStatusFn()` → `placementStatus(client, userId)` | `PlacementStatus`: `{ played, of: 5, done, label, results }` ("Placement 1 of 5"); `results` is each placement match so far, in order: `{ n: 1–5, matchId, result: "win" \| "loss" \| "draw", at }` (the five boxes, the same on any device) |
 | `getTierLadderFn()` → `getTierLadder(client)` | `TierLadderRung[]` with each tier's live share of rated players |
 
 `PlayerRatings`: `placement`; `joulz`, `tier`, `pools`, `categories` are null while in placement (every rating hidden).
