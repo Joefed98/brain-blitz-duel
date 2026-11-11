@@ -660,6 +660,7 @@ export type Database = {
           extra: Json | null
           id: string
           input_type: string | null
+          look: Json | null
           is_correct: boolean
           missed: boolean
           ms_remaining: number
@@ -680,6 +681,7 @@ export type Database = {
           extra?: Json | null
           id?: string
           input_type?: string | null
+          look?: Json | null
           is_correct?: boolean
           missed?: boolean
           ms_remaining?: number
@@ -700,6 +702,7 @@ export type Database = {
           extra?: Json | null
           id?: string
           input_type?: string | null
+          look?: Json | null
           is_correct?: boolean
           missed?: boolean
           ms_remaining?: number
@@ -1591,6 +1594,7 @@ export type Database = {
           extra: Json | null
           id: string
           input_type: string | null
+          look: Json | null
           is_correct: boolean
           ms_remaining: number
           player_slot: number
@@ -1607,6 +1611,7 @@ export type Database = {
           extra?: Json | null
           id?: string
           input_type?: string | null
+          look?: Json | null
           is_correct?: boolean
           ms_remaining?: number
           player_slot: number
@@ -1623,6 +1628,7 @@ export type Database = {
           extra?: Json | null
           id?: string
           input_type?: string | null
+          look?: Json | null
           is_correct?: boolean
           ms_remaining?: number
           player_slot?: number
@@ -1849,6 +1855,17 @@ export type Database = {
       }
     }
     Functions: {
+      result_look_for: {
+        Args: { p_game: string; p_user_id: string }
+        Returns: Json
+      }
+      room_game_looks: {
+        Args: { p_duel_id: string; p_game: string }
+        Returns: {
+          look: Json | null
+          player_slot: number
+        }[]
+      }
       badge_award: { Args: { p_badge: string; p_detail: Json; p_user_id: string }; Returns: Json }
       badge_set_card: { Args: { p_badges: string[]; p_user_id: string }; Returns: string }
       badge_set_title: { Args: { p_title: string | null; p_user_id: string }; Returns: string }

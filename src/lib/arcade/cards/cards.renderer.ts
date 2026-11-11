@@ -14,6 +14,23 @@
  */
 import { isRed, RANK_LABELS, rankOf, suitOf } from "./cards";
 
+import { NO_LOOK, type GameLook } from "../skins/look";
+import { cardBackOf, feltOf, paintSkinBack, paintSkinFelt } from "../skins/cards.skins";
+
+/**
+ * The look the card games draw in (wave 2 skins): set by a looked art game's draw for its length (withCardsLook), the
+ * default otherwise. A card-back skin paints every face-down card, a felt skin the table.
+ */
+let CL: GameLook = NO_LOOK;
+export function withCardsLook<T>(look: GameLook, fn: () => T): T {
+  CL = look;
+  try {
+    return fn();
+  } finally {
+    CL = NO_LOOK;
+  }
+}
+
 export const CARD_RED = "#C42A3C";
 export const CARD_BLACK = "#1A1E29";
 export const CARD_GOLD = "#E9C46A";
@@ -711,7 +728,12 @@ export function drawCard(ctx: CanvasRenderingContext2D, card: number, x: number,
     ctx.stroke();
     ctx.restore();
   }
-  const img = look.down ? cached("back", w, h, scale, (c) => paintBack(c, w, h)) : cached(`c${card}`, w, h, scale, (c) => paintFace(c, card, w, h));
+  const skinBack = look.down ? cardBackOf(CL) : null;
+  const img = skinBack
+    ? cached(`back:${skinBack}`, w, h, scale, (c) => paintSkinBack(c, skinBack, w, h))
+    : look.down
+      ? cached("back", w, h, scale, (c) => paintBack(c, w, h))
+      : cached(`c${card}`, w, h, scale, (c) => paintFace(c, card, w, h));
   ctx.drawImage(img as CanvasImageSource, x - PAD, y - PAD, w + PAD * 2, h + PAD * 2);
   if (look.dim && look.dim > 0) {
     ctx.fillStyle = `rgba(8,18,40,${Math.min(0.7, look.dim)})`;
@@ -743,14 +765,16 @@ export function drawSlot(ctx: CanvasRenderingContext2D, x: number, y: number, w:
 /** The felt (cached per world size and scale): deep blue, woven, lamp-lit, gold stitching and a faint JOULZ. */
 export function drawFelt(ctx: CanvasRenderingContext2D, w: number, h: number): void {
   const scale = scaleOf(ctx);
-  const key = `felt:${w}x${h}@${scale}`;
+  const felt = feltOf(CL);
+  const key = `felt:${felt ? `${felt}:` : ""}${w}x${h}@${scale}`;
   let canvas = cache.get(key);
   if (!canvas) {
     canvas = makeCanvas(Math.ceil(w * scale), Math.ceil(h * scale));
     const c = canvas.getContext("2d") as CanvasRenderingContext2D | null;
     if (c) {
       c.scale(scale, scale);
-      paintFelt(c, w, h);
+      if (felt) paintSkinFelt(c, felt, w, h);
+      else paintFelt(c, w, h);
     }
     cache.set(key, canvas);
   }

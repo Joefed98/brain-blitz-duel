@@ -1975,6 +1975,30 @@ outside the repo.
   `20261110200000_analytics_identity_events.sql` (**applied**; it adds to the list it reads from the
   table). Checks: identity-screens-check (~5 s, happy-dom, A1 stood in by `setIdentityBackend`) and identity-motion-check
   (headless Chromium: every item against its approved PNG, no animation under reduced motion).
+- **Game skins and world themes** (wave 2 E1, 11 Nov 2026, `docs/skins.md`; display only, no stamps, no gameplay,
+  deal or scoring change): the 20 game skins, 3 card backs and 4 world themes of `docs/art/wave-2/items/game-skin/`,
+  `card-back/` and `world-theme/` in Cue Ball, Crazy Golf, Curl Champ, Apex, Top Bins and Full House (Free Cell has no
+  skins: its deal is face up). `src/lib/arcade/skins/` (`look.ts`:
+  `GameLook`, `NO_LOOK`, the ids, the 3:1 contrast helpers; `motion.renderer.ts`: `skinTime()`, still under Reduce
+  Motion, the only Reduce Motion read; one `<game>.skins.ts`
+  each, `ballArt.ts` for the round balls). Each renderer takes an optional look on its public draw calls for the length
+  of the call only, so replays, reveals, demos, tiles and ghosts draw the default; scenes come from `…SceneFor(look)`.
+  The live stages alone pass the player's own equipped look (`src/lib/skins/equipped.ts` `useGameLookRef`, fed by
+  `src/lib/identity/gameLooks.ts` from A1's loadout through the identity backend's `gameLooks`). *Card backs* (Joe, 11
+  Nov 2026): one account slot `card-back` (ids `card-back.royal-damask`, `.holo-foil`, `.neon`; `CARD_BACK_IDS`,
+  `CARD_BACK_GAMES`), drawn on Full House's deck behind Next card; migration `20261112090000_card_back_slot.sql` moved
+  the three Free Cell skins with their owners and loadouts (old ids in `public.catalogue_renamed`, never re-inserted).
+  *Replays and ghosts*: each result stores its player's equipped look (`round_results.look`, `async_results.look`,
+  filled by database triggers from the loadout, never by the phone; `20261112090100_result_looks.sql`; Play again's
+  archive keeps it, `20261112090200_archive_result_look.sql`); replays draw
+  the player's skin and back in the viewer's own world (`lookFromStored`, `playerLookIn`), Apex's ghosts their owners'
+  paints (`roomGameLooksFn` → `room_game_looks`, `setRaceGhostSkins`). Nothing grades, scores, ranks or deals from a
+  look. Checks: skins-default-check (56 frames identical to digests recorded on main before the hook,
+  `scripts/fixtures/skins-default-frames.json`, never re-record), skins-check (catalogue, renders, contrast, sizes,
+  Reduce Motion, ownership, Full House's deck against `scripts/fixtures/skins-deck-frames.json`, recorded on main),
+  skins-replay-check (28 recorded runs in every look, identical scores; `scripts/fixtures/skins-replay-runs.json`),
+  skins-db-check (the two migrations and the ghost function on a local PostgreSQL, shard `e`). **A change to one of these renderers must keep
+  skins-default-check green; a new skin goes in look.ts's ids and its game's `.skins.ts`.**
 - **Phone notifications** (wave 2 train B, session B2, 11 Nov 2026, `docs/push-notifications.md`; no gameplay, scoring,
   stamp, timing or room-flow change): standard web push with Joulz's own VAPID keys, no package (RFC 8291 / 8292 in
   WebCrypto, `src/lib/push/webPush.server.ts`). **Off until Joe sets `PUSH_PUBLIC_KEY`** (`src/config/pushConfig.ts`) and the
