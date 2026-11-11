@@ -504,6 +504,46 @@ async function databaseChecks(db: LocalDb, rest: RestServer): Promise<void> {
     check([...a, ...b].filter((o) => o.status === "credited").length === 5, "two batches at once: still five challenges paid");
   });
 
+  /* ------------------------------------------------------------- the UK day the play happened, not the day it's credited */
+  await section("UK day of play", async () => {
+    const D3 = shiftDayKey(lastMonday, 3);
+    // Kim (pass on for everyone) plays late on Wednesday: 18 rooms of 12 rounds (5,220 Joules before the cap), then 12
+    // Practice runs from 23:50; two more just after midnight. She doesn't open the pass until Thursday morning.
+    q(`DO $$
+      DECLARE d uuid;
+      BEGIN
+        FOR i IN 1..18 LOOP
+          d := gen_random_uuid();
+          INSERT INTO public.duels (id, room_code, host_user_id, status, round_order)
+          VALUES (d, 'Q' || lpad(i::text, 3, '0'), '${KIM}', 'finished', '${JSON.stringify(Array.from({ length: 12 }, () => games.logic))}'::jsonb);
+          INSERT INTO public.duel_players (duel_id, player_slot, user_id, display_name) VALUES (d, 1, '${KIM}', 'Kim');
+          FOR r IN 1..12 LOOP
+            INSERT INTO public.round_results (duel_id, player_slot, round_number, score, is_correct, ms_remaining, submitted_at)
+            VALUES (d, 1, r, 120, true, 0, '${iso(at(D2, "21:00"))}'::timestamptz + make_interval(secs => i * 60 + r));
+          END LOOP;
+        END LOOP;
+      END $$`);
+    for (let i = 0; i < 12; i++)
+      q(`INSERT INTO practice_plays (user_id, game_id, score, is_correct, created_at, progress_counted_at) VALUES ('${KIM}', '${games.puzzle}', 120, true, '${iso(at(D2, "23:48") + i * 60_000)}', '${iso(at(D2, "23:48") + i * 60_000)}')`);
+    for (let i = 0; i < 2; i++)
+      q(`INSERT INTO practice_plays (user_id, game_id, score, is_correct, created_at, progress_counted_at) VALUES ('${KIM}', '${games.puzzle}', 120, true, '${iso(at(D3, "00:01") + i * 60_000)}', '${iso(at(D3, "00:01") + i * 60_000)}')`);
+    const nextMorning = at(D3, "09:00");
+    const view = await pass.passViewFor(admin, KIM, nextMorning, true);
+    check(view.open === true, "Kim opens the pass the next morning");
+    // Joules from play on a UK day (a weekly challenge's whole reward is outside the day's cap).
+    const day = (d: string) => Number(q(`SELECT coalesce(sum(amount), 0) FROM pass_joules WHERE user_id = '${KIM}' AND season_id = 's1' AND uk_day = '${d}' AND kind <> 'weekly'`));
+    const wedRooms = 216 * 20 + 18 * 50;
+    const wedPractice = jl.settleDay(Array.from({ length: 12 }, () => ({ kind: "practice" as const, base: 20 }))).reduce((a, b) => a + b, 0);
+    const wedTotal = wedRooms + wedPractice;
+    check(day(D2) === 4000 + (wedTotal - 4000) / 2, `Wednesday's play counts on Wednesday: 4,000 then half (${day(D2)} of ${wedTotal})`);
+    check(Number(q(`SELECT count(*) FROM pass_joules WHERE user_id = '${KIM}' AND kind = 'practice' AND uk_day = '${D2}' AND base > 0`)) === 10, "Wednesday's Practice limit: ten runs paid, though credited on Thursday");
+    check(Number(q(`SELECT sum(amount) FROM pass_joules WHERE user_id = '${KIM}' AND kind = 'practice' AND uk_day = '${D2}'`)) === 100, "and those ten fall after Wednesday's 4,000, so earn half");
+    check(day(D3) === 40 && q(`SELECT string_agg(amount::text, ',') FROM pass_joules WHERE user_id = '${KIM}' AND uk_day = '${D3}' AND kind <> 'weekly'`) === "20,20", "the two runs after midnight start Thursday afresh: full pay, their own limit");
+    check(q(`SELECT count(*) FROM pass_joules WHERE user_id = '${KIM}' AND created_at::date <> uk_day AND uk_day = '${D2}'`) !== "0", "credited days later, still counted on the day of play");
+    const later = await pass.passViewFor(admin, KIM, Date.now(), true);
+    check(later.open === true && day(D2) === 4000 + (wedTotal - 4000) / 2 && day(D3) === 40, "opening it again later changes nothing");
+  });
+
   /* ------------------------------------------------------------- claiming */
   await section("claiming", async () => {
     const view = await call(fns.getPassFn, undefined, tok.joe);
@@ -569,6 +609,19 @@ async function databaseChecks(db: LocalDb, rest: RestServer): Promise<void> {
     check(await events("reward_claimed", JOE) === 90 && Number(q(`SELECT count(*) FROM pass_claims WHERE user_id = '${JOE}'`)) === 90, "reward_claimed for each of the 90 claims, once");
     check(q(`SELECT count(*) FROM analytics.events WHERE event = 'reward_claimed' AND (props->>'track') IS NOT NULL AND (props->>'level') IS NOT NULL AND (props->>'kind') IS NOT NULL`) === "90", "with the track, level and kind");
 
+    // The pass titles (Joe's approval, 11 Nov 2026): equippable once unlocked, never before.
+    const badgeFns = await import("../src/lib/badges/badges.functions");
+    check(q(`SELECT string_agg(id || ':' || kind, ',' ORDER BY sort_order) FROM titles WHERE kind = 'pass'`) === "neon-rider:pass,circuit-breaker:pass" && q(`SELECT count(*) FROM titles`) === "34", "public.titles: the brief's 32, then Neon Rider and Circuit Breaker");
+    const mine = await call(badgeFns.getMyBadges, undefined, tok.joe);
+    check(mine?.account === true && (mine.passTitles ?? []).slice().sort().join() === "circuit-breaker,neon-rider", "Joe's badges list both pass titles as unlocked");
+    const eq = await call(badgeFns.setMyTitle, { title: "neon-rider" }, tok.joe);
+    check(eq?.ok === true && eq.badges.account === true && eq.badges.title === "neon-rider", "an unlocked pass title is equipped");
+    check(q(`SELECT title FROM card_titles WHERE user_id = '${JOE}'`) === "neon-rider", "and shown on the card (card_titles)");
+    const kimTitle = await call(badgeFns.setMyTitle, { title: "circuit-breaker" }, tok.kim);
+    check(kimTitle?.ok === false && kimTitle.reason === "not_earned", "a pass title not unlocked is refused");
+    const cards = (await call(badgeFns.getCardBadges, { playerIds: [JOE] }, tok.kim)) as { playerId: string; title: string }[] | undefined;
+    check(cards?.find((c) => c.playerId === JOE)?.title === "neon-rider", "other players read the pass title on Joe's card");
+
     // Joe removes the test purchase: the track goes, what was claimed stays owned.
     check(q(`SELECT count(*) FROM pass.test_purchases('Joe_Pass') WHERE removed_at IS NULL`) === "1", "pass.test_purchases lists it");
     check(q(`SELECT pass.remove_test_purchase('Joe_Pass', 'end of the test round', 's1')`) === "removed", "pass.remove_test_purchase removes it");
@@ -606,6 +659,29 @@ async function databaseChecks(db: LocalDb, rest: RestServer): Promise<void> {
     check(mid?.open === true && mid.level === 3, "the test season fills like a real one");
     const mia = await call(fns.getPassFn, undefined, tok.mia);
     check(mia?.open === true && mia.joules === 0, "one tester's Joules are their own");
+
+    // Test-season rewards are test rewards, and Joe takes them all back in one call.
+    await admin.rpc("pass_credit_joules", { p_user_id: MIA, p_season: "test", p_epoch: epoch, p_rows: [{ key: "check:m", kind: "weekly", base: 41_000, at: iso(Date.now()) }] as never });
+    const coinsBeforeTest = balance(MIA);
+    for (const [track, level] of [["free", 2], ["free", 4], ["free", 6], ["free", 34], ["free", 40]] as const)
+      await call(fns.claimPassRewardFn, { track, level }, tok.mia);
+    check(balance(MIA) === coinsBeforeTest + 100 && lines(MIA, "test_pass_reward") === 1 && lines(MIA, "pass_reward") === 0, "test-season coins are paid as test rewards (reason test_pass_reward)");
+    check(Number(q(`SELECT count(*) FROM consumable_ledger WHERE user_id = '${MIA}' AND reason = 'test_pass_reward'`)) === 2 && consumable(MIA, "ticket_score_attack") === 1 && consumable(MIA, "streak_freeze") === 1, "and its ticket and streak freeze too");
+    check(owns(MIA, "frame.bronze") && q(`SELECT season_id FROM pass_title_unlocks WHERE user_id = '${MIA}' AND title_id = 'neon-rider'`) === "test", "an item and the Neon Rider title from the test season");
+    const badgeFns = await import("../src/lib/badges/badges.functions");
+    check((await call(badgeFns.setMyTitle, { title: "neon-rider" }, tok.mia))?.ok === true, "Mia equips the test season's title");
+    q(`SELECT economy.grant_coins('Mia_Pass', 40, 'check: coins of her own')`);
+    check(lines(JOE, "test_pass_reward") === 0 && lines(JOE, "pass_reward") === 25, "Season 1's rewards are never test rewards");
+    const removed = JSON.parse(q(`SELECT pass.remove_test_season_rewards('clean-up before launch', 'Mia_Pass')`)) as Record<string, number>;
+    check(removed["coins"] === 100 && removed["consumables"] === 2 && removed["items"] === 1 && removed["titles"] === 1, `pass.remove_test_season_rewards takes the coins, consumables, item and title back in one call (${JSON.stringify(removed)})`);
+    check(balance(MIA) === coinsBeforeTest + 40 && consumable(MIA, "ticket_score_attack") === 0 && consumable(MIA, "streak_freeze") === 0, "her own coins stay; the test coins, ticket and freeze are gone");
+    check(!owns(MIA, "frame.bronze") && owns(MIA, "avatar-special-edition.neon-captain-joulz"), "the test item is removed; the helmet from her Season 1 premium (Plus) stays");
+    check(q(`SELECT count(*) FROM card_titles WHERE user_id = '${MIA}'`) === "0" && q(`SELECT count(*) FROM pass_title_unlocks WHERE user_id = '${MIA}'`) === "0", "the test title is gone and her card is back to Rookie");
+    check(lines(MIA, "test_pass_reward") === 1 && lines(MIA, "test_pass_reward_removed") === 1, "removal is a line of its own (the test line is never changed)");
+    const twice = JSON.parse(q(`SELECT pass.remove_test_season_rewards('again')`)) as Record<string, number>;
+    check(twice["coins"] === 0 && twice["consumables"] === 0 && twice["items"] === 0 && twice["titles"] === 0, "running it again (for everyone) takes nothing more");
+    for (const role of ["anon", "authenticated", "service_role"])
+      check(/permission denied/.test(refused(`SET LOCAL ROLE ${role}; SELECT pass.remove_test_season_rewards('x')`)), `${role} can't remove test rewards`);
     await new Promise((r) => setTimeout(r, 5));
     check(q(`SELECT pass.reset_test_season('again from zero', 'Joe_Pass')`) === "reset", "pass.reset_test_season for one tester");
     const reset = await call(fns.getPassFn, undefined, tok.joe);
@@ -617,7 +693,7 @@ async function databaseChecks(db: LocalDb, rest: RestServer): Promise<void> {
     // An ended test season stays shown for claiming (CLAIM_GRACE_DAYS), so a tester sees it, ended.
     const ended = await call(fns.getPassFn, undefined, tok.joe);
     check(ended?.open === true && ended.season.id === "test" && ended.season.ended === true && ended.weekly === null, "an ended season stays open for claiming only (no weekly challenges)");
-    check(Number(q(`SELECT count(*) FROM pass.admin_log WHERE action IN ('start_test_season', 'reset_test_season', 'end_test_season', 'set_season_dates', 'remove_test_purchase')`)) === 7, "every season and test-purchase change is logged");
+    check(Number(q(`SELECT count(*) FROM pass.admin_log WHERE action IN ('start_test_season', 'reset_test_season', 'end_test_season', 'set_season_dates', 'remove_test_purchase', 'remove_test_season_rewards')`)) === 9, "every season and test-purchase change is logged");
     check(q(`SELECT count(*) FROM pass.admin_log WHERE note = '' OR by_role IS NULL`) === "0", "each with who and why");
   });
 

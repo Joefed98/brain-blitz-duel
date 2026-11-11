@@ -1,6 +1,9 @@
 import { useState } from "react";
 
 import { Coin } from "@/components/app/CoinCounter";
+import { ShopArt } from "@/components/shop/ShopArt";
+import { CardPiece, NamePiece } from "@/design/identity";
+import { useAccount } from "@/lib/account/accountApi";
 import { Button, EmptyState, Icon, Skeleton } from "@/design/components";
 import { claimReward, testPremium, usePass } from "@/lib/pass/passApi";
 import type { PassCell, PassView, PassWeekly } from "@/lib/pass/types";
@@ -15,6 +18,8 @@ import { JoulesBolt } from "./JoulesBolt";
  */
 export function PassScreen() {
   const pass = usePass();
+  const account = useAccount();
+  const name = account.kind === "account" ? account.username : "Your name";
   const [busy, setBusy] = useState<string | null>(null);
   const [said, setSaid] = useState<string | null>(null);
 
@@ -109,8 +114,8 @@ export function PassScreen() {
               <span className="pass-level-disc" aria-label={`Level ${row.level}`}>
                 {row.level}
               </span>
-              <RewardCell cell={row.free} busy={busy} onClaim={claim} />
-              <RewardCell cell={row.premium} busy={busy} onClaim={claim} />
+              <RewardCell cell={row.free} busy={busy} name={name} onClaim={claim} />
+              <RewardCell cell={row.premium} busy={busy} name={name} onClaim={claim} />
             </li>
           ))}
         </ol>
@@ -149,6 +154,37 @@ function LevelCard({ view }: { view: PassView }) {
   );
 }
 
+/**
+ * A reward's real picture: card arts and frames through A2's player card renderer (CardPiece), name colours as this
+ * player's name in the colour (NamePiece), every other item its approved still (scripts/shop-previews.ts, extended to
+ * the pass's items); coins, tickets, freezes and titles their mark.
+ */
+function RewardArt({ cell, name }: { cell: PassCell; name: string }) {
+  if (cell.itemId && (cell.itemKind === "card-art" || cell.itemKind === "frame"))
+    return (
+      <span className="pass-cell-art" data-pass-art="card">
+        <CardPiece id={cell.itemId} />
+      </span>
+    );
+  if (cell.itemId && cell.itemKind === "name-colour")
+    return (
+      <span className="pass-cell-art" data-pass-art="name">
+        <NamePiece id={cell.itemId} name={name} />
+      </span>
+    );
+  if (cell.itemId)
+    return (
+      <span className="pass-cell-art" data-pass-art="still">
+        <ShopArt id={cell.itemId} className="pass-cell-still" />
+      </span>
+    );
+  return (
+    <span className="pass-cell-glyph" aria-hidden="true">
+      <RewardGlyph cell={cell} />
+    </span>
+  );
+}
+
 function RewardGlyph({ cell }: { cell: PassCell }) {
   if (cell.kind === "coins") return <Coin size={26} />;
   if (cell.kind === "ticket") return <Icon name="tournaments" size={22} />;
@@ -157,7 +193,7 @@ function RewardGlyph({ cell }: { cell: PassCell }) {
   return <Icon name="star" size={22} />;
 }
 
-function RewardCell({ cell, busy, onClaim }: { cell: PassCell | null; busy: string | null; onClaim: (cell: PassCell) => void }) {
+function RewardCell({ cell, busy, name, onClaim }: { cell: PassCell | null; busy: string | null; name: string; onClaim: (cell: PassCell) => void }) {
   if (!cell) return <span className="pass-cell pass-cell-empty" aria-hidden="true" />;
   const id = `${cell.track}:${cell.level}`;
   return (
@@ -168,9 +204,7 @@ function RewardCell({ cell, busy, onClaim }: { cell: PassCell | null; busy: stri
       data-track={cell.track}
       data-rarity={cell.rarity ?? undefined}
     >
-      <span className="pass-cell-glyph" aria-hidden="true">
-        <RewardGlyph cell={cell} />
-      </span>
+      <RewardArt cell={cell} name={name} />
       <span className="pass-cell-text">
         <span className="pass-cell-title">{cell.title}</span>
         <span className="pass-cell-detail">{cell.detail}</span>

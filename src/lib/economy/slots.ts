@@ -196,5 +196,9 @@ export const ECONOMY_REASONS = [
   // The shop (wave 2, session D1; supabase/migrations/20261112120000_shop.sql).
   "test_purchase",
   "test_purchase_removed",
+  // The Season pass (wave 2, session D2; supabase/migrations/20261113100200_pass_titles_test_rewards.sql): the testers'
+  // season's coin and consumable rewards, and Joe taking them back (pass.remove_test_season_rewards).
+  "test_pass_reward",
+  "test_pass_reward_removed",
 ] as const;
 export type EconomyReason = (typeof ECONOMY_REASONS)[number];
