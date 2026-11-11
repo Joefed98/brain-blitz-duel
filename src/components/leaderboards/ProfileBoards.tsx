@@ -7,7 +7,11 @@ import { CategoryBoards } from "./LeaderboardScreens";
  * Profile's leaderboards (wave 4, session W4a; docs/leaderboards.md): the way into the rating boards and the Daily top
  * 100, and, for an account, the category boards ("Top Logic players") in the stats area.
  */
-export function ProfileBoards({ onOpen }: { onOpen: (to: "/leaderboards" | "/daily-board") => void }) {
+export function ProfileBoards({
+  onOpen,
+}: {
+  onOpen: (to: "/leaderboards" | "/daily-board") => void;
+}) {
   const account = useAccount();
   return (
     <section aria-label="Leaderboards" data-profile-boards className="ap-section">

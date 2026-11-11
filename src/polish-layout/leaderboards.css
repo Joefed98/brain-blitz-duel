@@ -68,12 +68,23 @@
   list-style: none;
 }
 .lb-row {
+  border-top: 1px solid var(--jz-line);
+}
+.lb-row-in {
   display: flex;
+  width: 100%;
   min-height: 56px;
   align-items: center;
   gap: var(--jz-space-12);
   padding: var(--jz-space-8) var(--jz-space-16);
-  border-top: 1px solid var(--jz-line);
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+}
+button.lb-row-in {
+  cursor: pointer;
 }
 .lb-rows > .lb-row:first-child {
   border-top: 0;
@@ -249,4 +260,78 @@
   color: var(--jz-text-2);
   font-size: 14px;
   font-weight: var(--jz-weight-bold);
+}
+
+/* The top 3 as full cards (Joe's rule, 11 Nov 2026): stacked on phones, 1st in the middle from 700 px wide. */
+.lb-podium {
+  display: flex;
+  flex-direction: column;
+  gap: var(--jz-space-12);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.lb-podium-step {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: var(--jz-space-8);
+}
+.lb-podium-card {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+}
+button.lb-podium-card {
+  cursor: pointer;
+}
+.lb-podium-plain {
+  display: flex;
+  min-height: 72px;
+  align-items: center;
+  gap: var(--jz-space-12);
+  padding: var(--jz-space-12) var(--jz-space-16);
+  border-radius: var(--jz-radius);
+  background: var(--jz-surface);
+}
+.lb-podium-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--jz-space-8);
+  padding: 0 var(--jz-space-4);
+}
+@media (min-width: 700px) {
+  .lb-podium {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    align-items: end;
+  }
+  .lb-podium-step[data-podium-place="1"] {
+    order: 2;
+  }
+  .lb-podium-step[data-podium-place="2"] {
+    order: 1;
+  }
+  .lb-podium-step[data-podium-place="3"] {
+    order: 3;
+  }
+}
+.lb-card-sheet {
+  display: flex;
+  flex-direction: column;
+  gap: var(--jz-space-12);
+  padding-bottom: var(--jz-space-16);
+}
+.lb-card-line {
+  margin: 0;
+  color: var(--jz-text-2);
+  font-size: 15px;
+  font-weight: var(--jz-weight-bold);
+  text-align: center;
 }

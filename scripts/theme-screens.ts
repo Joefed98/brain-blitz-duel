@@ -349,6 +349,18 @@ export const ACCOUNT_SCREENS = (): ThemeScreen[] => {
  */
 export const LEADERBOARD_SCREENS = (): ThemeScreen[] => [
   { name: "leaderboards, joulz rating", mode: "leaderboards", plain: true, globals: { __harnessBoards: boardsFixture() }, waitMs: 1200 },
+  {
+    name: "leaderboards, a player's card",
+    mode: "leaderboards",
+    plain: true,
+    globals: { __harnessBoards: boardsFixture() },
+    waitMs: 800,
+    go: async (page) => {
+      await page.locator("[data-board-list] [data-open-card]").first().click();
+      await page.locator("[data-card-sheet] [data-player-card]").waitFor({ timeout: 10_000 });
+      await page.waitForTimeout(500);
+    },
+  },
   { name: "leaderboards, no ratings yet", mode: "leaderboards", plain: true, globals: { __harnessBoards: boardsFixture({ empty: true }) }, waitMs: 1200 },
   { name: "daily board, today", mode: "dailyboard", plain: true, globals: { __harnessBoards: boardsFixture() }, waitMs: 1200 },
   { name: "daily board, a guest", mode: "dailyboard", plain: true, globals: { __harnessBoards: boardsFixture({ dailyReason: "guest" }), __harnessBoardsGuest: true }, waitMs: 1200 },

@@ -12,6 +12,9 @@
  *     arrows walk to the days the server names, the friends chip, a closed board until you finish.
  *  4. Category boards ("Top Logic players") on Profile for an account; a guest's Profile has only the two links.
  *  5. "Show me on leaderboards" sends the setting.
+ *  6. Cards (Joe's rule, 11 Nov 2026): each visible row is the player's nameplate strip (card art, frame, name colour,
+ *     tier emblem, badges) with places and scores outside it; a hidden player has no card and opens nothing; the top 3
+ *     as full cards above the rows (1st in the middle from 700 px); a tap opens the full card; one call per board.
  *
  *   bun scripts/leaderboards-ui-check.tsx
  */
@@ -232,6 +235,53 @@ async function mount(ui: React.ReactElement) {
   await settle();
   check(calls.some((c) => c.fn === "setVisibility" && c.data["show"] === true) && $("[data-board-visibility]")?.getAttribute("data-board-visibility") === "on", "the switch sends the setting");
   root.unmount();
+}
+
+/* ------------------------------------------------------------------ 6. cards (Joe's rule, 11 Nov 2026) */
+{
+  const card = (frame: string, badges: string[] = []) => ({ avatarId: "captain-joulz", colour: 4, gem: null, cardArt: "card-art.bolt-stripes", frame, nameColour: "name-colour.gold-leaf", badges, title: "rookie" });
+  const cardRows = [
+    row(1, 3104, "Nova", { card: card("frame.gold", ["flawless"]), tier: "top500", top500: 1 }),
+    row(2, 3061, null),
+    row(3, 2987, "Mira_K", { card: card("frame.silver"), tier: "storm" }),
+    row(4, 2950, "Dex", { card: card("frame.plain"), tier: "volt" }),
+    row(5, 2900, null),
+  ];
+  const cardCalls: string[] = [];
+  setLeaderboardFunctionsForChecks({
+    ratingBoardFn: (async ({ data }: { data: Record<string, unknown> }) => {
+      cardCalls.push(`rating:${String(data["board"])}`);
+      return { ok: true, page: { ready: true, rows: data["board"] === "joulz" ? cardRows : cardRows.slice(0, 3), me: row(4, 2950, "Dex", { isMe: true, card: card("frame.plain") }), total: 5, country: "GB" } };
+    }) as never,
+  });
+  const root = await mount(React.createElement(screens.RatingBoardsScreen, { onBack: () => {}, isAccount: true }));
+  const main = $$("[data-leaderboards-screen] > [data-board-list] > ol:first-child > li");
+  const strip = main[0]?.querySelector("[data-card-strip]");
+  check(!!strip && strip.getAttribute("data-frame") === "frame.gold" && strip.getAttribute("data-name-colour") === "name-colour.gold-leaf" && strip.getAttribute("data-card-art") === "card-art.bolt-stripes", "a row is the player's nameplate strip: card art, frame, name colour");
+  check(!!strip?.querySelector('[data-card-tier="top500"]') && !!strip?.querySelector('[data-card-badge="flawless"]') && !!main[2]?.querySelector('[data-card-strip] [data-card-tier="storm"]'), "with the tier emblem and badges");
+  check(main.every((li) => !li.querySelector("[data-card-strip] .lb-value, [data-card-strip] .lb-place, [data-card-strip] [data-jz='medal']")), "places and scores stay outside the strip (cosmetics in the name area only)");
+  check(main[1]?.hasAttribute("data-hidden-player") === true && !main[1]?.querySelector("[data-card-strip]") && !main[1]?.querySelector("[data-open-card]") && main[1]?.textContent?.includes("Hidden player") === true, "a hidden player: Hidden player, no card, nothing to open");
+  const podium = $$("[data-board-podium] > li");
+  check(podium.length === 3 && podium.map((p) => p.getAttribute("data-podium-place")).join() === "1,2,3", "the top 3 above the rows, in place order (1st first on a phone)");
+  check(!!podium[0]?.querySelector("[data-player-card]") && !!podium[2]?.querySelector("[data-player-card]") && !podium[1]?.querySelector("[data-player-card]") && podium[1]?.textContent?.includes("Hidden player") === true, "full cards for visible players, Hidden player with no card in its place");
+  check(podium.every((p) => !p.querySelector("[data-player-card] .lb-value")) && podium[0]?.querySelector(".lb-value")?.textContent === "3,104", "each podium score sits under its card, not on it");
+  check(!podium[1]?.querySelector("[data-open-card]"), "a hidden player's podium place opens nothing");
+  await click(main[0]?.querySelector("[data-open-card]") as HTMLElement);
+  await settle();
+  const sheet = $("[data-card-sheet]");
+  check(!!sheet?.querySelector('[data-player-card][data-frame="frame.gold"]') && sheet?.textContent?.includes("Nova") === true, "tapping a row opens that player's full card");
+  await click($("[aria-label='Close card']"));
+  await settle(400);
+  await click(podium[2]?.querySelector("[data-open-card]") as HTMLElement);
+  await settle();
+  check(!!$('[data-card-sheet] [data-player-card][data-frame="frame.silver"]'), "tapping a podium card opens it too");
+  check(cardCalls.filter((c) => c === "rating:joulz").length === 1 && cardCalls.length === 2, `one call per board, cards included (${cardCalls.join(", ")})`);
+  root.unmount();
+  const fs = await import("node:fs");
+  const css = fs.readFileSync("src/polish-layout/leaderboards.css", "utf8");
+  check(/@media \(min-width: 700px\)[\s\S]*data-podium-place="1"\][\s\S]*order: 2/.test(css), "wide screens put 1st in the middle (order 2 from 700 px)");
+  const src = ["src/components/leaderboards/BoardList.tsx", "src/components/leaderboards/LeaderboardScreens.tsx"].map((f) => fs.readFileSync(f, "utf8")).join("\n");
+  check(!/getPublicCard|identityBackend|cardBadgesFn|economy\.functions/.test(src), "the screens fetch no card of their own (the board's call carries them)");
 }
 
 setLeaderboardFunctionsForChecks(null);

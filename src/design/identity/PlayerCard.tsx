@@ -17,6 +17,7 @@
  */
 import { useId, useMemo } from "react";
 
+import { Emblem, type Tier } from "@/design/art";
 import { PLAYER_COLOURS } from "@/lib/duel/playerLook";
 
 import { avatarMarkup, DEFAULT_AVATAR } from "./avatars";
@@ -219,6 +220,99 @@ export function NamePiece({ id, name }: { id: string | null; name: string }) {
           )}
         </span>
       </span>
+    </span>
+  );
+}
+
+/** The strip draws the card's own pieces at a fixed unit, so the name reads at ~15 px whatever the strip's width. */
+const STRIP_UNITS = { ["--pc-u" as string]: "0.85px" } as const;
+
+/**
+ * A player's nameplate strip (Joe's rule, 11 Nov 2026: a player's card, avatar and frame show wherever they appear): the
+ * player card's art and frame across a 44 px strip, the avatar and the username in its name colour. It sits in a list
+ * row's name area only; places, scores and times stay outside it on the plain row. No title, pill or badges.
+ */
+export function CardStrip({
+  look,
+  name,
+  label,
+  playerNumber = null,
+  tier = null,
+  badges = NO_BADGES,
+}: {
+  look: CardLook;
+  name: string;
+  label?: string;
+  /** For the Founding frame's number. */
+  playerNumber?: number | null;
+  /** W3a's shown tier id ("volt", "top500"…): its emblem after the name. */
+  tier?: string | null;
+  /** C2's badges on the card (up to three slugs). */
+  badges?: readonly string[];
+}) {
+  ensureCardStyles();
+  const prefix = `ps${useId().replace(/[^a-zA-Z0-9_-]/g, "")}-`;
+  const known = knownLook(look);
+  const founder = playerNumberLabel(playerNumber ?? 0);
+  // One { __html } object per markup (CLAUDE.md working rule 6).
+  const svgHtml = useMemo(
+    () => ({ __html: fill(CARD_ARTS[known.cardArt]!, `${prefix}a-`, founder) + fill(FRAMES[known.frame]!.markup, `${prefix}f-`, founder) }),
+    [known.cardArt, known.frame, prefix, founder],
+  );
+  const avatar = look.avatar ?? DEFAULT_AVATAR;
+  const avatarHtml = useMemo(() => ({ __html: avatarMarkup(avatar, `${prefix}v-`) }), [avatar.id, avatar.colour, avatar.gem, prefix]);
+  const nameStyle = known.nameColour ? NAME_COLOURS[known.nameColour]! : null;
+  return (
+    <span
+      role="img"
+      aria-label={label ?? name}
+      data-card-strip=""
+      data-card-art={known.cardArt}
+      data-frame={known.frame}
+      data-name-colour={known.nameColour ?? "plain"}
+      data-avatar={avatar.id}
+      // The card's approved art (A2's items, judged against their pictures by identity-motion-check) is cosmetic art,
+      // not the page skin, as a game's own art is: data-skin-off.
+      data-skin-off=""
+      className="pcard pcard-strip"
+    >
+      <span className="pcard-in" style={STRIP_UNITS} aria-hidden="true">
+        <svg className="pcard-svg" viewBox="0 0 300 112" preserveAspectRatio="none" style={FRAMES[known.frame]!.style} dangerouslySetInnerHTML={svgHtml} />
+        <span className="pcard-row">
+          <span className="pcard-av" dangerouslySetInnerHTML={avatarHtml} />
+          {nameStyle ? (
+            <span data-card-name="" data-ellipsis="" className={`pcard-name ${nameStyle.className}`} style={nameStyle.style}>
+              {name}
+            </span>
+          ) : (
+            <span data-card-name="" data-ellipsis="" data-plain="" className="pcard-name">
+              {name}
+            </span>
+          )}
+          {tier ? <StripTier tier={tier} /> : null}
+          {badges.length ? (
+            <span className="pcard-strip-badges" data-card-badges={badges.slice(0, 3).join(" ")}>
+              {badges.slice(0, 3).map((slug) => (
+                <img key={slug} src={`/art/badges/${slug}.svg`} alt="" data-card-badge={slug} draggable={false} />
+              ))}
+            </span>
+          ) : null}
+        </span>
+      </span>
+    </span>
+  );
+}
+
+const STRIP_TIERS: readonly Tier[] = ["spark", "charge", "volt", "surge", "storm", "lightning"];
+
+/** A tier's emblem at nameplate size (the Top 500's own emblem, mockup 03's art, for the Top 500). */
+function StripTier({ tier }: { tier: string }) {
+  if (tier === "top500")
+    return <img className="pcard-strip-tier" data-card-tier="top500" src="/art/emblems/top-500.svg" alt="" width={16} height={20} draggable={false} />;
+  if (!(STRIP_TIERS as readonly string[]).includes(tier)) return null;
+  return (
+    <span className="pcard-strip-tier" data-card-tier={tier}>
+      <Emblem tier={tier as Tier} size={18} marker={false} />
     </span>
   );
 }

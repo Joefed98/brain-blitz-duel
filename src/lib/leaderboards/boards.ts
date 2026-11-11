@@ -98,6 +98,24 @@ export function isDayKey(value: unknown): value is string {
 /* ------------------------------------------------------------------ what the server answers */
 
 /**
+ * A player's card as a board row draws it (Joe's rule, 11 Nov 2026: a player's card, avatar and frame show wherever
+ * they appear): A2's card art, frame and name colour and the avatar, from A1's public card. Only on rows the viewer may
+ * see by name; the server attaches them in the board's own call (one call per page).
+ */
+export interface BoardCard {
+  avatarId: string;
+  /** The avatar's colour (the account's colour). */
+  colour: number;
+  gem: string | null;
+  cardArt: string | null;
+  frame: string | null;
+  nameColour: string | null;
+  /** C2's badges on the card (up to three slugs, in order) and the equipped title's id. */
+  badges: string[];
+  title: string | null;
+}
+
+/**
  * One row as a phone sees it. A hidden player (an under-18 who hasn't opted in, an adult who opted out, an account
  * waiting for deletion) keeps their rank and value with no name, colour or number; a deleted account likewise.
  * Never more than the player card shows.
@@ -118,6 +136,10 @@ export interface BoardRow {
   timeMs?: number;
   /** A Daily friends row: its place on the whole board. */
   boardRank?: number;
+  /** The player's card (visible rows only; never on a hidden or deleted row). */
+  card?: BoardCard;
+  /** W3a's shown tier (TierId) for the nameplate's emblem: visible, placed players only. */
+  tier?: string | null;
 }
 
 export interface RatingBoardPage {

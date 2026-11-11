@@ -11,6 +11,8 @@ import {
   readRatingBoard,
   writeBoardVisibility,
 } from "@/lib/data/leaderboards.server";
+import { cardBadgesFor } from "@/lib/badges/badges.server";
+import { readPublicCards } from "@/lib/data/economy.server";
 import { recordEvents } from "@/lib/data/events.server";
 import { readDateOfBirth } from "@/lib/data/profiles.server";
 import type { Db } from "@/lib/data/db.server";
@@ -27,6 +29,8 @@ import {
   isPeriod,
   isRatingBoard,
   isScope,
+  type BoardCard,
+  type BoardRow,
   type BoardVisibility,
   type DailyBoardPage,
   type RatingBoardPage,
@@ -51,6 +55,55 @@ export type Answer<T> = ({ ok: true } & T) | LeaderboardRefusal;
 
 export function refusal(reason: LeaderboardRefusalReason): LeaderboardRefusal {
   return { ok: false, reason, message: LEADERBOARD_MESSAGES[reason] };
+}
+
+/** A board row as the SQL answers it: a visible row also carries its player's id, for the server alone. */
+type StoredRow = BoardRow & { pid?: string | null };
+
+/**
+ * Every visible row's card (Joe's rule, 11 Nov 2026), read through A1's public cards in one call per page (at most
+ * 100 ids a call, so a Daily top 100 with ties and the pinned row takes two), then every row's id removed: the phone
+ * never gets another player's id. A failed read leaves the rows without cards (colour and initial).
+ */
+async function attachCards(client: Db, rows: readonly StoredRow[]): Promise<BoardRow[]> {
+  const ids = [...new Set(rows.map((r) => r.pid).filter((id): id is string => typeof id === "string"))];
+  const cards = new Map<string, BoardCard>();
+  for (let i = 0; i < ids.length; i += 100) {
+    const { data, error } = await readPublicCards(client, ids.slice(i, i + 100));
+    if (error) {
+      console.warn(`[leaderboards] cards: ${error.message}`);
+      break;
+    }
+    // C2's badges and title on the same cards (one read a chunk; a failure leaves the cards without badges).
+    const worn = new Map((await cardBadgesFor(client, ids.slice(i, i + 100)).catch(() => [])).map((b) => [b.playerId, b]));
+    for (const c of data)
+      cards.set(c.user_id, {
+        avatarId: c.avatar_id,
+        colour: c.colour,
+        gem: c.gem,
+        cardArt: c.card_art,
+        frame: c.frame,
+        nameColour: c.name_colour,
+        badges: worn.get(c.user_id)?.badges ?? [],
+        title: worn.get(c.user_id)?.title ?? null,
+      });
+  }
+  return rows.map(({ pid, ...row }) => {
+    const card = pid ? cards.get(pid) : undefined;
+    if (row.hidden) {
+      const { tier: _tier, ...plain } = row;
+      return plain;
+    }
+    return card ? { ...row, card } : row;
+  });
+}
+
+/** The page's rows and pinned row, with cards and without ids, in one read of the cards. */
+async function withCards<P extends { rows?: BoardRow[] | undefined; me?: BoardRow | null | undefined }>(client: Db, page: P): Promise<P> {
+  const rows = (page.rows ?? []) as StoredRow[];
+  const me = (page.me ?? null) as StoredRow | null;
+  const done = await attachCards(client, me ? [...rows, me] : rows);
+  return { ...page, ...(page.rows ? { rows: done.slice(0, rows.length) } : {}), ...(me ? { me: done[rows.length]! } : {}) };
 }
 
 async function isAccount(client: Db, userId: string): Promise<boolean> {
@@ -81,7 +134,7 @@ export async function ratingBoard(client: Db, userId: string, input: unknown): P
   if (error || !data) return refusal("error");
   if (data.reason === "bad_board") return refusal("bad_board");
   if (offset === 0) recordEvents({ event: "leaderboard_viewed", playerId: userId, props: { board, scope, period } });
-  return { ok: true, page: data };
+  return { ok: true, page: await withCards(client, data) };
 }
 
 /** A Daily board: { kind, day (YYYY-MM-DD, today's UK day when left out), scope }. Records daily_board_viewed. */
@@ -102,7 +155,7 @@ export async function dailyBoard(
   if (error || !data) return refusal("error");
   if (data.reason === "bad_board") return refusal("bad_board");
   recordEvents({ event: "daily_board_viewed", playerId: userId, props: { kind, day } });
-  return { ok: true, page: data };
+  return { ok: true, page: await withCards(client, data) };
 }
 
 /** "Show me on leaderboards": the caller's state (accounts only). */

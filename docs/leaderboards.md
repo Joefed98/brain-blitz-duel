@@ -33,6 +33,29 @@ No gameplay, scoring, stamp, rating or deal change.
   counted players) and Daily Top 100 (top 100 on a final board of **500+**) are earnable (`daily_board_badge_facts`;
   field sizes `DAILY_CHAMPION_FIELD` / `DAILY_TOP100_FIELD` in `src/lib/leaderboards/boards.ts`).
 
+## Players' cards on the boards (Joe's rule, 11 Nov 2026)
+
+A player's card, avatar and frame show wherever they appear:
+
+- **Every board row** (rating, category and Daily boards) draws the player as A2's nameplate strip (`CardStrip` in
+  `src/design/identity/PlayerCard.tsx`): the card art as a band, the frame round it, the avatar, the name in its name
+  colour, W3a's tier emblem (the Top 500's own emblem for the Top 500) and C2's badges. It sits in the name area only;
+  places, scores and times stay outside it on the plain row.
+- **A tap on a row** opens that player's full card (`CardSheet`, A2's `PlayerCard` with title and badges, the place and
+  value under it).
+- **The top 3** show above the rows as full cards (`BoardPodium`): stacked 1st, 2nd, 3rd on a phone, 1st in the middle
+  from 700 px wide; places and scores under each card.
+- **One call per page:** the board's own call carries the cards. The SQL gives each visible row its player's id (`pid`)
+  and tier for the server alone (`20261115100400_leaderboard_cards.sql`); `leaderboards.server.ts` reads A1's
+  `economy_public_cards` and C2's `badge_public_cards` for those ids (100 a read), puts each card on its row and removes
+  every id before the page leaves the server.
+- **Hidden players** (under-18s by default, opted-out adults, accounts waiting for deletion) stay "Hidden player" with
+  no card, no tier and nothing to open; a deleted account reads "Deleted player". Boards hold accounts only, so no
+  guest appears; a row without a card keeps its colour and initial.
+- The card's approved art is marked `data-skin-off`, as a game's own art is: its metallic name colours paint the text
+  through a gradient, so the page skin's contrast check can't read them; identity-motion-check judges the items against
+  their approved pictures.
+
 ## How boards refresh
 
 `public.leaderboard_refresh()` runs from two schedules, every 5 minutes each: pg_cron's `leaderboards-refresh` job (the
@@ -70,7 +93,8 @@ ratings and what `getRatingsFor` answers, and the peak.
 
 - SQL: `supabase/migrations/20261115100000_leaderboards.sql` (tables, functions, schedule),
   `20261115100100_daily_board_badges.sql` (the two badge rows to earnable), `20261115100200_analytics_leaderboard_events.sql`,
-  `20261115100300_leaderboards_rating_source.sql` (the binding to W3a).
+  `20261115100300_leaderboards_rating_source.sql` (the binding to W3a), `20261115100400_leaderboard_cards.sql` (each visible
+  row's id and tier, for the server's card read).
   Nothing is readable or writable by anon or authenticated; the server calls the service-role functions.
 - Data: `src/lib/data/leaderboards.server.ts`. Rules: `src/lib/leaderboards/boards.ts` (shared),
   `leaderboards.server.ts`, `leaderboards.functions.ts` (`ratingBoardFn`, `dailyBoardFn`, `boardVisibilityFn`,

@@ -199,7 +199,8 @@ async function databaseChecks(db: LocalDb, rest: RestServer): Promise<void> {
     });
 
   type Row = { rank: number; value: number; isMe: boolean; isFriend: boolean; hidden: boolean; deleted: boolean; name: string | null; colour: number | null; playerNumber: number | null; top500?: number; timeMs?: number };
-  const ALLOWED = new Set(["rank", "value", "isMe", "isFriend", "hidden", "deleted", "name", "colour", "playerNumber", "top500", "timeMs", "boardRank"]);
+  // Joe's rule of 11 Nov 2026: a visible row also carries its player's card and tier (what the player card shows).
+  const ALLOWED = new Set(["rank", "value", "isMe", "isFriend", "hidden", "deleted", "name", "colour", "playerNumber", "top500", "timeMs", "boardRank", "card", "tier"]);
 
   /* ---------------------------------------------------------------- accounts */
   const people: [string, string, string, string | null][] = [
@@ -588,6 +589,55 @@ async function databaseChecks(db: LocalDb, rest: RestServer): Promise<void> {
     check(q(`SELECT final FROM daily_boards WHERE room_id = '${room}'`) === "f", "a board isn't final until 30 minutes after its day closes (late rounds finish)");
     q(`SELECT public.leaderboard_refresh_daily(TIMESTAMPTZ '${closes}' + interval '31 minutes')`);
     check(q(`SELECT final || ':' || players FROM daily_boards WHERE room_id = '${room}'`) === "true:2", "then it is frozen with its field");
+  });
+
+  /* ---------------------------------------------------------------- the players' cards */
+  // Joe's rule of 11 Nov 2026: every visible row carries the player's card (A1's public card, C2's badges and title) and
+  // W3a's tier, attached by the server in the board's own call; hidden and deleted rows carry none, and no row carries an id.
+  await section("every visible row carries the player's card; hidden rows none", async () => {
+    q(`SELECT public.economy_grant_item('${ACE}', 'frame.gold', 'grant'), public.economy_grant_item('${ACE}', 'name-colour.gold-leaf', 'grant'),
+              public.economy_grant_item('${ACE}', 'card-art.bolt-stripes', 'grant')`);
+    q(`SELECT public.economy_equip('${ACE}', 'frame', 'frame.gold'), public.economy_equip('${ACE}', 'name-colour', 'name-colour.gold-leaf'),
+              public.economy_equip('${ACE}', 'card-art', 'card-art.bolt-stripes')`);
+    q(`SET session_replication_role = replica;
+       INSERT INTO player_badges (user_id, badge, detail) VALUES ('${ACE}', 'flawless', '{}'::jsonb) ON CONFLICT DO NOTHING;
+       SET session_replication_role = origin;`);
+    const set = q(`SELECT public.badge_set_card('${ACE}', ARRAY['flawless'])`);
+    check(set === "set", `Ace wears a badge through C2's badge_set_card (${set})`);
+    const daily = await call(fns.dailyTopBoardFn, { kind: "puzzle", day: "2026-11-01", scope: "top100" }, tok.bee);
+    const rating = await board(tok.bee, { board: "joulz", scope: "global", period: "season" });
+    for (const [what, page] of [["Daily", daily.page], ["rating", rating.page]] as const) {
+      const rows = [...(page.rows as (Row & Record<string, unknown>)[]), ...(page.me ? [page.me as Row & Record<string, unknown>] : [])];
+      check(rows.length > 0 && rows.every((r) => !("pid" in r)), `${what}: no row carries a player's id`);
+      check(rows.filter((r) => r.hidden).every((r) => r["card"] === undefined && r["tier"] === undefined), `${what}: a hidden row has no card and no tier`);
+      check(rows.filter((r) => !r.hidden && !r.deleted).every((r) => typeof r["card"] === "object"), `${what}: every visible row has its card`);
+    }
+    const ace = (rating.page.rows as (Row & { card?: Record<string, unknown> })[]).find((r) => r.name === "Ace")!;
+    const c = ace.card!;
+    check(c["frame"] === "frame.gold" && c["nameColour"] === "name-colour.gold-leaf" && c["cardArt"] === "card-art.bolt-stripes", `Ace's row carries the equipped frame, name colour and card art (${JSON.stringify(c).slice(0, 160)})`);
+    check(JSON.stringify(c["badges"]) === '["flawless"]' && c["title"] === "rookie" && c["avatarId"] === "captain-joulz" && c["colour"] === 3, "and the badge, the title, the avatar and the account's colour");
+    const aceDaily = (daily.page.rows as (Row & { card?: Record<string, unknown> })[]).find((r) => r.name === "Ace")!;
+    check(aceDaily.card?.["frame"] === "frame.gold", "the Daily board carries the same card");
+    const teen = (rating.page.rows as (Row & Record<string, unknown>)[])[1]!;
+    check(teen.hidden && teen["card"] === undefined && teen.name === null, "a hidden under-18 stays Hidden player with no card");
+    const view = await board(tok.view, { board: "joulz", scope: "global", period: "season" });
+    const palToFriend = (view.page.rows as (Row & Record<string, unknown>)[]).find((r) => r.name === "Pal_Teen");
+    check(typeof palToFriend?.["card"] === "object", "an under-18 shown to a friend carries their card");
+  });
+
+  await section("the nameplate's tier comes from W3a", async () => {
+    // Rated_0..5 from the real-engine section are off the stood-in board; give one a tier and show it on the Daily.
+    q(`UPDATE rated_profiles SET shown_tier = 'storm' WHERE player_id = (SELECT player_id FROM rated_profiles WHERE joulz IS NOT NULL ORDER BY player_id LIMIT 1)`);
+    const tierOf = q(`SELECT player_id FROM rated_profiles WHERE shown_tier = 'storm' LIMIT 1`);
+    const room = q(`SELECT room_id FROM daily_boards WHERE day = '2026-11-02'`);
+    q(`INSERT INTO async_attempts (room_id, user_id, display_name, started_at, finished_at, rounds_done, total_score, tie_ms) VALUES ('${room}', '${tierOf}', 'P', TIMESTAMPTZ '2026-11-02 10:00:00+00', TIMESTAMPTZ '2026-11-02 10:20:00+00', 6, 950, 1000)`);
+    q(`UPDATE daily_boards SET final = false WHERE room_id = '${room}'`);
+    q(`SET session_replication_role = replica; UPDATE profiles SET created_at = TIMESTAMPTZ '2026-10-01 00:00:00+00' WHERE user_id = '${tierOf}'; SET session_replication_role = origin;`);
+    q(`SELECT public.leaderboard_refresh()`);
+    const page = (await call(fns.dailyTopBoardFn, { kind: "puzzle", day: "2026-11-02", scope: "top100" }, tok.view)).page;
+    const top = (page.rows as (Row & Record<string, unknown>)[])[0]!;
+    check(top.value === 950 && top["tier"] === "storm", `a placed player's row carries W3a's shown tier (${String(top["tier"])})`);
+    check((page.rows as (Row & Record<string, unknown>)[]).filter((r) => r.name === "Bee").every((r) => r["tier"] === null || r["tier"] === undefined), "an unrated player's row has no tier");
   });
 
   /* ---------------------------------------------------------------- the Cron Trigger */

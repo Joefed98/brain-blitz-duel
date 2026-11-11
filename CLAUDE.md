@@ -2078,13 +2078,18 @@ outside the repo.
   Worker's Cron Trigger `leaderboards:refresh` (`public.leaderboard_refresh`, an advisory lock, so twice is harmless),
   never per request; nothing readable or writable by anon or authenticated. Privacy:
   under-18s "Hidden player" by default on global and country boards (ranks unchanged), always visible to friends,
-  "Show me on leaderboards" (Settings → Account) both ways. Daily Champion (100+ players) and Daily Top 100 (500+)
+  "Show me on leaderboards" (Settings → Account) both ways. Players' cards (Joe's rule, 11 Nov 2026): every visible
+  row is A2's nameplate strip (`CardStrip`: card art band, frame, avatar, name colour, W3a's tier emblem, C2's badges; in
+  the name area only, never behind places or scores), a tap opens the full card (`CardSheet`), the top 3 show as full
+  cards above the rows (`BoardPodium`, 1st in the middle from 700 px), all carried by the board's own call (the SQL's
+  `pid` and `tier` for the server alone, `20261115100400_leaderboard_cards.sql`); hidden players keep no card.
+  Daily Champion (100+ players) and Daily Top 100 (500+)
   earnable (C2's rules; badges-check's counts updated with Joe's approval of 11 Nov 2026: 31 earnable, 23 waiting with
   W3a's 13). The rating boards read W3a's ratings through `leaderboards.rating_source()`, bound by
   `20261115100300_leaderboards_rating_source.sql` (`rated_profiles.joulz` / `shown_tier`, `rated_ratings`; this season =
   the current rating, peak from the stored match history). Migrations `20261115100000_leaderboards.sql`,
-  `20261115100100_daily_board_badges.sql`, `20261115100200_analytics_leaderboard_events.sql`, `…100300` (**not applied
-  until merged**). Events `leaderboard_viewed`,
+  `20261115100100_daily_board_badges.sql`, `20261115100200_analytics_leaderboard_events.sql`, `…100300`, `…100400`
+  (**not applied until merged**). Events `leaderboard_viewed`,
   `daily_board_viewed`. leaderboards-check (~30 s, shard `e`, PostgreSQL: the real engine, the cron run twice),
   leaderboards-ui-check (~2 s, happy-dom); the screens in theme-check and no-wrap-check (`LEADERBOARD_SCREENS`).
 - **The shop** (wave 2 train D, session D1, 11 Nov 2026, `docs/economy/shop.md`; no gameplay, scoring, stamp or timing

@@ -16,9 +16,28 @@ export interface HarnessBoards {
 
 const LONG = ["Quintessential_1", "Thunderstruck_22", "Lightning_Bolt_7", "MegaVoltage_2026", "Supercalifragil_", "Electromagnetic9"];
 
+const FRAMES = ["frame.gold", "frame.silver", "frame.plain", "frame.bronze"];
+const NAME_COLOURS = ["name-colour.gold-leaf", null, "name-colour.chrome", "name-colour.sapphire"];
+const TIERS = ["top500", "lightning", "storm", "volt", "surge", null];
+
+/** A visible row's card (Joe's rule, 11 Nov 2026), the widest a row can get: three badges, a tier, a name colour. */
+function cardOf(i: number) {
+  return {
+    avatarId: "captain-joulz",
+    colour: (i * 3) % 32,
+    gem: null,
+    cardArt: i % 2 ? "card-art.grid" : "card-art.bolt-stripes",
+    frame: FRAMES[i % FRAMES.length]!,
+    nameColour: NAME_COLOURS[i % NAME_COLOURS.length]!,
+    badges: i % 3 === 0 ? ["flawless", "daily-habit", "first-star"] : i % 3 === 1 ? ["flawless"] : [],
+    title: "rookie",
+  };
+}
+
 function row(rank: number, value: number, i: number, extra: Partial<BoardRow> = {}): BoardRow {
   const hidden = extra.hidden === true;
   return {
+    ...(hidden ? {} : { card: cardOf(i), tier: TIERS[i % TIERS.length]! }),
     rank,
     value,
     isMe: false,
