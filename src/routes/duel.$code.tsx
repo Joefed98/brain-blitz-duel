@@ -35,6 +35,9 @@ import {
   WINNER_REVEAL_MS,
 } from "@/lib/duel/startPresentation";
 import { WinnerReveal } from "@/components/duel/WinnerReveal";
+import { RatedRoomHandOff } from "@/components/rated/RatedRoomHandOff";
+import { RatedRoomScore } from "@/components/rated/RatedFrameScore";
+import { useRatedRoom } from "@/lib/rated/ratedRoom";
 import { animateFx } from "@/lib/fx/motion";
 import { RoundPips } from "@/components/duel/RoundPips";
 import { RoundResult } from "@/components/duel/RoundResult";
@@ -146,7 +149,7 @@ import {
 import type { SubmitMeta } from "@/puzzles/types";
 import { nearMiss } from "@/lib/duel/nearMiss";
 import { lookColumnsPresent, PLAYER_COLOURS, resolvePlayerLooks } from "@/lib/duel/playerLook";
-import { startRaceGhosts } from "@/lib/duel/raceGhosts";
+import { setRaceGhostSkins, startRaceGhosts } from "@/lib/duel/raceGhosts";
 import { podiumAwards } from "@/lib/duel/podiumAwards";
 import { awardRoundsFor } from "@/lib/duel/awardRounds";
 import { roomInvite } from "@/lib/duel/roomLink";
@@ -278,6 +281,8 @@ function DuelScreen() {
   const roomCode = code.toUpperCase();
   const state = useDuel(roomCode);
   const { duel, players, results, me, opponent, roomPlayers, isMulti, isHost, now } = state;
+  // A rated match (wave 3, W3b's room; W3c's screens): null for every ordinary room, which is then exactly as before.
+  const ratedMatchId = useRatedRoom(roomCode);
   // A new version reloads only between rounds and lands back here (lib/appUpdate).
   useUpdateGate(
     roomUpdateGate({
@@ -477,6 +482,20 @@ function DuelScreen() {
     return startRaceGhosts(duel.id, ghostRound, { key: String(mySlot), name: me.display_name, colour });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ghostRound, duel?.id, mySlot]);
+  // Each ghost wears its own player's car paint (wave 2 skins, display only): read once a round from the server, which
+  // reads each owner's loadout (src/lib/identity/roomLooks.functions.ts); a failure leaves the default paint.
+  useEffect(() => {
+    if (ghostRound === null || !duel) return;
+    let live = true;
+    void import("@/lib/identity/roomLooks.functions").then(({ fetchRoomGameLooks }) =>
+      fetchRoomGameLooks(duel.id, "racing").then((looks) => {
+        if (live) setRaceGhostSkins(Object.fromEntries(Object.entries(looks).map(([slot, look]) => [slot, look.skin])));
+      }),
+    );
+    return () => {
+      live = false;
+    };
+  }, [ghostRound, duel?.id]);
   const finishedPings = useFinishedPings(players, round, mySlot, duel?.status === "in_progress" && phase === "puzzle", stateKey);
   const table = standings(roomPlayers, results, scoredThrough, roundDetails, tieRounds, scoringMode).map((row) => {
     const line = phase === "result" && puzzle ? nearMiss(puzzle.type, resultFor(results, row.slot, round)?.extra) : null;
@@ -1014,6 +1033,11 @@ function DuelScreen() {
     );
   }
 
+  // A rated match's finished room hands over to the rated result (W3c's /rated?match=…), after W3b's winner reveal.
+  if (duel.status === "finished" && ratedMatchId) {
+    return <RatedRoomHandOff matchId={ratedMatchId} />;
+  }
+
   if (duel.status === "finished") {
     // A "Finish now" ending: the same recorded outcome the room's history keeps.
     const forfeit = forfeitOutcome(duel, players);
@@ -1313,7 +1337,18 @@ function DuelScreen() {
   // During the round, unread chat shows only as a small dot on the header's score (chatNotice.ts).
   const chatDot = showRoundChatDot(chat.unread, chatAvailable) ? <RoundChatDot unread={chat.unread} /> : null;
   // The frame's score block: my room total, with my place (3+ players) or the opponent's total under it.
-  const frameScore = isMulti ? (
+  const frameScore = ratedMatchId && !isMulti ? (
+    // Rated (wave 3): both players' scores for this game, the opponent's hidden for its final 20 % (W3b's rule).
+    <RatedRoomScore
+      matchId={ratedMatchId}
+      round={round}
+      storedScore={myResult ? myResult.score : null}
+      leftMs={myResult ? 0 : runMs !== null ? arcadeMsRemaining(runMs) : msRemaining}
+      limitMs={runMs ?? timeLimitMs}
+      active={clockActive && !myResult}
+      extra={chatDot}
+    />
+  ) : isMulti ? (
     <FrameScore
       value={myStanding?.points ?? myTotal}
       note={`${ordinal(myStanding?.position ?? 1)} of ${roomPlayers.length}`}

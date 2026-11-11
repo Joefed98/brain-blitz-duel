@@ -14,6 +14,8 @@
  */
 import type { ArenaSceneView } from "./arenaScene.renderer";
 import { artHash } from "./art.renderer";
+import { lookKey, NO_LOOK, type GameLook } from "./skins/look";
+import { paintPoolSkinBall, paintNeonTable, drawNeonCue, poolBallKind, POOL_NEON_SCENE } from "./skins/pool.skins";
 import {
   poolSecondsLeft,
   poolSetName,
@@ -85,7 +87,13 @@ function offscreen(w: number, h: number): HTMLCanvasElement | null {
   return c;
 }
 
-let tableCache: { scale: number; canvas: HTMLCanvasElement } | null = null;
+let tableCache: { scale: number; key: string; canvas: HTMLCanvasElement } | null = null;
+
+/**
+ * The look this draw uses (wave 2 skins; src/lib/arcade/skins/look.ts): set by drawPool / drawPoolHud / poolScene for
+ * the length of the call, the default otherwise. Display only.
+ */
+let L: GameLook = NO_LOOK;
 const ballCache = new Map<string, HTMLCanvasElement>();
 
 /** The device pixels per world px the context draws at. */
@@ -95,6 +103,10 @@ function scaleOf(ctx: CanvasRenderingContext2D): number {
 }
 
 function paintTable(ctx: CanvasRenderingContext2D): void {
+  if (L.world) {
+    paintNeonTable(ctx, roundRect);
+    return;
+  }
   const rl = POOL_CL - POOL_RAIL;
   const rr = POOL_CR + POOL_RAIL;
   const rt = POOL_CT - POOL_RAIL;
@@ -313,7 +325,8 @@ function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: numbe
 
 function drawTable(ctx: CanvasRenderingContext2D): void {
   const scale = scaleOf(ctx);
-  if (!tableCache || Math.abs(tableCache.scale - scale) > 0.01) {
+  const key = L.world ?? "";
+  if (!tableCache || Math.abs(tableCache.scale - scale) > 0.01 || tableCache.key !== key) {
     const c = offscreen(POOL_W * scale, POOL_H * scale);
     if (!c) {
       paintTable(ctx);
@@ -322,7 +335,7 @@ function drawTable(ctx: CanvasRenderingContext2D): void {
     const cc = c.getContext("2d")!;
     cc.scale(scale, scale);
     paintTable(cc);
-    tableCache = { scale, canvas: c };
+    tableCache = { scale, key, canvas: c };
   }
   ctx.drawImage(tableCache.canvas, 0, 0, POOL_W, POOL_H);
 }
@@ -330,6 +343,11 @@ function drawTable(ctx: CanvasRenderingContext2D): void {
 /* ================================= Balls ================================= */
 
 function paintBall(ctx: CanvasRenderingContext2D, id: number, x: number, y: number, r: number): void {
+  const skinned = poolBallKind(L, id);
+  if (skinned) {
+    paintPoolSkinBall(ctx, skinned, id, x, y, r, numberTurn, !!L.world);
+    return;
+  }
   const colour = poolBallColour(id);
   const stripe = id >= 9;
   ctx.save();
@@ -397,7 +415,8 @@ function drawBall(ctx: CanvasRenderingContext2D, id: number, x: number, y: numbe
 function drawBallSprite(ctx: CanvasRenderingContext2D, id: number, x: number, y: number, drawR: number, r = drawR): void {
   const k = drawR / r;
   const scale = scaleOf(ctx);
-  const key = `${id}:${r}:${scale.toFixed(2)}`;
+  const lk = lookKey(L);
+  const key = `${lk ? `${lk}#` : ""}${id}:${r}:${scale.toFixed(2)}`;
   let sprite = ballCache.get(key);
   if (!sprite) {
     const size = (r * 2 + 2) * scale;
@@ -535,6 +554,10 @@ function drawCueStick(ctx: CanvasRenderingContext2D, cx: number, cy: number, ux:
   const tipX = cx - ux * gap;
   const tipY = cy - uy * gap;
   const angle = Math.atan2(-uy, -ux);
+  if (L.world) {
+    drawNeonCue(ctx, tipX, tipY, angle, CUE_LEN);
+    return;
+  }
   ctx.save();
   // The shadow, offset away from the lamps.
   ctx.save();
@@ -721,15 +744,30 @@ function drawHud(ctx: CanvasRenderingContext2D, s: PoolState): void {
 let numberTurn = 0;
 
 /** The HUD chips alone, in world px, for the upright strip beside a turned table (ArcadeCanvasStage `hud`). */
-export function drawPoolHud(ctx: CanvasRenderingContext2D, s: PoolState): void {
-  drawHud(ctx, s);
+export function drawPoolHud(ctx: CanvasRenderingContext2D, s: PoolState, look: GameLook = NO_LOOK): void {
+  L = look;
+  try {
+    drawHud(ctx, s);
+  } finally {
+    L = NO_LOOK;
+  }
 }
 
 /**
  * The table, the balls, the aim preview (while aiming) and the HUD chips, in world px. `turned` (the desktop
  * rotate mode): ball numbers drawn turned back to read upright, and no HUD chips (drawn upright on their strip).
  */
-export function drawPool(ctx: CanvasRenderingContext2D, s: PoolState, aim: PoolAim | null, turned = false): void {
+export function drawPool(ctx: CanvasRenderingContext2D, s: PoolState, aim: PoolAim | null, turned = false, look: GameLook = NO_LOOK): void {
+  L = look;
+  try {
+    drawPoolLooked(ctx, s, aim, turned);
+  } finally {
+    L = NO_LOOK;
+    numberTurn = 0;
+  }
+}
+
+function drawPoolLooked(ctx: CanvasRenderingContext2D, s: PoolState, aim: PoolAim | null, turned: boolean): void {
   numberTurn = turned ? -Math.PI / 2 : 0;
   ctx.fillStyle = POOL_BG;
   ctx.fillRect(0, 0, POOL_W, POOL_H);
@@ -795,8 +833,21 @@ function drawSetBanner(ctx: CanvasRenderingContext2D, s: PoolState): void {
 
 /** The room round the table on the play screen: a dark floor under the lamps' spill (display only). */
 export function poolScene(ctx: CanvasRenderingContext2D, view: ArenaSceneView): void {
+  paintPoolScene(ctx, view, NO_LOOK);
+}
+
+/** The scene in a look (wave 2 skins): the live stage's, the player's own. */
+export function poolSceneFor(look: GameLook): (ctx: CanvasRenderingContext2D, view: ArenaSceneView) => void {
+  return look.world ? (ctx, view) => paintPoolScene(ctx, view, look) : poolScene;
+}
+
+function paintPoolScene(ctx: CanvasRenderingContext2D, view: ArenaSceneView, look: GameLook): void {
   const w = view.right - view.left;
   const h = view.bottom - view.top;
+  if (look.world) {
+    POOL_NEON_SCENE(ctx, view);
+    return;
+  }
   ctx.fillStyle = "#0A0807";
   ctx.fillRect(view.left, view.top, w, h);
   const cx = POOL_W / 2;

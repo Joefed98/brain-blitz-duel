@@ -1,4 +1,6 @@
 import { withArcadeFx } from "@/lib/arcade/arcadeFx.renderer";
+import { useGameLookRef } from "@/lib/skins/equipped";
+import { lookKey } from "@/lib/arcade/skins/look";
 import { curlingFxFor } from "@/lib/arcade/sportsFx.renderer";
 import { useMemo, useRef, useState } from "react";
 
@@ -132,6 +134,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const gesture = useRef<{ mode: "broom" | "inset" | "pending" | "slide" | "swipe" | "sweep" | "power" | "none"; x: number; y: number; bx: number; by: number; samples: { y: number; t: number }[]; lastAt: number; lastX: number; lastY: number } | null>(null);
 
   // The sim as rooms deal it; its draw shows the arena, the stones and what the stage holds (broom, turn, swipe, start).
+  // The player's own equipped skin and world theme (wave 2; display only, src/lib/skins/equipped.ts).
+  const [, lookRef] = useGameLookRef("curling");
   const game = useMemo<ArcadeGame<CurlingState, ArcadeInputEvent | null>>(() => {
     // devWarp: development only (review shots, scripts/shots/curling-prepare-shots.ts); production plays the game as is.
     const base = devWarp("curling", curlingGameFor(rev));
@@ -153,7 +157,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
             a.path = curlAimPath(state, sx, bx, by, a.zone?.tee ?? 316, a.turn);
           }
         }
-        withArcadeFx(fx, (c, st: CurlingState) => drawCurling(c, st, aim.current))(ctx, state, { width: CURLING_W, height: worldH });
+        withArcadeFx(fx, (c, st: CurlingState) => drawCurling(c, st, aim.current, lookRef.current))(ctx, state, { width: CURLING_W, height: worldH });
       },
     };
   }, [rev, worldH]);
@@ -273,7 +277,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         label={gameDisplayName("curling")}
         background={CURLING_BG}
         fitWorld
-        scene={(ctx, sceneView) => curlingScene(ctx, sceneView, rev)}
+        scene={(ctx, sceneView) => curlingScene(ctx, sceneView, rev, lookRef.current)}
+        sceneKey={() => lookKey(lookRef.current)}
         seed={data?.seed ?? 1}
         enabled={data !== null}
         locked={locked}

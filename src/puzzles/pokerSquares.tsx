@@ -1,9 +1,12 @@
 import { useMemo, useRef } from "react";
 
+import { useGameLookRef } from "@/lib/skins/equipped";
+import { lookKey } from "@/lib/arcade/skins/look";
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { PS_CHECKPOINT_INTERVAL, PS_INPUT_PLACE, PS_REV, psCheckpoint, psCoreFullFor, type PsState } from "@/lib/arcade/cards/pokerSquares";
 import { drawPokerSquares, pokerSquaresArtGame, psHit, psNewView, psOnNext, PS_BG, PS_WORLD_H, PS_WORLD_W } from "@/lib/arcade/cards/pokerSquares.renderer";
-import { cardsFill } from "@/lib/arcade/cards/cardsFill.renderer";
+import { cardsFillFor } from "@/lib/arcade/cards/cardsFill.renderer";
+import { withCardsLook } from "@/lib/arcade/cards/cards.renderer";
 import { encodePokerSquaresRun, replayPokerSquaresRun } from "@/lib/duel/cards";
 import { POKERSQUARES_TIME_MS, type PokerSquaresPuzzleData } from "@/lib/duel/types";
 import { ArcadeCanvasStage, type PointerPayload } from "@/components/puzzles/ArcadeCanvasStage";
@@ -22,9 +25,12 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const latest = useRef<PsState | null>(null);
   const start = useRef<{ fromNext: boolean; square: number } | null>(null);
   const rev = data?.pokerSquaresRev ?? 1;
+  // The player's own equipped skin (wave 2; display only, src/lib/skins/equipped.ts).
+  const [look, lookRef] = useGameLookRef("pokersquares");
+  const scene = useMemo(() => cardsFillFor(look), [look]);
   const game = useMemo(() => {
     const art = pokerSquaresArtGame(view, rev);
-    return { ...art, draw: (ctx: CanvasRenderingContext2D, state: PsState, size: { width: number; height: number }) => { latest.current = state; art.draw(ctx, state, size); } };
+    return { ...art, draw: (ctx: CanvasRenderingContext2D, state: PsState, size: { width: number; height: number }) => { latest.current = state; withCardsLook(lookRef.current, () => art.draw(ctx, state, size)); } };
   }, [view, rev]);
 
   // A tap on an empty square places the card; dragging the next card onto a square does too.
@@ -58,7 +64,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       label={`${gameDisplayName("pokersquares")}: tap an empty square to place the next card`}
       background={PS_BG}
       fitWorld
-      scene={cardsFill}
+      scene={scene}
+      sceneKey={() => lookKey(lookRef.current)}
       seed={data?.seed ?? 0}
       enabled={data !== null}
       locked={locked}

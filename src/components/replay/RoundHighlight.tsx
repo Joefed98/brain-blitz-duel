@@ -166,7 +166,7 @@ function ArcadeHighlight({
   secondsLeft: () => number;
 }) {
   const winner = round.winner!;
-  const analysis = useRoundAnalysis(round.puzzle, winner.answer);
+  const analysis = useRoundAnalysis(round.puzzle, winner.answer, winner.look);
   const [stage, setStage] = useState<"play" | "done">("play");
   // The stale-version reload (lib/appUpdate) may fire on the results screen: once it
   // starts, the highlight and the full-run player simply end; nothing waits for them.

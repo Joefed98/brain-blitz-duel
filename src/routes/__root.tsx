@@ -8,6 +8,7 @@ import {
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
+import { installGameLookSource } from "@/lib/identity/gameLooks";
 import { lazy, Suspense, useEffect, useRef, useState, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
@@ -199,6 +200,8 @@ function RootComponent() {
   useEffect(() => void batterySaverOn(), []);
   // Named cues (docs/sound-cues) play their manifest file once one is set.
   useEffect(() => installSoundCueBridge(), []);
+  // Game skins and world themes (wave 2): the live stages read the player's own equipped ones through A1's loadout.
+  useEffect(() => installGameLookSource(), []);
 
   // A stale copy of the app updates itself, never mid-round (lib/appUpdate).
   const router = useRouter();

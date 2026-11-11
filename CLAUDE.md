@@ -1975,6 +1975,29 @@ outside the repo.
   `20261110200000_analytics_identity_events.sql` (**applied**; it adds to the list it reads from the
   table). Checks: identity-screens-check (~5 s, happy-dom, A1 stood in by `setIdentityBackend`) and identity-motion-check
   (headless Chromium: every item against its approved PNG, no animation under reduced motion).
+- **Game skins and world themes** (wave 2 E1, 11 Nov 2026, `docs/skins.md`; display only, no stamps, no gameplay,
+  deal or scoring change): the 20 game skins, 3 card backs and 4 world themes of `docs/art/wave-2/items/game-skin/`,
+  `card-back/` and `world-theme/` in Cue Ball, Crazy Golf, Curl Champ, Apex, Top Bins and Full House (Free Cell has no
+  skins: its deal is face up). `src/lib/arcade/skins/` (`look.ts`:
+  `GameLook`, `NO_LOOK`, the ids, `skinTime()` still under Reduce Motion, the 3:1 contrast helpers; one `<game>.skins.ts`
+  each, `ballArt.ts` for the round balls). Each renderer takes an optional look on its public draw calls for the length
+  of the call only, so replays, reveals, demos, tiles and ghosts draw the default; scenes come from `…SceneFor(look)`.
+  The live stages alone pass the player's own equipped look (`src/lib/skins/equipped.ts` `useGameLookRef`, fed by
+  `src/lib/identity/gameLooks.ts` from A1's loadout through the identity backend's `gameLooks`). *Card backs* (Joe, 11
+  Nov 2026): one account slot `card-back` (ids `card-back.royal-damask`, `.holo-foil`, `.neon`; `CARD_BACK_IDS`,
+  `CARD_BACK_GAMES`), drawn on Full House's deck behind Next card; migration `20261112090000_card_back_slot.sql` moved
+  the three Free Cell skins with their owners and loadouts (old ids in `public.catalogue_renamed`, never re-inserted).
+  *Replays and ghosts*: each result stores its player's equipped look (`round_results.look`, `async_results.look`,
+  filled by database triggers from the loadout, never by the phone; `20261112090100_result_looks.sql`; Play again's
+  archive keeps it, `20261112090200_archive_result_look.sql`); replays draw
+  the player's skin and back in the viewer's own world (`lookFromStored`, `playerLookIn`), Apex's ghosts their owners'
+  paints (`roomGameLooksFn` → `room_game_looks`, `setRaceGhostSkins`). Nothing grades, scores, ranks or deals from a
+  look. Checks: skins-default-check (56 frames identical to digests recorded on main before the hook,
+  `scripts/fixtures/skins-default-frames.json`, never re-record), skins-check (catalogue, renders, contrast, sizes,
+  Reduce Motion, ownership, Full House's deck against `scripts/fixtures/skins-deck-frames.json`, recorded on main),
+  skins-replay-check (28 recorded runs in every look, identical scores; `scripts/fixtures/skins-replay-runs.json`),
+  skins-db-check (the two migrations and the ghost function on a local PostgreSQL, shard `e`). **A change to one of these renderers must keep
+  skins-default-check green; a new skin goes in look.ts's ids and its game's `.skins.ts`.**
 - **Badges, titles and the account rewards** (wave 2 train C, session C2, 11 Nov 2026, `docs/badges/README.md`; no
   gameplay, scoring, stamp or timing change): the 54 badges and their rules are Joe's approved catalogue,
   **`docs/badges/catalogue.md`**, in one list, `src/lib/badges/catalogue.ts` (with the 32 titles; seeded by
@@ -2148,6 +2171,23 @@ outside the repo.
   podium's box, none under reduced motion). Events `multiplayer_match_started` / `_finished`
   (`20261114400000_analytics_multiplayer_events.sql`, **not applied until merged**). rated-multi-check (~2 s),
   rated-multi-server-check (~15 s, shard `e`, PostgreSQL: 4 and 8 players, flagged runs on W3a's real engine).
+- **The rated match screens** (wave 3, session W3c, 11 Nov 2026; docs/mockups/wave-3/; no gameplay, scoring, stamp,
+  timing or deal change). Every rated screen reads through `src/lib/rated/backend.ts`, bound to W3a's and W3b's real
+  server functions in `src/lib/rated/w3Binding.ts` (W3a: getMyRatingsFn, getRatingsForFn, getTierLadderFn and each
+  match's RatedPlayerChange; W3b: ratedStatusFn, the queue, ratedMatchFn, ratedOpponentScoreFn, ratedProgressFn,
+  ratedSettleFn, ratedRematchFn; cards from A2's getPublicCard and C2's getCardBadges). Tiers are drawn from W3a's
+  TierView (`tierDisplay.ts`); the hidden finish is W3b's `opponentScoreHidden`. Home's rank panel and Play card
+  (`RatedHome`, only for players W3b says rated play is open to: testers, then everyone with
+  RATED_PLAY_FOR_EVERYONE), the picker (switched-on options only), `/rated` (searching, VS, then W3b's room on the room
+  route; `?match=` the result and the reveal), `/tiers`, the card pill's tier and rating once placed, Profile's
+  `ProfileRating`. The room route marks a rated room from sessionStorage (`ratedRoom.ts`): its header is
+  `RatedRoomScore` (no other layout change; an arcade stage publishes its running score once a second only while it is
+  asked), and the finished room hands over to `/rated?match=` after W3b's winner reveal. Guests show under W3b's energy
+  name with a Guest tag; a guest's finished rated match counts for the save-your-progress prompt ("Save your rating and
+  stars", `SAVE_PROGRESS_FROM` "rated"). Under automation the real binding stays off unless a page sets
+  `window.__DUELZ_ALLOW_RATED__` (ignored in production). Events play_card_tapped, vs_shown, result_viewed,
+  next_match_tapped, tier_ladder_viewed (`20261114300000_analytics_rated_screen_events.sql`). rated-screens-check
+  (~5 s, happy-dom); shots `bun scripts/shots/rated-shots.tsx` (after `bun run build`).
 - `src/components/duel/` — room/round screens (PhoneShell, RoundIntro, TimerBar,
   AnswerReveal, ArcadeReveal, WinnerReveal…); `src/components/puzzles/` — shared puzzle
   widgets; `src/lib/fx/` — sound and visual feedback (presentation only).

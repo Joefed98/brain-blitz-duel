@@ -15,6 +15,8 @@ import type { RoundResultRow } from "@/lib/duel/types";
 
 import type { PassActionResult, PassClosed, PassView } from "./types";
 
+import { checkOverride } from "@/lib/checkOverride";
+
 const PASS_KEY = "duelz-pass:v1";
 
 /** A check-only override counts only outside production builds. */
@@ -24,8 +26,8 @@ export function overrideAllowed(prod: boolean, flag: unknown): boolean {
 
 function automationBlocked(): boolean {
   if (typeof navigator === "undefined" || !navigator.webdriver) return false;
-  const flag = typeof window !== "undefined" ? (window as unknown as { __DUELZ_ALLOW_PASS__?: unknown }).__DUELZ_ALLOW_PASS__ : undefined;
-  return !overrideAllowed(import.meta.env.PROD, flag);
+  // Read through checkOverride (main #375: every check-only stand-in goes through it), kept behind overrideAllowed.
+  return !overrideAllowed(import.meta.env.PROD, checkOverride("__DUELZ_ALLOW_PASS__"));
 }
 
 function store(): Storage | null {
