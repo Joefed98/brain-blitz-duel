@@ -538,6 +538,8 @@ async function databaseChecks(db: LocalDb, rest: RestServer): Promise<void> {
     check(reported.ok && /Thanks/.test(reported.message), "report: the same thank-you");
     const row = q(`SELECT concat_ws('|', duel_id IS NULL, reported_user_id, reason, reported_name, counts) FROM room_reports WHERE reporter_user_id = '${TEE}'`);
     check(row === `t|${ADA}|offensive_name|Ada_Adult|t`, `report: through wave 1's flow, with no room (${row})`);
+    const queue = q(`SELECT concat_ws('|', name, array_to_string(reasons, ','), array_to_string(sources, ','), from_profile) FROM moderation.report_queue WHERE user_id = '${ADA}'`);
+    check(queue === "Ada_Adult|offensive_name|profile|1", `report: Joe's review list shows who, why and that it came from a profile (${queue})`);
     const bad = await call(fns.friendReportFn, { playerId: ADA, reason: "made_up" }, tok.tee);
     check(!bad.ok, "report: an unknown reason is refused");
     const self = await call(fns.friendReportFn, { playerId: TEE, reason: "cheating" }, tok.tee);
@@ -641,6 +643,21 @@ async function databaseChecks(db: LocalDb, rest: RestServer): Promise<void> {
     ]);
     check(writes.slice(0, 5).every((w) => !!w.error) && (!!writes[5].error || ((writes[5].data ?? []) as unknown[]).length === 0), "authenticated and anon can't write friends rows");
     check(refused(`SET LOCAL ROLE authenticated; INSERT INTO friendships VALUES ('${TEE}', '${TOM}')`) !== "", "SQL: authenticated can't insert a friendship");
+  });
+
+  /* ------------------------------------------------------------- the analytics list */
+  await section("analytics events list", async () => {
+    const { ANALYTICS_EVENTS } = await import("../src/lib/analytics/events");
+    const def = q(`SELECT pg_get_constraintdef(oid) FROM pg_constraint WHERE conrelid = 'analytics.events'::regclass AND conname = 'events_event_check'`);
+    const missing = ANALYTICS_EVENTS.filter((e) => !def.includes(`'${e}'`));
+    check(missing.length === 0, `every event in ANALYTICS_EVENTS is allowed after all migrations (${missing.join(",")})`);
+    // Another session's event already in the list (as train C's or D1's would be): applying the friends migration again keeps it.
+    const { readFileSync, readdirSync } = await import("node:fs");
+    const file = readdirSync("supabase/migrations").find((f) => f.endsWith("_analytics_friend_events.sql"))!;
+    q(`ALTER TABLE analytics.events DROP CONSTRAINT events_event_check; ALTER TABLE analytics.events ADD CONSTRAINT events_event_check CHECK (event IN (${[...ANALYTICS_EVENTS.filter((e) => !e.startsWith("friend_")), "zz_other_session"].map((e) => `'${e}'`).join(", ")})) NOT VALID`);
+    const again = db.psql(readFileSync(`supabase/migrations/${file}`, "utf8"));
+    const after = q(`SELECT pg_get_constraintdef(oid) FROM pg_constraint WHERE conrelid = 'analytics.events'::regclass AND conname = 'events_event_check'`);
+    check(again.ok && after.includes("'zz_other_session'") && ANALYTICS_EVENTS.every((e) => after.includes(`'${e}'`)), "the friends analytics migration adds its four events and keeps every event already listed, whatever the order");
   });
 
   /* ------------------------------------------------------------- B2 events and removal */

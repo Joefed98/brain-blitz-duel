@@ -947,3 +947,38 @@ END;
 $$;
 REVOKE ALL ON FUNCTION public.friends_profile(uuid, uuid) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.friends_profile(uuid, uuid) TO service_role;
+
+/* ------------------------------------------------------------------ Joe's review list: where each report came from */
+
+-- moderation.report_queue (20261110150000_moderation.sql) exactly as before, with two columns added at the end:
+--   sources       where the player's reports came from: 'chat message' (a room's message), 'room name' (a lobby
+--                 name) or 'profile' (a friend's or player's profile, outside any room: duel_id null);
+--   from_profile  how many of the player's reports came from a profile.
+-- Every earlier column keeps its name, order and meaning; still unreachable from the API.
+CREATE OR REPLACE VIEW moderation.report_queue AS
+SELECT r.reported_user_id AS user_id,
+       coalesce(p.username, (array_agg(r.reported_name ORDER BY r.created_at DESC) FILTER (WHERE r.reported_name IS NOT NULL))[1])
+         AS name,
+       (p.user_id IS NOT NULL) AS has_account,
+       array_agg(DISTINCT r.reason) FILTER (WHERE r.reason IS NOT NULL) AS reasons,
+       array_remove(array_agg(r.message_text ORDER BY r.created_at DESC), NULL) AS messages,
+       count(DISTINCT r.reporter_user_id) AS players_reporting,
+       count(*) AS reports,
+       count(*) FILTER (WHERE r.resolved_at IS NULL) AS open_reports,
+       max(r.created_at) AS latest_report,
+       min(r.created_at) FILTER (WHERE r.resolved_at IS NULL) AS oldest_open,
+       CASE WHEN s.muted_until > now() THEN s.muted_until END AS muted_until,
+       CASE WHEN s.banned_until > now() THEN s.banned_until END AS banned_until,
+       CASE WHEN count(*) FILTER (WHERE r.resolved_at IS NULL) > 0 THEN 'open' ELSE 'resolved' END AS status,
+       array_agg(r.id ORDER BY r.created_at DESC) AS report_ids,
+       array_agg(DISTINCT CASE WHEN r.duel_id IS NULL THEN 'profile'
+                               WHEN r.message_id IS NOT NULL OR r.message_text IS NOT NULL THEN 'chat message'
+                               ELSE 'room name' END) AS sources,
+       count(*) FILTER (WHERE r.duel_id IS NULL) AS from_profile
+  FROM public.room_reports r
+  LEFT JOIN public.profiles p ON p.user_id = r.reported_user_id
+  LEFT JOIN moderation.player_state s ON s.user_id = r.reported_user_id
+ WHERE r.reported_user_id IS NOT NULL
+ GROUP BY r.reported_user_id, p.user_id, p.username, s.muted_until, s.banned_until
+ ORDER BY max(r.created_at) DESC;
+REVOKE ALL ON moderation.report_queue FROM PUBLIC, anon, authenticated, service_role;

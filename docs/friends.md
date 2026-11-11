@@ -8,8 +8,8 @@ scoring, stamp, timing or room-flow change beyond Invite to room.
 
 | Piece | File |
 | --- | --- |
-| Migration: tables, RLS, the server functions, `room_reports.duel_id` nullable | `supabase/migrations/20261111120000_friends.sql` |
-| Migration: four analytics events | `supabase/migrations/20261111120100_analytics_friend_events.sql` |
+| Migration: tables, RLS, the server functions, `room_reports.duel_id` nullable | `supabase/migrations/20261111180000_friends.sql` |
+| Migration: four analytics events | `supabase/migrations/20261111180100_analytics_friend_events.sql` |
 | Data layer (one call per function) | `src/lib/data/friends.server.ts` |
 | Server rules, limits, analytics | `src/lib/friends/friends.server.ts` |
 | Server functions | `src/lib/friends/friends.functions.ts` |

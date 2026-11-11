@@ -1,6 +1,6 @@
 /**
  * Friends' data (wave 2 B1, 11 Nov 2026; docs/friends.md): the service-role functions of
- * supabase/migrations/20261111120000_friends.sql, one call each, and the report of a player outside any room through
+ * supabase/migrations/20261111180000_friends.sql, one call each, and the report of a player outside any room through
  * wave 1's own report function (`file_room_report`, with no room). Server only. The rules that decide what a caller may
  * do are in src/lib/friends/friends.server.ts and, again, in the SQL.
  */
