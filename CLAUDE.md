@@ -1994,7 +1994,11 @@ outside the repo.
   The `push` / `notificationclick` listeners (`src/lib/push/sw.push.js`) are appended to the offline worker by swPlugin; the
   offline worker itself is unchanged. Migration `20261112060000_push_notifications.sql` (after C2's and B1's; **not applied
   until merged**). Events `notification_opt_in`, `notification_sent`, `notification_opened`. push-notifications-check (~5 s,
-  shard `e`).
+  shard `e`). **On for testers only since 11 Nov 2026**: `PUSH_PUBLIC_KEY` set, the secret `VAPID_PRIVATE_KEY` added;
+  while `PUSH_FOR_EVERYONE` is false only player numbers in `PUSH_TESTERS` (`[1, 2]`) get the ask and the panel, the
+  server refuses anyone else's subscription and sends to nobody else (`pushForPlayer`, `audience.server.ts`, from the
+  player's own profile row); set `PUSH_FOR_EVERYONE` to true to open it to every account (guests never).
+  push-testers-check (~5 s, shard `e`).
 - **Friends** (wave 2 train B, session B1, 11 Nov 2026, `docs/friends.md`; no gameplay, scoring, stamp or room-flow
   change beyond Invite to room): accounts only (`/friends`, `src/routes/friends.tsx`, screens
   `src/components/friends/FriendsScreens.tsx`; Profile's Friends button carries the waiting-requests badge, a guest gets

@@ -1,19 +1,20 @@
 /**
  * Settings → Notifications (wave 2 train B, session B2): every notification switch in one place. "On this phone" turns
  * this device on or off (the browser's permission and its subscription); "All notifications" is the master switch; then
- * one switch per event. Accounts only; nothing renders while the switch (PUSH_PUBLIC_KEY) is off or for a guest. On an
+ * one switch per event. Accounts in the audience only (pushConfig.ts: the testers while PUSH_FOR_EVERYONE is false);
+ * nothing renders while the switch (PUSH_PUBLIC_KEY) is off, for a guest or for anyone outside it. On an
  * iPhone in Safari the panel says how to add Joulz to the Home Screen instead.
  */
 import { useEffect, useState } from "react";
 
-import { pushPublicKey } from "@/config/pushConfig";
+import { pushForPlayer, pushPublicKey } from "@/config/pushConfig";
 import { Row, SwitchKnob } from "@/design/components";
 import { useAccount } from "@/lib/account/accountApi";
 import { DEFAULT_PUSH_SETTINGS, PUSH_EVENTS, PUSH_EVENT_LABELS, type PushEvent, type PushSettings } from "@/lib/push/rules";
 
 export function NotificationSettings() {
   const account = useAccount();
-  if (!pushPublicKey() || account.kind !== "account") return null;
+  if (!pushPublicKey() || account.kind !== "account" || !pushForPlayer(account.playerNumber)) return null;
   return <NotificationSettingsPanel />;
 }
 

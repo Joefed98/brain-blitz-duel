@@ -339,6 +339,9 @@ export const SHARDS: Record<string, string[]> = {
     // the cap and quiet hours, the streak reminder, subscriptions, RLS, the service worker's push listeners) on a local
     // PostgreSQL through the server-function harness, beside economy-check.
     "push-notifications-check.ts",
+    // push-testers-check (11 Nov 2026, ~5 s): with the key set, notifications for testers #0001 and #0002 only (the
+    // ask and panel in happy-dom, subscriptions and every send on PostgreSQL).
+    "push-testers-check.tsx",
     // badges-check (wave 2 C2, 11 Nov 2026, ~10 s): badges, titles, the sign-up and founding rewards, the backfill and the
     // Daily streak on the account, on a local PostgreSQL through the server-function harness, beside economy-check.
     "badges-check.ts",
