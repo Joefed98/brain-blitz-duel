@@ -21,7 +21,7 @@ questions:
 
 It builds on `docs/scoring-standard.md`, `docs/scoring-200.md`, `docs/arcade-standard/` and the November tuning notes
 (`docs/puzzle-batch-nov-2026.md`, `docs/puzzle-polish-nov-2026.md`, `docs/cards-strategy-polish-nov-2026.md`,
-`docs/retro-polish-nov-2026.md`). It also cross-references Code audit 1, `docs/audit-nov-2026/security.md`, for the
+`docs/retro-polish-nov-2026.md`). It also cross-references Code audit 1 (the security audit) for the
 trust findings.
 
 **How it was done:**
@@ -397,7 +397,7 @@ sliced 50 of 128 objects scored 1.
   ruling D, already accepted; server-timed taps are L.
 - c. **Counterweight and Operator** read their hang and try counts from the `#` suffix the phone sends
   (`standard/number.server.ts:124, 137, 149, 164`; noted at `grade.ts:402`). A modified phone could claim Operator's
-  clean 10 and Counterweight's par 15, and dodge both limits. Not in `docs/security-audit-oct-2026.md`. Effort M.
+  clean 10 and Counterweight's par 15, and dodge both limits. Not in the October security audit. Effort M.
 - d. **Timeline bonuses.** The clean, first-time and early bonuses rest on the draft timeline the phone sends: up to 40
   on Eagle Eye, 10 on most other games. Forage's misses are phone-reported (already documented).
 - e. **Time claims.** Rooms and async runs bound the phone's time claim to the server's receipt plus 1.5 s
