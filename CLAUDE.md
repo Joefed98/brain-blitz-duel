@@ -2016,7 +2016,12 @@ outside the repo.
   `practiceGradeQueuedFn` grades them. The device's old bests and goals record are cleared once (`deviceFreshStart.ts`,
   `duelz-practice-fresh:v1`); the old 120 / 160 / 190 module (`practiceGoals.ts`) stays, unused for stars; the
   challenge ticks stay on the device until C1b. A one-time note ("Stars and challenges have had a refresh…", once
-  per player, `public.practice_refresh_notes`). Events `star_earned`, `best_set` (game, props.level) and
+  per player and only to players who existed before the fresh start, `practice_refresh_note_due`). Practice's footer:
+  accounts "Stars and bests are saved to your account.", guests "Save your progress to keep your stars on any phone"
+  (the save-your-progress sheet). A display-only copy of the server's last answer (`progressCache.ts`,
+  `duelz-practice-view:v1`, under the session's auth id) shows stars and bests when Practice opens offline after a
+  restart, until the server answers; never sent or trusted (progress-cache-check). Practice packs: 100 an hour per
+  network (`IP_PRACTICE_PACK_LIMIT`, 20 before 11 Nov 2026). Events `star_earned`, `best_set` (game, props.level) and
   `gem_unlocked` (props.gem), no mode. No API role writes any of it, the service role included (only the functions).
   Migration `20261111101500_practice_progress.sql` (**not applied until merged**). practice-progress-check (~15 s,
   PostgreSQL, no browser); offline-check's production server runs on the server-fn harness's PostgreSQL and REST
