@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Joulz – Swiss round</title>
+
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#06080F}
+a{color:#22E4FF}a:hover{color:#7FF0FF}
+.cut{clip-path:polygon(14px 0,100% 0,100% calc(100% - 14px),calc(100% - 14px) 100%,0 100%,0 14px)}
+.cutsm{clip-path:polygon(8px 0,100% 0,100% calc(100% - 8px),calc(100% - 8px) 100%,0 100%,0 8px)}
+/* VSANIM */
+.a-top{animation:jzInR .55s cubic-bezier(.2,.8,.2,1) both}
+.a-bot{animation:jzInL .55s .08s cubic-bezier(.2,.8,.2,1) both}
+.a-rail{transform-origin:50% 50%;animation:jzRail .4s .45s cubic-bezier(.2,.8,.2,1) both}
+.a-vs{animation:jzSlam .45s .75s cubic-bezier(.2,1.4,.4,1) both}
+.a-fade1{animation:jzFade .3s .9s ease-out both}.a-fade2{animation:jzFade .3s 1.05s ease-out both}.a-fade3{animation:jzFade .3s 1.2s ease-out both}
+@keyframes jzInR{from{transform:translateX(120%);opacity:0}to{transform:none;opacity:1}}
+@keyframes jzInL{from{transform:translateX(-120%);opacity:0}to{transform:none;opacity:1}}
+@keyframes jzRail{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+@keyframes jzSlam{0%{transform:scale(2.4);opacity:0}60%{transform:scale(.92);opacity:1}100%{transform:scale(1);opacity:1}}
+@keyframes jzFade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion: reduce){.a-top,.a-bot,.a-rail,.a-vs,.a-fade1,.a-fade2,.a-fade3{animation:none}}
+.stripes{background-image:repeating-linear-gradient(-55deg,rgba(238,242,255,0.035) 0 2px,transparent 2px 10px)}
+</style>
+</head>
+<body>
+
+
+<div style="width: 390px; height: 980px; position: relative; overflow: hidden; background: #06080F; color: #EEF2FF; font-family: 'Archivo', system-ui, sans-serif; font-size: 15px">
+<div style='padding-top: 10px; display: flex; flex-direction: column; gap: 14px'><div style='display: flex; align-items: center; height: 48px; padding: 0 8px'><button aria-label='Back' style='width: 44px; height: 44px; border: 0; background: none; display: flex; align-items: center; justify-content: center'><svg width='22' height='22' viewBox='0 0 24 24' aria-hidden='true' style='color: #B5C6DD; flex-shrink: 0'><path fill='none' stroke='currentColor' stroke-width='2' stroke-linejoin='round' stroke-linecap='round' d='M15 5 8 12l7 7'></path></svg></button><span style='flex-grow: 1; font-weight: 800; font-stretch: 108%; font-size: 18px'>Logic Cup</span><span style='display: inline-flex; align-items: center; gap: 5px; height: 20px; padding: 0 7px; border-radius: 4px; background: #FF3B5C; color: #06080F; font-weight: 800; font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em'><span style='width: 5px; height: 5px; border-radius: 3px; background: #06080F'></span>Live</span><span style='width: 12px'></span></div>
+<div style='padding: 0 20px; display: flex; flex-direction: column; gap: 8px'><div style='display: flex; justify-content: space-between'><span style='font-weight: 800; font-size: 18px'>Round 4 of 7</span><span style='font-size: 13px; color: #8F9BBF'>Starts in 0:45</span></div>
+<div aria-hidden='true' style='display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px'><span class='cutsm' style='height: 8px; background: linear-gradient(165deg, #FBEDC4 0%, #E6C67E 34%, #D2AC5E 68%, #EED79C 100%)'></span><span class='cutsm' style='height: 8px; background: linear-gradient(165deg, #FBEDC4 0%, #E6C67E 34%, #D2AC5E 68%, #EED79C 100%)'></span><span class='cutsm' style='height: 8px; background: linear-gradient(165deg, #FBEDC4 0%, #E6C67E 34%, #D2AC5E 68%, #EED79C 100%)'></span><span class='cutsm' style='height: 8px; background: #22E4FF'></span><span class='cutsm' style='height: 8px; background: #1E2640'></span><span class='cutsm' style='height: 8px; background: #1E2640'></span><span class='cutsm' style='height: 8px; background: #1E2640'></span></div></div>
+<section class='cut' style='margin: 0 20px; background: #0F1424; padding: 18px 16px; display: flex; flex-direction: column; gap: 14px'>
+<span style='font-weight: 700; font-size: 13px; color: #22E4FF'>Your next match</span>
+<div style='display: flex; align-items: center; justify-content: space-between'>
+<span style='display: flex; flex-direction: column; align-items: center; gap: 6px'><span aria-hidden='true' style='width: 52px; height: 52px; border-radius: 999px; background: #FF6BD6; color: #06080F; font-weight: 800; font-size: 23px; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0'>T</span><span style='font-weight: 700; font-size: 14px; color: #B5C6DD'>You</span><span style='font-size: 12px; color: #8F9BBF'>2–1, Volt II</span></span>
+<span style='font-weight: 900; font-stretch: 118%; font-size: 26px; color: #E2C07A'>VS</span>
+<span style='display: flex; flex-direction: column; align-items: center; gap: 6px'><span aria-hidden='true' style='width: 52px; height: 52px; border-radius: 999px; background: #3DDC84; color: #06080F; font-weight: 800; font-size: 23px; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0'>P</span><span style='font-weight: 700; font-size: 14px; color: #B5C6DD'>Priya</span><span style='font-size: 12px; color: #8F9BBF'>2–1, Volt II</span></span></div>
+<div style='position: relative; padding-bottom: 4px; '><div aria-hidden='true' class='cut' style='position: absolute; left: 0; right: 0; top: 4px; bottom: 0; background: #A8843E'></div><button class='cut' style='position: relative; width: 100%; height: 56px; border: 0; background: linear-gradient(165deg, #FBEDC4 0%, #E6C67E 34%, #D2AC5E 68%, #EED79C 100%); color: #06080F; font-family: inherit; font-weight: 800; font-stretch: 110%; font-size: 18px'>Ready</button></div></section>
+<section style='padding: 0 20px; display: flex; flex-direction: column; gap: 10px'><div style='display: flex; align-items: center; gap: 12px'><h2 style='margin: 0; font-weight: 800; font-stretch: 110%; font-size: 18px; line-height: 22px; white-space: nowrap'>Standings</h2><span aria-hidden='true' style='flex-grow: 1; height: 2px; background: #1E2640'></span><span style='font-weight: 600; font-size: 12px; color: #8F9BBF'>31 players</span></div><ol style='list-style: none; margin: 0; padding: 0; background: #0F1424; border-radius: 8px; overflow: hidden'><li style='display: flex; align-items: center; gap: 10px; height: 48px; padding: 0 14px; border-top: 1px solid #1E2640; '><span style='width: 22px; font-weight: 800; color: #B5C6DD'>1</span><span aria-hidden='true' style='width: 28px; height: 28px; border-radius: 999px; background: #FFE600; color: #06080F; font-weight: 800; font-size: 12px; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0'>I</span><span style='flex-grow: 1; font-weight: 600; font-size: 15px; color: #B5C6DD'>Ivy</span><span style='font-weight: 800; font-size: 16px'>3–0</span></li><li style='display: flex; align-items: center; gap: 10px; height: 48px; padding: 0 14px; border-top: 1px solid #1E2640; background: rgba(226,192,122,0.08); box-shadow: inset 3px 0 0 #E2C07A;'><span style='width: 22px; font-weight: 800; color: #E2C07A'>2</span><span aria-hidden='true' style='width: 28px; height: 28px; border-radius: 999px; background: #FF6BD6; color: #06080F; font-weight: 800; font-size: 12px; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0'>T</span><span style='flex-grow: 1; font-weight: 600; font-size: 15px; color: #B5C6DD'>You</span><span style='font-weight: 800; font-size: 16px'>2–1</span></li><li style='display: flex; align-items: center; gap: 10px; height: 48px; padding: 0 14px; border-top: 1px solid #1E2640; '><span style='width: 22px; font-weight: 800; color: #B5C6DD'>3</span><span aria-hidden='true' style='width: 28px; height: 28px; border-radius: 999px; background: #3DDC84; color: #06080F; font-weight: 800; font-size: 12px; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0'>P</span><span style='flex-grow: 1; font-weight: 600; font-size: 15px; color: #B5C6DD'>Priya</span><span style='font-weight: 800; font-size: 16px'>2–1</span></li><li style='display: flex; align-items: center; gap: 10px; height: 48px; padding: 0 14px; border-top: 1px solid #1E2640; '><span style='width: 22px; font-weight: 800; color: #B5C6DD'>4</span><span aria-hidden='true' style='width: 28px; height: 28px; border-radius: 999px; background: #4D8CFF; color: #06080F; font-weight: 800; font-size: 12px; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0'>R</span><span style='flex-grow: 1; font-weight: 600; font-size: 15px; color: #B5C6DD'>Raf</span><span style='font-weight: 800; font-size: 16px'>2–1</span></li><li style='display: flex; align-items: center; gap: 10px; height: 48px; padding: 0 14px; border-top: 1px solid #1E2640; '><span style='width: 22px; font-weight: 800; color: #B5C6DD'>5</span><span aria-hidden='true' style='width: 28px; height: 28px; border-radius: 999px; background: #22D3EE; color: #06080F; font-weight: 800; font-size: 12px; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0'>K</span><span style='flex-grow: 1; font-weight: 600; font-size: 15px; color: #B5C6DD'>Kai</span><span style='font-weight: 800; font-size: 16px'>2–1</span></li></ol></section>
+</div>
+</div>
+
+
+</body>
+</html>
