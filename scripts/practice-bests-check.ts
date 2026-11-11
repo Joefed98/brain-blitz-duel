@@ -185,10 +185,12 @@ const localStorage = {
 /* 6. The wiring. */
 {
   const practice = readFileSync("src/routes/practice.tsx", "utf8");
-  check(/recordPracticeBest\(puzzle\.type, stampSignature\(puzzle\), result\.score\)/.test(practice), "practice records under the dealt puzzle's stamps");
-  check(/if \(!wasExample\) \{\s*const record = recordPracticeBest/.test(practice), "intro-example runs are never recorded");
-  check(/readPracticeBest\(next, stampSignature\(made\.puzzle/.test(practice), "the intro reads the dealt puzzle's best");
-  check(/function RowBest[\s\S]*?readPracticeBest\(type, currentPracticeStamp\(type\)\)/.test(practice), "the list's rows read the current stamps");
+  // Wave 2 C1a (11 Nov 2026, Joe's approval in the session): bests are the account's, counted by the server from the
+  // graded run (the grade's own `progress`), no longer this device's record.
+  check(/const record = practiceRunRecord\(result\.progress, deviceBest\);\s*applyPracticeRun\(puzzle\.type, result\.progress\)/.test(practice), "practice takes the best from the server's count of the graded run");
+  check(/if \(!wasExample\) \{\s*(\/\/[^\n]*\n\s*)?const record = practiceRunRecord/.test(practice), "intro-example runs are never recorded");
+  check(/bestOf\(practiceProgressNow\(\), next, levelOf\(\(made\.puzzle/.test(practice), "the intro reads the account's best on the dealt puzzle's level");
+  check(/function RowBest[\s\S]*?bestOf\(useContext\(ProgressOnList\), type\)/.test(practice), "the list's rows read the account's bests");
   // Category lists (tab pages refresh, 26 Oct 2026): every list draws one row (row(key…)), which carries the best in
   // the BEST column and its description.
   check((practice.match(/<RowBest type=\{key\} \/>/g) ?? []).length === 1 && /rows\.map\(\(key\) => row\(key\)\)/.test(practice) && /previewRows\.map\(\(key\) => row\(key\)\)/.test(practice) && /retiredRows\.map\(\(key\) => row\(key, true\)\)/.test(practice), "every practice row shows its best (category lists, preview, retired)");

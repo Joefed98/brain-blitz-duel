@@ -954,6 +954,9 @@ export type Database = {
           time_limit_ms: number
           timed_out: boolean
           user_id: string | null
+          breakdown: Json | null
+          level: string | null
+          progress_counted_at: string | null
         }
         Insert: {
           created_at?: string
@@ -970,6 +973,9 @@ export type Database = {
           time_limit_ms?: number
           timed_out?: boolean
           user_id?: string | null
+          breakdown?: Json | null
+          level?: string | null
+          progress_counted_at?: string | null
         }
         Update: {
           created_at?: string
@@ -986,7 +992,55 @@ export type Database = {
           time_limit_ms?: number
           timed_out?: boolean
           user_id?: string | null
+          breakdown?: Json | null
+          level?: string | null
+          progress_counted_at?: string | null
         }
+        Relationships: []
+      }
+      practice_progress: {
+        Row: {
+          best_at: string
+          best_play_id: number | null
+          best_score: number
+          game_id: string
+          level: string
+          star_at: string | null
+          star_score: number | null
+          user_id: string
+        }
+        Insert: {
+          best_at?: string
+          best_play_id?: number | null
+          best_score: number
+          game_id: string
+          level: string
+          star_at?: string | null
+          star_score?: number | null
+          user_id: string
+        }
+        Update: {
+          best_at?: string
+          best_play_id?: number | null
+          best_score?: number
+          game_id?: string
+          level?: string
+          star_at?: string | null
+          star_score?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      practice_progress_start: {
+        Row: { fresh_start_at: string; id: boolean }
+        Insert: { fresh_start_at?: string; id?: boolean }
+        Update: { fresh_start_at?: string; id?: boolean }
+        Relationships: []
+      }
+      practice_refresh_notes: {
+        Row: { seen_at: string; user_id: string }
+        Insert: { seen_at?: string; user_id: string }
+        Update: { seen_at?: string; user_id?: string }
         Relationships: []
       }
       profiles: {
@@ -1519,6 +1573,11 @@ export type Database = {
         }
         Returns: string
       }
+      practice_record_play: { Args: { p_play_id: number }; Returns: Json }
+      practice_mark_refresh_note_seen: { Args: { p_user_id: string }; Returns: boolean }
+      practice_star_total: { Args: { p_user_id: string }; Returns: number }
+      practice_sync_gems: { Args: { p_user_id: string }; Returns: string[] }
+      practice_gems_for: { Args: { p_stars: number }; Returns: string[] }
       economy_public_cards: {
         Args: { p_user_ids: string[] }
         Returns: {

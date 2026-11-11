@@ -968,6 +968,7 @@
   .jz-stars > [data-metal="bronze"][data-on] { background: var(--jz-bronze-metal); }
   .jz-stars > [data-metal="silver"][data-on] { background: var(--jz-silver-metal); }
   .jz-stars > [data-metal="gold"][data-on] { background: var(--jz-gold-metal); }
+  .jz-stars > [data-level][data-on] { background: var(--jz-gold-metal); }
 
   /* ------------------------------------------------------------------ Progress bar */
   .jz-progress {

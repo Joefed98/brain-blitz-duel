@@ -5,6 +5,7 @@ import { Coin } from "@/components/app/CoinCounter";
 import { PhoneShell } from "@/components/duel/PhoneShell";
 import { lookFromLoadout } from "@/components/identity/ProfileCard";
 import { Button, Chip, EmptyState, Icon, Segmented, Skeleton } from "@/design/components";
+import { gemUnlockLine } from "@/lib/practice/progressRules";
 import { Avatar, AVATARS, CardPiece, GEMS, NamePiece, PlayerCard, type CardLook } from "@/design/identity";
 import { useAccount } from "@/lib/account/accountApi";
 import { APP_NAME } from "@/lib/brand";
@@ -21,8 +22,8 @@ import { useShopOn } from "@/lib/identity/shopSwitch";
  *
  * - Avatar: the 32 game avatars and the 32 colours, all free; the avatar builder's accent, feature, accessory and
  *   background (A1's getAvatarOptions) only where an avatar has more than one choice (none do yet: the art has one
- *   accent and background each and no features or accessories); the ten gem colours locked until C1 adds the unlocks
- *   (no star counts); avatar finishes, the accessory item (Neon Bolt) and the special-edition avatar list owned items
+ *   accent and background each and no features or accessories); the ten gem colours, each unlocked by the account's
+ *   star total (C1a; a locked gem says "Unlocks at N stars"); avatar finishes, the accessory item (Neon Bolt) and the special-edition avatar list owned items
  *   only.
  * - Card: card arts, frames and name colours. Owned ones can be chosen (the 8 free card arts and Plain from the
  *   start); the rest show locked with where they come from (catalogue), shop items hidden while the Shop is off.
@@ -119,6 +120,8 @@ function CustomiseScreen() {
     setMessage(null);
     setDraftSlots((d) => ({ ...d, [slot]: id }));
   };
+  // Gem colours this account has unlocked (the server's, through A1's loadout).
+  const unlockedGems = new Set(identity.loadout?.unlockedGems ?? []);
   const pickAvatar = (change: Partial<AvatarChoice>) => {
     setMessage(null);
     setDraftAvatar({ ...avatar, ...change });
@@ -227,15 +230,40 @@ function CustomiseScreen() {
                     <span className="cz-label">Gem colours</span>
                     <span className="cz-meta">Earned with mastery stars</span>
                   </span>
+                  {/* Unlocked with the account's star total (wave 2 C1a, progressRules.ts GEM_THRESHOLDS; the server's
+                      gem_unlocks); a locked gem says the stars it needs. setAvatar refuses a locked gem whatever is sent. */}
                   <div className="cz-gems" data-gems-locked>
-                    {GEMS.map((g) => (
-                      <span key={g.id} className="cz-gem" data-gem={g.id} aria-label={`${g.name}, locked`} role="img">
-                        <span style={{ ["--sw" as string]: `linear-gradient(160deg, ${g.stops.join(", ")})` }}>
-                          <Icon name="lock" size={18} tone="text" />
+                    {GEMS.map((g) => {
+                      const swatch = { ["--sw" as string]: `linear-gradient(160deg, ${g.stops.join(", ")})` };
+                      if (unlockedGems.has(g.id)) {
+                        return (
+                          <button
+                            key={g.id}
+                            type="button"
+                            role="radio"
+                            aria-checked={avatar.gem === g.id}
+                            aria-label={g.name}
+                            data-gem={g.id}
+                            data-gem-choice={g.id}
+                            onClick={() => pickAvatar({ gem: g.id })}
+                            className="cz-gem press"
+                          >
+                            <span style={swatch} data-unlocked="" />
+                            <span>{g.name}</span>
+                          </button>
+                        );
+                      }
+                      const line = gemUnlockLine(g.id);
+                      return (
+                        <span key={g.id} className="cz-gem" data-gem={g.id} data-locked="" aria-label={`${g.name}, locked. ${line}`} role="img">
+                          <span style={swatch}>
+                            <Icon name="lock" size={18} tone="text" />
+                          </span>
+                          <span>{g.name}</span>
+                          <span data-gem-unlock className="cz-gem-unlock">{line}</span>
                         </span>
-                        <span>{g.name}</span>
-                      </span>
-                    ))}
+                      );
+                    })}
                   </div>
                 </section>
                 <section className="cz-section" aria-label="Main colour">
