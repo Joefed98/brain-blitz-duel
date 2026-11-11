@@ -1,7 +1,8 @@
 -- Joulz Plus, the Daily archive, early access and the public cosmetics read (wave 2, train E, session E2; 13 Nov 2026;
 -- docs/economy/plus.md, docs/economy/economy-design.md "Joulz Plus"). Additive and idempotent: new tables and functions,
--- one wider CHECK (async_rooms.kind gains 'daily_archive'), and C2's badge_facts and D2's pass_activity re-made with one
--- more condition each (an archive play never counts for a badge or Joules). No row is changed or removed.
+-- one wider CHECK (async_rooms.kind gains 'daily_archive'), and C2's badge_facts and D2's pass_activity re-made with two
+-- conditions (an archive play, and a run the server flagged, never count for a badge or Joules; Joe, 11 and 13 Nov
+-- 2026; scripts/plus-copies.ts proves each copy is its source plus exactly these). No row is changed or removed.
 --
 -- What it adds:
 --   * public.plus_memberships: a membership (monthly or yearly), one open at a time per account. Until real payments
@@ -330,8 +331,10 @@ GRANT EXECUTE ON FUNCTION public.cosmetics_public(uuid[]) TO service_role;
 
 /* ------------------------------------------------------------------ badges never count an archive play */
 
--- C2's badge_facts (20261111220000_badges_titles.sql) exactly, with one more condition on the async rows: a Daily
--- archive replay (kind 'daily_archive') is unrated and never counts for a badge.
+-- C2's badge_facts (20261111220000_badges_titles.sql) exactly, with two conditions: a Daily archive replay (kind
+-- 'daily_archive') is unrated and never counts for a badge, and a run the server flagged (extra.flagged true in its
+-- stored grade: room rounds live and archived, Daily and challenge rounds) never counts either; Practice already
+-- leaves flagged plays out. Other players' own runs in the same room are read row by row, so they still count.
 DO $badges$
 BEGIN
   IF to_regprocedure('public.badge_facts(uuid, jsonb)') IS NULL OR to_regclass('public.practice_progress_start') IS NULL THEN
@@ -351,16 +354,19 @@ AS $body$
       JOIN public.duel_players p ON p.duel_id = r.duel_id AND p.player_slot = r.player_slot
       JOIN public.duels d ON d.id = r.duel_id
      WHERE p.user_id = p_user_id
+       AND coalesce(r.extra ->> 'flagged', 'false') <> 'true'
     UNION ALL
     SELECT a.game_id, a.score, a.is_correct, a.ms_remaining, a.time_limit_ms
       FROM public.round_results_archive a
      WHERE a.user_id = p_user_id
+       AND coalesce(a.extra ->> 'flagged', 'false') <> 'true'
     UNION ALL
     SELECT ro.round_order ->> (ar.round_number - 1), ar.score, ar.is_correct, ar.ms_remaining, NULL::integer
       FROM public.async_results ar
       JOIN public.async_rooms ro ON ro.id = ar.room_id
      WHERE ar.user_id = p_user_id
        AND ro.kind <> 'daily_archive'
+       AND coalesce(ar.extra ->> 'flagged', 'false') <> 'true'
        AND NOT EXISTS (
          SELECT 1 FROM public.challenges c
           WHERE c.room_id = ar.room_id AND c.source_duel_id IS NOT NULL
@@ -414,8 +420,10 @@ $badges$;
 
 /* ------------------------------------------------------------------ Joules never come from an archive play */
 
--- D2's pass_activity (20261113100000_season_pass.sql) exactly, with one more condition on the async attempts: a Daily
--- archive replay (kind 'daily_archive') is unrated and earns no Joules (D2 would otherwise read it as a challenge).
+-- D2's pass_activity (20261113100000_season_pass.sql) exactly, with two conditions: a Daily archive replay (kind
+-- 'daily_archive') is unrated and earns no Joules (D2 would otherwise read it as a challenge), and a run the server
+-- flagged earns none: its own round row is left out, and so is the finish of a room game or a Daily / challenge attempt
+-- holding a flagged run of that player (the finish is earned by the runs). Other players' rows are untouched.
 DO $joules$
 BEGIN
   IF to_regprocedure('public.pass_activity(uuid, timestamptz, timestamptz)') IS NULL THEN
@@ -437,11 +445,13 @@ AS $body$
       JOIN public.duel_players p ON p.duel_id = r.duel_id AND p.player_slot = r.player_slot AND p.user_id = p_user_id
       JOIN public.duels d ON d.id = r.duel_id
      WHERE r.submitted_at >= p_from AND r.submitted_at < p_to
+       AND coalesce(r.extra ->> 'flagged', 'false') <> 'true'
   ),
   archived_rounds AS (
     SELECT 'room_round', 'room_round:' || a.id, a.submitted_at, a.game_id, a.score, NULL::date
       FROM public.round_results_archive a
      WHERE a.user_id = p_user_id AND a.submitted_at >= p_from AND a.submitted_at < p_to
+       AND coalesce(a.extra ->> 'flagged', 'false') <> 'true'
   ),
   live_finishes AS (
     SELECT 'room_finish', 'room_finish:' || d.id || ':' || coalesce(jsonb_array_length(d.tournament_history), 0),
@@ -451,6 +461,8 @@ AS $body$
       JOIN public.duel_players p ON p.duel_id = r.duel_id AND p.player_slot = r.player_slot AND p.user_id = p_user_id
      WHERE d.status = 'finished' AND jsonb_typeof(d.round_order) = 'array' AND jsonb_array_length(d.round_order) > 0
        AND r.submitted_at >= p_from AND r.submitted_at < p_to
+       AND NOT EXISTS (SELECT 1 FROM public.round_results f WHERE f.duel_id = d.id AND f.player_slot = p.player_slot
+                         AND coalesce(f.extra ->> 'flagged', 'false') = 'true')
   ),
   archived_finishes AS (
     SELECT 'room_finish', 'room_finish:' || a.duel_id || ':' || a.game_index, a.submitted_at, NULL::text, NULL::integer, NULL::date
@@ -458,6 +470,8 @@ AS $body$
      WHERE a.user_id = p_user_id AND a.submitted_at >= p_from AND a.submitted_at < p_to
        AND a.round_number = (SELECT max(b.round_number) FROM public.round_results_archive b
                               WHERE b.duel_id = a.duel_id AND b.game_index = a.game_index)
+       AND NOT EXISTS (SELECT 1 FROM public.round_results_archive f WHERE f.duel_id = a.duel_id AND f.game_index = a.game_index
+                         AND f.user_id = a.user_id AND coalesce(f.extra ->> 'flagged', 'false') = 'true')
   ),
   attempts AS (
     SELECT t.*, ar.kind, ar.day, ar.round_order, ar.opens_at,
@@ -477,6 +491,7 @@ AS $body$
       JOIN attempts t ON t.id = r.attempt_id
      WHERE NOT coalesce(t.imported, false)
        AND coalesce(r.answered_at, r.started_at) >= p_from AND coalesce(r.answered_at, r.started_at) < p_to
+       AND coalesce(r.extra ->> 'flagged', 'false') <> 'true'
   ),
   async_finishes AS (
     SELECT CASE t.kind WHEN 'daily_puzzle' THEN 'daily_puzzle' WHEN 'daily_arcade' THEN 'daily_arcade' ELSE 'challenge' END,
@@ -485,6 +500,8 @@ AS $body$
       FROM attempts t
      WHERE t.finished_at IS NOT NULL AND NOT coalesce(t.imported, false)
        AND t.finished_at >= p_from AND t.finished_at < p_to
+       AND NOT EXISTS (SELECT 1 FROM public.async_results f WHERE f.attempt_id = t.id
+                         AND coalesce(f.extra ->> 'flagged', 'false') = 'true')
   ),
   practice AS (
     SELECT 'practice', 'practice:' || pp.id, pp.created_at, pp.game_id, pp.score, NULL::date

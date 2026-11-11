@@ -2089,7 +2089,8 @@ outside the repo.
   `plus_monthly:` / `plus_freezes:<membership>:<month>`), the premium pass through D2's `grantPremiumTrack`
   (`src/lib/plus/passBinding.server.ts`, source `plus`), the Daily archive (`/daily-archive`, async rooms
   of kind `daily_archive`: never a board, the streak, a badge or Joules; C2's `badge_facts` and D2's `pass_activity`
-  leave the kind out, copies proved against their sources by `bun scripts/plus-copies.ts`; archive plays' analytics
+  leave the kind out and, Joe 11 Nov 2026, any run the server flagged (extra.flagged: no badge, no Joules, nor the finish
+  of a room or Daily holding one), copies proved against their sources by `bun scripts/plus-copies.ts`; archive plays' analytics
   carry `archive: true`), early access (`plus.mark_early_access`;
   `src/lib/plus/access.server.ts`, asked by the practice deal and packs), the PLUS chip (off by default). Joe's
   functions in the `plus` schema (`start_test`, `remove_test_purchase`, `remove_test_rewards`, `list_members`, `mark_early_access`,

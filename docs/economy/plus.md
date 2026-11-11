@@ -56,9 +56,13 @@ Test purchases only until real payments exist. Plus is visible to the shop's tes
 
 ### The copied functions
 
-The Plus migration re-makes C2's `badge_facts` and D2's `pass_activity` with one added condition each.
-`bun scripts/plus-copies.ts` proves each copy is exactly the function's latest earlier definition plus the condition,
-and that no later migration defines it again without the condition (plus-check runs it); `--write` rebuilds both copies
+The Plus migration re-makes C2's `badge_facts` and D2's `pass_activity` with two conditions, wherever a run is read: a
+Daily archive replay never counts, and a run the server flagged (extra.flagged true in its stored grade) never counts for
+any badge or any Joules in rooms (live and archived) or the Daily, nor does the finish of a room game or Daily attempt
+holding one (Joe, 11 Nov 2026; Practice already leaves flagged plays out). Another player's own clean runs in the same
+room still count.
+`bun scripts/plus-copies.ts` proves each copy is exactly the function's latest earlier definition plus these conditions,
+and that no later migration defines it again without either (plus-check runs it); `--write` rebuilds both copies
 from the current text while the Plus migration is unmerged.
 
 ### The premium pass (D2)

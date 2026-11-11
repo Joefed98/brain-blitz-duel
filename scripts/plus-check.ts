@@ -84,6 +84,8 @@ const JOE = uid(51); // a tester
 const KIM = uid(52); // not a tester
 const MIA = uid(53); // a second tester
 const NED = uid(54); // a guest
+const RIA = uid(55); // flagged-run checks: the flagged player
+const SAM = uid(56); // flagged-run checks: the other player in her room
 const DAY = 86_400_000;
 
 /* ------------------------------------------------------------------ pure */
@@ -183,7 +185,18 @@ async function copiesChecks(): Promise<void> {
     if ("error" in want) continue;
     const changed = want.text.replace("SELECT", "SELECT  ");
     check(copies.heldCopy(c) !== changed && copies.heldCopy(c) === want.text, `${c.name}: a changed source would be caught`);
-    check(want.text.split(c.condition.trim()).length === 2, `${c.name}: the copy adds the condition exactly once`);
+    // Exactly the two conditions: every insertion is the archive kind or a flagged run, nothing else.
+    const adds = c.insertions.map((i) => i.add);
+    check(
+      adds.length > 0 && adds.every((a) => a.includes(copies.ARCHIVE) || a.includes(copies.FLAGGED)),
+      `${c.name}: the copy adds only the archive and flagged-run conditions (${adds.length} insertions)`,
+    );
+    const counts = copies.conditionCounts(c);
+    check(counts.archive >= 1 && counts.flagged >= 3, `${c.name}: both conditions present (archive ${counts.archive}, flagged ${counts.flagged})`);
+    // A later definition dropping either would be caught.
+    const dropArchive = want.text.replaceAll(copies.ARCHIVE, "'x'");
+    const dropFlagged = want.text.replaceAll(copies.FLAGGED, "->> 'x'");
+    check(dropArchive.split(copies.ARCHIVE).length - 1 < counts.archive && dropFlagged.split(copies.FLAGGED).length - 1 < counts.flagged, `${c.name}: dropping either condition is counted short`);
   }
 }
 
@@ -405,6 +418,59 @@ async function databaseChecks(db: LocalDb, rest: RestServer): Promise<void> {
     check(engine.solutionLockFor(room!, { type: "x", answer: "y" }, Date.now()) === null, "a replay's solutions are never locked");
   });
 
+  await section("flagged runs never count for badges or Joules", async () => {
+    // Joe, 11 Nov 2026: a run the server flagged (extra.flagged true in its stored grade) never counts towards any badge
+    // or any Joules: rooms (live and archived), the Daily; Practice already leaves flagged plays out. The other player in
+    // the same room keeps every clean run of their own.
+    q(`SELECT public.create_profile('${RIA}', 'Ria_Flag', 7::smallint, DATE '1991-01-01', NULL)`);
+    q(`SELECT public.create_profile('${SAM}', 'Sam_Clean', 8::smallint, DATE '1991-01-01', NULL)`);
+    const facts = (id: string) => JSON.parse(q(`SELECT public.badge_facts('${id}', '{}'::jsonb)::text`)) as { games200: number };
+    const acts = (id: string) =>
+      JSON.parse(q(`SELECT public.pass_activity('${id}', now() - interval '1 day', now() + interval '1 day')::text`)) as { k: string; key: string }[];
+    const room = (n: number) => {
+      const id = uid(9100 + n);
+      q(`INSERT INTO public.duels (id, room_code, host_user_id, status, round_order) VALUES ('${id}', 'FL${n}A', '${SAM}', 'finished', '["pinball"]'::jsonb)`);
+      q(`INSERT INTO public.duel_players (duel_id, player_slot, user_id, display_name) VALUES ('${id}', 1, '${RIA}', 'Ria'), ('${id}', 2, '${SAM}', 'Sam')`);
+      return id;
+    };
+    const result = (duel: string, slot: number, score: number, flagged: boolean) =>
+      q(`INSERT INTO public.round_results (duel_id, player_slot, round_number, score, is_correct, ms_remaining, submitted_at, extra) VALUES
+         ('${duel}', ${slot}, 1, ${score}, true, 0, now(), '${JSON.stringify(flagged ? { flagged: true, endedSeconds: 60 } : { flagged: false, endedSeconds: 60 })}'::jsonb)`);
+    // A room: Ria's run flagged at 200, Sam's clean 200 in the same room.
+    const r1 = room(1);
+    result(r1, 1, 200, true);
+    result(r1, 2, 200, false);
+    check(facts(RIA).games200 === 0, "a flagged room run at 200 earns no Flawless progress");
+    check(!acts(RIA).some((a) => a.k === "room_round" || a.k === "room_finish"), "nor any room Joules (its round or the room's finish)");
+    check(facts(SAM).games200 === 1, "the other player's own clean 200 in the same room still counts for Flawless");
+    check(acts(SAM).filter((a) => a.k === "room_round").length === 1 && acts(SAM).some((a) => a.k === "room_finish" && a.key.includes(r1)), "and their round and finish Joules");
+    // Archived by Play again: the same rule.
+    q(`INSERT INTO public.round_results_archive (id, duel_id, game_index, player_slot, user_id, round_number, game_id, score, is_correct, ms_remaining, time_limit_ms, submitted_at, extra)
+       VALUES (gen_random_uuid(), '${r1}', 0, 1, '${RIA}', 1, 'pinball', 200, true, 0, NULL, now(), '{"flagged": true}'::jsonb)`);
+    check(facts(RIA).games200 === 0 && !acts(RIA).some((a) => a.k === "room_round"), "an archived flagged run counts for neither");
+    // A Daily: Ria's Daily Arcade round flagged at 200.
+    const today = ukDayKey(Date.now());
+    const dailyAttempt = (who: string, day: string, flagged: boolean) => {
+      const roomId = q(`INSERT INTO async_rooms (kind, room_key, day, seed, round_order, round_count, opens_at, closes_at) VALUES
+        ('daily_arcade', 'daily_arcade:${day}:${who}', DATE '${day}', 1, '["pinball"]'::jsonb, 1, now() - interval '1 hour', now() + interval '1 hour') RETURNING id`).split("\n")[0]!.trim();
+      const att = q(`INSERT INTO async_attempts (room_id, user_id, display_name, started_at, finished_at, rounds_done, total_score) VALUES
+        ('${roomId}', '${who}', 'P', now() - interval '10 minutes', now() - interval '5 minutes', 1, 200) RETURNING id`).split("\n")[0]!.trim();
+      q(`INSERT INTO async_results (room_id, attempt_id, user_id, round_number, started_at, answered, answered_at, is_correct, ms_remaining, score, extra) VALUES
+        ('${roomId}', '${att}', '${who}', 1, now() - interval '10 minutes', true, now() - interval '6 minutes', true, 0, 200, '${JSON.stringify({ flagged })}'::jsonb)`);
+      return roomId;
+    };
+    dailyAttempt(RIA, today, true);
+    check(facts(RIA).games200 === 0, "a flagged Daily run at 200 earns no Flawless progress");
+    check(!acts(RIA).some((a) => a.k.startsWith("daily_")), "nor any Daily Joules (its round or the Daily's 150)");
+    // The same player's next clean runs count as normal.
+    const r2 = room(2);
+    result(r2, 1, 200, false);
+    check(facts(RIA).games200 === 1, "her next clean room run at 200 counts for Flawless");
+    check(acts(RIA).some((a) => a.k === "room_round") && acts(RIA).some((a) => a.k === "room_finish" && a.key.includes(r2)), "and earns its room Joules");
+    dailyAttempt(RIA, shiftDayKey(today, -1), false);
+    check(acts(RIA).some((a) => a.k === "daily_arcade") && acts(RIA).some((a) => a.k === "daily_arcade_round"), "her next clean Daily earns its Joules");
+  });
+
   await section("Joe's functions", async () => {
     check(/note/.test(refused(`SELECT plus.remove_test_purchase('Joe_Plus', '')`)), "a note is required");
     check(q(`SELECT plus.remove_test_purchase('joe_plus', 'testing finished')`) === "removed", "remove_test_purchase ends a test membership (any capitals)");
@@ -507,7 +573,8 @@ try {
   process.env["SUPABASE_PUBLISHABLE_KEY"] = ANON_KEY;
   process.env["SUPABASE_SERVICE_ROLE_KEY"] = SERVICE_KEY;
   db.psql(`INSERT INTO auth.users (id, is_anonymous, email) VALUES
-    ('${JOE}', false, 'joe@example.com'), ('${KIM}', false, 'kim@example.com'), ('${MIA}', false, 'mia@example.com'), ('${NED}', true, NULL)`);
+    ('${JOE}', false, 'joe@example.com'), ('${KIM}', false, 'kim@example.com'), ('${MIA}', false, 'mia@example.com'), ('${NED}', true, NULL),
+    ('${RIA}', false, 'ria@example.com'), ('${SAM}', false, 'sam@example.com')`);
   await installServerFnPlugin();
   await databaseChecks(db, rest);
 } catch (err) {
