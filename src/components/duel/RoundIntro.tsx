@@ -1,7 +1,8 @@
 import { puzzleDef, puzzleName, typeTimeLimitMs, usesArcadeClock } from "@/lib/duel/catalogue";
 import { useGameDef } from "@/lib/duel/gameLoader";
 import { GameIntroExample } from "@/components/duel/GameParts";
-import { starsOf } from "@/lib/duel/practiceGoals";
+import { levelStarsOf } from "@/lib/practice/progress";
+import { practiceProgressNow } from "@/lib/practice/useProgress";
 import { INTRO_COUNTDOWN_MS, INTRO_MS, TOTAL_ROUNDS, type PuzzleType } from "@/lib/duel/types";
 import type { Outcome } from "@/lib/duel/scoring";
 import type { PuzzleData } from "@/lib/duel/types";
@@ -298,8 +299,8 @@ export function RoundIntro({
                   <span className="intro-best-value">{deviceBest}</span>
                 </>
               )}
-              {/* Practice goals: this game's mastery stars (a star once earned is kept: practiceGoals.ts). */}
-              <Stars tier={starsOf(type, deviceBest)} />
+              {/* This game's stars, one per level, from the account's progress (the server's: useProgress.ts). */}
+              <Stars levels={levelStarsOf(practiceProgressNow(), type)} />
             </span>
           ) : null}
           {topAction}

@@ -5,6 +5,8 @@ import { staleSubmissionNote } from "@/lib/appVersion";
 
 import { type SubmitExtra } from "./grade";
 import { mergePuzzle, splitPuzzle } from "./secrets";
+import type { PracticeRunProgress } from "@/lib/practice/progress";
+import { levelOf } from "@/lib/practice/progressRules";
 import { PUZZLE_TYPES } from "./catalogue";
 import type { PuzzleData, PuzzleType } from "./types";
 
@@ -211,10 +213,14 @@ async function gradePracticeRun(data: PracticeRunInput, puzzle: PuzzleData, exam
   // A live deal: the claim held to the server's receipt as in a room (practiceReceipt.ts); else the length clamp alone.
   const { ms, received: bound } = practiceTrustedMs(puzzle, data.msRemaining, received);
   const graded = gradeAnswer(puzzle, data.answer, ms, data.extra, bound);
+  // Practice progress (wave 2 C1a): the row also stores the grade's breakdown and level, and is counted towards the
+  // player's stars and bests on the server (never the intro example; see the migration for what never counts).
+  let progress: PracticeRunProgress | null = null;
   // Beta recording (practice_plays): the outcome only, best-effort, never blocks the answer.
   // Skipped where there is no database (local dev servers in checks).
   if (process.env["SUPABASE_SERVICE_ROLE_KEY"]) {
     const { practicePlayRow, recordPracticePlay } = await import("./betaRecord.server");
+    const { runProgressOf, recordProgressEvents } = await import("@/lib/practice/progress.server");
     const { puzzleTimeLimitMs } = await import("./catalogue");
     const supabaseAdmin = await (await import("@/lib/data/db.server")).adminDb();
     await recordPracticePlay(supabaseAdmin, (userId) =>
@@ -228,6 +234,14 @@ async function gradePracticeRun(data: PracticeRunInput, puzzle: PuzzleData, exam
       }),
       undefined,
       data.inputType,
+      {
+        breakdown: graded.extra ?? null,
+        level: levelOf((puzzle as unknown as Loose)["level"]),
+        onCounted: (outcome, userId) => {
+          progress = runProgressOf(outcome);
+          void recordProgressEvents(outcome, userId);
+        },
+      },
     );
   }
   return {
@@ -239,6 +253,8 @@ async function gradePracticeRun(data: PracticeRunInput, puzzle: PuzzleData, exam
     answer: graded.answer,
     // Serialised as JSON text so the RPC boundary sees a plain string.
     extraJson: graded.extra ? JSON.stringify(graded.extra) : null,
+    // What the run did to the player's stars and bests (null when it couldn't be counted: no database or player).
+    progress: progress as PracticeRunProgress | null,
   };
 }
 
