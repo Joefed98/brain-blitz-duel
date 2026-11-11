@@ -157,6 +157,8 @@ export interface OpponentScore {
 interface StoredRecordedGame extends RecordedGame {
   timeMs: number;
   limitMs: number;
+  /** The server's stored grade `extra` of this game (handed to W3a as the owner's gradeExtras; null for none). */
+  extra?: Record<string, unknown> | null;
 }
 
 interface StoredRecorded {
@@ -177,6 +179,8 @@ interface SourceRound {
   look: Json | null;
   /** The server's replay flagged this stored result (`extra.flagged`): the run is never played against. */
   flagged: boolean;
+  /** The server's stored grade `extra` (round_results / async_results.extra, or the practice grade's). */
+  extra: Record<string, unknown> | null;
 }
 
 interface SourceRun {
@@ -186,6 +190,11 @@ interface SourceRun {
 }
 
 /* ------------------------------------------------------------------ helpers */
+
+/** A stored grade `extra` as a plain object (null for none or anything else). */
+function extraOf(extra: unknown): Record<string, unknown> | null {
+  return extra && typeof extra === "object" && !Array.isArray(extra) ? (extra as Record<string, unknown>) : null;
+}
 
 const nowIso = (ms: number) => new Date(ms).toISOString();
 const msOf = (iso: string | null | undefined) => (iso ? Date.parse(iso) : Number.NaN);
@@ -228,6 +237,7 @@ function toRecordedGame(round: SourceRound, withTimeline: boolean): StoredRecord
     timeMs,
     limitMs,
     flagged: round.flagged,
+    extra: round.extra,
   };
 }
 
@@ -529,6 +539,7 @@ async function fallbackCandidates(client: Db, me: QueueEntry, sinceIso: string):
           answer: result.answer,
           look: result.look,
           flagged: gradeFlagged(result.extra),
+          extra: extraOf(result.extra),
         });
       }
       const run = sourceRunOf(
@@ -556,6 +567,7 @@ async function fallbackCandidates(client: Db, me: QueueEntry, sinceIso: string):
         answer: result.answer,
         look: result.look,
         flagged: gradeFlagged(result.extra),
+        extra: extraOf(result.extra),
       });
     }
     const run = sourceRunOf(
@@ -605,6 +617,7 @@ async function practiceCandidates(client: Db, me: QueueEntry, sinceIso: string):
         answer: d.answer,
         look: null,
         flagged: d.flagged,
+        extra: extraOf(d.extra),
       });
     }
     if (picked.length !== need) continue;
@@ -633,6 +646,7 @@ async function ratedRunRounds(client: Db, key: string, me: QueueEntry): Promise<
       answer: result?.answer ?? null,
       look: result?.look ?? null,
       flagged: gradeFlagged(result?.extra),
+      extra: extraOf(result?.extra),
     });
   }
   // Never a flagged run (storeRatedRuns keeps none; this is the guard).
@@ -845,17 +859,20 @@ export function buildMatchResult(input: {
   const sideOf = (slot: number) => {
     const scores: number[] = [];
     const timesMs: number[] = [];
+    const extras: (Record<string, unknown> | null)[] = [];
     puzzles.forEach((puzzle, i) => {
       const row = results.find((r) => r.player_slot === slot && r.round_number === i + 1);
       scores.push(row?.score ?? 0);
       timesMs.push(roundTimeUsedMs(row, tieRoundFor(puzzle)));
+      // The server's own stored grade for this game (W3a reads its flag): never anything the phone sent.
+      extras.push(extraOf(row?.extra));
     });
-    return { scores, timesMs };
+    return { scores, timesMs, extras };
   };
   const recorded = match.kind === "recorded" ? storedRecorded(match) : null;
   const a = sideOf(players[0]?.slot ?? 1);
   const b = recorded
-    ? { scores: recorded.games.map((g) => g.score), timesMs: recorded.games.map((g) => g.timeMs) }
+    ? { scores: recorded.games.map((g) => g.score), timesMs: recorded.games.map((g) => g.timeMs), extras: recorded.games.map((g) => g.extra ?? null) }
     : sideOf(players[1]?.slot ?? 2);
   const games: GameScores[] = puzzles.map((_, i) => ({ a: a.scores[i] ?? 0, b: b.scores[i] ?? 0, aTimeMs: a.timesMs[i] ?? 0, bTimeMs: b.timesMs[i] ?? 0 }));
   const outcome = matchOutcome(games);
@@ -869,6 +886,7 @@ export function buildMatchResult(input: {
       placement: p.placement,
       scores: side.scores,
       timesMs: side.timesMs,
+      extras: side.extras,
       gamesWon: i === 0 ? outcome.winsA : outcome.winsB,
       total: side.scores.reduce((s, v) => s + v, 0),
     };
@@ -893,6 +911,7 @@ export function buildMatchResult(input: {
             fallback: match.recorded_fallback === true,
             scores: b.scores,
             timesMs: b.timesMs,
+            extras: b.extras,
           }
         : null,
     ratings: null,
@@ -900,6 +919,26 @@ export function buildMatchResult(input: {
 }
 
 export type SettleOutcome = { state: "playing" } | { state: "settled"; result: RatedSettlement } | { state: "missing" };
+
+/** A settlement as the phone gets it: every stored grade (`extras`) left out; they are for the ratings engine only. */
+export type PublicSettlement = Omit<RatedSettlement, "players" | "recorded"> & {
+  players: Omit<SettledPlayer, "extras">[];
+  recorded: Omit<NonNullable<RatedSettlement["recorded"]>, "extras"> | null;
+};
+export type PublicSettleOutcome = { state: "playing" } | { state: "settled"; result: PublicSettlement } | { state: "missing" };
+
+export function publicSettleOutcome(outcome: SettleOutcome): PublicSettleOutcome {
+  if (outcome.state !== "settled") return outcome;
+  const { players, recorded, ...rest } = outcome.result;
+  return {
+    state: "settled",
+    result: {
+      ...rest,
+      players: players.map(({ extras: _extras, ...p }) => p),
+      recorded: recorded ? (({ extras: _extras, ...r }) => r)(recorded) : null,
+    },
+  };
+}
 
 /** Settles a finished match once: builds the result, calls W3a's recordRatedMatch, stores the players' runs. */
 export async function settleMatch(client: Db, matchId: string, nowMs: number): Promise<SettleOutcome> {
@@ -947,7 +986,7 @@ async function storeRatedRuns(client: Db, match: RatedMatchRow, players: RatedMa
       if (!row) break;
       rounds.push({
         puzzle: puzzles[i]!, score: row.score, msRemaining: row.ms_remaining, reactionAvgMs: row.reaction_avg_ms, answer: row.answer,
-        look: (row as { look?: Json | null }).look ?? null, flagged: gradeFlagged(row.extra),
+        look: (row as { look?: Json | null }).look ?? null, flagged: gradeFlagged(row.extra), extra: extraOf(row.extra),
       });
     }
     // Only a run of every dealt game (a match stopped early, 2–0, leaves none), and never one the replay flagged.

@@ -118,16 +118,22 @@ is the phone's (W3c: `FinishedGameCounter` / `takePendingPrompt`, as rooms and t
 players, the run's stored scores for a recorded one; time used by `roundTimeUsedMs`), turns it into W3a's
 `RatedMatchResult` (`toRatingsResult`: `format` `{ kind: "duel", bestOf }`, `choice`, players `live` or `recorded`
 with `run: { runId: <run key>, ownerId, source }`, each game's `type`, `pool`, `category`, `version: "classic"`,
-`signature` and both scores, `rematchOf`, `finishedAt`) and calls W3a's `recordRatedMatch` once (claimed
+`signature`, both scores and **`gradeExtras`: each player's stored server grade `extra` for that game, exactly as
+stored** (a live player's `round_results.extra`; a recorded owner's from the run's source: the rated room's, room's
+or Daily's result row, or the Practice grade kept in `mm_practice_deals.extra`), `rematchOf`, `finishedAt`) and calls
+W3a's `finishRatedMatch` once (W3a's `recordRatedMatch`, then the Joules through D2's hook and C2's badges; claimed
 `playing → settling` with a guarded update; a `busy` / `error` answer puts it back to `playing` for a retry; W3a is
-idempotent on the match id). W3a's answer is kept on the settlement (`ratings`). Who moves, and by how much, is
-W3a's: a recorded rated run's owner at most half; room, Daily and Practice runs never; the 4th match between the same
-two players in a UK day frozen.
+idempotent on the match id). W3a's answer is kept on the settlement (`ratings`); the phone's `ratedSettleFn` answer
+leaves every stored grade out (`publicSettleOutcome`). Who moves, and by how much, is W3a's: a recorded rated run's
+owner at most half; room, Daily and Practice runs never; the 4th match between the same two players in a UK day frozen;
+**a flagged grade in any game (the server's own `extra.flagged`) moves nobody, is logged in `moderation.rated_flags`
+and earns the flagged player no Joules** (Joe's rule; rated-server-check plays it end to end on W3a's real engine).
 
-**Binding.** `ratingsReady()` binds W3a's `src/lib/rated/ratings.server.ts` (`getMyRatings`, `recordRatedMatch`) on
-the service-role client the first time rated play needs it, with W3a's `START_RATING` as the starting rating and the
+**Binding.** `ratingsReady()` binds W3a's `getMyRatings` (`src/lib/rated/ratings.server.ts`) and `finishRatedMatch`
+(`src/lib/rated/rewards.server.ts`) on the service-role client the first time rated play needs it, with W3a's `START_RATING` as the starting rating and the
 beginners' bound; a check's stand-in (`setRatingsBackend`) wins. Flagged runs never reach W3a: the flag comes only from
-the server's grading, and a flagged run is never stored or chosen (so W3a's `run.flagged` is never sent).
+the server's grading, and a flagged run is never stored or chosen as a recorded run (so W3a's `run.flagged` backstop
+is never needed); a flag in a live player's game reaches W3a through `gradeExtras`.
 
 ## 7. Recorded runs
 
