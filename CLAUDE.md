@@ -2178,16 +2178,19 @@ outside the repo.
   after it) and the standings job's tier changes (`season_note_tier`, peak only). Joe's `pass.close_season(season, note)`
   / `pass.close_test_season(note)` (idempotent, logged) grant the peak-tier rewards to everyone who finished placement
   and played 10+ rated matches (the peak actually held: cap-held Storm-rated is Surge): the S1 emblem (`SeasonEmblem`),
-  `frame.s1-<tier>` (seven earned catalogue items, **placeholder art** `scripts/season-frame-placeholders.ts` until
-  drawn) and the title "S1 [tier]" (`public.titles` kind `season`, equippable once granted), with a tab-page notice
+  `frame.s1-<tier>` (seven earned items in `docs/art/wave-4/catalogue.json`, **placeholder art**
+  `scripts/season-frame-placeholders.ts` until drawn), the tier card art `card-art.tier.<tier>` (once, kept forever) and
+  the title "S1 [tier]" (`public.titles` kind `season`, equippable once granted), with a tab-page notice
   (`SeasonNotice`); then `public.ratings_season_reset` moves every placed player's Puzzles, Arcade and categories a third
   of the way back to the average (wider RD, `season_reset_rating` = `rules.ts`) and puts placement back to 3 matches
   (`rated_profiles.placement_from`, `placementOf(played, from)`, `of: 5 | 3`). Profile's `SeasonSection` (season peak,
-  history, emblems; `SeasonTrophies` for the trophy cabinet). Events `season_ended`, `season_reward_granted` (from the
+  history, emblems; W4b's `TrophyCabinet` shows the emblems). Matches against recorded runs count towards the 10 for the
+  live player; a flagged match counts for nobody. Both catalogue files are read through `scripts/catalogue-files.ts`. Events `season_ended`, `season_reward_granted` (from the
   database through `economy.note_event`). `window.__DUELZ_ALLOW_SEASONS__` only outside production builds. Migrations
   `20261115400000_seasons.sql`, `20261115400100_analytics_season_events.sql` (**not applied until merged**). Approved
-  count changes (11 Nov 2026): economy-check 117 items / 25 free or earned, badges-check and pass-check 41 titles,
-  identity-screens-check 59 card arts, frames and name colours, its "Season peak" forbidden word replaced by a real-data
+  count changes (11 Nov 2026): economy-check 118 items over both files (with W4c's Championship frame) / 25 free or
+  earned, badges-check and pass-check 41 titles, identity-screens-check 60 card arts, frames and name colours (the
+  sourceless Championship frame drawing the Plain card), its "Season peak" forbidden word replaced by a real-data
   check. seasons-check (~10 s, shard `e`, PostgreSQL), seasons-screens-check (~2 s, happy-dom).
 - **Rated matchmaking** (wave 3 W3b, 11 Nov 2026, `docs/rated/matchmaking-interface.md`; no gameplay, scoring, stamp or
   deal change): the queue (same format and choice only; ±50 widening by 50 every 2 s to ±200, a recorded run from 8 s;

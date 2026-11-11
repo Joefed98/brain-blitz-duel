@@ -18,7 +18,11 @@ in none. A test season run again with `pass.start_test_season` is a new run (key
 done; plus a row for each tier the standings job gives (`kind 'standing'`, Top 500 and the caps come only from it),
 which counts for the peak but never as a match. Written only by `public.season_note_rated_match` /
 `public.season_note_tier`, which `finishRatedMatch` and `runStandingsAndBadges` call (idempotent on the match; a
-failure never fails the match and is retried by the next call for it). Recorded runs' owners aren't noted.
+failure never fails the match and is retried by the next call for it).
+
+What counts towards the 10 (Joe, 11 Nov 2026): every live rated match, **matches against recorded runs included**
+(most beta matches will be); the recorded run's owner gets nothing from it. A match with a run the server flagged
+(W3a's `frozen: "flagged_run"`, live or recorded) counts for nobody. seasons-check proves both on the real engine.
 
 ## The season end (Joe)
 
@@ -52,10 +56,13 @@ granted once (`public.season_rewards`, one row per player per season run), and a
 Earned by every player who finished placement and played at least 10 rated matches that season, from the peak tier
 actually held. Every tier earns: the season emblem (the approved tier emblem with an "S1" mark; Top 500 on the Lightning
 shield with a plate until its own emblem is drawn), the Season 1 frame for that tier (`frame.s1-<tier>`, seven earned
-catalogue items, animated for Storm, Lightning and Top 500, **placeholder art** from
-`bun scripts/season-frame-placeholders.ts` in `docs/art/wave-2/placeholders/frame/` until drawn) and the title
-"S1 [tier]" (C2's `public.titles`, kind `season`; `badge_set_title` equips one only once granted). Frames go through
-A1's `economy.add_item` (`earned`). The testers' season pays Season 1's set (`public.season_reward_sets`); a later
+catalogue items in `docs/art/wave-4/catalogue.json` after W4c's Championship frame, animated for Storm, Lightning and
+Top 500, **placeholder art** from `bun scripts/season-frame-placeholders.ts` in `docs/art/wave-4/placeholders/frame/`
+until drawn), the tier's card art (`card-art.tier.<tier>`, A1's seven; Joe, 11 Nov 2026: kept forever, an already-owned
+one gives nothing more) and the title "S1 [tier]" (C2's `public.titles`, kind `season`; `badge_set_title`, D2's latest
+text plus one rule, equips one only once granted). Frames and card arts go through A1's `economy.add_item`
+(`earned`); each reward lists what it actually added (`granted_items`), so `pass.remove_test_season_tier_rewards` takes
+back only that (an item the tester owned before stays). The testers' season pays Season 1's set (`public.season_reward_sets`); a later
 season with no set records the peak and its emblem's mark only.
 
 The in-app notice (`SeasonNotice`) is drawn only on tab pages (never over a round, reveal, result, podium, standings
@@ -77,7 +84,8 @@ database without it records `waiting_for_ratings` and a later close completes it
 ## Profile
 
 `SeasonSection` (Profile, accounts, real data only): the season peak (the season now: the peak tier held so far) and the
-season history (each reward with its emblem). `SeasonTrophies` is the emblems alone, for the trophy cabinet to place.
+season history (each reward with its emblem). W4b's trophy cabinet (`TrophyCabinet`) shows the season emblems beside
+the tournament trophies, from the account's own history (`useMySeasons`).
 
 ## Files
 
@@ -89,7 +97,7 @@ season history (each reward with its emblem). `SeasonTrophies` is the emblems al
 | Server, server functions, phone store, types | `src/lib/seasons/seasons.server.ts`, `seasons.functions.ts`, `seasonsApi.ts`, `types.ts` |
 | Data layer | `src/lib/data/seasons.server.ts` |
 | Screens | `src/components/seasons/SeasonSection.tsx`, `SeasonNotice.tsx`, `src/polish-layout/seasons.css` |
-| Placeholder frames | `scripts/season-frame-placeholders.ts`, `docs/art/wave-2/placeholders/frame/` |
+| Placeholder frames | `scripts/season-frame-placeholders.ts`, `docs/art/wave-4/placeholders/frame/`; both catalogue files read through `scripts/catalogue-files.ts` |
 | Checks | `scripts/seasons-check.ts` (shard `e`, PostgreSQL), `scripts/seasons-screens-check.tsx` (happy-dom) |
 
 ## Analytics
