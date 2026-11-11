@@ -19,7 +19,8 @@ import { useId, useMemo } from "react";
 
 import { PLAYER_COLOURS } from "@/lib/duel/playerLook";
 
-import { avatarMarkup, DEFAULT_AVATAR } from "./avatars";
+import { avatarKey, avatarMarkup, DEFAULT_AVATAR } from "./avatars";
+import { ensureCosmeticStyles, hasCosmetics, type AvatarCosmetics } from "./cosmetics";
 import { CARD_ARTS, CARD_CHROME_CSS, CARD_MOTION_CSS, FRAMES, NAME_COLOURS } from "./playerCardArt.data";
 
 export const DEFAULT_CARD_ART = "card-art.joulz-navy";
@@ -29,7 +30,7 @@ export interface CardLook {
   cardArt: string | null;
   frame: string | null;
   nameColour: string | null;
-  avatar: { id: string; colour: number; gem: string | null } | null;
+  avatar: ({ id: string; colour: number; gem: string | null } & AvatarCosmetics) | null;
 }
 
 const NO_BADGES: readonly string[] = [];
@@ -105,7 +106,10 @@ export function PlayerCard({
     [known.cardArt, known.frame, prefix, founder],
   );
   const avatar = look.avatar ?? DEFAULT_AVATAR;
-  const avatarHtml = useMemo(() => ({ __html: avatarMarkup(avatar, `${prefix}v-`) }), [avatar.id, avatar.colour, avatar.gem, prefix]);
+  const avatarHtml = useMemo(() => ({ __html: avatarMarkup(avatar, `${prefix}v-`) }), [avatarKey(avatar), prefix]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Wave 2 E2: an avatar wearing a finish, accessory or special edition (its motion scoped to .jzc).
+  const dressed = !guest && hasCosmetics(avatar);
+  if (dressed) ensureCosmeticStyles();
   const nameStyle = known.nameColour ? NAME_COLOURS[known.nameColour]! : null;
   const pill = guest ? "Guest" : playerNumber && playerNumber > 0 ? playerNumberLabel(playerNumber) : null;
   return (
@@ -137,7 +141,7 @@ export function PlayerCard({
               {(Array.from(name.trim())[0] ?? "?").toLocaleUpperCase()}
             </span>
           ) : (
-            <span className="pcard-av" dangerouslySetInnerHTML={avatarHtml} />
+            <span className={dressed ? "pcard-av jzc" : "pcard-av"} dangerouslySetInnerHTML={avatarHtml} />
           )}
           <span className="pcard-text">
             {nameStyle ? (

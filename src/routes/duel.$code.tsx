@@ -115,6 +115,7 @@ import {
   standings,
   totalScore,
   totalScoreThrough,
+  type Standing,
 } from "@/lib/duel/scoring";
 import { roomTieRounds } from "@/lib/duel/tieBreak";
 import { hasScoringColumn, roomScoringMode } from "@/lib/duel/scoringMode";
@@ -156,6 +157,9 @@ import { APP_NAME, APP_TAGLINE } from "@/lib/brand";
 import { roomUpdateGate, useUpdateGate } from "@/lib/appUpdate";
 import { OnlineOnly } from "@/components/offline/OnlineOnly";
 import { Button, SkeletonPage } from "@/design/components";
+import { PodiumCelebrations, type CelebrationEntry } from "@/components/duel/PodiumCelebrations";
+import { useCosmetics } from "@/lib/cosmetics/cosmeticsStore";
+import { NO_COSMETICS } from "@/lib/cosmetics/types";
 
 const ROOM_TITLE = `Join a ${APP_NAME} room`;
 const ROOM_DESCRIPTION = `You’re invited to a live ${APP_NAME} room. ${APP_TAGLINE}`;
@@ -456,6 +460,15 @@ function DuelScreen() {
   const scoringMode = roomScoringMode(duel);
   // Everyone's colour and icon, the same on every phone (every row, left players included).
   const looks = useMemo(() => resolvePlayerLooks(players), [players]);
+  // Wave 2 E2: each player's equipped cosmetics (their win celebration and podium entrance on the final screen).
+  const roomCosmetics = useCosmetics(players.map((p) => p.user_id));
+  const celebrationEntries = (rows: readonly Standing[]): CelebrationEntry[] =>
+    rows
+      .filter((r) => r.position <= 3)
+      .map((r) => {
+        const userId = players.find((p) => p.player_slot === r.slot)?.user_id;
+        return { slot: r.slot, place: r.position, name: r.name, cosmetics: (userId && roomCosmetics.get(userId)) || NO_COSMETICS };
+      });
   // Who else has finished this round (never how they did); the live round only, never practice or replays.
   // Beta: a device's first room played after finishing a friend's challenge (challengeRecord.ts).
   const playing = duel?.status === "in_progress" && !!me;
@@ -1043,6 +1056,7 @@ function DuelScreen() {
               playOfTheGame={forfeit ? null : <PlayOfTheGame roomId={duel.id} active />}
               share={<RoomShareButton duel={duel} players={players} results={results} me={me} />}
               challenge={forfeit ? null : <Suspense fallback={null}><RoomChallengeButton duelId={duel.id} total={totalScore(results, mySlot)} rounds={duel.round_count ?? TOTAL_ROUNDS} /></Suspense>}
+              celebrations={forfeit ? null : <PodiumCelebrations entries={celebrationEntries(standings(roomPlayers, results, duel.round_count ?? TOTAL_ROUNDS, undefined, tieRounds, scoringMode))} />}
             />
             </RoomChatSlot.Provider>
             <RoomChat chat={chat} myUserId={me.user_id} players={players} looks={looks} available={chatAvailable} screenLabel={chatLabel} bar={false} />
@@ -1086,6 +1100,7 @@ function DuelScreen() {
             playOfTheGame={forfeit ? null : <PlayOfTheGame roomId={duel.id} active />}
             share={<RoomShareButton duel={duel} players={players} results={results} me={me} />}
             challenge={forfeit ? null : <Suspense fallback={null}><RoomChallengeButton duelId={duel.id} total={totalScore(results, mySlot)} rounds={duel.round_count ?? TOTAL_ROUNDS} /></Suspense>}
+            celebrations={forfeit ? null : <PodiumCelebrations entries={celebrationEntries(standings(roomPlayers, results, duel.round_count ?? TOTAL_ROUNDS, undefined, tieRounds, scoringMode)).filter((e) => e.place === 1).map((e) => ({ ...e, cosmetics: { ...e.cosmetics, entrance: null } }))} />}
           />
           </RoomChatSlot.Provider>
           <RoomChat chat={chat} myUserId={me.user_id} players={players} looks={looks} available={chatAvailable} screenLabel={chatLabel} bar={false} />

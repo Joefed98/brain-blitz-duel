@@ -20,7 +20,7 @@
  * in-memory stand-in. Every write is keyed on the calling device's own attempt.
  */
 import { mergePuzzle, splitPuzzle } from "./secrets";
-import { asyncReceipt, asyncRoundWindow, solutionLockKind, type AsyncAttemptView, type SolutionLock } from "./asyncRoom";
+import { asyncReceipt, asyncRoundWindow, isArchiveKind, solutionLockKind, type AsyncAttemptView, type SolutionLock } from "./asyncRoom";
 import { recordAsyncEvent, recordRoundRecordsFor, roundRecords } from "./betaRecord.server";
 import { asyncMode, playedMs, recordEvents } from "@/lib/data/events.server";
 import { puzzleDef, puzzleTimeLimitMs } from "./registry";
@@ -301,7 +301,8 @@ export async function startAttempt(
     event: "attempt_started",
     at: row.started_at,
   });
-  if (asyncMode(room.kind) === "daily")
+  // A Daily archive replay (Plus) is not a Daily played: archive.server.ts records daily_archive_played instead.
+  if (asyncMode(room.kind) === "daily" && !isArchiveKind(room.kind))
     recordEvents({ event: "daily_started", playerId: userId, mode: "daily", roomId: room.id, props: { kind: room.kind } });
   return { ok: true, attempt: inserted.row, created: true };
 }
@@ -417,7 +418,7 @@ async function refreshAttempt(
       event: "attempt_finished",
       at: next.finished_at!,
     });
-  if (record && finished && !attempt.finished_at)
+  if (record && finished && !attempt.finished_at && !isArchiveKind(room.kind))
     recordEvents({
       event: asyncMode(room.kind) === "daily" ? "daily_finished" : "challenge_played",
       playerId: attempt.user_id,
@@ -694,6 +695,8 @@ export function solutionLockFor(
   nowMs: number,
 ): SolutionLock | null {
   if (!(nowMs < msOf(room.closes_at))) return null;
+  // A Daily archive replay: its day closed long ago, so its solutions are already out.
+  if (isArchiveKind(room.kind)) return null;
   if (!priv || Object.keys(priv).every((key) => key === "type")) return null;
   return { kind: solutionLockKind(room.kind), unlocksAt: room.closes_at };
 }

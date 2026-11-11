@@ -2,3 +2,15 @@
 export { PlayerCard, CardPiece, NamePiece, DEFAULT_LOOK, DEFAULT_CARD_ART, DEFAULT_FRAME, knownLook, playerNumberLabel, type CardLook } from "./PlayerCard";
 export { Avatar } from "./Avatar";
 export { AVATARS, GEMS, DEFAULT_AVATAR, DEFAULT_AVATAR_ID, avatarMarkup, avatarStops, shade, type AvatarLook } from "./avatars";
+export { avatarKey } from "./avatars";
+export {
+  celebrationScene,
+  dressAvatar,
+  emoteCode,
+  emoteOf,
+  ensureCosmeticStyles,
+  hasCosmetics,
+  reactionEmotes,
+  tileStyleArt,
+  type AvatarCosmetics,
+} from "./cosmetics";
