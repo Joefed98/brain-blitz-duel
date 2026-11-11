@@ -32,10 +32,11 @@ export const ratedStatusFn = createServerFn({ method: "POST" })
 
 export const ratedQueueJoinFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { format: string; choice: string }) => input)
+  .inputValidator((input: { format: string; choice: string; displayName?: string }) => input)
   .handler(async ({ data, context }): Promise<JoinOutcome> => {
     const { client, rated } = await setup(context.userId, false);
-    return rated.joinQueue(client, context.userId, { format: data.format, choice: data.choice }, Date.now());
+    // displayName: a guest's room name (ignored for an account, which plays under its username).
+    return rated.joinQueue(client, context.userId, { format: data.format, choice: data.choice, displayName: data.displayName }, Date.now());
   });
 
 export const ratedQueuePollFn = createServerFn({ method: "POST" })

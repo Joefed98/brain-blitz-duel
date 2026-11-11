@@ -53,6 +53,12 @@ export const ANALYTICS_EVENTS = [
   "profile_viewed",
   "customise_opened",
   "equip_refused",
+  // Phone notifications (wave 2 train B, session B2, docs/push-notifications.md): recorded by the server only.
+  // notification_opt_in carries props.answer (accepted|declined) and props.moment, notification_sent props.event and
+  // props.devices, notification_opened props.event (src/lib/push/).
+  "notification_opt_in",
+  "notification_sent",
+  "notification_opened",
   // Badges and titles (wave 2, session C2; docs/badges/README.md): recorded by the server only (src/lib/badges/
   // badges.server.ts and the backfill). badge_earned carries props.badge and props.rarity, title_equipped props.title.
   "badge_earned",
@@ -63,6 +69,12 @@ export const ANALYTICS_EVENTS = [
   "star_earned",
   "best_set",
   "gem_unlocked",
+  // Friends (wave 2, session B1; docs/friends.md): recorded by the server only (src/lib/friends/friends.server.ts).
+  // friend_request_sent and friend_added carry props.via (search or link); never a name or the other player's id.
+  "friend_request_sent",
+  "friend_added",
+  "friend_removed",
+  "friend_blocked",
   // Practice challenges (wave 2 C1b, docs/challenges/catalogue.md): recorded by the server only
   // (src/lib/challenges/challenges.server.ts) when a graded Practice run completes one. game is the game, props.challenge
   // the challenge id, props.level its level, props.coins the coins paid with it (0 for a guest, paid on becoming an account).
@@ -75,6 +87,27 @@ export const ANALYTICS_EVENTS = [
   "match_found",
   "rematch_requested",
   "rematch_accepted",
+  // The shop (wave 2, session D1; docs/economy/shop.md): recorded by the server only (src/lib/shop/shop.server.ts).
+  // shop_viewed props.section, item_bought props.coins, props.item and props.rarity, bundle_bought props.bundle,
+  // props.coins and props.items, pack_bought props.pack, props.coins and props.test, wishlist_added props.item.
+  "shop_viewed",
+  "item_bought",
+  "bundle_bought",
+  "pack_bought",
+  "wishlist_added",
+  // The Season pass (wave 2, session D2; docs/economy/pass.md): recorded by the server only (src/lib/pass/pass.server.ts).
+  // pass_bought props.season and props.test, pass_level_reached props.season and props.level, reward_claimed
+  // props.season, props.track, props.level and props.kind, weekly_challenge_completed props.tier and props.challenge.
+  "pass_bought",
+  "pass_level_reached",
+  "reward_claimed",
+  "weekly_challenge_completed",
+  // Tournaments (wave 4, W4b; docs/tournaments/interface.md section 8): recorded by the server only
+  // (src/lib/tournaments/tournaments.server.ts). tournament_entered props.kind and props.entry; tournament_finished
+  // props.kind and props.place; prize_paid props.kind, props.place and props.coins.
+  "tournament_entered",
+  "tournament_finished",
+  "prize_paid",
   // The Category Cup and the Joulz Championship (wave 4, W4c; docs/tournaments/events.md): recorded by the server only
   // (src/lib/tournaments/eventsFlow.server.ts). swiss_round_paired carries props.round and props.players (the round's
   // players, byes included); knockout_match_played props.round (played matches only, never a walkover).
@@ -93,7 +126,8 @@ export const CLIENT_EVENTS = [
 ] as const;
 export type ClientEventName = (typeof CLIENT_EVENTS)[number];
 
-export const ANALYTICS_MODES = ["room", "daily", "challenge", "practice"] as const;
+// "tournament" (wave 4, W4b): the daily Score Attack's game events (20261115200200_analytics_tournament_events.sql).
+export const ANALYTICS_MODES = ["room", "daily", "challenge", "practice", "tournament"] as const;
 export type AnalyticsMode = (typeof ANALYTICS_MODES)[number];
 
 /** The most events the phone sends in one call, and the most it keeps queued while offline. */

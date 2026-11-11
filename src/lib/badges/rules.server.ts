@@ -48,11 +48,22 @@ export interface BadgeRule {
   detail?(facts: BadgeFacts): Record<string, number | string | boolean>;
 }
 
-/**
- * Badges another session awards through public.badge_award (no rule here): Friendly (B1); Swiss Champion and Knockout
- * Champion (the tournament events when they finish, src/lib/tournaments/eventsFlow.server.ts; W4c, 11 Nov 2026).
- */
-export const AWARDED_ELSEWHERE: readonly string[] = ["friendly", "swiss-champion", "knockout-champion"];
+/** Badges another session awards through public.badge_award (no rule here). */
+export const AWARDED_ELSEWHERE: readonly string[] = [
+  "friendly",
+  // Tournaments (wave 4, W4b; src/lib/tournaments/tournaments.server.ts), earnable since 11 Nov 2026.
+  "entrant",
+  "trophy-hunter",
+  "arena-ace",
+  "champion",
+  "arena-champion",
+  "score-attack-champion",
+  "serial-winner",
+  // The Category Cup and the Joulz Championship (wave 4, W4c; src/lib/tournaments/eventsFlow.server.ts), earnable since
+  // 11 Nov 2026 (Joe's approval in the W4c prompt).
+  "swiss-champion",
+  "knockout-champion",
+];
 
 
 const atLeast = (need: number, of: (f: BadgeFacts) => number): BadgeRule => ({

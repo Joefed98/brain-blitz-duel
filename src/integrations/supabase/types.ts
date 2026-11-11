@@ -1187,6 +1187,75 @@ export type Database = {
         }
         Relationships: []
       }
+      notification_log: {
+        Row: {
+          counts_cap: boolean
+          dedupe_key: string | null
+          event: string
+          id: number
+          sent_at: string
+          user_id: string
+        }
+        Insert: {
+          counts_cap: boolean
+          dedupe_key?: string | null
+          event: string
+          id?: number
+          sent_at?: string
+          user_id: string
+        }
+        Update: {
+          counts_cap?: boolean
+          dedupe_key?: string | null
+          event?: string
+          id?: number
+          sent_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      notification_settings: {
+        Row: {
+          asked_at: string | null
+          daily_streak: boolean
+          declined_at: string | null
+          enabled: boolean
+          friend_accepted: boolean
+          friend_challenge: boolean
+          friend_request: boolean
+          room_invite: boolean
+          tournament_starting: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          asked_at?: string | null
+          daily_streak?: boolean
+          declined_at?: string | null
+          enabled?: boolean
+          friend_accepted?: boolean
+          friend_challenge?: boolean
+          friend_request?: boolean
+          room_invite?: boolean
+          tournament_starting?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          asked_at?: string | null
+          daily_streak?: boolean
+          declined_at?: string | null
+          enabled?: boolean
+          friend_accepted?: boolean
+          friend_challenge?: boolean
+          friend_request?: boolean
+          room_invite?: boolean
+          tournament_starting?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       practice_progress: {
         Row: {
           best_at: string
@@ -1280,7 +1349,7 @@ export type Database = {
         }
         Relationships: []
       }
-      rated_match_players: {
+      mm_match_players: {
         Row: {
           match_id: string
           placement: boolean
@@ -1307,7 +1376,7 @@ export type Database = {
         }
         Relationships: []
       }
-      rated_matches: {
+      mm_matches: {
         Row: {
           choice: string
           created_at: string
@@ -1379,256 +1448,46 @@ export type Database = {
         }
         Relationships: []
       }
-      tournament_entries: {
+      mm_practice_deals: {
         Row: {
-          attempt: number
-          coin_line_id: number | null
-          entered_at: string
-          event_id: string
-          final_place: number | null
-          paid_with: string
-          refunded_at: string | null
-          seed: number | null
-          status: string
+          answer: string | null
+          flagged: boolean
+          game: string
+          ms_remaining: number
+          play_id: number
+          puzzle: Json
+          reaction_avg_ms: number | null
+          recorded_at: string
+          score: number
           user_id: string
         }
         Insert: {
-          attempt?: number
-          coin_line_id?: number | null
-          entered_at?: string
-          event_id: string
-          final_place?: number | null
-          paid_with: string
-          refunded_at?: string | null
-          seed?: number | null
-          status?: string
+          answer?: string | null
+          flagged?: boolean
+          game: string
+          ms_remaining: number
+          play_id: number
+          puzzle: Json
+          reaction_avg_ms?: number | null
+          recorded_at?: string
+          score: number
           user_id: string
         }
         Update: {
-          attempt?: number
-          coin_line_id?: number | null
-          entered_at?: string
-          event_id?: string
-          final_place?: number | null
-          paid_with?: string
-          refunded_at?: string | null
-          seed?: number | null
-          status?: string
+          answer?: string | null
+          flagged?: boolean
+          game?: string
+          ms_remaining?: number
+          play_id?: number
+          puzzle?: Json
+          reaction_avg_ms?: number | null
+          recorded_at?: string
+          score?: number
           user_id?: string
         }
         Relationships: []
       }
-      tournament_events: {
-        Row: {
-          bracket_size: number | null
-          cancelled_reason: string | null
-          category: string
-          created_at: string
-          current_round: number
-          event_key: string
-          field: number
-          finished_at: string | null
-          id: string
-          kind: string
-          locked_until: string | null
-          month: string | null
-          paid_at: string | null
-          reminded_at: string | null
-          round_starts_at: string | null
-          rounds_total: number
-          started_at: string | null
-          starts_at: string
-          status: string
-        }
-        Insert: {
-          bracket_size?: number | null
-          cancelled_reason?: string | null
-          category: string
-          created_at?: string
-          current_round?: number
-          event_key: string
-          field?: number
-          finished_at?: string | null
-          id?: string
-          kind: string
-          locked_until?: string | null
-          month?: string | null
-          paid_at?: string | null
-          reminded_at?: string | null
-          round_starts_at?: string | null
-          rounds_total?: number
-          started_at?: string | null
-          starts_at: string
-          status?: string
-        }
-        Update: {
-          bracket_size?: number | null
-          cancelled_reason?: string | null
-          category?: string
-          created_at?: string
-          current_round?: number
-          event_key?: string
-          field?: number
-          finished_at?: string | null
-          id?: string
-          kind?: string
-          locked_until?: string | null
-          month?: string | null
-          paid_at?: string | null
-          reminded_at?: string | null
-          round_starts_at?: string | null
-          rounds_total?: number
-          started_at?: string | null
-          starts_at?: string
-          status?: string
-        }
-        Relationships: []
-      }
-      tournament_hall_of_fame: {
-        Row: {
-          added_at: string
-          event_id: string
-          month: string
-          user_id: string
-        }
-        Insert: {
-          added_at?: string
-          event_id: string
-          month: string
-          user_id: string
-        }
-        Update: {
-          added_at?: string
-          event_id?: string
-          month?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
-      tournament_matches: {
-        Row: {
-          created_at: string
-          duel_id: string | null
-          event_id: string
-          games_a: number | null
-          games_b: number | null
-          id: string
-          player_a: string | null
-          player_b: string | null
-          room_made_at: string | null
-          round: number
-          seed_a: number | null
-          seed_b: number | null
-          settled_at: string | null
-          slot: number
-          stage: string
-          status: string
-          total_a: number | null
-          total_b: number | null
-          walkover: boolean
-          winner: string | null
-        }
-        Insert: {
-          created_at?: string
-          duel_id?: string | null
-          event_id: string
-          games_a?: number | null
-          games_b?: number | null
-          id?: string
-          player_a?: string | null
-          player_b?: string | null
-          room_made_at?: string | null
-          round: number
-          seed_a?: number | null
-          seed_b?: number | null
-          settled_at?: string | null
-          slot: number
-          stage: string
-          status?: string
-          total_a?: number | null
-          total_b?: number | null
-          walkover?: boolean
-          winner?: string | null
-        }
-        Update: {
-          created_at?: string
-          duel_id?: string | null
-          event_id?: string
-          games_a?: number | null
-          games_b?: number | null
-          id?: string
-          player_a?: string | null
-          player_b?: string | null
-          room_made_at?: string | null
-          round?: number
-          seed_a?: number | null
-          seed_b?: number | null
-          settled_at?: string | null
-          slot?: number
-          stage?: string
-          status?: string
-          total_a?: number | null
-          total_b?: number | null
-          walkover?: boolean
-          winner?: string | null
-        }
-        Relationships: []
-      }
-      tournament_payouts: {
-        Row: {
-          amount: number | null
-          event_id: string
-          kind: string
-          paid_at: string
-          place: number | null
-          user_id: string
-        }
-        Insert: {
-          amount?: number | null
-          event_id: string
-          kind: string
-          paid_at?: string
-          place?: number | null
-          user_id: string
-        }
-        Update: {
-          amount?: number | null
-          event_id?: string
-          kind?: string
-          paid_at?: string
-          place?: number | null
-          user_id?: string
-        }
-        Relationships: []
-      }
-      tournament_trophies: {
-        Row: {
-          awarded_at: string
-          cup: string
-          event_id: string
-          kind: string
-          place: number
-          user_id: string
-        }
-        Insert: {
-          awarded_at?: string
-          cup: string
-          event_id: string
-          kind: string
-          place: number
-          user_id: string
-        }
-        Update: {
-          awarded_at?: string
-          cup?: string
-          event_id?: string
-          kind?: string
-          place?: number
-          user_id?: string
-        }
-        Relationships: []
-      }
-      rated_progress: {
+      mm_progress: {
         Row: {
           at: string
           match_id: string
@@ -1652,12 +1511,13 @@ export type Database = {
         }
         Relationships: []
       }
-      rated_queue: {
+      mm_queue: {
         Row: {
           choice: string
           format: string
           joined_at: string
           match_id: string | null
+          display_name: string | null
           placement: boolean
           rating: number
           user_id: string
@@ -1665,6 +1525,7 @@ export type Database = {
         Insert: {
           choice: string
           format: string
+          display_name?: string | null
           joined_at?: string
           match_id?: string | null
           placement?: boolean
@@ -1674,6 +1535,7 @@ export type Database = {
         Update: {
           choice?: string
           format?: string
+          display_name?: string | null
           joined_at?: string
           match_id?: string | null
           placement?: boolean
@@ -1682,7 +1544,7 @@ export type Database = {
         }
         Relationships: []
       }
-      rated_run_uses: {
+      mm_run_uses: {
         Row: {
           id: number
           match_id: string
@@ -1706,7 +1568,7 @@ export type Database = {
         }
         Relationships: []
       }
-      rated_runs: {
+      mm_runs: {
         Row: {
           choice: string
           duel_id: string
@@ -1745,6 +1607,57 @@ export type Database = {
           owner_rating?: number
           recorded_at?: string
           slot?: number
+        }
+        Relationships: []
+      }
+      push_friend_deliveries: {
+        Row: {
+          claimed_at: string
+          event_id: number
+        }
+        Insert: {
+          claimed_at?: string
+          event_id: number
+        }
+        Update: {
+          claimed_at?: string
+          event_id?: number
+        }
+        Relationships: []
+      }
+      push_subscriptions: {
+        Row: {
+          auth: string
+          created_at: string
+          endpoint: string
+          id: string
+          last_seen_at: string
+          p256dh: string
+          platform: string | null
+          time_zone: string
+          user_id: string
+        }
+        Insert: {
+          auth: string
+          created_at?: string
+          endpoint: string
+          id?: string
+          last_seen_at?: string
+          p256dh: string
+          platform?: string | null
+          time_zone?: string
+          user_id: string
+        }
+        Update: {
+          auth?: string
+          created_at?: string
+          endpoint?: string
+          id?: string
+          last_seen_at?: string
+          p256dh?: string
+          platform?: string | null
+          time_zone?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -2118,6 +2031,72 @@ export type Database = {
         }
         Relationships: []
       }
+      shop_days: {
+        Row: { backups: Json; created_at: string; day: string; items: string[]; rarities: string[] }
+        Insert: { backups?: Json; created_at?: string; day: string; items: string[]; rarities: string[] }
+        Update: { backups?: Json; created_at?: string; day?: string; items?: string[]; rarities?: string[] }
+        Relationships: []
+      }
+      shop_weeks: {
+        Row: { bundle_id: string; created_at: string; full_price: number; items: string[]; name: string; price: number; week_start: string }
+        Insert: { bundle_id: string; created_at?: string; full_price: number; items: string[]; name: string; price: number; week_start: string }
+        Update: { bundle_id?: string; created_at?: string; full_price?: number; items?: string[]; name?: string; price?: number; week_start?: string }
+        Relationships: []
+      }
+      pass_seasons: {
+        Row: { created_at: string; ends_at: string | null; id: string; kind: string; name: string; reset_at: string | null; starts_at: string | null; updated_at: string }
+        Insert: { created_at?: string; ends_at?: string | null; id: string; kind: string; name: string; reset_at?: string | null; starts_at?: string | null; updated_at?: string }
+        Update: { created_at?: string, ends_at?: string | null, id?: string, kind?: string, name?: string, reset_at?: string | null, starts_at?: string | null, updated_at?: string }
+        Relationships: []
+      }
+      pass_member_resets: {
+        Row: { reset_at: string; season_id: string; user_id: string }
+        Insert: { reset_at: string; season_id: string; user_id: string }
+        Update: { reset_at?: string, season_id?: string, user_id?: string }
+        Relationships: []
+      }
+      pass_joules: {
+        Row: { amount: number; at: string; base: number; created_at: string; epoch: number; id: number; kind: string; season_id: string; source_key: string; uk_day: string; user_id: string }
+        Insert: { amount: number; at: string; base: number; created_at?: string; epoch: number; id?: number; kind: string; season_id: string; source_key: string; uk_day: string; user_id: string }
+        Update: { amount?: number, at?: string, base?: number, created_at?: string, epoch?: number, id?: number, kind?: string, season_id?: string, source_key?: string, uk_day?: string, user_id?: string }
+        Relationships: []
+      }
+      pass_members: {
+        Row: { created_at: string; epoch: number; level_reached: number; level_seen: number; season_id: string; user_id: string }
+        Insert: { created_at?: string; epoch: number; level_reached?: number; level_seen?: number; season_id: string; user_id: string }
+        Update: { created_at?: string, epoch?: number, level_reached?: number, level_seen?: number, season_id?: string, user_id?: string }
+        Relationships: []
+      }
+      pass_premium: {
+        Row: { grant_key: string; granted_at: string; removed_at: string | null; removed_note: string | null; season_id: string; source: string; user_id: string }
+        Insert: { grant_key: string; granted_at?: string; removed_at?: string | null; removed_note?: string | null; season_id: string; source: string; user_id: string }
+        Update: { grant_key?: string, granted_at?: string, removed_at?: string | null, removed_note?: string | null, season_id?: string, source?: string, user_id?: string }
+        Relationships: []
+      }
+      pass_claims: {
+        Row: { claimed_at: string; epoch: number; level: number; reward: Json; season_id: string; track: string; user_id: string }
+        Insert: { claimed_at?: string; epoch: number; level: number; reward: Json; season_id: string; track: string; user_id: string }
+        Update: { claimed_at?: string, epoch?: number, level?: number, reward?: Json, season_id?: string, track?: string, user_id?: string }
+        Relationships: []
+      }
+      pass_title_unlocks: {
+        Row: { season_id: string; title_id: string; unlocked_at: string; user_id: string }
+        Insert: { season_id: string; title_id: string; unlocked_at?: string; user_id: string }
+        Update: { season_id?: string, title_id?: string, unlocked_at?: string, user_id?: string }
+        Relationships: []
+      }
+      pass_weeks: {
+        Row: { created_at: string; easy: string; hard: string; medium: string; week_start: string }
+        Insert: { created_at?: string; easy: string; hard: string; medium: string; week_start: string }
+        Update: { created_at?: string, easy?: string, hard?: string, medium?: string, week_start?: string }
+        Relationships: []
+      }
+      shop_wishlist: {
+        Row: { created_at: string; item_id: string; user_id: string }
+        Insert: { created_at?: string; item_id: string; user_id: string }
+        Update: { created_at?: string; item_id?: string; user_id?: string }
+        Relationships: []
+      }
       terms_events: {
         Row: {
           agreed_at: string
@@ -2166,6 +2145,309 @@ export type Database = {
           layout?: string
           min_moves?: number
           solution?: string
+        }
+        Relationships: []
+      }
+      tournament_events: {
+        Row: {
+          async_room_id: string | null
+          cancel_reason: string | null
+          cancelled_at: string | null
+          created_at: string
+          ends_at: string
+          entrants: number
+          finished_at: string | null
+          id: string
+          kind: string
+          pick: string
+          starts_at: string
+          status: string
+          title: string
+        }
+        Insert: {
+          async_room_id?: string | null
+          cancel_reason?: string | null
+          cancelled_at?: string | null
+          created_at?: string
+          ends_at: string
+          entrants?: number
+          finished_at?: string | null
+          id: string
+          kind: string
+          pick: string
+          starts_at: string
+          status?: string
+          title: string
+        }
+        Update: {
+          async_room_id?: string | null
+          cancel_reason?: string | null
+          cancelled_at?: string | null
+          created_at?: string
+          ends_at?: string
+          entrants?: number
+          finished_at?: string | null
+          id?: string
+          kind?: string
+          pick?: string
+          starts_at?: string
+          status?: string
+          title?: string
+        }
+        Relationships: []
+      }
+      tournament_entries: {
+        Row: {
+          coins: number
+          consumable_line: number | null
+          entered_at: string
+          entry: string
+          event_id: string
+          ledger_id: number | null
+          refunded_at: string | null
+          user_id: string
+        }
+        Insert: {
+          coins?: number
+          consumable_line?: number | null
+          entered_at?: string
+          entry: string
+          event_id: string
+          ledger_id?: number | null
+          refunded_at?: string | null
+          user_id: string
+        }
+        Update: {
+          coins?: number
+          consumable_line?: number | null
+          entered_at?: string
+          entry?: string
+          event_id?: string
+          ledger_id?: number | null
+          refunded_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      tournament_reminders: {
+        Row: {
+          asked_at: string
+          event_id: string
+          notified_at: string | null
+          user_id: string
+        }
+        Insert: {
+          asked_at?: string
+          event_id: string
+          notified_at?: string | null
+          user_id: string
+        }
+        Update: {
+          asked_at?: string
+          event_id?: string
+          notified_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      tournament_arena_queue: {
+        Row: {
+          event_id: string
+          joined_at: string
+          last_opponent: string | null
+          rating: number
+          user_id: string
+        }
+        Insert: {
+          event_id: string
+          joined_at?: string
+          last_opponent?: string | null
+          rating: number
+          user_id: string
+        }
+        Update: {
+          event_id?: string
+          joined_at?: string
+          last_opponent?: string | null
+          rating?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
+      tournament_arena_duels: {
+        Row: {
+          a_points: number
+          a_score: number
+          a_user: string
+          b_points: number
+          b_score: number
+          b_user: string
+          created_at: string
+          duel_id: string | null
+          event_id: string
+          games: Json | null
+          id: string
+          settled_at: string | null
+          status: string
+          winner: string | null
+        }
+        Insert: {
+          a_points?: number
+          a_score?: number
+          a_user: string
+          b_points?: number
+          b_score?: number
+          b_user: string
+          created_at?: string
+          duel_id?: string | null
+          event_id: string
+          games?: Json | null
+          id: string
+          settled_at?: string | null
+          status?: string
+          winner?: string | null
+        }
+        Update: {
+          a_points?: number
+          a_score?: number
+          a_user?: string
+          b_points?: number
+          b_score?: number
+          b_user?: string
+          created_at?: string
+          duel_id?: string | null
+          event_id?: string
+          games?: Json | null
+          id?: string
+          settled_at?: string | null
+          status?: string
+          winner?: string | null
+        }
+        Relationships: []
+      }
+      tournament_arena_players: {
+        Row: {
+          best_streak: number
+          draws: number
+          event_id: string
+          last_win_at: string | null
+          losses: number
+          played: number
+          points: number
+          score_total: number
+          streak: number
+          user_id: string
+          wins: number
+        }
+        Insert: {
+          best_streak?: number
+          draws?: number
+          event_id: string
+          last_win_at?: string | null
+          losses?: number
+          played?: number
+          points?: number
+          score_total?: number
+          streak?: number
+          user_id: string
+          wins?: number
+        }
+        Update: {
+          best_streak?: number
+          draws?: number
+          event_id?: string
+          last_win_at?: string | null
+          losses?: number
+          played?: number
+          points?: number
+          score_total?: number
+          streak?: number
+          user_id?: string
+          wins?: number
+        }
+        Relationships: []
+      }
+      tournament_results: {
+        Row: {
+          event_id: string
+          place: number
+          points: number | null
+          tie_ms: number | null
+          total: number | null
+          user_id: string
+        }
+        Insert: {
+          event_id: string
+          place: number
+          points?: number | null
+          tie_ms?: number | null
+          total?: number | null
+          user_id: string
+        }
+        Update: {
+          event_id?: string
+          place?: number
+          points?: number | null
+          tie_ms?: number | null
+          total?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      tournament_prizes: {
+        Row: {
+          coins: number
+          event_id: string
+          ledger_id: number
+          paid_at: string
+          place: number
+          user_id: string
+        }
+        Insert: {
+          coins: number
+          event_id: string
+          ledger_id: number
+          paid_at?: string
+          place: number
+          user_id: string
+        }
+        Update: {
+          coins?: number
+          event_id?: string
+          ledger_id?: number
+          paid_at?: string
+          place?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
+      tournament_trophies: {
+        Row: {
+          awarded_at: string
+          event_id: string
+          kind: string
+          medal: string
+          place: number
+          title: string
+          user_id: string
+        }
+        Insert: {
+          awarded_at?: string
+          event_id: string
+          kind: string
+          medal: string
+          place: number
+          title: string
+          user_id: string
+        }
+        Update: {
+          awarded_at?: string
+          event_id?: string
+          kind?: string
+          medal?: string
+          place?: number
+          title?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -2275,26 +2557,45 @@ export type Database = {
           username: string
         }[]
       }
-      async_board_open: { Args: { p_room_id: string }; Returns: boolean }
-      disband_stale_room: { Args: { p_room_id: string }; Returns: boolean }
-      rated_is_tester: { Args: { p_user_id: string }; Returns: boolean }
-      tournament_enter: {
-        Args: { p_attempt: number; p_coin_line: number | null; p_event: string; p_max: number; p_paid_with: string; p_user: string }
-        Returns: string
-      }
-      tournament_event_lock: {
-        Args: { p_event: string; p_ms: number }
-        Returns: boolean
-      }
-      tournament_event_unlock: {
-        Args: { p_event: string }
+      shop_record_days: { Args: { p_days: Json }; Returns: number }
+      shop_record_week: {
+        Args: { p_bundle_id: string; p_items: string[]; p_name: string; p_price: number; p_week: string }
         Returns: undefined
       }
-      rated_queue_claim: {
+      pass_credit_joules: { Args: { p_epoch: number; p_rows: Json; p_season: string; p_user_id: string }; Returns: Json }
+      pass_state: { Args: { p_epoch: number; p_season: string; p_user_id: string }; Returns: Json }
+      pass_joules_since: { Args: { p_epoch: number; p_season: string; p_since: string; p_user_id: string }; Returns: number }
+      pass_member_reset: { Args: { p_season: string; p_user_id: string }; Returns: string | null }
+      pass_note_level: {
+        Args: { p_epoch: number; p_level: number; p_season: string; p_seen: boolean; p_user_id: string }
+        Returns: number | null
+      }
+      pass_record_claim: {
+        Args: { p_epoch: number; p_level: number; p_reward: Json; p_season: string; p_track: string; p_user_id: string }
+        Returns: string
+      }
+      pass_grant_premium: { Args: { p_key: string; p_season: string; p_source: string; p_user_id: string }; Returns: string }
+      pass_unlock_title: { Args: { p_season: string; p_title: string; p_user_id: string }; Returns: string }
+      pass_titles_of: { Args: { p_user_id: string }; Returns: string[] }
+      pass_record_week: { Args: { p_easy: string; p_hard: string; p_medium: string; p_week: string }; Returns: undefined }
+      pass_activity: { Args: { p_from: string; p_to: string; p_user_id: string }; Returns: Json }
+      pass_games_before: { Args: { p_before: string; p_user_id: string }; Returns: string[] }
+      shop_is_tester: { Args: { p_user_id: string }; Returns: boolean }
+      shop_wishlist_set: { Args: { p_item_id: string; p_on: boolean; p_user_id: string }; Returns: string }
+      shop_purchase_bundle: {
+        Args: { p_bundle_id: string; p_items: string[]; p_key: string; p_prices: number[]; p_user_id: string; p_week: string }
+        Returns: Json
+      }
+      shop_test_pack: { Args: { p_key: string; p_pack: string; p_user_id: string }; Returns: Json }
+      async_board_open: { Args: { p_room_id: string }; Returns: boolean }
+      disband_stale_room: { Args: { p_room_id: string }; Returns: boolean }
+      mm_purge_practice_deals: { Args: Record<PropertyKey, never>; Returns: number }
+      mm_is_tester: { Args: { p_user_id: string }; Returns: boolean }
+      mm_queue_claim: {
         Args: { p_choice: string; p_format: string; p_match: string; p_users: string[] }
         Returns: boolean
       }
-      rated_run_use: {
+      mm_run_use: {
         Args: { p_day_start: string; p_key: string; p_match: string; p_max: number; p_viewer: string }
         Returns: boolean
       }
@@ -2317,7 +2618,7 @@ export type Database = {
       guest_progress: { Args: { p_user_id: string }; Returns: Json }
       file_room_report: {
         Args: {
-          p_duel_id: string
+          p_duel_id: string | null
           p_message_id: string | null
           p_message_text: string | null
           p_reason: string
@@ -2327,6 +2628,23 @@ export type Database = {
         }
         Returns: Json
       }
+      friends_search: { Args: { p_user: string; p_query: string; p_limit: number }; Returns: Json }
+      friends_send_request: { Args: { p_from: string; p_to: string; p_via: string; p_cap: number }; Returns: Json }
+      friends_respond: { Args: { p_user: string; p_request: string; p_accept: boolean; p_cap: number }; Returns: Json }
+      friends_remove: { Args: { p_user: string; p_friend: string }; Returns: boolean }
+      friends_block: { Args: { p_user: string; p_target: string }; Returns: Json }
+      friends_unblock: { Args: { p_user: string; p_target: string }; Returns: boolean }
+      friends_invite_token: { Args: { p_user: string; p_token: string; p_reset: boolean }; Returns: string | null }
+      friends_link_owner: { Args: { p_token: string }; Returns: Json }
+      friends_set_show_online: { Args: { p_user: string; p_show: boolean | null }; Returns: boolean }
+      friends_presence_beat: { Args: { p_user: string; p_activity: string }; Returns: boolean }
+      friends_room_invite: { Args: { p_from: string; p_to: string }; Returns: Json }
+      friends_challenge_send: { Args: { p_from: string; p_to: string; p_code: string }; Returns: Json }
+      friends_are_friends: { Args: { p_a: string; p_b: string }; Returns: boolean }
+      friends_head_to_head: { Args: { p_a: string; p_b: string }; Returns: Json }
+      friends_overview: { Args: { p_user: string; p_cap: number }; Returns: Json }
+      friends_waiting: { Args: { p_user: string }; Returns: number }
+      friends_profile: { Args: { p_viewer: string; p_target: string }; Returns: Json }
       moderation_status: { Args: { p_user_id: string }; Returns: Json }
       moderation_ack: { Args: { p_user_id: string; p_kind: string; p_detail?: Json | null }; Returns: boolean }
       network_key: { Args: { p_address: string }; Returns: string }
@@ -2338,6 +2656,36 @@ export type Database = {
           player_number: number | null
           user_id: string
           username: string
+        }[]
+      }
+      push_log_retention: { Args: Record<PropertyKey, never>; Returns: number }
+      push_claim_friend_events: {
+        Args: { p_limit: number; p_since: string }
+        Returns: {
+          actor_id: string
+          created_at: string
+          id: number
+          kind: string
+          payload: Json
+          recipient_id: string
+        }[]
+      }
+      push_reserve: {
+        Args: {
+          p_cap: number
+          p_counts_cap: boolean
+          p_dedupe_key: string | null
+          p_event: string
+          p_since: string
+          p_user_id: string
+        }
+        Returns: string
+      }
+      push_streak_candidates: {
+        Args: { p_day: string }
+        Returns: {
+          time_zone: string | null
+          user_id: string
         }[]
       }
       rename_profile: {
@@ -2365,6 +2713,21 @@ export type Database = {
         }
         Returns: boolean
       }
+      tournament_ensure_event: { Args: { p_id: string; p_kind: string; p_title: string; p_pick: string; p_starts: string; p_ends: string }; Returns: undefined }
+      tournament_set_status: { Args: { p_event: string; p_from: string[]; p_to: string }; Returns: boolean }
+      tournament_set_room: { Args: { p_event: string; p_room: string }; Returns: string | null }
+      tournament_enter: { Args: { p_event: string; p_user_id: string; p_entry: string; p_coins: number }; Returns: Json }
+      tournament_cancel: { Args: { p_event: string; p_reason: string }; Returns: Json }
+      tournament_remind: { Args: { p_event: string; p_user_id: string; p_on: boolean }; Returns: boolean }
+      tournament_mark_reminded: { Args: { p_event: string; p_users: string[] }; Returns: number }
+      tournament_arena_join: { Args: { p_event: string; p_user_id: string; p_rating: number }; Returns: string }
+      tournament_arena_leave: { Args: { p_event: string; p_user_id: string }; Returns: undefined }
+      tournament_arena_pair: { Args: { p_event: string; p_a: string; p_b: string; p_duel: string }; Returns: boolean }
+      tournament_arena_set_room: { Args: { p_duel: string; p_room: string }; Returns: undefined }
+      tournament_arena_void: { Args: { p_duel: string }; Returns: boolean }
+      tournament_arena_settle: { Args: { p_duel: string; p_winner: string; p_a_score: number; p_b_score: number; p_games: Json }; Returns: Json }
+      tournament_finish: { Args: { p_event: string; p_rows: Json }; Returns: boolean }
+      tournament_pay_prize: { Args: { p_event: string; p_user_id: string; p_place: number; p_coins: number; p_medal: string | null; p_title: string | null }; Returns: Json }
     }
     Enums: {
       [_ in never]: never

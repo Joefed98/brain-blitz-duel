@@ -193,5 +193,16 @@ export const ECONOMY_REASONS = [
   "admin_adjustment",
   // C2: a streak freeze covering a missed Daily (supabase/migrations/20261111220000_badges_titles.sql).
   "streak_freeze_used",
+  // The shop (wave 2, session D1; supabase/migrations/20261112120000_shop.sql).
+  "test_purchase",
+  "test_purchase_removed",
+  // The Season pass (wave 2, session D2; supabase/migrations/20261113100200_pass_titles_test_rewards.sql): the testers'
+  // season's coin and consumable rewards, and Joe taking them back (pass.remove_test_season_rewards).
+  "test_pass_reward",
+  "test_pass_reward_removed",
+  // Tournaments (wave 4, W4b; supabase/migrations/20261115200000_tournaments.sql): coin and ticket entries, and the
+  // fixed prizes.
+  "tournament_entry",
+  "tournament_prize",
 ] as const;
 export type EconomyReason = (typeof ECONOMY_REASONS)[number];

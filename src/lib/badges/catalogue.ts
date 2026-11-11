@@ -136,16 +136,18 @@ const ROWS: readonly Row[] = [
   ["daily-top-100", "Daily Top 100", D, "rare", "daily-boards", "Finish in the top 100 of a Daily board."],
   ["century", "Century", D, "elite", null, "Play the Daily 100 days in a row.", [100, "days"]],
   ["daily-champion", "Daily Champion", D, "legendary", "daily-boards", "Finish first on a Daily board."],
-  ["entrant", "Entrant", D, "common", T, "Play your first tournament."],
-  ["trophy-hunter", "Trophy Hunter", D, "rare", T, "Finish top 3 in any tournament."],
-  ["arena-ace", "Arena Ace", D, "epic", T, "Win 8 games in a row in one Arena."],
-  ["champion", "Champion", D, "epic", T, "Win your first tournament."],
-  ["arena-champion", "Arena Champion", D, "elite", T, "Win an Arena."],
-  ["score-attack-champion", "Score Attack Champion", D, "elite", T, "Win a Score Attack."],
-  // Awarded by the Category Cup and the Joulz Championship when they finish (W4c; Joe's approval, 11 Nov 2026).
+  // Awarded by the tournaments (wave 4, W4b) through badge_award, earnable since 11 Nov 2026 (Joe's approval in the W4b
+  // prompt); Swiss Champion and Knockout Champion by the Category Cup and the Joulz Championship (W4c; Joe's approval,
+  // 11 Nov 2026).
+  ["entrant", "Entrant", D, "common", null, "Play your first tournament."],
+  ["trophy-hunter", "Trophy Hunter", D, "rare", null, "Finish top 3 in any tournament."],
+  ["arena-ace", "Arena Ace", D, "epic", null, "Win 8 games in a row in one Arena."],
+  ["champion", "Champion", D, "epic", null, "Win your first tournament."],
+  ["arena-champion", "Arena Champion", D, "elite", null, "Win an Arena."],
+  ["score-attack-champion", "Score Attack Champion", D, "elite", null, "Win a Score Attack."],
   ["swiss-champion", "Swiss Champion", D, "elite", null, "Win a Swiss tournament."],
   ["knockout-champion", "Knockout Champion", D, "legendary", null, "Win a Knockout final."],
-  ["serial-winner", "Serial Winner", D, "legendary", T, "Win 10 tournaments.", [10, "tournaments"]],
+  ["serial-winner", "Serial Winner", D, "legendary", null, "Win 10 tournaments.", [10, "tournaments"]],
   // From C1b's stored completions (public.practice_challenge_progress), wired 11 Nov 2026.
   ["challenger", "Challenger", H, "common", null, "Complete 10 Practice challenges.", [10, "challenges"]],
   ["challenge-seeker", "Challenge Seeker", H, "rare", null, "Complete 50 Practice challenges.", [50, "challenges"]],
@@ -264,7 +266,17 @@ export const TITLES: readonly TitleDef[] = TITLE_ROWS.map(([id, name, badge]) =>
   badge,
 }));
 
-export const TITLE_BY_ID: ReadonlyMap<string, TitleDef> = new Map(TITLES.map((t) => [t.id, t]));
+/**
+ * The Season 1 pass's titles (wave 2 D2, docs/economy/pass.md): unlocked by claiming them on the pass (free level 40,
+ * premium level 55; public.pass_title_unlocks) and equippable once unlocked. Kept apart from TITLES (the brief's 32);
+ * public.titles holds them after the 32 (supabase/migrations/20261113100200_pass_titles.sql).
+ */
+export const PASS_TITLE_DEFS: readonly TitleDef[] = [
+  { id: "neon-rider", name: "Neon Rider", kind: "pass", badge: null },
+  { id: "circuit-breaker", name: "Circuit Breaker", kind: "pass", badge: null },
+];
+
+export const TITLE_BY_ID: ReadonlyMap<string, TitleDef> = new Map([...TITLES, ...PASS_TITLE_DEFS].map((t) => [t.id, t]));
 
 /** The titles a set of earned badges unlocks (Rookie always first). */
 export function titlesUnlocked(earned: ReadonlySet<string>): TitleDef[] {

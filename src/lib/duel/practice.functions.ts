@@ -245,6 +245,12 @@ async function gradePracticeRun(data: PracticeRunInput, puzzle: PuzzleData, exam
           progress = runProgressOf(outcome);
           void recordProgressEvents(outcome, userId);
           if (outcome.counted) counted = { userId, playId };
+          // Rated matchmaking (wave 3 W3b): a counted play's deal is kept, so it can be a recorded-run fallback
+          // (src/lib/rated/practiceDeals.server.ts; best effort, never awaited by the grade).
+          if (outcome.counted && !example)
+            void import("@/lib/rated/practiceDeals.server")
+              .then((d) => d.storePracticeDeal(supabaseAdmin, { playId, userId, puzzle, graded }))
+              .catch(() => {});
           // C2: a new star or gem can earn First Star, All-Rounder or Gem Hunter at once (never awaited: the grade
           // answers first; the badge's moment shows on the next tab page, and a tab page's sync catches any miss).
           if (outcome.star_earned || (outcome.gems_unlocked?.length ?? 0) > 0)

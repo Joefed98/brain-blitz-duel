@@ -208,8 +208,9 @@ export async function flushAnalytics(): Promise<void> {
   while (pending.size) await Promise.allSettled([...pending]);
 }
 
-/** An async room's mode from its kind (`daily_puzzle`, `daily_arcade`, `challenge`). */
+/** An async room's mode from its kind (`daily_puzzle`, `daily_arcade`, `challenge`, `score_attack`). */
 export function asyncMode(kind: string): AnalyticsMode {
+  if (kind === "score_attack") return "tournament";
   return kind === "challenge" ? "challenge" : "daily";
 }
 
