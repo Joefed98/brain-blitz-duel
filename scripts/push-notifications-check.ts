@@ -344,6 +344,24 @@ async function phoneChecks(): Promise<void> {
     delete g["window"];
     delete g["Notification"];
   });
+
+  await section("override ignored in production", async () => {
+    const { readFileSync } = await import("node:fs");
+    // The function's first statement returns the setting when Vite's PROD is true (a production build), before the
+    // window override is read; the built bundle then holds no override code at all.
+    const src = readFileSync("src/config/pushConfig.ts", "utf8");
+    const body = src.slice(src.indexOf("export function pushPublicKey"));
+    const first = body.slice(body.indexOf("{") + 1).split("\n").map((l) => l.trim()).find((l) => l && !l.startsWith("//"));
+    check(first === "if (import.meta.env.PROD) return PUSH_PUBLIC_KEY;", `pushPublicKey returns the setting in a production build before reading any override (${first})`);
+    const reads = body.slice(0, body.indexOf("\n}\n") + 3);
+    check(reads.indexOf("import.meta.env.PROD") < reads.indexOf("__DUELZ_PUSH_PUBLIC_KEY__"), "the production guard comes before the override is named");
+    const other = src.replace(body.slice(0, body.indexOf("\n}\n") + 3), "");
+    const codeLines = other.split("\n").filter((l) => l.includes("__DUELZ_PUSH_PUBLIC_KEY__") && !/^\s*(\*|\/\/|\/\*)/.test(l));
+    check(codeLines.length === 0, `the override is read nowhere else in pushConfig.ts (only comments name it) (${codeLines.join(" | ")})`);
+    const { execSync } = await import("node:child_process");
+    const readers = execSync(`grep -rln "__DUELZ_PUSH_PUBLIC_KEY__" src`).toString().trim().split("\n");
+    check(readers.join() === "src/config/pushConfig.ts", `only pushConfig.ts reads the override (${readers.join(" ")})`);
+  });
 }
 
 /* =================================================================== the database */

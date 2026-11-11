@@ -1,7 +1,7 @@
 -- Phone notifications (wave 2 train B, session B2; 11 Nov 2026; docs/push-notifications.md). Additive and idempotent:
 -- four new tables, four service-role functions, a retention job and three analytics events; no existing row, table,
--- column or policy is changed. Needs train C's public.daily_history (20261111120000_badges_titles.sql) and train B1's
--- public.friend_events (20261111180000_friends.sql), both earlier.
+-- column or policy is changed. Needs train C's public.daily_history (20261111220000_badges_titles.sql) and train B1's
+-- public.friend_events (20261111230000_friends.sql), both earlier.
 --
 --  public.push_subscriptions   one row per account and device (a browser's push subscription). Accounts only: the row
 --                               hangs off public.profiles, so a guest can't have one and an account's removal takes

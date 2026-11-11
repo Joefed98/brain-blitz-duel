@@ -82,9 +82,9 @@ short how-to ("tap Share, then Add to Home Screen…") instead of the opt-in, an
 
   Both do nothing while the keys aren't set. Cloudflare's free plan allows 5 Cron Triggers a Worker; these are 2.
 
-### Database (`supabase/migrations/20261111200000_push_notifications.sql`)
+### Database (`supabase/migrations/20261112060000_push_notifications.sql`)
 
-After train C's `20261111120000_badges_titles.sql` and train B1's `20261111180000_friends.sql` (it reads both).
+After train C's `20261111220000_badges_titles.sql` and train B1's `20261111230000_friends.sql` (it reads both).
 
 - `push_subscriptions`: one row per account and device (endpoint, keys, the device's time zone). Hangs off
   `profiles`, so guests can't have one and an account's removal takes them. The server writes; a player can read and

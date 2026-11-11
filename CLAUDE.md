@@ -1993,7 +1993,7 @@ outside the repo.
   days after a decline; an iPhone in Safari gets the Home Screen how-to. Accounts only (rows hang off `profiles`); sign-out
   removes the device (`forgetPushOnSignOut`), a 404/410 from the push service removes it, a deletion request removes all.
   The `push` / `notificationclick` listeners (`src/lib/push/sw.push.js`) are appended to the offline worker by swPlugin; the
-  offline worker itself is unchanged. Migration `20261111200000_push_notifications.sql` (after C2's and B1's; **not applied
+  offline worker itself is unchanged. Migration `20261112060000_push_notifications.sql` (after C2's and B1's; **not applied
   until merged**). Events `notification_opt_in`, `notification_sent`, `notification_opened`. push-notifications-check (~5 s,
   shard `e`).
 - **Practice challenges** (wave 2 train C, session C1b, 11 Nov 2026; `docs/challenges/catalogue.md`, the live catalogue,

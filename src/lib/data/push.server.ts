@@ -1,6 +1,6 @@
 /**
  * Phone notifications' data (wave 2 train B, session B2; docs/push-notifications.md): push subscriptions, the
- * notification settings, the send log and the reminder's candidates (supabase/migrations/20261111200000_push_notifications.sql).
+ * notification settings, the send log and the reminder's candidates (supabase/migrations/20261112060000_push_notifications.sql).
  * Server only; each function issues exactly one call, on the client it is given (the service role from push.server.ts).
  */
 
