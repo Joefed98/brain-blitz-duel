@@ -1104,6 +1104,9 @@ export const rematchFn = createServerFn({ method: "POST" })
     if (room.host_user_id !== context.userId) {
       return { ok: false as const, message: "Waiting for the host to play again." };
     }
+    // A rated match's room (wave 3, W3b) is never played again: its rematch is a new rated match (ratedRematchFn).
+    const { isRatedRoom } = await import("@/lib/rated/rated.server");
+    if (await isRatedRoom(client, room.id)) return { ok: false as const, message: "Rated matches use Rematch." };
     // A host who left (and forfeited) can't restart: the reset removes left players.
     if (me.status === "left") return { ok: false as const, message: "You left this game." };
     // Read a forfeit's outcome before the reset clears statuses and results.

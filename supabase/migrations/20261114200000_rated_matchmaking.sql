@@ -53,7 +53,8 @@ CREATE TABLE IF NOT EXISTS public.rated_matches (
   recorded_games jsonb,
   recorded_look jsonb,
   rematch_of uuid REFERENCES public.rated_matches (id) ON DELETE SET NULL,
-  rematch_match_id uuid REFERENCES public.rated_matches (id) ON DELETE SET NULL,
+  -- Claimed before the rematch row exists (rated.server.ts requestRematch), so no foreign key.
+  rematch_match_id uuid,
   created_at timestamptz NOT NULL DEFAULT now(),
   finished_at timestamptz,
   settled_at timestamptz,
