@@ -67,6 +67,14 @@ export const ANALYTICS_EVENTS = [
   // (src/lib/challenges/challenges.server.ts) when a graded Practice run completes one. game is the game, props.challenge
   // the challenge id, props.level its level, props.coins the coins paid with it (0 for a guest, paid on becoming an account).
   "challenge_completed",
+  // Rated matchmaking (wave 3, W3b; docs/rated/matchmaking-interface.md): recorded by the server only
+  // (src/lib/rated/rated.server.ts). queue_joined carries props.format and props.choice; match_found props.kind
+  // (live | recorded), props.waited_s, props.format and props.choice; rematch_requested and rematch_accepted
+  // props.format.
+  "queue_joined",
+  "match_found",
+  "rematch_requested",
+  "rematch_accepted",
 ] as const;
 export type AnalyticsEventName = (typeof ANALYTICS_EVENTS)[number];
 

@@ -352,6 +352,11 @@ export const SHARDS: Record<string, string[]> = {
     // speed goals against the grader, the six stored facts, coins once per account and guests paid on sign-up on a local
     // PostgreSQL through the server-function harness, beside accounts-check.
     "practice-challenges-check.ts",
+    // rated-server-check (wave 3 W3b, 11 Nov 2026, ~5 s): rated matchmaking end to end (the queue, live and recorded
+    // matches, the hidden finish, settling once, rematch, rated chat, events) on a local PostgreSQL through the
+    // server-function harness, beside accounts-check; rated-matchmaking-check (~1 s) proves the pure rules.
+    "rated-server-check.ts",
+    "rated-matchmaking-check.ts",
     "ink-x200-check.ts",
     "depth4-check.ts",
     "room-figures-check.ts",
