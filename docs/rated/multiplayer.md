@@ -6,11 +6,12 @@ win where they differ).
 
 ## Switching a size on
 
-`src/config/ratedMultiConfig.ts`: set `RATED_FOUR_PLAYERS_ENABLED` and/or `RATED_EIGHT_PLAYERS_ENABLED` to `true` and
-merge. Off, the picker doesn't show the size (`ratedMultiSizesFn`) and the server refuses a queue request, filling and
-finishing for it (`joinMultiQueue`, `assertMultiOn` in `src/lib/rated/multi/multi.server.ts`). There is no browser or
-console override. rated-multi-check's first assertion pins both off; switching one on is a deliberate change to that
-line (Joe's call, recorded with the date beside it).
+W3b's switches, `src/config/ratedConfig.ts`: set `RATED_FORMATS_ON.ffa4` (4 players) and/or `.ffa8` (8 players) to
+`true` and merge (rated play itself also needs `RATED_PLAY_FOR_EVERYONE`, or the player on the tester list). Off, the
+picker doesn't show the size (`ratedMultiSizesFn`, W3b's `openOptions`) and the server refuses a queue request, filling
+and finishing for it (`joinMultiQueue`, `assertMultiOn` in `src/lib/rated/multi/multi.server.ts`; W3b's
+`ratedOptionRefusal` too). There is no browser or console override. rated-multi-check's first assertion pins both off;
+switching one on is a deliberate change to that line (Joe's call, recorded with the date beside it).
 
 ## The rules (`src/lib/rated/multi/rules.ts`, pure)
 
@@ -19,16 +20,22 @@ line (Joe's call, recorded with the date beside it).
 | Filling | Wait up to 15 s (`FILL_WAIT_MS`) for live players (W3b's queue widens as for 1v1), then every empty seat takes a recorded run W3b offers, best first, labelled "Recorded run". Never a player twice (live or recorded), only runs on every deal of the match. A full live match takes none. |
 | Each game | Placing points by place: 8 players 10, 7, 5, 4, 3, 2, 1, 0; 4 players 5, 3, 1, 0 (the rooms' Placings table). Level scores share the place and its higher points. |
 | Final placings | Most points; level points split by the total score; still level, the place is shared. |
-| Ratings | Every pair once: the better place a win, a shared place a draw, weight 1 / (size − 1). On equal ratings 1st moves exactly as a 1v1 win and last as a 1v1 loss. Recorded seats are opponents only; their owners' ratings never move. |
-| Joules | 1.5 × best of 3: 225 for the top half, 150 below. Live players only, one credit a player a match (`rated_multi:<match>:<player>`). |
-| Podium Regular | A live finish in places 1–3 counts (C2's `podium-regular`, 25 needed). |
+| Ratings | W3a's `recordRatedMatch` gets a `placings` match (`multiRatedResult`): format `{ kind: "placings", players }`, every player live or a recorded run, every game's stored scores, the final placings. W3a applies the rule: every pair once, the better place a win, a shared place a draw, weight spread over the other players so the match moves about as much as one 1v1 (`ratingPairs` writes the rule out; the check proves it on a reference Elo). A recorded run's owner moves only as W3a allows (rated runs, at most half). |
+| Joules | W3a's outcome: 1.5 × best of 3, first place the win (225), everyone else 150; live players only; D2's pass credits it. |
+| Podium Regular | A live finish in places 1–3 counts (C2's `podium-regular`, 25 needed), awarded through W3a's outcome. |
 
 ## Contracts (`src/lib/rated/multi/contracts.ts`)
 
-W3a's `docs/rated/ratings-interface.md` and W3b's `docs/rated/matchmaking-interface.md` weren't on any branch when this
-was built. The port names what this session needs: `enqueue` and `recordedCandidates` (W3b), `recordRatedMatch` (W3a),
-`creditJoules` (the pass). `bindRatedMulti(backend)` binds them once, when the train merges; until then every call is
-"not ready" (and refused anyway while the switches are off).
+On W3a's `docs/rated/ratings-interface.md` (its types, `src/lib/data/ratings.ts`: `RatedMatchResult`,
+`RatedMatchOutcome`) and W3b's `docs/rated/matchmaking-interface.md` (`RATED_FORMATS_ON`, `RecordedCandidate` through
+`fromW3bCandidate`). Their server functions weren't on their draft branches yet (11 Nov 2026), so `bindRatedMulti`
+connects W3a's `recordRatedMatch(adminDb(), result)` and W3b's ffa queue join and recorded-run list when they land;
+until then every call is "not ready" (and refused anyway while the switches are off).
+
+**Open question for W3b:** a 1v1 against a recorded run deals that run's own stored puzzles. A 4- or 8-player match
+has one set of deals, so every recorded seat must have runs on exactly those deals (`fillPlan` takes a candidate only
+when its deal keys cover the match's). The natural source is the other players of one earlier match or room on the
+same deals; W3b's `recordedCandidates` for ffa needs to offer runs that way.
 
 ## Screens (`src/components/rated/multi/MultiScreens.tsx`, `src/polish-layout/rated-multi.css`)
 

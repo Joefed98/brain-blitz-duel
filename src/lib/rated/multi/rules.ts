@@ -9,12 +9,13 @@
  *   points (the rooms' Placings table, scoringMode.ts `placingTable`, the same numbers).
  * - Final placings (mockup 10): most points first, level points split by the total score, still level the place is
  *   shared (ranking.ts `placesOf`, the one ranking; no time tie-break here).
- * - Ratings: each placing is a win against everyone below and a loss against everyone above (a draw against a shared
- *   place), every pair weighted 1 / (size − 1), so the whole match moves a rating about as much as one 1v1
- *   (decided 11 Nov 2026). Recorded seats are opponents only: their owners' ratings never move.
- * - Joules: 1.5 times the best-of-3 amounts (150 a win, 100 a loss; docs/economy/economy-design.md): 225 for a
- *   placing in the top half, 150 otherwise. Live players only.
- * - Podium Regular (C2's catalogue, `podium-regular`): a live player's finish in places 1–3 counts.
+ * - Ratings: W3a's recordRatedMatch takes the final placings (format `placings`) and applies the rule itself
+ *   (docs/rated/ratings-interface.md): each placing a win against everyone below and a loss against everyone above, a
+ *   draw against a shared place, the weight spread so the whole match moves a rating about as much as one 1v1
+ *   (decided 11 Nov 2026). `ratingPairs` writes that rule out as the spec this session's check proves.
+ * - Joules: W3a's outcome carries each live player's amount (1.5 times the best-of-3 150 / 100; first place is the
+ *   win) and D2's pass credits it. `multiJoules` mirrors that rule for the check.
+ * - Podium Regular (C2's catalogue, `podium-regular`, awarded through W3a's outcome): a live finish in places 1–3.
  */
 import { placesOf } from "@/lib/duel/ranking";
 import { placingTable } from "@/lib/duel/scoringMode";
@@ -46,7 +47,11 @@ export interface MultiSeat {
   playerId: string;
   name: string;
   recorded: boolean;
+  /** A recorded seat's run (W3a's `run`: id and where it came from). */
+  run?: { runId: string; source: RecordedRunSource };
 }
+
+export type RecordedRunSource = "rated" | "room" | "daily" | "practice";
 
 /** A recorded run W3b offers for this match: one real player's runs on every one of this match's deals. */
 export interface RecordedCandidate {
@@ -54,8 +59,21 @@ export interface RecordedCandidate {
   name: string;
   /** The deal keys the player has a run on (W3b's own key for a deal). */
   dealKeys: readonly string[];
-  /** W3b's own id for the run set; carried, never read here. */
+  /** W3b's own key for the run (rated:<match>:<user>, room:<duel>:<slot>, daily:<attempt>). */
   runId: string;
+  source?: RecordedRunSource;
+}
+
+/**
+ * A W3b recorded run (matchmaking.ts `RecordedCandidate`) as a seat candidate. `dealKeyOf` names each of its games'
+ * deals (W3b's key for a stored puzzle), so `fillPlan` takes only runs on this match's own deals.
+ */
+export function fromW3bCandidate(
+  c: { key: string; source: RecordedRunSource; ownerId: string; games: readonly { type: string; signature: string }[] },
+  name: string,
+  dealKeyOf: (game: { type: string; signature: string }, index: number) => string,
+): RecordedCandidate {
+  return { playerId: c.ownerId, name, dealKeys: c.games.map(dealKeyOf), runId: c.key, source: c.source };
 }
 
 export type FillPlan =
@@ -94,7 +112,13 @@ export function fillPlan(input: {
     if (!input.dealKeys.every((k) => c.dealKeys.includes(k))) continue;
     seen.add(c.playerId);
     recorded.push(c);
-    seats.push({ seatId: `rec:${c.runId}`, playerId: c.playerId, name: c.name, recorded: true });
+    seats.push({
+      seatId: `rec:${c.runId}`,
+      playerId: c.playerId,
+      name: c.name,
+      recorded: true,
+      run: { runId: c.runId, source: c.source ?? "rated" },
+    });
   }
   if (seats.length < input.size) return { kind: "short", seats, missing: input.size - seats.length };
   return { kind: "filled", seats, recorded };
@@ -225,7 +249,7 @@ export function ratingPairs(placings: readonly { seatId: string; place: number }
   return pairs;
 }
 
-/** Seats whose ratings move: live players only. */
+/** Live seats (W3a may also move a recorded rated run's owner, at most half; never here). */
 export const ratedSeats = (seats: readonly MultiSeat[]) => seats.filter((s) => !s.recorded);
 
 /* ------------------------------------------------------------------ Joules and badges */
@@ -239,8 +263,8 @@ export const MULTI_JOULES = {
   loss: Math.round(BEST_OF_3_JOULES.loss * MULTI_JOULES_FACTOR),
 } as const;
 
-/** A placing in the top half (beats at least as many as beat it) counts as a win for Joules. */
-export const multiWin = (size: MultiSize, place: number) => place <= size / 2;
+/** First place is the win (W3a: "the place for 4 and 8 players, 'win' for first"); everyone else the loss amount. */
+export const multiWin = (_size: MultiSize, place: number) => place === 1;
 
 export function multiJoules(size: MultiSize, place: number): number {
   return multiWin(size, place) ? MULTI_JOULES.win : MULTI_JOULES.loss;

@@ -2,7 +2,7 @@
  * Rated 4- and 8-player matches: the three screens (wave 3, session W3d; docs/mockups/wave-3/08, 09, 10, read with
  * wave 2's identity: avatars, the five-tab bar and the Joules line win where the mockups differ). Presentational only:
  * every number comes from rules.ts (placings, points, movement) or from the server (rating changes, Joules), never
- * worked out from anything else here. Built behind the switches (src/config/ratedMultiConfig.ts, off at launch).
+ * worked out from anything else here. Built behind W3b's switches (RATED_FORMATS_ON.ffa4 / .ffa8 in src/config/ratedConfig.ts, off at launch).
  *
  * - `MultiFilling` (08): the chips, "Filling your match", the seat count and bar, a seat card per player (a recorded
  *   run labelled), "Searching…" for empty seats, How it scores (the size's placing points), Leave queue.

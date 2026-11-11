@@ -2054,14 +2054,15 @@ outside the repo.
   practice-challenge-fit-check (headless Chromium: every goal whole at 320 and 375 px). **A retune that moves a goal's
   number fails practice-goals-check: change the goal's text and number in the data file and re-run the doc script.**
 - **Rated 4- and 8-player matches** (wave 3, session W3d, 11 Nov 2026, `docs/rated/multiplayer.md`; no gameplay, scoring,
-  stamp, timing or deal change; rooms untouched): **off at launch**, one switch a size (`src/config/ratedMultiConfig.ts`),
-  refused by the server while off (`joinMultiQueue` / `assertMultiOn`). Rules `src/lib/rated/multi/rules.ts`: 15 s for live
-  players, then recorded runs in every empty seat, never a player twice; placing points 10, 7, 5, 4, 3, 2, 1, 0 (8) and
-  5, 3, 1, 0 (4), final placings by points then total score; ratings every pair once, weight 1 / (size − 1), recorded
-  seats unrated; Joules 1.5 × best of 3 (225 top half, 150 below). W3a / W3b plug in through `bindRatedMulti`
-  (`contracts.ts`). Screens `src/components/rated/multi/MultiScreens.tsx` (mockups 08–10; the podium entrance only in the
-  podium's box, none under reduced motion). Events `multiplayer_match_started` / `_finished`
-  (`20261114400000_analytics_multiplayer_events.sql`, **not applied until merged**). rated-multi-check (~2 s).
+  stamp, timing or deal change; rooms untouched): **off at launch** on W3b's switches (`RATED_FORMATS_ON.ffa4` / `.ffa8`
+  in `src/config/ratedConfig.ts`), refused by the server while off (`joinMultiQueue` / `assertMultiOn`). Rules
+  `src/lib/rated/multi/rules.ts`: 15 s for live players, then recorded runs in every empty seat, never a player twice;
+  placing points 10, 7, 5, 4, 3, 2, 1, 0 (8) and 5, 3, 1, 0 (4), final placings by points then total score. W3a's
+  `recordRatedMatch` gets a `placings` match (`multiRatedResult`) and applies the pairwise rule, Joules (1.5 × best of 3)
+  and badges; `bindRatedMulti` (`contracts.ts`) connects W3a's and W3b's server functions. Screens
+  `src/components/rated/multi/MultiScreens.tsx` (mockups 08–10; the podium entrance only in the podium's box, none under
+  reduced motion). Events `multiplayer_match_started` / `_finished` (`20261114400000_analytics_multiplayer_events.sql`,
+  **not applied until merged**). rated-multi-check (~2 s).
 - `src/components/duel/` — room/round screens (PhoneShell, RoundIntro, TimerBar,
   AnswerReveal, ArcadeReveal, WinnerReveal…); `src/components/puzzles/` — shared puzzle
   widgets; `src/lib/fx/` — sound and visual feedback (presentation only).

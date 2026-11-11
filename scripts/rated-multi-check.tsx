@@ -20,22 +20,26 @@
 import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 
-import { RATED_EIGHT_PLAYERS_ENABLED, RATED_FOUR_PLAYERS_ENABLED, RATED_MULTI_SWITCHES } from "../src/config/ratedMultiConfig";
-import type { RatedMultiBackend, MultiRatedMatch } from "../src/lib/rated/multi/contracts";
+import { RATED_FORMATS_ON } from "../src/config/ratedConfig";
+import type { RatedMatchOutcome, RatedMatchResult } from "../src/lib/data/ratings";
+import type { RatedMultiBackend } from "../src/lib/rated/multi/contracts";
 import {
   assertMultiOn,
   fillMatch,
   finishMultiMatch,
   joinMultiQueue,
+  multiRatedResult,
   multiSizeOn,
   multiSizesOn,
   RatedMultiOffError,
+  type MultiGame,
 } from "../src/lib/rated/multi/multi.server";
 import {
   BEST_OF_3_JOULES,
   countsForPodiumRegular,
   FILL_WAIT_MS,
   fillPlan,
+  fromW3bCandidate,
   finalPlacings,
   gamePlacings,
   movement,
@@ -64,18 +68,16 @@ const check = (ok: boolean, message: string) => {
 };
 const eq = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
 const rng = (seed: number) => () => ((seed = (seed * 1103515245 + 12345) >>> 0) / 2 ** 32);
-const ON = { four: true, eight: true };
-const OFF = { four: false, eight: false };
+const ON = { ffa4: true, ffa8: true };
+const OFF = { ffa4: false, ffa8: false };
 
-function stubBackend(log: string[] = []): RatedMultiBackend & { matches: MultiRatedMatch[]; joules: unknown[] } {
-  const matches: MultiRatedMatch[] = [];
-  const joules: unknown[] = [];
+function stubBackend(log: string[] = []): RatedMultiBackend & { matches: RatedMatchResult[] } {
+  const matches: RatedMatchResult[] = [];
   return {
     matches,
-    joules,
     async enqueue(input) {
-      log.push(`enqueue:${input.size}`);
-      return { ticketId: "t1" };
+      log.push(`enqueue:${input.size}:${input.choice}`);
+      return { joinedAtMs: 1 };
     },
     async recordedCandidates() {
       log.push("candidates");
@@ -88,32 +90,49 @@ function stubBackend(log: string[] = []): RatedMultiBackend & { matches: MultiRa
         { playerId: "r4", name: "Kai", dealKeys: ["d1", "d2", "d3"], runId: "r4" },
       ];
     },
-    async recordRatedMatch(match) {
-      matches.push(match);
-      return match.placings
-        .filter((p) => !p.seat.recorded)
-        .map((p) => ({ playerId: p.seat.playerId, before: 1200, after: 1210 - p.place, change: 10 - p.place }));
-    },
-    async creditJoules(entries) {
-      joules.push(...entries);
+    async recordRatedMatch(match): Promise<RatedMatchOutcome> {
+      const duplicate = matches.some((m) => m.matchId === match.matchId);
+      if (!duplicate) matches.push(match);
+      return {
+        ok: true,
+        status: duplicate ? "duplicate" : "recorded",
+        matchId: match.matchId,
+        players: match.players.map((p) => {
+          const place = match.placings?.[p.playerId] ?? null;
+          return {
+            playerId: p.playerId,
+            side: p.side,
+            moved: p.side === "live",
+            frozen: p.side === "live" ? null : ("recorded_unrated_source" as const),
+            changes: [],
+            joulz: { before: 1200, after: 1200 + (place ? 10 - place : 0) },
+            placement: { played: 5, of: 5 as const, done: true, label: null, justFinished: false },
+            tier: { before: null, after: null },
+            result: place === 1 ? ("win" as const) : ("loss" as const),
+            place,
+            joules: p.side === "live" ? (place === 1 ? 225 : 150) : 0,
+            badges: [],
+          };
+        }),
+      };
     },
   };
 }
 
 /* ------------------------------------------------------------------ 1. switches */
-check(RATED_FOUR_PLAYERS_ENABLED === false && RATED_EIGHT_PLAYERS_ENABLED === false, "switches: both off at launch");
-check(eq(RATED_MULTI_SWITCHES, { four: false, eight: false }), "switches: the server's switches read the two lines");
+check(RATED_FORMATS_ON.ffa4 === false && RATED_FORMATS_ON.ffa8 === false, "switches: W3b's ffa4 and ffa8 both off at launch");
+check(multiSizesOn().length === 0 && !multiSizeOn(4, RATED_FORMATS_ON) && !multiSizeOn(8, RATED_FORMATS_ON), "switches: the server reads W3b's two lines");
 check(multiSizesOn().length === 0, "switches: the picker shows no 4- or 8-player size at launch");
 check(!multiSizeOn(4) && !multiSizeOn(8), "switches: neither size on");
-check(eq(multiSizesOn({ four: true, eight: false }), [4]) && eq(multiSizesOn({ four: false, eight: true }), [8]), "switches: one switch for each size");
+check(eq(multiSizesOn({ ffa4: true, ffa8: false }), [4]) && eq(multiSizesOn({ ffa4: false, ffa8: true }), [8]), "switches: one switch for each size");
 for (const size of [4, 8] as const) {
   const log: string[] = [];
-  const r = await joinMultiQueue({ playerId: "u1", size, picks: "mixed" }, { backend: stubBackend(log) });
+  const r = await joinMultiQueue({ playerId: "u1", size, choice: "mixed" }, { backend: stubBackend(log) });
   check(!r.ok && r.reason === "off" && log.length === 0, `server: a ${size}-player queue request is refused while off (nothing queued)`);
-  const r2 = await joinMultiQueue({ playerId: "u1", size, picks: "mixed" }, { switches: OFF, backend: stubBackend() });
+  const r2 = await joinMultiQueue({ playerId: "u1", size, choice: "mixed" }, { switches: OFF, backend: stubBackend() });
   check(!r2.ok && r2.reason === "off", `server: ${size} refused with the switch off`);
-  const other = size === 4 ? { four: false, eight: true } : { four: true, eight: false };
-  const r3 = await joinMultiQueue({ playerId: "u1", size, picks: "mixed" }, { switches: other, backend: stubBackend() });
+  const other = size === 4 ? { ffa4: false, ffa8: true } : { ffa4: true, ffa8: false };
+  const r3 = await joinMultiQueue({ playerId: "u1", size, choice: "mixed" }, { switches: other, backend: stubBackend() });
   check(!r3.ok && r3.reason === "off", `server: ${size} refused when only the other size is on`);
   let threw = false;
   try {
@@ -124,31 +143,34 @@ for (const size of [4, 8] as const) {
   check(threw, `server: assertMultiOn(${size}) throws while off`);
   let fillThrew = false;
   try {
-    await fillMatch({ matchId: "m", size, picks: "mixed", live: [], waitedMs: 0, dealKeys: [] }, { backend: stubBackend() });
+    await fillMatch({ matchId: "m", size, choice: "mixed", live: [], waitedMs: 0, dealKeys: [] }, { backend: stubBackend() });
   } catch (e) {
     fillThrew = e instanceof RatedMultiOffError;
   }
   check(fillThrew, `server: filling a ${size}-player match is refused while off`);
   let finishThrew = false;
   try {
-    await finishMultiMatch({ matchId: "m", size, seats: [], games: [], categories: [] }, { backend: stubBackend() });
+    await finishMultiMatch({ matchId: "m", size, choice: "mixed", seats: [], games: [] }, { backend: stubBackend() });
   } catch (e) {
     finishThrew = e instanceof RatedMultiOffError;
   }
   check(finishThrew, `server: finishing a ${size}-player match is refused while off`);
-  const on = await joinMultiQueue({ playerId: "u1", size, picks: "mixed" }, { switches: ON, backend: null });
+  const on = await joinMultiQueue({ playerId: "u1", size, choice: "mixed" }, { switches: ON, backend: null });
   check(!on.ok && on.reason === "not_ready", `server: ${size} on with nothing bound is "not ready"`);
   const log2: string[] = [];
-  const ok = await joinMultiQueue({ playerId: "u1", size, picks: "mixed" }, { switches: ON, backend: stubBackend(log2) });
-  check(ok.ok && log2[0] === `enqueue:${size}`, `server: ${size} on: queued through the matchmaking port`);
+  const ok = await joinMultiQueue({ playerId: "u1", size, choice: "mixed" }, { switches: ON, backend: stubBackend(log2) });
+  check(ok.ok && log2[0] === `enqueue:${size}:mixed`, `server: ${size} on: queued through the matchmaking port`);
+  const badChoice = await joinMultiQueue({ playerId: "u1", size, choice: "word" }, { switches: ON, backend: stubBackend() });
+  check(!badChoice.ok && badChoice.reason === "bad_choice", `server: ${size}: only Mixed, All puzzles or All arcade`);
 }
 for (const junk of [2, 3, 5, 16, "8", null, undefined]) {
-  const r = await joinMultiQueue({ playerId: "u1", size: junk, picks: "mixed" }, { switches: ON, backend: stubBackend() });
+  const r = await joinMultiQueue({ playerId: "u1", size: junk, choice: "mixed" }, { switches: ON, backend: stubBackend() });
   check(!r.ok && r.reason === "bad_size", `server: size ${String(junk)} refused`);
 }
 const fnSource = readFileSync("src/lib/rated/multi/multi.functions.ts", "utf8");
 check(/requireSupabaseAuth/.test(fnSource) && /joinMultiQueue\(\{ playerId: context\.userId/.test(fnSource), "server: the phone's call goes through joinMultiQueue with the signed-in user");
-check(!/window\.__/.test(readFileSync("src/lib/rated/multi/multi.server.ts", "utf8") + fnSource + readFileSync("src/config/ratedMultiConfig.ts", "utf8")), "switches: no window override anywhere (nothing a browser can turn on)");
+check(!/window\.__/.test(readFileSync("src/lib/rated/multi/multi.server.ts", "utf8") + fnSource + readFileSync("src/config/ratedConfig.ts", "utf8")), "switches: no window override anywhere (nothing a browser can turn on)");
+check(/RATED_FORMATS_ON/.test(readFileSync("src/lib/rated/multi/multi.server.ts", "utf8")), "switches: the server gate reads W3b's RATED_FORMATS_ON");
 
 /* ------------------------------------------------------------------ 2. filling */
 const live = (n: number) => Array.from({ length: n }, (_, i) => ({ playerId: `u${i + 1}`, name: `P${i + 1}` }));
@@ -288,8 +310,8 @@ check(eq(multiPointsTable(4), [5, 3, 1, 0]), "points: 4 players 5, 3, 1, 0");
 
 /* ------------------------------------------------------------------ 5. Joules and Podium Regular */
 check(BEST_OF_3_JOULES.win === 150 && BEST_OF_3_JOULES.loss === 100, "Joules: the best-of-3 amounts are 150 / 100");
-check(multiJoules(8, 1) === 225 && multiJoules(8, 4) === 225 && multiJoules(8, 5) === 150 && multiJoules(8, 8) === 150, "Joules (8): 1.5× the win amount for the top half, 1.5× the loss amount below");
-check(multiJoules(4, 1) === 225 && multiJoules(4, 2) === 225 && multiJoules(4, 3) === 150, "Joules (4): 1.5× the best-of-3 amounts");
+check(multiJoules(8, 1) === 225 && multiJoules(8, 2) === 150 && multiJoules(8, 8) === 150, "Joules (8): 1.5× the win amount for first, 1.5× the loss amount below (W3a: first place is the win)");
+check(multiJoules(4, 1) === 225 && multiJoules(4, 2) === 150 && multiJoules(4, 4) === 150, "Joules (4): 1.5× the best-of-3 amounts");
 check(multiJoules(8, 1) === BEST_OF_3_JOULES.win * 1.5 && multiJoules(8, 8) === BEST_OF_3_JOULES.loss * 1.5, "Joules: exactly 1.5 times");
 const liveSeat: MultiSeat = { seatId: "s", playerId: "p", name: "n", recorded: false };
 check(countsForPodiumRegular(liveSeat, 3) && !countsForPodiumRegular(liveSeat, 4) && !countsForPodiumRegular({ ...liveSeat, recorded: true }, 1), "Podium Regular: live top-3 finishes only");
@@ -300,24 +322,37 @@ check(countsForPodiumRegular(liveSeat, 3) && !countsForPodiumRegular(liveSeat, 4
   const record = (e: AnalyticsEvent | readonly AnalyticsEvent[]) => void events.push(...(Array.isArray(e) ? e : [e]));
   const backend = stubBackend();
   const plan = await fillMatch(
-    { matchId: "m1", size: 8, picks: "mixed", live: live(5), waitedMs: 15_000, dealKeys: deals },
+    { matchId: "m1", size: 8, choice: "mixed", live: live(5), waitedMs: 15_000, dealKeys: deals },
     { switches: ON, backend, record },
   );
   check(plan.kind === "filled" && noPlayerTwice(plan.seats) && plan.seats.filter((s) => s.recorded).length === 3, "server fill: three recorded runs, the live player's own and a repeat skipped");
   const started = events.find((e) => e.event === "multiplayer_match_started");
   check(eq(started?.props, { size: 8, live_seats: 5, recorded_seats: 3 }), "events: multiplayer_match_started carries size, live and recorded seats");
-  const waiting = await fillMatch({ matchId: "m2", size: 4, picks: "mixed", live: live(2), waitedMs: 3000, dealKeys: deals }, { switches: ON, backend, record });
+  const waiting = await fillMatch({ matchId: "m2", size: 4, choice: "mixed", live: live(2), waitedMs: 3000, dealKeys: deals }, { switches: ON, backend, record });
   check(waiting.kind === "wait" && events.filter((e) => e.event === "multiplayer_match_started").length === 1, "events: no start event while still filling");
   const seats = plan.seats;
-  const games = [0, 1, 2].map((g) => seats.map((s, i) => ({ seatId: s.seatId, score: ((i + g) % 8) * 20 })));
-  const out = await finishMultiMatch({ matchId: "m1", size: 8, seats, games, categories: ["logic"] }, { switches: ON, backend, record });
+  const games: MultiGame[] = [0, 1, 2].map((g) => ({
+    type: ["gridlock", "hover", "blackout"][g]!,
+    pool: g === 1 ? ("arcade" as const) : ("puzzles" as const),
+    category: g === 1 ? ("retro" as const) : ("logic" as const),
+    signature: `sig${g}`,
+    scores: seats.map((s, i) => ({ seatId: s.seatId, score: ((i + g) % 8) * 20 })),
+  }));
+  const out = await finishMultiMatch({ matchId: "m1", size: 8, choice: "mixed", seats, games }, { switches: ON, backend, record });
   const m = backend.matches[0]!;
-  check(!!m && m.pairs.length === 28 && m.placings.length === 8, "server finish: W3a gets all 8 placings and 28 pairs");
-  check(eq(m.placings.map((p) => p.place), out.placings.map((p) => p.place)), "server finish: the places W3a gets are the final placings");
-  check(eq(out.joules.map((j) => j.playerId).sort(), seats.filter((s) => !s.recorded).map((s) => s.playerId).sort()), "server finish: Joules for live players only");
-  check((backend.joules as { key: string }[]).every((j) => j.key.startsWith("rated_multi:m1:")), "server finish: Joules credited under one key a player a match (idempotent)");
+  check(!!m && eq(m.format, { kind: "placings", players: 8 }) && m.choice === "mixed", "server finish: W3a gets a placings match of 8");
+  check(!!m && Object.keys(m.placings ?? {}).length === 8 && out.placings.every((p) => m.placings![seats.find((s) => s.seatId === p.seatId)!.playerId] === p.place), "server finish: W3a's placings are the final placings, by player");
+  check(!!m && m.players.filter((p) => p.side === "recorded").length === 3 && m.players.every((p) => p.side === "live" || (p.run.ownerId === p.playerId && p.run.source === "rated")), "server finish: recorded seats go to W3a as recorded runs owned by their player");
+  check(!!m && m.games.length === 3 && m.games.every((g) => g.version === "classic" && Object.keys(g.scores).length === 8), "server finish: every game with every player's stored score");
+  check(out.outcome.ok && out.outcome.players.filter((p) => p.side === "live").every((p) => p.joules === (p.place === 1 ? 225 : 150)), "server finish: Joules come from W3a's outcome (1.5× best of 3, live players only)");
   const fin = events.filter((e) => e.event === "multiplayer_match_finished");
   check(fin.length === 5 && fin.every((e) => e.props?.size === 8 && typeof e.props?.placing === "number" && typeof e.playerId === "string"), "events: multiplayer_match_finished for each live player with size and placing");
+  const again = await finishMultiMatch({ matchId: "m1", size: 8, choice: "mixed", seats, games }, { switches: ON, backend, record });
+  check(again.outcome.ok && again.outcome.status === "duplicate" && events.filter((e) => e.event === "multiplayer_match_finished").length === 5, "server finish: a repeat is W3a's duplicate and records no second finish event");
+  const direct = multiRatedResult({ matchId: "m3", size: 4, choice: "arcade", seats: seats.slice(0, 4), games: games.map((g) => ({ ...g, scores: g.scores.slice(0, 4) })), placings: finalPlacings(4, seats.slice(0, 4).map((s) => s.seatId), games.map((g) => g.scores.slice(0, 4))) });
+  check(eq(direct.format, { kind: "placings", players: 4 }) && Object.values(direct.placings ?? {}).sort().join() === "1,2,3,4", "result: a 4-player match's placings 1–4");
+  const fromW3b = fromW3bCandidate({ key: "room:d:2", source: "room", ownerId: "o1", games: [{ type: "gridlock", signature: "s" }] }, "Mia", (_g, i) => `d${i + 1}`);
+  check(eq(fromW3bCandidate.length, 3) && fromW3b.playerId === "o1" && fromW3b.runId === "room:d:2" && fromW3b.source === "room" && eq(fromW3b.dealKeys, ["d1"]), "filling: a W3b recorded run becomes a seat candidate (owner, key, source, deals)");
 }
 
 /* ------------------------------------------------------------------ 7. screens */

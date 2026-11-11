@@ -14,8 +14,8 @@ export const ratedMultiSizesFn = createServerFn({ method: "GET" }).handler(async
 
 export const joinRatedMultiQueueFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { size: number; picks?: string }) => input)
+  .inputValidator((input: { size: number; choice?: string }) => input)
   .handler(async ({ data, context }) => {
     const { joinMultiQueue } = await import("./multi.server");
-    return joinMultiQueue({ playerId: context.userId, size: data?.size, picks: data?.picks });
+    return joinMultiQueue({ playerId: context.userId, size: data?.size, choice: data?.choice });
   });
