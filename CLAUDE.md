@@ -2062,13 +2062,16 @@ outside the repo.
   chat in rated rooms. Rules `src/lib/rated/matchmaking.ts`, flow `rated.server.ts`, functions `rated.functions.ts`,
   data `src/lib/data/rated.server.ts`, tables `mm_*` (`20261114200000_matchmaking.sql`). Switches: `RATED_PLAY_FOR_EVERYONE`
   (`src/config/ratedConfig.ts`, testers on `shop.testers` only while false; true opens it to everyone, guests included
-  with no sign-up) and the formats / choices in
+  with no sign-up, seated under a generated energy name with a Guest tag, `guestName.server.ts`, never a typed name) and
+  the formats / choices in
   `src/config/matchmakingConfig.ts` (only bo3 with Mixed, All puzzles, All arcade on). Recorded runs: nearest rating,
   14 days, same version, format and choice, never your own, never the same owner twice running, 5 uses a UK day;
   never a run the replay flagged; the room / Daily / Practice fallback only when no rated run is near (each counted
-  Practice play's deal is kept 15 days in `mm_practice_deals`); arcade and engine games play back on a timeline from the
-  server's replay, puzzles show the score only at the game's end. Best of N stops once one side can't be caught
-  (`ratedMatchClinched` in advancePhaseFn). `accounts.forget_user` removes a deleted account's runs (trigger
+  Practice play's deal is kept 15 days in `mm_practice_deals`, purged by the Worker's Cron Trigger
+  `rated:practice-deals-purge`; a stitched Practice run is aged by its oldest game); arcade and engine games play back on a timeline from the
+  server's replay, puzzles show the score only at the game's end. Best of N stops once decided (a majority of games
+  won, W3a's rule; `ratedMatchClinched` in advancePhaseFn), and such a match leaves no recorded run. W3a's ratings bind
+  on first use (`ratingsReady`). `accounts.forget_user` removes a deleted account's runs (trigger
   `mm_forget_removed_user`). Checks: rated-matchmaking-check, rated-server-check.
 - **The shop** (wave 2 train D, session D1, 11 Nov 2026, `docs/economy/shop.md`; no gameplay, scoring, stamp or timing
   change; nothing in it helps anyone win): testers only while `SHOP_TAB_ENABLED` is off, from ONE list, `shop.testers`

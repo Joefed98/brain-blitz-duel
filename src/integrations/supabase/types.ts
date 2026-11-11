@@ -1448,7 +1448,6 @@ export type Database = {
           format: string
           joined_at: string
           match_id: string | null
-          display_name: string | null
           placement: boolean
           rating: number
           user_id: string
@@ -1456,7 +1455,6 @@ export type Database = {
         Insert: {
           choice: string
           format: string
-          display_name?: string | null
           joined_at?: string
           match_id?: string | null
           placement?: boolean
@@ -1466,7 +1464,6 @@ export type Database = {
         Update: {
           choice?: string
           format?: string
-          display_name?: string | null
           joined_at?: string
           match_id?: string | null
           placement?: boolean
