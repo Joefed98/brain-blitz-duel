@@ -357,6 +357,12 @@ export const SHARDS: Record<string, string[]> = {
     // server-function harness, beside accounts-check; rated-matchmaking-check (~1 s) proves the pure rules.
     "rated-server-check.ts",
     "rated-matchmaking-check.ts",
+    // tournament-events-server-check (wave 4 W4c, 11 Nov 2026, ~10 s): the Category Cup (Swiss) and the Joulz
+    // Championship (Knockout) end to end on a local PostgreSQL through the server-function harness: switched off by
+    // default, entry and refunds, pairings, the bracket, prizes paid once; tournament-events-check (~6 s) proves the
+    // pure rules.
+    "tournament-events-server-check.ts",
+    "tournament-events-check.ts",
     "ink-x200-check.ts",
     "depth4-check.ts",
     "room-figures-check.ts",

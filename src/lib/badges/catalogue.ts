@@ -142,8 +142,9 @@ const ROWS: readonly Row[] = [
   ["champion", "Champion", D, "epic", T, "Win your first tournament."],
   ["arena-champion", "Arena Champion", D, "elite", T, "Win an Arena."],
   ["score-attack-champion", "Score Attack Champion", D, "elite", T, "Win a Score Attack."],
-  ["swiss-champion", "Swiss Champion", D, "elite", T, "Win a Swiss tournament."],
-  ["knockout-champion", "Knockout Champion", D, "legendary", T, "Win a Knockout final."],
+  // Awarded by the Category Cup and the Joulz Championship when they finish (W4c; Joe's approval, 11 Nov 2026).
+  ["swiss-champion", "Swiss Champion", D, "elite", null, "Win a Swiss tournament."],
+  ["knockout-champion", "Knockout Champion", D, "legendary", null, "Win a Knockout final."],
   ["serial-winner", "Serial Winner", D, "legendary", T, "Win 10 tournaments.", [10, "tournaments"]],
   // From C1b's stored completions (public.practice_challenge_progress), wired 11 Nov 2026.
   ["challenger", "Challenger", H, "common", null, "Complete 10 Practice challenges.", [10, "challenges"]],

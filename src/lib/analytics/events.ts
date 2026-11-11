@@ -75,6 +75,11 @@ export const ANALYTICS_EVENTS = [
   "match_found",
   "rematch_requested",
   "rematch_accepted",
+  // The Category Cup and the Joulz Championship (wave 4, W4c; docs/tournaments/events.md): recorded by the server only
+  // (src/lib/tournaments/eventsFlow.server.ts). swiss_round_paired carries props.round and props.players (the round's
+  // players, byes included); knockout_match_played props.round (played matches only, never a walkover).
+  "swiss_round_paired",
+  "knockout_match_played",
 ] as const;
 export type AnalyticsEventName = (typeof ANALYTICS_EVENTS)[number];
 

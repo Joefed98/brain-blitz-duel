@@ -48,8 +48,11 @@ export interface BadgeRule {
   detail?(facts: BadgeFacts): Record<string, number | string | boolean>;
 }
 
-/** Badges another session awards through public.badge_award (no rule here). */
-export const AWARDED_ELSEWHERE: readonly string[] = ["friendly"];
+/**
+ * Badges another session awards through public.badge_award (no rule here): Friendly (B1); Swiss Champion and Knockout
+ * Champion (the tournament events when they finish, src/lib/tournaments/eventsFlow.server.ts; W4c, 11 Nov 2026).
+ */
+export const AWARDED_ELSEWHERE: readonly string[] = ["friendly", "swiss-champion", "knockout-champion"];
 
 
 const atLeast = (need: number, of: (f: BadgeFacts) => number): BadgeRule => ({

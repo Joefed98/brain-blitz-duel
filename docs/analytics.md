@@ -64,6 +64,8 @@ events go alongside them.
 | `item_granted` | server / database | an item added to an inventory (starter items at sign-up, a purchase, the pass, earned, Joe's grant); props `kind`, `rarity`, `source` |
 | `item_equipped` | server | an item equipped in a loadout slot (not an unequip); props `kind` |
 | `challenge_completed` | server | a server-graded Practice run completed a practice challenge (src/lib/challenges/challenges.server.ts); `game`, mode `practice`, props `challenge` (its id), `level`, `coins` (paid with it; 0 for a guest, whose coins are paid on becoming an account) |
+| `swiss_round_paired` | server | a Category Cup round's pairings were made (W4c, src/lib/tournaments/eventsFlow.server.ts); props `round`, `players` (the round's players, byes included) |
+| `knockout_match_played` | server | a Joulz Championship match was played and settled (W4c; never a walkover); `room_id`, props `round` |
 
 Mode is `room`, `daily`, `challenge` or `practice` (`rated` comes later with its own migration).
 

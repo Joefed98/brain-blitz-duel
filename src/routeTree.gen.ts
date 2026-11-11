@@ -12,6 +12,8 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AccountRouteImport } from './routes/account'
 import { Route as ChallengeRouteImport } from './routes/challenge'
+import { Route as ChampionshipRouteImport } from './routes/championship'
+import { Route as CupRouteImport } from './routes/cup'
 import { Route as CustomiseRouteImport } from './routes/customise'
 import { Route as DailyRouteImport } from './routes/daily'
 import { Route as DevCrashRouteImport } from './routes/dev-crash'
@@ -37,6 +39,16 @@ const AccountRoute = AccountRouteImport.update({
 const ChallengeRoute = ChallengeRouteImport.update({
   id: '/challenge',
   path: '/challenge',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ChampionshipRoute = ChampionshipRouteImport.update({
+  id: '/championship',
+  path: '/championship',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CupRoute = CupRouteImport.update({
+  id: '/cup',
+  path: '/cup',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CustomiseRoute = CustomiseRouteImport.update({
@@ -99,6 +111,8 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/account': typeof AccountRoute
   '/challenge': typeof ChallengeRoute
+  '/championship': typeof ChampionshipRoute
+  '/cup': typeof CupRoute
   '/customise': typeof CustomiseRoute
   '/daily': typeof DailyRoute
   '/dev-crash': typeof DevCrashRoute
@@ -115,6 +129,8 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/account': typeof AccountRoute
   '/challenge': typeof ChallengeRoute
+  '/championship': typeof ChampionshipRoute
+  '/cup': typeof CupRoute
   '/customise': typeof CustomiseRoute
   '/daily': typeof DailyRoute
   '/dev-crash': typeof DevCrashRoute
@@ -132,6 +148,8 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/account': typeof AccountRoute
   '/challenge': typeof ChallengeRoute
+  '/championship': typeof ChampionshipRoute
+  '/cup': typeof CupRoute
   '/customise': typeof CustomiseRoute
   '/daily': typeof DailyRoute
   '/dev-crash': typeof DevCrashRoute
@@ -150,6 +168,8 @@ export interface FileRouteTypes {
     | '/'
     | '/account'
     | '/challenge'
+    | '/championship'
+    | '/cup'
     | '/customise'
     | '/daily'
     | '/dev-crash'
@@ -166,6 +186,8 @@ export interface FileRouteTypes {
     | '/'
     | '/account'
     | '/challenge'
+    | '/championship'
+    | '/cup'
     | '/customise'
     | '/daily'
     | '/dev-crash'
@@ -182,6 +204,8 @@ export interface FileRouteTypes {
     | '/'
     | '/account'
     | '/challenge'
+    | '/championship'
+    | '/cup'
     | '/customise'
     | '/daily'
     | '/dev-crash'
@@ -199,6 +223,8 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AccountRoute: typeof AccountRoute
   ChallengeRoute: typeof ChallengeRoute
+  ChampionshipRoute: typeof ChampionshipRoute
+  CupRoute: typeof CupRoute
   CustomiseRoute: typeof CustomiseRoute
   DailyRoute: typeof DailyRoute
   DevCrashRoute: typeof DevCrashRoute
@@ -233,6 +259,20 @@ declare module '@tanstack/react-router' {
       path: '/challenge'
       fullPath: '/challenge'
       preLoaderRoute: typeof ChallengeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/championship': {
+      id: '/championship'
+      path: '/championship'
+      fullPath: '/championship'
+      preLoaderRoute: typeof ChampionshipRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/cup': {
+      id: '/cup'
+      path: '/cup'
+      fullPath: '/cup'
+      preLoaderRoute: typeof CupRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/customise': {
@@ -319,6 +359,8 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AccountRoute: AccountRoute,
   ChallengeRoute: ChallengeRoute,
+  ChampionshipRoute: ChampionshipRoute,
+  CupRoute: CupRoute,
   CustomiseRoute: CustomiseRoute,
   DailyRoute: DailyRoute,
   DevCrashRoute: DevCrashRoute,

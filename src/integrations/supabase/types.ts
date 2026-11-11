@@ -1379,6 +1379,255 @@ export type Database = {
         }
         Relationships: []
       }
+      tournament_entries: {
+        Row: {
+          attempt: number
+          coin_line_id: number | null
+          entered_at: string
+          event_id: string
+          final_place: number | null
+          paid_with: string
+          refunded_at: string | null
+          seed: number | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          attempt?: number
+          coin_line_id?: number | null
+          entered_at?: string
+          event_id: string
+          final_place?: number | null
+          paid_with: string
+          refunded_at?: string | null
+          seed?: number | null
+          status?: string
+          user_id: string
+        }
+        Update: {
+          attempt?: number
+          coin_line_id?: number | null
+          entered_at?: string
+          event_id?: string
+          final_place?: number | null
+          paid_with?: string
+          refunded_at?: string | null
+          seed?: number | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      tournament_events: {
+        Row: {
+          bracket_size: number | null
+          cancelled_reason: string | null
+          category: string
+          created_at: string
+          current_round: number
+          event_key: string
+          field: number
+          finished_at: string | null
+          id: string
+          kind: string
+          locked_until: string | null
+          month: string | null
+          paid_at: string | null
+          reminded_at: string | null
+          round_starts_at: string | null
+          rounds_total: number
+          started_at: string | null
+          starts_at: string
+          status: string
+        }
+        Insert: {
+          bracket_size?: number | null
+          cancelled_reason?: string | null
+          category: string
+          created_at?: string
+          current_round?: number
+          event_key: string
+          field?: number
+          finished_at?: string | null
+          id?: string
+          kind: string
+          locked_until?: string | null
+          month?: string | null
+          paid_at?: string | null
+          reminded_at?: string | null
+          round_starts_at?: string | null
+          rounds_total?: number
+          started_at?: string | null
+          starts_at: string
+          status?: string
+        }
+        Update: {
+          bracket_size?: number | null
+          cancelled_reason?: string | null
+          category?: string
+          created_at?: string
+          current_round?: number
+          event_key?: string
+          field?: number
+          finished_at?: string | null
+          id?: string
+          kind?: string
+          locked_until?: string | null
+          month?: string | null
+          paid_at?: string | null
+          reminded_at?: string | null
+          round_starts_at?: string | null
+          rounds_total?: number
+          started_at?: string | null
+          starts_at?: string
+          status?: string
+        }
+        Relationships: []
+      }
+      tournament_hall_of_fame: {
+        Row: {
+          added_at: string
+          event_id: string
+          month: string
+          user_id: string
+        }
+        Insert: {
+          added_at?: string
+          event_id: string
+          month: string
+          user_id: string
+        }
+        Update: {
+          added_at?: string
+          event_id?: string
+          month?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      tournament_matches: {
+        Row: {
+          created_at: string
+          duel_id: string | null
+          event_id: string
+          games_a: number | null
+          games_b: number | null
+          id: string
+          player_a: string | null
+          player_b: string | null
+          room_made_at: string | null
+          round: number
+          seed_a: number | null
+          seed_b: number | null
+          settled_at: string | null
+          slot: number
+          stage: string
+          status: string
+          total_a: number | null
+          total_b: number | null
+          walkover: boolean
+          winner: string | null
+        }
+        Insert: {
+          created_at?: string
+          duel_id?: string | null
+          event_id: string
+          games_a?: number | null
+          games_b?: number | null
+          id?: string
+          player_a?: string | null
+          player_b?: string | null
+          room_made_at?: string | null
+          round: number
+          seed_a?: number | null
+          seed_b?: number | null
+          settled_at?: string | null
+          slot: number
+          stage: string
+          status?: string
+          total_a?: number | null
+          total_b?: number | null
+          walkover?: boolean
+          winner?: string | null
+        }
+        Update: {
+          created_at?: string
+          duel_id?: string | null
+          event_id?: string
+          games_a?: number | null
+          games_b?: number | null
+          id?: string
+          player_a?: string | null
+          player_b?: string | null
+          room_made_at?: string | null
+          round?: number
+          seed_a?: number | null
+          seed_b?: number | null
+          settled_at?: string | null
+          slot?: number
+          stage?: string
+          status?: string
+          total_a?: number | null
+          total_b?: number | null
+          walkover?: boolean
+          winner?: string | null
+        }
+        Relationships: []
+      }
+      tournament_payouts: {
+        Row: {
+          amount: number | null
+          event_id: string
+          kind: string
+          paid_at: string
+          place: number | null
+          user_id: string
+        }
+        Insert: {
+          amount?: number | null
+          event_id: string
+          kind: string
+          paid_at?: string
+          place?: number | null
+          user_id: string
+        }
+        Update: {
+          amount?: number | null
+          event_id?: string
+          kind?: string
+          paid_at?: string
+          place?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      tournament_trophies: {
+        Row: {
+          awarded_at: string
+          cup: string
+          event_id: string
+          kind: string
+          place: number
+          user_id: string
+        }
+        Insert: {
+          awarded_at?: string
+          cup: string
+          event_id: string
+          kind: string
+          place: number
+          user_id: string
+        }
+        Update: {
+          awarded_at?: string
+          cup?: string
+          event_id?: string
+          kind?: string
+          place?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       rated_progress: {
         Row: {
           at: string
@@ -2029,6 +2278,18 @@ export type Database = {
       async_board_open: { Args: { p_room_id: string }; Returns: boolean }
       disband_stale_room: { Args: { p_room_id: string }; Returns: boolean }
       rated_is_tester: { Args: { p_user_id: string }; Returns: boolean }
+      tournament_enter: {
+        Args: { p_attempt: number; p_coin_line: number | null; p_event: string; p_max: number; p_paid_with: string; p_user: string }
+        Returns: string
+      }
+      tournament_event_lock: {
+        Args: { p_event: string; p_ms: number }
+        Returns: boolean
+      }
+      tournament_event_unlock: {
+        Args: { p_event: string }
+        Returns: undefined
+      }
       rated_queue_claim: {
         Args: { p_choice: string; p_format: string; p_match: string; p_users: string[] }
         Returns: boolean

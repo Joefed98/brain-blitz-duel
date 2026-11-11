@@ -21,6 +21,7 @@ import {
 import { APP_NAME } from "@/lib/brand";
 import { OnlineOnly } from "@/components/offline/OnlineOnly";
 import { EmptyState } from "@/design/components";
+import { BigEventsSection } from "@/components/tournaments/BigEvents";
 
 export const Route = createFileRoute("/tournaments")({
   ssr: false,
@@ -86,6 +87,9 @@ function TournamentsScreen() {
             Public games on set dates. Join when the lobby opens, and everyone plays the same rounds.
           </p>
         </div>
+
+        {/* The Category Cup and the Joulz Championship (W4c): nothing at all while both switches are off. */}
+        <BigEventsSection />
 
         {next ? (
           <section aria-label="Next up" className="ap-section">
