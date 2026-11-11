@@ -51,14 +51,19 @@ import { Button, Icon, Input, SkeletonPage } from "@/design/components";
 import { GUEST_NAME_MAX } from "@/lib/names/username";
 import { NameSuggestions } from "@/components/account/AccountParts";
 import { useAccountName } from "@/lib/account/accountApi";
+import { playerIdOk } from "@/lib/friends/friends";
+import { challengeFriendFor, forgetChallengeFriend, rememberChallengeFriend } from "@/lib/friends/challengeFriend";
 
 export const Route = createFileRoute("/challenge")({
   ssr: false,
-  validateSearch: (search: Record<string, unknown>): { code?: string; ref?: string } => {
+  validateSearch: (search: Record<string, unknown>): { code?: string; ref?: string; friend?: string; friendName?: string } => {
     const code = challengeCodeFrom(search["code"]);
     return {
       ...(code ? { code } : {}),
       ...(typeof search["ref"] === "string" ? { ref: search["ref"] } : {}),
+      // Friends (wave 2 B1): a challenge made from a friend's profile is sent to them when the creator finishes.
+      ...(playerIdOk(search["friend"]) ? { friend: search["friend"] as string } : {}),
+      ...(typeof search["friendName"] === "string" ? { friendName: search["friendName"].slice(0, 16) } : {}),
     };
   },
   head: () => ({
@@ -130,7 +135,7 @@ function Header({
 
 function ChallengeScreen() {
   const router = useRouter();
-  const search = Route.useSearch() as { code?: string; ref?: string };
+  const search = Route.useSearch() as { code?: string; ref?: string; friend?: string; friendName?: string };
   const [code, setCode] = useState<string | null>(search.code ?? null);
   const [mode, setMode] = useState<Mode>({ kind: "loading" });
   const [name, setName] = useState("");
@@ -167,6 +172,12 @@ function ChallengeScreen() {
   const finish = useCallback(
     async (forCode: string, roomId: string, view: AsyncAttemptView | null) => {
       setMode({ kind: "done", code: forCode, roomId, view, board: null });
+      // A challenge made for a friend goes to them once its creator has played it (friends' events, wave 2 B1).
+      const friend = challengeFriendFor(forCode);
+      if (friend) {
+        forgetChallengeFriend(forCode);
+        void import("@/lib/friends/friendsApi").then(({ friendsApi }) => friendsApi.challenge(friend, forCode));
+      }
       const [board, fresh] = await Promise.all([
         challengeFinal(roomId).catch(() => null),
         view ? Promise.resolve(view) : asyncAttempt(roomId).catch(() => null),
@@ -248,6 +259,7 @@ function ChallengeScreen() {
       }
       setStoredName(trimmed);
       noteMyChallenge(made.code);
+      if (search.friend) rememberChallengeFriend(made.code, search.friend);
       // The URL now names the challenge (a reload continues it); the run starts here, not via a load.
       void router.navigate({
         to: "/challenge",
@@ -339,6 +351,11 @@ function ChallengeScreen() {
               Play a set of rounds, then send the link. Friends play the same rounds against your
               score.
             </p>
+            {search.friend && search.friendName ? (
+              <p className="mt-1 text-sm text-foreground" data-challenge-for-friend>
+                {search.friendName} gets it when you’ve played it.
+              </p>
+            ) : null}
           </div>
           <ChallengeCreate
             name={accountName ?? name}

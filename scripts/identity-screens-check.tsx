@@ -621,7 +621,9 @@ for (const [who, n, shows] of [
   // Changed with Joe's approval, 11 Nov 2026 (wave 2 C1a): "Mastery stars" taken out of this list (the section now exists; the check below proves it).
   // Changed with Joe's approval, 11 Nov 2026 (wave 4 W4d): "Season peak" taken out of this list (the section now exists;
   // the check below proves it shows only the server's real data).
-  for (const word of ["Strongest categories", "Trophy cabinet", "Puzzles and Arcade", "matches"]) {
+  // Changed with Joe's approval, 11 Nov 2026 (wave 4 W4b): "Trophy cabinet" taken out of this list; the check below
+  // proves Profile's cabinet shows only real trophies (the account's own, from the server) and nothing without one.
+  for (const word of ["Strongest categories", "Puzzles and Arcade", "matches"]) {
     check(!source.includes(`>${word}<`) && !source.includes(`"${word}"`), `Profile draws no "${word}" section yet`);
   }
   // Changed with Joe's approval, 11 Nov 2026 (wave 4 W4d): the Season peak shows only the server's real data.
@@ -651,6 +653,22 @@ for (const [who, n, shows] of [
     const shown = await draw({ account: true, current: current("storm"), history: [] }, 1);
     check(shown.includes("Season peak") && shown.includes("Storm II") && shown.includes("Neon Circuit"), `the Season peak is the server's own peak and season (${shown.slice(0, 80)})`);
     seasonsApi.setSeasonsBackend(null);
+  }
+  {
+    const { TrophyCabinet } = await import("../src/components/tournaments/TournamentHub");
+    const { renderToStaticMarkup } = await import("react-dom/server");
+    const none = renderToStaticMarkup(React.createElement(TrophyCabinet, { trophies: [] }));
+    const one = renderToStaticMarkup(
+      React.createElement(TrophyCabinet, {
+        trophies: [{ eventId: "arena:2026-11-20:1300", kind: "arena", medal: "gold", title: "Lunchtime Arena, 1st", place: 1, awardedAt: 0 }],
+      }),
+    );
+    check(
+      none === "" &&
+        /data-trophy-cabinet/.test(one) && (one.match(/data-trophy="/g) ?? []).length === 1 &&
+        /const trophies = useMyTrophies\(accountName !== null\);/.test(source) && /<TrophyCabinet trophies=\{trophies\} \/>/.test(source),
+      "Profile's trophy cabinet shows only real trophies: the account's own from the server, one per trophy, nothing without one",
+    );
   }
   // Changed with Joe's approval, 11 Nov 2026 (wave 2 C1a): the Mastery stars section shows the server's total out of 276.
   {

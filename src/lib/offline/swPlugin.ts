@@ -86,7 +86,10 @@ export function offlineWorkerSource(opts: {
     googleFonts: GOOGLE_FONTS_CSS,
   };
   const template = readFileSync(new URL("./sw.template.js", import.meta.url), "utf8");
-  return template.replace("__OFFLINE_CONFIG__", JSON.stringify(config));
+  // Phone notifications (wave 2 B2): the push and notificationclick listeners, after the offline worker, which is
+  // unchanged (they add no install, activate, message or fetch handler).
+  const push = readFileSync(new URL("../push/sw.push.js", import.meta.url), "utf8");
+  return `${template.replace("__OFFLINE_CONFIG__", JSON.stringify(config))}\n${push}`;
 }
 
 /**

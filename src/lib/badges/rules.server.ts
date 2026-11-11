@@ -91,7 +91,17 @@ export interface BadgeRule {
 }
 
 /** Badges another session awards through public.badge_award (no rule here). */
-export const AWARDED_ELSEWHERE: readonly string[] = ["friendly"];
+export const AWARDED_ELSEWHERE: readonly string[] = [
+  "friendly",
+  // Tournaments (wave 4, W4b; src/lib/tournaments/tournaments.server.ts), earnable since 11 Nov 2026.
+  "entrant",
+  "trophy-hunter",
+  "arena-ace",
+  "champion",
+  "arena-champion",
+  "score-attack-champion",
+  "serial-winner",
+];
 
 
 const atLeast = (need: number, of: (f: BadgeFacts) => number): BadgeRule => ({

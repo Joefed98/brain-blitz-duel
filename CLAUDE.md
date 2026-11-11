@@ -2025,6 +2025,26 @@ outside the repo.
   Migration `20261111101500_practice_progress.sql` (**not applied until merged**). practice-progress-check (~15 s,
   PostgreSQL, no browser); offline-check's production server runs on the server-fn harness's PostgreSQL and REST
   stand-in (each browser context its own guest and network address), proving only confirmed runs count.
+- **Phone notifications** (wave 2 train B, session B2, 11 Nov 2026, `docs/push-notifications.md`; no gameplay, scoring,
+  stamp, timing or room-flow change): standard web push with Joulz's own VAPID keys, no package (RFC 8291 / 8292 in
+  WebCrypto, `src/lib/push/webPush.server.ts`). **Off until Joe sets `PUSH_PUBLIC_KEY`** (`src/config/pushConfig.ts`) and the
+  Worker secret `VAPID_PRIVATE_KEY`: nothing asks, subscribes or sends, and no settings panel shows. Six events
+  (`PUSH_EVENTS` in `src/lib/push/rules.ts`), decided and sent only in `notify.server.ts`: friend request, friend accepted,
+  friend challenge and room invite from B1's `friend_events` (`dispatchFriendEvents`, each claimed once through
+  `push_claim_friend_events`; run right after B1's change, `notifySoon` in friends.server.ts, and every 5 minutes),
+  tournament starting (exists; nothing sends it until wave 4) and the Daily streak reminder (19:00–20:59 UK, C2's
+  `dailyStreakFor` streak ≥ 1 with today's Daily not played). Schedules are the Worker's own **Cron Triggers**: nitro
+  scheduled tasks in `vite.config.ts` (`src/lib/push/tasks/`, `*/5 * * * *` friend sweep, `41 * * * *` reminder), written
+  into wrangler.json's `triggers.crons` by the build. A switch per event under a master switch (Settings → Notifications),
+  at most 3 a day (room invites apart), none 22:00–08:00 on the device's clock (its IANA zone, sent on subscribe and each
+  open) except a fresh room invite; held-back ones are dropped. The ask: never on first open, at a useful moment
+  (`notePushMoment`: a friend request sent or waiting, a finished Daily), on the next tab page (`NotificationAskSlot`), 30
+  days after a decline; an iPhone in Safari gets the Home Screen how-to. Accounts only (rows hang off `profiles`); sign-out
+  removes the device (`forgetPushOnSignOut`), a 404/410 from the push service removes it, a deletion request removes all.
+  The `push` / `notificationclick` listeners (`src/lib/push/sw.push.js`) are appended to the offline worker by swPlugin; the
+  offline worker itself is unchanged. Migration `20261112060000_push_notifications.sql` (after C2's and B1's; **not applied
+  until merged**). Events `notification_opt_in`, `notification_sent`, `notification_opened`. push-notifications-check (~5 s,
+  shard `e`).
 - **Practice challenges** (wave 2 train C, session C1b, 11 Nov 2026; `docs/challenges/catalogue.md`, the live catalogue,
   written by `bun scripts/challenge-catalogue-doc.ts [--check]`; no gameplay, scoring, stamp, timing or deal change): 261
   challenges over the 92 active games in one data file, `src/lib/duel/practiceChallenges.data.ts` (217 Classic live;
@@ -2053,6 +2073,22 @@ outside the repo.
   and falls short for all 261, speed goals against the grader, the facts, coins and roles on PostgreSQL) and
   practice-challenge-fit-check (headless Chromium: every goal whole at 320 and 375 px). **A retune that moves a goal's
   number fails practice-goals-check: change the goal's text and number in the data file and re-run the doc script.**
+- **Friends** (wave 2 train B, session B1, 11 Nov 2026, `docs/friends.md`; no gameplay, scoring, stamp or room-flow
+  change beyond Invite to room): accounts only (`/friends`, `src/routes/friends.tsx`, screens
+  `src/components/friends/FriendsScreens.tsx`; Profile's Friends button carries the waiting-requests badge, a guest gets
+  the save-your-progress sheet). Migration `20261111230000_friends.sql` (**not applied until merged**): friendships,
+  requests (phones never read a status, so a decline is never told), blocks, invite links, "Show when I'm online"
+  (null = on for adults, off for under-18s), presence (the app's heartbeat, `FriendsPresence` in the root, accounts
+  only) and `friend_events`, the outbox B2 turns into phone notifications (`friend_request_received`,
+  `friend_request_accepted`, `friend_challenge_received`, `room_invite_received`); every rule also in SQL on
+  service-role functions (`friends_*`), through `src/lib/data/friends.server.ts` and `src/lib/friends/friends.server.ts`.
+  Search is for adults and never returns an under-18 account; invite links work for everyone (a guest goes through
+  sign-up first, the token kept as `duelz-friend-invite:v1`). Block removes the friendship and stops requests, invites,
+  challenges, search, profiles and status both ways. Reports from a profile go through wave 1's `file_room_report` with
+  no room (`room_reports.duel_id` now nullable). Limits: 20 requests an hour, 200 friends. Chat: `chatPolicy(context,
+  player, { friends: true })` types for friends, under-18s included; strangers unchanged. Analytics `friend_request_sent`,
+  `friend_added`, `friend_removed`, `friend_blocked` (`20261111230100_analytics_friend_events.sql`). friends-check (~5 s,
+  PostgreSQL, shard `e`), friends-ui-check (~3 s, happy-dom).
 - **The shop** (wave 2 train D, session D1, 11 Nov 2026, `docs/economy/shop.md`; no gameplay, scoring, stamp or timing
   change; nothing in it helps anyone win): testers only while `SHOP_TAB_ENABLED` is off, from ONE list, `shop.testers`
   (Joe's `shop.add_tester` / `remove_tester` / `list_testers`, logged in `shop.admin_log`; #0001 added by the migration
@@ -2133,6 +2169,43 @@ outside the repo.
   count changes (11 Nov 2026): economy-check 117 items / 25 free or earned, badges-check and pass-check 41 titles,
   identity-screens-check 59 card arts, frames and name colours, its "Season peak" forbidden word replaced by a real-data
   check. seasons-check (~10 s, shard `e`, PostgreSQL), seasons-screens-check (~2 s, happy-dom).
+- **Rated matchmaking** (wave 3 W3b, 11 Nov 2026, `docs/rated/matchmaking-interface.md`; no gameplay, scoring, stamp or
+  deal change): the queue (same format and choice only; ±50 widening by 50 every 2 s to ±200, a recorded run from 8 s;
+  placement straight to a beginner's run), live and recorded rated matches as ordinary rooms the server makes already
+  started (Classic, `dealRoomRounds` from the room picks; a recorded match copies the run's own stored puzzles), the
+  opponent's score hidden for each game's final 20 % (on the server), settling once into W3a's `recordRatedMatch`
+  (`ratingsAdapter.server.ts`; unbound until W3a's `ratings.server.ts` lands), rematch within 8 s, wave 1's stranger
+  chat in rated rooms. Rules `src/lib/rated/matchmaking.ts`, flow `rated.server.ts`, functions `rated.functions.ts`,
+  data `src/lib/data/rated.server.ts`, tables `mm_*` (`20261114200000_matchmaking.sql`). Switches: `RATED_PLAY_FOR_EVERYONE`
+  (`src/config/ratedConfig.ts`, testers on `shop.testers` only while false; true opens it to everyone, guests included
+  with no sign-up) and the formats / choices in
+  `src/config/matchmakingConfig.ts` (only bo3 with Mixed, All puzzles, All arcade on). Recorded runs: nearest rating,
+  14 days, same version, format and choice, never your own, never the same owner twice running, 5 uses a UK day;
+  never a run the replay flagged; the room / Daily / Practice fallback only when no rated run is near (each counted
+  Practice play's deal is kept 15 days in `mm_practice_deals`); arcade and engine games play back on a timeline from the
+  server's replay, puzzles show the score only at the game's end. Best of N stops once one side can't be caught
+  (`ratedMatchClinched` in advancePhaseFn). `accounts.forget_user` removes a deleted account's runs (trigger
+  `mm_forget_removed_user`). Checks: rated-matchmaking-check, rated-server-check.
+- **Tournaments: the hub, the Arena and the daily Score Attack** (wave 4 W4b, 11 Nov 2026, `docs/tournaments/README.md`,
+  contract for W4c `docs/tournaments/interface.md`; no gameplay, scoring, stamp, rating or deal change): switches,
+  schedule and prizes in `src/config/tournamentConfig.ts` (`TOURNAMENTS_FOR_EVERYONE` false: D1's testers only; the
+  Arena at 13:00 and 20:00 UK, a 45-minute window, 4 entrants to start; Score Attack daily, 50 coins or a ticket, 5
+  games of a rotating featured pick; Category Cup and Championship off). Pure rules `src/lib/tournaments/rules.ts`
+  (schedule, points 2 a win and 4 from a third win in a row, standings, the prize table and the small-field
+  safeguard, the server's flag), flow `tournaments.server.ts`, functions `tournaments.functions.ts`, phone
+  `tournamentsApi.ts` (the check-only `window.__DUELZ_ALLOW_TOURNAMENTS__` never read in production), data
+  `src/lib/data/tournaments.server.ts`, screens `src/components/tournaments/`, routes `/tournament?id=` and
+  `/tournament-rules?kind=`. Arena duels are ordinary best-of-3 rooms from W3b's `createDealtMatchRoom` (a plain
+  extraction of `createLiveMatch`), paired by W3b's `bestPartner` on the adapter's rating, **never rated matches**;
+  Score Attack is an async room of kind `score_attack` on the Daily's engine (analytics mode `tournament`). Entry and
+  refunds through A1's ledger and consumables in one transaction; prizes paid once (`tournament_prize` lines); trophies
+  in Profile's cabinet (only real ones); the seven tournament badges earnable (awarded here through `badge_award`);
+  Joules through D2's `creditTournamentJoules`; reminders through B2's `notifyTournamentStarting` (Cron Trigger
+  `tournaments:tick`, `2-59/5 * * * *`). Flagged runs (server's `extra.flagged` only): no points, score, place, prize,
+  trophy, badge or Joules, logged in `moderation.tournament_flags` beside W3a's `rated_flags`, "Your result is under
+  review." Migrations `20261115200000_tournaments.sql`, `20261115200100_tournament_badges.sql`,
+  `20261115200200_analytics_tournament_events.sql` (**not applied until merged**). Events `tournament_entered`,
+  `tournament_finished`, `prize_paid`. tournaments-check (~40 s, PostgreSQL, shard `e`), tournaments-screens-check (~2 s).
 - `src/components/duel/` — room/round screens (PhoneShell, RoundIntro, TimerBar,
   AnswerReveal, ArcadeReveal, WinnerReveal…); `src/components/puzzles/` — shared puzzle
   widgets; `src/lib/fx/` — sound and visual feedback (presentation only).

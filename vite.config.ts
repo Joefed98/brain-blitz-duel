@@ -80,10 +80,31 @@ function nitroTasks(...sets: TaskSet[]) {
   return { experimental: { tasks: true }, tasks, scheduledTasks };
 }
 
+/**
+ * Phone notifications' Cron Triggers (wave 2 B2, docs/push-notifications.md): nitro's scheduled tasks. Its Cloudflare
+ * preset writes each schedule into the generated wrangler.json's `triggers.crons`, so `wrangler deploy` sets the Worker's
+ * Cron Triggers, and the Worker's `scheduled` handler runs the task listed for the cron that fired. UTC schedules, kept
+ * in step with PUSH_CRONS (src/lib/push/tasks/pushTasks.server.ts; push-notifications-check compares them). The tasks
+ * do nothing while the push keys aren't set.
+ */
+const PUSH_TASKS: TaskSet = {
+  tasks: {
+    "push:friend-sweep": { handler: fileURLToPath(new URL("./src/lib/push/tasks/friendSweep.task.ts", import.meta.url)) },
+    "push:daily-reminder": { handler: fileURLToPath(new URL("./src/lib/push/tasks/dailyReminder.task.ts", import.meta.url)) },
+    // Tournaments (wave 4, W4b): TOURNAMENT_CRON in src/lib/tournaments/tasks/tournamentsTick.server.ts.
+    "tournaments:tick": { handler: fileURLToPath(new URL("./src/lib/tournaments/tasks/tournamentsTick.task.ts", import.meta.url)) },
+  },
+  scheduledTasks: {
+    "*/5 * * * *": ["push:friend-sweep"],
+    "41 * * * *": ["push:daily-reminder"],
+    "2-59/5 * * * *": ["tournaments:tick"],
+  },
+};
+
 const SERVER_BUILD = Object.assign(
   { minify: true },
   { cloudflare: { wrangler: { observability: WORKER_OBSERVABILITY } } },
-  nitroTasks(RATED_TASKS),
+  nitroTasks(RATED_TASKS, PUSH_TASKS),
 ) as NitroOptions & { minify: boolean };
 
 export default defineConfig({

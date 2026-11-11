@@ -160,14 +160,16 @@ async function pureChecks(): Promise<void> {
     check(tableRows.length === 54 && mdDiff.length === 0, `docs/badges/catalogue.md's table is the catalogue, rule for rule (${mdDiff.map((d) => d.slug).join(", ") || "none differ"})`);
     const now = cat.BADGES.filter((b) => b.status === "earnable").map((b) => b.slug).sort().join();
     // Approved by Joe in the wave 3 W3a brief (11 Nov 2026): rated play's 13 badges are earnable now (16 earnable → 29).
-    check(now === "all-rounder,buzzer-beater,century,challenge-expert,challenge-seeker,challenger,clean-sweep,comeback-kid,daily-habit,dedicated,first-star,first-win,flawless,founding-player,friendly,gem-hunter,giant-slayer,hot-streak,lightning-strikes,party-host,perfectionist,photo-finish,placed,podium-regular,revenge,speed-demon,storm-chaser,top-500,unstoppable", `earnable now: every badge the approved catalogue says is now (${now})`);
+    // Joe's approval, 11 Nov 2026 (wave 4 W4b prompt): Entrant, Trophy Hunter, Arena Ace, Champion, Arena Champion,
+    // Score Attack Champion and Serial Winner move from waiting to earnable. Both together (merged in W4d): 36.
+    check(now === "all-rounder,arena-ace,arena-champion,buzzer-beater,century,challenge-expert,challenge-seeker,challenger,champion,clean-sweep,comeback-kid,daily-habit,dedicated,entrant,first-star,first-win,flawless,founding-player,friendly,gem-hunter,giant-slayer,hot-streak,lightning-strikes,party-host,perfectionist,photo-finish,placed,podium-regular,revenge,score-attack-champion,serial-winner,speed-demon,storm-chaser,top-500,trophy-hunter,unstoppable", `earnable now: every badge the approved catalogue says is now (${now})`);
     const wait = (w: string) => cat.BADGES.filter((b) => b.waitsFor === w).map((b) => b.slug).sort().join();
     check(wait("mastery-stars") === "" && wait("practice-challenges") === "", "nothing parked: C1a's three and C1b's three wired");
     const { ACTIVE_PUZZLE_TYPES } = await import("../src/lib/duel/catalogue");
     const ar = cat.BADGE_BY_SLUG.get("all-rounder")!;
     check(ar.target?.need === ACTIVE_PUZZLE_TYPES.length && ar.target.live === true, `All-Rounder counts every active game, from the live list (${ar.target?.need})`);
-    // Approved by Joe in the wave 3 W3a brief (11 Nov 2026): rated play's 13 no longer wait (rated play 13 → 0).
-    check(cat.BADGES.filter((b) => b.waitsFor === "rated-play").length === 0 && cat.BADGES.filter((b) => b.waitsFor === "tournaments").length === 9 && cat.BADGES.filter((b) => b.waitsFor === "all-stars").length === 12 && wait("daily-boards") === "daily-champion,daily-top-100" && wait("hard-challenges") === "category-clear,completionist", "the waves' badges wait as approved (rated play 0 since W3a, tournaments 9, all stars 12, Daily boards 2, Hard challenges 2)");
+    // Both approvals of 11 Nov 2026 together (W3a: rated play 13 → 0; W4b: tournaments 9 → 2), merged in W4d.
+    check(cat.BADGES.filter((b) => b.waitsFor === "rated-play").length === 0 && cat.BADGES.filter((b) => b.waitsFor === "tournaments").length === 2 && wait("tournaments") === "knockout-champion,swiss-champion" && cat.BADGES.filter((b) => b.waitsFor === "all-stars").length === 12 && wait("daily-boards") === "daily-champion,daily-top-100" && wait("hard-challenges") === "category-clear,completionist", "the waves' badges wait as approved (rated play 0 since W3a, tournaments 2 (Swiss and Knockout Champion; 9 until Joe's approval of 11 Nov 2026, W4b), all stars 12, Daily boards 2, Hard challenges 2)");
     check(cat.badgeProgressLine(cat.BADGE_BY_SLUG.get("daily-habit")!, 4) === "4 of 7 days" && cat.badgeProgressLine(cat.BADGE_BY_SLUG.get("perfectionist")!, 30) === "25 of 25 games" && cat.badgeProgressLine(cat.BADGE_BY_SLUG.get("flawless")!, 0) === null, "progress reads “4 of 7 days”, capped at the count, only on counted badges");
     const svgs = readdirSync("docs/art/badges/svg").filter((f) => f.endsWith(".svg"));
     const same = svgs.filter((f) => readFileSync(`docs/art/badges/svg/${f}`).equals(readFileSync(`public/art/badges/${f}`)));
@@ -188,10 +190,13 @@ async function pureChecks(): Promise<void> {
     const earnable = cat.BADGES.filter((b) => b.status === "earnable").map((b) => b.slug);
     const checked = earnable.filter((s) => !rules.AWARDED_ELSEWHERE.includes(s));
     check(checked.every((s) => rules.BADGE_RULES[s]) && Object.keys(rules.BADGE_RULES).every((s) => checked.includes(s)), "a rule for every earnable badge the server checks, and only those");
-    check(rules.AWARDED_ELSEWHERE.join() === "friendly" && earnable.includes("friendly") && !rules.BADGE_RULES["friendly"], "Friendly is earnable but awarded by B1 (no rule here)");
+    // Joe's approval, 11 Nov 2026 (W4b): the seven tournament badges are awarded by the tournaments code, like Friendly by B1.
+    const TOURNAMENT_AWARDED = ["entrant", "trophy-hunter", "arena-ace", "champion", "arena-champion", "score-attack-champion", "serial-winner"];
+    check(rules.AWARDED_ELSEWHERE.join() === ["friendly", ...TOURNAMENT_AWARDED].join() && earnable.includes("friendly") && !rules.BADGE_RULES["friendly"], "Friendly is earnable but awarded by B1 (no rule here)");
+    check(TOURNAMENT_AWARDED.every((s) => earnable.includes(s) && !rules.BADGE_RULES[s]), "the seven tournament badges are earnable and awarded by the tournaments code (no rule here)");
     const none: rules.BadgeFacts = { founding: false, playerNumber: 43, games200: 0, buzzerFinishes: 0, fastFinishes: 0, bestDailyStreak: 0, dailyStreak: 0, hostedRooms: 0, challengesDone: 0, stars: 0, starredGames: 0, gems: 0, rated: rules.NO_RATED_FACTS };
-    // Rated play's facts (wave 3 W3a): the earn / miss pair's rated part, over no rated record.
     const r = (part: Partial<rules.RatedFacts>): Partial<rules.BadgeFacts> => ({ rated: { ...rules.NO_RATED_FACTS, ...part } });
+
     const { ACTIVE_PUZZLE_TYPES: ACTIVE } = await import("../src/lib/duel/catalogue");
     // Each rule: the facts that just earn it, and the same facts one short.
     const earns: Record<string, [Partial<rules.BadgeFacts>, Partial<rules.BadgeFacts>]> = {
@@ -409,8 +414,9 @@ async function databaseChecks(db: LocalDb, rest: RestServer): Promise<void> {
     const award = (badge: string) => JSON.parse(q(`SELECT public.badge_award('${EVE}', '${badge}', '{}'::jsonb)::text`)) as { status: string };
     const waiting = cat.BADGES.filter((b) => b.status !== "earnable");
     const refusedAll = waiting.every((b) => award(b.slug).status === "not_earnable");
-    // Approved by Joe in the wave 3 W3a brief (11 Nov 2026): 38 waiting → 25 (rated play's 13 earnable).
-    check(refusedAll && waiting.length === 25 && Number(q(`SELECT count(*) FROM player_badges WHERE user_id = '${EVE}'`)) === 0, `none of the ${waiting.length} badges that wait can be awarded`);
+    // Approved by Joe in the wave 3 W3a brief (11 Nov 2026): 38 waiting → 25 (rated play's 13 earnable); Joe's approval,
+    // 11 Nov 2026 (W4b): the seven tournament badges earnable too. Both together (merged in W4d): 18 wait.
+    check(refusedAll && waiting.length === 18 && Number(q(`SELECT count(*) FROM player_badges WHERE user_id = '${EVE}'`)) === 0, `none of the ${waiting.length} badges that wait can be awarded`);
     const friendly = JSON.parse(q(`SELECT public.badge_award('${EVE}', 'friendly', '{}'::jsonb)::text`)) as { status: string };
     check(friendly.status === "awarded" && balance(EVE) === 1000, "Friendly can be awarded through badge_award (B1's path), no coins (Common)");
     q(`DELETE FROM player_badges WHERE user_id = '${EVE}' AND badge = 'friendly'`);

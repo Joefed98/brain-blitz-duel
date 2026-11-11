@@ -335,6 +335,10 @@ export const SHARDS: Record<string, string[]> = {
     // ledger and its races, consumables, ownership, equipping, the avatar, Joe's tools) on a local PostgreSQL through
     // the server-function harness, beside accounts-check.
     "economy-check.ts",
+    // push-notifications-check (wave 2 B2, 11 Nov 2026, ~5 s): phone notifications (RFC 8291 / VAPID, the six events,
+    // the cap and quiet hours, the streak reminder, subscriptions, RLS, the service worker's push listeners) on a local
+    // PostgreSQL through the server-function harness, beside economy-check.
+    "push-notifications-check.ts",
     // badges-check (wave 2 C2, 11 Nov 2026, ~10 s): badges, titles, the sign-up and founding rewards, the backfill and the
     // Daily streak on the account, on a local PostgreSQL through the server-function harness, beside economy-check.
     "badges-check.ts",
@@ -363,10 +367,25 @@ export const SHARDS: Record<string, string[]> = {
     // account-screens-check (10 Nov 2026, ~10 s): the sign-up screens' rules, the save-progress events' server function
     // and usernames in rooms, Dailies and challenges, through the server-function harness, beside accounts-check.
     "account-screens-check.ts",
+    // friends-check (wave 2 B1, 11 Nov 2026, ~5 s): friends (search's age rules, invite links, requests, accept,
+    // decline, remove, block, status, invites, challenges, the limits and cap, RLS, B2's events) on a local PostgreSQL
+    // through the server-function harness, beside accounts-check; friends-ui-check (~3 s, happy-dom) the screens.
+    "friends-check.ts",
+    "friends-ui-check.tsx",
     // practice-challenges-check (wave 2 C1b, 11 Nov 2026, ~40 s): the challenge catalogue's checker on real graded runs,
     // speed goals against the grader, the six stored facts, coins once per account and guests paid on sign-up on a local
     // PostgreSQL through the server-function harness, beside accounts-check.
     "practice-challenges-check.ts",
+    // rated-server-check (wave 3 W3b, 11 Nov 2026, ~5 s): rated matchmaking end to end (the queue, live and recorded
+    // matches, the hidden finish, settling once, rematch, rated chat, events) on a local PostgreSQL through the
+    // server-function harness, beside accounts-check; rated-matchmaking-check (~1 s) proves the pure rules.
+    "rated-server-check.ts",
+    "rated-matchmaking-check.ts",
+    // tournaments-check (wave 4 W4b, 11 Nov 2026, ~30 s): the schedule, the Arena's points, streak and pairing, Score
+    // Attack, entry and refunds, prizes with the safeguard, trophies and badges once, never a rating, on a local
+    // PostgreSQL through the server-function harness; tournaments-screens-check (~2 s) the hub's screens.
+    "tournaments-check.ts",
+    "tournaments-screens-check.tsx",
     "ink-x200-check.ts",
     "depth4-check.ts",
     "room-figures-check.ts",

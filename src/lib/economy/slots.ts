@@ -200,5 +200,9 @@ export const ECONOMY_REASONS = [
   // season's coin and consumable rewards, and Joe taking them back (pass.remove_test_season_rewards).
   "test_pass_reward",
   "test_pass_reward_removed",
+  // Tournaments (wave 4, W4b; supabase/migrations/20261115200000_tournaments.sql): coin and ticket entries, and the
+  // fixed prizes.
+  "tournament_entry",
+  "tournament_prize",
 ] as const;
 export type EconomyReason = (typeof ECONOMY_REASONS)[number];

@@ -30,7 +30,7 @@ Every badge's rule is Joe's approved catalogue (**`docs/badges/catalogue.md`**, 
 code to its table). Every badge shows its rule; a locked badge the server counts shows its progress ("4 of 7 days").
 Each badge has a `status`:
 
-- **earnable** (29; 16 until wave 3 W3a made rated play's 13 earnable, 11 Nov 2026): the server checks its rule now from what it stores (`rules.server.ts`, facts from
+- **earnable** (36; 16 until wave 3 W3a made rated play's 13 earnable and wave 4 W4b the tournaments' seven, 11 Nov 2026): the server checks its rule now from what it stores (`rules.server.ts`, facts from
   `public.badge_facts`, the Daily record and the profile), or another session awards it through `badge_award`:
   - Flawless (a 200 in any game), Perfectionist (200 in 25 different games);
   - Daily Habit, Dedicated, Century (7 / 30 / 100 days in a row: the longest run in the server's Daily history, a
@@ -51,16 +51,18 @@ Each badge has a `status`:
     Slayer, Storm Chaser, Lightning Strikes, Top 500, Revenge, Photo Finish): `BadgeFacts.rated`, from
     `public.rated_badge_facts` (wave 3 W3a; `docs/rated/README.md` "Badges"); checked after every rated match
     (`finishRatedMatch`) and after the standings job for a tier rise, and on every sync.
+  - Entrant, Trophy Hunter, Arena Ace, Champion, Arena Champion, Score Attack Champion, Serial Winner (wave 4, W4b):
+    earnable, **awarded by the tournaments code** (`src/lib/tournaments/tournaments.server.ts`, `AWARDED_ELSEWHERE`;
+    docs/tournaments/README.md says when each is given); no rule here.
 
   "Any game / any mode" counts rooms (the game on now and the archive), the Daily and challenges (not the results a
   challenge copied from the player's own room), and Practice only from C1a's fresh start
   (`public.practice_progress_start`, read by `badge_facts`). Puzzle means a non-arcade game.
-- **waits** (25; 38 before wave 3 W3a): the database refuses to award it; shown with "Arrives with …":
+- **waits** (18; 38 before wave 3 W3a and wave 4 W4b): the database refuses to award it; shown with "Arrives with …":
   - all three stars per game (wave 3.5): the 11 category masters, Grand Master;
   - Hard and Expert challenges (wave 3.5): Category Clear, Completionist;
   - Daily leaderboards (wave 4): Daily Top 100, Daily Champion;
-  - tournaments (wave 4): Entrant, Trophy Hunter, Arena Ace, Champion, Arena Champion, Score Attack Champion, Swiss
-    Champion, Knockout Champion, Serial Winner;
+  - tournaments (wave 4, W4c): Swiss Champion, Knockout Champion;
 
 **To make a badge earnable** later: a new migration updates its row (`status = 'earnable'`, `waits_for = NULL`), the
 same change in `catalogue.ts` and `catalogue.md`, a rule in `BADGE_RULES` reading new `BadgeFacts` (gathered in

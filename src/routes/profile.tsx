@@ -34,6 +34,8 @@ import { useAccountName } from "@/lib/account/accountApi";
 import { BadgeCollection } from "@/components/badges/BadgeCollection";
 import { SeasonSection } from "@/components/seasons/SeasonSection";
 import { ProfileCard } from "@/components/identity/ProfileCard";
+import { TrophyCabinet } from "@/components/tournaments/TournamentHub";
+import { useMyTrophies } from "@/lib/tournaments/tournamentsApi";
 
 export const Route = createFileRoute("/profile")({
   ssr: false,
@@ -101,6 +103,8 @@ function ProfileScreen() {
   // A signed-in player is shown by their username (changed in Settings → Account), a guest by the name typed.
   const accountName = useAccountName();
   const shownName = accountName ?? (name.trim() || "Player");
+  // Wave 4 (W4b): the trophy cabinet holds only the account's real trophies, and isn't drawn without one.
+  const trophies = useMyTrophies(accountName !== null);
   // What this device has done (its own records): the Get started steps tick off from these, and a
   // section with nothing in it yet isn't drawn (a new player sees no zeros).
   const steps = [
@@ -170,6 +174,7 @@ function ProfileScreen() {
         <BadgeCollection />
         {/* Wave 4 W4d: the season peak and history with the season emblems (accounts, real data only). */}
         <SeasonSection />
+        <TrophyCabinet trophies={trophies} />
 
         {fresh ? (
           // A new player (T-ProfileNew): the badge in their colour, what it is, and Choose your look.
