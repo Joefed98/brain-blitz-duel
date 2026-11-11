@@ -16,9 +16,11 @@ export interface GameLook {
   skin: string | null;
   /** A `world-theme.<game>.<name>` catalogue id, or null for the default. */
   world: string | null;
+  /** A `card-back.<name>` catalogue id (the account's one card back; only games with a face-down deck draw it). */
+  back?: string | null;
 }
 
-export const NO_LOOK: GameLook = Object.freeze({ skin: null, world: null });
+export const NO_LOOK: GameLook = Object.freeze({ skin: null, world: null, back: null });
 
 /** The seven skinnable games (their PuzzleType ids) and the catalogue's name for each. */
 export const SKIN_GAME_NAMES = {
@@ -26,7 +28,6 @@ export const SKIN_GAME_NAMES = {
   minigolf: "crazy-golf",
   pool: "cue-ball",
   curling: "curl-champ",
-  freecell: "free-cell",
   pokersquares: "full-house",
   freekick: "top-bins",
 } as const;
@@ -38,7 +39,6 @@ export const GAME_SKIN_IDS: Readonly<Record<SkinnableGame, readonly string[]>> =
   minigolf: ["game-skin.crazy-golf.watermelon", "game-skin.crazy-golf.disco", "game-skin.crazy-golf.neon-glow", "game-skin.crazy-golf.plasma"],
   pool: ["game-skin.cue-ball.pixel-pool", "game-skin.cue-ball.galaxy-set", "game-skin.cue-ball.neon-8-ball", "game-skin.cue-ball.neon-ball-set"],
   curling: ["game-skin.curl-champ.glacier", "game-skin.curl-champ.aurora", "game-skin.curl-champ.neon-stones"],
-  freecell: ["game-skin.free-cell.royal-damask", "game-skin.free-cell.holo-foil", "game-skin.free-cell.neon-card-back"],
   pokersquares: ["game-skin.full-house.midnight-felt", "game-skin.full-house.crimson-velvet", "game-skin.full-house.neon-felt"],
   freekick: ["game-skin.top-bins.comet", "game-skin.top-bins.retro-leather", "game-skin.top-bins.neon-football"],
 };
@@ -47,22 +47,45 @@ export const WORLD_THEME_IDS: Readonly<Record<SkinnableGame, readonly string[]>>
   minigolf: ["world-theme.crazy-golf.neon-course"],
   pool: ["world-theme.cue-ball.neon-table"],
   curling: ["world-theme.curl-champ.neon-rink"],
-  freecell: [],
   pokersquares: [],
   freekick: [],
 };
 
+/** The card backs (catalogue kind `card-back`, one slot for the account; 11 Nov 2026, Joe). */
+export const CARD_BACK_IDS: readonly string[] = ["card-back.royal-damask", "card-back.holo-foil", "card-back.neon"];
+/** The games whose face-down cards draw the equipped back: Full House's deck (behind Next card). */
+export const CARD_BACK_GAMES: readonly SkinnableGame[] = ["pokersquares"];
+
 export const isSkinnableGame = (g: string): g is SkinnableGame => Object.prototype.hasOwnProperty.call(SKIN_GAME_NAMES, g);
 
 /** The look kept to items this game knows (anything else draws the default). */
-export function lookFor(game: SkinnableGame, skin: string | null | undefined, world: string | null | undefined): GameLook {
+export function lookFor(game: SkinnableGame, skin: string | null | undefined, world: string | null | undefined, back?: string | null): GameLook {
   const s = skin && GAME_SKIN_IDS[game].includes(skin) ? skin : null;
   const w = world && WORLD_THEME_IDS[game].includes(world) ? world : null;
-  return s || w ? { skin: s, world: w } : NO_LOOK;
+  const b = back && CARD_BACK_GAMES.includes(game) && CARD_BACK_IDS.includes(back) ? back : null;
+  return s || w || b ? { skin: s, world: w, back: b } : NO_LOOK;
+}
+
+/** A stored result's look (round_results.look / async_results.look: `{skin, world, back}`), kept to this game's items. */
+export function lookFromStored(game: string, stored: unknown): GameLook {
+  if (!isSkinnableGame(game) || !stored || typeof stored !== "object") return NO_LOOK;
+  const r = stored as Record<string, unknown>;
+  const str = (v: unknown) => (typeof v === "string" ? v : null);
+  return lookFor(game, str(r["skin"]), str(r["world"]), str(r["back"]));
+}
+
+/**
+ * A replay's or a ghost's look: the player's own skin and card back with the viewer's own world theme (the scenery is
+ * always the viewer's).
+ */
+export function playerLookIn(player: GameLook, viewer: GameLook): GameLook {
+  const out = { skin: player.skin, world: viewer.world, back: player.back ?? null };
+  return out.skin || out.world || out.back ? out : NO_LOOK;
 }
 
 /** A cache key for a look ("" for the default, so default caches keep their keys). */
-export const lookKey = (look: GameLook | null | undefined): string => (look && (look.skin || look.world) ? `${look.skin ?? ""}|${look.world ?? ""}` : "");
+export const lookKey = (look: GameLook | null | undefined): string =>
+  look && (look.skin || look.world || look.back) ? `${look.skin ?? ""}|${look.world ?? ""}${look.back ? `|${look.back}` : ""}` : "";
 
 /* ------------------------------------------------------------ motion (Legendaries only) */
 

@@ -1,14 +1,11 @@
 import { useMemo, useRef } from "react";
 
-import { useGameLookRef } from "@/lib/skins/equipped";
-import { lookKey } from "@/lib/arcade/skins/look";
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { FC_CHECKPOINT_INTERVAL, FC_INPUT_MOVE, FC_INPUT_TAP, FC_REV, fcCardsFor, fcCheckpoint, type FcState } from "@/lib/arcade/cards/freecell";
 import {
   drawFreecell, fcButtonHit, fcCardBox, fcDropPile, fcHit, fcNewView, FC_BG, FC_WORLD_H, FC_WORLD_W, freecellArtGame,
 } from "@/lib/arcade/cards/freecell.renderer";
-import { cardsFillFor } from "@/lib/arcade/cards/cardsFill.renderer";
-import { withCardsLook } from "@/lib/arcade/cards/cards.renderer";
+import { cardsFill } from "@/lib/arcade/cards/cardsFill.renderer";
 import { encodeFreecellRun, replayFreecellRun } from "@/lib/duel/cards";
 import { FREECELL_TIME_MS, type FreecellPuzzleData } from "@/lib/duel/types";
 import { ArcadeCanvasStage, type PointerPayload } from "@/components/puzzles/ArcadeCanvasStage";
@@ -31,12 +28,9 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const latest = useRef<FcState | null>(null);
   const start = useRef<{ x: number; y: number; pile: number; index: number; moved: boolean } | null>(null);
   const rev = data?.freecellRev ?? 1;
-  // The player's own equipped skin (wave 2; display only, src/lib/skins/equipped.ts).
-  const [look, lookRef] = useGameLookRef("freecell");
-  const scene = useMemo(() => cardsFillFor(look), [look]);
   const game = useMemo(() => {
     const art = freecellArtGame(view, rev);
-    return { ...art, draw: (ctx: CanvasRenderingContext2D, state: FcState, size: { width: number; height: number }) => { latest.current = state; withCardsLook(lookRef.current, () => art.draw(ctx, state, size)); } };
+    return { ...art, draw: (ctx: CanvasRenderingContext2D, state: FcState, size: { width: number; height: number }) => { latest.current = state; art.draw(ctx, state, size); } };
   }, [view, rev]);
 
   const pointer = (kind: "down" | "move" | "up", x: number, y: number): PointerPayload | null => {
@@ -93,8 +87,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       label={`${gameDisplayName("freecell")}: tap a card to move it, or drag it to a pile${rev >= 2 ? "; Undo and Reset at the top" : ""}`}
       background={FC_BG}
       fitWorld
-      scene={scene}
-      sceneKey={() => lookKey(lookRef.current)}
+      scene={cardsFill}
       seed={data?.seed ?? 0}
       enabled={data !== null}
       locked={locked}

@@ -1,11 +1,14 @@
 /**
  * skins-check (wave 2, E1; docs/skins.md): the 23 game skins and 4 world themes.
  *
- *   1. Catalogue: exactly the catalogue's 23 skins and 4 world themes (docs/art/wave-2/catalogue.json), each on its game,
- *      and the animated ones are exactly the catalogue's animated items.
+ *   1. Catalogue: exactly the catalogue's 20 game skins, 3 card backs and 4 world themes (docs/art/wave-2/catalogue.json),
+ *      each skin and theme on its game, the card backs on the account's one `card-back` slot, and the animated ones
+ *      exactly the catalogue's animated items.
  *   2. Renders: every look draws every frame of scripts/skins/frames.ts (each game's states through the live stage's
- *      draw and its scene, oldest and dealt stamps) without an error, and differs from the default (the look is drawn;
- *      Free Cell's backs are drawn directly, as a Free Cell deal never shows one).
+ *      draw and its scene, oldest and dealt stamps) without an error, and differs from the default (the look is drawn).
+ *      Full House's deck (scripts/skins/deck-frames.ts): with no back it draws main's pixels exactly
+ *      (scripts/fixtures/skins-deck-frames.json, recorded on main), and each card back changes every deck frame, each
+ *      its own, inside the default back's box.
  *   3. Contrast: every look's objects (the ball, stone, car, card back or card face) reach 3:1 against the background
  *      they are played on (WCAG non-text contrast), as the default does.
  *   4. Sizes: a skinned ball paints nothing outside the default ball's draw radius; a skinned stone and car paint inside
@@ -21,17 +24,18 @@
 import { readFileSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { SKIN_GAMES, drawFrames, digest, type SkinGame } from "./skins/frames";
+import { looksFor, lookName } from "./skins/looks";
 
 const one = process.argv.find((a) => a.startsWith("--game="))?.slice(7) as SkinGame | undefined;
 if (one) {
   const L = await import("../src/lib/arcade/skins/look");
-  const looks = [...L.GAME_SKIN_IDS[one].map((skin) => ({ skin, world: null })), ...L.WORLD_THEME_IDS[one].map((world) => ({ skin: null, world })), ...L.WORLD_THEME_IDS[one].map((world) => ({ skin: L.GAME_SKIN_IDS[one][0]!, world }))];
+  const looks = looksFor(one, false);
   const out: { look: string; error: string; differs: boolean; still: boolean; moves: boolean }[] = [];
   L.setSkinReducedMotion(true);
   L.setSkinClock(() => 0);
   const base = (await drawFrames(one, L.NO_LOOK)).map(digest);
   for (const look of looks) {
-    const name = [look.skin, look.world].filter(Boolean).join(" + ");
+    const name = lookName(look);
     let error = "";
     const at = async (ms: number, reduced: boolean) => {
       L.setSkinReducedMotion(reduced);
@@ -67,20 +71,27 @@ const L = await import("../src/lib/arcade/skins/look");
 
 // 1. The catalogue.
 {
-  const cat = JSON.parse(readFileSync("docs/art/wave-2/catalogue.json", "utf8")) as { items: { id: string; kind: string; game: string | null; animated: boolean }[] };
-  const names: Record<string, string> = { Apex: "racing", "Crazy Golf": "minigolf", "Cue Ball": "pool", "Curl Champ": "curling", "Free Cell": "freecell", "Full House": "pokersquares", "Top Bins": "freekick" };
+  const cat = JSON.parse(readFileSync("docs/art/wave-2/catalogue.json", "utf8")) as { items: { id: string; kind: string; game: string | null; animated: boolean; png: string; html: string }[] };
+  const names: Record<string, string> = { Apex: "racing", "Crazy Golf": "minigolf", "Cue Ball": "pool", "Curl Champ": "curling", "Full House": "pokersquares", "Top Bins": "freekick" };
   const skins = cat.items.filter((i) => i.kind === "game-skin");
   const worlds = cat.items.filter((i) => i.kind === "world-theme");
+  const backs = cat.items.filter((i) => i.kind === "card-back");
   const ours = (m: Readonly<Record<string, readonly string[]>>) => Object.entries(m).flatMap(([g, ids]) => ids.map((id) => `${g}:${id}`)).sort();
-  check(skins.length === 23 && worlds.length === 4, `the catalogue holds 23 skins and 4 world themes (${skins.length}, ${worlds.length})`);
+  check(skins.length === 20 && worlds.length === 4 && backs.length === 3, `the catalogue holds 20 game skins, 4 world themes and 3 card backs (${skins.length}, ${worlds.length}, ${backs.length})`);
   check(JSON.stringify(ours(L.GAME_SKIN_IDS)) === JSON.stringify(skins.map((i) => `${names[i.game!]}:${i.id}`).sort()), "every catalogue skin is drawn, on its own game, and nothing else");
   check(JSON.stringify(ours(L.WORLD_THEME_IDS)) === JSON.stringify(worlds.map((i) => `${names[i.game!]}:${i.id}`).sort()), "every catalogue world theme is drawn, on its own game, and nothing else");
-  check(JSON.stringify([...L.ANIMATED_LOOKS].sort()) === JSON.stringify([...skins, ...worlds].filter((i) => i.animated).map((i) => i.id).sort()), "the animated looks are exactly the catalogue's animated items");
-  check(Object.keys(L.SKIN_GAME_NAMES).sort().join() === [...SKIN_GAMES].sort().join(), "the seven skinnable games");
+  check(JSON.stringify([...L.CARD_BACK_IDS].sort()) === JSON.stringify(backs.map((i) => i.id).sort()), "every catalogue card back is drawn, and nothing else");
+  check(backs.every((i) => i.game === null && i.id.startsWith("card-back.") && i.png.startsWith("items/card-back/") && i.html.startsWith("items/card-back/")), "the card backs belong to no game, with their art under items/card-back/");
+  check(!cat.items.some((i) => i.id.startsWith("game-skin.free-cell.") || i.game === "Free Cell"), "no catalogue item is a Free Cell skin any more");
+  check(JSON.stringify([...L.ANIMATED_LOOKS].sort()) === JSON.stringify([...skins, ...worlds, ...backs].filter((i) => i.animated).map((i) => i.id).sort()), "the animated looks are exactly the catalogue's animated items");
+  check(Object.keys(L.SKIN_GAME_NAMES).sort().join() === Object.values(names).sort().join(), "the six games with skins (Free Cell has none)");
+  check(L.CARD_BACK_GAMES.join() === "pokersquares", "the card back draws on Full House's deck only");
+  const slotsSrc = readFileSync("src/lib/economy/slots.ts", "utf8");
+  check(/"card-back"/.test(slotsSrc) && !/"Free Cell"\s*:/.test(slotsSrc), "the slot config has the card-back slot and no Free Cell game slot");
 }
 
 // 2 and 5. Renders and motion (a child process per game: @napi-rs/canvas frees its memory only on exit).
-for (const g of SKIN_GAMES) {
+for (const g of SKIN_GAMES.filter(L.isSkinnableGame)) {
   const child = Bun.spawnSync(["bun", import.meta.path, `--game=${g}`], { stdout: "pipe", stderr: "inherit" });
   const line = child.stdout.toString().split("\n").find((l) => l.startsWith("JSON "));
   if (child.exitCode !== 0 || !line) {
@@ -91,7 +102,7 @@ for (const g of SKIN_GAMES) {
   for (const r of rows) {
     const animated = r.look.split(" + ").some((id) => L.ANIMATED_LOOKS.includes(id));
     check(!r.error, `${g} ${r.look}: draws every frame without an error${r.error ? ` (${r.error})` : ""}`);
-    if (g !== "freecell") check(r.differs, `${g} ${r.look}: drawn (its frames differ from the default's)`);
+    check(r.differs, `${g} ${r.look}: drawn (its frames differ from the default's)`);
     check(r.still, `${g} ${r.look}: still under Reduce Motion`);
     check(animated ? r.moves : !r.moves, `${g} ${r.look}: ${animated ? "moves with Reduce Motion off" : "never moves (not animated)"}`);
   }
@@ -106,15 +117,15 @@ for (const g of SKIN_GAMES) {
   const R = await import("../src/lib/arcade/skins/racing.skins");
   const F = await import("../src/lib/arcade/skins/freekick.skins");
   const K = await import("../src/lib/arcade/skins/cards.skins");
-  const pairsFor = (g: SkinGame, look: { skin: string | null; world: string | null }) =>
-    g === "pool" ? P.poolContrast(look) : g === "minigolf" ? M.minigolfContrast(look) : g === "curling" ? C.curlingContrast(look) : g === "racing" ? R.racingContrast(look) : g === "freekick" ? F.freekickContrast(look) : K.cardsContrast(g, look);
+  const pairsFor = (g: SkinGame, look: { skin: string | null; world: string | null; back?: string | null }) =>
+    g === "pool" ? P.poolContrast(look) : g === "minigolf" ? M.minigolfContrast(look) : g === "curling" ? C.curlingContrast(look) : g === "racing" ? R.racingContrast(look) : g === "freekick" ? F.freekickContrast(look) : K.cardsContrast(look);
   const report: string[] = [];
-  for (const g of SKIN_GAMES) {
-    const looks = [L.NO_LOOK, ...L.GAME_SKIN_IDS[g].map((skin) => ({ skin, world: null })), ...L.WORLD_THEME_IDS[g].map((world) => ({ skin: null, world })), ...L.WORLD_THEME_IDS[g].flatMap((world) => L.GAME_SKIN_IDS[g].map((skin) => ({ skin, world })))];
+  for (const g of SKIN_GAMES.filter(L.isSkinnableGame)) {
+    const looks = [L.NO_LOOK, ...L.GAME_SKIN_IDS[g].map((skin) => ({ skin, world: null })), ...L.WORLD_THEME_IDS[g].map((world) => ({ skin: null, world })), ...L.WORLD_THEME_IDS[g].flatMap((world) => L.GAME_SKIN_IDS[g].map((skin) => ({ skin, world }))), ...looksFor(g, false).filter((l) => l.back)];
     for (const look of looks) {
       for (const pair of pairsFor(g, look)) {
         const ratio = L.bestContrast(pair);
-        const name = [look.skin, look.world].filter(Boolean).join(" + ") || "default";
+        const name = lookName(look);
         report.push(`${g} ${name} ${pair.object} ${ratio.toFixed(2)}`);
         check(ratio >= L.SKIN_MIN_CONTRAST, `${g} ${name}: ${pair.object} at ${ratio.toFixed(2)}:1 (at least ${L.SKIN_MIN_CONTRAST}:1)`);
       }
@@ -205,25 +216,46 @@ for (const g of SKIN_GAMES) {
   L.setSkinClock(null);
 }
 
-// Free Cell's backs: each skin paints its own back, unlike the default.
+// Full House's deck: the card back's one place.
 {
-  const { createCanvas } = await import("@napi-rs/canvas");
-  (globalThis as unknown as { OffscreenCanvas: unknown }).OffscreenCanvas = class {
-    constructor(w: number, h: number) {
-      return createCanvas(Math.max(1, w), Math.max(1, h));
+  const { deckFrames } = await import("./skins/deck-frames");
+  const fixture = JSON.parse(readFileSync("scripts/fixtures/skins-deck-frames.json", "utf8")) as { frames: Record<string, string> };
+  const want = new Map(Object.entries(fixture.frames));
+  for (const [label, look] of [["no look argument", undefined], ["the default look", L.NO_LOOK]] as const) {
+    const got = await deckFrames(process.cwd(), look);
+    const bad = got.filter((f) => want.get(f.name) !== f.digest).map((f) => f.name);
+    check(got.length === want.size && bad.length === 0, `pokersquares deck, ${label}: main's ${want.size} deck frames exactly${bad.length ? ` (differ: ${bad.join(", ")})` : ""}`);
+  }
+  const plain = await deckFrames(process.cwd(), L.NO_LOOK);
+  // The deck's back is drawn at the deck's place: the alpha box of what a back changes, against the default's back box.
+  const changed = (a: { data: Uint8ClampedArray; w: number; h: number }, b: { data: Uint8ClampedArray }) => {
+    let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+    for (let i = 0; i < a.data.length; i += 4)
+      if (a.data[i] !== b.data[i] || a.data[i + 1] !== b.data[i + 1] || a.data[i + 2] !== b.data[i + 2]) {
+        const p = i / 4, x = p % a.w, y = Math.floor(p / a.w);
+        x0 = Math.min(x0, x); y0 = Math.min(y0, y); x1 = Math.max(x1, x); y1 = Math.max(y1, y);
+      }
+    return { x0, y0, x1: x1 + 1, y1: y1 + 1 };
+  };
+  const per: string[][] = [];
+  for (const back of L.CARD_BACK_IDS) {
+    const got = await deckFrames(process.cwd(), { skin: null, world: null, back });
+    per.push(got.map((f) => f.digest));
+    const same = got.filter((f, i) => f.digest === plain[i]!.digest).map((f) => f.name);
+    check(same.length === 0, `pokersquares deck, ${back}: drawn on every deck frame${same.length ? ` (unchanged: ${same.join(", ")})` : ""}`);
+    // What a back changes stays inside the deck card's own box (the renderer's: next card's place, 6 right and 4 down).
+    const R = await import("../src/lib/arcade/cards/pokerSquares.renderer");
+    const dx = R.PS_WORLD_W / 2 - R.PS_NEXT_W / 2 + 6, dy = R.PS_NEXT_Y + 4;
+    for (const [i, f] of got.entries()) {
+      const box = changed(f, plain[i]!);
+      const k = f.name.endsWith("@2") ? 2 : 1;
+      const inside = box.x0 / k >= dx - 1 && box.y0 / k >= dy - 1 && box.x1 / k <= dx + R.PS_NEXT_W + 1 && box.y1 / k <= dy + R.PS_NEXT_H + 1;
+      check(inside, `pokersquares deck, ${back} ${f.name}: only the deck's card changes, inside its ${R.PS_NEXT_W} × ${R.PS_NEXT_H} box (${box.x0 / k},${box.y0 / k} → ${box.x1 / k},${box.y1 / k})`);
     }
-  };
-  const Cr = await import("../src/lib/arcade/cards/cards.renderer");
-  const back = (look: { skin: string | null; world: string | null }) => {
-    const c = createCanvas(80, 112);
-    const ctx = c.getContext("2d") as unknown as CanvasRenderingContext2D;
-    Cr.withCardsLook(look, () => Cr.drawCard(ctx, 0, 6, 6, 68, 100, { down: true }));
-    return createHash("sha256").update(c.getContext("2d").getImageData(0, 0, 80, 112).data).digest("hex");
-  };
-  const plain = back(L.NO_LOOK);
-  const skins = L.GAME_SKIN_IDS.freecell.map((skin) => back({ skin, world: null }));
-  check(skins.every((d) => d !== plain) && new Set(skins).size === skins.length, "freecell: each card-back skin paints its own back");
-  check(back(L.NO_LOOK) === plain, "freecell: the default back is unchanged after a skinned draw (the look ends with the draw)");
+  }
+  check(per.every((d, i) => per.every((e, j) => i === j || d.every((x, k) => x !== e[k]))), "pokersquares deck: each card back draws its own back");
+  const again = await deckFrames(process.cwd(), undefined);
+  check(again.every((f) => want.get(f.name) === f.digest), "pokersquares deck: the default deck is unchanged after a back's draw (the look ends with the draw)");
 }
 
 // 6. Ownership: the look comes only from the equipped slots, kept to items the game knows.
@@ -248,9 +280,25 @@ for (const g of SKIN_GAMES) {
   });
   check(same(await E.gameLookOf("racing"), null, null), "a failed read draws the default");
   E.setGameLookSource(null);
-  const fitted = B.normaliseLoadout({ avatarId: "captain-joulz", colour: 3, slots: { "card-art": "card-art.grid", "game-skin:pool": "game-skin.cue-ball.pixel-pool", "world-theme:racing": null, "game-skin:curling": "frame.gold", "game-skin:pool;drop": "x" } });
+  const backOf = async (slots: Record<string, string | null>, game: Parameters<typeof E.gameLookOf>[0]) => (await lookWith(slots, game)).back ?? null;
+  check((await backOf({ "card-back": "card-back.neon" }, "pokersquares")) === "card-back.neon", "an equipped card back draws on Full House's deck");
+  check((await backOf({ "card-back": "card-back.neon" }, "pool")) === null && (await backOf({ "card-back": "card-back.neon" }, "freecell" as never)) === null, "the card back draws on no other game (Free Cell deals face up)");
+  check((await backOf({ "card-back": "card-back.made-up" }, "pokersquares")) === null && (await backOf({ "card-back": "game-skin.full-house.neon-felt" }, "pokersquares")) === null, "an unknown item or another kind in the card-back slot draws the default");
+  check((await backOf({ "card-back": "game-skin.free-cell.neon-card-back" }, "pokersquares")) === null, "an old Free Cell id draws nothing (the migration moved it to card-back.neon)");
+  E.setGameLookSource(null);
+  // Stored looks (replays and ghosts): a player's skin and back, the viewer's world.
+  const stored = L.lookFromStored("pool", { skin: "game-skin.cue-ball.galaxy-set", world: "world-theme.cue-ball.neon-table" });
+  check(stored.skin === "game-skin.cue-ball.galaxy-set" && stored.world === "world-theme.cue-ball.neon-table", "a stored look reads back as it was saved");
+  check(L.lookFromStored("pool", { skin: "game-skin.apex.molten-gold" }) === L.NO_LOOK && L.lookFromStored("pool", null) === L.NO_LOOK && L.lookFromStored("freecell", { back: "card-back.neon" }) === L.NO_LOOK && L.lookFromStored("pool", "x") === L.NO_LOOK, "a stored look keeps only this game's items (anything else, or none, is the default)");
+  const viewer = { skin: "game-skin.cue-ball.pixel-pool", world: null, back: null };
+  const seen = L.playerLookIn(stored, viewer);
+  check(seen.skin === "game-skin.cue-ball.galaxy-set" && seen.world === null, "a replay or ghost shows the player's skin in the viewer's own world (here the default table)");
+  const seen2 = L.playerLookIn(L.NO_LOOK, { skin: null, world: "world-theme.cue-ball.neon-table" });
+  check(seen2.skin === null && seen2.world === "world-theme.cue-ball.neon-table", "a player with nothing equipped shows the default skin in the viewer's world");
+  check(L.playerLookIn(L.lookFromStored("pokersquares", { back: "card-back.holo-foil" }), L.NO_LOOK).back === "card-back.holo-foil", "a replay shows the player's own card back");
+  const fitted = B.normaliseLoadout({ avatarId: "captain-joulz", colour: 3, slots: { "card-art": "card-art.grid", "game-skin:pool": "game-skin.cue-ball.pixel-pool", "world-theme:racing": null, "game-skin:curling": "frame.gold", "game-skin:pool;drop": "x", "card-back": "card-back.royal-damask" } });
   check(fitted?.gameLooks?.["game-skin:pool"] === "game-skin.cue-ball.pixel-pool" && fitted.gameLooks["world-theme:racing"] === null, "the identity backend keeps the per-game slots");
-  check(fitted?.gameLooks !== undefined && !("game-skin:curling" in fitted.gameLooks) && Object.keys(fitted.gameLooks).length === 2, "the identity backend drops a slot holding the wrong kind of item and malformed slots");
+  check(fitted?.gameLooks !== undefined && !("game-skin:curling" in fitted.gameLooks) && Object.keys(fitted.gameLooks).length === 3 && fitted.gameLooks["card-back"] === "card-back.royal-damask", "the identity backend keeps the card-back slot, and the identity backend drops a slot holding the wrong kind of item and malformed slots");
 }
 
 console.log(`skins-check: ${passes} passed, ${failures.length} failed`);

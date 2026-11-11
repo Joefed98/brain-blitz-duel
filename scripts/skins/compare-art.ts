@@ -23,6 +23,8 @@ const K = await import("../../src/lib/arcade/skins/cards.skins");
 type Ctx = CanvasRenderingContext2D;
 interface Item {
   file: string;
+  /** The art's folder under docs/art/wave-2/items (game-skin unless given). */
+  dir?: string;
   w: number;
   h: number;
   paint: (ctx: Ctx) => void;
@@ -71,8 +73,8 @@ for (const [name, id] of Object.entries(stones))
     paint: (ctx) => C.paintSkinStone(ctx, C.curlStoneSkin({ skin: id, world: null }, true)!, 48, 46, 42, 22, 6, 1, false),
     inside: any(ellipse(48, 40, 42, 22), ellipse(48, 46, 42, 22)),
   });
-for (const [name, back] of [["free-cell--royal-damask", "royal-damask"], ["free-cell--holo-foil", "holo-foil"], ["free-cell--neon-card-back", "neon"]] as const)
-  items.push({ file: name, w: 84, h: 118, paint: (ctx) => K.paintSkinBack(ctx, back, 84, 118), inside: (x, y) => x > 3 && x < 81 && y > 3 && y < 115 });
+for (const [name, back] of [["royal-damask", "royal-damask"], ["holo-foil", "holo-foil"], ["neon", "neon"]] as const)
+  items.push({ file: name, dir: "card-back", w: 84, h: 118, paint: (ctx) => K.paintSkinBack(ctx, back, 84, 118), inside: (x, y) => x > 3 && x < 81 && y > 3 && y < 115 });
 for (const [name, felt] of [["full-house--midnight-felt", "midnight"], ["full-house--crimson-velvet", "crimson"], ["full-house--neon-felt", "neon"]] as const)
   items.push({
     file: name,
@@ -104,7 +106,7 @@ function cardBox(img: Uint8ClampedArray, w: number, h: number) {
 
 const rows: string[] = [];
 for (const it of items) {
-  const png = await loadImage(readFileSync(`docs/art/wave-2/items/game-skin/${it.file}.png`));
+  const png = await loadImage(readFileSync(`docs/art/wave-2/items/${it.dir ?? "game-skin"}/${it.file}.png`));
   const W = png.width;
   const H = png.height;
   const base = createCanvas(W, H);
@@ -147,7 +149,7 @@ for (const it of items) {
     s.drawImage(base, 0, 0);
     s.drawImage(ours, W, 0);
     s.drawImage(diff, W * 2, 0);
-    writeFileSync(`${out}/${it.file}.png`, sheet.toBuffer("image/png"));
+    writeFileSync(`${out}/${it.dir === "card-back" ? "card-back--" : ""}${it.file}.png`, sheet.toBuffer("image/png"));
   }
 }
 console.log("Object against its approved PNG (inside the object only; 2× pixels):");

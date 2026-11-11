@@ -69,8 +69,8 @@ export interface AvatarChoice {
 export interface Loadout {
   slots: Partial<Record<LoadoutSlot, string | null>>;
   /**
-   * The per-game slots (wave 2 E1, skins): `game-skin:<game>` and `world-theme:<game>` → the equipped item's id or
-   * null. Only items the account owns can sit in a slot (A1's database refuses any other), so these are owned.
+   * The look slots (wave 2 E1, skins): `game-skin:<game>`, `world-theme:<game>` and `card-back` → the equipped item's
+   * id or null. Only items the account owns can sit in a slot (A1's database refuses any other), so these are owned.
    */
   gameLooks?: Record<string, string | null>;
   avatar: AvatarChoice | null;
@@ -176,7 +176,7 @@ export function normaliseLoadout(raw: unknown): Loadout | null {
     : null;
   const gameLooks: Record<string, string | null> = {};
   for (const [slot, v] of Object.entries(slotsRaw)) {
-    if (!/^(game-skin|world-theme):[a-z]+$/.test(slot)) continue;
+    if (!/^(game-skin|world-theme):[a-z]+$|^card-back$/.test(slot)) continue;
     if (typeof v === "string" && v.startsWith(`${slot.split(":")[0]}.`)) gameLooks[slot] = v;
     else if (v === null) gameLooks[slot] = null;
   }

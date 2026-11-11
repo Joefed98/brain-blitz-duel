@@ -1,15 +1,16 @@
 /**
- * skins-replay-check (wave 2, E1; the economy doc's fairness rule): every game skin and world theme scores exactly as
- * the default. For each of the seven skinnable games, the recorded runs (scripts/fixtures/skins-replay-runs.json, two
+ * skins-replay-check (wave 2, E1; the economy doc's fairness rule): every game skin, world theme and card back scores
+ * exactly as the default. For each of the seven games (Free Cell now draws only its default: its backs became the
+ * account's card back, drawn on Full House's deck), the recorded runs (scripts/fixtures/skins-replay-runs.json, two
  * on the oldest and two on the dealt stamp of each game, recorded by scripts/skins/record-runs.ts) are replayed tick by
- * tick in the default look and in every skin, every world theme and a skin with its world theme. Along the way the
+ * tick in the default look and in every look scripts/skins/looks.ts lists (each skin, world theme, a skin with its theme,
+ * and on Full House each card back, alone and with a felt). Along the way the
  * live stage's own draw (the calls the stage makes, in that look) paints the state every few ticks and on the last
  * tick, on a deep-frozen copy, so a draw that wrote to the game's state would throw. For every look:
  *   - the final score equals the recorded score and the server replay's (src/lib/duel/<game>.ts, the scorer rooms and
  *     practice store), which is computed once and is the same for every look;
  *   - the final state and every checkpoint equal the default look's, byte for byte (JSON);
- *   - the look's frames differ from the default's (the skin really was drawn), except Free Cell's card backs, which a
- *     Free Cell run never shows (checked on a back directly below).
+ *   - the look's frames differ from the default's (the look really was drawn).
  * Also: the deal, its stamps and the scoring never reach the skins (no file of the deal, the graders, the replays or the
  * sims imports a skin module or the equipped look), and the look modules import nothing that deals or scores.
  *
@@ -35,17 +36,13 @@ if (one) {
   const { createCanvas } = await import("@napi-rs/canvas");
   const { runSpecs } = await import("./skins/runs");
   const { decodeInputEvents } = await import("../src/lib/arcade/engine");
-  const { GAME_SKIN_IDS, WORLD_THEME_IDS, NO_LOOK, setSkinReducedMotion, setSkinClock } = await import("../src/lib/arcade/skins/look");
+  const { setSkinReducedMotion, setSkinClock } = await import("../src/lib/arcade/skins/look");
   setSkinReducedMotion(false);
   let clock = 0;
   setSkinClock(() => clock);
   const specs = (await runSpecs()).filter((s) => s.game === one);
-  const looks = [
-    NO_LOOK,
-    ...GAME_SKIN_IDS[one].map((skin) => ({ skin, world: null })),
-    ...WORLD_THEME_IDS[one].map((world) => ({ skin: null, world })),
-    ...WORLD_THEME_IDS[one].map((world) => ({ skin: GAME_SKIN_IDS[one][0]!, world })),
-  ];
+  const { looksFor } = await import("./skins/looks");
+  const looks = looksFor(one);
   const lines: string[] = [];
   let bad = 0;
   for (const run of FIXTURE.runs.filter((r) => r.game === one)) {
@@ -86,7 +83,7 @@ if (one) {
       const score = game.score(state);
       scores.push(score);
       const got = { state: JSON.stringify(state), cps: JSON.stringify(cps), frames: frames.digest("hex") };
-      const name = `${one} rev ${run.rev} seed ${run.seed} ${look.skin ?? ""}${look.world ? ` ${look.world}` : ""}`.trim() || `${one} default`;
+      const name = `${one} rev ${run.rev} seed ${run.seed} ${[look.skin, look.world, look.back].filter(Boolean).join(" + ") || "default"}`;
       const problems: string[] = [];
       if (error) problems.push(`a draw failed: ${error}`);
       if (score !== run.score) problems.push(`score ${score}, recorded ${run.score}`);
@@ -95,7 +92,7 @@ if (one) {
       else {
         if (got.state !== base.state) problems.push("final state differs from the default look's");
         if (got.cps !== base.cps) problems.push("checkpoints differ from the default look's");
-        if (got.frames === base.frames && one !== "freecell") problems.push("frames identical to the default's (the look was not drawn)");
+        if (got.frames === base.frames) problems.push("frames identical to the default's (the look was not drawn)");
       }
       if (problems.length) {
         bad++;
@@ -128,27 +125,6 @@ for (const g of SKIN_GAMES) {
   const res = JSON.parse(line.slice(5)) as { bad: number; lines: string[] };
   for (const l of res.lines) console.log(`  ${l}`);
   check(res.bad === 0 && res.lines.length > 0, `${g}: identical scores, states and checkpoints in every skin and world theme`);
-}
-
-// Free Cell never shows a card back in play; its backs are proved directly: each skin paints a back, unlike the default.
-{
-  const { createCanvas } = await import("@napi-rs/canvas");
-  (globalThis as unknown as { OffscreenCanvas: unknown }).OffscreenCanvas = class {
-    constructor(w: number, h: number) {
-      return createCanvas(Math.max(1, w), Math.max(1, h));
-    }
-  };
-  const C = await import("../src/lib/arcade/cards/cards.renderer");
-  const { GAME_SKIN_IDS, NO_LOOK } = await import("../src/lib/arcade/skins/look");
-  const back = (look: { skin: string | null; world: string | null }) => {
-    const c = createCanvas(80, 112);
-    const ctx = c.getContext("2d") as unknown as CanvasRenderingContext2D;
-    C.withCardsLook(look, () => C.drawCard(ctx, 0, 6, 6, 68, 100, { down: true }));
-    return createHash("sha256").update(c.getContext("2d").getImageData(0, 0, 80, 112).data).digest("hex");
-  };
-  const plain = back(NO_LOOK);
-  const skins = GAME_SKIN_IDS.freecell.map((skin) => back({ skin, world: null }));
-  check(skins.every((d) => d !== plain) && new Set(skins).size === skins.length, "freecell: each card-back skin paints its own back");
 }
 
 // The deal, the stamps and the scoring never reach the skins: walk the imports of every deal, grade, replay and sim file.

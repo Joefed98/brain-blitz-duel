@@ -25,7 +25,7 @@ The 32 game avatars and the 54 badges are packaged separately (`docs/art/avatars
 - **Rarity ladder:** Common bronze, Rare silver, Epic gold, Elite obsidian (violet edge), Legendary diamond-plated. Rare plain, Epic a step up, Elite emphatic, Legendary bold and colourful.
 - **Every Legendary animates, and all motion stops under Reduce Motion** (the `.html` sources already carry the `prefers-reduced-motion` rules). Live Wire and the Neon Circuit frame (both Elite) also animate.
 - **Never in the shop rotation:** anything with a source other than `shop` (pass items, free, earned). Badges, titles and gem colours are never sold.
-- **Game skins and world themes never touch fairness:** same sizes, hit areas, motion and physics as the original; same contrast check against the game background; one replay test per skinned game proves every skin and world theme scores identically.
+- **Game skins, card backs and world themes never touch fairness:** same sizes, hit areas, motion and physics as the original; same contrast check against the game background; one replay test per skinned game proves every skin and world theme scores identically.
 - **Card text:** the tier and rating sit in a dark pill on every card art; every name colour keeps a dark edge so it reads on any art; cosmetics never sit behind scores or places in standings.
 - The sample player on every card (SkyRacer, Logician, Storm II, 2,046) is placeholder content, not part of the item.
 
@@ -164,7 +164,7 @@ The 32 game avatars and the 54 badges are packaged separately (`docs/art/avatars
 | Neon Grid | `tile-style.neon-grid` | Epic | Pass, premium track | 7 | – |  | [png](items/tile-style/neon-grid.png) · [html](items/tile-style/neon-grid.html) |
 | Neon Dots | `tile-style.neon-dots` | Rare | Pass, premium track | 38 | – |  | [png](items/tile-style/neon-dots.png) · [html](items/tile-style/neon-dots.html) |
 
-## Game skins (23)
+## Game skins (20)
 
 | Name | ID | Rarity | Source | Pass level | Shop price (coins) | Notes | Files |
 |---|---|---|---|---|---|---|---|
@@ -182,15 +182,26 @@ The 32 game avatars and the 54 badges are packaged separately (`docs/art/avatars
 | Glacier | `game-skin.curl-champ.glacier` | Epic | Shop | – | 1,000 | Curl Champ; Frozen Lake bundle | [png](items/game-skin/curl-champ--glacier.png) · [html](items/game-skin/curl-champ--glacier.html) |
 | Aurora | `game-skin.curl-champ.aurora` | Elite | Shop | – | 1,600 | Curl Champ; Frozen Lake bundle | [png](items/game-skin/curl-champ--aurora.png) · [html](items/game-skin/curl-champ--aurora.html) |
 | Neon stones | `game-skin.curl-champ.neon-stones` | Epic | Pass, premium track | 25 | – | Curl Champ | [png](items/game-skin/curl-champ--neon-stones.png) · [html](items/game-skin/curl-champ--neon-stones.html) |
-| Royal Damask | `game-skin.free-cell.royal-damask` | Epic | Shop | – | 1,000 | Free Cell; art deco | [png](items/game-skin/free-cell--royal-damask.png) · [html](items/game-skin/free-cell--royal-damask.html) |
-| Holo Foil | `game-skin.free-cell.holo-foil` | Elite | Shop | – | 1,600 | Free Cell; holographic | [png](items/game-skin/free-cell--holo-foil.png) · [html](items/game-skin/free-cell--holo-foil.html) |
-| Neon card back | `game-skin.free-cell.neon-card-back` | Epic | Pass, premium track | 4 | – | Free Cell | [png](items/game-skin/free-cell--neon-card-back.png) · [html](items/game-skin/free-cell--neon-card-back.html) |
 | Midnight Felt | `game-skin.full-house.midnight-felt` | Epic | Shop | – | 1,000 | Full House | [png](items/game-skin/full-house--midnight-felt.png) · [html](items/game-skin/full-house--midnight-felt.html) |
 | Crimson Velvet | `game-skin.full-house.crimson-velvet` | Epic | Shop | – | 1,000 | Full House | [png](items/game-skin/full-house--crimson-velvet.png) · [html](items/game-skin/full-house--crimson-velvet.html) |
 | Neon felt | `game-skin.full-house.neon-felt` | Epic | Pass, premium track | 12 | – | Full House | [png](items/game-skin/full-house--neon-felt.png) · [html](items/game-skin/full-house--neon-felt.html) |
 | Comet | `game-skin.top-bins.comet` | Epic | Shop | – | 1,000 | Top Bins | [png](items/game-skin/top-bins--comet.png) · [html](items/game-skin/top-bins--comet.html) |
 | Retro Leather | `game-skin.top-bins.retro-leather` | Epic | Shop | – | 1,000 | Top Bins | [png](items/game-skin/top-bins--retro-leather.png) · [html](items/game-skin/top-bins--retro-leather.html) |
 | Neon football | `game-skin.top-bins.neon-football` | Epic | Pass, premium track | 16 | – | Top Bins | [png](items/game-skin/top-bins--neon-football.png) · [html](items/game-skin/top-bins--neon-football.html) |
+
+## Card backs (3)
+
+One `card-back` slot for the account, not a game's skin (Joe's decision, 11 Nov 2026): drawn on Full House's face-down
+deck (the strip behind Next card, and the whole back while the next card is dragged). Drawn first as Free Cell items
+(`game-skin.free-cell.*`, items/game-skin/free-cell--*), but a Free Cell deal is all face up, so they moved here; the
+board picture (`boards/game-skins.png`) still shows them under Free Cell. The rename migration is
+`supabase/migrations/20261111140000_card_back_slot.sql`; the old ids can never be inserted again.
+
+| Name | ID | Rarity | Source | Pass level | Shop price (coins) | Notes | Files |
+|---|---|---|---|---|---|---|---|
+| Royal Damask | `card-back.royal-damask` | Epic | Shop | – | 1,000 | art deco | [png](items/card-back/royal-damask.png) · [html](items/card-back/royal-damask.html) |
+| Holo Foil | `card-back.holo-foil` | Elite | Shop | – | 1,600 | holographic | [png](items/card-back/holo-foil.png) · [html](items/card-back/holo-foil.html) |
+| Neon card back | `card-back.neon` | Epic | Pass, premium track | 4 | – |  | [png](items/card-back/neon.png) · [html](items/card-back/neon.html) |
 
 ## World themes (4)
 

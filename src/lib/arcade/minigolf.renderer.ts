@@ -1099,8 +1099,8 @@ function chip(ctx: CanvasRenderingContext2D, x: number, y: number, text: string,
 }
 
 /** A frame: the cached hole, the flag, the ball, the aim (when dragging) and the chips. */
-export function drawMinigolf(ctx: CanvasRenderingContext2D, s: MinigolfState, aim: MinigolfAim | null): void {
-  drawMinigolfCourse(ctx, s, aim);
+export function drawMinigolf(ctx: CanvasRenderingContext2D, s: MinigolfState, aim: MinigolfAim | null, look: GameLook = NO_LOOK): void {
+  drawMinigolfCourse(ctx, s, aim, look);
   drawMinigolfHud(ctx, s);
 }
 

@@ -1,13 +1,13 @@
 # Game skins and world themes (wave 2, E1)
 
-11 Nov 2026. The 23 game skins and 4 world themes from `docs/art/wave-2/items/game-skin/` and `items/world-theme/`,
-drawn in the seven skinnable games. Display only: no game's rules, physics, timing, hit areas, deal, stamps or scoring
+11 Nov 2026. The 20 game skins, 3 card backs and 4 world themes from `docs/art/wave-2/items/game-skin/`,
+`items/card-back/` and `items/world-theme/`, drawn in six games (Free Cell has none: its deal is face up). Display only: no game's rules, physics, timing, hit areas, deal, stamps or scoring
 changed, and nothing here is read by a sim, a grader, a replay or a deal.
 
 ## How it works
 
-- **The look.** `src/lib/arcade/skins/look.ts`: a `GameLook` is `{ skin, world }`, two catalogue ids (or null) for one
-  game. `NO_LOOK` is the default. The ids each game draws, the animated ones, the contrast helpers and the motion clock
+- **The look.** `src/lib/arcade/skins/look.ts`: a `GameLook` is `{ skin, world, back }`, catalogue ids (or null) for one
+  game; `back` is the account's card back, kept only on a game with a face-down deck (`CARD_BACK_GAMES`: Full House). `NO_LOOK` is the default. The ids each game draws, the animated ones, the contrast helpers and the motion clock
   live there.
 - **The hook, once per game.** Each renderer takes an optional look on its public draw calls and keeps it in a
   module variable for the length of that call only (reset in a `finally`), so every other caller (replays, reveals,
@@ -23,12 +23,12 @@ changed, and nothing here is read by a sim, a grader, a replay or a deal.
   | Curl Champ (`curling`) | `drawCurling(…, look)`, `curlingScene(…, rev, look)` | `skins/curling.skins.ts` |
   | Apex (`racing`) | `drawRacingArt` / `drawRacingPlay(…, look)`, `racingSceneFor(look)` (the view beyond the world follows the play frame's look) | `skins/racing.skins.ts` |
   | Top Bins (`freekick`) | `withFreekickLook(look, draw)`, `freekickArtGameFor(rev, look)` | `skins/freekick.skins.ts`, `skins/ballArt.ts` |
-  | Free Cell, Full House (`freecell`, `pokersquares`) | `withCardsLook(look, draw)`, `freecellArtGame` / `pokerSquaresArtGame(view, rev, look)`, `cardsFillFor(look)` | `skins/cards.skins.ts` |
+  | Full House (`pokersquares`) | `withCardsLook(look, draw)`, `pokerSquaresArtGame(view, rev, look)`, `cardsFillFor(look)` | `skins/cards.skins.ts` |
 
   Scenes keep their own signature (the arena hands them the state as a third argument); a looked scene comes from the
   `…SceneFor(look)` factory, and the stage passes `sceneKey` so the scene repaints when the look arrives.
 - **Who sees what.** `src/lib/skins/equipped.ts` (`useGameLook`, `useGameLookRef`): the live stage of each game reads the
-  player's own equipped `game-skin:<game>` and `world-theme:<game>` slots and passes them to its renderer through a
+  player's own equipped `game-skin:<game>`, `world-theme:<game>` and (Full House) `card-back` slots and passes them to its renderer through a
   ref (a look arriving never rebuilds the game). The slots come from A1's loadout through the identity backend
   (`src/lib/identity/gameLooks.ts`, installed once by the root; `normaliseLoadout` now keeps the per-game slots as
   `gameLooks`). A1's database lets only owned items sit in a slot; the phone then keeps a slot only if it names an item
@@ -52,16 +52,57 @@ changed, and nothing here is read by a sim, a grader, a replay or a deal.
   over its own art, the ramps sunk into the night, a neon windmill (dark sails, gold slats, cyan arm and feet), a
   pulsing cyan cup and a pink flag.
 - **Curl Champ.** Glacier, Aurora, Neon stones: the player's own stones (top, inner disc, handle; the opponents keep
-  their red). Neon Rink: dark ice with neon rings, a glowing pink hog line, a neon city over the far boards, the house
+  their red). Neon Rink: dark ice with neon rings, a glowing pink hog line, the dark ice carried up over the far boards (no city: the approved art draws none), the house
   inset to match, and lit stones (yours cyan, theirs pink).
 - **Apex.** Racing Stripes, Molten Gold, Neon paint: the player's car only (ghosts keep the default). Neon Night: night
   sky, a neon city on the far strip, dark hills and trees with cyan rims, the circuit in night colours, chasing
   cyan/pink kerbs, pink and cyan tyre belts, a grandstand with a pink roof edge and gold lights, twinkling stars.
 - **Top Bins.** Comet, Retro Leather, Neon football: the ball from its source at the default ball's size and spin.
 - **Full House.** Midnight Felt, Crimson Velvet, Neon felt: the table (rail, lit felt, nap, Neon felt's cyan edge) and
-  the screen fill round it.
-- **Free Cell.** Royal Damask, Holo Foil, Neon card back: every face-down card. **A Free Cell deal is all face up, so
-  these backs are never seen in play today** (the open question in the PR).
+  the screen fill round it. The card back: the deck's strip behind Next card, and the whole back while the next card
+  is dragged (hidden on the last card, as today).
+
+## Card backs
+
+Joe's decision, 11 Nov 2026: the three Free Cell skins (Royal Damask, Holo Foil, Neon card back) are one account-wide
+card back, catalogue kind and slot `card-back`, drawn wherever a game shows a face-down card (today: Full House's deck).
+
+| Old id | New id | Name | Source |
+| --- | --- | --- | --- |
+| `game-skin.free-cell.royal-damask` | `card-back.royal-damask` | Royal Damask | shop, Epic, 1,000 |
+| `game-skin.free-cell.holo-foil` | `card-back.holo-foil` | Holo Foil | shop, Elite, 1,600 |
+| `game-skin.free-cell.neon-card-back` | `card-back.neon` | Neon card back | premium pass, level 4 |
+
+`supabase/migrations/20261111140000_card_back_slot.sql` adds the kind, moves the catalogue rows (every other field
+unchanged), owners (same `how`, time and spend line) and equipped slots, records the old ids in
+`public.catalogue_renamed`, and a trigger keeps an old id from ever being inserted again (the seed migration applied
+again adds nothing). The art moved to `docs/art/wave-2/items/card-back/`; catalogue.json and the art README say the same.
+Free Cell keeps no slot (`slots.ts`).
+
+**Other games with face-down cards** (for a later extension; not built): Five Hands (the deck behind Next card,
+`fiveHands.renderer.ts:206`); Summit (the covered peak cards, `tripeaks.renderer.ts:127`, and the stock pile, `:149`);
+Thirteen (the stock pile, `pyramid.renderer.ts:139`); Golf Solitaire, retired to practice (the stock pile,
+`golfSol.renderer.ts:166`); Matchmaker, an Attention puzzle (all 30 cards face down until turned, CSS
+`.pairmatch-card-back` in `src/puzzles/pairMatch.tsx` and `src/polish-speed/batch-s.css:366`). Summit's tile scene also
+draws a face-down card (`scripts/shots/tile-scenes/arcade.tsx:475`), but tiles always draw the default.
+
+## Replays and ghosts
+
+Each result remembers the look its player had equipped (Joe, 11 Nov 2026), so a replay shows the player's real skin:
+
+- **Stored by the database.** `supabase/migrations/20261111140100_result_looks.sql` adds `look jsonb` to
+  `round_results` and `async_results`, filled by BEFORE INSERT triggers from the player's loadout (only owned items can
+  sit there) for the round's game: `{skin, world, back}` with absent keys for the default, NULL for a guest, nothing
+  equipped or a game without skins. A look sent with a row is overwritten; the trigger can never fail an insert. No
+  phone call changed, and nothing reads `look` to grade, score, rank, time or deal. Play again's archive keeps no look.
+- **Replays** (play of the game, round highlights, the Daily's and challenges' reveals): the winner's stored look
+  (`replay.server.ts` `ReplayWinner.look`, `asyncRoundReveal`'s `look`) through `lookFromStored`, drawn as
+  `playerLookIn(player, viewer)`: the player's skin and card back, the viewer's own world theme (the scenery is always
+  the viewer's). `makePlaybackDrawer(puzzle, look)` passes it to the same renderer entry points the stage uses.
+- **Ghosts** (Apex): `roomGameLooksFn` (`src/lib/identity/roomLooks.functions.ts`, a player of the room only) reads
+  `public.room_game_looks` (service role only) for the room's players still in it; `setRaceGhostSkins` hands each slot's
+  paint to the ghost broadcast, and `paintRacingCar` draws a ghost in its owner's paint (no sparkles; your own car keeps
+  them). Ghosts stay display only: no collisions, no points.
 
 ## Fairness
 
@@ -80,11 +121,16 @@ changed, and nothing here is read by a sim, a grader, a replay or a deal.
 
 ## Checks and tools
 
-- `skins-default-check` (~5 s), `skins-check` (~25 s), `skins-replay-check` (~45 s); no browser.
+- `skins-default-check` (~5 s), `skins-check` (~25 s; with Full House's deck: no back draws main's 16 deck frames
+  exactly, `scripts/fixtures/skins-deck-frames.json`, recorded on main af70c5f by `scripts/skins/record-deck.ts`; each
+  back changes every deck frame inside the deck card's box; the card-back slot's ownership; stored and replay looks),
+  `skins-replay-check` (~45 s; every look, card backs included), `skins-db-check` (~10 s, PostgreSQL: the card-back
+  move with owners, the result-look triggers, scores and every other column unchanged, the ghost function's refusals);
+  no browser.
 - `bun scripts/skins/preview.ts <game…> [--out=<dir>] [--only=<frame>]`: review frames of every look.
 - `bun scripts/skins/compare-art.ts [--out=<dir>]`: each ball, stone, card back and felt painted by the game's own
   painter at its swatch's size over the approved PNG, compared inside the object; the car paints and world themes by
-  palette. Sheets: `screenshots/skins-nov-2026/skins-vs-art.png` (approved PNG | our painter | difference) and
+  palette. Sheets: `docs/skins-nov-2026/skins-vs-art.png` (approved PNG | our painter | difference) and
   `world-themes-vs-art.png` (the theme board beside the game's frame).
 - `bun scripts/skins/record-default.ts` (the default digests, recorded on main before the hook; never re-record) and
   `bun scripts/skins/record-runs.ts` (the replay runs).

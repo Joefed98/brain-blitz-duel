@@ -77,36 +77,19 @@ export function neonStroke(ctx: CanvasRenderingContext2D, colour: string, width:
   ctx.restore();
 }
 
-/** The arena above the far boards under the Neon Rink: night, a neon city's glow and a cyan board strip. */
+/**
+ * The arena above the far boards under the Neon Rink: the rink's own dark ice colour carried up (the approved art draws
+ * nothing above the sheet: no city, no crowd), with the far boards' cyan strip.
+ */
 export function neonRinkArena(ctx: CanvasRenderingContext2D, top: number, bottom: number, w: number): void {
-  const g = ctx.createLinearGradient(0, top, 0, bottom);
-  g.addColorStop(0, "#05040F");
-  g.addColorStop(1, "#160A30");
-  ctx.fillStyle = g;
+  ctx.fillStyle = "#081422";
   ctx.fillRect(-400, top, w + 800, bottom - top);
-  // Towers with lit windows.
-  for (let i = 0; i < 40; i++) {
-    const h = artHash(i, 61);
-    const bw = 14 + (h % 18);
-    const bh = 14 + ((h >>> 5) % 40);
-    const x = -60 + i * 14;
-    ctx.fillStyle = "#0C0820";
-    ctx.fillRect(x, bottom - 6 - bh, bw, bh);
-    for (let k = 0; k < 4; k++) {
-      const hk = artHash(i * 7 + k, 62);
-      if (hk % 3 === 0) continue;
-      ctx.fillStyle = ["#FF3DCB", "#22E4FF", "#F2C14E"][hk % 3]!;
-      ctx.globalAlpha = 0.8;
-      ctx.fillRect(x + 3 + (hk % Math.max(1, bw - 6)), bottom - 6 - bh + 4 + ((hk >>> 4) % Math.max(1, bh - 8)), 2, 2);
-      ctx.globalAlpha = 1;
-    }
-  }
   ctx.fillStyle = "#0A0820";
   ctx.fillRect(-400, bottom - 6, w + 800, 6);
   ctx.save();
-  ctx.shadowColor = "#FF3DCB";
+  ctx.shadowColor = "#22E4FF";
   ctx.shadowBlur = 8;
-  ctx.fillStyle = "#FF3DCB";
+  ctx.fillStyle = "#22E4FF";
   ctx.fillRect(-400, bottom - 4, w + 800, 1.4);
   ctx.restore();
 }

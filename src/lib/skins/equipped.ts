@@ -9,9 +9,9 @@
  * and until then, for a guest, or when the read fails, every game shows its default.
  */
 import { useEffect, useState } from "react";
-import { lookFor, NO_LOOK, type GameLook, type SkinnableGame } from "@/lib/arcade/skins/look";
+import { isSkinnableGame, lookFor, NO_LOOK, type GameLook, type SkinnableGame } from "@/lib/arcade/skins/look";
 
-/** The account's per-game slots (`game-skin:<game>`, `world-theme:<game>` → an item id or null), or null (a guest). */
+/** The account's look slots (`game-skin:<game>`, `world-theme:<game>`, `card-back` → an item id or null), or null (a guest). */
 export type GameLookSlots = Readonly<Record<string, string | null>>;
 type Source = () => Promise<GameLookSlots | null>;
 
@@ -43,7 +43,26 @@ function readSlots(now = Date.now()): Promise<GameLookSlots | null> {
 export async function gameLookOf(game: SkinnableGame): Promise<GameLook> {
   const slots = await readSlots();
   if (!slots) return NO_LOOK;
-  return lookFor(game, slots[`game-skin:${game}`], slots[`world-theme:${game}`]);
+  return lookFor(game, slots[`game-skin:${game}`], slots[`world-theme:${game}`], slots["card-back"]);
+}
+
+/** The viewer's own look for any game type (the default for games without skins, or before the read answers). */
+export function useGameLookAny(type: string | null): GameLook {
+  const [look, setLook] = useState<GameLook>(NO_LOOK);
+  useEffect(() => {
+    if (!type || !isSkinnableGame(type)) {
+      setLook(NO_LOOK);
+      return;
+    }
+    let live = true;
+    void gameLookOf(type).then((l) => {
+      if (live) setLook(l);
+    });
+    return () => {
+      live = false;
+    };
+  }, [type]);
+  return look;
 }
 
 /** The live stage's look (the default until the read answers). */
@@ -52,7 +71,7 @@ export function useGameLook(game: SkinnableGame): GameLook {
   useEffect(() => {
     let live = true;
     void gameLookOf(game).then((l) => {
-      if (live) setLook((was) => (was.skin === l.skin && was.world === l.world ? was : l));
+      if (live) setLook((was) => (was.skin === l.skin && was.world === l.world && (was.back ?? null) === (l.back ?? null) ? was : l));
     });
     return () => {
       live = false;

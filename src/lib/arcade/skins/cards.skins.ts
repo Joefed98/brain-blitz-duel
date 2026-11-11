@@ -1,8 +1,8 @@
 /**
- * The card games' skins (wave 2, E1): Free Cell's card backs and Full House's table felts
- * (docs/art/wave-2/items/game-skin/free-cell--*.html, full-house--*.html). Display only: a back is painted in the
- * default back's exact card box, a felt in the default felt's exact rectangle; card faces, slots, chips and every
- * position are unchanged. Neither game has a world theme.
+ * The card games' looks (wave 2, E1): the account's card back (docs/art/wave-2/items/card-back/*.html; one `card-back`
+ * slot, drawn on Full House's face-down deck: Joe, 11 Nov 2026) and Full House's table felts
+ * (items/game-skin/full-house--*.html). Display only: a back is painted in the default back's exact card box, a felt
+ * in the default felt's exact rectangle; card faces, slots, chips and every position are unchanged.
  */
 import type { ContrastPair, GameLook } from "./look";
 
@@ -10,9 +10,9 @@ export type CardBack = "royal-damask" | "holo-foil" | "neon";
 export type Felt = "midnight" | "crimson" | "neon";
 
 const BACKS: Readonly<Record<string, CardBack>> = {
-  "game-skin.free-cell.royal-damask": "royal-damask",
-  "game-skin.free-cell.holo-foil": "holo-foil",
-  "game-skin.free-cell.neon-card-back": "neon",
+  "card-back.royal-damask": "royal-damask",
+  "card-back.holo-foil": "holo-foil",
+  "card-back.neon": "neon",
 };
 const FELTS: Readonly<Record<string, Felt>> = {
   "game-skin.full-house.midnight-felt": "midnight",
@@ -20,7 +20,7 @@ const FELTS: Readonly<Record<string, Felt>> = {
   "game-skin.full-house.neon-felt": "neon",
 };
 
-export const cardBackOf = (look: GameLook): CardBack | null => (look.skin && BACKS[look.skin]) || null;
+export const cardBackOf = (look: GameLook): CardBack | null => (look.back && BACKS[look.back]) || null;
 export const feltOf = (look: GameLook): Felt | null => (look.skin && FELTS[look.skin]) || null;
 
 function rr(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number): void {
@@ -204,15 +204,14 @@ export function feltFillStops(felt: Felt): { above: [number, string][]; side: [n
   };
 }
 
-/** What each card look must keep visible: a card back on its felt (Free Cell), a card face on the felt (Full House). */
-export function cardsContrast(game: "freecell" | "pokersquares", look: GameLook): ContrastPair[] {
-  const defaultFelt = ["#0E2A57"];
-  if (game === "freecell") {
-    const back = cardBackOf(look);
-    const colours = back === "royal-damask" ? ["#F2C14E", "#0E1A3A"] : back === "holo-foil" ? ["#FF8FD6", "#9FE8FF", "#FFFFFF"] : back === "neon" ? ["#22E4FF", "#0A0820"] : ["#E9C46A", "#1D3270"];
-    return [{ object: "card back", colours, backgrounds: defaultFelt }];
-  }
+/** What each Full House look must keep visible: a card face and the deck's back on the felt. */
+export function cardsContrast(look: GameLook): ContrastPair[] {
   const felt = feltOf(look);
-  const bgs = felt ? [FELT_COLOURS[felt].centre, FELT_COLOURS[felt].edge] : defaultFelt;
-  return [{ object: "card face", colours: ["#FFFFFF", "#F6F1E6"], backgrounds: bgs }];
+  const backgrounds = felt ? [FELT_COLOURS[felt].centre, FELT_COLOURS[felt].edge] : ["#0E2A57"];
+  const back = cardBackOf(look);
+  const backColours = back === "royal-damask" ? ["#F2C14E", "#0E1A3A"] : back === "holo-foil" ? ["#FF8FD6", "#9FE8FF", "#FFFFFF"] : back === "neon" ? ["#22E4FF", "#0A0820"] : ["#E9C46A", "#1D3270"];
+  return [
+    { object: "card face", colours: ["#FFFFFF", "#F6F1E6"], backgrounds },
+    { object: "deck's card back", colours: backColours, backgrounds },
+  ];
 }

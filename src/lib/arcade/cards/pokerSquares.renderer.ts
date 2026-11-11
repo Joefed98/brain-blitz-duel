@@ -188,7 +188,7 @@ function drawPokerSquaresWorld(ctx: CanvasRenderingContext2D, state: PsState, si
 }
 
 export function pokerSquaresArtGame(view?: PsView, rev?: number | null, look: GameLook = NO_LOOK): ArcadeGame<PsState, ArcadeInputEvent | null> {
-  if (!look.skin && !look.world) return { ...pokerSquaresGameFor(rev), draw: (ctx, state, size) => drawPokerSquares(ctx, state, size, view) };
+  if (!look.skin && !look.world && !look.back) return { ...pokerSquaresGameFor(rev), draw: (ctx, state, size) => drawPokerSquares(ctx, state, size, view) };
   return { ...pokerSquaresGameFor(rev), draw: (ctx, state, size) => withCardsLook(look, () => drawPokerSquares(ctx, state, size, view)) };
 }
 

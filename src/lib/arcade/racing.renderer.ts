@@ -176,6 +176,8 @@ export interface RacingGhostView {
   /** Race distance and lateral position in the sim's units. */
   s: number;
   x: number;
+  /** The ghost's own car paint (its owner's equipped `game-skin.apex.*`; wave 2 skins), or none. */
+  skin?: string | null;
 }
 let ghosts: readonly RacingGhostView[] = [];
 /** Display only: the other players' cars to draw this frame. */
@@ -466,7 +468,7 @@ function paintStand(ctx: Ctx2D, w: number, h: number): void {
  * The car from behind: a graphite GT with a gold stripe, sunset reflections, an LED tail-light bar, a rain light,
  * the diffuser and exhaust tips; its body exactly `w` wide, its tyres' contact line at `bottom`.
  */
-export function paintRacingCar(ctx: Ctx2D, cx: number, bottom: number, w: number, braking: boolean, ghost?: string): void {
+export function paintRacingCar(ctx: Ctx2D, cx: number, bottom: number, w: number, braking: boolean, ghost?: string, ghostSkin?: string | null): void {
   const h = w * 0.6;
   const x0 = cx - w / 2;
   const top = bottom - h;
@@ -482,7 +484,8 @@ export function paintRacingCar(ctx: Ctx2D, cx: number, bottom: number, w: number
   ctx.fillRect(x0 + w * 0.04, bottom - h * 0.3, tw, h * 0.3);
   ctx.fillRect(x0 + w * 0.96 - tw, bottom - h * 0.3, tw, h * 0.3);
   // Body (graphite) with a sunset reflection; the player's own car in its paint (wave 2 skins; ghosts never).
-  const paint = ghost ? null : racingCarPaint(SK);
+  // A ghost wears its own owner's paint (never the viewer's); the player's car the viewer's equipped one.
+  const paint = ghost ? racingCarPaint({ skin: ghostSkin ?? null, world: null }) : racingCarPaint(SK);
   const body = ctx.createLinearGradient(0, top, 0, bottom);
   if (ghost) {
     body.addColorStop(0, ghost);
@@ -552,7 +555,7 @@ export function paintRacingCar(ctx: Ctx2D, cx: number, bottom: number, w: number
   // Rain light (centre, under the bar).
   ctx.fillStyle = braking ? "#FF5050" : "#5A1A1E";
   ctx.fillRect(cx - w * 0.025, bottom - h * 0.34, w * 0.05, h * 0.06);
-  if (paint === "gold") carGoldSparkles(ctx, cx, top, w, h, skinTime());
+  if (paint === "gold" && !ghost) carGoldSparkles(ctx, cx, top, w, h, skinTime());
   ctx.restore();
 }
 
@@ -1031,7 +1034,7 @@ function drawWorld(ctx: Ctx2D, state: RacingState, L: Layers, B: Bounds = WORLD_
       const gw = CAR_HALF_W * 2 * sc;
       ctx.save();
       ctx.globalAlpha = 0.42;
-      paintRacingCar(ctx, gx, gy, gw, false, g.colour);
+      paintRacingCar(ctx, gx, gy, gw, false, g.colour, g.skin);
       ctx.restore();
       if (gw > 14) {
         ctx.font = `700 ${Math.max(8, Math.min(12, gw * 0.18))}px ${ARCADE_FX_DISPLAY_FONT}`;

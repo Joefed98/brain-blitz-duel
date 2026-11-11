@@ -155,6 +155,7 @@ export function AsyncResults({
                       extra: reveal.result.extra as never,
                       reactionAvgMs: reveal.result.reaction_avg_ms,
                       msRemaining: reveal.result.ms_remaining,
+                      look: (reveal.look ?? null) as never,
                     },
                     runnerUp: 0,
                     answered: 1,
