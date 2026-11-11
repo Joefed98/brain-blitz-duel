@@ -53,6 +53,14 @@ export const ANALYTICS_EVENTS = [
   "profile_viewed",
   "customise_opened",
   "equip_refused",
+  // Rated matchmaking (wave 3, W3b; docs/rated/matchmaking-interface.md): recorded by the server only
+  // (src/lib/rated/rated.server.ts). queue_joined carries props.format and props.choice; match_found props.kind
+  // (live | recorded), props.waited_s, props.format and props.choice; rematch_requested and rematch_accepted
+  // props.format.
+  "queue_joined",
+  "match_found",
+  "rematch_requested",
+  "rematch_accepted",
 ] as const;
 export type AnalyticsEventName = (typeof ANALYTICS_EVENTS)[number];
 
