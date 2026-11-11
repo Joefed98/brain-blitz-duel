@@ -2144,8 +2144,10 @@ outside the repo.
   `recordRatedMatch` gets a `placings` match (`multiRatedResult`) and applies the pairwise rule, Joules (1.5 × best of 3)
   and badges; `bindRatedMulti` (`contracts.ts`) connects W3a's and W3b's server functions. Screens
   `src/components/rated/multi/MultiScreens.tsx` (mockups 08–10; the podium entrance only in the podium's box, none under
-  reduced motion). Events `multiplayer_match_started` / `_finished` (`20261114400000_analytics_multiplayer_events.sql`,
-  **not applied until merged**). rated-multi-check (~2 s).
+  reduced motion). A flagged run (a stored grade's `extra.flagged`, passed as W3a's `gradeExtras`) moves nobody, counts
+  for nothing and pays its player no Joules (W3a's rule). Events `multiplayer_match_started` / `_finished`
+  (`20261114400000_analytics_multiplayer_events.sql`, **not applied until merged**). rated-multi-check (~2 s),
+  rated-multi-server-check (~15 s, shard `e`, PostgreSQL: 4 and 8 players, flagged runs on W3a's real engine).
 - `src/components/duel/` — room/round screens (PhoneShell, RoundIntro, TimerBar,
   AnswerReveal, ArcadeReveal, WinnerReveal…); `src/components/puzzles/` — shared puzzle
   widgets; `src/lib/fx/` — sound and visual feedback (presentation only).

@@ -77,10 +77,16 @@ export async function settleMultiMatch(input: {
       seatId: `slot:${p.slot}`,
       score: input.results.find((r) => r.player_slot === p.slot && r.round_number === i + 1)?.score ?? 0,
     })),
+    // The stored grade extras, so W3a sees the server's own flag (extra.flagged) on any run.
+    extras: input.players.map((p) => {
+      const extra = input.results.find((r) => r.player_slot === p.slot && r.round_number === i + 1)?.extra;
+      return { seatId: `slot:${p.slot}`, extra: extra && typeof extra === "object" && !Array.isArray(extra) ? (extra as Record<string, unknown>) : null };
+    }),
   }));
   // W3a is reached through W3b's adapter, the one place the match engine calls the ratings (ratingsAdapter.server.ts
-  // `ratings()`), so W3a's recordRatedMatch is bound once for 1v1 and for 4 and 8 players alike.
-  const { ratings } = await import("@/lib/rated/ratingsAdapter.server");
+  // `ratingsReady()`, which binds W3a's engine), so W3a's recordRatedMatch is bound once for 1v1 and 4 and 8 players.
+  const { ratingsReady } = await import("@/lib/rated/ratingsAdapter.server");
+  const backend = await ratingsReady();
   return finishMultiMatch(
     { matchId: input.match.id, size, choice: input.match.choice as "mixed" | "puzzles" | "arcade", seats, games, finishedAt: input.finishedAt },
     {
@@ -90,7 +96,7 @@ export async function settleMultiMatch(input: {
           throw new Error("not used when settling");
         },
         recordedCandidates: async () => [],
-        recordRatedMatch: (result) => ratings().recordRatedMatch(result),
+        recordRatedMatch: (result) => backend.recordRatedMatch(result),
       },
     },
   );

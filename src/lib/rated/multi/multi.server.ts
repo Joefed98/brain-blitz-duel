@@ -13,7 +13,7 @@
  * engine as every room); this module only reads the stored scores.
  */
 import { RATED_FORMATS_ON } from "@/config/matchmakingConfig";
-import type { RatedCategory, RatedChoice, RatedMatchOutcome, RatedMatchPlayer, RatedMatchResult, RatedPool } from "@/lib/data/ratings";
+import type { RatedCategory, RatedChoice, RatedGame, RatedMatchOutcome, RatedMatchPlayer, RatedMatchResult, RatedPool } from "@/lib/data/ratings";
 import type { AnalyticsEvent } from "@/lib/data/events.server";
 
 import { ratedMultiBackend, type RatedMultiBackend } from "./contracts";
@@ -133,6 +133,13 @@ export interface MultiGame {
   signature: string;
   /** Each seat's stored score (a seat with no result: 0). */
   scores: readonly { seatId: string; score: number }[];
+  /**
+   * Each seat's stored grade `extra` for this game, exactly as the server's grading stored it. W3a reads the server's own
+   * flag from it (`extra.flagged === true`, set by the replay and anti-cheat, never by the phone): a flagged run anywhere
+   * in the match moves nobody's rating, counts for nobody's placement, streaks or badges, pays the flagged player no
+   * Joules and is logged for review (moderation.rated_flags).
+   */
+  extras?: readonly { seatId: string; extra: Record<string, unknown> | null }[];
 }
 
 /** The result W3a's recordRatedMatch takes for a 4- or 8-player match. */
@@ -163,7 +170,17 @@ export function multiRatedResult(input: {
         const seat = bySeat.get(r.seatId);
         if (seat) scores[seat.playerId] = Math.max(0, Math.round(r.score));
       }
-      return { type: g.type, pool: g.pool, category: g.category, version: "classic" as const, signature: g.signature, scores };
+      const game: RatedGame = { type: g.type, pool: g.pool, category: g.category, version: "classic" as const, signature: g.signature, scores };
+      if (g.extras?.length) {
+        const gradeExtras: Record<string, Record<string, unknown> | null> = {};
+        for (const s of input.seats) gradeExtras[s.playerId] = null;
+        for (const e of g.extras) {
+          const seat = bySeat.get(e.seatId);
+          if (seat) gradeExtras[seat.playerId] = e.extra && typeof e.extra === "object" && !Array.isArray(e.extra) ? e.extra : null;
+        }
+        game.gradeExtras = gradeExtras;
+      }
+      return game;
     }),
     placings: Object.fromEntries(input.placings.map((p) => [bySeat.get(p.seatId)!.playerId, p.place])),
     ...(input.finishedAt ? { finishedAt: input.finishedAt } : {}),

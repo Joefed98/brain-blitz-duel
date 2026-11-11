@@ -39,6 +39,11 @@ switching one on is a deliberate change to that line (Joe's call, recorded with 
   placings). It is live once W3b's BIND line binds W3a (`bindW3aRatings`); rated-multi-server-check already plays a match
   through W3a's real engine that way (places 1–4, Joules 225 / 150 / 150 / 150, a repeat is W3a's duplicate). The
   settlement W3b's result screens read (`RatedSettlement`) carries `placings` and W3a's answer.
+- **Flagged runs** (Joe, 11 Nov 2026; built in W3a's engine): the settle passes every game's stored grade `extra` per
+  player as W3a's `gradeExtras` (`MultiGame.extras`), so a run the server flagged (`extra.flagged`) anywhere in a 4- or
+  8-player match moves nobody's rating, counts for nobody's placement, streaks or badges (Podium Regular included), is
+  logged in `moderation.rated_flags`, and pays the flagged player no Joules while the others keep theirs.
+  rated-multi-server-check proves it for 4 and 8 players on W3a's real engine.
 - **Recorded seats (parked until 4 and 8 players are switched on; Joe will ask W3b then):** a 1v1 against a recorded run deals that run's stored puzzles. A 4- or
   8-player match has one set of deals, so its recorded seats must be the other players of one earlier match on the same
   deals (every settled ffa match now stores all its players' runs, `rated:<match>:<user>`). W3b's recorded match holds

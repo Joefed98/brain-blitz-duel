@@ -8,7 +8,10 @@
  * make one live match (one ordinary started room, all four seated, the same deals, nobody else); three never start one
  * (recorded seats are parked), even after 15 s; settling sends W3a one placings match exactly once under racing calls,
  * with the final placings from the stored scores (points, then total score); every player's run joins the pool; the
- * start and finish events.
+ * start and finish events; and (Joe's rule, 11 Nov 2026, built in W3a's engine) a 4- and an 8-player match with one run
+ * the server flagged (its stored grade's extra.flagged) on W3a's real engine: nobody's rating moves, nothing counts
+ * for placement, streaks or badges (Podium Regular included), it is logged once in moderation.rated_flags, the flagged
+ * player gets no Joules and the others keep theirs.
  */
 import {
   ANON_KEY,
@@ -62,6 +65,8 @@ const I = uid(31);
 const J = uid(32);
 const K = uid(33);
 const L = uid(34);
+// A flagged 8-player match's players.
+const EIGHT = [41, 42, 43, 44, 45, 46, 47, 48].map(uid);
 
 let db: LocalDb | null = null;
 let rest: RestServer | null = null;
@@ -99,7 +104,7 @@ if (failures.length) {
   console.log("FAIL");
   process.exit(1);
 }
-console.log("PASS: 4-player rated matches through W3b's queue, rooms and settling on a real database.");
+console.log("PASS: 4- and 8-player rated matches through W3b's queue, rooms and settling, and flagged runs on W3a's engine, on a real database.");
 process.exit(0);
 
 async function runAll(db: LocalDb): Promise<void> {
@@ -116,7 +121,7 @@ async function runAll(db: LocalDb): Promise<void> {
   type W3aResult = import("../src/lib/data/ratings").RatedMatchResult;
   const client = await adminDb();
 
-  const ALL = [A, B, C, D, E, F, G, H, I, J, K, L];
+  const ALL = [A, B, C, D, E, F, G, H, I, J, K, L, ...EIGHT];
   q(`INSERT INTO auth.users (id) VALUES ${ALL.map((u) => `('${u}')`).join(", ")}`);
   q(`SET session_replication_role = replica; INSERT INTO public.profiles (user_id, username, username_key, colour, date_of_birth, player_number) VALUES
     ${ALL.map((u, i) => `('${u}', 'Multi${i}', 'multi${i}', ${i}, DATE '1990-01-01', ${i + 40})`).join(", ")}`);
@@ -124,7 +129,7 @@ async function runAll(db: LocalDb): Promise<void> {
     q(`CREATE SCHEMA IF NOT EXISTS shop; CREATE TABLE shop.testers (user_id uuid PRIMARY KEY, note text NOT NULL DEFAULT '')`);
   q(`INSERT INTO shop.testers (user_id, note) SELECT u, 'rated-multi-server-check' FROM unnest(ARRAY[${ALL.map((u) => `'${u}'`).join(",")}]::uuid[]) AS u ON CONFLICT DO NOTHING`);
 
-  const RATING: Record<string, number> = { [A]: 1000, [B]: 1010, [C]: 1020, [D]: 1030, [E]: 1000, [F]: 1500, [G]: 1510, [H]: 1520, [I]: 1200, [J]: 1200, [K]: 1200, [L]: 1200 };
+  const RATING: Record<string, number> = { [A]: 1000, [B]: 1010, [C]: 1020, [D]: 1030, [E]: 1000, [F]: 1500, [G]: 1510, [H]: 1520, [I]: 1200, [J]: 1200, [K]: 1200, [L]: 1200, ...Object.fromEntries(EIGHT.map((u) => [u, 1300])) };
   const sent: W3aResult[] = [];
   setRatingsBackend({
     matchRating: async (userId) => (RATING[userId] === undefined ? null : { rating: RATING[userId]!, placement: userId === E }),
@@ -264,4 +269,86 @@ async function runAll(db: LocalDb): Promise<void> {
     check(count("multiplayer_match_finished") === 8, "multiplayer_match_finished for each of the four, both matches");
     check(q(`SELECT string_agg(props->>'placing', ',' ORDER BY (props->>'placing')::int) FROM analytics.events WHERE event = 'multiplayer_match_finished'`) === "1,1,2,2,3,3,3,4", "with each placing");
   });
+  // Joe's rule (11 Nov 2026), built in W3a's engine: a match with one run the server flagged (its stored grade's
+  // extra.flagged) moves nobody's rating, counts for nobody's placement, streaks or badges (Podium Regular included),
+  // is logged for review (moderation.rated_flags), and pays the flagged player no Joules while the others keep theirs.
+  // Proved here for 4 and 8 players through W3b's settle and W3a's real recordRatedMatch.
+  // Each player's placement count, matches, wins, win streak, best streak, podiums and Joulz Rating; a player with no
+  // profile row yet reads as all zeros (W3a creates a zero row on a player's first match, counted or not).
+  const profileOf = (users: string[]) => {
+    const rows = q(`SELECT coalesce(string_agg(player_id::text || '=' || placement_played || ':' || matches || ':' || wins || ':' || win_streak || ':' || best_win_streak || ':' || podiums || ':' || coalesce(joulz::text, '-'), ',' ORDER BY player_id), '')
+       FROM public.rated_profiles WHERE player_id = ANY(ARRAY[${users.map((u) => `'${u}'`).join(",")}]::uuid[])`);
+    const got = new Map(rows ? rows.split(",").map((r) => r.split("=") as [string, string]) : []);
+    return [...users].sort().map((u) => `${u}=${got.get(u) ?? "0:0:0:0:0:0:-"}`).join(",");
+  };
+  const ratingsOf = (users: string[]) =>
+    q(`SELECT coalesce(string_agg(player_id::text || ':' || key || ':' || rating || ':' || rd || ':' || matches, ',' ORDER BY player_id, key), '')
+       FROM public.rated_ratings WHERE player_id = ANY(ARRAY[${users.map((u) => `'${u}'`).join(",")}]::uuid[])`);
+  const badgesOf = (users: string[]) =>
+    q(`SELECT count(*) FROM public.player_badges WHERE user_id = ANY(ARRAY[${users.map((u) => `'${u}'`).join(",")}]::uuid[])`);
+  const hasBadgeTable = q(`SELECT to_regclass('public.player_badges') IS NOT NULL`) === "t";
+
+  async function flaggedMatch(size: 4 | 8, users: string[], flaggedSlot: number): Promise<void> {
+    const label = `flagged ${size}-player`;
+    const format = size === 4 ? "ffa4" : "ffa8";
+    const sw = { ...RATED_SWITCHES, formats: { ...RATED_SWITCHES.formats, ffa4: true, ffa8: true } };
+    const t = Date.now();
+    // A poll clears a player's claimed entry from a match they were found for earlier (as the phone's next poll does).
+    for (const u of users) await rated.pollQueue(client, u, t);
+    for (const u of users) {
+      const joined = await rated.joinQueue(client, u, { format, choice: "mixed" }, t, sw);
+      check(joined.ok, `${label}: ${u.slice(-2)} joins the queue (${joined.ok ? "ok" : joined.reason})`);
+    }
+    const found = await rated.pollQueue(client, users[0]!, t + 200);
+    check(found.state === "found", `${label}: a match of ${size}`);
+    if (found.state !== "found") return;
+    const id = found.match.matchId;
+    const room = found.match.roomId!;
+    const slotUser = q(`SELECT string_agg(user_id::text, ',' ORDER BY player_slot) FROM public.duel_players WHERE duel_id = '${room}'`).split(",");
+    const flaggedUser = slotUser[flaggedSlot - 1]!;
+    const before = { profiles: profileOf(users), ratings: ratingsOf(users), badges: hasBadgeTable ? badgesOf(users) : "" };
+    // Every slot scores by its place; the flagged slot's game 2 carries the server replay's flag in its stored extra.
+    const rows = [0, 1, 2].flatMap((r) =>
+      slotUser.map((_, i) => {
+        const extra = i + 1 === flaggedSlot && r === 1 ? `'{"flagged": true, "flagReason": "replay_mismatch"}'::jsonb` : "NULL";
+        return `('${room}', ${i + 1}, ${r + 1}, ${200 - i * 20}, 1000, true, 'x', ${extra})`;
+      }),
+    );
+    q(`INSERT INTO public.round_results (duel_id, player_slot, round_number, score, ms_remaining, is_correct, answer, extra) VALUES ${rows.join(", ")}`);
+    q(`UPDATE public.duels SET status = 'finished', phase = 'finished', phase_started_at = now() WHERE id = '${room}'`);
+    const out = await rated.settleMatch(client, id, Date.now());
+    const outcome = out.state === "settled" ? out.result.ratings : null;
+    check(out.state === "settled" && outcome?.ok === true && outcome.status === "recorded", `${label}: W3a records the match (${outcome && !outcome.ok ? outcome.reason : out.state})`);
+    if (!outcome?.ok) return;
+    const byUser = new Map(outcome.players.map((p) => [p.playerId, p]));
+    check(outcome.players.length === size && outcome.players.every((p) => !p.moved && p.changes.length === 0 && p.frozen === "flagged_run"), `${label}: nobody's rating moves (every player frozen "flagged_run")`);
+    check(ratingsOf(users) === before.ratings, `${label}: every stored rating unchanged`);
+    check(profileOf(users) === before.profiles, `${label}: placement, matches, wins, streaks and podiums unchanged for everyone (${before.profiles.slice(0, 120)} → ${profileOf(users).slice(0, 120)})`);
+    check(outcome.players.every((p) => p.badges.length === 0) && (!hasBadgeTable || badgesOf(users) === before.badges), `${label}: no badges for anyone (Podium Regular included)`);
+    const counted = q(`SELECT string_agg(DISTINCT counted::text || ',' || moved::text || ',' || coalesce(frozen, '-'), ';') FROM public.rated_match_players WHERE match_id = '${id}'`);
+    check(counted === "false,false,flagged_run", `${label}: every player's row stored as not counted, not moved, frozen flagged_run (${counted})`);
+    check(byUser.get(flaggedUser)?.flagged === true && byUser.get(flaggedUser)?.joules === 0, `${label}: the flagged player gets no Joules`);
+    const others = slotUser.filter((u) => u !== flaggedUser);
+    check(others.every((u) => byUser.get(u)?.flagged === false && byUser.get(u)?.joules === (byUser.get(u)?.place === 1 ? 225 : 150)), `${label}: the others keep their Joules (225 first, 150 the rest)`);
+    check(q(`SELECT string_agg(joules::text, ',' ORDER BY player_id) FROM public.rated_match_players WHERE match_id = '${id}'`) === [...slotUser].sort().map((u) => String(byUser.get(u)?.joules)).join(","), `${label}: the stored Joules match`);
+    const flags = q(`SELECT string_agg(player_id::text || ':' || coalesce(game_idx::text, '-') || ':' || reason || ':' || (resolved_at IS NULL)::text, ',') FROM moderation.rated_flags WHERE match_id = '${id}'`);
+    check(flags === `${flaggedUser}:1:replay_mismatch:true`, `${label}: logged for review once, the flagged player's game 2, unresolved (${flags})`);
+    const fin = await (async () => {
+      await flushAnalytics();
+      return Number(q(`SELECT count(*) FROM analytics.events WHERE event = 'multiplayer_match_finished' AND room_id IS NULL AND (props->>'size') = '${size}'`));
+    })();
+    check(fin >= size, `${label}: the finish events still recorded (the match was played)`);
+    const again = await rated.settleMatch(client, id, Date.now());
+    check(again.state === "settled" && q(`SELECT count(*) FROM moderation.rated_flags WHERE match_id = '${id}'`) === "1" && profileOf(users) === before.profiles, `${label}: settling again changes nothing`);
+  }
+
+  await section("a flagged run in a 4-player match", async () => {
+    // I, J, K and L already played the real-engine match above, so they have ratings and profiles to keep.
+    await flaggedMatch(4, [I, J, K, L], 3);
+  });
+
+  await section("a flagged run in an 8-player match", async () => {
+    await flaggedMatch(8, EIGHT, 2);
+  });
+
 }
