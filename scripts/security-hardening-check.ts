@@ -38,14 +38,14 @@ function fnText(file: string, name: string): string {
 }
 
 /* ------------------------------------------------------------------ 1. async rooms' read policy ---- */
-const MIGRATION = "20261114500000_async_rooms_read_daily.sql";
+const MIGRATION = "20261111225000_async_rooms_read_daily.sql";
 const migrations = readdirSync("supabase/migrations").filter((f) => f.endsWith(".sql")).sort();
 {
   check(migrations.includes(MIGRATION), "1: the async rooms read-policy migration exists");
   const sql = src(`supabase/migrations/${MIGRATION}`);
   check(/CREATE POLICY async_rooms_read ON public\.async_rooms FOR SELECT TO authenticated\s+USING \(kind IN \('daily_puzzle', 'daily_arcade'\)\)/.test(sql), "1: the policy lets phones read the daily kinds only");
   check(!/\b(DROP TABLE|DROP COLUMN|TRUNCATE|DELETE FROM|UPDATE\s)/i.test(sql) && !/GRANT\s+(INSERT|UPDATE|DELETE|ALL)[^;]*TO\s+(anon|authenticated)/i.test(sql), "1: the migration touches no data and grants phones no write");
-  const att = src("supabase/migrations/20261114500100_async_attempts_read_finished.sql");
+  const att = src("supabase/migrations/20261111225100_async_attempts_read_finished.sql");
   check(/USING \(user_id = auth\.uid\(\) OR \(finished_at IS NOT NULL AND public\.async_board_open\(room_id\)\)\)/.test(att), "1: other players' attempts are readable only once finished");
   const later = migrations.filter((f) => f > MIGRATION && /async_rooms_read/.test(src(`supabase/migrations/${f}`)));
   check(later.length === 0 || later.every((f) => /kind IN \('daily_puzzle', 'daily_arcade'\)/.test(src(`supabase/migrations/${f}`))), `1: no later migration widens the policy again (${later.join(", ") || "none"})`);
