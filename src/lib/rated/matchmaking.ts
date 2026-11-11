@@ -4,7 +4,8 @@
  * a deal, a grade, a score or a stamp: rated matches are ordinary rooms dealt from the room picks with today's live
  * stamps ("Classic"), and every result is the server's own grading.
  */
-import { RATED_CHOICES_ON, RATED_FORMATS_ON, RATED_PLAY_FOR_EVERYONE } from "@/config/ratedConfig";
+import { RATED_CHOICES_ON, RATED_FORMATS_ON } from "@/config/matchmakingConfig";
+import { RATED_PLAY_FOR_EVERYONE } from "@/config/ratedConfig";
 import { stampSignature, dealtSignature } from "@/lib/duel/dealSignature";
 import {
   ARCADE_PICKS,
@@ -358,10 +359,9 @@ export interface GameScores {
 
 export type Side = "a" | "b" | "draw";
 
-/** A game's winner: the higher score, then less time used; level on both is a drawn game. */
+/** A game's winner: the higher score; a level score is a drawn game (W3a's rule, so the shown result and the rating agree). */
 export function gameWinner(g: GameScores): Side {
   if (g.a !== g.b) return g.a > g.b ? "a" : "b";
-  if (g.aTimeMs !== g.bTimeMs) return g.aTimeMs < g.bTimeMs ? "a" : "b";
   return "draw";
 }
 
@@ -373,7 +373,7 @@ export interface MatchOutcome {
   winner: Side;
 }
 
-/** Best of N: the most games won; level on games, the higher total; then less time; then a draw. */
+/** Best of N: the most games won; level on games, the higher total; then less time used in all; then a draw. */
 export function matchOutcome(games: readonly GameScores[]): MatchOutcome {
   let winsA = 0;
   let winsB = 0;

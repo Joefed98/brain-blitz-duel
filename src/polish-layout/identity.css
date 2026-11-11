@@ -352,3 +352,23 @@
   max-width: 430px;
   margin-inline: auto;
 }
+/* Gem colours (wave 2 C1a): an unlocked gem is a choice; a locked one says the stars it needs. */
+.cz-gem > span[data-unlocked] {
+  opacity: 1;
+}
+.cz-gem[aria-checked="true"] > span:first-child {
+  box-shadow: 0 0 0 2px var(--jz-bg), 0 0 0 4px var(--jz-text);
+}
+.cz-gem-unlock {
+  font-size: 11px;
+  line-height: 14px;
+  text-align: center;
+}
+button.cz-gem {
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--jz-text-2);
+  font: inherit;
+}
