@@ -117,6 +117,27 @@ export async function readOpenMatchIds(client: Db, userId: string): Promise<Resu
   return { data: (data ?? []).map((r) => r.id), error: e2 };
 }
 
+/** The settled live matches both players played (head to head; recorded matches have one player, so never match). */
+export async function readSettledLiveMatchesBetween(
+  client: Db,
+  userId: string,
+  opponentId: string,
+): Promise<Result<{ match: RatedMatchRow; players: RatedMatchPlayerRow[] }[]>> {
+  const { data: rows, error } = await client.from("mm_match_players").select("*").in("user_id", [userId, opponentId]);
+  if (error || !rows?.length) return { data: [], error };
+  const byMatch = new Map<string, RatedMatchPlayerRow[]>();
+  for (const r of rows) byMatch.set(r.match_id, [...(byMatch.get(r.match_id) ?? []), r]);
+  const shared = [...byMatch].filter(([, ps]) => ps.some((p) => p.user_id === userId) && ps.some((p) => p.user_id === opponentId));
+  if (!shared.length) return { data: [], error: null };
+  const { data: matches, error: e2 } = await client
+    .from("mm_matches")
+    .select("*")
+    .in("id", shared.map(([id]) => id))
+    .eq("kind", "live")
+    .eq("status", "settled");
+  return { data: (matches ?? []).map((match) => ({ match, players: byMatch.get(match.id) ?? [] })), error: e2 };
+}
+
 /** The owner of the viewer's most recent recorded opponent. */
 export async function readLastRecordedOwner(client: Db, viewerId: string): Promise<Result<string | null>> {
   const { data: mine, error } = await client.from("mm_match_players").select("match_id").eq("user_id", viewerId);

@@ -7,7 +7,7 @@ import { createServerFn } from "@tanstack/react-start";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
-import type { OpponentScore, QueuePoll, RatedMatchView, RatedStatus, RematchOutcome, JoinOutcome, PublicSettleOutcome } from "./rated.server";
+import type { HeadToHead, RatedRoomInfo, OpponentScore, QueuePoll, RatedMatchView, RatedStatus, RematchOutcome, JoinOutcome, PublicSettleOutcome } from "./rated.server";
 
 async function setup(userId: string, poll: boolean) {
   const { adminDb } = await import("@/lib/data/db.server");
@@ -108,4 +108,26 @@ export const ratedRematchFn = createServerFn({ method: "POST" })
     if (!id) return { state: "closed" };
     const { client, rated } = await setup(context.userId, false);
     return rated.requestRematch(client, context.userId, id, Date.now());
+  });
+
+/** W3c's VS screen: the caller's rated record against an opponent (live rated matches only, recorded runs excluded). */
+export const ratedHeadToHeadFn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { opponentId: string }) => input)
+  .handler(async ({ data, context }): Promise<HeadToHead> => {
+    const id = idOf(data.opponentId);
+    if (!id) return { wins: 0, losses: 0, draws: 0, played: 0 };
+    const { client, rated } = await setup(context.userId, false);
+    return rated.headToHead(client, context.userId, id);
+  });
+
+/** W3c's room screen: is this room a rated match (for one of its players)? null when not, or not the caller's. */
+export const ratedRoomFn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { roomId: string }) => input)
+  .handler(async ({ data, context }): Promise<RatedRoomInfo | null> => {
+    const id = idOf(data.roomId);
+    if (!id) return null;
+    const { client, rated } = await setup(context.userId, false);
+    return rated.ratedRoomInfo(client, id, context.userId);
   });
