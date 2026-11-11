@@ -18,6 +18,8 @@
  *   row; 5 uses a day; the fallback (a room's run) only when no rated run fits, its owner never moving; placement
  *   plays a beginner's run at once; playback never ahead of the run;
  * - rated chat: quick phrases only for an under-18; adults type;
+ * - head to head: wins, losses and draws between two players in settled live matches only, from each side; recorded
+ *   and flagged matches left out; a room id answers its rated match (id, format) for its players only;
  * - the four analytics events.
  */
 import {
@@ -79,6 +81,8 @@ const Z1 = uid(14);
 const Z2 = uid(15);
 const F1 = uid(16); // flagged by the server's replay
 const F2 = uid(17);
+const H1 = uid(18); // head to head
+const H2 = uid(19);
 
 let db: LocalDb | null = null;
 let rest: RestServer | null = null;
@@ -653,6 +657,68 @@ async function runAll(db: LocalDb): Promise<void> {
     const phone = await call(fns.ratedSettleFn, { matchId: p.match.matchId }, userToken(F2));
     check(phone.state === "settled" && !JSON.stringify(phone).includes('"extras"') && !JSON.stringify(phone).includes("score did not match"),
       "the phone's settle answer leaves the stored grades out");
+  });
+
+  await section("head to head and a room's match (W3c)", async () => {
+    q(`INSERT INTO auth.users (id) VALUES ('${H1}'), ('${H2}')`);
+    let n = 0;
+    // A settled match between H1 and H2 as the store keeps it: `slots` gives each player's slot, `winner` the stored side.
+    const stored = (kind: "live" | "recorded", status: string, slots: [string, number][], winner: string, flagged = false) => {
+      const id = `00000000-0000-4000-8000-${String(900000 + ++n).padStart(12, "0")}`;
+      const ratings = flagged
+        ? `, "ratings": {"ok": true, "players": [{"playerId": "${slots[0]![0]}", "flagged": true, "frozen": "flagged_run"}]}`
+        : "";
+      const rec = kind === "recorded" ? `'rated:x:${id}', 'rated', '${H2}'` : "NULL, NULL, NULL";
+      q(`INSERT INTO public.mm_matches (id, format, choice, kind, status, recorded_key, recorded_source, recorded_owner, result)
+        VALUES ('${id}', 'bo3', 'mixed', '${kind}', '${status}', ${rec}, '{"winner": "${winner}"${ratings}}'::jsonb)`);
+      q(`INSERT INTO public.mm_match_players (match_id, user_id, slot, rating_before) VALUES ${slots.map(([u, sl]) => `('${id}', '${u}', ${sl}, 1000)`).join(", ")}`);
+      return id;
+    };
+    check(JSON.stringify(await rated.headToHead(client, H1, H2)) === JSON.stringify({ wins: 0, losses: 0, draws: 0, played: 0 }), "no matches yet: 0–0–0");
+    stored("live", "settled", [[H1, 1], [H2, 2]], "a"); // H1 wins as slot 1
+    stored("live", "settled", [[H2, 1], [H1, 2]], "b"); // H1 wins as slot 2
+    stored("live", "settled", [[H1, 1], [H2, 2]], "b"); // H2 wins
+    stored("live", "settled", [[H2, 1], [H1, 2]], "draw");
+    // Left out: a recorded match (H1 played H2's run), a match still playing, a flagged one, one with someone else.
+    stored("recorded", "settled", [[H1, 1]], "a");
+    stored("live", "playing", [[H1, 1], [H2, 2]], "a");
+    stored("live", "settled", [[H1, 1], [H2, 2]], "a", true);
+    stored("live", "settled", [[H1, 1], [EVE, 2]], "a");
+    const mine = await rated.headToHead(client, H1, H2);
+    const theirs = await rated.headToHead(client, H2, H1);
+    check(JSON.stringify(mine) === JSON.stringify({ wins: 2, losses: 1, draws: 1, played: 4 }), `H1 against H2: 2 wins, 1 loss, 1 draw (${JSON.stringify(mine)})`);
+    check(JSON.stringify(theirs) === JSON.stringify({ wins: 1, losses: 2, draws: 1, played: 4 }), `H2 against H1 is the mirror (${JSON.stringify(theirs)})`);
+    check((await rated.headToHead(client, H1, H1)).played === 0, "a player against themselves: nothing");
+    const viaFn = await call(fns.ratedHeadToHeadFn, { opponentId: H2 }, userToken(H1));
+    check(JSON.stringify(viaFn) === JSON.stringify(mine), "ratedHeadToHeadFn answers the caller's side");
+    const junk = await call(fns.ratedHeadToHeadFn, { opponentId: "not-an-id" }, userToken(H1));
+    check(junk.played === 0, "a malformed opponent id: an empty record");
+    // Through the real flow: Flaggy and Fairy's match above settled live, but with a flagged run, so it counts for neither.
+    const realFlagged = q(`SELECT count(*) FROM public.mm_matches m WHERE m.kind = 'live' AND m.status = 'settled'
+      AND EXISTS (SELECT 1 FROM public.mm_match_players p WHERE p.match_id = m.id AND p.user_id = '${F1}')
+      AND EXISTS (SELECT 1 FROM public.mm_match_players p WHERE p.match_id = m.id AND p.user_id = '${F2}')`);
+    check(Number(realFlagged) >= 1 && (await rated.headToHead(client, F2, F1)).played === 0 && (await rated.headToHead(client, F1, F2)).played === 0,
+      `a settled live match with a flagged run counts for neither player (${realFlagged} stored)`);
+
+    // A room id: its rated match, for its players only (Flaggy and Fairy's room, both still accounts).
+    const flaggedMatch = q(`SELECT m.id FROM public.mm_matches m JOIN public.mm_match_players p ON p.match_id = m.id
+      WHERE p.user_id = '${F2}' AND m.kind = 'live' AND m.duel_id IS NOT NULL LIMIT 1`);
+    const room = q(`SELECT duel_id FROM public.mm_matches WHERE id = '${flaggedMatch}'`);
+    const [ME, OTHER, OUTSIDER] = [F2, F1, H1];
+    const info = await call(fns.ratedRoomFn, { roomId: room }, userToken(ME));
+    check(info?.matchId === flaggedMatch && info.format === "bo3" && info.kind === "live" && info.totalGames === 3,
+      `a rated room answers its match id, format and kind (${JSON.stringify(info)})`);
+    const boInfo = await call(fns.ratedRoomFn, { roomId: room }, userToken(OTHER));
+    check(boInfo?.matchId === flaggedMatch, "the other player gets it too (another tab, another device, after a reload)");
+    check((await call(fns.ratedRoomFn, { roomId: room }, userToken(OUTSIDER))) === null, "someone not in the match gets null");
+    const plain = q(`SELECT id FROM public.duels WHERE id NOT IN (SELECT duel_id FROM public.mm_matches WHERE duel_id IS NOT NULL) LIMIT 1`);
+    check(plain !== "" && (await call(fns.ratedRoomFn, { roomId: plain }, userToken(ME))) === null, "an ordinary room is not a rated match");
+    const recRoom = q(`SELECT m.duel_id || ',' || p.user_id || ',' || m.id FROM public.mm_matches m JOIN public.mm_match_players p ON p.match_id = m.id
+      JOIN auth.users u ON u.id = p.user_id
+      WHERE m.kind = 'recorded' AND m.duel_id IS NOT NULL LIMIT 1`).split(",");
+    const recInfo = await call(fns.ratedRoomFn, { roomId: recRoom[0]! }, userToken(recRoom[1]!));
+    check(recInfo?.matchId === recRoom[2] && recInfo.kind === "recorded", "a recorded match's room answers too (kind recorded)");
+    check((await call(fns.ratedRoomFn, { roomId: "nope" }, userToken(ME))) === null, "a malformed room id: null");
   });
 
   await section("rate limit", async () => {

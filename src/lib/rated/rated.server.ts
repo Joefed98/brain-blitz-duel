@@ -42,6 +42,7 @@ import {
   readProgress,
   readQueueEntry,
   readRatedMatch,
+  readSettledLiveMatchesBetween,
   readRatedRoomIds,
   readDeletionRequested,
   readRatedRun,
@@ -65,6 +66,7 @@ import {
   bestPartner,
   chooseRecordedRun,
   FORMAT_GAMES,
+  type Side,
   FORMAT_PLAYERS,
   gameVersionOf,
   gameWinner,
@@ -1105,5 +1107,79 @@ export async function isRatedRoom(client: Db, roomId: string): Promise<boolean> 
     return data !== null && data !== undefined;
   } catch {
     return false; // a database without the rated tables: no rated rooms
+  }
+}
+
+/* ------------------------------------------------------------------ W3c: head to head, a room's match */
+
+/** Two players' rated record against each other, from the caller's side (live rated matches only). */
+export interface HeadToHead {
+  wins: number;
+  losses: number;
+  draws: number;
+  played: number;
+}
+
+/** Whether a settled match counts towards a head-to-head record: never one the ratings engine froze for a flagged run. */
+function countsHeadToHead(result: unknown): boolean {
+  const r = result as { ratings?: { ok?: boolean; players?: { flagged?: boolean; frozen?: string | null }[] } | null } | null;
+  const players = r?.ratings && r.ratings.ok ? (r.ratings.players ?? []) : [];
+  return !players.some((p) => p.flagged === true || p.frozen === "flagged_run");
+}
+
+/**
+ * The caller's rated record against `opponentId`: wins, losses and draws in settled live rated matches between the two
+ * (the stored winner, slot 1 = side a). Recorded matches are left out (a recorded run's owner never played the caller),
+ * and so is a match with a flagged run (it moved nobody's rating). The caller against themselves: all zero.
+ */
+export async function headToHead(client: Db, userId: string, opponentId: string): Promise<HeadToHead> {
+  const record: HeadToHead = { wins: 0, losses: 0, draws: 0, played: 0 };
+  if (!opponentId || opponentId === userId) return record;
+  const { data } = await readSettledLiveMatchesBetween(client, userId, opponentId);
+  for (const { match, players } of data ?? []) {
+    const winner = (match.result as { winner?: Side } | null)?.winner;
+    if ((winner !== "a" && winner !== "b" && winner !== "draw") || !countsHeadToHead(match.result)) continue;
+    const mine = players.find((p) => p.user_id === userId);
+    if (!mine) continue;
+    record.played += 1;
+    if (winner === "draw") record.draws += 1;
+    else if ((winner === "a") === (mine.slot === 1)) record.wins += 1;
+    else record.losses += 1;
+  }
+  return record;
+}
+
+/** A room's rated match, as the room screen needs it after a reload, in another tab or on another device. */
+export interface RatedRoomInfo {
+  matchId: string;
+  format: RatedFormat;
+  choice: RatedChoice;
+  kind: "live" | "recorded";
+  /** The dealt games (a best of N's N; the match may stop sooner once decided). */
+  totalGames: number;
+  status: string;
+}
+
+/**
+ * From a room id: the rated match it is (match id, format, choice, kind), or null when it is not a rated room, or the
+ * caller is not one of the match's players (nothing about another player's rated match is given away).
+ */
+export async function ratedRoomInfo(client: Db, roomId: string, userId: string): Promise<RatedRoomInfo | null> {
+  const { readMatchByRoom } = await import("@/lib/data/rated.server");
+  try {
+    const { data: match } = await readMatchByRoom(client, roomId);
+    if (!match || !isRatedFormat(match.format) || !isRatedChoice(match.choice)) return null;
+    const { data: players } = await readMatchPlayers(client, match.id);
+    if (!players?.some((p) => p.user_id === userId)) return null;
+    return {
+      matchId: match.id,
+      format: match.format,
+      choice: match.choice,
+      kind: match.kind === "recorded" ? "recorded" : "live",
+      totalGames: FORMAT_GAMES[match.format],
+      status: match.status,
+    };
+  } catch {
+    return null; // a database without the rated tables: no rated rooms
   }
 }
