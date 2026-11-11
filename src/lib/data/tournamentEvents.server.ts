@@ -1,10 +1,10 @@
 /**
  * The Category Cup and Joulz Championship's own tables (wave 4, W4c; supabase/migrations/20261115300000_tournament_events.sql):
  * each started event's rounds, the seeds, every pairing and bracket match, the finish's award log, the hall of fame,
- * the flag log for Joe's review, and the month's Score Attack results the Championship qualifies from. Events, entries,
+ * and the month's Score Attack results the Championship qualifies from. Events, entries,
  * results, prizes and trophies are W4b's (src/lib/data/tournaments.server.ts). Server only (service role), typed.
  */
-import type { Db, Json, Tables, TablesInsert, TablesUpdate } from "./db.server";
+import type { Db, Tables, TablesInsert, TablesUpdate } from "./db.server";
 import type { Result } from "./rooms.server";
 
 export type TournamentRoundsRow = Tables<"tournament_rounds">;
@@ -116,18 +116,12 @@ export async function readHallOfFame(client: Db): Promise<Result<HallOfFameRow[]
 
 /* ------------------------------------------------------------------ flags for Joe's review */
 
+/** One of the server's own flags in a match, logged through W4b's flagRpc (moderation.tournament_flags). */
 export interface FlagLogRow {
   player_id: string;
-  game_idx: number | null;
+  game_idx: number;
   game: string | null;
   reason: string;
-}
-
-/** Logs a match's flags once each (public.tournament_flag_log into moderation.tournament_flags). */
-export async function logFlags(client: Db, eventId: string, matchId: string, flags: readonly FlagLogRow[]): Promise<Result<number>> {
-  if (!flags.length) return { data: 0, error: null };
-  const { data, error } = await client.rpc("tournament_flag_log", { p_event: eventId, p_match: matchId, p_flags: flags as unknown as Json });
-  return { data: typeof data === "number" ? data : 0, error };
 }
 
 /* ------------------------------------------------------------------ the month's Score Attack results (W4b's) */

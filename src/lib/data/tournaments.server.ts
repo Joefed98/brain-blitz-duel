@@ -310,7 +310,7 @@ export async function readGoldCount(client: Db, userId: string): Promise<Result<
 /** Logs one of the server's own flags once (moderation.tournament_flags, through public.tournament_flag). */
 export async function flagRpc(
   client: Db,
-  input: { eventId: string; playerId: string; source: "arena_duel" | "score_attack"; sourceId: string; gameIdx: number; game: string; reason: string },
+  input: { eventId: string; playerId: string; source: "arena_duel" | "score_attack" | "cup_match" | "championship_match"; sourceId: string; gameIdx: number; game: string; reason: string },
 ): Promise<Result<boolean>> {
   const { data, error } = await client.rpc("tournament_flag", {
     p_event: input.eventId,

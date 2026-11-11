@@ -21,12 +21,11 @@
 --   * tournament_awards: the log of what each finish paid beyond W4b's prizes and trophies (badge, frame, hall of fame,
 --     Joules), one row per entrant and kind, so nothing pays twice;
 --   * tournament_hall_of_fame: every Championship winner, by month;
---   * moderation.tournament_flags: each run the server flagged in a Category Cup or Championship match, for Joe's
---     review, beside W3a's moderation.rated_flags (moderation.tournament_flag_queue() / tournament_flag_resolve()).
+--   * W4b's moderation.tournament_flags takes W4c's match flags too (its source list widened: cup_match,
+--     championship_match), logged through W4b's public.tournament_flag.
 --
 -- Who can reach what: nobody but the server. RLS on with no policies; anon and authenticated have no grants; the
--- service role reads and writes the public tables through src/lib/data/tournamentEvents.server.ts and logs flags only
--- through public.tournament_flag_log. A removed account takes its rows with it (ON DELETE CASCADE from profiles).
+-- service role reads and writes the public tables through src/lib/data/tournamentEvents.server.ts. A removed account takes its rows with it (ON DELETE CASCADE from profiles).
 
 CREATE TABLE IF NOT EXISTS public.tournament_rounds (
   event_id text PRIMARY KEY REFERENCES public.tournament_events (id) ON DELETE CASCADE,
@@ -141,79 +140,35 @@ GRANT EXECUTE ON FUNCTION public.tournament_rounds_unlock(text) TO service_role;
 
 /* ------------------------------------------------------------------ flagged runs, for Joe's review */
 
--- A Category Cup or Championship match with a run the server's grading or anti-cheat flagged (a stored grade's
--- extra.flagged): one row per flagged player and game. That player earned nothing from the event. Beside W3a's
--- moderation.rated_flags (whose rows must be rated matches), unreachable from the API, the service role included;
--- written only through public.tournament_flag_log.
-CREATE TABLE IF NOT EXISTS moderation.tournament_flags (
-  id bigserial PRIMARY KEY,
-  event_id text NOT NULL REFERENCES public.tournament_events (id) ON DELETE CASCADE,
-  match_id uuid NOT NULL REFERENCES public.tournament_matches (id) ON DELETE CASCADE,
-  player_id uuid NOT NULL REFERENCES auth.users (id) ON DELETE CASCADE,
-  game_idx smallint CHECK (game_idx >= 0),
-  game text,
-  reason text NOT NULL CHECK (char_length(reason) BETWEEN 1 AND 40),
-  flagged_at timestamptz NOT NULL DEFAULT now(),
-  resolved_at timestamptz,
-  resolved_note text,
-  CONSTRAINT tournament_flags_once UNIQUE NULLS NOT DISTINCT (match_id, player_id, game_idx)
-);
-REVOKE ALL ON moderation.tournament_flags FROM PUBLIC, anon, authenticated, service_role;
-REVOKE ALL ON SEQUENCE moderation.tournament_flags_id_seq FROM PUBLIC, anon, authenticated, service_role;
-
--- Logs a match's flags once each (p_flags: [{player_id, game_idx, game, reason}]). Answers how many were new.
-CREATE OR REPLACE FUNCTION public.tournament_flag_log(p_event text, p_match uuid, p_flags jsonb)
-RETURNS integer
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = public, moderation
-AS $$
-DECLARE n integer;
+-- Flags are W4b's: moderation.tournament_flags through public.tournament_flag (Joe's moderation.tournament_flag_queue()
+-- and tournament_flag_resolve()). Its source list gains W4c's two match kinds, read from the constraint as it stands
+-- and widened (every source allowed before is still allowed; no row is touched).
+DO $sources$
+DECLARE
+  existing text[];
+  wanted text[];
+  v_name text;
 BEGIN
-  INSERT INTO moderation.tournament_flags (event_id, match_id, player_id, game_idx, game, reason)
-  SELECT p_event, p_match, (e ->> 'player_id')::uuid, (e ->> 'game_idx')::smallint, e ->> 'game', left(e ->> 'reason', 40)
-    FROM jsonb_array_elements(coalesce(p_flags, '[]'::jsonb)) AS e
-  ON CONFLICT ON CONSTRAINT tournament_flags_once DO NOTHING;
-  GET DIAGNOSTICS n = ROW_COUNT;
-  RETURN n;
-END;
-$$;
-REVOKE ALL ON FUNCTION public.tournament_flag_log(text, uuid, jsonb) FROM PUBLIC, anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.tournament_flag_log(text, uuid, jsonb) TO service_role;
-
--- Joe's list (the SQL editor): open flags, or every flag with p_all, with the username and the event.
-CREATE OR REPLACE FUNCTION moderation.tournament_flag_queue(p_all boolean DEFAULT false)
-RETURNS TABLE (id bigint, event_id text, match_id uuid, player_id uuid, player text, game text, game_idx smallint,
-               reason text, flagged_at timestamptz, resolved_at timestamptz, resolved_note text)
-LANGUAGE sql
-STABLE
-SECURITY DEFINER
-SET search_path = public, moderation
-AS $$
-  SELECT f.id, f.event_id, f.match_id, f.player_id, coalesce(p.username, 'guest'), f.game, f.game_idx, f.reason,
-         f.flagged_at, f.resolved_at, f.resolved_note
-    FROM moderation.tournament_flags f
-    LEFT JOIN public.profiles p ON p.user_id = f.player_id
-   WHERE p_all OR f.resolved_at IS NULL
-   ORDER BY f.flagged_at DESC;
-$$;
-
-CREATE OR REPLACE FUNCTION moderation.tournament_flag_resolve(p_id bigint, p_note text)
-RETURNS boolean
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = public, moderation
-AS $$
-DECLARE n integer;
-BEGIN
-  UPDATE moderation.tournament_flags SET resolved_at = now(), resolved_note = left(trim(coalesce(p_note, '')), 500)
-   WHERE id = p_id AND resolved_at IS NULL;
-  GET DIAGNOSTICS n = ROW_COUNT;
-  RETURN n = 1;
-END;
-$$;
-REVOKE ALL ON FUNCTION moderation.tournament_flag_queue(boolean) FROM PUBLIC, anon, authenticated, service_role;
-REVOKE ALL ON FUNCTION moderation.tournament_flag_resolve(bigint, text) FROM PUBLIC, anon, authenticated, service_role;
+  IF to_regclass('moderation.tournament_flags') IS NULL THEN
+    RETURN;
+  END IF;
+  SELECT c.conname INTO v_name
+    FROM pg_constraint c
+   WHERE c.conrelid = 'moderation.tournament_flags'::regclass AND c.contype = 'c'
+     AND pg_get_constraintdef(c.oid) LIKE '%source%';
+  IF v_name IS NULL THEN
+    RETURN;
+  END IF;
+  SELECT coalesce(array_agg(DISTINCT m[1]), ARRAY[]::text[]) INTO existing
+    FROM pg_constraint c, LATERAL regexp_matches(pg_get_constraintdef(c.oid), '''([a-z_]+)''', 'g') AS m
+   WHERE c.conrelid = 'moderation.tournament_flags'::regclass AND c.conname = v_name;
+  SELECT array_agg(e ORDER BY e) INTO wanted
+    FROM (SELECT unnest(existing) AS e UNION SELECT unnest(ARRAY['cup_match', 'championship_match'])) AS u;
+  EXECUTE format('ALTER TABLE moderation.tournament_flags DROP CONSTRAINT %I', v_name);
+  EXECUTE format('ALTER TABLE moderation.tournament_flags ADD CONSTRAINT %I CHECK (source IN (%s))', v_name,
+    (SELECT string_agg(quote_literal(e), ', ') FROM unnest(wanted) AS e));
+END
+$sources$;
 
 /* ------------------------------------------------------------------ the Championship frame */
 

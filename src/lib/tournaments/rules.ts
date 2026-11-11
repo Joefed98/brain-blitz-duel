@@ -119,10 +119,10 @@ export function eventIdFor(kind: TournamentKind, day: string, time?: string): st
 /** The parts of an event id, or null for anything else. */
 export function parseEventId(id: unknown): { kind: TournamentKind; day: string; time: string | null } | null {
   if (typeof id !== "string" || id.length > 64) return null;
-  // W4c's ids: category_cup:<Saturday>:1900 and championship:<YYYY-MM> (its day field is the month).
+  // W4c's championship:<YYYY-MM> (its day field is the month); category_cup ids parse below like any other, and
+  // scheduledEvent keeps only Saturdays at 7 pm.
   const big = parseBigEventId(id);
-  if (big) return big.kind === "category_cup" ? { kind: big.kind, day: big.date, time: id.slice(-4, -2) + ":" + id.slice(-2) } : { kind: big.kind, day: big.month, time: null };
-  if (id.startsWith("category_cup:") || id.startsWith("championship:")) return null;
+  if (big?.kind === "championship") return { kind: big.kind, day: big.month, time: null };
   const m = /^([a-z_]+):(\d{4}-\d{2}-\d{2})(?::(\d{4}))?$/.exec(id);
   if (!m || !isTournamentKind(m[1])) return null;
   const time = m[3] ? `${m[3].slice(0, 2)}:${m[3].slice(2)}` : null;

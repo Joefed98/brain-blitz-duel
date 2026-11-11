@@ -2908,7 +2908,6 @@ export type Database = {
       tournament_ensure_event: { Args: { p_id: string; p_kind: string; p_title: string; p_pick: string; p_starts: string; p_ends: string }; Returns: undefined }
       tournament_set_status: { Args: { p_event: string; p_from: string[]; p_to: string }; Returns: boolean }
       tournament_set_room: { Args: { p_event: string; p_room: string }; Returns: string | null }
-      tournament_flag_log: { Args: { p_event: string; p_match: string; p_flags: Json }; Returns: number }
       tournament_rounds_lock: { Args: { p_event: string; p_ms: number }; Returns: boolean }
       tournament_rounds_unlock: { Args: { p_event: string }; Returns: undefined }
       tournament_enter: { Args: { p_event: string; p_user_id: string; p_entry: string; p_coins: number }; Returns: Json }

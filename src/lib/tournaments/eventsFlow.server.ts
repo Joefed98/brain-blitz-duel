@@ -12,8 +12,8 @@
  *   each once and logged in `tournament_awards`. One ticker at a time (`tournament_rounds_lock`).
  * - Flagged runs (Joe, 11 Nov 2026): a side whose run the server's grading flags in a match (a stored grade's
  *   `extra.flagged`, read here, never sent by a phone) takes nothing from it (a Swiss loss with no points or score; a
- *   Knockout loss), gets no place, so no prize, trophy, badge, frame or Joules, and is logged for Joe's review in
- *   `moderation.tournament_flags`, beside W3a's rated flags; its page says the result is under review.
+ *   Knockout loss), gets no place, so no prize, trophy, badge, frame or Joules, and is logged for Joe's review in W4b's
+ *   `moderation.tournament_flags` (through `tournament_flag`); its page says the result is under review.
  * - `bigEventView`: the round, the caller's match, the Swiss standings or the bracket.
  *
  * Every match is an ordinary room made already started by W3b's `createDealtMatchRoom` (the room seed's deal, the same
@@ -26,6 +26,7 @@ import {
   cancelEventRpc,
   enterRpc,
   finishRpc,
+  flagRpc,
   readEntries,
   readEvent,
   readResults,
@@ -40,7 +41,6 @@ import {
   insertRounds,
   insertSeeds,
   lockRounds,
-  logFlags,
   readAwards,
   readHallOfFame,
   readMatches,
@@ -63,7 +63,7 @@ import { tieRoundFor } from "@/lib/duel/tieBreak";
 import { roundTimeUsedMs } from "@/lib/duel/scoring";
 import type { PuzzleData, RoundResultRow } from "@/lib/duel/types";
 import { matchOutcome, type GameScores, type RatedChoice } from "@/lib/rated/matchmaking";
-import { gradeFlagReason } from "@/lib/rated/match";
+import { serverFlag, UNDER_REVIEW_LINE } from "./rules";
 
 import {
   CHAMPIONSHIP_FRAME,
@@ -75,7 +75,6 @@ import {
   parseBigEventId,
   ROUND_BREAK_MS,
   swissRoundsFor,
-  UNDER_REVIEW_LINE,
   WINNER_BADGE,
   type BigKind,
 } from "./eventRules";
@@ -232,7 +231,7 @@ async function advanceRounds(client: Db, event: TournamentEventRow, nowMs: numbe
   }
   for (const m of current) {
     if (m.status !== "playing" || !m.duel_id) continue;
-    if (await settleMatch(client, event, m, nowMs)) moved = true;
+    if (await settleTournamentMatch(client, event, m, nowMs)) moved = true;
   }
   const after = (await readMatches(client, event.id)).data;
   const now = after.filter((m) => m.round === round);
@@ -373,7 +372,7 @@ export function matchFlagsOf(
 ): FlagLogRow[] {
   const out: FlagLogRow[] = [];
   for (const r of results) {
-    const reason = gradeFlagReason(r.extra as Record<string, unknown> | null);
+    const reason = serverFlag(r.extra);
     if (!reason) continue;
     const player = r.player_slot === 1 ? m.player_a : r.player_slot === 2 ? m.player_b : null;
     if (!player) continue;
@@ -383,7 +382,7 @@ export function matchFlagsOf(
 }
 
 /** Settles one match from its room once (true when it did). */
-async function settleMatch(client: Db, event: TournamentEventRow, m: TournamentMatchRow, nowMs: number): Promise<boolean> {
+async function settleTournamentMatch(client: Db, event: TournamentEventRow, m: TournamentMatchRow, nowMs: number): Promise<boolean> {
   const { data: room } = await readRoom(client, m.duel_id!);
   const done = !!room && (room.status === "finished" || !!room.disbanded_at);
   const late = nowMs >= msOf(m.room_made_at) + MATCH_DEADLINE_MS;
@@ -407,7 +406,17 @@ async function settleMatch(client: Db, event: TournamentEventRow, m: TournamentM
     if (flaggedA || flaggedB) winner = flaggedA && flaggedB ? null : flaggedA ? m.player_b : m.player_a;
     else if (event.kind === "category_cup") winner = outcome.winner === "a" ? m.player_a : outcome.winner === "b" ? m.player_b : null;
     else winner = playedWinner({ seedA: m.seed_a, seedB: m.seed_b }, outcome.winner) === m.seed_a ? m.player_a : m.player_b;
-    if (flags.length) await logFlags(client, event.id, m.id, flags);
+    // Each flag for Joe's review, once, through W4b's tournament_flag (moderation.tournament_flags).
+    for (const f of flags)
+      await flagRpc(client, {
+        eventId: event.id,
+        playerId: f.player_id,
+        source: event.kind === "category_cup" ? "cup_match" : "championship_match",
+        sourceId: m.id,
+        gameIdx: f.game_idx,
+        game: f.game ?? "",
+        reason: f.reason,
+      });
     await claimMatchStatus(client, m.id, "settling", {
       status: "settled",
       winner,

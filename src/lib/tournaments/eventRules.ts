@@ -153,9 +153,6 @@ export const WINNER_BADGE: Record<BigKind, string> = {
   championship: "knockout-champion",
 };
 
-/** The line a flagged player sees on the event page. */
-export const UNDER_REVIEW_LINE = "Your result is under review, so it doesn’t count for now.";
-
 /** The event page's "how it works", a sentence a row. */
 export function bigHowItWorks(kind: BigKind, category: string): string[] {
   if (kind === "category_cup")

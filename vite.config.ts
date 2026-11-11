@@ -127,7 +127,7 @@ const SERVER_BUILD = Object.assign(
   { minify: true },
   { cloudflare: { wrangler: { observability: WORKER_OBSERVABILITY } } },
   // W3a's rated standings, W3b's matchmaking task and B2's push tasks (and W4b's tournaments tick) in one option.
-  withTasks(nitroTasks(RATED_TASKS), MATCHMAKING_TASKS, PUSH_TASKS),
+  withTasks(withTasks(nitroTasks(RATED_TASKS), MATCHMAKING_TASKS), PUSH_TASKS),
 ) as NitroOptions & { minify: boolean };
 
 export default defineConfig({
