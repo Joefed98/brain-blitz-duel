@@ -294,6 +294,9 @@ export function SignUpFlow({
     setWelcomeBack(false);
     setHistory([]);
     setStep("welcome");
+    // C2: the rewards every new account is owed (the 1,000-coin sign-up reward; a Founding Player's badge, coins and
+    // frame), paid by the server once under fixed keys (badges.server.ts settleAccountRewards).
+    void import("@/lib/badges/badgesApi").then((m) => m.refreshBadges()).catch(() => {});
   };
 
   /* ---------------------------------------------------------------- the code */
