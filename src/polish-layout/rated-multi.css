@@ -18,14 +18,10 @@
 .rm-centre { text-align: center; }
 .rm-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-.rm-chips { display: flex; flex-wrap: wrap; gap: var(--jz-space-8); }
-.rm-screen[data-rated-multi="final"] .rm-chips { justify-content: center; }
-.rm-chip {
-  padding: var(--jz-space-4) var(--jz-space-12);
-  border-radius: var(--jz-round);
-  background: var(--jz-surface-2);
-  color: var(--jz-text-2);
-}
+/* W3c's shared parts (rated.css): MatchChips, RatedCard, RankEmblem, the Joules line. */
+.rm-screen[data-rated-multi="final"] [data-match-chips] { justify-content: center; }
+.rm-me-card { display: flex; justify-content: center; }
+.rm-emblem { display: inline-flex; flex: 0 0 auto; }
 
 /* 08 filling */
 .rm-fill-row { display: flex; align-items: center; gap: var(--jz-space-12); }
@@ -117,5 +113,5 @@
 .rm-rating-parts { display: flex; justify-content: space-between; gap: var(--jz-space-12); padding-top: var(--jz-space-12); border-top: 1px solid var(--jz-line); }
 .rm-change[data-dir="up"] { color: var(--jz-cyan); }
 .rm-change[data-dir="down"] { color: var(--jz-red); }
-.rm-joules { display: inline-flex; align-items: center; gap: var(--jz-space-4); margin: 0; color: var(--jz-joules); }
+.rm-joules { display: block; }
 .rm-actions { display: flex; gap: var(--jz-space-12); }

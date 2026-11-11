@@ -5,9 +5,8 @@
  *
  * The route asks `screensFor(format)`: the search screen in place of Searching, an optional screen between games, and
  * the result screen in place of MatchResult. A 1v1 uses W3c's own (VS and the room route sit between). The placings
- * row is null until W3d fills it with `MultiFilling`, `MultiStandings` and `MultiFinal` (one line each, below); while it
- * is null the route refuses a 4- or 8-player link with a plain message (the picker never offers one: W3b's switches
- * are off at launch).
+ * row is W3d's `MultiFilling`, `MultiStandings` and `MultiFinal`, fitted to these props in multi/MultiFormat.tsx; the
+ * picker never offers it while W3b's switches are off (off at launch).
  */
 import type { ComponentType } from "react";
 
@@ -15,6 +14,7 @@ import type { RatedResult, SearchProgress } from "@/lib/rated/backend";
 import type { RatedPlayer } from "@/lib/rated/backend";
 import type { RatedFormat } from "@/lib/rated/matchmaking";
 
+import { MultiBetween, MultiResult, MultiSearch } from "./multi/MultiFormat";
 import { MatchResult, Searching } from "./RatedMatchScreens";
 
 export type FormatKind = "duel" | "placings";
@@ -53,8 +53,8 @@ export interface FormatScreens {
 
 const FORMAT_SCREENS: Record<FormatKind, FormatScreens | null> = {
   duel: { Search: Searching, Result: MatchResult, vs: true },
-  // W3d (#376): { Search: MultiFilling, Between: MultiStandings, Result: MultiFinal, vs: false }.
-  placings: null,
+  // W3d (#376): MultiFilling, MultiStandings and MultiFinal, fitted to these props (multi/MultiFormat.tsx).
+  placings: { Search: MultiSearch, Between: MultiBetween, Result: MultiResult, vs: false },
 };
 
 export function screensFor(format: RatedFormat): FormatScreens | null {

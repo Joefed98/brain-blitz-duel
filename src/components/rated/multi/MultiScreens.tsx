@@ -15,12 +15,14 @@
  */
 import { useMemo, type ReactNode } from "react";
 
-import { LOGO_PATHS } from "@/components/brand/logoGeometry";
 import { PlayerBadge } from "@/components/duel/PlayerBadge";
+import { JoulesLine as RatedJoulesLine, MatchChips, PlayerDot, RankEmblem } from "@/components/rated/RatedParts";
+import { RatedCard } from "@/components/rated/RatedMatchScreens";
 import { Button, Icon, Medal, Panel } from "@/design/components";
-import { Avatar } from "@/design/identity";
-import type { AvatarLook } from "@/design/identity/avatars";
+import type { CardLook } from "@/design/identity";
 import type { PlayerLook } from "@/lib/duel/playerLook";
+import type { RatedPlayer } from "@/lib/rated/backend";
+import type { RankView } from "@/lib/rated/tierDisplay";
 import { useReducedMotion } from "@/lib/motion";
 import {
   countWord,
@@ -35,18 +37,26 @@ import {
 export interface SeatView {
   seatId: string;
   name: string;
-  /** Wave 2's avatar (accounts); a guest look (colour and initial) otherwise. */
-  avatar?: AvatarLook | null;
+  /** The player's card look (A2's loadout, W3c's `RatedPlayer.look`), drawn with W3c's PlayerDot; a guest look (colour and initial) otherwise. */
+  card?: CardLook | null;
   look?: PlayerLook;
   you?: boolean;
   recorded?: boolean;
-  /** The rank emblem (W3a's tier), drawn small at the seat's end. */
-  emblem?: ReactNode;
+  /** W3a's tier once placed, drawn small at the seat's end with W3c's RankEmblem. */
+  rank?: RankView | null;
 }
 
 function SeatDisc({ seat, size }: { seat: SeatView; size: number }) {
-  if (seat.avatar) return <Avatar look={seat.avatar} size={size} />;
+  if (seat.card) return <PlayerDot look={seat.card} size={size} />;
   return <PlayerBadge look={seat.look ?? { colour: 0, icon: null }} name={seat.name} size={size} />;
+}
+
+function SeatEmblem({ seat }: { seat: SeatView }) {
+  return seat.rank && !seat.recorded ? (
+    <span className="rm-emblem" data-seat-emblem>
+      <RankEmblem rank={seat.rank} size={28} />
+    </span>
+  ) : null;
 }
 
 function RecordedTag() {
@@ -57,28 +67,20 @@ function RecordedTag() {
   );
 }
 
-const BOLT_PATH = LOGO_PATHS.bolt;
-
-/** The Joules line: electric lime with the small bolt mark (DESIGN.md "Results, Joules and places"). */
-export function JoulesLine({ amount }: { amount: number }) {
+/**
+ * W3c's Joules line (RatedParts, D2's style) with the pass level, inside the box the result screens and checks find
+ * by `data-joules`.
+ */
+export function JoulesLine({ amount, passLevel = null }: { amount: number; passLevel?: number | null }) {
   return (
-    <p className="rm-joules jz-meta" data-joules={amount}>
-      <svg viewBox="6 0.5 16 33" width="9" height="18" aria-hidden="true">
-        <path d={BOLT_PATH} fill="currentColor" />
-      </svg>
-      +{amount.toLocaleString("en-GB")} Joules
-    </p>
+    <div className="rm-joules" data-joules={amount}>
+      <RatedJoulesLine amount={amount} passLevel={passLevel} />
+    </div>
   );
 }
 
 function Chips({ size, picks, games }: { size: MultiSize; picks: string; games?: number }) {
-  return (
-    <div className="rm-chips">
-      <span className="rm-chip jz-meta">{size} players</span>
-      <span className="rm-chip jz-meta">{picks}</span>
-      {games ? <span className="rm-chip jz-meta">{games} games</span> : null}
-    </div>
-  );
+  return <MatchChips items={[`${size} players`, picks, ...(games ? [`${games} games`] : [])]} />;
 }
 
 const clock = (ms: number) => {
@@ -94,6 +96,7 @@ export function MultiFilling({
   games,
   seats,
   elapsedMs,
+  me,
   onLeave,
 }: {
   size: MultiSize;
@@ -102,6 +105,8 @@ export function MultiFilling({
   /** The seats filled so far (live players and recorded runs), in seat order. */
   seats: readonly SeatView[];
   elapsedMs: number;
+  /** Your card (W3c's RatedCard), drawn over the seats. */
+  me?: RatedPlayer | null;
   onLeave: () => void;
 }) {
   const filled = Math.min(size, seats.length);
@@ -109,6 +114,11 @@ export function MultiFilling({
   return (
     <section className="rm-screen" data-rated-multi="filling" data-size={size}>
       <Chips size={size} picks={picks} games={games} />
+      {me ? (
+        <div className="rm-me-card" data-my-card>
+          <RatedCard player={me} label="Your card" />
+        </div>
+      ) : null}
       <h1 className="jz-title">Filling your match</h1>
       <div className="rm-fill-row">
         <span className="jz-score-l" data-fill-count>
@@ -140,7 +150,7 @@ export function MultiFilling({
                 </span>
                 {seat.recorded ? <RecordedTag /> : null}
               </span>
-              {seat.emblem ?? null}
+              <SeatEmblem seat={seat} />
             </li>
           );
         })}
@@ -201,7 +211,7 @@ export function MultiStandings({
   /** The game just played: its name, its winner's name, your place and points. */
   headline: { gameName: string; winnerName: string; yourPlace: number; yourPoints: number; tile?: ReactNode };
   /** The next game and the time to it; none after the last game. */
-  next?: { gameName: string; msLeft: number; tile?: ReactNode } | null;
+  next?: { gameName: string; msLeft?: number; tile?: ReactNode } | null;
 }) {
   const bySeat = useMemo(() => new Map(seats.map((s) => [s.seatId, s])), [seats]);
   return (
@@ -266,9 +276,11 @@ export function MultiStandings({
             <span className="jz-label rm-cyan rm-block">{game + 1 === games ? "Final game" : "Next game"}</span>
             <span className="jz-card-title rm-strong">{next.gameName}</span>
           </span>
-          <span className="jz-score-l" data-next-clock>
-            {clock(next.msLeft)}
-          </span>
+          {next.msLeft !== undefined ? (
+            <span className="jz-score-l" data-next-clock>
+              {clock(next.msLeft)}
+            </span>
+          ) : null}
         </div>
       ) : null}
     </section>
@@ -301,6 +313,7 @@ export function MultiFinal({
   changes,
   yourRating,
   joules,
+  passLevel = null,
   entrance,
   onNext,
   onShare,
@@ -314,6 +327,8 @@ export function MultiFinal({
   changes: ReadonlyMap<string, number>;
   yourRating: FinalRating | null;
   joules: number | null;
+  /** The pass level the Joules reached (W3c's JoulesLine), when known. */
+  passLevel?: number | null;
   /** Wave 2's equipped podium entrance and celebration, drawn in the podium's own layer only. */
   entrance?: ReactNode;
   onNext: () => void;
@@ -343,6 +358,7 @@ export function MultiFinal({
                 <span className="jz-meta rm-name rm-centre" data-ellipsis>
                   {seat.you ? "You" : seat.name}
                 </span>
+                <SeatEmblem seat={seat} />
                 {seat.recorded ? (
                   <RecordedTag />
                 ) : changes.has(row.seatId) ? (
@@ -388,10 +404,10 @@ export function MultiFinal({
               ))}
             </div>
           ) : null}
-          {joules !== null ? <JoulesLine amount={joules} /> : null}
+          {joules !== null ? <JoulesLine amount={joules} passLevel={passLevel} /> : null}
         </Panel>
       ) : joules !== null ? (
-        <JoulesLine amount={joules} />
+        <JoulesLine amount={joules} passLevel={passLevel} />
       ) : null}
       {rest.length ? (
         <Panel as="ol" className="rm-table" data-placings>
@@ -407,6 +423,7 @@ export function MultiFinal({
                   {seat.name}
                   {seat.you ? <span className="rm-quiet"> (you)</span> : null}
                 </span>
+                <SeatEmblem seat={seat} />
                 {seat.recorded ? <RecordedTag /> : change !== undefined ? <span className="jz-meta"><Change change={change} /></span> : null}
                 <span className="jz-score-m" data-points>
                   {row.points}

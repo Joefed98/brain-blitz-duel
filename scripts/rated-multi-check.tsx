@@ -448,6 +448,125 @@ check(countsForPodiumRegular(liveSeat, 3) && !countsForPodiumRegular(liveSeat, 4
     check(/Next match/.test($("[data-next-match]")?.textContent ?? ""), "final screen: Next match");
     await un();
   }
+  /* 7b. W3c's format slot and shared parts (W3c #380 dc89d06d): the three screens fitted to W3c's props, read through
+     multiView.ts (stood in by setMultiViewPort), drawn with W3c's MatchChips, JoulesLine, RankEmblem, RatedCard and
+     PlayerDot. */
+  {
+    const fs = await import("../src/components/rated/formatScreens");
+    const fmt = await import("../src/components/rated/multi/MultiFormat");
+    const mv = await import("../src/lib/rated/multi/multiView");
+    const { tierFor } = await import("../src/lib/rated/tiers");
+    const rankAt = (rating: number) => ({ ...tierFor(rating, null), rating });
+    const slot = fs.screensFor("ffa4");
+    check(slot?.Search === fmt.MultiSearch && slot?.Between === fmt.MultiBetween && slot?.Result === fmt.MultiResult && slot?.vs === false && fs.screensFor("ffa8") === slot, "W3c's slot: filling for Search, standings Between, final for Result, no VS");
+    check(fs.screensFor("bo3")?.vs === true, "W3c's slot: a 1v1 keeps its own screens");
+
+    // The pure builders from W3b's public settlement and match view.
+    const vp = [1, 2, 3, 4].map((n) => ({ userId: `u${n}`, slot: n, displayName: `P${n}`, guest: n === 4 }));
+    const tier = (r: number) => ({ ...tierFor(r, null) });
+    const settled = {
+      format: "ffa4",
+      players: [
+        { userId: "u1", slot: 1, scores: [100, 50, 90] },
+        { userId: "u2", slot: 2, scores: [120, 60, 40] },
+        { userId: "u3", slot: 3, scores: [80, 70, 30] },
+        { userId: "u4", slot: 4, scores: [100, 50, 90] },
+      ],
+      games: [{ type: "unblock" }, { type: "hover" }, { type: "lightsout" }],
+      placings: { u1: 1, u4: 1, u2: 3, u3: 4 },
+      ratings: {
+        ok: true as const,
+        players: [
+          { playerId: "u1", moved: true, joulz: { before: 1200.4, after: 1211.6 }, tier: { before: tier(1200), after: tier(1212) } },
+          { playerId: "u2", moved: true, joulz: { before: 1250, after: 1244 }, tier: { before: tier(1250), after: tier(1244) } },
+          { playerId: "u3", moved: false, joulz: { before: 1300, after: 1300 }, tier: { before: tier(1300), after: tier(1300) } },
+        ],
+      },
+    };
+    const fin = mv.multiFinalFrom(settled as never, vp, "u2")!;
+    check(fin.size === 4 && eq(fin.rows.map((r) => [r.seatId, r.place]), [["slot:1", 1], ["slot:4", 1], ["slot:2", 3], ["slot:3", 4]]), "final data: placings from the stored scores (level points split by total, level totals shared)");
+    check(fin.rows.every((r) => settled.placings[vp.find((p) => `slot:${p.slot}` === r.seatId)!.userId as keyof typeof settled.placings] === r.place), "final data: the same places the server stored");
+    check(eq([...fin.changes.entries()].sort(), [["slot:1", 12], ["slot:2", -6]]), "final data: each moved player's change from W3a's answer, none for an unmoved one or a guest without an answer");
+    check(fin.seats.find((x) => x.seatId === "slot:2")?.you === true && fin.seats.find((x) => x.seatId === "slot:1")?.rank?.rating === 1211.6 && fin.seats.find((x) => x.seatId === "slot:3")?.rank === null, "final data: you marked, tiers only for moved players");
+    check(mv.multiFinalFrom({ ...settled, format: "bo3" } as never, vp, "u2") === null, "final data: a 1v1 isn't drawn here");
+    const flaggedFin = mv.multiFinalFrom({ ...settled, ratings: { ok: true, players: settled.ratings.players.map((c) => ({ ...c, moved: false })) } } as never, vp, "u2")!;
+    check(flaggedFin.changes.size === 0 && flaggedFin.seats.every((x) => x.rank === null), "final data: a match that moved nobody (a flagged run) shows no change for anyone");
+    const st = mv.multiStandingsFrom({
+      format: "ffa4",
+      players: vp,
+      gameTypes: ["unblock", "hover", "lightsout"],
+      results: [
+        { player_slot: 1, round_number: 1, score: 100 },
+        { player_slot: 2, round_number: 1, score: 120 },
+        { player_slot: 3, round_number: 1, score: 80 },
+        { player_slot: 4, round_number: 1, score: 100 },
+        { player_slot: 1, round_number: 2, score: 50 },
+        { player_slot: 2, round_number: 2, score: 60 },
+        { player_slot: 3, round_number: 2, score: 70 },
+      ],
+      meId: "u4",
+    })!;
+    check(st.game === 2 && st.games === 3 && st.next?.gameType === "lightsout" && st.headline.gameType === "hover", "standings data: after game 2 of 3, Lights Out next");
+    check(st.headline.winnerName === "P3" && st.headline.yourPlace === 4 && st.headline.yourPoints === 0, "standings data: the game's winner, your place and points (a missing row scores 0)");
+    check(eq(st.rows.map((r) => r.seatId), standingsAfter(4, ["slot:1", "slot:2", "slot:3", "slot:4"], [[{ seatId: "slot:1", score: 100 }, { seatId: "slot:2", score: 120 }, { seatId: "slot:3", score: 80 }, { seatId: "slot:4", score: 100 }], [{ seatId: "slot:1", score: 50 }, { seatId: "slot:2", score: 60 }, { seatId: "slot:3", score: 70 }, { seatId: "slot:4", score: 0 }]]).map((r) => r.seatId)), "standings data: rules.ts standingsAfter's order");
+
+    // The adapters with W3c's props.
+    const LOOK = { cardArt: "card-art.joulz-navy", frame: "frame.plain", nameColour: null, avatar: { id: "captain-joulz", colour: 4, gem: null } };
+    const ME = { userId: "u2", username: "TheInventor", playerNumber: 42, look: LOOK, title: null, badges: [], rank: rankAt(1278), guest: false, deleted: false };
+    let cancelled = false;
+    let u2 = await mount(React.createElement(fmt.MultiSearch, { me: ME as never, pickText: "Mixed, 8 players", progress: { elapsedMs: 9000, range: 100, recordedAfterMs: 8000 }, onCancel: () => (cancelled = true) }));
+    check($("[data-rated-multi='filling']")?.getAttribute("data-size") === "8" && $("[data-fill-count]")?.textContent?.replace(/\s/g, "") === "1/8", "W3c Search: the filling screen for 8, your seat first");
+    check($("[data-my-card] [data-player-card]") !== null, "W3c Search: your card through W3c's RatedCard");
+    check($("[data-match-chips]") !== null && /8 players/.test($("[data-match-chips]")?.textContent ?? "") && /Mixed/.test($("[data-match-chips]")?.textContent ?? ""), "W3c Search: W3c's MatchChips");
+    check($("[data-seat='me'] [data-seat-emblem]") !== null, "W3c Search: your tier with W3c's RankEmblem");
+    check(/0:09/.test($("[data-fill-clock]")?.textContent ?? ""), "W3c Search: the clock from W3c's search progress");
+    await act(async () => void $("[data-leave-queue]")?.click());
+    check(cancelled, "W3c Search: Leave queue is W3c's cancel");
+    await u2();
+    u2 = await mount(React.createElement(fmt.MultiSearch, { me: ME as never, pickText: "Puzzles, 4 players", progress: null, onCancel: () => {} }));
+    check($("[data-rated-multi='filling']")?.getAttribute("data-size") === "4", "W3c Search: the filling screen for 4");
+    await u2();
+
+    const withCard = (d: NonNullable<ReturnType<typeof mv.multiFinalFrom>>) => ({ ...d, seats: d.seats.map((x) => (x.guest ? x : { ...x, card: LOOK })) });
+    mv.setMultiViewPort({ final: async () => withCard(fin), standings: async () => ({ ...st, seats: st.seats.map((x) => ({ ...x, card: LOOK })) }) });
+    let nexted = false;
+    const result = {
+      match: { id: "m1", pick: "mixed", format: "ffa4", bestOf: 3, roomCode: "ABCD", me: ME, them: ME, source: { kind: "live" }, headToHead: null, placement: null },
+      games: [], myGames: 0, theirGames: 0, outcome: "drawn",
+      rating: { after: rankAt(1244), change: -6, puzzles: null, arcade: null },
+      frozen: null, placementResults: null, reveal: null,
+      joules: { amount: 150, passLevel: 13 },
+      star: null, nearMiss: null, friend: false, rematchUntil: null, moved: [],
+    };
+    u2 = await mount(React.createElement(fmt.MultiResult, { result: result as never, nowMs: 0, onNext: () => (nexted = true), onRematch: () => {}, onTiers: () => {}, onChallenge: async () => ({ ok: false, message: "" }), onReveal: () => {} }));
+    for (let i = 0; i < 5 && !$("[data-rated-multi='final']"); i++) await act(async () => void (await new Promise((r) => setTimeout(r, 10))));
+    check($("[data-rated-multi='final']")?.getAttribute("data-size") === "4", "W3c Result: the final screen for a 4-player result");
+    check(/You finished 3rd/.test($("[data-final-headline]")?.textContent ?? ""), "W3c Result: your place from the stored scores");
+    check($("[data-joules='150'] [data-joules-line='150']") !== null && /pass level 13/.test($("[data-joules]")?.textContent ?? ""), "W3c Result: W3c's JoulesLine with the pass level");
+    check($("[data-your-rating] [data-change='-6']") !== null, "W3c Result: your change from W3c's result");
+    check($$("[data-podium] [data-change], [data-placings] [data-change]").length === 2, "W3c Result: every moved player's change, nobody else's");
+    check($$("[data-seat-emblem]").length === 2 && $$("[data-podium] .pcard, [data-podium] svg, [data-podium] img").length > 0, "W3c Result: W3c's RankEmblem for moved players, PlayerDot avatars");
+    check($("[data-match-chips]") !== null, "W3c Result: W3c's MatchChips");
+    await act(async () => void $("[data-next-match]")?.click());
+    check(nexted, "W3c Result: Next match is W3c's onNext");
+    await u2();
+
+    u2 = await mount(React.createElement(fmt.MultiBetween, { matchId: "m1" }));
+    for (let i = 0; i < 5 && !$("[data-rated-multi='standings']"); i++) await act(async () => void (await new Promise((r) => setTimeout(r, 10))));
+    check($$("[data-standings] [data-standing]").length === 4 && $("[data-standing='slot:4']")?.hasAttribute("data-you") === true, "W3c Between: the standings, your row marked");
+    check(/Final game/.test($("[data-next-game]")?.textContent ?? "") && $("[data-next-clock]") === null, "W3c Between: the next game, no clock it wasn't given");
+    await u2();
+    mv.setMultiViewPort(null);
+    u2 = await mount(React.createElement(fmt.MultiBetween, { matchId: "m1" }));
+    check($("[data-rated-multi]") === null, "W3c Between: nothing drawn without the server (a skeleton)");
+    await u2();
+    mv.setMultiViewPort(undefined);
+    const src = readFileSync("src/lib/rated/multi/multiView.ts", "utf8");
+    check(/import\.meta\.env\.PROD\) return;/.test(src) && /!import\.meta\.env\.PROD\) return Promise\.resolve\(override\)/.test(src) && /await ratedBackend\(\)/.test(src), "multiView: the check port is ignored in production and the real binding sits behind W3c's ratedBackend gate");
+    const own = readFileSync("src/components/rated/multi/MultiScreens.tsx", "utf8");
+    check(!/LOGO_PATHS|rm-chip"|<Avatar /.test(own) && /from "@\/components\/rated\/RatedParts"/.test(own), "screens: W3c's parts in place of W3d's own Joules line, chips and avatar");
+  }
+
   const css = readFileSync("src/polish-layout/rated-multi.css", "utf8");
   check(!/animation|transition|@keyframes/.test(css.replace(/\/\*[\s\S]*?\*\//g, "")), "screens: no motion of their own");
   check(!/#[0-9a-fA-F]{3,8}\b|rgb\(|hsl\(/.test(css.replace(/\/\*[\s\S]*?\*\//g, "")), "screens: tokens only");

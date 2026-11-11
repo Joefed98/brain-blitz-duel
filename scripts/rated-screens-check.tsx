@@ -792,7 +792,11 @@ const profileUi = () => React.createElement(ProfileCard, { guestName: "Player", 
   check(["bo3", "bo5", "bo7"].every((f) => fs.formatKind(f as never) === "duel") && ["ffa4", "ffa8"].every((f) => fs.formatKind(f as never) === "placings"), "formats: bo3/5/7 a 1v1, ffa4/8 placings");
   const duel = fs.screensFor("bo3");
   check(duel?.Search === screens.Searching && duel?.Result === screens.MatchResult && duel?.vs === true, "a 1v1: Searching, VS and MatchResult");
-  check(fs.screensFor("ffa8") === null, "4 and 8 players: no screens until W3d fills the placings row (the route refuses such a link)");
+  // Changed 11 Nov 2026 with Joe's approval (W3d session: "fill that slot"): W3d has filled the placings row, so the
+  // former `screensFor("ffa8") === null` now reads W3d's three screens and no VS.
+  const multi = await import("../src/components/rated/multi/MultiFormat");
+  const placings = fs.screensFor("ffa8");
+  check(placings?.Search === multi.MultiSearch && placings?.Between === multi.MultiBetween && placings?.Result === multi.MultiResult && placings?.vs === false && fs.screensFor("ffa4") === placings, "4 and 8 players: W3d's filling, standings and final screens, no VS");
   const route = readFileSync("src/routes/rated.tsx", "utf8");
   check(route.includes("screensFor(search.format)") && route.includes("screensFor(result.match.format)?.Result") && !route.includes("<MatchResult") && !route.includes("<Searching"), "the route picks its screens by format only");
   const rated = await import("../src/routes/rated");
