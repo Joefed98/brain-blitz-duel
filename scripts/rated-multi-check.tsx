@@ -516,7 +516,7 @@ check(countsForPodiumRegular(liveSeat, 3) && !countsForPodiumRegular(liveSeat, 4
     const LOOK = { cardArt: "card-art.joulz-navy", frame: "frame.plain", nameColour: null, avatar: { id: "captain-joulz", colour: 4, gem: null } };
     const ME = { userId: "u2", username: "TheInventor", playerNumber: 42, look: LOOK, title: null, badges: [], rank: rankAt(1278), guest: false, deleted: false };
     let cancelled = false;
-    let u2 = await mount(React.createElement(fmt.MultiSearch, { me: ME as never, pickText: "Mixed, 8 players", progress: { elapsedMs: 9000, range: 100, recordedAfterMs: 8000 }, onCancel: () => (cancelled = true) }));
+    let u2 = await mount(React.createElement(fmt.MultiSearch, { me: ME as never, format: "ffa8", pick: "mixed", pickText: "Mixed, 8 players", progress: { elapsedMs: 9000, range: 100, recordedAfterMs: 8000 }, onCancel: () => (cancelled = true) }));
     check($("[data-rated-multi='filling']")?.getAttribute("data-size") === "8" && $("[data-fill-count]")?.textContent?.replace(/\s/g, "") === "1/8", "W3c Search: the filling screen for 8, your seat first");
     check($("[data-my-card] [data-player-card]") !== null, "W3c Search: your card through W3c's RatedCard");
     check($("[data-match-chips]") !== null && /8 players/.test($("[data-match-chips]")?.textContent ?? "") && /Mixed/.test($("[data-match-chips]")?.textContent ?? ""), "W3c Search: W3c's MatchChips");
@@ -525,8 +525,8 @@ check(countsForPodiumRegular(liveSeat, 3) && !countsForPodiumRegular(liveSeat, 4
     await act(async () => void $("[data-leave-queue]")?.click());
     check(cancelled, "W3c Search: Leave queue is W3c's cancel");
     await u2();
-    u2 = await mount(React.createElement(fmt.MultiSearch, { me: ME as never, pickText: "Puzzles, 4 players", progress: null, onCancel: () => {} }));
-    check($("[data-rated-multi='filling']")?.getAttribute("data-size") === "4", "W3c Search: the filling screen for 4");
+    u2 = await mount(React.createElement(fmt.MultiSearch, { me: ME as never, format: "ffa4", pick: "puzzles", pickText: "8 players everywhere", progress: null, onCancel: () => {} }));
+    check($("[data-rated-multi='filling']")?.getAttribute("data-size") === "4", "W3c Search: the size from W3c's format, never the pick text");
     await u2();
 
     const withCard = (d: NonNullable<ReturnType<typeof mv.multiFinalFrom>>) => ({ ...d, seats: d.seats.map((x) => (x.guest ? x : { ...x, card: LOOK })) });
@@ -553,13 +553,13 @@ check(countsForPodiumRegular(liveSeat, 3) && !countsForPodiumRegular(liveSeat, 4
     check(nexted, "W3c Result: Next match is W3c's onNext");
     await u2();
 
-    u2 = await mount(React.createElement(fmt.MultiBetween, { matchId: "m1" }));
+    u2 = await mount(React.createElement(fmt.MultiBetween, { matchId: "m1", format: "ffa4", game: 2, games: 3, msUntilNext: 7400 }));
     for (let i = 0; i < 5 && !$("[data-rated-multi='standings']"); i++) await act(async () => void (await new Promise((r) => setTimeout(r, 10))));
     check($$("[data-standings] [data-standing]").length === 4 && $("[data-standing='slot:4']")?.hasAttribute("data-you") === true, "W3c Between: the standings, your row marked");
-    check(/Final game/.test($("[data-next-game]")?.textContent ?? "") && $("[data-next-clock]") === null, "W3c Between: the next game, no clock it wasn't given");
+    check(/Final game/.test($("[data-next-game]")?.textContent ?? "") && $("[data-next-clock]")?.textContent === "0:07", "W3c Between: the next game with W3c's time to it");
     await u2();
     mv.setMultiViewPort(null);
-    u2 = await mount(React.createElement(fmt.MultiBetween, { matchId: "m1" }));
+    u2 = await mount(React.createElement(fmt.MultiBetween, { matchId: "m1", format: "ffa4", game: 2, games: 3, msUntilNext: null }));
     check($("[data-rated-multi]") === null, "W3c Between: nothing drawn without the server (a skeleton)");
     await u2();
     mv.setMultiViewPort(undefined);

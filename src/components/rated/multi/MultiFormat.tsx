@@ -13,12 +13,12 @@ import { FORMAT_GAMES } from "@/lib/rated/matchmaking";
 import { multiViewPort, sizeOfFormat, type MultiFinalData, type MultiSeatInfo, type MultiStandingsData } from "@/lib/rated/multi/multiView";
 import { pickLabel } from "@/lib/rated/rules";
 
-import type { ResultScreenProps, SearchScreenProps } from "../formatScreens";
+import type { BetweenScreenProps, ResultScreenProps, SearchScreenProps } from "../formatScreens";
 import { MultiFilling, MultiFinal, MultiStandings, type SeatView } from "./MultiScreens";
 
 const seatView = (s: MultiSeatInfo): SeatView => ({ seatId: s.seatId, name: s.name, card: s.card, you: s.you, recorded: s.recorded, rank: s.rank });
 
-function usePort<T>(matchId: string, read: (matchId: string) => Promise<T | null> | null): T | null {
+function usePort<T>(matchId: string, read: (matchId: string) => Promise<T | null> | null, again: unknown = null): T | null {
   const [data, setData] = useState<T | null>(null);
   useEffect(() => {
     let on = true;
@@ -29,20 +29,20 @@ function usePort<T>(matchId: string, read: (matchId: string) => Promise<T | null
     return () => {
       on = false;
     };
-  }, [matchId]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [matchId, again]); // eslint-disable-line react-hooks/exhaustive-deps
   return data;
 }
 
 /** In place of Searching: the filling screen, your seat first (the group is claimed at once, so it fills in one step). */
-export function MultiSearch({ me, pickText, progress, onCancel }: SearchScreenProps) {
-  // The route's pick text is "Mixed, 8 players" for an ffa format (rated.tsx formatText); the size is read from it.
-  const size = sizeOfFormat(/\b8 players\b/.test(pickText) ? "ffa8" : "ffa4") ?? 4;
+export function MultiSearch({ me, format, pick, pickText, progress, onCancel }: SearchScreenProps) {
+  // The size from W3b's format (W3c passes it); never from the pick text.
+  const size = sizeOfFormat(format) ?? 4;
   const seats: SeatView[] = [{ seatId: "me", name: me.username, card: me.look, you: true, rank: me.rank }];
   return (
     <MultiFilling
       size={size}
-      picks={pickText.split(",")[0]?.trim() || pickText}
-      games={FORMAT_GAMES[size === 8 ? "ffa8" : "ffa4"]}
+      picks={pick ? pickLabel(pick) : pickText}
+      games={FORMAT_GAMES[format]}
       seats={seats}
       elapsedMs={progress?.elapsedMs ?? 0}
       me={me}
@@ -51,9 +51,9 @@ export function MultiSearch({ me, pickText, progress, onCancel }: SearchScreenPr
   );
 }
 
-/** Between games: the standings so far. */
-export function MultiBetween({ matchId }: { matchId: string }) {
-  const data = usePort<MultiStandingsData>(matchId, (id) => multiViewPort().then((p) => (p ? p.standings(id) : null)));
+/** Between games: the standings so far, read again after each game, and W3c's live time to the next game. */
+export function MultiBetween({ matchId, game, msUntilNext }: BetweenScreenProps) {
+  const data = usePort<MultiStandingsData>(matchId, (id) => multiViewPort().then((p) => (p ? p.standings(id) : null)), game);
   if (!data) return <SkeletonPage label="Standings" />;
   return (
     <MultiStandings
@@ -63,7 +63,7 @@ export function MultiBetween({ matchId }: { matchId: string }) {
       rows={data.rows}
       seats={data.seats.map(seatView)}
       headline={{ gameName: puzzleName(data.headline.gameType as PuzzleType), winnerName: data.headline.winnerName, yourPlace: data.headline.yourPlace, yourPoints: data.headline.yourPoints }}
-      next={data.next ? { gameName: puzzleName(data.next.gameType as PuzzleType) } : null}
+      next={data.next ? { gameName: puzzleName(data.next.gameType as PuzzleType), ...(msUntilNext !== null ? { msLeft: msUntilNext } : {}) } : null}
     />
   );
 }

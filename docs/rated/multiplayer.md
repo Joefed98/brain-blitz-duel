@@ -72,7 +72,7 @@ decorative) and not at all under reduced motion. No motion of the screens' own.
 
 rated-multi-check (~2 s, no browser).
 
-## In W3c's match flow (#380, merged at dc89d06d)
+## In W3c's match flow (#380, merged at 427ab83d)
 
 W3c's `/rated` route picks its screens by W3b's format (`screensFor`, `src/components/rated/formatScreens.tsx`); the
 placings row is W3d's, fitted to W3c's props in `src/components/rated/multi/MultiFormat.tsx`, with no VS (the filling
@@ -80,8 +80,8 @@ screen leads straight into the games):
 
 | W3c's slot | W3d's screen | Reads |
 |---|---|---|
-| `Search` (in place of Searching) | `MultiSearch` → `MultiFilling` | W3c's `me` (its `RatedCard` over the seats, `RankEmblem`), the search progress's clock, Cancel as Leave queue; the size from the route's pick text ("Mixed, 8 players"). W3b claims a group at once, so the seats fill in one step. |
-| `Between` (between games) | `MultiBetween` → `MultiStandings` | `multiView.ts` `standings(matchId)`: W3b's match view (names, guest tags) and the room's own results and games (the phone's RLS reads, `roomReads.ts`, as the room's round results screen). No clock unless one is given. |
+| `Search` (in place of Searching) | `MultiSearch` → `MultiFilling` | W3c's `me` (its `RatedCard` over the seats, `RankEmblem`), the search progress's clock, Cancel as Leave queue; the size and games from W3c's `format`, the chip from its `pick`. W3b claims a group at once, so the seats fill in one step. |
+| `Between` (between games; W3c's room route draws it in place of the round result and standings, `RatedBetween`) | `MultiBetween` → `MultiStandings` | `multiView.ts` `standings(matchId)`, read again after each game: W3b's match view (names, guest tags) and the room's own results and games (the phone's RLS reads, `roomReads.ts`, as the room's round results screen); the countdown is W3c's live `msUntilNext` from the room's phase clock (none after the last game). |
 | `Result` (in place of MatchResult) | `MultiResult` → `MultiFinal` | Your rating change and Joules (with the pass level) from W3c's `RatedResult`; every seat, the placings and each moved player's change and tier from `multiView.ts` `final(matchId)`: W3b's public settlement (stored scores, stored placings, W3a's answer) and match view. |
 
 The screens draw W3c's shared parts (`RatedParts`): `MatchChips`, `JoulesLine` with the pass level, `RankEmblem` for a
