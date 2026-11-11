@@ -20,6 +20,23 @@
 import { arcadeReducedEffects } from "@/lib/fx/lowEnd";
 import { arcadeFx, ARCADE_FX_DISPLAY_FONT } from "./arcadeFx.renderer";
 import { RACING_FX } from "./sportsFx.renderer";
+import { lookKey, NO_LOOK, skinReducedMotion, skinTime, type GameLook } from "./skins/look";
+import {
+  carGoldSparkles,
+  carPaintBody,
+  carPaintMarks,
+  NEON_NIGHT_BELTS,
+  NEON_NIGHT_COL,
+  NEON_NIGHT_HAZE,
+  NEON_NIGHT_NEAR,
+  NEON_NIGHT_TREE,
+  neonNightChase,
+  paintNeonCity,
+  paintNeonNightSky,
+  paintNeonNightStars,
+  paintNeonStand,
+  racingCarPaint,
+} from "./skins/racing.skins";
 import type { ArenaAmbient, ArenaSceneView } from "./arenaScene.renderer";
 import type { ArcadeGame, ArcadeInputEvent, CanvasSize } from "./engine";
 import {
@@ -159,6 +176,8 @@ export interface RacingGhostView {
   /** Race distance and lateral position in the sim's units. */
   s: number;
   x: number;
+  /** The ghost's own car paint (its owner's equipped `game-skin.apex.*`; wave 2 skins), or none. */
+  skin?: string | null;
 }
 let ghosts: readonly RacingGhostView[] = [];
 /** Display only: the other players' cars to draw this frame. */
@@ -209,6 +228,10 @@ function hash(n: number): number {
 
 /** The sunset sky (no sun: the sun moves with the heading), painted into a w × h rect. */
 export function paintRacingSky(ctx: Ctx2D, w: number, h: number, horizon = HORIZON): void {
+  if (SK.world) {
+    paintNeonNightSky(ctx, w, h, horizon);
+    return;
+  }
   const g = ctx.createLinearGradient(0, 0, 0, horizon + 20);
   g.addColorStop(0, "#2C2F5E");
   g.addColorStop(0.28, "#6B4778");
@@ -316,7 +339,7 @@ interface Layers {
  * Cached sprite layers by scale. The world and the view beyond it (racingAmbient) draw at different scales on the same
  * frame, so a single cached scale would rebuild every layer twice a frame; a few scales are kept.
  */
-const layerCache = new Map<number, Layers>();
+const layerCache = new Map<number | string, Layers>();
 const HILL_W = Math.round(Math.PI * 2 * PX_PER_RAD);
 const FAR_H = 70;
 const NEAR_H = 58;
@@ -329,7 +352,9 @@ const STAND_H = 120;
 
 function layersFor(scale: number): Layers {
   const s = Math.max(1, Math.min(3, Math.round(scale * 2) / 2));
-  const hit = layerCache.get(s);
+  const key = lookKey(SK);
+  const cacheKey = key ? `${s}|${key}` : s;
+  const hit = layerCache.get(cacheKey);
   if (hit) return hit;
   const surf = (w: number, h: number, paint: (c: Ctx2D) => void): Surface | null => {
     const out = makeSurface(w * s, h * s);
@@ -342,15 +367,19 @@ function layersFor(scale: number): Layers {
   const layers: Layers = {
     scale: s,
     sky: surf(RACING_WORLD_W, HORIZON + 20, (c) => paintRacingSky(c, RACING_WORLD_W, RACING_WORLD_H)),
-    far: surf(HILL_W, FAR_H, (c) => paintHillStrip(c, HILL_W, FAR_H, 3, "#8A5A7A", "#5E4466", "rgba(255,190,150,0.55)", 52, false)),
-    near: surf(HILL_W, NEAR_H, (c) => paintHillStrip(c, HILL_W, NEAR_H, 11, "#4A3B48", "#2E2A30", "rgba(255,170,110,0.6)", 40, true)),
+    far: surf(HILL_W, FAR_H, (c) => (SK.world ? paintNeonCity(c, HILL_W, FAR_H) : paintHillStrip(c, HILL_W, FAR_H, 3, "#8A5A7A", "#5E4466", "rgba(255,190,150,0.55)", 52, false))),
+    near: surf(HILL_W, NEAR_H, (c) =>
+      SK.world
+        ? paintHillStrip(c, HILL_W, NEAR_H, 11, NEON_NIGHT_NEAR.top, NEON_NIGHT_NEAR.bottom, NEON_NIGHT_NEAR.rim, 40, false)
+        : paintHillStrip(c, HILL_W, NEAR_H, 11, "#4A3B48", "#2E2A30", "rgba(255,170,110,0.6)", 40, true),
+    ),
     car: surf(CAR_SPRITE_W, CAR_SPRITE_H, (c) => paintRacingCar(c, CAR_SPRITE_W / 2, CAR_SPRITE_H - 2, CAR_SPRITE_W, false)),
     carBrake: surf(CAR_SPRITE_W, CAR_SPRITE_H, (c) => paintRacingCar(c, CAR_SPRITE_W / 2, CAR_SPRITE_H - 2, CAR_SPRITE_W, true)),
     trees: [0, 1, 2].map((v) => surf(TREE_W, TREE_H, (c) => paintTree(c, TREE_W / 2, TREE_H, TREE_H, v))).filter((x): x is Surface => x !== null),
-    stand: surf(STAND_W, STAND_H, (c) => paintStand(c, STAND_W, STAND_H)),
+    stand: surf(STAND_W, STAND_H, (c) => (SK.world ? paintNeonStand(c, STAND_W, STAND_H) : paintStand(c, STAND_W, STAND_H))),
   };
   if (layerCache.size >= 4) layerCache.delete(layerCache.keys().next().value!);
-  layerCache.set(s, layers);
+  layerCache.set(cacheKey, layers);
   return layers;
 }
 
@@ -358,10 +387,10 @@ function layersFor(scale: number): Layers {
 
 /** A roadside tree (silhouette with a warm rim from the low sun), its trunk's foot at (x, y). */
 function paintTree(ctx: Ctx2D, x: number, y: number, h: number, variant: number): void {
-  ctx.fillStyle = "#2B1E18";
+  ctx.fillStyle = SK.world ? NEON_NIGHT_TREE.trunk : "#2B1E18";
   ctx.fillRect(x - h * 0.025, y - h * 0.3, h * 0.05, h * 0.3);
-  const body = variant === 0 ? "#22301F" : variant === 1 ? "#283522" : "#1E2A20";
-  const rim = "rgba(255,170,90,0.55)";
+  const body = SK.world ? NEON_NIGHT_TREE.body : variant === 0 ? "#22301F" : variant === 1 ? "#283522" : "#1E2A20";
+  const rim = SK.world ? NEON_NIGHT_TREE.rim : "rgba(255,170,90,0.55)";
   if (variant === 2) {
     // A poplar.
     ctx.fillStyle = body;
@@ -439,7 +468,7 @@ function paintStand(ctx: Ctx2D, w: number, h: number): void {
  * The car from behind: a graphite GT with a gold stripe, sunset reflections, an LED tail-light bar, a rain light,
  * the diffuser and exhaust tips; its body exactly `w` wide, its tyres' contact line at `bottom`.
  */
-export function paintRacingCar(ctx: Ctx2D, cx: number, bottom: number, w: number, braking: boolean, ghost?: string): void {
+export function paintRacingCar(ctx: Ctx2D, cx: number, bottom: number, w: number, braking: boolean, ghost?: string, ghostSkin?: string | null): void {
   const h = w * 0.6;
   const x0 = cx - w / 2;
   const top = bottom - h;
@@ -454,7 +483,9 @@ export function paintRacingCar(ctx: Ctx2D, cx: number, bottom: number, w: number
   const tw = w * 0.16;
   ctx.fillRect(x0 + w * 0.04, bottom - h * 0.3, tw, h * 0.3);
   ctx.fillRect(x0 + w * 0.96 - tw, bottom - h * 0.3, tw, h * 0.3);
-  // Body (graphite) with a sunset reflection.
+  // Body (graphite) with a sunset reflection; the player's own car in its paint (wave 2 skins; ghosts never).
+  // A ghost wears its own owner's paint (never the viewer's); the player's car the viewer's equipped one.
+  const paint = ghost ? racingCarPaint({ skin: ghostSkin ?? null, world: null }) : racingCarPaint(SK);
   const body = ctx.createLinearGradient(0, top, 0, bottom);
   if (ghost) {
     body.addColorStop(0, ghost);
@@ -465,7 +496,7 @@ export function paintRacingCar(ctx: Ctx2D, cx: number, bottom: number, w: number
     body.addColorStop(0.5, "#3A3A42");
     body.addColorStop(1, "#1E1E24");
   }
-  ctx.fillStyle = body;
+  ctx.fillStyle = paint ? carPaintBody(ctx, paint, x0, top, w, bottom) : body;
   ctx.beginPath();
   ctx.moveTo(x0, bottom - h * 0.24);
   ctx.lineTo(x0 + w * 0.02, bottom - h * 0.56);
@@ -479,6 +510,7 @@ export function paintRacingCar(ctx: Ctx2D, cx: number, bottom: number, w: number
   ctx.lineTo(x0 + w * 0.04, bottom - h * 0.12);
   ctx.closePath();
   ctx.fill();
+  if (paint) carPaintMarks(ctx, paint, cx, top, w, h, bottom, skinTime());
   // Rear window with the sky in it.
   const glass = ctx.createLinearGradient(0, top + h * 0.08, 0, bottom - h * 0.66);
   glass.addColorStop(0, "#F2A060");
@@ -493,7 +525,7 @@ export function paintRacingCar(ctx: Ctx2D, cx: number, bottom: number, w: number
   ctx.closePath();
   ctx.fill();
   // Gold stripe over the roof and down the tail.
-  if (!ghost) {
+  if (!ghost && !paint) {
     ctx.fillStyle = "#E3B341";
     ctx.fillRect(cx - w * 0.035, top + h * 0.02, w * 0.07, h * 0.08);
     ctx.fillRect(cx - w * 0.035, bottom - h * 0.66, w * 0.07, h * 0.22);
@@ -523,6 +555,7 @@ export function paintRacingCar(ctx: Ctx2D, cx: number, bottom: number, w: number
   // Rain light (centre, under the bar).
   ctx.fillStyle = braking ? "#FF5050" : "#5A1A1E";
   ctx.fillRect(cx - w * 0.025, bottom - h * 0.34, w * 0.05, h * 0.06);
+  if (paint === "gold" && !ghost) carGoldSparkles(ctx, cx, top, w, h, skinTime());
   ctx.restore();
 }
 
@@ -618,7 +651,7 @@ interface Proj {
   scale: number;
 }
 
-const COL = {
+const COL_DAY = {
   grassA: "#5D6A2E",
   grassB: "#566428",
   gravelA: "#C4A275",
@@ -632,6 +665,17 @@ const COL = {
   edge: "#E9E4DA",
   skid: "rgba(18,16,18,0.32)",
 };
+
+/**
+ * The look this draw uses (wave 2 skins; src/lib/arcade/skins/look.ts): set for the length of the public draw calls,
+ * the default otherwise. SK.world swaps the day palette for the Neon Night's; SK.skin paints the player's own car.
+ */
+let SK: GameLook = NO_LOOK;
+let COL: typeof COL_DAY = COL_DAY;
+function useLook(look: GameLook): void {
+  SK = look;
+  COL = look.world ? NEON_NIGHT_COL : COL_DAY;
+}
 
 function quad(path: Path2D, x1: number, y1: number, w1: number, x2: number, y2: number, w2: number, a1: number, b1: number, a2: number, b2: number): void {
   // From a1..b1 (in units of w1 about x1) on the near edge to a2..b2 on the far edge.
@@ -721,7 +765,9 @@ function drawWorld(ctx: Ctx2D, state: RacingState, L: Layers, B: Bounds = WORLD_
   const sunX = W / 2 + Math.tan(Math.max(-1.3, Math.min(1.3, rel))) * F;
   const sunY = HORIZON - 34;
   const sunOn = Math.abs(rel) < 1.1;
-  if (sunOn && high) paintSun(ctx, sunX, sunY);
+  if (SK.world) {
+    if (high) paintNeonNightStars(ctx, W, HORIZON, skinTime());
+  } else if (sunOn && high) paintSun(ctx, sunX, sunY);
   const hillShift = (layer: Surface | null, h: number, k: number, y: number) => {
     if (!layer) return;
     let off = (-heading * PX_PER_RAD * k) % HILL_W;
@@ -735,7 +781,7 @@ function drawWorld(ctx: Ctx2D, state: RacingState, L: Layers, B: Bounds = WORLD_
   }
   // The far fields in the haze, under the road's farthest segment.
   const haze = ctx.createLinearGradient(0, HORIZON + 4, 0, HAZE_END);
-  haze.addColorStop(0, "#8C7A58");
+  haze.addColorStop(0, SK.world ? NEON_NIGHT_HAZE : "#8C7A58");
   haze.addColorStop(1, COL.grassA);
   ctx.fillStyle = haze;
   ctx.fillRect(B.x0, HORIZON + 3, B.x1 - B.x0, B.y1 - HORIZON - 3);
@@ -792,6 +838,8 @@ function drawWorld(ctx: Ctx2D, state: RacingState, L: Layers, B: Bounds = WORLD_
   const visible = new Uint8Array(edges);
   const kw = KERB_W / RW;
   const ww = WALL_W / RW;
+  // The Neon Night's kerbs chase (0 by default, and at rest under Reduce Motion).
+  const chase = SK.world ? neonNightChase(skinTime()) : 0;
   for (let i = 0; i < DRAW_SEGS; i++) {
     const q1 = proj[i]!;
     const p2 = proj[i + 1]!;
@@ -827,7 +875,7 @@ function drawWorld(ctx: Ctx2D, state: RacingState, L: Layers, B: Bounds = WORLD_
     if (gv & 2) quad(gp, p1.x, y1, p1.w, p2.x, p2.y, p2.w, kw, ww, kw, ww);
     const kerbHere = lk.kerb[seg]!;
     if (kerbHere) {
-      const kp = Math.floor(k / 2) % 2 === 0 ? P.kerbR : P.kerbW;
+      const kp = Math.floor((k + chase) / 2) % 2 === 0 ? P.kerbR : P.kerbW;
       quad(kp, p1.x, y1, p1.w, p2.x, p2.y, p2.w, -kw, -1, -kw, -1);
       quad(kp, p1.x, y1, p1.w, p2.x, p2.y, p2.w, 1, kw, 1, kw);
     } else {
@@ -945,7 +993,7 @@ function drawWorld(ctx: Ctx2D, state: RacingState, L: Layers, B: Bounds = WORLD_
         ctx.closePath();
         ctx.fill();
         // The belt strapping the top row: red and white.
-        ctx.fillStyle = belt < 2 ? "#B8322C" : "#E6E0D6";
+        ctx.fillStyle = SK.world ? NEON_NIGHT_BELTS[belt < 2 ? 0 : 1] : belt < 2 ? "#B8322C" : "#E6E0D6";
         ctx.beginPath();
         ctx.moveTo(xa, ya - ha * 0.78);
         ctx.lineTo(xb, p2.y - hb * 0.78);
@@ -986,7 +1034,7 @@ function drawWorld(ctx: Ctx2D, state: RacingState, L: Layers, B: Bounds = WORLD_
       const gw = CAR_HALF_W * 2 * sc;
       ctx.save();
       ctx.globalAlpha = 0.42;
-      paintRacingCar(ctx, gx, gy, gw, false, g.colour);
+      paintRacingCar(ctx, gx, gy, gw, false, g.colour, g.skin);
       ctx.restore();
       if (gw > 14) {
         ctx.font = `700 ${Math.max(8, Math.min(12, gw * 0.18))}px ${ARCADE_FX_DISPLAY_FONT}`;
@@ -1017,7 +1065,8 @@ function drawWorld(ctx: Ctx2D, state: RacingState, L: Layers, B: Bounds = WORLD_
   const bounce = state.off ? Math.sin(state.tick * 1.7) * 1.6 : Math.sin(state.tick * 0.9) * 0.4 * speedShare;
   const carW = RACING_CAR_HALF_PX * 2;
   const braking = state.pedal < 0;
-  const sprite = braking ? L.carBrake : L.car;
+  // Molten Gold's shine moves, so its car is painted each frame (the sprite is its still, under Reduce Motion).
+  const sprite = SK.skin && racingCarPaint(SK) === "gold" && !skinReducedMotion() ? null : braking ? L.carBrake : L.car;
   // Heat haze over the exhaust at speed.
   if (speedShare > 0.35) {
     ctx.save();
@@ -1352,13 +1401,22 @@ function drawHud(ctx: Ctx2D, state: RacingState): void {
 }
 
 /** The play screen's frame, under the shared success and miss effects (sportsFx.renderer.ts). */
-export function drawRacingArt(ctx: CanvasRenderingContext2D, state: RacingState, size: CanvasSize): void {
-  arcadeFx(ctx, RACING_FX, state, () => drawRacingWorld(ctx, state, size), size);
+export function drawRacingArt(ctx: CanvasRenderingContext2D, state: RacingState, size: CanvasSize, look: GameLook = NO_LOOK): void {
+  useLook(look);
+  try {
+    arcadeFx(ctx, RACING_FX, state, () => drawRacingWorld(ctx, state, size), size);
+  } finally {
+    useLook(NO_LOOK);
+  }
 }
 
+/** The look the view beyond the world draws in: the last play frame's (display only). */
+let beyondLook: GameLook = NO_LOOK;
+
 /** The play screen's frame: the world, and the view beyond it on the screen's fill (racingAmbient). */
-export function drawRacingPlay(ctx: CanvasRenderingContext2D, state: RacingState, size: CanvasSize): void {
-  drawRacingArt(ctx, state, size);
+export function drawRacingPlay(ctx: CanvasRenderingContext2D, state: RacingState, size: CanvasSize, look: GameLook = NO_LOOK): void {
+  drawRacingArt(ctx, state, size, look);
+  beyondLook = look;
   repaintBeyond(state);
 }
 
@@ -1387,7 +1445,42 @@ export const racingArtGame: ArcadeGame<RacingState, ArcadeInputEvent | null> = {
  * and kerbs, the grass, trees, tyre walls and grandstands) every frame the world draws.
  */
 export function racingScene(ctx: CanvasRenderingContext2D, view: ArenaSceneView): void {
+  racingSceneLooked(ctx, view, NO_LOOK);
+}
+
+/** The scene in a look (wave 2 skins): the live stage's, the player's own. */
+export function racingSceneFor(look: GameLook): (ctx: CanvasRenderingContext2D, view: ArenaSceneView) => void {
+  return look.world ? (ctx, view) => racingSceneLooked(ctx, view, look) : racingScene;
+}
+
+function racingSceneLooked(ctx: CanvasRenderingContext2D, view: ArenaSceneView, look: GameLook): void {
+  useLook(look);
+  try {
+    paintRacingScene(ctx, view);
+  } finally {
+    useLook(NO_LOOK);
+  }
+}
+
+function paintRacingScene(ctx: CanvasRenderingContext2D, view: ArenaSceneView): void {
   const H = view.worldH;
+  if (SK.world) {
+    const x0 = view.left;
+    const w = view.right - view.left;
+    ctx.fillStyle = "#05040F";
+    ctx.fillRect(x0, view.top, w, Math.max(0, -view.top) + 2);
+    ctx.save();
+    ctx.translate(x0, 0);
+    paintNeonNightSky(ctx, w, H, HORIZON);
+    ctx.restore();
+    ctx.fillStyle = COL.grassA;
+    ctx.fillRect(x0, HORIZON + 3, w, H - HORIZON - 3);
+    if (view.bottom > H) {
+      ctx.fillStyle = COL.roadA;
+      ctx.fillRect(x0, H - 1, w, view.bottom - H + 1);
+    }
+    return;
+  }
   const x0 = view.left;
   const w = view.right - view.left;
   const sky = ctx.createLinearGradient(0, 0, 0, HORIZON + 20);
@@ -1425,6 +1518,15 @@ let beyondState: RacingState | null = null;
 let lastBeyond: RacingState | null = null;
 
 function paintBeyond(ctx: CanvasRenderingContext2D, view: ArenaSceneView, state: RacingState): void {
+  useLook(beyondLook);
+  try {
+    paintBeyondLooked(ctx, view, state);
+  } finally {
+    useLook(NO_LOOK);
+  }
+}
+
+function paintBeyondLooked(ctx: CanvasRenderingContext2D, view: ArenaSceneView, state: RacingState): void {
   const L = layersFor(Math.max(1, view.scale * 2));
   // Only round the world (its own canvas covers the rest): the area outside its box, a 1-unit overlap at the seam.
   ctx.save();
@@ -1452,7 +1554,7 @@ export const racingAmbient: ArenaAmbient = {
     beyond = { ctx, m: ctx.getTransform(), view, clipTop: Math.max(view.top, view.boxTop ?? 0) };
     lastBeyond = null;
     if (beyondState && !largeScreen) paintBeyond(ctx, view, beyondState);
-    else racingScene(ctx, view);
+    else racingSceneLooked(ctx, view, beyondLook);
   },
 };
 
@@ -1510,4 +1612,14 @@ export function paintRacingTile(ctx: CanvasRenderingContext2D, size: number): vo
   const L = layersFor(Math.max(1, s * 2));
   drawWorld(ctx, state, L);
   ctx.restore();
+}
+
+/** The player's car alone in a look (checks: a paint stays inside the default car's outline). */
+export function paintRacingCarIn(look: GameLook, ctx: Ctx2D, cx: number, bottom: number, w: number, braking: boolean): void {
+  useLook(look);
+  try {
+    paintRacingCar(ctx, cx, bottom, w, braking);
+  } finally {
+    useLook(NO_LOOK);
+  }
 }

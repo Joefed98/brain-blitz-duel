@@ -551,6 +551,8 @@ export interface RoundResultRow {
   extra: Record<string, unknown> | null;
   score: number;
   submitted_at: string;
+  /** The skin its player had equipped (wave 2, E1; display only, filled by the database; docs/skins.md). */
+  look?: unknown;
 }
 
 /** Server-built display data, released only after its round has ended. */
