@@ -137,9 +137,10 @@ const ROWS: readonly Row[] = [
   ["swiss-champion", "Swiss Champion", D, "elite", T, "Win a Swiss tournament."],
   ["knockout-champion", "Knockout Champion", D, "legendary", T, "Win a Knockout final."],
   ["serial-winner", "Serial Winner", D, "legendary", T, "Win 10 tournaments.", [10, "tournaments"]],
-  ["challenger", "Challenger", H, "common", "practice-challenges", "Complete 10 Practice challenges.", [10, "challenges"]],
-  ["challenge-seeker", "Challenge Seeker", H, "rare", "practice-challenges", "Complete 50 Practice challenges.", [50, "challenges"]],
-  ["challenge-expert", "Challenge Expert", H, "epic", "practice-challenges", "Complete 100 Practice challenges.", [100, "challenges"]],
+  // From C1b's stored completions (public.practice_challenge_progress), wired 11 Nov 2026.
+  ["challenger", "Challenger", H, "common", null, "Complete 10 Practice challenges.", [10, "challenges"]],
+  ["challenge-seeker", "Challenge Seeker", H, "rare", null, "Complete 50 Practice challenges.", [50, "challenges"]],
+  ["challenge-expert", "Challenge Expert", H, "epic", null, "Complete 100 Practice challenges.", [100, "challenges"]],
   ["category-clear", "Category Clear", H, "elite", "hard-challenges", "Complete every challenge in one category."],
   ["completionist", "Completionist", H, "legendary", "hard-challenges", "Complete every Practice challenge."],
   ["revenge", "Revenge", F, "common", R, "Win the rematch after losing to the same player."],
@@ -149,7 +150,8 @@ const ROWS: readonly Row[] = [
   // Earnable now, but awarded by B1 (friends) through badge_award, not by a rule here (Joe, 11 Nov 2026).
   ["friendly", "Friendly", S, "common", null, "Add 5 friends.", [5, "friends"]],
   ["party-host", "Party Host", S, "rare", null, "Host 25 rooms with at least 3 players.", [25, "rooms"]],
-  ["gem-hunter", "Gem Hunter", S, "rare", null, "Unlock your first gem colour."],
+  // Parked until C1a's gem table (Joe, 11 Nov 2026), with First Star and All-Rounder.
+  ["gem-hunter", "Gem Hunter", S, "rare", "mastery-stars", "Unlock your first gem colour."],
   ["founding-player", "Founding Player", S, "legendary", null, "Make an account before 26 January 2027."],
 ];
 

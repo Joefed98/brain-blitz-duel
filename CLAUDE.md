@@ -2003,10 +2003,10 @@ outside the repo.
 - **Badges, titles and the account rewards** (wave 2 train C, session C2, 11 Nov 2026, `docs/badges/README.md`; no
   gameplay, scoring, stamp or timing change): the 54 badges and their rules are Joe's approved catalogue,
   **`docs/badges/catalogue.md`**, in one list, `src/lib/badges/catalogue.ts` (with the 32 titles; seeded by
-  `20261111220000_badges_titles.sql`, **not applied until merged**). Each is `earnable` (11: a rule in
+  `20261111220000_badges_titles.sql`, after C1b's `20261111130000`, **not applied until merged**). Each is `earnable` (13: a rule in
   `rules.server.ts` read from stored facts, `public.badge_facts` plus the Daily record, or Friendly, which B1 awards
-  through `badge_award`) or `waits` (43: rated play, all stars, Hard challenges, Daily boards, tournaments, and C1a's /
-  C1b's star and challenge badges until those land); only earnable ones can be awarded (`badge_award`, idempotent, a
+  through `badge_award`; the challenge badges count C1b's completed challenges) or `waits` (41: rated play, all stars,
+  Hard challenges, Daily boards, tournaments, and C1a's First Star, All-Rounder and Gem Hunter until C1a lands); only earnable ones can be awarded (`badge_award`, idempotent, a
   Legendary's 250 coins once, key `badge_reward:<slug>`). Practice counts only from C1a's fresh start
   (`PRACTICE_SINCE`, null until then). `settleAccountRewards` pays the 1,000-coin sign-up reward (key
   `signup_reward:<user id>`) and a Founding Player's badge, 250 and Founding frame, from `syncMyBadges` (after sign-up

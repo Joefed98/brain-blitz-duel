@@ -106,9 +106,9 @@ INSERT INTO public.badges (slug, name, grp, rarity, coins, status, waits_for, ru
   ('swiss-champion', 'Swiss Champion', 'daily-and-tournaments', 'elite', 0, 'waits', 'tournaments', 'Win a Swiss tournament.', NULL, NULL, 39),
   ('knockout-champion', 'Knockout Champion', 'daily-and-tournaments', 'legendary', 250, 'waits', 'tournaments', 'Win a Knockout final.', NULL, NULL, 40),
   ('serial-winner', 'Serial Winner', 'daily-and-tournaments', 'legendary', 250, 'waits', 'tournaments', 'Win 10 tournaments.', 10, 'tournaments', 41),
-  ('challenger', 'Challenger', 'challenges', 'common', 0, 'waits', 'practice-challenges', 'Complete 10 Practice challenges.', 10, 'challenges', 42),
-  ('challenge-seeker', 'Challenge Seeker', 'challenges', 'rare', 0, 'waits', 'practice-challenges', 'Complete 50 Practice challenges.', 50, 'challenges', 43),
-  ('challenge-expert', 'Challenge Expert', 'challenges', 'epic', 0, 'waits', 'practice-challenges', 'Complete 100 Practice challenges.', 100, 'challenges', 44),
+  ('challenger', 'Challenger', 'challenges', 'common', 0, 'earnable', NULL, 'Complete 10 Practice challenges.', 10, 'challenges', 42),
+  ('challenge-seeker', 'Challenge Seeker', 'challenges', 'rare', 0, 'earnable', NULL, 'Complete 50 Practice challenges.', 50, 'challenges', 43),
+  ('challenge-expert', 'Challenge Expert', 'challenges', 'epic', 0, 'earnable', NULL, 'Complete 100 Practice challenges.', 100, 'challenges', 44),
   ('category-clear', 'Category Clear', 'challenges', 'elite', 0, 'waits', 'hard-challenges', 'Complete every challenge in one category.', NULL, NULL, 45),
   ('completionist', 'Completionist', 'challenges', 'legendary', 250, 'waits', 'hard-challenges', 'Complete every Practice challenge.', NULL, NULL, 46),
   ('revenge', 'Revenge', 'fun', 'common', 0, 'waits', 'rated-play', 'Win the rematch after losing to the same player.', NULL, NULL, 47),
@@ -117,7 +117,7 @@ INSERT INTO public.badges (slug, name, grp, rarity, coins, status, waits_for, ru
   ('speed-demon', 'Speed Demon', 'fun', 'epic', 0, 'earnable', NULL, 'Finish a puzzle in under a third of its time, 10 times.', 10, 'times', 50),
   ('friendly', 'Friendly', 'social-and-special', 'common', 0, 'earnable', NULL, 'Add 5 friends.', 5, 'friends', 51),
   ('party-host', 'Party Host', 'social-and-special', 'rare', 0, 'earnable', NULL, 'Host 25 rooms with at least 3 players.', 25, 'rooms', 52),
-  ('gem-hunter', 'Gem Hunter', 'social-and-special', 'rare', 0, 'earnable', NULL, 'Unlock your first gem colour.', NULL, NULL, 53),
+  ('gem-hunter', 'Gem Hunter', 'social-and-special', 'rare', 0, 'waits', 'mastery-stars', 'Unlock your first gem colour.', NULL, NULL, 53),
   ('founding-player', 'Founding Player', 'social-and-special', 'legendary', 250, 'earnable', NULL, 'Make an account before 26 January 2027.', NULL, NULL, 54)
 ON CONFLICT (slug) DO NOTHING;
 
@@ -458,12 +458,13 @@ GRANT EXECUTE ON FUNCTION public.daily_history(uuid) TO service_role;
 -- player: rooms (the game on now and Play again's archive), the Daily and challenges (not the results a challenge
 -- copied from the player's own room), and Practice only from p_practice_since (C1a's fresh start; null: none).
 -- p_puzzle_limits maps every puzzle (non-arcade) type to its clock in ms (the server's catalogue); a stored clock
--- (time_limit_ms) wins. Answers {games200, buzzer, speedDemon, hosted3, gems}:
+-- (time_limit_ms) wins. Answers {games200, buzzer, speedDemon, hosted3, challenges}:
 --   games200   different games scored 200 in;
 --   buzzer     puzzles finished (is_correct) with 1–999 ms left;
 --   speedDemon puzzles finished with more than two thirds of their clock left (in under a third of their time);
 --   hosted3    room games this player hosts (duels.host_user_id) that at least 3 players played;
---   gems       gem colours unlocked (public.gem_unlocks).
+--   challenges Practice challenges completed (C1b's public.practice_challenge_progress, completed_at set; this file
+--              runs after C1b's 20261111130000_practice_challenges.sql).
 -- Service role only.
 CREATE OR REPLACE FUNCTION public.badge_facts(p_user_id uuid, p_puzzle_limits jsonb, p_practice_since timestamptz)
 RETURNS jsonb
@@ -521,7 +522,8 @@ AS $$
     'buzzer', (SELECT count(*) FROM puzzles WHERE is_correct AND ms_remaining > 0 AND ms_remaining < 1000),
     'speedDemon', (SELECT count(*) FROM puzzles WHERE is_correct AND lim > 0 AND ms_remaining::bigint * 3 > lim::bigint * 2),
     'hosted3', (SELECT count(*) FROM hosted),
-    'gems', (SELECT count(*) FROM public.gem_unlocks WHERE user_id = p_user_id)
+    'challenges', (SELECT count(*) FROM public.practice_challenge_progress
+                    WHERE user_id = p_user_id AND completed_at IS NOT NULL)
   );
 $$;
 REVOKE ALL ON FUNCTION public.badge_facts(uuid, jsonb, timestamptz) FROM PUBLIC, anon, authenticated;

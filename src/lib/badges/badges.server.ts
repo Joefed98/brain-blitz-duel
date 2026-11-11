@@ -128,7 +128,7 @@ export async function factsFor(client: Db, userId: string, nowMs: number = Date.
     bestDailyStreak: longestDailyStreak(daily.days, daily.frozenDays),
     dailyStreak: daily.streak,
     hostedRooms: Number(stored.hosted3) || 0,
-    gems: Number(stored.gems) || 0,
+    challengesDone: Number(stored.challenges) || 0,
   };
 }
 

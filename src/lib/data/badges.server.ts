@@ -76,7 +76,7 @@ export interface BadgeFactsRow {
   buzzer: number;
   speedDemon: number;
   hosted3: number;
-  gems: number;
+  challenges: number;
 }
 
 export async function readBadgeFacts(

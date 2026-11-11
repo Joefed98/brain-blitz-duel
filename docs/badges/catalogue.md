@@ -23,8 +23,9 @@ Mix: 8 Common, 12 Rare, 17 Epic, 9 Elite, 8 Legendary; each Legendary pays 250 c
 
 ## In the app
 
-"Now" badges marked "Arrives with mastery stars" or "Arrives with Practice challenges" are the ones built against C1a
-and C1b, which hadn't landed when this was written: they turn on when those merge (`docs/badges/README.md`).
+"Now" badges marked "Arrives with mastery stars" (First Star, All-Rounder, Gem Hunter) are built against C1a, which
+hadn't opened its PR when this was written: they turn on with C1a. The three challenge badges count C1b's stored
+completions (`docs/badges/README.md`).
 
 | Slug | Badge | Group | Rarity | Rule shown | Count | When |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -69,9 +70,9 @@ and C1b, which hadn't landed when this was written: they turn on when those merg
 | `swiss-champion` | Swiss Champion | Daily and tournaments | Elite | Win a Swiss tournament. | – | Arrives with tournaments |
 | `knockout-champion` | Knockout Champion | Daily and tournaments | Legendary | Win a Knockout final. | – | Arrives with tournaments |
 | `serial-winner` | Serial Winner | Daily and tournaments | Legendary | Win 10 tournaments. | 10 tournaments | Arrives with tournaments |
-| `challenger` | Challenger | Challenges | Common | Complete 10 Practice challenges. | 10 challenges | Arrives with Practice challenges |
-| `challenge-seeker` | Challenge Seeker | Challenges | Rare | Complete 50 Practice challenges. | 50 challenges | Arrives with Practice challenges |
-| `challenge-expert` | Challenge Expert | Challenges | Epic | Complete 100 Practice challenges. | 100 challenges | Arrives with Practice challenges |
+| `challenger` | Challenger | Challenges | Common | Complete 10 Practice challenges. | 10 challenges | now |
+| `challenge-seeker` | Challenge Seeker | Challenges | Rare | Complete 50 Practice challenges. | 50 challenges | now |
+| `challenge-expert` | Challenge Expert | Challenges | Epic | Complete 100 Practice challenges. | 100 challenges | now |
 | `category-clear` | Category Clear | Challenges | Elite | Complete every challenge in one category. | – | Arrives with Hard and Expert challenges |
 | `completionist` | Completionist | Challenges | Legendary | Complete every Practice challenge. | – | Arrives with Hard and Expert challenges |
 | `revenge` | Revenge | Fun | Common | Win the rematch after losing to the same player. | – | Arrives with rated play |
@@ -80,5 +81,5 @@ and C1b, which hadn't landed when this was written: they turn on when those merg
 | `speed-demon` | Speed Demon | Fun | Epic | Finish a puzzle in under a third of its time, 10 times. | 10 times | now |
 | `friendly` | Friendly | Social and special | Common | Add 5 friends. | 5 friends | now (B1 awards) |
 | `party-host` | Party Host | Social and special | Rare | Host 25 rooms with at least 3 players. | 25 rooms | now |
-| `gem-hunter` | Gem Hunter | Social and special | Rare | Unlock your first gem colour. | – | now |
+| `gem-hunter` | Gem Hunter | Social and special | Rare | Unlock your first gem colour. | – | Arrives with mastery stars |
 | `founding-player` | Founding Player | Social and special | Legendary | Make an account before 26 January 2027. | – | now |

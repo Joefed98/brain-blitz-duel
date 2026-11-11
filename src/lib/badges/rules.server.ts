@@ -27,8 +27,8 @@ export interface BadgeFacts {
   dailyStreak: number;
   /** Room games hosted with at least 3 players. */
   hostedRooms: number;
-  /** Gem colours unlocked (C1a writes public.gem_unlocks). */
-  gems: number;
+  /** Practice challenges completed (C1b's public.practice_challenge_progress, completed_at set). */
+  challengesDone: number;
 }
 
 export interface BadgeRule {
@@ -60,7 +60,9 @@ export const BADGE_RULES: Readonly<Record<string, BadgeRule>> = {
   "buzzer-beater": atLeast(1, (f) => f.buzzerFinishes),
   "speed-demon": atLeast(10, (f) => f.fastFinishes),
   "party-host": atLeast(25, (f) => f.hostedRooms),
-  "gem-hunter": atLeast(1, (f) => f.gems),
+  challenger: atLeast(10, (f) => f.challengesDone),
+  "challenge-seeker": atLeast(50, (f) => f.challengesDone),
+  "challenge-expert": atLeast(100, (f) => f.challengesDone),
   "founding-player": {
     earned: (f) => f.founding,
     detail: (f) => ({ number: f.playerNumber }),

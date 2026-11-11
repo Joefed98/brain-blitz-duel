@@ -159,9 +159,9 @@ async function pureChecks(): Promise<void> {
     });
     check(tableRows.length === 54 && mdDiff.length === 0, `docs/badges/catalogue.md's table is the catalogue, rule for rule (${mdDiff.map((d) => d.slug).join(", ") || "none differ"})`);
     const now = cat.BADGES.filter((b) => b.status === "earnable").map((b) => b.slug).sort().join();
-    check(now === "buzzer-beater,century,daily-habit,dedicated,flawless,founding-player,friendly,gem-hunter,party-host,perfectionist,speed-demon", `earnable now: the approved list less C1a's and C1b's (${now})`);
+    check(now === "buzzer-beater,century,challenge-expert,challenge-seeker,challenger,daily-habit,dedicated,flawless,founding-player,friendly,party-host,perfectionist,speed-demon", `earnable now: the approved list less C1a's (${now})`);
     const wait = (w: string) => cat.BADGES.filter((b) => b.waitsFor === w).map((b) => b.slug).sort().join();
-    check(wait("mastery-stars") === "all-rounder,first-star" && wait("practice-challenges") === "challenge-expert,challenge-seeker,challenger", "parked on C1a (First Star, All-Rounder) and C1b (Challenger, Seeker, Expert)");
+    check(wait("mastery-stars") === "all-rounder,first-star,gem-hunter" && wait("practice-challenges") === "", "parked on C1a (First Star, All-Rounder, Gem Hunter); C1b's three wired");
     check(cat.BADGES.filter((b) => b.waitsFor === "rated-play").length === 13 && cat.BADGES.filter((b) => b.waitsFor === "tournaments").length === 9 && cat.BADGES.filter((b) => b.waitsFor === "all-stars").length === 12 && wait("daily-boards") === "daily-champion,daily-top-100" && wait("hard-challenges") === "category-clear,completionist", "the waves' badges wait as approved (rated play 13, tournaments 9, all stars 12, Daily boards 2, Hard challenges 2)");
     check(cat.badgeProgressLine(cat.BADGE_BY_SLUG.get("daily-habit")!, 4) === "4 of 7 days" && cat.badgeProgressLine(cat.BADGE_BY_SLUG.get("perfectionist")!, 30) === "25 of 25 games" && cat.badgeProgressLine(cat.BADGE_BY_SLUG.get("flawless")!, 0) === null, "progress reads “4 of 7 days”, capped at the count, only on counted badges");
     const svgs = readdirSync("docs/art/badges/svg").filter((f) => f.endsWith(".svg"));
@@ -185,7 +185,7 @@ async function pureChecks(): Promise<void> {
     check(checked.every((s) => rules.BADGE_RULES[s]) && Object.keys(rules.BADGE_RULES).every((s) => checked.includes(s)), "a rule for every earnable badge the server checks, and only those");
     check(rules.AWARDED_ELSEWHERE.join() === "friendly" && earnable.includes("friendly") && !rules.BADGE_RULES["friendly"], "Friendly is earnable but awarded by B1 (no rule here)");
     check(rules.PRACTICE_SINCE === null, "Practice runs don't count until C1a's fresh start sets PRACTICE_SINCE");
-    const none: rules.BadgeFacts = { founding: false, playerNumber: 43, games200: 0, buzzerFinishes: 0, fastFinishes: 0, bestDailyStreak: 0, dailyStreak: 0, hostedRooms: 0, gems: 0 };
+    const none: rules.BadgeFacts = { founding: false, playerNumber: 43, games200: 0, buzzerFinishes: 0, fastFinishes: 0, bestDailyStreak: 0, dailyStreak: 0, hostedRooms: 0, challengesDone: 0 };
     // Each rule: the facts that just earn it, and the same facts one short.
     const earns: Record<string, [Partial<rules.BadgeFacts>, Partial<rules.BadgeFacts>]> = {
       "founding-player": [{ founding: true, playerNumber: 42 }, { founding: false }],
@@ -197,7 +197,9 @@ async function pureChecks(): Promise<void> {
       "buzzer-beater": [{ buzzerFinishes: 1 }, { buzzerFinishes: 0 }],
       "speed-demon": [{ fastFinishes: 10 }, { fastFinishes: 9 }],
       "party-host": [{ hostedRooms: 25 }, { hostedRooms: 24 }],
-      "gem-hunter": [{ gems: 1 }, { gems: 0 }],
+      challenger: [{ challengesDone: 10 }, { challengesDone: 9 }],
+      "challenge-seeker": [{ challengesDone: 50 }, { challengesDone: 49 }],
+      "challenge-expert": [{ challengesDone: 100 }, { challengesDone: 99 }],
     };
     for (const slug of checked) {
       const pair = earns[slug];
@@ -243,6 +245,17 @@ async function pureChecks(): Promise<void> {
     check(longestDailyStreak([...run(20, 7), ...run(2, 3)]) === 7, "the longest run counts, not today's (7 earlier, 3 now)");
     check(longestDailyStreak([...run(20, 3), ...run(24, 3)]) === 3 && longestDailyStreak([...run(20, 3), ...run(24, 3)], [d(23)]) === 6, "a covered day joins two runs without adding to them");
     check(longestDailyStreak([...run(10, 6)], [d(16)]) === 6 && longestDailyStreak([], []) === 0, "a covered day at a run's end adds nothing");
+  });
+
+  await section("automation switch", async () => {
+    const api = readFileSync("src/lib/badges/badgesApi.ts", "utf8");
+    const fn = api.slice(api.indexOf("export function automated"), api.indexOf("async function backend"));
+    const prodAt = fn.indexOf("if (import.meta.env.PROD) return true;");
+    const switchAt = fn.indexOf("__DUELZ_ALLOW_BADGES__");
+    check(prodAt > 0 && switchAt > prodAt, "window.__DUELZ_ALLOW_BADGES__ is read only after a production build has returned (import.meta.env.PROD)");
+    check(fn.indexOf("navigator.webdriver !== true) return false") > 0 && fn.indexOf("navigator.webdriver !== true) return false") < prodAt, "a real player's browser (no webdriver) never reads it at all");
+    const codeLines = api.split("\n").filter((l) => l.includes("__DUELZ_ALLOW_BADGES__") && !/^\s*(\*|\/\/|\/\*)/.test(l));
+    check(codeLines.length === 1, `the switch is read in one place only (${codeLines.length})`);
   });
 
   await section("moment placement", async () => {
@@ -368,7 +381,7 @@ async function databaseChecks(db: LocalDb, rest: RestServer): Promise<void> {
     const award = (badge: string) => JSON.parse(q(`SELECT public.badge_award('${EVE}', '${badge}', '{}'::jsonb)::text`)) as { status: string };
     const waiting = cat.BADGES.filter((b) => b.status !== "earnable");
     const refusedAll = waiting.every((b) => award(b.slug).status === "not_earnable");
-    check(refusedAll && waiting.length === 43 && Number(q(`SELECT count(*) FROM player_badges WHERE user_id = '${EVE}'`)) === 0, `none of the ${waiting.length} badges that wait can be awarded`);
+    check(refusedAll && waiting.length === 41 && Number(q(`SELECT count(*) FROM player_badges WHERE user_id = '${EVE}'`)) === 0, `none of the ${waiting.length} badges that wait can be awarded`);
     const friendly = JSON.parse(q(`SELECT public.badge_award('${EVE}', 'friendly', '{}'::jsonb)::text`)) as { status: string };
     check(friendly.status === "awarded" && balance(EVE) === 1000, "Friendly can be awarded through badge_award (B1's path), no coins (Common)");
     q(`DELETE FROM player_badges WHERE user_id = '${EVE}' AND badge = 'friendly'`);
@@ -541,11 +554,30 @@ async function databaseChecks(db: LocalDb, rest: RestServer): Promise<void> {
     await sync(accountToken(GIL));
     check(hasBadge(GIL, "party-host"), `Party Host: the 25th (${rooms} hosted in all)`);
 
-    // Gem Hunter: a gem unlock (C1a writes them).
-    check(!has("gem-hunter"), "Gem Hunter just missed: no gem");
-    q(`INSERT INTO gem_unlocks (user_id, gem) VALUES ('${FAY}', (SELECT gem FROM (VALUES ('ruby')) v(gem)))`);
+    // Challenger, Challenge Seeker, Challenge Expert: completed Practice challenges in C1b's table (through its own
+    // writer, public.challenge_record); recorded-but-not-met ones don't count.
+    const record = (i: number, met: boolean) =>
+      q(`SELECT public.challenge_record('${FAY}', 'gridlock.c${i}', 'gridlock', 5, ${met}, 0)`);
+    for (let i = 0; i < 9; i++) record(i, true);
+    for (let i = 9; i < 15; i++) record(i, false);
+    mine = await sync(tokFay);
+    check(!has("challenger") && mine?.progress?.["challenger"] === 9, `Challenger just missed at 9 (6 started, not met) (${mine?.progress?.["challenger"]})`);
+    record(9, true);
+    mine = await sync(tokFay);
+    check(has("challenger") && !has("challenge-seeker") && mine?.progress?.["challenge-seeker"] === 10, "Challenger: the 10th completed; Seeker at 10 of 50");
+    for (let i = 10; i < 49; i++) record(i, true);
     await sync(tokFay);
-    check(has("gem-hunter"), "Gem Hunter: the first gem unlocked");
+    check(!has("challenge-seeker"), "Challenge Seeker just missed at 49");
+    record(49, true);
+    await sync(tokFay);
+    check(has("challenge-seeker") && !has("challenge-expert"), "Challenge Seeker: 50");
+    for (let i = 50; i < 99; i++) record(i, true);
+    await sync(tokFay);
+    check(!has("challenge-expert"), "Challenge Expert just missed at 99");
+    record(99, true);
+    await sync(tokFay);
+    check(has("challenge-expert"), "Challenge Expert: 100");
+    check(!has("gem-hunter") && JSON.parse(q(`SELECT public.badge_award('${FAY}', 'gem-hunter', '{}'::jsonb)::text`)).status === "not_earnable", "Gem Hunter is parked until C1a (can't be awarded)");
 
     // Daily Habit: 6 days in a row just misses, 7 earns (the longest run, from the server's history).
     const today = ukDayKey(Date.now());
