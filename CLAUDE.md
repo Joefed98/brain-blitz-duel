@@ -2073,6 +2073,27 @@ outside the repo.
   `wishlist_added`. Migrations `20261112120000_shop.sql`, `20261112120100_analytics_shop_events.sql` (**not applied
   until merged**). shop-check (~15 s, shard `e`, PostgreSQL); shots `bun scripts/shots/shop-shots.ts`
   (`docs/economy/shop-screenshots/`).
+- **The Season pass, Joules and weekly challenges** (wave 2 train D, session D2, 13 Nov 2026, `docs/economy/pass.md`; no
+  gameplay, scoring, stamp, timing or room-flow change): Season 1 "Neon Circuit" for the shop's testers (`shop.testers`)
+  until `PASS_FOR_EVERYONE` (`src/config/passConfig.ts`) is on; every pass function refuses guests and other accounts.
+  Seasons (`public.pass_seasons`: `s1`, no dates yet, and the testers' `test`) get their dates only from Joe's `pass.*`
+  functions (`set_season_dates`, `end_season`, `start_test_season`, `reset_test_season`, `end_test_season`,
+  `remove_test_purchase`, all logged in `pass.admin_log`). **Joules are worked out from stored results only**: each read
+  of the pass credits the stored play since the account's start in the season (`public.pass_activity`: room rounds live
+  and archived, room finishes, the Dailies, friend challenges without copied room attempts, C1a's counted Practice runs,
+  C1b's completions) once per source event through `public.pass_credit_joules`, which applies Practice's 200, the first
+  five challenges and the 4,000 soft cap per UK day under a lock (`joules.ts` mirrors the arithmetic). 1,000 a level, 60
+  levels; both tracks in `rewards.ts` (pass-check proves them against economy-design.md and catalogue.json); claims pay
+  through A1's helpers under `pass:<season>:<epoch>:<track>:<level>`; the two pass titles go to
+  `public.pass_title_unlocks` (not yet equippable: C2's `public.titles` is pinned at 32 rows by badges-check). Premium:
+  a tester's test purchase (`source 'test'`), and `grantPremiumTrack` in `pass.server.ts` for E2's Plus. Weekly
+  challenges (`weekly.ts`): three each Monday from the doc's 45 less the R and tournament ones, three categories a week,
+  recorded in `public.pass_weeks`. Screens: the Shop tab's Pass part (`PassScreen`), the Play tab's `PassHomeCard`
+  (last on the page), `JoulesLine` on results (renders nothing where the pass is off), `PassLevelNotice` above the tab
+  bar. `window.__DUELZ_ALLOW_PASS__` only outside production builds (`overrideAllowed`). Events `pass_bought`,
+  `pass_level_reached`, `reward_claimed`, `weekly_challenge_completed` (`20261113100100_analytics_pass_events.sql`).
+  Migrations `20261113100000_season_pass.sql`, `20261113100100` (**not applied until merged**). pass-check (~20 s, shard
+  `e`, PostgreSQL); economy-neutral-check also covers the pass modules.
 - `src/components/duel/` — room/round screens (PhoneShell, RoundIntro, TimerBar,
   AnswerReveal, ArcadeReveal, WinnerReveal…); `src/components/puzzles/` — shared puzzle
   widgets; `src/lib/fx/` — sound and visual feedback (presentation only).
