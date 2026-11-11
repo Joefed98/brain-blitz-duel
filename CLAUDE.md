@@ -2069,6 +2069,20 @@ outside the repo.
   player, { friends: true })` types for friends, under-18s included; strangers unchanged. Analytics `friend_request_sent`,
   `friend_added`, `friend_removed`, `friend_blocked` (`20261111230100_analytics_friend_events.sql`). friends-check (~5 s,
   PostgreSQL, shard `e`), friends-ui-check (~3 s, happy-dom).
+- **Leaderboards** (wave 4, session W4a, 11 Nov 2026, `docs/leaderboards.md`; no gameplay, scoring, stamp, rating or
+  deal change): rating boards (`/leaderboards`: Joulz Rating, Puzzles, Arcade; global, country, friends; this season or
+  all-time peak; pages of 50 to the top 500, your row pinned; "Top 500 #n" with mockup 03's emblem from W3a's tier),
+  category boards ("Top Logic players", Profile) and the Daily top 100 (`/daily-board`: accounts only, each account's
+  one finished attempt, accounts 24 hours old, never a flagged run; ties to the faster time, `ranking.ts`'s order;
+  earlier days kept, final 30 minutes after the close). Stored snapshots refreshed by pg_cron every 5 minutes
+  (`public.leaderboard_refresh`), never per request; nothing readable or writable by anon or authenticated. Privacy:
+  under-18s "Hidden player" by default on global and country boards (ranks unchanged), always visible to friends,
+  "Show me on leaderboards" (Settings → Account) both ways. Daily Champion (100+ players) and Daily Top 100 (500+)
+  earnable (C2's rules; badges-check's counts updated with Joe's approval of 11 Nov 2026). **The rating boards read
+  W3a's ratings through `leaderboards.rating_source()`, empty until a migration binds it** (contract in the doc).
+  Migrations `20261115100000_leaderboards.sql`, `20261115100100_daily_board_badges.sql`,
+  `20261115100200_analytics_leaderboard_events.sql` (**not applied until merged**). Events `leaderboard_viewed`,
+  `daily_board_viewed`. leaderboards-check (~25 s, shard `e`, PostgreSQL), leaderboards-ui-check (~2 s, happy-dom).
 - `src/components/duel/` — room/round screens (PhoneShell, RoundIntro, TimerBar,
   AnswerReveal, ArcadeReveal, WinnerReveal…); `src/components/puzzles/` — shared puzzle
   widgets; `src/lib/fx/` — sound and visual feedback (presentation only).

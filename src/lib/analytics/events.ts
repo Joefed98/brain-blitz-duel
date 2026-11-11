@@ -73,6 +73,11 @@ export const ANALYTICS_EVENTS = [
   "friend_added",
   "friend_removed",
   "friend_blocked",
+  // Leaderboards (wave 4, session W4a; docs/leaderboards.md): recorded by the server only
+  // (src/lib/leaderboards/leaderboards.server.ts), once per board opened. leaderboard_viewed carries props.board,
+  // props.scope and props.period; daily_board_viewed props.kind and props.day. Never a name or another player's id.
+  "leaderboard_viewed",
+  "daily_board_viewed",
 ] as const;
 export type AnalyticsEventName = (typeof ANALYTICS_EVENTS)[number];
 

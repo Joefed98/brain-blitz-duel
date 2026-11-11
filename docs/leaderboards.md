@@ -1,0 +1,75 @@
+# Leaderboards (wave 4, session W4a, 11 Nov 2026)
+
+Every player can see where they stand, honestly, and privately enough for under-18s. Mockups:
+`docs/mockups/wave-4/01-leaderboards`, `02-daily-leaderboard-top-100`, `03-top-500-emblem` (the built look wins).
+No gameplay, scoring, stamp, rating or deal change.
+
+## What there is
+
+- **Rating boards** (`/leaderboards`, Profile → Leaderboards): Joulz Rating, Puzzles and Arcade; Global, your country
+  (`profiles.country`) and Friends (B1's `friendships`, ranked among themselves); this season or each player's all-time
+  peak. Pages of 50 up to the top 500; your own row is pinned below (gold edge) when it isn't in view. The Top 500 shows
+  "Top 500 #37" with mockup 03's emblem (`public/art/emblems/top-500.svg`, the 28 px art byte for byte) on this
+  season's Joulz Rating board, from W3a's tier (`top500`).
+- **Category boards** ("Top Logic players"): the 11 categories' boards, top 5 and your place, in Profile's stats area
+  (accounts) and under the rating boards.
+- **The Daily top 100** (`/daily-board`, the Daily page's "Top 100", Profile → Daily top 100): Daily Puzzle and Daily
+  Arcade, today and every earlier day (arrows to the nearest days with a board), Top 100 or Friends, your place
+  pinned ("You came 412th of 2,318 · 694, top 18%"), each row's time and score. Ties go to the faster time; level on
+  both shares a place (1, 2, 2, 4), exactly `src/lib/duel/ranking.ts` (proved against `daily.ts` `rankBoard`).
+  Today's board opens once you've finished, or at midnight (the Daily's own rule).
+  - Counts only: accounts (a profile), each account's one attempt that day (unique per room and player), finished,
+    by an account at least 24 hours old when the attempt started, never an attempt with a flagged round
+    (`async_results.extra.flagged`). Your own line says why you're not on it ("New accounts count on the board from their
+    second day", …).
+  - A board is refreshed until 30 minutes after its day closes (so rounds started before midnight finish), then frozen
+    (`final`) and kept; it is never recomputed.
+- **Privacy** (decided 11 Nov 2026): on global and country boards an under-18 shows as "Hidden player" in their place
+  (rank and value unchanged, no name, colour or number) unless they switch "Show me on leaderboards" on; adults show by
+  default and can switch it off (Settings → Account → Leaderboards). Friends always see each other, everyone sees their
+  own row, an account waiting for deletion is hidden, a deleted one reads "Deleted player". A row carries only rank,
+  value, the card's username, colour and player number (and the Daily's time); never a country, age or id.
+- **Badges** (C2's `badge_award` through `syncBadges`): Daily Champion (first on a final Daily board of **100+**
+  counted players) and Daily Top 100 (top 100 on a final board of **500+**) are earnable (`daily_board_badge_facts`;
+  field sizes `DAILY_CHAMPION_FIELD` / `DAILY_TOP100_FIELD` in `src/lib/leaderboards/boards.ts`).
+
+## How boards refresh
+
+`public.leaderboard_refresh()` runs from pg_cron (`leaderboards-refresh`, every 5 minutes; the migration leaves a
+`migration_log` warning where pg_cron isn't available). One run at a time (advisory lock). Boards are never computed
+per request: a request reads the stored snapshot and applies privacy for the caller.
+
+- Ratings: each run writes a new generation of `leaderboard_rating_rows` (global rank, country rank, display
+  position) from `leaderboards.rating_source()`; the newest complete generation is read, the one before is kept for
+  reads in flight, older ones are removed.
+- Daily: every board not yet final is recomputed into `daily_board_entries`; final boards are left alone.
+
+## W3a's ratings: the one binding
+
+W3a's ratings engine isn't on any branch yet (its branch has the interface only), so the rating boards read
+`leaderboards.rating_source()`, which answers no rows until it is bound; the boards say "No ratings yet". Binding is one
+new migration:
+
+```sql
+CREATE OR REPLACE FUNCTION leaderboards.rating_source()
+RETURNS TABLE (player_id uuid, board text, season_rating integer, peak_rating integer, tier text)
+LANGUAGE sql STABLE AS $$ SELECT … FROM <W3a's tables> $$;
+```
+
+One row per player and board (`joulz`, `puzzles`, `arcade` or a category id from `RATED_CATEGORIES`): this season's
+rating (NULL when not rated this season), the all-time peak (NULL when never rated), and for `joulz` W3a's tier id
+(`top500` marks the Top 500, from W3a's caps). Leave out players still in placement (every rating hidden). The checks
+stand a source in to prove the boards.
+
+## Where it lives
+
+- SQL: `supabase/migrations/20261115100000_leaderboards.sql` (tables, functions, schedule),
+  `20261115100100_daily_board_badges.sql` (the two badge rows to earnable), `20261115100200_analytics_leaderboard_events.sql`.
+  Nothing is readable or writable by anon or authenticated; the server calls the service-role functions.
+- Data: `src/lib/data/leaderboards.server.ts`. Rules: `src/lib/leaderboards/boards.ts` (shared),
+  `leaderboards.server.ts`, `leaderboards.functions.ts` (`ratingBoardFn`, `dailyBoardFn`, `boardVisibilityFn`,
+  `setBoardVisibilityFn`), `leaderboardsApi.ts` (phone).
+- Screens: `src/routes/leaderboards.tsx`, `src/routes/daily-board.tsx`, `src/components/leaderboards/`,
+  `src/polish-layout/leaderboards.css`.
+- Events: `leaderboard_viewed` (board, scope, period; first page only), `daily_board_viewed` (kind, day).
+- Checks: leaderboards-check (PostgreSQL, ~25 s, shard `e`), leaderboards-ui-check (happy-dom, ~2 s).

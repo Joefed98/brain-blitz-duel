@@ -14,9 +14,11 @@ import { Route as AccountRouteImport } from './routes/account'
 import { Route as ChallengeRouteImport } from './routes/challenge'
 import { Route as CustomiseRouteImport } from './routes/customise'
 import { Route as DailyRouteImport } from './routes/daily'
+import { Route as DailyBoardRouteImport } from './routes/daily-board'
 import { Route as DevCrashRouteImport } from './routes/dev-crash'
 import { Route as DevDesignRouteImport } from './routes/dev-design'
 import { Route as FriendsRouteImport } from './routes/friends'
+import { Route as LeaderboardsRouteImport } from './routes/leaderboards'
 import { Route as PracticeRouteImport } from './routes/practice'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as ReplayLabRouteImport } from './routes/replay-lab'
@@ -50,6 +52,11 @@ const DailyRoute = DailyRouteImport.update({
   path: '/daily',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DailyBoardRoute = DailyBoardRouteImport.update({
+  id: '/daily-board',
+  path: '/daily-board',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DevCrashRoute = DevCrashRouteImport.update({
   id: '/dev-crash',
   path: '/dev-crash',
@@ -63,6 +70,11 @@ const DevDesignRoute = DevDesignRouteImport.update({
 const FriendsRoute = FriendsRouteImport.update({
   id: '/friends',
   path: '/friends',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LeaderboardsRoute = LeaderboardsRouteImport.update({
+  id: '/leaderboards',
+  path: '/leaderboards',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PracticeRoute = PracticeRouteImport.update({
@@ -107,9 +119,11 @@ export interface FileRoutesByFullPath {
   '/challenge': typeof ChallengeRoute
   '/customise': typeof CustomiseRoute
   '/daily': typeof DailyRoute
+  '/daily-board': typeof DailyBoardRoute
   '/dev-crash': typeof DevCrashRoute
   '/dev-design': typeof DevDesignRoute
   '/friends': typeof FriendsRoute
+  '/leaderboards': typeof LeaderboardsRoute
   '/practice': typeof PracticeRoute
   '/profile': typeof ProfileRoute
   '/replay-lab': typeof ReplayLabRoute
@@ -124,9 +138,11 @@ export interface FileRoutesByTo {
   '/challenge': typeof ChallengeRoute
   '/customise': typeof CustomiseRoute
   '/daily': typeof DailyRoute
+  '/daily-board': typeof DailyBoardRoute
   '/dev-crash': typeof DevCrashRoute
   '/dev-design': typeof DevDesignRoute
   '/friends': typeof FriendsRoute
+  '/leaderboards': typeof LeaderboardsRoute
   '/practice': typeof PracticeRoute
   '/profile': typeof ProfileRoute
   '/replay-lab': typeof ReplayLabRoute
@@ -142,9 +158,11 @@ export interface FileRoutesById {
   '/challenge': typeof ChallengeRoute
   '/customise': typeof CustomiseRoute
   '/daily': typeof DailyRoute
+  '/daily-board': typeof DailyBoardRoute
   '/dev-crash': typeof DevCrashRoute
   '/dev-design': typeof DevDesignRoute
   '/friends': typeof FriendsRoute
+  '/leaderboards': typeof LeaderboardsRoute
   '/practice': typeof PracticeRoute
   '/profile': typeof ProfileRoute
   '/replay-lab': typeof ReplayLabRoute
@@ -161,9 +179,11 @@ export interface FileRouteTypes {
     | '/challenge'
     | '/customise'
     | '/daily'
+    | '/daily-board'
     | '/dev-crash'
     | '/dev-design'
     | '/friends'
+    | '/leaderboards'
     | '/practice'
     | '/profile'
     | '/replay-lab'
@@ -178,9 +198,11 @@ export interface FileRouteTypes {
     | '/challenge'
     | '/customise'
     | '/daily'
+    | '/daily-board'
     | '/dev-crash'
     | '/dev-design'
     | '/friends'
+    | '/leaderboards'
     | '/practice'
     | '/profile'
     | '/replay-lab'
@@ -195,9 +217,11 @@ export interface FileRouteTypes {
     | '/challenge'
     | '/customise'
     | '/daily'
+    | '/daily-board'
     | '/dev-crash'
     | '/dev-design'
     | '/friends'
+    | '/leaderboards'
     | '/practice'
     | '/profile'
     | '/replay-lab'
@@ -213,9 +237,11 @@ export interface RootRouteChildren {
   ChallengeRoute: typeof ChallengeRoute
   CustomiseRoute: typeof CustomiseRoute
   DailyRoute: typeof DailyRoute
+  DailyBoardRoute: typeof DailyBoardRoute
   DevCrashRoute: typeof DevCrashRoute
   DevDesignRoute: typeof DevDesignRoute
   FriendsRoute: typeof FriendsRoute
+  LeaderboardsRoute: typeof LeaderboardsRoute
   PracticeRoute: typeof PracticeRoute
   ProfileRoute: typeof ProfileRoute
   ReplayLabRoute: typeof ReplayLabRoute
@@ -262,6 +288,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DailyRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/daily-board': {
+      id: '/daily-board'
+      path: '/daily-board'
+      fullPath: '/daily-board'
+      preLoaderRoute: typeof DailyBoardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/dev-crash': {
       id: '/dev-crash'
       path: '/dev-crash'
@@ -281,6 +314,13 @@ declare module '@tanstack/react-router' {
       path: '/friends'
       fullPath: '/friends'
       preLoaderRoute: typeof FriendsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/leaderboards': {
+      id: '/leaderboards'
+      path: '/leaderboards'
+      fullPath: '/leaderboards'
+      preLoaderRoute: typeof LeaderboardsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/practice': {
@@ -341,9 +381,11 @@ const rootRouteChildren: RootRouteChildren = {
   ChallengeRoute: ChallengeRoute,
   CustomiseRoute: CustomiseRoute,
   DailyRoute: DailyRoute,
+  DailyBoardRoute: DailyBoardRoute,
   DevCrashRoute: DevCrashRoute,
   DevDesignRoute: DevDesignRoute,
   FriendsRoute: FriendsRoute,
+  LeaderboardsRoute: LeaderboardsRoute,
   PracticeRoute: PracticeRoute,
   ProfileRoute: ProfileRoute,
   ReplayLabRoute: ReplayLabRoute,

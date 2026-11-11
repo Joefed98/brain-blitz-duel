@@ -159,13 +159,14 @@ async function pureChecks(): Promise<void> {
     });
     check(tableRows.length === 54 && mdDiff.length === 0, `docs/badges/catalogue.md's table is the catalogue, rule for rule (${mdDiff.map((d) => d.slug).join(", ") || "none differ"})`);
     const now = cat.BADGES.filter((b) => b.status === "earnable").map((b) => b.slug).sort().join();
-    check(now === "all-rounder,buzzer-beater,century,challenge-expert,challenge-seeker,challenger,daily-habit,dedicated,first-star,flawless,founding-player,friendly,gem-hunter,party-host,perfectionist,speed-demon", `earnable now: every badge the approved catalogue says is now (${now})`);
+    // Approved by Joe, 11 Nov 2026 (wave 4 W4a's prompt): Daily Champion and Daily Top 100 move from waiting to earnable.
+    check(now === "all-rounder,buzzer-beater,century,challenge-expert,challenge-seeker,challenger,daily-champion,daily-habit,daily-top-100,dedicated,first-star,flawless,founding-player,friendly,gem-hunter,party-host,perfectionist,speed-demon", `earnable now: every badge the approved catalogue says is now (${now})`);
     const wait = (w: string) => cat.BADGES.filter((b) => b.waitsFor === w).map((b) => b.slug).sort().join();
     check(wait("mastery-stars") === "" && wait("practice-challenges") === "", "nothing parked: C1a's three and C1b's three wired");
     const { ACTIVE_PUZZLE_TYPES } = await import("../src/lib/duel/catalogue");
     const ar = cat.BADGE_BY_SLUG.get("all-rounder")!;
     check(ar.target?.need === ACTIVE_PUZZLE_TYPES.length && ar.target.live === true, `All-Rounder counts every active game, from the live list (${ar.target?.need})`);
-    check(cat.BADGES.filter((b) => b.waitsFor === "rated-play").length === 13 && cat.BADGES.filter((b) => b.waitsFor === "tournaments").length === 9 && cat.BADGES.filter((b) => b.waitsFor === "all-stars").length === 12 && wait("daily-boards") === "daily-champion,daily-top-100" && wait("hard-challenges") === "category-clear,completionist", "the waves' badges wait as approved (rated play 13, tournaments 9, all stars 12, Daily boards 2, Hard challenges 2)");
+    check(cat.BADGES.filter((b) => b.waitsFor === "rated-play").length === 13 && cat.BADGES.filter((b) => b.waitsFor === "tournaments").length === 9 && cat.BADGES.filter((b) => b.waitsFor === "all-stars").length === 12 && wait("daily-boards") === "" && wait("hard-challenges") === "category-clear,completionist", "the waves' badges wait as approved (rated play 13, tournaments 9, all stars 12, Daily boards 0 since W4a (approved by Joe, 11 Nov 2026), Hard challenges 2)");
     check(cat.badgeProgressLine(cat.BADGE_BY_SLUG.get("daily-habit")!, 4) === "4 of 7 days" && cat.badgeProgressLine(cat.BADGE_BY_SLUG.get("perfectionist")!, 30) === "25 of 25 games" && cat.badgeProgressLine(cat.BADGE_BY_SLUG.get("flawless")!, 0) === null, "progress reads “4 of 7 days”, capped at the count, only on counted badges");
     const svgs = readdirSync("docs/art/badges/svg").filter((f) => f.endsWith(".svg"));
     const same = svgs.filter((f) => readFileSync(`docs/art/badges/svg/${f}`).equals(readFileSync(`public/art/badges/${f}`)));
@@ -206,6 +207,9 @@ async function pureChecks(): Promise<void> {
       challenger: [{ challengesDone: 10 }, { challengesDone: 9 }],
       "challenge-seeker": [{ challengesDone: 50 }, { challengesDone: 49 }],
       "challenge-expert": [{ challengesDone: 100 }, { challengesDone: 99 }],
+      // Wave 4 W4a (11 Nov 2026): counted from final Daily boards of 100+ / 500+ players (leaderboards-check proves the fields).
+      "daily-champion": [{ dailyBoardWins: 1 }, { dailyBoardWins: 0, dailyBoardTop100s: 5 }],
+      "daily-top-100": [{ dailyBoardTop100s: 1 }, { dailyBoardTop100s: 0 }],
     };
     for (const slug of checked) {
       const pair = earns[slug];
@@ -387,7 +391,8 @@ async function databaseChecks(db: LocalDb, rest: RestServer): Promise<void> {
     const award = (badge: string) => JSON.parse(q(`SELECT public.badge_award('${EVE}', '${badge}', '{}'::jsonb)::text`)) as { status: string };
     const waiting = cat.BADGES.filter((b) => b.status !== "earnable");
     const refusedAll = waiting.every((b) => award(b.slug).status === "not_earnable");
-    check(refusedAll && waiting.length === 38 && Number(q(`SELECT count(*) FROM player_badges WHERE user_id = '${EVE}'`)) === 0, `none of the ${waiting.length} badges that wait can be awarded`);
+    // 38 until W4a; 36 since (approved by Joe, 11 Nov 2026: Daily Champion and Daily Top 100 became earnable).
+    check(refusedAll && waiting.length === 36 && Number(q(`SELECT count(*) FROM player_badges WHERE user_id = '${EVE}'`)) === 0, `none of the ${waiting.length} badges that wait can be awarded`);
     const friendly = JSON.parse(q(`SELECT public.badge_award('${EVE}', 'friendly', '{}'::jsonb)::text`)) as { status: string };
     check(friendly.status === "awarded" && balance(EVE) === 1000, "Friendly can be awarded through badge_award (B1's path), no coins (Common)");
     q(`DELETE FROM player_badges WHERE user_id = '${EVE}' AND badge = 'friendly'`);

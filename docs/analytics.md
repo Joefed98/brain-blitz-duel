@@ -64,6 +64,8 @@ events go alongside them.
 | `item_granted` | server / database | an item added to an inventory (starter items at sign-up, a purchase, the pass, earned, Joe's grant); props `kind`, `rarity`, `source` |
 | `item_equipped` | server | an item equipped in a loadout slot (not an unequip); props `kind` |
 | `challenge_completed` | server | a server-graded Practice run completed a practice challenge (src/lib/challenges/challenges.server.ts); `game`, mode `practice`, props `challenge` (its id), `level`, `coins` (paid with it; 0 for a guest, whose coins are paid on becoming an account) |
+| `leaderboard_viewed` | server | a rating board opened (src/lib/leaderboards/leaderboards.server.ts; the first page only, not further pages); props `board` (joulz, puzzles, arcade or a category), `scope` (global, country, friends), `period` (season, peak) |
+| `daily_board_viewed` | server | a Daily top 100 opened (src/lib/leaderboards/leaderboards.server.ts); props `kind` (puzzle, arcade), `day` (YYYY-MM-DD) |
 
 Mode is `room`, `daily`, `challenge` or `practice` (`rated` comes later with its own migration).
 
