@@ -336,6 +336,17 @@ export async function getRatingsFor(client: Db, playerId: unknown, nowMs: number
   return ratingsView(rows!, playerId);
 }
 
+/**
+ * The tiers other players see for up to 100 players at once (each exactly getRatingsFor's `tier`: null while in placement
+ * or before a rated match). For pages that draw many players, e.g. the tournament boards' nameplates (one read).
+ */
+export async function shownTiersFor(client: Db, playerIds: readonly unknown[], nowMs: number = Date.now()): Promise<Map<string, TierView | null>> {
+  const ids = [...new Set(playerIds.filter(isUuid))].slice(0, 100) as string[];
+  if (!ids.length) return new Map();
+  const rows = await stateFor(client, ids, nowMs);
+  return new Map(ids.map((id) => [id, ratingsView(rows!, id).tier]));
+}
+
 export async function placementStatus(client: Db, userId: string, nowMs: number = Date.now()): Promise<PlacementStatus> {
   const rows = await stateFor(client, [userId], nowMs);
   return placementOf(profileFrom(rows!, userId).state.placementPlayed);

@@ -75,7 +75,8 @@ Every one takes the signed-in caller (`requireSupabaseAuth`); a guest (no profil
   next one's start), `underReview` (the caller has a run the server flagged in this event).
 - `EntryView`: `eventId`, `entry`, `coins`, `enteredAt`, `refunded`, `place` (when finished), `prizeCoins`, `underReview`.
 - `ArenaBoard` and `ScoreAttackBoard` carry `underReview` for the caller (a flagged player is off the board).
-- `ArenaDuelView`: `duelId`, `roomCode`, `opponent` (`userId`, `name`), `status`.
+- `ArenaDuelView`: `duelId`, `roomCode`, `opponent` (`userId`, `name`, `plate`), `status`.
+- Every board row (`ArenaBoardRow`, `ScoreAttackBoardRow`) carries `plate` (section 10) and `name` is the plate's name.
 - `PrizeLine`: `{ from, to, coins, trophy: "gold" | "silver" | "bronze" | null, minEntrants }`.
 - `TrophyView`: `eventId`, `kind`, `medal`, `title`, `place`, `awardedAt`.
 
@@ -155,3 +156,22 @@ with a flagged run in an event earns nothing there (no points, score, place, pri
 duel the opponent's result stands as a win (`flaggedDuelWinner`). Each flag is logged once through
 `tournament_flag`; `readFlaggedPlayers(eventId)` answers who. W4c: log your rounds' flags the same way and leave
 flagged players out of your standings.
+
+## 10. Nameplates on every row (Joe's rule of 11 Nov 2026)
+
+A player's card, avatar and frame show wherever they appear. Every board, standings and bracket row draws its player as
+the nameplate strip from A2's player card: `TournamentPlate` (`src/components/tournaments/TournamentPlate.tsx`) with the
+row's `plate` (`PlateView`, `src/lib/identity/plates.ts`). The card art band, the frame, the avatar, the name colour,
+the rated emblem and the card's badges sit inside the name area only, never behind a place or a score; the strip is a
+button and a tap opens the player's full card (`PlayerCard`) in a sheet from the same plate.
+
+- **One call per page**: the server builds every row's plate with `platesFor(client, viewerId, rows, nowMs)`
+  (`src/lib/identity/plates.server.ts`: one read each of A1's public cards, C2's card badges and titles, W3a's shown
+  tiers through `shownTiersFor`, and the dates of birth) and sends them inside the board's own answer. The phone fetches
+  nothing for a plate.
+- `card`: an account (its username, never a row's stored name). `guest`: the room name on colour and initial.
+  `hidden`: an under-18 seen by anyone but themselves: "Hidden player" on their colour and initial, with no username,
+  cosmetics, emblem or badges in the answer. A failed age read hides every other player (fails closed).
+- W4c: build your bracket and standings rows the same way (`platesFor` once per page, `plate` on each row, draw with
+  `TournamentPlate`). tournament-plates-check proves the plates, the boards and the strip.
+

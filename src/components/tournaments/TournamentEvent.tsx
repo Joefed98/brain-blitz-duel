@@ -15,6 +15,7 @@ import { countdown, entryLabel, tournamentsBackend, useTournamentEvent } from "@
 import type { ArenaBoard, ArenaPoll, EntryOption, ScoreAttackBoard, TournamentEventView } from "@/lib/tournaments/types";
 
 import { dayLabel, inMinutes } from "./TournamentHub";
+import { TournamentPlate } from "./TournamentPlate";
 
 /** The plain "how it works" lines per kind (the full rules page has the rest). */
 export function howItWorks(ev: Pick<TournamentEventView, "kind" | "rounds" | "pickLabel">): string[] {
@@ -200,7 +201,7 @@ function ArenaLive({ ev, now }: { ev: TournamentEventView; now: number }) {
             <Row as="li" key={r.userId} data-arena-row={r.place} data-me={r.isMe ? "" : undefined} className={r.isMe ? "tn-me" : undefined}>
               <span className="tn-place">{r.place}</span>
               <span className="jz-row-text">
-                <span className="jz-row-title">{r.isMe ? "You" : r.name}</span>
+                <TournamentPlate plate={r.plate} you={r.isMe} />
                 <span className="jz-row-sub">{r.streak >= 2 ? `${r.streak} in a row` : `${r.wins} ${r.wins === 1 ? "win" : "wins"}`}</span>
               </span>
               <span className="tn-points">{r.points}</span>
@@ -261,7 +262,7 @@ function ScoreAttackPlay({ ev, onPlay }: { ev: TournamentEventView; onPlay: () =
               <Row as="li" key={`${r.place}`} data-me={r.isMe ? "" : undefined} className={r.isMe ? "tn-me" : undefined}>
                 <span className="tn-place">{r.place}</span>
                 <span className="jz-row-text">
-                  <span className="jz-row-title">{r.isMe ? "You" : r.name}</span>
+                  <TournamentPlate plate={r.plate} you={r.isMe} />
                 </span>
                 <span className="tn-points">{r.total.toLocaleString("en-GB")}</span>
               </Row>

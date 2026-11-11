@@ -120,3 +120,11 @@ is never read in a production build); chat `tournamentChat.server.ts`; task `tas
 `20261115200000_tournaments.sql`, `20261115200100_tournament_badges.sql`,
 `20261115200200_analytics_tournament_events.sql`. Checks: tournaments-check (~40 s, PostgreSQL, shard `e`),
 tournaments-screens-check (~2 s).
+
+## Nameplates
+
+Every board row draws its player as the nameplate strip from A2's player card (Joe's rule of 11 Nov 2026): the card art
+band, the frame, the avatar, the name colour, the rated emblem and the badges inside the name area only, never behind a
+place or a score; a tap opens the full card. The plates come with the board (`platesFor`, one call per page). Guests and
+hidden under-18s ("Hidden player") keep colour and initial. Contract: `interface.md` section 10; proof:
+tournament-plates-check.

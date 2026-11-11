@@ -2172,7 +2172,10 @@ outside the repo.
   trophy, badge or Joules, logged in `moderation.tournament_flags` beside W3a's `rated_flags`, "Your result is under
   review." Migrations `20261115200000_tournaments.sql`, `20261115200100_tournament_badges.sql`,
   `20261115200200_analytics_tournament_events.sql` (**not applied until merged**). Events `tournament_entered`,
-  `tournament_finished`, `prize_paid`. tournaments-check (~40 s, PostgreSQL, shard `e`), tournaments-screens-check (~2 s).
+  `tournament_finished`, `prize_paid`. Every board row draws its player's nameplate strip (Joe's rule of 11 Nov 2026,
+  `TournamentPlate`, the plates built once per page by `platesFor` in `src/lib/identity/plates.server.ts` and sent with
+  the board; guests and hidden under-18s "Hidden player" on colour and initial; a tap opens the full card).
+  tournaments-check (~40 s, PostgreSQL, shard `e`), tournaments-screens-check (~2 s), tournament-plates-check (~10 s, shard `e`).
 - **The ratings engine** (wave 3 W3a, 11 Nov 2026, `docs/rated/README.md`, the contract `docs/rated/ratings-interface.md`;
   no gameplay, scoring, stamp or deal change): Glicko-2 (`src/lib/rated/glicko2.ts`, one rating period per match,
   weighted games, an RD floor schedule and time away; **every constant in `glicko.config.ts` beside its target**,

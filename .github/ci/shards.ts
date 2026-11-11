@@ -383,6 +383,7 @@ export const SHARDS: Record<string, string[]> = {
     // PostgreSQL through the server-function harness; tournaments-screens-check (~2 s) the hub's screens.
     "tournaments-check.ts",
     "tournaments-screens-check.tsx",
+    "tournament-plates-check.tsx",
     "ink-x200-check.ts",
     "depth4-check.ts",
     "room-figures-check.ts",

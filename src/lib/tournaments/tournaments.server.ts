@@ -93,10 +93,13 @@ import type {
   EntryView,
   EventStatus,
   ScoreAttackBoard,
+  ScoreAttackBoardRow,
   TournamentEventView,
   TournamentHub,
   TrophyView,
 } from "./types";
+import { UNKNOWN_PLATE } from "@/lib/identity/plates";
+import { platesFor } from "@/lib/identity/plates.server";
 
 /* ------------------------------------------------------------------ constants */
 
@@ -495,6 +498,13 @@ export async function arenaPartner(me: Searcher, waiting: readonly Searcher[], n
   return best;
 }
 
+/** The duel's opponent with their plate (a hidden under-18's name stays on the server). */
+async function opponentOf(client: Db, viewerId: string, other: string): Promise<ArenaDuelView["opponent"]> {
+  const name = (await accountName(client, other)) ?? "Player";
+  const plate = (await platesFor(client, viewerId, [{ userId: other, name }], Date.now())).get(other)!;
+  return { userId: other, name: plate.name, plate };
+}
+
 async function duelView(client: Db, duel: ArenaDuelRow, userId: string): Promise<ArenaDuelView> {
   const other = duel.a_user === userId ? duel.b_user : duel.a_user;
   let code: string | null = null;
@@ -505,7 +515,7 @@ async function duelView(client: Db, duel: ArenaDuelRow, userId: string): Promise
   return {
     duelId: duel.id,
     roomCode: code,
-    opponent: { userId: other, name: (await accountName(client, other)) ?? "Player" },
+    opponent: await opponentOf(client, userId, other),
     status: duel.status === "settled" || duel.status === "void" ? duel.status : "playing",
   };
 }
@@ -707,26 +717,37 @@ export async function arenaBoard(client: Db, userId: string, eventId: unknown, n
   // A player with a flagged run earns no points in this Arena: off the board, their own result under review.
   const flagged = new Set((await readFlaggedPlayers(client, id)).data);
   const ranked = arenaStandings(players.filter((p) => !flagged.has(p.user_id)).map(arenaPlayerOf));
-  const names = await Promise.all(ranked.slice(0, 50).map((p) => accountName(client, p.userId)));
-  const rowOf = (p: ArenaPlayer & { place: number }, name: string | null): ArenaBoardRow => ({
-    place: p.place,
-    userId: p.userId,
-    name: name ?? "Player",
-    points: p.points,
-    wins: p.wins,
-    streak: p.streak,
-    played: p.played,
-    isMe: p.userId === userId,
-  });
-  const rows = ranked.slice(0, 50).map((p, i) => rowOf(p, names[i] ?? null));
   const mine = ranked.find((p) => p.userId === userId);
+  const shown = ranked.slice(0, 50);
+  // Every row's plate in one batch (the caller's own pinned row included): Joe's rule of 11 Nov 2026.
+  const plates = await platesFor(
+    client,
+    userId,
+    [...shown, ...(mine ? [mine] : [])].map((p) => ({ userId: p.userId, name: "Player" })),
+    nowMs,
+  );
+  const rowOf = (p: ArenaPlayer & { place: number }): ArenaBoardRow => {
+    const plate = plates.get(p.userId) ?? UNKNOWN_PLATE;
+    return {
+      place: p.place,
+      userId: p.userId,
+      name: plate.name,
+      plate,
+      points: p.points,
+      wins: p.wins,
+      streak: p.streak,
+      played: p.played,
+      isMe: p.userId === userId,
+    };
+  };
+  const rows = shown.map(rowOf);
   return {
     eventId: id,
     endsAt: msOf(current.ends_at),
     status: statusOf(current.status),
     players: ranked.length,
     rows,
-    me: mine ? rows.find((r) => r.isMe) ?? rowOf(mine, await accountName(client, userId)) : null,
+    me: mine ? rows.find((r) => r.isMe) ?? rowOf(mine) : null,
     underReview: flagged.has(userId),
   };
 }
@@ -906,6 +927,20 @@ async function scoreAttackRanking(client: Db, row: TournamentEventRow, nowMs: nu
   };
 }
 
+/** A page of Score Attack rows with their plates, in one batch (Joe's rule of 11 Nov 2026). */
+async function scoreAttackRows(
+  client: Db,
+  userId: string,
+  shown: readonly { place: number; userId: string; name: string; total: number }[],
+  nowMs: number,
+): Promise<ScoreAttackBoardRow[]> {
+  const plates = await platesFor(client, userId, shown.map((s) => ({ userId: s.userId, name: s.name })), nowMs);
+  return shown.map((s) => {
+    const plate = plates.get(s.userId) ?? UNKNOWN_PLATE;
+    return { place: s.place, name: plate.name, plate, total: s.total, isMe: s.userId === userId };
+  });
+}
+
 /** The board: open once the caller's attempt has finished or the day has closed (the Daily's rule). */
 export async function scoreAttackBoard(client: Db, userId: string, eventId: unknown, nowMs: number): Promise<ScoreAttackBoard | null> {
   const id = String(eventId ?? "");
@@ -921,7 +956,7 @@ export async function scoreAttackBoard(client: Db, userId: string, eventId: unkn
     eventId: id,
     open,
     count: standings.length,
-    rows: open ? standings.slice(0, 50).map((s) => ({ place: s.place, name: s.name, total: s.total, isMe: s.userId === userId })) : [],
+    rows: open ? await scoreAttackRows(client, userId, standings.slice(0, 50), nowMs) : [],
     // A flagged attempt: no score here (its total isn't shown), its result under review.
     me: mine
       ? { place: open ? placeOf : null, total: flagged.has(userId) ? 0 : mine.total_score, finished: !!mine.finished_at, roundsDone: mine.rounds_done }
