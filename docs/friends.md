@@ -41,6 +41,8 @@ scoring, stamp, timing or room-flow change beyond Invite to room.
   blocked player is told "sent" if they try and never learns of the block. Unblock lifts it without making friends.
 - **Report** from a friend's profile uses wave 1's reasons, thank-you and `public.file_room_report` (no room, so
   `room_reports.duel_id` is null): the same counting, automatic mute and review list (docs/moderation.md).
+  `moderation.report_queue` gains two columns at the end: `sources` (chat message, room name or profile) and
+  `from_profile` (how many of the player's reports came from a profile).
 - **Status** (`friends.status_of`): in a lobby (its code and seats, with Join on the list), in a game, playing
   Practice, online (a heartbeat in the past 150 s; the app beats once a minute while visible, accounts only), or last
   seen. "Show when I'm online" is on by default for adults and off for under-18s (null in `friend_settings` = the
