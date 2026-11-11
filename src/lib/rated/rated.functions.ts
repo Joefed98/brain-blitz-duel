@@ -35,6 +35,7 @@ export const ratedQueueJoinFn = createServerFn({ method: "POST" })
   .inputValidator((input: { format: string; choice: string }) => input)
   .handler(async ({ data, context }): Promise<JoinOutcome> => {
     const { client, rated } = await setup(context.userId, false);
+    // A guest never sends a name: rated play seats them under their generated energy name (guestName.server.ts).
     return rated.joinQueue(client, context.userId, { format: data.format, choice: data.choice }, Date.now());
   });
 

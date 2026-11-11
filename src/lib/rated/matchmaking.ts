@@ -66,9 +66,19 @@ export function ratedOptionRefusal(format: unknown, choice: unknown, switches: R
   return null;
 }
 
-/** Whether rated play is open to this player: everyone once Joe flips the switch, testers until then. */
+/** Whether rated play is open to this tester (or not): everyone once Joe flips the switch, testers until then. */
 export function ratedPlayOpenFor(isTester: boolean, switches: RatedSwitches = RATED_SWITCHES): boolean {
   return switches.forEveryone || isTester;
+}
+
+/**
+ * Who may queue: with RATED_PLAY_FOR_EVERYONE on, everyone, guests included (a new player taps Play and plays with no
+ * sign-up, placement first; their ratings carry to their account when they sign up, the same player id). While it is
+ * off, only accounts on the tester list.
+ */
+export function ratedAccessFor(player: { account: boolean; tester: boolean }, switches: RatedSwitches = RATED_SWITCHES): boolean {
+  if (switches.forEveryone) return true;
+  return player.account && player.tester;
 }
 
 /** What the phone may offer (only what is switched on). */
@@ -187,6 +197,8 @@ export interface RecordedGame {
   finishMs: number | null;
   /** The server-made timeline (timeline.server.ts), null when the game has none. Its last point is `score`. */
   timeline: ScoreTimeline | null;
+  /** The server's replay flagged the stored run (its `extra.flagged`): the whole run is never played against. */
+  flagged?: boolean;
 }
 
 /** A run that could be played against. */
@@ -236,6 +248,7 @@ export function recordedRefusal(c: RecordedCandidate, ctx: RecordedContext): str
   if (ctx.lastOwnerId && c.ownerId === ctx.lastOwnerId) return "same_owner_twice";
   if (ctx.nowMs - c.recordedAtMs > RECORDED_WINDOW_MS || c.recordedAtMs > ctx.nowMs) return "too_old";
   if (c.usesToday >= RECORDED_DAILY_USES) return "used_up";
+  if (c.games.some((g) => g.flagged === true)) return "flagged";
   if (c.games.length !== games) return "wrong_length";
   if (c.source === "rated" && (c.format !== ctx.format || c.choice !== ctx.choice)) return "other_format";
   if (!c.games.every((g) => typeFitsChoice(g.type, ctx.choice))) return "other_choice";
@@ -395,6 +408,18 @@ export function matchOutcome(games: readonly GameScores[]): MatchOutcome {
   else if (totalA !== totalB) winner = totalA > totalB ? "a" : "b";
   else if (timeA !== timeB) winner = timeA < timeB ? "a" : "b";
   return { winsA, winsB, totalA, totalB, winner };
+}
+
+/**
+ * Best of N stops as soon as it is decided: one side has won a majority of the games (2 of 3, 3 of 5, 4 of 7), so it
+ * can't be caught (2–0 or 2–1 in a best of 3; 3–0 or 3–1 in a best of 5). A drawn game counts for nobody, so a best
+ * of 5 at 2–0 with two drawn games still plays game 5. This is W3a's rule (src/lib/rated/match.ts: a game after the
+ * decision, or a short match that isn't decided, is refused), so the room and the rating always agree.
+ */
+export function matchClinched(games: readonly GameScores[], totalGames: number): boolean {
+  const { winsA, winsB } = matchOutcome(games);
+  const need = Math.floor(totalGames / 2) + 1;
+  return winsA >= need || winsB >= need;
 }
 
 /* ------------------------------------------------------------------ rematch */

@@ -19,14 +19,19 @@ Status: **kept current on the W3b PR.** Last change: 11 Nov 2026.
 | `src/lib/rated/rated.server.ts` | The flow: queue, match making, recorded runs, settling, rematch, live progress. |
 | `src/lib/rated/rated.functions.ts` | The server functions the phone calls (section 3). |
 | `src/lib/rated/ratedChat.server.ts` | Wave 1's stranger chat rules in rated rooms. |
+| `src/lib/rated/practiceDeals.server.ts` | Stores each counted Practice play's deal (Practice as a recorded-run source). |
 | `src/lib/data/rated.server.ts` | Every matchmaking table read and write (typed, no `any`). |
 | `supabase/migrations/20261114200000_matchmaking.sql` | The `mm_*` tables and functions. |
 | `supabase/migrations/20261114200100_analytics_rated_events.sql` | The four events. |
+| `supabase/migrations/20261114200200_matchmaking_practice_and_forget.sql` | `mm_practice_deals` (kept 15 days), and `forget_user`'s removal of a deleted account's runs. |
 
 Tables (server only; no phone reads or writes any): `mm_queue` (one row per searcher), `mm_matches` (each match, its
 room, kind, the recorded run it plays against, rematch, result), `mm_match_players`, `mm_runs` (each player's run from
 a settled rated match, the first recorded-run pool), `mm_run_uses` (the 5-a-day cap), `mm_progress` (the live score a
-phone reports during a game, display only). The `mm_` prefix keeps them apart from W3a's ratings tables.
+phone reports during a game, display only), `mm_practice_deals` (each counted Practice play's deal). The `mm_` prefix
+keeps them apart from W3a's ratings tables. When `accounts.forget_user` removes a user, the trigger
+`mm_forget_removed_user` deletes their runs, practice deals, search and progress, and re-keys their seats in other
+players' matches (and the run keys and uses that name them) to one fresh id, the owner shown as "Deleted player".
 
 ## 2. Switches
 
@@ -35,7 +40,7 @@ Joe edits the file and merges to `main` (the deploy carries it). The server read
 
 | Switch | File | Launch | Meaning |
 |---|---|---|---|
-| `RATED_PLAY_FOR_EVERYONE` | `ratedConfig.ts` | `false` | false: only accounts on `shop.testers` (D1's list; Joe adds with `shop.add_tester`) can queue; true: every signed-in account. W3a's R challenges read the same switch. |
+| `RATED_PLAY_FOR_EVERYONE` | `ratedConfig.ts` | `false` | false: only accounts on `shop.testers` (D1's list; Joe adds with `shop.add_tester`) can queue; true: everyone, guests included (a new player taps Play and plays with no sign-up, placement first). W3a's R challenges read the same switch. |
 | `RATED_FORMATS_ON.bo3` | `matchmakingConfig.ts` | `true` | 1v1 best of 3. |
 | `RATED_FORMATS_ON.bo5`, `.bo7` | `matchmakingConfig.ts` | `false` | 1v1 best of 5 and 7. |
 | `RATED_FORMATS_ON.ffa4`, `.ffa8` | `matchmakingConfig.ts` | `false` | 4 and 8 players (W3d). |
@@ -47,8 +52,13 @@ before D1's migration).
 
 ## 3. Server functions (`src/lib/rated/rated.functions.ts`)
 
-Every one takes the signed-in caller (`requireSupabaseAuth`). Rated play needs an account (a profile); a guest gets
-`{ ok: false, reason: "account" }` from the join.
+Every one takes the caller (`requireSupabaseAuth`: an account or a guest's anonymous user). While rated play is
+testers-only a guest gets `{ ok: false, reason: "account" }`; once it is for everyone a guest plays with no sign-up
+and **never types a name**: rated play is where strangers meet (wave 1's decision), so a guest is seated under a
+generated energy name such as "Swift Volt 48" (`guestEnergyName`, `src/lib/rated/guestName.server.ts`: the same name
+every match, from their player id) and the views tag them Guest (`guest: true`). Typed guest names stay for rooms only. A guest's matches, and W3a's ratings and placement, key on the same player id, which wave 1's linking keeps
+when they sign up, so everything carries to the account. The save-your-progress prompt after the first finished match
+is the phone's (W3c: `FinishedGameCounter` / `takePendingPrompt`, as rooms and the Daily do).
 
 | Function | Input | Answer |
 |---|---|---|
@@ -82,14 +92,19 @@ Every one takes the signed-in caller (`requireSupabaseAuth`). Rated play needs a
 - A match is an ordinary room (`public.duels`), made by the server already started (phase `starting`), with the room's
   own phases, grading and results: the same deals for every player, Classic (`RATED_GAME_MODE`, today's live deal),
   dealt by `dealRoomRounds(matchSettings(format, choice))` and `buildRoomPuzzles` on a new room seed. Best of N deals
-  N games and all are played; the match is the games won (`matchOutcome`: a level game score is a drawn game, as in
-  W3a; level on games, the higher total, then less time used). Nobody else can join it (it is already started), and
+  N games and **stops as soon as it is decided** (`matchClinched`: one side has won a majority, 2 of 3, 3 of 5, 4 of 7;
+  a drawn game counts for nobody, so a best of 5 at 2–0 with two drawn games plays game 5; W3a's own `checkMatch`
+  rule, and rated-matchmaking-check proves the two agree on every win / draw / loss sequence): that game's result screen leads straight to the winner
+  reveal (`ratedMatchClinched`, called from `advancePhaseFn` as a rated room leaves a result; ordinary rooms answer
+  false). The match is the games won (`matchOutcome`: a level game score is a drawn game, as in W3a; level on games,
+  the higher total, then less time used). A stopped match is settled on the games played. Nobody else can join it (it is already started), and
   Play again (`rematchFn`) is refused in it.
 - The phone opens the room with the existing room route (`/duel/<roomCode>`).
 - `RatedMatchView`: `matchId`, `format`, `choice`, `gameMode`, `kind` (`live` / `recorded`), `roomId`, `roomCode`,
-  `status`, `players` (`userId`, `slot`, `displayName`, `ratingBefore`, `placement`), `rematchOf`, and for a recorded
+  `status`, `players` (`userId`, `slot`, `displayName`, `guest`, `ratingBefore`, `placement`), `rematchOf`, and for a recorded
   match `recorded`: `label` ("Recorded run · 2 h ago", `recordedAgeLabel`), `recordedAtMs`, `ownerId` (for the
-  player card, A2's `getPublicCard`), `ownerName`, `look` (the owner's stored look per game, E1's `look` on the
+  player card, A2's `getPublicCard`), `ownerName` (the username, or a guest's energy name, never a typed name),
+  `ownerGuest` (show the Guest tag), `look` (the owner's stored look per game, E1's `look` on the
   source results; null before E1's migration or for none; the scenery stays the viewer's world theme), `fallback`.
 - The game header shows both scores; `ratedOpponentScoreFn` gives the opponent's. Hidden for the final 20 % of each
   game's own time (`opponentScoreHidden`, `HIDDEN_FINISH_SHARE`), on the server, and revealed with the game's result.
@@ -109,24 +124,34 @@ idempotent on the match id). W3a's answer is kept on the settlement (`ratings`).
 W3a's: a recorded rated run's owner at most half; room, Daily and Practice runs never; the 4th match between the same
 two players in a UK day frozen.
 
-**Binding.** Until W3a's `src/lib/rated/ratings.server.ts` is in, `ratings()` is unbound: the queue answers
-`no_rating` and nothing is made or settled. When it lands, one line in `ratingsAdapter.server.ts` (marked `BIND`)
-binds it: `bindW3aRatings({ getMyRatings, recordRatedMatch }, adminDb, <W3a's starting rating>)`.
+**Binding.** `ratingsReady()` binds W3a's `src/lib/rated/ratings.server.ts` (`getMyRatings`, `recordRatedMatch`) on
+the service-role client the first time rated play needs it, with W3a's `START_RATING` as the starting rating and the
+beginners' bound; a check's stand-in (`setRatingsBackend`) wins. Flagged runs never reach W3a: the flag comes only from
+the server's grading, and a flagged run is never stored or chosen (so W3a's `run.flagged` is never sent).
 
 ## 7. Recorded runs
 
 Chosen by `chooseRecordedRun` (`recordedRefusal` says why a run is out):
 
-1. Eligible: never the viewer's own; never the same owner as the viewer's last recorded opponent; from the last 14
+1. Eligible: never a run with a game the server's replay flagged (`extra.flagged` on the stored result or practice
+   grade: `recordedRefusal` "flagged"; a flagged rated run is never stored and a flagged practice deal never read);
+   never the viewer's own; never the same owner as the viewer's last recorded opponent; from the last 14
    days (`RECORDED_WINDOW_MS`); used fewer than 5 times today (`RECORDED_DAILY_USES`, UK day, claimed atomically by
    `public.mm_run_use`); exactly the format's game count; every game in the choice; every game on today's version
    (`gameVersionOf(puzzle)` equals `dealtSignature(type)`); for a rated run the same format and choice; never a run whose
-   owner has deleted their account.
+   owner has asked to delete their account (removed outright once `forget_user` runs). A rated run is stored only when
+   every dealt game was played, so **a match that ends early (2–0, 3–0, 3–1) leaves no recorded run** (Joe accepted
+   this on 11 Nov 2026: the Practice, rooms and Daily fallback covers it).
 2. The nearest-rated rated run within ±200 (`RECORDED_NEAR`).
-3. Otherwise (no rated run near enough) the fallback: a real player's server-graded run from a room or the Daily in
-   the last 14 days, on today's versions (the newest 40 finished rooms and 40 Daily attempts are looked through; the
-   first N rounds of the run that fit the choice). Its owner's rating never moves. **Practice isn't a source yet**:
-   a practice play doesn't store its deal, so it can't be dealt again.
+3. Otherwise (no rated run near enough) the fallback: a real player's server-graded run from a room, the Daily or
+   Practice in the last 14 days, on today's versions. Rooms and the Daily: the newest 40 finished of each, the first N
+   rounds of the run that fit the choice. Practice: each play C1a counts (graded, not the intro example, not flagged,
+   after the fresh start) has its deal stored in `mm_practice_deals`; an owner's newest plays of N different games
+   that fit the choice make one run (key `practice:<owner>:<play ids>`), aged by its **oldest** game (the label and
+   the 14-day window), never the newest. The owner's rating never moves. The deals are kept 15 days: the Worker's Cron
+   Trigger `rated:practice-deals-purge` (daily 04:37 UTC, `vite.config.ts` MATCHMAKING_TASKS,
+   `src/lib/rated/tasks/`) runs `public.mm_purge_practice_deals`, so the purge happens whether or not the database has
+   pg_cron (where it has, pg_cron runs it too; the purge is idempotent).
 4. Otherwise the nearest rated run however far; otherwise the searcher keeps searching.
 
 The live player is dealt exactly the run's games and deals: the stored puzzles (public and private halves) are copied
