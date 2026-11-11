@@ -3,7 +3,7 @@
  * each slot lists, and the line under a locked item saying where it comes from (from the catalogue).
  */
 import type { CatalogueItem, Rarity } from "./backend";
-import { JOULZ_CHAMPIONSHIP_ENABLED } from "@/config/tournamentEventsConfig";
+import { TOURNAMENT_KINDS_ON } from "@/config/tournamentConfig";
 import { CHAMPIONSHIP_FRAME } from "@/lib/tournaments/eventRules";
 
 /** Free for everyone (the 8 card arts and the Plain frame): owned whatever the inventory says. */
@@ -36,7 +36,7 @@ export function sourceLine(item: CatalogueItem, shopOn: boolean): string | null 
       return "Top 500 players";
     case "tournament":
       // The Championship frame (W4c): shown once the Joulz Championship is on.
-      return item.id === CHAMPIONSHIP_FRAME && JOULZ_CHAMPIONSHIP_ENABLED ? "Joulz Championship winners" : null;
+      return item.id === CHAMPIONSHIP_FRAME && TOURNAMENT_KINDS_ON.championship ? "Joulz Championship winners" : null;
     case "free-starter":
       return null;
     default:

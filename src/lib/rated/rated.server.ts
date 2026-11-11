@@ -366,8 +366,7 @@ interface NewRoomPlayer {
 }
 
 /** An ordinary room, already started, holding exactly these puzzles and players (the rooms engine runs it from here). */
-/** A room made already started for the listed players (also the tournament events' matches, W4c: never rated). */
-export async function createStartedRoom(
+async function createStartedRoom(
   client: Db,
   input: { players: NewRoomPlayer[]; puzzles: PuzzleData[]; picks: readonly RoomPick[] },
   nowMs: number,

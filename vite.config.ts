@@ -74,6 +74,7 @@ const PUSH_TASKS = {
   },
 };
 
+/**
  * Rated play's Cron Trigger (wave 3 W3a, docs/rated/README.md "The standings job"): a nitro scheduled task, as B2's push
  * tasks are. Nitro's Cloudflare preset writes each schedule into the generated wrangler.json's `triggers.crons`, so
  * `wrangler deploy` sets the Worker's Cron Triggers, and the Worker's `scheduled` handler runs the task for the cron

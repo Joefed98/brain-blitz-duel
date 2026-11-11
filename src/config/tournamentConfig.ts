@@ -40,6 +40,12 @@ export const SCORE_ATTACK_COINS = 50;
 /** Games in a Score Attack, all from the day's featured category. */
 export const SCORE_ATTACK_ROUNDS = 5;
 
+/** The Category Cup's entry in coins (or one Category Cup ticket; W4c). */
+export const CATEGORY_CUP_COINS = 150;
+
+/** The Category Cup (Saturdays) and the Joulz Championship (the month's last Sunday) start at this UK time (W4c). */
+export const BIG_EVENT_TIME_UK = "19:00";
+
 /**
  * The prizes, fixed by Joulz (decided 11 Nov 2026). Each line: the places it covers, the coins each place gets and the
  * fewest entrants for it to pay (the small-field safeguard; trophies follow the same rule).
@@ -55,5 +61,20 @@ export const TOURNAMENT_PRIZES = {
     { from: 2, to: 2, coins: 200, minEntrants: 8 },
     { from: 3, to: 3, coins: 100, minEntrants: 12 },
     { from: 4, to: 10, coins: 60, minEntrants: 50 },
+  ],
+  // W4c (the build plan's wave 4 decisions, 11 Nov 2026): 2nd only with 8 or more players, 3rd only with 12 or more.
+  category_cup: [
+    { from: 1, to: 1, coins: 3000, minEntrants: 1 },
+    { from: 2, to: 2, coins: 1800, minEntrants: 8 },
+    { from: 3, to: 3, coins: 900, minEntrants: 12 },
+    { from: 4, to: 8, coins: 300, minEntrants: 1 },
+  ],
+  // The winner also gets the animated Championship frame, the Knockout Champion badge and the hall of fame.
+  championship: [
+    { from: 1, to: 1, coins: 10000, minEntrants: 1 },
+    { from: 2, to: 2, coins: 5000, minEntrants: 1 },
+    { from: 3, to: 3, coins: 2500, minEntrants: 1 },
+    { from: 4, to: 4, coins: 1000, minEntrants: 1 },
+    { from: 5, to: 8, coins: 500, minEntrants: 1 },
   ],
 } as const;

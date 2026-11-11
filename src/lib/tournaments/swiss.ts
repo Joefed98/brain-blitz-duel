@@ -22,6 +22,11 @@ export interface SwissResult {
   /** Each side's total score over the match's games. */
   totalA: number;
   totalB: number;
+  /**
+   * Players whose run the server flagged in this match (Joe, 11 Nov 2026): they take no points and no score from it
+   * (counted as a loss). Their opponent's result stands: the win when only one side was flagged.
+   */
+  noPoints?: readonly string[];
 }
 
 export interface SwissMatch {
@@ -75,24 +80,25 @@ function tally(players: readonly SwissPlayer[], matches: readonly SwissMatch[]) 
     if (!b) continue;
     a.opponents.push(b.id);
     b.opponents.push(a.id);
-    a.totalScore += m.result.totalA;
-    b.totalScore += m.result.totalB;
+    const voidA = m.result.noPoints?.includes(a.id) === true;
+    const voidB = m.result.noPoints?.includes(b.id) === true;
+    a.totalScore += voidA ? 0 : m.result.totalA;
+    b.totalScore += voidB ? 0 : m.result.totalB;
     let aPts = 1;
     let bPts = 1;
     if (m.result.winner === a.id) [aPts, bPts] = [2, 0];
     else if (m.result.winner === b.id) [aPts, bPts] = [0, 2];
+    if (voidA) aPts = 0;
+    if (voidB) bPts = 0;
     a.points2 += aPts;
     b.points2 += bPts;
-    if (aPts === 2) {
-      a.wins++;
-      b.losses++;
-    } else if (bPts === 2) {
-      b.wins++;
-      a.losses++;
-    } else {
-      a.draws++;
-      b.draws++;
-    }
+    // A flagged side's match is a loss; a match both sides drew (neither flagged) a draw each.
+    if (aPts === 2) a.wins++;
+    else if (aPts === 1) a.draws++;
+    else a.losses++;
+    if (bPts === 2) b.wins++;
+    else if (bPts === 1) b.draws++;
+    else b.losses++;
     meetings.push({ a: a.id, b: b.id, aPts, bPts });
   }
   for (const r of rows.values()) r.buchholz2 = r.opponents.reduce((s, o) => s + (rows.get(o)?.points2 ?? 0), 0);

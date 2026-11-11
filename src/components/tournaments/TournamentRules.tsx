@@ -14,6 +14,7 @@ import {
   SCORE_ATTACK_ROUNDS,
 } from "@/config/tournamentConfig";
 import { KIND_LABEL, placeLabel, prizeLines, type TournamentKind } from "@/lib/tournaments/rules";
+import { CHAMPIONSHIP_RULES, CUP_RULES } from "@/lib/tournaments/eventRules";
 
 const time12 = (t: string) => {
   const [h, m] = t.split(":").map(Number) as [number, number];
@@ -35,6 +36,9 @@ export function rulesFor(kind: TournamentKind): { title: string; lines: string[]
       ],
     },
   ];
+  // The Category Cup and the Joulz Championship (W4c).
+  if (kind === "category_cup") return [{ title: "How it works", lines: [...CUP_RULES] }, ...common];
+  if (kind === "championship") return [{ title: "How it works", lines: [...CHAMPIONSHIP_RULES] }, ...common];
   if (kind === "arena")
     return [
       {

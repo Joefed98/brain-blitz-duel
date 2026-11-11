@@ -1,45 +1,47 @@
 /**
- * What the two big events need from sessions not merged yet (wave 4, W4c; docs/tournaments/events.md "Adapters"):
- * the one place the Category Cup and the Joulz Championship call them, so wiring each in is one change here.
+ * What the Category Cup and the Joulz Championship take from other sessions (wave 4, W4c; docs/tournaments/events.md
+ * "Wiring"), in one place:
  *
- * - `scoreAttackTop`: W4b's monthly Score Attack standings (docs/tournaments/interface.md, W4b's contract): the
- *   month's best players, best first, as account ids. Until W4b is merged in nobody qualifies, so a Championship
- *   started now is cancelled (no_qualifiers) and pays nothing.
- * - `awardJoules`: D2's Joules (the Season pass): 150 for finishing an event, once per key. Until D2 is merged in,
- *   nothing is paid; the payout row is still written once, so wiring it in later never pays twice for the same event.
- * - `remind`: one reminder to each entrant 15 minutes before the start (W4b's reminders, B2's phone notifications).
- *   Until then the event notes the reminder as sent and nothing goes out.
+ * - `scoreAttackTop`: the month's Score Attack standings, best first, from W4b's stored daily results
+ *   (`tournament_results` of the month's finished Score Attacks; `monthStandings` in eventRules.ts).
+ * - `awardJoules`: D2's Joules for finishing (`creditTournamentJoules`, kind `finished`: 150, once per event and account).
  *
- * Checks stand in with `setTournamentPlatform` (server code only; no phone reaches it, and it is ignored in a
- * production build).
+ * Reminders are W4b's: every entry (a qualifier's too) is reminded by W4b's tick through B2's notification.
+ *
+ * Checks stand in with `setTournamentPlatform` (server code only, no phone reaches it); it does nothing in a
+ * production build (`import.meta.env.PROD`).
  */
 import type { Db } from "@/lib/data/db.server";
 
+import { monthStandings } from "./eventRules";
+
 export interface TournamentPlatform {
-  /** The month's ("YYYY-MM") top `limit` Score Attack players as at `asOfMs`, best first (account ids). */
-  scoreAttackTop(client: Db, month: string, limit: number, asOfMs: number): Promise<string[]>;
-  /** Joules for finishing, once per `key`. */
-  awardJoules(client: Db, input: { userId: string; amount: number; key: string }): Promise<void>;
-  /** A reminder to each entrant that `eventName` starts at `startsAtMs`. */
-  remind(client: Db, input: { userIds: readonly string[]; eventName: string; startsAtMs: number }): Promise<void>;
+  /** The month's ("YYYY-MM") top `limit` Score Attack players, best first (account ids). */
+  scoreAttackTop(client: Db, month: string, limit: number): Promise<string[]>;
+  /** Joules for finishing the event, once per account and event. */
+  awardJoules(client: Db, input: { userId: string; eventId: string; atMs: number }): Promise<void>;
 }
 
-const UNWIRED: TournamentPlatform = {
-  async scoreAttackTop() {
-    return [];
+const WIRED: TournamentPlatform = {
+  async scoreAttackTop(client, month, limit) {
+    const { readMonthScoreAttackResults } = await import("@/lib/data/tournamentEvents.server");
+    const { data } = await readMonthScoreAttackResults(client, month);
+    return monthStandings(data).slice(0, limit);
   },
-  async awardJoules() {},
-  async remind() {},
+  async awardJoules(client, input) {
+    const { creditTournamentJoules } = await import("@/lib/pass/pass.server");
+    await creditTournamentJoules(client, { userId: input.userId, eventId: input.eventId, kind: "finished", atMs: input.atMs });
+  },
 };
 
-let current: TournamentPlatform = UNWIRED;
+let current: TournamentPlatform = WIRED;
 
 export function tournamentPlatform(): TournamentPlatform {
   return current;
 }
 
-/** Checks (and W4b / D2 when wired) set the platform; a production build keeps the wired one. */
+/** Checks stand in for a part (null: back to the wired platform). Does nothing in a production build. */
 export function setTournamentPlatform(next: Partial<TournamentPlatform> | null): void {
   if (import.meta.env.PROD) return;
-  current = next ? { ...UNWIRED, ...next } : UNWIRED;
+  current = next ? { ...WIRED, ...next } : WIRED;
 }

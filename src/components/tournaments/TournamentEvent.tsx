@@ -15,9 +15,13 @@ import { countdown, entryLabel, tournamentsBackend, useTournamentEvent } from "@
 import type { ArenaBoard, ArenaPoll, EntryOption, ScoreAttackBoard, TournamentEventView } from "@/lib/tournaments/types";
 
 import { dayLabel, inMinutes } from "./TournamentHub";
+import { BigEventLive } from "./BigEventLive";
+import { bigHowItWorks, CUP_MIN_ENTRANTS, isBigKind } from "@/lib/tournaments/eventRules";
 
 /** The plain "how it works" lines per kind (the full rules page has the rest). */
 export function howItWorks(ev: Pick<TournamentEventView, "kind" | "rounds" | "pickLabel">): string[] {
+  // The Category Cup and the Joulz Championship (W4c).
+  if (isBigKind(ev.kind)) return bigHowItWorks(ev.kind, ev.pickLabel);
   if (ev.kind === "arena")
     return [
       "For 45 minutes, play back-to-back best-of-3 duels against other entrants near your level.",
@@ -38,6 +42,7 @@ function prizeText(coins: number, trophy: string | null): string {
 
 function When({ ev, now }: { ev: TournamentEventView; now: number }) {
   if (ev.kind === "score_attack") return <p className="tn-meta">{`${dayLabel(ev.startsAt, now)}, all day (UK time)`}</p>;
+  if (isBigKind(ev.kind)) return <p className="tn-meta">{`${dayLabel(ev.startsAt, now)}, ${ukTime(ev.startsAt)} UK, about 90 min`}</p>;
   return <p className="tn-meta">{`${dayLabel(ev.startsAt, now)}, ${ukTime(ev.startsAt)} UK, about 45 min`}</p>;
 }
 
@@ -354,10 +359,21 @@ export function TournamentEventScreen({
           <Panel pad data-tournament-cancelled>
             <h3 className="tn-card-title">Called off this time</h3>
             <p className="tn-meta">
-              {ev.cancelReason === "too_few"
+              {ev.cancelReason === "too_few" && ev.kind === "category_cup"
+                ? `It needs ${CUP_MIN_ENTRANTS} players to start, and not quite enough came. Every entry has been refunded in full.`
+                : ev.cancelReason === "no_qualifiers"
+                  ? "Not enough players qualified from this month’s Score Attacks."
+                  : ev.cancelReason === "too_few"
                 ? `It needs 4 players to start, and not quite enough came. Thanks for turning up.${ev.cancelledNext ? ` The next Arena is ${dayLabel(ev.cancelledNext, now).toLowerCase()} at ${ukTime(ev.cancelledNext)}.` : ""}`
                 : "Every entry has been refunded in full."}
             </p>
+          </Panel>
+        ) : isBigKind(ev.kind) && (ev.status === "live" || ev.status === "finished") && (entered || ev.kind === "championship") ? (
+          // The Category Cup and the Joulz Championship (W4c): the round, your match, the standings or the bracket.
+          <BigEventLive eventId={ev.id} />
+        ) : ev.kind === "championship" && !entered ? (
+          <Panel pad data-championship-qualify>
+            <p className="tn-meta">The month’s top 64 Score Attack players qualify. No entry fee.</p>
           </Panel>
         ) : entered && ev.status === "live" && ev.kind === "arena" ? (
           <ArenaLive ev={ev} now={now} />

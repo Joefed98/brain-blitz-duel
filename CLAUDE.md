@@ -2152,21 +2152,22 @@ outside the repo.
   (`ratedMatchClinched` in advancePhaseFn). `accounts.forget_user` removes a deleted account's runs (trigger
   `mm_forget_removed_user`). Checks: rated-matchmaking-check, rated-server-check.
 - **The Category Cup and the Joulz Championship** (wave 4 W4c, 11 Nov 2026, `docs/tournaments/events.md`; no gameplay,
-  scoring, stamp, rating or deal change): built and **switched off at launch** (`CATEGORY_CUP_ENABLED` /
-  `JOULZ_CHAMPIONSHIP_ENABLED` in `src/config/tournamentEventsConfig.ts`; off, the server refuses them and the
-  Tournaments tab draws and calls nothing new). The cup: a Swiss on Saturdays 7 pm UK, the 11 categories in turn, 150
-  coins or a Category Cup ticket, 16 entrants or cancelled and refunded, 5–7 best-of-3 rounds by field size, paired by
-  score group with no rematch (`swiss.ts`), tie-breaks points, Buchholz, head-to-head, total score, entry order; 3,000 /
-  1,800 / 900 / 300 (4th–8th), 2nd only with 8+, 3rd only with 12+. The Championship: the last Sunday, the month's top 64
-  Score Attack players (W4b's standings through `platform.server.ts`; until wired nobody qualifies) in a seeded bracket
-  with byes and a third-place match (`knockout.ts`); 10,000 + the animated Championship frame (`frame.championship`,
-  `docs/art/wave-4/catalogue.json`, placeholder art) + the hall of fame / 5,000 / 2,500 / 1,000 / 500 (5th–8th).
-  Trophies 1st–3rd; Swiss Champion and Knockout Champion badges now earnable (Joe's approval, 11 Nov 2026); 150 Joules
-  for finishing (D2, adapter). Matches are W3b's started rooms (`createStartedRoom`), never rated, no Play again,
-  stranger chat rules; phones on the event page tick it on (`tickEvent`, one ticker at a time); every prize paid once
-  under its own key and logged in `tournament_payouts`. Migrations `20261115300000_tournament_events.sql`,
-  `20261115300100_analytics_tournament_events.sql` (**not applied until merged**); events `swiss_round_paired`,
-  `knockout_match_played`. tournament-events-check (~6 s, pure), tournament-events-server-check (~10 s, shard `e`).
+  scoring, stamp, rating or deal change): on W4b's tournaments, **switched off at launch** (`TOURNAMENT_KINDS_ON`
+  `category_cup` / `championship` in `src/config/tournamentConfig.ts`). Each event is a W4b `tournament_events` row
+  (`category_cup:<Saturday>:1900`, `championship:<YYYY-MM>`, scheduled by `eventRules.ts` through W4b's `rules.ts`),
+  entered, refunded, finished and paid through W4b's functions; W4b's `advanceEvent` hands them to `advanceBigEvent`
+  (`eventsFlow.server.ts`). The cup: Saturdays 7 pm UK, the 11 categories in turn, 150 coins or a Category Cup ticket,
+  16 entrants or called off and refunded, 5–7 best-of-3 rounds by field size, paired by score group with no rematch
+  (`swiss.ts`), tie-breaks points, Buchholz, head-to-head, total score, entry order; 3,000 / 1,800 (8+) / 900 (12+) /
+  300 (4th–8th). The Championship: the last Sunday, the month's top 64 Score Attack players (best 10 daily totals,
+  `monthStandings`), a seeded bracket with byes and a third-place match (`knockout.ts`); 10,000 + the animated
+  Championship frame (`frame.championship`, `docs/art/wave-4/catalogue.json`, placeholder art) + the hall of fame /
+  5,000 / 2,500 / 1,000 / 500 (5th–8th). Swiss Champion and Knockout Champion now earnable (Joe's approval, 11 Nov 2026);
+  150 Joules through D2. A run the server flags (`extra.flagged`) loses its match and earns no place or prize, logged in
+  `moderation.tournament_flags`. Matches are W3b's dealt match rooms, never rated. Own tables `tournament_rounds`,
+  `_seeds`, `_matches`, `_awards`, `_hall_of_fame` (`20261115300000_tournament_events.sql`,
+  `20261115300100_analytics_tournament_events.sql`, **not applied until merged**); events `swiss_round_paired`,
+  `knockout_match_played`. tournament-events-check (~6 s, pure), tournament-events-server-check (~15 s, shard `e`).
 - **The ratings engine** (wave 3 W3a, 11 Nov 2026, `docs/rated/README.md`, the contract `docs/rated/ratings-interface.md`;
   no gameplay, scoring, stamp or deal change): Glicko-2 (`src/lib/rated/glicko2.ts`, one rating period per match,
   weighted games, an RD floor schedule and time away; **every constant in `glicko.config.ts` beside its target**,

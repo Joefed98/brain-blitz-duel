@@ -1,124 +1,57 @@
 /**
- * The Category Cup and Joulz Championship's tables (wave 4, W4c; supabase/migrations/20261115300000_tournament_events.sql):
- * events, entries, matches, payouts, trophies and the hall of fame. Server only (service role); no phone reads any of
- * it directly. Every query the event flow (src/lib/tournaments/eventsFlow.server.ts) makes is here, typed.
+ * The Category Cup and Joulz Championship's own tables (wave 4, W4c; supabase/migrations/20261115300000_tournament_events.sql):
+ * each started event's rounds, the seeds, every pairing and bracket match, the finish's award log, the hall of fame,
+ * the flag log for Joe's review, and the month's Score Attack results the Championship qualifies from. Events, entries,
+ * results, prizes and trophies are W4b's (src/lib/data/tournaments.server.ts). Server only (service role), typed.
  */
-import type { Db, Tables, TablesInsert, TablesUpdate } from "./db.server";
+import type { Db, Json, Tables, TablesInsert, TablesUpdate } from "./db.server";
 import type { Result } from "./rooms.server";
 
-export type TournamentEventRow = Tables<"tournament_events">;
-export type TournamentEntryRow = Tables<"tournament_entries">;
+export type TournamentRoundsRow = Tables<"tournament_rounds">;
+export type TournamentSeedRow = Tables<"tournament_seeds">;
 export type TournamentMatchRow = Tables<"tournament_matches">;
-export type TournamentPayoutRow = Tables<"tournament_payouts">;
-export type TournamentTrophyRow = Tables<"tournament_trophies">;
+export type TournamentAwardRow = Tables<"tournament_awards">;
 export type HallOfFameRow = Tables<"tournament_hall_of_fame">;
 
-export type EnterAnswer = "entered" | "already" | "closed" | "full";
+/* ------------------------------------------------------------------ rounds (one row per started event) */
 
-/* ------------------------------------------------------------------ events */
-
-export async function readEventByKey(client: Db, key: string): Promise<Result<TournamentEventRow | null>> {
-  const { data, error } = await client.from("tournament_events").select("*").eq("event_key", key).maybeSingle();
+export async function readRounds(client: Db, eventId: string): Promise<Result<TournamentRoundsRow | null>> {
+  const { data, error } = await client.from("tournament_rounds").select("*").eq("event_id", eventId).maybeSingle();
   return { data, error };
 }
 
-export async function readEvent(client: Db, id: string): Promise<Result<TournamentEventRow | null>> {
-  const { data, error } = await client.from("tournament_events").select("*").eq("id", id).maybeSingle();
-  return { data, error };
-}
-
-/** Makes the event once (a second caller's insert meets the unique key and reads the first's). */
-export async function insertEvent(client: Db, row: TablesInsert<"tournament_events">): Promise<Result<null>> {
-  const { error } = await client.from("tournament_events").insert(row);
+/** Starts an event's rounds once (a racing second start meets the primary key and changes nothing). */
+export async function insertRounds(client: Db, row: TablesInsert<"tournament_rounds">): Promise<Result<null>> {
+  const { error } = await client.from("tournament_rounds").upsert(row, { onConflict: "event_id", ignoreDuplicates: true });
   return { data: null, error };
 }
 
-/** Moves an event on from one status (true for exactly one caller). */
-export async function claimEventStatus(
-  client: Db,
-  id: string,
-  from: string,
-  patch: TablesUpdate<"tournament_events">,
-): Promise<Result<boolean>> {
-  const { data, error } = await client.from("tournament_events").update(patch).eq("id", id).eq("status", from).select("id");
-  return { data: (data ?? []).length === 1, error };
-}
-
-export async function updateEvent(client: Db, id: string, patch: TablesUpdate<"tournament_events">): Promise<Result<null>> {
-  const { error } = await client.from("tournament_events").update(patch).eq("id", id);
+export async function updateRounds(client: Db, eventId: string, patch: TablesUpdate<"tournament_rounds">): Promise<Result<null>> {
+  const { error } = await client.from("tournament_rounds").update(patch).eq("event_id", eventId);
   return { data: null, error };
 }
 
 /** One ticker at a time, for at most `ms`. */
-export async function lockEvent(client: Db, id: string, ms: number): Promise<Result<boolean>> {
-  const { data, error } = await client.rpc("tournament_event_lock", { p_event: id, p_ms: ms });
+export async function lockRounds(client: Db, eventId: string, ms: number): Promise<Result<boolean>> {
+  const { data, error } = await client.rpc("tournament_rounds_lock", { p_event: eventId, p_ms: ms });
   return { data: data === true, error };
 }
 
-export async function unlockEvent(client: Db, id: string): Promise<Result<null>> {
-  const { error } = await client.rpc("tournament_event_unlock", { p_event: id });
+export async function unlockRounds(client: Db, eventId: string): Promise<Result<null>> {
+  const { error } = await client.rpc("tournament_rounds_unlock", { p_event: eventId });
   return { data: null, error };
 }
 
-/* ------------------------------------------------------------------ entries */
+/* ------------------------------------------------------------------ seeds */
 
-export async function readEntries(client: Db, eventId: string): Promise<Result<TournamentEntryRow[]>> {
-  const { data, error } = await client
-    .from("tournament_entries")
-    .select("*")
-    .eq("event_id", eventId)
-    .order("entered_at", { ascending: true });
+export async function readSeeds(client: Db, eventId: string): Promise<Result<TournamentSeedRow[]>> {
+  const { data, error } = await client.from("tournament_seeds").select("*").eq("event_id", eventId).order("seed", { ascending: true });
   return { data: data ?? [], error };
 }
 
-export async function readEntry(client: Db, eventId: string, userId: string): Promise<Result<TournamentEntryRow | null>> {
-  const { data, error } = await client.from("tournament_entries").select("*").eq("event_id", eventId).eq("user_id", userId).maybeSingle();
-  return { data, error };
-}
-
-/** Enters a paid entry atomically (public.tournament_enter). */
-export async function enterEvent(
-  client: Db,
-  input: { eventId: string; userId: string; paidWith: "coins" | "ticket"; coinLineId: number | null; attempt: number; max: number },
-): Promise<Result<EnterAnswer | null>> {
-  const { data, error } = await client.rpc("tournament_enter", {
-    p_event: input.eventId,
-    p_user: input.userId,
-    p_paid_with: input.paidWith,
-    p_coin_line: input.coinLineId,
-    p_attempt: input.attempt,
-    p_max: input.max,
-  });
-  return { data: (data as EnterAnswer | null) ?? null, error };
-}
-
-/** The Championship's qualifiers, written once when it starts. */
-export async function insertQualifiers(client: Db, rows: TablesInsert<"tournament_entries">[]): Promise<Result<null>> {
+export async function insertSeeds(client: Db, rows: TablesInsert<"tournament_seeds">[]): Promise<Result<null>> {
   if (!rows.length) return { data: null, error: null };
-  const { error } = await client.from("tournament_entries").upsert(rows, { onConflict: "event_id,user_id", ignoreDuplicates: true });
-  return { data: null, error };
-}
-
-/** Moves an entry on from one status (true for exactly one caller): entered → withdrawn / refunded. */
-export async function claimEntryStatus(
-  client: Db,
-  eventId: string,
-  userId: string,
-  from: string,
-  patch: TablesUpdate<"tournament_entries">,
-): Promise<Result<boolean>> {
-  const { data, error } = await client
-    .from("tournament_entries")
-    .update(patch)
-    .eq("event_id", eventId)
-    .eq("user_id", userId)
-    .eq("status", from)
-    .select("user_id");
-  return { data: (data ?? []).length === 1, error };
-}
-
-export async function updateEntry(client: Db, eventId: string, userId: string, patch: TablesUpdate<"tournament_entries">): Promise<Result<null>> {
-  const { error } = await client.from("tournament_entries").update(patch).eq("event_id", eventId).eq("user_id", userId);
+  const { error } = await client.from("tournament_seeds").upsert(rows, { onConflict: "event_id,user_id", ignoreDuplicates: true });
   return { data: null, error };
 }
 
@@ -157,30 +90,17 @@ export async function readMatchByRoom(client: Db, roomId: string): Promise<Resul
   return { data, error };
 }
 
-/* ------------------------------------------------------------------ prizes */
+/* ------------------------------------------------------------------ awards and the hall of fame */
 
-export async function readPayouts(client: Db, eventId: string): Promise<Result<TournamentPayoutRow[]>> {
-  const { data, error } = await client.from("tournament_payouts").select("*").eq("event_id", eventId);
+export async function readAwards(client: Db, eventId: string): Promise<Result<TournamentAwardRow[]>> {
+  const { data, error } = await client.from("tournament_awards").select("*").eq("event_id", eventId);
   return { data: data ?? [], error };
 }
 
-/** Notes one prize as paid; false when it already was (the primary key: event, entrant, kind). */
-export async function insertPayout(client: Db, row: TablesInsert<"tournament_payouts">): Promise<Result<boolean>> {
-  const { data, error } = await client
-    .from("tournament_payouts")
-    .upsert(row, { onConflict: "event_id,user_id,kind", ignoreDuplicates: true })
-    .select("user_id");
-  return { data: (data ?? []).length === 1, error };
-}
-
-export async function insertTrophy(client: Db, row: TablesInsert<"tournament_trophies">): Promise<Result<null>> {
-  const { error } = await client.from("tournament_trophies").upsert(row, { onConflict: "user_id,event_id", ignoreDuplicates: true });
+/** Logs one award as paid (the primary key: event, entrant, kind). */
+export async function insertAward(client: Db, row: TablesInsert<"tournament_awards">): Promise<Result<null>> {
+  const { error } = await client.from("tournament_awards").upsert(row, { onConflict: "event_id,user_id,kind", ignoreDuplicates: true });
   return { data: null, error };
-}
-
-export async function readTrophies(client: Db, userId: string): Promise<Result<TournamentTrophyRow[]>> {
-  const { data, error } = await client.from("tournament_trophies").select("*").eq("user_id", userId).order("awarded_at", { ascending: false });
-  return { data: data ?? [], error };
 }
 
 export async function insertHallOfFame(client: Db, row: TablesInsert<"tournament_hall_of_fame">): Promise<Result<null>> {
@@ -192,4 +112,46 @@ export async function insertHallOfFame(client: Db, row: TablesInsert<"tournament
 export async function readHallOfFame(client: Db): Promise<Result<HallOfFameRow[]>> {
   const { data, error } = await client.from("tournament_hall_of_fame").select("*").order("month", { ascending: false });
   return { data: data ?? [], error };
+}
+
+/* ------------------------------------------------------------------ flags for Joe's review */
+
+export interface FlagLogRow {
+  player_id: string;
+  game_idx: number | null;
+  game: string | null;
+  reason: string;
+}
+
+/** Logs a match's flags once each (public.tournament_flag_log into moderation.tournament_flags). */
+export async function logFlags(client: Db, eventId: string, matchId: string, flags: readonly FlagLogRow[]): Promise<Result<number>> {
+  if (!flags.length) return { data: 0, error: null };
+  const { data, error } = await client.rpc("tournament_flag_log", { p_event: eventId, p_match: matchId, p_flags: flags as unknown as Json });
+  return { data: typeof data === "number" ? data : 0, error };
+}
+
+/* ------------------------------------------------------------------ the month's Score Attack results (W4b's) */
+
+export interface ScoreAttackResult {
+  event_id: string;
+  user_id: string;
+  place: number;
+  total: number | null;
+}
+
+/** Every finished daily Score Attack's results in a month ("YYYY-MM"), from W4b's tournament_results. */
+export async function readMonthScoreAttackResults(client: Db, month: string): Promise<Result<ScoreAttackResult[]>> {
+  const { data: events, error } = await client
+    .from("tournament_events")
+    .select("id")
+    .eq("kind", "score_attack")
+    .eq("status", "finished")
+    .gte("id", `score_attack:${month}-01`)
+    .lte("id", `score_attack:${month}-31`);
+  if (error || !events?.length) return { data: [], error };
+  const { data, error: e2 } = await client
+    .from("tournament_results")
+    .select("event_id, user_id, place, total")
+    .in("event_id", events.map((e) => e.id));
+  return { data: (data ?? []) as ScoreAttackResult[], error: e2 };
 }
