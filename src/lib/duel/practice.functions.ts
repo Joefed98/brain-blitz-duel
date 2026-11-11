@@ -53,16 +53,6 @@ function validType(type: string): PuzzleType {
   return type as PuzzleType;
 }
 
-/** One fresh practice deal of a type (the board picked by a new seed), split into its public and private halves. */
-async function dealPractice(type: PuzzleType, unblockRow: unknown): Promise<{ pub: PuzzleData; priv: Loose; seed: number }> {
-  // The round engine's single deal (src/lib/round/deal.server.ts): no tie-break stamp, a fresh bank seed.
-  const { dealOne } = await import("./generate.server");
-  const { newRoomSeed } = await import("./selection");
-  const seed = newRoomSeed();
-  const { pub, priv } = splitPuzzle(dealOne(type, { unblockRow: unblockRow as never, bankSeed: seed }));
-  return { pub: pub as PuzzleData, priv: priv as Loose, seed };
-}
-
 /** What the phone shows when Practice is asked for a game held back for Joulz Plus members (wave 2 E2). */
 const EARLY_ACCESS_HELD = "That game is in early access for Joulz Plus members. Everyone can play it soon.";
 
@@ -84,6 +74,16 @@ async function heldGames(): Promise<string[]> {
 }
 async function heldBack(type: string): Promise<boolean> {
   return (await heldGames()).includes(type);
+}
+
+/** One fresh practice deal of a type (the board picked by a new seed), split into its public and private halves. */
+async function dealPractice(type: PuzzleType, unblockRow: unknown): Promise<{ pub: PuzzleData; priv: Loose; seed: number }> {
+  // The round engine's single deal (src/lib/round/deal.server.ts): no tie-break stamp, a fresh bank seed.
+  const { dealOne } = await import("./generate.server");
+  const { newRoomSeed } = await import("./selection");
+  const seed = newRoomSeed();
+  const { pub, priv } = splitPuzzle(dealOne(type, { unblockRow: unblockRow as never, bankSeed: seed }));
+  return { pub: pub as PuzzleData, priv: priv as Loose, seed };
 }
 
 /** Generates one puzzle of the requested type with the same code rooms use. */
