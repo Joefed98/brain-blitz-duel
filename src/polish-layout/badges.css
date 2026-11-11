@@ -1,0 +1,189 @@
+/*
+ * Badges and titles (wave 2, train C, session C2; docs/badges/README.md): the card's badges, Customise's badge and
+ * title pickers, Profile's collection and the badge-earned moment. Tokens only (DESIGN.md); the badge art itself is
+ * docs/art/badges' SVGs, drawn as images.
+ */
+
+/* The card: up to three badges, bottom right, in card units (one source pixel). */
+.pcard-badges {
+  position: absolute;
+  right: calc(12 * var(--pc-u));
+  bottom: calc(9 * var(--pc-u));
+  display: flex;
+  gap: calc(4 * var(--pc-u));
+  pointer-events: none;
+}
+.pcard-badges > img {
+  display: block;
+  width: calc(26 * var(--pc-u));
+  height: calc(26 * var(--pc-u));
+}
+
+/* A badge tile (Customise and Profile). */
+.bd-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--jz-space-12);
+}
+.bd-tile {
+  display: flex;
+  min-width: 0;
+  min-height: 44px;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--jz-space-4);
+  padding: var(--jz-space-12);
+  border: 1.5px solid var(--jz-surface-2);
+  border-radius: var(--jz-radius);
+  background: var(--jz-surface);
+  color: var(--jz-text-2);
+  font-family: var(--jz-font);
+  text-align: center;
+}
+.bd-tile[aria-checked="true"],
+.bd-tile[aria-pressed="true"] {
+  border-color: var(--jz-gold);
+}
+.bd-tile > img {
+  display: block;
+  width: 56px;
+  height: 56px;
+}
+.bd-tile[data-locked] > img {
+  opacity: 0.35;
+  filter: grayscale(1);
+}
+.bd-name {
+  max-width: 100%;
+  overflow: hidden;
+  color: var(--jz-text);
+  font-size: 15px;
+  font-weight: var(--jz-weight-medium);
+  line-height: 20px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.bd-how {
+  color: var(--jz-text-3);
+  font-size: 13px;
+  line-height: 17px;
+}
+.bd-rarity {
+  color: var(--jz-text-3);
+  font-size: 12px;
+  font-weight: var(--jz-weight-medium);
+  line-height: 16px;
+}
+.bd-group + .bd-group {
+  margin-top: var(--jz-space-16);
+}
+.bd-group-title {
+  margin: 0 0 var(--jz-space-8);
+  color: var(--jz-text-2);
+  font-size: 13px;
+  font-weight: var(--jz-weight-medium);
+  line-height: 18px;
+}
+
+/* Customise's titles: one radio row each. */
+.bd-titles {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--jz-line);
+  border-radius: var(--jz-radius);
+  background: var(--jz-surface);
+}
+.bd-title {
+  display: flex;
+  min-height: 56px;
+  align-items: center;
+  gap: var(--jz-space-12);
+  padding: var(--jz-space-8) var(--jz-space-12);
+  border: 0;
+  background: transparent;
+  color: var(--jz-text);
+  font-family: var(--jz-font);
+  text-align: left;
+}
+.bd-title + .bd-title {
+  border-top: 1px solid var(--jz-line);
+}
+.bd-title[aria-checked="true"] .bd-title-name {
+  color: var(--jz-gold);
+}
+.bd-title[data-locked] {
+  color: var(--jz-text-3);
+}
+.bd-title-text {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+}
+.bd-title-name {
+  font-size: 17px;
+  font-weight: var(--jz-weight-medium);
+  line-height: 22px;
+}
+.bd-title-how {
+  color: var(--jz-text-3);
+  font-size: 13px;
+  line-height: 17px;
+}
+.bd-radio {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  border: 2px solid var(--jz-text-3);
+  border-radius: 999px;
+}
+.bd-title[aria-checked="true"] .bd-radio {
+  border-color: var(--jz-gold);
+  box-shadow: inset 0 0 0 4px var(--jz-bg), inset 0 0 0 11px var(--jz-gold);
+}
+
+/* The badge-earned moment: a small toast above the tab bar on the tab pages only (never over a result). */
+.bd-moment {
+  position: fixed;
+  left: 50%;
+  bottom: calc(76px + env(safe-area-inset-bottom, 0px));
+  z-index: 40;
+  display: flex;
+  width: min(398px, calc(100vw - 2 * var(--jz-page-pad)));
+  align-items: center;
+  gap: var(--jz-space-12);
+  transform: translateX(-50%);
+  text-align: left;
+}
+.bd-moment > img {
+  flex: none;
+  width: 40px;
+  height: 40px;
+}
+.bd-moment-text {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+}
+.bd-moment-kicker {
+  color: var(--jz-gold);
+  font-size: 12px;
+  font-weight: var(--jz-weight-medium);
+  line-height: 16px;
+}
+.bd-moment-name {
+  overflow: hidden;
+  color: var(--jz-text);
+  font-size: 15px;
+  font-weight: var(--jz-weight-medium);
+  line-height: 20px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.bd-progress {
+  color: var(--jz-cyan);
+  font-size: 13px;
+  font-weight: var(--jz-weight-medium);
+  line-height: 17px;
+}

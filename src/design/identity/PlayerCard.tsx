@@ -32,6 +32,8 @@ export interface CardLook {
   avatar: { id: string; colour: number; gem: string | null } | null;
 }
 
+const NO_BADGES: readonly string[] = [];
+
 export const DEFAULT_LOOK: CardLook = { cardArt: DEFAULT_CARD_ART, frame: DEFAULT_FRAME, nameColour: null, avatar: null };
 
 /* One <style> for every card on the page (the chrome and the items' motion), added once. */
@@ -70,6 +72,7 @@ export function PlayerCard({
   guest = false,
   guestColour = 0,
   title = null,
+  badges = NO_BADGES,
   label,
   className,
 }: {
@@ -83,8 +86,10 @@ export function PlayerCard({
    */
   guest?: boolean;
   guestColour?: number;
-  /** The title under the name (C2 fills titles); nothing until then. */
+  /** The title under the name (C2: the equipped title's name, Rookie by default); null draws none. */
   title?: string | null;
+  /** Up to three badges on the card (C2: their slugs, in order); drawn bottom right from docs/art/badges. */
+  badges?: readonly string[] | undefined;
   /** The card's accessible name (defaults to "{name}'s card"). */
   label?: string;
   className?: string;
@@ -156,6 +161,13 @@ export function PlayerCard({
             ) : null}
           </span>
         </div>
+        {badges.length ? (
+          <span className="pcard-badges" data-card-badges={badges.join(" ")}>
+            {badges.slice(0, 3).map((slug) => (
+              <img key={slug} src={`/art/badges/${slug}.svg`} alt="" data-card-badge={slug} draggable={false} />
+            ))}
+          </span>
+        ) : null}
       </div>
     </div>
   );
