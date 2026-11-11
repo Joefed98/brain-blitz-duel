@@ -158,6 +158,11 @@ export function checkMatch(input: unknown, nowMs: number): Checked {
 export interface RatedProfileState {
   /** Placement matches played (counts to PLACEMENT_MATCHES). */
   placementPlayed: number;
+  /**
+   * Where this placement started: 0 the first time; after a season reset (wave 4 W4d) placementPlayed is set back to 2
+   * and this to 2, so the new season's placement is 3 matches ("Placement 2 of 3"). Kept by the database's own row.
+   */
+  placementFrom: number;
   /** Live rated matches that counted (not frozen against everyone). */
   matches: number;
   wins: number;
@@ -181,6 +186,7 @@ export interface RatedProfileState {
 export function newProfileState(): RatedProfileState {
   return {
     placementPlayed: 0,
+    placementFrom: 0,
     matches: 0,
     wins: 0,
     winStreak: 0,
@@ -299,10 +305,13 @@ export const JOULZ_WINDOW_MS = JOULZ_WINDOW_DAYS * 86_400_000;
 
 /* ------------------------------------------------------------------ placement */
 
-export function placementOf(played: number): PlacementStatus {
+export function placementOf(played: number, from = 0): PlacementStatus {
   const p = Math.min(PLACEMENT_MATCHES, Math.max(0, played));
   const done = p >= PLACEMENT_MATCHES;
-  return { played: p, of: PLACEMENT_MATCHES, done, label: done ? null : `Placement ${p + 1} of ${PLACEMENT_MATCHES}` };
+  // A season reset's placement (from 2): 3 matches, counted from where it started (wave 4 W4d).
+  const of = (from === PLACEMENT_MATCHES - 3 ? 3 : PLACEMENT_MATCHES) as 5 | 3;
+  const n = Math.min(of, Math.max(0, p - (PLACEMENT_MATCHES - of)));
+  return { played: n, of, done, label: done ? null : `Placement ${n + 1} of ${of}` };
 }
 
 export function isProvisional(state: GlickoState): boolean {
@@ -490,7 +499,7 @@ export function applyMatch(match: RatedMatchResult, finishedMs: number, pre: Rec
       frozen: side.frozenWhy ?? (frozenAll ? "same_opponent_today" : null),
       changes,
       joulz: { before: joulzBefore, after: joulzAfter },
-      placement: { ...placementOf(p1.placementPlayed), justFinished: !placedBefore && placedAfter },
+      placement: { ...placementOf(p1.placementPlayed, p1.placementFrom), justFinished: !placedBefore && placedAfter },
       tier: { before: tierBefore, after: tierAfter },
       result,
       place,

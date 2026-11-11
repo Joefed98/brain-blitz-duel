@@ -355,6 +355,9 @@ export const SHARDS: Record<string, string[]> = {
     // cap, claiming, the premium track and the weekly challenges on a local PostgreSQL through the server-function
     // harness, beside shop-check.
     "pass-check.ts",
+    // seasons-check (wave 4 W4d, 15 Nov 2026, ~10 s): seasons for ratings (the season end, the reset on W3a's tables, the
+    // peak-tier rewards, a full test-season end and Joe's close), on a local PostgreSQL.
+    "seasons-check.ts",
     // moderation-ui-check (10 Nov 2026, ~3 s, happy-dom): two taps to report from a name and from a message.
     "moderation-ui-check.tsx",
     // account-screens-check (10 Nov 2026, ~10 s): the sign-up screens' rules, the save-progress events' server function

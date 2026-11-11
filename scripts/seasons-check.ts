@@ -232,7 +232,10 @@ async function pureChecks(): Promise<void> {
       }
     };
     roots.forEach(walk);
-    check(offenders.length === 0, `no scoring, grading, replay, matchmaking or timing code imports seasons (${offenders.join(", ") || "none"})`);
+    // The one caller: W3a's post-match hook (it also pays D2's Joules and C2's badges), which notes each match in its
+    // season after the ratings are stored; the ratings engine itself (ratings.server.ts, match.ts, glicko2.ts) never does.
+    const HOOK = join("src", "lib", "rated", "rewards.server.ts");
+    check(offenders.length === 1 && offenders[0] === HOOK, `no scoring, grading, replay, matchmaking or timing code imports seasons, only the post-match hook (${offenders.join(", ") || "none"})`);
   });
 }
 
@@ -242,6 +245,7 @@ async function databaseChecks(d: LocalDb): Promise<void> {
   const fns = await import("../src/lib/seasons/seasons.functions");
   const badgeFns = await import("../src/lib/badges/badges.functions");
   const seasons = await import("../src/lib/seasons/seasons.server");
+  const ratingsServer = await import("../src/lib/rated/ratings.server");
   const { adminDb } = await import("../src/lib/data/db.server");
   const admin = await adminDb();
   const call = callServerFn;
@@ -341,69 +345,71 @@ async function databaseChecks(d: LocalDb): Promise<void> {
   }
   for (let i = 0; i < 6; i++) q(`SELECT public.season_note_rated_match('${TESTER2}', '${uid(710000 + i)}', now(), ${i >= 5 ? "'volt', 'Volt III'" : "NULL, NULL"}, ${i >= 5})`);
 
-  // W3a's ratings, stood in: one row per player and rating key.
-  const STANDIN = `
-    CREATE TABLE IF NOT EXISTS public.check_ratings (user_id uuid, rating_key text, rating numeric, rd numeric, placement_done boolean, PRIMARY KEY (user_id, rating_key));
-    CREATE OR REPLACE FUNCTION public.ratings_season_reset(p_season text, p_start timestamptz, p_testers_only boolean)
-    RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $f$
-    DECLARE v_players jsonb; v_avg jsonb;
-    BEGIN
-      SELECT jsonb_object_agg(rating_key, a) INTO v_avg FROM (SELECT rating_key, avg(rating) AS a FROM check_ratings WHERE placement_done GROUP BY rating_key) x;
-      SELECT coalesce(jsonb_agg(DISTINCT user_id), '[]'::jsonb) INTO v_players FROM check_ratings c
-       WHERE placement_done AND (NOT p_testers_only OR public.shop_is_tester(c.user_id));
-      UPDATE check_ratings c SET (rating, rd) = (SELECT r.rating, r.rd FROM public.season_reset_rating(c.rating, c.rd, (v_avg ->> c.rating_key)::numeric) r)
-       WHERE c.placement_done AND (NOT p_testers_only OR public.shop_is_tester(c.user_id));
-      RETURN jsonb_build_object('players', v_players, 'detail', jsonb_build_object('averages', v_avg));
-    END $f$;`;
+  // W3a's ratings (public.rated_profiles, public.rated_ratings), seeded as players who have played: every one placed but
+  // NoPlace (3 of 5); five ratings each (the cap-held player never played Retro, so has no Retro rating).
   const r = rng(11);
   const KEYS = ["puzzles", "arcade", "word", "logic", "retro"];
   const everyone = [...PEAK_PLAYERS, CAPPED, NINE, NOPLACE, TESTER, TESTER2];
+  const profileRows = everyone.map((u) =>
+    u === NOPLACE ? `('${u}', 3, 3, NULL, NULL)` : `('${u}', 5, 12, ${Math.round(900 + r() * 1200)}, 'volt')`,
+  );
   const ratingRows: string[] = [];
   for (const u of everyone)
     for (const k of KEYS) {
-      if (k === "retro" && u === CAPPED) continue; // a category not played: never counted
-      ratingRows.push(`('${u}', '${k}', ${Math.round((700 + r() * 1500) * 100) / 100}, ${Math.round((50 + r() * 250) * 100) / 100}, ${u !== NOPLACE})`);
+      if (k === "retro" && u === CAPPED) continue;
+      ratingRows.push(`('${u}', '${k}', ${Math.round((700 + r() * 1500) * 100) / 100}, ${Math.round((50 + r() * 250) * 100) / 100}, 0.06, 6, now())`);
     }
+  q(`INSERT INTO rated_profiles (player_id, placement_played, matches, joulz, shown_tier) VALUES ${profileRows.join(", ")}`);
+  q(`INSERT INTO rated_ratings (player_id, key, rating, rd, volatility, matches, last_at) VALUES ${ratingRows.join(", ")}`);
+  const readRatings = () =>
+    new Map(
+      q(`SELECT player_id || '|' || key || '|' || rating::text || '|' || rd::text FROM rated_ratings`).split("\n").map((l) => {
+        const [u, k, rt, rd] = l.split("|");
+        return [`${u}|${k}`, { rating: Number(rt), rd: Number(rd) }] as const;
+      }),
+    );
+  const RESET_FN = "public.ratings_season_reset(text, timestamptz, boolean)";
 
   await section("the test season, end to end", async () => {
-    // Run 1, as testers would: close it (the ratings engine isn't there yet), then again once it is.
+    // Run 1, as testers would. The ratings engine's reset is taken away for this run, to prove a close without it
+    // records the reset as waiting, and that running the close again completes it.
+    q(`ALTER FUNCTION ${RESET_FN} RENAME TO ratings_season_reset_off`);
     const first = JSON.parse(q(`SELECT pass.close_test_season('trying the season end')`)) as Record<string, unknown>;
     check(first["first_close"] === true && first["players_rewarded"] === 1, `closing the test season rewards the one tester who qualified (${JSON.stringify(first)})`);
-    check((first["reset"] as Record<string, unknown>)["status"] === "waiting_for_ratings", "without the ratings engine the reset waits");
+    check((first["reset"] as Record<string, unknown>)["status"] === "waiting_for_ratings", "without the ratings engine's reset the reset waits");
     const tr = q(`SELECT tier || ':' || mark || ':' || frame_item || ':' || title_id || ':' || test FROM season_rewards WHERE user_id = '${TESTER}'`);
     check(tr === "lightning:S1:frame.s1-lightning:s1-lightning:true", `Tess earns the S1 Lightning emblem, frame and title, marked test (${tr})`);
     check(q(`SELECT count(*) FROM season_rewards WHERE user_id = '${TESTER2}'`) === "0", "Tess Two (6 matches) earns nothing");
     check(owns(TESTER, "frame.s1-lightning"), "the frame is in Tess's inventory, earned");
     check(q(`SELECT count(*) FROM season_rewards WHERE season_id = 's1'`) === "0", "Season 1's players are untouched");
 
-    q(STANDIN);
-    q(`INSERT INTO check_ratings VALUES ${ratingRows.join(", ")}`);
-    const before = new Map(q(`SELECT user_id || '|' || rating_key || '|' || rating || '|' || rd FROM check_ratings`).split("\n").map((l) => {
-      const [u, k, rt, rd] = l.split("|");
-      return [`${u}|${k}`, { rating: Number(rt), rd: Number(rd) }] as const;
-    }));
+    q(`ALTER FUNCTION public.ratings_season_reset_off(text, timestamptz, boolean) RENAME TO ratings_season_reset`);
+    const before = readRatings();
     const again = JSON.parse(q(`SELECT pass.close_test_season('the ratings engine is in: complete the reset')`)) as Record<string, unknown>;
     check(again["first_close"] === false && again["rewarded_now"] === 0, "closing again grants nothing more");
     check((again["reset"] as Record<string, unknown>)["status"] === "done", `and completes the waiting reset (${JSON.stringify(again["reset"])})`);
-    const after = new Map(q(`SELECT user_id || '|' || rating_key || '|' || rating || '|' || rd FROM check_ratings`).split("\n").map((l) => {
-      const [u, k, rt, rd] = l.split("|");
-      return [`${u}|${k}`, { rating: Number(rt), rd: Number(rd) }] as const;
-    }));
-    const avgOf = (k: string) => rules.ratedAverage(everyone.filter((u) => u !== NOPLACE && before.has(`${u}|${k}`)).map((u) => before.get(`${u}|${k}`)!.rating))!;
+    const after = readRatings();
+    const placed = everyone.filter((u) => u !== NOPLACE);
+    const avgOf = (k: string) => rules.ratedAverage(placed.filter((u) => before.has(`${u}|${k}`)).map((u) => before.get(`${u}|${k}`)!.rating))!;
     let testerOk = 0;
     let othersSame = 0;
     for (const [key, b] of before) {
       const [u, k] = key.split("|") as [string, string];
-      const a = after.get(key)!;
+      const x = after.get(key)!;
       if (u === TESTER || u === TESTER2) {
         const want = rules.seasonResetRating(b, avgOf(k));
-        if (Math.abs(a.rating - want.rating) < 1e-6 && Math.abs(a.rd - want.rd) < 1e-6) testerOk++;
-      } else if (a.rating === b.rating && a.rd === b.rd) othersSame++;
+        if (Math.abs(x.rating - want.rating) < 1e-6 && Math.abs(x.rd - want.rd) < 1e-6) testerOk++;
+      } else if (x.rating === b.rating && x.rd === b.rd) othersSame++;
     }
     check(testerOk === 10, `the testers' Puzzles, Arcade and categories each a third of the way back to the average of rated players, wider uncertainty (${testerOk} of 10)`);
     check(othersSame === before.size - 10, "non-testers' ratings are untouched by the test season");
+    const prof = (u: string) => q(`SELECT placement_played || ':' || placement_from || ':' || coalesce(joulz::text, '-') || ':' || coalesce(shown_tier, '-') FROM rated_profiles WHERE player_id = '${u}'`);
+    check(prof(TESTER) === "2:2:-:-" && prof(TESTER2) === "2:2:-:-", `the testers go back into a 3-match placement, the Joulz Rating and tier hidden (${prof(TESTER)})`);
+    check(prof(PEAK_PLAYERS[0]!).startsWith("5:0:"), "a non-tester stays placed");
     check(JSON.parse(q(`SELECT public.season_placement_for('${TESTER}')`))["of"] === 3, "a reset tester's next placement is 3 matches");
     check(JSON.parse(q(`SELECT public.season_placement_for('${PEAK_PLAYERS[0]}')`))["of"] === 5, "an account never reset keeps the first placement's 5");
+    const status = await ratingsServer.placementStatus(admin, TESTER);
+    check(status.of === 3 && status.played === 0 && status.label === "Placement 1 of 3", `the ratings engine reads it: ${status.label}`);
     const third = JSON.parse(q(`SELECT pass.close_test_season('third time')`)) as Record<string, unknown>;
     check((third["reset"] as Record<string, unknown>)["again"] === true, "a third close resets nothing again");
     check(q(`SELECT count(*) FROM pass.admin_log WHERE action = 'close_test_season'`) === "3", "every close is in pass.admin_log");
@@ -464,6 +470,9 @@ async function databaseChecks(d: LocalDb): Promise<void> {
     const placement = await seasons.placementFor(admin, pStorm);
     check(placement.of === 3 && placement.reveal === "small" && seasons.placementLabelFor(placement, 1) === "Placement 2 of 3", "next season: Placement 2 of 3, and the smaller reveal");
     check(JSON.parse(q(`SELECT public.season_placement_for('${NOPLACE}')`))["of"] === 5, "a player who never finished placement wasn't reset");
+    check(q(`SELECT placement_played || ':' || placement_from FROM rated_profiles WHERE player_id = '${NOPLACE}'`) === "3:0", "and their own placement carries on as it was");
+    check(q(`SELECT placement_played || ':' || placement_from FROM rated_profiles WHERE player_id = '${TESTER}'`) === "2:2", "a tester still in the test season's placement isn't reset again");
+    check(q(`SELECT count(*) FROM rated_profiles WHERE placement_played >= 5`) === "0", "every placed player is back in placement (Joulz Rating hidden)");
     check(q(`SELECT count(*) FROM pass.admin_log WHERE action IN ('close_season', 'end_season') AND season_id = 's1'`) === "3", "ending and both closes are logged");
     check(refused(`SELECT pass.close_season('test', 'x')`) && refused(`SELECT pass.close_season('nope', 'x')`), "close_season refuses the test season and unknown seasons");
     q(`SELECT pass.create_season('s2', 'Season 2', 'not started')`);
@@ -483,11 +492,52 @@ async function databaseChecks(d: LocalDb): Promise<void> {
     const guest = await call(fns.getMySeasonsFn, undefined, userToken(GUEST));
     check(guest?.account === false, "a guest has no seasons");
     q(`SELECT pass.set_season_dates('s2', now() - interval '1 hour', NULL, 'Season 2 for the check')`);
-    note(pStorm, ++matchNo, "10 minutes", null, null, false);
-    note(pStorm, ++matchNo, "5 minutes", "volt", "Volt I", true);
+    // Season 2, through the real ratings engine: three rated matches between two reset players finish placement.
+    const { finishRatedMatch } = await import("../src/lib/rated/rewards.server");
+    const mt = await import("../src/lib/rated/match");
+    const catalogue = await import("../src/lib/duel/catalogue");
+    const { dealtSignature } = await import("../src/lib/duel/dealSignature");
+    const type = catalogue.ACTIVE_PUZZLE_TYPES.find((t) => mt.gamePool(t) === "puzzles" && mt.gameCategory(t) === "logic")!;
+    const game = (a: number, b: number, other: string) => ({
+      type, pool: mt.gamePool(type)!, category: mt.gameCategory(type)!, version: "classic" as const, signature: dealtSignature(type),
+      scores: { [pStorm]: a, [other]: b },
+    });
+    const pVolt = PEAK_PLAYERS[2]!;
+    const labels: (string | null)[] = [];
+    let last: Awaited<ReturnType<typeof finishRatedMatch>> | null = null;
+    for (let i = 0; i < 3; i++) {
+      last = await finishRatedMatch(admin, {
+        matchId: `20000000-0000-4000-8000-${String(i + 1).padStart(12, "0")}`,
+        format: { kind: "duel", bestOf: 3 },
+        choice: "puzzles",
+        players: [{ playerId: pStorm, side: "live" }, { playerId: pVolt, side: "live" }],
+        games: [game(180, 120, pVolt), game(170, 130, pVolt)],
+        finishedAt: new Date(Date.now() - (3 - i) * 60_000).toISOString(),
+      });
+      const me = last.ok ? last.players.find((p) => p.playerId === pStorm) : undefined;
+      labels.push(me ? (me.placement.label ?? (me.placement.justFinished ? "done" : "?")) : `refused ${JSON.stringify(last).slice(0, 80)}`);
+    }
+    check(labels.join(" | ") === "Placement 2 of 3 | Placement 3 of 3 | done", `the new season's placement is 3 matches (${labels.join(" | ")})`);
+    const me = last?.ok ? last.players.find((p) => p.playerId === pStorm) : undefined;
+    check(!!me && me.joulz.after !== null && me.tier.after !== null && me.placement.of === 3, `placement done: the Joulz Rating worked out again from the reset pools, a tier shown (${me?.joulz.after}, ${me?.tier.after?.label})`);
+    check(q(`SELECT count(*) FROM season_rated_matches WHERE season_id = 's2' AND user_id IN ('${pStorm}', '${pVolt}') AND kind = 'match'`) === "6", "each live player's match is noted in Season 2, once");
+    const replay = await finishRatedMatch(admin, {
+      matchId: "20000000-0000-4000-8000-000000000003",
+      format: { kind: "duel", bestOf: 3 },
+      choice: "puzzles",
+      players: [{ playerId: pStorm, side: "live" }, { playerId: pVolt, side: "live" }],
+      games: [game(180, 120, pVolt), game(170, 130, pVolt)],
+    });
+    check(replay.ok && replay.status === "duplicate" && q(`SELECT count(*) FROM season_rated_matches WHERE season_id = 's2' AND kind = 'match'`) === "6", "a match sent again is noted once");
     const now2 = await call(fns.getMySeasonsFn, undefined, accountToken(pStorm));
     const cur = now2?.account ? now2.current : null;
-    check(cur?.season === "s2" && cur.ratedMatches === 2 && cur.peak === "volt" && cur.peakLabel === "Volt I" && cur.mark === "S2", `the season peak so far, from stored matches only (${JSON.stringify(cur)})`);
+    check(
+      cur?.season === "s2" && cur.ratedMatches === 3 && cur.placementDone && cur.peak === me?.tier.after?.tier && cur.peakLabel === me?.tier.after?.label && cur.mark === "S2",
+      `the season peak so far, from the engine's own tier (${JSON.stringify(cur)})`,
+    );
+    const standing = await seasons.noteTierInSeason(admin, { userId: pVolt, at: new Date().toISOString(), tier: "top500", tierLabel: "Top 500 #3" });
+    check(standing === "noted" && q(`SELECT peak_tier || ':' || rated_matches FROM public.season_standing('${pVolt}', 's2', (SELECT starts_at FROM pass_seasons WHERE id = 's2'))`) === "top500:3",
+      "a tier the standings job gives counts for the peak, never as a match");
     const idle = await call(fns.getMySeasonsFn, undefined, accountToken(PEAK_PLAYERS[0]!));
     check(idle?.account === true && idle.current?.peak === null && idle.current?.ratedMatches === 0, "no peak for a player with no rated match this season");
   });

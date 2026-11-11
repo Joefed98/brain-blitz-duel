@@ -35,8 +35,8 @@ export function SeasonTrophies({ history, size = 48 }: { history: readonly Seaso
   if (!history.length) return null;
   return (
     <span className="sn-trophies" data-season-trophies={history.length}>
-      {history.map((h) => (
-        <SeasonEmblem key={`${h.season}:${h.grantedAt}`} tier={h.tier} mark={h.mark} size={size} />
+      {history.map((h, i) => (
+        <SeasonEmblem key={`${h.season}:${h.grantedAt}:${i}`} tier={h.tier} mark={h.mark} size={size} />
       ))}
     </span>
   );
@@ -73,8 +73,8 @@ export function SeasonSection() {
             <h2 className="ap-section-title">Season history</h2>
           </div>
           <ul className="jz-panel" data-season-history={history.length}>
-            {history.map((h) => (
-              <li key={`${h.season}:${h.grantedAt}`} className="jz-row" data-icon="none" data-season-entry={h.season}>
+            {history.map((h, i) => (
+              <li key={`${h.season}:${h.grantedAt}:${i}`} className="jz-row" data-icon="none" data-season-entry={h.season}>
                 <SeasonEmblem tier={h.tier} mark={h.mark} size={36} />
                 <span data-ellipsis className="jz-row-title min-w-0 flex-1">
                   {h.test ? `${h.name} (test)` : h.name}

@@ -2116,6 +2116,23 @@ outside the repo.
   weekly draw share (R challenges only while on, progress from `rated_week_matches`). A 1v1 stops once decided (each
   game weighted); a run the server flagged (a game's stored grade `extra.flagged`, live or recorded) moves nobody, counts for nothing, pays the flagged player no Joules and is logged in `moderation.rated_flags` (Joe: `moderation.rated_flag_queue()`); the tier floor grace keeps a tier 3 more matches below its floor
   (`shownTierFor`). ratings-check (~10 s, shard `e`, PostgreSQL).
+- **Seasons** (wave 4, session W4d, 11 Nov 2026, `docs/seasons/README.md`; no gameplay, scoring, stamp, timing or deal
+  change): one season clock, D2's `public.pass_seasons` (Joe's `pass.*` dates; a tester is in the test season while it
+  runs). `finishRatedMatch` notes each live player's rated match in its season (`season_note_rated_match`, the tier shown
+  after it) and the standings job's tier changes (`season_note_tier`, peak only). Joe's `pass.close_season(season, note)`
+  / `pass.close_test_season(note)` (idempotent, logged) grant the peak-tier rewards to everyone who finished placement
+  and played 10+ rated matches (the peak actually held: cap-held Storm-rated is Surge): the S1 emblem (`SeasonEmblem`),
+  `frame.s1-<tier>` (seven earned catalogue items, **placeholder art** `scripts/season-frame-placeholders.ts` until
+  drawn) and the title "S1 [tier]" (`public.titles` kind `season`, equippable once granted), with a tab-page notice
+  (`SeasonNotice`); then `public.ratings_season_reset` moves every placed player's Puzzles, Arcade and categories a third
+  of the way back to the average (wider RD, `season_reset_rating` = `rules.ts`) and puts placement back to 3 matches
+  (`rated_profiles.placement_from`, `placementOf(played, from)`, `of: 5 | 3`). Profile's `SeasonSection` (season peak,
+  history, emblems; `SeasonTrophies` for the trophy cabinet). Events `season_ended`, `season_reward_granted` (from the
+  database through `economy.note_event`). `window.__DUELZ_ALLOW_SEASONS__` only outside production builds. Migrations
+  `20261115400000_seasons.sql`, `20261115400100_analytics_season_events.sql` (**not applied until merged**). Approved
+  count changes (11 Nov 2026): economy-check 117 items / 25 free or earned, badges-check and pass-check 41 titles,
+  identity-screens-check 59 card arts, frames and name colours, its "Season peak" forbidden word replaced by a real-data
+  check. seasons-check (~10 s, shard `e`, PostgreSQL), seasons-screens-check (~2 s, happy-dom).
 - `src/components/duel/` — room/round screens (PhoneShell, RoundIntro, TimerBar,
   AnswerReveal, ArcadeReveal, WinnerReveal…); `src/components/puzzles/` — shared puzzle
   widgets; `src/lib/fx/` — sound and visual feedback (presentation only).

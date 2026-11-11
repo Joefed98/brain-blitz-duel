@@ -30,6 +30,23 @@ export async function noteSeasonRatedMatch(
   return { data: (data as NoteRatedMatchStatus | null) ?? null, error };
 }
 
+/**
+ * Records a tier the standings job gave a player (public.season_note_tier), so the season's peak counts it; not a
+ * rated match. Idempotent on (player, time, tier).
+ */
+export async function noteSeasonTier(
+  client: Db,
+  input: { userId: string; at: string; tier: TierId; tierLabel: string },
+): Promise<Result<NoteRatedMatchStatus | null>> {
+  const { data, error } = await client.rpc("season_note_tier", {
+    p_user_id: input.userId,
+    p_at: input.at,
+    p_tier: input.tier,
+    p_tier_label: input.tierLabel,
+  });
+  return { data: (data as NoteRatedMatchStatus | null) ?? null, error };
+}
+
 /** The season view as the database answers it (public.season_view); shaped by seasons.server.ts. */
 export async function readSeasonView(client: Db, userId: string, nowIso: string): Promise<Result<Json | null>> {
   const { data, error } = await client.rpc("season_view", { p_user_id: userId, p_now: nowIso });

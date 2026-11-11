@@ -10,6 +10,7 @@ import { TIERS, type TierId } from "@/lib/data/ratings";
 import {
   markSeasonRewardSeen,
   noteSeasonRatedMatch,
+  noteSeasonTier,
   readSeasonPlacement,
   readSeasonTitles,
   readSeasonView,
@@ -111,6 +112,16 @@ export async function noteRatedMatchInSeason(
     tierLabel: input.placementDone && input.tier ? input.tierLabel : null,
     placementDone: input.placementDone,
   });
+  if (out.error || !out.data) throw new Error(`seasons: ${out.error?.message ?? "no answer"}`);
+  return out.data;
+}
+
+/** The standings job's tier change for a placed player, noted in their season (the peak counts it; not a match). */
+export async function noteTierInSeason(
+  client: Db,
+  input: { userId: string; at: string; tier: TierId; tierLabel: string },
+): Promise<NoteRatedMatchStatus> {
+  const out = await noteSeasonTier(client, input);
   if (out.error || !out.data) throw new Error(`seasons: ${out.error?.message ?? "no answer"}`);
   return out.data;
 }

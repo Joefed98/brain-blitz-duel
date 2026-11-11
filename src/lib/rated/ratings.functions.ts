@@ -4,7 +4,7 @@
  *
  *   getMyRatingsFn()                       the signed-in device's PlayerRatings (hidden in placement)
  *   getRatingsForFn({ data: { playerId }}) another player's PlayerRatings (the same hiding)
- *   placementStatusFn()                    { played, of: 5, done, label: "Placement 1 of 5" }
+ *   placementStatusFn()                    { played, of: 5 | 3, done, label: "Placement 1 of 5" / "Placement 2 of 3" }
  *   getTierLadderFn()                      the ladder with each tier's share of rated players
  *
  * Recording a match is deliberately not here (src/lib/rated/ratings.server.ts): only the match engine on the server

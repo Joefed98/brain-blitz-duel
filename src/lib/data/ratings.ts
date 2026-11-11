@@ -138,11 +138,12 @@ export interface TierView {
 }
 
 export interface PlacementStatus {
-  /** Placement matches played (0–5). */
+  /** Placement matches played in this placement (0–5; 0–3 after a season reset). */
   played: number;
-  of: 5;
+  /** 5 the first time; 3 in each new season after a season reset (wave 4 W4d, docs/seasons/README.md). */
+  of: 5 | 3;
   done: boolean;
-  /** "Placement 1 of 5" (the next one to play), or null once done. */
+  /** "Placement 1 of 5" / "Placement 2 of 3" (the next one to play), or null once done. */
   label: string | null;
 }
 

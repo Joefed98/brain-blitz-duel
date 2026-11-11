@@ -1916,6 +1916,7 @@ export type Database = {
         Args: { p_at: string; p_match_id: string; p_placement_done: boolean; p_tier: string | null; p_tier_label: string | null; p_user_id: string }
         Returns: string
       }
+      season_note_tier: { Args: { p_at: string; p_tier: string; p_tier_label: string; p_user_id: string }; Returns: string }
       season_view: { Args: { p_now: string; p_user_id: string }; Returns: Json }
       season_reward_seen: { Args: { p_season: string; p_user_id: string }; Returns: string }
       season_titles_of: { Args: { p_user_id: string }; Returns: string[] }

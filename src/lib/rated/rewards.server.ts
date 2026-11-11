@@ -12,6 +12,10 @@
  * however often it is asked (also on a duplicate, so a retry finishes a credit that failed). D2's hook pays only an
  * account with the pass open (testers until PASS_FOR_EVERYONE) and applies the day's soft cap.
  *
+ * Seasons (wave 4 W4d, docs/seasons/README.md): each live player's match, with the tier shown after it, is noted in the
+ * season they are in (noteRatedMatchInSeason, idempotent on the match, a duplicate too), and the standings job's tier
+ * changes likewise (noteTierInSeason), so a season's peak is the tier actually held. Never fails the match.
+ *
  * Kept apart from ratings.server.ts so the ratings engine itself reaches no economy module (a Legendary badge pays
  * coins): ratings-check proves it.
  */
@@ -48,6 +52,21 @@ export async function finishRatedMatch(client: Db, result: unknown, nowMs: numbe
     if (p.side !== "live" || p.joules <= 0) continue;
     await creditJoules(client, { userId: p.playerId, matchId: outcome.matchId, won: p.result === "win", long, atMs, key: ratedJoulesKey(outcome.matchId, p.playerId) });
   }
+  for (const p of outcome.players) {
+    if (p.side !== "live") continue;
+    await noteSeason(client, () =>
+      import("@/lib/seasons/seasons.server").then((s) =>
+        s.noteRatedMatchInSeason(client, {
+          userId: p.playerId,
+          matchId: outcome.matchId,
+          finishedAt: new Date(atMs).toISOString(),
+          tier: p.tier.after?.tier ?? null,
+          tierLabel: p.tier.after?.label ?? null,
+          placementDone: p.placement.done,
+        }),
+      ),
+    `${outcome.matchId}:${p.playerId}`);
+  }
   if (outcome.status !== "recorded") return outcome;
   for (const p of outcome.players) {
     if (p.side !== "live") continue;
@@ -67,9 +86,22 @@ async function creditJoules(client: Db, input: { userId: string; matchId: string
   }
 }
 
+/** The season note, never failing the match (a failed note is retried by the next finishRatedMatch for the same match). */
+async function noteSeason(_client: Db, note: () => Promise<unknown>, what: string): Promise<void> {
+  try {
+    await note();
+  } catch (err) {
+    console.warn(`[rated] season note for ${what}: ${err instanceof Error ? err.message : String(err)}`);
+  }
+}
+
 /** The standings job, then the tier badges (Storm Chaser, Lightning Strikes, Top 500) for those who rose. */
 export async function runStandingsAndBadges(client: Db, nowMs: number = Date.now()): Promise<StandingsJobResult> {
   const job = await runStandingsJob(client, nowMs);
+  for (const c of job.changed)
+    await noteSeason(client, () =>
+      import("@/lib/seasons/seasons.server").then((s) => s.noteTierInSeason(client, { userId: c.playerId, at: new Date(nowMs).toISOString(), tier: c.to, tierLabel: c.label })),
+    `standings:${c.playerId}`);
   for (const c of job.changed) if (tierRank(c.to) >= tierRank("storm")) await awardRatedBadges(client, c.playerId, nowMs);
   return job;
 }

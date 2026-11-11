@@ -59,7 +59,7 @@ What it does, in one transaction per match (retried on a concurrent change to an
 
 `RatedPlayerChange`: `playerId`, `side`, `moved`, `frozen` (`same_opponent_today` | `recorded_unrated_source` |
 `recorded_daily_limit` | `flagged_run` | null), `changes` (each rating moved: `key`, `before`, `after`, `delta`, `rdBefore`,
-`rdAfter`), `flagged` (this player's run was flagged), `joulz` (before / after, null in placement), `placement` (`played`, `of: 5`, `done`, `label`,
+`rdAfter`), `flagged` (this player's run was flagged), `joulz` (before / after, null in placement), `placement` (`played`, `of: 5 | 3` (3 after a season reset, docs/seasons/README.md), `done`, `label`,
 `justFinished`: show the reveal), `tier` (before / after `TierView`, null in placement), `result` (`win` / `loss` /
 `draw`; first place is a win), `place` (4 and 8 players), `joules`, `badges` (competitive badges newly awarded).
 
@@ -69,7 +69,7 @@ What it does, in one transaction per match (retried on a concurrent change to an
 | --- | --- |
 | `getMyRatingsFn()` → `getMyRatings(client, userId)` | `PlayerRatings` for the signed-in device |
 | `getRatingsForFn({ playerId })` → `getRatingsFor(client, playerId)` | another player's `PlayerRatings` (the same hiding) |
-| `placementStatusFn()` → `placementStatus(client, userId)` | `PlacementStatus`: `{ played, of: 5, done, label }` ("Placement 1 of 5") |
+| `placementStatusFn()` → `placementStatus(client, userId)` | `PlacementStatus`: `{ played, of: 5 | 3, done, label }` ("Placement 1 of 5"; "Placement 2 of 3" after a season reset) |
 | `getTierLadderFn()` → `getTierLadder(client)` | `TierLadderRung[]` with each tier's live share of rated players |
 
 `PlayerRatings`: `placement`; `joulz`, `tier`, `pools`, `categories` are null while in placement (every rating hidden).
@@ -118,3 +118,12 @@ standings job).
 `runStandingsAndBadges(client)` (`rewards.server.ts`; `runStandingsJob` in `ratings.server.ts` without the badges),
 hourly at :23 UTC on a Cloudflare Cron Trigger (`src/lib/rated/tasks/standings.task.ts`, `vite.config.ts`
 `RATED_TASKS`). Answers `{ ratedPlayers, capsActive, changed: [{ playerId, from, to }] }`.
+
+## Seasons (wave 4 W4d, docs/seasons/README.md)
+
+- `finishRatedMatch` notes each live player's match in the season they are in (`noteRatedMatchInSeason`, with the tier
+  shown after it), and `runStandingsAndBadges` each tier change (`noteTierInSeason`); a failed note never fails the match.
+- At a season's end Joe's close runs `public.ratings_season_reset`: every placed player's ratings a third of the way back
+  to the average, wider uncertainty, and placement back to 2 of 5 (`rated_profiles.placement_from` 2), so the new
+  season's placement is 3 matches (`placementOf(played, from)`, `of: 3`) and the Joulz Rating is worked out again when
+  it finishes.

@@ -23,9 +23,10 @@
 --
 -- The reset: Puzzles, Arcade and the 11 categories each move a third of the way back towards the average of rated
 -- players (rated in that rating), and their uncertainty widens a third of the way back towards the starting 350
--- (public.season_reset_rating, the one formula; src/lib/seasons/reset.ts mirrors it). The ratings themselves are W3a's:
--- public.season_reset_ratings calls the ratings engine's public.ratings_season_reset(...) when it exists, and
--- otherwise records the reset as waiting; running Joe's close again later completes it (idempotent).
+-- (public.season_reset_rating, the one formula; src/lib/seasons/rules.ts mirrors it), applied to W3a's tables by
+-- public.ratings_season_reset: placed players go back into a 3-match placement (rated_profiles.placement_from, one
+-- column added), the Joulz Rating and tier hidden until it is done, when the engine works the Joulz Rating out again
+-- from the reset pools.
 --
 -- Who can reach what: anon and authenticated nothing (no grants; RLS on). The server (service role) reads the tables
 -- and writes only through public.season_note_rated_match and public.season_reward_seen. Only Joe closes a season and
@@ -99,6 +100,8 @@ CREATE TABLE IF NOT EXISTS public.season_rated_matches (
   tier text CHECK (tier IS NULL OR public.season_tier_rank(tier) IS NOT NULL),
   tier_label text CHECK (tier_label IS NULL OR char_length(tier_label) BETWEEN 1 AND 40),
   placement_done boolean NOT NULL,
+  -- 'match': a live rated match (counted towards the 10); 'standing': a tier the standings job gave (peak only).
+  kind text NOT NULL DEFAULT 'match' CHECK (kind IN ('match', 'standing')),
   created_at timestamptz NOT NULL DEFAULT now(),
   PRIMARY KEY (season_id, season_start, user_id, match_id),
   CONSTRAINT season_rated_matches_tier CHECK (tier IS NULL OR placement_done)
@@ -139,7 +142,8 @@ CREATE TABLE IF NOT EXISTS public.season_rewards (
 );
 
 CREATE TABLE IF NOT EXISTS public.season_placement_resets (
-  user_id uuid NOT NULL REFERENCES public.profiles (user_id) ON DELETE CASCADE,
+  -- Guests play rated too (W3a), so keyed on the auth user, as public.rated_profiles is.
+  user_id uuid NOT NULL REFERENCES auth.users (id) ON DELETE CASCADE,
   season_id text NOT NULL REFERENCES public.pass_seasons (id),
   season_start timestamptz NOT NULL,
   reset_at timestamptz NOT NULL,
@@ -220,6 +224,41 @@ $$;
 REVOKE ALL ON FUNCTION public.season_note_rated_match(uuid, uuid, timestamptz, text, text, boolean) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.season_note_rated_match(uuid, uuid, timestamptz, text, text, boolean) TO service_role;
 
+-- Records a tier the standings job gave a placed player (W3a's runStandingsJob: the Top 500 and cap changes come only
+-- from it), so the season's peak is every tier actually held. Not a rated match: it never counts towards the 10.
+-- Idempotent on (player, time, tier). Answers noted | duplicate | no_season | no_account | bad_tier.
+CREATE OR REPLACE FUNCTION public.season_note_tier(p_user_id uuid, p_at timestamptz, p_tier text, p_tier_label text)
+RETURNS text
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_season record;
+  v_n integer;
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM public.profiles WHERE user_id = p_user_id) THEN
+    RETURN 'no_account';
+  END IF;
+  IF public.season_tier_rank(p_tier) IS NULL OR coalesce(trim(p_tier_label), '') = '' THEN
+    RETURN 'bad_tier';
+  END IF;
+  SELECT * INTO v_season FROM public.season_at(p_user_id, coalesce(p_at, now()));
+  IF NOT FOUND THEN
+    RETURN 'no_season';
+  END IF;
+  INSERT INTO public.season_rated_matches (season_id, season_start, user_id, match_id, at, tier, tier_label, placement_done, kind)
+  VALUES (v_season.season_id, v_season.season_start, p_user_id,
+          md5(p_user_id::text || ':' || coalesce(p_at, now())::text || ':' || p_tier)::uuid,
+          coalesce(p_at, now()), p_tier, left(p_tier_label, 40), true, 'standing')
+  ON CONFLICT DO NOTHING;
+  GET DIAGNOSTICS v_n = ROW_COUNT;
+  RETURN CASE WHEN v_n = 1 THEN 'noted' ELSE 'duplicate' END;
+END;
+$$;
+REVOKE ALL ON FUNCTION public.season_note_tier(uuid, timestamptz, text, text) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.season_note_tier(uuid, timestamptz, text, text) TO service_role;
+
 -- One player's standing in one season run: rated matches, placement done, and the peak tier actually held.
 CREATE OR REPLACE FUNCTION public.season_standing(p_user_id uuid, p_season text, p_start timestamptz)
 RETURNS TABLE (rated_matches integer, placement_done boolean, peak_tier text, peak_label text)
@@ -228,7 +267,7 @@ STABLE
 SECURITY DEFINER
 SET search_path = public
 AS $$
-  SELECT count(*)::integer,
+  SELECT (count(*) FILTER (WHERE m.kind = 'match'))::integer,
          coalesce(bool_or(m.placement_done), false),
          (SELECT x.tier FROM public.season_rated_matches x
            WHERE x.season_id = p_season AND x.season_start = p_start AND x.user_id = p_user_id AND x.tier IS NOT NULL
@@ -244,7 +283,7 @@ GRANT EXECUTE ON FUNCTION public.season_standing(uuid, text, timestamptz) TO ser
 
 /* ------------------------------------------------------------------ the reset */
 
--- The one reset formula (src/lib/seasons/reset.ts SEASON_RESET mirrors it): a third of the way back towards the
+-- The one reset formula (src/lib/seasons/rules.ts SEASON_RESET mirrors it): a third of the way back towards the
 -- average, and the uncertainty a third of the way back towards the starting 350 (never narrower than it was).
 CREATE OR REPLACE FUNCTION public.season_reset_rating(p_rating numeric, p_rd numeric, p_average numeric,
                                                       OUT rating numeric, OUT rd numeric)
@@ -257,11 +296,62 @@ $$;
 REVOKE ALL ON FUNCTION public.season_reset_rating(numeric, numeric, numeric) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.season_reset_rating(numeric, numeric, numeric) TO service_role;
 
--- Resets the ratings at a season's end, once per season run. The ratings live in the ratings engine's tables (W3a):
--- its public.ratings_season_reset(p_season text, p_start timestamptz, p_testers_only boolean) applies
--- public.season_reset_rating to Puzzles, Arcade and every category of each rated player in scope (the average taken
--- over all rated players), recalculates the Joulz Rating and answers {players: [uuid…], detail: {…}}. Without it the
--- close records 'waiting_for_ratings'. Each player reset gets a season_placement_resets row (3 placement matches next).
+-- Where a placement started (W3a's public.rated_profiles, one column added): 0 the first time; the season reset sets it,
+-- with placement_played, to 2, so the new season's placement is 3 matches ("Placement 2 of 3"; src/lib/rated/match.ts
+-- placementOf). rated_state reads the whole row, and rated_apply_match never writes this column, so it is kept.
+ALTER TABLE public.rated_profiles ADD COLUMN IF NOT EXISTS placement_from smallint NOT NULL DEFAULT 0;
+DO $c$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'rated_profiles_placement_from') THEN
+    ALTER TABLE public.rated_profiles ADD CONSTRAINT rated_profiles_placement_from CHECK (placement_from IN (0, 2));
+  END IF;
+END
+$c$;
+
+-- The ratings engine's side of the reset (W3a's tables). For every placed player in scope (everyone, or the testers
+-- for the testers' season): each of Puzzles, Arcade and the 11 categories through public.season_reset_rating, the
+-- average taken over every placed player rated in it; then placement back to 2 of 5 (3 matches to play), with the
+-- Joulz Rating and the shown tier hidden until it is done, when the engine works the Joulz Rating out again from the
+-- reset pools. Players still in placement are left as they are. Answers {players: [...], detail: {averages, players}}.
+CREATE OR REPLACE FUNCTION public.ratings_season_reset(p_season text, p_start timestamptz, p_testers_only boolean)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_avg jsonb;
+  v_scope uuid[];
+  v_players jsonb;
+  v_n integer;
+BEGIN
+  SELECT coalesce(jsonb_object_agg(x.key, x.a), '{}'::jsonb) INTO v_avg
+    FROM (SELECT r.key, avg(r.rating::numeric) AS a
+            FROM public.rated_ratings r JOIN public.rated_profiles p ON p.player_id = r.player_id
+           WHERE p.placement_played >= 5 GROUP BY r.key) x;
+  SELECT coalesce(array_agg(p.player_id ORDER BY p.player_id), ARRAY[]::uuid[]) INTO v_scope
+    FROM public.rated_profiles p
+   WHERE p.placement_played >= 5 AND (NOT p_testers_only OR public.shop_is_tester(p.player_id));
+  UPDATE public.rated_ratings r
+     SET (rating, rd) = (SELECT x.rating::double precision, x.rd::double precision
+                           FROM public.season_reset_rating(r.rating::numeric, r.rd::numeric, (v_avg ->> r.key)::numeric) x),
+         version = r.version + 1
+   WHERE r.player_id = ANY (v_scope) AND v_avg ? r.key;
+  UPDATE public.rated_profiles p
+     SET placement_played = 2, placement_from = 2, joulz = NULL, shown_tier = NULL, floor_grace = NULL,
+         version = p.version + 1, updated_at = now()
+   WHERE p.player_id = ANY (v_scope);
+  GET DIAGNOSTICS v_n = ROW_COUNT;
+  v_players := to_jsonb(v_scope);
+  RETURN jsonb_build_object('players', v_players, 'detail', jsonb_build_object('averages', v_avg, 'players', v_n,
+                            'testers_only', p_testers_only));
+END;
+$$;
+REVOKE ALL ON FUNCTION public.ratings_season_reset(text, timestamptz, boolean) FROM PUBLIC, anon, authenticated, service_role;
+
+-- Resets the ratings at a season's end, once per season run, through public.ratings_season_reset above (called by
+-- name, so a database where it is missing records 'waiting_for_ratings' and a later close completes it). Each player
+-- reset gets a season_placement_resets row (3 placement matches next).
 CREATE OR REPLACE FUNCTION public.season_reset_ratings(p_season text, p_start timestamptz, p_testers_only boolean)
 RETURNS jsonb
 LANGUAGE plpgsql
@@ -285,9 +375,9 @@ BEGIN
   END IF;
   EXECUTE 'SELECT public.ratings_season_reset($1, $2, $3)' INTO v USING p_season, p_start, p_testers_only;
   INSERT INTO public.season_placement_resets (user_id, season_id, season_start, reset_at, placement_of)
-  SELECT p.user_id, p_season, p_start, now(), 3
+  SELECT u.user_id, p_season, p_start, now(), 3
     FROM (SELECT DISTINCT (jsonb_array_elements_text(coalesce(v -> 'players', '[]'::jsonb)))::uuid AS user_id) u
-    JOIN public.profiles p ON p.user_id = u.user_id
+    JOIN auth.users p ON p.id = u.user_id
   ON CONFLICT DO NOTHING;
   GET DIAGNOSTICS v_n = ROW_COUNT;
   UPDATE public.season_closes
