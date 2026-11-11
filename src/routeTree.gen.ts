@@ -22,6 +22,8 @@ import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as ReplayLabRouteImport } from './routes/replay-lab'
 import { Route as ShopRouteImport } from './routes/shop'
 import { Route as TermsRouteImport } from './routes/terms'
+import { Route as TournamentRouteImport } from './routes/tournament'
+import { Route as TournamentRulesRouteImport } from './routes/tournament-rules'
 import { Route as TournamentsRouteImport } from './routes/tournaments'
 import { Route as DuelCodeRouteImport } from './routes/duel.$code'
 
@@ -90,6 +92,16 @@ const TermsRoute = TermsRouteImport.update({
   path: '/terms',
   getParentRoute: () => rootRouteImport,
 } as any)
+const TournamentRoute = TournamentRouteImport.update({
+  id: '/tournament',
+  path: '/tournament',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TournamentRulesRoute = TournamentRulesRouteImport.update({
+  id: '/tournament-rules',
+  path: '/tournament-rules',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const TournamentsRoute = TournamentsRouteImport.update({
   id: '/tournaments',
   path: '/tournaments',
@@ -115,6 +127,8 @@ export interface FileRoutesByFullPath {
   '/replay-lab': typeof ReplayLabRoute
   '/shop': typeof ShopRoute
   '/terms': typeof TermsRoute
+  '/tournament': typeof TournamentRoute
+  '/tournament-rules': typeof TournamentRulesRoute
   '/tournaments': typeof TournamentsRoute
   '/duel/$code': typeof DuelCodeRoute
 }
@@ -132,6 +146,8 @@ export interface FileRoutesByTo {
   '/replay-lab': typeof ReplayLabRoute
   '/shop': typeof ShopRoute
   '/terms': typeof TermsRoute
+  '/tournament': typeof TournamentRoute
+  '/tournament-rules': typeof TournamentRulesRoute
   '/tournaments': typeof TournamentsRoute
   '/duel/$code': typeof DuelCodeRoute
 }
@@ -150,6 +166,8 @@ export interface FileRoutesById {
   '/replay-lab': typeof ReplayLabRoute
   '/shop': typeof ShopRoute
   '/terms': typeof TermsRoute
+  '/tournament': typeof TournamentRoute
+  '/tournament-rules': typeof TournamentRulesRoute
   '/tournaments': typeof TournamentsRoute
   '/duel/$code': typeof DuelCodeRoute
 }
@@ -169,6 +187,8 @@ export interface FileRouteTypes {
     | '/replay-lab'
     | '/shop'
     | '/terms'
+    | '/tournament'
+    | '/tournament-rules'
     | '/tournaments'
     | '/duel/$code'
   fileRoutesByTo: FileRoutesByTo
@@ -186,6 +206,8 @@ export interface FileRouteTypes {
     | '/replay-lab'
     | '/shop'
     | '/terms'
+    | '/tournament'
+    | '/tournament-rules'
     | '/tournaments'
     | '/duel/$code'
   id:
@@ -203,6 +225,8 @@ export interface FileRouteTypes {
     | '/replay-lab'
     | '/shop'
     | '/terms'
+    | '/tournament'
+    | '/tournament-rules'
     | '/tournaments'
     | '/duel/$code'
   fileRoutesById: FileRoutesById
@@ -221,6 +245,8 @@ export interface RootRouteChildren {
   ReplayLabRoute: typeof ReplayLabRoute
   ShopRoute: typeof ShopRoute
   TermsRoute: typeof TermsRoute
+  TournamentRoute: typeof TournamentRoute
+  TournamentRulesRoute: typeof TournamentRulesRoute
   TournamentsRoute: typeof TournamentsRoute
   DuelCodeRoute: typeof DuelCodeRoute
 }
@@ -318,6 +344,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TermsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/tournament': {
+      id: '/tournament'
+      path: '/tournament'
+      fullPath: '/tournament'
+      preLoaderRoute: typeof TournamentRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/tournament-rules': {
+      id: '/tournament-rules'
+      path: '/tournament-rules'
+      fullPath: '/tournament-rules'
+      preLoaderRoute: typeof TournamentRulesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/tournaments': {
       id: '/tournaments'
       path: '/tournaments'
@@ -349,6 +389,8 @@ const rootRouteChildren: RootRouteChildren = {
   ReplayLabRoute: ReplayLabRoute,
   ShopRoute: ShopRoute,
   TermsRoute: TermsRoute,
+  TournamentRoute: TournamentRoute,
+  TournamentRulesRoute: TournamentRulesRoute,
   TournamentsRoute: TournamentsRoute,
   DuelCodeRoute: DuelCodeRoute,
 }

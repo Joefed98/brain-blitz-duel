@@ -64,6 +64,11 @@ export const sendRoomMessageFn = createServerFn({ method: "POST" })
     const rated = await ratedChatText(await admin(), data.roomId, context.userId, text, Date.now());
     if (rated && !rated.ok) return { ok: false as const, message: rated.message };
     if (rated) text = rated.text;
+    // Tournament rooms (wave 4, W4b: an Arena duel): the same stranger rules (tournamentChat.server.ts); null elsewhere.
+    const { tournamentChatText } = await import("@/lib/tournaments/tournamentChat.server");
+    const tournament = await tournamentChatText(await admin(), data.roomId, context.userId, text, Date.now());
+    if (tournament && !tournament.ok) return { ok: false as const, message: tournament.message };
+    if (tournament) text = tournament.text;
 
     const { insertRoomMessage, readOwnRecentMessages } = await import("@/lib/data/chat.server");
     const { data: mine } = await readOwnRecentMessages(client, data.roomId, context.userId, MESSAGE_MAX_PER_PLAYER);

@@ -2106,6 +2106,309 @@ export type Database = {
         }
         Relationships: []
       }
+      tournament_events: {
+        Row: {
+          async_room_id: string | null
+          cancel_reason: string | null
+          cancelled_at: string | null
+          created_at: string
+          ends_at: string
+          entrants: number
+          finished_at: string | null
+          id: string
+          kind: string
+          pick: string
+          starts_at: string
+          status: string
+          title: string
+        }
+        Insert: {
+          async_room_id?: string | null
+          cancel_reason?: string | null
+          cancelled_at?: string | null
+          created_at?: string
+          ends_at: string
+          entrants?: number
+          finished_at?: string | null
+          id: string
+          kind: string
+          pick: string
+          starts_at: string
+          status?: string
+          title: string
+        }
+        Update: {
+          async_room_id?: string | null
+          cancel_reason?: string | null
+          cancelled_at?: string | null
+          created_at?: string
+          ends_at?: string
+          entrants?: number
+          finished_at?: string | null
+          id?: string
+          kind?: string
+          pick?: string
+          starts_at?: string
+          status?: string
+          title?: string
+        }
+        Relationships: []
+      }
+      tournament_entries: {
+        Row: {
+          coins: number
+          consumable_line: number | null
+          entered_at: string
+          entry: string
+          event_id: string
+          ledger_id: number | null
+          refunded_at: string | null
+          user_id: string
+        }
+        Insert: {
+          coins?: number
+          consumable_line?: number | null
+          entered_at?: string
+          entry: string
+          event_id: string
+          ledger_id?: number | null
+          refunded_at?: string | null
+          user_id: string
+        }
+        Update: {
+          coins?: number
+          consumable_line?: number | null
+          entered_at?: string
+          entry?: string
+          event_id?: string
+          ledger_id?: number | null
+          refunded_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      tournament_reminders: {
+        Row: {
+          asked_at: string
+          event_id: string
+          notified_at: string | null
+          user_id: string
+        }
+        Insert: {
+          asked_at?: string
+          event_id: string
+          notified_at?: string | null
+          user_id: string
+        }
+        Update: {
+          asked_at?: string
+          event_id?: string
+          notified_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      tournament_arena_queue: {
+        Row: {
+          event_id: string
+          joined_at: string
+          last_opponent: string | null
+          rating: number
+          user_id: string
+        }
+        Insert: {
+          event_id: string
+          joined_at?: string
+          last_opponent?: string | null
+          rating: number
+          user_id: string
+        }
+        Update: {
+          event_id?: string
+          joined_at?: string
+          last_opponent?: string | null
+          rating?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
+      tournament_arena_duels: {
+        Row: {
+          a_points: number
+          a_score: number
+          a_user: string
+          b_points: number
+          b_score: number
+          b_user: string
+          created_at: string
+          duel_id: string | null
+          event_id: string
+          games: Json | null
+          id: string
+          settled_at: string | null
+          status: string
+          winner: string | null
+        }
+        Insert: {
+          a_points?: number
+          a_score?: number
+          a_user: string
+          b_points?: number
+          b_score?: number
+          b_user: string
+          created_at?: string
+          duel_id?: string | null
+          event_id: string
+          games?: Json | null
+          id: string
+          settled_at?: string | null
+          status?: string
+          winner?: string | null
+        }
+        Update: {
+          a_points?: number
+          a_score?: number
+          a_user?: string
+          b_points?: number
+          b_score?: number
+          b_user?: string
+          created_at?: string
+          duel_id?: string | null
+          event_id?: string
+          games?: Json | null
+          id?: string
+          settled_at?: string | null
+          status?: string
+          winner?: string | null
+        }
+        Relationships: []
+      }
+      tournament_arena_players: {
+        Row: {
+          best_streak: number
+          draws: number
+          event_id: string
+          last_win_at: string | null
+          losses: number
+          played: number
+          points: number
+          score_total: number
+          streak: number
+          user_id: string
+          wins: number
+        }
+        Insert: {
+          best_streak?: number
+          draws?: number
+          event_id: string
+          last_win_at?: string | null
+          losses?: number
+          played?: number
+          points?: number
+          score_total?: number
+          streak?: number
+          user_id: string
+          wins?: number
+        }
+        Update: {
+          best_streak?: number
+          draws?: number
+          event_id?: string
+          last_win_at?: string | null
+          losses?: number
+          played?: number
+          points?: number
+          score_total?: number
+          streak?: number
+          user_id?: string
+          wins?: number
+        }
+        Relationships: []
+      }
+      tournament_results: {
+        Row: {
+          event_id: string
+          place: number
+          points: number | null
+          tie_ms: number | null
+          total: number | null
+          user_id: string
+        }
+        Insert: {
+          event_id: string
+          place: number
+          points?: number | null
+          tie_ms?: number | null
+          total?: number | null
+          user_id: string
+        }
+        Update: {
+          event_id?: string
+          place?: number
+          points?: number | null
+          tie_ms?: number | null
+          total?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      tournament_prizes: {
+        Row: {
+          coins: number
+          event_id: string
+          ledger_id: number
+          paid_at: string
+          place: number
+          user_id: string
+        }
+        Insert: {
+          coins: number
+          event_id: string
+          ledger_id: number
+          paid_at?: string
+          place: number
+          user_id: string
+        }
+        Update: {
+          coins?: number
+          event_id?: string
+          ledger_id?: number
+          paid_at?: string
+          place?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
+      tournament_trophies: {
+        Row: {
+          awarded_at: string
+          event_id: string
+          kind: string
+          medal: string
+          place: number
+          title: string
+          user_id: string
+        }
+        Insert: {
+          awarded_at?: string
+          event_id: string
+          kind: string
+          medal: string
+          place: number
+          title: string
+          user_id: string
+        }
+        Update: {
+          awarded_at?: string
+          event_id?: string
+          kind?: string
+          medal?: string
+          place?: number
+          title?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       catalogue_shop: {
@@ -2367,6 +2670,21 @@ export type Database = {
         }
         Returns: boolean
       }
+      tournament_ensure_event: { Args: { p_id: string; p_kind: string; p_title: string; p_pick: string; p_starts: string; p_ends: string }; Returns: undefined }
+      tournament_set_status: { Args: { p_event: string; p_from: string[]; p_to: string }; Returns: boolean }
+      tournament_set_room: { Args: { p_event: string; p_room: string }; Returns: string | null }
+      tournament_enter: { Args: { p_event: string; p_user_id: string; p_entry: string; p_coins: number }; Returns: Json }
+      tournament_cancel: { Args: { p_event: string; p_reason: string }; Returns: Json }
+      tournament_remind: { Args: { p_event: string; p_user_id: string; p_on: boolean }; Returns: boolean }
+      tournament_mark_reminded: { Args: { p_event: string; p_users: string[] }; Returns: number }
+      tournament_arena_join: { Args: { p_event: string; p_user_id: string; p_rating: number }; Returns: string }
+      tournament_arena_leave: { Args: { p_event: string; p_user_id: string }; Returns: undefined }
+      tournament_arena_pair: { Args: { p_event: string; p_a: string; p_b: string; p_duel: string }; Returns: boolean }
+      tournament_arena_set_room: { Args: { p_duel: string; p_room: string }; Returns: undefined }
+      tournament_arena_void: { Args: { p_duel: string }; Returns: boolean }
+      tournament_arena_settle: { Args: { p_duel: string; p_winner: string; p_a_score: number; p_b_score: number; p_games: Json }; Returns: Json }
+      tournament_finish: { Args: { p_event: string; p_rows: Json }; Returns: boolean }
+      tournament_pay_prize: { Args: { p_event: string; p_user_id: string; p_place: number; p_coins: number; p_medal: string | null; p_title: string | null }; Returns: Json }
     }
     Enums: {
       [_ in never]: never

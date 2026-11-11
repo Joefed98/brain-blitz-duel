@@ -65,10 +65,13 @@ const PUSH_TASKS = {
   tasks: {
     "push:friend-sweep": { handler: fileURLToPath(new URL("./src/lib/push/tasks/friendSweep.task.ts", import.meta.url)) },
     "push:daily-reminder": { handler: fileURLToPath(new URL("./src/lib/push/tasks/dailyReminder.task.ts", import.meta.url)) },
+    // Tournaments (wave 4, W4b): TOURNAMENT_CRON in src/lib/tournaments/tasks/tournamentsTick.server.ts.
+    "tournaments:tick": { handler: fileURLToPath(new URL("./src/lib/tournaments/tasks/tournamentsTick.task.ts", import.meta.url)) },
   },
   scheduledTasks: {
     "*/5 * * * *": ["push:friend-sweep"],
     "41 * * * *": ["push:daily-reminder"],
+    "2-59/5 * * * *": ["tournaments:tick"],
   },
 };
 

@@ -21,6 +21,8 @@ import {
 import { APP_NAME } from "@/lib/brand";
 import { OnlineOnly } from "@/components/offline/OnlineOnly";
 import { EmptyState } from "@/design/components";
+import { TournamentHubSections } from "@/components/tournaments/TournamentHub";
+import { tournamentsBackend, useTournamentHub } from "@/lib/tournaments/tournamentsApi";
 
 export const Route = createFileRoute("/tournaments")({
   ssr: false,
@@ -73,6 +75,15 @@ function TournamentsScreen() {
     setResults(readRoomHistory().filter((r) => codes.has(r.code)));
   }, [games]);
   const discord = betaValue("DISCORD_URL");
+  // Wave 4 (W4b): the Arena and the daily Score Attack, once the server answers with tournaments open; until then
+  // (and for anyone they aren't open to) the tab is exactly the public games below.
+  const { hub, refresh } = useTournamentHub();
+  const openEvent = (id: string) => void navigate({ to: "/tournament", search: { id } });
+  const remind = async (id: string, on: boolean) => {
+    const b = await tournamentsBackend();
+    await b?.remind(id, on).catch(() => undefined);
+    refresh();
+  };
 
   return (
     <PhoneShell tabs="tournaments" aside={<PageAside panels={["daily", "week"]} />}>
@@ -86,6 +97,8 @@ function TournamentsScreen() {
             Public games on set dates. Join when the lobby opens, and everyone plays the same rounds.
           </p>
         </div>
+
+        {hub ? <TournamentHubSections hub={hub} onOpen={openEvent} onRemind={(id, on) => void remind(id, on)} /> : null}
 
         {next ? (
           <section aria-label="Next up" className="ap-section">
