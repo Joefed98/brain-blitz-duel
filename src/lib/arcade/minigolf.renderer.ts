@@ -37,6 +37,12 @@ import {
   type MinigolfState,
 } from "./minigolf";
 import type { ArenaSceneView } from "./arenaScene.renderer";
+import { NO_LOOK, type GameLook } from "./skins/look";
+import { paintBallArt } from "./skins/ballArt";
+import { minigolfBallArt, neonCourseCup, neonCourseFlag, neonCourseHole, neonCourseScene, NEON_COURSE } from "./skins/minigolf.skins";
+
+/** The look this draw uses (wave 2 skins): set by the public draw calls for their length, the default otherwise. */
+let L: GameLook = NO_LOOK;
 
 /** What the stage's drag shows (presentation only): the pull from the ball, as an aim and a power share. */
 export interface MinigolfAim {
@@ -881,11 +887,11 @@ export function drawWindmill(ctx: CanvasRenderingContext2D, m: NonNullable<MgHol
     ctx.globalAlpha = 0.55;
     ctx.fillStyle = "rgba(0,0,0,0.35)";
     ctx.fillRect(-MG_SAIL_W / 2 + 2, 2, MG_SAIL_W, MG_SAIL_LEN);
-    ctx.fillStyle = "#6B4426";
+    ctx.fillStyle = L.world ? NEON_COURSE.millArm : "#6B4426";
     ctx.fillRect(-1.5, 0, 3, MG_SAIL_LEN);
-    ctx.fillStyle = "#EFE6D2";
+    ctx.fillStyle = L.world ? NEON_COURSE.sail : "#EFE6D2";
     ctx.fillRect(-MG_SAIL_W / 2, MG_HUB_R + 2, MG_SAIL_W, MG_SAIL_LEN - MG_HUB_R - 2);
-    ctx.strokeStyle = "#6B4426";
+    ctx.strokeStyle = L.world ? NEON_COURSE.millLine : "#6B4426";
     ctx.lineWidth = 0.8;
     for (let t = MG_HUB_R + 6; t < MG_SAIL_LEN; t += 5) {
       ctx.beginPath();
@@ -897,8 +903,8 @@ export function drawWindmill(ctx: CanvasRenderingContext2D, m: NonNullable<MgHol
   }
   ctx.globalAlpha = 0.85;
   const hg = ctx.createRadialGradient(-2, -2, 0.5, 0, 0, MG_HUB_R);
-  hg.addColorStop(0, "#F2C75C");
-  hg.addColorStop(1, "#7A5A1E");
+  hg.addColorStop(0, L.world ? NEON_COURSE.millLine : "#F2C75C");
+  hg.addColorStop(1, L.world ? NEON_COURSE.millArm : "#7A5A1E");
   ctx.fillStyle = hg;
   ctx.beginPath();
   ctx.arc(0, 0, MG_HUB_R, 0, Math.PI * 2);
@@ -911,13 +917,13 @@ export function drawWindmill(ctx: CanvasRenderingContext2D, m: NonNullable<MgHol
     const s = f.seg;
     ctx.save();
     ctx.lineCap = "round";
-    ctx.strokeStyle = "#4A2E18";
+    ctx.strokeStyle = L.world ? NEON_COURSE.millLine : "#4A2E18";
     ctx.lineWidth = MG_SAIL_R * 2;
     ctx.beginPath();
     ctx.moveTo(px(s.ax), px(s.ay));
     ctx.lineTo(px(s.bx), px(s.by));
     ctx.stroke();
-    ctx.strokeStyle = "#EFE6D2";
+    ctx.strokeStyle = L.world ? NEON_COURSE.millArm : "#EFE6D2";
     ctx.lineWidth = MG_SAIL_R;
     ctx.beginPath();
     ctx.moveTo(px(s.ax), px(s.ay));
@@ -940,6 +946,22 @@ function paintFloorPieces(ctx: CanvasRenderingContext2D, h: MgHole): void {
 
 /** The whole static picture of a hole (terrace, lamps, turf, slopes, rails, hazards, cup), world px. */
 export function paintMinigolfHole(ctx: CanvasRenderingContext2D, h: MgHole, salt: number): void {
+  if (L.world) {
+    neonCourseHole(ctx, h, {
+      floor: () => paintFloorPieces(ctx, h),
+      slopes: () => paintSlopes(ctx, h),
+      pieces: () => {
+        for (const p of h.ponds) paintPond(ctx, px(p.x), px(p.y), px(p.r));
+        paintRampRails(ctx, h);
+        h.logs.forEach((l) => paintLog(ctx, px(l.ax), px(l.ay), px(l.bx), px(l.by), px(l.r)));
+        (h.curves ?? []).forEach((c) => paintCurve(ctx, c));
+        (h.gates ?? []).forEach((g) => paintGate(ctx, g));
+        h.rocks.forEach((c, i) => paintBoulder(ctx, px(c.x), px(c.y), px(c.r), i + h.index * 7));
+        h.planters.forEach((c, i) => paintPlanter(ctx, px(c.x), px(c.y), px(c.r), i + h.index));
+      },
+    });
+    return;
+  }
   paintTerrace(ctx, MINIGOLF_W, MINIGOLF_H, salt + h.index * 101);
   // A soft shadow under the course.
   ctx.save();
@@ -971,7 +993,7 @@ const holeCache: { key: string; canvas: HTMLCanvasElement | OffscreenCanvas | nu
 function cachedHole(ctx: CanvasRenderingContext2D, h: MgHole, seed: number): CanvasImageSource | null {
   const m = ctx.getTransform();
   const scale = Math.max(0.5, Math.min(4, Math.hypot(m.a, m.b)));
-  const key = `${h.rev ?? 1}:${seed}:${h.index}:${scale.toFixed(3)}`;
+  const key = `${h.rev ?? 1}:${seed}:${h.index}:${scale.toFixed(3)}${L.world ? `:${L.world}` : ""}`;
   if (holeCache.key === key && holeCache.canvas) return holeCache.canvas;
   const w = Math.ceil(MINIGOLF_W * scale);
   const hh = Math.ceil(MINIGOLF_H * scale);
@@ -995,7 +1017,12 @@ function cachedHole(ctx: CanvasRenderingContext2D, h: MgHole, seed: number): Can
 function drawFlag(ctx: CanvasRenderingContext2D, h: MgHole, tick: number, lowered: boolean): void {
   const x = px(h.cup.x);
   const y = px(h.cup.y);
+  if (L.world) neonCourseCup(ctx, x, y);
   if (lowered) return;
+  if (L.world) {
+    neonCourseFlag(ctx, x, y, tick);
+    return;
+  }
   // Seen from above: the pin's shadow across the turf and a small cloth flag catching the lamp light.
   ctx.strokeStyle = "rgba(0,0,0,0.45)";
   ctx.lineWidth = 1.5;
@@ -1028,6 +1055,21 @@ function drawBall(ctx: CanvasRenderingContext2D, x: number, y: number, alpha = 1
   ctx.beginPath();
   ctx.ellipse(x + 1.6, y + 2.2, MG_BALL_R, MG_BALL_R * 0.85, 0, 0, Math.PI * 2);
   ctx.fill();
+  const art = minigolfBallArt(L);
+  if (art) {
+    paintBallArt(ctx, art, x, y, MG_BALL_R);
+    ctx.globalAlpha = 1;
+    return;
+  }
+  if (L.world) {
+    // The Neon Course's ball: the art's glowing white ball (no skin equipped).
+    ctx.fillStyle = NEON_COURSE.ball;
+    ctx.beginPath();
+    ctx.arc(x, y, MG_BALL_R, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+    return;
+  }
   const g = ctx.createRadialGradient(x - 1.6, y - 1.8, 0.4, x, y, MG_BALL_R);
   g.addColorStop(0, "#FFFFFF");
   g.addColorStop(0.7, "#E4E7EA");
@@ -1084,9 +1126,10 @@ export function drawMinigolfPlay(
   s: MinigolfState,
   drawWorld: () => void,
   viewH = MINIGOLF_VIEW_H,
+  look: GameLook = NO_LOOK,
 ): void {
   const cam = minigolfCamera(s, viewH);
-  minigolfScene(ctx, { worldW: MINIGOLF_W, worldH: viewH, left: 0, top: 0, right: MINIGOLF_W, bottom: viewH, scale: 1 });
+  paintMinigolfScene(ctx, { worldW: MINIGOLF_W, worldH: viewH, left: 0, top: 0, right: MINIGOLF_W, bottom: viewH, scale: 1 }, look);
   ctx.save();
   ctx.translate(cam.x, cam.y);
   ctx.scale(cam.k, cam.k);
@@ -1096,7 +1139,16 @@ export function drawMinigolfPlay(
 }
 
 /** The hole, flag, ball, sails and aim in world px (no HUD). */
-export function drawMinigolfCourse(ctx: CanvasRenderingContext2D, s: MinigolfState, aim: MinigolfAim | null): void {
+export function drawMinigolfCourse(ctx: CanvasRenderingContext2D, s: MinigolfState, aim: MinigolfAim | null, look: GameLook = NO_LOOK): void {
+  L = look;
+  try {
+    drawCourseLooked(ctx, s, aim);
+  } finally {
+    L = NO_LOOK;
+  }
+}
+
+function drawCourseLooked(ctx: CanvasRenderingContext2D, s: MinigolfState, aim: MinigolfAim | null): void {
   const h = s.course[Math.min(s.hole, MINIGOLF_HOLES - 1)]!;
   const img = cachedHole(ctx, h, s.seed);
   if (img) ctx.drawImage(img, 0, 0, MINIGOLF_W, MINIGOLF_H);
@@ -1197,7 +1249,20 @@ function drawAim(ctx: CanvasRenderingContext2D, bx: number, by: number, aim: Min
 
 /** The arena scene beyond the world (display only, world units): more of the night terrace, darker towards the edges. */
 export function minigolfScene(ctx: CanvasRenderingContext2D, view: ArenaSceneView): void {
+  paintMinigolfScene(ctx, view, NO_LOOK);
+}
+
+/** The scene in a look (wave 2 skins): the live stage's, the player's own. */
+export function minigolfSceneFor(look: GameLook): (ctx: CanvasRenderingContext2D, view: ArenaSceneView) => void {
+  return look.world ? (ctx, view) => paintMinigolfScene(ctx, view, look) : minigolfScene;
+}
+
+function paintMinigolfScene(ctx: CanvasRenderingContext2D, view: ArenaSceneView, look: GameLook): void {
   const { left, top, right, bottom } = view;
+  if (look.world) {
+    neonCourseScene(ctx, view);
+    return;
+  }
   ctx.fillStyle = "#14110F";
   ctx.fillRect(left, top, right - left, bottom - top);
   const tile = 46;

@@ -68,6 +68,11 @@ export interface AvatarChoice {
 
 export interface Loadout {
   slots: Partial<Record<LoadoutSlot, string | null>>;
+  /**
+   * The per-game slots (wave 2 E1, skins): `game-skin:<game>` and `world-theme:<game>` → the equipped item's id or
+   * null. Only items the account owns can sit in a slot (A1's database refuses any other), so these are owned.
+   */
+  gameLooks?: Record<string, string | null>;
   avatar: AvatarChoice | null;
   /** Gems this account may use (none until C1). */
   unlockedGems?: string[];
@@ -169,8 +174,14 @@ export function normaliseLoadout(raw: unknown): Loadout | null {
         choices,
       }
     : null;
+  const gameLooks: Record<string, string | null> = {};
+  for (const [slot, v] of Object.entries(slotsRaw)) {
+    if (!/^(game-skin|world-theme):[a-z]+$/.test(slot)) continue;
+    if (typeof v === "string" && v.startsWith(`${slot.split(":")[0]}.`)) gameLooks[slot] = v;
+    else if (v === null) gameLooks[slot] = null;
+  }
   const unlocked = Array.isArray(r["unlockedGems"]) ? (r["unlockedGems"] as unknown[]).filter((g): g is string => typeof g === "string") : [];
-  return { slots, avatar, unlockedGems: unlocked };
+  return { slots, avatar, unlockedGems: unlocked, gameLooks };
 }
 
 /** The option rows worth drawing for an avatar: only kinds with more than one choice (never an empty or single picker). */

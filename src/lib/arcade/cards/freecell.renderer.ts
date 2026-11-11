@@ -5,10 +5,11 @@
  * freecellRev 2 adds two small buttons in the HUD row's gaps (Undo left of HOME, Reset right of it; fcButtonHit) and
  * the refused move's toast under the free cells ("Need a free cell to move 2 cards", fcNoteText, 1.6 s).
  */
+import { NO_LOOK, type GameLook } from "../skins/look";
 import type { ArcadeGame, ArcadeInputEvent, CanvasSize } from "../engine";
 import { arcadeFx, type ArcadeFxSpec } from "../arcadeFx.renderer";
 import { NO_CARD } from "./cards";
-import { CARD_FONT, drawCard, drawChip, drawFelt, drawSlot, roundRect } from "./cards.renderer";
+import { withCardsLook, CARD_FONT, drawCard, drawChip, drawFelt, drawSlot, roundRect } from "./cards.renderer";
 import {
   FC_CELLS, FC_COLS, FC_INPUT_RESET, FC_INPUT_UNDO, FC_PILE_CELL, FC_PILE_HOME, fcCardsFor, fcHomeCount, fcNoteText, freecellGameFor, type FcState } from "./freecell";
 import { cardOf, rankOf, suitOf } from "./cards";
@@ -359,8 +360,9 @@ function drawFreecellWorld(ctx: CanvasRenderingContext2D, state: FcState, size: 
 }
 
 /** The art game for a stage: the revision's sim with this draw (the view, when given, is the phone's press and drag). */
-export function freecellArtGame(view?: FcView, rev?: number | null): ArcadeGame<FcState, ArcadeInputEvent | null> {
-  return { ...freecellGameFor(rev), draw: (ctx, state, size) => drawFreecell(ctx, state, size, view) };
+export function freecellArtGame(view?: FcView, rev?: number | null, look: GameLook = NO_LOOK): ArcadeGame<FcState, ArcadeInputEvent | null> {
+  if (!look.skin && !look.world) return { ...freecellGameFor(rev), draw: (ctx, state, size) => drawFreecell(ctx, state, size, view) };
+  return { ...freecellGameFor(rev), draw: (ctx, state, size) => withCardsLook(look, () => drawFreecell(ctx, state, size, view)) };
 }
 
 export const freecellArt = freecellArtGame();

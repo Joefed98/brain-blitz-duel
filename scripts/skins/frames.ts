@@ -77,7 +77,7 @@ export async function drawFrames(game: SkinGame, look: Look): Promise<Frame[]> {
         out.push(paint(`r${rev}-s${seed}-turned`, P.POOL_W, P.POOL_H, 1, (ctx) => (has ? R.drawPool(ctx, s, null, true, look) : R.drawPool(ctx, s, null, true))));
       }
     }
-    out.push(scene("scene", P.POOL_W, P.POOL_H, 1, (ctx, v) => (has ? R.poolScene(ctx, v, look) : R.poolScene(ctx, v))));
+    out.push(scene("scene", P.POOL_W, P.POOL_H, 1, (ctx, v) => (has ? R.poolSceneFor(look)(ctx, v) : R.poolScene(ctx, v))));
   } else if (game === "minigolf") {
     const R = await import("../../src/lib/arcade/minigolf.renderer");
     const M = await import("../../src/lib/arcade/minigolf");
@@ -89,14 +89,14 @@ export async function drawFrames(game: SkinGame, look: Look): Promise<Frame[]> {
           out.push(
             paint(`r${rev}-s${seed}-t${ticks}@${scale}`, M.MINIGOLF_W, R.MINIGOLF_VIEW_H, scale, (ctx) =>
               has
-                ? R.drawMinigolfPlay(ctx, s, () => R.drawMinigolfCourse(ctx, s, aim, look), look)
+                ? R.drawMinigolfPlay(ctx, s, () => R.drawMinigolfCourse(ctx, s, aim, look), R.MINIGOLF_VIEW_H, look)
                 : R.drawMinigolfPlay(ctx, s, () => R.drawMinigolfCourse(ctx, s, aim)),
             ),
           );
         }
       }
     }
-    out.push(scene("scene", M.MINIGOLF_W, R.MINIGOLF_VIEW_H, 1, (ctx, v) => (has ? R.minigolfScene(ctx, v, look) : R.minigolfScene(ctx, v))));
+    out.push(scene("scene", M.MINIGOLF_W, R.MINIGOLF_VIEW_H, 1, (ctx, v) => (has ? R.minigolfSceneFor(look)(ctx, v) : R.minigolfScene(ctx, v))));
   } else if (game === "curling") {
     const R = await import("../../src/lib/arcade/curling.renderer");
     const C = await import("../../src/lib/arcade/curling");
@@ -122,7 +122,7 @@ export async function drawFrames(game: SkinGame, look: Look): Promise<Frame[]> {
         out.push(paint(`r${rev}-s${seed}-t${ticks}`, G.RACING_WORLD_W, G.RACING_WORLD_H, 1, (ctx) => (has ? R.drawRacingPlay(ctx, s, size, look) : R.drawRacingPlay(ctx, s, size))));
       }
     }
-    out.push(scene("scene", G.RACING_WORLD_W, G.RACING_WORLD_H, 1, (ctx, v) => (has ? R.racingScene(ctx, v, look) : R.racingScene(ctx, v))));
+    out.push(scene("scene", G.RACING_WORLD_W, G.RACING_WORLD_H, 1, (ctx, v) => (has ? R.racingSceneFor(look)(ctx, v) : R.racingScene(ctx, v))));
   } else if (game === "freekick") {
     const R = await import("../../src/lib/arcade/freekick.renderer");
     const F = await import("../../src/lib/arcade/freekick");
@@ -134,7 +134,7 @@ export async function drawFrames(game: SkinGame, look: Look): Promise<Frame[]> {
         out.push(paint(`r${rev}-s${seed}-t${ticks}`, F.FREEKICK_WORLD_W, F.FREEKICK_WORLD_H, 1, (ctx) => art.draw(ctx, s, size)));
       }
       const s0 = run<Parameters<typeof art.draw>[1]>(F.freekickGameFor(rev) as unknown as Idle, 1, 0);
-      out.push(scene(`scene-r${rev}`, F.FREEKICK_WORLD_W, F.FREEKICK_WORLD_H, 1, (ctx, v) => (has ? R.freekickScene(ctx, v, s0, look) : R.freekickScene(ctx, v, s0))));
+      out.push(scene(`scene-r${rev}`, F.FREEKICK_WORLD_W, F.FREEKICK_WORLD_H, 1, (ctx, v) => R.freekickScene(ctx, v, s0)));
     }
   } else if (game === "freecell") {
     const R = await import("../../src/lib/arcade/cards/freecell.renderer");
@@ -147,7 +147,7 @@ export async function drawFrames(game: SkinGame, look: Look): Promise<Frame[]> {
         for (const scale of [1, 2]) out.push(paint(`r${rev}-s${seed}-t${ticks}@${scale}`, R.FC_WORLD_W, R.FC_WORLD_H, scale, (ctx) => art.draw(ctx, s, { width: R.FC_WORLD_W, height: R.FC_WORLD_H })));
       }
     }
-    out.push(scene("scene", R.FC_WORLD_W, R.FC_WORLD_H, 1, (ctx, v) => (has ? fill.cardsFill(ctx, v, look) : fill.cardsFill(ctx, v))));
+    out.push(scene("scene", R.FC_WORLD_W, R.FC_WORLD_H, 1, (ctx, v) => (has ? fill.cardsFillFor(look)(ctx, v) : fill.cardsFill(ctx, v))));
   } else if (game === "pokersquares") {
     const R = await import("../../src/lib/arcade/cards/pokerSquares.renderer");
     const fill = await import("../../src/lib/arcade/cards/cardsFill.renderer");
@@ -158,7 +158,7 @@ export async function drawFrames(game: SkinGame, look: Look): Promise<Frame[]> {
         for (const scale of [1, 2]) out.push(paint(`r${rev}-s${seed}-t${ticks}@${scale}`, R.PS_WORLD_W, R.PS_WORLD_H, scale, (ctx) => art.draw(ctx, s, { width: R.PS_WORLD_W, height: R.PS_WORLD_H })));
       }
     }
-    out.push(scene("scene", R.PS_WORLD_W, R.PS_WORLD_H, 1, (ctx, v) => (has ? fill.cardsFill(ctx, v, look) : fill.cardsFill(ctx, v))));
+    out.push(scene("scene", R.PS_WORLD_W, R.PS_WORLD_H, 1, (ctx, v) => (has ? fill.cardsFillFor(look)(ctx, v) : fill.cardsFill(ctx, v))));
   }
   return out;
 }

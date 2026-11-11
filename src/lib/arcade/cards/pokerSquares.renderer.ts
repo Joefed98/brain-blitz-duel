@@ -3,10 +3,11 @@
  * the top, the 5 × 5 grid with a badge at the end of each row and under each column (lit gold with the hand and its
  * points once the line makes one), and the next card large at the bottom with the deck count. psHit reads the layout.
  */
+import { NO_LOOK, type GameLook } from "../skins/look";
 import type { ArcadeGame, ArcadeInputEvent, CanvasSize } from "../engine";
 import { arcadeFx, type ArcadeFxSpec } from "../arcadeFx.renderer";
 import { NO_CARD } from "./cards";
-import { CARD_FONT, drawCard, drawChip, drawFelt, drawSlot, roundRect } from "./cards.renderer";
+import { withCardsLook, CARD_FONT, drawCard, drawChip, drawFelt, drawSlot, roundRect } from "./cards.renderer";
 import { PS_LINES, PS_SIZE, PS_SQUARES, psCoreFullFor, psLineHand, psTotals, pokerSquaresGameFor, type PsState } from "./pokerSquares";
 
 export const PS_WORLD_W = 414;
@@ -186,8 +187,9 @@ function drawPokerSquaresWorld(ctx: CanvasRenderingContext2D, state: PsState, si
   ctx.restore();
 }
 
-export function pokerSquaresArtGame(view?: PsView, rev?: number | null): ArcadeGame<PsState, ArcadeInputEvent | null> {
-  return { ...pokerSquaresGameFor(rev), draw: (ctx, state, size) => drawPokerSquares(ctx, state, size, view) };
+export function pokerSquaresArtGame(view?: PsView, rev?: number | null, look: GameLook = NO_LOOK): ArcadeGame<PsState, ArcadeInputEvent | null> {
+  if (!look.skin && !look.world) return { ...pokerSquaresGameFor(rev), draw: (ctx, state, size) => drawPokerSquares(ctx, state, size, view) };
+  return { ...pokerSquaresGameFor(rev), draw: (ctx, state, size) => withCardsLook(look, () => drawPokerSquares(ctx, state, size, view)) };
 }
 
 export const pokerSquaresArt = pokerSquaresArtGame();
