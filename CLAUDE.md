@@ -2053,6 +2053,20 @@ outside the repo.
   and falls short for all 261, speed goals against the grader, the facts, coins and roles on PostgreSQL) and
   practice-challenge-fit-check (headless Chromium: every goal whole at 320 and 375 px). **A retune that moves a goal's
   number fails practice-goals-check: change the goal's text and number in the data file and re-run the doc script.**
+- **The ratings engine** (wave 3 W3a, 14 Nov 2026, `docs/rated/README.md`, the contract `docs/rated/ratings-interface.md`;
+  no gameplay, scoring, stamp or deal change): Glicko-2 (`src/lib/rated/glicko2.ts`, one rating period per match,
+  weighted games, an RD floor schedule and time away; **every constant in `glicko.config.ts` beside its target**,
+  proved on simulated players by ratings-check) for Puzzles, Arcade and the 11 categories (the server's own
+  `gamePool` / `gameCategory`; Mixed at half weight), the Joulz Rating (90 days of games), 5 placement matches with
+  every rating hidden, tiers and caps (`tiers.ts`: Storm's top 3% and Top 500 from 1,000 rated players, 3 days' grace,
+  hourly Cron Trigger `rated:standings` in `vite.config.ts`'s `RATED_TASKS`), recorded runs (owner exactly half, rated
+  runs only, 5 uses a day) and the 4th-match rule per UK day. The match engine calls `finishRatedMatch`
+  (`rewards.server.ts`: `recordRatedMatch`, idempotent per match id, then C2's badges); the phone only reads
+  (`ratings.functions.ts`). Migrations `20261114100000_ratings.sql`, `…100100_analytics_rated_events.sql`,
+  `…100200_rated_badges_earnable.sql` (**not applied until merged**); no API role writes a rated table. Rated play's 13
+  badges are earnable (29 earnable, 25 waiting). Joules amounts are stored for D2 (`rated_match_players.joules`,
+  `ratedJoulesKey`); `RATED_PLAY_FOR_EVERYONE` (`src/config/ratedConfig.ts`, false) is the switch W3b and the weekly
+  R challenges share. ratings-check (~10 s, shard `e`, PostgreSQL).
 - `src/components/duel/` — room/round screens (PhoneShell, RoundIntro, TimerBar,
   AnswerReveal, ArcadeReveal, WinnerReveal…); `src/components/puzzles/` — shared puzzle
   widgets; `src/lib/fx/` — sound and visual feedback (presentation only).

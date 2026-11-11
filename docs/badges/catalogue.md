@@ -23,23 +23,28 @@ Mix: 8 Common, 12 Rare, 17 Epic, 9 Elite, 8 Legendary; each Legendary pays 250 c
 
 ## In the app
 
+**Rated play (14 Nov 2026, wave 3 W3a, Joe's approval in the W3a brief):** the 13 badges the approved text says wait for
+wave 3's rated play (the 11 competitive, Revenge and Photo Finish) are earnable, from the server's rated record
+(`public.rated_badge_facts`, kept by the ratings engine; `docs/rated/README.md` "Badges" has each rule's reading).
+29 earnable, 25 waiting.
+
 The "now" badges built on C1a and C1b read their stored data: First Star, All-Rounder and Gem Hunter C1a's stars and
 gems (All-Rounder's count is every active game, so it follows the game list), the three challenge badges C1b's
 completed challenges (`docs/badges/README.md`).
 
 | Slug | Badge | Group | Rarity | Rule shown | Count | When |
 | --- | --- | --- | --- | --- | --- | --- |
-| `first-win` | First Win | Competitive | Common | Win your first rated match. | – | Arrives with rated play |
-| `placed` | Placed | Competitive | Common | Finish your 5 placement matches. | 5 matches | Arrives with rated play |
-| `hot-streak` | Hot Streak | Competitive | Rare | Win 5 rated matches in a row. | 5 wins | Arrives with rated play |
-| `comeback-kid` | Comeback Kid | Competitive | Rare | Win a best of 3 or 5 after losing the first game. | – | Arrives with rated play |
-| `clean-sweep` | Clean Sweep | Competitive | Epic | Win a best of 5 without dropping a game. | – | Arrives with rated play |
-| `podium-regular` | Podium Regular | Competitive | Epic | Finish top 3 in 25 four- or eight-player matches. | 25 matches | Arrives with rated play |
-| `unstoppable` | Unstoppable | Competitive | Elite | Win 10 rated matches in a row. | 10 wins | Arrives with rated play |
-| `giant-slayer` | Giant Slayer | Competitive | Elite | Beat a player rated at least 300 above you. | – | Arrives with rated play |
-| `storm-chaser` | Storm Chaser | Competitive | Elite | Reach Storm. | – | Arrives with rated play |
-| `lightning-strikes` | Lightning Strikes | Competitive | Legendary | Reach Lightning. | – | Arrives with rated play |
-| `top-500` | Top 500 | Competitive | Legendary | Be ranked in the Top 500 at any point. | – | Arrives with rated play |
+| `first-win` | First Win | Competitive | Common | Win your first rated match. | – | now |
+| `placed` | Placed | Competitive | Common | Finish your 5 placement matches. | 5 matches | now |
+| `hot-streak` | Hot Streak | Competitive | Rare | Win 5 rated matches in a row. | 5 wins | now |
+| `comeback-kid` | Comeback Kid | Competitive | Rare | Win a best of 3 or 5 after losing the first game. | – | now |
+| `clean-sweep` | Clean Sweep | Competitive | Epic | Win a best of 5 without dropping a game. | – | now |
+| `podium-regular` | Podium Regular | Competitive | Epic | Finish top 3 in 25 four- or eight-player matches. | 25 matches | now |
+| `unstoppable` | Unstoppable | Competitive | Elite | Win 10 rated matches in a row. | 10 wins | now |
+| `giant-slayer` | Giant Slayer | Competitive | Elite | Beat a player rated at least 300 above you. | – | now |
+| `storm-chaser` | Storm Chaser | Competitive | Elite | Reach Storm. | – | now |
+| `lightning-strikes` | Lightning Strikes | Competitive | Legendary | Reach Lightning. | – | now |
+| `top-500` | Top 500 | Competitive | Legendary | Be ranked in the Top 500 at any point. | – | now |
 | `first-star` | First Star | Mastery | Common | Earn your first mastery star. | – | now |
 | `flawless` | Flawless | Mastery | Rare | Score 200 in any game. | – | now |
 | `all-rounder` | All-Rounder | Mastery | Rare | Earn at least one star in every game. | 92 games | now |
@@ -75,8 +80,8 @@ completed challenges (`docs/badges/README.md`).
 | `challenge-expert` | Challenge Expert | Challenges | Epic | Complete 100 Practice challenges. | 100 challenges | now |
 | `category-clear` | Category Clear | Challenges | Elite | Complete every challenge in one category. | – | Arrives with Hard and Expert challenges |
 | `completionist` | Completionist | Challenges | Legendary | Complete every Practice challenge. | – | Arrives with Hard and Expert challenges |
-| `revenge` | Revenge | Fun | Common | Win the rematch after losing to the same player. | – | Arrives with rated play |
-| `photo-finish` | Photo Finish | Fun | Rare | Win a rated match by 1 point or less. | – | Arrives with rated play |
+| `revenge` | Revenge | Fun | Common | Win the rematch after losing to the same player. | – | now |
+| `photo-finish` | Photo Finish | Fun | Rare | Win a rated match by 1 point or less. | – | now |
 | `buzzer-beater` | Buzzer Beater | Fun | Rare | Finish a puzzle with under 1 second left. | – | now |
 | `speed-demon` | Speed Demon | Fun | Epic | Finish a puzzle in under a third of its time, 10 times. | 10 times | now |
 | `friendly` | Friendly | Social and special | Common | Add 5 friends. | 5 friends | now (B1 awards) |

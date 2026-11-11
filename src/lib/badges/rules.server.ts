@@ -8,7 +8,9 @@
  * the profile). Practice counts only from C1a's fresh start (public.practice_progress_start, read by badge_facts);
  * rooms, the Daily and challenges count the history the server already stores.
  */
+import type { TierId } from "@/lib/data/ratings";
 import { ACTIVE_PUZZLE_TYPES } from "@/lib/duel/catalogue";
+import { tierRank } from "@/lib/rated/tiers";
 
 import { BADGES } from "./catalogue";
 
@@ -37,7 +39,47 @@ export interface BadgeFacts {
   starredGames: number;
   /** Gem colours unlocked (C1a's public.gem_unlocks). */
   gems: number;
+  /**
+   * Rated play (wave 3 W3a, public.rated_badge_facts: the server's own record of every rated match, kept by
+   * recordRatedMatch). Matches frozen by the 4th-match rule count for none of these.
+   */
+  rated: RatedFacts;
 }
+
+/** The competitive badges' counts (all 0, tier null, for a player who hasn't played rated). */
+export interface RatedFacts {
+  wins: number;
+  /** The current run of rated wins (Hot Streak / Unstoppable progress). */
+  winStreak: number;
+  bestWinStreak: number;
+  placementPlayed: number;
+  comebacks: number;
+  cleanSweeps: number;
+  /** Top-3 finishes in 4- and 8-player matches. */
+  podiums: number;
+  giantSlayers: number;
+  revenges: number;
+  photoFinishes: number;
+  /** The highest tier ever shown (null before placement). */
+  peakTier: TierId | null;
+  /** Ever shown as Top 500. */
+  top500Ever: boolean;
+}
+
+export const NO_RATED_FACTS: RatedFacts = {
+  wins: 0,
+  winStreak: 0,
+  bestWinStreak: 0,
+  placementPlayed: 0,
+  comebacks: 0,
+  cleanSweeps: 0,
+  podiums: 0,
+  giantSlayers: 0,
+  revenges: 0,
+  photoFinishes: 0,
+  peakTier: null,
+  top500Ever: false,
+};
 
 export interface BadgeRule {
   /** Whether the facts earn it. */
@@ -57,7 +99,30 @@ const atLeast = (need: number, of: (f: BadgeFacts) => number): BadgeRule => ({
   progress: of,
 });
 
+/** A rated count (missing facts, as for a player who hasn't played rated, count as 0). */
+const rated = (need: number, of: (r: RatedFacts) => number): BadgeRule => atLeast(need, (f) => of(f.rated ?? NO_RATED_FACTS));
+const reached = (tier: TierId): BadgeRule => ({
+  earned: (f) => {
+    const peak = (f.rated ?? NO_RATED_FACTS).peakTier;
+    return peak !== null && tierRank(peak) >= tierRank(tier);
+  },
+});
+
 export const BADGE_RULES: Readonly<Record<string, BadgeRule>> = {
+  // Rated play (docs/badges/catalogue.md; earnable since wave 3 W3a, 14 Nov 2026).
+  "first-win": rated(1, (r) => r.wins),
+  placed: rated(5, (r) => r.placementPlayed),
+  "hot-streak": { earned: (f) => (f.rated ?? NO_RATED_FACTS).bestWinStreak >= 5, progress: (f) => (f.rated ?? NO_RATED_FACTS).winStreak },
+  "comeback-kid": rated(1, (r) => r.comebacks),
+  "clean-sweep": rated(1, (r) => r.cleanSweeps),
+  "podium-regular": rated(25, (r) => r.podiums),
+  unstoppable: { earned: (f) => (f.rated ?? NO_RATED_FACTS).bestWinStreak >= 10, progress: (f) => (f.rated ?? NO_RATED_FACTS).winStreak },
+  "giant-slayer": rated(1, (r) => r.giantSlayers),
+  "storm-chaser": reached("storm"),
+  "lightning-strikes": reached("lightning"),
+  "top-500": { earned: (f) => (f.rated ?? NO_RATED_FACTS).top500Ever },
+  revenge: rated(1, (r) => r.revenges),
+  "photo-finish": rated(1, (r) => r.photoFinishes),
   flawless: atLeast(1, (f) => f.games200),
   perfectionist: atLeast(25, (f) => f.games200),
   "daily-habit": { earned: (f) => f.bestDailyStreak >= 7, progress: (f) => f.dailyStreak },
