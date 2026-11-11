@@ -43,7 +43,8 @@ Test purchases only until real payments exist. Plus is visible to the shop's tes
   and the current season's premium pass through D2's function (see below). The ledgers' keys make every month pay once.
 - **Daily archive** (`/daily-archive`): any past Daily Puzzle or Daily Arcade of the last 30 days, replayed in its own
   async room (kind `daily_archive`) with that day's stored rounds. Unrated: never on a board, never in the streak
-  (`daily_history`), never a badge (`badge_facts` leaves the kind out) and never Joules; its solutions are not locked.
+  (`daily_history`), never a badge (`badge_facts` leaves the kind out) and never Joules (D2's `pass_activity` leaves it
+  out); its solutions are not locked.
 - **Early access**: a game marked with `plus.mark_early_access` is playable in Practice only by members until the end of
   that UK day (the practice deal and offline packs refuse it; the list hides it). Nothing is marked.
 - **PLUS chip**: an optional gold chip under the profile card, off by default; others see it through
@@ -54,9 +55,11 @@ Test purchases only until real payments exist. Plus is visible to the shop's tes
 
 ### The premium pass (D2)
 
-D2's pass wasn't in the tree when Plus was built. `src/lib/plus/passBinding.server.ts` is the one place to wire it:
-`bindPremiumPass({ grantPremiumPass(client, { userId, membershipId }) })` with D2's function; until then the premium
-pass is reported as not yet given and nothing is recorded for it. The database also offers D2 `public.plus_is_member(user)`.
+Through D2's own function: `src/lib/plus/passBinding.server.ts` calls `grantPremiumTrack` (src/lib/pass/pass.server.ts)
+for the season the member sees now, source `plus`, key `plus_pass:<membership>:<season>`; D2's `pass_grant_premium`
+answers `already` once it is given and records `pass_bought` (source plus) once. With no season shown to the member
+(between seasons) nothing is given and it is asked again next time. The database also offers D2
+`public.plus_is_member(user)`.
 
 ### Joe's functions (Supabase SQL editor; logged in `plus.admin_log`, a note required)
 
@@ -86,7 +89,8 @@ list as it stands.
 ## Migrations
 
 - `20261113200000_joulz_plus.sql`: the Plus tables and functions, early access, `cosmetics_public`, the
-  `daily_archive` room kind, `badge_facts` with the archive left out, Joe's `plus` functions.
+  `daily_archive` room kind, C2's `badge_facts` and D2's `pass_activity` with the archive left out, Joe's `plus`
+  functions.
 - `20261113200100_analytics_plus_events.sql`: the three events.
 
 ## Checks
