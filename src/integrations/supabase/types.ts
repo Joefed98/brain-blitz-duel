@@ -467,6 +467,75 @@ export type Database = {
         }
         Relationships: []
       }
+      notification_log: {
+        Row: {
+          counts_cap: boolean
+          dedupe_key: string | null
+          event: string
+          id: number
+          sent_at: string
+          user_id: string
+        }
+        Insert: {
+          counts_cap: boolean
+          dedupe_key?: string | null
+          event: string
+          id?: number
+          sent_at?: string
+          user_id: string
+        }
+        Update: {
+          counts_cap?: boolean
+          dedupe_key?: string | null
+          event?: string
+          id?: number
+          sent_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      notification_settings: {
+        Row: {
+          asked_at: string | null
+          daily_streak: boolean
+          declined_at: string | null
+          enabled: boolean
+          friend_accepted: boolean
+          friend_challenge: boolean
+          friend_request: boolean
+          room_invite: boolean
+          tournament_starting: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          asked_at?: string | null
+          daily_streak?: boolean
+          declined_at?: string | null
+          enabled?: boolean
+          friend_accepted?: boolean
+          friend_challenge?: boolean
+          friend_request?: boolean
+          room_invite?: boolean
+          tournament_starting?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          asked_at?: string | null
+          daily_streak?: boolean
+          declined_at?: string | null
+          enabled?: boolean
+          friend_accepted?: boolean
+          friend_challenge?: boolean
+          friend_request?: boolean
+          room_invite?: boolean
+          tournament_starting?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       avatar_options: {
         Row: {
           avatar_id: string
@@ -1085,6 +1154,12 @@ export type Database = {
         }
         Relationships: []
       }
+      practice_challenge_deals: {
+        Row: { deal_key: string; graded_at: string; user_id: string }
+        Insert: { deal_key: string; graded_at?: string; user_id: string }
+        Update: { deal_key?: string; graded_at?: string; user_id?: string }
+        Relationships: []
+      }
       practice_challenge_progress: {
         Row: {
           best: number
@@ -1137,6 +1212,9 @@ export type Database = {
           time_limit_ms: number
           timed_out: boolean
           user_id: string | null
+          breakdown: Json | null
+          level: string | null
+          progress_counted_at: string | null
         }
         Insert: {
           created_at?: string
@@ -1153,6 +1231,9 @@ export type Database = {
           time_limit_ms?: number
           timed_out?: boolean
           user_id?: string | null
+          breakdown?: Json | null
+          level?: string | null
+          progress_counted_at?: string | null
         }
         Update: {
           created_at?: string
@@ -1169,76 +1250,55 @@ export type Database = {
           time_limit_ms?: number
           timed_out?: boolean
           user_id?: string | null
+          breakdown?: Json | null
+          level?: string | null
+          progress_counted_at?: string | null
         }
         Relationships: []
       }
-      notification_log: {
+      practice_progress: {
         Row: {
-          counts_cap: boolean
-          dedupe_key: string | null
-          event: string
-          id: number
-          sent_at: string
+          best_at: string
+          best_play_id: number | null
+          best_score: number
+          game_id: string
+          level: string
+          star_at: string | null
+          star_score: number | null
           user_id: string
         }
         Insert: {
-          counts_cap: boolean
-          dedupe_key?: string | null
-          event: string
-          id?: number
-          sent_at?: string
+          best_at?: string
+          best_play_id?: number | null
+          best_score: number
+          game_id: string
+          level: string
+          star_at?: string | null
+          star_score?: number | null
           user_id: string
         }
         Update: {
-          counts_cap?: boolean
-          dedupe_key?: string | null
-          event?: string
-          id?: number
-          sent_at?: string
+          best_at?: string
+          best_play_id?: number | null
+          best_score?: number
+          game_id?: string
+          level?: string
+          star_at?: string | null
+          star_score?: number | null
           user_id?: string
         }
         Relationships: []
       }
-      notification_settings: {
-        Row: {
-          asked_at: string | null
-          daily_streak: boolean
-          declined_at: string | null
-          enabled: boolean
-          friend_accepted: boolean
-          friend_challenge: boolean
-          friend_request: boolean
-          room_invite: boolean
-          tournament_starting: boolean
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          asked_at?: string | null
-          daily_streak?: boolean
-          declined_at?: string | null
-          enabled?: boolean
-          friend_accepted?: boolean
-          friend_challenge?: boolean
-          friend_request?: boolean
-          room_invite?: boolean
-          tournament_starting?: boolean
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          asked_at?: string | null
-          daily_streak?: boolean
-          declined_at?: string | null
-          enabled?: boolean
-          friend_accepted?: boolean
-          friend_challenge?: boolean
-          friend_request?: boolean
-          room_invite?: boolean
-          tournament_starting?: boolean
-          updated_at?: string
-          user_id?: string
-        }
+      practice_progress_start: {
+        Row: { fresh_start_at: string; id: boolean }
+        Insert: { fresh_start_at?: string; id?: boolean }
+        Update: { fresh_start_at?: string; id?: boolean }
+        Relationships: []
+      }
+      practice_refresh_notes: {
+        Row: { seen_at: string; user_id: string }
+        Insert: { seen_at?: string; user_id: string }
+        Update: { seen_at?: string; user_id?: string }
         Relationships: []
       }
       profiles: {
@@ -1798,7 +1858,7 @@ export type Database = {
         Returns: { badges: string[]; founding_number: number | null; title: string | null; user_id: string }[]
       }
       daily_streak_freeze: { Args: { p_day: string; p_user_id: string }; Returns: Json }
-      badge_facts: { Args: { p_practice_since: string | null; p_puzzle_limits: Json; p_user_id: string }; Returns: Json }
+      badge_facts: { Args: { p_puzzle_limits: Json; p_user_id: string }; Returns: Json }
       daily_history: {
         Args: { p_user_id: string }
         Returns: { day: string; finished: boolean; kind: string; total: number }[]
@@ -1808,6 +1868,7 @@ export type Database = {
         Returns: Json
       }
       challenge_pay_due: { Args: { p_user_id: string }; Returns: Json }
+      challenge_first_run: { Args: { p_deal_key: string; p_user_id: string }; Returns: boolean }
       economy_credit: {
         Args: { p_amount: number; p_key: string; p_reason: string; p_ref_id: string | null; p_ref_kind: string | null; p_user_id: string }
         Returns: Json
@@ -1841,6 +1902,12 @@ export type Database = {
         }
         Returns: string
       }
+      practice_record_play: { Args: { p_play_id: number }; Returns: Json }
+      practice_mark_refresh_note_seen: { Args: { p_user_id: string }; Returns: boolean }
+      practice_refresh_note_due: { Args: { p_user_id: string }; Returns: boolean }
+      practice_star_total: { Args: { p_user_id: string }; Returns: number }
+      practice_sync_gems: { Args: { p_user_id: string }; Returns: string[] }
+      practice_gems_for: { Args: { p_stars: number }; Returns: string[] }
       economy_public_cards: {
         Args: { p_user_ids: string[] }
         Returns: {
@@ -1891,23 +1958,23 @@ export type Database = {
         }
         Returns: Json
       }
-      friends_search: { Args: { p_user: string; p_query: string; p_limit: number }; Returns: Json }
-      friends_send_request: { Args: { p_from: string; p_to: string; p_via: string; p_cap: number }; Returns: Json }
-      friends_respond: { Args: { p_user: string; p_request: string; p_accept: boolean; p_cap: number }; Returns: Json }
-      friends_remove: { Args: { p_user: string; p_friend: string }; Returns: boolean }
+      friends_are_friends: { Args: { p_a: string; p_b: string }; Returns: boolean }
       friends_block: { Args: { p_user: string; p_target: string }; Returns: Json }
-      friends_unblock: { Args: { p_user: string; p_target: string }; Returns: boolean }
+      friends_challenge_send: { Args: { p_from: string; p_to: string; p_code: string }; Returns: Json }
+      friends_head_to_head: { Args: { p_a: string; p_b: string }; Returns: Json }
       friends_invite_token: { Args: { p_user: string; p_token: string; p_reset: boolean }; Returns: string | null }
       friends_link_owner: { Args: { p_token: string }; Returns: Json }
-      friends_set_show_online: { Args: { p_user: string; p_show: boolean | null }; Returns: boolean }
-      friends_presence_beat: { Args: { p_user: string; p_activity: string }; Returns: boolean }
-      friends_room_invite: { Args: { p_from: string; p_to: string }; Returns: Json }
-      friends_challenge_send: { Args: { p_from: string; p_to: string; p_code: string }; Returns: Json }
-      friends_are_friends: { Args: { p_a: string; p_b: string }; Returns: boolean }
-      friends_head_to_head: { Args: { p_a: string; p_b: string }; Returns: Json }
       friends_overview: { Args: { p_user: string; p_cap: number }; Returns: Json }
-      friends_waiting: { Args: { p_user: string }; Returns: number }
+      friends_presence_beat: { Args: { p_user: string; p_activity: string }; Returns: boolean }
       friends_profile: { Args: { p_viewer: string; p_target: string }; Returns: Json }
+      friends_remove: { Args: { p_user: string; p_friend: string }; Returns: boolean }
+      friends_respond: { Args: { p_user: string; p_request: string; p_accept: boolean; p_cap: number }; Returns: Json }
+      friends_room_invite: { Args: { p_from: string; p_to: string }; Returns: Json }
+      friends_search: { Args: { p_user: string; p_query: string; p_limit: number }; Returns: Json }
+      friends_send_request: { Args: { p_from: string; p_to: string; p_via: string; p_cap: number }; Returns: Json }
+      friends_set_show_online: { Args: { p_user: string; p_show: boolean | null }; Returns: boolean }
+      friends_unblock: { Args: { p_user: string; p_target: string }; Returns: boolean }
+      friends_waiting: { Args: { p_user: string }; Returns: number }
       moderation_status: { Args: { p_user_id: string }; Returns: Json }
       moderation_ack: { Args: { p_user_id: string; p_kind: string; p_detail?: Json | null }; Returns: boolean }
       network_key: { Args: { p_address: string }; Returns: string }
@@ -1921,7 +1988,6 @@ export type Database = {
           username: string
         }[]
       }
-      push_log_retention: { Args: Record<PropertyKey, never>; Returns: number }
       push_claim_friend_events: {
         Args: { p_limit: number; p_since: string }
         Returns: {
@@ -1933,6 +1999,7 @@ export type Database = {
           recipient_id: string
         }[]
       }
+      push_log_retention: { Args: Record<PropertyKey, never>; Returns: number }
       push_reserve: {
         Args: {
           p_cap: number

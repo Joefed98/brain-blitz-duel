@@ -1,7 +1,8 @@
 /**
  * Practice challenges' data (wave 2 C1b; supabase/migrations/20261111130000_practice_challenges.sql): each player's
  * progress row per challenge and the two service-role functions that write it. Server only; each function issues
- * exactly one call. No API role may write the table: every write is public.challenge_record or challenge_pay_due.
+ * exactly one call. No API role may write the tables: every write is public.challenge_record, challenge_pay_due or
+ * challenge_first_run.
  */
 
 import type { Db, Tables } from "./db.server";
@@ -51,6 +52,12 @@ export async function recordChallengeRun(
 export async function payDueChallenges(client: Db, userId: string): Promise<Result<ChallengePayOutcome | null>> {
   const { data, error } = await client.rpc("challenge_pay_due", { p_user_id: userId });
   return { data: (data as unknown as ChallengePayOutcome | null) ?? null, error };
+}
+
+/** Notes a graded run of a deal (its digest): true the first time for this player and deal, false for a retry. */
+export async function noteChallengeDeal(client: Db, userId: string, dealKey: string): Promise<Result<boolean | null>> {
+  const { data, error } = await client.rpc("challenge_first_run", { p_user_id: userId, p_deal_key: dealKey });
+  return { data: typeof data === "boolean" ? data : null, error };
 }
 
 /** One player's progress rows (every challenge they have a value for). */

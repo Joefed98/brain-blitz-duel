@@ -1,5 +1,6 @@
 -- Practice challenges (wave 2, train C, session C1b; 11 Nov 2026; docs/challenges/catalogue.md). Additive and
--- idempotent: one new table, two service-role functions and one analytics event (added to the list, never replacing it). No existing row is touched.
+-- idempotent: two new tables, three service-role functions and one analytics event (added to the list, never replacing it).
+-- No existing row is touched.
 --
 -- public.practice_challenge_progress: one row per player (auth user: guests too) and challenge: the best value one
 -- graded Practice run gave it (its progress bar), when it was completed, the coins it pays (0, 100 or 250) and, for an
@@ -127,6 +128,42 @@ END;
 $$;
 REVOKE ALL ON FUNCTION public.challenge_pay_due(uuid) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.challenge_pay_due(uuid) TO service_role;
+
+-- public.practice_challenge_deals (Joe, 11 Nov 2026): the practice deals each player has had graded, by a digest of the
+-- sealed deal (never the deal itself). A coin challenge pays only on a player's first graded run of a deal; a retry of
+-- the same deal can still complete challenges that pay nothing. Written only by challenge_first_run; nobody reads it
+-- through the API. A removed account takes its rows with it.
+CREATE TABLE IF NOT EXISTS public.practice_challenge_deals (
+  user_id uuid NOT NULL REFERENCES auth.users (id) ON DELETE CASCADE,
+  deal_key text NOT NULL CHECK (deal_key ~ '^[0-9a-f]{64}$'),
+  graded_at timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (user_id, deal_key)
+);
+REVOKE ALL ON public.practice_challenge_deals FROM PUBLIC, anon, authenticated, service_role;
+ALTER TABLE public.practice_challenge_deals ENABLE ROW LEVEL SECURITY;
+
+-- Notes a graded run of a deal: true the first time for this player and deal, false for every retry (two grades of the
+-- same deal at once: exactly one is first, the key's primary key decides).
+CREATE OR REPLACE FUNCTION public.challenge_first_run(p_user_id uuid, p_deal_key text)
+RETURNS boolean
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_rows integer;
+BEGIN
+  IF p_user_id IS NULL OR p_deal_key IS NULL OR p_deal_key !~ '^[0-9a-f]{64}$' THEN
+    RETURN false;
+  END IF;
+  INSERT INTO public.practice_challenge_deals (user_id, deal_key) VALUES (p_user_id, p_deal_key)
+  ON CONFLICT (user_id, deal_key) DO NOTHING;
+  GET DIAGNOSTICS v_rows = ROW_COUNT;
+  RETURN v_rows = 1;
+END;
+$$;
+REVOKE ALL ON FUNCTION public.challenge_first_run(uuid, text) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.challenge_first_run(uuid, text) TO service_role;
 
 -- Analytics: challenge_completed (props: game, challenge, level, coins), written by the server only through
 -- recordEvents (src/lib/data/events.server.ts). The list is read from the constraint as it stands and the new event

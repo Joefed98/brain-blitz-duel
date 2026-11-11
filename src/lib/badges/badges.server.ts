@@ -30,16 +30,17 @@ import {
 import type { Db } from "@/lib/data/db.server";
 import { recordEvents } from "@/lib/data/events.server";
 import { readProfile } from "@/lib/data/profiles.server";
-import { ARCADE_CATEGORY, PUZZLE_TYPES, puzzleInfo, typeTimeLimitMs } from "@/lib/duel/catalogue";
+import { ACTIVE_PUZZLE_TYPES, ARCADE_CATEGORY, PUZZLE_TYPES, puzzleInfo, typeTimeLimitMs } from "@/lib/duel/catalogue";
 import { longestDailyStreak } from "@/lib/duel/dailyStreak";
 import { dailyRecordFor } from "@/lib/duel/dailyStreak.server";
 import { creditCoins, grantItem } from "@/lib/economy/economy.server";
 
 import { BADGE_BY_SLUG, CARD_BADGE_SLOTS, STARTER_TITLE, TITLE_BY_ID } from "./catalogue";
-import { badgeProgress, badgesEarnedBy, PRACTICE_SINCE, type BadgeFacts } from "./rules.server";
+import { badgeProgress, badgesEarnedBy, type BadgeFacts } from "./rules.server";
 import type { BadgeChangeResult, BadgeRefusal, CardBadges, EarnedBadge, MyBadges } from "./types";
 
 export const SIGNUP_REWARD_COINS = 1000;
+const ACTIVE_GAMES: ReadonlySet<string> = new Set(ACTIVE_PUZZLE_TYPES);
 export const FOUNDING_FRAME = "frame.founding";
 
 export const signupRewardKey = (userId: string) => `signup_reward:${userId}`;
@@ -115,7 +116,7 @@ export async function factsFor(client: Db, userId: string, nowMs: number = Date.
   if (error) throw new Error(`badges: ${error.message}`);
   if (!profile) return null;
   const [{ data: stored, error: fErr }, daily] = await Promise.all([
-    readBadgeFacts(client, { userId, puzzleLimits: puzzleLimits(), practiceSince: PRACTICE_SINCE }),
+    readBadgeFacts(client, { userId, puzzleLimits: puzzleLimits() }),
     dailyRecordFor(client, userId, nowMs),
   ]);
   if (fErr || !stored) throw new Error(`badges: ${fErr?.message ?? "no facts"}`);
@@ -129,6 +130,9 @@ export async function factsFor(client: Db, userId: string, nowMs: number = Date.
     dailyStreak: daily.streak,
     hostedRooms: Number(stored.hosted3) || 0,
     challengesDone: Number(stored.challenges) || 0,
+    stars: Number(stored.stars) || 0,
+    starredGames: (Array.isArray(stored.starGames) ? stored.starGames : []).filter((g) => ACTIVE_GAMES.has(g)).length,
+    gems: Number(stored.gems) || 0,
   };
 }
 

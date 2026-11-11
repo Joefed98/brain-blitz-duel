@@ -23,6 +23,23 @@
  *     specs, rules and sims (scripts/practice-challenge-numbers.ts), and the catalogue against
  *     docs/challenges/catalogue.md (names, goals, levels, coin marks, every score goal's number).
  *
+ * Assertion changes Joe approved in the wave 2 C1b session (for the merge captain: each changed assertion carries
+ * "APPROVED by Joe, <date>, change (n)" with the old assertion and the limits he set):
+ *   (1) 10 Nov 2026 session, answered 11 Nov 2026: 40 challenges → 261 (217 Classic live).
+ *   (2) 11 Nov 2026: 20 games with 2 each → all 92 active games with 2 to 4 each.
+ *   (3) 11 Nov 2026: reward "Badge" for all → coins on the marked ones; the inactive ones pinned too (13 Hard at 100,
+ *       9 Expert at 250). Revised 11 Nov 2026 (change (9)): the ones that pay no coins show no reward at all.
+ *   (4) 11 Nov 2026: goal text ≤ 44 → ≤ 64 characters, provided a check proves the longest goal fits the narrowest
+ *       supported phone without truncation (practice-challenge-fit-check, 320 and 375 px).
+ *   (5) 11 Nov 2026: a part goal may target the core only for the named challenges, as an explicit allow-list
+ *       (CORE_PART_ALLOWED: King of the swingers, Skyscraper, Moonwalker, and the others listed there and reported).
+ *   (6) 11 Nov 2026: score goals exactly "Score 180 or more" → any score, every score goal's number checked against
+ *       the catalogue (section 7).
+ *   (7) 11 Nov 2026: bullseye.score180 must exist → replaced by bullseye.on-a-roll.
+ *   (8) 11 Nov 2026: the import allow-list → also, by name only, the server's challenge checker
+ *       (src/lib/challenges/challenges.server.ts) and the Profile challenges section (src/components/app/ProfileChallenges.tsx).
+ *   (9) 11 Nov 2026: no reward on the challenges that pay no coins (was "Badge"); the coin pins unchanged.
+ *
  *   bun scripts/practice-goals-check.ts
  */
 import { readFileSync, readdirSync, statSync } from "node:fs";
@@ -31,6 +48,7 @@ import { join } from "node:path";
 import { stdLines, type StdPart } from "../src/lib/arcade/arcadeStandard";
 import { LIVE_BANDS } from "../src/lib/arcade/liveBands";
 import { ARCADE_STANDARD } from "../src/lib/arcade/standard";
+// Change (8)'s new files import challengeLive; the rest of this import is unchanged.
 import { PRACTICE_CHALLENGES, challengeLive, challengeTarget, challengesFor, challengeValueOf } from "../src/lib/duel/practiceChallenges";
 import { PAR_MOVES_STD, PAR_STRICT_FULL_BY_S } from "../src/lib/duel/parMoves";
 import { GRID_STANDARD } from "../src/lib/duel/standard/gridRules";
@@ -116,8 +134,9 @@ check(r.starsAfter === 3 && starLine(r) === null, "a run under new stamps never 
 check(starsOf("lightsout", 170) === 2, "a best kept before goals existed still shows its stars");
 
 /* ------------------------------------------------------------------ 3. the list */
-// Joe's approval (11 Nov 2026, this session): (1) 40 → the catalogue's 261, 217 of them Classic and live; (2) 20 games
-// with 2 each → all 92 active games with 2 to 4 each.
+// APPROVED by Joe, 11 Nov 2026, change (1): was `PRACTICE_CHALLENGES.length === 40`; now 261, 217 Classic and live.
+// APPROVED by Joe, 11 Nov 2026, change (2): was `games.length === 20` and `challengesFor(g).length === 2`; now all 92
+// active games with 2 to 4 each.
 check(PRACTICE_CHALLENGES.length === 261, `261 challenges (got ${PRACTICE_CHALLENGES.length})`);
 check(PRACTICE_CHALLENGES.filter((c) => c.level === "classic").length === 217, "217 Classic challenges");
 check(PRACTICE_CHALLENGES.filter(challengeLive).length === 217 && PRACTICE_CHALLENGES.filter(challengeLive).every((c) => c.level === "classic"), "the 217 Classic ones are live; Hard and Expert wait");
@@ -177,17 +196,19 @@ const SPEED_RULES: Partial<Record<PuzzleType, { speed: number; fullByS: number; 
   measure: NUMBER_STANDARD.measure,
 };
 /**
- * The arcade part goals that target a game's core part (Joe's approval (5), 11 Nov 2026, as an explicit allow-list):
- * every other part goal must be a feature.
+ * APPROVED by Joe, 11 Nov 2026, change (5): the part goals that may target a game's core part, an explicit allow-list
+ * (he named King of the swingers, Skyscraper and Moonwalker, "and any others you list": the rest are listed here and
+ * in the report). Was `livePart !== live?.parts[0]` for every part goal; every other part goal must still be a feature.
  */
 const CORE_PART_ALLOWED = new Set(["ricochet.moonwalker", "skyline.skyscraper", "rally.rally-king", "bullseye.one-hundred-and-twelve", "freecell.all-home", "minesweeper.bomb-disposal", "swing.king-of-the-swingers", "balltrack.lost-no-marbles", "minesweeper.light-feet", "mahjong.no-shuffle"]);
-// Joe's approval (4), 11 Nov 2026: at most 64 characters (was 44), with practice-challenge-fit-check proving the longest
-// goal fits the narrowest supported phone without truncation.
+// APPROVED by Joe, 11 Nov 2026, change (4): was `s.length <= 44`; now ≤ 64, provided practice-challenge-fit-check
+// proves the longest goal fits the narrowest supported phone without truncation (it does, at 320 and 375 px).
 const textOk = (s: string) => s.length > 0 && s.length <= 64 && !/[·!']|"/.test(s) && /^[A-Z]/.test(s);
 for (const c of PRACTICE_CHALLENGES) {
   check(textOk(c.text), `${c.id}: goal "${c.text}" is one short sentence-case line, no "·", "!" or straight quotes`);
-  // Joe's approval (3), 11 Nov 2026: coins on the marked challenges (100, or 250 on Expert), else a Badge.
-  check(c.reward === (c.coins ? `${c.coins} coins` : "Badge"), `${c.id}: the reward reads ${c.coins ? `${c.coins} coins` : "Badge"}`);
+  // APPROVED by Joe, 11 Nov 2026, change (3): was `c.reward === "Badge"`; coins on the marked challenges (100, or 250 on
+  // Expert). APPROVED by Joe, 11 Nov 2026, change (9): the ones that pay no coins show no reward (""), not "Badge".
+  check(c.reward === (c.coins ? `${c.coins} coins` : ""), `${c.id}: the reward reads ${c.coins ? `"${c.coins} coins"` : "nothing (no coins)"}`);
   check(c.coins === 0 || (c.level === "expert" ? c.coins === 250 : c.coins === 100), `${c.id}: ${c.level} pays ${c.level === "expert" ? 250 : 100} when marked`);
   check(!/in one run/i.test(c.text), `${c.id}: no "in one run" (the section's note says it once)`);
   const g = c.goal;
@@ -207,7 +228,8 @@ for (const c of PRACTICE_CHALLENGES) {
     if (rule && g.kind === "speed") check(g.max === rule.speed && g.withinS === rule.fullByS && c.text.includes(`${rule.fullByS} s`), `${c.id}: speed ${g.max} within ${g.withinS} s is the rule's ${rule.speed} by ${rule.fullByS} s`);
     if (rule) check(rule.speed + rule.bonus <= 50, `${c.id}: speed and bonus both fit a finish's 50 (standardFinish never trims either)`);
   } else if (g.kind === "score") {
-    // Joe's approval (6), 11 Nov 2026: any score the catalogue gives (section 7 checks each against docs/challenges/catalogue.md).
+    // APPROVED by Joe, 11 Nov 2026, change (6): was `g.score === 180 && c.text === "Score 180 or more"`; any score the
+    // catalogue gives, each checked against docs/challenges/catalogue.md in section 7.
     check(Number.isInteger(g.score) && g.score > 0 && g.score <= 200 && c.text.includes(String(g.score)), `${c.id}: one run of ${g.score}, the number in its text`);
   } else {
     // A check: every condition holds in one run (section 7 checks each number against the live game).
@@ -219,13 +241,14 @@ for (const c of PRACTICE_CHALLENGES) {
     }
   }
 }
-// The coin pins (Joe, 11 Nov 2026): 17 Classic at 100 (live), 13 Hard at 100 and 9 Expert at 250 (switched on with
-// their levels), none on the rest.
+// The coin pins (APPROVED by Joe, 11 Nov 2026, changes (3) and (9)): 17 Classic at 100 (live), 13 Hard at 100 and 9
+// Expert at 250 (switched on with their levels), and no reward on the other 222.
 const coinsOf = (level: string, coins: number) => PRACTICE_CHALLENGES.filter((c) => c.level === level && c.coins === coins).length;
 check(coinsOf("classic", 100) === 17 && coinsOf("classic", 250) === 0, `17 Classic challenges at 100 coins (got ${coinsOf("classic", 100)})`);
 check(coinsOf("hard", 100) === 13 && coinsOf("hard", 250) === 0, `13 Hard challenges at 100 coins (got ${coinsOf("hard", 100)})`);
 check(coinsOf("expert", 250) === 9 && coinsOf("expert", 100) === 0, `9 Expert challenges at 250 coins (got ${coinsOf("expert", 250)})`);
 check(PRACTICE_CHALLENGES.filter((c) => c.coins === 0).length === 261 - 17 - 13 - 9, "no coins on the other 222");
+check(PRACTICE_CHALLENGES.filter((c) => c.coins === 0).every((c) => c.reward === ""), "no reward on the other 222");
 
 /* ------------------------------------------------------------------ 4. progress from recorded results */
 /** An arcade run's stored extra: its parts through the real reveal-line writer. */
@@ -278,7 +301,8 @@ check(challengeState(par).status === "new", "an older (non-standard) puzzle's pa
 recordPracticeGoals("lightsout", 200, finishExtra(30, 20).extra, 200);
 check(challengeState(par).status === "new", "another game's run never counts");
 // One run's score (Tempo and Flightpath: 180 or more in a single run; runs never add up).
-// Joe's approval (7), 11 Nov 2026: Flightpath's score challenge is replaced by On a roll (the bull streak).
+// APPROVED by Joe, 11 Nov 2026, change (7): was `["beat.score180", "bullseye.score180"]` both listed; Flightpath's score
+// challenge is replaced by On a roll (the bull streak).
 check(PRACTICE_CHALLENGES.some((c) => c.id === "beat.score180"), "beat.score180 is listed");
 check(!PRACTICE_CHALLENGES.some((c) => c.id === "bullseye.score180") && PRACTICE_CHALLENGES.some((c) => c.id === "bullseye.on-a-roll"), "bullseye.score180 is replaced by bullseye.on-a-roll");
 const tempo = PRACTICE_CHALLENGES.find((c) => c.id === "beat.score180")!;
@@ -293,6 +317,7 @@ const t180 = recordPracticeGoals("beat", 180, null, 180);
 check(challengeState(tempo).status === "done" && t180.completed.some((c) => c.id === "beat.score180"), "one run of 180 completes it");
 recordPracticeGoals("beat", 60, null, 180);
 check(challengeState(tempo).status === "done" && challengeState(tempo).value === 180, "done stays done after a weaker run");
+// Change (7): the Flightpath challenge this test reads (was bullseye.score180).
 const flight = PRACTICE_CHALLENGES.find((c) => c.id === "bullseye.on-a-roll")!;
 check(challengeState(flight).status === "new", "a Tempo run never counts for Flightpath");
 
@@ -321,19 +346,26 @@ blocked = false;
 /* ------------------------------------------------------------------ 6. wiring */
 const practice = readFileSync("src/routes/practice.tsx", "utf8");
 check(/recordPracticeGoals\(puzzle\.type, result\.score, extra, record\.best\)/.test(practice), "practice records every graded run's goals from the server's score and extra");
-check(/starLine=\{earnedStar\}/.test(practice) && /setEarnedStar\(starLine\(reached\)\)/.test(practice), "the reveal gets the run's star line");
+// Wave 2 C1a: the star line is the server's (175+ on Classic).
+// Changed with Joe's approval, 11 Nov 2026 (wave 2 C1a): was /setEarnedStar\(starLine\(reached\)\)/ (message unchanged).
+check(/starLine=\{earnedStar\}/.test(practice) && /setEarnedStar\(runStarLine\(result\.progress\)\)/.test(practice), "the reveal gets the run's star line");
 check(/<RowStars type=\{key\} \/>/.test(practice) && /data-practice-stars/.test(practice) && /<PracticeChallenges/.test(practice), "rows, the total and the Challenges section are drawn");
 const queue = readFileSync("src/lib/offline/queue.ts", "utf8");
 check(/recordPracticeGoals\(run\.type, score, extra, best\.best\)/.test(queue), "the offline queue records confirmed runs' goals");
 const reveal = readFileSync("src/components/duel/AnswerReveal.tsx", "utf8");
 check(/practice && \(personalBest \|\| starLine\) && myScore !== null \? <NewBestMoment starLine=\{starLine\} \/>/.test(reveal), "the new-best moment plays with the star line, practice only");
 const intro = readFileSync("src/components/duel/RoundIntro.tsx", "utf8");
-check(/<Stars tier=\{starsOf\(type, deviceBest\)\} \/>/.test(intro), "the intro shows the game's stars");
+// Changed with Joe's approval, 11 Nov 2026 (wave 2 C1a): was /<Stars tier=\{starsOf\(type, deviceBest\)\} \/>/ (message unchanged).
+check(/<Stars levels=\{levelStarsOf\(practiceProgressNow\(\), type\)\} \/>/.test(intro), "the intro shows the game's stars");
 const ui = readFileSync("src/components/app/PracticeChallenges.tsx", "utf8");
 check(/Each challenge is completed in a single Practice run\./.test(ui), "the line under the Challenges heading");
 check(/Unlocks with your account/.test(ui) && /"In progress"/.test(ui) && /"New"/.test(ui) && /"Done"/.test(ui), "filters In progress, New, Done; rewards unlock with an account");
+// Change (9) (Joe, 11 Nov 2026): the list's quiet line, and a reward drawn only for a coin challenge.
+check(/Every challenge counts towards your Challenger badges\./.test(ui), "the line under the Challenges heading: Challenger badges");
+check(/challenge\.coins > 0 \? \(\s*<span data-challenge-reward/.test(ui) && !/challenge\.reward\}/.test(ui), "a reward is drawn only for a challenge that pays coins");
 // Nothing outside practice, the queue, the intro, the reveal's moment and the goals UI imports the goals.
-// Joe's approval (8), 11 Nov 2026: also the server's challenge checker and the Profile challenges section, by name.
+// APPROVED by Joe, 11 Nov 2026, change (8): the allow-list gains, by name only, the server's challenge checker and the
+// Profile challenges section (it held the first five files before).
 const allowed = new Set(["src/routes/practice.tsx", "src/lib/offline/queue.ts", "src/components/duel/RoundIntro.tsx", "src/components/app/PracticeChallenges.tsx", "src/lib/duel/practiceGoals.ts", "src/lib/challenges/challenges.server.ts", "src/components/app/ProfileChallenges.tsx"]);
 function walk(dir: string): string[] {
   return readdirSync(dir).flatMap((n) => {

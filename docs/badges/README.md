@@ -30,7 +30,7 @@ Every badge's rule is Joe's approved catalogue (**`docs/badges/catalogue.md`**, 
 code to its table). Every badge shows its rule; a locked badge the server counts shows its progress ("4 of 7 days").
 Each badge has a `status`:
 
-- **earnable** (13): the server checks its rule now from what it stores (`rules.server.ts`, facts from
+- **earnable** (16): the server checks its rule now from what it stores (`rules.server.ts`, facts from
   `public.badge_facts`, the Daily record and the profile), or another session awards it through `badge_award`:
   - Flawless (a 200 in any game), Perfectionist (200 in 25 different games);
   - Daily Habit, Dedicated, Century (7 / 30 / 100 days in a row: the longest run in the server's Daily history, a
@@ -39,23 +39,25 @@ Each badge has a `status`:
     than two thirds of the clock left; the clock is the stored `time_limit_ms` where kept, else the type's);
   - Party Host (25 room games hosted, `duels.host_user_id`, that at least 3 players played: on now or in Play again's
     archive);
+  - First Star (a mastery star), All-Rounder (a star in every active game; the count follows the live game list, so
+    the database row stores none) and Gem Hunter (a gem colour): C1a's `public.practice_progress` (`star_at`, Easy /
+    Classic / Hard) and `public.gem_unlocks`; a counted run that earns a star or a gem also checks them at once
+    (C1a's `onCounted` hook in `gradePracticeRun`, fire-and-forget);
   - Challenger, Challenge Seeker, Challenge Expert (10 / 50 / 100 Practice challenges completed: C1b's
     `public.practice_challenge_progress` rows with `completed_at` set; Practice challenges only exist in Practice);
   - Founding Player (as before);
   - Friendly (5 friends): earnable, but **B1 awards it** through `badge_award` (`AWARDED_ELSEWHERE`); no rule here.
 
   "Any game / any mode" counts rooms (the game on now and the archive), the Daily and challenges (not the results a
-  challenge copied from the player's own room), and Practice only from C1a's fresh start (`PRACTICE_SINCE` in
-  `rules.server.ts`, null until C1a sets it). Puzzle means a non-arcade game.
-- **waits** (41): the database refuses to award it; shown with "Arrives with …":
+  challenge copied from the player's own room), and Practice only from C1a's fresh start
+  (`public.practice_progress_start`, read by `badge_facts`). Puzzle means a non-arcade game.
+- **waits** (38): the database refuses to award it; shown with "Arrives with …":
   - rated play (wave 3): the 11 competitive badges, Revenge, Photo Finish;
   - all three stars per game (wave 3.5): the 11 category masters, Grand Master;
   - Hard and Expert challenges (wave 3.5): Category Clear, Completionist;
   - Daily leaderboards (wave 4): Daily Top 100, Daily Champion;
   - tournaments (wave 4): Entrant, Trophy Hunter, Arena Ace, Champion, Arena Champion, Score Attack Champion, Swiss
     Champion, Knockout Champion, Serial Winner;
-  - **parked on C1a**, which hadn't opened a PR when this was built: First Star, All-Rounder and Gem Hunter (Joe:
-    wired to C1a's own star and gem tables once its PR is open, each with an earn / miss test).
 
 **To make a badge earnable** later: a new migration updates its row (`status = 'earnable'`, `waits_for = NULL`), the
 same change in `catalogue.ts` and `catalogue.md`, a rule in `BADGE_RULES` reading new `BadgeFacts` (gathered in

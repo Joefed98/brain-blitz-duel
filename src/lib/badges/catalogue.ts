@@ -15,6 +15,8 @@
  * Presentation and account data only: nothing here is read by scoring, grading, replay, matchmaking or timing.
  */
 
+import { ACTIVE_PUZZLE_TYPES } from "@/lib/duel/catalogue";
+
 export const BADGE_GROUPS = ["competitive", "mastery", "daily-and-tournaments", "challenges", "fun", "social-and-special"] as const;
 export type BadgeGroup = (typeof BADGE_GROUPS)[number];
 
@@ -75,8 +77,11 @@ export interface BadgeDef {
   waitsFor: BadgeWait | null;
   /** How it is earned, in plain words (docs/badges/catalogue.md, Joe's approved catalogue of 11 Nov 2026). */
   rule: string;
-  /** For a badge earned by a count: the count, and the unit progress is shown in ("4 of 7 days"). */
-  target: { need: number; unit: string } | null;
+  /**
+   * For a badge earned by a count: the count, and the unit progress is shown in ("4 of 7 days"). `live`: the count
+   * follows the game list (All-Rounder: every active game), so the database row stores none.
+   */
+  target: { need: number; unit: string; live?: true } | null;
 }
 
 type Row = [slug: string, name: string, group: BadgeGroup, rarity: BadgeRarity, wait: BadgeWait | null, rule: string, target?: [number, string]];
@@ -89,6 +94,8 @@ const F = "fun";
 const S = "social-and-special";
 const R: BadgeWait = "rated-play";
 const T: BadgeWait = "tournaments";
+/** Every active game (All-Rounder's count; from the light catalogue, so a new game moves it). */
+const ACTIVE_GAME_COUNT = ACTIVE_PUZZLE_TYPES.length;
 
 /**
  * badges.json's order. Rules from docs/badges/catalogue.md (Joe, 11 Nov 2026). `wait` null: the server checks it now
@@ -107,9 +114,10 @@ const ROWS: readonly Row[] = [
   ["storm-chaser", "Storm Chaser", C, "elite", R, "Reach Storm."],
   ["lightning-strikes", "Lightning Strikes", C, "legendary", R, "Reach Lightning."],
   ["top-500", "Top 500", C, "legendary", R, "Be ranked in the Top 500 at any point."],
-  ["first-star", "First Star", M, "common", "mastery-stars", "Earn your first mastery star."],
+  // From C1a's stored stars and gems (public.practice_progress, gem_unlocks), wired 11 Nov 2026.
+  ["first-star", "First Star", M, "common", null, "Earn your first mastery star."],
   ["flawless", "Flawless", M, "rare", null, "Score 200 in any game."],
-  ["all-rounder", "All-Rounder", M, "rare", "mastery-stars", "Earn at least one star in every game."],
+  ["all-rounder", "All-Rounder", M, "rare", null, "Earn at least one star in every game.", [ACTIVE_GAME_COUNT, "games"]],
   ["logic-master", "Logic Master", M, "epic", "all-stars", "Earn all three stars in every Logic game."],
   ["word-master", "Word Master", M, "epic", "all-stars", "Earn all three stars in every Word game."],
   ["number-master", "Number Master", M, "epic", "all-stars", "Earn all three stars in every Number game."],
@@ -150,8 +158,7 @@ const ROWS: readonly Row[] = [
   // Earnable now, but awarded by B1 (friends) through badge_award, not by a rule here (Joe, 11 Nov 2026).
   ["friendly", "Friendly", S, "common", null, "Add 5 friends.", [5, "friends"]],
   ["party-host", "Party Host", S, "rare", null, "Host 25 rooms with at least 3 players.", [25, "rooms"]],
-  // Parked until C1a's gem table (Joe, 11 Nov 2026), with First Star and All-Rounder.
-  ["gem-hunter", "Gem Hunter", S, "rare", "mastery-stars", "Unlock your first gem colour."],
+  ["gem-hunter", "Gem Hunter", S, "rare", null, "Unlock your first gem colour."],
   ["founding-player", "Founding Player", S, "legendary", null, "Make an account before 26 January 2027."],
 ];
 
@@ -164,7 +171,7 @@ export const BADGES: readonly BadgeDef[] = ROWS.map(([slug, name, group, rarity,
   status: wait ? "waits" : "earnable",
   waitsFor: wait,
   rule,
-  target: target ? { need: target[0], unit: target[1] } : null,
+  target: target ? { need: target[0], unit: target[1], ...(slug === "all-rounder" ? { live: true as const } : {}) } : null,
 }));
 
 export const BADGE_BY_SLUG: ReadonlyMap<string, BadgeDef> = new Map(BADGES.map((b) => [b.slug, b]));

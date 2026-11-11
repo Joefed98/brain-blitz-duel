@@ -5,9 +5,11 @@
  * badges-check fails on an earnable badge with neither, and has an earn and a just-miss test for each rule.
  *
  * A rule reads only `BadgeFacts`, gathered by badges.server.ts from the database (public.badge_facts, the Daily record,
- * the profile). Practice counts only from C1a's fresh start (`PRACTICE_SINCE`, null until C1a sets it); rooms, the
- * Daily and challenges count the history the server already stores.
+ * the profile). Practice counts only from C1a's fresh start (public.practice_progress_start, read by badge_facts);
+ * rooms, the Daily and challenges count the history the server already stores.
  */
+import { ACTIVE_PUZZLE_TYPES } from "@/lib/duel/catalogue";
+
 import { BADGES } from "./catalogue";
 
 export interface BadgeFacts {
@@ -29,6 +31,12 @@ export interface BadgeFacts {
   hostedRooms: number;
   /** Practice challenges completed (C1b's public.practice_challenge_progress, completed_at set). */
   challengesDone: number;
+  /** Mastery stars (C1a's public.practice_progress, Easy / Classic / Hard). */
+  stars: number;
+  /** Active games with at least one star. */
+  starredGames: number;
+  /** Gem colours unlocked (C1a's public.gem_unlocks). */
+  gems: number;
 }
 
 export interface BadgeRule {
@@ -43,8 +51,6 @@ export interface BadgeRule {
 /** Badges another session awards through public.badge_award (no rule here). */
 export const AWARDED_ELSEWHERE: readonly string[] = ["friendly"];
 
-/** Practice runs count from C1a's fresh start (an ISO time); null: Practice doesn't count yet. */
-export const PRACTICE_SINCE: string | null = null;
 
 const atLeast = (need: number, of: (f: BadgeFacts) => number): BadgeRule => ({
   earned: (f) => of(f) >= need,
@@ -60,6 +66,9 @@ export const BADGE_RULES: Readonly<Record<string, BadgeRule>> = {
   "buzzer-beater": atLeast(1, (f) => f.buzzerFinishes),
   "speed-demon": atLeast(10, (f) => f.fastFinishes),
   "party-host": atLeast(25, (f) => f.hostedRooms),
+  "first-star": atLeast(1, (f) => f.stars),
+  "all-rounder": atLeast(ACTIVE_PUZZLE_TYPES.length, (f) => f.starredGames),
+  "gem-hunter": atLeast(1, (f) => f.gems),
   challenger: atLeast(10, (f) => f.challengesDone),
   "challenge-seeker": atLeast(50, (f) => f.challengesDone),
   "challenge-expert": atLeast(100, (f) => f.challengesDone),

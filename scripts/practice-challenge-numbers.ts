@@ -40,6 +40,10 @@ import { FLASH_STEADY_TIGHT_MS, FLASH_STEADY_TIGHT_POINTS } from "../src/lib/due
 import { NUMHUNT_COUNT } from "../src/lib/duel/types";
 import { ASCEND_STD, PAIR_STD, SCAN_STD, SPOT_STD } from "../src/lib/duel/standard/attention";
 import { STD_INTERLOCK, STD_ROUNDABOUT, STD_STRIKEOUT } from "../src/lib/duel/standard/word";
+import { lwJarDrops } from "../src/lib/duel/letterWheel";
+import { readFileSync as readSrc } from "node:fs";
+/** Flightpath's own rule for which darts have a dead-centre ring (bullseyeDeadDarts' doc and code: the 10 in the middle). */
+const BULLSEYE_DEAD_DOC = /whose centre ring is the 10/.test(readSrc("src/lib/arcade/bullseye.ts", "utf8")) && /\[0\] === 10\) n\+\+/.test(readSrc("src/lib/arcade/bullseye.ts", "utf8")) ? "whose centre ring is the 10" : "";
 import { PAR_MOVES_STD } from "../src/lib/duel/parMoves";
 import { PATTERN_STD } from "../src/lib/duel/standard/patternRules";
 import { LOGIC_STANDARD } from "../src/lib/duel/standard/logicRules";
@@ -53,7 +57,7 @@ export interface NumberResult {
 
 const WORDS: Record<string, number> = {
   one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10, twice: 2,
-  fifteen: 15, twenty: 20, thirty: 30, fifty: 50, seventh: 7,
+  fifteen: 15, twenty: 20, thirty: 30, fifty: 50, seventh: 7, third: 3,
 };
 
 /** Every number a goal's text states (digits and number words; "1.4" style decimals are not used). */
@@ -163,13 +167,13 @@ function expectations(): Record<string, Expect> {
     "wordsmith.every-last-letter": { th: [[0, 0]] },
     "wordhunt.gold-digger": { th: [[1, 1]] },
     "tilegrid.locked-in": { say: [[15, helpCount("tilegrid", "tiles")]] },
-    "tilegrid.big-words": { th: [[30, STD_INTERLOCK.bigMax]] },
+    "tilegrid.big-words": { say: [[5, Math.min(...Object.keys(STD_INTERLOCK.big).map(Number))]], th: [[30, STD_INTERLOCK.bigMax]] },
     "wordslide.slick": { say: [[5, helpCount("wordslide", "rows")]] },
     "wordslide.par": { say: [[5, helpCount("wordslide", "rows")]] },
     "wordslide.speed": { say: [[5, helpCount("wordslide", "rows")]] },
     "wordsearch.hidden-gem": { say: [[7, helpCount("wordsearch", "listed") + 1]] },
     "wordsearch.eagle-eyed": { say: [[6, helpCount("wordsearch", "listed")]] },
-    "letterwheel.jar-full": { th: [[30, STD_ROUNDABOUT.jar]] },
+    "letterwheel.jar-full": { say: [[1, lwJarDrops("abc")], [4, Math.max(lwJarDrops("abcdef"), lwJarDrops("abcdefghij"))]], th: [[30, STD_ROUNDABOUT.jar]] },
     "strikeout.five-for-five": { say: [[5, helpCount("strikeout", "words")]] },
     "strikeout.strike-light": { say: [[5, helpCount("strikeout", "words")], [2, STD_STRIKEOUT.strikeMax / STD_STRIKEOUT.strikeLeft === 10 ? 2 : NaN]], th: [[10, STD_STRIKEOUT.strikeMax]] },
     "strikeout.early-bird": { say: [[5, helpCount("strikeout", "words")], [3, STD_STRIKEOUT.earlyHidden]], th: [[20, STD_STRIKEOUT.earlySolveMax]] },
@@ -214,7 +218,7 @@ function expectations(): Record<string, Expect> {
     "burst.sharpshooter": { th: [[0, 0]] },
     "burst.meltdown": { say: [[5, BURST_V10_WAVES]], th: [[1, 1]] },
     "cross.near-miss": { say: [[10, CROSS_V11_CLOSE_MAX]] },
-    "cross.keep-moving": { say: [[4, CROSS_V11_FLOW_MAX / CROSS_V11_FLOW_EACH]], th: [[40, CROSS_V11_FLOW_MAX]] },
+    "cross.keep-moving": { say: [[4, CROSS_V11_FLOW_MAX / CROSS_V11_FLOW_EACH], [1, 1]], th: [[40, CROSS_V11_FLOW_MAX]] },
     "hover.tight-squeeze": { say: [[5, helpCount("hover", "tight gates") || 5]] },
     "hover.chain-gang": { say: [[5, 5]], th: [[30, HOVER_STD_CHAINS]] },
     "hover.all-the-way": { th: [[1, 1]] },
@@ -242,7 +246,7 @@ function expectations(): Record<string, Expect> {
     "minigolf.under-under": { say: [[5, of("minigolf", "Under par")]] },
     "pool.run-out": { say: [[6, of("pool", "Pots in a row")]] },
     "pool.streak": { say: [[6, of("pool", "Pots in a row")]] },
-    "bullseye.dead": { say: [[1, 1]] },
+    "bullseye.dead": { say: [[10, Number(/whose centre ring is the (\d+)/.exec(BULLSEYE_DEAD_DOC)?.[1])]] },
     "wordhunt.long-haul": { say: [[6, Number(/extra for (\d)-letter words/.exec(help("wordhunt"))?.[1])]] },
     "pool.clean-break": { th: [[0, 0]] },
     "curling.red-ring-circus": { say: [[8, of("curling", "Red ring")]] },
@@ -265,7 +269,7 @@ function expectations(): Record<string, Expect> {
     "tripeaks.peak-bagger": { say: [[3, of("tripeaks", "Peak tops")]] },
     "tripeaks.up-and-down": { say: [[10, of("tripeaks", "Longest run")]] },
     "tripeaks.summit-sprint": { say: [[20, withinS("tripeaks", "Speed")]] },
-    "balltrack.combo-breaker": { say: [[10, 10]], th: [[10, 10 * (maxOf("balltrack", "Combos") / of("balltrack", "Combos"))]] },
+    "balltrack.combo-breaker": { say: [[10, 10], [3, help("balltrack").includes("from the third in a row") ? 3 : NaN]], th: [[10, 10 * (maxOf("balltrack", "Combos") / of("balltrack", "Combos"))]] },
     "balltrack.golden-marbles": { say: [[6, of("balltrack", "Gold marbles")]] },
     "balltrack.lost-no-marbles": { say: [[36, of("balltrack", "Marbles home")]] },
     "bubble.chests": { say: [[6, of("bubble", "Chests") || Number(/of the (\d+) chests/.exec(specPart("bubble", "Chests")?.how ?? "")?.[1])]] },
