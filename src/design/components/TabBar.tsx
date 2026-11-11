@@ -48,6 +48,7 @@ export function TabBar({
   variant,
   compact = false,
   shop = false,
+  shopDot = false,
   onOpen,
 }: {
   current: AppTab | undefined;
@@ -55,12 +56,16 @@ export function TabBar({
   compact?: boolean;
   /** The Shop switch for this device (useShopOn): five tabs, else four. */
   shop?: boolean;
+  /** Wave 2 D1: the Shop tab's one badge, a dot while a wishlisted item is back and the shop not opened today. */
+  shopDot?: boolean;
   onOpen: (tab: AppTab) => (event: MouseEvent<HTMLAnchorElement>) => void;
 }) {
   return (
     <>
       {tabsFor(shop).map(({ tab, label }) => {
         const here = tab === current;
+        const dot = shopDot && tab === "shop" ? <span className="jz-tab-dot" data-shop-dot aria-hidden="true" /> : null;
+        const named = dot ? `${label}, an item you wanted is back` : undefined;
         if (variant === "bar")
           return (
             <a
@@ -68,12 +73,14 @@ export function TabBar({
               href={TAB_PATHS[tab]}
               onClick={onOpen(tab)}
               aria-current={here ? "page" : undefined}
+              aria-label={named}
               data-tab={tab}
               data-jz="tab"
               className="jz-tab min-w-0"
             >
               <TabIcon tab={tab} here={here} />
               <span>{label}</span>
+              {dot}
             </a>
           );
         return (
@@ -82,7 +89,7 @@ export function TabBar({
             href={TAB_PATHS[tab]}
             onClick={onOpen(tab)}
             aria-current={here ? "page" : undefined}
-            aria-label={compact ? label : undefined}
+            aria-label={named ?? (compact ? label : undefined)}
             title={compact ? label : undefined}
             data-rail-tab={tab}
             data-jz="tab"
@@ -90,6 +97,7 @@ export function TabBar({
           >
             <TabIcon tab={tab} here={here} />
             {compact ? null : <span>{label}</span>}
+            {dot}
           </a>
         );
       })}

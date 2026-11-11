@@ -193,5 +193,8 @@ export const ECONOMY_REASONS = [
   "admin_adjustment",
   // C2: a streak freeze covering a missed Daily (supabase/migrations/20261111220000_badges_titles.sql).
   "streak_freeze_used",
+  // The shop (wave 2, session D1; supabase/migrations/20261112120000_shop.sql).
+  "test_purchase",
+  "test_purchase_removed",
 ] as const;
 export type EconomyReason = (typeof ECONOMY_REASONS)[number];
