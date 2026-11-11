@@ -44,7 +44,11 @@ switching one on is a deliberate change to that line (Joe's call, recorded with 
   the others keep theirs. rated-multi-server-check proves it for 4 and 8 players on W3a's real `finishRatedMatch`.
   **Open (C2 / W3a):** C2's `badge_facts` reads every room's stored results, rated rooms and flagged matches included,
   so an unflagged 200 in a flagged rated match still earns Flawless (a mastery badge, not a competitive one; 1v1 alike).
-  The check prints it as a NOTE.
+  The check prints it as a NOTE. **Decided (Joe, 11 Nov 2026):** a flagged run never counts towards any badge or Joules
+  anywhere; the innocent player's own clean runs still count for their own-play badges (Flawless); competitive badges
+  from a flagged rated match count for nobody. E2 (#378) builds it in its copies of `badge_facts` and `pass_activity`;
+  once E2 is on main and merged here, the NOTE becomes an assertion (the flagged player earns nothing, the unflagged
+  player's Flawless stands).
 - **Recorded seats (parked until 4 and 8 players are switched on; Joe will ask W3b then):** a 1v1 against a recorded run deals that run's stored puzzles. A 4- or
   8-player match has one set of deals, so its recorded seats must be the other players of one earlier match on the same
   deals (every settled ffa match now stores all its players' runs, `rated:<match>:<user>`). W3b's recorded match holds
@@ -67,3 +71,13 @@ decorative) and not at all under reduced motion. No motion of the screens' own.
 ## Check
 
 rated-multi-check (~2 s, no browser).
+
+## Fitting W3c's match flow (#380, read at edc630d7)
+
+W3c's route (`src/routes/rated.tsx`) runs waiting → searching → VS → game → result → placement reveal, 1v1 only (no
+`ffa4` / `ffa8` or placings yet). Its branch was built on a provisional backend and doesn't yet hold W3a `fd84b5bc` or
+W3b `ff28eb01` (its own `tiers.ts` collides with W3a's, and an identity-screens-check assertion conflicts), so it is
+not merged here until W3c integrates them. When it is: a 4- or 8-player format takes `MultiFilling` in place of
+Searching, `MultiStandings` between games and `MultiFinal` in place of MatchResult; the screens take W3c's shared
+`RatedParts` (`JoulesLine` with the pass level, `RankEmblem` for the seats' emblem slot, `MatchChips`, `RatedCard` /
+`PlayerDot` for avatars) in place of their own Joules line and chips.
