@@ -17,6 +17,7 @@ import { usePuzzleRejections } from "@/components/puzzles/usePuzzleRejections";
 import { AppTabBar, type AppTab } from "@/components/app/AppTabBar";
 import { SaveProgressSlot } from "@/components/account/SaveProgressSlot";
 import { BadgeMoment } from "@/components/badges/BadgeMoment";
+import { SeasonNotice } from "@/components/seasons/SeasonNotice";
 import type { ThemeSkin } from "@/lib/theme";
 import { OfflineBanner } from "@/components/offline/OfflineBanner";
 import { AppRail } from "@/components/app/AppRail";
@@ -514,6 +515,8 @@ export function PhoneShell({ children, reveal = false, bare = false, constrained
       {tabs && !gameScreen ? <SaveProgressSlot /> : null}
       {/* The badge-earned moment, also tab pages only (src/components/badges/BadgeMoment.tsx). */}
       {tabs && !gameScreen ? <BadgeMoment /> : null}
+      {/* The season reward notice, also tab pages only (src/components/seasons/SeasonNotice.tsx). */}
+      {tabs && !gameScreen ? <SeasonNotice /> : null}
       <FxLayer theme={theme} />
     </div>
   );

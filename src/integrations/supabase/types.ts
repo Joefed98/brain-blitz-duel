@@ -1893,6 +1893,15 @@ export type Database = {
       pass_grant_premium: { Args: { p_key: string; p_season: string; p_source: string; p_user_id: string }; Returns: string }
       pass_unlock_title: { Args: { p_season: string; p_title: string; p_user_id: string }; Returns: string }
       pass_titles_of: { Args: { p_user_id: string }; Returns: string[] }
+      // Seasons (wave 4 W4d, supabase/migrations/20261115400000_seasons.sql).
+      season_note_rated_match: {
+        Args: { p_at: string; p_match_id: string; p_placement_done: boolean; p_tier: string | null; p_tier_label: string | null; p_user_id: string }
+        Returns: string
+      }
+      season_view: { Args: { p_now: string; p_user_id: string }; Returns: Json }
+      season_reward_seen: { Args: { p_season: string; p_user_id: string }; Returns: string }
+      season_titles_of: { Args: { p_user_id: string }; Returns: string[] }
+      season_placement_for: { Args: { p_user_id: string }; Returns: Json }
       pass_record_week: { Args: { p_easy: string; p_hard: string; p_medium: string; p_week: string }; Returns: undefined }
       pass_activity: { Args: { p_from: string; p_to: string; p_user_id: string }; Returns: Json }
       pass_games_before: { Args: { p_before: string; p_user_id: string }; Returns: string[] }

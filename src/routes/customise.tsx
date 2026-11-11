@@ -16,7 +16,7 @@ import { saveAvatar, saveSlot, useMyIdentity } from "@/lib/identity/identityApi"
 import { recordIdentityEvent } from "@/lib/identity/identityEvents";
 import { useShopOn } from "@/lib/identity/shopSwitch";
 import { saveCardBadges, saveTitle, useMyBadges } from "@/lib/badges/badgesApi";
-import { BADGE_BY_SLUG, CARD_BADGE_SLOTS, PASS_TITLE_DEFS, TITLES, badgeArtUrl, badgeHowLine, titleName, titlesUnlocked } from "@/lib/badges/catalogue";
+import { BADGE_BY_SLUG, CARD_BADGE_SLOTS, PASS_TITLE_DEFS, SEASON_TITLE_DEFS, TITLES, badgeArtUrl, badgeHowLine, titleName, titlesUnlocked } from "@/lib/badges/catalogue";
 
 /**
  * Customise (wave 2, session A2; mockups docs/art/wave-2/screens/customise-1-avatar, -2-card-and-frame,
@@ -463,7 +463,7 @@ function BadgesAndTitle({
   onCard,
   onTitle,
 }: {
-  mine: { earned: { slug: string; number: number | null }[]; passTitles?: string[] } | null;
+  mine: { earned: { slug: string; number: number | null }[]; passTitles?: string[]; seasonTitles?: string[] } | null;
   live: boolean;
   card: string[];
   title: string;
@@ -478,6 +478,9 @@ function BadgesAndTitle({
   // The Season pass's titles (wave 2 D2): listed once unlocked on the pass, and equippable.
   const passTitles = PASS_TITLE_DEFS.filter((t) => mine.passTitles?.includes(t.id));
   for (const t of passTitles) unlocked.add(t.id);
+  // The season titles (wave 4 W4d): listed once granted at a season's end, and equippable.
+  const seasonTitles = SEASON_TITLE_DEFS.filter((t) => mine.seasonTitles?.includes(t.id));
+  for (const t of seasonTitles) unlocked.add(t.id);
   const toggle = (slug: string) => {
     if (card.includes(slug)) onCard(card.filter((s) => s !== slug));
     else if (card.length < CARD_BADGE_SLOTS) onCard([...card, slug]);
@@ -523,10 +526,10 @@ function BadgesAndTitle({
       <section className="cz-section" aria-label="Title" data-title-slot>
         <span className="cz-label">Title, shown under your name</span>
         <div role="radiogroup" aria-label="Title" className="bd-titles">
-          {[...TITLES.filter((t) => t.kind === "starter" || t.kind === "badge"), ...passTitles].map((t) => {
+          {[...TITLES.filter((t) => t.kind === "starter" || t.kind === "badge"), ...passTitles, ...seasonTitles].map((t) => {
             const open = unlocked.has(t.id);
             const badge = t.badge ? BADGE_BY_SLUG.get(t.badge) : undefined;
-            const how = t.kind === "starter" ? "Everyone starts here" : t.kind === "pass" ? "Season 1 pass" : open ? `${badge?.name ?? ""} badge` : badge ? `${badge.name} badge: ${badgeHowLine(badge)}` : "";
+            const how = t.kind === "starter" ? "Everyone starts here" : t.kind === "pass" ? "Season 1 pass" : t.kind === "season" ? "Season 1 peak tier" : open ? `${badge?.name ?? ""} badge` : badge ? `${badge.name} badge: ${badgeHowLine(badge)}` : "";
             return (
               <button
                 key={t.id}

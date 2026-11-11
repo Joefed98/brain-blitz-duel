@@ -26,6 +26,8 @@ export type MyBadges =
       progress: Record<string, number>;
       /** The Season pass titles unlocked (Neon Rider, Circuit Breaker; wave 2 D2), equippable. */
       passTitles?: string[];
+      /** The season titles granted at a season's end ("S1 Storm"; wave 4 W4d), equippable. */
+      seasonTitles?: string[];
     }
   | { account: false };
 

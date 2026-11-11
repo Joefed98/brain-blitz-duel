@@ -4,8 +4,8 @@
  * local PostgreSQL 16, with the server-function harness's PostgREST / GoTrue stand-in (scripts/server-fn-harness.ts).
  *
  * What it proves:
- * - the catalogue matches docs/art/wave-2/catalogue.json item for item, field for field, and the counts hold: 110
- *   items, 52 shop (30 Epic, 15 Elite, 7 Legendary at 1,000 / 1,600 / 2,800), 10 free-track, 30 premium-track, 18 free
+ * - the catalogue matches docs/art/wave-2/catalogue.json item for item, field for field, and the counts hold: 117
+ *   items, 52 shop (30 Epic, 15 Elite, 7 Legendary at 1,000 / 1,600 / 2,800), 10 free-track, 30 premium-track, 25 free
  *   or earned; nothing outside the shop is priced, every Legendary animates, the shop query returns exactly the 52;
  * - the table refuses a priced non-shop item, a shop Rare, a wrong price, a still Legendary, a non-exclusive pass item;
  * - the ledger: credit, spend and refund; the same idempotency key pays once; two spends at once that together
@@ -145,7 +145,8 @@ process.exit(0);
 async function pureChecks(): Promise<void> {
   await section("slots", async () => {
     const slots = await import("../src/lib/economy/slots");
-    check(ITEMS.length === 110, `catalogue.json holds 110 items (${ITEMS.length})`);
+    // 110 → 117 and 18 → 25: the seven Season 1 frames, earned at a season's end, added to catalogue.json (approved by Joe, 11 Nov 2026; wave 4 W4d).
+    check(ITEMS.length === 117, `catalogue.json holds 117 items (${ITEMS.length})`);
     check(new Set(ITEMS.map((i) => i.id)).size === ITEMS.length, "catalogue.json: every id is unique");
     check(ITEMS.every((i) => (slots.ITEM_KINDS as readonly string[]).includes(i.kind)), "every kind is in ITEM_KINDS");
     check(ITEMS.every((i) => (slots.ITEM_SOURCES as readonly string[]).includes(i.source)), "every source is in ITEM_SOURCES");
@@ -257,7 +258,8 @@ async function databaseChecks(db: LocalDb, rest: RestServer): Promise<void> {
     check(count("source = 'shop' AND rarity = 'legendary' AND price_coins = 2800") === 7, "7 Legendary at 2,800");
     check(count("source = 'pass-free'") === 10, "10 free-track items");
     check(count("source = 'pass-premium'") === 30, "30 premium-track items");
-    check(count("source IN ('free-starter', 'earned-season-peak-tier', 'earned-founding-player', 'earned-top-500')") === 18, "18 free or earned");
+    // 110 → 117 and 18 → 25: the seven Season 1 frames, earned at a season's end, added to catalogue.json (approved by Joe, 11 Nov 2026; wave 4 W4d).
+    check(count("source IN ('free-starter', 'earned-season-peak-tier', 'earned-founding-player', 'earned-top-500')") === 25, "25 free or earned");
     check(count("source <> 'shop' AND price_coins IS NOT NULL") === 0, "nothing outside the shop is priced");
     check(count("source <> 'shop' AND NOT exclusive") === 0 && count("source = 'shop' AND exclusive") === 0, "exclusive exactly when not from the shop");
     check(count("rarity = 'legendary' AND NOT animated") === 0, "every Legendary animates");
@@ -283,7 +285,8 @@ async function databaseChecks(db: LocalDb, rest: RestServer): Promise<void> {
     check(refused(`${base} ('frame.x', 'X', 'frame', 'frame', 'epic', 'shop', NULL, 1000, false, false)`) === "", "accepted: a well-formed shop Epic (rolled back)");
 
     const viaFn = await call(fns.getCatalogue, undefined, null);
-    check(Array.isArray(viaFn) && viaFn.length === 110 && viaFn[0].id === ITEMS[0]!.id && viaFn.every((i: { id: string }) => typeof i.id === "string"), "getCatalogue: all 110 items in order, no sign-in needed");
+    // 110 → 117 and 18 → 25: the seven Season 1 frames, earned at a season's end, added to catalogue.json (approved by Joe, 11 Nov 2026; wave 4 W4d).
+    check(Array.isArray(viaFn) && viaFn.length === 117 && viaFn[0].id === ITEMS[0]!.id && viaFn.every((i: { id: string }) => typeof i.id === "string"), "getCatalogue: all 117 items in order, no sign-in needed");
     const neon = (viaFn as { id: string; priceCoins: number | null; exclusive: boolean; slot: string }[]).find((i) => i.id === "card-art.neon-skyline");
     check(neon?.priceCoins === null && neon.exclusive === true && neon.slot === "card-art", "getCatalogue: a pass item has no price and is exclusive");
   });
@@ -311,7 +314,8 @@ async function databaseChecks(db: LocalDb, rest: RestServer): Promise<void> {
     const again = db.psql(readFileSync("supabase/migrations/20261110160100_economy_catalogue.sql", "utf8"));
     check(again.ok && !/ERROR/.test(again.err), `backfill: the seed migration applies again (${again.err.slice(0, 120)})`);
     check(owned(BEN) === STARTERS && balance(BEN) === 0 && q(`SELECT count(*) FROM loadouts WHERE user_id = '${BEN}'`) === "1", "backfill: an existing account gets its wallet, loadout and starter items");
-    check(Number(q(`SELECT count(*) FROM catalogue_items`)) === 110, "backfill: applying it again adds no item");
+    // 110 → 117 and 18 → 25: the seven Season 1 frames, earned at a season's end, added to catalogue.json (approved by Joe, 11 Nov 2026; wave 4 W4d).
+    check(Number(q(`SELECT count(*) FROM catalogue_items`)) === 117, "backfill: applying it again adds no item");
     const accounts = q(`SELECT count(*) FROM profiles`);
     check(
       again.err.includes(`economy backfill: ${accounts} accounts; 9 starter inventory rows inserted, 1 wallets and 1 loadouts created`),

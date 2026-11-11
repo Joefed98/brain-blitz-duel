@@ -611,7 +611,8 @@ async function databaseChecks(db: LocalDb, rest: RestServer): Promise<void> {
 
     // The pass titles (Joe's approval, 11 Nov 2026): equippable once unlocked, never before.
     const badgeFns = await import("../src/lib/badges/badges.functions");
-    check(q(`SELECT string_agg(id || ':' || kind, ',' ORDER BY sort_order) FROM titles WHERE kind = 'pass'`) === "neon-rider:pass,circuit-breaker:pass" && q(`SELECT count(*) FROM titles`) === "34", "public.titles: the brief's 32, then Neon Rider and Circuit Breaker");
+    // 34 → 41: follows the seven Season 1 frames and seven S1 titles (approved by Joe, 11 Nov 2026; wave 4 W4d).
+    check(q(`SELECT string_agg(id || ':' || kind, ',' ORDER BY sort_order) FROM titles WHERE kind = 'pass'`) === "neon-rider:pass,circuit-breaker:pass" && q(`SELECT count(*) FROM titles`) === "41", "public.titles: the brief's 32, then Neon Rider and Circuit Breaker");
     const mine = await call(badgeFns.getMyBadges, undefined, tok.joe);
     check(mine?.account === true && (mine.passTitles ?? []).slice().sort().join() === "circuit-breaker,neon-rider", "Joe's badges list both pass titles as unlocked");
     const eq = await call(badgeFns.setMyTitle, { title: "neon-rider" }, tok.joe);

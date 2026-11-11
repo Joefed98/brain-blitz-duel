@@ -82,6 +82,12 @@ export const ANALYTICS_EVENTS = [
   "pass_level_reached",
   "reward_claimed",
   "weekly_challenge_completed",
+  // Seasons (wave 4, session W4d; docs/seasons/README.md): recorded by the database only, from Joe's season close
+  // (pass.close_season / pass.close_test_season) through economy.note_event, the same RPC and row shape as
+  // src/lib/data/events.server.ts. season_ended props.season and props.players_rewarded, season_reward_granted
+  // props.tier and props.season.
+  "season_ended",
+  "season_reward_granted",
 ] as const;
 export type AnalyticsEventName = (typeof ANALYTICS_EVENTS)[number];
 

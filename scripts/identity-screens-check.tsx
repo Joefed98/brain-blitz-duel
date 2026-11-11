@@ -379,7 +379,8 @@ for (const [who, n, shows] of [
   check(/up to date/.test(built), "the card art data is what scripts/player-card-art.ts builds from the item sources");
   const kinds = ["card-art", "frame", "name-colour"];
   const items = CATALOGUE.filter((r) => kinds.includes(r.kind));
-  check(items.length === 52, `52 card arts, frames and name colours in the catalogue (${items.length})`);
+  // 52 → 59: follows the seven Season 1 frames and seven S1 titles (approved by Joe, 11 Nov 2026; wave 4 W4d).
+  check(items.length === 59, `59 card arts, frames and name colours in the catalogue (${items.length})`);
   const missing = items.filter((r) => !(r.kind === "card-art" ? art.CARD_ARTS[r.id] : r.kind === "frame" ? art.FRAMES[r.id] : art.NAME_COLOURS[r.id]));
   check(missing.length === 0, `every catalogue item has its art (missing: ${missing.map((r) => r.id).join(", ") || "none"})`);
   const sample = /SkyRacer|Logician|Storm II|2,046|#0042/;
@@ -618,8 +619,38 @@ for (const [who, n, shows] of [
 {
   const source = readFileSync("src/routes/profile.tsx", "utf8") + readFileSync("src/components/identity/ProfileCard.tsx", "utf8");
   // Changed with Joe's approval, 11 Nov 2026 (wave 2 C1a): "Mastery stars" taken out of this list (the section now exists; the check below proves it).
-  for (const word of ["Strongest categories", "Trophy cabinet", "Puzzles and Arcade", "Season peak", "matches"]) {
+  // Changed with Joe's approval, 11 Nov 2026 (wave 4 W4d): "Season peak" taken out of this list (the section now exists;
+  // the check below proves it shows only the server's real data).
+  for (const word of ["Strongest categories", "Trophy cabinet", "Puzzles and Arcade", "matches"]) {
     check(!source.includes(`>${word}<`) && !source.includes(`"${word}"`), `Profile draws no "${word}" section yet`);
+  }
+  // Changed with Joe's approval, 11 Nov 2026 (wave 4 W4d): the Season peak shows only the server's real data.
+  {
+    const seasonsApi = await import("../src/lib/seasons/seasonsApi");
+    const { SeasonSection } = await import("../src/components/seasons/SeasonSection");
+    const draw = async (answer: unknown, who: number | null) => {
+      seasonsApi.setSeasonsBackend({ mine: async () => answer as never, seen: async () => ({ ok: true }) });
+      await signIn(who);
+      const { root } = await mount(() => React.createElement(SeasonSection), "/profile");
+      await settle(60);
+      const text = document.body.textContent ?? "";
+      act(() => root.unmount());
+      return text;
+    };
+    const current = (peak: string | null) => ({
+      season: "s1", name: "Neon Circuit", test: false, mark: "S1", ratedMatches: 12, placementDone: peak !== null,
+      peak, peakLabel: peak ? "Storm II" : null,
+    });
+    check(
+      /<SeasonSection \/>/.test(source + readFileSync("src/routes/profile.tsx", "utf8")) &&
+        !(await draw({ account: true, current: null, history: [] }, 1)).includes("Season peak"),
+      "no Season peak without a season played (the server answers none)",
+    );
+    check(!(await draw({ account: true, current: current(null), history: [] }, 1)).includes("Season peak"), "no Season peak while no tier is held (placement)");
+    check(!(await draw({ account: false }, null)).includes("Season peak"), "no Season peak for a guest");
+    const shown = await draw({ account: true, current: current("storm"), history: [] }, 1);
+    check(shown.includes("Season peak") && shown.includes("Storm II") && shown.includes("Neon Circuit"), `the Season peak is the server's own peak and season (${shown.slice(0, 80)})`);
+    seasonsApi.setSeasonsBackend(null);
   }
   // Changed with Joe's approval, 11 Nov 2026 (wave 2 C1a): the Mastery stars section shows the server's total out of 276.
   {
