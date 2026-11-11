@@ -1,144 +1,201 @@
 /**
- * The tier ladder as the rated screens draw it (wave 3, session W3c; mockups 01, 07, 13 and 14 in
- * docs/mockups/wave-3/). Pure: no React, no server.
+ * Tiers (wave 3, session W3a; the master plan's thresholds, as drawn on the approved tier ladder,
+ * docs/mockups/wave-3/14-tier-ladder.html). Pure; shared by the phone and the server.
  *
- * PROVISIONAL CONTRACT: the floors below are the approved mockup's (14-tier-ladder). The ratings work (W3a,
- * docs/rated/ratings-interface.md) owns the real table; when it lands, `TIER_FLOORS` is replaced by its export and
- * nothing else here changes. Which tier and division a player *is in* is never worked out here: the server's
- * `RankView` says (it alone knows the Storm and Top 500 caps). This module only draws the bar to the next division
- * from the rating and the ladder.
+ * Six tiers of three divisions (III up to I) from the Joulz Rating, then Top 500, numbered. Two caps, counted only
+ * once there are CAPS_FROM_PLAYERS rated players (before that, tiers go by rating alone and there is no Top 500):
+ * Storm (and above) needs 1,900+ and the top 3%; Top 500 needs Lightning and a top-500 rank. Dropping out of a capped
+ * share keeps the tier for CAP_GRACE_DAYS; the standings job works that out (`stormOk` / `top500Ok`). A player held
+ * back sees "Storm-rated, top 4%".
+ *
+ * Tier decisions read the rating as shown (rounded to a whole number), so a shown 1,900 is never Surge by rating.
  */
-import type { Tier } from "@/design/art/markup";
 
-export type Division = 1 | 2 | 3;
+import type { Division, TierId, TierLadderRung, TierView } from "@/lib/data/ratings";
 
-/** Bottom to top. */
-export const TIERS: readonly Tier[] = ["spark", "charge", "volt", "surge", "storm", "lightning"];
+export const CAPS_FROM_PLAYERS = 1000;
+export const STORM_TOP_SHARE = 0.03;
+export const TOP_500 = 500;
+export const CAP_GRACE_DAYS = 3;
 
-export const TIER_NAMES: Record<Tier, string> = {
+interface TierDef {
+  tier: Exclude<TierId, "top500">;
+  name: string;
+  /** Divisions III, II, I. */
+  at: readonly [number, number, number];
+}
+
+export const TIER_DEFS: readonly TierDef[] = [
+  { tier: "spark", name: "Spark", at: [100, 300, 500] },
+  { tier: "charge", name: "Charge", at: [700, 850, 1000] },
+  { tier: "volt", name: "Volt", at: [1100, 1250, 1400] },
+  { tier: "surge", name: "Surge", at: [1500, 1650, 1800] },
+  { tier: "storm", name: "Storm", at: [1900, 2050, 2200] },
+  { tier: "lightning", name: "Lightning", at: [2400, 2550, 2700] },
+];
+
+const DIVISIONS: readonly Division[] = ["III", "II", "I"];
+
+export const TIER_NAME: Record<TierId, string> = {
   spark: "Spark",
   charge: "Charge",
   volt: "Volt",
   surge: "Surge",
   storm: "Storm",
   lightning: "Lightning",
+  top500: "Top 500",
 };
 
-const ROMAN: Record<Division, string> = { 1: "I", 2: "II", 3: "III" };
-
-/** Each tier's division floors: III, II, I (mockup 14). */
-export const TIER_FLOORS: Record<Tier, readonly [number, number, number]> = {
-  spark: [100, 300, 500],
-  charge: [700, 850, 1000],
-  volt: [1100, 1250, 1400],
-  surge: [1500, 1650, 1800],
-  storm: [1900, 2050, 2200],
-  lightning: [2400, 2550, 2700],
-};
-
-/** The tiers that must be held (mockup 14: "drop out of the top 3 % or the top 500 for 3 days and you move down"). */
-export const STORM_TOP_SHARE = 3;
-export const TOP_COUNT = 500;
-export const CAP_DAYS = 3;
-export const GRACE_MATCHES = 3;
-export const PLACEMENT_MATCHES = 5;
-
-/** Where a player stands, as the server reports it. */
-export interface RankView {
-  tier: Tier;
-  /** III = 3 up to I = 1. */
-  division: Division;
-  rating: number;
-  /** Top 500's number (1 to 500) when the player holds a Top 500 place, else null. */
-  top500: number | null;
-  /**
-   * Set when the rating reaches a capped tier the player doesn't hold the place for: "storm" (rating 1,900+ outside
-   * the top 3 %) or "top500" (Lightning outside the top 500). The tier shown is the one held.
-   */
-  heldBack: "storm" | "top500" | null;
+/** A tier's order (spark 0 … lightning 5, top500 6), for "reached at least". */
+export function tierRank(tier: TierId): number {
+  return tier === "top500" ? TIER_DEFS.length : TIER_DEFS.findIndex((d) => d.tier === tier);
 }
 
-/** "Volt II", "Top 500 #37". */
-export function rankLabel(rank: Pick<RankView, "tier" | "division" | "top500">): string {
-  if (rank.top500 !== null && rank.top500 > 0) return `Top 500 #${rank.top500}`;
-  return divisionLabel(rank.tier, rank.division);
+/** What the player's place in the standings allows (the standings job's answer; see ratings-check). */
+export interface TierStanding {
+  /** CAPS_FROM_PLAYERS or more rated players: the caps count. */
+  capsActive: boolean;
+  /** In the top 3% (or within the 3-day grace after dropping out). */
+  stormOk: boolean;
+  /** In the top 500 with Lightning (or within the grace). */
+  top500Ok: boolean;
+  /** Rank by Joulz Rating, 1 = top (null before the standings have counted this player). */
+  rank: number | null;
+  /** rank ÷ rated players (null as rank). */
+  share: number | null;
 }
 
-export function divisionLabel(tier: Tier, division: Division): string {
-  return `${TIER_NAMES[tier]} ${ROMAN[division]}`;
+/** The tier and division from the rating alone (no caps, no Top 500). */
+export function tierFromRating(rating: number): { tier: Exclude<TierId, "top500">; division: Division } {
+  const r = Math.round(rating);
+  let found: TierDef = TIER_DEFS[0]!;
+  for (const def of TIER_DEFS) if (r >= def.at[0]) found = def;
+  let d = 0;
+  for (let i = 0; i < 3; i++) if (r >= found.at[i]!) d = i;
+  return { tier: found.tier, division: DIVISIONS[d]! };
 }
 
-export function romanOf(d: Division): string {
-  return ROMAN[d];
+function nextStep(rating: number): TierView["next"] {
+  const r = Math.round(rating);
+  for (const def of TIER_DEFS)
+    for (let i = 0; i < 3; i++) {
+      const at = def.at[i]!;
+      if (at > r) return { label: `${def.name} ${DIVISIONS[i]!}`, at, pointsToGo: at - r };
+    }
+  return null;
 }
 
-/** "1,278": even-width digits are the CSS's job (tabular-nums); this is the grouping. */
-export function ratingText(n: number): string {
-  return Math.round(n).toLocaleString("en-GB");
+/** "top 4%": the share rounded up to a whole percent (never "top 0%"). */
+export function topShareLabel(share: number): string {
+  return `top ${Math.max(1, Math.ceil(share * 100 - 1e-9))}%`;
 }
 
-/** "+7", "−12", "0". */
-export function changeText(n: number): string {
-  if (n > 0) return `+${n}`;
-  if (n < 0) return `−${Math.abs(n)}`;
-  return "0";
+/**
+ * The tier a Joulz Rating shows. Without a standing (or with the caps not yet active) it goes by rating alone.
+ */
+export function tierFor(rating: number, standing?: TierStanding | null): TierView {
+  const base = tierFromRating(rating);
+  const name = (t: TierId) => TIER_NAME[t];
+  const plain = (): TierView => ({
+    tier: base.tier,
+    division: base.division,
+    label: `${name(base.tier)} ${base.division}`,
+    rank: null,
+    next: nextStep(rating),
+    heldBack: null,
+    floorGrace: null,
+  });
+  if (!standing || !standing.capsActive || tierRank(base.tier) < tierRank("storm")) return plain();
+  if (!standing.stormOk) {
+    // Held back: Surge I, with what the rating alone reaches.
+    const share = standing.share === null ? "" : `, ${topShareLabel(standing.share)}`;
+    return {
+      tier: "surge",
+      division: "I",
+      label: "Surge I",
+      rank: null,
+      next: null,
+      heldBack: { ratedTier: base.tier, label: `${name(base.tier)}-rated${share}` },
+      floorGrace: null,
+    };
+  }
+  if (base.tier === "lightning" && standing.top500Ok && standing.rank !== null)
+    return { tier: "top500", division: null, label: `Top 500 #${standing.rank}`, rank: standing.rank, next: null, heldBack: null, floorGrace: null };
+  return plain();
 }
 
-/** The floor of a division. */
-export function floorOf(tier: Tier, division: Division): number {
-  return TIER_FLOORS[tier][3 - division]!;
+/* ------------------------------------------------------------------ the tier floor grace */
+
+/**
+ * The tier floor grace (the approved tier ladder: "Three matches of grace at every tier's floor"; Joe, 11 Nov 2026).
+ * When the rating falls below the floor of the tier shown, the player keeps that tier (at its III division) through
+ * FLOOR_GRACE_MATCHES more rated matches; still below after the last of them, the tier drops to what the rating gives.
+ * Back at or above the floor, the grace ends. Only matches that counted advance it (a match frozen by the 4th-match
+ * rule doesn't); the standings job can start it (a 90-day window moving) but never advances it. A drop by a cap
+ * (Storm's top 3%, Top 500's rank) isn't a floor: the cap's own 3-day grace applies. Top 500 falling below 2,400 holds
+ * Lightning.
+ */
+export const FLOOR_GRACE_MATCHES = 3;
+
+/** The tier shown last and the grace's count (matches played below the floor since the fall; null when not in it). */
+export interface ShownTierState {
+  tier: TierId | null;
+  floorGrace: number | null;
 }
 
-/** The next division up from (tier, division), or null at Lightning I. */
-export function nextDivision(tier: Tier, division: Division): { tier: Tier; division: Division } | null {
-  if (division > 1) return { tier, division: (division - 1) as Division };
-  const i = TIERS.indexOf(tier);
-  const up = TIERS[i + 1];
-  return up ? { tier: up, division: 3 } : null;
+export function shownTierFor(
+  prev: ShownTierState,
+  rating: number,
+  standing: TierStanding | null | undefined,
+  /** This is a counted rated match (it advances the grace). */
+  advance: boolean,
+): { view: TierView; floorGrace: number | null } {
+  const view = tierFor(rating, standing);
+  if (!prev.tier || view.heldBack) return { view, floorGrace: null };
+  const kept: Exclude<TierId, "top500"> = prev.tier === "top500" ? "lightning" : prev.tier;
+  if (tierRank(tierFromRating(rating).tier) >= tierRank(kept)) return { view, floorGrace: null };
+  const g = prev.floorGrace === null ? 0 : prev.floorGrace + (advance ? 1 : 0);
+  if (g >= FLOOR_GRACE_MATCHES) return { view, floorGrace: null };
+  const floor = TIER_DEFS.find((d) => d.tier === kept)!.at[0];
+  return {
+    view: {
+      tier: kept,
+      division: "III",
+      label: `${TIER_NAME[kept]} III`,
+      rank: null,
+      next: { label: `${TIER_NAME[kept]} III`, at: floor, pointsToGo: Math.max(0, floor - Math.round(rating)) },
+      heldBack: null,
+      floorGrace: { matchesLeft: FLOOR_GRACE_MATCHES - g },
+    },
+    floorGrace: g,
+  };
 }
 
-export interface DivisionBar {
-  /** 0 to 1 across the current division. */
-  fraction: number;
-  /** "Volt II". */
-  here: string;
-  /** "122 to Volt I", "Storm needs the top 3%", "Top division". */
-  next: string;
-  /** The points to the next division (null at the top or when a cap holds the player). */
-  toNext: number | null;
-}
-
-/** The bar to the next division (mockups 01, 07, 13, 14). */
-export function divisionBar(rank: RankView): DivisionBar {
-  const here = rankLabel(rank);
-  if (rank.heldBack === "storm")
-    return { fraction: 1, here, next: `Storm needs the top ${STORM_TOP_SHARE}%`, toNext: null };
-  if (rank.heldBack === "top500") return { fraction: 1, here, next: `Top 500 needs a top ${TOP_COUNT} place`, toNext: null };
-  const up = nextDivision(rank.tier, rank.division);
-  const floor = floorOf(rank.tier, rank.division);
-  if (!up) return { fraction: 1, here, next: "Top division", toNext: null };
-  const target = floorOf(up.tier, up.division);
-  const span = Math.max(1, target - floor);
-  const fraction = Math.max(0, Math.min(1, (rank.rating - floor) / span));
-  const toNext = Math.max(0, target - Math.round(rank.rating));
-  return { fraction, here, next: `${ratingText(toNext)} to ${divisionLabel(up.tier, up.division)}`, toNext };
-}
-
-/** A tier's rating range as the ladder writes it: "1,100 to 1,499", "2,400 and up". */
-export function tierRange(tier: Tier): string {
-  const i = TIERS.indexOf(tier);
-  const up = TIERS[i + 1];
-  const from = ratingText(TIER_FLOORS[tier][0]);
-  return up ? `${from} to ${ratingText(TIER_FLOORS[up][0] - 1)}` : `${from} and up`;
-}
-
-/** "III 1,100, II 1,250, I 1,400" (DESIGN.md: commas, never " · "). */
-export function tierFloorsText(tier: Tier): string {
-  const [a, b, c] = TIER_FLOORS[tier];
-  return `III ${ratingText(a)}, II ${ratingText(b)}, I ${ratingText(c)}`;
-}
-
-/** The CSS colour of a tier's name (tokens.css `--jz-tier-*`). */
-export function tierColour(tier: Tier): string {
-  return `var(--jz-tier-${tier})`;
+/** The ladder's rungs, top first (shares filled in by the server from the standings). */
+export function tierLadder(shares: Partial<Record<TierId, number>> = {}): TierLadderRung[] {
+  const rungs: TierLadderRung[] = [
+    {
+      tier: "top500",
+      name: TIER_NAME.top500,
+      from: TIER_DEFS[5]!.at[0],
+      to: null,
+      divisions: [],
+      cap: "Lightning, and ranked 1 to 500",
+      share: shares.top500 ?? null,
+    },
+  ];
+  for (let i = TIER_DEFS.length - 1; i >= 0; i--) {
+    const def = TIER_DEFS[i]!;
+    const up = TIER_DEFS[i + 1];
+    rungs.push({
+      tier: def.tier,
+      name: def.name,
+      from: def.at[0],
+      to: up ? up.at[0] - 1 : null,
+      divisions: DIVISIONS.map((division, k) => ({ division, at: def.at[k]! })),
+      cap: def.tier === "storm" ? "and top 3%" : null,
+      share: shares[def.tier] ?? null,
+    });
+  }
+  return rungs;
 }

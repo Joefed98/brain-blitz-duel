@@ -1,3 +1,4 @@
+import { JoulesLine } from "@/components/pass/JoulesLine";
 import { scorePartsText, storedScoreParts } from "@/lib/duel/puzzleScoreRev";
 import { partialProgressNote } from "@/lib/duel/partialCredit";
 import { bestOf } from "@/lib/practice/progress";
@@ -130,6 +131,15 @@ function PracticeRevealActions({ onPlayAgain, onBack }: { onPlayAgain?: (() => v
       ) : null}
     </div>
   );
+}
+
+/**
+ * Practice's Joules line (the Season pass, wave 2 D2): the run is graded and stored just before the reveal shows, so
+ * the Joules from half a minute before it opened are this run's. Nothing is drawn where the pass is off.
+ */
+function PracticeJoules() {
+  const [since] = useState(() => Date.now() - 30_000);
+  return <JoulesLine sinceMs={since} />;
 }
 
 /** Dev-only (?dev=1): what the server did with this arcade run. */
@@ -918,6 +928,7 @@ function LiveAnswerReveal({
         {players && players.length > 1 ? <RevealPlayers players={players} secondsLeft={secondsLeft} /> : null}
       </div>
       )}
+      {practiceActions ? <PracticeJoules /> : null}
       {practiceActions ? <PracticeRevealActions onPlayAgain={onPlayAgain} onBack={onBack} /> : null}
       <DevDiagnostics extra={myExtra ?? null} />
     </div>

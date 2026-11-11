@@ -67,6 +67,27 @@ export const ANALYTICS_EVENTS = [
   // (src/lib/challenges/challenges.server.ts) when a graded Practice run completes one. game is the game, props.challenge
   // the challenge id, props.level its level, props.coins the coins paid with it (0 for a guest, paid on becoming an account).
   "challenge_completed",
+  // The shop (wave 2, session D1; docs/economy/shop.md): recorded by the server only (src/lib/shop/shop.server.ts).
+  // shop_viewed props.section, item_bought props.coins, props.item and props.rarity, bundle_bought props.bundle,
+  // props.coins and props.items, pack_bought props.pack, props.coins and props.test, wishlist_added props.item.
+  "shop_viewed",
+  "item_bought",
+  "bundle_bought",
+  "pack_bought",
+  "wishlist_added",
+  // The Season pass (wave 2, session D2; docs/economy/pass.md): recorded by the server only (src/lib/pass/pass.server.ts).
+  // pass_bought props.season and props.test, pass_level_reached props.season and props.level, reward_claimed
+  // props.season, props.track, props.level and props.kind, weekly_challenge_completed props.tier and props.challenge.
+  "pass_bought",
+  "pass_level_reached",
+  "reward_claimed",
+  "weekly_challenge_completed",
+  // Rated play (wave 3 W3a, docs/rated/README.md): recorded by the server only (src/lib/rated/ratings.server.ts).
+  // rated_match_finished carries props.format (bo3 / bo5 / bo7 / 4p / 8p), props.choice, props.result and
+  // props.opponent (live / recorded); placement_finished props.tier; tier_changed props.from and props.to.
+  "rated_match_finished",
+  "placement_finished",
+  "tier_changed",
   // The rated match screens (wave 3, session W3c): recorded by the server only, through recordRatedEventFn
   // (src/lib/rated/ratedEvents.functions.ts), which accepts these five with fixed-word props and nothing else.
   "play_card_tapped",
