@@ -81,6 +81,13 @@ export const ANALYTICS_EVENTS = [
   "plus_bought",
   "plus_perk_granted",
   "daily_archive_played",
+  // The Season pass (wave 2, session D2; docs/economy/pass.md): recorded by the server only (src/lib/pass/pass.server.ts).
+  // pass_bought props.season and props.test, pass_level_reached props.season and props.level, reward_claimed
+  // props.season, props.track, props.level and props.kind, weekly_challenge_completed props.tier and props.challenge.
+  "pass_bought",
+  "pass_level_reached",
+  "reward_claimed",
+  "weekly_challenge_completed",
 ] as const;
 export type AnalyticsEventName = (typeof ANALYTICS_EVENTS)[number];
 

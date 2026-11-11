@@ -14,6 +14,7 @@ import { COUNT_UP_MS } from "@/lib/fx/celebrations";
 import { useCelebrationsOn, useTapToSkip } from "@/components/fx/useCelebration";
 
 import { FeedbackLink } from "@/components/beta/FeedbackLink";
+import { JoulesLine } from "@/components/pass/JoulesLine";
 
 import { AnimatedScore } from "./AnimatedScore";
 import { Dots } from "./Dots";
@@ -57,6 +58,8 @@ interface FinalResultProps {
   challenge?: ReactNode;
   /** Wave 2 E2: the winner's equipped win celebration (PodiumCelebrations), under the heading; nothing when none. */
   celebrations?: ReactNode;
+  /** Where this game's Joules start (the Season pass's results line, wave 2 D2; null: none). */
+  joulesSinceMs?: number | null;
 }
 
 export function FinalResult({
@@ -82,6 +85,7 @@ export function FinalResult({
   share,
   challenge,
   celebrations,
+  joulesSinceMs = null,
 }: FinalResultProps) {
   // Large and in white, not all caps (Polish batch R): "You win!", "Priya wins", "Draw".
   const headline = outcome === "win" ? "You win!" : outcome === "loss" ? `${opponentName} wins` : "Draw";
@@ -186,6 +190,9 @@ export function FinalResult({
       {playOfTheGame}
 
       {challenge}
+
+      {/* The Joules this game earned (the Season pass, wave 2 D2; drawn only where the pass is on). */}
+      <JoulesLine sinceMs={joulesSinceMs} />
 
       {/* SEND FEEDBACK (the beta's form; nothing while TALLY_URL is empty). */}
       <FeedbackLink small />

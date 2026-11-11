@@ -2,6 +2,7 @@ import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { useEffect } from "react";
 
 import { PhoneShell } from "@/components/duel/PhoneShell";
+import { PassScreen } from "@/components/pass/PassScreen";
 import { ShopFront } from "@/components/shop/ShopFront";
 import { PlusPart } from "@/components/plus/PlusPart";
 import { EmptyState, Segmented } from "@/design/components";
@@ -14,7 +15,8 @@ import { useHomeBed } from "@/lib/useScreenMusic";
 /**
  * The Shop tab (wave 2, session A2; mockup docs/art/wave-2/screens/shop.png): a Shop · Pass · Plus switch at the
  * top; the Shop part keeps Featured, Daily and Coins. Session D1 fills the Shop part (ShopFront: this week's bundle,
- * today's four, the coin packs); session E2 the Plus part (PlusPart); Pass keeps its calm "coming" state.
+ * today's four, the coin packs); session D2 the Pass part (PassScreen: the Season pass and this week's challenges);
+ * session E2 the Plus part (PlusPart: the Joulz Plus offer, or a member's Plus).
  *
  * Behind the Shop switch (src/config/shopConfig.ts): a device the switch is off for is sent to Play.
  */
@@ -92,19 +94,15 @@ function ShopScreen() {
               onSection={(value) => go({ part: "shop", section: value })}
               onGetCoins={() => go({ part: "shop", section: "coins" })}
             />
+          ) : part === "pass" ? (
+            <PassScreen />
           ) : (
             <>
               <div className="shop-head">
-                <h1 className="ap-title">{part === "pass" ? "Pass" : "Plus"}</h1>
+                <h1 className="ap-title">Plus</h1>
               </div>
-              {part === "plus" ? (
-                // Wave 2 E2: Joulz Plus (the offer, or a member's Plus), where Plus is open; else its calm card.
-                <PlusPart soon={soon} />
-              ) : (
-                <div className="shop-soon" data-shop-soon={part}>
-                  <EmptyState layout="card" tone="cool" title={soon.title} body={soon.body} />
-                </div>
-              )}
+              {/* Wave 2 E2: Joulz Plus (the offer, or a member's Plus), where Plus is open; else its calm card. */}
+              <PlusPart soon={soon} />
             </>
           )}
         </div>

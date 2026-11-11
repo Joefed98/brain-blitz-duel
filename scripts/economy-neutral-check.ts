@@ -139,6 +139,28 @@ const economyFiles = all.filter(isEconomyModule);
 const backwards = [...reach(economyFiles).keys()].filter((p) => /src\/lib\/duel\/(grade|scoring|ranking|generate)/.test(rel(p)));
 check(backwards.length === 0, `the economy modules import no grading or scoring code${backwards.length ? ` (${backwards.map(rel).join(", ")})` : ""}`);
 
+// The Season pass (wave 2 D2, 13 Nov 2026; new assertions): Joules, levels and claims help nobody win either. No
+// scoring, grading, replay, matchmaking or timing code reaches a pass module or names a pass table, and the pass
+// modules import no grading or scoring code.
+const isPassModule = (p: string) => {
+  const r = rel(p);
+  return r.startsWith("src/lib/pass/") || r.startsWith("src/components/pass/") || /^src\/lib\/data\/pass[^/]*$/.test(r);
+};
+const passLeaks = [...reached.entries()].filter(([file]) => isPassModule(file));
+check(
+  passLeaks.length === 0,
+  `no scoring, grading, replay, matchmaking or timing code imports a pass module${passLeaks.length ? `: ${passLeaks.slice(0, 3).map(([, p]) => p.map(rel).join(" → ")).join("; ")}` : ""}`,
+);
+const PASS_NAMES = /\b(pass_seasons|pass_joules|pass_members|pass_premium|pass_claims|pass_title_unlocks|pass_weeks|pass_member_resets|pass_credit_joules|pass_activity)\b/;
+const passNamed = [...reached.keys()].filter((file) => rel(file) !== TYPES_ONLY && PASS_NAMES.test(readFileSync(file, "utf8")));
+check(passNamed.length === 0, `none of that code names a pass table or function${passNamed.length ? `: ${passNamed.slice(0, 5).map(rel).join(", ")}` : ""}`);
+const passFiles = all.filter(isPassModule);
+check(passFiles.length >= 6, `the pass modules found (${passFiles.length})`);
+const passRules = passFiles.filter((p) => !rel(p).startsWith("src/components/"));
+const passBack = [...reach(passRules).keys()].filter((p) => /src\/lib\/duel\/(grade|scoring|ranking|generate)/.test(rel(p)));
+const passWalk = reach(passRules);
+check(passBack.length === 0, `the pass's rules (src/lib/pass, its data layer) import no grading or scoring code${passBack.length ? ` (${passBack.map((p) => passWalk.get(p)!.map(rel).join(" → ")).join(", ")})` : ""}`);
+
 console.log(`economy-neutral-check: ${passes} passed, ${failures.length} failed`);
 if (failures.length) {
   console.log("FAIL");

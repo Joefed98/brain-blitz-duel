@@ -1,0 +1,369 @@
+/*
+ * Wave 2, session D2: the Season pass (mockup docs/art/wave-2/screens/battle-pass.png), its Home card and the results
+ * Joules line. Tokens only (DESIGN.md). Joules are electric lime (--jz-joules) with the bolt mark, always secondary.
+ */
+
+.pass-screen {
+  display: flex;
+  flex-direction: column;
+  gap: var(--jz-space-16);
+}
+.pass-loading {
+  display: flex;
+  flex-direction: column;
+  gap: var(--jz-space-12);
+}
+.pass-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--jz-space-12);
+}
+.pass-title {
+  margin: 0;
+}
+.pass-season-name {
+  margin: 0;
+  color: var(--jz-cyan);
+  font-size: 15px;
+  font-weight: var(--jz-weight-black);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.pass-days {
+  color: var(--jz-text-2);
+  font-size: 14px;
+  white-space: nowrap;
+}
+.pass-note {
+  margin: 0;
+  color: var(--jz-text-3);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+/* The level card and its Joules bar. */
+.pass-level-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--jz-space-8);
+  padding: var(--jz-space-16);
+  border-radius: var(--jz-radius);
+  background: var(--jz-surface);
+}
+.pass-level-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--jz-space-8);
+}
+.pass-level-now {
+  color: var(--jz-text);
+  font-size: 20px;
+  font-weight: var(--jz-weight-bold);
+}
+.pass-joules {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--jz-space-4);
+  color: var(--jz-text-2);
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.pass-bar {
+  display: block;
+  height: 8px;
+  overflow: hidden;
+  border-radius: var(--jz-radius);
+  background: var(--jz-surface-2);
+}
+.pass-bar > span {
+  display: block;
+  height: 100%;
+  background: var(--jz-joules);
+}
+.joules-bolt {
+  flex: none;
+  color: var(--jz-joules);
+}
+
+/* The premium unlock. */
+.pass-unlock {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--jz-space-8);
+  text-align: center;
+}
+.pass-premium-on {
+  margin: 0;
+  color: var(--jz-gold);
+  font-size: 14px;
+  font-weight: var(--jz-weight-medium);
+}
+
+/* The two tracks, level by level. */
+.pass-tracks {
+  display: flex;
+  flex-direction: column;
+  gap: var(--jz-space-8);
+}
+.pass-track-heads,
+.pass-row {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) minmax(0, 1fr);
+  align-items: center;
+  gap: var(--jz-space-8);
+}
+.pass-track-heads {
+  color: var(--jz-text-2);
+  font-size: 13px;
+  font-weight: var(--jz-weight-medium);
+}
+.pass-premium-word {
+  color: var(--jz-gold);
+}
+.pass-levels {
+  display: flex;
+  flex-direction: column;
+  gap: var(--jz-space-8);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.pass-level-disc {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--jz-surface-2);
+  color: var(--jz-text);
+  font-size: 16px;
+  font-weight: var(--jz-weight-bold);
+  font-variant-numeric: tabular-nums;
+}
+.pass-row[data-current] .pass-level-disc {
+  background: var(--jz-gold-metal);
+  color: var(--jz-on-gold);
+}
+.pass-cell {
+  display: flex;
+  align-items: center;
+  gap: var(--jz-space-8);
+  min-height: 64px;
+  padding: var(--jz-space-8);
+  border: 1px solid var(--jz-line);
+  border-radius: var(--jz-radius);
+  background: var(--jz-surface);
+}
+.pass-cell[data-state="claimable"] {
+  border-color: var(--jz-gold);
+}
+.pass-cell[data-state="locked"] {
+  opacity: 0.72;
+}
+.pass-cell-empty {
+  min-height: 64px;
+  border: 1px dashed var(--jz-line);
+  border-radius: var(--jz-radius);
+}
+.pass-cell-glyph {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--jz-radius);
+  background: var(--jz-bg-raised);
+  color: var(--jz-text-2);
+}
+.pass-cell-text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+.pass-cell-title {
+  overflow: hidden;
+  color: var(--jz-text);
+  font-size: 14px;
+  font-weight: var(--jz-weight-bold);
+  line-height: 1.25;
+}
+.pass-cell-detail {
+  overflow: hidden;
+  color: var(--jz-text-3);
+  font-size: 12px;
+  line-height: 1.3;
+}
+.pass-cell-rarity {
+  color: var(--jz-text-2);
+  font-size: 12px;
+  font-weight: var(--jz-weight-medium);
+}
+.pass-cell[data-rarity="epic"] .pass-cell-rarity {
+  color: var(--jz-rarity-epic);
+}
+.pass-cell[data-rarity="elite"] .pass-cell-rarity {
+  color: var(--jz-rarity-elite);
+}
+.pass-cell[data-rarity="legendary"] .pass-cell-rarity {
+  color: var(--jz-rarity-legendary);
+}
+.pass-cell[data-rarity="common"] .pass-cell-rarity {
+  color: var(--jz-bronze);
+}
+.pass-cell[data-rarity="rare"] .pass-cell-rarity {
+  color: var(--jz-silver);
+}
+.pass-cell-mark {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 28px;
+  color: var(--jz-text-3);
+}
+.pass-cell[data-state="claimed"] .pass-cell-mark {
+  color: var(--jz-cyan);
+}
+
+/* The big rewards. */
+.pass-big {
+  display: flex;
+  flex-direction: column;
+  gap: var(--jz-space-12);
+  padding: var(--jz-space-16);
+  border-radius: var(--jz-radius);
+  background: var(--jz-surface);
+}
+.pass-big-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--jz-space-12);
+}
+.pass-big-item {
+  display: flex;
+  flex-direction: column;
+  gap: var(--jz-space-4);
+  min-width: 0;
+}
+.pass-big-where {
+  color: var(--jz-text-2);
+  font-size: 12px;
+}
+.pass-big-item[data-track="premium"] .pass-big-where {
+  color: var(--jz-gold);
+}
+.pass-big-name {
+  color: var(--jz-text);
+  font-size: 14px;
+  font-weight: var(--jz-weight-bold);
+}
+.pass-big-kind {
+  color: var(--jz-cyan);
+  font-size: 12px;
+}
+
+/* This week's challenges. */
+.pass-week {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  border-radius: var(--jz-radius);
+  background: var(--jz-surface);
+  list-style: none;
+}
+.pass-week-row {
+  display: flex;
+  align-items: center;
+  gap: var(--jz-space-12);
+  min-height: 64px;
+  padding: var(--jz-space-12) var(--jz-space-16);
+}
+.pass-week-row + .pass-week-row {
+  border-top: 1px solid var(--jz-line);
+}
+.pass-week-text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+.pass-week-title {
+  color: var(--jz-text);
+  font-size: 15px;
+  font-weight: var(--jz-weight-medium);
+}
+.pass-week-detail {
+  color: var(--jz-text-3);
+  font-size: 13px;
+}
+.pass-week-joules {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--jz-space-4);
+  color: var(--jz-joules);
+  font-size: 16px;
+  font-weight: var(--jz-weight-bold);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* The Home card (the Play tab). */
+.pass-home {
+  display: flex;
+  flex-direction: column;
+  gap: var(--jz-space-8);
+  padding: var(--jz-space-16);
+  border-radius: var(--jz-radius);
+  background: var(--jz-surface);
+  color: var(--jz-text);
+  text-decoration: none;
+}
+.pass-home-top,
+.pass-home-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--jz-space-8);
+}
+.pass-home-title {
+  overflow: hidden;
+  font-size: 15px;
+  font-weight: var(--jz-weight-bold);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pass-home-level {
+  color: var(--jz-text-2);
+  font-size: 14px;
+  white-space: nowrap;
+}
+.pass-home-meta {
+  color: var(--jz-text-2);
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+/* The results line: small, secondary, never next to a rating. */
+.joules-line {
+  display: inline-flex;
+  align-items: center;
+  align-self: center;
+  justify-content: center;
+  gap: var(--jz-space-4);
+  margin: 0;
+  color: var(--jz-joules);
+  font-size: 13px;
+  font-weight: var(--jz-weight-medium);
+  font-variant-numeric: tabular-nums;
+}
+
+/* The level-up notice sits where the shop's notice does; a wishlist notice at the same moment goes above it. */
+.pass-level-toast {
+  z-index: 41;
+}

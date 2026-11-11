@@ -1,5 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useCrashContext } from "@/lib/useCrashContext";
+import { firstOwnResultMs } from "@/lib/pass/passApi";
 import type { ArcadeRevealData } from "@/lib/arcade/reveal";
 import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
@@ -1098,6 +1099,7 @@ function DuelScreen() {
             onPlayAgain={() => void handlePlayAgain()}
             onHome={() => void handleLeave()}
             playOfTheGame={forfeit ? null : <PlayOfTheGame roomId={duel.id} active />}
+            joulesSinceMs={firstOwnResultMs(results, mySlot)}
             share={<RoomShareButton duel={duel} players={players} results={results} me={me} />}
             challenge={forfeit ? null : <Suspense fallback={null}><RoomChallengeButton duelId={duel.id} total={totalScore(results, mySlot)} rounds={duel.round_count ?? TOTAL_ROUNDS} /></Suspense>}
             celebrations={forfeit ? null : <PodiumCelebrations entries={celebrationEntries(standings(roomPlayers, results, duel.round_count ?? TOTAL_ROUNDS, undefined, tieRounds, scoringMode)).filter((e) => e.place === 1).map((e) => ({ ...e, cosmetics: { ...e.cosmetics, entrance: null } }))} />}

@@ -28,6 +28,8 @@ import { useFlipRows } from "@/components/fx/useFlipRows";
 
 
 import { FeedbackLink } from "@/components/beta/FeedbackLink";
+import { JoulesLine } from "@/components/pass/JoulesLine";
+import { firstOwnResultMs } from "@/lib/pass/passApi";
 
 import { AnimatedScore } from "./AnimatedScore";
 import { ConfettiBurst } from "./ArcadeCelebration";
@@ -326,6 +328,9 @@ export function Podium({
       {playOfTheGame}
 
       {challenge}
+
+      {/* The Joules this game earned (the Season pass, wave 2 D2; drawn only where the pass is on). */}
+      <JoulesLine sinceMs={firstOwnResultMs(results, mySlot)} />
 
       {/* SEND FEEDBACK (the beta's form; nothing while TALLY_URL is empty). */}
       <FeedbackLink small />

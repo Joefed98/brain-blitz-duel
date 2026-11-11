@@ -1,7 +1,7 @@
 -- Joulz Plus, the Daily archive, early access and the public cosmetics read (wave 2, train E, session E2; 13 Nov 2026;
 -- docs/economy/plus.md, docs/economy/economy-design.md "Joulz Plus"). Additive and idempotent: new tables and functions,
--- one wider CHECK (async_rooms.kind gains 'daily_archive') and badge_facts re-made with one more condition (an archive
--- play never counts for a badge). No row is changed or removed.
+-- one wider CHECK (async_rooms.kind gains 'daily_archive'), and C2's badge_facts and D2's pass_activity re-made with one
+-- more condition each (an archive play never counts for a badge or Joules). No row is changed or removed.
 --
 -- What it adds:
 --   * public.plus_memberships: a membership (monthly or yearly), one open at a time per account. Until real payments
@@ -15,7 +15,7 @@
 --   * The Daily archive: a Plus member replays a past Daily in an async room of kind 'daily_archive' (room_key
 --     'daily_archive:<user id>:<kind>:<day>'), its rounds copied from that day's stored Daily. It is never on a board
 --     (boards read the day's own room), never in the streak (daily_history reads daily_puzzle / daily_arcade only),
---     never a badge (badge_facts below leaves it out) and never Joules.
+--     never a badge (badge_facts below leaves it out) and never Joules (pass_activity below leaves it out).
 --   * public.cosmetics_public(uuid[]): what everyone may see of a player's equipped cosmetics (avatar finish,
 --     accessory, special edition, win celebration, podium entrance, the four reactions, the PLUS chip when on).
 --
@@ -401,6 +401,122 @@ $body$
   GRANT EXECUTE ON FUNCTION public.badge_facts(uuid, jsonb) TO service_role;
 END
 $badges$;
+
+/* ------------------------------------------------------------------ Joules never come from an archive play */
+
+-- D2's pass_activity (20261113100000_season_pass.sql) exactly, with one more condition on the async attempts: a Daily
+-- archive replay (kind 'daily_archive') is unrated and earns no Joules (D2 would otherwise read it as a challenge).
+DO $joules$
+BEGIN
+  IF to_regprocedure('public.pass_activity(uuid, timestamptz, timestamptz)') IS NULL THEN
+    RETURN;
+  END IF;
+  EXECUTE $fn$
+CREATE OR REPLACE FUNCTION public.pass_activity(p_user_id uuid, p_from timestamptz, p_to timestamptz)
+RETURNS jsonb
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $body$
+  WITH
+  live_rounds AS (
+    SELECT 'room_round'::text AS k, 'room_round:' || r.id AS key, r.submitted_at AS at,
+           d.round_order ->> (r.round_number - 1) AS game, r.score, NULL::date AS day
+      FROM public.round_results r
+      JOIN public.duel_players p ON p.duel_id = r.duel_id AND p.player_slot = r.player_slot AND p.user_id = p_user_id
+      JOIN public.duels d ON d.id = r.duel_id
+     WHERE r.submitted_at >= p_from AND r.submitted_at < p_to
+  ),
+  archived_rounds AS (
+    SELECT 'room_round', 'room_round:' || a.id, a.submitted_at, a.game_id, a.score, NULL::date
+      FROM public.round_results_archive a
+     WHERE a.user_id = p_user_id AND a.submitted_at >= p_from AND a.submitted_at < p_to
+  ),
+  live_finishes AS (
+    SELECT 'room_finish', 'room_finish:' || d.id || ':' || coalesce(jsonb_array_length(d.tournament_history), 0),
+           r.submitted_at, NULL::text, NULL::integer, NULL::date
+      FROM public.duels d
+      JOIN public.round_results r ON r.duel_id = d.id AND r.round_number = jsonb_array_length(d.round_order)
+      JOIN public.duel_players p ON p.duel_id = r.duel_id AND p.player_slot = r.player_slot AND p.user_id = p_user_id
+     WHERE d.status = 'finished' AND jsonb_typeof(d.round_order) = 'array' AND jsonb_array_length(d.round_order) > 0
+       AND r.submitted_at >= p_from AND r.submitted_at < p_to
+  ),
+  archived_finishes AS (
+    SELECT 'room_finish', 'room_finish:' || a.duel_id || ':' || a.game_index, a.submitted_at, NULL::text, NULL::integer, NULL::date
+      FROM public.round_results_archive a
+     WHERE a.user_id = p_user_id AND a.submitted_at >= p_from AND a.submitted_at < p_to
+       AND a.round_number = (SELECT max(b.round_number) FROM public.round_results_archive b
+                              WHERE b.duel_id = a.duel_id AND b.game_index = a.game_index)
+  ),
+  attempts AS (
+    SELECT t.*, ar.kind, ar.day, ar.round_order, ar.opens_at,
+           (c.source = 'room' AND t.started_at - ar.opens_at < interval '1 second') AS imported
+      FROM public.async_attempts t
+      JOIN public.async_rooms ar ON ar.id = t.room_id
+      LEFT JOIN public.challenges c ON c.room_id = t.room_id
+     WHERE t.user_id = p_user_id
+       AND ar.kind <> 'daily_archive'
+  ),
+  async_rounds AS (
+    SELECT CASE t.kind WHEN 'daily_puzzle' THEN 'daily_puzzle_round' WHEN 'daily_arcade' THEN 'daily_arcade_round'
+                       ELSE 'challenge_round' END,
+           'async_round:' || r.id, coalesce(r.answered_at, r.started_at),
+           t.round_order ->> (r.round_number - 1), r.score, t.day
+      FROM public.async_results r
+      JOIN attempts t ON t.id = r.attempt_id
+     WHERE NOT coalesce(t.imported, false)
+       AND coalesce(r.answered_at, r.started_at) >= p_from AND coalesce(r.answered_at, r.started_at) < p_to
+  ),
+  async_finishes AS (
+    SELECT CASE t.kind WHEN 'daily_puzzle' THEN 'daily_puzzle' WHEN 'daily_arcade' THEN 'daily_arcade' ELSE 'challenge' END,
+           CASE WHEN t.kind = 'challenge' THEN 'challenge:' || t.id ELSE t.kind || ':' || t.day END,
+           t.finished_at, NULL::text, t.total_score, t.day
+      FROM attempts t
+     WHERE t.finished_at IS NOT NULL AND NOT coalesce(t.imported, false)
+       AND t.finished_at >= p_from AND t.finished_at < p_to
+  ),
+  practice AS (
+    SELECT 'practice', 'practice:' || pp.id, pp.created_at, pp.game_id, pp.score, NULL::date
+      FROM public.practice_plays pp
+     WHERE pp.user_id = p_user_id AND pp.progress_counted_at IS NOT NULL AND NOT pp.example
+       AND pp.created_at >= (SELECT fresh_start_at FROM public.practice_progress_start LIMIT 1)
+       AND pp.created_at >= p_from AND pp.created_at < p_to
+  ),
+  stars AS (
+    SELECT 'star', 'star:' || s.game_id || ':' || s.level, s.star_at, s.game_id, s.star_score, NULL::date
+      FROM public.practice_progress s
+     WHERE s.user_id = p_user_id AND s.star_at IS NOT NULL AND s.star_at >= p_from AND s.star_at < p_to
+  ),
+  practice_challenges AS (
+    SELECT 'practice_challenge', 'practice_challenge:' || pc.challenge_id, pc.completed_at, pc.game_id, NULL::integer, NULL::date
+      FROM public.practice_challenge_progress pc
+     WHERE pc.user_id = p_user_id AND pc.completed_at IS NOT NULL AND pc.completed_at >= p_from AND pc.completed_at < p_to
+  ),
+  everything (k, key, at, game, score, day) AS (
+    SELECT * FROM live_rounds
+    UNION ALL SELECT * FROM archived_rounds
+    UNION ALL SELECT * FROM live_finishes
+    UNION ALL SELECT * FROM archived_finishes
+    UNION ALL SELECT * FROM async_rounds
+    UNION ALL SELECT * FROM async_finishes
+    UNION ALL SELECT * FROM practice
+    UNION ALL SELECT * FROM stars
+    UNION ALL SELECT * FROM practice_challenges
+  ),
+  -- A room round archived after being read live keeps its key; read both at once, keep one.
+  distinct_events AS (
+    SELECT DISTINCT ON (key) k, key, at, game, score, day FROM everything ORDER BY key, at
+  )
+  SELECT coalesce(jsonb_agg(jsonb_build_object('k', k, 'key', key, 'at', at, 'game', game, 'score', score, 'day', day)
+                            ORDER BY at, key), '[]'::jsonb)
+    FROM distinct_events;
+$body$
+  $fn$;
+  REVOKE ALL ON FUNCTION public.pass_activity(uuid, timestamptz, timestamptz) FROM PUBLIC, anon, authenticated;
+  GRANT EXECUTE ON FUNCTION public.pass_activity(uuid, timestamptz, timestamptz) TO service_role;
+END
+$joules$;
 
 /* ------------------------------------------------------------------ Joe's functions (Supabase SQL editor) */
 

@@ -251,7 +251,7 @@ async function databaseChecks(db: LocalDb, rest: RestServer): Promise<void> {
     check(q(`SELECT props ->> 'test' || ',' || (props ->> 'plan') FROM analytics.events WHERE event = 'plus_bought' AND player_id = '${JOE}'`) === "true,monthly", "plus_bought: test and plan");
     check(plusCoins(JOE) === 200 && plusFreezes(JOE) === 2, `month 0: 200 coins and 2 streak freezes (${plusCoins(JOE)}, ${plusFreezes(JOE)})`);
     check((await events("plus_perk_granted", JOE)) === 2, `plus_perk_granted for coins and freezes (${await events("plus_perk_granted", JOE)})`);
-    check(bought.status.premiumPass === false, "the premium pass waits for D2's function (not bound)");
+    check(bought.status.premiumPass === false && q(`SELECT count(*) FROM pass_premium WHERE user_id = '${JOE}'`) === "0", "no season shown yet: no premium pass given (D2's function answers none)");
     const again = await callServerFn(fns.plusTestPurchaseFn, { plan: "yearly" }, tok.joe);
     check(again.ok === false && again.reason === "already_member", "a second purchase: already a member");
     for (let i = 0; i < 3; i++) await callServerFn(fns.plusStatusFn, {}, tok.joe);
@@ -359,6 +359,9 @@ async function databaseChecks(db: LocalDb, rest: RestServer): Promise<void> {
     q(`UPDATE async_results SET answered = true, answered_at = now(), score = 200, is_correct = true, ms_remaining = 500 WHERE room_id = '${source.id}' AND user_id = '${KIM}' AND round_number = 1`);
     const kfacts = JSON.parse(q(`SELECT public.badge_facts('${KIM}', '{}'::jsonb)::text`)) as { games200: number };
     check(kfacts.games200 === 1, "control: a 200 on a real Daily does count");
+    const joules = (id: string) => q(`SELECT public.pass_activity('${id}', now() - interval '3 days', now() + interval '1 day')::text`);
+    check(!/challenge|async_round/.test(joules(JOE)), "never Joules (D2's pass_activity leaves the replay out)");
+    check(/daily_arcade_round/.test(joules(KIM)), "control: a real Daily's round earns Joules");
     check(engine.solutionLockFor(room!, { type: "x", answer: "y" }, Date.now()) === null, "a replay's solutions are never locked");
   });
 
@@ -376,6 +379,14 @@ async function databaseChecks(db: LocalDb, rest: RestServer): Promise<void> {
     check(q(`SELECT plus.start_test('Mia_Plus', 'yearly', 'testing yearly') ->> 'status'`) === "started", "start_test starts a tester's yearly Plus");
     check(q(`SELECT string_agg(username || ':' || plan || ':' || test || ':' || (ended_at IS NULL), ',' ORDER BY started_at) FROM plus.list_members()`) === "Joe_Plus:monthly:true:false,Mia_Plus:yearly:true:true", "list_members");
     check(q(`SELECT count(*) FROM plus.admin_log WHERE note = '' OR by_role IS NULL`) === "0" && Number(q(`SELECT count(*) FROM plus.admin_log`)) >= 5, "every change is logged with who and why");
+    // D2's own function (wave 2 D2's pass_grant_premium through grantPremiumTrack): once a season is shown to the
+    // member, Plus gives its premium track with source 'plus', once.
+    q(`UPDATE pass_seasons SET starts_at = now() - interval '1 day' WHERE id = 'test'`);
+    const s1 = await plus.plusStatus(admin, MIA, Date.now());
+    const s2 = await plus.plusStatus(admin, MIA, Date.now());
+    check(s1.premiumPass && s2.premiumPass, "the premium pass reaches a member through D2's function");
+    check(q(`SELECT source || ':' || count(*) OVER () FROM pass_premium WHERE user_id = '${MIA}'`) === "plus:1", "one premium track, source plus");
+    check((await events("pass_bought", MIA)) === 1, "D2 records its pass_bought once");
   });
 
   await section("the public cosmetics and reactions", async () => {
