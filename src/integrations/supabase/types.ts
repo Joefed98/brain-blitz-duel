@@ -1280,7 +1280,7 @@ export type Database = {
         }
         Relationships: []
       }
-      rated_match_players: {
+      mm_match_players: {
         Row: {
           match_id: string
           placement: boolean
@@ -1307,7 +1307,7 @@ export type Database = {
         }
         Relationships: []
       }
-      rated_matches: {
+      mm_matches: {
         Row: {
           choice: string
           created_at: string
@@ -1379,7 +1379,7 @@ export type Database = {
         }
         Relationships: []
       }
-      rated_progress: {
+      mm_progress: {
         Row: {
           at: string
           match_id: string
@@ -1403,7 +1403,7 @@ export type Database = {
         }
         Relationships: []
       }
-      rated_queue: {
+      mm_queue: {
         Row: {
           choice: string
           format: string
@@ -1433,7 +1433,7 @@ export type Database = {
         }
         Relationships: []
       }
-      rated_run_uses: {
+      mm_run_uses: {
         Row: {
           id: number
           match_id: string
@@ -1457,7 +1457,7 @@ export type Database = {
         }
         Relationships: []
       }
-      rated_runs: {
+      mm_runs: {
         Row: {
           choice: string
           duel_id: string
@@ -2028,12 +2028,12 @@ export type Database = {
       }
       async_board_open: { Args: { p_room_id: string }; Returns: boolean }
       disband_stale_room: { Args: { p_room_id: string }; Returns: boolean }
-      rated_is_tester: { Args: { p_user_id: string }; Returns: boolean }
-      rated_queue_claim: {
+      mm_is_tester: { Args: { p_user_id: string }; Returns: boolean }
+      mm_queue_claim: {
         Args: { p_choice: string; p_format: string; p_match: string; p_users: string[] }
         Returns: boolean
       }
-      rated_run_use: {
+      mm_run_use: {
         Args: { p_day_start: string; p_key: string; p_match: string; p_max: number; p_viewer: string }
         Returns: boolean
       }

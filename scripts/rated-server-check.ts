@@ -170,7 +170,7 @@ async function runAll(db: LocalDb): Promise<void> {
     const word = await call(fns.ratedQueueJoinFn, { format: "bo3", choice: "word" }, userToken(ALI));
     const ffa = await call(fns.ratedQueueJoinFn, { format: "ffa8", choice: "mixed" }, userToken(ALI));
     check(bo5.reason === "option" && word.reason === "option" && ffa.reason === "option", "switched-off formats and choices are refused by the server");
-    check(q(`SELECT count(*) FROM public.rated_queue`) === "0", "nothing was queued by a refused join");
+    check(q(`SELECT count(*) FROM public.mm_queue`) === "0", "nothing was queued by a refused join");
     const tester = await call(fns.ratedStatusFn, {}, userToken(ALI));
     check(tester.open === true && tester.options.formats.join(",") === "bo3", "a tester's status: open, best of 3 offered");
   });
@@ -193,7 +193,7 @@ async function runAll(db: LocalDb): Promise<void> {
     liveRoomId = p4.match.roomId!;
     const pBo = await rated.pollQueue(client, BO, T0 + 4_200);
     check(pBo.state === "found" && pBo.match.matchId === liveMatchId, "the partner finds the same match");
-    check(q(`SELECT count(*) FROM public.rated_matches`) === "1" && q(`SELECT count(*) FROM public.rated_queue`) === "0", "one match; both searches cleared");
+    check(q(`SELECT count(*) FROM public.mm_matches`) === "1" && q(`SELECT count(*) FROM public.mm_queue`) === "0", "one match; both searches cleared");
     const room = q(`SELECT status || ',' || phase || ',' || round_count || ',' || jsonb_array_length(puzzles_public) FROM public.duels WHERE id = '${liveRoomId}'`);
     check(room === "in_progress,starting,3,3", `an ordinary room, already started, three games (${room})`);
     const seated = q(`SELECT string_agg(user_id::text || ':' || player_slot, ',' ORDER BY player_slot) FROM public.duel_players WHERE duel_id = '${liveRoomId}'`);
@@ -260,8 +260,8 @@ async function runAll(db: LocalDb): Promise<void> {
     const settled = results.find((r) => r.state === "settled") ?? viaFn;
     check(settled.state === "settled" && settled.result.winner === "a" && settled.result.players[0]!.gamesWon === 2 && settled.result.players[1]!.gamesWon === 1 && settled.result.ratings?.ok === true, "the result from the stored scores: Ali 2–1, W3a's answer kept");
     check(viaFn.state === "settled", "a later settle answers the stored result");
-    check(q(`SELECT status FROM public.rated_matches WHERE id = '${liveMatchId}'`) === "settled", "the match is settled");
-    check(q(`SELECT count(*) FROM public.rated_runs WHERE match_id = '${liveMatchId}'`) === "2", "both players' runs join the recorded-run pool");
+    check(q(`SELECT status FROM public.mm_matches WHERE id = '${liveMatchId}'`) === "settled", "the match is settled");
+    check(q(`SELECT count(*) FROM public.mm_runs WHERE match_id = '${liveMatchId}'`) === "2", "both players' runs join the recorded-run pool");
     const play = await call(duel.rematchFn, { roomId: liveRoomId }, userToken(ALI));
     check(play.ok === false, "Play again is refused in a rated room");
   });
@@ -275,7 +275,7 @@ async function runAll(db: LocalDb): Promise<void> {
     check(both.state === "agreed" && both.match.rematchOf === liveMatchId && both.match.kind === "live", "both within 8 s: a new rated match");
     const again = await rated.requestRematch(client, ALI, liveMatchId, finished + 3_500);
     check(again.state === "agreed" && both.state === "agreed" && again.match.matchId === both.match.matchId, "the rematch is made once");
-    check(q(`SELECT count(*) FROM public.rated_matches WHERE rematch_of = '${liveMatchId}'`) === "1", "exactly one rematch row");
+    check(q(`SELECT count(*) FROM public.mm_matches WHERE rematch_of = '${liveMatchId}'`) === "1", "exactly one rematch row");
     if (both.state !== "agreed") return;
     // Finish the rematch at once and settle it: it is a rated match like any other (W3a counts it).
     const rid = both.match.roomId!;
@@ -297,14 +297,14 @@ async function runAll(db: LocalDb): Promise<void> {
     if (found.state !== "found") return;
     const m = found.match;
     check(m.recorded !== null && m.recorded.ownerId !== CY && /^Recorded run · /.test(m.recorded.label), `labelled with its real age, never one's own (${m.recorded?.label})`);
-    const key = q(`SELECT recorded_key FROM public.rated_matches WHERE id = '${m.matchId}'`);
-    const src = q(`SELECT duel_id FROM public.rated_runs WHERE key = '${key}'`);
+    const key = q(`SELECT recorded_key FROM public.mm_matches WHERE id = '${m.matchId}'`);
+    const src = q(`SELECT duel_id FROM public.mm_runs WHERE key = '${key}'`);
     const same = q(`SELECT (a.puzzles_public = b.puzzles_public)::text || ',' || (sa.puzzles_private = sb.puzzles_private)::text FROM public.duels a, public.duels b, public.duel_secrets sa, public.duel_secrets sb
        WHERE a.id = '${m.roomId}' AND b.id = '${src}' AND sa.duel_id = a.id AND sb.duel_id = b.id`);
     check(same === "true,true", "the live player is dealt exactly the recorded run's games and deals");
-    check(q(`SELECT count(*) FROM public.rated_run_uses WHERE run_key = '${key}'`) === "1", "the use is counted");
+    check(q(`SELECT count(*) FROM public.mm_run_uses WHERE run_key = '${key}'`) === "1", "the use is counted");
     // Playback: never ahead of the run (the stored games' timelines, or nothing).
-    const games = JSON.parse(q(`SELECT recorded_games->'games' FROM public.rated_matches WHERE id = '${m.matchId}'`)) as { score: number; timeline: [number, number][] | null }[];
+    const games = JSON.parse(q(`SELECT recorded_games->'games' FROM public.mm_matches WHERE id = '${m.matchId}'`)) as { score: number; timeline: [number, number][] | null }[];
     q(`UPDATE public.duels SET phase = 'puzzle', phase_started_at = now() - interval '3 seconds' WHERE id = '${m.roomId}'`);
     const view = await call(fns.ratedOpponentScoreFn, { matchId: m.matchId }, userToken(CY));
     const g0 = games[0]!;
@@ -325,7 +325,7 @@ async function runAll(db: LocalDb): Promise<void> {
       await rated.settleMatch(client, second.match.matchId, Date.now());
     }
     // The 5-a-day cap: every rated run used up today, then no rated run can be chosen.
-    q(`INSERT INTO public.rated_run_uses (run_key, viewer_id, match_id) SELECT r.key, '${DEE}', r.match_id FROM public.rated_runs r, generate_series(1, 5)`);
+    q(`INSERT INTO public.mm_run_uses (run_key, viewer_id, match_id) SELECT r.key, '${DEE}', r.match_id FROM public.mm_runs r, generate_series(1, 5)`);
     await rated.joinQueue(client, EVE, { format: "bo3", choice: "mixed" }, t + 40_000);
     const capped = await rated.pollQueue(client, EVE, t + 48_100);
     check(capped.state === "searching", "a run used 5 times today is not played against again (none left: still searching)");
@@ -347,7 +347,7 @@ async function runAll(db: LocalDb): Promise<void> {
     const fb = await rated.pollQueue(client, KID, t + 8_000);
     check(fb.state === "found" && fb.match.kind === "recorded" && fb.match.recorded?.fallback === true, "no rated run fits: the fallback (a room's server-graded run)");
     if (fb.state === "found") {
-      const fbKey = q(`SELECT recorded_key FROM public.rated_matches WHERE id = '${fb.match.matchId}'`);
+      const fbKey = q(`SELECT recorded_key FROM public.mm_matches WHERE id = '${fb.match.matchId}'`);
       check(/^room:/.test(fbKey), `the fallback is a room run (${fbKey})`);
       const firstThree = q(`SELECT (a.puzzles_public = (SELECT jsonb_agg(e ORDER BY i) FROM jsonb_array_elements(b.puzzles_public) WITH ORDINALITY AS x(e, i) WHERE i <= 3))::text
          FROM public.duels a, public.duels b WHERE a.id = '${fb.match.roomId}' AND b.id = '${made.roomId}'`);
@@ -364,13 +364,13 @@ async function runAll(db: LocalDb): Promise<void> {
         "the fallback's run goes to W3a as a room run (its owner never moves, W3a's rule)");
     }
     // Placement: straight to a beginner's recorded run, never the live queue.
-    q(`DELETE FROM public.rated_run_uses`);
+    q(`DELETE FROM public.mm_run_uses`);
     const tp = Date.now();
     await rated.joinQueue(client, PAL, { format: "bo3", choice: "mixed" }, tp);
     const pl = await rated.pollQueue(client, PAL, tp + 100);
     check(pl.state === "found" && pl.match.kind === "recorded", "placement: a recorded run at once");
     if (pl.state === "found") {
-      const rating = q(`SELECT coalesce(recorded_owner_rating, -1) FROM public.rated_matches WHERE id = '${pl.match.matchId}'`);
+      const rating = q(`SELECT coalesce(recorded_owner_rating, -1) FROM public.mm_matches WHERE id = '${pl.match.matchId}'`);
       check(Number(rating) <= 1000, `placement: a beginner's run (owner rating ${rating})`);
     }
   });
