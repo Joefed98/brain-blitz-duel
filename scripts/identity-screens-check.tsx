@@ -467,7 +467,18 @@ for (const [who, n, shows] of [
   await click($("[data-avatars-all]"));
   check($$("[data-avatar-choice]").length === 32, `32 avatars (${$$("[data-avatar-choice]").length})`);
   check($$("[data-colour-choice]").length === 32, `32 colours (${$$("[data-colour-choice]").length})`);
-  check($$("[data-gems-locked] [data-gem]").length === 10 && !($("[data-gems-locked]")?.textContent ?? "").match(/\d/), "the 10 gems show locked, with no star counts");
+  // Wave 2 C1a: each locked gem shows the stars it needs (the master plan's thresholds).
+  // Changed with Joe's approval, 11 Nov 2026 (wave 2 C1a): was $$("[data-gems-locked] [data-gem]").length === 10 && !(…textContent…).match(/\d/),
+  // "the 10 gems show locked, with no star counts".
+  {
+    const NEEDS: Record<string, number> = { amber: 10, "rose-quartz": 20, ruby: 30, jade: 50, amethyst: 75, aquamarine: 100, sapphire: 125, pearl: 150, obsidian: 200, diamond: 250 };
+    const gems = $$("[data-gems-locked] [data-gem]");
+    check(
+      gems.length === 10 &&
+        gems.every((g) => g.hasAttribute("data-locked") && (g.querySelector("[data-gem-unlock]")?.textContent ?? "") === `Unlocks at ${NEEDS[g.getAttribute("data-gem") ?? ""]} stars`),
+      `the 10 gems show locked, each with the stars it needs (${gems.map((g) => g.querySelector("[data-gem-unlock]")?.textContent).join(" | ")})`,
+    );
+  }
   check($$("[data-slot-empty]").length === 3, "finishes, accessory and special edition: the empty line with none owned");
   check($$("[data-avatar-option]").length === 0, "Captain Joulz: one accent and background, no features or accessories: no option rows (never an empty or one-choice picker)");
   // Card tab.
@@ -592,10 +603,22 @@ for (const [who, n, shows] of [
 /* ------------------------------------------------------------------ 6. Profile has only real data */
 {
   const source = readFileSync("src/routes/profile.tsx", "utf8") + readFileSync("src/components/identity/ProfileCard.tsx", "utf8");
+  // Changed with Joe's approval, 11 Nov 2026 (wave 2 C1a): "Mastery stars" taken out of this list (the section now exists; the check below proves it).
   // Joe's approval, 11 Nov 2026 (wave 3, W3c): "Puzzles and Arcade", "Strongest categories" and "matches" removed from
   // this list (they come with rated play, from real data only, checked below); "Trophy cabinet" and "Season peak" stay.
-  for (const word of ["Trophy cabinet", "Mastery stars", "Season peak"]) {
+  for (const word of ["Trophy cabinet", "Season peak"]) {
     check(!source.includes(`>${word}<`) && !source.includes(`"${word}"`), `Profile draws no "${word}" section yet`);
+  }
+  // Changed with Joe's approval, 11 Nov 2026 (wave 2 C1a): the Mastery stars section shows the server's total out of 276.
+  {
+    const { starTotalLine } = await import("../src/lib/practice/progress");
+    const view = { games: {}, stars: 21, gems: [], noteSeen: true, freshStartAt: null };
+    check(
+      /\{progress \? \(\s*<section aria-label="Mastery stars"/.test(source) &&
+        /\{starTotalLine\(progress\)\}/.test(source) && /const progress = usePracticeProgress\(\);/.test(source) &&
+        starTotalLine(view) === "21 / 276 stars",
+      "Profile's Mastery stars section shows the server's star total out of 276",
+    );
   }
   await signIn(1);
   const { root } = await mount(() => React.createElement(ProfileCard, { guestName: "Player", guestColour: 0 }), "/profile");

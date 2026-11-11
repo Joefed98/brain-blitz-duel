@@ -20,6 +20,8 @@ import { SaveProgressOffer } from "@/components/account/SaveProgress";
 import { Button, Icon } from "@/design/components";
 import { DEFAULT_LOOK, PlayerCard, type CardLook } from "@/design/identity";
 import { cachedAccount, useAccount, type AccountCard } from "@/lib/account/accountApi";
+import { useMyBadges } from "@/lib/badges/badgesApi";
+import { titleName } from "@/lib/badges/catalogue";
 import { useMyIdentity } from "@/lib/identity/identityApi";
 import { recordIdentityEvent } from "@/lib/identity/identityEvents";
 import type { Loadout } from "@/lib/identity/backend";
@@ -40,6 +42,8 @@ export function ProfileCard({ guestName, guestColour }: { guestName: string; gue
   const router = useRouter();
   const account = useAccount();
   const identity = useMyIdentity();
+  // C2: the card's badges and title (badgesApi.ts; accounts, once the server answers).
+  const mine = useMyBadges().badges;
   const rated = useRatedStatus();
   const [cached, setCached] = useState<AccountCard | null>(null);
   const [offer, setOffer] = useState(false);
@@ -77,6 +81,8 @@ export function ProfileCard({ guestName, guestColour }: { guestName: string; gue
         playerNumber={playerNumber}
         guest={!isAccount}
         guestColour={guestColour ?? 0}
+        title={mine?.account ? titleName(mine.title) : null}
+        badges={mine?.account ? mine.card : undefined}
         rank={isAccount && rated?.standing.state === "placed" ? rated.standing.rank : null}
       />
       <Button variant="secondary" size={48} block onClick={customise} data-customise-open>
