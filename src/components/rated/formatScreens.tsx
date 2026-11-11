@@ -11,7 +11,7 @@
  */
 import type { ComponentType } from "react";
 
-import type { RatedResult, SearchProgress } from "@/lib/rated/backend";
+import type { RatedPick, RatedResult, SearchProgress } from "@/lib/rated/backend";
 import type { RatedPlayer } from "@/lib/rated/backend";
 import type { RatedFormat } from "@/lib/rated/matchmaking";
 
@@ -26,6 +26,11 @@ export function formatKind(format: RatedFormat): FormatKind {
 /** What every search screen is given. */
 export interface SearchScreenProps {
   me: RatedPlayer;
+  /** W3b's format being searched for (ffa4 / ffa8 for a 4- or 8-player match): read this, never the pick text. */
+  format: RatedFormat;
+  /** The pick (Mixed, All puzzles…), or null. */
+  pick: RatedPick | null;
+  /** For display only: "Mixed, 8 players". */
   pickText: string;
   progress: SearchProgress | null;
   onCancel: () => void;
@@ -42,11 +47,25 @@ export interface ResultScreenProps {
   onReveal: () => void;
 }
 
+/** What the Between screen is given: the room route draws it after each game of a 4- or 8-player match. */
+export interface BetweenScreenProps {
+  matchId: string;
+  format: RatedFormat;
+  /** Games played so far (1-based) and the match's games. */
+  game: number;
+  games: number;
+  /**
+   * Time until the next game starts (its title card), from the room's own phase clock (msUntilNextGame, between.ts);
+   * null after the last game. It can end sooner when every player taps Continue.
+   */
+  msUntilNext: number | null;
+}
+
 export interface FormatScreens {
   Search: ComponentType<SearchScreenProps>;
   Result: ComponentType<ResultScreenProps>;
   /** Between games (W3d's standings); a 1v1 has none (the room's own round result plays between). */
-  Between?: ComponentType<{ matchId: string }>;
+  Between?: ComponentType<BetweenScreenProps>;
   /** Show VS before the games (a 1v1's two cards); W3d's filling screen leads straight in. */
   vs: boolean;
 }

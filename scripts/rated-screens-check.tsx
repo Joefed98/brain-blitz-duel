@@ -848,6 +848,121 @@ const profileUi = () => React.createElement(ProfileCard, { guestName: "Player", 
   check(validate({ format: "bo5" }).format === "bo5" && validate({ bestOf: 3 }).format === "bo3" && validate({ format: "nonsense" }).format === undefined, "the route reads W3b's format (an older bestOf link as bo3)");
 }
 
+/* ------------------------------------------------------------------ 10. Challenge for friends only (11 Nov 2026) */
+{
+  const bind = await import("../src/lib/rated/w3Binding");
+  const friendsApiMod = await import("../src/lib/friends/friendsApi");
+  const live: RatedMatch = { ...MATCH, source: { kind: "live" } };
+  const recorded: RatedMatch = { ...MATCH, source: { kind: "recorded", label: "Recorded run · 2 h ago" } };
+  const guestThem: RatedMatch = { ...MATCH, them: { ...SAM, guest: true } };
+  const guestMe: RatedMatch = { ...MATCH, me: { ...ME_PLACED, guest: true } };
+  const deleted: RatedMatch = { ...MATCH, them: { ...SAM, deleted: true, userId: null } };
+  check(bind.challengeAllowed(live, "friends"), "Challenge: a live opponent who is a friend");
+  check(!bind.challengeAllowed(recorded, "friends"), "Challenge: never for a recorded run, even a friend's");
+  check(!bind.challengeAllowed(guestThem, "friends"), "Challenge: never for a guest opponent");
+  check(!bind.challengeAllowed(guestMe, "friends"), "Challenge: never when you play as a guest");
+  check(!bind.challengeAllowed(deleted, "friends"), "Challenge: never for a deleted player");
+  check(["none", "requested", "incoming", "blocked", "self", null].every((r) => !bind.challengeAllowed(live, r)), "Challenge: never for a non-friend (no relation, a request either way, blocked)");
+
+  // B1's relation through its own phone API (friends-ui-check's stand-in): asked only for a live account opponent.
+  const asked: string[] = [];
+  let relation = "friends";
+  friendsApiMod.setFriendsFunctionsForChecks({
+    friendProfileFn: (async ({ data }: { data: { playerId: string } }) => {
+      asked.push(data.playerId);
+      return { ok: true, profile: { relation } };
+    }) as never,
+  });
+  check((await bind.friendRelation(live)) === "friends" && asked.join() === "u-7", "B1 asked about the live opponent: friends");
+  relation = "none";
+  check(!bind.challengeAllowed(live, await bind.friendRelation(live)), "B1 says not friends: no Challenge");
+  asked.length = 0;
+  relation = "friends";
+  check((await bind.friendRelation(recorded)) === null && (await bind.friendRelation(guestThem)) === null && (await bind.friendRelation(guestMe)) === null && (await bind.friendRelation(deleted)) === null && asked.length === 0, "a recorded run, a guest or a deleted player: B1 never asked, no Challenge");
+  friendsApiMod.setFriendsFunctionsForChecks({ friendProfileFn: (async () => ({ ok: false, reason: "error" })) as never });
+  check(!bind.challengeAllowed(live, await bind.friendRelation(live)), "B1 can't answer: no Challenge");
+  friendsApiMod.setFriendsFunctionsForChecks(null);
+
+  const src = readFileSync("src/lib/rated/w3Binding.ts", "utf8");
+  check(src.includes("friend: challengeAllowed(match, await friendRelation(match)),"), "the result's Challenge comes from B1's friendship");
+  check(/async challenge\(matchId\)[\s\S]*?challengeAllowed\(match, await friendRelation\(match\)\)[\s\S]*?challengeFromRoom\(v\.roomId\)[\s\S]*?friendsApi\.challenge\(match\.them\.userId, made\.code\)/.test(src), "Challenge is asked again before it is made, then made by the existing flow and sent to the friend");
+
+  // On the screen: shown for a friend, hidden for each of the others.
+  const { MatchResult } = await import("../src/components/rated/RatedMatchScreens");
+  const el = (r: RatedResult) =>
+    React.createElement(MatchResult, { result: r, nowMs: Date.now(), onNext: () => {}, onRematch: () => {}, onTiers: () => {}, onChallenge: async () => ({ ok: true as const, code: "ABC234" }), onReveal: () => {} });
+  for (const [name, m, friend] of [
+    ["a live friend", live, true],
+    ["a recorded run", recorded, false],
+    ["a guest", guestThem, false],
+    ["a non-friend", live, false],
+  ] as const) {
+    const root = await render(el(result({ match: m, friend: bind.challengeAllowed(m, friend ? "friends" : "none"), rematchUntil: null })));
+    check(!!$("[data-rated-challenge]") === friend, `result screen: ${friend ? "Challenge shown" : "no Challenge"} for ${name}`);
+    root.unmount();
+  }
+}
+
+/* ------------------------------------------------------------------ 11. 4- and 8-player matches: Search's format, Between */
+{
+  const fs = await import("../src/components/rated/formatScreens");
+  const between = await import("../src/lib/rated/between");
+  const { RatedBetween, betweenFor } = await import("../src/components/rated/RatedBetween");
+  const route = readFileSync("src/routes/rated.tsx", "utf8");
+  check(/<Search\s+me=\{status\.me\}\s+format=\{format\}\s+pick=\{pick \?\? null\}/.test(route), "Search is passed W3b's format (ffa4 / ffa8), not just the pick text");
+  // A Search screen sees the format: the route's props type carries it.
+  const seen: { format?: string }[] = [];
+  const FakeSearch = (p: import("../src/components/rated/formatScreens").SearchScreenProps) => {
+    seen.push({ format: p.format });
+    return null;
+  };
+  let root = await render(React.createElement(FakeSearch, { me: ME_PLACED, format: "ffa8", pick: "mixed", pickText: "Mixed, 8 players", progress: null, onCancel: () => {} }));
+  check(seen[0]?.format === "ffa8", "a Search screen reads ffa8 from its props");
+  root.unmount();
+
+  // The time to the next game, from the room's own phase clock.
+  check(between.msUntilNextGame("result", 0, 1, 4) === 8000 + 10000, "Between: from the round result, its 8 s and the standings' 10 s");
+  check(between.msUntilNextGame("result", 3000, 1, 4) === 5000 + 10000, "Between: counts down through the round result");
+  check(between.msUntilNextGame("standings", 4000, 2, 4) === 6000, "Between: then down through the standings");
+  check(between.msUntilNextGame("standings", 12000, 2, 4) === 0, "Between: never below 0");
+  check(between.msUntilNextGame("standings", 0, 4, 4) === null && between.msUntilNextGame("result", 0, 4, 4) === null, "Between: no next game after the last");
+  check(between.isBetweenPhase("result") && between.isBetweenPhase("standings") && !between.isBetweenPhase("puzzle") && !between.isBetweenPhase("reveal"), "Between: only between games");
+
+  // RatedBetween draws the slot's Between with the match, its games and the time to the next game.
+  const got: Record<string, unknown>[] = [];
+  const FakeBetween = (p: import("../src/components/rated/formatScreens").BetweenScreenProps) => {
+    got.push({ ...p });
+    return React.createElement("p", { "data-fake-between": "" }, "standings");
+  };
+  const slot = (f: string) => (f === "ffa4" || f === "ffa8" ? { Search: FakeSearch, Result: () => null, Between: FakeBetween, vs: false } : fs.screensFor(f as never));
+  root = await render(React.createElement(RatedBetween, { matchId: "m-multi", format: "ffa4", phase: "standings", elapsedMs: 2500, round: 2, totalRounds: 4, screens: slot as never }));
+  const p = got[got.length - 1] ?? {};
+  check(!!$("[data-rated-between='ffa4'] [data-fake-between]"), "a 4-player match: the slot's Between is drawn between games");
+  check(p.matchId === "m-multi" && p.format === "ffa4" && p.game === 2 && p.games === 4 && p.msUntilNext === 7500, `Between is given the match, the games and 7.5 s to the next game (${JSON.stringify(p)})`);
+  root.unmount();
+  root = await render(React.createElement(RatedBetween, { matchId: "m-multi8", format: "ffa8", phase: "result", elapsedMs: 0, round: 8, totalRounds: 8, screens: slot as never }));
+  check(!!$("[data-rated-between='ffa8']") && got[got.length - 1]?.msUntilNext === null, "an 8-player match after its last game: Between with no next game");
+  root.unmount();
+  root = await render(React.createElement(RatedBetween, { matchId: "m1", format: "bo3", phase: "standings", elapsedMs: 0, round: 1, totalRounds: 3, screens: slot as never }));
+  check(!$("[data-rated-between]") && betweenFor("bo3", slot as never) === null, "a 1v1: no Between (the room's own screens play)");
+  root.unmount();
+
+  // The room route: Between in place of the round result and standings for a rated 4- or 8-player match only.
+  const room = readFileSync("src/routes/duel.$code.tsx", "utf8");
+  const branch = room.indexOf("if (ratedMatchId && ratedFormat && isBetweenPhase(phase) && betweenFor(ratedFormat))");
+  check(branch > 0 && branch < room.indexOf('if (phase === "result") {') && room.includes("const ratedFormat = useRatedRoomFormat(roomCode, ratedMatchId);"), "the room route draws Between before its own result and standings, for a rated room with a Between");
+  check(/<RatedBetween[\s\S]*?elapsedMs=\{now - \(phaseStart \?\? now\)\}[\s\S]*?totalRounds=\{duel\.round_count \?\? TOTAL_ROUNDS\}/.test(room), "the room route passes its phase clock and the match's games");
+
+  // The room's format, noted beside its match (this tab) or from W3b's ratedRoomFn.
+  const ratedRoomMod = await import("../src/lib/rated/ratedRoom");
+  ratedRoomMod.noteRatedRoom("FF8X", "m-8", "ffa8");
+  check(ratedRoomMod.ratedFormatForRoom("ff8x") === "ffa8", "the room's format is noted with its match");
+  sessionStorage.setItem("duelz-rated-room-format:v1:BAD1", "nonsense");
+  check(ratedRoomMod.ratedFormatForRoom("BAD1") === null && ratedRoomMod.ratedFormatForRoom("NONE") === null, "an unknown or missing format reads as none");
+  check(ratedRoomMod.ratedFormatForRoom("QR7T") === "bo3", "a room found through W3b's ratedRoomFn keeps its format too");
+  check(readFileSync("src/routes/rated.tsx", "utf8").includes("noteRatedRoom(match.roomCode, match.id, match.format);"), "the rated route notes the match's format as it opens the room");
+}
+
 check(consoleErrors.length === 0, `no console errors (${consoleErrors.slice(0, 3).join(" | ")})`);
 console.error = origError;
 const passed = checks - failures.length;

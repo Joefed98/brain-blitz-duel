@@ -36,8 +36,10 @@ import {
 } from "@/lib/duel/startPresentation";
 import { WinnerReveal } from "@/components/duel/WinnerReveal";
 import { RatedRoomHandOff } from "@/components/rated/RatedRoomHandOff";
+import { betweenFor, RatedBetween } from "@/components/rated/RatedBetween";
+import { isBetweenPhase } from "@/lib/rated/between";
 import { RatedRoomScore } from "@/components/rated/RatedFrameScore";
-import { useRatedRoom } from "@/lib/rated/ratedRoom";
+import { useRatedRoom, useRatedRoomFormat } from "@/lib/rated/ratedRoom";
 import { animateFx } from "@/lib/fx/motion";
 import { RoundPips } from "@/components/duel/RoundPips";
 import { RoundResult } from "@/components/duel/RoundResult";
@@ -283,6 +285,8 @@ function DuelScreen() {
   const { duel, players, results, me, opponent, roomPlayers, isMulti, isHost, now } = state;
   // A rated match (wave 3, W3b's room; W3c's screens): null for every ordinary room, which is then exactly as before.
   const ratedMatchId = useRatedRoom(roomCode, duel?.id ?? null);
+  // Its W3b format: a 4- or 8-player match draws the format slot's Between screen between games.
+  const ratedFormat = useRatedRoomFormat(roomCode, ratedMatchId);
   // A new version reloads only between rounds and lands back here (lib/appUpdate).
   useUpdateGate(
     roomUpdateGate({
@@ -1198,6 +1202,24 @@ function DuelScreen() {
           now={now}
         />
       </PhoneShell>
+    );
+  }
+
+  // A rated 4- or 8-player match between games: the format slot's Between screen in place of the round result and
+  // standings (a 1v1 has no Between, so this is skipped and the room's own screens play).
+  if (ratedMatchId && ratedFormat && isBetweenPhase(phase) && betweenFor(ratedFormat)) {
+    return withPanel(
+      <PhoneShell skin="room" gameType={puzzle?.type} topAction={leaveAction}>
+        {dropout}
+        <RatedBetween
+          matchId={ratedMatchId}
+          format={ratedFormat}
+          phase={phase}
+          elapsedMs={now - (phaseStart ?? now)}
+          round={round}
+          totalRounds={duel.round_count ?? TOTAL_ROUNDS}
+        />
+      </PhoneShell>,
     );
   }
 

@@ -2210,7 +2210,11 @@ outside the repo.
   stage publishes its running score once a second only while it is asked, through the import-free `liveScore.ts`), and
   the finished room hands over to `/rated?match=` after W3b's winner reveal. The placement boxes are W3a's own
   per-match results (`placementBoxesOf`), the VS record W3b's `ratedHeadToHeadFn` (live opponents only), and `/rated`
-  picks its screens by W3b's format (`formatScreens.tsx`; W3d fills the 4- and 8-player row). Guests show under W3b's energy
+  picks its screens by W3b's format (`formatScreens.tsx`; W3d fills the 4- and 8-player row): Search is given the format,
+  and a rated 4- or 8-player room draws the slot's Between in place of its round result and standings (`RatedBetween`,
+  with the time until the next game, `msUntilNextGame` in `between.ts`; the format noted beside the match in
+  `ratedRoom.ts`). Challenge on the result only for a live opponent B1 calls a friend (`challengeAllowed`, asked again
+  before it is made and sent through B1's `friendsApi.challenge`); never a recorded run, a guest or a non-friend. Guests show under W3b's energy
   name with a Guest tag; a guest's finished rated match counts for the save-your-progress prompt ("Save your rating and
   stars", `SAVE_PROGRESS_FROM` "rated"). Under automation the real binding stays off unless a page sets
   `window.__DUELZ_ALLOW_RATED__` (ignored in production). Events play_card_tapped, vs_shown, result_viewed,

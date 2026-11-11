@@ -100,7 +100,7 @@ function RatedScreen() {
   // The games: W3b's room on the room route, marked as this rated match for its header and hand-over.
   const enterRoom = (match: RatedMatch) => {
     if (!match.roomCode) return setPhase({ kind: "error", message: "That match’s room isn’t ready. Try again." });
-    noteRatedRoom(match.roomCode, match.id);
+    noteRatedRoom(match.roomCode, match.id, match.format);
     void navigate({ to: "/duel/$code" as never, params: { code: match.roomCode } as never, replace: true });
   };
 
@@ -167,9 +167,11 @@ function RatedScreen() {
   let body;
   if (phase.kind === "searching" || phase.kind === "waiting") {
     const Search = screens?.Search;
-    body = status && Search ? (
+    body = status && Search && format ? (
       <Search
         me={status.me}
+        format={format}
+        pick={pick ?? null}
         pickText={pick && format ? `${pickLabel(pick)}, ${formatText(format)}` : ""}
         progress={phase.kind === "searching" ? phase.progress : null}
         onCancel={() => {

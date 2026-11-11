@@ -124,7 +124,7 @@ const PUSH_TASKS = {
 const SERVER_BUILD = Object.assign(
   { minify: true },
   { cloudflare: { wrangler: { observability: WORKER_OBSERVABILITY } } },
-  withTasks(nitroTasks(RATED_TASKS), MATCHMAKING_TASKS, PUSH_TASKS),
+  withTasks(withTasks(nitroTasks(RATED_TASKS), MATCHMAKING_TASKS), PUSH_TASKS),
 ) as NitroOptions & { minify: boolean };
 
 export default defineConfig({
