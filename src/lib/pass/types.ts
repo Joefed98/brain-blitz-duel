@@ -16,6 +16,8 @@ export interface PassCell {
   /** An item's rarity (lower case), or null. */
   rarity: string | null;
   itemId: string | null;
+  /** The item's kind (card-art, frame, name-colour… : how its picture is drawn), or null. */
+  itemKind: string | null;
   state: CellState;
   /** Premium cells for a player without the premium track. */
   needsPremium: boolean;

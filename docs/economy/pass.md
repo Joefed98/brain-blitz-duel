@@ -13,6 +13,7 @@ pass module.
 | --- | --- |
 | Migration: seasons, Joules, members, premium, claims, pass titles, weekly draws, the stored-results reader, Joe's functions | `supabase/migrations/20261113100000_season_pass.sql` |
 | Migration: the four analytics events (added to the list as it stands) | `supabase/migrations/20261113100100_analytics_pass_events.sql` |
+| Migration: the pass titles in public.titles, test-season reward reasons, `pass.remove_test_season_rewards` | `supabase/migrations/20261113100200_pass_titles_test_rewards.sql` |
 | Both tracks level by level, levels | `src/lib/pass/rewards.ts` |
 | Joules amounts, day limits, soft cap (pure mirror of the database's arithmetic), the wave 3 / 4 amounts | `src/lib/pass/joules.ts` |
 | The weekly pool of 45, the weekly draw, progress (pure) | `src/lib/pass/weekly.ts` |
@@ -23,7 +24,7 @@ pass module.
 | Phone calls and the shared pass state | `src/lib/pass/passApi.ts`, `src/lib/pass/types.ts` |
 | The switch | `src/config/passConfig.ts` (`PASS_FOR_EVERYONE`, false) |
 | Screens | `src/components/pass/` (PassScreen in the Shop tab's Pass part, PassHomeCard on Play, JoulesLine on results, PassLevelNotice), `src/polish-layout/pass.css` |
-| Check | `scripts/pass-check.ts` (shard `e`, ~20 s, PostgreSQL) |
+| Checks | `scripts/pass-check.ts` (shard `e`, ~25 s, PostgreSQL), `scripts/pass-screens-check.tsx` (happy-dom, ~3 s) |
 
 ## Who sees it
 
@@ -60,6 +61,13 @@ SELECT * FROM pass.test_purchases('TheirUsername');
 SELECT pass.remove_test_purchase('TheirUsername', 'end of the test round');          -- every season's
 SELECT pass.remove_test_purchase('TheirUsername', 'end of the test round', 'test');  -- one season's
 
+-- Before launch: take back everything the testers' season paid, in one call (all testers, or one). Coins and
+-- consumables get a line of their own (test_pass_reward_removed; never below zero: the answer says what was already
+-- spent), items claimed only in the test season are removed, test-season titles go (a card showing one goes back to
+-- Rookie), and the test season's premium tracks are marked removed. Running it again takes nothing more.
+SELECT pass.remove_test_season_rewards('clean-up before launch');
+SELECT pass.remove_test_season_rewards('clean-up', 'TheirUsername');
+
 -- Any week's three weekly challenges as drawn (any day of the week).
 SELECT pass.week('2026-11-18');
 -- One account's pass at a glance; the log.
@@ -69,7 +77,7 @@ SELECT at, by_role, action, season_id, user_id, detail, note FROM pass.admin_log
 
 A reset never deletes: each account's place in a season has a start ("epoch": the season's start, moved on by a
 reset), and Joules lines, claims and levels are kept per start. Items and coins claimed before a reset stay owned;
-claiming the same level again after a reset pays its coins and consumables again (test season only).
+claiming the same level again after a reset pays its coins and consumables again (test season only, as test rewards).
 
 ## Joules (`economy-design.md` "Joules and pacing")
 
@@ -91,8 +99,10 @@ in the order the play happened, under a lock on the account, so two reads never 
 
 - **Soft cap**: after 4,000 Joules from play in a UK day, further play earns half (rounded down; an event straddling
   4,000 pays the part below in full). Weekly rewards are paid whole and don't count towards the day.
-- Every day limit and the cap count per UK calendar day of the source event (midnight to midnight in London, summer
-  time included). Nobody is ever stopped from playing.
+- Every day limit and the cap count per UK calendar day **of the play** (the stored result's own time: midnight to
+  midnight in London, summer time included), never the day it is credited: `pass_joules.uk_day` comes from the source
+  event's time, and the limits and cap sum that day's lines. Play late on Wednesday and open the pass on Thursday, and
+  the Joules count on Wednesday (pass-check, "UK day of play"). Nobody is ever stopped from playing.
 - **Hooks for later** (named, nothing calls them yet): `creditRatedMatchJoules` (wave 3: 150 a win, 100 a loss, 1.5×
   for the longer formats) and `creditTournamentJoules` (wave 4: an Arena duel 100, finishing an event 150), in
   `pass.server.ts`, amounts in `joules.ts`.
@@ -109,7 +119,17 @@ in the order the play happened, under a lock on the account, so two reads never 
 - Rewards are paid through A1's functions under the claim's own key (`pass:<season>:<epoch>:<track>:<level>`): items
   by `grantItem` (how `pass`), coins by `creditCoins` (reason `pass_reward`), streak freezes and tournament tickets by
   `grantConsumable` (reason `pass_reward`), the two titles (Neon Rider, Circuit Breaker) into
-  `public.pass_title_unlocks`.
+  `public.pass_title_unlocks`. **The testers' season pays its coins and consumables as test rewards** (reason
+  `test_pass_reward`, as D1's test coin packs are `test_purchase`).
+- **The pass titles are equippable once unlocked** (Joe's approval, 11 Nov 2026): Neon Rider and Circuit Breaker are
+  rows of `public.titles` (kind `pass`, after the brief's 32; badges-check's two counts are 34 with the approval beside
+  them), and `badge_set_title` equips one only with its row in `public.pass_title_unlocks`. Customise's title list
+  shows them once unlocked (`MyBadges.passTitles`); other players read them on the card as any title.
+- **Pictures**: each reward shows its real picture. Card arts and frames are drawn by A2's player card renderer
+  (`CardPiece`), name colours as the player's own name in the colour (`NamePiece`); every other pass item (skins, world
+  themes, reactions, celebrations, tile styles, avatar items) uses its approved still, cut by
+  `bun scripts/shop-previews.ts` (extended to the pass's items, the same `public/shop/<id>.webp` and
+  `SHOP_PREVIEWS`). Coins, tickets, freezes and titles keep their marks.
 - **Claiming**: a tap on the pass screen (`claimPassRewardFn`); only a reached level, premium only with the premium
   track; twice (even at the same moment) pays once.
 - **Premium**: a late purchase makes every premium reward already passed claimable at once; the Neon Captain Joulz

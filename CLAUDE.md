@@ -2106,15 +2106,19 @@ outside the repo.
   five challenges and the 4,000 soft cap per UK day under a lock (`joules.ts` mirrors the arithmetic). 1,000 a level, 60
   levels; both tracks in `rewards.ts` (pass-check proves them against economy-design.md and catalogue.json); claims pay
   through A1's helpers under `pass:<season>:<epoch>:<track>:<level>`; the two pass titles go to
-  `public.pass_title_unlocks` (not yet equippable: C2's `public.titles` is pinned at 32 rows by badges-check). Premium:
+  `public.pass_title_unlocks` and are equippable once unlocked (rows of `public.titles` after the 32; badges-check counts
+  34, Joe's approval of 11 Nov 2026). The testers' season pays coins and consumables as `test_pass_reward`;
+  `pass.remove_test_season_rewards` takes every test-season reward back in one call. Rewards show their real pictures
+  (CardPiece / NamePiece for card arts, frames and name colours; the rest `scripts/shop-previews.ts`, extended to pass
+  items). Day limits and the cap count by the UK day of the play, not of the credit. Premium:
   a tester's test purchase (`source 'test'`), and `grantPremiumTrack` in `pass.server.ts` for E2's Plus. Weekly
   challenges (`weekly.ts`): three each Monday from the doc's 45 less the R and tournament ones, three categories a week,
   recorded in `public.pass_weeks`. Screens: the Shop tab's Pass part (`PassScreen`), the Play tab's `PassHomeCard`
   (last on the page), `JoulesLine` on results (renders nothing where the pass is off), `PassLevelNotice` above the tab
   bar. `window.__DUELZ_ALLOW_PASS__` only outside production builds (`overrideAllowed`). Events `pass_bought`,
   `pass_level_reached`, `reward_claimed`, `weekly_challenge_completed` (`20261113100100_analytics_pass_events.sql`).
-  Migrations `20261113100000_season_pass.sql`, `20261113100100` (**not applied until merged**). pass-check (~20 s, shard
-  `e`, PostgreSQL); economy-neutral-check also covers the pass modules.
+  Migrations `20261113100000_season_pass.sql`, `20261113100100`, `20261113100200` (**not applied until merged**). pass-check
+  (~25 s, shard `e`, PostgreSQL), pass-screens-check (~3 s, happy-dom); economy-neutral-check also covers the pass modules.
 - `src/components/duel/` — room/round screens (PhoneShell, RoundIntro, TimerBar,
   AnswerReveal, ArcadeReveal, WinnerReveal…); `src/components/puzzles/` — shared puzzle
   widgets; `src/lib/fx/` — sound and visual feedback (presentation only).

@@ -343,6 +343,8 @@ async function payAndRecord(
 ): Promise<"claimed" | "duplicate"> {
   const key = claimKey(season, track, level);
   const ref = { kind: "pass", id: `${season.row.id}:${track}:${level}` };
+  // The testers' season pays test rewards (removable in one call by Joe's pass.remove_test_season_rewards).
+  const reason = season.test ? "test_pass_reward" : "pass_reward";
   switch (reward.kind) {
     case "item": {
       const status = await grantItem(client, { userId, itemId: reward.item, how: "pass" });
@@ -350,14 +352,14 @@ async function payAndRecord(
       break;
     }
     case "coins": {
-      const out = await creditCoins(client, { userId, amount: reward.coins, reason: "pass_reward", ref, key });
+      const out = await creditCoins(client, { userId, amount: reward.coins, reason, ref, key });
       if (out.status !== "credited" && out.status !== "duplicate") throw new Error(`pass: coins: ${out.status}`);
       break;
     }
     case "ticket":
     case "freeze": {
       const kind = reward.kind === "freeze" ? "streak_freeze" : reward.ticket;
-      const out = await grantConsumable(client, { userId, kind, amount: 1, reason: "pass_reward", ref, key });
+      const out = await grantConsumable(client, { userId, kind, amount: 1, reason, ref, key });
       if (out.status !== "granted" && out.status !== "duplicate") throw new Error(`pass: ${kind}: ${out.status}`);
       break;
     }
@@ -416,6 +418,7 @@ async function buildView(
       detail,
       rarity: item?.rarity ?? null,
       itemId: item?.id ?? null,
+      itemKind: item?.kind ?? null,
       state: isClaimed ? "claimed" : reached(track, l, level, !!premium) ? "claimable" : "locked",
       needsPremium: track === "premium" && !premium,
     };

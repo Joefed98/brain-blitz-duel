@@ -150,6 +150,7 @@
 }
 .pass-cell {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: var(--jz-space-8);
   min-height: 64px;
@@ -178,6 +179,22 @@
   border-radius: var(--jz-radius);
   background: var(--jz-bg-raised);
   color: var(--jz-text-2);
+}
+/* A reward's picture: the card's own art at the cell's width, or the approved still. */
+.pass-cell-art {
+  display: block;
+  flex: 1 0 100%;
+  min-width: 0;
+}
+.pass-cell-art[data-pass-art="card"] .pcard {
+  display: block;
+  width: 100%;
+}
+.pass-cell-still {
+  display: block;
+  width: 100%;
+  height: 64px;
+  object-fit: contain;
 }
 .pass-cell-text {
   display: flex;

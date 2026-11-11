@@ -48,6 +48,10 @@ const $ = (sel: string) => document.querySelector(sel) as unknown as HTMLElement
 const $$ = (sel: string) => [...document.querySelectorAll(sel)] as unknown as HTMLElement[];
 const settle = async (ms = 30) => act(async () => void (await new Promise((r) => setTimeout(r, ms))));
 
+const KIND_OF = new Map(
+  (JSON.parse(readFileSync("docs/art/wave-2/catalogue.json", "utf8")) as { items: { id: string; kind: string }[] }).items.map((i) => [i.id, i.kind]),
+);
+
 const USER = "u-7";
 setAccount(
   { kind: "account", userId: USER, username: "Tester", colour: 4, playerNumber: 7, founding: true, country: null, createdAt: "2026-11-10T12:00:00.000Z", status: "active", isUnder18: false, deletion: null } as never,
@@ -67,7 +71,8 @@ function viewAt(level: number, premium: boolean, tester: boolean): PassView {
       title: label.title,
       detail: label.detail,
       rarity: null,
-      itemId: null,
+      itemId: r.kind === "item" ? r.item : null,
+      itemKind: r.kind === "item" ? (KIND_OF.get(r.item) ?? null) : null,
       state: claimed ? "claimed" : rw.reached(track, l, level, premium) ? "claimable" : "locked",
       needsPremium: track === "premium" && !premium,
     };
@@ -126,6 +131,24 @@ check(($("[data-pass-test-purchase]")?.textContent ?? "").includes("Test purchas
 check(($("[data-pass-cell='free:4'] .pass-cell-detail")?.textContent ?? "").includes("coming soon"), "tickets: for tournaments, coming soon");
 check($$("[data-pass-weekly-id]").length === 3 && ($("[data-pass-weekly-id='e1'] .pass-week-detail")?.textContent ?? "") === "Easy · 2 / 3", "this week's three with progress");
 check(($("[data-pass-weekly-id='h1'] .pass-week-joules")?.textContent ?? "") === "+1,250" && $("[data-pass-weekly-id='m2']")?.hasAttribute("data-done") === true, "their Joules and done state");
+// Each reward's real picture (Joe, 11 Nov 2026): card arts and frames through the player card renderer, name colours
+// as the player's name in the colour, every other item its approved still; coins, tickets and freezes their mark.
+const art = (id: string) => $(`[data-pass-cell='${id}'] [data-pass-art]`);
+check(art("free:6")?.getAttribute("data-pass-art") === "card" && art("free:6")?.querySelector("[data-piece='frame.bronze'] svg") !== null, "a frame: drawn by the player card renderer");
+check(art("free:32")?.querySelector("[data-piece='card-art.neon-wave'] svg") !== null, "a card art: drawn by the player card renderer");
+check(art("free:10")?.getAttribute("data-pass-art") === "name" && (art("free:10")?.textContent ?? "") === "Tester", "a name colour: the player's own name in it");
+const previews = (await import("../src/lib/shop/shopPreviews.data")).SHOP_PREVIEWS;
+const still = art("free:14")?.querySelector("img");
+check(
+  art("free:14")?.getAttribute("data-pass-art") === "still" &&
+    (still?.getAttribute("src") ?? "").startsWith(`/shop/game-skin.crazy-golf.neon-glow.webp?v=${previews["game-skin.crazy-golf.neon-glow"]}`),
+  "a game skin: its approved still",
+);
+const passItems = rw.PASS_REWARDS.filter((r) => r.reward.kind === "item").map((r) => (r.reward as { item: string }).item);
+const notLive = passItems.filter((id) => !["card-art", "frame", "name-colour"].includes(KIND_OF.get(id) ?? ""));
+check(notLive.length === 26 && notLive.every((id) => !!previews[id]), `every other pass item has its still (${notLive.filter((id) => !previews[id]).join(", ") || "all 26"})`);
+check($$("[data-pass-art]").length === 40 && $$("[data-pass-art='still'] img").length === 26, "all 40 pass items show a picture");
+check($("[data-pass-cell='free:2'] .pass-cell-glyph") !== null && $("[data-pass-cell='free:2'] [data-pass-art]") === null, "coins keep their mark");
 await act(async () => root.unmount());
 
 /* ------------------------------------------------------------------ premium bought; a non-tester */

@@ -1,10 +1,11 @@
 /**
- * The shop's item pictures (wave 2, session D1): every shop item's approved still (docs/art/wave-2/items/<kind>/
+ * The shop's item pictures (wave 2, session D1; and the pass's, D2): every shop item's (and every pass item's not
+ * drawn live) approved still (docs/art/wave-2/items/<kind>/
  * <name>.png, 2x, as it looks under Reduce Motion) scaled to at most PREVIEW_W pixels wide and encoded as WebP into
  * public/shop/<id>.webp, plus src/lib/shop/shopPreviews.data.ts (each id's content hash, put on its URL).
  *
  *   bun scripts/shop-previews.ts            write them
- *   bun scripts/shop-previews.ts --check    fail unless the data file matches the images on disk and every shop item has one
+ *   bun scripts/shop-previews.ts --check    fail unless the data file matches the images on disk and every listed item has one
  *
  * Re-run it after an item's approved art changes. The same bytes every run (no timestamps).
  */
@@ -21,11 +22,17 @@ const DATA = "src/lib/shop/shopPreviews.data.ts";
 
 interface JsonItem {
   id: string;
+  kind: string;
   source: string;
   png: string;
 }
+/**
+ * The shop's items, and (wave 2 D2) the Season pass's items whose picture isn't drawn live: card arts, frames and name
+ * colours are drawn by A2's player card renderer (CardPiece, NamePiece); every other pass item uses its approved still.
+ */
+const LIVE_KINDS = new Set(["card-art", "frame", "name-colour"]);
 const items = (JSON.parse(readFileSync("docs/art/wave-2/catalogue.json", "utf8")) as { items: JsonItem[] }).items.filter(
-  (i) => i.source === "shop",
+  (i) => i.source === "shop" || ((i.source === "pass-free" || i.source === "pass-premium") && !LIVE_KINDS.has(i.kind)),
 );
 
 function dataFile(): string {
