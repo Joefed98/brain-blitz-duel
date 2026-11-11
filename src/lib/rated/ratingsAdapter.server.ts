@@ -36,6 +36,8 @@ export interface SettledPlayer {
   scores: number[];
   /** Time used in each game (the room tie-break's, roundTimeUsedMs). */
   timesMs: number[];
+  /** The server's stored grade `extra` in each game (null for no stored result): W3a's gradeExtras. */
+  extras: (Record<string, unknown> | null)[];
   gamesWon: number;
   total: number;
 }
@@ -61,6 +63,8 @@ export interface RatedSettlement {
     fallback: boolean;
     scores: number[];
     timesMs: number[];
+    /** The run's stored grade `extra` in each game. */
+    extras: (Record<string, unknown> | null)[];
   } | null;
   /** W3a's answer (null when nothing was bound to record it). */
   ratings: RatedMatchOutcome | null;
@@ -103,7 +107,11 @@ export function ratings(): RatingsBackend {
 export async function ratingsReady(): Promise<RatingsBackend> {
   if (backend) return backend;
   try {
-    const w3a = await import("./ratings.server");
+    // getMyRatings from W3a's ratings, and finishRatedMatch from its rewards: recordRatedMatch, then the Joules through
+    // D2's hook and C2's badges (W3a's interface: the match engine calls finishRatedMatch).
+    const { getMyRatings } = await import("./ratings.server");
+    const { finishRatedMatch } = await import("./rewards.server");
+    const w3a: W3aRatings = { getMyRatings, recordRatedMatch: finishRatedMatch };
     const { START_RATING } = await import("./glicko.config");
     const { adminDb } = await import("@/lib/data/db.server");
     backend ??= bindW3aRatings(w3a, adminDb, START_RATING);
@@ -143,9 +151,9 @@ export function toRatingsResult(s: RatedSettlement): RatedMatchResult | null {
   const live = s.players[0];
   if (!live) return null;
   const other = s.recorded
-    ? { playerId: s.recorded.ownerId, scores: s.recorded.scores }
+    ? { playerId: s.recorded.ownerId, scores: s.recorded.scores, extras: s.recorded.extras }
     : s.players[1]
-      ? { playerId: s.players[1].userId, scores: s.players[1].scores }
+      ? { playerId: s.players[1].userId, scores: s.players[1].scores, extras: s.players[1].extras }
       : null;
   if (!other) return null;
   const games: RatedGame[] = [];
@@ -160,6 +168,8 @@ export function toRatingsResult(s: RatedSettlement): RatedMatchResult | null {
       version: "classic",
       signature: g.signature,
       scores: { [live.userId]: live.scores[i] ?? 0, [other.playerId]: other.scores[i] ?? 0 },
+      // Each player's stored server grade for the game, as stored (W3a reads the server's flag from it).
+      gradeExtras: { [live.userId]: live.extras?.[i] ?? null, [other.playerId]: other.extras?.[i] ?? null },
     });
   }
   return {

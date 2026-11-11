@@ -33,6 +33,8 @@ export async function storePracticeDeal(client: Db, input: PracticeDealInput): P
       ms_remaining: input.graded.storedMs,
       reaction_avg_ms: input.graded.reactionAvgMs,
       flagged: gradeFlagged(input.graded.extra),
+      // The server's own stored grade (the same extra practice_plays.breakdown keeps), handed to W3a as gradeExtras.
+      extra: input.graded.extra ? asJson(input.graded.extra) : null,
     });
     if (error) console.warn(`[practice-deal] play=${input.playId}: ${error.message}`);
   } catch (error) {

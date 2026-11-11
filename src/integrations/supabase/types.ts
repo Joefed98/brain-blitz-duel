@@ -1382,6 +1382,7 @@ export type Database = {
       mm_practice_deals: {
         Row: {
           answer: string | null
+          extra: Json | null
           flagged: boolean
           game: string
           ms_remaining: number
@@ -1394,6 +1395,7 @@ export type Database = {
         }
         Insert: {
           answer?: string | null
+          extra?: Json | null
           flagged?: boolean
           game: string
           ms_remaining: number
@@ -1406,6 +1408,7 @@ export type Database = {
         }
         Update: {
           answer?: string | null
+          extra?: Json | null
           flagged?: boolean
           game?: string
           ms_remaining?: number
