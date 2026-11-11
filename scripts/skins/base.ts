@@ -11,6 +11,10 @@
  *     deepened (×4, up to 4,096) until git can name their merge base; no tags, nothing else, the full history never
  *     (the repository is 1.2 GB). The fetch only adds objects and the remote-tracking ref refs/remotes/origin/main;
  *     the working tree and HEAD are untouched;
+ *   - each fetch is tried up to 3 times (2 s, then 4 s apart); if all three fail the check FAILS, naming the fetch,
+ *     and never passes or falls back to the stored digests;
+ *   - on a run whose head is main itself (a push or a manual run on main), the merge base is that head, so main is
+ *     compared with itself (nothing to differ) and only the stored digests, where this machine draws them, still bite;
  *   - SKINS_BASE=<sha> names the commit by hand.
  *
  * The base's src/, tsconfig.json and package.json are extracted (git archive, ~25 MB) into a temp folder with this
@@ -37,6 +41,27 @@ function headCommit(): string {
   return git(["rev-parse", "HEAD"]).out;
 }
 
+/** How many times a fetch is tried (runner network faults happen) and the waits between tries, in ms. */
+export const FETCH_ATTEMPTS = 3;
+const FETCH_WAITS = [2000, 4000];
+
+/**
+ * One fetch, tried up to FETCH_ATTEMPTS times. If every try fails it throws, naming the fetch and git's last error:
+ * the checks then FAIL (never pass, never fall back to the stored digests).
+ */
+function fetchOrThrow(args: string[], fetched: string[]): void {
+  let last = "";
+  for (let attempt = 1; attempt <= FETCH_ATTEMPTS; attempt++) {
+    fetched.push(`git ${args.join(" ")}${attempt > 1 ? ` (attempt ${attempt})` : ""}`);
+    const out = git(args);
+    if (out.ok) return;
+    last = out.err.split("\n").filter(Boolean).pop() ?? "no error text";
+    console.log(`  NOTE git fetch failed (attempt ${attempt} of ${FETCH_ATTEMPTS}): ${last}`);
+    if (attempt < FETCH_ATTEMPTS) Bun.sleepSync(FETCH_WAITS[attempt - 1]!);
+  }
+  throw new Error(`git fetch failed after ${FETCH_ATTEMPTS} attempts (git ${args.join(" ")}): ${last}. Main's renderers could not be drawn, so the default frames were not compared; this is a network fault, not a drawing difference`);
+}
+
 export interface BaseInfo {
   sha: string;
   head: string;
@@ -50,11 +75,7 @@ export function baseCommit(): BaseInfo {
   const pinned = process.env["SKINS_BASE"];
   const head = headCommit();
   if (pinned) {
-    if (!git(["cat-file", "-e", `${pinned}^{commit}`]).ok) {
-      const args = ["fetch", "--no-tags", "--depth=1", "origin", pinned];
-      fetched.push(`git ${args.join(" ")}`);
-      git(args);
-    }
+    if (!git(["cat-file", "-e", `${pinned}^{commit}`]).ok) fetchOrThrow(["fetch", "--no-tags", "--depth=1", "origin", pinned], fetched);
     return { sha: git(["rev-parse", pinned]).out, head, fetched };
   }
   const tryBase = () => {
@@ -64,10 +85,7 @@ export function baseCommit(): BaseInfo {
   };
   let sha = tryBase();
   for (let depth = 64; !sha && depth <= 4096; depth *= 4) {
-    const args = ["fetch", "--no-tags", `--depth=${depth}`, "origin", head, "+refs/heads/main:refs/remotes/origin/main"];
-    fetched.push(`git ${args.join(" ")}`);
-    const out = git(args);
-    if (!out.ok) throw new Error(`could not fetch the branch and main: ${out.err.split("\n").pop()}`);
+    fetchOrThrow(["fetch", "--no-tags", `--depth=${depth}`, "origin", head, "+refs/heads/main:refs/remotes/origin/main"], fetched);
     sha = tryBase();
   }
   if (!sha) throw new Error(`no merge base between ${head.slice(0, 8)} and main within 4,096 commits`);
