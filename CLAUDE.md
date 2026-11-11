@@ -1985,7 +1985,7 @@ outside the repo.
   grading (`gradePracticeRun`, online and synced offline runs; never the intro example, rooms, the Daily or friend
   challenges) and stores each player's best value and completion in `public.practice_challenge_progress` (guests too),
   written only by the service-role `challenge_record` / `challenge_pay_due`
-  (`supabase/migrations/20261111120000_practice_challenges.sql`, **not applied until merged**; data layer
+  (`supabase/migrations/20261111130000_practice_challenges.sql`, **not applied until merged**; data layer
   `src/lib/data/practiceChallenges.server.ts`). 17 Classic pay 100 coins (13 Hard 100 and 9 Expert 250 once live)
   through A1's ledger, reason `challenge_reward`, key `challenge_reward:<id>`, once per account; a guest's are paid at
   sign-up (`completeSignUpFn`), or the next graded run or list read. The list (`PracticeChallenges`, done from the server

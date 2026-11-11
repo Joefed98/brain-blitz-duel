@@ -1,5 +1,5 @@
 -- Practice challenges (wave 2, train C, session C1b; 11 Nov 2026; docs/challenges/catalogue.md). Additive and
--- idempotent: one new table, three service-role functions and two analytics events. No existing row is touched.
+-- idempotent: one new table, two service-role functions and one analytics event (added to the list, never replacing it). No existing row is touched.
 --
 -- public.practice_challenge_progress: one row per player (auth user: guests too) and challenge: the best value one
 -- graded Practice run gave it (its progress bar), when it was completed, the coins it pays (0, 100 or 250) and, for an

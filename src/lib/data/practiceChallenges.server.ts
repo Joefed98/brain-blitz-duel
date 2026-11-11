@@ -1,5 +1,5 @@
 /**
- * Practice challenges' data (wave 2 C1b; supabase/migrations/20261111120000_practice_challenges.sql): each player's
+ * Practice challenges' data (wave 2 C1b; supabase/migrations/20261111130000_practice_challenges.sql): each player's
  * progress row per challenge and the two service-role functions that write it. Server only; each function issues
  * exactly one call. No API role may write the table: every write is public.challenge_record or challenge_pay_due.
  */
