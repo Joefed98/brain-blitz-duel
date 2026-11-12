@@ -329,3 +329,41 @@
   font-weight: var(--jz-weight-bold);
   font-variant-numeric: tabular-nums;
 }
+
+/*
+ * "Show when I'm online" (Joe's phone check, 11 Nov 2026): the description wraps in the space left of the switch,
+ * with a 16 px gap, instead of running on under it; the switch keeps its size.
+ */
+.jz-row.fr-setting-row {
+  align-items: center;
+  gap: var(--jz-space-16);
+}
+.fr-setting-row .jz-row-text {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.fr-setting-row .jz-row-sub {
+  overflow: visible;
+  white-space: normal;
+  overflow-wrap: break-word;
+  text-overflow: clip;
+}
+.fr-setting-row .jz-switch {
+  flex: none;
+}
+
+/* A request's "Used your invite link" wraps beside Accept and Decline (the mockup's two lines), never cut off. */
+.fr-who-text .fr-sub.fr-sub-wrap {
+  overflow: visible;
+  white-space: normal;
+  text-overflow: clip;
+}
+/* "Challenge Priya_Pattern_99": a long name ends in an ellipsis inside the button. */
+.fr-btn-label {
+  display: block;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

@@ -19,7 +19,7 @@ scoring, stamp, timing or room-flow change beyond Invite to room.
 | Screens | `src/routes/friends.tsx`, `src/components/friends/FriendsScreens.tsx`, `src/polish-layout/friends.css` |
 | Entry point | Profile's Friends button (`src/components/identity/ProfileCard.tsx`) with the waiting badge |
 | Chat policy (friends type) | `src/lib/safety/chatPolicy.ts` |
-| Checks | `scripts/friends-check.ts` (PostgreSQL, ~5 s), `scripts/friends-ui-check.tsx` (happy-dom, ~3 s) |
+| Checks | `scripts/friends-check.ts` (PostgreSQL, ~5 s), `scripts/friends-ui-check.tsx` (happy-dom, ~3 s); the screens in theme-check and no-wrap-check (`FRIENDS_SCREENS`) |
 
 ## Rules
 
@@ -102,3 +102,26 @@ awards a badge once (a repeat answers "owned"), so the badge and its `badge_earn
 stored detail carries the count it was earned at. `badge_facts` is not touched. friends-check's "friendly badge"
 section proves: none at 4, earned at the fifth (either side), never twice (a sixth friend, the list opened, removed
 and re-added), no coins.
+
+## Cards (Joe's phone check, 11 Nov 2026)
+
+Joe's rule: a player's card, avatar and frame show wherever they appear.
+
+- **Rows** (friends, requests, invites, challenges, search results): the player's mini card (`MiniCard`,
+  `@/design/identity`: the two ends of their card art and frame side by side, so the frame closes round the square,
+  with their avatar in its colour). A row whose card couldn't be read keeps the colour and initial.
+- **A friend's profile**: their full `PlayerCard` (card art, frame, name colour, avatar, title, badges, player number);
+  an invite link's landing shows its owner's card. Blocked players show no card (the blocked list and a blocked
+  player's profile carry none); guests get no friends answers at all, so no cards.
+- **Why the profile showed the default card before**: getPublicCard wasn't refused. Its answer is A1's flat shape
+  (`avatarId`, `colour`, `cardArt`, `frame`…), but `a1Binding.ts` passed it on unread (`as never`) and the profile read
+  `card.loadout`, which didn't exist, so it drew the default card art and frame with no avatar, and never passed the
+  title or badges. `normalisePublicCard` (`src/lib/identity/backend.ts`) now reads that shape for any later caller.
+- **One call**: the server adds each listed player's look (`look` on `FriendCard`, `FriendLook` in friends.ts) to the
+  overview, profile, search and link-owner answers through `cardLooksFor` (friends.server.ts): A1's
+  `publicCardsFor` and C2's `cardBadgesFor`, 100 ids a read, in parallel. A list of 200 friends is 2 + 2 reads, never
+  one a friend (friends-check "cards" counts them).
+- **"Show when I'm online"**: the description wraps in the space left of the switch with a 16 px gap
+  (`.fr-setting-row`). no-wrap-check draws the Friends list and a friend's profile (`FRIENDS_SCREENS` in
+  scripts/theme-screens.ts, the harness's `friends` mode) and now fails on any switch row whose text runs under its
+  switch or is cut off, on every skinned screen.

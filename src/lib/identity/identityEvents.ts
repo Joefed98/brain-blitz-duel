@@ -6,15 +6,17 @@
  *
  * - profile_viewed: props.who "account" | "guest";
  * - customise_opened: no props;
- * - equip_refused: props.slot (a loadout slot or "avatar") and props.reason (A1's refusal type, a short snake_case word).
+ * - equip_refused: props.slot (a loadout slot, a game-look slot or "avatar") and props.reason (A1's refusal type, a short
+ *   snake_case word).
  */
-import { LOADOUT_SLOTS } from "./backend";
+import { LOADOUT_SLOTS, LOOK_SLOTS } from "./backend";
 import { checkOverride } from "@/lib/checkOverride";
 
 export const IDENTITY_EVENTS = ["profile_viewed", "customise_opened", "equip_refused"] as const;
 export type IdentityEventName = (typeof IDENTITY_EVENTS)[number];
 
-export const EQUIP_SLOTS: readonly string[] = [...LOADOUT_SLOTS, "avatar"];
+/** The card slots, the game-look slots (card back, each game's skin and world theme; fixed words) and the avatar. */
+export const EQUIP_SLOTS: readonly string[] = [...LOADOUT_SLOTS, ...LOOK_SLOTS, "avatar"];
 const REASON = /^[a-z][a-z0-9_]{0,39}$/;
 
 export interface IdentityEvent {

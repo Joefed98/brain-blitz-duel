@@ -74,6 +74,7 @@ export type { PackId };
 
 const KIND_LABELS: Readonly<Record<string, string>> = {
   "card-art": "Card art",
+  "card-back": "Card back",
   frame: "Frame",
   "name-colour": "Name colour",
   "avatar-finish": "Avatar finish",

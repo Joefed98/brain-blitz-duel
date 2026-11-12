@@ -9,7 +9,8 @@ import { px } from "../engine";
 import { MG_CUP_R, MINIGOLF_H, MINIGOLF_W, type MgHole } from "../minigolf";
 import type { BallArt } from "./ballArt";
 import { BALL_ART_COLOURS } from "./ballArt";
-import { skinTime, type ContrastPair, type GameLook } from "./look";
+import { type ContrastPair, type GameLook } from "./look";
+import { skinTime } from "./motion.renderer";
 
 const BALLS: Readonly<Record<string, BallArt>> = {
   "game-skin.crazy-golf.watermelon": "watermelon",

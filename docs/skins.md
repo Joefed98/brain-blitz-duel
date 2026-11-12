@@ -36,8 +36,29 @@ changed, and nothing here is read by a sim, a grader, a replay or a deal.
   coins-and-items code (economy-neutral-check walks `src/puzzles`).
 - **Motion.** The animated looks are the catalogue's animated items, all Legendaries: Molten Gold (a shine sweeps the
   car, sparkles twinkle), Neon Night (the kerbs chase cyan and pink, the stars twinkle) and Neon Course (the cup's ring
-  pulses; its windmill turns only as the sim's own sails do). They read `skinTime()`, which is 0 (the PNG's still)
-  under `prefers-reduced-motion`.
+  pulses; its windmill turns only as the sim's own sails do). They read `skinTime()` (`motion.renderer.ts`, the only
+  place that reads `prefers-reduced-motion`: game code under `src/lib/arcade` may not read the screen), which is 0 (the
+  PNG's still) under it.
+
+## Equipping (Customise → Games, 12 Nov 2026)
+
+Customise has a fourth tab, **Games** (`src/routes/customise.tsx` `GameLooks`, rules `gameLookRows` / `lookItemName` in
+`src/lib/identity/customise.ts`): first the account's **Card back** (the `card-back` slot, drawn on every card game's
+face-down deck; Full House today), then a section for each skinnable game the player owns a look for, with a **Skin**
+row (`game-skin:<game>`) and, where the game has world themes, a **World** row (`world-theme:<game>`). Owned items only;
+each row starts with the game's default ("Classic", "Standard skin", "Standard world"), which is always there and saves
+an empty slot. Each choice shows its picture: the item's approved still (`public/looks/<id>.webp`, built by
+`bun scripts/look-previews.ts [--check]` with `src/lib/skins/lookPreviews.data.ts`; every look item, pass ones included,
+so it never depends on the shop's own pictures) or, for the default, the game's tile. Save goes through A1's `equip()`
+like the card slots (`saveSlot` takes the look slots, `EquipSlot`), so the server checks the item is owned and belongs
+in that slot; a refusal shows its message, puts the choice back and records `equip_refused` with the look slot (the look
+slots are fixed words in `EQUIP_SLOTS`). A saved look drops the stages' last read (`forgetGameLooks`), so the next round
+draws it; another device reads it on its next round (the stage's read is kept at most 20 s).
+
+**Fix, 12 Nov 2026:** `installGameLookSource` read a `gameLooks` field from A1's loadout, which A1 never sends (it names
+every slot in `slots`); the field is made by `normaliseLoadout`. So from E1's merge until this fix every live game drew
+its default whatever was equipped. It now reads `normaliseLoadout(loadout).gameLooks` (customise-looks-check and
+customise-looks-db-check prove the path with A1's real shape).
 
 ## What each look draws
 
@@ -123,6 +144,12 @@ Each result remembers the look its player had equipped (Joe, 11 Nov 2026), so a 
   `practice-bests-check`).
 
 ## Checks and tools
+
+- customise-looks-check (happy-dom, ~2 s): the Games tab lists owned items only with their pictures; equip, a reload,
+  a second device and unequip for each kind, as the stages read it; a refused item.
+- customise-looks-db-check (~5 s, PostgreSQL, shard `e`): A1's real `equip` and `getMyLoadout` for each kind, unowned
+  items, another game's slot and a guest refused, a second device, and the renderers drawing the look (and the default
+  again after unequipping).
 
 - **Main drawn live** (Joe, 11 Nov 2026): the canvas library rasterises differently by CPU (Skia picks its path by
   CPU), so digests recorded in one container don't hold on GitHub's runners. skins-default-check and skins-check's deck

@@ -53,6 +53,29 @@ function validType(type: string): PuzzleType {
   return type as PuzzleType;
 }
 
+/** What the phone shows when Practice is asked for a game held back for Joulz Plus members (wave 2 E2). */
+const EARLY_ACCESS_HELD = "That game is in early access for Joulz Plus members. Everyone can play it soon.";
+
+/**
+ * The games early access holds back from this caller today (src/lib/plus/access.server.ts): none unless a game is
+ * marked; then every marked game for anyone but a member. Never an error: a failed read holds nothing back.
+ */
+async function heldGames(): Promise<string[]> {
+  try {
+    const { adminDb } = await import("@/lib/data/db.server");
+    const client = await adminDb();
+    const { earlyAccessGames, heldGamesFor } = await import("@/lib/plus/access.server");
+    if (!(await earlyAccessGames(client, Date.now())).length) return [];
+    const { callerUserId } = await import("./betaRecord.server");
+    return await heldGamesFor(client, await callerUserId(client), Date.now());
+  } catch {
+    return [];
+  }
+}
+async function heldBack(type: string): Promise<boolean> {
+  return (await heldGames()).includes(type);
+}
+
 /** One fresh practice deal of a type (the board picked by a new seed), split into its public and private halves. */
 async function dealPractice(type: PuzzleType, unblockRow: unknown): Promise<{ pub: PuzzleData; priv: Loose; seed: number }> {
   // The round engine's single deal (src/lib/round/deal.server.ts): no tie-break stamp, a fresh bank seed.
@@ -86,6 +109,8 @@ export const practiceGenerateFn = createServerFn({ method: "POST" })
       }
     }
     if (!example) {
+      // Early access (Joulz Plus, wave 2 E2): a game marked for members is held back from everyone else until its day.
+      if (await heldBack(type)) throw new Error(EARLY_ACCESS_HELD);
       // Slow types come from their precomputed bank; a fresh seed picks the board.
       const { pub, priv } = await dealPractice(type, unblockRow);
       return { puzzle: pub, sealed: await sealDeal(pub, priv, { __dealtAt: Date.now() }) };
@@ -346,8 +371,11 @@ export const practicePackFn = createServerFn({ method: "POST" })
     const count = Math.max(1, Math.min(PACK_MAX_DEALS, Math.floor(Number(data.count) || PACK_MAX_DEALS)));
     const types = [...new Set((Array.isArray(data.types) ? data.types : []).map(String))].slice(0, PACK_MAX_TYPES);
     const packs: { type: PuzzleType; deals: { id: number; puzzle: PuzzleData; sealed: string }[] }[] = [];
+    // Early access (wave 2 E2): no offline pack of a game held back from this caller.
+    const held = await heldGames();
     for (const raw of types) {
       if (!(PUZZLE_TYPES as string[]).includes(raw)) continue;
+      if (held.includes(raw)) continue;
       const type = raw as PuzzleType;
       // Games that ask the server during play are online only: no pack.
       if (offlineStatusOf(type) === "online") continue;

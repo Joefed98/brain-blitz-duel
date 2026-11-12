@@ -231,6 +231,7 @@ const tabLabels = () => $$("[data-app-tabbar] a").map((a) => (a.textContent ?? "
 
 /* ------------------------------------------------------------------ 1. the switch */
 check(shopConfig.SHOP_TAB_ENABLED === false, "the Shop switch ships off (SHOP_TAB_ENABLED false until train D)");
+// Changed with Joe's approval, 11 Nov 2026: the static preview list (SHOP_PREVIEW_PLAYERS = [1]) became shop.testers, the one list.
 check(
   !("SHOP_PREVIEW_PLAYERS" in shopConfig) &&
     /INSERT INTO shop\.testers[\s\S]*WHERE player_number = 1/.test(readFileSync("supabase/migrations/20261112120000_shop.sql", "utf8")),
@@ -238,6 +239,7 @@ check(
 );
 {
   const off = (testers: number[]) => ({ enabled: false, testers });
+  // Changed with Joe's approval, 11 Nov 2026: with the switch off the Shop tab follows shop.testers, no longer #0001 alone.
   check(
     shopSwitch.shopOnFor(1, off([1])) && !shopSwitch.shopOnFor(2, off([1])) && !shopSwitch.shopOnFor(null, off([1])) && !shopSwitch.shopOnFor(0, off([0, 1])) &&
       shopSwitch.shopOnFor(2, off([1, 2])) && !shopSwitch.shopOnFor(1, off([2])) && !shopSwitch.shopOnFor(1, off([])),

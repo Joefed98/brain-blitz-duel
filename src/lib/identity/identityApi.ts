@@ -7,6 +7,7 @@
 import { useEffect, useState } from "react";
 
 import { useAccount } from "@/lib/account/accountApi";
+import { forgetGameLooks } from "@/lib/skins/equipped";
 
 import {
   identityBackend,
@@ -15,9 +16,10 @@ import {
   refusalOf,
   type AvatarChoice,
   type AvatarOptions,
+  isLookSlot,
   type CatalogueItem,
+  type EquipSlot,
   type Loadout,
-  type LoadoutSlot,
   type Refusal,
 } from "./backend";
 
@@ -98,8 +100,11 @@ export function resetIdentity(): void {
   publish(EMPTY);
 }
 
-/** Saves one slot; A1 answers saved (with the loadout) or refused. */
-export async function saveSlot(slot: LoadoutSlot, itemId: string | null): Promise<{ ok: true } | Refusal> {
+/**
+ * Saves one slot; A1 answers saved (with the loadout) or refused. A game-look slot (card back, game skin, world theme)
+ * also drops the live stages' last read (src/lib/skins/equipped.ts), so the next round draws the new look.
+ */
+export async function saveSlot(slot: EquipSlot, itemId: string | null): Promise<{ ok: true } | Refusal> {
   const backend = await identityBackend();
   if (!backend) return { ok: false, reason: "not_ready", message: "Saving your card isn’t ready yet. Try again soon." };
   try {
@@ -107,7 +112,12 @@ export async function saveSlot(slot: LoadoutSlot, itemId: string | null): Promis
     const refused = refusalOf(answer);
     if (refused) return refused;
     const loadout = normaliseLoadout((answer as { loadout?: unknown }).loadout);
-    publish({ ...current, loadout: loadout ?? { slots: { ...current.loadout?.slots, [slot]: itemId }, avatar: current.loadout?.avatar ?? null } });
+    const was = current.loadout;
+    const fallback: Loadout = isLookSlot(slot)
+      ? { ...was, slots: { ...was?.slots }, avatar: was?.avatar ?? null, gameLooks: { ...was?.gameLooks, [slot]: itemId } }
+      : { ...was, slots: { ...was?.slots, [slot]: itemId }, avatar: was?.avatar ?? null };
+    publish({ ...current, loadout: loadout ?? fallback });
+    if (isLookSlot(slot)) forgetGameLooks();
     return { ok: true };
   } catch {
     return { ok: false, reason: "error", message: "That didn’t save. Check your connection and try again." };
