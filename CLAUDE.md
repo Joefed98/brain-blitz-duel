@@ -2198,7 +2198,8 @@ outside the repo.
   `20261115200200_analytics_tournament_events.sql` (**not applied until merged**). Events `tournament_entered`,
   `tournament_finished`, `prize_paid`. Every board row draws its player's nameplate strip (Joe's rule of 11 Nov 2026,
   `TournamentPlate`, the plates built once per page by `platesFor` in `src/lib/identity/plates.server.ts` and sent with
-  the board; guests and hidden under-18s "Hidden player" on colour and initial; a tap opens the full card).
+  the board; guests on colour and initial, hidden under-18s "Hidden player" on a plain neutral disc with no initial or
+  colour (Joe, 12 Nov 2026); a tap opens an account's or guest's full card).
   tournaments-check (~40 s, PostgreSQL, shard `e`), tournaments-screens-check (~2 s), tournament-plates-check (~10 s, shard `e`).
 - **The ratings engine** (wave 3 W3a, 11 Nov 2026, `docs/rated/README.md`, the contract `docs/rated/ratings-interface.md`;
   no gameplay, scoring, stamp or deal change): Glicko-2 (`src/lib/rated/glicko2.ts`, one rating period per match,

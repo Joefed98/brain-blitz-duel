@@ -2,8 +2,9 @@
  * One player on a tournament board, standings or bracket row: the nameplate strip from A2's player card (Joe's rule of
  * 11 Nov 2026). Inside the name area only, never behind a place or a score: the card art as a band with the frame over
  * it, the avatar, the name in its name colour, the rated emblem and the card's badges, all from the plate the server
- * sent with the board (plates.ts; one call per page). A guest and a hidden under-18 keep the colour and initial, with no
- * cosmetics. The strip is a button: a tap opens the player's full card (PlayerCard) in a sheet, from the same plate.
+ * sent with the board (plates.ts; one call per page). A guest keeps the room colour and initial, with no cosmetics. A hidden
+ * under-18 is "Hidden player" on a plain neutral disc (Joe, 12 Nov 2026): no initial, no colour, nothing to open. Every
+ * other strip is a button: a tap opens the player's full card (PlayerCard) in a sheet, from the same plate.
  */
 import { useId, useMemo, useState } from "react";
 
@@ -48,7 +49,22 @@ export function TournamentPlate({ plate, you = false }: { plate: PlateView; you?
     [look?.avatarId, look?.colour, look?.gem, prefix],
   );
   const nameStyle = look?.nameColour ? (NAME_COLOURS[look.nameColour] ?? null) : null;
-  const discColour = plate.kind === "card" ? 0 : colourIndex(plate.colour);
+  const discColour = plate.kind === "guest" ? colourIndex(plate.colour) : 0;
+  if (plate.kind === "hidden") {
+    return (
+      <span className="tn-plate" data-tn-plate="hidden">
+        <span className="tn-plate-area" data-plate-area="">
+          <span className="tn-plate-row">
+            <span className="tn-plate-disc tn-plate-hidden" aria-hidden="true" data-plate-hidden="" />
+            <span data-plate-name="" className="tn-plate-name tn-plate-plain">
+              {plate.name}
+            </span>
+          </span>
+        </span>
+        {you ? <span className="tn-plate-you">(you)</span> : null}
+      </span>
+    );
+  }
   return (
     <>
       <button

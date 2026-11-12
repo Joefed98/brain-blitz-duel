@@ -4,13 +4,13 @@
  *
  *  1. On a real database (scripts/server-fn-harness.ts, every migration applied): platesFor draws an account from its
  *     own public card (card art, frame, avatar, colour, name colour, badges, title), a guest as colour and initial, an
- *     under-18 as "Hidden player" on colour and initial to everyone but themselves (their username never in the
- *     answer); a failed age read hides everyone else (fails closed); the Arena and Score Attack boards carry every
+ *     under-18 as "Hidden player" on a plain neutral disc to everyone but themselves (Joe, 12 Nov 2026: no initial, no
+ *     colour, nothing of the account in the answer); a failed age read hides everyone else (fails closed); the Arena and Score Attack boards carry every
  *     row's plate in the board's own answer (one call per page), the pinned row included; the duel opponent too.
  *  2. The emblem: W3a's shown tier mapped to the Emblem (Top 500 as Lightning with its number), none in placement.
  *  3. In happy-dom: the strip draws the card art band, the frame, the avatar, the name colour, the emblem and the badges
- *     inside the name area only, never round a place or a score; guests and hidden players get a colour-and-initial disc
- *     and no cosmetics; a tap opens the full card (PlayerCard) in a sheet; a re-render leaves the DOM unchanged.
+ *     inside the name area only, never round a place or a score; guests get a colour-and-initial disc, hidden players a
+ *     plain neutral disc with nothing to open, both with no cosmetics; a tap opens an account's or guest's card (PlayerCard) in a sheet; a re-render leaves the DOM unchanged.
  *  4. Statically: the board screens draw every row through TournamentPlate and fetch nothing more for it; the plate
  *     builder reads W3a's tiers only (never records or finishes a rated match).
  */
@@ -147,8 +147,8 @@ async function runDb(db: LocalDb): Promise<void> {
     const p = got.get(PLAIN)!;
     check(p.kind === "card" && p.look.cardArt === "card-art.joulz-navy" && p.look.frame === "frame.plain" && p.look.nameColour === null && p.look.badges.length === 0, "a new account: the default card art and frame, plain name, no badges");
     const k = got.get(KID)!;
-    check(k.kind === "hidden" && k.name === HIDDEN_PLAYER_NAME && k.colour === 12 && k.initial === "K", "an under-18 seen by another: Hidden player on their colour and initial");
-    check(!JSON.stringify(k).includes("Kiddo") && !JSON.stringify(k).includes("frame") && !JSON.stringify(k).includes("badges"), "a hidden player's plate carries no username, cosmetics or badges");
+    check(k.kind === "hidden" && k.name === HIDDEN_PLAYER_NAME, "an under-18 seen by another: Hidden player");
+    check(JSON.stringify(k) === JSON.stringify({ kind: "hidden", name: HIDDEN_PLAYER_NAME }) && JSON.stringify(k) === JSON.stringify(plates.HIDDEN_PLATE), "a hidden player's plate is exactly { kind, name }: no username, initial, colour, cosmetics or badges (Joe, 12 Nov 2026)");
     const g = got.get(GUEST)!;
     check(g.kind === "guest" && g.name === "Gus" && g.colour === 9 && plates.plateInitial(g) === "G", "a guest: their room name on colour and initial");
     const self = (await platesFor(client, KID, rows, now)).get(KID)!;
@@ -181,6 +181,7 @@ async function runDb(db: LocalDb): Promise<void> {
     check(!!board && board.rows.length === 3 && board.rows.every((r) => r.plate && r.name === r.plate.name), "every Arena row carries its plate in the board's own answer");
     const kidRow = board?.rows.find((r) => r.userId === KID);
     check(kidRow?.plate.kind === "hidden" && kidRow.name === HIDDEN_PLAYER_NAME && !JSON.stringify(board).includes("Kiddo"), "the Arena board never sends a hidden player's username");
+    check(JSON.stringify(kidRow?.plate) === JSON.stringify(plates.HIDDEN_PLATE), "the Arena board's hidden row carries no initial or colour");
     check(board?.me?.plate.kind === "card" && board.me.plate.name === "Viewer", "the pinned row is the viewer's own card");
     const viaFn = await callServerFn(fns.arenaBoardFn, { eventId: arenaId }, userToken(VIEW));
     check(!!viaFn && Array.isArray(viaFn.rows) && viaFn.rows.every((r: { plate?: unknown }) => !!r.plate), "arenaBoardFn (the page's one call) answers with the plates");
@@ -238,7 +239,7 @@ const CARD: PlateView = {
   },
 };
 const GUEST_PLATE: PlateView = { kind: "guest", name: "Gus", colour: 9 };
-const HIDDEN: PlateView = { kind: "hidden", name: HIDDEN_PLAYER_NAME, colour: 12, initial: "K" };
+const HIDDEN: PlateView = plates.HIDDEN_PLATE;
 
 const host = document.createElement("div");
 document.body.appendChild(host as unknown as Node);
@@ -281,7 +282,20 @@ await section("strip", async () => {
   await draw(React.createElement("ol", null));
 });
 
-for (const [label, plate, initial, colour] of [["a guest", GUEST_PLATE, "G", 9], ["a hidden under-18", HIDDEN, "K", 12]] as const) {
+await section("a hidden under-18", async () => {
+  await draw(React.createElement("ol", null, React.createElement(Row, { plate: HIDDEN })));
+  const el = $("[data-tn-plate='hidden']")!;
+  const disc = el.querySelector("[data-plate-hidden]") as HTMLElement | null;
+  check(!!disc && (disc.textContent ?? "") === "" && !disc.getAttribute("style") && !el.querySelector("[data-plate-initial]"), "a hidden under-18: a plain neutral disc, no initial and no colour");
+  check(!el.querySelector("svg") && !el.querySelector("img") && !el.querySelector("[data-jz='emblem']") && !el.getAttribute("data-frame"), "a hidden under-18: no card art, frame, avatar, emblem or badges");
+  check(el.textContent === HIDDEN_PLAYER_NAME, "a hidden under-18 shows Hidden player");
+  check(el.tagName !== "BUTTON" && !el.querySelector("button"), "a hidden player's strip opens nothing (no card to show)");
+  await act(async () => void el.click());
+  check(!document.querySelector("[data-plate-card]"), "a tap on a hidden player opens no card");
+  await draw(React.createElement("ol", null));
+});
+
+for (const [label, plate, initial, colour] of [["a guest", GUEST_PLATE, "G", 9]] as const) {
   await section(label, async () => {
     await draw(React.createElement("ol", null, React.createElement(Row, { plate })));
     const el = $(`[data-tn-plate='${plate.kind}']`)!;
@@ -315,5 +329,5 @@ if (failures.length) {
   console.log("FAIL");
   process.exit(1);
 }
-console.log("PASS: every board row draws its player's card strip; guests and hidden under-18s keep colour and initial.");
+console.log("PASS: every board row draws its player's card strip; guests keep colour and initial, hidden under-18s a plain disc.");
 process.exit(0);

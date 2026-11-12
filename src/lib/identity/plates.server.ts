@@ -1,7 +1,7 @@
 /**
  * The plates for a page of rows (plates.ts; the tournament boards first), read for every row on the page at once: A1's public cards (the
  * rows getPublicCard draws), C2's card badges and titles, W3a's shown tiers and the dates of birth. A hidden under-18's
- * name, cosmetics, emblem and badges never leave the server; the viewer always sees their own card. A failed read of a
+ * name, initial, colour, cosmetics, emblem and badges never leave the server; the viewer always sees their own card. A failed read of a
  * cosmetic part (badges, tiers) draws the plate without it; a failed age read hides every other player (fails closed).
  */
 import { isUnder18 } from "@/lib/account/age";
@@ -13,7 +13,7 @@ import { readPublicCards } from "@/lib/data/economy.server";
 import { readDatesOfBirth } from "@/lib/data/plates.server";
 import { SLOT_DEFAULTS } from "@/lib/economy/slots";
 
-import { HIDDEN_PLAYER_NAME, plateEmblemOf, type PlateEmblem, type PlateView } from "./plates";
+import { HIDDEN_PLATE, plateEmblemOf, type PlateEmblem, type PlateView } from "./plates";
 
 export interface PlateInput {
   userId: string;
@@ -60,13 +60,7 @@ export async function platesFor(client: Db, viewerId: string, rows: readonly Pla
     const card = cardOf.get(r.userId);
     const hidden = r.userId !== viewerId && (births.error !== null || (dob !== undefined && isUnder18(dob, nowMs)));
     if (hidden) {
-      const name = card?.username ?? r.name;
-      out.set(r.userId, {
-        kind: "hidden",
-        name: HIDDEN_PLAYER_NAME,
-        colour: card?.colour ?? r.colour ?? 0,
-        initial: (Array.from(name.trim())[0] ?? "?").toLocaleUpperCase(),
-      });
+      out.set(r.userId, HIDDEN_PLATE);
     } else if (card) {
       const b = badges.get(r.userId);
       out.set(r.userId, {

@@ -8,8 +8,8 @@
  *
  *  - `card`: an account: its card art, frame, avatar, name colour, emblem, badges and title, under its username.
  *  - `guest`: no account: the room colour and initial, as rooms show them.
- *  - `hidden`: an under-18 account seen by anyone but themselves: "Hidden player" on their colour and initial, no
- *    cosmetics, emblem or badges.
+ *  - `hidden`: an under-18 account seen by anyone but themselves: "Hidden player" on a plain neutral disc (Joe, 12 Nov
+ *    2026): no initial, no colour from their account, no cosmetics, emblem or badges. Nothing identifying is sent.
  */
 import type { Tier } from "@/design/art/markup";
 
@@ -42,14 +42,15 @@ export interface PlateCardLook {
 export type PlateView =
   | { kind: "card"; name: string; look: PlateCardLook }
   | { kind: "guest"; name: string; colour: number }
-  | { kind: "hidden"; name: typeof HIDDEN_PLAYER_NAME; colour: number; initial: string };
+  | { kind: "hidden"; name: typeof HIDDEN_PLAYER_NAME };
 
-/** The plate shown when nothing could be read (a hidden player with no colour or initial of their own). */
-export const UNKNOWN_PLATE: PlateView = { kind: "hidden", name: HIDDEN_PLAYER_NAME, colour: 0, initial: "?" };
+/** A hidden player's plate: the same for everyone, carrying nothing of the account. Also what a row draws when nothing could be read. */
+export const HIDDEN_PLATE: PlateView = { kind: "hidden", name: HIDDEN_PLAYER_NAME };
+export const UNKNOWN_PLATE: PlateView = HIDDEN_PLATE;
 
-/** The disc's letter for a plate without an avatar. */
+/** The disc's letter for a guest's plate (a hidden player's disc has none). */
 export function plateInitial(plate: PlateView): string {
-  if (plate.kind === "hidden") return plate.initial;
+  if (plate.kind === "hidden") return "";
   return (Array.from(plate.name.trim())[0] ?? "?").toLocaleUpperCase();
 }
 

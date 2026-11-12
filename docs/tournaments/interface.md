@@ -163,15 +163,17 @@ A player's card, avatar and frame show wherever they appear. Every board, standi
 the nameplate strip from A2's player card: `TournamentPlate` (`src/components/tournaments/TournamentPlate.tsx`) with the
 row's `plate` (`PlateView`, `src/lib/identity/plates.ts`). The card art band, the frame, the avatar, the name colour,
 the rated emblem and the card's badges sit inside the name area only, never behind a place or a score; the strip is a
-button and a tap opens the player's full card (`PlayerCard`) in a sheet from the same plate.
+button (a hidden player's is not) and a tap opens the player's full card (`PlayerCard`) in a sheet from the same plate.
 
 - **One call per page**: the server builds every row's plate with `platesFor(client, viewerId, rows, nowMs)`
   (`src/lib/identity/plates.server.ts`: one read each of A1's public cards, C2's card badges and titles, W3a's shown
   tiers through `shownTiersFor`, and the dates of birth) and sends them inside the board's own answer. The phone fetches
   nothing for a plate.
 - `card`: an account (its username, never a row's stored name). `guest`: the room name on colour and initial.
-  `hidden`: an under-18 seen by anyone but themselves: "Hidden player" on their colour and initial, with no username,
+  `hidden`: an under-18 seen by anyone but themselves: exactly `{ kind: "hidden", name: "Hidden player" }`
+  (`HIDDEN_PLATE`; Joe, 12 Nov 2026), drawn on a plain neutral disc with nothing to open: no username, initial, colour,
   cosmetics, emblem or badges in the answer. A failed age read hides every other player (fails closed).
-- W4c: build your bracket and standings rows the same way (`platesFor` once per page, `plate` on each row, draw with
-  `TournamentPlate`). tournament-plates-check proves the plates, the boards and the strip.
+- W4c: build your bracket and standings rows the same way (`platesFor` once per page, `plate` on each row). The strip
+  that draws them becomes W4a's shared `NameplateStrip` (`@/design/identity`, on #385's `publicCardsFor`) when the
+  wave 4 train merges; `TournamentPlate` goes then, the hidden-player rules stay on the server. tournament-plates-check proves the plates, the boards and the strip.
 
