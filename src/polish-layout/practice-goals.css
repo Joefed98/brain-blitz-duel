@@ -111,3 +111,70 @@
   font-size: 14px;
   line-height: 18px;
 }
+
+/* ------------------------------------------------------------------ Completion moment (wave 2 C1b) */
+/* A small panel at the top of the Practice list, never over a round, reveal or result. */
+.pc-moment {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: var(--jz-space-12);
+  padding: var(--jz-space-12);
+  border: 1px solid var(--jz-gold);
+  text-align: left;
+  animation: pc-moment-in var(--jz-slow) ease-out both;
+}
+.pc-moment-icon {
+  flex: none;
+  color: var(--jz-gold);
+}
+.pc-moment-text {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+}
+.pc-moment-title {
+  color: var(--jz-text-3);
+  font-size: 12px;
+  line-height: 16px;
+}
+.pc-moment-name {
+  overflow: hidden;
+  color: var(--jz-text);
+  font-size: 15px;
+  font-weight: var(--jz-weight-bold);
+  line-height: 20px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pc-moment-coins {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: var(--jz-space-4);
+  color: var(--jz-gold);
+  font-size: 14px;
+  font-weight: var(--jz-weight-bold);
+  line-height: 18px;
+  white-space: nowrap;
+}
+.pc-moment-wait {
+  margin-left: var(--jz-space-4);
+  color: var(--jz-text-3);
+  font-size: 12px;
+  font-weight: var(--jz-weight-medium);
+}
+@keyframes pc-moment-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pc-moment {
+    animation: none;
+  }
+}

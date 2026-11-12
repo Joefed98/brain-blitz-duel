@@ -9,6 +9,7 @@
  * - equip_refused: props.slot (a loadout slot or "avatar") and props.reason (A1's refusal type, a short snake_case word).
  */
 import { LOADOUT_SLOTS } from "./backend";
+import { checkOverride } from "@/lib/checkOverride";
 
 export const IDENTITY_EVENTS = ["profile_viewed", "customise_opened", "equip_refused"] as const;
 export type IdentityEventName = (typeof IDENTITY_EVENTS)[number];
@@ -47,11 +48,11 @@ export function acceptIdentityEvent(input: unknown): IdentityEvent | null {
 /** Records one in the background (never under automation unless a check allows it); nothing waits for it. */
 export function recordIdentityEvent(input: { event: "profile_viewed"; who: "account" | "guest" } | { event: "customise_opened" } | { event: "equip_refused"; slot: string; reason: string }): void {
   if (typeof window === "undefined") return;
-  const w = window as unknown as { __DUELZ_ALLOW_ANALYTICS__?: boolean; __DUELZ_IDENTITY_EVENTS__?: unknown[] };
+  const recorded = checkOverride<unknown[]>("__DUELZ_IDENTITY_EVENTS__");
   // Checks read what would be sent.
-  if (Array.isArray(w.__DUELZ_IDENTITY_EVENTS__)) w.__DUELZ_IDENTITY_EVENTS__.push(input);
-  if (typeof navigator !== "undefined" && navigator.webdriver && !w.__DUELZ_ALLOW_ANALYTICS__) return;
-  if (w.__DUELZ_IDENTITY_EVENTS__) return;
+  if (Array.isArray(recorded)) recorded.push(input);
+  if (typeof navigator !== "undefined" && navigator.webdriver && !checkOverride("__DUELZ_ALLOW_ANALYTICS__")) return;
+  if (recorded) return;
   void (async () => {
     try {
       const { recordIdentityEventFn } = await import("./identityEvents.functions");

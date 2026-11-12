@@ -8,12 +8,15 @@
 import { useSyncExternalStore } from "react";
 
 import { supabase } from "@/integrations/supabase/client";
+import { MAX_PLAYERS } from "./types";
 
 export interface RaceGhost {
   name: string;
   colour: string;
   s: number;
   x: number;
+  /** The ghost's own car paint (a `game-skin.apex.*` id the server read from its owner's loadout), or none. */
+  skin?: string | null;
 }
 
 interface Me {
@@ -32,11 +35,30 @@ let me: Me | null = null;
 let sentAt = 0;
 const seen = new Map<string, RaceGhost & { at: number }>();
 let list: RaceGhost[] = [];
+/** Each player's car paint by their key (slot), from the room's looks (setRaceGhostSkins); display only. */
+let skins: Readonly<Record<string, string | null>> = {};
+
+/** The room screen hands over the players' car paints (keyed as the ghosts are: the player's slot). */
+export function setRaceGhostSkins(next: Readonly<Record<string, string | null>>): void {
+  skins = next;
+  publish();
+}
 const listeners = new Set<() => void>();
+
+/** A ghost's key is its player's room slot, 1 to MAX_PLAYERS; anything else is not a car of this room. */
+export function isGhostKey(key: unknown): key is string {
+  return typeof key === "string" && /^[1-9][0-9]?$/.test(key) && Number(key) <= MAX_PLAYERS;
+}
+
+/** Ghosts not heard from for GHOST_STALE_MS are forgotten; at most one per other seat is ever held. */
+export function pruneGhosts<T extends { at: number }>(map: Map<string, T>, now: number): void {
+  for (const [key, g] of map) if (now - g.at >= GHOST_STALE_MS) map.delete(key);
+}
 
 function publish(): void {
   const now = Date.now();
-  list = [...seen.entries()].filter(([, g]) => now - g.at < GHOST_STALE_MS).map(([, g]) => ({ name: g.name, colour: g.colour, s: g.s, x: g.x }));
+  pruneGhosts(seen, now);
+  list = [...seen.entries()].map(([key, g]) => ({ name: g.name, colour: g.colour, s: g.s, x: g.x, skin: skins[key] ?? null }));
   for (const l of listeners) l();
 }
 
@@ -50,8 +72,9 @@ export function startRaceGhosts(roomId: string, round: number, player: Me): () =
       .channel(`race-ghosts-${tag}`, { config: { broadcast: { self: false } } })
       .on("broadcast", { event: "car" }, ({ payload }) => {
         const p = payload as Partial<RaceGhost> & { key?: string } | undefined;
-        if (!p || typeof p.key !== "string" || p.key === me?.key) return;
+        if (!p || !isGhostKey(p.key) || p.key === me?.key) return;
         if (!Number.isFinite(p.s) || !Number.isFinite(p.x)) return;
+        if (!seen.has(p.key) && seen.size >= MAX_PLAYERS - 1) return;
         seen.set(p.key, { name: String(p.name ?? "").slice(0, 24), colour: String(p.colour ?? "#C9CCD6").slice(0, 16), s: Number(p.s), x: Number(p.x), at: Date.now() });
         publish();
       });
@@ -73,6 +96,7 @@ export function stopRaceGhosts(): void {
   channel = null;
   me = null;
   seen.clear();
+  skins = {};
   if (list.length) publish();
 }
 

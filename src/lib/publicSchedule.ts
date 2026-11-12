@@ -6,6 +6,7 @@
 import { PUBLIC_GAMES, type PublicGameConfig } from "@/config/publicGames";
 import { APP_NAME } from "@/lib/brand";
 import { APP_URL } from "@/config/appUrl";
+import { checkOverride } from "@/lib/checkOverride";
 
 export interface PublicGame extends PublicGameConfig {
   /** The game's start (UTC ms). */
@@ -64,11 +65,7 @@ export function scheduledGames(
  * window.__DUELZ_PUBLIC_GAMES__; the app never sets it.
  */
 export function configuredGames(): readonly PublicGameConfig[] {
-  const override =
-    typeof window === "undefined"
-      ? undefined
-      : (window as unknown as { __DUELZ_PUBLIC_GAMES__?: PublicGameConfig[] })
-          .__DUELZ_PUBLIC_GAMES__;
+  const override = checkOverride<PublicGameConfig[]>("__DUELZ_PUBLIC_GAMES__");
   return Array.isArray(override) ? override : PUBLIC_GAMES;
 }
 

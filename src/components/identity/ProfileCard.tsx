@@ -18,6 +18,9 @@ import { SaveProgressOffer } from "@/components/account/SaveProgress";
 import { Button, Icon } from "@/design/components";
 import { DEFAULT_LOOK, PlayerCard, type CardLook } from "@/design/identity";
 import { cachedAccount, useAccount, type AccountCard } from "@/lib/account/accountApi";
+import { useWaitingRequests } from "@/lib/friends/friendsApi";
+import { useMyBadges } from "@/lib/badges/badgesApi";
+import { titleName } from "@/lib/badges/catalogue";
 import { useMyIdentity } from "@/lib/identity/identityApi";
 import { recordIdentityEvent } from "@/lib/identity/identityEvents";
 import type { Loadout } from "@/lib/identity/backend";
@@ -36,6 +39,8 @@ export function ProfileCard({ guestName, guestColour }: { guestName: string; gue
   const router = useRouter();
   const account = useAccount();
   const identity = useMyIdentity();
+  // C2: the card's badges and title (badgesApi.ts; accounts, once the server answers).
+  const mine = useMyBadges().badges;
   const [cached, setCached] = useState<AccountCard | null>(null);
   const [offer, setOffer] = useState(false);
   useEffect(() => {
@@ -59,6 +64,14 @@ export function ProfileCard({ guestName, guestColour }: { guestName: string; gue
     ? lookFromLoadout(identity.loadout, signedIn?.colour ?? fromCache?.colour ?? null)
     : lookFromLoadout(null, guestColour);
 
+  // Friends (wave 2 B1): accounts only; the badge counts requests waiting (in-app only). A guest gets the
+  // save-your-progress sheet, as Customise.
+  const waiting = useWaitingRequests(Boolean(signedIn));
+  const friends = () => {
+    if (isAccount) void router.navigate({ to: "/friends", state: { fromPlayTab: true } as never } as never);
+    else setOffer(true);
+  };
+
   const customise = () => {
     if (isAccount) void router.navigate({ to: "/customise", state: { fromPlayTab: true } as never } as never);
     else setOffer(true);
@@ -66,9 +79,25 @@ export function ProfileCard({ guestName, guestColour }: { guestName: string; gue
 
   return (
     <section aria-label="Your card" data-profile-card={isAccount ? "account" : "guest"} className="id-card-block">
-      <PlayerCard look={look} name={name} playerNumber={playerNumber} guest={!isAccount} guestColour={guestColour ?? 0} />
+      <PlayerCard
+        look={look}
+        name={name}
+        playerNumber={playerNumber}
+        guest={!isAccount}
+        guestColour={guestColour ?? 0}
+        title={mine?.account ? titleName(mine.title) : null}
+        badges={mine?.account ? mine.card : undefined}
+      />
       <Button variant="secondary" size={48} block onClick={customise} data-customise-open>
         Customise card
+      </Button>
+      <Button variant="secondary" size={48} block onClick={friends} data-friends-open aria-label={waiting ? `Friends, ${waiting} waiting` : "Friends"}>
+        <Icon name="friends" size={20} /> Friends
+        {waiting ? (
+          <span className="fr-tab-badge" data-friends-waiting={waiting} aria-hidden="true">
+            {waiting > 99 ? "99+" : waiting}
+          </span>
+        ) : null}
       </Button>
       <div className="jz-panel id-rating-note" data-rating-note>
         <Icon name="leaderboard" size={20} tone="text-3" />

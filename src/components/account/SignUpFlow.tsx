@@ -38,6 +38,7 @@ import {
   UsernameState,
   useUsernameCheck,
 } from "./AccountParts";
+import { checkOverride } from "@/lib/checkOverride";
 
 export type FlowStep =
   | "signin"
@@ -111,8 +112,7 @@ interface FlowFixture {
   welcomeBack?: boolean;
 }
 function flowFixture(): FlowFixture {
-  if (typeof window === "undefined") return {};
-  return (window as unknown as { __DUELZ_ACCOUNT_FIXTURE__?: FlowFixture }).__DUELZ_ACCOUNT_FIXTURE__ ?? {};
+  return checkOverride<FlowFixture>("__DUELZ_ACCOUNT_FIXTURE__") ?? {};
 }
 
 export function SignUpFlow({
@@ -294,6 +294,9 @@ export function SignUpFlow({
     setWelcomeBack(false);
     setHistory([]);
     setStep("welcome");
+    // C2: the rewards every new account is owed (the 1,000-coin sign-up reward; a Founding Player's badge, coins and
+    // frame), paid by the server once under fixed keys (badges.server.ts settleAccountRewards).
+    void import("@/lib/badges/badgesApi").then((m) => m.refreshBadges()).catch(() => {});
   };
 
   /* ---------------------------------------------------------------- the code */

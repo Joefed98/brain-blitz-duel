@@ -47,12 +47,20 @@ export const SAFETY_LIMIT: RateLimit = { bucket: "safety", max: 60, windowSecond
 /** Coins and items (wave 2: the wallet, inventory and loadout reads, equipping, the avatar): 240 per 10 minutes per user. */
 export const ECONOMY_LIMIT: RateLimit = { bucket: "economy", max: 240, windowSeconds: 600 };
 /** Public cards (another player's look, read by profiles, rooms and friends): 600 per 10 minutes per user. */
+/** Practice challenges' list (wave 2 C1b): 120 reads per 10 minutes per user. */
+export const CHALLENGES_LIMIT: RateLimit = { bucket: "challenges", max: 120, windowSeconds: 600 };
 export const PUBLIC_CARD_LIMIT: RateLimit = { bucket: "public-card", max: 600, windowSeconds: 600 };
+/** Practice progress reads and the one-time note (wave 2 C1a), per player. */
+export const PRACTICE_PROGRESS_LIMIT: RateLimit = { bucket: "practice-progress", max: 240, windowSeconds: 600 };
 
 /** Starting a room (dealing every round): 30 an hour per user. */
 export const START_ROOM_LIMIT: RateLimit = { bucket: "start-room", max: 30, windowSeconds: 3600 };
 /** Starting a challenge attempt: 30 per 10 minutes per user. */
 export const CHALLENGE_START_LIMIT: RateLimit = { bucket: "challenge-start", max: 30, windowSeconds: 600 };
+/** Profile's challenge list: 60 per 10 minutes per user. */
+export const CHALLENGE_LIST_LIMIT: RateLimit = { bucket: "challenge-list", max: 60, windowSeconds: 600 };
+/** A room round's live word and move checks: 1,500 per 10 minutes per user (as practice's per address). */
+export const ROOM_CHECK_LIMIT: RateLimit = { bucket: "room-check", max: 1500, windowSeconds: 600 };
 /** Lobby colour and icon changes: 60 per 10 minutes per user. */
 export const PLAYER_LOOK_LIMIT: RateLimit = { bucket: "player-look", max: 60, windowSeconds: 600 };
 /**
@@ -77,6 +85,8 @@ export const EMAIL_CODE_LIMIT: RateLimit = { bucket: "email-code", max: 5, windo
 export const SAVE_PROGRESS_LIMIT: RateLimit = { bucket: "save-progress", max: 20, windowSeconds: 600, failClosed: true };
 /** The identity screens' three events (identityEvents.functions.ts): a profile view, Customise, a refused equip. */
 export const IDENTITY_EVENT_LIMIT: RateLimit = { bucket: "identity-events", max: 40, windowSeconds: 600, failClosed: true };
+/** Phone notifications (push.functions.ts): saving or removing a device, the switches, the ask, an open. */
+export const PUSH_LIMIT: RateLimit = { bucket: "push", max: 40, windowSeconds: 600, failClosed: true };
 /** Analytics events from the phone (recordClientEventsFn): 30 calls of up to 20 events per 10 minutes a device. */
 export const ANALYTICS_CLIENT_LIMIT: RateLimit = { bucket: "analytics-client", max: 30, windowSeconds: 600, failClosed: true };
 
@@ -87,8 +97,11 @@ export const IP_CREATE_ROOM_LIMIT: RateLimit = { bucket: "ip-create-room", max: 
 export const IP_CHALLENGE_CREATE_LIMIT: RateLimit = { bucket: "ip-challenge-create", max: 30, windowSeconds: 3600, failClosed: true };
 /** Practice deals (signed out): 400 per 10 minutes. */
 export const IP_PRACTICE_DEAL_LIMIT: RateLimit = { bucket: "ip-practice-deal", max: 400, windowSeconds: 600 };
-/** Practice packs (each up to 60 deals): 20 an hour. */
-export const IP_PRACTICE_PACK_LIMIT: RateLimit = { bucket: "ip-practice-pack", max: 20, windowSeconds: 3600 };
+/**
+ * Practice packs (each up to 60 deals): 100 an hour (20 until 11 Nov 2026, Joe's decision in session C1a: a new
+ * phone's first top-up takes 16 calls and its next visit as many again, so 20 held back a second visit in the hour).
+ */
+export const IP_PRACTICE_PACK_LIMIT: RateLimit = { bucket: "ip-practice-pack", max: 100, windowSeconds: 3600 };
 /** Practice grades, live and queued: 600 per 10 minutes. */
 export const IP_PRACTICE_GRADE_LIMIT: RateLimit = { bucket: "ip-practice-grade", max: 600, windowSeconds: 600 };
 /** Practice word and move checks: 1,500 per 10 minutes. */

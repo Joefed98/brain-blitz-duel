@@ -1,5 +1,8 @@
+import type { CanvasSize } from "@/lib/arcade/engine";
 import { useEffect, useMemo, useRef } from "react";
 
+import { useGameLookRef } from "@/lib/skins/equipped";
+import { lookKey } from "@/lib/arcade/skins/look";
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import {
   racingCheckpoint,
@@ -20,7 +23,7 @@ import {
   drawRacingPlay, setRacingLargeScreen,
   paintRacingTile,
   racingAmbient,
-  racingScene,
+  racingSceneFor,
   racingSteerThrow,
   RACING_STICK_R,
   RACING_STICK_TOP,
@@ -81,7 +84,14 @@ function steerValueV2(d: number, reach: number): number {
 function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const data: RacingPuzzleData | null = puzzle.type === "racing" ? puzzle : null;
   // The play screen draws the world and the view beyond it on the screen's fill (racingAmbient).
-  const game = useMemo(() => ({ ...racingGameFor(data?.racingRev), draw: drawRacingPlay }), [data?.racingRev]);
+  // The player's own equipped car paint and world theme (wave 2; display only, src/lib/skins/equipped.ts).
+  const [look, lookRef] = useGameLookRef("racing");
+  const scene = useMemo(() => racingSceneFor(look), [look]);
+  const game = useMemo(
+    () => ({ ...racingGameFor(data?.racingRev), draw: (ctx: CanvasRenderingContext2D, s: RacingState, size: CanvasSize) => drawRacingPlay(ctx, s, size, lookRef.current) }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [data?.racingRev],
+  );
   // The computer layout (1 Nov 2026, display only): the renderer's large-screen path while this screen is on it.
   const largeScreen = useDesktopPresentation().mode !== null;
   useEffect(() => {
@@ -130,7 +140,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       label={gameDisplayName("racing")}
       background={RACING_BG}
       fitWorld
-      scene={racingScene}
+      scene={scene}
+      sceneKey={() => lookKey(lookRef.current)}
       ambient={racingAmbient}
       seed={data?.seed ?? 1}
       enabled={data !== null}

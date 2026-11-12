@@ -436,7 +436,7 @@ FROM pg_proc WHERE proname = 'duel_round_ended';
 - Auth: Anonymous sign-ins **on**. Site URL `https://joulz.uk`, with redirect URLs for joulz.uk (none is used
   until real sign-in exists).
 - Anonymous sign-in rate limit: 30 an hour per IP by default (Supabase docs). Review it, and consider Turnstile
-  CAPTCHA later; that needs a client change (`docs/security-audit-oct-2026.md` #2).
+  CAPTCHA later; that needs a client change (the October security audit, #2).
 - Realtime enabled. The publication comes from the migrations.
 - Region London (`eu-west-2`), Pro plan: daily backups, no pausing. Consider PITR.
 - JWT signing keys: default is fine (`getClaims` handles both kinds).
@@ -606,7 +606,7 @@ rather not use Cloudflare. Route D (Edge Functions) is 5–8 days (section 1.6);
 
 - Repo: every file and line cited above; Lovable bot commits `20a8fec7` and `e3f0bd95`; a local
   `vite build` (output deleted).
-- `docs/migration-readiness-oct-2026.md`, `docs/domain-move-oct-2026.md`, `docs/security-audit-oct-2026.md`,
+- `docs/migration-readiness-oct-2026.md`, `docs/domain-move-oct-2026.md`,
   `docs/beta-sql.md`, `docs/duelz-master-plan.md` (Phase 3, item 11).
 - Lovable: `docs.lovable.dev/integrations/supabase` (search snippet only; the site did not resolve from this
   container); third-party guide `github.com/CarolMonroe22/lovable-cloud-to-supabase-migration` (README; not

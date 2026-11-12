@@ -11,6 +11,7 @@
 import { useEffect, useState } from "react";
 
 import { useAccount } from "@/lib/account/accountApi";
+import { checkOverride } from "@/lib/checkOverride";
 
 import type { ShopStatus } from "./types";
 
@@ -124,9 +125,13 @@ function writeSeen(seen: Seen): void {
   }
 }
 
+/**
+ * Under automation (navigator.webdriver) the shop status isn't asked for, unless a check's page allows it through
+ * `window.__DUELZ_ALLOW_SHOP__`, read by checkOverride (never in a production build).
+ */
 function automationBlocked(): boolean {
   if (typeof navigator === "undefined" || !navigator.webdriver) return false;
-  return !(window as unknown as { __DUELZ_ALLOW_SHOP__?: boolean }).__DUELZ_ALLOW_SHOP__;
+  return checkOverride<boolean>("__DUELZ_ALLOW_SHOP__") !== true;
 }
 
 /** Asks the server (once per app open per account); a failure leaves the cached answer. */

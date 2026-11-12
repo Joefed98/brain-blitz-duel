@@ -21,6 +21,8 @@ export const ITEM_KINDS = [
   "tile-style",
   "game-skin",
   "world-theme",
+  // One card back for the account (11 Nov 2026, Joe): drawn on Full House's face-down deck.
+  "card-back",
 ] as const;
 export type ItemKind = (typeof ITEM_KINDS)[number];
 
@@ -53,7 +55,6 @@ export const GAME_TYPE_BY_NAME: Readonly<Record<string, string>> = {
   "Crazy Golf": "minigolf",
   "Cue Ball": "pool",
   "Curl Champ": "curling",
-  "Free Cell": "freecell",
   "Full House": "pokersquares",
   "Top Bins": "freekick",
 };
@@ -76,6 +77,7 @@ export const SINGLE_SLOTS = [
   "celebration",
   "podium-entrance",
   "tile-style",
+  "card-back",
 ] as const;
 
 export const LOADOUT_SLOTS: readonly string[] = [
@@ -191,6 +193,8 @@ export const ECONOMY_REASONS = [
   "pack_purchase",
   "refund",
   "admin_adjustment",
+  // C2: a streak freeze covering a missed Daily (supabase/migrations/20261111220000_badges_titles.sql).
+  "streak_freeze_used",
   // The shop (wave 2, session D1; supabase/migrations/20261112120000_shop.sql).
   "test_purchase",
   "test_purchase_removed",

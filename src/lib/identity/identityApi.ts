@@ -49,6 +49,9 @@ export function refreshIdentity(): Promise<MyIdentity> {
   loading = (async () => {
     const backend = await identityBackend();
     if (!backend) return publish(EMPTY);
+    // C2: the rewards every account is owed (sign-up coins, a Founding Player's) are settled first, so the coin
+    // counter's first balance includes them (badgesApi.ts; never longer than its short wait).
+    await import("@/lib/badges/badgesApi").then((m) => m.rewardsSettled()).catch(() => undefined);
     try {
       const [catalogue, wallet, inventory, loadout, avatarOptions] = await Promise.all([
         backend.getCatalogue(),
