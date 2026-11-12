@@ -798,7 +798,9 @@
   font-weight: var(--jz-weight-medium);
 }
 .rt-verdict[data-verdict="won"] { color: var(--jz-win); }
-.rt-verdict[data-verdict="lost"] { color: var(--jz-loss); }
+/* --jz-loss is the cross's colour, never the word's (DESIGN.md: "a cross on red"; under 4.5:1 as text). */
+.rt-verdict[data-verdict="lost"] { color: var(--jz-text-2); }
+.rt-verdict[data-verdict="lost"] svg { color: var(--jz-loss); }
 .rt-verdict[data-verdict="level"] { color: var(--jz-text-3); }
 .rt-game-scores {
   display: inline-flex;
@@ -1107,4 +1109,31 @@
   border: 2px solid var(--jz-surface-2);
   background: transparent;
   color: var(--jz-text-2);
+}
+
+/* The VS's Live tag: dark text on the LIVE red (white on it is 3.1:1; theme-check, 12 Nov 2026). */
+.rt-page [data-vs-tag="live"] .jz-live {
+  color: var(--jz-bg);
+}
+
+/* A player's name inside a one-line title or button: truncated with an ellipsis, so the line never runs off the
+   screen (16-character usernames; no-wrap-check, 12 Nov 2026). */
+.rt-result-title {
+  display: flex;
+  justify-content: center;
+  gap: 0.25em;
+  max-width: 100%;
+  white-space: nowrap;
+}
+.rt-cut-name {
+  display: inline-block;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: bottom;
+}
+.rt-challenge .rt-cut-name {
+  max-width: 70%;
 }

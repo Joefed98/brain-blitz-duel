@@ -50,8 +50,8 @@ export function ProfileRating({ status }: { status: RatedStatus }) {
         >
           <RankEmblem rank={s.rank} size={48} />
           <span className="rt-rating-text">
-            <span className="rt-rating-label">Joulz Rating</span>
-            <span className="rt-rating-value" data-joulz-rating>
+            <span className="rt-rating-label" data-one-line>Joulz Rating</span>
+            <span className="rt-rating-value" data-joulz-rating data-one-line>
               {ratingText(s.rank.rating)}
             </span>
           </span>

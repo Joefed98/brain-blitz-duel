@@ -205,7 +205,9 @@ function PlayCard({ status }: { status: RatedStatus }) {
           <span className="rt-pick-name" data-current-pick={pick}>
             {pickLabel(pick)}
           </span>
-          <span className="rt-pick-note">{pickNote(pick)}</span>
+          <span className="rt-pick-note" data-wrap-ok>
+            {pickNote(pick)}
+          </span>
         </span>
         {picks.length > 1 ? <Icon name="chevron-down" size={20} tone="text-3" /> : null}
       </button>
@@ -268,7 +270,11 @@ export function RatedPicker({
         <PickMark pick={p} />
         <span className="rt-option-text">
           <span className="rt-option-name">{pickLabel(p)}</span>
-          {big ? <span className="rt-option-note">{pickNote(p)}</span> : null}
+          {big ? (
+            <span className="rt-option-note" data-wrap-ok>
+              {pickNote(p)}
+            </span>
+          ) : null}
         </span>
         {big ? <span className="rt-option-moves">{pickMoves(p)}</span> : r !== null ? <span className="rt-option-rating">{ratingText(r)}</span> : null}
       </button>

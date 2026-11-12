@@ -14,6 +14,7 @@ export type CheckOverrideName =
   | "__DUELZ_ACCOUNT_FIXTURE__"
   | "__DUELZ_ALLOW_ANALYTICS__"
   | "__DUELZ_ALLOW_CHALLENGES__"
+  | "__DUELZ_ALLOW_PASS__"
   | "__DUELZ_ALLOW_PRESENCE__"
   | "__DUELZ_ALLOW_PASS__"
   | "__DUELZ_ALLOW_RATED__"

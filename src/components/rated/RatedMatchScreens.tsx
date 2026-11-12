@@ -148,12 +148,14 @@ export function VsScreen({ match, nowMs }: { match: RatedMatch; nowMs: number })
       <VsSide player={match.them} side="them" />
       <div className="rt-vs-rail" aria-hidden="true">
         <span className="rt-vs-line" />
-        <span className="rt-vs-mark">VS</span>
+        <span className="rt-vs-mark" data-one-line>
+          VS
+        </span>
         <span className="rt-vs-line" />
       </div>
       <VsSide player={match.me} side="me" />
       {record ? (
-        <p className="rt-vs-record" data-head-to-head>
+        <p className="rt-vs-record" data-head-to-head data-one-line>
           {record}
         </p>
       ) : null}
@@ -169,7 +171,7 @@ function VsSide({ player, side }: { player: RatedPlayer; side: "me" | "them" }) 
       </div>
       <span className="rt-vs-emblem">
         {player.rank ? <RankEmblem rank={player.rank} size={48} /> : <UnplacedEmblem />}
-        <span className="rt-vs-tier">{player.deleted ? "" : player.guest ? "Guest" : player.rank ? player.rank.label : "Placement"}</span>
+        <span className="rt-vs-tier" data-one-line>{player.deleted ? "" : player.guest ? "Guest" : player.rank ? player.rank.label : "Placement"}</span>
       </span>
     </div>
   );
@@ -213,7 +215,21 @@ export function MatchResult({
     <div className="rt-screen rt-result" data-rated-screen={placing ? "placement-result" : "result"} data-outcome={result.outcome}>
       <header className="rt-result-head jz-stripes">
         <MatchChips items={[pickLabel(match.pick), bestOfLabel(match.bestOf), `v ${them}`]} />
-        <h1 className="jz-display rt-result-title">{result.outcome === "won" ? "You win" : result.outcome === "drawn" ? "A draw" : `${them} wins`}</h1>
+        <h1 className="jz-display rt-result-title">
+          {result.outcome === "won" ? (
+            "You win"
+          ) : result.outcome === "drawn" ? (
+            "A draw"
+          ) : (
+            <>
+              {/* A long name truncates; "wins" always shows (no-wrap-check). */}
+              <span className="rt-cut-name" data-ellipsis>
+                {them}
+              </span>{" "}
+              wins
+            </>
+          )}
+        </h1>
         <p className="rt-result-score" aria-label={`${result.myGames} games to ${result.theirGames}`} data-match-score>
           {result.myGames}–{result.theirGames}
         </p>
@@ -237,8 +253,8 @@ export function MatchResult({
           <div className="rt-rating-head">
             <RankEmblem rank={result.rating.after} size={44} />
             <span className="rt-rating-text">
-              <span className="rt-rating-label">Joulz Rating</span>
-              <span className="rt-rating-value" data-joulz-rating>
+              <span className="rt-rating-label" data-one-line>Joulz Rating</span>
+              <span className="rt-rating-value" data-joulz-rating data-one-line>
                 {ratingText(result.rating.after.rating)}
               </span>
             </span>
@@ -373,7 +389,7 @@ function ChallengeButton({
     kind: "idle",
   });
   if (state.kind === "ready")
-    return <ChallengeShareButton code={state.code} kind="invite" total={total} rounds={rounds} label={`Challenge ${them}`} />;
+    return <ChallengeShareButton code={state.code} kind="invite" total={total} rounds={rounds} label={`Challenge ${shortName(them)}`} />;
   return (
     <span className="rt-challenge">
       <Button
@@ -390,11 +406,20 @@ function ChallengeButton({
           );
         }}
       >
-        Challenge {them}
+        Challenge{" "}
+        <span className="rt-cut-name" data-ellipsis>
+          {them}
+        </span>
       </Button>
       {state.kind === "error" ? <span className="rt-error">{state.message}</span> : null}
     </span>
   );
+}
+
+/** A name inside a fixed label (the share button's): up to 12 characters, then an ellipsis. */
+function shortName(name: string): string {
+  const chars = [...name];
+  return chars.length > 12 ? `${chars.slice(0, 11).join("")}…` : name;
 }
 
 /* ------------------------------------------------------------------ the reveal (mockup 13) */
@@ -429,7 +454,7 @@ export function PlacementReveal({
       ) : null}
       <Panel pad className="rt-reveal-panel">
         <div className="rt-reveal-row">
-          <span className="rt-rating-label">Joulz Rating</span>
+          <span className="rt-rating-label" data-one-line>Joulz Rating</span>
           <DivisionNext rank={reveal.rank} />
         </div>
         <span className="rt-reveal-value" data-joulz-rating>

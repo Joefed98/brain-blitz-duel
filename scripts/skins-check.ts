@@ -29,7 +29,7 @@ import { looksFor, lookName } from "./skins/looks";
 
 const one = process.argv.find((a) => a.startsWith("--game="))?.slice(7) as SkinGame | undefined;
 if (one) {
-  const L = await import("../src/lib/arcade/skins/look");
+  const L = { ...(await import("../src/lib/arcade/skins/look")), ...(await import("../src/lib/arcade/skins/motion.renderer")) };
   const looks = looksFor(one, false);
   const out: { look: string; error: string; differs: boolean; still: boolean; moves: boolean }[] = [];
   L.setSkinReducedMotion(true);
@@ -68,7 +68,7 @@ const check = (ok: boolean, label: string) => {
   }
 };
 
-const L = await import("../src/lib/arcade/skins/look");
+const L = { ...(await import("../src/lib/arcade/skins/look")), ...(await import("../src/lib/arcade/skins/motion.renderer")) };
 
 // 1. The catalogue.
 {

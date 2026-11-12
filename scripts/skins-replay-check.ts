@@ -36,7 +36,7 @@ if (one) {
   const { createCanvas } = await import("@napi-rs/canvas");
   const { runSpecs } = await import("./skins/runs");
   const { decodeInputEvents } = await import("../src/lib/arcade/engine");
-  const { setSkinReducedMotion, setSkinClock } = await import("../src/lib/arcade/skins/look");
+  const { setSkinReducedMotion, setSkinClock } = await import("../src/lib/arcade/skins/motion.renderer");
   setSkinReducedMotion(false);
   let clock = 0;
   setSkinClock(() => clock);

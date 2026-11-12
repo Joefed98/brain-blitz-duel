@@ -76,7 +76,10 @@ export function resetRated(): void {
 export function useRatedStatus(): RatedStatus | null {
   const account = useAccount();
   const known = account.kind === "account" || account.kind === "guest";
-  const who = account.kind === "account" ? account.userId : account.kind === "guest" ? `guest:${account.userId ?? ""}` : null;
+  // Only a string id names the player (anything else reads as unknown, never converted to text).
+  const raw: unknown = "userId" in account ? account.userId : null;
+  const id = typeof raw === "string" ? raw : "";
+  const who = account.kind === "account" ? id : account.kind === "guest" ? `guest:${id}` : null;
   const [state, setState] = useState<RatedStatus | null>(known ? current : null);
   useEffect(() => {
     if (!known) {

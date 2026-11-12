@@ -119,7 +119,7 @@ export async function encryptPayload(input: {
  * setting is empty; a phone can't subscribe without the setting, so the live app is unchanged by it).
  */
 export function vapidKeys(env: { publicKey?: string; privateKey?: string } = {}): { publicKey: string; privateKey: string } | null {
-  const publicKey = (env.publicKey ?? (PUSH_PUBLIC_KEY || process.env["VAPID_PUBLIC_KEY"] || "")).trim();
+  const publicKey = (env.publicKey ?? publicKeyForChecks ?? (PUSH_PUBLIC_KEY || process.env["VAPID_PUBLIC_KEY"] || "")).trim();
   const privateKey = (env.privateKey ?? process.env["VAPID_PRIVATE_KEY"] ?? "").trim();
   if (!publicKey || !privateKey) return null;
   try {
@@ -188,6 +188,16 @@ export function outcomeOf(status: number): PushOutcome {
   if (status >= 200 && status < 300) return "sent";
   if (status === 404 || status === 410) return "gone";
   return "failed";
+}
+
+/**
+ * Checks only: a public key that stands in for PUSH_PUBLIC_KEY, so a check can sign with its own pair now the real key
+ * is set (the real private key is never in a check). Nothing in the app calls it; push-testers-check fails if
+ * anything under src/ does.
+ */
+let publicKeyForChecks: string | null = null;
+export function setVapidPublicKeyForChecks(key: string | null): void {
+  publicKeyForChecks = key;
 }
 
 /** Checks only: the push service every send uses when its caller gives none (a stand-in, never the network). */

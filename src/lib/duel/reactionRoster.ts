@@ -6,6 +6,7 @@
  */
 import { ROOM_EMOJI, type RoomEmoji } from "./chatConstants";
 import { GUEST_NAME_MAX } from "@/lib/names/username";
+import { isRoomReaction } from "./roomReactions";
 
 export interface ReactionRosterRow {
   user_id: string;
@@ -15,7 +16,8 @@ export interface ReactionRosterRow {
 }
 
 export interface AcceptedReaction {
-  emoji: RoomEmoji;
+  /** A room emoji, or (wave 2 E2) the code of an emote from a reaction pack the sender has equipped. */
+  emoji: RoomEmoji | string;
   userId: string;
   name: string;
 }
@@ -23,8 +25,9 @@ export interface AcceptedReaction {
 export function acceptReaction(payload: unknown, roster: readonly ReactionRosterRow[] | null | undefined): AcceptedReaction | null {
   const data = payload as { emoji?: unknown; name?: unknown; userId?: unknown } | null | undefined;
   if (!data || typeof data.emoji !== "string" || typeof data.userId !== "string" || !data.userId) return null;
-  if (!ROOM_EMOJI.includes(data.emoji as RoomEmoji)) return null;
-  const emoji = data.emoji as RoomEmoji;
+  // The fixed emoji set, or an emote of a pack this sender is known to have equipped (roomReactions.ts).
+  if (!ROOM_EMOJI.includes(data.emoji as RoomEmoji) && !isRoomReaction(data.emoji, data.userId)) return null;
+  const emoji = data.emoji;
   if (roster && roster.length) {
     const player = roster.find((p) => p.user_id === data.userId);
     if (!player || player.status === "left" || player.muted_by_host) return null;
