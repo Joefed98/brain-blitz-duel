@@ -1,3 +1,4 @@
+import { JoulesLine } from "@/components/pass/JoulesLine";
 import { VerdictLabel } from "@/components/duel/VerdictLabel";
 import { useEffect, useState, type ReactNode } from "react";
 
@@ -58,6 +59,7 @@ export function AsyncResults({
   const [open, setOpen] = useState<number | null>(null);
   const [revealing, setRevealing] = useState<number | null>(null);
   const [now, setNow] = useState(() => Date.now());
+  const [joulesSince] = useState(() => Date.now() - 5 * 60_000);
 
   useEffect(() => {
     let live = true;
@@ -248,6 +250,9 @@ export function AsyncResults({
             {share}
           </div>
         )}
+        {/* The Joules this Daily or challenge earned (the Season pass, wave 2 D2): its finish was stored moments ago;
+            reopened later, nothing new shows. Nothing is drawn where the pass is off. */}
+        {view.finished ? <JoulesLine sinceMs={joulesSince} /> : null}
         {footer}
       </div>
     </PhoneShell>

@@ -360,6 +360,10 @@ export const SHARDS: Record<string, string[]> = {
     // packs and the £ line, then buying, bundles, test packs, the wishlist and the tester list on a local PostgreSQL
     // through the server-function harness, beside economy-check.
     "shop-check.ts",
+    // pass-check (wave 2 D2, 13 Nov 2026, ~20 s): the Season pass, Joules from stored results, the day limits and soft
+    // cap, claiming, the premium track and the weekly challenges on a local PostgreSQL through the server-function
+    // harness, beside shop-check.
+    "pass-check.ts",
     // moderation-ui-check (10 Nov 2026, ~3 s, happy-dom): two taps to report from a name and from a message.
     "moderation-ui-check.tsx",
     // account-screens-check (10 Nov 2026, ~10 s): the sign-up screens' rules, the save-progress events' server function
