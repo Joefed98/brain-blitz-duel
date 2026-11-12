@@ -106,6 +106,18 @@ export const ANALYTICS_EVENTS = [
   "rated_match_finished",
   "placement_finished",
   "tier_changed",
+  // Rated matchmaking (wave 3, W3b; docs/rated/matchmaking-interface.md): recorded by the server only
+  // (src/lib/rated/rated.server.ts). queue_joined carries props.format and props.choice; match_found props.kind
+  // (live | recorded), props.waited_s, props.format and props.choice; rematch_requested and rematch_accepted
+  // props.format.
+  "queue_joined",
+  "match_found",
+  "rematch_requested",
+  "rematch_accepted",
+  // Leaving a rated match (W3b, Joe 12 Nov 2026): one row per leaver. rated_match_aborted props.step (the room phase
+  // left in) and props.format; rated_match_forfeited props.format and props.games_played.
+  "rated_match_aborted",
+  "rated_match_forfeited",
 ] as const;
 export type AnalyticsEventName = (typeof ANALYTICS_EVENTS)[number];
 

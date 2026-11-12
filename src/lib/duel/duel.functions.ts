@@ -706,6 +706,12 @@ export const leaveRoomFn = createServerFn({ method: "POST" })
     const client = await db();
     const room = await getRoom(client, data.roomId);
     await setPlayerStatusInRoom(client, room.id, context.userId, "left");
+    // A rated match (wave 3, W3b; Joe 12 Nov 2026): a Leave is noted (an abort during set-up, else the 20 s grace and
+    // then a forfeit), and never disbands the room under the player who stayed. Every ordinary room goes on as before.
+    if (room.status === "in_progress") {
+      const { leaveRatedRoom } = await import("@/lib/rated/rated.server");
+      if (await leaveRatedRoom(client, room.id, context.userId, Date.now())) return { ok: true as const };
+    }
 
     if (room.host_user_id === context.userId) {
       await disbandRoom(client, room.id, nowIso());
@@ -764,9 +770,16 @@ export const advancePhaseFn = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const client = await db();
     await requireParticipant(client, data.roomId, context.userId);
-    const room = await getRoom(client, data.roomId);
+    let room = await getRoom(client, data.roomId);
 
     if (room.status !== "in_progress") return { ok: true };
+    // A rated match's leavers (W3b, Joe 12 Nov 2026): an abort or forfeit ends the room here; ordinary rooms: nothing.
+    {
+      const { reviewRatedRoom } = await import("@/lib/rated/rated.server");
+      await reviewRatedRoom(client, room.id, Date.now());
+      room = await getRoom(client, data.roomId);
+      if (room.status !== "in_progress") return { ok: true };
+    }
 
     const round = room.current_round;
     if (round < 1) return { ok: true };
@@ -866,6 +879,15 @@ export const advancePhaseFn = createServerFn({ method: "POST" })
     // every connected active player has tapped Continue.
     if (!betweenScreenDue(room.phase, elapsed, players, round, Date.now(), hostNext))
       return { ok: true };
+    // A rated match (wave 3, W3b) stops as soon as it is won (2–0 in a best of 3): its result screen leads to the
+    // winner reveal as a last round's does. Every ordinary room answers false and moves on exactly as before.
+    if (room.phase === "result") {
+      const { ratedMatchClinched } = await import("@/lib/rated/rated.server");
+      if (await ratedMatchClinched(client, room, round)) {
+        await leaveBetweenRoundScreen(client, { ...room, round_count: round }, round);
+        return { ok: true };
+      }
+    }
     await leaveBetweenRoundScreen(client, room, round);
     return { ok: true };
   });
@@ -1075,6 +1097,9 @@ export const heartbeatFn = createServerFn({ method: "POST" })
     if (!isUuid(data.roomId)) return { ok: true as const };
     const client = await db();
     const seen = await recordHeartbeat(client, data.roomId, context.userId, nowIso());
+    // A rated match's leavers are found on every heartbeat (W3b, Joe 12 Nov 2026); ordinary rooms: nothing.
+    const { reviewRatedRoom } = await import("@/lib/rated/rated.server");
+    await reviewRatedRoom(client, data.roomId, Date.now());
     return seen ? { ok: true as const, seen } : { ok: true as const };
   });
 
@@ -1106,6 +1131,9 @@ export const rematchFn = createServerFn({ method: "POST" })
     if (room.host_user_id !== context.userId) {
       return { ok: false as const, message: "Waiting for the host to play again." };
     }
+    // A rated match's room (wave 3, W3b) is never played again: its rematch is a new rated match (ratedRematchFn).
+    const { isRatedRoom } = await import("@/lib/rated/rated.server");
+    if (await isRatedRoom(client, room.id)) return { ok: false as const, message: "Rated matches use Rematch." };
     // A host who left (and forfeited) can't restart: the reset removes left players.
     if (me.status === "left") return { ok: false as const, message: "You left this game." };
     // Read a forfeit's outcome before the reset clears statuses and results.

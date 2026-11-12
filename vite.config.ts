@@ -87,6 +87,20 @@ const RATED_TASKS = {
   },
 };
 
+/**
+ * Matchmaking's Cron Trigger (wave 3 W3b, docs/rated/matchmaking-interface.md): the 15-day purge of mm_practice_deals,
+ * run by the Worker so it happens with or without pg_cron. UTC, kept in step with MATCHMAKING_CRONS
+ * (src/lib/rated/tasks/matchmakingTasks.server.ts; rated-matchmaking-check compares).
+ */
+const MATCHMAKING_TASKS = {
+  tasks: {
+    "rated:practice-deals-purge": { handler: fileURLToPath(new URL("./src/lib/rated/tasks/practiceDealsPurge.task.ts", import.meta.url)) },
+  },
+  scheduledTasks: {
+    "37 4 * * *": ["rated:practice-deals-purge"],
+  },
+};
+
 type TaskSet = { experimental?: { tasks: boolean }; tasks: Record<string, { handler: string }>; scheduledTasks: Record<string, string[]> };
 /** Every task set's tasks and schedules in one nitro option (a later set adds to, never replaces, an earlier one's). */
 function nitroTasks(...sets: TaskSet[]) {
@@ -99,11 +113,23 @@ function nitroTasks(...sets: TaskSet[]) {
   return { experimental: { tasks: true }, tasks, scheduledTasks };
 }
 
+/** Adds more task sets to a nitroTasks option (their tasks and schedules join, never replace, the ones already there). */
+function withTasks(base: ReturnType<typeof nitroTasks>, ...sets: TaskSet[]) {
+  const tasks = { ...base.tasks };
+  const scheduledTasks = { ...base.scheduledTasks };
+  for (const set of sets) {
+    Object.assign(tasks, set.tasks);
+    for (const [cron, names] of Object.entries(set.scheduledTasks)) scheduledTasks[cron] = [...(scheduledTasks[cron] ?? []), ...names];
+  }
+  return { ...base, tasks, scheduledTasks };
+}
+
 const SERVER_BUILD = Object.assign(
   { minify: true },
   { cloudflare: { wrangler: { observability: WORKER_OBSERVABILITY } } },
-  // Both sets of Cron Triggers (B2's push tasks and W3a's rated standings), merged so neither replaces the other.
-  nitroTasks(PUSH_TASKS, RATED_TASKS),
+  // Every set of Cron Triggers (B2's push tasks, W3a's rated standings, W3b's practice-deal purge), merged so none
+  // replaces another.
+  withTasks(nitroTasks(PUSH_TASKS, RATED_TASKS), MATCHMAKING_TASKS),
 ) as NitroOptions & { minify: boolean };
 
 export default defineConfig({
