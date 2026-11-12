@@ -27,6 +27,7 @@ import {
   type FriendEventRow,
 } from "@/lib/data/push.server";
 
+import { serverPushAllowed } from "./audience.server";
 import { messageFor, type MessageInput } from "./messages";
 import {
   countsAgainstCap,
@@ -39,7 +40,7 @@ import {
 } from "./rules";
 import { sendPush, vapidKeys, type PushOutcome, type PushTarget } from "./webPush.server";
 
-export type NotifyOutcome = "sent" | "disabled" | "no_device" | "off" | "quiet" | "capped" | "duplicate" | "failed";
+export type NotifyOutcome = "sent" | "disabled" | "not_in_audience" | "no_device" | "off" | "quiet" | "capped" | "duplicate" | "failed";
 
 export interface NotifyOptions {
   /** When the friend did what this is about (a room invite: quiet hours let a fresh one through). */
@@ -84,6 +85,14 @@ export async function notify(
       return "failed";
     }
     if (devices.data.length === 0) return "no_device";
+    // Testers only while PUSH_FOR_EVERYONE is false (pushConfig.ts): read from the recipient's own profile, so a
+    // device stored before (or by any other route) still never receives anything outside the audience.
+    const allowed = await serverPushAllowed(client, userId);
+    if (allowed === "error") {
+      warn(`${event}: audience: could not read the profile`);
+      return "failed";
+    }
+    if (!allowed) return "not_in_audience";
     const settingsRow = await readNotificationSettings(client, userId);
     if (settingsRow.error) {
       warn(`${event}: settings: ${settingsRow.error.message}`);

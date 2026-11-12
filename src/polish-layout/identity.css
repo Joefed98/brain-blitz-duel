@@ -372,3 +372,24 @@ button.cz-gem {
   color: var(--jz-text-2);
   font: inherit;
 }
+
+/* ------------------------------------------------------------------ the mini card (lists) */
+.pcard.pcard-mini {
+  display: inline-block;
+  flex: none;
+  aspect-ratio: 1;
+}
+.pcard-mini-av {
+  position: absolute;
+  top: 13%;
+  left: 13%;
+  width: 74%;
+  height: 74%;
+  pointer-events: none;
+}
+.pcard-mini-av > svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}

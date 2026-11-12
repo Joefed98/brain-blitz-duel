@@ -313,28 +313,29 @@ async function phoneChecks(): Promise<void> {
       matchMedia: () => ({ matches: false }),
     };
     g["Notification"] = (g["window"] as Record<string, unknown>)["Notification"];
-    const { PUSH_PUBLIC_KEY } = await import("../src/config/pushConfig");
     const client = await import("../src/lib/push/pushClient");
-    check(PUSH_PUBLIC_KEY === "", "the switch ships off (PUSH_PUBLIC_KEY empty until Joe adds the key)");
+    // Deleted with Joe's approval, 11 Nov 2026: check(PUSH_PUBLIC_KEY === "", "the switch ships off (PUSH_PUBLIC_KEY empty
+    // until Joe adds the key)"); the key is now set, and push-testers-check proves it is set, well formed and testers only.
+    (g["window"] as Record<string, unknown>)["__DUELZ_PUSH_PUBLIC_KEY__"] = ""; // Changed with Joe's approval, 11 Nov 2026: the key is set, so "off" is an empty check override.
     check(!client.pushOn() && client.askKind() === null, "switch off: the phone has nothing to ask");
-    client.notePushMoment("friend_request_sent", true);
-    client.notePushMoment("daily_finished", true);
+    client.notePushMoment("friend_request_sent", 1); // Changed with Joe's approval, 11 Nov 2026: a player number (tester #1) instead of "is an account".
+    client.notePushMoment("daily_finished", 1); // Changed with Joe's approval, 11 Nov 2026: a player number (tester #1) instead of "is an account".
     check(store.size === 0 && client.pendingAsk() === null, "switch off: a useful moment marks nothing and stores nothing");
-    await client.syncPushOnOpen(true);
+    await client.syncPushOnOpen(1); // Changed with Joe's approval, 11 Nov 2026: a player number (tester #1) instead of "is an account".
     await client.forgetPushOnSignOut();
     check(store.size === 0, "switch off: opening and signing out touch nothing");
 
     (g["window"] as Record<string, unknown>)["__DUELZ_PUSH_PUBLIC_KEY__"] = "BP4z9KsN6nGRTbVYI_c7VJSPQTBtkgcy27mlmlMoZIIgDll6e3vCYLocInmYWAmS6TlzAC8wEqKK6PBru3jl7A8";
     check(client.pushOn() && client.askKind() === "ask", "switch on (a check's override): an Android phone may be asked");
-    client.notePushMoment("friend_request_sent", false);
+    client.notePushMoment("friend_request_sent", null); // Changed with Joe's approval, 11 Nov 2026: a guest is no player number (was false).
     check(client.pendingAsk() === null, "a guest is never asked");
-    client.notePushMoment("friend_request_sent", true);
+    client.notePushMoment("friend_request_sent", 1); // Changed with Joe's approval, 11 Nov 2026: a player number (tester #1) instead of "is an account".
     check(client.pendingAsk() === "friend_request_sent", "an account's first useful moment marks the ask due (for the next tab page)");
     store.set("duelz-push:v1", JSON.stringify({ declinedAt: Date.now() - 29 * 24 * 3600_000 }));
-    client.notePushMoment("daily_finished", true);
+    client.notePushMoment("daily_finished", 1); // Changed with Joe's approval, 11 Nov 2026: a player number (tester #1) instead of "is an account".
     check(client.pendingAsk() === null, "29 days after a decline: not asked");
     store.set("duelz-push:v1", JSON.stringify({ declinedAt: Date.now() - 31 * 24 * 3600_000 }));
-    client.notePushMoment("daily_finished", true);
+    client.notePushMoment("daily_finished", 1); // Changed with Joe's approval, 11 Nov 2026: a player number (tester #1) instead of "is an account".
     check(client.pendingAsk() === "daily_finished", "31 days after a decline: asked again");
     (g["window"] as Record<string, Record<string, unknown>>)["navigator"]!["userAgent"] =
       "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1";
@@ -471,6 +472,10 @@ async function databaseChecks(db: LocalDb, rest: RestServer): Promise<void> {
   // The keys, as the Worker would have them (the public setting stands in through VAPID_PUBLIC_KEY).
   const pair = await web.generateP256();
   const keys = { publicKey: web.b64urlEncode(pair.publicPoint), privateKey: web.b64urlEncode(pair.d) };
+  // Since 11 Nov 2026 the real public key is set and notifications are for testers only: this check's own pair signs,
+  // and its accounts (#2–#12) are all in the audience; push-testers-check proves the testers rule.
+  web.setVapidPublicKeyForChecks(keys.publicKey); // Changed with Joe's approval, 11 Nov 2026: the check signs with its own throwaway pair now the real key is set.
+  (await import("../src/lib/push/audience.server")).setPushAudienceForChecks({ everyone: true, testers: [] }); // Changed with Joe's approval, 11 Nov 2026: its accounts #2–#12 are in the audience.
   const keysOn = () => {
     process.env["VAPID_PUBLIC_KEY"] = keys.publicKey;
     process.env["VAPID_PRIVATE_KEY"] = keys.privateKey;

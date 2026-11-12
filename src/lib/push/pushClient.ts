@@ -12,7 +12,7 @@
  *    and unsubscribes (`forgetPushOnSignOut`); each open refreshes it (time zone, a renewed endpoint).
  */
 
-import { pushPublicKey } from "@/config/pushConfig";
+import { pushForPlayer, pushPublicKey } from "@/config/pushConfig";
 import { iphoneSafari } from "@/lib/iphoneSafari";
 
 import {
@@ -58,11 +58,12 @@ export function mayAskOnDevice(nowMs: number = Date.now()): boolean {
 
 /**
  * A useful moment for the ask happened (B1's friend calls, a finished Daily): marks it due for the next tab page.
- * Does nothing with the switch off, for a guest (`isAccount` false), on a device that can't receive, or inside the
- * 30 days after a decline.
+ * Does nothing with the switch off, for a guest or an account outside the audience (`playerNumber` null or not a tester
+ * while notifications are for testers only, pushConfig.ts), on a device that can't receive, or inside the 30 days
+ * after a decline.
  */
-export function notePushMoment(moment: AskMoment, isAccount: boolean): void {
-  if (!isAccount || askKind() === null || !mayAskOnDevice()) return;
+export function notePushMoment(moment: AskMoment, playerNumber: number | null): void {
+  if (!pushForPlayer(playerNumber) || askKind() === null || !mayAskOnDevice()) return;
   const record = readRecord();
   if (record.pending) return;
   writeRecord({ ...record, pending: moment });
@@ -168,11 +169,12 @@ export async function deviceSubscribed(): Promise<boolean> {
 }
 
 /**
- * Each open, for an account: keeps this device's row fresh (time zone, a renewed endpoint), renews a subscription
- * the browser lost while permission is still granted, and records a tap that opened the app (?notif=<event>).
+ * Each open, for an account in the audience (pushConfig.ts): keeps this device's row fresh (time zone, a renewed
+ * endpoint), renews a subscription the browser lost while permission is still granted, and records a tap that opened
+ * the app (?notif=<event>).
  */
-export async function syncPushOnOpen(isAccount: boolean): Promise<void> {
-  if (!pushOn() || !isAccount) return;
+export async function syncPushOnOpen(playerNumber: number | null): Promise<void> {
+  if (!pushOn() || !pushForPlayer(playerNumber)) return;
   await noteOpenedFromUrl();
   if (!pushSupported() || Notification.permission !== "granted") return;
   const reg = await registration();

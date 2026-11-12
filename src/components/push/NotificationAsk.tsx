@@ -1,11 +1,13 @@
 /**
  * The notification ask (wave 2 train B, session B2; docs/push-notifications.md): a small pop-up on a tab page (never a
  * round, intro, reveal or result), shown once a useful moment marked it due (pushClient.ts notePushMoment) and never on
- * first open. On an iPhone in Safari it is a short how-to instead (web push needs the Home Screen app). Accounts only.
+ * first open. On an iPhone in Safari it is a short how-to instead (web push needs the Home Screen app). Accounts in the
+ * audience only (pushConfig.ts: the testers while PUSH_FOR_EVERYONE is false).
  * Nothing renders while the switch is off.
  */
 import { useEffect, useState } from "react";
 
+import { pushForPlayer } from "@/config/pushConfig";
 import { Button } from "@/design/components";
 import { useAccount } from "@/lib/account/accountApi";
 import {
@@ -23,14 +25,15 @@ export function NotificationAsk() {
   const [due, setDue] = useState<{ moment: AskMoment; kind: Exclude<AskKind, null> } | null>(null);
   const [busy, setBusy] = useState(false);
 
+  const inAudience = account.kind === "account" && pushForPlayer(account.playerNumber);
   useEffect(() => {
-    if (account.kind !== "account") return;
+    if (!inAudience) return;
     const moment = pendingAsk();
     const kind = askKind();
     if (moment && kind) setDue({ moment, kind });
-  }, [account.kind]);
+  }, [inAudience]);
 
-  if (!due) return null;
+  if (!due || !inAudience) return null;
 
   if (due.kind === "home-screen")
     return (

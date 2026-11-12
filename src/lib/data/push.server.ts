@@ -20,6 +20,13 @@ export async function readHasProfile(client: Db, userId: string): Promise<Result
   return { data: !!data, error };
 }
 
+/** A user's player number from their profile (null: no profile, so a guest, or no number). */
+export async function readProfilePlayerNumber(client: Db, userId: string): Promise<Result<number | null>> {
+  const { data, error } = await client.from("profiles").select("player_number").eq("user_id", userId).maybeSingle();
+  const n = (data as { player_number?: unknown } | null)?.player_number;
+  return { data: typeof n === "number" ? n : null, error };
+}
+
 /**
  * Saves a device's subscription for `userId`: the endpoint is unique, so a device that was another account's (signed
  * out without the phone's clean-up) moves to this one.
