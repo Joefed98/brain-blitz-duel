@@ -110,6 +110,7 @@ export async function notify(
       sinceIso: new Date(localDayStartMs(nowMs, timeZone)).toISOString(),
       cap: DAILY_CAP,
       dedupeKey: opts.dedupeKey ?? null,
+      nowIso: new Date(nowMs).toISOString(),
     });
     if (reserved.error || !reserved.data) {
       warn(`${event}: reserve: ${reserved.error?.message ?? "no answer"}`);

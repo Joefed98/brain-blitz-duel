@@ -113,18 +113,22 @@ export async function upsertAskAnswer(
   return { data: (data as NotificationSettingsRow[] | null) ?? [], error };
 }
 
-/** Takes one notification's place in the log (public.push_reserve): the cap and the once-only keys, atomically. */
+/**
+ * Takes one notification's place in the log (public.push_reserve_at): the cap and the once-only keys, atomically. The
+ * send is stamped with `nowIso`, the same clock `sinceIso` is worked out from (20261112100000_push_reserve_at.sql).
+ */
 export async function reserveNotification(
   client: Db,
-  input: { userId: string; event: string; countsCap: boolean; sinceIso: string; cap: number; dedupeKey: string | null },
+  input: { userId: string; event: string; countsCap: boolean; sinceIso: string; cap: number; dedupeKey: string | null; nowIso: string },
 ): Promise<Result<ReserveStatus | null>> {
-  const { data, error } = await client.rpc("push_reserve", {
+  const { data, error } = await client.rpc("push_reserve_at", {
     p_user_id: input.userId,
     p_event: input.event,
     p_counts_cap: input.countsCap,
     p_since: input.sinceIso,
     p_cap: input.cap,
     p_dedupe_key: input.dedupeKey,
+    p_now: input.nowIso,
   });
   return { data: data === "ok" || data === "capped" || data === "duplicate" ? data : null, error };
 }

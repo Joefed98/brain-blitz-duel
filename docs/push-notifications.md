@@ -116,6 +116,10 @@ After train C's `20261111220000_badges_titles.sql` and train B1's `2026111123000
 - `push_friend_deliveries`: which of B1's friend events have been claimed; service role only; goes with its event, and
   the retention job drops claims older than 30 days.
 - `push_reserve`, `push_streak_candidates`, `push_claim_friend_events`, `push_log_retention`: service role only.
+- `push_reserve_at` (`20261112100000_push_reserve_at.sql`, 12 Nov 2026): `push_reserve` plus the send time, which
+  stamps the log row. The cap counts a day's sends from the server's own clock (`p_since`, the player's local
+  midnight), so the row is now stamped by the same clock instead of the database's `now()`; the app calls only this
+  one. Service role only.
 - Three analytics events added to `analytics.events`' list: the migration reads the list from the constraint as it
   stands and adds these three (it never writes the list out), so every event already allowed stays allowed.
 
