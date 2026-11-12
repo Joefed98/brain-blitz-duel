@@ -706,6 +706,12 @@ export const leaveRoomFn = createServerFn({ method: "POST" })
     const client = await db();
     const room = await getRoom(client, data.roomId);
     await setPlayerStatusInRoom(client, room.id, context.userId, "left");
+    // A rated match (wave 3, W3b; Joe 12 Nov 2026): a Leave is noted (an abort during set-up, else the 20 s grace and
+    // then a forfeit), and never disbands the room under the player who stayed. Every ordinary room goes on as before.
+    if (room.status === "in_progress") {
+      const { leaveRatedRoom } = await import("@/lib/rated/rated.server");
+      if (await leaveRatedRoom(client, room.id, context.userId, Date.now())) return { ok: true as const };
+    }
 
     if (room.host_user_id === context.userId) {
       await disbandRoom(client, room.id, nowIso());
@@ -764,9 +770,16 @@ export const advancePhaseFn = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const client = await db();
     await requireParticipant(client, data.roomId, context.userId);
-    const room = await getRoom(client, data.roomId);
+    let room = await getRoom(client, data.roomId);
 
     if (room.status !== "in_progress") return { ok: true };
+    // A rated match's leavers (W3b, Joe 12 Nov 2026): an abort or forfeit ends the room here; ordinary rooms: nothing.
+    {
+      const { reviewRatedRoom } = await import("@/lib/rated/rated.server");
+      await reviewRatedRoom(client, room.id, Date.now());
+      room = await getRoom(client, data.roomId);
+      if (room.status !== "in_progress") return { ok: true };
+    }
 
     const round = room.current_round;
     if (round < 1) return { ok: true };
@@ -1084,6 +1097,9 @@ export const heartbeatFn = createServerFn({ method: "POST" })
     if (!isUuid(data.roomId)) return { ok: true as const };
     const client = await db();
     const seen = await recordHeartbeat(client, data.roomId, context.userId, nowIso());
+    // A rated match's leavers are found on every heartbeat (W3b, Joe 12 Nov 2026); ordinary rooms: nothing.
+    const { reviewRatedRoom } = await import("@/lib/rated/rated.server");
+    await reviewRatedRoom(client, data.roomId, Date.now());
     return seen ? { ok: true as const, seen } : { ok: true as const };
   });
 

@@ -469,6 +469,8 @@ export type Database = {
       }
       mm_match_players: {
         Row: {
+          gone_at: string | null
+          left_at: string | null
           match_id: string
           placement: boolean
           rating_before: number
@@ -477,6 +479,8 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          gone_at?: string | null
+          left_at?: string | null
           match_id: string
           placement?: boolean
           rating_before: number
@@ -485,6 +489,8 @@ export type Database = {
           user_id: string
         }
         Update: {
+          gone_at?: string | null
+          left_at?: string | null
           match_id?: string
           placement?: boolean
           rating_before?: number
@@ -496,6 +502,11 @@ export type Database = {
       }
       mm_matches: {
         Row: {
+          ended: string | null
+          ended_at: string | null
+          ended_step: string | null
+          intro_at: string | null
+          leavers: Json
           choice: string
           created_at: string
           duel_id: string | null
@@ -519,6 +530,11 @@ export type Database = {
           status: string
         }
         Insert: {
+          ended?: string | null
+          ended_at?: string | null
+          ended_step?: string | null
+          intro_at?: string | null
+          leavers?: Json
           choice: string
           created_at?: string
           duel_id?: string | null
@@ -542,6 +558,11 @@ export type Database = {
           status?: string
         }
         Update: {
+          ended?: string | null
+          ended_at?: string | null
+          ended_step?: string | null
+          intro_at?: string | null
+          leavers?: Json
           choice?: string
           created_at?: string
           duel_id?: string | null
