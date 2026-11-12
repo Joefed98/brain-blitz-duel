@@ -46,7 +46,7 @@ const DRAWS = partOf(
 /** In-page: every single-line text that wraps or overflows. */
 function wrapProbe() {
   const SINGLE =
-    "h1, h2, h3, button, a, label, summary, [role='button'], .th-kicker, .th-pill, .th-name, .th-score, .jz-medal, .font-display, .font-mono, [data-practice-filter], [data-tab], [data-category-pill]";
+    "h1, h2, h3, button, a, label, summary, [role='button'], .th-kicker, .th-pill, .th-name, .th-score, .jz-medal, .font-display, .font-mono, [data-practice-filter], [data-tab], [data-category-pill], [data-one-line]"; // [data-one-line] (12 Nov 2026): any element meant to stay on one line
   const NOT_JUDGED = "[data-skin-off], .whitespace-normal, .line-clamp-2, [data-wrap-ok], .sr-only"; // .sr-only: visually hidden, never seen (approved, 7 Nov 2026)
   const visible = (el: Element) => {
     const r = el.getBoundingClientRect();

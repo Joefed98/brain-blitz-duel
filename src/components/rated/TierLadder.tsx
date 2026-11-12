@@ -25,8 +25,8 @@ export function TierLadder({ rank, rungs }: { rank: RankView | null; rungs: read
           <div className="rt-ladder-you-head">
             <RankEmblem rank={rank} size={40} />
             <span className="rt-rating-text">
-              <span className="rt-rating-label">Your Joulz Rating</span>
-              <span className="rt-rating-value">{ratingText(rank.rating)}</span>
+              <span className="rt-rating-label" data-one-line>Your Joulz Rating</span>
+              <span className="rt-rating-value" data-one-line>{ratingText(rank.rating)}</span>
             </span>
           </div>
           <DivisionBarView rank={rank} />
@@ -55,7 +55,7 @@ export function TierLadder({ rank, rungs }: { rank: RankView | null; rungs: read
                   label={r.name}
                 />
                 <span className="rt-tier-text">
-                  <span className="rt-tier-name">
+                  <span className="rt-tier-name" data-one-line>
                     {r.name}
                     {here && rank ? <span className="rt-tier-you">You, {rank.label}</span> : null}
                   </span>

@@ -162,7 +162,17 @@ const SCREENS: Record<RatedScreenKey, () => JSX.Element> = {
       onTiers={noop}
     />
   ),
-  tiers: () => <TierLadder rank={ME.rank!} rungs={tierLadder(SHARES)} />,
+  // As the /tiers route draws it: its header, then the ladder.
+  tiers: () => (
+    <>
+      <header className="cz-head">
+        <span className="cz-head-title">
+          <h1>Tiers</h1>
+        </span>
+      </header>
+      <TierLadder rank={ME.rank!} rungs={tierLadder(SHARES)} />
+    </>
+  ),
   profile: () => <ProfileRating status={PLACED} />,
 };
 

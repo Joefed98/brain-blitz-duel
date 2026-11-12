@@ -47,7 +47,9 @@ export function RatedFrameScore({
     <div data-frame-score data-rated-score={hidden ? "hidden" : "live"} className="game-frame-score rt-frame-score">
       <span className="rt-frame-row" data-score-row="me">
         <PlayerDot look={me.look} />
-        <span className="rt-frame-who">You</span>
+        <span className="rt-frame-who th-name" data-one-line>
+          You
+        </span>
         {myScore === null ? (
           <span className="rt-frame-value rt-frame-mine">–</span>
         ) : (
@@ -56,7 +58,9 @@ export function RatedFrameScore({
       </span>
       <span className="rt-frame-row" data-score-row="them">
         <PlayerDot look={them.look} />
-        <span className="rt-frame-who">{them.name}</span>
+        <span className="rt-frame-who th-name" data-one-line>
+          {them.name}
+        </span>
         {hidden ? (
           <span className="rt-frame-value rt-frame-hidden" aria-label={`${them.name}’s score is hidden`} data-hidden-score>
             ?
