@@ -2146,6 +2146,30 @@ outside the repo.
   `wishlist_added`. Migrations `20261112120000_shop.sql`, `20261112120100_analytics_shop_events.sql` (**not applied
   until merged**). shop-check (~15 s, shard `e`, PostgreSQL); shots `bun scripts/shots/shop-shots.ts`
   (`docs/economy/shop-screenshots/`).
+- **The remaining cosmetics and Joulz Plus** (wave 2 train E, session E2, 13 Nov 2026, `docs/economy/plus.md`; no
+  gameplay, scoring, stamp, timing or room-flow change): avatar finishes, the Neon Bolt and Neon Captain Joulz on every
+  avatar drawing (`avatarMarkup` through `src/design/identity/cosmetics.ts`: the board's Captain Joulz versions split by
+  `bun scripts/cosmetics-art.ts [--check]` into parts any avatar takes; `cosmeticsArt.data.ts`; **re-run it after an
+  item's source changes**); reaction packs in room chat (the four reaction slots, emote code `<pack>#<n>`, the server's
+  `allowReactionFn` adds only "equipped by the sender" to its rules; receivers show an emote only from a known owner,
+  `src/lib/duel/roomReactions.ts`, `src/lib/cosmetics/cosmeticsStore.ts`); the winner's celebration and the top three's
+  podium entrance on the final screen (`PodiumCelebrations`, a strip under the heading, 3 s then its still); tile
+  styles on the player's own Practice tiles (`GameIcon` `tileStyle`). Others' choices come from
+  `public.cosmetics_public` (`getPublicCosmeticsFn`); with nothing equipped every screen's markup is unchanged. Joulz
+  Plus: test purchases only (testers, D1's `shop.testers`; `PLUS_FOR_EVERYONE` in `src/config/plusConfig.ts` off until
+  Season 1), 200 coins and 2 streak freezes per membership month (reason `plus_monthly`; a test membership's
+  `plus_test_monthly`, all taken back by `plus.remove_test_rewards`; `src/lib/plus/months.ts`, ledger keys
+  `plus_monthly:` / `plus_freezes:<membership>:<month>`), the premium pass through D2's `grantPremiumTrack`
+  (`src/lib/plus/passBinding.server.ts`, source `plus`), the Daily archive (`/daily-archive`, async rooms
+  of kind `daily_archive`: never a board, the streak, a badge or Joules; C2's `badge_facts` and D2's `pass_activity`
+  leave the kind out and, Joe 11 Nov 2026, any run the server flagged (extra.flagged: no badge, no Joules, nor the finish
+  of a room or Daily holding one), copies proved against their sources by `bun scripts/plus-copies.ts`; archive plays' analytics
+  carry `archive: true`), early access (`plus.mark_early_access`;
+  `src/lib/plus/access.server.ts`, asked by the practice deal and packs), the PLUS chip (off by default). Joe's
+  functions in the `plus` schema (`start_test`, `remove_test_purchase`, `remove_test_rewards`, `list_members`, `mark_early_access`,
+  `clear_early_access`). Migrations `20261113200000_joulz_plus.sql`, `20261113200100_analytics_plus_events.sql`
+  (**not applied until merged**). Events `plus_bought`, `plus_perk_granted`, `daily_archive_played`. Checks plus-check
+  (PostgreSQL, shard `e`), cosmetics-art-check, cosmetics-screens-check (happy-dom), cosmetics-motion-check (Chromium).
 - **The Season pass, Joules and weekly challenges** (wave 2 train D, session D2, 13 Nov 2026, `docs/economy/pass.md`; no
   gameplay, scoring, stamp, timing or room-flow change): Season 1 "Neon Circuit" for the shop's testers (`shop.testers`)
   until `PASS_FOR_EVERYONE` (`src/config/passConfig.ts`) is on; every pass function refuses guests and other accounts.

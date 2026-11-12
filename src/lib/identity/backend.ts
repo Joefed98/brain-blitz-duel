@@ -41,7 +41,21 @@ export interface CatalogueItem {
 }
 
 /** The slots Customise equips (A1's `equip(slot, …)`). */
-export type LoadoutSlot = "card-art" | "frame" | "name-colour" | "avatar-finish" | "avatar-accessory" | "avatar-special-edition";
+export type LoadoutSlot =
+  | "card-art"
+  | "frame"
+  | "name-colour"
+  | "avatar-finish"
+  | "avatar-accessory"
+  | "avatar-special-edition"
+  // Wave 2 E2: the win celebration, the podium entrance, the Practice tile style and the four reaction slots.
+  | "celebration"
+  | "podium-entrance"
+  | "tile-style"
+  | "reaction-1"
+  | "reaction-2"
+  | "reaction-3"
+  | "reaction-4";
 export const LOADOUT_SLOTS: readonly LoadoutSlot[] = [
   "card-art",
   "frame",
@@ -49,6 +63,13 @@ export const LOADOUT_SLOTS: readonly LoadoutSlot[] = [
   "avatar-finish",
   "avatar-accessory",
   "avatar-special-edition",
+  "celebration",
+  "podium-entrance",
+  "tile-style",
+  "reaction-1",
+  "reaction-2",
+  "reaction-3",
+  "reaction-4",
 ];
 
 /**

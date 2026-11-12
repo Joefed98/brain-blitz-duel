@@ -2040,6 +2040,14 @@ export type Database = {
         Returns: Json
       }
       shop_test_pack: { Args: { p_key: string; p_pack: string; p_user_id: string }; Returns: Json }
+      plus_membership: { Args: { p_user_id: string }; Returns: Json }
+      plus_is_member: { Args: { p_user_id: string }; Returns: boolean }
+      plus_test_purchase: { Args: { p_plan: string; p_user_id: string }; Returns: Json }
+      plus_note_grant: { Args: { p_detail: Json; p_membership_id: string; p_month: number; p_perk: string }; Returns: boolean }
+      plus_granted_months: { Args: { p_membership_id: string }; Returns: Json }
+      plus_set_mark: { Args: { p_on: boolean; p_user_id: string }; Returns: string }
+      plus_early_access: { Args: { p_day: string }; Returns: Json }
+      cosmetics_public: { Args: { p_user_ids: string[] }; Returns: Json }
       async_board_open: { Args: { p_room_id: string }; Returns: boolean }
       disband_stale_room: { Args: { p_room_id: string }; Returns: boolean }
       duel_round_ended: {

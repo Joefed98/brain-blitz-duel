@@ -4,6 +4,8 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { AnswerReveal } from "@/components/duel/AnswerReveal";
 import { WaitingLine } from "@/components/duel/Dots";
 import { Chip, GameTile, Icon, Input, Segmented, Stars } from "@/design/components";
+import { useMyIdentity } from "@/lib/identity/identityApi";
+import { useEarlyAccessHeld } from "@/lib/plus/plusApi";
 import { GameLayout, PhoneShell, isArcadeScreenType } from "@/components/duel/PhoneShell";
 import { FrameScore } from "@/components/duel/GameFrame";
 import { SteadyOrPlain } from "@/components/duel/SteadyStage";
@@ -322,6 +324,9 @@ function PracticeScreen() {
   const [arcadeFilter, setArcadeFilter] = useState<ArcadeFilter>("all");
   const layoutMode = useLayoutMode();
   const desktop = layoutMode === "desktop";
+  // Wave 2 E2: the player's own tile style on their game tiles, and the games early access holds back (Joulz Plus).
+  const myTileStyle = useMyIdentity().loadout?.slots["tile-style"] ?? null;
+  const heldBack = useEarlyAccessHeld();
   const railQuery = (Route.useSearch() as { q?: string }).q;
   const [query, setQuery] = useState(() => railQuery ?? "");
   useEffect(() => {
@@ -728,7 +733,7 @@ function PracticeScreen() {
 
   if (stage === "list") {
     const filter = side === "puzzles" ? puzzleFilter : arcadeFilter;
-    const visible = (key: PuzzleType) => matchesFilter(key, side, filter, query);
+    const visible = (key: PuzzleType) => matchesFilter(key, side, filter, query) && !heldBack.includes(key);
     // Puzzles: one section per category (Arcade is the other side). Arcade: one section per group.
     const groups: { id: string; label: string; dot: string; rows: PuzzleType[] }[] =
       side === "puzzles"
@@ -775,7 +780,7 @@ function PracticeScreen() {
         data-icon="game"
         className={`jz-row press${retired ? " opacity-80" : ""}`}
       >
-        <GameTile type={key} iconSize={44} />
+        <GameTile type={key} iconSize={44} tileStyle={myTileStyle} />
         <span data-ellipsis aria-hidden="true" className="jz-row-title min-w-0 flex-1">
           {PUZZLE_REGISTRY[key].name}
         </span>
@@ -956,7 +961,7 @@ function PracticeScreen() {
                         onClick={() => void load(key)}
                         className="press"
                       >
-                        <GameTile type={key} iconSize={52} />
+                        <GameTile type={key} iconSize={52} tileStyle={myTileStyle} />
                         <span aria-hidden="true" className="ap-strip-name">
                           {PUZZLE_REGISTRY[key].name}
                         </span>

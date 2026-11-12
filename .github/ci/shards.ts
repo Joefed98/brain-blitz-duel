@@ -360,6 +360,13 @@ export const SHARDS: Record<string, string[]> = {
     // packs and the £ line, then buying, bundles, test packs, the wishlist and the tester list on a local PostgreSQL
     // through the server-function harness, beside economy-check.
     "shop-check.ts",
+    // plus-check (wave 2 E2, 13 Nov 2026, ~20 s): Joulz Plus (test purchases, the monthly perks across month
+    // boundaries, the premium pass binding, the PLUS chip), early access, the Daily archive kept off boards, streaks
+    // and badges, and the public cosmetics, on a local PostgreSQL through the server-function harness.
+    "plus-check.ts",
+    // cosmetics-art-check (wave 2 E2, ~2 s): the cosmetics' art data against its sources, every finish on all 32
+    // avatars, the emotes, scenes and tile styles, and nothing changed with nothing equipped. No browser.
+    "cosmetics-art-check.ts",
     // pass-check (wave 2 D2, 13 Nov 2026, ~20 s): the Season pass, Joules from stored results, the day limits and soft
     // cap, claiming, the premium track and the weekly challenges on a local PostgreSQL through the server-function
     // harness, beside shop-check.

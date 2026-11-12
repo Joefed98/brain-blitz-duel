@@ -127,6 +127,8 @@ interface PodiumProps {
    * (Play again, Share, Leave), pinned to the screen's bottom (no chat bar under it).
    */
   actions?: ReactNode;
+  /** Wave 2 E2: the players' equipped celebrations (PodiumCelebrations), under the heading; nothing when none. */
+  celebrations?: ReactNode;
 }
 
 /** The final screen for a room of three or more players. */
@@ -144,6 +146,7 @@ export function Podium({
   share,
   challenge,
   actions,
+  celebrations,
 }: PodiumProps) {
   const [open, setOpen] = useState<number | null>(null);
   const [showAll, setShowAll] = useState(false);
@@ -223,6 +226,7 @@ export function Podium({
         </h1>
       )}
 
+      {celebrations}
       {/* The plinths repeat the list under them (and are in the order 2, 1, 3): hidden from screen readers. */}
       <div className="flex items-end gap-2 px-1" aria-hidden="true">
         <Plinth standing={rows.find((r) => r.position === 2)} place={2} looks={looks} celebrate={celebrate} skip={skipped} shared={sharedAt(2)} />

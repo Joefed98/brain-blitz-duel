@@ -87,6 +87,12 @@ export const ANALYTICS_EVENTS = [
   "bundle_bought",
   "pack_bought",
   "wishlist_added",
+  // Joulz Plus (wave 2, session E2; docs/economy/plus.md): recorded by the server only (src/lib/plus/plus.server.ts,
+  // src/lib/plus/archive.server.ts; Joe's plus.start_test). plus_bought props.plan and props.test, plus_perk_granted
+  // props.perk (coins | freezes) and props.month, daily_archive_played props.kind and props.day.
+  "plus_bought",
+  "plus_perk_granted",
+  "daily_archive_played",
   // The Season pass (wave 2, session D2; docs/economy/pass.md): recorded by the server only (src/lib/pass/pass.server.ts).
   // pass_bought props.season and props.test, pass_level_reached props.season and props.level, reward_claimed
   // props.season, props.track, props.level and props.kind, weekly_challenge_completed props.tier and props.challenge.
