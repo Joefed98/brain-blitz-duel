@@ -10,7 +10,8 @@
  * with the final placings from the stored scores (points, then total score); every player's run joins the pool; the
  * start and finish events; and (Joe's rule, 11 Nov 2026, built in W3a's engine) a 4- and an 8-player match with one run
  * the server flagged (its stored grade's extra.flagged) on W3a's real engine: nobody's rating moves, nothing counts
- * for placement, streaks or badges (Podium Regular included), it is logged once in moderation.rated_flags, the flagged
+ * for placement, streaks or competitive badges (Podium Regular included), the flagged run earns its player no badge (E2's
+ * badge_facts) while the unflagged player's Flawless stands, it is logged once in moderation.rated_flags, the flagged
  * player gets no Joules and the others keep theirs.
  */
 import {
@@ -306,12 +307,17 @@ async function runAll(db: LocalDb): Promise<void> {
     const room = found.match.roomId!;
     const slotUser = q(`SELECT string_agg(user_id::text, ',' ORDER BY player_slot) FROM public.duel_players WHERE duel_id = '${room}'`).split(",");
     const flaggedUser = slotUser[flaggedSlot - 1]!;
+    const userBadges = (u: string) => (hasBadgeTable ? q(`SELECT coalesce(string_agg(badge, ',' ORDER BY badge), '') FROM public.player_badges WHERE user_id = '${u}'`) : "");
+    const flaggedBadgesBefore = userBadges(flaggedUser);
     const before = { profiles: profileOf(users), ratings: ratingsOf(users), badges: hasBadgeTable ? badgesOf(users) : "", ratedBadges: hasBadgeTable ? q(`SELECT count(*) FROM public.player_badges WHERE user_id = ANY(ARRAY[${users.map((u) => `'${u}'`).join(",")}]::uuid[]) AND badge = ANY(ARRAY[${RATED_BADGES.map((b) => `'${b}'`).join(",")}])`) : "" };
-    // Every slot scores by its place; the flagged slot's game 2 carries the server replay's flag in its stored extra.
+    // Every slot scores by its place; the flagged slot's game 2 carries the server replay's flag in its stored extra
+    // and is a 200 (the only 200 that player has in the match), so Flawless would come from that run alone. Slot 1,
+    // never flagged, scores 200 in every game.
     const rows = [0, 1, 2].flatMap((r) =>
       slotUser.map((_, i) => {
-        const extra = i + 1 === flaggedSlot && r === 1 ? `'{"flagged": true, "flagReason": "replay_mismatch"}'::jsonb` : "NULL";
-        return `('${room}', ${i + 1}, ${r + 1}, ${200 - i * 20}, 1000, true, 'x', ${extra})`;
+        const flaggedRun = i + 1 === flaggedSlot && r === 1;
+        const extra = flaggedRun ? `'{"flagged": true, "flagReason": "replay_mismatch"}'::jsonb` : "NULL";
+        return `('${room}', ${i + 1}, ${r + 1}, ${flaggedRun ? 200 : 200 - i * 20}, 1000, true, 'x', ${extra})`;
       }),
     );
     q(`INSERT INTO public.round_results (duel_id, player_slot, round_number, score, ms_remaining, is_correct, answer, extra) VALUES ${rows.join(", ")}`);
@@ -328,11 +334,12 @@ async function runAll(db: LocalDb): Promise<void> {
     const ratedBadgesOf = (us: string[]) =>
       q(`SELECT count(*) FROM public.player_badges WHERE user_id = ANY(ARRAY[${us.map((u) => `'${u}'`).join(",")}]::uuid[]) AND badge = ANY(ARRAY[${RATED_BADGES.map((b) => `'${b}'`).join(",")}])`);
     check(outcome.players.every((p) => p.badges.length === 0) && (!hasBadgeTable || ratedBadgesOf(users) === before.ratedBadges), `${label}: no competitive badges for anyone (Podium Regular included)`);
-    if (hasBadgeTable && badgesOf(users) !== before.badges) {
-      const gained = q(`SELECT string_agg(DISTINCT badge, ',') FROM public.player_badges WHERE user_id = ANY(ARRAY[${users.map((u) => `'${u}'`).join(",")}]::uuid[])`);
-      // Reported, not judged here: C2's badge_facts reads every room's stored results, rated rooms and flagged runs
-      // included (Flawless for a 200 by an unflagged player). A question for Joe (C2 / W3a), the same for 1v1.
-      console.log(`  NOTE ${label}: non-competitive badges from C2's badge_facts on this room's results: ${gained}`);
+    // Joe's decision (11 Nov 2026), built by E2 (#378) in its badge_facts: a flagged run never counts towards any badge,
+    // and the innocent player's own clean runs still count for their own-play badges. The flagged player's only 200 is
+    // the flagged run, so they gain nothing from this match; slot 1's clean 200s earn Flawless.
+    if (hasBadgeTable) {
+      check(userBadges(flaggedUser) === flaggedBadgesBefore, `${label}: the flagged player earns no badge from the match (${flaggedBadgesBefore || "none"} → ${userBadges(flaggedUser) || "none"})`);
+      check(userBadges(slotUser[0]!).split(",").includes("flawless"), `${label}: the unflagged player's Flawless stands (${userBadges(slotUser[0]!) || "none"})`);
     }
     const counted = q(`SELECT string_agg(DISTINCT counted::text || ',' || moved::text || ',' || coalesce(frozen, '-'), ';') FROM public.rated_match_players WHERE match_id = '${id}'`);
     check(counted === "false,false,flagged_run", `${label}: every player's row stored as not counted, not moved, frozen flagged_run (${counted})`);

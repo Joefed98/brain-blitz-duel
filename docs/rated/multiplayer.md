@@ -42,13 +42,12 @@ switching one on is a deliberate change to that line (Joe's call, recorded with 
   grade) anywhere in a 4- or 8-player match moves nobody's rating, counts for nobody's placement, streaks or competitive
   badges (Podium Regular included), is logged in `moderation.rated_flags`, and pays the flagged player no Joules while
   the others keep theirs. rated-multi-server-check proves it for 4 and 8 players on W3a's real `finishRatedMatch`.
-  **Open (C2 / W3a):** C2's `badge_facts` reads every room's stored results, rated rooms and flagged matches included,
-  so an unflagged 200 in a flagged rated match still earns Flawless (a mastery badge, not a competitive one; 1v1 alike).
-  The check prints it as a NOTE. **Decided (Joe, 11 Nov 2026):** a flagged run never counts towards any badge or Joules
-  anywhere; the innocent player's own clean runs still count for their own-play badges (Flawless); competitive badges
-  from a flagged rated match count for nobody. E2 (#378) builds it in its copies of `badge_facts` and `pass_activity`;
-  once E2 is on main and merged here, the NOTE becomes an assertion (the flagged player earns nothing, the unflagged
-  player's Flawless stands).
+  **Badges from a flagged match (Joe, 11 Nov 2026; built by E2, #378, in its `badge_facts` and `pass_activity`):** a
+  flagged run never counts towards any badge or Joules anywhere; the innocent players' own clean runs still count for
+  their own-play badges (Flawless); competitive badges from a flagged rated match count for nobody. E2's rule is per
+  stored row, so the flagged player's other, clean games in the same match still count for their own-play badges.
+  rated-multi-server-check asserts it for 4 and 8 players: the flagged run is that player's only 200 and they gain no
+  badge from the match, while the unflagged player's 200s earn Flawless.
 - **Recorded seats (parked until 4 and 8 players are switched on; Joe will ask W3b then):** a 1v1 against a recorded run deals that run's stored puzzles. A 4- or
   8-player match has one set of deals, so its recorded seats must be the other players of one earlier match on the same
   deals (every settled ffa match now stores all its players' runs, `rated:<match>:<user>`). W3b's recorded match holds
