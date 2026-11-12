@@ -1948,8 +1948,8 @@ outside the repo.
 - **Navigation and identity screens** (wave 2 train A, session A2, 10 Nov 2026; presentation, device storage and
   analytics only, no gameplay, scoring, stamp or room-flow change): *Five tabs*: `TABS` (`src/design/components/TabBar.tsx`)
   is Play · Practice · Tournaments · Shop · Profile; `tabsFor(shop)` draws the Shop only where the **Shop switch** is on
-  (`src/config/shopConfig.ts`: `SHOP_TAB_ENABLED` false until train D; `SHOP_PREVIEW_PLAYERS` [1], Joe's #0001, sees it
-  meanwhile; `useShopOn` in `src/lib/identity/shopSwitch.ts`, from the cached account at first paint); everyone else keeps
+  (`src/config/shopConfig.ts`: `SHOP_TAB_ENABLED` false until Season 1; meanwhile only the testers on `shop.testers`
+  see it, wave 2 D1, the one list; `useShopOn` in `src/lib/identity/shopSwitch.ts`, from the cached account at first paint); everyone else keeps
   today's four tabs (app-shell-check's four-tab assertions hold). `/shop` (`src/routes/shop.tsx`): Shop · Pass · Plus, the
   Shop part's Featured · Daily · Coins, each a calm "opening soon" card (no prices, items or countdown); a device the
   switch is off for is sent to Play. The header's coin counter (`CoinCounter`, also the desktop rail) shows an account's
@@ -2122,6 +2122,26 @@ outside the repo.
   and falls short for all 261, speed goals against the grader, the facts, coins and roles on PostgreSQL) and
   practice-challenge-fit-check (headless Chromium: every goal whole at 320 and 375 px). **A retune that moves a goal's
   number fails practice-goals-check: change the goal's text and number in the data file and re-run the doc script.**
+- **The shop** (wave 2 train D, session D1, 11 Nov 2026, `docs/economy/shop.md`; no gameplay, scoring, stamp or timing
+  change; nothing in it helps anyone win): testers only while `SHOP_TAB_ENABLED` is off, from ONE list, `shop.testers`
+  (Joe's `shop.add_tester` / `remove_tester` / `list_testers`, logged in `shop.admin_log`; #0001 added by the migration
+  and `shop.on_player_one`): the tab follows it (`shopStatusFn` → `knownTesters()` → `shopOnFor`) and every shop
+  function refuses anyone else (`shopAccess` in `src/lib/shop/shop.server.ts`). The daily shop
+  (`src/lib/shop/dailyShop.ts`, pure): four items a day chosen once at midnight UK and recorded in `public.shop_days`
+  (slots Epic, Epic, Elite, Epic/Elite/Legendary; a Legendary two days a week; nothing within 7 days; shop items only;
+  owners see the day's next unowned item). The Monday bundle: `src/lib/shop/bundles.ts` is the schedule as data
+  (`BUNDLES`, `BUNDLE_SCHEDULE_START`: set it to Season 1's first Monday at launch; proposal
+  `docs/economy/bundles-season-1.md`), recorded in `public.shop_weeks`, bought all or nothing through
+  `public.shop_purchase_bundle` (one spend line per item). Items through A1's `economy_purchase_item`, each confirmation
+  with a request id (the same purchase pays once). Coin prices only on cards; the £ value once, on the confirmation
+  (`confirmLine` in `packs.ts`, the Starter pack's rate). Coin packs: tester "Test purchase" credits with reason
+  `test_purchase` (`shop.remove_test_purchase` adds a reversing line); packs for 18+ on the web (`packAllowed`). The
+  wishlist (`public.shop_wishlist`): an item hearted before and back today gets a notice (`ShopBackNotice`) and the Shop
+  tab's only dot (`TabBar` `shopDot`). Item pictures `public/shop/<id>.webp` from `bun scripts/shop-previews.ts`
+  (**re-run after an item's art changes**). Events `shop_viewed`, `item_bought`, `bundle_bought`, `pack_bought`,
+  `wishlist_added`. Migrations `20261112120000_shop.sql`, `20261112120100_analytics_shop_events.sql` (**not applied
+  until merged**). shop-check (~15 s, shard `e`, PostgreSQL); shots `bun scripts/shots/shop-shots.ts`
+  (`docs/economy/shop-screenshots/`).
 - `src/components/duel/` — room/round screens (PhoneShell, RoundIntro, TimerBar,
   AnswerReveal, ArcadeReveal, WinnerReveal…); `src/components/puzzles/` — shared puzzle
   widgets; `src/lib/fx/` — sound and visual feedback (presentation only).
