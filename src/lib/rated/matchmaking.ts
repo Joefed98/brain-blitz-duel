@@ -140,18 +140,24 @@ export interface QueueEntry {
   /** The rating the match will move (W3a's matchRating: a single-category choice blends that category's in). */
   rating: number;
   joinedAtMs: number;
-  /** Still in placement (W3a): starts against recorded runs from beginners, never the live queue. */
+  /**
+   * Still in placement (W3a). Joe, 11 Nov 2026: two placement players searching at the same time may be matched live
+   * with each other (the normal widening); a placed player never with a placement player; otherwise at 8 s a beginner's
+   * recorded run.
+   */
   placement: boolean;
 }
 
 /**
  * Whether two waiting players can be paired now: the same format and the same choice, two different players,
- * neither in placement, and ratings within the wider of their two bands (the longer waiter has widened further).
+ * both in placement or both placed (never one of each), and ratings within the wider of their two bands (the longer
+ * waiter has widened further).
  */
 export function canPair(a: QueueEntry, b: QueueEntry, nowMs: number): boolean {
   if (a.userId === b.userId) return false;
   if (a.format !== b.format || a.choice !== b.choice) return false;
-  if (a.placement || b.placement) return false;
+  // Placement only with placement, placed only with placed (Joe, 11 Nov 2026).
+  if (a.placement !== b.placement) return false;
   const band = Math.max(bandFor(nowMs - a.joinedAtMs), bandFor(nowMs - b.joinedAtMs));
   return Math.abs(a.rating - b.rating) <= band;
 }
@@ -446,4 +452,96 @@ export const RATED_POLL_LIMIT = { bucket: "rated-poll", max: 900, windowSeconds:
 /** The types a list of rounds holds, for messages and checks. */
 export function typesOf(games: readonly { type: string }[]): PuzzleType[] {
   return games.map((g) => g.type as PuzzleType);
+}
+
+/* ------------------------------------------------------------------ leaving a match (Joe, 12 Nov 2026) */
+
+/** A dropped player's grace once the first game's intro has appeared: back within it, play carries on. */
+export const DEPARTURE_GRACE_MS = 20_000;
+
+export interface DeparturePlayer {
+  userId: string;
+  /** The latest heartbeat (or join / READY) the server holds, ms; null for none. */
+  lastSeenMs: number | null;
+  /** Their own Leave, ms; null when they never pressed it. */
+  leftAtMs: number | null;
+  /** Found gone for good (a 4- or 8-player match carrying on without them): when they went, ms. */
+  goneAtMs: number | null;
+}
+
+export interface Departure {
+  userId: string;
+  /** When they went: their Leave, else their last heartbeat. */
+  atMs: number;
+}
+
+export type DepartureVerdict =
+  /** Nobody gone (or the match already decided: it ends on its result). */
+  | { kind: "none" }
+  /** Left during set-up (before the first game's intro): no rating, no Joules, not a placement match. */
+  | { kind: "abort"; leavers: Departure[] }
+  /** Away past the grace before the match was decided: the match ends now as a loss for each leaver. */
+  | { kind: "forfeit"; leavers: Departure[] }
+  /** A 4- or 8-player match: these players are gone for good, the rest play on. */
+  | { kind: "gone"; leavers: Departure[] };
+
+/** When a player went: their own Leave, else their last heartbeat. */
+export function awaySinceMs(p: DeparturePlayer): number | null {
+  return p.leftAtMs ?? p.lastSeenMs;
+}
+
+/**
+ * Who has left a live match, and what follows (pure; the server calls it on every heartbeat and poll). Set-up is
+ * everything before `introAtMs`, the first game's intro: a player who pressed Leave in it, or whose absence began in it
+ * and lasted past the grace (never connected counts), aborts the match. After it, a player away for more than the
+ * grace (a Leave starts the clock too) forfeits, unless the match is already decided. In a 1v1 the match then ends; in a
+ * 4- or 8-player match it carries on until fewer than two players stay. If everyone is gone, the player seen last stays.
+ */
+export function departureVerdict(input: {
+  nowMs: number;
+  introAtMs: number;
+  players: readonly DeparturePlayer[];
+  /** The match is already won (a best of N's majority): nobody forfeits; it ends on its result. */
+  decided: boolean;
+  graceMs?: number;
+}): DepartureVerdict {
+  const grace = input.graceMs ?? DEPARTURE_GRACE_MS;
+  const away = (p: DeparturePlayer) => awaySinceMs(p) ?? input.introAtMs - grace - 1;
+  const departures = (list: readonly DeparturePlayer[]): Departure[] =>
+    [...list].map((p) => ({ userId: p.userId, atMs: p.goneAtMs ?? away(p) })).sort((a, b) => a.atMs - b.atMs || (a.userId < b.userId ? -1 : 1));
+  const keepOne = (gone: DeparturePlayer[]) => {
+    if (gone.length < input.players.length) return gone;
+    const last = [...gone].sort((a, b) => away(b) - away(a) || (a.userId < b.userId ? -1 : 1))[0]!;
+    return gone.filter((p) => p !== last);
+  };
+  const live = input.players.filter((p) => p.goneAtMs === null);
+  const setupLeavers = live.filter((p) => {
+    const since = away(p);
+    if (p.leftAtMs !== null && p.leftAtMs < input.introAtMs) return true;
+    return since < input.introAtMs && input.nowMs - since > grace;
+  });
+  if (setupLeavers.length > 0 && input.players.every((p) => p.goneAtMs === null)) return { kind: "abort", leavers: departures(keepOne(setupLeavers)) };
+  if (input.decided) return { kind: "none" };
+  const newlyGone = live.filter((p) => input.nowMs - away(p) > grace);
+  if (newlyGone.length === 0) return { kind: "none" };
+  const before = input.players.filter((p) => p.goneAtMs !== null);
+  const all = keepOne([...before, ...newlyGone]);
+  const stayers = input.players.length - all.length;
+  if (input.players.length <= 2 || stayers < 2) return { kind: "forfeit", leavers: departures(all) };
+  return { kind: "gone", leavers: departures(newlyGone.filter((p) => all.includes(p))) };
+}
+
+/**
+ * Final places with leavers (4 and 8 players): the players who stayed keep their places among themselves (1, 2, 2, 4
+ * style), then the leavers below them, the latest leaver highest, level departures sharing a place.
+ */
+export function placeWithLeavers(stayerPlaces: Readonly<Record<string, number>>, leavers: readonly Departure[]): Record<string, number> {
+  const out: Record<string, number> = { ...stayerPlaces };
+  const base = Object.keys(stayerPlaces).length;
+  const latestFirst = [...leavers].sort((a, b) => b.atMs - a.atMs);
+  latestFirst.forEach((l, i) => {
+    const ahead = latestFirst.filter((x) => x.atMs > l.atMs).length;
+    out[l.userId] = base + (i === 0 ? 1 : ahead + 1);
+  });
+  return out;
 }

@@ -338,10 +338,16 @@ export const SHARDS: Record<string, string[]> = {
     // skins-db-check (wave 2 E1, 11 Nov 2026, ~10 s): the card-back move and the result looks' triggers on a local
     // PostgreSQL, and the ghost-looks server function, beside economy-check.
     "skins-db-check.ts",
+    // customise-looks-db-check (12 Nov 2026, ~5 s): Customise's Games tab path through A1's real equip on a local
+    // PostgreSQL, a second device, and the games' renderers; with the database checks.
+    "customise-looks-db-check.ts",
     // push-notifications-check (wave 2 B2, 11 Nov 2026, ~5 s): phone notifications (RFC 8291 / VAPID, the six events,
     // the cap and quiet hours, the streak reminder, subscriptions, RLS, the service worker's push listeners) on a local
     // PostgreSQL through the server-function harness, beside economy-check.
     "push-notifications-check.ts",
+    // push-testers-check (11 Nov 2026, ~5 s): with the key set, notifications for testers #0001 and #0002 only (the
+    // ask and panel in happy-dom, subscriptions and every send on PostgreSQL).
+    "push-testers-check.tsx",
     // badges-check (wave 2 C2, 11 Nov 2026, ~10 s): badges, titles, the sign-up and founding rewards, the backfill and the
     // Daily streak on the account, on a local PostgreSQL through the server-function harness, beside economy-check.
     "badges-check.ts",
@@ -358,6 +364,13 @@ export const SHARDS: Record<string, string[]> = {
     // packs and the £ line, then buying, bundles, test packs, the wishlist and the tester list on a local PostgreSQL
     // through the server-function harness, beside economy-check.
     "shop-check.ts",
+    // plus-check (wave 2 E2, 13 Nov 2026, ~20 s): Joulz Plus (test purchases, the monthly perks across month
+    // boundaries, the premium pass binding, the PLUS chip), early access, the Daily archive kept off boards, streaks
+    // and badges, and the public cosmetics, on a local PostgreSQL through the server-function harness.
+    "plus-check.ts",
+    // cosmetics-art-check (wave 2 E2, ~2 s): the cosmetics' art data against its sources, every finish on all 32
+    // avatars, the emotes, scenes and tile styles, and nothing changed with nothing equipped. No browser.
+    "cosmetics-art-check.ts",
     // pass-check (wave 2 D2, 13 Nov 2026, ~20 s): the Season pass, Joules from stored results, the day limits and soft
     // cap, claiming, the premium track and the weekly challenges on a local PostgreSQL through the server-function
     // harness, beside shop-check.
@@ -367,6 +380,14 @@ export const SHARDS: Record<string, string[]> = {
     // account-screens-check (10 Nov 2026, ~10 s): the sign-up screens' rules, the save-progress events' server function
     // and usernames in rooms, Dailies and challenges, through the server-function harness, beside accounts-check.
     "account-screens-check.ts",
+    // rated-server-check (wave 3 W3b, 11 Nov 2026, ~5 s): rated matchmaking end to end (the queue, live and recorded
+    // matches, the hidden finish, settling once, rematch, rated chat, events) on a local PostgreSQL through the
+    // server-function harness, beside accounts-check; rated-matchmaking-check (~1 s) proves the pure rules.
+    "rated-server-check.ts",
+    "rated-matchmaking-check.ts",
+    // rated-multi-server-check (wave 3 W3d, 11 Nov 2026, ~10 s): a 4-player rated match through W3b's queue, rooms and
+    // settling on a local PostgreSQL through the server-function harness; rated-multi-check (~2 s) the rules and screens.
+    "rated-multi-server-check.ts",
     // friends-check (wave 2 B1, 11 Nov 2026, ~5 s): friends (search's age rules, invite links, requests, accept,
     // decline, remove, block, status, invites, challenges, the limits and cap, RLS, B2's events) on a local PostgreSQL
     // through the server-function harness, beside accounts-check; friends-ui-check (~3 s, happy-dom) the screens.
@@ -376,11 +397,6 @@ export const SHARDS: Record<string, string[]> = {
     // speed goals against the grader, the six stored facts, coins once per account and guests paid on sign-up on a local
     // PostgreSQL through the server-function harness, beside accounts-check.
     "practice-challenges-check.ts",
-    // rated-server-check (wave 3 W3b, 11 Nov 2026, ~5 s): rated matchmaking end to end (the queue, live and recorded
-    // matches, the hidden finish, settling once, rematch, rated chat, events) on a local PostgreSQL through the
-    // server-function harness, beside accounts-check; rated-matchmaking-check (~1 s) proves the pure rules.
-    "rated-server-check.ts",
-    "rated-matchmaking-check.ts",
     // tournaments-check (wave 4 W4b, 11 Nov 2026, ~30 s): the schedule, the Arena's points, streak and pairing, Score
     // Attack, entry and refunds, prizes with the safeguard, trophies and badges once, never a rating, on a local
     // PostgreSQL through the server-function harness; tournaments-screens-check (~2 s) the hub's screens.

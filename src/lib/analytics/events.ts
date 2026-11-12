@@ -87,6 +87,12 @@ export const ANALYTICS_EVENTS = [
   "bundle_bought",
   "pack_bought",
   "wishlist_added",
+  // Joulz Plus (wave 2, session E2; docs/economy/plus.md): recorded by the server only (src/lib/plus/plus.server.ts,
+  // src/lib/plus/archive.server.ts; Joe's plus.start_test). plus_bought props.plan and props.test, plus_perk_granted
+  // props.perk (coins | freezes) and props.month, daily_archive_played props.kind and props.day.
+  "plus_bought",
+  "plus_perk_granted",
+  "daily_archive_played",
   // The Season pass (wave 2, session D2; docs/economy/pass.md): recorded by the server only (src/lib/pass/pass.server.ts).
   // pass_bought props.season and props.test, pass_level_reached props.season and props.level, reward_claimed
   // props.season, props.track, props.level and props.kind, weekly_challenge_completed props.tier and props.challenge.
@@ -100,12 +106,12 @@ export const ANALYTICS_EVENTS = [
   "tournament_entered",
   "tournament_finished",
   "prize_paid",
-  // Rated play (wave 3 W3a, docs/rated/README.md): recorded by the server only (src/lib/rated/ratings.server.ts).
-  // rated_match_finished carries props.format (bo3 / bo5 / bo7 / 4p / 8p), props.choice, props.result and
-  // props.opponent (live / recorded); placement_finished props.tier; tier_changed props.from and props.to.
-  "rated_match_finished",
-  "placement_finished",
-  "tier_changed",
+  // Rated 4- and 8-player matches (wave 3, session W3d; docs/rated/multiplayer.md): recorded by the server only
+  // (src/lib/rated/multi/multi.server.ts). multiplayer_match_started carries props.size, props.live_seats and
+  // props.recorded_seats (once a match, no player); multiplayer_match_finished props.size and props.placing (one a live
+  // player).
+  "multiplayer_match_started",
+  "multiplayer_match_finished",
   // Rated matchmaking (wave 3, W3b; docs/rated/matchmaking-interface.md): recorded by the server only
   // (src/lib/rated/rated.server.ts). queue_joined carries props.format and props.choice; match_found props.kind
   // (live | recorded), props.waited_s, props.format and props.choice; rematch_requested and rematch_accepted
@@ -114,6 +120,23 @@ export const ANALYTICS_EVENTS = [
   "match_found",
   "rematch_requested",
   "rematch_accepted",
+  // Rated play (wave 3 W3a, docs/rated/README.md): recorded by the server only (src/lib/rated/ratings.server.ts).
+  // rated_match_finished carries props.format (bo3 / bo5 / bo7 / 4p / 8p), props.choice, props.result and
+  // props.opponent (live / recorded); placement_finished props.tier; tier_changed props.from and props.to.
+  "rated_match_finished",
+  "placement_finished",
+  "tier_changed",
+  // The rated match screens (wave 3, session W3c): recorded by the server only, through recordRatedEventFn
+  // (src/lib/rated/ratedEvents.functions.ts), which accepts these five with fixed-word props and nothing else.
+  "play_card_tapped",
+  "vs_shown",
+  "result_viewed",
+  "next_match_tapped",
+  "tier_ladder_viewed",
+  // Leaving a rated match (W3b, Joe 12 Nov 2026): one row per leaver. rated_match_aborted props.step (the room phase
+  // left in) and props.format; rated_match_forfeited props.format and props.games_played.
+  "rated_match_aborted",
+  "rated_match_forfeited",
 ] as const;
 export type AnalyticsEventName = (typeof ANALYTICS_EVENTS)[number];
 

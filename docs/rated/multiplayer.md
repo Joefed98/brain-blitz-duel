@@ -1,0 +1,102 @@
+# Rated 4- and 8-player matches (wave 3, session W3d)
+
+Built 11 Nov 2026 behind two switches, **both off at launch** (decided 11 Nov: a small beta isn't split across many
+queues). Mockups: `docs/mockups/wave-3/08`, `09`, `10` (read with wave 2: avatars, the five-tab bar and the Joules line
+win where they differ).
+
+## Switching a size on
+
+W3b's switches, `src/config/matchmakingConfig.ts`: set `RATED_FORMATS_ON.ffa4` (4 players) and/or `.ffa8` (8 players) to
+`true` and merge (rated play itself also needs `RATED_PLAY_FOR_EVERYONE`, or the player on the tester list). Off, the
+picker doesn't show the size (`ratedMultiSizesFn`, W3b's `openOptions`) and the server refuses a queue request, filling
+and finishing for it (`joinMultiQueue`, `assertMultiOn` in `src/lib/rated/multi/multi.server.ts`; W3b's
+`ratedOptionRefusal` too). There is no browser or console override. rated-multi-check's first assertion pins both off;
+switching one on is a deliberate change to that line (Joe's call, recorded with the date beside it).
+
+## The rules (`src/lib/rated/multi/rules.ts`, pure)
+
+| | |
+|---|---|
+| Filling | Wait up to 15 s (`FILL_WAIT_MS`) for live players (W3b's queue widens as for 1v1), then every empty seat takes a recorded run W3b offers, best first, labelled "Recorded run". Never a player twice (live or recorded), only runs on every deal of the match. A full live match takes none. |
+| Each game | Placing points by place: 8 players 10, 7, 5, 4, 3, 2, 1, 0; 4 players 5, 3, 1, 0 (the rooms' Placings table). Level scores share the place and its higher points. |
+| Final placings | Most points; level points split by the total score; still level, the place is shared. |
+| Ratings | W3a's `recordRatedMatch` gets a `placings` match (`multiRatedResult`): format `{ kind: "placings", players }`, every player live or a recorded run, every game's stored scores, the final placings. W3a applies the rule: every pair once, the better place a win, a shared place a draw, weight spread over the other players so the match moves about as much as one 1v1 (`ratingPairs` writes the rule out; the check proves it on a reference Elo). A recorded run's owner moves only as W3a allows (rated runs, at most half). |
+| Joules | W3a's outcome: 1.5 × best of 3, first place the win (225), everyone else 150; live players only; D2's pass credits it. |
+| Podium Regular | A live finish in places 1–3 counts (C2's `podium-regular`, 25 needed), awarded through W3a's outcome. |
+
+## Connected to W3b and W3a
+
+- **W3b's queue** (`src/lib/rated/rated.server.ts`, marked hooks): `joinQueue` refuses 4 and 8 players during
+  placement; `pollQueue` hands an ffa searcher to `pollMultiQueue` (`src/lib/rated/multi/multiQueue.server.ts`), which
+  groups players with W3b's own pairing rule between every two of them (`groupFor` in `queue.ts`: the same format and
+  choice, never placement, the band widening as for 1v1), claims them atomically (`mm_queue_claim`) and makes the match
+  with W3b's `createLiveMatch` (an ordinary started room, the same deals for everyone).
+- **Settling: one path for every match.** W3b's `settleMatch` builds a 4- or 8-player match's `RatedSettlement` with
+  `multiSettlement` (each player's stored scores and stored server grades, `extras`, and the final placings from the
+  stored scores), then takes the 1v1's own lines: W3b's `toRatingsResult` (which, for a settlement with `placings`,
+  sends W3a a `placings` match with every game's scores and `gradeExtras` for every player), W3a's
+  `finishRatedMatch` through `ratingsReady()` (ratings, Joules through D2's pass, C2's badges), `markSettled` and the
+  stored runs (every player's run, the source for recorded seats), then `multiplayer_match_finished`
+  (`recordMultiFinished`). W3a applies the pairwise rule and pays 1.5 × best of 3 (first place the win).
+- **Flagged runs** (Joe, 11 Nov 2026; built in W3a's engine): a run the server flagged (`extra.flagged` in its stored
+  grade) anywhere in a 4- or 8-player match moves nobody's rating, counts for nobody's placement, streaks or competitive
+  badges (Podium Regular included), is logged in `moderation.rated_flags`, and pays the flagged player no Joules while
+  the others keep theirs. rated-multi-server-check proves it for 4 and 8 players on W3a's real `finishRatedMatch`.
+  **Badges from a flagged match (Joe, 11 Nov 2026; built by E2, #378, in its `badge_facts` and `pass_activity`):** a
+  flagged run never counts towards any badge or Joules anywhere; the innocent players' own clean runs still count for
+  their own-play badges (Flawless); competitive badges from a flagged rated match count for nobody. E2's rule is per
+  stored row, so the flagged player's other, clean games in the same match still count for their own-play badges.
+  rated-multi-server-check asserts it for 4 and 8 players: the flagged run is that player's only 200 and they gain no
+  badge from the match, while the unflagged player's 200s earn Flawless.
+- **Leaving a match** (Joe, 12 Nov 2026; built in W3b, shown by W3c): leaving before the first game's intro aborts the
+  match (no rating change, no Joules; W3c's route shows its notice for every format, before any of these screens).
+  Once the games begin, more than 20 s away forfeits: in 4 and 8 players the rest play on, and fewer than two stayers
+  ends the match as a forfeit (W3b's `departureVerdict`). Settling stays W3d's (`multiSettlement`): the players who
+  stayed keep their order (placing points, then total score), the leavers go below them, the latest leaver highest
+  (W3b's `placeWithLeavers`), and the settlement's `ending` names them as a forfeit, so W3a pays them no Joules. W3b's
+  own total-score stayer placing in `buildMatchResult` was dropped (4 and 8 players never reach it); rated-server-check's
+  4-player leaver line follows W3d's places, noted beside it. The standings tag a leaver "Left" with no place number,
+  below everyone who stayed (the room marks their seat `left`); the final screen tags them and says who left in W3c's
+  words ("You left the match. It counts as a loss." or "Sam left the match. Players who leave place below everyone who
+  stayed."). rated-multi-server-check proves a 4-player match with one leaver and one with a leaver and a flagged run
+  on W3a's real engine.
+- **Recorded seats (parked until 4 and 8 players are switched on; Joe will ask W3b then):** a 1v1 against a recorded run deals that run's stored puzzles. A 4- or
+  8-player match has one set of deals, so its recorded seats must be the other players of one earlier match on the same
+  deals (every settled ffa match now stores all its players' runs, `rated:<match>:<user>`). W3b's recorded match holds
+  one recorded owner (`mm_matches.recorded_owner`), so seating several needs W3b's tables and playback to carry more
+  than one. Until then a short group keeps searching, after 15 s too. The rule for choosing them is ready
+  (`fillPlan`, `fromW3bCandidate`, rated-multi-check).
+
+## Screens (`src/components/rated/multi/MultiScreens.tsx`, `src/polish-layout/rated-multi.css`)
+
+`MultiFilling` (08), `MultiStandings` (09), `MultiFinal` (10). The final placings are drawn on the first render; wave 2's
+equipped podium entrance and celebration (E2) draws only inside the podium's own box (`entrance`, pointer events off,
+decorative) and not at all under reduced motion. No motion of the screens' own.
+
+## Analytics
+
+`multiplayer_match_started` (props size, live_seats, recorded_seats; once a match) and `multiplayer_match_finished`
+(props size, placing; once a live player), server only, through `recordEvents`. Migration
+`20261114400000_analytics_multiplayer_events.sql` adds them to the list as it stands.
+
+## Check
+
+rated-multi-check (~2 s, no browser).
+
+## In W3c's match flow (#380, merged at 170ead1a)
+
+W3c's `/rated` route picks its screens by W3b's format (`screensFor`, `src/components/rated/formatScreens.tsx`); the
+placings row is W3d's, fitted to W3c's props in `src/components/rated/multi/MultiFormat.tsx`, with no VS (the filling
+screen leads straight into the games):
+
+| W3c's slot | W3d's screen | Reads |
+|---|---|---|
+| `Search` (in place of Searching) | `MultiSearch` → `MultiFilling` | W3c's `me` (its `RatedCard` over the seats, `RankEmblem`), the search progress's clock, Cancel as Leave queue; the size and games from W3c's `format`, the chip from its `pick`. W3b claims a group at once, so the seats fill in one step. |
+| `Between` (between games; W3c's room route draws it in place of the results table and the standings list, inside those two screens, so their dropout banner, chat and shell stay; `RatedBetween`, `embedded`) | `MultiBetween` → `MultiStandings` | `multiView.ts` `standings(matchId)`, read again after each game: W3b's match view (names, guest tags) and the room's own results and games (the phone's RLS reads, `roomReads.ts`, as the room's round results screen); the countdown is W3c's live `msUntilNext` from the room's phase clock (none after the last game). |
+| `Result` (in place of MatchResult) | `MultiResult` → `MultiFinal` | Your rating change and Joules (with the pass level) from W3c's `RatedResult`; every seat, the placings and each moved player's change and tier from `multiView.ts` `final(matchId)`: W3b's public settlement (stored scores, stored placings, W3a's answer) and match view. |
+
+The screens draw W3c's shared parts (`RatedParts`): `MatchChips`, `JoulesLine` with the pass level, `RankEmblem` for a
+seat's tier, `RatedCard` for your card and `PlayerDot` for avatars (a guest keeps colour and initial). `multiView.ts`'s
+real binding sits behind W3c's `ratedBackend()` gate (off under automation unless the page allows it); its check port
+(`setMultiViewPort`) is ignored in a production build. rated-multi-check section 7b proves the slot, the builders and the
+three screens through W3c's props.

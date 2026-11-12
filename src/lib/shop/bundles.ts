@@ -43,7 +43,8 @@ export const BUNDLE_MAX_OFF = 0.3;
 
 /**
  * Season 1's first eight weeks, approved by Joe on 11 Nov 2026: small, medium, large, then round again. Week 2's two
- * Free Cell card backs may move with E1's decision; if so, week 2 changes here.
+ * card backs are E1's account-wide card-back items (card-back.holo-foil, card-back.royal-damask; were the Free Cell
+ * skins game-skin.free-cell.*, moved by 20261112090000_card_back_slot.sql), prices unchanged.
  */
 export const BUNDLES: readonly BundleDef[] = [
   {
@@ -59,8 +60,8 @@ export const BUNDLES: readonly BundleDef[] = [
     name: "Card Table",
     size: "medium",
     items: [
-      "game-skin.free-cell.holo-foil",
-      "game-skin.free-cell.royal-damask",
+      "card-back.holo-foil",
+      "card-back.royal-damask",
       "game-skin.full-house.midnight-felt",
       "game-skin.full-house.crimson-velvet",
       "card-art.royal",
@@ -68,7 +69,7 @@ export const BUNDLES: readonly BundleDef[] = [
       "card-art.emerald",
     ],
     price: 5_500,
-    blurb: "Free Cell and Full House skins (Epic and Elite) with three jewel card arts (Epic).",
+    blurb: "Holo Foil (Elite) and Royal Damask (Epic) card backs, Full House felts and three jewel card arts (Epic).",
   },
   {
     id: "black-and-gold",

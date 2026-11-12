@@ -16,6 +16,9 @@
  *    scroll into view).
  * Body paragraphs (descriptions, notes) may wrap; text in a game's own art (data-skin-off) and the
  * tapped-open detail of a leaderboard row (whitespace-normal) are not judged.
+ * A row with an on/off switch (`.jz-switch`, 11 Nov 2026, Joe's phone check: Friends' "Show when I'm online" ran its
+ * description under the switch): every piece of the row's text, wrapping or not, must end at least 8 px left of the
+ * switch (or sit wholly above or below it) and must not be cut off by any box inside the row.
  *
  *   bun scripts/no-wrap-check.tsx [screen name filter…] [--part=k/n] [--verbose]
  */
@@ -43,7 +46,7 @@ const DRAWS = partOf(
 /** In-page: every single-line text that wraps or overflows. */
 function wrapProbe() {
   const SINGLE =
-    "h1, h2, h3, button, a, label, summary, [role='button'], .th-kicker, .th-pill, .th-name, .th-score, .jz-medal, .font-display, .font-mono, [data-practice-filter], [data-tab], [data-category-pill]";
+    "h1, h2, h3, button, a, label, summary, [role='button'], .th-kicker, .th-pill, .th-name, .th-score, .jz-medal, .font-display, .font-mono, [data-practice-filter], [data-tab], [data-category-pill], [data-one-line]"; // [data-one-line] (12 Nov 2026): any element meant to stay on one line
   const NOT_JUDGED = "[data-skin-off], .whitespace-normal, .line-clamp-2, [data-wrap-ok], .sr-only"; // .sr-only: visually hidden, never seen (approved, 7 Nov 2026)
   const visible = (el: Element) => {
     const r = el.getBoundingClientRect();
@@ -108,6 +111,34 @@ function wrapProbe() {
         problems.push(
           `"${text}" runs off the screen (${Math.round(left)}–${Math.round(right)}px of ${window.innerWidth}px)`,
         );
+    }
+  }
+  // Switch rows: no text under the switch, none cut off (the description may wrap, in the space left of the switch).
+  for (const sw of document.querySelectorAll("[data-skin] .jz-switch")) {
+    if (!visible(sw)) continue;
+    const row = sw.closest(".jz-row") ?? sw.parentElement;
+    if (!row) continue;
+    const s = sw.getBoundingClientRect();
+    const walker = document.createTreeWalker(row, NodeFilter.SHOW_TEXT);
+    for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+      const text = (node.textContent ?? "").replace(/\s+/g, " ").trim();
+      const el = node.parentElement;
+      if (!text || !el || sw.contains(el) || !visible(el)) continue;
+      judged++;
+      const range = document.createRange();
+      range.selectNodeContents(node);
+      for (const r of [...range.getClientRects()].filter((r) => r.width > 0.5 && r.height > 0.5)) {
+        const besideVertically = r.bottom > s.top + 0.5 && r.top < s.bottom - 0.5;
+        if (besideVertically && r.right > s.left - 8 + 0.5)
+          problems.push(`"${text}" runs under its switch (text to ${Math.round(r.right)}px, switch from ${Math.round(s.left)}px) in ${describe(el)}`);
+      }
+      for (let n: Element | null = el; n && n !== row.parentElement; n = n.parentElement) {
+        const cs = getComputedStyle(n);
+        if ((cs.overflowX !== "visible" && n.scrollWidth > n.clientWidth + 1) || (cs.overflowY !== "visible" && n.scrollHeight > n.clientHeight + 1)) {
+          problems.push(`"${text}" beside a switch is cut off by ${describe(n)}`);
+          break;
+        }
+      }
     }
   }
   return { problems, judged, skins: document.querySelectorAll("[data-skin]").length };

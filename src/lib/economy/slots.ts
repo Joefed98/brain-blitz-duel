@@ -206,5 +206,8 @@ export const ECONOMY_REASONS = [
   // fixed prizes.
   "tournament_entry",
   "tournament_prize",
+  // Joulz Plus (wave 2 E2; supabase/migrations/20261113200000_joulz_plus.sql): a test membership's monthly rewards.
+  "plus_test_monthly",
+  "plus_test_removed",
 ] as const;
 export type EconomyReason = (typeof ECONOMY_REASONS)[number];

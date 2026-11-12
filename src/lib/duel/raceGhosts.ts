@@ -57,6 +57,7 @@ export function pruneGhosts<T extends { at: number }>(map: Map<string, T>, now: 
 
 function publish(): void {
   const now = Date.now();
+  // Main's pruning (#375) and E1's car paints: stale ghosts forgotten, then each car with its owner's paint.
   pruneGhosts(seen, now);
   list = [...seen.entries()].map(([key, g]) => ({ name: g.name, colour: g.colour, s: g.s, x: g.x, skin: skins[key] ?? null }));
   for (const l of listeners) l();

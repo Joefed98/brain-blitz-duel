@@ -61,6 +61,16 @@ export interface SolutionLock {
   unlocksAt: string;
 }
 
+/**
+ * The Daily archive (wave 2 E2, Joulz Plus; src/lib/plus/archive.server.ts): a past Daily replayed in an async room of
+ * its own, unrated. Never on a board, never in the streak, never a badge, never Joules; its day closed long ago, so
+ * its solutions are never locked.
+ */
+export const DAILY_ARCHIVE_KIND = "daily_archive";
+export function isArchiveKind(roomKind: string): boolean {
+  return roomKind === DAILY_ARCHIVE_KIND;
+}
+
 /** Which room a lock belongs to, from the room's kind (`daily_puzzle`, `daily_arcade`, `challenge`). */
 export function solutionLockKind(roomKind: string): SolutionLock["kind"] {
   return roomKind === "challenge" ? "challenge" : "daily";

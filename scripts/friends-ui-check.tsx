@@ -316,6 +316,80 @@ const ACCOUNT = {
   root.unmount();
 }
 
+/* ------------------------------------------------------------------ 7. cards (Joe's phone check, 11 Nov 2026) */
+{
+  const lookOf = (frame: string, avatar: string, colour: number, badges: string[] = []) => ({
+    cardArt: "card-art.bolt-stripes",
+    frame,
+    nameColour: null,
+    avatar: { id: avatar, colour, gem: null },
+    title: "rookie",
+    badges,
+  });
+  overview = {
+    ...overview,
+    friends: [
+      { ...card(1, "Priya"), look: lookOf("frame.gold", "pinball", 7), since: ago(1e9), status: { kind: "online" } },
+      { ...card(4, "Jo"), since: ago(1e9), status: { kind: "offline", lastSeen: ago(2 * 3600_000) } },
+    ],
+    incoming: [{ ...card(8, "Kai"), look: lookOf("frame.silver", "hover", 3), requestId: uid(80), via: "link", at: ago(60_000) }],
+    blocked: [{ id: uid(11), username: "Nope" }],
+  } as never;
+  calls.length = 0;
+  const list = await mount(() => React.createElement(screens.FriendsList, { onBack: () => {}, onOpen: () => {}, onAdd: () => {} }));
+  await settle(60);
+  const priya = $(`[data-friend='${uid(1)}'] [data-mini-card]`);
+  check(
+    priya?.getAttribute("data-frame") === "frame.gold" && priya.getAttribute("data-avatar") === "pinball" && priya.getAttribute("data-avatar-colour") === "7" && priya.getAttribute("data-card-art") === "card-art.bolt-stripes",
+    "a friend's row draws their mini card: frame, card art, avatar and colour",
+  );
+  check(!!priya?.querySelector(".pcard-mini-av svg") && !!priya.querySelector(".pcard-svg svg"), "the mini card draws the avatar over the card's ends");
+  check($(`[data-friend-request] [data-mini-card]`)?.getAttribute("data-frame") === "frame.silver", "a request's row draws the sender's mini card");
+  check(!$(`[data-friend='${uid(4)}'] [data-mini-card]`) && !!$(`[data-friend='${uid(4)}'] .fr-badge`), "a friend whose card couldn't be read keeps their colour and initial");
+  check(calls.filter((c) => c.fn === "overview").length === 1 && !calls.some((c) => c.fn === "profile"), "the list asks once (the cards come with it), never once a friend");
+  check(!$("[data-friends-section='blocked'] [data-mini-card]") && !$("[data-friends-section='blocked'] [data-player-card]"), "blocked players show no card");
+  const settingRow = $("[data-friends-show-online]");
+  check(settingRow?.classList.contains("fr-setting-row") === true && settingRow.textContent?.includes("which room you’re in.") === true, "Show when I'm online: the wrapping row, the whole description");
+  list.root.unmount();
+
+  currentProfile = { ...profile("friends", null), card: { ...card(2, "Sam"), look: lookOf("frame.gold", "apex", 12, ["friendly"]) } } as never;
+  const prof = await mount(() => React.createElement(screens.FriendProfileView, { playerId: uid(2), onBack: () => {} }));
+  await settle(80);
+  const pc = $("[data-player-card]");
+  check(
+    pc?.getAttribute("data-frame") === "frame.gold" && pc.getAttribute("data-card-art") === "card-art.bolt-stripes" && pc.getAttribute("data-avatar") === "apex",
+    "a friend's profile draws their full card (frame, card art, avatar)",
+  );
+  check(pc?.querySelector("[data-card-title]")?.textContent === "Rookie" && pc.querySelector("[data-card-badge='friendly']") !== null, "with their title and badges");
+  check(pc?.querySelector("[data-card-pill]")?.textContent === "#0002", "and their player number");
+  prof.root.unmount();
+
+  currentProfile = { ...profile("blocked", null), status: null, headToHead: null } as never;
+  const blocked = await mount(() => React.createElement(screens.FriendProfileView, { playerId: uid(2), onBack: () => {} }));
+  await settle(80);
+  check(!$("[data-player-card]") && !$("[data-mini-card]"), "a blocked player's profile shows no card");
+  blocked.root.unmount();
+
+  const owner = await mount(() =>
+    React.createElement(screens.InviteLanding, { owner: { ...card(5, "Kai"), look: lookOf("frame.bronze", "hover", 5) } as never, onSignUp: () => {}, onSignIn: () => {} }),
+  );
+  check($("[data-player-card]")?.getAttribute("data-frame") === "frame.bronze", "an invite link shows its owner's card");
+  owner.root.unmount();
+
+  // getPublicCard's answer (A1's flat shape) read into a loadout: why the profile drew the default card before.
+  const { normalisePublicCard } = await import("../src/lib/identity/backend");
+  const read = normalisePublicCard({
+    playerId: uid(2), account: true, username: "Sam", playerNumber: 2, founding: false, avatarId: "apex",
+    avatar: { accent: null, feature: null, accessory: null, background: null }, colour: 12, gem: null,
+    cardArt: "card-art.grid", frame: "frame.gold", nameColour: null,
+  });
+  check(
+    read?.loadout.slots["frame"] === "frame.gold" && read.loadout.slots["card-art"] === "card-art.grid" && read.loadout.avatar?.id === "apex" && read.loadout.avatar.colour === 12 && read.playerNumber === 2,
+    "getPublicCard's answer is read into the card's loadout",
+  );
+  check(normalisePublicCard({ playerId: uid(3), account: false, username: null }) === null, "a guest's default card reads as no card");
+}
+
 console.error = origError;
 console.log(`friends-ui-check: ${checks - failures.length} passed, ${failures.length} failed`);
 if (failures.length) {

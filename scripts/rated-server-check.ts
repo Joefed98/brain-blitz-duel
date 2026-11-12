@@ -18,6 +18,11 @@
  *   row; 5 uses a day; the fallback (a room's run) only when no rated run fits, its owner never moving; placement
  *   plays a beginner's run at once; playback never ahead of the run;
  * - rated chat: quick phrases only for an under-18; adults type;
+ * - head to head: wins, losses and draws between two players in settled live matches only, from each side; recorded
+ *   and flagged matches left out; a room id answers its rated match (id, format) for its players only;
+ * - leaving: a Leave at VS aborts (no result, the stayer back to searching); a 15 s drop then back carries on; away
+ *   21 s ahead, level and behind is a forfeit through W3a's real engine; a 4-player leaver places last; a flag still
+ *   comes first;
  * - the four analytics events.
  */
 import {
@@ -79,6 +84,10 @@ const Z1 = uid(14);
 const Z2 = uid(15);
 const F1 = uid(16); // flagged by the server's replay
 const F2 = uid(17);
+const H1 = uid(18); // head to head
+const H2 = uid(19);
+// Leaving a match (Joe, 12 Nov 2026): fresh pairs, so W3a's same-opponent rule never freezes them.
+const LV = Array.from({ length: 18 }, (_, i) => uid(40 + i));
 
 let db: LocalDb | null = null;
 let rest: RestServer | null = null;
@@ -418,9 +427,19 @@ async function runAll(db: LocalDb): Promise<void> {
     // Placement: straight to a beginner's recorded run, never the live queue.
     q(`DELETE FROM public.mm_run_uses`);
     const tp = Date.now();
+    // A placed player (Evie) is searching too, at the same rating band once widened: never paired with Pally.
+    q(`DELETE FROM public.mm_queue WHERE user_id = '${EVE}'`);
+    RATING[EVE] = 1000;
+    await rated.joinQueue(client, EVE, { format: "bo3", choice: "mixed" }, tp);
     await rated.joinQueue(client, PAL, { format: "bo3", choice: "mixed" }, tp);
-    const pl = await rated.pollQueue(client, PAL, tp + 100);
-    check(pl.state === "found" && pl.match.kind === "recorded", "placement: a recorded run at once");
+    const evePoll = await rated.pollQueue(client, EVE, tp + 7_000);
+    check(evePoll.state === "searching", "a placed player is never paired live with a placement player");
+    await rated.leaveQueue(client, EVE);
+    RATING[EVE] = 1500;
+    const early = await rated.pollQueue(client, PAL, tp + 100);
+    check(early.state === "searching", "placement alone: still searching before 8 s (a placement partner could still come)");
+    const pl = await rated.pollQueue(client, PAL, tp + 8_000);
+    check(pl.state === "found" && pl.match.kind === "recorded", "placement alone: a recorded run at 8 s");
     if (pl.state === "found") {
       const rating = q(`SELECT coalesce(recorded_owner_rating, -1) FROM public.mm_matches WHERE id = '${pl.match.matchId}'`);
       check(Number(rating) <= 1000, `placement: a beginner's run (owner rating ${rating})`);
@@ -515,8 +534,8 @@ async function runAll(db: LocalDb): Promise<void> {
     const t = Date.now();
     const joined = await rated.joinQueue(client, GUEST, typedName, t, everyone);
     check(joined.ok === true, "a guest queues with no sign-up and no name");
-    const found = await rated.pollQueue(client, GUEST, t + 100);
-    check(found.state === "found" && found.match.kind === "recorded", "a guest in placement plays a recorded run first");
+    const found = await rated.pollQueue(client, GUEST, t + 8_000);
+    check(found.state === "found" && found.match.kind === "recorded", "a guest in placement with nobody else in placement searching: a beginner's recorded run at 8 s");
     if (found.state === "found") {
       const seated = q(`SELECT display_name FROM public.duel_players WHERE duel_id = '${found.match.roomId}' AND user_id = '${GUEST}'`);
       check(seated === guestEnergyName(GUEST) && /^[A-Z][a-z]+ [A-Z][a-z]+ \d{1,2}$/.test(seated) && seated !== "Gus",
@@ -608,15 +627,16 @@ async function runAll(db: LocalDb): Promise<void> {
     const { ratingsReady } = await import("../src/lib/rated/ratingsAdapter.server");
     await ratingsReady();
     if (q(`SELECT count(*) FROM public.pass_seasons WHERE id = 'test'`) !== "0") q(`SELECT pass.start_test_season('rated-server-check')`);
-    // New players are in placement on W3a's engine (they play recorded runs), so the live match is made directly, as a
-    // pairing would make it; it settles through the real engine like any other.
+    // Both are new, so in placement on W3a's real engine; both searching at the same time, they are matched live with
+    // each other through the real queue (Joe, 11 Nov 2026).
     const t = Date.now();
-    const matchId = crypto.randomUUID();
-    const entry = (userId: string) => ({ userId, format: "bo3" as const, choice: "mixed" as const, rating: 1000, joinedAtMs: t, placement: false });
-    await rated.createLiveMatch(client, { matchId, format: "bo3", choice: "mixed", players: [entry(F1), entry(F2)], rematchOf: null }, t);
-    const view = await rated.matchView(client, matchId, F1, t);
-    const p = view ? { state: "found" as const, match: view } : { state: "idle" as const };
-    check(p.state === "found" && p.match.kind === "live", "a live rated match for Flaggy and Fairy");
+    const j1 = await rated.joinQueue(client, F1, { format: "bo3", choice: "mixed" }, t);
+    const j2 = await rated.joinQueue(client, F2, { format: "bo3", choice: "mixed" }, t);
+    const placementBoth = q(`SELECT string_agg(placement::text, ',' ORDER BY user_id) FROM public.mm_queue WHERE user_id IN ('${F1}', '${F2}')`);
+    check(j1.ok && j2.ok && placementBoth === "true,true", `both queue in placement on W3a's real engine (${placementBoth})`);
+    const p = await rated.pollQueue(client, F1, t + 100);
+    await rated.pollQueue(client, F2, t + 200);
+    check(p.state === "found" && p.match.kind === "live" && p.match.players.every((x) => x.placement), "two placement players are matched live with each other through the real queue");
     if (p.state !== "found") return;
     const r = p.match.roomId!;
     q(`INSERT INTO public.round_results (duel_id, player_slot, round_number, score, ms_remaining, is_correct, answer, extra) VALUES
@@ -642,6 +662,249 @@ async function runAll(db: LocalDb): Promise<void> {
     const phone = await call(fns.ratedSettleFn, { matchId: p.match.matchId }, userToken(F2));
     check(phone.state === "settled" && !JSON.stringify(phone).includes('"extras"') && !JSON.stringify(phone).includes("score did not match"),
       "the phone's settle answer leaves the stored grades out");
+  });
+
+  await section("head to head and a room's match (W3c)", async () => {
+    q(`INSERT INTO auth.users (id) VALUES ('${H1}'), ('${H2}')`);
+    let n = 0;
+    // A settled match between H1 and H2 as the store keeps it: `slots` gives each player's slot, `winner` the stored side.
+    const stored = (kind: "live" | "recorded", status: string, slots: [string, number][], winner: string, flagged = false) => {
+      const id = `00000000-0000-4000-8000-${String(900000 + ++n).padStart(12, "0")}`;
+      const ratings = flagged
+        ? `, "ratings": {"ok": true, "players": [{"playerId": "${slots[0]![0]}", "flagged": true, "frozen": "flagged_run"}]}`
+        : "";
+      const rec = kind === "recorded" ? `'rated:x:${id}', 'rated', '${H2}'` : "NULL, NULL, NULL";
+      q(`INSERT INTO public.mm_matches (id, format, choice, kind, status, recorded_key, recorded_source, recorded_owner, result)
+        VALUES ('${id}', 'bo3', 'mixed', '${kind}', '${status}', ${rec}, '{"winner": "${winner}"${ratings}}'::jsonb)`);
+      q(`INSERT INTO public.mm_match_players (match_id, user_id, slot, rating_before) VALUES ${slots.map(([u, sl]) => `('${id}', '${u}', ${sl}, 1000)`).join(", ")}`);
+      return id;
+    };
+    check(JSON.stringify(await rated.headToHead(client, H1, H2)) === JSON.stringify({ wins: 0, losses: 0, draws: 0, played: 0 }), "no matches yet: 0–0–0");
+    stored("live", "settled", [[H1, 1], [H2, 2]], "a"); // H1 wins as slot 1
+    stored("live", "settled", [[H2, 1], [H1, 2]], "b"); // H1 wins as slot 2
+    stored("live", "settled", [[H1, 1], [H2, 2]], "b"); // H2 wins
+    stored("live", "settled", [[H2, 1], [H1, 2]], "draw");
+    // Left out: a recorded match (H1 played H2's run), a match still playing, a flagged one, one with someone else.
+    stored("recorded", "settled", [[H1, 1]], "a");
+    stored("live", "playing", [[H1, 1], [H2, 2]], "a");
+    stored("live", "settled", [[H1, 1], [H2, 2]], "a", true);
+    stored("live", "settled", [[H1, 1], [EVE, 2]], "a");
+    const mine = await rated.headToHead(client, H1, H2);
+    const theirs = await rated.headToHead(client, H2, H1);
+    check(JSON.stringify(mine) === JSON.stringify({ wins: 2, losses: 1, draws: 1, played: 4 }), `H1 against H2: 2 wins, 1 loss, 1 draw (${JSON.stringify(mine)})`);
+    check(JSON.stringify(theirs) === JSON.stringify({ wins: 1, losses: 2, draws: 1, played: 4 }), `H2 against H1 is the mirror (${JSON.stringify(theirs)})`);
+    check((await rated.headToHead(client, H1, H1)).played === 0, "a player against themselves: nothing");
+    const viaFn = await call(fns.ratedHeadToHeadFn, { opponentId: H2 }, userToken(H1));
+    check(JSON.stringify(viaFn) === JSON.stringify(mine), "ratedHeadToHeadFn answers the caller's side");
+    const junk = await call(fns.ratedHeadToHeadFn, { opponentId: "not-an-id" }, userToken(H1));
+    check(junk.played === 0, "a malformed opponent id: an empty record");
+    // Through the real flow: Flaggy and Fairy's match above settled live, but with a flagged run, so it counts for neither.
+    const realFlagged = q(`SELECT count(*) FROM public.mm_matches m WHERE m.kind = 'live' AND m.status = 'settled'
+      AND EXISTS (SELECT 1 FROM public.mm_match_players p WHERE p.match_id = m.id AND p.user_id = '${F1}')
+      AND EXISTS (SELECT 1 FROM public.mm_match_players p WHERE p.match_id = m.id AND p.user_id = '${F2}')`);
+    check(Number(realFlagged) >= 1 && (await rated.headToHead(client, F2, F1)).played === 0 && (await rated.headToHead(client, F1, F2)).played === 0,
+      `a settled live match with a flagged run counts for neither player (${realFlagged} stored)`);
+
+    // A room id: its rated match, for its players only (Flaggy and Fairy's room, both still accounts).
+    const flaggedMatch = q(`SELECT m.id FROM public.mm_matches m JOIN public.mm_match_players p ON p.match_id = m.id
+      WHERE p.user_id = '${F2}' AND m.kind = 'live' AND m.duel_id IS NOT NULL LIMIT 1`);
+    const room = q(`SELECT duel_id FROM public.mm_matches WHERE id = '${flaggedMatch}'`);
+    const [ME, OTHER, OUTSIDER] = [F2, F1, H1];
+    const info = await call(fns.ratedRoomFn, { roomId: room }, userToken(ME));
+    check(info?.matchId === flaggedMatch && info.format === "bo3" && info.kind === "live" && info.totalGames === 3,
+      `a rated room answers its match id, format and kind (${JSON.stringify(info)})`);
+    const boInfo = await call(fns.ratedRoomFn, { roomId: room }, userToken(OTHER));
+    check(boInfo?.matchId === flaggedMatch, "the other player gets it too (another tab, another device, after a reload)");
+    check((await call(fns.ratedRoomFn, { roomId: room }, userToken(OUTSIDER))) === null, "someone not in the match gets null");
+    const plain = q(`SELECT id FROM public.duels WHERE id NOT IN (SELECT duel_id FROM public.mm_matches WHERE duel_id IS NOT NULL) LIMIT 1`);
+    check(plain !== "" && (await call(fns.ratedRoomFn, { roomId: plain }, userToken(ME))) === null, "an ordinary room is not a rated match");
+    const recRoom = q(`SELECT m.duel_id || ',' || p.user_id || ',' || m.id FROM public.mm_matches m JOIN public.mm_match_players p ON p.match_id = m.id
+      JOIN auth.users u ON u.id = p.user_id
+      WHERE m.kind = 'recorded' AND m.duel_id IS NOT NULL LIMIT 1`).split(",");
+    const recInfo = await call(fns.ratedRoomFn, { roomId: recRoom[0]! }, userToken(recRoom[1]!));
+    check(recInfo?.matchId === recRoom[2] && recInfo.kind === "recorded", "a recorded match's room answers too (kind recorded)");
+    check((await call(fns.ratedRoomFn, { roomId: "nope" }, userToken(ME))) === null, "a malformed room id: null");
+  });
+
+  await section("leaving a match (Joe, 12 Nov 2026), through W3a's real engine", async () => {
+    setRatingsBackend(null);
+    const { ratingsReady } = await import("../src/lib/rated/ratingsAdapter.server");
+    await ratingsReady();
+    q(`INSERT INTO auth.users (id) VALUES ${LV.map((u) => `('${u}')`).join(", ")}`);
+    q(`SET session_replication_role = replica; INSERT INTO public.profiles (user_id, username, username_key, colour, date_of_birth, player_number) VALUES
+      ${LV.map((u, i) => `('${u}', 'Leaver_${i}', 'leaver_${i}', ${i % 32}, DATE '1990-01-01', ${200 + i})`).join(", ")}`);
+    q(`INSERT INTO shop.testers (user_id, note) SELECT u, 'rated-server-check' FROM unnest(ARRAY[${LV.map((u) => `'${u}'`).join(",")}]::uuid[]) AS u ON CONFLICT DO NOTHING`);
+    const ts = (ms: number) => `to_timestamp(${ms} / 1000.0)`;
+    // A live match made in the past (so every time below is before the server's clock, as W3a requires).
+    const make = async (ids: string[], format: "bo3" | "ffa4" = "bo3") => {
+      const t0 = Date.now() - 300_000;
+      const matchId = crypto.randomUUID();
+      await rated.createLiveMatch(client, {
+        matchId, format, choice: "mixed", rematchOf: null,
+        players: ids.map((u) => ({ userId: u, format, choice: "mixed" as const, rating: 1000, joinedAtMs: t0, placement: true })),
+      }, t0);
+      const room = q(`SELECT duel_id FROM public.mm_matches WHERE id = '${matchId}'`);
+      const introAt = Date.parse(q(`SELECT to_char(intro_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') FROM public.mm_matches WHERE id = '${matchId}'`));
+      const seen = (u: string, ms: number) => q(`UPDATE public.duel_players SET joined_at = ${ts(t0)}, last_seen_at = ${ts(ms)} WHERE duel_id = '${room}' AND user_id = '${u}'`);
+      for (const u of ids) seen(u, t0);
+      return { matchId, room, t0, introAt, seen };
+    };
+    const results = (room: string, rows: [number, number, number][]) =>
+      q(`INSERT INTO public.round_results (duel_id, player_slot, round_number, score, ms_remaining, is_correct, answer, extra) VALUES
+         ${rows.map(([slot, round, score]) => `('${room}', ${slot}, ${round}, ${score}, 1000, true, 'x', NULL)`).join(", ")}`);
+    const at = (room: string, round: number, phase: string) => q(`UPDATE public.duels SET current_round = ${round}, phase = '${phase}' WHERE id = '${room}'`);
+    const ended = (m: string) => q(`SELECT coalesce(ended, '-') || ',' || status FROM public.mm_matches WHERE id = '${m}'`);
+    const ratedRows = (m: string) => q(`SELECT count(*) FROM public.rated_matches WHERE match_id = '${m}'`);
+
+    // 1. A Leave at VS aborts: no result for anyone, the stayer straight back to searching.
+    {
+      const [A, B] = [LV[0]!, LV[1]!];
+      const m = await make([A, B]);
+      const left = await rated.leaveRatedRoom(client, m.room, B, m.t0 + 2_000);
+      check(left && ended(m.matchId) === "abort,abandoned", `a Leave at VS aborts the match (${ended(m.matchId)})`);
+      check(q(`SELECT ended_step FROM public.mm_matches WHERE id = '${m.matchId}'`) === "starting", "the abort is logged at its step (VS: starting)");
+      check(q(`SELECT (disbanded_at IS NOT NULL)::text || ',' || status FROM public.duels WHERE id = '${m.room}'`) === "true,finished", "the room is closed");
+      check(q(`SELECT format || ',' || choice FROM public.mm_queue WHERE user_id = '${A}'`) === "bo3,mixed" && q(`SELECT count(*) FROM public.mm_queue WHERE user_id = '${B}'`) === "0",
+        "the player who stayed goes straight back to searching (same format and choice); the leaver doesn't");
+      const s = await rated.settleMatch(client, m.matchId, m.t0 + 3_000);
+      check(s.state === "aborted" && s.leavers.map((l) => l.userId).join() === B, "settling an abort answers aborted, with who left");
+      check(ratedRows(m.matchId) === "0" && q(`SELECT count(*) FROM public.rated_profiles WHERE player_id IN ('${A}', '${B}')`) === "0",
+        "an abort never reaches W3a: no rating change, not a placement match");
+      check(q(`SELECT count(*) FROM public.pass_joules WHERE user_id IN ('${A}', '${B}')`) === "0", "an abort pays nobody Joules");
+      const phone = await call(fns.ratedSettleFn, { matchId: m.matchId }, userToken(A));
+      check(phone.state === "aborted", "the phone's settle answer says aborted");
+      const room = await call(fns.ratedRoomFn, { roomId: m.room }, userToken(A));
+      check(room?.ended === "abort", "the room's lookup says aborted (W3c)");
+      await rated.leaveQueue(client, A);
+    }
+    // 1b. Never connected (no heartbeat from set-up on): an abort once the absence passes 20 s.
+    {
+      const [A, B] = [LV[2]!, LV[3]!];
+      const m = await make([A, B]);
+      m.seen(A, m.t0 + 21_000);
+      await rated.reviewDepartures(client, m.matchId, m.t0 + 19_000);
+      check(ended(m.matchId) === "-,playing", "a player silent since set-up isn't cut off within 20 s");
+      await rated.reviewDepartures(client, m.matchId, m.t0 + 20_500);
+      check(ended(m.matchId) === "abort,abandoned", "silent since set-up for over 20 s: an abort");
+      await rated.leaveQueue(client, A);
+    }
+    // 2. A drop for 15 s, then back: play carries on.
+    {
+      const [A, B] = [LV[4]!, LV[5]!];
+      const m = await make([A, B]);
+      at(m.room, 1, "puzzle");
+      m.seen(A, m.introAt + 30_000);
+      m.seen(B, m.introAt + 12_000);
+      await rated.reviewDepartures(client, m.matchId, m.introAt + 27_000);
+      m.seen(B, m.introAt + 27_500);
+      await rated.reviewDepartures(client, m.matchId, m.introAt + 40_000);
+      check(ended(m.matchId) === "-,playing" && q(`SELECT status FROM public.duels WHERE id = '${m.room}'`) === "in_progress", "a 15 s drop then back: no forfeit, the match plays on");
+    }
+    // 3. Away 21 s while ahead, level and behind: a forfeit, settled through W3a as a loss for the leaver.
+    const forfeitCase = async (label: string, A: string, B: string, rows: [number, number, number][], round: number, phase: string, games: number) => {
+      const m = await make([A, B]);
+      if (rows.length) results(m.room, rows);
+      at(m.room, round, phase);
+      const goneAt = m.introAt + 60_000;
+      m.seen(A, goneAt + 21_000);
+      m.seen(B, goneAt);
+      await rated.reviewDepartures(client, m.matchId, goneAt + 20_000);
+      check(ended(m.matchId) === "-,playing", `${label}: still within the 20 s`);
+      const o = await rated.reviewDepartures(client, m.matchId, goneAt + 21_000);
+      check(o.state === "forfeit" && ended(m.matchId) === "forfeit,playing", `${label}: away 21 s is a forfeit (${ended(m.matchId)})`);
+      check(q(`SELECT status FROM public.duels WHERE id = '${m.room}'`) === "finished", `${label}: the room ends now`);
+      const s = await rated.settleMatch(client, m.matchId, goneAt + 22_000);
+      if (s.state !== "settled") return check(false, `${label}: settles (${s.state})`);
+      const r = s.result;
+      const stay = r.players.find((p) => p.userId === A)!;
+      check(r.ending?.kind === "forfeit" && r.ending.leavers.join() === B && r.winner === (stay.slot === 1 ? "a" : "b") && r.games.length === games,
+        `${label}: the result says forfeit, who left, the stayer won (${games} game(s) played)`);
+      const out = r.ratings;
+      if (!out || !out.ok) return check(false, `${label}: W3a's finishRatedMatch took it (${JSON.stringify(out)})`);
+      const ra = out.players.find((p) => p.playerId === A)!;
+      const rb = out.players.find((p) => p.playerId === B)!;
+      check(ra.result === "win" && rb.result === "loss", `${label}: a win for the stayer, a loss for the leaver, whatever the score`);
+      check(ra.moved && rb.moved && ra.changes.every((c) => c.delta > 0) && rb.changes.every((c) => c.delta < 0), `${label}: ratings move as for that result`);
+      check(ra.placement.played === 1 && rb.placement.played === 1, `${label}: it counts as a placement match for both`);
+      check(rb.joules === 0 && ra.joules > 0, `${label}: the leaver earns no Joules, the stayer the normal win Joules (${ra.joules})`);
+      check(q(`SELECT count(*) FROM public.mm_runs WHERE match_id = '${m.matchId}'`) === "0", `${label}: no recorded run is kept`);
+      return true;
+    };
+    // The leaver B ahead (won game 1), level (1–1) and behind (lost game 1); B is slot 2.
+    await forfeitCase("ahead", LV[6]!, LV[7]!, [[1, 1, 90], [2, 1, 150]], 2, "puzzle", 1);
+    await forfeitCase("level", LV[8]!, LV[9]!, [[1, 1, 150], [2, 1, 90], [1, 2, 90], [2, 2, 150]], 3, "intro", 2);
+    await forfeitCase("behind", LV[10]!, LV[11]!, [[1, 1, 150], [2, 1, 90]], 2, "round_title", 1);
+    {
+      const [A, B] = [LV[12]!, LV[13]!];
+      const m = await make([A, B]);
+      at(m.room, 1, "puzzle");
+      m.seen(A, m.introAt + 10_000);
+      m.seen(B, m.introAt + 10_000);
+      await rated.reviewDepartures(client, m.matchId, m.introAt + 25_000);
+      check(ended(m.matchId) === "-,playing", "a forfeit only after 20 s away: both seen 15 s ago, nothing happens");
+    }
+    // 4. A 4-player match with one leaver: the leaver places last, earns nothing; the rest place on the games played.
+    {
+      const four = [LV[14]!, LV[15]!, LV[16]!, LV[17]!];
+      const m = await make(four, "ffa4");
+      results(m.room, [[1, 1, 100], [2, 1, 120], [3, 1, 80], [4, 1, 140]]);
+      at(m.room, 2, "puzzle");
+      for (const u of four.slice(0, 3)) m.seen(u, m.introAt + 90_000);
+      m.seen(four[3]!, m.introAt + 60_000);
+      await rated.reviewDepartures(client, m.matchId, m.introAt + 81_000);
+      check(ended(m.matchId) === "-,playing" && q(`SELECT (gone_at IS NOT NULL)::text FROM public.mm_match_players WHERE match_id = '${m.matchId}' AND user_id = '${four[3]}'`) === "true",
+        "4 players: the leaver is gone for good and the rest play on");
+      check(q(`SELECT status FROM public.duel_players WHERE duel_id = '${m.room}' AND user_id = '${four[3]}'`) === "left", "4 players: the room stops waiting for the leaver");
+      results(m.room, [[1, 2, 100], [2, 2, 100], [3, 2, 100], [1, 3, 100], [2, 3, 100], [3, 3, 200]]);
+      q(`UPDATE public.duels SET status = 'finished', current_round = 3, phase = 'winner_reveal', phase_started_at = ${ts(m.introAt + 200_000)} WHERE id = '${m.room}'`);
+      const s = await rated.settleMatch(client, m.matchId, m.introAt + 201_000);
+      if (s.state !== "settled") check(false, `4 players settles (${s.state})`);
+      else {
+        const pl = s.result.placings ?? {};
+        // Updated by W3d (12 Nov 2026): 4- and 8-player places now come from W3d's multiSettlement (placing points each
+        // game, then total score), with W3b's leaver rule; W3b's total-score stayer placing was dropped, as instructed in
+        // the W3d session. On these games the stayers' points are 9 (four[0]), 11 (four[1]) and 10 (four[2]).
+        check(pl[four[3]!] === 4 && pl[four[1]!] === 1 && pl[four[2]!] === 2 && pl[four[0]!] === 3,
+          `4 players: the leaver last (despite the best game 1), the rest by their games (${JSON.stringify(pl)})`);
+        check(s.result.ending?.kind === "forfeit" && s.result.ending.leavers.join() === four[3], "4 players: the result says who left");
+        const out = s.result.ratings;
+        if (!out || !out.ok) check(false, `4 players: W3a took it (${JSON.stringify(out)})`);
+        else {
+          const lv = out.players.find((p) => p.playerId === four[3])!;
+          check(lv.joules === 0 && lv.place === 4 && lv.moved, "4 players: the leaver's rating moves as last place, with no Joules");
+          check(out.players.find((p) => p.playerId === four[2])!.joules > 0, "4 players: the winner earns Joules");
+        }
+      }
+    }
+  });
+
+  await section("a flagged run plus a leaver (Joe, 12 Nov 2026)", async () => {
+    const [A, B] = [uid(70), uid(71)];
+    q(`INSERT INTO auth.users (id) VALUES ('${A}'), ('${B}')`);
+    q(`SET session_replication_role = replica; INSERT INTO public.profiles (user_id, username, username_key, colour, date_of_birth, player_number) VALUES
+      ('${A}', 'Stayer_F', 'stayer_f', 3, DATE '1990-01-01', 300), ('${B}', 'Leaver_F', 'leaver_f', 4, DATE '1990-01-01', 301)`);
+    const t0 = Date.now() - 300_000;
+    const matchId = crypto.randomUUID();
+    await rated.createLiveMatch(client, {
+      matchId, format: "bo3", choice: "mixed", rematchOf: null,
+      players: [A, B].map((u) => ({ userId: u, format: "bo3" as const, choice: "mixed" as const, rating: 1000, joinedAtMs: t0, placement: true })),
+    }, t0);
+    const room = q(`SELECT duel_id FROM public.mm_matches WHERE id = '${matchId}'`);
+    q(`INSERT INTO public.round_results (duel_id, player_slot, round_number, score, ms_remaining, is_correct, answer, extra) VALUES
+       ('${room}', 1, 1, 150, 1000, true, 'x', NULL), ('${room}', 2, 1, 160, 1000, true, 'x', '{"flagged": true, "reason": "score did not match the replay"}'::jsonb)`);
+    q(`UPDATE public.duels SET current_round = 2, phase = 'puzzle' WHERE id = '${room}'`);
+    const gone = t0 + 100_000;
+    q(`UPDATE public.duel_players SET joined_at = to_timestamp(${t0} / 1000.0), last_seen_at = to_timestamp(${gone + 30_000} / 1000.0) WHERE duel_id = '${room}' AND user_id = '${A}'`);
+    q(`UPDATE public.duel_players SET joined_at = to_timestamp(${t0} / 1000.0), last_seen_at = to_timestamp(${gone} / 1000.0) WHERE duel_id = '${room}' AND user_id = '${B}'`);
+    await rated.reviewDepartures(client, matchId, gone + 21_000);
+    const s = await rated.settleMatch(client, matchId, gone + 22_000);
+    const out = s.state === "settled" ? s.result.ratings : null;
+    check(s.state === "settled" && s.result.ending?.kind === "forfeit", "the leaver forfeits");
+    if (!out || !out.ok) return check(false, `W3a took it (${JSON.stringify(out)})`);
+    check(out.players.every((p) => !p.moved && p.frozen === "flagged_run"), "a flagged run comes first: nobody's rating moves");
+    check(out.players.every((p) => p.placement.played === 0), "and it counts for nobody's placement");
+    check(q(`SELECT count(*) FROM moderation.rated_flags WHERE match_id = '${matchId}' AND player_id = '${B}'`) === "1", "the flag is logged for Joe");
+    check(out.players.find((p) => p.playerId === B)!.joules === 0, "the flagged leaver earns no Joules");
   });
 
   await section("rate limit", async () => {

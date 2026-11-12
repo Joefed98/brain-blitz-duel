@@ -1,0 +1,126 @@
+/**
+ * Rated 4- and 8-player matches on the server (wave 3, session W3d; docs/rated/multiplayer.md). Server only.
+ *
+ * - The switches are W3b's: `RATED_FORMATS_ON.ffa4` / `.ffa8` in src/config/matchmakingConfig.ts, off at launch. While a
+ *   size is off, `joinMultiQueue` and `fillMatch` refuse it whatever a phone sends (W3b's `ratedOptionRefusal` too).
+ * - `fillMatch`: after FILL_WAIT_MS, recorded runs in every empty seat (rules.ts `fillPlan`); records
+ *   `multiplayer_match_started` once the match is full.
+ * - Settling: W3b's settleMatch, the same path as a 1v1 (multiQueue.server.ts `multiSettlement`, then W3b's
+ *   toRatingsResult and W3a's finishRatedMatch through ratingsReady(), which applies the pairwise rule, pays Joules
+ *   through D2 and awards badges); `multiplayer_match_finished` for each live player (`recordMultiFinished`).
+ *
+ * No game's deal, timing, grading or score is touched: the games are W3b's rated room (dealt and graded by the round
+ * engine as every room); this module only reads the stored scores.
+ */
+import { RATED_FORMATS_ON } from "@/config/matchmakingConfig";
+import type { RatedChoice } from "@/lib/data/ratings";
+import type { AnalyticsEvent } from "@/lib/data/events.server";
+
+import { ratedMultiBackend, type RatedMultiBackend } from "./contracts";
+import { fillPlan, finalPlacings, isMultiSize, type FillPlan, type MultiSeat, type MultiSize, type StandingRow } from "./rules";
+
+export const RATED_MULTI_OFF_MESSAGE = "4- and 8-player matches aren’t open yet.";
+export const RATED_MULTI_NOT_READY_MESSAGE = "Rated matches aren’t ready yet.";
+
+export class RatedMultiOffError extends Error {
+  readonly reason = "off" as const;
+  constructor() {
+    super(RATED_MULTI_OFF_MESSAGE);
+  }
+}
+
+/** W3b's two switches for this session's formats. */
+export interface MultiSwitches {
+  ffa4: boolean;
+  ffa8: boolean;
+}
+
+/** Whether a size is switched on (W3b's `RATED_FORMATS_ON.ffa4` / `.ffa8`). */
+export function multiSizeOn(size: unknown, switches: MultiSwitches = RATED_FORMATS_ON): size is MultiSize {
+  if (size === 4) return switches.ffa4;
+  if (size === 8) return switches.ffa8;
+  return false;
+}
+
+/** The sizes the picker may show (only what is switched on). */
+export function multiSizesOn(switches: MultiSwitches = RATED_FORMATS_ON): MultiSize[] {
+  return ([4, 8] as const).filter((s) => multiSizeOn(s, switches));
+}
+
+type RecordFn = (events: AnalyticsEvent | readonly AnalyticsEvent[]) => void;
+
+export interface MultiDeps {
+  switches?: MultiSwitches;
+  backend?: RatedMultiBackend | null;
+  record?: RecordFn;
+}
+
+async function defaultRecord(): Promise<RecordFn> {
+  const { recordEvents } = await import("@/lib/data/events.server");
+  return recordEvents;
+}
+
+const CHOICES: readonly RatedChoice[] = ["mixed", "puzzles", "arcade"];
+
+export type JoinResult =
+  | { ok: true; joinedAtMs: number }
+  | { ok: false; reason: "off" | "bad_size" | "bad_choice" | "not_ready"; message: string };
+
+/** A player asks to queue for a 4- or 8-player match. Refused while that size is off. */
+export async function joinMultiQueue(
+  input: { playerId: string; size: unknown; choice: unknown },
+  deps: MultiDeps = {},
+): Promise<JoinResult> {
+  if (!isMultiSize(input.size)) return { ok: false, reason: "bad_size", message: "Choose 4 or 8 players." };
+  if (!multiSizeOn(input.size, deps.switches)) return { ok: false, reason: "off", message: RATED_MULTI_OFF_MESSAGE };
+  const choice = input.choice ?? "mixed";
+  if (!CHOICES.includes(choice as RatedChoice)) return { ok: false, reason: "bad_choice", message: "Choose Mixed, All puzzles or All arcade." };
+  const backend = deps.backend === undefined ? ratedMultiBackend() : deps.backend;
+  if (!backend) return { ok: false, reason: "not_ready", message: RATED_MULTI_NOT_READY_MESSAGE };
+  const ticket = await backend.enqueue({ playerId: input.playerId, size: input.size, choice: choice as RatedChoice });
+  return { ok: true, joinedAtMs: ticket.joinedAtMs };
+}
+
+/** Throws RatedMultiOffError while the size is off (every later call in a match goes through it too). */
+export function assertMultiOn(size: unknown, switches?: MultiSwitches): asserts size is MultiSize {
+  if (!multiSizeOn(size, switches)) throw new RatedMultiOffError();
+}
+
+/**
+ * One step of filling a match: the live players so far and how long the first has waited. Before 15 s it waits; after
+ * it W3b's recorded runs fill the empty seats. A full match records `multiplayer_match_started`.
+ */
+export async function fillMatch(
+  input: {
+    matchId: string;
+    size: MultiSize;
+    choice: RatedChoice;
+    live: readonly { playerId: string; name: string }[];
+    waitedMs: number;
+    dealKeys: readonly string[];
+  },
+  deps: MultiDeps = {},
+): Promise<FillPlan> {
+  assertMultiOn(input.size, deps.switches);
+  const backend = deps.backend === undefined ? ratedMultiBackend() : deps.backend;
+  let plan = fillPlan({ ...input, candidates: [] });
+  if (plan.kind === "short") {
+    if (!backend) throw new Error(RATED_MULTI_NOT_READY_MESSAGE);
+    const candidates = await backend.recordedCandidates({
+      size: input.size,
+      choice: input.choice,
+      dealKeys: input.dealKeys,
+      exclude: input.live.map((p) => p.playerId),
+    });
+    plan = fillPlan({ ...input, candidates });
+  }
+  if (plan.kind === "full" || plan.kind === "filled") {
+    const record = deps.record ?? (await defaultRecord());
+    const recorded = plan.seats.filter((s) => s.recorded).length;
+    record({
+      event: "multiplayer_match_started",
+      props: { size: input.size, live_seats: plan.seats.length - recorded, recorded_seats: recorded },
+    });
+  }
+  return plan;
+}
