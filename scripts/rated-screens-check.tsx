@@ -185,6 +185,7 @@ function result(over: Partial<RatedResult> = {}): RatedResult {
     friend: false,
     rematchUntil: new Date(Date.now() + 8000).toISOString(),
     moved: ["puzzles", "arcade"],
+    ending: null,
     ...over,
   };
 }
@@ -967,6 +968,71 @@ const profileUi = () => React.createElement(ProfileCard, { guestName: "Player", 
   check(ratedRoomMod.ratedFormatForRoom("BAD1") === null && ratedRoomMod.ratedFormatForRoom("NONE") === null, "an unknown or missing format reads as none");
   check(ratedRoomMod.ratedFormatForRoom("QR7T") === "bo3", "a room found through W3b's ratedRoomFn keeps its format too");
   check(readFileSync("src/routes/rated.tsx", "utf8").includes("noteRatedRoom(match.roomCode, match.id, match.format);"), "the rated route notes the match's format as it opens the room");
+}
+
+/* ------------------------------------------------------------------ 12. leaving a rated match (W3b, Joe 12 Nov 2026) */
+{
+  const rules = await import("../src/lib/rated/rules");
+  const bind = await import("../src/lib/rated/w3Binding");
+  const backendMod = await import("../src/lib/rated/backend");
+  // The words, exactly as Joe gave them.
+  check(rules.abortLine(["Sam"], false) === "Match cancelled: Sam left before it started. No rating change.", "abort, for the player who stayed: Joe's words");
+  check(rules.abortLine([], true) === "Match cancelled: you left before it started. No rating change.", "abort, for the player who left: said to them as you");
+  check(rules.forfeitLine(["Sam"], false) === "Sam left the match. You win.", "forfeit, for the player who stayed: Joe's words");
+  check(rules.forfeitLine([], true) === "You left the match. It counts as a loss.", "forfeit, for the player who left: Joe's words");
+  check(rules.namesText(["Sam", "Jo"]) === "Sam and Jo" && rules.namesText(["Sam", "Jo", "Ali"]) === "Sam, Jo and Ali", "several leavers named in one line");
+  // The grace's countdown: W3b's 20 s from the absent player's last sign of life.
+  const t0 = Date.parse("2026-11-12T12:00:00Z");
+  check(rules.graceSecondsLeft(t0, t0) === 20 && rules.graceSecondsLeft(t0, t0 + 6_200) === 14 && rules.graceSecondsLeft(t0, t0 + 25_000) === 0 && rules.graceSecondsLeft(null, t0) === 0, "the grace counts down 20 → 0 from the last sign of life");
+  check(rules.graceLine(14) === "Back within 14 s, or the match ends." && rules.graceLine(0) === "The match is ending.", "the countdown line, then the ending line at 0");
+  check(rules.latestSeenMs([{ last_seen_at: "2026-11-12T12:00:00Z" }, { last_seen_at: "2026-11-12T12:00:05Z" }, { last_seen_at: null }]) === t0 + 5_000, "the countdown runs from the latest sign of life");
+
+  // W3b's outcomes as the screens get them (abortedOf / endingOf, used by the binding's result()).
+  const view = { id: "m-left", pick: "mixed" as const, format: "bo3" as const, them: SAM };
+  const ab = bind.abortedOf(["u-7"], view, "u-5");
+  check(backendMod.isAborted(ab) && ab.leaverNames.join() === "Sam" && !ab.youLeft && ab.pick === "mixed" && ab.format === "bo3", "an abort by the opponent: their name, you stayed, the same pick and format to search again");
+  const abMe = bind.abortedOf(["u-5"], view, "u-5");
+  check(abMe.youLeft && abMe.leaverNames.length === 0, "an abort by you: you left, no other name");
+  const endThem = bind.endingOf(["u-7"], view, "u-5");
+  const endMe = bind.endingOf(["u-5"], view, "u-5");
+  check(endThem?.kind === "forfeit" && endThem.leaverNames.join() === "Sam" && !endThem.youLeft && endMe?.youLeft === true && bind.endingOf([], view, "u-5") === null, "a forfeit: the leaver named for the stayer, 'you' for the leaver; none for a match played out");
+  check(!backendMod.isAborted(null) && !backendMod.isAborted(result()), "a settled result or nothing is never an abort");
+  const bindSrc = readFileSync("src/lib/rated/w3Binding.ts", "utf8");
+  check(/settled\.state === "aborted"[\s\S]*?abortedOf\(settled\.leavers\.map\(\(l\) => l\.userId\), match, me\)/.test(bindSrc) && bindSrc.includes('endingOf(s.ending?.kind === "forfeit" ? s.ending.leavers : [], match, me)'), "the binding reads W3b's abort and the forfeit's leavers");
+  check(bindSrc.includes('rematchUntil: s.kind === "live" && !ending &&'), "a forfeit offers no rematch (W3b answers closed)");
+
+  // The result screen: the forfeit said plainly, for each side, and no Rematch.
+  const { MatchResult } = await import("../src/components/rated/RatedMatchScreens");
+  const el = (r: RatedResult) =>
+    React.createElement(MatchResult, { result: r, nowMs: Date.now(), onNext: () => {}, onRematch: () => {}, onTiers: () => {}, onChallenge: async () => ({ ok: true as const, code: "ABC234" }), onReveal: () => {} });
+  let root = await render(el(result({ ending: { kind: "forfeit", leaverNames: ["Sam"], youLeft: false }, rematchUntil: null })));
+  check(text("[data-rated-ending='they-left']") === "Sam left the match. You win." && !$("[data-rematch]"), "forfeit result, the player who stayed: 'Sam left the match. You win.', no rematch");
+  root.unmount();
+  root = await render(el(result({ outcome: "lost", myGames: 0, theirGames: 1, ending: { kind: "forfeit", leaverNames: [], youLeft: true }, rematchUntil: null, friend: false })));
+  check(text("[data-rated-ending='you-left']") === "You left the match. It counts as a loss.", "forfeit result, the player who left (when they return): 'You left the match. It counts as a loss.'");
+  root.unmount();
+  root = await render(el(result({ ending: null })));
+  check(!$("[data-rated-ending]"), "a match played out: no leaving line");
+  root.unmount();
+
+  // The abort screen on /rated: the notice, then back to searching for the player who stayed (not for the leaver).
+  const ratedRoute = readFileSync("src/routes/rated.tsx", "utf8");
+  check(/if \(isAborted\(r\)\) \{[\s\S]*?setPhase\(\{ kind: "aborted", abort: r \}\);[\s\S]*?if \(!r\.youLeft\) \{[\s\S]*?ABORT_NOTICE_MS[\s\S]*?again\(r\.pick, r\.format\)/.test(ratedRoute), "an abort: the notice, then the same search again, only for the player who stayed");
+  check(/phase\.kind === "aborted"[\s\S]*?body=\{abortLine\(a\.leaverNames, a\.youLeft\)\}/.test(ratedRoute), "the abort notice says abortLine's words");
+
+  // The room route: an aborted rated room hands over (never "Room disbanded"); the banner counts the grace down.
+  const room = readFileSync("src/routes/duel.$code.tsx", "utf8");
+  const handOff = room.indexOf("if (duel.disbanded_at && ratedMatchId) return <RatedRoomHandOff matchId={ratedMatchId} />;");
+  check(handOff > 0 && handOff < room.indexOf(">Room disbanded</h1>"), "an aborted rated room hands over to the rated screen before 'Room disbanded'");
+  check(room.includes("onFinish={ratedMatchId ? undefined : handleFinishNow}") && room.includes("graceText={ratedGrace}") && room.includes("graceLine(graceSecondsLeft(latestSeenMs(absent), now))"), "in a rated room the existing banner counts down the grace, with no Finish now");
+  check((room.match(/\{dropout\}/g) ?? []).length === 4, "still the same four dropout places");
+  const { DropoutBanner } = await import("../src/components/duel/DropoutBanner");
+  root = await render(React.createElement(DropoutBanner, { absentNames: ["Sam"], myTotal: 168, absentTotal: 151, graceText: rules.graceLine(14) }));
+  check(text("[data-dropout-banner] p") === "Sam left the game" && text("[data-dropout-line='grace']") === "You 168, Sam 151. Back within 14 s, or the match ends." && !document.body.textContent?.includes("Finish now"), "rated banner: 'Sam left the game', the countdown, no Finish now");
+  root.unmount();
+  root = await render(React.createElement(DropoutBanner, { absentNames: ["Sam"], myTotal: 168, absentTotal: 151, onFinish: async () => {} }));
+  check(text("[data-dropout-line='rounds']") === "You 168, Sam 151. Rounds carry on; they score 0." && !!document.body.textContent?.includes("Finish now"), "an ordinary room's banner unchanged (rounds line and Finish now)");
+  root.unmount();
 }
 
 check(consoleErrors.length === 0, `no console errors (${consoleErrors.slice(0, 3).join(" | ")})`);

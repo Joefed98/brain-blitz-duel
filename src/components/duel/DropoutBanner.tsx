@@ -13,12 +13,19 @@ export function DropoutBanner({
   myTotal,
   absentTotal,
   onFinish,
+  graceText,
 }: {
   absentNames: string[];
   myTotal: number;
   /** Shown for a two-player game only. */
   absentTotal: number | null;
-  onFinish: () => Promise<void>;
+  /** Ends the game now as a win (ordinary rooms). A rated match has none: the server ends it after the grace. */
+  onFinish?: (() => Promise<void>) | undefined;
+  /**
+   * A rated match (W3b's leaving rules, Joe 12 Nov 2026): the grace's countdown line ("Back within 14 s, or the match
+   * ends."), in place of the rounds line and Finish now.
+   */
+  graceText?: string | undefined;
 }) {
   const [confirming, setConfirming] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -34,7 +41,7 @@ export function DropoutBanner({
     setBusy(true);
     setError(null);
     try {
-      await onFinish();
+      await onFinish?.();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Couldn’t finish yet. Try again.");
       setBusy(false);
@@ -50,12 +57,13 @@ export function DropoutBanner({
         <p className="truncate font-display text-sm font-semibold text-foreground">
           {who} left the game
         </p>
-        <p className="text-xs text-foreground/80">
+        <p className="text-xs text-foreground/80" data-dropout-line={graceText !== undefined ? "grace" : "rounds"}>
           You {myTotal}
-          {absentTotal !== null ? `, ${who} ${absentTotal}` : ""}. Rounds carry on; they score 0.
+          {absentTotal !== null ? `, ${who} ${absentTotal}` : ""}. {graceText ?? "Rounds carry on; they score 0."}
         </p>
         {error && <p className="text-xs text-warn">{error}</p>}
       </div>
+      {onFinish && graceText === undefined ? (
       <button
         type="button"
         disabled={busy}
@@ -64,6 +72,7 @@ export function DropoutBanner({
       >
         Finish now
       </button>
+      ) : null}
       {confirming && (
         <ConfirmDialog
           title="Finish the game now?"

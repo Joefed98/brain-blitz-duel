@@ -532,8 +532,11 @@ export const RATED_SCREENS = (): ThemeScreen[] =>
       "reveal",
       "tiers",
       "profile",
+      "result-forfeit-stayed",
+      "result-forfeit-left",
+      "aborted",
     ] as const
-  ).map((screen) => ({ name: `rated, ${screen.replace("-", " ")}`, mode: "rated" as const, plain: true, globals: { __harnessRated: { screen } } }));
+  ).map((screen) => ({ name: `rated, ${screen.replaceAll("-", " ")}`, mode: "rated" as const, plain: true, globals: { __harnessRated: { screen } } }));
 
 export const THEME_SCREENS: ThemeScreen[] = [
   { name: "play", mode: "home", daily: () => dailyFixture().after, challenge: () => challengeFixture("create") },

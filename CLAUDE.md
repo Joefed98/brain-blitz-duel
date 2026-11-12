@@ -2255,7 +2255,13 @@ outside the repo.
   and a rated 4- or 8-player room draws the slot's Between in place of its round result and standings (`RatedBetween`,
   with the time until the next game, `msUntilNextGame` in `between.ts`; the format noted beside the match in
   `ratedRoom.ts`). Challenge on the result only for a live opponent B1 calls a friend (`challengeAllowed`, asked again
-  before it is made and sent through B1's `friendsApi.challenge`); never a recorded run, a guest or a non-friend. Guests show under W3b's energy
+  before it is made and sent through B1's `friendsApi.challenge`); never a recorded run, a guest or a non-friend. Leaving a
+  match (W3b's rules, Joe 12 Nov 2026): an abort says "Match cancelled: Sam left before it started. No rating change." on
+  `/rated` (an aborted room hands over before "Room disbanded"), then searches again for the player who stayed
+  (`ABORT_NOTICE_MS`); a forfeit's result says "Sam left the match. You win." or, to the leaver, "You left the match. It
+  counts as a loss." (`forfeitLine`, `abortedOf` / `endingOf` in w3Binding.ts, no rematch); in the 20 s grace a rated room's
+  existing dropout banner counts down (`graceText`, `graceSecondsLeft` from the absent player's last sign of life) with no
+  Finish now. Guests show under W3b's energy
   name with a Guest tag; a guest's finished rated match counts for the save-your-progress prompt ("Save your rating and
   stars", `SAVE_PROGRESS_FROM` "rated"). Under automation the real binding stays off unless a page sets
   `window.__DUELZ_ALLOW_RATED__` (ignored in production). Events play_card_tapped, vs_shown, result_viewed,
