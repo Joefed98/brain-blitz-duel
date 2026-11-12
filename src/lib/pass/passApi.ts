@@ -5,11 +5,13 @@
  * card and the Joules line ask only where there is one.
  *
  * Never asked under automation (other checks see no new request) unless a check sets `window.__DUELZ_ALLOW_PASS__`,
- * which production builds ignore (`overrideAllowed(import.meta.env.PROD, …)`; pass-check proves it).
+ * read through `checkOverride` (src/lib/checkOverride.ts), which production builds ignore, and held by
+ * `overrideAllowed(import.meta.env.PROD, …)` as well (pass-check proves it).
  */
 import { useEffect, useState } from "react";
 
 import { useAccount } from "@/lib/account/accountApi";
+import { checkOverride } from "@/lib/checkOverride";
 
 import type { RoundResultRow } from "@/lib/duel/types";
 
@@ -24,8 +26,7 @@ export function overrideAllowed(prod: boolean, flag: unknown): boolean {
 
 function automationBlocked(): boolean {
   if (typeof navigator === "undefined" || !navigator.webdriver) return false;
-  const flag = typeof window !== "undefined" ? (window as unknown as { __DUELZ_ALLOW_PASS__?: unknown }).__DUELZ_ALLOW_PASS__ : undefined;
-  return !overrideAllowed(import.meta.env.PROD, flag);
+  return !overrideAllowed(import.meta.env.PROD, checkOverride("__DUELZ_ALLOW_PASS__"));
 }
 
 function store(): Storage | null {

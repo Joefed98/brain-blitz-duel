@@ -6,9 +6,10 @@
  */
 import { PLAYER_COLOURS } from "@/lib/duel/playerLook";
 
+import { dressAvatar, hasCosmetics, type AvatarCosmetics } from "./cosmetics";
 import { AVATARS, GEMS } from "./playerCardArt.data";
 
-export interface AvatarLook {
+export interface AvatarLook extends AvatarCosmetics {
   id: string;
   /** An index into the player colours; out of range draws the avatar's own default colour. */
   colour: number;
@@ -48,7 +49,14 @@ export function avatarStops(look: AvatarLook): [string, string, string] {
 export function avatarMarkup(look: AvatarLook, prefix: string): string {
   const art = BY_ID.get(look.id) ?? BY_ID.get(DEFAULT_AVATAR_ID)!;
   const [m0, m1, m2] = avatarStops(look);
-  return art.svg.replaceAll("{{p}}", prefix).replace("{{m0}}", m0).replace("{{m1}}", m1).replace("{{m2}}", m2);
+  const svg = art.svg.replaceAll("{{p}}", prefix).replace("{{m0}}", m0).replace("{{m1}}", m1).replace("{{m2}}", m2);
+  // Wave 2 E2: the finish, accessory and special edition the player equipped (cosmetics.ts); none: exactly as before.
+  return hasCosmetics(look) ? dressAvatar(svg, look, prefix, m1) : svg;
+}
+
+/** A key for a look's memo (every field that changes its drawing). */
+export function avatarKey(look: AvatarLook): string {
+  return `${look.id}|${look.colour}|${look.gem ?? ""}|${look.finish ?? ""}|${look.accessory ?? ""}|${look.special ?? ""}`;
 }
 
 export { AVATARS, GEMS };

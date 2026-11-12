@@ -337,7 +337,7 @@ function check(ok: boolean, label: string): void {
   const vite = readFileSync("vite.config.ts", "utf8");
   const { MATCHMAKING_CRONS } = await import("../src/lib/rated/tasks/matchmakingTasks.server");
   const cron = MATCHMAKING_CRONS["rated:practice-deals-purge"];
-  check(vite.includes(`"${cron}": ["rated:practice-deals-purge"]`) && /withTasks\(nitroTasks\(RATED_TASKS\), MATCHMAKING_TASKS\)/.test(vite) && vite.includes("practiceDealsPurge.task.ts"),
+  check(vite.includes(`"${cron}": ["rated:practice-deals-purge"]`) && /withTasks\(nitroTasks\(PUSH_TASKS, RATED_TASKS\), MATCHMAKING_TASKS\)/.test(vite) && vite.includes("practiceDealsPurge.task.ts"),
     `the purge's Cron Trigger is scheduled in vite.config.ts (${cron} UTC), in step with MATCHMAKING_CRONS`);
   const task = readFileSync("src/lib/rated/tasks/practiceDealsPurge.task.ts", "utf8");
   check(/runPracticeDealsPurge\(\)/.test(task) && /"rated:practice-deals-purge"/.test(task), "the task runs the purge under its scheduled name");

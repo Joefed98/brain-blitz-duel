@@ -527,7 +527,8 @@ await section("config, switch and schedule", async () => {
   const { RATED_CRONS } = await import("../src/lib/rated/tasks/ratedTasks.server");
   const vite = readFileSync("vite.config.ts", "utf8");
   const cron = RATED_CRONS["rated:standings"];
-  check(vite.includes(`"${cron}": ["rated:standings"]`) && vite.includes('"rated:standings": { handler: fileURLToPath(new URL("./src/lib/rated/tasks/standings.task.ts"') && existsSync("src/lib/rated/tasks/standings.task.ts") && vite.includes("nitroTasks(RATED_TASKS)"), `the Cron Trigger: "${cron}" runs rated:standings (vite.config.ts and RATED_CRONS agree)`);
+  check(vite.includes(`"${cron}": ["rated:standings"]`) && vite.includes('"rated:standings": { handler: fileURLToPath(new URL("./src/lib/rated/tasks/standings.task.ts"') && existsSync("src/lib/rated/tasks/standings.task.ts") && /nitroTasks\((?:[A-Z_]+, )*RATED_TASKS(?:, [A-Z_]+)*\)/.test(vite), `the Cron Trigger: "${cron}" runs rated:standings (vite.config.ts and RATED_CRONS agree)`);
+  check(/nitroTasks\(PUSH_TASKS, RATED_TASKS\)/.test(vite) && (vite.match(/nitroTasks\(/g) ?? []).length === 2, "B2's push tasks and the rated standings go through one nitroTasks call, so neither set replaces the other");
   const config = readFileSync("src/lib/rated/glicko.config.ts", "utf8");
   const constants = [...config.matchAll(/^export const ([A-Z_]+) =/gm)].map((m) => m[1]!);
   check(constants.length >= 20 && constants.every((c) => new RegExp(`Target|${c}`).test(config)), `every constant lives in glicko.config.ts (${constants.length})`);

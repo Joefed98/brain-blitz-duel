@@ -18,11 +18,13 @@ import { SaveProgressOffer } from "@/components/account/SaveProgress";
 import { Button, Icon } from "@/design/components";
 import { DEFAULT_LOOK, PlayerCard, type CardLook } from "@/design/identity";
 import { cachedAccount, useAccount, type AccountCard } from "@/lib/account/accountApi";
+import { useWaitingRequests } from "@/lib/friends/friendsApi";
 import { useMyBadges } from "@/lib/badges/badgesApi";
 import { titleName } from "@/lib/badges/catalogue";
 import { useMyIdentity } from "@/lib/identity/identityApi";
 import { recordIdentityEvent } from "@/lib/identity/identityEvents";
 import type { Loadout } from "@/lib/identity/backend";
+import { usePlusStatus } from "@/lib/plus/plusApi";
 
 /** A card look from a saved loadout (the defaults where a slot is empty; the account's colour on Captain Joulz). */
 export function lookFromLoadout(loadout: Loadout | null, colour: number | null): CardLook {
@@ -30,8 +32,24 @@ export function lookFromLoadout(loadout: Loadout | null, colour: number | null):
     cardArt: loadout?.slots["card-art"] ?? DEFAULT_LOOK.cardArt,
     frame: loadout?.slots["frame"] ?? DEFAULT_LOOK.frame,
     nameColour: loadout?.slots["name-colour"] ?? null,
-    avatar: loadout?.avatar ?? (colour !== null ? { id: "captain-joulz", colour, gem: null } : null),
+    avatar: withAvatarItems(loadout?.avatar ?? (colour !== null ? { id: "captain-joulz", colour, gem: null } : null), loadout?.slots),
   };
+}
+
+/**
+ * Wave 2 E2: the avatar's equipped finish, accessory and special edition (loadout slots) on the avatar; with none
+ * equipped the avatar is returned exactly as it was.
+ */
+export function withAvatarItems<A extends { id: string; colour: number; gem: string | null }>(
+  avatar: A | null,
+  slots: Partial<Record<string, string | null>> | undefined,
+): (A & { finish?: string | null; accessory?: string | null; special?: string | null }) | null {
+  if (!avatar) return null;
+  const finish = slots?.["avatar-finish"] ?? null;
+  const accessory = slots?.["avatar-accessory"] ?? null;
+  const special = slots?.["avatar-special-edition"] ?? null;
+  if (!finish && !accessory && !special) return avatar;
+  return { ...avatar, finish, accessory, special };
 }
 
 export function ProfileCard({ guestName, guestColour }: { guestName: string; guestColour: number | null }) {
@@ -63,6 +81,16 @@ export function ProfileCard({ guestName, guestColour }: { guestName: string; gue
     ? lookFromLoadout(identity.loadout, signedIn?.colour ?? fromCache?.colour ?? null)
     : lookFromLoadout(null, guestColour);
 
+  // Wave 2 E2: the gold PLUS chip, only when this account has Plus and turned it on (off by default).
+  const plusMark = usePlusStatus(!!signedIn)?.member?.showMark === true;
+  // Friends (wave 2 B1): accounts only; the badge counts requests waiting (in-app only). A guest gets the
+  // save-your-progress sheet, as Customise.
+  const waiting = useWaitingRequests(Boolean(signedIn));
+  const friends = () => {
+    if (isAccount) void router.navigate({ to: "/friends", state: { fromPlayTab: true } as never } as never);
+    else setOffer(true);
+  };
+
   const customise = () => {
     if (isAccount) void router.navigate({ to: "/customise", state: { fromPlayTab: true } as never } as never);
     else setOffer(true);
@@ -79,8 +107,21 @@ export function ProfileCard({ guestName, guestColour }: { guestName: string; gue
         title={mine?.account ? titleName(mine.title) : null}
         badges={mine?.account ? mine.card : undefined}
       />
+      {plusMark ? (
+        <span className="jz-plus-chip" data-plus-mark="">
+          PLUS
+        </span>
+      ) : null}
       <Button variant="secondary" size={48} block onClick={customise} data-customise-open>
         Customise card
+      </Button>
+      <Button variant="secondary" size={48} block onClick={friends} data-friends-open aria-label={waiting ? `Friends, ${waiting} waiting` : "Friends"}>
+        <Icon name="friends" size={20} /> Friends
+        {waiting ? (
+          <span className="fr-tab-badge" data-friends-waiting={waiting} aria-hidden="true">
+            {waiting > 99 ? "99+" : waiting}
+          </span>
+        ) : null}
       </Button>
       <div className="jz-panel id-rating-note" data-rating-note>
         <Icon name="leaderboard" size={20} tone="text-3" />

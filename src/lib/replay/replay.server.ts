@@ -28,6 +28,8 @@ export interface ReplayWinner {
   extra: { [key: string]: Json } | null;
   reactionAvgMs: number | null;
   msRemaining: number;
+  /** The look the result was played in (round_results.look: the winner's skin and card back; display only). */
+  look?: Json | null;
 }
 
 export interface ReplayRound {
@@ -83,6 +85,7 @@ async function buildRounds(client: Db, room: DuelRow, rounds: number[]): Promise
               extra: (row.extra ?? null) as { [key: string]: Json } | null,
               reactionAvgMs: row.reaction_avg_ms,
               msRemaining: row.ms_remaining,
+              look: ((row as { look?: unknown }).look ?? null) as Json | null,
             }
           : null,
       runnerUp: slot === null ? 0 : runnerUpScore(results, round, slot),

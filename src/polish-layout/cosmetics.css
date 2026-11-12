@@ -1,0 +1,251 @@
+/* Wave 2 E2: the remaining cosmetics where they belong (src/design/identity/cosmetics.ts) and the Joulz Plus screens.
+   Tokens only (DESIGN.md); the items' own art is in their svg. */
+
+/* Retro Arcade's emotes draw in Silkscreen (OFL, self-hosted with the card's Electric Orange). */
+@font-face {
+  font-family: "Silkscreen"; /* design-lint-ignore: Retro Arcade emote art (game art face, OFL) */
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("/fonts/silkscreen-700-latin.woff2") format("woff2");
+}
+
+/* Reaction pack emotes: each emote's own svg, scaled to the row's height. */
+.jz-emote {
+  display: inline-flex;
+  align-items: center;
+  flex: none;
+}
+.jz-emote > svg {
+  display: block;
+  width: auto;
+  height: 100%;
+  overflow: visible;
+}
+.jz-emote-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--jz-space-8);
+}
+.jz-emote-button {
+  display: inline-flex;
+  min-height: 44px;
+  min-width: 44px;
+  align-items: center;
+  justify-content: center;
+  padding: 0 var(--jz-space-4);
+  border-radius: var(--jz-radius);
+}
+
+/* The final screen's celebrations: a strip of its own under the heading, never over a score or a place. */
+.jz-celebrations {
+  display: flex;
+  justify-content: center;
+  gap: var(--jz-space-8);
+}
+.jz-celebration {
+  display: flex;
+  width: 132px;
+  min-width: 0;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--jz-space-4);
+  margin: 0;
+}
+.jz-celebration-art {
+  display: block;
+  width: 132px;
+  aspect-ratio: 240 / 150;
+}
+.jz-celebration-art > svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.jz-celebration-name {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  font-weight: var(--jz-weight-bold);
+  color: var(--jz-text-2);
+}
+
+/* A game tile in the player's own tile style (Practice): the style's tile, the scene where its sample sat. */
+.game-icon-styled {
+  position: relative;
+  overflow: visible;
+  background: transparent;
+}
+.game-icon-styled > .game-icon-style-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.game-icon-styled > .game-icon-style-layer > svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.game-icon-styled > .game-icon-style-scene {
+  position: absolute;
+  inset: 13.3%;
+  width: 73.4%;
+  height: 73.4%;
+  border-radius: 18%;
+  object-fit: cover;
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+/* The gold PLUS chip (off by default; Joulz Plus members who turn it on). */
+.jz-plus-chip {
+  align-self: center;
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 10px;
+  border-radius: 6px;
+  background: var(--jz-gold-metal);
+  color: var(--jz-on-gold);
+  font-size: 12px;
+  font-weight: var(--jz-weight-black);
+  letter-spacing: 0.08em;
+}
+
+/* Joulz Plus (the Shop's Plus part; docs/art/wave-2/boards/joulz-plus-screens.png, screen 1). */
+.plus-offer {
+  display: flex;
+  flex-direction: column;
+  gap: var(--jz-space-16);
+}
+.plus-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--jz-space-4);
+  text-align: center;
+}
+.plus-hero-mark {
+  display: flex;
+  width: 64px;
+  height: 64px;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--jz-gold);
+  border-radius: 999px;
+  color: var(--jz-gold);
+}
+.plus-hero h2 {
+  margin: var(--jz-space-4) 0 0;
+  font-size: 28px;
+  font-weight: var(--jz-weight-black);
+  color: var(--jz-text);
+}
+.plus-hero p {
+  margin: 0;
+  color: var(--jz-text-2);
+}
+.plus-plans {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--jz-space-12);
+}
+.plus-plan {
+  position: relative;
+  display: flex;
+  min-height: 64px;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+  padding: var(--jz-space-12);
+  border: 1.5px solid var(--jz-line);
+  border-radius: var(--jz-radius);
+  background: var(--jz-surface);
+  text-align: left;
+  color: var(--jz-text);
+}
+.plus-plan[aria-checked="true"] {
+  border-color: var(--jz-gold);
+}
+.plus-plan-label {
+  font-size: 13px;
+  color: var(--jz-text-2);
+}
+.plus-plan-price {
+  font-size: 20px;
+  font-weight: var(--jz-weight-black);
+}
+.plus-plan-price small {
+  font-size: 12px;
+  font-weight: var(--jz-weight-medium);
+  color: var(--jz-text-2);
+}
+.plus-plan-save {
+  position: absolute;
+  top: -10px;
+  right: 8px;
+  padding: 1px 8px;
+  border-radius: 6px;
+  background: var(--jz-gold-metal);
+  color: var(--jz-on-gold);
+  font-size: 11px;
+  font-weight: var(--jz-weight-black);
+}
+.plus-perks {
+  display: flex;
+  flex-direction: column;
+  gap: var(--jz-space-12);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.plus-perk {
+  display: flex;
+  align-items: center;
+  gap: var(--jz-space-12);
+}
+.plus-perk-icon {
+  display: flex;
+  width: 40px;
+  height: 40px;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--jz-line);
+  border-radius: var(--jz-radius);
+  color: var(--jz-gold);
+}
+.plus-perk-text {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+}
+.plus-perk-title {
+  font-weight: var(--jz-weight-bold);
+  color: var(--jz-text);
+}
+.plus-perk-sub {
+  font-size: 13px;
+  color: var(--jz-text-2);
+}
+.plus-test-note,
+.plus-small-print {
+  margin: 0;
+  font-size: 13px;
+  color: var(--jz-text-2);
+  text-align: center;
+}
+.plus-member {
+  display: flex;
+  flex-direction: column;
+  gap: var(--jz-space-8);
+}
+.plus-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--jz-space-12);
+}

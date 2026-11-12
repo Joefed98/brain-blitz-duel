@@ -136,7 +136,7 @@ export function useRoomChat(
         },
       )
       .on("broadcast", { event: "reaction" }, ({ payload }) => {
-        // Only the fixed emoji set, from a player in this room's list, named from that list.
+        // Only the fixed emoji set (or, wave 2 E2, an emote of a pack its sender equipped), from a player in this room's list, named from that list.
         const data = acceptReaction(payload, rosterRef.current);
         if (!data) return;
         // Every phone enforces the one-a-second limit, whoever sent it.

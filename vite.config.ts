@@ -54,6 +54,25 @@ const WORKER_OBSERVABILITY = {
 };
 
 /**
+ * Phone notifications' Cron Triggers (wave 2 B2, docs/push-notifications.md): nitro's scheduled tasks. Its Cloudflare
+ * preset writes each schedule into the generated wrangler.json's `triggers.crons`, so `wrangler deploy` sets the Worker's
+ * Cron Triggers, and the Worker's `scheduled` handler runs the task listed for the cron that fired. UTC schedules, kept
+ * in step with PUSH_CRONS (src/lib/push/tasks/pushTasks.server.ts; push-notifications-check compares them). The tasks
+ * do nothing while the push keys aren't set.
+ */
+const PUSH_TASKS = {
+  experimental: { tasks: true },
+  tasks: {
+    "push:friend-sweep": { handler: fileURLToPath(new URL("./src/lib/push/tasks/friendSweep.task.ts", import.meta.url)) },
+    "push:daily-reminder": { handler: fileURLToPath(new URL("./src/lib/push/tasks/dailyReminder.task.ts", import.meta.url)) },
+  },
+  scheduledTasks: {
+    "*/5 * * * *": ["push:friend-sweep"],
+    "41 * * * *": ["push:daily-reminder"],
+  },
+};
+
+/**
  * Rated play's Cron Trigger (wave 3 W3a, docs/rated/README.md "The standings job"): a nitro scheduled task, as B2's push
  * tasks are. Nitro's Cloudflare preset writes each schedule into the generated wrangler.json's `triggers.crons`, so
  * `wrangler deploy` sets the Worker's Cron Triggers, and the Worker's `scheduled` handler runs the task for the cron
@@ -82,7 +101,7 @@ const MATCHMAKING_TASKS = {
   },
 };
 
-type TaskSet = { tasks: Record<string, { handler: string }>; scheduledTasks: Record<string, string[]> };
+type TaskSet = { experimental?: { tasks: boolean }; tasks: Record<string, { handler: string }>; scheduledTasks: Record<string, string[]> };
 /** Every task set's tasks and schedules in one nitro option (a later set adds to, never replaces, an earlier one's). */
 function nitroTasks(...sets: TaskSet[]) {
   const tasks: TaskSet["tasks"] = {};
@@ -96,16 +115,21 @@ function nitroTasks(...sets: TaskSet[]) {
 
 /** Adds more task sets to a nitroTasks option (their tasks and schedules join, never replace, the ones already there). */
 function withTasks(base: ReturnType<typeof nitroTasks>, ...sets: TaskSet[]) {
-  const more = nitroTasks(...sets);
+  const tasks = { ...base.tasks };
   const scheduledTasks = { ...base.scheduledTasks };
-  for (const [cron, names] of Object.entries(more.scheduledTasks)) scheduledTasks[cron] = [...(scheduledTasks[cron] ?? []), ...names];
-  return { ...base, tasks: { ...base.tasks, ...more.tasks }, scheduledTasks };
+  for (const set of sets) {
+    Object.assign(tasks, set.tasks);
+    for (const [cron, names] of Object.entries(set.scheduledTasks)) scheduledTasks[cron] = [...(scheduledTasks[cron] ?? []), ...names];
+  }
+  return { ...base, tasks, scheduledTasks };
 }
 
 const SERVER_BUILD = Object.assign(
   { minify: true },
   { cloudflare: { wrangler: { observability: WORKER_OBSERVABILITY } } },
-  withTasks(nitroTasks(RATED_TASKS), MATCHMAKING_TASKS),
+  // Every set of Cron Triggers (B2's push tasks, W3a's rated standings, W3b's practice-deal purge), merged so none
+  // replaces another.
+  withTasks(nitroTasks(PUSH_TASKS, RATED_TASKS), MATCHMAKING_TASKS),
 ) as NitroOptions & { minify: boolean };
 
 export default defineConfig({

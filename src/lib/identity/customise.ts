@@ -2,6 +2,8 @@
  * Customise's rules (wave 2, session A2), apart from the screen so a check can prove them: what a player owns, what
  * each slot lists, and the line under a locked item saying where it comes from (from the catalogue).
  */
+import { CARD_BACK_IDS, GAME_SKIN_IDS, SKIN_GAME_NAMES, WORLD_THEME_IDS, type SkinnableGame } from "@/lib/arcade/skins/look";
+
 import type { CatalogueItem, Rarity } from "./backend";
 
 /** Free for everyone (the 8 card arts and the Plain frame): owned whatever the inventory says. */
@@ -58,4 +60,52 @@ export function slotItems(
 /** The owned items of an avatar slot (finishes, accessory, special edition): only owned ones are listed. */
 export function ownedOfKind(catalogue: readonly CatalogueItem[], kind: string, owned: ReadonlySet<string>): CatalogueItem[] {
   return catalogue.filter((i) => i.kind === kind && ownsItem(i, owned));
+}
+
+/* --------------------------------------------------------------------------- the Games tab (12 Nov 2026) */
+
+/** One game's rows on the Games tab: its owned skins and, where it has any, its owned world themes. */
+export interface GameLookRows {
+  /** The game's PuzzleType id. */
+  game: SkinnableGame;
+  /** The game's shown name (gameNames.ts). */
+  name: string;
+  skins: CatalogueItem[];
+  worlds: CatalogueItem[];
+  /** Whether the catalogue has world themes for this game at all (a World row is drawn only then). */
+  hasWorlds: boolean;
+}
+
+/**
+ * The Games tab: the owned card backs (the account's one back, drawn on every card game with a face-down deck), then
+ * each skinnable game in the catalogue's order with its owned skins and world themes. Owned only: nothing locked is
+ * listed here (the shop shows what can be bought). A game the player owns nothing for is left out; the default is
+ * always there in the game's rows, and a game with no row has nothing to choose.
+ */
+export function gameLookRows(
+  catalogue: readonly CatalogueItem[],
+  owned: ReadonlySet<string>,
+  names: Readonly<Record<string, string>>,
+): { cardBacks: CatalogueItem[]; games: GameLookRows[] } {
+  const mine = (ids: readonly string[]) =>
+    ids.flatMap((id) => {
+      const item = catalogue.find((i) => i.id === id);
+      return item && ownsItem(item, owned) ? [item] : [];
+    });
+  const games = (Object.keys(SKIN_GAME_NAMES) as SkinnableGame[])
+    .map((game) => ({
+      game,
+      name: names[game] ?? game,
+      skins: mine(GAME_SKIN_IDS[game]),
+      worlds: mine(WORLD_THEME_IDS[game]),
+      hasWorlds: WORLD_THEME_IDS[game].length > 0,
+    }))
+    .filter((g) => g.skins.length > 0 || g.worlds.length > 0);
+  return { cardBacks: mine(CARD_BACK_IDS), games };
+}
+
+/** An item's name under its game's heading: world themes are named "Cue Ball: Neon Table" in the catalogue; the game's own section drops the "Cue Ball: ". */
+export function lookItemName(item: CatalogueItem, gameName: string): string {
+  const prefix = `${gameName}: `;
+  return item.name.startsWith(prefix) ? item.name.slice(prefix.length) : item.name;
 }
