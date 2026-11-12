@@ -16,6 +16,8 @@ export type CheckOverrideName =
   | "__DUELZ_ALLOW_CHALLENGES__"
   | "__DUELZ_ALLOW_PASS__"
   | "__DUELZ_ALLOW_PRESENCE__"
+  | "__DUELZ_ALLOW_PASS__"
+  | "__DUELZ_ALLOW_RATED__"
   | "__DUELZ_ALLOW_SAFETY__"
   | "__DUELZ_ALLOW_SHOP__"
   | "__DUELZ_BANNERS__"
@@ -25,6 +27,8 @@ export type CheckOverrideName =
   | "__DUELZ_FIRST_OPEN__"
   | "__DUELZ_IDENTITY_EVENTS__"
   | "__DUELZ_PUBLIC_GAMES__"
+  | "__DUELZ_RATED_BACKEND__"
+  | "__DUELZ_RATED_EVENTS__"
   | "__DUELZ_PUSH_PUBLIC_KEY__"
   | "__DUELZ_TURNSTILE_SITE_KEY__";
 

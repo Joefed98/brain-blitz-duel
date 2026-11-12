@@ -7,8 +7,9 @@
  * avatar from docs/art/avatars in the player's colour, the name in its name colour. The sample player on the art
  * (SkyRacer, Logician, Storm II, 2,046) is not part of any item.
  *
- * Card rules (docs/art/wave-2/README.md): the tier and rating always sit in a dark pill (until wave 3 there is no
- * tier or rating, so the pill shows the player number, "#0001", or "Guest"); every name colour keeps a dark edge (the
+ * Card rules (docs/art/wave-2/README.md): the tier and rating always sit in a dark pill: once a player has placed in
+ * rated play (wave 3, `rank`) the tier and division in the tier's colour and the rating in bold white even-width
+ * digits; before placement the player number, "#0001", or "Guest"; every name colour keeps a dark edge (the
  * sources' own shadows and strokes); nothing decorative sits over scores or places (the card is never drawn in
  * standings). Legendaries, the Neon Circuit frame, Founding and Top 500 animate; every motion stops under
  * prefers-reduced-motion (the sources' own rules, scoped to `.pcard`).
@@ -18,6 +19,7 @@
 import { useId, useMemo } from "react";
 
 import { PLAYER_COLOURS } from "@/lib/duel/playerLook";
+import { ratingText, tierColour, type RankView } from "@/lib/rated/tierDisplay";
 
 import { avatarKey, avatarMarkup, DEFAULT_AVATAR } from "./avatars";
 import { ensureCosmeticStyles, hasCosmetics, type AvatarCosmetics } from "./cosmetics";
@@ -74,6 +76,7 @@ export function PlayerCard({
   guestColour = 0,
   title = null,
   badges = NO_BADGES,
+  rank = null,
   label,
   className,
 }: {
@@ -91,8 +94,13 @@ export function PlayerCard({
   title?: string | null;
   /** Up to three badges on the card (C2: their slugs, in order); drawn bottom right from docs/art/badges. */
   badges?: readonly string[] | undefined;
+  /**
+   * The player's rated standing once placed (wave 3): the pill then shows the tier and division in the tier colour and
+   * the rating. Null (before placement, or no rated play): the player number as before. Never for a guest.
+   */
+  rank?: Pick<RankView, "tier" | "label" | "rating"> | null;
   /** The card's accessible name (defaults to "{name}'s card"). */
-  label?: string;
+  label?: string | undefined;
   className?: string;
 }) {
   ensureCardStyles();
@@ -111,6 +119,7 @@ export function PlayerCard({
   const dressed = !guest && hasCosmetics(avatar);
   if (dressed) ensureCosmeticStyles();
   const nameStyle = known.nameColour ? NAME_COLOURS[known.nameColour]! : null;
+  const ranked = !guest && rank ? rank : null;
   const pill = guest ? "Guest" : playerNumber && playerNumber > 0 ? playerNumberLabel(playerNumber) : null;
   return (
     <div
@@ -158,7 +167,14 @@ export function PlayerCard({
                 {title}
               </span>
             ) : null}
-            {pill ? (
+            {ranked ? (
+              <span data-card-pill="" data-card-rank={ranked.tier} className="pcard-pill">
+                <span className="pcard-pill-label" style={{ color: tierColour(ranked.tier) }}>
+                  {ranked.label}
+                </span>
+                <span className="pcard-pill-value">{ratingText(ranked.rating)}</span>
+              </span>
+            ) : pill ? (
               <span data-card-pill="" className="pcard-pill">
                 <span className="pcard-pill-value">{pill}</span>
               </span>

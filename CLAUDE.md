@@ -2237,6 +2237,36 @@ outside the repo.
   weekly draw share (R challenges only while on, progress from `rated_week_matches`). A 1v1 stops once decided (each
   game weighted); a run the server flagged (a game's stored grade `extra.flagged`, live or recorded) moves nobody, counts for nothing, pays the flagged player no Joules and is logged in `moderation.rated_flags` (Joe: `moderation.rated_flag_queue()`); the tier floor grace keeps a tier 3 more matches below its floor
   (`shownTierFor`). ratings-check (~10 s, shard `e`, PostgreSQL).
+- **The rated match screens** (wave 3, session W3c, 11 Nov 2026; docs/mockups/wave-3/; no gameplay, scoring, stamp,
+  timing or deal change). Every rated screen reads through `src/lib/rated/backend.ts`, bound to W3a's and W3b's real
+  server functions in `src/lib/rated/w3Binding.ts` (W3a: getMyRatingsFn, getRatingsForFn, getTierLadderFn and each
+  match's RatedPlayerChange; W3b: ratedStatusFn, the queue, ratedMatchFn, ratedOpponentScoreFn, ratedProgressFn,
+  ratedSettleFn, ratedRematchFn; cards from A2's getPublicCard and C2's getCardBadges). Tiers are drawn from W3a's
+  TierView (`tierDisplay.ts`); the hidden finish is W3b's `opponentScoreHidden`. Home's rank panel and Play card
+  (`RatedHome`, only for players W3b says rated play is open to: testers, then everyone with
+  RATED_PLAY_FOR_EVERYONE), the picker (switched-on options only), `/rated` (searching, VS, then W3b's room on the room
+  route; `?match=` the result and the reveal), `/tiers`, the card pill's tier and rating once placed, Profile's
+  `ProfileRating`. The room route knows a rated room from this tab's note or, in any other tab, device or reload, W3b's
+  `ratedRoomFn` (`useRatedRoom`, `ratedRoom.ts`): its header is `RatedRoomScore` (no other layout change; an arcade
+  stage publishes its running score once a second only while it is asked, through the import-free `liveScore.ts`), and
+  the finished room hands over to `/rated?match=` after W3b's winner reveal. The placement boxes are W3a's own
+  per-match results (`placementBoxesOf`), the VS record W3b's `ratedHeadToHeadFn` (live opponents only), and `/rated`
+  picks its screens by W3b's format (`formatScreens.tsx`; W3d fills the 4- and 8-player row): Search is given the format,
+  and a rated 4- or 8-player room draws the slot's Between in place of its round result and standings (`RatedBetween`,
+  with the time until the next game, `msUntilNextGame` in `between.ts`; the format noted beside the match in
+  `ratedRoom.ts`). Challenge on the result only for a live opponent B1 calls a friend (`challengeAllowed`, asked again
+  before it is made and sent through B1's `friendsApi.challenge`); never a recorded run, a guest or a non-friend. Leaving a
+  match (W3b's rules, Joe 12 Nov 2026): an abort says "Match cancelled: Sam left before it started. No rating change." on
+  `/rated` (an aborted room hands over before "Room disbanded"), then searches again for the player who stayed
+  (`ABORT_NOTICE_MS`); a forfeit's result says "Sam left the match. You win." or, to the leaver, "You left the match. It
+  counts as a loss." (`forfeitLine`, `abortedOf` / `endingOf` in w3Binding.ts, no rematch); in the 20 s grace a rated room's
+  existing dropout banner counts down (`graceText`, `graceSecondsLeft` from the absent player's last sign of life) with no
+  Finish now. Guests show under W3b's energy
+  name with a Guest tag; a guest's finished rated match counts for the save-your-progress prompt ("Save your rating and
+  stars", `SAVE_PROGRESS_FROM` "rated"). Under automation the real binding stays off unless a page sets
+  `window.__DUELZ_ALLOW_RATED__` (ignored in production). Events play_card_tapped, vs_shown, result_viewed,
+  next_match_tapped, tier_ladder_viewed (`20261114300000_analytics_rated_screen_events.sql`). rated-screens-check
+  (~5 s, happy-dom); shots `bun scripts/shots/rated-shots.tsx` (after `bun run build`).
 - `src/components/duel/` — room/round screens (PhoneShell, RoundIntro, TimerBar,
   AnswerReveal, ArcadeReveal, WinnerReveal…); `src/components/puzzles/` — shared puzzle
   widgets; `src/lib/fx/` — sound and visual feedback (presentation only).

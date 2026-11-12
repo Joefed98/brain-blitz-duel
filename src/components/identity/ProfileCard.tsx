@@ -1,9 +1,11 @@
 /**
  * Profile's top (wave 2, session A2; mockup docs/art/wave-2/screens/profile.png): the player card, Customise, and
- * the Joulz Rating's line. Only real data: until wave 3 there is no rating, so the pill shows the player number (an
- * account) or "Guest", and the rating panel says it arrives with rated play. Puzzles and Arcade, strongest
- * categories (wave 3), mastery stars and challenges (C1), badges and titles (C2) and the trophy cabinet (wave 4)
- * aren't drawn until they have data.
+ * the Joulz Rating. Only real data. With rated play open to the player (wave 3, testers only at first) and placed: the
+ * pill shows the tier and rating, and ProfileRating draws the Joulz Rating, Puzzles and Arcade and the strongest
+ * categories from the server's figures; in placement, the pill keeps the player number and the panel shows the
+ * placement matches. Without rated play: the pill shows the player number (an account) or "Guest", and the panel says
+ * the rating arrives with rated play. Mastery stars and challenges (C1), badges and titles (C2), the trophy cabinet
+ * and the season peak (wave 4) aren't drawn until they have data.
  *
  * New accounts start with Captain Joulz's helmet in their colour (lookFromLoadout with no saved avatar); guests keep
  * their colour and initial.
@@ -24,6 +26,8 @@ import { titleName } from "@/lib/badges/catalogue";
 import { useMyIdentity } from "@/lib/identity/identityApi";
 import { recordIdentityEvent } from "@/lib/identity/identityEvents";
 import type { Loadout } from "@/lib/identity/backend";
+import { useRatedStatus } from "@/lib/rated/ratedApi";
+import { ProfileRating } from "@/components/rated/ProfileRating";
 import { usePlusStatus } from "@/lib/plus/plusApi";
 
 /** A card look from a saved loadout (the defaults where a slot is empty; the account's colour on Captain Joulz). */
@@ -58,6 +62,7 @@ export function ProfileCard({ guestName, guestColour }: { guestName: string; gue
   const identity = useMyIdentity();
   // C2: the card's badges and title (badgesApi.ts; accounts, once the server answers).
   const mine = useMyBadges().badges;
+  const rated = useRatedStatus();
   const [cached, setCached] = useState<AccountCard | null>(null);
   const [offer, setOffer] = useState(false);
   useEffect(() => {
@@ -106,6 +111,7 @@ export function ProfileCard({ guestName, guestColour }: { guestName: string; gue
         guestColour={guestColour ?? 0}
         title={mine?.account ? titleName(mine.title) : null}
         badges={mine?.account ? mine.card : undefined}
+        rank={isAccount && rated?.standing.state === "placed" ? rated.standing.rank : null}
       />
       {plusMark ? (
         <span className="jz-plus-chip" data-plus-mark="">
@@ -123,10 +129,14 @@ export function ProfileCard({ guestName, guestColour }: { guestName: string; gue
           </span>
         ) : null}
       </Button>
-      <div className="jz-panel id-rating-note" data-rating-note>
-        <Icon name="leaderboard" size={20} tone="text-3" />
-        <span>Your Joulz Rating arrives with rated play.</span>
-      </div>
+      {isAccount && rated ? (
+        <ProfileRating status={rated} />
+      ) : (
+        <div className="jz-panel id-rating-note" data-rating-note>
+          <Icon name="leaderboard" size={20} tone="text-3" />
+          <span>Your Joulz Rating arrives with rated play.</span>
+        </div>
+      )}
       {offer ? <SaveProgressOffer onClose={() => setOffer(false)} /> : null}
     </section>
   );

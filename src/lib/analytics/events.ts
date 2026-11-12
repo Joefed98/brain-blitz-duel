@@ -114,6 +114,13 @@ export const ANALYTICS_EVENTS = [
   "match_found",
   "rematch_requested",
   "rematch_accepted",
+  // The rated match screens (wave 3, session W3c): recorded by the server only, through recordRatedEventFn
+  // (src/lib/rated/ratedEvents.functions.ts), which accepts these five with fixed-word props and nothing else.
+  "play_card_tapped",
+  "vs_shown",
+  "result_viewed",
+  "next_match_tapped",
+  "tier_ladder_viewed",
   // Leaving a rated match (W3b, Joe 12 Nov 2026): one row per leaver. rated_match_aborted props.step (the room phase
   // left in) and props.format; rated_match_forfeited props.format and props.games_played.
   "rated_match_aborted",

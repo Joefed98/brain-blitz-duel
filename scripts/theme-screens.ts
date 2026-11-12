@@ -169,7 +169,7 @@ export const room =
 
 export interface ThemeScreen {
   name: string;
-  mode: "home" | "practice" | "tournaments" | "profile" | "room" | "daily" | "challenge" | "terms" | "notfound" | "error" | "firstopen" | "account" | "saveprogress" | "friends" | "customise";
+  mode: "home" | "practice" | "tournaments" | "profile" | "room" | "daily" | "challenge" | "terms" | "notfound" | "error" | "firstopen" | "account" | "saveprogress" | "friends" | "customise" | "rated";
   /** Window globals set before the page loads (wave 1: `__harnessPreview`, a room link's preview). */
   globals?: Record<string, unknown>;
   /** false: a brand-new device, with no room history, practice bests or public games (wave 1's empty states). */
@@ -510,6 +510,34 @@ export const CUSTOMISE_SCREENS = (): ThemeScreen[] => {
   ];
 };
 
+/**
+ * The rated match screens (wave 3, W3c, 12 Nov 2026): Home's rank panel (placed and in placement), searching, VS (live
+ * and recorded), the live header's two scores (shown and hidden), the result (won, lost, a placement match, ratings
+ * frozen), the placement reveal, the tier ladder and Profile's rating panel, from scripts/rated-fixture.tsx with
+ * 16-character names. Appended last, so every earlier screen keeps its place in the parts.
+ */
+export const RATED_SCREENS = (): ThemeScreen[] =>
+  (
+    [
+      "home",
+      "home-placement",
+      "searching",
+      "vs-live",
+      "vs-recorded",
+      "header",
+      "result-won",
+      "result-lost",
+      "result-placement",
+      "result-frozen",
+      "reveal",
+      "tiers",
+      "profile",
+      "result-forfeit-stayed",
+      "result-forfeit-left",
+      "aborted",
+    ] as const
+  ).map((screen) => ({ name: `rated, ${screen.replaceAll("-", " ")}`, mode: "rated" as const, plain: true, globals: { __harnessRated: { screen } } }));
+
 export const THEME_SCREENS: ThemeScreen[] = [
   { name: "play", mode: "home", daily: () => dailyFixture().after, challenge: () => challengeFixture("create") },
   { name: "practice list", mode: "practice" },
@@ -671,6 +699,7 @@ export const THEME_SCREENS: ThemeScreen[] = [
   ...ACCOUNT_SCREENS(),
   ...FRIENDS_SCREENS(),
   ...CUSTOMISE_SCREENS(),
+  ...RATED_SCREENS(),
 ];
 
 export interface ThemeViewport {

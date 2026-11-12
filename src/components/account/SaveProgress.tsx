@@ -84,7 +84,7 @@ export function SaveProgressPrompt() {
   if (prompt === "popup")
     return (
       <div role="dialog" aria-label="Save your progress" className="acct-popup" data-save-progress="popup">
-        <p className="jz-card-title">Save your progress?</p>
+        <p className="jz-card-title">{from === "rated" ? "Save your rating and stars?" : "Save your progress?"}</p>
         <p className="acct-lede">Make an account and keep your games, bests and stars on every phone.</p>
         <div className="acct-popup-row">
           <Button variant="secondary" size={46} onClick={dismiss} data-save-progress-dismiss>
@@ -97,14 +97,23 @@ export function SaveProgressPrompt() {
       </div>
     );
 
-  return <SaveProgressSheet onDismiss={dismiss} onTap={tap} />;
+  return <SaveProgressSheet onDismiss={dismiss} onTap={tap} title={from === "rated" ? "Save your rating and stars" : undefined} />;
 }
 
 /** The sheet itself (S1): the prompt above, and anywhere a guest asks for something an account keeps. */
-function SaveProgressSheet({ onDismiss, onTap }: { onDismiss: () => void; onTap: (method: SaveProgressMethod) => void }) {
+function SaveProgressSheet({
+  onDismiss,
+  onTap,
+  title = "Save your progress",
+}: {
+  onDismiss: () => void;
+  onTap: (method: SaveProgressMethod) => void;
+  /** After a guest's rated match (wave 3, Joe 11 Nov 2026): "Save your rating and stars". */
+  title?: string | undefined;
+}) {
   const tap = onTap;
   return (
-    <Sheet open onClose={onDismiss} title="Save your progress" closeLabel="Not now" data={{ "data-save-progress": "sheet" }}>
+    <Sheet open onClose={onDismiss} title={title} closeLabel="Not now" data={{ "data-save-progress": "sheet" }}>
       <div className="acct-sheet-body">
         <p className="acct-sheet-lede">Make an account to keep what you’ve played.</p>
         <ul className="acct-perks">
