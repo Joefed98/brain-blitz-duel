@@ -5,7 +5,7 @@
  * Nothing here decides a result, a rating or a match: the server does (backend.ts).
  */
 import { ARCADE_GROUPS } from "@/lib/duel/arcadeGroups";
-import { RATED_CHOICES } from "./matchmaking";
+import { DEPARTURE_GRACE_MS, RATED_CHOICES } from "./matchmaking";
 import { puzzleName } from "@/lib/duel/catalogue";
 import type { PuzzleType } from "@/lib/duel/types";
 
@@ -158,6 +158,44 @@ export function rematchSecondsLeft(until: string | null, nowMs: number): number 
 export const REMATCH_SECONDS = 8;
 
 /* ------------------------------------------------------------------ why a match moved no ratings (Joe, 11 Nov 2026) */
+
+/* ------------------------------------------------------------------ leaving a match (W3b, Joe 12 Nov 2026) */
+
+/** "Sam", "Sam and Jo", "Sam, Jo and Ali" (an empty list reads "Your opponent"). */
+export function namesText(names: readonly string[]): string {
+  if (names.length === 0) return "Your opponent";
+  if (names.length === 1) return names[0]!;
+  return `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`;
+}
+
+/** An abort (someone left before the first game's intro): the notice before the search starts again. */
+export function abortLine(leaverNames: readonly string[], youLeft: boolean): string {
+  return youLeft
+    ? "Match cancelled: you left before it started. No rating change."
+    : `Match cancelled: ${namesText(leaverNames)} left before it started. No rating change.`;
+}
+
+/** A forfeit: the line on the result, for the player who stayed or the one who left. */
+export function forfeitLine(leaverNames: readonly string[], youLeft: boolean): string {
+  return youLeft ? "You left the match. It counts as a loss." : `${namesText(leaverNames)} left the match. You win.`;
+}
+
+/** Whole seconds of the 20 s grace left for a player away since `awaySinceMs` (never below 0). */
+export function graceSecondsLeft(awaySinceMs: number | null, nowMs: number, graceMs = DEPARTURE_GRACE_MS): number {
+  if (awaySinceMs === null || !Number.isFinite(awaySinceMs)) return 0;
+  return Math.max(0, Math.ceil((awaySinceMs + graceMs - nowMs) / 1000));
+}
+
+/** When the absent players were last seen (the latest), ms; null when none is known. */
+export function latestSeenMs(players: readonly { last_seen_at: string | null }[]): number | null {
+  const seen = players.map((p) => (p.last_seen_at ? Date.parse(p.last_seen_at) : NaN)).filter(Number.isFinite);
+  return seen.length ? Math.max(...seen) : null;
+}
+
+/** The rated banner's countdown line under "Sam left the game". */
+export function graceLine(secondsLeft: number): string {
+  return secondsLeft > 0 ? `Back within ${secondsLeft} s, or the match ends.` : "The match is ending.";
+}
 
 /** The result's line when W3a's answer says nothing moved, by its reason. */
 export const FROZEN_LINES = {

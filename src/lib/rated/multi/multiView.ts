@@ -25,6 +25,8 @@ export interface MultiSeatInfo {
   you: boolean;
   card: CardLook | null;
   rank: RankView | null;
+  /** Left the match (W3b's leaving rule, Joe 12 Nov 2026): placed below everyone who stayed, no Joules. */
+  left: boolean;
 }
 
 export interface MultiFinalData {
@@ -33,6 +35,8 @@ export interface MultiFinalData {
   seats: MultiSeatInfo[];
   /** Each live player's rating change by seat id (W3a's answer: moved players only). */
   changes: Map<string, number>;
+  /** W3b's forfeit: who left, in the order they went (empty for a match played out by everyone). */
+  leavers: string[];
 }
 
 export interface MultiStandingsData {
@@ -58,7 +62,8 @@ export interface SettledView {
   format: string;
   players: { userId: string; slot: number; scores: number[] }[];
   games: { type: string }[];
-  placings?: Record<string, number>;
+  placings?: Record<string, number> | null;
+  ending?: { kind: "forfeit"; leavers: string[] } | null;
   ratings: { ok: true; players: Pick<RatedPlayerChange, "playerId" | "moved" | "joulz" | "tier">[] } | { ok: false } | null;
 }
 
@@ -78,6 +83,7 @@ function seatsOf(players: readonly ViewPlayer[], meId: string, extra?: (p: ViewP
       you: p.userId === meId,
       card: null,
       rank: null,
+      left: false,
       ...(extra?.(p) ?? {}),
     }));
 }
@@ -91,19 +97,30 @@ export function multiFinalFrom(settled: SettledView, players: readonly ViewPlaye
   if (!size) return null;
   const answer = settled.ratings && settled.ratings.ok ? settled.ratings.players : [];
   const changeOf = new Map(answer.map((c) => [c.playerId, c]));
+  const leavers = settled.ending?.kind === "forfeit" ? settled.ending.leavers : [];
   const seats = seatsOf(players, meId, (p) => {
     const c = changeOf.get(p.userId);
-    return { rank: c?.moved && c.tier.after && c.joulz.after !== null ? { ...c.tier.after, rating: c.joulz.after } : null };
+    return {
+      rank: c?.moved && c.tier.after && c.joulz.after !== null ? { ...c.tier.after, rating: c.joulz.after } : null,
+      left: leavers.includes(p.userId),
+    };
   });
   const scoresOf = new Map(settled.players.map((p) => [p.slot, p.scores]));
   const games: GameScore[][] = settled.games.map((_, i) => players.map((p) => ({ seatId: seatIdOf(p.slot), score: scoresOf.get(p.slot)?.[i] ?? 0 })));
-  const rows = finalPlacings(size, seats.map((s) => s.seatId), games);
+  const byPoints = finalPlacings(size, seats.map((s) => s.seatId), games);
+  // The places the server stored (W3d's points-then-total order with W3b's leaver rule) when it has them.
+  const userOf = new Map(players.map((p) => [seatIdOf(p.slot), p.userId]));
+  const stored = settled.placings ?? null;
+  const placeOf = (seatId: string, fallback: number) => stored?.[userOf.get(seatId) ?? ""] ?? fallback;
+  const rows = byPoints
+    .map((r) => ({ ...r, place: placeOf(r.seatId, r.place) }))
+    .sort((a, b) => a.place - b.place);
   const changes = new Map<string, number>();
   for (const p of players) {
     const c = changeOf.get(p.userId);
     if (c?.moved && c.joulz.before !== null && c.joulz.after !== null) changes.set(seatIdOf(p.slot), Math.round(c.joulz.after) - Math.round(c.joulz.before));
   }
-  return { size, rows, seats, changes };
+  return { size, rows, seats, changes, leavers: [...leavers] };
 }
 
 /** The standings after the games played so far, from the room's stored results (a missing row scores 0). */
@@ -114,15 +131,25 @@ export function multiStandingsFrom(input: {
   gameTypes: readonly string[];
   results: readonly { player_slot: number; round_number: number; score: number | null }[];
   meId: string;
+  /** Players who have left the match (the room marks their seat `left`): below everyone who stayed, tagged. */
+  leftUserIds?: readonly string[];
 }): MultiStandingsData | null {
   const size = sizeOfFormat(input.format);
   if (!size) return null;
   const played = Math.min(input.gameTypes.length, Math.max(0, ...input.results.map((r) => r.round_number)));
   if (played < 1) return null;
-  const seats = seatsOf(input.players, input.meId);
+  const left = new Set(input.leftUserIds ?? []);
+  const seats = seatsOf(input.players, input.meId, (p) => ({ left: left.has(p.userId) }));
   const scoreOf = (slot: number, round: number) => input.results.find((r) => r.player_slot === slot && r.round_number === round)?.score ?? 0;
   const games: GameScore[][] = Array.from({ length: played }, (_, i) => input.players.map((p) => ({ seatId: seatIdOf(p.slot), score: scoreOf(p.slot, i + 1) })));
-  const rows = standingsAfter(size, seats.map((s) => s.seatId), games);
+  // The players who stayed in their standings order and places; leavers after them (W3b's rule).
+  const goneSeat = new Set(seats.filter((s) => s.left).map((s) => s.seatId));
+  const all = standingsAfter(size, seats.map((s) => s.seatId), games);
+  const stayers = all.filter((r) => !goneSeat.has(r.seatId));
+  const rows = [
+    ...stayers.map((r) => ({ ...r, place: 1 + stayers.filter((o) => o.place < r.place).length })),
+    ...all.filter((r) => goneSeat.has(r.seatId)).map((r) => ({ ...r, place: stayers.length + 1 })),
+  ];
   const mine = rows.find((r) => seats.find((s) => s.seatId === r.seatId)?.you);
   const winner = rows.slice().sort((a, b) => (a.gamePlace ?? 99) - (b.gamePlace ?? 99))[0];
   return {
@@ -210,6 +237,8 @@ async function bindMultiView(): Promise<MultiViewPort> {
         readRoomById(supabase, view.roomId, signal),
         readRoomResultRows(supabase, view.roomId, "player_slot, round_number, score", signal),
       ]);
+      const { readRoomPlayers } = await import("@/lib/data/roomReads");
+      const roomPlayers = await readRoomPlayers(supabase, view.roomId, signal);
       if (!room.data) return null;
       const data = multiStandingsFrom({
         format: view.format,
@@ -217,6 +246,7 @@ async function bindMultiView(): Promise<MultiViewPort> {
         gameTypes: (room.data.puzzles_public ?? []).map((p) => p.type),
         results: (results.data ?? []) as unknown as { player_slot: number; round_number: number; score: number | null }[],
         meId,
+        leftUserIds: (roomPlayers.data ?? []).filter((p) => p.status === "left").map((p) => p.user_id),
       });
       return data ? { ...data, seats: await withCards(data.seats) } : null;
     },

@@ -8,12 +8,12 @@ import { screensFor } from "@/components/rated/formatScreens";
 import { Button, EmptyState, SkeletonPage } from "@/design/components";
 import { APP_URL } from "@/config/appUrl";
 import { APP_NAME } from "@/lib/brand";
-import { formatOf, type BestOf, type RatedMatch, type RatedPick, type RatedResult, type SearchProgress } from "@/lib/rated/backend";
+import { formatOf, isAborted, type BestOf, type RatedAborted, type RatedMatch, type RatedPick, type RatedResult, type SearchProgress } from "@/lib/rated/backend";
 import { isRatedFormat, type RatedFormat } from "@/lib/rated/matchmaking";
 import { backendNow, refreshRated, useRatedStatus } from "@/lib/rated/ratedApi";
 import { recordRatedEvent } from "@/lib/rated/ratedEvents";
 import { noteRatedRoom } from "@/lib/rated/ratedRoom";
-import { bestOfLabel, pickLabel, shownPicks } from "@/lib/rated/rules";
+import { abortLine, bestOfLabel, pickLabel, shownPicks } from "@/lib/rated/rules";
 import { shareResult } from "@/lib/share/shareResult";
 
 /**
@@ -57,6 +57,8 @@ function formatText(format: RatedFormat): string {
 export const VS_HOLD_MS = 3000;
 /** How long the result waits for W3b's settlement before saying it's on its way. */
 const RESULT_WAIT_MS = 60_000;
+/** How long an abort's notice shows before the search starts again (W3b has already put the players who stayed back in the queue). */
+export const ABORT_NOTICE_MS = 3_000;
 
 type Phase =
   | { kind: "waiting" }
@@ -64,6 +66,7 @@ type Phase =
   | { kind: "vs"; match: RatedMatch }
   | { kind: "settling" }
   | { kind: "result"; result: RatedResult }
+  | { kind: "aborted"; abort: RatedAborted }
   | { kind: "reveal"; result: RatedResult }
   | { kind: "error"; message: string };
 
@@ -149,6 +152,17 @@ function RatedScreen() {
       while (on) {
         const r = backend ? await backend.result(search.match!).catch(() => null) : null;
         if (!on) return;
+        if (isAborted(r)) {
+          // W3b's abort (someone left before the first game's intro): the notice, then back to searching (not for the
+          // player who left).
+          void refreshRated();
+          setPhase({ kind: "aborted", abort: r });
+          if (!r.youLeft) {
+            await new Promise((res) => setTimeout(res, ABORT_NOTICE_MS));
+            if (on) again(r.pick, r.format);
+          }
+          return;
+        }
         if (r) {
           void refreshRated();
           return setPhase({ kind: "result", result: r });
@@ -242,6 +256,21 @@ function RatedScreen() {
             Share
           </Button>
         }
+      />
+    );
+  } else if (phase.kind === "aborted") {
+    const a = phase.abort;
+    body = (
+      <EmptyState
+        layout="page"
+        tone="alert"
+        pose="ready"
+        heading={1}
+        title="Match cancelled"
+        body={abortLine(a.leaverNames, a.youLeft)}
+        action={a.youLeft ? { label: "Back to Play", onClick: () => void navigate({ to: "/" }) } : { label: "Search now", onClick: () => again(a.pick, a.format) }}
+        data-rated-screen="aborted"
+        data-rated-abort={a.youLeft ? "you-left" : "they-left"}
       />
     );
   } else if (phase.kind === "error") {

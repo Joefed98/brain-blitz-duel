@@ -127,6 +127,10 @@ export const ANALYTICS_EVENTS = [
   "result_viewed",
   "next_match_tapped",
   "tier_ladder_viewed",
+  // Leaving a rated match (W3b, Joe 12 Nov 2026): one row per leaver. rated_match_aborted props.step (the room phase
+  // left in) and props.format; rated_match_forfeited props.format and props.games_played.
+  "rated_match_aborted",
+  "rated_match_forfeited",
 ] as const;
 export type AnalyticsEventName = (typeof ANALYTICS_EVENTS)[number];
 

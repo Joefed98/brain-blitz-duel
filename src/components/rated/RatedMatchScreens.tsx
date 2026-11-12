@@ -36,7 +36,7 @@ import {
   wonLostText,
 } from "@/lib/rated/rules";
 import { changeText, divisionBar, PLACEMENT_MATCHES, ratingText } from "@/lib/rated/tierDisplay";
-import { FROZEN_LINES } from "@/lib/rated/rules";
+import { FROZEN_LINES, forfeitLine } from "@/lib/rated/rules";
 import { usePass } from "@/lib/pass/passApi";
 import type { PuzzleType } from "@/lib/duel/types";
 
@@ -230,6 +230,12 @@ export function MatchResult({
             </>
           )}
         </h1>
+        {result.ending ? (
+          // W3b's forfeit (a player away past the 20 s grace): said plainly, for the player who stayed or the one who left.
+          <p className="rt-ending" data-rated-ending={result.ending.youLeft ? "you-left" : "they-left"} data-wrap-ok>
+            {forfeitLine(result.ending.leaverNames, result.ending.youLeft)}
+          </p>
+        ) : null}
         <p className="rt-result-score" aria-label={`${result.myGames} games to ${result.theirGames}`} data-match-score>
           {result.myGames}–{result.theirGames}
         </p>

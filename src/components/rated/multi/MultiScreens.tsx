@@ -22,6 +22,7 @@ import { Button, Icon, Medal, Panel } from "@/design/components";
 import type { CardLook } from "@/design/identity";
 import type { PlayerLook } from "@/lib/duel/playerLook";
 import type { RatedPlayer } from "@/lib/rated/backend";
+import { forfeitLine, namesText } from "@/lib/rated/rules";
 import type { RankView } from "@/lib/rated/tierDisplay";
 import { useReducedMotion } from "@/lib/motion";
 import {
@@ -44,6 +45,8 @@ export interface SeatView {
   recorded?: boolean;
   /** W3a's tier once placed, drawn small at the seat's end with W3c's RankEmblem. */
   rank?: RankView | null;
+  /** Left the match (W3b's rule): placed below everyone who stayed, no Joules. */
+  left?: boolean;
 }
 
 function SeatDisc({ seat, size }: { seat: SeatView; size: number }) {
@@ -57,6 +60,19 @@ function SeatEmblem({ seat }: { seat: SeatView }) {
       <RankEmblem rank={seat.rank} size={28} />
     </span>
   ) : null;
+}
+
+function LeftTag() {
+  return (
+    <span className="rm-recorded jz-label" data-left-tag>
+      Left
+    </span>
+  );
+}
+
+/** A 4- or 8-player forfeit in W3c's words: yours ("You left the match. It counts as a loss."), or who left. */
+export function multiEndingLine(ending: { leaverNames: readonly string[]; youLeft: boolean }): string {
+  return ending.youLeft ? forfeitLine([], true) : `${namesText(ending.leaverNames)} left the match. Players who leave place below everyone who stayed.`;
 }
 
 function RecordedTag() {
@@ -201,6 +217,7 @@ export function MultiStandings({
   seats,
   headline,
   next,
+  embedded = false,
 }: {
   size: MultiSize;
   /** Games played so far (1-based). */
@@ -212,10 +229,12 @@ export function MultiStandings({
   headline: { gameName: string; winnerName: string; yourPlace: number; yourPoints: number; tile?: ReactNode };
   /** The next game and the time to it; none after the last game. */
   next?: { gameName: string; msLeft?: number; tile?: ReactNode } | null;
+  /** Drawn inside the room's own round-result or standings screen (W3c's shell): no page padding of its own. */
+  embedded?: boolean;
 }) {
   const bySeat = useMemo(() => new Map(seats.map((s) => [s.seatId, s])), [seats]);
   return (
-    <section className="rm-screen" data-rated-multi="standings" data-size={size}>
+    <section className="rm-screen" data-rated-multi="standings" data-size={size} data-embedded={embedded ? "" : undefined}>
       <p className="jz-meta rm-cyan">
         After game {game} of {games}
       </p>
@@ -251,9 +270,10 @@ export function MultiStandings({
               data-standing={row.seatId}
               data-place={row.place}
               data-you={seat.you ? "" : undefined}
+              data-left={seat.left ? "" : undefined}
             >
-              <span className="jz-score-s rm-place" data-medal-place={row.place <= 3 ? row.place : undefined}>
-                {row.place}
+              <span className="jz-score-s rm-place" data-medal-place={row.place <= 3 && !seat.left ? row.place : undefined}>
+                {seat.left ? "–" : row.place}
               </span>
               <Move row={row} />
               <SeatDisc seat={seat} size={32} />
@@ -261,7 +281,7 @@ export function MultiStandings({
                 {seat.name}
                 {seat.you ? <span className="rm-quiet"> (you)</span> : null}
               </span>
-              {seat.recorded ? <RecordedTag /> : null}
+              {seat.left ? <LeftTag /> : seat.recorded ? <RecordedTag /> : null}
               <span className="jz-score-m" data-points>
                 {row.points}
               </span>
@@ -315,6 +335,7 @@ export function MultiFinal({
   joules,
   passLevel = null,
   entrance,
+  ending = null,
   onNext,
   onShare,
 }: {
@@ -331,6 +352,8 @@ export function MultiFinal({
   passLevel?: number | null;
   /** Wave 2's equipped podium entrance and celebration, drawn in the podium's own layer only. */
   entrance?: ReactNode;
+  /** W3b's forfeit: who left and whether it was you (null for a match everyone played out). */
+  ending?: { leaverNames: readonly string[]; youLeft: boolean } | null;
   onNext: () => void;
   onShare?: () => void;
 }) {
@@ -347,6 +370,11 @@ export function MultiFinal({
       <h1 className="jz-title rm-centre" data-final-headline>
         {you ? `You finished ${shared(you.place) ? "joint " : ""}${ordinal(you.place)}` : "Final placings"}
       </h1>
+      {ending ? (
+        <p className="jz-body rm-text-2 rm-centre" data-rated-ending={ending.youLeft ? "you-left" : "they-left"} data-wrap-ok>
+          {multiEndingLine(ending)}
+        </p>
+      ) : null}
       <div className="rm-podium" data-podium>
         <ol className="rm-steps-podium">
           {order.map((row) => {
@@ -359,7 +387,9 @@ export function MultiFinal({
                   {seat.you ? "You" : seat.name}
                 </span>
                 <SeatEmblem seat={seat} />
-                {seat.recorded ? (
+                {seat.left ? (
+                  <LeftTag />
+                ) : seat.recorded ? (
                   <RecordedTag />
                 ) : changes.has(row.seatId) ? (
                   <span className="jz-label">
@@ -416,7 +446,7 @@ export function MultiFinal({
             if (!seat) return null;
             const change = changes.get(row.seatId);
             return (
-              <li key={row.seatId} className="rm-row" data-standing={row.seatId} data-place={row.place} data-you={seat.you ? "" : undefined}>
+              <li key={row.seatId} className="rm-row" data-standing={row.seatId} data-place={row.place} data-you={seat.you ? "" : undefined} data-left={seat.left ? "" : undefined}>
                 <span className="jz-score-s rm-place">{shared(row.place) ? `=${row.place}` : row.place}</span>
                 <SeatDisc seat={seat} size={32} />
                 <span className="jz-body rm-name rm-grow" data-ellipsis>
@@ -424,7 +454,7 @@ export function MultiFinal({
                   {seat.you ? <span className="rm-quiet"> (you)</span> : null}
                 </span>
                 <SeatEmblem seat={seat} />
-                {seat.recorded ? <RecordedTag /> : change !== undefined ? <span className="jz-meta"><Change change={change} /></span> : null}
+                {seat.left ? <LeftTag /> : seat.recorded ? <RecordedTag /> : change !== undefined ? <span className="jz-meta"><Change change={change} /></span> : null}
                 <span className="jz-score-m" data-points>
                   {row.points}
                 </span>

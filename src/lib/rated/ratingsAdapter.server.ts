@@ -66,10 +66,15 @@ export interface RatedSettlement {
     /** The run's stored grade `extra` in each game. */
     extras: (Record<string, unknown> | null)[];
   } | null;
+  /** 4 and 8 players: each player's final place (1 = first; leavers below everyone who stayed); null for a 1v1. */
+  placings?: Record<string, number> | null;
+  /**
+   * How it ended when not by its games (Joe, 12 Nov 2026): a forfeit, and who left (in the order they went). The
+   * screens say so; W3a gets it as the result's `forfeit`. Null (or missing) for an ordinary finish.
+   */
+  ending?: { kind: "forfeit"; leavers: string[] } | null;
   /** W3a's answer (null when nothing was bound to record it). */
   ratings: RatedMatchOutcome | null;
-  /** W3d: a 4- or 8-player match's final places by user id (1 = first, level players share); `winner` is then "draw". */
-  placings?: Record<string, number>;
 }
 
 export interface RatingsBackend {
@@ -148,16 +153,16 @@ export function ratingsFormat(format: RatedFormat): RatedMatchResult["format"] {
 /** W3a's result for a settled 1v1 (null when W3a can't take it: a single-category choice, or an unknown game). */
 export function toRatingsResult(s: RatedSettlement): RatedMatchResult | null {
   if (s.choice !== "mixed" && s.choice !== "puzzles" && s.choice !== "arcade") return null;
-  // W3d: a 4- or 8-player match (its settlement carries the placings): every seat live, each game's stored scores and
-  // stored server grades for every player, and the final placings (W3a applies the pairwise rule).
-  if (s.placings) {
-    if (s.players.length < 3) return null;
-    const multiGames: RatedGame[] = [];
+  const forfeit = s.ending?.kind === "forfeit" && s.ending.leavers.length > 0 ? { forfeit: { leavers: [...s.ending.leavers] } } : {};
+  // 4 and 8 players: every player live, decided by placings (leavers below everyone who stayed).
+  if (!s.recorded && s.players.length > 2) {
+    if (!s.placings) return null;
+    const games: RatedGame[] = [];
     for (let i = 0; i < s.games.length; i++) {
       const g = s.games[i]!;
       const pc = poolAndCategory(g.type);
       if (!pc) return null;
-      multiGames.push({
+      games.push({
         type: g.type,
         pool: pc.pool,
         category: pc.category,
@@ -172,10 +177,11 @@ export function toRatingsResult(s: RatedSettlement): RatedMatchResult | null {
       format: ratingsFormat(s.format),
       choice: s.choice,
       players: s.players.map((p) => ({ playerId: p.userId, side: "live" as const })),
-      games: multiGames,
+      games,
       placings: { ...s.placings },
       rematchOf: s.rematchOf,
       finishedAt: s.finishedAt,
+      ...forfeit,
     };
   }
   const live = s.players[0];
@@ -215,6 +221,7 @@ export function toRatingsResult(s: RatedSettlement): RatedMatchResult | null {
     games,
     rematchOf: s.rematchOf,
     finishedAt: s.finishedAt,
+    ...forfeit,
   };
 }
 

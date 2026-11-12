@@ -9,6 +9,9 @@
   color: var(--jz-text);
   font-family: var(--jz-font);
 }
+/* Inside the room's own round-result and standings screens (W3c's shell pads the page). */
+.rm-screen[data-embedded] { padding: 0; }
+.rm-row[data-left] .rm-name { color: var(--jz-text-3); }
 .rm-quiet { color: var(--jz-text-3); }
 .rm-text-2 { color: var(--jz-text-2); }
 .rm-cyan { color: var(--jz-cyan); }

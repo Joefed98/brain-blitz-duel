@@ -12,7 +12,7 @@
 import { claimQueue, readWaiting, type RatedMatchPlayerRow, type RatedMatchRow } from "@/lib/data/rated.server";
 import type { Db } from "@/lib/data/db.server";
 import { recordEvents } from "@/lib/data/events.server";
-import { FORMAT_PLAYERS, RATED_GAME_MODE, bandFor, gameVersionOf, isRatedChoice, isRatedFormat, type QueueEntry } from "@/lib/rated/matchmaking";
+import { FORMAT_PLAYERS, RATED_GAME_MODE, bandFor, gameVersionOf, isRatedChoice, isRatedFormat, placeWithLeavers, type QueueEntry } from "@/lib/rated/matchmaking";
 import type { RatedSettlement } from "@/lib/rated/ratingsAdapter.server";
 import type { PuzzleData, RoundResultRow } from "@/lib/duel/types";
 
@@ -44,7 +44,6 @@ export async function pollMultiQueue(
     const { data: claimed } = await claimQueue(client, { users: group.map((g) => g.userId), matchId, format: me.format, choice: me.choice });
     if (claimed) {
       await createLiveMatch({ matchId, format: me.format, choice: me.choice, players: group, rematchOf: null });
-      const { recordEvents } = await import("@/lib/data/events.server");
       recordEvents({ event: "multiplayer_match_started", props: { size, live_seats: size, recorded_seats: 0 } });
       return { state: "matched" };
     }
@@ -56,9 +55,11 @@ export async function pollMultiQueue(
  * W3b's settlement for a 4- or 8-player match (its `RatedSettlement`, what the result screens read): each player's
  * stored scores and stored server grades (`extras`, W3a's gradeExtras: the server's own flag, `extra.flagged`) by slot,
  * and the final placings from the stored scores (rules.ts `finalPlacings`: points, then total score, level shared).
- * W3b's settleMatch then takes the same path as a 1v1: `toRatingsResult` (which reads the placings), W3a's
- * finishRatedMatch through `ratingsReady()`, markSettled and the stored runs. A match that started while its size was
- * on is always settled, whatever the switch says now.
+ * Leavers (W3b's rule, Joe 12 Nov 2026): the players who stayed keep their order among themselves, the leavers go below
+ * them, the latest leaver highest (W3b's `placeWithLeavers`), and the settlement's `ending` names them as a forfeit, so
+ * W3a pays them no Joules. W3b's settleMatch then takes the same path as a 1v1: `toRatingsResult` (which reads the
+ * placings and the forfeit), W3a's finishRatedMatch through `ratingsReady()`, markSettled and the stored runs. A match
+ * that started while its size was on is always settled, whatever the switch says now.
  */
 export function multiSettlement(input: {
   match: RatedMatchRow;
@@ -66,14 +67,23 @@ export function multiSettlement(input: {
   puzzles: PuzzleData[];
   results: RoundResultRow[];
   finishedAt: string;
+  /** W3b's leavers in the order they went (a forfeit's, or players found gone for good while the rest played on). */
+  leavers?: readonly { userId: string; at: string }[];
 }): RatedSettlement {
   const size = FORMAT_PLAYERS[input.match.format as QueueEntry["format"]];
   if (!isMultiSize(size) || !isRatedChoice(input.match.choice)) throw new Error("Not a 4- or 8-player match.");
   const rowOf = (slot: number, i: number) => input.results.find((r) => r.player_slot === slot && r.round_number === i + 1);
   const seatOf = (slot: number) => `slot:${slot}`;
   const games: GameScore[][] = input.puzzles.map((_, i) => input.players.map((p) => ({ seatId: seatOf(p.slot), score: rowOf(p.slot, i)?.score ?? 0 })));
-  const placings = finalPlacings(size, input.players.map((p) => seatOf(p.slot)), games);
-  const placeOf = new Map(placings.map((p) => [p.seatId, p.place]));
+  const rows = finalPlacings(size, input.players.map((p) => seatOf(p.slot)), games);
+  const userOfSeat = new Map(input.players.map((p) => [seatOf(p.slot), p.user_id]));
+  const leavers = (input.leavers ?? []).filter((l) => input.players.some((p) => p.user_id === l.userId));
+  const gone = new Set(leavers.map((l) => l.userId));
+  // The players who stayed keep their order (points, then total score; level shared) among themselves.
+  const stayerRows = rows.filter((r) => !gone.has(userOfSeat.get(r.seatId) ?? ""));
+  const stayerPlaces: Record<string, number> = {};
+  for (const r of stayerRows) stayerPlaces[userOfSeat.get(r.seatId)!] = 1 + stayerRows.filter((o) => o.place < r.place).length;
+  const placings = placeWithLeavers(stayerPlaces, leavers.map((l) => ({ userId: l.userId, atMs: Date.parse(l.at) })));
   return {
     matchId: input.match.id,
     format: input.match.format as RatedSettlement["format"],
@@ -94,7 +104,8 @@ export function multiSettlement(input: {
     winner: "draw",
     recorded: null,
     ratings: null,
-    placings: Object.fromEntries(input.players.map((p) => [p.user_id, placeOf.get(seatOf(p.slot)) ?? input.players.length])),
+    placings: Object.fromEntries(input.players.map((p) => [p.user_id, placings[p.user_id] ?? input.players.length])),
+    ending: leavers.length > 0 ? { kind: "forfeit", leavers: leavers.map((l) => l.userId) } : null,
   };
 }
 

@@ -184,6 +184,11 @@ export interface RatedResult {
   rematchUntil: string | null;
   /** Rating keys that moved, for checks and the reveal. */
   moved: readonly RatingKey[];
+  /**
+   * A match ended by a player leaving (W3b's forfeit, Joe 12 Nov 2026): who left (by name) and whether it was you; null
+   * for a match played out.
+   */
+  ending: { kind: "forfeit"; leaverNames: string[]; youLeft: boolean } | null;
 }
 
 export type Refused = { ok: false; message: string };
@@ -198,6 +203,22 @@ export interface OpponentScoreView {
 }
 
 /** The rated server, as the screens use it. */
+/** A match W3b aborted (someone left before the first game's intro): no result, no rating change, no Joules. */
+export interface RatedAborted {
+  aborted: true;
+  matchId: string;
+  pick: RatedPick;
+  format: RatedFormat;
+  /** The players who left, by name (W3b's leavers, other than you). */
+  leaverNames: string[];
+  /** You were the one who left (no new search for you). */
+  youLeft: boolean;
+}
+
+export function isAborted(r: RatedResult | RatedAborted | null): r is RatedAborted {
+  return !!r && (r as RatedAborted).aborted === true;
+}
+
 export interface RatedBackend {
   status(): Promise<RatedStatus | null>;
   /** Searches; `progress` is called as the range widens; resolves with the match, a refusal, or null when cancelled. */
@@ -205,7 +226,8 @@ export interface RatedBackend {
   /** A match by id (the room route's rated header and result). */
   match(matchId: string): Promise<RatedMatch | null>;
   /** The result once settled; null while the match is still playing. */
-  result(matchId: string): Promise<RatedResult | null>;
+  /** The settled result, an abort (W3b: someone left during set-up), or null while it is still being played. */
+  result(matchId: string): Promise<RatedResult | RatedAborted | null>;
   rematch(matchId: string): Promise<RematchAnswer>;
   /** The existing friend challenge flow, from this match's games: a challenge code to share. */
   challenge(matchId: string): Promise<{ ok: true; code: string } | Refused>;

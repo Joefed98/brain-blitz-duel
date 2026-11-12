@@ -318,6 +318,21 @@ check(countsForPodiumRegular(liveSeat, 3) && !countsForPodiumRegular(liveSeat, 4
   check(!!forW3a && forW3a.games.length === 3 && forW3a.games.every((g, gi) => Object.keys(g.scores).length === 8 && users.every((u, i) => g.scores[u] === scoreAt(i + 1, gi))), "W3b's toRatingsResult: every game with every player's stored score");
   check(!!forW3a && forW3a.games.every((g) => Object.keys(g.gradeExtras ?? {}).length === 8) && forW3a.games[1]!.gradeExtras![users[4]!]?.["flagged"] === true && forW3a.games[0]!.gradeExtras![users[4]!]?.["flagged"] === undefined, "W3b's toRatingsResult: every game's stored server grades as gradeExtras (the flag where the server set it)");
   check(!!forW3a && eq(forW3a.games.map((g) => [g.pool, g.category]), [["puzzles", "pattern"], ["arcade", "retro"], ["puzzles", "logic"]]), "W3b's toRatingsResult: W3a's pool and category for each game");
+  // Leaving (W3b's rule, Joe 12 Nov 2026): the players who stayed keep their order among themselves, the leavers go
+  // below them (the latest leaver highest), and the settlement names them as a forfeit (W3a pays them no Joules).
+  const left = multiSettlement({
+    match, players, puzzles, results, finishedAt: "2026-11-11T12:00:00.000Z",
+    leavers: [{ userId: users[0]!, at: "2026-11-11T11:00:00.000Z" }, { userId: users[1]!, at: "2026-11-11T11:30:00.000Z" }],
+  });
+  const stayersExpected = users.slice(2).map((u) => ({ u, place: expected.find((p) => p.seatId === `slot:${users.indexOf(u) + 1}`)!.place }));
+  check(left.placings?.[users[1]!] === 7 && left.placings?.[users[0]!] === 8, `leavers: below everyone who stayed, the latest leaver highest (${left.placings?.[users[1]!]}, ${left.placings?.[users[0]!]})`);
+  check(stayersExpected.every((a) => stayersExpected.every((b) => (a.place < b.place) === (left.placings![a.u]! < left.placings![b.u]!))) && Math.max(...stayersExpected.map((a) => left.placings![a.u]!)) <= 6, "leavers: the players who stayed keep their order (points, then total) in places 1 to 6");
+  check(eq(left.ending, { kind: "forfeit", leavers: [users[0], users[1]] }) && eq(toRatingsResult(left)?.forfeit, { leavers: [users[0], users[1]] }), "leavers: the settlement's forfeit, passed to W3a by W3b's toRatingsResult");
+  check(settled.ending === null, "leavers: a match everyone played out has no ending");
+  const leftAll = multiSettlement({ match, players, puzzles, results, finishedAt: "2026-11-11T12:00:00.000Z", leavers: [{ userId: users[0]!, at: "2026-11-11T11:00:00.000Z" }, { userId: users[1]!, at: "2026-11-11T11:00:00.000Z" }] });
+  check(leftAll.placings?.[users[0]!] === 7 && leftAll.placings?.[users[1]!] === 7, "leavers: two who went at the same moment share a place (W3b's placeWithLeavers)");
+  const rs = readFileSync("src/lib/rated/rated.server.ts", "utf8");
+  check(!/matchPlacings/.test(rs) && /multi\.multiSettlement\(\{[^}]*leavers \}\)/.test(rs.replace(/\s+/g, " ")), "settle: W3b's duplicate stayer placing dropped; 4 and 8 players settle through multiSettlement with W3b's leavers");
   const fromW3b = fromW3bCandidate({ key: "room:d:2", source: "room", ownerId: "o1", games: [{ type: "gridlock", signature: "s" }] }, "Mia", (_g, i) => `d${i + 1}`);
   check(eq(fromW3bCandidate.length, 3) && fromW3b.playerId === "o1" && fromW3b.runId === "room:d:2" && fromW3b.source === "room" && eq(fromW3b.dealKeys, ["d1"]), "filling: a W3b recorded run becomes a seat candidate (owner, key, source, deals)");
 }
@@ -562,6 +577,33 @@ check(countsForPodiumRegular(liveSeat, 3) && !countsForPodiumRegular(liveSeat, 4
     u2 = await mount(React.createElement(fmt.MultiBetween, { matchId: "m1", format: "ffa4", game: 2, games: 3, msUntilNext: null }));
     check($("[data-rated-multi]") === null, "W3c Between: nothing drawn without the server (a skeleton)");
     await u2();
+    // Leaving on the screens (W3b's outcome, W3c's words).
+    const stLeft = mv.multiStandingsFrom({
+      format: "ffa4", players: vp, gameTypes: ["unblock", "hover", "lightsout"],
+      results: [{ player_slot: 1, round_number: 1, score: 200 }, { player_slot: 2, round_number: 1, score: 120 }, { player_slot: 3, round_number: 1, score: 80 }, { player_slot: 4, round_number: 1, score: 60 }],
+      meId: "u2", leftUserIds: ["u1"],
+    })!;
+    check(eq(stLeft.rows.map((r) => r.seatId), ["slot:2", "slot:3", "slot:4", "slot:1"]) && eq(stLeft.rows.map((r) => r.place), [1, 2, 3, 4]) && stLeft.seats.find((x) => x.seatId === "slot:1")?.left === true, "standings data: a leaver below everyone who stayed, despite the best game");
+    u2 = await mount(React.createElement(MultiStandings, { size: 4, game: 1, games: 3, rows: stLeft.rows, seats: stLeft.seats.map((x) => ({ seatId: x.seatId, name: x.name, left: x.left, you: x.you })), headline: { gameName: "Gridlock", winnerName: "P1", yourPlace: 2, yourPoints: 3 }, next: { gameName: "Hover", msLeft: 4000 }, embedded: true }));
+    check($("[data-rated-multi='standings']")?.hasAttribute("data-embedded") === true, "standings: drawn inside the room's own screen (embedded, no page padding of its own)");
+    check($("[data-standing='slot:1']")?.hasAttribute("data-left") === true && /Left/.test($("[data-standing='slot:1'] [data-left-tag]")?.textContent ?? "") && $("[data-standing='slot:1'] .rm-place")?.textContent === "–", "standings: the leaver tagged Left, no place number");
+    await u2();
+    const finLeft = mv.multiFinalFrom({ ...settled, placings: { u1: 4, u2: 1, u3: 2, u4: 3 }, ending: { kind: "forfeit", leavers: ["u1"] } } as never, vp, "u2")!;
+    check(eq(finLeft.rows.map((r) => [r.seatId, r.place]), [["slot:2", 1], ["slot:3", 2], ["slot:4", 3], ["slot:1", 4]]) && eq(finLeft.leavers, ["u1"]) && finLeft.seats.find((x) => x.seatId === "slot:1")?.left === true, "final data: the stored places (the leaver last), the leaver marked");
+    mv.setMultiViewPort({ final: async () => finLeft, standings: async () => stLeft });
+    u2 = await mount(React.createElement(fmt.MultiResult, { result: result as never, nowMs: 0, onNext: () => {}, onRematch: () => {}, onTiers: () => {}, onChallenge: async () => ({ ok: false, message: "" }), onReveal: () => {} }));
+    for (let i = 0; i < 5 && !$("[data-rated-multi='final']"); i++) await act(async () => void (await new Promise((r) => setTimeout(r, 10))));
+    check($("[data-rated-ending='they-left']")?.textContent === "P1 left the match. Players who leave place below everyone who stayed.", `final: who left, in W3c's words (${$("[data-rated-ending]")?.textContent})`);
+    check($("[data-standing='slot:1'] [data-left-tag]") !== null && $("[data-standing='slot:1'] [data-change]") === null, "final: the leaver tagged Left, no rating change drawn for them");
+    await u2();
+    mv.setMultiViewPort({ final: async () => ({ ...finLeft, seats: finLeft.seats.map((x) => ({ ...x, you: x.userId === "u1" })) }), standings: async () => stLeft });
+    u2 = await mount(React.createElement(fmt.MultiResult, { result: { ...result, joules: null, rating: null } as never, nowMs: 0, onNext: () => {}, onRematch: () => {}, onTiers: () => {}, onChallenge: async () => ({ ok: false, message: "" }), onReveal: () => {} }));
+    for (let i = 0; i < 5 && !$("[data-rated-multi='final']"); i++) await act(async () => void (await new Promise((r) => setTimeout(r, 10))));
+    check($("[data-rated-ending='you-left']")?.textContent === "You left the match. It counts as a loss." && $("[data-joules]") === null, "final: for the leaver, W3c's words and no Joules line");
+    await u2();
+    const { abortLine } = await import("../src/lib/rated/rules");
+    const route = readFileSync("src/routes/rated.tsx", "utf8");
+    check(/isAborted\(r\)/.test(route) && abortLine(["Sam"], false) === "Match cancelled: Sam left before it started. No rating change.", "an abort comes before any game: W3c's route shows its notice for every format (no standings or final screen)");
     mv.setMultiViewPort(undefined);
     const src = readFileSync("src/lib/rated/multi/multiView.ts", "utf8");
     check(/import\.meta\.env\.PROD\) return;/.test(src) && /!import\.meta\.env\.PROD\) return Promise\.resolve\(override\)/.test(src) && /await ratedBackend\(\)/.test(src), "multiView: the check port is ignored in production and the real binding sits behind W3c's ratedBackend gate");

@@ -30,6 +30,7 @@ import type {
   OpponentScoreView,
   RatedBackend,
   RatedGame,
+  RatedAborted,
   RatedMatch,
   RatedPlayer,
   RatedResult,
@@ -134,6 +135,21 @@ export async function friendRelation(match: RatedMatch): Promise<string | null> 
   const { friendsApi } = await import("@/lib/friends/friendsApi");
   const answer = await friendsApi.profile(match.them.userId).catch(() => null);
   return answer && answer.ok ? answer.profile.relation : null;
+}
+
+/** Leavers' names as the screens show them: the opponent's username, never yours (you're told "you"). */
+function leaverNamesOf(ids: readonly string[], match: Pick<RatedMatch, "them">, me: string): string[] {
+  return ids.filter((id) => id !== me).map((id) => (id === match.them.userId ? match.them.username : "A player"));
+}
+
+/** W3b's abort (`{ state: "aborted", leavers }`) as the screens get it. */
+export function abortedOf(leaverIds: readonly string[], match: Pick<RatedMatch, "id" | "pick" | "format" | "them">, me: string): RatedAborted {
+  return { aborted: true, matchId: match.id, pick: match.pick, format: match.format, leaverNames: leaverNamesOf(leaverIds, match, me), youLeft: leaverIds.includes(me) };
+}
+
+/** W3b's forfeit (`result.ending`'s leavers) as the result's `ending`, or null for a match played out. */
+export function endingOf(leaverIds: readonly string[], match: Pick<RatedMatch, "them">, me: string): RatedResult["ending"] {
+  return leaverIds.length > 0 ? { kind: "forfeit", leaverNames: leaverNamesOf(leaverIds, match, me), youLeft: leaverIds.includes(me) } : null;
 }
 
 export const NEAR_MISS_MAX = 15;
@@ -294,12 +310,22 @@ export async function bindW3(): Promise<RatedBackend> {
 
     async result(matchId) {
       const settled = await rated.ratedSettleFn({ data: { matchId } });
+      if (settled.state === "aborted") {
+        // W3b's abort (someone left before the first game's intro): no result; the players who stayed search again.
+        const view = await rated.ratedMatchFn({ data: { matchId } });
+        if (!view) return null;
+        const me = await myId();
+        const match = await toMatch(view);
+        return abortedOf(settled.leavers.map((l) => l.userId), match, me);
+      }
       if (settled.state !== "settled") return null;
       const s = settled.result;
       const view = await rated.ratedMatchFn({ data: { matchId } });
       if (!view) return null;
       const me = await myId();
       const match = await toMatch(view);
+      // W3b's forfeit (a player away past the 20 s grace once the games began): the leavers by name, and whether it was you.
+      const ending = endingOf(s.ending?.kind === "forfeit" ? s.ending.leavers : [], match, me);
       const mine = s.players.find((p) => p.userId === me) ?? s.players[0]!;
       const other = s.players.find((p) => p.userId !== mine.userId) ?? null;
       const mySide = mine.slot === 1 ? "a" : "b";
@@ -363,8 +389,10 @@ export async function bindW3(): Promise<RatedBackend> {
         nearMiss,
         // B1's friendships: Challenge shows only for a live opponent who is a friend (challengeAllowed).
         friend: challengeAllowed(match, await friendRelation(match)),
-        rematchUntil: s.kind === "live" && Number.isFinite(finishedMs) ? new Date(finishedMs + REMATCH_WINDOW_MS).toISOString() : null,
+        // A forfeit leaves no rematch (W3b answers "closed").
+        rematchUntil: s.kind === "live" && !ending && Number.isFinite(finishedMs) ? new Date(finishedMs + REMATCH_WINDOW_MS).toISOString() : null,
         moved: change?.changes.map((c) => c.key) ?? [],
+        ending,
       } satisfies RatedResult;
     },
 

@@ -15,6 +15,8 @@ import { ProfileRating } from "@/components/rated/ProfileRating";
 import type { RatedMatch, RatedPlayer, RatedResult, RatedStatus } from "@/lib/rated/backend";
 import type { RankView } from "@/lib/rated/tierDisplay";
 import { tierFor, tierLadder } from "@/lib/rated/tiers";
+import { abortLine } from "@/lib/rated/rules";
+import { EmptyState } from "@/design/components";
 
 export type RatedScreenKey =
   | "home"
@@ -29,7 +31,10 @@ export type RatedScreenKey =
   | "result-frozen"
   | "reveal"
   | "tiers"
-  | "profile";
+  | "profile"
+  | "result-forfeit-stayed"
+  | "result-forfeit-left"
+  | "aborted";
 
 const rankAt = (r: number): RankView => ({ ...tierFor(r, null), rating: r });
 const LOOK = { cardArt: "card-art.joulz-navy", frame: "frame.plain", nameColour: null, avatar: { id: "captain-joulz", colour: 4, gem: null } };
@@ -115,6 +120,7 @@ const RESULT: RatedResult = {
   friend: true,
   rematchUntil: REMATCH_UNTIL,
   moved: ["puzzles", "arcade"],
+  ending: null,
 };
 const noop = () => undefined;
 const challenge = async () => ({ ok: true as const, code: "ABC234" });
@@ -174,6 +180,32 @@ const SCREENS: Record<RatedScreenKey, () => JSX.Element> = {
     </>
   ),
   profile: () => <ProfileRating status={PLACED} />,
+  // W3b's leaving rules (12 Nov 2026): a forfeit's result for each side, and the abort notice as /rated draws it.
+  "result-forfeit-stayed": () => result({ ...RESULT, ending: { kind: "forfeit", leaverNames: [SAM.username], youLeft: false }, rematchUntil: null }),
+  "result-forfeit-left": () =>
+    result({
+      ...RESULT,
+      outcome: "lost",
+      myGames: 0,
+      theirGames: 1,
+      rating: { after: rankAt(1268), change: -10, puzzles: { rating: 1286, change: -10 }, arcade: null },
+      nearMiss: null,
+      friend: false,
+      ending: { kind: "forfeit", leaverNames: [], youLeft: true },
+      rematchUntil: null,
+    }),
+  aborted: () => (
+    <EmptyState
+      layout="page"
+      tone="alert"
+      pose="ready"
+      heading={1}
+      title="Match cancelled"
+      body={abortLine([SAM.username], false)}
+      action={{ label: "Search now", onClick: noop }}
+      data-rated-screen="aborted"
+    />
+  ),
 };
 
 /** The harness's `rated` mode: window.__harnessRated.screen in the /rated route's shell. */

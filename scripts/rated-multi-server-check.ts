@@ -68,6 +68,9 @@ const K = uid(33);
 const L = uid(34);
 // A flagged 8-player match's players.
 const EIGHT = [41, 42, 43, 44, 45, 46, 47, 48].map(uid);
+// Leaving (W3b's rule, Joe 12 Nov 2026): a 4-player match with one leaver, and one with a leaver and a flagged run.
+const LEAVE = [51, 52, 53, 54].map(uid);
+const LEAVE_FLAG = [61, 62, 63, 64].map(uid);
 
 let db: LocalDb | null = null;
 let rest: RestServer | null = null;
@@ -122,7 +125,7 @@ async function runAll(db: LocalDb): Promise<void> {
   type W3aResult = import("../src/lib/data/ratings").RatedMatchResult;
   const client = await adminDb();
 
-  const ALL = [A, B, C, D, E, F, G, H, I, J, K, L, ...EIGHT];
+  const ALL = [A, B, C, D, E, F, G, H, I, J, K, L, ...EIGHT, ...LEAVE, ...LEAVE_FLAG];
   q(`INSERT INTO auth.users (id) VALUES ${ALL.map((u) => `('${u}')`).join(", ")}`);
   q(`SET session_replication_role = replica; INSERT INTO public.profiles (user_id, username, username_key, colour, date_of_birth, player_number) VALUES
     ${ALL.map((u, i) => `('${u}', 'Multi${i}', 'multi${i}', ${i}, DATE '1990-01-01', ${i + 40})`).join(", ")}`);
@@ -130,7 +133,7 @@ async function runAll(db: LocalDb): Promise<void> {
     q(`CREATE SCHEMA IF NOT EXISTS shop; CREATE TABLE shop.testers (user_id uuid PRIMARY KEY, note text NOT NULL DEFAULT '')`);
   q(`INSERT INTO shop.testers (user_id, note) SELECT u, 'rated-multi-server-check' FROM unnest(ARRAY[${ALL.map((u) => `'${u}'`).join(",")}]::uuid[]) AS u ON CONFLICT DO NOTHING`);
 
-  const RATING: Record<string, number> = { [A]: 1000, [B]: 1010, [C]: 1020, [D]: 1030, [E]: 1000, [F]: 1500, [G]: 1510, [H]: 1520, [I]: 1200, [J]: 1200, [K]: 1200, [L]: 1200, ...Object.fromEntries(EIGHT.map((u) => [u, 1300])) };
+  const RATING: Record<string, number> = { [A]: 1000, [B]: 1010, [C]: 1020, [D]: 1030, [E]: 1000, [F]: 1500, [G]: 1510, [H]: 1520, [I]: 1200, [J]: 1200, [K]: 1200, [L]: 1200, ...Object.fromEntries(EIGHT.map((u) => [u, 1300])), ...Object.fromEntries([...LEAVE, ...LEAVE_FLAG].map((u) => [u, 1250])) };
   const sent: W3aResult[] = [];
   setRatingsBackend({
     matchRating: async (userId) => (RATING[userId] === undefined ? null : { rating: RATING[userId]!, placement: userId === E }),
@@ -199,7 +202,7 @@ async function runAll(db: LocalDb): Promise<void> {
     ];
     const rows = scores.flatMap((g, r) => g.map((s, i) => `('${roomId}', ${i + 1}, ${r + 1}, ${s}, 1000, true, 'x')`));
     q(`INSERT INTO public.round_results (duel_id, player_slot, round_number, score, ms_remaining, is_correct, answer) VALUES ${rows.join(", ")}`);
-    q(`UPDATE public.duels SET status = 'finished', phase = 'finished', phase_started_at = now() WHERE id = '${roomId}'`);
+    q(`UPDATE public.duels SET status = 'finished', phase = 'finished', current_round = round_count, phase_started_at = now() WHERE id = '${roomId}'`);
     const settles = await Promise.all([1, 2, 3, 4].map(() => rated.settleMatch(client, matchId, Date.now())));
     check(sent.length === 1, `W3a's recordRatedMatch sent once (${sent.length})`);
     const r = sent[0];
@@ -243,7 +246,7 @@ async function runAll(db: LocalDb): Promise<void> {
     // Slot order I, J, K, L. Game scores give placings 1, 2, 3, 4 by slot.
     const rows = [0, 1, 2].flatMap((r) => [200, 150, 100, 50].map((sc, i) => `('${room}', ${i + 1}, ${r + 1}, ${sc}, 1000, true, 'x')`));
     q(`INSERT INTO public.round_results (duel_id, player_slot, round_number, score, ms_remaining, is_correct, answer) VALUES ${rows.join(", ")}`);
-    q(`UPDATE public.duels SET status = 'finished', phase = 'finished', phase_started_at = now() WHERE id = '${room}'`);
+    q(`UPDATE public.duels SET status = 'finished', phase = 'finished', current_round = round_count, phase_started_at = now() WHERE id = '${room}'`);
     const out = await rated.settleMatch(client, id, Date.now());
     const outcome = out.state === "settled" ? out.result.ratings : null;
     check(out.state === "settled" && outcome?.ok === true && outcome.status === "recorded", `W3a records the placings match (${outcome && !outcome.ok ? outcome.reason + ": " + outcome.message : out.state})`);
@@ -321,7 +324,7 @@ async function runAll(db: LocalDb): Promise<void> {
       }),
     );
     q(`INSERT INTO public.round_results (duel_id, player_slot, round_number, score, ms_remaining, is_correct, answer, extra) VALUES ${rows.join(", ")}`);
-    q(`UPDATE public.duels SET status = 'finished', phase = 'finished', phase_started_at = now() WHERE id = '${room}'`);
+    q(`UPDATE public.duels SET status = 'finished', phase = 'finished', current_round = round_count, phase_started_at = now() WHERE id = '${room}'`);
     const out = await rated.settleMatch(client, id, Date.now());
     const outcome = out.state === "settled" ? out.result.ratings : null;
     check(out.state === "settled" && outcome?.ok === true && outcome.status === "recorded", `${label}: W3a records the match (${outcome && !outcome.ok ? outcome.reason : out.state})`);
@@ -365,6 +368,78 @@ async function runAll(db: LocalDb): Promise<void> {
 
   await section("a flagged run in an 8-player match", async () => {
     await flaggedMatch(8, EIGHT, 2);
+  });
+
+  // Joe's leaving rule (12 Nov 2026, built in W3b, settled through W3d's multiSettlement): once the games begin, a
+  // player away for good places below everyone who stayed (the latest leaver highest) and earns no Joules; the rest
+  // place among themselves by placing points, then total score. The leaver is marked as W3b's reviewDepartures marks
+  // one who played on (gone in the match, left in the room). Slot 1 plays the best game 1, then leaves.
+  async function leaverMatch(users: string[], flaggedSlot: number | null): Promise<void> {
+    const label = flaggedSlot ? "a leaver and a flagged run" : "one leaver";
+    const sw = { ...RATED_SWITCHES, formats: { ...RATED_SWITCHES.formats, ffa4: true } };
+    const t = Date.now();
+    for (const u of users) await rated.pollQueue(client, u, t);
+    for (const u of users) {
+      const joined = await rated.joinQueue(client, u, { format: "ffa4", choice: "mixed" }, t, sw);
+      check(joined.ok, `${label}: ${u.slice(-2)} joins the queue (${joined.ok ? "ok" : joined.reason})`);
+    }
+    const found = await rated.pollQueue(client, users[0]!, t + 200);
+    check(found.state === "found", `${label}: a match of 4`);
+    if (found.state !== "found") return;
+    const id = found.match.matchId;
+    const room = found.match.roomId!;
+    const slotUser = q(`SELECT string_agg(user_id::text, ',' ORDER BY player_slot) FROM public.duel_players WHERE duel_id = '${room}'`).split(",");
+    const leaver = slotUser[0]!;
+    const flaggedUser = flaggedSlot ? slotUser[flaggedSlot - 1]! : null;
+    const before = { profiles: profileOf(users), ratings: ratingsOf(users) };
+    // Game 1: everyone (slot 1 best); games 2 and 3: the three who stayed. Slot n scores 200 - 20 (n - 1).
+    const rows = [0, 1, 2].flatMap((r) =>
+      slotUser.flatMap((_, i) => {
+        if (i === 0 && r > 0) return [];
+        const extra = flaggedSlot && i + 1 === flaggedSlot && r === 1 ? `'{"flagged": true, "flagReason": "replay_mismatch"}'::jsonb` : "NULL";
+        return [`('${room}', ${i + 1}, ${r + 1}, ${200 - i * 20}, 1000, true, 'x', ${extra})`];
+      }),
+    );
+    q(`INSERT INTO public.round_results (duel_id, player_slot, round_number, score, ms_remaining, is_correct, answer, extra) VALUES ${rows.join(", ")}`);
+    q(`UPDATE public.mm_match_players SET gone_at = now() - interval '2 minutes' WHERE match_id = '${id}' AND user_id = '${leaver}'`);
+    q(`UPDATE public.duel_players SET status = 'left' WHERE duel_id = '${room}' AND user_id = '${leaver}'`);
+    q(`UPDATE public.duels SET status = 'finished', phase = 'finished', current_round = round_count, phase_started_at = now() WHERE id = '${room}'`);
+    const out = await rated.settleMatch(client, id, Date.now());
+    check(out.state === "settled", `${label}: settles (${out.state})`);
+    if (out.state !== "settled") return;
+    const placesBySlot = slotUser.map((u) => out.result.placings?.[u]);
+    // Stayers' placing points: slot 2 3 + 5 + 5 = 13, slot 3 1 + 3 + 3 = 7, slot 4 0 + 1 + 1 = 2.
+    check(JSON.stringify(placesBySlot) === "[4,1,2,3]", `${label}: the leaver last despite the best game 1, the rest by points then total score (${JSON.stringify(placesBySlot)})`);
+    check(out.result.ending?.kind === "forfeit" && out.result.ending.leavers.join() === leaver, `${label}: the settlement names the leaver (W3b's ending)`);
+    const outcome = out.result.ratings;
+    check(outcome?.ok === true && outcome.status === "recorded", `${label}: W3a records the match (${outcome && !outcome.ok ? outcome.reason : "-"})`);
+    if (!outcome?.ok) return;
+    const byUser = new Map(outcome.players.map((p) => [p.playerId, p]));
+    check(byUser.get(leaver)?.joules === 0 && byUser.get(leaver)?.place === 4, `${label}: the leaver earns no Joules, placed 4th`);
+    check(q(`SELECT joules::text FROM public.rated_match_players WHERE match_id = '${id}' AND player_id = '${leaver}'`) === "0", `${label}: the leaver's stored Joules are 0`);
+    if (!flaggedUser) {
+      check(byUser.get(leaver)?.moved === true, "one leaver: the leaver's rating moves as last place");
+      check(byUser.get(slotUser[1]!)?.joules === 225 && byUser.get(slotUser[2]!)?.joules === 150 && byUser.get(slotUser[3]!)?.joules === 150, "one leaver: the players who stayed keep their Joules (225 first, 150 the rest)");
+      check(ratingsOf(users) !== before.ratings, "one leaver: ratings move");
+    } else {
+      check(outcome.players.every((p) => !p.moved && p.frozen === "flagged_run"), "a leaver and a flagged run: nobody's rating moves (frozen flagged_run), the leaver included");
+      check(ratingsOf(users) === before.ratings && profileOf(users) === before.profiles, "a leaver and a flagged run: every stored rating and profile unchanged");
+      check(byUser.get(flaggedUser)?.flagged === true && byUser.get(flaggedUser)?.joules === 0, "a leaver and a flagged run: the flagged player gets no Joules");
+      const others = slotUser.filter((u) => u !== leaver && u !== flaggedUser);
+      check(others.every((u) => byUser.get(u)?.joules === (byUser.get(u)?.place === 1 ? 225 : 150)), "a leaver and a flagged run: the other two keep their Joules (225 first, 150 the rest)");
+      const flags = q(`SELECT string_agg(player_id::text || ':' || coalesce(game_idx::text, '-'), ',') FROM moderation.rated_flags WHERE match_id = '${id}'`);
+      check(flags === `${flaggedUser}:1`, `a leaver and a flagged run: logged for review once, the flagged player's game 2 (${flags})`);
+    }
+    const again = await rated.settleMatch(client, id, Date.now());
+    check(again.state === "settled" && JSON.stringify(slotUser.map((u) => again.result.placings?.[u])) === JSON.stringify(placesBySlot), `${label}: settling again changes nothing`);
+  }
+
+  await section("one leaver in a 4-player match", async () => {
+    await leaverMatch(LEAVE, null);
+  });
+
+  await section("a leaver and a flagged run in a 4-player match", async () => {
+    await leaverMatch(LEAVE_FLAG, 3);
   });
 
 }

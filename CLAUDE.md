@@ -2143,7 +2143,11 @@ outside the repo.
   Practice play's deal is kept 15 days in `mm_practice_deals`, purged by the Worker's Cron Trigger
   `rated:practice-deals-purge`; a stitched Practice run is aged by its oldest game); arcade and engine games play back on a timeline from the
   server's replay, puzzles show the score only at the game's end. Best of N stops once decided (a majority of games
-  won, W3a's rule; `ratedMatchClinched` in advancePhaseFn), and such a match leaves no recorded run. W3a's ratings bind
+  won, W3a's rule; `ratedMatchClinched` in advancePhaseFn), and such a match leaves no recorded run. Leaving (Joe, 12 Nov 2026,
+  section 6b of the doc): before the first game's intro an abort (no rating, Joules or placement; the stayers searching again,
+  `rated_match_aborted`); after it a 20 s grace, then a forfeit (a loss for the leaver, a win for the stayers whatever the
+  score, through W3a's new `forfeit` field, `src/lib/data/ratings.ts` / `match.ts`; `rated_match_forfeited`); 4 and 8 players
+  place leavers last; `reviewDepartures` on every heartbeat, phase move, Leave and rated poll (`20261114200300_rated_departures.sql`). W3a's ratings bind
   on first use (`ratingsReady`). `accounts.forget_user` removes a deleted account's runs (trigger
   `mm_forget_removed_user`). Checks: rated-matchmaking-check, rated-server-check.
 - **The shop** (wave 2 train D, session D1, 11 Nov 2026, `docs/economy/shop.md`; no gameplay, scoring, stamp or timing
@@ -2245,7 +2249,9 @@ outside the repo.
   podium's box, none under reduced motion), in W3c's format slot (`formatScreens.tsx`'s placings row: `MultiSearch`,
   `MultiBetween`, `MultiResult` in `multi/MultiFormat.tsx`, no VS) on W3c's `RatedParts` (MatchChips, JoulesLine,
   RankEmblem, RatedCard, PlayerDot); every seat read through `src/lib/rated/multi/multiView.ts` behind W3c's
-  `ratedBackend()` gate. Events `multiplayer_match_started` / `_finished`
+  `ratedBackend()` gate. Leavers (W3b's rule, Joe 12 Nov 2026): below everyone who stayed, the latest leaver highest
+  (`placeWithLeavers` inside `multiSettlement`), named as a forfeit so W3a pays them no Joules; tagged "Left" on the
+  standings and final screens. Events `multiplayer_match_started` / `_finished`
   (`20261114400000_analytics_multiplayer_events.sql`, **not applied until merged**). rated-multi-check (~2 s),
   rated-multi-server-check (~15 s, shard `e`, PostgreSQL: 4 and 8 players, flagged runs on W3a's real engine).
 - **The rated match screens** (wave 3, session W3c, 11 Nov 2026; docs/mockups/wave-3/; no gameplay, scoring, stamp,
@@ -2266,7 +2272,13 @@ outside the repo.
   and a rated 4- or 8-player room draws the slot's Between in place of its round result and standings (`RatedBetween`,
   with the time until the next game, `msUntilNextGame` in `between.ts`; the format noted beside the match in
   `ratedRoom.ts`). Challenge on the result only for a live opponent B1 calls a friend (`challengeAllowed`, asked again
-  before it is made and sent through B1's `friendsApi.challenge`); never a recorded run, a guest or a non-friend. Guests show under W3b's energy
+  before it is made and sent through B1's `friendsApi.challenge`); never a recorded run, a guest or a non-friend. Leaving a
+  match (W3b's rules, Joe 12 Nov 2026): an abort says "Match cancelled: Sam left before it started. No rating change." on
+  `/rated` (an aborted room hands over before "Room disbanded"), then searches again for the player who stayed
+  (`ABORT_NOTICE_MS`); a forfeit's result says "Sam left the match. You win." or, to the leaver, "You left the match. It
+  counts as a loss." (`forfeitLine`, `abortedOf` / `endingOf` in w3Binding.ts, no rematch); in the 20 s grace a rated room's
+  existing dropout banner counts down (`graceText`, `graceSecondsLeft` from the absent player's last sign of life) with no
+  Finish now. Guests show under W3b's energy
   name with a Guest tag; a guest's finished rated match counts for the save-your-progress prompt ("Save your rating and
   stars", `SAVE_PROGRESS_FROM` "rated"). Under automation the real binding stays off unless a page sets
   `window.__DUELZ_ALLOW_RATED__` (ignored in production). Events play_card_tapped, vs_shown, result_viewed,

@@ -16,7 +16,7 @@ import { pickLabel } from "@/lib/rated/rules";
 import type { BetweenScreenProps, ResultScreenProps, SearchScreenProps } from "../formatScreens";
 import { MultiFilling, MultiFinal, MultiStandings, type SeatView } from "./MultiScreens";
 
-const seatView = (s: MultiSeatInfo): SeatView => ({ seatId: s.seatId, name: s.name, card: s.card, you: s.you, recorded: s.recorded, rank: s.rank });
+const seatView = (s: MultiSeatInfo): SeatView => ({ seatId: s.seatId, name: s.name, card: s.card, you: s.you, recorded: s.recorded, rank: s.rank, left: s.left });
 
 function usePort<T>(matchId: string, read: (matchId: string) => Promise<T | null> | null, again: unknown = null): T | null {
   const [data, setData] = useState<T | null>(null);
@@ -51,7 +51,11 @@ export function MultiSearch({ me, format, pick, pickText, progress, onCancel }: 
   );
 }
 
-/** Between games: the standings so far, read again after each game, and W3c's live time to the next game. */
+/**
+ * Between games, inside the room's own round-result and standings screens (W3c draws it in place of their table and
+ * list, so the room's dropout banner, chat and shell stay): the standings so far, read again after each game, and
+ * W3c's live time to the next game.
+ */
 export function MultiBetween({ matchId, game, msUntilNext }: BetweenScreenProps) {
   const data = usePort<MultiStandingsData>(matchId, (id) => multiViewPort().then((p) => (p ? p.standings(id) : null)), game);
   if (!data) return <SkeletonPage label="Standings" />;
@@ -64,6 +68,7 @@ export function MultiBetween({ matchId, game, msUntilNext }: BetweenScreenProps)
       seats={data.seats.map(seatView)}
       headline={{ gameName: puzzleName(data.headline.gameType as PuzzleType), winnerName: data.headline.winnerName, yourPlace: data.headline.yourPlace, yourPoints: data.headline.yourPoints }}
       next={data.next ? { gameName: puzzleName(data.next.gameType as PuzzleType), ...(msUntilNext !== null ? { msLeft: msUntilNext } : {}) } : null}
+      embedded
     />
   );
 }
@@ -82,6 +87,14 @@ export function MultiResult({ result, onNext }: ResultScreenProps) {
       yourRating={result.rating ? { rating: result.rating.after.rating, change: result.rating.change } : null}
       joules={result.joules?.amount ?? null}
       passLevel={result.joules?.passLevel ?? null}
+      ending={
+        data.leavers.length > 0
+          ? {
+              youLeft: data.seats.some((s) => s.you && data.leavers.includes(s.userId ?? "")),
+              leaverNames: data.seats.filter((s) => !s.you && data.leavers.includes(s.userId ?? "")).map((s) => s.name),
+            }
+          : null
+      }
       onNext={onNext}
     />
   );
