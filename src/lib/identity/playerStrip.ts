@@ -1,11 +1,12 @@
 /**
  * A player's nameplate strip on a board, standings or bracket row (Joe, 11 Nov 2026: a player's card, avatar and frame
  * show wherever they appear). Shared by the server, which builds it from A1's public cards in one batch read
- * (`playerStrips`, playerStrip.server.ts), and the phone, which draws it (`PlayerStrip`, src/design/identity).
+ * (`playerStripSets`, playerStrip.server.ts), and the phone, which draws it (`PlayerStrip`, src/design/identity).
  *
  * - `account`: the avatar in its colour, the card art and frame behind the name area only, the name in its name colour;
  * - `guest`: colour and initial (avatars and cards come with an account);
- * - `hidden`: "Hidden player", no colour, avatar or cosmetics (an under-18 where a page is open to anyone);
+ * - `hidden`: "Hidden player" on a plain neutral disc, no initial, colour or cosmetics (an under-18 on a list other
+ *   players can see; Joe, 12 Nov 2026);
  * - `deleted`: "Deleted player", as hidden.
  * Places, scores, records and points are never part of the strip: rows draw them outside it.
  */

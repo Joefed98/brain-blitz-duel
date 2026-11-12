@@ -2209,7 +2209,7 @@ outside the repo.
   `moderation.tournament_flags`. Matches are W3b's dealt match rooms, never rated; Play again there answers "Your next match opens when the round does.". Own tables `tournament_rounds`,
   `_seeds`, `_matches`, `_awards`, `_hall_of_fame` (`20261115300000_tournament_events.sql`,
   `20261115300100_analytics_tournament_events.sql`, **not applied until merged**); events `swiss_round_paired`,
-  `knockout_match_played`. Rows draw each player as the nameplate strip (`PlayerStrip`, `src/lib/identity/playerStrip.ts` / `.server.ts`: A1's public cards in one batch a page; cosmetics only in the name area; the open hall of fame hides under-18s as "Hidden player"). tournament-events-check (~6 s, pure), tournament-events-server-check (~15 s, shard `e`), player-strips-check (~2 s, happy-dom).
+  `knockout_match_played`. Rows draw each player as the nameplate strip (`PlayerStrip`, `src/lib/identity/playerStrip.ts` / `.server.ts`: A1's public cards in one batch a page; cosmetics only in the name area; under-18s are "Hidden player" on a plain neutral disc on standings, the bracket and the hall of fame, shown only to their direct opponent in the your-match row and the room, and to themselves; Joe, 12 Nov 2026). tournament-events-check (~6 s, pure), tournament-events-server-check (~15 s, shard `e`), player-strips-check (~2 s, happy-dom).
 - **The ratings engine** (wave 3 W3a, 11 Nov 2026, `docs/rated/README.md`, the contract `docs/rated/ratings-interface.md`;
   no gameplay, scoring, stamp or deal change): Glicko-2 (`src/lib/rated/glicko2.ts`, one rating period per match,
   weighted games, an RD floor schedule and time away; **every constant in `glicko.config.ts` beside its target**,

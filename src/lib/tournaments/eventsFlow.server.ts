@@ -57,7 +57,7 @@ import {
 } from "@/lib/data/tournamentEvents.server";
 import { readRoom, readPrivatePuzzles } from "@/lib/data/rooms.server";
 import { readRoomResults } from "@/lib/data/results.server";
-import { playerStrips } from "@/lib/identity/playerStrip.server";
+import { playerStripSets, type PlayerStripSets } from "@/lib/identity/playerStrip.server";
 import { deletedStrip, type PlayerStripLook } from "@/lib/identity/playerStrip";
 import { mergePuzzle } from "@/lib/duel/secrets";
 import { tieRoundFor } from "@/lib/duel/tieBreak";
@@ -591,12 +591,13 @@ export interface BigEventView {
 }
 
 /**
- * Every player on the page as a nameplate strip, in one batch of A1's public cards (Joe, 11 Nov 2026). Event pages
- * are seen by the event's own entrants, who meet in its rooms by username, so nobody is hidden there; the hall of
- * fame is open to anyone, so an under-18 winner shows as "Hidden player".
+ * Every player on the page as a nameplate strip, in one batch of A1's public cards (Joe, 11 Nov 2026). Under-18s are
+ * "Hidden player" on every list other players can see (standings, the bracket, the hall of fame) and shown only to
+ * their direct opponent in their own match (the your-match row, and the match room as in ordinary rooms) and to
+ * themselves (Joe, 12 Nov 2026).
  */
-async function stripsOf(client: Db, ids: readonly string[], nowMs: number, hideUnder18 = false): Promise<Map<string, PlayerStripLook>> {
-  return playerStrips(client, ids, { nowMs, hideUnder18 });
+async function stripsOf(client: Db, ids: readonly string[], nowMs: number): Promise<PlayerStripSets> {
+  return playerStripSets(client, ids, { nowMs });
 }
 
 /** The round, the caller's match, the standings or the bracket (null before the start, or not one of W4c's events). */
@@ -609,8 +610,12 @@ export async function bigEventView(client: Db, eventId: string, userId: string, 
   const { data: seeds } = await readSeeds(client, eventId);
   const { data: matches } = await readMatches(client, eventId);
   const strips = await stripsOf(client, seeds.map((s) => s.user_id), nowMs);
-  const stripOf = (id: string | null): PlayerStripLook | null => (id ? (strips.get(id) ?? deletedStrip()) : null);
+  // Lists: the open view, but the viewer always sees themself.
+  const stripOf = (id: string | null): PlayerStripLook | null =>
+    id ? ((id === userId ? strips.direct.get(id) : strips.open.get(id)) ?? deletedStrip()) : null;
   const nameOf = (id: string | null) => stripOf(id)?.name ?? null;
+  // The direct opponent in the viewer's own match: shown, as in the match room.
+  const directOf = (id: string | null): PlayerStripLook | null => (id ? (strips.direct.get(id) ?? deletedStrip()) : null);
   const flagged = flaggedPlayers(matches);
 
   const recordOf = new Map<string, string>();
@@ -655,8 +660,8 @@ export async function bigEventView(client: Db, eventId: string, userId: string, 
             ? "Third-place match"
             : roundName(rounds.bracket_size ?? 2, mine.round)
           : `Round ${mine.round} of ${rounds.rounds_total}`,
-      opponent: nameOf(opp),
-      opponentPlayer: stripOf(opp),
+      opponent: directOf(opp)?.name ?? null,
+      opponentPlayer: directOf(opp),
       opponentRecord: opp ? (recordOf.get(opp) ?? null) : null,
       myRecord: recordOf.get(userId) ?? null,
       bye: !opp,
@@ -698,9 +703,9 @@ export interface HallOfFameEntry {
 /** Every Championship winner, newest month first. */
 export async function hallOfFame(client: Db, nowMs = Date.now()): Promise<HallOfFameEntry[]> {
   const { data } = await readHallOfFame(client);
-  const strips = await stripsOf(client, data.map((r) => r.user_id), nowMs, true);
+  const strips = await stripsOf(client, data.map((r) => r.user_id), nowMs);
   return data.map((r) => {
-    const player = strips.get(r.user_id) ?? deletedStrip();
+    const player = strips.open.get(r.user_id) ?? deletedStrip();
     return { month: r.month, label: monthLabel(r.month), name: player.name, player };
   });
 }

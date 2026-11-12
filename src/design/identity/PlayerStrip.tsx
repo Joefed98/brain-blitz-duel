@@ -2,7 +2,8 @@
  * The nameplate strip from A2's player card (Joe, 11 Nov 2026: a player's card, avatar and frame show wherever they
  * appear): the avatar in the player's colour, then the name in its name colour, with the card art and frame drawn
  * behind that name area only. Rows draw places, scores, records and points outside the strip, so no cosmetic ever
- * sits behind them. A guest gets colour and initial; a hidden or deleted player the plain name, nothing else.
+ * sits behind them. A guest gets colour and initial; a hidden player a plain neutral disc and "Hidden player"; a
+ * deleted player the plain name, nothing else.
  * One { __html } object per markup (CLAUDE.md working rule 6).
  */
 import { useId, useMemo } from "react";
@@ -67,6 +68,8 @@ export function PlayerStrip({ player, you = false }: { player: PlayerStripLook; 
             >
               {(Array.from(player.name.trim())[0] ?? "?").toLocaleUpperCase()}
             </span>
+          ) : player.kind === "hidden" ? (
+            <span className="pcard-av pstrip-disc" data-strip-disc="" />
           ) : null}
           {nameStyle ? (
             <span data-strip-name="" className={`pcard-name ${nameStyle.className}`} style={nameStyle.style}>

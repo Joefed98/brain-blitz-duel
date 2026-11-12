@@ -109,10 +109,12 @@ answer nothing (`bigEventFn` goes through W4b's `eventFor`; `hallOfFameFn` reads
   (`PlayerStrip`, `src/design/identity/PlayerStrip.tsx`: avatar in their colour, card art and frame behind the name
   area only, the username in its name colour); places, records, points, ticks and games sit outside it. The strips
   come with the page's one call (`bigEventFn`, `hallOfFameFn`), built server side in one batch of A1's public cards
-  (`playerStrips`, `src/lib/identity/playerStrip.server.ts`). Event pages are seen by the event's own entrants, who
-  meet in its rooms by username, so nobody is hidden there; the hall of fame is open to anyone, so an under-18 winner
-  shows as "Hidden player" with no colour, avatar or cosmetics; a deleted account as "Deleted player"; a guest (none
-  enter these events) would keep colour and initial. player-strips-check (happy-dom, ~2 s).
+  (`playerStripSets`, `src/lib/identity/playerStrip.server.ts`, which gives an open and a direct view from the same
+  reads). Under-18s (Joe, 12 Nov 2026) are "Hidden player" on a plain neutral disc, with no initial, colour or
+  cosmetics, on every list other players can see: the Cup's standings, the Championship's bracket and the hall of
+  fame. They are shown only to their direct opponent in their own match (the your-match row, and the match room, as in
+  ordinary rooms) and to themselves. A failed age read hides everyone on it. A deleted account shows as "Deleted
+  player"; a guest (none enter these events) would keep colour and initial. player-strips-check (happy-dom, ~2 s).
 - **Hall of fame**: every Championship winner by month, newest first, on the Tournaments tab while the Championship is
   on (a deleted account shows as "Deleted player").
 

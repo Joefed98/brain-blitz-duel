@@ -508,8 +508,22 @@ async function runAll(db: LocalDb): Promise<void> {
     check(eventRow(id)["status"] === "finished" && q(`SELECT user_id FROM tournament_hall_of_fame WHERE month = '2027-06'`) === x, "the winner takes the final");
     const hall = await flow.hallOfFame(client);
     check(hall.length === 2 && hall[0]!.month === "2027-06" && hall[1]!.month === "2027-03" && hall[0]!.label === "June 2027" && hall[0]!.name.startsWith("Player_"), `the hall of fame: every winner by month, newest first (${hall.map((h) => `${h.month} ${h.name}`).join("; ")})`);
-    const kidRow = (await flow.bigEventView(client, id, x))?.bracket.find((b) => b.playerA?.name === "Kiddo_K" || b.playerB?.name === "Kiddo_K");
-    check(!!kidRow, "an under-18 entrant shows by username to the event's own entrants, as in its rooms");
+    // Joe, 12 Nov 2026: an under-18 is "Hidden player" on every list other players can see, shown only to their direct
+    // opponent in their own match (the your-match row, and the room) and to themself.
+    const named = (v: Awaited<ReturnType<typeof flow.bigEventView>>) =>
+      (v?.bracket ?? []).flatMap((b) => [b.playerA, b.playerB]).filter((p) => p?.name === "Kiddo_K").length;
+    const hiddenIn = (v: Awaited<ReturnType<typeof flow.bigEventView>>) =>
+      (v?.bracket ?? []).flatMap((b) => [b.playerA, b.playerB]).filter((p) => p?.kind === "hidden").length;
+    const xView = await flow.bigEventView(client, id, x);
+    const finalX = xView?.bracket.find((b) => b.stage === "knockout" && b.round === 4);
+    check(named(xView) === 0 && hiddenIn(xView) >= 4 && [finalX?.playerA, finalX?.playerB].some((p) => p?.kind === "hidden" && p.avatar === null && p.frame === null && p.colour === -1), `the bracket hides the under-18 from other entrants, the final included (${named(xView)} named, ${hiddenIn(xView)} hidden)`);
+    check(xView?.myMatch?.opponent === "Kiddo_K" && xView.myMatch.opponentPlayer?.kind === "account", `the direct opponent in their own match sees them (${xView?.myMatch?.opponent})`);
+    const otherView = await flow.bigEventView(client, id, rest[0]!);
+    check(named(otherView) === 0 && otherView?.myMatch?.opponent !== "Kiddo_K", "an entrant who never played them sees only Hidden player");
+    const kidView = await flow.bigEventView(client, id, kid);
+    check(named(kidView) === 4 && hiddenIn(kidView) === 0, `the under-18 sees their own name in the bracket (${named(kidView)})`);
+    const roomName = q(`SELECT display_name FROM duel_players WHERE duel_id = (SELECT duel_id FROM tournament_matches WHERE event_id = '${id}' AND round = 1 AND (player_a = '${kid}' OR player_b = '${kid}')) AND user_id = '${kid}'`);
+    check(roomName === "Kiddo_K", `the match room seats them by username, as in ordinary rooms (${roomName})`);
     // The hall of fame is open to anyone: an under-18 winner is a "Hidden player", no avatar, colour or cosmetics.
     await ensure("championship:2027-09");
     q(`INSERT INTO tournament_hall_of_fame (month, event_id, user_id) VALUES ('2027-09', 'championship:2027-09', '${kid}')`);

@@ -414,3 +414,12 @@ button.cz-gem {
   color: var(--jz-text);
   text-shadow: none;
 }
+/* A hidden player's plain neutral disc: no initial, colour or cosmetics (Joe, 12 Nov 2026). */
+.pstrip .pstrip-disc {
+  display: block;
+  flex: none;
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  background: var(--jz-surface-2);
+}
