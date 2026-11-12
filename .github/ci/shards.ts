@@ -335,6 +335,19 @@ export const SHARDS: Record<string, string[]> = {
     // ledger and its races, consumables, ownership, equipping, the avatar, Joe's tools) on a local PostgreSQL through
     // the server-function harness, beside accounts-check.
     "economy-check.ts",
+    // skins-db-check (wave 2 E1, 11 Nov 2026, ~10 s): the card-back move and the result looks' triggers on a local
+    // PostgreSQL, and the ghost-looks server function, beside economy-check.
+    "skins-db-check.ts",
+    // customise-looks-db-check (12 Nov 2026, ~5 s): Customise's Games tab path through A1's real equip on a local
+    // PostgreSQL, a second device, and the games' renderers; with the database checks.
+    "customise-looks-db-check.ts",
+    // push-notifications-check (wave 2 B2, 11 Nov 2026, ~5 s): phone notifications (RFC 8291 / VAPID, the six events,
+    // the cap and quiet hours, the streak reminder, subscriptions, RLS, the service worker's push listeners) on a local
+    // PostgreSQL through the server-function harness, beside economy-check.
+    "push-notifications-check.ts",
+    // push-testers-check (11 Nov 2026, ~5 s): with the key set, notifications for testers #0001 and #0002 only (the
+    // ask and panel in happy-dom, subscriptions and every send on PostgreSQL).
+    "push-testers-check.tsx",
     // badges-check (wave 2 C2, 11 Nov 2026, ~10 s): badges, titles, the sign-up and founding rewards, the backfill and the
     // Daily streak on the account, on a local PostgreSQL through the server-function harness, beside economy-check.
     "badges-check.ts",
@@ -363,6 +376,11 @@ export const SHARDS: Record<string, string[]> = {
     // account-screens-check (10 Nov 2026, ~10 s): the sign-up screens' rules, the save-progress events' server function
     // and usernames in rooms, Dailies and challenges, through the server-function harness, beside accounts-check.
     "account-screens-check.ts",
+    // friends-check (wave 2 B1, 11 Nov 2026, ~5 s): friends (search's age rules, invite links, requests, accept,
+    // decline, remove, block, status, invites, challenges, the limits and cap, RLS, B2's events) on a local PostgreSQL
+    // through the server-function harness, beside accounts-check; friends-ui-check (~3 s, happy-dom) the screens.
+    "friends-check.ts",
+    "friends-ui-check.tsx",
     // practice-challenges-check (wave 2 C1b, 11 Nov 2026, ~40 s): the challenge catalogue's checker on real graded runs,
     // speed goals against the grader, the six stored facts, coins once per account and guests paid on sign-up on a local
     // PostgreSQL through the server-function harness, beside accounts-check.

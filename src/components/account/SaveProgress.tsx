@@ -11,6 +11,7 @@ import { useEffect, useState } from "react";
 
 import { Button, Icon, Sheet } from "@/design/components";
 import { APPLE_SIGN_IN_ENABLED, GOOGLE_SIGN_IN_ENABLED } from "@/config/accountConfig";
+import { pushPublicKey } from "@/config/pushConfig";
 import { recordSaveProgress, useAccount } from "@/lib/account/accountApi";
 import { answerPrompt, noteFinishedGame, takePendingPrompt, type SaveProgressFrom, type SaveProgressMethod, type SaveProgressPrompt } from "@/lib/account/saveProgress";
 
@@ -36,6 +37,10 @@ export function FinishedGameCounter({ gameKey, from }: { gameKey: string; from: 
   useEffect(() => {
     if (account.kind === "unknown" || !gameKey) return;
     noteFinishedGame(gameKey, { signedIn: account.kind === "account", from });
+    // Phone notifications (B2): a finished Daily is a useful moment to ask an account (the streak reminder); the ask
+    // shows on the next tab page, never here. Nothing while the switch is off.
+    if (from === "daily" && account.kind === "account" && pushPublicKey())
+      void import("@/lib/push/pushClient").then((m) => m.notePushMoment("daily_finished", account.playerNumber)).catch(() => {});
     // Counted once per game: the account's kind settles once.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [account.kind === "unknown", gameKey]);

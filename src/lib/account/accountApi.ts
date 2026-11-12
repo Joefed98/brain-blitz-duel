@@ -12,6 +12,7 @@ import { setStoredName } from "@/lib/duel/session";
 
 import type { AccountStatus, AccountView } from "./account.server";
 import type { SaveProgressFrom, SaveProgressMethod, SaveProgressPrompt } from "./saveProgress";
+import { checkOverride } from "@/lib/checkOverride";
 
 export const ACCOUNT_CACHE_KEY = "duelz-account:v1";
 
@@ -145,6 +146,13 @@ export function useAccountName(): string | null {
 
 /** Signs this device out: the event first (best effort), then the session; the next call makes a fresh guest. */
 export async function signOutAccount(): Promise<void> {
+  // Phone notifications (B2): this device's subscription goes first, while the session can still remove it.
+  try {
+    const { forgetPushOnSignOut } = await import("@/lib/push/pushDevice");
+    await forgetPushOnSignOut();
+  } catch {
+    /* best effort */
+  }
   try {
     const { noteSignOutFn } = await import("./account.functions");
     await noteSignOutFn();
@@ -165,8 +173,7 @@ export function recordSaveProgress(
   props: { prompt: SaveProgressPrompt; from?: SaveProgressFrom; method?: SaveProgressMethod },
 ): void {
   if (typeof window === "undefined") return;
-  const w = window as unknown as { __DUELZ_ALLOW_ANALYTICS__?: boolean };
-  if (navigator.webdriver && !w.__DUELZ_ALLOW_ANALYTICS__) return;
+  if (navigator.webdriver && !checkOverride("__DUELZ_ALLOW_ANALYTICS__")) return;
   void (async () => {
     try {
       const { recordSaveProgressFn } = await import("./saveProgress.functions");

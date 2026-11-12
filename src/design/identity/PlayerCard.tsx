@@ -226,3 +226,52 @@ export function NamePiece({ id, name }: { id: string | null; name: string }) {
     </span>
   );
 }
+
+/**
+ * A player's card as a small square (lists: Friends, requests, search; Joe, 11 Nov 2026: a player's card, avatar and
+ * frame show wherever they appear). The two ends of their card (card art and frame, the left 56 and right 56 card
+ * units of the same sources, side by side, so the frame closes round the tile) with their avatar in the middle, in
+ * its colour. No name, title or badges (the row writes the name). `size` is the tile's side in px.
+ */
+export function MiniCard({ look, size = 48, label }: { look: CardLook; size?: number; label?: string }) {
+  ensureCardStyles();
+  const prefix = `pm${useId().replace(/[^a-zA-Z0-9_-]/g, "")}-`;
+  const known = knownLook(look);
+  const n = playerNumberLabel(0);
+  const art = CARD_ARTS[known.cardArt]!;
+  const frame = FRAMES[known.frame]!;
+  // One { __html } object per markup (CLAUDE.md working rule 6).
+  const ends = useMemo(
+    () => ({
+      __html:
+        `<svg x="0" y="0" width="56" height="112" viewBox="0 0 56 112" preserveAspectRatio="none">` +
+        fill(art, `${prefix}la-`, n) +
+        fill(frame.markup, `${prefix}lf-`, n) +
+        `</svg><svg x="56" y="0" width="56" height="112" viewBox="244 0 56 112" preserveAspectRatio="none">` +
+        fill(art, `${prefix}ra-`, n) +
+        fill(frame.markup, `${prefix}rf-`, n) +
+        `</svg>`,
+    }),
+    [art, frame, prefix, n],
+  );
+  const avatar = look.avatar ?? DEFAULT_AVATAR;
+  const avatarHtml = useMemo(() => ({ __html: avatarMarkup(avatar, `${prefix}v-`) }), [avatar.id, avatar.colour, avatar.gem, prefix]);
+  const box = useMemo(() => ({ width: `${size}px`, height: `${size}px` }), [size]);
+  return (
+    <span
+      className="pcard pcard-mini"
+      style={box}
+      role={label ? "img" : undefined}
+      aria-label={label}
+      aria-hidden={label ? undefined : true}
+      data-mini-card=""
+      data-card-art={known.cardArt}
+      data-frame={known.frame}
+      data-avatar={avatar.id}
+      data-avatar-colour={avatar.colour}
+    >
+      <svg className="pcard-svg" viewBox="0 0 112 112" preserveAspectRatio="none" style={frame.style} dangerouslySetInnerHTML={ends} />
+      <span className="pcard-mini-av" dangerouslySetInnerHTML={avatarHtml} />
+    </span>
+  );
+}

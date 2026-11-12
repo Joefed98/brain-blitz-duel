@@ -23,6 +23,7 @@ import { MAX_PLAYERS } from "@/lib/duel/types";
 import type { Standing } from "@/lib/duel/scoring";
 import { prefersReducedMotion } from "@/lib/motion";
 import { playCueSlot, soundUnlocked } from "@/lib/sound";
+import { checkOverride } from "@/lib/checkOverride";
 
 /** The most sparks alive at once, across every burst. */
 export const CELEBRATION_PARTICLES = 120;
@@ -57,11 +58,8 @@ export { HERO_DANCE_SCORE, HERO_GRAND_SCORE, HERO_RUN_SCORE };
 
 /** The switch: FX_CELEBRATIONS, which a check may stand in for through window.__DUELZ_BETA_CONFIG__. */
 export function celebrationsOn(): boolean {
-  if (typeof window !== "undefined") {
-    const override = (window as unknown as { __DUELZ_BETA_CONFIG__?: { FX_CELEBRATIONS?: unknown } })
-      .__DUELZ_BETA_CONFIG__?.FX_CELEBRATIONS;
-    if (typeof override === "boolean") return override;
-  }
+  const override = checkOverride<{ FX_CELEBRATIONS?: unknown }>("__DUELZ_BETA_CONFIG__")?.FX_CELEBRATIONS;
+  if (typeof override === "boolean") return override;
   return FX_CELEBRATIONS;
 }
 
@@ -230,8 +228,7 @@ export function celebrationSoundLog(): CelebrationSound[] {
 
 /** A browser check's record (window.__DUELZ_CELEBRATION_LOG__, an array it sets up; the app never does). */
 function pageLog(entry: { kind: string; text?: string; at: number }): void {
-  if (typeof window === "undefined") return;
-  const list = (window as unknown as { __DUELZ_CELEBRATION_LOG__?: unknown }).__DUELZ_CELEBRATION_LOG__;
+  const list = checkOverride("__DUELZ_CELEBRATION_LOG__");
   if (Array.isArray(list)) list.push(entry);
 }
 

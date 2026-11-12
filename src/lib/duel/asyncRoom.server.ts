@@ -745,6 +745,8 @@ export async function asyncRoundReveal(
       detail: string[];
       correctAnswer: string | null;
       solutionLock: SolutionLock | null;
+      /** The look the round was played in (async_results.look; display only, for the player's own replay). */
+      look: unknown;
     }
   | { ok: false; message: string }
 > {
@@ -775,7 +777,8 @@ export async function asyncRoundReveal(
     } catch (err) {
       console.error(`[async-reveal] answer failed for ${puzzle.type}`, err);
     }
-  return { ok: true, puzzle, result, missed: row!.missed, summary, detail, correctAnswer, solutionLock };
+  const look = (row as { look?: unknown }).look ?? null;
+  return { ok: true, puzzle, result, missed: row!.missed, summary, detail, correctAnswer, solutionLock, look };
 }
 
 /** The live round's public and private halves, only while the caller's own round takes answers. */
