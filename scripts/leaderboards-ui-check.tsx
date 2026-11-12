@@ -284,6 +284,72 @@ async function mount(ui: React.ReactElement) {
   check(!/getPublicCard|identityBackend|cardBadgesFn|economy\.functions/.test(src), "the screens fetch no card of their own (the board's call carries them)");
 }
 
+/* ------------------------------------------------------------------ 7. the shared NameplateStrip (12 Nov 2026) */
+{
+  const id = await import("../src/design/identity");
+  type NP = import("../src/design/identity").NameplatePlayer;
+  const fs = await import("node:fs");
+  const card = { avatarId: "captain-joulz", colour: 4, gem: null, cardArt: "card-art.bolt-stripes", frame: "frame.gold", nameColour: null, badges: ["flawless"], title: "rookie" };
+  const hidden: NP = { kind: "hidden" };
+  const deleted: NP = { kind: "hidden", deleted: true };
+  const plain: NP = { kind: "plain", name: "Sam", colour: 3 };
+  const shown: NP = { kind: "card", name: "Nova", card, playerNumber: 42, tier: "volt" };
+  check(!id.nameplateOpens(hidden) && !id.nameplateOpens(deleted) && !id.nameplateOpens(plain) && id.nameplateOpens(shown), "only a visible player with a card may be opened");
+  let opened = 0;
+  const Demo = () => {
+    const [open, setOpen, close] = id.useNameplateSheet<NP>();
+    return React.createElement(
+      "div",
+      null,
+      ...[hidden, deleted, plain, shown].map((p, i) =>
+        React.createElement(
+          "div",
+          { key: i, "data-demo": i },
+          React.createElement(id.NameplateStrip, { player: p }),
+          id.nameplateOpens(p)
+            ? React.createElement("button", { type: "button", "data-open": i, onClick: () => { opened++; setOpen(p); } }, "open")
+            : null,
+        ),
+      ),
+      React.createElement("button", { type: "button", "data-force-open": "", onClick: () => setOpen(hidden) }, "force"),
+      React.createElement(id.NameplateSheet, { player: open, onClose: close }, "1st · 3,104"),
+    );
+  };
+  const root = await mount(React.createElement(Demo));
+  const at = (i: number) => $(`[data-demo="${i}"] [data-nameplate]`);
+  const h = at(0);
+  const disc = h?.querySelector("[data-hidden-disc]");
+  check(h?.getAttribute("data-nameplate") === "hidden" && h?.textContent === "Hidden player", "a hidden player reads exactly “Hidden player”");
+  check(
+    !!disc && disc.textContent === "" && !disc.getAttribute("style") && !h?.querySelector("[data-card-strip], svg, img, [style]"),
+    "on a plain neutral disc: no initial, no colour, no card, avatar or badge",
+  );
+  check(at(1)?.textContent === "Deleted player" && !!at(1)?.querySelector("[data-hidden-disc]"), "a deleted account: “Deleted player” on the same disc");
+  check(at(2)?.getAttribute("data-nameplate") === "plain" && at(2)?.textContent?.includes("Sam") === true && !at(2)?.querySelector("[data-card-strip]"), "a player with no card keeps colour and initial");
+  const strip = at(3)?.querySelector("[data-card-strip]");
+  check(strip?.getAttribute("data-frame") === "frame.gold" && !!strip?.querySelector('[data-card-tier="volt"]') && !!strip?.querySelector('[data-card-badge="flawless"]'), "a visible account: the strip with frame, tier emblem and badges");
+  check(
+    !$("[data-open='0'], [data-open='1'], [data-open='2']") && $$("[data-nameplate] button, [data-nameplate] [role='button']").length === 0,
+    "the strip is never a button, and hidden or plain players get nothing to open",
+  );
+  await click($("[data-force-open]"));
+  await settle();
+  check(!$("[data-card-sheet]"), "the sheet opens nothing for a hidden player, even if asked");
+  await click($("[data-open='3']"));
+  await settle();
+  check(
+    opened === 1 && !!$('[data-card-sheet] [data-player-card][data-frame="frame.gold"]') && $("[data-card-sheet]")?.textContent?.includes("1st · 3,104") === true,
+    "the tap-to-open sheet shows the full card and the row's line",
+  );
+  root.unmount();
+  const srv = fs.readFileSync("src/lib/identity/nameplates.server.ts", "utf8");
+  const lb = fs.readFileSync("src/lib/leaderboards/leaderboards.server.ts", "utf8").replace(/^\s*(\/\/|\*).*$/gm, "");
+  const list = fs.readFileSync("src/components/leaderboards/BoardList.tsx", "utf8");
+  check(/publicCardsFor\(/.test(srv) && /cardBadgesFor\(/.test(srv) && !/readPublicCards|readBadgePublicCards/.test(srv), "nameplatesFor is built on publicCardsFor and cardBadgesFor, no reads of its own");
+  check(/nameplatesFor\(/.test(lb) && !/readPublicCards|cardBadgesFor/.test(lb), "the boards read cards only through nameplatesFor");
+  check(/NameplateStrip/.test(list) && /NameplateSheet/.test(list) && !/CardStrip|PlayerBadge/.test(list), "the board rows draw the shared NameplateStrip and NameplateSheet");
+}
+
 setLeaderboardFunctionsForChecks(null);
 console.error = origError;
 console.log(`leaderboards-ui-check: ${checks - failures.length} passed, ${failures.length} failed`);

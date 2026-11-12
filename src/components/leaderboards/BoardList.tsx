@@ -1,26 +1,28 @@
-import { useState, type ReactNode } from "react";
+import { type ReactNode } from "react";
 
-import { PlayerBadge } from "@/components/duel/PlayerBadge";
-import { Medal, Sheet } from "@/design/components";
-import { CardStrip, PlayerCard, type CardLook } from "@/design/identity";
-import { titleName } from "@/lib/badges/catalogue";
+import { Medal } from "@/design/components";
 import {
-  boardTime,
-  ordinal,
-  rowName,
-  top500Label,
-  type BoardCard,
-  type BoardRow,
-} from "@/lib/leaderboards/boards";
+  NameplateSheet,
+  NameplateStrip,
+  PlayerCard,
+  nameplateLook,
+  nameplateOpens,
+  useNameplateSheet,
+  type NameplatePlayer,
+} from "@/design/identity";
+import { titleName } from "@/lib/badges/catalogue";
+import { boardTime, ordinal, rowName, top500Label, type BoardRow } from "@/lib/leaderboards/boards";
 
-/** A row's card as A2's card look (the avatar in the account's colour). */
-export function cardLookOf(card: BoardCard): CardLook {
-  return {
-    cardArt: card.cardArt,
-    frame: card.frame,
-    nameColour: card.nameColour,
-    avatar: { id: card.avatarId, colour: card.colour, gem: card.gem },
-  };
+/**
+ * A board row's player as the shared nameplate (docs/nameplate.md): hidden (an under-18 by default, an adult who opted
+ * out, an account waiting for deletion) or deleted, a visible account with its card, or a player with no card (colour
+ * and initial). Everyone sees their own row by name.
+ */
+export function rowNameplate(row: BoardRow): NameplatePlayer {
+  if (row.deleted) return { kind: "hidden", deleted: true };
+  if (!row.isMe && (row.hidden || !row.name)) return { kind: "hidden" };
+  if (row.card && row.name) return { kind: "card", name: row.name, card: row.card, playerNumber: row.playerNumber, tier: row.tier ?? null };
+  return { kind: "plain", name: row.name ?? rowName(row), colour: row.colour };
 }
 
 /** The Top 500 emblem (mockup 03's small size, `public/art/emblems/top-500.svg`). */
@@ -45,16 +47,9 @@ function Place({ rank, shared }: { rank: number; shared: boolean }) {
   );
 }
 
-/** A player's disc: their colour and initial, or a plain disc for a hidden or deleted player. */
-function Disc({ row }: { row: BoardRow }) {
-  if (row.colour === null || !row.name)
-    return <span className="lb-disc" aria-hidden="true" data-hidden-disc />;
-  return <PlayerBadge look={{ colour: row.colour, icon: null }} name={row.name} size={36} />;
-}
-
 /** A row that opens a full card: a visible player with a card (never a hidden or deleted row). */
 export function canOpenCard(row: BoardRow): boolean {
-  return !!row.card && !row.hidden && !row.deleted && !!row.name;
+  return nameplateOpens(rowNameplate(row));
 }
 
 /**
@@ -87,21 +82,8 @@ export function BoardRowView({
       ) : (
         <Place rank={row.rank} shared={shared} />
       )}
-      {row.card ? null : <Disc row={row} />}
       <span className="lb-who">
-        {row.card ? (
-          <CardStrip
-            look={cardLookOf(row.card)}
-            name={name}
-            playerNumber={row.playerNumber}
-            tier={row.tier ?? null}
-            badges={row.card.badges}
-          />
-        ) : (
-          <span className="lb-name" data-ellipsis>
-            {name}
-          </span>
-        )}
+        <NameplateStrip player={rowNameplate(row)} label={name} />
         {row.top500 ? (
           <Top500Line rank={row.top500} />
         ) : sub ? (
@@ -229,7 +211,7 @@ export function BoardPodium({
         const card =
           row.card && canOpenCard(row) ? (
             <PlayerCard
-              look={cardLookOf(row.card)}
+              look={nameplateLook(row.card)}
               name={row.name!}
               playerNumber={row.playerNumber}
               title={titleName(row.card.title)}
@@ -238,10 +220,7 @@ export function BoardPodium({
             />
           ) : (
             <span className="lb-podium-plain" data-hidden-player={row.hidden ? "" : undefined}>
-              <Disc row={row} />
-              <span className="lb-name" data-ellipsis>
-                {name}
-              </span>
+              <NameplateStrip player={rowNameplate(row)} label={name} />
             </span>
           );
         return (
@@ -282,38 +261,19 @@ export function BoardPodium({
   );
 }
 
-/** A player's full card, opened from a row or the podium (only a visible player with a card). */
+/** A player's full card, opened from a row or the podium (the shared NameplateSheet; only a visible player with a card). */
 export function CardSheet({ row, onClose }: { row: BoardRow | null; onClose: () => void }) {
-  if (!row || !row.card || !canOpenCard(row)) return null;
-  const name = rowName(row);
+  if (!row) return null;
   return (
-    <Sheet
-      onClose={onClose}
-      title={row.name!}
-      closeLabel="Close card"
-      data={{ "data-card-sheet": "" }}
-    >
-      <div className="lb-card-sheet" data-names="">
-        <PlayerCard
-          look={cardLookOf(row.card)}
-          name={row.name!}
-          playerNumber={row.playerNumber}
-          title={titleName(row.card.title)}
-          badges={row.card.badges}
-          label={`${name}’s card`}
-        />
-        <p className="lb-card-line">
-          {row.top500 ? top500Label(row.top500) : ordinal(row.rank)}
-          {" · "}
-          {row.value.toLocaleString("en-GB")}
-        </p>
-      </div>
-    </Sheet>
+    <NameplateSheet player={rowNameplate(row)} onClose={onClose}>
+      {row.top500 ? top500Label(row.top500) : ordinal(row.rank)}
+      {" · "}
+      {row.value.toLocaleString("en-GB")}
+    </NameplateSheet>
   );
 }
 
 /** The card a screen has open (one at a time). */
 export function useOpenCard(): [BoardRow | null, (row: BoardRow) => void, () => void] {
-  const [open, setOpen] = useState<BoardRow | null>(null);
-  return [open, setOpen, () => setOpen(null)];
+  return useNameplateSheet<BoardRow>();
 }

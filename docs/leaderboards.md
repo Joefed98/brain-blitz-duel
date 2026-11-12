@@ -37,20 +37,21 @@ No gameplay, scoring, stamp, rating or deal change.
 
 A player's card, avatar and frame show wherever they appear:
 
-- **Every board row** (rating, category and Daily boards) draws the player as A2's nameplate strip (`CardStrip` in
-  `src/design/identity/PlayerCard.tsx`): the card art as a band, the frame round it, the avatar, the name in its name
+- **Every board row** (rating, category and Daily boards) draws the player through the shared nameplate
+  (`NameplateStrip` in `@/design/identity`, docs/nameplate.md; W4b's and W4c's rows use it too): the card art as a band, the frame round it, the avatar, the name in its name
   colour, W3a's tier emblem (the Top 500's own emblem for the Top 500) and C2's badges. It sits in the name area only;
   places, scores and times stay outside it on the plain row.
-- **A tap on a row** opens that player's full card (`CardSheet`, A2's `PlayerCard` with title and badges, the place and
+- **A tap on a row** opens that player's full card (`NameplateSheet`, A2's `PlayerCard` with title and badges, the place and
   value under it).
 - **The top 3** show above the rows as full cards (`BoardPodium`): stacked 1st, 2nd, 3rd on a phone, 1st in the middle
   from 700 px wide; places and scores under each card.
 - **One call per page:** the board's own call carries the cards. The SQL gives each visible row its player's id (`pid`)
-  and tier for the server alone (`20261115100400_leaderboard_cards.sql`); `leaderboards.server.ts` reads A1's
-  `economy_public_cards` and C2's `badge_public_cards` for those ids (100 a read), puts each card on its row and removes
-  every id before the page leaves the server.
+  and tier for the server alone (`20261115100400_leaderboard_cards.sql`); `leaderboards.server.ts` reads the cards for
+  those ids through the shared `nameplatesFor` (the Friends follow-up's `publicCardsFor` and C2's `cardBadgesFor`, 100
+  a read), puts each card on its row and removes every id before the page leaves the server.
 - **Hidden players** (under-18s by default, opted-out adults, accounts waiting for deletion) stay "Hidden player" with
-  no card, no tier and nothing to open; a deleted account reads "Deleted player". Boards hold accounts only, so no
+  no card, no tier and nothing to open, on a plain neutral disc with no initial or colour; a deleted account reads
+  "Deleted player". Boards hold accounts only, so no
   guest appears; a row without a card keeps its colour and initial.
 - The card's approved art is marked `data-skin-off`, as a game's own art is: its metallic name colours paint the text
   through a gradient, so the page skin's contrast check can't read them; identity-motion-check judges the items against

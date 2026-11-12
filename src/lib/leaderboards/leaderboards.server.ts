@@ -11,12 +11,11 @@ import {
   readRatingBoard,
   writeBoardVisibility,
 } from "@/lib/data/leaderboards.server";
-import { cardBadgesFor } from "@/lib/badges/badges.server";
-import { readPublicCards } from "@/lib/data/economy.server";
 import { recordEvents } from "@/lib/data/events.server";
 import { readDateOfBirth } from "@/lib/data/profiles.server";
 import type { Db } from "@/lib/data/db.server";
 import { ukDayKey } from "@/lib/duel/daily";
+import { nameplatesFor } from "@/lib/identity/nameplates.server";
 import { withinRateLimit, type RateLimit } from "@/lib/duel/rateLimit.server";
 
 import {
@@ -67,27 +66,14 @@ type StoredRow = BoardRow & { pid?: string | null };
  */
 async function attachCards(client: Db, rows: readonly StoredRow[]): Promise<BoardRow[]> {
   const ids = [...new Set(rows.map((r) => r.pid).filter((id): id is string => typeof id === "string"))];
-  const cards = new Map<string, BoardCard>();
-  for (let i = 0; i < ids.length; i += 100) {
-    const { data, error } = await readPublicCards(client, ids.slice(i, i + 100));
-    if (error) {
-      console.warn(`[leaderboards] cards: ${error.message}`);
-      break;
-    }
-    // C2's badges and title on the same cards (one read a chunk; a failure leaves the cards without badges).
-    const worn = new Map((await cardBadgesFor(client, ids.slice(i, i + 100)).catch(() => [])).map((b) => [b.playerId, b]));
-    for (const c of data)
-      cards.set(c.user_id, {
-        avatarId: c.avatar_id,
-        colour: c.colour,
-        gem: c.gem,
-        cardArt: c.card_art,
-        frame: c.frame,
-        nameColour: c.name_colour,
-        badges: worn.get(c.user_id)?.badges ?? [],
-        title: worn.get(c.user_id)?.title ?? null,
-      });
-  }
+  // The shared nameplates (docs/nameplate.md): the Friends follow-up's batched publicCardsFor and C2's cardBadgesFor,
+  // in this board's own call. A failed read leaves the rows with colour and initial.
+  const cards = ids.length
+    ? await nameplatesFor(client, ids).catch((e: unknown) => {
+        console.warn(`[leaderboards] cards: ${e instanceof Error ? e.message : String(e)}`);
+        return new Map<string, BoardCard>();
+      })
+    : new Map<string, BoardCard>();
   return rows.map(({ pid, ...row }) => {
     const card = pid ? cards.get(pid) : undefined;
     if (row.hidden) {

@@ -2148,7 +2148,7 @@ outside the repo.
   `20261115100100_daily_board_badges.sql`, `20261115100200_analytics_leaderboard_events.sql`, `…100300`, `…100400`
   (**not applied until merged**). Events `leaderboard_viewed`,
   `daily_board_viewed`. leaderboards-check (~30 s, shard `e`, PostgreSQL: the real engine, the cron run twice),
-  leaderboards-ui-check (~2 s, happy-dom); the screens in theme-check and no-wrap-check (`LEADERBOARD_SCREENS`).
+  leaderboards-ui-check (~2 s, happy-dom); the screens in theme-check and no-wrap-check (`LEADERBOARD_SCREENS`). **The nameplate** (12 Nov 2026, `docs/nameplate.md`): the one way to draw a player in a row, `NameplateStrip` / `NameplateSheet` / `useNameplateSheet` / `nameplateOpens` in `@/design/identity` (a `NameplatePlayer`: `card`, `plain` colour and initial, `hidden` a plain neutral disc and "Hidden player", nothing to open), fed by `nameplatesFor` (`src/lib/identity/nameplates.server.ts`, on `publicCardsFor` and `cardBadgesFor`) in the list's own call; W4b's tournament boards and W4c's brackets use it.
 - **Rated matchmaking** (wave 3 W3b, 11 Nov 2026, `docs/rated/matchmaking-interface.md`; no gameplay, scoring, stamp or
   deal change): the queue (same format and choice only; ±50 widening by 50 every 2 s to ±200, a recorded run from 8 s;
   placement players live only with placement players, else a beginner's run at 8 s), live and recorded rated matches as ordinary rooms the server makes already

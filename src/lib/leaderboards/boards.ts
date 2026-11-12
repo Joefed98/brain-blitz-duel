@@ -3,6 +3,7 @@
  * sizes, the shapes the server answers and the words the screens use. Pure; shared by the phone and the server. Every
  * rank and value is the server's (supabase/migrations/20261115100000_leaderboards.sql); nothing here works one out.
  */
+import type { NameplateCard } from "@/design/identity/nameplate";
 import { RATED_CATEGORIES, type RatedCategory } from "@/lib/data/ratings";
 
 /** The three main rating boards (mockup 01's switch). */
@@ -98,22 +99,11 @@ export function isDayKey(value: unknown): value is string {
 /* ------------------------------------------------------------------ what the server answers */
 
 /**
- * A player's card as a board row draws it (Joe's rule, 11 Nov 2026: a player's card, avatar and frame show wherever
- * they appear): A2's card art, frame and name colour and the avatar, from A1's public card. Only on rows the viewer may
- * see by name; the server attaches them in the board's own call (one call per page).
+ * A player's card as a board row draws it (Joe's rule, 11 Nov 2026): the shared nameplate's card (`NameplateCard`,
+ * @/design/identity), attached by the server in the board's own call (one call per page). Only on rows the viewer may
+ * see by name.
  */
-export interface BoardCard {
-  avatarId: string;
-  /** The avatar's colour (the account's colour). */
-  colour: number;
-  gem: string | null;
-  cardArt: string | null;
-  frame: string | null;
-  nameColour: string | null;
-  /** C2's badges on the card (up to three slugs, in order) and the equipped title's id. */
-  badges: string[];
-  title: string | null;
-}
+export type BoardCard = NameplateCard;
 
 /**
  * One row as a phone sees it. A hidden player (an under-18 who hasn't opted in, an adult who opted out, an account
