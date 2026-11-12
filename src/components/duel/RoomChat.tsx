@@ -20,6 +20,9 @@ import { RoomChatButton, RoomChatSlot, RoomFooter } from "./RoomFooter";
 import { ReportReasons } from "./ReportSheet";
 import { REPORT_THANKS } from "@/lib/safety/reports";
 import { Button as JzButton, Icon, Input, Sheet, Toast } from "@/design/components";
+import { emoteCode, emoteOf, reactionEmotes } from "@/design/identity/cosmetics";
+import { Emote } from "@/components/cosmetics/Emote";
+import { cosmeticsOf, useCosmetics } from "@/lib/cosmetics/cosmeticsStore";
 
 interface RoomChatProps {
   chat: RoomChatState;
@@ -80,7 +83,7 @@ export function ReactionLayer({ chat }: { chat: RoomChatState }) {
           <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
             {reaction.name}
           </span>
-          <span className="text-3xl leading-none">{reaction.emoji}</span>
+          {emoteOf(reaction.emoji) ? <Emote code={reaction.emoji} height={34} /> : <span className="text-3xl leading-none">{reaction.emoji}</span>}
         </div>
       ))}
     </div>
@@ -153,6 +156,11 @@ export function RoomChat({
     const slot = players.find((p) => p.user_id === userId)?.player_slot;
     return slot === undefined ? undefined : looks?.get(slot);
   };
+  // Wave 2 E2: every player's equipped reactions (so their emotes show), and this player's own to send.
+  useCosmetics(players.map((p) => p.user_id));
+  const myEmotes = cosmeticsOf(myUserId).reactions.flatMap((pack) =>
+    reactionEmotes(pack).map((e, i) => ({ code: emoteCode(pack, i), label: e.label })),
+  );
   const [text, setText] = useState("");
   const [menuFor, setMenuFor] = useState<RoomMessageRow | null>(null);
   // Safety (10 Nov 2026): after a reason is tapped the menu shows the thank-you (as the lobby's ReportSheet does)
@@ -327,6 +335,21 @@ export function RoomChat({
           </button>
         ))}
       </div>
+      {myEmotes.length ? (
+        <div className="jz-emote-row" data-chat-emotes>
+          {myEmotes.map(({ code, label }) => (
+            <button
+              key={code}
+              type="button"
+              aria-label={`React ${label}`}
+              onClick={() => void chat.react(code)}
+              className="press jz-emote-button"
+            >
+              <Emote code={code} height={30} />
+            </button>
+          ))}
+        </div>
+      ) : null}
     </div>
   );
   if (!available) return null;

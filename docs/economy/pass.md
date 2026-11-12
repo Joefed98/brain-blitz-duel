@@ -130,6 +130,8 @@ in the order the play happened, under a lock on the account, so two reads never 
   themes, reactions, celebrations, tile styles, avatar items) uses its approved still, cut by
   `bun scripts/shop-previews.ts` (extended to the pass's items, the same `public/shop/<id>.webp` and
   `SHOP_PREVIEWS`). Coins, tickets, freezes and titles keep their marks.
+- Premium level 4 is the Neon card back, `card-back.neon` since E1 moved the three Free Cell backs to the account's
+  card-back slot (it was `game-skin.free-cell.neon-card-back`; `public.catalogue_renamed` records the move).
 - **Claiming**: a tap on the pass screen (`claimPassRewardFn`); only a reached level, premium only with the premium
   track; twice (even at the same moment) pays once.
 - **Premium**: a late purchase makes every premium reward already passed claimable at once; the Neon Captain Joulz

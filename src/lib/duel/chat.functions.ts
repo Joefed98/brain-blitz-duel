@@ -95,8 +95,13 @@ export const allowReactionFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { roomId: string; emoji: string }) => input)
   .handler(async ({ data, context }) => {
+    // The room's emoji, or (wave 2 E2) an emote from a reaction pack the caller has equipped in a reaction slot.
+    let pack: string | null = null;
     if (!ROOM_EMOJI.includes(data.emoji as (typeof ROOM_EMOJI)[number])) {
-      return { ok: false as const, message: "That reaction doesn’t exist." };
+      const { emoteOf } = await import("@/design/identity/cosmetics");
+      const emote = emoteOf(String(data.emoji ?? ""));
+      if (!emote) return { ok: false as const, message: "That reaction doesn’t exist." };
+      pack = emote.pack;
     }
     const sender = await senderRow(context.supabase, data.roomId, context.userId);
     if (!sender || sender.status === "left") {
@@ -113,6 +118,11 @@ export const allowReactionFn = createServerFn({ method: "POST" })
       Date.now() - new Date(sender.last_reaction_at).getTime() < REACTION_MIN_GAP_MS
     ) {
       return { ok: false as const, message: "One reaction a second." };
+    }
+    if (pack) {
+      const { canSendPack } = await import("@/lib/cosmetics/cosmetics.server");
+      if (!(await canSendPack(await admin(), context.userId, pack).catch(() => false)))
+        return { ok: false as const, message: "Equip that reaction in Customise first." };
     }
 
     const { updatePlayer } = await import("@/lib/data/players.server");

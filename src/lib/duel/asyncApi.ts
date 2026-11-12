@@ -99,6 +99,8 @@ export interface AsyncReveal {
   correctAnswer: string | null;
   /** H2: the solution's lock while the room is open (the puzzle is then its public half only). */
   solutionLock?: SolutionLock | null;
+  /** The look the round was played in (async_results.look: skin, world, card back; display only). */
+  look?: unknown;
 }
 
 export async function asyncReveal(

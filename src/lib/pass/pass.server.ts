@@ -485,6 +485,7 @@ const KIND_WORDS: Record<string, string> = {
   frame: "Frame",
   "name-colour": "Name colour",
   "avatar-special-edition": "Special-edition avatar",
+  "card-back": "Card back",
   "avatar-finish": "Avatar finish",
   "avatar-accessory": "Avatar accessory",
   reaction: "Reaction",

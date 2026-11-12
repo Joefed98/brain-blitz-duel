@@ -116,6 +116,7 @@ import {
   standings,
   totalScore,
   totalScoreThrough,
+  type Standing,
 } from "@/lib/duel/scoring";
 import { roomTieRounds } from "@/lib/duel/tieBreak";
 import { hasScoringColumn, roomScoringMode } from "@/lib/duel/scoringMode";
@@ -146,7 +147,7 @@ import {
 import type { SubmitMeta } from "@/puzzles/types";
 import { nearMiss } from "@/lib/duel/nearMiss";
 import { lookColumnsPresent, PLAYER_COLOURS, resolvePlayerLooks } from "@/lib/duel/playerLook";
-import { startRaceGhosts } from "@/lib/duel/raceGhosts";
+import { setRaceGhostSkins, startRaceGhosts } from "@/lib/duel/raceGhosts";
 import { podiumAwards } from "@/lib/duel/podiumAwards";
 import { awardRoundsFor } from "@/lib/duel/awardRounds";
 import { roomInvite } from "@/lib/duel/roomLink";
@@ -157,6 +158,9 @@ import { APP_NAME, APP_TAGLINE } from "@/lib/brand";
 import { roomUpdateGate, useUpdateGate } from "@/lib/appUpdate";
 import { OnlineOnly } from "@/components/offline/OnlineOnly";
 import { Button, SkeletonPage } from "@/design/components";
+import { PodiumCelebrations, type CelebrationEntry } from "@/components/duel/PodiumCelebrations";
+import { useCosmetics } from "@/lib/cosmetics/cosmeticsStore";
+import { NO_COSMETICS } from "@/lib/cosmetics/types";
 
 const ROOM_TITLE = `Join a ${APP_NAME} room`;
 const ROOM_DESCRIPTION = `You’re invited to a live ${APP_NAME} room. ${APP_TAGLINE}`;
@@ -457,6 +461,15 @@ function DuelScreen() {
   const scoringMode = roomScoringMode(duel);
   // Everyone's colour and icon, the same on every phone (every row, left players included).
   const looks = useMemo(() => resolvePlayerLooks(players), [players]);
+  // Wave 2 E2: each player's equipped cosmetics (their win celebration and podium entrance on the final screen).
+  const roomCosmetics = useCosmetics(players.map((p) => p.user_id));
+  const celebrationEntries = (rows: readonly Standing[]): CelebrationEntry[] =>
+    rows
+      .filter((r) => r.position <= 3)
+      .map((r) => {
+        const userId = players.find((p) => p.player_slot === r.slot)?.user_id;
+        return { slot: r.slot, place: r.position, name: r.name, cosmetics: (userId && roomCosmetics.get(userId)) || NO_COSMETICS };
+      });
   // Who else has finished this round (never how they did); the live round only, never practice or replays.
   // Beta: a device's first room played after finishing a friend's challenge (challengeRecord.ts).
   const playing = duel?.status === "in_progress" && !!me;
@@ -477,6 +490,20 @@ function DuelScreen() {
     return startRaceGhosts(duel.id, ghostRound, { key: String(mySlot), name: me.display_name, colour });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ghostRound, duel?.id, mySlot]);
+  // Each ghost wears its own player's car paint (wave 2 skins, display only): read once a round from the server, which
+  // reads each owner's loadout (src/lib/identity/roomLooks.functions.ts); a failure leaves the default paint.
+  useEffect(() => {
+    if (ghostRound === null || !duel) return;
+    let live = true;
+    void import("@/lib/identity/roomLooks.functions").then(({ fetchRoomGameLooks }) =>
+      fetchRoomGameLooks(duel.id, "racing").then((looks) => {
+        if (live) setRaceGhostSkins(Object.fromEntries(Object.entries(looks).map(([slot, look]) => [slot, look.skin])));
+      }),
+    );
+    return () => {
+      live = false;
+    };
+  }, [ghostRound, duel?.id]);
   const finishedPings = useFinishedPings(players, round, mySlot, duel?.status === "in_progress" && phase === "puzzle", stateKey);
   const table = standings(roomPlayers, results, scoredThrough, roundDetails, tieRounds, scoringMode).map((row) => {
     const line = phase === "result" && puzzle ? nearMiss(puzzle.type, resultFor(results, row.slot, round)?.extra) : null;
@@ -1044,6 +1071,7 @@ function DuelScreen() {
               playOfTheGame={forfeit ? null : <PlayOfTheGame roomId={duel.id} active />}
               share={<RoomShareButton duel={duel} players={players} results={results} me={me} />}
               challenge={forfeit ? null : <Suspense fallback={null}><RoomChallengeButton duelId={duel.id} total={totalScore(results, mySlot)} rounds={duel.round_count ?? TOTAL_ROUNDS} /></Suspense>}
+              celebrations={forfeit ? null : <PodiumCelebrations entries={celebrationEntries(standings(roomPlayers, results, duel.round_count ?? TOTAL_ROUNDS, undefined, tieRounds, scoringMode))} />}
             />
             </RoomChatSlot.Provider>
             <RoomChat chat={chat} myUserId={me.user_id} players={players} looks={looks} available={chatAvailable} screenLabel={chatLabel} bar={false} />
@@ -1088,6 +1116,7 @@ function DuelScreen() {
             joulesSinceMs={firstOwnResultMs(results, mySlot)}
             share={<RoomShareButton duel={duel} players={players} results={results} me={me} />}
             challenge={forfeit ? null : <Suspense fallback={null}><RoomChallengeButton duelId={duel.id} total={totalScore(results, mySlot)} rounds={duel.round_count ?? TOTAL_ROUNDS} /></Suspense>}
+            celebrations={forfeit ? null : <PodiumCelebrations entries={celebrationEntries(standings(roomPlayers, results, duel.round_count ?? TOTAL_ROUNDS, undefined, tieRounds, scoringMode)).filter((e) => e.place === 1).map((e) => ({ ...e, cosmetics: { ...e.cosmetics, entrance: null } }))} />}
           />
           </RoomChatSlot.Provider>
           <RoomChat chat={chat} myUserId={me.user_id} players={players} looks={looks} available={chatAvailable} screenLabel={chatLabel} bar={false} />
