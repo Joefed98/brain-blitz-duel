@@ -947,10 +947,16 @@ const profileUi = () => React.createElement(ProfileCard, { guestName: "Player", 
   check(!$("[data-rated-between]") && betweenFor("bo3", slot as never) === null, "a 1v1: no Between (the room's own screens play)");
   root.unmount();
 
-  // The room route: Between in place of the round result and standings for a rated 4- or 8-player match only.
+  // The room route: Between in place of the round results table and the standings for a rated 4- or 8-player match only,
+  // inside those two screens, so a dropout is handled exactly as there: their own {dropout} banner (Finish now) above it,
+  // their chat, their shell (dropout-finish-check counts the room's four places, unchanged).
   const room = readFileSync("src/routes/duel.$code.tsx", "utf8");
-  const branch = room.indexOf("if (ratedMatchId && ratedFormat && isBetweenPhase(phase) && betweenFor(ratedFormat))");
-  check(branch > 0 && branch < room.indexOf('if (phase === "result") {') && room.includes("const ratedFormat = useRatedRoomFormat(roomCode, ratedMatchId);"), "the room route draws Between before its own result and standings, for a rated room with a Between");
+  check(room.includes("const ratedFormat = useRatedRoomFormat(roomCode, ratedMatchId);") && /const ratedBetween =\s+ratedMatchId && ratedFormat && isBetweenPhase\(phase\) && betweenFor\(ratedFormat\) \? \(/.test(room), "the room route builds Between only for a rated room whose format has one");
+  check((room.match(/\{dropout\}/g) ?? []).length === 4, "Between adds no dropout place of its own (still the intro, two result layouts and standings)");
+  const resultMulti = room.slice(room.indexOf("if (isMulti || ratedBetween) {"), room.indexOf("<RoundResult\n"));
+  check(/\{dropout\}[\s\S]*\{ratedBetween \?\? <RoundResultsTable/.test(resultMulti) && resultMulti.includes("<RoomChat "), "the round result: Between under the screen's own dropout banner, with its chat");
+  const standings = room.slice(room.indexOf('if (phase === "standings") {'), room.indexOf("const clockActive"));
+  check(/\{dropout\}[\s\S]*\{ratedBetween \?\? \(isMulti \? \(/.test(standings) && standings.includes("<RoomChat "), "the standings: Between under the screen's own dropout banner, with its chat");
   check(/<RatedBetween[\s\S]*?elapsedMs=\{now - \(phaseStart \?\? now\)\}[\s\S]*?totalRounds=\{duel\.round_count \?\? TOTAL_ROUNDS\}/.test(room), "the room route passes its phase clock and the match's games");
 
   // The room's format, noted beside its match (this tab) or from W3b's ratedRoomFn.

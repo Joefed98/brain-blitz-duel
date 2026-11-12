@@ -1220,36 +1220,33 @@ function DuelScreen() {
     );
   }
 
-  // A rated 4- or 8-player match between games: the format slot's Between screen in place of the round result and
-  // standings (a 1v1 has no Between, so this is skipped and the room's own screens play).
-  if (ratedMatchId && ratedFormat && isBetweenPhase(phase) && betweenFor(ratedFormat)) {
-    return withPanel(
-      <PhoneShell skin="room" gameType={puzzle?.type} topAction={leaveAction}>
-        {dropout}
-        <RatedBetween
-          matchId={ratedMatchId}
-          format={ratedFormat}
-          phase={phase}
-          elapsedMs={now - (phaseStart ?? now)}
-          round={round}
-          totalRounds={duel.round_count ?? TOTAL_ROUNDS}
-        />
-      </PhoneShell>,
-    );
-  }
+  // A rated 4- or 8-player match between games: the format slot's Between screen in place of the round results table
+  // and the standings, inside those two screens (their dropout banner, chat and shell unchanged). A 1v1 has no Between,
+  // so this is null and the room's own screens play exactly as before.
+  const ratedBetween =
+    ratedMatchId && ratedFormat && isBetweenPhase(phase) && betweenFor(ratedFormat) ? (
+      <RatedBetween
+        matchId={ratedMatchId}
+        format={ratedFormat}
+        phase={phase}
+        elapsedMs={now - (phaseStart ?? now)}
+        round={round}
+        totalRounds={duel.round_count ?? TOTAL_ROUNDS}
+      />
+    ) : null;
 
   if (phase === "result") {
     const autoSeconds = Math.max(
       0,
       Math.ceil((NEXT_ROUND_AUTO_MS - (now - (phaseStart ?? now))) / 1000),
     );
-    if (isMulti) {
+    if (isMulti || ratedBetween) {
       return withPanel(
         <PhoneShell skin="room" gameType={puzzle?.type} topAction={leaveAction}>
           {dropout}
-          {puzzle ? <CategoryPill category={puzzleDef(puzzle.type).category} className="self-start" /> : null}
+          {puzzle && !ratedBetween ? <CategoryPill category={puzzleDef(puzzle.type).category} className="self-start" /> : null}
           <RoomChatSlot.Provider value={chatButton}>
-          <RoundResultsTable
+          {ratedBetween ?? <RoundResultsTable
             roundTitle={roundTitle}
             best={bestLine}
             rows={table}
@@ -1270,7 +1267,7 @@ function DuelScreen() {
                 msLeft={NEXT_ROUND_AUTO_MS - (now - (phaseStart ?? now))}
               />
             }
-          />
+          />}
           </RoomChatSlot.Provider>
           <RoomChat chat={chat} myUserId={me.user_id} players={players} looks={looks} available={chatAvailable} screenLabel={chatLabel} bar={false} />
         </PhoneShell>
@@ -1333,9 +1330,9 @@ function DuelScreen() {
     return withPanel(
       <PhoneShell skin="room" gameType={puzzle?.type} topAction={leaveAction}>
         {dropout}
-        {puzzle ? <CategoryPill category={puzzleDef(puzzle.type).category} className="self-start" /> : null}
+        {puzzle && !ratedBetween ? <CategoryPill category={puzzleDef(puzzle.type).category} className="self-start" /> : null}
         <RoomChatSlot.Provider value={chatButton}>
-        {isMulti ? (
+        {ratedBetween ?? (isMulti ? (
           <Standings
             round={round}
             totalRounds={duel.round_count ?? TOTAL_ROUNDS}
@@ -1357,7 +1354,7 @@ function DuelScreen() {
             continueState={continueState}
             extras={extras}
           />
-        )}
+        ))}
         </RoomChatSlot.Provider>
         <RoomChat chat={chat} myUserId={me.user_id} players={players} looks={looks} available={chatAvailable} screenLabel={chatLabel} bar={false} />
       </PhoneShell>
