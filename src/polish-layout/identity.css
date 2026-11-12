@@ -275,6 +275,33 @@
   display: block;
   overflow: visible;
 }
+/* Customise's four tabs (12 Nov 2026, Games added): each as wide as its label, the spare width shared, so "Badges
+   and title" never runs into its neighbour (the control's equal columns are a quarter each). */
+.jz-seg.cz-tabs {
+  grid-auto-columns: auto;
+}
+@media (max-width: 359px) {
+  .jz-seg.cz-tabs > button {
+    padding: 0 var(--jz-space-4);
+    font-size: 13px;
+  }
+}
+/* Customise's Games tab (12 Nov 2026): a game look's picture, the whole still shown on the page background. */
+.cz-look-art {
+  display: flex;
+  height: 96px;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: var(--jz-radius);
+  background: var(--jz-bg);
+}
+.cz-look-art > img {
+  display: block;
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
 .cz-name-preview {
   display: flex;
   height: 40px;
@@ -371,4 +398,25 @@ button.cz-gem {
   background: none;
   color: var(--jz-text-2);
   font: inherit;
+}
+
+/* ------------------------------------------------------------------ the mini card (lists) */
+.pcard.pcard-mini {
+  display: inline-block;
+  flex: none;
+  aspect-ratio: 1;
+}
+.pcard-mini-av {
+  position: absolute;
+  top: 13%;
+  left: 13%;
+  width: 74%;
+  height: 74%;
+  pointer-events: none;
+}
+.pcard-mini-av > svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
 }

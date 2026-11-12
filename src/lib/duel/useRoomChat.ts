@@ -13,14 +13,13 @@ import {
   MESSAGE_HISTORY_LIMIT,
   REACTION_LIFETIME_MS,
   REACTION_MIN_GAP_MS,
-  ROOM_EMOJI,
   type FloatingReaction,
-  type RoomEmoji,
   type RoomMessageRow,
 } from "./chatConstants";
 import { unreadCount } from "./chatNotice";
 import type { ReportReason } from "@/lib/safety/reports";
 import { GUEST_NAME_MAX } from "@/lib/names/username";
+import { acceptReaction, type ReactionRosterRow } from "./reactionRoster";
 
 const MUTED_KEY = "duelz_muted_players";
 
@@ -78,6 +77,8 @@ export function useRoomChat(
   roomId: string | null,
   myUserId: string | null,
   active: boolean,
+  /** The room's players (names, status, the host's mute): reactions are shown only from them. */
+  roster?: readonly ReactionRosterRow[] | null,
 ): RoomChatState {
   const [messages, setMessages] = useState<RoomMessageRow[]>([]);
   const [reactions, setReactions] = useState<FloatingReaction[]>([]);
@@ -96,6 +97,8 @@ export function useRoomChat(
   const knownIds = useRef<Set<string>>(new Set());
   const sheetOpenRef = useRef(sheetOpen);
   sheetOpenRef.current = sheetOpen;
+  const rosterRef = useRef(roster ?? null);
+  rosterRef.current = roster ?? null;
 
   useEffect(() => {
     if (roomId) setMutedUserIds(loadMuted(roomId));
@@ -133,10 +136,9 @@ export function useRoomChat(
         },
       )
       .on("broadcast", { event: "reaction" }, ({ payload }) => {
-        const data = payload as { emoji?: string; name?: string; userId?: string } | undefined;
-        if (!data?.emoji || !data.userId) return;
-        // The channel is public to anyone holding the room id: show only the fixed emoji set.
-        if (!ROOM_EMOJI.includes(data.emoji as RoomEmoji)) return;
+        // Only the fixed emoji set, from a player in this room's list, named from that list.
+        const data = acceptReaction(payload, rosterRef.current);
+        if (!data) return;
         // Every phone enforces the one-a-second limit, whoever sent it.
         const previous = lastReactionAt.current.get(data.userId) ?? 0;
         const now = Date.now();
@@ -145,7 +147,7 @@ export function useRoomChat(
         const bubble: FloatingReaction = {
           id: `${data.userId}-${now}-${Math.random().toString(36).slice(2, 7)}`,
           emoji: data.emoji,
-          name: String(data.name ?? "Player").slice(0, GUEST_NAME_MAX),
+          name: data.name.slice(0, GUEST_NAME_MAX),
           userId: data.userId,
           at: now,
         };

@@ -3,7 +3,7 @@
  * types in src/lib/data/economy.ts): the one place that calls them, each answer fitted through backend.ts's
  * normalise* / refusalOf. Their one argument is `{ data }`. A rate-limited read (`{ busy: true }`) reads as nothing.
  */
-import type { IdentityBackend } from "./backend";
+import { normalisePublicCard, type IdentityBackend } from "./backend";
 
 const busy = (v: unknown): boolean => !!v && typeof v === "object" && (v as { busy?: unknown }).busy === true;
 
@@ -44,7 +44,7 @@ export async function bindA1(): Promise<IdentityBackend | null> {
       })) as never,
     getPublicCard: async (playerId) => {
       const c = await fns.getPublicCard({ data: { playerId } });
-      return busy(c) ? null : (c as never);
+      return busy(c) ? null : normalisePublicCard(c);
     },
   };
 }

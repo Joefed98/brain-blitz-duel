@@ -57,6 +57,10 @@ export const PRACTICE_PROGRESS_LIMIT: RateLimit = { bucket: "practice-progress",
 export const START_ROOM_LIMIT: RateLimit = { bucket: "start-room", max: 30, windowSeconds: 3600 };
 /** Starting a challenge attempt: 30 per 10 minutes per user. */
 export const CHALLENGE_START_LIMIT: RateLimit = { bucket: "challenge-start", max: 30, windowSeconds: 600 };
+/** Profile's challenge list: 60 per 10 minutes per user. */
+export const CHALLENGE_LIST_LIMIT: RateLimit = { bucket: "challenge-list", max: 60, windowSeconds: 600 };
+/** A room round's live word and move checks: 1,500 per 10 minutes per user (as practice's per address). */
+export const ROOM_CHECK_LIMIT: RateLimit = { bucket: "room-check", max: 1500, windowSeconds: 600 };
 /** Lobby colour and icon changes: 60 per 10 minutes per user. */
 export const PLAYER_LOOK_LIMIT: RateLimit = { bucket: "player-look", max: 60, windowSeconds: 600 };
 /**
@@ -81,6 +85,8 @@ export const EMAIL_CODE_LIMIT: RateLimit = { bucket: "email-code", max: 5, windo
 export const SAVE_PROGRESS_LIMIT: RateLimit = { bucket: "save-progress", max: 20, windowSeconds: 600, failClosed: true };
 /** The identity screens' three events (identityEvents.functions.ts): a profile view, Customise, a refused equip. */
 export const IDENTITY_EVENT_LIMIT: RateLimit = { bucket: "identity-events", max: 40, windowSeconds: 600, failClosed: true };
+/** Phone notifications (push.functions.ts): saving or removing a device, the switches, the ask, an open. */
+export const PUSH_LIMIT: RateLimit = { bucket: "push", max: 40, windowSeconds: 600, failClosed: true };
 /** Analytics events from the phone (recordClientEventsFn): 30 calls of up to 20 events per 10 minutes a device. */
 export const ANALYTICS_CLIENT_LIMIT: RateLimit = { bucket: "analytics-client", max: 30, windowSeconds: 600, failClosed: true };
 

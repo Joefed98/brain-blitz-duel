@@ -221,7 +221,7 @@ function ArcadePlay({
   onSkip: () => void;
   onEnd: () => void;
 }) {
-  const analysis = useRoundAnalysis(round.puzzle, round.winner!.answer);
+  const analysis = useRoundAnalysis(round.puzzle, round.winner!.answer, round.winner!.look);
   const [caption, setCaption] = useState<string | null>(candidate.caption);
   const clips = useMemo(
     () =>

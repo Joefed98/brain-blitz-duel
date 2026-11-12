@@ -63,6 +63,9 @@ events go alongside them.
 | `coins_spent` | server / database | coins spent (a spend, a shop purchase, a downward admin adjustment); props `reason`, `amount` |
 | `item_granted` | server / database | an item added to an inventory (starter items at sign-up, a purchase, the pass, earned, Joe's grant); props `kind`, `rarity`, `source` |
 | `item_equipped` | server | an item equipped in a loadout slot (not an unequip); props `kind` |
+| `notification_opt_in` | server | the notification ask answered, or notifications turned on from Settings (docs/push-notifications.md); props `answer` (accepted / declined) and `moment` (friend_request_sent, friend_request_received, daily_finished, challenge_received, settings); added by `20261112060000_push_notifications.sql` |
+| `notification_sent` | server | a phone notification sent (src/lib/push/notify.server.ts, after the switches, quiet hours and the cap); props `event` (one of the six) and `devices` |
+| `notification_opened` | server | the app opened from a notification's tap (`?notif=<event>`, `notePushOpenedFn`); props `event` |
 | `challenge_completed` | server | a server-graded Practice run completed a practice challenge (src/lib/challenges/challenges.server.ts); `game`, mode `practice`, props `challenge` (its id), `level`, `coins` (paid with it; 0 for a guest, whose coins are paid on becoming an account) |
 
 Mode is `room`, `daily`, `challenge` or `practice` (`rated` comes later with its own migration).

@@ -1975,6 +1975,79 @@ outside the repo.
   `20261110200000_analytics_identity_events.sql` (**applied**; it adds to the list it reads from the
   table). Checks: identity-screens-check (~5 s, happy-dom, A1 stood in by `setIdentityBackend`) and identity-motion-check
   (headless Chromium: every item against its approved PNG, no animation under reduced motion).
+- **Game skins and world themes** (wave 2 E1, 11 Nov 2026, `docs/skins.md`; display only, no stamps, no gameplay,
+  deal or scoring change): the 20 game skins, 3 card backs and 4 world themes of `docs/art/wave-2/items/game-skin/`,
+  `card-back/` and `world-theme/` in Cue Ball, Crazy Golf, Curl Champ, Apex, Top Bins and Full House (Free Cell has no
+  skins: its deal is face up). `src/lib/arcade/skins/` (`look.ts`:
+  `GameLook`, `NO_LOOK`, the ids, the 3:1 contrast helpers; `motion.renderer.ts`: `skinTime()`, still under Reduce
+  Motion, the only Reduce Motion read; one `<game>.skins.ts`
+  each, `ballArt.ts` for the round balls). Each renderer takes an optional look on its public draw calls for the length
+  of the call only, so replays, reveals, demos, tiles and ghosts draw the default; scenes come from `…SceneFor(look)`.
+  The live stages alone pass the player's own equipped look (`src/lib/skins/equipped.ts` `useGameLookRef`, fed by
+  `src/lib/identity/gameLooks.ts` from A1's loadout through the identity backend's `gameLooks`). *Card backs* (Joe, 11
+  Nov 2026): one account slot `card-back` (ids `card-back.royal-damask`, `.holo-foil`, `.neon`; `CARD_BACK_IDS`,
+  `CARD_BACK_GAMES`), drawn on Full House's deck behind Next card; migration `20261112090000_card_back_slot.sql` moved
+  the three Free Cell skins with their owners and loadouts (old ids in `public.catalogue_renamed`, never re-inserted).
+  *Replays and ghosts*: each result stores its player's equipped look (`round_results.look`, `async_results.look`,
+  filled by database triggers from the loadout, never by the phone; `20261112090100_result_looks.sql`; Play again's
+  archive keeps it, `20261112090200_archive_result_look.sql`); replays draw
+  the player's skin and back in the viewer's own world (`lookFromStored`, `playerLookIn`), Apex's ghosts their owners'
+  paints (`roomGameLooksFn` → `room_game_looks`, `setRaceGhostSkins`). Nothing grades, scores, ranks or deals from a
+  look. Checks: skins-default-check (56 frames identical to digests recorded on main before the hook,
+  `scripts/fixtures/skins-default-frames.json`, never re-record), skins-check (catalogue, renders, contrast, sizes,
+  Reduce Motion, ownership, Full House's deck against `scripts/fixtures/skins-deck-frames.json`, recorded on main),
+  skins-replay-check (28 recorded runs in every look, identical scores; `scripts/fixtures/skins-replay-runs.json`),
+  skins-db-check (the two migrations and the ghost function on a local PostgreSQL, shard `e`). **A change to one of these renderers must keep
+  skins-default-check green; a new skin goes in look.ts's ids and its game's `.skins.ts`.** *Equipping* (12 Nov 2026): Customise's
+  **Games** tab (card back, then each game's skin and world theme; owned items only, the default first, pictures from
+  `public/looks/`, `bun scripts/look-previews.ts [--check]`; saved through A1's `equip()`, `saveSlot`'s `EquipSlot`);
+  the stages' look source now reads `normaliseLoadout(…).gameLooks` (it read a field A1 never sends, so live games drew
+  the default until then). customise-looks-check (happy-dom) and customise-looks-db-check (PostgreSQL, shard `e`).
+- **Phone notifications** (wave 2 train B, session B2, 11 Nov 2026, `docs/push-notifications.md`; no gameplay, scoring,
+  stamp, timing or room-flow change): standard web push with Joulz's own VAPID keys, no package (RFC 8291 / 8292 in
+  WebCrypto, `src/lib/push/webPush.server.ts`). **Off until Joe sets `PUSH_PUBLIC_KEY`** (`src/config/pushConfig.ts`) and the
+  Worker secret `VAPID_PRIVATE_KEY`: nothing asks, subscribes or sends, and no settings panel shows. Six events
+  (`PUSH_EVENTS` in `src/lib/push/rules.ts`), decided and sent only in `notify.server.ts`: friend request, friend accepted,
+  friend challenge and room invite from B1's `friend_events` (`dispatchFriendEvents`, each claimed once through
+  `push_claim_friend_events`; run right after B1's change, `notifySoon` in friends.server.ts, and every 5 minutes),
+  tournament starting (exists; nothing sends it until wave 4) and the Daily streak reminder (19:00–20:59 UK, C2's
+  `dailyStreakFor` streak ≥ 1 with today's Daily not played). Schedules are the Worker's own **Cron Triggers**: nitro
+  scheduled tasks in `vite.config.ts` (`src/lib/push/tasks/`, `*/5 * * * *` friend sweep, `41 * * * *` reminder), written
+  into wrangler.json's `triggers.crons` by the build. A switch per event under a master switch (Settings → Notifications),
+  at most 3 a day (room invites apart), none 22:00–08:00 on the device's clock (its IANA zone, sent on subscribe and each
+  open) except a fresh room invite; held-back ones are dropped. The ask: never on first open, at a useful moment
+  (`notePushMoment`: a friend request sent or waiting, a finished Daily), on the next tab page (`NotificationAskSlot`), 30
+  days after a decline; an iPhone in Safari gets the Home Screen how-to. Accounts only (rows hang off `profiles`); sign-out
+  removes the device (`forgetPushOnSignOut`), a 404/410 from the push service removes it, a deletion request removes all.
+  The `push` / `notificationclick` listeners (`src/lib/push/sw.push.js`) are appended to the offline worker by swPlugin; the
+  offline worker itself is unchanged. Migration `20261112060000_push_notifications.sql` (after C2's and B1's; **not applied
+  until merged**). Events `notification_opt_in`, `notification_sent`, `notification_opened`. push-notifications-check (~5 s,
+  shard `e`). **On for testers only since 11 Nov 2026**: `PUSH_PUBLIC_KEY` set, the secret `VAPID_PRIVATE_KEY` added;
+  while `PUSH_FOR_EVERYONE` is false only player numbers in `PUSH_TESTERS` (`[1, 2]`) get the ask and the panel, the
+  server refuses anyone else's subscription and sends to nobody else (`pushForPlayer`, `audience.server.ts`, from the
+  player's own profile row); set `PUSH_FOR_EVERYONE` to true to open it to every account (guests never).
+  push-testers-check (~5 s, shard `e`).
+- **Friends** (wave 2 train B, session B1, 11 Nov 2026, `docs/friends.md`; no gameplay, scoring, stamp or room-flow
+  change beyond Invite to room): accounts only (`/friends`, `src/routes/friends.tsx`, screens
+  `src/components/friends/FriendsScreens.tsx`; Profile's Friends button carries the waiting-requests badge, a guest gets
+  the save-your-progress sheet). Migration `20261111230000_friends.sql` (**not applied until merged**): friendships,
+  requests (phones never read a status, so a decline is never told), blocks, invite links, "Show when I'm online"
+  (null = on for adults, off for under-18s), presence (the app's heartbeat, `FriendsPresence` in the root, accounts
+  only) and `friend_events`, the outbox B2 turns into phone notifications (`friend_request_received`,
+  `friend_request_accepted`, `friend_challenge_received`, `room_invite_received`); every rule also in SQL on
+  service-role functions (`friends_*`), through `src/lib/data/friends.server.ts` and `src/lib/friends/friends.server.ts`.
+  Search is for adults and never returns an under-18 account; invite links work for everyone (a guest goes through
+  sign-up first, the token kept as `duelz-friend-invite:v1`). Block removes the friendship and stops requests, invites,
+  challenges, search, profiles and status both ways. Reports from a profile go through wave 1's `file_room_report` with
+  no room (`room_reports.duel_id` now nullable). Limits: 20 requests an hour, 200 friends. Chat: `chatPolicy(context,
+  player, { friends: true })` types for friends, under-18s included; strangers unchanged. Analytics `friend_request_sent`,
+  `friend_added`, `friend_removed`, `friend_blocked` (`20261111230100_analytics_friend_events.sql`). The Friendly badge
+  (5 friends) through C2's `awardBadge` when a friendship is made (`awardFriendly`). friends-check (~5 s,
+  PostgreSQL, shard `e`), friends-ui-check (~3 s, happy-dom). Cards (11 Nov 2026, Joe's rule: a player's card, avatar and frame show wherever
+  they appear): rows draw `MiniCard` (`@/design/identity`), a friend's profile their full `PlayerCard`, from the `look`
+  the server adds for the whole list at once (`cardLooksFor`, 100 ids a read); blocked players and guests show no card.
+  The Friends screens are in theme-check and no-wrap-check (`FRIENDS_SCREENS`), and no-wrap-check fails on a switch
+  row whose text runs under its switch.
 - **Badges, titles and the account rewards** (wave 2 train C, session C2, 11 Nov 2026, `docs/badges/README.md`; no
   gameplay, scoring, stamp or timing change): the 54 badges and their rules are Joe's approved catalogue,
   **`docs/badges/catalogue.md`**, in one list, `src/lib/badges/catalogue.ts` (with the 32 titles; seeded by
