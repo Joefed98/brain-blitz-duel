@@ -29,6 +29,8 @@ import { Route as ProfileRoute } from "@/routes/profile";
 import { Route as DailyRoute } from "@/routes/daily";
 import { Route as ChallengeRoute } from "@/routes/challenge";
 import { Route as TermsRoute } from "@/routes/terms";
+import { Route as FriendsRoute } from "@/routes/friends";
+import { setAccount } from "@/lib/account/accountApi";
 import { CelebrationLayer } from "@/components/fx/CelebrationLayer";
 import { NotFoundPage, RouteErrorScreen } from "@/components/app/AppErrorScreen";
 import { FirstOpen } from "@/components/app/FirstOpen";
@@ -383,7 +385,30 @@ async function checkUsernameFn({ data }: { data: { username: string } }) {
   return { ok: true, username: data.username };
 }
 
+/**
+ * Friends (wave 2 B1; theme-check, no-wrap-check): window.__harnessFriends holds the signed-in account, the list
+ * (with each player's card look, as the server sends it) and a friend's profile.
+ */
+type HarnessFriends = { account: unknown; overview: unknown; profile: unknown };
+const friendsFixture = () => (window as unknown as { __harnessFriends?: HarnessFriends }).__harnessFriends;
+async function friendsOverviewFn() {
+  return { ok: true, overview: friendsFixture()?.overview };
+}
+async function friendProfileFn() {
+  return { ok: true, profile: friendsFixture()?.profile };
+}
+async function friendsWaitingFn() {
+  return 1;
+}
+async function friendLinkFn() {
+  return { ok: true, token: "abcdefghjkmn", link: "https://joulz.uk/friends?invite=abcdefghjkmn" };
+}
+
 const IMPLEMENTATIONS: Record<string, unknown> = {
+  friendsOverviewFn,
+  friendProfileFn,
+  friendsWaitingFn,
+  friendLinkFn,
   checkUsernameFn,
   getIntroDemoFn,
   roundReplayFn,
@@ -469,6 +494,11 @@ if (mode === "saveprogress")
   } catch {
     /* ignore */
   }
+// Friends: the signed-in account the list belongs to, set before the first render (no server call).
+if (mode === "friends") {
+  const fixture = friendsFixture();
+  if (fixture) setAccount(fixture.account as never, null);
+}
 // Wave 1's root screens (src/components/app/AppErrorScreen.tsx, FirstOpen.tsx), drawn as the root route draws them.
 const ROOT_SCREENS: Record<string, () => JSX.Element> = {
   notfound: () => <NotFoundPage />,
@@ -502,7 +532,9 @@ const Screen = ROOT_SCREENS[mode ?? ""] ?? (
               ? ChallengeRoute
               : mode === "terms"
                 ? TermsRoute
-                : PracticeRoute
+                : mode === "friends"
+                  ? FriendsRoute
+                  : PracticeRoute
 ).options.component as () => JSX.Element;
 createRoot(document.getElementById("root")!).render(
   <QueryClientProvider client={new QueryClient()}>

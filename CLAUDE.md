@@ -2039,7 +2039,11 @@ outside the repo.
   player, { friends: true })` types for friends, under-18s included; strangers unchanged. Analytics `friend_request_sent`,
   `friend_added`, `friend_removed`, `friend_blocked` (`20261111230100_analytics_friend_events.sql`). The Friendly badge
   (5 friends) through C2's `awardBadge` when a friendship is made (`awardFriendly`). friends-check (~5 s,
-  PostgreSQL, shard `e`), friends-ui-check (~3 s, happy-dom).
+  PostgreSQL, shard `e`), friends-ui-check (~3 s, happy-dom). Cards (11 Nov 2026, Joe's rule: a player's card, avatar and frame show wherever
+  they appear): rows draw `MiniCard` (`@/design/identity`), a friend's profile their full `PlayerCard`, from the `look`
+  the server adds for the whole list at once (`cardLooksFor`, 100 ids a read); blocked players and guests show no card.
+  The Friends screens are in theme-check and no-wrap-check (`FRIENDS_SCREENS`), and no-wrap-check fails on a switch
+  row whose text runs under its switch.
 - **Badges, titles and the account rewards** (wave 2 train C, session C2, 11 Nov 2026, `docs/badges/README.md`; no
   gameplay, scoring, stamp or timing change): the 54 badges and their rules are Joe's approved catalogue,
   **`docs/badges/catalogue.md`**, in one list, `src/lib/badges/catalogue.ts` (with the 32 titles; seeded by
