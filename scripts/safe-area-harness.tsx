@@ -38,6 +38,7 @@ import { FirstOpen } from "@/components/app/FirstOpen";
 import { AccountSettings } from "@/components/account/AccountSettings";
 import { SignUpFlow } from "@/components/account/SignUpFlow";
 import { celebrationsOn } from "@/lib/fx/celebrations";
+import { RatedHarnessScreen } from "./rated-fixture";
 
 interface Verdict {
   isCorrect: boolean;
@@ -545,6 +546,8 @@ const ROOT_SCREENS: Record<string, () => JSX.Element> = {
     if (settings) return <AccountSettings account={settings} onBack={() => undefined} />;
     return <SignUpFlow start="signin" account={{ kind: "guest", userId: null }} onDone={() => undefined} />;
   },
+  // The rated match screens (wave 3, W3c): window.__harnessRated.screen, drawn from scripts/rated-fixture.tsx.
+  rated: () => <RatedHarnessScreen />,
   // The prompt due on the next tab page (seeded below): Profile draws it through PhoneShell's SaveProgressSlot.
   saveprogress: () => {
     const Profile = ProfileRoute.options.component as () => JSX.Element;
