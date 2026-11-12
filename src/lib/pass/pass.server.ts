@@ -37,6 +37,7 @@ import {
   type PassStateRow,
 } from "@/lib/data/pass.server";
 import { readProfile } from "@/lib/data/profiles.server";
+import { readRatedWeekMatches } from "@/lib/data/ratings.server";
 import { readIsTester } from "@/lib/data/shop.server";
 import { arcadeGroupOf } from "@/lib/duel/arcadeGroups";
 import { PUZZLE_CATALOGUE, type GameInfo } from "@/lib/duel/catalogue";
@@ -63,8 +64,10 @@ import {
   WEEKLY_TIERS,
   weeklySetFor,
   weekStartOf,
+  GAME_CATEGORIES,
   type GameCategory,
   type PlayedGame,
+  type RatedWeekMatch,
   type WeeklyChallenge,
   type WeekActivity,
 } from "./weekly";
@@ -251,11 +254,23 @@ async function weekProgress(
     if (played.error) throw new Error(`pass: ${played.error.message}`);
     before = new Set(played.data);
   }
+  // Rated matches (wave 3 W3a): only read when the week has an R challenge.
+  let rated: RatedWeekMatch[] = [];
+  if (challenges.some((c) => c.rule.k === "rated")) {
+    const got = await readRatedWeekMatches(client, userId, new Date(fromMs).toISOString(), new Date(toMs).toISOString());
+    if (got.error) throw new Error(`pass: ${got.error.message}`);
+    rated = got.data.map((m) => ({
+      result: m.result,
+      bestOf: m.bestOf,
+      games: m.games.map((g) => ({ category: (GAME_CATEGORIES as readonly string[]).includes(g.category ?? "") ? (g.category as GameCategory) : null, won: g.won === true })),
+    }));
+  }
   const week: WeekActivity = {
     games: playedGames(inWeek),
     stars: inWeek.filter((a) => a.k === "star" && a.game).map((a) => a.game!),
     practiceChallenges: inWeek.filter((a) => a.k === "practice_challenge").length,
     playedBefore: before,
+    rated,
   };
   return { weekStart, challenges: challenges.map((c) => ({ c, ...progressOf(c, week) })) };
 }
@@ -618,13 +633,15 @@ export async function passTitlesFor(client: Db, userId: string): Promise<{ id: s
 
 /**
  * Wave 3: credits a rated match's Joules (150 a win, 100 a loss; 1.5× for the longer formats) for the season the
- * account sees, once per match. Not called by anything yet.
+ * account sees, once per match. Called by the ratings engine's finishRatedMatch (src/lib/rated/rewards.server.ts, wave 3
+ * W3a, 11 Nov 2026) with `key` = its stored ratedJoulesKey ("rated_match:<match>:<player>"); without one, the key is
+ * "rated:<match>" as before.
  */
 export async function creditRatedMatchJoules(
   client: Db,
-  input: { userId: string; matchId: string; won: boolean; long: boolean; atMs: number },
+  input: { userId: string; matchId: string; won: boolean; long: boolean; atMs: number; key?: string },
 ): Promise<number> {
-  return creditHook(client, input.userId, `rated:${input.matchId}`, "rated", ratedMatchJoules(input), input.atMs);
+  return creditHook(client, input.userId, input.key ?? `rated:${input.matchId}`, "rated", ratedMatchJoules(input), input.atMs);
 }
 
 /** Wave 4: credits a tournament's Joules (an Arena duel 100; finishing a Score Attack, Swiss or Knockout 150). Not called yet. */

@@ -1921,6 +1921,24 @@ export type Database = {
       }
     }
     Functions: {
+      // Ratings (wave 3, W3a; supabase/migrations/20261114100000_ratings.sql): service role only.
+      rated_state: {
+        Args: {
+          p_match_id: string | null
+          p_players: string[]
+          p_day: string
+          p_since: string
+          p_run_ids: string[]
+          p_rematch_of: string | null
+        }
+        Returns: Json
+      }
+      rated_apply_match: { Args: { p: Json }; Returns: Json }
+      rated_badge_facts: { Args: { p_user_id: string }; Returns: Json }
+      rated_tier_counts: { Args: Record<PropertyKey, never>; Returns: Json }
+      rated_recompute_standings: { Args: { p_now: string }; Returns: Json }
+      rated_set_tiers: { Args: { p: Json }; Returns: number }
+      rated_week_matches: { Args: { p_user_id: string; p_from: string; p_to: string }; Returns: Json }
       result_look_for: {
         Args: { p_game: string; p_user_id: string }
         Returns: Json

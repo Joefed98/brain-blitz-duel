@@ -54,6 +54,8 @@ export const PUBLIC_CARD_LIMIT: RateLimit = { bucket: "public-card", max: 600, w
 export const PLUS_LIMIT: RateLimit = { bucket: "plus", max: 20, windowSeconds: 600, failClosed: true };
 /** Practice progress reads and the one-time note (wave 2 C1a), per player. */
 export const PRACTICE_PROGRESS_LIMIT: RateLimit = { bucket: "practice-progress", max: 240, windowSeconds: 600 };
+/** Reading ratings, placement and the tier ladder (wave 3, W3a), per player. */
+export const RATINGS_READ_LIMIT: RateLimit = { bucket: "ratings-read", max: 600, windowSeconds: 600 };
 
 /** Starting a room (dealing every round): 30 an hour per user. */
 export const START_ROOM_LIMIT: RateLimit = { bucket: "start-room", max: 30, windowSeconds: 3600 };

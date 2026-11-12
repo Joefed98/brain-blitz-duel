@@ -100,6 +100,12 @@ export const ANALYTICS_EVENTS = [
   "pass_level_reached",
   "reward_claimed",
   "weekly_challenge_completed",
+  // Rated play (wave 3 W3a, docs/rated/README.md): recorded by the server only (src/lib/rated/ratings.server.ts).
+  // rated_match_finished carries props.format (bo3 / bo5 / bo7 / 4p / 8p), props.choice, props.result and
+  // props.opponent (live / recorded); placement_finished props.tier; tier_changed props.from and props.to.
+  "rated_match_finished",
+  "placement_finished",
+  "tier_changed",
 ] as const;
 export type AnalyticsEventName = (typeof ANALYTICS_EVENTS)[number];
 
