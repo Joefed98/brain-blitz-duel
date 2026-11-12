@@ -115,7 +115,7 @@ export async function upsertAskAnswer(
 
 /**
  * Takes one notification's place in the log (public.push_reserve_at): the cap and the once-only keys, atomically. The
- * send is stamped with `nowIso`, the same clock `sinceIso` is worked out from (20261112100000_push_reserve_at.sql).
+ * send is stamped with `nowIso`, the same clock `sinceIso` is worked out from (20261112130000_push_reserve_at.sql).
  */
 export async function reserveNotification(
   client: Db,
