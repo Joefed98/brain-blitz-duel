@@ -2059,6 +2059,18 @@ export type Database = {
         }
         Returns: string
       }
+      push_reserve_at: {
+        Args: {
+          p_cap: number
+          p_counts_cap: boolean
+          p_dedupe_key: string | null
+          p_event: string
+          p_now: string
+          p_since: string
+          p_user_id: string
+        }
+        Returns: string
+      }
       push_streak_candidates: {
         Args: { p_day: string }
         Returns: {

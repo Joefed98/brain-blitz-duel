@@ -691,6 +691,7 @@ async function databaseChecks(db: LocalDb, rest: RestServer): Promise<void> {
     const friends = await import("../src/lib/friends/friends.functions");
     const { rules } = { rules: await import("../src/lib/push/rules") };
     web.setPushFetchForChecks(service.fetchImpl);
+    clock = Date.now(); // Changed with Joe's approval, 12 Nov 2026: B1's own calls send at the real time, so the stand-in judges their VAPID tokens and the sweep runs on it too (was the 11–12 Nov scenario clock, which broke once the real date passed it).
     // B1's own calls dispatch at the real time: give the devices a time zone where it's daytime now.
     const zones = ["Europe/London", "America/New_York", "America/Los_Angeles", "Pacific/Honolulu", "Asia/Tokyo", "Australia/Sydney", "Asia/Kolkata", "Asia/Dubai", "Pacific/Auckland", "America/Sao_Paulo"];
     const zone = zones.find((z) => { const h = rules.localHour(Date.now(), z); return h >= 9 && h <= 19; }) ?? "Europe/London";
@@ -798,7 +799,8 @@ async function databaseChecks(db: LocalDb, rest: RestServer): Promise<void> {
     check(!!logRead.error || (logRead.data ?? []).length === 0, "the log is the server's only");
     const reachable: string[] = [];
     for (const role of ["anon", "authenticated"]) {
-      for (const f of ["push_reserve(uuid,text,boolean,timestamp with time zone,integer,text)", "push_streak_candidates(date)", "push_claim_friend_events(timestamp with time zone,integer)", "push_log_retention()"])
+      // Changed with Joe's approval, 12 Nov 2026: push_reserve_at added to the list (the cap's new function, one clock for the count and the stamp); every earlier function is still there.
+      for (const f of ["push_reserve(uuid,text,boolean,timestamp with time zone,integer,text)", "push_reserve_at(uuid,text,boolean,timestamp with time zone,integer,text,timestamp with time zone)", "push_streak_candidates(date)", "push_claim_friend_events(timestamp with time zone,integer)", "push_log_retention()"])
         if (q(`SELECT has_function_privilege('${role}', 'public.${f}', 'EXECUTE')`) === "t") reachable.push(`${role} ${f}`);
       for (const t of ["notification_log", "push_friend_deliveries"]) if (q(`SELECT has_table_privilege('${role}', 'public.${t}', 'SELECT')`) === "t") reachable.push(`${role} ${t}`);
       if (q(`SELECT has_table_privilege('${role}', 'public.push_subscriptions', 'INSERT')`) === "t") reachable.push(`${role} insert subscriptions`);
