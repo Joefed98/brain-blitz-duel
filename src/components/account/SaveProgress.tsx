@@ -40,7 +40,7 @@ export function FinishedGameCounter({ gameKey, from }: { gameKey: string; from: 
     // Phone notifications (B2): a finished Daily is a useful moment to ask an account (the streak reminder); the ask
     // shows on the next tab page, never here. Nothing while the switch is off.
     if (from === "daily" && account.kind === "account" && pushPublicKey())
-      void import("@/lib/push/pushClient").then((m) => m.notePushMoment("daily_finished", true)).catch(() => {});
+      void import("@/lib/push/pushClient").then((m) => m.notePushMoment("daily_finished", account.playerNumber)).catch(() => {});
     // Counted once per game: the account's kind settles once.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [account.kind === "unknown", gameKey]);

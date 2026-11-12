@@ -16,10 +16,11 @@ import {
   upsertPushSubscription,
 } from "@/lib/data/push.server";
 
+import { serverPushAllowed } from "./audience.server";
 import { ASK_MOMENTS, isPushEvent, mayAskAgain, normaliseSettings, safeTimeZone, type PushSettings } from "./rules";
 import { b64urlDecode, isPushEndpoint, vapidKeys } from "./webPush.server";
 
-export type PushRefusal = { ok: false; reason: "disabled" | "no_account" | "bad_subscription" | "error" };
+export type PushRefusal = { ok: false; reason: "disabled" | "no_account" | "not_in_audience" | "bad_subscription" | "error" };
 
 const refuse = (reason: PushRefusal["reason"]): PushRefusal => ({ ok: false, reason });
 
@@ -54,6 +55,10 @@ export async function saveSubscription(
   const account = await readHasProfile(client, userId);
   if (account.error) return refuse("error");
   if (!account.data) return refuse("no_account");
+  // Testers only while PUSH_FOR_EVERYONE is false (pushConfig.ts): nobody else's device is ever stored.
+  const allowed = await serverPushAllowed(client, userId);
+  if (allowed === "error") return refuse("error");
+  if (!allowed) return refuse("not_in_audience");
   const saved = await upsertPushSubscription(client, {
     user_id: userId,
     endpoint,

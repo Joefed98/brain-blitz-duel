@@ -223,7 +223,7 @@ function RootComponent() {
       const { syncPushOnOpen } = await import("../lib/push/pushClient");
       const { refreshAccount } = await import("../lib/account/accountApi");
       const account = await refreshAccount();
-      await syncPushOnOpen(account.kind === "account");
+      await syncPushOnOpen(account.kind === "account" ? account.playerNumber : null);
     })().catch(() => {});
   }, []);
 
