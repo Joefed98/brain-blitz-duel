@@ -12,6 +12,8 @@
  * Checks stand in for A1 with `setIdentityBackend(fake)` (scripts/identity-screens-check.tsx).
  */
 
+import { SKIN_GAME_NAMES, type SkinnableGame } from "@/lib/arcade/skins/look";
+
 /** The rarity ladder (docs/art/wave-2/README.md): Common bronze, Rare silver, Epic gold, Elite obsidian, Legendary diamond. */
 export type Rarity = "common" | "rare" | "epic" | "elite" | "legendary";
 
@@ -48,6 +50,21 @@ export const LOADOUT_SLOTS: readonly LoadoutSlot[] = [
   "avatar-accessory",
   "avatar-special-edition",
 ];
+
+/**
+ * The game-look slots Customise's Games tab equips (12 Nov 2026): the account's one `card-back`, and per skinnable game
+ * `game-skin:<game>` and `world-theme:<game>` (src/lib/economy/slots.ts LOADOUT_SLOTS). A1's equip() takes them as it
+ * takes the card slots; the server checks the item is owned and belongs in that slot.
+ */
+export type LookSlot = "card-back" | `game-skin:${string}` | `world-theme:${string}`;
+export const isLookSlot = (slot: string): slot is LookSlot => /^(game-skin|world-theme):[a-z]+$|^card-back$/.test(slot);
+/** Every game-look slot: the card back, then each skinnable game's skin and world theme. */
+export const LOOK_SLOTS: readonly LookSlot[] = [
+  "card-back",
+  ...(Object.keys(SKIN_GAME_NAMES) as SkinnableGame[]).flatMap((g): LookSlot[] => [`game-skin:${g}`, `world-theme:${g}`]),
+];
+/** Any slot Customise saves through equip(). */
+export type EquipSlot = LoadoutSlot | LookSlot;
 
 /** The avatar builder's own options (A1's AvatarChoices), separate from the catalogue's avatar items. */
 export const AVATAR_OPTION_KINDS = ["accent", "feature", "accessory", "background"] as const;
@@ -99,7 +116,7 @@ export interface IdentityBackend {
   getMyInventory(): Promise<string[]>;
   getMyLoadout(): Promise<Loadout | null>;
   getAvatarOptions(): Promise<AvatarOptions>;
-  equip(slot: LoadoutSlot, itemId: string | null): Promise<Saved | Refusal>;
+  equip(slot: EquipSlot, itemId: string | null): Promise<Saved | Refusal>;
   setAvatar(choice: AvatarChoice): Promise<Saved | Refusal>;
   getPublicCard(playerId: string): Promise<PublicCard | null>;
 }
@@ -176,7 +193,7 @@ export function normaliseLoadout(raw: unknown): Loadout | null {
     : null;
   const gameLooks: Record<string, string | null> = {};
   for (const [slot, v] of Object.entries(slotsRaw)) {
-    if (!/^(game-skin|world-theme):[a-z]+$|^card-back$/.test(slot)) continue;
+    if (!isLookSlot(slot)) continue;
     if (typeof v === "string" && v.startsWith(`${slot.split(":")[0]}.`)) gameLooks[slot] = v;
     else if (v === null) gameLooks[slot] = null;
   }
