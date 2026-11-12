@@ -15,6 +15,8 @@ export interface RaceGhost {
   colour: string;
   s: number;
   x: number;
+  /** The ghost's own car paint (a `game-skin.apex.*` id the server read from its owner's loadout), or none. */
+  skin?: string | null;
 }
 
 interface Me {
@@ -33,6 +35,14 @@ let me: Me | null = null;
 let sentAt = 0;
 const seen = new Map<string, RaceGhost & { at: number }>();
 let list: RaceGhost[] = [];
+/** Each player's car paint by their key (slot), from the room's looks (setRaceGhostSkins); display only. */
+let skins: Readonly<Record<string, string | null>> = {};
+
+/** The room screen hands over the players' car paints (keyed as the ghosts are: the player's slot). */
+export function setRaceGhostSkins(next: Readonly<Record<string, string | null>>): void {
+  skins = next;
+  publish();
+}
 const listeners = new Set<() => void>();
 
 /** A ghost's key is its player's room slot, 1 to MAX_PLAYERS; anything else is not a car of this room. */
@@ -48,7 +58,7 @@ export function pruneGhosts<T extends { at: number }>(map: Map<string, T>, now: 
 function publish(): void {
   const now = Date.now();
   pruneGhosts(seen, now);
-  list = [...seen.values()].map((g) => ({ name: g.name, colour: g.colour, s: g.s, x: g.x }));
+  list = [...seen.entries()].map(([key, g]) => ({ name: g.name, colour: g.colour, s: g.s, x: g.x, skin: skins[key] ?? null }));
   for (const l of listeners) l();
 }
 
@@ -86,6 +96,7 @@ export function stopRaceGhosts(): void {
   channel = null;
   me = null;
   seen.clear();
+  skins = {};
   if (list.length) publish();
 }
 

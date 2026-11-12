@@ -1,4 +1,6 @@
 import { withArcadeFx } from "@/lib/arcade/arcadeFx.renderer";
+import { useGameLookRef } from "@/lib/skins/equipped";
+import { lookKey } from "@/lib/arcade/skins/look";
 import { useDesktopPresentation } from "@/lib/desktopPresentation";
 import { setArcadeTextTurn } from "@/lib/arcade/arcadeFx.renderer";
 import { POOL_FX } from "@/lib/arcade/sportsFx.renderer";
@@ -32,7 +34,7 @@ import {
   POOL_W,
   type PoolState,
 } from "@/lib/arcade/pool";
-import { drawPool, drawPoolHud, drawPoolPowerPanel, poolBallColour, poolScene, POOL_BG, type PoolAim } from "@/lib/arcade/pool.renderer";
+import { drawPool, drawPoolHud, drawPoolPowerPanel, poolBallColour, poolSceneFor, POOL_BG, type PoolAim } from "@/lib/arcade/pool.renderer";
 import { SPORTS_CHECKPOINT_INTERVAL } from "@/lib/arcade/sportsKit";
 import { poolSounds } from "@/lib/fx/gameSounds";
 import { encodePoolRun, replayPoolRun } from "@/lib/duel/pool";
@@ -227,6 +229,9 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     return a;
   };
 
+  // The player's own equipped skin and world theme (wave 2; display only, src/lib/skins/equipped.ts).
+  const [look, lookRef] = useGameLookRef("pool");
+  const scene = useMemo(() => poolSceneFor(look), [look]);
   const turnedRef = useRef(false);
   turnedRef.current = useDesktopPresentation().rotate;
   // The sim, with a draw that paints the table, the cue and the aim the player is lining up (presentation only).
@@ -243,7 +248,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         // so they read upright, and its HUD chips go on the upright strip (`hud` below), never on the turned table.
         const turned = turnedRef.current;
         setArcadeTextTurn(turned ? -Math.PI / 2 : 0);
-        withArcadeFx(POOL_FX, (c, st: PoolState) => drawPool(c, st, view, turned))(ctx, s, { width: POOL_W, height: POOL_H });
+        withArcadeFx(POOL_FX, (c, st: PoolState) => drawPool(c, st, view, turned, lookRef.current))(ctx, s, { width: POOL_W, height: POOL_H });
         setArcadeTextTurn(0);
       },
     };
@@ -365,8 +370,9 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         label={gameDisplayName("pool")}
         background={POOL_BG}
         fitWorld
-        scene={poolScene}
-        hud={{ height: 32, worldW: POOL_W, draw: drawPoolHud }}
+        scene={scene}
+        sceneKey={() => lookKey(lookRef.current)}
+        hud={{ height: 32, worldW: POOL_W, draw: (ctx, s) => drawPoolHud(ctx, s, lookRef.current) }}
         seed={data?.seed ?? 1}
         enabled={data !== null}
         locked={locked}
