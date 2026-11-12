@@ -319,6 +319,7 @@ await section("wiring", async () => {
   check(!/tournamentsBackend|getPublicCard|cardBadgesFn|createServerFn|\.functions"/.test(strip), "the strip fetches nothing: its plate comes with the board (one call per page)");
   const builder = readFileSync("src/lib/identity/plates.server.ts", "utf8").replace(/\/\*[\s\S]*?\*\/|\/\/.*$/gm, "");
   check(/shownTiersFor/.test(builder) && !/recordRatedMatch|finishRatedMatch|rewards\.server|insert|update|upsert|delete\(/i.test(builder), "the plate builder only reads W3a's tiers (never records or finishes a rated match, writes nothing)");
+  check(/publicCardsFor\(client, ids\)/.test(builder) && /cardBadgesFor\(client, ids\)/.test(builder) && !/readPublicCards|readBadgePublicCards/.test(builder), "the plates are built on #385's publicCardsFor and C2's cardBadgesFor (the one way every row in the app reads a player)");
   const server = readFileSync("src/lib/tournaments/tournaments.server.ts", "utf8");
   check(/platesFor\(\s*client,\s*userId,/.test(server) && /scoreAttackRows\(client, userId/.test(server) && /opponentOf\(client, userId, other\)/.test(server), "the Arena board, the Score Attack board and the duel opponent all go through platesFor");
 });
