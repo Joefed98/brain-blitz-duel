@@ -74,7 +74,6 @@ import {
   FORMAT_GAMES,
   type Side,
   departureVerdict,
-  placeWithLeavers,
   type Departure,
   type DeparturePlayer,
   FORMAT_PLAYERS,
@@ -311,6 +310,9 @@ export async function joinQueue(
   if (openIds?.length) return { ok: false, reason: "in_match", message: "You’re already in a match." };
   const rating = await (await ratingsReady()).matchRating(userId, { format, choice });
   if (!rating) return { ok: false, reason: "no_rating", message: "Rated play isn’t ready yet." };
+  // W3d: 4 and 8 players are for placed players (placement plays recorded 1v1 runs first).
+  if (rating.placement && FORMAT_PLAYERS[format] > 2)
+    return { ok: false, reason: "option", message: "Finish your placement matches first." };
   const { error } = await writeQueueEntry(client, {
     user_id: userId,
     format,
@@ -358,6 +360,12 @@ export async function pollQueue(client: Db, userId: string, nowMs: number): Prom
     return { state: "found", match: view };
   }
   const waitedMs = nowMs - me.joinedAtMs;
+  // W3d: 4 and 8 players group through src/lib/rated/multi/multiQueue.server.ts (W3b's own pairing rule, createLiveMatch).
+  if (FORMAT_PLAYERS[me.format] > 2) {
+    const { pollMultiQueue } = await import("./multi/multiQueue.server");
+    const step = await pollMultiQueue(client, me, nowMs, (input) => createLiveMatch(client, input, nowMs));
+    return step.state === "matched" ? pollQueue(client, userId, nowMs) : step;
+  }
   // Placement players pair live with other placement players, placed with placed (canPair), within the same widening.
   {
     const { data: rows } = await readWaiting(client, me.format, me.choice);
@@ -871,19 +879,6 @@ function roomFinishedAtMs(room: { status: string; phase: string; phase_started_a
   return null;
 }
 
-/**
- * A 4- or 8-player match's places: the players who stayed by total score (more first; level totals share a place,
- * 1, 2, 2, 4), then the leavers below them, the latest leaver highest (placeWithLeavers).
- */
-export function matchPlacings(players: readonly SettledPlayer[], leavers: readonly MatchLeaver[]): Record<string, number> {
-  const gone = new Set(leavers.map((l) => l.userId));
-  const stayers = players.filter((p) => !gone.has(p.userId));
-  const places: Record<string, number> = {};
-  for (const p of stayers) places[p.userId] = stayers.filter((o) => o.total > p.total).length + 1;
-  const departures: Departure[] = leavers.filter((l) => players.some((p) => p.userId === l.userId)).map((l) => ({ userId: l.userId, atMs: msOf(l.at) }));
-  return placeWithLeavers(places, departures);
-}
-
 /** The server's result of a finished match (pure on what is stored). */
 export function buildMatchResult(input: {
   match: RatedMatchRow;
@@ -959,7 +954,8 @@ export function buildMatchResult(input: {
     games: puzzles.map((p, i) => ({ type: p.type, signature: gameVersionOf(p), winner: gameWinner(games[i]!) })),
     // A forfeit: the player who stayed wins whatever the score (a 1v1); 4 and 8 players are decided by their placings.
     winner: many ? "draw" : leavers.length > 0 && !recorded ? (gone.has(players[0]?.user_id ?? "") ? "b" : "a") : outcome.winner,
-    placings: many ? matchPlacings(resultPlayers, leavers) : null,
+    // 4 and 8 players settle through W3d's multiSettlement (its placings and W3b's leaver rule), never here.
+    placings: null,
     ending: leavers.length > 0 ? { kind: "forfeit", leavers: leavers.map((l) => l.userId) } : null,
     recorded:
       recorded && match.recorded_owner && match.recorded_key && match.recorded_source
@@ -1031,6 +1027,8 @@ export async function settleMatch(client: Db, matchId: string, nowMs: number): P
     const { data: priv } = await readPrivatePuzzles(client, room.id);
     const pubs = Array.isArray(room.puzzles_public) ? (room.puzzles_public as unknown as PuzzleData[]) : [];
     const puzzles = pubs.map((p, i) => mergePuzzle(p, priv?.[i]));
+    // W3d: a 4- or 8-player match is settled on its placings (multiSettlement); then every match takes the same path.
+    const multi = FORMAT_PLAYERS[match.format as RatedFormat] > 2 ? await import("./multi/multiQueue.server") : null;
     // The games played: every dealt game, or fewer when the match stopped as soon as it was won (matchClinched).
     // A forfeit ends the room mid-match: the games fully played when it ended (at least the first).
     const forfeit = match.ended === "forfeit";
@@ -1038,25 +1036,24 @@ export async function settleMatch(client: Db, matchId: string, nowMs: number): P
       ? Math.max(1, room.current_round - (["starting", "round_title", "intro", "puzzle"].includes(room.phase) ? 1 : 0))
       : room.current_round;
     const played = puzzles.slice(0, Math.max(1, Math.min(puzzles.length, upTo)));
-    const result = buildMatchResult({
-      match: { ...match, finished_at: finishedAt },
-      players: players ?? [],
-      puzzles: played,
-      results: results ?? [],
-      finishedAt,
-      // A forfeit's leavers; or, in a 4- or 8-player match that played on, the players found gone for good on the way.
-      leavers: forfeit
-        ? storedLeavers(match)
-        : (players ?? [])
-            .filter((p) => p.gone_at)
-            .sort((x, y) => msOf(x.gone_at!) - msOf(y.gone_at!))
-            .map((p) => ({ userId: p.user_id, at: p.gone_at!, step: "" })),
-    });
+    // A forfeit's leavers; or, in a 4- or 8-player match that played on, the players found gone for good on the way.
+    const leavers = forfeit
+      ? storedLeavers(match)
+      : (players ?? [])
+          .filter((p) => p.gone_at)
+          .sort((x, y) => msOf(x.gone_at!) - msOf(y.gone_at!))
+          .map((p) => ({ userId: p.user_id, at: p.gone_at!, step: "" }));
+    // W3d: a 4- or 8-player match settles through multiSettlement (placings by points, then total score; W3b's leaver
+    // rule: leavers below everyone who stayed, latest leaver highest). A 1v1 through buildMatchResult.
+    const result = multi
+      ? multi.multiSettlement({ match, players: players ?? [], puzzles: played, results: results ?? [], finishedAt, leavers })
+      : buildMatchResult({ match: { ...match, finished_at: finishedAt }, players: players ?? [], puzzles: played, results: results ?? [], finishedAt, leavers });
     // W3a's recordRatedMatch, once per match (idempotent on the id): a passing failure throws and the settle retries.
     const forRatings = toRatingsResult(result);
     if (forRatings) result.ratings = await (await ratingsReady()).recordRatedMatch(forRatings);
     await markSettled(client, matchId, asJson(result), nowIso(nowMs));
     await storeRatedRuns(client, match, players ?? [], puzzles, results ?? []);
+    if (multi) multi.recordMultiFinished(result);
     return { state: "settled", result };
   } catch (error) {
     await releaseSettle(client, matchId);

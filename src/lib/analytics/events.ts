@@ -100,12 +100,12 @@ export const ANALYTICS_EVENTS = [
   "pass_level_reached",
   "reward_claimed",
   "weekly_challenge_completed",
-  // Rated play (wave 3 W3a, docs/rated/README.md): recorded by the server only (src/lib/rated/ratings.server.ts).
-  // rated_match_finished carries props.format (bo3 / bo5 / bo7 / 4p / 8p), props.choice, props.result and
-  // props.opponent (live / recorded); placement_finished props.tier; tier_changed props.from and props.to.
-  "rated_match_finished",
-  "placement_finished",
-  "tier_changed",
+  // Rated 4- and 8-player matches (wave 3, session W3d; docs/rated/multiplayer.md): recorded by the server only
+  // (src/lib/rated/multi/multi.server.ts). multiplayer_match_started carries props.size, props.live_seats and
+  // props.recorded_seats (once a match, no player); multiplayer_match_finished props.size and props.placing (one a live
+  // player).
+  "multiplayer_match_started",
+  "multiplayer_match_finished",
   // Rated matchmaking (wave 3, W3b; docs/rated/matchmaking-interface.md): recorded by the server only
   // (src/lib/rated/rated.server.ts). queue_joined carries props.format and props.choice; match_found props.kind
   // (live | recorded), props.waited_s, props.format and props.choice; rematch_requested and rematch_accepted
@@ -114,6 +114,12 @@ export const ANALYTICS_EVENTS = [
   "match_found",
   "rematch_requested",
   "rematch_accepted",
+  // Rated play (wave 3 W3a, docs/rated/README.md): recorded by the server only (src/lib/rated/ratings.server.ts).
+  // rated_match_finished carries props.format (bo3 / bo5 / bo7 / 4p / 8p), props.choice, props.result and
+  // props.opponent (live / recorded); placement_finished props.tier; tier_changed props.from and props.to.
+  "rated_match_finished",
+  "placement_finished",
+  "tier_changed",
   // The rated match screens (wave 3, session W3c): recorded by the server only, through recordRatedEventFn
   // (src/lib/rated/ratedEvents.functions.ts), which accepts these five with fixed-word props and nothing else.
   "play_card_tapped",

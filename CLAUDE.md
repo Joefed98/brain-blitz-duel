@@ -2237,6 +2237,23 @@ outside the repo.
   weekly draw share (R challenges only while on, progress from `rated_week_matches`). A 1v1 stops once decided (each
   game weighted); a run the server flagged (a game's stored grade `extra.flagged`, live or recorded) moves nobody, counts for nothing, pays the flagged player no Joules and is logged in `moderation.rated_flags` (Joe: `moderation.rated_flag_queue()`); the tier floor grace keeps a tier 3 more matches below its floor
   (`shownTierFor`). ratings-check (~10 s, shard `e`, PostgreSQL).
+- **Rated 4- and 8-player matches** (wave 3, session W3d, 11 Nov 2026, `docs/rated/multiplayer.md`; no gameplay, scoring,
+  stamp, timing or deal change; rooms untouched): **off at launch** on W3b's switches (`RATED_FORMATS_ON.ffa4` / `.ffa8`
+  in `src/config/matchmakingConfig.ts`), refused by the server while off (`joinMultiQueue` / `assertMultiOn`). Rules
+  `src/lib/rated/multi/rules.ts`: 15 s for live players, then recorded runs in every empty seat, never a player twice;
+  placing points 10, 7, 5, 4, 3, 2, 1, 0 (8) and 5, 3, 1, 0 (4), final placings by points then total score. Grouped in W3b's
+  queue (`pollMultiQueue`) and settled on the 1v1's own path: `multiSettlement` (stored scores, stored server grades,
+  placings), then W3b's `toRatingsResult` (a `placings` match with `gradeExtras`) and W3a's `finishRatedMatch` through
+  `ratingsReady()` (the pairwise rule, Joules 1.5 × best of 3, badges; a flagged run moves nobody and pays its player no
+  Joules). Screens `src/components/rated/multi/MultiScreens.tsx` (mockups 08–10; the podium entrance only in the
+  podium's box, none under reduced motion), in W3c's format slot (`formatScreens.tsx`'s placings row: `MultiSearch`,
+  `MultiBetween`, `MultiResult` in `multi/MultiFormat.tsx`, no VS) on W3c's `RatedParts` (MatchChips, JoulesLine,
+  RankEmblem, RatedCard, PlayerDot); every seat read through `src/lib/rated/multi/multiView.ts` behind W3c's
+  `ratedBackend()` gate. Leavers (W3b's rule, Joe 12 Nov 2026): below everyone who stayed, the latest leaver highest
+  (`placeWithLeavers` inside `multiSettlement`), named as a forfeit so W3a pays them no Joules; tagged "Left" on the
+  standings and final screens. Events `multiplayer_match_started` / `_finished`
+  (`20261114400000_analytics_multiplayer_events.sql`, **not applied until merged**). rated-multi-check (~2 s),
+  rated-multi-server-check (~15 s, shard `e`, PostgreSQL: 4 and 8 players, flagged runs on W3a's real engine).
 - **The rated match screens** (wave 3, session W3c, 11 Nov 2026; docs/mockups/wave-3/; no gameplay, scoring, stamp,
   timing or deal change). Every rated screen reads through `src/lib/rated/backend.ts`, bound to W3a's and W3b's real
   server functions in `src/lib/rated/w3Binding.ts` (W3a: getMyRatingsFn, getRatingsForFn, getTierLadderFn and each

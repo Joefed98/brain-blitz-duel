@@ -861,7 +861,10 @@ async function runAll(db: LocalDb): Promise<void> {
       if (s.state !== "settled") check(false, `4 players settles (${s.state})`);
       else {
         const pl = s.result.placings ?? {};
-        check(pl[four[3]!] === 4 && pl[four[2]!] === 1 && pl[four[1]!] === 2 && pl[four[0]!] === 3,
+        // Updated by W3d (12 Nov 2026): 4- and 8-player places now come from W3d's multiSettlement (placing points each
+        // game, then total score), with W3b's leaver rule; W3b's total-score stayer placing was dropped, as instructed in
+        // the W3d session. On these games the stayers' points are 9 (four[0]), 11 (four[1]) and 10 (four[2]).
+        check(pl[four[3]!] === 4 && pl[four[1]!] === 1 && pl[four[2]!] === 2 && pl[four[0]!] === 3,
           `4 players: the leaver last (despite the best game 1), the rest by their games (${JSON.stringify(pl)})`);
         check(s.result.ending?.kind === "forfeit" && s.result.ending.leavers.join() === four[3], "4 players: the result says who left");
         const out = s.result.ratings;
