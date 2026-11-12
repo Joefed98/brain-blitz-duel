@@ -1998,7 +1998,11 @@ outside the repo.
   Reduce Motion, ownership, Full House's deck against `scripts/fixtures/skins-deck-frames.json`, recorded on main),
   skins-replay-check (28 recorded runs in every look, identical scores; `scripts/fixtures/skins-replay-runs.json`),
   skins-db-check (the two migrations and the ghost function on a local PostgreSQL, shard `e`). **A change to one of these renderers must keep
-  skins-default-check green; a new skin goes in look.ts's ids and its game's `.skins.ts`.**
+  skins-default-check green; a new skin goes in look.ts's ids and its game's `.skins.ts`.** *Equipping* (12 Nov 2026): Customise's
+  **Games** tab (card back, then each game's skin and world theme; owned items only, the default first, pictures from
+  `public/looks/`, `bun scripts/look-previews.ts [--check]`; saved through A1's `equip()`, `saveSlot`'s `EquipSlot`);
+  the stages' look source now reads `normaliseLoadout(…).gameLooks` (it read a field A1 never sends, so live games drew
+  the default until then). customise-looks-check (happy-dom) and customise-looks-db-check (PostgreSQL, shard `e`).
 - **Phone notifications** (wave 2 train B, session B2, 11 Nov 2026, `docs/push-notifications.md`; no gameplay, scoring,
   stamp, timing or room-flow change): standard web push with Joulz's own VAPID keys, no package (RFC 8291 / 8292 in
   WebCrypto, `src/lib/push/webPush.server.ts`). **Off until Joe sets `PUSH_PUBLIC_KEY`** (`src/config/pushConfig.ts`) and the

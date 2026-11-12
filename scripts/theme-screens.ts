@@ -8,6 +8,7 @@
  * the daily results and Profile's Daily row; scripts/daily-fixture.ts), drawn through
  * scripts/safe-area-harness.tsx (the real routes, network stubbed).
  */
+import { readFileSync } from "node:fs";
 import type { Browser, BrowserContext, Page } from "playwright";
 
 import { DEVICE_INIT, IPHONE11_APP, emulateDevice } from "./device-emulation";
@@ -168,7 +169,7 @@ export const room =
 
 export interface ThemeScreen {
   name: string;
-  mode: "home" | "practice" | "tournaments" | "profile" | "room" | "daily" | "challenge" | "terms" | "notfound" | "error" | "firstopen" | "account" | "saveprogress" | "friends";
+  mode: "home" | "practice" | "tournaments" | "profile" | "room" | "daily" | "challenge" | "terms" | "notfound" | "error" | "firstopen" | "account" | "saveprogress" | "friends" | "customise";
   /** Window globals set before the page loads (wave 1: `__harnessPreview`, a room link's preview). */
   globals?: Record<string, unknown>;
   /** false: a brand-new device, with no room history, practice bests or public games (wave 1's empty states). */
@@ -470,6 +471,45 @@ export const FRIENDS_SCREENS = (): ThemeScreen[] => {
   ];
 };
 
+/**
+ * Customise's Games tab (12 Nov 2026): the card back, game skins and world themes an account owns, each with its
+ * picture, and the empty tab (nothing owned). The longest item names on purpose (Apex: Neon Night's game, Neon ball
+ * set, Crimson Velvet). Appended last, so every earlier screen keeps its place in the parts.
+ */
+export const CUSTOMISE_SCREENS = (): ThemeScreen[] => {
+  const catalogue = (JSON.parse(readFileSync("docs/art/wave-2/catalogue.json", "utf8")) as { items: unknown[] }).items;
+  const owns = [
+    "card-back.holo-foil",
+    "card-back.royal-damask",
+    "card-back.neon",
+    "game-skin.apex.molten-gold",
+    "world-theme.apex.neon-night",
+    "game-skin.cue-ball.neon-ball-set",
+    "world-theme.cue-ball.neon-table",
+    "game-skin.full-house.crimson-velvet",
+    "game-skin.curl-champ.neon-stones",
+    "world-theme.curl-champ.neon-rink",
+  ];
+  const fixture = (owned: string[], slots: Record<string, string>) => ({
+    __harnessCustomise: { account: { ...ACCOUNT_FIXTURE, playerNumber: 1 }, catalogue, owned, slots },
+  });
+  const games = async (page: Page) => {
+    await page.locator("[data-customise-tab='games']").click();
+    await page.locator("[data-look-section='card-back']").waitFor({ timeout: 10_000 });
+    await page.waitForTimeout(400);
+  };
+  return [
+    {
+      name: "customise, games",
+      mode: "customise",
+      plain: true,
+      globals: fixture(owns, { "card-back": "card-back.holo-foil", "world-theme:pool": "world-theme.cue-ball.neon-table" }),
+      go: games,
+    },
+    { name: "customise, games, nothing owned", mode: "customise", plain: true, globals: fixture([], {}), go: games },
+  ];
+};
+
 export const THEME_SCREENS: ThemeScreen[] = [
   { name: "play", mode: "home", daily: () => dailyFixture().after, challenge: () => challengeFixture("create") },
   { name: "practice list", mode: "practice" },
@@ -630,6 +670,7 @@ export const THEME_SCREENS: ThemeScreen[] = [
   ...WAVE1_SCREENS(),
   ...ACCOUNT_SCREENS(),
   ...FRIENDS_SCREENS(),
+  ...CUSTOMISE_SCREENS(),
 ];
 
 export interface ThemeViewport {
