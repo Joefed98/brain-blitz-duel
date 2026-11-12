@@ -97,6 +97,14 @@ export interface RatedMatchResult {
   rematchOf?: string | null;
   /** When it finished (ISO); the server's time now when left out. */
   finishedAt?: string;
+  /**
+   * A forfeit (W3b, Joe 12 Nov 2026): the live players who were away for more than 20 s before the match was decided.
+   * Each leaver takes a full loss and every player who stayed a full win, at the normal weight, whatever the games'
+   * scores; it counts as a placement match and for streaks and badges like any result, and a leaver earns no Joules. A
+   * 1v1 carrying a forfeit may end undecided (1–0, 1–1). In a 4- or 8-player match the leavers are placed below every
+   * player who stayed. A flagged run still comes first (nobody moves). Left out (or empty) for an ordinary result.
+   */
+  forfeit?: { leavers: string[] };
 }
 
 /** A rating as shown. */

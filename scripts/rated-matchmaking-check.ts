@@ -343,6 +343,43 @@ function check(ok: boolean, label: string): void {
   check(/runPracticeDealsPurge\(\)/.test(task) && /"rated:practice-deals-purge"/.test(task), "the task runs the purge under its scheduled name");
 }
 
+/* ------------------------------------------------------------------ leaving a match (Joe, 12 Nov 2026) */
+{
+  const { departureVerdict, placeWithLeavers, DEPARTURE_GRACE_MS } = await import("../src/lib/rated/matchmaking");
+  const intro = 10_000;
+  const P = (userId: string, lastSeenMs: number | null, leftAtMs: number | null = null, goneAtMs: number | null = null) => ({ userId, lastSeenMs, leftAtMs, goneAtMs });
+  check(DEPARTURE_GRACE_MS === 20_000, "leaving: the grace is 20 s");
+  const vs = departureVerdict({ nowMs: 3_000, introAtMs: intro, players: [P("a", 3_000), P("b", 2_000, 2_500)], decided: false });
+  check(vs.kind === "abort" && vs.leavers.length === 1 && vs.leavers[0]!.userId === "b" && vs.leavers[0]!.atMs === 2_500, "leaving at VS (a Leave before the intro) aborts at once");
+  const never = departureVerdict({ nowMs: intro + 15_000, introAtMs: intro, players: [P("a", intro + 15_000), P("b", 0)], decided: false });
+  check(never.kind === "abort" && never.leavers[0]!.userId === "b", "never connected: an abort once the absence that began in set-up passes 20 s");
+  const early = departureVerdict({ nowMs: intro + 5_000, introAtMs: intro, players: [P("a", intro + 5_000), P("b", intro - 1_000)], decided: false });
+  check(early.kind === "none", "an absence that began just before the intro has its 20 s before anything happens");
+  const back = departureVerdict({ nowMs: intro + 30_000, introAtMs: intro, players: [P("a", intro + 30_000), P("b", intro + 15_000)], decided: false });
+  check(back.kind === "none", "a drop of 15 s (back since): play carries on");
+  const at20 = departureVerdict({ nowMs: intro + 40_000, introAtMs: intro, players: [P("a", intro + 40_000), P("b", intro + 20_000)], decided: false });
+  check(at20.kind === "none", "away exactly 20 s: still within the grace");
+  const gone21 = departureVerdict({ nowMs: intro + 41_000, introAtMs: intro, players: [P("a", intro + 41_000), P("b", intro + 20_000)], decided: false });
+  check(gone21.kind === "forfeit" && gone21.leavers.map((l) => l.userId).join() === "b", "away 21 s after the intro: a forfeit in a 1v1");
+  const decided = departureVerdict({ nowMs: intro + 41_000, introAtMs: intro, players: [P("a", intro + 41_000), P("b", intro + 20_000)], decided: true });
+  check(decided.kind === "none", "a match already decided ends on its result, never a forfeit");
+  const leaveAfter = departureVerdict({ nowMs: intro + 25_000, introAtMs: intro, players: [P("a", intro + 25_000), P("b", intro + 25_000, intro + 3_000)], decided: false });
+  check(leaveAfter.kind === "forfeit" && leaveAfter.leavers[0]!.atMs === intro + 3_000, "a Leave after the intro starts the 20 s too, then forfeits");
+  const both = departureVerdict({ nowMs: intro + 60_000, introAtMs: intro, players: [P("a", intro + 30_000), P("b", intro + 10_000)], decided: false });
+  check(both.kind === "forfeit" && both.leavers.map((l) => l.userId).join() === "b", "both away: the player seen last stays");
+  const four = departureVerdict({ nowMs: intro + 41_000, introAtMs: intro, players: [P("a", intro + 41_000), P("b", intro + 41_000), P("c", intro + 41_000), P("d", intro + 20_000)], decided: false });
+  check(four.kind === "gone" && four.leavers.map((l) => l.userId).join() === "d", "4 players: a leaver is gone for good and the rest play on");
+  const lastTwo = departureVerdict({
+    nowMs: intro + 90_000,
+    introAtMs: intro,
+    players: [P("a", intro + 90_000), P("b", intro + 50_000), P("c", intro + 30_000, null, intro + 30_000), P("d", intro + 20_000, null, intro + 20_000)],
+    decided: false,
+  });
+  check(lastTwo.kind === "forfeit" && lastTwo.leavers.map((l) => l.userId).join() === "d,c,b", "4 players: fewer than two left ends it as a forfeit, every leaver in the order they went");
+  const places = placeWithLeavers({ a: 1, b: 2, c: 2 }, [{ userId: "d", atMs: 5 }, { userId: "e", atMs: 9 }]);
+  check(JSON.stringify(places) === JSON.stringify({ a: 1, b: 2, c: 2, e: 4, d: 5 }), `4 and 8 players: leavers below everyone who stayed, the latest highest (${JSON.stringify(places)})`);
+}
+
 console.log(`rated-matchmaking-check: ${passes} passed, ${failures.length} failed`);
 if (failures.length) {
   console.log("FAIL");

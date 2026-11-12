@@ -2143,7 +2143,11 @@ outside the repo.
   Practice play's deal is kept 15 days in `mm_practice_deals`, purged by the Worker's Cron Trigger
   `rated:practice-deals-purge`; a stitched Practice run is aged by its oldest game); arcade and engine games play back on a timeline from the
   server's replay, puzzles show the score only at the game's end. Best of N stops once decided (a majority of games
-  won, W3a's rule; `ratedMatchClinched` in advancePhaseFn), and such a match leaves no recorded run. W3a's ratings bind
+  won, W3a's rule; `ratedMatchClinched` in advancePhaseFn), and such a match leaves no recorded run. Leaving (Joe, 12 Nov 2026,
+  section 6b of the doc): before the first game's intro an abort (no rating, Joules or placement; the stayers searching again,
+  `rated_match_aborted`); after it a 20 s grace, then a forfeit (a loss for the leaver, a win for the stayers whatever the
+  score, through W3a's new `forfeit` field, `src/lib/data/ratings.ts` / `match.ts`; `rated_match_forfeited`); 4 and 8 players
+  place leavers last; `reviewDepartures` on every heartbeat, phase move, Leave and rated poll (`20261114200300_rated_departures.sql`). W3a's ratings bind
   on first use (`ratingsReady`). `accounts.forget_user` removes a deleted account's runs (trigger
   `mm_forget_removed_user`). Checks: rated-matchmaking-check, rated-server-check.
 - **The shop** (wave 2 train D, session D1, 11 Nov 2026, `docs/economy/shop.md`; no gameplay, scoring, stamp or timing

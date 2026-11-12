@@ -332,6 +332,44 @@ await section("placings (4 and 8 players)", async () => {
   check(out.players.map((p) => p.change.joules).join() === "225,150,150,150", "each live player's Joules are on their change");
 });
 
+await section("a forfeit (W3b, Joe 12 Nov 2026)", async () => {
+  const [A, B, C, D] = [uid(301), uid(302), uid(303), uid(304)];
+  const pres = Object.fromEntries([A, B, C, D].map((id) => [id, pre({ puzzles: settledAt(1000), logic: settledAt(1000) })]));
+  // B won game 1, then left: undecided 1–0 is refused without a forfeit and taken with one.
+  const short = duel(mid(), A, B, [[90, 150]]);
+  check((mt.checkMatch(short, T0) as { reason?: string }).reason === "bad_games", "forfeit: an undecided 1–0 without a forfeit is still refused");
+  const ff = { ...short, forfeit: { leavers: [B] } };
+  check(mt.checkMatch(ff, T0).ok, "forfeit: an undecided duel carrying a forfeit is taken");
+  check((mt.checkMatch({ ...short, forfeit: { leavers: [uid(399)] } }, T0) as { reason?: string }).reason === "bad_match", "forfeit: a leaver not in the match is refused");
+  check((mt.checkMatch({ ...short, forfeit: { leavers: [A, B] } }, T0) as { reason?: string }).reason === "bad_match", "forfeit: someone must have stayed");
+  const out = mt.applyMatch(ff, T0, pres, ctx0());
+  const [pa, pb] = [out.players.find((p) => p.playerId === A)!, out.players.find((p) => p.playerId === B)!];
+  check(pa.change.result === "win" && pb.change.result === "loss", "forfeit: the stayer wins, the leaver loses, whatever the score");
+  const won = mt.applyMatch(duel(mid(), A, B, [[150, 90]]), T0, pres, ctx0()).players[0]!.change.changes.find((c) => c.key === "puzzles")!.delta;
+  const byForfeit = pa.change.changes.find((c) => c.key === "puzzles")!.delta;
+  check(byForfeit > 0 && pb.change.changes.every((c) => c.delta < 0), `forfeit: ratings move as a win and a loss (${byForfeit.toFixed(1)})`);
+  check(Math.abs(byForfeit - won) < 1e-9, `forfeit: the game counts a full win at the normal weight, as one won on its score (${byForfeit.toFixed(2)} = ${won.toFixed(2)})`);
+  check(pa.counted && pb.counted && pa.change.placement.played === 1 && pb.change.placement.played === 1, "forfeit: a placement match for both");
+  check(pb.change.joules === 0 && pa.change.joules === joules.ratedMatchJoules(ff.format, "win"), "forfeit: the leaver earns no Joules, the stayer the normal win Joules");
+  const flagged = { ...ff, games: [{ ...ff.games[0]!, gradeExtras: { [A]: null, [B]: { flagged: true } } }] };
+  const fo = mt.applyMatch(flagged, T0, pres, ctx0());
+  check(fo.players.every((p) => !p.counted && p.change.frozen === "flagged_run" && p.change.changes.length === 0), "forfeit: a flagged run still comes first (nobody moves)");
+  // 4 players: leavers below everyone who stayed.
+  const four: Result = {
+    matchId: mid(),
+    format: { kind: "placings", players: 4 },
+    choice: "puzzles",
+    players: [A, B, C, D].map((playerId) => ({ playerId, side: "live" as const })),
+    games: [game(PUZZLE_TYPE, { [A]: 100, [B]: 120, [C]: 80, [D]: 190 })],
+    placings: { [A]: 2, [B]: 1, [C]: 3, [D]: 4 },
+    forfeit: { leavers: [D] },
+  };
+  check(mt.checkMatch(four, T0).ok, "forfeit: 4 players with the leaver last is taken");
+  check((mt.checkMatch({ ...four, placings: { [A]: 2, [B]: 3, [C]: 4, [D]: 1 } }, T0) as { reason?: string }).reason === "bad_placings", "forfeit: a leaver placed above a stayer is refused");
+  const fo4 = mt.applyMatch(four, T0, pres, ctx0());
+  check(fo4.players.find((p) => p.playerId === D)!.change.joules === 0 && fo4.players.find((p) => p.playerId === B)!.change.joules > 0, "forfeit: 4 players, the leaver earns no Joules");
+});
+
 await section("the Joulz Rating", async () => {
   const P = { rating: 1400 };
   const A = { rating: 1000 };
