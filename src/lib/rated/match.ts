@@ -10,6 +10,7 @@
 
 import type {
   FrozenReason,
+  PlacementResult,
   PlacementStatus,
   RatedCategory,
   RatedChoice,
@@ -117,9 +118,23 @@ export function checkMatch(input: unknown, nowMs: number): Checked {
     if (m.choice === "puzzles" && g.pool !== "puzzles") return { ok: false, reason: "pool_mismatch" };
     if (m.choice === "arcade" && g.pool !== "arcade") return { ok: false, reason: "pool_mismatch" };
   }
+  // A forfeit (W3b): leavers are distinct live players of the match, and at least one player stayed.
+  let forfeitIds: Set<string> | null = null;
+  if (m.forfeit !== undefined && m.forfeit !== null) {
+    const lv = (m.forfeit as { leavers?: unknown }).leavers;
+    if (!Array.isArray(lv) || lv.length > ids.size - 1) return { ok: false, reason: "bad_match" };
+    forfeitIds = new Set<string>();
+    for (const id of lv) {
+      const p = (players as RatedMatchPlayer[]).find((x) => x.playerId === id);
+      if (typeof id !== "string" || !p || p.side !== "live" || forfeitIds.has(id)) return { ok: false, reason: "bad_match" };
+      forfeitIds.add(id);
+    }
+    if (forfeitIds.size === 0) forfeitIds = null;
+  }
   if (f.kind === "duel") {
     // A best of 3, 5 or 7 stops once decided (W3b): no game after one player reached the wins needed, and a match that
     // ends short of `bestOf` games must be decided (2–0 and 2–1 in a best of 3; a drawn game counts for nobody).
+    // A forfeit may end undecided (the leaver lost however the games stood).
     const need = Math.floor(f.bestOf / 2) + 1;
     const [a, b] = [...ids] as [string, string];
     let wa = 0;
@@ -130,7 +145,7 @@ export function checkMatch(input: unknown, nowMs: number): Checked {
       if (g.scores[a]! > g.scores[b]!) wa++;
       else if (g.scores[a]! < g.scores[b]!) wb++;
     }
-    if (wa < need && wb < need && games.length < f.bestOf) return { ok: false, reason: "bad_games" };
+    if (wa < need && wb < need && games.length < f.bestOf && !forfeitIds) return { ok: false, reason: "bad_games" };
   }
   if (f.kind === "placings") {
     const pl = m.placings;
@@ -140,6 +155,11 @@ export function checkMatch(input: unknown, nowMs: number): Checked {
     // A place is the number of players strictly ahead plus one (1, 2, 2, 4).
     const vals = [...ids].map((id) => pl[id]!);
     if (vals.some((v) => v !== vals.filter((w) => w < v).length + 1)) return { ok: false, reason: "bad_placings" };
+    // A forfeit: every leaver below every player who stayed.
+    if (forfeitIds) {
+      const stayers = [...ids].filter((id) => !forfeitIds!.has(id));
+      if ([...forfeitIds].some((l) => stayers.some((st) => pl[l]! <= pl[st]!))) return { ok: false, reason: "bad_placings" };
+    }
   } else if (m.placings !== undefined && m.placings !== null) return { ok: false, reason: "bad_placings" };
   if (m.rematchOf !== undefined && m.rematchOf !== null && !isUuid(m.rematchOf)) return { ok: false, reason: "bad_match" };
   let finishedMs = nowMs;
@@ -204,6 +224,8 @@ export interface PlayerPre {
   ratings: Partial<Record<RatingKey, GlickoState>>;
   /** Live rated games in the last JOULZ_WINDOW_DAYS before this match, by pool. */
   recentGames: Record<RatedPool, number>;
+  /** The placement matches stored so far, in order (rated_match_players.placement_no). */
+  placementResults?: PlacementResult[];
   standing: TierStanding | null;
 }
 
@@ -265,6 +287,8 @@ export interface PlayerAfter {
   games: Record<RatedPool, number>;
   /** Whether the match counted for this player (live and not frozen against everyone). */
   counted: boolean;
+  /** Which placement match this was (1–5), stored on the player's match row; null when it wasn't one. */
+  placementNo: number | null;
 }
 
 export interface MatchAfter {
@@ -299,10 +323,16 @@ export const JOULZ_WINDOW_MS = JOULZ_WINDOW_DAYS * 86_400_000;
 
 /* ------------------------------------------------------------------ placement */
 
-export function placementOf(played: number): PlacementStatus {
+export function placementOf(played: number, results: readonly PlacementResult[] = []): PlacementStatus {
   const p = Math.min(PLACEMENT_MATCHES, Math.max(0, played));
   const done = p >= PLACEMENT_MATCHES;
-  return { played: p, of: PLACEMENT_MATCHES, done, label: done ? null : `Placement ${p + 1} of ${PLACEMENT_MATCHES}` };
+  return {
+    played: p,
+    of: PLACEMENT_MATCHES,
+    done,
+    label: done ? null : `Placement ${p + 1} of ${PLACEMENT_MATCHES}`,
+    results: [...results].sort((a, b) => a.n - b.n).slice(0, PLACEMENT_MATCHES),
+  };
 }
 
 export function isProvisional(state: GlickoState): boolean {
@@ -372,7 +402,11 @@ export function applyMatch(match: RatedMatchResult, finishedMs: number, pre: Rec
       if (s === 1) gameWins[a]!++;
       else if (s === 0) gameWins[b]!++;
     }
+  // A forfeit (W3b): each leaver a full loss, every player who stayed a full win, at the normal weight.
+  const leavers = new Set(match.forfeit?.leavers ?? []);
+  const forfeit = leavers.size > 0;
   const resultOf = (id: string): "win" | "loss" | "draw" => {
+    if (duel && forfeit) return leavers.has(id) ? "loss" : "win";
     if (!duel) return match.placings![id] === 1 ? "win" : "loss";
     const other = ids.find((x) => x !== id)!;
     return gameWins[id]! > gameWins[other]! ? "win" : gameWins[id]! < gameWins[other]! ? "loss" : "draw";
@@ -397,7 +431,12 @@ export function applyMatch(match: RatedMatchResult, finishedMs: number, pre: Rec
     for (const a of ids)
       for (const b of ids) {
         if (a === b || !comparable(a, b)) continue;
-        const score = duel ? gameScore(g, a, b) : match.placings![a]! < match.placings![b]! ? 1 : match.placings![a]! > match.placings![b]! ? 0 : 0.5;
+        const score =
+          duel && forfeit
+            ? leavers.has(a) === leavers.has(b) ? gameScore(g, a, b) : leavers.has(a) ? 0 : 1
+            : duel
+              ? gameScore(g, a, b)
+              : match.placings![a]! < match.placings![b]! ? 1 : match.placings![a]! > match.placings![b]! ? 0 : 0.5;
         const spread = duel ? 1 : 1 / (ids.length - 1);
         push(a, g.pool, b, score, poolWeight(match.choice) * spread);
         push(a, g.category, b, score, GAME_WEIGHT * spread);
@@ -468,6 +507,12 @@ export function applyMatch(match: RatedMatchResult, finishedMs: number, pre: Rec
       arcade: before.recentGames.arcade + (counted ? games.arcade : 0),
     };
     const placedAfter = placementOf(p1.placementPlayed).done;
+    // A placement match: a counted match played while placement wasn't done (its number stored on the match row).
+    const placementNo = counted && !placedBefore ? p0.placementPlayed + 1 : null;
+    const placementResultsAfter: PlacementResult[] = [
+      ...(before.placementResults ?? []),
+      ...(placementNo !== null ? [{ n: placementNo, matchId: match.matchId, result, at: new Date(finishedMs).toISOString() }] : []),
+    ];
     // Before: the Joulz Rating as last stored (what the player was shown); after: worked out from the new ratings.
     const joulzBefore = placedBefore ? (p0.joulz ?? joulzRating({ puzzles: before.ratings.puzzles, arcade: before.ratings.arcade }, before.recentGames)) : null;
     const joulzAfter = placedAfter ? joulzRating({ puzzles: ratings.puzzles, arcade: ratings.arcade }, recent) : null;
@@ -490,15 +535,15 @@ export function applyMatch(match: RatedMatchResult, finishedMs: number, pre: Rec
       frozen: side.frozenWhy ?? (frozenAll ? "same_opponent_today" : null),
       changes,
       joulz: { before: joulzBefore, after: joulzAfter },
-      placement: { ...placementOf(p1.placementPlayed), justFinished: !placedBefore && placedAfter },
+      placement: { ...placementOf(p1.placementPlayed, placementResultsAfter), justFinished: !placedBefore && placedAfter },
       tier: { before: tierBefore, after: tierAfter },
       result,
       place,
-      joules: side.live && !flaggedIds.has(id) ? ratedMatchJoules(match.format, result) : 0,
+      joules: side.live && !flaggedIds.has(id) && !leavers.has(id) ? ratedMatchJoules(match.format, result) : 0,
       flagged: flaggedIds.has(id),
       badges: [],
     };
-    return { playerId: id, profile: p1, ratings, moved, change, games: counted ? { ...games } : { puzzles: 0, arcade: 0 }, counted };
+    return { playerId: id, profile: p1, ratings, moved, change, games: counted ? { ...games } : { puzzles: 0, arcade: 0 }, counted, placementNo };
   });
   return { ukDay, players, pairs, runUses, flags };
 }

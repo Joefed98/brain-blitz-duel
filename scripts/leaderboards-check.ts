@@ -649,8 +649,9 @@ async function databaseChecks(db: LocalDb, rest: RestServer): Promise<void> {
       cron === "*/5 * * * *" &&
         vite.includes(`"${cron}": ["leaderboards:refresh"]`) &&
         vite.includes('"leaderboards:refresh": { handler: fileURLToPath(new URL("./src/lib/leaderboards/tasks/refresh.task.ts"') &&
-        vite.includes("nitroTasks(LEADERBOARD_TASKS)") &&
-        vite.includes("nitroTasks(RATED_TASKS)"),
+        // One chain of task sets (main's withTasks since 12 Nov 2026), so neither W3a's rated:standings nor B2's
+        // push:friend-sweep (also */5) replaces the refresh, nor it them.
+        /withTasks\(withTasks\(nitroTasks\(PUSH_TASKS, RATED_TASKS\), MATCHMAKING_TASKS\), LEADERBOARD_TASKS\)/.test(vite),
       `the Cron Trigger: "${cron}" runs leaderboards:refresh beside W3a's rated:standings (vite.config.ts and LEADERBOARD_CRONS agree)`,
     );
     const digest = () =>

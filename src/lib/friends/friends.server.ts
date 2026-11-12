@@ -27,6 +27,7 @@ import {
   readAreFriends,
   readFriendProfile,
   readOverview,
+  readFriendCount,
   readWaitingCount,
   removeFriendship,
   respondToRequest,
@@ -45,6 +46,9 @@ import { UNIQUE_VIOLATION } from "@/lib/data/db.server";
 import { withinRateLimit, type RateLimit } from "@/lib/duel/rateLimit.server";
 import { REPORT_LIMIT } from "@/lib/duel/rateLimit.server";
 import { isReportReason, REPORT_THANKS } from "@/lib/safety/reports";
+import { awardBadge, cardBadgesFor } from "@/lib/badges/badges.server";
+import { STARTER_TITLE } from "@/lib/badges/catalogue";
+import { publicCardsFor } from "@/lib/economy/economy.server";
 
 import {
   FRIENDS_CAP,
@@ -55,6 +59,7 @@ import {
   playerIdOk,
   refusal,
   SEARCH_RESULTS,
+  type FriendLook,
   searchQueryOk,
   type FriendsRefusal,
 } from "./friends";
@@ -90,6 +95,26 @@ export const FRIEND_LIMITS = {
 type Ok<T> = { ok: true } & T;
 export type Answer<T> = Ok<T> | FriendsRefusal;
 
+/** The Friendly badge (C2's catalogue: "Add 5 friends", Common): earned at this many friends. */
+export const FRIENDLY_AT = 5;
+
+/**
+ * Awards Friendly to each player who now has 5 or more friends, through C2's badge_award (which awards a badge once:
+ * a second call answers "owned" and records nothing). Called whenever a friendship is made (both players) and when a
+ * player opens their list (a catch-up if an award ever failed). Never fails the call it rides on.
+ */
+export async function awardFriendly(client: Db, userIds: readonly string[]): Promise<void> {
+  for (const userId of userIds) {
+    try {
+      const { data: count, error } = await readFriendCount(client, userId);
+      if (error || count < FRIENDLY_AT) continue;
+      await awardBadge(client, userId, "friendly", { friends: count });
+    } catch (err) {
+      console.warn(`[friends] friendly badge: ${err instanceof Error ? err.message : String(err)}`);
+    }
+  }
+}
+
 /** The caller's account and age, or a refusal (a guest). */
 async function caller(client: Db, userId: string): Promise<{ isUnder18: boolean } | FriendsRefusal> {
   const flags = await accountAgeFlags(client, userId, Date.now());
@@ -101,6 +126,48 @@ async function limited(client: Db, userId: string, limit: RateLimit): Promise<bo
   return withinRateLimit(client, userId, limit);
 }
 
+/* ------------------------------------------------------------------ cards */
+
+/**
+ * The card looks of every player a screen lists, in one go (the cards read 100 ids at a time, in parallel; never one
+ * read a friend). Only accounts have a look; a read that fails leaves every look out (the screens draw the colour and
+ * initial), never the list.
+ */
+export async function cardLooksFor(client: Db, ids: readonly string[]): Promise<Map<string, FriendLook>> {
+  const unique = [...new Set(ids)];
+  const out = new Map<string, FriendLook>();
+  if (!unique.length) return out;
+  try {
+    const chunks: string[][] = [];
+    for (let i = 0; i < unique.length; i += 100) chunks.push(unique.slice(i, i + 100));
+    const [cards, badgeRows] = await Promise.all([
+      publicCardsFor(client, unique),
+      Promise.all(chunks.map((chunk) => cardBadgesFor(client, chunk))).then((rows) => rows.flat()),
+    ]);
+    const badges = new Map(badgeRows.map((b) => [b.playerId, b]));
+    for (const [id, card] of cards) {
+      if (!card.account) continue;
+      const b = badges.get(id);
+      out.set(id, {
+        cardArt: card.cardArt,
+        frame: card.frame,
+        nameColour: card.nameColour,
+        avatar: { id: card.avatarId ?? "captain-joulz", colour: card.colour ?? 0, gem: card.gem },
+        title: b?.title ?? STARTER_TITLE,
+        badges: b?.badges.slice(0, 3) ?? [],
+      });
+    }
+  } catch {
+    out.clear();
+  }
+  return out;
+}
+
+function withLook<T extends FriendCard>(card: T, looks: Map<string, FriendLook>): T {
+  const look = looks.get(card.id);
+  return look ? { ...card, look } : card;
+}
+
 /* ------------------------------------------------------------------ reads */
 
 /** The Friends list (friends with status, requests, invites, challenges, blocked, the setting). */
@@ -110,7 +177,23 @@ export async function overview(client: Db, userId: string): Promise<Answer<{ ove
   if (!(await limited(client, userId, FRIEND_READ_LIMIT))) return refusal("busy");
   const { data, error } = await readOverview(client, userId, FRIENDS_CAP);
   if (error || !data) return refusal(error ? "error" : "account");
-  return { ok: true, overview: data };
+  if (data.count >= FRIENDLY_AT) await awardFriendly(client, [userId]);
+  const looks = await cardLooksFor(client, [
+    ...data.friends.map((f) => f.id),
+    ...data.incoming.map((f) => f.id),
+    ...data.invites.map((f) => f.id),
+    ...data.challenges.map((f) => f.id),
+  ]);
+  return {
+    ok: true,
+    overview: {
+      ...data,
+      friends: data.friends.map((f) => withLook(f, looks)),
+      incoming: data.incoming.map((f) => withLook(f, looks)),
+      invites: data.invites.map((f) => withLook(f, looks)),
+      challenges: data.challenges.map((f) => withLook(f, looks)),
+    },
+  };
 }
 
 /** How many requests wait for the caller (0 for a guest: the badge never shows for them). */
@@ -129,7 +212,10 @@ export async function profile(client: Db, userId: string, target: unknown): Prom
   const { data, error } = await readFriendProfile(client, userId, target);
   if (error) return refusal("error");
   if (!data) return refusal("not_found");
-  return { ok: true, profile: data };
+  // A blocked player's profile shows no card (their name and Unblock only).
+  if (data.relation === "blocked") return { ok: true, profile: data };
+  const looks = await cardLooksFor(client, [data.card.id]);
+  return { ok: true, profile: { ...data, card: withLook(data.card, looks) } };
 }
 
 /** Search by username: adults only, and never an under-18 account. */
@@ -141,7 +227,8 @@ export async function search(client: Db, userId: string, query: unknown): Promis
   if (!(await limited(client, userId, FRIEND_SEARCH_LIMIT))) return refusal("busy");
   const { data, error } = await searchPlayers(client, userId, query, SEARCH_RESULTS);
   if (error) return refusal("error");
-  return { ok: true, results: data };
+  const looks = await cardLooksFor(client, data.map((h) => h.id));
+  return { ok: true, results: data.map((h) => withLook(h, looks)) };
 }
 
 /** Whose invite link a token is (open to guests: the link's landing says who asked). */
@@ -151,7 +238,8 @@ export async function linkOwner(client: Db, userId: string, token: unknown): Pro
   if (!(await limited(client, userId, FRIEND_READ_LIMIT))) return refusal("busy");
   const { data, error } = await readLinkOwner(client, clean);
   if (error) return refusal("error");
-  return { ok: true, owner: data };
+  if (!data) return { ok: true, owner: null };
+  return { ok: true, owner: withLook(data, await cardLooksFor(client, [data.id])) };
 }
 
 function newToken(): string {
@@ -192,9 +280,12 @@ async function send(
   switch (data.result) {
     case "sent":
       if (data.created) recordEvents({ event: "friend_request_sent", playerId: userId, props: { via } });
+      if (data.created) notifySoon(client);
       return { ok: true, outcome: "sent", friend: null };
     case "accepted":
       recordEvents({ event: "friend_added", playerId: userId, props: { via } });
+      await awardFriendly(client, [userId, to]);
+      notifySoon(client);
       return { ok: true, outcome: "accepted", friend: null };
     case "friends":
       return { ok: true, outcome: "friends", friend: null };
@@ -247,7 +338,11 @@ export async function respond(
   if (error || !data) return refusal("error");
   if (data.result === "missing") return { ok: true, outcome: "gone" };
   if (data.result === "cap" || data.result === "their_cap") return refusal(data.result);
-  if (data.result === "accepted") recordEvents({ event: "friend_added", playerId: userId, props: { via: data.via ?? "link" } });
+  if (data.result === "accepted") {
+    recordEvents({ event: "friend_added", playerId: userId, props: { via: data.via ?? "link" } });
+    await awardFriendly(client, data.friend ? [userId, data.friend] : [userId]);
+    notifySoon(client);
+  }
   return { ok: true, outcome: data.result };
 }
 
@@ -316,6 +411,7 @@ export async function inviteFriendToRoom(client: Db, userId: string, friendId: u
   const { data, error } = await inviteToRoom(client, userId, friendId);
   if (error || !data) return refusal("error");
   if (data.result !== "sent") return refusal(data.result);
+  notifySoon(client);
   return { ok: true, code: data.code ?? "" };
 }
 
@@ -334,6 +430,7 @@ export async function sendChallenge(
   const { data, error } = await sendChallengeData(client, userId, friendId, code.toUpperCase());
   if (error || !data) return refusal("error");
   if (data.result !== "sent") return refusal(data.result);
+  notifySoon(client);
   return { ok: true, sent: true };
 }
 
@@ -367,4 +464,13 @@ export async function areFriends(client: Db, a: string, b: string): Promise<bool
   if (!playerIdOk(a) || !playerIdOk(b) || a === b) return false;
   const { data, error } = await readAreFriends(client, a, b);
   return !error && data;
+}
+
+/**
+ * Phone notifications (B2): the friend event this change recorded (public.friend_events) is sent in the background
+ * (src/lib/push/notify.server.ts dispatchFriendEvents; the Cron Trigger's five-minute sweep catches anything missed).
+ * Never awaited, never throws; nothing while the push keys aren't set.
+ */
+function notifySoon(client: Db): void {
+  void import("@/lib/push/notify.server").then((m) => m.dispatchFriendEventsSoon(client)).catch(() => {});
 }

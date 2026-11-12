@@ -11,6 +11,7 @@ import { useEffect, useState } from "react";
 
 import { Button, Icon, Sheet } from "@/design/components";
 import { APPLE_SIGN_IN_ENABLED, GOOGLE_SIGN_IN_ENABLED } from "@/config/accountConfig";
+import { pushPublicKey } from "@/config/pushConfig";
 import { recordSaveProgress, useAccount } from "@/lib/account/accountApi";
 import { answerPrompt, noteFinishedGame, takePendingPrompt, type SaveProgressFrom, type SaveProgressMethod, type SaveProgressPrompt } from "@/lib/account/saveProgress";
 
@@ -36,6 +37,10 @@ export function FinishedGameCounter({ gameKey, from }: { gameKey: string; from: 
   useEffect(() => {
     if (account.kind === "unknown" || !gameKey) return;
     noteFinishedGame(gameKey, { signedIn: account.kind === "account", from });
+    // Phone notifications (B2): a finished Daily is a useful moment to ask an account (the streak reminder); the ask
+    // shows on the next tab page, never here. Nothing while the switch is off.
+    if (from === "daily" && account.kind === "account" && pushPublicKey())
+      void import("@/lib/push/pushClient").then((m) => m.notePushMoment("daily_finished", account.playerNumber)).catch(() => {});
     // Counted once per game: the account's kind settles once.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [account.kind === "unknown", gameKey]);
@@ -79,7 +84,7 @@ export function SaveProgressPrompt() {
   if (prompt === "popup")
     return (
       <div role="dialog" aria-label="Save your progress" className="acct-popup" data-save-progress="popup">
-        <p className="jz-card-title">Save your progress?</p>
+        <p className="jz-card-title">{from === "rated" ? "Save your rating and stars?" : "Save your progress?"}</p>
         <p className="acct-lede">Make an account and keep your games, bests and stars on every phone.</p>
         <div className="acct-popup-row">
           <Button variant="secondary" size={46} onClick={dismiss} data-save-progress-dismiss>
@@ -92,14 +97,23 @@ export function SaveProgressPrompt() {
       </div>
     );
 
-  return <SaveProgressSheet onDismiss={dismiss} onTap={tap} />;
+  return <SaveProgressSheet onDismiss={dismiss} onTap={tap} title={from === "rated" ? "Save your rating and stars" : undefined} />;
 }
 
 /** The sheet itself (S1): the prompt above, and anywhere a guest asks for something an account keeps. */
-function SaveProgressSheet({ onDismiss, onTap }: { onDismiss: () => void; onTap: (method: SaveProgressMethod) => void }) {
+function SaveProgressSheet({
+  onDismiss,
+  onTap,
+  title = "Save your progress",
+}: {
+  onDismiss: () => void;
+  onTap: (method: SaveProgressMethod) => void;
+  /** After a guest's rated match (wave 3, Joe 11 Nov 2026): "Save your rating and stars". */
+  title?: string | undefined;
+}) {
   const tap = onTap;
   return (
-    <Sheet open onClose={onDismiss} title="Save your progress" closeLabel="Not now" data={{ "data-save-progress": "sheet" }}>
+    <Sheet open onClose={onDismiss} title={title} closeLabel="Not now" data={{ "data-save-progress": "sheet" }}>
       <div className="acct-sheet-body">
         <p className="acct-sheet-lede">Make an account to keep what you’ve played.</p>
         <ul className="acct-perks">

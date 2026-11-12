@@ -20,7 +20,7 @@ large 10,000. The brief's small example (four Epics, 4,000 separately, for about
 | Week | Size | Bundle | Items (rarity) | Separately | Bundle | Off |
 |---|---|---|---|---|---|---|
 | 1 | Small | **Frozen Lake** | Curl Champ Glacier stones (Epic), Curl Champ Aurora stones (Elite), Frost card art (Elite) | 4,200 | 3,200 | 23.8 % |
-| 2 | Medium | **Card Table** | Free Cell Holo Foil (Elite); Free Cell Royal Damask, Full House Midnight Felt, Full House Crimson Velvet, Royal, Crimson and Emerald card arts (Epic) | 7,600 | 5,500 | 27.6 % |
+| 2 | Medium | **Card Table** | Holo Foil card back (Elite, `card-back.holo-foil`); Royal Damask card back (`card-back.royal-damask`), Full House Midnight Felt, Full House Crimson Velvet, Royal, Crimson and Emerald card arts (Epic) | 7,600 | 5,500 | 27.6 % |
 | 3 | Large | **Black and Gold** | Gold Rush celebration (Legendary, centrepiece); Gold Circuit card art, Obsidian frame, Obsidian Glass tiles, Fireworks, Shockwave (Elite); Gold frame, Gold Leaf name colour, Brushed Gold tiles (Epic) | 13,800 | 10,000 | 27.5 % |
 | 4 | Small | **Retro Arcade** | Retro Arcade reactions, Blueprint tiles, Sapphire name colour, Comic Ink finish (four Epics) | 4,000 | 3,100 | 22.5 % |
 | 5 | Medium | **Sports Day** | Cue Ball Galaxy Set (Elite); Cue Ball Pixel Pool, Crazy Golf Watermelon and Disco, Top Bins Comet and Retro Leather, Apex Racing Stripes (Epic) | 7,600 | 5,500 | 27.6 % |
@@ -33,8 +33,9 @@ Gold Apex skin and the Lightning Core finish (Legendaries left for the daily sho
 in two bundles.
 
 Joe's decisions (11 Nov 2026): the eight weeks approved as listed; small bundles at 3,100 (the 20–30 % rule kept);
-Hologram with two Legendaries; Frozen Lake with three items. Week 2 includes two Free Cell card backs (Royal Damask,
-Holo Foil) whose placement is still being decided with E1; if it changes, week 2 is adjusted here and in `BUNDLES`.
+Hologram with two Legendaries; Frozen Lake with three items. Week 2's two card backs (Royal Damask, Holo Foil) were
+Free Cell skins until E1 made them account-wide card backs (12 Nov 2026, `card-back.royal-damask`, `card-back.holo-foil`;
+`20261112090000_card_back_slot.sql`); the bundle uses the new ids, prices unchanged.
 
 The points as raised:
 

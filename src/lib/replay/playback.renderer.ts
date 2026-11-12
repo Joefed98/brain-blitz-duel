@@ -21,8 +21,10 @@ import { drawMahjong } from "@/lib/arcade/mahjong.renderer";
 import { homerunArtGame } from "@/lib/arcade/homerun.renderer";
 import { bastionGame } from "@/lib/arcade/bastion";
 import { bastionTankArtGameFor } from "@/lib/arcade/bastionTank.renderer";
-import { freekickArtGame } from "@/lib/arcade/freekick.renderer";
-import { racingArtGame } from "@/lib/arcade/racing.renderer";
+import { freekickArtGame, withFreekickLook } from "@/lib/arcade/freekick.renderer";
+import { withCardsLook } from "@/lib/arcade/cards/cards.renderer";
+import { NO_LOOK, type GameLook } from "@/lib/arcade/skins/look";
+import { drawRacingArt } from "@/lib/arcade/racing.renderer";
 import { freecellArt } from "@/lib/arcade/cards/freecell.renderer";
 import { tripeaksArt } from "@/lib/arcade/cards/tripeaks.renderer";
 import { pokerSquaresArt } from "@/lib/arcade/cards/pokerSquares.renderer";
@@ -83,7 +85,7 @@ export interface PlaybackDrawer {
   draw: (ctx: CanvasRenderingContext2D, state: any, jumped: boolean) => void;
 }
 
-const SIMPLE: Record<string, (p: PuzzleData) => Draw> = {
+const SIMPLE: Record<string, (p: PuzzleData, look: GameLook) => Draw> = {
   hover: () => hoverArtGame.draw as Draw,
   skyline: () => skylineArtGame.draw as Draw,
   bintoss: () => binTossArtGame.draw as Draw,
@@ -95,21 +97,21 @@ const SIMPLE: Record<string, (p: PuzzleData) => Draw> = {
   mahjong: () => drawMahjong as Draw,
   homerun: () => homerunArtGame.draw as Draw,
   bastion: (p) => (((p as { bastionRev?: number }).bastionRev ?? 1) >= 2 ? bastionTankArtGameFor((p as { bastionRev?: number }).bastionRev).draw : bastionGame.draw) as Draw,
-  freekick: () => freekickArtGame.draw as Draw,
-  racing: () => racingArtGame.draw as Draw,
+  freekick: (_p, look) => ((ctx, s, size) => withFreekickLook(look, () => freekickArtGame.draw(ctx, s, size))) as Draw,
+  racing: (_p, look) => ((ctx, s, size) => drawRacingArt(ctx, s, size, look)) as Draw,
   freecell: () => freecellArt.draw as Draw,
   tripeaks: () => tripeaksArt.draw as Draw,
-  pokersquares: () => pokerSquaresArt.draw as Draw,
+  pokersquares: (_p, look) => ((ctx, s, size) => withCardsLook(look, () => pokerSquaresArt.draw(ctx, s, size))) as Draw,
   fivehands: () => fiveHandsArt.draw as Draw,
   ricochet: (p) => (isNinjaRev(rev(p, "ricoRev")) ? ninjaArtGameFor(rev(p, "ricoRev")).draw : ricoGame.draw) as Draw,
   pyramid: () => pyramidArt.draw as Draw,
   golfsol: () => golfSolArt.draw as Draw,
   muggins: () => mugginsArt.draw as Draw,
-  curling: () => ((ctx, s) => drawCurling(ctx, s, null)) as Draw,
+  curling: (_p, look) => ((ctx, s) => drawCurling(ctx, s, null, look)) as Draw,
   blockfall: () => blockfallArt.draw as Draw,
   alleyroll: () => alleyRollArt.draw as Draw,
-  pool: () => ((ctx, s) => drawPool(ctx, s, null)) as Draw,
-  minigolf: () => ((ctx, s) => drawMinigolf(ctx, s, null)) as Draw,
+  pool: (_p, look) => ((ctx, s) => drawPool(ctx, s, null, false, look)) as Draw,
+  minigolf: (_p, look) => ((ctx, s) => drawMinigolf(ctx, s, null, look)) as Draw,
   rally: () => rallyArtGame.draw as Draw,
   slice: () => sliceArtGame.draw as Draw,
   bubble: () => bubbleArtGame.draw as Draw,
@@ -140,7 +142,11 @@ const SIMPLE: Record<string, (p: PuzzleData) => Draw> = {
   stroop: (p) => colourClashArtGameFor(clashVariantOf(p as never)).draw as Draw,
 };
 
-export function makePlaybackDrawer(puzzle: PuzzleData): PlaybackDrawer | null {
+/**
+ * `look` (wave 2 skins, display only): the replayed player's own skin and card back with the viewer's world theme
+ * (useRoundAnalysis builds it from the stored result's look); the default for everything else.
+ */
+export function makePlaybackDrawer(puzzle: PuzzleData, look: GameLook = NO_LOOK): PlaybackDrawer | null {
   const reveal = ARCADE_REVEAL_RENDERERS[puzzle.type];
   if (!reveal) return null;
   const worldW = reveal.worldW;
@@ -184,7 +190,7 @@ export function makePlaybackDrawer(puzzle: PuzzleData): PlaybackDrawer | null {
     const course = (puzzle as unknown as { course: Parameters<typeof btArtDraw>[1] }).course;
     return { ...base, draw: (ctx, state) => btArtDraw(ctx, course, state) };
   }
-  const draw = SIMPLE[puzzle.type]?.(puzzle);
+  const draw = SIMPLE[puzzle.type]?.(puzzle, look);
   if (!draw) return null;
   return { ...base, draw: (ctx, state) => draw(ctx, state, size) };
 }

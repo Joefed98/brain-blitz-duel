@@ -1,5 +1,7 @@
 import { useMemo, useRef } from "react";
 
+import { useGameLookRef } from "@/lib/skins/equipped";
+import { lookKey } from "@/lib/arcade/skins/look";
 import { ArcadeCanvasStage, type PointerPayload } from "@/components/puzzles/ArcadeCanvasStage";
 import { TICKS_PER_SECOND, type ArcadeGame, type ArcadeInputEvent } from "@/lib/arcade/engine";
 import {
@@ -16,7 +18,7 @@ import {
   MINIGOLF_W,
   type MinigolfState,
 } from "@/lib/arcade/minigolf";
-import { drawMinigolfCourse, drawMinigolfPlay, minigolfScene, MINIGOLF_BG, MINIGOLF_VIEW_H, type MinigolfAim } from "@/lib/arcade/minigolf.renderer";
+import { drawMinigolfCourse, drawMinigolfPlay, minigolfSceneFor, MINIGOLF_BG, MINIGOLF_VIEW_H, type MinigolfAim } from "@/lib/arcade/minigolf.renderer";
 import { SPORTS_CHECKPOINT_INTERVAL } from "@/lib/arcade/sportsKit";
 import { withArcadeFx } from "@/lib/arcade/arcadeFx.renderer";
 import { MINIGOLF_FX } from "@/lib/arcade/sportsFx.renderer";
@@ -65,12 +67,15 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const aim = useRef<MinigolfAim | null>(null);
   const anchor = useRef<{ x: number; y: number } | null>(null);
   const pars = data?.pars;
+  // The player's own equipped skin and world theme (wave 2; display only, src/lib/skins/equipped.ts).
+  const [look, lookRef] = useGameLookRef("minigolf");
+  const scene = useMemo(() => minigolfSceneFor(look), [look]);
   // The game the stage runs: the stored pars' sim, drawn with the aim the finger is holding (presentation only).
   const game = useMemo<ArcadeGame<MinigolfState, ArcadeInputEvent | null>>(() => {
     const base = minigolfGameFor(pars ?? undefined, data?.golfRev);
     // The live view (3 Nov 2026, display only): the hole under its fixed camera with its effects, the HUD unzoomed.
-    const world = withArcadeFx(MINIGOLF_FX, (ctx, s) => drawMinigolfCourse(ctx, s, aim.current));
-    return { ...base, draw: (ctx, s, size) => drawMinigolfPlay(ctx, s, () => world(ctx, s, size)) };
+    const world = withArcadeFx(MINIGOLF_FX, (ctx, s) => drawMinigolfCourse(ctx, s, aim.current, lookRef.current));
+    return { ...base, draw: (ctx, s, size) => drawMinigolfPlay(ctx, s, () => world(ctx, s, size), MINIGOLF_VIEW_H, lookRef.current) };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pars?.join(","), data?.golfRev]);
 
@@ -114,7 +119,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         label={gameDisplayName("minigolf")}
         background={MINIGOLF_BG}
         fitWorld
-        scene={minigolfScene}
+        scene={scene}
+        sceneKey={() => lookKey(lookRef.current)}
         seed={data?.seed ?? 1}
         enabled={data !== null}
         locked={locked}

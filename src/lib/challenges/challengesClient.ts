@@ -11,6 +11,8 @@
  */
 import { useEffect, useState } from "react";
 
+import { checkOverride } from "@/lib/checkOverride";
+
 /** One challenge's state from the server (getMyChallengesFn's row). */
 export interface ServerChallengeRow {
   id: string;
@@ -37,7 +39,6 @@ export const CHALLENGE_MOMENTS_KEY = "duelz-challenge-moments:v1";
 /** The most moments kept waiting (a long offline sync can complete many at once). */
 const MOMENTS_MAX = 12;
 
-type Win = Window & { __DUELZ_ALLOW_CHALLENGES__?: boolean; __DUELZ_CHALLENGES__?: ServerChallenges };
 
 function cleanMoments(raw: unknown): ChallengeMoment[] {
   if (!Array.isArray(raw)) return [];
@@ -76,14 +77,13 @@ export function takeChallengeMoments(): ChallengeMoment[] {
 
 function serverAllowed(): boolean {
   if (typeof window === "undefined") return false;
-  const w = window as Win;
-  if (navigator.webdriver && !w.__DUELZ_ALLOW_CHALLENGES__) return false;
+  if (navigator.webdriver && !checkOverride("__DUELZ_ALLOW_CHALLENGES__")) return false;
   return navigator.onLine !== false;
 }
 
 /** The caller's challenge progress from the server, or null (offline, busy, under automation, or no answer yet). */
 export async function fetchServerChallenges(): Promise<ServerChallenges | null> {
-  const stand = typeof window !== "undefined" ? (window as Win).__DUELZ_CHALLENGES__ : undefined;
+  const stand = checkOverride<ServerChallenges>("__DUELZ_CHALLENGES__");
   if (stand) return stand;
   if (!serverAllowed()) return null;
   try {

@@ -56,8 +56,14 @@ export const sendRoomMessageFn = createServerFn({ method: "POST" })
 
     // M2: the names' character strip (no control, bidi or zero-width characters), cut by code point.
     const { cleanChatText, censorChat } = await import("./displayName.server");
-    const text = cleanChatText(data.text, MESSAGE_MAX_LENGTH);
+    let text = cleanChatText(data.text, MESSAGE_MAX_LENGTH);
     if (!text) return { ok: false as const, message: "Type a message first." };
+    // Rated rooms (wave 3, W3b): strangers meet, so wave 1's stranger rules apply (ratedChat.server.ts); null for
+    // every ordinary room, which sends exactly as before.
+    const { ratedChatText } = await import("@/lib/rated/ratedChat.server");
+    const rated = await ratedChatText(await admin(), data.roomId, context.userId, text, Date.now());
+    if (rated && !rated.ok) return { ok: false as const, message: rated.message };
+    if (rated) text = rated.text;
 
     const { insertRoomMessage, readOwnRecentMessages } = await import("@/lib/data/chat.server");
     const { data: mine } = await readOwnRecentMessages(client, data.roomId, context.userId, MESSAGE_MAX_PER_PLAYER);
@@ -95,8 +101,13 @@ export const allowReactionFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { roomId: string; emoji: string }) => input)
   .handler(async ({ data, context }) => {
+    // The room's emoji, or (wave 2 E2) an emote from a reaction pack the caller has equipped in a reaction slot.
+    let pack: string | null = null;
     if (!ROOM_EMOJI.includes(data.emoji as (typeof ROOM_EMOJI)[number])) {
-      return { ok: false as const, message: "That reaction doesn’t exist." };
+      const { emoteOf } = await import("@/design/identity/cosmetics");
+      const emote = emoteOf(String(data.emoji ?? ""));
+      if (!emote) return { ok: false as const, message: "That reaction doesn’t exist." };
+      pack = emote.pack;
     }
     const sender = await senderRow(context.supabase, data.roomId, context.userId);
     if (!sender || sender.status === "left") {
@@ -113,6 +124,11 @@ export const allowReactionFn = createServerFn({ method: "POST" })
       Date.now() - new Date(sender.last_reaction_at).getTime() < REACTION_MIN_GAP_MS
     ) {
       return { ok: false as const, message: "One reaction a second." };
+    }
+    if (pack) {
+      const { canSendPack } = await import("@/lib/cosmetics/cosmetics.server");
+      if (!(await canSendPack(await admin(), context.userId, pack).catch(() => false)))
+        return { ok: false as const, message: "Equip that reaction in Customise first." };
     }
 
     const { updatePlayer } = await import("@/lib/data/players.server");

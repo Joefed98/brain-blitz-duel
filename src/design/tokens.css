@@ -117,6 +117,15 @@
   --jz-ink-gold: #1A1206;
   --jz-ink-platinum: #08202A;
   --jz-ink-obsidian: #E2C07A;
+  /* Tier text (wave 3, the rated match screens, 11 Nov 2026): a tier's name in its metal's lightest readable stop on
+     the dark card pill and panels (every one at least 7:1 on --jz-bg). Storm's obsidian shield is too dark for text,
+     so its name is the violet the approved card art's own pill draws (docs/art/wave-2). */
+  --jz-tier-spark: var(--jz-metal-bronze-4);
+  --jz-tier-charge: var(--jz-metal-silver-2);
+  --jz-tier-volt: var(--jz-gold);
+  --jz-tier-surge: var(--jz-metal-platinum-2);
+  --jz-tier-storm: #C79BFF;
+  --jz-tier-lightning: var(--jz-metal-gold-1);
   /* The warm glow (a radial gradient of this colour, 50 % in the centre to 0), the white sheen band over metal
      faces, every piece's outline, and the darker gold of cuffs, bands and banner tails. */
   --jz-glow: #F3D894;

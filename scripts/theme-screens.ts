@@ -8,6 +8,7 @@
  * the daily results and Profile's Daily row; scripts/daily-fixture.ts), drawn through
  * scripts/safe-area-harness.tsx (the real routes, network stubbed).
  */
+import { readFileSync } from "node:fs";
 import type { Browser, BrowserContext, Page } from "playwright";
 
 import { DEVICE_INIT, IPHONE11_APP, emulateDevice } from "./device-emulation";
@@ -169,7 +170,7 @@ export const room =
 
 export interface ThemeScreen {
   name: string;
-  mode: "home" | "practice" | "tournaments" | "profile" | "room" | "daily" | "challenge" | "terms" | "notfound" | "error" | "firstopen" | "account" | "saveprogress" | "leaderboards" | "dailyboard";
+  mode: "home" | "practice" | "tournaments" | "profile" | "room" | "daily" | "challenge" | "terms" | "notfound" | "error" | "firstopen" | "account" | "saveprogress" | "friends" | "customise" | "rated" | "leaderboards" | "dailyboard";
   /** Window globals set before the page loads (wave 1: `__harnessPreview`, a room link's preview). */
   globals?: Record<string, unknown>;
   /** false: a brand-new device, with no room history, practice bests or public games (wave 1's empty states). */
@@ -438,6 +439,131 @@ export const WAVE1_SCREENS = (): ThemeScreen[] => [
   ),
 ];
 
+/**
+ * Friends (wave 2 B1; Joe's phone check, 11 Nov 2026): the list with every section (requests, invites, online with a
+ * lobby's Join, offline, "Show when I'm online", blocked) and a friend's profile, each player drawn with their card,
+ * the longest usernames (16 characters). Appended last, so every earlier screen keeps its place in the parts.
+ */
+export const FRIENDS_SCREENS = (): ThemeScreen[] => {
+  const uid = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
+  const at = "2026-10-26T10:00:00.000Z";
+  const look = (frame: string, avatar: string, colour: number, badges: string[] = []) => ({
+    cardArt: "card-art.bolt-stripes",
+    frame,
+    nameColour: null,
+    avatar: { id: avatar, colour, gem: null },
+    title: "rookie",
+    badges,
+  });
+  const card = (n: number, username: string, frame: string, avatar: string) => ({
+    id: uid(n),
+    username,
+    colour: n % 32,
+    playerNumber: 100 + n,
+    founding: false,
+    look: look(frame, avatar, (n * 5) % 32, n === 1 ? ["friendly"] : []),
+  });
+  const overview = {
+    friends: [
+      { ...card(1, "Priya_Pattern_99", "frame.gold", "pinball"), since: at, status: { kind: "room", code: "BLTZ", players: 3, maxPlayers: 16 } },
+      { ...card(2, "Sam_Speedrunner1", "frame.silver", "apex"), since: at, status: { kind: "playing", code: "QQQQ" } },
+      { ...card(3, "Ali", "frame.bronze", "hover"), since: at, status: { kind: "practice" } },
+      { ...card(4, "Jo_Wordsmith_007", "frame.plain", "captain-joulz"), since: at, status: { kind: "offline", lastSeen: "2026-10-26T08:00:00.000Z" } },
+      { ...card(5, "Mia", "frame.gold", "gemstone"), since: at, status: { kind: "offline", lastSeen: "2026-10-25T09:00:00.000Z" } },
+    ],
+    incoming: [{ ...card(8, "Kai_Knows_Knots", "frame.silver", "hover"), requestId: uid(80), via: "link", at }],
+    outgoing: [],
+    invites: [{ ...card(1, "Priya_Pattern_99", "frame.gold", "pinball"), code: "BLTZ", at }],
+    challenges: [],
+    blocked: [{ id: uid(11), username: "Not_A_Friend" }],
+    count: 5,
+    cap: 200,
+    showOnline: true,
+    showOnlineSetting: null,
+    adult: true,
+  };
+  const profile = {
+    card: card(1, "Priya_Pattern_99", "frame.gold", "pinball"),
+    relation: "friends",
+    requestId: null,
+    status: { kind: "online" },
+    headToHead: { matches: 12, wins: 7, losses: 5, draws: 0, last: ["win", "win", "loss", "win", "loss"], best: { game: "wordsearch", wins: 4, played: 4 } },
+    myRoom: { code: "MINE" },
+  };
+  const globals = { __harnessFriends: { account: { ...ACCOUNT_FIXTURE, rename: { free: true } }, overview, profile } };
+  return [
+    { name: "friends, list", mode: "friends", plain: true, globals },
+    { name: "friends, a friend's profile", mode: "friends", plain: true, globals, search: { player: uid(1) } },
+  ];
+};
+
+/**
+ * Customise's Games tab (12 Nov 2026): the card back, game skins and world themes an account owns, each with its
+ * picture, and the empty tab (nothing owned). The longest item names on purpose (Apex: Neon Night's game, Neon ball
+ * set, Crimson Velvet). Appended last, so every earlier screen keeps its place in the parts.
+ */
+export const CUSTOMISE_SCREENS = (): ThemeScreen[] => {
+  const catalogue = (JSON.parse(readFileSync("docs/art/wave-2/catalogue.json", "utf8")) as { items: unknown[] }).items;
+  const owns = [
+    "card-back.holo-foil",
+    "card-back.royal-damask",
+    "card-back.neon",
+    "game-skin.apex.molten-gold",
+    "world-theme.apex.neon-night",
+    "game-skin.cue-ball.neon-ball-set",
+    "world-theme.cue-ball.neon-table",
+    "game-skin.full-house.crimson-velvet",
+    "game-skin.curl-champ.neon-stones",
+    "world-theme.curl-champ.neon-rink",
+  ];
+  const fixture = (owned: string[], slots: Record<string, string>) => ({
+    __harnessCustomise: { account: { ...ACCOUNT_FIXTURE, playerNumber: 1 }, catalogue, owned, slots },
+  });
+  const games = async (page: Page) => {
+    await page.locator("[data-customise-tab='games']").click();
+    await page.locator("[data-look-section='card-back']").waitFor({ timeout: 10_000 });
+    await page.waitForTimeout(400);
+  };
+  return [
+    {
+      name: "customise, games",
+      mode: "customise",
+      plain: true,
+      globals: fixture(owns, { "card-back": "card-back.holo-foil", "world-theme:pool": "world-theme.cue-ball.neon-table" }),
+      go: games,
+    },
+    { name: "customise, games, nothing owned", mode: "customise", plain: true, globals: fixture([], {}), go: games },
+  ];
+};
+
+/**
+ * The rated match screens (wave 3, W3c, 12 Nov 2026): Home's rank panel (placed and in placement), searching, VS (live
+ * and recorded), the live header's two scores (shown and hidden), the result (won, lost, a placement match, ratings
+ * frozen), the placement reveal, the tier ladder and Profile's rating panel, from scripts/rated-fixture.tsx with
+ * 16-character names. Appended last, so every earlier screen keeps its place in the parts.
+ */
+export const RATED_SCREENS = (): ThemeScreen[] =>
+  (
+    [
+      "home",
+      "home-placement",
+      "searching",
+      "vs-live",
+      "vs-recorded",
+      "header",
+      "result-won",
+      "result-lost",
+      "result-placement",
+      "result-frozen",
+      "reveal",
+      "tiers",
+      "profile",
+      "result-forfeit-stayed",
+      "result-forfeit-left",
+      "aborted",
+    ] as const
+  ).map((screen) => ({ name: `rated, ${screen.replaceAll("-", " ")}`, mode: "rated" as const, plain: true, globals: { __harnessRated: { screen } } }));
+
 export const THEME_SCREENS: ThemeScreen[] = [
   { name: "play", mode: "home", daily: () => dailyFixture().after, challenge: () => challengeFixture("create") },
   { name: "practice list", mode: "practice" },
@@ -597,6 +723,9 @@ export const THEME_SCREENS: ThemeScreen[] = [
   ...ROOM_16_SCREENS(),
   ...WAVE1_SCREENS(),
   ...ACCOUNT_SCREENS(),
+  ...FRIENDS_SCREENS(),
+  ...CUSTOMISE_SCREENS(),
+  ...RATED_SCREENS(),
   ...LEADERBOARD_SCREENS(),
 ];
 

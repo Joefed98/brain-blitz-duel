@@ -314,13 +314,9 @@ export function defaultCard(playerId: string): PublicCard {
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-/** Any player's public card (a guest, an unknown id or an account waiting for deletion: the default card, colour plus initial). */
-export async function publicCardFor(client: Db, playerId: unknown): Promise<PublicCard | null> {
-  if (typeof playerId !== "string" || !UUID_RE.test(playerId)) return null;
-  const { data, error } = await readPublicCards(client, [playerId]);
-  if (error) throw new Error(`public card: ${error.message}`);
-  const row = data[0];
-  if (!row) return defaultCard(playerId);
+type PublicCardRow = Awaited<ReturnType<typeof readPublicCards>>["data"][number];
+
+function cardFromRow(playerId: string, row: PublicCardRow): PublicCard {
   return {
     playerId,
     account: true,
@@ -335,6 +331,32 @@ export async function publicCardFor(client: Db, playerId: unknown): Promise<Publ
     frame: row.frame ?? SLOT_DEFAULTS["frame"]!,
     nameColour: row.name_colour,
   };
+}
+
+/** Any player's public card (a guest, an unknown id or an account waiting for deletion: the default card, colour plus initial). */
+export async function publicCardFor(client: Db, playerId: unknown): Promise<PublicCard | null> {
+  if (typeof playerId !== "string" || !UUID_RE.test(playerId)) return null;
+  const { data, error } = await readPublicCards(client, [playerId]);
+  if (error) throw new Error(`public card: ${error.message}`);
+  const row = data[0];
+  return row ? cardFromRow(playerId, row) : defaultCard(playerId);
+}
+
+/**
+ * Many players' public cards in as few reads as the database allows (100 ids a read, in parallel): the friends list's
+ * cards in one go. Only accounts come back (a guest, an unknown id or an account waiting for deletion is left out).
+ */
+export async function publicCardsFor(client: Db, playerIds: readonly string[]): Promise<Map<string, PublicCard>> {
+  const ids = [...new Set(playerIds.filter((id) => UUID_RE.test(id)))];
+  const chunks: string[][] = [];
+  for (let i = 0; i < ids.length; i += 100) chunks.push(ids.slice(i, i + 100));
+  const reads = await Promise.all(chunks.map((chunk) => readPublicCards(client, chunk)));
+  const out = new Map<string, PublicCard>();
+  for (const { data, error } of reads) {
+    if (error) throw new Error(`public cards: ${error.message}`);
+    for (const row of data) out.set(row.user_id, cardFromRow(row.user_id, row));
+  }
+  return out;
 }
 
 /* ------------------------------------------------------------------ for later server code (never the phone) */

@@ -16,6 +16,7 @@
 
 import type { Json } from "@/integrations/supabase/types";
 import type {
+  PlacementResult,
   PlacementStatus,
   PlayerRatings,
   PoolView,
@@ -130,6 +131,13 @@ function standingFrom(rows: RatedStateRows, id: string): TierStanding | null {
   };
 }
 
+function placementsFrom(rows: RatedStateRows, id: string): PlacementResult[] {
+  return rows.placements
+    .filter((p) => p.player_id === id)
+    .map((p) => ({ n: p.n, matchId: p.match_id, result: p.result, at: new Date(p.finished_ms).toISOString() }))
+    .sort((a, b) => a.n - b.n);
+}
+
 function recentFrom(rows: RatedStateRows, id: string): Record<RatedPool, number> {
   const r = rows.recent.find((x) => x.player_id === id);
   return { puzzles: r?.puzzles ?? 0, arcade: r?.arcade ?? 0 };
@@ -171,7 +179,13 @@ export async function recordRatedMatch(client: Db, input: unknown, nowMs: number
       const rat = ratingsFrom(rows, id);
       profileVersions[id] = prof.version;
       ratingVersions[id] = rat.versions;
-      pre[id] = { profile: prof.state, ratings: rat.ratings, recentGames: recentFrom(rows, id), standing: standingFrom(rows, id) };
+      pre[id] = {
+        profile: prof.state,
+        ratings: rat.ratings,
+        recentGames: recentFrom(rows, id),
+        standing: standingFrom(rows, id),
+        placementResults: placementsFrom(rows, id),
+      };
     }
     const pairCounts: Record<string, number> = {};
     for (const p of rows.pairs) pairCounts[pairKey(p.a, p.b)] = p.matches;
@@ -223,6 +237,7 @@ export async function recordRatedMatch(client: Db, input: unknown, nowMs: number
           moved: p.change.moved,
           frozen: p.change.frozen,
           joules: p.change.joules,
+          placement_no: p.placementNo,
           puzzles_games: p.games.puzzles,
           arcade_games: p.games.arcade,
           changes: p.change.changes,
@@ -294,7 +309,7 @@ function poolView(state: GlickoState | undefined): PoolView {
 
 function ratingsView(rows: RatedStateRows, id: string): PlayerRatings {
   const { state } = profileFrom(rows, id);
-  const placement = placementOf(state.placementPlayed);
+  const placement = placementOf(state.placementPlayed, placementsFrom(rows, id));
   if (!placement.done) return { playerId: id, placement, joulz: null, tier: null, pools: null, categories: null };
   const { ratings } = ratingsFrom(rows, id);
   const joulz = joulzRating({ puzzles: ratings.puzzles, arcade: ratings.arcade }, recentFrom(rows, id));
@@ -338,7 +353,7 @@ export async function getRatingsFor(client: Db, playerId: unknown, nowMs: number
 
 export async function placementStatus(client: Db, userId: string, nowMs: number = Date.now()): Promise<PlacementStatus> {
   const rows = await stateFor(client, [userId], nowMs);
-  return placementOf(profileFrom(rows!, userId).state.placementPlayed);
+  return placementOf(profileFrom(rows!, userId).state.placementPlayed, placementsFrom(rows!, userId));
 }
 
 /** The ladder, each tier with its share of placed players (null before anyone has placed). */
