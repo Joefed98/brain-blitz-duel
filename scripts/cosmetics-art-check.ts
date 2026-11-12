@@ -153,6 +153,25 @@ store.loadCosmetics(["other"]);
 await new Promise((r) => setTimeout(r, 10));
 check(!isRoomReaction(code, "other"), "never from a player who didn't equip the pack");
 check(!isRoomReaction(cos.emoteCode("reaction.live-wire", 0), "owner"), "nor a pack the owner didn't equip");
+// The room's receiving path (useRoomChat → acceptReaction, main's roster rule): only a catalogue emote of a pack its
+// sender equipped, by the server's record (cosmetics_public through the store), from a player still in the room.
+{
+  const { acceptReaction } = await import("../src/lib/duel/reactionRoster");
+  const roster = [
+    { user_id: "owner", display_name: "Owner", status: "joined" },
+    { user_id: "other", display_name: "Other", status: "joined" },
+  ];
+  const got = acceptReaction({ emoji: code, userId: "owner", name: "Owner" }, roster);
+  check(got?.emoji === code && got.name === "Owner", "room reactions: the owner's emote is accepted");
+  const refused = ["reaction.nope#0", "reaction.banter#9", "reaction.banter#x", "https://example.com/a.png", "<img src=x onerror=alert(1)>", "reaction.banter#2 ", "data:image/png;base64,AAAA"];
+  check(refused.every((emoji) => acceptReaction({ emoji, userId: "owner" }, roster) === null), "room reactions: an unknown emote id, a URL, an image or markup is refused");
+  check(acceptReaction({ emoji: cos.emoteCode("reaction.live-wire", 0), userId: "owner" }, roster) === null, "room reactions: an emote of a pack the sender didn't equip is refused");
+  check(acceptReaction({ emoji: code, userId: "other" }, roster) === null, "room reactions: an emote from a player who owns none is refused");
+  check(acceptReaction({ emoji: code, userId: "owner" }, [{ user_id: "owner", display_name: "Owner", status: "left" }]) === null, "room reactions: never from a player who left");
+  check(acceptReaction({ emoji: code, userId: "owner", reactions: ["reaction.live-wire"] } as never, roster)?.emoji === code &&
+    acceptReaction({ emoji: cos.emoteCode("reaction.live-wire", 0), userId: "owner", reactions: ["reaction.live-wire"] } as never, roster) === null,
+    "room reactions: what the sender's message claims to own is ignored (the server's record decides)");
+}
 store.setCosmeticsFetcher(null);
 store.resetCosmetics();
 
