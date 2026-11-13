@@ -628,6 +628,7 @@ async function databaseChecks(db: LocalDb, rest: RestServer): Promise<void> {
     for (const id of ids) check(q(`SELECT count(*) FROM practice_challenge_progress WHERE user_id = '${OTH}' AND challenge_id = '${id}' AND completed_at IS NOT NULL`) === "1", `${id} stored completed for the caller`);
     // C1a's interface (docs/practice-progress.md): the challenges ran on the play practice_record_play counted, read
     // from its stored breakdown.
+    // Changed with Joe's approval, 13 Nov 2026: the stored play is Colour Flood's, the run that stands in for retired Blackout.
     check(q(`SELECT count(*) FROM practice_plays WHERE user_id = '${OTH}' AND game_id = 'flood' AND progress_counted_at IS NOT NULL AND breakdown IS NOT NULL`) === "1", "the run's play is stored with its breakdown and counted");
     // The same deal graded again: noted once, by its sealed token's digest; the retry completes no coin challenge.
     const key = await server.challengeDealKey(dealt.sealed);

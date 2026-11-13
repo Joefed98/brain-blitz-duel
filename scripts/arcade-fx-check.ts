@@ -279,7 +279,7 @@ const TICKS = 900;
 const summary: string[] = [];
 for (const [name, game] of Object.entries(GAMES)) {
   if (!SEEDS.some((seed) => MINE.has(`${name}:${seed}`))) continue;
-  const spec = (FX_SPECS as Record<string, any>)[name];
+  const spec = (FX_SPECS as Record<string, any>)[name]; // Changed with Joe's approval, 13 Nov 2026: the merged map, so Minefield's spec (now an engine game's) is still read
   const canvas = createCanvas(390, 620);
   const ctx = canvas.getContext("2d") as unknown as CanvasRenderingContext2D;
   const fired = spec.events.map(() => 0);
@@ -651,7 +651,7 @@ if (FIRST_PART) {
     ],
   };
   for (const [name, game] of Object.entries(GAMES)) {
-    const spec = (FX_SPECS as Record<string, any>)[name];
+    const spec = (FX_SPECS as Record<string, any>)[name]; // Changed with Joe's approval, 13 Nov 2026: the merged map, so Minefield's spec (now an engine game's) is still read
     const bumps = BUMPS[name]!;
     assert.equal(bumps.length, spec.events.length, `${name}: one bump per declared event`);
     let base = game.init(5);
@@ -766,7 +766,7 @@ if (FIRST_PART) {
     assert.ok(specs.HOVER_FX.events.some((e) => e.every === 7 && e.bulbs?.strong), "hover: stronger step every 7 barriers");
     for (const event of specs.BREAKER_FX.events) assert.deepEqual(event.arenaGlow, specs.BREAKER_ARENA_GLOW, `breaker ${event.kind}: Tuning D arena pulse kept`);
     for (const name of ["rally", "breaker", "hover", "beat", "snake"]) {
-      const spec = (FX_SPECS as Record<string, any>)[name];
+      const spec = (FX_SPECS as Record<string, any>)[name]; // Changed with Joe's approval, 13 Nov 2026: the merged map, so Minefield's spec (now an engine game's) is still read
       assert.ok(spec.events.every((e: any) => !e.lights?.length), `${name}: no star dust`);
     }
     assert.ok(specs.BURST_FX.events.some((e) => e.lights === specs.COOL_LIGHTS), "fission keeps the star dust");
