@@ -19,7 +19,12 @@ import { createHash } from "node:crypto";
   }
 };
 
-export const SKIN_GAMES = ["pool", "minigolf", "curling", "racing", "freekick", "freecell", "pokersquares"] as const;
+export const SKIN_GAMES = ["pool", "minigolf", "curling", "racing", "freekick", "freecell", "pokersquares", "tripeaks", "pyramid", "fivehands"] as const;
+// Changed with Joe's approval, 13 Nov 2026: Summit, Thirteen and Five Hands added (card backs on their face-down cards).
+// Their default digests were appended to scripts/fixtures/skins-default-frames.json, drawn on main f268bcd's own
+// renderers (every earlier entry byte-identical).
+/** The card games that draw only the account's card back (13 Nov 2026, Joe: Summit, Thirteen, Five Hands; face-down cards). */
+export const BACK_ONLY_GAMES = ["tripeaks", "pyramid", "fivehands"] as const;
 export type SkinGame = (typeof SKIN_GAMES)[number];
 
 export interface Frame {
@@ -165,6 +170,37 @@ export async function drawFrames(game: SkinGame, look: Look): Promise<Frame[]> {
       }
     }
     out.push(scene("scene", R.PS_WORLD_W, R.PS_WORLD_H, 1, (ctx, v) => (has ? fill.cardsFillFor(look)(ctx, v) : fill.cardsFill(ctx, v))));
+  } else if (game === "tripeaks" || game === "pyramid" || game === "fivehands") {
+    // Summit, Thirteen and Five Hands (13 Nov 2026): the stage draws the art game inside withCardsLook (the back only).
+    const C = await import("../../src/lib/arcade/cards/cards.renderer");
+    const fill = await import("../../src/lib/arcade/cards/cardsFill.renderer");
+    type Art = { init: (seed: number) => unknown; step: (s: never, i: null) => unknown; draw: (ctx: Ctx, s: never, size: { width: number; height: number }) => void };
+    let w = 0;
+    let h = 0;
+    let revs: number[] = [];
+    let artFor: (rev: number) => Art;
+    let seeds: readonly (readonly [number, number])[];
+    if (game === "tripeaks") {
+      const R = await import("../../src/lib/arcade/cards/tripeaks.renderer");
+      const T = await import("../../src/lib/arcade/cards/tripeaks");
+      [w, h, revs, artFor, seeds] = [R.TP_WORLD_W, R.TP_WORLD_H, [1, T.TP_REV], (rev) => R.tripeaksArtGame(undefined, rev) as unknown as Art, [[0, 0], [12, 150]]];
+    } else if (game === "pyramid") {
+      const R = await import("../../src/lib/arcade/cards/pyramid.renderer");
+      const P = await import("../../src/lib/arcade/cards/pyramid");
+      [w, h, revs, artFor, seeds] = [R.PY_WORLD_W, R.PY_WORLD_H, [1, P.PY_REV], (rev) => R.pyramidArtGame(undefined, rev) as unknown as Art, [[3, 0], [21, 150]]];
+    } else {
+      const R = await import("../../src/lib/arcade/cards/fiveHands.renderer");
+      const F = await import("../../src/lib/arcade/cards/fiveHands");
+      [w, h, revs, artFor, seeds] = [R.FH_WORLD_W, R.FH_WORLD_H, [1, F.FH_REV], (rev) => R.fiveHandsArtGame(undefined, rev) as unknown as Art, [[0, 0], [21, 150]]];
+    }
+    for (const rev of revs) {
+      const art = artFor(rev);
+      for (const [seed, ticks] of seeds) {
+        const s = run<never>(art as unknown as Idle, seed, ticks);
+        for (const scale of [1, 2]) out.push(paint(`r${rev}-s${seed}-t${ticks}@${scale}`, w, h, scale, (ctx) => (has ? C.withCardsLook(look, () => art.draw(ctx, s, { width: w, height: h })) : art.draw(ctx, s, { width: w, height: h }))));
+      }
+    }
+    out.push(scene("scene", w, h, 1, (ctx, v) => fill.cardsFill(ctx, v)));
   }
   return out;
 }

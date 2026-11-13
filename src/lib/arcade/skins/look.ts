@@ -53,8 +53,18 @@ export const WORLD_THEME_IDS: Readonly<Record<SkinnableGame, readonly string[]>>
 
 /** The card backs (catalogue kind `card-back`, one slot for the account; 11 Nov 2026, Joe). */
 export const CARD_BACK_IDS: readonly string[] = ["card-back.royal-damask", "card-back.holo-foil", "card-back.neon"];
-/** The games whose face-down cards draw the equipped back: Full House's deck (behind Next card). */
-export const CARD_BACK_GAMES: readonly SkinnableGame[] = ["pokersquares"];
+/**
+ * The games whose face-down cards draw the equipped back: Full House's deck (behind Next card) and, since 13 Nov 2026
+ * (Joe, docs/cosmetics-review), Summit's covered peak cards and stock, Thirteen's stock and Five Hands' deck. Face-down
+ * cards only: a face is never touched, so nothing a player can read about the cards changes. Summit, Thirteen and Five
+ * Hands have no skins or world themes (they are not in SKIN_GAME_NAMES); only the back.
+ */
+export const CARD_BACK_GAMES: readonly string[] = ["pokersquares", "tripeaks", "pyramid", "fivehands"];
+export const isCardBackGame = (g: string): boolean => CARD_BACK_GAMES.includes(g);
+/** A card-back game's look: the account's back only, kept to the catalogue's backs (anything else: the default). */
+export function backLookFor(back: string | null | undefined): GameLook {
+  return back && CARD_BACK_IDS.includes(back) ? { skin: null, world: null, back } : NO_LOOK;
+}
 
 export const isSkinnableGame = (g: string): g is SkinnableGame => Object.prototype.hasOwnProperty.call(SKIN_GAME_NAMES, g);
 
@@ -68,9 +78,10 @@ export function lookFor(game: SkinnableGame, skin: string | null | undefined, wo
 
 /** A stored result's look (round_results.look / async_results.look: `{skin, world, back}`), kept to this game's items. */
 export function lookFromStored(game: string, stored: unknown): GameLook {
-  if (!isSkinnableGame(game) || !stored || typeof stored !== "object") return NO_LOOK;
+  if (!stored || typeof stored !== "object") return NO_LOOK;
   const r = stored as Record<string, unknown>;
   const str = (v: unknown) => (typeof v === "string" ? v : null);
+  if (!isSkinnableGame(game)) return isCardBackGame(game) ? backLookFor(str(r["back"])) : NO_LOOK;
   return lookFor(game, str(r["skin"]), str(r["world"]), str(r["back"]));
 }
 

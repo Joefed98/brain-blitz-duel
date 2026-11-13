@@ -110,6 +110,7 @@ export function toCatalogueItem(row: CatalogueRow): CatalogueItem {
     note: row.note,
     png: row.png_path,
     html: row.html_path,
+    withdrawn: row.withdrawn_at != null,
   };
 }
 

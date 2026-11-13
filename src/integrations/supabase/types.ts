@@ -181,6 +181,8 @@ export type Database = {
           rarity: string | null
           slot: string
           sort_order: number
+          withdrawn_at: string | null
+          withdrawn_note: string | null
           source: string
         }
         Insert: {
@@ -202,6 +204,8 @@ export type Database = {
           rarity?: string | null
           slot: string
           sort_order?: number
+          withdrawn_at?: string | null
+          withdrawn_note?: string | null
           source: string
         }
         Update: {
@@ -223,6 +227,8 @@ export type Database = {
           rarity?: string | null
           slot?: string
           sort_order?: number
+          withdrawn_at?: string | null
+          withdrawn_note?: string | null
           source?: string
         }
         Relationships: []
@@ -2704,6 +2710,8 @@ export type Database = {
           rarity: string | null
           slot: string | null
           sort_order: number | null
+          withdrawn_at: string | null
+          withdrawn_note: string | null
           source: string | null
         }
         Relationships: []

@@ -110,6 +110,7 @@ if (!postgresBin()) {
 try {
   db = startLocalDb("friends-check-");
   check(db.failed === null, `all migrations apply in order${db.failed ? ` (${db.failed.file}: ${db.failed.error})` : ""}`);
+  db.psql("UPDATE public.catalogue_items SET withdrawn_at = NULL, withdrawn_note = NULL"); // Changed with Joe's approval, 13 Nov 2026: every item live in this check's own test database before its scenario, so its cards scenario can still equip Bolt Stripes (withdrawn by 20261116800000; the withdrawn rules are proved by cosmetics-withdrawn-check).
   rest = await startRestServer(db.socketDir);
   process.env["SUPABASE_URL"] = rest.url;
   process.env["SUPABASE_PUBLISHABLE_KEY"] = ANON_KEY;
