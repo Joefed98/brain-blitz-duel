@@ -1,3 +1,5 @@
+See [LICENSE](LICENSE): all rights reserved; no licence is granted to use, copy, modify or distribute this code.
+
 # Duelz: Quick Puzzles
 
 Build a mobile-first web app called Duelz — a 1v1 skill-based puzzle duel game. Two friends on two separate phones join the same duel with a short room code, solve the same three timed puzzles at the same moment, and whoever scores more across the three rounds wins.
