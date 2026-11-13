@@ -153,7 +153,7 @@ export const ANALYTICS_EVENTS = [
   // players, byes included); knockout_match_played props.round (played matches only, never a walkover).
   "swiss_round_paired",
   "knockout_match_played",
-  // The rated queue's cooldown (13 Nov 2026, 20261116600100_analytics_rated_cooldown.sql): recorded by the server only
+  // The rated queue's cooldown (13 Nov 2026, 20261117100100_analytics_rated_cooldown.sql): recorded by the server only
   // (src/lib/rated/rated.server.ts joinQueue), a search refused while the wait after set-up leaves runs; props.aborts
   // and props.wait_s.
   "rated_cooldown_applied",

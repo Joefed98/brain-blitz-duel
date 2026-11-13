@@ -272,9 +272,12 @@ function RatedScreen() {
         data-rated-screen="aborted"
         data-rated-abort={a.youLeft ? "you-left" : "they-left"}
       >
-        <p className="jz-empty-body" data-rated-abort-wait data-wrap-ok>
-          {ABORT_WAIT_LINE}
-        </p>
+        {/* The wait after set-up leaves applies to the leaver, so only they are told (Joe, 13 Nov 2026). */}
+        {a.youLeft ? (
+          <p className="jz-empty-body" data-rated-abort-wait data-wrap-ok>
+            {ABORT_WAIT_LINE}
+          </p>
+        ) : null}
       </EmptyState>
     );
   } else if (phase.kind === "error") {

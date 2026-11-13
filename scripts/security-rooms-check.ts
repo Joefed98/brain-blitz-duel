@@ -505,5 +505,5 @@ async function runDb(db: LocalDb, rest: RestServer): Promise<void> {
     check(leaver.ok === false && leaver.reason === "cooldown", "the leaver, with a second leave in 24 h, waits");
   }
   const route = readFileSync("src/routes/rated.tsx", "utf8");
-  check(/\{ABORT_WAIT_LINE\}/.test(route) && (await import("../src/lib/rated/rules")).ABORT_WAIT_LINE === "Leaving before a match starts adds a short wait.", "the abort notice adds the wait line");
+  check(/\{a\.youLeft \? \(\s*<p className="jz-empty-body" data-rated-abort-wait data-wrap-ok>\s*\{ABORT_WAIT_LINE\}/.test(route) && (await import("../src/lib/rated/rules")).ABORT_WAIT_LINE === "Leaving before a match starts adds a short wait.", "the abort notice adds the wait line, for the leaver only");
 }
