@@ -6,17 +6,17 @@
  * mahjong-check to prove every dealt seed reaches 200 through the server's replay.
  */
 import { inputAt, type ArcadeInputEvent, type ArcadeGame } from "../src/lib/arcade/engine";
-import { minesBoard, minesCheckpoint, minesSolve, minesweeperGame, MINES_CHECKPOINT_INTERVAL, MINES_INPUT_TAP, MINES_MODE_REVEAL } from "../src/lib/arcade/minesweeper";
+import { minesBoard, minesCheckpoint, minesCountFor, minesSolve, minesweeperGameFor, MINES_CHECKPOINT_INTERVAL, MINES_INPUT_TAP, MINES_MODE_REVEAL } from "../src/lib/arcade/minesweeper";
 import { mahjongBuild, mahjongCheckpoint, mahjongGameFor, MAHJONG_CHECKPOINT_INTERVAL, MAHJONG_INPUT_TAP } from "../src/lib/arcade/mahjong";
 import { encodeMinesweeperRun } from "../src/lib/duel/minesweeper";
 import { encodeMahjongRun } from "../src/lib/duel/mahjong";
 
 const ev = (t: number, k: number, a: number, b = 0): ArcadeInputEvent => ({ t, k, a, b, c: 0, d: 0 });
 
-/** Minesweeper's perfect run: the solver's steps after the opening, one tap a tick from tick `from`. */
-export function minesOracle(seed: number, from = 1, every = 1): ArcadeInputEvent[] {
-  const board = minesBoard(seed);
-  const proof = minesSolve(board.mines, board.start);
+/** Minesweeper's perfect run: the solver's steps after the opening, one tap a tick from tick `from` (`rev`: minesRev). */
+export function minesOracle(seed: number, from = 1, every = 1, rev = 1): ArcadeInputEvent[] {
+  const board = minesBoard(seed, rev);
+  const proof = minesSolve(board.mines, board.start, minesCountFor(rev));
   return proof.steps.slice(1).map((step, i) => ev(from + i * every, MINES_INPUT_TAP, step[0]!, MINES_MODE_REVEAL));
 }
 
@@ -51,9 +51,9 @@ function phoneRun(game: ArcadeGame<any, ArcadeInputEvent | null>, seed: number, 
 }
 
 /** An encoded run for the replay functions, as the phone would send it (claimed score and checkpoints included). */
-/** The run the phone would send; `rev` picks Mahjong's revision (1 by default; 2 plays Undo and Reset). */
+/** The run the phone would send; `rev` picks the revision (1 by default; Mahjong 2 plays Undo and Reset, Minefield 2 has 20 mines). */
 export function encodeOracle(seed: number, events: readonly ArcadeInputEvent[], type: "minesweeper" | "mahjong", rev = 1): string {
   return type === "minesweeper"
-    ? phoneRun(minesweeperGame, seed, events, MINES_CHECKPOINT_INTERVAL, minesCheckpoint, encodeMinesweeperRun)
+    ? phoneRun(minesweeperGameFor(rev), seed, events, MINES_CHECKPOINT_INTERVAL, minesCheckpoint, encodeMinesweeperRun)
     : phoneRun(mahjongGameFor(rev), seed, events, MAHJONG_CHECKPOINT_INTERVAL, mahjongCheckpoint, encodeMahjongRun);
 }

@@ -55,7 +55,7 @@ import { hoverFeatureBonus, hoverStandardParts } from "@/lib/arcade/hover";
 import { decodePinballRun, replayPinballRun } from "./pinball";
 import { decodeMinesweeperRun, replayMinesweeperRun } from "./minesweeper";
 import { decodeMahjongRun, replayMahjongRun } from "./mahjong";
-import { MINES_SAFE } from "@/lib/arcade/minesweeper";
+import { minesSafeFor } from "@/lib/arcade/minesweeper";
 import { decodeHomerunRun, replayHomerunRun } from "./homerun";
 import { decodeFreekickRun, replayFreekickRun } from "./freekick";
 import { decodeRacingRun, replayRacingRun } from "./racing";
@@ -1909,7 +1909,7 @@ function gradeUnderRev(
         minesRev: puzzle.minesRev ?? 1,
         revealed: run.revealed,
         opening: run.opening,
-        safe: MINES_SAFE,
+        safe: minesSafeFor(puzzle.minesRev),
         hits: run.hits,
         flags: run.flags,
         chords: run.chords,

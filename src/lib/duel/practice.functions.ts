@@ -7,7 +7,7 @@ import { type SubmitExtra } from "./grade";
 import { mergePuzzle, splitPuzzle } from "./secrets";
 import type { PracticeRunProgress } from "@/lib/practice/progress";
 import { levelOf } from "@/lib/practice/progressRules";
-import { PUZZLE_TYPES } from "./catalogue";
+import { PUZZLE_TYPES, isPlayable } from "./catalogue";
 import type { PuzzleData, PuzzleType } from "./types";
 
 /* -------------------------------------------------------------------------- */
@@ -53,6 +53,16 @@ function validType(type: string): PuzzleType {
   return type as PuzzleType;
 }
 
+/** What a retired game's deal or grade answers (catalogue.ts RETIRED_TYPES: out of the app, 13 Nov 2026). */
+export const PRACTICE_RETIRED = "That game isn’t available any more.";
+
+/** A game Practice may deal and grade: a live id that isn't retired (validType stays for the dev demo saves). */
+function playableType(type: string): PuzzleType {
+  const valid = validType(type);
+  if (!isPlayable(valid)) throw new Error(PRACTICE_RETIRED);
+  return valid;
+}
+
 /** What the phone shows when Practice is asked for a game held back for Joulz Plus members (wave 2 E2). */
 const EARLY_ACCESS_HELD = "That game is in early access for Joulz Plus members. Everyone can play it soon.";
 
@@ -90,7 +100,7 @@ async function dealPractice(type: PuzzleType, unblockRow: unknown): Promise<{ pu
 export const practiceGenerateFn = createServerFn({ method: "POST" })
   .inputValidator((input: { type: string; example?: boolean }) => input)
   .handler(async ({ data }) => {
-    const type = validType(data.type);
+    const type = playableType(data.type);
     if (!(await practiceLimit("deal"))) throw new Error(PRACTICE_BUSY);
     const { generatePuzzle } = await import("./generate.server");
     const example = data.example === true;
@@ -198,6 +208,8 @@ export const practiceGradeFn = createServerFn({ method: "POST" })
     const staleNote = staleSubmissionNote("practice_grade", data.clientVersion, data.puzzle.type);
     if (staleNote) console.warn(staleNote);
     if (!(await practiceLimit("grade"))) throw new Error(PRACTICE_BUSY);
+    // A retired game is never graded (a deal dealt before it retired counts for nothing).
+    if (!isPlayable(data.puzzle?.type)) throw new Error(PRACTICE_RETIRED);
     const { priv, pub, example, dealtAt } = await openDealOrThrow(data.sealed, data.puzzle);
     const puzzle = mergePuzzle(pub, priv);
     // The claim held to the server's receipt, as in a room (practiceReceipt.ts).
@@ -374,7 +386,8 @@ export const practicePackFn = createServerFn({ method: "POST" })
     // Early access (wave 2 E2): no offline pack of a game held back from this caller.
     const held = await heldGames();
     for (const raw of types) {
-      if (!(PUZZLE_TYPES as string[]).includes(raw)) continue;
+      // Never a pack of a retired game (catalogue.ts isPlayable).
+      if (!isPlayable(raw)) continue;
       if (held.includes(raw)) continue;
       const type = raw as PuzzleType;
       // Games that ask the server during play are online only: no pack.
@@ -428,6 +441,8 @@ export const practiceGradeQueuedFn = createServerFn({ method: "POST" })
       return { status: "rejected" as const, reason: "seal" };
     }
     if (!data.puzzle || raw["type"] !== data.puzzle.type) return { status: "rejected" as const, reason: "type" };
+    // A queued run of a game retired since it was played counts for nothing: rejected, so the phone stops sending it.
+    if (!isPlayable(data.puzzle.type)) return { status: "rejected" as const, reason: "retired" };
     // Every deal, pack or live, must match the digest it was sealed with (H1): a token from before the digest, or a
     // changed deal, is rejected, never graded.
     const opened = await openDeal(data.sealed, data.puzzle);

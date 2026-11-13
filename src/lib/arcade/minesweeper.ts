@@ -35,6 +35,21 @@ export const MINES_RUN_TICKS = MINES_RUN_SECONDS * TICKS_PER_SECOND;
 
 /** The one revision so far (the arcade scoring standard from the start). */
 export const MINES_REV_STD = 1;
+/**
+ * minesRev 2 (13 Nov 2026, Joe's decision): Minefield as a Logic game with 20 mines (12.5 % of the board, rev 1's
+ * 25 were 15.6 %): the same 10 × 16 board, opening rule, logic-only proof and parts; every rev-1 round replays and
+ * scores exactly as before (each count and line below is per revision).
+ */
+export const MINES_REV_LOGIC = 2;
+/** Mines per revision (rev 1's 25, rev 2's 20). */
+export const MINES_COUNT_V2 = 20;
+export function minesCountFor(rev: number | null | undefined): number {
+  return (rev ?? MINES_REV_STD) >= MINES_REV_LOGIC ? MINES_COUNT_V2 : MINES_COUNT;
+}
+/** Safe squares on a revision's board. */
+export function minesSafeFor(rev: number | null | undefined): number {
+  return MINES_CELLS - minesCountFor(rev);
+}
 
 /* ================================ World ================================ */
 
@@ -147,7 +162,8 @@ export interface MinesSolve {
  * those are mines and the other's own squares safe) and (3) the mine total (none left → all safe; as many hidden as
  * left → all mines). Never a guess. Deterministic (fixed scan order).
  */
-export function minesSolve(mines: readonly number[], start: number): MinesSolve {
+export function minesSolve(mines: readonly number[], start: number, count: number = MINES_COUNT): MinesSolve {
+  const safe = MINES_CELLS - count;
   const nums = minesNumbers(mines);
   const known = new Uint8Array(MINES_CELLS); // 0 hidden, 1 safe (revealed), 2 mine (proved)
   const steps: number[][] = [];
@@ -168,7 +184,7 @@ export function minesSolve(mines: readonly number[], start: number): MinesSolve 
   reveal(start);
   const hiddenOf = (cell: number): number[] => NEIGHBOURS[cell]!.filter((nb) => known[nb] === 0);
   const leftOf = (cell: number): number => nums[cell]! - NEIGHBOURS[cell]!.filter((nb) => known[nb] === 2).length;
-  for (let guard = 0; guard < 4 * MINES_CELLS && revealed < MINES_SAFE; guard++) {
+  for (let guard = 0; guard < 4 * MINES_CELLS && revealed < safe; guard++) {
     let progress = false;
     // (1) single counts.
     for (let cell = 0; cell < MINES_CELLS; cell++) {
@@ -217,7 +233,7 @@ export function minesSolve(mines: readonly number[], start: number): MinesSolve 
     // (3) the mine total.
     const hiddenAll: number[] = [];
     for (let cell = 0; cell < MINES_CELLS; cell++) if (known[cell] === 0) hiddenAll.push(cell);
-    const minesLeft = MINES_COUNT - minesKnown;
+    const minesLeft = count - minesKnown;
     if (minesLeft === 0) {
       for (const h of hiddenAll) reveal(h);
       progress = hiddenAll.length > 0;
@@ -227,7 +243,7 @@ export function minesSolve(mines: readonly number[], start: number): MinesSolve 
     }
     if (!progress) break;
   }
-  return { solved: revealed === MINES_SAFE, revealed, steps };
+  return { solved: revealed === safe, revealed, steps };
 }
 
 /* ================================ The deal ================================ */
@@ -255,7 +271,7 @@ function mixSeed(seed: number): number {
   return (x ^ (x >>> 16)) | 0;
 }
 
-function tryBoard(rng: number): { rng: number; mines: number[]; start: number } {
+function tryBoard(rng: number, count: number = MINES_COUNT): { rng: number; mines: number[]; start: number } {
   let r = rngBelow(rng, MINES_ROWS - 10);
   const row = 5 + r.value;
   r = rngBelow(r.state, MINES_COLS - 4);
@@ -266,7 +282,7 @@ function tryBoard(rng: number): { rng: number; mines: number[]; start: number } 
   for (let cell = 0; cell < MINES_CELLS; cell++) if (!banned.has(cell)) pool.push(cell);
   const mines = new Array<number>(MINES_CELLS).fill(0);
   let state = r.state;
-  for (let i = 0; i < MINES_COUNT; i++) {
+  for (let i = 0; i < count; i++) {
     const pick = rngBelow(state, pool.length - i);
     state = pick.state;
     const j = i + pick.value;
@@ -278,27 +294,33 @@ function tryBoard(rng: number): { rng: number; mines: number[]; start: number } 
   return { rng: state, mines, start };
 }
 
-const BOARD_CACHE = new Map<number, MinesBoard>();
+const BOARD_CACHE = new Map<number | string, MinesBoard>();
 
-/** The seed's board: the first try the logic solver clears (cached; the same on every device and the server). */
-export function minesBoard(seed: number): MinesBoard {
-  const hit = BOARD_CACHE.get(seed);
+/**
+ * The seed's board: the first try the logic solver clears (cached; the same on every device and the server). `rev`
+ * picks the mine count (rev 1's boards are exactly as before; rev 2 runs the same tries with 20 mines).
+ */
+export function minesBoard(seed: number, rev: number = MINES_REV_STD): MinesBoard {
+  const count = minesCountFor(rev);
+  const cacheKey = count === MINES_COUNT ? seed : `${rev}:${seed}`;
+  const hit = BOARD_CACHE.get(cacheKey);
   if (hit) return hit;
   let rng = mixSeed(seed);
   let found: MinesBoard | null = null;
   for (let tries = 0; tries < MINES_MAX_TRIES; tries++) {
-    const t = tryBoard(rng);
+    const t = tryBoard(rng, count);
     rng = rngStep(t.rng ^ rngValue(t.rng));
-    const proof = minesSolve(t.mines, t.start);
+    const proof = minesSolve(t.mines, t.start, count);
     const opening = proof.steps[0]?.length ?? 0;
     if (proof.solved && opening >= MINES_OPENING_MIN && opening <= MINES_OPENING_MAX) {
       found = { mines: t.mines, start: t.start, tries };
       break;
     }
   }
-  if (!found) found = seed === MINES_FALLBACK_SEED ? { ...tryBoard(mixSeed(seed)), tries: -1 } : { ...minesBoard(MINES_FALLBACK_SEED), tries: -1 };
+  if (!found)
+    found = seed === MINES_FALLBACK_SEED ? { ...tryBoard(mixSeed(seed), count), tries: -1 } : { ...minesBoard(MINES_FALLBACK_SEED, rev), tries: -1 };
   if (BOARD_CACHE.size > 64) BOARD_CACHE.clear();
-  BOARD_CACHE.set(seed, found);
+  BOARD_CACHE.set(cacheKey, found);
   return found;
 }
 
@@ -339,8 +361,8 @@ export interface MinesState {
   acted: number;
 }
 
-function init(seed: number): MinesState {
-  const board = minesBoard(seed);
+function initFor(seed: number, rev: number): MinesState {
+  const board = minesBoard(seed, rev);
   const nums = minesNumbers(board.mines);
   const known = new Uint8Array(MINES_CELLS);
   const opened: number[] = [];
@@ -348,7 +370,7 @@ function init(seed: number): MinesState {
   const open = new Array<number>(MINES_CELLS).fill(MINES_HIDDEN);
   for (const c of opened) open[c] = MINES_OPEN;
   return {
-    rev: MINES_REV_STD,
+    rev,
     tick: 0,
     seed,
     mines: board.mines,
@@ -438,7 +460,7 @@ function settle(s: MinesState, open: number[], count: number, out: { hits: numbe
     hits: s.hits + out.hits,
     reveals: s.reveals + (count > 0 && !chord ? 1 : 0),
     chords: s.chords + chord,
-    clearedTick: revealed >= MINES_SAFE && s.clearedTick === 0 ? tick : s.clearedTick,
+    clearedTick: revealed >= minesSafeFor(s.rev) && s.clearedTick === 0 ? tick : s.clearedTick,
     lastOpen: out.last >= 0 ? out.last : s.lastOpen,
     lastOpenTick: out.last >= 0 ? tick : s.lastOpenTick,
     lastHit: out.hit >= 0 ? out.hit : s.lastHit,
@@ -458,8 +480,8 @@ function step(s: MinesState, input: ArcadeInputEvent | null): MinesState {
   return next === s ? { ...s, tick } : { ...next, tick };
 }
 
-export function minesCleared(s: Pick<MinesState, "revealed">): boolean {
-  return s.revealed >= MINES_SAFE;
+export function minesCleared(s: Pick<MinesState, "revealed"> & { rev?: number }): boolean {
+  return s.revealed >= minesSafeFor(s.rev);
 }
 
 function isOver(s: MinesState): boolean {
@@ -478,6 +500,12 @@ export const MINES_HIT_COST = 5;
  */
 export const MINES_SPEED_FULL_S = 50;
 export const MINES_SPEED_FULL_TICKS = MINES_SPEED_FULL_S * TICKS_PER_SECOND;
+/** minesRev 2's "full by" time: the near-perfect level's median clear on rev 2's tuning seeds (minesweeper.md). */
+export const MINES_SPEED_FULL_S_V2 = 37;
+export const MINES_SPEED_FULL_TICKS_V2 = MINES_SPEED_FULL_S_V2 * TICKS_PER_SECOND;
+export function minesSpeedFullTicksFor(rev: number | null | undefined): number {
+  return (rev ?? MINES_REV_STD) >= MINES_REV_LOGIC ? MINES_SPEED_FULL_TICKS_V2 : MINES_SPEED_FULL_TICKS;
+}
 
 /** The core's straight line for the help and LIVE_BANDS, in per mille of the safe squares beyond the opening (150 at all). */
 export const MINES_V1_BAND_CURVE = bandCurve([0, 1000], [0, MINES_CORE_MAX]);
@@ -492,16 +520,30 @@ export const MINES_STD_SPEC: StdSpec = {
   ],
 };
 
+/** minesRev 2's spec: rev 1's parts, its own revision and "full by" time. */
+export const MINES_STD_SPEC_V2: StdSpec = {
+  field: "minesRev",
+  rev: MINES_REV_LOGIC,
+  parts: [
+    MINES_STD_SPEC.parts[0]!,
+    MINES_STD_SPEC.parts[1]!,
+    { key: "speed", label: "Speed", max: MINES_SPEED_MAX, how: `clear the board within ${MINES_SPEED_FULL_S_V2} s for all of it, falling to 0 at the buzzer` },
+  ],
+};
+export function minesStdSpecFor(rev: number | null | undefined): StdSpec {
+  return (rev ?? MINES_REV_STD) >= MINES_REV_LOGIC ? MINES_STD_SPEC_V2 : MINES_STD_SPEC;
+}
+
 /** The safe squares the player must reveal (beyond the opening), and how many they have. */
-export function minesProgress(s: Pick<MinesState, "revealed" | "opening">): { got: number; of: number } {
-  return { got: Math.max(0, s.revealed - s.opening), of: Math.max(1, MINES_SAFE - s.opening) };
+export function minesProgress(s: Pick<MinesState, "revealed" | "opening"> & { rev?: number }): { got: number; of: number } {
+  return { got: Math.max(0, s.revealed - s.opening), of: Math.max(1, minesSafeFor(s.rev) - s.opening) };
 }
 
 export function minesParts(s: MinesState): { core: number; clean: number; speed: number; penalty: number; total: number } {
   const { got, of } = minesProgress(s);
   const core = stdLine(MINES_CORE_MAX, got, of);
   const clean = s.hits === 0 ? stdLine(MINES_CLEAN_MAX, got, of) : 0;
-  const speed = minesCleared(s) && s.clearedTick > 0 ? stdSpeed(MINES_SPEED_MAX, s.clearedTick, MINES_SPEED_FULL_TICKS, MINES_RUN_TICKS) : 0;
+  const speed = minesCleared(s) && s.clearedTick > 0 ? stdSpeed(MINES_SPEED_MAX, s.clearedTick, minesSpeedFullTicksFor(s.rev), MINES_RUN_TICKS) : 0;
   const penalty = MINES_HIT_COST * s.hits;
   return { core, clean, speed, penalty, total: core + clean + speed - penalty };
 }
@@ -515,14 +557,15 @@ const secs = (ticks: number) => `${(ticks / TICKS_PER_SECOND).toFixed(1)} s`;
 /** The standard's parts list (the reveal's lines and arcade-standard-check). */
 export function minesStdParts(state: unknown): StdPart[] | null {
   const s = state as Partial<MinesState> | null;
-  if (!s || s.rev !== MINES_REV_STD || !Array.isArray(s.open)) return null;
+  if (!s || (s.rev !== MINES_REV_STD && s.rev !== MINES_REV_LOGIC) || !Array.isArray(s.open)) return null;
   const st = s as MinesState;
   const p = minesParts(st);
   const { got, of } = minesProgress(st);
+  const spec = minesStdSpecFor(st.rev);
   return [
-    stdPart(MINES_STD_SPEC, "core", p.core, `${got} of ${of} revealed`),
-    stdPart(MINES_STD_SPEC, "clean", p.clean, st.hits === 0 ? "no mine hit" : `${st.hits} ${st.hits === 1 ? "mine" : "mines"} hit (−${p.penalty})`),
-    stdPart(MINES_STD_SPEC, "speed", p.speed, minesCleared(st) ? `cleared in ${secs(st.clearedTick)}` : "not cleared"),
+    stdPart(spec, "core", p.core, `${got} of ${of} revealed`),
+    stdPart(spec, "clean", p.clean, st.hits === 0 ? "no mine hit" : `${st.hits} ${st.hits === 1 ? "mine" : "mines"} hit (−${p.penalty})`),
+    stdPart(spec, "speed", p.speed, minesCleared(st) ? `cleared in ${secs(st.clearedTick)}` : "not cleared"),
   ];
 }
 
@@ -530,7 +573,7 @@ export function minesStdParts(state: unknown): StdPart[] | null {
 export function minesBandParts(s: MinesState): BandParts {
   const p = minesParts(s);
   const { got, of } = minesProgress(s);
-  return stdBandParts(MINES_STD_SPEC, { core: p.core, features: { clean: p.clean, speed: p.speed }, penalty: p.penalty }, got, `${got} of ${of} safe squares`, minesCleared(s), `${s.hits} mines hit`);
+  return stdBandParts(minesStdSpecFor(s.rev), { core: p.core, features: { clean: p.clean, speed: p.speed }, penalty: p.penalty }, got, `${got} of ${of} safe squares`, minesCleared(s), `${s.hits} mines hit`);
 }
 
 /* ================================ Checkpoints ================================ */
@@ -559,7 +602,7 @@ export function minesCheckpoint(s: MinesState): MinesCheckpoint {
 export const minesweeperGame: ArcadeGame<MinesState, ArcadeInputEvent | null> = {
   key: "minesweeper",
   runTicks: MINES_RUN_TICKS,
-  init,
+  init: (seed: number) => initFor(seed, MINES_REV_STD),
   step,
   isOver,
   score: minesScore,
@@ -568,6 +611,12 @@ export const minesweeperGame: ArcadeGame<MinesState, ArcadeInputEvent | null> = 
   inputRanges: MINES_INPUT_RANGES,
 };
 
-export function minesweeperGameFor(_rev?: number | null): ArcadeGame<MinesState, ArcadeInputEvent | null> {
-  return minesweeperGame;
+/** minesRev 2's game: rev 1's rules on a 20-mine board. */
+export const minesweeperGameV2: ArcadeGame<MinesState, ArcadeInputEvent | null> = {
+  ...minesweeperGame,
+  init: (seed: number) => initFor(seed, MINES_REV_LOGIC),
+};
+
+export function minesweeperGameFor(rev?: number | null): ArcadeGame<MinesState, ArcadeInputEvent | null> {
+  return (rev ?? MINES_REV_STD) >= MINES_REV_LOGIC ? minesweeperGameV2 : minesweeperGame;
 }

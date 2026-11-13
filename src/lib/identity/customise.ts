@@ -2,6 +2,7 @@
  * Customise's rules (wave 2, session A2), apart from the screen so a check can prove them: what a player owns, what
  * each slot lists, and the line under a locked item saying where it comes from (from the catalogue).
  */
+import { isPlayable } from "@/lib/duel/catalogue";
 import { CARD_BACK_IDS, GAME_SKIN_IDS, SKIN_GAME_NAMES, WORLD_THEME_IDS, type SkinnableGame } from "@/lib/arcade/skins/look";
 
 import type { CatalogueItem, Rarity } from "./backend";
@@ -97,7 +98,9 @@ export function gameLookRows(
       const item = catalogue.find((i) => i.id === id);
       return item && ownsItem(item, owned) ? [item] : [];
     });
+  // A retired game's skins and themes are never offered (owned ones stay owned; catalogue.ts isPlayable).
   const games = (Object.keys(SKIN_GAME_NAMES) as SkinnableGame[])
+    .filter((game) => isPlayable(game))
     .map((game) => ({
       game,
       name: names[game] ?? game,

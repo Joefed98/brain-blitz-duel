@@ -11,7 +11,7 @@ import { inkBigDealSeed } from "./inkBigDeal.server";
 import { SNAKE_REV_TARGET, SNAKE_REV_12 } from "@/lib/arcade/snake";
 import { BUB_REV_STD } from "@/lib/arcade/bubble";
 import { MATCHUP_REV_SIX } from "@/lib/arcade/matchup";
-import { minesBoard, minesSolve, MINES_REV_STD } from "@/lib/arcade/minesweeper";
+import { minesBoard, minesCountFor, minesSolve, MINES_REV_LOGIC, MINES_REV_STD } from "@/lib/arcade/minesweeper";
 import { mahjongBuildClears, MAHJONG_REV_DEALT } from "@/lib/arcade/mahjong";
 import { SNIP_REV_TARGET, SNIP_REV_EXPAND } from "@/lib/arcade/snip";
 import { SKYLINE_REV_TARGET, SKYLINE_REV_STRICT, SKYLINE_REV_COUNT } from "@/lib/arcade/skyline";
@@ -229,11 +229,18 @@ export function generatePinball(): PinballPuzzleData {
  * so every dealt seed is proved by its own solve (minesweeper-check plays each proof to 200).
  */
 export function generateMinesweeper(): MinesweeperPuzzleData {
+  // minesRev 2 (13 Nov 2026): Minefield as a Logic game with 20 mines; checks written for rev 1 pin minesPreLogic.
+  const rev = dealPinned("minesPreLogic") ? MINES_REV_STD : MINES_REV_LOGIC;
   for (;;) {
     const seed = arcadeSeed();
-    const board = minesBoard(seed);
-    if (board.tries >= 0 && minesSolve(board.mines, board.start).solved) return { type: "minesweeper", seed, minesRev: MINES_REV_STD };
+    const board = minesBoard(seed, rev);
+    if (board.tries >= 0 && minesSolve(board.mines, board.start, minesCountFor(rev)).solved) return { type: "minesweeper", seed, minesRev: rev };
   }
+}
+
+/** Checks written for Minefield minesRev 1 (25 mines, Cards & Board): deal it as rooms did before minesRev 2. */
+export function pinMinesPreLogic(on: boolean): boolean {
+  return setDealPin("minesPreLogic", on);
 }
 
 /**

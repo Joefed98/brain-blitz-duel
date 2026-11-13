@@ -2387,6 +2387,22 @@ outside the repo.
   `window.__DUELZ_ALLOW_RATED__` (ignored in production). Events play_card_tapped, vs_shown, result_viewed,
   next_match_tapped, tier_ladder_viewed (`20261114300000_analytics_rated_screen_events.sql`). rated-screens-check
   (~5 s, happy-dom); shots `bun scripts/shots/rated-shots.tsx` (after `bun run build`).
+- **Retired games out of the app** (13 Nov 2026, Joe's rule; Retirements session): `RETIRED_TYPES` (catalogue.ts) is the
+  one switch, now 21 games (the nine of 13 Nov 2026: Mixed Signals, Gradient, Turntable, Blackout, Bang On, Slice, Ringer,
+  Swish, Flightpath). A retired game is never offered, dealt, played or counted: `isPlayable(type)` is asked by Practice (no
+  Retired section, search, Recently played, Warm up, `?game=`), the practice deal / grade / pack / queued-grade server
+  functions (a retired game is refused: "That game isn’t available any more."; a queued run is rejected `retired`), offline
+  packs, Practice challenges (`challengeLive`), recorded rated runs (`recordedRefusal` "retired"), the Plus Daily archive
+  (a day that included one is hidden, `holdsRetiredGame`), friend challenges (none made from such a room; an open one
+  holding one reads as closed, `retiredClosed`), the shop's daily pool and Customise (`forRetiredGame`, a retired game's
+  skins and themes; owned ones stay owned; bundles are the Cosmetics session's), the star total (`STAR_TOTAL_MAX` = live
+  games × 3, 249; `starCounts`), the gems (Diamond is every live star) and the badge facts. In SQL the server keeps a
+  mirror, `public.game_retirement` (`20261116300000_retired_games.sql`, synced by `syncRetirement` in
+  `src/lib/data/retirement.server.ts`), read by `practice_star_total`, `practice_gems_for` and `badge_facts`. Nothing is
+  deleted: stars, bests, completions, owned items, results and history stay, and history still names the game (display
+  only). retirement-check (~30 s, PostgreSQL) proves it all and the bring-back. Same day: Minefield moved to Logic on
+  `minesRev 2` (20 mines, `arcadeRun`, Speed full by 37 s; docs/arcade-standard/minesweeper.md; minefield-logic-check) and
+  Tenfall to Speed (category only).
 - `src/components/duel/` — room/round screens (PhoneShell, RoundIntro, TimerBar,
   AnswerReveal, ArcadeReveal, WinnerReveal…); `src/components/puzzles/` — shared puzzle
   widgets; `src/lib/fx/` — sound and visual feedback (presentation only).

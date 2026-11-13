@@ -7,6 +7,7 @@
  */
 import { readFileSync, writeFileSync } from "node:fs";
 
+import { isPlayable } from "../src/lib/duel/catalogue";
 import { PRACTICE_CHALLENGES, type ChallengeCond, type PracticeChallenge } from "../src/lib/duel/practiceChallenges";
 import { GAME_DISPLAY_NAMES as GAME_NAMES } from "../src/lib/duel/gameNames";
 
@@ -53,8 +54,12 @@ const CATEGORY_ORDER: [string, string[]][] = [];
 function render(): string {
   const byType = new Map<string, PracticeChallenge[]>();
   for (const c of PRACTICE_CHALLENGES) byType.set(c.type, [...(byType.get(c.type) ?? []), c]);
-  const live = PRACTICE_CHALLENGES.filter((c) => c.level === "classic").length;
-  const coins = (lv: string) => PRACTICE_CHALLENGES.filter((c) => c.level === lv && c.coins > 0);
+  // Retired games' challenges (catalogue.ts RETIRED_TYPES, 13 Nov 2026) stay in the catalogue, hidden and counting for
+  // nothing until the game returns.
+  const playable = PRACTICE_CHALLENGES.filter((c) => isPlayable(c.type));
+  const retiredGames = new Set(PRACTICE_CHALLENGES.filter((c) => !isPlayable(c.type)).map((c) => c.type));
+  const live = playable.filter((c) => c.level === "classic").length;
+  const coins = (lv: string) => playable.filter((c) => c.level === lv && c.coins > 0);
   const lines: string[] = [
     "# Practice challenges: the live catalogue",
     "",
@@ -64,8 +69,10 @@ function render(): string {
     "(`catalogue-draft.md`, in the git history), with his renames (Five Hands' Full house is Handsome, Breaker's Gold rush",
     "is Twenty-four carat) and the goals written in scoring language rewritten as the real action.",
     "",
-    `${PRACTICE_CHALLENGES.length} challenges over ${byType.size} games. ${live} Classic ones are live in wave 2; the Hard and Expert ones`,
-    "are in the catalogue but switched off until wave 3.5 deals those levels (`LIVE_CHALLENGE_LEVELS`).",
+    `${PRACTICE_CHALLENGES.length} challenges over ${byType.size} games. ${PRACTICE_CHALLENGES.length - playable.length} of them, on the ${retiredGames.size} retired games, are`,
+    "kept but hidden and count for nothing until their game returns (`RETIRED_TYPES`, 13 Nov 2026). Of the rest,",
+    `${live} Classic ones are live in wave 2; the Hard and Expert ones are in the catalogue but switched off until wave 3.5`,
+    "deals those levels (`LIVE_CHALLENGE_LEVELS`). Counts below are for live games.",
     "",
     `Coins (● in the table): ${coins("classic").length} Classic pay 100 (live), ${coins("hard").length} Hard pay 100 and ${coins("expert").length} Expert pay 250 once`,
     "their level is live; through the coin ledger (reason `challenge_reward`), once per challenge per account. A guest's",

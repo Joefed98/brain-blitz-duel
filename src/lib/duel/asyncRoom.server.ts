@@ -20,10 +20,10 @@
  * in-memory stand-in. Every write is keyed on the calling device's own attempt.
  */
 import { mergePuzzle, splitPuzzle } from "./secrets";
-import { asyncReceipt, asyncRoundWindow, isArchiveKind, solutionLockKind, type AsyncAttemptView, type SolutionLock } from "./asyncRoom";
+import { DAILY_ARCHIVE_KIND, asyncReceipt, asyncRoundWindow, isArchiveKind, solutionLockKind, type AsyncAttemptView, type SolutionLock } from "./asyncRoom";
 import { recordAsyncEvent, recordRoundRecordsFor, roundRecords } from "./betaRecord.server";
 import { asyncMode, playedMs, recordEvents } from "@/lib/data/events.server";
-import { puzzleDef, puzzleTimeLimitMs } from "./registry";
+import { isPlayable, puzzleDef, puzzleTimeLimitMs } from "./registry";
 import { roundTimeUsedMs, type TieRound } from "./scoring";
 import { tieRoundFor } from "./tieBreak";
 import { phaseReceiptOf } from "@/lib/round/receipt";
@@ -255,6 +255,16 @@ export async function insertAttemptRow(
   return { error: error ?? null, row };
 }
 
+/**
+ * A friend challenge or Daily archive replay that holds a retired game is closed (13 Nov 2026, Joe's rule: retired
+ * games are out of the app; catalogue.ts isPlayable): no new attempt and no new round. Nothing stored changes, so it
+ * opens again the moment the game returns. The Dailies and Score Attack are dealt from live games only.
+ */
+export function retiredClosed(room: Pick<AsyncRoomRow, "kind" | "puzzles_public">): boolean {
+  if (room.kind !== "challenge" && room.kind !== DAILY_ARCHIVE_KIND) return false;
+  return (room.puzzles_public ?? []).some((p) => !isPlayable(p?.type));
+}
+
 export async function startAttempt(
   client: Db,
   room: AsyncRoomRow,
@@ -266,7 +276,7 @@ export async function startAttempt(
 > {
   const existing = await attemptFor(client, room.id, userId);
   if (existing) return { ok: true, attempt: existing, created: false };
-  if (nowMs >= msOf(room.closes_at)) return { ok: false, message: "This challenge has closed." };
+  if (nowMs >= msOf(room.closes_at) || retiredClosed(room)) return { ok: false, message: "This challenge has closed." };
   if (nowMs < msOf(room.opens_at))
     return { ok: false, message: "This challenge hasn’t opened yet." };
   const row: AsyncAttemptRow = {
@@ -537,7 +547,7 @@ export async function startAsyncRound(
   for (let earlier = 1; earlier < round; earlier++)
     if (!done(rows.find((r) => r.round_number === earlier)))
       return { ok: false, message: "Play the earlier rounds first." };
-  if (nowMs >= msOf(room.closes_at)) return { ok: false, message: "This challenge has closed." };
+  if (nowMs >= msOf(room.closes_at) || retiredClosed(room)) return { ok: false, message: "This challenge has closed." };
   const row: AsyncResultRow = {
     id: crypto.randomUUID(),
     room_id: room.id,

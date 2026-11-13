@@ -1292,6 +1292,12 @@ export type Database = {
         }
         Relationships: []
       }
+      game_retirement: {
+        Row: { id: boolean; retired: string[]; star_total: number; updated_at: string }
+        Insert: { id?: boolean; retired: string[]; star_total: number; updated_at?: string }
+        Update: { id?: boolean; retired?: string[]; star_total?: number; updated_at?: string }
+        Relationships: []
+      }
       practice_progress_start: {
         Row: { fresh_start_at: string; id: boolean }
         Insert: { fresh_start_at?: string; id?: boolean }
@@ -2766,6 +2772,8 @@ export type Database = {
       practice_star_total: { Args: { p_user_id: string }; Returns: number }
       practice_sync_gems: { Args: { p_user_id: string }; Returns: string[] }
       practice_gems_for: { Args: { p_stars: number }; Returns: string[] }
+      retired_game_ids: { Args: Record<PropertyKey, never>; Returns: string[] }
+      game_retirement_sync: { Args: { p_retired: string[]; p_star_total: number }; Returns: boolean }
       economy_public_cards: {
         Args: { p_user_ids: string[] }
         Returns: {

@@ -1,5 +1,29 @@
 # Minesweeper on the arcade scoring standard (minesRev 1, 30 Oct 2026)
 
+## minesRev 2: Minefield in Logic with 20 mines (13 Nov 2026, Joe's decision)
+
+Minefield moved from Arcade (Cards & Board) to **Logic** (`category: "logic"`, `arcadeRun: true`: the arcade engine,
+clock and play screen, the puzzle reveal with its stored breakdown, Logic's colours; its world and effects in
+`ENGINE_GAME_WORLDS`, no arcade group). Rooms, the Daily and Practice deal **minesRev 2** (`MINES_REV_LOGIC`):
+
+- **20 mines** (12.5 % of the 10 × 16 board, 140 safe squares; rev 1's 25 were 15.6 %), the same seeded start, opening
+  rule (20–60 squares) and logic-only proof (`minesBoard(seed, 2)`, `minesSolve(…, 20)`). At 20 the deal stays easy
+  (2.4 tries on average, 17 at most over 300 seeds) and a board keeps about 42 deduction steps (rev 1: 52); below 18 the
+  opening rule rejects most boards (the cascades run past 60) with no gain.
+- The same parts: safe squares 150, no mines hit 20, speed 30, −5 a mine hit. Speed is full by **37 s**
+  (`MINES_SPEED_FULL_S_V2`, the near-perfect level's median clear on rev 2's tuning seeds; rev 1's 50 s).
+- Medians weak → flawless on room seeds 0–59 (`bun scripts/cards-board-bands.ts minesweeper`): 142 / 170.5 / 185.5 /
+  194 / 199 / 200 / 200 (rev 1: 115 / 140.5 / 173.5 / 190.5 / 200 / 200 / 200); fresh seeds 10000–10199: 138 / 167 /
+  184 / 192 / 199 / 200 / 200.
+- The challenge "Sweep" reads "Clear the board within 37 s." (was 50 s).
+- Rev-1 rounds replay and score exactly as before (`minesweeperGameFor(1)`; the rev-1 board of a seed is unchanged).
+  Account bests and stars are kept across the stamp (practice_progress is per game).
+
+minefield-logic-check proves the 30 rev-1 runs recorded on main (`scripts/fixtures/minefield-logic-legacy.json`) and
+main's rev-1 boards, the rev-2 deal (20 mines on 1,760 seeds, the digest in `minefield-logic-deal.json`), the oracle at
+200 on every tuning and fresh seed through the server replay, and the move. `pinMinesPreLogic(true)` deals rev 1 for the
+checks written for it.
+
 Shown as **Minefield** since 31 Oct 2026 (`gameNames.ts`; the id `minesweeper` and every stamp unchanged).
 
 Arcade, **Cards & Board** group (`src/lib/duel/arcadeGroups.ts`; its tiles take the group's `--group-cards` border). Dealt in rooms from the start. A 90 s run on a

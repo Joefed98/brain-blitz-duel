@@ -7,6 +7,7 @@
  */
 
 import { asJson, type Db, type Tables, type TablesInsert } from "./db.server";
+import { syncRetirement } from "./retirement.server";
 import type { Result } from "./rooms.server";
 
 export type PracticeProgressRow = Tables<"practice_progress">;
@@ -47,6 +48,8 @@ export async function insertPracticePlayWithBreakdown(
 
 /** Counts one stored play towards its player's progress (once; see the migration for what never counts). */
 export async function countPracticePlay(client: Db, playId: number): Promise<Result<PracticeRecordOutcome | null>> {
+  // The star total and gems read the retired-games mirror (retirement.server.ts).
+  await syncRetirement(client);
   const { data, error } = await client.rpc("practice_record_play", { p_play_id: playId });
   return { data: (data as unknown as PracticeRecordOutcome | null) ?? null, error };
 }

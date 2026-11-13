@@ -19,7 +19,7 @@ import {
   MINES_BOOM,
   MINES_CELLS,
   MINES_COLS,
-  MINES_COUNT,
+  minesCountFor,
   MINES_FLAG,
   MINES_HIDDEN,
   MINES_INPUT_TAP,
@@ -100,8 +100,10 @@ export function readBoard(s: MinesState, opts: { pairs: boolean; count: boolean 
       if (known(c) === 0) all.push(c);
       else if (known(c) === 2) marked += 1;
     }
-    if (marked === MINES_COUNT && all.length) return { safe: all, mines: [], kind: "count", chord: -1 };
-    if (MINES_COUNT - marked === all.length && all.length) return { safe: [], mines: all, kind: "count", chord: -1 };
+    // The board's own mine count (minesRev 2 has 20, rev 1 25).
+    const count = minesCountFor(s.rev);
+    if (marked === count && all.length) return { safe: all, mines: [], kind: "count", chord: -1 };
+    if (count - marked === all.length && all.length) return { safe: [], mines: all, kind: "count", chord: -1 };
   }
   return { safe: [], mines: [], kind: "none", chord: -1 };
 }

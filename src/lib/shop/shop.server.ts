@@ -28,6 +28,7 @@ import {
   type ShopWeekRow,
 } from "@/lib/data/shop.server";
 import { catalogue, purchaseItem } from "@/lib/economy/economy.server";
+import { forRetiredGame } from "@/lib/economy/retiredLooks";
 
 import { BUNDLES, bundleForDay, bundlePriceFor, splitBundlePrice, type BundleDef } from "./bundles";
 import { pickShopDays, sellable, viewForPlayer, type ShopDay, type ShopPoolItem, type ShopRarity } from "./dailyShop";
@@ -110,7 +111,8 @@ export async function ensureShopDay(client: Db, day: string): Promise<ShopDay> {
   const latest = before.length ? before[before.length - 1]!.day : null;
   const earliest = addDays(day, -FILL_DAYS);
   const from = latest && addDays(latest, 1) > earliest ? addDays(latest, 1) : latest ? earliest : day;
-  const picked = pickShopDays(from, day, poolOf(await shopItems(client)), before);
+  // Never a retired game's skin or theme in a day still to be chosen (retiredLooks.ts); recorded days stay as recorded.
+  const picked = pickShopDays(from, day, poolOf((await shopItems(client)).filter((i) => !forRetiredGame(i))), before);
   const wrote = await recordShopDays(client, picked);
   if (wrote.error) throw new Error(`shop: ${wrote.error.message}`);
   const again = await readShopDays(client, day, day);
@@ -159,6 +161,15 @@ async function ownership(client: Db, userId: string, nowMs: number): Promise<{ a
     inv.data.filter((r) => !(r.how === "shop" && shopToday(Date.parse(r.acquired_at)) === today)).map((r) => r.item_id),
   );
   return { all, skip };
+}
+
+/**
+ * The day's items a player is never shown: a retired game's skins and themes (retiredLooks.ts) are skipped as if owned,
+ * so a recorded day holding one shows its backup instead.
+ */
+async function withRetiredSkipped(client: Db, skip: Set<string>): Promise<Set<string>> {
+  for (const item of await catalogue(client)) if (forRetiredGame(item)) skip.add(item.id);
+  return skip;
 }
 
 async function ageOf(client: Db, userId: string, nowMs: number): Promise<number | null> {
@@ -210,8 +221,10 @@ export async function shopViewFor(client: Db, userId: string, nowMs: number, sec
   if (balance.error) throw new Error(`shop: ${balance.error.message}`);
   const byId = new Map(items.map((i) => [i.id, i]));
   const wished = new Set(wishlist.data.map((w) => w.itemId).filter((id) => byId.has(id)));
+  await withRetiredSkipped(client, skip);
   const offer = await offerFor(client, skip, nowMs);
-  const view = viewForPlayer(offer.day, skip);
+  // A slot left holding a retired game's item (no backup to swap in) is not shown at all.
+  const view = viewForPlayer(offer.day, skip).filter((s) => !forRetiredGame(byId.get(s.itemId) ?? {}));
   const today = view.map((s) => {
     const item = byId.get(s.itemId);
     if (!item) throw new Error(`shop: ${s.itemId} is no longer sold`);
@@ -255,6 +268,7 @@ export async function shopStatusFor(client: Db, userId: string, nowMs: number): 
   if (wishlist.error) throw new Error(`shop: ${wishlist.error.message}`);
   if (!wishlist.data.length) return { open: true, tester: access.tester, back: [], day: shopToday(nowMs) };
   const { all: owned, skip } = await ownership(client, userId, nowMs);
+  await withRetiredSkipped(client, skip);
   const offer = await offerFor(client, skip, nowMs);
   const onSale = new Set([...offer.todayIds, ...(offer.week?.def.items ?? [])]);
   const items = new Map((await shopItems(client)).map((i) => [i.id, i]));
@@ -284,8 +298,10 @@ export async function buyItem(client: Db, userId: string, itemId: unknown, reque
   if (blocked) return refuse(blocked);
   const { all: owned, skip } = await ownership(client, userId, nowMs);
   const key = `shop:${itemId}:${requestId}`;
+  await withRetiredSkipped(client, skip);
   const offer = await offerFor(client, skip, nowMs);
-  const onSale = offer.todayIds.includes(itemId) || (offer.week?.def.items ?? []).includes(itemId);
+  // A retired game's item is never sold alone (it may still sit in a bundle, the Cosmetics session's to change).
+  const onSale = (offer.todayIds.includes(itemId) && !skip.has(itemId)) || (offer.week?.def.items ?? []).includes(itemId);
   if (!onSale && !owned.has(itemId)) return refuse("not_today");
   const out = await purchaseItem(client, { userId, itemId, key });
   switch (out.status) {

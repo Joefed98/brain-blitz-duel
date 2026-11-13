@@ -63,6 +63,8 @@ export const DEAL_PINS = {
   swingPreDark: { texts: false },
   /** arcade.server.ts: Grappler swingRev 16. */
   swingPreSlide: { texts: false },
+  /** arcade.server.ts: Minefield minesRev 1 (25 mines), before it moved to Logic (13 Nov 2026). */
+  minesPreLogic: { texts: false },
 } as const satisfies Record<string, { texts: boolean }>;
 
 export type DealPin = keyof typeof DEAL_PINS;

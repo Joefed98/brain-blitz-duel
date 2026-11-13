@@ -6,6 +6,7 @@
  */
 import { RATED_CHOICES_ON, RATED_FORMATS_ON } from "@/config/matchmakingConfig";
 import { RATED_PLAY_FOR_EVERYONE } from "@/config/ratedConfig";
+import { isPlayable } from "@/lib/duel/catalogue";
 import { stampSignature, dealtSignature } from "@/lib/duel/dealSignature";
 import {
   ARCADE_PICKS,
@@ -256,6 +257,8 @@ export function recordedRefusal(c: RecordedCandidate, ctx: RecordedContext): str
   if (c.usesToday >= RECORDED_DAILY_USES) return "used_up";
   if (c.games.some((g) => g.flagged === true)) return "flagged";
   if (c.games.length !== games) return "wrong_length";
+  // A run holding a retired game is never played against (catalogue.ts isPlayable, 13 Nov 2026).
+  if (!c.games.every((g) => isPlayable(g.type))) return "retired";
   if (c.source === "rated" && (c.format !== ctx.format || c.choice !== ctx.choice)) return "other_format";
   if (!c.games.every((g) => typeFitsChoice(g.type, ctx.choice))) return "other_choice";
   if (!c.games.every((g) => g.signature === live(g.type))) return "old_version";

@@ -282,8 +282,7 @@ export const ARCADE_GAME_WORLDS = {
   balltrack: "toybox",
   matchup: "gem",
   pinball: "retro",
-  // Cards & Board (30 Oct 2026).
-  minesweeper: "cards",
+  // Cards & Board (30 Oct 2026). Minefield moved to Logic on 13 Nov 2026 (ENGINE_GAME_WORLDS).
   mahjong: "cards",
   // The Sports group (30 Oct 2026): real-world venues (a ballpark, a stadium, a circuit).
   homerun: "realworld",
@@ -316,7 +315,18 @@ export type ArcadeFxGame = keyof typeof ARCADE_GAME_WORLDS;
  * Junction (retired in Tuning C), Scrumper (retired 27 Oct 2026), Full House (retired 1 Nov 2026), Muggins (practice only from
  * launch) and Golf Solitaire (retired 3 Nov 2026). Pinball was here until rooms began dealing it on 14 Oct 2026.
  */
-export const RETIRED_ARCADE_GAMES: readonly ArcadeFxGame[] = ["junction", "snip", "pokersquares", "muggins", "golfsol"];
+export const RETIRED_ARCADE_GAMES: readonly ArcadeFxGame[] = [
+  "junction",
+  "snip",
+  "pokersquares",
+  "muggins",
+  "golfsol",
+  // Joe's decision (13 Nov 2026).
+  "slice",
+  "alleyroll",
+  "bintoss",
+  "bullseye",
+];
 /** The active arcade games (rooms deal these; Pinball joined on 14 Oct 2026, Scrumper left on 27 Oct 2026, the three Cards & Board games joined on 30 Oct 2026). */
 export const ACTIVE_ARCADE_GAMES = (Object.keys(ARCADE_GAME_WORLDS) as ArcadeFxGame[]).filter((g) => !RETIRED_ARCADE_GAMES.includes(g));
 
@@ -327,6 +337,8 @@ export const ACTIVE_ARCADE_GAMES = (Object.keys(ARCADE_GAME_WORLDS) as ArcadeFxG
  */
 export const ENGINE_GAME_WORLDS = {
   wordfall: "toybox",
+  // Minefield, a Logic game since 13 Nov 2026 (Joe's decision), keeps its Cards & Board world and effects.
+  minesweeper: "cards",
 } as const satisfies Record<string, ArcadeWorld>;
 
 export type EngineFxGame = keyof typeof ENGINE_GAME_WORLDS;
@@ -1818,7 +1830,6 @@ export const ARCADE_FX_SPECS = {
   matchup: fxSpecAt(MATCHUP_FX, MATCHUP_V9_WORLD_H),
 
   pinball: fxSpecAt(PINBALL_FX, 820),
-  minesweeper: MINESWEEPER_FX,
   mahjong: MAHJONG_FX,
   homerun: HOMERUN_FX,
   freekick: FREEKICK_FX,
@@ -1874,4 +1885,5 @@ export const wordfallFxFor = (s: WordfallState): ArcadeFxSpec<WordfallState> => 
 /** Specs for ENGINE_GAME_WORLDS, keyed the same way (the worlds rooms deal today). */
 export const ENGINE_FX_SPECS = {
   wordfall: WORDFALL_FX_TALL,
+  minesweeper: MINESWEEPER_FX,
 } satisfies Record<EngineFxGame, ArcadeFxSpec<never>>;

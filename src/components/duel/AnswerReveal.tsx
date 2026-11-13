@@ -520,9 +520,10 @@ export const FINISH_ONLY_TYPES: ReadonlySet<string> = new Set(["reaction", "stop
 
 /**
  * Engine games in puzzle categories (Speed, Number) that used the arcade reveal: they take the puzzle reveal (verdict,
- * score, their stored breakdown) from 3 Nov 2026. Display only.
+ * score, their stored breakdown) from 3 Nov 2026. Minefield joins them as a Logic game (13 Nov 2026, Joe's decision),
+ * every revision, its stored rounds included. Display only.
  */
-export const PUZZLE_REVEAL_ENGINE_TYPES: ReadonlySet<string> = new Set(["tendrop", "whack", "stroop", "clayshoot"]);
+export const PUZZLE_REVEAL_ENGINE_TYPES: ReadonlySet<string> = new Set(["tendrop", "whack", "stroop", "clayshoot", "minesweeper"]);
 
 /**
  * Puzzles whose own Reveal writes the stored score parts: none since 4 Nov 2026 (Blackout, Turntable and Colour Flood

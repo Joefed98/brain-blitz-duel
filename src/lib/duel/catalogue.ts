@@ -56,7 +56,14 @@ export const OPT_IN_CATEGORIES: PuzzleCategory[] = ["number"];
 /** The arcade pool: one round at most, and only when the host toggle is on. */
 export const ARCADE_CATEGORY: PuzzleCategory = "arcade";
 
-/** Never drawn in rooms; still playable in practice. */
+/**
+ * Retired games (Joe's rule, 13 Nov 2026): out of the app entirely. A retired game is never dealt, shown, played or
+ * counted anywhere a player could choose, play or earn from it: Practice (no Retired section), rooms, the Daily and its
+ * Plus archive, rated play and recorded runs, tournaments, weekly and Practice challenges, offline packs, the shop,
+ * Customise, star totals, gems, badges and every count (`isPlayable`). Nothing is deleted: the code, stars, bests,
+ * owned items, challenge completions and stored rounds stay, and history (results, match history, replays) still names
+ * it, display only. This set is the one switch: removing a game from it restores everything.
+ */
 export const RETIRED_TYPES = new Set<PuzzleType>([
   "rooftop",
   "swerve",
@@ -79,6 +86,16 @@ export const RETIRED_TYPES = new Set<PuzzleType>([
   // Joe's decision (3 Nov 2026, the Cards & Board batch): Golf Solitaire is practice only; its practice bests and
   // stored rounds replay and grade as before.
   "golfsol",
+  // Joe's decision (13 Nov 2026): nine more, out of the app with the rest.
+  "stroop",
+  "tiles",
+  "rings",
+  "lightsout",
+  "stopwatch",
+  "slice",
+  "alleyroll",
+  "bintoss",
+  "bullseye",
 ]);
 
 /** Slack added to every arcade phase beyond its run; never shown to players. */
@@ -162,7 +179,16 @@ export function isLiveType(type: unknown): type is PuzzleType {
 
 /** True for types kept only for practice. */
 export function isRetired(type: PuzzleType): boolean {
-  return PUZZLE_CATALOGUE[type]?.retired === true;
+  // Read from the set itself (the one switch), so nothing can disagree with it.
+  return RETIRED_TYPES.has(type);
+}
+
+/**
+ * True for a game a player can choose, play or earn from: a live id that isn't retired. Every surface that offers,
+ * deals, grades for progress or counts a game asks this (RETIRED_TYPES is its one switch).
+ */
+export function isPlayable(type: unknown): type is PuzzleType {
+  return isLiveType(type) && !isRetired(type);
 }
 
 /** Every type still in rotation. */

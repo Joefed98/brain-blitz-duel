@@ -5,6 +5,12 @@ Joe's approved catalogue of the 54 badges, 11 November 2026. This file is the so
 badges-check fails if the table below and the code disagree. How the rules are checked, the titles and the rewards:
 `docs/badges/README.md`.
 
+**Retired games (13 Nov 2026, Joe's rule).** Every badge counts active games only: a retired game
+(`RETIRED_TYPES`, `src/lib/duel/catalogue.ts`) counts towards nothing, so its stars, completed challenges, 200s and
+finishes no longer move any badge's progress (`badge_facts`, `20261116300000_retired_games.sql`), and every game count
+is the active games' (All-Rounder 83 games; the category masters, Category Clear and Completionist, when their rules
+arrive, count the active games of the category, so every category stays completable). A badge already earned stays.
+
 ## As approved (verbatim)
 
 Competitive (all wait for wave 3’s rated play): First Win (win your first rated match, Common); Placed (finish your 5 placement matches, Common); Hot Streak (win 5 rated matches in a row, Rare); Comeback Kid (win a best of 3 or 5 after losing the first game, Rare); Clean Sweep (win a best of 5 without dropping a game, Epic); Podium Regular (finish top 3 in 25 four- or eight-player matches, Epic); Unstoppable (win 10 rated matches in a row, Elite); Giant Slayer (beat a player rated at least 300 above you, Elite); Storm Chaser (reach Storm, Elite); Lightning Strikes (reach Lightning, Legendary); Top 500 (be ranked in the Top 500 at any point, Legendary).
@@ -47,7 +53,7 @@ completed challenges (`docs/badges/README.md`).
 | `top-500` | Top 500 | Competitive | Legendary | Be ranked in the Top 500 at any point. | – | now |
 | `first-star` | First Star | Mastery | Common | Earn your first mastery star. | – | now |
 | `flawless` | Flawless | Mastery | Rare | Score 200 in any game. | – | now |
-| `all-rounder` | All-Rounder | Mastery | Rare | Earn at least one star in every game. | 92 games | now |
+| `all-rounder` | All-Rounder | Mastery | Rare | Earn at least one star in every game. | 83 games | now |
 | `logic-master` | Logic Master | Mastery | Epic | Earn all three stars in every Logic game. | – | Arrives with all three stars per game |
 | `word-master` | Word Master | Mastery | Epic | Earn all three stars in every Word game. | – | Arrives with all three stars per game |
 | `number-master` | Number Master | Mastery | Epic | Earn all three stars in every Number game. | – | Arrives with all three stars per game |

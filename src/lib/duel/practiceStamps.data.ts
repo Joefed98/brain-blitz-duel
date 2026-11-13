@@ -49,7 +49,7 @@ export const PRACTICE_STAMPS = {
   "matchup": "matchupRev=12 puzzleScoreRev=3 speedPar=1",
   "maze": "mazeRev=5 puzzleScoreRev=3 speedPar=1",
   "measure": "depthRev=3 measureRev=3 puzzleScoreRev=3 speedPar=1",
-  "minesweeper": "minesRev=1 puzzleScoreRev=3 speedPar=1",
+  "minesweeper": "minesRev=2 puzzleScoreRev=3 speedPar=1",
   "minigolf": "golfRev=2 puzzleScoreRev=3 speedPar=1",
   "muggins": "mugginsRev=1 puzzleScoreRev=3 speedPar=1",
   "nonogram": "depthRev=2 puzzleScoreRev=3 speedPar=1",
