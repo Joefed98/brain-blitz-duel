@@ -40,6 +40,13 @@ export interface BadgeFacts {
   /** Gem colours unlocked (C1a's public.gem_unlocks). */
   gems: number;
   /**
+   * Firsts on a final Daily board that counted at least DAILY_CHAMPION_FIELD (100) players (wave 4 W4a's
+   * public.daily_board_badge_facts). Optional: missing reads as 0.
+   */
+  dailyBoardWins?: number;
+  /** Top-100 finishes on a final Daily board of at least DAILY_TOP100_FIELD (500) players (W4a). Missing reads as 0. */
+  dailyBoardTop100s?: number;
+  /**
    * Rated play (wave 3 W3a, public.rated_badge_facts: the server's own record of every rated match, kept by
    * recordRatedMatch). Matches frozen by the 4th-match rule count for none of these.
    */
@@ -137,6 +144,9 @@ export const BADGE_RULES: Readonly<Record<string, BadgeRule>> = {
   challenger: atLeast(10, (f) => f.challengesDone),
   "challenge-seeker": atLeast(50, (f) => f.challengesDone),
   "challenge-expert": atLeast(100, (f) => f.challengesDone),
+  // Wave 4 W4a (11 Nov 2026): the field sizes are applied where the facts are counted (daily_board_badge_facts).
+  "daily-champion": { earned: (f) => (f.dailyBoardWins ?? 0) >= 1 },
+  "daily-top-100": { earned: (f) => (f.dailyBoardTop100s ?? 0) >= 1 },
   "founding-player": {
     earned: (f) => f.founding,
     detail: (f) => ({ number: f.playerNumber }),

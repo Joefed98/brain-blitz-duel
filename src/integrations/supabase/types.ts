@@ -2396,6 +2396,23 @@ export type Database = {
       friends_head_to_head: { Args: { p_a: string; p_b: string }; Returns: Json }
       friends_overview: { Args: { p_user: string; p_cap: number }; Returns: Json }
       friends_waiting: { Args: { p_user: string }; Returns: number }
+      leaderboard_refresh: { Args: Record<PropertyKey, never>; Returns: Json }
+      leaderboard_refresh_ratings: { Args: Record<PropertyKey, never>; Returns: Json }
+      leaderboard_refresh_daily: { Args: { p_now?: string }; Returns: Json }
+      leaderboard_page: {
+        Args: { p_viewer: string; p_board: string; p_period: string; p_scope: string; p_offset: number; p_limit: number }
+        Returns: Json
+      }
+      daily_board_page: {
+        Args: { p_viewer: string; p_kind: string; p_day: string; p_scope: string; p_now?: string }
+        Returns: Json
+      }
+      daily_board_badge_facts: {
+        Args: { p_user: string; p_champion_field: number; p_top100_field: number }
+        Returns: Json
+      }
+      leaderboard_visibility: { Args: { p_user: string }; Returns: Json }
+      leaderboard_set_visibility: { Args: { p_user: string; p_show: boolean | null }; Returns: boolean }
       friends_profile: { Args: { p_viewer: string; p_target: string }; Returns: Json }
       moderation_status: { Args: { p_user_id: string }; Returns: Json }
       mm_is_tester: { Args: { p_user_id: string }; Returns: boolean }

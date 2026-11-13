@@ -2126,6 +2126,29 @@ outside the repo.
   and falls short for all 261, speed goals against the grader, the facts, coins and roles on PostgreSQL) and
   practice-challenge-fit-check (headless Chromium: every goal whole at 320 and 375 px). **A retune that moves a goal's
   number fails practice-goals-check: change the goal's text and number in the data file and re-run the doc script.**
+- **Leaderboards** (wave 4, session W4a, 11 Nov 2026, `docs/leaderboards.md`; no gameplay, scoring, stamp, rating or
+  deal change): rating boards (`/leaderboards`: Joulz Rating, Puzzles, Arcade; global, country, friends; this season or
+  all-time peak; pages of 50 to the top 500, your row pinned; "Top 500 #n" with mockup 03's emblem from W3a's tier),
+  category boards ("Top Logic players", Profile) and the Daily top 100 (`/daily-board`: accounts only, each account's
+  one finished attempt, accounts 24 hours old, never a flagged run; ties to the faster time, `ranking.ts`'s order;
+  earlier days kept, final 30 minutes after the close). Stored snapshots refreshed every 5 minutes by pg_cron and by the
+  Worker's Cron Trigger `leaderboards:refresh` (`public.leaderboard_refresh`, an advisory lock, so twice is harmless),
+  never per request; nothing readable or writable by anon or authenticated. Privacy:
+  under-18s "Hidden player" by default on global and country boards (ranks unchanged), always visible to friends,
+  "Show me on leaderboards" (Settings → Account) both ways. Players' cards (Joe's rule, 11 Nov 2026): every visible
+  row is A2's nameplate strip (`CardStrip`: card art band, frame, avatar, name colour, W3a's tier emblem, C2's badges; in
+  the name area only, never behind places or scores), a tap opens the full card (`CardSheet`), the top 3 show as full
+  cards above the rows (`BoardPodium`, 1st in the middle from 700 px), all carried by the board's own call (the SQL's
+  `pid` and `tier` for the server alone, `20261115100400_leaderboard_cards.sql`); hidden players keep no card.
+  Daily Champion (100+ players) and Daily Top 100 (500+)
+  earnable (C2's rules; badges-check's counts updated with Joe's approval of 11 Nov 2026: 31 earnable, 23 waiting with
+  W3a's 13). The rating boards read W3a's ratings through `leaderboards.rating_source()`, bound by
+  `20261115100300_leaderboards_rating_source.sql` (`rated_profiles.joulz` / `shown_tier`, `rated_ratings`; this season =
+  the current rating, peak from the stored match history). Migrations `20261115100000_leaderboards.sql`,
+  `20261115100100_daily_board_badges.sql`, `20261115100200_analytics_leaderboard_events.sql`, `…100300`, `…100400`
+  (**not applied until merged**). Events `leaderboard_viewed`,
+  `daily_board_viewed`. leaderboards-check (~30 s, shard `e`, PostgreSQL: the real engine, the cron run twice),
+  leaderboards-ui-check (~2 s, happy-dom); the screens in theme-check and no-wrap-check (`LEADERBOARD_SCREENS`). **The nameplate** (12 Nov 2026, `docs/nameplate.md`): the one way to draw a player in a row, `NameplateStrip` / `NameplateSheet` / `useNameplateSheet` / `nameplateOpens` in `@/design/identity` (a `NameplatePlayer`: `card`, `plain` colour and initial, `hidden` a plain neutral disc and "Hidden player", nothing to open), fed by `nameplatesFor` (`src/lib/identity/nameplates.server.ts`, on `publicCardsFor` and `cardBadgesFor`) in the list's own call; W4b's tournament boards and W4c's brackets use it.
 - **Rated matchmaking** (wave 3 W3b, 11 Nov 2026, `docs/rated/matchmaking-interface.md`; no gameplay, scoring, stamp or
   deal change): the queue (same format and choice only; ±50 widening by 50 every 2 s to ±200, a recorded run from 8 s;
   placement players live only with placement players, else a beginner's run at 8 s), live and recorded rated matches as ordinary rooms the server makes already

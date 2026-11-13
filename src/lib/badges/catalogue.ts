@@ -134,9 +134,10 @@ const ROWS: readonly Row[] = [
   ["grand-master", "Grand Master", M, "legendary", "all-stars", "Earn all three stars in every game."],
   ["daily-habit", "Daily Habit", D, "common", null, "Play the Daily 7 days in a row.", [7, "days"]],
   ["dedicated", "Dedicated", D, "rare", null, "Play the Daily 30 days in a row.", [30, "days"]],
-  ["daily-top-100", "Daily Top 100", D, "rare", "daily-boards", "Finish in the top 100 of a Daily board."],
+  // From wave 4's Daily boards (W4a, 11 Nov 2026): final boards of 500+ / 100+ counted players (rules.server.ts).
+  ["daily-top-100", "Daily Top 100", D, "rare", null, "Finish in the top 100 of a Daily board."],
   ["century", "Century", D, "elite", null, "Play the Daily 100 days in a row.", [100, "days"]],
-  ["daily-champion", "Daily Champion", D, "legendary", "daily-boards", "Finish first on a Daily board."],
+  ["daily-champion", "Daily Champion", D, "legendary", null, "Finish first on a Daily board."],
   ["entrant", "Entrant", D, "common", T, "Play your first tournament."],
   ["trophy-hunter", "Trophy Hunter", D, "rare", T, "Finish top 3 in any tournament."],
   ["arena-ace", "Arena Ace", D, "epic", T, "Win 8 games in a row in one Arena."],

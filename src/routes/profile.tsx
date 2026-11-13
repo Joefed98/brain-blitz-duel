@@ -33,6 +33,7 @@ import { GUEST_NAME_MAX } from "@/lib/names/username";
 import { useAccountName } from "@/lib/account/accountApi";
 import { BadgeCollection } from "@/components/badges/BadgeCollection";
 import { ProfileCard } from "@/components/identity/ProfileCard";
+import { ProfileBoards } from "@/components/leaderboards/ProfileBoards";
 
 export const Route = createFileRoute("/profile")({
   ssr: false,
@@ -285,6 +286,11 @@ function ProfileScreen() {
             </div>
           </section>
         ) : null}
+
+        {/* Wave 4 W4a (docs/leaderboards.md): the boards, and an account's category boards ("Top Logic players"). */}
+        <ProfileBoards
+          onOpen={(to) => void router.navigate({ to, state: { fromPlayTab: true } as never } as never)}
+        />
 
         <YourChallenges
           onOpen={(code) =>

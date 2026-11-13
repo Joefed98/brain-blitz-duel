@@ -1,0 +1,324 @@
+/*
+ * Leaderboards (wave 4, session W4a; docs/leaderboards.md; mockups docs/mockups/wave-4/01 and 02). Tokens only
+ * (DESIGN.md). Buttons, chips, the segmented switch, rows and empty states are the shared components.
+ */
+.lb-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--jz-space-16);
+  padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px));
+}
+.lb-head {
+  display: flex;
+  height: 48px;
+  align-items: center;
+  gap: var(--jz-space-8);
+}
+.lb-title {
+  margin: 0;
+  overflow: hidden;
+  color: var(--jz-text);
+  font-size: 22px;
+  font-weight: var(--jz-weight-bold);
+  line-height: 24px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.lb-filters {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--jz-space-8);
+}
+.lb-chips {
+  display: flex;
+  min-width: 0;
+  gap: var(--jz-space-8);
+}
+.lb-chips-scroll {
+  overflow-x: auto;
+  padding-bottom: var(--jz-space-4);
+  scrollbar-width: none;
+}
+.lb-chips-scroll::-webkit-scrollbar {
+  display: none;
+}
+.lb-chips > * {
+  flex: 0 0 auto;
+}
+.lb-period {
+  min-height: 44px;
+  flex: 0 0 auto;
+  padding: 0 var(--jz-space-4);
+  color: var(--jz-text-2);
+  font-size: 15px;
+  font-weight: var(--jz-weight-bold);
+  white-space: nowrap;
+}
+.lb-board {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: var(--jz-radius);
+  background: var(--jz-surface);
+}
+.lb-rows {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.lb-row {
+  border-top: 1px solid var(--jz-line);
+}
+.lb-row-in {
+  display: flex;
+  width: 100%;
+  min-height: 56px;
+  align-items: center;
+  gap: var(--jz-space-12);
+  padding: var(--jz-space-8) var(--jz-space-16);
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+}
+button.lb-row-in {
+  cursor: pointer;
+}
+.lb-rows > .lb-row:first-child {
+  border-top: 0;
+}
+.lb-row[data-pinned] {
+  border-top: 0;
+  border-left: 3px solid var(--jz-gold);
+  background: var(--jz-surface-2);
+}
+.lb-pinned {
+  border-top: 1px solid var(--jz-line);
+}
+.lb-place {
+  display: inline-flex;
+  width: 40px;
+  flex: 0 0 40px;
+  justify-content: center;
+  color: var(--jz-text-2);
+  font-size: 15px;
+  font-weight: var(--jz-weight-bold);
+  font-variant-numeric: tabular-nums;
+}
+.lb-place-me {
+  color: var(--jz-gold);
+}
+.lb-who {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+}
+.lb-sub,
+.lb-top500 {
+  overflow: hidden;
+  color: var(--jz-text-3);
+  font-size: 13px;
+  line-height: 18px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.lb-top500 {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--jz-space-4);
+  color: var(--jz-text-2);
+}
+.lb-time {
+  flex: 0 0 auto;
+  color: var(--jz-text-3);
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
+.lb-value {
+  flex: 0 0 auto;
+  color: var(--jz-text);
+  font-size: 18px;
+  font-weight: var(--jz-weight-black);
+  font-variant-numeric: tabular-nums;
+}
+.lb-board-head {
+  display: flex;
+  justify-content: space-between;
+  padding: 0 var(--jz-space-16);
+  color: var(--jz-text-3);
+  font-size: 13px;
+  font-weight: var(--jz-weight-bold);
+}
+.lb-gap {
+  margin: 0;
+  padding: var(--jz-space-4) 0;
+  border-top: 1px solid var(--jz-line);
+  color: var(--jz-text-3);
+  text-align: center;
+}
+.lb-day {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--jz-space-8);
+}
+.lb-day-title {
+  overflow: hidden;
+  margin: 0;
+  color: var(--jz-text-2);
+  font-size: 17px;
+  font-weight: var(--jz-weight-bold);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.lb-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--jz-space-12);
+  padding: var(--jz-space-16);
+  border-radius: var(--jz-radius);
+  background: var(--jz-cyan-panel);
+}
+.lb-summary-main {
+  min-width: 0;
+}
+.lb-summary-title {
+  margin: 0;
+  color: var(--jz-text);
+  font-size: 17px;
+  font-weight: var(--jz-weight-bold);
+  line-height: 22px;
+}
+.lb-summary-sub,
+.lb-summary-side {
+  margin: 0;
+  color: var(--jz-text-2);
+  font-size: 14px;
+  line-height: 20px;
+}
+.lb-summary-side {
+  flex: 0 0 auto;
+  color: var(--jz-text-3);
+  text-align: right;
+}
+.lb-note,
+.lb-empty-line,
+.lb-foot {
+  margin: 0;
+  color: var(--jz-text-3);
+  font-size: 13px;
+  line-height: 18px;
+}
+.lb-foot {
+  text-align: center;
+}
+.lb-section,
+.lb-categories {
+  display: flex;
+  flex-direction: column;
+  gap: var(--jz-space-12);
+}
+.lb-categories {
+  margin-top: var(--jz-space-12);
+}
+.lb-category-title {
+  margin: 0;
+  color: var(--jz-text);
+  font-size: 15px;
+  font-weight: var(--jz-weight-bold);
+}
+.lb-link {
+  flex: 0 0 auto;
+  padding: 0 var(--jz-space-8);
+  color: var(--jz-text-2);
+  font-size: 14px;
+  font-weight: var(--jz-weight-bold);
+}
+
+/* The top 3 as full cards (Joe's rule, 11 Nov 2026): stacked on phones, 1st in the middle from 700 px wide. */
+.lb-podium {
+  display: flex;
+  flex-direction: column;
+  gap: var(--jz-space-12);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.lb-podium-step {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: var(--jz-space-8);
+}
+.lb-podium-card {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+}
+button.lb-podium-card {
+  cursor: pointer;
+}
+.lb-podium-plain {
+  display: flex;
+  min-height: 72px;
+  align-items: center;
+  gap: var(--jz-space-12);
+  padding: var(--jz-space-12) var(--jz-space-16);
+  border-radius: var(--jz-radius);
+  background: var(--jz-surface);
+}
+.lb-podium-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--jz-space-8);
+  padding: 0 var(--jz-space-4);
+}
+@media (min-width: 700px) {
+  .lb-podium {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    align-items: end;
+  }
+  .lb-podium-step[data-podium-place="1"] {
+    order: 2;
+  }
+  .lb-podium-step[data-podium-place="2"] {
+    order: 1;
+  }
+  .lb-podium-step[data-podium-place="3"] {
+    order: 3;
+  }
+}
+
+/*
+ * Settings → Account's "Show me on leaderboards" (as Friends' setting rows): the description wraps in the space left of
+ * the switch, never past it, so the row never widens the page.
+ */
+.jz-row.lb-setting-row {
+  align-items: center;
+  gap: var(--jz-space-16);
+}
+.lb-setting-row .jz-row-text {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.lb-setting-row .jz-row-sub {
+  overflow: visible;
+  white-space: normal;
+  overflow-wrap: break-word;
+  text-overflow: clip;
+}
+.lb-setting-row .jz-switch {
+  flex: none;
+}

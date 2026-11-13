@@ -15,9 +15,11 @@ import { Route as ChallengeRouteImport } from './routes/challenge'
 import { Route as CustomiseRouteImport } from './routes/customise'
 import { Route as DailyRouteImport } from './routes/daily'
 import { Route as DailyArchiveRouteImport } from './routes/daily-archive'
+import { Route as DailyBoardRouteImport } from './routes/daily-board'
 import { Route as DevCrashRouteImport } from './routes/dev-crash'
 import { Route as DevDesignRouteImport } from './routes/dev-design'
 import { Route as FriendsRouteImport } from './routes/friends'
+import { Route as LeaderboardsRouteImport } from './routes/leaderboards'
 import { Route as PracticeRouteImport } from './routes/practice'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as RatedRouteImport } from './routes/rated'
@@ -58,6 +60,11 @@ const DailyArchiveRoute = DailyArchiveRouteImport.update({
   path: '/daily-archive',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DailyBoardRoute = DailyBoardRouteImport.update({
+  id: '/daily-board',
+  path: '/daily-board',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DevCrashRoute = DevCrashRouteImport.update({
   id: '/dev-crash',
   path: '/dev-crash',
@@ -71,6 +78,11 @@ const DevDesignRoute = DevDesignRouteImport.update({
 const FriendsRoute = FriendsRouteImport.update({
   id: '/friends',
   path: '/friends',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LeaderboardsRoute = LeaderboardsRouteImport.update({
+  id: '/leaderboards',
+  path: '/leaderboards',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PracticeRoute = PracticeRouteImport.update({
@@ -126,9 +138,11 @@ export interface FileRoutesByFullPath {
   '/customise': typeof CustomiseRoute
   '/daily': typeof DailyRoute
   '/daily-archive': typeof DailyArchiveRoute
+  '/daily-board': typeof DailyBoardRoute
   '/dev-crash': typeof DevCrashRoute
   '/dev-design': typeof DevDesignRoute
   '/friends': typeof FriendsRoute
+  '/leaderboards': typeof LeaderboardsRoute
   '/practice': typeof PracticeRoute
   '/profile': typeof ProfileRoute
   '/rated': typeof RatedRoute
@@ -146,9 +160,11 @@ export interface FileRoutesByTo {
   '/customise': typeof CustomiseRoute
   '/daily': typeof DailyRoute
   '/daily-archive': typeof DailyArchiveRoute
+  '/daily-board': typeof DailyBoardRoute
   '/dev-crash': typeof DevCrashRoute
   '/dev-design': typeof DevDesignRoute
   '/friends': typeof FriendsRoute
+  '/leaderboards': typeof LeaderboardsRoute
   '/practice': typeof PracticeRoute
   '/profile': typeof ProfileRoute
   '/rated': typeof RatedRoute
@@ -167,9 +183,11 @@ export interface FileRoutesById {
   '/customise': typeof CustomiseRoute
   '/daily': typeof DailyRoute
   '/daily-archive': typeof DailyArchiveRoute
+  '/daily-board': typeof DailyBoardRoute
   '/dev-crash': typeof DevCrashRoute
   '/dev-design': typeof DevDesignRoute
   '/friends': typeof FriendsRoute
+  '/leaderboards': typeof LeaderboardsRoute
   '/practice': typeof PracticeRoute
   '/profile': typeof ProfileRoute
   '/rated': typeof RatedRoute
@@ -189,9 +207,11 @@ export interface FileRouteTypes {
     | '/customise'
     | '/daily'
     | '/daily-archive'
+    | '/daily-board'
     | '/dev-crash'
     | '/dev-design'
     | '/friends'
+    | '/leaderboards'
     | '/practice'
     | '/profile'
     | '/rated'
@@ -209,9 +229,11 @@ export interface FileRouteTypes {
     | '/customise'
     | '/daily'
     | '/daily-archive'
+    | '/daily-board'
     | '/dev-crash'
     | '/dev-design'
     | '/friends'
+    | '/leaderboards'
     | '/practice'
     | '/profile'
     | '/rated'
@@ -229,9 +251,11 @@ export interface FileRouteTypes {
     | '/customise'
     | '/daily'
     | '/daily-archive'
+    | '/daily-board'
     | '/dev-crash'
     | '/dev-design'
     | '/friends'
+    | '/leaderboards'
     | '/practice'
     | '/profile'
     | '/rated'
@@ -250,9 +274,11 @@ export interface RootRouteChildren {
   CustomiseRoute: typeof CustomiseRoute
   DailyRoute: typeof DailyRoute
   DailyArchiveRoute: typeof DailyArchiveRoute
+  DailyBoardRoute: typeof DailyBoardRoute
   DevCrashRoute: typeof DevCrashRoute
   DevDesignRoute: typeof DevDesignRoute
   FriendsRoute: typeof FriendsRoute
+  LeaderboardsRoute: typeof LeaderboardsRoute
   PracticeRoute: typeof PracticeRoute
   ProfileRoute: typeof ProfileRoute
   RatedRoute: typeof RatedRoute
@@ -308,6 +334,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DailyArchiveRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/daily-board': {
+      id: '/daily-board'
+      path: '/daily-board'
+      fullPath: '/daily-board'
+      preLoaderRoute: typeof DailyBoardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/dev-crash': {
       id: '/dev-crash'
       path: '/dev-crash'
@@ -327,6 +360,13 @@ declare module '@tanstack/react-router' {
       path: '/friends'
       fullPath: '/friends'
       preLoaderRoute: typeof FriendsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/leaderboards': {
+      id: '/leaderboards'
+      path: '/leaderboards'
+      fullPath: '/leaderboards'
+      preLoaderRoute: typeof LeaderboardsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/practice': {
@@ -402,9 +442,11 @@ const rootRouteChildren: RootRouteChildren = {
   CustomiseRoute: CustomiseRoute,
   DailyRoute: DailyRoute,
   DailyArchiveRoute: DailyArchiveRoute,
+  DailyBoardRoute: DailyBoardRoute,
   DevCrashRoute: DevCrashRoute,
   DevDesignRoute: DevDesignRoute,
   FriendsRoute: FriendsRoute,
+  LeaderboardsRoute: LeaderboardsRoute,
   PracticeRoute: PracticeRoute,
   ProfileRoute: ProfileRoute,
   RatedRoute: RatedRoute,

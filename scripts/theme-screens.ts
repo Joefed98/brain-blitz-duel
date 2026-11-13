@@ -21,6 +21,7 @@ import { currentPracticeStamp } from "../src/lib/duel/practiceStamps";
 import { practiceBestKey } from "../src/lib/duel/practiceBest";
 import type { PuzzleData } from "../src/lib/duel/types";
 import { dailyFixture, type HarnessDaily } from "./daily-fixture";
+import { boardsFixture } from "./leaderboards-fixture";
 import { CHALLENGE_CODE, challengeFixture, type ChallengeScreenData } from "./challenge-fixture";
 
 export const PUZZLE = splitPuzzle(withSeededRandom(41, () => generatePuzzle("sudoku")))
@@ -169,7 +170,7 @@ export const room =
 
 export interface ThemeScreen {
   name: string;
-  mode: "home" | "practice" | "tournaments" | "profile" | "room" | "daily" | "challenge" | "terms" | "notfound" | "error" | "firstopen" | "account" | "saveprogress" | "friends" | "customise" | "rated";
+  mode: "home" | "practice" | "tournaments" | "profile" | "room" | "daily" | "challenge" | "terms" | "notfound" | "error" | "firstopen" | "account" | "saveprogress" | "friends" | "customise" | "rated" | "leaderboards" | "dailyboard";
   /** Window globals set before the page loads (wave 1: `__harnessPreview`, a room link's preview). */
   globals?: Record<string, unknown>;
   /** false: a brand-new device, with no room history, practice bests or public games (wave 1's empty states). */
@@ -341,6 +342,49 @@ export const ACCOUNT_SCREENS = (): ThemeScreen[] => {
     },
   ];
 };
+
+/**
+ * The leaderboard screens (wave 4 W4a, docs/leaderboards.md; mockups 01 and 02) on the stand-in answers of
+ * scripts/leaderboards-fixture.ts (window.__harnessBoards, served by the harness's board stubs). Appended last, so every
+ * earlier screen keeps its place in the parts.
+ */
+export const LEADERBOARD_SCREENS = (): ThemeScreen[] => [
+  { name: "leaderboards, joulz rating", mode: "leaderboards", plain: true, globals: { __harnessBoards: boardsFixture() }, waitMs: 1200 },
+  {
+    name: "leaderboards, a player's card",
+    mode: "leaderboards",
+    plain: true,
+    globals: { __harnessBoards: boardsFixture() },
+    waitMs: 800,
+    go: async (page) => {
+      await page.locator("[data-board-list] [data-open-card]").first().click();
+      await page.locator("[data-card-sheet] [data-player-card]").waitFor({ timeout: 10_000 });
+      await page.waitForTimeout(500);
+    },
+  },
+  { name: "leaderboards, no ratings yet", mode: "leaderboards", plain: true, globals: { __harnessBoards: boardsFixture({ empty: true }) }, waitMs: 1200 },
+  { name: "daily board, today", mode: "dailyboard", plain: true, globals: { __harnessBoards: boardsFixture() }, waitMs: 1200 },
+  { name: "daily board, a guest", mode: "dailyboard", plain: true, globals: { __harnessBoards: boardsFixture({ dailyReason: "guest" }), __harnessBoardsGuest: true }, waitMs: 1200 },
+  { name: "daily board, an earlier day", mode: "dailyboard", plain: true, globals: { __harnessBoards: boardsFixture({ dailyFinal: true }) }, query: "day=2026-10-25", waitMs: 1200 },
+  // Settings → Account with "Show me on leaderboards" drawn (13 Nov 2026: its description once widened the page past
+  // 390 px; it wraps left of its switch, as Friends' setting rows do), for an adult and an under-18.
+  ...([
+    ["an adult", { show: false, setting: false, adult: true }],
+    ["an under-18", { show: false, setting: null, adult: false }],
+  ] as const).map(([who, visibility]): ThemeScreen => ({
+    name: `account settings, show me on leaderboards, ${who}`,
+    mode: "account",
+    plain: true,
+    globals: { __harnessAccount: ACCOUNT_FIXTURE, __harnessBoards: { ...boardsFixture(), visibility } },
+    waitMs: 800,
+    go: async (page) => {
+      const row = page.locator("[data-board-visibility]");
+      await row.waitFor({ timeout: 10_000 });
+      await row.scrollIntoViewIfNeeded();
+      await page.waitForTimeout(300);
+    },
+  })),
+];
 
 export const WAVE1_SCREENS = (): ThemeScreen[] => [
   { name: "profile, new player, empty states", mode: "profile", records: false },
@@ -700,6 +744,7 @@ export const THEME_SCREENS: ThemeScreen[] = [
   ...FRIENDS_SCREENS(),
   ...CUSTOMISE_SCREENS(),
   ...RATED_SCREENS(),
+  ...LEADERBOARD_SCREENS(),
 ];
 
 export interface ThemeViewport {
