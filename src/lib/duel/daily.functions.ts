@@ -71,7 +71,7 @@ export const dailyStartFn = createServerFn({ method: "POST" })
     const { accountNameOf } = await import("@/lib/names/playerName.server");
     const name = (await accountNameOf(client, context.userId)) ?? cleanDisplayName(data.displayName);
     if (!name) return { ok: false as const, message: "Enter a display name." };
-    // offensiveName(name) and the reserved names, on the look-alike-folded name too (M2).
+    // offensiveName(name) and the reserved names, on the look-alike-folded name too (displayName.server.ts).
     const refusal = nameRefusal(name);
     if (refusal) {
       const { refusalWithSuggestions } = await import("@/lib/names/names.server");

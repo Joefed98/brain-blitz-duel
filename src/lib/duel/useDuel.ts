@@ -129,7 +129,7 @@ export function useDuel(roomCode: string): DuelState {
 
   // Realtime: every phone reacts to room, player and result changes instantly. Battery (31 Oct 2026): player and
   // result refetches are batched to at most one a second; the first change still fetches at once.
-  // Speed fix 3 (9 Nov 2026; docs/audit-nov-2026/performance.md item 3, security audit L6): the channel is opened once
+  // Speed fix 3 (9 Nov 2026; docs/audit-nov-2026/performance.md item 3): the channel is opened once
   // the room's id is known and subscribes to this room's rows only (`filter`), so Realtime no longer checks every
   // change in every room against every phone. A player row's update is applied in place (a heartbeat's time alone
   // redraws nothing); only a new row, or one that can't be applied, reads the list afresh.

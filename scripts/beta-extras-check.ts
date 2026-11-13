@@ -151,11 +151,26 @@ check(parseStack("paint@https://joulz.uk/a.js:3:4\n@https://joulz.uk/b.js:5:6").
 
 const UUID = "0f8e5b8e-1c2d-4e5f-8a9b-0c1d2e3f4a5b";
 check(feedbackUrl("", UUID, "v1") === null, "no TALLY_URL: no feedback link");
+const REF = "3f2a9c41d07be5a8c6e1f0b293d4a7e5";
 check(
-  feedbackUrl("https://tally.so/r/abcd12", UUID, "1a2b3c-xyz") === `https://tally.so/r/abcd12?device=${UUID}&version=1a2b3c-xyz`,
-  "the form address carries the device's anonymous id and the version",
+  // Changed with Joe's approval, 13 Nov 2026: the Tally link carries the server's keyed hash of the id, never the raw id.
+  feedbackUrl("https://tally.so/r/abcd12", REF, "1a2b3c-xyz") === `https://tally.so/r/abcd12?device=${REF}&version=1a2b3c-xyz`,
+  "the form address carries the device's keyed reference and the version",
 );
-check(feedbackUrl("https://tally.so/r/abcd12?x=1", "Jo", "v") === "https://tally.so/r/abcd12?x=1&version=v", "only an anonymous id (a UUID) is ever added, never anything else");
+// Changed with Joe's approval, 13 Nov 2026: only the keyed hash is ever added; the raw id (a UUID) and anything else never are.
+check(
+  feedbackUrl("https://tally.so/r/abcd12?x=1", UUID, "v") === "https://tally.so/r/abcd12?x=1&version=v" &&
+    feedbackUrl("https://tally.so/r/abcd12?x=1", "Jo", "v") === "https://tally.so/r/abcd12?x=1&version=v",
+  "only the keyed reference is ever added, never the raw id or anything else",
+);
+{
+  // Added 13 Nov 2026: the reference is HMAC-SHA-256 of the id under the server's key, its first 32 hex digits.
+  const { feedbackRef } = await import("../src/lib/beta/feedback.functions");
+  const { createHmac } = await import("node:crypto");
+  const want = createHmac("sha256", "test-key").update(UUID).digest("hex").slice(0, 32);
+  const got = await feedbackRef("test-key", UUID);
+  check(got === want && got !== (await feedbackRef("other-key", UUID)) && !got.includes(UUID.replaceAll("-", "").slice(0, 8)), "the reference is the keyed hash of the id (another key, another reference)");
+}
 check(feedbackUrl("javascript:alert(1)", null, "v") === null, "only a web address");
 {
   const store = new Map<string, string>();

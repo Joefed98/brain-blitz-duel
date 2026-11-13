@@ -423,7 +423,7 @@ export function shareEventRow(userId: string, input: Record<string, unknown>): S
       : null;
   const dailyKind = source === "daily" && (input["dailyKind"] === "puzzle" || input["dailyKind"] === "arcade") ? input["dailyKind"] : null;
   // A challenge's share carries its place and counts (up to 20 players, 10 rounds); a room's up to its 16 seats
-  // (L4: rooms of 11–16 used to store a null place).
+  // (rooms of 11–16 store their place too).
   const placed = inRoom || (source === "challenge" && event === "share_tap");
   const most = room ? ROOM_SHARE_MAX_PLAYERS : 20;
   return {

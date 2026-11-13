@@ -1,6 +1,6 @@
 /**
- * Per-user rate limits for the room and chat server functions (pre-beta
- * security audit, docs/security-audit-oct-2026.md). Counters live in
+ * Per-user rate limits for the room and chat server functions
+ * (docs/security-audit-oct-2026.md). Counters live in
  * public.rate_limit_hits through public.take_rate_limit (migration
  * 20261016120000_rate_limits.sql), which only the service role can call.
  *
@@ -8,10 +8,10 @@
  * call is allowed and a warning logged, so a missing table never blocks play.
  * Never used on a game, answer or scoring path.
  *
- * Security fix M4 (Nov 2026 audit): a limit marked `failClosed` (making rooms and challenges, which build puzzles and
- * draw bank boards) refuses the call on a database error; only a missing counter function (the migration not applied
- * yet) still lets it through, so publishing before the migration stays safe. Signed-out paths (practice, the intro-demo
- * key) and the create paths also count per network address (`withinIpRateLimit`), so signing in again doesn't reset them.
+ * A limit marked `failClosed` (making rooms and challenges, which build puzzles and draw bank boards) refuses the call
+ * on a database error; only a missing counter function (the migration not applied yet) lets it through, so publishing
+ * before the migration stays safe. Signed-out paths (practice, the intro-demo key) and the create paths also count per
+ * network address (`withinIpRateLimit`), the same count whichever account signs in.
  */
 
 import type { Db } from "@/lib/data/db.server";
@@ -68,8 +68,8 @@ export const ROOM_CHECK_LIMIT: RateLimit = { bucket: "room-check", max: 1500, wi
 /** Lobby colour and icon changes: 60 per 10 minutes per user. */
 export const PLAYER_LOOK_LIMIT: RateLimit = { bucket: "player-look", max: 60, windowSeconds: 600 };
 /**
- * Chat (L3): the room's gap and per-room cap as atomic buckets, so parallel sends can't all pass the read-then-insert
- * checks: one message per gap window, and the room's cap per room (a week's window outlives any room).
+ * Chat: the room's gap and per-room cap as atomic buckets beside the read-then-insert checks: one message per gap
+ * window, and the room's cap per room (a week's window outlives any room).
  */
 export function chatGapLimit(gapMs: number): RateLimit {
   return { bucket: "chat-gap", max: 1, windowSeconds: Math.max(1, Math.ceil(gapMs / 1000)) };
@@ -77,7 +77,7 @@ export function chatGapLimit(gapMs: number): RateLimit {
 export function chatRoomLimit(roomId: string, max: number): RateLimit {
   return { bucket: `chat-room:${String(roomId).slice(0, 64)}`, max, windowSeconds: 7 * 24 * 3600 };
 }
-/** Share and terms beta events (L4): 60 per 10 minutes per user. */
+/** Share and terms beta events: 60 per 10 minutes per user. */
 export const BETA_EVENT_LIMIT: RateLimit = { bucket: "beta-event", max: 60, windowSeconds: 600 };
 /**
  * Account emails (the sign-up screens): every sign-in lookup or sign-up code request counts once per network (so
@@ -96,7 +96,7 @@ export const PUSH_LIMIT: RateLimit = { bucket: "push", max: 40, windowSeconds: 6
 /** Analytics events from the phone (recordClientEventsFn): 30 calls of up to 20 events per 10 minutes a device. */
 export const ANALYTICS_CLIENT_LIMIT: RateLimit = { bucket: "analytics-client", max: 30, windowSeconds: 600, failClosed: true };
 
-/* Per network address (M4): generous, since a school or a household shares one address. */
+/* Per network address: generous, since a school or a household shares one address. */
 /** Making rooms from one address: 60 an hour. */
 export const IP_CREATE_ROOM_LIMIT: RateLimit = { bucket: "ip-create-room", max: 60, windowSeconds: 3600, failClosed: true };
 /** Making challenges from one address: 30 an hour. */
@@ -120,7 +120,7 @@ export const IP_PRACTICE_CHECK_LIMIT: RateLimit = { bucket: "ip-practice-check",
  * `withinNewGuestLimit` is the same count from server code.
  */
 export const NEW_GUEST_LIMIT: RateLimit = { bucket: "new-guest", max: 200, windowSeconds: 3600 };
-/** Intro-demo key guesses (M7): 20 an hour. */
+/** Intro-demo key tries: 20 an hour. */
 export const IP_DEMO_KEY_LIMIT: RateLimit = { bucket: "ip-demo-key", max: 20, windowSeconds: 3600 };
 
 /** A counter function that isn't there yet (the migration not applied): PostgREST's PGRST202, Postgres' 42883. */

@@ -371,7 +371,7 @@ export async function createChallengeFromRoom(
       stored,
       {
         userId: player.user_id,
-        // M2: a room's name copied onto a board strangers see is cleaned and filtered first.
+        // A room's name copied onto a board strangers see is cleaned and filtered first.
         name: copiedDisplayName(player.display_name),
         colour: typeof player.colour === "number" ? player.colour : null,
         icon: player.icon ?? null,
@@ -600,7 +600,7 @@ async function privateHalves(client: Db, roomId: string): Promise<Record<string,
   return secret ?? [];
 }
 
-/** H2: a board row with its `extra` cut back (lockedExtra) while its round's solution is locked. */
+/** A board row with its `extra` cut back (lockedExtra) while its round's solution is locked (SolutionLock). */
 function lockRow<T extends { round_number: number; extra: Record<string, unknown> | null }>(
   row: T,
   room: AsyncRoomRow,
@@ -635,11 +635,11 @@ export async function challengeRoundBoard(
   const { data } = await readAsyncRoomResults(client, room.id);
   const privs = await privateHalves(client, room.id);
   const board = boardRows(room, data ?? [], people, attempt, round);
-  // H2: no row carries a field the lock withholds (some extras keep the minimum or the par).
+  // No row carries a field the lock withholds (some extras keep the minimum or the par).
   const rows = board.rows.map((row) => lockRow(row, room, privs, nowMs));
   const full = new Map([...board.full].map(([key, row]) => [key, lockRow(row, room, privs, nowMs)]));
   const priv = privs[round - 1];
-  // H2: while the challenge is open, every summary and the answer line see the public half only.
+  // While the challenge is open, every summary and the answer line see the public half only.
   const solutionLock = solutionLockFor(room, priv, nowMs);
   const puzzle = solutionLock ? pub : mergePuzzle(pub, priv);
   const definition = puzzleDef(puzzle.type);

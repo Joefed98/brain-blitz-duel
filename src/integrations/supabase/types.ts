@@ -934,6 +934,27 @@ export type Database = {
         }
         Relationships: []
       }
+      csp_reports: {
+        Row: {
+          blocked_host: string
+          created_at: string
+          directive: string
+          id: number
+        }
+        Insert: {
+          blocked_host: string
+          created_at?: string
+          directive: string
+          id?: never
+        }
+        Update: {
+          blocked_host?: string
+          created_at?: string
+          directive?: string
+          id?: never
+        }
+        Relationships: []
+      }
       duel_presence: {
         Row: {
           duel_id: string

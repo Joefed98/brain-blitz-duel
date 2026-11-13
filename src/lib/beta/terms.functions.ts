@@ -14,7 +14,7 @@ export const recordTermsAgreedFn = createServerFn({ method: "POST" })
     // Skipped where there is no database (local dev servers in checks).
     if (!process.env["SUPABASE_SERVICE_ROLE_KEY"]) return { ok: true };
     const { recordTermsAgreed, termsEventRow } = await import("@/lib/duel/betaRecord.server");
-    // L4: the stored date is the server's, never the phone's (the phone sends this as it agrees).
+    // The stored date is the server's own (the phone sends this as it agrees).
     const row = termsEventRow(context.userId, { version: data?.version, agreedAt: new Date().toISOString() });
     if (!row) return { ok: false };
     const supabaseAdmin = await (await import("@/lib/data/db.server")).adminDb();

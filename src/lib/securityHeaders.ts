@@ -1,11 +1,10 @@
 /**
- * Security fix M5 (Nov 2026 audit): the response headers every page and server call carries in a production build
+ * The response headers every page and server call carries in a production build
  * (src/server.ts adds them; the dev server, which Lovable's editor and the checks use, is left alone).
  *
- * - `Content-Security-Policy: frame-ancestors …`: no other site may frame the app (clickjacking Create, Join,
- *   Disband, and later purchases). Lovable's editor (lovable.dev) still may, so its preview keeps working.
- *   A script and connect policy (hashing the two inline boot scripts, allowing Supabase, Google Fonts and Sentry)
- *   needs a pass in a browser first; it is not set here.
+ * - `Content-Security-Policy: frame-ancestors …`: only the app itself frames its pages, and Lovable's editor
+ *   (lovable.dev), so its preview keeps working. The full script and connect policy is trialled report-only
+ *   (src/lib/security/csp.ts, added by src/server.ts after these).
  * - `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`.
  * - `Strict-Transport-Security` on HTTPS requests only (one year; subdomains are not included).
  *

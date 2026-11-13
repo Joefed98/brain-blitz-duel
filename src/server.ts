@@ -1,8 +1,11 @@
 import "./lib/error-capture";
 
+import { SENTRY_DSN } from "./config/betaConfig";
+
 import { consumeLastCapturedError } from "./lib/error-capture";
 import { renderErrorPage } from "./lib/error-page";
 import { withSecurityHeaders } from "./lib/securityHeaders";
+import { CSP_REPORT_PATH, cspReportOnlyHeaders } from "./lib/security/csp";
 
 type ServerEntry = {
   fetch: (request: Request, env: unknown, ctx: unknown) => Promise<Response> | Response;
@@ -45,14 +48,44 @@ function isH3SwallowedErrorBody(body: string): boolean {
   }
 }
 
-/** Security headers (M5, src/lib/securityHeaders.ts) on every response of a production build. */
-function secured(response: Response, request: Request): Response {
-  return import.meta.env.PROD ? withSecurityHeaders(response, request.url) : response;
+/**
+ * Security headers (src/lib/securityHeaders.ts) on every response of a production build, with the content security
+ * policy's report-only trial (src/lib/security/csp.ts) added after them.
+ */
+async function secured(response: Response, request: Request): Promise<Response> {
+  if (!import.meta.env.PROD) return response;
+  return withReportOnly(withSecurityHeaders(response, request.url), request);
+}
+
+/** The report-only policy and its reporting endpoint, on a response that has neither (never a body-less status). */
+async function withReportOnly(response: Response, request: Request): Promise<Response> {
+  if (response.status < 200 || response.status === 204 || response.status === 304) return response;
+  if (response.headers.has("Content-Security-Policy-Report-Only")) return response;
+  const extra = await cspReportOnlyHeaders(request.url, {
+    supabaseUrl: process.env["SUPABASE_URL"] ?? import.meta.env["VITE_SUPABASE_URL"],
+    sentryDsn: SENTRY_DSN,
+  }).catch(() => ({}) as Record<string, string>);
+  if (Object.keys(extra).length === 0) return response;
+  const headers = new Headers(response.headers);
+  for (const [name, value] of Object.entries(extra)) headers.set(name, value);
+  return new Response(response.body, { status: response.status, statusText: response.statusText, headers });
+}
+
+/** POST /csp-report (the trial's reports): answered here, before the app. */
+async function cspReport(request: Request): Promise<Response> {
+  const { handleCspReport, CSP_REPORT_LIMIT } = await import("./lib/security/cspReport.server");
+  const { addressKey, withinRateLimit } = await import("./lib/duel/rateLimit.server");
+  return handleCspReport(request, {
+    db: async () => (await import("./lib/data/db.server")).adminDb(),
+    within: (client, key) => withinRateLimit(client, key, CSP_REPORT_LIMIT),
+    addressKey,
+  });
 }
 
 export default {
   async fetch(request: Request, env: unknown, ctx: unknown) {
     try {
+      if (new URL(request.url).pathname === CSP_REPORT_PATH) return secured(await cspReport(request), request);
       const handler = await getServerEntry();
       const response = await handler.fetch(request, env, ctx);
       return secured(await normalizeCatastrophicSsrResponse(response), request);
