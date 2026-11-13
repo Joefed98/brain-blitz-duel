@@ -3,7 +3,9 @@
 import { CARD_BACK_GAMES, CARD_BACK_IDS, GAME_SKIN_IDS, isSkinnableGame, NO_LOOK, WORLD_THEME_IDS, type GameLook } from "../../src/lib/arcade/skins/look";
 
 export function looksFor(game: string, withDefault = true): GameLook[] {
-  if (!isSkinnableGame(game)) return withDefault ? [NO_LOOK] : [];
+  // Summit, Thirteen and Five Hands (13 Nov 2026): no skins or world themes, only the account's card back.
+  if (!isSkinnableGame(game))
+    return [...(withDefault ? [NO_LOOK] : []), ...(CARD_BACK_GAMES.includes(game) ? CARD_BACK_IDS.map((back) => ({ skin: null, world: null, back })) : [])];
   const skins = GAME_SKIN_IDS[game];
   const worlds = WORLD_THEME_IDS[game];
   const backs = CARD_BACK_GAMES.includes(game) ? CARD_BACK_IDS : [];

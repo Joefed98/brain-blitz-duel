@@ -39,6 +39,8 @@ import { AccountSettings } from "@/components/account/AccountSettings";
 import { SignUpFlow } from "@/components/account/SignUpFlow";
 import { PhoneShell } from "@/components/duel/PhoneShell";
 import { DailyBoardScreen, RatingBoardsScreen } from "@/components/leaderboards/LeaderboardScreens";
+import { PassScreen } from "@/components/pass/PassScreen";
+import { standInPass } from "@/lib/pass/passApi";
 import { ukDayKey } from "@/lib/duel/daily";
 import type { HarnessBoards } from "./leaderboards-fixture";
 import { celebrationsOn } from "@/lib/fx/celebrations";
@@ -553,6 +555,15 @@ if (mode === "friends") {
   const fixture = friendsFixture();
   if (fixture) setAccount(fixture.account as never, null);
 }
+// The Season pass (13 Nov 2026, docs/cosmetics-review): a tester's pass from window.__harnessPass (scripts/pass-fixture.ts,
+// with the withdrawn items' gaps), the account set and the pass stood in before the first render (no server call).
+if (mode === "pass") {
+  const fixture = (window as unknown as { __harnessPass?: { account: unknown; view: unknown } }).__harnessPass;
+  if (fixture) {
+    setAccount(fixture.account as never, null);
+    standInPass((fixture.account as { userId: string }).userId, { state: "open", view: fixture.view } as never);
+  }
+}
 // Customise: the signed-in account, set before the first render.
 if (mode === "customise") {
   const fixture = customiseFixture();
@@ -592,6 +603,14 @@ const ROOT_SCREENS: Record<string, () => JSX.Element> = {
       </PhoneShell>
     );
   },
+  // The Season pass as the Shop tab's Pass part draws it (13 Nov 2026).
+  pass: () => (
+    <PhoneShell tabs="shop">
+      <div className="ap-stack" data-shop-page="pass">
+        <PassScreen />
+      </div>
+    </PhoneShell>
+  ),
   // The rated match screens (wave 3, W3c): window.__harnessRated.screen, drawn from scripts/rated-fixture.tsx.
   rated: () => <RatedHarnessScreen />,
   // The prompt due on the next tab page (seeded below): Profile draws it through PhoneShell's SaveProgressSlot.

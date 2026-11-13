@@ -4,7 +4,11 @@
 import type { PassTrack } from "./rewards";
 import type { WeeklyTier } from "./weekly";
 
-export type CellState = "claimed" | "claimable" | "locked";
+/**
+ * "withdrawn": the level's item is withdrawn (13 Nov 2026, docs/cosmetics-review): a gap shown as being redrawn, not
+ * claimable, until Joe restores the item (then it is claimable as usual).
+ */
+export type CellState = "claimed" | "claimable" | "locked" | "withdrawn";
 
 export interface PassCell {
   track: PassTrack;
@@ -57,7 +61,7 @@ export interface PassClosed {
   reason: PassClosedReason;
 }
 
-export type PassRefusal = "not_open" | "not_reached" | "needs_premium" | "no_reward" | "not_tester" | "already" | "busy" | "error";
+export type PassRefusal = "not_open" | "not_reached" | "needs_premium" | "no_reward" | "withdrawn" | "not_tester" | "already" | "busy" | "error";
 export type PassActionResult = { ok: true; view: PassView } | { ok: false; reason: PassRefusal; message: string };
 
 export const PASS_MESSAGES: Record<PassRefusal, string> = {
@@ -65,6 +69,7 @@ export const PASS_MESSAGES: Record<PassRefusal, string> = {
   not_reached: "Reach that level first.",
   needs_premium: "That reward is on the premium track.",
   no_reward: "There’s no reward there.",
+  withdrawn: "That reward is being redrawn. It’ll be back.",
   not_tester: "Test purchases are for testers only.",
   already: "You already have the premium track.",
   busy: "That’s a lot of taps. Give it a minute.",

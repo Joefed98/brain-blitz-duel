@@ -8,6 +8,7 @@
  * the daily results and Profile's Daily row; scripts/daily-fixture.ts), drawn through
  * scripts/safe-area-harness.tsx (the real routes, network stubbed).
  */
+import { PASS_FIXTURE_ACCOUNT, passFixture } from "./pass-fixture";
 import { readFileSync } from "node:fs";
 import type { Browser, BrowserContext, Page } from "playwright";
 
@@ -170,7 +171,7 @@ export const room =
 
 export interface ThemeScreen {
   name: string;
-  mode: "home" | "practice" | "tournaments" | "profile" | "room" | "daily" | "challenge" | "terms" | "notfound" | "error" | "firstopen" | "account" | "saveprogress" | "friends" | "customise" | "rated" | "leaderboards" | "dailyboard";
+  mode: "home" | "practice" | "tournaments" | "profile" | "room" | "daily" | "challenge" | "terms" | "notfound" | "error" | "firstopen" | "account" | "saveprogress" | "friends" | "customise" | "rated" | "leaderboards" | "dailyboard" | "pass";
   /** Window globals set before the page loads (wave 1: `__harnessPreview`, a room link's preview). */
   globals?: Record<string, unknown>;
   /** false: a brand-new device, with no room history, practice bests or public games (wave 1's empty states). */
@@ -582,6 +583,15 @@ export const RATED_SCREENS = (): ThemeScreen[] =>
     ] as const
   ).map((screen) => ({ name: `rated, ${screen.replaceAll("-", " ")}`, mode: "rated" as const, plain: true, globals: { __harnessRated: { screen } } }));
 
+/**
+ * The Season pass (13 Nov 2026, docs/cosmetics-review): a tester at level 30 with the premium track, the withdrawn
+ * items drawn as gaps ("Being redrawn"), and the same scrolled to the big rewards at the page's end.
+ */
+export const PASS_SCREENS = (): ThemeScreen[] => [
+  { name: "the season pass, withdrawn items as gaps", mode: "pass", plain: true, globals: { __harnessPass: { account: PASS_FIXTURE_ACCOUNT, view: passFixture(30, true) } }, waitMs: 1000 },
+  { name: "the season pass, without the premium track", mode: "pass", plain: true, globals: { __harnessPass: { account: PASS_FIXTURE_ACCOUNT, view: passFixture(12, false) } }, waitMs: 1000 },
+];
+
 export const THEME_SCREENS: ThemeScreen[] = [
   { name: "play", mode: "home", daily: () => dailyFixture().after, challenge: () => challengeFixture("create") },
   { name: "practice list", mode: "practice" },
@@ -745,6 +755,7 @@ export const THEME_SCREENS: ThemeScreen[] = [
   ...CUSTOMISE_SCREENS(),
   ...RATED_SCREENS(),
   ...LEADERBOARD_SCREENS(),
+  ...PASS_SCREENS(),
 ];
 
 export interface ThemeViewport {

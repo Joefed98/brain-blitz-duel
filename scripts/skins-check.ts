@@ -316,6 +316,62 @@ for (const g of SKIN_GAMES.filter(L.isSkinnableGame)) {
   check(fitted?.gameLooks !== undefined && !("game-skin:curling" in fitted.gameLooks) && Object.keys(fitted.gameLooks).length === 3 && fitted.gameLooks["card-back"] === "card-back.royal-damask", "the identity backend keeps the card-back slot, and the identity backend drops a slot holding the wrong kind of item and malformed slots");
 }
 
+// 7. Card backs on Summit, Thirteen and Five Hands (13 Nov 2026, Joe; docs/cosmetics-review): the account's back draws on
+// their face-down cards, never on a face, so nothing a player can read about the cards changes.
+{
+  const { BACK_ONLY_GAMES } = await import("./skins/frames");
+  for (const g of BACK_ONLY_GAMES) {
+    check(L.isCardBackGame(g) && !L.isSkinnableGame(g), `${g}: draws the account's card back and has no skins or world themes`);
+    const child = Bun.spawnSync(["bun", import.meta.path, `--game=${g}`], { stdout: "pipe", stderr: "inherit" });
+    const line = child.stdout.toString().split("\n").find((l) => l.startsWith("JSON "));
+    if (child.exitCode !== 0 || !line) {
+      check(false, `${g}: the card backs did not draw (exit ${child.exitCode})`);
+      continue;
+    }
+    const rows = JSON.parse(line.slice(5)) as { look: string; error: string; differs: boolean; still: boolean; moves: boolean }[];
+    check(rows.length === L.CARD_BACK_IDS.length && rows.every((r) => L.CARD_BACK_IDS.includes(r.look)), `${g}: every card back is drawn (${rows.map((r) => r.look).join(", ")})`);
+    for (const r of rows) {
+      const animated = L.ANIMATED_LOOKS.includes(r.look);
+      check(!r.error, `${g} ${r.look}: draws every frame without an error${r.error ? ` (${r.error})` : ""}`);
+      check(r.differs, `${g} ${r.look}: drawn on the face-down cards (its frames differ from the default's)`);
+      check(r.still, `${g} ${r.look}: still under Reduce Motion`);
+      check(animated ? r.moves : !r.moves, `${g} ${r.look}: ${animated ? "moves with Reduce Motion off" : "never moves (not animated)"}`);
+    }
+  }
+  // Every face, at the sizes these games draw, is the same pixels with any back equipped: a back is only ever drawn on a
+  // face-down card.
+  const { createCanvas } = await import("@napi-rs/canvas");
+  const C = await import("../src/lib/arcade/cards/cards.renderer");
+  const K = await import("../src/lib/arcade/skins/cards.skins");
+  const faceDigest = (look: { skin: string | null; world: string | null; back: string | null }, down: boolean, w: number, h: number) => {
+    const c = createCanvas(Math.ceil(w * 2) + 8, Math.ceil(h * 2) + 8);
+    const ctx = c.getContext("2d") as unknown as CanvasRenderingContext2D;
+    ctx.scale(2, 2);
+    const hash = createHash("sha256");
+    for (let card = 0; card < 52; card++) {
+      ctx.clearRect(0, 0, w + 4, h + 4);
+      C.withCardsLook(look, () => C.drawCard(ctx, card, 2, 2, w, h, { down }));
+      hash.update(c.getContext("2d").getImageData(0, 0, c.width, c.height).data);
+      if (down) break;
+    }
+    return hash.digest("hex");
+  };
+  for (const [w, h] of [[48, 76], [40, 60], [60, 84]] as const) {
+    const plainFaces = faceDigest(L.NO_LOOK as never, false, w, h);
+    const plainBack = faceDigest(L.NO_LOOK as never, true, w, h);
+    for (const back of L.CARD_BACK_IDS) {
+      const look = { skin: null, world: null, back };
+      check(faceDigest(look, false, w, h) === plainFaces, `${back}: all 52 faces at ${w} × ${h} draw exactly as with no back`);
+      check(faceDigest(look, true, w, h) !== plainBack, `${back}: the face-down card at ${w} × ${h} draws the back`);
+    }
+  }
+  for (const back of L.CARD_BACK_IDS)
+    for (const pair of K.cardsContrast({ skin: null, world: null, back }).filter((p) => p.object === "deck's card back")) {
+      const ratio = L.bestContrast(pair);
+      check(ratio >= L.SKIN_MIN_CONTRAST, `${back} on the default table (Summit, Thirteen, Five Hands): ${ratio.toFixed(2)}:1 (at least ${L.SKIN_MIN_CONTRAST}:1)`);
+    }
+}
+
 console.log(`skins-check: ${passes} passed, ${failures.length} failed`);
 if (failures.length) {
   console.log("FAIL");

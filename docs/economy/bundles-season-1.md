@@ -20,7 +20,7 @@ large 10,000. The brief's small example (four Epics, 4,000 separately, for about
 | Week | Size | Bundle | Items (rarity) | Separately | Bundle | Off |
 |---|---|---|---|---|---|---|
 | 1 | Small | **Frozen Lake** | Curl Champ Glacier stones (Epic), Curl Champ Aurora stones (Elite), Frost card art (Elite) | 4,200 | 3,200 | 23.8 % |
-| 2 | Medium | **Card Table** | Holo Foil card back (Elite, `card-back.holo-foil`); Royal Damask card back (`card-back.royal-damask`), Full House Midnight Felt, Full House Crimson Velvet, Royal, Crimson and Emerald card arts (Epic) | 7,600 | 5,500 | 27.6 % |
+| 2 | Medium | **Card Table** | Aurora card art (Legendary); Holo Foil card back (Elite, `card-back.holo-foil`); Royal Damask card back (`card-back.royal-damask`), Crimson and Emerald card arts (Epic). Joe, 13 Nov 2026: the Full House felts left (Full House is retired) and Aurora took their place and Royal's (docs/cosmetics-review, Proposal A) | 7,400 | 5,500 | 25.7 % |
 | 3 | Large | **Black and Gold** | Gold Rush celebration (Legendary, centrepiece); Gold Circuit card art, Obsidian frame, Obsidian Glass tiles, Fireworks, Shockwave (Elite); Gold frame, Gold Leaf name colour, Brushed Gold tiles (Epic) | 13,800 | 10,000 | 27.5 % |
 | 4 | Small | **Retro Arcade** | Retro Arcade reactions, Blueprint tiles, Sapphire name colour, Comic Ink finish (four Epics) | 4,000 | 3,100 | 22.5 % |
 | 5 | Medium | **Sports Day** | Cue Ball Galaxy Set (Elite); Cue Ball Pixel Pool, Crazy Golf Watermelon and Disco, Top Bins Comet and Retro Leather, Apex Racing Stripes (Epic) | 7,600 | 5,500 | 27.6 % |
@@ -47,3 +47,11 @@ The points as raised:
   becomes 6,200 separately and should be priced as a medium (about 4,600, as the mockup shows: 25.8 % off).
 - **A part-owned bundle**: a player who already owns some of a week's items pays the bundle's price for the rest, at
   the same share off (rounded down to 10 coins); owning all of them shows Owned.
+
+## Withdrawn items (13 Nov 2026)
+
+Every item the cosmetics review didn't mark Keep is withdrawn (`catalogue_items.withdrawn_at`,
+`supabase/migrations/20261116600000_catalogue_withdrawn.sql`) until it is redrawn and Joe restores it. A bundle holding a
+withdrawn item isn't sold that week (`ensureShopWeek`: a bundle is all or nothing); it returns at its own price once
+every item is back. The weeks with a gap today are listed in the PR that added the column.
+

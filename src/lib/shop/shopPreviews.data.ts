@@ -16,7 +16,7 @@ export const SHOP_PREVIEWS: Readonly<Record<string, string>> = {
   "card-art.crimson": "abb51c0358",
   "card-art.diamond-plate": "3e1bdac412",
   "card-art.emerald": "dc36d38413",
-  "card-art.frost": "64061c55b5",
+  "card-art.frost": "c152f0e15a",
   "card-art.galaxy": "a5345a6bee",
   "card-art.gold-circuit": "33edebe82e",
   "card-art.lava": "eae5f48d31",

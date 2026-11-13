@@ -8,9 +8,12 @@ import type { CatalogueItem, Rarity } from "./backend";
 import { TOURNAMENT_KINDS_ON } from "@/config/tournamentConfig";
 import { CHAMPIONSHIP_FRAME } from "@/lib/tournaments/eventRules";
 
-/** Free for everyone (the 8 card arts and the Plain frame): owned whatever the inventory says. */
+/**
+ * Free for everyone (the starter card arts and the Plain frame): owned whatever the inventory says, unless withdrawn
+ * (13 Nov 2026, docs/cosmetics-review: a withdrawn starter is only an owner's, as the database holds it).
+ */
 export function ownsItem(item: CatalogueItem, owned: ReadonlySet<string>): boolean {
-  return owned.has(item.id) || item.source === "free-starter";
+  return owned.has(item.id) || (item.source === "free-starter" && !item.withdrawn);
 }
 
 export const RARITY_LABEL: Record<Rarity, string> = {
@@ -21,8 +24,12 @@ export const RARITY_LABEL: Record<Rarity, string> = {
   legendary: "Legendary",
 };
 
-/** Where a locked item comes from, or null when it isn't shown (a shop item while the Shop is off). */
+/**
+ * Where a locked item comes from, or null when it isn't shown (a shop item while the Shop is off, or any withdrawn
+ * item: 13 Nov 2026, docs/cosmetics-review, offered nowhere until redrawn).
+ */
 export function sourceLine(item: CatalogueItem, shopOn: boolean): string | null {
+  if (item.withdrawn) return null;
   switch (item.source) {
     case "shop":
       return shopOn ? "Shop" : null;

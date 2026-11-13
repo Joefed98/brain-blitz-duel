@@ -214,6 +214,10 @@ function RewardCell({ cell, busy, name, onClaim }: { cell: PassCell | null; busy
         <span className="pass-cell-mark" aria-label="Claimed">
           <Icon name="check" size={18} />
         </span>
+      ) : cell.state === "withdrawn" ? (
+        <span className="pass-cell-mark" aria-label="Being redrawn">
+          <Icon name="timer" size={18} />
+        </span>
       ) : cell.state === "claimable" ? (
         <Button variant="gold" size={44} small disabled={busy === id} onClick={() => onClaim(cell)} data-pass-claim={id}>
           Claim
@@ -232,7 +236,7 @@ function BigRewards({ view }: { view: PassView }) {
     view.levels[49]?.free,
     view.levels[59]?.free,
     view.levels[59]?.premium,
-  ].filter((c): c is PassCell => !!c);
+  ].filter((c): c is PassCell => !!c && c.state !== "withdrawn");
   return (
     <section className="pass-big" aria-labelledby="pass-big-title">
       <h2 id="pass-big-title" className="shop-section-title">
