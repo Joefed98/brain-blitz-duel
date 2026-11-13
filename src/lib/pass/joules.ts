@@ -6,6 +6,11 @@
  *
  * The database applies these rules under a lock (public.pass_credit_joules); `settleDay` is the same arithmetic in
  * TypeScript, for the checks and the screen's "what earns Joules" list.
+ *
+ * The Joules rework (Joe, 13 Nov 2026; docs/economy/economy-design.md "Joules and pacing"): Practice games and rooms
+ * no longer pay (the stored rows they credited before stay as they are; `LEGACY_JOULES` keeps their arithmetic for
+ * them); a mastery star pays once, a Practice challenge's first completion 100 on every level, the Dailies 200 each
+ * and the weekly challenges 750 / 1,000 / 1,500.
  */
 
 export type JoulesKind =
@@ -18,30 +23,59 @@ export type JoulesKind =
   | "practice_challenge"
   | "weekly"
   | "rated"
-  | "tournament";
+  | "tournament"
+  | "star";
 
-/** What each source pays (before the day limits and the soft cap). */
+/**
+ * What each source pays today (before the day limits and the soft cap). A friend challenge's creator is paid for their
+ * own attempt only once another player has finished that challenge (public.pass_activity).
+ */
 export const JOULES = {
-  daily_puzzle: 150,
-  daily_arcade: 150,
-  room_round: 20,
-  room_finish: 50,
+  daily_puzzle: 200,
+  daily_arcade: 200,
   challenge: 100,
-  practice: 20,
   practice_challenge: 100,
 } as const;
 
+/**
+ * What rooms and Practice games paid until the Joules rework (13 Nov 2026). Nothing is credited for them now; the
+ * amounts stay for the rows already stored and for pass_credit_joules' unchanged arithmetic (its Practice day limit).
+ */
+export const LEGACY_JOULES = { room_round: 20, room_finish: 50, practice: 20 } as const;
+
+/** A mastery star's Joules, once per star: Classic, the only level dealt today. */
+export const STAR_JOULES_CLASSIC = 150;
+/**
+ * Easy and Hard stars (phase 3's difficulty levels): provisional, to confirm in phase 3. Not live: until Joe confirms
+ * them, an Easy or Hard star pays nothing and is not credited at all (so a confirmed amount can still pay it later).
+ */
+export const STAR_JOULES_EASY_PROVISIONAL = 50;
+export const STAR_JOULES_HARD_PROVISIONAL = 250;
+/** The star amounts that are live, by level. */
+export const STAR_JOULES_LIVE: Readonly<Partial<Record<string, number>>> = { classic: STAR_JOULES_CLASSIC };
+
+/** A star's live Joules from its stored source key ("star:<game>:<level>"), or 0 where its level doesn't pay yet. */
+export function starJoules(key: string): number {
+  const level = key.split(":")[2] ?? "";
+  return STAR_JOULES_LIVE[level] ?? 0;
+}
+
 /** Friend challenges paid per UK day (the first five). */
 export const CHALLENGES_PER_DAY = 5;
-/** Practice games paid per UK day (20 each, up to 200). */
+/** The old Practice day limit (20 each, up to 200), still applied by pass_credit_joules to legacy Practice rows. */
 export const PRACTICE_JOULES_PER_DAY = 200;
 /** After this many Joules in a UK day, further play earns half. Weekly challenge rewards are paid whole and don't count. */
 export const SOFT_CAP = 4000;
 
 /** Weekly challenge rewards by tier. */
-export const WEEKLY_JOULES = { easy: 500, medium: 750, hard: 1250 } as const;
+export const WEEKLY_JOULES = { easy: 750, medium: 1000, hard: 1500 } as const;
 
-/* ------------------------------------------------------------------ the later hooks (nothing calls them yet) */
+/*
+ * ------------------------------------------------------------------ rated play and tournaments
+ * Called: rated matches by W3a's finishRatedMatch (src/lib/rated/rewards.server.ts), tournaments by W4b and W4c
+ * (src/lib/tournaments/tournaments.server.ts, platform.server.ts), through creditRatedMatchJoules and
+ * creditTournamentJoules in pass.server.ts.
+ */
 
 /** Rated match Joules (wave 3): 150 a win, 100 a loss; best of 5 or 7, or 4 or 8 players, 1.5 times that. */
 export function ratedMatchJoules(input: { won: boolean; long: boolean }): number {
@@ -81,7 +115,7 @@ export function softCapped(total: number, base: number): number {
 export function payOne(day: DayTotals, kind: JoulesKind, base: number): { amount: number; base: number; day: DayTotals } {
   if (kind === "weekly") return { amount: base, base, day };
   let allowed = base;
-  if (kind === "practice" && day.practicePaid * JOULES.practice >= PRACTICE_JOULES_PER_DAY) allowed = 0;
+  if (kind === "practice" && day.practicePaid * LEGACY_JOULES.practice >= PRACTICE_JOULES_PER_DAY) allowed = 0;
   if (kind === "challenge" && day.challengesPaid >= CHALLENGES_PER_DAY) allowed = 0;
   const amount = softCapped(day.total, allowed);
   return {

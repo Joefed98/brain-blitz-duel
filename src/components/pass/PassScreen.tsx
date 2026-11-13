@@ -149,7 +149,7 @@ function LevelCard({ view }: { view: PassView }) {
       >
         <span style={{ width: `${pct}%` }} />
       </span>
-      <p className="pass-note">Joules come from every match, Daily and challenge, win or lose.</p>
+      <p className="pass-note">Joules come from the Dailies, rated matches, tournaments, weekly challenges, and stars and challenges in Practice.</p>
     </div>
   );
 }

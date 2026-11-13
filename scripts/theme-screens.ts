@@ -8,7 +8,6 @@
  * the daily results and Profile's Daily row; scripts/daily-fixture.ts), drawn through
  * scripts/safe-area-harness.tsx (the real routes, network stubbed).
  */
-import { PASS_FIXTURE_ACCOUNT, passFixture } from "./pass-fixture";
 import { readFileSync } from "node:fs";
 import type { Browser, BrowserContext, Page } from "playwright";
 
@@ -23,6 +22,7 @@ import { practiceBestKey } from "../src/lib/duel/practiceBest";
 import type { PuzzleData } from "../src/lib/duel/types";
 import { dailyFixture, type HarnessDaily } from "./daily-fixture";
 import { boardsFixture } from "./leaderboards-fixture";
+import { passFixture } from "./pass-fixture";
 import { CHALLENGE_CODE, challengeFixture, type ChallengeScreenData } from "./challenge-fixture";
 
 export const PUZZLE = splitPuzzle(withSeededRandom(41, () => generatePuzzle("sudoku")))
@@ -193,6 +193,11 @@ export interface ThemeScreen {
   query?: string;
   /** A screen with no card of its own (link join, the answer reveal). */
   plain?: boolean;
+  /**
+   * More sizes to draw it at, after every screen's VIEWPORTS draws (so the parts of earlier draws keep their places):
+   * a screen changed from 13 Nov 2026 is drawn at every size (ALL_SIZES).
+   */
+  sizes?: ThemeViewport[];
 }
 
 /** Opens the challenge's run from its link: round 1 started `startOffsetMs` ago on the page's clock. */
@@ -583,14 +588,32 @@ export const RATED_SCREENS = (): ThemeScreen[] =>
     ] as const
   ).map((screen) => ({ name: `rated, ${screen.replaceAll("-", " ")}`, mode: "rated" as const, plain: true, globals: { __harnessRated: { screen } } }));
 
+/** The other sizes every screen changed from 13 Nov 2026 is drawn at (ThemeScreen.sizes): with VIEWPORTS, all six. */
+export const ALL_SIZES: ThemeViewport[] = [
+  { name: "390x844", w: 390, h: 844 },
+  { name: "tablet 820x1180", w: 820, h: 1180 },
+  { name: "desktop 1366x768", w: 1366, h: 768, desktop: true },
+  { name: "desktop 1920x1080", w: 1920, h: 1080, desktop: true },
+];
 /**
- * The Season pass (13 Nov 2026, docs/cosmetics-review): a tester at level 30 with the premium track, the withdrawn
- * items drawn as gaps ("Being redrawn"), and the same scrolled to the big rewards at the page's end.
+ * The Pass (the Shop tab's Pass part; Joules rework, 13 Nov 2026: its "where Joules come from" line changed), a
+ * tester's pass at level 12 from scripts/pass-fixture.ts, with and without the premium track, at every size.
+ * Appended last, so every earlier screen keeps its place in the parts.
  */
 export const PASS_SCREENS = (): ThemeScreen[] => [
-  { name: "the season pass, withdrawn items as gaps", mode: "pass", plain: true, globals: { __harnessPass: { account: PASS_FIXTURE_ACCOUNT, view: passFixture(30, true) } }, waitMs: 1000 },
-  { name: "the season pass, without the premium track", mode: "pass", plain: true, globals: { __harnessPass: { account: PASS_FIXTURE_ACCOUNT, view: passFixture(12, false) } }, waitMs: 1000 },
+  { name: "pass, a tester at level 12", mode: "pass", plain: true, globals: { __harnessPass: passFixture() }, waitMs: 800, sizes: ALL_SIZES },
+  { name: "pass, premium", mode: "pass", plain: true, globals: { __harnessPass: passFixture({ premium: true }) }, waitMs: 800, sizes: ALL_SIZES },
+  // 13 Nov 2026 (docs/cosmetics-review): the review's withdrawn items as gaps ("Being redrawn"), level 30 with the
+  // premium track, at every size. Appended last, so every earlier screen keeps its place in the parts.
+  { name: "pass, withdrawn rewards as gaps", mode: "pass", plain: true, globals: { __harnessPass: passFixture({ level: 30, premium: true, withdrawn: withdrawnItems() }) }, waitMs: 800, sizes: ALL_SIZES },
 ];
+
+/** The catalogue items withdrawn today: the review's items not marked Keep (docs/cosmetics-review/verdicts.json), less those Joe restored. */
+function withdrawnItems(): ReadonlySet<string> {
+  const verdicts = JSON.parse(readFileSync("docs/cosmetics-review/verdicts.json", "utf8")) as Record<string, string>;
+  const restored = new Set(["card-back.royal-damask", "card-back.holo-foil", "card-back.neon"]);
+  return new Set(Object.keys(verdicts).filter((id) => verdicts[id] !== "Keep" && !restored.has(id)));
+}
 
 export const THEME_SCREENS: ThemeScreen[] = [
   { name: "play", mode: "home", daily: () => dailyFixture().after, challenge: () => challengeFixture("create") },
@@ -774,6 +797,13 @@ export const VIEWPORTS: ThemeViewport[] = [
   { name: "375x667", w: 375, h: 667 },
   { name: "desktop 1440x900", w: 1440, h: 900, desktop: true },
 ];
+/** Every draw of these screens: each at VIEWPORTS[index], then each screen's extra sizes after all of them. */
+export function themeDraws(screens: ThemeScreen[], viewports: ThemeViewport[]): { viewport: ThemeViewport; screen: ThemeScreen }[] {
+  return [
+    ...viewports.flatMap((viewport) => screens.map((screen) => ({ viewport, screen }))),
+    ...screens.flatMap((screen) => (screen.sizes ?? []).map((viewport) => ({ viewport, screen }))),
+  ];
+}
 
 /** The device's own records: a public game today, room history and practice bests. */
 function deviceInit(seed: { records: boolean; onboarding: string; bests: [string, number][] }) {

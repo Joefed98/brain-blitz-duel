@@ -1,60 +1,86 @@
 /**
- * The Season pass as theme-check and no-wrap-check draw it (13 Nov 2026, docs/cosmetics-review): a tester at level 30
- * with the premium track, the levels as the server builds them, with the review's withdrawn items as gaps ("Being
- * redrawn", no item named), so the gap rows are measured at every size. Data only (no server).
+ * The Pass screen's stand-in for the screen harness (theme-check and no-wrap-check through PASS_SCREENS in
+ * theme-screens.ts; Joules rework, 13 Nov 2026): a tester's pass at level 12 drawn by the app's own PassScreen inside
+ * the Shop tab's shell, from the real reward tables (rewards.ts) and this week's three at their live Joules
+ * (WEEKLY_JOULES). The weekly challenges are each tier's longest text, so a line that would wrap or be cut shows.
  */
 import { readFileSync } from "node:fs";
 
-import { rewardAt, rewardLabel, reached } from "../src/lib/pass/rewards";
-import type { PassCell, PassView } from "../src/lib/pass/types";
+import * as rw from "../src/lib/pass/rewards";
+import { WEEKLY_JOULES } from "../src/lib/pass/joules";
+import { WEEKLY_POOL } from "../src/lib/pass/weekly";
+import type { PassCell, PassView, PassWeekly } from "../src/lib/pass/types";
 
-const CATALOGUE = (JSON.parse(readFileSync("docs/art/wave-2/catalogue.json", "utf8")) as { items: { id: string; kind: string; name: string; rarity: string | null }[] }).items;
-const VERDICTS = JSON.parse(readFileSync("docs/cosmetics-review/verdicts.json", "utf8")) as Record<string, string>;
+export interface HarnessPass {
+  account: Record<string, unknown>;
+  view: PassView;
+}
 
-export const PASS_FIXTURE_ACCOUNT = { kind: "account", userId: "u-pass", username: "SkyRacer", colour: 4, playerNumber: 42, founding: false, country: null, createdAt: "2026-11-10T12:00:00.000Z", status: "active", isUnder18: false, deletion: null };
-
-export function passFixture(level = 30, premium = true): PassView {
+/**
+ * `withdrawn` (13 Nov 2026, docs/cosmetics-review): items drawn as the server draws a withdrawn level, a gap ("Being
+ * redrawn", no item named), unless already claimed.
+ */
+export function passFixture(opts: { level?: number; premium?: boolean; withdrawn?: ReadonlySet<string> } = {}): HarnessPass {
+  const level = opts.level ?? 12;
+  const premium = opts.premium ?? false;
+  // The catalogue's names, games, kinds and rarities, as the server's pass view carries them (pass.server.ts).
+  const items = new Map(
+    (JSON.parse(readFileSync("docs/art/wave-2/catalogue.json", "utf8")) as { items: { id: string; kind: string; name: string; game: string | null; rarity: string | null }[] }).items.map((i) => [i.id, i]),
+  );
   const cell = (track: "free" | "premium", l: number): PassCell | null => {
-    const r = rewardAt(track, l);
+    const r = rw.rewardAt(track, l);
     if (!r) return null;
-    const item = r.kind === "item" ? CATALOGUE.find((i) => i.id === r.item) : undefined;
-    const claimed = l <= 4;
-    if (item && VERDICTS[item.id] !== "Keep" && !claimed)
+    const item = r.kind === "item" ? items.get(r.item) : undefined;
+    if (item && opts.withdrawn?.has(item.id) && !(track === "free" && l === 2))
       return { track, level: l, kind: "item", title: "Being redrawn", detail: "This reward returns once it’s redrawn", rarity: null, itemId: null, itemKind: null, state: "withdrawn", needsPremium: track === "premium" && !premium };
-    const label = rewardLabel(r, item?.name);
+    const label = rw.rewardLabel(r, item?.name);
     return {
       track,
       level: l,
       kind: r.kind,
       title: label.title,
-      detail: label.detail,
-      rarity: item?.rarity ? item.rarity.toLowerCase() : null,
+      detail: item ? `${item.game ? `${item.game} · ` : ""}${item.kind.replaceAll("-", " ")}` : label.detail,
+      rarity: item?.rarity?.toLowerCase() ?? null,
       itemId: item?.id ?? null,
       itemKind: item?.kind ?? null,
-      state: claimed ? "claimed" : reached(track, l, level, premium) ? "claimable" : "locked",
+      state: track === "free" && l === 2 ? "claimed" : rw.reached(track, l, level, premium) ? "claimable" : "locked",
       needsPremium: track === "premium" && !premium,
     };
   };
   const levels = Array.from({ length: 60 }, (_, i) => ({ level: i + 1, free: cell("free", i + 1), premium: cell("premium", i + 1) }));
+  const longest = (tier: "easy" | "medium" | "hard") =>
+    WEEKLY_POOL.filter((c) => c.tier === tier).reduce((a, b) => (b.text.length > a.text.length ? b : a));
+  const weekly: PassWeekly[] = (["easy", "medium", "hard"] as const).map((tier, i) => {
+    const c = longest(tier);
+    return { id: c.id, tier, text: c.text, joules: WEEKLY_JOULES[tier], done: i, need: 3, completed: i === 1 };
+  });
   return {
-    open: true,
-    season: { id: "test", name: "Neon Circuit", test: true, endsAt: null, daysLeft: null, ended: false },
-    joules: level * 1000 + 430,
-    level,
-    into: 430,
-    of: 1000,
-    premium: premium ? { source: "test" } : null,
-    tester: true,
-    levels,
-    claimable: levels.reduce((n, l) => n + (l.free?.state === "claimable" ? 1 : 0) + (l.premium?.state === "claimable" ? 1 : 0), 0),
-    weekly: {
-      weekStart: "2026-11-16",
-      challenges: [
-        { id: "e1", tier: "easy", text: "Play the Daily Puzzle on 3 different days", joules: 500, done: 2, need: 3, completed: false },
-        { id: "m2", tier: "medium", text: "Earn a star in any game", joules: 750, done: 1, need: 1, completed: true },
-        { id: "h1", tier: "hard", text: "Score 180+ in 3 different Logic games", joules: 1250, done: 0, need: 3, completed: false },
-      ],
+    account: {
+      kind: "account",
+      userId: "u-pass",
+      username: "TheInventor_2026",
+      colour: 4,
+      playerNumber: 1,
+      founding: true,
+      country: null,
+      createdAt: "2026-11-10T12:00:00.000Z",
+      status: "active",
+      isUnder18: false,
+      deletion: null,
     },
-    levelNotice: null,
+    view: {
+      open: true,
+      season: { id: "s1", name: "Neon Circuit", test: false, endsAt: null, daysLeft: 34, ended: false },
+      joules: level * 1000 + 430,
+      level,
+      into: 430,
+      of: 1000,
+      premium: premium ? { source: "test" } : null,
+      tester: true,
+      levels,
+      claimable: levels.reduce((n, l) => n + (l.free?.state === "claimable" ? 1 : 0) + (l.premium?.state === "claimable" ? 1 : 0), 0),
+      weekly: { weekStart: "2026-11-16", challenges: weekly },
+      levelNotice: null,
+    },
   };
 }
