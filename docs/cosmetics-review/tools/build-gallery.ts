@@ -95,6 +95,7 @@ for (const t of TYPES) {
   const v = list.map((r) => REVIEWS[r.id]?.v);
   index.push(`- [${t.title}](gallery/${t.file}.md)${list.length ? ` — ${list.length} items: ${v.filter((x) => x === "Keep").length} Keep, ${v.filter((x) => x === "Improve").length} Improve, ${v.filter((x) => x === "Withdraw").length} Withdraw` : ""}`);
 }
+index.push("", "**Redrawn for approval:** [gallery/redrawn.md](gallery/redrawn.md) (the Top 500 frame and Frost)");
 index.push("", "Card fronts (mockups): [gallery/card-fronts.md](gallery/card-fronts.md) · The real screens: [gallery/screens.md](gallery/screens.md)");
 writeFileSync(
   `${ROOT}/gallery/card-fronts.md`,

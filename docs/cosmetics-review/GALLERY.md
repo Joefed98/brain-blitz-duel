@@ -11,4 +11,6 @@ Every cosmetic at phone size (390 wide), as the app draws it, beside its approve
 - [Game skins, world themes and card backs](gallery/game-looks.md) — 27 items: 7 Keep, 17 Improve, 3 Withdraw
 - [Badges, titles, trophies, emblems](gallery/badges-trophies.md)
 
+**Redrawn for approval:** [gallery/redrawn.md](gallery/redrawn.md) (the Top 500 frame and Frost)
+
 Card fronts (mockups): [gallery/card-fronts.md](gallery/card-fronts.md) · The real screens: [gallery/screens.md](gallery/screens.md)
