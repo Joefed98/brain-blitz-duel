@@ -274,11 +274,13 @@ try {
       check(await page.getByRole("dialog", { name: "Settings" }).isVisible(), "Profile: the gear opens the settings");
       check((await page.locator("[data-settings-sheet] [data-sound-controls]").count()) === 1, "Settings: the sound controls");
       await page.getByRole("button", { name: "Close settings" }).click();
-      // A device with no rooms, dailies or bests (tab pages refresh): its badge, "Choose your look" and Get started.
-      check(await page.getByRole("button", { name: "Choose your look" }).isVisible(), 'Profile (new player): "Choose your look"');
+      // A device with no rooms, dailies or bests (tab pages refresh): its card, the pointer to Customise and Get started.
+      // Changed with Joe's approval, 13 Nov 2026: "Your look" is retired for Customise (one identity everywhere).
+      check((await page.getByRole("button", { name: "Choose your look" }).count()) === 0, 'Profile (new player): no "Choose your look"');
       check((await page.locator("[data-get-started] [data-step]").count()) === 3, "Profile (new player): the three Get started steps");
-      await page.getByRole("button", { name: "Choose your look" }).click();
-      check((await page.locator("[data-look-picker]").count()) === 1, "Profile: Choose your look opens the lobby's look picker");
+      // Changed with Joe's approval, 13 Nov 2026: Profile has no look picker; it points to Customise and the lobby.
+      check((await page.locator("[data-look-picker]").count()) === 0, "Profile: no look picker (retired for Customise)");
+      check(/Customise/.test((await page.locator("[data-look-moved]").textContent()) ?? "") && (await page.locator("[data-customise-open]").count()) === 1, "Profile: points to Customise (the card's Customise button)");
       check(/Saved on this phone\. Sign-in after the beta will keep it all/.test((await page.textContent("body")) ?? ""), "Profile: the saved-on-this-phone note");
       await page.goBack();
       await page.getByRole("button", { name: "Create a room" }).waitFor({ timeout: 30_000 });

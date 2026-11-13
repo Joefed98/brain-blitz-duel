@@ -15,7 +15,7 @@ import type { RoomChatState } from "@/lib/duel/useRoomChat";
 import { PLAYER_COLOURS, type PlayerLook, type PlayerLooks } from "@/lib/duel/playerLook";
 import type { DuelPlayerRow } from "@/lib/duel/types";
 
-import { PlayerBadge } from "./PlayerBadge";
+import { RoomMiniCard } from "./RoomPlayer";
 import { RoomChatButton, RoomChatSlot, RoomFooter } from "./RoomFooter";
 import { ReportReasons } from "./ReportSheet";
 import { REPORT_THANKS } from "@/lib/safety/reports";
@@ -94,10 +94,13 @@ function MessageRow({
   message,
   mine,
   look,
+  slot,
   onLongPress,
 }: {
   message: RoomMessageRow;
   mine: boolean;
+  /** The sender's slot, for their mini card (one identity everywhere, 13 Nov 2026). */
+  slot?: number | undefined;
   look?: PlayerLook | undefined;
   onLongPress: () => void;
 }) {
@@ -133,7 +136,10 @@ function MessageRow({
       }}
       className="px-1 py-1 text-left text-sm leading-snug"
     >
-      <PlayerBadge look={look} name={message.sender_name} size={16} className="mr-1.5 align-[-3px]" />
+      {/* The sender's mini card (a guest's colour and initial), inline before the name. */}
+      <span className="room-chat-card" data-chat-sender-card="">
+        <RoomMiniCard slot={slot} look={look} name={message.sender_name} size={20} />
+      </span>
       <span className={mine ? "font-semibold text-primary" : "font-semibold text-foreground"}>
         {message.sender_name}:
       </span>{" "}
@@ -152,8 +158,9 @@ export function RoomChat({
   screenLabel = "Lobby",
   bar = true,
 }: RoomChatProps) {
+  const slotOf = (userId: string) => players.find((p) => p.user_id === userId)?.player_slot;
   const lookOf = (userId: string) => {
-    const slot = players.find((p) => p.user_id === userId)?.player_slot;
+    const slot = slotOf(userId);
     return slot === undefined ? undefined : looks?.get(slot);
   };
   // Wave 2 E2: every player's equipped reactions (so their emotes show), and this player's own to send.
@@ -411,6 +418,7 @@ export function RoomChat({
                 message={message}
                 mine={message.sender_user_id === myUserId}
                 look={lookOf(message.sender_user_id)}
+                slot={slotOf(message.sender_user_id)}
                 onLongPress={() => openMenu(message)}
               />
             ))}
@@ -511,7 +519,7 @@ export function RoomChat({
         borderLeftColor: playerColourHex(lookOf(toast.sender_user_id)),
       }}
     >
-      <PlayerBadge look={lookOf(toast.sender_user_id)} name={toast.sender_name} size={24} />
+      <RoomMiniCard slot={slotOf(toast.sender_user_id)} look={lookOf(toast.sender_user_id)} name={toast.sender_name} size={24} />
       <span className="min-w-0 flex-1 truncate text-sm leading-tight">
         <span className="font-display font-semibold text-foreground">{toast.sender_name}</span>{" "}
         <span className="text-muted-foreground">{chatToastText(toast.text)}</span>

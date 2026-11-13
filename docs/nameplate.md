@@ -79,3 +79,30 @@ const [open, openRow, close] = useNameplateSheet<Row>();
   proves the server side reads only through `publicCardsFor` and `cardBadgesFor`.
 - Put new screens in theme-check and no-wrap-check. The strip's art is marked `data-skin-off`, as a game's own art is.
 - Ellipsised names are marked `data-ellipsis`.
+
+## Rooms (13 Nov 2026, one identity everywhere)
+
+Rooms draw every player with the same pieces and no other: `NameplateStrip` on rows, the full `PlayerCard` (through
+`NameplateSheet`, or `NameplateFullCard` inside a sheet that holds more) when a row is tapped and on the podium, and
+`MiniCard` in chat and small lists.
+
+- **One read per room.** `roomCardsFn({ roomId })` (`src/lib/identity/roomCards.functions.ts`) answers every seat's card
+  for a caller seated in that room: one seats read, then `platesFor(…, { audience: "room" })` (one `publicCardsFor`,
+  one `cardBadgesFor`, one profiles read, W3a's tiers), whatever the room's size. The answer is keyed by seat
+  (`duel_players.id`), never by account id. The phone asks once per room and again only when the seats change
+  (`useRoomCards`, keyed by `roomCardsKey`).
+- **One helper for ids.** `cardIdOf(seat)` in `roomCards.server.ts` is the only place the cards path reads a seat's
+  player id (Security's switch to public ids happens there).
+- **Inside the room** everyone is a direct opponent: an under-18 shows with their card, an account waiting for
+  deletion and every guest on their room colour and initial (or icon). Nobody is "Hidden player" inside their own room.
+- **Outside the room** (boards, standings, brackets, the Daily top 100) the list audience applies: hidden under-18s,
+  opted-out adults and accounts waiting for deletion are "Hidden player" on a plain neutral disc.
+- **Phone:** `RoomCardsHost` wraps the room route; the room screen publishes its cards (`usePublishRoomCards`); screens
+  draw through `RoomPlayerName` (a row's strip, a button opening the card), `useRoomNameplate` (a strip inside a row that
+  is already a button), `PodiumCards` (the podium's and the two-player final's full cards) and `RoomMiniCard` (chat,
+  awards, the reveal's "who's in"). Outside a room (a friend challenge's podium) they draw the room look as before.
+- **Taps:** a row that is not already a button opens the card from anywhere on it (`.room-row`). The round leaderboard
+  and podium rows already open their round detail, so the card opens from "Open {name}'s card" in it. A lobby name opens
+  the player's card with the report reasons under it (`ReportSheet` `player`), so reporting stays two taps.
+- identity-everywhere-check proves the one batched read on a real database, the in-room and outside rules, the screens in
+  happy-dom and the static rules; the screens are in theme-check and no-wrap-check at every size (`ROOM_IDENTITY_SCREENS`).

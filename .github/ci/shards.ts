@@ -429,6 +429,7 @@ export const SHARDS: Record<string, string[]> = {
     "tournament-events-server-check.ts",
     "tournament-events-check.ts",
     "tournament-plates-check.tsx",
+    "identity-everywhere-check.tsx",
     "ink-x200-check.ts",
     "depth4-check.ts",
     "room-figures-check.ts",

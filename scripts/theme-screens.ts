@@ -643,6 +643,82 @@ export const SECURITY_A_SCREENS = (): ThemeScreen[] => [
   },
 ];
 
+/**
+ * One identity everywhere (13 Nov 2026): the room screens drawn with real cards (window.__harnessRoomCards, by seat): a
+ * full room of 10 with long names, me (slot 1) wearing every card cosmetic with badges and a tier, an under-18 account
+ * (slot 2: shown with their card inside their own room), a third account, and guests (colour and initial); the chat
+ * sheet open with their messages. Outside the room a hidden under-18 is drawn by the Daily top 100's screens
+ * (LEADERBOARD_SCREENS). Every size: VIEWPORTS plus ALL_SIZES. Appended last.
+ */
+export const ROOM_IDENTITY_SCREENS = (): ThemeScreen[] => {
+  const card = (colour: number, extra: Record<string, unknown> = {}) => ({
+    avatarId: "captain-joulz",
+    colour,
+    gem: null,
+    cardArt: "card-art.joulz-navy",
+    frame: "frame.plain",
+    nameColour: null,
+    badges: [],
+    title: "rookie",
+    ...extra,
+  });
+  const cards = {
+    p1: { card: card(7, { cardArt: "card-art.grid", frame: "frame.gold", nameColour: "name-colour.gold-leaf", badges: ["friendly", "founding-player", "first-star"] }), playerNumber: 42, tier: "volt" },
+    p2: { card: card(12, { frame: "frame.neon-circuit" }), playerNumber: 44, tier: null },
+    p3: { card: card(20, { cardArt: "card-art.bolt-stripes" }), playerNumber: 45, tier: "top500" },
+  };
+  const at = "2026-10-26T10:00:00.000Z";
+  const messages = [1, 2, 3, 5].map((slot, i) => ({
+    id: `m${i}`,
+    duel_id: "duel-theme",
+    sender_user_id: `u${slot}`,
+    sender_name: NAMES[slot - 1] ?? `Player ${slot}`,
+    text: ["Good luck everyone!", "That last round was close", "gg", "Rematch after this?"][i]!,
+    created_at: at,
+  }));
+  const globals = { __harnessRoomCards: { cards, hiddenOutside: ["p2"] } };
+  return [
+    { name: "identity: lobby, 10 players with cards", mode: "room", room: room("waiting", "starting", { players: 10 }), globals, sizes: ALL_SIZES, waitMs: 1500 },
+    { name: "identity: round leaderboard, 10 players with cards", mode: "room", room: room("in_progress", "result", { players: 10, rounds: 2 }), globals, sizes: ALL_SIZES, waitMs: 2500 },
+    { name: "identity: standings, 10 players with cards", mode: "room", room: room("in_progress", "standings", { players: 10, rounds: 2 }), globals, sizes: ALL_SIZES, waitMs: 2500 },
+    { name: "identity: podium, 10 players with cards", mode: "room", room: room("finished", "result", { players: 10, rounds: 6 }), globals, sizes: ALL_SIZES, waitMs: 3000 },
+    { name: "identity: final results, 2 players with cards", mode: "room", room: room("finished", "result", { rounds: 6 }), globals, sizes: ALL_SIZES, waitMs: 3000 },
+    {
+      name: "identity: chat with mini cards",
+      mode: "room",
+      room: room("in_progress", "standings", { players: 10, rounds: 2 }),
+      globals: { ...globals, __harnessChatMessages: messages, __harnessChatOpen: true },
+      sizes: ALL_SIZES,
+      waitMs: 2500,
+    },
+    {
+      name: "identity: a player's card opened from standings",
+      mode: "room",
+      room: room("in_progress", "standings", { players: 10, rounds: 2 }),
+      globals,
+      sizes: ALL_SIZES,
+      waitMs: 2500,
+      go: async (page) => {
+        await page.locator("[data-open-card]").first().click();
+        await page.locator("[data-card-sheet]").waitFor({ timeout: 10_000 });
+        await page.waitForTimeout(400);
+      },
+    },
+    // A guest's Profile: the room stats panel with the Display name box (kept when "Your look" was retired).
+    {
+      name: "identity: profile, a guest's display name",
+      mode: "profile",
+      daily: () => dailyFixture().after,
+      sizes: ALL_SIZES,
+      go: async (page) => {
+        await page.locator("[data-profile-guest-name] input").waitFor({ timeout: 10_000 });
+        await page.locator("[data-profile-guest-name] input").scrollIntoViewIfNeeded();
+        await page.waitForTimeout(300);
+      },
+    },
+  ];
+};
+
 export const THEME_SCREENS: ThemeScreen[] = [
   { name: "play", mode: "home", daily: () => dailyFixture().after, challenge: () => challengeFixture("create") },
   { name: "practice list", mode: "practice" },
@@ -676,10 +752,14 @@ export const THEME_SCREENS: ThemeScreen[] = [
   { name: "play, Add to Home Screen hint", mode: "home", userAgent: IPHONE_SAFARI_UA },
   { name: "profile, feedback link", mode: "profile", beta: { TALLY_URL: "https://tally.so/r/test12" } },
   {
-    name: "profile, colour wheel",
-    mode: "profile",
+    // Changed with Joe's approval, 13 Nov 2026: Profile's "Your look" is retired, so the colour wheel is drawn where a
+    // guest now picks their colour, the lobby (a 2-player room; the 16-player wheel is drawn above).
+    name: "lobby, colour wheel",
+    mode: "room",
+    // Stored colours (a database with the colour/icon columns): the lobby's picker shows only then.
+    room: room("waiting", "starting", { colours: (slot) => (slot - 1) * 5 }),
     go: async (page) => {
-      await page.locator("[data-profile-head-change], section[aria-label='Your look'] button[aria-expanded]").first().click();
+      await page.locator("[data-look-toggle]").click();
       await page.locator("[data-colour-wheel]").waitFor({ timeout: 10_000 });
       await page.waitForTimeout(300);
     },
@@ -808,6 +888,7 @@ export const THEME_SCREENS: ThemeScreen[] = [
   ...LEADERBOARD_SCREENS(),
   ...PASS_SCREENS(),
   ...SECURITY_A_SCREENS(),
+  ...ROOM_IDENTITY_SCREENS(),
 ];
 
 export interface ThemeViewport {

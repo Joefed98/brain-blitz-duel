@@ -25,7 +25,7 @@ export function NameplateStrip({ player, label }: { player: NameplatePlayer; lab
     return (
       <span className="nameplate" data-nameplate="hidden" data-hidden-player="">
         <span className="nameplate-disc" aria-hidden="true" data-hidden-disc="" />
-        <span className="nameplate-name" data-ellipsis="" data-plain-hidden="">
+        <span className="nameplate-name th-name" data-ellipsis="" data-plain-hidden="">
           {nameplateName(player)}
         </span>
       </span>
@@ -40,9 +40,9 @@ export function NameplateStrip({ player, label }: { player: NameplatePlayer; lab
             {player.name.slice(0, 1).toUpperCase()}
           </span>
         ) : (
-          <PlayerBadge look={{ colour: player.colour, icon: null }} name={player.name} size={36} />
+          <PlayerBadge look={{ colour: player.colour, icon: player.icon ?? null }} name={player.name} size={36} />
         )}
-        <span className="nameplate-name" data-ellipsis="">
+        <span className="nameplate-name th-name" data-ellipsis="">
           {name}
         </span>
       </span>
@@ -78,17 +78,28 @@ export function NameplateSheet({
   return (
     <Sheet onClose={onClose} title={player.name} closeLabel="Close card" data={{ "data-card-sheet": "" }}>
       <div className="nameplate-sheet" data-names="">
-        <PlayerCard
-          look={nameplateLook(player.card)}
-          name={player.name}
-          playerNumber={player.playerNumber ?? null}
-          title={titleName(player.card.title)}
-          badges={player.card.badges}
-          label={`${player.name}’s card`}
-        />
+        <NameplateFullCard player={player} />
         {children ? <p className="nameplate-sheet-line">{children}</p> : null}
       </div>
     </Sheet>
+  );
+}
+
+/**
+ * A player's full card as their row opens it (A2's PlayerCard with title and badges), for a sheet that holds more than
+ * the card (the lobby's report reasons). Nothing for a player who may not be opened.
+ */
+export function NameplateFullCard({ player }: { player: NameplatePlayer | null | undefined }) {
+  if (!nameplateOpens(player)) return null;
+  return (
+    <PlayerCard
+      look={nameplateLook(player.card)}
+      name={player.name}
+      playerNumber={player.playerNumber ?? null}
+      title={titleName(player.card.title)}
+      badges={player.card.badges}
+      label={`${player.name}’s card`}
+    />
   );
 }
 

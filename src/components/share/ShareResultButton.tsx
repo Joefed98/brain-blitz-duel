@@ -1,3 +1,4 @@
+import { useRoomHiddenOutside } from "@/components/duel/RoomPlayer";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { APP_URL } from "@/config/appUrl";
@@ -99,6 +100,8 @@ export function RoomShareButton({
   record?: ShareRecorder;
   className?: string | undefined;
 }) {
+  // One identity everywhere (Joe, 13 Nov 2026): the image leaves the room, so hidden players read "Hidden player" on it.
+  const hiddenSlots = useRoomHiddenOutside();
   const data: RoomShareData = useMemo(
     () =>
       roomShareData({
@@ -107,8 +110,9 @@ export function RoomShareButton({
         results,
         me,
         origin: APP_URL,
+        hiddenSlots,
       }),
-    [duel, players, results, me],
+    [duel, players, results, me, hiddenSlots],
   );
   const [image, setImage] = useState<File | null>(null);
   const cardKey = JSON.stringify([

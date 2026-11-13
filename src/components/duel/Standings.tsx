@@ -18,10 +18,10 @@ import { useStandingsReveal } from "@/components/fx/useStandingsReveal";
 import { AnimatedScore } from "./AnimatedScore";
 import { ContinueFooter, type ContinueState } from "./ContinueFooter";
 import { Medal } from "./Medal";
-import { PlayerBadge } from "./PlayerBadge";
+import { LeftTag } from "./LeftTag";
+import { RoomMiniCard, RoomPlayerName } from "./RoomPlayer";
 import { CATEGORY_NAMES } from "./GameFrame";
 import { useScrollMore } from "./RoomFooter";
-import { Nameplate } from "@/design/components";
 import { MetaChips } from "@/components/app/MetaChips";
 
 /** Movement since the round before: ▲ green, ▼ red, – grey. */
@@ -67,7 +67,7 @@ export function RoundWinnerCard({ round, extras, looks }: { round: number; extra
   return (
     <div data-round-winner className="rs-list">
       <div className="rs-row min-h-[58px]">
-        <PlayerBadge look={looks?.get(first.slot)} name={first.name} size={32} />
+        <RoomMiniCard slot={first.slot} look={looks?.get(first.slot)} name={first.name} size={32} />
         <span className="flex min-w-0 flex-1 flex-col">
           <span className="rs-sub">{winners.length > 1 ? `Round ${round}, level` : `Round ${round} winner`}</span>
           <span data-names className="rs-name th-name">{winners.map((w) => w.name).join(", ")}</span>
@@ -177,12 +177,25 @@ export function Standings({ round, totalRounds = TOTAL_ROUNDS, rows, looks, mySl
               data-pinned={isMe && compact ? "" : undefined}
               style={isMe ? youStyle(look) : undefined}
               data-left={row.status === "inactive" ? "" : undefined}
-              className="rs-row"
+              className="rs-row room-row"
             >
               <div className="grid w-full grid-cols-[1.5rem_1.375rem_minmax(0,1fr)_auto_3.25rem] items-center gap-x-2">
                 <Medal place={row.position} shared={mark?.shared} />
                 <Arrow standing={row} />
-                <Nameplate look={look} name={row.name} you={isMe} left={row.status === "inactive"} kind="mini" disc={compact ? 24 : 28} />
+                {/* One identity everywhere (13 Nov 2026): the shared nameplate strip; a tap on the row opens the full card. */}
+                <RoomPlayerName
+                  slot={row.slot}
+                  name={row.name}
+                  look={look}
+                  after={
+                    isMe || row.status === "inactive" ? (
+                      <span className="flex shrink-0 items-center gap-1">
+                        {isMe ? <span className="rs-you jz-plate-you shrink-0">(you)</span> : null}
+                        {row.status === "inactive" ? <LeftTag /> : null}
+                      </span>
+                    ) : undefined
+                  }
+                />
                 {placings ? (
                   <span data-round-gain className="rs-gain">
                     {shownGain(row)}

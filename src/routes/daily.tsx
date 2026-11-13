@@ -6,7 +6,7 @@ import { FeedbackLink } from "@/components/beta/FeedbackLink";
 import { TermsGate } from "@/components/beta/TermsGate";
 import { AsyncResults } from "@/components/async/AsyncResults";
 import { AsyncRun } from "@/components/async/AsyncRun";
-import { DailyBoard } from "@/components/daily/DailyBoard";
+import { DailyYou } from "@/components/daily/DailyYou";
 import { DailyShareButton } from "@/components/daily/DailyShareButton";
 import { DAILY_REF } from "@/lib/share/dailyShare";
 import { noteLinkArrival } from "@/lib/share/shareRef";
@@ -22,7 +22,6 @@ import {
   DAILY_ROUNDS,
   DAILY_TITLE,
   isDailyKind,
-  rankLine,
   type DailyBoardView,
   type DailyKind,
   type DailyState,
@@ -50,7 +49,8 @@ import { OnlineOnly } from "@/components/offline/OnlineOnly";
 import { Button, Icon, Input, Segmented, SkeletonPage } from "@/design/components";
 import { GUEST_NAME_MAX } from "@/lib/names/username";
 import { NameSuggestions } from "@/components/account/AccountParts";
-import { useAccountName } from "@/lib/account/accountApi";
+import { useAccount, useAccountName } from "@/lib/account/accountApi";
+import { dailyTopPlaceLine, useDailyTopPlace, type DailyTopPlace } from "@/lib/leaderboards/dailyPlace";
 
 /** The streak on these counted and freeze-covered days (the server's rule, no new freezes used). */
 const dailyStreak = (played: string[], frozen: string[], today: string): number =>
@@ -104,11 +104,16 @@ function closesIn(ms: number): string {
   return hours > 0 ? `Closes in ${hours}h ${minutes % 60}m` : `Closes in ${minutes}m`;
 }
 
-function stateLine(kind: DailyKind, state: DailyState, count: number | null): string {
+/**
+ * The card's line. A finished Daily shows the score and, for an account, its place on the Daily top 100 (Joe, 13 Nov
+ * 2026: one board); a guest's shows the score alone.
+ */
+function stateLine(kind: DailyKind, state: DailyState, place: DailyTopPlace | null): string {
   if (state.state === "play") return `${DAILY_ROUNDS[kind]} rounds, one go`;
   if (state.state === "continue")
     return `${state.roundsDone} of ${DAILY_ROUNDS[kind]} rounds played`;
-  return `${state.total} ${state.total === 1 ? "point" : "points"}, ${rankLine(state.rank, count, ordinal)}`;
+  const points = `${state.total} ${state.total === 1 ? "point" : "points"}`;
+  return place?.rank ? `${points}, ${ordinal(place.rank)}` : points;
 }
 
 /** A neutral segmented control (Polish batch R): the selected segment a light fill, never gold. */
@@ -137,7 +142,8 @@ function DailyScreen() {
   const router = useRouter();
   const search = Route.useSearch() as { kind?: DailyKind };
   const [kind, setKind] = useState<DailyKind>(search.kind ?? "puzzle");
-  const [day, setDay] = useState<Day>("today");
+  // Your own line is today's; earlier days are on the Daily top 100.
+  const day: Day = "today";
   const [status, setStatus] = useState<DailyStatus | null>(null);
   const [board, setBoard] = useState<DailyBoardView | null>(null);
   const [mode, setMode] = useState<Mode>({ kind: "board" });
@@ -151,6 +157,10 @@ function DailyScreen() {
   // A refused name's three suggestions; a signed-in player's board name is their username.
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const accountName = useAccountName();
+  // Your place: an account's on today's Daily top 100, read again once a Daily is finished; a guest has none.
+  const isAccount = useAccount().kind === "account";
+  const finishedKey = status ? `${status.puzzle.state}:${status.arcade.state}:${mode.kind}` : "";
+  const topPlace = useDailyTopPlace(kind, isAccount, finishedKey);
   const [look, setLook] = useState<PlayerLook>({ colour: 0, icon: null });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -195,6 +205,9 @@ function DailyScreen() {
       live = false;
     };
   }, [kind, day, status, mode.kind]);
+
+  // Every way to the Daily board opens the Daily top 100 (13 Nov 2026: the old public board is retired).
+  const openTop100 = () => void router.navigate({ to: "/daily-board", search: { kind } as never });
 
   const back = () => {
     const state = (router.history?.location?.state ?? {}) as { fromPlayTab?: boolean };
@@ -303,13 +316,8 @@ function DailyScreen() {
         roomId={mode.roomId}
         view={mode.view}
         title={DAILY_TITLE[kind]}
-        placeLine={
-          me && board ? (me.rank === null ? null : rankLine(me.rank, board.count, ordinal)) : null
-        }
-        onBoard={() => {
-          setDay("today");
-          setMode({ kind: "board" });
-        }}
+        placeLine={topPlace?.rank ? dailyTopPlaceLine(topPlace.rank) : null}
+        onBoard={openTop100}
         boardLabel="Leaderboard"
         share={mode.view.finished ? <DailyShareButton kind={kind} total={mode.view.total} /> : undefined}
         footer={<FeedbackLink small />}
@@ -387,7 +395,7 @@ function DailyScreen() {
             <div className="flex items-baseline justify-between gap-2">
               <p className="th-kicker text-primary">Today, {DAILY_TITLE[kind]}</p>
               <p className="whitespace-nowrap text-[13px] text-muted-foreground">
-                {stateLine(kind, state, state.state === "done" ? state.count : null)}
+                {stateLine(kind, state, topPlace)}
               </p>
             </div>
             {state.state === "play" && editingName && !accountName ? (
@@ -466,36 +474,18 @@ function DailyScreen() {
         ) : null}
 
         <div className="flex flex-col gap-2">
-          <div className="flex items-baseline justify-between gap-2">
-            <h2 className="ap-section-title">Leaderboard</h2>
-            {/* Wave 4 W4a: the accounts' top 100 with earlier days (docs/leaderboards.md). */}
-            <button
-              type="button"
-              data-open-daily-board
-              onClick={() => void router.navigate({ to: "/daily-board", search: { kind } as never })}
-              className="press tap-target lb-link"
-            >
-              Top 100
-            </button>
-          </div>
-          <DailySegmented
-            label="Day"
-            value={day}
-            options={[
-              { value: "today", label: "Today" },
-              { value: "yesterday", label: "Yesterday" },
-            ]}
-            onChange={setDay}
-          />
+          <h2 className="ap-section-title">Leaderboard</h2>
+          {/* One board (13 Nov 2026): the Daily top 100 (docs/leaderboards.md); here only your own line and the way in. */}
           {board ? (
-            <DailyBoard
+            <DailyYou
               board={board}
               lockedNote={lockedNote}
-              look={look}
-              share={day === "today" && board.me ? <DailyShareButton kind={kind} total={board.me.total} /> : undefined}
+              share={board.me ? <DailyShareButton kind={kind} total={board.me.total} /> : undefined}
+              onTop100={openTop100}
+              place={isAccount ? (topPlace ?? { rank: null, note: null }) : null}
             />
           ) : (
-            <SkeletonPage label="Loading the board" rows={6} />
+            <SkeletonPage label="Loading the board" rows={2} />
           )}
         </div>
       </div>

@@ -178,10 +178,12 @@ function useRoomChat() {
   useSyncExternalStore(subscribe, () => version);
   return {
     incoming: H.chatIncoming ?? null,
-    messages: [],
+    // One identity everywhere (13 Nov 2026): a check may draw the chat sheet open with messages
+    // (window.__harnessChatMessages, __harnessChatOpen; scripts/theme-screens.ts ROOM_IDENTITY_SCREENS).
+    messages: (window as unknown as { __harnessChatMessages?: unknown[] }).__harnessChatMessages ?? [],
     reactions: [],
     unread: 0,
-    sheetOpen: false,
+    sheetOpen: !!(window as unknown as { __harnessChatOpen?: boolean }).__harnessChatOpen,
     setSheetOpen: () => undefined,
     sending: false,
     error: null,
@@ -457,8 +459,14 @@ const ECONOMY: Record<string, (...args: never[]) => Promise<unknown>> = {
   getAvatarOptions: async () => (customiseFixture() ? {} : null),
 };
 
+/* A room's player cards (roomCards.functions.ts, 13 Nov 2026) from window.__harnessRoomCards ({ cards, hiddenOutside }); none if unset. */
+async function roomCardsFn() {
+  return (window as unknown as { __harnessRoomCards?: unknown }).__harnessRoomCards ?? {};
+}
+
 const IMPLEMENTATIONS: Record<string, unknown> = {
   ...ECONOMY,
+  roomCardsFn,
   friendsOverviewFn,
   friendProfileFn,
   friendsWaitingFn,

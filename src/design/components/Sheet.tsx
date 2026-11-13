@@ -74,7 +74,7 @@ export function Sheet({
           <div aria-hidden="true" className="jz-sheet-grab" />
           {header ? (
             <>
-              <Drawer.Title className="jz-sr-only">{title}</Drawer.Title>
+              <Drawer.Title className="jz-sr-only sr-only">{title}</Drawer.Title>
               {header}
             </>
           ) : (

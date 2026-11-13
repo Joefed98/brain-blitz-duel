@@ -7,6 +7,7 @@
 import { useState } from "react";
 
 import { Button } from "@/design/components";
+import { NameplateFullCard, type NameplatePlayer } from "@/design/identity";
 import { REPORT_REASON_LABELS, REPORT_REASONS, REPORT_THANKS, type ReportReason } from "@/lib/safety/reports";
 
 export interface ReportSheetProps {
@@ -15,6 +16,11 @@ export interface ReportSheetProps {
   /** Files the report; rejects or answers a message when it couldn't be sent. */
   onReport: (reason: ReportReason) => Promise<string | void>;
   onClose: () => void;
+  /**
+   * The player's full card, drawn above the reasons when they have one (13 Nov 2026, one identity everywhere: a tap on
+   * a lobby name opens their card, and the reasons stay one tap away, so reporting is still two taps).
+   */
+  player?: NameplatePlayer | null;
 }
 
 /** The three reasons as buttons, for a panel of its own or inside the chat message menu. */
@@ -37,7 +43,7 @@ export function ReportReasons({ onPick }: { onPick: (reason: ReportReason) => vo
   );
 }
 
-export function ReportSheet({ name, onReport, onClose }: ReportSheetProps) {
+export function ReportSheet({ name, onReport, onClose, player }: ReportSheetProps) {
   const [done, setDone] = useState<string | null>(null);
   const pick = (reason: ReportReason) => {
     setDone(REPORT_THANKS);
@@ -61,6 +67,11 @@ export function ReportSheet({ name, onReport, onClose }: ReportSheetProps) {
         className="w-full max-w-sm rounded-md border border-border bg-card p-2"
         onClick={(event) => event.stopPropagation()}
       >
+        {player ? (
+          <div className="px-2 pt-2" data-report-card>
+            <NameplateFullCard player={player} />
+          </div>
+        ) : null}
         <p className="truncate px-3 py-2 text-center font-mono text-xs uppercase text-muted-foreground">
           Report {name}
         </p>

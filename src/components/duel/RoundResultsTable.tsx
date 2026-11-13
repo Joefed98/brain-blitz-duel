@@ -19,10 +19,11 @@ import { cueDurationMs, playRoundWon, playVoice } from "@/lib/sound";
 import { AnimatedScore } from "./AnimatedScore";
 import { ContinueFooter, type ContinueState } from "./ContinueFooter";
 import { Medal } from "./Medal";
-import { PlayerBadge } from "./PlayerBadge";
+import { useOpenRoomCard, useRoomNameplate } from "./RoomPlayer";
 import { useScrollMore } from "./RoomFooter";
 import { isCompactRoom, youStyle } from "./Standings";
-import { Icon } from "@/design/components";
+import { Button, Icon } from "@/design/components";
+import { NameplateStrip, nameplateOpens } from "@/design/identity";
 
 interface RoundResultsTableProps {
   /** The round and its game, shown as chips ("Round 3", "Gemstone"). */
@@ -81,6 +82,8 @@ export function RoundResultsTable({
 
   // Places: the round score, then the time used; level on both shares the place (tieDisplay.ts).
   const marks = tieMarks(roundPlaces(ordered, times));
+  const plateOf = useRoomNameplate();
+  const openCard = useOpenRoomCard();
   const listRef = useScrollMore<HTMLOListElement>();
   // Big rooms (31 Oct 2026, up to 16): compact rows; my own row is pinned in view while the list scrolls.
   const compact = isCompactRoom(ordered.length);
@@ -124,10 +127,12 @@ export function RoundResultsTable({
                 {!finalRound && mark && <Medal place={Number(mark.label.replace("=", ""))} shared={mark.shared} />}
                 <span className="min-w-0 self-center">
                   <span className="flex min-w-0 items-center gap-2">
-                    <PlayerBadge look={look} name={row.name} size={compact ? 24 : 28} />
                     <span className="flex min-w-0 flex-1 flex-col">
                       <span className="flex min-w-0 items-center gap-1.5">
-                        <span className="rs-name th-name leading-tight">{row.name}</span>
+                        {/* One identity everywhere (13 Nov 2026): the shared nameplate strip in the name's place. */}
+                        <span className="room-player">
+                          <NameplateStrip player={plateOf(row.slot, row.name, look)} />
+                        </span>
                         {isMe ? <span className="rs-you shrink-0 text-[13px]">(you)</span> : null}
                         {row.status === "inactive" ? <LeftTag /> : null}
                         {won && <span className="rs-pill shrink-0">Round won</span>}
@@ -158,6 +163,14 @@ export function RoundResultsTable({
                   <Icon name="chevron-down" size={20} tone="text-3" className={`shrink-0 transition-transform ${open ? "rotate-180" : ""}`} />
                 </span>
               </button>
+              {/* The row's tap opens its detail; a player with a card can open it from there (a button can't hold one). */}
+              {open && nameplateOpens(plateOf(row.slot, row.name, look)) ? (
+                <span className="flex justify-end px-3 pb-2">
+                  <Button variant="quiet" size={44} data-open-card onClick={() => openCard(plateOf(row.slot, row.name, look))}>
+                    Open {row.name}’s card
+                  </Button>
+                </span>
+              ) : null}
             </li>
           );
         })}

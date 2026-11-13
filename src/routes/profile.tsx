@@ -5,8 +5,6 @@ import { FeedbackLink } from "@/components/beta/FeedbackLink";
 import { PhoneShell } from "@/components/duel/PhoneShell";
 import { useHomeBed } from "@/lib/useScreenMusic";
 import { PageAside } from "@/components/app/PageAside";
-import { PlayerBadge } from "@/components/duel/PlayerBadge";
-import { LookPicker } from "@/components/duel/RoomLobby";
 import { Onboarding } from "@/components/duel/Onboarding";
 import { goToTab } from "@/components/app/AppTabBar";
 import { GameIcon } from "@/components/app/GameIcon";
@@ -18,7 +16,7 @@ import { readRoomHistory, roomStats, type RoomRecord } from "@/lib/duel/deviceHi
 import { useDailyRecord } from "@/lib/badges/badgesApi";
 import { dailyStreak, readDailyRecord, type DailyRecord } from "@/lib/duel/dailyRecord";
 import { ukDayKey } from "@/lib/duel/daily";
-import { rememberLook, rememberedLook, type PlayerLook } from "@/lib/duel/playerLook";
+import { rememberedLook, type PlayerLook } from "@/lib/duel/playerLook";
 import { bestOf, starTotalLine } from "@/lib/practice/progress";
 import { GEM_THRESHOLDS, nextGem } from "@/lib/practice/progressRules";
 import { usePracticeProgress } from "@/lib/practice/useProgress";
@@ -45,16 +43,13 @@ export const Route = createFileRoute("/profile")({
       { title: `${APP_NAME} profile` },
       {
         name: "description",
-        content: `Your ${APP_NAME} look, rooms, practice stars and bests.`,
+        content: `Your ${APP_NAME} card, rooms, practice stars and bests.`,
       },
       { name: "robots", content: "noindex" },
     ],
   }),
   component: ProfileScreen,
 });
-
-/** No taken colours or icons outside a room: the look is this device's preference for new rooms. */
-const NONE_TAKEN = new Map<never, number>();
 
 /** Every game rooms deal ("Any of the 72 games"). */
 const ACTIVE_GAMES = (() => {
@@ -68,7 +63,6 @@ function ProfileScreen() {
   const router = useRouter();
   const [name, setName] = useState("");
   const [look, setLook] = useState<PlayerLook>({ colour: 0, icon: null });
-  const [picking, setPicking] = useState(false);
   const [settings, setSettings] = useState(false);
   const [intro, setIntro] = useState(false);
   const [history, setHistory] = useState<RoomRecord[]>([]);
@@ -113,45 +107,9 @@ function ProfileScreen() {
     { id: "daily", title: "Do today’s daily", sub: "Starts your streak", done: (daily?.days.length ?? 0) > 0 },
     { id: "practice", title: "Set a practice best", sub: `Any of the ${ACTIVE_GAMES} games`, done: bests.length > 0 },
   ] as const;
-  const fresh = loaded && steps.every((step) => !step.done);
   const doneCount = steps.filter((step) => step.done).length;
 
   if (intro) return <Onboarding onDone={() => setIntro(false)} />;
-
-  const picker = picking ? (
-    <div className="flex flex-col gap-3 px-4 pb-4 text-left">
-      <div className="flex flex-col gap-1.5">
-        <label htmlFor="profile-name" className="text-[13px] font-semibold text-muted-foreground">
-          Display name
-        </label>
-        <Input
-          id="profile-name"
-          value={accountName ?? name}
-          readOnly={accountName !== null}
-          maxLength={GUEST_NAME_MAX}
-          placeholder="Your name"
-          onChange={(e) => {
-            setName(e.target.value);
-            setStoredName(e.target.value.trim());
-          }}
-        />
-      </div>
-      <LookPicker
-        look={look}
-        name={shownName}
-        taken={NONE_TAKEN}
-        takenIconSlots={NONE_TAKEN}
-        takenBy={() => ""}
-        onChange={(change) => {
-          setLook((current) => ({ ...current, ...change }));
-          rememberLook(change);
-        }}
-      />
-      <p className="text-[13px] text-muted-foreground">
-        Your default for every room. If someone there already has it, you get the nearest free colour, and you can change it in the lobby.
-      </p>
-    </div>
-  ) : null;
 
   const openStep = (id: (typeof steps)[number]["id"]) => {
     if (id === "room") goToTab(router, "profile", "play");
@@ -177,64 +135,63 @@ function ProfileScreen() {
         <SeasonSection />
         <TrophyCabinet trophies={trophies} />
 
-        {fresh ? (
-          // A new player (T-ProfileNew): the badge in their colour, what it is, and Choose your look.
-          <section aria-label="Your look" data-profile-new className="jz-panel">
-            <div className="ap-profile-new">
-              <PlayerBadge look={look} name={shownName} size={72} />
-              <span className="th-name mt-1 max-w-full truncate text-[20px] font-bold text-foreground">{shownName}</span>
-              <p data-wrap-ok className="max-w-[280px] text-[14px] leading-[1.4] text-[var(--ap-text-2)]">
-                This is your badge in rooms. Pick a name, colour and icon so friends know it’s you.
-              </p>
-              <Button variant="secondary" size={46} block aria-expanded={picking} onClick={() => setPicking((v) => !v)} className="mt-1">
-                {picking ? "Done" : "Choose your look"}
-              </Button>
-            </div>
-            {picker}
-          </section>
-        ) : (
-          // The badge in the player's own colour, name, Beta player, Change look; the room stats beneath.
-          <section aria-label="Your look" className="jz-panel">
-            <div className="ap-profile-head">
-              <PlayerBadge look={look} name={shownName} size={56} />
-              <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-                <span className="flex min-w-0 items-center gap-2">
-                  <span className="th-name truncate text-[19px] font-bold text-foreground">{shownName}</span>
-                  <span className="jz-chip-quiet">Beta player</span>
-                </span>
-                <span data-ellipsis className="truncate text-[13px] text-muted-foreground">
-                  How you look in rooms
-                </span>
-              </div>
+        {/* "Your look" is retired (13 Nov 2026, one identity everywhere): a player's look is their card, changed in
+            Customise (the card's Customise button above; a guest's opens the save-your-progress sheet). A guest still
+            picks their room colour and icon in each lobby ("Change ▾"), which this device remembers for the next room,
+            and the sign-up's colour starts from it. Room stats stay here. */}
+        <section aria-label="Your rooms" data-profile-rooms className="jz-panel">
+          <p data-look-moved data-wrap-ok className="profile-look-moved">
+            {accountName
+              ? "Your look is your card: change your avatar, colour, card art and frame in Customise."
+              : "Pick your colour in any room’s lobby. Save your progress to choose a full card in Customise."}
+          </p>
+          {accountName ? (
+            <div className="px-4 pt-2">
               <Button
-                variant="secondary"
+                variant="quiet"
                 size={44}
-                aria-expanded={picking}
-                // Drawn "Change" (the mockup); named in full for screen readers.
-                aria-label={picking ? "Done" : "Change look"}
-                onClick={() => setPicking((v) => !v)}
-                className="shrink-0"
+                data-look-customise
+                onClick={() => void router.navigate({ to: "/customise", state: { fromPlayTab: true } as never } as never)}
               >
-                {picking ? "Done" : "Change"}
+                Open Customise
               </Button>
             </div>
-            {picker}
-            {history.length > 0 ? (
-              <div className="ap-stats">
-                {[
-                  { label: "Rooms played", value: stats.played },
-                  { label: "Wins", value: stats.wins },
-                  { label: "Podiums", value: stats.podiums },
-                ].map((stat) => (
-                  <div key={stat.label} data-profile-stat={stat.label} className="ap-stat">
-                    <span className="ap-stat-value">{stat.value}</span>
-                    <span className="ap-stat-label">{stat.label}</span>
-                  </div>
-                ))}
-              </div>
-            ) : null}
-          </section>
-        )}
+          ) : (
+            // A guest's display name for new rooms, the Daily and challenges (as on main before "Your look" was
+            // retired); an account's name is its username, changed in Settings → Account.
+            <div className="flex flex-col gap-1.5 px-4 pt-2" data-profile-guest-name>
+              <label htmlFor="profile-name" className="text-[13px] font-semibold text-muted-foreground">
+                Display name
+              </label>
+              <Input
+                id="profile-name"
+                value={name}
+                maxLength={GUEST_NAME_MAX}
+                placeholder="Your name"
+                onChange={(e) => {
+                  setName(e.target.value);
+                  setStoredName(e.target.value.trim());
+                }}
+              />
+            </div>
+          )}
+          {history.length > 0 ? (
+            <div className="ap-stats">
+              {[
+                { label: "Rooms played", value: stats.played },
+                { label: "Wins", value: stats.wins },
+                { label: "Podiums", value: stats.podiums },
+              ].map((stat) => (
+                <div key={stat.label} data-profile-stat={stat.label} className="ap-stat">
+                  <span className="ap-stat-value">{stat.value}</span>
+                  <span className="ap-stat-label">{stat.label}</span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="h-3" />
+          )}
+        </section>
 
         {/* Get started (T-ProfileNew): three steps that tick off from this device's own records. */}
         {loaded && doneCount < steps.length ? (

@@ -34,8 +34,25 @@ async function tiersFor(client: Db, ids: readonly string[], nowMs: number): Prom
   }
 }
 
+/**
+ * Who the plates are for (13 Nov 2026, one identity everywhere):
+ * - `list` (the default): a page anyone may see (boards, standings, brackets). Hidden under-18s and accounts waiting
+ *   for deletion are "Hidden player" to everyone but themselves.
+ * - `room`: the players of one room seeing each other. Inside their own room the other players are direct opponents
+ *   and see everyone as usual (Joe, 12 Nov 2026): an under-18 with their card, an account waiting for deletion (no
+ *   public card) on its room colour and initial. Only ever for a caller who holds a seat in that room.
+ */
+export type PlateAudience = "list" | "room";
+
 /** Plates by user id for one page of rows (at most 100 ids; the boards send at most 51). */
-export async function platesFor(client: Db, viewerId: string, rows: readonly PlateInput[], nowMs: number): Promise<Map<string, PlateView>> {
+export async function platesFor(
+  client: Db,
+  viewerId: string,
+  rows: readonly PlateInput[],
+  nowMs: number,
+  { audience = "list" }: { audience?: PlateAudience } = {},
+): Promise<Map<string, PlateView>> {
+  const room = audience === "room";
   const ids = [...new Set(rows.map((r) => r.userId))].slice(0, 100);
   const out = new Map<string, PlateView>();
   if (!ids.length) return out;
@@ -48,7 +65,8 @@ export async function platesFor(client: Db, viewerId: string, rows: readonly Pla
   for (const r of rows) {
     if (out.has(r.userId) || !ids.includes(r.userId)) continue;
     const profile = profileOf.get(r.userId);
-    const me = r.userId === viewerId;
+    // In their own room everyone is shown to their room-mates as to themselves (no hiding).
+    const me = room || r.userId === viewerId;
     if (!me && (profiles.error !== null || (profile !== undefined && isUnder18(profile.date_of_birth, nowMs)))) {
       out.set(r.userId, HIDDEN_PLATE);
       continue;
@@ -66,7 +84,7 @@ export async function platesFor(client: Db, viewerId: string, rows: readonly Pla
       out.set(r.userId, { kind: "plain", name: profile.username, colour: null });
     } else {
       // An account with no public card is waiting for deletion: hidden, as on the leaderboards.
-      out.set(r.userId, me ? { kind: "plain", name: profile.username, colour: null } : HIDDEN_PLATE);
+      out.set(r.userId, me ? { kind: "plain", name: room ? r.name || profile.username : profile.username, colour: room ? (r.colour ?? null) : null } : HIDDEN_PLATE);
     }
   }
   return out;

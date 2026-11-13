@@ -2165,6 +2165,20 @@ outside the repo.
   (**not applied until merged**). Events `leaderboard_viewed`,
   `daily_board_viewed`. leaderboards-check (~30 s, shard `e`, PostgreSQL: the real engine, the cron run twice),
   leaderboards-ui-check (~2 s, happy-dom); the screens in theme-check and no-wrap-check (`LEADERBOARD_SCREENS`). **The nameplate** (12 Nov 2026, `docs/nameplate.md`): the one way to draw a player in a row, `NameplateStrip` / `NameplateSheet` / `useNameplateSheet` / `nameplateOpens` in `@/design/identity` (a `NameplatePlayer`: `card`, `plain` colour and initial, `hidden` a plain neutral disc and "Hidden player", nothing to open), fed by `nameplatesFor` (`src/lib/identity/nameplates.server.ts`, on `publicCardsFor` and `cardBadgesFor`) in the list's own call; W4b's tournament boards and W4c's brackets use it.
+- **One identity everywhere** (13 Nov 2026, `docs/nameplate.md` "Rooms"; presentation, room data reads and device
+  storage only, no gameplay, scoring, stamp, timing or deal change): rooms draw every player with the shared pieces only
+  (`NameplateStrip` rows, the full `PlayerCard` on tap and on the podium and two-player final, `MiniCard` in chat, awards
+  and the reveal's "who's in"), wired by `src/components/duel/RoomPlayer.tsx` (`RoomCardsHost` round the room route,
+  `usePublishRoomCards`, `RoomPlayerName`, `PodiumCards`, `RoomMiniCard`). Cards come in ONE batched read per room,
+  `roomCardsFn` (`src/lib/identity/roomCards.functions.ts`, seated callers only, keyed by seat, never an account id;
+  `platesFor` with `audience: "room"`), again only when someone joins (`useRoomCards`); `cardIdOf(seat)` is the one place
+  the cards path reads a seat's player id. Inside their own room everyone shows as usual (an under-18 with their card);
+  outside it the list audience hides under-18s, opted-out adults and accounts waiting for deletion. Profile's "Your look"
+  is retired (guests pick a room colour in the lobby, remembered for the next room; accounts in Customise); the old
+  public Daily board is gone for the Daily top 100 (`DailyYou` keeps your own line; `dailyBoardFn` answers only the
+  caller's row, `ownDailyLine`); the LiveTag's text is `--jz-bg` on its red (≥ 4.5:1). identity-everywhere-check (~10 s,
+  shard `e`, PostgreSQL + happy-dom); the screens are `ROOM_IDENTITY_SCREENS` in theme-check and no-wrap-check, drawn at
+  every size (`sizes: ALL_SIZES`); theme-check runs in halves (`--part`, play16 and play17).
 - **Rated matchmaking** (wave 3 W3b, 11 Nov 2026, `docs/rated/matchmaking-interface.md`; no gameplay, scoring, stamp or
   deal change): the queue (same format and choice only; ±50 widening by 50 every 2 s to ±200, a recorded run from 8 s;
   placement players live only with placement players, else a beginner's run at 8 s), live and recorded rated matches as ordinary rooms the server makes already

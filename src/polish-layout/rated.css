@@ -1119,11 +1119,6 @@
   color: var(--jz-text-2);
 }
 
-/* The VS's Live tag: dark text on the LIVE red (white on it is 3.1:1; theme-check, 12 Nov 2026). */
-.rt-page [data-vs-tag="live"] .jz-live {
-  color: var(--jz-bg);
-}
-
 /* A player's name inside a one-line title or button: truncated with an ellipsis, so the line never runs off the
    screen (16-character usernames; no-wrap-check, 12 Nov 2026). */
 .rt-result-title {

@@ -13,7 +13,7 @@ import { WaitingLine } from "@/components/duel/Dots";
 import { ArcadeReveal, revealShown, storedCostRows, type RevealPlayer } from "@/components/duel/ArcadeReveal";
 import { engineLines, statRepeatsPart } from "@/lib/duel/revealBreakdown";
 import { engineScoreLines } from "@/lib/duel/engineBreakdown";
-import { PlayerBadge } from "@/components/duel/PlayerBadge";
+import { RoomMiniCard, useRoomCardPlayer } from "@/components/duel/RoomPlayer";
 import type { ArcadeRevealData } from "@/lib/arcade/reveal";
 import { ARCADE_REVEAL_RENDERERS } from "@/lib/arcade/revealRenderers";
 
@@ -580,13 +580,18 @@ function EngineBreakdown({ type, extra, score, practice, costRows, open, setOpen
 
 /** Who else is in (a room's reveal): everyone's badge, "n of N finished" and when the results arrive. */
 function RevealPlayers({ players, secondsLeft }: { players: RevealPlayer[]; secondsLeft: number }) {
+  const cardOf = useRoomCardPlayer();
   const finished = players.filter((p) => p.score !== null).length;
   return (
     <div data-reveal-players className="flex shrink-0 items-center gap-2.5 pb-1">
       <span className="flex shrink-0 -space-x-1.5">
         {players.slice(0, 10).map((p) => (
-          <span key={p.slot} className={`rounded-full ring-2 ring-[var(--ap-bg)] ${p.score === null ? "opacity-40" : ""}`}>
-            <PlayerBadge look={p.look} name={p.name} size={22} />
+          // One identity everywhere (13 Nov 2026): each player's mini card (a guest's colour and initial).
+          <span
+            key={p.slot}
+            className={`${cardOf(p.slot, p.name) ? "inline-flex rounded-[6px]" : "rounded-full"} ring-2 ring-[var(--ap-bg)] ${p.score === null ? "opacity-40" : ""}`} /* design-lint-ignore: the ring it had; square round a mini card */
+          >
+            <RoomMiniCard slot={p.slot} look={p.look} name={p.name} size={22} />
           </span>
         ))}
       </span>
