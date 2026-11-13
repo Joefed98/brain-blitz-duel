@@ -2415,8 +2415,8 @@ outside the repo.
   `retryAtMs`, `ratedStatus` carries `cooldown`, Play and the picker count it down, the abort notice adds
   `ABORT_WAIT_LINE`, event `rated_cooldown_applied`; a stayer re-queued by reviewDepartures never waits (`requeue`).
   `src/lib/validate.ts` (uuid, text, whole, oneOf, listOf, optional, record) is the input check for server functions;
-  every function this work added or touched uses it. Migrations `20261116100000_room_channels_chat_removals.sql`,
-  `20261116100100_analytics_rated_cooldown.sql`. The server-fn harness's stub has Realtime's `realtime.messages`,
+  every function this work added or touched uses it. Migrations `20261116600000_room_channels_chat_removals.sql`,
+  `20261116600100_analytics_rated_cooldown.sql`. The server-fn harness's stub has Realtime's `realtime.messages`,
   `realtime.topic()` and `realtime.send()`. security-rooms-check (~40 s, shard `e`, PostgreSQL). New screens are in
   theme-check and no-wrap-check at every size (`SECURITY_A_SCREENS`, `sizes: ALL_SIZES`).
 - `src/components/duel/` — room/round screens (PhoneShell, RoundIntro, TimerBar,

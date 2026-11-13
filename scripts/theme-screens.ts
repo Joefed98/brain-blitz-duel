@@ -603,6 +603,8 @@ export const ALL_SIZES: ThemeViewport[] = [
 export const PASS_SCREENS = (): ThemeScreen[] => [
   { name: "pass, a tester at level 12", mode: "pass", plain: true, globals: { __harnessPass: passFixture() }, waitMs: 800, sizes: ALL_SIZES },
   { name: "pass, premium", mode: "pass", plain: true, globals: { __harnessPass: passFixture({ premium: true }) }, waitMs: 800, sizes: ALL_SIZES },
+];
+
 /**
  * Security A (13 Nov 2026): the rated Play card and picker with the wait after set-up leaves, the abort notice's wait
  * line, and the dropout banner's countdowns (Finish now at 45 s in an ordinary room; a rated room's grace), from
