@@ -16,6 +16,8 @@ export interface RatedProfileRow {
   player_id: string;
   version: number;
   placement_played: number;
+  /** Where this placement started (0; 2 after a season reset, so 3 matches remain; wave 4 W4d). */
+  placement_from?: number | null;
   matches: number;
   wins: number;
   win_streak: number;

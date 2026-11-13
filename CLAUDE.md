@@ -2258,6 +2258,44 @@ outside the repo.
   `pass_level_reached`, `reward_claimed`, `weekly_challenge_completed` (`20261113100100_analytics_pass_events.sql`).
   Migrations `20261113100000_season_pass.sql`, `20261113100100`, `20261113100200` (**not applied until merged**). pass-check
   (~25 s, shard `e`, PostgreSQL), pass-screens-check (~3 s, happy-dom); economy-neutral-check also covers the pass modules.
+- **The ratings engine** (wave 3 W3a, 11 Nov 2026, `docs/rated/README.md`, the contract `docs/rated/ratings-interface.md`;
+  no gameplay, scoring, stamp or deal change): Glicko-2 (`src/lib/rated/glicko2.ts`, one rating period per match,
+  weighted games, an RD floor schedule and time away; **every constant in `glicko.config.ts` beside its target**,
+  proved on simulated players by ratings-check) for Puzzles, Arcade and the 11 categories (the server's own
+  `gamePool` / `gameCategory`; Mixed at half weight), the Joulz Rating (90 days of games), 5 placement matches with
+  every rating hidden, tiers and caps (`tiers.ts`: Storm's top 3% and Top 500 from 1,000 rated players, 3 days' grace,
+  hourly Cron Trigger `rated:standings` in `vite.config.ts`'s `RATED_TASKS`), recorded runs (owner exactly half, rated
+  runs only, 5 uses a day) and the 4th-match rule per UK day. Guests play rated (placement included) once rated play is
+  on for everyone (`guestsMayPlayRated`); their ratings sit on their player id, so sign-up keeps them (ratings-check
+  proves it through wave 1's linking). The match engine calls `finishRatedMatch`
+  (`rewards.server.ts`: `recordRatedMatch`, idempotent per match id, then C2's badges); the phone only reads
+  (`ratings.functions.ts`). Migrations `20261114100000_ratings.sql`, `…100100_analytics_rated_events.sql`,
+  `…100200_rated_badges_earnable.sql`, `…100300_rated_week_matches.sql` (**not applied until merged**); no API role writes a rated table. Rated play's 13
+  badges are earnable (29 earnable, 25 waiting). Joules are credited through D2's `creditRatedMatchJoules` under the
+  stored `ratedJoulesKey`; `RATED_PLAY_FOR_EVERYONE` (`src/config/ratedConfig.ts`, false) is the switch W3b and D2's
+  weekly draw share (R challenges only while on, progress from `rated_week_matches`). A 1v1 stops once decided (each
+  game weighted); a run the server flagged (a game's stored grade `extra.flagged`, live or recorded) moves nobody, counts for nothing, pays the flagged player no Joules and is logged in `moderation.rated_flags` (Joe: `moderation.rated_flag_queue()`); the tier floor grace keeps a tier 3 more matches below its floor
+  (`shownTierFor`). ratings-check (~10 s, shard `e`, PostgreSQL).
+- **Seasons** (wave 4, session W4d, 11 Nov 2026, `docs/seasons/README.md`; no gameplay, scoring, stamp, timing or deal
+  change): one season clock, D2's `public.pass_seasons` (Joe's `pass.*` dates; a tester is in the test season while it
+  runs). `finishRatedMatch` notes each live player's rated match in its season (`season_note_rated_match`, the tier shown
+  after it) and the standings job's tier changes (`season_note_tier`, peak only). Joe's `pass.close_season(season, note)`
+  / `pass.close_test_season(note)` (idempotent, logged) grant the peak-tier rewards to everyone who finished placement
+  and played 10+ rated matches (the peak actually held: cap-held Storm-rated is Surge): the S1 emblem (`SeasonEmblem`),
+  `frame.s1-<tier>` (seven earned items in `docs/art/wave-4/catalogue.json`, **placeholder art**
+  `scripts/season-frame-placeholders.ts` until drawn), the tier card art `card-art.tier.<tier>` (once, kept forever) and
+  the title "S1 [tier]" (`public.titles` kind `season`, equippable once granted), with a tab-page notice
+  (`SeasonNotice`); then `public.ratings_season_reset` moves every placed player's Puzzles, Arcade and categories a third
+  of the way back to the average (wider RD, `season_reset_rating` = `rules.ts`) and puts placement back to 3 matches
+  (`rated_profiles.placement_from`, `placementOf(played, from)`, `of: 5 | 3`). Profile's `SeasonSection` (season peak,
+  history, emblems; W4b's `TrophyCabinet` shows the emblems). Matches against recorded runs count towards the 10 for the
+  live player; a flagged match counts for nobody. Both catalogue files are read through `scripts/catalogue-files.ts`. Events `season_ended`, `season_reward_granted` (from the
+  database through `economy.note_event`). `window.__DUELZ_ALLOW_SEASONS__` only outside production builds. Migrations
+  `20261115400000_seasons.sql`, `20261115400100_analytics_season_events.sql` (**not applied until merged**). Approved
+  count changes (11 Nov 2026): economy-check 118 items over both files (with W4c's Championship frame) / 25 free or
+  earned, badges-check and pass-check 41 titles, identity-screens-check 60 card arts, frames and name colours (the
+  sourceless Championship frame drawing the Plain card), its "Season peak" forbidden word replaced by a real-data
+  check. seasons-check (~10 s, shard `e`, PostgreSQL), seasons-screens-check (~2 s, happy-dom).
 - **Tournaments: the hub, the Arena and the daily Score Attack** (wave 4 W4b, 11 Nov 2026, `docs/tournaments/README.md`,
   contract for W4c `docs/tournaments/interface.md`; no gameplay, scoring, stamp, rating or deal change): switches,
   schedule and prizes in `src/config/tournamentConfig.ts` (`TOURNAMENTS_FOR_EVERYONE` false: D1's testers only; the
@@ -2302,24 +2340,6 @@ outside the repo.
   `_seeds`, `_matches`, `_awards`, `_hall_of_fame` (`20261115300000_tournament_events.sql`,
   `20261115300100_analytics_tournament_events.sql`, **not applied until merged**); events `swiss_round_paired`,
   `knockout_match_played`. Rows draw each player as W4a's shared `NameplateStrip`, a tap opening `NameplateSheet` (plates from W4b's `platesFor`, one batch a page with the page's call; cosmetics only in the name area; under-18s are "Hidden player" on a plain neutral disc on standings, the bracket and the hall of fame, shown only to their direct opponent in the your-match row and the room, and to themselves; Joe, 12 Nov 2026). Badges: 40 earnable, 14 waiting. tournament-events-check (~6 s, pure), tournament-events-server-check (~15 s, shard `e`), player-strips-check (~2 s, happy-dom).
-- **The ratings engine** (wave 3 W3a, 11 Nov 2026, `docs/rated/README.md`, the contract `docs/rated/ratings-interface.md`;
-  no gameplay, scoring, stamp or deal change): Glicko-2 (`src/lib/rated/glicko2.ts`, one rating period per match,
-  weighted games, an RD floor schedule and time away; **every constant in `glicko.config.ts` beside its target**,
-  proved on simulated players by ratings-check) for Puzzles, Arcade and the 11 categories (the server's own
-  `gamePool` / `gameCategory`; Mixed at half weight), the Joulz Rating (90 days of games), 5 placement matches with
-  every rating hidden, tiers and caps (`tiers.ts`: Storm's top 3% and Top 500 from 1,000 rated players, 3 days' grace,
-  hourly Cron Trigger `rated:standings` in `vite.config.ts`'s `RATED_TASKS`), recorded runs (owner exactly half, rated
-  runs only, 5 uses a day) and the 4th-match rule per UK day. Guests play rated (placement included) once rated play is
-  on for everyone (`guestsMayPlayRated`); their ratings sit on their player id, so sign-up keeps them (ratings-check
-  proves it through wave 1's linking). The match engine calls `finishRatedMatch`
-  (`rewards.server.ts`: `recordRatedMatch`, idempotent per match id, then C2's badges); the phone only reads
-  (`ratings.functions.ts`). Migrations `20261114100000_ratings.sql`, `…100100_analytics_rated_events.sql`,
-  `…100200_rated_badges_earnable.sql`, `…100300_rated_week_matches.sql` (**not applied until merged**); no API role writes a rated table. Rated play's 13
-  badges are earnable (29 earnable, 25 waiting). Joules are credited through D2's `creditRatedMatchJoules` under the
-  stored `ratedJoulesKey`; `RATED_PLAY_FOR_EVERYONE` (`src/config/ratedConfig.ts`, false) is the switch W3b and D2's
-  weekly draw share (R challenges only while on, progress from `rated_week_matches`). A 1v1 stops once decided (each
-  game weighted); a run the server flagged (a game's stored grade `extra.flagged`, live or recorded) moves nobody, counts for nothing, pays the flagged player no Joules and is logged in `moderation.rated_flags` (Joe: `moderation.rated_flag_queue()`); the tier floor grace keeps a tier 3 more matches below its floor
-  (`shownTierFor`). ratings-check (~10 s, shard `e`, PostgreSQL).
 - **Rated 4- and 8-player matches** (wave 3, session W3d, 11 Nov 2026, `docs/rated/multiplayer.md`; no gameplay, scoring,
   stamp, timing or deal change; rooms untouched): **off at launch** on W3b's switches (`RATED_FORMATS_ON.ffa4` / `.ffa8`
   in `src/config/matchmakingConfig.ts`), refused by the server while off (`joinMultiQueue` / `assertMultiOn`). Rules

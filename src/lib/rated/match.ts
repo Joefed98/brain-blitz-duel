@@ -178,6 +178,11 @@ export function checkMatch(input: unknown, nowMs: number): Checked {
 export interface RatedProfileState {
   /** Placement matches played (counts to PLACEMENT_MATCHES). */
   placementPlayed: number;
+  /**
+   * Where this placement started: 0 the first time; after a season reset (wave 4 W4d) placementPlayed is set back to 2
+   * and this to 2, so the new season's placement is 3 matches ("Placement 2 of 3"). Kept by the database's own row.
+   */
+  placementFrom: number;
   /** Live rated matches that counted (not frozen against everyone). */
   matches: number;
   wins: number;
@@ -201,6 +206,7 @@ export interface RatedProfileState {
 export function newProfileState(): RatedProfileState {
   return {
     placementPlayed: 0,
+    placementFrom: 0,
     matches: 0,
     wins: 0,
     winStreak: 0,
@@ -323,15 +329,31 @@ export const JOULZ_WINDOW_MS = JOULZ_WINDOW_DAYS * 86_400_000;
 
 /* ------------------------------------------------------------------ placement */
 
-export function placementOf(played: number, results: readonly PlacementResult[] = []): PlacementStatus {
+/**
+ * The placement status. After a season reset (`from` 2, wave 4 W4d) a placement is 3 matches, counted from where it
+ * started, and its boxes are that placement's own matches: the stored rows (rated_match_players.placement_no 3–5)
+ * played after the previous placement's last match, numbered 1–3.
+ */
+export function placementOf(played: number, results: readonly PlacementResult[] = [], from = 0): PlacementStatus {
   const p = Math.min(PLACEMENT_MATCHES, Math.max(0, played));
   const done = p >= PLACEMENT_MATCHES;
+  const of = (from === PLACEMENT_MATCHES - 3 ? 3 : PLACEMENT_MATCHES) as 5 | 3;
+  const skip = PLACEMENT_MATCHES - of;
+  const n = Math.min(of, Math.max(0, p - skip));
+  const sorted = [...results].sort((a, b) => (a.at < b.at ? -1 : a.at > b.at ? 1 : a.n - b.n));
+  let current = sorted;
+  if (skip > 0) {
+    // Each n = 5 row ends a placement; the current one starts after the last finished one (the one before it once done).
+    const ends = sorted.flatMap((r, i) => (r.n === PLACEMENT_MATCHES ? [i] : []));
+    const cut = done ? ends[ends.length - 2] : ends[ends.length - 1];
+    current = sorted.slice(cut === undefined ? 0 : cut + 1).filter((r) => r.n > skip).map((r) => ({ ...r, n: r.n - skip }));
+  }
   return {
-    played: p,
-    of: PLACEMENT_MATCHES,
+    played: n,
+    of,
     done,
-    label: done ? null : `Placement ${p + 1} of ${PLACEMENT_MATCHES}`,
-    results: [...results].sort((a, b) => a.n - b.n).slice(0, PLACEMENT_MATCHES),
+    label: done ? null : `Placement ${n + 1} of ${of}`,
+    results: current.sort((a, b) => a.n - b.n).slice(0, of),
   };
 }
 
@@ -535,7 +557,7 @@ export function applyMatch(match: RatedMatchResult, finishedMs: number, pre: Rec
       frozen: side.frozenWhy ?? (frozenAll ? "same_opponent_today" : null),
       changes,
       joulz: { before: joulzBefore, after: joulzAfter },
-      placement: { ...placementOf(p1.placementPlayed, placementResultsAfter), justFinished: !placedBefore && placedAfter },
+      placement: { ...placementOf(p1.placementPlayed, placementResultsAfter, p1.placementFrom), justFinished: !placedBefore && placedAfter },
       tier: { before: tierBefore, after: tierAfter },
       result,
       place,

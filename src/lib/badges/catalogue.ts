@@ -278,7 +278,22 @@ export const PASS_TITLE_DEFS: readonly TitleDef[] = [
   { id: "circuit-breaker", name: "Circuit Breaker", kind: "pass", badge: null },
 ];
 
-export const TITLE_BY_ID: ReadonlyMap<string, TitleDef> = new Map([...TITLES, ...PASS_TITLE_DEFS].map((t) => [t.id, t]));
+/**
+ * The Season 1 titles (wave 4 W4d, docs/seasons/README.md): "S1 Spark" to "S1 Lightning" and "S1 Top 500", granted
+ * at Season 1's end from the peak tier actually held (public.season_rewards) and equippable once granted. Kept apart
+ * from TITLES; public.titles holds them after the pass titles (supabase/migrations/20261115400000_seasons.sql).
+ */
+export const SEASON_TITLE_DEFS: readonly TitleDef[] = [
+  ["s1-spark", "S1 Spark"],
+  ["s1-charge", "S1 Charge"],
+  ["s1-volt", "S1 Volt"],
+  ["s1-surge", "S1 Surge"],
+  ["s1-storm", "S1 Storm"],
+  ["s1-lightning", "S1 Lightning"],
+  ["s1-top-500", "S1 Top 500"],
+].map(([id, name]) => ({ id: id!, name: name!, kind: "season", badge: null }));
+
+export const TITLE_BY_ID: ReadonlyMap<string, TitleDef> = new Map([...TITLES, ...PASS_TITLE_DEFS, ...SEASON_TITLE_DEFS].map((t) => [t.id, t]));
 
 /** The titles a set of earned badges unlocks (Rookie always first). */
 export function titlesUnlocked(earned: ReadonlySet<string>): TitleDef[] {

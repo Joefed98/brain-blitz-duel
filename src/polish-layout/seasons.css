@@ -1,0 +1,26 @@
+/* Seasons (wave 4 W4d, docs/seasons/README.md): the season emblem's mark, the trophies row. Tokens only. */
+.sn-emblem {
+  position: relative;
+  display: inline-flex;
+  flex: none;
+  flex-direction: column;
+  align-items: center;
+}
+.sn-mark {
+  margin-top: -6px;
+  padding: 1px 5px;
+  border: 1px solid var(--jz-gold);
+  border-radius: 4px;
+  background: var(--jz-bg);
+  color: var(--jz-white);
+  font-size: 10px;
+  font-weight: 900;
+  line-height: 1.2;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+.sn-trophies {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}

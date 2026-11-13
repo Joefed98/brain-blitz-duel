@@ -39,6 +39,7 @@ import { creditCoins, grantItem } from "@/lib/economy/economy.server";
 import { DAILY_CHAMPION_FIELD, DAILY_TOP100_FIELD } from "@/lib/leaderboards/boards";
 
 import { readPassTitles } from "@/lib/data/pass.server";
+import { readSeasonTitles } from "@/lib/data/seasons.server";
 import { BADGE_BY_SLUG, CARD_BADGE_SLOTS, STARTER_TITLE, TITLE_BY_ID } from "./catalogue";
 import { badgeProgress, badgesEarnedBy, NO_RATED_FACTS, type BadgeFacts, type RatedFacts } from "./rules.server";
 import type { BadgeChangeResult, BadgeRefusal, CardBadges, EarnedBadge, MyBadges } from "./types";
@@ -185,13 +186,14 @@ export async function evaluateBadges(
 
 /** The account's badges, card and title (a guest: account false). */
 export async function myBadges(client: Db, userId: string, progress: Record<string, number> = {}): Promise<MyBadges> {
-  const [{ data: profile, error: pErr }, { data: rows, error: bErr }, { data: cards, error: cErr }, { data: passTitles, error: tErr }] = await Promise.all([
+  const [{ data: profile, error: pErr }, { data: rows, error: bErr }, { data: cards, error: cErr }, { data: passTitles, error: tErr }, { data: seasonTitles, error: sErr }] = await Promise.all([
     readProfile(client, userId),
     readPlayerBadges(client, userId),
     readBadgePublicCards(client, [userId]),
     readPassTitles(client, userId),
+    readSeasonTitles(client, userId),
   ]);
-  if (pErr || bErr || cErr || tErr) throw new Error(`badges: ${(pErr ?? bErr ?? cErr ?? tErr)!.message}`);
+  if (pErr || bErr || cErr || tErr || sErr) throw new Error(`badges: ${(pErr ?? bErr ?? cErr ?? tErr ?? sErr)!.message}`);
   if (!profile) return { account: false };
   const earned: EarnedBadge[] = rows
     .filter((r) => BADGE_BY_SLUG.has(r.badge))
@@ -209,6 +211,7 @@ export async function myBadges(client: Db, userId: string, progress: Record<stri
     unseen: earned.filter((b) => !b.seen).map((b) => b.slug),
     progress,
     passTitles,
+    seasonTitles,
   };
 }
 

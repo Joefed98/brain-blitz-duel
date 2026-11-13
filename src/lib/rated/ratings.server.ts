@@ -89,6 +89,7 @@ function profileFrom(rows: RatedStateRows, id: string): { state: RatedProfileSta
     version: r.version,
     state: {
       placementPlayed: r.placement_played,
+      placementFrom: r.placement_from ?? 0,
       matches: r.matches,
       wins: r.wins,
       winStreak: r.win_streak,
@@ -309,7 +310,7 @@ function poolView(state: GlickoState | undefined): PoolView {
 
 function ratingsView(rows: RatedStateRows, id: string): PlayerRatings {
   const { state } = profileFrom(rows, id);
-  const placement = placementOf(state.placementPlayed, placementsFrom(rows, id));
+  const placement = placementOf(state.placementPlayed, placementsFrom(rows, id), state.placementFrom);
   if (!placement.done) return { playerId: id, placement, joulz: null, tier: null, pools: null, categories: null };
   const { ratings } = ratingsFrom(rows, id);
   const joulz = joulzRating({ puzzles: ratings.puzzles, arcade: ratings.arcade }, recentFrom(rows, id));
@@ -364,7 +365,8 @@ export async function shownTiersFor(client: Db, playerIds: readonly unknown[], n
 
 export async function placementStatus(client: Db, userId: string, nowMs: number = Date.now()): Promise<PlacementStatus> {
   const rows = await stateFor(client, [userId], nowMs);
-  return placementOf(profileFrom(rows!, userId).state.placementPlayed, placementsFrom(rows!, userId));
+  const { state } = profileFrom(rows!, userId);
+  return placementOf(state.placementPlayed, placementsFrom(rows!, userId), state.placementFrom);
 }
 
 /** The ladder, each tier with its share of placed players (null before anyone has placed). */
@@ -383,7 +385,8 @@ export interface StandingsJobResult {
   ratedPlayers: number;
   capsActive: boolean;
   /** Players whose shown tier changed. */
-  changed: { playerId: string; from: TierView["tier"] | null; to: TierView["tier"] }[];
+  /** `label`: the tier as shown ("Volt II", "Top 500 #37"), for the season's peak (wave 4 W4d). */
+  changed: { playerId: string; from: TierView["tier"] | null; to: TierView["tier"]; label: string }[];
 }
 
 /**
@@ -411,7 +414,7 @@ export async function runStandingsJob(client: Db, nowMs: number = Date.now()): P
       peak_tier: !peak || tierRank(view.tier) > tierRank(peak) ? view.tier : peak,
       top500_ever: view.tier === "top500",
     });
-    if (view.tier !== p.shown_tier) changed.push({ playerId: p.player_id, from: p.shown_tier, to: view.tier });
+    if (view.tier !== p.shown_tier) changed.push({ playerId: p.player_id, from: p.shown_tier, to: view.tier, label: view.label });
   }
   for (let i = 0; i < writes.length; i += 500) {
     const { error: wErr } = await setRatedTiers(client, writes.slice(i, i + 500));

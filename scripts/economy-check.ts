@@ -5,8 +5,8 @@
  *
  * What it proves:
  * - the catalogue matches docs/art/wave-2/catalogue.json then docs/art/wave-4/catalogue.json (W4c) item for item, field
- *   for field, and the counts hold: 111
- *   items, 52 shop (30 Epic, 15 Elite, 7 Legendary at 1,000 / 1,600 / 2,800), 10 free-track, 30 premium-track, 18 free
+ *   for field, and the counts hold: 118
+ *   items, 52 shop (30 Epic, 15 Elite, 7 Legendary at 1,000 / 1,600 / 2,800), 10 free-track, 30 premium-track, 25 free
  *   or earned; nothing outside the shop is priced, every Legendary animates, the shop query returns exactly the 52;
  * - the table refuses a priced non-shop item, a shop Rare, a wrong price, a still Legendary, a non-exclusive pass item;
  * - the ledger: credit, spend and refund; the same idempotency key pays once; two spends at once that together
@@ -89,7 +89,7 @@ interface JsonItem {
   html: string;
 }
 // Joe's approval, 11 Nov 2026 (W4c): the catalogue gains the Championship frame in docs/art/wave-4/catalogue.json,
-// appended after wave 2's, and the checks follow the files (111 items).
+// appended after wave 2's, and the checks follow the files (111 items; 118 with W4d's seven Season 1 frames, the same file).
 const ITEMS = [
   ...(JSON.parse(readFileSync("docs/art/wave-2/catalogue.json", "utf8")) as { items: JsonItem[] }).items,
   ...(JSON.parse(readFileSync("docs/art/wave-4/catalogue.json", "utf8")) as { items: JsonItem[] }).items,
@@ -151,7 +151,9 @@ process.exit(0);
 async function pureChecks(): Promise<void> {
   await section("slots", async () => {
     const slots = await import("../src/lib/economy/slots");
-    check(ITEMS.length === 111, `the catalogue files hold 111 items (110 → 111: the Championship frame, Joe's approval, 11 Nov 2026) (${ITEMS.length})`);
+    // 111 → 118: the seven Season 1 frames (W4d) in docs/art/wave-4/catalogue.json after the Championship frame, the counts
+    // following both files (approved by Joe, 11 Nov 2026).
+    check(ITEMS.length === 118, `the catalogue files hold 118 items (110 → 111: the Championship frame, Joe's approval, 11 Nov 2026; → 118: the seven Season 1 frames, W4d) (${ITEMS.length})`);
     check(new Set(ITEMS.map((i) => i.id)).size === ITEMS.length, "catalogue.json: every id is unique");
     check(ITEMS.every((i) => (slots.ITEM_KINDS as readonly string[]).includes(i.kind)), "every kind is in ITEM_KINDS");
     check(ITEMS.every((i) => (slots.ITEM_SOURCES as readonly string[]).includes(i.source)), "every source is in ITEM_SOURCES");
@@ -263,7 +265,8 @@ async function databaseChecks(db: LocalDb, rest: RestServer): Promise<void> {
     check(count("source = 'shop' AND rarity = 'legendary' AND price_coins = 2800") === 7, "7 Legendary at 2,800");
     check(count("source = 'pass-free'") === 10, "10 free-track items");
     check(count("source = 'pass-premium'") === 30, "30 premium-track items");
-    check(count("source IN ('free-starter', 'earned-season-peak-tier', 'earned-founding-player', 'earned-top-500')") === 18, "18 free or earned");
+    // 18 → 25: the seven Season 1 frames, earned at a season's end, added to docs/art/wave-4/catalogue.json (approved by Joe, 11 Nov 2026; wave 4 W4d).
+    check(count("source IN ('free-starter', 'earned-season-peak-tier', 'earned-founding-player', 'earned-top-500')") === 25, "25 free or earned");
     check(count("source <> 'shop' AND price_coins IS NOT NULL") === 0, "nothing outside the shop is priced");
     check(count("source <> 'shop' AND NOT exclusive") === 0 && count("source = 'shop' AND exclusive") === 0, "exclusive exactly when not from the shop");
     check(count("rarity = 'legendary' AND NOT animated") === 0, "every Legendary animates");

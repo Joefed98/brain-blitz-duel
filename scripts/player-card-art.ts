@@ -23,15 +23,18 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
+import { catalogueItems } from "./catalogue-files";
+
 const ROOT = join(import.meta.dir, "..");
 const ITEMS = join(ROOT, "docs/art/wave-2/items");
 const AVATARS = join(ROOT, "docs/art/avatars");
 const OUT = join(ROOT, "src/design/identity/playerCardArt.data.ts");
 
-type CatalogueRecord = { id: string; name: string; kind: string; html: string; animated: boolean };
-const catalogue = JSON.parse(readFileSync(join(ROOT, "docs/art/wave-2/catalogue.json"), "utf8")) as {
-  items: CatalogueRecord[];
-};
+type CatalogueRecord = { id: string; name: string; kind: string; html: string | null; animated: boolean };
+// Both catalogue files (wave 2's, then wave 4's: W4d's Season 1 frames), each item's html relative to its own file.
+// An item with no source yet (W4c's Championship frame, placeholder art until drawn) is left out: the card draws the
+// Plain frame for it.
+const catalogue = { items: catalogueItems<CatalogueRecord>(ROOT) };
 
 const PLAIN_BORDER = '<rect x="1.0" y="1.0" width="298" height="110" rx="10" fill="none" stroke="#2A3352" stroke-width="2"></rect>';
 
@@ -96,8 +99,8 @@ const animated: string[] = [];
 let css = "";
 
 for (const item of catalogue.items) {
-  if (!["card-art", "frame", "name-colour"].includes(item.kind)) continue;
-  const file = join("docs/art/wave-2", item.html);
+  if (!["card-art", "frame", "name-colour"].includes(item.kind) || !item.html) continue;
+  const file = join(item.dir, item.html);
   const html = readFileSync(join(ROOT, file), "utf8");
   if (!css) css = /<style>([\s\S]*?)<\/style>/.exec(html)![1]!;
   if (item.animated) animated.push(item.id);

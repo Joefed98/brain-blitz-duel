@@ -102,8 +102,10 @@ const click = async (el: HTMLElement | null) => act(async () => void el?.click()
 const settle = async (ms = 30) => act(async () => void (await new Promise((r) => setTimeout(r, ms))));
 
 /* ------------------------------------------------------------------ A1's stand-in */
-type Raw = { id: string; name: string; kind: string; rarity: string | null; source: string; pass_level: number | null; shop_price_coins: number | null; animated: boolean };
-const CATALOGUE = (JSON.parse(readFileSync("docs/art/wave-2/catalogue.json", "utf8")) as { items: Raw[] }).items;
+type Raw = { id: string; name: string; kind: string; rarity: string | null; source: string; pass_level: number | null; shop_price_coins: number | null; animated: boolean; html?: string | null };
+// Both catalogue files (wave 2's, then wave 4's: W4c's Championship frame and W4d's seven Season 1 frames).
+const { catalogueItems } = await import("./catalogue-files");
+const CATALOGUE = catalogueItems<Raw>();
 
 interface Fake {
   coins: number;
@@ -382,8 +384,22 @@ for (const [who, n, shows] of [
   const built = execFileSync("bun", ["scripts/player-card-art.ts", "--check"], { encoding: "utf8" });
   check(/up to date/.test(built), "the card art data is what scripts/player-card-art.ts builds from the item sources");
   const kinds = ["card-art", "frame", "name-colour"];
-  const items = CATALOGUE.filter((r) => kinds.includes(r.kind));
-  check(items.length === 52, `52 card arts, frames and name colours in the catalogue (${items.length})`);
+  const all = CATALOGUE.filter((r) => kinds.includes(r.kind));
+  // 52 → 59: follows the seven Season 1 frames and seven S1 titles (approved by Joe, 11 Nov 2026; wave 4 W4d).
+  // 59 → 60: W4c's Championship frame too, the count following both catalogue files (Joe's approval, 11 Nov 2026).
+  check(all.length === 60, `60 card arts, frames and name colours in the catalogue (${all.length})`);
+  // Every item with a source draws its own art; an item with none yet (W4c's Championship frame, placeholder art until
+  // drawn) draws the Plain frame's card, proved below.
+  const items = all.filter((r) => r.html);
+  const sourceless = all.filter((r) => !r.html);
+  check(sourceless.map((r) => r.id).join() === "frame.championship", `only the Championship frame has no source yet (${sourceless.map((r) => r.id).join() || "none"})`);
+  {
+    const { renderToStaticMarkup } = await import("react-dom/server");
+    const plain = (frame: string | null) =>
+      renderToStaticMarkup(React.createElement(PlayerCard, { look: { cardArt: null, frame, nameColour: null, avatar: { id: "apex", colour: 7, gem: null } }, name: "TheInventor", playerNumber: 42 }))
+        .replace(/data-frame="[^"]*"/g, "");
+    check(sourceless.every((r) => plain(r.id) === plain("frame.plain")), "an item with no source yet draws exactly the Plain frame's card");
+  }
   const missing = items.filter((r) => !(r.kind === "card-art" ? art.CARD_ARTS[r.id] : r.kind === "frame" ? art.FRAMES[r.id] : art.NAME_COLOURS[r.id]));
   check(missing.length === 0, `every catalogue item has its art (missing: ${missing.map((r) => r.id).join(", ") || "none"})`);
   const sample = /SkyRacer|Logician|Storm II|2,046|#0042/;
@@ -644,11 +660,42 @@ for (const [who, n, shows] of [
   const source = readFileSync("src/routes/profile.tsx", "utf8") + readFileSync("src/components/identity/ProfileCard.tsx", "utf8");
   // Changed with Joe's approval, 11 Nov 2026 (wave 2 C1a): "Mastery stars" taken out of this list (the section now exists; the check below proves it).
   // Joe's approval, 11 Nov 2026 (wave 3, W3c): "Puzzles and Arcade", "Strongest categories" and "matches" removed from
-  // this list (they come with rated play, from real data only, checked below).
+  // this list (they come with rated play, from real data only, checked below); "Trophy cabinet" and "Season peak" stay.
+  // Changed with Joe's approval, 11 Nov 2026 (wave 4 W4d): "Season peak" taken out of this list (the section now exists;
+  // the check below proves it shows only the server's real data).
   // Changed with Joe's approval, 11 Nov 2026 (wave 4 W4b): "Trophy cabinet" taken out of this list; the check below
   // proves Profile's cabinet shows only real trophies (the account's own, from the server) and nothing without one.
-  for (const word of ["Season peak"]) {
+  // With all five words now out of the list, the loop checks nothing on its own; each has its real-data check below.
+  for (const word of [] as string[]) {
     check(!source.includes(`>${word}<`) && !source.includes(`"${word}"`), `Profile draws no "${word}" section yet`);
+  }
+  // Changed with Joe's approval, 11 Nov 2026 (wave 4 W4d): the Season peak shows only the server's real data.
+  {
+    const seasonsApi = await import("../src/lib/seasons/seasonsApi");
+    const { SeasonSection } = await import("../src/components/seasons/SeasonSection");
+    const draw = async (answer: unknown, who: number | null) => {
+      seasonsApi.setSeasonsBackend({ mine: async () => answer as never, seen: async () => ({ ok: true }) });
+      await signIn(who);
+      const { root } = await mount(() => React.createElement(SeasonSection), "/profile");
+      await settle(60);
+      const text = document.body.textContent ?? "";
+      act(() => root.unmount());
+      return text;
+    };
+    const current = (peak: string | null) => ({
+      season: "s1", name: "Neon Circuit", test: false, mark: "S1", ratedMatches: 12, placementDone: peak !== null,
+      peak, peakLabel: peak ? "Storm II" : null,
+    });
+    check(
+      /<SeasonSection \/>/.test(source + readFileSync("src/routes/profile.tsx", "utf8")) &&
+        !(await draw({ account: true, current: null, history: [] }, 1)).includes("Season peak"),
+      "no Season peak without a season played (the server answers none)",
+    );
+    check(!(await draw({ account: true, current: current(null), history: [] }, 1)).includes("Season peak"), "no Season peak while no tier is held (placement)");
+    check(!(await draw({ account: false }, null)).includes("Season peak"), "no Season peak for a guest");
+    const shown = await draw({ account: true, current: current("storm"), history: [] }, 1);
+    check(shown.includes("Season peak") && shown.includes("Storm II") && shown.includes("Neon Circuit"), `the Season peak is the server's own peak and season (${shown.slice(0, 80)})`);
+    seasonsApi.setSeasonsBackend(null);
   }
   {
     const { TrophyCabinet } = await import("../src/components/tournaments/TournamentHub");

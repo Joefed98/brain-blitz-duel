@@ -105,6 +105,18 @@ export const ANALYTICS_EVENTS = [
   "pass_level_reached",
   "reward_claimed",
   "weekly_challenge_completed",
+  // Rated play (wave 3 W3a, docs/rated/README.md): recorded by the server only (src/lib/rated/ratings.server.ts).
+  // rated_match_finished carries props.format (bo3 / bo5 / bo7 / 4p / 8p), props.choice, props.result and
+  // props.opponent (live / recorded); placement_finished props.tier; tier_changed props.from and props.to.
+  "rated_match_finished",
+  "placement_finished",
+  "tier_changed",
+  // Seasons (wave 4, session W4d; docs/seasons/README.md): recorded by the database only, from Joe's season close
+  // (pass.close_season / pass.close_test_season) through economy.note_event, the same RPC and row shape as
+  // src/lib/data/events.server.ts. season_ended props.season and props.players_rewarded, season_reward_granted
+  // props.tier and props.season.
+  "season_ended",
+  "season_reward_granted",
   // Tournaments (wave 4, W4b; docs/tournaments/interface.md section 8): recorded by the server only
   // (src/lib/tournaments/tournaments.server.ts). tournament_entered props.kind and props.entry; tournament_finished
   // props.kind and props.place; prize_paid props.kind, props.place and props.coins.
@@ -125,12 +137,6 @@ export const ANALYTICS_EVENTS = [
   "match_found",
   "rematch_requested",
   "rematch_accepted",
-  // Rated play (wave 3 W3a, docs/rated/README.md): recorded by the server only (src/lib/rated/ratings.server.ts).
-  // rated_match_finished carries props.format (bo3 / bo5 / bo7 / 4p / 8p), props.choice, props.result and
-  // props.opponent (live / recorded); placement_finished props.tier; tier_changed props.from and props.to.
-  "rated_match_finished",
-  "placement_finished",
-  "tier_changed",
   // The rated match screens (wave 3, session W3c): recorded by the server only, through recordRatedEventFn
   // (src/lib/rated/ratedEvents.functions.ts), which accepts these five with fixed-word props and nothing else.
   "play_card_tapped",
