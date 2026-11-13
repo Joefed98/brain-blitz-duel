@@ -20,6 +20,7 @@
 import { recordEvents } from "@/lib/data/events.server";
 import type { Db } from "@/lib/data/db.server";
 import { noteChallengeDeal, payDueChallenges, readChallengeProgress, recordChallengeRun, type ChallengePaid } from "@/lib/data/practiceChallenges.server";
+import { isPlayable } from "@/lib/duel/catalogue";
 import { challengeById, challengesFor, evaluateChallenge, type ChallengeLevel, type GradedRun } from "@/lib/duel/practiceChallenges";
 
 /** A challenge a run completed, as the phone shows it (the moment and the list). */
@@ -128,7 +129,11 @@ export async function myChallengeProgress(client: Db, userId: string): Promise<C
     return [];
   }
   return data
-    .filter((row) => challengeById(row.challenge_id))
+    // A retired game's challenges are hidden (catalogue.ts isPlayable); their rows stay stored.
+    .filter((row) => {
+      const c = challengeById(row.challenge_id);
+      return c !== undefined && isPlayable(c.type);
+    })
     .map((row) => ({
       id: row.challenge_id,
       best: row.best,

@@ -93,14 +93,14 @@ interface AnswerRevealProps {
   onPlayAgain?: () => void;
   onBack?: () => void;
   /**
-   * The daily's and a challenge's locked solution (security fix H2, asyncRoom.ts `solutionLockText`): the puzzle is its
+   * The daily's and a challenge's locked solution (asyncRoom.ts `solutionLockText`): the puzzle is its
    * public half only, so the board and the answer line give way to this line until the room closes. The player's own
    * score, score line and breakdown show as always.
    */
   solutionLock?: string | null;
 }
 
-/** The locked solution's line in the board's place (H2). */
+/** The locked solution's line in the board's place (asyncRoom.ts SolutionLock). */
 function SolutionLocked({ text }: { text: string }) {
   return (
     <p data-reveal-solution-locked="" className="jz-panel flex items-center gap-2 px-4 py-5 text-sm text-muted-foreground">
@@ -520,9 +520,10 @@ export const FINISH_ONLY_TYPES: ReadonlySet<string> = new Set(["reaction", "stop
 
 /**
  * Engine games in puzzle categories (Speed, Number) that used the arcade reveal: they take the puzzle reveal (verdict,
- * score, their stored breakdown) from 3 Nov 2026. Display only.
+ * score, their stored breakdown) from 3 Nov 2026. Minefield joins them as a Logic game (13 Nov 2026, Joe's decision),
+ * every revision, its stored rounds included. Display only.
  */
-export const PUZZLE_REVEAL_ENGINE_TYPES: ReadonlySet<string> = new Set(["tendrop", "whack", "stroop", "clayshoot"]);
+export const PUZZLE_REVEAL_ENGINE_TYPES: ReadonlySet<string> = new Set(["tendrop", "whack", "stroop", "clayshoot", "minesweeper"]);
 
 /**
  * Puzzles whose own Reveal writes the stored score parts: none since 4 Nov 2026 (Blackout, Turntable and Colour Flood

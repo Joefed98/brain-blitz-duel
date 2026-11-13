@@ -390,7 +390,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
 export const tenDropPuzzle: PuzzleDefinition = {
   key: "tendrop",
   name: gameDisplayName("tendrop"),
-  category: "number",
+  category: "speed",
   arcadeRun: true,
   timeLimitMs: TENDROP_TIME_MS,
   revealMs: 6_000,

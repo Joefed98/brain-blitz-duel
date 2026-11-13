@@ -19,10 +19,10 @@ balance.lift,Counterweight,double-tap returns a weight to the tray [number.md],,
 numpyramid.place,Integer Pyramid,a block is placed in a cell (tap or drag) [number.md],,5–40 (per move),silent,,210,UI tap,numpyramid.place,
 equation.drop,Operator,an operator drops into a slot [number.md],,5–40 (per move),silent,,200,game event,equation.drop,
 equation.advance,Operator,the next stage slides in [number.md],,1–5,silent,,240,game event,equation.advance,
-tendrop.refused,Tenfall,a ÷ or − tile is refused [number.md],,5–40 (per move),silent,,300,fail sting,tendrop.refused,
 clayshoot.goldSparkle,Pull!,Pull!: 380 ms into the final burst: the fragments turn into gold sparkle across the sky [speed-attention.md],,0–1,silent,,700,success sting,clayshoot.goldSparkle,
 clayshoot.shatter,Pull!,Pull!: An orange clay is hit (new shard shatter) [speed-attention.md],,5–40 (per move),silent,,433,game event,clayshoot.shatter,
 clayshoot.goldShatter,Pull!,Pull!: A gold clay is hit (shatter with gold sparkle) [speed-attention.md],,5–40 (per move),silent,,433,game event,clayshoot.goldShatter,
+tendrop.refused,Tenfall,a ÷ or − tile is refused [number.md],,5–40 (per move),silent,,300,fail sting,tendrop.refused,
 bomb.press,Bomb Defusal,Button A or B is pressed [logic.md],,5–40 (per move),silent,,200,game event,bomb.press,
 spotdiff.found,Double Take,Double Take: A difference found (ring draws in) [speed-attention.md],,5–40 (per move),silent,,260,game event,spotdiff.found,
 spotdiff.miss,Double Take,Double Take: A wrong tap (the existing shake) [speed-attention.md],,5–40 (per move),silent,,250,fail sting,spotdiff.miss,
@@ -397,16 +397,10 @@ music.kakuro,Kakuro,Kakuro round bed: music_number_2 (number bed shared with oth
 equation.correct,Operator,a stage is held as correct (green glow) [number.md],,1–5,recorded sound,equation.correct,1000,game event,equation.correct,public/sounds/equation.correct.mp3 (from ui.counterLock.mp3)
 equation.solve,Operator,all four right: equations tick green in turn [number.md],,0–1,recorded sound,equation.solve,1200,success sting,equation.solve,public/sounds/equation.solve.mp3 (from done.glowSweep.mp3)
 music.equation,Operator,Operator round bed: music_number_1 (number bed shared with other games),,loop,recorded sound,music_number_1 (shared),60000,music,music_number_equation,
-tendrop.nextTarget,Tenfall,The next target starts [arcade-effects.md],The old lane's tiles fade out,5–8,recorded sound,tendrop.nextTarget,300,game event,tendrop.nextTarget,
-tendrop.apply,Tenfall,a tap applies a tile without hitting the target [number.md],,5–40 (per move),recorded sound,place (shared),200,game event,tendrop.apply,
-tendrop.clear,Tenfall,a target is cleared [number.md],,5–40 (per move),recorded sound,tendrop.clear,360,game event,tendrop.clear,public/sounds/tendrop.clear.mp3 (from tendrop.clear.mp3)
-tendrop.reset,Tenfall,the total overshoots and resets [number.md],,5–40 (per move),recorded sound,tendrop.reset,360,fail sting,tendrop.reset,public/sounds/tendrop.reset.mp3 (from tendrop.reset.mp3)
-tendrop.solve,Tenfall,"all ten targets cleared: last target bursts, remaining tiles shimmer [number.md]",,0–1,recorded sound,tendrop.solve,1200,success sting,tendrop.solve,public/sounds/tendrop.solve.mp3 (from done.goldPulse.mp3)
-music.tendrop,Tenfall,Tenfall round bed: music_number_3 (number bed shared with other games),,loop,recorded sound,music_number_3 (shared),60000,music,music_number_tendrop,
 numhunt.discsPop,Ascend,Ascend: Finish (last disc tapped): discs pop upwards in order [speed-attention.md],,0–1,recorded sound,numhunt.discsPop,1100,success sting,numhunt.discsPop,public/sounds/numhunt.discsPop.mp3 (from done.pops.mp3)
 music.numhunt,Ascend,Ascend round bed: music_speed_2 (speed bed shared with other games),,loop,recorded sound,music_speed_2 (shared),60000,music,music_speed_numhunt,
 stopwatch.goldFaces,Bang On,"Bang On: End of run (""All ten done""), local scoreStopWatch ≥ 120: the watch faces flash gold in turn [speed-attention.md]",,0–1,recorded sound,stopwatch.goldFaces,1100,success sting,stopwatch.goldFaces,public/sounds/stopwatch.goldFaces.mp3 (from done.goldPulse.mp3)
-music.stopwatch,Bang On,Bang On round bed: music_speed_1 (speed bed shared with other games),,loop,recorded sound,music_speed_1 (shared),60000,music,music_speed_stopwatch,
+music.stopwatch,Bang On,"Bang On round bed (retired, practice): music_speed_1 (speed bed shared with other games)",,loop,recorded sound,music_speed_1 (shared),60000,music,music_speed_stopwatch,
 whack.bonkStreak,Bonk,Every 10th bonk [arcade-effects.md],n BONKS banner,2–5,recorded sound,whack.bonkStreak,400,game event,whack.bonkStreak,
 whack.cleanTwenty,Bonk,Twenty bonks without a wrong tap [arcade-effects.md],20 CLEAN BONKS! banner,0–1,recorded sound,whack.cleanTwenty,600,game event,whack.cleanTwenty,
 whack.bomb,Bonk,A bomb is tapped [arcade-effects.md],The hole flashes red,0–3,recorded sound,arc_retro_explode (shared),260,game event,whack.bomb,
@@ -434,6 +428,12 @@ pz_clay_hit,Pull!,Pull!: A clay is hit [core.md],,10–25,recorded sound,pz_clay
 clayshoot.finalBurst,Pull!,"Pull!: End of run, local clay score ≥ 120: final burst of clay fragments [speed-attention.md]",,0–1,recorded sound,clayshoot.finalBurst,1100,success sting,clayshoot.finalBurst,public/sounds/clayshoot.finalBurst.mp3 (from done.clayBurst.mp3)
 clayshoot.birdStartle,Pull!,Pull!: A bird is shot (feathers drift) [speed-attention.md],,5–40 (per move),recorded sound,clayshoot.birdStartle,600,game event,clayshoot.birdStartle,public/sounds/clayshoot.birdStartle.mp3 (from clayshoot.birdStartle.mp3)
 music.clayshoot,Pull!,Pull! round bed: music_speed_3 (speed bed shared with other games),,loop,recorded sound,music_speed_3 (shared),60000,music,music_speed_clayshoot,
+tendrop.nextTarget,Tenfall,The next target starts [arcade-effects.md],The old lane's tiles fade out,5–8,recorded sound,tendrop.nextTarget,300,game event,tendrop.nextTarget,
+tendrop.apply,Tenfall,a tap applies a tile without hitting the target [number.md],,5–40 (per move),recorded sound,place (shared),200,game event,tendrop.apply,
+tendrop.clear,Tenfall,a target is cleared [number.md],,5–40 (per move),recorded sound,tendrop.clear,360,game event,tendrop.clear,public/sounds/tendrop.clear.mp3 (from tendrop.clear.mp3)
+tendrop.reset,Tenfall,the total overshoots and resets [number.md],,5–40 (per move),recorded sound,tendrop.reset,360,fail sting,tendrop.reset,public/sounds/tendrop.reset.mp3 (from tendrop.reset.mp3)
+tendrop.solve,Tenfall,"all ten targets cleared: last target bursts, remaining tiles shimmer [number.md]",,0–1,recorded sound,tendrop.solve,1200,success sting,tendrop.solve,public/sounds/tendrop.solve.mp3 (from done.goldPulse.mp3)
+music.tendrop,Tenfall,Tenfall round bed: music_number_3 (speed bed shared with other games),,loop,recorded sound,music_number_3 (shared),60000,music,music_speed_tendrop,
 pz_bomb_explode,Bomb Defusal,reveal (Bomb Defusal): The bomb explodes on a wrong answer [core.md],,0–1,recorded sound,pz_bomb_explode,1770,fail sting,pz_bomb_explode,
 bomb.cut,Bomb Defusal,A wire is cut [logic.md],,5–40 (per move),recorded sound,bomb.cut,220,game event,bomb.cut,public/sounds/bomb.cut.mp3 (from bomb.cut.mp3)
 bomb.defuse,Bomb Defusal,DEFUSE is tapped (the submission; not a verdict) [logic.md],,0–1,recorded sound,bomb.defuse,640,success sting,bomb.defuse,public/sounds/bomb.defuse.mp3 (from bomb.defuse.mp3)
@@ -458,7 +458,7 @@ stroop.lane,Mixed Signals,Mixed Signals: The word changes lane [arcade.md],,30�
 stroop.right,Mixed Signals,Mixed Signals: A word lands in the right gate [arcade.md],,15–40,recorded sound,pz_clash_right (shared),301,game event,stroop.right,
 stroop.wrong,Mixed Signals,Mixed Signals: A word lands in a wrong gate [arcade.md],,0–10,recorded sound,pz_clash_wrong (shared),250,fail sting,stroop.wrong,
 stroop.gatesFlash,Mixed Signals,Mixed Signals: Run finished (stage submit): every gate flashes in its own colour [speed-attention.md],,0–1,recorded sound,stroop.gatesFlash,1100,success sting,stroop.gatesFlash,public/sounds/stroop.gatesFlash.mp3 (from done.chimeSweep.mp3)
-music.stroop,Mixed Signals,Mixed Signals round bed: music_attention_3 (attention bed shared with other games),,loop,recorded sound,music_attention_3 (shared),60000,music,music_attention_stroop,
+music.stroop,Mixed Signals,"Mixed Signals round bed (retired, practice): music_attention_3 (attention bed shared with other games)",,loop,recorded sound,music_attention_3 (shared),60000,music,music_attention_stroop,
 countup.countersTick,Tally,Tally: Final answer submitted: tray counters start ticking up [speed-attention.md],,0–1,recorded sound,countup.countersTick,1100,success sting,countup.countersTick,public/sounds/countup.countersTick.mp3 (from done.counters.mp3)
 countup.countersLock,Tally,Tally: The last counter locks (about 790 ms into the effect) [speed-attention.md],,0–1,recorded sound,countup.countersLock,150,success sting,countup.countersLock,public/sounds/countup.countersLock.mp3 (from ui.counterLock.mp3)
 countup.trayIn,Tally,"Tally: Stage 2 or 3 tray slides in (2, 3 or 4 on countRev 2) [speed-attention.md]",,1–5,recorded sound,countup.trayIn,280,game event,countup.trayIn,public/sounds/countup.trayIn.mp3 (from countup.trayIn.mp3)
@@ -467,7 +467,7 @@ flow.connect,Chroma Lines,A pair is joined and a pulse runs along it (not on the
 flow.solve,Chroma Lines,"Each path pulses end to end in its colour, then the board glows [pattern.md (Chroma Lines (flow))]",,0–1,recorded sound,flow.solve,1150,success sting,flow.solve,public/sounds/flow.solve.mp3 (from done.glowSweep.mp3)
 music.flow,Chroma Lines,Chroma Lines round bed: music_logic_2 (pattern bed shared with other games),,loop,recorded sound,music_logic_2 (shared),60000,music,music_pattern_flow,
 tiles.solve,Gradient,"The colour ramp flows across the tiles from 1 to 8, then the gap glows [pattern.md (Gradient (tiles))]",,0–1,recorded sound,tiles.solve,980,success sting,tiles.solve,public/sounds/tiles.solve.mp3 (from done.glowSweep.mp3)
-music.tiles,Gradient,Gradient round bed: music_pattern_1 (pattern bed shared with other games),,loop,recorded sound,music_pattern_1 (shared),60000,music,music_pattern_tiles,
+music.tiles,Gradient,"Gradient round bed (retired, practice): music_pattern_1 (pattern bed shared with other games)",,loop,recorded sound,music_pattern_1 (shared),60000,music,music_pattern_tiles,
 pz_car_escape,Gridlock,Gridlock: The gold car drives out (solve) [core.md],,0–1,recorded sound,pz_car_escape,2470,game event,pz_car_escape,
 unblock.slide,Gridlock,"A car settles into a new bay (each kept move, each undo, a reset with moves to undo) [pattern.md (Gridlock (unblock))]",,5–40 (per move),recorded sound,unblock.slide,170,game event,unblock.slide,
 music.unblock,Gridlock,Gridlock round bed: music_pattern_2 (pattern bed shared with other games),,loop,recorded sound,music_pattern_2 (shared),60000,music,music_pattern_unblock,
@@ -497,9 +497,9 @@ gravity.lock,Topsy-Turvy,A ball locks onto its target (not on the solving tilt) 
 gravity.solve,Topsy-Turvy,The solving tilt: the four balls light up on their targets one after another [pattern.md (Topsy-Turvy (gravity))],,0–1,recorded sound,gravity.solve,1150,success sting,gravity.solve,public/sounds/gravity.solve.mp3 (from done.rising.mp3)
 music.gravity,Topsy-Turvy,Topsy-Turvy round bed: music_pattern_3 (pattern bed shared with other games),,loop,recorded sound,music_pattern_3 (shared),60000,music,music_pattern_gravity,
 rings.solve,Turntable,The record spins up through two turns with the spokes strobing [pattern.md (Turntable (rings))],,0–1,recorded sound,rings.solve,1100,success sting,rings.solve,public/sounds/rings.solve.mp3 (from done.spinUp.mp3)
-music.rings,Turntable,Turntable round bed: music_pattern_1 (pattern bed shared with other games),,loop,recorded sound,music_pattern_1 (shared),60000,music,music_pattern_rings,
+music.rings,Turntable,"Turntable round bed (retired, practice): music_pattern_1 (pattern bed shared with other games)",,loop,recorded sound,music_pattern_1 (shared),60000,music,music_pattern_rings,
 lightsout.solve,Blackout,Every light is off [logic.md],,0–1,recorded sound,lightsout.solve,1000,success sting,lightsout.solve,public/sounds/lightsout.solve.mp3 (from done.glowSweep.mp3)
-music.lightsout,Blackout,Blackout round bed: music_logic_2 (logic bed shared with other games),,loop,recorded sound,music_logic_2 (shared),60000,music,music_logic_lightsout,
+music.lightsout,Blackout,"Blackout round bed (retired, practice): music_logic_2 (logic bed shared with other games)",,loop,recorded sound,music_logic_2 (shared),60000,music,music_logic_lightsout,
 sudoku.solve,Box Six,The grid is complete and valid [logic.md],,0–1,recorded sound,sudoku.solve,1200,success sting,sudoku.solve,public/sounds/sudoku.solve.mp3 (from done.glowSweep.mp3)
 music.sudoku,Box Six,Box Six round bed: music_logic_1 (logic bed shared with other games),,loop,recorded sound,music_logic_1 (shared),60000,music,music_logic_sudoku,
 flood.solve,Colour Flood,The board is one colour [logic.md],,0–1,recorded sound,flood.solve,1150,success sting,flood.solve,public/sounds/flood.solve.mp3 (from done.glowSweep.mp3)
@@ -519,6 +519,13 @@ fences.draw,Loopline, [grid.md],,5–40 (per move),recorded sound,fences.draw,20
 fences.cross,Loopline, [grid.md],,5–40 (per move),recorded sound,fences.cross,200,game event,fences.cross,
 fences.solve,Loopline, [grid.md],,0–1,recorded sound,fences.solve,1000,success sting,fences.solve,
 music.fences,Loopline,Loopline round bed: music_logic_2 (logic bed shared with other games),,loop,recorded sound,music_logic_2 (shared),60000,music,music_logic_fences,
+minesweeper.reveal,Minefield,Minefield: A tap opens a square (or a few) [arcade.md],,20–80,recorded sound,minesweeper.reveal,80,game event,minesweeper.reveal,
+minesweeper.cascade,Minefield,Minefield: A tap opens six or more squares (an area opens) [arcade.md],,2–10,recorded sound,minesweeper.cascade,604,game event,minesweeper.cascade,
+minesweeper.flag,Minefield,Minefield: A flag is placed [arcade.md],,5–25,recorded sound,minesweeper.flag,300,game event,minesweeper.flag,
+minesweeper.hit,Minefield,"Minefield: A mine is hit (without its file: shared.celebrate.zap, as before) [batch6-sports-cards.md]",,0–5,recorded sound,minesweeper.hit,474,game event,minesweeper.hit,
+minesweeper.clear,Minefield,"Minefield: Every safe square open (without its file: shared.celebrate.chime, as before) [batch6-sports-cards.md]",,0–1,recorded sound,minesweeper.clear,998,game event,minesweeper.clear,
+minesweeper.unflag,Minefield,Minefield: A flag is lifted [batch6-sports-cards.md],,0–10,recorded sound,minesweeper.unflag,350,game event,minesweeper.unflag,
+music.minesweeper,Minefield,Minefield round bed: music_minesweeper (logic bed shared with other games),,loop,recorded sound,music_minesweeper (shared),60000,music,music_logic_minesweeper,
 nonogram.clear,Mosaic,A cell is cleared [logic.md],,5–40 (per move),recorded sound,nonogram.clear,200,game event,nonogram.clear,
 nonogram.solve,Mosaic,Every line matches its clues [logic.md],,0–1,recorded sound,nonogram.solve,1160,success sting,nonogram.solve,public/sounds/nonogram.solve.mp3 (from done.tileFlip.mp3)
 music.nonogram,Mosaic,Mosaic round bed: music_logic_1 (logic bed shared with other games),,loop,recorded sound,music_logic_1 (shared),60000,music,music_logic_nonogram,
@@ -816,13 +823,6 @@ snake.rockLand,Meteor,Meteor: A rock lands clear of the head (snakeRev 2+) [arca
 snake.rockWarn,Meteor,Meteor: A rock's shadow appears [arcade.md],,5–20,recorded sound,arc_retro_note (shared),90,game event,snake.rockWarn,
 snake.showerAlarm,Meteor,Meteor: A meteor shower's three shadows appear (snakeRev 3+) [arcade.md],,1–3,recorded sound,arc_retro_note (shared),180,game event,snake.showerAlarm,
 music.snake,Meteor,Meteor: music_eatgrow,,loop,recorded sound,music_eatgrow,loop,music,music_eatgrow,
-minesweeper.reveal,Minefield,Minefield: A tap opens a square (or a few) [arcade.md],,20–80,recorded sound,minesweeper.reveal,80,game event,minesweeper.reveal,
-minesweeper.cascade,Minefield,Minefield: A tap opens six or more squares (an area opens) [arcade.md],,2–10,recorded sound,minesweeper.cascade,604,game event,minesweeper.cascade,
-minesweeper.flag,Minefield,Minefield: A flag is placed [arcade.md],,5–25,recorded sound,minesweeper.flag,300,game event,minesweeper.flag,
-minesweeper.hit,Minefield,"Minefield: A mine is hit (without its file: shared.celebrate.zap, as before) [batch6-sports-cards.md]",,0–5,recorded sound,minesweeper.hit,474,game event,minesweeper.hit,
-minesweeper.clear,Minefield,"Minefield: Every safe square open (without its file: shared.celebrate.chime, as before) [batch6-sports-cards.md]",,0–1,recorded sound,minesweeper.clear,998,game event,minesweeper.clear,
-minesweeper.unflag,Minefield,Minefield: A flag is lifted [batch6-sports-cards.md],,0–10,recorded sound,minesweeper.unflag,350,game event,minesweeper.unflag,
-music.minesweeper,Minefield,Minefield: music_minesweeper,,loop,recorded sound,music_minesweeper,55900,music,music_minesweeper,
 ricochet.heightStreak,Moon Climb,Every 50 m climbed (ricoRev 2) [arcade-effects.md],"""50 m"" streak banner",1–7,recorded sound,ricochet.heightStreak,480,game event,ricochet.heightStreak,
 ricochet.fullHeight,Moon Climb,"The core's full height reached (241 m on ricoRev 2, 245 m on Moon Climb's ricoRev 3) [arcade-effects.md]",FULL HEIGHT! banner,0–1,recorded sound,ricochet.fullHeight,840,game event,ricochet.fullHeight,
 ricochet.leap,Moon Climb,"Moon Climb: The ninja leaps off a wall, a ledge or a sky lantern (ricoRev 2–3) [arcade.md]",,80–140,recorded sound,ricochet.leap,330,game event,ricochet.leap,

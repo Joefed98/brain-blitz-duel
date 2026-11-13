@@ -31,6 +31,7 @@ import { PUZZLE_INSTRUCTIONS } from "../src/lib/duel/instructions";
 import { generatePuzzle } from "../src/lib/duel/generate.server";
 import { roundMaxFor } from "../src/lib/duel/roundMax";
 import type { PuzzleType } from "../src/lib/duel/types";
+const RETIRED_13_NOV: readonly string[] = ["stroop", "tiles", "rings", "lightsout", "stopwatch", "slice", "alleyroll", "bintoss", "bullseye"];
 
 const SIM_MODULES: Record<LiveBandGame, string[]> = {
   balltrack: ["ballTrack"],
@@ -123,7 +124,9 @@ for (const [type, live] of Object.entries(LIVE_BANDS) as [
   }
   // Text pass (4 Nov 2026): an active band game's help is a plain list ending with its total (no "More …, higher
   // score" or "A good run (100 points)" lines, which were internal wording); retired games keep the band wording.
-  if ((ACTIVE_PUZZLE_TYPES as readonly string[]).includes(type)) {
+  // Changed with Joe's approval, 13 Nov 2026: the nine games retired that day keep their list-worded help (only the
+  // games retired before keep the band wording).
+  if ((ACTIVE_PUZZLE_TYPES as readonly string[]).includes(type) || RETIRED_13_NOV.includes(type)) {
     ok(score.endsWith(`Total ${roundMaxFor(type)}.`), `${type}: the help is a list ending "Total ${roundMaxFor(type)}.": ${score}`);
     ok(!/higher score|A good run \(/.test(score), `${type}: no band wording in the help: ${score}`);
     ok(new RegExp(`up to ${live.curve.points[live.curve.points.length - 1]!}\\.`).test(score), `${type}: the help states the main part's top (${live.curve.points[live.curve.points.length - 1]})`);

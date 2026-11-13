@@ -526,7 +526,8 @@ for (const [who, n, shows] of [
   // Changed with Joe's approval, 11 Nov 2026 (wave 2 C1a): was $$("[data-gems-locked] [data-gem]").length === 10 && !(…textContent…).match(/\d/),
   // "the 10 gems show locked, with no star counts".
   {
-    const NEEDS: Record<string, number> = { amber: 10, "rose-quartz": 20, ruby: 30, jade: 50, amethyst: 75, aquamarine: 100, sapphire: 125, pearl: 150, obsidian: 200, diamond: 250 };
+    // Changed with Joe's approval, 13 Nov 2026: Diamond is every live star (249 with 83 live games).
+    const NEEDS: Record<string, number> = { amber: 10, "rose-quartz": 20, ruby: 30, jade: 50, amethyst: 75, aquamarine: 100, sapphire: 125, pearl: 150, obsidian: 200, diamond: 249 };
     const gems = $$("[data-gems-locked] [data-gem]");
     check(
       gems.length === 10 &&
@@ -720,8 +721,9 @@ for (const [who, n, shows] of [
     check(
       /\{progress \? \(\s*<section aria-label="Mastery stars"/.test(source) &&
         /\{starTotalLine\(progress\)\}/.test(source) && /const progress = usePracticeProgress\(\);/.test(source) &&
-        starTotalLine(view) === "21 / 276 stars",
-      "Profile's Mastery stars section shows the server's star total out of 276",
+        // Changed with Joe's approval, 13 Nov 2026: the total is every live game's three stars (83 × 3 = 249).
+        starTotalLine(view) === "21 / 249 stars",
+      "Profile's Mastery stars section shows the server's star total out of 249",
     );
   }
   await signIn(1);

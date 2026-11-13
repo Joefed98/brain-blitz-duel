@@ -55,7 +55,7 @@ import { hoverFeatureBonus, hoverStandardParts } from "@/lib/arcade/hover";
 import { decodePinballRun, replayPinballRun } from "./pinball";
 import { decodeMinesweeperRun, replayMinesweeperRun } from "./minesweeper";
 import { decodeMahjongRun, replayMahjongRun } from "./mahjong";
-import { MINES_SAFE } from "@/lib/arcade/minesweeper";
+import { minesSafeFor } from "@/lib/arcade/minesweeper";
 import { decodeHomerunRun, replayHomerunRun } from "./homerun";
 import { decodeFreekickRun, replayFreekickRun } from "./freekick";
 import { decodeRacingRun, replayRacingRun } from "./racing";
@@ -357,8 +357,8 @@ export function gradeRemoved(rawAnswer: string): Graded {
 
 /**
  * The longest answer a puzzle's grade reads (arcade and engine run logs 400,000, tap logs and action logs their own
- * caps, everything else 4,000). Security fix L13 (Nov 2026 audit): gradeAnswer cuts a standard puzzle's answer body
- * here before the standard grader sees it, as this file's own path always has.
+ * caps, everything else 4,000). gradeAnswer cuts a standard puzzle's answer body here before the standard grader
+ * sees it, as this file's own path always has.
  */
 export function answerCapFor(puzzle: PuzzleData): number {
   return ARCADE_DIAG_KEYS.has(puzzle.type) || puzzle.type === "stroop" ? 400_000 : usesTapLog(puzzle) ? TAP_LOG_ANSWER_CAP : usesActionLog(puzzle) ? ACTION_LOG_ANSWER_CAP : 4_000;
@@ -1909,7 +1909,7 @@ function gradeUnderRev(
         minesRev: puzzle.minesRev ?? 1,
         revealed: run.revealed,
         opening: run.opening,
-        safe: MINES_SAFE,
+        safe: minesSafeFor(puzzle.minesRev),
         hits: run.hits,
         flags: run.flags,
         chords: run.chords,

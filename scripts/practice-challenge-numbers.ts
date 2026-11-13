@@ -263,7 +263,8 @@ function expectations(): Record<string, Expect> {
     "freecell.all-home": { say: [[40, Number(/all (\d+) home/.exec(specPart("freecell", "Cards")?.how ?? "")?.[1])]] },
     "freecell.card-sharp": { say: [[32, withinS("freecell", "Speed")]] },
     "mahjong.tile-rush": { say: [[65, withinS("mahjong", "Speed")]] },
-    "minesweeper.sweep": { say: [[50, withinS("minesweeper", "Speed")]] },
+    // Changed with Joe's approval, 13 Nov 2026: Minefield's minesRev 2 is full by 37 s (the near-perfect median clear on 20 mines).
+    "minesweeper.sweep": { say: [[37, withinS("minesweeper", "Speed")]] },
     "pyramid.paired-up": { say: [[10, of("pyramid", "Pyramid pairs")], [2, 2]] },
     "pyramid.unlucky-for-some": { say: [[20, withinS("pyramid", "Speed")]] },
     "tripeaks.peak-bagger": { say: [[3, of("tripeaks", "Peak tops")]] },

@@ -243,7 +243,9 @@ async function pureChecks(): Promise<void> {
     const { ANALYTICS_EVENTS, CLIENT_EVENTS } = await import("../src/lib/analytics/events");
     const three = ["save_progress_shown", "save_progress_tapped", "save_progress_dismissed"];
     check(three.every((e) => (ANALYTICS_EVENTS as readonly string[]).includes(e)), "ANALYTICS_EVENTS lists the three");
-    check(three.every((e) => !(CLIENT_EVENTS as readonly string[]).includes(e)) && CLIENT_EVENTS.length === 5, "CLIENT_EVENTS unchanged (the phone can't send them through the analytics queue)");
+    // Changed with Joe's approval, 13 Nov 2026: 5 → 6, because Security B adds arcade_run_timed, the arcade stage's own
+    // per-run timing, as the sixth phone-side event; the three save-progress events must still not be phone events.
+    check(three.every((e) => !(CLIENT_EVENTS as readonly string[]).includes(e)) && CLIENT_EVENTS.length === 6, "CLIENT_EVENTS unchanged (the phone can't send them through the analytics queue)");
     const sql = readFileSync("supabase/migrations/20261110130000_analytics_save_progress_events.sql", "utf8");
     check(three.every((e) => sql.includes(`'${e}'`)) && /DROP CONSTRAINT IF EXISTS events_event_check/.test(sql), "the migration widens events_event_check, idempotent");
     check(!/\b(DROP TABLE|DROP COLUMN|TRUNCATE|DELETE FROM|UPDATE\s)/i.test(sql), "the migration is non-destructive");

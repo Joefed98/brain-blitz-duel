@@ -563,8 +563,8 @@ function ringsProgress(segments: number[][], pattern: number, taps: number[], mi
 /** Fewest turns for every displacement of the five rings under a link pattern (cached per pattern). */
 const RING_TABLES = new Map<number, Int16Array>();
 function ringsWordLengths(rawPattern: number): Int16Array {
-  // Security fix H1 (Nov 2026 audit): keyed by the pattern ringsApply really plays (ringPattern folds any number onto
-  // RING_PATTERNS), so the cache holds at most one table a pattern whatever number a request carries. Same table.
+  // Keyed by the pattern ringsApply really plays (ringPattern folds any number onto RING_PATTERNS), so the cache holds
+  // at most one table a pattern whatever number a request carries. Same table.
   const pattern = ringPatternIndex(rawPattern);
   const found = RING_TABLES.get(pattern);
   if (found) return found;
@@ -890,7 +890,7 @@ export function clearProgressCaches(): void {
 /** Hanoi: every spread's fewest moves to the target peg, by one backward search per peg count and target (cached). */
 const TOWER_TABLES = new Map<string, Uint8Array>();
 /**
- * Security fix H1 (Nov 2026 audit): the table is pegs^discs bytes, so it is built only for a legal Hanoi board (three
+ * The table is pegs^discs bytes, so it is built only for a legal Hanoi board (three
  * or four pegs, a target among them, at most TOWER_PROGRESS_MAX_DISCS discs; every board ever dealt has 9), and the
  * cache keeps at most TOWER_TABLE_CAP tables (the legal boards need 7: 3 + 4 targets at 9 discs).
  */

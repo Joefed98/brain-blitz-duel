@@ -17,7 +17,7 @@ import { INK_REV_BIG, INK_REV_STRICT, INK_V13_BAND_CURVE } from "./inkBridge";
 import { MATCHUP_REV_SIX, MATCHUP_REV_STRICT, MATCHUP_V12_BAND_CURVE } from "./matchup";
 import { BUB_REV_STD, BUB_REV_STRICT, BUB_V11_BAND_CURVE, BUB_V11_STD_SPEC } from "./bubble";
 import { CROSS_REV_KEEP, CROSS_REV_STRICT, CROSS_V11_BAND_CURVE } from "./cross";
-import { MINES_REV_STD, MINES_STD_SPEC, MINES_V1_BAND_CURVE } from "./minesweeper";
+import { MINES_REV_LOGIC, MINES_STD_SPEC_V2, MINES_V1_BAND_CURVE } from "./minesweeper";
 import { MAHJONG_REV_DEALT, MAHJONG_STD_SPEC, MAHJONG_V1_BAND_CURVE } from "./mahjong";
 import { RALLY_REV_STD, RALLY_REV_STRICT, RALLY_STD_SPEC, RALLY_V12_BAND_CURVE } from "./rally";
 import { SNAKE_REV_12, SNAKE_REV_STRICT, SNAKE_V12_BAND_CURVE } from "./snake";
@@ -143,7 +143,8 @@ export const LIVE_BANDS = {
   pinball: { field: "pinRev", rev: PIN_REV_STD, curve: PIN_V6_BAND_CURVE, strictRev: PIN_REV_STRICT, std: PIN_STD_SPEC },
   // Cards & Board (30 Oct 2026), on the arcade scoring standard from their first revision: the core's straight line
   // (Minesweeper in per mille of the safe squares beyond the opening, Mahjong in pairs) and fixed features to 200.
-  minesweeper: { field: "minesRev", rev: MINES_REV_STD, curve: MINES_V1_BAND_CURVE, std: MINES_STD_SPEC, born: true },
+  // minesRev 2 (13 Nov 2026): 20 mines, the same straight core line.
+  minesweeper: { field: "minesRev", rev: MINES_REV_LOGIC, curve: MINES_V1_BAND_CURVE, std: MINES_STD_SPEC_V2, born: true },
   mahjong: { field: "mahjongRev", rev: MAHJONG_REV_DEALT, curve: MAHJONG_V1_BAND_CURVE, std: MAHJONG_STD_SPEC, born: true },
   // The Sports group (30 Oct 2026), born on the arcade scoring standard (rev 1; no earlier band revision).
   // Home Run deals homerunRev 3 since 1 Nov 2026 (the swing choice and the pitcher's tell; core full at 460 ft a pitch).

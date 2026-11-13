@@ -14,6 +14,7 @@ import { readAsyncPrivate } from "@/lib/data/async.server";
 import { recordEvents } from "@/lib/data/events.server";
 import { DAILY_ARCHIVE_KIND } from "@/lib/duel/asyncRoom";
 import { attemptFor, createAsyncRoom, roomByKey, startAttempt } from "@/lib/duel/asyncRoom.server";
+import { isPlayable } from "@/lib/duel/catalogue";
 import { DAILY_KINDS, DAILY_ROOM_KIND, dailyRoomKey, isDailyKind, shiftDayKey, ukDayKey, type DailyKind } from "@/lib/duel/daily";
 import { mergePuzzle } from "@/lib/duel/secrets";
 import type { PuzzleData } from "@/lib/duel/types";
@@ -34,6 +35,14 @@ export function isArchiveDay(day: string, nowMs: number): boolean {
   return day < today && day >= shiftDayKey(today, -DAILY_ARCHIVE_DAYS);
 }
 
+/**
+ * True when a stored Daily holds a retired game (catalogue.ts RETIRED_TYPES): the archive hides that day, which returns
+ * the moment the game does (13 Nov 2026, Joe's rule). The stored day is never changed.
+ */
+export function holdsRetiredGame(puzzles: readonly { type: string }[] | null | undefined): boolean {
+  return (puzzles ?? []).some((p) => !isPlayable(p?.type));
+}
+
 export interface ArchiveDay {
   day: string;
   kind: DailyKind;
@@ -52,6 +61,8 @@ export async function archiveDays(client: Db, userId: string, nowMs: number): Pr
     const day = shiftDayKey(today, -back);
     for (const kind of DAILY_KINDS) {
       const source = await roomByKey(client, dailyRoomKey(kind, day));
+      // A day that included a retired game is hidden (it returns with the game).
+      if (source && holdsRetiredGame(source.puzzles_public)) continue;
       let replay: ArchiveDay["replay"] = null;
       if (source) {
         const room = await roomByKey(client, archiveRoomKey(userId, kind, day));
@@ -80,9 +91,12 @@ export async function startArchive(
   const day = input.day;
   const key = archiveRoomKey(input.userId, kind, day);
   let room = await roomByKey(client, key);
+  // A day holding a retired game is out of the archive, a replay already started included.
+  if (room && holdsRetiredGame(room.puzzles_public)) return { ok: false, message: "That day isn’t in the archive." };
   if (!room) {
     const source = await roomByKey(client, dailyRoomKey(kind, day));
     if (!source) return { ok: false, message: "Nobody played that Daily." };
+    if (holdsRetiredGame(source.puzzles_public)) return { ok: false, message: "That day isn’t in the archive." };
     const { data: privates, error } = await readAsyncPrivate(client, source.id);
     if (error || !privates) return { ok: false, message: "Couldn’t load that Daily. Try again." };
     // The day's own rounds, exactly as stored (rule 5: dealt once, never per device).

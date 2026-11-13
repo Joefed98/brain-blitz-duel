@@ -20,6 +20,7 @@
 import {
   asRoundResult,
   attemptFor,
+  retiredClosed,
   attemptsIn,
   attemptView,
   createAsyncRoom,
@@ -59,7 +60,7 @@ import {
 } from "./challenge";
 import { dealRounds } from "./generate.server";
 import { randomBelow } from "./random";
-import { isLiveType, puzzleDef, puzzlePrepMs, puzzleTimeLimitMs } from "./registry";
+import { isPlayable, puzzleDef, puzzlePrepMs, puzzleTimeLimitMs } from "./registry";
 import { mergePuzzle } from "./secrets";
 import { newRoomSeed, pickRoundOrder } from "./selection";
 import { isSettingsRoom, readRoomSettings } from "./roomSettings";
@@ -310,7 +311,8 @@ export async function createChallengeFromRoom(
   if (
     !pub.length ||
     pub.length !== (room.round_count || order.length) ||
-    !pub.every((p) => isLiveType(p.type))
+    // No challenge from a room that included a retired game (catalogue.ts isPlayable, 13 Nov 2026).
+    !pub.every((p) => isPlayable(p.type))
   )
     return { ok: false, message: "This game can’t be turned into a challenge." };
   if ((await challengesMadeLastHour(client, userId, nowMs)) >= CHALLENGE_CREATE_PER_HOUR)
@@ -371,7 +373,7 @@ export async function createChallengeFromRoom(
       stored,
       {
         userId: player.user_id,
-        // M2: a room's name copied onto a board strangers see is cleaned and filtered first.
+        // A room's name copied onto a board strangers see is cleaned and filtered first.
         name: copiedDisplayName(player.display_name),
         colour: typeof player.colour === "number" ? player.colour : null,
         icon: player.icon ?? null,
@@ -452,7 +454,8 @@ export async function challengeInfo(
   const attempts = await attemptsIn(client, room.id);
   let mine = userId ? (attempts.find((a) => a.user_id === userId) ?? null) : null;
   if (mine) mine = (await attemptView(client, room, mine, nowMs)).attempt;
-  const closed = nowMs >= msOf(room.closes_at);
+  // A challenge holding a retired game reads as closed (asyncRoom.server.ts retiredClosed); nothing stored changes.
+  const closed = nowMs >= msOf(room.closes_at) || retiredClosed(room);
   const state = mine
     ? mine.finished_at || closed
       ? "done"
@@ -489,6 +492,7 @@ export async function startChallenge(
   const found = await challengeByCode(client, code);
   if (!found) return { ok: false, message: "That challenge doesn’t exist." };
   const { room } = found;
+  if (retiredClosed(room)) return { ok: false, message: "This challenge has ended.", closed: true };
   const existing = await attemptFor(client, room.id, userId);
   if (existing) return { ok: true, roomId: room.id, created: false };
   if (nowMs >= msOf(room.closes_at))
@@ -600,7 +604,7 @@ async function privateHalves(client: Db, roomId: string): Promise<Record<string,
   return secret ?? [];
 }
 
-/** H2: a board row with its `extra` cut back (lockedExtra) while its round's solution is locked. */
+/** A board row with its `extra` cut back (lockedExtra) while its round's solution is locked (SolutionLock). */
 function lockRow<T extends { round_number: number; extra: Record<string, unknown> | null }>(
   row: T,
   room: AsyncRoomRow,
@@ -635,11 +639,11 @@ export async function challengeRoundBoard(
   const { data } = await readAsyncRoomResults(client, room.id);
   const privs = await privateHalves(client, room.id);
   const board = boardRows(room, data ?? [], people, attempt, round);
-  // H2: no row carries a field the lock withholds (some extras keep the minimum or the par).
+  // No row carries a field the lock withholds (some extras keep the minimum or the par).
   const rows = board.rows.map((row) => lockRow(row, room, privs, nowMs));
   const full = new Map([...board.full].map(([key, row]) => [key, lockRow(row, room, privs, nowMs)]));
   const priv = privs[round - 1];
-  // H2: while the challenge is open, every summary and the answer line see the public half only.
+  // While the challenge is open, every summary and the answer line see the public half only.
   const solutionLock = solutionLockFor(room, priv, nowMs);
   const puzzle = solutionLock ? pub : mergePuzzle(pub, priv);
   const definition = puzzleDef(puzzle.type);

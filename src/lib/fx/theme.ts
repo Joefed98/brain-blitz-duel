@@ -41,6 +41,8 @@ const CATEGORY_MUSIC: Partial<Record<PuzzleCategory, SoundId>> = {
 };
 /** Per-game puzzle round music (includes arcade-engine puzzle games such as Ten Drop). */
 const PUZZLE_MUSIC: Partial<Record<PuzzleType, SoundId>> = {
+  // Minefield keeps its arcade bed as a Logic game (13 Nov 2026).
+  minesweeper: "music_minesweeper",
   wordsmith: "music_word_1",
   letterwheel: "music_word_1",
   strikeout: "music_word_1",
@@ -106,7 +108,7 @@ const WORLD_MUSIC: Partial<Record<PuzzleType, SoundId>> = {
   // Pinball has no track of its own yet: it borrows Rally's Retro track.
   pinball: "music_rally",
   // Cards & Board (30 Oct 2026): no tracks of their own yet; all five borrow Gemstone's calm bed.
-  minesweeper: "music_matchup",
+  minesweeper: "music_minesweeper",
   mahjong: "music_matchup",
   freecell: "music_matchup",
   tripeaks: "music_matchup",

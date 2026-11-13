@@ -199,7 +199,8 @@ const localStorage = {
   check(/function RowBest[\s\S]*?bestOf\(useContext\(ProgressOnList\), type\)/.test(practice), "the list's rows read the account's bests");
   // Category lists (tab pages refresh, 26 Oct 2026): every list draws one row (row(key…)), which carries the best in
   // the BEST column and its description.
-  check((practice.match(/<RowBest type=\{key\} \/>/g) ?? []).length === 1 && /rows\.map\(\(key\) => row\(key\)\)/.test(practice) && /previewRows\.map\(\(key\) => row\(key\)\)/.test(practice) && /retiredRows\.map\(\(key\) => row\(key, true\)\)/.test(practice), "every practice row shows its best (category lists, preview, retired)");
+  // Changed with Joe's approval, 13 Nov 2026: the Practice list has no Retired section any more (retired games are out of the app).
+  check((practice.match(/<RowBest type=\{key\} \/>/g) ?? []).length === 1 && /rows\.map\(\(key\) => row\(key\)\)/.test(practice) && /previewRows\.map\(\(key\) => row\(key\)\)/.test(practice), "every practice row shows its best (category lists, preview)");
   check(/\{best \?\? "–"\}/.test(practice) && /data-none=\{best === null \|\| undefined\}/.test(practice), 'a row with no best shows a quiet "–"');
   check(/className="ap-best"/.test(practice) && /\.ap-best \{[^}]*width: 56px;[^}]*text-align: right;/.test(readFileSync("src/polish-layout/app-pages.css", "utf8")), "the best sits in one fixed-width right-aligned BEST column");
   // 17 Oct 2026 (CI on #108): the best inside the button changed its accessible name ("Grappler Best 45"), so

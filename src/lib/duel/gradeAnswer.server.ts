@@ -32,7 +32,7 @@ export function gradeAnswer(
 ): Graded {
   // On a standard stamp the phone appends a draft timeline (standard/timeline.ts): graded and stored without it.
   const std = usesStandard(puzzle);
-  // L13: on a standard stamp the body is cut to the game's answer cap before any grader reads it (and the whole text
+  // On a standard stamp the body is cut to the game's answer cap before any grader reads it (and the whole text
   // to the cap plus the longest timeline decodeTimeline reads), so the standard grader never sees more than the older
   // path does. Every other puzzle reads `sent` exactly as before.
   const { body: answer, timeline } = std ? standardParts(puzzle, sent) : { body: sent, timeline: null };

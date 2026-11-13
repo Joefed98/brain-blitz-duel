@@ -6,6 +6,7 @@
  */
 import { RATED_CHOICES_ON, RATED_FORMATS_ON } from "@/config/matchmakingConfig";
 import { RATED_PLAY_FOR_EVERYONE } from "@/config/ratedConfig";
+import { isPlayable, puzzleInfo } from "@/lib/duel/catalogue";
 import { stampSignature, dealtSignature } from "@/lib/duel/dealSignature";
 import {
   ARCADE_PICKS,
@@ -99,12 +100,24 @@ export function choicePicks(choice: RatedChoice): RoomPick[] {
 
 /** The room settings a match deals with (roomDeal.ts `dealRoomRounds`, the room seed). */
 export function matchSettings(format: RatedFormat, choice: RatedChoice): RoomSettings {
-  return { picks: choicePicks(choice), rounds: FORMAT_GAMES[format] };
+  const pool = choicePool(choice);
+  return { picks: choicePicks(choice), rounds: FORMAT_GAMES[format], ...(pool ? { pool } : {}) };
+}
+
+/**
+ * The rated pool a choice keeps to: All puzzles only puzzles, All arcade only arcade games (a game listed also in a
+ * pick of the other pool, Pull! in Sports, would make the match's pools disagree and leave it unrated). Mixed and a
+ * single pick deal every game their picks hold.
+ */
+export function choicePool(choice: RatedChoice): "puzzles" | "arcade" | null {
+  return choice === "puzzles" ? "puzzles" : choice === "arcade" ? "arcade" : null;
 }
 
 /** Whether a game belongs to a choice (a recorded run's games must). */
 export function typeFitsChoice(type: string, choice: RatedChoice): boolean {
   const picks = choicePicks(choice);
+  const pool = choicePool(choice);
+  if (pool && isPlayable(type) && (puzzleInfo(type).category === "arcade") !== (pool === "arcade")) return false;
   return picks.some((pick) => (pickTypes(pick, picks) as string[]).includes(type));
 }
 
@@ -256,6 +269,8 @@ export function recordedRefusal(c: RecordedCandidate, ctx: RecordedContext): str
   if (c.usesToday >= RECORDED_DAILY_USES) return "used_up";
   if (c.games.some((g) => g.flagged === true)) return "flagged";
   if (c.games.length !== games) return "wrong_length";
+  // A run holding a retired game is never played against (catalogue.ts isPlayable, 13 Nov 2026).
+  if (!c.games.every((g) => isPlayable(g.type))) return "retired";
   if (c.source === "rated" && (c.format !== ctx.format || c.choice !== ctx.choice)) return "other_format";
   if (!c.games.every((g) => typeFitsChoice(g.type, ctx.choice))) return "other_choice";
   if (!c.games.every((g) => g.signature === live(g.type))) return "old_version";

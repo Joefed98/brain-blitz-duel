@@ -53,8 +53,8 @@ export const ARCADE_GROUPS: readonly ArcadeGroupInfo[] = [
     label: "Cards & Board",
     colour: "#FF5C93",
     glow: false,
-    // All new (not registered yet).
-    games: ["minesweeper", "freecell", "mahjong", "tripeaks", "pokersquares", "fivehands", "pyramid", "golfsol", "muggins"],
+    // Minefield moved to Logic on 13 Nov 2026 (Joe's decision).
+    games: ["freecell", "mahjong", "tripeaks", "pokersquares", "fivehands", "pyramid", "golfsol", "muggins"],
   },
   {
     id: "action",

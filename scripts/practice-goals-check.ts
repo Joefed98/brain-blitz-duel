@@ -66,7 +66,7 @@ import {
   resetGoalsMemoryForChecks,
 } from "../src/lib/duel/practiceGoals";
 import { PRACTICE_BEST_PREFIX } from "../src/lib/duel/practiceBest";
-import { ACTIVE_PUZZLE_TYPES } from "../src/lib/duel/registry";
+import { ACTIVE_PUZZLE_TYPES, PUZZLE_TYPES } from "../src/lib/duel/registry";
 // Changed with Joe's approval, 13 Nov 2026: ROUND_MAX no longer imported (only the removed gold-star reach line read it).
 import { standardFinish, standardUnfinished } from "../src/lib/duel/standard/shape";
 import { PATTERN_STD } from "../src/lib/duel/standard/patternRules";
@@ -116,16 +116,21 @@ check(!/STAR_THRESHOLDS|function starsFor|function starsOf|function starTotal|fu
 // active games with 2 to 4 each.
 check(PRACTICE_CHALLENGES.length === 261, `261 challenges (got ${PRACTICE_CHALLENGES.length})`);
 check(PRACTICE_CHALLENGES.filter((c) => c.level === "classic").length === 217, "217 Classic challenges");
-check(PRACTICE_CHALLENGES.filter(challengeLive).length === 217 && PRACTICE_CHALLENGES.filter(challengeLive).every((c) => c.level === "classic"), "the 217 Classic ones are live; Hard and Expert wait");
+// Changed with Joe's approval, 13 Nov 2026: the 22 Classic challenges on the nine retired games are hidden (217 → 195 live).
+check(PRACTICE_CHALLENGES.filter(challengeLive).length === 195 && PRACTICE_CHALLENGES.filter(challengeLive).every((c) => c.level === "classic"), "the 195 Classic ones on live games are live; Hard and Expert wait");
 check(PRACTICE_CHALLENGES.filter((c) => c.level === "hard").length === 30 && PRACTICE_CHALLENGES.filter((c) => c.level === "expert").length === 14, "30 Hard and 14 Expert");
 const games = [...new Set(PRACTICE_CHALLENGES.map((c) => c.type))];
-check(games.length === 92 && ACTIVE_PUZZLE_TYPES.every((t) => games.includes(t)), `all 92 active games (got ${games.length})`);
+// Changed with Joe's approval, 13 Nov 2026: retired games' challenges are kept hidden, not deleted (Joe's rule, 13 Nov), so the catalogue still covers the
+// same 92 games; every live game has its challenges.
+check(games.length === 92, `the catalogue's 92 games (got ${games.length})`);
+check(ACTIVE_PUZZLE_TYPES.every((t) => games.includes(t)), "every live game has challenges");
 check(new Set(PRACTICE_CHALLENGES.map((c) => c.id)).size === PRACTICE_CHALLENGES.length, "challenge ids are unique");
 check(new Set(PRACTICE_CHALLENGES.map((c) => c.name)).size === PRACTICE_CHALLENGES.length, "challenge names are unique");
 for (const g of games) {
   const n = challengesFor(g).length;
   check(n >= 2 && n <= 4, `${g}: 2 to 4 challenges (got ${n})`);
-  check((ACTIVE_PUZZLE_TYPES as readonly string[]).includes(g), `${g}: an active game`);
+  // Changed with Joe's approval, 13 Nov 2026: retired games' challenges are kept hidden, not deleted (Joe's rule, 13 Nov).
+  check((PUZZLE_TYPES as readonly string[]).includes(g), `${g}: a registered game`);
 }
 // The first 40 ids are kept (their progress started fresh with C1a, but the ids stay stable).
 const FIRST_40 = ["unblock.par", "unblock.speed", "lightsout.par", "lightsout.speed", "sudoku.clean", "sudoku.speed", "flood.par", "flood.speed", "tower.par", "tower.speed", "safe.clean", "safe.speed", "tiles.par", "tiles.speed", "codeword.clean", "codeword.speed", "swapword.par", "swapword.speed", "wordslide.par", "wordslide.speed", "pinball.joulz", "pinball.multiball", "skyline.perfects", "skyline.gold", "beat.gold", "beat.score180", "bubble.clear", "bubble.chests", "bintoss.finish", "bintoss.hoops", "bullseye.dead", "homerun.homers", "homerun.streak", "pool.black", "pool.streak", "blockfall.multi", "blockfall.low", "bastion.drones", "bastion.base"];

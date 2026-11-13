@@ -10,6 +10,7 @@
  *
  * Never set by app code. Pure state; shared by phone and server.
  */
+import { setCheckOverride } from "@/lib/checkOverride";
 import { rebuildLiveRecords } from "./roundMax";
 
 /**
@@ -63,6 +64,8 @@ export const DEAL_PINS = {
   swingPreDark: { texts: false },
   /** arcade.server.ts: Grappler swingRev 16. */
   swingPreSlide: { texts: false },
+  /** arcade.server.ts: Minefield minesRev 1 (25 mines), before it moved to Logic (13 Nov 2026). */
+  minesPreLogic: { texts: false },
 } as const satisfies Record<string, { texts: boolean }>;
 
 export type DealPin = keyof typeof DEAL_PINS;
@@ -81,6 +84,9 @@ export function setDealPin(pin: DealPin, on: boolean): boolean {
   const prev = pinned.has(pin);
   if (on) pinned.add(pin);
   else pinned.delete(pin);
+  // Minefield's rev-1 deal is check-only (Joe, 13 Nov 2026): the deal reads it through checkOverride, which a
+  // production build turns off, so the live app can never deal minesRev 1 whatever this set holds.
+  if (pin === "minesPreLogic") setCheckOverride("__DUELZ_MINES_PRE_LOGIC__", on ? true : undefined);
   if (prev !== on && DEAL_PINS[pin].texts) rebuildLiveRecords();
   return prev;
 }

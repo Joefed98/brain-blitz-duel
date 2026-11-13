@@ -51,6 +51,18 @@ function cleanProps(value: unknown): Record<string, string | number | boolean> |
   return Object.keys(out).length ? out : null;
 }
 
+/** The arcade run timing's props: exactly wall_ms, hidden_ms, dropped_ticks and run_ticks, whole numbers in range. */
+const ARCADE_TIMING_KEYS = ["dropped_ticks", "hidden_ms", "run_ticks", "wall_ms"];
+function arcadeTimingOk(game: string | null, props: Record<string, string | number | boolean> | null): boolean {
+  if (!game || !props) return false;
+  const keys = Object.keys(props).sort();
+  if (keys.join() !== ARCADE_TIMING_KEYS.join()) return false;
+  return keys.every((k) => {
+    const v = props[k];
+    return typeof v === "number" && Number.isInteger(v) && v >= 0 && v <= 3_600_000;
+  });
+}
+
 /** Checks one event; null when refused. */
 export function acceptClientEvent(value: unknown, nowMs: number): AcceptedClientEvent | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;
@@ -62,11 +74,13 @@ export function acceptClientEvent(value: unknown, nowMs: number): AcceptedClient
   if (props === "bad") return null;
   let game: string | null = null;
   if (input["game"] !== undefined && input["game"] !== null) {
-    if (event !== "offline_game_played") return null;
+    if (event !== "offline_game_played" && event !== "arcade_run_timed") return null;
     if (typeof input["game"] !== "string" || !(PUZZLE_TYPES as readonly string[]).includes(input["game"])) return null;
     game = input["game"];
   }
   if (event === "error_shown" && !(typeof props?.["code"] === "string" && ERROR_CODE.test(props["code"]))) return null;
+  // The arcade wall-clock trial's timing (13 Nov 2026): its game and four whole, non-negative numbers, nothing else.
+  if (event === "arcade_run_timed" && !arcadeTimingOk(game, props)) return null;
   let at = nowMs;
   if (input["at"] !== undefined) {
     const claimed = input["at"];

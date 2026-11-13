@@ -21,13 +21,13 @@ import {
   MINES_BOOM,
   MINES_CELL,
   MINES_CELLS,
-  MINES_COUNT,
+  minesCountFor,
   MINES_FLAG,
   MINES_FRAME,
   MINES_HIDDEN,
   MINES_OPEN,
   MINES_RUN_TICKS,
-  MINES_SAFE,
+  minesSafeFor,
   MINES_WORLD_H,
   MINES_WORLD_W,
   minesCellX,
@@ -277,8 +277,8 @@ function paintHud(ctx: CanvasRenderingContext2D, s: MinesState): void {
   for (let i = 0; i < MINES_CELLS; i++) if (s.open[i] === MINES_FLAG || s.open[i] === MINES_BOOM) marked += 1;
   // Pill chips (3 Nov 2026), the main count (safe squares) top left.
   drawHudPillRow(ctx, 10, 8, [
-    { label: "Safe", value: `${s.revealed}/${MINES_SAFE}`, opts: { gold: s.revealed >= MINES_SAFE } },
-    { label: "Mines", value: String(MINES_COUNT - marked) },
+    { label: "Safe", value: `${s.revealed}/${minesSafeFor(s.rev)}`, opts: { gold: s.revealed >= minesSafeFor(s.rev) } },
+    { label: "Mines", value: String(minesCountFor(s.rev) - marked) },
     { label: "Hits", value: String(s.hits), opts: { alert: s.hits > 0 } },
   ]);
 }
@@ -333,9 +333,10 @@ function drawMinesWorld(ctx: CanvasRenderingContext2D, s: MinesState): void {
   }
 }
 
-/** The playable game with its art (the stage draws through this). One object for the one revision: a stage resets its
+/** The playable game with its art (the stage draws through this). One object per revision: a stage resets its
  * run when its game object changes, so a re-render (the Reveal / Flag switch) must hand it the same one. */
-const MINES_ART_GAME: ArcadeGame<MinesState, ArcadeInputEvent | null> = { ...minesweeperGameFor(), draw: drawMinesweeper };
-export function minesweeperArtGameFor(_rev?: number | null): ArcadeGame<MinesState, ArcadeInputEvent | null> {
-  return MINES_ART_GAME;
+const MINES_ART_GAME: ArcadeGame<MinesState, ArcadeInputEvent | null> = { ...minesweeperGameFor(1), draw: drawMinesweeper };
+const MINES_ART_GAME_V2: ArcadeGame<MinesState, ArcadeInputEvent | null> = { ...minesweeperGameFor(2), draw: drawMinesweeper };
+export function minesweeperArtGameFor(rev?: number | null): ArcadeGame<MinesState, ArcadeInputEvent | null> {
+  return (rev ?? 1) >= 2 ? MINES_ART_GAME_V2 : MINES_ART_GAME;
 }

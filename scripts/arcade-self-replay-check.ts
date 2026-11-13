@@ -160,7 +160,7 @@ import { RALLY_REV_STD } from "@/lib/arcade/rally";
 import { BUB_REV_STD } from "@/lib/arcade/bubble";
 import { BEAT_REV_STD } from "@/lib/arcade/beat";
 import { encodePinballRun, replayPinballRun } from "@/lib/duel/pinball";
-import { minesCheckpoint, minesweeperGameFor, MINES_REV_STD } from "@/lib/arcade/minesweeper";
+import { minesCheckpoint, minesweeperGameFor, MINES_REV_LOGIC, MINES_REV_STD } from "@/lib/arcade/minesweeper";
 import { encodeMinesweeperRun, replayMinesweeperRun } from "@/lib/duel/minesweeper";
 import { mahjongCheckpoint, mahjongGameFor, MAHJONG_REV_STD, MAHJONG_REV_UNDO } from "@/lib/arcade/mahjong";
 import { encodeMahjongRun, replayMahjongRun } from "@/lib/duel/mahjong";
@@ -1022,6 +1022,8 @@ const GAMES: Game[] = [
   { key: "freecell/v5", game: freecellGameFor(5), checkpoint: fcCheckpoint, mode: "events", rate: 120, encode: encodeFreecellRun, replay: (seed: number, raw: string) => replayFreecellRun(seed, raw, 5), seedFor: (n: number) => n % 300 },
   { key: "tripeaks/v3", game: tripeaksGameFor(3), checkpoint: tpCheckpoint, mode: "events", rate: 120, encode: encodeTripeaksRun, replay: (seed: number, raw: string) => replayTripeaksRun(seed, raw, 3), seedFor: (n: number) => n % 300 },
   { key: "pyramid/v2", game: pyramidGameFor(2), checkpoint: pyCheckpoint, mode: "events", rate: 80, encode: encodePyramidRun, replay: (seed: number, raw: string) => replayPyramidRun(seed, raw, 2) },
+  // Minefield minesRev 2 (13 Nov 2026: a Logic game with 20 mines), appended so every earlier entry keeps its stream.
+  { key: "minesweeper/v2", game: minesweeperGameFor(MINES_REV_LOGIC), checkpoint: minesCheckpoint, mode: "events", rate: 60, encode: encodeMinesweeperRun, replay: (seed: number, raw: string) => replayMinesweeperRun(seed, raw, MINES_REV_LOGIC) },
 ];
 
 /** A random candidate event, often outside the declared range (a finger off the edge). */

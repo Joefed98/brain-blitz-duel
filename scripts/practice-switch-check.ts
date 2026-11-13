@@ -63,28 +63,32 @@ const unregistered = ARCADE_GROUPS.flatMap((g) => g.games).filter((t) => !isRegi
 check(unregistered.every((t) => !grouped.includes(t as never)), `ids not registered are skipped (${unregistered.join(", ") || "none"})`);
 // Every Sports and Cards & Board game is in (30 Oct 2026): no listed id is waiting to be registered.
 check(unregistered.length === 0, `every id in a group is registered${unregistered.length ? `: waiting ${unregistered.join(", ")}` : ""}`);
-const NEW_IDS = ["minigolf", "pool", "curling", "homerun", "freekick", "racing", "minesweeper", "freecell", "mahjong", "tripeaks", "pokersquares"];
-check(NEW_IDS.every((t) => ARCADE_GROUPS.some((g) => g.games.includes(t))), "the 11 new ids are in the map");
+// Changed with Joe's approval, 13 Nov 2026: Minefield moved to Logic, so it is in no arcade group (10 of the 11 new ids).
+const NEW_IDS = ["minigolf", "pool", "curling", "homerun", "freekick", "racing", "freecell", "mahjong", "tripeaks", "pokersquares"];
+check(NEW_IDS.every((t) => ARCADE_GROUPS.some((g) => g.games.includes(t))), "the 10 new ids still in arcade groups are in the map");
 // The brief named games by their display names: the map's registered ids resolve to exactly those names.
 const BRIEF: Record<string, string[]> = {
   // Blockfall joined Retro and Alley Roll Sports on 1 Nov 2026 (Blockfall shown as Blockzone and Alley Roll as Ringer since 3 Nov 2026).
   retro: ["Hover", "Breaker", "Rally", "Wavefront", "Fission", "Tempo", "Meteor", "Spacewalk", "Pinball", "Blockzone"],
   // Home Run Derby, Free Kick and Racing registered on 30 Oct 2026 (#203); renamed Home Run, Top Bins and Apex on 31 Oct 2026.
   // Minigolf, Speed Pool and Curling shown as Crazy Golf, Cue Ball and Curl Champ since 31 Oct 2026.
-  sports: ["Flightpath", "Swish", "Crazy Golf", "Cue Ball", "Curl Champ", "Home Run", "Top Bins", "Apex", "Ringer"],
+  // Changed with Joe's approval, 13 Nov 2026: Flightpath, Swish and Ringer retired.
+  sports: ["Crazy Golf", "Cue Ball", "Curl Champ", "Home Run", "Top Bins", "Apex"],
   // Minesweeper and Mahjong Solitaire registered on 30 Oct 2026 (#205); the group's other ids join as they register.
   // Minesweeper shown as Minefield, and FreeCell, TriPeaks and Poker Squares as Free Cell, Summit and Full House, since
   // 31 Oct 2026 (ids unchanged); Five Hands added. Full House retired to practice on 1 Nov 2026 (Joe's decision): the
   // group's active games are the rest (it keeps its group border, under All games' Retired).
   // Pyramid and Golf Solitaire joined on 2 Nov 2026; Muggins registered but practice only (Joe's decision). Pyramid shown
   // as Thirteen and Golf Solitaire retired to practice on 3 Nov 2026 (the Cards & Board batch).
-  cards: ["Minefield", "Free Cell", "Mahjong Solitaire", "Summit", "Five Hands", "Thirteen"],
+  // Changed with Joe's approval, 13 Nov 2026: Minefield moved to Logic.
+  cards: ["Free Cell", "Mahjong Solitaire", "Summit", "Five Hands", "Thirteen"],
   // Strategy split from Action on 1 Nov 2026 (Coral Pop, Gemstone, Ball Tracker, Tilt, Rainbow Bridge, High Rise moved).
   // Ricochet back from retirement as the ninja wall-climb (ricoRev 2, 1 Nov 2026), and Bastion back in rooms (bastionRev 2), in Action.
   // Ricochet is shown as Moon Climb since 3 Nov 2026 (ricoRev 3), and Bastion as Iron Wall.
   // High Rise back from Strategy to Action on 3 Nov 2026 (Joe's decision).
   // Orbit moved from Retro to Action on 3 Nov 2026 (Joe's audit); Jaywalk is shown as Spacewalk.
-  action: ["Slice", "Roofbound", "Grappler", "Moon Climb", "Iron Wall", "High Rise", "Orbit"],
+  // Changed with Joe's approval, 13 Nov 2026: Slice retired.
+  action: ["Roofbound", "Grappler", "Moon Climb", "Iron Wall", "High Rise", "Orbit"],
   strategy: ["Tilt", "Gemstone", "Coral Pop", "Rainbow Bridge", "Ball Tracker"],
 };
 check(ARCADE_GROUPS.map((g) => g.id).join() === "retro,sports,cards,action,strategy", "five groups: Retro, Sports, Cards & Board, Action, Strategy");
@@ -142,7 +146,8 @@ try {
       check(JSON.stringify(chips) === JSON.stringify(["all", "word", "number", "speed", "attention", "pattern", "logic"]), `${at}: Puzzles' chips are All games and the six categories, no Arcade (${chips.join(",")})`);
       const puzzleGroups = await page.locator("[data-practice-group]").evaluateAll((els) => els.map((el) => el.getAttribute("data-practice-group")));
       check(!puzzleGroups.includes("arcade") && puzzleGroups.length === 6, `${at}: Puzzles has a section per puzzle category (${puzzleGroups.join(",")})`);
-      check(JSON.stringify(await recent(page)) === JSON.stringify(["unblock", "lightsout", "sudoku"]), `${at}: Recently played on Puzzles shows only puzzles (${(await recent(page)).join(",")})`);
+      // Changed with Joe's approval, 13 Nov 2026: Blackout is retired, so Recently played leaves it out.
+      check(JSON.stringify(await recent(page)) === JSON.stringify(["unblock", "sudoku"]), `${at}: Recently played on Puzzles shows only live puzzles (${(await recent(page)).join(",")})`);
       const puzzleSearch = page.getByRole("searchbox", { name: "Search puzzles" });
       check((await puzzleSearch.count()) === 1 && (await puzzleSearch.getAttribute("placeholder")) === "Search puzzles", `${at}: Puzzles' search is "Search puzzles"`);
       await puzzleSearch.fill("r");

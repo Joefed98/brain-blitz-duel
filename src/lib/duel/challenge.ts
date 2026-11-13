@@ -154,7 +154,7 @@ export interface ChallengeRoundBoard {
   tie: TieRound[] | null;
   /** "Best: 17 moves" style answer line for the result header, when short (null while the solution is locked). */
   correctAnswer: string | null;
-  /** H2: set while the challenge is open and the round has a private half (asyncRoom.ts SolutionLock). */
+  /** Set while the challenge is open and the round has a private half (asyncRoom.ts SolutionLock). */
   solutionLock?: SolutionLock | null;
 }
 

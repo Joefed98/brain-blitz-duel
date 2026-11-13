@@ -6,10 +6,12 @@ against the live game (`scripts/practice-challenge-numbers.ts`). It replaces the
 (`catalogue-draft.md`, in the git history), with his renames (Five Hands' Full house is Handsome, Breaker's Gold rush
 is Twenty-four carat) and the goals written in scoring language rewritten as the real action.
 
-261 challenges over 92 games. 217 Classic ones are live in wave 2; the Hard and Expert ones
-are in the catalogue but switched off until wave 3.5 deals those levels (`LIVE_CHALLENGE_LEVELS`).
+261 challenges over 92 games. 26 of them, on the 9 retired games, are
+kept but hidden and count for nothing until their game returns (`RETIRED_TYPES`, 13 Nov 2026). Of the rest,
+195 Classic ones are live in wave 2; the Hard and Expert ones are in the catalogue but switched off until wave 3.5
+deals those levels (`LIVE_CHALLENGE_LEVELS`). Counts below are for live games.
 
-Coins (● in the table): 17 Classic pay 100 (live), 13 Hard pay 100 and 9 Expert pay 250 once
+Coins (● in the table): 16 Classic pay 100 (live), 13 Hard pay 100 and 8 Expert pay 250 once
 their level is live; through the coin ledger (reason `challenge_reward`), once per challenge per account. A guest's
 completions are kept and paid when that guest becomes an account.
 
@@ -687,7 +689,7 @@ challenges never count. How the checks read a run:
 | Name | Goal | Level | Style | Check | Coin | Id |
 |---|---|---|---|---|:-:|---|
 | Light feet | Clear the board without hitting a mine. | Classic | Clean | line “Safe squares” = 150 of 150, line “No mines hit” = 20 of 20 |  | `minesweeper.light-feet` |
-| Sweep | Clear the board within 50 s. | Classic | Speed | line “Speed” = 30 of 30 |  | `minesweeper.sweep` |
+| Sweep | Clear the board within 37 s. | Classic | Speed | line “Speed” = 30 of 30 |  | `minesweeper.sweep` |
 | Bomb disposal | Clear an Expert field. | Expert | Finish | line “Safe squares” = 150 of 150 | ● | `minesweeper.bomb-disposal` |
 
 #### Thirteen (`pyramid`)

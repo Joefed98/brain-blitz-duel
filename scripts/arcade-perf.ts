@@ -69,7 +69,11 @@ workChannel.port1.onmessage = (e) => { const p = window.__perf; if (p.work && !p
   // Only gaps between two frames of live play count (the probe runs once per drawn arcade frame).
   requestAnimationFrame((t) => { const p = window.__perf; if (p.gaps && !p.over && p.live) p.gaps.push(t - last); p.live = p.frames > 0 && !p.over; workChannel.port2.postMessage(t); sample(t); });
 })(performance.now());
-window.__arcadeProbe = (state, over) => { const p = window.__perf; p.over = over; p.frames++; };
+window.__arcadeProbe = (state, over) => {
+  const p = window.__perf; p.over = over; p.frames++;
+  // Wall time against sim time (13 Nov 2026): the first and latest measured frame's page time and sim tick.
+  if (p.gaps && !over && typeof state.tick === "number") { const at = [performance.now(), state.tick]; p.simFirst = p.simFirst || at; p.simLast = at; }
+};
 // When the governor steps down (page time, ms), for checks that judge what the machine was doing then.
 window.__perf.reducedAt = null;
 new MutationObserver(() => {
@@ -201,6 +205,8 @@ export interface PerfResult {
   workMedianMs: number;
   workSlowShare: number;
   workMaxMs: number;
+  /** Sim time over wall time across the measured play (1 is real time; under 1, the sim fell behind the clock). */
+  simShare?: number | null;
   /** The first step down seen (with stallProbe, the probe around it); null when effects stayed full. */
   stepDown?: StepDown | null;
   /** With stallProbe: cores' worth of CPU used outside the browser over the whole measure (context for a log line). */
@@ -331,6 +337,9 @@ export async function measure(browser: import("playwright").Browser, origin: str
   if (rate > 1) await cdp.send("Emulation.setCPUThrottlingRate", { rate });
   const rand = seeded(game.length * 7919 + 17);
   const gaps: number[] = [];
+  // Wall time against sim time over the measured spans (sim ms ÷ wall ms: 1 is real time).
+  let simWallMs = 0;
+  let simTicks = 0;
   let runs = 0;
   let canvases: string[] = [];
   let reduced: string | null = null;
@@ -368,6 +377,8 @@ export async function measure(browser: import("playwright").Browser, origin: str
         const w = window as never as { __perf: { gaps: number[] | null }; __raster?: { on: boolean } };
         w.__perf.gaps = [];
         (w.__perf as { work?: number[] }).work = [];
+        (w.__perf as { simFirst?: unknown; simLast?: unknown }).simFirst = null;
+        (w.__perf as { simLast?: unknown }).simLast = null;
         if (w.__raster) w.__raster.on = true;
       });
       if (PROFILE) {
@@ -396,7 +407,8 @@ export async function measure(browser: import("playwright").Browser, origin: str
         await page.waitForTimeout(150 + Math.floor(rand() * 200));
       }
       const got = await page.evaluate(() => {
-        const p = (window as never as { __perf: { gaps: number[]; work: number[] } }).__perf;
+        const p = (window as never as { __perf: { gaps: number[]; work: number[]; simFirst: [number, number] | null; simLast: [number, number] | null } }).__perf;
+        const sim = p.simFirst && p.simLast ? { wallMs: p.simLast[0] - p.simFirst[0], ticks: p.simLast[1] - p.simFirst[1] } : null;
         const g = p.gaps;
         const work = p.work ?? [];
         p.gaps = null as never;
@@ -404,6 +416,7 @@ export async function measure(browser: import("playwright").Browser, origin: str
         return {
           gaps: g,
           work,
+          sim,
           canvases: [...document.querySelectorAll("[data-game-stage] canvas")].map((c) => {
             const el = c as HTMLCanvasElement;
             return `${el.width}x${el.height}${el.hasAttribute("data-arena-scene") ? " scene" : ""}`;
@@ -417,6 +430,10 @@ export async function measure(browser: import("playwright").Browser, origin: str
       if (got.reducedAt !== null && !stepDown) stepDown = { at: got.timeOrigin + got.reducedAt, probe: [] };
       gaps.push(...got.gaps);
       work.push(...got.work);
+      if (got.sim && got.sim.wallMs > 0) {
+        simWallMs += got.sim.wallMs;
+        simTicks += got.sim.ticks;
+      }
       if (got.raster) {
         raster ??= { byMethod: {}, byCaller: {} };
         for (const [k, v] of Object.entries(got.raster.byMethod)) raster.byMethod[k] = (raster.byMethod[k] ?? 0) + v;
@@ -449,6 +466,7 @@ export async function measure(browser: import("playwright").Browser, origin: str
   return {
     game, rate, frameMs, p95Ms: sorted[Math.ceil(sorted.length * 0.95) - 1] ?? 0, fps: frameMs ? 1000 / frameMs : 0,
     frames: gaps.length, runs, canvases, reduced,
+    simShare: simWallMs > 0 ? (simTicks * (1000 / 60)) / simWallMs : null,
     workMedianMs: workSorted[Math.floor(workSorted.length / 2)] ?? 0,
     workSlowShare: work.length ? work.filter((w) => w > SLOW_WORK_MS && w <= STALL_MS).length / work.length : 0,
     workMaxMs: workSorted[workSorted.length - 1] ?? 0,
@@ -476,7 +494,7 @@ async function main() {
         const r = await measure(browser, origin, game, rate, { width: VW, height: VH, dpr: DPR, seconds: SECONDS, profile: PROFILE, raster: RASTER, warmupMs: WARMUP, raf30: RAF30, stallMs: STALL, ...(EFFECTS ? { effects: EFFECTS } : {}) });
         results.push(r);
         const cats = r.categories ? " · " + Object.entries(r.categories).filter(([k]) => k !== "idle").sort((a, b) => b[1] - a[1]).map(([k, v]) => `${k} ${v.toFixed(0)}`).join(", ") : "";
-        console.log(`${game.padEnd(10)} ${String(rate).padStart(2)}× ${r.frameMs.toFixed(1).padStart(6)} ms ${r.fps.toFixed(1).padStart(5)} fps p95 ${r.p95Ms.toFixed(1).padStart(6)} · ${r.frames} frames ${r.runs} runs · ${r.canvases.join(", ")}${` · work median ${r.workMedianMs.toFixed(1)} ms, ${(r.workSlowShare * 100).toFixed(0)} % slow, max ${r.workMaxMs.toFixed(0)} ms`}${r.reduced ? ` · reduced ${r.reduced}` : " · full effects"}${cats}`);
+        console.log(`${game.padEnd(10)} ${String(rate).padStart(2)}× ${r.frameMs.toFixed(1).padStart(6)} ms ${r.fps.toFixed(1).padStart(5)} fps p95 ${r.p95Ms.toFixed(1).padStart(6)} · ${r.frames} frames ${r.runs} runs · ${r.canvases.join(", ")}${` · work median ${r.workMedianMs.toFixed(1)} ms, ${(r.workSlowShare * 100).toFixed(0)} % slow, max ${r.workMaxMs.toFixed(0)} ms`}${r.reduced ? ` · reduced ${r.reduced}` : " · full effects"}${r.simShare ? ` · sim ${r.simShare.toFixed(3)}× wall` : ""}${cats}`);
         if (r.raster) {
           console.log(`      raster ${r.raster.perFrameMs.toFixed(2)} ms a frame`);
           for (const [k, ms] of r.raster.byMethod) console.log(`      ${ms.toFixed(3).padStart(7)}  ${k}`);

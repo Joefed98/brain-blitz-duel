@@ -7,7 +7,7 @@ import { type SubmitExtra } from "./grade";
 import { mergePuzzle, splitPuzzle } from "./secrets";
 import type { PracticeRunProgress } from "@/lib/practice/progress";
 import { levelOf } from "@/lib/practice/progressRules";
-import { PUZZLE_TYPES } from "./catalogue";
+import { PUZZLE_TYPES, isPlayable } from "./catalogue";
 import type { PuzzleData, PuzzleType } from "./types";
 
 /* -------------------------------------------------------------------------- */
@@ -21,7 +21,7 @@ import type { PuzzleData, PuzzleType } from "./types";
 
 type Loose = Record<string, unknown>;
 
-/* The seal and the deal digest live in practiceSeal.server.ts (security fixes H1 and L8); loaded inside handlers only. */
+/* The seal and the deal digest live in practiceSeal.server.ts; loaded inside handlers only. */
 const sealing = () => import("./practiceSeal.server");
 async function sealDeal(pub: PuzzleData, priv: Loose, tags: Loose = {}): Promise<string> {
   return (await sealing()).sealDeal(pub, priv, tags);
@@ -36,7 +36,7 @@ async function unsealRaw(sealed: string): Promise<Loose> {
   return (await sealing()).unsealRaw(sealed);
 }
 
-/** M4: practice needs no sign-in, so it is limited per network address (rateLimit.server.ts). */
+/** Practice needs no sign-in, so it is limited per network address (rateLimit.server.ts). */
 const PRACTICE_BUSY = "Practice is busy right now. Try again in a few minutes.";
 async function practiceLimit(kind: "deal" | "pack" | "grade" | "check"): Promise<boolean> {
   const limits = await import("./rateLimit.server");
@@ -51,6 +51,16 @@ async function practiceLimit(kind: "deal" | "pack" | "grade" | "check"): Promise
 function validType(type: string): PuzzleType {
   if (!(PUZZLE_TYPES as string[]).includes(type)) throw new Error("Unknown puzzle type.");
   return type as PuzzleType;
+}
+
+/** What a retired game's deal or grade answers (catalogue.ts RETIRED_TYPES: out of the app, 13 Nov 2026). */
+export const PRACTICE_RETIRED = "That game isn’t available any more.";
+
+/** A game Practice may deal and grade: a live id that isn't retired (validType stays for the dev demo saves). */
+function playableType(type: string): PuzzleType {
+  const valid = validType(type);
+  if (!isPlayable(valid)) throw new Error(PRACTICE_RETIRED);
+  return valid;
 }
 
 /** What the phone shows when Practice is asked for a game held back for Joulz Plus members (wave 2 E2). */
@@ -90,7 +100,7 @@ async function dealPractice(type: PuzzleType, unblockRow: unknown): Promise<{ pu
 export const practiceGenerateFn = createServerFn({ method: "POST" })
   .inputValidator((input: { type: string; example?: boolean }) => input)
   .handler(async ({ data }) => {
-    const type = validType(data.type);
+    const type = playableType(data.type);
     if (!(await practiceLimit("deal"))) throw new Error(PRACTICE_BUSY);
     const { generatePuzzle } = await import("./generate.server");
     const example = data.example === true;
@@ -198,6 +208,8 @@ export const practiceGradeFn = createServerFn({ method: "POST" })
     const staleNote = staleSubmissionNote("practice_grade", data.clientVersion, data.puzzle.type);
     if (staleNote) console.warn(staleNote);
     if (!(await practiceLimit("grade"))) throw new Error(PRACTICE_BUSY);
+    // A retired game is never graded (a deal dealt before it retired counts for nothing).
+    if (!isPlayable(data.puzzle?.type)) throw new Error(PRACTICE_RETIRED);
     const { priv, pub, example, dealtAt } = await openDealOrThrow(data.sealed, data.puzzle);
     const puzzle = mergePuzzle(pub, priv);
     // The claim held to the server's receipt, as in a room (practiceReceipt.ts).
@@ -205,6 +217,10 @@ export const practiceGradeFn = createServerFn({ method: "POST" })
     const startAt = await (await sealing()).startAtFor(data.start, String(data.sealed ?? ""));
     const received = practiceReceiptMsRemaining(puzzle, { dealtAt, startAt, nowMs });
     const result = await gradePracticeRun(data, puzzle, example !== undefined, received);
+    // The arcade wall-clock trial (log only, src/lib/round/wallClock.ts): timed from the server's start for the round.
+    const { practiceStartMs } = await import("./practiceReceipt");
+    const { noteSlowArcadeRun } = await import("@/lib/round/wallClock.server");
+    noteSlowArcadeRun({ mode: "practice", puzzle, startMs: practiceStartMs({ dealtAt, startAt, nowMs }), nowMs, dealtAtMs: dealtAt });
     await recordPracticeEvent("game_finished", data.sealed, async () => {
       const { playedMs } = await import("@/lib/data/events.server");
       const { puzzleTimeLimitMs } = await import("./catalogue");
@@ -374,7 +390,8 @@ export const practicePackFn = createServerFn({ method: "POST" })
     // Early access (wave 2 E2): no offline pack of a game held back from this caller.
     const held = await heldGames();
     for (const raw of types) {
-      if (!(PUZZLE_TYPES as string[]).includes(raw)) continue;
+      // Never a pack of a retired game (catalogue.ts isPlayable).
+      if (!isPlayable(raw)) continue;
       if (held.includes(raw)) continue;
       const type = raw as PuzzleType;
       // Games that ask the server during play are online only: no pack.
@@ -428,8 +445,10 @@ export const practiceGradeQueuedFn = createServerFn({ method: "POST" })
       return { status: "rejected" as const, reason: "seal" };
     }
     if (!data.puzzle || raw["type"] !== data.puzzle.type) return { status: "rejected" as const, reason: "type" };
-    // Every deal, pack or live, must match the digest it was sealed with (H1): a token from before the digest, or a
-    // changed deal, is rejected, never graded.
+    // A queued run of a game retired since it was played counts for nothing: rejected, so the phone stops sending it.
+    if (!isPlayable(data.puzzle.type)) return { status: "rejected" as const, reason: "retired" };
+    // Every deal, pack or live, must match the digest it was sealed with (practiceSeal.server.ts openDeal); a token
+    // without the digest, or a deal that differs, is answered "rejected".
     const opened = await openDeal(data.sealed, data.puzzle);
     if (!opened) return { status: "rejected" as const, reason: "deal" };
     const graded = await gradePracticeRun(data, mergePuzzle(opened.pub, opened.priv), opened.example !== undefined);
@@ -505,9 +524,8 @@ async function demoKeyOk(key: unknown): Promise<boolean> {
 }
 
 /**
- * Security fix M7 (Nov 2026 audit): demo saves are refused by the server itself in a production build unless the
- * server sets INTRO_DEMO_SAVES=1 (the client's `dev` flag alone no longer opens them), and guesses at the key are
- * limited per network address.
+ * Demo saves in a production build are taken only when the server sets INTRO_DEMO_SAVES=1 (demoSaves.server.ts),
+ * whatever the client's `dev` flag says, and tries at the key are limited per network address.
  */
 async function demoSavesAllowed(): Promise<boolean> {
   const { demoSavesOpen } = await import("./demoSaves.server");
