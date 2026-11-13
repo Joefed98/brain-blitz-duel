@@ -12,12 +12,14 @@
  * this card offers no player-count row and draws nothing if 1v1 itself is switched off.
  */
 import { useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { Button, Icon, Panel, Segmented, Sheet } from "@/design/components";
 import { Avatar, DEFAULT_AVATAR } from "@/design/identity";
 import { formatOf, type BestOf, type RatedPick, type RatedStatus } from "@/lib/rated/backend";
 import { useRatedStatus } from "@/lib/rated/ratedApi";
+import { cooldownLine } from "@/lib/rated/rules";
+import { serverNow } from "@/lib/duel/clock";
 import { pickProp, recordRatedEvent } from "@/lib/rated/ratedEvents";
 import {
   bestOfLabel,
@@ -163,6 +165,33 @@ function RankPanel({ status }: { status: RatedStatus }) {
 
 /* ------------------------------------------------------------------ the Play card */
 
+/**
+ * The wait after set-up leaves (13 Nov 2026): its line while it runs, counted down on the server's clock (a step every
+ * 15 s is plenty for whole minutes), or null.
+ */
+export function useCooldownLine(status: RatedStatus): string | null {
+  const cooldown = status.cooldown ?? null;
+  const [now, setNow] = useState(() => serverNow());
+  useEffect(() => {
+    if (!cooldown) return;
+    setNow(serverNow());
+    const id = window.setInterval(() => setNow(serverNow()), 15_000);
+    return () => window.clearInterval(id);
+  }, [cooldown?.untilMs]); // eslint-disable-line react-hooks/exhaustive-deps
+  if (!cooldown || now >= cooldown.untilMs) return null;
+  return cooldownLine(cooldown.aborts, cooldown.untilMs, now);
+}
+
+/** The cooldown line, where Play is. */
+function CooldownNote({ line }: { line: string | null }) {
+  if (!line) return null;
+  return (
+    <p className="rt-cooldown" role="status" data-rated-cooldown data-wrap-ok>
+      {line}
+    </p>
+  );
+}
+
 function PlayCard({ status }: { status: RatedStatus }) {
   const navigate = useNavigate();
   const picks = shownPicks(status.options);
@@ -172,6 +201,7 @@ function PlayCard({ status }: { status: RatedStatus }) {
   const [picker, setPicker] = useState(false);
   const placing = status.standing.state === "placement";
   const nextPlacement = status.standing.state === "placement" ? status.standing.results.length + 1 : null;
+  const cooldown = useCooldownLine(status);
   if (!pick || !bestOf || !shownSizes(status.options).includes(2)) return null;
 
   const play = () => {
@@ -211,7 +241,8 @@ function PlayCard({ status }: { status: RatedStatus }) {
         </span>
         {picks.length > 1 ? <Icon name="chevron-down" size={20} tone="text-3" /> : null}
       </button>
-      <Button variant="gold" size={58} block onClick={play} data-rated-play-button>
+      <CooldownNote line={cooldown} />
+      <Button variant="gold" size={58} block onClick={play} disabled={cooldown !== null} data-rated-play-button>
         {placing ? `Play placement ${nextPlacement}` : "Play"}
       </Button>
       {picker ? (
@@ -243,6 +274,7 @@ export function RatedPicker({
   onClose: () => void;
 }) {
   const [chosen, setChosen] = useState<RatedPick>(value);
+  const cooldown = useCooldownLine(status);
   const picks = shownPicks(status.options);
   const placed = status.standing.state === "placed" ? status.standing : null;
   const ratingOf = (p: RatedPick): number | null => {
@@ -287,9 +319,12 @@ export function RatedPicker({
       onClose={onClose}
       data={{ "data-rated-picker": "" }}
       footer={
-        <Button variant="gold" size={58} block onClick={() => onPick(chosen)} data-picker-play>
-          Play {pickLabel(chosen)}
-        </Button>
+        <>
+          <CooldownNote line={cooldown} />
+          <Button variant="gold" size={58} block onClick={() => onPick(chosen)} disabled={cooldown !== null} data-picker-play>
+            Play {pickLabel(chosen)}
+          </Button>
+        </>
       }
     >
       <div className="rt-picker" role="radiogroup" aria-label="What to play">

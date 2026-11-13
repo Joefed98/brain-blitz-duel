@@ -71,7 +71,26 @@ const SUPABASE_STUB = `
   ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO anon, authenticated, service_role;
   ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO anon, authenticated, service_role;
   ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON FUNCTIONS TO anon, authenticated, service_role;
-  SET client_min_messages = error; CREATE PUBLICATION supabase_realtime;`;
+  SET client_min_messages = error; CREATE PUBLICATION supabase_realtime;
+  -- Realtime's authorisation table and helpers, as Supabase defines them (13 Nov 2026): private channels are allowed by
+  -- RLS policies on realtime.messages read with realtime.topic() set to the channel's topic, and realtime.send() from
+  -- the database broadcasts by storing a row there. The stand-in keeps every row a broadcast would carry, so checks can
+  -- read what the server sent; the policies themselves are the migrations' own.
+  CREATE SCHEMA realtime;
+  CREATE TABLE realtime.messages (id bigserial PRIMARY KEY, topic text NOT NULL, extension text NOT NULL, payload jsonb,
+    event text, private boolean DEFAULT false, inserted_at timestamptz NOT NULL DEFAULT now());
+  ALTER TABLE realtime.messages ENABLE ROW LEVEL SECURITY;
+  CREATE FUNCTION realtime.topic() RETURNS text LANGUAGE sql STABLE AS $$ SELECT nullif(current_setting('realtime.topic', true), '') $$;
+  CREATE FUNCTION realtime.send(payload jsonb, event text, topic text, private boolean DEFAULT true) RETURNS void
+    LANGUAGE sql SECURITY DEFINER AS $$ INSERT INTO realtime.messages (topic, extension, payload, event, private)
+    VALUES (topic, 'broadcast', payload, event, private) $$;
+  GRANT USAGE ON SCHEMA realtime TO anon, authenticated, service_role;
+  GRANT SELECT, INSERT ON realtime.messages TO authenticated;
+  GRANT USAGE ON SEQUENCE realtime.messages_id_seq TO authenticated;
+  GRANT ALL ON realtime.messages TO service_role;
+  GRANT EXECUTE ON FUNCTION realtime.topic() TO anon, authenticated, service_role;
+  REVOKE EXECUTE ON FUNCTION realtime.send(jsonb, text, text, boolean) FROM PUBLIC;
+  GRANT EXECUTE ON FUNCTION realtime.send(jsonb, text, text, boolean) TO service_role;`;
 
 export interface LocalDb {
   /** Directory holding the socket (`.s.PGSQL.5432`). */

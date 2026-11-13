@@ -17,6 +17,7 @@ import { mergePuzzle, splitPuzzle } from "./secrets";
 import { allContinued, allIntroReady, betweenScreenDue, isContinuePhase } from "./roomFlow";
 import {
   finishGame,
+  finishNowRefusal,
   forfeitRecord,
   leaveBetweenRoundScreen,
   recordContinue,
@@ -69,6 +70,7 @@ import {
   type RoundResultRow,
 } from "./types";
 import { dbError, isUuid } from "./dbError";
+import { listOf, oneOf, optional, record, text, uuid, whole } from "@/lib/validate";
 import { adminDb, asJson, UNIQUE_VIOLATION, type Db } from "@/lib/data/db.server";
 import { playedMs, recordEvents } from "@/lib/data/events.server";
 import {
@@ -92,9 +94,12 @@ import {
 } from "@/lib/data/rooms.server";
 import {
   deletePlayerAtSlot,
+  insertRoomRemoval,
   markIntroReady,
   readPlayer,
   readPlayers,
+  readRoomRemoval,
+  readUserAtSlot,
   setPlayerStatus,
   setPlayerStatusInRoom,
 } from "@/lib/data/players.server";
@@ -434,6 +439,9 @@ export const roomPreviewFn = createServerFn({ method: "POST" })
     };
   });
 
+/** The join's answer to a player the host removed from this game's lobby. */
+export const ROOM_REMOVED_MESSAGE = "The host removed you from this game. You can join again when they play again.";
+
 export const joinRoomFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator(
@@ -444,7 +452,15 @@ export const joinRoomFn = createServerFn({ method: "POST" })
       via?: "code" | "link";
       /** The colour and icon this phone last chose; older copies send nothing. */
       look?: LookPreference;
-    }) => input,
+    }) => {
+      const body = record(input);
+      return {
+        roomCode: text(body["roomCode"], 32, "roomCode"),
+        displayName: text(body["displayName"] ?? "", 200, "displayName"),
+        via: optional(body["via"], (v) => text(v, 16, "via")) as "code" | "link" | undefined,
+        look: body["look"] == null ? undefined : (record(body["look"], "look") as LookPreference),
+      };
+    },
   )
   .handler(async ({ data, context }) => {
     const client = await db();
@@ -468,6 +484,9 @@ export const joinRoomFn = createServerFn({ method: "POST" })
 
     const room = found;
     if (room.disbanded_at) return { ok: false as const, message: "This room has been disbanded." };
+    // A player the host removed from this game's lobby can join again after Play again (13 Nov 2026).
+    const { data: removed } = await readRoomRemoval(client, room.id, context.userId, gameIndexOf(room));
+    if (removed) return { ok: false as const, message: ROOM_REMOVED_MESSAGE };
     const players = await getPlayers(client, room.id);
     const mine = players.find((p) => p.user_id === context.userId);
 
@@ -684,7 +703,10 @@ export const setPlayerLookFn = createServerFn({ method: "POST" })
 /** Host only, in the lobby: takes a player out of the room. */
 export const removePlayerFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { roomId: string; slot: number }) => input)
+  .inputValidator((input: { roomId: string; slot: number }) => {
+    const body = record(input);
+    return { roomId: uuid(body["roomId"], "roomId"), slot: whole(body["slot"], 1, MAX_PLAYERS, "slot") };
+  })
   .handler(async ({ data, context }) => {
     const client = await db();
     const room = await getRoom(client, data.roomId);
@@ -694,7 +716,13 @@ export const removePlayerFn = createServerFn({ method: "POST" })
     if (room.status !== "waiting") {
       return { ok: false as const, message: "This game’s already started." };
     }
+    // The removal is recorded for this game (13 Nov 2026), so the join refuses the player until Play again.
+    const { data: target } = await readUserAtSlot(client, room.id, data.slot);
     await deletePlayerAtSlot(client, room.id, data.slot, context.userId);
+    if (target && target.user_id !== context.userId) {
+      const { error } = await insertRoomRemoval(client, room.id, target.user_id, gameIndexOf(room));
+      if (error) console.error("[room] removal record", error.message);
+    }
     return { ok: true as const };
   });
 
@@ -1089,12 +1117,20 @@ export const continueFn = createServerFn({ method: "POST" })
  */
 export const finishNowFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { roomId: string }) => input)
+  .inputValidator((input: { roomId: string }) => ({ roomId: uuid(record(input)["roomId"], "roomId") }))
   .handler(async ({ data, context }) => {
     const client = await db();
     await requireParticipant(client, data.roomId, context.userId);
     const room = await getRoom(client, data.roomId);
     const players = await getPlayersSeen(client, room.id);
+    // Rated matches and tournament rooms (Arena duels, the Category Cup, the Championship) play on to their own end.
+    const { isRatedRoom } = await import("@/lib/rated/rated.server");
+    const { isTournamentRoom } = await import("@/lib/tournaments/tournaments.server");
+    const refusal = await finishNowRefusal(room.id, {
+      rated: (id) => isRatedRoom(client, id),
+      tournament: (id) => isTournamentRoom(client, id),
+    });
+    if (refusal) return { ok: false as const, message: refusal };
     const result = await finishGame(client, room, players, context.userId, Date.now());
     if (!result.ok) return { ok: false as const, message: result.message };
     return { ok: true as const };

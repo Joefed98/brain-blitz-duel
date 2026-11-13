@@ -87,6 +87,11 @@ export interface RatedStatus {
   standing: RatedStanding;
   /** A match this player is in (W3b's activeMatchId), to go back to. */
   activeMatchId: string | null;
+  /**
+   * The wait after leaving matches during set-up (13 Nov 2026), while it runs: when it lifts on the server's clock and
+   * how many leaves it counts. Absent or null: no wait.
+   */
+  cooldown?: { untilMs: number; aborts: number } | null;
 }
 
 /* ------------------------------------------------------------------ a match */

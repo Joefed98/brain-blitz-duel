@@ -43,12 +43,12 @@ export async function readPlayer(
 }
 
 /** What chat needs of its sender. */
-export type ChatSender = Pick<DuelPlayerRow, "id" | "display_name" | "status" | "muted_by_host" | "last_reaction_at">;
+export type ChatSender = Pick<DuelPlayerRow, "id" | "display_name" | "status" | "muted_by_host" | "last_reaction_at" | "player_slot">;
 
 export async function readChatSender(client: Db, roomId: string, userId: string): Promise<Result<ChatSender | null>> {
   const { data, error } = await client
     .from("duel_players")
-    .select("id, display_name, status, muted_by_host, last_reaction_at")
+    .select("id, display_name, status, muted_by_host, last_reaction_at, player_slot")
     .eq("duel_id", roomId)
     .eq("user_id", userId)
     .maybeSingle();
@@ -121,6 +121,37 @@ export async function updatePlayerAtSlot(
 }
 
 /** The host removes a slot's player (never their own row). */
+/** The user at a slot of a room, or null when the slot is empty. */
+export async function readUserAtSlot(client: Db, roomId: string, slot: number): Promise<Result<{ user_id: string } | null>> {
+  const { data, error } = await client
+    .from("duel_players")
+    .select("user_id")
+    .eq("duel_id", roomId)
+    .eq("player_slot", slot)
+    .maybeSingle();
+  return { data: (data as { user_id: string } | null) ?? null, error };
+}
+
+/** Records that the host removed `userId` from this room's lobby for game `gameIndex` (once; a repeat is a no-op). */
+export async function insertRoomRemoval(client: Db, roomId: string, userId: string, gameIndex: number): Promise<Result<null>> {
+  const { error } = await client
+    .from("duel_removed_players")
+    .upsert({ duel_id: roomId, user_id: userId, game_index: gameIndex }, { onConflict: "duel_id,user_id,game_index", ignoreDuplicates: true });
+  return { data: null, error };
+}
+
+/** Whether `userId` was removed from this room's lobby for game `gameIndex`. */
+export async function readRoomRemoval(client: Db, roomId: string, userId: string, gameIndex: number): Promise<Result<boolean>> {
+  const { data, error } = await client
+    .from("duel_removed_players")
+    .select("user_id")
+    .eq("duel_id", roomId)
+    .eq("user_id", userId)
+    .eq("game_index", gameIndex)
+    .maybeSingle();
+  return { data: !!data, error };
+}
+
 export async function deletePlayerAtSlot(
   client: Db,
   roomId: string,

@@ -146,7 +146,8 @@ export function useDuel(roomCode: string): DuelState {
       if (id) void fetchResults(id, mySlotRef.current).then(setResults);
     });
     const channel = supabase
-      .channel(`duel-${roomCode}`)
+      // A private channel (13 Nov 2026): only the room's players may join it (RLS on realtime.messages).
+      .channel(`duel-${roomCode}`, { config: { private: true } })
       .on("postgres_changes", { event: "*", schema: "public", table: "duels", filter: `id=eq.${roomId}` }, (payload) => {
         const row = payload.new as DuelRow | undefined;
         if (row?.id && row.id === duelIdRef.current) setDuel(row);

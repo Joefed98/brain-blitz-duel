@@ -333,6 +333,9 @@ export const SHARDS: Record<string, string[]> = {
     // moderation-check (10 Nov 2026, ~20 s): safety (Turnstile, the new-guest limit, reports, the automatic mute, Joe's
     // moderation functions, bans, retention) through the server functions on a local PostgreSQL, beside accounts-check.
     "moderation-check.ts",
+    // security-rooms-check (13 Nov 2026, ~40 s): private room channels, server-sent reactions, chat for players still
+    // in the room, removals, Finish now (an Arena duel played to its end) and the rated cooldown on a local PostgreSQL.
+    "security-rooms-check.ts",
     // security-trials-check (13 Nov 2026, ~10 s): the report-only content security policy and its /csp-report table,
     // the arcade wall-clock log, Tally's keyed reference and the runbook worker, beside the other SQL checks.
     "security-trials-check.ts",

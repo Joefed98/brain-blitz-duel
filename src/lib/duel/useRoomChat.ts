@@ -3,9 +3,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { readRoomMessages } from "@/lib/data/chatReads";
 import {
-  allowReactionFn,
   reportMessageFn,
   reportPlayerFn,
+  sendReactionFn,
   sendRoomMessageFn,
   setPlayerMutedFn,
 } from "./chat.functions";
@@ -121,7 +121,9 @@ export function useRoomChat(
   useEffect(() => {
     if (!roomId) return;
     const channel = supabase
-      .channel(`room-chat-${roomId}`, { config: { broadcast: { self: true } } })
+      // A private channel (13 Nov 2026): only players still in the room may join it (RLS on realtime.messages). The
+      // server sends every reaction on it (sendReactionFn); phones only listen.
+      .channel(`room-chat-${roomId}`, { config: { broadcast: { self: true }, private: true } })
       .on(
         "postgres_changes",
         // This room's messages only (Speed fix 3): Realtime checks no other room's chat for this phone.
@@ -219,17 +221,9 @@ export function useRoomChat(
       const previous = lastReactionAt.current.get(myUserId) ?? 0;
       if (Date.now() - previous < REACTION_MIN_GAP_MS) return;
       try {
-        const result = await allowReactionFn({ data: { roomId, emoji } });
-        if (!result.ok) {
-          setError(result.message);
-          return;
-        }
-        const channel = supabase.channel(`room-chat-${roomId}`);
-        await channel.send({
-          type: "broadcast",
-          event: "reaction",
-          payload: { emoji, name: result.name, userId: myUserId },
-        });
+        // The server checks the reaction and broadcasts it to the room, sender included (13 Nov 2026).
+        const result = await sendReactionFn({ data: { roomId, emoji } });
+        if (!result.ok) setError(result.message);
       } catch {
         /* a dropped reaction is not worth an error */
       }
