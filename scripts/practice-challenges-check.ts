@@ -611,6 +611,7 @@ async function databaseChecks(db: LocalDb, rest: RestServer): Promise<void> {
   await section("practice grade end to end", async () => {
     // Changed with Joe's approval, 13 Nov 2026: Blackout is retired (Practice refuses it), so Colour Flood, which has a kit, plays the run.
     const token = accountToken(OTH);
+    // Changed with Joe's approval, 13 Nov 2026: Blackout is retired (Practice refuses it), so Colour Flood plays this run; the assertion is unchanged but for the game.
     const dealt = await callServerFn(practice.practiceGenerateFn, { type: "flood" }, token);
     const { KITS } = await import("./puzzle-fairness/kits");
     const { SKILLS, hashText, makeRng } = await import("./puzzle-fairness/kit");
@@ -618,12 +619,14 @@ async function databaseChecks(db: LocalDb, rest: RestServer): Promise<void> {
     // The full puzzle (the server's private half) for the kit to solve, as a player would on the board.
     const { unsealForChecks } = await loadUnseal();
     const full = { ...dealt.puzzle, ...(await unsealForChecks(dealt.sealed)) };
+    // Changed with Joe's approval, 13 Nov 2026: Blackout is retired (Practice refuses it), so Colour Flood plays this run; the assertion is unchanged but for the game.
     const play = (KITS as any).flood.play(full, makeRng(hashText("e2e")), SKILLS.near, puzzleTimeLimitMs(full));
     const last = play.steps[play.steps.length - 1];
     const { start } = await callServerFn(practice.practiceStartFn, { sealed: dealt.sealed }, token);
     const graded = await callServerFn(practice.practiceGradeFn, { puzzle: dealt.puzzle, sealed: dealt.sealed, answer: last.answer, msRemaining: puzzleTimeLimitMs(full) - 1000, start }, token);
     check(graded.isCorrect === true, `the kit's answer finishes (${graded.score})`);
     const ids = (graded.challenges ?? []).map((x: any) => x.id);
+    // Changed with Joe's approval, 13 Nov 2026: Blackout is retired (Practice refuses it), so Colour Flood plays this run; the assertion is unchanged but for the game.
     check(ids.length > 0 && ids.every((id: string) => id.startsWith("flood.")), `the graded run comes back with its completions (${ids.join(", ")})`);
     for (const id of ids) check(q(`SELECT count(*) FROM practice_challenge_progress WHERE user_id = '${OTH}' AND challenge_id = '${id}' AND completed_at IS NOT NULL`) === "1", `${id} stored completed for the caller`);
     // C1a's interface (docs/practice-progress.md): the challenges ran on the play practice_record_play counted, read
@@ -637,6 +640,7 @@ async function databaseChecks(db: LocalDb, rest: RestServer): Promise<void> {
     check(again.isCorrect === true && (again.challenges ?? []).every((x: any) => x.coins === 0), "a retry of the same deal completes no coin challenge");
     check(q(`SELECT count(*) FROM practice_challenge_deals WHERE user_id = '${OTH}' AND deal_key = '${key}'`) === "1", "still one row for the deal");
     // The phone's word counts for nothing: a run graded as a fail completes nothing, whatever it claims.
+    // Changed with Joe's approval, 13 Nov 2026: Blackout is retired (Practice refuses it), so Colour Flood plays this run; the assertion is unchanged but for the game.
     const dealt2 = await callServerFn(practice.practiceGenerateFn, { type: "flood" }, accountToken(ACC));
     const g2 = await callServerFn(practice.practiceGradeFn, { puzzle: dealt2.puzzle, sealed: dealt2.sealed, answer: "", msRemaining: 59_000, extra: { reactionAvgMs: 1, correctCount: 99 } as any }, accountToken(ACC));
     check((g2.challenges ?? []).length === 0, "an empty answer completes nothing, whatever the phone claims");
@@ -644,8 +648,10 @@ async function databaseChecks(db: LocalDb, rest: RestServer): Promise<void> {
     const startAt = q(`SELECT fresh_start_at FROM practice_progress_start`);
     q(`UPDATE practice_progress_start SET fresh_start_at = now() + interval '1 day'`);
     try {
+      // Changed with Joe's approval, 13 Nov 2026: Blackout is retired (Practice refuses it), so Colour Flood plays this run; the assertion is unchanged but for the game.
       const dealt3 = await callServerFn(practice.practiceGenerateFn, { type: "flood" }, token);
       const full3 = { ...dealt3.puzzle, ...(await unsealForChecks(dealt3.sealed)) };
+      // Changed with Joe's approval, 13 Nov 2026: Blackout is retired (Practice refuses it), so Colour Flood plays this run; the assertion is unchanged but for the game.
       const play3 = (KITS as any).flood.play(full3, makeRng(hashText("e2e-uncounted")), SKILLS.near, puzzleTimeLimitMs(full3));
       const g3 = await callServerFn(practice.practiceGradeFn, { puzzle: dealt3.puzzle, sealed: dealt3.sealed, answer: play3.steps[play3.steps.length - 1].answer, msRemaining: puzzleTimeLimitMs(full3) - 1000 }, token);
       check(g3.isCorrect === true && g3.progress?.counted !== true && (g3.challenges ?? []).length === 0, "a finish C1a doesn't count completes nothing");
