@@ -8,7 +8,7 @@
 import type { Db, Json } from "./db.server";
 import type { Result } from "./rooms.server";
 import type { ReportFiled } from "./chat.server";
-import type { StatusLike } from "@/lib/friends/friends";
+import type { FriendLook, StatusLike } from "@/lib/friends/friends";
 import type { ReportReason } from "@/lib/safety/reports";
 
 /** A player's public fields as the friends functions return them. */
@@ -18,6 +18,8 @@ export interface FriendCard {
   colour: number;
   playerNumber: number;
   founding: boolean;
+  /** The player's card look (added by the server after the read; absent when it couldn't be read). */
+  look?: FriendLook;
 }
 
 export type FriendStatus = StatusLike;
@@ -187,6 +189,12 @@ export async function inviteToRoom(client: Db, from: string, to: string): Promis
 export async function sendChallenge(client: Db, from: string, to: string, code: string): Promise<Result<ChallengeSendAnswer | null>> {
   const { data, error } = await client.rpc("friends_challenge_send", { p_from: from, p_to: to, p_code: code });
   return { data: jsonAs<ChallengeSendAnswer>(data), error };
+}
+
+/** How many friends a player has (the Friendly badge's count). */
+export async function readFriendCount(client: Db, userId: string): Promise<Result<number>> {
+  const { data, error } = await client.rpc("friends_count", { p_user: userId });
+  return { data: typeof data === "number" ? data : 0, error };
 }
 
 /** Whether two players are friends (and neither has blocked the other). */

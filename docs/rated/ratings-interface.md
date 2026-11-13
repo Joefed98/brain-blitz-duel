@@ -35,6 +35,7 @@ matchmaking that imports `recordRatedMatch` stays clear of economy-neutral-check
 | `placings` | 4 and 8 players only: `{ [playerId]: place }`, 1 = first, level players share a place |
 | `rematchOf` | optional: the match this one is a rematch of (Revenge) |
 | `finishedAt` | optional ISO time; the server's now when left out (the UK day of the 4th-match rule is taken from it) |
+| `forfeit` | optional `{ leavers: string[] }` (W3b, Joe 12 Nov 2026): the live players away for more than 20 s before the match was decided. Each leaver takes a full loss and every player who stayed a full win, at the normal weight, whatever the games' scores (a 1v1 carrying a forfeit may end undecided: 1–0, 1–1); it counts as a placement match and for streaks and badges like any result; a leaver earns no Joules, a stayer the normal win Joules. In 4 and 8 players the `placings` put every leaver below every player who stayed (else `bad_placings`). Leavers must be distinct live players and at least one player must have stayed (else `bad_match`). A flagged run still comes first: nobody moves. An abort (a player left before the first game's intro) never reaches `finishRatedMatch`. Touched for it: `src/lib/data/ratings.ts` (the field), `src/lib/rated/match.ts` (`checkMatch`, `applyMatch`); ratings-check section "a forfeit". |
 
 What it does, in one transaction per match (retried on a concurrent change to any player's row):
 
@@ -60,7 +61,7 @@ What it does, in one transaction per match (retried on a concurrent change to an
 `RatedPlayerChange`: `playerId`, `side`, `moved`, `frozen` (`same_opponent_today` | `recorded_unrated_source` |
 `recorded_daily_limit` | `flagged_run` | null), `changes` (each rating moved: `key`, `before`, `after`, `delta`, `rdBefore`,
 `rdAfter`), `flagged` (this player's run was flagged), `joulz` (before / after, null in placement), `placement` (`played`, `of: 5`, `done`, `label`,
-`justFinished`: show the reveal), `tier` (before / after `TierView`, null in placement), `result` (`win` / `loss` /
+`results` (the boxes so far, this match's included), `justFinished`: show the reveal), `tier` (before / after `TierView`, null in placement), `result` (`win` / `loss` /
 `draw`; first place is a win), `place` (4 and 8 players), `joules`, `badges` (competitive badges newly awarded).
 
 ## Read by the phone (server functions, `src/lib/rated/ratings.functions.ts`)
@@ -69,7 +70,7 @@ What it does, in one transaction per match (retried on a concurrent change to an
 | --- | --- |
 | `getMyRatingsFn()` → `getMyRatings(client, userId)` | `PlayerRatings` for the signed-in device |
 | `getRatingsForFn({ playerId })` → `getRatingsFor(client, playerId)` | another player's `PlayerRatings` (the same hiding) |
-| `placementStatusFn()` → `placementStatus(client, userId)` | `PlacementStatus`: `{ played, of: 5, done, label }` ("Placement 1 of 5") |
+| `placementStatusFn()` → `placementStatus(client, userId)` | `PlacementStatus`: `{ played, of: 5, done, label, results }` ("Placement 1 of 5"); `results` is each placement match so far, in order: `{ n: 1–5, matchId, result: "win" \| "loss" \| "draw", at }` (the five boxes, the same on any device) |
 | `getTierLadderFn()` → `getTierLadder(client)` | `TierLadderRung[]` with each tier's live share of rated players |
 
 `PlayerRatings`: `placement`; `joulz`, `tier`, `pools`, `categories` are null while in placement (every rating hidden).

@@ -15,6 +15,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { lookFromLoadout } from "@/components/identity/ProfileCard";
+import { titleName } from "@/lib/badges/catalogue";
 import { PlayerBadge } from "@/components/duel/PlayerBadge";
 import { ReportReasons } from "@/components/duel/ReportSheet";
 import {
@@ -30,17 +31,17 @@ import {
   SwitchKnob,
   Toast,
 } from "@/design/components";
-import { PlayerCard } from "@/design/identity";
+import { MiniCard, PlayerCard } from "@/design/identity";
 import { isLiveType, puzzleName } from "@/lib/duel/catalogue";
 import {
   FRIENDS_MESSAGES,
   isOnline,
   joinableRoom,
   statusText,
+  type FriendLook,
   type FriendsRefusal,
 } from "@/lib/friends/friends";
 import { friendsApi, type FriendCard, type FriendProfile, type Overview, type SearchHit } from "@/lib/friends/friendsApi";
-import { identityBackend } from "@/lib/identity/backend";
 import type { CardLook } from "@/design/identity";
 import { REPORT_THANKS, type ReportReason } from "@/lib/safety/reports";
 
@@ -61,7 +62,17 @@ function Head({ title, onBack, right }: { title: string; onBack: () => void; rig
   );
 }
 
-function Badge({ card, size = 44 }: { card: Pick<FriendCard, "username" | "colour">; size?: number }) {
+/** A friends look as the player card takes it. */
+function cardLookOf(look: FriendLook): CardLook {
+  return { cardArt: look.cardArt, frame: look.frame, nameColour: look.nameColour, avatar: look.avatar };
+}
+
+/**
+ * A listed player: their mini card (card art, frame, avatar in its colour) whenever the server sent their look; the
+ * colour and initial only when it couldn't be read.
+ */
+function Badge({ card, size = 44 }: { card: Pick<FriendCard, "username" | "colour" | "look">; size?: number }) {
+  if (card.look) return <MiniCard look={cardLookOf(card.look)} size={size} />;
   return <PlayerBadge look={{ colour: card.colour, icon: null }} name={card.username} size={size} className="fr-badge" />;
 }
 
@@ -213,8 +224,8 @@ export function FriendsList({
                     <button type="button" className="fr-request-who press" onClick={() => onOpen(r.id)}>
                       <Badge card={r} />
                       <span className="fr-who-text">
-                        <span className="fr-name">{r.username}</span>
-                        <span className="fr-sub">{r.via === "link" ? "Used your invite link" : "Found you by username"}</span>
+                        <span className="fr-name" data-ellipsis>{r.username}</span>
+                        <span className="fr-sub fr-sub-wrap" data-wrap-ok>{r.via === "link" ? "Used your invite link" : "Found you by username"}</span>
                       </span>
                     </button>
                     <Button
@@ -313,10 +324,11 @@ export function FriendsList({
                 aria-label="Show when I’m online"
                 data-friends-show-online={overview.showOnline ? "on" : "off"}
                 onClick={() => void setShow(!overview.showOnline)}
+                className="fr-setting-row"
               >
                 <span className="jz-row-text items-start text-left">
                   <span className="jz-row-title">Show when I’m online</span>
-                  <span className="jz-row-sub">Friends see when you’re about and which room you’re in.</span>
+                  <span className="jz-row-sub" data-wrap-ok>Friends see when you’re about and which room you’re in.</span>
                 </span>
                 <SwitchKnob on={overview.showOnline} />
               </Row>
@@ -365,7 +377,7 @@ function FriendRow({
           {isOnline(status) ? <span className="fr-dot" data-tone={kind === "playing" ? "red" : "cyan"} aria-hidden="true" /> : null}
         </span>
         <span className="fr-who-text">
-          <span className="fr-name">{friend.username}</span>
+          <span className="fr-name" data-ellipsis>{friend.username}</span>
           {line ? (
             <span className="fr-sub" data-tone={kind === "playing" ? "red" : isOnline(status) ? "cyan" : undefined}>
               {line}
@@ -507,7 +519,7 @@ export function AddFriend({ onBack, onOpen, adult }: { onBack: () => void; onOpe
                   <button type="button" className="fr-row-open press" onClick={() => onOpen(hit.id)}>
                     <Badge card={hit} />
                     <span className="fr-who-text">
-                      <span className="fr-name">{hit.username}</span>
+                      <span className="fr-name" data-ellipsis>{hit.username}</span>
                       <span className="fr-sub" data-tone={hit.relation === "requested" ? "cyan" : undefined}>
                         {hit.relation === "friends"
                           ? "Already friends"
@@ -579,7 +591,6 @@ export function FriendProfileView({ playerId, onBack }: { playerId: string; onBa
   const navigate = useNavigate();
   const [profile, setProfile] = useState<FriendProfile | null>(null);
   const [missing, setMissing] = useState<string | null>(null);
-  const [look, setLook] = useState<{ look: CardLook; playerNumber: number } | null>(null);
   const [options, setOptions] = useState(false);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice, tone] = useNotice();
@@ -593,15 +604,6 @@ export function FriendProfileView({ playerId, onBack }: { playerId: string; onBa
   };
   useEffect(() => {
     void load();
-    void (async () => {
-      try {
-        const backend = await identityBackend();
-        const card = await backend?.getPublicCard(playerId);
-        if (card) setLook({ look: lookFromLoadout(card.loadout, null), playerNumber: card.playerNumber });
-      } catch {
-        /* the badge's colour stands in */
-      }
-    })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [playerId]);
 
@@ -631,7 +633,9 @@ export function FriendProfileView({ playerId, onBack }: { playerId: string; onBa
 
   const card = profile.card;
   const name = card.username;
-  const cardLook: CardLook = look?.look ?? lookFromLoadout(null, card.colour);
+  // The full card (card art, frame, name colour, avatar, title, badges, player number) from the server's look; Captain
+  // Joulz in their colour on the default card only if it couldn't be read. A blocked player shows no card.
+  const cardLook: CardLook = card.look ? cardLookOf(card.look) : lookFromLoadout(null, card.colour);
   const relation = profile.relation;
   const status = profile.status;
   const h2h = profile.headToHead;
@@ -650,7 +654,15 @@ export function FriendProfileView({ playerId, onBack }: { playerId: string; onBa
         }
       />
       <Notice text={notice} tone={tone} />
-      <PlayerCard look={cardLook} name={name} playerNumber={look?.playerNumber ?? card.playerNumber} />
+      {relation === "blocked" ? null : (
+        <PlayerCard
+          look={cardLook}
+          name={name}
+          playerNumber={card.playerNumber}
+          title={card.look ? titleName(card.look.title) : null}
+          badges={card.look?.badges}
+        />
+      )}
       {status && statusText(status, Date.now()) ? (
         <p className="fr-status" data-tone={status.kind === "playing" ? "red" : isOnline(status) ? "cyan" : undefined} data-friend-profile-status={status.kind}>
           {statusText(status, Date.now())}
@@ -666,7 +678,7 @@ export function FriendProfileView({ playerId, onBack }: { playerId: string; onBa
             onClick={() => void navigate({ to: "/challenge", search: { friend: card.id, friendName: name } as never })}
             data-friend-challenge-start
           >
-            Challenge {name}
+            <span className="fr-btn-label" data-ellipsis>Challenge {name}</span>
           </Button>
           {profile.myRoom ? (
             <Button
@@ -862,6 +874,15 @@ export function InviteLanding({
 }) {
   return (
     <div className="fr-page" data-friends-screen="invite">
+      {owner?.look ? (
+        <PlayerCard
+          look={cardLookOf(owner.look)}
+          name={owner.username}
+          playerNumber={owner.playerNumber}
+          title={titleName(owner.look.title)}
+          badges={owner.look.badges}
+        />
+      ) : null}
       {owner ? (
         <EmptyState
           layout="page"

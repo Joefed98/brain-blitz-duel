@@ -11,6 +11,7 @@ import { Button, Input } from "@/design/components";
 import { currentUserId, setStoredName } from "@/lib/duel/session";
 import { noticesWanted } from "@/lib/safety/notices";
 import type { SafetyNotices as Notices } from "@/lib/safety/notices";
+import { checkOverride } from "@/lib/checkOverride";
 
 type Shown = { kind: "warning"; text: string } | { kind: "banned"; text: string } | { kind: "rename"; account: boolean; temp: string | null };
 
@@ -34,7 +35,7 @@ export function SafetyNotices() {
     if (asked.current || typeof window === "undefined") return;
     const env = {
       webdriver: navigator.webdriver === true,
-      allow: (window as { __DUELZ_ALLOW_SAFETY__?: boolean }).__DUELZ_ALLOW_SAFETY__ === true,
+      allow: checkOverride("__DUELZ_ALLOW_SAFETY__") === true,
       online: navigator.onLine !== false,
     };
     if (!noticesWanted(pathname, env)) return;

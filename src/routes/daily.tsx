@@ -468,6 +468,15 @@ function DailyScreen() {
         <div className="flex flex-col gap-2">
           <div className="flex items-baseline justify-between gap-2">
             <h2 className="ap-section-title">Leaderboard</h2>
+            {/* Wave 4 W4a: the accounts' top 100 with earlier days (docs/leaderboards.md). */}
+            <button
+              type="button"
+              data-open-daily-board
+              onClick={() => void router.navigate({ to: "/daily-board", search: { kind } as never })}
+              className="press tap-target lb-link"
+            >
+              Top 100
+            </button>
           </div>
           <DailySegmented
             label="Day"

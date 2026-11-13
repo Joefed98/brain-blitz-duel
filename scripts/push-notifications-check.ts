@@ -313,28 +313,29 @@ async function phoneChecks(): Promise<void> {
       matchMedia: () => ({ matches: false }),
     };
     g["Notification"] = (g["window"] as Record<string, unknown>)["Notification"];
-    const { PUSH_PUBLIC_KEY } = await import("../src/config/pushConfig");
     const client = await import("../src/lib/push/pushClient");
-    check(PUSH_PUBLIC_KEY === "", "the switch ships off (PUSH_PUBLIC_KEY empty until Joe adds the key)");
+    // Deleted with Joe's approval, 11 Nov 2026: check(PUSH_PUBLIC_KEY === "", "the switch ships off (PUSH_PUBLIC_KEY empty
+    // until Joe adds the key)"); the key is now set, and push-testers-check proves it is set, well formed and testers only.
+    (g["window"] as Record<string, unknown>)["__DUELZ_PUSH_PUBLIC_KEY__"] = ""; // Changed with Joe's approval, 11 Nov 2026: the key is set, so "off" is an empty check override.
     check(!client.pushOn() && client.askKind() === null, "switch off: the phone has nothing to ask");
-    client.notePushMoment("friend_request_sent", true);
-    client.notePushMoment("daily_finished", true);
+    client.notePushMoment("friend_request_sent", 1); // Changed with Joe's approval, 11 Nov 2026: a player number (tester #1) instead of "is an account".
+    client.notePushMoment("daily_finished", 1); // Changed with Joe's approval, 11 Nov 2026: a player number (tester #1) instead of "is an account".
     check(store.size === 0 && client.pendingAsk() === null, "switch off: a useful moment marks nothing and stores nothing");
-    await client.syncPushOnOpen(true);
+    await client.syncPushOnOpen(1); // Changed with Joe's approval, 11 Nov 2026: a player number (tester #1) instead of "is an account".
     await client.forgetPushOnSignOut();
     check(store.size === 0, "switch off: opening and signing out touch nothing");
 
     (g["window"] as Record<string, unknown>)["__DUELZ_PUSH_PUBLIC_KEY__"] = "BP4z9KsN6nGRTbVYI_c7VJSPQTBtkgcy27mlmlMoZIIgDll6e3vCYLocInmYWAmS6TlzAC8wEqKK6PBru3jl7A8";
     check(client.pushOn() && client.askKind() === "ask", "switch on (a check's override): an Android phone may be asked");
-    client.notePushMoment("friend_request_sent", false);
+    client.notePushMoment("friend_request_sent", null); // Changed with Joe's approval, 11 Nov 2026: a guest is no player number (was false).
     check(client.pendingAsk() === null, "a guest is never asked");
-    client.notePushMoment("friend_request_sent", true);
+    client.notePushMoment("friend_request_sent", 1); // Changed with Joe's approval, 11 Nov 2026: a player number (tester #1) instead of "is an account".
     check(client.pendingAsk() === "friend_request_sent", "an account's first useful moment marks the ask due (for the next tab page)");
     store.set("duelz-push:v1", JSON.stringify({ declinedAt: Date.now() - 29 * 24 * 3600_000 }));
-    client.notePushMoment("daily_finished", true);
+    client.notePushMoment("daily_finished", 1); // Changed with Joe's approval, 11 Nov 2026: a player number (tester #1) instead of "is an account".
     check(client.pendingAsk() === null, "29 days after a decline: not asked");
     store.set("duelz-push:v1", JSON.stringify({ declinedAt: Date.now() - 31 * 24 * 3600_000 }));
-    client.notePushMoment("daily_finished", true);
+    client.notePushMoment("daily_finished", 1); // Changed with Joe's approval, 11 Nov 2026: a player number (tester #1) instead of "is an account".
     check(client.pendingAsk() === "daily_finished", "31 days after a decline: asked again");
     (g["window"] as Record<string, Record<string, unknown>>)["navigator"]!["userAgent"] =
       "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1";
@@ -343,6 +344,57 @@ async function phoneChecks(): Promise<void> {
     check(client.askKind() === "ask", "iPhone Home Screen app: the opt-in");
     delete g["window"];
     delete g["Notification"];
+  });
+
+  await section("no game code from sign-out or friends", async () => {
+    // economy-neutral-check walks imports (static, dynamic, re-exports) and fails when the pass's or the economy's code
+    // reaches grading, scoring, ranking or dealing. accountApi (sign-out) and B1's friend calls load push code, so the
+    // push modules they reach must reach none of it: the same walk, from those modules.
+    const { existsSync, readFileSync, statSync } = await import("node:fs");
+    const { dirname, join, relative, resolve } = await import("node:path");
+    const SRC = resolve("src");
+    const RE = /(?:import|export)\s[^'"`;]*?from\s*["']([^"']+)["']|import\s*["']([^"']+)["']|import\(\s*["']([^"']+)["']\s*\)/g;
+    const resolveSpec = (from: string, spec: string) => {
+      const base = spec.startsWith("@/") ? join(SRC, spec.slice(2)) : spec.startsWith(".") ? resolve(dirname(from), spec) : null;
+      if (!base) return null;
+      for (const ext of ["", ".ts", ".tsx", "/index.ts", "/index.tsx"]) if (existsSync(base + ext) && statSync(base + ext).isFile()) return base + ext;
+      return null;
+    };
+    const GAME = /src\/lib\/duel\/(grade|scoring|ranking|generate)/;
+    const roots = ["src/lib/account/accountApi.ts", "src/lib/push/pushDevice.ts", "src/lib/push/pushClient.ts", "src/lib/push/notify.server.ts", "src/lib/push/push.functions.ts", "src/lib/friends/friendsApi.ts"];
+    // friendsApi.ts is B1's; since B1's final (988491e4) its server side awards C2's Friendly badge, whose Daily streak
+    // reads the ranking, so from friendsApi.ts only the edges into the push code are followed: what this proves is that
+    // B1's push calls (notePushMoment, notifySoon) bring in no game code. economy-neutral-check guards the rest.
+    const THROUGH_PUSH = new Set(["src/lib/friends/friendsApi.ts"]);
+    const PUSH = /src\/lib\/push\//;
+    for (const root of roots.filter((r) => existsSync(r))) {
+      const from = new Map<string, string | null>([[resolve(root), null]]);
+      const queue = [resolve(root)];
+      let hit: string | null = null;
+      let pushEdges = 0;
+      while (queue.length && !hit) {
+        const file = queue.shift()!;
+        for (const m of readFileSync(file, "utf8").matchAll(RE)) {
+          const next = resolveSpec(file, m[1] ?? m[2] ?? m[3]!);
+          if (!next || from.has(next)) continue;
+          if (THROUGH_PUSH.has(root) && file === resolve(root)) {
+            if (!PUSH.test(relative(".", next))) continue;
+            pushEdges++;
+          }
+          from.set(next, file);
+          if (GAME.test(relative(".", next))) { hit = next; break; }
+          queue.push(next);
+        }
+      }
+      const chain: string[] = [];
+      for (let c: string | null | undefined = hit; c; c = from.get(c)) chain.unshift(relative(".", c));
+      if (THROUGH_PUSH.has(root)) {
+        check(pushEdges >= 1, `${root} imports the push code (${pushEdges} push imports)`);
+        check(!hit, `${root}'s push imports reach no grading, scoring, ranking or dealing code${hit ? ` (${chain.join(" → ")})` : ""}`);
+      } else check(!hit, `${root} reaches no grading, scoring, ranking or dealing code${hit ? ` (${chain.join(" → ")})` : ""}`);
+    }
+    const account = readFileSync("src/lib/account/accountApi.ts", "utf8");
+    check(account.includes('import("@/lib/push/pushDevice")') && !account.includes("push/pushClient"), "sign-out loads pushDevice (forgetPushOnSignOut), never the push client");
   });
 
   await section("override ignored in production", async () => {
@@ -359,8 +411,10 @@ async function phoneChecks(): Promise<void> {
     const codeLines = other.split("\n").filter((l) => l.includes("__DUELZ_PUSH_PUBLIC_KEY__") && !/^\s*(\*|\/\/|\/\*)/.test(l));
     check(codeLines.length === 0, `the override is read nowhere else in pushConfig.ts (only comments name it) (${codeLines.join(" | ")})`);
     const { execSync } = await import("node:child_process");
-    const readers = execSync(`grep -rln "__DUELZ_PUSH_PUBLIC_KEY__" src`).toString().trim().split("\n");
-    check(readers.join() === "src/config/pushConfig.ts", `only pushConfig.ts reads the override (${readers.join(" ")})`);
+    const readers = execSync(`grep -rln "__DUELZ_PUSH_PUBLIC_KEY__" src`).toString().trim().split("\n").sort();
+    // pushConfig.ts reads it through checkOverride (#375: every check-only stand-in goes through it), whose list names it.
+    check(readers.join() === "src/config/pushConfig.ts,src/lib/checkOverride.ts", `only pushConfig.ts reads the override, through checkOverride.ts (${readers.join(" ")})`);
+    check(/checkOverride\("__DUELZ_PUSH_PUBLIC_KEY__"\)/.test(body), "pushPublicKey reads the override through checkOverride");
   });
 }
 
@@ -384,7 +438,7 @@ const ACCOUNTS = { ANA, BEN, DAN, ELI, FAY, GUS, HAL, IVY, JAY, KIM, LEO };
 
 async function databaseChecks(db: LocalDb, rest: RestServer): Promise<void> {
   const fns = await import("../src/lib/push/push.functions");
-  const notify = await import("../src/lib/push/notify.server");
+  const notify = { ...(await import("../src/lib/push/notify.server")), ...(await import("../src/lib/push/streakReminder.server")) };
   const web = await import("../src/lib/push/webPush.server");
   const account = await import("../src/lib/account/account.functions");
   const { flushAnalytics } = await import("../src/lib/data/events.server");
@@ -418,6 +472,10 @@ async function databaseChecks(db: LocalDb, rest: RestServer): Promise<void> {
   // The keys, as the Worker would have them (the public setting stands in through VAPID_PUBLIC_KEY).
   const pair = await web.generateP256();
   const keys = { publicKey: web.b64urlEncode(pair.publicPoint), privateKey: web.b64urlEncode(pair.d) };
+  // Since 11 Nov 2026 the real public key is set and notifications are for testers only: this check's own pair signs,
+  // and its accounts (#2–#12) are all in the audience; push-testers-check proves the testers rule.
+  web.setVapidPublicKeyForChecks(keys.publicKey); // Changed with Joe's approval, 11 Nov 2026: the check signs with its own throwaway pair now the real key is set.
+  (await import("../src/lib/push/audience.server")).setPushAudienceForChecks({ everyone: true, testers: [] }); // Changed with Joe's approval, 11 Nov 2026: its accounts #2–#12 are in the audience.
   const keysOn = () => {
     process.env["VAPID_PUBLIC_KEY"] = keys.publicKey;
     process.env["VAPID_PRIVATE_KEY"] = keys.privateKey;
@@ -635,6 +693,7 @@ async function databaseChecks(db: LocalDb, rest: RestServer): Promise<void> {
     const friends = await import("../src/lib/friends/friends.functions");
     const { rules } = { rules: await import("../src/lib/push/rules") };
     web.setPushFetchForChecks(service.fetchImpl);
+    clock = Date.now(); // Changed with Joe's approval, 12 Nov 2026: B1's own calls send at the real time, so the stand-in judges their VAPID tokens and the sweep runs on it too (was the 11–12 Nov scenario clock, which broke once the real date passed it).
     // B1's own calls dispatch at the real time: give the devices a time zone where it's daytime now.
     const zones = ["Europe/London", "America/New_York", "America/Los_Angeles", "Pacific/Honolulu", "Asia/Tokyo", "Australia/Sydney", "Asia/Kolkata", "Asia/Dubai", "Pacific/Auckland", "America/Sao_Paulo"];
     const zone = zones.find((z) => { const h = rules.localHour(Date.now(), z); return h >= 9 && h <= 19; }) ?? "Europe/London";
@@ -742,7 +801,8 @@ async function databaseChecks(db: LocalDb, rest: RestServer): Promise<void> {
     check(!!logRead.error || (logRead.data ?? []).length === 0, "the log is the server's only");
     const reachable: string[] = [];
     for (const role of ["anon", "authenticated"]) {
-      for (const f of ["push_reserve(uuid,text,boolean,timestamp with time zone,integer,text)", "push_streak_candidates(date)", "push_claim_friend_events(timestamp with time zone,integer)", "push_log_retention()"])
+      // Changed with Joe's approval, 12 Nov 2026: push_reserve_at added to the list (the cap's new function, one clock for the count and the stamp); every earlier function is still there.
+      for (const f of ["push_reserve(uuid,text,boolean,timestamp with time zone,integer,text)", "push_reserve_at(uuid,text,boolean,timestamp with time zone,integer,text,timestamp with time zone)", "push_streak_candidates(date)", "push_claim_friend_events(timestamp with time zone,integer)", "push_log_retention()"])
         if (q(`SELECT has_function_privilege('${role}', 'public.${f}', 'EXECUTE')`) === "t") reachable.push(`${role} ${f}`);
       for (const t of ["notification_log", "push_friend_deliveries"]) if (q(`SELECT has_table_privilege('${role}', 'public.${t}', 'SELECT')`) === "t") reachable.push(`${role} ${t}`);
       if (q(`SELECT has_table_privilege('${role}', 'public.push_subscriptions', 'INSERT')`) === "t") reachable.push(`${role} insert subscriptions`);

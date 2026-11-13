@@ -204,6 +204,28 @@ ul.tn-how {
   color: var(--jz-text-2);
 }
 
+/* A player on a board row: the shared nameplate strip (NameplateStrip, docs/nameplate.md) in the name area, then the
+   value on the plain row; the row opens the player's card when it has one. */
+.tn-row-in {
+  display: flex;
+  min-width: 0;
+  min-height: 44px;
+  flex: 1 1 auto;
+  align-items: center;
+  gap: 8px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+}
+button.tn-row-in {
+  cursor: pointer;
+}
+.tn-who {
+  flex: 1 1 auto;
+  min-width: 0;
 /* Rows with nameplate strips (W4c): the place, ticks and games sit outside the strip, never on its cosmetics. */
 .tn-place {
   flex: none;

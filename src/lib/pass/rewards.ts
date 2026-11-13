@@ -75,7 +75,7 @@ const PREMIUM: Record<number, PassReward> = {
   1: it("avatar-special-edition.neon-captain-joulz"),
   2: C,
   3: it("name-colour.neon-cyan"),
-  4: it("game-skin.free-cell.neon-card-back"),
+  4: it("card-back.neon"),
   5: SA,
   6: C,
   7: it("tile-style.neon-grid"),

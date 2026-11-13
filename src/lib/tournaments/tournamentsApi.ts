@@ -4,13 +4,15 @@
  * server does, and the phone shows what it answers.
  *
  * A browser under automation (navigator.webdriver: the repo's browser checks) never calls the server from here unless
- * the page sets window.__DUELZ_ALLOW_TOURNAMENTS__; checks may also stand in for the server with
+ * the page sets window.__DUELZ_ALLOW_TOURNAMENTS__ (read through checkOverride); checks may also stand in for the server with
  * setTournamentsBackend. The check-only switch is read only outside production: a production build replaces
  * `import.meta.env.PROD` with true, so on joulz.uk it is never read (tournaments-check proves the built bundle).
  * Until the hub answers, the Tournaments tab shows exactly what it showed before (public games), so every existing
  * screen check is unchanged.
  */
 import { useCallback, useEffect, useState } from "react";
+
+import { checkOverride } from "@/lib/checkOverride";
 
 import type { ArenaBoard, ArenaPoll, EnterOutcome, ScoreAttackBoard, TournamentEventView, TournamentHub, TrophyView } from "./types";
 
@@ -40,7 +42,7 @@ export function tournamentsAutomated(): boolean {
   if (typeof window === "undefined") return true;
   if (typeof navigator === "undefined" || navigator.webdriver !== true) return false;
   if (import.meta.env.PROD) return true;
-  return (window as { __DUELZ_ALLOW_TOURNAMENTS__?: boolean }).__DUELZ_ALLOW_TOURNAMENTS__ !== true;
+  return checkOverride<boolean>("__DUELZ_ALLOW_TOURNAMENTS__") !== true;
 }
 
 const unbusy = <T>(value: T | { busy: true } | null | undefined): T | null =>

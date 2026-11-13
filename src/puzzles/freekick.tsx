@@ -1,5 +1,7 @@
+import type { CanvasSize } from "@/lib/arcade/engine";
 import { useMemo, useRef } from "react";
 
+import { useGameLookRef } from "@/lib/skins/equipped";
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import {
   FK_AIM,
@@ -34,6 +36,7 @@ import {
   FK_V3_PRESS_Y,
   freekickAimAt,
   freekickArtGameFor,
+  withFreekickLook,
   freekickCurlFromDrag,
   freekickScene,
   freekickSceneKey,
@@ -328,7 +331,13 @@ function v3Key(kind: "down" | "up", key: string, send: (p: PointerPayload) => vo
 function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const data: FreekickPuzzleData | null = puzzle.type === "freekick" ? puzzle : null;
   const latest = useRef<FreekickState | null>(null);
-  const game = useMemo(() => freekickArtGameFor(data?.freekickRev), [data?.freekickRev]);
+  // The player's own equipped football (wave 2; display only, src/lib/skins/equipped.ts).
+  const [, lookRef] = useGameLookRef("freekick");
+  const game = useMemo(() => {
+    const art = freekickArtGameFor(data?.freekickRev);
+    return { ...art, draw: (ctx: CanvasRenderingContext2D, s: FreekickState, size: CanvasSize) => withFreekickLook(lookRef.current, () => art.draw(ctx, s, size)) };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data?.freekickRev]);
   const stroke = useRef<StrokePoint[]>([]);
   const gesture = useRef<{ x: number; y: number; power: boolean; drag: boolean } | null>(null);
   const v3 = (data?.freekickRev ?? 1) >= FREEKICK_REV_3;

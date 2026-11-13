@@ -9,6 +9,8 @@ import { useNavigate } from "@tanstack/react-router";
 import { AccountHead } from "@/components/account/AccountParts";
 import { PhoneShell } from "@/components/duel/PhoneShell";
 import { Button, EmptyState, Icon, LiveTag, Panel, Row, SectionHeader, SkeletonPage } from "@/design/components";
+import { NameplateSheet, NameplateStrip, nameplateOpens, useNameplateSheet } from "@/design/identity";
+import { plateName, type PlateView } from "@/lib/identity/plates";
 import { ukTime } from "@/lib/publicSchedule";
 import { KIND_LABEL, placeLabel, UNDER_REVIEW_LINE } from "@/lib/tournaments/rules";
 import { countdown, entryLabel, tournamentsBackend, useTournamentEvent } from "@/lib/tournaments/tournamentsApi";
@@ -155,6 +157,7 @@ function ArenaLive({ ev, now }: { ev: TournamentEventView; now: number }) {
   };
 
   const me = board?.me ?? null;
+  const [openCard, openRow, closeCard] = useNameplateSheet<OpenRow>();
   return (
     <div className="ap-stack" data-arena-live>
       <Panel pad>
@@ -202,17 +205,23 @@ function ArenaLive({ ev, now }: { ev: TournamentEventView; now: number }) {
         <SectionHeader title="Points" right={board ? <span className="ap-meta">{`${board.players} playing`}</span> : undefined} />
         <Panel as="ol">
           {(board?.rows ?? []).map((r) => (
-            <Row as="li" key={r.userId} data-arena-row={r.place} data-me={r.isMe ? "" : undefined} className={r.isMe ? "tn-me" : undefined}>
-              <span className="tn-place">{r.place}</span>
-              <span className="jz-row-text">
-                <span className="jz-row-title">{r.isMe ? "You" : r.name}</span>
-                <span className="jz-row-sub">{r.streak >= 2 ? `${r.streak} in a row` : `${r.wins} ${r.wins === 1 ? "win" : "wins"}`}</span>
-              </span>
-              <span className="tn-points">{r.points}</span>
-            </Row>
+            <PlateRow
+              key={r.userId}
+              place={r.place}
+              plate={r.plate}
+              isMe={r.isMe}
+              sub={r.streak >= 2 ? `${r.streak} in a row` : `${r.wins} ${r.wins === 1 ? "win" : "wins"}`}
+              value={`${r.points}`}
+              valueLabel={`${r.points} points`}
+              onOpen={openRow}
+              data={{ "data-arena-row": r.place }}
+            />
           ))}
         </Panel>
       </section>
+      <NameplateSheet player={openCard?.plate ?? null} onClose={closeCard}>
+        {openCard?.line}
+      </NameplateSheet>
     </div>
   );
 }
@@ -235,6 +244,7 @@ function ScoreAttackPlay({ ev, onPlay }: { ev: TournamentEventView; onPlay: () =
   }, [ev.id]);
   const me = board?.me ?? null;
   const done = me?.finished === true;
+  const [openCard, openRow, closeCard] = useNameplateSheet<OpenRow>();
   return (
     <div className="ap-stack" data-score-attack>
       <Panel pad>
@@ -263,17 +273,22 @@ function ScoreAttackPlay({ ev, onPlay }: { ev: TournamentEventView; onPlay: () =
           <SectionHeader title="Leaderboard" right={<span className="ap-meta">{`${board.count} played`}</span>} />
           <Panel as="ol">
             {board.rows.map((r) => (
-              <Row as="li" key={`${r.place}`} data-me={r.isMe ? "" : undefined} className={r.isMe ? "tn-me" : undefined}>
-                <span className="tn-place">{r.place}</span>
-                <span className="jz-row-text">
-                  <span className="jz-row-title">{r.isMe ? "You" : r.name}</span>
-                </span>
-                <span className="tn-points">{r.total.toLocaleString("en-GB")}</span>
-              </Row>
+              <PlateRow
+                key={`${r.place}`}
+                place={r.place}
+                plate={r.plate}
+                isMe={r.isMe}
+                value={r.total.toLocaleString("en-GB")}
+                valueLabel={r.total.toLocaleString("en-GB")}
+                onOpen={openRow}
+              />
             ))}
           </Panel>
         </section>
       ) : null}
+      <NameplateSheet player={openCard?.plate ?? null} onClose={closeCard}>
+        {openCard?.line}
+      </NameplateSheet>
     </div>
   );
 }
@@ -441,5 +456,77 @@ export function TournamentEventScreen({
         </section>
       </div>
     </PhoneShell>
+  );
+}
+
+/** The row whose full card is open, and the line under the card ("3rd · 12 points"). */
+interface OpenRow {
+  plate: PlateView;
+  line: string;
+}
+
+/**
+ * One board row (Arena or Score Attack): the place, then the player's shared nameplate strip (Joe's rule of 11 Nov
+ * 2026; docs/nameplate.md: card art band, frame, avatar, name colour, tier emblem and badges, in the name area only),
+ * then the value on the plain row. A row with a card opens the player's full card; a guest (colour and initial) and a
+ * hidden player ("Hidden player" on a plain disc, decided on the server) open nothing.
+ */
+export function PlateRow({
+  place,
+  plate,
+  isMe,
+  sub,
+  value,
+  valueLabel,
+  onOpen,
+  data,
+}: {
+  place: number;
+  plate: PlateView;
+  isMe: boolean;
+  sub?: string;
+  value: string;
+  valueLabel: string;
+  onOpen: (row: OpenRow) => void;
+  data?: Record<string, string | number>;
+}) {
+  const name = plateName(plate);
+  const label = isMe && plate.kind !== "hidden" ? `${name} (you)` : name;
+  const parts = (
+    <>
+      <span className="jz-row-text tn-who">
+        <NameplateStrip player={plate} label={label} />
+        {sub ? <span className="jz-row-sub">{sub}</span> : null}
+      </span>
+      <span className="tn-points">{value}</span>
+    </>
+  );
+  const rowLabel = `${ordinal(place)}, ${label}, ${valueLabel}`;
+  return (
+    <Row
+      as="li"
+      {...data}
+      data-me={isMe ? "" : undefined}
+      data-hidden-player={plate.kind === "hidden" ? "" : undefined}
+      data-has-card={plate.kind === "card" ? "" : undefined}
+      className={isMe ? "tn-me" : undefined}
+    >
+      <span className="tn-place">{place}</span>
+      {nameplateOpens(plate) ? (
+        <button
+          type="button"
+          className="tn-row-in press"
+          onClick={() => onOpen({ plate, line: `${ordinal(place)} · ${valueLabel}` })}
+          aria-label={`${rowLabel}. Open card`}
+          data-open-card
+        >
+          {parts}
+        </button>
+      ) : (
+        <span className="tn-row-in" aria-label={rowLabel}>
+          {parts}
+        </span>
+      )}
+    </Row>
   );
 }

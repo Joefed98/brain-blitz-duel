@@ -179,7 +179,7 @@ await section("source rules", async () => {
   const body = fn.slice(fn.indexOf("{") + 1, fn.indexOf("\n}"));
   const prodAt = body.indexOf("if (import.meta.env.PROD) return true;");
   const flagAt = body.indexOf("__DUELZ_ALLOW_TOURNAMENTS__");
-  check(prodAt > 0 && flagAt > prodAt && (api.match(/__DUELZ_ALLOW_TOURNAMENTS__/g) ?? []).length === 3, "the check-only switch window.__DUELZ_ALLOW_TOURNAMENTS__ is read only after a production build has answered (import.meta.env.PROD)");
+  check(prodAt > 0 && flagAt > prodAt && body.includes('checkOverride<boolean>("__DUELZ_ALLOW_TOURNAMENTS__")') && (api.match(/__DUELZ_ALLOW_TOURNAMENTS__/g) ?? []).length === 2, "the check-only switch window.__DUELZ_ALLOW_TOURNAMENTS__ is read only after a production build has answered (import.meta.env.PROD), and only through checkOverride");
   const { TOURNAMENT_CRON } = await import("../src/lib/tournaments/tasks/tournamentsTick.server");
   const vite = readFileSync("vite.config.ts", "utf8");
   check(vite.includes(`"${TOURNAMENT_CRON}": ["tournaments:tick"]`) && vite.includes(`"tournaments:tick": { handler:`), "vite.config.ts schedules the tournaments' tick every 5 minutes");
@@ -247,6 +247,32 @@ async function runDb(db: LocalDb): Promise<void> {
     return out.out.trim();
   };
   const tryQ = (sql: string) => db.psql(sql);
+  // The kind check is widened, never narrowed (13 Nov 2026: this branch's first copy wrote the list out in full from
+  // before E2 and dropped daily_archive, which would have broken the Plus Daily archive live; found by W4d on a merged
+  // tree and by plus-check). The migration reads the kinds as they stand and adds score_attack.
+  const tmig = readFileSync("supabase/migrations/20261115200000_tournaments.sql", "utf8");
+  const kindsBlock = /DO \$kinds\$[\s\S]*?\$kinds\$;/.exec(tmig)?.[0] ?? "";
+  check(
+    /pg_get_constraintdef/.test(kindsBlock) && /UNION SELECT 'score_attack'/.test(kindsBlock) && !/'(daily_puzzle|daily_arcade|challenge|daily_archive)'/.test(tmig),
+    "the migration adds score_attack to async_rooms' kinds as they stand (read from the constraint), never writing the list out",
+  );
+  const kindCheck = q(`SELECT pg_get_constraintdef(oid) FROM pg_constraint WHERE conname = 'async_rooms_kind_check' AND conrelid = 'public.async_rooms'::regclass`);
+  const KINDS = ["daily_puzzle", "daily_arcade", "challenge", "daily_archive", "score_attack"];
+  check(KINDS.every((k) => kindCheck.includes(`'${k}'`)), `async_rooms' kind check keeps every earlier kind and adds score_attack (${kindCheck})`);
+  // Every kind really works: a room of each goes in after all the migrations (rolled back, nothing kept).
+  const insertKind = (k: string) =>
+    db.psql(`BEGIN; INSERT INTO public.async_rooms (kind, room_key, seed, round_count, opens_at, closes_at) VALUES ('${k}', 'kind-probe:${k}', 1, 1, now(), now() + interval '1 hour'); ROLLBACK;`);
+  const works = KINDS.map((k) => [k, insertKind(k).ok] as const);
+  check(works.every(([, ok]) => ok), `an async room of every kind can be made after the migrations (${works.map(([k, ok]) => `${k} ${ok ? "ok" : "REFUSED"}`).join(", ")})`);
+  check(!insertKind("no_such_kind").ok, "an unknown kind is still refused (the check is widened, not dropped)");
+  // A kind some other migration adds before this one survives it: re-run the block on a list with an extra kind.
+  const later = db.psql(`BEGIN;
+    ALTER TABLE public.async_rooms DROP CONSTRAINT async_rooms_kind_check;
+    ALTER TABLE public.async_rooms ADD CONSTRAINT async_rooms_kind_check CHECK (kind IN ('daily_puzzle', 'daily_arcade', 'challenge', 'daily_archive', 'zz_probe')) NOT VALID;
+    ${kindsBlock}
+    SELECT pg_get_constraintdef(oid) FROM pg_constraint WHERE conname = 'async_rooms_kind_check' AND conrelid = 'public.async_rooms'::regclass;
+    ROLLBACK;`);
+  check(later.ok && ["zz_probe", ...KINDS].every((k) => later.out.includes(`'${k}'`)), "re-run on a list with another migration's kind, the block keeps it and adds score_attack (idempotent, order-proof)");
   const server = await import("../src/lib/tournaments/tournaments.server");
   const fns = await import("../src/lib/tournaments/tournaments.functions");
   const data = await import("../src/lib/data/tournaments.server");

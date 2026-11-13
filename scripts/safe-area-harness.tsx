@@ -29,12 +29,20 @@ import { Route as ProfileRoute } from "@/routes/profile";
 import { Route as DailyRoute } from "@/routes/daily";
 import { Route as ChallengeRoute } from "@/routes/challenge";
 import { Route as TermsRoute } from "@/routes/terms";
+import { Route as FriendsRoute } from "@/routes/friends";
+import { Route as CustomiseRoute } from "@/routes/customise";
+import { setAccount } from "@/lib/account/accountApi";
 import { CelebrationLayer } from "@/components/fx/CelebrationLayer";
 import { NotFoundPage, RouteErrorScreen } from "@/components/app/AppErrorScreen";
 import { FirstOpen } from "@/components/app/FirstOpen";
 import { AccountSettings } from "@/components/account/AccountSettings";
 import { SignUpFlow } from "@/components/account/SignUpFlow";
+import { PhoneShell } from "@/components/duel/PhoneShell";
+import { DailyBoardScreen, RatingBoardsScreen } from "@/components/leaderboards/LeaderboardScreens";
+import { ukDayKey } from "@/lib/duel/daily";
+import type { HarnessBoards } from "./leaderboards-fixture";
 import { celebrationsOn } from "@/lib/fx/celebrations";
+import { RatedHarnessScreen } from "./rated-fixture";
 
 interface Verdict {
   isCorrect: boolean;
@@ -383,7 +391,78 @@ async function checkUsernameFn({ data }: { data: { username: string } }) {
   return { ok: true, username: data.username };
 }
 
+/* The leaderboards (leaderboards.functions.ts, wave 4 W4a) from window.__harnessBoards (scripts/leaderboards-fixture.ts). */
+const boards = () => (window as unknown as { __harnessBoards?: HarnessBoards }).__harnessBoards;
+async function ratingBoardFn({ data }: { data: { board: string } }) {
+  const b = boards();
+  if (!b) return { ok: false, reason: "error", message: "We couldn’t load the board. Try again in a moment." };
+  return { ok: true, page: data.board === "joulz" || data.board === "puzzles" || data.board === "arcade" ? b.rating : b.category };
+}
+async function dailyTopBoardFn({ data }: { data: { day?: string } }) {
+  const b = boards();
+  if (!b) return { ok: false, reason: "error", message: "We couldn’t load the board. Try again in a moment." };
+  return { ok: true, page: { ...b.daily, day: data.day ?? b.daily.day } };
+}
+async function boardVisibilityFn() {
+  const b = boards();
+  return b ? { ok: true, visibility: b.visibility } : { ok: false, reason: "account", message: "" };
+}
+
+/**
+ * Friends (wave 2 B1; theme-check, no-wrap-check): window.__harnessFriends holds the signed-in account, the list
+ * (with each player's card look, as the server sends it) and a friend's profile.
+ */
+type HarnessFriends = { account: unknown; overview: unknown; profile: unknown };
+const friendsFixture = () => (window as unknown as { __harnessFriends?: HarnessFriends }).__harnessFriends;
+async function friendsOverviewFn() {
+  return { ok: true, overview: friendsFixture()?.overview };
+}
+async function friendProfileFn() {
+  return { ok: true, profile: friendsFixture()?.profile };
+}
+async function friendsWaitingFn() {
+  return 1;
+}
+async function friendLinkFn() {
+  return { ok: true, token: "abcdefghjkmn", link: "https://joulz.uk/friends?invite=abcdefghjkmn" };
+}
+
+/**
+ * Customise (12 Nov 2026, the Games tab; theme-check, no-wrap-check): window.__harnessCustomise holds the signed-in
+ * account, the catalogue (docs/art/wave-2/catalogue.json), the items owned and the look slots equipped, served as A1's
+ * functions answer (economy.functions.ts). Absent, each answers nothing, as every other screen had it.
+ */
+type HarnessCustomise = { account: unknown; catalogue: unknown[]; owned: string[]; slots: Record<string, string | null> };
+const customiseFixture = () => (window as unknown as { __harnessCustomise?: HarnessCustomise }).__harnessCustomise;
+const customiseLoadout = () => ({
+  avatarId: "captain-joulz",
+  colour: 4,
+  gem: null,
+  avatar: { accent: null, feature: null, accessory: null, background: null },
+  slots: { "card-art": "card-art.joulz-navy", frame: "frame.plain", ...customiseFixture()?.slots },
+  equipped: {},
+  unlockedGems: [],
+});
+const ECONOMY: Record<string, (...args: never[]) => Promise<unknown>> = {
+  getCatalogue: async () => customiseFixture()?.catalogue.map((i) => {
+    const r = i as Record<string, unknown>;
+    return { ...r, priceCoins: r["shop_price_coins"] ?? null };
+  }) ?? null,
+  getMyWallet: async () => (customiseFixture() ? { account: true, balance: 1240 } : null),
+  getMyInventory: async () => customiseFixture()?.owned.map((id) => ({ id })) ?? null,
+  getMyLoadout: async () => (customiseFixture() ? customiseLoadout() : null),
+  getAvatarOptions: async () => (customiseFixture() ? {} : null),
+};
+
 const IMPLEMENTATIONS: Record<string, unknown> = {
+  ...ECONOMY,
+  friendsOverviewFn,
+  friendProfileFn,
+  friendsWaitingFn,
+  friendLinkFn,
+  ratingBoardFn,
+  dailyTopBoardFn,
+  boardVisibilityFn,
   checkUsernameFn,
   getIntroDemoFn,
   roundReplayFn,
@@ -469,6 +548,16 @@ if (mode === "saveprogress")
   } catch {
     /* ignore */
   }
+// Friends: the signed-in account the list belongs to, set before the first render (no server call).
+if (mode === "friends") {
+  const fixture = friendsFixture();
+  if (fixture) setAccount(fixture.account as never, null);
+}
+// Customise: the signed-in account, set before the first render.
+if (mode === "customise") {
+  const fixture = customiseFixture();
+  if (fixture) setAccount(fixture.account as never, null);
+}
 // Wave 1's root screens (src/components/app/AppErrorScreen.tsx, FirstOpen.tsx), drawn as the root route draws them.
 const ROOT_SCREENS: Record<string, () => JSX.Element> = {
   notfound: () => <NotFoundPage />,
@@ -481,6 +570,30 @@ const ROOT_SCREENS: Record<string, () => JSX.Element> = {
     if (settings) return <AccountSettings account={settings} onBack={() => undefined} />;
     return <SignUpFlow start="signin" account={{ kind: "guest", userId: null }} onDone={() => undefined} />;
   },
+  // The leaderboards (wave 4 W4a): the screens as their routes draw them, for an account (a guest with
+  // window.__harnessBoardsGuest), the day from ?day= (today's UK day otherwise).
+  leaderboards: () => (
+    <PhoneShell skin="profile" bare>
+      <RatingBoardsScreen onBack={() => undefined} isAccount={!(window as unknown as { __harnessBoardsGuest?: boolean }).__harnessBoardsGuest} />
+    </PhoneShell>
+  ),
+  dailyboard: () => {
+    const today = ukDayKey(Date.now());
+    const day = new URLSearchParams(location.search).get("day");
+    return (
+      <PhoneShell skin="profile" bare>
+        <DailyBoardScreen
+          onBack={() => undefined}
+          isAccount={!(window as unknown as { __harnessBoardsGuest?: boolean }).__harnessBoardsGuest}
+          kind="puzzle"
+          day={day}
+          today={today}
+        />
+      </PhoneShell>
+    );
+  },
+  // The rated match screens (wave 3, W3c): window.__harnessRated.screen, drawn from scripts/rated-fixture.tsx.
+  rated: () => <RatedHarnessScreen />,
   // The prompt due on the next tab page (seeded below): Profile draws it through PhoneShell's SaveProgressSlot.
   saveprogress: () => {
     const Profile = ProfileRoute.options.component as () => JSX.Element;
@@ -502,7 +615,11 @@ const Screen = ROOT_SCREENS[mode ?? ""] ?? (
               ? ChallengeRoute
               : mode === "terms"
                 ? TermsRoute
-                : PracticeRoute
+                : mode === "friends"
+                  ? FriendsRoute
+                  : mode === "customise"
+                    ? CustomiseRoute
+                    : PracticeRoute
 ).options.component as () => JSX.Element;
 createRoot(document.getElementById("root")!).render(
   <QueryClientProvider client={new QueryClient()}>

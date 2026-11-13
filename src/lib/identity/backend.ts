@@ -12,6 +12,8 @@
  * Checks stand in for A1 with `setIdentityBackend(fake)` (scripts/identity-screens-check.tsx).
  */
 
+import { SKIN_GAME_NAMES, type SkinnableGame } from "@/lib/arcade/skins/look";
+
 /** The rarity ladder (docs/art/wave-2/README.md): Common bronze, Rare silver, Epic gold, Elite obsidian, Legendary diamond. */
 export type Rarity = "common" | "rare" | "epic" | "elite" | "legendary";
 
@@ -39,7 +41,21 @@ export interface CatalogueItem {
 }
 
 /** The slots Customise equips (A1's `equip(slot, …)`). */
-export type LoadoutSlot = "card-art" | "frame" | "name-colour" | "avatar-finish" | "avatar-accessory" | "avatar-special-edition";
+export type LoadoutSlot =
+  | "card-art"
+  | "frame"
+  | "name-colour"
+  | "avatar-finish"
+  | "avatar-accessory"
+  | "avatar-special-edition"
+  // Wave 2 E2: the win celebration, the podium entrance, the Practice tile style and the four reaction slots.
+  | "celebration"
+  | "podium-entrance"
+  | "tile-style"
+  | "reaction-1"
+  | "reaction-2"
+  | "reaction-3"
+  | "reaction-4";
 export const LOADOUT_SLOTS: readonly LoadoutSlot[] = [
   "card-art",
   "frame",
@@ -47,7 +63,29 @@ export const LOADOUT_SLOTS: readonly LoadoutSlot[] = [
   "avatar-finish",
   "avatar-accessory",
   "avatar-special-edition",
+  "celebration",
+  "podium-entrance",
+  "tile-style",
+  "reaction-1",
+  "reaction-2",
+  "reaction-3",
+  "reaction-4",
 ];
+
+/**
+ * The game-look slots Customise's Games tab equips (12 Nov 2026): the account's one `card-back`, and per skinnable game
+ * `game-skin:<game>` and `world-theme:<game>` (src/lib/economy/slots.ts LOADOUT_SLOTS). A1's equip() takes them as it
+ * takes the card slots; the server checks the item is owned and belongs in that slot.
+ */
+export type LookSlot = "card-back" | `game-skin:${string}` | `world-theme:${string}`;
+export const isLookSlot = (slot: string): slot is LookSlot => /^(game-skin|world-theme):[a-z]+$|^card-back$/.test(slot);
+/** Every game-look slot: the card back, then each skinnable game's skin and world theme. */
+export const LOOK_SLOTS: readonly LookSlot[] = [
+  "card-back",
+  ...(Object.keys(SKIN_GAME_NAMES) as SkinnableGame[]).flatMap((g): LookSlot[] => [`game-skin:${g}`, `world-theme:${g}`]),
+];
+/** Any slot Customise saves through equip(). */
+export type EquipSlot = LoadoutSlot | LookSlot;
 
 /** The avatar builder's own options (A1's AvatarChoices), separate from the catalogue's avatar items. */
 export const AVATAR_OPTION_KINDS = ["accent", "feature", "accessory", "background"] as const;
@@ -68,6 +106,11 @@ export interface AvatarChoice {
 
 export interface Loadout {
   slots: Partial<Record<LoadoutSlot, string | null>>;
+  /**
+   * The look slots (wave 2 E1, skins): `game-skin:<game>`, `world-theme:<game>` and `card-back` → the equipped item's
+   * id or null. Only items the account owns can sit in a slot (A1's database refuses any other), so these are owned.
+   */
+  gameLooks?: Record<string, string | null>;
   avatar: AvatarChoice | null;
   /** Gems this account may use (none until C1). */
   unlockedGems?: string[];
@@ -94,7 +137,7 @@ export interface IdentityBackend {
   getMyInventory(): Promise<string[]>;
   getMyLoadout(): Promise<Loadout | null>;
   getAvatarOptions(): Promise<AvatarOptions>;
-  equip(slot: LoadoutSlot, itemId: string | null): Promise<Saved | Refusal>;
+  equip(slot: EquipSlot, itemId: string | null): Promise<Saved | Refusal>;
   setAvatar(choice: AvatarChoice): Promise<Saved | Refusal>;
   getPublicCard(playerId: string): Promise<PublicCard | null>;
 }
@@ -169,8 +212,35 @@ export function normaliseLoadout(raw: unknown): Loadout | null {
         choices,
       }
     : null;
+  const gameLooks: Record<string, string | null> = {};
+  for (const [slot, v] of Object.entries(slotsRaw)) {
+    if (!isLookSlot(slot)) continue;
+    if (typeof v === "string" && v.startsWith(`${slot.split(":")[0]}.`)) gameLooks[slot] = v;
+    else if (v === null) gameLooks[slot] = null;
+  }
   const unlocked = Array.isArray(r["unlockedGems"]) ? (r["unlockedGems"] as unknown[]).filter((g): g is string => typeof g === "string") : [];
-  return { slots, avatar, unlockedGems: unlocked };
+  return { slots, avatar, unlockedGems: unlocked, gameLooks };
+}
+
+/**
+ * Another player's card, from A1's getPublicCard: its flat shape (`username`, `playerNumber`, `founding`, `avatarId`,
+ * `colour`, `gem`, `avatar` choices, `cardArt`, `frame`, `nameColour`) read into a loadout. Until 11 Nov 2026 this
+ * answer was passed on as it came, so `loadout` was missing and a friend's profile drew the default card (Joe's phone
+ * check). A guest's default card (`account: false`) reads as null: guests show their colour and initial.
+ */
+export function normalisePublicCard(raw: unknown): PublicCard | null {
+  if (!raw || typeof raw !== "object") return null;
+  const r = raw as Record<string, unknown>;
+  if (r["account"] === false || typeof r["username"] !== "string") return null;
+  const loadout = normaliseLoadout({
+    slots: { "card-art": r["cardArt"] ?? null, frame: r["frame"] ?? null, "name-colour": r["nameColour"] ?? null },
+    avatarId: r["avatarId"],
+    colour: r["colour"],
+    gem: r["gem"],
+    avatar: r["avatar"],
+  });
+  if (!loadout) return null;
+  return { username: r["username"], playerNumber: num(r["playerNumber"]) ?? 0, founding: r["founding"] === true, loadout };
 }
 
 /** The option rows worth drawing for an avatar: only kinds with more than one choice (never an empty or single picker). */

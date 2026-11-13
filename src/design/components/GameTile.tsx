@@ -17,6 +17,7 @@ export function GameTile({
   best,
   charge,
   iconSize,
+  tileStyle,
   className,
   ...rest
 }: {
@@ -27,11 +28,13 @@ export function GameTile({
   charge?: number;
   /** An exact icon size where a screen keeps its own (44 on Practice rows). */
   iconSize?: number;
+  /** Wave 2 E2: the player's equipped tile style (Practice only); none draws the tile exactly as before. */
+  tileStyle?: string | null;
   className?: string;
 } & Omit<ButtonHTMLAttributes<HTMLButtonElement>, "type" | "name">) {
   const body = (
     <>
-      <GameIcon type={type} size={iconSize ?? PX[size]} />
+      <GameIcon type={type} size={iconSize ?? PX[size]} tileStyle={tileStyle ?? null} />
       {name !== undefined || best !== undefined || charge !== undefined ? (
         <span className="flex min-w-0 flex-1 flex-col gap-1">
           {name !== undefined ? <span className="jz-tile-name">{name}</span> : null}

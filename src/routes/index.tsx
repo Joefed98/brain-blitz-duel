@@ -13,6 +13,7 @@ import { PublicGameCard } from "@/components/app/PublicGameCard";
 import { DailyCard, shownDailyStatus, useDailyStatus } from "@/components/daily/DailyCard";
 import { ChallengeCard } from "@/components/challenge/ChallengeCard";
 import { PlaySlot } from "@/components/app/PlaySlot";
+import { RatedHome } from "@/components/rated/RatedHome";
 import { IntroCard } from "@/components/app/IntroCard";
 import { PlayerBadge } from "@/components/duel/PlayerBadge";
 import { PUBLIC_GAMES } from "@/config/publicGames";
@@ -314,6 +315,9 @@ function Home() {
           onPublic={() => goToTab(router, "play", "tournaments")}
         />
         </PlaySlot>
+
+        {/* Rated play (wave 3): testers only while rated play is testers only; nothing at all for anyone else. */}
+        <RatedHome />
 
         <div data-play-hero>
           <h1 className="ap-title" aria-label="Play live with friends">
