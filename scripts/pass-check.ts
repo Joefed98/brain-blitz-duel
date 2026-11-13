@@ -487,7 +487,7 @@ async function databaseChecks(db: LocalDb, rest: RestServer): Promise<void> {
     const byKind = (kind: string) => Number(q(`SELECT coalesce(sum(amount), 0) FROM pass_joules WHERE user_id = '${JOE}' AND season_id = 's1' AND kind = '${kind}'`));
     // Changed with Joe's approval, 13 Nov 2026: rooms no longer pay Joules (no row is written for a round or a finish).
     check(byKind("room_round") === 0 && byKind("room_finish") === 0 && Number(q(`SELECT count(*) FROM pass_joules WHERE user_id = '${JOE}' AND kind IN ('room_round', 'room_finish')`)) === 0, "a room: its rounds and its finish credit nothing");
-    check(byKind("daily_puzzle") === 200 && byKind("daily_arcade") === 200, "the Daily Puzzle and Daily Arcade: 200 each");
+    check(byKind("daily_puzzle") === 200 && byKind("daily_arcade") === 200, "the Daily Puzzle and Daily Arcade: 200 each"); // Changed with Joe's approval, 13 Nov 2026: the Joules rework raised each Daily from 150 to 200.
     check(byKind("challenge") === 500, "friend challenges: the first five a day (the copied room attempt pays nothing)");
     // Changed with Joe's approval, 13 Nov 2026: Practice games no longer pay Joules.
     check(byKind("practice") === 0, "Practice: counted runs credit nothing");
@@ -635,7 +635,7 @@ async function databaseChecks(db: LocalDb, rest: RestServer): Promise<void> {
     check(Number(q(`SELECT count(*) FROM pass_joules WHERE user_id = '${KIM}' AND kind IN ('room_round', 'room_finish', 'practice')`)) === 0, "Kim's rooms and Practice runs, either side of midnight, credit nothing");
     check(q(`SELECT count(*) FROM pass_joules WHERE user_id = '${KIM}' AND created_at::date <> uk_day AND uk_day = '${D2}'`) !== "0", "credited days later, still counted on the day of play");
     const later = await pass.passViewFor(admin, KIM, Date.now(), true);
-    check(later.open === true && day(D2) === 4525 && day(D3) === 350, "opening it again later changes nothing");
+    check(later.open === true && day(D2) === 4525 && day(D3) === 350, "opening it again later changes nothing"); // Changed with Joe's approval, 13 Nov 2026: the rebuilt UK-day proof's exact figures (Wednesday 4,525, Thursday 350; rooms and Practice no longer pay).
   });
 
   /* ------------------------------------------------------------- the Joules rework, end to end (13 Nov 2026) */
