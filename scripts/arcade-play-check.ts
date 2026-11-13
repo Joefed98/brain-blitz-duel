@@ -75,7 +75,7 @@
  */
 import { DESKTOP_MODES } from "../src/lib/duel/desktopModes";
 import { spawn, type ChildProcess } from "node:child_process";
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs"; // readdirSync: Changed with Joe's approval, 13 Nov 2026, vite's memory (viteRssMb)
 import { availableParallelism } from "node:os";
 
 import { ACTIVE_ARCADE_GAMES, ARCADE_FX_SPECS, ARCADE_PLAY_VIEWS, ENGINE_FX_SPECS, ENGINE_GAME_WORLDS } from "../src/lib/arcade/arcadeFxGames.renderer";
@@ -316,6 +316,59 @@ async function startServer(): Promise<{ origin: string; proc: ChildProcess | nul
   throw new Error("dev server did not start");
 }
 
+/**
+ * Changed with Joe's approval, 13 Nov 2026 (checks and infrastructure, item 2, Joe's choice "restart when large"): between games the desktop pass
+ * restarts its dev server when vite's own memory has passed RESTART_RSS_MB, then warms the fresh server (unmeasured)
+ * before the next game, so no game is ever measured on a cold server. Why: its server once ran out of memory late in
+ * play25 (about 3.9 GB, slow growth over a long run). Measured locally (13 Nov 2026): one server peaked at 3,239 MB
+ * RSS for the whole part, and a fresh one reaches ~3.4–3.5 GB within its first game (the first-deal compile), each
+ * restart costing ~45 s, so restarting before every game would take play25 past its time limit with no lower peak.
+ * A production preview can't serve this check: the page imports the games' source (/src/lib/arcade/*.ts) through the
+ * dev server. The phone passes keep one server (their frame-time baseline was recorded on one long-lived server).
+ */
+const RESTART_BETWEEN_GAMES = DESKTOP && !URL_ARG;
+/** Changed with Joe's approval, 13 Nov 2026: the line above which the desktop pass restarts its dev server between games (vite's RSS, MB). */
+const RESTART_RSS_MB = 3600;
+
+/** Changed with Joe's approval, 13 Nov 2026: the resident memory (MB) of the vite process in the server's process group (not npx or esbuild). */
+function viteRssMb(proc: ChildProcess | null): number | null {
+  if (!proc?.pid) return null;
+  let best: number | null = null;
+  try {
+    for (const pid of readdirSync("/proc")) {
+      if (!/^\d+$/.test(pid)) continue;
+      try {
+        const stat = readFileSync(`/proc/${pid}/stat`, "utf8");
+        const fields = stat.slice(stat.lastIndexOf(")") + 2).split(" ");
+        if (Number(fields[2]) !== proc.pid) continue; // its process group
+        const cmd = readFileSync(`/proc/${pid}/cmdline`, "utf8").split("\0");
+        if (!cmd.some((c) => /[\\/]vite(\.js)?$/.test(c) || /node_modules[\\/]\.bin[\\/]vite$/.test(c)) || !cmd.includes("dev")) continue;
+        if (cmd.some((c) => /(^|[\\/])(npx|npm)(\.c?js)?$/.test(c))) continue; // the npx wrapper
+        const rss = /VmRSS:\s+(\d+)/.exec(readFileSync(`/proc/${pid}/status`, "utf8"));
+        if (rss) best = Math.max(best ?? 0, Math.round(Number(rss[1]) / 1024));
+      } catch { /* gone */ }
+    }
+  } catch {
+    return null; // no /proc
+  }
+  return best;
+}
+
+/** Changed with Joe's approval, 13 Nov 2026 (the restart above): stops the server's whole process group and waits until its port answers no more. */
+async function stopServer(proc: ChildProcess | null, origin: string): Promise<void> {
+  if (!proc?.pid) return;
+  try { process.kill(-proc.pid, "SIGTERM"); } catch { /* already gone */ }
+  for (let i = 0; i < 60; i++) {
+    try {
+      await fetch(`${origin}/practice`, { signal: AbortSignal.timeout(1000) });
+    } catch {
+      return;
+    }
+    if (i === 20) try { process.kill(-proc.pid, "SIGKILL"); } catch { /* gone */ }
+    await new Promise((r) => setTimeout(r, 500));
+  }
+}
+
 async function main() {
   if (!existsSync(CHROMIUM)) {
     console.log(`FAIL: environment: no Chromium at ${CHROMIUM} (set PLAYWRIGHT_CHROMIUM)`);
@@ -341,24 +394,42 @@ async function main() {
     }
   }
   const baseline: Record<string, number> = existsSync(BASELINE_PATH) ? JSON.parse(readFileSync(BASELINE_PATH, "utf8")) : {};
-  const { origin, proc } = await startServer();
+  // Changed with Joe's approval, 13 Nov 2026: `proc` is let (the desktop pass replaces it between games, RESTART_BETWEEN_GAMES).
+  let { origin, proc } = await startServer();
   const browser = await chromium.launch({ executablePath: CHROMIUM });
   const results: Result[] = [];
+  let peakRssMb = 0;
+  let restarts = 0;
   try {
     // Compile the app once, unmeasured, so the first game's load does not race the cold dev server.
     if (games.length)
       await warmUp(browser, `${origin}/practice`, (page) =>
         practiceGameButton(page, games[0]!, 180_000).then(() => undefined));
     for (const [index, game] of games.entries()) {
+      // Changed with Joe's approval, 13 Nov 2026: past RESTART_RSS_MB, a fresh dev server, warmed (unmeasured) before this desktop game is played.
+      const before = RESTART_BETWEEN_GAMES && index > 0 ? viteRssMb(proc) : null;
+      if (before !== null && before > RESTART_RSS_MB) {
+        const started = Date.now();
+        await stopServer(proc, origin);
+        ({ origin, proc } = await startServer());
+        await warmUp(browser, `${origin}/practice`, (page) => practiceGameButton(page, game, 180_000).then(() => undefined));
+        restarts += 1;
+        console.log(`  dev server restarted before ${game}: vite at ${before} MB, over the ${RESTART_RSS_MB} MB line; fresh server warmed in ${Math.round((Date.now() - started) / 1000)} s (now ${viteRssMb(proc) ?? "?"} MB)`);
+      }
       const r = DESKTOP ? await desktopPlayJudged(browser, origin, game) : await playOne(browser, origin, game, baseline[game]);
       results.push(r);
+      // Changed with Joe's approval, 13 Nov 2026: vite's memory after each game (printed only; nothing is judged on it).
+      const rss = viteRssMb(proc);
+      if (rss !== null) peakRssMb = Math.max(peakRssMb, rss);
       // Progress as each game finishes (the full summary follows at the end).
-      console.log(`[${index + 1}/${games.length}] ${r.ok ? "ok  " : "FAIL"} ${game}${r.problems.length ? `: ${r.problems[0]}` : ""}`);
+      console.log(`[${index + 1}/${games.length}] ${r.ok ? "ok  " : "FAIL"} ${game}${rss !== null ? ` (dev server ${rss} MB)` : ""}${r.problems.length ? `: ${r.problems[0]}` : ""}`);
     }
   } finally {
     await browser.close();
     if (proc?.pid) try { process.kill(-proc.pid); } catch { /* already gone */ }
   }
+  // Changed with Joe's approval, 13 Nov 2026: the run's memory line.
+  if (peakRssMb) console.log(`dev server memory: peak ${peakRssMb} MB after a game; ${restarts} restart(s) over the ${RESTART_RSS_MB} MB line${RESTART_BETWEEN_GAMES ? "" : " (restarts only in the desktop pass)"}`);
   for (const r of results) {
     console.log(`${r.ok ? "ok  " : "FAIL"} ${r.game.padEnd(10)} runs ${String((r as Result & { runs?: number }).runs ?? 0).padStart(2)} · ticks ${String(r.ticks).padStart(4)} · timer ${r.timer[0]}→${r.timer[1]} s · frame ${r.meanFrameMs.toFixed(1)} ms (baseline ${baseline[r.game]?.toFixed(1) ?? "—"}) · max step ${r.maxStep.toFixed(1)} px/tick${r.maxStepAt ? ` (${r.maxStepAt})` : ""}${r.problems.length ? `\n       ${r.problems.join("\n       ")}` : ""}`);
   }

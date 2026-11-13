@@ -2,10 +2,9 @@
  * practice-goals-check (6 Nov 2026): Practice's mastery stars and challenges (src/lib/duel/practiceGoals.ts,
  * practiceChallenges.ts; device storage and presentation only).
  *
- *  1. Star thresholds: bronze at 120, silver at 160, gold at 190, from the practice best; every active game can reach
- *     gold (its round maximum is 200); the total is 3 for each active game (92 games: 276).
- *  2. A star once earned is kept: a fresh best under new stamps (or none) never lowers it; the star line names only a
- *     newly earned star.
+ *  1–2. (Changed with Joe's approval, 13 Nov 2026: the device stars these sections tested, bronze 120 / silver 160 /
+ *     gold 190 and the star line, are removed; stars live on the account, practice-progress-check.) The goals module
+ *     holds no device stars any more.
  *  3. The challenge list (the full catalogue since wave 2 C1b, 11 Nov 2026: 261 over the 92 active games, 217 Classic
  *     live, the 40 first ids kept): 2–4 for each active game, unique ids, built only from what each game already measures:
  *     an arcade part's label and maximum are the live spec's (LIVE_BANDS std and ARCADE_STANDARD), a puzzle's bonus and
@@ -15,7 +14,9 @@
  *     and the standard grader's extra for puzzles): a part's best in one run, a finish's bonus and speed, a single run's
  *     score (Tempo: 180 or more); partial runs, older (non-standard) puzzles and other games' runs never count; done stays done.
  *  5. Storage survives a reload (the record is read back from storage alone); corrupt or blocked storage falls back
- *     safely; the record is one key, never a practice best's.
+ *     safely; the record is one key, never a practice best's; (Changed with Joe's approval, 13 Nov 2026: the proof that
+ *     clearing the stored stars never disturbs the challenge record) a record stored with device stars keeps its
+ *     challenges exactly when the stars are dropped.
  *  6. Wiring: practice and the offline queue record every graded run's goals from the server's score and extra; the
  *     list, rows and intro show stars; the new-best moment carries the star line; nothing in rooms or the server
  *     imports the goals but the server's challenge checker and the Profile challenges section (Joe, 11 Nov 2026).
@@ -56,21 +57,17 @@ import { NUMBER_STANDARD } from "../src/lib/duel/standard/number";
 import { ASCEND_STD, CHAIN_STD, COUNT_STD, PAIR_STD, SPOT_STD } from "../src/lib/duel/standard/attention";
 import { STD_LOOKOUT, STD_ROUNDABOUT } from "../src/lib/duel/standard/word";
 import { numbersReport } from "./practice-challenge-numbers";
+// Changed with Joe's approval, 13 Nov 2026: STAR_THRESHOLDS, starLine, starTotal, starsFor and starsOf left out of this import (the device stars are removed).
 import {
   PRACTICE_GOALS_KEY,
-  STAR_THRESHOLDS,
   challengeState,
   readGoals,
   recordPracticeGoals,
   resetGoalsMemoryForChecks,
-  starLine,
-  starTotal,
-  starsFor,
-  starsOf,
 } from "../src/lib/duel/practiceGoals";
 import { PRACTICE_BEST_PREFIX } from "../src/lib/duel/practiceBest";
 import { ACTIVE_PUZZLE_TYPES } from "../src/lib/duel/registry";
-import { ROUND_MAX } from "../src/lib/duel/roundMax";
+// Changed with Joe's approval, 13 Nov 2026: ROUND_MAX no longer imported (only the removed gold-star reach line read it).
 import { standardFinish, standardUnfinished } from "../src/lib/duel/standard/shape";
 import { PATTERN_STD } from "../src/lib/duel/standard/patternRules";
 import { LOGIC_STANDARD } from "../src/lib/duel/standard/logicRules";
@@ -107,31 +104,11 @@ const wipe = () => {
   reload();
 };
 
-/* ------------------------------------------------------------------ 1. thresholds */
-check(STAR_THRESHOLDS.join() === "120,160,190", "thresholds are bronze 120, silver 160, gold 190");
-const cases: [number | null, number][] = [[null, 0], [0, 0], [119, 0], [120, 1], [159, 1], [160, 2], [189, 2], [190, 3], [200, 3], [NaN, 0]];
-for (const [score, tier] of cases) check(starsFor(score) === tier, `starsFor(${score}) is ${tier} (got ${starsFor(score)})`);
-for (let s = 0; s <= 200; s++) check(starsFor(s) === (s >= 190 ? 3 : s >= 160 ? 2 : s >= 120 ? 1 : 0), `starsFor(${s})`);
-for (const t of ACTIVE_PUZZLE_TYPES) check(ROUND_MAX[t] >= 190, `${t}: its round maximum (${ROUND_MAX[t]}) reaches gold`);
-wipe();
-const total = starTotal(ACTIVE_PUZZLE_TYPES, () => null);
-check(total.total === ACTIVE_PUZZLE_TYPES.length * 3 && total.earned === 0, `the total is 3 a game: 0 / ${total.total}`);
-check(ACTIVE_PUZZLE_TYPES.length === 92 && total.total === 276, `92 active games, 276 stars (got ${ACTIVE_PUZZLE_TYPES.length}, ${total.total})`);
-const some = starTotal(ACTIVE_PUZZLE_TYPES, (t) => (t === "unblock" ? 165 : t === "pinball" ? 190 : t === "flood" ? 120 : null));
-check(some.earned === 6, `bests 165, 190 and 120 earn 2 + 3 + 1 = 6 (got ${some.earned})`);
-
-/* ------------------------------------------------------------------ 2. stars kept */
-wipe();
-let r = recordPracticeGoals("unblock", 125, null, 125);
-check(r.starsBefore === 0 && r.starsAfter === 1 && starLine(r) === "Bronze star earned", "a first run of 125 earns bronze, with its star line");
-r = recordPracticeGoals("unblock", 110, null, 125);
-check(r.starsAfter === 1 && starLine(r) === null, "a lower run earns nothing and shows no star line");
-r = recordPracticeGoals("unblock", 195, null, 195);
-check(r.starsBefore === 1 && r.starsAfter === 3 && starLine(r) === "Gold star earned", "a jump to 195 names the gold star");
-check(starsOf("unblock", null) === 3 && starsOf("unblock", 130) === 3, "a fresh best under new stamps (or none) keeps the stars earned");
-r = recordPracticeGoals("unblock", 140, null, 140);
-check(r.starsAfter === 3 && starLine(r) === null, "a run under new stamps never lowers the stars or repeats a line");
-check(starsOf("lightsout", 170) === 2, "a best kept before goals existed still shows its stars");
+/* ------------------------------------------------------------------ 1–2. the retired device stars */
+// Changed with Joe's approval, 13 Nov 2026: sections 1 (thresholds, starsFor, the gold reach, starTotal's 3 a game and 276) and 2 (stars kept,
+// starLine, starsOf) are removed with the device stars they tested (stars only; stars live on the account since wave 2
+// C1a, practice-progress-check). The 92 active games stay pinned in section 3.
+check(!/STAR_THRESHOLDS|function starsFor|function starsOf|function starTotal|function starLine|STAR_NAMES/.test(readFileSync("src/lib/duel/practiceGoals.ts", "utf8")), "the device stars are gone from the goals module");
 
 /* ------------------------------------------------------------------ 3. the list */
 // APPROVED by Joe, 11 Nov 2026, change (1): was `PRACTICE_CHALLENGES.length === 40`; now 261, 217 Classic and live.
@@ -329,19 +306,39 @@ reload();
 check(JSON.stringify(readGoals()) === before, "the record reads back the same after a reload");
 check(store.has(PRACTICE_GOALS_KEY) && [...store.keys()].every((k) => !k.startsWith(PRACTICE_BEST_PREFIX)), "one goals key, never a practice best's");
 reload();
-check(starsOf("pinball", null) === 2 && challengeState(joulz).status === "done" && challengeState(PRACTICE_CHALLENGES.find((c) => c.id === "pinball.multiball")!).value === 15, "after a reload: stars and challenge progress from storage alone");
+// Changed with Joe's approval, 13 Nov 2026: the stars half (starsOf("pinball", null) === 2) dropped with the device stars; the challenge half unchanged.
+check(challengeState(joulz).status === "done" && challengeState(PRACTICE_CHALLENGES.find((c) => c.id === "pinball.multiball")!).value === 15, "after a reload: challenge progress from storage alone");
 store.set(PRACTICE_GOALS_KEY, "{not json");
 reload();
-check(JSON.stringify(readGoals()) === JSON.stringify({ v: 1, stars: {}, challenges: {} }), "corrupt storage reads as an empty record");
+// Changed with Joe's approval, 13 Nov 2026: the empty record no longer has a stars field (was { v: 1, stars: {}, challenges: {} }).
+check(JSON.stringify(readGoals()) === JSON.stringify({ v: 1, challenges: {} }), "corrupt storage reads as an empty record");
 store.set(PRACTICE_GOALS_KEY, JSON.stringify({ stars: { pinball: 9, x: "y" }, challenges: { "pinball.joulz": { value: -4 }, bad: 3 } }));
 reload();
 const cleaned = readGoals();
-check(cleaned.stars["pinball"] === 3 && !("x" in cleaned.stars) && cleaned.challenges["pinball.joulz"]?.value === 0 && !("bad" in cleaned.challenges), "stored values are held to their ranges");
+// Changed with Joe's approval, 13 Nov 2026: the stars half (cleaned.stars held to 0–3) dropped; the stored stars are now ignored, the challenges half unchanged.
+check(!("stars" in cleaned) && cleaned.challenges["pinball.joulz"]?.value === 0 && !("bad" in cleaned.challenges), "stored values are held to their ranges (stored stars ignored)");
 wipe();
 blocked = true;
-const b = recordPracticeGoals("unblock", 170, null, 170);
-check(b.starsAfter === 2 && starsOf("unblock", null) === 2, "blocked storage: the session still keeps its stars");
+// Changed with Joe's approval, 13 Nov 2026: the blocked-storage star assertion (b.starsAfter === 2, starsOf === 2) becomes the same proof on a challenge.
+recordPracticeGoals("pinball", 165, arcadeExtra("pinball", { core: 130, joulz: 20, multiball: 15 }), 165);
+check(challengeState(joulz).status === "done" && !store.has(PRACTICE_GOALS_KEY), "blocked storage: the session still keeps its challenge progress");
 blocked = false;
+
+// Added with Joe's approval, 13 Nov 2026: clearing the stored device stars never disturbs the challenge record. A record
+// written before the change (stars beside challenges) reads its challenges exactly; the next run's write drops only the
+// stars, keeps every stored challenge (done ones with their dates) and adds the new progress; nothing else is touched.
+wipe();
+const oldChallenges = { "pinball.joulz": { value: 20, done: "2026-11-09" }, "pinball.multiball": { value: 7 }, "unblock.par": { value: 4 } };
+store.set(PRACTICE_GOALS_KEY, JSON.stringify({ v: 1, stars: { pinball: 3, unblock: 2 }, challenges: oldChallenges }));
+reload();
+check(JSON.stringify(readGoals().challenges) === JSON.stringify(oldChallenges), "a record stored with stars reads its challenges exactly");
+recordPracticeGoals("lightsout", 120, null, 120);
+const rewritten = JSON.parse(store.get(PRACTICE_GOALS_KEY) ?? "{}") as Record<string, unknown>;
+const kept = rewritten["challenges"] as Record<string, unknown>;
+check(!("stars" in rewritten) && rewritten["v"] === 1 && Object.entries(oldChallenges).every(([id, c]) => JSON.stringify(kept[id]) === JSON.stringify(c)) && Object.keys(kept).every((id) => id in oldChallenges || id.startsWith("lightsout.")), `the next write drops the stars and keeps every stored challenge as it was, adding only the run's game (${JSON.stringify(rewritten)})`);
+recordPracticeGoals("pinball", 150, arcadeExtra("pinball", { core: 110, joulz: 0, multiball: 15 }), 150);
+const after = readGoals().challenges;
+check(after["pinball.joulz"]?.done === "2026-11-09" && after["pinball.multiball"]?.value === 15 && after["unblock.par"]?.value === 4, "a later run still keeps done challenges and their dates and raises progress");
 
 /* ------------------------------------------------------------------ 6. wiring */
 const practice = readFileSync("src/routes/practice.tsx", "utf8");

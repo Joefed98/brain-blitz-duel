@@ -9,10 +9,13 @@
  *   17 / 9 / 8 by rarity, every Legendary pays 250; the art in public/art/badges is the approved SVGs byte for byte;
  *   the titles are the brief's 32 (Rookie and 31 badge titles), each tied to a real badge; the database's rows match;
  * - the catalogue is Joe's approved one (docs/badges/catalogue.md's table, every rule shown, none "announced soon");
- *   each earnable badge has a rule here or is awarded elsewhere (Friendly, B1), each rule a test that earns it and one
- *   that just misses (pure, and on stored rooms, Dailies, challenges and gems through public.badge_facts); no badge
- *   that waits (all stars, Hard challenges, Daily boards, tournaments) can be awarded; rated play's 13 are earnable
- *   (wave 3 W3a; ratings-check earns them through real matches); locked counted badges carry their progress;
+ *   each earnable badge has a rule here or is awarded elsewhere (Friendly by B1, the seven tournament badges by W4b,
+ *   Swiss Champion and Knockout Champion by W4c), each rule a test that earns it and one that just misses (pure, and on
+ *   stored rooms, Dailies, challenges and gems through public.badge_facts). 40 are earnable: among them C1a's stars and
+ *   gems (First Star, All-Rounder, Gem Hunter), C1b's Practice challenges (the Challenger badges), rated play's 13
+ *   (wave 3 W3a; ratings-check earns them through real matches), W4a's Daily boards (Daily Champion, Daily Top 100)
+ *   and W4b's and W4c's tournaments. The 14 that still wait (all three stars per game: the 12 masters; Hard and Expert
+ *   challenges: Category Clear, Completionist) can't be awarded; locked counted badges carry their progress;
  * - awards are idempotent; a Legendary pays 250 once; the sign-up reward pays 1,000 once, at sign-up and after the
  *   backfill, whichever comes first; the backfill pays every existing account and every Founding Player (badge with
  *   number, 250, the Founding frame) and a second run adds nothing;
