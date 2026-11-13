@@ -86,7 +86,7 @@ const L = { ...(await import("../src/lib/arcade/skins/look")), ...(await import(
   check(!cat.items.some((i) => i.id.startsWith("game-skin.free-cell.") || i.game === "Free Cell"), "no catalogue item is a Free Cell skin any more");
   check(JSON.stringify([...L.ANIMATED_LOOKS].sort()) === JSON.stringify([...skins, ...worlds, ...backs].filter((i) => i.animated).map((i) => i.id).sort()), "the animated looks are exactly the catalogue's animated items");
   check(Object.keys(L.SKIN_GAME_NAMES).sort().join() === Object.values(names).sort().join(), "the six games with skins (Free Cell has none)");
-  check(L.CARD_BACK_GAMES.join() === "pokersquares", "the card back draws on Full House's deck only");
+  check(L.CARD_BACK_GAMES.join() === "pokersquares,tripeaks,pyramid,fivehands", "the card back draws on Full House, Summit, Thirteen and Five Hands (face-down cards)"); // Changed with Joe's approval, 13 Nov 2026: card backs reach Summit, Thirteen and Five Hands (docs/cosmetics-review).
   const slotsSrc = readFileSync("src/lib/economy/slots.ts", "utf8");
   check(/"card-back"/.test(slotsSrc) && !/"Free Cell"\s*:/.test(slotsSrc), "the slot config has the card-back slot and no Free Cell game slot");
 }

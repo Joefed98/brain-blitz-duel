@@ -10,7 +10,8 @@
 -- and can withdraw one the same way:
 --   SELECT economy.withdraw_item('card-art.lava', 'why');
 -- Restoring an item also gives it to everyone it was owed to while withdrawn: a starter to every account, a season
--- reward to every season_rewards row naming it, the Championship frame to every recorded winner (pass levels are
+-- reward to every season_rewards row naming it, the Championship frame to every recorded winner, the Top 500 frame to
+-- every holder of the Top 500 badge (pass levels are
 -- claimed by the player as usual; the Founding frame is settled on each visit).
 --
 -- Additive: two columns, functions replaced with the same signatures. No stored row is rewritten but the flag.
@@ -139,6 +140,12 @@ BEGIN
        WHERE season_id = r.season_id AND season_start = r.season_start AND user_id = r.user_id;
     END IF;
   END LOOP;
+  -- The Top 500 frame (Joe, 13 Nov 2026): given with the Top 500 badge, so to every holder of the badge.
+  IF p_item_id = 'frame.top-500' THEN
+    FOR r IN SELECT user_id FROM public.player_badges WHERE badge = 'top-500' LOOP
+      IF economy.add_item(r.user_id, p_item_id, 'earned') = 'granted' THEN v_given := v_given + 1; END IF;
+    END LOOP;
+  END IF;
   IF p_item_id = 'frame.championship' THEN
     FOR r IN SELECT DISTINCT user_id FROM public.tournament_awards WHERE kind = 'frame' LOOP
       IF economy.add_item(r.user_id, p_item_id, 'earned') = 'granted' THEN v_given := v_given + 1; END IF;

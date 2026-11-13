@@ -130,6 +130,7 @@ export function baseDigests(): BaseDigests {
   const t1 = performance.now();
   const frames: Record<string, Record<string, string>> = {};
   let deck: Record<string, string> = {};
+  // Changed with Joe's approval, 13 Nov 2026: Summit, Thirteen and Five Hands drawn on main too (their card backs).
   for (const part of ["pool", "minigolf", "curling", "racing", "freekick", "freecell", "pokersquares", "tripeaks", "pyramid", "fivehands", "deck"]) {
     const child = spawnSync("bun", [join("scripts", "skins", "dump-base.ts"), `--part=${part}`], { cwd: tmp, encoding: "utf8", maxBuffer: 1 << 26 });
     const line = (child.stdout ?? "").split("\n").find((l) => l.startsWith("JSON "));

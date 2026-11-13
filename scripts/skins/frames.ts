@@ -20,6 +20,9 @@ import { createHash } from "node:crypto";
 };
 
 export const SKIN_GAMES = ["pool", "minigolf", "curling", "racing", "freekick", "freecell", "pokersquares", "tripeaks", "pyramid", "fivehands"] as const;
+// Changed with Joe's approval, 13 Nov 2026: Summit, Thirteen and Five Hands added (card backs on their face-down cards).
+// Their default digests were appended to scripts/fixtures/skins-default-frames.json, drawn on main f268bcd's own
+// renderers (every earlier entry byte-identical).
 /** The card games that draw only the account's card back (13 Nov 2026, Joe: Summit, Thirteen, Five Hands; face-down cards). */
 export const BACK_ONLY_GAMES = ["tripeaks", "pyramid", "fivehands"] as const;
 export type SkinGame = (typeof SKIN_GAMES)[number];

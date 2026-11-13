@@ -124,6 +124,8 @@ export async function runSpecs(): Promise<RunSpec[]> {
       draw: (ctx, s, look) => CardsR.withCardsLook(look, () => art.draw(ctx, s, { width: PsR.PS_WORLD_W, height: PsR.PS_WORLD_H })),
     });
   }
+  // Changed with Joe's approval, 13 Nov 2026: 12 runs appended to scripts/fixtures/skins-replay-runs.json (the 28 earlier
+  // runs byte-identical).
   // Summit, Thirteen and Five Hands (13 Nov 2026, Joe): the account's card back on their face-down cards. Appended after
   // the seven above, so the recorder's per-spec streams (prng by position) leave every earlier run as recorded.
   const Tp = await import("../../src/lib/arcade/cards/tripeaks");

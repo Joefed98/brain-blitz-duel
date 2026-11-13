@@ -18,9 +18,12 @@
  *     it was owed to (starters, season rewards, recorded Championship winners), logged; economy.withdraw_item takes one
  *     away, logged; neither is reachable by anon, authenticated or the service role.
  *  7. Customise lists a withdrawn item only for its owner.
- *  8. The Card Table bundle is Proposal A (Aurora in place of the Full House felts and Royal; 5,500).
+ *  8. The Card Table bundle is Proposal A (Aurora in place of the Full House felts and Royal; 5,500), on sale once Joe
+ *     restored the three card backs (20261116600200); a bundle still holding a withdrawn item stays unsold.
  *  9. Card backs: Summit, Thirteen and Five Hands draw the account's back (and only the back); a result in those games
  *     stores it; other games don't.
+ * 10. The Top 500 frame: given with the Top 500 badge (Joe, 13 Nov 2026), dormant while withdrawn; restoring it gives it
+ *     to every badge holder.
  *
  *   bun scripts/cosmetics-withdrawn-check.ts   (~10 s; needs the PostgreSQL 16 binaries, as economy-check)
  */
@@ -57,16 +60,20 @@ const { catalogueItems } = await import("./catalogue-files");
 const ITEMS = catalogueItems<Item>();
 const MIGRATION = readFileSync("supabase/migrations/20261116600000_catalogue_withdrawn.sql", "utf8");
 const WITHDRAWN = [...MIGRATION.slice(MIGRATION.indexOf("FROM (VALUES")).matchAll(/\('([a-z0-9.-]+)'\)/g)].map((m) => m[1]!);
-const W = new Set(WITHDRAWN);
+/** Joe's restores since (13 Nov 2026: the card backs, 20261116600200_restore_card_backs.sql). */
+const RESTORE = readFileSync("supabase/migrations/20261116600200_restore_card_backs.sql", "utf8");
+const RESTORED = new Set([...RESTORE.matchAll(/economy\.restore_item\('([a-z0-9.-]+)'/g)].map((m) => m[1]!));
+const W = new Set(WITHDRAWN.filter((id) => !RESTORED.has(id)));
 
 /* =================================================================== pure */
 {
-  check(WITHDRAWN.length === 72 && W.size === 72, `the migration withdraws 72 items, each once (${WITHDRAWN.length})`);
+  check(WITHDRAWN.length === 72 && new Set(WITHDRAWN).size === 72, `the migration withdraws 72 items, each once (${WITHDRAWN.length})`);
+  check([...RESTORED].sort().join() === "card-back.holo-foil,card-back.neon,card-back.royal-damask" && W.size === 69, `Joe restored the three card backs, one line each: 69 stay withdrawn (${W.size})`);
   check(WITHDRAWN.every((id) => ITEMS.some((i) => i.id === id)), "every withdrawn id is a catalogue item");
   const review = readFileSync("docs/cosmetics-review/verdicts.json", "utf8");
   const verdicts = JSON.parse(review) as Record<string, string>;
   const notKeep = ITEMS.filter((i) => verdicts[i.id] !== "Keep").map((i) => i.id).sort();
-  check(JSON.stringify([...W].sort()) === JSON.stringify(notKeep), "exactly the review's items not marked Keep are withdrawn");
+  check(JSON.stringify([...WITHDRAWN].sort()) === JSON.stringify(notKeep), "exactly the review's items not marked Keep are withdrawn");
   check(ITEMS.every((i) => verdicts[i.id] !== undefined), "every catalogue item has a verdict");
   const { sellable } = await import("../src/lib/shop/dailyShop");
   check(!sellable({ source: "shop", exclusive: false, priceCoins: 1000, rarity: "epic", withdrawn: true }) && sellable({ source: "shop", exclusive: false, priceCoins: 1000, rarity: "epic", withdrawn: false }), "sellable refuses a withdrawn shop item, keeps a live one");
@@ -166,10 +173,15 @@ async function databaseChecks(db: LocalDb): Promise<void> {
     q(`INSERT INTO shop_days (day, items, rarities, backups) VALUES ('${today}', ARRAY['${day.items.join("','")}'], ARRAY['${day.rarities.join("','")}'], '${JSON.stringify(day.backups)}'::jsonb)`);
     const view = await shop.shopViewFor(admin, ANA, NOW, "daily");
     check(view.open === true && view.today.length === 4 && view.today.every((c) => !W.has(c.id)), `a recorded day's withdrawn pick shows a backup in its place (${view.open ? view.today.map((c) => c.id).join(", ") : "closed"})`);
-    check(view.open === true && view.bundle === null, "Card Table's week (its backs withdrawn): no bundle");
-    check(q(`SELECT count(*) FROM shop_weeks`) === "0", "and nothing recorded for the week");
-    const bb = await shop.buyBundle(admin, ANA, "00000000-0000-4000-8000-000000000999", NOW);
-    check(bb.ok === false && bb.reason === "not_today", "buying the week's bundle is refused");
+    check(view.open === true && view.bundle?.id === "card-table" && view.bundle.items.map((i) => i.id).join() === "card-back.holo-foil,card-back.royal-damask,card-art.aurora,card-art.crimson,card-art.emerald" && view.bundle.price === 5500, "Card Table's week (Proposal A, its backs restored): on sale for 5,500");
+    // A week whose bundle still holds a withdrawn item: no bundle, nothing recorded, buying refused (no partial bundles).
+    const later = Date.parse("2026-11-25T12:00:00Z"); // week 3, Black and Gold (Obsidian, Shockwave withdrawn)
+    q(`INSERT INTO shop_days (day, items, rarities, backups) SELECT '2026-11-25', items, rarities, backups FROM shop_days WHERE day = '${today}'`);
+    const v3 = await shop.shopViewFor(admin, ANA, later, "daily");
+    check(v3.open === true && v3.bundle === null, "Black and Gold's week (Obsidian and Shockwave withdrawn): no bundle");
+    check(q(`SELECT count(*) FROM shop_weeks WHERE week_start = '2026-11-23'`) === "0", "and nothing recorded for that week");
+    const bb = await shop.buyBundle(admin, ANA, "00000000-0000-4000-8000-000000000999", later);
+    check(bb.ok === false && bb.reason === "not_today", "buying that week's bundle is refused");
   });
 
   await section("the pass", async () => {
@@ -221,10 +233,23 @@ async function databaseChecks(db: LocalDb): Promise<void> {
     q(`SELECT economy.restore_item('card-art.royal', 'check')`);
     check(q(`SELECT count(*) FROM catalogue_shop WHERE id = 'card-art.royal'`) === "1", "restored: back in the shop query (one line)");
     check(q(`SELECT economy.withdraw_item('card-art.royal', 'check: again')`) === "withdrawn" && q(`SELECT count(*) FROM catalogue_shop WHERE id = 'card-art.royal'`) === "0", "economy.withdraw_item takes one away (one line)");
-    check(Number(q(`SELECT count(*) FROM economy.admin_log WHERE action IN ('restore_item', 'withdraw_item')`)) === 6, "every restore and withdrawal is logged");
+    check(Number(q(`SELECT count(*) FROM economy.admin_log WHERE action IN ('restore_item', 'withdraw_item')`)) === 9, "every restore and withdrawal is logged (the migration's three card backs too)");
     check(/note/.test(refused(`SELECT economy.restore_item('card-art.lava', '')`)), "a note is required");
     for (const role of ["anon", "authenticated", "service_role"])
       check(/permission denied/.test(refused(`SET LOCAL ROLE ${role}; SELECT economy.restore_item('card-art.lava', 'x')`)) && /permission denied/.test(refused(`SET LOCAL ROLE ${role}; SELECT economy.withdraw_item('card-art.lava', 'x')`)), `${role} can't reach Joe's withdraw and restore`);
+  });
+
+  await section("the Top 500 frame", async () => {
+    const { grantTop500Frame } = await import("../src/lib/rated/rewards.server");
+    check((await grantTop500Frame(admin, CAL)) === "no_badge" && !owns(CAL, "frame.top-500"), "no Top 500 badge: no frame");
+    q(`INSERT INTO player_badges (user_id, badge) VALUES ('${CAL}', 'top-500')`);
+    economy.forgetCatalogueCache();
+    check((await grantTop500Frame(admin, CAL)) === "withdrawn" && !owns(CAL, "frame.top-500"), "with the badge, while the frame is withdrawn: dormant, nothing given");
+    const r = JSON.parse(q(`SELECT economy.restore_item('frame.top-500', 'check')`)) as { given: number };
+    check(r.given === 1 && owns(CAL, "frame.top-500") && q(`SELECT how FROM inventory_items WHERE user_id = '${CAL}' AND item_id = 'frame.top-500'`) === "earned", "restored: every badge holder gets it, earned");
+    check((await grantTop500Frame(admin, CAL)) === "owned", "and the grant at the badge's moment answers owned after that (kept forever)");
+    const src = readFileSync("src/lib/rated/rewards.server.ts", "utf8");
+    check(/const \{ awarded \} = await evaluateBadges\(client, userId, nowMs\);\s*await grantTop500Frame\(client, userId\);/.test(src), "the frame is given where the rated badges are awarded (the same moment as the badge)");
   });
 
   await section("card backs stored with results", async () => {

@@ -364,6 +364,10 @@ export const SHARDS: Record<string, string[]> = {
     // packs and the £ line, then buying, bundles, test packs, the wishlist and the tester list on a local PostgreSQL
     // through the server-function harness, beside economy-check.
     "shop-check.ts",
+    // cosmetics-withdrawn-check (13 Nov 2026, ~10 s): withdrawn cosmetics offered nowhere, owners keep them, Joe's
+    // one-line restore, the Top 500 frame's grant and card backs on Summit, Thirteen and Five Hands, on a local PostgreSQL
+    // through the server-function harness, beside shop-check.
+    "cosmetics-withdrawn-check.ts",
     // plus-check (wave 2 E2, 13 Nov 2026, ~20 s): Joulz Plus (test purchases, the monthly perks across month
     // boundaries, the premium pass binding, the PLUS chip), early access, the Daily archive kept off boards, streaks
     // and badges, and the public cosmetics, on a local PostgreSQL through the server-function harness.
