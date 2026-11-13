@@ -22,7 +22,6 @@ import {
   DAILY_ROUNDS,
   DAILY_TITLE,
   isDailyKind,
-  rankLine,
   type DailyBoardView,
   type DailyKind,
   type DailyState,
@@ -50,7 +49,8 @@ import { OnlineOnly } from "@/components/offline/OnlineOnly";
 import { Button, Icon, Input, Segmented, SkeletonPage } from "@/design/components";
 import { GUEST_NAME_MAX } from "@/lib/names/username";
 import { NameSuggestions } from "@/components/account/AccountParts";
-import { useAccountName } from "@/lib/account/accountApi";
+import { useAccount, useAccountName } from "@/lib/account/accountApi";
+import { dailyTopPlaceLine, useDailyTopPlace, type DailyTopPlace } from "@/lib/leaderboards/dailyPlace";
 
 /** The streak on these counted and freeze-covered days (the server's rule, no new freezes used). */
 const dailyStreak = (played: string[], frozen: string[], today: string): number =>
@@ -104,11 +104,16 @@ function closesIn(ms: number): string {
   return hours > 0 ? `Closes in ${hours}h ${minutes % 60}m` : `Closes in ${minutes}m`;
 }
 
-function stateLine(kind: DailyKind, state: DailyState, count: number | null): string {
+/**
+ * The card's line. A finished Daily shows the score and, for an account, its place on the Daily top 100 (Joe, 13 Nov
+ * 2026: one board); a guest's shows the score alone.
+ */
+function stateLine(kind: DailyKind, state: DailyState, place: DailyTopPlace | null): string {
   if (state.state === "play") return `${DAILY_ROUNDS[kind]} rounds, one go`;
   if (state.state === "continue")
     return `${state.roundsDone} of ${DAILY_ROUNDS[kind]} rounds played`;
-  return `${state.total} ${state.total === 1 ? "point" : "points"}, ${rankLine(state.rank, count, ordinal)}`;
+  const points = `${state.total} ${state.total === 1 ? "point" : "points"}`;
+  return place?.rank ? `${points}, ${ordinal(place.rank)}` : points;
 }
 
 /** A neutral segmented control (Polish batch R): the selected segment a light fill, never gold. */
@@ -152,6 +157,10 @@ function DailyScreen() {
   // A refused name's three suggestions; a signed-in player's board name is their username.
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const accountName = useAccountName();
+  // Your place: an account's on today's Daily top 100, read again once a Daily is finished; a guest has none.
+  const isAccount = useAccount().kind === "account";
+  const finishedKey = status ? `${status.puzzle.state}:${status.arcade.state}:${mode.kind}` : "";
+  const topPlace = useDailyTopPlace(kind, isAccount, finishedKey);
   const [look, setLook] = useState<PlayerLook>({ colour: 0, icon: null });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -307,9 +316,7 @@ function DailyScreen() {
         roomId={mode.roomId}
         view={mode.view}
         title={DAILY_TITLE[kind]}
-        placeLine={
-          me && board ? (me.rank === null ? null : rankLine(me.rank, board.count, ordinal)) : null
-        }
+        placeLine={topPlace?.rank ? dailyTopPlaceLine(topPlace.rank) : null}
         onBoard={openTop100}
         boardLabel="Leaderboard"
         share={mode.view.finished ? <DailyShareButton kind={kind} total={mode.view.total} /> : undefined}
@@ -388,7 +395,7 @@ function DailyScreen() {
             <div className="flex items-baseline justify-between gap-2">
               <p className="th-kicker text-primary">Today, {DAILY_TITLE[kind]}</p>
               <p className="whitespace-nowrap text-[13px] text-muted-foreground">
-                {stateLine(kind, state, state.state === "done" ? state.count : null)}
+                {stateLine(kind, state, topPlace)}
               </p>
             </div>
             {state.state === "play" && editingName && !accountName ? (
@@ -475,6 +482,7 @@ function DailyScreen() {
               lockedNote={lockedNote}
               share={board.me ? <DailyShareButton kind={kind} total={board.me.total} /> : undefined}
               onTop100={openTop100}
+              place={isAccount ? (topPlace ?? { rank: null, note: null }) : null}
             />
           ) : (
             <SkeletonPage label="Loading the board" rows={2} />

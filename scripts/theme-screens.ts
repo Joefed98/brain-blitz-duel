@@ -638,7 +638,7 @@ export const ROOM_IDENTITY_SCREENS = (): ThemeScreen[] => {
     text: ["Good luck everyone!", "That last round was close", "gg", "Rematch after this?"][i]!,
     created_at: at,
   }));
-  const globals = { __harnessRoomCards: cards };
+  const globals = { __harnessRoomCards: { cards, hiddenOutside: ["p2"] } };
   return [
     { name: "identity: lobby, 10 players with cards", mode: "room", room: room("waiting", "starting", { players: 10 }), globals, sizes: ALL_SIZES, waitMs: 1500 },
     { name: "identity: round leaderboard, 10 players with cards", mode: "room", room: room("in_progress", "result", { players: 10, rounds: 2 }), globals, sizes: ALL_SIZES, waitMs: 2500 },

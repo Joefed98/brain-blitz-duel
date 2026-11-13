@@ -2912,6 +2912,7 @@ export type Database = {
       moderation_status: { Args: { p_user_id: string }; Returns: Json }
       moderation_ack: { Args: { p_user_id: string; p_kind: string; p_detail?: Json | null }; Returns: boolean }
       network_key: { Args: { p_address: string }; Returns: string }
+      players_hidden_outside: { Args: { p_user_ids: string[] }; Returns: string[] }
       public_profiles: {
         Args: { p_user_ids: string[] }
         Returns: {

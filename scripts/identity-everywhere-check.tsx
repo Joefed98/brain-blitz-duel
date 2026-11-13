@@ -21,6 +21,9 @@
  *     the lobby (remembered for the next room) and sign-up starts from it; the room's card reads take ids from seats
  *     through one helper (`cardIdOf`).
  *  4. The shared LiveTag's text on its red is at least 4.5:1.
+ *  5. The share card's image (it leaves the room): hidden players (under-18s, opted-out adults, accounts waiting for
+ *     deletion; the room's one card answer) read "Hidden player" (Joe, 13 Nov 2026).
+ *  6. /daily's own line: an account's place on the Daily top 100, a guest's score with no place (Joe, 13 Nov 2026).
  */
 import { existsSync, readFileSync } from "node:fs";
 
@@ -76,7 +79,8 @@ const uid = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, "0"
 const HOST = uid(1); // an adult with every card cosmetic and a badge
 const KID = uid(2); // 15
 const GONE = uid(3); // an account waiting for deletion
-const GUESTS = [4, 5, 6, 7, 8, 9, 10].map(uid);
+const OPTOUT = uid(4); // an adult who opted out of the boards ("Show me on leaderboards" off)
+const GUESTS = [5, 6, 7, 8, 9, 10].map(uid);
 const OUTSIDER = uid(20);
 const LATE = uid(21); // the 11th, a guest
 
@@ -115,11 +119,13 @@ async function runDb(db: LocalDb, rest: RestServer): Promise<void> {
   const { adminDb } = await import("../src/lib/data/db.server");
   const client = await adminDb();
 
-  q(`INSERT INTO auth.users (id) VALUES ${[HOST, KID, GONE, ...GUESTS, OUTSIDER, LATE].map((u) => `('${u}')`).join(", ")}`);
+  q(`INSERT INTO auth.users (id) VALUES ${[HOST, KID, GONE, OPTOUT, ...GUESTS, OUTSIDER, LATE].map((u) => `('${u}')`).join(", ")}`);
   q(`SET session_replication_role = replica; INSERT INTO public.profiles (user_id, username, username_key, colour, date_of_birth, player_number) VALUES
     ('${HOST}', 'Ana_Gold', 'ana_gold', 7, DATE '${born(30)}', 42),
     ('${KID}', 'Kiddo', 'kiddo', 12, DATE '${born(15)}', 44),
-    ('${GONE}', 'Leaving', 'leaving', 3, DATE '${born(40)}', 45)`);
+    ('${GONE}', 'Leaving', 'leaving', 3, DATE '${born(40)}', 45),
+    ('${OPTOUT}', 'Quiet_One', 'quiet_one', 9, DATE '${born(35)}', 46)`);
+  q(`INSERT INTO public.leaderboard_settings (user_id, show_on_boards) VALUES ('${OPTOUT}', false)`);
   for (const [item, slot] of [["card-art.grid", "card-art"], ["frame.gold", "frame"], ["name-colour.gold-leaf", "name-colour"]] as const) {
     q(`SELECT public.economy_grant_item('${HOST}', '${item}', 'grant')`);
     check(q(`SELECT public.economy_equip('${HOST}', '${slot}', '${item}')`) === "equipped", `the check's account equips ${item}`);
@@ -134,7 +140,7 @@ async function runDb(db: LocalDb, rest: RestServer): Promise<void> {
     roomId = made.roomId;
     roomCode = made.roomCode;
     check(/^[0-9a-f-]{36}$/.test(roomId), "the host makes a room through createRoomFn");
-    const joiners: [string, string][] = [[KID, "Kid"], [GONE, "Gone"], ...GUESTS.map((g, i): [string, string] => [g, `Guest${i + 1}`])];
+    const joiners: [string, string][] = [[KID, "Kid"], [GONE, "Gone"], [OPTOUT, "Quiet"], ...GUESTS.map((g, i): [string, string] => [g, `Guest${i + 1}`])];
     for (const [user, name] of joiners) {
       const joined = await callServerFn(duel.joinRoomFn, { roomCode, displayName: name, via: "code" }, userToken(user));
       check(joined?.ok !== false, `${name} joins through joinRoomFn`);
@@ -147,32 +153,38 @@ async function runDb(db: LocalDb, rest: RestServer): Promise<void> {
 
   await section("one batched read", async () => {
     const before = rest.log.length;
-    const cards = await callServerFn(cardsFns.roomCardsFn, { roomId }, userToken(GUESTS[0]!));
+    const answer = await callServerFn(cardsFns.roomCardsFn, { roomId }, userToken(GUESTS[0]!));
+    const cards = answer.cards;
     const reqs = rest.log.slice(before).map((r) => `${r.method} ${r.path}`);
     const count = (re: RegExp) => reqs.filter((r) => re.test(r)).length;
     check(count(/economy_public_cards/) === 1, `one public-cards read for the room of 10, not one per player (${reqs.join(" | ")})`);
     check(count(/badge_public_cards/) === 1, "one card-badges read for the room");
     check(count(/\/profiles/) === 1, "one profiles read for the room");
     check(count(/\/duel_players/) === 1, "one seats read for the room");
-    check(reqs.length <= 8, `the whole answer is a handful of reads (${reqs.length}), whatever the room's size`);
+    check(count(/players_hidden_outside/) === 1, "one hidden-outside read for the room");
+    check(reqs.length <= 9, `the whole answer is a handful of reads (${reqs.length}), whatever the room's size`);
     const keys = Object.keys(cards ?? {});
-    check(keys.length === 2 && keys.includes(seatOf(HOST)) && keys.includes(seatOf(KID)), `cards for the two visible accounts, keyed by seat (${keys.join()})`);
-    const text = JSON.stringify(cards);
+    check(keys.length === 3 && [HOST, KID, OPTOUT].every((u) => keys.includes(seatOf(u))), `cards for the three accounts with a card, keyed by seat (${keys.join()})`);
+    // Joe, 13 Nov 2026: who reads "Hidden player" on anything that leaves the room (the share card's image).
+    const hidden = [...answer.hiddenOutside].sort();
+    check(JSON.stringify(hidden) === JSON.stringify([KID, GONE, OPTOUT].map(seatOf).sort()), `hidden outside the room: the under-18, the account waiting for deletion and the opted-out adult, never the host or a guest (${hidden.join()})`);
+    const text = JSON.stringify(answer);
     check(![HOST, KID, GONE, ...GUESTS].some((u) => text.includes(u)), "no account id in the answer (cards are keyed by seat)");
     const host = cards[seatOf(HOST)];
     check(host?.card.cardArt === "card-art.grid" && host.card.frame === "frame.gold" && host.card.nameColour === "name-colour.gold-leaf" && host.card.badges.join() === "friendly" && host.playerNumber === 42, "the host's card: card art, frame, name colour, badges, player number");
     const kid = cards[seatOf(KID)];
     check(!!kid && kid.card.colour === 12, "inside their own room the under-18 is shown with their card (direct opponents)");
+    check(!!cards[seatOf(OPTOUT)], "inside their own room the opted-out adult is shown with their card");
     check(!(seatOf(GONE) in cards) && GUESTS.every((g) => !(seatOf(g) in cards)), "guests and the account waiting for deletion have no card (their room colour and initial)");
 
     // Ten more seats would still be one read: a room of 16 (the cap) costs the same four reads.
     const out = await callServerFn(cardsFns.roomCardsFn, { roomId }, userToken(OUTSIDER));
-    check(JSON.stringify(out) === "{}", "a caller with no seat in the room gets nothing");
+    check(JSON.stringify(out) === JSON.stringify({ cards: {}, hiddenOutside: [] }), "a caller with no seat in the room gets nothing");
     const late = await callServerFn(duel.joinRoomFn, { roomCode, displayName: "Late" }, userToken(LATE));
     check(late?.ok !== false, "an 11th player joins");
     const before2 = rest.log.length;
     const again = await callServerFn(cardsFns.roomCardsFn, { roomId }, userToken(LATE));
-    check(rest.log.slice(before2).filter((r) => /economy_public_cards/.test(r.path)).length === 1 && Object.keys(again).length === 2, "after a join the room's cards are one read again, for the newcomer too");
+    check(rest.log.slice(before2).filter((r) => /economy_public_cards/.test(r.path)).length === 1 && Object.keys(again.cards).length === 3, "after a join the room's cards are one read again, for the newcomer too");
   });
 
   await section("outside the room", async () => {
@@ -208,7 +220,7 @@ async function runDb(db: LocalDb, rest: RestServer): Promise<void> {
   const { Standings } = await import("../src/components/duel/Standings");
   const { RoundResultsTable } = await import("../src/components/duel/RoundResultsTable");
   const { Podium } = await import("../src/components/duel/Podium");
-  type RoomCards = import("../src/lib/identity/roomCards").RoomCards;
+  type RoomCardsAnswer = import("../src/lib/identity/roomCards").RoomCardsAnswer;
   type Standing = import("../src/lib/duel/scoring").Standing;
   type PlayerLooks = import("../src/lib/duel/playerLook").PlayerLooks;
 
@@ -230,10 +242,12 @@ async function runDb(db: LocalDb, rest: RestServer): Promise<void> {
     title: null,
     ...extra,
   });
-  const CARDS: RoomCards = {
+  const CARD_MAP = {
     "seat-1": { card: card(7, { cardArt: "card-art.grid", frame: "frame.gold", nameColour: "name-colour.gold-leaf", badges: ["friendly"], title: "rookie" }), playerNumber: 42, tier: "volt" },
     "seat-2": { card: card(12), playerNumber: 44, tier: null },
   };
+  // Seat 2 (an under-18, shown with their card inside the room) reads "Hidden player" outside it.
+  const CARDS: RoomCardsAnswer = { cards: CARD_MAP, hiddenOutside: ["seat-2"] };
   let fetches = 0;
   setRoomCardsFetcher(async () => {
     fetches++;
@@ -338,6 +352,52 @@ async function runDb(db: LocalDb, rest: RestServer): Promise<void> {
     check(top.every((li) => !li.querySelector(".th-score, [data-medal]")), "no score or medal on a podium card");
     await act(async () => root.unmount());
     el.remove();
+  });
+
+  // Joe, 13 Nov 2026: the share card's image leaves the room, so hidden players read "Hidden player" on it.
+  await section("share card", async () => {
+    resetRoomCards();
+    const { roomShareData } = await import("../src/lib/share/roomShare");
+    const duel = { id: "room-1", room_code: "ABCD", round_count: 1, round_order: ["sudoku"], puzzles_public: [{}], tournament_history: [], selected_categories: [] };
+    const seatRows = [1, 2, 3].map((slot) => ({ id: `seat-${slot}`, duel_id: "room-1", player_slot: slot, display_name: nameOf(slot), user_id: `u${slot}`, status: "active", colour: slot, icon: null }));
+    const results = [1, 2, 3].map((slot) => ({ id: `r${slot}`, duel_id: "room-1", player_slot: slot, round_number: 1, score: 200 - slot * 10, is_correct: true, ms_remaining: 1000, answer: null, extra: null }));
+    let top = "";
+    function Probe() {
+      const hiddenSlots = RP.useRoomHiddenOutside();
+      top = JSON.stringify(roomShareData({ duel, players: seatRows, results, me: seatRows[2], origin: "https://joulz.uk", hiddenSlots } as never).top.map((t) => t.name));
+      return null;
+    }
+    const { el, root } = await mount(() => React.createElement(Probe));
+    check(top === JSON.stringify([LONG, "Hidden player", "Guest3"]), `the share card's top three: hidden players read "Hidden player" (${top})`);
+    await act(async () => root.unmount());
+    el.remove();
+    const outside = roomShareData({ duel, players: seatRows, results, me: seatRows[2], origin: "https://joulz.uk" } as never).top.map((t) => t.name);
+    check(JSON.stringify(outside) === JSON.stringify([LONG, "Kiddo", "Guest3"]), "with no hidden seats the card keeps every name (unchanged for rooms without any)");
+  });
+
+  // Joe, 13 Nov 2026: /daily's own line shows an account's place on the Daily top 100; a guest's the score, no place.
+  await section("daily own line", async () => {
+    const { DailyYou } = await import("../src/components/daily/DailyYou");
+    const board = { day: "2026-11-13", open: true, count: 45, rows: [], me: { rank: 3, total: 742, rounds: [150, 160], finished: true, name: "Nova" } };
+    const draw = async (place: unknown) => {
+      const el = document.createElement("div") as unknown as HTMLElement;
+      document.body.appendChild(el as unknown as Node);
+      const root = createRoot(el as unknown as Element);
+      await act(async () => root.render(React.createElement(DailyYou, { board, lockedNote: "Finish today’s 2 rounds.", onTop100: () => {}, place } as never)));
+      const text = el.querySelector("[data-daily-rank]")?.textContent ?? "";
+      const note = el.querySelector("[data-daily-place-note]")?.textContent ?? "";
+      const total = el.textContent?.includes("742") ?? false;
+      await act(async () => root.unmount());
+      el.remove();
+      return { text, note, total };
+    };
+    const account = await draw({ rank: 12, note: null });
+    check(account.text === "You, 12th on the Daily top 100" && account.total, `an account's line: their place on the Daily top 100 (${account.text})`);
+    const pending = await draw({ rank: null, note: "Your place shows within a few minutes." });
+    check(pending.text === "You, finished" && pending.note === "Your place shows within a few minutes.", "an account not on the board yet: no place, the board's own reason");
+    const guest = await draw(null);
+    check(guest.text === "You, finished" && !guest.note && guest.total && !/\d+(st|nd|rd|th)/.test(guest.text), `a guest's line: the score, no place (${guest.text})`);
+    check(!/rankLine\(/.test(readFileSync("src/routes/daily.tsx", "utf8")) && /stateLine\(kind, state, topPlace\)/.test(readFileSync("src/routes/daily.tsx", "utf8")), "/daily's card and results take the place from the Daily top 100 only (no old-board rank)");
   });
 
   await section("chat mini card", async () => {

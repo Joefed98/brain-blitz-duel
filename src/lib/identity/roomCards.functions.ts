@@ -9,21 +9,21 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { isUuid } from "@/lib/duel/dbError";
 
-import type { RoomCards } from "./roomCards";
+import { NO_ROOM_CARDS, type RoomCardsAnswer } from "./roomCards";
 
 export const roomCardsFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { roomId: string }) => ({ roomId: String(input?.roomId ?? "") }))
-  .handler(async ({ data, context }): Promise<RoomCards> => {
-    if (!isUuid(data.roomId)) return {};
+  .handler(async ({ data, context }): Promise<RoomCardsAnswer> => {
+    if (!isUuid(data.roomId)) return NO_ROOM_CARDS;
     const { adminDb } = await import("@/lib/data/db.server");
     const client = await adminDb();
     const { PUBLIC_CARD_LIMIT, withinRateLimit } = await import("@/lib/duel/rateLimit.server");
-    if (!(await withinRateLimit(client, context.userId, PUBLIC_CARD_LIMIT))) return {};
+    if (!(await withinRateLimit(client, context.userId, PUBLIC_CARD_LIMIT))) return NO_ROOM_CARDS;
     const { roomCardsFor } = await import("./roomCards.server");
     try {
-      return (await roomCardsFor(client, data.roomId, context.userId, Date.now())) ?? {};
+      return (await roomCardsFor(client, data.roomId, context.userId, Date.now())) ?? NO_ROOM_CARDS;
     } catch {
-      return {};
+      return NO_ROOM_CARDS;
     }
   });

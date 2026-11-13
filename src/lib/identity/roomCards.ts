@@ -18,6 +18,28 @@ export interface RoomSeatCard {
 export type RoomCards = Record<string, RoomSeatCard>;
 
 /**
+ * The room's one card answer: the cards by seat, and the seats that read "Hidden player" on anything that leaves the
+ * room (the share card's image; Joe, 13 Nov 2026): an under-18 by default, an adult who opted out, an account waiting
+ * for deletion (the leaderboards' rule). Inside the room those players are still shown as usual.
+ */
+export interface RoomCardsAnswer {
+  cards: RoomCards;
+  hiddenOutside: string[];
+}
+
+export const NO_ROOM_CARDS: RoomCardsAnswer = { cards: {}, hiddenOutside: [] };
+
+/** A server answer read safely (anything else draws every seat on its room look, nobody hidden). */
+export function readRoomCardsAnswer(value: unknown): RoomCardsAnswer {
+  if (!value || typeof value !== "object") return NO_ROOM_CARDS;
+  const v = value as Partial<RoomCardsAnswer>;
+  return {
+    cards: v.cards && typeof v.cards === "object" ? v.cards : {},
+    hiddenOutside: Array.isArray(v.hiddenOutside) ? v.hiddenOutside.filter((s): s is string => typeof s === "string") : [],
+  };
+}
+
+/**
  * How a room draws one of its players: their card when they have one (an account, under-18s included: inside their
  * own room the other players are direct opponents and see them as usual), else the room's colour and initial or icon
  * (a guest, an account waiting for deletion, or before the cards arrive). Never "Hidden player" inside the room.

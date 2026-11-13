@@ -459,7 +459,7 @@ const ECONOMY: Record<string, (...args: never[]) => Promise<unknown>> = {
   getAvatarOptions: async () => (customiseFixture() ? {} : null),
 };
 
-/* A room's player cards (roomCards.functions.ts, 13 Nov 2026) from window.__harnessRoomCards (seat id → card); none if unset. */
+/* A room's player cards (roomCards.functions.ts, 13 Nov 2026) from window.__harnessRoomCards ({ cards, hiddenOutside }); none if unset. */
 async function roomCardsFn() {
   return (window as unknown as { __harnessRoomCards?: unknown }).__harnessRoomCards ?? {};
 }

@@ -98,8 +98,8 @@ export const SHARDS: Record<string, string[]> = {
   // The page skin (19 Oct 2026): theme-check and no-wrap-check's draws (the daily screens joined 21 Oct 2026: locally
   // theme-check ~2 min, no-wrap-check ~4 min whole). no-wrap-check in sixths since 4 Nov 2026: its thirds reached 281–300 s
   // on CI against the 300 s limit per check (#261's play17); two sixths here, four on play17, the same two jobs.
-  // theme-check in halves since 13 Nov 2026 (one identity everywhere: the room screens drawn at every size took it past
-  // its 600 s limit locally); the second half joins play17.
+  // Changed with Joe's approval, 13 Nov 2026: theme-check in halves (one identity everywhere: the room screens drawn at
+  // every size took it past its 600 s limit locally); part 1 here, part 2 on play17.
   play16: ["theme-check.tsx@1/2", "no-wrap-check.tsx@1/6", "no-wrap-check.tsx@2/6"],
   // share-check (21 Oct 2026: the podium's Share button, its text, link, clipboard fallback and card in the
   // harness, ~1 min with its dev server) rides with no-wrap's other four sixths.

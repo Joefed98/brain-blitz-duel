@@ -17,18 +17,20 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, t
 
 import { MiniCard, NameplateFullCard, NameplateSheet, NameplateStrip, nameplateLook, nameplateOpens, type NameplatePlayer } from "@/design/identity";
 import type { PlayerLook } from "@/lib/duel/playerLook";
-import { roomNameplate, type RoomCards, type RoomSeatCard } from "@/lib/identity/roomCards";
+import { roomNameplate, type RoomCardsAnswer, type RoomSeatCard } from "@/lib/identity/roomCards";
 
 import { PlayerBadge } from "./PlayerBadge";
 
 interface RoomCardsValue {
   /** The seat card for a slot (none for a guest, or before the cards arrive). */
   seatOf: (slot: number) => RoomSeatCard | undefined;
+  /** The slots that read "Hidden player" on anything leaving the room (the share card). */
+  hiddenOutside: ReadonlySet<number>;
   open: (player: NameplatePlayer) => void;
 }
 
 interface RoomCardsState {
-  cards: RoomCards;
+  cards: RoomCardsAnswer;
   /** Seat id (duel_players.id) by slot. */
   slots: ReadonlyMap<number, string>;
 }
@@ -46,11 +48,18 @@ export function RoomCardsHost({ children }: { children: ReactNode }) {
   const seatOf = useCallback(
     (slot: number) => {
       const id = state?.slots.get(slot);
-      return id ? state?.cards[id] : undefined;
+      return id ? state?.cards.cards[id] : undefined;
     },
     [state],
   );
-  const value = useMemo<RoomCardsValue>(() => ({ seatOf, open: setShown }), [seatOf]);
+  const hiddenOutside = useMemo(() => {
+    const out = new Set<number>();
+    if (!state) return out;
+    const hidden = new Set(state.cards.hiddenOutside);
+    for (const [slot, id] of state.slots) if (hidden.has(id)) out.add(slot);
+    return out;
+  }, [state]);
+  const value = useMemo<RoomCardsValue>(() => ({ seatOf, hiddenOutside, open: setShown }), [seatOf, hiddenOutside]);
   return (
     <PublishContext.Provider value={setState}>
       <RoomCardsContext.Provider value={value}>
@@ -62,7 +71,7 @@ export function RoomCardsHost({ children }: { children: ReactNode }) {
 }
 
 /** The room screen hands its cards (useRoomCards) and seats to the host; cleared when it leaves. */
-export function usePublishRoomCards(cards: RoomCards, seats: readonly { id: string; player_slot: number }[]): void {
+export function usePublishRoomCards(cards: RoomCardsAnswer, seats: readonly { id: string; player_slot: number }[]): void {
   const publish = useContext(PublishContext);
   const key = seats.map((s) => `${s.player_slot}:${s.id}`).join(",");
   useEffect(() => {
@@ -187,4 +196,14 @@ export function PodiumCards({
       })}
     </ol>
   );
+}
+
+const NO_SLOTS: ReadonlySet<number> = new Set();
+
+/**
+ * The room's slots that read "Hidden player" on anything that leaves the room (the share card's image; Joe, 13 Nov 2026).
+ * Empty outside a room.
+ */
+export function useRoomHiddenOutside(): ReadonlySet<number> {
+  return useContext(RoomCardsContext)?.hiddenOutside ?? NO_SLOTS;
 }

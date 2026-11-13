@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 
-import { rankLine, type DailyBoardView } from "@/lib/duel/daily";
-import { ordinal } from "@/lib/duel/ordinal";
+import type { DailyBoardView } from "@/lib/duel/daily";
+import { dailyTopPlaceLine, type DailyTopPlace } from "@/lib/leaderboards/dailyPlace";
 import { Icon } from "@/design/components";
 
 /**
@@ -15,6 +15,7 @@ export function DailyYou({
   lockedNote,
   share,
   onTop100,
+  place,
 }: {
   board: DailyBoardView;
   /** What opens today's place ("Finish today's 6 rounds to see the board."). */
@@ -23,6 +24,11 @@ export function DailyYou({
   share?: ReactNode;
   /** Opens the Daily top 100 for this daily. */
   onTop100: () => void;
+  /**
+   * An account's place on the Daily top 100 (Joe, 13 Nov 2026: one board); null for a guest, whose line shows the score
+   * without a place.
+   */
+  place: DailyTopPlace | null;
 }) {
   const me = board.me;
   return (
@@ -35,7 +41,7 @@ export function DailyYou({
                 {me.name} <span className="rs-you">(you)</span>
               </span>
               <span className="whitespace-nowrap text-[13px] font-semibold text-[var(--ap-text-2)]" /* design-lint-ignore: moved unchanged from the old DailyBoard */ data-daily-rank>
-                {me.finished || board.open ? `You, ${rankLine(me.rank, board.count, ordinal)}` : "You, not finished"}
+                {!me.finished ? "You, not finished" : place?.rank ? `You, ${dailyTopPlaceLine(place.rank)}` : "You, finished"}
               </span>
             </span>
             <span className="th-score shrink-0 text-3xl tabular-nums text-foreground">{me.total}</span>
@@ -48,6 +54,11 @@ export function DailyYou({
               </span>
             ))}
           </div>
+          {me.finished && place && !place.rank && place.note ? (
+            <p data-daily-place-note data-wrap-ok className="rs-sub">
+              {place.note}
+            </p>
+          ) : null}
           {me.finished && share ? <div className="flex">{share}</div> : null}
         </section>
       ) : !board.open ? (

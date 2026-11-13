@@ -4,6 +4,7 @@
  * totals, the top three's names, the round games and the room code — never an answer, a puzzle, a
  * board or a round's details (share-check proves no answer reaches it).
  */
+import { HIDDEN_PLAYER_NAME } from "@/design/identity/nameplate";
 import { roomScoringMode } from "@/lib/duel/scoringMode";
 import { APP_NAME } from "@/lib/brand";
 import { gameRecord } from "@/lib/duel/deviceHistory";
@@ -72,6 +73,11 @@ export function roomShareData(input: {
   results: RoundResultRow[];
   me: DuelPlayerRow;
   origin: string;
+  /**
+   * The slots that read "Hidden player" on the image (Joe, 13 Nov 2026: it leaves the room): under-18s by default,
+   * adults who opted out, accounts waiting for deletion (the room's card answer, roomCards.ts).
+   */
+  hiddenSlots?: ReadonlySet<number>;
 }): RoomShareData {
   const { duel, players, results, me } = input;
   const record = gameRecord(duel, players, results, me);
@@ -96,7 +102,7 @@ export function roomShareData(input: {
     top: table
       .filter((row) => row.position <= 3)
       .slice(0, 3)
-      .map((row) => ({ place: row.position, name: row.name, total: row.total })),
+      .map((row) => ({ place: row.position, name: input.hiddenSlots?.has(row.slot) ? HIDDEN_PLAYER_NAME : row.name, total: row.total })),
     games: [...(duel.round_order ?? [])].slice(0, rounds),
     roomCode: duel.room_code,
     duelId: duel.id,

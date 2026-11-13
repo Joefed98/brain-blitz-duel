@@ -415,9 +415,13 @@ if (SHOTS) mkdirSync(SHOTS, { recursive: true });
 try {
   // Each screen at the first viewport, then a screen's extra sizes (ThemeScreen.sizes, from 13 Nov 2026).
   const draws = [...SCREENS.map((screen) => ({ screen, viewport: VIEWPORT })), ...SCREENS.flatMap((screen) => (screen.sizes ?? []).map((viewport) => ({ screen, viewport })))];
-  // --part=k/n (13 Nov 2026): every n-th draw from the k-th, as no-wrap-check splits its draws; together the parts judge
-  // exactly what one whole run does (the intro colours run in part 1).
-  for (const { screen, viewport } of partOf(draws, args)) {
+  // Changed with Joe's approval, 13 Nov 2026: theme-check runs in halves (play16 part 1, play17 part 2); with the room
+  // screens drawn at every size the whole run passed its 600 s limit. --part=k/n takes every n-th draw from the k-th,
+  // as no-wrap-check splits its draws; together the parts judge exactly what one whole run does (the intro colours
+  // run in part 1).
+  const mine = partOf(draws, args);
+  console.log(`theme-check: ${mine.length} of ${draws.length} draws (${new Set(mine.map((d) => d.screen.name)).size} screens) in this run`);
+  for (const { screen, viewport } of mine) {
     const where = `${screen.name} (${viewport.name})`;
     const problems: string[] = [];
     try {
@@ -498,6 +502,7 @@ try {
     );
     if (VERBOSE) for (const p of problems.slice(1)) console.log(`    ${p}`);
   }
+  // Changed with Joe's approval, 13 Nov 2026: the intro colours are drawn once, in part 1 (or a whole run).
   const firstPart = !args.some((a) => a.startsWith("--part=")) || args.includes("--part=1/" + (args.find((a) => a.startsWith("--part="))?.split("/")[1] ?? ""));
   if (firstPart && (!ONLY.length || ONLY.some((o) => "intro colours".includes(o)))) await introColours();
 } finally {

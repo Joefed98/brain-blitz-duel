@@ -378,8 +378,9 @@ if (BROWSER) {
   const { chromium } = await import("playwright");
   const browser = await chromium.launch(CHROMIUM ? { executablePath: CHROMIUM } : {});
   const viewports = VIEWPORTS.filter((v) => !v.desktop);
-  // Changed with Joe's approval, 13 Nov 2026: Profile's "Your look" (and its colour wheel) is retired; the wheel is drawn
-  // only in the lobby now, which ROOM_16_SCREENS' "lobby, 16 players, colour wheel" already covers.
+  // Changed with Joe's approval, 13 Nov 2026: Profile's "Your look" (and its colour wheel) is retired, so the Profile
+  // wheel is no longer drawn here and its line "Profile greys out no swatches" is removed (below); the wheel is
+  // drawn only in the lobby now, which ROOM_16_SCREENS' "lobby, 16 players, colour wheel" already covers.
   const screens = [...ROOM_16_SCREENS()];
   let drawn = 0;
 
@@ -485,7 +486,9 @@ if (BROWSER) {
                 return r.top < window.innerHeight && r.bottom > 0;
               });
               check(inView, `${where}: the wheel opened out of view`);
-            } else check(taken.length === 0 && wheel.every((s) => !s.disabled), `${where}: Profile greys out swatches`);
+            }
+            // Changed with Joe's approval, 13 Nov 2026: the line "Profile greys out no swatches" is removed with the
+            // Profile colour wheel (retired); every wheel drawn here is a lobby's, checked above.
             await common(page, where, lobby ? 16 : 1);
           } else if (screen.name.startsWith("round leaderboard") || screen.name.startsWith("standings")) {
             await pinned(page, where);

@@ -5,9 +5,9 @@
  */
 import { useEffect, useState } from "react";
 
-import { roomCardsKey, type RoomCards } from "./roomCards";
+import { NO_ROOM_CARDS, readRoomCardsAnswer, roomCardsKey, type RoomCardsAnswer } from "./roomCards";
 
-type Fetcher = (roomId: string) => Promise<RoomCards>;
+type Fetcher = (roomId: string) => Promise<RoomCardsAnswer>;
 let fetcher: Fetcher | null = null;
 
 /** Checks only: stands in for the server (null: the real call). */
@@ -15,21 +15,21 @@ export function setRoomCardsFetcher(next: Fetcher | null): void {
   fetcher = next;
 }
 
-async function fetchRoomCards(roomId: string): Promise<RoomCards> {
-  if (fetcher) return fetcher(roomId);
+async function fetchRoomCards(roomId: string): Promise<RoomCardsAnswer> {
+  if (fetcher) return readRoomCardsAnswer(await fetcher(roomId));
   const { roomCardsFn } = await import("./roomCards.functions");
-  return (await roomCardsFn({ data: { roomId } })) ?? {};
+  return readRoomCardsAnswer(await roomCardsFn({ data: { roomId } }));
 }
 
 /** Last answer per room (kept across screens of the same room, so a new screen draws the cards at once). */
-const cache = new Map<string, { key: string; cards: RoomCards }>();
+const cache = new Map<string, { key: string; cards: RoomCardsAnswer }>();
 
-const NONE: RoomCards = {};
+const NONE: RoomCardsAnswer = NO_ROOM_CARDS;
 
-/** The room's cards by seat id, read once per set of seats. */
-export function useRoomCards(roomId: string | null | undefined, seatIds: readonly string[]): RoomCards {
+/** The room's cards by seat id (and its seats hidden outside the room), read once per set of seats. */
+export function useRoomCards(roomId: string | null | undefined, seatIds: readonly string[]): RoomCardsAnswer {
   const key = roomCardsKey(seatIds);
-  const [cards, setCards] = useState<RoomCards>(() => (roomId ? (cache.get(roomId)?.cards ?? NONE) : NONE));
+  const [cards, setCards] = useState<RoomCardsAnswer>(() => (roomId ? (cache.get(roomId)?.cards ?? NONE) : NONE));
   useEffect(() => {
     if (!roomId || !key) return;
     const known = cache.get(roomId);
@@ -40,7 +40,7 @@ export function useRoomCards(roomId: string | null | undefined, seatIds: readonl
     let live = true;
     void fetchRoomCards(roomId)
       .then((next) => {
-        const value = next && typeof next === "object" ? next : NONE;
+        const value = next;
         cache.set(roomId, { key, cards: value });
         if (live) setCards(value);
       })
