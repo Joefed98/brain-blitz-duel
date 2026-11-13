@@ -21,12 +21,13 @@ import { bestOf, starTotalLine } from "@/lib/practice/progress";
 import { GEM_THRESHOLDS, nextGem } from "@/lib/practice/progressRules";
 import { usePracticeProgress } from "@/lib/practice/useProgress";
 import { ACTIVE_PUZZLE_TYPES, PUZZLE_REGISTRY, gameCounts } from "@/lib/duel/catalogue";
-import { getStoredName } from "@/lib/duel/session";
+import { getStoredName, setStoredName } from "@/lib/duel/session";
 import { ordinal } from "@/lib/duel/ordinal";
 import type { PuzzleType } from "@/lib/duel/types";
 import { ukDay } from "@/lib/publicSchedule";
 import { APP_NAME } from "@/lib/brand";
-import { Button, EmptyState, Icon } from "@/design/components";
+import { Button, EmptyState, Icon, Input } from "@/design/components";
+import { GUEST_NAME_MAX } from "@/lib/names/username";
 import { useAccountName } from "@/lib/account/accountApi";
 import { BadgeCollection } from "@/components/badges/BadgeCollection";
 import { SeasonSection } from "@/components/seasons/SeasonSection";
@@ -155,7 +156,25 @@ function ProfileScreen() {
                 Open Customise
               </Button>
             </div>
-          ) : null}
+          ) : (
+            // A guest's display name for new rooms, the Daily and challenges (as on main before "Your look" was
+            // retired); an account's name is its username, changed in Settings → Account.
+            <div className="flex flex-col gap-1.5 px-4 pt-2" data-profile-guest-name>
+              <label htmlFor="profile-name" className="text-[13px] font-semibold text-muted-foreground">
+                Display name
+              </label>
+              <Input
+                id="profile-name"
+                value={name}
+                maxLength={GUEST_NAME_MAX}
+                placeholder="Your name"
+                onChange={(e) => {
+                  setName(e.target.value);
+                  setStoredName(e.target.value.trim());
+                }}
+              />
+            </div>
+          )}
           {history.length > 0 ? (
             <div className="ap-stats">
               {[

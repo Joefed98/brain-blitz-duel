@@ -704,6 +704,18 @@ export const ROOM_IDENTITY_SCREENS = (): ThemeScreen[] => {
         await page.waitForTimeout(400);
       },
     },
+    // A guest's Profile: the room stats panel with the Display name box (kept when "Your look" was retired).
+    {
+      name: "identity: profile, a guest's display name",
+      mode: "profile",
+      daily: () => dailyFixture().after,
+      sizes: ALL_SIZES,
+      go: async (page) => {
+        await page.locator("[data-profile-guest-name] input").waitFor({ timeout: 10_000 });
+        await page.locator("[data-profile-guest-name] input").scrollIntoViewIfNeeded();
+        await page.waitForTimeout(300);
+      },
+    },
   ];
 };
 
