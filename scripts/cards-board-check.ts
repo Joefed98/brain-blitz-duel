@@ -74,6 +74,7 @@ import { replayMahjongRun } from "../src/lib/duel/mahjong";
 import { generatePuzzle } from "../src/lib/duel/generate.server";
 import { puzzleTimeLimitMs, typesInCategory } from "../src/lib/duel/registry";
 import { arcadeGroupOf } from "../src/lib/duel/arcadeGroups";
+import { pinMinesPreLogic } from "../src/lib/duel/arcade.server";
 import { roomSeed } from "./arcade-skill-bands/games";
 import { encodeOracle, mahjongOracle, minesOracle } from "./cards-board-oracles";
 
@@ -134,10 +135,13 @@ const extra = Array.from({ length: FULL ? 3000 : 1500 }, (_, n) => roomSeed(2000
   }
   ok(perfect === tuning.length + fresh.length, `minesweeper: the oracle scores 200 on all ${tuning.length + fresh.length} tuning and fresh seeds (${perfect})`);
   // The room generator deals only proved seeds.
+  // Changed with Joe's approval, 13 Nov 2026: this proves minesRev 1, so its deal is pinned to rev 1 (rooms deal rev 2, minefield-logic-check).
+  const wasPinned = pinMinesPreLogic(true);
   for (let i = 0; i < 40; i++) {
     const p = generatePuzzle("minesweeper") as any;
     ok(p.minesRev === MINES_REV_STD && minesBoard(p.seed).tries >= 0 && minesSolve(minesBoard(p.seed).mines, minesBoard(p.seed).start).solved, `minesweeper: a room deal (seed ${p.seed}) is proved`);
   }
+  pinMinesPreLogic(wasPinned);
 
   // The rules on room seed 3.
   const seed = roomSeed(3);
@@ -374,7 +378,9 @@ const extra = Array.from({ length: FULL ? 3000 : 1500 }, (_, n) => roomSeed(2000
 
 /* ============================== The round ============================== */
 {
-  ok((["minesweeper", "mahjong"] as const).every((t) => typesInCategory("arcade").includes(t) && arcadeGroupOf(t) === "cards"), "rooms deal both Cards & Board games, in the Cards & Board group");
+  // Changed with Joe's approval, 13 Nov 2026: Minefield moved to Logic (no arcade group); Mahjong stays in Cards & Board.
+  ok(typesInCategory("arcade").includes("mahjong") && arcadeGroupOf("mahjong") === "cards", "rooms deal Mahjong, in the Cards & Board group");
+  ok(typesInCategory("logic").includes("minesweeper") && arcadeGroupOf("minesweeper") === null, "rooms deal Minefield in Logic, in no arcade group");
   ok(puzzleTimeLimitMs(generatePuzzle("minesweeper")) === 93_000 && puzzleTimeLimitMs(generatePuzzle("mahjong")) === 123_000, "Minesweeper's 90 s and Mahjong's 120 s runs on 93 s and 123 s clocks");
   void MINES_REV_STD;
 }

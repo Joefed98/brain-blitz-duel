@@ -93,6 +93,20 @@ function ok(cond: unknown, label: string): void {
   ok(generateMinesweeper().minesRev === MINES_REV_STD, "minesPreLogic deals minesRev 1");
   pinMinesPreLogic(before);
   ok(generateMinesweeper().minesRev === MINES_REV_LOGIC, "unpinned, the deal is minesRev 2 again");
+  // The rev-1 deal is check-only: the generator reads it only through checkOverride, which a production build turns
+  // off before reading any stand-in (Vite's literal replacement, done here as security-hardening-check does).
+  const gen = readFileSync("src/lib/duel/arcade.server.ts", "utf8");
+  const body = gen.slice(gen.indexOf("export function generateMinesweeper"), gen.indexOf("export function pinMinesPreLogic"));
+  ok(/checkOverride<boolean>\("__DUELZ_MINES_PRE_LOGIC__"\) === true \? MINES_REV_STD : MINES_REV_LOGIC/.test(body) && !/dealPinned/.test(body), "the rev-1 deal is read only through checkOverride");
+  const helper = readFileSync("src/lib/checkOverride.ts", "utf8");
+  const asBuilt = (prod: string) =>
+    new Bun.Transpiler({ loader: "ts" }).transformSync(helper.replaceAll("import.meta.env.PROD", prod)).replace(/export\s+function/g, "function").replace(/export\s+type[^;]+;/g, "") + "\nreturn { checkOverride, setCheckOverride };";
+  const built = new Function(asBuilt("true"))() as { checkOverride: (n: string) => unknown; setCheckOverride: (n: string, v: unknown) => void };
+  const dev = new Function(asBuilt("false"))() as typeof built;
+  dev.setCheckOverride("__DUELZ_MINES_PRE_LOGIC__", true);
+  built.setCheckOverride("__DUELZ_MINES_PRE_LOGIC__", true);
+  ok(built.checkOverride("__DUELZ_MINES_PRE_LOGIC__") === undefined && dev.checkOverride("__DUELZ_MINES_PRE_LOGIC__") === true, "built for production, the rev-1 switch is ignored; under a check it works");
+  dev.setCheckOverride("__DUELZ_MINES_PRE_LOGIC__", undefined);
   ok(minesCountFor(MINES_REV_LOGIC) === 20 && MINES_COUNT_V2 === 20 && minesCountFor(MINES_REV_STD) === 25 && minesCountFor(undefined) === 25, "20 mines on rev 2, 25 on rev 1 and unstamped");
   ok(minesSafeFor(MINES_REV_LOGIC) === 140 && minesSafeFor(MINES_REV_STD) === 135, "140 safe squares on rev 2, 135 on rev 1");
 

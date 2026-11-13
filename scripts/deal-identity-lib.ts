@@ -39,7 +39,7 @@ import { pinPreDepthTapRev } from "../src/lib/duel/tapLog";
 import { pinPreDepth } from "../src/lib/duel/wordDepth";
 import { pinPreWordNov7 } from "../src/lib/duel/wordNov7";
 import type { PuzzleType } from "../src/lib/duel/types";
-import type { DealOptions } from "../src/lib/duel/dealEra";
+import { setDealPin, type DealOptions } from "../src/lib/duel/dealEra";
 
 /** Each check pin, switched on and off through its own function. */
 export const PIN_VARIANTS: Record<string, (on: boolean) => unknown> = {
@@ -99,14 +99,20 @@ export function digest(value: unknown): string {
 }
 
 export function dealDigest(type: PuzzleType, seed: number, banked: boolean, options?: DealOptions): string {
+  // Changed with Joe's approval, 13 Nov 2026: Minefield's minesRev 2 (13 Nov 2026) is a deliberate deal change after main's recording, so every deal here
+  // pins its check-only minesPreLogic switch: each game still deals exactly as main did.
+  const opts: DealOptions | undefined = options ? { ...options, pins: [...(options.pins ?? []), "minesPreLogic"] } : undefined;
+  const was = opts ? false : setDealPin("minesPreLogic", true);
   try {
     return digest(
       withSeededRandom(seed, () =>
-        generatePuzzle(type, banked ? { unblockRow: null, bankSeed: (seed * 7919 + 13) >>> 0 } : { unblockRow: null }, options),
+        generatePuzzle(type, banked ? { unblockRow: null, bankSeed: (seed * 7919 + 13) >>> 0 } : { unblockRow: null }, opts),
       ),
     );
   } catch (error) {
     return `ERR ${String((error as Error)?.message ?? error).split("\n")[0]}`;
+  } finally {
+    if (!opts) setDealPin("minesPreLogic", was);
   }
 }
 

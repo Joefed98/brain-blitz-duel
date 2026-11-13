@@ -499,8 +499,9 @@ async function databaseChecks(db: LocalDb, rest: RestServer): Promise<void> {
     check(raced.flat().filter((x) => x.id === bulls.id).length === 1 && balance(ACC) === 200, `five runs at once complete it once and pay 100 once (balance ${balance(ACC)})`);
     check(q(`SELECT count(*) FROM coin_ledger WHERE user_id = '${ACC}' AND reason = 'challenge_reward'`) === "2", "two challenge_reward lines in all");
     // A challenge without coins completes without a line.
-    const par = ch("lightsout.par");
-    const r = await server.checkPracticeChallenges(admin, ACC, "lightsout", meetRun(par), dealKey());
+    // Changed with Joe's approval, 13 Nov 2026: Blackout is retired (its challenges are hidden), so a live game's coin-free challenge stands in.
+    const par = ch("flood.par");
+    const r = await server.checkPracticeChallenges(admin, ACC, "flood", meetRun(par), dealKey());
     check(r.some((x) => x.id === par.id && x.coins === 0) && balance(ACC) === 200, "a challenge without coins completes and pays nothing");
     // Hard and Expert: never complete before wave 3.5, so never pay.
     const hard = ch("tents.glamping");
@@ -608,25 +609,26 @@ async function databaseChecks(db: LocalDb, rest: RestServer): Promise<void> {
   });
 
   await section("practice grade end to end", async () => {
+    // Changed with Joe's approval, 13 Nov 2026: Blackout is retired (Practice refuses it), so Colour Flood, which has a kit, plays the run.
     const token = accountToken(OTH);
-    const dealt = await callServerFn(practice.practiceGenerateFn, { type: "lightsout" }, token);
+    const dealt = await callServerFn(practice.practiceGenerateFn, { type: "flood" }, token);
     const { KITS } = await import("./puzzle-fairness/kits");
     const { SKILLS, hashText, makeRng } = await import("./puzzle-fairness/kit");
     const { puzzleTimeLimitMs } = await import("../src/lib/duel/registry");
     // The full puzzle (the server's private half) for the kit to solve, as a player would on the board.
     const { unsealForChecks } = await loadUnseal();
     const full = { ...dealt.puzzle, ...(await unsealForChecks(dealt.sealed)) };
-    const play = (KITS as any).lightsout.play(full, makeRng(hashText("e2e")), SKILLS.near, puzzleTimeLimitMs(full));
+    const play = (KITS as any).flood.play(full, makeRng(hashText("e2e")), SKILLS.near, puzzleTimeLimitMs(full));
     const last = play.steps[play.steps.length - 1];
     const { start } = await callServerFn(practice.practiceStartFn, { sealed: dealt.sealed }, token);
     const graded = await callServerFn(practice.practiceGradeFn, { puzzle: dealt.puzzle, sealed: dealt.sealed, answer: last.answer, msRemaining: puzzleTimeLimitMs(full) - 1000, start }, token);
     check(graded.isCorrect === true, `the kit's answer finishes (${graded.score})`);
     const ids = (graded.challenges ?? []).map((x: any) => x.id);
-    check(ids.length > 0 && ids.every((id: string) => id.startsWith("lightsout.")), `the graded run comes back with its completions (${ids.join(", ")})`);
+    check(ids.length > 0 && ids.every((id: string) => id.startsWith("flood.")), `the graded run comes back with its completions (${ids.join(", ")})`);
     for (const id of ids) check(q(`SELECT count(*) FROM practice_challenge_progress WHERE user_id = '${OTH}' AND challenge_id = '${id}' AND completed_at IS NOT NULL`) === "1", `${id} stored completed for the caller`);
     // C1a's interface (docs/practice-progress.md): the challenges ran on the play practice_record_play counted, read
     // from its stored breakdown.
-    check(q(`SELECT count(*) FROM practice_plays WHERE user_id = '${OTH}' AND game_id = 'lightsout' AND progress_counted_at IS NOT NULL AND breakdown IS NOT NULL`) === "1", "the run's play is stored with its breakdown and counted");
+    check(q(`SELECT count(*) FROM practice_plays WHERE user_id = '${OTH}' AND game_id = 'flood' AND progress_counted_at IS NOT NULL AND breakdown IS NOT NULL`) === "1", "the run's play is stored with its breakdown and counted");
     // The same deal graded again: noted once, by its sealed token's digest; the retry completes no coin challenge.
     const key = await server.challengeDealKey(dealt.sealed);
     check(q(`SELECT count(*) FROM practice_challenge_deals WHERE user_id = '${OTH}' AND deal_key = '${key}'`) === "1", "the graded deal is noted by its sealed token's digest");
@@ -634,16 +636,16 @@ async function databaseChecks(db: LocalDb, rest: RestServer): Promise<void> {
     check(again.isCorrect === true && (again.challenges ?? []).every((x: any) => x.coins === 0), "a retry of the same deal completes no coin challenge");
     check(q(`SELECT count(*) FROM practice_challenge_deals WHERE user_id = '${OTH}' AND deal_key = '${key}'`) === "1", "still one row for the deal");
     // The phone's word counts for nothing: a run graded as a fail completes nothing, whatever it claims.
-    const dealt2 = await callServerFn(practice.practiceGenerateFn, { type: "lightsout" }, accountToken(ACC));
+    const dealt2 = await callServerFn(practice.practiceGenerateFn, { type: "flood" }, accountToken(ACC));
     const g2 = await callServerFn(practice.practiceGradeFn, { puzzle: dealt2.puzzle, sealed: dealt2.sealed, answer: "", msRemaining: 59_000, extra: { reactionAvgMs: 1, correctCount: 99 } as any }, accountToken(ACC));
     check((g2.challenges ?? []).length === 0, "an empty answer completes nothing, whatever the phone claims");
     // A play C1a doesn't count (graded before the fresh start) completes nothing, even a finish.
     const startAt = q(`SELECT fresh_start_at FROM practice_progress_start`);
     q(`UPDATE practice_progress_start SET fresh_start_at = now() + interval '1 day'`);
     try {
-      const dealt3 = await callServerFn(practice.practiceGenerateFn, { type: "lightsout" }, token);
+      const dealt3 = await callServerFn(practice.practiceGenerateFn, { type: "flood" }, token);
       const full3 = { ...dealt3.puzzle, ...(await unsealForChecks(dealt3.sealed)) };
-      const play3 = (KITS as any).lightsout.play(full3, makeRng(hashText("e2e-uncounted")), SKILLS.near, puzzleTimeLimitMs(full3));
+      const play3 = (KITS as any).flood.play(full3, makeRng(hashText("e2e-uncounted")), SKILLS.near, puzzleTimeLimitMs(full3));
       const g3 = await callServerFn(practice.practiceGradeFn, { puzzle: dealt3.puzzle, sealed: dealt3.sealed, answer: play3.steps[play3.steps.length - 1].answer, msRemaining: puzzleTimeLimitMs(full3) - 1000 }, token);
       check(g3.isCorrect === true && g3.progress?.counted !== true && (g3.challenges ?? []).length === 0, "a finish C1a doesn't count completes nothing");
     } finally {

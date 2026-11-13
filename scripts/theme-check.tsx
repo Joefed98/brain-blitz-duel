@@ -513,7 +513,8 @@ async function introColours() {
     { name: "puzzle intro (Box Six, Logic)", opts: {}, accent: "logic", token: "--category-logic" },
     { name: "arcade intro (Breaker, Retro)", opts: { arcade: true, arcadeType: "breaker" }, accent: "retro", token: "--group-retro" },
     { name: "arcade intro (Swish, Sports)", opts: { arcade: true, arcadeType: "bintoss" }, accent: "sports", token: "--group-sports" },
-    { name: "arcade intro (Minefield, Cards & Board)", opts: { arcade: true, arcadeType: "minesweeper" }, accent: "cards", token: "--group-cards" },
+    // Changed with Joe's approval, 13 Nov 2026: Minefield moved to Logic, so its intro takes Logic's colour.
+    { name: "arcade-engine intro (Minefield, Logic)", opts: { arcade: true, arcadeType: "minesweeper" }, accent: "logic", token: "--category-logic" },
     { name: "arcade intro (Slice, Action)", opts: { arcade: true, arcadeType: "slice" }, accent: "action", token: "--group-action" },
     { name: "arcade intro (Gemstone, Strategy)", opts: { arcade: true }, accent: "strategy", token: "--group-strategy" },
   ];

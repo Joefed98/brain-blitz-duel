@@ -225,7 +225,8 @@ section("New rounds carry the Tuning C stamps; Junction is practice only");
   // registry (sessions add games in parallel): every arcade type registered that is not retired.
   const dealt = PUZZLE_TYPES.filter((t) => puzzleDef(t).category === "arcade" && !isRetired(t)).length;
   ok(dealt >= 21, `at least the 21 arcade games dealt before the new groups (${dealt})`);
-  ok(["minesweeper", "mahjong"].every((t) => typesInCategory("arcade").includes(t as never)), "rooms deal the two Cards & Board games");
+  // Changed with Joe's approval, 13 Nov 2026: Minefield moved to Logic; Mahjong is still dealt in Arcade.
+  ok(typesInCategory("arcade").includes("mahjong" as never) && typesInCategory("logic").includes("minesweeper" as never), "rooms deal Mahjong in Arcade and Minefield in Logic");
   ok(typesInCategory("arcade").length === dealt, `rooms deal ${dealt} arcade games (got ${typesInCategory("arcade").length})`);
   ok(ACTIVE_ARCADE_GAMES.length === dealt && !ACTIVE_ARCADE_GAMES.includes("junction") && "junction" in ARCADE_GAME_WORLDS, `${dealt} active arcade worlds; Junction keeps its world for practice`);
   ok([...typesInCategory("arcade")].sort().join() === [...ACTIVE_ARCADE_GAMES].sort().join(), "the active arcade list is exactly the arcade types rooms deal");

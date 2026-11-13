@@ -546,7 +546,8 @@ for (let arrow = 0; arrow < BULLSEYE_ARROWS; arrow++) {
 for (const key of ["bintoss", "bullseye"] as const) {
   const def = puzzleDef(key);
   if (def.category !== "arcade") fail(`${key}: category is ${def.category}`);
-  if (def.retired) fail(`${key}: retired`);
+  // Changed with Joe's approval, 13 Nov 2026: Swish and Flightpath are retired (out of the app); their input rules stay proved above.
+  if (!def.retired) fail(`${key}: not retired`);
   if (def.revealMs !== 6_000) fail(`${key}: revealMs is ${def.revealMs}`);
   if (!def.instructions) fail(`${key}: no instructions`);
   if (!def.roundSummary) fail(`${key}: no standings summary`);

@@ -1,7 +1,9 @@
 /**
  * Records scripts/fixtures/deal-identity.json.gz (scripts/deal-identity-lib.ts): every game's deal across seeds, under
  * no pin and each check pin, and whole rooms. Recorded on main 318fd42 before the deal moved into one place (B4);
- * deal-identity-check proves today's tree deals the same. Re-record only for a deliberate deal change.
+ * deal-identity-check proves today's tree deals the same. Re-record only for a deliberate deal change. Changed with
+ * Joe's approval, 13 Nov 2026: the 16 whole rooms re-recorded (--rooms) after nine games retired and Minefield and
+ * Tenfall moved; every deal is still main's (dealDigest pins minesPreLogic).
  *
  *   bun scripts/deal-identity-record.ts           (everything, ~6 min)
  *   bun scripts/deal-identity-record.ts --rooms   (the whole rooms only)

@@ -12,6 +12,9 @@
  *     threshold is at most the live star total and rising (Diamond is every live star), so a retirement can't make a gem
  *     unreachable.
  *  4. Bring-back: with one game taken out of RETIRED_TYPES (in this process) every rule above offers it again.
+ *  6. History stays true: 79 stored rounds of the nine games retired on 13 Nov 2026, graded on main f268bcd before the
+ *     retirement (scripts/fixtures/retired-history.json.gz, `bun scripts/retired-history-record.ts <main checkout>`),
+ *     replay and grade to the same score, verdict and stored extra today, two or more rounds of each game.
  *  5. The database (local PostgreSQL 16, every migration): the mirror holds the 21 and 249; the star total and the badge
  *     facts leave a retired game's stars and completions out but keep them stored; Diamond unlocks at every live star; a
  *     gem already unlocked stays; the server's sync restores a game; no client role can reach the mirror.
@@ -113,7 +116,7 @@ check(GEM_THRESHOLDS.every((g, i) => i === 0 || g.stars > GEM_THRESHOLDS[i - 1]!
 check(GEM_THRESHOLDS.at(-1)!.gem === "diamond" && GEM_THRESHOLDS.at(-1)!.stars === STAR_TOTAL_MAX, "Diamond is every live star");
 const mirror = retirementMirror();
 check(mirror.starTotal === STAR_TOTAL_MAX && mirror.retired.join() === [...retired].sort().join(), "the server's mirror is RETIRED_TYPES and the star total");
-const migration = readFileSync("supabase/migrations/20261116300000_retired_games.sql", "utf8");
+const migration = readFileSync("supabase/migrations/20261116600000_retired_games.sql", "utf8");
 const seed = /VALUES \(true, ARRAY\[([^\]]*)\]::text\[\], (\d+)\)/.exec(migration);
 const seeded = seed ? [...seed[1]!.matchAll(/'([a-z]+)'/g)].map((m) => m[1]!).sort() : [];
 check(seed !== null && seeded.join() === [...retired].sort().join() && Number(seed[2]) === STAR_TOTAL_MAX, "the migration seeds the mirror with today's list and total");
@@ -128,6 +131,37 @@ check(seed !== null && seeded.join() === [...retired].sort().join() && Number(se
     RETIRED_TYPES.add("tiles" as never);
   }
   check(!isPlayable("tiles"), "the set is restored after the bring-back test");
+}
+
+/* 6. History stays true */
+{
+  const { gunzipSync } = await import("node:zlib");
+  const { createHash } = await import("node:crypto");
+  await import("../src/lib/duel/wordfallDict.server");
+  const { gradeAnswer } = await import("../src/lib/duel/generate.server");
+  const digest = (v: unknown) => createHash("sha256").update(JSON.stringify(v ?? null).replace(/"replayMs":[\d.]+,?/g, "")).digest("hex").slice(0, 20);
+  const fixture = JSON.parse(gunzipSync(readFileSync("scripts/fixtures/retired-history.json.gz")).toString("utf8")) as {
+    recordedOn: string;
+    rounds: { type: string; label: string; puzzle: any; answer: string; ms: number; score: number; isCorrect: boolean; extra: string }[];
+  };
+  const warn = console.warn;
+  const error = console.error;
+  console.warn = () => {};
+  console.error = () => {};
+  let same = 0;
+  try {
+    for (const r of fixture.rounds) {
+      const g = gradeAnswer(r.puzzle, r.answer, r.ms);
+      const match = g.score === r.score && g.isCorrect === r.isCorrect && digest(g.extra) === r.extra;
+      if (match) same += 1;
+      else check(false, `history: ${r.type} ${r.label} grades as on main ${fixture.recordedOn} (${g.score} vs ${r.score})`);
+    }
+  } finally {
+    console.warn = warn;
+    console.error = error;
+  }
+  check(same === fixture.rounds.length, `history: all ${fixture.rounds.length} stored rounds of the nine replay and grade identically (${same})`);
+  check(NINE.every((t) => fixture.rounds.filter((r) => r.type === t).length >= 2), "history: every one of the nine has stored rounds in the fixture");
 }
 
 /* 5. The database */

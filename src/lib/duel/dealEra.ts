@@ -10,6 +10,7 @@
  *
  * Never set by app code. Pure state; shared by phone and server.
  */
+import { setCheckOverride } from "@/lib/checkOverride";
 import { rebuildLiveRecords } from "./roundMax";
 
 /**
@@ -83,6 +84,9 @@ export function setDealPin(pin: DealPin, on: boolean): boolean {
   const prev = pinned.has(pin);
   if (on) pinned.add(pin);
   else pinned.delete(pin);
+  // Minefield's rev-1 deal is check-only (Joe, 13 Nov 2026): the deal reads it through checkOverride, which a
+  // production build turns off, so the live app can never deal minesRev 1 whatever this set holds.
+  if (pin === "minesPreLogic") setCheckOverride("__DUELZ_MINES_PRE_LOGIC__", on ? true : undefined);
   if (prev !== on && DEAL_PINS[pin].texts) rebuildLiveRecords();
   return prev;
 }

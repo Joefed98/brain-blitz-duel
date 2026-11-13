@@ -67,7 +67,7 @@ import {
 import { generatePuzzle, gradeAnswer } from "../src/lib/duel/generate.server";
 import { podiumAwards } from "../src/lib/duel/podiumAwards";
 import { withSeededRandom } from "../src/lib/duel/random";
-import { ACTIVE_PUZZLE_TYPES, puzzlePrepMs, puzzleTimeLimitMs, typesInCategory } from "../src/lib/duel/registry";
+import { ACTIVE_PUZZLE_TYPES, isPlayable, puzzlePrepMs, puzzleTimeLimitMs, typesInCategory } from "../src/lib/duel/registry";
 import { mergePuzzle, splitPuzzle } from "../src/lib/duel/secrets";
 import { standings } from "../src/lib/duel/scoring";
 import { stampTieRev } from "../src/lib/duel/tieBreak";
@@ -497,10 +497,15 @@ async function playInChallenge(puzzle: PuzzleData, answer: string, claimedMs: nu
     compared++;
     if (shape(row) !== shape(late)) differs.push(`${label} late`);
   };
-  for (const c of legacy.cases)
+  // Changed with Joe's approval, 13 Nov 2026: a challenge holding a retired game is closed (retired games are out of the app), so only live games' stored
+  // cases are played through a challenge; a retired one is refused (below). Their grades stay proved in retirement-check.
+  for (const c of legacy.cases.filter((x) => isPlayable(x.type)))
     for (const [i, entry] of c.entries.entries()) if (i % 6 === 0) await compare(`${c.type} ${c.label} #${i}`, c.puzzle, entry.answer, entry.ms);
   const arcade = (JSON.parse(readFileSync("scripts/fixtures/replay-runs.json", "utf8")) as { runs: { type: string; label: string; puzzle: PuzzleData; answer: string }[] }).runs;
-  for (const run of arcade) await compare(`${run.type} ${run.label}`, run.puzzle, run.answer, 0);
+  for (const run of arcade.filter((r) => isPlayable(r.type))) await compare(`${run.type} ${run.label}`, run.puzzle, run.answer, 0);
+  const retiredCase = legacy.cases.find((x) => !isPlayable(x.type))!;
+  const refused = await quiet(() => playInChallenge(retiredCase.puzzle, retiredCase.entries[0]!.answer, 1000, 1000).then(() => false, () => true));
+  check(refused, `a challenge holding a retired game (${retiredCase.type}) can't be played`);
   for (const type of ACTIVE_PUZZLE_TYPES) {
     const puzzle = stampTieRev(withSeededRandom(22_10_2026, () => generatePuzzle(type)) as PuzzleData);
     await compare(`${type} empty`, puzzle, "", 9000);

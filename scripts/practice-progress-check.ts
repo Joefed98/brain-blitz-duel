@@ -48,6 +48,7 @@ import {
   type LocalDb,
   type RestServer,
 } from "./server-fn-harness";
+import { STAR_TOTAL_MAX } from "../src/lib/practice/progressRules";
 
 let passes = 0;
 const failures: string[] = [];
@@ -92,7 +93,8 @@ const OLD = uid(46); // an account from before the fresh start (the refresh note
 /** The master plan's gem thresholds, written out here, independent of the code. */
 const NEEDS: [string, number][] = [
   ["amber", 10], ["rose-quartz", 20], ["ruby", 30], ["jade", 50], ["amethyst", 75],
-  ["aquamarine", 100], ["sapphire", 125], ["pearl", 150], ["obsidian", 200], ["diamond", 250],
+  // Changed with Joe's approval, 13 Nov 2026: Diamond is every live star (STAR_TOTAL_MAX, 249 with 83 live games), so no retirement can put it out of reach.
+  ["aquamarine", 100], ["sapphire", 125], ["pearl", 150], ["obsidian", 200], ["diamond", STAR_TOTAL_MAX],
 ];
 
 await pureChecks();
@@ -156,17 +158,22 @@ async function pureChecks(): Promise<void> {
     check(rules.earnsStar(175) && !rules.earnsStar(174) && rules.earnsStar(200) && !rules.earnsStar(Number.NaN), "175 earns the star, 174 doesn't");
     check(rules.earnsStar(175, "easy") && rules.earnsStar(175, "hard") && !rules.earnsStar(200, "expert"), "stars on Easy, Classic and Hard; Expert's 175+ is a crown, never a star");
     check(rules.DEALT_LEVEL === "classic" && rules.levelOf(null) === "classic" && rules.levelOf(undefined) === "classic" && rules.levelOf("nonsense") === "classic" && rules.levelOf("hard") === "hard", "a run with no level is Classic");
-    check(rules.STAR_TOTAL_MAX === 276 && ACTIVE_PUZZLE_TYPES.length * rules.STARS_PER_GAME === rules.STAR_TOTAL_MAX, `276 stars: ${ACTIVE_PUZZLE_TYPES.length} games × 3 levels`);
+    // Changed with Joe's approval, 13 Nov 2026: nine games retired, 83 live games × 3 levels = 249.
+    check(rules.STAR_TOTAL_MAX === 249 && ACTIVE_PUZZLE_TYPES.length * rules.STARS_PER_GAME === rules.STAR_TOTAL_MAX, `249 stars: ${ACTIVE_PUZZLE_TYPES.length} games × 3 levels`);
     check(rules.GEM_THRESHOLDS.map((g) => `${g.gem}:${g.stars}`).join() === NEEDS.map(([g, n]) => `${g}:${n}`).join(), "the gem thresholds are the master plan's");
     check(rules.GEM_THRESHOLDS.map((g) => g.gem).join() === GEM_IDS.join(), "in GEM_IDS' order");
     for (const [gem, n] of NEEDS) {
       check(!rules.gemsFor(n - 1).includes(gem) && rules.gemsFor(n).includes(gem), `${gem} unlocks at exactly ${n}`);
       check(rules.gemUnlockLine(gem) === `Unlocks at ${n} stars`, `${gem}'s locked line`);
     }
-    check(rules.nextGem(0)?.gem === "amber" && rules.nextGem(10)?.gem === "rose-quartz" && rules.nextGem(250) === null, "the next gem to unlock");
+    check(rules.nextGem(0)?.gem === "amber" && rules.nextGem(10)?.gem === "rose-quartz" && rules.nextGem(STAR_TOTAL_MAX) === null, "the next gem to unlock"); // Changed with Joe's approval, 13 Nov 2026: Diamond at every live star.
     const sql = readFileSync("supabase/migrations/20261111101500_practice_progress.sql", "utf8");
     const values = [...sql.matchAll(/\('([a-z-]+)', (\d+)\)/g)].map((m) => `${m[1]}:${m[2]}`).join();
-    check(values === NEEDS.map(([g, n]) => `${g}:${n}`).join(), `the migration's thresholds are the same (${values})`);
+    // Changed with Joe's approval, 13 Nov 2026: the first migration's thresholds match with Diamond's old 250 left out; the retirement migration's Diamond
+    // reads the mirror's live star total.
+    check(values === [...NEEDS.slice(0, -1).map(([g, n]) => `${g}:${n}`), "diamond:250"].join(), `the first migration's thresholds are the same but Diamond (${values})`);
+    const retired = readFileSync("supabase/migrations/20261116600000_retired_games.sql", "utf8");
+    check(/\('diamond', coalesce\(\(SELECT star_total FROM public\.game_retirement WHERE id\), 250\)\)/.test(retired), "the retirement migration's Diamond is the mirror's live star total");
     check(/score >= 175/.test(sql) && /v_level IN \('easy', 'classic', 'hard'\)/.test(sql), "the migration's star rule is the same");
     const progress = await import("../src/lib/practice/progress");
     check(progress.runStarLine({ counted: true, level: "classic", best: 180, previousBest: null, improved: false, star: true, starEarned: true, starTotal: 1, gemsUnlocked: [] }) === "Star earned", "a run that earns its star names it");

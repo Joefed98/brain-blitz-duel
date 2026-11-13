@@ -264,7 +264,8 @@ async function main() {
   }
   const named = args.filter((a) => !a.startsWith("--")) as PuzzleType[];
   // Every active arcade game, plus Pull! (item 26: its edges) and Bonk (item 27: the scenery below its field).
-  let games: PuzzleType[] = named.length ? named : [...(ACTIVE_ARCADE_GAMES as readonly string[] as PuzzleType[]), "clayshoot", "whack", "stroop"];
+  // Changed with Joe's approval, 13 Nov 2026: Mixed Signals retired (out of the app), so it can't be opened from Practice.
+  let games: PuzzleType[] = named.length ? named : [...(ACTIVE_ARCADE_GAMES as readonly string[] as PuzzleType[]), "clayshoot", "whack"];
   const part = opt("part");
   if (part) {
     const [k, n] = part.split("/").map(Number) as [number, number];

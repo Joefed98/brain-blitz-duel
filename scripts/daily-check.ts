@@ -303,8 +303,10 @@ const view = (g: { score: number; is_correct?: boolean; isCorrect?: boolean; ms_
 async function playOne(puzzle: PuzzleData, answer: string, claimedMs: number, receiveAfterMs: number) {
   const db = store();
   const opensAt = NOW - 3600_000;
+  // Changed with Joe's approval, 13 Nov 2026: graded through a Daily room, which retirement never closes (a friend
+  // challenge holding a retired game is closed); the grading is the same async-room path.
   const room = await createAsyncRoom(db.client, {
-    kind: "challenge",
+    kind: "daily_puzzle",
     key: `c-${Math.random()}`,
     day: null,
     seed: 1,

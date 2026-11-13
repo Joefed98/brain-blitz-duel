@@ -1,3 +1,4 @@
+import { checkOverride } from "@/lib/checkOverride";
 import { dealPinned, setDealPin } from "./dealEra";
 import { MOON_REV } from "@/lib/arcade/ricochetNinja";
 import { BASTION_REV_DEALT } from "@/lib/arcade/bastionTank";
@@ -229,8 +230,9 @@ export function generatePinball(): PinballPuzzleData {
  * so every dealt seed is proved by its own solve (minesweeper-check plays each proof to 200).
  */
 export function generateMinesweeper(): MinesweeperPuzzleData {
-  // minesRev 2 (13 Nov 2026): Minefield as a Logic game with 20 mines; checks written for rev 1 pin minesPreLogic.
-  const rev = dealPinned("minesPreLogic") ? MINES_REV_STD : MINES_REV_LOGIC;
+  // minesRev 2 (13 Nov 2026): Minefield as a Logic game with 20 mines. Checks written for rev 1 pin minesPreLogic, a
+  // check-only switch read through checkOverride: a production build never deals rev 1.
+  const rev = checkOverride<boolean>("__DUELZ_MINES_PRE_LOGIC__") === true ? MINES_REV_STD : MINES_REV_LOGIC;
   for (;;) {
     const seed = arcadeSeed();
     const board = minesBoard(seed, rev);

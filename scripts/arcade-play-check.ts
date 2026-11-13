@@ -83,8 +83,8 @@ import { ARENA_SCENE_GAMES } from "../src/lib/arcade/arenaScene.renderer";
 import { ARENA_FILL_CENTRED } from "../src/lib/arcade/arenaFills.renderer";
 import { TD_H, TD_W } from "../src/lib/arcade/tenDrop";
 import { CLAY_TALL_H, CLAY_W } from "../src/lib/arcade/clayShoot";
-import { CLASH_TALL_H, CLASH_WORLD_W } from "../src/lib/arcade/colourClash";
 import { gameDisplayName } from "../src/lib/duel/gameNames";
+import { isPlayable } from "../src/lib/duel/catalogue";
 import { WORDFALL_META } from "../src/lib/arcade/wordfallWords.meta";
 import { freezeClock, gotoRetried, warmUp } from "./browser-load";
 import { BROWSER, DEVICE_INIT, IPHONE11_APP, emulateDevice, type Clip } from "./device-emulation";
@@ -116,12 +116,12 @@ const PART_ARG = args.find((a) => a.startsWith("--part="))?.slice(7);
  * timer advance, no errors, frame time, READY on screen), and since 15 Oct 2026 their
  * board sits in the shared arena slot, so the layout proof applies too (ENGINE_PLAY_WORLDS).
  */
-const ENGINE_PLAY_GAMES = ["tendrop", "stroop", "whack", "clayshoot"] as const;
+// Changed with Joe's approval, 13 Nov 2026: Mixed Signals retired (out of the app), so it is no longer played here.
+const ENGINE_PLAY_GAMES = ["tendrop", "whack", "clayshoot"] as const;
 /** Their world (view) sizes; Bonk's world is its square board. */
 const ENGINE_PLAY_WORLDS: Record<(typeof ENGINE_PLAY_GAMES)[number], { width: number; height: number }> = {
   tendrop: { width: TD_W, height: TD_H },
   // Taller worlds batch 2 (16 Oct 2026): the worlds rooms and practice deal today (clashRev 5, clayRev 6).
-  stroop: { width: CLASH_WORLD_W, height: CLASH_TALL_H },
   whack: { width: 1, height: 1 },
   clayshoot: { width: CLAY_W, height: CLAY_TALL_H },
 };
@@ -322,7 +322,8 @@ async function main() {
     process.exit(1);
   }
   const { chromium } = await import("playwright");
-  let games = [...ACTIVE_ARCADE_GAMES, ...PRACTICE_PLAY_GAMES, ...Object.keys(ENGINE_GAME_WORLDS), ...ENGINE_PLAY_GAMES].filter((g) => ONLY.length === 0 || ONLY.includes(g));
+  // Changed with Joe's approval, 13 Nov 2026: retired games can't be opened in Practice any more (Letterfall was played from its Retired section).
+  let games = [...ACTIVE_ARCADE_GAMES, ...PRACTICE_PLAY_GAMES, ...Object.keys(ENGINE_GAME_WORLDS), ...ENGINE_PLAY_GAMES].filter((g) => isPlayable(g) && (ONLY.length === 0 || ONLY.includes(g)));
   if (PART_ARG) {
     const [k, n] = PART_ARG.split("/").map(Number) as [number, number];
     if (!(n >= 1 && k >= 1 && k <= n)) {

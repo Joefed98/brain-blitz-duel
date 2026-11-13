@@ -73,8 +73,12 @@ for (const type of ["fences", "fillomino", "bridges"] as const) expect(type, "lo
 expect("kakuro", "number", false);
 // Bomb Defusal moved from Logic to Attention on 3 Nov 2026 (Joe's decision): Attention 7, Logic 14.
 expect("bomb", "attention", false);
-const POOL: Record<string, number> = { word: 9, number: 9, speed: 6, attention: 7, pattern: 10, logic: 14, arcade: ACTIVE_ARCADE_GAMES.length };
-for (const type of ["minesweeper", "mahjong", "homerun", "freekick", "racing", "freecell", "tripeaks", "fivehands", "pyramid", "minigolf", "pool", "curling", "blockfall", "alleyroll"] as const) expect(type, "arcade", false);
+// Changed with Joe's approval, 13 Nov 2026: nine games retired (Number, Attention and Pattern lose one, one and two) and Minefield moved to Logic.
+const POOL: Record<string, number> = { word: 9, number: 8, speed: 6, attention: 6, pattern: 8, logic: 14, arcade: ACTIVE_ARCADE_GAMES.length };
+// Changed with Joe's approval, 13 Nov 2026: Minefield is a Logic game and Ringer is retired, so both leave the "arcade, active" list.
+for (const type of ["mahjong", "homerun", "freekick", "racing", "freecell", "tripeaks", "fivehands", "pyramid", "minigolf", "pool", "curling", "blockfall"] as const) expect(type, "arcade", false);
+expect("minesweeper", "logic", false);
+expect("alleyroll", "arcade", true);
 for (const [category, want] of Object.entries(POOL)) {
   const got = typesInCategory(category as never).length;
   if (got !== want) fail(`${category}: ${got} active games, want ${want}`);
@@ -87,8 +91,9 @@ if (ACTIVE_PUZZLE_TYPES.length !== WANT_ACTIVE) fail(`${ACTIVE_PUZZLE_TYPES.leng
 // (ricoRev 2, 1 Nov 2026) 90, 35 of them arcade; with Bastion back in rooms (bastionRev 2, 1 Nov 2026) 91, 36 arcade;
 // with Pyramid and Golf Solitaire (1 Nov 2026; Muggins practice only, Joe's decision) 93, 38 arcade; with Golf Solitaire
 // retired (3 Nov 2026) 92, 37 arcade.
-if (ACTIVE_ARCADE_GAMES.length !== 37) fail(`${ACTIVE_ARCADE_GAMES.length} active arcade games, want 37 (Full House and Muggins practice only since 1 Nov 2026, Golf Solitaire since 3 Nov 2026; Blockfall, Alley Roll and Pyramid added; Ricochet and Bastion active again)`);
-if (ACTIVE_PUZZLE_TYPES.length !== 92) fail(`${ACTIVE_PUZZLE_TYPES.length} active games, want 92`);
+// Changed with Joe's approval, 13 Nov 2026: Slice, Ringer, Swish and Flightpath retired and Minefield moved to Logic (37 → 32 arcade); nine retired (92 → 83).
+if (ACTIVE_ARCADE_GAMES.length !== 32) fail(`${ACTIVE_ARCADE_GAMES.length} active arcade games, want 32 (Full House and Muggins practice only since 1 Nov 2026, Golf Solitaire since 3 Nov 2026; Slice, Ringer, Swish and Flightpath retired and Minefield to Logic on 13 Nov 2026)`);
+if (ACTIVE_PUZZLE_TYPES.length !== 83) fail(`${ACTIVE_PUZZLE_TYPES.length} active games, want 83`);
 
 // The deleted games and Memory are gone: no registry entry, no category, no draw.
 for (const type of REMOVED_PUZZLE_TYPES)
