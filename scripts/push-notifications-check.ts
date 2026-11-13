@@ -802,11 +802,15 @@ async function databaseChecks(db: LocalDb, rest: RestServer): Promise<void> {
     const reachable: string[] = [];
     for (const role of ["anon", "authenticated"]) {
       // Changed with Joe's approval, 12 Nov 2026: push_reserve_at added to the list (the cap's new function, one clock for the count and the stamp); every earlier function is still there.
-      for (const f of ["push_reserve(uuid,text,boolean,timestamp with time zone,integer,text)", "push_reserve_at(uuid,text,boolean,timestamp with time zone,integer,text,timestamp with time zone)", "push_streak_candidates(date)", "push_claim_friend_events(timestamp with time zone,integer)", "push_log_retention()"])
+      // Changed with Joe's approval, 13 Nov 2026: push_reserve left out of this list (20261116700000_drop_push_reserve.sql
+      // drops it; nothing called it), and the check after the loop proves it is gone; every other function is still here.
+      for (const f of ["push_reserve_at(uuid,text,boolean,timestamp with time zone,integer,text,timestamp with time zone)", "push_streak_candidates(date)", "push_claim_friend_events(timestamp with time zone,integer)", "push_log_retention()"])
         if (q(`SELECT has_function_privilege('${role}', 'public.${f}', 'EXECUTE')`) === "t") reachable.push(`${role} ${f}`);
       for (const t of ["notification_log", "push_friend_deliveries"]) if (q(`SELECT has_table_privilege('${role}', 'public.${t}', 'SELECT')`) === "t") reachable.push(`${role} ${t}`);
       if (q(`SELECT has_table_privilege('${role}', 'public.push_subscriptions', 'INSERT')`) === "t") reachable.push(`${role} insert subscriptions`);
     }
+    // Added with Joe's approval, 13 Nov 2026: the unused push_reserve is dropped, so no role can call it.
+    check(q(`SELECT count(*) FROM pg_proc WHERE oid = to_regprocedure('public.push_reserve(uuid,text,boolean,timestamp with time zone,integer,text)')`) === "0" && q(`SELECT to_regprocedure('public.push_reserve_at(uuid,text,boolean,timestamp with time zone,integer,text,timestamp with time zone)') IS NOT NULL`) === "t", "the unused push_reserve is gone after the migrations; push_reserve_at stays");
     check(reachable.length === 0, `functions and the log are for the service role only${reachable.length ? ` (${reachable.join("; ")})` : ""}`);
     check(refused(`INSERT INTO push_subscriptions (user_id, endpoint, p256dh, auth) VALUES ('${CAT}', 'https://fcm.googleapis.com/x', '${anaPhone.p256dh}', '${anaPhone.auth}')`) !== "", "the table itself refuses a guest's subscription (no profile)");
     const r = db.psql(`SELECT accounts.forget_user('${DAN}')`);

@@ -122,7 +122,9 @@ function runOne(entry: string): Promise<{
 }
 
 async function main() {
-  console.log(`running ${files.length} check(s) at ${full ? "full" : "quick"} depth...`);
+  // Changed with Joe's approval, 13 Nov 2026: the label also reads CHECKS_FULL=1 (which every check already inherits
+  // through process.env), so a full CI run no longer prints "quick depth". Only the printed label changed.
+  console.log(`running ${files.length} check(s) at ${full || process.env.CHECKS_FULL === "1" ? "full" : "quick"} depth...`);
   const results: Awaited<ReturnType<typeof runOne>>[] = [];
   for (const file of files) {
     process.stdout.write(`  ${file} ... `);

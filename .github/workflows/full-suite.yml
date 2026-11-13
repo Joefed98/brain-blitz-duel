@@ -90,13 +90,13 @@ jobs:
     env:
       CHECKS_FULL: ${{ inputs.full && '1' || '' }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0 (was @v5); Changed with Joe's approval, 13 Nov 2026: off Node.js 20, pinned to a commit
 
-      - uses: oven-sh/setup-bun@v2
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0 (was @v2); Changed with Joe's approval, 13 Nov 2026: off Node.js 20, pinned to a commit
         with:
           bun-version: ${{ env.BUN_VERSION }}
 
-      - uses: actions/cache@v4
+      - uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5 (was @v4); Changed with Joe's approval, 13 Nov 2026: off Node.js 20, pinned to a commit
         with:
           path: ~/.bun/install/cache
           key: bun-${{ runner.os }}-${{ env.BUN_VERSION }}-${{ hashFiles('bun.lock') }}
@@ -114,26 +114,36 @@ jobs:
 
       # Playwright's own Chromium for the locked playwright version, cached by that version; the checks find it
       # through PLAYWRIGHT_CHROMIUM.
+      # Changed with Joe's approval, 13 Nov 2026: the runner image too (ImageOS-ImageVersion), which keys the system libraries' cache below.
       - name: Playwright version
         id: pw
-        run: echo "version=$(bun -e 'console.log(require("playwright-core/package.json").version)')" >> "$GITHUB_OUTPUT"
+        run: |
+          echo "version=$(bun -e 'console.log(require("playwright-core/package.json").version)')" >> "$GITHUB_OUTPUT"
+          echo "image=${ImageOS:-unknown}-${ImageVersion:-unknown}" >> "$GITHUB_OUTPUT"
 
-      - uses: actions/cache@v4
+      # Changed with Joe's approval, 13 Nov 2026: a new key name (pw-chromium-), so the first run of this change downloads cold and the next is warm.
+      - uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5 (was @v4); Changed with Joe's approval, 13 Nov 2026: off Node.js 20, pinned to a commit
         with:
           path: ~/.cache/ms-playwright
-          key: playwright-chromium-${{ runner.os }}-${{ steps.pw.outputs.version }}
+          key: pw-chromium-${{ runner.os }}-${{ steps.pw.outputs.version }}
+
+      # Changed with Joe's approval, 13 Nov 2026: Chromium's system libraries (.deb files) for this runner image, so apt doesn't download them each run.
+      - uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5 (was @v4); Changed with Joe's approval, 13 Nov 2026: off Node.js 20, pinned to a commit
+        with:
+          path: ~/.cache/pw-debs
+          key: pw-debs-${{ runner.os }}-${{ steps.pw.outputs.image }}-${{ steps.pw.outputs.version }}
 
       # Vite's pre-bundled dependencies: roughly halves each dev server's first page load.
-      - uses: actions/cache@v4
+      - uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5 (was @v4); Changed with Joe's approval, 13 Nov 2026: off Node.js 20, pinned to a commit
         with:
           path: node_modules/.vite
           key: vite-deps-${{ runner.os }}-${{ hashFiles('bun.lock', 'vite.config.ts', 'package.json') }}
           restore-keys: vite-deps-${{ runner.os }}-
 
+      # Changed with Joe's approval, 13 Nov 2026: the browser and its libraries from the caches above when there, else downloaded with
+      # retries and backoff (.github/ci/install-chromium.sh); it sets PLAYWRIGHT_CHROMIUM as before.
       - name: Install Chromium
-        run: |
-          bunx playwright install --with-deps chromium
-          echo "PLAYWRIGHT_CHROMIUM=$(bun -e 'import("playwright").then(m => console.log(m.chromium.executablePath()))')" >> "$GITHUB_ENV"
+        run: bash .github/ci/install-chromium.sh
 
       # arcade-play-check compares frame times with a baseline recorded on a CI runner
       # (.github/ci/arcade-play-baseline.json); without one, only its absolute under-30-fps ceiling applies.
@@ -189,7 +199,7 @@ jobs:
 
       - name: Upload logs
         if: failure()
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0 (was @v5); Changed with Joe's approval, 13 Nov 2026: off Node.js 20, pinned to a commit
         with:
           name: full-logs-${{ matrix.shard }}
           path: |
@@ -227,11 +237,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
-      - uses: actions/checkout@v5
-      - uses: oven-sh/setup-bun@v2
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0 (was @v5); Changed with Joe's approval, 13 Nov 2026: off Node.js 20, pinned to a commit
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0 (was @v2); Changed with Joe's approval, 13 Nov 2026: off Node.js 20, pinned to a commit
         with:
           bun-version: ${{ env.BUN_VERSION }}
-      - uses: actions/cache@v4
+      - uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5 (was @v4); Changed with Joe's approval, 13 Nov 2026: off Node.js 20, pinned to a commit
         with:
           path: ~/.bun/install/cache
           key: bun-${{ runner.os }}-${{ env.BUN_VERSION }}-${{ hashFiles('bun.lock') }}
@@ -243,22 +253,29 @@ jobs:
           bun install --frozen-lockfile
           cp "$RUNNER_TEMP/bun.lock.orig" bun.lock
           git diff --exit-code -- bun.lock
+      # Changed with Joe's approval, 13 Nov 2026: the runner image, the new browser key and the system libraries' cache, as in the shards.
       - name: Playwright version
         id: pw
-        run: echo "version=$(bun -e 'console.log(require("playwright-core/package.json").version)')" >> "$GITHUB_OUTPUT"
-      - uses: actions/cache@v4
+        run: |
+          echo "version=$(bun -e 'console.log(require("playwright-core/package.json").version)')" >> "$GITHUB_OUTPUT"
+          echo "image=${ImageOS:-unknown}-${ImageVersion:-unknown}" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5 (was @v4); Changed with Joe's approval, 13 Nov 2026: off Node.js 20, pinned to a commit
         with:
           path: ~/.cache/ms-playwright
-          key: playwright-chromium-${{ runner.os }}-${{ steps.pw.outputs.version }}
-      - uses: actions/cache@v4
+          key: pw-chromium-${{ runner.os }}-${{ steps.pw.outputs.version }}
+      - uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5 (was @v4); Changed with Joe's approval, 13 Nov 2026: off Node.js 20, pinned to a commit
+        with:
+          path: ~/.cache/pw-debs
+          key: pw-debs-${{ runner.os }}-${{ steps.pw.outputs.image }}-${{ steps.pw.outputs.version }}
+      - uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5 (was @v4); Changed with Joe's approval, 13 Nov 2026: off Node.js 20, pinned to a commit
         with:
           path: node_modules/.vite
           key: vite-deps-${{ runner.os }}-${{ hashFiles('bun.lock', 'vite.config.ts', 'package.json') }}
           restore-keys: vite-deps-${{ runner.os }}-
+      # Changed with Joe's approval, 13 Nov 2026: the browser and its libraries from the caches above when there, else downloaded with
+      # retries and backoff (.github/ci/install-chromium.sh); it sets PLAYWRIGHT_CHROMIUM as before.
       - name: Install Chromium
-        run: |
-          bunx playwright install --with-deps chromium
-          echo "PLAYWRIGHT_CHROMIUM=$(bun -e 'import("playwright").then(m => console.log(m.chromium.executablePath()))')" >> "$GITHUB_ENV"
+        run: bash .github/ci/install-chromium.sh
       # Every active game, one at a time, as each play group plays them.
       - name: Record arcade play baseline
         run: |
@@ -269,7 +286,7 @@ jobs:
           exit $status
       - name: Upload recorded baseline
         if: always() && hashFiles('arcade-play-baseline.json') != ''
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0 (was @v5); Changed with Joe's approval, 13 Nov 2026: off Node.js 20, pinned to a commit
         with:
           name: arcade-play-baseline-ci
           path: arcade-play-baseline.json
