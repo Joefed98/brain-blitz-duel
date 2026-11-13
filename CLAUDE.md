@@ -2209,6 +2209,15 @@ outside the repo.
   `wishlist_added`. Migrations `20261112120000_shop.sql`, `20261112120100_analytics_shop_events.sql` (**not applied
   until merged**). shop-check (~15 s, shard `e`, PostgreSQL); shots `bun scripts/shots/shop-shots.ts`
   (`docs/economy/shop-screenshots/`).
+- **The Joules rework** (13 Nov 2026, Joe; `docs/economy/economy-design.md` "Joules and pacing", `docs/economy/pass.md`;
+  no gameplay, scoring, stamp or timing change): rooms and Practice games pay no Joules (still read by `pass_activity`
+  for the weekly challenges; `joulesRowsFor` sends nothing for them; old rows untouched); a Classic mastery star 150
+  once (`STAR_JOULES_CLASSIC`; Easy 50 and Hard 250 provisional, not credited until confirmed in phase 3), a Practice
+  challenge 100 on every level, the Dailies 200 each, weekly 750 / 1,000 / 1,500; a friend challenge's creator is paid
+  for their own attempt only once another player has finished it (`20261116500000_joules_rework.sql`, which also adds
+  `star` to `pass_joules.kind`); retired games (`RETIRED_TYPES`) count towards nothing (`countableActivity`). Pacing:
+  `bun scripts/joules-pacing.ts`. pass-check proves it; the Pass screen is in theme-check and no-wrap-check at every size
+  (`PASS_SCREENS`, `ThemeScreen.sizes`, `ALL_SIZES`).
 - **The remaining cosmetics and Joulz Plus** (wave 2 train E, session E2, 13 Nov 2026, `docs/economy/plus.md`; no
   gameplay, scoring, stamp, timing or room-flow change): avatar finishes, the Neon Bolt and Neon Captain Joulz on every
   avatar drawing (`avatarMarkup` through `src/design/identity/cosmetics.ts`: the board's Captain Joulz versions split by
