@@ -36,7 +36,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { createCanvas, loadImage } from "@napi-rs/canvas";
 
 import { startSafeAreaServer } from "./safe-area-server";
-import { CHROMIUM_PATHS, THEME_SCREENS, VIEWPORTS, fixThemeClock, openThemeScreen, room } from "./theme-screens";
+import { CHROMIUM_PATHS, THEME_SCREENS, VIEWPORTS, fixThemeClock, openThemeScreen, partOf, room } from "./theme-screens";
 import { APP_PAGE_FAMILY, THEME_FAMILIES, THEME_FONTS } from "../src/lib/theme";
 
 const args = process.argv.slice(2);
@@ -415,11 +415,17 @@ if (SHOTS) mkdirSync(SHOTS, { recursive: true });
 try {
   // Each screen at the first viewport, then a screen's extra sizes (ThemeScreen.sizes, from 13 Nov 2026).
   const draws = [...SCREENS.map((screen) => ({ screen, viewport: VIEWPORT })), ...SCREENS.flatMap((screen) => (screen.sizes ?? []).map((viewport) => ({ screen, viewport })))];
-  for (const { screen, viewport: VIEWPORT } of draws) {
-    const where = `${screen.name} (${VIEWPORT.name})`;
+  // Changed with Joe's approval, 13 Nov 2026: theme-check runs in halves (play16 part 1, play17 part 2); with the room
+  // screens drawn at every size the whole run passed its 600 s limit. --part=k/n takes every n-th draw from the k-th,
+  // as no-wrap-check splits its draws; together the parts judge exactly what one whole run does (the intro colours
+  // run in part 1).
+  const mine = partOf(draws, args);
+  console.log(`theme-check: ${mine.length} of ${draws.length} draws (${new Set(mine.map((d) => d.screen.name)).size} screens) in this run`);
+  for (const { screen, viewport } of mine) {
+    const where = `${screen.name} (${viewport.name})`;
     const problems: string[] = [];
     try {
-      const { context, page } = await openThemeScreen(browser, server.origin, screen, VIEWPORT);
+      const { context, page } = await openThemeScreen(browser, server.origin, screen, viewport);
       try {
         // Let a font in use finish loading (font-display: swap paints the fallback first).
         await page.waitForTimeout(300);
@@ -459,7 +465,7 @@ try {
         const ctx = canvas.getContext("2d");
         ctx.drawImage(img, 0, 0);
         const { data, width, height } = ctx.getImageData(0, 0, img.width, img.height);
-        const k = img.width / VIEWPORT.w;
+        const k = img.width / viewport.w;
         for (const t of probe.texts) {
           const [r, g, b, a] = parseColor(t.color);
           const ratios: number[] = [];
@@ -496,7 +502,9 @@ try {
     );
     if (VERBOSE) for (const p of problems.slice(1)) console.log(`    ${p}`);
   }
-  if (!ONLY.length || ONLY.some((o) => "intro colours".includes(o))) await introColours();
+  // Changed with Joe's approval, 13 Nov 2026: the intro colours are drawn once, in part 1 (or a whole run).
+  const firstPart = !args.some((a) => a.startsWith("--part=")) || args.includes("--part=1/" + (args.find((a) => a.startsWith("--part="))?.split("/")[1] ?? ""));
+  if (firstPart && (!ONLY.length || ONLY.some((o) => "intro colours".includes(o)))) await introColours();
 } finally {
   await browser.close();
   await server.close();
