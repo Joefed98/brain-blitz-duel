@@ -51,7 +51,7 @@ import { encodeGradient } from "../src/lib/duel/jumbled";
 import { gradientRoute } from "../src/lib/duel/jumbled.server";
 import { topsyStart, topsyTilt } from "../src/lib/duel/topsy";
 import { topsySearch } from "../src/lib/duel/topsy.server";
-import { puzzleTimeLimitMs } from "../src/lib/duel/registry";
+import { isPlayable, puzzleTimeLimitMs } from "../src/lib/duel/registry";
 import { STANDARD_STAMPS } from "../src/lib/duel/standard/stamps";
 import type { PuzzleData, PuzzleType } from "../src/lib/duel/types";
 import { makeRng, type Skill } from "./puzzle-fairness/kit";
@@ -72,12 +72,13 @@ const SIM_SCORED = new Set<PuzzleType>(["tendrop", "stroop"]);
 // The four grid puzzles born on the standard (1 Nov 2026: Fences, Fillomino, Bridges, Kakuro) are always played, and
 // dealt and graded as room rounds on the built bundle below (NEW_GRID_GAMES), so the production build keeps their graders.
 const NEW_GRID_GAMES: PuzzleType[] = ["fences", "fillomino", "bridges", "kakuro"];
-const DEFAULT_GAMES: PuzzleType[] = ["flood", "lightsout", "unblock", "tiles", "equation", "wordslide", "codeword", "symscan", "chain", ...NEW_GRID_GAMES];
+// Changed with Joe's approval, 13 Nov 2026: Blackout and Gradient retired (Practice refuses them), so Hanoi (Logic) and Pipeline (Pattern) stand in.
+const DEFAULT_GAMES: PuzzleType[] = ["flood", "tower", "unblock", "pipes", "equation", "wordslide", "codeword", "symscan", "chain", ...NEW_GRID_GAMES];
 const named = args.filter((a) => !a.startsWith("--")) as PuzzleType[];
 const games: PuzzleType[] = named.length
   ? named
   : ALL
-    ? (Object.keys(STANDARD_STAMPS) as PuzzleType[]).filter((t) => !SIM_SCORED.has(t))
+    ? (Object.keys(STANDARD_STAMPS) as PuzzleType[]).filter((t) => !SIM_SCORED.has(t) && isPlayable(t)) // Changed with Joe's approval, 13 Nov 2026: live games only
     : DEFAULT_GAMES;
 
 const CHROMIUM = [process.env.PLAYWRIGHT_CHROMIUM, "/opt/pw-browsers/chromium", "/usr/bin/chromium"].find((p) => p && existsSync(p));

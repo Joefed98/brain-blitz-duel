@@ -2,7 +2,7 @@
  * The games this device last opened in practice, newest first (the Play tab's "Warm up" tiles).
  * Device storage only, like practiceBest.ts; never read by grading or rooms.
  */
-import { isLiveType } from "./catalogue";
+import { isPlayable } from "./catalogue";
 import type { PuzzleType } from "./types";
 
 const KEY = "duelz-practice-recent:v1";
@@ -30,15 +30,18 @@ export function notePracticePlayed(type: string): void {
   }
 }
 
-/** Warm up's three tiles before this device has played anything in practice. */
-export const WARM_UP_DEFAULTS: PuzzleType[] = ["unblock", "hover", "lightsout"];
+/**
+ * Warm up's three tiles before this device has played anything in practice: the first three playable of these
+ * (Blackout retired on 13 Nov 2026, so Box Six stands in until it returns).
+ */
+export const WARM_UP_DEFAULTS: PuzzleType[] = ["unblock", "hover", "lightsout", "sudoku"];
 
 /** This device's three most recently played practice games, filled from the fixed three. */
 export function warmUpTypes(recent: readonly string[]): PuzzleType[] {
   const out: PuzzleType[] = [];
   for (const type of [...recent, ...WARM_UP_DEFAULTS]) {
     if (out.length === 3) break;
-    if (isLiveType(type) && !out.includes(type)) out.push(type);
+    if (isPlayable(type) && !out.includes(type)) out.push(type);
   }
   return out;
 }

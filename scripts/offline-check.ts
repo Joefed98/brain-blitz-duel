@@ -377,8 +377,8 @@ async function shot(page: Page, name: string): Promise<void> {
 /** Opens a game from the Practice list and presses Ready (the list must be showing). */
 async function startGame(page: Page, game: PuzzleType): Promise<void> {
   await showPracticeSide(page, game);
-  // A retired game (Full House since 1 Nov 2026) keeps its pack and is opened from the list's Retired section.
-  if (isRetired(game)) await page.locator("[data-practice-retired]").first().evaluate((d) => ((d as HTMLDetailsElement).open = true));
+  // Changed with Joe's approval, 13 Nov 2026: a retired game gets no pack and isn't listed (the list has no Retired section).
+  if (isRetired(game)) throw new Error(`${game} is retired: not in Practice`);
   const button = page.getByRole("button", { name: gameDisplayName(game), exact: true }).first();
   await button.waitFor({ timeout: 30_000 });
   await button.click();
@@ -438,7 +438,8 @@ async function backToList(page: Page): Promise<void> {
  */
 async function lazyPass(browser: Browser): Promise<void> {
   const tag = "new device";
-  const wanted = PUZZLE_TYPES.filter((t) => !ONLINE_ONLY_TYPES.has(t) && !NEEDS_DATABASE.has(t));
+  // Changed with Joe's approval, 13 Nov 2026: retired games get no pack.
+  const wanted = PUZZLE_TYPES.filter((t) => !isRetired(t) && !ONLINE_ONLY_TYPES.has(t) && !NEEDS_DATABASE.has(t));
   const dealsIn = (packs: IdbPack[]) => packs.reduce((a, p) => a + p.deals.length, 0);
   const fresh = async (opts: Parameters<typeof allowPacks>[0]) => {
     const ctx = await browser.newContext({ viewport: { width: 414, height: 896 }, deviceScaleFactor: 1 });
@@ -546,7 +547,8 @@ async function fullPass(browser: Browser): Promise<void> {
   // 1. Online: the worker installs and the packs fill.
   await page.goto(`${ORIGIN}/practice`);
   await until("service worker controls the page", async () => (await controllerVersion(page)) === builtVersion(), 120_000);
-  const wanted = PUZZLE_TYPES.filter((t) => !ONLINE_ONLY_TYPES.has(t) && !NEEDS_DATABASE.has(t));
+  // Changed with Joe's approval, 13 Nov 2026: retired games get no pack.
+  const wanted = PUZZLE_TYPES.filter((t) => !isRetired(t) && !ONLINE_ONLY_TYPES.has(t) && !NEEDS_DATABASE.has(t));
   await until(
     "every pack full",
     async () => {
@@ -559,6 +561,7 @@ async function fullPass(browser: Browser): Promise<void> {
   );
   const packs = await idbAll<IdbPack>(page, "packs");
   check(packs.every((p) => !ONLINE_ONLY_TYPES.has(p.type)), "no pack for an online-only game");
+  check(packs.every((p) => !isRetired(p.type)), "no pack for a retired game");
   check(
     packs.every((p) => p.builtFor === currentPracticeStamp(p.type) && p.deals.every((d) => stampSignature(d.puzzle) === p.stamp)),
     "each pack is tied to its game's stamps",
@@ -596,8 +599,9 @@ async function fullPass(browser: Browser): Promise<void> {
   check((await page.locator("[data-offline-result] [data-pending-clock]").count()) === 1, "Meteor offline: pending clock");
   await shot(page, `pending-arcade-${tag}`);
   await backToList(page);
-  const poker = await playOffline(page, "pokersquares", 90_000);
-  check(poker === "queued" && /^\d+$/.test((await page.locator("[data-offline-score]").innerText()).trim()), "Poker Squares offline: provisional score");
+  // Changed with Joe's approval, 13 Nov 2026: Full House is retired (no pack, not listed), so Summit, a live card game, plays to its buzzer.
+  const summit = await playOffline(page, "tripeaks", 90_000);
+  check(summit === "queued" && /^\d+$/.test((await page.locator("[data-offline-score]").innerText()).trim()), "Summit offline: provisional score");
   await backToList(page);
   const eagle = await playOffline(page, "symscan", 90_000);
   check(eagle === "queued" && (await page.locator("[data-offline-score]").innerText()).includes("Score pending"), "Eagle Eye offline: score pending");
@@ -726,7 +730,7 @@ async function fullPass(browser: Browser): Promise<void> {
 
   // 6. A new build's worker never interrupts a run in progress.
   const before = builtVersion();
-  await startGame(page, "pokersquares");
+  await startGame(page, "tripeaks"); // Changed with Joe's approval, 13 Nov 2026: a live card game in place of the retired Full House.
   const navsAtStart = navigations;
   publishNext = true;
   await page.evaluate(() => navigator.serviceWorker.getRegistration().then((r) => r?.update()));
@@ -740,8 +744,9 @@ async function fullPass(browser: Browser): Promise<void> {
   check(waited && navigations === navsAtStart, "no reload while the run plays");
   check((await controllerVersion(page)) === before, "the old worker stays in control during the run");
   check((await page.locator("[data-arcade-play]").count()) === 1, "the run is still on screen");
-  await playPokerSquares(page);
-  await page.getByRole("button", { name: "Back", exact: true }).first().waitFor({ timeout: 30_000 });
+  // Changed with Joe's approval, 13 Nov 2026: Summit plays to its buzzer; the Full House taps ended a Full House run (was `await playPokerSquares(page);`).
+  // Changed with Joe's approval, 13 Nov 2026: Summit plays to its buzzer; the Full House taps ended a Full House run (was a 30 s timeout).
+  await page.getByRole("button", { name: "Back", exact: true }).first().waitFor({ timeout: 90_000 });
   const loadsBeforeBack = loads;
   await page.getByRole("button", { name: "Back", exact: true }).first().click();
   const tookOver = await until("the new worker takes over on the list", async () => (await controllerVersion(page)) === `${before}${NEXT_SUFFIX}`, 30_000);

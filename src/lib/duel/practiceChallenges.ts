@@ -17,6 +17,7 @@
  * Every number is the game's own: practice-goals-check proves each against the live specs, the standard's rules and
  * the sims' constants, so a retune that moves one fails the check. Shared and pure; no registry import.
  */
+import { isPlayable } from "./catalogue";
 import {
   CATALOGUE,
   LIVE_CHALLENGE_LEVELS,
@@ -38,9 +39,12 @@ export function challengeById(id: string): PracticeChallenge | undefined {
   return BY_ID.get(id);
 }
 
-/** Whether a challenge can be completed now (its level is dealt). */
+/**
+ * Whether a challenge can be completed now: its level is dealt and its game is playable (a retired game's challenges
+ * are hidden and count for nothing, 13 Nov 2026; their stored completions stay and return with the game).
+ */
 export function challengeLive(c: PracticeChallenge): boolean {
-  return LIVE_CHALLENGE_LEVELS.includes(c.level);
+  return LIVE_CHALLENGE_LEVELS.includes(c.level) && isPlayable(c.type);
 }
 
 /** A graded run as the server stores it. */

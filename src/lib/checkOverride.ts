@@ -29,6 +29,7 @@ export type CheckOverrideName =
   | "__DUELZ_CHALLENGES__"
   | "__DUELZ_FIRST_OPEN__"
   | "__DUELZ_IDENTITY_EVENTS__"
+  | "__DUELZ_MINES_PRE_LOGIC__"
   | "__DUELZ_PUBLIC_GAMES__"
   | "__DUELZ_RATED_BACKEND__"
   | "__DUELZ_RATED_EVENTS__"
@@ -38,10 +39,27 @@ export type CheckOverrideName =
 export function checkOverride<T = unknown>(name: CheckOverrideName): T | undefined {
   // Plain import.meta.env.PROD so Vite replaces it with true in a production build.
   if (import.meta.env.PROD) return undefined;
-  if (typeof window === "undefined") return undefined;
+  // Under bun (a server-side check, no window) a check sets its stand-in on the global through setCheckOverride.
+  if (typeof window === "undefined") return serverStandIns()[name] as T | undefined;
   try {
     return (window as unknown as Record<string, unknown>)[name] as T | undefined;
   } catch {
     return undefined;
   }
+}
+
+/** Where a server-side check's stand-ins live (bun only; a production build never reads it). */
+function serverStandIns(): Record<string, unknown> {
+  const g = globalThis as unknown as { __duelzCheckStandIns?: Record<string, unknown> };
+  return (g.__duelzCheckStandIns ??= {});
+}
+
+/**
+ * Sets a stand-in for code that runs with no window (a check calling server code in its own process, e.g. the deal's
+ * check-only era switches in dealEra.ts). A production build ignores it and never sets anything.
+ */
+export function setCheckOverride(name: CheckOverrideName, value: unknown): void {
+  if (import.meta.env.PROD) return;
+  if (value === undefined) delete serverStandIns()[name];
+  else serverStandIns()[name] = value;
 }

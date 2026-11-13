@@ -4,9 +4,11 @@
  * Shared and pure: no storage, no network. Never imported by grading, scoring or replay code.
  *
  * Stars (the master plan's rule): one star per game per level for a score of 175 or more on Easy, Classic or Hard; a
- * crown for 175+ on Expert comes in wave 3.5 (never a star). Every run today is Classic, so 92 stars at most until then;
- * the total is out of 276 (92 games × 3 levels). Bests are the best graded score per game and level.
+ * crown for 175+ on Expert comes in wave 3.5 (never a star). The total is out of every live game's three levels
+ * (STAR_TOTAL_MAX: 83 games × 3 = 249 since 13 Nov 2026); a retired game's stars stay stored but count for nothing
+ * (catalogue.ts isPlayable), and return with the game. Bests are the best graded score per game and level.
  */
+import { ACTIVE_PUZZLE_TYPES, isPlayable } from "@/lib/duel/catalogue";
 
 export const PRACTICE_LEVELS = ["easy", "classic", "hard", "expert"] as const;
 export type PracticeLevel = (typeof PRACTICE_LEVELS)[number];
@@ -20,9 +22,14 @@ export const STAR_LEVELS: readonly PracticeLevel[] = ["easy", "classic", "hard"]
 /** The score a star needs. */
 export const STAR_SCORE = 175;
 
-/** Stars there are: 92 active games × 3 levels. */
+/** Stars there are: every live game × 3 levels (retiring or restoring a game moves it; nothing else does). */
 export const STARS_PER_GAME = STAR_LEVELS.length;
-export const STAR_TOTAL_MAX = 276;
+export const STAR_TOTAL_MAX = ACTIVE_PUZZLE_TYPES.length * STARS_PER_GAME;
+
+/** Whether a stored star counts: on a star level, for a live game (catalogue.ts isPlayable). */
+export function starCounts(game: string, level: PracticeLevel): boolean {
+  return isPlayable(game) && STAR_LEVELS.includes(level);
+}
 
 /** A stored or sent level read safely: anything that isn't a level (null included) is Classic. */
 export function levelOf(raw: unknown): PracticeLevel {
@@ -34,7 +41,11 @@ export function earnsStar(score: number, level: PracticeLevel = DEALT_LEVEL): bo
   return Number.isFinite(score) && score >= STAR_SCORE && STAR_LEVELS.includes(level);
 }
 
-/** The gem colours and the star total each unlocks at (the master plan's thresholds), in order. */
+/**
+ * The gem colours and the star total each unlocks at, in order (the master plan's thresholds; Diamond is every live star
+ * since 13 Nov 2026, Joe's decision, so it follows STAR_TOTAL_MAX). Every threshold is at most STAR_TOTAL_MAX
+ * (practice-progress-check), so no retirement can make a gem unreachable. A gem once unlocked stays unlocked.
+ */
 export const GEM_THRESHOLDS = [
   { gem: "amber", name: "Amber", stars: 10 },
   { gem: "rose-quartz", name: "Rose Quartz", stars: 20 },
@@ -45,8 +56,8 @@ export const GEM_THRESHOLDS = [
   { gem: "sapphire", name: "Sapphire", stars: 125 },
   { gem: "pearl", name: "Pearl", stars: 150 },
   { gem: "obsidian", name: "Obsidian", stars: 200 },
-  { gem: "diamond", name: "Diamond", stars: 250 },
-] as const;
+  { gem: "diamond", name: "Diamond", stars: STAR_TOTAL_MAX },
+] as const satisfies readonly { gem: string; name: string; stars: number }[];
 export type GemThreshold = (typeof GEM_THRESHOLDS)[number];
 
 /** The star total a gem needs, or null for an unknown gem. */

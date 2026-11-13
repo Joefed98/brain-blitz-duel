@@ -15,7 +15,8 @@
  *    read the same as with celebrations switched off.
  *  - Reduced motion: no sparks or run; the totals final from the first frame; banner and hero calm.
  *  - Switched off: no layer, no meter, no requests, and each screen's markup the same as today's
- *    (scripts/fixtures/celebrations-off.json, recorded on main with --record-off).
+ *    (scripts/fixtures/celebrations-off.json, recorded on main with --record-off). Changed with Joe's approval, 13 Nov
+ *    2026: only its "home" entry re-recorded, since nine games retired ("All 83 games"; Warm up's third tile Box Six).
  *
  * Every screen is drawn on a fixed clock (scripts/fixed-clock.ts: Mon 26 Oct 2026, the recording's day),
  * so a re-recording on any day draws the same dates; a failed markup comparison prints where they part.

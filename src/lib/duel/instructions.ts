@@ -11,7 +11,7 @@ import { SW6_SPARE_SWAPS, SWAP_PAR_BONUS_TOPUP } from "./swapword";
 import { STD_ROUNDABOUT, STD_STRIKEOUT, WORD_NOV7_HELP, WORD_STANDARD_HELP } from "./standard/word";
 import { wordNov7Dealt } from "./wordNov7";
 import { preStandardPinned } from "./standard/stamps";
-import { MINES_COUNT, MINES_HIT_COST } from "@/lib/arcade/minesweeper";
+import { MINES_COUNT_V2, MINES_HIT_COST } from "@/lib/arcade/minesweeper";
 import { MAHJONG_SHUFFLE_COST } from "@/lib/arcade/mahjong";
 import { puzzleNotesDealt } from "./puzzleNotes";
 import { PAR_MOVES_MAZE_HELP, STANDARD_ATTENTION_HELP } from "./standard/attentionTexts";
@@ -1065,7 +1065,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Tap a number", detail: "whose flags are all placed to reveal the rest round it." },
         { action: "The opening is revealed for you:", detail: "every board can be solved by logic alone, no guessing.", helpOnly: true },
         { action: "A mine costs 5", detail: "and stays marked; play goes on.", helpOnly: true },
-        { action: "One board for everyone,", detail: `${MINES_COUNT} mines on 10 × 16, 90 seconds.`, helpOnly: true },
+        { action: "One board for everyone,", detail: `${MINES_COUNT_V2} mines on 10 × 16, 90 seconds.`, helpOnly: true },
       ],
       score: liveStdHelp("minesweeper", `Each mine hit costs ${MINES_HIT_COST}.`),
     },

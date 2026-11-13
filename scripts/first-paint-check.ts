@@ -69,12 +69,14 @@ const PRACTICE_GAMES: PuzzleType[] = [
   "numpyramid",
   "balance",
   "numhunt",
-  "stopwatch",
+  // Changed with Joe's approval, 13 Nov 2026: Bang On retired, Flash stands in (Speed).
+  "reaction",
   "symscan",
   "maze",
   "pipes",
   "flow",
-  "rings",
+  // Changed with Joe's approval, 13 Nov 2026: Turntable retired, Topsy-Turvy stands in (Pattern).
+  "gravity",
   "blockparty",
   "sudoku",
   "flood",
@@ -89,7 +91,8 @@ const roomGames = named.length ? named : ROOM_GAMES;
 const LATE_PRACTICE_GAMES: PuzzleType[] = [
   "wordsmith",
   "target",
-  "stopwatch",
+  // Changed with Joe's approval, 13 Nov 2026: Bang On retired, Flash stands in (Speed).
+  "reaction",
   "symscan",
   "flow",
   "sudoku",

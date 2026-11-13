@@ -5,6 +5,7 @@
  * writable by any API role, the service role included.
  */
 
+import { syncRetirement } from "./retirement.server";
 import type { Db, Json, Tables } from "./db.server";
 import type { CoinOutcome } from "./economy.server";
 import type { Result } from "./rooms.server";
@@ -86,6 +87,8 @@ export async function readBadgeFacts(
   client: Db,
   input: { userId: string; puzzleLimits: Record<string, number> },
 ): Promise<Result<BadgeFactsRow | null>> {
+  // The facts leave retired games out through the retired-games mirror (retirement.server.ts).
+  await syncRetirement(client);
   const { data, error } = await client.rpc("badge_facts", {
     p_user_id: input.userId,
     p_puzzle_limits: input.puzzleLimits as Json,

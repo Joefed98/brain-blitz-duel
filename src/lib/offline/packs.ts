@@ -12,7 +12,7 @@ import { appUpdater } from "@/lib/appUpdate";
 import { POLICIES, fetchFor } from "@/lib/net/request";
 import { currentPracticeStamp, stampSignature } from "@/lib/duel/practiceStamps";
 import { recentPracticeTypes } from "@/lib/duel/practiceRecent";
-import { PUZZLE_TYPES } from "@/lib/duel/catalogue";
+import { PUZZLE_TYPES, isPlayable } from "@/lib/duel/catalogue";
 import type { PuzzleData, PuzzleType } from "@/lib/duel/types";
 
 import { getAll, putOne, update } from "./db";
@@ -39,9 +39,12 @@ export interface PracticePack {
   updatedAt: number;
 }
 
-/** Every game that can have a pack: every practice game but the online-only ones. */
+/**
+ * Every game that can have a pack: every playable game but the online-only ones. A retired game's pack stays on the
+ * device untouched (nothing deleted) but is never topped up, counted or dealt from (catalogue.ts isPlayable).
+ */
 export function packTypes(): PuzzleType[] {
-  return PUZZLE_TYPES.filter((type) => !ONLINE_ONLY_TYPES.has(type));
+  return PUZZLE_TYPES.filter((type) => isPlayable(type) && !ONLINE_ONLY_TYPES.has(type));
 }
 
 export async function readPacks(): Promise<PracticePack[]> {
@@ -55,12 +58,13 @@ export async function readPacks(): Promise<PracticePack[]> {
 /** How many deals are left in each game's pack. */
 export async function packCounts(): Promise<Partial<Record<PuzzleType, number>>> {
   const out: Partial<Record<PuzzleType, number>> = {};
-  for (const pack of await readPacks()) out[pack.type] = pack.deals.length;
+  for (const pack of await readPacks()) if (isPlayable(pack.type)) out[pack.type] = pack.deals.length;
   return out;
 }
 
 /** Takes one deal of a game from its pack (null when the pack is empty or missing). */
 export async function takePackDeal(type: PuzzleType): Promise<PackDeal | null> {
+  if (!isPlayable(type)) return null;
   let taken: PackDeal | null = null;
   try {
     await update<PracticePack>("packs", type, (pack) => {

@@ -11,9 +11,9 @@ import {
   MINES_INPUT_TAP,
   MINES_MODE_FLAG,
   MINES_MODE_REVEAL,
-  MINES_REV_STD,
+  MINES_REV_LOGIC,
   MINES_RUN_TICKS,
-  MINES_SAFE,
+  minesSafeFor,
   MINES_WORLD_H,
   MINES_WORLD_W,
   type MinesState,
@@ -171,8 +171,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   );
 }
 
-export function minesweeperLine(r: { revealed: number; opening: number; hits: number; cleared: boolean; clearedSeconds: number }): string {
-  const head = `${r.revealed - r.opening} of ${MINES_SAFE - r.opening} safe squares`;
+export function minesweeperLine(r: { revealed: number; opening: number; hits: number; cleared: boolean; clearedSeconds: number; state?: { rev?: number } }): string {
+  const head = `${r.revealed - r.opening} of ${minesSafeFor(r.state?.rev) - r.opening} safe squares`;
   const hits = r.hits === 0 ? "no mine hit" : `${r.hits} ${r.hits === 1 ? "mine" : "mines"} hit`;
   return r.cleared ? `${head} · cleared in ${r.clearedSeconds.toFixed(1)}s · ${hits}` : `${head} · ${hits}`;
 }
@@ -192,10 +192,11 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
 export const minesweeperPuzzle: PuzzleDefinition = {
   key: "minesweeper",
   name: gameDisplayName("minesweeper"),
-  category: "arcade",
+  category: "logic",
+  arcadeRun: true,
   timeLimitMs: (MINES_RUN_TICKS / TICKS_PER_SECOND) * 1000 + 3000,
   revealMs: 6_000,
-  generate: () => ({ type: "minesweeper", seed: 1, minesRev: MINES_REV_STD }) satisfies MinesweeperPuzzleData,
+  generate: () => ({ type: "minesweeper", seed: 1, minesRev: MINES_REV_LOGIC }) satisfies MinesweeperPuzzleData,
   check: () => false,
   revealHeading: "Your run",
   IntroExample,

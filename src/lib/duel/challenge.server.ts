@@ -20,6 +20,7 @@
 import {
   asRoundResult,
   attemptFor,
+  retiredClosed,
   attemptsIn,
   attemptView,
   createAsyncRoom,
@@ -59,7 +60,7 @@ import {
 } from "./challenge";
 import { dealRounds } from "./generate.server";
 import { randomBelow } from "./random";
-import { isLiveType, puzzleDef, puzzlePrepMs, puzzleTimeLimitMs } from "./registry";
+import { isPlayable, puzzleDef, puzzlePrepMs, puzzleTimeLimitMs } from "./registry";
 import { mergePuzzle } from "./secrets";
 import { newRoomSeed, pickRoundOrder } from "./selection";
 import { isSettingsRoom, readRoomSettings } from "./roomSettings";
@@ -310,7 +311,8 @@ export async function createChallengeFromRoom(
   if (
     !pub.length ||
     pub.length !== (room.round_count || order.length) ||
-    !pub.every((p) => isLiveType(p.type))
+    // No challenge from a room that included a retired game (catalogue.ts isPlayable, 13 Nov 2026).
+    !pub.every((p) => isPlayable(p.type))
   )
     return { ok: false, message: "This game can’t be turned into a challenge." };
   if ((await challengesMadeLastHour(client, userId, nowMs)) >= CHALLENGE_CREATE_PER_HOUR)
@@ -452,7 +454,8 @@ export async function challengeInfo(
   const attempts = await attemptsIn(client, room.id);
   let mine = userId ? (attempts.find((a) => a.user_id === userId) ?? null) : null;
   if (mine) mine = (await attemptView(client, room, mine, nowMs)).attempt;
-  const closed = nowMs >= msOf(room.closes_at);
+  // A challenge holding a retired game reads as closed (asyncRoom.server.ts retiredClosed); nothing stored changes.
+  const closed = nowMs >= msOf(room.closes_at) || retiredClosed(room);
   const state = mine
     ? mine.finished_at || closed
       ? "done"
@@ -489,6 +492,7 @@ export async function startChallenge(
   const found = await challengeByCode(client, code);
   if (!found) return { ok: false, message: "That challenge doesn’t exist." };
   const { room } = found;
+  if (retiredClosed(room)) return { ok: false, message: "This challenge has ended.", closed: true };
   const existing = await attemptFor(client, room.id, userId);
   if (existing) return { ok: true, roomId: room.id, created: false };
   if (nowMs >= msOf(room.closes_at))

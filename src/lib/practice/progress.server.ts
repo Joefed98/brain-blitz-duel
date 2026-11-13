@@ -13,7 +13,7 @@ import {
 } from "@/lib/data/practiceProgress.server";
 
 import type { PracticeProgressView, PracticeRunProgress } from "./progress";
-import { levelOf, STAR_LEVELS, type PracticeLevel } from "./progressRules";
+import { levelOf, starCounts, STAR_LEVELS, type PracticeLevel } from "./progressRules";
 
 /** A player's whole progress, read from the server's rows. */
 export async function progressFor(client: Db, userId: string): Promise<PracticeProgressView> {
@@ -29,7 +29,8 @@ export async function progressFor(client: Db, userId: string): Promise<PracticeP
   for (const r of rows.data) {
     const level: PracticeLevel = levelOf(r.level);
     const star = r.star_at !== null && STAR_LEVELS.includes(level);
-    if (star) stars += 1;
+    // A retired game's stars stay stored but count for nothing (progressRules.ts starCounts).
+    if (star && starCounts(r.game_id, level)) stars += 1;
     (games[r.game_id] ??= {})[level] = { best: r.best_score, star, starScore: star ? r.star_score : null };
   }
   return {

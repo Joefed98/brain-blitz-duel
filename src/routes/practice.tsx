@@ -33,7 +33,6 @@ import { DevKeyStatus, SaveDemoButton, useDemoKey } from "@/components/duel/Save
 import {
   ACTIVE_PUZZLE_TYPES,
   PUZZLE_REGISTRY,
-  RETIRED_PUZZLE_TYPES,
   PREVIEW_PUZZLE_TYPES,
   puzzleCategories,
   puzzleDef,
@@ -44,7 +43,7 @@ import {
   puzzleTimeLimitMs,
   puzzleRunMs,
   typesInCategory,
-  isLiveType,
+  isPlayable,
 } from "@/lib/duel/catalogue";
 import { clearStageState } from "@/lib/duel/stageState";
 import { DemoRecorder, type PuzzleDemoLog } from "@/lib/duel/puzzleDemo";
@@ -286,6 +285,8 @@ const ARCADE_CHIPS: { id: ArcadeFilter; label: string; span?: 2 }[] = [
 const isArcadeGroupId = (id: string) => ARCADE_GROUPS.some((g) => g.id === id);
 
 function matchesFilter(type: PuzzleType, side: PracticeSide, filter: PracticeFilter | ArcadeFilter, query: string): boolean {
+  // Retired games are out of the app (13 Nov 2026): never listed or found by a search.
+  if (!isPlayable(type)) return false;
   // A game listed also in a pick on this side (alsoIn.ts: Pull! in Sports) is shown here too, under that pick.
   const also = alsoInOf(type);
   const alsoHere = also !== null && (side === "arcade") === isArcadeGroupId(also);
@@ -296,8 +297,7 @@ function matchesFilter(type: PuzzleType, side: PracticeSide, filter: PracticeFil
   const category = home ? definition.category : (also as string);
   if (filter !== "all") {
     if (side === "puzzles" && category !== filter && !(alsoHere && also === filter)) return false;
-    // A group's chip lists its active games; a retired one (Full House, 1 Nov 2026) is under All games' Retired, as Scrumper.
-    if (side === "arcade" && ((group !== filter && !(alsoHere && also === filter)) || RETIRED_PUZZLE_TYPES.includes(type))) return false;
+    if (side === "arcade" && group !== filter && !(alsoHere && also === filter)) return false;
   }
   const q = query.trim().toLowerCase();
   if (q === "") return true;
@@ -526,7 +526,8 @@ function PracticeScreen() {
   const openedFromSearch = useRef(false);
   useEffect(() => {
     const wanted = search.game;
-    if (openedFromSearch.current || !wanted || !(wanted in PUZZLE_REGISTRY)) return;
+    // Only a playable game: a retired one's link opens the list (catalogue.ts isPlayable).
+    if (openedFromSearch.current || !wanted || !isPlayable(wanted)) return;
     openedFromSearch.current = true;
     void load(wanted as PuzzleType);
     void navigate({
@@ -745,9 +746,6 @@ function PracticeScreen() {
     // A game listed in two sections on this side counts once (none today: Pull!'s sections are on different sides).
     const matches = [...new Set(shown.flatMap((group) => group.rows))];
     const previewRows = PREVIEW_PUZZLE_TYPES.filter(visible);
-    const retiredRows = RETIRED_PUZZLE_TYPES.filter(
-      (key) => !PREVIEW_PUZZLE_TYPES.includes(key),
-    ).filter(visible);
     // Offline practice: which games wait on the server, and (with no connection) which can't be played now.
     const pendingTypes = new Set(offlineStore.runs.filter((r) => r.status === "queued").map((r) => r.type));
     const offlineMark = (key: PuzzleType) => {
@@ -769,7 +767,7 @@ function PracticeScreen() {
       return null;
     };
     // One row per game: a tap opens its round. The best sits in one fixed-width BEST column.
-    const row = (key: PuzzleType, retired = false) => (
+    const row = (key: PuzzleType) => (
       <button
         key={key}
         type="button"
@@ -778,7 +776,7 @@ function PracticeScreen() {
         aria-describedby={cardBestId(key)}
         data-practice-game={key}
         data-icon="game"
-        className={`jz-row press${retired ? " opacity-80" : ""}`}
+        className="jz-row press"
       >
         <GameTile type={key} iconSize={44} tileStyle={myTileStyle} />
         <span data-ellipsis aria-hidden="true" className="jz-row-title min-w-0 flex-1">
@@ -806,7 +804,7 @@ function PracticeScreen() {
     const recentRows =
       filter === "all" && query.trim() === ""
         ? recentPracticeTypes()
-            .filter(isLiveType)
+            .filter(isPlayable)
             .filter((key) => practiceSideOf(key) === side)
             .slice(0, 4)
         : [];
@@ -987,7 +985,7 @@ function PracticeScreen() {
               <p data-practice-empty-group={emptyGroup.id} className="jz-panel ap-empty">
                 {emptyGroup.label} games are coming soon
               </p>
-            ) : matches.length === 0 && previewRows.length === 0 && retiredRows.length === 0 ? (
+            ) : matches.length === 0 && previewRows.length === 0 ? (
               <p className="jz-panel ap-empty">Nothing matches that</p>
             ) : null}
 
@@ -998,14 +996,7 @@ function PracticeScreen() {
               </section>
             )}
 
-            {retiredRows.length > 0 && (
-              <details data-practice-retired className="flex flex-col gap-2.5" open={query.trim() !== "" || undefined}>
-                <summary className="ap-section-title th-hit press cursor-pointer">
-                  Retired ({retiredRows.length})
-                </summary>
-                <div className="jz-panel mt-2.5">{retiredRows.map((key) => row(key, true))}</div>
-              </details>
-            )}
+            {/* No Retired section (13 Nov 2026, Joe's rule): retired games are out of the app (catalogue.ts isPlayable). */}
 
             <PracticeFooter />
           </div>
