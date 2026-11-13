@@ -300,3 +300,25 @@ button.lb-podium-card {
     order: 3;
   }
 }
+
+/*
+ * Settings → Account's "Show me on leaderboards" (as Friends' setting rows): the description wraps in the space left of
+ * the switch, never past it, so the row never widens the page.
+ */
+.jz-row.lb-setting-row {
+  align-items: center;
+  gap: var(--jz-space-16);
+}
+.lb-setting-row .jz-row-text {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.lb-setting-row .jz-row-sub {
+  overflow: visible;
+  white-space: normal;
+  overflow-wrap: break-word;
+  text-overflow: clip;
+}
+.lb-setting-row .jz-switch {
+  flex: none;
+}
