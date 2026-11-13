@@ -21,6 +21,8 @@ export const ITEM_KINDS = [
   "tile-style",
   "game-skin",
   "world-theme",
+  // One card back for the account (11 Nov 2026, Joe): drawn on Full House's face-down deck.
+  "card-back",
 ] as const;
 export type ItemKind = (typeof ITEM_KINDS)[number];
 
@@ -53,7 +55,6 @@ export const GAME_TYPE_BY_NAME: Readonly<Record<string, string>> = {
   "Crazy Golf": "minigolf",
   "Cue Ball": "pool",
   "Curl Champ": "curling",
-  "Free Cell": "freecell",
   "Full House": "pokersquares",
   "Top Bins": "freekick",
 };
@@ -76,6 +77,7 @@ export const SINGLE_SLOTS = [
   "celebration",
   "podium-entrance",
   "tile-style",
+  "card-back",
 ] as const;
 
 export const LOADOUT_SLOTS: readonly string[] = [
@@ -204,5 +206,8 @@ export const ECONOMY_REASONS = [
   // fixed prizes.
   "tournament_entry",
   "tournament_prize",
+  // Joulz Plus (wave 2 E2; supabase/migrations/20261113200000_joulz_plus.sql): a test membership's monthly rewards.
+  "plus_test_monthly",
+  "plus_test_removed",
 ] as const;
 export type EconomyReason = (typeof ECONOMY_REASONS)[number];

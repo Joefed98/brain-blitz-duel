@@ -591,6 +591,7 @@ export type Database = {
           extra: Json | null
           id: string
           input_type: string | null
+          look: Json | null
           is_correct: boolean
           missed: boolean
           ms_remaining: number
@@ -611,6 +612,7 @@ export type Database = {
           extra?: Json | null
           id?: string
           input_type?: string | null
+          look?: Json | null
           is_correct?: boolean
           missed?: boolean
           ms_remaining?: number
@@ -631,6 +633,7 @@ export type Database = {
           extra?: Json | null
           id?: string
           input_type?: string | null
+          look?: Json | null
           is_correct?: boolean
           missed?: boolean
           ms_remaining?: number
@@ -1351,6 +1354,8 @@ export type Database = {
       }
       mm_match_players: {
         Row: {
+          gone_at: string | null
+          left_at: string | null
           match_id: string
           placement: boolean
           rating_before: number
@@ -1359,6 +1364,8 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          gone_at?: string | null
+          left_at?: string | null
           match_id: string
           placement?: boolean
           rating_before: number
@@ -1367,6 +1374,8 @@ export type Database = {
           user_id: string
         }
         Update: {
+          gone_at?: string | null
+          left_at?: string | null
           match_id?: string
           placement?: boolean
           rating_before?: number
@@ -1378,6 +1387,11 @@ export type Database = {
       }
       mm_matches: {
         Row: {
+          ended: string | null
+          ended_at: string | null
+          ended_step: string | null
+          intro_at: string | null
+          leavers: Json
           choice: string
           created_at: string
           duel_id: string | null
@@ -1401,6 +1415,11 @@ export type Database = {
           status: string
         }
         Insert: {
+          ended?: string | null
+          ended_at?: string | null
+          ended_step?: string | null
+          intro_at?: string | null
+          leavers?: Json
           choice: string
           created_at?: string
           duel_id?: string | null
@@ -1424,6 +1443,11 @@ export type Database = {
           status?: string
         }
         Update: {
+          ended?: string | null
+          ended_at?: string | null
+          ended_step?: string | null
+          intro_at?: string | null
+          leavers?: Json
           choice?: string
           created_at?: string
           duel_id?: string | null
@@ -1852,6 +1876,7 @@ export type Database = {
           extra: Json | null
           id: string
           input_type: string | null
+          look: Json | null
           is_correct: boolean
           ms_remaining: number
           player_slot: number
@@ -1868,6 +1893,7 @@ export type Database = {
           extra?: Json | null
           id?: string
           input_type?: string | null
+          look?: Json | null
           is_correct?: boolean
           ms_remaining?: number
           player_slot: number
@@ -1884,6 +1910,7 @@ export type Database = {
           extra?: Json | null
           id?: string
           input_type?: string | null
+          look?: Json | null
           is_correct?: boolean
           ms_remaining?: number
           player_slot?: number
@@ -2680,6 +2707,17 @@ export type Database = {
       rated_recompute_standings: { Args: { p_now: string }; Returns: Json }
       rated_set_tiers: { Args: { p: Json }; Returns: number }
       rated_week_matches: { Args: { p_user_id: string; p_from: string; p_to: string }; Returns: Json }
+      result_look_for: {
+        Args: { p_game: string; p_user_id: string }
+        Returns: Json
+      }
+      room_game_looks: {
+        Args: { p_duel_id: string; p_game: string }
+        Returns: {
+          look: Json | null
+          player_slot: number
+        }[]
+      }
       badge_award: { Args: { p_badge: string; p_detail: Json; p_user_id: string }; Returns: Json }
       badge_set_card: { Args: { p_badges: string[]; p_user_id: string }; Returns: string }
       badge_set_title: { Args: { p_title: string | null; p_user_id: string }; Returns: string }
@@ -2798,6 +2836,14 @@ export type Database = {
         Returns: Json
       }
       shop_test_pack: { Args: { p_key: string; p_pack: string; p_user_id: string }; Returns: Json }
+      plus_membership: { Args: { p_user_id: string }; Returns: Json }
+      plus_is_member: { Args: { p_user_id: string }; Returns: boolean }
+      plus_test_purchase: { Args: { p_plan: string; p_user_id: string }; Returns: Json }
+      plus_note_grant: { Args: { p_detail: Json; p_membership_id: string; p_month: number; p_perk: string }; Returns: boolean }
+      plus_granted_months: { Args: { p_membership_id: string }; Returns: Json }
+      plus_set_mark: { Args: { p_on: boolean; p_user_id: string }; Returns: string }
+      plus_early_access: { Args: { p_day: string }; Returns: Json }
+      cosmetics_public: { Args: { p_user_ids: string[] }; Returns: Json }
       async_board_open: { Args: { p_room_id: string }; Returns: boolean }
       disband_stale_room: { Args: { p_room_id: string }; Returns: boolean }
       mm_purge_practice_deals: { Args: Record<PropertyKey, never>; Returns: number }
@@ -2852,6 +2898,7 @@ export type Database = {
       friends_room_invite: { Args: { p_from: string; p_to: string }; Returns: Json }
       friends_challenge_send: { Args: { p_from: string; p_to: string; p_code: string }; Returns: Json }
       friends_are_friends: { Args: { p_a: string; p_b: string }; Returns: boolean }
+      friends_count: { Args: { p_user: string }; Returns: number }
       friends_head_to_head: { Args: { p_a: string; p_b: string }; Returns: Json }
       friends_overview: { Args: { p_user: string; p_cap: number }; Returns: Json }
       friends_waiting: { Args: { p_user: string }; Returns: number }
@@ -2887,6 +2934,18 @@ export type Database = {
           p_counts_cap: boolean
           p_dedupe_key: string | null
           p_event: string
+          p_since: string
+          p_user_id: string
+        }
+        Returns: string
+      }
+      push_reserve_at: {
+        Args: {
+          p_cap: number
+          p_counts_cap: boolean
+          p_dedupe_key: string | null
+          p_event: string
+          p_now: string
           p_since: string
           p_user_id: string
         }

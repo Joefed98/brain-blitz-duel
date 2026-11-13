@@ -9,6 +9,7 @@ import { pushPublicKey } from "@/config/pushConfig";
 import type { FriendCard, FriendProfile, Overview, SearchHit } from "@/lib/data/friends.server";
 import type { ReportReason } from "@/lib/safety/reports";
 
+import { checkOverride } from "@/lib/checkOverride";
 import { PENDING_INVITE_KEY, PRESENCE_BEAT_MS, inviteTokenFrom, refusal, type FriendsRefusal } from "./friends";
 
 export type { FriendCard, FriendProfile, Overview, SearchHit };
@@ -74,7 +75,10 @@ export const friendsApi = {
 /** Marks the notification ask due (pushClient.ts; nothing while the push switch is off). Accounts only call these. */
 function notePushMomentSoon(moment: "friend_request_sent" | "friend_request_received"): void {
   if (!pushPublicKey()) return;
-  void import("@/lib/push/pushClient").then((m) => m.notePushMoment(moment, true)).catch(() => {});
+  // The account's player number from the device's copy (accountApi; null for a guest): the ask is for the audience only.
+  void Promise.all([import("@/lib/push/pushClient"), import("@/lib/account/accountApi")])
+    .then(([m, a]) => m.notePushMoment(moment, a.cachedAccount()?.playerNumber ?? null))
+    .catch(() => {});
 }
 
 /** A request that went out is a useful moment to offer notifications. */
@@ -159,8 +163,7 @@ export function clearPendingInvite(): void {
  */
 export function startPresence(isAccount: () => boolean, activity: () => "app" | "practice"): () => void {
   if (typeof window === "undefined") return () => {};
-  const w = window as unknown as { __DUELZ_ALLOW_PRESENCE__?: boolean };
-  if (navigator.webdriver && !w.__DUELZ_ALLOW_PRESENCE__) return () => {};
+  if (navigator.webdriver && checkOverride<boolean>("__DUELZ_ALLOW_PRESENCE__") !== true) return () => {};
   let timer: number | undefined;
   const beat = async () => {
     if (document.visibilityState !== "visible" || !isAccount()) return;

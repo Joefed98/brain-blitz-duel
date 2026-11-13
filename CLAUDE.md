@@ -1975,6 +1975,79 @@ outside the repo.
   `20261110200000_analytics_identity_events.sql` (**applied**; it adds to the list it reads from the
   table). Checks: identity-screens-check (~5 s, happy-dom, A1 stood in by `setIdentityBackend`) and identity-motion-check
   (headless Chromium: every item against its approved PNG, no animation under reduced motion).
+- **Game skins and world themes** (wave 2 E1, 11 Nov 2026, `docs/skins.md`; display only, no stamps, no gameplay,
+  deal or scoring change): the 20 game skins, 3 card backs and 4 world themes of `docs/art/wave-2/items/game-skin/`,
+  `card-back/` and `world-theme/` in Cue Ball, Crazy Golf, Curl Champ, Apex, Top Bins and Full House (Free Cell has no
+  skins: its deal is face up). `src/lib/arcade/skins/` (`look.ts`:
+  `GameLook`, `NO_LOOK`, the ids, the 3:1 contrast helpers; `motion.renderer.ts`: `skinTime()`, still under Reduce
+  Motion, the only Reduce Motion read; one `<game>.skins.ts`
+  each, `ballArt.ts` for the round balls). Each renderer takes an optional look on its public draw calls for the length
+  of the call only, so replays, reveals, demos, tiles and ghosts draw the default; scenes come from `…SceneFor(look)`.
+  The live stages alone pass the player's own equipped look (`src/lib/skins/equipped.ts` `useGameLookRef`, fed by
+  `src/lib/identity/gameLooks.ts` from A1's loadout through the identity backend's `gameLooks`). *Card backs* (Joe, 11
+  Nov 2026): one account slot `card-back` (ids `card-back.royal-damask`, `.holo-foil`, `.neon`; `CARD_BACK_IDS`,
+  `CARD_BACK_GAMES`), drawn on Full House's deck behind Next card; migration `20261112090000_card_back_slot.sql` moved
+  the three Free Cell skins with their owners and loadouts (old ids in `public.catalogue_renamed`, never re-inserted).
+  *Replays and ghosts*: each result stores its player's equipped look (`round_results.look`, `async_results.look`,
+  filled by database triggers from the loadout, never by the phone; `20261112090100_result_looks.sql`; Play again's
+  archive keeps it, `20261112090200_archive_result_look.sql`); replays draw
+  the player's skin and back in the viewer's own world (`lookFromStored`, `playerLookIn`), Apex's ghosts their owners'
+  paints (`roomGameLooksFn` → `room_game_looks`, `setRaceGhostSkins`). Nothing grades, scores, ranks or deals from a
+  look. Checks: skins-default-check (56 frames identical to digests recorded on main before the hook,
+  `scripts/fixtures/skins-default-frames.json`, never re-record), skins-check (catalogue, renders, contrast, sizes,
+  Reduce Motion, ownership, Full House's deck against `scripts/fixtures/skins-deck-frames.json`, recorded on main),
+  skins-replay-check (28 recorded runs in every look, identical scores; `scripts/fixtures/skins-replay-runs.json`),
+  skins-db-check (the two migrations and the ghost function on a local PostgreSQL, shard `e`). **A change to one of these renderers must keep
+  skins-default-check green; a new skin goes in look.ts's ids and its game's `.skins.ts`.** *Equipping* (12 Nov 2026): Customise's
+  **Games** tab (card back, then each game's skin and world theme; owned items only, the default first, pictures from
+  `public/looks/`, `bun scripts/look-previews.ts [--check]`; saved through A1's `equip()`, `saveSlot`'s `EquipSlot`);
+  the stages' look source now reads `normaliseLoadout(…).gameLooks` (it read a field A1 never sends, so live games drew
+  the default until then). customise-looks-check (happy-dom) and customise-looks-db-check (PostgreSQL, shard `e`).
+- **Phone notifications** (wave 2 train B, session B2, 11 Nov 2026, `docs/push-notifications.md`; no gameplay, scoring,
+  stamp, timing or room-flow change): standard web push with Joulz's own VAPID keys, no package (RFC 8291 / 8292 in
+  WebCrypto, `src/lib/push/webPush.server.ts`). **Off until Joe sets `PUSH_PUBLIC_KEY`** (`src/config/pushConfig.ts`) and the
+  Worker secret `VAPID_PRIVATE_KEY`: nothing asks, subscribes or sends, and no settings panel shows. Six events
+  (`PUSH_EVENTS` in `src/lib/push/rules.ts`), decided and sent only in `notify.server.ts`: friend request, friend accepted,
+  friend challenge and room invite from B1's `friend_events` (`dispatchFriendEvents`, each claimed once through
+  `push_claim_friend_events`; run right after B1's change, `notifySoon` in friends.server.ts, and every 5 minutes),
+  tournament starting (exists; nothing sends it until wave 4) and the Daily streak reminder (19:00–20:59 UK, C2's
+  `dailyStreakFor` streak ≥ 1 with today's Daily not played). Schedules are the Worker's own **Cron Triggers**: nitro
+  scheduled tasks in `vite.config.ts` (`src/lib/push/tasks/`, `*/5 * * * *` friend sweep, `41 * * * *` reminder), written
+  into wrangler.json's `triggers.crons` by the build. A switch per event under a master switch (Settings → Notifications),
+  at most 3 a day (room invites apart), none 22:00–08:00 on the device's clock (its IANA zone, sent on subscribe and each
+  open) except a fresh room invite; held-back ones are dropped. The ask: never on first open, at a useful moment
+  (`notePushMoment`: a friend request sent or waiting, a finished Daily), on the next tab page (`NotificationAskSlot`), 30
+  days after a decline; an iPhone in Safari gets the Home Screen how-to. Accounts only (rows hang off `profiles`); sign-out
+  removes the device (`forgetPushOnSignOut`), a 404/410 from the push service removes it, a deletion request removes all.
+  The `push` / `notificationclick` listeners (`src/lib/push/sw.push.js`) are appended to the offline worker by swPlugin; the
+  offline worker itself is unchanged. Migration `20261112060000_push_notifications.sql` (after C2's and B1's; **not applied
+  until merged**). Events `notification_opt_in`, `notification_sent`, `notification_opened`. push-notifications-check (~5 s,
+  shard `e`). **On for testers only since 11 Nov 2026**: `PUSH_PUBLIC_KEY` set, the secret `VAPID_PRIVATE_KEY` added;
+  while `PUSH_FOR_EVERYONE` is false only player numbers in `PUSH_TESTERS` (`[1, 2]`) get the ask and the panel, the
+  server refuses anyone else's subscription and sends to nobody else (`pushForPlayer`, `audience.server.ts`, from the
+  player's own profile row); set `PUSH_FOR_EVERYONE` to true to open it to every account (guests never).
+  push-testers-check (~5 s, shard `e`).
+- **Friends** (wave 2 train B, session B1, 11 Nov 2026, `docs/friends.md`; no gameplay, scoring, stamp or room-flow
+  change beyond Invite to room): accounts only (`/friends`, `src/routes/friends.tsx`, screens
+  `src/components/friends/FriendsScreens.tsx`; Profile's Friends button carries the waiting-requests badge, a guest gets
+  the save-your-progress sheet). Migration `20261111230000_friends.sql` (**not applied until merged**): friendships,
+  requests (phones never read a status, so a decline is never told), blocks, invite links, "Show when I'm online"
+  (null = on for adults, off for under-18s), presence (the app's heartbeat, `FriendsPresence` in the root, accounts
+  only) and `friend_events`, the outbox B2 turns into phone notifications (`friend_request_received`,
+  `friend_request_accepted`, `friend_challenge_received`, `room_invite_received`); every rule also in SQL on
+  service-role functions (`friends_*`), through `src/lib/data/friends.server.ts` and `src/lib/friends/friends.server.ts`.
+  Search is for adults and never returns an under-18 account; invite links work for everyone (a guest goes through
+  sign-up first, the token kept as `duelz-friend-invite:v1`). Block removes the friendship and stops requests, invites,
+  challenges, search, profiles and status both ways. Reports from a profile go through wave 1's `file_room_report` with
+  no room (`room_reports.duel_id` now nullable). Limits: 20 requests an hour, 200 friends. Chat: `chatPolicy(context,
+  player, { friends: true })` types for friends, under-18s included; strangers unchanged. Analytics `friend_request_sent`,
+  `friend_added`, `friend_removed`, `friend_blocked` (`20261111230100_analytics_friend_events.sql`). The Friendly badge
+  (5 friends) through C2's `awardBadge` when a friendship is made (`awardFriendly`). friends-check (~5 s,
+  PostgreSQL, shard `e`), friends-ui-check (~3 s, happy-dom). Cards (11 Nov 2026, Joe's rule: a player's card, avatar and frame show wherever
+  they appear): rows draw `MiniCard` (`@/design/identity`), a friend's profile their full `PlayerCard`, from the `look`
+  the server adds for the whole list at once (`cardLooksFor`, 100 ids a read); blocked players and guests show no card.
+  The Friends screens are in theme-check and no-wrap-check (`FRIENDS_SCREENS`), and no-wrap-check fails on a switch
+  row whose text runs under its switch.
 - **Badges, titles and the account rewards** (wave 2 train C, session C2, 11 Nov 2026, `docs/badges/README.md`; no
   gameplay, scoring, stamp or timing change): the 54 badges and their rules are Joe's approved catalogue,
   **`docs/badges/catalogue.md`**, in one list, `src/lib/badges/catalogue.ts` (with the 32 titles; seeded by
@@ -2025,26 +2098,6 @@ outside the repo.
   Migration `20261111101500_practice_progress.sql` (**not applied until merged**). practice-progress-check (~15 s,
   PostgreSQL, no browser); offline-check's production server runs on the server-fn harness's PostgreSQL and REST
   stand-in (each browser context its own guest and network address), proving only confirmed runs count.
-- **Phone notifications** (wave 2 train B, session B2, 11 Nov 2026, `docs/push-notifications.md`; no gameplay, scoring,
-  stamp, timing or room-flow change): standard web push with Joulz's own VAPID keys, no package (RFC 8291 / 8292 in
-  WebCrypto, `src/lib/push/webPush.server.ts`). **Off until Joe sets `PUSH_PUBLIC_KEY`** (`src/config/pushConfig.ts`) and the
-  Worker secret `VAPID_PRIVATE_KEY`: nothing asks, subscribes or sends, and no settings panel shows. Six events
-  (`PUSH_EVENTS` in `src/lib/push/rules.ts`), decided and sent only in `notify.server.ts`: friend request, friend accepted,
-  friend challenge and room invite from B1's `friend_events` (`dispatchFriendEvents`, each claimed once through
-  `push_claim_friend_events`; run right after B1's change, `notifySoon` in friends.server.ts, and every 5 minutes),
-  tournament starting (exists; nothing sends it until wave 4) and the Daily streak reminder (19:00–20:59 UK, C2's
-  `dailyStreakFor` streak ≥ 1 with today's Daily not played). Schedules are the Worker's own **Cron Triggers**: nitro
-  scheduled tasks in `vite.config.ts` (`src/lib/push/tasks/`, `*/5 * * * *` friend sweep, `41 * * * *` reminder), written
-  into wrangler.json's `triggers.crons` by the build. A switch per event under a master switch (Settings → Notifications),
-  at most 3 a day (room invites apart), none 22:00–08:00 on the device's clock (its IANA zone, sent on subscribe and each
-  open) except a fresh room invite; held-back ones are dropped. The ask: never on first open, at a useful moment
-  (`notePushMoment`: a friend request sent or waiting, a finished Daily), on the next tab page (`NotificationAskSlot`), 30
-  days after a decline; an iPhone in Safari gets the Home Screen how-to. Accounts only (rows hang off `profiles`); sign-out
-  removes the device (`forgetPushOnSignOut`), a 404/410 from the push service removes it, a deletion request removes all.
-  The `push` / `notificationclick` listeners (`src/lib/push/sw.push.js`) are appended to the offline worker by swPlugin; the
-  offline worker itself is unchanged. Migration `20261112060000_push_notifications.sql` (after C2's and B1's; **not applied
-  until merged**). Events `notification_opt_in`, `notification_sent`, `notification_opened`. push-notifications-check (~5 s,
-  shard `e`).
 - **Practice challenges** (wave 2 train C, session C1b, 11 Nov 2026; `docs/challenges/catalogue.md`, the live catalogue,
   written by `bun scripts/challenge-catalogue-doc.ts [--check]`; no gameplay, scoring, stamp, timing or deal change): 261
   challenges over the 92 active games in one data file, `src/lib/duel/practiceChallenges.data.ts` (217 Classic live;
@@ -2073,22 +2126,6 @@ outside the repo.
   and falls short for all 261, speed goals against the grader, the facts, coins and roles on PostgreSQL) and
   practice-challenge-fit-check (headless Chromium: every goal whole at 320 and 375 px). **A retune that moves a goal's
   number fails practice-goals-check: change the goal's text and number in the data file and re-run the doc script.**
-- **Friends** (wave 2 train B, session B1, 11 Nov 2026, `docs/friends.md`; no gameplay, scoring, stamp or room-flow
-  change beyond Invite to room): accounts only (`/friends`, `src/routes/friends.tsx`, screens
-  `src/components/friends/FriendsScreens.tsx`; Profile's Friends button carries the waiting-requests badge, a guest gets
-  the save-your-progress sheet). Migration `20261111230000_friends.sql` (**not applied until merged**): friendships,
-  requests (phones never read a status, so a decline is never told), blocks, invite links, "Show when I'm online"
-  (null = on for adults, off for under-18s), presence (the app's heartbeat, `FriendsPresence` in the root, accounts
-  only) and `friend_events`, the outbox B2 turns into phone notifications (`friend_request_received`,
-  `friend_request_accepted`, `friend_challenge_received`, `room_invite_received`); every rule also in SQL on
-  service-role functions (`friends_*`), through `src/lib/data/friends.server.ts` and `src/lib/friends/friends.server.ts`.
-  Search is for adults and never returns an under-18 account; invite links work for everyone (a guest goes through
-  sign-up first, the token kept as `duelz-friend-invite:v1`). Block removes the friendship and stops requests, invites,
-  challenges, search, profiles and status both ways. Reports from a profile go through wave 1's `file_room_report` with
-  no room (`room_reports.duel_id` now nullable). Limits: 20 requests an hour, 200 friends. Chat: `chatPolicy(context,
-  player, { friends: true })` types for friends, under-18s included; strangers unchanged. Analytics `friend_request_sent`,
-  `friend_added`, `friend_removed`, `friend_blocked` (`20261111230100_analytics_friend_events.sql`). friends-check (~5 s,
-  PostgreSQL, shard `e`), friends-ui-check (~3 s, happy-dom).
 - **Rated matchmaking** (wave 3 W3b, 11 Nov 2026, `docs/rated/matchmaking-interface.md`; no gameplay, scoring, stamp or
   deal change): the queue (same format and choice only; ±50 widening by 50 every 2 s to ±200, a recorded run from 8 s;
   placement players live only with placement players, else a beginner's run at 8 s), live and recorded rated matches as ordinary rooms the server makes already
@@ -2106,7 +2143,11 @@ outside the repo.
   Practice play's deal is kept 15 days in `mm_practice_deals`, purged by the Worker's Cron Trigger
   `rated:practice-deals-purge`; a stitched Practice run is aged by its oldest game); arcade and engine games play back on a timeline from the
   server's replay, puzzles show the score only at the game's end. Best of N stops once decided (a majority of games
-  won, W3a's rule; `ratedMatchClinched` in advancePhaseFn), and such a match leaves no recorded run. W3a's ratings bind
+  won, W3a's rule; `ratedMatchClinched` in advancePhaseFn), and such a match leaves no recorded run. Leaving (Joe, 12 Nov 2026,
+  section 6b of the doc): before the first game's intro an abort (no rating, Joules or placement; the stayers searching again,
+  `rated_match_aborted`); after it a 20 s grace, then a forfeit (a loss for the leaver, a win for the stayers whatever the
+  score, through W3a's new `forfeit` field, `src/lib/data/ratings.ts` / `match.ts`; `rated_match_forfeited`); 4 and 8 players
+  place leavers last; `reviewDepartures` on every heartbeat, phase move, Leave and rated poll (`20261114200300_rated_departures.sql`). W3a's ratings bind
   on first use (`ratingsReady`). `accounts.forget_user` removes a deleted account's runs (trigger
   `mm_forget_removed_user`). Checks: rated-matchmaking-check, rated-server-check.
 - **The shop** (wave 2 train D, session D1, 11 Nov 2026, `docs/economy/shop.md`; no gameplay, scoring, stamp or timing
@@ -2129,6 +2170,30 @@ outside the repo.
   `wishlist_added`. Migrations `20261112120000_shop.sql`, `20261112120100_analytics_shop_events.sql` (**not applied
   until merged**). shop-check (~15 s, shard `e`, PostgreSQL); shots `bun scripts/shots/shop-shots.ts`
   (`docs/economy/shop-screenshots/`).
+- **The remaining cosmetics and Joulz Plus** (wave 2 train E, session E2, 13 Nov 2026, `docs/economy/plus.md`; no
+  gameplay, scoring, stamp, timing or room-flow change): avatar finishes, the Neon Bolt and Neon Captain Joulz on every
+  avatar drawing (`avatarMarkup` through `src/design/identity/cosmetics.ts`: the board's Captain Joulz versions split by
+  `bun scripts/cosmetics-art.ts [--check]` into parts any avatar takes; `cosmeticsArt.data.ts`; **re-run it after an
+  item's source changes**); reaction packs in room chat (the four reaction slots, emote code `<pack>#<n>`, the server's
+  `allowReactionFn` adds only "equipped by the sender" to its rules; receivers show an emote only from a known owner,
+  `src/lib/duel/roomReactions.ts`, `src/lib/cosmetics/cosmeticsStore.ts`); the winner's celebration and the top three's
+  podium entrance on the final screen (`PodiumCelebrations`, a strip under the heading, 3 s then its still); tile
+  styles on the player's own Practice tiles (`GameIcon` `tileStyle`). Others' choices come from
+  `public.cosmetics_public` (`getPublicCosmeticsFn`); with nothing equipped every screen's markup is unchanged. Joulz
+  Plus: test purchases only (testers, D1's `shop.testers`; `PLUS_FOR_EVERYONE` in `src/config/plusConfig.ts` off until
+  Season 1), 200 coins and 2 streak freezes per membership month (reason `plus_monthly`; a test membership's
+  `plus_test_monthly`, all taken back by `plus.remove_test_rewards`; `src/lib/plus/months.ts`, ledger keys
+  `plus_monthly:` / `plus_freezes:<membership>:<month>`), the premium pass through D2's `grantPremiumTrack`
+  (`src/lib/plus/passBinding.server.ts`, source `plus`), the Daily archive (`/daily-archive`, async rooms
+  of kind `daily_archive`: never a board, the streak, a badge or Joules; C2's `badge_facts` and D2's `pass_activity`
+  leave the kind out and, Joe 11 Nov 2026, any run the server flagged (extra.flagged: no badge, no Joules, nor the finish
+  of a room or Daily holding one), copies proved against their sources by `bun scripts/plus-copies.ts`; archive plays' analytics
+  carry `archive: true`), early access (`plus.mark_early_access`;
+  `src/lib/plus/access.server.ts`, asked by the practice deal and packs), the PLUS chip (off by default). Joe's
+  functions in the `plus` schema (`start_test`, `remove_test_purchase`, `remove_test_rewards`, `list_members`, `mark_early_access`,
+  `clear_early_access`). Migrations `20261113200000_joulz_plus.sql`, `20261113200100_analytics_plus_events.sql`
+  (**not applied until merged**). Events `plus_bought`, `plus_perk_granted`, `daily_archive_played`. Checks plus-check
+  (PostgreSQL, shard `e`), cosmetics-art-check, cosmetics-screens-check (happy-dom), cosmetics-motion-check (Chromium).
 - **The Season pass, Joules and weekly challenges** (wave 2 train D, session D2, 13 Nov 2026, `docs/economy/pass.md`; no
   gameplay, scoring, stamp, timing or room-flow change): Season 1 "Neon Circuit" for the shop's testers (`shop.testers`)
   until `PASS_FOR_EVERYONE` (`src/config/passConfig.ts`) is on; every pass function refuses guests and other accounts.
@@ -2192,23 +2257,6 @@ outside the repo.
   earned, badges-check and pass-check 41 titles, identity-screens-check 60 card arts, frames and name colours (the
   sourceless Championship frame drawing the Plain card), its "Season peak" forbidden word replaced by a real-data
   check. seasons-check (~10 s, shard `e`, PostgreSQL), seasons-screens-check (~2 s, happy-dom).
-- **Rated matchmaking** (wave 3 W3b, 11 Nov 2026, `docs/rated/matchmaking-interface.md`; no gameplay, scoring, stamp or
-  deal change): the queue (same format and choice only; ±50 widening by 50 every 2 s to ±200, a recorded run from 8 s;
-  placement straight to a beginner's run), live and recorded rated matches as ordinary rooms the server makes already
-  started (Classic, `dealRoomRounds` from the room picks; a recorded match copies the run's own stored puzzles), the
-  opponent's score hidden for each game's final 20 % (on the server), settling once into W3a's `recordRatedMatch`
-  (`ratingsAdapter.server.ts`; unbound until W3a's `ratings.server.ts` lands), rematch within 8 s, wave 1's stranger
-  chat in rated rooms. Rules `src/lib/rated/matchmaking.ts`, flow `rated.server.ts`, functions `rated.functions.ts`,
-  data `src/lib/data/rated.server.ts`, tables `mm_*` (`20261114200000_matchmaking.sql`). Switches: `RATED_PLAY_FOR_EVERYONE`
-  (`src/config/ratedConfig.ts`, testers on `shop.testers` only while false; true opens it to everyone, guests included
-  with no sign-up) and the formats / choices in
-  `src/config/matchmakingConfig.ts` (only bo3 with Mixed, All puzzles, All arcade on). Recorded runs: nearest rating,
-  14 days, same version, format and choice, never your own, never the same owner twice running, 5 uses a UK day;
-  never a run the replay flagged; the room / Daily / Practice fallback only when no rated run is near (each counted
-  Practice play's deal is kept 15 days in `mm_practice_deals`); arcade and engine games play back on a timeline from the
-  server's replay, puzzles show the score only at the game's end. Best of N stops once one side can't be caught
-  (`ratedMatchClinched` in advancePhaseFn). `accounts.forget_user` removes a deleted account's runs (trigger
-  `mm_forget_removed_user`). Checks: rated-matchmaking-check, rated-server-check.
 - **Tournaments: the hub, the Arena and the daily Score Attack** (wave 4 W4b, 11 Nov 2026, `docs/tournaments/README.md`,
   contract for W4c `docs/tournaments/interface.md`; no gameplay, scoring, stamp, rating or deal change): switches,
   schedule and prizes in `src/config/tournamentConfig.ts` (`TOURNAMENTS_FOR_EVERYONE` false: D1's testers only; the
@@ -2248,24 +2296,53 @@ outside the repo.
   `_seeds`, `_matches`, `_awards`, `_hall_of_fame` (`20261115300000_tournament_events.sql`,
   `20261115300100_analytics_tournament_events.sql`, **not applied until merged**); events `swiss_round_paired`,
   `knockout_match_played`. tournament-events-check (~6 s, pure), tournament-events-server-check (~15 s, shard `e`).
-- **The ratings engine** (wave 3 W3a, 11 Nov 2026, `docs/rated/README.md`, the contract `docs/rated/ratings-interface.md`;
-  no gameplay, scoring, stamp or deal change): Glicko-2 (`src/lib/rated/glicko2.ts`, one rating period per match,
-  weighted games, an RD floor schedule and time away; **every constant in `glicko.config.ts` beside its target**,
-  proved on simulated players by ratings-check) for Puzzles, Arcade and the 11 categories (the server's own
-  `gamePool` / `gameCategory`; Mixed at half weight), the Joulz Rating (90 days of games), 5 placement matches with
-  every rating hidden, tiers and caps (`tiers.ts`: Storm's top 3% and Top 500 from 1,000 rated players, 3 days' grace,
-  hourly Cron Trigger `rated:standings` in `vite.config.ts`'s `RATED_TASKS`), recorded runs (owner exactly half, rated
-  runs only, 5 uses a day) and the 4th-match rule per UK day. Guests play rated (placement included) once rated play is
-  on for everyone (`guestsMayPlayRated`); their ratings sit on their player id, so sign-up keeps them (ratings-check
-  proves it through wave 1's linking). The match engine calls `finishRatedMatch`
-  (`rewards.server.ts`: `recordRatedMatch`, idempotent per match id, then C2's badges); the phone only reads
-  (`ratings.functions.ts`). Migrations `20261114100000_ratings.sql`, `…100100_analytics_rated_events.sql`,
-  `…100200_rated_badges_earnable.sql`, `…100300_rated_week_matches.sql` (**not applied until merged**); no API role writes a rated table. Rated play's 13
-  badges are earnable (29 earnable, 25 waiting). Joules are credited through D2's `creditRatedMatchJoules` under the
-  stored `ratedJoulesKey`; `RATED_PLAY_FOR_EVERYONE` (`src/config/ratedConfig.ts`, false) is the switch W3b and D2's
-  weekly draw share (R challenges only while on, progress from `rated_week_matches`). A 1v1 stops once decided (each
-  game weighted); a run the server flagged (a game's stored grade `extra.flagged`, live or recorded) moves nobody, counts for nothing, pays the flagged player no Joules and is logged in `moderation.rated_flags` (Joe: `moderation.rated_flag_queue()`); the tier floor grace keeps a tier 3 more matches below its floor
-  (`shownTierFor`). ratings-check (~10 s, shard `e`, PostgreSQL).
+- **Rated 4- and 8-player matches** (wave 3, session W3d, 11 Nov 2026, `docs/rated/multiplayer.md`; no gameplay, scoring,
+  stamp, timing or deal change; rooms untouched): **off at launch** on W3b's switches (`RATED_FORMATS_ON.ffa4` / `.ffa8`
+  in `src/config/matchmakingConfig.ts`), refused by the server while off (`joinMultiQueue` / `assertMultiOn`). Rules
+  `src/lib/rated/multi/rules.ts`: 15 s for live players, then recorded runs in every empty seat, never a player twice;
+  placing points 10, 7, 5, 4, 3, 2, 1, 0 (8) and 5, 3, 1, 0 (4), final placings by points then total score. Grouped in W3b's
+  queue (`pollMultiQueue`) and settled on the 1v1's own path: `multiSettlement` (stored scores, stored server grades,
+  placings), then W3b's `toRatingsResult` (a `placings` match with `gradeExtras`) and W3a's `finishRatedMatch` through
+  `ratingsReady()` (the pairwise rule, Joules 1.5 × best of 3, badges; a flagged run moves nobody and pays its player no
+  Joules). Screens `src/components/rated/multi/MultiScreens.tsx` (mockups 08–10; the podium entrance only in the
+  podium's box, none under reduced motion), in W3c's format slot (`formatScreens.tsx`'s placings row: `MultiSearch`,
+  `MultiBetween`, `MultiResult` in `multi/MultiFormat.tsx`, no VS) on W3c's `RatedParts` (MatchChips, JoulesLine,
+  RankEmblem, RatedCard, PlayerDot); every seat read through `src/lib/rated/multi/multiView.ts` behind W3c's
+  `ratedBackend()` gate. Leavers (W3b's rule, Joe 12 Nov 2026): below everyone who stayed, the latest leaver highest
+  (`placeWithLeavers` inside `multiSettlement`), named as a forfeit so W3a pays them no Joules; tagged "Left" on the
+  standings and final screens. Events `multiplayer_match_started` / `_finished`
+  (`20261114400000_analytics_multiplayer_events.sql`, **not applied until merged**). rated-multi-check (~2 s),
+  rated-multi-server-check (~15 s, shard `e`, PostgreSQL: 4 and 8 players, flagged runs on W3a's real engine).
+- **The rated match screens** (wave 3, session W3c, 11 Nov 2026; docs/mockups/wave-3/; no gameplay, scoring, stamp,
+  timing or deal change). Every rated screen reads through `src/lib/rated/backend.ts`, bound to W3a's and W3b's real
+  server functions in `src/lib/rated/w3Binding.ts` (W3a: getMyRatingsFn, getRatingsForFn, getTierLadderFn and each
+  match's RatedPlayerChange; W3b: ratedStatusFn, the queue, ratedMatchFn, ratedOpponentScoreFn, ratedProgressFn,
+  ratedSettleFn, ratedRematchFn; cards from A2's getPublicCard and C2's getCardBadges). Tiers are drawn from W3a's
+  TierView (`tierDisplay.ts`); the hidden finish is W3b's `opponentScoreHidden`. Home's rank panel and Play card
+  (`RatedHome`, only for players W3b says rated play is open to: testers, then everyone with
+  RATED_PLAY_FOR_EVERYONE), the picker (switched-on options only), `/rated` (searching, VS, then W3b's room on the room
+  route; `?match=` the result and the reveal), `/tiers`, the card pill's tier and rating once placed, Profile's
+  `ProfileRating`. The room route knows a rated room from this tab's note or, in any other tab, device or reload, W3b's
+  `ratedRoomFn` (`useRatedRoom`, `ratedRoom.ts`): its header is `RatedRoomScore` (no other layout change; an arcade
+  stage publishes its running score once a second only while it is asked, through the import-free `liveScore.ts`), and
+  the finished room hands over to `/rated?match=` after W3b's winner reveal. The placement boxes are W3a's own
+  per-match results (`placementBoxesOf`), the VS record W3b's `ratedHeadToHeadFn` (live opponents only), and `/rated`
+  picks its screens by W3b's format (`formatScreens.tsx`; W3d fills the 4- and 8-player row): Search is given the format,
+  and a rated 4- or 8-player room draws the slot's Between in place of its round result and standings (`RatedBetween`,
+  with the time until the next game, `msUntilNextGame` in `between.ts`; the format noted beside the match in
+  `ratedRoom.ts`). Challenge on the result only for a live opponent B1 calls a friend (`challengeAllowed`, asked again
+  before it is made and sent through B1's `friendsApi.challenge`); never a recorded run, a guest or a non-friend. Leaving a
+  match (W3b's rules, Joe 12 Nov 2026): an abort says "Match cancelled: Sam left before it started. No rating change." on
+  `/rated` (an aborted room hands over before "Room disbanded"), then searches again for the player who stayed
+  (`ABORT_NOTICE_MS`); a forfeit's result says "Sam left the match. You win." or, to the leaver, "You left the match. It
+  counts as a loss." (`forfeitLine`, `abortedOf` / `endingOf` in w3Binding.ts, no rematch); in the 20 s grace a rated room's
+  existing dropout banner counts down (`graceText`, `graceSecondsLeft` from the absent player's last sign of life) with no
+  Finish now. Guests show under W3b's energy
+  name with a Guest tag; a guest's finished rated match counts for the save-your-progress prompt ("Save your rating and
+  stars", `SAVE_PROGRESS_FROM` "rated"). Under automation the real binding stays off unless a page sets
+  `window.__DUELZ_ALLOW_RATED__` (ignored in production). Events play_card_tapped, vs_shown, result_viewed,
+  next_match_tapped, tier_ladder_viewed (`20261114300000_analytics_rated_screen_events.sql`). rated-screens-check
+  (~5 s, happy-dom); shots `bun scripts/shots/rated-shots.tsx` (after `bun run build`).
 - `src/components/duel/` — room/round screens (PhoneShell, RoundIntro, TimerBar,
   AnswerReveal, ArcadeReveal, WinnerReveal…); `src/components/puzzles/` — shared puzzle
   widgets; `src/lib/fx/` — sound and visual feedback (presentation only).

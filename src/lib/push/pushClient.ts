@@ -12,54 +12,22 @@
  *    and unsubscribes (`forgetPushOnSignOut`); each open refreshes it (time zone, a renewed endpoint).
  */
 
-import { pushPublicKey } from "@/config/pushConfig";
-import { iphoneSafari } from "@/lib/playCards";
+import { pushForPlayer, pushPublicKey } from "@/config/pushConfig";
+import { iphoneSafari } from "@/lib/iphoneSafari";
 
+import {
+  forgetPushOnSignOut,
+  pushOn,
+  pushSupported,
+  readRecord,
+  registration,
+  unsubscribeDevice,
+  writeRecord,
+  type PushDeviceRecord,
+} from "./pushDevice";
 import { mayAskAgain, OPENED_PARAM, isPushEvent, type AskMoment } from "./rules";
 
-const STORE_KEY = "duelz-push:v1";
-
-interface PushDeviceRecord {
-  /** The ask is due (the moment that made it so). */
-  pending?: AskMoment | null;
-  /** When the player last declined on this device (ms). */
-  declinedAt?: number | null;
-  /** This device subscribed (so a lost subscription is renewed while permission stays granted). */
-  subscribed?: boolean;
-}
-
-function readRecord(): PushDeviceRecord {
-  try {
-    const raw = window.localStorage.getItem(STORE_KEY);
-    const value = raw ? (JSON.parse(raw) as unknown) : null;
-    return value && typeof value === "object" ? (value as PushDeviceRecord) : {};
-  } catch {
-    return {};
-  }
-}
-
-function writeRecord(next: PushDeviceRecord): void {
-  try {
-    window.localStorage.setItem(STORE_KEY, JSON.stringify(next));
-  } catch {
-    /* storage is a nicety */
-  }
-}
-
-/** The switch: the public key is set. */
-export function pushOn(): boolean {
-  return typeof window !== "undefined" && pushPublicKey().length > 0;
-}
-
-/** This browser can do web push (the service worker, PushManager and notifications). */
-export function pushSupported(): boolean {
-  if (typeof window === "undefined") return false;
-  try {
-    return "serviceWorker" in window.navigator && "PushManager" in window && "Notification" in window;
-  } catch {
-    return false;
-  }
-}
+export { forgetPushOnSignOut, pushOn, pushSupported, unsubscribeDevice };
 
 /** An iPhone in Safari (not the Home Screen app): web push needs the app added to the Home Screen first. */
 export function needsHomeScreen(): boolean {
@@ -90,11 +58,12 @@ export function mayAskOnDevice(nowMs: number = Date.now()): boolean {
 
 /**
  * A useful moment for the ask happened (B1's friend calls, a finished Daily): marks it due for the next tab page.
- * Does nothing with the switch off, for a guest (`isAccount` false), on a device that can't receive, or inside the
- * 30 days after a decline.
+ * Does nothing with the switch off, for a guest or an account outside the audience (`playerNumber` null or not a tester
+ * while notifications are for testers only, pushConfig.ts), on a device that can't receive, or inside the 30 days
+ * after a decline.
  */
-export function notePushMoment(moment: AskMoment, isAccount: boolean): void {
-  if (!isAccount || askKind() === null || !mayAskOnDevice()) return;
+export function notePushMoment(moment: AskMoment, playerNumber: number | null): void {
+  if (!pushForPlayer(playerNumber) || askKind() === null || !mayAskOnDevice()) return;
   const record = readRecord();
   if (record.pending) return;
   writeRecord({ ...record, pending: moment });
@@ -108,19 +77,6 @@ export function pendingAsk(): AskMoment | null {
 
 function clearPending(extra: Partial<PushDeviceRecord> = {}): void {
   writeRecord({ ...readRecord(), pending: null, ...extra });
-}
-
-async function registration(): Promise<ServiceWorkerRegistration | null> {
-  try {
-    const reg = await window.navigator.serviceWorker.getRegistration("/");
-    if (reg) return reg;
-    return await Promise.race([
-      window.navigator.serviceWorker.ready,
-      new Promise<null>((resolve) => setTimeout(() => resolve(null), 5000)),
-    ]);
-  } catch {
-    return null;
-  }
 }
 
 function keyBytes(key: string): Uint8Array {
@@ -212,38 +168,13 @@ export async function deviceSubscribed(): Promise<boolean> {
   return !!(await reg?.pushManager.getSubscription().catch(() => null));
 }
 
-/** Stops notifications on this device: the server's row, then the browser's subscription. */
-export async function unsubscribeDevice(): Promise<void> {
-  if (!pushSupported()) return;
-  const reg = await registration();
-  const sub = await reg?.pushManager.getSubscription().catch(() => null);
-  if (!sub) return;
-  try {
-    const { removePushSubscriptionFn } = await import("./push.functions");
-    await removePushSubscriptionFn({ data: { endpoint: sub.endpoint } });
-  } catch {
-    /* the server forgets it when the push service next says it has gone */
-  }
-  await sub.unsubscribe().catch(() => false);
-  writeRecord({ ...readRecord(), subscribed: false });
-}
-
-/** Sign-out: this device's subscription goes (called while the session is still signed in). */
-export async function forgetPushOnSignOut(): Promise<void> {
-  if (!pushOn()) return;
-  try {
-    await unsubscribeDevice();
-  } catch {
-    /* best effort */
-  }
-}
-
 /**
- * Each open, for an account: keeps this device's row fresh (time zone, a renewed endpoint), renews a subscription
- * the browser lost while permission is still granted, and records a tap that opened the app (?notif=<event>).
+ * Each open, for an account in the audience (pushConfig.ts): keeps this device's row fresh (time zone, a renewed
+ * endpoint), renews a subscription the browser lost while permission is still granted, and records a tap that opened
+ * the app (?notif=<event>).
  */
-export async function syncPushOnOpen(isAccount: boolean): Promise<void> {
-  if (!pushOn() || !isAccount) return;
+export async function syncPushOnOpen(playerNumber: number | null): Promise<void> {
+  if (!pushOn() || !pushForPlayer(playerNumber)) return;
   await noteOpenedFromUrl();
   if (!pushSupported() || Notification.permission !== "granted") return;
   const reg = await registration();

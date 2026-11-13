@@ -56,6 +56,8 @@ interface FinalResultProps {
   share?: ReactNode;
   /** "Challenge a friend" (RoomChallengeButton), its own row under Play again and Share. */
   challenge?: ReactNode;
+  /** Wave 2 E2: the winner's equipped win celebration (PodiumCelebrations), under the heading; nothing when none. */
+  celebrations?: ReactNode;
   /** Where this game's Joules start (the Season pass's results line, wave 2 D2; null: none). */
   joulesSinceMs?: number | null;
 }
@@ -82,6 +84,7 @@ export function FinalResult({
   playOfTheGame,
   share,
   challenge,
+  celebrations,
   joulesSinceMs = null,
 }: FinalResultProps) {
   // Large and in white, not all caps (Polish batch R): "You win!", "Priya wins", "Draw".
@@ -132,6 +135,7 @@ export function FinalResult({
       <h1 data-names className="relative truncate text-center text-[40px] font-extrabold leading-tight text-foreground animate-word-scale-in">
         {headline}
       </h1>
+      {celebrations}
       {note && (
         <p data-forfeit-note className="-mt-3 text-center text-sm text-foreground/80">
           {note}

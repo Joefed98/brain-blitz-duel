@@ -50,6 +50,8 @@ export const ECONOMY_LIMIT: RateLimit = { bucket: "economy", max: 240, windowSec
 /** Practice challenges' list (wave 2 C1b): 120 reads per 10 minutes per user. */
 export const CHALLENGES_LIMIT: RateLimit = { bucket: "challenges", max: 120, windowSeconds: 600 };
 export const PUBLIC_CARD_LIMIT: RateLimit = { bucket: "public-card", max: 600, windowSeconds: 600 };
+/** Joulz Plus test purchases (wave 2 E2): 20 per 10 minutes per user. */
+export const PLUS_LIMIT: RateLimit = { bucket: "plus", max: 20, windowSeconds: 600, failClosed: true };
 /** Practice progress reads and the one-time note (wave 2 C1a), per player. */
 export const PRACTICE_PROGRESS_LIMIT: RateLimit = { bucket: "practice-progress", max: 240, windowSeconds: 600 };
 /** Reading ratings, placement and the tier ladder (wave 3, W3a), per player. */
@@ -87,6 +89,8 @@ export const EMAIL_CODE_LIMIT: RateLimit = { bucket: "email-code", max: 5, windo
 export const SAVE_PROGRESS_LIMIT: RateLimit = { bucket: "save-progress", max: 20, windowSeconds: 600, failClosed: true };
 /** The identity screens' three events (identityEvents.functions.ts): a profile view, Customise, a refused equip. */
 export const IDENTITY_EVENT_LIMIT: RateLimit = { bucket: "identity-events", max: 40, windowSeconds: 600, failClosed: true };
+/** The rated screens' five events (src/lib/rated/ratedEvents.functions.ts): a few a match at most. */
+export const RATED_EVENT_LIMIT: RateLimit = { bucket: "rated-events", max: 60, windowSeconds: 600, failClosed: true };
 /** Phone notifications (push.functions.ts): saving or removing a device, the switches, the ask, an open. */
 export const PUSH_LIMIT: RateLimit = { bucket: "push", max: 40, windowSeconds: 600, failClosed: true };
 /** Analytics events from the phone (recordClientEventsFn): 30 calls of up to 20 events per 10 minutes a device. */

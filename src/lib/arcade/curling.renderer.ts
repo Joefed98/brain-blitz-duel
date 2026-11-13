@@ -19,6 +19,8 @@
  * tee mark, the swipe filling it live and a tick where the last throw was released.
  */
 import type { CanvasSize } from "./engine";
+import { NO_LOOK, type GameLook } from "./skins/look";
+import { curlStoneSkin, DEFAULT_RINK, NEON_RINK, neonRinkArena, neonStroke, paintSkinStone } from "./skins/curling.skins";
 import type { ArenaSceneView } from "./arenaScene.renderer";
 import { artHash } from "./art.renderer";
 import {
@@ -138,7 +140,12 @@ const LED = "#3FD6FF";
 
 /* ============================ The static layer ============================ */
 
-let cache: { canvas: HTMLCanvasElement; w: number; h: number; rev: number } | null = null;
+let cache: { canvas: HTMLCanvasElement; w: number; h: number; rev: number; key: string } | null = null;
+
+/** The look this draw uses (wave 2 skins): set by drawCurling / curlingScene for their length, the default otherwise. */
+let L: GameLook = NO_LOOK;
+/** The sheet's colours: the default's, or the Neon Rink's. */
+const sheetPal = () => (L.world ? NEON_RINK : DEFAULT_RINK);
 
 /** One sheet's ice, rings and lines, centred `offset` cm across. */
 function sheet(ctx: CanvasRenderingContext2D, offset: number, dim: number, v: CurlView): void {
@@ -147,9 +154,10 @@ function sheet(ctx: CanvasRenderingContext2D, offset: number, dim: number, v: Cu
   const far = BACK_FAR - 120;
   const q = [P(offset - SHEET_HALF_W, far), P(offset + SHEET_HALF_W, far), P(offset + SHEET_HALF_W, near), P(offset - SHEET_HALF_W, near)];
   const g = ctx.createLinearGradient(0, q[0]!.sy, 0, v.h);
-  g.addColorStop(0, ICE_FAR);
-  g.addColorStop(0.35, "#DCE7EF");
-  g.addColorStop(1, ICE);
+  const pal = sheetPal();
+  g.addColorStop(0, pal.iceFar);
+  g.addColorStop(0.35, pal.iceMid);
+  g.addColorStop(1, pal.ice);
   ctx.save();
   ctx.beginPath();
   q.forEach((p, i) => (i ? ctx.lineTo(p.sx, p.sy) : ctx.moveTo(p.sx, p.sy)));
@@ -160,11 +168,11 @@ function sheet(ctx: CanvasRenderingContext2D, offset: number, dim: number, v: Cu
   // Both houses, their rings about this sheet's centre line.
   {
     for (const cy of [0, TEE_NEAR]) {
-      for (const [r, fill] of [
-        [HOUSE_R, RING_BLUE],
-        [EIGHT_FOOT_R, ICE],
-        [FOUR_FOOT_R, RING_RED],
-        [BUTTON_R, ICE],
+      for (const [r, fill, edge] of [
+        [HOUSE_R, pal.house[0], pal.ring[0]],
+        [EIGHT_FOOT_R, pal.house[1], pal.ring[1]],
+        [FOUR_FOOT_R, pal.house[2], pal.ring[2]],
+        [BUTTON_R, pal.house[3], pal.ring[3]],
       ] as const) {
         ctx.beginPath();
         for (let i = 0; i <= 64; i++) {
@@ -176,6 +184,7 @@ function sheet(ctx: CanvasRenderingContext2D, offset: number, dim: number, v: Cu
         ctx.closePath();
         ctx.fillStyle = fill;
         ctx.fill();
+        if (edge) neonStroke(ctx, edge, Math.max(1, 5 * P(offset, cy).k));
       }
     }
   }
@@ -189,15 +198,21 @@ function sheet(ctx: CanvasRenderingContext2D, offset: number, dim: number, v: Cu
     ctx.lineTo(b.sx, b.sy);
     ctx.stroke();
   };
-  across(0, "#2B2B33", 1.3);
-  across(BACK_FAR, "#2B2B33", 1.3);
-  across(TEE_NEAR, "#2B2B33", 1.3);
-  across(HOG_FAR, RING_RED, 10);
-  across(HOG_NEAR, RING_RED, 10);
+  across(0, pal.line, 1.3);
+  across(BACK_FAR, pal.line, 1.3);
+  across(TEE_NEAR, pal.line, 1.3);
+  if (pal.glowHog) {
+    ctx.save();
+    ctx.shadowColor = pal.hog;
+    ctx.shadowBlur = 5;
+  }
+  across(HOG_FAR, pal.hog, 10);
+  across(HOG_NEAR, pal.hog, 10);
+  if (pal.glowHog) ctx.restore();
   // The centre line.
   const c0 = P(offset, BACK_FAR - 120);
   const c1 = P(offset, near);
-  ctx.strokeStyle = "#2B2B3399";
+  ctx.strokeStyle = pal.centre;
   ctx.lineWidth = 0.7;
   ctx.beginPath();
   ctx.moveTo(c0.sx, c0.sy);
@@ -210,11 +225,11 @@ function sheet(ctx: CanvasRenderingContext2D, offset: number, dim: number, v: Cu
     const y = far + (near - far) * Math.sqrt(v);
     const x = offset + (u * 2 - 1) * SHEET_HALF_W;
     const p = P(x, y);
-    ctx.fillStyle = i % 3 ? "#FFFFFF55" : "#9FB3C455";
+    ctx.fillStyle = i % 3 ? pal.pebble[0] : pal.pebble[1];
     ctx.fillRect(p.sx, p.sy, Math.max(0.5, p.k * 1.4), Math.max(0.5, p.k * 1.1));
   }
   // The roof lights' reflections: long soft streaks down the ice.
-  for (const lx of [-120, 120]) {
+  for (const lx of pal.reflections ? [-120, 120] : []) {
     for (const ly of [300, 1300, 2300]) {
       const p = P(offset + lx, ly);
       const r = ctx.createRadialGradient(p.sx, p.sy, 0, p.sx, p.sy, 70 * p.k + 6);
@@ -238,16 +253,16 @@ function sheet(ctx: CanvasRenderingContext2D, offset: number, dim: number, v: Cu
   for (const side of [-1, 1]) {
     const a = P(offset + side * (SHEET_HALF_W + 4), far);
     const b = P(offset + side * (SHEET_HALF_W + 4), near);
-    ctx.strokeStyle = "#1A2230";
+    ctx.strokeStyle = pal.board;
     ctx.lineWidth = 2.5;
     ctx.beginPath();
     ctx.moveTo(a.sx, a.sy);
     ctx.lineTo(b.sx, b.sy);
     ctx.stroke();
     ctx.save();
-    ctx.shadowColor = LED;
+    ctx.shadowColor = pal.led;
     ctx.shadowBlur = 6;
-    ctx.strokeStyle = dim > 0 ? "#3FD6FF88" : LED;
+    ctx.strokeStyle = dim > 0 ? `${pal.led}88` : pal.led;
     ctx.lineWidth = 1.1;
     ctx.beginPath();
     ctx.moveTo(a.sx, a.sy - 1.5);
@@ -325,9 +340,10 @@ function arena(ctx: CanvasRenderingContext2D, top: number, bottom: number): void
 
 function paintStatic(ctx: CanvasRenderingContext2D, v: CurlView): void {
   const farEdge = curlProject(0, BACK_FAR - 120, v).sy;
-  arena(ctx, -200, farEdge);
+  if (L.world) neonRinkArena(ctx, -200, farEdge, CURLING_W);
+  else arena(ctx, -200, farEdge);
   // The floor between sheets.
-  ctx.fillStyle = "#0E1520";
+  ctx.fillStyle = sheetPal().floor;
   ctx.beginPath();
   ctx.moveTo(-400, farEdge);
   ctx.lineTo(CURLING_W + 400, farEdge);
@@ -344,7 +360,8 @@ function staticLayer(ctx: CanvasRenderingContext2D, v: CurlView): HTMLCanvasElem
   const t = ctx.getTransform();
   const w = Math.max(1, Math.round(v.w * t.a));
   const h = Math.max(1, Math.round(v.h * t.d));
-  if (cache && cache.w === w && cache.h === h && cache.rev === v.rev) return cache.canvas;
+  const key = L.world ?? "";
+  if (cache && cache.w === w && cache.h === h && cache.rev === v.rev && cache.key === key) return cache.canvas;
   const canvas = document.createElement("canvas");
   canvas.width = w;
   canvas.height = h;
@@ -352,7 +369,7 @@ function staticLayer(ctx: CanvasRenderingContext2D, v: CurlView): HTMLCanvasElem
   if (!c) return null;
   c.scale(w / v.w, h / v.h);
   paintStatic(c, v);
-  cache = { canvas, w, h, rev: v.rev };
+  cache = { canvas, w, h, rev: v.rev, key };
   return canvas;
 }
 
@@ -364,6 +381,11 @@ function stone(ctx: CanvasRenderingContext2D, x: number, y: number, mine: boolea
   const rx = STONE_R * p.k;
   const ry = Math.max(rx * 0.22, (STONE_R * (v.hf ?? HF)) / Math.max(60, (v.camY ?? CAM_Y) - y) ** 2);
   const lift = Math.max(1.2, 11 * p.k);
+  const skinned = curlStoneSkin(L, mine);
+  if (skinned) {
+    paintSkinStone(ctx, skinned, p.sx, p.sy, rx, ry, lift, seed, moving);
+    return;
+  }
   // Shadow on the ice.
   ctx.fillStyle = "#0B1A2A33";
   ctx.beginPath();
@@ -462,20 +484,22 @@ function inset(ctx: CanvasRenderingContext2D, s: CurlingState, aim: CurlAim | nu
   ctx.fill();
   ctx.stroke();
   ctx.clip();
-  ctx.fillStyle = "#DCE7EF";
+  const neon = L.world ? NEON_RINK : null;
+  ctx.fillStyle = neon ? neon.ice : "#DCE7EF";
   ctx.fillRect(i.x, i.y, i.w, i.h);
-  for (const [r, fill] of [
-    [HOUSE_R, RING_BLUE],
-    [EIGHT_FOOT_R, "#F2F6F9"],
-    [FOUR_FOOT_R, RING_RED],
-    [BUTTON_R, "#F2F6F9"],
+  for (const [r, fill, edge] of [
+    [HOUSE_R, neon ? neon.house[0] : RING_BLUE, neon?.ring[0]],
+    [EIGHT_FOOT_R, neon ? neon.house[1] : "#F2F6F9", neon?.ring[1]],
+    [FOUR_FOOT_R, neon ? neon.house[2] : RING_RED, neon?.ring[2]],
+    [BUTTON_R, neon ? neon.house[3] : "#F2F6F9", neon?.ring[3]],
   ] as const) {
     ctx.fillStyle = fill;
     ctx.beginPath();
     ctx.arc(cx, cy, r * i.scale, 0, Math.PI * 2);
     ctx.fill();
+    if (edge) neonStroke(ctx, edge, 1.5);
   }
-  ctx.strokeStyle = "#2B2B3366";
+  ctx.strokeStyle = neon ? neon.centre : "#2B2B3366";
   ctx.lineWidth = 0.7;
   ctx.beginPath();
   ctx.moveTo(i.x, cy);
@@ -489,11 +513,17 @@ function inset(ctx: CanvasRenderingContext2D, s: CurlingState, aim: CurlAim | nu
     const y = cy + (s.y[k]! / CU) * i.scale;
     if (y < i.y - 8 || y > i.y + i.h + 8) continue;
     const mine = s.team[k] === TEAM_MINE;
-    ctx.fillStyle = "#4C515B";
+    const skin = curlStoneSkin(L, mine);
+    ctx.fillStyle = skin ? skin.top : "#4C515B";
     ctx.beginPath();
     ctx.arc(x, y, STONE_R * i.scale, 0, Math.PI * 2);
     ctx.fill();
-    ctx.fillStyle = mine ? GOLD : RED;
+    if (skin?.topEdge) {
+      ctx.strokeStyle = skin.topEdge;
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    }
+    ctx.fillStyle = skin ? skin.handle : mine ? GOLD : RED;
     ctx.beginPath();
     ctx.arc(x, y, STONE_R * i.scale * 0.55, 0, Math.PI * 2);
     ctx.fill();
@@ -764,7 +794,16 @@ function slideArrows(ctx: CanvasRenderingContext2D, x: number, v: CurlView): voi
  * One frame in world px (curlRev 1: 390 × 720; curlRev 2: 390 × 540): the cached arena and sheets, the stones, the
  * broom, the HUD chips and the inset.
  */
-export function drawCurling(ctx: CanvasRenderingContext2D, s: CurlingState, aim: CurlAim | null): void {
+export function drawCurling(ctx: CanvasRenderingContext2D, s: CurlingState, aim: CurlAim | null, look: GameLook = NO_LOOK): void {
+  L = look;
+  try {
+    drawCurlingLooked(ctx, s, aim);
+  } finally {
+    L = NO_LOOK;
+  }
+}
+
+function drawCurlingLooked(ctx: CanvasRenderingContext2D, s: CurlingState, aim: CurlAim | null): void {
   const v = curlViewFor(s.rev);
   const layer = staticLayer(ctx, v);
   if (layer) ctx.drawImage(layer, 0, 0, v.w, v.h);
@@ -825,11 +864,16 @@ export function drawCurling(ctx: CanvasRenderingContext2D, s: CurlingState, aim:
  * neighbouring sheets, which already run past the world's edges) carried on out to the box, so the ice and the
  * arena continue across every edge with no seam, then settling darker below the world.
  */
-export function curlingScene(ctx: CanvasRenderingContext2D, view: ArenaSceneView, rev: number | null = 1): void {
+export function curlingScene(ctx: CanvasRenderingContext2D, view: ArenaSceneView, rev: number | null = 1, look: GameLook = NO_LOOK): void {
   const v = curlViewFor(rev);
-  ctx.fillStyle = "#0E1520";
-  ctx.fillRect(view.left, view.top, view.right - view.left, view.bottom - view.top);
-  paintStatic(ctx, v);
+  L = look;
+  try {
+    ctx.fillStyle = sheetPal().floor;
+    ctx.fillRect(view.left, view.top, view.right - view.left, view.bottom - view.top);
+    paintStatic(ctx, v);
+  } finally {
+    L = NO_LOOK;
+  }
   const below = view.bottom - v.h;
   if (below > 0.01) {
     const g = ctx.createLinearGradient(0, v.h, 0, view.bottom);
@@ -844,3 +888,13 @@ export function curlingScene(ctx: CanvasRenderingContext2D, view: ArenaSceneView
 export const CURLING_BG = "#05070C";
 
 export type { CanvasSize };
+
+/** One stone alone at a sheet point in a look (checks: a skin stays inside the default stone's outline). */
+export function paintCurlingStoneIn(look: GameLook, ctx: CanvasRenderingContext2D, x: number, y: number, mine: boolean, rev: number): void {
+  L = look;
+  try {
+    stone(ctx, x, y, mine, 1, false, curlViewFor(rev));
+  } finally {
+    L = NO_LOOK;
+  }
+}

@@ -20,7 +20,7 @@
  * in-memory stand-in. Every write is keyed on the calling device's own attempt.
  */
 import { mergePuzzle, splitPuzzle } from "./secrets";
-import { asyncReceipt, asyncRoundWindow, solutionLockKind, type AsyncAttemptView, type SolutionLock } from "./asyncRoom";
+import { asyncReceipt, asyncRoundWindow, isArchiveKind, solutionLockKind, type AsyncAttemptView, type SolutionLock } from "./asyncRoom";
 import { recordAsyncEvent, recordRoundRecordsFor, roundRecords } from "./betaRecord.server";
 import { asyncMode, playedMs, recordEvents } from "@/lib/data/events.server";
 import { puzzleDef, puzzleTimeLimitMs } from "./registry";
@@ -301,7 +301,8 @@ export async function startAttempt(
     event: "attempt_started",
     at: row.started_at,
   });
-  if (asyncMode(room.kind) === "daily")
+  // A Daily archive replay (Plus) is not a Daily played: archive.server.ts records daily_archive_played instead.
+  if (asyncMode(room.kind) === "daily" && !isArchiveKind(room.kind))
     recordEvents({ event: "daily_started", playerId: userId, mode: "daily", roomId: room.id, props: { kind: room.kind } });
   return { ok: true, attempt: inserted.row, created: true };
 }
@@ -418,7 +419,7 @@ async function refreshAttempt(
       at: next.finished_at!,
     });
   // A Score Attack's finish is recorded by the tournaments code (tournament_finished), never as a Daily or challenge.
-  if (record && finished && !attempt.finished_at && asyncMode(room.kind) !== "tournament")
+  if (record && finished && !attempt.finished_at && !isArchiveKind(room.kind) && asyncMode(room.kind) !== "tournament")
     recordEvents({
       event: asyncMode(room.kind) === "daily" ? "daily_finished" : "challenge_played",
       playerId: attempt.user_id,
@@ -581,7 +582,8 @@ export async function startAsyncRound(
     game: pub.type,
     mode: asyncMode(room.kind),
     roomId: room.id,
-    props: { round },
+    // A Daily archive replay (Plus) keeps the daily mode and is marked, so it is counted apart from real Daily games.
+    props: isArchiveKind(room.kind) ? { round, archive: true } : { round },
   });
   return { ok: true, puzzle: pub, startedAt: nowMs };
 }
@@ -679,7 +681,7 @@ export async function submitAsyncAnswer(
     durationMs: playedMs(puzzleTimeLimitMs(puzzle), msLeft, graded.extra as Record<string, unknown> | null | undefined),
     roomId: room.id,
     inputType: input.inputType,
-    props: { round: input.round },
+    props: isArchiveKind(room.kind) ? { round: input.round, archive: true } : { round: input.round },
   });
   await refreshAttempt(client, room, attempt, rows, nowMs);
   return { ok: true, score: graded.score };
@@ -695,6 +697,8 @@ export function solutionLockFor(
   nowMs: number,
 ): SolutionLock | null {
   if (!(nowMs < msOf(room.closes_at))) return null;
+  // A Daily archive replay: its day closed long ago, so its solutions are already out.
+  if (isArchiveKind(room.kind)) return null;
   if (!priv || Object.keys(priv).every((key) => key === "type")) return null;
   return { kind: solutionLockKind(room.kind), unlocksAt: room.closes_at };
 }
@@ -742,6 +746,8 @@ export async function asyncRoundReveal(
       detail: string[];
       correctAnswer: string | null;
       solutionLock: SolutionLock | null;
+      /** The look the round was played in (async_results.look; display only, for the player's own replay). */
+      look: unknown;
     }
   | { ok: false; message: string }
 > {
@@ -772,7 +778,8 @@ export async function asyncRoundReveal(
     } catch (err) {
       console.error(`[async-reveal] answer failed for ${puzzle.type}`, err);
     }
-  return { ok: true, puzzle, result, missed: row!.missed, summary, detail, correctAnswer, solutionLock };
+  const look = (row as { look?: unknown }).look ?? null;
+  return { ok: true, puzzle, result, missed: row!.missed, summary, detail, correctAnswer, solutionLock, look };
 }
 
 /** The live round's public and private halves, only while the caller's own round takes answers. */

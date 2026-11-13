@@ -850,6 +850,22 @@ async function runAll(db: LocalDb, rest: RestServer): Promise<void> {
       unknown.ok === false && /That reaction doesn.t exist/.test(unknown.message),
       "chat: an unknown reaction is refused",
     );
+    // Reaction packs (wave 2 E2): only a catalogue emote code, of a pack the sender has equipped by the server's record.
+    const badIds = await Promise.all(
+      ["reaction.nope#0", "reaction.banter#9", "https://example.com/a.png", "<img src=x>"].map((emoji) =>
+        call(chat.allowReactionFn, { roomId, emoji }, tok.ali),
+      ),
+    );
+    check(
+      badIds.every((r) => r.ok === false && /That reaction doesn.t exist/.test(r.message)),
+      "chat: an unknown emote id, a URL or markup is refused",
+    );
+    const unowned = await call(chat.allowReactionFn, { roomId, emoji: "reaction.banter#0" }, tok.ali);
+    check(
+      unowned.ok === false && /Equip that reaction/.test(unowned.message) &&
+        q(`SELECT last_reaction_at IS NULL FROM public.duel_players WHERE duel_id = '${roomId}' AND player_slot = 1`) === "t",
+      "chat: an emote of a pack the sender hasn't equipped is refused (and uses no reaction)",
+    );
     const allowed = await call(chat.allowReactionFn, { roomId, emoji: ROOM_EMOJI[0] }, tok.ali);
     check(
       allowed.ok === true &&

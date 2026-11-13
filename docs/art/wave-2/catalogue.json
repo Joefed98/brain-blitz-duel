@@ -835,10 +835,10 @@
    "html": "items/name-colour/neon-flux.html"
   },
   {
-   "id": "game-skin.free-cell.royal-damask",
+   "id": "card-back.royal-damask",
    "name": "Royal Damask",
-   "kind": "game-skin",
-   "game": "Free Cell",
+   "kind": "card-back",
+   "game": null,
    "rarity": "Epic",
    "source": "shop",
    "pass_level": null,
@@ -847,14 +847,14 @@
    "animated": false,
    "exclusive_forever": false,
    "finish_or_note": "art deco",
-   "png": "items/game-skin/free-cell--royal-damask.png",
-   "html": "items/game-skin/free-cell--royal-damask.html"
+   "png": "items/card-back/royal-damask.png",
+   "html": "items/card-back/royal-damask.html"
   },
   {
-   "id": "game-skin.free-cell.holo-foil",
+   "id": "card-back.holo-foil",
    "name": "Holo Foil",
-   "kind": "game-skin",
-   "game": "Free Cell",
+   "kind": "card-back",
+   "game": null,
    "rarity": "Elite",
    "source": "shop",
    "pass_level": null,
@@ -863,14 +863,14 @@
    "animated": false,
    "exclusive_forever": false,
    "finish_or_note": "holographic",
-   "png": "items/game-skin/free-cell--holo-foil.png",
-   "html": "items/game-skin/free-cell--holo-foil.html"
+   "png": "items/card-back/holo-foil.png",
+   "html": "items/card-back/holo-foil.html"
   },
   {
-   "id": "game-skin.free-cell.neon-card-back",
+   "id": "card-back.neon",
    "name": "Neon card back",
-   "kind": "game-skin",
-   "game": "Free Cell",
+   "kind": "card-back",
+   "game": null,
    "rarity": "Epic",
    "source": "pass-premium",
    "pass_level": 4,
@@ -879,8 +879,8 @@
    "animated": false,
    "exclusive_forever": true,
    "finish_or_note": null,
-   "png": "items/game-skin/free-cell--neon-card-back.png",
-   "html": "items/game-skin/free-cell--neon-card-back.html"
+   "png": "items/card-back/neon.png",
+   "html": "items/card-back/neon.html"
   },
   {
    "id": "game-skin.full-house.midnight-felt",

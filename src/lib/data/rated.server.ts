@@ -117,6 +117,27 @@ export async function readOpenMatchIds(client: Db, userId: string): Promise<Resu
   return { data: (data ?? []).map((r) => r.id), error: e2 };
 }
 
+/** The settled live matches both players played (head to head; recorded matches have one player, so never match). */
+export async function readSettledLiveMatchesBetween(
+  client: Db,
+  userId: string,
+  opponentId: string,
+): Promise<Result<{ match: RatedMatchRow; players: RatedMatchPlayerRow[] }[]>> {
+  const { data: rows, error } = await client.from("mm_match_players").select("*").in("user_id", [userId, opponentId]);
+  if (error || !rows?.length) return { data: [], error };
+  const byMatch = new Map<string, RatedMatchPlayerRow[]>();
+  for (const r of rows) byMatch.set(r.match_id, [...(byMatch.get(r.match_id) ?? []), r]);
+  const shared = [...byMatch].filter(([, ps]) => ps.some((p) => p.user_id === userId) && ps.some((p) => p.user_id === opponentId));
+  if (!shared.length) return { data: [], error: null };
+  const { data: matches, error: e2 } = await client
+    .from("mm_matches")
+    .select("*")
+    .in("id", shared.map(([id]) => id))
+    .eq("kind", "live")
+    .eq("status", "settled");
+  return { data: (matches ?? []).map((match) => ({ match, players: byMatch.get(match.id) ?? [] })), error: e2 };
+}
+
 /** The owner of the viewer's most recent recorded opponent. */
 export async function readLastRecordedOwner(client: Db, viewerId: string): Promise<Result<string | null>> {
   const { data: mine, error } = await client.from("mm_match_players").select("match_id").eq("user_id", viewerId);
@@ -400,4 +421,52 @@ export async function readDeletionRequested(client: Db, userIds: string[]): Prom
 export async function purgePracticeDeals(client: Db): Promise<Result<number>> {
   const { data, error } = await client.rpc("mm_purge_practice_deals");
   return { data: typeof data === "number" ? data : 0, error };
+}
+
+/* ------------------------------------------------------------------ leaving a match (Joe, 12 Nov 2026) */
+
+/** A player's own Leave, once. */
+export async function markMatchPlayerLeft(client: Db, matchId: string, userId: string, at: string): Promise<Result<null>> {
+  const { error } = await client.from("mm_match_players").update({ left_at: at }).eq("match_id", matchId).eq("user_id", userId).is("left_at", null);
+  return { data: null, error };
+}
+
+/** Players found gone for good from a 4- or 8-player match that carries on, once each. */
+export async function markMatchPlayersGone(client: Db, matchId: string, userIds: string[], at: string): Promise<Result<null>> {
+  if (!userIds.length) return { data: null, error: null };
+  const { error } = await client.from("mm_match_players").update({ gone_at: at }).eq("match_id", matchId).in("user_id", userIds).is("gone_at", null);
+  return { data: null, error };
+}
+
+/** Ends a playing match by an abort or a forfeit; true for exactly one caller. An abort also marks it abandoned. */
+export async function claimMatchEnd(
+  client: Db,
+  matchId: string,
+  end: { ended: "abort" | "forfeit"; at: string; step: string; leavers: Json },
+): Promise<Result<boolean>> {
+  const { data, error } = await client
+    .from("mm_matches")
+    .update({ ended: end.ended, ended_at: end.at, ended_step: end.step, leavers: end.leavers, ...(end.ended === "abort" ? { status: "abandoned" } : {}) })
+    .eq("id", matchId)
+    .eq("status", "playing")
+    .is("ended", null)
+    .select("id");
+  return { data: (data ?? []).length === 1, error };
+}
+
+/** A rated room ended by a forfeit or an abort: finished now (an abort also disbanded), guarded on it still playing. */
+export async function endRatedRoom(client: Db, roomId: string, at: string, disband: boolean): Promise<Result<null>> {
+  const { error } = await client
+    .from("duels")
+    .update(disband ? { status: "finished", phase_started_at: at, disbanded_at: at } : { status: "finished", phase_started_at: at })
+    .eq("id", roomId)
+    .eq("status", "in_progress");
+  return { data: null, error };
+}
+
+/** The leavers of a rated room no longer take part (the room's own flow stops waiting for them). */
+export async function markRoomPlayersLeft(client: Db, roomId: string, userIds: string[]): Promise<Result<null>> {
+  if (!userIds.length) return { data: null, error: null };
+  const { error } = await client.from("duel_players").update({ status: "left" }).eq("duel_id", roomId).in("user_id", userIds);
+  return { data: null, error };
 }

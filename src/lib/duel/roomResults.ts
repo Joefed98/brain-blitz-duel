@@ -12,9 +12,12 @@
  */
 import type { RoundResultRow } from "./types";
 
-/** Every round_results column the room screens read, `answer` apart (and `input_type`, beta recording only). */
+/**
+ * Every round_results column the room screens read, `answer` apart (and `input_type`, beta recording only). `look`
+ * (wave 2, E1) is the skin its player had equipped, display only (docs/skins.md "Replays and ghosts").
+ */
 export const ROOM_RESULT_COLUMNS =
-  "id, duel_id, player_slot, round_number, is_correct, ms_remaining, reaction_avg_ms, correct_count, errors, extra, score, submitted_at";
+  "id, duel_id, player_slot, round_number, is_correct, ms_remaining, reaction_avg_ms, correct_count, errors, extra, score, submitted_at, look";
 
 /** A row as the refetch returns it: no answer. */
 export type RoomResultRow = Omit<RoundResultRow, "answer">;

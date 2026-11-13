@@ -550,6 +550,21 @@ async function databaseChecks(d: LocalDb): Promise<void> {
     }
     check(labels.join(" | ") === "Placement 2 of 3 | Placement 3 of 3 | done", `the new season's placement is 3 matches (${labels.join(" | ")})`);
     const me = last?.ok ? last.players.find((p) => p.playerId === pStorm) : undefined;
+    // Main's placement boxes (W3c) after a reset: only the new placement's three matches, numbered 1–3 (merge of 13 Nov 2026).
+    check(
+      !!me && me.placement.results.map((r) => `${r.n}:${r.matchId.slice(-1)}`).join() === "1:1,2:2,3:3",
+      `the reset placement's boxes are its own three matches (${me?.placement.results.map((r) => `${r.n}:${r.matchId.slice(-2)}`).join()})`,
+    );
+    {
+      const at = (m: number) => new Date(Date.UTC(2027, 0, 1, 0, m)).toISOString();
+      const old = [1, 2, 3, 4, 5].map((n) => ({ n, matchId: `old-${n}`, result: "win" as const, at: at(n) }));
+      const fresh = [3, 4, 5].map((n, i) => ({ n, matchId: `new-${n}`, result: "loss" as const, at: at(10 + i) }));
+      const box = (played: number, rows: typeof old) => mt.placementOf(played, rows, 2).results.map((r) => `${r.n}:${r.matchId}`).join();
+      check(box(2, old) === "" && mt.placementOf(2, old, 2).label === "Placement 1 of 3", "just after a reset: no boxes from the last placement");
+      check(box(3, [...old, fresh[0]!]) === "1:new-3", "one match in: one box, numbered 1");
+      check(box(5, [...old, ...fresh]) === "1:new-3,2:new-4,3:new-5" && mt.placementOf(5, [...old, ...fresh], 2).done, "done: the three new matches, numbered 1–3");
+      check(mt.placementOf(3, old.slice(0, 3)).results.length === 3 && mt.placementOf(3, old.slice(0, 3)).of === 5, "a first placement keeps main's five boxes");
+    }
     check(!!me && me.joulz.after !== null && me.tier.after !== null && me.placement.of === 3, `placement done: the Joulz Rating worked out again from the reset pools, a tier shown (${me?.joulz.after}, ${me?.tier.after?.label})`);
     check(q(`SELECT count(*) FROM season_rated_matches WHERE season_id = 's2' AND user_id IN ('${pStorm}', '${pVolt}') AND kind = 'match'`) === "6", "each live player's match is noted in Season 2, once");
     const replay = await finishRatedMatch(admin, {

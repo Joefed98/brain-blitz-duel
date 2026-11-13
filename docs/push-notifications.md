@@ -1,8 +1,28 @@
 # Phone notifications (wave 2, train B, session B2, 11 Nov 2026)
 
 Players who want them get a few useful notifications on their phone, never nagging. Standard web push with Joulz's own
-VAPID keys: no third-party notification service and no package. **Off until Joe adds the keys** (below): with the
+VAPID keys: no third-party notification service and no package. **On for testers only since 11 Nov 2026** (next
+section); before the keys were added it was off (below): with the
 switch off nothing asks, nothing subscribes, Settings shows no Notifications panel and the server sends nothing.
+
+## Testers first (11 Nov 2026)
+
+The key is set (`PUSH_PUBLIC_KEY`, and the GitHub secret `VAPID_PRIVATE_KEY`), and Joe's decision is testers first:
+while `PUSH_FOR_EVERYONE` (`src/config/pushConfig.ts`) is `false`, only the accounts in `PUSH_TESTERS`, by player number
+(`[1, 2]`: #0001 and #0002), get the ask and Settings → Notifications. Everyone else, guests included, sees nothing.
+
+- The phone asks `pushForPlayer(playerNumber)` before marking an ask due (`notePushMoment`), before drawing the ask
+  (`NotificationAskSlot`, `NotificationAsk`) or the panel (`NotificationSettings`) and before refreshing a device on open
+  (`syncPushOnOpen`).
+- The server decides from the player's own profile row (`src/lib/push/audience.server.ts`, `readProfilePlayerNumber`),
+  never from anything the phone sends: `saveSubscription` refuses anyone outside the audience (`not_in_audience`,
+  nothing stored), and `notify` (every event, B1's friend events, the evening reminder) sends to nobody outside it,
+  even a device stored some other way.
+- **To open it to every account:** set `PUSH_FOR_EVERYONE` to `true` and merge to `main` (the deploy ships it). The
+  testers list is then ignored. Guests still get nothing.
+
+push-testers-check (shard `e`) proves it: a tester gets the ask and the panel, a non-tester and a guest get neither,
+subscriptions are refused outside the audience, and every send reaches testers' phones only.
 
 ## What a player gets
 
@@ -96,6 +116,10 @@ After train C's `20261111220000_badges_titles.sql` and train B1's `2026111123000
 - `push_friend_deliveries`: which of B1's friend events have been claimed; service role only; goes with its event, and
   the retention job drops claims older than 30 days.
 - `push_reserve`, `push_streak_candidates`, `push_claim_friend_events`, `push_log_retention`: service role only.
+- `push_reserve_at` (`20261112130000_push_reserve_at.sql`, 12 Nov 2026): `push_reserve` plus the send time, which
+  stamps the log row. The cap counts a day's sends from the server's own clock (`p_since`, the player's local
+  midnight), so the row is now stamped by the same clock instead of the database's `now()`; the app calls only this
+  one. Service role only.
 - Three analytics events added to `analytics.events`' list: the migration reads the list from the constraint as it
   stands and adds these three (it never writes the list out), so every event already allowed stays allowed.
 

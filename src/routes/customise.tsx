@@ -3,16 +3,22 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 import { Coin } from "@/components/app/CoinCounter";
 import { PhoneShell } from "@/components/duel/PhoneShell";
-import { lookFromLoadout } from "@/components/identity/ProfileCard";
+import { lookFromLoadout, withAvatarItems } from "@/components/identity/ProfileCard";
+import { LookPreview } from "@/components/identity/LookPreview";
 import { Button, Chip, EmptyState, Icon, Segmented, Skeleton } from "@/design/components";
 import { gemUnlockLine } from "@/lib/practice/progressRules";
 import { Avatar, AVATARS, CardPiece, GEMS, NamePiece, PlayerCard, type CardLook } from "@/design/identity";
 import { useAccount } from "@/lib/account/accountApi";
 import { APP_NAME } from "@/lib/brand";
 import { PLAYER_COLOURS } from "@/lib/duel/playerLook";
-import { NO_CHOICES, optionRows, type AvatarChoice, type AvatarOptionKind, type LoadoutSlot } from "@/lib/identity/backend";
-import { ownedOfKind, RARITY_LABEL, slotItems } from "@/lib/identity/customise";
+import { NO_CHOICES, optionRows, type AvatarChoice, type AvatarOptionKind, type CatalogueItem, type EquipSlot, type LoadoutSlot } from "@/lib/identity/backend";
+import { gameLookRows, lookItemName, ownedOfKind, RARITY_LABEL, slotItems } from "@/lib/identity/customise";
+import { GAME_DISPLAY_NAMES } from "@/lib/duel/gameNames";
 import { saveAvatar, saveSlot, useMyIdentity } from "@/lib/identity/identityApi";
+import { Emote } from "@/components/cosmetics/Emote";
+import { emoteCode, reactionEmotes } from "@/design/identity/cosmetics";
+import { PODIUM_ENTRANCES } from "@/design/identity/cosmeticsArt.data";
+import { resetCosmetics } from "@/lib/cosmetics/cosmeticsStore";
 import { recordIdentityEvent } from "@/lib/identity/identityEvents";
 import { useShopOn } from "@/lib/identity/shopSwitch";
 import { saveCardBadges, saveTitle, useMyBadges } from "@/lib/badges/badgesApi";
@@ -29,6 +35,10 @@ import { BADGE_BY_SLUG, CARD_BADGE_SLOTS, PASS_TITLE_DEFS, SEASON_TITLE_DEFS, TI
  *   only.
  * - Card: card arts, frames and name colours. Owned ones can be chosen (the 8 free card arts and Plain from the
  *   start); the rest show locked with where they come from (catalogue), shop items hidden while the Shop is off.
+ * - Games (12 Nov 2026): the account's card back (drawn on every card game's face-down deck; Full House today), then
+ *   each skinnable game's skin and world theme, from owned items only, each with its picture (LookPreview), the game's
+ *   default always first. Saved through A1's equip() like the card slots (the server checks ownership and slot); the
+ *   live stages read it on their next round (src/lib/skins/equipped.ts), on any device the account is signed in on.
  * - Badges and title (C2): up to three earned badges for the card, in the order picked, and one title from those
  *   unlocked (Rookie for everyone; badge titles with their badge; locked ones show which badge unlocks them). Only
  *   earned badges and unlocked titles can be chosen; the server checks again (badges.functions.ts).
@@ -45,7 +55,7 @@ export const Route = createFileRoute("/customise")({
   component: CustomiseScreen,
 });
 
-type Tab = "avatar" | "card" | "badges";
+type Tab = "avatar" | "card" | "games" | "badges";
 type CardSlot = "card-art" | "frame" | "name-colour";
 const CARD_SLOTS: readonly CardSlot[] = ["card-art", "frame", "name-colour"];
 const AVATAR_SLOTS: readonly { kind: LoadoutSlot; label: string; empty: string }[] = [
@@ -54,6 +64,19 @@ const AVATAR_SLOTS: readonly { kind: LoadoutSlot; label: string; empty: string }
   { kind: "avatar-special-edition", label: "Special edition", empty: "No special editions yet. They come from the pass." },
 ];
 const FIRST_AVATARS = 7;
+
+/** A game-look choice: the game's default (id null) or an owned item, with its picture. */
+function LookChoice({ id, name, game, on, onPick }: { id: string | null; name: string; game: string; on: boolean; onPick: () => void }) {
+  return (
+    <button type="button" role="radio" aria-checked={on} data-look-choice={id ?? "default"} onClick={onPick} className="cz-item press">
+      <LookPreview id={id} game={game} />
+      <span className="cz-item-name">{name}</span>
+      <span className="cz-item-sub">
+        <span>{on ? "Equipped" : id ? "Owned" : "Always yours"}</span>
+      </span>
+    </button>
+  );
+}
 
 function sameAvatar(a: AvatarChoice | null, b: AvatarChoice | null): boolean {
   return (
@@ -98,7 +121,8 @@ function CustomiseScreen() {
   const saved = useMemo(() => {
     const look = lookFromLoadout(identity.loadout, signedIn?.colour ?? 0);
     const avatar: AvatarChoice = identity.loadout?.avatar ?? { id: "captain-joulz", colour: signedIn?.colour ?? 0, gem: null, choices: { ...NO_CHOICES } };
-    const slots: Partial<Record<LoadoutSlot, string | null>> = {
+    const slots: Partial<Record<EquipSlot, string | null>> = {
+      ...identity.loadout?.gameLooks,
       ...identity.loadout?.slots,
       "card-art": look.cardArt,
       frame: look.frame,
@@ -116,20 +140,24 @@ function CustomiseScreen() {
   const title = draftTitle ?? mine?.title ?? "rookie";
   const cardChanged = draftCard !== null && draftCard.join() !== (mine?.card ?? []).join();
   const titleChanged = draftTitle !== null && draftTitle !== (mine?.title ?? "rookie");
-  const [draftSlots, setDraftSlots] = useState<Partial<Record<LoadoutSlot, string | null>>>({});
+  const [draftSlots, setDraftSlots] = useState<Partial<Record<EquipSlot, string | null>>>({});
   const avatar = draftAvatar ?? saved.avatar;
-  const slotValue = (slot: LoadoutSlot): string | null => (slot in draftSlots ? draftSlots[slot]! : (saved.slots[slot] ?? null));
+  const slotValue = (slot: EquipSlot): string | null => (slot in draftSlots ? draftSlots[slot]! : (saved.slots[slot] ?? null));
   const look: CardLook = {
     cardArt: slotValue("card-art"),
     frame: slotValue("frame"),
     nameColour: slotValue("name-colour"),
-    avatar,
+    avatar: withAvatarItems(avatar, {
+      "avatar-finish": slotValue("avatar-finish"),
+      "avatar-accessory": slotValue("avatar-accessory"),
+      "avatar-special-edition": slotValue("avatar-special-edition"),
+    }),
   };
-  const changedSlots = (Object.keys(draftSlots) as LoadoutSlot[]).filter((slot) => (draftSlots[slot] ?? null) !== (saved.slots[slot] ?? null));
+  const changedSlots = (Object.keys(draftSlots) as EquipSlot[]).filter((slot) => (draftSlots[slot] ?? null) !== (saved.slots[slot] ?? null));
   const avatarChanged = draftAvatar !== null && !sameAvatar(draftAvatar, saved.avatar);
   const dirty = changedSlots.length > 0 || avatarChanged || cardChanged || titleChanged;
 
-  const pick = (slot: LoadoutSlot, id: string | null) => {
+  const pick = (slot: EquipSlot, id: string | null) => {
     setMessage(null);
     setDraftSlots((d) => ({ ...d, [slot]: id }));
   };
@@ -167,6 +195,8 @@ function CustomiseScreen() {
       const answer = await saveTitle(draftTitle);
       if (!answer.ok) refusals.push(answer.message);
     }
+    // Rooms ask for players' cosmetics again (this player's new look shows there too).
+    resetCosmetics();
     setDraftCard(null);
     setDraftTitle(null);
     // Saved parts now come from the loadout A1 answered with; refused parts go back to what was saved (the draft is
@@ -212,12 +242,14 @@ function CustomiseScreen() {
             />
             <Segmented<Tab>
               label="Customise"
+              className="cz-tabs"
               radio
               value={tab}
               onChange={setTab}
               options={[
                 { value: "avatar", label: "Avatar", data: { "data-customise-tab": "avatar" } },
                 { value: "card", label: "Card", data: { "data-customise-tab": "card" } },
+                { value: "games", label: "Games", data: { "data-customise-tab": "games" } },
                 { value: "badges", label: "Badges and title", data: { "data-customise-tab": "badges" } },
               ]}
             />
@@ -361,7 +393,20 @@ function CustomiseScreen() {
                     </section>
                   );
                 })}
+                <ExtrasSections
+                  catalogue={identity.catalogue}
+                  owned={identity.owned}
+                  slotValue={slotValue}
+                  pick={pick}
+                />
               </>
+            ) : tab === "games" ? (
+              <GameLooks
+                catalogue={identity.catalogue}
+                owned={identity.owned}
+                value={slotValue}
+                onPick={pick}
+              />
             ) : tab === "card" ? (
               CARD_SLOTS.map((slot) => {
                 const rows = slotItems(identity.catalogue, slot, identity.owned, shopOn);
@@ -451,6 +496,56 @@ function CustomiseScreen() {
         </div>
       ) : null}
     </PhoneShell>
+  );
+}
+
+/**
+ * The Games tab (12 Nov 2026): the card back, then each game the player owns a look for, owned items only, the default
+ * first. A game the player owns nothing for has nothing to choose, so it has no section; the line under the card back
+ * says where the rest come from.
+ */
+function GameLooks({
+  catalogue,
+  owned,
+  value,
+  onPick,
+}: {
+  catalogue: readonly CatalogueItem[];
+  owned: ReadonlySet<string>;
+  value: (slot: EquipSlot) => string | null;
+  onPick: (slot: EquipSlot, id: string | null) => void;
+}) {
+  const { cardBacks, games } = gameLookRows(catalogue, owned, GAME_DISPLAY_NAMES);
+  const group = (slot: EquipSlot, label: string, game: string, items: readonly CatalogueItem[], defaultName: string, gameName = "") => (
+    <div role="radiogroup" aria-label={label} className="cz-items" data-look-slot={slot}>
+      <LookChoice id={null} name={defaultName} game={game} on={value(slot) === null} onPick={() => onPick(slot, null)} />
+      {items.map((item) => (
+        <LookChoice key={item.id} id={item.id} name={lookItemName(item, gameName)} game={game} on={value(slot) === item.id} onPick={() => onPick(slot, item.id)} />
+      ))}
+    </div>
+  );
+  return (
+    <>
+      <section className="cz-section" aria-label="Card back" data-look-section="card-back">
+        <span className="cz-label-row">
+          <span className="cz-label">Card back</span>
+          <span className="cz-meta">Every card game</span>
+        </span>
+        {group("card-back", "Card back", "pokersquares", cardBacks, "Classic")}
+      </section>
+      {games.map((g) => (
+        <section key={g.game} className="cz-section" aria-label={g.name} data-look-section={g.game}>
+          <span className="cz-label">{g.name}</span>
+          {g.skins.length ? group(`game-skin:${g.game}`, `${g.name} skin`, g.game, g.skins, "Standard skin", g.name) : null}
+          {g.hasWorlds && g.worlds.length ? group(`world-theme:${g.game}`, `${g.name} world`, g.game, g.worlds, "Standard world", g.name) : null}
+        </section>
+      ))}
+      <p className="cz-empty" data-looks-note>
+        {games.length
+          ? "Skins and worlds you own show here, by game."
+          : "Skins and worlds you own show here, by game. Get them in the shop or the season pass."}
+      </p>
+    </>
   );
 }
 
@@ -553,6 +648,105 @@ function BadgesAndTitle({
           })}
         </div>
       </section>
+    </>
+  );
+}
+
+const REACTION_SLOT_IDS: readonly LoadoutSlot[] = ["reaction-1", "reaction-2", "reaction-3", "reaction-4"];
+
+/**
+ * Wave 2 E2: the rest of the look, on the Avatar tab under the avatar's own items (owned ones only, like them):
+ * the reactions sent in rooms (up to four packs, the reaction slots), the win celebration and podium entrance shown on
+ * a room's final screen, and the tile style of the player's own game tiles in Practice. Saved with the rest through
+ * A1's equip(); the server checks ownership again.
+ */
+function ExtrasSections({
+  catalogue,
+  owned,
+  slotValue,
+  pick,
+}: {
+  catalogue: ReturnType<typeof useMyIdentity>["catalogue"];
+  owned: ReadonlySet<string>;
+  slotValue: (slot: LoadoutSlot) => string | null;
+  pick: (slot: LoadoutSlot, id: string | null) => void;
+}) {
+  const reactions = ownedOfKind(catalogue, "reaction", owned);
+  const celebrations = ownedOfKind(catalogue, "celebration", owned);
+  const wins = celebrations.filter((i) => !PODIUM_ENTRANCES.includes(i.id));
+  const entrances = celebrations.filter((i) => PODIUM_ENTRANCES.includes(i.id));
+  const tiles = ownedOfKind(catalogue, "tile-style", owned);
+  const onSlots = REACTION_SLOT_IDS.map((slot) => slotValue(slot));
+  const toggleReaction = (id: string) => {
+    const at = onSlots.indexOf(id);
+    if (at >= 0) return pick(REACTION_SLOT_IDS[at]!, null);
+    const free = onSlots.indexOf(null);
+    if (free >= 0) pick(REACTION_SLOT_IDS[free]!, id);
+  };
+  const single = (slot: LoadoutSlot, label: string, items: typeof celebrations, empty: string) => (
+    <section className="cz-section" aria-label={label} data-avatar-slot={slot}>
+      <span className="cz-label">{label}</span>
+      {items.length ? (
+        <div className="flex flex-wrap gap-2">
+          <Chip selected={slotValue(slot) === null} onClick={() => pick(slot, null)}>
+            None
+          </Chip>
+          {items.map((item) => (
+            <Chip key={item.id} selected={slotValue(slot) === item.id} onClick={() => pick(slot, item.id)} data-item={item.id}>
+              {item.name}
+            </Chip>
+          ))}
+        </div>
+      ) : (
+        <p className="cz-empty" data-extra-empty>
+          {empty}
+        </p>
+      )}
+    </section>
+  );
+  const chosen = onSlots.filter((id): id is string => id !== null);
+  return (
+    <>
+      <section className="cz-section" aria-label="Reactions" data-avatar-slot="reactions">
+        <span className="cz-label-row">
+          <span className="cz-label">Reactions</span>
+          <span className="cz-meta" data-reactions-chosen>
+            {chosen.length} of {REACTION_SLOT_IDS.length} in rooms
+          </span>
+        </span>
+        {reactions.length ? (
+          <>
+            <div className="flex flex-wrap gap-2">
+              {reactions.map((item) => {
+                const on = chosen.includes(item.id);
+                return (
+                  <Chip
+                    key={item.id}
+                    selected={on}
+                    aria-disabled={!on && chosen.length >= REACTION_SLOT_IDS.length ? true : undefined}
+                    onClick={() => toggleReaction(item.id)}
+                    data-item={item.id}
+                  >
+                    {item.name}
+                  </Chip>
+                );
+              })}
+            </div>
+            {chosen.length ? (
+              <div className="jz-emote-row" data-reactions-preview>
+                {chosen.flatMap((pack) => reactionEmotes(pack).map((_, i) => <Emote key={`${pack}#${i}`} code={emoteCode(pack, i)} height={26} />))}
+              </div>
+            ) : null}
+          </>
+        ) : (
+          <p className="cz-empty" data-extra-empty>
+            No reactions yet. Reactions you own show here, to send in rooms.
+          </p>
+        )}
+      </section>
+      {single("celebration", "Win celebration", wins, "No celebrations yet. Yours plays when you win a room.")}
+      {single("podium-entrance", "Podium entrance", entrances, "No podium entrances yet. They come from the pass.")}
+      {single("tile-style", "Practice tiles", tiles, "No tile styles yet. Yours dresses your game tiles in Practice.")}
     </>
   );
 }

@@ -20,7 +20,8 @@
 export const SAVE_PROGRESS_KEY = "duelz-save-progress:v1";
 
 /** Where a finished game came from (wave 3 adds the rated match). */
-export const SAVE_PROGRESS_FROM = ["room", "daily", "challenge"] as const;
+/** Where the finished game was played ("rated": a guest's rated match, wave 3, once rated play is for everyone). */
+export const SAVE_PROGRESS_FROM = ["room", "daily", "challenge", "rated"] as const;
 export type SaveProgressFrom = (typeof SAVE_PROGRESS_FROM)[number];
 
 export const SAVE_PROGRESS_PROMPTS = ["sheet", "popup"] as const;

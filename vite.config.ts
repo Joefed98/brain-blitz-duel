@@ -114,7 +114,7 @@ const MATCHMAKING_TASKS = {
   },
 };
 
-type TaskSet = { tasks: Record<string, { handler: string }>; scheduledTasks: Record<string, string[]> };
+type TaskSet = { experimental?: { tasks: boolean }; tasks: Record<string, { handler: string }>; scheduledTasks: Record<string, string[]> };
 /** Every task set's tasks and schedules in one nitro option (a later set adds to, never replaces, an earlier one's). */
 function nitroTasks(...sets: TaskSet[]) {
   const tasks: TaskSet["tasks"] = {};
@@ -128,16 +128,21 @@ function nitroTasks(...sets: TaskSet[]) {
 
 /** Adds more task sets to a nitroTasks option (their tasks and schedules join, never replace, the ones already there). */
 function withTasks(base: ReturnType<typeof nitroTasks>, ...sets: TaskSet[]) {
-  const more = nitroTasks(...sets);
+  const tasks = { ...base.tasks };
   const scheduledTasks = { ...base.scheduledTasks };
-  for (const [cron, names] of Object.entries(more.scheduledTasks)) scheduledTasks[cron] = [...(scheduledTasks[cron] ?? []), ...names];
-  return { ...base, tasks: { ...base.tasks, ...more.tasks }, scheduledTasks };
+  for (const set of sets) {
+    Object.assign(tasks, set.tasks);
+    for (const [cron, names] of Object.entries(set.scheduledTasks)) scheduledTasks[cron] = [...(scheduledTasks[cron] ?? []), ...names];
+  }
+  return { ...base, tasks, scheduledTasks };
 }
 
 const SERVER_BUILD = Object.assign(
   { minify: true },
   { cloudflare: { wrangler: { observability: WORKER_OBSERVABILITY } } },
-  withTasks(withTasks(nitroTasks(RATED_TASKS), MATCHMAKING_TASKS), PUSH_TASKS, TOURNAMENT_TASKS),
+  // Every set of Cron Triggers (B2's push tasks, W3a's rated standings, W3b's practice-deal purge, W4b's tournaments
+  // tick), merged so none replaces another.
+  withTasks(nitroTasks(RATED_TASKS, PUSH_TASKS), MATCHMAKING_TASKS, TOURNAMENT_TASKS),
 ) as NitroOptions & { minify: boolean };
 
 export default defineConfig({

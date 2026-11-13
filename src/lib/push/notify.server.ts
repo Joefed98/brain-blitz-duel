@@ -8,6 +8,9 @@
  * reminder) may await it or not; a failure is logged as `[push] …` and dropped. Nothing here touches play, scoring,
  * stamps, timings or the room flow.
  *
+ * The evening Daily reminder lives in streakReminder.server.ts (it reads train C's Daily streak), so B1's friend
+ * calls, which load this module, reach no Daily or ranking code.
+ *
  * Off (returns "disabled", sends nothing) until both VAPID keys are set: PUSH_PUBLIC_KEY (src/config/pushConfig.ts) and
  * the Worker secret VAPID_PRIVATE_KEY.
  */
@@ -20,29 +23,24 @@ import {
   deleteGoneSubscription,
   readNotificationSettings,
   readPushSubscriptions,
-  readStreakCandidates,
   reserveNotification,
   type FriendEventRow,
 } from "@/lib/data/push.server";
-import { ukDayKey } from "@/lib/duel/daily";
-import { dailyStreakFor } from "@/lib/duel/dailyStreak.server";
 
+import { serverPushAllowed } from "./audience.server";
 import { messageFor, type MessageInput } from "./messages";
 import {
   countsAgainstCap,
   DAILY_CAP,
   decideSend,
-  inQuietHours,
   localDayStartMs,
-  localHour,
   normaliseSettings,
   safeTimeZone,
-  STREAK_REMINDER_UK_HOURS,
   type PushEvent,
 } from "./rules";
 import { sendPush, vapidKeys, type PushOutcome, type PushTarget } from "./webPush.server";
 
-export type NotifyOutcome = "sent" | "disabled" | "no_device" | "off" | "quiet" | "capped" | "duplicate" | "failed";
+export type NotifyOutcome = "sent" | "disabled" | "not_in_audience" | "no_device" | "off" | "quiet" | "capped" | "duplicate" | "failed";
 
 export interface NotifyOptions {
   /** When the friend did what this is about (a room invite: quiet hours let a fresh one through). */
@@ -87,6 +85,14 @@ export async function notify(
       return "failed";
     }
     if (devices.data.length === 0) return "no_device";
+    // Testers only while PUSH_FOR_EVERYONE is false (pushConfig.ts): read from the recipient's own profile, so a
+    // device stored before (or by any other route) still never receives anything outside the audience.
+    const allowed = await serverPushAllowed(client, userId);
+    if (allowed === "error") {
+      warn(`${event}: audience: could not read the profile`);
+      return "failed";
+    }
+    if (!allowed) return "not_in_audience";
     const settingsRow = await readNotificationSettings(client, userId);
     if (settingsRow.error) {
       warn(`${event}: settings: ${settingsRow.error.message}`);
@@ -104,6 +110,7 @@ export async function notify(
       sinceIso: new Date(localDayStartMs(nowMs, timeZone)).toISOString(),
       cap: DAILY_CAP,
       dedupeKey: opts.dedupeKey ?? null,
+      nowIso: new Date(nowMs).toISOString(),
     });
     if (reserved.error || !reserved.data) {
       warn(`${event}: reserve: ${reserved.error?.message ?? "no answer"}`);
@@ -161,67 +168,6 @@ export const notifyRoomInvite = (client: Db, toUserId: string, fromName: string,
 /** Wave 4: a tournament `toUserId` entered or asked to be reminded of is starting (called by src/lib/tournaments/tournaments.server.ts). */
 export const notifyTournamentStarting = (client: Db, toUserId: string, title: string, tournamentId: string, opts?: NotifyOptions) =>
   notify(client, toUserId, "tournament_starting", { title }, { dedupeKey: `tournament:${tournamentId.slice(0, 64)}`, ...opts });
-
-/* ------------------------------------------------------------------ the evening reminder */
-
-export interface ReminderRun {
-  day: string;
-  /** False outside the evening window (nothing looked at). */
-  inWindow: boolean;
-  candidates: number;
-  outcomes: Partial<Record<NotifyOutcome, number>>;
-}
-
-/**
- * The Daily streak reminder for today (UK): run by the Worker's Cron Trigger every hour (the push task in
- * src/lib/push/tasks/), so it acts only inside STREAK_REMINDER_UK_HOURS (19:00–20:59 UK, GMT or BST). Once per player per
- * UK day (the log's key). push_streak_candidates narrows to accounts with a device and the reminder on who started a
- * Daily in the last 60 days and none today; then train C's own streak (dailyStreakFor, the account's Daily history
- * with streak freezes) decides: only a live streak (1 or more) with today's Daily not played is reminded. Quiet hours
- * on the player's own clock.
- */
-export async function runDailyStreakReminders(
-  client: Db,
-  opts: NotifyOptions & { limit?: number; streakOf?: typeof dailyStreakFor } = {},
-): Promise<ReminderRun> {
-  const nowMs = opts.nowMs ?? Date.now();
-  const day = ukDayKey(nowMs);
-  const run: ReminderRun = { day, inWindow: false, candidates: 0, outcomes: {} };
-  if (!STREAK_REMINDER_UK_HOURS.includes(localHour(nowMs, "Europe/London"))) return run;
-  run.inWindow = true;
-  const keys = opts.keys === undefined ? vapidKeys() : opts.keys;
-  if (!keys) {
-    run.outcomes.disabled = 1;
-    return run;
-  }
-  const list = await readStreakCandidates(client, day);
-  if (list.error) {
-    warn(`daily_streak: candidates: ${list.error.message}`);
-    run.outcomes.failed = 1;
-    return run;
-  }
-  const people = list.data.slice(0, opts.limit ?? 5000);
-  run.candidates = people.length;
-  const streakOf = opts.streakOf ?? dailyStreakFor;
-  for (const person of people) {
-    let outcome: NotifyOutcome;
-    if (inQuietHours(nowMs, safeTimeZone(person.time_zone))) outcome = "quiet";
-    else {
-      let facts: { streak: number; playedToday: boolean } | null = null;
-      try {
-        facts = await streakOf(client, person.user_id, nowMs);
-      } catch (err) {
-        warn(`daily_streak: streak: ${err instanceof Error ? err.message : String(err)}`);
-      }
-      if (!facts) outcome = "failed";
-      else if (facts.playedToday || facts.streak < 1) outcome = "off";
-      else
-        outcome = await notify(client, person.user_id, "daily_streak", { streak: facts.streak }, { ...opts, keys, nowMs, dedupeKey: `daily_streak:${day}` });
-    }
-    run.outcomes[outcome] = (run.outcomes[outcome] ?? 0) + 1;
-  }
-  return run;
-}
 
 /* ------------------------------------------------------------------ B1's friend events */
 

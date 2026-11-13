@@ -25,6 +25,7 @@ import { useGameKeys } from "@/lib/desktop";
 import { arenaFrame, cancelArenaFrame } from "@/lib/battery";
 import { useDesktopPresentation } from "@/lib/desktopPresentation";
 import { useLiveScore } from "@/components/puzzles/useLiveScore";
+import { liveScoreWanted, publishLiveScore } from "@/lib/rated/liveScore";
 
 /**
  * Checks only (desktop-fairness-check): when a page sets `window.__duelzWorldPoints` to an array, every
@@ -170,6 +171,17 @@ export function ArcadeCanvasStage<S, C>(props: Props<S, C>) {
   const sceneKeyRef = useRef<string | number | undefined>(undefined);
   useNoTouchScroll(wrap);
   const liveScore = useLiveScore(() => game.score(state.current), enabled && !props.locked);
+  // A rated room's header (wave 3, W3c) shows this run's own running score: published once a second, only while a rated
+  // header asks for it (src/lib/rated/liveScore.ts). Display only: it reads the sim's score and never writes to it.
+  useEffect(() => {
+    if (!enabled) return;
+    const tick = () => {
+      if (liveScoreWanted()) publishLiveScore(game.score(state.current));
+    };
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, [enabled]); // eslint-disable-line react-hooks/exhaustive-deps
   // The desktop rotate mode turns the world's box (data-arena-rotor, desktop-layout.css): the hidden live score goes
   // beside it, not inside, so no text sits in the turned world (desktop-layout-check); screen readers hear it the same.
   const [liveScoreHost, setLiveScoreHost] = useState<HTMLElement | null>(null);

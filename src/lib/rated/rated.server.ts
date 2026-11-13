@@ -12,6 +12,7 @@ import { dealRoomRounds } from "@/lib/duel/roomDeal";
 import { mergePuzzle, splitPuzzle } from "@/lib/duel/secrets";
 import { generateRoomCode } from "@/lib/duel/puzzles";
 import { puzzleTimeLimitMs } from "@/lib/duel/catalogue";
+import { DUEL_START_MS, ROUND_TITLE_MS } from "@/lib/duel/startPresentation";
 import { tieRoundFor } from "@/lib/duel/tieBreak";
 import { roundTimeUsedMs } from "@/lib/duel/scoring";
 import { ukDayKey, ukDayWindow } from "@/lib/duel/daily";
@@ -42,6 +43,12 @@ import {
   readProgress,
   readQueueEntry,
   readRatedMatch,
+  readSettledLiveMatchesBetween,
+  claimMatchEnd,
+  endRatedRoom,
+  markMatchPlayerLeft,
+  markMatchPlayersGone,
+  markRoomPlayersLeft,
   readRatedRoomIds,
   readDeletionRequested,
   readRatedRun,
@@ -65,6 +72,10 @@ import {
   bestPartner,
   chooseRecordedRun,
   FORMAT_GAMES,
+  type Side,
+  departureVerdict,
+  type Departure,
+  type DeparturePlayer,
   FORMAT_PLAYERS,
   gameVersionOf,
   gameWinner,
@@ -137,6 +148,12 @@ export interface RatedMatchView {
     fallback: boolean;
   } | null;
   rematchOf: string | null;
+  /**
+   * How the match ended when not by its games (Joe, 12 Nov 2026): `abort` (someone left during set-up: no result; the
+   * players who stayed are searching again) or `forfeit` (away for more than 20 s: a loss for each leaver). Null while it
+   * plays on or when it ends normally.
+   */
+  ending: { kind: "abort" | "forfeit"; leavers: MatchLeaver[] } | null;
 }
 
 export type QueuePoll =
@@ -293,6 +310,9 @@ export async function joinQueue(
   if (openIds?.length) return { ok: false, reason: "in_match", message: "You’re already in a match." };
   const rating = await (await ratingsReady()).matchRating(userId, { format, choice });
   if (!rating) return { ok: false, reason: "no_rating", message: "Rated play isn’t ready yet." };
+  // W3d: 4 and 8 players are for placed players (placement plays recorded 1v1 runs first).
+  if (rating.placement && FORMAT_PLAYERS[format] > 2)
+    return { ok: false, reason: "option", message: "Finish your placement matches first." };
   const { error } = await writeQueueEntry(client, {
     user_id: userId,
     format,
@@ -340,6 +360,12 @@ export async function pollQueue(client: Db, userId: string, nowMs: number): Prom
     return { state: "found", match: view };
   }
   const waitedMs = nowMs - me.joinedAtMs;
+  // W3d: 4 and 8 players group through src/lib/rated/multi/multiQueue.server.ts (W3b's own pairing rule, createLiveMatch).
+  if (FORMAT_PLAYERS[me.format] > 2) {
+    const { pollMultiQueue } = await import("./multi/multiQueue.server");
+    const step = await pollMultiQueue(client, me, nowMs, (input) => createLiveMatch(client, input, nowMs));
+    return step.state === "matched" ? pollQueue(client, userId, nowMs) : step;
+  }
   // Placement players pair live with other placement players, placed with placed (canPair), within the same widening.
   {
     const { data: rows } = await readWaiting(client, me.format, me.choice);
@@ -477,6 +503,7 @@ export async function createLiveMatch(
     kind: "live",
     duel_id: room.id,
     rematch_of: input.rematchOf,
+    intro_at: nowIso(firstIntroAtMs(nowMs)),
   });
   if (error) throw new Error("Couldn’t set up the match. Give it another go.");
   await insertMatchPlayers(
@@ -756,6 +783,7 @@ function storedRecorded(match: RatedMatchRow): StoredRecorded | null {
 }
 
 export async function matchView(client: Db, matchId: string, userId: string, nowMs: number): Promise<RatedMatchView | null> {
+  await reviewDepartures(client, matchId, nowMs);
   const { data: match } = await readRatedMatch(client, matchId);
   if (!match || !isRatedFormat(match.format) || !isRatedChoice(match.choice)) return null;
   const { data: players } = await readMatchPlayers(client, matchId);
@@ -795,6 +823,7 @@ export async function matchView(client: Db, matchId: string, userId: string, now
           }
         : null,
     rematchOf: match.rematch_of,
+    ending: match.ended === "abort" || match.ended === "forfeit" ? { kind: match.ended, leavers: storedLeavers(match) } : null,
   };
 }
 
@@ -823,6 +852,7 @@ export async function reportProgress(client: Db, userId: string, input: { matchI
 
 /** The opponent's score for the current game, as the caller may see it now. */
 export async function opponentScore(client: Db, userId: string, matchId: string, nowMs: number): Promise<OpponentScore | null> {
+  await reviewDepartures(client, matchId, nowMs);
   const found = await participantMatch(client, matchId, userId);
   if (!found) return null;
   const { match, players, room } = found;
@@ -873,8 +903,12 @@ export function buildMatchResult(input: {
   puzzles: PuzzleData[];
   results: RoundResultRow[];
   finishedAt: string;
+  /** A forfeit (Joe, 12 Nov 2026): the live players who were away past the grace, in the order they went. */
+  leavers?: readonly MatchLeaver[];
 }): RatedSettlement {
   const { match, players, puzzles, results } = input;
+  const leavers = input.leavers ?? [];
+  const gone = new Set(leavers.map((l) => l.userId));
   const sideOf = (slot: number) => {
     const scores: number[] = [];
     const timesMs: number[] = [];
@@ -896,8 +930,23 @@ export function buildMatchResult(input: {
   const games: GameScores[] = puzzles.map((_, i) => ({ a: a.scores[i] ?? 0, b: b.scores[i] ?? 0, aTimeMs: a.timesMs[i] ?? 0, bTimeMs: b.timesMs[i] ?? 0 }));
   const outcome = matchOutcome(games);
   const sides = [a, b];
+  const many = !recorded && players.length > 2;
+  const allSides = players.map((p, i) => (many ? sideOf(p.slot) : (sides[i] ?? sideOf(p.slot))));
   const resultPlayers: SettledPlayer[] = players.map((p, i) => {
-    const side = sides[i] ?? sideOf(p.slot);
+    const side = allSides[i]!;
+    if (many)
+      return {
+        userId: p.user_id,
+        slot: p.slot,
+        ratingBefore: p.rating_before,
+        placement: p.placement,
+        scores: side.scores,
+        timesMs: side.timesMs,
+        extras: side.extras,
+        // Games where this player scored strictly highest.
+        gamesWon: puzzles.filter((_, g) => allSides.every((o, j) => j === i || (side.scores[g] ?? 0) > (o.scores[g] ?? 0))).length,
+        total: side.scores.reduce((s, v) => s + v, 0),
+      };
     return {
       userId: p.user_id,
       slot: p.slot,
@@ -920,7 +969,11 @@ export function buildMatchResult(input: {
     finishedAt: input.finishedAt,
     players: resultPlayers,
     games: puzzles.map((p, i) => ({ type: p.type, signature: gameVersionOf(p), winner: gameWinner(games[i]!) })),
-    winner: outcome.winner,
+    // A forfeit: the player who stayed wins whatever the score (a 1v1); 4 and 8 players are decided by their placings.
+    winner: many ? "draw" : leavers.length > 0 && !recorded ? (gone.has(players[0]?.user_id ?? "") ? "b" : "a") : outcome.winner,
+    // 4 and 8 players settle through W3d's multiSettlement (its placings and W3b's leaver rule), never here.
+    placings: null,
+    ending: leavers.length > 0 ? { kind: "forfeit", leavers: leavers.map((l) => l.userId) } : null,
     recorded:
       recorded && match.recorded_owner && match.recorded_key && match.recorded_source
         ? {
@@ -937,14 +990,23 @@ export function buildMatchResult(input: {
   };
 }
 
-export type SettleOutcome = { state: "playing" } | { state: "settled"; result: RatedSettlement } | { state: "missing" };
+export type SettleOutcome =
+  | { state: "playing" }
+  | { state: "settled"; result: RatedSettlement }
+  | { state: "missing" }
+  /** Left during set-up (Joe, 12 Nov 2026): no result, no rating, no Joules; the players who stayed are searching again. */
+  | { state: "aborted"; leavers: MatchLeaver[] };
 
 /** A settlement as the phone gets it: every stored grade (`extras`) left out; they are for the ratings engine only. */
 export type PublicSettlement = Omit<RatedSettlement, "players" | "recorded"> & {
   players: Omit<SettledPlayer, "extras">[];
   recorded: Omit<NonNullable<RatedSettlement["recorded"]>, "extras"> | null;
 };
-export type PublicSettleOutcome = { state: "playing" } | { state: "settled"; result: PublicSettlement } | { state: "missing" };
+export type PublicSettleOutcome =
+  | { state: "playing" }
+  | { state: "settled"; result: PublicSettlement }
+  | { state: "missing" }
+  | { state: "aborted"; leavers: MatchLeaver[] };
 
 export function publicSettleOutcome(outcome: SettleOutcome): PublicSettleOutcome {
   if (outcome.state !== "settled") return outcome;
@@ -961,9 +1023,12 @@ export function publicSettleOutcome(outcome: SettleOutcome): PublicSettleOutcome
 
 /** Settles a finished match once: builds the result, calls W3a's recordRatedMatch, stores the players' runs. */
 export async function settleMatch(client: Db, matchId: string, nowMs: number): Promise<SettleOutcome> {
+  await reviewDepartures(client, matchId, nowMs);
   const { data: match } = await readRatedMatch(client, matchId);
   if (!match) return { state: "missing" };
   if (match.status === "settled" && match.result) return { state: "settled", result: match.result as unknown as RatedSettlement };
+  // An abort (left during set-up, Joe 12 Nov 2026): never settled, never handed to the ratings engine.
+  if (match.ended === "abort") return { state: "aborted", leavers: storedLeavers(match) };
   if (!match.duel_id) return { state: "missing" };
   const { data: room } = await readRoom(client, match.duel_id);
   if (!room) return { state: "missing" };
@@ -979,14 +1044,33 @@ export async function settleMatch(client: Db, matchId: string, nowMs: number): P
     const { data: priv } = await readPrivatePuzzles(client, room.id);
     const pubs = Array.isArray(room.puzzles_public) ? (room.puzzles_public as unknown as PuzzleData[]) : [];
     const puzzles = pubs.map((p, i) => mergePuzzle(p, priv?.[i]));
+    // W3d: a 4- or 8-player match is settled on its placings (multiSettlement); then every match takes the same path.
+    const multi = FORMAT_PLAYERS[match.format as RatedFormat] > 2 ? await import("./multi/multiQueue.server") : null;
     // The games played: every dealt game, or fewer when the match stopped as soon as it was won (matchClinched).
-    const played = puzzles.slice(0, Math.max(1, Math.min(puzzles.length, room.current_round)));
-    const result = buildMatchResult({ match: { ...match, finished_at: finishedAt }, players: players ?? [], puzzles: played, results: results ?? [], finishedAt });
+    // A forfeit ends the room mid-match: the games fully played when it ended (at least the first).
+    const forfeit = match.ended === "forfeit";
+    const upTo = forfeit
+      ? Math.max(1, room.current_round - (["starting", "round_title", "intro", "puzzle"].includes(room.phase) ? 1 : 0))
+      : room.current_round;
+    const played = puzzles.slice(0, Math.max(1, Math.min(puzzles.length, upTo)));
+    // A forfeit's leavers; or, in a 4- or 8-player match that played on, the players found gone for good on the way.
+    const leavers = forfeit
+      ? storedLeavers(match)
+      : (players ?? [])
+          .filter((p) => p.gone_at)
+          .sort((x, y) => msOf(x.gone_at!) - msOf(y.gone_at!))
+          .map((p) => ({ userId: p.user_id, at: p.gone_at!, step: "" }));
+    // W3d: a 4- or 8-player match settles through multiSettlement (placings by points, then total score; W3b's leaver
+    // rule: leavers below everyone who stayed, latest leaver highest). A 1v1 through buildMatchResult.
+    const result = multi
+      ? multi.multiSettlement({ match, players: players ?? [], puzzles: played, results: results ?? [], finishedAt, leavers })
+      : buildMatchResult({ match: { ...match, finished_at: finishedAt }, players: players ?? [], puzzles: played, results: results ?? [], finishedAt, leavers });
     // W3a's recordRatedMatch, once per match (idempotent on the id): a passing failure throws and the settle retries.
     const forRatings = toRatingsResult(result);
     if (forRatings) result.ratings = await (await ratingsReady()).recordRatedMatch(forRatings);
     await markSettled(client, matchId, asJson(result), nowIso(nowMs));
     await storeRatedRuns(client, match, players ?? [], puzzles, results ?? []);
+    if (multi) multi.recordMultiFinished(result);
     return { state: "settled", result };
   } catch (error) {
     await releaseSettle(client, matchId);
@@ -1040,6 +1124,7 @@ export async function requestRematch(client: Db, userId: string, matchId: string
   const found = await participantMatch(client, matchId, userId);
   if (!found || found.match.kind !== "live") return { state: "closed" };
   const { match, room } = found;
+  if (match.ended) return { state: "closed" };
   if (match.rematch_match_id) {
     const view = await matchView(client, match.rematch_match_id, userId, nowMs);
     return view ? { state: "agreed", match: view } : { state: "waiting" };
@@ -1123,4 +1208,228 @@ export async function isRatedRoom(client: Db, roomId: string): Promise<boolean> 
   } catch {
     return false; // a database without the rated tables: no rated rooms
   }
+}
+
+/* ------------------------------------------------------------------ W3c: head to head, a room's match */
+
+/** Two players' rated record against each other, from the caller's side (live rated matches only). */
+export interface HeadToHead {
+  wins: number;
+  losses: number;
+  draws: number;
+  played: number;
+}
+
+/** Whether a settled match counts towards a head-to-head record: never one the ratings engine froze for a flagged run. */
+function countsHeadToHead(result: unknown): boolean {
+  const r = result as { ratings?: { ok?: boolean; players?: { flagged?: boolean; frozen?: string | null }[] } | null } | null;
+  const players = r?.ratings && r.ratings.ok ? (r.ratings.players ?? []) : [];
+  return !players.some((p) => p.flagged === true || p.frozen === "flagged_run");
+}
+
+/**
+ * The caller's rated record against `opponentId`: wins, losses and draws in settled live rated matches between the two
+ * (the stored winner, slot 1 = side a). Recorded matches are left out (a recorded run's owner never played the caller),
+ * and so is a match with a flagged run (it moved nobody's rating). The caller against themselves: all zero.
+ */
+export async function headToHead(client: Db, userId: string, opponentId: string): Promise<HeadToHead> {
+  const record: HeadToHead = { wins: 0, losses: 0, draws: 0, played: 0 };
+  if (!opponentId || opponentId === userId) return record;
+  const { data } = await readSettledLiveMatchesBetween(client, userId, opponentId);
+  for (const { match, players } of data ?? []) {
+    const winner = (match.result as { winner?: Side } | null)?.winner;
+    if ((winner !== "a" && winner !== "b" && winner !== "draw") || !countsHeadToHead(match.result)) continue;
+    const mine = players.find((p) => p.user_id === userId);
+    if (!mine) continue;
+    record.played += 1;
+    if (winner === "draw") record.draws += 1;
+    else if ((winner === "a") === (mine.slot === 1)) record.wins += 1;
+    else record.losses += 1;
+  }
+  return record;
+}
+
+/** A room's rated match, as the room screen needs it after a reload, in another tab or on another device. */
+export interface RatedRoomInfo {
+  matchId: string;
+  format: RatedFormat;
+  choice: RatedChoice;
+  kind: "live" | "recorded";
+  /** The dealt games (a best of N's N; the match may stop sooner once decided). */
+  totalGames: number;
+  status: string;
+  /** An abort or a forfeit (Joe, 12 Nov 2026), else null. */
+  ended: "abort" | "forfeit" | null;
+}
+
+/**
+ * From a room id: the rated match it is (match id, format, choice, kind), or null when it is not a rated room, or the
+ * caller is not one of the match's players (nothing about another player's rated match is given away).
+ */
+export async function ratedRoomInfo(client: Db, roomId: string, userId: string): Promise<RatedRoomInfo | null> {
+  const { readMatchByRoom } = await import("@/lib/data/rated.server");
+  try {
+    const { data: match } = await readMatchByRoom(client, roomId);
+    if (!match || !isRatedFormat(match.format) || !isRatedChoice(match.choice)) return null;
+    const { data: players } = await readMatchPlayers(client, match.id);
+    if (!players?.some((p) => p.user_id === userId)) return null;
+    return {
+      matchId: match.id,
+      format: match.format,
+      choice: match.choice,
+      kind: match.kind === "recorded" ? "recorded" : "live",
+      totalGames: FORMAT_GAMES[match.format],
+      status: match.status,
+      ended: match.ended === "abort" || match.ended === "forfeit" ? match.ended : null,
+    };
+  } catch {
+    return null; // a database without the rated tables: no rated rooms
+  }
+}
+
+/* ------------------------------------------------------------------ leaving a match (Joe, 12 Nov 2026) */
+
+/** When the first game's intro appears in a match made now: the room's own fixed deadlines (starting, then the title). */
+export function firstIntroAtMs(createdMs: number): number {
+  return createdMs + DUEL_START_MS + ROUND_TITLE_MS;
+}
+
+function introAtOf(match: RatedMatchRow): number {
+  return match.intro_at ? msOf(match.intro_at) : firstIntroAtMs(msOf(match.created_at));
+}
+
+/** The set-up step a moment falls in: the VS screen ("starting") or the first game's title. */
+function setupStepAt(match: RatedMatchRow, atMs: number): string {
+  return atMs < introAtOf(match) - ROUND_TITLE_MS ? "starting" : "round_title";
+}
+
+/** Games fully played in a room: every round before the current one, and the current one from its reveal on. */
+function gamesPlayed(room: { current_round: number; phase: string; status: string }): number {
+  if (room.status === "finished") return room.current_round;
+  return Math.max(0, room.current_round - (["starting", "round_title", "intro", "puzzle"].includes(room.phase) ? 1 : 0));
+}
+
+/** A stored leaver of a match. */
+export interface MatchLeaver {
+  userId: string;
+  at: string;
+  step: string;
+}
+
+export function storedLeavers(match: { leavers?: Json | null }): MatchLeaver[] {
+  const raw = Array.isArray(match.leavers) ? (match.leavers as unknown[]) : [];
+  return raw.flatMap((x) => {
+    const r = x as Partial<MatchLeaver> | null;
+    return r && typeof r.userId === "string" && typeof r.at === "string" ? [{ userId: r.userId, at: r.at, step: String(r.step ?? "") }] : [];
+  });
+}
+
+/** The room's players as the server sees them now (heartbeats laid over). */
+async function seenPlayers(client: Db, roomId: string) {
+  const { withPresence } = await import("@/lib/duel/presence.server");
+  const { data } = await readPlayers(client, roomId);
+  return withPresence(client, roomId, data ?? []);
+}
+
+export type DepartureOutcome = { state: "none" } | { state: "aborted"; leavers: MatchLeaver[] } | { state: "forfeit"; leavers: MatchLeaver[] };
+
+/**
+ * Looks at who has left a live rated match and acts once (every heartbeat and poll calls it; every step is guarded, so
+ * any number of callers make one ending). Recorded matches are left alone. An abort marks the match abandoned, closes
+ * the room and puts the players who stayed straight back in the queue; a forfeit ends the room now (it then settles as
+ * a loss for the leavers, settleMatch); a 4- or 8-player leaver is marked gone and the rest play on.
+ */
+export async function reviewDepartures(client: Db, matchId: string, nowMs: number): Promise<DepartureOutcome> {
+  const { data: match } = await readRatedMatch(client, matchId);
+  if (!match || match.kind !== "live" || !match.duel_id) return { state: "none" };
+  if (match.ended === "abort") return { state: "aborted", leavers: storedLeavers(match) };
+  if (match.ended === "forfeit") return { state: "forfeit", leavers: storedLeavers(match) };
+  if (match.status !== "playing") return { state: "none" };
+  const { data: room } = await readRoom(client, match.duel_id);
+  if (!room || room.status !== "in_progress") return { state: "none" };
+  const { data: mplayers } = await readMatchPlayers(client, matchId);
+  const roster = mplayers ?? [];
+  const seen = await seenPlayers(client, room.id);
+  const players: DeparturePlayer[] = roster.map((p) => {
+    const row = seen.find((s) => s.user_id === p.user_id);
+    const last = row ? Math.max(msOf(row.last_seen_at), msOf(row.joined_at)) : null;
+    return {
+      userId: p.user_id,
+      lastSeenMs: last !== null && Number.isFinite(last) ? last : null,
+      leftAtMs: p.left_at ? msOf(p.left_at) : null,
+      goneAtMs: p.gone_at ? msOf(p.gone_at) : null,
+    };
+  });
+  const decided = roster.length === 2 && (await ratedMatchClinched(client, { ...room, round_count: room.round_count }, gamesPlayed(room)));
+  const verdict = departureVerdict({ nowMs, introAtMs: introAtOf(match), players, decided });
+  if (verdict.kind === "none") return { state: "none" };
+  const at = nowIso(nowMs);
+  const toStored = (list: Departure[], step: (d: Departure) => string): MatchLeaver[] =>
+    list.map((d) => ({ userId: d.userId, at: nowIso(d.atMs), step: step(d) }));
+
+  if (verdict.kind === "abort") {
+    const leavers = toStored(verdict.leavers, (d) => setupStepAt(match, d.atMs));
+    const { data: claimed } = await claimMatchEnd(client, matchId, { ended: "abort", at, step: leavers[0]?.step ?? room.phase, leavers: asJson(leavers) });
+    if (!claimed) return reviewDepartures(client, matchId, nowMs);
+    await endRatedRoom(client, room.id, at, true);
+    recordEvents(leavers.map((l) => ({ event: "rated_match_aborted" as const, playerId: l.userId, props: { step: l.step, format: match.format } })));
+    // The players who stayed go straight back to searching, for the same format and choice.
+    const gone = new Set(leavers.map((l) => l.userId));
+    for (const p of roster) {
+      if (gone.has(p.user_id)) continue;
+      try {
+        await joinQueue(client, p.user_id, { format: match.format, choice: match.choice }, nowMs);
+      } catch {
+        // A refused or failed search leaves them on the abort notice; they can search again from it.
+      }
+    }
+    return { state: "aborted", leavers };
+  }
+
+  const stepNow = room.phase;
+  if (verdict.kind === "gone") {
+    // gone_at is when they went (their Leave or last heartbeat), so the latest leaver places highest of them.
+    for (const d of verdict.leavers) await markMatchPlayersGone(client, matchId, [d.userId], nowIso(d.atMs));
+    await markRoomPlayersLeft(client, room.id, verdict.leavers.map((d) => d.userId));
+    return { state: "none" };
+  }
+  // A forfeit: every leaver (earlier ones of a 4- or 8-player match included), in the order they went.
+  const leavers = toStored(verdict.leavers, () => stepNow);
+  const { data: claimed } = await claimMatchEnd(client, matchId, { ended: "forfeit", at, step: stepNow, leavers: asJson(leavers) });
+  if (!claimed) return reviewDepartures(client, matchId, nowMs);
+  for (const l of leavers) await markMatchPlayersGone(client, matchId, [l.userId], l.at);
+  await markRoomPlayersLeft(client, room.id, leavers.map((l) => l.userId));
+  await endRatedRoom(client, room.id, at, false);
+  recordEvents(
+    leavers.map((l) => ({ event: "rated_match_forfeited" as const, playerId: l.userId, props: { format: match.format, games_played: gamesPlayed(room) } })),
+  );
+  return { state: "forfeit", leavers };
+}
+
+/** From a room id: review its rated match's departures (heartbeat, phase moves, Leave). Ordinary rooms: nothing. */
+export async function reviewRatedRoom(client: Db, roomId: string, nowMs: number): Promise<void> {
+  try {
+    const { readMatchByRoom } = await import("@/lib/data/rated.server");
+    const { data: match } = await readMatchByRoom(client, roomId);
+    if (match && match.kind === "live" && match.status === "playing") await reviewDepartures(client, match.id, nowMs);
+  } catch (error) {
+    console.error("[rated] departure review failed", roomId, error instanceof Error ? error.message : error);
+  }
+}
+
+/** A player's own Leave in a rated room: noted (it starts their grace, or aborts during set-up), never a disband. */
+export async function leaveRatedRoom(client: Db, roomId: string, userId: string, nowMs: number): Promise<boolean> {
+  const { readMatchByRoom } = await import("@/lib/data/rated.server");
+  let match: RatedMatchRow | null = null;
+  try {
+    match = (await readMatchByRoom(client, roomId)).data ?? null;
+  } catch {
+    return false; // a database without the rated tables: no rated rooms
+  }
+  if (!match) return false;
+  if (match.kind === "live" && match.status === "playing") {
+    await markMatchPlayerLeft(client, match.id, userId, nowIso(nowMs));
+    await reviewDepartures(client, match.id, nowMs);
+  }
+  return true;
 }

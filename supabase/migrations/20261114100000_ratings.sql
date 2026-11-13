@@ -87,6 +87,8 @@ CREATE TABLE IF NOT EXISTS public.rated_match_players (
   moved boolean NOT NULL,
   frozen text CHECK (frozen IN ('same_opponent_today', 'recorded_unrated_source', 'recorded_daily_limit', 'flagged_run')),
   joules integer NOT NULL DEFAULT 0 CHECK (joules >= 0),
+  -- Which placement match this was for the player (1–5; NULL when it wasn't one): the placement boxes.
+  placement_no smallint CHECK (placement_no BETWEEN 1 AND 5),
   puzzles_games smallint NOT NULL DEFAULT 0 CHECK (puzzles_games >= 0),
   arcade_games smallint NOT NULL DEFAULT 0 CHECK (arcade_games >= 0),
   changes jsonb NOT NULL DEFAULT '[]'::jsonb,
@@ -95,6 +97,9 @@ CREATE TABLE IF NOT EXISTS public.rated_match_players (
   CONSTRAINT rated_match_players_run CHECK ((side = 'recorded') = (run_id IS NOT NULL AND run_source IS NOT NULL))
 );
 CREATE INDEX IF NOT EXISTS rated_match_players_recent ON public.rated_match_players (player_id, finished_at DESC);
+-- One row per placement match number per player.
+CREATE UNIQUE INDEX IF NOT EXISTS rated_match_players_placement ON public.rated_match_players (player_id, placement_no)
+  WHERE placement_no IS NOT NULL;
 
 CREATE TABLE IF NOT EXISTS public.rated_games (
   match_id uuid NOT NULL REFERENCES public.rated_matches(match_id) ON DELETE CASCADE,
@@ -236,7 +241,13 @@ AS $$
     'meta', (SELECT to_jsonb(s) FROM rated_standings_meta s WHERE s.id = 1),
     'standings', coalesce((SELECT jsonb_agg(to_jsonb(s)) FROM rated_standings s WHERE s.player_id = ANY (p_players)), '[]'::jsonb),
     'rematch', coalesce((SELECT jsonb_agg(jsonb_build_object('player_id', mp.player_id, 'side', mp.side, 'result', mp.result))
-                           FROM rated_match_players mp WHERE mp.match_id = p_rematch_of), '[]'::jsonb)
+                           FROM rated_match_players mp WHERE mp.match_id = p_rematch_of), '[]'::jsonb),
+    'placements', coalesce((SELECT jsonb_agg(jsonb_build_object('player_id', mp.player_id, 'n', mp.placement_no,
+                                                                'match_id', mp.match_id, 'result', mp.result,
+                                                                'finished_ms', rated_ms(mp.finished_at))
+                                             ORDER BY mp.player_id, mp.placement_no)
+                              FROM rated_match_players mp
+                             WHERE mp.player_id = ANY (p_players) AND mp.placement_no IS NOT NULL), '[]'::jsonb)
   );
 $$;
 REVOKE ALL ON FUNCTION public.rated_state(uuid, uuid[], date, timestamptz, text[], uuid) FROM PUBLIC, anon, authenticated;
@@ -376,10 +387,10 @@ BEGIN
     END LOOP;
 
     INSERT INTO rated_match_players (match_id, player_id, side, run_id, run_source, result, place, counted, moved,
-                                     frozen, joules, puzzles_games, arcade_games, changes, finished_at)
+                                     frozen, joules, placement_no, puzzles_games, arcade_games, changes, finished_at)
     SELECT v_match, (e ->> 'player_id')::uuid, e ->> 'side', e ->> 'run_id', e ->> 'run_source', e ->> 'result',
            (e ->> 'place')::smallint, (e ->> 'counted')::boolean, (e ->> 'moved')::boolean, e ->> 'frozen',
-           (e ->> 'joules')::int, (e ->> 'puzzles_games')::smallint, (e ->> 'arcade_games')::smallint,
+           (e ->> 'joules')::int, (e ->> 'placement_no')::smallint, (e ->> 'puzzles_games')::smallint, (e ->> 'arcade_games')::smallint,
            coalesce(e -> 'changes', '[]'::jsonb), v_at
       FROM jsonb_array_elements(p -> 'players') AS e;
 

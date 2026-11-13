@@ -1,18 +1,20 @@
 /**
- * Rated play's switch (wave 3; docs/rated/README.md). One switch, shared by W3b (rated play offered to everyone) and
- * the weekly challenges: challenges marked R (rated play) are drawn only while it is on, and never before
- * (docs/economy/economy-design.md "Weekly challenges"). Off until Joe switches rated play on for everyone.
+ * Rated play for everyone (wave 3; docs/rated/ratings-interface.md, docs/rated/matchmaking-interface.md). The one switch
+ * W3b's queue and W3a's weekly R challenges share. false: only accounts on the tester list (shop.testers; Joe manages it
+ * with shop.add_tester / shop.remove_tester) can queue, and R challenges aren't drawn. true: every signed-in account.
+ * Joe flips it by editing this file and merging to main, after his phone tests.
  *
  * Guests (Joe, 11 Nov 2026): once it is on, guests play rated matches too, placement included. Their ratings are kept
  * on their own player id (the auth user), so they carry to their account when they sign up: wave 1's linking keeps the
  * same id (ratings-check signs a placed guest up and proves placement, ratings and tier unchanged).
  *
- * A plain constant (no window override), so a production build holds exactly this value. The format and choice
- * switches are W3b's own: src/config/matchmakingConfig.ts.
+ * The format and choice switches are W3b's own: src/config/matchmakingConfig.ts.
+ *
+ * A plain constant (no window override), so a production build holds exactly this value.
  */
 export const RATED_PLAY_FOR_EVERYONE = false;
 
-/** Whether the weekly draw may include challenges marked R. */
+/** Whether the weekly draw may include challenges marked R (W3a). */
 export function ratedChallengesDrawable(): boolean {
   return RATED_PLAY_FOR_EVERYONE;
 }
