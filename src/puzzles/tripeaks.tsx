@@ -4,6 +4,8 @@ import { gameDisplayName } from "@/lib/duel/gameNames";
 import { TP_CHECKPOINT_INTERVAL, TP_INPUT_TAP, TP_REV, TP_STOCK_PILE, tpCheckpoint, type TpState } from "@/lib/arcade/cards/tripeaks";
 import { drawTripeaks, tpCardBox, tpHit, tpNewView, tpOverDiscard, TP_BG, TP_WORLD_H, TP_WORLD_W, tripeaksArtGame } from "@/lib/arcade/cards/tripeaks.renderer";
 import { cardsFill } from "@/lib/arcade/cards/cardsFill.renderer";
+import { withCardsLook } from "@/lib/arcade/cards/cards.renderer";
+import { useGameLookRef } from "@/lib/skins/equipped";
 import { encodeTripeaksRun, replayTripeaksRun } from "@/lib/duel/cards";
 import { TRIPEAKS_TIME_MS, type TripeaksPuzzleData } from "@/lib/duel/types";
 import { ArcadeCanvasStage, type PointerPayload } from "@/components/puzzles/ArcadeCanvasStage";
@@ -24,10 +26,12 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const latest = useRef<TpState | null>(null);
   const start = useRef<{ x: number; y: number; hit: number; moved: boolean } | null>(null);
   const rev = data?.tripeaksRev ?? 1;
+  // The account's card back on the face-down cards only (13 Nov 2026, Joe; display only, src/lib/skins/equipped.ts).
+  const [, lookRef] = useGameLookRef("tripeaks");
   const game = useMemo(() => {
     const art = tripeaksArtGame(view, rev);
-    return { ...art, draw: (ctx: CanvasRenderingContext2D, state: TpState, size: { width: number; height: number }) => { latest.current = state; art.draw(ctx, state, size); } };
-  }, [view, rev]);
+    return { ...art, draw: (ctx: CanvasRenderingContext2D, state: TpState, size: { width: number; height: number }) => { latest.current = state; withCardsLook(lookRef.current, () => art.draw(ctx, state, size)); } };
+  }, [view, rev, lookRef]);
 
   const pointer = (kind: "down" | "move" | "up", x: number, y: number): PointerPayload | null => {
     const state = latest.current;

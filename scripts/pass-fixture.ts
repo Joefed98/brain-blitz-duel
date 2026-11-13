@@ -16,7 +16,11 @@ export interface HarnessPass {
   view: PassView;
 }
 
-export function passFixture(opts: { level?: number; premium?: boolean } = {}): HarnessPass {
+/**
+ * `withdrawn` (13 Nov 2026, docs/cosmetics-review): items drawn as the server draws a withdrawn level, a gap ("Being
+ * redrawn", no item named), unless already claimed.
+ */
+export function passFixture(opts: { level?: number; premium?: boolean; withdrawn?: ReadonlySet<string> } = {}): HarnessPass {
   const level = opts.level ?? 12;
   const premium = opts.premium ?? false;
   // The catalogue's names, games, kinds and rarities, as the server's pass view carries them (pass.server.ts).
@@ -27,6 +31,8 @@ export function passFixture(opts: { level?: number; premium?: boolean } = {}): H
     const r = rw.rewardAt(track, l);
     if (!r) return null;
     const item = r.kind === "item" ? items.get(r.item) : undefined;
+    if (item && opts.withdrawn?.has(item.id) && !(track === "free" && l === 2))
+      return { track, level: l, kind: "item", title: "Being redrawn", detail: "This reward returns once it’s redrawn", rarity: null, itemId: null, itemKind: null, state: "withdrawn", needsPremium: track === "premium" && !premium };
     const label = rw.rewardLabel(r, item?.name);
     return {
       track,

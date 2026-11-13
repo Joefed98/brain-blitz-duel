@@ -4,6 +4,8 @@ import { gameDisplayName } from "@/lib/duel/gameNames";
 import { FH_CHECKPOINT_INTERVAL, FH_CORE_FULL, FH_INPUT_PICK, FH_INPUT_PLACE, fhPicking, FH_REV, FH_REV_FLAT, FH_REV_STEEP, fhCoreFullFor, FH_ROWS, FH_TURNS, fhApply, fhCheckpoint, fhDeal, type FhState } from "@/lib/arcade/cards/fiveHands";
 import { drawFiveHands, fhHitColumn, fhHitRow, fhNewView, fhOnNext, fiveHandsArtGame, FH_BG, FH_WORLD_H, FH_WORLD_W } from "@/lib/arcade/cards/fiveHands.renderer";
 import { cardsFill } from "@/lib/arcade/cards/cardsFill.renderer";
+import { withCardsLook } from "@/lib/arcade/cards/cards.renderer";
+import { useGameLookRef } from "@/lib/skins/equipped";
 import { encodeFiveHandsRun, replayFiveHandsRun } from "@/lib/duel/cards";
 import { FIVEHANDS_TIME_MS, type FiveHandsPuzzleData } from "@/lib/duel/types";
 import { ArcadeCanvasStage, type PointerPayload } from "@/components/puzzles/ArcadeCanvasStage";
@@ -30,10 +32,12 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const latest = useRef<FhState | null>(null);
   const start = useRef<{ fromNext: boolean; row: number } | null>(null);
   const rev = data?.fiveHandsRev ?? 1;
+  // The account's card back on the face-down cards only (13 Nov 2026, Joe; display only, src/lib/skins/equipped.ts).
+  const [, lookRef] = useGameLookRef("fivehands");
   const game = useMemo(() => {
     const art = fiveHandsArtGame(view, rev);
-    return { ...art, draw: (ctx: CanvasRenderingContext2D, state: FhState, size: { width: number; height: number }) => { latest.current = state; art.draw(ctx, state, size); } };
-  }, [view, rev]);
+    return { ...art, draw: (ctx: CanvasRenderingContext2D, state: FhState, size: { width: number; height: number }) => { latest.current = state; withCardsLook(lookRef.current, () => art.draw(ctx, state, size)); } };
+  }, [view, rev, lookRef]);
 
   // A tap on a row places your card there; dragging the card onto a row does too. Rev 3: once the rows are complete, a
   // tap on a column picks it (down and up on the same column).

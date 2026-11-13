@@ -118,13 +118,19 @@ export async function ensureShopDay(client: Db, day: string): Promise<ShopDay> {
   return toShopDay(again.data[0]);
 }
 
-/** The week's bundle as recorded (recorded from the schedule on first sight); null before the schedule starts. */
+/**
+ * The week's bundle as recorded (recorded from the schedule on first sight); null before the schedule starts, and
+ * null (no bundle that week, nothing recorded) while any of its items is withdrawn (13 Nov 2026, docs/cosmetics-review:
+ * a bundle is all or nothing, so it isn't sold short; it returns, at its own price, once Joe restores the item).
+ */
 export async function ensureShopWeek(client: Db, day: string, schedule: readonly BundleDef[] = BUNDLES): Promise<{ week: ShopWeekRow; def: BundleDef } | null> {
   const def = bundleForDay(day, schedule);
   if (!def) return null;
   const weekStart = mondayOf(day);
   let row = await readShopWeek(client, weekStart);
   if (row.error) throw new Error(`shop: ${row.error.message}`);
+  const onSale = new Set((await shopItems(client)).map((i) => i.id));
+  if (!(row.data ? row.data.items : def.items).every((id) => onSale.has(id))) return null;
   if (!row.data) {
     const wrote = await recordShopWeek(client, { weekStart, bundleId: def.id, name: def.name, items: def.items, price: def.price });
     if (wrote.error) throw new Error(`shop: ${wrote.error.message}`);
@@ -191,7 +197,17 @@ export async function offerFor(client: Db, skip: ReadonlySet<string>, nowMs: num
   const today = shopToday(nowMs);
   const day = await ensureShopDay(client, today);
   const week = await ensureShopWeek(client, today);
-  return { day, week, todayIds: viewForPlayer(day, skip).map((s) => s.itemId) };
+  const onSale = new Map((await shopItems(client)).map((i) => [i.id, i]));
+  return { day, week, todayIds: viewForPlayer(day, skipping(skip, day, onSale)).map((s) => s.itemId).filter((id) => onSale.has(id)) };
+}
+
+/**
+ * The view's skip set with the day's withdrawn picks added (13 Nov 2026): a day recorded before an item was withdrawn
+ * shows the day's next backup in its place, as for an owned pick.
+ */
+function skipping(skip: ReadonlySet<string>, day: ShopDay, onSale: ReadonlyMap<string, unknown>): ReadonlySet<string> {
+  const gone = [...day.items, ...Object.values(day.backups).flat()].filter((id) => !onSale.has(id));
+  return gone.length ? new Set([...skip, ...gone]) : skip;
 }
 
 /** The whole shop for one account. */
@@ -211,11 +227,11 @@ export async function shopViewFor(client: Db, userId: string, nowMs: number, sec
   const byId = new Map(items.map((i) => [i.id, i]));
   const wished = new Set(wishlist.data.map((w) => w.itemId).filter((id) => byId.has(id)));
   const offer = await offerFor(client, skip, nowMs);
-  const view = viewForPlayer(offer.day, skip);
-  const today = view.map((s) => {
+  const view = viewForPlayer(offer.day, skipping(skip, offer.day, byId));
+  // A slot whose pick (and every backup) was withdrawn after the day was recorded is left out.
+  const today = view.flatMap((s) => {
     const item = byId.get(s.itemId);
-    if (!item) throw new Error(`shop: ${s.itemId} is no longer sold`);
-    return card(item, owned, wished);
+    return item ? [card(item, owned, wished)] : [];
   });
   let bundle: ShopBundleView | null = null;
   if (offer.week) {

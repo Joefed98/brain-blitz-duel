@@ -516,7 +516,9 @@ async function awardExtras(client: Db, event: TournamentEventRow, nowMs: number)
         if (kind === "championship") {
           await once(r.user_id, "frame", 1, null, async () => {
             const s = await economy.grantItem(client, { userId: r.user_id, itemId: CHAMPIONSHIP_FRAME, how: "earned" });
-            if (s !== "granted" && s !== "owned" && s !== "no_account") throw new Error(`frame ${s}`);
+            // "withdrawn": the frame has no art yet (13 Nov 2026, docs/cosmetics-review), so it isn't given; the award is
+            // recorded and economy.restore_item gives it to every recorded winner once it is drawn and approved.
+            if (s !== "granted" && s !== "owned" && s !== "withdrawn" && s !== "no_account") throw new Error(`frame ${s}`);
           });
           await once(r.user_id, "hall_of_fame", 1, null, async () => {
             await insertHallOfFame(client, { month: event.id.split(":")[1]!, event_id: event.id, user_id: r.user_id });
