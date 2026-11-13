@@ -15,7 +15,7 @@ what they need (a nonce or `'unsafe-inline'`) before anything is enforced.
 
 `POST /csp-report` is answered by `src/server.ts` before the app (`src/lib/security/cspReport.server.ts`). It reads
 both report formats (`application/csp-report` and the Reporting API's `application/reports+json`), at most 10 reports
-a request, and stores one row per report in `public.csp_reports`: the directive's name and the blocked resource's
+a request, and stores one row per report in `public.csp_reports` (kept 30 days, removed by the daily analytics clean-up): the directive's name and the blocked resource's
 host, or a keyword (`inline`, `eval`, `data`, `blob`) when there is no host. Nothing else is kept: no page or resource
 URL, path, query, script sample, address or anything about the player. One network may send 120 reports every 10
 minutes (counted on the hashed address, which is never stored); past that, reports are dropped quietly.

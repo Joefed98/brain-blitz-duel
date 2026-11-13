@@ -154,7 +154,7 @@ export const ANALYTICS_EVENTS = [
   "swiss_round_paired",
   "knockout_match_played",
   // The arcade wall-clock trial (13 Nov 2026, log only; src/lib/round/wallClock.ts,
-  // 20261116700100_analytics_arcade_timing.sql). arcade_run_slow is the server's: a room or practice arcade run that
+  // 20261117200100_analytics_arcade_timing.sql). arcade_run_slow is the server's: a room or practice arcade run that
   // arrived past run length × 1.3 + 15 s (game, mode, props.run_ms, props.over_ms, in practice props.token_age_s).
   // arcade_run_timed is the phone's (CLIENT_EVENTS): one a played run (game, props.wall_ms, props.hidden_ms,
   // props.dropped_ticks, props.run_ticks); never a score.

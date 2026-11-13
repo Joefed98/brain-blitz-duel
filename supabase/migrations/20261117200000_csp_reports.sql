@@ -13,3 +13,23 @@ ALTER TABLE public.csp_reports ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON public.csp_reports FROM PUBLIC, anon, authenticated;
 GRANT ALL ON public.csp_reports TO service_role;
 CREATE INDEX IF NOT EXISTS csp_reports_created_idx ON public.csp_reports (created_at);
+
+-- Keep 30 days of reports (Joe, 13 Nov 2026), on the existing daily analytics clean-up (pg_cron job
+-- 'analytics-retention', 03:17 UTC, from 20261109140000_analytics_events.sql): its function, as it stands, plus the
+-- reports older than 30 days. It still answers the number of analytics events removed, as before.
+CREATE OR REPLACE FUNCTION analytics.purge_old_events()
+RETURNS integer
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = analytics
+AS $$
+DECLARE
+  n integer;
+BEGIN
+  DELETE FROM analytics.events WHERE occurred_at < now() - interval '13 months';
+  GET DIAGNOSTICS n = ROW_COUNT;
+  DELETE FROM public.csp_reports WHERE created_at < now() - interval '30 days';
+  RETURN n;
+END;
+$$;
+REVOKE ALL ON FUNCTION analytics.purge_old_events() FROM PUBLIC, anon, authenticated, service_role;

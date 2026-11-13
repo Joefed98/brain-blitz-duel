@@ -212,6 +212,12 @@ if (!postgresBin()) {
     const { error } = await insertCspReports(await adminDb(), [{ directive: "script-src-elem", blocked_host: "inline" }]);
     check(!error && q(`SELECT directive || ',' || blocked_host FROM public.csp_reports`) === "script-src-elem,inline", `a report is stored through the data function (${error?.message ?? "ok"})`);
     check(!db.psql(`INSERT INTO public.csp_reports (directive, blocked_host) VALUES ('<b>', 'x')`).ok, "the table refuses a directive that isn't a name");
+    // 30 days kept, on the existing daily analytics clean-up (its own count of analytics events unchanged).
+    q(`INSERT INTO public.csp_reports (directive, blocked_host, created_at) VALUES ('img-src', 'old.example', now() - interval '31 days'), ('img-src', 'recent.example', now() - interval '29 days')`);
+    q(`INSERT INTO analytics.events (event, occurred_at) VALUES ('app_opened', now() - interval '14 months')`);
+    const removed = q(`SELECT analytics.purge_old_events()`);
+    check(removed === "1" && q(`SELECT string_agg(blocked_host, ',' ORDER BY blocked_host) FROM public.csp_reports`) === "inline,recent.example", `the daily analytics clean-up removes reports older than 30 days and still answers its events count (${removed})`);
+    check(q(`SELECT prosrc FROM pg_proc WHERE oid = 'analytics.purge_old_events()'::regprocedure`).includes("interval '13 months'"), "the clean-up keeps its 13-month analytics rule");
     check(q(`SELECT count(*) FROM pg_constraint WHERE conname = 'events_event_check' AND pg_get_constraintdef(oid) LIKE '%arcade_run_slow%' AND pg_get_constraintdef(oid) LIKE '%arcade_run_timed%' AND pg_get_constraintdef(oid) LIKE '%app_opened%'`) === "1", "analytics keeps every event and adds the two timing events");
   } catch (err) {
     check(false, `harness: ${err instanceof Error ? err.message : String(err)}`);
