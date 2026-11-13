@@ -29,7 +29,7 @@ export async function readPlateProfiles(client: Db, userIds: readonly string[]):
 
 /**
  * Which of up to 100 accounts read "Hidden player" on anything that leaves their room (the share card's image): the
- * leaderboards' own rule (public.players_hidden_outside, 20261116800000): under-18s by default, adults who opted out,
+ * leaderboards' own rule (public.players_hidden_outside, 20261117400000): under-18s by default, adults who opted out,
  * accounts waiting for deletion. Guests are never in it.
  */
 export async function readHiddenOutside(client: Db, userIds: readonly string[]): Promise<Result<string[]>> {
