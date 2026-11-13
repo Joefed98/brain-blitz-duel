@@ -275,6 +275,14 @@
     grid-column: 2;
     grid-row: 2 / span 40;
   }
+  /* The 280 px side column's Daily rows (13 Nov 2026): the tile row's 16 px padding and 14 px gaps left "Daily
+     Arcade" 80 px beside a played day's score (93 px of text). 12 px padding and 8 px gaps give the title 20 px
+     more; the divider still starts at the text (12 + 42 px tile + 8). */
+  [data-layout="tablet"] [data-page-aside] .jz-row[data-icon="tile"] {
+    --row-inset: 62px;
+    gap: 8px;
+    padding-inline: 12px;
+  }
   [data-layout="tablet"] .app-tabbar-row {
     max-width: 640px;
   }
