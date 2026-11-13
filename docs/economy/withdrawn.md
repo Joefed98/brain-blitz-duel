@@ -3,8 +3,8 @@
 Joe's rule: Joulz is premium, so every cosmetic offered anywhere must look premium and beautiful; anything that
 doesn't is improved or withdrawn, never offered as it stands. The cosmetics review (draft PR #389,
 `docs/cosmetics-review/`, never merged; its verdicts here as `docs/cosmetics-review/verdicts.json`) marked 46 of the
-118 catalogue items Keep. The other 72 were withdrawn by `supabase/migrations/20261116600000_catalogue_withdrawn.sql`;
-Joe restored the three card backs the same day (`20261116600200_restore_card_backs.sql`), as they now show in live
+118 catalogue items Keep. The other 72 were withdrawn by `supabase/migrations/20261116800000_catalogue_withdrawn.sql`;
+Joe restored the three card backs the same day (`20261116800200_restore_card_backs.sql`), as they now show in live
 games. 69 stay withdrawn until redrawn and approved.
 
 ## What withdrawn means

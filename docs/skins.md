@@ -107,7 +107,7 @@ peak cards and stock, Thirteen's stock and Five Hands' deck (`CARD_BACK_GAMES`, 
 `look.ts`; the three stages draw their art game inside `withCardsLook` with `useGameLookRef`; replays draw the
 player's stored back, `playback.renderer.ts`). These three have no skins or world themes, so they are not in
 `SKIN_GAME_NAMES`. Faces are never touched: skins-check section 7 proves all 52 faces pixel-identical with any back.
-A result in those games stores the back (`20261116600100_card_back_games.sql`). skins-default-check, skins-check and
+A result in those games stores the back (`20261116800100_card_back_games.sql`). skins-default-check, skins-check and
 skins-replay-check cover them (their default digests and 12 runs appended to the fixtures, earlier entries
 byte-identical). Still not built: Golf Solitaire (retired) and Matchmaker (CSS backs).
 

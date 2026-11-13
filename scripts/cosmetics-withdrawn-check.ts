@@ -19,7 +19,7 @@
  *     away, logged; neither is reachable by anon, authenticated or the service role.
  *  7. Customise lists a withdrawn item only for its owner.
  *  8. The Card Table bundle is Proposal A (Aurora in place of the Full House felts and Royal; 5,500), on sale once Joe
- *     restored the three card backs (20261116600200); a bundle still holding a withdrawn item stays unsold.
+ *     restored the three card backs (20261116800200); a bundle still holding a withdrawn item stays unsold.
  *  9. Card backs: Summit, Thirteen and Five Hands draw the account's back (and only the back); a result in those games
  *     stores it; other games don't.
  * 10. The Top 500 frame: given with the Top 500 badge (Joe, 13 Nov 2026), dormant while withdrawn; restoring it gives it
@@ -58,10 +58,10 @@ console.error = () => {};
 type Item = { id: string; source: string; kind: string; rarity: string | null };
 const { catalogueItems } = await import("./catalogue-files");
 const ITEMS = catalogueItems<Item>();
-const MIGRATION = readFileSync("supabase/migrations/20261116600000_catalogue_withdrawn.sql", "utf8");
+const MIGRATION = readFileSync("supabase/migrations/20261116800000_catalogue_withdrawn.sql", "utf8");
 const WITHDRAWN = [...MIGRATION.slice(MIGRATION.indexOf("FROM (VALUES")).matchAll(/\('([a-z0-9.-]+)'\)/g)].map((m) => m[1]!);
-/** Joe's restores since (13 Nov 2026: the card backs, 20261116600200_restore_card_backs.sql). */
-const RESTORE = readFileSync("supabase/migrations/20261116600200_restore_card_backs.sql", "utf8");
+/** Joe's restores since (13 Nov 2026: the card backs, 20261116800200_restore_card_backs.sql). */
+const RESTORE = readFileSync("supabase/migrations/20261116800200_restore_card_backs.sql", "utf8");
 const RESTORED = new Set([...RESTORE.matchAll(/economy\.restore_item\('([a-z0-9.-]+)'/g)].map((m) => m[1]!));
 const W = new Set(WITHDRAWN.filter((id) => !RESTORED.has(id)));
 

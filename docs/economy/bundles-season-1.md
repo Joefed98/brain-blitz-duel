@@ -51,7 +51,7 @@ The points as raised:
 ## Withdrawn items (13 Nov 2026)
 
 Every item the cosmetics review didn't mark Keep is withdrawn (`catalogue_items.withdrawn_at`,
-`supabase/migrations/20261116600000_catalogue_withdrawn.sql`) until it is redrawn and Joe restores it. A bundle holding a
+`supabase/migrations/20261116800000_catalogue_withdrawn.sql`) until it is redrawn and Joe restores it. A bundle holding a
 withdrawn item isn't sold that week (`ensureShopWeek`: a bundle is all or nothing); it returns at its own price once
 every item is back. The weeks with a gap today are listed in the PR that added the column.
 

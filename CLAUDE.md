@@ -2398,14 +2398,14 @@ outside the repo.
   (~5 s, happy-dom); shots `bun scripts/shots/rated-shots.tsx` (after `bun run build`).
 - **Withdrawn cosmetics** (13 Nov 2026, `docs/economy/withdrawn.md`; Joe's rule: every cosmetic offered must look
   premium): the review (draft #389, verdicts in `docs/cosmetics-review/verdicts.json`) kept 46 of 118 items; the rest
-  are withdrawn (`catalogue_items.withdrawn_at`, `20261116600000_catalogue_withdrawn.sql`): never sold (the shop query;
+  are withdrawn (`catalogue_items.withdrawn_at`, `20261116800000_catalogue_withdrawn.sql`): never sold (the shop query;
   a bundle holding one isn't sold that week, no partial bundles), never given (`economy.add_item` answers `withdrawn`
   for pass, earned and starter grants; a withdrawn pass level shows "Being redrawn"), owners keep them. **Joe brings
   one back with one line**, `SELECT economy.restore_item('<id>', '<note>');` (logged; gives it to everyone owed it);
-  the three card backs were restored at once (`20261116600200`). The Top 500 frame is redrawn inside the card's box
+  the three card backs were restored at once (`20261116800200`). The Top 500 frame is redrawn inside the card's box
   (plaque "TOP 500") and given with the Top 500 badge (`grantTop500Frame`, dormant while withdrawn); Frost's
   snowflakes moved off the name; Card Table is Proposal A. **Card backs** also draw on Summit's, Thirteen's and Five
-  Hands' face-down cards (`CARD_BACK_GAMES`, `isCardBackGame`; faces untouched; `20261116600100` stores the back with
+  Hands' face-down cards (`CARD_BACK_GAMES`, `isCardBackGame`; faces untouched; `20261116800100` stores the back with
   results). Redrawn stills: `bun scripts/art-still.ts <item.html>`. The six whole-catalogue checks (economy, shop,
   pass, badges, seasons, tournament events) make every item live in their own test database first (Joe's approval);
   cosmetics-withdrawn-check (~10 s, PostgreSQL) proves the withdrawn rules.
