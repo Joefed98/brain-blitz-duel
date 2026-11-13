@@ -276,10 +276,11 @@ async function serverChecks(db: LocalDb): Promise<void> {
     check(toUna === "not_in_audience" && toUnaInvite === "not_in_audience", `a non-tester's are not, even with a device stored (${toUna}, ${toUnaInvite})`);
     check(toWes === "no_device", `a non-tester with no device: nothing (${toWes})`);
     // B1's friend events through the sweep.
-    q(`INSERT INTO friend_events (recipient_id, actor_id, kind, payload) VALUES
+    // Changed with Joe's approval, 13 Nov 2026: the events are stamped with the scenario's clock, not the database's now() (this line and the AS v line).
+    q(`INSERT INTO friend_events (recipient_id, actor_id, kind, payload, created_at) SELECT r::uuid, a::uuid, k, p::jsonb, to_timestamp(${clock / 1000}) FROM (VALUES
          ('${UNA}', '${VIC}', 'friend_request_received', '{}'),
          ('${TOM}', '${UNA}', 'friend_request_received', '{}'),
-         ('${UNA}', '${TOM}', 'room_invite_received', '{"code":"BLTZ"}')`);
+         ('${UNA}', '${TOM}', 'room_invite_received', '{"code":"BLTZ"}')) AS v(r, a, k, p)`);
     const sweep = await notify.dispatchFriendEvents(admin, opts);
     check(sweep.claimed === 3 && sweep.outcomes.sent === 1 && sweep.outcomes.not_in_audience === 2, `the sweep sends the tester's event only (${JSON.stringify(sweep)})`);
     // The evening reminder: #3 played yesterday's Daily (the candidates' rule), never reminded.

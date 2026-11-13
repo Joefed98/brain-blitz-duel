@@ -1,10 +1,11 @@
 /**
- * Practice goals (6 Nov 2026): mastery stars and challenges, kept on this device only, as practice bests are
- * (practiceBest.ts). To move to accounts later: the whole record is one JSON value under PRACTICE_GOALS_KEY.
+ * Practice goals (6 Nov 2026): the device's challenge record, kept on this device only, as practice bests are
+ * (practiceBest.ts). The whole record is one JSON value under PRACTICE_GOALS_KEY.
  *
- * Stars: bronze at a practice best of 120, silver at 160, gold at 190 (every game scores out of 200). A star once
- * earned is kept, even when a game's new stamps start a fresh best; the tier shown is the higher of the stored one
- * and the current best's.
+ * Changed with Joe's approval, 13 Nov 2026 (stars only): the retired device stars (bronze 120, silver 160, gold 190) are removed. Stars live on
+ * the account since wave 2 C1a (src/lib/practice/progress.ts, the server's 175+ star); nothing in the app read these.
+ * A record stored with a `stars` field still reads: the field is ignored and dropped on the next write, and the
+ * challenge record beside it is read and kept exactly as before (practice-goals-check section 5).
  *
  * Challenges (practiceChallenges.ts): each run's stored score and extra (the server's own grade) update the
  * challenge's best value (or its run count); a challenge is done once its value reaches its target, and stays done.
@@ -15,20 +16,6 @@ import { PRACTICE_CHALLENGES, challengeLive, challengeTarget, challengeValueOf, 
 
 export const PRACTICE_GOALS_KEY = "duelz-practice-goals:v1";
 
-export type StarTier = 0 | 1 | 2 | 3;
-/** Bronze, silver, gold: the practice best each needs. */
-export const STAR_THRESHOLDS = [120, 160, 190] as const;
-export const STAR_NAMES = ["", "Bronze", "Silver", "Gold"] as const;
-export const STARS_PER_GAME = 3;
-
-/** The tier a score earns. */
-export function starsFor(score: number | null | undefined): StarTier {
-  if (typeof score !== "number" || !Number.isFinite(score)) return 0;
-  let tier = 0;
-  for (const t of STAR_THRESHOLDS) if (score >= t) tier += 1;
-  return tier as StarTier;
-}
-
 export interface ChallengeRecord {
   /** The best part points, bonus points or score in one run. */
   value: number;
@@ -38,21 +25,17 @@ export interface ChallengeRecord {
 
 export interface GoalsRecord {
   v: 1;
-  stars: Record<string, number>;
   challenges: Record<string, ChallengeRecord>;
 }
 
-const empty = (): GoalsRecord => ({ v: 1, stars: {}, challenges: {} });
+const empty = (): GoalsRecord => ({ v: 1, challenges: {} });
 /** Session-only copy when storage is blocked, and the last read (so a blocked write still shows this visit). */
 let volatile: GoalsRecord | null = null;
 
 function clean(raw: unknown): GoalsRecord {
   const out = empty();
   if (!raw || typeof raw !== "object") return out;
-  const r = raw as { stars?: unknown; challenges?: unknown };
-  if (r.stars && typeof r.stars === "object")
-    for (const [k, v] of Object.entries(r.stars as Record<string, unknown>))
-      if (typeof v === "number" && Number.isFinite(v)) out.stars[k] = Math.max(0, Math.min(STARS_PER_GAME, Math.floor(v)));
+  const r = raw as { challenges?: unknown };
   if (r.challenges && typeof r.challenges === "object")
     for (const [k, v] of Object.entries(r.challenges as Record<string, unknown>)) {
       if (!v || typeof v !== "object") continue;
@@ -86,18 +69,6 @@ function writeGoals(record: GoalsRecord): void {
   }
 }
 
-/** A game's stars: the stored tier or the current best's, whichever is higher. */
-export function starsOf(type: string, best: number | null, record: GoalsRecord = readGoals()): StarTier {
-  return Math.max(record.stars[type] ?? 0, starsFor(best)) as StarTier;
-}
-
-/** Stars earned across `types` and the most there are ("41 / 276 stars"). */
-export function starTotal(types: readonly string[], bestOf: (type: string) => number | null, record: GoalsRecord = readGoals()): { earned: number; total: number } {
-  let earned = 0;
-  for (const t of types) earned += starsOf(t, bestOf(t), record);
-  return { earned, total: types.length * STARS_PER_GAME };
-}
-
 export interface ChallengeState {
   challenge: PracticeChallenge;
   value: number;
@@ -122,16 +93,13 @@ export function challengeState(challenge: PracticeChallenge, record: GoalsRecord
 }
 
 export interface PracticeResultGoals {
-  /** The game's stars before and after this run. */
-  starsBefore: StarTier;
-  starsAfter: StarTier;
   /** Challenges this run completed. */
   completed: PracticeChallenge[];
 }
 
 /**
- * Records one graded practice run (its stored score and extra): the stars its best earns and every challenge of
- * the game. `best` is the practice best after this run (practiceBest.ts's record).
+ * Records one graded practice run (its stored score and extra): every challenge of the game. `best` is the practice
+ * best after this run (practiceBest.ts's record); kept in the signature for its callers, unused since the stars went.
  */
 export function recordPracticeGoals(
   type: string,
@@ -140,10 +108,8 @@ export function recordPracticeGoals(
   best: number | null,
   now: Date = new Date(),
 ): PracticeResultGoals {
+  void best;
   const record = readGoals();
-  const starsBefore = (record.stars[type] ?? 0) as StarTier;
-  const starsAfter = Math.max(starsBefore, starsFor(best), starsFor(score)) as StarTier;
-  record.stars[type] = starsAfter;
   const completed: PracticeChallenge[] = [];
   for (const challenge of PRACTICE_CHALLENGES) {
     if (challenge.type !== type) continue;
@@ -161,13 +127,7 @@ export function recordPracticeGoals(
     record.challenges[challenge.id] = next;
   }
   writeGoals(record);
-  return { starsBefore, starsAfter, completed };
-}
-
-/** The star line under the new-best moment ("Silver star earned"), or null when no star was earned. */
-export function starLine(goals: Pick<PracticeResultGoals, "starsBefore" | "starsAfter"> | null): string | null {
-  if (!goals || goals.starsAfter <= goals.starsBefore) return null;
-  return `${STAR_NAMES[goals.starsAfter]} star earned`;
+  return { completed };
 }
 
 /** Checks only: forget the session copy (a reload). */
