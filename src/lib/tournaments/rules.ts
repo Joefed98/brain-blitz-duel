@@ -10,6 +10,7 @@ import {
   ARENA_MIN_ENTRANTS,
   ARENA_TIMES_UK,
   ARENA_WINDOW_MIN,
+  CATEGORY_CUP_COINS,
   SCORE_ATTACK_COINS,
   TOURNAMENT_KINDS_ON,
   TOURNAMENT_PRIZES,
@@ -18,6 +19,8 @@ import {
 import { shiftDayKey, ukDayKey, ukDayWindow } from "@/lib/duel/daily";
 import { pickLabel, ROOM_PICKS, type RoomPick } from "@/lib/duel/roomSettings";
 import { ukTimeToUtcMs } from "@/lib/publicSchedule";
+// W4c's kinds schedule themselves there (the Category Cup and the Joulz Championship).
+import { bigEventIdsOn, bigScheduledEvent, parseBigEventId } from "./eventRules";
 
 /* ------------------------------------------------------------------ kinds and switches */
 
@@ -66,6 +69,7 @@ export const TICKET_KIND: Readonly<Partial<Record<EntryType, "ticket_score_attac
 
 /** Coins a kind's coin entry costs (0: free only). */
 export function entryCoins(kind: TournamentKind): number {
+  if (kind === "category_cup") return CATEGORY_CUP_COINS;
   return kind === "score_attack" ? SCORE_ATTACK_COINS : 0;
 }
 
@@ -81,6 +85,8 @@ export function entryOptionsFor(kind: TournamentKind, switches: TournamentSwitch
     return out;
   }
   if (kind === "category_cup") return ["coins", "ticket_category_cup"];
+  // The Joulz Championship (W4c) can't be entered: the month's top 64 Score Attack players qualify.
+  if (kind === "championship") return [];
   return ["free"];
 }
 
@@ -113,6 +119,10 @@ export function eventIdFor(kind: TournamentKind, day: string, time?: string): st
 /** The parts of an event id, or null for anything else. */
 export function parseEventId(id: unknown): { kind: TournamentKind; day: string; time: string | null } | null {
   if (typeof id !== "string" || id.length > 64) return null;
+  // W4c's championship:<YYYY-MM> (its day field is the month); category_cup ids parse below like any other, and
+  // scheduledEvent keeps only Saturdays at 7 pm.
+  const big = parseBigEventId(id);
+  if (big?.kind === "championship") return { kind: big.kind, day: big.month, time: null };
   const m = /^([a-z_]+):(\d{4}-\d{2}-\d{2})(?::(\d{4}))?$/.exec(id);
   if (!m || !isTournamentKind(m[1])) return null;
   const time = m[3] ? `${m[3].slice(0, 2)}:${m[3].slice(2)}` : null;
@@ -181,7 +191,8 @@ export function scheduledEvent(id: string, switches: TournamentSwitches = TOURNA
       entryClosesAt: closesAt - SCORE_ATTACK_LAST_ENTRY_MIN * 60_000,
     };
   }
-  return null; // W4c's kinds schedule themselves
+  if (parts.kind === "category_cup" || parts.kind === "championship") return bigScheduledEvent(id);
+  return null;
 }
 
 /** Every scheduled event starting in [fromMs, toMs), soonest first (kinds that are on only). */
@@ -190,7 +201,7 @@ export function scheduleBetween(fromMs: number, toMs: number, switches: Tourname
   let day = shiftDayKey(ukDayKey(fromMs), -1);
   const last = shiftDayKey(ukDayKey(toMs), 1);
   for (let guard = 0; guard < 400 && day <= last; guard++, day = shiftDayKey(day, 1)) {
-    const ids = [eventIdFor("score_attack", day), ...ARENA_TIMES_UK.map((t) => eventIdFor("arena", day, t))];
+    const ids = [eventIdFor("score_attack", day), ...ARENA_TIMES_UK.map((t) => eventIdFor("arena", day, t)), ...bigEventIdsOn(day)];
     for (const id of ids) {
       const ev = scheduledEvent(id, switches);
       if (ev && ev.startsAt >= fromMs && ev.startsAt < toMs) out.push(ev);
@@ -358,9 +369,9 @@ export interface PrizeLine {
 
 export const MEDAL_OF: Readonly<Record<number, Medal>> = { 1: "gold", 2: "silver", 3: "bronze" };
 
-/** The prize table of a kind (fixed by Joulz; W4c's kinds have none here yet). */
+/** The prize table of a kind (fixed by Joulz). */
 export function prizeLines(kind: TournamentKind): PrizeLine[] {
-  const table = kind === "arena" ? TOURNAMENT_PRIZES.arena : kind === "score_attack" ? TOURNAMENT_PRIZES.score_attack : [];
+  const table: readonly { from: number; to: number; coins: number; minEntrants: number }[] = TOURNAMENT_PRIZES[kind];
   return table.map((l) => ({ ...l, trophy: l.from === l.to ? (MEDAL_OF[l.from] ?? null) : null }));
 }
 

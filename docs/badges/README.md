@@ -30,7 +30,7 @@ Every badge's rule is Joe's approved catalogue (**`docs/badges/catalogue.md`**, 
 code to its table). Every badge shows its rule; a locked badge the server counts shows its progress ("4 of 7 days").
 Each badge has a `status`:
 
-- **earnable** (38; 16 until wave 3 W3a made rated play's 13 earnable, 29 until wave 4 W4a made the two Daily board badges earnable, and 31 until wave 4 W4b made the tournaments' seven earnable, 11 Nov 2026): the server checks its rule now from what it stores (`rules.server.ts`, facts from
+- **earnable** (40; 16 until wave 3 W3a made rated play's 13 earnable, 29 until wave 4 W4a made the two Daily board badges earnable, 31 until wave 4 W4b made the tournaments' seven earnable, and 38 until wave 4 W4c made Swiss Champion and Knockout Champion earnable, 11 Nov 2026; counts set 13 Nov 2026): the server checks its rule now from what it stores (`rules.server.ts`, facts from
   `public.badge_facts`, the Daily record and the profile), or another session awards it through `badge_award`:
   - Flawless (a 200 in any game), Perfectionist (200 in 25 different games);
   - Daily Habit, Dedicated, Century (7 / 30 / 100 days in a row: the longest run in the server's Daily history, a
@@ -59,14 +59,16 @@ Each badge has a `status`:
   - Entrant, Trophy Hunter, Arena Ace, Champion, Arena Champion, Score Attack Champion, Serial Winner (wave 4, W4b):
     earnable, **awarded by the tournaments code** (`src/lib/tournaments/tournaments.server.ts`, `AWARDED_ELSEWHERE`;
     docs/tournaments/README.md says when each is given); no rule here.
+  - Swiss Champion and Knockout Champion (W4c, Joe's approval of 11 Nov 2026; migration
+    `20261115300000_tournament_events.sql`): earnable, **awarded by the events** when a Category Cup or a Joulz
+    Championship finishes (`src/lib/tournaments/eventsFlow.server.ts`, `AWARDED_ELSEWHERE`); no rule here.
 
   "Any game / any mode" counts rooms (the game on now and the archive), the Daily and challenges (not the results a
   challenge copied from the player's own room), and Practice only from C1a's fresh start
   (`public.practice_progress_start`, read by `badge_facts`). Puzzle means a non-arcade game.
-- **waits** (16; 38 before wave 3 W3a, 25 before wave 4 W4a, 23 before wave 4 W4b): the database refuses to award it; shown with "Arrives with …":
+- **waits** (14; 38 before wave 3 W3a, 25 before wave 4 W4a, 23 before wave 4 W4b, 16 before wave 4 W4c): the database refuses to award it; shown with "Arrives with …":
   - all three stars per game (wave 3.5): the 11 category masters, Grand Master;
   - Hard and Expert challenges (wave 3.5): Category Clear, Completionist;
-  - tournaments (wave 4, W4c): Swiss Champion, Knockout Champion;
 
 **To make a badge earnable** later: a new migration updates its row (`status = 'earnable'`, `waits_for = NULL`), the
 same change in `catalogue.ts` and `catalogue.md`, a rule in `BADGE_RULES` reading new `BadgeFacts` (gathered in

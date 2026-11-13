@@ -13,6 +13,7 @@ import { ukDayKey } from "@/lib/duel/daily";
 import { ordinal } from "@/lib/duel/ordinal";
 import { KIND_LABEL, placeLabel, UNDER_REVIEW_LINE } from "@/lib/tournaments/rules";
 import { entryLabel } from "@/lib/tournaments/tournamentsApi";
+import { CHAMPIONSHIP_NOT_HELD } from "@/lib/tournaments/eventRules";
 import type { EntryView, TournamentEventView, TournamentHub, TrophyView } from "@/lib/tournaments/types";
 
 /** "ends in 18 min", "ends in 2 h 5 min". */
@@ -101,7 +102,13 @@ function NothingLive({ hub, onOpen, onRemind }: { hub: TournamentHub; onOpen: (i
 
 function ScheduleRow({ ev, hub, onOpen, onRemind }: { ev: TournamentEventView; hub: TournamentHub; onOpen: (id: string) => void; onRemind: (id: string, on: boolean) => void }) {
   const allDay = ev.kind === "score_attack";
-  const sub = ev.status === "cancelled" ? "Called off" : `${kindAndEntry(ev)}${ev.entrants > 0 ? `, ${ev.entrants} in` : ""}`;
+  // The Joulz Championship with fewer than 16 qualifiers (W4c) isn't held that month, and the row says so.
+  const sub =
+    ev.status === "cancelled"
+      ? ev.cancelReason === CHAMPIONSHIP_NOT_HELD
+        ? "Not held this month: fewer than 16 qualified"
+        : "Called off"
+      : `${kindAndEntry(ev)}${ev.entrants > 0 ? `, ${ev.entrants} in` : ""}`;
   return (
     <div className="tn-schedule-row" data-tournament-row={ev.id}>
       <Row

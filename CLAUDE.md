@@ -2126,6 +2126,22 @@ outside the repo.
   and falls short for all 261, speed goals against the grader, the facts, coins and roles on PostgreSQL) and
   practice-challenge-fit-check (headless Chromium: every goal whole at 320 and 375 px). **A retune that moves a goal's
   number fails practice-goals-check: change the goal's text and number in the data file and re-run the doc script.**
+- **Friends** (wave 2 train B, session B1, 11 Nov 2026, `docs/friends.md`; no gameplay, scoring, stamp or room-flow
+  change beyond Invite to room): accounts only (`/friends`, `src/routes/friends.tsx`, screens
+  `src/components/friends/FriendsScreens.tsx`; Profile's Friends button carries the waiting-requests badge, a guest gets
+  the save-your-progress sheet). Migration `20261111230000_friends.sql` (**not applied until merged**): friendships,
+  requests (phones never read a status, so a decline is never told), blocks, invite links, "Show when I'm online"
+  (null = on for adults, off for under-18s), presence (the app's heartbeat, `FriendsPresence` in the root, accounts
+  only) and `friend_events`, the outbox B2 turns into phone notifications (`friend_request_received`,
+  `friend_request_accepted`, `friend_challenge_received`, `room_invite_received`); every rule also in SQL on
+  service-role functions (`friends_*`), through `src/lib/data/friends.server.ts` and `src/lib/friends/friends.server.ts`.
+  Search is for adults and never returns an under-18 account; invite links work for everyone (a guest goes through
+  sign-up first, the token kept as `duelz-friend-invite:v1`). Block removes the friendship and stops requests, invites,
+  challenges, search, profiles and status both ways. Reports from a profile go through wave 1's `file_room_report` with
+  no room (`room_reports.duel_id` now nullable). Limits: 20 requests an hour, 200 friends. Chat: `chatPolicy(context,
+  player, { friends: true })` types for friends, under-18s included; strangers unchanged. Analytics `friend_request_sent`,
+  `friend_added`, `friend_removed`, `friend_blocked` (`20261111230100_analytics_friend_events.sql`). friends-check (~5 s,
+  PostgreSQL, shard `e`), friends-ui-check (~3 s, happy-dom).
 - **Leaderboards** (wave 4, session W4a, 11 Nov 2026, `docs/leaderboards.md`; no gameplay, scoring, stamp, rating or
   deal change): rating boards (`/leaderboards`: Joulz Rating, Puzzles, Arcade; global, country, friends; this season or
   all-time peak; pages of 50 to the top 500, your row pinned; "Top 500 #n" with mockup 03's emblem from W3a's tier),
@@ -2256,9 +2272,8 @@ outside the repo.
   Score Attack is an async room of kind `score_attack` on the Daily's engine (analytics mode `tournament`). Entry and
   refunds through A1's ledger and consumables in one transaction; prizes paid once (`tournament_prize` lines); trophies
   in Profile's cabinet (only real ones); the seven tournament badges earnable (awarded here through `badge_award`);
-  Joules through D2's `creditTournamentJoules`; reminders through B2's `notifyTournamentStarting` (task
-  `tournaments:tick` on B2's `*/5 * * * *` Cron Trigger). Duels stop once won (2–0, `arenaDuelClinched`); the pairing
-  rating is W3a's real engine (`ratingsReady`, read only). Arena Ace: 8 games won in a row in one Arena, across duels. Flagged runs (server's `extra.flagged` only): no points, score, place, prize,
+  Joules through D2's `creditTournamentJoules`; reminders through B2's `notifyTournamentStarting` (Cron Trigger
+  `tournaments:tick`, `2-59/5 * * * *`). Flagged runs (server's `extra.flagged` only): no points, score, place, prize,
   trophy, badge or Joules, logged in `moderation.tournament_flags` beside W3a's `rated_flags`, "Your result is under
   review." Migrations `20261115200000_tournaments.sql`, `20261115200100_tournament_badges.sql`,
   `20261115200200_analytics_tournament_events.sql` (**not applied until merged**). Events `tournament_entered`,
@@ -2268,6 +2283,25 @@ outside the repo.
   initial, hidden under-18s "Hidden player" on a plain neutral disc with no initial or colour (Joe, 12 Nov 2026), both
   opening nothing; a tap opens an account's full card in `NameplateSheet`).
   tournaments-check (~40 s, PostgreSQL, shard `e`), tournaments-screens-check (~2 s), tournament-plates-check (~10 s, shard `e`).
+- **The Category Cup and the Joulz Championship** (wave 4 W4c, 11 Nov 2026, `docs/tournaments/events.md`; no gameplay,
+  scoring, stamp, rating or deal change): on W4b's tournaments, **switched off at launch** (`TOURNAMENT_KINDS_ON`
+  `category_cup` / `championship` in `src/config/tournamentConfig.ts`). Each event is a W4b `tournament_events` row
+  (`category_cup:<Saturday>:1900`, `championship:<YYYY-MM>`, scheduled by `eventRules.ts` through W4b's `rules.ts`),
+  entered, refunded, finished and paid through W4b's functions; W4b's `advanceEvent` hands them to `advanceBigEvent`
+  (`eventsFlow.server.ts`). The cup: Saturdays 7 pm UK, the 11 categories in turn, 150 coins or a Category Cup ticket,
+  16 entrants or called off and refunded, 5–7 best-of-3 rounds by field size, paired by score group with no rematch
+  (`swiss.ts`), tie-breaks points, Buchholz, head-to-head, total score, entry order; 3,000 / 1,800 (8+) / 900 (12+) /
+  300 (4th–8th). The Championship: the last Sunday, the month's top 64 Score Attack players (best 10 daily totals,
+  then more days played, then the better best daily place, `monthStandings`; held only with 16+ qualifiers, else
+  "Not held this month", `not_held`, nothing paid or refunded; Joe, 11 Nov 2026), a seeded bracket with byes and a
+  third-place match (`knockout.ts`); 10,000 + the animated
+  Championship frame (`frame.championship`, `docs/art/wave-4/catalogue.json`, placeholder art) + the hall of fame /
+  5,000 / 2,500 / 1,000 / 500 (5th–8th). Swiss Champion and Knockout Champion now earnable (Joe's approval, 11 Nov 2026);
+  150 Joules through D2. A run the server flags (`extra.flagged`) loses its match and earns no place or prize, logged in
+  `moderation.tournament_flags`. Matches are W3b's dealt match rooms, never rated; Play again there answers "Your next match opens when the round does.". Own tables `tournament_rounds`,
+  `_seeds`, `_matches`, `_awards`, `_hall_of_fame` (`20261115300000_tournament_events.sql`,
+  `20261115300100_analytics_tournament_events.sql`, **not applied until merged**); events `swiss_round_paired`,
+  `knockout_match_played`. Rows draw each player as W4a's shared `NameplateStrip`, a tap opening `NameplateSheet` (plates from W4b's `platesFor`, one batch a page with the page's call; cosmetics only in the name area; under-18s are "Hidden player" on a plain neutral disc on standings, the bracket and the hall of fame, shown only to their direct opponent in the your-match row and the room, and to themselves; Joe, 12 Nov 2026). Badges: 40 earnable, 14 waiting. tournament-events-check (~6 s, pure), tournament-events-server-check (~15 s, shard `e`), player-strips-check (~2 s, happy-dom).
 - **The ratings engine** (wave 3 W3a, 11 Nov 2026, `docs/rated/README.md`, the contract `docs/rated/ratings-interface.md`;
   no gameplay, scoring, stamp or deal change): Glicko-2 (`src/lib/rated/glicko2.ts`, one rating period per match,
   weighted games, an RD floor schedule and time away; **every constant in `glicko.config.ts` beside its target**,

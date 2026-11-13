@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "generated": "2026-11-11",
+  "note": "Wave 4's catalogue items (W4c), appended after docs/art/wave-2/catalogue.json's in the same shape. frame.championship is the Joulz Championship winner's animated frame: earned, never sold; placeholder art until drawn (no png or html yet; the card draws the Plain frame for it meanwhile).",
+  "items": [
+    {
+      "id": "frame.championship",
+      "name": "Championship",
+      "kind": "frame",
+      "game": null,
+      "rarity": null,
+      "source": "tournament",
+      "pass_level": null,
+      "shop_price_coins": null,
+      "bundle": null,
+      "animated": true,
+      "exclusive_forever": true,
+      "finish_or_note": "placeholder art until drawn",
+      "png": null,
+      "html": null
+    }
+  ]
+}

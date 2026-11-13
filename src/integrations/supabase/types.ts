@@ -2175,6 +2175,183 @@ export type Database = {
         }
         Relationships: []
       }
+      tournament_awards: {
+        Row: {
+          amount: number | null
+          event_id: string
+          kind: string
+          paid_at: string
+          place: number | null
+          user_id: string
+        }
+        Insert: {
+          amount?: number | null
+          event_id: string
+          kind: string
+          paid_at?: string
+          place?: number | null
+          user_id: string
+        }
+        Update: {
+          amount?: number | null
+          event_id?: string
+          kind?: string
+          paid_at?: string
+          place?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      tournament_hall_of_fame: {
+        Row: {
+          added_at: string
+          event_id: string
+          month: string
+          user_id: string
+        }
+        Insert: {
+          added_at?: string
+          event_id: string
+          month: string
+          user_id: string
+        }
+        Update: {
+          added_at?: string
+          event_id?: string
+          month?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      tournament_matches: {
+        Row: {
+          created_at: string
+          duel_id: string | null
+          event_id: string
+          flagged_a: boolean
+          flagged_b: boolean
+          games_a: number | null
+          games_b: number | null
+          id: string
+          player_a: string | null
+          player_b: string | null
+          room_made_at: string | null
+          round: number
+          seed_a: number | null
+          seed_b: number | null
+          settled_at: string | null
+          slot: number
+          stage: string
+          status: string
+          total_a: number | null
+          total_b: number | null
+          walkover: boolean
+          winner: string | null
+        }
+        Insert: {
+          created_at?: string
+          duel_id?: string | null
+          event_id: string
+          flagged_a?: boolean
+          flagged_b?: boolean
+          games_a?: number | null
+          games_b?: number | null
+          id?: string
+          player_a?: string | null
+          player_b?: string | null
+          room_made_at?: string | null
+          round: number
+          seed_a?: number | null
+          seed_b?: number | null
+          settled_at?: string | null
+          slot: number
+          stage: string
+          status?: string
+          total_a?: number | null
+          total_b?: number | null
+          walkover?: boolean
+          winner?: string | null
+        }
+        Update: {
+          created_at?: string
+          duel_id?: string | null
+          event_id?: string
+          flagged_a?: boolean
+          flagged_b?: boolean
+          games_a?: number | null
+          games_b?: number | null
+          id?: string
+          player_a?: string | null
+          player_b?: string | null
+          room_made_at?: string | null
+          round?: number
+          seed_a?: number | null
+          seed_b?: number | null
+          settled_at?: string | null
+          slot?: number
+          stage?: string
+          status?: string
+          total_a?: number | null
+          total_b?: number | null
+          walkover?: boolean
+          winner?: string | null
+        }
+        Relationships: []
+      }
+      tournament_rounds: {
+        Row: {
+          awarded_at: string | null
+          bracket_size: number | null
+          current_round: number
+          event_id: string
+          field: number
+          locked_until: string | null
+          round_starts_at: string | null
+          rounds_total: number
+          started_at: string
+        }
+        Insert: {
+          awarded_at?: string | null
+          bracket_size?: number | null
+          current_round?: number
+          event_id: string
+          field: number
+          locked_until?: string | null
+          round_starts_at?: string | null
+          rounds_total: number
+          started_at?: string
+        }
+        Update: {
+          awarded_at?: string | null
+          bracket_size?: number | null
+          current_round?: number
+          event_id?: string
+          field?: number
+          locked_until?: string | null
+          round_starts_at?: string | null
+          rounds_total?: number
+          started_at?: string
+        }
+        Relationships: []
+      }
+      tournament_seeds: {
+        Row: {
+          event_id: string
+          seed: number
+          user_id: string
+        }
+        Insert: {
+          event_id: string
+          seed: number
+          user_id: string
+        }
+        Update: {
+          event_id?: string
+          seed?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       tournament_events: {
         Row: {
           async_room_id: string | null
@@ -2805,6 +2982,8 @@ export type Database = {
       tournament_ensure_event: { Args: { p_id: string; p_kind: string; p_title: string; p_pick: string; p_starts: string; p_ends: string }; Returns: undefined }
       tournament_set_status: { Args: { p_event: string; p_from: string[]; p_to: string }; Returns: boolean }
       tournament_set_room: { Args: { p_event: string; p_room: string }; Returns: string | null }
+      tournament_rounds_lock: { Args: { p_event: string; p_ms: number }; Returns: boolean }
+      tournament_rounds_unlock: { Args: { p_event: string }; Returns: undefined }
       tournament_enter: { Args: { p_event: string; p_user_id: string; p_entry: string; p_coins: number }; Returns: Json }
       tournament_cancel: { Args: { p_event: string; p_reason: string }; Returns: Json }
       tournament_remind: { Args: { p_event: string; p_user_id: string; p_on: boolean }; Returns: boolean }

@@ -5,6 +5,8 @@
 import { CARD_BACK_IDS, GAME_SKIN_IDS, SKIN_GAME_NAMES, WORLD_THEME_IDS, type SkinnableGame } from "@/lib/arcade/skins/look";
 
 import type { CatalogueItem, Rarity } from "./backend";
+import { TOURNAMENT_KINDS_ON } from "@/config/tournamentConfig";
+import { CHAMPIONSHIP_FRAME } from "@/lib/tournaments/eventRules";
 
 /** Free for everyone (the 8 card arts and the Plain frame): owned whatever the inventory says. */
 export function ownsItem(item: CatalogueItem, owned: ReadonlySet<string>): boolean {
@@ -34,6 +36,9 @@ export function sourceLine(item: CatalogueItem, shopOn: boolean): string | null 
       return "Founding Players";
     case "earned-top-500":
       return "Top 500 players";
+    case "tournament":
+      // The Championship frame (W4c): shown once the Joulz Championship is on.
+      return item.id === CHAMPIONSHIP_FRAME && TOURNAMENT_KINDS_ON.championship ? "Joulz Championship winners" : null;
     case "free-starter":
       return null;
     default:

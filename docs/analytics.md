@@ -72,6 +72,8 @@ events go alongside them.
 | `rated_match_finished` | server | a rated match was recorded (src/lib/rated/ratings.server.ts), one per live player; props `format` (bo3 / bo5 / bo7 / 4p / 8p), `choice` (mixed / puzzles / arcade), `result` (win / loss / draw), `opponent` (live / recorded) |
 | `placement_finished` | server | a player's 5th placement match was recorded; props `tier` (the tier revealed) |
 | `tier_changed` | server | a placed player's shown tier changed, after a match or in the standings job; props `from`, `to` (tier ids) |
+| `swiss_round_paired` | server | a Category Cup round's pairings were made (W4c, src/lib/tournaments/eventsFlow.server.ts); props `round`, `players` (the round's players, byes included) |
+| `knockout_match_played` | server | a Joulz Championship match was played and settled (W4c; never a walkover); `room_id`, props `round` |
 
 Mode is `room`, `daily`, `challenge` or `practice` (`rated` comes later with its own migration).
 

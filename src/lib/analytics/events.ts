@@ -142,6 +142,11 @@ export const ANALYTICS_EVENTS = [
   // left in) and props.format; rated_match_forfeited props.format and props.games_played.
   "rated_match_aborted",
   "rated_match_forfeited",
+  // The Category Cup and the Joulz Championship (wave 4, W4c; docs/tournaments/events.md): recorded by the server only
+  // (src/lib/tournaments/eventsFlow.server.ts). swiss_round_paired carries props.round and props.players (the round's
+  // players, byes included); knockout_match_played props.round (played matches only, never a walkover).
+  "swiss_round_paired",
+  "knockout_match_played",
 ] as const;
 export type AnalyticsEventName = (typeof ANALYTICS_EVENTS)[number];
 

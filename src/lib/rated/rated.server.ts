@@ -463,7 +463,7 @@ async function createStartedRoom(
  */
 export async function createDealtMatchRoom(
   client: Db,
-  input: { format: RatedFormat; choice: RatedChoice; userIds: readonly string[] },
+  input: { format: RatedFormat; choice: RatedChoice; userIds: readonly string[]; displayNames?: readonly (string | null)[] },
   nowMs: number,
 ): Promise<{ id: string; code: string }> {
   const settings = matchSettings(input.format, input.choice);
@@ -480,7 +480,7 @@ export async function createDealtMatchRoom(
     recentBankKeys: new Set(),
     roundOrder: types,
   });
-  const players = input.userIds.map((userId, i) => ({ userId, slot: i + 1 }));
+  const players = input.userIds.map((userId, i) => ({ userId, slot: i + 1, displayName: input.displayNames?.[i] ?? null }));
   return createStartedRoom(client, { players, puzzles, picks: settings.picks }, nowMs);
 }
 

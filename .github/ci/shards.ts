@@ -407,6 +407,12 @@ export const SHARDS: Record<string, string[]> = {
     // PostgreSQL through the server-function harness; tournaments-screens-check (~2 s) the hub's screens.
     "tournaments-check.ts",
     "tournaments-screens-check.tsx",
+    // tournament-events-server-check (wave 4 W4c, 11 Nov 2026, ~15 s): the Category Cup (Swiss) and the Joulz
+    // Championship (Knockout) end to end on a local PostgreSQL through the server-function harness: switched off by
+    // default, entry and refunds, pairings, the bracket, prizes paid once; tournament-events-check (~6 s) proves the
+    // pure rules.
+    "tournament-events-server-check.ts",
+    "tournament-events-check.ts",
     "tournament-plates-check.tsx",
     "ink-x200-check.ts",
     "depth4-check.ts",

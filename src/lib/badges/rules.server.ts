@@ -108,6 +108,10 @@ export const AWARDED_ELSEWHERE: readonly string[] = [
   "arena-champion",
   "score-attack-champion",
   "serial-winner",
+  // The Category Cup and the Joulz Championship (wave 4, W4c; src/lib/tournaments/eventsFlow.server.ts), earnable since
+  // 11 Nov 2026 (Joe's approval in the W4c prompt).
+  "swiss-champion",
+  "knockout-champion",
 ];
 
 

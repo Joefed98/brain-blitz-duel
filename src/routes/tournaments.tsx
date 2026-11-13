@@ -23,6 +23,8 @@ import { OnlineOnly } from "@/components/offline/OnlineOnly";
 import { EmptyState } from "@/design/components";
 import { TournamentHubSections } from "@/components/tournaments/TournamentHub";
 import { tournamentsBackend, useTournamentHub } from "@/lib/tournaments/tournamentsApi";
+import { HallOfFame } from "@/components/tournaments/BigEventLive";
+import { TOURNAMENT_KINDS_ON } from "@/config/tournamentConfig";
 
 export const Route = createFileRoute("/tournaments")({
   ssr: false,
@@ -99,6 +101,8 @@ function TournamentsScreen() {
         </div>
 
         {hub ? <TournamentHubSections hub={hub} onOpen={openEvent} onRemind={(id, on) => void remind(id, on)} /> : null}
+        {/* The Joulz Championship's hall of fame (W4c): nothing while the Championship is off or nobody has won. */}
+        {hub ? <HallOfFame on={TOURNAMENT_KINDS_ON.championship} /> : null}
 
         {next ? (
           <section aria-label="Next up" className="ap-section">
