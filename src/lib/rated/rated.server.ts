@@ -456,12 +456,16 @@ async function createStartedRoom(
   throw new Error("Couldn’t set up the match. Give it another go.");
 }
 
-/** A live match: a fresh Classic deal from the room picks on a new room seed, the same for every player. */
-export async function createLiveMatch(
+/**
+ * A match's room: a fresh Classic deal from the format's and choice's room picks on a new room seed, the same for every
+ * player, already started. Used by live rated matches and by tournaments (wave 4, W4b: the Arena's duels, which are
+ * never rated matches, so no rating moves).
+ */
+export async function createDealtMatchRoom(
   client: Db,
-  input: { matchId: string; format: RatedFormat; choice: RatedChoice; players: QueueEntry[]; rematchOf: string | null },
+  input: { format: RatedFormat; choice: RatedChoice; userIds: readonly string[] },
   nowMs: number,
-): Promise<void> {
+): Promise<{ id: string; code: string }> {
   const settings = matchSettings(input.format, input.choice);
   const { newRoomSeed } = await import("@/lib/duel/selection");
   const { buildRoomPuzzles } = await import("@/lib/duel/generate.server");
@@ -476,8 +480,21 @@ export async function createLiveMatch(
     recentBankKeys: new Set(),
     roundOrder: types,
   });
-  const players = input.players.map((p, i) => ({ userId: p.userId, slot: i + 1 }));
-  const room = await createStartedRoom(client, { players, puzzles, picks: settings.picks }, nowMs);
+  const players = input.userIds.map((userId, i) => ({ userId, slot: i + 1 }));
+  return createStartedRoom(client, { players, puzzles, picks: settings.picks }, nowMs);
+}
+
+/** A live match: a fresh Classic deal from the room picks on a new room seed, the same for every player. */
+export async function createLiveMatch(
+  client: Db,
+  input: { matchId: string; format: RatedFormat; choice: RatedChoice; players: QueueEntry[]; rematchOf: string | null },
+  nowMs: number,
+): Promise<void> {
+  const room = await createDealtMatchRoom(
+    client,
+    { format: input.format, choice: input.choice, userIds: input.players.map((p) => p.userId) },
+    nowMs,
+  );
   const { error } = await insertRatedMatch(client, {
     id: input.matchId,
     format: input.format,
@@ -873,7 +890,7 @@ export async function opponentScore(client: Db, userId: string, matchId: string,
 
 /* ------------------------------------------------------------------ settling */
 
-function roomFinishedAtMs(room: { status: string; phase: string; phase_started_at: string | null; disbanded_at: string | null }): number | null {
+export function roomFinishedAtMs(room: { status: string; phase: string; phase_started_at: string | null; disbanded_at: string | null }): number | null {
   if (room.disbanded_at) return msOf(room.disbanded_at);
   if (room.status === "finished") return msOf(room.phase_started_at);
   return null;

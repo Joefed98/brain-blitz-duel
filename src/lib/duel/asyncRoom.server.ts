@@ -418,7 +418,8 @@ async function refreshAttempt(
       event: "attempt_finished",
       at: next.finished_at!,
     });
-  if (record && finished && !attempt.finished_at && !isArchiveKind(room.kind))
+  // A Score Attack's finish is recorded by the tournaments code (tournament_finished), never as a Daily or challenge.
+  if (record && finished && !attempt.finished_at && !isArchiveKind(room.kind) && asyncMode(room.kind) !== "tournament")
     recordEvents({
       event: asyncMode(room.kind) === "daily" ? "daily_finished" : "challenge_played",
       playerId: attempt.user_id,

@@ -2242,6 +2242,32 @@ outside the repo.
   `pass_level_reached`, `reward_claimed`, `weekly_challenge_completed` (`20261113100100_analytics_pass_events.sql`).
   Migrations `20261113100000_season_pass.sql`, `20261113100100`, `20261113100200` (**not applied until merged**). pass-check
   (~25 s, shard `e`, PostgreSQL), pass-screens-check (~3 s, happy-dom); economy-neutral-check also covers the pass modules.
+- **Tournaments: the hub, the Arena and the daily Score Attack** (wave 4 W4b, 11 Nov 2026, `docs/tournaments/README.md`,
+  contract for W4c `docs/tournaments/interface.md`; no gameplay, scoring, stamp, rating or deal change): switches,
+  schedule and prizes in `src/config/tournamentConfig.ts` (`TOURNAMENTS_FOR_EVERYONE` false: D1's testers only; the
+  Arena at 13:00 and 20:00 UK, a 45-minute window, 4 entrants to start; Score Attack daily, 50 coins or a ticket, 5
+  games of a rotating featured pick; Category Cup and Championship off). Pure rules `src/lib/tournaments/rules.ts`
+  (schedule, points 2 a win and 4 from a third win in a row, standings, the prize table and the small-field
+  safeguard, the server's flag), flow `tournaments.server.ts`, functions `tournaments.functions.ts`, phone
+  `tournamentsApi.ts` (the check-only `window.__DUELZ_ALLOW_TOURNAMENTS__` never read in production), data
+  `src/lib/data/tournaments.server.ts`, screens `src/components/tournaments/`, routes `/tournament?id=` and
+  `/tournament-rules?kind=`. Arena duels are ordinary best-of-3 rooms from W3b's `createDealtMatchRoom` (a plain
+  extraction of `createLiveMatch`), paired by W3b's `bestPartner` on the adapter's rating, **never rated matches**;
+  Score Attack is an async room of kind `score_attack` on the Daily's engine (analytics mode `tournament`). Entry and
+  refunds through A1's ledger and consumables in one transaction; prizes paid once (`tournament_prize` lines); trophies
+  in Profile's cabinet (only real ones); the seven tournament badges earnable (awarded here through `badge_award`);
+  Joules through D2's `creditTournamentJoules`; reminders through B2's `notifyTournamentStarting` (task
+  `tournaments:tick` on B2's `*/5 * * * *` Cron Trigger). Duels stop once won (2–0, `arenaDuelClinched`); the pairing
+  rating is W3a's real engine (`ratingsReady`, read only). Arena Ace: 8 games won in a row in one Arena, across duels. Flagged runs (server's `extra.flagged` only): no points, score, place, prize,
+  trophy, badge or Joules, logged in `moderation.tournament_flags` beside W3a's `rated_flags`, "Your result is under
+  review." Migrations `20261115200000_tournaments.sql`, `20261115200100_tournament_badges.sql`,
+  `20261115200200_analytics_tournament_events.sql` (**not applied until merged**). Events `tournament_entered`,
+  `tournament_finished`, `prize_paid`. Every board row draws its player's nameplate strip (Joe's rule of 11 Nov 2026,
+  W4a's shared `NameplateStrip` in TournamentEvent's `PlateRow`, the plates built once per page by `platesFor` in
+  `src/lib/identity/plates.server.ts` on the shared `nameplatesFor` and sent with the board; guests on colour and
+  initial, hidden under-18s "Hidden player" on a plain neutral disc with no initial or colour (Joe, 12 Nov 2026), both
+  opening nothing; a tap opens an account's full card in `NameplateSheet`).
+  tournaments-check (~40 s, PostgreSQL, shard `e`), tournaments-screens-check (~2 s), tournament-plates-check (~10 s, shard `e`).
 - **The ratings engine** (wave 3 W3a, 11 Nov 2026, `docs/rated/README.md`, the contract `docs/rated/ratings-interface.md`;
   no gameplay, scoring, stamp or deal change): Glicko-2 (`src/lib/rated/glicko2.ts`, one rating period per match,
   weighted games, an RD floor schedule and time away; **every constant in `glicko.config.ts` beside its target**,

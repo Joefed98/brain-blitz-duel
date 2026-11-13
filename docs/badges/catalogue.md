@@ -11,7 +11,7 @@ Competitive (all wait for wave 3’s rated play): First Win (win your first rate
 
 Mastery: First Star (earn your first mastery star, Common), now; Flawless (score 200 in any game, Rare), now; All-Rounder (at least one star in every game, Rare), now; Perfectionist (score 200 in 25 different games, Elite), now. Waiting for wave 3.5 (all three stars per game): Logic, Word, Number, Pattern, Speed, Attention, Action, Retro, Sports, Cards and Strategy Master (all three stars in every game of that category, Epic); Grand Master (all three stars in every game, Legendary).
 
-Daily and tournaments: Daily Habit (play the Daily 7 days in a row, Common), Dedicated (30 days in a row, Rare), Century (100 days in a row, Elite), all now, from the server streak. From wave 4’s Daily leaderboards, now (W4a, 11 Nov 2026; the minimum field sizes decided 11 Nov 2026): Daily Top 100 (finish in the top 100 of a Daily board, Rare; counts only on a board of 500 or more players); Daily Champion (finish first on a Daily board, Legendary; counts only on a board of 100 or more players). Wait for wave 4 tournaments: Entrant (play your first tournament, Common); Trophy Hunter (finish top 3 in any tournament, Rare); Arena Ace (win 8 games in a row in one Arena, Epic); Champion (win your first tournament, Epic); Arena Champion (win an Arena, Elite); Score Attack Champion (win a Score Attack, Elite); Swiss Champion (win a Swiss tournament, Elite); Knockout Champion (win a Knockout final, Legendary); Serial Winner (win 10 tournaments, Legendary).
+Daily and tournaments: Daily Habit (play the Daily 7 days in a row, Common), Dedicated (30 days in a row, Rare), Century (100 days in a row, Elite), all now, from the server streak. From wave 4’s Daily leaderboards, now (W4a, 11 Nov 2026; the minimum field sizes decided 11 Nov 2026): Daily Top 100 (finish in the top 100 of a Daily board, Rare; counts only on a board of 500 or more players); Daily Champion (finish first on a Daily board, Legendary; counts only on a board of 100 or more players). Now, from wave 4’s tournaments (W4b, 11 Nov 2026, awarded by the tournaments code): Entrant (play your first tournament, Common); Trophy Hunter (finish top 3 in any tournament, Rare); Arena Ace (win 8 games in a row in one Arena, Epic); Champion (win your first tournament, Epic); Arena Champion (win an Arena, Elite); Score Attack Champion (win a Score Attack, Elite); Serial Winner (win 10 tournaments, Legendary). Wait for wave 4’s Swiss and Knockout (W4c): Swiss Champion (win a Swiss tournament, Elite); Knockout Champion (win a Knockout final, Legendary).
 
 Challenges: Challenger (complete 10 Practice challenges, Common), Challenge Seeker (50, Rare), Challenge Expert (100, Epic), all now, from C1b. Wait for wave 3.5, because they count every challenge including Hard and Expert: Category Clear (complete every challenge in one category, Elite); Completionist (complete every Practice challenge, Legendary).
 
@@ -66,15 +66,15 @@ completed challenges (`docs/badges/README.md`).
 | `daily-top-100` | Daily Top 100 | Daily and tournaments | Rare | Finish in the top 100 of a Daily board. | – | now |
 | `century` | Century | Daily and tournaments | Elite | Play the Daily 100 days in a row. | 100 days | now |
 | `daily-champion` | Daily Champion | Daily and tournaments | Legendary | Finish first on a Daily board. | – | now |
-| `entrant` | Entrant | Daily and tournaments | Common | Play your first tournament. | – | Arrives with tournaments |
-| `trophy-hunter` | Trophy Hunter | Daily and tournaments | Rare | Finish top 3 in any tournament. | – | Arrives with tournaments |
-| `arena-ace` | Arena Ace | Daily and tournaments | Epic | Win 8 games in a row in one Arena. | – | Arrives with tournaments |
-| `champion` | Champion | Daily and tournaments | Epic | Win your first tournament. | – | Arrives with tournaments |
-| `arena-champion` | Arena Champion | Daily and tournaments | Elite | Win an Arena. | – | Arrives with tournaments |
-| `score-attack-champion` | Score Attack Champion | Daily and tournaments | Elite | Win a Score Attack. | – | Arrives with tournaments |
+| `entrant` | Entrant | Daily and tournaments | Common | Play your first tournament. | – | now |
+| `trophy-hunter` | Trophy Hunter | Daily and tournaments | Rare | Finish top 3 in any tournament. | – | now |
+| `arena-ace` | Arena Ace | Daily and tournaments | Epic | Win 8 games in a row in one Arena. | – | now |
+| `champion` | Champion | Daily and tournaments | Epic | Win your first tournament. | – | now |
+| `arena-champion` | Arena Champion | Daily and tournaments | Elite | Win an Arena. | – | now |
+| `score-attack-champion` | Score Attack Champion | Daily and tournaments | Elite | Win a Score Attack. | – | now |
 | `swiss-champion` | Swiss Champion | Daily and tournaments | Elite | Win a Swiss tournament. | – | Arrives with tournaments |
 | `knockout-champion` | Knockout Champion | Daily and tournaments | Legendary | Win a Knockout final. | – | Arrives with tournaments |
-| `serial-winner` | Serial Winner | Daily and tournaments | Legendary | Win 10 tournaments. | 10 tournaments | Arrives with tournaments |
+| `serial-winner` | Serial Winner | Daily and tournaments | Legendary | Win 10 tournaments. | 10 tournaments | now |
 | `challenger` | Challenger | Challenges | Common | Complete 10 Practice challenges. | 10 challenges | now |
 | `challenge-seeker` | Challenge Seeker | Challenges | Rare | Complete 50 Practice challenges. | 50 challenges | now |
 | `challenge-expert` | Challenge Expert | Challenges | Epic | Complete 100 Practice challenges. | 100 challenges | now |

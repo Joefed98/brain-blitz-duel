@@ -58,7 +58,8 @@ const WORKER_OBSERVABILITY = {
  * preset writes each schedule into the generated wrangler.json's `triggers.crons`, so `wrangler deploy` sets the Worker's
  * Cron Triggers, and the Worker's `scheduled` handler runs the task listed for the cron that fired. UTC schedules, kept
  * in step with PUSH_CRONS (src/lib/push/tasks/pushTasks.server.ts; push-notifications-check compares them). The tasks
- * do nothing while the push keys aren't set.
+ * do nothing while the push keys aren't set. Cloudflare's free plan allows 5 Cron Triggers, so task sets share a
+ * schedule where they can (one trigger, several tasks: `nitroTasks` / `withTasks` join them).
  */
 const PUSH_TASKS = {
   experimental: { tasks: true },
@@ -98,6 +99,19 @@ const LEADERBOARD_TASKS = {
   },
   scheduledTasks: {
     "*/5 * * * *": ["leaderboards:refresh"],
+  },
+};
+
+/**
+ * Tournaments (wave 4 W4b, docs/tournaments/README.md "The tick"): on B2's every-5-minutes trigger (one Cron Trigger
+ * runs both), TOURNAMENT_CRON in src/lib/tournaments/tasks/tournamentsTick.server.ts (tournaments-check compares).
+ */
+const TOURNAMENT_TASKS = {
+  tasks: {
+    "tournaments:tick": { handler: fileURLToPath(new URL("./src/lib/tournaments/tasks/tournamentsTick.task.ts", import.meta.url)) },
+  },
+  scheduledTasks: {
+    "*/5 * * * *": ["tournaments:tick"],
   },
 };
 
@@ -142,8 +156,8 @@ const SERVER_BUILD = Object.assign(
   { minify: true },
   { cloudflare: { wrangler: { observability: WORKER_OBSERVABILITY } } },
   // Every set of Cron Triggers (B2's push tasks, W3a's rated standings, W3b's practice-deal purge, W4a's leaderboard
-  // refresh), merged so none replaces another.
-  withTasks(withTasks(nitroTasks(PUSH_TASKS, RATED_TASKS), MATCHMAKING_TASKS), LEADERBOARD_TASKS),
+  // refresh, W4b's tournaments tick; the last two on the push sweep's */5), merged so none replaces another.
+  withTasks(withTasks(withTasks(nitroTasks(PUSH_TASKS, RATED_TASKS), MATCHMAKING_TASKS), LEADERBOARD_TASKS), TOURNAMENT_TASKS),
 ) as NitroOptions & { minify: boolean };
 
 export default defineConfig({

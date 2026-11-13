@@ -562,7 +562,9 @@ async function databaseChecks(db: LocalDb, rest: RestServer): Promise<void> {
     q(`DELETE FROM notification_log`);
     check((await notify.notifyTournamentStarting(admin, ANA, "Friday Cup", "t1", opts())) === "sent", "tournament starting: the type exists and sends when called");
     const callers = (await import("node:child_process")).execSync(`grep -rln "notifyTournamentStarting\\|\\"tournament_starting\\"" src --include=*.ts --include=*.tsx`).toString().trim().split("\n").sort();
-    check(callers.join() === "src/lib/push/messages.ts,src/lib/push/notify.server.ts,src/lib/push/rules.ts", `tournament starting: nothing in the app calls it yet (wave 4) (${callers.join(" ")})`);
+    // Joe's approval, 11 Nov 2026 (wave 4 W4b prompt): the tournaments module may call it (the reminder for an event
+    // a player entered or asked to be reminded of); nothing else in the app does.
+    check(callers.join() === "src/lib/push/messages.ts,src/lib/push/notify.server.ts,src/lib/push/rules.ts,src/lib/tournaments/tournaments.server.ts", `tournament starting: only the push module and the tournaments module mention it (${callers.join(" ")})`);
     q(`DELETE FROM notification_log`);
   });
 

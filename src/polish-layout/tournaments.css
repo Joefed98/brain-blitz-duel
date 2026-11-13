@@ -1,0 +1,229 @@
+/*
+ * Tournaments (wave 4, W4b; docs/mockups/wave-4/05–08): the hub's live cards, the schedule, entries, the event page,
+ * the live Arena, the Score Attack panel, the rules page and the trophy cabinet. Tokens only (DESIGN.md).
+ */
+
+.tn-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--jz-space-20);
+  min-height: 100dvh;
+  padding: calc(env(safe-area-inset-top, 0px) + var(--jz-space-8)) var(--jz-page-pad)
+    calc(env(safe-area-inset-bottom, 0px) + var(--jz-space-24));
+  background: var(--jz-bg);
+  color: var(--jz-text);
+}
+
+.tn-title {
+  font-size: 30px;
+  line-height: 32px;
+  font-weight: var(--jz-weight-bold);
+  font-stretch: 112%;
+  color: var(--jz-text);
+}
+.tn-card-title {
+  font-size: 16px;
+  line-height: 20px;
+  font-weight: var(--jz-weight-medium);
+  color: var(--jz-text);
+}
+.tn-meta {
+  font-size: 14px;
+  line-height: 18px;
+  color: var(--jz-text-3);
+}
+.tn-rule {
+  font-size: 15px;
+  line-height: 21px;
+  color: var(--jz-text-2);
+}
+.tn-kind {
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: var(--jz-weight-medium);
+  color: var(--jz-text-2);
+}
+.tn-draft {
+  font-size: 14px;
+  line-height: 18px;
+  color: var(--jz-text-2);
+  padding: var(--jz-space-8) var(--jz-space-12);
+  border-radius: var(--jz-radius);
+  border: 1.5px solid var(--jz-surface-2);
+}
+
+.tn-cards,
+.tn-enter {
+  display: flex;
+  flex-direction: column;
+  gap: var(--jz-space-12);
+}
+.tn-cards > [data-jz="panel"] {
+  display: flex;
+  flex-direction: column;
+  gap: var(--jz-space-8);
+}
+.tn-live-head {
+  display: flex;
+  align-items: center;
+  gap: var(--jz-space-8);
+  min-height: 24px;
+}
+.tn-entry-line {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--jz-space-12);
+}
+.tn-entry-value {
+  font-size: 14px;
+  line-height: 18px;
+  font-weight: var(--jz-weight-medium);
+  color: var(--jz-text);
+  white-space: nowrap;
+}
+.tn-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--jz-space-8);
+  margin-top: var(--jz-space-8);
+}
+
+.tn-day {
+  padding: var(--jz-space-12) var(--jz-space-16) var(--jz-space-4);
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: var(--jz-weight-medium);
+  color: var(--jz-text-3);
+}
+.tn-schedule-row {
+  display: flex;
+  align-items: center;
+  padding-right: var(--jz-space-8);
+}
+.tn-schedule-row > [data-jz="row"] {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.tn-time {
+  flex: 0 0 64px;
+  font-size: 14px;
+  line-height: 18px;
+  font-weight: var(--jz-weight-medium);
+  color: var(--jz-text-2);
+  font-variant-numeric: tabular-nums;
+}
+.tn-in {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+}
+.tn-prize {
+  font-size: 18px;
+  line-height: 22px;
+  font-weight: var(--jz-weight-bold);
+  color: var(--jz-gold);
+  font-variant-numeric: tabular-nums;
+}
+
+.tn-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--jz-space-8);
+  margin: var(--jz-space-12) 0;
+}
+.tn-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--jz-space-4);
+}
+.tn-stat-value {
+  font-size: 28px;
+  line-height: 32px;
+  font-weight: var(--jz-weight-bold);
+  font-stretch: 105%;
+  color: var(--jz-text);
+  font-variant-numeric: tabular-nums;
+}
+.tn-place {
+  flex: 0 0 32px;
+  font-size: 18px;
+  line-height: 22px;
+  font-weight: var(--jz-weight-bold);
+  color: var(--jz-text-2);
+  font-variant-numeric: tabular-nums;
+}
+.tn-points {
+  font-size: 18px;
+  line-height: 22px;
+  font-weight: var(--jz-weight-bold);
+  color: var(--jz-text);
+  font-variant-numeric: tabular-nums;
+}
+.tn-me {
+  box-shadow: inset 0 0 0 1.5px var(--jz-gold);
+  border-radius: var(--jz-radius);
+}
+.tn-me .tn-points {
+  color: var(--jz-gold);
+}
+
+.tn-how {
+  display: flex;
+  flex-direction: column;
+  gap: var(--jz-space-8);
+  padding-left: var(--jz-space-20);
+  list-style: decimal;
+  font-size: 15px;
+  line-height: 21px;
+  color: var(--jz-text-2);
+}
+ul.tn-how {
+  list-style: disc;
+}
+
+.tn-trophies {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+  gap: var(--jz-space-16);
+}
+.tn-trophy {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--jz-space-4);
+  text-align: center;
+}
+.tn-trophy-title {
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: var(--jz-weight-medium);
+  color: var(--jz-text-2);
+}
+
+/* A player on a board row: the shared nameplate strip (NameplateStrip, docs/nameplate.md) in the name area, then the
+   value on the plain row; the row opens the player's card when it has one. */
+.tn-row-in {
+  display: flex;
+  min-width: 0;
+  min-height: 44px;
+  flex: 1 1 auto;
+  align-items: center;
+  gap: 8px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+}
+button.tn-row-in {
+  cursor: pointer;
+}
+.tn-who {
+  flex: 1 1 auto;
+  min-width: 0;
+}

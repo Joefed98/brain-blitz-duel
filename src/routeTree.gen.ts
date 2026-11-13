@@ -27,6 +27,8 @@ import { Route as ReplayLabRouteImport } from './routes/replay-lab'
 import { Route as ShopRouteImport } from './routes/shop'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as TiersRouteImport } from './routes/tiers'
+import { Route as TournamentRouteImport } from './routes/tournament'
+import { Route as TournamentRulesRouteImport } from './routes/tournament-rules'
 import { Route as TournamentsRouteImport } from './routes/tournaments'
 import { Route as DuelCodeRouteImport } from './routes/duel.$code'
 
@@ -120,6 +122,16 @@ const TiersRoute = TiersRouteImport.update({
   path: '/tiers',
   getParentRoute: () => rootRouteImport,
 } as any)
+const TournamentRoute = TournamentRouteImport.update({
+  id: '/tournament',
+  path: '/tournament',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TournamentRulesRoute = TournamentRulesRouteImport.update({
+  id: '/tournament-rules',
+  path: '/tournament-rules',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const TournamentsRoute = TournamentsRouteImport.update({
   id: '/tournaments',
   path: '/tournaments',
@@ -150,6 +162,8 @@ export interface FileRoutesByFullPath {
   '/shop': typeof ShopRoute
   '/terms': typeof TermsRoute
   '/tiers': typeof TiersRoute
+  '/tournament': typeof TournamentRoute
+  '/tournament-rules': typeof TournamentRulesRoute
   '/tournaments': typeof TournamentsRoute
   '/duel/$code': typeof DuelCodeRoute
 }
@@ -172,6 +186,8 @@ export interface FileRoutesByTo {
   '/shop': typeof ShopRoute
   '/terms': typeof TermsRoute
   '/tiers': typeof TiersRoute
+  '/tournament': typeof TournamentRoute
+  '/tournament-rules': typeof TournamentRulesRoute
   '/tournaments': typeof TournamentsRoute
   '/duel/$code': typeof DuelCodeRoute
 }
@@ -195,6 +211,8 @@ export interface FileRoutesById {
   '/shop': typeof ShopRoute
   '/terms': typeof TermsRoute
   '/tiers': typeof TiersRoute
+  '/tournament': typeof TournamentRoute
+  '/tournament-rules': typeof TournamentRulesRoute
   '/tournaments': typeof TournamentsRoute
   '/duel/$code': typeof DuelCodeRoute
 }
@@ -219,6 +237,8 @@ export interface FileRouteTypes {
     | '/shop'
     | '/terms'
     | '/tiers'
+    | '/tournament'
+    | '/tournament-rules'
     | '/tournaments'
     | '/duel/$code'
   fileRoutesByTo: FileRoutesByTo
@@ -241,6 +261,8 @@ export interface FileRouteTypes {
     | '/shop'
     | '/terms'
     | '/tiers'
+    | '/tournament'
+    | '/tournament-rules'
     | '/tournaments'
     | '/duel/$code'
   id:
@@ -263,6 +285,8 @@ export interface FileRouteTypes {
     | '/shop'
     | '/terms'
     | '/tiers'
+    | '/tournament'
+    | '/tournament-rules'
     | '/tournaments'
     | '/duel/$code'
   fileRoutesById: FileRoutesById
@@ -286,6 +310,8 @@ export interface RootRouteChildren {
   ShopRoute: typeof ShopRoute
   TermsRoute: typeof TermsRoute
   TiersRoute: typeof TiersRoute
+  TournamentRoute: typeof TournamentRoute
+  TournamentRulesRoute: typeof TournamentRulesRoute
   TournamentsRoute: typeof TournamentsRoute
   DuelCodeRoute: typeof DuelCodeRoute
 }
@@ -418,6 +444,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TiersRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/tournament': {
+      id: '/tournament'
+      path: '/tournament'
+      fullPath: '/tournament'
+      preLoaderRoute: typeof TournamentRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/tournament-rules': {
+      id: '/tournament-rules'
+      path: '/tournament-rules'
+      fullPath: '/tournament-rules'
+      preLoaderRoute: typeof TournamentRulesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/tournaments': {
       id: '/tournaments'
       path: '/tournaments'
@@ -454,6 +494,8 @@ const rootRouteChildren: RootRouteChildren = {
   ShopRoute: ShopRoute,
   TermsRoute: TermsRoute,
   TiersRoute: TiersRoute,
+  TournamentRoute: TournamentRoute,
+  TournamentRulesRoute: TournamentRulesRoute,
   TournamentsRoute: TournamentsRoute,
   DuelCodeRoute: DuelCodeRoute,
 }

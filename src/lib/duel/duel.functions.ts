@@ -887,6 +887,12 @@ export const advancePhaseFn = createServerFn({ method: "POST" })
         await leaveBetweenRoundScreen(client, { ...room, round_count: round }, round);
         return { ok: true };
       }
+      // An Arena duel (wave 4, W4b) stops the same way once won; every other room answers false.
+      const { arenaDuelClinched } = await import("@/lib/tournaments/tournaments.server");
+      if (await arenaDuelClinched(client, room, round)) {
+        await leaveBetweenRoundScreen(client, { ...room, round_count: round }, round);
+        return { ok: true };
+      }
     }
     await leaveBetweenRoundScreen(client, room, round);
     return { ok: true };
@@ -1134,6 +1140,9 @@ export const rematchFn = createServerFn({ method: "POST" })
     // A rated match's room (wave 3, W3b) is never played again: its rematch is a new rated match (ratedRematchFn).
     const { isRatedRoom } = await import("@/lib/rated/rated.server");
     if (await isRatedRoom(client, room.id)) return { ok: false as const, message: "Rated matches use Rematch." };
+    // An Arena duel's room (wave 4, W4b) is never played again: the next duel comes from the Arena.
+    const { isTournamentRoom } = await import("@/lib/tournaments/tournaments.server");
+    if (await isTournamentRoom(client, room.id)) return { ok: false as const, message: "Arena duels carry on from the Arena." };
     // A host who left (and forfeited) can't restart: the reset removes left players.
     if (me.status === "left") return { ok: false as const, message: "You left this game." };
     // Read a forfeit's outcome before the reset clears statuses and results.

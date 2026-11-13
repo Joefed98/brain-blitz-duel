@@ -35,12 +35,12 @@
 @import "./polish-layout/account.css";
 @import "./polish-layout/identity.css";
 @import "./polish-layout/friends.css";
-@import "./polish-layout/badges.css";
-@import "./polish-layout/friends.css";
 @import "./polish-layout/leaderboards.css";
 @import "./polish-layout/shop.css";
 @import "./polish-layout/cosmetics.css";
 @import "./polish-layout/pass.css";
+@import "./polish-layout/tournaments.css";
+@import "./polish-layout/badges.css";
 @import "./polish-layout/rated-multi.css";
 @import "./polish-layout/rated.css";
 @import "./polish-layout/reveal-screen.css";

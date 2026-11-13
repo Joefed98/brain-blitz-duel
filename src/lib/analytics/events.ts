@@ -105,6 +105,12 @@ export const ANALYTICS_EVENTS = [
   "pass_level_reached",
   "reward_claimed",
   "weekly_challenge_completed",
+  // Tournaments (wave 4, W4b; docs/tournaments/interface.md section 8): recorded by the server only
+  // (src/lib/tournaments/tournaments.server.ts). tournament_entered props.kind and props.entry; tournament_finished
+  // props.kind and props.place; prize_paid props.kind, props.place and props.coins.
+  "tournament_entered",
+  "tournament_finished",
+  "prize_paid",
   // Rated 4- and 8-player matches (wave 3, session W3d; docs/rated/multiplayer.md): recorded by the server only
   // (src/lib/rated/multi/multi.server.ts). multiplayer_match_started carries props.size, props.live_seats and
   // props.recorded_seats (once a match, no player); multiplayer_match_finished props.size and props.placing (one a live
@@ -149,7 +155,8 @@ export const CLIENT_EVENTS = [
 ] as const;
 export type ClientEventName = (typeof CLIENT_EVENTS)[number];
 
-export const ANALYTICS_MODES = ["room", "daily", "challenge", "practice"] as const;
+// "tournament" (wave 4, W4b): the daily Score Attack's game events (20261115200200_analytics_tournament_events.sql).
+export const ANALYTICS_MODES = ["room", "daily", "challenge", "practice", "tournament"] as const;
 export type AnalyticsMode = (typeof ANALYTICS_MODES)[number];
 
 /** The most events the phone sends in one call, and the most it keeps queued while offline. */

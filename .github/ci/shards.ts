@@ -402,6 +402,12 @@ export const SHARDS: Record<string, string[]> = {
     // speed goals against the grader, the six stored facts, coins once per account and guests paid on sign-up on a local
     // PostgreSQL through the server-function harness, beside accounts-check.
     "practice-challenges-check.ts",
+    // tournaments-check (wave 4 W4b, 11 Nov 2026, ~30 s): the schedule, the Arena's points, streak and pairing, Score
+    // Attack, entry and refunds, prizes with the safeguard, trophies and badges once, never a rating, on a local
+    // PostgreSQL through the server-function harness; tournaments-screens-check (~2 s) the hub's screens.
+    "tournaments-check.ts",
+    "tournaments-screens-check.tsx",
+    "tournament-plates-check.tsx",
     "ink-x200-check.ts",
     "depth4-check.ts",
     "room-figures-check.ts",
