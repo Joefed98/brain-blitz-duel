@@ -8,6 +8,8 @@
 import { useSyncExternalStore } from "react";
 
 import { supabase } from "@/integrations/supabase/client";
+import { HIDDEN_FINISH_SHARE } from "@/lib/rated/matchmaking";
+import { serverNow } from "./clock";
 import { MAX_PLAYERS } from "./types";
 
 export interface RaceGhost {
@@ -35,6 +37,40 @@ let me: Me | null = null;
 let sentAt = 0;
 const seen = new Map<string, RaceGhost & { at: number }>();
 let list: RaceGhost[] = [];
+/**
+ * In a rated room (13 Nov 2026): from this moment on the server's clock (the game's final 20 %, when the opponent's
+ * score is hidden) ghosts are neither sent nor shown. Null in every other room.
+ */
+let quietFrom: number | null = null;
+let quietTimer: ReturnType<typeof setTimeout> | null = null;
+
+/** When a rated room's ghosts go quiet: the puzzle phase's start plus the share of the game the score is shown for. */
+export function ghostQuietFrom(phaseStartMs: number, limitMs: number): number {
+  return phaseStartMs + limitMs * (1 - HIDDEN_FINISH_SHARE);
+}
+
+/** Whether ghosts are quiet at `nowMs` (server clock). */
+export function ghostsQuiet(nowMs: number): boolean {
+  return quietFrom !== null && nowMs >= quietFrom;
+}
+
+/** The room screen sets the quiet moment for a rated room's Racing round (null for any other room or phase). */
+export function setRaceGhostQuietFrom(at: number | null): void {
+  quietFrom = at;
+  if (quietTimer) clearTimeout(quietTimer);
+  quietTimer = null;
+  if (at === null) return;
+  const wait = at - serverNow();
+  if (wait <= 0) goQuiet();
+  else quietTimer = setTimeout(goQuiet, wait);
+}
+
+function goQuiet(): void {
+  quietTimer = null;
+  seen.clear();
+  publish();
+}
+
 /** Each player's car paint by their key (slot), from the room's looks (setRaceGhostSkins); display only. */
 let skins: Readonly<Record<string, string | null>> = {};
 
@@ -59,6 +95,7 @@ function publish(): void {
   const now = Date.now();
   // Main's pruning (#375) and E1's car paints: stale ghosts forgotten, then each car with its owner's paint.
   pruneGhosts(seen, now);
+  if (ghostsQuiet(serverNow())) seen.clear();
   list = [...seen.entries()].map(([key, g]) => ({ name: g.name, colour: g.colour, s: g.s, x: g.x, skin: skins[key] ?? null }));
   for (const l of listeners) l();
 }
@@ -70,8 +107,10 @@ export function startRaceGhosts(roomId: string, round: number, player: Me): () =
   const tag = `${roomId}:${round}`;
   try {
     channel = supabase
-      .channel(`race-ghosts-${tag}`, { config: { broadcast: { self: false } } })
+      // A private channel (13 Nov 2026): only players still in the room may join and send on it.
+      .channel(`race-ghosts-${tag}`, { config: { broadcast: { self: false }, private: true } })
       .on("broadcast", { event: "car" }, ({ payload }) => {
+        if (ghostsQuiet(serverNow())) return;
         const p = payload as Partial<RaceGhost> & { key?: string } | undefined;
         if (!p || !isGhostKey(p.key) || p.key === me?.key) return;
         if (!Number.isFinite(p.s) || !Number.isFinite(p.x)) return;
@@ -96,6 +135,7 @@ export function stopRaceGhosts(): void {
   }
   channel = null;
   me = null;
+  setRaceGhostQuietFrom(null);
   seen.clear();
   skins = {};
   if (list.length) publish();
@@ -104,6 +144,7 @@ export function stopRaceGhosts(): void {
 /** The stage calls this as its car moves (throttled here); a no-op outside a room's Racing round. */
 export function publishRaceGhost(s: number, x: number): void {
   if (!channel || !me) return;
+  if (ghostsQuiet(serverNow())) return;
   const now = Date.now();
   if (now - sentAt < GHOST_SEND_MS) return;
   sentAt = now;

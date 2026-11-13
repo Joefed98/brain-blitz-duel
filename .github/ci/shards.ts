@@ -333,6 +333,9 @@ export const SHARDS: Record<string, string[]> = {
     // moderation-check (10 Nov 2026, ~20 s): safety (Turnstile, the new-guest limit, reports, the automatic mute, Joe's
     // moderation functions, bans, retention) through the server functions on a local PostgreSQL, beside accounts-check.
     "moderation-check.ts",
+    // security-rooms-check (13 Nov 2026, ~40 s): private room channels, server-sent reactions, chat for players still
+    // in the room, removals, Finish now (an Arena duel played to its end) and the rated cooldown on a local PostgreSQL.
+    "security-rooms-check.ts",
     // economy-check (wave 2 A1, 10 Nov 2026, ~8 s): coins and items (the catalogue against catalogue.json, the coin
     // ledger and its races, consumables, ownership, equipping, the avatar, Joe's tools) on a local PostgreSQL through
     // the server-function harness, beside accounts-check.

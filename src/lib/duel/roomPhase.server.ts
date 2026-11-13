@@ -114,6 +114,22 @@ export async function recordContinue(
  * finishes outside the winner reveal (roomFlow.endedByForfeit) and everyone
  * who had gone is stored as left. Round results are never touched.
  */
+/** Finish now's answer in a rated match's or a tournament's room, which play on to their own end. */
+export const FINISH_NOW_MATCH_MESSAGE = "This match plays on to its end.";
+
+/**
+ * Finish now's refusal for a rated match's or a tournament's room (13 Nov 2026): those rooms play on to their own end
+ * (the rated grace and forfeit, a tournament's own settle), so the server never ends them early. Null elsewhere.
+ * `rated` and `tournament` are the room's lookups (rated.server.ts isRatedRoom, tournaments.server.ts isTournamentRoom).
+ */
+export async function finishNowRefusal(
+  roomId: string,
+  lookups: { rated: (roomId: string) => Promise<boolean>; tournament: (roomId: string) => Promise<boolean> },
+): Promise<string | null> {
+  if ((await lookups.rated(roomId)) || (await lookups.tournament(roomId))) return FINISH_NOW_MATCH_MESSAGE;
+  return null;
+}
+
 export async function finishGame(
   client: Db,
   room: Pick<DuelRow, "id" | "status" | "phase" | "current_round" | "disbanded_at"> &

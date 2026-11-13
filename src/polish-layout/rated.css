@@ -376,6 +376,14 @@
   color: var(--jz-text-3);
 }
 
+/* The wait after set-up leaves (13 Nov 2026): one line over Play, wrapping as it needs. */
+.rt-cooldown {
+  margin: 0;
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--jz-text-2);
+}
+
 /* The picker (mockup 02). */
 .rt-picker {
   display: flex;
