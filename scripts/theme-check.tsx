@@ -413,7 +413,9 @@ const familiesUsed = new Set<string>();
 let measured = 0;
 if (SHOTS) mkdirSync(SHOTS, { recursive: true });
 try {
-  for (const screen of SCREENS) {
+  // Each screen at the first viewport, then a screen's extra sizes (ThemeScreen.sizes, from 13 Nov 2026).
+  const draws = [...SCREENS.map((screen) => ({ screen, viewport: VIEWPORT })), ...SCREENS.flatMap((screen) => (screen.sizes ?? []).map((viewport) => ({ screen, viewport })))];
+  for (const { screen, viewport: VIEWPORT } of draws) {
     const where = `${screen.name} (${VIEWPORT.name})`;
     const problems: string[] = [];
     try {

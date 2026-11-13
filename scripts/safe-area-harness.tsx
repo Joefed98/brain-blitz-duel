@@ -43,6 +43,9 @@ import { ukDayKey } from "@/lib/duel/daily";
 import type { HarnessBoards } from "./leaderboards-fixture";
 import { celebrationsOn } from "@/lib/fx/celebrations";
 import { RatedHarnessScreen } from "./rated-fixture";
+import { PassScreen } from "@/components/pass/PassScreen";
+import { standInPass } from "@/lib/pass/passApi";
+import type { HarnessPass } from "./pass-fixture";
 
 interface Verdict {
   isCorrect: boolean;
@@ -558,6 +561,15 @@ if (mode === "customise") {
   const fixture = customiseFixture();
   if (fixture) setAccount(fixture.account as never, null);
 }
+// The Pass (the Shop tab's Pass part; Joules rework, 13 Nov 2026): window.__harnessPass's account and its pass view,
+// set before the first render (no server call: the pass's own reads stay off under automation).
+if (mode === "pass") {
+  const fixture = (window as unknown as { __harnessPass?: HarnessPass }).__harnessPass;
+  if (fixture) {
+    setAccount(fixture.account as never, null);
+    standInPass(fixture.account["userId"] as string, { state: "open", view: fixture.view });
+  }
+}
 // Wave 1's root screens (src/components/app/AppErrorScreen.tsx, FirstOpen.tsx), drawn as the root route draws them.
 const ROOT_SCREENS: Record<string, () => JSX.Element> = {
   notfound: () => <NotFoundPage />,
@@ -594,6 +606,14 @@ const ROOT_SCREENS: Record<string, () => JSX.Element> = {
   },
   // The rated match screens (wave 3, W3c): window.__harnessRated.screen, drawn from scripts/rated-fixture.tsx.
   rated: () => <RatedHarnessScreen />,
+  // The Pass part as the /shop route draws it (src/routes/shop.tsx), from window.__harnessPass.
+  pass: () => (
+    <PhoneShell tabs="shop">
+      <div className="ap-stack" data-shop-page="pass">
+        <PassScreen />
+      </div>
+    </PhoneShell>
+  ),
   // The prompt due on the next tab page (seeded below): Profile draws it through PhoneShell's SaveProgressSlot.
   saveprogress: () => {
     const Profile = ProfileRoute.options.component as () => JSX.Element;
