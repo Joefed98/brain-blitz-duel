@@ -89,6 +89,20 @@ const RATED_TASKS = {
 };
 
 /**
+ * The leaderboards' Cron Trigger (wave 4 W4a, docs/leaderboards.md "How boards refresh"): the same refresh as pg_cron's
+ * job, every 5 minutes, so boards refresh where pg_cron isn't available; running twice does no harm (an advisory lock).
+ * Kept in step with LEADERBOARD_CRONS (src/lib/leaderboards/tasks/refreshTask.server.ts; leaderboards-check compares).
+ */
+const LEADERBOARD_TASKS = {
+  tasks: {
+    "leaderboards:refresh": { handler: fileURLToPath(new URL("./src/lib/leaderboards/tasks/refresh.task.ts", import.meta.url)) },
+  },
+  scheduledTasks: {
+    "*/5 * * * *": ["leaderboards:refresh"],
+  },
+};
+
+/**
  * Tournaments (wave 4 W4b, docs/tournaments/README.md "The tick"): on B2's every-5-minutes trigger (one Cron Trigger
  * runs both), TOURNAMENT_CRON in src/lib/tournaments/tasks/tournamentsTick.server.ts (tournaments-check compares).
  */
@@ -141,9 +155,9 @@ function withTasks(base: ReturnType<typeof nitroTasks>, ...sets: TaskSet[]) {
 const SERVER_BUILD = Object.assign(
   { minify: true },
   { cloudflare: { wrangler: { observability: WORKER_OBSERVABILITY } } },
-  // Every set of Cron Triggers (B2's push tasks, W3a's rated standings, W3b's practice-deal purge, W4b's tournaments
-  // tick on the push sweep's */5), merged so none replaces another.
-  withTasks(withTasks(nitroTasks(PUSH_TASKS, RATED_TASKS), MATCHMAKING_TASKS), TOURNAMENT_TASKS),
+  // Every set of Cron Triggers (B2's push tasks, W3a's rated standings, W3b's practice-deal purge, W4a's leaderboard
+  // refresh, W4b's tournaments tick; the last two on the push sweep's */5), merged so none replaces another.
+  withTasks(withTasks(withTasks(nitroTasks(PUSH_TASKS, RATED_TASKS), MATCHMAKING_TASKS), LEADERBOARD_TASKS), TOURNAMENT_TASKS),
 ) as NitroOptions & { minify: boolean };
 
 export default defineConfig({

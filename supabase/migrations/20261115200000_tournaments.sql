@@ -34,7 +34,7 @@ ON CONFLICT (reason) DO NOTHING;
 -- The daily Score Attack is an async room of its own kind (the Daily's engine). Widened, never narrowed.
 ALTER TABLE public.async_rooms DROP CONSTRAINT IF EXISTS async_rooms_kind_check;
 ALTER TABLE public.async_rooms ADD CONSTRAINT async_rooms_kind_check
-  CHECK (kind IN ('daily_puzzle', 'daily_arcade', 'challenge', 'score_attack')) NOT VALID;
+  CHECK (kind IN ('daily_puzzle', 'daily_arcade', 'challenge', 'daily_archive', 'score_attack')) NOT VALID;
 ALTER TABLE public.async_rooms VALIDATE CONSTRAINT async_rooms_kind_check;
 
 /* ------------------------------------------------------------------ tables */

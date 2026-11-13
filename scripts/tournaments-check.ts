@@ -247,6 +247,10 @@ async function runDb(db: LocalDb): Promise<void> {
     return out.out.trim();
   };
   const tryQ = (sql: string) => db.psql(sql);
+  // The kind check is widened, never narrowed: every kind an earlier migration allowed (E2's daily_archive included,
+  // dropped by this branch's first copy and caught by plus-check on 13 Nov 2026) is still allowed after this one.
+  const kindCheck = q(`SELECT pg_get_constraintdef(oid) FROM pg_constraint WHERE conname = 'async_rooms_kind_check'`);
+  check(["daily_puzzle", "daily_arcade", "challenge", "daily_archive", "score_attack"].every((k) => kindCheck.includes(`'${k}'`)), `async_rooms' kind check keeps every earlier kind and adds score_attack (${kindCheck})`);
   const server = await import("../src/lib/tournaments/tournaments.server");
   const fns = await import("../src/lib/tournaments/tournaments.functions");
   const data = await import("../src/lib/data/tournaments.server");

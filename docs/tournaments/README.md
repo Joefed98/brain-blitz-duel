@@ -123,9 +123,9 @@ tournaments-screens-check (~2 s).
 
 ## Nameplates
 
-Every board row draws its player as the nameplate strip from A2's player card (Joe's rule of 11 Nov 2026): the card art
-band, the frame, the avatar, the name colour, the rated emblem and the badges inside the name area only, never behind a
-place or a score; a tap opens the full card. The plates come with the board (`platesFor`, one call per page). Guests and
-a guest keeps colour and initial; a hidden under-18 is "Hidden player" on a plain neutral disc, with no
-initial, no colour and nothing to open (Joe, 12 Nov 2026). Contract: `interface.md` section 10; proof:
+Every board row draws its player with W4a's shared `NameplateStrip` (Joe's rule of 11 Nov 2026; `docs/nameplate.md`):
+the card art band, the frame, the avatar, the name colour, the rated emblem and the badges inside the name area only,
+never behind a place or a score; a tap opens the full card. The plates come with the board (`platesFor` on the shared
+`nameplatesFor`, one call per page). A guest keeps colour and initial; a hidden under-18 is "Hidden player" on a plain
+neutral disc, with no initial and no colour (Joe, 12 Nov 2026); neither opens anything. Contract: `interface.md` section 10; proof:
 tournament-plates-check.

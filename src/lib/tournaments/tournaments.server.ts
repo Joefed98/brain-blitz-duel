@@ -98,7 +98,7 @@ import type {
   TournamentHub,
   TrophyView,
 } from "./types";
-import { UNKNOWN_PLATE } from "@/lib/identity/plates";
+import { plateName, UNKNOWN_PLATE } from "@/lib/identity/plates";
 import { platesFor } from "@/lib/identity/plates.server";
 
 /* ------------------------------------------------------------------ constants */
@@ -502,7 +502,7 @@ export async function arenaPartner(me: Searcher, waiting: readonly Searcher[], n
 async function opponentOf(client: Db, viewerId: string, other: string): Promise<ArenaDuelView["opponent"]> {
   const name = (await accountName(client, other)) ?? "Player";
   const plate = (await platesFor(client, viewerId, [{ userId: other, name }], Date.now())).get(other)!;
-  return { userId: other, name: plate.name, plate };
+  return { userId: other, name: plateName(plate), plate };
 }
 
 async function duelView(client: Db, duel: ArenaDuelRow, userId: string): Promise<ArenaDuelView> {
@@ -731,7 +731,7 @@ export async function arenaBoard(client: Db, userId: string, eventId: unknown, n
     return {
       place: p.place,
       userId: p.userId,
-      name: plate.name,
+      name: plateName(plate),
       plate,
       points: p.points,
       wins: p.wins,
@@ -937,7 +937,7 @@ async function scoreAttackRows(
   const plates = await platesFor(client, userId, shown.map((s) => ({ userId: s.userId, name: s.name })), nowMs);
   return shown.map((s) => {
     const plate = plates.get(s.userId) ?? UNKNOWN_PLATE;
-    return { place: s.place, name: plate.name, plate, total: s.total, isMe: s.userId === userId };
+    return { place: s.place, name: plateName(plate), plate, total: s.total, isMe: s.userId === userId };
   });
 }
 

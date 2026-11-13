@@ -159,21 +159,22 @@ flagged players out of your standings.
 
 ## 10. Nameplates on every row (Joe's rule of 11 Nov 2026)
 
-A player's card, avatar and frame show wherever they appear. Every board, standings and bracket row draws its player as
-the nameplate strip from A2's player card: `TournamentPlate` (`src/components/tournaments/TournamentPlate.tsx`) with the
-row's `plate` (`PlateView`, `src/lib/identity/plates.ts`). The card art band, the frame, the avatar, the name colour,
-the rated emblem and the card's badges sit inside the name area only, never behind a place or a score; the strip is a
-button (a hidden player's is not) and a tap opens the player's full card (`PlayerCard`) in a sheet from the same plate.
+A player's card, avatar and frame show wherever they appear. Every board, standings and bracket row draws its player
+with W4a's shared nameplate (`docs/nameplate.md`): the row's `plate` is a `NameplatePlayer` (`PlateView`,
+`src/lib/identity/plates.ts`), drawn by `NameplateStrip` (`@/design/identity`) in the name area only, never behind a
+place or a score. On the Arena and Score Attack boards the row is TournamentEvent's `PlateRow`: a row with a card is a
+button that opens the player's full card in `NameplateSheet`; guests and hidden players open nothing (the shared rule).
 
 - **One call per page**: the server builds every row's plate with `platesFor(client, viewerId, rows, nowMs)`
-  (`src/lib/identity/plates.server.ts`: one read each of A1's public cards, C2's card badges and titles, W3a's shown
-  tiers through `shownTiersFor`, and the dates of birth) and sends them inside the board's own answer. The phone fetches
-  nothing for a plate.
-- `card`: an account (its username, never a row's stored name). `guest`: the room name on colour and initial.
-  `hidden`: an under-18 seen by anyone but themselves: exactly `{ kind: "hidden", name: "Hidden player" }`
-  (`HIDDEN_PLATE`; Joe, 12 Nov 2026), drawn on a plain neutral disc with nothing to open: no username, initial, colour,
-  cosmetics, emblem or badges in the answer. A failed age read hides every other player (fails closed).
-- W4c: build your bracket and standings rows the same way (`platesFor` once per page, `plate` on each row). The strip
-  that draws them becomes W4a's shared `NameplateStrip` (`@/design/identity`, on #385's `publicCardsFor`) when the
-  wave 4 train merges; `TournamentPlate` goes then, the hidden-player rules stay on the server. tournament-plates-check proves the plates, the boards and the strip.
+  (`src/lib/identity/plates.server.ts`: the shared `nameplatesFor` for the cards, badges and titles, one profiles read
+  for the usernames, player numbers and dates of birth, and W3a's shown tiers through `shownTiersFor`) and sends them
+  inside the board's own answer. The phone fetches nothing for a plate.
+- `card`: an account (its username, never a row's stored name; `tier` W3a's shown tier id). `plain`: a guest's room
+  name on colour and initial (or, if the card read failed, an account's username on a plain disc). `hidden`: an
+  under-18 seen by anyone but themselves, or an account with no public card (waiting for deletion): exactly
+  `{ kind: "hidden" }` (`HIDDEN_PLATE`; Joe, 12 Nov 2026), drawn on a plain neutral disc as "Hidden player": no
+  username, initial, colour, cosmetics, emblem or badges in the answer. A failed age read hides every other player
+  (fails closed). Rows also carry `name` (`plateName(plate)`: "Hidden player" for a hidden one).
+- W4c: build your bracket and standings rows the same way (`platesFor` once per page, `plate` on each row, drawn with
+  `NameplateStrip`). tournament-plates-check proves the plates, the boards and the strip.
 

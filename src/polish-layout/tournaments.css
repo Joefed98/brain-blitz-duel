@@ -204,110 +204,26 @@ ul.tn-how {
   color: var(--jz-text-2);
 }
 
-/* A player on a board row: the nameplate strip from A2's player card (TournamentPlate). The card art, frame, avatar and
-   name colour sit inside .tn-plate-area only, so the place and score beside it stay on the plain row. */
-.tn-plate {
+/* A player on a board row: the shared nameplate strip (NameplateStrip, docs/nameplate.md) in the name area, then the
+   value on the plain row; the row opens the player's card when it has one. */
+.tn-row-in {
   display: flex;
   min-width: 0;
   min-height: 44px;
   flex: 1 1 auto;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   padding: 0;
   border: 0;
   background: none;
   color: inherit;
   font: inherit;
   text-align: left;
+}
+button.tn-row-in {
   cursor: pointer;
 }
-.tn-plate-area {
-  position: relative;
-  display: block;
+.tn-who {
+  flex: 1 1 auto;
   min-width: 0;
-  flex: 0 1 auto;
-  max-width: 100%;
-  height: 40px;
-  border-radius: var(--jz-radius);
-  overflow: hidden;
-  --pc-u: 0.83px;
-}
-.tn-plate-area.pcard {
-  width: auto;
-  aspect-ratio: auto;
-}
-.tn-plate-area > .pcard-svg {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-}
-.tn-plate-row {
-  position: relative;
-  display: flex;
-  height: 100%;
-  min-width: 0;
-  align-items: center;
-  gap: 8px;
-  padding: 0 12px 0 6px;
-}
-.tn-plate-disc {
-  flex: none;
-  width: 28px;
-  height: 28px;
-}
-.tn-plate-disc > svg {
-  display: block;
-  width: 100%;
-  height: 100%;
-  overflow: visible;
-}
-.tn-plate-initial {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 999px;
-  background: var(--tn-plate-badge);
-  color: var(--jz-on-gold);
-  font-size: 14px;
-  font-weight: var(--jz-weight-bold);
-}
-.tn-plate-hidden {
-  border-radius: 999px;
-  background: var(--jz-bg-raised);
-  box-shadow: inset 0 0 0 1.5px var(--jz-line);
-}
-.tn-plate-name {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.tn-plate-plain {
-  font-size: 15px;
-  line-height: 20px;
-  font-weight: var(--jz-weight-bold);
-  color: var(--jz-text);
-}
-.tn-plate-framed {
-  border-radius: 999px;
-  box-shadow: 0 0 0 1.5px var(--jz-gold);
-}
-.tn-plate-emblem {
-  flex: none;
-}
-.tn-plate-badges {
-  display: flex;
-  flex: none;
-  gap: 2px;
-}
-.tn-plate-badges > img {
-  display: block;
-  width: 18px;
-  height: 18px;
-}
-.tn-plate-you {
-  flex: none;
-  font-size: 13px;
-  color: var(--jz-text-2);
 }

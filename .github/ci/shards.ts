@@ -393,6 +393,11 @@ export const SHARDS: Record<string, string[]> = {
     // through the server-function harness, beside accounts-check; friends-ui-check (~3 s, happy-dom) the screens.
     "friends-check.ts",
     "friends-ui-check.tsx",
+    // leaderboards-check (wave 4 W4a, 11 Nov 2026, ~25 s): rating boards, the Daily top 100, privacy, the Daily badges'
+    // field sizes and read-only boards on a local PostgreSQL through the server-function harness, beside accounts-check;
+    // leaderboards-ui-check (~2 s, happy-dom) the screens.
+    "leaderboards-check.ts",
+    "leaderboards-ui-check.tsx",
     // practice-challenges-check (wave 2 C1b, 11 Nov 2026, ~40 s): the challenge catalogue's checker on real graded runs,
     // speed goals against the grader, the six stored facts, coins once per account and guests paid on sign-up on a local
     // PostgreSQL through the server-function harness, beside accounts-check.

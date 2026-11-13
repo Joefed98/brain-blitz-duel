@@ -79,6 +79,11 @@ export const ANALYTICS_EVENTS = [
   // (src/lib/challenges/challenges.server.ts) when a graded Practice run completes one. game is the game, props.challenge
   // the challenge id, props.level its level, props.coins the coins paid with it (0 for a guest, paid on becoming an account).
   "challenge_completed",
+  // Leaderboards (wave 4, session W4a; docs/leaderboards.md): recorded by the server only
+  // (src/lib/leaderboards/leaderboards.server.ts), once per board opened. leaderboard_viewed carries props.board,
+  // props.scope and props.period; daily_board_viewed props.kind and props.day. Never a name or another player's id.
+  "leaderboard_viewed",
+  "daily_board_viewed",
   // The shop (wave 2, session D1; docs/economy/shop.md): recorded by the server only (src/lib/shop/shop.server.ts).
   // shop_viewed props.section, item_bought props.coins, props.item and props.rarity, bundle_bought props.bundle,
   // props.coins and props.items, pack_bought props.pack, props.coins and props.test, wishlist_added props.item.
